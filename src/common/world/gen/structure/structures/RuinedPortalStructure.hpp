@@ -36,7 +36,7 @@ private:
  */
 class RuinedPortalStructure : public Structure {
 public:
-    RuinedPortalStructure() = default;
+    RuinedPortalStructure() : Structure(StructureType::RuinedPortal) {}
 
     [[nodiscard]] const String& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }

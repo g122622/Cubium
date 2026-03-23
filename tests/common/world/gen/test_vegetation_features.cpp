@@ -47,12 +47,17 @@ TEST_F(VegetationFeatureTest, OreFeatureIdsAreConsecutive) {
 
 TEST_F(VegetationFeatureTest, TreeFeatureIdsAreConsecutive) {
     // 验证树木特征ID是连续的
+    // 注意：ID顺序必须与 TreeFeatures::initialize() 中注册顺序一致
     EXPECT_EQ(TreeFeatureIds::OakTree, 0u);
     EXPECT_EQ(TreeFeatureIds::BirchTree, 1u);
     EXPECT_EQ(TreeFeatureIds::SpruceTree, 2u);
     EXPECT_EQ(TreeFeatureIds::JungleTree, 3u);
-    EXPECT_EQ(TreeFeatureIds::SparseOakTree, 4u);
-    EXPECT_EQ(TreeFeatureIds::Count, 5u);
+    EXPECT_EQ(TreeFeatureIds::AcaciaTree, 4u);
+    EXPECT_EQ(TreeFeatureIds::DarkOakTree, 5u);
+    EXPECT_EQ(TreeFeatureIds::SparseOakTree, 6u);
+    EXPECT_EQ(TreeFeatureIds::GiantSpruceTree, 7u);
+    EXPECT_EQ(TreeFeatureIds::GiantJungleTree, 8u);
+    EXPECT_EQ(TreeFeatureIds::Count, 9u);
 }
 
 TEST_F(VegetationFeatureTest, FlowerFeatureIdsHaveCorrectOffset) {
@@ -125,7 +130,7 @@ TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount) {
         SugarCaneFeatureIds::Count;
 
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, expectedTotal);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 23u); // 5+5+7+2+2+2
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 27u); // 9+5+7+2+2+2
 }
 
 // ============================================================================
@@ -162,6 +167,7 @@ TEST_F(VegetationFeatureTest, FeatureRegistryFeatureNames) {
 TEST_F(VegetationFeatureTest, TreeFeatureNames) {
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
 
+    // 基础树木
     EXPECT_NE(vegetalFeatures[TreeFeatureIds::OakTree], nullptr);
     EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::OakTree]->name(), "oak_tree");
 
@@ -170,6 +176,25 @@ TEST_F(VegetationFeatureTest, TreeFeatureNames) {
 
     EXPECT_NE(vegetalFeatures[TreeFeatureIds::SpruceTree], nullptr);
     EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::SpruceTree]->name(), "spruce_tree");
+
+    EXPECT_NE(vegetalFeatures[TreeFeatureIds::JungleTree], nullptr);
+    EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::JungleTree]->name(), "jungle_tree");
+
+    // 新增树木类型 (ID顺序与注册顺序一致)
+    EXPECT_NE(vegetalFeatures[TreeFeatureIds::AcaciaTree], nullptr);
+    EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::AcaciaTree]->name(), "acacia_tree");
+
+    EXPECT_NE(vegetalFeatures[TreeFeatureIds::DarkOakTree], nullptr);
+    EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::DarkOakTree]->name(), "dark_oak_tree");
+
+    EXPECT_NE(vegetalFeatures[TreeFeatureIds::SparseOakTree], nullptr);
+    EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::SparseOakTree]->name(), "sparse_oak_tree");
+
+    EXPECT_NE(vegetalFeatures[TreeFeatureIds::GiantSpruceTree], nullptr);
+    EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::GiantSpruceTree]->name(), "giant_spruce_tree");
+
+    EXPECT_NE(vegetalFeatures[TreeFeatureIds::GiantJungleTree], nullptr);
+    EXPECT_STREQ(vegetalFeatures[TreeFeatureIds::GiantJungleTree]->name(), "giant_jungle_tree");
 }
 
 TEST_F(VegetationFeatureTest, FlowerFeatureNames) {

@@ -23,6 +23,25 @@ namespace world::gen {
 namespace world::gen::structure {
 
 /**
+ * @brief 结构类型枚举
+ */
+enum class StructureType : u8 {
+    Temple,         ///< 神殿/神庙结构（沙漠神殿、丛林神庙等）
+    Monument,       ///< 海洋纪念碑
+    Stronghold,     ///< 要塞
+    Village,        ///< 村庄
+    Mineshaft,      ///< 废弃矿井
+    RuinedPortal,   ///< 废弃传送门
+    BuriedTreasure, ///< 埋藏宝藏
+    Shipwreck,      ///< 沉船
+    OceanRuin,      ///< 海洋废墟
+    WoodlandMansion,///< 林地府邸
+    Bastion,        ///< 堡垒遗迹
+    Fortress,       ///< 下界要塞
+    EndCity         ///< 末地城
+};
+
+/**
  * @brief 结构间距设置
  */
 struct StructureSeparationSettings {
@@ -105,6 +124,7 @@ public:
     [[nodiscard]] virtual StructureSeparationSettings separationSettings() const = 0;
     [[nodiscard]] virtual const std::vector<BiomeId>& validBiomes() const = 0;
 
+    [[nodiscard]] StructureType structureType() const { return m_type; }
     [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;
 
     /**
@@ -160,13 +180,22 @@ public:
         i32& outStartX, i32& outStartZ);
 
 protected:
+    explicit Structure(StructureType type) : m_type(type) {}
+
     [[nodiscard]] static math::Random createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
+
+    StructureType m_type;
 };
 
 // 片段类型常量
 namespace StructurePieceTypes {
     constexpr i32 RUINED_PORTAL = 50;
     constexpr i32 BURIED_TREASURE = 53;
+    // 废弃矿井片段
+    constexpr i32 MINESHAFT_ROOM = 60;
+    constexpr i32 MINESHAFT_CORRIDOR = 61;
+    constexpr i32 MINESHAFT_CROSS = 62;
+    constexpr i32 MINESHAFT_STAIRS = 63;
 }
 
 } // namespace mc::world::gen::structure

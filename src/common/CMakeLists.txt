@@ -241,6 +241,23 @@ add_library(mc_common STATIC
     world/gen/structure/StructureManager.cpp
     world/gen/structure/structures/RuinedPortalStructure.cpp
     world/gen/structure/structures/BuriedTreasureStructure.cpp
+    world/gen/structure/structures/MineshaftStructure.cpp
+    world/gen/structure/structures/VillageStructure.cpp
+    world/gen/structure/structures/StrongholdStructure.cpp
+    world/gen/structure/structures/DesertPyramidStructure.cpp
+    world/gen/structure/structures/JungleTempleStructure.cpp
+    world/gen/structure/structures/OceanMonumentStructure.cpp
+    world/gen/structure/JigsawStructure.cpp
+
+    # World - Generation - Jigsaw
+    world/gen/jigsaw/JigsawPiece.cpp
+    world/gen/jigsaw/JigsawPattern.cpp
+    world/gen/jigsaw/JigsawManager.cpp
+
+    # World - Generation - Template
+    world/gen/feature/template/Template.cpp
+    world/gen/feature/template/TemplateManager.cpp
+    world/gen/feature/template/TemplateLoader.cpp
 
     # World - Generation - Placement
     world/gen/placement/Placement.cpp

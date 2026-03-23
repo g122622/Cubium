@@ -1,6 +1,8 @@
 #include "TreeFeature.hpp"
 #include "trunk/StraightTrunkPlacer.hpp"
+#include "trunk/TrunkPlacers.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
+#include "foliage/FoliagePlacers.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockRegistry.hpp"
@@ -281,7 +283,11 @@ void TreeFeatures::initialize() {
     s_features.push_back(createBirchTree());
     s_features.push_back(createSpruceTree());
     s_features.push_back(createJungleTree());
+    s_features.push_back(createAcaciaTree());
+    s_features.push_back(createDarkOakTree());
     s_features.push_back(createSparseOakTree());
+    s_features.push_back(createGiantSpruceTree());
+    s_features.push_back(createGiantJungleTree());
 
     spdlog::info("[TreeFeatures] Initialized {} tree features", s_features.size());
 }
@@ -391,10 +397,12 @@ TreeFeatureConfig TreeFeatures::spruceConfig() {
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(5, 2, 1);
-    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
+    // 使用云杉树叶放置器生成锥形树冠
+    // SpruceFoliagePlacer(radius, offset, height)
+    config.foliagePlacer = std::make_unique<SpruceFoliagePlacer>(
         FeatureSpread::spread(2, 1),
         FeatureSpread::fixed(0),
-        3
+        2  // height
     );
     config.minHeight = 5;
     return config;
@@ -405,13 +413,130 @@ TreeFeatureConfig TreeFeatures::jungleConfig() {
     config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG);
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 8, 0);
-    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
+    // 使用丛林树叶放置器
+    // JungleFoliagePlacer(radius, offset, height)
+    config.foliagePlacer = std::make_unique<JungleFoliagePlacer>(
         FeatureSpread::spread(2, 1),
         FeatureSpread::fixed(0),
-        2
+        2  // height
     );
     config.minHeight = 4;
     return config;
+}
+
+TreeFeatureConfig TreeFeatures::acaciaConfig() {
+    TreeFeatureConfig config;
+    config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::ACACIA_LOG);
+    config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::ACACIA_LEAVES);
+    // 金合欢使用分叉树干
+    config.trunkPlacer = std::make_unique<ForkyTrunkPlacer>(5, 2, 1);
+    // 金合欢使用伞形树叶
+    // AcaciaFoliagePlacer(radius, offset)
+    config.foliagePlacer = std::make_unique<AcaciaFoliagePlacer>(
+        FeatureSpread::spread(2, 1),
+        FeatureSpread::fixed(0)
+    );
+    config.minHeight = 4;
+    return config;
+}
+
+TreeFeatureConfig TreeFeatures::darkOakConfig() {
+    TreeFeatureConfig config;
+    config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::DARK_OAK_LOG);
+    config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::DARK_OAK_LEAVES);
+    // 深色橡树使用 2x2 树干
+    config.trunkPlacer = std::make_unique<DarkOakTrunkPlacer>(6, 3, 1);
+    // 深色橡树使用密集球形树叶
+    // DarkOakFoliagePlacer(radius, offset, height)
+    config.foliagePlacer = std::make_unique<DarkOakFoliagePlacer>(
+        FeatureSpread::spread(2, 1),
+        FeatureSpread::fixed(0),
+        4  // height
+    );
+    config.minHeight = 6;
+    return config;
+}
+
+TreeFeatureConfig TreeFeatures::giantSpruceConfig() {
+    TreeFeatureConfig config;
+    config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG);
+    config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::SPRUCE_LEAVES);
+    // 巨型云杉使用 2x2 树干
+    config.trunkPlacer = std::make_unique<GiantTrunkPlacer>(13, 5, 3);
+    // 巨型云杉使用更大的锥形树叶
+    // MegaPineFoliagePlacer(radius, offset, height)
+    config.foliagePlacer = std::make_unique<MegaPineFoliagePlacer>(
+        FeatureSpread::spread(3, 2),
+        FeatureSpread::fixed(0),
+        8  // height
+    );
+    config.minHeight = 13;
+    return config;
+}
+
+TreeFeatureConfig TreeFeatures::giantJungleConfig() {
+    TreeFeatureConfig config;
+    config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG);
+    config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::JUNGLE_LEAVES);
+    // 巨型丛林木使用 2x2 树干
+    config.trunkPlacer = std::make_unique<MegaJungleTrunkPlacer>(10, 8, 5);
+    // 巨型丛林木使用丛林树叶放置器
+    // JungleFoliagePlacer(radius, offset, height)
+    config.foliagePlacer = std::make_unique<JungleFoliagePlacer>(
+        FeatureSpread::spread(3, 2),
+        FeatureSpread::fixed(0),
+        3  // height
+    );
+    config.minHeight = 10;
+    return config;
+}
+
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createAcaciaTree() {
+    // 金合欢树配置
+    auto config = std::make_unique<TreeFeatureConfig>(acaciaConfig());
+
+    auto placement = PlacementUtils::appendBiomePlacement(
+        PlacementUtils::createCountedSurfacePlacement(2),
+        {Biomes::Savanna, Biomes::SavannaPlateau, Biomes::ShatteredSavanna});
+
+    return std::make_unique<ConfiguredTreeFeature>(
+        std::move(config), std::move(placement), "acacia_tree");
+}
+
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createDarkOakTree() {
+    // 深色橡树配置
+    auto config = std::make_unique<TreeFeatureConfig>(darkOakConfig());
+
+    auto placement = PlacementUtils::appendBiomePlacement(
+        PlacementUtils::createCountedSurfacePlacement(3),
+        {Biomes::DarkForest, Biomes::DarkForestHills});
+
+    return std::make_unique<ConfiguredTreeFeature>(
+        std::move(config), std::move(placement), "dark_oak_tree");
+}
+
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantSpruceTree() {
+    // 巨型云杉配置
+    auto config = std::make_unique<TreeFeatureConfig>(giantSpruceConfig());
+
+    auto placement = PlacementUtils::appendBiomePlacement(
+        PlacementUtils::createChanceSurfacePlacement(0.3f),
+        {Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
+
+    return std::make_unique<ConfiguredTreeFeature>(
+        std::move(config), std::move(placement), "giant_spruce_tree");
+}
+
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantJungleTree() {
+    // 巨型丛林木配置
+    auto config = std::make_unique<TreeFeatureConfig>(giantJungleConfig());
+
+    auto placement = PlacementUtils::appendBiomePlacement(
+        PlacementUtils::createChanceSurfacePlacement(0.2f),
+        {Biomes::Jungle});
+
+    return std::make_unique<ConfiguredTreeFeature>(
+        std::move(config), std::move(placement), "giant_jungle_tree");
 }
 
 } // namespace mc

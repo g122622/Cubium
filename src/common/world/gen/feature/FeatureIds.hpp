@@ -36,13 +36,18 @@ namespace OreFeatureIds {
 // ============================================================================
 
 namespace TreeFeatureIds {
-    // 树木特征 (0-4)
-    constexpr u32 OakTree = 0;       // 橡树
-    constexpr u32 BirchTree = 1;     // 白桦
-    constexpr u32 SpruceTree = 2;    // 云杉
-    constexpr u32 JungleTree = 3;    // 丛林树
-    constexpr u32 SparseOakTree = 4; // 稀疏橡树
-    constexpr u32 Count = 5;          // 树木特征总数
+    // 树木特征 (0-8)
+    // 注意：ID必须与 TreeFeatures::initialize() 中注册的顺序一致
+    constexpr u32 OakTree = 0;        // 橡树
+    constexpr u32 BirchTree = 1;      // 白桦
+    constexpr u32 SpruceTree = 2;     // 云杉
+    constexpr u32 JungleTree = 3;     // 丛林树
+    constexpr u32 AcaciaTree = 4;     // 金合欢
+    constexpr u32 DarkOakTree = 5;    // 深色橡树
+    constexpr u32 SparseOakTree = 6;  // 稀疏橡树
+    constexpr u32 GiantSpruceTree = 7;  // 巨型云杉
+    constexpr u32 GiantJungleTree = 8;  // 巨型丛林木
+    constexpr u32 Count = 9;           // 树木特征总数
 }
 
 namespace FlowerFeatureIds {

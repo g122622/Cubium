@@ -1,0 +1,167 @@
+#include "StrongholdStructure.hpp"
+#include "../../jigsaw/JigsawManager.hpp"
+#include "../../jigsaw/JigsawPattern.hpp"
+#include "../../../biome/Biome.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../block/BlockPos.hpp"
+#include <cmath>
+
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
+
+using namespace mc::Biomes;
+
+const String StrongholdStructure::m_name = "stronghold";
+
+StrongholdStructure::StrongholdStructure()
+    : Structure(StructureType::Stronghold)
+{
+    initializeBiomes();
+}
+
+StrongholdStructure::StrongholdStructure(const Config& config)
+    : Structure(StructureType::Stronghold)
+    , m_config(config)
+{
+    initializeBiomes();
+}
+
+void StrongholdStructure::initializeBiomes() {
+    // 要塞可以在大多数主世界生物群系生成
+    m_validBiomes = {
+        Plains, SunflowerPlains, Forest, FlowerForest, BirchForest, BirchForestHills,
+        DarkForest, DarkForestHills, Taiga, TaigaHills, TaigaMountains,
+        GiantTreeTaiga, GiantTreeTaigaHills, GiantSpruceTaiga, GiantSpruceTaigaHills,
+        Mountains, WoodedMountains, GravellyMountains, MountainEdge,
+        Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge,
+        Desert, DesertHills, DesertLakes, Badlands, BadlandsPlateau, WoodedBadlandsPlateau,
+        Savanna, SavannaPlateau, ShatteredSavanna,
+        Swamp, SwampHills,
+        SnowyPlains, SnowyMountains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains,
+        SnowyPlains, SnowyBeach
+    };
+}
+
+bool StrongholdStructure::canGenerate(
+    IWorld& world,
+    IChunkGenerator& generator,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ)
+{
+    // 要塞位置由种子决定，不能随机生成
+    // 需要检查当前位置是否是预计算的要塞位置
+    return true;
+}
+
+std::unique_ptr<StructureStart> StrongholdStructure::generate(
+    IWorldWriter& world,
+    IChunkGenerator& generator,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ) const
+{
+    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+
+    // 计算起始位置
+    i32 startX = chunkX * 16 + 8;
+    i32 startZ = chunkZ * 16 + 8;
+
+    // 要塞生成在地下
+    i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
+
+    BlockPos startPos(startX, startY, startZ);
+
+    // TODO: 使用 Jigsaw 系统生成要塞
+    // 要塞的结构：
+    // 1. 入口楼梯
+    // 2. 走廊系统
+    // 3. 房间（图书馆、监狱、传送门房间等）
+    // 4. 末地传送门
+
+    // 使用预定义的模板池
+    ResourceLocation startPoolLocation("minecraft", "stronghold/start");
+    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
+    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
+
+    if (startPool && !startPool->isEmpty()) {
+        auto placedPieces = jigsaw::JigsawManager::assemble(
+            patternRegistry,
+            *startPool,
+            8,  // 要塞深度较大
+            startPos,
+            rng
+        );
+        // TODO: 将 placedPieces 转换为 StructurePieces 并添加到 StructureStart
+    }
+
+    return start;
+}
+
+std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 worldSeed) {
+    // 要塞分布算法（参考 MC 1.16.5）
+    // 8 个环，每个环有不同数量的要塞
+    // 环 0: 3 个要塞，距离 1408-2688
+    // 环 1: 6 个要塞，距离 4480-5760
+    // 环 2: 10 个要塞，距离 7552-8832
+    // 环 3: 15 个要塞，距离 10624-11904
+    // 环 4: 21 个要塞，距离 13696-14976
+    // 环 5: 28 个要塞，距离 16768-18048
+    // 环 6: 36 个要塞，距离 19840-21120
+    // 环 7: 9 个要塞，距离 22912-24192
+
+    static const i32 ringCounts[] = {3, 6, 10, 15, 21, 28, 36, 9};
+    static const i32 ringDistances[] = {1408, 4480, 7552, 10624, 13696, 16768, 19840, 22912};
+    static const i32 ringSpreads[] = {1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280};
+
+    i32 ring = getRing(index);
+    i32 ringIndex = index;
+    for (i32 i = 0; i < ring; ++i) {
+        ringIndex -= ringCounts[i];
+    }
+
+    i32 count = ringCounts[ring];
+    i32 distance = ringDistances[ring];
+    i32 spread = ringSpreads[ring];
+
+    // 计算角度
+    math::Random rng(worldSeed);
+    rng.nextInt(); // 跳过一些值
+    rng.nextInt();
+
+    // 计算该要塞的角度
+    f64 angleStep = 2.0 * 3.14159265358979323846 / count;
+    f64 angle = angleStep * ringIndex;
+
+    // 添加随机偏移
+    f64 randomOffset = (rng.nextDouble() - 0.5) * angleStep * 0.5;
+    angle += randomOffset;
+
+    // 计算距离
+    i32 actualDistance = distance + rng.nextInt(spread);
+
+    // 计算坐标
+    i32 x = static_cast<i32>(std::cos(angle) * actualDistance);
+    i32 z = static_cast<i32>(std::sin(angle) * actualDistance);
+
+    return {x >> 4, z >> 4}; // 转换为区块坐标
+}
+
+i32 StrongholdStructure::getRing(i32 index) {
+    static const i32 ringCounts[] = {3, 6, 10, 15, 21, 28, 36, 9};
+    i32 cumulative = 0;
+    for (i32 ring = 0; ring < 8; ++ring) {
+        cumulative += ringCounts[ring];
+        if (index < cumulative) {
+            return ring;
+        }
+    }
+    return 7;
+}
+
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

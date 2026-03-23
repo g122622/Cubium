@@ -1,0 +1,302 @@
+#pragma once
+
+#include "../Structure.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
+#include <vector>
+#include <memory>
+
+namespace mc::world::gen::structure {
+
+// 前向声明
+class MineshaftPiece;
+
+/**
+ * @brief 废弃矿井类型
+ */
+enum class MineshaftType : u8 {
+    Normal,  ///< 普通废弃矿井
+    Mesa     ///< 恶地废弃矿井（恶地生物群系）
+};
+
+/**
+ * @brief 废弃矿井配置
+ */
+struct MineshaftConfig {
+    f32 probability = 0.004f;  ///< 生成概率
+    MineshaftType type = MineshaftType::Normal;
+};
+
+// ============================================================================
+// 辅助函数声明
+// ============================================================================
+
+/**
+ * @brief 随机创建矿井片段
+ */
+[[nodiscard]] std::unique_ptr<MineshaftPiece> createMineshaftPiece(
+    std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+    math::Random& rng,
+    i32 x, i32 y, i32 z,
+    i32 direction,
+    i32 depth,
+    MineshaftType type);
+
+/**
+ * @brief 生成并添加矿井片段
+ */
+[[nodiscard]] std::unique_ptr<MineshaftPiece> addMineshaftPiece(
+    MineshaftPiece* parent,
+    std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+    math::Random& rng,
+    i32 x, i32 y, i32 z,
+    i32 direction,
+    i32 depth,
+    MineshaftType type);
+
+// ============================================================================
+// 废弃矿井片段基类
+// ============================================================================
+
+/**
+ * @brief 废弃矿井片段基类
+ *
+ * 参考 MC 1.16.5: MineshaftPieces.Piece
+ */
+class MineshaftPiece : public StructurePiece {
+public:
+    MineshaftPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                   MineshaftType mineshaftType);
+
+    [[nodiscard]] MineshaftType mineshaftType() const { return m_mineshaftType; }
+
+    /**
+     * @brief 构建连接片段
+     * @param pieces 已有片段列表
+     * @param rng 随机数生成器
+     * @param maxDepth 最大深度
+     */
+    virtual void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+                                 math::Random& rng, i32 maxDepth) = 0;
+
+protected:
+    /**
+     * @brief 检查位置是否可以放置片段
+     */
+    [[nodiscard]] static bool canPlaceAt(i32 x, i32 y, i32 z);
+
+    /**
+     * @brief 生成木板支撑
+     */
+    void generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::Random& rng);
+
+    MineshaftType m_mineshaftType;
+};
+
+// ============================================================================
+// 废弃矿井房间
+// ============================================================================
+
+/**
+ * @brief 废弃矿井房间
+ *
+ * 废弃矿井的中央起点房间。
+ * 参考 MC 1.16.5: MineshaftPieces.Room
+ */
+class MineshaftRoom : public MineshaftPiece {
+public:
+    MineshaftRoom(i32 componentType, math::Random& rng, i32 x, i32 y, i32 z, MineshaftType type);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+                        math::Random& rng, i32 maxDepth) override;
+
+private:
+    /// 出口方向列表
+    std::vector<i32> m_exits;
+};
+
+// ============================================================================
+// 废弃矿井走廊
+// ============================================================================
+
+/**
+ * @brief 废弃矿井走廊
+ *
+ * 水平的矿道走廊，带有支撑柱和铁轨。
+ * 参考 MC 1.16.5: MineshaftPieces.Corridor
+ */
+class MineshaftCorridor : public MineshaftPiece {
+public:
+    MineshaftCorridor(i32 componentType, math::Random& rng,
+                      i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                      i32 direction, MineshaftType type);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+                        math::Random& rng, i32 maxDepth) override;
+
+    [[nodiscard]] i32 direction() const { return m_direction; }
+
+private:
+    /**
+     * @brief 生成走廊地板
+     */
+    void generateFloor(IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2,
+                       math::Random& rng, const StructureBoundingBox& chunkBounds);
+
+    /**
+     * @brief 生成走廊天花板
+     */
+    void generateCeiling(IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2,
+                         math::Random& rng, const StructureBoundingBox& chunkBounds);
+
+    /**
+     * @brief 生成支撑柱
+     */
+    void generatePillars(IWorldWriter& world, i32 sectionIndex, math::Random& rng,
+                         const StructureBoundingBox& chunkBounds);
+
+    /**
+     * @brief 生成"铁轨"（简化实现）
+     */
+    void generateRails(IWorldWriter& world, math::Random& rng,
+                       const StructureBoundingBox& chunkBounds);
+
+    /**
+     * @brief 生成蜘蛛刷怪笼
+     */
+    void generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z,
+                         const StructureBoundingBox& chunkBounds);
+
+    /**
+     * @brief 生成宝箱矿车
+     */
+    void generateChestMinecart(IWorldWriter& world, i32 x, i32 y, i32 z,
+                               math::Random& rng,
+                               const StructureBoundingBox& chunkBounds);
+
+    bool m_hasRails;
+    bool m_hasSpiders;
+    bool m_spawnerPlaced = false;
+    i32 m_sectionCount;
+    i32 m_direction;  ///< 0=北, 1=南, 2=西, 3=东
+};
+
+// ============================================================================
+// 废弃矿井交叉点
+// ============================================================================
+
+/**
+ * @brief 废弃矿井交叉点
+ *
+ * 两条走廊的交叉点。
+ * 参考 MC 1.16.5: MineshaftPieces.Cross
+ */
+class MineshaftCross : public MineshaftPiece {
+public:
+    MineshaftCross(i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                   i32 direction, MineshaftType type);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+                        math::Random& rng, i32 maxDepth) override;
+
+    [[nodiscard]] i32 direction() const { return m_direction; }
+
+private:
+    i32 m_direction;
+};
+
+// ============================================================================
+// 废弃矿井楼梯
+// ============================================================================
+
+/**
+ * @brief 废弃矿井楼梯
+ *
+ * 连接不同高度层的楼梯。
+ * 参考 MC 1.16.5: MineshaftPieces.Stairs
+ */
+class MineshaftStairs : public MineshaftPiece {
+public:
+    MineshaftStairs(i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                    i32 direction, MineshaftType type);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
+                        math::Random& rng, i32 maxDepth) override;
+
+    [[nodiscard]] i32 direction() const { return m_direction; }
+
+private:
+    i32 m_direction;
+};
+
+// ============================================================================
+// 废弃矿井结构
+// ============================================================================
+
+/**
+ * @brief 废弃矿井结构
+ *
+ * 地下生成的复杂矿井结构，包含走廊、交叉点和楼梯。
+ * 参考 MC 1.16.5: MineshaftStructure
+ */
+class MineshaftStructure : public Structure {
+public:
+    explicit MineshaftStructure(MineshaftType type = MineshaftType::Normal);
+
+    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
+    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+
+    /**
+     * @brief 检查是否可以生成
+     */
+    [[nodiscard]] bool canGenerate(
+        IWorld& world,
+        IChunkGenerator& generator,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ) override;
+
+    /**
+     * @brief 生成废弃矿井
+     */
+    [[nodiscard]] std::unique_ptr<StructureStart> generate(
+        IWorldWriter& world,
+        IChunkGenerator& generator,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ) const override;
+
+private:
+    static constexpr StructureSeparationSettings m_settings{4, 2, 12345};  ///< 间距设置
+    static const String m_name;
+    static const std::vector<BiomeId> m_validBiomes;
+    static const std::vector<BiomeId> m_mesaBiomes;
+
+    MineshaftConfig m_config;
+};
+
+// 片段类型常量
+namespace MineshaftPieceTypes {
+    constexpr i32 ROOM = 60;
+    constexpr i32 CORRIDOR = 61;
+    constexpr i32 CROSS = 62;
+    constexpr i32 STAIRS = 63;
+}
+
+} // namespace mc::world::gen::structure

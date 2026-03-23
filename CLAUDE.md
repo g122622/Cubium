@@ -114,10 +114,20 @@ src/
 │       │   ├── carver/        # Cave/Canyon carvers
 │       │   ├── chunk/         # Chunk generators
 │       │   ├── feature/       # Features (ores, trees, vegetation)
+│       │   │   ├── tree/      # Tree generation system
+│       │   │   │   ├── trunk/ # TrunkPlacers (Straight, DarkOak, Fancy, Forky, Giant, MegaJungle)
+│       │   │   │   └── foliage/ # FoliagePlacers (Blob, Pine, Spruce, Acacia, DarkOak, Jungle, MegaPine, Bush, Fancy)
+│       │   │   ├── ore/       # OreFeature
+│       │   │   ├── vegetation/ # FlowerFeature, GrassFeature, BigMushroomFeature, CactusFeature
+│       │   │   ├── lake/      # LakeFeature
+│       │   │   └── template/  # StructureTemplate, TemplateManager, TemplateLoader
+│       │   ├── jigsaw/        # Jigsaw structure assembly system
 │       │   ├── noise/         # Noise generators
-│       │   ├── placement/     # Feature placement
+│       │   ├── placement/     # Feature placement (Count, Chance, HeightRange, Biome, Noise, etc.)
 │       │   ├── settings/      # Generation settings
 │       │   ├── spawn/         # World spawn
+│       │   ├── structure/     # Structure generation
+│       │   │   └── structures/ # Village, Mineshaft, Stronghold, DesertPyramid, JungleTemple, OceanMonument, etc.
 │       │   └── surface/       # Surface builders
 │       ├── lighting/          # Lighting system
 │       │   ├── engine/        # Light engines
@@ -368,6 +378,106 @@ auto future = manager.getChunkAsync(x, z, &ChunkStatus::FULL);
 // Tick the manager
 manager.tick();
 ```
+
+## Tree Generation System
+
+The tree generation system follows MC 1.16.5 architecture with TrunkPlacers and FoliagePlacers:
+
+### TrunkPlacers (6 types)
+- **StraightTrunkPlacer**: Simple vertical trunk (oak, birch, spruce, jungle)
+- **DarkOakTrunkPlacer**: 2x2 trunk for dark oak trees
+- **FancyTrunkPlacer**: Curved trunk for fancy oak trees
+- **ForkyTrunkPlacer**: Branching trunk for acacia trees
+- **GiantTrunkPlacer**: 2x2 trunk for giant spruce trees
+- **MegaJungleTrunkPlacer**: 2x2 trunk for mega jungle trees
+
+### FoliagePlacers (9 types)
+- **BlobFoliagePlacer**: Spherical foliage (oak, birch)
+- **PineFoliagePlacer**: Conical foliage for pine trees
+- **SpruceFoliagePlacer**: Sharp conical foliage for spruce
+- **AcaciaFoliagePlacer**: Umbrella-shaped foliage
+- **DarkOakFoliagePlacer**: Dense spherical foliage
+- **JungleFoliagePlacer**: Sparse single-layer foliage
+- **MegaPineFoliagePlacer**: Large conical for giant spruce
+- **BushFoliagePlacer**: Single-layer spherical for bushes
+- **FancyFoliagePlacer**: Dense spherical for fancy trees
+
+### Pre-configured Tree Types
+```cpp
+// TreeFeatures provides factory methods for all vanilla trees
+auto oakTree = TreeFeatures::createOakTree();
+auto spruceTree = TreeFeatures::createSpruceTree();
+auto darkOakTree = TreeFeatures::createDarkOakTree();
+auto acaciaTree = TreeFeatures::createAcaciaTree();
+// ... and more
+```
+
+## Structure Generation System
+
+The structure generation system uses the Jigsaw assembly pattern from MC 1.16.5:
+
+### Jigsaw System Components
+- **JigsawManager**: BFS assembly algorithm for connecting structure pieces
+- **JigsawPiece**: Individual structure template (SingleJigsawPiece, ListJigsawPiece)
+- **JigsawPattern**: Pool of pieces with weights for random selection
+- **JigsawPatternRegistry**: Global registry of all structure pools
+- **JigsawMatcher**: Connection point matching with rotation/mirror transforms
+
+### Supported Structures (8 types)
+- **Village**: Plains, desert, savanna, taiga variants
+- **Mineshaft**: Underground corridors with loot
+- **Stronghold**: End portal rooms with complex corridors
+- **DesertPyramid**: Desert temple with hidden loot
+- **JungleTemple**: Jungle temple with traps
+- **OceanMonument**: Underwater guardian temple
+- **RuinedPortal**: Portal ruins in various biomes
+- **BuriedTreasure**: Hidden treasure chests
+
+### Template Loading
+```cpp
+// Load structure templates from NBT
+TemplateLoader::loadFromResourcePack(pack, ResourceLocation("minecraft:village/plains/houses"));
+
+// Place template in world
+PlacementSettings settings;
+settings.setRotation(90);
+templ->place(world, pos, settings, rng, flags);
+```
+
+## Surface Builders (12 types)
+
+| Builder | Description |
+|---------|-------------|
+| DefaultSurfaceBuilder | Standard grass/dirt surface |
+| MountainSurfaceBuilder | Stone and snow at high elevations |
+| DesertSurfaceBuilder | Sand and sandstone |
+| SwampSurfaceBuilder | Clay patches in swamp areas |
+| FrozenOceanSurfaceBuilder | Ice on frozen oceans |
+| BadlandsSurfaceBuilder | Terracotta and red sand |
+| BeachSurfaceBuilder | Sand near water level |
+| GiantTreeTaigaSurfaceBuilder | Podzol and coarse dirt |
+| ShatteredSavannaSurfaceBuilder | Stone patches |
+| BambooJungleSurfaceBuilder | Podzol in bamboo areas |
+| NetherForestsSurfaceBuilder | Netherrack base |
+| SoulSandValleySurfaceBuilder | Soul sand and soul soil |
+
+## Placement Modifiers (13 types)
+
+| Placement | Description |
+|-----------|-------------|
+| CountPlacement | Multiple placements per chunk |
+| ChancePlacement | Probability-based placement |
+| HeightRangePlacement | Y-coordinate constraints |
+| BiomePlacement | Biome filtering |
+| NoisePlacement | Noise threshold-based |
+| CountNoisePlacement | Noise-controlled count |
+| DepthAveragePlacement | Around a baseline depth |
+| TopSolidPlacement | On highest solid block |
+| CarvingMaskPlacement | At carved positions |
+| RandomOffsetPlacement | Random position offset |
+| WaterDepthThresholdPlacement | Max water depth check |
+| SeaLevelPlacement | At sea level |
+| SpreadPlacement | Spread around position |
 
 ## Rendering System
 
@@ -806,7 +916,27 @@ enum class Operation : u8 { ... };
 | **Performance Tracing** | Complete | Perfetto integration |
 | **Kagero UI** | Complete | Full UI framework with layout, state, templates |
 | **Physics** | Complete | Collision detection, AABB |
-| **Tests** | **2914 passing** | 123 test files, 406 test suites |
+| **Tree Generation** | Complete | 6 TrunkPlacers, 9 FoliagePlacers, 9 tree types |
+| **Structure Generation** | Complete | Jigsaw system, 8 structure types |
+| **Surface Builders** | Complete | 12 surface builder types |
+| **Placement System** | Complete | 13 placement modifiers |
+| **Carvers** | Complete | Cave, Canyon, Underwater carvers |
+| **Tests** | **2906 passing** | 399 test suites, all passing |
+
+## World Generation Modules Summary
+
+### Completed Systems
+
+| System | Files | Description |
+|--------|-------|-------------|
+| Tree Generation | 8 files | 6 TrunkPlacers, 9 FoliagePlacers, 9 tree types |
+| Structure Generation | 12 files | Jigsaw system, 8 structure types |
+| Surface Builders | 1 file | 12 surface builder implementations |
+| Placement Modifiers | 4 files | 13 placement types |
+| Carvers | 4 files | Cave, Canyon, Underwater carvers |
+| Biome Layers | 7 files | 170 biomes, layer-based distribution |
+| Noise Generators | 2 files | ImprovedNoise, OctavesNoise |
+| Chunk Generation | 2 files | NoiseChunkGenerator with MC 1.16.5 algorithm |
 
 ## Self-Maintenance Rule
 

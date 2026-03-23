@@ -1,0 +1,97 @@
+#pragma once
+
+#include "Template.hpp"
+#include "TemplateLoader.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include <unordered_map>
+#include <memory>
+#include <mutex>
+
+namespace mc {
+
+class IResourcePack;
+
+namespace world {
+namespace gen {
+namespace feature {
+namespace template_ {
+
+/**
+ * @brief 模板管理器
+ *
+ * 管理结构模板的加载、缓存和访问。
+ * 支持从资源包加载 .nbt 格式的结构模板文件。
+ */
+class TemplateManager {
+public:
+    TemplateManager();
+    ~TemplateManager();
+
+    /**
+     * @brief 设置资源包
+     * @param pack 资源包指针
+     */
+    void setResourcePack(const IResourcePack* pack);
+
+    /**
+     * @brief 获取模板（如果不存在则尝试加载）
+     * @param location 模板资源位置
+     * @return 模板指针，如果加载失败返回 nullptr
+     */
+    [[nodiscard]] const Template* getTemplate(const ResourceLocation& location);
+
+    /**
+     * @brief 获取模板（如果不存在则返回空模板）
+     * @param location 模板资源位置
+     * @return 模板引用
+     */
+    [[nodiscard]] const Template& getTemplateDefaulted(const ResourceLocation& location);
+
+    /**
+     * @brief 检查模板是否存在
+     */
+    [[nodiscard]] bool hasTemplate(const ResourceLocation& location) const;
+
+    /**
+     * @brief 手动添加模板
+     */
+    void addTemplate(const ResourceLocation& location, std::unique_ptr<Template> templ);
+
+    /**
+     * @brief 清除缓存
+     */
+    void clear();
+
+    /**
+     * @brief 获取缓存大小
+     */
+    [[nodiscard]] size_t cacheSize() const { return m_templates.size(); }
+
+    /**
+     * @brief 创建程序化模板
+     * @param name 模板名称
+     * @param width 宽度
+     * @param height 高度
+     * @param depth 深度
+     * @return 创建的模板
+     */
+    [[nodiscard]] std::unique_ptr<Template> createProceduralTemplate(
+        const String& name,
+        i32 width,
+        i32 height,
+        i32 depth);
+
+private:
+    [[nodiscard]] std::unique_ptr<Template> loadTemplate(const ResourceLocation& location);
+
+    std::unordered_map<ResourceLocation, std::unique_ptr<Template>> m_templates;
+    std::mutex m_mutex;
+    std::unique_ptr<Template> m_emptyTemplate;
+    const IResourcePack* m_resourcePack = nullptr;
+};
+
+} // namespace template_
+} // namespace feature
+} // namespace gen
+} // namespace world
+} // namespace mc

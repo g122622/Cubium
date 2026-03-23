@@ -35,7 +35,7 @@ private:
  */
 class BuriedTreasureStructure : public Structure {
 public:
-    BuriedTreasureStructure() = default;
+    BuriedTreasureStructure() : Structure(StructureType::BuriedTreasure) {}
 
     [[nodiscard]] const String& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
