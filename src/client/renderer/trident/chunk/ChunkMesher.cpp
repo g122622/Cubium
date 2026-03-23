@@ -136,23 +136,45 @@ bool ChunkMesher::shouldRenderBlock(const BlockState* state) {
     return !state->isAir();
 }
 
-bool ChunkMesher::shouldRenderFace(const BlockState* /*block*/, const BlockState* neighbor) {
-    // 如果邻居是空气，渲染面
+bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor) {
+    if (!block) {
+        return false;
+    }
+
+    // 邻居是空气（或越界）时渲染外露面
     if (!neighbor || neighbor->isAir()) {
         return true;
     }
 
-    // 如果邻居是液体，渲染面
+    // 相同状态对象之间不渲染内部面（State 通常为注册表共享单例）
+    if (block == neighbor) {
+        return false;
+    }
+
+    // 液体特殊规则：
+    // - 同类型液体之间不渲染内部面（海洋场景显存暴涨的主要来源）
+    // - 不同类型液体（如水/岩浆）之间保留边界面
+    if (block->isLiquid()) {
+        if (neighbor->isLiquid()) {
+            return block->blockId() != neighbor->blockId();
+        }
+        return true;
+    }
+
+    // 非液体方块与液体相邻，需要渲染交界面
     if (neighbor->isLiquid()) {
         return true;
     }
 
-    // 如果邻居是透明的（如玻璃、树叶），渲染面
+    // 透明方块规则：同类型透明方块之间剔除内部面
     if (neighbor->isTransparent()) {
+        if (block->isTransparent() && block->blockId() == neighbor->blockId()) {
+            return false;
+        }
         return true;
     }
 
-    // 否则不渲染面
+    // 与不透明实心邻居相接，不渲染
     return false;
 }
 
