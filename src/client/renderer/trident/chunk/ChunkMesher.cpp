@@ -89,8 +89,25 @@ void ChunkMesher::generateMesh(
 
     outMesh.clear();
 
-    // 预分配空间 (每个区块最多约98304个顶点)
-    outMesh.reserve(65536, 98304);
+    // 基于非空气方块数量进行预估，避免按最坏情况一次性分配过大内存。
+    // 经验值：每个非空气方块平均约 2 个可见面（地形场景）。
+    constexpr size_t MIN_ESTIMATED_FACES = 1024;
+    constexpr size_t MAX_ESTIMATED_FACES = 16384; // 65536 顶点 / 4
+    size_t nonAirBlockCount = 0;
+    for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk.getSection(sectionY);
+        if (section && !section->isEmpty()) {
+            nonAirBlockCount += section->getBlockCount();
+        }
+    }
+
+    const size_t estimatedFaces = std::clamp(
+        nonAirBlockCount * 2ULL,
+        MIN_ESTIMATED_FACES,
+        MAX_ESTIMATED_FACES
+    );
+    outMesh.reserve(estimatedFaces * BlockGeometry::VERTICES_PER_FACE,
+                    estimatedFaces * BlockGeometry::INDICES_PER_FACE);
 
     // 遍历所有区块段
     for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {

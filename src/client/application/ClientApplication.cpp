@@ -1267,6 +1267,14 @@ void ClientApplication::update(f32 deltaTime)
             auto result = chunkRenderer.updateChunk(chunkId, chunk.solidMesh);
             if (result.success()) {
                 chunk.needsMeshUpdate = false;
+
+                // 上传成功后释放 CPU 侧网格缓存，避免与 GPU 数据重复占用内存。
+                chunk.solidMesh.clear();
+                chunk.transparentMesh.clear();
+                std::vector<Vertex>().swap(chunk.solidMesh.vertices);
+                std::vector<u32>().swap(chunk.solidMesh.indices);
+                std::vector<Vertex>().swap(chunk.transparentMesh.vertices);
+                std::vector<u32>().swap(chunk.transparentMesh.indices);
             } else {
                 spdlog::error("Failed to update chunk mesh: {}", result.error().toString());
             }

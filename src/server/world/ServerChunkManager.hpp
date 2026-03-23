@@ -376,7 +376,9 @@ private:
     // 统计
     u64 m_currentTick = 0;
     u64 m_lastUnloadCheck = 0;
-    static constexpr u32 UNLOAD_CHECK_INTERVAL = 6000; // 5 分钟（20 tick/秒）
+
+    // 卸载检查间隔（单位：tick）
+    static constexpr u32 UNLOAD_CHECK_INTERVAL = 20; // 1秒（20 tick/秒）
 };
 
 } // namespace mc::server

@@ -1015,7 +1015,9 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
         }
     }
 
+    // 找不到资源时生成默认纹理
     if (textureData.empty()) {
+        spdlog::warn("No cloud texture found in resource packs. Generating procedural cloud texture.");
         textureData = generateCloudTexture(CLOUD_TEXTURE_SIZE, CLOUD_TEXTURE_SIZE);
         textureWidth = CLOUD_TEXTURE_SIZE;
         textureHeight = CLOUD_TEXTURE_SIZE;

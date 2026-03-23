@@ -617,6 +617,11 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame) {
         return;
     }
 
+    // 根据完成队列积压动态扩容处理预算，减少大规模区块同步时的峰值内存占用。
+    // 上限控制在 64，避免单帧处理过多导致卡顿。
+    const u32 completedBacklog = static_cast<u32>(m_meshWorkerPool->completedTaskCount());
+    const u32 dynamicBudget = std::max(maxPerFrame, std::min(completedBacklog, 64u));
+
     m_meshWorkerPool->processCompletedTasks(
         [this](MeshBuildResult result) {
             ClientChunk* chunk = getChunk(result.chunkId);
@@ -636,7 +641,7 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame) {
 
             chunk->meshBuilding = false;
         },
-        maxPerFrame
+        dynamicBudget
     );
 }
 
