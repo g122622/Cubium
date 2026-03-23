@@ -1,6 +1,15 @@
 #include "StructureManager.hpp"
 #include "structures/RuinedPortalStructure.hpp"
 #include "structures/BuriedTreasureStructure.hpp"
+#include "structures/MineshaftStructure.hpp"
+#include "structures/VillageStructure.hpp"
+#include "structures/StrongholdStructure.hpp"
+#include "structures/DesertPyramidStructure.hpp"
+#include "structures/JungleTempleStructure.hpp"
+#include "structures/OceanMonumentStructure.hpp"
+#include "../jigsaw/JigsawPattern.hpp"
+#include "../jigsaw/JigsawPiece.hpp"
+#include "../../../resource/ResourceLocation.hpp"
 
 namespace mc::world::gen::structure {
 
@@ -20,11 +29,100 @@ std::vector<const Structure*>& StructureRegistry::getStructureList() {
 void StructureRegistry::initialize() {
     if (s_initialized) return;
 
+    // 初始化 Jigsaw 模板池
+    initializeDefaultJigsawPatterns();
+
     // 注册原版结构
     registerStructure(std::make_unique<RuinedPortalStructure>());
     registerStructure(std::make_unique<BuriedTreasureStructure>());
+    registerStructure(std::make_unique<MineshaftStructure>());
+    registerStructure(std::make_unique<VillageStructure>());
+    registerStructure(std::make_unique<StrongholdStructure>());
+    registerStructure(std::make_unique<DesertPyramidStructure>());
+    registerStructure(std::make_unique<JungleTempleStructure>());
+    registerStructure(std::make_unique<OceanMonumentStructure>());
 
     s_initialized = true;
+}
+
+void StructureRegistry::initializeDefaultJigsawPatterns() {
+    auto& registry = mc::world::gen::jigsaw::JigsawPatternRegistry::instance();
+
+    // 注册村庄模板池（简化版本，实际应从资源包加载）
+    registerVillagePatterns(registry);
+    registerStrongholdPatterns(registry);
+}
+
+void StructureRegistry::registerVillagePatterns(mc::world::gen::jigsaw::JigsawPatternRegistry& registry) {
+    using namespace mc::world::gen::jigsaw;
+
+    // 村庄起始模板池 - 平原
+    auto plainsStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/plains/town_centers"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    // 添加一个简单的起始块
+    plainsStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/plains/town_center_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(plainsStart));
+
+    // 村庄街道模板池
+    auto streets = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/plains/streets"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    streets->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/plains/street_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(streets));
+
+    // 村庄房屋模板池
+    auto houses = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/plains/houses"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    houses->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/plains/house_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(houses));
+
+    // 空模板池（终止符）
+    auto empty = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "empty"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    empty->addPiece(EmptyJigsawPiece::instance().clone(), 1);
+    registry.registerPattern(std::move(empty));
+}
+
+void StructureRegistry::registerStrongholdPatterns(mc::world::gen::jigsaw::JigsawPatternRegistry& registry) {
+    using namespace mc::world::gen::jigsaw;
+
+    // 要塞起始模板池
+    auto strongholdStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "stronghold/start"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    strongholdStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:stronghold/portal_room",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(strongholdStart));
+
+    // 要塞走廊模板池
+    auto corridors = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "stronghold/corridor"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    corridors->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:stronghold/corridor_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(corridors));
 }
 
 void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure) {

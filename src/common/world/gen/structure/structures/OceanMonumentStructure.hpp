@@ -51,6 +51,12 @@ public:
 
 private:
     void initializeBiomes();
+    void generateMonument(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
+    void generateWing(IWorldWriter& world, const BlockState* prismarine, const BlockState* darkPrismarine,
+                      const BlockState* seaLantern, i32 baseX, i32 baseY, i32 baseZ,
+                      i32 width, i32 height, i32 depth, bool isLeft) const;
+    void generateRoom(IWorldWriter& world, const BlockState* prismarine, const BlockState* seaLantern,
+                      i32 baseX, i32 baseY, i32 baseZ, i32 width, i32 height, i32 depth) const;
 
     static constexpr StructureSeparationSettings m_settings{32, 5, 10387313};
     static const String m_name;

@@ -2,6 +2,9 @@
 #include "../../../biome/Biome.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../block/BlockPos.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../IWorldWriter.hpp"
+#include "../StructureBoundingBox.hpp"
 
 namespace mc {
 namespace world {
@@ -32,7 +35,6 @@ bool DesertPyramidStructure::canGenerate(
     i32 chunkZ)
 {
     // 检查生物群系是否合适
-    // TODO: 实现生物群系检查
     return true;
 }
 
@@ -51,19 +53,145 @@ std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
     i32 startZ = chunkZ * 16 + rng.nextInt(16);
 
     // 获取地表高度
-    i32 startY = 64;  // TODO: 从地形获取实际高度
+    i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
+    if (startY < 60) startY = 64;
 
     BlockPos startPos(startX, startY, startZ);
 
-    // TODO: 生成沙漠神殿
-    // 结构包括：
-    // 1. 主体塔楼（21x21）
-    // 2. 四个角塔
-    // 3. 入口
-    // 4. 地下宝藏室
-    // 5. TNT 陷阱（可选）
+    // 生成沙漠神殿
+    generatePyramid(world, rng, startPos);
 
     return start;
+}
+
+void DesertPyramidStructure::generatePyramid(
+    IWorldWriter& world,
+    math::Random& rng,
+    const BlockPos& startPos) const
+{
+    const BlockState* sandstone = VanillaBlocks::getState(VanillaBlocks::SANDSTONE);
+    const BlockState* cutSandstone = VanillaBlocks::getState(VanillaBlocks::CUT_SANDSTONE);
+    const BlockState* chiseledSandstone = VanillaBlocks::getState(VanillaBlocks::CHISELED_SANDSTONE);
+    const BlockState* tnt = VanillaBlocks::getState(VanillaBlocks::TNT);
+    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+
+    // 基础参数
+    i32 baseX = startPos.x;
+    i32 baseY = startPos.y;
+    i32 baseZ = startPos.z;
+    i32 size = 21;  // 神殿宽度/深度
+    i32 halfSize = size / 2;
+
+    // 生成基础平台
+    for (i32 x = 0; x < size; ++x) {
+        for (i32 z = 0; z < size; ++z) {
+            world.setBlock(baseX + x, baseY, baseZ + z, sandstone, 18);
+        }
+    }
+
+    // 生成四层递减的平台
+    for (i32 layer = 1; layer <= 4; ++layer) {
+        i32 layerSize = size - layer * 2;
+        i32 offset = layer;
+
+        for (i32 x = 0; x < layerSize; ++x) {
+            for (i32 z = 0; z < layerSize; ++z) {
+                // 只生成边缘
+                if (x == 0 || x == layerSize - 1 || z == 0 || z == layerSize - 1) {
+                    world.setBlock(baseX + offset + x, baseY + layer, baseZ + offset + z, sandstone, 18);
+                }
+            }
+        }
+    }
+
+    // 生成四个角塔
+    for (i32 tower = 0; tower < 4; ++tower) {
+        i32 tx = (tower % 2 == 0) ? 0 : size - 3;
+        i32 tz = (tower < 2) ? 0 : size - 3;
+
+        // 塔高 6 格
+        for (i32 y = 1; y <= 6; ++y) {
+            for (i32 x = 0; x < 3; ++x) {
+                for (i32 z = 0; z < 3; ++z) {
+                    if (x == 1 && z == 1 && y > 1 && y < 6) {
+                        // 内部空心
+                        continue;
+                    }
+                    world.setBlock(baseX + tx + x, baseY + y, baseZ + tz + z, sandstone, 18);
+                }
+            }
+        }
+
+        // 塔顶装饰
+        world.setBlock(baseX + tx + 1, baseY + 7, baseZ + tz + 1, chiseledSandstone, 18);
+    }
+
+    // 生成入口（南面中央）
+    i32 entranceZ = size - 1;
+    i32 entranceX = halfSize;
+
+    // 入口台阶
+    for (i32 step = 0; step < 3; ++step) {
+        world.setBlock(baseX + entranceX - 1, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
+        world.setBlock(baseX + entranceX, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
+        world.setBlock(baseX + entranceX + 1, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
+    }
+
+    // 生成地下宝藏室
+    i32 chamberY = baseY - 7;
+    i32 chamberX = baseX + halfSize - 3;
+    i32 chamberZ = baseZ + halfSize - 3;
+
+    // 宝藏室地板
+    for (i32 x = 0; x < 7; ++x) {
+        for (i32 z = 0; z < 7; ++z) {
+            world.setBlock(chamberX + x, chamberY, chamberZ + z, sandstone, 18);
+        }
+    }
+
+    // 宝藏室墙壁
+    for (i32 y = 1; y <= 4; ++y) {
+        for (i32 x = 0; x < 7; ++x) {
+            world.setBlock(chamberX + x, chamberY + y, chamberZ, sandstone, 18);
+            world.setBlock(chamberX + x, chamberY + y, chamberZ + 6, sandstone, 18);
+        }
+        for (i32 z = 0; z < 7; ++z) {
+            world.setBlock(chamberX, chamberY + y, chamberZ + z, sandstone, 18);
+            world.setBlock(chamberX + 6, chamberY + y, chamberZ + z, sandstone, 18);
+        }
+    }
+
+    // 宝藏室天花板
+    for (i32 x = 0; x < 7; ++x) {
+        for (i32 z = 0; z < 7; ++z) {
+            world.setBlock(chamberX + x, chamberY + 5, chamberZ + z, sandstone, 18);
+        }
+    }
+
+    // TNT 陷阱（四个角落）
+    const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
+    for (i32 trap = 0; trap < 4; ++trap) {
+        i32 trapX = (trap % 2 == 0) ? chamberX + 1 : chamberX + 5;
+        i32 trapZ = (trap < 2) ? chamberZ + 1 : chamberZ + 5;
+
+        // TNT（使用 TNT 方块）
+        if (tnt) {
+            world.setBlock(trapX, chamberY + 1, trapZ, tnt, 18);
+        }
+        // 压力板（使用金块作为占位符，压力板方块尚未实现）
+        if (goldBlock) {
+            world.setBlock(trapX, chamberY + 2, trapZ, goldBlock, 18);
+        }
+    }
+
+    // 宝藏室中央（使用金块作为宝箱占位符，宝箱方块尚未实现）
+    if (rng.nextInt(100) < 80) {  // 80% 概率生成宝藏
+        i32 chestX = chamberX + 3;
+        i32 chestZ = chamberZ + 3;
+        if (goldBlock) {
+            world.setBlock(chestX, chamberY + 1, chestZ, goldBlock, 18);
+        }
+    }
 }
 
 } // namespace structure

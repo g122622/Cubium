@@ -52,6 +52,7 @@ public:
 
 private:
     void initializeBiomes();
+    void generateTemple(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     static constexpr StructureSeparationSettings m_settings{32, 8, 14357621};
     static const String m_name;

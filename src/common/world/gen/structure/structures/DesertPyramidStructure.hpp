@@ -51,6 +51,7 @@ public:
 
 private:
     void initializeBiomes();
+    void generatePyramid(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     static constexpr StructureSeparationSettings m_settings{32, 8, 14357620};
     static const String m_name;

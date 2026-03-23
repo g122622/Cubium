@@ -13,6 +13,10 @@ namespace mc {
 // 前向声明
 class IWorldWriter;
 
+namespace world::gen::jigsaw {
+class JigsawPatternRegistry;
+}
+
 namespace world::gen::structure {
 
 /**
@@ -32,6 +36,21 @@ private:
     static std::unordered_map<String, std::unique_ptr<Structure>>& getStructures();
     static std::vector<const Structure*>& getStructureList();
     static bool s_initialized;
+
+    /**
+     * @brief 初始化默认的 Jigsaw 模板池
+     */
+    static void initializeDefaultJigsawPatterns();
+
+    /**
+     * @brief 注册村庄模板池
+     */
+    static void registerVillagePatterns(jigsaw::JigsawPatternRegistry& registry);
+
+    /**
+     * @brief 注册要塞模板池
+     */
+    static void registerStrongholdPatterns(jigsaw::JigsawPatternRegistry& registry);
 };
 
 /**

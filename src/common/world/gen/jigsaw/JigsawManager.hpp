@@ -14,6 +14,7 @@
 namespace mc {
 
 class IWorldWriter;
+class IResourcePack;
 
 namespace world {
 namespace gen {
@@ -60,6 +61,12 @@ struct PendingJoint {
  */
 class JigsawManager {
 public:
+    /**
+     * @brief 设置资源包（用于加载模板）
+     * @param pack 资源包指针
+     */
+    static void setResourcePack(const IResourcePack* pack);
+
     /**
      * @brief 组装结构
      *
@@ -111,7 +118,34 @@ public:
         i32 rotation,
         i32 mirror);
 
+    /**
+     * @brief 清除模板缓存
+     */
+    static void clearCache();
+
 private:
+    /**
+     * @brief 递归放置拼图块
+     * @param world 世界写入器
+     * @param placed 已放置的拼图块信息
+     * @param rng 随机数生成器
+     */
+    static void placePieceRecursive(
+        IWorldWriter& world,
+        const PlacedPiece& placed,
+        math::Random& rng);
+
+    /**
+     * @brief 放置回退方块（当模板未找到时）
+     * @param world 世界写入器
+     * @param placed 已放置的拼图块信息
+     * @param rng 随机数生成器
+     */
+    static void placeFallbackBlocks(
+        IWorldWriter& world,
+        const PlacedPiece& placed,
+        math::Random& rng);
+
     /**
      * @brief 处理单个连接点
      */

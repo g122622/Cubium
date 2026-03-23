@@ -4,6 +4,8 @@
 #include "../../../biome/Biome.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../block/BlockPos.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../IWorldWriter.hpp"
 
 namespace mc {
 namespace world {
@@ -81,27 +83,45 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
     const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
 
     if (!startPool || startPool->isEmpty()) {
-        // 如果模板池不存在，创建一个简单的村庄
-        // TODO: 注册默认模板池
+        // 如果模板池不存在，创建一个简单的村庄标记
+        // 放置一个简单的平台作为占位符
+        const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
+        const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
+
+        i32 baseX = chunkX * 16 + 8;
+        i32 baseZ = chunkZ * 16 + 8;
+        i32 baseY = generator.getHeight(baseX, baseZ, HeightmapType::WorldSurfaceWG);
+        if (baseY < 60) baseY = 64;
+
+        // 简单的 5x5 平台
+        for (i32 x = -2; x <= 2; ++x) {
+            for (i32 z = -2; z <= 2; ++z) {
+                world.setBlock(baseX + x, baseY - 1, baseZ + z, cobblestone, 18);
+            }
+        }
+        // 中心标记
+        world.setBlock(baseX, baseY, baseZ, oakPlanks, 18);
+
         return start;
     }
 
     // 计算起始位置
-    // 村庄通常在地表生成，需要获取地表高度
-    i32 startY = 64;  // TODO: 从地形获取实际高度
-    BlockPos startPos(chunkX * 16 + 8, startY, chunkZ * 16 + 8);
+    i32 startX = chunkX * 16 + rng.nextInt(16);
+    i32 startZ = chunkZ * 16 + rng.nextInt(16);
+    i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
+    if (startY < 60) startY = 64;
 
-    // 使用 JigsawManager 组装村庄
-    auto placedPieces = jigsaw::JigsawManager::assemble(
+    BlockPos startPos(startX, startY, startZ);
+
+    // 使用 JigsawManager 组装并放置村庄
+    jigsaw::JigsawManager::assembleAndPlace(
+        world,
         patternRegistry,
         *startPool,
         m_config.size,
         startPos,
         rng
     );
-
-    // TODO: 将 placedPieces 转换为 StructurePieces 并添加到 StructureStart
-    // TODO: 实际将方块放置到世界中
 
     return start;
 }

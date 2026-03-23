@@ -2,8 +2,11 @@
 #include "JigsawPiece.hpp"
 #include "../feature/template/TemplateManager.hpp"
 #include "../feature/template/TemplateLoader.hpp"
+#include "../../../world/IWorldWriter.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/BlockRegistry.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../resource/IResourcePack.hpp"
 
 namespace mc {
 namespace world {
@@ -17,6 +20,14 @@ using feature::template_::TemplateManager;
 
 // 静态模板管理器实例
 static TemplateManager s_templateManager;
+
+void JigsawManager::setResourcePack(const IResourcePack* pack) {
+    s_templateManager.setResourcePack(pack);
+}
+
+void JigsawManager::clearCache() {
+    s_templateManager.clear();
+}
 
 std::vector<PlacedPiece> JigsawManager::assemble(
     JigsawPatternRegistry& patternRegistry,
@@ -103,30 +114,101 @@ bool JigsawManager::assembleAndPlace(
             continue;
         }
 
-        // 尝试加载模板（如果是 SingleJigsawPiece）
-        const SingleJigsawPiece* singlePiece = dynamic_cast<const SingleJigsawPiece*>(placed.piece.get());
-        if (singlePiece) {
-            const String& templateName = singlePiece->getTemplateName();
-            if (!templateName.empty()) {
-                ResourceLocation templateLoc(templateName);
-                const Template* templ = s_templateManager.getTemplate(templateLoc);
-
-                if (templ) {
-                    // 创建放置设置
-                    PlacementSettings settings;
-                    settings.setRotation(placed.rotation);
-                    settings.setMirror(placed.mirror);
-
-                    // 放置模板
-                    templ->place(world, placed.position, settings, rng, 18);
-                }
-            }
-        }
-
-        // TODO: 处理 ListJigsawPiece（递归放置子块）
+        placePieceRecursive(world, placed, rng);
     }
 
     return true;
+}
+
+void JigsawManager::placePieceRecursive(
+    IWorldWriter& world,
+    const PlacedPiece& placed,
+    math::Random& rng)
+{
+    // 尝试加载模板（如果是 SingleJigsawPiece）
+    const SingleJigsawPiece* singlePiece = dynamic_cast<const SingleJigsawPiece*>(placed.piece.get());
+    if (singlePiece) {
+        const String& templateName = singlePiece->getTemplateName();
+        if (!templateName.empty()) {
+            ResourceLocation templateLoc(templateName);
+            const Template* templ = s_templateManager.getTemplate(templateLoc);
+
+            if (templ) {
+                // 创建放置设置
+                PlacementSettings settings;
+                settings.setRotation(placed.rotation);
+                settings.setMirror(placed.mirror);
+
+                // 放置模板
+                templ->place(world, placed.position, settings, rng, 18);
+            } else {
+                // 模板未找到，创建简单的占位方块
+                placeFallbackBlocks(world, placed, rng);
+            }
+        }
+        return;
+    }
+
+    // 处理 ListJigsawPiece（递归放置子块）
+    const ListJigsawPiece* listPiece = dynamic_cast<const ListJigsawPiece*>(placed.piece.get());
+    if (listPiece) {
+        const auto& children = listPiece->getPieces();
+        for (const auto& child : children) {
+            if (!child) {
+                continue;
+            }
+
+            // 为每个子块创建 PlacedPiece
+            PlacedPiece childPlaced;
+            childPlaced.piece = child->clone();
+            childPlaced.position = placed.position;  // 子块继承父块位置（相对位置在子块内部处理）
+            childPlaced.rotation = placed.rotation;
+            childPlaced.mirror = placed.mirror;
+            childPlaced.groundLevelDelta = child->getGroundLevelDelta();
+            childPlaced.boundingBox = calculateBoundingBox(*child, placed.position, placed.rotation);
+
+            placePieceRecursive(world, childPlaced, rng);
+        }
+        return;
+    }
+
+    // 处理其他类型的拼图块（使用回退方块）
+    placeFallbackBlocks(world, placed, rng);
+}
+
+void JigsawManager::placeFallbackBlocks(
+    IWorldWriter& world,
+    const PlacedPiece& placed,
+    math::Random& rng)
+{
+    // 当模板未找到时，放置简单的方块来标记结构位置
+    const BlockState* markerBlock = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+
+    if (!markerBlock) {
+        markerBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
+    }
+
+    if (!markerBlock) {
+        return;  // 无法获取任何方块
+    }
+
+    // 获取边界框并在其中放置方块
+    const auto& box = placed.boundingBox;
+    for (i32 y = box.minY(); y <= box.maxY(); ++y) {
+        for (i32 x = box.minX(); x <= box.maxX(); ++x) {
+            for (i32 z = box.minZ(); z <= box.maxZ(); ++z) {
+                // 只在边缘放置方块（创建框架）
+                if (y == box.minY() || y == box.maxY() ||
+                    x == box.minX() || x == box.maxX() ||
+                    z == box.minZ() || z == box.maxZ()) {
+                    // 添加一些随机性，避免过于规则
+                    if (rng.nextInt(100) < 80) {
+                        world.setBlock(x, y, z, markerBlock, 18);
+                    }
+                }
+            }
+        }
+    }
 }
 
 std::vector<JigsawJoint> JigsawManager::getTransformedJoints(

@@ -79,6 +79,7 @@ public:
 
 private:
     void initializeBiomes();
+    void generateFallbackEntrance(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     Config m_config;
     static constexpr StructureSeparationSettings m_settings{32, 8, 1429134543};

@@ -351,6 +351,7 @@ target_link_libraries(mc_common
         mc::perfetto
     PRIVATE
         LibArchive::LibArchive
+        ZLIB::ZLIB
 )
 
 mc_set_compiler_warnings(mc_common)
