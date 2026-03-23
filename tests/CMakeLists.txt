@@ -50,6 +50,7 @@ add_executable(mc_tests
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/test_integrated_server.cpp
+    server/BlockDropHandlerTest.cpp
     server/test_chunk_worker_pool.cpp
     server/test_server_chunk_manager.cpp
     # ServerCore 模块测试
@@ -60,6 +61,7 @@ add_executable(mc_tests
     server/core/KeepAliveManagerTest.cpp
     server/core/PositionTrackerTest.cpp
     server/core/ServerCoreTest.cpp
+    server/core/CoreCommandBridgeTest.cpp
     server/weather/WeatherManagerTest.cpp
     client/test_mesh_worker_pool.cpp
     client/renderer/test_renderer.cpp

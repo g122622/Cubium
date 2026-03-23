@@ -26,6 +26,7 @@
 #include "common/entity/EntityRegistry.hpp"
 #include "common/entity/mob/MobEntity.hpp"
 #include "common/entity/loot/LootConditions.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
@@ -41,6 +42,7 @@
 
 #include <spdlog/spdlog.h>
 #include <cmath>
+#include <cstring>
 
 namespace mc::server {
 
@@ -118,8 +120,14 @@ bool isCraftingTableState(const BlockState* state) {
  */
 class ServerChunkReader final : public IBlockReader {
 public:
-    explicit ServerChunkReader(ServerChunkManager& chunkManager)
+    explicit ServerChunkReader(ServerChunkManager& chunkManager,
+                               u64 seed = 0,
+                               u64 currentTick = 0,
+                               i64 dayTime = 0)
         : m_chunkManager(chunkManager)
+        , m_seed(seed)
+        , m_currentTick(currentTick)
+        , m_dayTime(dayTime)
     {
     }
 
@@ -165,17 +173,214 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] u64 seed() const override { return m_seed; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] i32 difficulty() const override { return 0; }
 
 private:
     ServerChunkManager& m_chunkManager;
+    u64 m_seed = 0;
+    u64 m_currentTick = 0;
+    i64 m_dayTime = 0;
 };
 
 } // namespace
+
+class IntegratedLightingWorld final : public IWorld {
+public:
+    IntegratedLightingWorld(ServerChunkManager& chunkManager,
+                            EntityManager& entityManager,
+                            PhysicsEngine* physicsEngine,
+                            ServerCore* serverCore,
+                            const IntegratedServerConfig& config)
+        : m_chunkManager(chunkManager)
+        , m_entityManager(entityManager)
+        , m_physicsEngine(physicsEngine)
+        , m_serverCore(serverCore)
+        , m_config(config)
+    {
+    }
+
+    void setLightManager(WorldLightManager* lightManager) {
+        m_lightManager = lightManager;
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        if (!isWithinWorldBounds(x, y, z)) {
+            return nullptr;
+        }
+
+        const ChunkCoord chunkX = world::toChunkCoord(x);
+        const ChunkCoord chunkZ = world::toChunkCoord(z);
+        const ChunkData* chunk = m_chunkManager.getChunk(chunkX, chunkZ);
+        if (!chunk) {
+            return nullptr;
+        }
+
+        const i32 localX = world::toLocalCoord(x);
+        const i32 localZ = world::toLocalCoord(z);
+        return chunk->getBlock(localX, y, localZ);
+    }
+
+    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+        if (!isWithinWorldBounds(x, y, z)) {
+            return false;
+        }
+
+        const ChunkCoord chunkX = world::toChunkCoord(x);
+        const ChunkCoord chunkZ = world::toChunkCoord(z);
+        ChunkData* chunk = m_chunkManager.getChunkSync(chunkX, chunkZ);
+        if (!chunk) {
+            return false;
+        }
+
+        const i32 localX = world::toLocalCoord(x);
+        const i32 localZ = world::toLocalCoord(z);
+        chunk->setBlock(localX, y, localZ, state);
+        chunk->setDirty(true);
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+        const BlockState* state = getBlockState(x, y, z);
+        return state ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+    }
+
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override {
+        return m_chunkManager.getChunk(x, z);
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override {
+        return m_chunkManager.getChunk(x, z) != nullptr;
+    }
+
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override {
+        if (m_lightManager) {
+            return m_lightManager->getBlockLight(BlockPos(x, y, z));
+        }
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override {
+        if (m_lightManager) {
+            return m_lightManager->getSkyLight(BlockPos(x, y, z));
+        }
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override {
+        (void)x;
+        (void)z;
+        return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return m_physicsEngine; }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+        return {};
+    }
+
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+
+    [[nodiscard]] u64 seed() const override {
+        return m_serverCore ? m_serverCore->config().seed : static_cast<u64>(m_config.seed);
+    }
+
+    [[nodiscard]] u64 currentTick() const override {
+        return m_serverCore ? m_serverCore->currentTick() : 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override {
+        return m_serverCore ? m_serverCore->gameTime().dayTime() : 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] i32 difficulty() const override { return 1; }
+
+private:
+    ServerChunkManager& m_chunkManager;
+    EntityManager& m_entityManager;
+    PhysicsEngine* m_physicsEngine = nullptr;
+    ServerCore* m_serverCore = nullptr;
+    const IntegratedServerConfig& m_config;
+    WorldLightManager* m_lightManager = nullptr;
+};
+
+class IntegratedLightProvider final : public IChunkLightProvider {
+public:
+    using LightChangedCallback = std::function<void(LightType, const SectionPos&)>;
+
+    IntegratedLightProvider(IntegratedLightingWorld& world,
+                            ServerChunkManager& chunkManager,
+                            LightChangedCallback lightChangedCallback)
+        : m_world(world)
+        , m_chunkManager(chunkManager)
+        , m_lightChangedCallback(std::move(lightChangedCallback))
+    {
+    }
+
+    [[nodiscard]] IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) override {
+        return m_chunkManager.getChunkSync(x, z);
+    }
+
+    [[nodiscard]] const IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) const override {
+        return m_chunkManager.getChunk(x, z);
+    }
+
+    [[nodiscard]] const BlockState* getBlockStateForLight(const BlockPos& pos) const override {
+        return m_world.getBlockState(pos.x, pos.y, pos.z);
+    }
+
+    [[nodiscard]] IWorld* getWorld() override {
+        return &m_world;
+    }
+
+    [[nodiscard]] const IWorld* getWorld() const override {
+        return &m_world;
+    }
+
+    void markLightChanged(LightType type, const SectionPos& pos) override {
+        if (m_lightChangedCallback) {
+            m_lightChangedCallback(type, pos);
+        }
+    }
+
+    [[nodiscard]] bool hasSkyLight() const override {
+        return true;
+    }
+
+    [[nodiscard]] i32 getMinBuildHeight() const override {
+        return world::MIN_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] i32 getMaxBuildHeight() const override {
+        return world::MAX_BUILD_HEIGHT;
+    }
+
+    [[nodiscard]] i32 getSectionCount() const override {
+        return world::CHUNK_SECTIONS;
+    }
+
+private:
+    IntegratedLightingWorld& m_world;
+    ServerChunkManager& m_chunkManager;
+    LightChangedCallback m_lightChangedCallback;
+};
 
 IntegratedServer::IntegratedServer() = default;
 
@@ -239,6 +444,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config) 
     DimensionSettings settings = DimensionSettings::overworld();
     auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, std::move(settings));
     m_chunkManager = std::make_unique<ServerChunkManager>(std::move(generator));
+    m_chunkManager->setChunkLoadedCallback([this](ChunkCoord chunkX, ChunkCoord chunkZ) {
+        initializeChunkLighting(chunkX, chunkZ);
+    });
     (void)m_chunkManager->initialize();
     m_chunkManager->startWorkers();
     m_chunkManager->setViewDistance(m_config.viewDistance);
@@ -246,6 +454,22 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config) 
     // 创建物理引擎碰撞世界和物理引擎
     m_collisionWorld = std::make_unique<ServerCollisionWorld>(*m_chunkManager);
     m_physicsEngine = std::make_unique<PhysicsEngine>(*m_collisionWorld);
+
+    // 创建光照世界视图与光照引擎
+    m_lightingWorld = std::make_unique<IntegratedLightingWorld>(
+        *m_chunkManager,
+        m_entityManager,
+        m_physicsEngine.get(),
+        m_serverCore.get(),
+        m_config);
+    m_lightProvider = std::make_unique<IntegratedLightProvider>(
+        *m_lightingWorld,
+        *m_chunkManager,
+        [this](LightType type, const SectionPos& pos) {
+            markLightChanged(type, pos);
+        });
+    m_lightManager = std::make_unique<WorldLightManager>(m_lightProvider.get(), true, true);
+    m_lightingWorld->setLightManager(m_lightManager.get());
 
     // 设置实体生成回调
     m_chunkManager->setEntitySpawnCallback(
@@ -423,6 +647,12 @@ void IntegratedServer::tick() {
         m_chunkManager->tick();
     }
 
+    // 更新光照传播队列
+    {
+        MC_TRACE_EVENT("server.light", "LightTick");
+        tickLighting();
+    }
+
     // 心跳（每 15 秒）
     u64 tick = m_serverCore->currentTick();
     if (tick % (static_cast<u64>(m_config.tickRate) * 15) == 0) {
@@ -448,6 +678,11 @@ void IntegratedServer::tick() {
 void IntegratedServer::shutdown() {
     // 释放客户端连接（必须在 ServerCore 重置前清空）
     m_clientConnection.reset();
+
+    // 清理光照链路
+    m_lightManager.reset();
+    m_lightProvider.reset();
+    m_lightingWorld.reset();
 
     // 清理区块管理器
     m_chunkManager.reset();
@@ -491,6 +726,9 @@ void IntegratedServer::requestChunkAsync(ChunkCoord x, ChunkCoord z) {
             // 检查是否已发送
             auto* p = getPlayerData();
             if (!p || p->loadedChunks.count(id)) return;
+
+            // 确保区块光照数据已接入光照引擎并回写到区块段
+            initializeChunkLighting(x, z);
 
             // 序列化区块数据
             auto result = network::ChunkSerializer::serializeChunk(*chunk);
@@ -836,20 +1074,27 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
 
     // 生成掉落物（仅在可以采集且非创造模式时）
     if (canHarvest && !isCreativeMode) {
-        ServerWorld* world = m_serverCore ? m_serverCore->world() : nullptr;
-        if (world) {
-            BlockPos blockPos(packet.x(), packet.y(), packet.z());
-            auto drops = BlockDropHandler::generateDrops(
-                *world,
-                blockPos,
-                *state,
-                nullptr,  // Player 对象暂时不可用，使用 gameMode 检查创造模式
-                heldItem,
-                m_lootTableManager);
+        const u64 seed = m_serverCore ? m_serverCore->config().seed : static_cast<u64>(m_config.seed);
+        const u64 currentTick = m_serverCore ? m_serverCore->currentTick() : 0;
+        const i64 dayTime = m_serverCore ? m_serverCore->gameTime().dayTime() : 0;
+        ServerChunkReader dropWorld(*m_chunkManager, seed, currentTick, dayTime);
 
-            if (!drops.empty()) {
-                BlockDropHandler::spawnDrops(*world, blockPos, drops, "");
-            }
+        BlockPos blockPos(packet.x(), packet.y(), packet.z());
+        auto drops = BlockDropHandler::generateDrops(
+            dropWorld,
+            blockPos,
+            *state,
+            nullptr,  // Player 对象暂时不可用，使用 gameMode 检查创造模式
+            heldItem,
+            m_lootTableManager);
+
+        if (!drops.empty()) {
+            (void)BlockDropHandler::spawnDrops(
+                m_entityManager,
+                m_physicsEngine.get(),
+                blockPos,
+                drops,
+                "");
         }
 
         // 消耗工具耐久度（仅在成功采集时）
@@ -875,15 +1120,13 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
         return;
     }
 
-    // 使用 ServerWorld::setBlock 以触发光照更新
-    ServerWorld* world = m_serverCore ? m_serverCore->world() : nullptr;
-    if (world) {
-        world->setBlock(packet.x(), packet.y(), packet.z(), &airBlock->defaultState());
-    } else {
-        // 回退到直接设置区块（无光照更新）
-        chunk->setBlock(localX, packet.y(), localZ, &airBlock->defaultState());
-        chunk->setDirty(true);
-    }
+    const i32 oldLightLevel = state->lightLevel();
+    const i32 newLightLevel = airBlock->defaultState().lightLevel();
+
+    // 写入区块并触发光照更新
+    chunk->setBlock(localX, packet.y(), localZ, &airBlock->defaultState());
+    chunk->setDirty(true);
+    onBlockStateChangedForLighting(packet.x(), packet.y(), packet.z(), oldLightLevel, newLightLevel);
     sendBlockUpdate(packet.x(), packet.y(), packet.z(), airBlock->defaultState().stateId());
 
     // spdlog::info("[Mining] Destroyed block {} at ({}, {}, {})",
@@ -977,7 +1220,10 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
         return;
     }
 
-    ServerChunkReader worldReader(*m_chunkManager);
+    const u64 seed = m_serverCore ? m_serverCore->config().seed : static_cast<u64>(m_config.seed);
+    const u64 currentTick = m_serverCore ? m_serverCore->currentTick() : 0;
+    const i64 dayTime = m_serverCore ? m_serverCore->gameTime().dayTime() : 0;
+    ServerChunkReader worldReader(*m_chunkManager, seed, currentTick, dayTime);
     BlockItemUseContext context(worldReader,
                                 nullptr,
                                 heldStack,
@@ -1011,16 +1257,14 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
 
     const i32 placeLocalX = placePos.x - placeChunkX * 16;
     const i32 placeLocalZ = placePos.z - placeChunkZ * 16;
+    const BlockState* oldState = placeChunk->getBlock(placeLocalX, placePos.y, placeLocalZ);
+    const i32 oldLightLevel = oldState ? oldState->lightLevel() : 0;
+    const i32 newLightLevel = newState->lightLevel();
 
-    // 使用 ServerWorld::setBlock 以触发光照更新
-    ServerWorld* world = m_serverCore ? m_serverCore->world() : nullptr;
-    if (world) {
-        world->setBlock(placePos.x, placePos.y, placePos.z, newState);
-    } else {
-        // 回退到直接设置区块（无光照更新）
-        placeChunk->setBlock(placeLocalX, placePos.y, placeLocalZ, newState);
-        placeChunk->setDirty(true);
-    }
+    // 写入区块并触发光照更新
+    placeChunk->setBlock(placeLocalX, placePos.y, placeLocalZ, newState);
+    placeChunk->setDirty(true);
+    onBlockStateChangedForLighting(placePos.x, placePos.y, placePos.z, oldLightLevel, newLightLevel);
 
     if (player->gameMode != GameMode::Creative) {
         const i32 selectedSlot = m_clientData.inventory.getSelectedSlot();
@@ -1198,6 +1442,9 @@ void IntegratedServer::processPendingChunkUnloads() {
 
         const ChunkId id(x, z);
         if (player->loadedChunks.count(id) > 0) {
+            if (m_lightManager) {
+                m_lightManager->enableLightSources(ChunkPos(x, z), false);
+            }
             sendUnloadChunk(x, z);
             player->loadedChunks.erase(id);
             spdlog::debug("Chunk ({}, {}) unloaded after grace window", x, z);
@@ -1205,6 +1452,193 @@ void IntegratedServer::processPendingChunkUnloads() {
 
         it = m_pendingChunkUnloads.erase(it);
     }
+}
+
+void IntegratedServer::initializeChunkLighting(ChunkCoord x, ChunkCoord z) {
+    if (!m_lightManager || !m_chunkManager) {
+        return;
+    }
+
+    const ChunkData* chunk = m_chunkManager->getChunk(x, z);
+    if (!chunk) {
+        return;
+    }
+
+    const ChunkPos chunkPos(x, z);
+
+    for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk->getSection(sectionY);
+        const SectionPos sectionPos(x, sectionY, z);
+
+        const bool isEmpty = (section == nullptr || section->isEmpty());
+        m_lightManager->updateSectionStatus(sectionPos, isEmpty);
+
+        if (section != nullptr) {
+            if (m_lightManager->getSkyLightEngine()) {
+                NibbleArray skyLightCopy = section->skyLightNibble().copy();
+                m_lightManager->setData(LightType::SKY, sectionPos, &skyLightCopy, false);
+            }
+
+            if (m_lightManager->getBlockLightEngine()) {
+                NibbleArray blockLightCopy = section->blockLightNibble().copy();
+                m_lightManager->setData(LightType::BLOCK, sectionPos, &blockLightCopy, false);
+            }
+        }
+    }
+
+    m_lightManager->enableLightSources(chunkPos, true);
+}
+
+void IntegratedServer::tickLighting() {
+    if (!m_lightManager || !m_lightManager->hasLightWork()) {
+        return;
+    }
+
+    // 与 ServerWorld 保持一致：每 tick 处理最多 512 次更新
+    m_lightManager->tick(512, true, true);
+}
+
+void IntegratedServer::onBlockStateChangedForLighting(i32 x,
+                                                      i32 y,
+                                                      i32 z,
+                                                      i32 oldLightLevel,
+                                                      i32 newLightLevel) {
+    if (!m_lightManager) {
+        return;
+    }
+
+    const BlockPos pos(x, y, z);
+    m_lightManager->checkBlock(pos);
+
+    if (newLightLevel > oldLightLevel) {
+        m_lightManager->onBlockEmissionIncrease(pos, newLightLevel);
+    }
+}
+
+void IntegratedServer::markLightChanged(LightType type, const SectionPos& pos) {
+    if (!m_chunkManager) {
+        return;
+    }
+
+    ChunkData* chunk = m_chunkManager->getChunkSync(pos.x, pos.z);
+    if (chunk) {
+        chunk->setDirty(true);
+    }
+
+    syncLightDataToChunk(type, pos);
+    broadcastLightUpdate(type, pos);
+}
+
+void IntegratedServer::syncLightDataToChunk(LightType type, const SectionPos& pos) {
+    if (!m_lightManager || !m_chunkManager) {
+        return;
+    }
+
+    ChunkData* chunk = m_chunkManager->getChunkSync(pos.x, pos.z);
+    if (!chunk) {
+        return;
+    }
+
+    const i32 sectionIndex = pos.y;
+    if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
+        return;
+    }
+
+    ChunkSection* section = chunk->getSection(sectionIndex);
+    if (!section) {
+        section = chunk->createSection(sectionIndex);
+        if (!section) {
+            return;
+        }
+    }
+
+    NibbleArray* lightArray = m_lightManager->getData(type, pos);
+    if (!lightArray) {
+        if (type == LightType::SKY) {
+            section->fillSkyLight(15);
+        } else {
+            section->fillBlockLight(0);
+        }
+        return;
+    }
+
+    const auto& data = lightArray->data();
+    if (type == LightType::SKY) {
+        NibbleArray& skyLight = section->skyLightNibble();
+        if (skyLight.data().size() == data.size()) {
+            std::memcpy(skyLight.data().data(), data.data(), data.size());
+        } else {
+            section->skyLightNibble() = lightArray->copy();
+        }
+    } else {
+        NibbleArray& blockLight = section->blockLightNibble();
+        if (blockLight.data().size() == data.size()) {
+            std::memcpy(blockLight.data().data(), data.data(), data.size());
+        } else {
+            section->blockLightNibble() = lightArray->copy();
+        }
+    }
+}
+
+void IntegratedServer::broadcastLightUpdate(LightType type, const SectionPos& pos) {
+    if (!m_chunkManager) {
+        return;
+    }
+
+    auto* player = getPlayerData();
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const ChunkId id(pos.x, pos.z);
+    if (player->loadedChunks.count(id) == 0) {
+        return;
+    }
+
+    const ChunkData* chunk = m_chunkManager->getChunk(pos.x, pos.z);
+    if (!chunk) {
+        return;
+    }
+
+    const ChunkSection* section = chunk->getSection(pos.y);
+    if (!section) {
+        return;
+    }
+
+    std::vector<u8> skyLightData;
+    std::vector<u8> blockLightData;
+
+    if (type == LightType::SKY) {
+        const auto& skyLight = section->skyLightNibble();
+        skyLightData = skyLight.data();
+        if (skyLightData.empty()) {
+            skyLightData.resize(NibbleArray::BYTE_SIZE, 0xFF);
+        }
+    }
+
+    if (type == LightType::BLOCK) {
+        const auto& blockLight = section->blockLightNibble();
+        blockLightData = blockLight.data();
+        if (blockLightData.empty()) {
+            blockLightData.resize(NibbleArray::BYTE_SIZE, 0x00);
+        }
+    }
+
+    network::LightUpdatePacket packet(
+        pos.x,
+        pos.z,
+        pos.y,
+        std::move(skyLightData),
+        std::move(blockLightData),
+        false);
+
+    network::PacketSerializer payload;
+    packet.serialize(payload);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::LightUpdate,
+        payload.buffer());
+    sendToClient(fullPacket.data(), fullPacket.size());
 }
 
 void IntegratedServer::handleTeleportConfirm(const u8* data, size_t size) {

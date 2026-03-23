@@ -168,6 +168,12 @@ public:
     {
         return y / world::CHUNK_SECTION_HEIGHT;
     }
+
+    // 转为字符串
+    [[nodiscard]] std::string toString() const
+    {
+        return "BlockPos(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")";
+    }
 };
 
 } // namespace mc

@@ -8,6 +8,9 @@
 #include "common/item/ItemStack.hpp"
 #include "common/item/Item.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "common/physics/PhysicsEngine.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
@@ -19,7 +22,7 @@ namespace mc {
 // ============================================================================
 
 std::vector<ItemStack> BlockDropHandler::generateDrops(
-    server::ServerWorld& world,
+    IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     const Player* player,
@@ -110,6 +113,64 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
     return spawnedEntities;
 }
 
+std::vector<EntityId> BlockDropHandler::spawnDrops(
+    EntityManager& entityManager,
+    PhysicsEngine* physicsEngine,
+    const BlockPos& pos,
+    const std::vector<ItemStack>& drops,
+    const String& throwerUuid)
+{
+    std::vector<EntityId> spawnedEntities;
+
+    if (drops.empty()) {
+        return spawnedEntities;
+    }
+
+    // 在方块中心位置生成物品实体
+    f32 centerX = static_cast<f32>(pos.x) + 0.5f;
+    f32 centerY = static_cast<f32>(pos.y) + 0.5f;
+    f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
+
+    // 使用固定种子生成随机速度
+    math::Random random(static_cast<u64>(pos.x ^ pos.z));
+
+    for (const auto& stack : drops) {
+        if (stack.isEmpty()) {
+            continue;
+        }
+
+        auto itemEntity = std::make_unique<ItemEntity>(
+            0,
+            stack,
+            centerX,
+            centerY,
+            centerZ
+        );
+
+        f32 vx = (random.nextFloat() - 0.5f) * 0.1f + random.nextFloat() * 0.2f;
+        f32 vy = random.nextFloat() * 0.2f;
+        f32 vz = (random.nextFloat() - 0.5f) * 0.1f + random.nextFloat() * 0.2f;
+        itemEntity->setVelocity(vx, vy, vz);
+
+        if (!throwerUuid.empty()) {
+            itemEntity->setOwner(throwerUuid, throwerUuid);
+        }
+
+        itemEntity->setPickupDelay(10);
+
+        if (physicsEngine) {
+            itemEntity->setPhysicsEngine(physicsEngine);
+        }
+
+        EntityId entityId = entityManager.addEntity(std::move(itemEntity));
+        if (entityId != 0) {
+            spawnedEntities.push_back(entityId);
+        }
+    }
+
+    return spawnedEntities;
+}
+
 bool BlockDropHandler::canHarvestBlock(
     const BlockState& state,
     const Player* player,
@@ -149,7 +210,7 @@ std::vector<ItemStack> BlockDropHandler::getDefaultDrops(const BlockState& state
 }
 
 std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(
-    server::ServerWorld& world,
+    IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     const Player* player,

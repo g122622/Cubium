@@ -10,8 +10,10 @@
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/lighting/LightType.hpp"
 #include "common/entity/Player.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/entity/loot/LootTable.hpp"
@@ -28,9 +30,12 @@
 
 namespace mc {
 class AbstractContainerMenu;
+class WorldLightManager;
 }
 
 namespace mc::server {
+class IntegratedLightingWorld;
+class IntegratedLightProvider;
 
 /**
  * @brief 内置服务端配置
@@ -144,6 +149,14 @@ private:
     void onChunkLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
     void processPendingChunkUnloads();
 
+    // 光照链路
+    void initializeChunkLighting(ChunkCoord x, ChunkCoord z);
+    void tickLighting();
+    void onBlockStateChangedForLighting(i32 x, i32 y, i32 z, i32 oldLightLevel, i32 newLightLevel);
+    void markLightChanged(LightType type, const SectionPos& pos);
+    void syncLightDataToChunk(LightType type, const SectionPos& pos);
+    void broadcastLightUpdate(LightType type, const SectionPos& pos);
+
     // 网络事件处理
     void onPacketReceived(const u8* data, size_t size);
 
@@ -199,6 +212,11 @@ private:
 
     // 区块管理器（异步生成）
     std::unique_ptr<ServerChunkManager> m_chunkManager;
+
+    // 光照系统（内置服专用）
+    std::unique_ptr<IntegratedLightingWorld> m_lightingWorld;
+    std::unique_ptr<IntegratedLightProvider> m_lightProvider;
+    std::unique_ptr<WorldLightManager> m_lightManager;
 
     // 跨线程发送队列
     std::vector<PendingChunkSend> m_pendingSends;

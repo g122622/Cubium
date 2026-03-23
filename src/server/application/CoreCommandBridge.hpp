@@ -41,7 +41,13 @@ public:
     [[nodiscard]] ServerWorld* getWorld() override { return m_world; }
 
     [[nodiscard]] i64 getSeed() const override {
-        return m_world ? static_cast<i64>(m_world->config().seed) : 0;
+        if (m_world) {
+            return static_cast<i64>(m_world->config().seed);
+        }
+        if (m_core) {
+            return static_cast<i64>(m_core->config().seed);
+        }
+        return 0;
     }
 
     [[nodiscard]] i64 getTicks() const override {

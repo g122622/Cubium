@@ -12,6 +12,9 @@ namespace mc {
 // Forward declarations
 class BlockState;
 class Player;
+class IWorld;
+class EntityManager;
+class PhysicsEngine;
 
 namespace server {
 class ServerWorld;
@@ -57,7 +60,7 @@ public:
      * @return 生成的掉落物列表
      */
     [[nodiscard]] static std::vector<ItemStack> generateDrops(
-        server::ServerWorld& world,
+        IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         const Player* player,
@@ -77,6 +80,19 @@ public:
      */
     static std::vector<EntityId> spawnDrops(
         server::ServerWorld& world,
+        const BlockPos& pos,
+        const std::vector<ItemStack>& drops,
+        const String& throwerUuid = "");
+
+    /**
+     * @brief 在实体管理器中生成掉落物实体（内置服务端用）
+     *
+     * 与 spawnDrops(ServerWorld&, ...) 逻辑一致，但直接写入 EntityManager，
+     * 避免 IntegratedServer 依赖 ServerWorld。
+     */
+    static std::vector<EntityId> spawnDrops(
+        EntityManager& entityManager,
+        PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
         const String& throwerUuid = "");
@@ -123,7 +139,7 @@ private:
      * @return 构建的掉落上下文
      */
     [[nodiscard]] static std::unique_ptr<loot::LootContext> buildLootContext(
-        server::ServerWorld& world,
+        IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         const Player* player,
