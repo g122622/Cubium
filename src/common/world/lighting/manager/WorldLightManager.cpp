@@ -25,6 +25,8 @@ WorldLightManager::WorldLightManager(
 // ============================================================================
 
 void WorldLightManager::checkBlock(const BlockPos& pos) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     if (m_blockLight != nullptr) {
         m_blockLight->checkLight(pos);
     }
@@ -35,12 +37,16 @@ void WorldLightManager::checkBlock(const BlockPos& pos) {
 }
 
 void WorldLightManager::onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     if (m_blockLight != nullptr) {
         m_blockLight->onBlockEmissionIncrease(pos, lightLevel);
     }
 }
 
 bool WorldLightManager::hasLightWork() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     if (m_skyLight != nullptr && m_skyLight->hasWork()) {
         return true;
     }
@@ -48,6 +54,8 @@ bool WorldLightManager::hasLightWork() const {
 }
 
 i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     if (m_blockLight != nullptr && m_skyLight != nullptr) {
         // 两个引擎都有，分配更新配额
         i32 blockQuota = maxUpdates / 2;
@@ -73,6 +81,8 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
 // ============================================================================
 
 void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     if (m_blockLight != nullptr) {
         m_blockLight->updateSectionStatus(pos, isEmpty);
     }
@@ -83,6 +93,8 @@ void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
 }
 
 void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     // 区块列位置编码
     i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 |
                     (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
@@ -102,22 +114,28 @@ void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable) {
 // ============================================================================
 
 BlockLightEngine* WorldLightManager::getBlockLightEngine() {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_blockLight.get();
 }
 
 const BlockLightEngine* WorldLightManager::getBlockLightEngine() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_blockLight.get();
 }
 
 SkyLightEngine* WorldLightManager::getSkyLightEngine() {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_skyLight.get();
 }
 
 const SkyLightEngine* WorldLightManager::getSkyLightEngine() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_skyLight.get();
 }
 
 i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     i32 skyLight = 0;
     if (m_skyLight != nullptr) {
         skyLight = static_cast<i32>(m_skyLight->getLightFor(pos)) - skyDarkening;
@@ -133,6 +151,8 @@ i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening)
 }
 
 u8 WorldLightManager::getBlockLight(const BlockPos& pos) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     if (m_blockLight != nullptr) {
         return m_blockLight->getLightFor(pos);
     }
@@ -140,6 +160,8 @@ u8 WorldLightManager::getBlockLight(const BlockPos& pos) const {
 }
 
 u8 WorldLightManager::getSkyLight(const BlockPos& pos) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     if (m_skyLight != nullptr) {
         return m_skyLight->getLightFor(pos);
     }
@@ -156,6 +178,8 @@ void WorldLightManager::setData(
     NibbleArray* array,
     bool retain) {
 
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     switch (type) {
         case LightType::BLOCK:
             if (m_blockLight != nullptr) {
@@ -171,6 +195,8 @@ void WorldLightManager::setData(
 }
 
 NibbleArray* WorldLightManager::getData(LightType type, const SectionPos& pos) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     switch (type) {
         case LightType::BLOCK:
             if (m_blockLight != nullptr) {
@@ -187,6 +213,8 @@ NibbleArray* WorldLightManager::getData(LightType type, const SectionPos& pos) {
 }
 
 void WorldLightManager::retainData(const ChunkPos& pos, bool retain) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     // 通过存储层保留数据
     // 目前简化实现，后续可扩展
     (void)pos;
@@ -198,6 +226,8 @@ void WorldLightManager::retainData(const ChunkPos& pos, bool retain) {
 // ============================================================================
 
 String WorldLightManager::getDebugInfo(LightType type, const SectionPos& pos) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
     (void)pos;  // 暂时未使用
 
     switch (type) {

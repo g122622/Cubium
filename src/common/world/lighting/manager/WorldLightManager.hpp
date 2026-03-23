@@ -5,6 +5,7 @@
 #include "../LightType.hpp"
 #include "../../chunk/ChunkPos.hpp"
 #include <memory>
+#include <mutex>
 
 namespace mc {
 
@@ -174,6 +175,7 @@ public:
     [[nodiscard]] String getDebugInfo(LightType type, const SectionPos& pos) const;
 
 private:
+    mutable std::recursive_mutex m_mutex;
     std::unique_ptr<BlockLightEngine> m_blockLight;
     std::unique_ptr<SkyLightEngine> m_skyLight;
     IChunkLightProvider* m_provider;
