@@ -284,32 +284,53 @@ void BiomeFeaturePlacer::placeFeaturesForStage(
         return;
     }
 
-    // 计算区块随机种子
     const i32 chunkX = chunk.x();
     const i32 chunkZ = chunk.z();
-    const u64 chunkSeed = seed
-        ^ static_cast<u64>(static_cast<i64>(chunkX) * 341873128712ULL)
-        ^ static_cast<u64>(static_cast<i64>(chunkZ) * 132897987541ULL);
+    const i32 startX = chunkX * 16;
+    const i32 startZ = chunkZ * 16;
 
-    math::Random random(static_cast<u32>(chunkSeed ^ static_cast<u64>(stage)));
+    // 参考 MC ChunkGenerator.func_230351_a_ 和 Biome.func_242427_a
+    // 使用 setDecorationSeed 算法计算装饰种子
+    // setDecorationSeed(baseSeed, x, z):
+    //   setSeed(baseSeed)
+    //   i = nextLong() | 1
+    //   j = nextLong() | 1
+    //   k = x * i + z * j ^ baseSeed
+    //   setSeed(k)
+    //   return k
+    math::Random decorRng(seed);
+    const u64 i = decorRng.nextLong() | 1ULL;
+    const u64 j = decorRng.nextLong() | 1ULL;
+    const u64 decorSeed = (static_cast<u64>(startX) * i + static_cast<u64>(startZ) * j) ^ seed;
+    decorRng.setSeed(decorSeed);
 
     // 区块原点位置
-    const BlockPos chunkOrigin(chunkX * 16, 0, chunkZ * 16);
+    const BlockPos chunkOrigin(startX, 0, startZ);
 
     // 获取特征注册表中的特征
     FeatureRegistry& registry = FeatureRegistry::instance();
     const auto& allFeatures = registry.getFeatures(stage);
 
+    // 特征索引计数器
+    i32 featureIndex = 0;
+
     // 放置每个特征
+    // 参考 MC: 使用 setFeatureSeed(decorSeed, index, stageOrdinal)
+    // setFeatureSeed(baseSeed, x, z):
+    //   i = baseSeed + x + 10000 * z
+    //   setSeed(i)
+    const i32 stageOrdinal = static_cast<i32>(stage);
+
     for (u32 featureId : featureIds) {
         if (featureId < allFeatures.size() && allFeatures[featureId]) {
             ConfiguredFeatureBase* feature = allFeatures[featureId];
 
-            // 设置特征随机种子
-            random.setSeed(chunkSeed ^ static_cast<u64>(featureId));
+            // 使用 setFeatureSeed 算法设置特征种子
+            const u64 featureSeed = decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
+            decorRng.setSeed(featureSeed);
 
-            bool placed = feature->place(region, chunk, generator, random, chunkOrigin);
-            (void)placed;  // 暂时忽略结果
+            feature->place(region, chunk, generator, decorRng, chunkOrigin);
+            featureIndex++;
         }
     }
 }

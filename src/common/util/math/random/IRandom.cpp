@@ -94,6 +94,12 @@ f32 IRandom::nextGaussian(f32 mean, f32 stddev) {
     return mean + stddev * v1 * multiplier;
 }
 
+i64 IRandom::nextLong() {
+    // 返回随机 64 位长整数
+    // 参考 MC Random.nextLong()
+    return static_cast<i64>(nextU64());
+}
+
 i64 IRandom::nextLong(i64 bound) {
     // TODO 改为assert
     if (bound <= 0) {

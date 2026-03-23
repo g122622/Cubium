@@ -131,6 +131,14 @@ public:
     [[nodiscard]] virtual f32 nextGaussian(f32 mean = 0.0f, f32 stddev = 1.0f);
 
     /**
+     * @brief 返回随机 64 位长整数
+     * @return 随机 i64 值
+     *
+     * @note 参考 MC Random.nextLong()
+     */
+    [[nodiscard]] virtual i64 nextLong();
+
+    /**
      * @brief 返回 [0, bound) 范围的随机长整数
      * @param bound 上界（不包含）
      * @return [0, bound) 范围内的随机长整数

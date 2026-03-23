@@ -106,6 +106,8 @@ add_executable(mc_tests
     common/world/biome/layer/MergeLayersTest.cpp
     # 植被特征集成测试
     common/world/gen/test_vegetation_features.cpp
+    # 世界生成确定性测试
+    common/world/gen/WorldGenDeterminismTest.cpp
     # 光照系统测试
     lighting/LightingTest.cpp
     lighting/LightUpdateTest.cpp

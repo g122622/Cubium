@@ -596,8 +596,11 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& 
     const i32 startX = chunkX << 4;
     const i32 startZ = chunkZ << 4;
 
-    // 设置随机种子
-    math::Random surfaceRng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL);
+    // 设置随机种子（参考 MC: setBaseChunkSeed）
+    // 种子 = chunkX * 341873128712 + chunkZ * 132897987541 + worldSeed
+    math::Random surfaceRng(static_cast<u64>(chunkX) * 341873128712ULL +
+                            static_cast<u64>(chunkZ) * 132897987541ULL +
+                            m_seed);
 
     // === 阶段 1: 遍历列生成地表 ===
     {
