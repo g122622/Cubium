@@ -517,7 +517,8 @@ private:
     std::unique_ptr<FrameManager> m_frameManager;
     std::unique_ptr<DescriptorManager> m_descriptorManager;
     std::unique_ptr<UniformManager> m_uniformManager;
-    std::unique_ptr<TridentPipeline> m_chunkPipeline;
+    std::unique_ptr<TridentPipeline> m_chunkPipeline;           ///< 实心方块管线
+    std::unique_ptr<TridentPipeline> m_translucentPipeline;     ///< 透明方块管线
 
     // 区块纹理描述符集（set = 1）
     VkDescriptorSet m_chunkTextureDescriptorSet = VK_NULL_HANDLE;

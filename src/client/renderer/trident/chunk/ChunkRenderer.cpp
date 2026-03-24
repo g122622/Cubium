@@ -2,6 +2,8 @@
 #include "../util/VulkanUtils.hpp"
 #include <spdlog/spdlog.h>
 #include <cstring>
+#include <algorithm>
+#include <glm/glm.hpp>
 
 namespace mc::client {
 
@@ -10,24 +12,47 @@ namespace mc::client {
 // ============================================================================
 
 void ChunkGpuBuffer::destroy(VkDevice device) {
-    if (indexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, indexBuffer, nullptr);
-        indexBuffer = VK_NULL_HANDLE;
+    // 销毁实心网格缓冲区
+    if (solidIndexBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(device, solidIndexBuffer, nullptr);
+        solidIndexBuffer = VK_NULL_HANDLE;
     }
-    if (indexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, indexMemory, nullptr);
-        indexMemory = VK_NULL_HANDLE;
+    if (solidIndexMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(device, solidIndexMemory, nullptr);
+        solidIndexMemory = VK_NULL_HANDLE;
     }
-    if (vertexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, vertexBuffer, nullptr);
-        vertexBuffer = VK_NULL_HANDLE;
+    if (solidVertexBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(device, solidVertexBuffer, nullptr);
+        solidVertexBuffer = VK_NULL_HANDLE;
     }
-    if (vertexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, vertexMemory, nullptr);
-        vertexMemory = VK_NULL_HANDLE;
+    if (solidVertexMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(device, solidVertexMemory, nullptr);
+        solidVertexMemory = VK_NULL_HANDLE;
     }
-    indexCount = 0;
-    vertexCount = 0;
+    solidIndexCount = 0;
+    solidVertexCount = 0;
+
+    // 销毁透明网格缓冲区
+    if (transparentIndexBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(device, transparentIndexBuffer, nullptr);
+        transparentIndexBuffer = VK_NULL_HANDLE;
+    }
+    if (transparentIndexMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(device, transparentIndexMemory, nullptr);
+        transparentIndexMemory = VK_NULL_HANDLE;
+    }
+    if (transparentVertexBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(device, transparentVertexBuffer, nullptr);
+        transparentVertexBuffer = VK_NULL_HANDLE;
+    }
+    if (transparentVertexMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(device, transparentVertexMemory, nullptr);
+        transparentVertexMemory = VK_NULL_HANDLE;
+    }
+    transparentIndexCount = 0;
+    transparentVertexCount = 0;
+
+    hasTransparentMesh = false;
     isValid = false;
 }
 
@@ -116,8 +141,10 @@ void ChunkRenderer::destroy() {
         }
     }
     m_chunkBuffers.clear();
-    m_totalVertices = 0;
-    m_totalIndices = 0;
+    m_totalSolidVertices = 0;
+    m_totalSolidIndices = 0;
+    m_totalTransparentVertices = 0;
+    m_totalTransparentIndices = 0;
 
     // 清理延迟销毁队列
     {
@@ -167,7 +194,17 @@ Result<void> ChunkRenderer::updateChunk(
     const ChunkId& chunkId,
     const MeshData& meshData)
 {
-    if (meshData.empty()) {
+    // 向后兼容接口：仅更新实心网格
+    return updateChunk(chunkId, meshData, MeshData{});
+}
+
+Result<void> ChunkRenderer::updateChunk(
+    const ChunkId& chunkId,
+    const MeshData& solidMesh,
+    const MeshData& transparentMesh)
+{
+    // 如果两个网格都为空，移除区块
+    if (solidMesh.empty() && transparentMesh.empty()) {
         removeChunk(chunkId);
         return {};
     }
@@ -183,19 +220,143 @@ Result<void> ChunkRenderer::updateChunk(
 
         auto buffer = std::make_unique<ChunkGpuBuffer>();
         buffer->chunkId = chunkId;
+        // 计算区块中心位置（用于距离排序）
+        buffer->centerPosition = glm::vec3(
+            static_cast<float>(chunkId.x) * 16.0f + 8.0f,
+            64.0f,  // 使用中间高度
+            static_cast<float>(chunkId.z) * 16.0f + 8.0f
+        );
 
-        auto result = createChunkBuffer(*buffer, meshData);
-        if (!result.success()) {
-            return result;
+        // 创建实心网格缓冲区
+        if (!solidMesh.empty()) {
+            auto result = createMeshBuffers(
+                buffer->solidVertexBuffer,
+                buffer->solidVertexMemory,
+                buffer->solidIndexBuffer,
+                buffer->solidIndexMemory,
+                solidMesh,
+                buffer->solidVertexCount,
+                buffer->solidIndexCount);
+            if (!result.success()) {
+                return result;
+            }
+            m_totalSolidVertices += buffer->solidVertexCount;
+            m_totalSolidIndices += buffer->solidIndexCount;
         }
 
+        // 创建透明网格缓冲区
+        if (!transparentMesh.empty()) {
+            auto result = createMeshBuffers(
+                buffer->transparentVertexBuffer,
+                buffer->transparentVertexMemory,
+                buffer->transparentIndexBuffer,
+                buffer->transparentIndexMemory,
+                transparentMesh,
+                buffer->transparentVertexCount,
+                buffer->transparentIndexCount);
+            if (!result.success()) {
+                return result;
+            }
+            buffer->hasTransparentMesh = true;
+            m_totalTransparentVertices += buffer->transparentVertexCount;
+            m_totalTransparentIndices += buffer->transparentIndexCount;
+        }
+
+        buffer->isValid = true;
         m_chunkBuffers[id] = std::move(buffer);
     } else {
         // 更新现有缓冲区
-        auto result = createChunkBuffer(*it->second, meshData);
-        if (!result.success()) {
-            return result;
+        auto& buffer = *it->second;
+
+        // 更新实心网格
+        u32 oldSolidVertices = buffer.solidVertexCount;
+        u32 oldSolidIndices = buffer.solidIndexCount;
+
+        if (!solidMesh.empty()) {
+            auto result = createMeshBuffers(
+                buffer.solidVertexBuffer,
+                buffer.solidVertexMemory,
+                buffer.solidIndexBuffer,
+                buffer.solidIndexMemory,
+                solidMesh,
+                buffer.solidVertexCount,
+                buffer.solidIndexCount);
+            if (!result.success()) {
+                return result;
+            }
+        } else if (buffer.solidVertexBuffer != VK_NULL_HANDLE) {
+            // 实心网格已清空，销毁缓冲区
+            buffer.destroy(m_device);
+            buffer.solidVertexBuffer = VK_NULL_HANDLE;
+            buffer.solidVertexMemory = VK_NULL_HANDLE;
+            buffer.solidIndexBuffer = VK_NULL_HANDLE;
+            buffer.solidIndexMemory = VK_NULL_HANDLE;
+            buffer.solidVertexCount = 0;
+            buffer.solidIndexCount = 0;
         }
+
+        // 更新统计（实心）
+        if (m_totalSolidVertices >= oldSolidVertices) {
+            m_totalSolidVertices -= oldSolidVertices;
+        } else {
+            m_totalSolidVertices = 0;
+        }
+        if (m_totalSolidIndices >= oldSolidIndices) {
+            m_totalSolidIndices -= oldSolidIndices;
+        } else {
+            m_totalSolidIndices = 0;
+        }
+        m_totalSolidVertices += buffer.solidVertexCount;
+        m_totalSolidIndices += buffer.solidIndexCount;
+
+        // 更新透明网格
+        u32 oldTransparentVertices = buffer.transparentVertexCount;
+        u32 oldTransparentIndices = buffer.transparentIndexCount;
+
+        if (!transparentMesh.empty()) {
+            auto result = createMeshBuffers(
+                buffer.transparentVertexBuffer,
+                buffer.transparentVertexMemory,
+                buffer.transparentIndexBuffer,
+                buffer.transparentIndexMemory,
+                transparentMesh,
+                buffer.transparentVertexCount,
+                buffer.transparentIndexCount);
+            if (!result.success()) {
+                return result;
+            }
+            buffer.hasTransparentMesh = true;
+        } else if (buffer.transparentVertexBuffer != VK_NULL_HANDLE) {
+            // 透明网格已清空，销毁缓冲区
+            vkDestroyBuffer(m_device, buffer.transparentVertexBuffer, nullptr);
+            vkFreeMemory(m_device, buffer.transparentVertexMemory, nullptr);
+            vkDestroyBuffer(m_device, buffer.transparentIndexBuffer, nullptr);
+            vkFreeMemory(m_device, buffer.transparentIndexMemory, nullptr);
+            buffer.transparentVertexBuffer = VK_NULL_HANDLE;
+            buffer.transparentVertexMemory = VK_NULL_HANDLE;
+            buffer.transparentIndexBuffer = VK_NULL_HANDLE;
+            buffer.transparentIndexMemory = VK_NULL_HANDLE;
+            buffer.transparentVertexCount = 0;
+            buffer.transparentIndexCount = 0;
+            buffer.hasTransparentMesh = false;
+        }
+
+        // 更新统计（透明）
+        if (m_totalTransparentVertices >= oldTransparentVertices) {
+            m_totalTransparentVertices -= oldTransparentVertices;
+        } else {
+            m_totalTransparentVertices = 0;
+        }
+        if (m_totalTransparentIndices >= oldTransparentIndices) {
+            m_totalTransparentIndices -= oldTransparentIndices;
+        } else {
+            m_totalTransparentIndices = 0;
+        }
+        m_totalTransparentVertices += buffer.transparentVertexCount;
+        m_totalTransparentIndices += buffer.transparentIndexCount;
+
+        buffer.isValid = (buffer.solidVertexBuffer != VK_NULL_HANDLE ||
+                          buffer.transparentVertexBuffer != VK_NULL_HANDLE);
     }
 
     return {};
@@ -206,8 +367,11 @@ void ChunkRenderer::removeChunk(const ChunkId& chunkId) {
     auto it = m_chunkBuffers.find(id);
 
     if (it != m_chunkBuffers.end()) {
-        m_totalVertices -= it->second->vertexCount;
-        m_totalIndices -= it->second->indexCount;
+        // 更新统计
+        m_totalSolidVertices -= it->second->solidVertexCount;
+        m_totalSolidIndices -= it->second->solidIndexCount;
+        m_totalTransparentVertices -= it->second->transparentVertexCount;
+        m_totalTransparentIndices -= it->second->transparentIndexCount;
 
         // 将缓冲区移入延迟销毁队列
         {
@@ -237,33 +401,39 @@ void ChunkRenderer::clearChunks() {
     }
 
     m_chunkBuffers.clear();
-    m_totalVertices = 0;
-    m_totalIndices = 0;
+    m_totalSolidVertices = 0;
+    m_totalSolidIndices = 0;
+    m_totalTransparentVertices = 0;
+    m_totalTransparentIndices = 0;
 }
 
-Result<void> ChunkRenderer::createChunkBuffer(
-    ChunkGpuBuffer& buffer,
-    const MeshData& meshData)
+Result<void> ChunkRenderer::createMeshBuffers(
+    VkBuffer& vertexBuffer,
+    VkDeviceMemory& vertexMemory,
+    VkBuffer& indexBuffer,
+    VkDeviceMemory& indexMemory,
+    const MeshData& meshData,
+    u32& outVertexCount,
+    u32& outIndexCount)
 {
-    const u32 oldVertexCount = buffer.vertexCount;
-    const u32 oldIndexCount = buffer.indexCount;
+    const u32 oldVertexCount = outVertexCount;
+    const u32 oldIndexCount = outIndexCount;
 
     VkDeviceSize vertexSize = static_cast<VkDeviceSize>(meshData.vertices.size() * sizeof(Vertex));
     VkDeviceSize indexSize = static_cast<VkDeviceSize>(meshData.indices.size() * sizeof(u32));
 
     // 如果缓冲区已存在且大小足够，重用
-    bool needNewVertex = buffer.vertexBuffer == VK_NULL_HANDLE || buffer.vertexCount < meshData.vertices.size();
-    bool needNewIndex = buffer.indexBuffer == VK_NULL_HANDLE || buffer.indexCount < meshData.indices.size();
+    bool needNewVertex = vertexBuffer == VK_NULL_HANDLE || outVertexCount < meshData.vertices.size();
+    bool needNewIndex = indexBuffer == VK_NULL_HANDLE || outIndexCount < meshData.indices.size();
 
     // 创建顶点缓冲区
     if (needNewVertex) {
-        if (buffer.vertexBuffer != VK_NULL_HANDLE) {
+        if (vertexBuffer != VK_NULL_HANDLE) {
             // 延迟销毁旧缓冲区，避免 GPU 仍在使用时被提前释放导致 device lost
             auto oldBuffer = std::make_unique<ChunkGpuBuffer>();
-            oldBuffer->vertexBuffer = buffer.vertexBuffer;
-            oldBuffer->vertexMemory = buffer.vertexMemory;
-            oldBuffer->chunkId = buffer.chunkId;
-            oldBuffer->vertexCount = oldVertexCount;
+            oldBuffer->solidVertexBuffer = vertexBuffer;
+            oldBuffer->solidVertexMemory = vertexMemory;
+            oldBuffer->solidVertexCount = oldVertexCount;
             oldBuffer->isValid = true;
 
             {
@@ -274,16 +444,16 @@ Result<void> ChunkRenderer::createChunkBuffer(
                 m_pendingDestroys.push_back(std::move(pending));
             }
 
-            buffer.vertexBuffer = VK_NULL_HANDLE;
-            buffer.vertexMemory = VK_NULL_HANDLE;
+            vertexBuffer = VK_NULL_HANDLE;
+            vertexMemory = VK_NULL_HANDLE;
         }
 
         auto result = createBuffer(
             vertexSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            buffer.vertexBuffer,
-            buffer.vertexMemory);
+            vertexBuffer,
+            vertexMemory);
 
         if (result.failed()) {
             return Error(ErrorCode::InitializationFailed,
@@ -293,13 +463,12 @@ Result<void> ChunkRenderer::createChunkBuffer(
 
     // 创建索引缓冲区
     if (needNewIndex) {
-        if (buffer.indexBuffer != VK_NULL_HANDLE) {
-            // 延迟销毁旧缓冲区，避免 GPU 仍在使用时被提前释放导致 device lost
+        if (indexBuffer != VK_NULL_HANDLE) {
+            // 延迟销毁旧缓冲区
             auto oldBuffer = std::make_unique<ChunkGpuBuffer>();
-            oldBuffer->indexBuffer = buffer.indexBuffer;
-            oldBuffer->indexMemory = buffer.indexMemory;
-            oldBuffer->chunkId = buffer.chunkId;
-            oldBuffer->indexCount = oldIndexCount;
+            oldBuffer->solidIndexBuffer = indexBuffer;
+            oldBuffer->solidIndexMemory = indexMemory;
+            oldBuffer->solidIndexCount = oldIndexCount;
             oldBuffer->isValid = true;
 
             {
@@ -310,16 +479,16 @@ Result<void> ChunkRenderer::createChunkBuffer(
                 m_pendingDestroys.push_back(std::move(pending));
             }
 
-            buffer.indexBuffer = VK_NULL_HANDLE;
-            buffer.indexMemory = VK_NULL_HANDLE;
+            indexBuffer = VK_NULL_HANDLE;
+            indexMemory = VK_NULL_HANDLE;
         }
 
         auto result = createBuffer(
             indexSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            buffer.indexBuffer,
-            buffer.indexMemory);
+            indexBuffer,
+            indexMemory);
 
         if (result.failed()) {
             return Error(ErrorCode::InitializationFailed,
@@ -330,7 +499,6 @@ Result<void> ChunkRenderer::createChunkBuffer(
     // 上传数据
     auto cmdResult = beginSingleTimeCommands();
     if (!cmdResult.success()) {
-        buffer.destroy(m_device);
         return cmdResult.error();
     }
     VkCommandBuffer commandBuffer = cmdResult.value();
@@ -367,7 +535,7 @@ Result<void> ChunkRenderer::createChunkBuffer(
     // 复制顶点数据
     VkBufferCopy copyRegion{};
     copyRegion.size = vertexSize;
-    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.vertexBuffer, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, vertexBuffer, 1, &copyRegion);
 
     // 映射并上传索引数据
     vkMapMemory(m_device, m_stagingMemory, 0, indexSize, 0, &mapped);
@@ -376,28 +544,12 @@ Result<void> ChunkRenderer::createChunkBuffer(
 
     // 复制索引数据
     copyRegion.size = indexSize;
-    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.indexBuffer, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, indexBuffer, 1, &copyRegion);
 
     endSingleTimeCommands(commandBuffer);
 
-    buffer.indexCount = static_cast<u32>(meshData.indices.size());
-    buffer.vertexCount = static_cast<u32>(meshData.vertices.size());
-    buffer.isValid = true;
-
-    // 更新统计
-    if (m_totalVertices >= oldVertexCount) {
-        m_totalVertices -= oldVertexCount;
-    } else {
-        m_totalVertices = 0;
-    }
-    if (m_totalIndices >= oldIndexCount) {
-        m_totalIndices -= oldIndexCount;
-    } else {
-        m_totalIndices = 0;
-    }
-
-    m_totalVertices += buffer.vertexCount;
-    m_totalIndices += buffer.indexCount;
+    outIndexCount = static_cast<u32>(meshData.indices.size());
+    outVertexCount = static_cast<u32>(meshData.vertices.size());
 
     return {};
 }
@@ -556,25 +708,26 @@ Result<void> ChunkRenderer::uploadTextureData(const u8* pixelData, u32 width, u3
     return {};
 }
 
-void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/) {
-    // 绑定纹理（如果有效）
-    // 注意: 实际的描述符绑定需要在外部处理
+// ============================================================================
+// 实心网格渲染
+// ============================================================================
 
-    // 渲染所有区块
+void ChunkRenderer::renderSolid(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/) {
+    // 渲染所有实心方块
     for (const auto& pair : m_chunkBuffers) {
         const auto& buffer = pair.second;
-        if (!buffer->isValid || buffer->vertexBuffer == VK_NULL_HANDLE || buffer->indexBuffer == VK_NULL_HANDLE) {
+        if (!buffer->isValid || buffer->solidVertexBuffer == VK_NULL_HANDLE || buffer->solidIndexBuffer == VK_NULL_HANDLE) {
             continue;
         }
 
-        VkBuffer vertexBuffers[] = { buffer->vertexBuffer };
+        VkBuffer vertexBuffers[] = { buffer->solidVertexBuffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->solidIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdDrawIndexed(
             commandBuffer,
-            buffer->indexCount,
+            buffer->solidIndexCount,
             1,  // instance count
             0,  // first index
             0,  // vertex offset
@@ -583,12 +736,12 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
     }
 }
 
-void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/,
-                           PushConstantsCallback pushConstantsCallback) {
-    // 渲染所有区块
+void ChunkRenderer::renderSolid(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/,
+                                PushConstantsCallback pushConstantsCallback) {
+    // 渲染所有实心方块
     for (const auto& pair : m_chunkBuffers) {
         const auto& buffer = pair.second;
-        if (!buffer->isValid || buffer->vertexBuffer == VK_NULL_HANDLE || buffer->indexBuffer == VK_NULL_HANDLE) {
+        if (!buffer->isValid || buffer->solidVertexBuffer == VK_NULL_HANDLE || buffer->solidIndexBuffer == VK_NULL_HANDLE) {
             continue;
         }
 
@@ -597,20 +750,144 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
             pushConstantsCallback(buffer->chunkId);
         }
 
-        VkBuffer vertexBuffers[] = { buffer->vertexBuffer };
+        VkBuffer vertexBuffers[] = { buffer->solidVertexBuffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->solidIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdDrawIndexed(
             commandBuffer,
-            buffer->indexCount,
+            buffer->solidIndexCount,
             1,  // instance count
             0,  // first index
             0,  // vertex offset
             0   // first instance
         );
     }
+}
+
+// ============================================================================
+// 透明网格渲染
+// ============================================================================
+
+std::vector<ChunkId> ChunkRenderer::sortChunksByDistance(const glm::vec3& cameraPosition) const {
+    std::vector<std::pair<ChunkId, float>> distances;
+    distances.reserve(m_chunkBuffers.size());
+
+    for (const auto& pair : m_chunkBuffers) {
+        const auto& buffer = pair.second;
+        if (!buffer->isValid || !buffer->hasTransparentMesh) {
+            continue;
+        }
+
+        float distance = glm::length(buffer->centerPosition - cameraPosition);
+        distances.emplace_back(buffer->chunkId, distance);
+    }
+
+    // 从远到近排序（透明物体需要从后往前渲染）
+    std::sort(distances.begin(), distances.end(),
+        [](const auto& a, const auto& b) {
+            return a.second > b.second;
+        });
+
+    std::vector<ChunkId> result;
+    result.reserve(distances.size());
+    for (const auto& p : distances) {
+        result.push_back(p.first);
+    }
+
+    return result;
+}
+
+void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/,
+                                      const glm::vec3& cameraPosition) {
+    // 按距离排序透明区块
+    auto sortedChunks = sortChunksByDistance(cameraPosition);
+
+    // 从远到近渲染
+    for (const auto& chunkId : sortedChunks) {
+        u64 id = chunkId.toId();
+        auto it = m_chunkBuffers.find(id);
+        if (it == m_chunkBuffers.end()) {
+            continue;
+        }
+
+        const auto& buffer = it->second;
+        if (!buffer->isValid || !buffer->hasTransparentMesh ||
+            buffer->transparentVertexBuffer == VK_NULL_HANDLE ||
+            buffer->transparentIndexBuffer == VK_NULL_HANDLE) {
+            continue;
+        }
+
+        VkBuffer vertexBuffers[] = { buffer->transparentVertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->transparentIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(
+            commandBuffer,
+            buffer->transparentIndexCount,
+            1,  // instance count
+            0,  // first index
+            0,  // vertex offset
+            0   // first instance
+        );
+    }
+}
+
+void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/,
+                                      const glm::vec3& cameraPosition,
+                                      PushConstantsCallback pushConstantsCallback) {
+    // 按距离排序透明区块
+    auto sortedChunks = sortChunksByDistance(cameraPosition);
+
+    // 从远到近渲染
+    for (const auto& chunkId : sortedChunks) {
+        u64 id = chunkId.toId();
+        auto it = m_chunkBuffers.find(id);
+        if (it == m_chunkBuffers.end()) {
+            continue;
+        }
+
+        const auto& buffer = it->second;
+        if (!buffer->isValid || !buffer->hasTransparentMesh ||
+            buffer->transparentVertexBuffer == VK_NULL_HANDLE ||
+            buffer->transparentIndexBuffer == VK_NULL_HANDLE) {
+            continue;
+        }
+
+        // 调用回调设置推送常量（区块偏移）
+        if (pushConstantsCallback) {
+            pushConstantsCallback(buffer->chunkId);
+        }
+
+        VkBuffer vertexBuffers[] = { buffer->transparentVertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->transparentIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(
+            commandBuffer,
+            buffer->transparentIndexCount,
+            1,  // instance count
+            0,  // first index
+            0,  // vertex offset
+            0   // first instance
+        );
+    }
+}
+
+// ============================================================================
+// 向后兼容接口
+// ============================================================================
+
+void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout) {
+    renderSolid(commandBuffer, pipelineLayout);
+}
+
+void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
+                           PushConstantsCallback pushConstantsCallback) {
+    renderSolid(commandBuffer, pipelineLayout, pushConstantsCallback);
 }
 
 Result<VkCommandBuffer> ChunkRenderer::beginSingleTimeCommands() {

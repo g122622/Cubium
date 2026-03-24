@@ -271,6 +271,7 @@ void TridentEngine::destroy() {
     m_renderPassManager.reset();
     m_swapchain.reset();
     m_chunkPipeline.reset();
+    m_translucentPipeline.reset();
     m_chunkTextureDescriptorSet = VK_NULL_HANDLE;
 
     if (m_context) {
@@ -488,7 +489,7 @@ Result<void> TridentEngine::render() {
         );
     }
 
-    // 5. 渲染区块
+    // 5. 渲染区块（实心方块）
     if (m_chunkRendererInitialized && m_chunkRenderer && m_chunkPipeline &&
         m_chunkPipeline->isValid() && m_chunkTextureDescriptorSet != VK_NULL_HANDLE) {
 
@@ -537,7 +538,7 @@ Result<void> TridentEngine::render() {
             }
         }
 
-        m_chunkRenderer->render(cmd, m_chunkPipeline->layout(),
+        m_chunkRenderer->renderSolid(cmd, m_chunkPipeline->layout(),
             [this, cmd](const ChunkId& chunkId) {
                 ChunkPushConstants pushConstants{};
                 pushConstants.model = glm::mat4(1.0f);
@@ -587,6 +588,82 @@ Result<void> TridentEngine::render() {
         m_entityRendererManager->setCameraDescriptorSet(cameraSet);
 
         m_entityRenderCallback(cmd, m_partialTick);
+    }
+
+    // 6.1 渲染透明方块（水、玻璃等）- 在实体之后、天气之前
+    // 透明方块需要从远到近排序渲染
+    if (m_chunkRendererInitialized && m_chunkRenderer && m_translucentPipeline &&
+        m_translucentPipeline->isValid() && m_chunkTextureDescriptorSet != VK_NULL_HANDLE) {
+
+        m_translucentPipeline->bind(cmd);
+
+        VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+        vkCmdBindDescriptorSets(
+            cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_translucentPipeline->layout(),
+            0,
+            1,
+            &cameraSet,
+            0,
+            nullptr
+        );
+
+        vkCmdBindDescriptorSets(
+            cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_translucentPipeline->layout(),
+            1,
+            1,
+            &m_chunkTextureDescriptorSet,
+            0,
+            nullptr
+        );
+
+        // 绑定雾效果描述符集（set = 2）
+        if (m_fogManagerInitialized && m_fogManager) {
+            VkDescriptorSet fogSet = m_fogManager->descriptorSet(m_frameContext.frameIndex);
+            if (fogSet != VK_NULL_HANDLE) {
+                vkCmdBindDescriptorSets(
+                    cmd,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    m_translucentPipeline->layout(),
+                    2,
+                    1,
+                    &fogSet,
+                    0,
+                    nullptr
+                );
+            }
+        }
+
+        // 获取相机位置用于排序
+        glm::vec3 cameraPos(0.0f);
+        if (m_frameContext.camera) {
+            cameraPos = m_frameContext.camera->position();
+        }
+
+        m_chunkRenderer->renderTransparent(cmd, m_translucentPipeline->layout(), cameraPos,
+            [this, cmd](const ChunkId& chunkId) {
+                ChunkPushConstants pushConstants{};
+                pushConstants.model = glm::mat4(1.0f);
+                pushConstants.chunkOffset = glm::vec3(
+                    static_cast<f32>(chunkId.x * constants::CHUNK_WIDTH),
+                    0.0f,
+                    static_cast<f32>(chunkId.z * constants::CHUNK_WIDTH)
+                );
+                pushConstants.padding = 0.0f;
+
+                vkCmdPushConstants(
+                    cmd,
+                    m_translucentPipeline->layout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(ChunkPushConstants),
+                    &pushConstants
+                );
+            }
+        );
     }
 
     // 6.5 渲染天气效果（雨/雪）
@@ -1169,12 +1246,42 @@ Result<void> TridentEngine::initializeChunkRenderer() {
         return pipelineResult.error();
     }
 
+    // 创建透明方块管线（Alpha 混合）
+    // 使用相同的着色器，但启用混合并禁用深度写入
+    if (!m_translucentPipeline) {
+        m_translucentPipeline = std::make_unique<TridentPipeline>();
+    }
+
+    TridentPipelineConfig translucentConfig = pipelineConfig;  // 复用实心管线配置
+    translucentConfig.blendEnable = VK_TRUE;
+    translucentConfig.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    translucentConfig.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    translucentConfig.colorBlendOp = VK_BLEND_OP_ADD;
+    translucentConfig.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    translucentConfig.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    translucentConfig.alphaBlendOp = VK_BLEND_OP_ADD;
+    // 深度测试启用但禁用写入，这样透明物体不会遮挡后面的物体
+    translucentConfig.depthTestEnable = VK_TRUE;
+    translucentConfig.depthWriteEnable = VK_FALSE;
+    // 双面渲染，透明物体内部也可见
+    translucentConfig.cullMode = VK_CULL_MODE_NONE;
+
+    auto translucentResult = m_translucentPipeline->create(m_context.get(), translucentConfig);
+    if (translucentResult.failed()) {
+        m_chunkRenderer->destroy();
+        m_chunkRenderer.reset();
+        m_chunkPipeline.reset();
+        m_translucentPipeline.reset();
+        return translucentResult.error();
+    }
+
     // 预分配纹理描述符集（纹理上传后再写入）
     auto textureSetResult = m_descriptorManager->allocateTextureSet();
     if (textureSetResult.failed()) {
         m_chunkRenderer->destroy();
         m_chunkRenderer.reset();
         m_chunkPipeline.reset();
+        m_translucentPipeline.reset();
         return textureSetResult.error();
     }
     m_chunkTextureDescriptorSet = textureSetResult.value();

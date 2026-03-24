@@ -93,6 +93,26 @@ public:
         const ChunkData* neighborChunks[6] = nullptr
     );
 
+    /**
+     * @brief 生成透明方块网格（水、玻璃等）
+     *
+     * 分离透明方块到独立网格，用于后续透明渲染通道。
+     * 包括：流体（水、岩浆）、透明方块（玻璃、冰等）。
+     *
+     * 注意：此方法不生成流体网格，流体由 FluidMesher 单独处理。
+     * 此方法仅处理非流体的透明方块（如玻璃、冰、染色玻璃等）。
+     *
+     * @param chunk 区块数据
+     * @param outMesh 输出透明网格
+     * @param neighbors 周围6个区块 (用于边界面的剔除)
+     *                  顺序: -X, +X, -Z, +Z, -Y, +Y (可以是nullptr)
+     */
+    static void generateTransparentMesh(
+        const ChunkData& chunk,
+        MeshData& outMesh,
+        const ChunkData* neighbors[6] = nullptr
+    );
+
     // ========================================================================
     // 配置
     // ========================================================================
@@ -229,6 +249,14 @@ private:
 
     // 简单网格生成 (逐面生成)
     static void simpleMeshSection(
+        const ChunkData& chunk,
+        i32 sectionIndex,
+        MeshData& outMesh,
+        const ChunkData* neighborChunks[6]
+    );
+
+    // 透明方块网格生成 (逐面生成)
+    static void transparentMeshSection(
         const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,

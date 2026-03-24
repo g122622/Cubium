@@ -5,6 +5,7 @@
 #include "../../MeshTypes.hpp"
 #include "ChunkMesher.hpp"
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 #include <unordered_map>
 #include <memory>
 #include <vector>
@@ -14,16 +15,28 @@
 
 namespace mc::client {
 
-// 区块GPU缓冲区 - 使用原始 Vulkan handles
+// 区块GPU缓冲区 - 使用原始 Vulkan handles（支持实心+透明双网格）
 struct ChunkGpuBuffer {
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory indexMemory = VK_NULL_HANDLE;
-    u32 indexCount = 0;
-    u32 vertexCount = 0;
+    // 实心网格缓冲区
+    VkBuffer solidVertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory solidVertexMemory = VK_NULL_HANDLE;
+    VkBuffer solidIndexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory solidIndexMemory = VK_NULL_HANDLE;
+    u32 solidIndexCount = 0;
+    u32 solidVertexCount = 0;
+
+    // 透明网格缓冲区
+    VkBuffer transparentVertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory transparentVertexMemory = VK_NULL_HANDLE;
+    VkBuffer transparentIndexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory transparentIndexMemory = VK_NULL_HANDLE;
+    u32 transparentIndexCount = 0;
+    u32 transparentVertexCount = 0;
+
     ChunkId chunkId{0, 0};
+    glm::vec3 centerPosition{0.0f};  // 用于距离排序
     bool isValid = false;
+    bool hasTransparentMesh = false;
 
     void destroy(VkDevice device);
 };
@@ -93,9 +106,26 @@ public:
     void destroy();
 
     // 区块管理
+    /**
+     * @brief 更新区块网格（仅实心网格）
+     *
+     * 向后兼容的接口，透明网格为空。
+     */
     [[nodiscard]] Result<void> updateChunk(
         const ChunkId& chunkId,
         const MeshData& meshData);
+
+    /**
+     * @brief 更新区块网格（实心+透明双网格）
+     *
+     * @param chunkId 区块 ID
+     * @param solidMesh 实心方块网格
+     * @param transparentMesh 透明方块网格（水、玻璃等）
+     */
+    [[nodiscard]] Result<void> updateChunk(
+        const ChunkId& chunkId,
+        const MeshData& solidMesh,
+        const MeshData& transparentMesh);
 
     void removeChunk(const ChunkId& chunkId);
 
@@ -111,12 +141,59 @@ public:
     ChunkTextureAtlas& textureAtlas() { return m_textureAtlas; }
     const ChunkTextureAtlas& textureAtlas() const { return m_textureAtlas; }
 
-    // 渲染
+    // ========== 实心网格渲染 ==========
+
+    /**
+     * @brief 渲染实心方块网格
+     *
+     * 渲染所有区块的实心网格，用于不透明渲染通道。
+     *
+     * @param commandBuffer 命令缓冲区
+     * @param pipelineLayout 管线布局
+     */
+    void renderSolid(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
+
+    /**
+     * @brief 渲染实心网格（带推送常量回调）
+     */
+    using PushConstantsCallback = std::function<void(const ChunkId&)>;
+    void renderSolid(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
+                     PushConstantsCallback pushConstantsCallback);
+
+    // ========== 透明网格渲染 ==========
+
+    /**
+     * @brief 渲染透明方块网格
+     *
+     * 按距离从远到近排序后渲染所有透明区块。
+     * 用于透明渲染通道（水、玻璃等）。
+     *
+     * @param commandBuffer 命令缓冲区
+     * @param pipelineLayout 管线布局
+     * @param cameraPosition 相机位置（用于排序）
+     */
+    void renderTransparent(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
+                           const glm::vec3& cameraPosition);
+
+    /**
+     * @brief 渲染透明网格（带推送常量回调）
+     */
+    void renderTransparent(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
+                           const glm::vec3& cameraPosition,
+                           PushConstantsCallback pushConstantsCallback);
+
+    // ========== 向后兼容接口 ==========
+
+    /**
+     * @brief 渲染所有区块（向后兼容）
+     * @deprecated 使用 renderSolid() 替代
+     */
     void render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
 
-    // 渲染（带推送常量回调）
-    // pushConstantsCallback: 设置推送常量的回调函数，参数是 chunkId
-    using PushConstantsCallback = std::function<void(const ChunkId&)>;
+    /**
+     * @brief 渲染所有区块（带推送常量，向后兼容）
+     * @deprecated 使用 renderSolid() 替代
+     */
     void render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
                 PushConstantsCallback pushConstantsCallback);
 
@@ -161,8 +238,12 @@ public:
 
     // 统计
     u32 chunkCount() const { return static_cast<u32>(m_chunkBuffers.size()); }
-    u32 totalVertexCount() const { return m_totalVertices; }
-    u32 totalIndexCount() const { return m_totalIndices; }
+    u32 totalSolidVertexCount() const { return m_totalSolidVertices; }
+    u32 totalSolidIndexCount() const { return m_totalSolidIndices; }
+    u32 totalTransparentVertexCount() const { return m_totalTransparentVertices; }
+    u32 totalTransparentIndexCount() const { return m_totalTransparentIndices; }
+    u32 totalVertexCount() const { return m_totalSolidVertices + m_totalTransparentVertices; }
+    u32 totalIndexCount() const { return m_totalSolidIndices + m_totalTransparentIndices; }
 
 private:
     VkDevice m_device = VK_NULL_HANDLE;
@@ -175,8 +256,10 @@ private:
     u32 m_maxChunks = 1024;
 
     // 统计
-    u32 m_totalVertices = 0;
-    u32 m_totalIndices = 0;
+    u32 m_totalSolidVertices = 0;
+    u32 m_totalSolidIndices = 0;
+    u32 m_totalTransparentVertices = 0;
+    u32 m_totalTransparentIndices = 0;
 
     // 纹理图集
     ChunkTextureAtlas m_textureAtlas;
@@ -241,6 +324,36 @@ private:
         const u8* pixelData,
         u32 width,
         u32 height);
+
+    // ========== 透明区块排序 ==========
+
+    /**
+     * @brief 对透明区块按距离排序
+     *
+     * @param cameraPosition 相机位置
+     * @return 排序后的区块ID列表（从远到近）
+     */
+    [[nodiscard]] std::vector<ChunkId> sortChunksByDistance(const glm::vec3& cameraPosition) const;
+
+    // ========== 缓冲区创建辅助 ==========
+
+    /**
+     * @brief 创建单个网格的 GPU 缓冲区
+     *
+     * @param buffer 目标缓冲区
+     * @param meshData 网格数据
+     * @param[out] outVertexCount 输出顶点数
+     * @param[out] outIndexCount 输出索引数
+     * @return 结果
+     */
+    [[nodiscard]] Result<void> createMeshBuffers(
+        VkBuffer& vertexBuffer,
+        VkDeviceMemory& vertexMemory,
+        VkBuffer& indexBuffer,
+        VkDeviceMemory& indexMemory,
+        const MeshData& meshData,
+        u32& outVertexCount,
+        u32& outIndexCount);
 };
 
 } // namespace mc::client

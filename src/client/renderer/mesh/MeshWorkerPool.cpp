@@ -1,5 +1,6 @@
 #include "MeshWorkerPool.hpp"
 #include "../trident/chunk/ChunkMesher.hpp"
+#include "../trident/chunk/FluidMesher.hpp"
 #include "../../../common/perfetto/PerfettoManager.hpp"
 #include "../../../common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
@@ -239,8 +240,14 @@ void MeshWorkerPool::executeTask(const ClientMeshTask& task)
             ChunkMesher::generateMesh(*task.chunkData, result.solidMesh, neighborPtrs);
         }
 
-        // TODO: 生成透明方块网格（水、玻璃等）
-        // ChunkMesher::generateTransparentMesh(*task.chunkData, result.transparentMesh, neighborPtrs);
+        // 生成透明方块网格（水、玻璃等）
+        {
+            MC_TRACE_CHUNK_MESH_EVENT("GenerateTransparentMesh");
+            // 生成非流体透明方块网格（玻璃、冰等）
+            ChunkMesher::generateTransparentMesh(*task.chunkData, result.transparentMesh, neighborPtrs);
+            // 生成流体网格（水、岩浆）
+            renderer::FluidMesher::generateFluidMesh(*task.chunkData, result.transparentMesh, neighborPtrs);
+        }
 
         result.success = true;
 

@@ -1256,15 +1256,15 @@ void ClientApplication::update(f32 deltaTime)
     if (m_renderer->isChunkRendererInitialized()) {
         auto& chunkRenderer = m_renderer->chunkRenderer();
         m_world.forEachDirtyMesh([this, &chunkRenderer](const ChunkId& id, ClientChunk& chunk) {
-            // 检查网格是否为空
-            if (chunk.solidMesh.empty()) {
+            // 检查网格是否为空（两个都为空才跳过）
+            if (chunk.solidMesh.empty() && chunk.transparentMesh.empty()) {
                 chunk.needsMeshUpdate = false;
                 return;
             }
 
-            // 上传网格到GPU
+            // 上传网格到GPU（实心+透明双网格）
             ChunkId chunkId(id.x, id.z);
-            auto result = chunkRenderer.updateChunk(chunkId, chunk.solidMesh);
+            auto result = chunkRenderer.updateChunk(chunkId, chunk.solidMesh, chunk.transparentMesh);
             if (result.success()) {
                 chunk.needsMeshUpdate = false;
 

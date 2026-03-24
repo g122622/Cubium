@@ -40,6 +40,7 @@ add_executable(minecraft-client
     # 子渲染器
     renderer/trident/chunk/ChunkRenderer.cpp
     renderer/trident/chunk/ChunkMesher.cpp
+    renderer/trident/chunk/FluidMesher.cpp
     renderer/trident/chunk/AmbientOcclusionCalculator.cpp
     renderer/trident/sky/SkyRenderer.cpp
     renderer/trident/sky/CelestialCalculations.cpp

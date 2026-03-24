@@ -132,8 +132,11 @@ void ChunkMesher::generateSectionMesh(
 
 bool ChunkMesher::shouldRenderBlock(const BlockState* state) {
     // 空气和液体不渲染实体网格
+    // 液体由 FluidMesher 单独处理
     if (!state) return false;
-    return !state->isAir();
+    if (state->isAir()) return false;
+    if (state->isLiquid()) return false;  // 液体由 FluidMesher 处理
+    return true;
 }
 
 bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor) {
@@ -620,6 +623,178 @@ void ChunkMesher::greedyMeshSection(
     // 暂时使用简单网格生成，贪婪网格合并算法较复杂
     // TODO: 实现完整的贪婪网格合并
     simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+}
+
+// ============================================================================
+// 透明方块网格生成
+// ============================================================================
+
+void ChunkMesher::generateTransparentMesh(
+    const ChunkData& chunk,
+    MeshData& outMesh,
+    const ChunkData* neighbors[6]
+) {
+    MC_TRACE_CHUNK_MESH_EVENT("GenerateTransparentMesh");
+
+    outMesh.clear();
+
+    // 预分配较小的空间，透明方块通常比实心方块少
+    constexpr size_t ESTIMATED_TRANSPARENT_FACES = 256;
+    outMesh.reserve(ESTIMATED_TRANSPARENT_FACES * BlockGeometry::VERTICES_PER_FACE,
+                    ESTIMATED_TRANSPARENT_FACES * BlockGeometry::INDICES_PER_FACE);
+
+    // 遍历所有区块段
+    for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {
+        if (chunk.hasSection(sectionY)) {
+            transparentMeshSection(chunk, sectionY, outMesh, neighbors);
+        }
+    }
+}
+
+void ChunkMesher::transparentMeshSection(
+    const ChunkData& chunk,
+    i32 sectionIndex,
+    MeshData& outMesh,
+    const ChunkData* neighborChunks[6]
+) {
+    if (!s_modelCache) {
+        return;
+    }
+
+    constexpr i32 SIZE = ChunkSection::SIZE;
+    const i32 baseY = sectionIndex * SIZE;
+
+    // 获取当前段
+    const ChunkSection* section = chunk.getSection(sectionIndex);
+    if (!section || section->isEmpty()) {
+        return;
+    }
+
+    // 遍历段内所有方块
+    for (i32 y = 0; y < SIZE; ++y) {
+        for (i32 z = 0; z < SIZE; ++z) {
+            for (i32 x = 0; x < SIZE; ++x) {
+                const BlockState* block = section->getBlock(x, y, z);
+                if (!block || block->isAir()) {
+                    continue;
+                }
+
+                // 跳过液体方块（由 FluidMesher 单独处理）
+                if (block->isLiquid()) {
+                    continue;
+                }
+
+                // 只处理透明方块（玻璃、冰、染色玻璃等）
+                if (!block->isTransparent()) {
+                    continue;
+                }
+
+                // 获取方块外观
+                const BlockAppearance* appearance = s_modelCache->getBlockAppearance(block);
+                if (!appearance) {
+                    appearance = s_modelCache->getMissingAppearance();
+                    if (!appearance) {
+                        continue;
+                    }
+                }
+
+                // 检查外观是否有效
+                if (appearance->elements.empty() && appearance->faceTextures.empty()) {
+                    continue;
+                }
+
+                // 检查每个面
+                for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
+                    Face face = static_cast<Face>(faceIdx);
+                    auto dir = BlockGeometry::getFaceDirection(face);
+
+                    // 计算邻居坐标
+                    i32 nx = x + dir[0];
+                    i32 ny = y + dir[1];
+                    i32 nz = z + dir[2];
+
+                    const BlockState* neighbor = nullptr;
+
+                    // 检查是否在当前区块内
+                    if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
+                        neighbor = section->getBlock(nx, ny, nz);
+                    } else {
+                        // 在区块边界，需要查询邻居区块或当前区块的其他段
+                        i32 worldX = nx;
+                        i32 worldY = baseY + ny;
+                        i32 worldZ = nz;
+
+                        // 处理Y方向跨段
+                        if (worldY < 0 || worldY >= world::CHUNK_HEIGHT) {
+                            neighbor = nullptr; // 空气
+                        } else if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
+                                   worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
+                            // 仍在当前区块内
+                            neighbor = chunk.getBlock(worldX, worldY, worldZ);
+                        } else if (neighborChunks) {
+                            // 在邻居区块中
+                            i32 neighborIdx = -1;
+                            if (worldX < 0) neighborIdx = 0;        // -X
+                            else if (worldX >= SIZE) neighborIdx = 1; // +X
+                            else if (worldZ < 0) neighborIdx = 2;     // -Z
+                            else if (worldZ >= SIZE) neighborIdx = 3; // +Z
+
+                            if (neighborIdx >= 0 && neighborChunks[neighborIdx]) {
+                                // 计算邻居区块中的坐标
+                                i32 lx = (worldX + SIZE) % SIZE;
+                                i32 lz = (worldZ + SIZE) % SIZE;
+                                neighbor = neighborChunks[neighborIdx]->getBlock(lx, worldY, lz);
+                            } else {
+                                neighbor = nullptr;
+                            }
+                        } else {
+                            neighbor = nullptr;
+                        }
+                    }
+
+                    // 决定是否渲染该面
+                    if (shouldRenderFace(block, neighbor)) {
+                        const f32 fx = static_cast<f32>(x);
+                        const f32 fy = static_cast<f32>(baseY + y);
+                        const f32 fz = static_cast<f32>(z);
+
+                        if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
+                            // 平滑光照模式：使用AO计算
+                            addFaceFromAppearanceSmooth(outMesh, face,
+                                    fx, fy, fz,
+                                    chunk, x, baseY + y, z,
+                                    appearance, neighborChunks);
+                        } else {
+                            // 平面光照模式
+                            u8 skyLight = 15;
+                            u8 blockLight = 0;
+                            if (s_lightingEnabled) {
+                                const i32 sampleX = x + dir[0];
+                                const i32 sampleY = baseY + y + dir[1];
+                                const i32 sampleZ = z + dir[2];
+
+                                // 对于透明方块的边界面，如果邻居是不透明方块，
+                                // 使用方块自身位置的光照，避免采样到不透明方块内部的黑色
+                                if (block->isTransparent() && neighbor && !neighbor->isAir() && !neighbor->isTransparent()) {
+                                    skyLight = sampleSkyLight(chunk, x, baseY + y, z, neighborChunks);
+                                    blockLight = sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
+                                } else {
+                                    skyLight = sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                                    blockLight = sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                                }
+                            }
+
+                            addFaceFromAppearance(outMesh, face,
+                                    fx, fy, fz,
+                                    skyLight,
+                                    blockLight,
+                                    appearance);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ============================================================================
