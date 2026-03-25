@@ -561,6 +561,27 @@ void ServerWorld::tick() {
     // 更新游戏时间
     m_gameTime.tick();
 
+    // 每 20 ticks（1秒）输出玩家所在位置的亮度信息
+    if (m_currentTick % 20 == 0) {
+        std::lock_guard<std::mutex> lock(m_playerMutex);
+        for (const auto& [playerId, playerData] : m_players) {
+            if (!playerData.loggedIn) continue;
+
+            // 获取玩家脚部方块坐标
+            i32 blockX = static_cast<i32>(std::floor(playerData.x));
+            i32 blockY = static_cast<i32>(std::floor(playerData.y));
+            i32 blockZ = static_cast<i32>(std::floor(playerData.z));
+
+            // 获取亮度等级
+            u8 blockLight = getBlockLight(blockX, blockY, blockZ);
+            u8 skyLight = getSkyLight(blockX, blockY, blockZ);
+            u8 combinedLight = std::max(blockLight, skyLight);
+
+            spdlog::info("[Light] 玩家 {} 位置 ({}, {}, {}) - 方块亮度: {}, 天空亮度: {}, 综合亮度: {}",
+                playerData.username, blockX, blockY, blockZ, blockLight, skyLight, combinedLight);
+        }
+    }
+
     // 更新天气
     if (m_weatherManager) {
         m_weatherManager->tick();
