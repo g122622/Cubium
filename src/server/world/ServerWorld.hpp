@@ -401,9 +401,6 @@ private:
      */
     void syncLightDataToChunk(LightType type, const SectionPos& pos);
 
-    // 卸载检查
-    void checkChunkUnloading();
-
 private:
     ServerWorldConfig m_config;
     std::unique_ptr<ServerChunkManager> m_chunkManager;

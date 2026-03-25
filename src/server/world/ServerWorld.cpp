@@ -610,18 +610,7 @@ void ServerWorld::tick() {
         m_lastTimeSyncTick = m_currentTick;
     }
 
-    // 检查区块卸载
-    if (m_currentTick - m_lastChunkUnloadCheck > 100) {  // 每100tick检查一次
-        checkChunkUnloading();
-        m_lastChunkUnloadCheck = m_currentTick;
-    }
-}
-
-void ServerWorld::checkChunkUnloading() {
     // 区块卸载现在由 ServerChunkManager 处理
-    // TODO 这个函数不应该被调用了,需要重构掉
-    MC_ASSERT_RELEASE_MSG(false, "Chunk unloading should now be handled by ServerChunkManager, this function should not be called");
-
 }
 
 void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ) {
