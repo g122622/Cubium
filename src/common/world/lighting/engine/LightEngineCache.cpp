@@ -28,14 +28,9 @@ void LightEngineCache::setHeightRange(i32 minSection, i32 maxSection) {
 
 void LightEngineCache::allocateCaches() {
     if (m_sectionCacheSize > 0) {
+        // make_unique 数组会自动值初始化为零（nullptr）
         m_sectionCache = std::make_unique<const void*[]>(static_cast<size_t>(m_sectionCacheSize));
         m_nibbleCache = std::make_unique<SWMRNibbleArray*[]>(static_cast<size_t>(m_sectionCacheSize));
-
-        // 初始化为 nullptr
-        for (i32 i = 0; i < m_sectionCacheSize; ++i) {
-            m_sectionCache[static_cast<size_t>(i)] = nullptr;
-            m_nibbleCache[static_cast<size_t>(i)] = nullptr;
-        }
     }
 }
 

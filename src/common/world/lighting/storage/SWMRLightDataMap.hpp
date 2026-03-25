@@ -2,6 +2,7 @@
 
 #include "SWMRNibbleArray.hpp"
 #include "../../../util/NibbleArray.hpp"
+#include "../engine/LightEngineUtils.hpp"
 #include <unordered_map>
 #include <memory>
 
@@ -67,10 +68,8 @@ public:
             return 0;
         }
 
-        i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-        i32 y = static_cast<i32>(worldPos & 0xFFF);
-        i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-        i32 localY = y & 0xF;
+        i32 x, localY, z;
+        extractNibbleIndices(worldPos, x, localY, z);
 
         return it->second.getVisible(x, localY, z);
     }
@@ -138,10 +137,8 @@ public:
             return 0;
         }
 
-        i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-        i32 y = static_cast<i32>(worldPos & 0xFFF);
-        i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-        i32 localY = y & 0xF;
+        i32 x, localY, z;
+        extractNibbleIndices(worldPos, x, localY, z);
 
         return it->second.getUpdating(x, localY, z);
     }
@@ -156,10 +153,8 @@ public:
             return;
         }
 
-        i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-        i32 y = static_cast<i32>(worldPos & 0xFFF);
-        i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-        i32 localY = y & 0xF;
+        i32 x, localY, z;
+        extractNibbleIndices(worldPos, x, localY, z);
 
         it->second.set(x, localY, z, light);
     }
@@ -343,6 +338,13 @@ protected:
         i64 lz = static_cast<i64>(z) & 0x3FFFFFLL;
         i64 ly = static_cast<i64>(y) & 0xFFFFFLL;
         return (lx << 42) | (lz << 20) | ly;
+    }
+
+    /**
+     * @brief 从世界位置提取区块段内坐标
+     */
+    [[nodiscard]] static void extractNibbleIndices(i64 worldPos, i32& x, i32& localY, i32& z) {
+        LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
     }
 };
 

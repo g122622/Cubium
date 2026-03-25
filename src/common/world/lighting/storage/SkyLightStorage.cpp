@@ -18,16 +18,11 @@ u8 SkyLightStorage::getLightOrDefault(i64 worldPos) const {
 
     // 如果数组不存在或为空，返回15（天空光照默认值）
     if (array == nullptr || array->isNullUpdating() || array->isUninitializedUpdating()) {
-        if (isAboveWorld(sectionPos)) {
-            return 15;
-        }
         return 15;
     }
 
-    i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-    i32 y = static_cast<i32>(worldPos & 0xFFF);
-    i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-    i32 localY = y & 0xF;
+    i32 x, localY, z;
+    LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
 
     return array->getUpdating(x, localY, z);
 }
@@ -40,10 +35,8 @@ u8 SkyLightStorage::getLight(i64 worldPos) const {
         return 0;
     }
 
-    i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-    i32 y = static_cast<i32>(worldPos & 0xFFF);
-    i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-    i32 localY = y & 0xF;
+    i32 x, localY, z;
+    LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
 
     return array->getUpdating(x, localY, z);
 }
@@ -59,10 +52,8 @@ void SkyLightStorage::setLight(i64 worldPos, u8 light) {
 
     m_dirtyCachedSections.insert(sectionPos);
 
-    i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-    i32 y = static_cast<i32>(worldPos & 0xFFF);
-    i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-    i32 localY = y & 0xF;
+    i32 x, localY, z;
+    LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
 
     array->set(x, localY, z, light);
 
@@ -142,14 +133,6 @@ void SkyLightStorage::removeSection(i64 sectionPos) {
     m_pendingRemovals.insert(sectionPos);
     m_pendingAdditions.erase(sectionPos);
     m_hasPendingUpdates = true;
-}
-
-SWMRNibbleArray SkyLightStorage::getOrCreateArray(i64 sectionPos) {
-    SWMRNibbleArray* existing = m_cachedLightData.getArray(sectionPos);
-    if (existing != nullptr) {
-        return SWMRNibbleArray::createUninitialized();
-    }
-    return SWMRNibbleArray::createUninitialized();
 }
 
 void SkyLightStorage::scheduleFullUpdate(i64 sectionPos) {

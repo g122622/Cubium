@@ -16,12 +16,8 @@ u8 BlockLightStorage::getLightOrDefault(i64 worldPos) const {
     }
 
     // 从世界位置解码坐标
-    i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-    i32 y = static_cast<i32>(worldPos & 0xFFF);
-    i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-
-    // Y坐标转换为区块段内坐标
-    i32 localY = y & 0xF;
+    i32 x, localY, z;
+    LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
 
     return array->getUpdating(x, localY, z);
 }
@@ -44,12 +40,8 @@ void BlockLightStorage::setLight(i64 worldPos, u8 light) {
     m_dirtyCachedSections.insert(sectionPos);
 
     // 从世界位置解码坐标
-    i32 x = static_cast<i32>((worldPos >> 38) & 0xF);
-    i32 y = static_cast<i32>(worldPos & 0xFFF);
-    i32 z = static_cast<i32>((worldPos >> 12) & 0xF);
-
-    // Y坐标转换为区块段内坐标
-    i32 localY = y & 0xF;
+    i32 x, localY, z;
+    LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
 
     array->set(x, localY, z, light);
 

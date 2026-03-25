@@ -58,8 +58,6 @@ protected:
     void addSection(i64 sectionPos) override;
     void removeSection(i64 sectionPos) override;
 
-    [[nodiscard]] SWMRNibbleArray getOrCreateArray(i64 sectionPos);
-
 private:
     void scheduleFullUpdate(i64 sectionPos);
     void scheduleSurfaceUpdate(i64 sectionPos);

@@ -113,15 +113,22 @@ namespace DirectionBits {
     /**
      * @brief 获取位集中方向的数量
      */
-    [[nodiscard]] inline constexpr u32 count(DirectionBit bits) {
-        // 计算popcount
-        u32 count = 0;
-        u32 b = bits;
-        while (b) {
-            count += b & 1;
-            b >>= 1;
-        }
-        return count;
+    [[nodiscard]] inline u32 count(DirectionBit bits) {
+        // 使用编译器内置的 popcount（单指令实现）
+        #if defined(__GNUC__) || defined(__clang__)
+            return static_cast<u32>(__builtin_popcount(static_cast<u32>(bits)));
+        #elif defined(_MSC_VER)
+            return static_cast<u32>(__popcnt(static_cast<u32>(bits)));
+        #else
+            // 回退到标准实现
+            u32 c = 0;
+            u32 b = bits;
+            while (b) {
+                c += b & 1;
+                b >>= 1;
+            }
+            return c;
+        #endif
     }
 
     /**
