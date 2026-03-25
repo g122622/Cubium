@@ -563,6 +563,8 @@ void ServerWorld::tick() {
 
     // 每 20 ticks（1秒）输出玩家所在位置的亮度信息
     if (m_currentTick % 20 == 0) {
+        spdlog::info("[LightTick] Tick {}: Checking player light levels...", m_currentTick);
+
         std::lock_guard<std::mutex> lock(m_playerMutex);
         for (const auto& [playerId, playerData] : m_players) {
             if (!playerData.loggedIn) continue;
