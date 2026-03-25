@@ -154,6 +154,8 @@ add_executable(mc_tests
     common/entity/movement/AutoJumpTest.cpp
     # 玩家移动测试
     common/entity/PlayerMovementTest.cpp
+    # Assert库测试
+    common/util/assert/AssertTest.cpp
 )
 
 # 添加服务端源文件
@@ -355,6 +357,8 @@ target_sources(mc_tests
         # Kagero UI Widget组件
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
+        # Assert库
+        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，在测试中暂时排除
 )
 

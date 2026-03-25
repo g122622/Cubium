@@ -16,7 +16,7 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include <cmath>
-#include <cassert>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::server {
 
@@ -619,7 +619,9 @@ void ServerWorld::tick() {
 
 void ServerWorld::checkChunkUnloading() {
     // 区块卸载现在由 ServerChunkManager 处理
-    assert(false); // TODO 这个函数不应该被调用了,需要重构掉
+    // TODO 这个函数不应该被调用了,需要重构掉
+    MC_ASSERT_RELEASE_MSG(false, "Chunk unloading should now be handled by ServerChunkManager, this function should not be called");
+
 }
 
 void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ) {

@@ -335,6 +335,9 @@ add_library(mc_common STATIC
 
     # Platform utilities
     util/PlatformInfo.cpp
+
+    # Assert library
+    util/assert/Assert.cpp
 )
 
 target_include_directories(mc_common

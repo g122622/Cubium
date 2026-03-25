@@ -7,8 +7,8 @@
 
 #include <stdexcept>
 #include <cstdlib>
-#include <cassert>
 #include <sstream>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace nbt {
@@ -482,7 +482,7 @@ std::unique_ptr<list_tag> read_list_content_bridge(TagId id, std::istream& input
 
 template <>
 std::unique_ptr<list_tag> read_list_content_bridge<TagId::End>(TagId id, std::istream& input) {
-    assert(id == TagId::End);
+    MC_ASSERT_RELEASE_MSG(id == TagId::End, "Expected End tag id in list content bridge");
     return list_by<TagId::End>::read_content(input);
 }
 

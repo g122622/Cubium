@@ -2,7 +2,6 @@
 #include "../../block/BlockRegistry.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../../IWorld.hpp"
-#include <cassert>
 
 namespace mc::world::tick {
 

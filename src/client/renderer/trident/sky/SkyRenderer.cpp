@@ -5,8 +5,8 @@
 #include "../../../../common/core/Constants.hpp"
 #include "../../../../common/util/math/random/Random.hpp"
 #include "../../../../common/perfetto/TraceEvents.hpp"
+#include "../../../../common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
-#include <cassert>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -269,7 +269,7 @@ Result<void> SkyRenderer::onResize(VkExtent2D extent) {
 
 void SkyRenderer::update(i64 dayTime, i64 gameTime, f32 partialTick,
                          f32 rainStrength, f32 thunderStrength) {
-    assert(partialTick >= 0.0f && partialTick <= 1.0f);
+    MC_ASSERT_RELEASE_MSG(partialTick >= 0.0f && partialTick <= 1.0f, "partialTick must be in range [0, 1]");
 
     m_dayTime = dayTime;
     m_gameTime = gameTime;

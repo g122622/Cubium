@@ -2,9 +2,9 @@
 #include "AmbientOcclusionCalculator.hpp"
 #include "../../../resource/BlockModelCache.hpp"
 #include "../../../../common/perfetto/TraceEvents.hpp"
+#include "../../../../common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 
 namespace mc {
@@ -59,7 +59,7 @@ namespace {
  * @brief 将亮度因子转换为灰度顶点色（RGB 同值，A 固定 255）
  */
 [[nodiscard]] u32 makeGrayscaleVertexColor(float factor) {
-    assert(factor >= -0.01f && factor <= 1.01f);
+    MC_ASSERT_RELEASE_MSG(factor >= -0.01f && factor <= 1.01f, "Vertex color factor out of range");
     const float clamped = std::clamp(factor, 0.0f, 1.0f);
     const u8 channel = static_cast<u8>(std::round(clamped * 255.0f));
     return packVertexColor(channel, channel, channel, 255);

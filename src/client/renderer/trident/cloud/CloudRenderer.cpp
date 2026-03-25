@@ -7,7 +7,6 @@
 #include "../../../../common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <cassert>
 #include <cmath>
 #include <filesystem>
 #include <fstream>

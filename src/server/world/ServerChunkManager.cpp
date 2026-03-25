@@ -4,7 +4,7 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include "../../common/perfetto/TraceEvents.hpp"
-#include <cassert>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::server {
 
@@ -707,7 +707,7 @@ void ServerChunkManager::getNeighborChunks(
 
 ChunkData* ServerChunkManager::storeGeneratedChunkToMem(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
 {
-    assert(data);
+    MC_ASSERT_RELEASE_MSG(data, "Generated chunk data should not be null");
 
     std::shared_ptr<ChunkData> sharedData(std::move(data));
 

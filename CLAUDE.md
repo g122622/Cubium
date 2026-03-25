@@ -92,6 +92,7 @@ src/
 │   │   └── loader/            # Resource loading pipeline
 │   ├── screen/                # Screen types
 │   ├── util/                  # Utilities
+│   │   ├── assert/            # Assert library (MC_ASSERT_*, AssertManager)
 │   │   ├── cache/             # LRU cache implementations
 │   │   ├── math/              # Math utilities
 │   │   │   ├── random/        # Random number generators
@@ -807,6 +808,87 @@ if (result.success()) {
 | Permission | PermissionDenied, Unauthorized |
 | ResourcePack | ResourcePackNotFound, ResourcePackInvalid, ResourceNotFound, ResourceParseError, TextureLoadFailed, TextureAtlasFull, ModelNotFound, BlockStateNotFound |
 
+## Assert Library
+
+The project provides a comprehensive assertion library for runtime checks.
+
+### Usage
+
+```cpp
+#include "common/util/assert/AssertAll.hpp"
+
+// Basic assertions (Debug mode only)
+MC_ASSERT(ptr != nullptr);
+MC_ASSERT_MSG(size > 0, "Size must be positive");
+
+// Release mode assertions (always enabled)
+MC_ASSERT_RELEASE(index < capacity);
+
+// Fatal assertions (always enabled, for critical errors)
+MC_ASSERT_FATAL(state == State::Ready);
+
+// Comparison assertions with value output
+MC_ASSERT_EQ(expected, actual);  // Shows both values on failure
+MC_ASSERT_NE(ptr, nullptr);
+MC_ASSERT_LT(value, max);
+MC_ASSERT_LE(value, max);
+MC_ASSERT_GT(value, min);
+MC_ASSERT_GE(value, min);
+
+// Pointer assertions
+MC_ASSERT_NOT_NULL(obj);
+MC_ASSERT_NULL(optional);
+
+// Range assertions
+MC_ASSERT_RANGE(index, 0, size - 1);
+MC_ASSERT_INDEX(row, height);
+MC_ASSERT_INDEX_U(index, size);  // Unsigned index
+
+// Special assertions
+MC_ASSERT_UNREACHABLE();           // Marks unreachable code
+MC_ASSERT_FAIL("Critical error");  // Always fails
+MC_ASSERT_NOT_IMPLEMENTED();       // Marks unimplemented code
+
+// Precondition/postcondition assertions
+MC_PRECONDITION(size > 0);
+MC_POSTCONDITION(result != nullptr);
+MC_INVARIANT(m_count >= 0);
+
+// Debug-only code
+MC_DEBUG_ONLY(debugLog("Checking..."));
+
+// Unused variable marker
+MC_UNUSED(unusedParam);
+```
+
+### Assert Levels
+
+| Level | Description |
+|-------|-------------|
+| Debug | Only active in Debug builds |
+| Release | Always active |
+| Fatal | Always active, for critical errors |
+
+### Custom Handlers
+
+```cpp
+// Set custom handler
+mc::assert::AssertConfig config;
+config.handler = [](const mc::assert::AssertFailure& failure) {
+    // Custom handling (log, throw, etc.)
+    throw mc::assert::AssertException(failure);
+};
+config.captureStackTrace = true;  // Enable stack traces
+config.breakOnFailure = true;     // Trigger debugger breakpoint
+mc::assert::AssertManager::instance().setConfig(config);
+```
+
+### Built-in Handlers
+
+- `defaultAssertHandler()` - Output to stderr and abort
+- `logAssertHandler()` - Log using spdlog and abort
+- `throwAssertHandler()` - Throw `AssertException`
+
 ## Naming Conventions
 
 - **Namespaces**: lowercase (`mc`, `mc::client`, `mc::server`)
@@ -921,7 +1003,8 @@ enum class Operation : u8 { ... };
 | **Surface Builders** | Complete | 12 surface builder types |
 | **Placement System** | Complete | 13 placement modifiers |
 | **Carvers** | Complete | Cave, Canyon, Underwater carvers |
-| **Tests** | **2906 passing** | 399 test suites, all passing |
+| **Assert Library** | Complete | Runtime assertions with stack traces |
+| **Tests** | **2960+ passing** | 400+ test suites, all passing |
 
 ## World Generation Modules Summary
 

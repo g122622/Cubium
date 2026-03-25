@@ -1,5 +1,5 @@
 #include "CelestialCalculations.hpp"
-#include <cassert>
+#include "../../../../common/util/assert/AssertAll.hpp"
 #include <cmath>
 
 namespace mc::client {
@@ -111,7 +111,7 @@ glm::vec4 CelestialCalculations::calculateSkyColor(
     f32 celestialAngle,
     f32 rainStrength,
     f32 thunderStrength) {
-    assert(std::isfinite(celestialAngle));
+    MC_ASSERT_RELEASE_MSG(std::isfinite(celestialAngle), "celestialAngle must be finite");
 
     const f32 angleRad = celestialAngle * mc::math::TAU_F;
     const f32 sunHeight = std::cos(angleRad);
@@ -145,7 +145,7 @@ glm::vec4 CelestialCalculations::calculateSunriseSunsetColor(
     f32 celestialAngle,
     f32 rainStrength,
     f32 thunderStrength) {
-    assert(std::isfinite(celestialAngle));
+    MC_ASSERT_RELEASE_MSG(std::isfinite(celestialAngle), "celestialAngle must be finite");
 
     // 对齐 MC 1.16.5 DimensionType#calcSunriseSunsetColors。
     const f32 cosine = std::cos(celestialAngle * mc::math::TAU_F);

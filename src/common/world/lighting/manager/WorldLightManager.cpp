@@ -1,6 +1,6 @@
 #include "WorldLightManager.hpp"
 #include <algorithm>
-#include <cassert>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 
@@ -57,7 +57,7 @@ bool WorldLightManager::hasLightWork() const {
 i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    assert(maxUpdates >= 0);
+    MC_ASSERT_RELEASE_MSG(maxUpdates >= 0, "Max updates must be positive or zero");
 
     const auto clampRemaining = [](i32 remaining, i32 budget) -> i32 {
         return std::clamp(remaining, 0, budget);
@@ -91,7 +91,7 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
             m_skyLight->tick(maxUpdates, updateSkyLight, updateBlockLight),
             maxUpdates);
     } else {
-        assert(false && "No light engines available");
+        MC_ASSERT_RELEASE_MSG(false, "No light engines available");
     }
     return maxUpdates;
 }

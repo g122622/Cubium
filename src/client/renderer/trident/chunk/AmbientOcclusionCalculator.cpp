@@ -1,8 +1,8 @@
 #include "AmbientOcclusionCalculator.hpp"
 #include "../../../../common/world/chunk/ChunkData.hpp"
 #include "../../../../common/world/block/Block.hpp"
+#include "../../../../common/util/assert/AssertAll.hpp"
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 
 namespace mc {
@@ -126,7 +126,7 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(
     Result result{};
 
     const size_t faceIdx = static_cast<size_t>(face);
-    assert(faceIdx < FACE_CORNER_DIRECTIONS.size());
+    MC_ASSERT_RELEASE_MSG(faceIdx < FACE_CORNER_DIRECTIONS.size(), "Face index out of bounds");
     const auto& cornerDirs = FACE_CORNER_DIRECTIONS[faceIdx];
     const auto& vertexTrans = VERTEX_TRANSLATIONS[faceIdx];
 

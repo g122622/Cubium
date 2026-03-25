@@ -45,6 +45,7 @@
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <cstring>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::server {
 
@@ -985,15 +986,15 @@ void IntegratedServer::handleLoginRequest(const u8* data, size_t size) {
 void IntegratedServer::handlePlayerMove(const u8* data, size_t size) {
     MC_TRACE_EVENT("server.network", "HandlePlayerMove");
     auto* player = getPlayerData();
-    if (!player || !player->loggedIn) {
-        return;
-    }
+
+    MC_ASSERT_RELEASE_MSG(player, "Player data should exist when handling player move");
+    MC_ASSERT_RELEASE_MSG(player->loggedIn, "Player should be logged in when handling player move");
 
     network::PacketDeserializer deser(data, size);
     auto result = network::PlayerMovePacket::deserialize(deser);
 
     if (result.failed()) {
-        spdlog::debug("Failed to parse player move");
+        spdlog::error("Failed to parse player move");
         return;
     }
 
