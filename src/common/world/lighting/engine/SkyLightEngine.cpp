@@ -88,7 +88,7 @@ i32 SkyLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLi
     m_storage.processAllLevelUpdates();
 
     // 处理区块段更新（添加/移除）
-    maxUpdates = m_storage.updateSections(this, updateSkyLight, false);
+    maxUpdates = m_storage.updateSections(this, maxUpdates, updateSkyLight, false);
     if (maxUpdates == 0) {
         return 0;
     }

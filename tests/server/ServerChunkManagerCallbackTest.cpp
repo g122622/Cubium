@@ -224,13 +224,13 @@ TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
     m_manager->stopWorkers();
 }
 
-TEST_F(ServerChunkManagerCallbackTest, HolderCount) {
+TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount) {
     m_manager->startWorkers(1);
 
-    EXPECT_EQ(m_manager->holderCount(), 0u);
+    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
 
     m_manager->getChunkSync(0, 0);
-    EXPECT_EQ(m_manager->holderCount(), 1u);
+    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1u);
 
     m_manager->stopWorkers();
 }

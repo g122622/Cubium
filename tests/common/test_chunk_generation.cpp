@@ -3,7 +3,7 @@
 
 #include "common/world/chunk/ChunkStatus.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/chunk/ChunkHolder.hpp"
+#include "common/world/chunk/SingleChunkLifecycleManager.hpp"
 #include "common/world/gen/noise/ImprovedNoiseGenerator.hpp"
 #include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
 #include "common/world/gen/settings/NoiseSettings.hpp"
@@ -197,19 +197,19 @@ TEST_F(ChunkPrimerTest, SetStatus) {
 }
 
 // ============================================================================
-// ChunkHolder 测试
+// SingleChunkLifecycleManager 测试
 // ============================================================================
 
-TEST(ChunkHolderTest, Creation) {
-    ChunkHolder holder(5, 10);
+TEST(SingleChunkLifecycleManagerTest, Creation) {
+    SingleChunkLifecycleManager holder(5, 10);
     EXPECT_EQ(holder.x(), 5);
     EXPECT_EQ(holder.z(), 10);
     EXPECT_EQ(holder.getStatus(), ChunkStatuses::EMPTY);
     EXPECT_EQ(holder.getLevel(), 33);  // 默认级别
 }
 
-TEST(ChunkHolderTest, SetStatus) {
-    ChunkHolder holder(0, 0);
+TEST(SingleChunkLifecycleManagerTest, SetStatus) {
+    SingleChunkLifecycleManager holder(0, 0);
 
     holder.setStatus(ChunkStatuses::STRUCTURE_STARTS);
     EXPECT_EQ(holder.getStatus(), ChunkStatuses::STRUCTURE_STARTS);

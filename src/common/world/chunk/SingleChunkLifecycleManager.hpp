@@ -20,16 +20,16 @@ using ChunkLoadTicket = world::ChunkLoadTicket;
 /**
  * @brief 区块持有者
  *
- * 参考 MC ChunkHolder，管理单个区块的加载状态和生成进度。
- * 每个区块对应一个 ChunkHolder，跟踪其生成阶段和 Future 链。
+ * 参考 MC SingleChunkLifecycleManager，管理单个区块的加载状态和生成进度。
+ * 每个区块对应一个 SingleChunkLifecycleManager，跟踪其生成阶段和 Future 链。
  *
  * 使用方法：
- * 1. ChunkHolder 在区块首次被请求时创建
+ * 1. SingleChunkLifecycleManager 在区块首次被请求时创建
  * 2. 通过 scheduleGeneration() 启动生成流程
  * 3. 通过 getChunkFuture() 获取指定阶段的区块 Future
  * 4. 当区块不再需要时，标记为卸载
  */
-class ChunkHolder {
+class SingleChunkLifecycleManager {
 public:
     /**
      * @brief 区块加载错误
@@ -54,7 +54,7 @@ public:
     /**
      * @brief 生成任务回调类型
      */
-    using GenerationCallback = std::function<void(ChunkHolder&)>;
+    using GenerationCallback = std::function<void(SingleChunkLifecycleManager&)>;
 
     // ============================================================================
     // 构造函数
@@ -65,17 +65,17 @@ public:
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
      */
-    ChunkHolder(ChunkCoord x, ChunkCoord z);
+    SingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z);
 
-    ~ChunkHolder() = default;
+    ~SingleChunkLifecycleManager() = default;
 
     // 禁止拷贝
-    ChunkHolder(const ChunkHolder&) = delete;
-    ChunkHolder& operator=(const ChunkHolder&) = delete;
+    SingleChunkLifecycleManager(const SingleChunkLifecycleManager&) = delete;
+    SingleChunkLifecycleManager& operator=(const SingleChunkLifecycleManager&) = delete;
 
     // 允许移动
-    ChunkHolder(ChunkHolder&&) noexcept = default;
-    ChunkHolder& operator=(ChunkHolder&&) noexcept = default;
+    SingleChunkLifecycleManager(SingleChunkLifecycleManager&&) noexcept = default;
+    SingleChunkLifecycleManager& operator=(SingleChunkLifecycleManager&&) noexcept = default;
 
     // ============================================================================
     // 位置信息
@@ -122,8 +122,10 @@ public:
 
     /**
      * @brief 检查区块是否应该加载
+     *
+     * @note 级别 <= 33 的区块应该被加载（参考 ChunkLoadTicketManager::MAX_LOADED_LEVEL）
      */
-    [[nodiscard]] bool shouldLoad() const { return getLevel() < 33; }
+    [[nodiscard]] bool shouldLoad() const { return getLevel() <= 33; }
 
     // ============================================================================
     // 区块数据访问

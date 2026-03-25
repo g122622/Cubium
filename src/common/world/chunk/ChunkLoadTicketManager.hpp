@@ -12,7 +12,7 @@
 namespace mc::world {
 
 // 前向声明
-class ChunkHolder;
+class SingleChunkLifecycleManager;
 
 /**
  * @brief 区块加载票据管理器

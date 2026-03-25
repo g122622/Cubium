@@ -136,7 +136,7 @@ public:
      * @return 剩余更新配额
      */
     template<typename E>
-    i32 updateSections(E* engine, bool updateSkyLight, bool updateBlockLight);
+    i32 updateSections(E* engine, i32 remainingUpdates, bool updateSkyLight, bool updateBlockLight);
 
 protected:
     /**
@@ -206,12 +206,12 @@ private:
 // ============================================================================
 
 template<typename E>
-i32 SkyLightStorage::updateSections(E* engine, bool updateSkyLight, bool updateBlockLight) {
+i32 SkyLightStorage::updateSections(E* engine, i32 remainingUpdates, bool updateSkyLight, bool updateBlockLight) {
     // 先调用父类处理
     (void)updateBlockLight;  // 天空光照存储不处理方块光照
 
     if (!updateSkyLight) {
-        return INT_MAX;
+        return remainingUpdates;
     }
 
     // 处理待添加的区块段
@@ -269,7 +269,8 @@ i32 SkyLightStorage::updateSections(E* engine, bool updateSkyLight, bool updateB
     m_pendingRemovals.clear();
     m_hasPendingUpdates = false;
 
-    return INT_MAX;
+    // 仅处理区块段状态与调度，不直接消耗传播配额
+    return remainingUpdates;
 }
 
 } // namespace mc

@@ -1,5 +1,6 @@
 #include "WorldLightManager.hpp"
 #include <algorithm>
+#include <cassert>
 
 namespace mc {
 
@@ -56,22 +57,41 @@ bool WorldLightManager::hasLightWork() const {
 i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
+    assert(maxUpdates >= 0);
+
+    const auto clampRemaining = [](i32 remaining, i32 budget) -> i32 {
+        return std::clamp(remaining, 0, budget);
+    };
+
     if (m_blockLight != nullptr && m_skyLight != nullptr) {
         // 两个引擎都有，分配更新配额
         i32 blockQuota = maxUpdates / 2;
-        i32 remaining = m_blockLight->tick(blockQuota, updateSkyLight, updateBlockLight);
-        i32 skyQuota = maxUpdates - blockQuota + remaining;
-        i32 skyRemaining = m_skyLight->tick(skyQuota, updateSkyLight, updateBlockLight);
+        i32 blockRemaining = clampRemaining(
+            m_blockLight->tick(blockQuota, updateSkyLight, updateBlockLight),
+            blockQuota);
+
+        i32 skyQuota = maxUpdates - blockQuota + blockRemaining;
+        i32 skyRemaining = clampRemaining(
+            m_skyLight->tick(skyQuota, updateSkyLight, updateBlockLight),
+            skyQuota);
 
         // 如果方块光照用完了配额但天空光照还有剩余，给方块光照更多配额
-        if (remaining == 0 && skyRemaining > 0) {
-            return m_blockLight->tick(skyRemaining, updateSkyLight, updateBlockLight);
+        if (blockRemaining == 0 && skyRemaining > 0) {
+            return clampRemaining(
+                m_blockLight->tick(skyRemaining, updateSkyLight, updateBlockLight),
+                skyRemaining);
         }
         return skyRemaining;
     } else if (m_blockLight != nullptr) {
-        return m_blockLight->tick(maxUpdates, updateSkyLight, updateBlockLight);
+        return clampRemaining(
+            m_blockLight->tick(maxUpdates, updateSkyLight, updateBlockLight),
+            maxUpdates);
     } else if (m_skyLight != nullptr) {
-        return m_skyLight->tick(maxUpdates, updateSkyLight, updateBlockLight);
+        return clampRemaining(
+            m_skyLight->tick(maxUpdates, updateSkyLight, updateBlockLight),
+            maxUpdates);
+    } else {
+        assert(false && "No light engines available");
     }
     return maxUpdates;
 }

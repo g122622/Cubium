@@ -208,7 +208,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkStatus.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkPrimer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/IChunk.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkHolder.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/SingleChunkLifecycleManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/ImprovedNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/OctavesNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/IChunkGenerator.cpp

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include "../../common/perfetto/TraceEvents.hpp"
+#include <cassert>
 
 namespace mc::server {
 
@@ -108,10 +109,13 @@ ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChun
     , m_workerPool(-1)  // 自动检测线程数
 {
     // 设置票据管理器回调
-    m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 /*oldLevel*/, i32 newLevel) {
-        // 级别变化时创建或更新 ChunkHolder
+    m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+        // 级别变化时创建或更新 SingleChunkLifecycleManager
         if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
-            (void)getOrCreateHolder(x, z);
+            SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
+            if (singleChunkLifecycleManager) {
+                singleChunkLifecycleManager->setLevel(newLevel);
+            }
         }
     });
 }
@@ -122,10 +126,13 @@ ServerChunkManager::ServerChunkManager(std::unique_ptr<IChunkGenerator> generato
     , m_workerPool(-1)  // 自动检测线程数
 {
     // 设置票据管理器回调
-    m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 /*oldLevel*/, i32 newLevel) {
-        // 级别变化时创建或更新 ChunkHolder
+    m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+        // 级别变化时创建或更新 SingleChunkLifecycleManager
         if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
-            (void)getOrCreateHolder(x, z);
+            SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
+            if (singleChunkLifecycleManager) {
+                singleChunkLifecycleManager->setLevel(newLevel);
+            }
         }
     });
 }
@@ -152,8 +159,8 @@ void ServerChunkManager::shutdown()
     stopWorkers();
 
     // 清理区块持有者
-    std::lock_guard<std::mutex> lock(m_holdersMutex);
-    m_holders.clear();
+    std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
+    m_singleChunkLifecycleManagers.clear();
 
     // 清理区块缓存
     std::lock_guard<std::mutex> chunksLock(m_chunksMutex);
@@ -300,6 +307,8 @@ bool ServerChunkManager::hasChunk(ChunkCoord x, ChunkCoord z) const
 
 ChunkData* ServerChunkManager::getChunkSync(ChunkCoord x, ChunkCoord z)
 {
+    spdlog::info("Requesting chunk synchronously at ({}, {}), current m_chunks size: {}", x, z, m_chunks.size());
+
     // 先检查缓存
     if (ChunkData* cached = getChunk(x, z)) {
         return cached;
@@ -313,18 +322,18 @@ ChunkData* ServerChunkManager::getChunkSync(ChunkCoord x, ChunkCoord z)
     }
 
     // 获取持有者
-    ChunkHolder* holder = getOrCreateHolder(x, z);
-    if (!holder) {
+    SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
+    if (!singleChunkLifecycleManager) {
         return nullptr;
     }
 
     // 检查是否已完成
-    if (ChunkData* data = holder->getChunkData()) {
+    if (ChunkData* data = singleChunkLifecycleManager->getChunkData()) {
         return data;
     }
 
     // 同步生成到 FULL 状态，确保与异步路径结果一致
-    executeGenerationTask(*holder, ChunkStatuses::FULL);
+    executeGenerationTask(*singleChunkLifecycleManager, ChunkStatuses::FULL);
 
     // 返回缓存中的结果
     return getChunk(x, z);
@@ -340,8 +349,8 @@ void ServerChunkManager::unloadChunk(ChunkCoord x, ChunkCoord z)
     }
 
     {
-        std::lock_guard<std::mutex> lock(m_holdersMutex);
-        m_holders.erase(key);
+        std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
+        m_singleChunkLifecycleManagers.erase(key);
     }
 }
 
@@ -361,8 +370,8 @@ std::future<ChunkData*> ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoo
     }
 
     // 获取或创建持有者
-    ChunkHolder* holder = getOrCreateHolder(x, z);
-    if (!holder) {
+    SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
+    if (!singleChunkLifecycleManager) {
         promise->set_value(nullptr);
         return future;
     }
@@ -379,7 +388,7 @@ std::future<ChunkData*> ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoo
                 promise->set_value(nullptr);
             }
         },
-        holder->getLevel()  // 使用加载级别作为优先级
+        singleChunkLifecycleManager->getLevel()  // 使用加载级别作为优先级
     );
 
     return future;
@@ -394,8 +403,8 @@ void ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback
     }
 
     // 获取或创建持有者
-    ChunkHolder* holder = getOrCreateHolder(x, z);
-    if (!holder) {
+    SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
+    if (!singleChunkLifecycleManager) {
         if (callback) callback(false, nullptr);
         return;
     }
@@ -412,7 +421,7 @@ void ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback
                 if (callback) callback(false, nullptr);
             }
         },
-        holder->getLevel()  // 使用加载级别作为优先级
+        singleChunkLifecycleManager->getLevel()  // 使用加载级别作为优先级
     );
 }
 
@@ -420,48 +429,48 @@ void ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback
 // 区块持有者
 // ============================================================================
 
-ChunkHolder* ServerChunkManager::getOrCreateHolder(ChunkCoord x, ChunkCoord z)
+SingleChunkLifecycleManager* ServerChunkManager::getOrCreateSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z)
 {
     const u64 key = posToKey(x, z);
 
-    std::lock_guard<std::mutex> lock(m_holdersMutex);
+    std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
 
-    auto it = m_holders.find(key);
-    if (it != m_holders.end()) {
+    auto it = m_singleChunkLifecycleManagers.find(key);
+    if (it != m_singleChunkLifecycleManagers.end()) {
         return it->second.get();
     }
 
-    auto holder = std::make_unique<ChunkHolder>(x, z);
+    auto singleChunkLifecycleManager = std::make_unique<SingleChunkLifecycleManager>(x, z);
 
     // 设置回调
-    holder->setLevelChangeCallback([this](ChunkHolder& h) {
+    singleChunkLifecycleManager->setLevelChangeCallback([this](SingleChunkLifecycleManager& h) {
         // 级别变化时可能需要调度生成
         if (h.shouldLoad()) {
             scheduleGeneration(h, ChunkStatuses::FULL);
         }
     });
 
-    auto* ptr = holder.get();
-    m_holders[key] = std::move(holder);
+    auto* ptr = singleChunkLifecycleManager.get();
+    m_singleChunkLifecycleManagers[key] = std::move(singleChunkLifecycleManager);
     return ptr;
 }
 
-ChunkHolder* ServerChunkManager::getHolder(ChunkCoord x, ChunkCoord z)
+SingleChunkLifecycleManager* ServerChunkManager::getSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z)
 {
     const u64 key = posToKey(x, z);
 
-    std::lock_guard<std::mutex> lock(m_holdersMutex);
-    auto it = m_holders.find(key);
-    return it != m_holders.end() ? it->second.get() : nullptr;
+    std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
+    auto it = m_singleChunkLifecycleManagers.find(key);
+    return it != m_singleChunkLifecycleManagers.end() ? it->second.get() : nullptr;
 }
 
-const ChunkHolder* ServerChunkManager::getHolder(ChunkCoord x, ChunkCoord z) const
+const SingleChunkLifecycleManager* ServerChunkManager::getSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z) const
 {
     const u64 key = posToKey(x, z);
 
-    std::lock_guard<std::mutex> lock(m_holdersMutex);
-    auto it = m_holders.find(key);
-    return it != m_holders.end() ? it->second.get() : nullptr;
+    std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
+    auto it = m_singleChunkLifecycleManagers.find(key);
+    return it != m_singleChunkLifecycleManagers.end() ? it->second.get() : nullptr;
 }
 
 // ============================================================================
@@ -516,33 +525,33 @@ void ServerChunkManager::tick()
 // 内部方法
 // ============================================================================
 
-void ServerChunkManager::scheduleGeneration(ChunkHolder& holder, const ChunkStatus& targetStatus)
+void ServerChunkManager::scheduleGeneration(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& targetStatus)
 {
     // 如果已经达到目标状态、已有缓存结果或已有正在使用的 primer，则不重复调度
-    if (holder.hasCompletedStatus(targetStatus) ||
-        getChunk(holder.x(), holder.z()) != nullptr ||
-        holder.hasGeneratingChunk()) {
+    if (singleChunkLifecycleManager.hasCompletedStatus(targetStatus) ||
+        getChunk(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z()) != nullptr ||
+        singleChunkLifecycleManager.hasGeneratingChunk()) {
         return;
     }
 
     // 提交异步任务
     m_workerPool.submitGenerate(
-        holder.x(),
-        holder.z(),
+        singleChunkLifecycleManager.x(),
+        singleChunkLifecycleManager.z(),
         targetStatus,
-        [this, x = holder.x(), z = holder.z()](bool success, ChunkPrimer* primer) {
+        [this, x = singleChunkLifecycleManager.x(), z = singleChunkLifecycleManager.z()](bool success, ChunkPrimer* primer) {
             if (success && primer) {
                 finalizeChunkGeneration(x, z, *primer);
             }
         },
-        holder.getLevel()
+        singleChunkLifecycleManager.getLevel()
     );
 }
 
-void ServerChunkManager::executeGenerationTask(ChunkHolder& holder, const ChunkStatus& status)
+void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& status)
 {
     // 创建区块生成器
-    ChunkPrimer* primer = holder.createGeneratingChunk();
+    ChunkPrimer* primer = singleChunkLifecycleManager.createGeneratingChunk();
     if (!primer) {
         return;
     }
@@ -553,9 +562,9 @@ void ServerChunkManager::executeGenerationTask(ChunkHolder& holder, const ChunkS
     chunks[4] = primer;
 
     // 获取邻居区块
-    getNeighborChunks(holder.x(), holder.z(), chunks, neighborAdapters);
+    getNeighborChunks(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), chunks, neighborAdapters);
 
-    WorldGenRegion region(holder.x(), holder.z(), chunks);
+    WorldGenRegion region(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), chunks);
 
     // 按阶段生成
     const auto& allStatuses = ChunkStatus::getAll();
@@ -617,10 +626,10 @@ void ServerChunkManager::executeGenerationTask(ChunkHolder& holder, const ChunkS
     }
 
     // 完成生成
-    auto data = holder.completeGeneration();
+    auto data = singleChunkLifecycleManager.completeGeneration();
     if (data) {
         // 存储到缓存
-        ChunkData* stored = storeGeneratedChunk(holder.x(), holder.z(), std::move(data));
+        ChunkData* stored = storeGeneratedChunkToMem(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), std::move(data));
 
         // 将生成的实体添加到世界
         if (stored && m_world && !spawnedEntities.empty()) {
@@ -650,7 +659,7 @@ bool ServerChunkManager::checkNeighborsReady(ChunkCoord x, ChunkCoord z, const C
         for (i32 dx = -range; dx <= range; ++dx) {
             if (dx == 0 && dz == 0) continue;
 
-            const ChunkHolder* neighbor = getHolder(x + dx, z + dz);
+            const SingleChunkLifecycleManager* neighbor = getSingleChunkLifecycleManager(x + dx, z + dz);
             if (!neighbor || !neighbor->hasCompletedStatus(*requiredStatus)) {
                 return false;
             }
@@ -680,8 +689,8 @@ void ServerChunkManager::getNeighborChunks(
             continue;
         }
 
-        ChunkHolder* holder = getHolder(x + offsets[i][0], z + offsets[i][1]);
-        if (holder) {
+        SingleChunkLifecycleManager* singleChunkLifecycleManager = getSingleChunkLifecycleManager(x + offsets[i][0], z + offsets[i][1]);
+        if (singleChunkLifecycleManager) {
             if (auto data = getChunkShared(x + offsets[i][0], z + offsets[i][1])) {
                 neighborAdapters[i] = std::make_unique<ChunkDataChunkAdapter>(std::move(data));
                 neighbors[i] = neighborAdapters[i].get();
@@ -696,11 +705,9 @@ void ServerChunkManager::getNeighborChunks(
     }
 }
 
-ChunkData* ServerChunkManager::storeGeneratedChunk(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
+ChunkData* ServerChunkManager::storeGeneratedChunkToMem(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
 {
-    if (!data) {
-        return nullptr;
-    }
+    assert(data);
 
     std::shared_ptr<ChunkData> sharedData(std::move(data));
 
@@ -712,8 +719,8 @@ ChunkData* ServerChunkManager::storeGeneratedChunk(ChunkCoord x, ChunkCoord z, s
         stored = slot.get();
     }
 
-    if (ChunkHolder* holder = getHolder(x, z)) {
-        holder->setStatus(ChunkStatuses::FULL);
+    if (SingleChunkLifecycleManager* singleChunkLifecycleManager = getSingleChunkLifecycleManager(x, z)) {
+        singleChunkLifecycleManager->setStatus(ChunkStatuses::FULL);
     }
 
     // 调用区块加载回调（用于光照初始化等）
@@ -732,16 +739,20 @@ void ServerChunkManager::processCompletedTasks()
 
 void ServerChunkManager::checkChunkUnloading()
 {
+    // spdlog::info("[ServerChunkManager] Checking chunk unloading, current loaded chunks: {}, singleChunkLifecycleManagers: {}",
+    //               loadedChunkCount(), singleChunkLifecycleManagerCount());
+    MC_TRACE_EVENT("server.chunk", "CheckUnloading", "loadedChunkCount", loadedChunkCount(), "singleChunkLifecycleManagerCount", singleChunkLifecycleManagerCount());
+
     // 检查所有持有者
     std::vector<u64> toUnload;
 
     {
-        std::lock_guard<std::mutex> lock(m_holdersMutex);
-        for (const auto& [key, holder] : m_holders) {
+        std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
+        for (const auto& [key, singleChunkLifecycleManager] : m_singleChunkLifecycleManagers) {
             // 没有票据且没有追踪玩家
-            if (!holder->shouldLoad() &&
-                !holder->hasTrackingPlayers() &&
-                !holder->hasGeneratingChunk()) {
+            if (!singleChunkLifecycleManager->shouldLoad() &&
+                !singleChunkLifecycleManager->hasTrackingPlayers() &&
+                !singleChunkLifecycleManager->hasGeneratingChunk()) {
                 toUnload.push_back(key);
             }
         }
@@ -749,6 +760,9 @@ void ServerChunkManager::checkChunkUnloading()
 
     // 卸载区块
     for (u64 key : toUnload) {
+        auto chunkId = ChunkId::fromId(key);
+        spdlog::info("[ServerChunkManager] Unloading chunk: ({}, {})", chunkId.x, chunkId.z);
+        MC_TRACE_INSTANT("server.chunk", "UnloadChunk", "x", chunkId.x, "z", chunkId.z);
         unloadChunk(
             static_cast<ChunkCoord>(static_cast<i64>(key >> 32)),
             static_cast<ChunkCoord>(static_cast<i64>(key & 0xFFFFFFFF))
@@ -770,7 +784,7 @@ ChunkData* ServerChunkManager::finalizeChunkGeneration(ChunkCoord x, ChunkCoord 
         return nullptr;
     }
 
-    ChunkData* stored = storeGeneratedChunk(x, z, std::move(data));
+    ChunkData* stored = storeGeneratedChunkToMem(x, z, std::move(data));
 
     // 将生成的实体添加到世界
     if (stored && !spawnedEntities.empty()) {
@@ -794,10 +808,10 @@ size_t ServerChunkManager::loadedChunkCount() const
     return m_chunks.size();
 }
 
-size_t ServerChunkManager::holderCount() const
+size_t ServerChunkManager::singleChunkLifecycleManagerCount() const
 {
-    std::lock_guard<std::mutex> lock(m_holdersMutex);
-    return m_holders.size();
+    std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
+    return m_singleChunkLifecycleManagers.size();
 }
 
 size_t ServerChunkManager::pendingTaskCount() const

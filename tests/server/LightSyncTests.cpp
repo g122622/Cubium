@@ -242,6 +242,40 @@ TEST_F(LightSyncTest, WorldLightManagerCreation) {
 }
 
 /**
+ * @brief 测试无光照任务时 tick 返回预算
+ *
+ * 回归测试：避免返回 INT_MAX 等异常值污染上层日志与调度。
+ */
+TEST_F(LightSyncTest, WorldLightManagerTickWithoutWorkReturnsBudget) {
+    BlockLightStorageTestProvider provider;
+    WorldLightManager lightManager(&provider, true, true);
+
+    constexpr i32 BUDGET = 512;
+    const i32 remaining = lightManager.tick(BUDGET, true, true);
+
+    EXPECT_EQ(remaining, BUDGET);
+    EXPECT_GE(remaining, 0);
+    EXPECT_LE(remaining, BUDGET);
+}
+
+/**
+ * @brief 测试禁用天空光更新时 tick 返回预算
+ *
+ * 验证在 updateSkyLight=false 时不会返回异常大值。
+ */
+TEST_F(LightSyncTest, WorldLightManagerTickSkyDisabledKeepsBudget) {
+    BlockLightStorageTestProvider provider;
+    WorldLightManager lightManager(&provider, true, true);
+
+    constexpr i32 BUDGET = 256;
+    const i32 remaining = lightManager.tick(BUDGET, false, true);
+
+    EXPECT_EQ(remaining, BUDGET);
+    EXPECT_GE(remaining, 0);
+    EXPECT_LE(remaining, BUDGET);
+}
+
+/**
  * @brief 测试光照数据设置和获取
  *
  * 验证 WorldLightManager 可以正确设置和获取光照数据。

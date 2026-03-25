@@ -1763,6 +1763,22 @@ void ClientApplication::toggleMouseCapture()
 
 void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
 {
+    enum class MiningInputState : i32 {
+        Active = 0,
+        NoMouseOrPlayer,
+        AttackNotPressed,
+        NoTargetBlock,
+        InvalidTargetState,
+    };
+
+    static MiningInputState s_lastMiningState = MiningInputState::Active;
+    auto setMiningState = [](MiningInputState state, const char* reason) {
+        MC_TRACE_INSTANT("client.input.mining", "setMiningState", "state", static_cast<i32>(state), "reason", reason);
+        if (s_lastMiningState != state) {
+            s_lastMiningState = state;
+        }
+    };
+
     auto abortBreakingBlock = [this]() {
         if (!m_breakingBlockActive) {
             return;
@@ -1779,9 +1795,13 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
         m_breakingBlockActive = false;
         m_breakingBlockProgress = 0.0f;
         m_breakingBlockFace = Direction::None;
+
+        MC_TRACE_INSTANT("client.input.mining", "abortBreakingBlock", "state", static_cast<i32>(MiningInputState::Active), "reason", "abort local breaking state");
     };
 
     if (!m_mouseCaptured || !m_player) {
+        // 如果用户没有挖掘操作，那么这个路径每帧都会走
+        setMiningState(MiningInputState::NoMouseOrPlayer, "mouse not captured or player missing");
         abortBreakingBlock();
         return;
     }
@@ -1791,14 +1811,18 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
     const bool hasTargetBlock = m_raycastResult.isHit();
 
     if (!attackPressed) {
+        setMiningState(MiningInputState::AttackNotPressed, "attack button released");
         abortBreakingBlock();
         return;
     }
 
     if (!hasTargetBlock) {
+        setMiningState(MiningInputState::NoTargetBlock, "raycast miss while attack pressed");
         abortBreakingBlock();
         return;
     }
+
+    setMiningState(MiningInputState::Active, "attack pressed and target hit");
 
     const BlockPos currentTargetPos = m_raycastResult.blockPos();
     const Direction currentTargetFace = m_raycastResult.face();
@@ -1817,6 +1841,15 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().startBreaking(m_breakingBlockPos);
 
+        MC_TRACE_INSTANT("client.input.mining",
+            "startBreaking",
+            "pos",
+            fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
+            "face",
+            static_cast<i32>(m_breakingBlockFace),
+            "justPressed", attackJustPressed
+        );
+
         sendBlockInteraction(network::BlockInteractionAction::StartDestroyBlock,
                              m_breakingBlockPos,
                              m_breakingBlockFace);
@@ -1827,6 +1860,7 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
         m_breakingBlockPos.y,
         m_breakingBlockPos.z);
     if (targetState == nullptr || targetState->isAir() || targetState->hardness() < 0.0f) {
+        setMiningState(MiningInputState::InvalidTargetState, "target state is null/air/unbreakable");
         abortBreakingBlock();
         return;
     }
@@ -1846,6 +1880,13 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
         m_breakingBlockActive = false;
         m_breakingBlockProgress = 0.0f;
         m_breakingBlockFace = Direction::None;
+        MC_TRACE_INSTANT("client.input.mining",
+            "instantBreak",
+            "pos",
+            fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
+            "face",
+            static_cast<i32>(m_breakingBlockFace)
+        );
         return;
     }
 
@@ -1863,6 +1904,15 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().stopBreaking();
 
+        MC_TRACE_INSTANT("client.input.mining",
+            "breakComplete",
+            "pos",
+            fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
+            "face",
+            static_cast<i32>(m_breakingBlockFace),
+            "progress", m_breakingBlockProgress
+        );
+
         sendBlockInteraction(network::BlockInteractionAction::StopDestroyBlock,
                              m_breakingBlockPos,
                              m_breakingBlockFace);
@@ -1874,27 +1924,49 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
 
 void ClientApplication::handleBlockPlacementInput(f32 deltaTime)
 {
+    enum class PlaceInputState : i32 {
+        Active = 0,
+        NoMouseOrPlayer,
+        NoUsePress,
+        Cooldown,
+        RaycastMiss,
+    };
+
+    static PlaceInputState s_lastPlaceState = PlaceInputState::Active;
+    auto setPlaceState = [](PlaceInputState state, const char* reason) {
+        if (s_lastPlaceState != state) {
+            s_lastPlaceState = state;
+            spdlog::info("[PlaceInput] state={} reason={}", static_cast<i32>(state), reason);
+        }
+    };
+
     m_placeCooldown = std::max(0.0f, m_placeCooldown - deltaTime);
 
     if (!m_mouseCaptured || !m_player) {
+        setPlaceState(PlaceInputState::NoMouseOrPlayer, "mouse not captured or player missing");
         return;
     }
 
     // 检查右键是否刚刚按下
     const bool usePressed = m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT);
     if (!usePressed) {
+        setPlaceState(PlaceInputState::NoUsePress, "right button not just pressed");
         return;
     }
 
     // 检查放置冷却
     if (m_placeCooldown > 0.0f) {
+        setPlaceState(PlaceInputState::Cooldown, "placement cooldown active");
         return;
     }
 
     // 检查射线是否击中方块
     if (m_raycastResult.isMiss()) {
+        setPlaceState(PlaceInputState::RaycastMiss, "raycast miss on use");
         return;
     }
+
+    setPlaceState(PlaceInputState::Active, "right button pressed and target hit");
 
     // 计算击中点相对坐标
     BlockPos pos = m_raycastResult.blockPos();
@@ -1939,6 +2011,11 @@ void ClientApplication::sendBlockInteraction(network::BlockInteractionAction act
     //              pos.y,
     //              pos.z,
     //              static_cast<i32>(face));
+    MC_TRACE_INSTANT("client.input.mining", "sendBlockInteraction",
+        "action", static_cast<i32>(action),
+        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        "face", static_cast<i32>(face)
+    );
 
     m_networkClient->sendBlockInteraction(action, pos.x, pos.y, pos.z, face);
 }

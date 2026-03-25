@@ -142,6 +142,8 @@ private:
     // 区块管理
     void requestChunkAsync(ChunkCoord x, ChunkCoord z);
     void processPendingChunkSends();
+    void enqueueChunkLightingInit(ChunkCoord x, ChunkCoord z);
+    void processPendingChunkLightingInits();
     void sendChunkToClient(ChunkCoord x, ChunkCoord z);
 
     // 票据系统
@@ -222,6 +224,10 @@ private:
     std::vector<PendingChunkSend> m_pendingSends;
     std::mutex m_pendingSendsMutex;
 
+    // 跨线程光照初始化队列（仅在服务端线程消费）
+    std::vector<ChunkPos> m_pendingLightingInits;
+    std::mutex m_pendingLightingInitsMutex;
+
     // 服务端线程
     std::unique_ptr<std::thread> m_serverThread;
 
@@ -241,9 +247,6 @@ private:
     };
     ClientGameData m_clientData;
     mutable std::mutex m_clientDataMutex;
-
-    // 区块加载票据管理器
-    std::unique_ptr<world::ChunkLoadTicketManager> m_ticketManager;
 
     // 延迟卸载队列（防抖，避免边缘区块瞬时闪动）
     std::unordered_map<u64, u64> m_pendingChunkUnloads;

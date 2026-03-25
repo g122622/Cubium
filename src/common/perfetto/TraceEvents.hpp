@@ -142,8 +142,8 @@
  * @param category 分类名称
  * @param name 事件名称
  */
-#define MC_TRACE_INSTANT(category, name) \
-    TRACE_EVENT_INSTANT(category, name)
+#define MC_TRACE_INSTANT(category, name, ...) \
+    TRACE_EVENT_INSTANT(category, name, ##__VA_ARGS__)
 
 /**
  * @brief 检查分类是否启用
@@ -193,7 +193,7 @@
 #define MC_TRACE_COUNTER(category, name, value)          ((void)0)
 #define MC_TRACE_EVENT_BEGIN(category, name, ...)        ((void)0)
 #define MC_TRACE_EVENT_END(category)                     ((void)0)
-#define MC_TRACE_INSTANT(category, name)                 ((void)0)
+#define MC_TRACE_INSTANT(category, name, ...)            ((void)0)
 #define MC_TRACE_CATEGORY_ENABLED(category)              (false)
 #define MC_TRACE_EVENT_IF(condition, category, name, ...) ((void)0)
 

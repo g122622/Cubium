@@ -1,13 +1,13 @@
-#include "ChunkHolder.hpp"
+#include "SingleChunkLifecycleManager.hpp"
 #include <chrono>
 
 namespace mc {
 
 // ============================================================================
-// ChunkHolder 实现
+// SingleChunkLifecycleManager 实现
 // ============================================================================
 
-ChunkHolder::ChunkHolder(ChunkCoord x, ChunkCoord z)
+SingleChunkLifecycleManager::SingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z)
     : m_x(x)
     , m_z(z)
 {
@@ -21,7 +21,7 @@ ChunkHolder::ChunkHolder(ChunkCoord x, ChunkCoord z)
 // 状态管理
 // ============================================================================
 
-void ChunkHolder::setStatus(const ChunkStatus& status)
+void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -35,7 +35,7 @@ void ChunkHolder::setStatus(const ChunkStatus& status)
     }
 }
 
-void ChunkHolder::setLevel(i32 level)
+void SingleChunkLifecycleManager::setLevel(i32 level)
 {
     const i32 oldLevel = m_level.exchange(level, std::memory_order_acq_rel);
 
@@ -48,7 +48,7 @@ void ChunkHolder::setLevel(i32 level)
 // 区块数据访问
 // ============================================================================
 
-ChunkPrimer* ChunkHolder::createGeneratingChunk()
+ChunkPrimer* SingleChunkLifecycleManager::createGeneratingChunk()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -59,7 +59,7 @@ ChunkPrimer* ChunkHolder::createGeneratingChunk()
     return m_generatingChunk.get();
 }
 
-std::unique_ptr<ChunkData> ChunkHolder::completeGeneration()
+std::unique_ptr<ChunkData> SingleChunkLifecycleManager::completeGeneration()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -76,7 +76,7 @@ std::unique_ptr<ChunkData> ChunkHolder::completeGeneration()
 // Future 管理
 // ============================================================================
 
-ChunkHolder::ChunkFuture ChunkHolder::getChunkFuture(const ChunkStatus& status)
+SingleChunkLifecycleManager::ChunkFuture SingleChunkLifecycleManager::getChunkFuture(const ChunkStatus& status)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -105,7 +105,7 @@ ChunkHolder::ChunkFuture ChunkHolder::getChunkFuture(const ChunkStatus& status)
     return m_futures[ordinal];
 }
 
-void ChunkHolder::completeFuture(const ChunkStatus& status, ChunkPrimer* chunk)
+void SingleChunkLifecycleManager::completeFuture(const ChunkStatus& status, ChunkPrimer* chunk)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -123,7 +123,7 @@ void ChunkHolder::completeFuture(const ChunkStatus& status, ChunkPrimer* chunk)
     }
 }
 
-void ChunkHolder::failFuture(const ChunkStatus& status, Error error)
+void SingleChunkLifecycleManager::failFuture(const ChunkStatus& status, Error error)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -140,13 +140,13 @@ void ChunkHolder::failFuture(const ChunkStatus& status, Error error)
 // 票据管理
 // ============================================================================
 
-void ChunkHolder::addTicket(const ChunkLoadTicket& ticket)
+void SingleChunkLifecycleManager::addTicket(const ChunkLoadTicket& ticket)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_tickets.push_back(ticket);
 }
 
-void ChunkHolder::removeTicket(const ChunkLoadTicket& ticket)
+void SingleChunkLifecycleManager::removeTicket(const ChunkLoadTicket& ticket)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -167,13 +167,13 @@ void ChunkHolder::removeTicket(const ChunkLoadTicket& ticket)
 // 玩家追踪
 // ============================================================================
 
-void ChunkHolder::addTrackingPlayer(PlayerId player)
+void SingleChunkLifecycleManager::addTrackingPlayer(PlayerId player)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_trackingPlayers.insert(player);
 }
 
-void ChunkHolder::removeTrackingPlayer(PlayerId player)
+void SingleChunkLifecycleManager::removeTrackingPlayer(PlayerId player)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_trackingPlayers.erase(player);

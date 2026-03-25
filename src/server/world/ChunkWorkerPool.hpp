@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common/world/chunk/ChunkHolder.hpp"
+#include "../../common/world/chunk/SingleChunkLifecycleManager.hpp"
 #include "../../common/world/chunk/ChunkStatus.hpp"
 #include "../../common/world/gen/chunk/IChunkGenerator.hpp"
 #include "../../common/core/Types.hpp"

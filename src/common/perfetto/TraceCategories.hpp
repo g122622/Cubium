@@ -112,7 +112,15 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("server.chunk")
         .SetDescription("服务端区块处理"),
     perfetto::Category("server.entity")
-        .SetDescription("服务端实体更新")
+        .SetDescription("服务端实体更新"),
+    perfetto::Category("server.lighting")
+        .SetDescription("服务端光照处理"),
+
+    // === 挖掘 ===
+    perfetto::Category("client.input.mining")
+        .SetDescription("挖掘输入事件处理"),
+    perfetto::Category("server.world.mining")
+        .SetDescription("进一步的挖掘处理")
 );
 
 #if defined(_MSC_VER)

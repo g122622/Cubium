@@ -270,7 +270,7 @@ All types are in namespace `mc` (client types in `mc::client`, server types in `
 ### Chunk Generation Types
 - `ChunkStatus`: Generation stages (EMPTY → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → HEIGHTMAPS → FULL)
 - `ChunkPrimer`: Intermediate chunk state during generation
-- `ChunkHolder`: Manages chunk loading state and futures
+- `SingleChunkLifecycleManager`: Manages chunk loading state and futures
 - `ChunkTask`: Generation task for worker pool
 - `IChunk`: Chunk interface for generation
 
@@ -900,7 +900,7 @@ enum class Operation : u8 { ... };
 | **Network** | Complete | TCP server, packet serialization, LocalConnection |
 | **Server Core** | Complete | Modular design with managers |
 | **World Generation** | Complete | MC 1.16.5 terrain generation |
-| **Chunk System** | Complete | ChunkData, ChunkHolder, async generation |
+| **Chunk System** | Complete | ChunkData, SingleChunkLifecycleManager, async generation |
 | **Biome System** | Complete | 170 biomes, layer-based distribution |
 | **Block System** | Complete | BlockRegistry, BlockState, properties |
 | **Fluid System** | Complete | Water, lava flow mechanics |

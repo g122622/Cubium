@@ -47,7 +47,7 @@ protected:
 
 TEST_F(ServerChunkManagerTest, Constructor) {
     EXPECT_EQ(m_manager->loadedChunkCount(), 0);
-    EXPECT_EQ(m_manager->holderCount(), 0);
+    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0);
     EXPECT_FALSE(m_manager->workersRunning());
 }
 
@@ -214,11 +214,11 @@ TEST_F(ServerChunkManagerTest, UnloadChunk) {
 }
 
 TEST_F(ServerChunkManagerTest, UnloadChunk_WithHolder) {
-    m_manager->getOrCreateHolder(5, 5);
+    m_manager->getOrCreateSingleChunkLifecycleManager(5, 5);
     m_manager->getChunkSync(5, 5);
 
     EXPECT_TRUE(m_manager->hasChunk(5, 5));
-    EXPECT_EQ(m_manager->holderCount(), 1);
+    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1);
 
     m_manager->unloadChunk(5, 5);
     EXPECT_FALSE(m_manager->hasChunk(5, 5));
@@ -230,30 +230,30 @@ TEST_F(ServerChunkManagerTest, UnloadChunk_WithHolder) {
 // ============================================================================
 
 TEST_F(ServerChunkManagerTest, GetOrCreateHolder) {
-    ChunkHolder* holder = m_manager->getOrCreateHolder(10, 20);
+    SingleChunkLifecycleManager* holder = m_manager->getOrCreateSingleChunkLifecycleManager(10, 20);
     ASSERT_NE(holder, nullptr);
     EXPECT_EQ(holder->x(), 10);
     EXPECT_EQ(holder->z(), 20);
-    EXPECT_EQ(m_manager->holderCount(), 1);
+    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1);
 }
 
 TEST_F(ServerChunkManagerTest, GetOrCreateHolder_SameChunk) {
-    ChunkHolder* holder1 = m_manager->getOrCreateHolder(5, 5);
-    ChunkHolder* holder2 = m_manager->getOrCreateHolder(5, 5);
+    SingleChunkLifecycleManager* holder1 = m_manager->getOrCreateSingleChunkLifecycleManager(5, 5);
+    SingleChunkLifecycleManager* holder2 = m_manager->getOrCreateSingleChunkLifecycleManager(5, 5);
 
     EXPECT_EQ(holder1, holder2);
-    EXPECT_EQ(m_manager->holderCount(), 1);
+    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1);
 }
 
 TEST_F(ServerChunkManagerTest, GetHolder) {
-    m_manager->getOrCreateHolder(3, 7);
+    m_manager->getOrCreateSingleChunkLifecycleManager(3, 7);
 
-    ChunkHolder* holder = m_manager->getHolder(3, 7);
+    SingleChunkLifecycleManager* holder = m_manager->getSingleChunkLifecycleManager(3, 7);
     ASSERT_NE(holder, nullptr);
     EXPECT_EQ(holder->x(), 3);
     EXPECT_EQ(holder->z(), 7);
 
-    ChunkHolder* nullHolder = m_manager->getHolder(100, 100);
+    SingleChunkLifecycleManager* nullHolder = m_manager->getSingleChunkLifecycleManager(100, 100);
     EXPECT_EQ(nullHolder, nullptr);
 }
 
@@ -267,7 +267,7 @@ TEST_F(ServerChunkManagerTest, UpdatePlayerPosition) {
     m_manager->updatePlayerPosition(1, 0.0, 0.0);
 
     // 应该创建区块持有者
-    EXPECT_GE(m_manager->holderCount(), 1);
+    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1);
 
     m_manager->shutdown();
 }
@@ -276,7 +276,7 @@ TEST_F(ServerChunkManagerTest, RemovePlayer) {
     m_manager->initialize();
 
     m_manager->updatePlayerPosition(1, 0.0, 0.0);
-    EXPECT_GE(m_manager->holderCount(), 1);
+    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1);
 
     m_manager->removePlayer(1);
 

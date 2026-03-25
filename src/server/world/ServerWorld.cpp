@@ -16,6 +16,7 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include <cmath>
+#include <cassert>
 
 namespace mc::server {
 
@@ -572,8 +573,8 @@ void ServerWorld::tick() {
 
     // 更新光照（处理光照传播队列）
     if (m_lightManager && m_lightManager->hasLightWork()) {
-        // 每tick处理最多512个光照更新
-        m_lightManager->tick(512, true, true);
+        // 每tick处理最多一定数量的光照更新
+        m_lightManager->tick(32768, true, true);
     }
 
     // 更新所有实体
@@ -618,6 +619,7 @@ void ServerWorld::tick() {
 
 void ServerWorld::checkChunkUnloading() {
     // 区块卸载现在由 ServerChunkManager 处理
+    assert(false); // TODO 这个函数不应该被调用了,需要重构掉
 }
 
 void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ) {
@@ -664,7 +666,7 @@ void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ) 
 
 size_t ServerWorld::chunkCount() const {
     if (m_chunkManager) {
-        return m_chunkManager->holderCount();
+        return m_chunkManager->singleChunkLifecycleManagerCount();
     }
     return 0;
 }

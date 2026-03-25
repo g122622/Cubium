@@ -173,7 +173,7 @@ add_library(mc_common STATIC
     world/chunk/ChunkStatus.cpp
     world/chunk/ChunkPrimer.cpp
     world/chunk/IChunk.cpp
-    world/chunk/ChunkHolder.cpp
+    world/chunk/SingleChunkLifecycleManager.cpp
 
     # World - Generation - Noise
     world/gen/noise/ImprovedNoiseGenerator.cpp

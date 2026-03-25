@@ -40,6 +40,8 @@
 #include "server/core/PacketHandler.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
 
+#include "common/perfetto/TraceEvents.hpp"
+
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <cstring>
@@ -47,7 +49,7 @@
 namespace mc::server {
 
 // ============================================================================
-// ServerCollisionWorld 实现
+// ServerCollisionWorld 实现1
 // ============================================================================
 
 const BlockState* IntegratedServer::ServerCollisionWorld::getBlockState(i32 x, i32 y, i32 z) const {
@@ -335,7 +337,7 @@ public:
     }
 
     [[nodiscard]] IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) override {
-        return m_chunkManager.getChunkSync(x, z);
+        return m_chunkManager.getChunk(x, z);
     }
 
     [[nodiscard]] const IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) const override {
@@ -445,7 +447,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config) 
     auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, std::move(settings));
     m_chunkManager = std::make_unique<ServerChunkManager>(std::move(generator));
     m_chunkManager->setChunkLoadedCallback([this](ChunkCoord chunkX, ChunkCoord chunkZ) {
-        initializeChunkLighting(chunkX, chunkZ);
+        enqueueChunkLightingInit(chunkX, chunkZ);
     });
     (void)m_chunkManager->initialize();
     m_chunkManager->startWorkers();
@@ -477,13 +479,23 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config) 
             handleSpawnedEntities(entities);
         });
 
-    // 初始化票据管理器
-    m_ticketManager = std::make_unique<world::ChunkLoadTicketManager>();
-    m_ticketManager->setViewDistance(m_config.viewDistance);
+    // 配置区块管理器的票据管理器
+    m_chunkManager->setViewDistance(m_config.viewDistance);
 
     // 设置票据级别变化回调
-    m_ticketManager->setLevelChangeCallback(
+    // 注意：这个回调负责两件事：
+    // 1. 更新 SingleChunkLifecycleManager 的级别（用于区块卸载检查）
+    // 2. 调用 onChunkLevelChanged（用于区块加载/卸载逻辑）
+    m_chunkManager->setTicketLevelChangeCallback(
         [this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+            // 更新 SingleChunkLifecycleManager 的级别
+            if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+                auto* holder = m_chunkManager->getSingleChunkLifecycleManager(x, z);
+                if (holder) {
+                    holder->setLevel(newLevel);
+                }
+            }
+            // 调用区块级别变化处理
             onChunkLevelChanged(x, z, oldLevel, newLevel);
         });
 
@@ -625,15 +637,12 @@ void IntegratedServer::tick() {
 
     // 处理待发送区块（从 Worker 线程推送）
     {
-        MC_TRACE_EVENT("server.chunk", "ProcessPendingChunks");
+        MC_TRACE_EVENT("server.chunk", "processPendingChunkSends");
         processPendingChunkSends();
     }
 
-    // 更新票据管理器（清理过期票据等）
-    if (m_ticketManager) {
-        MC_TRACE_EVENT("server.chunk", "TicketManagerTick");
-        m_ticketManager->tick();
-    }
+    // 处理待初始化光照的区块（仅服务端线程执行，避免并发访问光照管理器）
+    processPendingChunkLightingInits();
 
     // 处理延迟卸载（边缘区块防抖）
     {
@@ -649,7 +658,7 @@ void IntegratedServer::tick() {
 
     // 更新光照传播队列
     {
-        MC_TRACE_EVENT("server.light", "LightTick");
+        MC_TRACE_EVENT("server.lighting", "LightTick");
         tickLighting();
     }
 
@@ -719,16 +728,13 @@ void IntegratedServer::requestChunkAsync(ChunkCoord x, ChunkCoord z) {
             if (!m_running.load() || !success || !chunk) return;
 
             // 玩家可能已移动到其他区域，避免发送过期区块。
-            if (!m_ticketManager || !m_ticketManager->shouldChunkLoad(x, z)) {
+            if (!m_chunkManager || !m_chunkManager->shouldChunkLoad(x, z)) {
                 return;
             }
 
             // 检查是否已发送
             auto* p = getPlayerData();
             if (!p || p->loadedChunks.count(id)) return;
-
-            // 确保区块光照数据已接入光照引擎并回写到区块段
-            initializeChunkLighting(x, z);
 
             // 序列化区块数据
             auto result = network::ChunkSerializer::serializeChunk(*chunk);
@@ -758,7 +764,7 @@ void IntegratedServer::processPendingChunkSends() {
     for (const auto& send : sends) {
         if (!m_running.load()) return;
 
-        if (!m_ticketManager || !m_ticketManager->shouldChunkLoad(send.x, send.z)) {
+        if (!m_chunkManager || !m_chunkManager->shouldChunkLoad(send.x, send.z)) {
             continue;
         }
 
@@ -769,11 +775,46 @@ void IntegratedServer::processPendingChunkSends() {
         ChunkId id(send.x, send.z);
         if (player->loadedChunks.count(id)) continue;  // 已发送
 
+        // 在服务端线程完成光照初始化，避免 Worker 线程并发访问光照管理器
+        initializeChunkLighting(send.x, send.z);
+
         player->loadedChunks.insert(id);
 
         spdlog::debug("Sending chunk ({}, {}) to client, size: {} bytes",
                       send.x, send.z, send.serializedData.size());
         sendChunkData(send.x, send.z, send.serializedData);
+    }
+}
+
+void IntegratedServer::enqueueChunkLightingInit(ChunkCoord x, ChunkCoord z) {
+    std::lock_guard<std::mutex> lock(m_pendingLightingInitsMutex);
+    m_pendingLightingInits.emplace_back(x, z);
+    // spdlog::info("[LightQueue] enqueue chunk=({}, {}), pending_count={}",
+    //               x, z, m_pendingLightingInits.size());
+    MC_TRACE_EVENT("server.lighting", "EnqueueChunkLightingInit", "ChunkX", x, "ChunkZ", z, "PendingCount", static_cast<i64>(m_pendingLightingInits.size()));
+}
+
+void IntegratedServer::processPendingChunkLightingInits() {
+    std::vector<ChunkPos> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingLightingInitsMutex);
+        pending = std::move(m_pendingLightingInits);
+        m_pendingLightingInits.clear();
+    }
+
+    if (!pending.empty()) {
+        // spdlog::info("[LightQueue] process pending_count={}", pending.size());
+        MC_TRACE_EVENT("server.lighting", "ProcessPendingChunkLightingInits", "PendingCount", static_cast<i64>(pending.size()));
+    }
+
+    for (const ChunkPos& pos : pending) {
+        if (!m_running.load()) {
+            spdlog::warn("[LightQueue] stop processing because server is no longer running");
+            return;
+        }
+        // spdlog::info("[LightQueue] init chunk lighting chunk=({}, {})", pos.x, pos.z);
+        MC_TRACE_EVENT("server.lighting", "InitializeChunkLighting", "ChunkX", pos.x, "ChunkZ", pos.z);
+        initializeChunkLighting(pos.x, pos.z);
     }
 }
 
@@ -863,6 +904,7 @@ void IntegratedServer::onPacketReceived(const u8* data, size_t size) {
 }
 
 void IntegratedServer::handleLoginRequest(const u8* data, size_t size) {
+    MC_TRACE_EVENT("server.network", "HandleLoginRequest");
     network::PacketDeserializer deser(data, size);
     auto result = network::LoginRequestPacket::deserialize(deser);
 
@@ -934,13 +976,14 @@ void IntegratedServer::handleLoginRequest(const u8* data, size_t size) {
     m_lastPlayerChunkZ = spawnChunkZ;
 
     // 在票据管理器中注册玩家位置
-    m_ticketManager->updatePlayerPosition(m_clientPlayerId, spawnChunkX, spawnChunkZ);
+    m_chunkManager->updatePlayerPosition(m_clientPlayerId, spawnChunkX, spawnChunkZ);
 
     spdlog::info("Player '{}' (ID: {}) joined the game at chunk ({}, {})",
                  username, m_clientPlayerId, spawnChunkX, spawnChunkZ);
 }
 
 void IntegratedServer::handlePlayerMove(const u8* data, size_t size) {
+    MC_TRACE_EVENT("server.network", "HandlePlayerMove");
     auto* player = getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -991,8 +1034,13 @@ void IntegratedServer::handlePlayerMove(const u8* data, size_t size) {
 }
 
 void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
+    MC_TRACE_EVENT("server.network", "HandleBlockInteraction");
     auto* player = getPlayerData();
     if (!player || !player->loggedIn || !m_chunkManager) {
+        spdlog::warn("[Mining] ignore interaction: player={}, loggedIn={}, chunkManager={}",
+                     static_cast<void*>(player),
+                     player ? player->loggedIn : false,
+                     static_cast<void*>(m_chunkManager.get()));
         return;
     }
 
@@ -1011,10 +1059,13 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
 
     // 只有 StopDestroyBlock 会实际破坏方块
     if (packet.action() != network::BlockInteractionAction::StopDestroyBlock) {
+        // spdlog::trace("[Mining] action is not StopDestroyBlock, only updating progress state");
         return;
     }
 
     if (packet.y() < world::MIN_BUILD_HEIGHT || packet.y() >= world::MAX_BUILD_HEIGHT) {
+        spdlog::warn("[Mining] reject due to Y out of range: y={}, range=[{}, {})",
+                     packet.y(), world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
         return;
     }
 
@@ -1045,6 +1096,13 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
         return;
     }
 
+    MC_TRACE_INSTANT("server.world.mining", "BlockStateCheck",
+                      "Chunk", fmt::format("({}, {})", chunkX, chunkZ),
+                      "LocalPos", fmt::format("({}, {}, {})",
+                                              packet.x() - chunkX * 16,
+                                              packet.y(),
+                                              packet.z() - chunkZ * 16));
+
     const i32 localX = packet.x() - chunkX * 16;
     const i32 localZ = packet.z() - chunkZ * 16;
     const BlockState* state = chunk->getBlock(localX, packet.y(), localZ);
@@ -1053,6 +1111,11 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
                      packet.x(), packet.y(), packet.z());
         return;
     }
+
+    MC_TRACE_INSTANT("server.world.mining", "BlockStateInfo",
+                      "StateId", state->stateId(),
+                      "Hardness", state->hardness(),
+                      "LightLevel", state->lightLevel());
 
     // 获取玩家手持物品
     ItemStack heldItemCopy;
@@ -1063,11 +1126,18 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
         heldItemCopy = m_clientData.inventory.getSelectedStack();
     }
     const ItemStack* heldItem = heldItemCopy.isEmpty() ? nullptr : &heldItemCopy;
+    MC_TRACE_INSTANT("server.world.mining", "PlayerToolInfo",
+                      "SelectedSlot", selectedSlot,
+                      "HeldItem", heldItemCopy.isEmpty() ? "<empty>" : heldItemCopy.getItem()->itemLocation().toString(),
+                      "Count", heldItemCopy.getCount());
 
     // 检查是否可以采集方块
     // 使用 ServerPlayerData 的游戏模式检查创造模式
     const Player* playerForHarvest = nullptr;  // 暂时无法获取 Player 对象
     bool canHarvest = BlockDropHandler::canHarvestBlock(*state, playerForHarvest, heldItem);
+    MC_TRACE_INSTANT("server.world.mining", "HarvestCheck",
+                      "CanHarvest", canHarvest,
+                      "GameMode", static_cast<i32>(player->gameMode));
 
     // 创造模式下不生成掉落物
     bool isCreativeMode = (player->gameMode == GameMode::Creative);
@@ -1089,6 +1159,7 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
             m_lootTableManager);
 
         if (!drops.empty()) {
+            spdlog::debug("[Mining] generated drops count={}", drops.size());
             (void)BlockDropHandler::spawnDrops(
                 m_entityManager,
                 m_physicsEngine.get(),
@@ -1100,6 +1171,8 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
         // 消耗工具耐久度（仅在成功采集时）
         if (heldItemCopy.isDamageable() && state->hardness() > 0.0f) {
             bool broken = heldItemCopy.attemptDamageItem(1);
+            spdlog::debug("[Mining] durability consumed, broken={} newDamage={}",
+                          broken, heldItemCopy.getDamage());
 
             // 更新物品栏
             {
@@ -1124,10 +1197,16 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
     const i32 newLightLevel = airBlock->defaultState().lightLevel();
 
     // 写入区块并触发光照更新
+    MC_TRACE_INSTANT("server.world.mining", "BlockDestroy",
+                      "StateId", state->stateId(),
+                      "OldLight", oldLightLevel,
+                      "NewLight", newLightLevel);
     chunk->setBlock(localX, packet.y(), localZ, &airBlock->defaultState());
     chunk->setDirty(true);
     onBlockStateChangedForLighting(packet.x(), packet.y(), packet.z(), oldLightLevel, newLightLevel);
     sendBlockUpdate(packet.x(), packet.y(), packet.z(), airBlock->defaultState().stateId());
+    MC_TRACE_INSTANT("server.world.mining", "BlockDestroyComplete",
+                      "Position", fmt::format("({}, {}, {})", packet.x(), packet.y(), packet.z()));
 
     // spdlog::info("[Mining] Destroyed block {} at ({}, {}, {})",
     //              state->blockLocation().toString(),
@@ -1136,8 +1215,13 @@ void IntegratedServer::handleBlockInteraction(const u8* data, size_t size) {
 
 void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
 {
+    MC_TRACE_EVENT("server.network", "HandleBlockPlacement");
     auto* player = getPlayerData();
     if (!player || !player->loggedIn || !m_chunkManager) {
+        spdlog::warn("[Place] ignore placement: player={}, loggedIn={}, chunkManager={}",
+                     static_cast<void*>(player),
+                     player ? player->loggedIn : false,
+                     static_cast<void*>(m_chunkManager.get()));
         return;
     }
 
@@ -1172,6 +1256,7 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
     }
 
     if (player->gameMode == GameMode::Spectator) {
+        spdlog::warn("[Place] reject placement in spectator mode");
         return;
     }
 
@@ -1197,6 +1282,13 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
     const i32 clickedLocalX = packet.x() - chunkX * 16;
     const i32 clickedLocalZ = packet.z() - chunkZ * 16;
     const BlockState* clickedState = chunk->getBlock(clickedLocalX, packet.y(), clickedLocalZ);
+    if (clickedState != nullptr) {
+        spdlog::debug("[Place] clicked block stateId={} at ({}, {}, {})",
+                      clickedState->stateId(), packet.x(), packet.y(), packet.z());
+    } else {
+        spdlog::warn("[Place] clicked block is nullptr at ({}, {}, {})",
+                     packet.x(), packet.y(), packet.z());
+    }
     if (isCraftingTableState(clickedState)) {
         spdlog::info("[Use] Opening crafting table at ({}, {}, {})", packet.x(), packet.y(), packet.z());
         openCraftingTableMenu();
@@ -1208,6 +1300,10 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
         spdlog::debug("[Place] Selected stack is empty");
         return;
     }
+
+    spdlog::info("[Place] selected item={} count={} damage={}",
+                  heldStack.getItem() ? heldStack.getItem()->itemLocation().toString() : "<null>",
+                  heldStack.getCount(), heldStack.getDamage());
 
     const Item* heldItem = heldStack.getItem();
     if (heldItem == nullptr) {
@@ -1238,11 +1334,16 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
     }
 
     const BlockPos placePos = context.placementPos();
+    spdlog::info("[Place] computed placementPos=({}, {}, {})",
+                  placePos.x, placePos.y, placePos.z);
     const BlockState* newState = blockItem->getStateForPlacement(context);
     if (newState == nullptr) {
         spdlog::debug("[Place] Block item did not provide a placement state");
         return;
     }
+
+    spdlog::info("[Place] new block stateId={} block={}",
+                  newState->stateId(), newState->blockLocation().toString());
 
     // 检查放置位置的区块是否已加载
     ChunkCoord placeChunkX = static_cast<ChunkCoord>(std::floor(static_cast<f64>(placePos.x) / 16.0));
@@ -1260,11 +1361,20 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
     const BlockState* oldState = placeChunk->getBlock(placeLocalX, placePos.y, placeLocalZ);
     const i32 oldLightLevel = oldState ? oldState->lightLevel() : 0;
     const i32 newLightLevel = newState->lightLevel();
+    spdlog::info("[Place] target oldStateId={} oldLight={} newLight={} targetChunk=({}, {}) local=({}, {})",
+                  oldState ? oldState->stateId() : 0,
+                  oldLightLevel,
+                  newLightLevel,
+                  placeChunkX,
+                  placeChunkZ,
+                  placeLocalX,
+                  placeLocalZ);
 
     // 写入区块并触发光照更新
     placeChunk->setBlock(placeLocalX, placePos.y, placeLocalZ, newState);
     placeChunk->setDirty(true);
     onBlockStateChangedForLighting(placePos.x, placePos.y, placePos.z, oldLightLevel, newLightLevel);
+    spdlog::info("[Place] block write + light update finished at ({}, {}, {})", placePos.x, placePos.y, placePos.z);
 
     if (player->gameMode != GameMode::Creative) {
         const i32 selectedSlot = m_clientData.inventory.getSelectedSlot();
@@ -1284,6 +1394,7 @@ void IntegratedServer::handleBlockPlacement(const u8* data, size_t size)
 
 void IntegratedServer::handleHotbarSelect(const u8* data, size_t size)
 {
+    MC_TRACE_EVENT("server.network", "HandleHotbarSelect");
     auto* player = getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -1301,6 +1412,7 @@ void IntegratedServer::handleHotbarSelect(const u8* data, size_t size)
 
 void IntegratedServer::handleContainerClick(const u8* data, size_t size)
 {
+    MC_TRACE_EVENT("server.network", "HandleContainerClick");
     auto* player = getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -1342,6 +1454,7 @@ void IntegratedServer::handleContainerClick(const u8* data, size_t size)
 
 void IntegratedServer::handleCloseContainer(const u8* data, size_t size)
 {
+    MC_TRACE_EVENT("server.network", "HandleCloseContainer");
     auto* player = getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -1375,12 +1488,15 @@ void IntegratedServer::handleCloseContainer(const u8* data, size_t size)
 }
 
 void IntegratedServer::handlePlayerChunkMove(ChunkCoord newChunkX, ChunkCoord newChunkZ) {
-    spdlog::debug("Player crossed chunk boundary: ({}, {}) -> ({}, {})",
-                  m_lastPlayerChunkX, m_lastPlayerChunkZ, newChunkX, newChunkZ);
+    MC_TRACE_EVENT("server.world", "HandlePlayerChunkMove",
+               "OldChunkX", m_lastPlayerChunkX, "OldChunkZ", m_lastPlayerChunkZ,
+               "NewChunkX", newChunkX, "NewChunkZ", newChunkZ);
+    // spdlog::debug("Player crossed chunk boundary: ({}, {}) -> ({}, {})",
+    //               m_lastPlayerChunkX, m_lastPlayerChunkZ, newChunkX, newChunkZ);
 
     // 更新票据管理器中的玩家位置
     // 这会自动触发区块加载/卸载的计算
-    m_ticketManager->updatePlayerPosition(m_clientPlayerId, newChunkX, newChunkZ);
+    m_chunkManager->updatePlayerPosition(m_clientPlayerId, newChunkX, newChunkZ);
 }
 
 void IntegratedServer::onChunkLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -1410,7 +1526,7 @@ void IntegratedServer::onChunkLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLe
 }
 
 void IntegratedServer::processPendingChunkUnloads() {
-    if (!m_ticketManager) {
+    if (!m_chunkManager) {
         m_pendingChunkUnloads.clear();
         return;
     }
@@ -1435,7 +1551,7 @@ void IntegratedServer::processPendingChunkUnloads() {
         chunkKeyToCoord(it->first, x, z);
 
         // 经过防抖窗口后再次确认是否仍应卸载
-        if (m_ticketManager->shouldChunkLoad(x, z)) {
+        if (m_chunkManager->shouldChunkLoad(x, z)) {
             it = m_pendingChunkUnloads.erase(it);
             continue;
         }
@@ -1455,12 +1571,20 @@ void IntegratedServer::processPendingChunkUnloads() {
 }
 
 void IntegratedServer::initializeChunkLighting(ChunkCoord x, ChunkCoord z) {
+    MC_TRACE_EVENT("server.lighting", "initializeChunkLighting",
+               "Chunk", fmt::format("({}, {})", x, z));
     if (!m_lightManager || !m_chunkManager) {
+        spdlog::warn("[LightInit] skip: lightManager={} chunkManager={} chunk=({}, {})",
+                     static_cast<void*>(m_lightManager.get()),
+                     static_cast<void*>(m_chunkManager.get()),
+                     x,
+                     z);
         return;
     }
 
     const ChunkData* chunk = m_chunkManager->getChunk(x, z);
     if (!chunk) {
+        spdlog::warn("[LightInit] chunk not loaded for chunk=({}, {})", x, z);
         return;
     }
 
@@ -1495,7 +1619,9 @@ void IntegratedServer::tickLighting() {
     }
 
     // 与 ServerWorld 保持一致：每 tick 处理最多 512 次更新
-    m_lightManager->tick(512, true, true);
+    i32 remaining = m_lightManager->tick(32768, true, true);
+    MC_TRACE_INSTANT("server.lighting", "tickLightingEnd", "Remaining", remaining);
+    // spdlog::info("[LightTick] processed budget=512 remaining={}", remaining);
 }
 
 void IntegratedServer::onBlockStateChangedForLighting(i32 x,
@@ -1504,25 +1630,39 @@ void IntegratedServer::onBlockStateChangedForLighting(i32 x,
                                                       i32 oldLightLevel,
                                                       i32 newLightLevel) {
     if (!m_lightManager) {
+        spdlog::warn("[LightBlock] skip because lightManager is null for pos=({}, {}, {})", x, y, z);
         return;
     }
 
     const BlockPos pos(x, y, z);
+    spdlog::info("[LightBlock] checkBlock pos=({}, {}, {}) oldLight={} newLight={}",
+                  x, y, z, oldLightLevel, newLightLevel);
     m_lightManager->checkBlock(pos);
 
     if (newLightLevel > oldLightLevel) {
+        spdlog::debug("[LightBlock] emission increased at ({}, {}, {}), level {} -> {}",
+                      x, y, z, oldLightLevel, newLightLevel);
         m_lightManager->onBlockEmissionIncrease(pos, newLightLevel);
     }
 }
 
 void IntegratedServer::markLightChanged(LightType type, const SectionPos& pos) {
+    MC_TRACE_EVENT("server.lighting", "markLightChanged",
+               "Type", (type == LightType::SKY) ? "SKY" : "BLOCK",
+               "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
+
     if (!m_chunkManager) {
+        spdlog::warn("[LightChanged] skip: chunkManager is null");
         return;
     }
 
-    ChunkData* chunk = m_chunkManager->getChunkSync(pos.x, pos.z);
+    const char* typeName = (type == LightType::SKY) ? "SKY" : "BLOCK";
+
+    ChunkData* chunk = m_chunkManager->getChunk(pos.x, pos.z);
     if (chunk) {
         chunk->setDirty(true);
+    } else {
+        spdlog::warn("[LightChanged] chunk not loaded for section=({}, {}, {})", pos.x, pos.y, pos.z);
     }
 
     syncLightDataToChunk(type, pos);
@@ -1531,16 +1671,28 @@ void IntegratedServer::markLightChanged(LightType type, const SectionPos& pos) {
 
 void IntegratedServer::syncLightDataToChunk(LightType type, const SectionPos& pos) {
     if (!m_lightManager || !m_chunkManager) {
+        spdlog::warn("[LightSync] skip: lightManager={} chunkManager={} section=({}, {}, {})",
+                     static_cast<void*>(m_lightManager.get()),
+                     static_cast<void*>(m_chunkManager.get()),
+                     pos.x,
+                     pos.y,
+                     pos.z);
         return;
     }
 
-    ChunkData* chunk = m_chunkManager->getChunkSync(pos.x, pos.z);
+    const char* typeName = (type == LightType::SKY) ? "SKY" : "BLOCK";
+
+    ChunkData* chunk = m_chunkManager->getChunk(pos.x, pos.z);
     if (!chunk) {
+        spdlog::warn("[LightSync] chunk not loaded type={} section=({}, {}, {})",
+                     typeName, pos.x, pos.y, pos.z);
         return;
     }
 
     const i32 sectionIndex = pos.y;
     if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
+        spdlog::warn("[LightSync] section index out of range: {} for section=({}, {}, {})",
+                     sectionIndex, pos.x, pos.y, pos.z);
         return;
     }
 
@@ -1548,12 +1700,18 @@ void IntegratedServer::syncLightDataToChunk(LightType type, const SectionPos& po
     if (!section) {
         section = chunk->createSection(sectionIndex);
         if (!section) {
+            spdlog::error("[LightSync] failed to create section index={} chunk=({}, {})",
+                          sectionIndex, pos.x, pos.z);
             return;
         }
+        spdlog::debug("[LightSync] created missing chunk section index={} chunk=({}, {})",
+                      sectionIndex, pos.x, pos.z);
     }
 
     NibbleArray* lightArray = m_lightManager->getData(type, pos);
     if (!lightArray) {
+        spdlog::debug("[LightSync] no light array, filling default type={} section=({}, {}, {})",
+                      typeName, pos.x, pos.y, pos.z);
         if (type == LightType::SKY) {
             section->fillSkyLight(15);
         } else {
@@ -1563,6 +1721,8 @@ void IntegratedServer::syncLightDataToChunk(LightType type, const SectionPos& po
     }
 
     const auto& data = lightArray->data();
+    spdlog::trace("[LightSync] apply light array type={} section=({}, {}, {}) size={}",
+                  typeName, pos.x, pos.y, pos.z, data.size());
     if (type == LightType::SKY) {
         NibbleArray& skyLight = section->skyLightNibble();
         if (skyLight.data().size() == data.size()) {
@@ -1582,26 +1742,33 @@ void IntegratedServer::syncLightDataToChunk(LightType type, const SectionPos& po
 
 void IntegratedServer::broadcastLightUpdate(LightType type, const SectionPos& pos) {
     if (!m_chunkManager) {
+        spdlog::warn("[LightBroadcast] skip: chunkManager is null");
         return;
     }
 
+    const char* typeName = (type == LightType::SKY) ? "SKY" : "BLOCK";
+
     auto* player = getPlayerData();
     if (!player || !player->loggedIn) {
+        spdlog::trace("[LightBroadcast] skip: player missing or not logged in");
         return;
     }
 
     const ChunkId id(pos.x, pos.z);
     if (player->loadedChunks.count(id) == 0) {
+        spdlog::trace("[LightBroadcast] skip: chunk not sent to player chunk=({}, {})", pos.x, pos.z);
         return;
     }
 
     const ChunkData* chunk = m_chunkManager->getChunk(pos.x, pos.z);
     if (!chunk) {
+        spdlog::warn("[LightBroadcast] skip: chunk not loaded chunk=({}, {})", pos.x, pos.z);
         return;
     }
 
     const ChunkSection* section = chunk->getSection(pos.y);
     if (!section) {
+        spdlog::trace("[LightBroadcast] skip: section missing section=({}, {}, {})", pos.x, pos.y, pos.z);
         return;
     }
 
@@ -1639,6 +1806,8 @@ void IntegratedServer::broadcastLightUpdate(LightType type, const SectionPos& po
         network::PacketType::LightUpdate,
         payload.buffer());
     sendToClient(fullPacket.data(), fullPacket.size());
+    spdlog::trace("[LightBroadcast] sent type={} section=({}, {}, {}) skyBytes={} blockBytes={}",
+                  typeName, pos.x, pos.y, pos.z, skyLightData.size(), blockLightData.size());
 }
 
 void IntegratedServer::handleTeleportConfirm(const u8* data, size_t size) {
@@ -1662,7 +1831,7 @@ void IntegratedServer::handleTeleportConfirm(const u8* data, size_t size) {
 
     if (m_serverCore->confirmTeleport(m_clientPlayerId, packet.teleportId())) {
         // 传送确认后，触发区块加载
-        m_ticketManager->processUpdates();
+        m_chunkManager->processTicketUpdates();
     } else {
         spdlog::warn("Unexpected teleport confirm: id={}, expected={}",
                      packet.teleportId(), player->pendingTeleportId);
@@ -1803,6 +1972,9 @@ void IntegratedServer::sendCloseContainer(ContainerId containerId) {
 }
 
 void IntegratedServer::sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
+    MC_TRACE_EVENT("server.chunk", "sendChunkData",
+               "Chunk", fmt::format("({}, {})", x, z),
+               "DataSize", data.size());
     network::ChunkDataPacket packet(x, z, data);
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -2176,6 +2348,21 @@ void IntegratedServer::syncEntityPositions() {
 
 void IntegratedServer::updatePlayerMining(const BlockPos& pos,
                                           network::BlockInteractionAction action) {
+    MC_TRACE_EVENT("server.world.mining", "updatePlayerMining",
+                "Action", static_cast<i32>(action),
+                "Position", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+                "Active", m_playerMining.active,
+                "Progress", m_playerMining.progress,
+                "Stage", m_playerMining.lastStage);
+    // spdlog::info("[MiningState] action={} pos=({}, {}, {}) active={} progress={:.3f} stage={}",
+    //               static_cast<i32>(action),
+    //               pos.x,
+    //               pos.y,
+    //               pos.z,
+    //               m_playerMining.active,
+    //               m_playerMining.progress,
+    //               m_playerMining.lastStage);
+
     switch (action) {
         case network::BlockInteractionAction::StartDestroyBlock:
             // 开始挖掘
@@ -2184,6 +2371,8 @@ void IntegratedServer::updatePlayerMining(const BlockPos& pos,
             m_playerMining.lastStage = 255;  // 255 表示未广播过
             m_playerMining.active = true;
             m_playerMining.startTick = tickCount();
+            spdlog::debug("[MiningState] start mining at ({}, {}, {}), startTick={}",
+                          pos.x, pos.y, pos.z, m_playerMining.startTick);
             break;
 
         case network::BlockInteractionAction::AbortDestroyBlock:
@@ -2198,6 +2387,7 @@ void IntegratedServer::updatePlayerMining(const BlockPos& pos,
                 m_playerMining.active = false;
                 m_playerMining.progress = 0.0f;
                 m_playerMining.lastStage = 255;
+                spdlog::debug("[MiningState] abort mining reset state");
             }
             break;
 
@@ -2213,12 +2403,14 @@ void IntegratedServer::updatePlayerMining(const BlockPos& pos,
                 m_playerMining.active = false;
                 m_playerMining.progress = 0.0f;
                 m_playerMining.lastStage = 255;
+                spdlog::debug("[MiningState] stop mining reset state");
             }
             break;
     }
 }
 
 void IntegratedServer::tickPlayerMining() {
+    MC_TRACE_EVENT("server.world.mining", "tickPlayerMining");
     if (!m_playerMining.active) {
         return;
     }
@@ -2230,6 +2422,7 @@ void IntegratedServer::tickPlayerMining() {
 
     if (!chunk) {
         // 区块未加载，中止挖掘
+        spdlog::warn("[MiningTick] cancel because chunk not loaded at chunk=({}, {})", chunkX, chunkZ);
         m_playerMining.active = false;
         return;
     }
@@ -2240,6 +2433,8 @@ void IntegratedServer::tickPlayerMining() {
 
     if (!state || state->isAir()) {
         // 方块已被破坏或不存在，停止挖掘
+        spdlog::debug("[MiningTick] stop because target block missing/air at ({}, {}, {})",
+                      m_playerMining.position.x, m_playerMining.position.y, m_playerMining.position.z);
         m_playerMining.active = false;
         return;
     }
@@ -2256,6 +2451,11 @@ void IntegratedServer::tickPlayerMining() {
     f32 hardness = state->hardness();
     if (hardness < 0.0f) {
         // 不可破坏方块
+        spdlog::debug("[MiningTick] unbreakable block stateId={} at ({}, {}, {})",
+                      state->stateId(),
+                      m_playerMining.position.x,
+                      m_playerMining.position.y,
+                      m_playerMining.position.z);
         return;
     }
 
@@ -2282,6 +2482,8 @@ void IntegratedServer::tickPlayerMining() {
 
     // 更新进度
     m_playerMining.progress += damagePerTick;
+    spdlog::trace("[MiningTick] stateId={} hardness={:.3f} speed={:.3f} damagePerTick={:.5f} progress={:.3f}",
+                  state->stateId(), hardness, miningSpeed, damagePerTick, m_playerMining.progress);
 
     // 广播破坏进度
     broadcastMiningProgress();
