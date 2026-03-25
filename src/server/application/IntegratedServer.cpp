@@ -1601,12 +1601,12 @@ void IntegratedServer::initializeChunkLighting(ChunkCoord x, ChunkCoord z) {
         if (section != nullptr) {
             if (m_lightManager->getSkyLightEngine()) {
                 NibbleArray skyLightCopy = section->skyLightNibble().copy();
-                m_lightManager->setData(LightType::SKY, sectionPos, &skyLightCopy, false);
+                m_lightManager->setData(LightType::SKY, sectionPos, skyLightCopy, false);
             }
 
             if (m_lightManager->getBlockLightEngine()) {
                 NibbleArray blockLightCopy = section->blockLightNibble().copy();
-                m_lightManager->setData(LightType::BLOCK, sectionPos, &blockLightCopy, false);
+                m_lightManager->setData(LightType::BLOCK, sectionPos, blockLightCopy, false);
             }
         }
     }
@@ -1619,7 +1619,6 @@ void IntegratedServer::tickLighting() {
         return;
     }
 
-    // 与 ServerWorld 保持一致：每 tick 处理最多 512 次更新
     i32 remaining = m_lightManager->tick(32768, true, true);
     MC_TRACE_INSTANT("server.lighting", "tickLightingEnd", "Remaining", remaining);
     // spdlog::info("[LightTick] processed budget=512 remaining={}", remaining);
@@ -1709,8 +1708,8 @@ void IntegratedServer::syncLightDataToChunk(LightType type, const SectionPos& po
                       sectionIndex, pos.x, pos.z);
     }
 
-    NibbleArray* lightArray = m_lightManager->getData(type, pos);
-    if (!lightArray) {
+    SWMRNibbleArray* lightArray = m_lightManager->getData(type, pos);
+    if (!lightArray || lightArray->isNullUpdating()) {
         spdlog::debug("[LightSync] no light array, filling default type={} section=({}, {}, {})",
                       typeName, pos.x, pos.y, pos.z);
         if (type == LightType::SKY) {
@@ -1721,22 +1720,26 @@ void IntegratedServer::syncLightDataToChunk(LightType type, const SectionPos& po
         return;
     }
 
-    const auto& data = lightArray->data();
+    std::vector<u8> data = lightArray->toByteArray();
     spdlog::trace("[LightSync] apply light array type={} section=({}, {}, {}) size={}",
                   typeName, pos.x, pos.y, pos.z, data.size());
     if (type == LightType::SKY) {
         NibbleArray& skyLight = section->skyLightNibble();
-        if (skyLight.data().size() == data.size()) {
+        if (data.empty()) {
+            section->fillSkyLight(15);
+        } else if (skyLight.data().size() == data.size()) {
             std::memcpy(skyLight.data().data(), data.data(), data.size());
         } else {
-            section->skyLightNibble() = lightArray->copy();
+            section->skyLightNibble() = NibbleArray(data);
         }
     } else {
         NibbleArray& blockLight = section->blockLightNibble();
-        if (blockLight.data().size() == data.size()) {
+        if (data.empty()) {
+            section->fillBlockLight(0);
+        } else if (blockLight.data().size() == data.size()) {
             std::memcpy(blockLight.data().data(), data.data(), data.size());
         } else {
-            section->blockLightNibble() = lightArray->copy();
+            section->blockLightNibble() = NibbleArray(data);
         }
     }
 }

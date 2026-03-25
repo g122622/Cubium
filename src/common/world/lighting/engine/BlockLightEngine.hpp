@@ -1,9 +1,12 @@
 #pragma once
 
 #include "../storage/BlockLightStorage.hpp"
+#include "../storage/SWMRNibbleArray.hpp"
+#include "../storage/EmptinessMap.hpp"
 #include "LevelBasedGraph.hpp"
 #include "LightEngineUtils.hpp"
 #include "../../block/BlockPos.hpp"
+#include <unordered_map>
 
 namespace mc {
 
@@ -71,18 +74,27 @@ public:
      * @brief 设置光照数据
      *
      * @param pos 区块段位置
+     * @param array 光照数组（SWMR格式）
+     * @param retain 是否保留
+     */
+    void setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain);
+
+    /**
+     * @brief 设置光照数据（从 NibbleArray）
+     *
+     * @param pos 区块段位置
      * @param array 光照数组
      * @param retain 是否保留
      */
-    void setData(const SectionPos& pos, NibbleArray* array, bool retain);
+    void setData(const SectionPos& pos, const NibbleArray& array, bool retain);
 
     /**
-     * @brief 获取光照数组
+     * @brief 获取光照数组（更新侧）
      *
      * @param pos 区块段位置
      * @return 光照数组指针
      */
-    [[nodiscard]] NibbleArray* getData(const SectionPos& pos);
+    [[nodiscard]] SWMRNibbleArray* getData(const SectionPos& pos);
 
     /**
      * @brief 检查是否有待处理的工作
@@ -99,6 +111,19 @@ public:
      */
     i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight);
 
+    // ========================================================================
+    // 空区块段检测
+    // ========================================================================
+
+    /**
+     * @brief 更新区块的空区块段映射
+     *
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @param chunk 区块指针
+     */
+    void updateEmptinessMap(i32 chunkX, i32 chunkZ, const IChunk* chunk);
+
 protected:
     // ========================================================================
     // LevelBasedGraph 接口实现
@@ -110,15 +135,28 @@ protected:
     [[nodiscard]] i32 getLevel(i64 pos) const override;
     void setLevel(i64 pos, i32 level) override;
     [[nodiscard]] i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) override;
+    [[nodiscard]] bool isSectionEmpty(i64 sectionPos) const override;
 
 private:
-    IChunkLightProvider* m_chunkProvider;
     BlockLightStorage m_storage;
+
+    // 空区块段映射缓存
+    std::unordered_map<i64, EmptinessMap> m_emptinessMaps;
 
     /**
      * @brief 获取指定位置的发光等级
      */
     [[nodiscard]] i32 getLightValue(i64 worldPos) const;
+
+    /**
+     * @brief 从缓存获取区块（覆盖基类以使用存储层的区块提供者）
+     */
+    [[nodiscard]] const IChunk* getChunkCached(i32 chunkX, i32 chunkZ) const;
+
+    /**
+     * @brief 获取或创建空区块段映射
+     */
+    EmptinessMap* getOrCreateEmptinessMap(i64 columnPos);
 };
 
 } // namespace mc

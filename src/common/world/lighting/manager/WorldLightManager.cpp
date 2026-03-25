@@ -1,6 +1,7 @@
 #include "WorldLightManager.hpp"
 #include <algorithm>
 #include "common/util/assert/AssertAll.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
 
@@ -55,6 +56,11 @@ bool WorldLightManager::hasLightWork() const {
 }
 
 i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+    MC_TRACE_EVENT("server.lighting", "WorldLightManager::tick",
+                   "maxUpdates", maxUpdates,
+                   "updateSkyLight", updateSkyLight,
+                   "updateBlockLight", updateBlockLight);
+
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     MC_ASSERT_RELEASE_MSG(maxUpdates >= 0, "Max updates must be positive or zero");
@@ -82,17 +88,10 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
                 skyRemaining);
         }
         return skyRemaining;
-    } else if (m_blockLight != nullptr) {
-        return clampRemaining(
-            m_blockLight->tick(maxUpdates, updateSkyLight, updateBlockLight),
-            maxUpdates);
-    } else if (m_skyLight != nullptr) {
-        return clampRemaining(
-            m_skyLight->tick(maxUpdates, updateSkyLight, updateBlockLight),
-            maxUpdates);
     } else {
         MC_ASSERT_RELEASE_MSG(false, "No light engines available");
     }
+
     return maxUpdates;
 }
 
@@ -195,7 +194,7 @@ u8 WorldLightManager::getSkyLight(const BlockPos& pos) const {
 void WorldLightManager::setData(
     LightType type,
     const SectionPos& pos,
-    NibbleArray* array,
+    const NibbleArray& array,
     bool retain) {
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -214,7 +213,7 @@ void WorldLightManager::setData(
     }
 }
 
-NibbleArray* WorldLightManager::getData(LightType type, const SectionPos& pos) {
+SWMRNibbleArray* WorldLightManager::getData(LightType type, const SectionPos& pos) {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     switch (type) {

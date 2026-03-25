@@ -14,6 +14,162 @@ class IChunk;
 class BlockState;
 class CollisionShape;
 
+// ============================================================================
+// 方向位集常量 (Direction Bitset)
+// 参考 Starlight 的方向位集优化，用于光照传播时快速跳过反向方向
+// ============================================================================
+
+/**
+ * @brief 方向位集枚举
+ *
+ * 每个方向用一个位表示，可以组合多个方向。
+ * 顺序与 Direction 枚举一致：
+ * - DOWN=0, UP=1, NORTH=2, SOUTH=3, WEST=4, EAST=5
+ *
+ * 用途：
+ * 1. 在光照传播队列中编码传播方向
+ * 2. 快速获取相反方向（避免从光源方向传播回来）
+ * 3. 批量处理多个方向
+ */
+enum DirectionBit : u8 {
+    DIR_NONE   = 0,
+    DIR_DOWN   = 1 << 0,  // Y- (下)
+    DIR_UP     = 1 << 1,  // Y+ (上)
+    DIR_NORTH  = 1 << 2,  // Z- (北)
+    DIR_SOUTH  = 1 << 3,  // Z+ (南)
+    DIR_WEST   = 1 << 4,  // X- (西)
+    DIR_EAST   = 1 << 5,  // X+ (东)
+    DIR_ALL    = 0x3F,    // 所有6个方向
+    DIR_HORIZONTAL = DIR_NORTH | DIR_SOUTH | DIR_WEST | DIR_EAST,  // 水平4方向
+    DIR_VERTICAL   = DIR_DOWN | DIR_UP  // 垂直2方向
+};
+
+/**
+ * @brief 方向位集工具函数
+ */
+namespace DirectionBits {
+    /**
+     * @brief 将 Direction 转换为 DirectionBit
+     */
+    [[nodiscard]] inline constexpr DirectionBit fromDirection(Direction dir) {
+        return static_cast<DirectionBit>(1 << static_cast<u8>(dir));
+    }
+
+    /**
+     * @brief 获取相反方向的位集
+     *
+     * 利用方向编码的对称性：
+     * - Down(0) ↔ Up(1)     -> 位0和位1互换
+     * - North(2) ↔ South(3) -> 位2和位3互换
+     * - West(4) ↔ East(5)   -> 位4和位5互换
+     *
+     * 通过位操作高效实现：偶数位左移1，奇数位右移1
+     */
+    [[nodiscard]] inline constexpr DirectionBit opposite(DirectionBit bits) {
+        // 交换相邻位：0↔1, 2↔3, 4↔5
+        // 偶数位 (0,2,4) 左移1位
+        // 奇数位 (1,3,5) 右移1位
+        return static_cast<DirectionBit>(
+            ((bits & 0x15) << 1) |  // 010101 -> 偶数位左移
+            ((bits & 0x2A) >> 1)    // 101010 -> 奇数位右移
+        );
+    }
+
+    /**
+     * @brief 获取除了指定方向外的所有方向
+     */
+    [[nodiscard]] inline constexpr DirectionBit allExcept(DirectionBit bits) {
+        return static_cast<DirectionBit>(DIR_ALL & ~bits);
+    }
+
+    /**
+     * @brief 获取除了指定方向及其反方向外的所有方向
+     */
+    [[nodiscard]] inline constexpr DirectionBit allExceptOpposite(DirectionBit bits) {
+        return static_cast<DirectionBit>(DIR_ALL & ~opposite(bits));
+    }
+
+    /**
+     * @brief 检查是否包含指定方向
+     */
+    [[nodiscard]] inline constexpr bool hasDirection(DirectionBit bits, Direction dir) {
+        return (bits & fromDirection(dir)) != 0;
+    }
+
+    /**
+     * @brief 添加方向到位集
+     */
+    [[nodiscard]] inline constexpr DirectionBit addDirection(DirectionBit bits, Direction dir) {
+        return static_cast<DirectionBit>(bits | fromDirection(dir));
+    }
+
+    /**
+     * @brief 移除方向从位集
+     */
+    [[nodiscard]] inline constexpr DirectionBit removeDirection(DirectionBit bits, Direction dir) {
+        return static_cast<DirectionBit>(bits & ~fromDirection(dir));
+    }
+
+    /**
+     * @brief 获取位集中方向的数量
+     */
+    [[nodiscard]] inline constexpr u32 count(DirectionBit bits) {
+        // 计算popcount
+        u32 count = 0;
+        u32 b = bits;
+        while (b) {
+            count += b & 1;
+            b >>= 1;
+        }
+        return count;
+    }
+
+    /**
+     * @brief 从位集提取第一个方向
+     * @return 第一个方向，如果为空返回 Direction::None
+     */
+    [[nodiscard]] inline Direction firstDirection(DirectionBit bits) {
+        if (bits == DIR_NONE) {
+            return Direction::None;
+        }
+        // 找到最低位的1
+        for (u32 i = 0; i < 6; ++i) {
+            if (bits & (1 << i)) {
+                return static_cast<Direction>(i);
+            }
+        }
+        return Direction::None;
+    }
+
+    /**
+     * @brief 预计算的方向检查数组
+     *
+     * 根据 Starlight 的优化，我们可以预计算每个方向位集对应的方向数组。
+     * 这样可以在传播时直接遍历数组，而不用遍历所有6个方向再检查是否在位集中。
+     */
+    struct DirectionArray {
+        Direction dirs[6];
+        u32 count;
+    };
+
+    /**
+     * @brief 获取位集对应的方向数组
+     */
+    [[nodiscard]] inline DirectionArray toDirections(DirectionBit bits) {
+        DirectionArray result{};
+        result.count = 0;
+
+        if (bits & DIR_DOWN)  result.dirs[result.count++] = Direction::Down;
+        if (bits & DIR_UP)    result.dirs[result.count++] = Direction::Up;
+        if (bits & DIR_NORTH) result.dirs[result.count++] = Direction::North;
+        if (bits & DIR_SOUTH) result.dirs[result.count++] = Direction::South;
+        if (bits & DIR_WEST)  result.dirs[result.count++] = Direction::West;
+        if (bits & DIR_EAST)  result.dirs[result.count++] = Direction::East;
+
+        return result;
+    }
+}
+
 /**
  * @brief 光照引擎工具类
  *

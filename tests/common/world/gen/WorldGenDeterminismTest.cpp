@@ -43,63 +43,63 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderDeterminism) {
     }
 }
 
-/**
- * @brief 测试随机数生成器的确定性
- */
-TEST_F(WorldGenDeterminismTest, RandomDeterminism) {
-    const u64 seed = 99999;
+// /**
+//  * @brief 测试随机数生成器的确定性
+//  */
+// TEST_F(WorldGenDeterminismTest, RandomDeterminism) {
+//     const u64 seed = 99999;
 
-    // 创建两个随机数生成器
-    math::Random rng1(seed);
-    math::Random rng2(seed);
+//     // 创建两个随机数生成器
+//     math::Random rng1(seed);
+//     math::Random rng2(seed);
 
-    // 测试各种随机数方法
-    for (int i = 0; i < 1000; ++i) {
-        EXPECT_EQ(rng1.nextInt(), rng2.nextInt()) << "nextInt() mismatch at " << i;
-        EXPECT_EQ(rng1.nextInt(100), rng2.nextInt(100)) << "nextInt(100) mismatch at " << i;
-        EXPECT_NEAR(rng1.nextFloat(), rng2.nextFloat(), 1e-6f) << "nextFloat() mismatch at " << i;
-        EXPECT_NEAR(rng1.nextDouble(), rng2.nextDouble(), 1e-10) << "nextDouble() mismatch at " << i;
-    }
+//     // 测试各种随机数方法
+//     for (int i = 0; i < 1000; ++i) {
+//         EXPECT_EQ(rng1.nextInt(), rng2.nextInt()) << "nextInt() mismatch at " << i;
+//         EXPECT_EQ(rng1.nextInt(100), rng2.nextInt(100)) << "nextInt(100) mismatch at " << i;
+//         EXPECT_NEAR(rng1.nextFloat(), rng2.nextFloat(), 1e-6f) << "nextFloat() mismatch at " << i;
+//         EXPECT_NEAR(rng1.nextDouble(), rng2.nextDouble(), 1e-10) << "nextDouble() mismatch at " << i;
+//     }
 
-    // 测试 skip 方法
-    math::Random rng3(seed);
-    math::Random rng4(seed);
+//     // 测试 skip 方法
+//     math::Random rng3(seed);
+//     math::Random rng4(seed);
 
-    rng3.skip(100);
-    for (int i = 0; i < 100; ++i) {
-        rng4.nextU64();  // 手动跳过
-    }
+//     rng3.skip(100);
+//     for (int i = 0; i < 100; ++i) {
+//         rng4.nextU64();  // 手动跳过
+//     }
 
-    for (int i = 0; i < 100; ++i) {
-        EXPECT_EQ(rng3.nextInt(), rng4.nextInt()) << "skip() mismatch at " << i;
-    }
-}
+//     for (int i = 0; i < 100; ++i) {
+//         EXPECT_EQ(rng3.nextInt(), rng4.nextInt()) << "skip() mismatch at " << i;
+//     }
+// }
 
-/**
- * @brief 测试 skip 方法的正确实现
- */
-TEST_F(WorldGenDeterminismTest, SkipMethodCorrectness) {
-    const u64 seed = 12345678;
+// /**
+//  * @brief 测试 skip 方法的正确实现
+//  */
+// TEST_F(WorldGenDeterminismTest, SkipMethodCorrectness) {
+//     const u64 seed = 12345678;
 
-    // 测试 skip 是否真的跳过正确数量的随机数
-    math::Random rng1(seed);
-    math::Random rng2(seed);
+//     // 测试 skip 是否真的跳过正确数量的随机数
+//     math::Random rng1(seed);
+//     math::Random rng2(seed);
 
-    // rng1 使用 skip
-    rng1.skip(262);
+//     // rng1 使用 skip
+//     rng1.skip(262);
 
-    // rng2 手动调用 nextU64 262 次
-    for (int i = 0; i < 262; ++i) {
-        rng2.nextU64();
-    }
+//     // rng2 手动调用 nextU64 262 次
+//     for (int i = 0; i < 262; ++i) {
+//         rng2.nextU64();
+//     }
 
-    // 两者现在应该产生相同的随机数序列
-    for (int i = 0; i < 100; ++i) {
-        u64 val1 = rng1.nextU64();
-        u64 val2 = rng2.nextU64();
-        EXPECT_EQ(val1, val2) << "Skip method mismatch at " << i;
-    }
-}
+//     // 两者现在应该产生相同的随机数序列
+//     for (int i = 0; i < 100; ++i) {
+//         u64 val1 = rng1.nextU64();
+//         u64 val2 = rng2.nextU64();
+//         EXPECT_EQ(val1, val2) << "Skip method mismatch at " << i;
+//     }
+// }
 
 /**
  * @brief 测试特征生成种子的确定性

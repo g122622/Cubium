@@ -4,6 +4,8 @@
 #include "../../block/Block.hpp"
 #include "../../chunk/IChunk.hpp"
 #include <climits>
+#include <algorithm>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
 
@@ -12,8 +14,7 @@ namespace mc {
 // ============================================================================
 
 BlockLightEngine::BlockLightEngine(IChunkLightProvider* provider)
-    : LevelBasedGraph(16, 256, 8192)
-    , m_chunkProvider(provider)
+    : LevelBasedGraph(16, 8192, provider)
     , m_storage(provider) {
 }
 
@@ -51,11 +52,15 @@ void BlockLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) 
     m_storage.updateSectionStatus(pos.toLong(), isEmpty);
 }
 
-void BlockLightEngine::setData(const SectionPos& pos, NibbleArray* array, bool retain) {
+void BlockLightEngine::setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain) {
+    m_storage.setData(pos.toLong(), std::move(array), retain);
+}
+
+void BlockLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
     m_storage.setData(pos.toLong(), array, retain);
 }
 
-NibbleArray* BlockLightEngine::getData(const SectionPos& pos) {
+SWMRNibbleArray* BlockLightEngine::getData(const SectionPos& pos) {
     return m_storage.getArray(pos.toLong());
 }
 
@@ -64,6 +69,11 @@ bool BlockLightEngine::hasWork() const {
 }
 
 i32 BlockLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+    MC_TRACE_EVENT("server.lighting", "BlockLightEngine::tick",
+                     "maxUpdates", maxUpdates,
+                     "updateSkyLight", updateSkyLight,
+                     "updateBlockLight", updateBlockLight);
+
     (void)updateSkyLight;   // 方块光照引擎不处理天空光照
     (void)updateBlockLight; // 参数保留用于接口一致性
 
@@ -106,7 +116,7 @@ i32 BlockLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     }
 
     i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
-    const NibbleArray* array = m_storage.getArray(sectionPos, true);
+    const SWMRNibbleArray* array = m_storage.getArray(sectionPos, true);
 
     // 检查所有相邻方向
     for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
@@ -116,7 +126,7 @@ i32 BlockLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
         }
 
         i64 neighborSectionPos = LightEngineUtils::worldToSectionPos(neighborPos);
-        const NibbleArray* neighborArray;
+        const SWMRNibbleArray* neighborArray;
         if (neighborSectionPos == sectionPos) {
             neighborArray = array;
         } else {
@@ -131,7 +141,7 @@ i32 BlockLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
         i32 x, localY, z;
         LightEngineUtils::extractNibbleIndices(neighborPos, x, localY, z);
 
-        i32 neighborLevel = 15 - neighborArray->get(x, localY, z);
+        i32 neighborLevel = 15 - neighborArray->getUpdating(x, localY, z);
         i32 edgeLevel = getEdgeLevel(neighborPos, pos, neighborLevel);
 
         if (minLevel > edgeLevel) {
@@ -202,7 +212,9 @@ i32 BlockLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
     i32 opacity = 0;
     i32 toChunkX = toX >> 4;
     i32 toChunkZ = toZ >> 4;
-    const IChunk* toChunk = m_chunkProvider->getChunkForLight(toChunkX, toChunkZ);
+
+    // 使用缓存获取区块
+    const IChunk* toChunk = getChunkCached(toChunkX, toChunkZ);
     const BlockState* toState = LightEngineUtils::getBlockAndOpacity(toChunk, toPos, &opacity);
 
     if (opacity >= 15) {
@@ -211,9 +223,17 @@ i32 BlockLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
 
     i32 fromChunkX = fromX >> 4;
     i32 fromChunkZ = fromZ >> 4;
-    const IChunk* fromChunk = m_chunkProvider->getChunkForLight(fromChunkX, fromChunkZ);
+
+    // 优化：如果两个位置在同一区块，复用区块指针
+    const IChunk* fromChunk;
+    if (fromChunkX == toChunkX && fromChunkZ == toChunkZ) {
+        fromChunk = toChunk;
+    } else {
+        fromChunk = getChunkCached(fromChunkX, fromChunkZ);
+    }
+
     const BlockState* fromState = LightEngineUtils::getBlockAndOpacity(fromChunk, fromPos, nullptr);
-    IWorld* world = m_chunkProvider->getWorld();
+    IWorld* world = getChunkProvider()->getWorld();
 
     // 检查面遮挡
     if (fromState != nullptr && toState != nullptr &&
@@ -234,7 +254,8 @@ i32 BlockLightEngine::getLightValue(i64 worldPos) const {
     i32 x, y, z;
     LightEngineUtils::unpackPos(worldPos, x, y, z);
 
-    const IChunk* chunk = m_chunkProvider->getChunkForLight(x >> 4, z >> 4);
+    // 使用缓存获取区块
+    const IChunk* chunk = getChunkCached(x >> 4, z >> 4);
     if (chunk == nullptr) {
         return 0;
     }
@@ -245,6 +266,60 @@ i32 BlockLightEngine::getLightValue(i64 worldPos) const {
     }
 
     return state->lightLevel();
+}
+
+const IChunk* BlockLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {
+    // 使用基类的缓存方法
+    return LevelBasedGraph::getCachedChunk(chunkX, chunkZ);
+}
+
+// ============================================================================
+// 空区块段检测
+// ============================================================================
+
+void BlockLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const IChunk* chunk) {
+    if (chunk == nullptr) {
+        return;
+    }
+
+    // 计算区块列位置
+    i64 columnPos = SectionPos(chunkX, 0, chunkZ).toLong();
+
+    // 获取或创建空区块段映射
+    EmptinessMap* map = getOrCreateEmptinessMap(columnPos);
+    if (map != nullptr) {
+        map->updateFromChunk(*chunk);
+    }
+}
+
+bool BlockLightEngine::isSectionEmpty(i64 sectionPos) const {
+    // 从区块段位置提取区块列位置
+    SectionPos pos = SectionPos::fromLong(sectionPos);
+    i64 columnPos = SectionPos(pos.x, 0, pos.z).toLong();
+
+    // 查找空区块段映射
+    auto it = m_emptinessMaps.find(columnPos);
+    if (it == m_emptinessMaps.end()) {
+        // 没有映射，使用存储层检查
+        return !m_storage.hasSection(sectionPos);
+    }
+
+    return it->second.isSectionEmpty(pos.y);
+}
+
+EmptinessMap* BlockLightEngine::getOrCreateEmptinessMap(i64 columnPos) {
+    auto it = m_emptinessMaps.find(columnPos);
+    if (it != m_emptinessMaps.end()) {
+        return &it->second;
+    }
+
+    // 获取高度范围
+    i32 minSection = getChunkProvider()->getMinBuildHeight() >> 4;
+    i32 maxSection = (getChunkProvider()->getMaxBuildHeight() - 1) >> 4;
+
+    // 创建新的映射
+    auto result = m_emptinessMaps.emplace(columnPos, EmptinessMap(minSection, maxSection));
+    return &result.first->second;
 }
 
 } // namespace mc

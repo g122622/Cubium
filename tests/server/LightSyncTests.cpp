@@ -3,6 +3,7 @@
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/util/NibbleArray.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/lighting/storage/BlockLightStorage.hpp"
@@ -305,19 +306,19 @@ TEST_F(LightSyncTest, WorldLightManagerDataAccess) {
     SectionPos pos(0, 0, 0);
 
     // 设置数据
-    lightManager.setData(LightType::BLOCK, pos, &blockLightData, false);
-    lightManager.setData(LightType::SKY, pos, &skyLightData, false);
+    lightManager.setData(LightType::BLOCK, pos, blockLightData, false);
+    lightManager.setData(LightType::SKY, pos, skyLightData, false);
 
     // 获取数据
-    NibbleArray* retrievedBlockLight = lightManager.getData(LightType::BLOCK, pos);
-    NibbleArray* retrievedSkyLight = lightManager.getData(LightType::SKY, pos);
+    SWMRNibbleArray* retrievedBlockLight = lightManager.getData(LightType::BLOCK, pos);
+    SWMRNibbleArray* retrievedSkyLight = lightManager.getData(LightType::SKY, pos);
 
     ASSERT_NE(retrievedBlockLight, nullptr);
     ASSERT_NE(retrievedSkyLight, nullptr);
 
     // 验证数据
-    EXPECT_EQ(retrievedBlockLight->get(0, 0, 0), 8);
-    EXPECT_EQ(retrievedSkyLight->get(0, 0, 0), 15);
+    EXPECT_EQ(retrievedBlockLight->getUpdating(0, 0, 0), 8);
+    EXPECT_EQ(retrievedSkyLight->getUpdating(0, 0, 0), 15);
 }
 
 TEST_F(LightSyncTest, BlockLightStorageAppliesPendingSectionData) {
@@ -328,7 +329,7 @@ TEST_F(LightSyncTest, BlockLightStorageAppliesPendingSectionData) {
     NibbleArray array;
     array.set(1, 2, 3, 11);
 
-    storage.setData(sectionPos.toLong(), &array, false);
+    storage.setData(sectionPos.toLong(), array, false);
     EXPECT_FALSE(storage.hasSection(sectionPos.toLong()));
 
     storage.processAllLevelUpdates();
@@ -346,7 +347,7 @@ TEST_F(LightSyncTest, BlockLightStorageSetLightMarksNeighborSections) {
     NibbleArray sectionArray;
     sectionArray.fill(0);
 
-    storage.setData(center.toLong(), &sectionArray, false);
+    storage.setData(center.toLong(), sectionArray, false);
     storage.processAllLevelUpdates();
 
     const i64 worldPos = LightEngineUtils::packPos(1, 2, 3);

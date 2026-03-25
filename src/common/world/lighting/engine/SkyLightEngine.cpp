@@ -4,6 +4,8 @@
 #include "../../block/Block.hpp"
 #include "../../chunk/IChunk.hpp"
 #include <climits>
+#include <algorithm>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
 
@@ -12,8 +14,7 @@ namespace mc {
 // ============================================================================
 
 SkyLightEngine::SkyLightEngine(IChunkLightProvider* provider)
-    : LevelBasedGraph(16, 256, 8192)
-    , m_chunkProvider(provider)
+    : LevelBasedGraph(16, 8192, provider)
     , m_storage(provider) {
 }
 
@@ -65,11 +66,15 @@ void SkyLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
     m_storage.updateSectionStatus(pos.toLong(), isEmpty);
 }
 
-void SkyLightEngine::setData(const SectionPos& pos, NibbleArray* array, bool retain) {
+void SkyLightEngine::setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain) {
+    m_storage.setData(pos.toLong(), std::move(array), retain);
+}
+
+void SkyLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
     m_storage.setData(pos.toLong(), array, retain);
 }
 
-NibbleArray* SkyLightEngine::getData(const SectionPos& pos) {
+SWMRNibbleArray* SkyLightEngine::getData(const SectionPos& pos) {
     return m_storage.getArray(pos.toLong());
 }
 
@@ -82,6 +87,11 @@ bool SkyLightEngine::hasWork() const {
 }
 
 i32 SkyLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+    MC_TRACE_EVENT("server.lighting", "SkyLightEngine::tick",
+                     "maxUpdates", maxUpdates,
+                     "updateSkyLight", updateSkyLight,
+                     "updateBlockLight", updateBlockLight);
+
     (void)updateBlockLight;  // 天空光照引擎不处理方块光照
 
     // 处理存储更新
@@ -130,7 +140,7 @@ i32 SkyLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     }
 
     i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
-    const NibbleArray* array = m_storage.getArray(sectionPos, true);
+    const SWMRNibbleArray* array = m_storage.getArray(sectionPos, true);
 
     // 检查所有相邻方向
     for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
@@ -140,7 +150,7 @@ i32 SkyLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
         }
 
         i64 neighborSectionPos = LightEngineUtils::worldToSectionPos(neighborPos);
-        const NibbleArray* neighborArray;
+        const SWMRNibbleArray* neighborArray;
 
         if (neighborSectionPos == sectionPos) {
             neighborArray = array;
@@ -176,7 +186,7 @@ i32 SkyLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
                 searchSectionPos = SectionPos::fromLong(searchSectionPos).offset(Direction::Up).toLong();
             }
 
-            const NibbleArray* searchArray = m_storage.getArray(searchSectionPos, true);
+            const SWMRNibbleArray* searchArray = m_storage.getArray(searchSectionPos, true);
             if (neighborPos != excludedSource) {
                 i32 searchLevel;
                 if (searchArray != nullptr) {
@@ -289,7 +299,9 @@ i32 SkyLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
     i32 opacity = 0;
     i32 toX, toY, toZ;
     LightEngineUtils::unpackPos(toPos, toX, toY, toZ);
-    const IChunk* toChunk = m_chunkProvider->getChunkForLight(toX >> 4, toZ >> 4);
+
+    // 使用缓存获取区块
+    const IChunk* toChunk = getChunkCached(toX >> 4, toZ >> 4);
     const BlockState* toState = LightEngineUtils::getBlockAndOpacity(toChunk, toPos, &opacity);
 
     if (opacity >= 15) {
@@ -298,9 +310,21 @@ i32 SkyLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
 
     i32 fromX, fromY, fromZ;
     LightEngineUtils::unpackPos(fromPos, fromX, fromY, fromZ);
-    const IChunk* fromChunk = m_chunkProvider->getChunkForLight(fromX >> 4, fromZ >> 4);
+
+    // 优化：如果两个位置在同一区块，复用区块指针
+    const IChunk* fromChunk;
+    i32 fromChunkX = fromX >> 4;
+    i32 fromChunkZ = fromZ >> 4;
+    i32 toChunkX = toX >> 4;
+    i32 toChunkZ = toZ >> 4;
+    if (fromChunkX == toChunkX && fromChunkZ == toChunkZ) {
+        fromChunk = toChunk;
+    } else {
+        fromChunk = getChunkCached(fromChunkX, fromChunkZ);
+    }
+
     const BlockState* fromState = LightEngineUtils::getBlockAndOpacity(fromChunk, fromPos, nullptr);
-    IWorld* world = m_chunkProvider->getWorld();
+    IWorld* world = getChunkProvider()->getWorld();
 
     // 计算方向
     bool sameXZ = (fromX == toX) && (fromZ == toZ);
@@ -365,7 +389,7 @@ i32 SkyLightEngine::getLightValue(i64 worldPos) const {
     return 0;
 }
 
-i32 SkyLightEngine::getLevelFromArray(const NibbleArray* array, i64 worldPos) const {
+i32 SkyLightEngine::getLevelFromArray(const SWMRNibbleArray* array, i64 worldPos) const {
     if (array == nullptr) {
         return 15;
     }
@@ -373,7 +397,12 @@ i32 SkyLightEngine::getLevelFromArray(const NibbleArray* array, i64 worldPos) co
     i32 x, localY, z;
     LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
 
-    return 15 - array->get(x, localY, z);
+    return 15 - array->getUpdating(x, localY, z);
+}
+
+const IChunk* SkyLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {
+    // 使用基类的缓存方法
+    return LevelBasedGraph::getCachedChunk(chunkX, chunkZ);
 }
 
 } // namespace mc

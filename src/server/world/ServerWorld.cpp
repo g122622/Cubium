@@ -626,6 +626,12 @@ void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ) 
 
     ChunkPos chunkPos(chunkX, chunkZ);
 
+    // 更新 BlockLightEngine 的空区块段映射（用于优化传播）
+    auto* blockLightEngine = m_lightManager->getBlockLightEngine();
+    if (blockLightEngine != nullptr) {
+        blockLightEngine->updateEmptinessMap(chunkX, chunkZ, chunk);
+    }
+
     // 为每个区块段初始化光照数据
     for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk->getSection(sectionY);
@@ -640,13 +646,13 @@ void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ) 
             // 同步天空光照
             if (m_lightManager->getSkyLightEngine()) {
                 NibbleArray skyLightCopy = section->skyLightNibble().copy();
-                m_lightManager->setData(LightType::SKY, sectionPos, &skyLightCopy, false);
+                m_lightManager->setData(LightType::SKY, sectionPos, skyLightCopy, false);
             }
 
             // 同步方块光照
             if (m_lightManager->getBlockLightEngine()) {
                 NibbleArray blockLightCopy = section->blockLightNibble().copy();
-                m_lightManager->setData(LightType::BLOCK, sectionPos, &blockLightCopy, false);
+                m_lightManager->setData(LightType::BLOCK, sectionPos, blockLightCopy, false);
             }
         }
     }
@@ -1235,8 +1241,8 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos) {
     }
 
     // 从光照引擎获取光照数据
-    NibbleArray* lightArray = m_lightManager->getData(type, pos);
-    if (!lightArray) {
+    SWMRNibbleArray* lightArray = m_lightManager->getData(type, pos);
+    if (!lightArray || lightArray->isNullUpdating()) {
         // 光照引擎没有该段的数据，使用默认值
         if (type == LightType::SKY) {
             // 天空光照默认为 15（全亮）
@@ -1248,23 +1254,27 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos) {
         return;
     }
 
-    // 复制光照数据到 ChunkSection
-    const auto& data = lightArray->data();
+    // 转换 SWMRNibbleArray 到 NibbleArray 并复制到 ChunkSection
+    std::vector<u8> data = lightArray->toByteArray();
     if (type == LightType::SKY) {
         NibbleArray& skyLight = section->skyLightNibble();
-        if (skyLight.data().size() == data.size()) {
+        if (data.empty()) {
+            section->fillSkyLight(15);
+        } else if (skyLight.data().size() == data.size()) {
             std::memcpy(skyLight.data().data(), data.data(), data.size());
         } else {
             // 尺寸不匹配，重新设置
-            section->skyLightNibble() = lightArray->copy();
+            section->skyLightNibble() = NibbleArray(data);
         }
     } else {
         NibbleArray& blockLight = section->blockLightNibble();
-        if (blockLight.data().size() == data.size()) {
+        if (data.empty()) {
+            section->fillBlockLight(0);
+        } else if (blockLight.data().size() == data.size()) {
             std::memcpy(blockLight.data().data(), data.data(), data.size());
         } else {
             // 尺寸不匹配，重新设置
-            section->blockLightNibble() = lightArray->copy();
+            section->blockLightNibble() = NibbleArray(data);
         }
     }
 }

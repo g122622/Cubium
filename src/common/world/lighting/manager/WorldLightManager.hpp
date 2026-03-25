@@ -2,6 +2,7 @@
 
 #include "../engine/BlockLightEngine.hpp"
 #include "../engine/SkyLightEngine.hpp"
+#include "../storage/SWMRNibbleArray.hpp"
 #include "../LightType.hpp"
 #include "../../chunk/ChunkPos.hpp"
 #include <memory>
@@ -140,7 +141,7 @@ public:
      * @param array 光照数组
      * @param retain 是否保留（防止被覆盖）
      */
-    void setData(LightType type, const SectionPos& pos, NibbleArray* array, bool retain);
+    void setData(LightType type, const SectionPos& pos, const NibbleArray& array, bool retain);
 
     /**
      * @brief 获取光照数据
@@ -149,7 +150,7 @@ public:
      * @param pos 区块段位置
      * @return 光照数组指针，如果不存在返回nullptr
      */
-    [[nodiscard]] NibbleArray* getData(LightType type, const SectionPos& pos);
+    [[nodiscard]] SWMRNibbleArray* getData(LightType type, const SectionPos& pos);
 
     /**
      * @brief 保留区块数据

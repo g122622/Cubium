@@ -1,38 +1,61 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "LightEngineUtils.hpp"
+#include "LightEngineCache.hpp"
 #include <vector>
-#include <unordered_set>
-#include <unordered_map>
-#include <functional>
+#include <array>
+#include <cstdint>
 
 namespace mc {
 
+// 前向声明
+class IChunkLightProvider;
+
 /**
- * @brief 基于级别的传播图
+ * @brief 基于级别的传播图（Starlight 优化版）
  *
- * 实现Flood Fill传播算法的核心类，用于光照计算。
- * 使用级别队列来高效处理光照更新，避免无限循环。
+ * 使用 64 位队列编码和方向位集优化的 BFS 传播算法。
  *
- * 算法原理:
- * - 每个位置有一个级别值（光照等级）
- * - 当级别改变时，通知相邻位置
- * - 相邻位置根据传播规则计算新级别
- * - 使用优先队列按级别顺序处理更新
+ * 队列元素编码格式：
+ * [0-27]:  坐标 (x | (z << 6) | (y << 12))
+ * [28-31]: 光照等级 (0-15)
+ * [32-37]: 传播方向位集
+ * [38-39]: 标志位
  *
- * 参考: net.minecraft.world.lighting.LevelBasedGraph
+ * 参考: ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine
  */
 class LevelBasedGraph {
 public:
-    /**
-     * @brief 最大级别数（光照最大15级 + 1个溢出级）
-     */
+    /** 最大级别数（光照最大15级 + 1个溢出级） */
     static constexpr i32 MAX_LEVEL_COUNT = 16;
 
-    /**
-     * @brief 无效级别标记
-     */
+    /** 无效级别标记 */
     static constexpr u8 INVALID_LEVEL = 255;
+
+    /** 队列编码：坐标掩码 (28位) */
+    static constexpr u64 COORD_MASK = (1ULL << 28) - 1;
+
+    /** 队列编码：光照等级偏移 */
+    static constexpr i32 LEVEL_SHIFT = 28;
+
+    /** 队列编码：光照等级掩码 */
+    static constexpr u64 LEVEL_MASK = 0xFULL;
+
+    /** 队列编码：方向位集偏移 */
+    static constexpr i32 DIRECTION_SHIFT = 32;
+
+    /** 队列编码：方向位集掩码 */
+    static constexpr u64 DIRECTION_MASK = 0x3FULL;
+
+    /** 标志：需要写入光照等级 */
+    static constexpr u64 FLAG_WRITE_LEVEL = 1ULL << 63;
+
+    /** 标志：需要重新检查光照等级 */
+    static constexpr u64 FLAG_RECHECK_LEVEL = 1ULL << 62;
+
+    /** 标志：有面透明方块 */
+    static constexpr u64 FLAG_HAS_SIDED_TRANSPARENT = 1ULL << 61;
 
     virtual ~LevelBasedGraph() = default;
 
@@ -42,7 +65,6 @@ public:
 
     /**
      * @brief 检查是否有待处理的更新
-     * @return 如果有待处理更新返回true
      */
     [[nodiscard]] bool needsUpdate() const noexcept { return m_needsUpdate; }
 
@@ -50,7 +72,7 @@ public:
      * @brief 获取待处理更新数量
      */
     [[nodiscard]] i32 queuedUpdateSize() const noexcept {
-        return static_cast<i32>(m_propagationLevels.size());
+        return static_cast<i32>(m_increaseQueueInitialLength + m_decreaseQueueInitialLength);
     }
 
     /**
@@ -68,6 +90,15 @@ public:
     void scheduleUpdate(i64 pos);
 
     /**
+     * @brief 调度光照传播更新
+     * @param fromPos 源位置
+     * @param toPos 目标位置
+     * @param level 传播等级
+     * @param isIncrease 是否为增亮
+     */
+    void scheduleUpdate(i64 fromPos, i64 toPos, i32 level, bool isIncrease);
+
+    /**
      * @brief 取消位置更新
      * @param pos 位置编码
      */
@@ -79,138 +110,294 @@ public:
      */
     void cancelUpdates(const std::function<bool(i64)>& predicate);
 
+    /**
+     * @brief 设置编码偏移（用于坐标压缩）
+     */
+    void setEncodeOffset(i32 offsetX, i32 offsetY, i32 offsetZ) {
+        m_encodeOffsetX = offsetX;
+        m_encodeOffsetY = offsetY;
+        m_encodeOffsetZ = offsetZ;
+        m_coordinateOffset = offsetX + (offsetZ << 6) + (offsetY << 12);
+    }
+
+    // ========================================================================
+    // 缓存管理
+    // ========================================================================
+
+    /**
+     * @brief 设置缓存模式
+     *
+     * 当启用缓存时，光照引擎会缓存区块查询结果，
+     * 避免重复的区块查找操作。适用于批量光照计算。
+     *
+     * @param centerX 中心X坐标（世界坐标）
+     * @param centerY 中心Y坐标（世界坐标）
+     * @param centerZ 中心Z坐标（世界坐标）
+     * @param relaxed 是否宽松模式（允许部分区块缺失）
+     * @param loadTwoRadius 是否加载两倍半径的区块
+     */
+    void enableCache(i32 centerX, i32 centerY, i32 centerZ,
+                     bool relaxed = false, bool loadTwoRadius = false);
+
+    /**
+     * @brief 禁用缓存
+     *
+     * 清除所有缓存数据。
+     */
+    void disableCache();
+
+    /**
+     * @brief 检查缓存是否启用
+     */
+    [[nodiscard]] bool isCacheEnabled() const noexcept { return m_cacheEnabled; }
+
+    /**
+     * @brief 获取缓存命中率（调试用）
+     */
+    [[nodiscard]] f32 getCacheHitRate() const;
+
 protected:
     /**
      * @brief 构造函数
-     *
      * @param levelCount 级别数量（通常为16）
      * @param expectedUpdates 预期更新数量（用于预分配）
-     * @param expectedPositions 预期位置数量（用于预分配）
+     * @param provider 区块光照提供者（用于缓存）
      */
-    LevelBasedGraph(i32 levelCount, i32 expectedUpdates, i32 expectedPositions);
+    LevelBasedGraph(i32 levelCount, i32 expectedUpdates, IChunkLightProvider* provider = nullptr);
 
     // ========================================================================
     // 虚方法（子类实现）
     // ========================================================================
 
-    /**
-     * @brief 检查是否为根节点
-     *
-     * 对于方块光照，根节点是光源位置。
-     * 对于天空光照，根节点是世界顶部（天空）。
-     *
-     * @param pos 位置编码
-     * @return 如果是根节点返回true
-     */
+    /** 检查是否为根节点 */
     [[nodiscard]] virtual bool isRoot(i64 pos) const = 0;
 
-    /**
-     * @brief 计算位置的新级别
-     *
-     * 根据相邻位置的级别计算当前位置应该的级别。
-     * 排除指定的源位置。
-     *
-     * @param pos 要计算的位置
-     * @param excludedSource 排除的源位置
-     * @param level 当前级别
-     * @return 新级别
-     */
+    /** 计算位置的新级别 */
     [[nodiscard]] virtual i32 computeLevel(i64 pos, i64 excludedSource, i32 level) = 0;
 
-    /**
-     * @brief 通知相邻位置
-     *
-     * 当位置的级别改变时调用，用于传播更新。
-     *
-     * @param pos 位置
-     * @param level 新级别
-     * @param isDecreasing 是否是减少（光照变暗）
-     */
+    /** 通知相邻位置 */
     virtual void notifyNeighbors(i64 pos, i32 level, bool isDecreasing) = 0;
 
-    /**
-     * @brief 获取位置的当前级别
-     * @param pos 位置编码
-     * @return 当前级别
-     */
+    /** 获取位置的当前级别 */
     [[nodiscard]] virtual i32 getLevel(i64 pos) const = 0;
 
-    /**
-     * @brief 设置位置的级别
-     * @param pos 位置编码
-     * @param level 新级别
-     */
+    /** 设置位置的级别 */
     virtual void setLevel(i64 pos, i32 level) = 0;
 
-    /**
-     * @brief 计算从起点到终点的边缘级别
-     *
-     * 计算从startPos（级别startLevel）传播到endPos后的级别。
-     * 这考虑了方块透明度等因素。
-     *
-     * @param startPos 起始位置
-     * @param endPos 目标位置
-     * @param startLevel 起始级别
-     * @return 传播后的级别
-     */
-    [[nodiscard]] virtual i32 getEdgeLevel(i64 startPos, i64 endPos, i32 startLevel) = 0;
+    /** 计算边缘级别 */
+    [[nodiscard]] virtual i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) = 0;
+
+    /** 检查区块段是否为空（用于跳过优化） */
+    [[nodiscard]] virtual bool isSectionEmpty(i64 sectionPos) const;
 
     // ========================================================================
-    // 辅助方法
+    // 缓存访问（供子类使用）
     // ========================================================================
 
     /**
-     * @brief 传播级别到相邻位置
-     *
-     * @param fromPos 源位置
-     * @param toPos 目标位置
-     * @param newLevel 新级别
-     * @param isDecreasing 是否是减少
+     * @brief 从缓存获取区块
      */
-    void propagateLevel(i64 fromPos, i64 toPos, i32 newLevel, bool isDecreasing);
+    [[nodiscard]] const IChunk* getCachedChunk(i32 chunkX, i32 chunkZ) const;
 
     /**
-     * @brief 调度带源位置的更新
-     *
+     * @brief 获取缓存提供者
+     */
+    [[nodiscard]] IChunkLightProvider* getChunkProvider() const noexcept { return m_chunkProvider; }
+
+    /**
+     * @brief 检查区块段是否为空（使用缓存）
+     */
+    [[nodiscard]] bool isCachedSectionEmpty(i32 sectionX, i32 sectionY, i32 sectionZ) const;
+
+protected:
+    // 缓存系统
+    LightEngineCache m_cache;
+    IChunkLightProvider* m_chunkProvider = nullptr;
+    bool m_cacheEnabled = false;
+
+    /**
+     * @brief 传播光照等级到相邻位置
      * @param fromPos 源位置
      * @param toPos 目标位置
-     * @param newLevel 新级别
-     * @param isDecreasing 是否是减少
+     * @param level 传播等级
+     * @param isDecreasing 是否为减亮传播
      */
-    void scheduleUpdate(i64 fromPos, i64 toPos, i32 newLevel, bool isDecreasing);
+    void propagateLevel(i64 fromPos, i64 toPos, i32 level, bool isDecreasing) {
+        // 解码坐标
+        i32 toX, toY, toZ;
+        unpackWorldPos(toPos, toX, toY, toZ);
+
+        // 计算方向位集
+        i32 fromX, fromY, fromZ;
+        unpackWorldPos(fromPos, fromX, fromY, fromZ);
+
+        i32 dx = (toX > fromX) ? 1 : ((toX < fromX) ? -1 : 0);
+        i32 dy = (toY > fromY) ? 1 : ((toY < fromY) ? -1 : 0);
+        i32 dz = (toZ > fromZ) ? 1 : ((toZ < fromZ) ? -1 : 0);
+
+        DirectionBit fromDir = static_cast<DirectionBit>(
+            (dx != 0 ? (dx > 0 ? DIR_WEST : DIR_EAST) : 0) |
+            (dy != 0 ? (dy > 0 ? DIR_DOWN : DIR_UP) : 0) |
+            (dz != 0 ? (dz > 0 ? DIR_NORTH : DIR_SOUTH) : 0)
+        );
+
+        if (isDecreasing) {
+            appendToDecreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
+                static_cast<u8>(level), static_cast<u8>(fromDir), 0));
+        } else {
+            appendToIncreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
+                static_cast<u8>(level), static_cast<u8>(fromDir), FLAG_RECHECK_LEVEL));
+        }
+    }
+
+    // ========================================================================
+    // 队列操作
+    // ========================================================================
+
+    /**
+     * @brief 编码队列元素
+     */
+    [[nodiscard]] u64 encodeQueueEntry(i32 x, i32 y, i32 z, u8 level, u8 directions, u64 flags = 0) const {
+        i64 coord = static_cast<i64>((x & 0x3F) | ((z & 0x3F) << 6) | ((y & 0xFFF) << 12));
+        u64 result = static_cast<u64>((coord + m_coordinateOffset) & COORD_MASK);
+        result |= static_cast<u64>(level & LEVEL_MASK) << LEVEL_SHIFT;
+        result |= static_cast<u64>(directions & DIRECTION_MASK) << DIRECTION_SHIFT;
+        result |= flags;
+        return result;
+    }
+
+    /**
+     * @brief 编码队列元素（使用世界坐标）
+     */
+    [[nodiscard]] u64 encodeQueueEntryWorld(i32 worldX, i32 worldY, i32 worldZ, u8 level, u8 directions, u64 flags = 0) const {
+        return encodeQueueEntry(worldX, worldY, worldZ, level, directions, flags);
+    }
+
+    /**
+     * @brief 解码队列元素的坐标
+     */
+    void decodeQueueEntry(u64 entry, i32& x, i32& y, i32& z) const {
+        i64 coord = static_cast<i64>(entry & COORD_MASK) - m_coordinateOffset;
+        x = static_cast<i32>(coord & 0x3F);
+        z = static_cast<i32>((coord >> 6) & 0x3F);
+        y = static_cast<i32>((coord >> 12) & 0xFFF);
+    }
+
+    /**
+     * @brief 解码队列元素的光照等级
+     */
+    [[nodiscard]] u8 decodeLevel(u64 entry) const {
+        return static_cast<u8>((entry >> LEVEL_SHIFT) & LEVEL_MASK);
+    }
+
+    /**
+     * @brief 解码队列元素的方向位集
+     */
+    [[nodiscard]] u8 decodeDirections(u64 entry) const {
+        return static_cast<u8>((entry >> DIRECTION_SHIFT) & DIRECTION_MASK);
+    }
+
+    /**
+     * @brief 解码队列元素的标志
+     */
+    [[nodiscard]] u64 decodeFlags(u64 entry) const {
+        return entry & (FLAG_WRITE_LEVEL | FLAG_RECHECK_LEVEL | FLAG_HAS_SIDED_TRANSPARENT);
+    }
+
+    /**
+     * @brief 添加到增亮队列
+     */
+    void appendToIncreaseQueue(u64 entry) {
+        if (m_increaseQueueInitialLength >= static_cast<i32>(m_increaseQueue.size())) {
+            resizeIncreaseQueue();
+        }
+        m_increaseQueue[m_increaseQueueInitialLength++] = entry;
+        m_needsUpdate = true;
+    }
+
+    /**
+     * @brief 添加到减亮队列
+     */
+    void appendToDecreaseQueue(u64 entry) {
+        if (m_decreaseQueueInitialLength >= static_cast<i32>(m_decreaseQueue.size())) {
+            resizeDecreaseQueue();
+        }
+        m_decreaseQueue[m_decreaseQueueInitialLength++] = entry;
+        m_needsUpdate = true;
+    }
+
+    /**
+     * @brief 从世界坐标编码位置
+     */
+    [[nodiscard]] static constexpr i64 packWorldPos(i32 x, i32 y, i32 z) {
+        constexpr i64 XZ_MASK = (1LL << 26) - 1;
+        constexpr i64 Y_MASK = (1LL << 12) - 1;
+        return ((static_cast<i64>(x) & XZ_MASK) << 38) |
+               (static_cast<i64>(y) & Y_MASK) |
+               ((static_cast<i64>(z) & XZ_MASK) << 12);
+    }
+
+    /**
+     * @brief 解码世界坐标
+     */
+    static void unpackWorldPos(i64 packed, i32& x, i32& y, i32& z) {
+        constexpr i64 XZ_MASK = (1LL << 26) - 1;
+        x = static_cast<i32>(packed >> 38);
+        y = static_cast<i32>((packed << 52) >> 52);
+        z = static_cast<i32>((packed >> 12) & XZ_MASK);
+        z = (z << 6) >> 6; // 符号扩展
+    }
 
 private:
     i32 m_levelCount;
-    std::vector<std::unordered_set<i64>> m_updatesByLevel;
-    std::unordered_map<i64, u8> m_propagationLevels;
-    i32 m_minLevelToUpdate;
-    bool m_needsUpdate;
+
+    // 增亮队列（光照增加）
+    std::vector<u64> m_increaseQueue;
+    i32 m_increaseQueueInitialLength = 0;
+
+    // 减亮队列（光照减少）
+    std::vector<u64> m_decreaseQueue;
+    i32 m_decreaseQueueInitialLength = 0;
+
+    // 坐标编码偏移
+    i32 m_encodeOffsetX = 0;
+    i32 m_encodeOffsetY = 0;
+    i32 m_encodeOffsetZ = 0;
+    i32 m_coordinateOffset = 0;
+
+    bool m_needsUpdate = false;
+
+    /**
+     * @brief 扩展增亮队列
+     */
+    void resizeIncreaseQueue() {
+        m_increaseQueue.resize(m_increaseQueue.size() + (m_increaseQueue.size() >> 1) + 256);
+    }
+
+    /**
+     * @brief 扩展减亮队列
+     */
+    void resizeDecreaseQueue() {
+        m_decreaseQueue.resize(m_decreaseQueue.size() + (m_decreaseQueue.size() >> 1) + 256);
+    }
+
+    /**
+     * @brief 处理增亮队列
+     */
+    i32 processIncreaseQueue(i32 maxUpdates);
+
+    /**
+     * @brief 处理减亮队列
+     */
+    i32 processDecreaseQueue(i32 maxUpdates);
 
     /**
      * @brief 获取最小级别
      */
-    [[nodiscard]] i32 minLevel(i32 level1, i32 level2) const;
-
-    /**
-     * @brief 更新最小级别
-     */
-    void updateMinLevel(i32 maxLevel);
-
-    /**
-     * @brief 移除更新
-     */
-    void removeUpdate(i64 pos, i32 level, i32 maxLevel, bool removeAll);
-
-    /**
-     * @brief 添加更新
-     */
-    void addUpdate(i64 pos, i32 levelToSet, i32 updateLevel);
-
-    /**
-     * @brief 内部传播实现
-     */
-    void propagateLevelInternal(i64 fromPos, i64 toPos, i32 newLevel,
-                                i32 previousLevel, i32 propagationLevel, bool isDecreasing);
+    [[nodiscard]] i32 minLevel(i32 level1, i32 level2) const {
+        i32 result = level1 < level2 ? level1 : level2;
+        return result < m_levelCount ? result : m_levelCount - 1;
+    }
 };
 
 } // namespace mc
