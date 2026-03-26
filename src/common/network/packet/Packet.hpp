@@ -63,7 +63,12 @@ enum class PacketType : u16 {
     PlayerInventory = 305,      // 玩家背包同步 (S->C)
     HotbarSelect = 306,         // 快捷栏选择 (C->S)
     HotbarSet = 307,            // 快捷栏设置 (S->C)
-    PlayerAbilities = 308       // 玩家能力同步 (S->C)
+    PlayerAbilities = 308,      // 玩家能力同步 (S->C)
+
+    // 声音相关包 (S->C)
+    PlaySound = 400,            // 播放声音
+    StopSound = 401,            // 停止声音
+    PlaySoundEffect = 402       // 播放声音效果（实体/方块等）
 };
 
 // 数据包头
