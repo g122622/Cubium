@@ -1,0 +1,201 @@
+#pragma once
+
+#include "common/sound/SoundTypes.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+
+#include <glm/glm.hpp>
+
+#include <memory>
+
+namespace mc::client::sound {
+
+// 前向声明
+class SoundHandler;
+
+/**
+ * @brief 衰减类型
+ *
+ * 定义声音如何随距离衰减。
+ */
+enum class AttenuationType : u8 {
+    None,   ///< 无衰减（全局声音）
+    Linear  ///< 线性衰减（基于距离）
+};
+
+/**
+ * @brief 声音实例接口
+ *
+ * 定义正在播放或待播放的声音的所有属性。
+ * 每个声音实例代表一个独立的可播放声音。
+ *
+ * 参考: net.minecraft.client.audio.ISound
+ *
+ * 使用示例:
+ * @code
+ * // 创建全局声音
+ * auto sound = SoundInstance::createGlobal(
+ *     ResourceLocation("minecraft:music.game"),
+ *     SoundCategory::Music,
+ *     1.0f, 1.0f
+ * );
+ *
+ * // 创建位置声音
+ * auto sound = SoundInstance::createLocated(
+ *     ResourceLocation("minecraft:block.stone.break"),
+ *     SoundCategory::Blocks,
+ *     pos.x, pos.y, pos.z
+ * );
+ *
+ * engine->play(std::move(sound));
+ * @endcode
+ */
+class ISoundInstance {
+public:
+    virtual ~ISoundInstance() = default;
+
+    // ========================================================================
+    // 基础属性
+    // ========================================================================
+
+    /**
+     * @brief 获取声音事件ID
+     *
+     * 声音事件ID用于在 SoundRegistry 中查找声音定义。
+     */
+    [[nodiscard]] virtual const ResourceLocation& getSoundEventId() const = 0;
+
+    /**
+     * @brief 获取声音类别
+     *
+     * 用于音量控制和分类。
+     */
+    [[nodiscard]] virtual SoundCategory getCategory() const = 0;
+
+    // ========================================================================
+    // 音量和音调
+    // ========================================================================
+
+    /**
+     * @brief 获取音量
+     *
+     * 音量范围 [0.0, ...]，1.0 为正常音量。
+     * 实际音量 = 音量 * 类别音量 * 主音量。
+     */
+    [[nodiscard]] virtual f32 getVolume() const = 0;
+
+    /**
+     * @brief 获取音调
+     *
+     * 音调范围 [0.5, 2.0]，1.0 为正常音调。
+     */
+    [[nodiscard]] virtual f32 getPitch() const = 0;
+
+    // ========================================================================
+    // 位置
+    // ========================================================================
+
+    /**
+     * @brief 获取 X 坐标
+     */
+    [[nodiscard]] virtual f32 getX() const = 0;
+
+    /**
+     * @brief 获取 Y 坐标
+     */
+    [[nodiscard]] virtual f32 getY() const = 0;
+
+    /**
+     * @brief 获取 Z 坐标
+     */
+    [[nodiscard]] virtual f32 getZ() const = 0;
+
+    /**
+     * @brief 获取位置向量
+     */
+    [[nodiscard]] glm::vec3 getPosition() const {
+        return glm::vec3(getX(), getY(), getZ());
+    }
+
+    // ========================================================================
+    // 循环和延迟
+    // ========================================================================
+
+    /**
+     * @brief 是否循环播放
+     */
+    [[nodiscard]] virtual bool isLooping() const = 0;
+
+    /**
+     * @brief 获取重复延迟（游戏 ticks）
+     *
+     * 仅对非循环声音有效，播放后延迟指定 ticks 再播放。
+     */
+    [[nodiscard]] virtual u32 getRepeatDelay() const = 0;
+
+    // ========================================================================
+    // 衰减和全局
+    // ========================================================================
+
+    /**
+     * @brief 获取衰减类型
+     */
+    [[nodiscard]] virtual AttenuationType getAttenuationType() const = 0;
+
+    /**
+     * @brief 是否为全局声音
+     *
+     * 全局声音不受听者位置影响。
+     */
+    [[nodiscard]] virtual bool isGlobal() const = 0;
+
+    /**
+     * @brief 获取衰减距离
+     *
+     * 声音可听的最大距离。
+     */
+    [[nodiscard]] virtual f32 getAttenuationDistance() const = 0;
+
+    // ========================================================================
+    // 状态
+    // ========================================================================
+
+    /**
+     * @brief 获取声音实例ID
+     */
+    [[nodiscard]] virtual SoundInstanceId getId() const = 0;
+
+    /**
+     * @brief 设置声音实例ID
+     *
+     * 由 SoundEngine 在播放时设置。
+     */
+    virtual void setId(SoundInstanceId id) = 0;
+
+    /**
+     * @brief 是否已完成播放
+     */
+    [[nodiscard]] virtual bool isDone() const = 0;
+
+    // ========================================================================
+    // 更新
+    // ========================================================================
+
+    /**
+     * @brief 每帧更新
+     *
+     * 用于可更新的声音（如 TickableSound）。
+     */
+    virtual void tick() {}
+
+    /**
+     * @brief 创建声音访问器
+     *
+     * 用于延迟解析声音事件到具体的声音文件。
+     */
+    // [[nodiscard]] virtual Result<SoundAccessor> createAccessor(SoundHandler& handler) = 0;
+};
+
+} // namespace mc::client::sound
