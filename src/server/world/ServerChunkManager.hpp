@@ -16,6 +16,10 @@ namespace mc::server {
 // 前向声明
 class ServerWorld;
 
+namespace sync {
+class ChunkSendManager;
+}
+
 /**
  * @brief 服务端区块管理器
  *
@@ -175,6 +179,13 @@ public:
     void setChunkLoadedCallback(ChunkLoadedCallback callback) { m_chunkLoadedCallback = std::move(callback); }
 
     /**
+     * @brief 设置区块发送管理器
+     *
+     * 区块卸载前会通知 ChunkSendManager 发送卸载包给客户端。
+     */
+    void setChunkSendManager(sync::ChunkSendManager* manager) { m_chunkSendManager = manager; }
+
+    /**
      * @brief 获取区块 Future
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
@@ -253,6 +264,12 @@ public:
      * @brief 处理票据更新
      */
     void processTicketUpdates() { m_ticketManager.processUpdates(); }
+
+    /**
+     * @brief 获取票据管理器
+     */
+    [[nodiscard]] world::ChunkLoadTicketManager& ticketManager() { return m_ticketManager; }
+    [[nodiscard]] const world::ChunkLoadTicketManager& ticketManager() const { return m_ticketManager; }
 
     [[nodiscard]] i32 viewDistance() const { return m_ticketManager.viewDistance(); }
 
@@ -388,6 +405,9 @@ private:
 
     // 票据管理器
     world::ChunkLoadTicketManager m_ticketManager;
+
+    // 区块发送管理器（可选，由 MinecraftServer 设置）
+    sync::ChunkSendManager* m_chunkSendManager = nullptr;
 
     // Worker 线程池
     ChunkWorkerPool m_workerPool;

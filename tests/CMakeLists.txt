@@ -53,15 +53,12 @@ add_executable(mc_tests
     server/BlockDropHandlerTest.cpp
     server/test_chunk_worker_pool.cpp
     server/test_server_chunk_manager.cpp
-    # ServerCore 模块测试
     server/core/TimeManagerTest.cpp
     server/core/PlayerManagerTest.cpp
     server/core/ConnectionManagerTest.cpp
     server/core/TeleportManagerTest.cpp
     server/core/KeepAliveManagerTest.cpp
     server/core/PositionTrackerTest.cpp
-    server/core/ServerCoreTest.cpp
-    server/core/CoreCommandBridgeTest.cpp
     server/weather/WeatherManagerTest.cpp
     client/test_mesh_worker_pool.cpp
     client/renderer/test_renderer.cpp
@@ -161,7 +158,6 @@ add_executable(mc_tests
 # 添加服务端源文件
 target_sources(mc_tests
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/server/core/ServerCore.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
@@ -178,11 +174,13 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpSession.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
         ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
@@ -197,6 +195,15 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
+        # 交互管理器
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
+        # 同步管理器
+        ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalServerConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp

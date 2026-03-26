@@ -17,7 +17,7 @@ class BlockItemUseContext : public ItemUseContext {
 public:
     /**
      * @brief 构造方块放置上下文
-     * @param world 世界引用（IBlockReader接口）
+     * @param world 世界引用（IWorld接口）
      * @param player 玩家指针（可为nullptr）
      * @param stack 物品堆
      * @param hitPos 击中点（世界坐标）
@@ -25,7 +25,7 @@ public:
      * @param face 击中的面
      * @param playerYaw 玩家yaw角度（用于计算水平朝向）
      */
-    BlockItemUseContext(const IBlockReader& world,
+    BlockItemUseContext(const IWorld& world,
                         Player* player,
                         const ItemStack& stack,
                         const Vector3& hitPos,

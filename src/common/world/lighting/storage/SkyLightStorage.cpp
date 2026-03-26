@@ -1,6 +1,7 @@
 #include "SkyLightStorage.hpp"
 #include "../engine/LightEngineUtils.hpp"
 #include <climits>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 

@@ -88,7 +88,7 @@ i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& con
 
     const PlayerId playerId = source.playerId();
     auto* server = source.server();
-    if (playerId == 0 || !server || !server->teleportPlayer(playerId, x, y, z, source.rotation().x, source.rotation().y)) {
+    if (playerId == 0 || !server || !server->teleportManager().requestTeleport(playerId, x, y, z, source.rotation().x, source.rotation().y)) {
         source.sendMessage("Failed to teleport player");
         return 0;
     }

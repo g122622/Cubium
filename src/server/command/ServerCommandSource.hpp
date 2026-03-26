@@ -10,10 +10,10 @@
 namespace mc {
 
 // 前向声明
-class MinecraftServer;
 class ServerPlayer;
 namespace server {
 class ServerWorld;
+class IServer;
 }
 
 namespace command {
@@ -40,7 +40,7 @@ public:
      * @param permissionLevel 权限等级 (0-4)
      */
     ServerCommandSource(
-        MinecraftServer* server,
+        server::IServer* server,
         ServerPlayer* player = nullptr,
         server::ServerWorld* world = nullptr,
         const Vector3d& position = Vector3d(0, 0, 0),
@@ -64,7 +64,7 @@ public:
     /**
      * @brief 获取服务器实例
      */
-    [[nodiscard]] MinecraftServer* server() const noexcept { return m_server; }
+    [[nodiscard]] server::IServer* server() const noexcept { return m_server; }
 
     /**
      * @brief 获取玩家实例
@@ -162,10 +162,10 @@ public:
     /**
      * @brief 创建控制台命令源
      */
-    static ServerCommandSource forConsole(MinecraftServer* server);
+    static ServerCommandSource forConsole(server::IServer* server);
 
 private:
-    MinecraftServer* m_server;
+    server::IServer* m_server;
     ServerPlayer* m_player;
     PlayerId m_playerId;
     server::ServerWorld* m_world;

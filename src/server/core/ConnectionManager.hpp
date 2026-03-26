@@ -108,9 +108,10 @@ public:
 
     /**
      * @brief 清理已断开连接的玩家
+     * @param removedPlayers 输出参数，存放被移除的玩家ID列表
      * @return 清理的玩家数量
      */
-    size_t cleanupDisconnectedPlayers();
+    size_t cleanupDisconnectedPlayers(std::vector<PlayerId>* removedPlayers = nullptr);
 
     // ========== 数据包封装 ==========
 

@@ -6,6 +6,7 @@
 #include <climits>
 #include <algorithm>
 #include "common/perfetto/TraceEvents.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 

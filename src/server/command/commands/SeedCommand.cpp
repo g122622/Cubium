@@ -1,7 +1,6 @@
 #include "SeedCommand.hpp"
 #include "common/command/CommandContext.hpp"
-#include "server/application/MinecraftServer.hpp"
-#include "server/world/ServerWorld.hpp"
+#include "server/application/IServer.hpp"
 #include <sstream>
 
 namespace mc {
@@ -27,9 +26,7 @@ i32 SeedCommand::showSeed(CommandContext<ServerCommandSource>& context) {
     i64 seed = 0;
 
     if (server) {
-        seed = server->getSeed();
-    } else if (source.world()) {
-        seed = static_cast<i64>(source.world()->config().seed);
+        seed = static_cast<i64>(server->seed());
     } else {
         source.sendMessage("Server not available");
         return 0;

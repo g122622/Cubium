@@ -25,14 +25,14 @@ class ItemUseContext {
 public:
     /**
      * @brief 构造物品使用上下文
-     * @param world 世界引用（IBlockReader接口）
+     * @param world 世界引用（IWorld接口）
      * @param player 玩家指针（可为nullptr）
      * @param stack 物品堆
      * @param hitPos 击中点（世界坐标）
      * @param blockPos 击中的方块位置
      * @param face 击中的面
      */
-    ItemUseContext(const IBlockReader& world,
+    ItemUseContext(const IWorld& world,
                    Player* player,
                    const ItemStack& stack,
                    const Vector3& hitPos,
@@ -46,7 +46,7 @@ public:
     /**
      * @brief 获取世界（只读）
      */
-    [[nodiscard]] const IBlockReader& world() const { return m_world; }
+    [[nodiscard]] const IWorld& world() const { return m_world; }
 
     /**
      * @brief 获取玩家（可为nullptr）
@@ -107,7 +107,7 @@ public:
     [[nodiscard]] bool isValid() const { return m_face != Direction::None; }
 
 protected:
-    const IBlockReader& m_world;
+    const IWorld& m_world;
     Player* m_player;
     const ItemStack& m_stack;
     Vector3 m_hitPos;

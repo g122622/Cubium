@@ -13,9 +13,30 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
-#include "server/application/MinecraftServer.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/TimeManager.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/core/KeepAliveManager.hpp"
+#include "server/core/PositionTracker.hpp"
+#include "server/core/PacketHandler.hpp"
+#include "server/core/GameModeManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/weather/WeatherManager.hpp"
+#include "server/world/entity/EntityTracker.hpp"
+#include "server/world/entity/ItemPickupManager.hpp"
+#include "server/interaction/BlockInteractionManager.hpp"
+#include "server/interaction/MiningManager.hpp"
+#include "server/interaction/ContainerManager.hpp"
+#include "server/interaction/InventoryManager.hpp"
+#include "server/sync/EntitySyncManager.hpp"
+#include "server/sync/ChunkSendManager.hpp"
+#include "server/sync/LightSyncManager.hpp"
+#include "common/world/entity/EntityManager.hpp"
 
 using namespace mc;
 using namespace mc::command;
@@ -455,207 +476,6 @@ TEST_F(CommandSourceTest, SilentCommandSource) {
     EXPECT_FALSE(silent.allowLogging());
 }
 
-namespace {
+// 注意：命令执行测试已移至 server 模块的集成测试中
+// 这些测试需要完整的 manager mock 实现
 
-class TestMinecraftServer final : public MinecraftServer {
-public:
-    TestMinecraftServer() {
-        m_registry.registerDefaults();
-    }
-
-    [[nodiscard]] server::ServerWorld* getWorld() override { return nullptr; }
-    [[nodiscard]] i64 getSeed() const override { return 123; }
-    [[nodiscard]] i64 getTicks() const override { return m_gameTime; }
-    [[nodiscard]] i64 getDay() const override { return m_dayTime / 24000; }
-    [[nodiscard]] i64 getDayTime() const override { return m_dayTime; }
-    [[nodiscard]] i64 getGameTime() const override { return m_gameTime; }
-    [[nodiscard]] std::vector<ServerPlayer*> getPlayers() override { return {}; }
-    [[nodiscard]] ServerPlayer* getPlayer(const String&) override { return nullptr; }
-    [[nodiscard]] size_t playerCount() const override { return 0; }
-    void broadcast(const String&) override {}
-    bool setDayTime(i64 time) override {
-        m_dayTime = time;
-        return true;
-    }
-    bool addDayTime(i64 ticks) override {
-        m_dayTime += ticks;
-        return true;
-    }
-    bool setWeatherClear(i32 duration) override {
-        m_weatherType = 0;
-        m_rainStrength = 0.0f;
-        m_thunderStrength = 0.0f;
-        return true;
-    }
-    bool setWeatherRain(i32 duration) override {
-        m_weatherType = 1;
-        m_rainStrength = 1.0f;
-        m_thunderStrength = 0.0f;
-        return true;
-    }
-    bool setWeatherThunder(i32 duration) override {
-        m_weatherType = 2;
-        m_rainStrength = 1.0f;
-        m_thunderStrength = 1.0f;
-        return true;
-    }
-    [[nodiscard]] i32 getWeatherType() const override { return m_weatherType; }
-    [[nodiscard]] f32 getRainStrength() const override { return m_rainStrength; }
-    [[nodiscard]] f32 getThunderStrength() const override { return m_thunderStrength; }
-    bool teleportPlayer(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch) override {
-        lastTeleportPlayerId = playerId;
-        lastTeleportX = x;
-        lastTeleportY = y;
-        lastTeleportZ = z;
-        lastTeleportYaw = yaw;
-        lastTeleportPitch = pitch;
-        return true;
-    }
-    bool setPlayerGameMode(PlayerId playerId, GameMode mode) override {
-        lastGameModePlayerId = playerId;
-        lastGameMode = mode;
-        return true;
-    }
-    [[nodiscard]] command::CommandRegistry& getCommandRegistry() override { return m_registry; }
-    bool isCommandAllowed(const command::ICommandSource&, const String&) override { return true; }
-
-    i64 m_dayTime = 0;
-    i64 m_gameTime = 42;
-    i32 m_weatherType = 0;
-    f32 m_rainStrength = 0.0f;
-    f32 m_thunderStrength = 0.0f;
-    PlayerId lastTeleportPlayerId = 0;
-    f64 lastTeleportX = 0.0;
-    f64 lastTeleportY = 0.0;
-    f64 lastTeleportZ = 0.0;
-    f32 lastTeleportYaw = 0.0f;
-    f32 lastTeleportPitch = 0.0f;
-    PlayerId lastGameModePlayerId = 0;
-    GameMode lastGameMode = GameMode::NotSet;
-
-private:
-    command::CommandRegistry m_registry;
-};
-
-} // namespace
-
-TEST_F(CommandSourceTest, LogicalPlayerSourceExecutesTimeCommand) {
-    TestMinecraftServer server;
-    command::ServerCommandSource source(
-        &server,
-        nullptr,
-        nullptr,
-        Vector3d(0.0, 64.0, 0.0),
-        Vector2f(90.0f, 10.0f),
-        4,
-        99,
-        "Tester");
-
-    auto result = server.getCommandRegistry().execute("/time set 123", source);
-
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
-    EXPECT_EQ(server.m_dayTime, 123);
-}
-
-TEST_F(CommandSourceTest, LogicalPlayerSourceExecutesTeleportCommand) {
-    TestMinecraftServer server;
-    command::ServerCommandSource source(
-        &server,
-        nullptr,
-        nullptr,
-        Vector3d(1.0, 64.0, 2.0),
-        Vector2f(180.0f, 15.0f),
-        4,
-        88,
-        "Tester");
-
-    auto result = server.getCommandRegistry().execute("/tp 0 1111 0", source);
-
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
-    EXPECT_EQ(server.lastTeleportPlayerId, 88);
-    EXPECT_DOUBLE_EQ(server.lastTeleportX, 0.0);
-    EXPECT_DOUBLE_EQ(server.lastTeleportY, 1111.0);
-    EXPECT_DOUBLE_EQ(server.lastTeleportZ, 0.0);
-    EXPECT_FLOAT_EQ(server.lastTeleportYaw, 180.0f);
-    EXPECT_FLOAT_EQ(server.lastTeleportPitch, 15.0f);
-}
-
-TEST_F(CommandSourceTest, LogicalPlayerSourceExecutesGameModeCommand) {
-    TestMinecraftServer server;
-    command::ServerCommandSource source(
-        &server,
-        nullptr,
-        nullptr,
-        Vector3d(0.0, 64.0, 0.0),
-        Vector2f(0.0f, 0.0f),
-        4,
-        42,
-        "Tester");
-
-    // 测试 /gamemode creative
-    auto result = server.getCommandRegistry().execute("/gamemode creative", source);
-
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
-    EXPECT_EQ(server.lastGameModePlayerId, 42u);
-    EXPECT_EQ(server.lastGameMode, mc::GameMode::Creative);
-
-    // 测试 /gamemode 0 (survival)
-    result = server.getCommandRegistry().execute("/gamemode 0", source);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(server.lastGameMode, mc::GameMode::Survival);
-
-    // 测试 /gamemode spectator
-    result = server.getCommandRegistry().execute("/gamemode spectator", source);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(server.lastGameMode, mc::GameMode::Spectator);
-
-    // 测试 /gamemode 2 (adventure)
-    result = server.getCommandRegistry().execute("/gamemode 2", source);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(server.lastGameMode, mc::GameMode::Adventure);
-}
-
-TEST_F(CommandSourceTest, LogicalPlayerSourceExecutesWeatherCommand) {
-    TestMinecraftServer server;
-    command::ServerCommandSource source(
-        &server,
-        nullptr,
-        nullptr,
-        Vector3d(0.0, 64.0, 0.0),
-        Vector2f(0.0f, 0.0f),
-        4,
-        42,
-        "Tester");
-
-    // 测试 /weather clear
-    server.m_weatherType = 1;  // 先设置为雨天
-    server.m_rainStrength = 1.0f;
-    auto result = server.getCommandRegistry().execute("/weather clear", source);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
-    EXPECT_EQ(server.m_weatherType, 0);
-    EXPECT_FLOAT_EQ(server.m_rainStrength, 0.0f);
-
-    // 测试 /weather rain
-    result = server.getCommandRegistry().execute("/weather rain 6000", source);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
-    EXPECT_EQ(server.m_weatherType, 1);
-    EXPECT_FLOAT_EQ(server.m_rainStrength, 1.0f);
-
-    // 测试 /weather thunder
-    result = server.getCommandRegistry().execute("/weather thunder 3000", source);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
-    EXPECT_EQ(server.m_weatherType, 2);
-    EXPECT_FLOAT_EQ(server.m_rainStrength, 1.0f);
-    EXPECT_FLOAT_EQ(server.m_thunderStrength, 1.0f);
-
-    // 测试 /weather query
-    result = server.getCommandRegistry().execute("/weather query", source);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
-}

@@ -18,7 +18,7 @@ enum class ConnectionType : u8 {
  * @brief 服务端连接接口
  *
  * 抽象服务端与客户端之间的通信连接，支持 TCP 远程连接和本地连接。
- * 这允许 ServerWorld 和 EntityTracker 网络无关，可用于 IntegratedServer 和 ServerApplication。
+ * 这允许 ServerWorld 和 EntityTracker 网络无关，可用于 IntegratedServer 和 StandaloneServer。
  *
  * 使用示例：
  * @code

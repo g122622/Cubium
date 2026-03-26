@@ -134,17 +134,41 @@ public:
      */
     template<typename Func>
     void forEachPlayer(Func&& func) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (auto& [id, player] : m_players) {
-            func(player);
+        std::vector<PlayerId> playerIds;
+        {
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            playerIds.reserve(m_players.size());
+            for (const auto& [id, player] : m_players) {
+                playerIds.push_back(id);
+            }
+        }
+
+        for (PlayerId playerId : playerIds) {
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            auto it = m_players.find(playerId);
+            if (it != m_players.end()) {
+                func(it->second);
+            }
         }
     }
 
     template<typename Func>
     void forEachPlayer(Func&& func) const {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (const auto& [id, player] : m_players) {
-            func(player);
+        std::vector<PlayerId> playerIds;
+        {
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            playerIds.reserve(m_players.size());
+            for (const auto& [id, player] : m_players) {
+                playerIds.push_back(id);
+            }
+        }
+
+        for (PlayerId playerId : playerIds) {
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            auto it = m_players.find(playerId);
+            if (it != m_players.end()) {
+                func(it->second);
+            }
         }
     }
 
@@ -225,7 +249,7 @@ public:
     [[nodiscard]] PlayerId getPlayerIdBySession(u32 sessionId) const;
 
 private:
-    mutable std::mutex m_mutex;
+    mutable std::recursive_mutex m_mutex;
     std::unordered_map<PlayerId, ServerPlayerData> m_players;
     std::unordered_map<u32, PlayerId> m_sessionToPlayer;  ///< 会话ID -> 玩家ID
 

@@ -1,6 +1,7 @@
 #include "LevelBasedGraph.hpp"
 #include "../IChunkLightProvider.hpp"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 

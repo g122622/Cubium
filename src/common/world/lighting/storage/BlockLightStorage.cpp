@@ -1,5 +1,6 @@
 #include "BlockLightStorage.hpp"
 #include <climits>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 

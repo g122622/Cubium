@@ -1,7 +1,7 @@
 #include "ListCommand.hpp"
 #include "common/command/CommandContext.hpp"
-#include "server/application/MinecraftServer.hpp"
-#include "server/world/ServerWorld.hpp"
+#include "server/application/IServer.hpp"
+#include "server/core/PlayerManager.hpp"
 #include <sstream>
 
 namespace mc {
@@ -26,9 +26,11 @@ i32 ListCommand::listPlayers(CommandContext<ServerCommandSource>& context) {
     size_t playerCount = 0;
 
     if (auto* server = source.server()) {
-        playerCount = server->playerCount();
-    } else if (auto* world = source.world()) {
-        playerCount = world->playerCount();
+        // Use PlayerManager to count players
+        server->playerManager().forEachPlayer([&playerCount](auto&) {
+            ++playerCount;
+            return true;
+        });
     }
 
     std::ostringstream ss;

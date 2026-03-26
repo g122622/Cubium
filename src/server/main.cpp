@@ -1,4 +1,4 @@
-#include "application/ServerApplication.hpp"
+#include "application/StandaloneServer.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <spdlog/spdlog.h>
@@ -50,8 +50,7 @@ void printHelp()
               << "  -n, --name <name>   Set server/world name (default: world)\n"
               << "  -s, --seed <seed>   Set world seed (default: random)\n"
               << "  -m, --max <count>   Set max players (default: 20)\n"
-              << "  --offline           Disable online mode\n"
-              << "  -v, --verbose       Enable verbose logging\n"
+              << "  -v, --verbose       Enable verbose logging (debug level)\n"
               << std::endl;
 }
 } // namespace
@@ -66,7 +65,8 @@ int main(int argc, char* argv[])
     printBanner();
 
     // 启动参数
-    mc::server::ServerLaunchParams params;
+    mc::server::StandaloneServerParams params;
+    bool verboseLogging = false;
 
     // 解析命令行参数
     for (int i = 1; i < argc; ++i) {
@@ -88,15 +88,22 @@ int main(int argc, char* argv[])
         if ((arg == "-m" || arg == "--max") && i + 1 < argc) {
             params.maxPlayers = static_cast<mc::u32>(std::stoi(argv[++i]));
         }
-        // onlineMode 暂不支持命令行覆盖，可通过设置文件修改
         if (arg == "-v" || arg == "--verbose") {
-            // 通过设置日志级别来启用详细日志
+            verboseLogging = true;
         }
+    }
+
+    // 设置日志级别
+    if (verboseLogging) {
+        spdlog::set_level(spdlog::level::debug);
+        spdlog::debug("Verbose logging enabled");
+    } else {
+        spdlog::set_level(spdlog::level::info);
     }
 
     try {
         // 创建服务端实例
-        mc::server::ServerApplication server;
+        mc::server::StandaloneServer server;
 
         // 初始化
         auto initResult = server.initialize(params);

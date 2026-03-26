@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <vector>
 #include <memory>
+#include <mutex>
 
 namespace mc::world {
 
@@ -237,6 +238,52 @@ public:
     void setLevelChangeCallback(LevelChangeCallback callback) { m_levelChangeCallback = std::move(callback); }
 
     /**
+     * @brief 追踪变化回调类型
+     *
+     * 参数：
+     * - playerId: 玩家 ID
+     * - x, z: 区块坐标
+     * - isTracking: true 表示玩家开始追踪该区块，false 表示停止追踪
+     */
+    using TrackingChangeCallback = std::function<void(PlayerId, ChunkCoord, ChunkCoord, bool)>;
+
+    /**
+     * @brief 设置追踪变化回调
+     * @param callback 回调函数
+     *
+     * 当玩家进入或离开某区块的视距范围时触发。
+     * 可用于自动发送区块数据或卸载通知。
+     */
+    void setTrackingChangeCallback(TrackingChangeCallback callback) { m_trackingChangeCallback = std::move(callback); }
+
+    /**
+     * @brief 获取追踪某区块的所有玩家
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return 追踪该区块的玩家 ID 列表
+     */
+    [[nodiscard]] std::vector<PlayerId> getTrackingPlayers(ChunkCoord x, ChunkCoord z) const;
+
+    /**
+     * @brief 检查玩家是否追踪某区块
+     *
+     * @param playerId 玩家 ID
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return true 表示玩家正在追踪该区块
+     */
+    [[nodiscard]] bool isPlayerTracking(PlayerId playerId, ChunkCoord x, ChunkCoord z) const;
+
+    /**
+     * @brief 检查区块是否有玩家追踪
+     *
+     * @param chunkKey 区块键（posToKey 生成）
+     * @return true 表示有至少一个玩家追踪该区块
+     */
+    [[nodiscard]] bool hasTrackingPlayers(u64 chunkKey) const;
+
+    /**
      * @brief 处理所有待处理的更新
      *
      * 处理票据更新和距离图传播。
@@ -278,8 +325,10 @@ private:
     /// 玩家位置映射
     std::unordered_map<PlayerId, ChunkPos> m_playerPositions;
 
-    /// 区块 -> 玩家集合映射（哪些玩家需要这个区块）
-    std::unordered_map<u64, std::unordered_set<PlayerId>> m_chunkPlayers;
+    /// 区块 -> 追踪该区块的玩家集合（视距范围内）
+    /// 用于区块加载完成时发送给所有追踪该区块的玩家
+    std::unordered_map<u64, std::unordered_set<PlayerId>> m_chunkTrackingPlayers;
+    mutable std::mutex m_trackingPlayersMutex;
 
     /// 玩家票据追踪器
     std::unordered_map<PlayerId, std::unique_ptr<PlayerChunkTracker>> m_playerTrackers;
@@ -295,6 +344,9 @@ private:
 
     /// 级别变化回调
     LevelChangeCallback m_levelChangeCallback;
+
+    /// 追踪变化回调
+    TrackingChangeCallback m_trackingChangeCallback;
 
     /// 需要重新计算的区块
     std::unordered_set<u64> m_dirtyChunks;

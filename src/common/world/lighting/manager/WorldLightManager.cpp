@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "common/util/assert/AssertAll.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -49,10 +50,10 @@ void WorldLightManager::onBlockEmissionIncrease(const BlockPos& pos, i32 lightLe
 bool WorldLightManager::hasLightWork() const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    if (m_skyLight != nullptr && m_skyLight->hasWork()) {
-        return true;
-    }
-    return m_blockLight != nullptr && m_blockLight->hasWork();
+    bool skyHasWork = m_skyLight != nullptr && m_skyLight->hasWork();
+    bool blockHasWork = m_blockLight != nullptr && m_blockLight->hasWork();
+
+    return skyHasWork || blockHasWork;
 }
 
 i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {

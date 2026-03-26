@@ -52,7 +52,7 @@ i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& contex
 
     GameMode mode = context.getArgument<GameMode>("mode");
     auto* server = source.server();
-    if (!server || source.playerId() == 0 || !server->setPlayerGameMode(source.playerId(), mode)) {
+    if (!server || source.playerId() == 0 || !server->gameModeManager().setGameMode(source.playerId(), mode)) {
         source.sendMessage("Failed to change game mode");
         return 0;
     }

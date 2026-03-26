@@ -6,6 +6,7 @@
 #include <climits>
 #include <algorithm>
 #include "common/perfetto/TraceEvents.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -28,11 +29,32 @@ void SkyLightEngine::checkLight(const BlockPos& pos) {
     i64 packedPos = LightEngineUtils::packPos(pos);
     i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
 
+    // 获取当前光照等级
+    i32 currentLevel = getLevel(packedPos);
+
+    // 参考 Starlight: SkyStarLightEngine.checkBlock
+    // 天空光照处理逻辑：
+    // 1. 如果当前光照是 15（天空光源），重新传播
+    // 2. 否则设置光照为 0
+    // 3. 加入减亮队列，让减亮处理重新计算光照
+
     if (m_storage.hasSection(sectionPos)) {
-        scheduleUpdate(packedPos);
+        i32 x, y, z;
+        LightEngineUtils::unpackPos(packedPos, x, y, z);
+
+        if (currentLevel == 15) {
+            // 当前是天空光源，必须重新传播
+            // 使用 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 因为不知道方块是否条件透明
+            appendToIncreaseQueue(encodeQueueEntry(x, y, z, 15, DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
+        } else {
+            // 设置为 0，准备重新计算
+            setLevel(packedPos, 0);
+        }
+
+        // 加入减亮队列，传播到邻居
+        appendToDecreaseQueue(encodeQueueEntry(x, y, z, static_cast<u8>(currentLevel), DIR_ALL, 0));
     } else {
         // 向上查找有效的区块段
-        // 参考 MC: BlockPos.atSectionBottomY 将Y对齐到区块段底部
         i32 x, y, z;
         LightEngineUtils::unpackPos(packedPos, x, y, z);
         // 对齐到区块段底部 (清除Y的低4位)
@@ -48,13 +70,10 @@ void SkyLightEngine::checkLight(const BlockPos& pos) {
         }
 
         if (m_storage.hasSection(currentSectionPos)) {
-            scheduleUpdate(currentPos);
+            LightEngineUtils::unpackPos(currentPos, x, y, z);
+            // 使用 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 标志
+            appendToIncreaseQueue(encodeQueueEntry(x, y, z, 15, DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
         }
-    }
-
-    // 通知相邻方块
-    for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
-        scheduleUpdate(LightEngineUtils::offsetPos(packedPos, dir));
     }
 }
 
@@ -83,7 +102,8 @@ void SkyLightEngine::setColumnEnabled(i64 columnPos, bool enabled) {
 }
 
 bool SkyLightEngine::hasWork() const {
-    return needsUpdate() || m_storage.hasSectionsToUpdate();
+    bool result = needsUpdate() || m_storage.hasSectionsToUpdate();
+    return result;
 }
 
 i32 SkyLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
@@ -98,20 +118,20 @@ i32 SkyLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLi
     m_storage.processAllLevelUpdates();
 
     // 处理区块段更新（添加/移除）
+    i32 updatesBeforeSections = maxUpdates;
     maxUpdates = m_storage.updateSections(this, maxUpdates, updateSkyLight, false);
-    if (maxUpdates == 0) {
-        return 0;
-    }
+    bool sectionsConsumedAll = (maxUpdates == 0);
+    bool hasNeedsUpdate = needsUpdate();
 
     // 处理光照传播
-    if (needsUpdate() && updateSkyLight) {
+    i32 updatesBeforeProcess = maxUpdates;
+    if (hasNeedsUpdate && updateSkyLight) {
         maxUpdates = processUpdates(maxUpdates);
-        if (maxUpdates == 0) {
-            return 0;
-        }
     }
 
+    // 只在有实际光照变更时记录
     m_storage.updateAndNotify();
+
     return maxUpdates;
 }
 

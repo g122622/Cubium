@@ -10,9 +10,12 @@ class Entity;
 class ItemEntity;
 class Player;
 class ItemStack;
+class AxisAlignedBB;
 
 namespace server {
-class ServerWorld;
+
+// 前向声明
+class IServer;
 
 /**
  * @brief 物品拾取管理器
@@ -67,29 +70,29 @@ public:
      * @brief 执行拾取检测
      *
      * 检查所有玩家附近的ItemEntity，触发拾取。
-     * 应在 ServerWorld::tick() 中每tick调用。
+     * 应在每tick调用。
      *
-     * @param world 世界引用
+     * @param server 服务器接口
      */
-    void tick(ServerWorld& world);
+    void tick(IServer& server);
 
     /**
      * @brief 检查单个玩家的拾取
      *
-     * @param world 世界引用
+     * @param server 服务器接口
      * @param player 玩家实体
      */
-    void checkPlayerPickup(ServerWorld& world, Entity& player);
+    void checkPlayerPickup(IServer& server, Entity& player);
 
     /**
      * @brief 尝试拾取物品
      *
-     * @param world 世界引用
+     * @param server 服务器接口
      * @param player 玩家实体
      * @param itemEntity 物品实体
      * @return true 如果物品被完全拾取（实体应被移除）
      */
-    bool tryPickupItem(ServerWorld& world, Entity& player, ItemEntity& itemEntity);
+    bool tryPickupItem(IServer& server, Entity& player, ItemEntity& itemEntity);
 
     // ========== 物品合并 ==========
 
@@ -98,9 +101,9 @@ public:
      *
      * 检查附近的ItemEntity，合并相同物品。
      *
-     * @param world 世界引用
+     * @param server 服务器接口
      */
-    void processItemMerging(ServerWorld& world);
+    void processItemMerging(IServer& server);
 
 private:
     /**
@@ -127,19 +130,19 @@ private:
     /**
      * @brief 发送背包更新给客户端
      *
-     * @param world 世界引用
+     * @param server 服务器接口
      * @param player 玩家实体
      */
-    void sendInventoryUpdate(ServerWorld& world, Player& player);
+    void sendInventoryUpdate(IServer& server, Player& player);
 
     /**
      * @brief 发送实体销毁包
      *
-     * @param world 世界引用
+     * @param server 服务器接口
      * @param entityId 实体ID
      * @param collectorId 拾取者实体ID
      */
-    void sendEntityDestroy(ServerWorld& world, EntityId entityId, EntityId collectorId);
+    void sendEntityDestroy(IServer& server, EntityId entityId, EntityId collectorId);
 };
 
 } // namespace server

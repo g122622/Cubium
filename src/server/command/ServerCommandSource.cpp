@@ -1,5 +1,5 @@
 #include "ServerCommandSource.hpp"
-#include "server/application/MinecraftServer.hpp"
+#include "server/application/IServer.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
@@ -9,7 +9,7 @@ namespace mc {
 namespace command {
 
 ServerCommandSource::ServerCommandSource(
-    MinecraftServer* server,
+    server::IServer* server,
     ServerPlayer* player,
     server::ServerWorld* world,
     const Vector3d& position,
@@ -115,7 +115,7 @@ ServerCommandSource ServerCommandSource::withPermissionLevel(i32 level) const {
     return source;
 }
 
-ServerCommandSource ServerCommandSource::forConsole(MinecraftServer* server) {
+ServerCommandSource ServerCommandSource::forConsole(server::IServer* server) {
     return ServerCommandSource(
         server,
         nullptr,  // 无玩家

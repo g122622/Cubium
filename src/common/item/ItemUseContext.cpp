@@ -4,7 +4,7 @@
 
 namespace mc {
 
-ItemUseContext::ItemUseContext(const IBlockReader& world,
+ItemUseContext::ItemUseContext(const IWorld& world,
                                Player* player,
                                const ItemStack& stack,
                                const Vector3& hitPos,

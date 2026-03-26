@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 #include <climits>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -195,6 +196,10 @@ public:
             }
             m_changedLightPositions.clear();
         }
+    }
+
+    [[nodiscard]] size_t getChangedPositionsCount() const {
+        return m_changedLightPositions.size();
     }
 
 protected:

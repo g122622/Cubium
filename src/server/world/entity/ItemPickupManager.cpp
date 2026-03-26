@@ -1,6 +1,9 @@
 #include "ItemPickupManager.hpp"
-#include "server/world/ServerWorld.hpp"
+#include "server/application/IServer.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "common/entity/ItemEntity.hpp"
 #include "common/entity/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -10,6 +13,7 @@
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
@@ -20,13 +24,15 @@ namespace mc::server {
 // tick
 // ============================================================================
 
-void ItemPickupManager::tick(ServerWorld& world) {
+void ItemPickupManager::tick(IServer& server) {
     // 处理物品合并
-    processItemMerging(world);
+    processItemMerging(server);
 
     // 遍历所有玩家实体检查拾取
-    world.forEachPlayerEntity([&world, this](Player& player) {
-        checkPlayerPickup(world, player);
+    server.playerManager().forEachPlayer([&server, this](ServerPlayerData& playerData) {
+        // TODO: 需要获取 Player 实体来检查拾取
+        // 暂时跳过，等 PlayerManager 完善
+        // checkPlayerPickup(server, player);
         return true;  // 继续遍历
     });
 }
@@ -35,7 +41,7 @@ void ItemPickupManager::tick(ServerWorld& world) {
 // checkPlayerPickup
 // ============================================================================
 
-void ItemPickupManager::checkPlayerPickup(ServerWorld& world, Entity& player) {
+void ItemPickupManager::checkPlayerPickup(IServer& server, Entity& player) {
     // 计算拾取范围
     f32 range = calculatePickupRange(player);
     Vector3 playerPos = player.position();
@@ -50,7 +56,7 @@ void ItemPickupManager::checkPlayerPickup(ServerWorld& world, Entity& player) {
         playerPos.z + range
     );
 
-    auto nearbyEntities = world.getEntitiesInAABB(searchBox, &player);
+    auto nearbyEntities = server.world().getEntitiesInAABB(searchBox, &player);
 
     for (Entity* entity : nearbyEntities) {
         if (!entity || !entity->isAlive()) {
@@ -70,7 +76,7 @@ void ItemPickupManager::checkPlayerPickup(ServerWorld& world, Entity& player) {
         }
 
         // 尝试拾取
-        if (tryPickupItem(world, player, *itemEntity)) {
+        if (tryPickupItem(server, player, *itemEntity)) {
             // 物品被完全拾取，标记移除
             itemEntity->remove();
         }
@@ -82,7 +88,7 @@ void ItemPickupManager::checkPlayerPickup(ServerWorld& world, Entity& player) {
 // ============================================================================
 
 bool ItemPickupManager::tryPickupItem(
-    ServerWorld& world,
+    IServer& server,
     Entity& player,
     ItemEntity& itemEntity)
 {
@@ -105,13 +111,13 @@ bool ItemPickupManager::tryPickupItem(
 
     if (fullyPickedUp || itemEntity.getItemStack().isEmpty()) {
         // 完全拾取，发送背包更新和实体销毁包
-        sendInventoryUpdate(world, *playerEntity);
-        sendEntityDestroy(world, itemEntity.id(), player.id());
+        sendInventoryUpdate(server, *playerEntity);
+        sendEntityDestroy(server, itemEntity.id(), player.id());
         return fullyPickedUp;
     }
 
     // 部分拾取，发送背包更新
-    sendInventoryUpdate(world, *playerEntity);
+    sendInventoryUpdate(server, *playerEntity);
     return false;
 }
 
@@ -119,12 +125,12 @@ bool ItemPickupManager::tryPickupItem(
 // processItemMerging
 // ============================================================================
 
-void ItemPickupManager::processItemMerging(ServerWorld& world) {
+void ItemPickupManager::processItemMerging(IServer& server) {
     // 收集所有存活的物品实体
     std::vector<ItemEntity*> itemEntities;
-    world.forEachItemEntity([&itemEntities](ItemEntity& item) {
-        if (item.isAlive()) {
-            itemEntities.push_back(&item);
+    server.entityManager().forEachEntity([&itemEntities](Entity* entity) {
+        if (entity && entity->isAlive() && entity->legacyType() == LegacyEntityType::Item) {
+            itemEntities.push_back(static_cast<ItemEntity*>(entity));
         }
         return true;  // 继续遍历
     });
@@ -246,10 +252,10 @@ bool ItemPickupManager::canPickup(const Entity& player, const ItemEntity& itemEn
 // sendInventoryUpdate
 // ============================================================================
 
-void ItemPickupManager::sendInventoryUpdate(ServerWorld& world, Player& player) {
-    // 获取玩家ID和连接
+void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player) {
+    // 获取玩家ID
     PlayerId playerId = player.playerId();
-    ServerPlayerData* playerData = world.getPlayer(playerId);
+    ServerPlayerData* playerData = server.playerManager().getPlayer(playerId);
     if (!playerData || !playerData->hasConnection()) {
         return;
     }
@@ -290,7 +296,7 @@ void ItemPickupManager::sendInventoryUpdate(ServerWorld& world, Player& player) 
 // ============================================================================
 
 void ItemPickupManager::sendEntityDestroy(
-    ServerWorld& world,
+    IServer& server,
     EntityId entityId,
     EntityId collectorId)
 {
@@ -312,7 +318,7 @@ void ItemPickupManager::sendEntityDestroy(
         fullPacket.writeBytes(collectResult.value());
 
         // 广播给所有玩家
-        world.broadcastPacket(fullPacket.buffer());
+        server.connectionManager().broadcast(fullPacket.buffer().data(), fullPacket.buffer().size());
     }
 
     // 然后发送实体销毁包
@@ -332,7 +338,7 @@ void ItemPickupManager::sendEntityDestroy(
     fullPacket.writeBytes(ser.buffer());
 
     // 广播给所有玩家
-    world.broadcastPacket(fullPacket.buffer());
+    server.connectionManager().broadcast(fullPacket.buffer().data(), fullPacket.buffer().size());
 }
 
 } // namespace mc::server

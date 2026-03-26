@@ -1,0 +1,289 @@
+#include "BlockInteractionManager.hpp"
+#include "InventoryManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/world/drop/BlockDropHandler.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/BlockItemRegistry.hpp"
+#include "common/item/BlockItemUseContext.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/WorldConstants.hpp"
+#include <spdlog/spdlog.h>
+#include <cmath>
+
+namespace mc::server::interaction {
+
+BlockInteractionManager::BlockInteractionManager(
+    ServerWorld& world,
+    core::PlayerManager& playerManager,
+    loot::LootTableManager& lootTableManager)
+    : m_world(world)
+    , m_playerManager(playerManager)
+    , m_lootTableManager(lootTableManager)
+{
+}
+
+void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryManager)
+{
+    m_inventoryManager = inventoryManager;
+}
+
+Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
+    PlayerId playerId,
+    const BlockPos& pos,
+    network::BlockInteractionAction action)
+{
+    // 获取玩家数据
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (!playerData || !playerData->loggedIn) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    }
+
+    // 验证距离
+    if (!canInteract(playerId, pos)) {
+        return Error(ErrorCode::InvalidArgument, "Block too far away");
+    }
+
+    // 验证 Y 范围
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
+        return Error(ErrorCode::InvalidArgument, "Block Y out of range");
+    }
+
+    // 获取方块状态
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    if (!state || state->isAir()) {
+        return BlockInteractionResult{false, "No block to interact with"};
+    }
+
+    // 处理不同动作
+    switch (action) {
+        case network::BlockInteractionAction::StartDestroyBlock:
+            // 开始破坏 - 通常由 MiningManager 处理
+            break;
+
+        case network::BlockInteractionAction::AbortDestroyBlock:
+            // 中止破坏
+            break;
+
+        case network::BlockInteractionAction::StopDestroyBlock:
+            // 完成破坏
+            if (canBreakBlock(playerId, pos, state)) {
+                // 生成掉落物
+                generateBlockDrops(pos, *state, playerId, nullptr);
+
+                // 设置为空气
+                Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
+                if (airBlock) {
+                    m_world.setBlock(pos.x, pos.y, pos.z, &airBlock->defaultState());
+
+                    if (m_onBlockBreak) {
+                        m_onBlockBreak(playerId, pos, *state);
+                    }
+                }
+
+                return BlockInteractionResult{true, "Block destroyed"};
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    return BlockInteractionResult{false, "Action not handled"};
+}
+
+Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
+    PlayerId playerId,
+    const BlockPos& pos,
+    const Vector3& hitPos,
+    Direction face,
+    const ItemStack& heldItem)
+{
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (!playerData || !playerData->loggedIn) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    }
+
+    // 验证距离
+    if (!canInteract(playerId, pos)) {
+        return Error(ErrorCode::InvalidArgument, "Block too far away");
+    }
+
+    // 检查游戏模式
+    if (playerData->gameMode == GameMode::Spectator) {
+        return Error(ErrorCode::PermissionDenied, "Cannot place blocks in spectator mode");
+    }
+
+    // 获取物品对应的方块物品
+    const Item* item = heldItem.getItem();
+    if (!item) {
+        return Error(ErrorCode::InvalidArgument, "No item in hand");
+    }
+
+    const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItemByItemId(item->itemId());
+    if (!blockItem) {
+        return Error(ErrorCode::InvalidArgument, "Item is not a block item");
+    }
+
+    // 创建放置上下文（player 为 nullptr，因为我们通过 InventoryManager 管理）
+    BlockItemUseContext context(m_world, nullptr, heldItem, hitPos, pos, face, playerData->yaw);
+
+    // 尝试放置
+    if (!blockItem->tryPlace(context)) {
+        return BlockPlacementResult{false, false, false, pos, 0, "Cannot place block here"};
+    }
+
+    const BlockPos& placePos = context.placementPos();
+    const BlockState* newState = blockItem->getStateForPlacement(context);
+    if (!newState) {
+        return BlockPlacementResult{false, false, false, pos, 0, "No placement state"};
+    }
+
+    // 设置方块
+    m_world.setBlock(placePos.x, placePos.y, placePos.z, newState);
+
+    // 消耗物品（非创造模式）
+    bool itemConsumed = false;
+    if (playerData->gameMode != GameMode::Creative && m_inventoryManager) {
+        // 获取玩家物品栏
+        PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
+        if (inventory) {
+            // 减少手持物品数量
+            ItemStack selectedStack = inventory->getSelectedStack();
+            if (!selectedStack.isEmpty() && selectedStack.getCount() > 0) {
+                selectedStack.shrink(1);
+                inventory->setItem(inventory->getSelectedSlot(), selectedStack);
+                itemConsumed = true;
+                // 同步到客户端
+                m_inventoryManager->syncToClient(playerId);
+            }
+        }
+    } else if (playerData->gameMode == GameMode::Creative) {
+        itemConsumed = true;  // 创造模式不实际消耗
+    }
+
+    if (m_onBlockPlace) {
+        m_onBlockPlace(playerId, placePos, *newState);
+    }
+
+    return BlockPlacementResult{true, true, itemConsumed, placePos, newState->stateId(), "Block placed"};
+}
+
+Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
+    PlayerId playerId,
+    const BlockPos& pos)
+{
+    // 获取玩家数据
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (!playerData || !playerData->loggedIn) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    }
+
+    // 验证距离
+    if (!canInteract(playerId, pos)) {
+        return Error(ErrorCode::InvalidArgument, "Block too far away");
+    }
+
+    // 验证 Y 范围
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
+        return Error(ErrorCode::InvalidArgument, "Block Y out of range");
+    }
+
+    // 获取方块状态
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    if (!state || state->isAir()) {
+        return BlockBreakResult{false, 0, "No block to break"};
+    }
+
+    // 检查是否可破坏
+    if (!canBreakBlock(playerId, pos, state)) {
+        return BlockBreakResult{false, 0, "Cannot break this block"};
+    }
+
+    // 生成掉落物
+    generateBlockDrops(pos, *state, playerId, nullptr);
+
+    // 设置为空气
+    Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
+    u32 newBlockStateId = airBlock ? airBlock->defaultState().stateId() : 0;
+
+    if (airBlock) {
+        m_world.setBlock(pos.x, pos.y, pos.z, &airBlock->defaultState());
+
+        if (m_onBlockBreak) {
+            m_onBlockBreak(playerId, pos, *state);
+        }
+    }
+
+    return BlockBreakResult{true, newBlockStateId, "Block destroyed"};
+}
+
+void BlockInteractionManager::setOnBlockBreak(
+    std::function<void(PlayerId, const BlockPos&, const BlockState&)> callback)
+{
+    m_onBlockBreak = std::move(callback);
+}
+
+void BlockInteractionManager::setOnBlockPlace(
+    std::function<void(PlayerId, const BlockPos&, const BlockState&)> callback)
+{
+    m_onBlockPlace = std::move(callback);
+}
+
+bool BlockInteractionManager::canInteract(PlayerId playerId, const BlockPos& pos) const
+{
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (!playerData) {
+        return false;
+    }
+
+    // 计算距离（玩家眼睛位置到方块中心）
+    const f64 eyeX = playerData->x;
+    const f64 eyeY = playerData->y + 1.62;  // Player::PLAYER_EYE_HEIGHT
+    const f64 eyeZ = playerData->z;
+    const f64 targetX = pos.x + 0.5;
+    const f64 targetY = pos.y + 0.5;
+    const f64 targetZ = pos.z + 0.5;
+
+    const f64 dx = targetX - eyeX;
+    const f64 dy = targetY - eyeY;
+    const f64 dz = targetZ - eyeZ;
+    const f64 distanceSquared = dx * dx + dy * dy + dz * dz;
+
+    // 最大交互距离 6 格
+    return distanceSquared <= 36.0;
+}
+
+bool BlockInteractionManager::canBreakBlock(
+    PlayerId playerId,
+    const BlockPos& pos,
+    const BlockState* state) const
+{
+    if (!state || state->isAir() || state->hardness() < 0.0f) {
+        return false;
+    }
+    return canInteract(playerId, pos);
+}
+
+void BlockInteractionManager::generateBlockDrops(
+    const BlockPos& pos,
+    const BlockState& state,
+    PlayerId playerId,
+    const ItemStack* tool)
+{
+    // 使用 BlockDropHandler 生成掉落物
+    auto drops = BlockDropHandler::generateDrops(
+        m_world, pos, state, nullptr, tool, m_lootTableManager);
+
+    if (!drops.empty()) {
+        BlockDropHandler::spawnDrops(
+            m_world.entityManager(),
+            m_world.physicsEngine(),
+            pos,
+            drops,
+            "");
+    }
+}
+
+} // namespace mc::server::interaction

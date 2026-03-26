@@ -244,6 +244,9 @@ public:
     /** @brief 获取视距内的区块数量 */
     [[nodiscard]] size_t chunksInRangeCount() const { return m_chunksInRange.size(); }
 
+    /** @brief 获取视距内的区块集合 */
+    [[nodiscard]] const std::unordered_set<u64>& chunksInRange() const { return m_chunksInRange; }
+
     /**
      * @brief 检查区块是否在视距内
      * @param x 区块 X 坐标

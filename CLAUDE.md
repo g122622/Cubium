@@ -139,9 +139,24 @@ src/
 │       ├── time/              # Game time (day/night cycle)
 │       └── weather/           # Weather system
 ├── server/                    # Server application
-│   ├── application/           # ServerApplication, IntegratedServer
-│   ├── core/                  # ServerCore module (modular design)
-│   │   ├── ServerCore.hpp/cpp       # Facade class
+│   ├── application/           # IServer, MinecraftServer, IntegratedServer, StandaloneServer
+│   │   ├── IServer.hpp             # Server interface
+│   │   ├── MinecraftServer.hpp/cpp # Abstract base class with shared implementation:
+│   │   │                            # - tick() main loop
+│   │   │                            # - dispatchPacket() packet routing
+│   │   │                            # - handleXxxPacket() packet handlers
+│   │   │                            # - sendTimeUpdate/WeatherUpdate/KeepAliveToAll
+│   │   │                            # - Pure virtual: pollNetwork, broadcastPacket,
+│   │   │                            #   getPlayerIdForSession, sendPacketToPlayer,
+│   │   │                            #   handleLoginRequestPacket, handleBlockPlacementPacket, etc.
+│   │   ├── IntegratedServer.hpp/cpp# Integrated server (single-player)
+│   │   │                            # - LocalConnection network layer
+│   │   │                            # - Client inventory management
+│   │   │                            # - Container menu handling
+│   │   └── StandaloneServer.hpp/cpp# Standalone server (multi-player)
+│   │                                # - TCP network layer
+│   │                                # - Multi-player session management
+│   ├── core/                  # Core managers
 │   │   ├── ServerCoreConfig.hpp     # Configuration struct
 │   │   ├── ServerPlayerData.hpp     # Player data structure
 │   │   ├── PlayerManager.hpp/cpp    # Player lifecycle
@@ -152,6 +167,15 @@ src/
 │   │   ├── PositionTracker.hpp/cpp  # Position tracking
 │   │   ├── PacketHandler.hpp/cpp    # Unified packet handling
 │   │   └── GameModeManager.hpp/cpp  # Game mode management
+│   ├── interaction/           # Interaction managers
+│   │   ├── BlockInteractionManager.hpp/cpp  # Block interaction
+│   │   ├── MiningManager.hpp/cpp            # Mining progress
+│   │   ├── ContainerManager.hpp/cpp         # Container menus
+│   │   └── InventoryManager.hpp/cpp         # Inventory sync
+│   ├── sync/                  # Synchronization managers
+│   │   ├── EntitySyncManager.hpp/cpp        # Entity sync
+│   │   ├── ChunkSendManager.hpp/cpp         # Chunk sending
+│   │   └── LightSyncManager.hpp/cpp         # Light sync
 │   ├── network/               # TcpServer, TcpSession, TcpConnection
 │   ├── command/               # Command system
 │   │   ├── CommandRegistry.hpp
@@ -378,6 +402,99 @@ auto future = manager.getChunkAsync(x, z, &ChunkStatus::FULL);
 
 // Tick the manager
 manager.tick();
+```
+
+## Chunk Tracking System
+
+The chunk tracking system manages which chunks each player is viewing and automatically sends/unloads chunks as players move. This system replaces manual chunk requesting with an automatic ticket-based approach inspired by MC Java 1.16.5.
+
+### Architecture
+
+```
+common/world/chunk/
+├── ChunkLoadTicketManager.hpp  # Ticket management + chunk→player tracking
+├── ChunkDistanceGraph.hpp      # BFS-based view distance calculation
+└── PlayerChunkTracker.hpp      # Per-player chunk tracking
+
+server/sync/
+└── ChunkSendManager.hpp        # Chunk serialization and sending
+
+server/world/
+└── ServerChunkManager.hpp      # Chunk lifecycle management
+```
+
+### Key Components
+
+- **ChunkLoadTicketManager**: Manages chunk loading tickets and tracks which players are viewing each chunk
+- **PlayerChunkTracker**: Tracks all chunks within a player's view distance using BFS level propagation
+- **ChunkDistanceGraph**: Calculates chunks in range with distance-based prioritization
+- **ChunkSendManager**: Serializes chunks and sends to clients; handles tracking change events
+
+### Tracking Flow
+
+```
+PlayerMovePacket
+  → updatePlayerPosition()
+    → PlayerChunkTracker calculates old/new chunk sets
+    → Diff: entered chunks vs left chunks
+    → For each entered chunk:
+        - Add player to m_chunkTrackingPlayers[chunk]
+        - Trigger TrackingChangeCallback(player, x, z, true)
+    → For each left chunk:
+        - Remove player from m_chunkTrackingPlayers[chunk]
+        - Trigger TrackingChangeCallback(player, x, z, false)
+
+TrackingChangeCallback(ENTER):
+  → If chunk loaded: sendChunkToPlayers()
+  → If chunk not loaded: async load, will auto-send on completion
+
+TrackingChangeCallback(LEAVE):
+  → unloadChunkFromPlayers() sends UnloadChunk packet
+```
+
+### Automatic Chunk Sending
+
+When a chunk finishes loading, it's automatically sent to all tracking players:
+
+```cpp
+// In MinecraftServer::setupWorldCallbacks()
+chunkManager.setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
+    // Initialize lighting
+    lightSyncManager.initializeChunkLighting(x, z);
+    // Auto-send to all players tracking this chunk
+    chunkSendManager.sendChunkToTrackingPlayers(x, z);
+});
+```
+
+### Chunk Unloading
+
+Before a chunk is unloaded, all tracking players receive an UnloadChunk packet:
+
+```cpp
+// In ServerChunkManager::checkChunkUnloading()
+if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
+    chunkSendManager->onChunkPreUnload(x, z);  // Notify players
+    unloadChunk(x, z);
+}
+```
+
+### API Reference
+
+```cpp
+// ChunkLoadTicketManager - Query tracking players
+std::vector<PlayerId> getTrackingPlayers(ChunkCoord x, ChunkCoord z) const;
+bool isPlayerTracking(PlayerId player, ChunkCoord x, ChunkCoord z) const;
+bool hasTrackingPlayers(u64 chunkKey) const;
+
+// Set tracking change callback
+void setTrackingChangeCallback(TrackingChangeCallback callback);
+
+// ChunkSendManager - Send/unload chunks
+void sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players);
+void sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z);
+void unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players);
+void onPlayerTrackingChange(PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking);
+void onChunkPreUnload(ChunkCoord x, ChunkCoord z);
 ```
 
 ## Tree Generation System
@@ -608,8 +725,8 @@ common/resource/
 - **PacketSerializer/Deserializer**: Binary serialization with VarInt/VarLong support
 - **IServerConnection**: Connection interface (TCP or Local)
 - **LocalEndpoint/LocalConnectionPair**: Process-internal IPC for integrated server
-- **ChunkSyncManager**: Player chunk subscription management
-- **PlayerChunkTracker**: Track loaded chunks per player
+- **ChunkLoadTicketManager**: Ticket-based chunk loading + chunk→player tracking
+- **ChunkSendManager**: Automatic chunk sending based on player tracking
 
 ## Entity System
 
@@ -1004,7 +1121,7 @@ enum class Operation : u8 { ... };
 | **Placement System** | Complete | 13 placement modifiers |
 | **Carvers** | Complete | Cave, Canyon, Underwater carvers |
 | **Assert Library** | Complete | Runtime assertions with stack traces |
-| **Tests** | **2960+ passing** | 400+ test suites, all passing |
+| **Tests** | **2947+ passing** | 403 test suites, all passing |
 
 ## World Generation Modules Summary
 
@@ -1030,3 +1147,5 @@ enum class Operation : u8 { ... };
 - Add any new gotchas or patterns to the "Gotchas & Pitfalls" section
 - Update the "Current Status" section if the status changes
 - Keep this file as the single source of truth for AI sessions working on this project
+
+## 日志级别必须使用至少info，因为目前未开放debug级别的日志，debug级别日志看不到。

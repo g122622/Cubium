@@ -3,14 +3,14 @@
 
 add_executable(minecraft-server
     main.cpp
-    application/ServerApplication.cpp
+    application/StandaloneServer.cpp
     application/IntegratedServer.cpp
+    application/MinecraftServer.cpp
     settings/ServerSettings.cpp
     network/TcpServer.cpp
     network/TcpSession.cpp
     network/TcpConnection.cpp
     # 核心模块
-    core/ServerCore.cpp
     core/PlayerManager.cpp
     core/ConnectionManager.cpp
     core/TimeManager.cpp
@@ -29,6 +29,15 @@ add_executable(minecraft-server
     world/entity/ItemPickupManager.cpp
     world/weather/WeatherManager.cpp
     player/ServerPlayer.cpp
+    # 交互管理器
+    interaction/BlockInteractionManager.cpp
+    interaction/MiningManager.cpp
+    interaction/ContainerManager.cpp
+    interaction/InventoryManager.cpp
+    # 同步管理器
+    sync/EntitySyncManager.cpp
+    sync/ChunkSendManager.cpp
+    sync/LightSyncManager.cpp
     # 命令系统
     command/ServerCommandSource.cpp
     command/CommandRegistry.cpp

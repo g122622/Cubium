@@ -99,12 +99,12 @@ TEST(IntegratedServerTest, TickCountIncreases) {
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
 
-    u64 initialTick = server.tickCount();
+    u64 initialTick = server.currentTick();
 
     // Wait for some ticks
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    u64 finalTick = server.tickCount();
+    u64 finalTick = server.currentTick();
     EXPECT_GT(finalTick, initialTick);
 
     server.stop();
@@ -205,12 +205,12 @@ TEST_F(IntegratedServerCommunicationTest, LargePacket) {
 }
 
 TEST_F(IntegratedServerCommunicationTest, ServerTicksWhileWaiting) {
-    u64 initialTick = server.tickCount();
+    u64 initialTick = server.currentTick();
 
     // 等待一段时间
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    u64 finalTick = server.tickCount();
+    u64 finalTick = server.currentTick();
 
     // 100 TPS * 0.2s = ~20 ticks
     EXPECT_GT(finalTick - initialTick, 10);

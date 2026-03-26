@@ -11,8 +11,7 @@
 namespace mc::server {
 
 // 前向声明
-class ServerWorld;
-class ServerPlayer;
+class IServer;
 
 /**
  * @brief 被追踪的实体信息
@@ -81,11 +80,11 @@ public:
      * 根据玩家位置更新应该追踪的实体列表。
      * 应在玩家移动时调用。
      *
-     * @param world 世界
+     * @param server 服务器接口
      * @param playerId 玩家ID
      * @param playerPos 玩家位置
      */
-    void updatePlayerTracking(ServerWorld& world, PlayerId playerId, const Vector3& playerPos);
+    void updatePlayerTracking(IServer& server, PlayerId playerId, const Vector3& playerPos);
 
     /**
      * @brief 移除玩家的所有追踪
@@ -107,9 +106,9 @@ public:
      *
      * 检查所有追踪实体的位置变化，发送更新包。
      *
-     * @param world 世界
+     * @param server 服务器接口
      */
-    void tick(ServerWorld& world);
+    void tick(IServer& server);
 
     // ========== 配置 ==========
 
@@ -136,27 +135,27 @@ private:
 
     /**
      * @brief 发送实体生成包给玩家
-     * @param world 世界
+     * @param server 服务器接口
      * @param playerId 玩家ID
      * @param entity 实体
      */
-    void sendSpawnPacket(ServerWorld& world, PlayerId playerId, Entity* entity);
+    void sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity);
 
     /**
      * @brief 发送实体销毁包给玩家
-     * @param world 世界
+     * @param server 服务器接口
      * @param playerId 玩家ID
      * @param entityId 实体ID
      */
-    void sendDestroyPacket(ServerWorld& world, PlayerId playerId, EntityId entityId);
+    void sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId);
 
     /**
      * @brief 发送实体移动包给玩家
-     * @param world 世界
+     * @param server 服务器接口
      * @param playerId 玩家ID
      * @param entity 实体
      */
-    void sendMovePacket(ServerWorld& world, PlayerId playerId, Entity* entity);
+    void sendMovePacket(IServer& server, PlayerId playerId, Entity* entity);
 
 private:
     mutable std::mutex m_mutex;

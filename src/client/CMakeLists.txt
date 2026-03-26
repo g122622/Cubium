@@ -140,7 +140,7 @@ add_executable(minecraft-client
     world/entity/ClientEntityManager.cpp
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/ServerCore.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
@@ -172,6 +172,15 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
+    # 交互管理器
+    ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
+    # 同步管理器
+    ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
 )
 
 target_link_libraries(minecraft-client

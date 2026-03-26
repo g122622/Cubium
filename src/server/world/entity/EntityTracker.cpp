@@ -1,5 +1,7 @@
 #include "EntityTracker.hpp"
-#include "../ServerWorld.hpp"
+#include "server/application/IServer.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ConnectionManager.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/entity/Entity.hpp"
@@ -8,6 +10,7 @@
 #include "common/entity/ItemEntity.hpp"
 #include "common/item/Item.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
 
@@ -73,7 +76,7 @@ size_t EntityTracker::trackedEntityCount() const {
     return m_trackedEntities.size();
 }
 
-void EntityTracker::updatePlayerTracking(ServerWorld& world, PlayerId playerId, const Vector3& playerPos) {
+void EntityTracker::updatePlayerTracking(IServer& server, PlayerId playerId, const Vector3& playerPos) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 获取玩家当前追踪的实体集合
@@ -83,7 +86,7 @@ void EntityTracker::updatePlayerTracking(ServerWorld& world, PlayerId playerId, 
 
     // 检查所有被追踪的实体
     for (auto& [entityId, tracked] : m_trackedEntities) {
-        Entity* entity = world.getEntity(entityId);
+        Entity* entity = server.entityManager().getEntity(entityId);
         if (!entity) continue;
 
         // 获取实体追踪范围
@@ -101,9 +104,9 @@ void EntityTracker::updatePlayerTracking(ServerWorld& world, PlayerId playerId, 
 
     // 开始追踪新实体
     for (EntityId entityId : toStartTracking) {
-        Entity* entity = world.getEntity(entityId);
+        Entity* entity = server.entityManager().getEntity(entityId);
         if (entity) {
-            sendSpawnPacket(world, playerId, entity);
+            sendSpawnPacket(server, playerId, entity);
             trackedSet.insert(entityId);
             m_trackedEntities[entityId].trackingPlayers.insert(playerId);
         }
@@ -111,7 +114,7 @@ void EntityTracker::updatePlayerTracking(ServerWorld& world, PlayerId playerId, 
 
     // 停止追踪实体
     for (EntityId entityId : toStopTracking) {
-        sendDestroyPacket(world, playerId, entityId);
+        sendDestroyPacket(server, playerId, entityId);
         trackedSet.erase(entityId);
         m_trackedEntities[entityId].trackingPlayers.erase(playerId);
     }
@@ -151,12 +154,12 @@ std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId)
     return result;
 }
 
-void EntityTracker::tick(ServerWorld& world) {
+void EntityTracker::tick(IServer& server) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 更新所有被追踪实体的位置
     for (auto& [entityId, tracked] : m_trackedEntities) {
-        Entity* entity = world.getEntity(entityId);
+        Entity* entity = server.entityManager().getEntity(entityId);
         if (!entity || entity->isRemoved()) {
             continue;
         }
@@ -187,10 +190,10 @@ void EntityTracker::tick(ServerWorld& world) {
             for (PlayerId playerId : tracked.trackingPlayers) {
                 if (tracked.needsFullUpdate) {
                     // 发送完整传送包
-                    sendMovePacket(world, playerId, entity);
+                    sendMovePacket(server, playerId, entity);
                 } else {
                     // 发送相对移动包
-                    sendMovePacket(world, playerId, entity);
+                    sendMovePacket(server, playerId, entity);
                 }
             }
 
@@ -211,11 +214,11 @@ bool EntityTracker::shouldTrack(const Vector3& playerPos, const Vector3& entityP
     return distanceSq <= rangeBlocks * rangeBlocks;
 }
 
-void EntityTracker::sendSpawnPacket(ServerWorld& world, PlayerId playerId, Entity* entity) {
+void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity) {
     if (!entity) return;
 
     // 获取玩家数据
-    ServerPlayerData* player = world.getPlayer(playerId);
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
     // 判断是 Mob 还是普通实体
@@ -317,8 +320,8 @@ void EntityTracker::sendSpawnPacket(ServerWorld& world, PlayerId playerId, Entit
     }
 }
 
-void EntityTracker::sendDestroyPacket(ServerWorld& world, PlayerId playerId, EntityId entityId) {
-    ServerPlayerData* player = world.getPlayer(playerId);
+void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId) {
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
     network::EntityDestroyPacket packet;
@@ -339,10 +342,10 @@ void EntityTracker::sendDestroyPacket(ServerWorld& world, PlayerId playerId, Ent
     }
 }
 
-void EntityTracker::sendMovePacket(ServerWorld& world, PlayerId playerId, Entity* entity) {
+void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* entity) {
     if (!entity) return;
 
-    ServerPlayerData* player = world.getPlayer(playerId);
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
     // 发送传送包（完整位置）

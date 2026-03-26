@@ -1,9 +1,10 @@
 #include "WeatherCommand.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "server/application/MinecraftServer.hpp"
+#include "server/application/IServer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp"
+#include "common/world/weather/WeatherState.hpp"
 #include <sstream>
 
 namespace mc {
@@ -87,10 +88,7 @@ i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context) {
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    if (!server->setWeatherClear(duration)) {
-        source.sendMessage("World not available");
-        return 0;
-    }
+    server->weatherManager().setClear(duration);
 
     // 转换为秒显示（1秒 = 20 ticks）
     i32 seconds = duration > 0 ? duration / 20 : 300; // 默认 5 分钟
@@ -110,10 +108,7 @@ i32 WeatherCommand::setRain(CommandContext<ServerCommandSource>& context) {
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    if (!server->setWeatherRain(duration)) {
-        source.sendMessage("World not available");
-        return 0;
-    }
+    server->weatherManager().setRain(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -132,10 +127,7 @@ i32 WeatherCommand::setThunder(CommandContext<ServerCommandSource>& context) {
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    if (!server->setWeatherThunder(duration)) {
-        source.sendMessage("World not available");
-        return 0;
-    }
+    server->weatherManager().setThunder(duration);
 
     i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
@@ -153,9 +145,10 @@ i32 WeatherCommand::query(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    auto type = server->getWeatherType();
-    f32 rainStrength = server->getRainStrength();
-    f32 thunderStrength = server->getThunderStrength();
+    auto& weatherMgr = server->weatherManager();
+    auto type = static_cast<i32>(weatherMgr.weatherType());
+    f32 rainStrength = weatherMgr.rainStrength();
+    f32 thunderStrength = weatherMgr.thunderStrength();
 
     String typeStr;
     switch (type) {

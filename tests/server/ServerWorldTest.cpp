@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "server/world/ServerWorld.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/connection/IServerConnection.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include <thread>
 #include <atomic>
@@ -94,7 +94,6 @@ TEST_F(ServerWorldTest, Shutdown) {
     world->initialize();
     world->shutdown();
     EXPECT_EQ(world->chunkCount(), 0);
-    EXPECT_EQ(world->playerCount(), 0);
 }
 
 // ============================================================================
@@ -230,143 +229,6 @@ TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
 }
 
 // ============================================================================
-// 玩家管理测试
-// ============================================================================
-
-TEST_F(ServerWorldTest, AddPlayer) {
-    auto conn = std::make_shared<MockConnection>();
-    world->addPlayer(1, "TestPlayer", conn);
-
-    EXPECT_TRUE(world->hasPlayer(1));
-    EXPECT_EQ(world->playerCount(), 1);
-
-    ServerPlayerData* player = world->getPlayer(1);
-    ASSERT_NE(player, nullptr);
-    EXPECT_EQ(player->playerId, 1);
-    EXPECT_EQ(player->username, "TestPlayer");
-}
-
-TEST_F(ServerWorldTest, RemovePlayer) {
-    auto conn = std::make_shared<MockConnection>();
-    world->addPlayer(1, "TestPlayer", conn);
-    EXPECT_EQ(world->playerCount(), 1);
-
-    world->removePlayer(1);
-    EXPECT_FALSE(world->hasPlayer(1));
-    EXPECT_EQ(world->playerCount(), 0);
-}
-
-TEST_F(ServerWorldTest, RemovePlayer_NotExists) {
-    // 移除不存在的玩家不应崩溃
-    world->removePlayer(999);
-    EXPECT_EQ(world->playerCount(), 0);
-}
-
-TEST_F(ServerWorldTest, GetPlayer_NotExists) {
-    ServerPlayerData* player = world->getPlayer(999);
-    EXPECT_EQ(player, nullptr);
-}
-
-TEST_F(ServerWorldTest, MultiplePlayers) {
-    for (int i = 1; i <= 5; ++i) {
-        auto conn = std::make_shared<MockConnection>();
-        world->addPlayer(i, "Player" + std::to_string(i), conn);
-    }
-
-    EXPECT_EQ(world->playerCount(), 5);
-
-    for (int i = 1; i <= 5; ++i) {
-        EXPECT_TRUE(world->hasPlayer(i));
-    }
-}
-
-// ============================================================================
-// 位置更新测试
-// ============================================================================
-
-TEST_F(ServerWorldTest, UpdatePlayerPosition) {
-    auto conn = std::make_shared<MockConnection>();
-    world->addPlayer(1, "TestPlayer", conn);
-
-    world->updatePlayerPosition(1, 100.0, 64.0, 200.0, 45.0f, 30.0f, true);
-
-    ServerPlayerData* player = world->getPlayer(1);
-    ASSERT_NE(player, nullptr);
-    EXPECT_DOUBLE_EQ(player->x, 100.0);
-    EXPECT_DOUBLE_EQ(player->y, 64.0);
-    EXPECT_DOUBLE_EQ(player->z, 200.0);
-    EXPECT_FLOAT_EQ(player->yaw, 45.0f);
-    EXPECT_FLOAT_EQ(player->pitch, 30.0f);
-    EXPECT_TRUE(player->onGround);
-}
-
-TEST_F(ServerWorldTest, UpdatePlayerPosition_NonExistentPlayer) {
-    // 更新不存在玩家位置不应崩溃
-    world->updatePlayerPosition(999, 0.0, 0.0, 0.0, 0.0f, 0.0f, true);
-}
-
-TEST_F(ServerWorldTest, UpdatePlayerPosition_ChunkCrossing) {
-    auto conn = std::make_shared<MockConnection>();
-    world->addPlayer(1, "TestPlayer", conn);
-    world->initialize();
-
-    // 初始位置 (0, 0) 在区块 (0, 0)
-    world->updatePlayerPosition(1, 0.0, 64.0, 0.0, 0.0f, 0.0f, true);
-
-    // 移动到 (16, 0, 16)，跨入区块 (1, 1)
-    world->updatePlayerPosition(1, 16.0, 64.0, 16.0, 0.0f, 0.0f, true);
-
-    ServerPlayerData* player = world->getPlayer(1);
-    ASSERT_NE(player, nullptr);
-    EXPECT_DOUBLE_EQ(player->x, 16.0);
-    EXPECT_DOUBLE_EQ(player->z, 16.0);
-}
-
-// ============================================================================
-// 传送测试
-// ============================================================================
-
-TEST_F(ServerWorldTest, TeleportPlayer) {
-    auto conn = std::make_shared<MockConnection>();
-    world->addPlayer(1, "TestPlayer", conn);
-
-    world->teleportPlayer(1, 100.0, 70.0, 200.0, 90.0f, 45.0f);
-
-    ServerPlayerData* player = world->getPlayer(1);
-    ASSERT_NE(player, nullptr);
-    EXPECT_TRUE(player->waitingTeleportConfirm);
-    EXPECT_EQ(player->pendingTeleportId, 1);
-}
-
-TEST_F(ServerWorldTest, ConfirmTeleport) {
-    auto conn = std::make_shared<MockConnection>();
-    world->addPlayer(1, "TestPlayer", conn);
-
-    world->teleportPlayer(1, 100.0, 70.0, 200.0, 0.0f, 0.0f);
-
-    ServerPlayerData* player = world->getPlayer(1);
-    ASSERT_NE(player, nullptr);
-    EXPECT_TRUE(player->waitingTeleportConfirm);
-    u32 teleportId = player->pendingTeleportId;
-
-    world->confirmTeleport(1, teleportId);
-    EXPECT_FALSE(player->waitingTeleportConfirm);
-}
-
-TEST_F(ServerWorldTest, TeleportIncrementingIds) {
-    auto conn = std::make_shared<MockConnection>();
-    world->addPlayer(1, "TestPlayer", conn);
-
-    world->teleportPlayer(1, 0.0, 0.0, 0.0, 0.0f, 0.0f);
-    u32 firstId = world->getPlayer(1)->pendingTeleportId;
-
-    world->teleportPlayer(1, 100.0, 0.0, 0.0, 0.0f, 0.0f);
-    u32 secondId = world->getPlayer(1)->pendingTeleportId;
-
-    EXPECT_EQ(secondId, firstId + 1);
-}
-
-// ============================================================================
 // 区块坐标转换测试
 // ============================================================================
 
@@ -381,19 +243,17 @@ TEST_F(ServerWorldTest, BlockToChunk) {
 
 // ============================================================================
 // 配置测试
-// // ============================================================================
+// ============================================================================
 
 TEST_F(ServerWorldTest, SetConfig) {
     ServerWorldConfig newConfig;
     newConfig.viewDistance = 16;
     newConfig.dimension = 2;
-    newConfig.chunkUnloadDelay = 60000;
 
     world->setConfig(newConfig);
 
     EXPECT_EQ(world->config().viewDistance, 16);
     EXPECT_EQ(world->config().dimension, 2);
-    EXPECT_EQ(world->config().chunkUnloadDelay, 60000);
 }
 
 // ============================================================================
@@ -451,35 +311,4 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess) {
 
     // 如果没有崩溃或死锁，测试通过
     EXPECT_GT(world->chunkCount(), 0);
-}
-
-TEST_F(ServerWorldTest, ConcurrentPlayerAccess) {
-    world->initialize();
-
-    std::vector<std::thread> threads;
-    std::atomic<int> successCount{0};
-
-    // 多线程同时添加和移除玩家
-    for (int i = 0; i < 10; ++i) {
-        threads.emplace_back([this, &successCount, i]() {
-            for (int j = 0; j < 10; ++j) {
-                PlayerId id = i * 10 + j;
-                auto conn = std::make_shared<MockConnection>();
-                world->addPlayer(id, "Player" + std::to_string(id), conn);
-
-                if (world->hasPlayer(id)) {
-                    successCount++;
-                }
-
-                world->removePlayer(id);
-            }
-        });
-    }
-
-    for (auto& thread : threads) {
-        thread.join();
-    }
-
-    EXPECT_GT(successCount.load(), 0);
-    EXPECT_EQ(world->playerCount(), 0);
 }

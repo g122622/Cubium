@@ -1,8 +1,8 @@
 #include "TimeCommand.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "server/application/MinecraftServer.hpp"
-#include "server/world/ServerWorld.hpp"
+#include "server/application/IServer.hpp"
+#include "server/core/TimeManager.hpp"
 #include <sstream>
 
 namespace mc {
@@ -60,15 +60,12 @@ i32 TimeCommand::setTime(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("World not available");
+        source.sendMessage("Server not available");
         return 0;
     }
 
     i32 value = context.getArgument<i32>("value");
-    if (!server->setDayTime(value)) {
-        source.sendMessage("World not available");
-        return 0;
-    }
+    server->timeManager().setDayTime(value);
 
     std::ostringstream ss;
     ss << "Set the time to " << value;
@@ -81,15 +78,12 @@ i32 TimeCommand::addTime(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("World not available");
+        source.sendMessage("Server not available");
         return 0;
     }
 
     i32 value = context.getArgument<i32>("value");
-    if (!server->addDayTime(value)) {
-        source.sendMessage("World not available");
-        return 0;
-    }
+    server->timeManager().addDayTime(value);
 
     std::ostringstream ss;
     ss << "Added " << value << " to the time";
@@ -102,26 +96,27 @@ i32 TimeCommand::queryTime(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("World not available");
+        source.sendMessage("Server not available");
         return 0;
     }
 
     String type = context.getArgument<String>("type");
+    auto& timeMgr = server->timeManager();
 
     i64 time = 0;
 
     if (type == "day") {
-        time = server->getDay();
+        time = timeMgr.dayCount();
         std::ostringstream ss;
         ss << "The day is " << time;
         source.sendMessage(ss.str());
     } else if (type == "daytime") {
-        time = server->getDayTime();
+        time = timeMgr.dayTime();
         std::ostringstream ss;
         ss << "The daytime is " << time;
         source.sendMessage(ss.str());
     } else if (type == "gametime") {
-        time = server->getGameTime();
+        time = timeMgr.gameTime();
         std::ostringstream ss;
         ss << "The game time is " << time;
         source.sendMessage(ss.str());

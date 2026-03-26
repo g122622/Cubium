@@ -98,7 +98,7 @@ void ConnectionManager::disconnectAll(const String& reason) {
     }
 }
 
-size_t ConnectionManager::cleanupDisconnectedPlayers() {
+size_t ConnectionManager::cleanupDisconnectedPlayers(std::vector<PlayerId>* removedPlayers) {
     std::vector<PlayerId> toRemove;
     toRemove.reserve(m_playerManager.playerCount());
 
@@ -110,6 +110,10 @@ size_t ConnectionManager::cleanupDisconnectedPlayers() {
 
     for (PlayerId playerId : toRemove) {
         m_playerManager.removePlayer(playerId);
+    }
+
+    if (removedPlayers) {
+        *removedPlayers = toRemove;
     }
 
     return toRemove.size();

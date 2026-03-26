@@ -1,5 +1,6 @@
 #include "ServerChunkManager.hpp"
 #include "ServerWorld.hpp"
+#include "../sync/ChunkSendManager.hpp"
 #include "../../common/world/WorldConstants.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
@@ -506,6 +507,8 @@ void ServerChunkManager::setViewDistance(i32 distance)
 
 void ServerChunkManager::tick()
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkManagerTick");
+
     ++m_currentTick;
 
     // 处理票据更新
@@ -749,9 +752,9 @@ void ServerChunkManager::checkChunkUnloading()
     {
         std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
         for (const auto& [key, singleChunkLifecycleManager] : m_singleChunkLifecycleManagers) {
-            // 没有票据且没有追踪玩家
+            // 没有票据且没有玩家追踪且没有正在生成
             if (!singleChunkLifecycleManager->shouldLoad() &&
-                !singleChunkLifecycleManager->hasTrackingPlayers() &&
+                !m_ticketManager.hasTrackingPlayers(key) &&
                 !singleChunkLifecycleManager->hasGeneratingChunk()) {
                 toUnload.push_back(key);
             }
@@ -761,12 +764,15 @@ void ServerChunkManager::checkChunkUnloading()
     // 卸载区块
     for (u64 key : toUnload) {
         auto chunkId = ChunkId::fromId(key);
+
+        // 在卸载前通知 ChunkSendManager 发送卸载包
+        if (m_chunkSendManager) {
+            m_chunkSendManager->onChunkPreUnload(chunkId.x, chunkId.z);
+        }
+
         spdlog::info("[ServerChunkManager] Unloading chunk: ({}, {})", chunkId.x, chunkId.z);
         MC_TRACE_INSTANT("server.chunk", "UnloadChunk", "x", chunkId.x, "z", chunkId.z);
-        unloadChunk(
-            static_cast<ChunkCoord>(static_cast<i64>(key >> 32)),
-            static_cast<ChunkCoord>(static_cast<i64>(key & 0xFFFFFFFF))
-        );
+        unloadChunk(chunkId.x, chunkId.z);
     }
 }
 

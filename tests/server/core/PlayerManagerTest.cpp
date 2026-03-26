@@ -169,6 +169,45 @@ TEST_F(PlayerManagerTest, ForEachPlayer) {
     EXPECT_NE(std::find(ids.begin(), ids.end(), mc::PlayerId(2)), ids.end());
 }
 
+TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall) {
+    PlayerManager manager;
+    auto conn1 = createConnection();
+    auto conn2 = createConnection();
+
+    manager.addPlayer(1, "Steve", conn1);
+    manager.addPlayer(2, "Alex", conn2);
+
+    size_t nestedLookupSuccess = 0;
+    manager.forEachPlayer([&](mc::server::ServerPlayerData& player) {
+        auto* found = manager.getPlayer(player.playerId);
+        if (found != nullptr && found->playerId == player.playerId) {
+            ++nestedLookupSuccess;
+        }
+    });
+
+    EXPECT_EQ(nestedLookupSuccess, 2u);
+}
+
+TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration) {
+    PlayerManager manager;
+    auto conn1 = createConnection();
+    auto conn2 = createConnection();
+    auto conn3 = createConnection();
+
+    manager.addPlayer(1, "Steve", conn1);
+    manager.addPlayer(2, "Alex", conn2);
+    manager.addPlayer(3, "Eve", conn3);
+
+    manager.forEachPlayer([&](mc::server::ServerPlayerData& player) {
+        if (player.playerId == 2) {
+            manager.removePlayer(2);
+        }
+    });
+
+    EXPECT_FALSE(manager.hasPlayer(2));
+    EXPECT_EQ(manager.playerCount(), 2u);
+}
+
 TEST_F(PlayerManagerTest, GetPlayerIds) {
     PlayerManager manager;
     auto conn1 = createConnection();
