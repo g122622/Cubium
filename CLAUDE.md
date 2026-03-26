@@ -1149,3 +1149,31 @@ enum class Operation : u8 { ... };
 - Keep this file as the single source of truth for AI sessions working on this project
 
 ## 日志级别必须使用至少info，因为目前未开放debug级别的日志，debug级别日志看不到。
+
+## 【重要】README.md 使用指南
+
+几乎每个目录下都有一个简体中文编写的 README.md，它很重要，在你探索项目实现的时候，提前看看它，能节省不少多余的文件查找与查看。
+
+例如：当你修改想修改或查看`src\common\world\chunk\ChunkLoadTicketManager.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
+
+- src\common\README.md
+- src\common\world\README.md
+- src\common\world\chunk\README.md
+
+同理，当你对代码职责、接口、架构等做了修改，必须视情况决定是否递归修改/新增目录链上的各级README.md！
+
+注意，tests目录不考虑，不要写README.md。
+
+### 文档内容
+
+每个 README.md 都必须使用简体中文，必须至少包含：
+1. **目录结构树** - 清晰展示文件组织
+2. **文件介绍** - 每个文件的职责和主要内容
+3. **模块关系** - 分析各组件之间的依赖关系
+4. **整体职责** - 模块作为整体的职责说明
+5. **输入/输出** - 数据流向分析
+6. **依赖项** - 外部和内部依赖
+7. **使用方法** - 代码示例和集成指南
+8. **容易踩的坑** - 常见问题和解决方案
+9. **测试用例** - 相关测试文件说明
+10. **Mermaid图表** - 架构图、流程图、类图等（使用简体中文和彩色样式）
