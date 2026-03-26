@@ -471,6 +471,28 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         }
     }
 
+    // 初始化声音系统
+    spdlog::info("Initializing sound system...");
+    m_soundHandler = std::make_unique<sound::SoundHandler>(m_resourcePackList);
+    m_soundEngine = std::make_unique<sound::SoundEngine>(*m_soundHandler, m_settings);
+
+    auto soundInitResult = m_soundEngine->initialize();
+    if (soundInitResult.failed()) {
+        spdlog::warn("Failed to initialize sound engine: {}. Audio will be disabled.",
+                     soundInitResult.error().toString());
+        m_soundEngine.reset();
+        m_soundHandler.reset();
+    } else {
+        // 添加环境音效处理器
+        m_biomeAmbientHandler = std::make_unique<sound::BiomeAmbientHandler>();
+        m_soundEngine->addAmbientHandler(std::move(m_biomeAmbientHandler));
+
+        m_underwaterAmbientHandler = std::make_unique<sound::UnderwaterAmbientHandler>();
+        m_soundEngine->addAmbientHandler(std::move(m_underwaterAmbientHandler));
+
+        spdlog::info("Sound system initialized successfully");
+    }
+
     // 启动内置服务端
     if (!params.skipIntegratedServer) {
         spdlog::info("Starting integrated server...");
@@ -1123,6 +1145,15 @@ void ClientApplication::update(f32 deltaTime)
         m_camera.setYaw(m_player->yaw());
         m_camera.setPitch(m_player->pitch());
         m_camera.update(deltaTime);
+
+        // 更新声音系统听者位置
+        if (m_soundEngine) {
+            m_soundEngine->updateListener(
+                m_camera.position(),
+                m_camera.forward(),
+                m_camera.up()
+            );
+        }
     } else {
         // 后备：更新相机控制器（这会调用 Camera::update 更新矩阵）
         m_cameraController.update(deltaTime);
@@ -1196,6 +1227,13 @@ void ClientApplication::update(f32 deltaTime)
 
     // 更新客户端实体（每tick调用）
     m_world.entityManager().tick();
+
+    // 更新声音系统
+    if (m_soundEngine) {
+        // 检查是否暂停（游戏暂停时不更新声音）
+        bool isPaused = !m_mouseCaptured;  // 鼠标未捕获时认为游戏暂停
+        m_soundEngine->tick(isPaused);
+    }
 
     // 更新实体动画状态（用于渲染插值）
     constexpr f32 partialTick = 0.0f;  // TODO: 从主循环获取实际的部分tick
@@ -1304,6 +1342,15 @@ void ClientApplication::shutdown()
     if (saveResult.failed()) {
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
     }
+
+    // 关闭声音系统
+    if (m_soundEngine) {
+        m_soundEngine->shutdown();
+        m_soundEngine.reset();
+    }
+    m_soundHandler.reset();
+    m_biomeAmbientHandler.reset();
+    m_underwaterAmbientHandler.reset();
 
     // 断开网络连接
     if (m_networkClient) {

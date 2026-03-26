@@ -325,9 +325,8 @@ void SoundEngine::setListenerVelocity(const glm::vec3& velocity) {
 }
 
 void SoundEngine::setVolume(SoundCategory category, f32 volume) {
-    // TODO: 实现 ClientSettings 音量设置
-    // volume = std::clamp(volume, 0.0f, 1.0f);
-    // m_settings.setVolume(category, volume);
+    volume = std::clamp(volume, 0.0f, 1.0f);
+    m_settings.setVolumeForCategory(category, volume);
 
     // 如果是主音量，更新听者增益
     if (category == SoundCategory::Master && m_backend) {
@@ -348,9 +347,7 @@ void SoundEngine::setVolume(SoundCategory category, f32 volume) {
 }
 
 f32 SoundEngine::getVolume(SoundCategory category) const {
-    // TODO: 实现 ClientSettings 音量获取
-    // return m_settings.getVolume(category);
-    return 1.0f;
+    return m_settings.getVolumeForCategory(category);
 }
 
 void SoundEngine::tick(bool isPaused) {
@@ -428,12 +425,11 @@ f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const {
     f32 volume = sound.getVolume();
 
     // 乘以类别音量
-    // TODO: 从 ClientSettings 获取类别音量
-    // volume *= m_settings.getVolume(sound.getCategory());
+    volume *= m_settings.getVolumeForCategory(sound.getCategory());
 
     // 乘以主音量（如果不是主类别）
     if (sound.getCategory() != SoundCategory::Master) {
-        // volume *= m_settings.getVolume(SoundCategory::Master);
+        volume *= m_settings.getVolumeForCategory(SoundCategory::Master);
     }
 
     return std::max(0.0f, volume);

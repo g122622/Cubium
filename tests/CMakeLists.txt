@@ -383,6 +383,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/AudioBuffer.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/UnderwaterAmbientHandler.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，在测试中暂时排除
 )
 

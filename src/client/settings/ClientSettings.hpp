@@ -4,6 +4,7 @@
 #include "common/core/settings/SettingsTypes.hpp"
 #include "common/core/settings/ResourcePackListOption.hpp"
 #include "common/input/KeyBinding.hpp"
+#include "common/sound/SoundCategory.hpp"
 
 #include <memory>
 #include <vector>
@@ -142,11 +143,45 @@ public:
     /// 音乐音量
     FloatOption musicVolume;
 
-    /// 音效音量
-    FloatOption soundVolume;
+    /// 唱片机音量
+    FloatOption recordVolume;
+
+    /// 天气音量
+    FloatOption weatherVolume;
+
+    /// 方块音量
+    FloatOption blockVolume;
+
+    /// 敌对生物音量
+    FloatOption hostileVolume;
+
+    /// 中立生物音量
+    FloatOption neutralVolume;
+
+    /// 玩家音量
+    FloatOption playerVolume;
 
     /// 环境音效音量
     FloatOption ambientVolume;
+
+    /// 语音音量
+    FloatOption voiceVolume;
+
+    /**
+     * @brief 获取指定类别的音量
+     *
+     * @param category 声音类别
+     * @return 音量值 (0.0-1.0)
+     */
+    [[nodiscard]] f32 getVolumeForCategory(sound::SoundCategory category) const;
+
+    /**
+     * @brief 设置指定类别的音量
+     *
+     * @param category 声音类别
+     * @param volume 音量值 (0.0-1.0)
+     */
+    void setVolumeForCategory(sound::SoundCategory category, f32 volume);
 
     // ========================================================================
     // 控制设置

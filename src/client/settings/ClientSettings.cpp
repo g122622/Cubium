@@ -37,8 +37,14 @@ ClientSettings::ClientSettings()
     // 音频设置
     , masterVolume("masterVolume", 0.0f, 1.0f, 1.0f)
     , musicVolume("musicVolume", 0.0f, 1.0f, 0.5f)
-    , soundVolume("soundVolume", 0.0f, 1.0f, 1.0f)
+    , recordVolume("recordVolume", 0.0f, 1.0f, 1.0f)
+    , weatherVolume("weatherVolume", 0.0f, 1.0f, 1.0f)
+    , blockVolume("blockVolume", 0.0f, 1.0f, 1.0f)
+    , hostileVolume("hostileVolume", 0.0f, 1.0f, 1.0f)
+    , neutralVolume("neutralVolume", 0.0f, 1.0f, 1.0f)
+    , playerVolume("playerVolume", 0.0f, 1.0f, 1.0f)
     , ambientVolume("ambientVolume", 0.0f, 1.0f, 1.0f)
+    , voiceVolume("voiceVolume", 0.0f, 1.0f, 1.0f)
 
     // 控制设置
     , mouseSensitivity("mouseSensitivity", 0.0f, 1.0f, 0.5f)
@@ -83,8 +89,14 @@ ClientSettings::ClientSettings()
     // 注册音频设置
     registerOption("audio", &masterVolume);
     registerOption("audio", &musicVolume);
-    registerOption("audio", &soundVolume);
+    registerOption("audio", &recordVolume);
+    registerOption("audio", &weatherVolume);
+    registerOption("audio", &blockVolume);
+    registerOption("audio", &hostileVolume);
+    registerOption("audio", &neutralVolume);
+    registerOption("audio", &playerVolume);
     registerOption("audio", &ambientVolume);
+    registerOption("audio", &voiceVolume);
 
     // 注册控制设置
     registerOption("control", &mouseSensitivity);
@@ -258,6 +270,76 @@ Result<void> ClientSettings::saveSettings(const std::filesystem::path& path)
 
     spdlog::info("Client settings saved to: {}", path.string());
     return Result<void>::ok();
+}
+
+f32 ClientSettings::getVolumeForCategory(sound::SoundCategory category) const {
+    using namespace sound;
+
+    switch (category) {
+        case SoundCategory::Master:
+            return masterVolume.get();
+        case SoundCategory::Music:
+            return musicVolume.get();
+        case SoundCategory::Records:
+            return recordVolume.get();
+        case SoundCategory::Weather:
+            return weatherVolume.get();
+        case SoundCategory::Blocks:
+            return blockVolume.get();
+        case SoundCategory::Hostile:
+            return hostileVolume.get();
+        case SoundCategory::Neutral:
+            return neutralVolume.get();
+        case SoundCategory::Players:
+            return playerVolume.get();
+        case SoundCategory::Ambient:
+            return ambientVolume.get();
+        case SoundCategory::Voice:
+            return voiceVolume.get();
+        default:
+            return 1.0f;
+    }
+}
+
+void ClientSettings::setVolumeForCategory(sound::SoundCategory category, f32 volume) {
+    using namespace sound;
+
+    volume = std::clamp(volume, 0.0f, 1.0f);
+
+    switch (category) {
+        case SoundCategory::Master:
+            masterVolume.set(volume);
+            break;
+        case SoundCategory::Music:
+            musicVolume.set(volume);
+            break;
+        case SoundCategory::Records:
+            recordVolume.set(volume);
+            break;
+        case SoundCategory::Weather:
+            weatherVolume.set(volume);
+            break;
+        case SoundCategory::Blocks:
+            blockVolume.set(volume);
+            break;
+        case SoundCategory::Hostile:
+            hostileVolume.set(volume);
+            break;
+        case SoundCategory::Neutral:
+            neutralVolume.set(volume);
+            break;
+        case SoundCategory::Players:
+            playerVolume.set(volume);
+            break;
+        case SoundCategory::Ambient:
+            ambientVolume.set(volume);
+            break;
+        case SoundCategory::Voice:
+            voiceVolume.set(volume);
+            break;
+        default:
+            break;
+    }
 }
 
 } // namespace mc::client
