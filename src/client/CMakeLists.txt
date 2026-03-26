@@ -74,6 +74,10 @@ add_executable(minecraft-client
     resource/ItemTextureAtlas.cpp
     resource/EntityTextureLoader.cpp
     resource/DestroyStageTextures.cpp
+    # 声音系统
+    sound/resource/SoundDefinition.cpp
+    sound/resource/SoundRegistry.cpp
+    sound/SoundHandler.cpp
     # 世界
     world/ClientWorld.cpp
     network/NetworkClient.cpp

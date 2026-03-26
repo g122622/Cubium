@@ -153,6 +153,8 @@ add_executable(mc_tests
     common/entity/PlayerMovementTest.cpp
     # Assert库测试
     common/util/assert/AssertTest.cpp
+    # 声音系统测试
+    common/sound/SoundCategoryTest.cpp
 )
 
 # 添加服务端源文件
@@ -366,6 +368,14 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         # Assert库
         ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
+        # 声音系统 - Common
+        ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvent.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/sound/network/SoundPackets.cpp
+        # 声音系统 - Client
+        ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundDefinition.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundHandler.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，在测试中暂时排除
 )
 
