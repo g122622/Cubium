@@ -3,6 +3,7 @@
 
 find_package(GTest CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
+find_package(OpenAL CONFIG REQUIRED)
 
 # 通用测试可执行文件
 add_executable(mc_tests
@@ -155,6 +156,7 @@ add_executable(mc_tests
     common/util/assert/AssertTest.cpp
     # 声音系统测试
     common/sound/SoundCategoryTest.cpp
+    client/sound/SoundTest.cpp
 )
 
 # 添加服务端源文件
@@ -376,6 +378,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundDefinition.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundEngine.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/backend/AudioBuffer.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，在测试中暂时排除
 )
 
@@ -389,6 +396,7 @@ target_link_libraries(mc_tests
         glm::glm
         spdlog::spdlog
         Vulkan::Vulkan
+        OpenAL::OpenAL
 )
 
 if(WIN32)

@@ -192,6 +192,30 @@ public:
      */
     [[nodiscard]] size_t getWarningCount() const { return m_warningCount; }
 
+    // ========================================================================
+    // 访问器
+    // ========================================================================
+
+    /**
+     * @brief 获取资源包列表
+     */
+    [[nodiscard]] ResourcePackList& getResourcePacks() noexcept { return m_resourcePacks; }
+
+    /**
+     * @brief 获取资源包列表（const版本）
+     */
+    [[nodiscard]] const ResourcePackList& getResourcePacks() const noexcept { return m_resourcePacks; }
+
+    /**
+     * @brief 获取声音注册表
+     */
+    [[nodiscard]] SoundRegistry& getRegistry() noexcept { return m_registry; }
+
+    /**
+     * @brief 获取声音注册表（const版本）
+     */
+    [[nodiscard]] const SoundRegistry& getRegistry() const noexcept { return m_registry; }
+
 private:
     /**
      * @brief 加载单个 sounds.json 文件

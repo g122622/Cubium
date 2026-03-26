@@ -79,8 +79,14 @@ add_executable(minecraft-client
     sound/resource/SoundDefinition.cpp
     sound/resource/SoundRegistry.cpp
     sound/SoundHandler.cpp
+    sound/SoundLoader.cpp
+    sound/SoundPool.cpp
+    sound/SoundEngine.cpp
     sound/backend/AudioBuffer.cpp
     sound/backend/OpenALBackend.cpp
+    sound/instance/SoundInstance.cpp
+    sound/handler/BiomeAmbientHandler.cpp
+    sound/handler/UnderwaterAmbientHandler.cpp
     # 世界
     world/ClientWorld.cpp
     network/NetworkClient.cpp
