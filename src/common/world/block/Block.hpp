@@ -8,6 +8,7 @@
 #include "../../util/Direction.hpp"
 #include "Material.hpp"
 #include "HarvestTool.hpp"
+#include "BlockSoundType.hpp"
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -243,6 +244,13 @@ public:
     [[nodiscard]] const Material& getMaterial() const;
 
     /**
+     * @brief 获取声音类型
+     *
+     * 委托到方块的 getSoundType 方法
+     */
+    [[nodiscard]] const BlockSoundType& getSoundType() const;
+
+    /**
      * @brief 获取挖掘工具类型
      *
      * 返回采集此方块所需的工具类型。
@@ -458,6 +466,18 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 设置声音类型
+     *
+     * 设置方块的破坏、踩踏、放置、击打、坠落声音。
+     *
+     * @param soundType 声音类型的引用（如 BlockSoundTypes::STONE）
+     */
+    BlockProperties& soundType(const BlockSoundType& soundType) {
+        m_soundType = &soundType;
+        return *this;
+    }
+
     // Getters
     [[nodiscard]] const Material& material() const { return *m_material; }
     [[nodiscard]] f32 hardness() const { return m_hardness; }
@@ -473,6 +493,7 @@ public:
     [[nodiscard]] u8 harvestTool() const { return m_harvestTool; }
     [[nodiscard]] i32 harvestLevel() const { return m_harvestLevel; }
     [[nodiscard]] const String& lootTableId() const { return m_lootTableId; }
+    [[nodiscard]] const BlockSoundType* soundType() const { return m_soundType; }
 
 private:
     friend class Block;
@@ -492,6 +513,7 @@ private:
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
     String m_lootTableId;
+    const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;  // 默认使用石头声音
 };
 
 /**
@@ -636,6 +658,17 @@ public:
      * @return 是否需要正确工具
      */
     [[nodiscard]] bool requiresTool() const { return m_requiresTool; }
+
+    // ========== 声音类型 ==========
+
+    /**
+     * @brief 获取方块的声音类型
+     *
+     * 返回方块的声音类型，包含破坏、踩踏、放置、击打、坠落声音。
+     *
+     * @return 声音类型的常量引用
+     */
+    [[nodiscard]] const BlockSoundType& getSoundType() const { return *m_soundType; }
 
     // ========== 掉落表 ==========
 
@@ -902,6 +935,9 @@ protected:
 
     // 掉落表ID（默认为空，表示无自定义掉落表）
     String m_lootTableId;
+
+    // 声音类型（默认为石头声音）
+    const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;
 
     // 由createBlockState设置
     std::unique_ptr<StateContainer<Block, BlockState>> m_stateContainer;

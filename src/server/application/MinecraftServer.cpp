@@ -297,6 +297,52 @@ void MinecraftServer::setupWorldCallbacks()
             broadcastLightUpdate(pos.x, pos.z, pos.y, skyLight, blockLight, false);
         }
     });
+
+    // 设置方块破坏回调 - 播放破坏声音
+    m_blockInteractionManager->setOnBlockBreak(
+        [this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
+            // 获取方块的破坏声音
+            const auto& soundType = state.getSoundType();
+            Vector3 position(static_cast<f32>(pos.x) + 0.5f,
+                           static_cast<f32>(pos.y) + 0.5f,
+                           static_cast<f32>(pos.z) + 0.5f);
+
+            // 广播声音给范围内的玩家（16格范围）
+            broadcastSoundInRange(
+                soundType.getBreakSound(),
+                sound::SoundCategory::Blocks,
+                position,
+                16.0f * soundType.getVolume(),  // 距离 = 16 * volume
+                soundType.getVolume(),
+                soundType.getPitch()
+            );
+
+            // 发送方块更新给所有追踪该区块的玩家
+            if (m_chunkSendManager) {
+                // 广播方块更新给所有玩家（他们会收到区块更新）
+                // 注意：方块更新已经通过 m_world.setBlock 触发
+            }
+        });
+
+    // 设置方块放置回调 - 播放放置声音
+    m_blockInteractionManager->setOnBlockPlace(
+        [this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
+            // 获取方块的放置声音
+            const auto& soundType = state.getSoundType();
+            Vector3 position(static_cast<f32>(pos.x) + 0.5f,
+                           static_cast<f32>(pos.y) + 0.5f,
+                           static_cast<f32>(pos.z) + 0.5f);
+
+            // 广播声音给范围内的玩家（16格范围）
+            broadcastSoundInRange(
+                soundType.getPlaceSound(),
+                sound::SoundCategory::Blocks,
+                position,
+                16.0f * soundType.getVolume(),
+                soundType.getVolume(),
+                soundType.getPitch()
+            );
+        });
 }
 
 void MinecraftServer::shutdownManagers()
@@ -965,6 +1011,85 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
             spdlog::debug("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
     }
+}
+
+// ============================================================================
+// 声音广播方法
+// ============================================================================
+
+void MinecraftServer::broadcastSound(const ResourceLocation& soundEventId,
+                                    sound::SoundCategory category,
+                                    const Vector3& position,
+                                    f32 volume,
+                                    f32 pitch) {
+    glm::vec3 pos(position.x, position.y, position.z);
+    sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::warn("Failed to serialize PlaySoundPacket: {}", result.error().message);
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::PlaySound, result.value());
+    broadcastPacket(fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId,
+                                            sound::SoundCategory category,
+                                            const Vector3& position,
+                                            f32 range,
+                                            f32 volume,
+                                            f32 pitch) {
+    glm::vec3 pos(position.x, position.y, position.z);
+    sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::warn("Failed to serialize PlaySoundPacket: {}", result.error().message);
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::PlaySound, result.value());
+
+    // 只发送给范围内的玩家
+    m_playerManager->forEachPlayer([this, &position, range, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 dx = player.x - position.x;
+        f32 dy = player.y - position.y;
+        f32 dz = player.z - position.z;
+        f32 distSq = dx * dx + dy * dy + dz * dz;
+        f32 rangeSq = range * range;
+
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
+                                        const ResourceLocation& soundEventId,
+                                        sound::SoundCategory category,
+                                        const Vector3& position,
+                                        f32 volume,
+                                        f32 pitch) {
+    glm::vec3 pos(position.x, position.y, position.z);
+    sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::warn("Failed to serialize PlaySoundPacket: {}", result.error().message);
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::PlaySound, result.value());
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
 } // namespace mc::server

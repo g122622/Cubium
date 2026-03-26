@@ -160,6 +160,7 @@ add_library(mc_common STATIC
     world/block/Material.cpp
     world/block/Block.cpp
     world/block/BlockRegistry.cpp
+    world/block/BlockSoundType.cpp
     world/block/VanillaBlocks.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp

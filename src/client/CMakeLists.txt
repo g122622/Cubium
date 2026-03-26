@@ -82,6 +82,7 @@ add_executable(minecraft-client
     sound/SoundLoader.cpp
     sound/SoundPool.cpp
     sound/SoundEngine.cpp
+    sound/MusicPlayer.cpp
     sound/backend/AudioBuffer.cpp
     sound/backend/OpenALBackend.cpp
     sound/instance/SoundInstance.cpp

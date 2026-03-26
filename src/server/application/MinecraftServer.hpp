@@ -21,6 +21,7 @@
 #include "common/entity/loot/LootTable.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
+#include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include <memory>
 #include <atomic>
@@ -414,6 +415,57 @@ protected:
      * 子类在登录处理中调用此方法。
      */
     void sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch);
+
+    // ========== 声音广播方法 ==========
+
+    /**
+     * @brief 广播声音给所有玩家
+     *
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param position 声音位置
+     * @param volume 音量倍率
+     * @param pitch 音调倍率
+     */
+    void broadcastSound(const ResourceLocation& soundEventId,
+                       sound::SoundCategory category,
+                       const Vector3& position,
+                       f32 volume = 1.0f,
+                       f32 pitch = 1.0f);
+
+    /**
+     * @brief 广播声音给指定范围内的玩家
+     *
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param position 声音位置
+     * @param range 广播范围（格）
+     * @param volume 音量倍率
+     * @param pitch 音调倍率
+     */
+    void broadcastSoundInRange(const ResourceLocation& soundEventId,
+                               sound::SoundCategory category,
+                               const Vector3& position,
+                               f32 range,
+                               f32 volume = 1.0f,
+                               f32 pitch = 1.0f);
+
+    /**
+     * @brief 发送声音给指定玩家
+     *
+     * @param playerId 玩家ID
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param position 声音位置
+     * @param volume 音量倍率
+     * @param pitch 音调倍率
+     */
+    void sendSoundToPlayer(PlayerId playerId,
+                          const ResourceLocation& soundEventId,
+                          sound::SoundCategory category,
+                          const Vector3& position,
+                          f32 volume = 1.0f,
+                          f32 pitch = 1.0f);
 
     /**
      * @brief 停止核心组件

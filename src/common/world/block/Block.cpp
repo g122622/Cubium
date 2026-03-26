@@ -114,6 +114,10 @@ const Material& BlockState::getMaterial() const {
     return m_owner->material();
 }
 
+const BlockSoundType& BlockState::getSoundType() const {
+    return m_owner->getSoundType();
+}
+
 String BlockState::toModelKey() const {
     if (m_values.empty()) {
         return "";
@@ -272,7 +276,8 @@ Block::Block(BlockProperties properties)
     , m_requiresTool(properties.m_requiresTool)
     , m_harvestTool(properties.m_harvestTool)
     , m_harvestLevel(properties.m_harvestLevel)
-    , m_lootTableId(properties.m_lootTableId) {
+    , m_lootTableId(properties.m_lootTableId)
+    , m_soundType(properties.m_soundType) {
 }
 
 void Block::createBlockState(std::unique_ptr<StateContainer<Block, BlockState>> container) {
