@@ -1,0 +1,571 @@
+# Client Application 模块
+
+客户端应用模块是 Minecraft Reborn 客户端的核心入口点，负责整合所有客户端子系统并协调游戏主循环。
+
+## 目录结构
+
+```
+src/client/application/
+├── ClientApplication.hpp    # 客户端应用头文件
+├── ClientApplication.cpp    # 客户端应用实现
+└── README.md               # 本文档
+```
+
+## 文件详解
+
+### ClientApplication.hpp
+
+客户端应用的头文件，定义了两个核心类型：
+
+#### ClientLaunchParams 结构体
+
+客户端启动参数配置，用于命令行覆盖设置文件中的配置：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `windowWidth` | `Optional<i32>` | 窗口宽度覆盖 |
+| `windowHeight` | `Optional<i32>` | 窗口高度覆盖 |
+| `fullscreen` | `Optional<bool>` | 全屏模式覆盖 |
+| `serverAddress` | `Optional<String>` | 服务器地址覆盖 |
+| `serverPort` | `Optional<u16>` | 服务器端口覆盖 |
+| `username` | `Optional<String>` | 用户名覆盖 |
+| `settingsPath` | `Optional<String>` | 自定义设置文件路径 |
+| `skipIntegratedServer` | `bool` | 是否跳过内置服务端 |
+
+#### ClientApplication 类
+
+主客户端应用类，管理客户端生命周期和所有子系统。
+
+**核心子系统成员：**
+
+| 成员 | 类型 | 职责 |
+|------|------|------|
+| `m_settings` | `ClientSettings` | 客户端设置管理 |
+| `m_window` | `Window` | GLFW 窗口封装 |
+| `m_input` | `InputManager` | 输入管理器 |
+| `m_renderer` | `TridentEngine` | Trident Vulkan 渲染引擎 |
+| `m_resourceManager` | `ResourceManager` | 资源包加载和管理 |
+| `m_modelCache` | `BlockModelCache` | 方块模型缓存 |
+| `m_camera` | `Camera` | 相机控制器 |
+| `m_world` | `ClientWorld` | 客户端世界 |
+| `m_player` | `Player` | 玩家实体 |
+| `m_kageroEngine` | `KageroEngine` | Kagero UI 引擎 |
+| `m_integratedServer` | `IntegratedServer` | 内置服务端（单机模式） |
+| `m_networkClient` | `NetworkClient` | 网络客户端 |
+
+### ClientApplication.cpp
+
+客户端应用的实现文件，包含约 2268 行代码。
+
+#### 主要功能模块
+
+```mermaid
+graph TB
+    subgraph 初始化流程
+        A[initialize] --> B[loadSettings]
+        A --> C[initializeResources]
+        A --> D[创建窗口]
+        A --> E[初始化渲染器]
+        A --> F[启动内置服务端]
+        A --> G[初始化网络客户端]
+        A --> H[初始化世界]
+        A --> I[初始化 UI 引擎]
+    end
+
+    subgraph 主循环
+        J[mainLoop] --> K[handleEvents]
+        J --> L[update]
+        J --> M[render]
+    end
+
+    subgraph 更新逻辑
+        L --> N[网络轮询]
+        L --> O[玩家物理]
+        L --> P[世界更新]
+        L --> Q[网格上传]
+    end
+```
+
+#### 初始化流程详解
+
+```cpp
+Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
+```
+
+初始化顺序：
+
+1. **设置加载** - 从配置文件加载客户端设置
+2. **方块注册** - 初始化 VanillaBlocks 和 Items
+3. **实体注册** - 注册所有实体类型
+4. **资源系统** - 加载资源包、构建纹理图集
+5. **窗口创建** - 创建 GLFW 窗口
+6. **渲染器初始化** - 初始化 Trident Vulkan 渲染引擎及所有子渲染器
+7. **内置服务端** - 启动 IntegratedServer（单机模式）
+8. **网络连接** - 连接到服务端
+9. **世界初始化** - 初始化 ClientWorld 和网格构建线程池
+10. **物理引擎** - 创建 PhysicsEngine
+11. **玩家实体** - 创建 Player 实体
+12. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层
+
+#### 主循环详解
+
+```mermaid
+sequenceDiagram
+    participant App as ClientApplication
+    participant Input as InputManager
+    participant World as ClientWorld
+    participant Network as NetworkClient
+    participant Renderer as TridentEngine
+
+    loop 每帧
+        App->>Input: handleEvents()
+        App->>Input: pollEvents(), update()
+
+        App->>Network: poll()
+        App->>World: update()
+
+        Note over App: 玩家物理更新
+        Note over App: 位置同步到服务端
+        Note over App: 射线检测
+
+        App->>Renderer: render()
+        Note over Renderer: 绘制天空、世界、实体、GUI
+    end
+```
+
+#### 网络回调
+
+ClientApplication 通过 `setupNetworkCallbacks()` 设置了完整的网络事件处理：
+
+```cpp
+void ClientApplication::setupNetworkCallbacks()
+```
+
+| 回调 | 说明 |
+|------|------|
+| `onLoginSuccess` | 登录成功 |
+| `onLoginFailed` | 登录失败 |
+| `onDisconnected` | 断开连接 |
+| `onChunkData` | 接收区块数据 |
+| `onChunkUnload` | 卸载区块 |
+| `onTeleport` | 传送玩家 |
+| `onBlockUpdate` | 方块更新 |
+| `onTimeUpdate` | 时间同步 |
+| `onPlayerInventory` | 玩家背包同步 |
+| `onOpenContainer` | 打开容器 |
+| `onContainerContent` | 容器内容同步 |
+| `onSpawnMob` | 生成生物 |
+| `onSpawnEntity` | 生成实体 |
+| `onEntityMove` | 实体移动 |
+| `onEntityTeleport` | 实体传送 |
+| `onRainStrengthChange` | 雨强度变化 |
+| `onGameModeChange` | 游戏模式变化 |
+| `onPlayerAbilities` | 玩家能力更新 |
+| `onLightUpdate` | 光照更新 |
+| `onBlockBreakAnim` | 方块破坏动画 |
+
+#### 方块交互系统
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> MiningStart: 鼠标左键按下 + 目标方块
+    MiningStart --> Mining: 开始挖掘
+    Mining --> Mining: 持续挖掘（进度增加）
+    Mining --> MiningComplete: 进度 >= 1.0
+    Mining --> MiningAbort: 目标切换 / 松开按键
+    MiningStart --> InstantBreak: 创造模式 / 硬度=0
+    InstantBreak --> Idle
+    MiningComplete --> Idle
+    MiningAbort --> Idle
+
+    Idle --> Placing: 鼠标右键按下 + 目标方块
+    Placing --> Idle: 放置完成 / 冷却中
+```
+
+#### UI 层架构
+
+ClientApplication 使用 Kagero UI 引擎管理多层 UI：
+
+```cpp
+// 层 Z=0: 准星
+m_crosshairLayerId = m_kageroEngine->addLayer(std::move(crosshairWidget), 0);
+
+// 层 Z=10: HUD（生命值、饥饿值、快捷栏）
+m_hudLayerId = m_kageroEngine->addLayer(std::move(hudWidget), 10);
+
+// 层 Z=20: 聊天框
+m_chatLayerId = m_kageroEngine->addLayer(std::move(chatWidget), 20);
+
+// 层 Z=30: Screen 栈（背包、菜单等）
+m_screenStackLayerId = m_kageroEngine->addLayer(std::move(screenStackWidget), 30);
+
+// 层 Z=100: 调试屏幕（F3）
+m_debugScreenLayerId = m_kageroEngine->addLayer(std::move(debugWidget), 100);
+```
+
+## 模块职责
+
+### 整体职责
+
+ClientApplication 是客户端应用的**协调中心**，负责：
+
+1. **生命周期管理** - 初始化、运行、停止整个客户端应用
+2. **子系统协调** - 整合渲染器、世界、网络、UI 等子系统
+3. **主循环驱动** - 驱动游戏主循环（事件、更新、渲染）
+4. **用户输入处理** - 处理键盘、鼠标输入并转换为游戏操作
+5. **网络通信** - 与服务端同步游戏状态
+6. **资源管理** - 加载和管理资源包
+7. **UI 管理** - 管理所有 UI 层和屏幕
+
+### 输入
+
+| 输入类型 | 来源 | 说明 |
+|----------|------|------|
+| 启动参数 | `ClientLaunchParams` | 命令行覆盖配置 |
+| 用户输入 | `InputManager` | 键盘、鼠标事件 |
+| 网络数据包 | `NetworkClient` | 服务端同步数据 |
+| 设置文件 | `ClientSettings` | 用户配置 |
+| 资源包 | `ResourcePackList` | 游戏资源 |
+
+### 输出
+
+| 输出类型 | 目标 | 说明 |
+|----------|------|------|
+| 渲染帧 | `TridentEngine` | 图形渲染 |
+| 网络数据包 | `NetworkClient` | 发送到服务端 |
+| 屏幕输出 | `KageroEngine` | UI 渲染 |
+| 日志输出 | `spdlog` | 调试和状态信息 |
+
+## 依赖关系
+
+```mermaid
+graph TB
+    ClientApplication --> Window
+    ClientApplication --> InputManager
+    ClientApplication --> Camera
+    ClientApplication --> ClientSettings
+
+    ClientApplication --> TridentEngine
+    TridentEngine --> ChunkRenderer
+    TridentEngine --> SkyRenderer
+    TridentEngine --> EntityRenderer
+    TridentEngine --> GuiRenderer
+    TridentEngine --> ItemRenderer
+
+    ClientApplication --> ResourceManager
+    ClientApplication --> BlockModelCache
+    ClientApplication --> GuiSpriteAtlas
+    ClientApplication --> GuiTextureManager
+
+    ClientApplication --> ClientWorld
+    ClientApplication --> PhysicsEngine
+    ClientApplication --> Player
+
+    ClientApplication --> KageroEngine
+    KageroEngine --> TridentCanvas
+
+    ClientApplication --> IntegratedServer
+    ClientApplication --> NetworkClient
+
+    subgraph 外部依赖
+        GLFW
+        Vulkan
+        spdlog
+        perfetto
+    end
+```
+
+### 主要依赖模块
+
+| 模块 | 路径 | 说明 |
+|------|------|------|
+| Window | `client/window/` | GLFW 窗口封装 |
+| InputManager | `client/input/` | 输入管理 |
+| ClientSettings | `client/settings/` | 客户端设置 |
+| TridentEngine | `client/renderer/trident/` | Vulkan 渲染引擎 |
+| ResourceManager | `client/resource/` | 资源管理 |
+| ClientWorld | `client/world/` | 客户端世界 |
+| NetworkClient | `client/network/` | 网络客户端 |
+| KageroEngine | `client/ui/kagero/` | UI 引擎 |
+| IntegratedServer | `server/application/` | 内置服务端 |
+
+## 使用方法
+
+### 基本使用
+
+```cpp
+#include "client/application/ClientApplication.hpp"
+
+int main() {
+    mc::client::ClientApplication app;
+
+    mc::client::ClientLaunchParams params;
+    params.username = "Player";
+    params.windowWidth = 1920;
+    params.windowHeight = 1080;
+
+    auto result = app.initialize(params);
+    if (result.failed()) {
+        // 处理初始化错误
+        return 1;
+    }
+
+    auto runResult = app.run();
+    if (runResult.failed()) {
+        // 处理运行错误
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+### 跳过内置服务端
+
+```cpp
+mc::client::ClientLaunchParams params;
+params.skipIntegratedServer = true;
+params.serverAddress = "127.0.0.1";
+params.serverPort = 25565;
+
+app.initialize(params);
+app.run();
+```
+
+### 运行时访问子系统
+
+```cpp
+// 获取窗口
+auto& window = app.window();
+
+// 获取输入管理器
+auto& input = app.input();
+
+// 获取设置
+auto& settings = app.settings();
+
+// 获取渲染器
+auto& renderer = app.renderer();
+
+// 获取相机
+auto& camera = app.camera();
+
+// 获取世界
+auto& world = app.world();
+
+// 检查运行状态
+if (app.isRunning()) {
+    // ...
+}
+
+// 停止客户端
+app.stop();
+```
+
+## 容易踩的坑
+
+### 1. 初始化顺序依赖
+
+ClientApplication 的初始化有严格的顺序依赖：
+
+```
+资源系统 → 渲染器 → GUI 图集 → UI 引擎
+```
+
+错误的顺序会导致纹理加载失败或 UI 无法渲染。
+
+**解决方案**：严格遵循 `initialize()` 中的初始化顺序，不要随意调整。
+
+### 2. GUI 精灵图集加载顺序
+
+GUI 精灵图集需要按正确顺序初始化：
+
+```cpp
+// 1. 初始化图集对象
+iconsAtlas->initialize(...);
+
+// 2. 加载纹理（设置正确的图集尺寸）
+textureLoader.loadGuiTexture(*iconsAtlas, "minecraft:textures/gui/icons.png");
+
+// 3. 注册精灵（使用正确的图集尺寸计算 UV）
+GuiSpriteRegistry::registerIconsSprites(*iconsAtlas);
+
+// 4. 注册到 GuiRenderer
+guiRenderer.registerAtlas("icons", iconsAtlas->imageView(), iconsAtlas->sampler());
+```
+
+**错误示例**：在加载纹理前注册精灵会导致 UV 坐标计算错误。
+
+### 3. 鼠标捕获状态管理
+
+鼠标捕获状态需要与 UI 状态正确同步：
+
+```cpp
+// 打开屏幕时释放鼠标
+releaseMouseForScreen(input, mouseCaptured);
+
+// 关闭屏幕时重新捕获
+captureMouseAfterScreens(input, mouseCaptured);
+```
+
+**常见问题**：屏幕关闭后鼠标没有被重新捕获，导致游戏视角控制失效。
+
+### 4. 方块破坏进度管理
+
+方块破坏需要同时更新本地状态和发送网络包：
+
+```cpp
+// 开始挖掘
+BreakProgressManager::instance().startBreaking(pos);
+sendBlockInteraction(StartDestroyBlock, pos, face);
+
+// 更新进度（每帧）
+BreakProgressManager::instance().updateLocalProgress(pos, progress);
+
+// 停止挖掘
+BreakProgressManager::instance().stopBreaking();
+sendBlockInteraction(StopDestroyBlock, pos, face);
+```
+
+**常见问题**：忘记更新 BreakProgressManager 会导致破坏动画不显示。
+
+### 5. 网络回调生命周期
+
+网络回调中访问成员变量时需要检查指针有效性：
+
+```cpp
+callbacks.onTeleport = [this](f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32) {
+    if (m_player) {  // 必须检查
+        m_player->setPosition(...);
+    }
+};
+```
+
+**常见问题**：在关闭过程中，m_player 可能在回调执行前已被重置。
+
+### 6. 时间同步精度
+
+客户端渲染时间需要平滑过渡到服务端时间：
+
+```cpp
+// 每帧推进本地时间
+m_renderTickAccumulator += deltaTime * 20.0f;
+
+// 平滑纠正到服务端时间（1% 纠正率）
+constexpr f32 CORRECTION_RATE = 0.01f;
+m_renderDayTime += static_cast<i64>(dayTimeDiff * CORRECTION_RATE);
+```
+
+**常见问题**：直接使用服务端时间会导致天空/太阳跳变。
+
+### 7. 资源重载时机
+
+资源重载后需要标记所有区块为脏：
+
+```cpp
+m_world.forEachChunk([](const ChunkId&, ClientChunk& chunk) {
+    chunk.needsMeshUpdate = true;
+});
+```
+
+**常见问题**：忘记标记会导致已加载区块使用旧纹理/模型。
+
+### 8. 关闭顺序
+
+关闭时需要按依赖关系的逆序释放资源：
+
+```cpp
+// 1. UI 和图集（依赖渲染器）
+m_kageroEngine.reset();
+m_canvas.reset();
+m_iconsAtlas.reset();
+m_widgetsAtlas.reset();
+
+// 2. 渲染器
+m_renderer->destroy();
+m_renderer.reset();
+
+// 3. 玩家和物理
+m_player.reset();
+m_physicsEngine.reset();
+
+// 4. 世界
+m_world.destroy();
+
+// 5. 窗口
+m_window.destroy();
+```
+
+**常见问题**：在渲染器销毁后访问 GUI 纹理会导致崩溃。
+
+## 涉及的测试用例
+
+ClientApplication 模块目前没有直接的单元测试，但其依赖的子系统有完整测试：
+
+| 子系统 | 测试文件 | 说明 |
+|--------|----------|------|
+| 渲染器 | `tests/client/renderer/test_trident_engine.cpp` | Trident 引擎测试 |
+| 渲染器 | `tests/client/renderer/test_renderer.cpp` | 渲染器测试 |
+| GUI 精灵 | `tests/client/renderer/trident/gui/GuiSpriteTest.cpp` | GUI 精灵测试 |
+| GUI 精灵 | `tests/client/renderer/trident/gui/GuiSpriteManagerTest.cpp` | GUI 精灵管理器测试 |
+| GUI 精灵 | `tests/client/renderer/trident/gui/GuiSpriteParserTest.cpp` | GUI 精灵解析测试 |
+| 资源管理 | `tests/client/resource/test_resource_manager_cloud_texture.cpp` | 资源管理器测试 |
+| 资源管理 | `tests/client/resource/test_model_loader.cpp` | 模型加载器测试 |
+| 网格工作池 | `tests/client/test_mesh_worker_pool.cpp` | 网格构建线程池测试 |
+| UI 组件 | `tests/client/ui/kagero/widget/*.cpp` | Kagero UI 组件测试 |
+
+### 集成测试建议
+
+ClientApplication 作为顶层协调器，建议进行以下集成测试：
+
+1. **生命周期测试** - 验证初始化和关闭流程
+2. **网络连接测试** - 验证与服务端的连接和断开
+3. **资源加载测试** - 验证资源包加载和重载
+4. **UI 交互测试** - 验证屏幕打开/关闭和鼠标捕获切换
+5. **方块交互测试** - 验证挖掘和放置流程
+
+## 性能追踪
+
+ClientApplication 使用 Perfetto 进行性能追踪：
+
+```cpp
+// 帧追踪
+MC_TRACE_EVENT("rendering.frame", "Frame");
+
+// 子事件
+MC_TRACE_EVENT("rendering.frame", "HandleEvents");
+MC_TRACE_EVENT("rendering.frame", "Update");
+MC_TRACE_EVENT("rendering.frame", "Render");
+
+// FPS 计数器
+MC_TRACE_COUNTER("rendering.frame", "FPS", static_cast<i64>(1.0 / deltaTime));
+
+// 挖掘输入追踪
+MC_TRACE_INSTANT("client.input.mining", "startBreaking", ...);
+```
+
+生成的追踪文件 `client_trace.perfetto-trace` 可用 https://ui.perfetto.dev 分析。
+
+## 构建命令
+
+```powershell
+# 配置项目
+cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# 构建（推荐 Release 构建）
+cmake --build build --config Release
+
+# 运行客户端
+./build/bin/Release/minecraft-client.exe
+```
+
+## 日志级别
+
+当前使用 info 级别作为默认日志级别：
+
+```cpp
+spdlog::set_level(spdlog::level::info);
+```
+
+可通过设置文件或启动参数调整日志级别（trace/debug/info/warn/error）。
