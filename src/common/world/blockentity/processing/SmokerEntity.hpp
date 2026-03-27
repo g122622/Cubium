@@ -57,7 +57,7 @@ protected:
      *
      * 烟熏炉只能烹饪食物。
      */
-    [[nodiscard]] bool canSmelt(World& world) const override;
+    [[nodiscard]] bool canSmelt(IWorld& world) const override;
 };
 
 } // namespace blockentity

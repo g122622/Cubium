@@ -29,7 +29,7 @@ ChestContainer::ChestContainer(ContainerId id,
                                PlayerInventory* playerInventory,
                                IInventory* chestInventory,
                                i32 rows)
-    : Container(ContainerType::GENIC_9X3, id)  // TODO: 根据行数选择类型
+    : Container(ContainerType::Chest, id)
     , m_chestInventory(chestInventory)
     , m_rows(rows) {
     MC_ASSERT(playerInventory != nullptr);
@@ -61,8 +61,8 @@ std::unique_ptr<ChestContainer> ChestContainer::createDouble(
 
 ItemStack ChestContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     // 获取槽位
-    const Slot* slot = getSlot(slotIndex);
-    if (!slot || !slot->hasItem()) {
+    Slot* slot = getSlot(slotIndex);
+    if (!slot || slot->isEmpty()) {
         return cursorItem;
     }
 
@@ -89,7 +89,7 @@ ItemStack ChestContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     if (slotStack.isEmpty()) {
         slot->set(ItemStack());
     } else {
-        slot->setChanged();
+        slot->getInventory()->setChanged();
     }
 
     // 如果数量没变，表示没有移动成功

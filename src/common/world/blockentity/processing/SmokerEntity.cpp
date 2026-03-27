@@ -1,5 +1,4 @@
 #include "world/blockentity/processing/SmokerEntity.hpp"
-#include "world/World.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -14,7 +13,7 @@ std::unique_ptr<BlockEntity> SmokerEntity::clone() const {
     return cloned;
 }
 
-bool SmokerEntity::canSmelt(World& world) const {
+bool SmokerEntity::canSmelt(IWorld& world) const {
     // 首先检查基础条件
     if (!AbstractFurnaceEntity::canSmelt(world)) {
         return false;

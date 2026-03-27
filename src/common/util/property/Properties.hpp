@@ -552,3 +552,9 @@ struct mc::EnumProperty<mc::BlockStateProperties::DoubleBlockHalf>::Traits {
     static mc::String toString(const mc::BlockStateProperties::DoubleBlockHalf& value);
     static mc::Optional<mc::BlockStateProperties::DoubleBlockHalf> fromName(mc::StringView name);
 };
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::ChestType>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::ChestType& value);
+    static mc::Optional<mc::BlockStateProperties::ChestType> fromName(mc::StringView name);
+};

@@ -57,7 +57,7 @@ protected:
      *
      * 高炉只能熔炼矿石和金属物品。
      */
-    [[nodiscard]] bool canSmelt(World& world) const override;
+    [[nodiscard]] bool canSmelt(IWorld& world) const override;
 };
 
 } // namespace blockentity

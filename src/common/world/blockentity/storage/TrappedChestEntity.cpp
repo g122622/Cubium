@@ -1,6 +1,5 @@
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/IWorld.hpp"
-#include "world/World.hpp"
 #include "world/block/Block.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 
@@ -11,7 +10,13 @@ TrappedChestEntity::TrappedChestEntity(const BlockPos& pos)
     : ChestEntity(BlockEntityType::TrappedChest, pos) {
 }
 
-i32 TrappedChestEntity::getRedstoneSignal(World& world) const {
+std::unique_ptr<BlockEntity> TrappedChestEntity::clone() const {
+    auto cloned = std::make_unique<TrappedChestEntity>(getPos());
+    // TODO: 复制物品数据
+    return cloned;
+}
+
+i32 TrappedChestEntity::getRedstoneSignal(IWorld& world) const {
     // 信号强度等于打开玩家数，但不超过15
     i32 playerCount = getOpenCount();
 
@@ -28,28 +33,22 @@ void TrappedChestEntity::openContainer() {
     // 先增加计数
     ChestEntity::openContainer();
 
-    // 通知邻居更新红石信号
-    notifyNeighbors(*static_cast<World*>(nullptr)); // TODO: 需要传入World引用
+    // TODO: 需要访问 World 来通知邻居更新红石信号
+    // 目前暂时跳过，待 ContainerBlockEntity 添加 World 引用后实现
 }
 
 void TrappedChestEntity::closeContainer() {
     // 先减少计数
     ChestEntity::closeContainer();
 
-    // 通知邻居更新红石信号
-    notifyNeighbors(*static_cast<World*>(nullptr)); // TODO: 需要传入World引用
+    // TODO: 需要访问 World 来通知邻居更新红石信号
+    // 目前暂时跳过，待 ContainerBlockEntity 添加 World 引用后实现
 }
 
-void TrappedChestEntity::notifyNeighbors(World& world) {
-    if (!world.isRemote()) {
-        // 通知四周和下方的方块更新红石信号
-        const Block* block = getBlockState() ? getBlockState()->getBlock() : nullptr;
-        if (block) {
-            // TODO: 实现邻居通知
-            // world.notifyNeighborsOfStateChange(m_pos, block);
-            // world.notifyNeighborsOfStateChange(m_pos.down(), block);
-        }
-    }
+void TrappedChestEntity::notifyNeighbors(IWorld& world) {
+    // TODO: 实现邻居通知
+    // IWorld 接口目前没有 isRemote() 方法，需要扩展接口或通过其他方式判断
+    (void)world;
 }
 
 } // namespace blockentity

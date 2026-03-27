@@ -8,7 +8,7 @@
 
 namespace mc {
 
-class World;
+class IWorld;
 class BlockState;
 
 /**
@@ -81,7 +81,7 @@ public:
      * 服务端每游戏tick调用一次。
      * 用于处理熔炉燃烧、漏斗传输等逻辑。
      */
-    virtual void tick(World& world) {
+    virtual void tick(IWorld& world) {
         (void)world;
     }
 

@@ -41,6 +41,7 @@ class World;
 class BlockItemUseContext;
 class Player;
 class BlockEntity;
+class Entity;
 
 namespace math {
 class IRandom;
@@ -865,6 +866,24 @@ public:
     virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
+     * @brief 实体与方块碰撞时调用
+     *
+     * 当实体进入方块的碰撞区域时调用。用于特殊方块行为，如漏斗收集物品。
+     * 默认实现为空。
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param entity 碰撞的实体
+     */
+    virtual void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(entity);
+    }
+
+    /**
      * @brief 是否响应随机刻
      *
      * 返回true时，该方块会被随机刻系统选中执行randomTick。
@@ -1039,6 +1058,48 @@ public:
         const BlockState& state,
         IWorld& world,
         const BlockPos& pos) const;
+
+    /**
+     * @brief 获取弱红石信号
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param side 信号输出方向
+     * @return 信号强度 (0-15)
+     */
+    [[nodiscard]] virtual i32 getWeakPower(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side) const {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(side);
+        return 0;
+    }
+
+    /**
+     * @brief 获取强红石信号
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param side 信号输出方向
+     * @return 信号强度 (0-15)
+     */
+    [[nodiscard]] virtual i32 getStrongPower(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side) const {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(side);
+        return 0;
+    }
 
     // ========================================================================
     // 推动反应

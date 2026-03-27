@@ -65,6 +65,18 @@ public:
     }
 
     /**
+     * @brief 从像素坐标创建碰撞形状（16像素 = 1方块）
+     * @param minX, minY, minZ 最小坐标（像素坐标，0-16范围）
+     * @param maxX, maxY, maxZ 最大坐标（像素坐标，0-16范围）
+     */
+    [[nodiscard]] static CollisionShape fromPixelBox(f32 minX, f32 minY, f32 minZ,
+                                                      f32 maxX, f32 maxY, f32 maxZ) noexcept {
+        constexpr f32 PIXEL_TO_BLOCK = 1.0f / 16.0f;
+        return box(minX * PIXEL_TO_BLOCK, minY * PIXEL_TO_BLOCK, minZ * PIXEL_TO_BLOCK,
+                   maxX * PIXEL_TO_BLOCK, maxY * PIXEL_TO_BLOCK, maxZ * PIXEL_TO_BLOCK);
+    }
+
+    /**
      * @brief 添加额外的碰撞盒
      * 用于复杂形状（如楼梯）
      */

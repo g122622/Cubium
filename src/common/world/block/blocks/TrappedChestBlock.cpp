@@ -1,4 +1,5 @@
 #include "TrappedChestBlock.hpp"
+#include "../../IWorld.hpp"
 #include "../../blockentity/storage/TrappedChestEntity.hpp"
 
 namespace mc {

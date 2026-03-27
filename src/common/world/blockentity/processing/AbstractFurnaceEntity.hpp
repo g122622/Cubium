@@ -55,7 +55,8 @@ public:
 
     // ========== BlockEntity 接口 ==========
 
-    void tick(World& world) override;
+    void tick(IWorld& world) override;
+    [[nodiscard]] bool needsTick() const override { return true; }
 
     // ========== IInventory 接口 ==========
 
@@ -148,20 +149,20 @@ protected:
      * @param world 世界
      * @return 熔炼时间（tick），如果没有配方返回默认值
      */
-    [[nodiscard]] virtual i32 getCookTime(World& world) const;
+    [[nodiscard]] virtual i32 getCookTime(IWorld& world) const;
 
     /**
      * @brief 检查是否可以熔炼
      * @param world 世界
      * @return 如果可以熔炼返回true
      */
-    [[nodiscard]] virtual bool canSmelt(World& world) const;
+    [[nodiscard]] virtual bool canSmelt(IWorld& world) const;
 
     /**
      * @brief 执行熔炼
      * @param world 世界
      */
-    void smelt(World& world);
+    void smelt(IWorld& world);
 
     /**
      * @brief 消耗燃料
@@ -173,7 +174,7 @@ protected:
      * @brief 更新燃烧状态（更新方块状态）
      * @param world 世界
      */
-    void updateBurnState(World& world);
+    void updateBurnState(IWorld& world);
 
     /**
      * @brief 获取熔炼配方类型（子类重写）
@@ -185,7 +186,7 @@ protected:
      * @param world 世界
      * @return 配方指针，如果没有返回nullptr
      */
-    [[nodiscard]] const crafting::SmeltingRecipe* getRecipe(World& world) const;
+    [[nodiscard]] const crafting::SmeltingRecipe* getRecipe(IWorld& world) const;
 
 private:
     FurnaceInventory m_inventory;   ///< 熔炉背包

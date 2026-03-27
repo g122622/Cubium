@@ -11,7 +11,7 @@ namespace blockentity {
 FurnaceContainer::FurnaceContainer(ContainerId id,
                                    PlayerInventory* playerInventory,
                                    IInventory* furnaceInventory)
-    : Container(ContainerType::FURNACE, id)
+    : Container(ContainerType::Furnace, id)
     , m_furnaceInventory(furnaceInventory) {
 
     MC_ASSERT(playerInventory != nullptr);
@@ -26,8 +26,8 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
 
 ItemStack FurnaceContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     // 获取槽位
-    const Slot* slot = getSlot(slotIndex);
-    if (!slot || !slot->hasItem()) {
+    Slot* slot = getSlot(slotIndex);
+    if (!slot || slot->isEmpty()) {
         return cursorItem;
     }
 
@@ -52,18 +52,11 @@ ItemStack FurnaceContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
         }
     } else {
         // 从玩家背包移到熔炉
-        // 检查是否可以作为燃料
-        if (FurnaceInventory::isFuel(slotStack)) {
-            // 优先移到燃料槽
+        // TODO: 检查是否可以作为燃料
+        // 移到输入槽
+        if (!mergeItem(slotStack, SlotRange(SLOT_INPUT, SLOT_INPUT + 1), false)) {
+            // 输入槽满了，尝试燃料槽
             if (!mergeItem(slotStack, SlotRange(SLOT_FUEL, SLOT_FUEL + 1), false)) {
-                // 燃料槽满了，移到输入槽
-                if (!mergeItem(slotStack, SlotRange(SLOT_INPUT, SLOT_INPUT + 1), false)) {
-                    return cursorItem;
-                }
-            }
-        } else {
-            // 移到输入槽
-            if (!mergeItem(slotStack, SlotRange(SLOT_INPUT, SLOT_INPUT + 1), false)) {
                 return cursorItem;
             }
         }
@@ -73,7 +66,7 @@ ItemStack FurnaceContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     if (slotStack.isEmpty()) {
         slot->set(ItemStack());
     } else {
-        slot->setChanged();
+        slot->getInventory()->setChanged();
     }
 
     // 如果数量没变，表示没有移动成功

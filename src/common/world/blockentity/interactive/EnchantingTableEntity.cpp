@@ -16,7 +16,7 @@ EnchantingTableEntity::EnchantingTableEntity(const BlockPos& pos)
 
 // ========== 方块实体接口 ==========
 
-void EnchantingTableEntity::tick(World& world) {
+void EnchantingTableEntity::tick(IWorld& world) {
     MC_UNUSED(world);
     // 附魔台不需要tick更新
 }

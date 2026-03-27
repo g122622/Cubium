@@ -1,5 +1,4 @@
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
-#include "world/World.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -14,7 +13,7 @@ std::unique_ptr<BlockEntity> BlastFurnaceEntity::clone() const {
     return cloned;
 }
 
-bool BlastFurnaceEntity::canSmelt(World& world) const {
+bool BlastFurnaceEntity::canSmelt(IWorld& world) const {
     // 首先检查基础条件
     if (!AbstractFurnaceEntity::canSmelt(world)) {
         return false;

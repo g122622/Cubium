@@ -6,21 +6,38 @@
 
 ```
 blockentity/
-├── BlockEntity.hpp           # 方块实体基类
-├── BlockEntity.cpp           # 基类实现
-├── BlockEntityType.hpp       # 方块实体类型枚举
-├── BlockEntityType.cpp       # 类型转换函数
-├── ContainerBlockEntity.hpp  # 容器方块实体基类
-├── CraftingTableEntity.hpp   # 工作台方块实体
-├── CraftingTableEntity.cpp   # 工作台实现
-├── core/                     # 核心基础设施（预留）
-├── storage/                  # 存储类方块实体（预留）
-├── transport/                # 传输类方块实体（预留）
-├── processing/               # 加工类方块实体（预留）
-└── interactive/              # 交互类方块实体
-    ├── README.md
-    ├── EnchantingTableEntity.hpp  # 附魔台方块实体
-    └── EnchantingTableEntity.cpp  # 附魔台实现
+├── BlockEntity.hpp              # 方块实体基类
+├── BlockEntity.cpp              # 基类实现
+├── BlockEntityType.hpp          # 方块实体类型枚举
+├── BlockEntityType.cpp          # 类型转换函数
+├── ContainerBlockEntity.hpp     # 容器方块实体基类
+├── CraftingTableEntity.hpp      # 工作台方块实体
+├── CraftingTableEntity.cpp      # 工作台实现
+├── BLOCK_ENTITY_PLAN.md         # 方块实体补全计划
+├── core/                        # 核心基础设施
+│   ├── BlockEntityRegistry.hpp/cpp  # 方块实体注册表
+│   ├── LockableBlockEntity.hpp/cpp  # 可锁定容器基类
+│   ├── SimpleInventory.hpp/cpp      # 简单背包实现
+│   └── README.md
+├── storage/                     # 存储类方块实体
+│   ├── ChestEntity.hpp/cpp          # 箱子实体
+│   ├── TrappedChestEntity.hpp/cpp   # 陷阱箱实体
+│   ├── DoubleSidedInventory.hpp/cpp # 双箱合并容器
+│   └── README.md
+├── transport/                   # 传输类方块实体
+│   ├── IHopper.hpp/cpp              # 漏斗接口
+│   ├── HopperEntity.hpp/cpp         # 漏斗实体
+│   └── README.md
+├── processing/                  # 加工类方块实体
+│   ├── AbstractFurnaceEntity.hpp/cpp # 熔炉基类
+│   ├── FurnaceEntity.hpp/cpp         # 普通熔炉
+│   ├── BlastFurnaceEntity.hpp/cpp    # 高炉
+│   ├── SmokerEntity.hpp/cpp          # 烟熏炉
+│   ├── FurnaceInventory.hpp/cpp      # 熔炉背包
+│   └── README.md
+└── interactive/                 # 交互类方块实体
+    ├── EnchantingTableEntity.hpp/cpp # 附魔台
+    └── README.md
 ```
 
 ## 文件详解
@@ -79,6 +96,81 @@ blockentity/
 - 清空：`clear()` - 清除网格和结果槽位
 
 **注意**：与原版 MC 不同，此实现保留物品是为了支持未来的连续合成功能。原版 MC 中工作台关闭后物品会弹出。
+
+## 子模块概览
+
+### core/ - 核心基础设施
+
+提供方块实体的基础功能组件：
+
+- **BlockEntityRegistry** - 方块实体注册表，工厂方法创建方块实体
+- **LockableBlockEntity** - 可锁定容器基类，支持自定义名称和钥匙锁定
+- **SimpleInventory** - 通用背包实现，用于箱子、漏斗等容器
+
+详见 [core/README.md](core/README.md)
+
+### storage/ - 存储类方块实体
+
+提供箱子、陷阱箱等存储类方块实体：
+
+- **ChestEntity** - 箱子实体，27格存储，双箱合并
+- **TrappedChestEntity** - 陷阱箱，输出红石信号
+- **DoubleSidedInventory** - 双箱合并容器，54格
+
+详见 [storage/README.md](storage/README.md)
+
+### transport/ - 传输类方块实体
+
+提供漏斗等传输类方块实体：
+
+- **IHopper** - 漏斗接口，统一处理漏斗方块和漏斗矿车
+- **HopperEntity** - 漏斗实体，物品传输机制
+
+详见 [transport/README.md](transport/README.md)
+
+### processing/ - 加工类方块实体
+
+提供熔炉、高炉、烟熏炉等加工类方块实体：
+
+- **AbstractFurnaceEntity** - 熔炉基类，燃烧和熔炼逻辑
+- **FurnaceEntity** - 普通熔炉，200tick熔炼
+- **BlastFurnaceEntity** - 高炉，100tick熔炼矿石
+- **SmokerEntity** - 烟熏炉，100tick烹饪食物
+- **FurnaceInventory** - 熔炉专用3槽背包
+
+详见 [processing/README.md](processing/README.md)
+
+### interactive/ - 交互类方块实体
+
+提供附魔台等交互类方块实体：
+
+- **EnchantingTableEntity** - 附魔台，书本动画
+
+详见 [interactive/README.md](interactive/README.md)
+
+## 类继承关系
+
+```
+BlockEntity (基类)
+│
+├── ContainerBlockEntity (容器基类)
+│   │
+│   ├── LockableBlockEntity (可锁定容器基类)
+│   │   │
+│   │   ├── ChestEntity (箱子)
+│   │   │   └── TrappedChestEntity (陷阱箱)
+│   │   │
+│   │   ├── HopperEntity (漏斗)
+│   │   │
+│   │   └── AbstractFurnaceEntity (熔炉基类)
+│   │       ├── FurnaceEntity (普通熔炉)
+│   │       ├── BlastFurnaceEntity (高炉)
+│   │       └── SmokerEntity (烟熏炉)
+│   │
+│   └── CraftingTableEntity (工作台)
+│
+└── EnchantingTableEntity (附魔台)
+```
 
 ## 文件关系图
 

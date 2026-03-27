@@ -97,6 +97,9 @@ add_library(mc_common STATIC
     entity/inventory/Container.cpp
     entity/inventory/CraftingInventory.cpp
     entity/inventory/AbstractContainerMenu.cpp
+    entity/inventory/container/ChestContainer.cpp
+    entity/inventory/container/HopperContainer.cpp
+    entity/inventory/container/FurnaceContainer.cpp
 
     # Item System
     item/Item.cpp
@@ -153,10 +156,6 @@ add_library(mc_common STATIC
     world/blockentity/BlockEntityType.cpp
     world/blockentity/BlockEntity.cpp
     world/blockentity/CraftingTableEntity.cpp
-    world/blockentity/core/SimpleInventory.cpp
-    world/blockentity/core/LockableBlockEntity.cpp
-    world/blockentity/core/BlockEntityRegistry.cpp
-    world/blockentity/interactive/EnchantingTableEntity.cpp
 
     # Screen
     screen/ScreenType.cpp
@@ -195,7 +194,6 @@ add_library(mc_common STATIC
     world/blockentity/processing/BlastFurnaceEntity.cpp
     world/blockentity/processing/SmokerEntity.cpp
     world/blockentity/processing/FurnaceInventory.cpp
-    world/item/crafting/SmeltingRecipe.cpp
 
     # World - Chunk
     world/chunk/ChunkData.cpp

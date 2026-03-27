@@ -1,8 +1,6 @@
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "world/IWorld.hpp"
-#include "world/World.hpp"
-#include "world/block/BlockState.hpp"
 #include "world/block/Block.hpp"
 #include "util/assert/AssertAll.hpp"
 #include <algorithm>
@@ -43,7 +41,7 @@ AbstractFurnaceEntity::AbstractFurnaceEntity(BlockEntityType type, const BlockPo
 
 // ========== BlockEntity 接口 ==========
 
-void AbstractFurnaceEntity::tick(World& world) {
+void AbstractFurnaceEntity::tick(IWorld& world) {
     // 检查是否在燃烧
     bool wasBurning = isBurning();
 
@@ -197,7 +195,7 @@ i32 AbstractFurnaceEntity::getBurnTime(const ItemStack& stack) {
 
 // ========== 保护方法 ==========
 
-i32 AbstractFurnaceEntity::getCookTime(World& world) const {
+i32 AbstractFurnaceEntity::getCookTime(IWorld& world) const {
     const crafting::SmeltingRecipe* recipe = getRecipe(world);
     if (recipe != nullptr) {
         return recipe->getCookTime();
@@ -205,7 +203,7 @@ i32 AbstractFurnaceEntity::getCookTime(World& world) const {
     return getDefaultCookTime();
 }
 
-bool AbstractFurnaceEntity::canSmelt(World& world) const {
+bool AbstractFurnaceEntity::canSmelt(IWorld& world) const {
     const ItemStack& input = m_inventory.getInputItem();
     if (input.isEmpty()) {
         return false;
@@ -219,7 +217,7 @@ bool AbstractFurnaceEntity::canSmelt(World& world) const {
 
     // 检查输出槽
     const ItemStack& output = m_inventory.getOutputItem();
-    const ItemStack& result = recipe->getResult();
+    const ItemStack& result = recipe->getResultItem();
 
     if (output.isEmpty()) {
         return true;
@@ -235,7 +233,7 @@ bool AbstractFurnaceEntity::canSmelt(World& world) const {
     return resultCount <= output.getMaxStackSize();
 }
 
-void AbstractFurnaceEntity::smelt(World& world) {
+void AbstractFurnaceEntity::smelt(IWorld& world) {
     if (!canSmelt(world)) {
         return;
     }
@@ -246,7 +244,7 @@ void AbstractFurnaceEntity::smelt(World& world) {
     }
 
     ItemStack input = m_inventory.getInputItem();
-    ItemStack result = recipe->getResult();
+    ItemStack result = recipe->getResultItem().copy();
 
     // 减少输入
     input.shrink(1);
@@ -283,7 +281,7 @@ bool AbstractFurnaceEntity::burnFuel() {
     return true;
 }
 
-void AbstractFurnaceEntity::updateBurnState(World& world) {
+void AbstractFurnaceEntity::updateBurnState(IWorld& world) {
     // 更新方块的 LIT 属性
     // const BlockState* state = world.getBlockState(getPos().x, getPos().y, getPos().z);
     // if (state != nullptr) {
@@ -292,7 +290,7 @@ void AbstractFurnaceEntity::updateBurnState(World& world) {
     // }
 }
 
-const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(World& world) const {
+const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(IWorld& world) const {
     const ItemStack& input = m_inventory.getInputItem();
     if (input.isEmpty()) {
         return nullptr;

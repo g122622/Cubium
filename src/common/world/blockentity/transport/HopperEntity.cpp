@@ -1,8 +1,8 @@
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
-#include "world/World.hpp"
+#include "world/IWorld.hpp"
 #include "entity/ItemEntity.hpp"
-#include "world/block/BlockState.hpp"
+#include "world/block/Block.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "util/assert/AssertAll.hpp"
 #include <algorithm>
@@ -20,7 +20,7 @@ HopperEntity::HopperEntity(const BlockPos& pos)
 
 // ========== BlockEntity 接口 ==========
 
-void HopperEntity::tick(World& world) {
+void HopperEntity::tick(IWorld& world) {
     m_world = &world;
 
     // 客户端不执行传输逻辑
@@ -134,9 +134,11 @@ bool HopperEntity::pullItems(IHopper& hopper) {
     // 尝试从物品实体拉取
     std::vector<ItemEntity*> items = getCaptureItems(hopper);
     for (ItemEntity* item : items) {
-        if (captureItem(hopper.getWorld() ? hopper.getWorld()->getInventory() : nullptr, item)) {
-            // 注意：hopper 本身是一个 IInventory，但我们需要传入正确的背包
-            // 这里需要更复杂的处理
+        // 获取漏斗的背包
+        IInventory* hopperInventory = nullptr;
+        // 通过 dynamic_cast 获取 IInventory 接口
+        hopperInventory = dynamic_cast<IInventory*>(&hopper);
+        if (captureItem(hopperInventory, item)) {
             return true;
         }
     }
@@ -302,7 +304,7 @@ bool HopperEntity::transferItemsOut() {
 
             // 尝试插入目标容器
             ItemStack remaining = putStackInInventoryAllSlots(
-                this, targetInventory, extracted, insertDir);
+                &m_inventory, targetInventory, extracted, insertDir);
 
             if (remaining.isEmpty()) {
                 // 成功输出

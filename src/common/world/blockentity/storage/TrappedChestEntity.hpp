@@ -22,11 +22,16 @@ public:
     explicit TrappedChestEntity(const BlockPos& pos);
 
     /**
+     * @brief 创建方块实体副本
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
+
+    /**
      * @brief 获取红石信号强度
      * @param world 世界引用
      * @return 信号强度 (0-15)，等于打开玩家数
      */
-    [[nodiscard]] i32 getRedstoneSignal(World& world) const;
+    [[nodiscard]] i32 getRedstoneSignal(IWorld& world) const;
 
     // ========== 重写打开/关闭方法 ==========
 
@@ -41,7 +46,7 @@ private:
      * @brief 通知邻居方块更新红石信号
      * @param world 世界引用
      */
-    void notifyNeighbors(World& world);
+    void notifyNeighbors(IWorld& world);
 };
 
 } // namespace blockentity

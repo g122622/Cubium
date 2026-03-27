@@ -95,8 +95,15 @@ namespace Directions {
 
     /**
      * @brief 获取相反方向
+     * @param dir 方向
+     * @return 相反方向，如果Direction::None则返回Direction::None
      */
     inline Direction opposite(Direction dir) {
+        // 处理 Direction::None 或无效值
+        const size_t idx = static_cast<size_t>(dir);
+        if (idx >= 6) {
+            return Direction::None;
+        }
         const Direction opposites[] = {
             Direction::Up,    // Down -> Up
             Direction::Down,  // Up -> Down
@@ -105,55 +112,70 @@ namespace Directions {
             Direction::East,  // West -> East
             Direction::West   // East -> West
         };
-        return opposites[static_cast<size_t>(dir)];
+        return opposites[idx];
     }
 
     /**
      * @brief 获取方向的X偏移
+     * @return X偏移，无效方向返回0
      */
     inline i32 xOffset(Direction dir) {
+        const size_t idx = static_cast<size_t>(dir);
+        if (idx >= 6) return 0;
         const i32 offsets[] = {0, 0, 0, 0, -1, 1};
-        return offsets[static_cast<size_t>(dir)];
+        return offsets[idx];
     }
 
     /**
      * @brief 获取方向的Y偏移
+     * @return Y偏移，无效方向返回0
      */
     inline i32 yOffset(Direction dir) {
+        const size_t idx = static_cast<size_t>(dir);
+        if (idx >= 6) return 0;
         const i32 offsets[] = {-1, 1, 0, 0, 0, 0};
-        return offsets[static_cast<size_t>(dir)];
+        return offsets[idx];
     }
 
     /**
      * @brief 获取方向的Z偏移
+     * @return Z偏移，无效方向返回0
      */
     inline i32 zOffset(Direction dir) {
+        const size_t idx = static_cast<size_t>(dir);
+        if (idx >= 6) return 0;
         const i32 offsets[] = {0, 0, -1, 1, 0, 0};
-        return offsets[static_cast<size_t>(dir)];
+        return offsets[idx];
     }
 
     /**
      * @brief 获取方向的坐标轴
+     * @return 坐标轴，无效方向返回Axis::Y
      */
     inline Axis getAxis(Direction dir) {
+        const size_t idx = static_cast<size_t>(dir);
+        if (idx >= 6) return Axis::Y;
         const Axis axes[] = {
             Axis::Y, Axis::Y,  // Down, Up
             Axis::Z, Axis::Z,  // North, South
             Axis::X, Axis::X   // West, East
         };
-        return axes[static_cast<size_t>(dir)];
+        return axes[idx];
     }
 
     /**
      * @brief 获取方向的轴方向
+     * @return 轴方向，无效方向返回AxisDirection::Positive
      */
     inline AxisDirection getAxisDirection(Direction dir) {
+        const size_t idx = static_cast<size_t>(dir);
+        if (idx >= 6) return AxisDirection::Positive;
         const AxisDirection dirs[] = {
             AxisDirection::Negative, AxisDirection::Positive,  // Down, Up
             AxisDirection::Negative, AxisDirection::Positive,  // North, South
             AxisDirection::Negative, AxisDirection::Positive   // West, East
         };
-        return dirs[static_cast<size_t>(dir)];
+        return dirs[idx];
     }
 
     /**
@@ -213,15 +235,26 @@ namespace Directions {
      * @brief 获取方向名称
      */
     inline String toString(Direction dir) {
+        const size_t idx = static_cast<size_t>(dir);
+        if (idx >= 6) return "none";
         const char* names[] = {"down", "up", "north", "south", "west", "east"};
-        return names[static_cast<size_t>(dir)];
+        return names[idx];
     }
 
     /**
      * @brief 获取方向索引 (0-5)
+     * @return 索引值，Direction::None 返回 255
      */
     inline size_t index(Direction dir) {
         return static_cast<size_t>(dir);
+    }
+
+    /**
+     * @brief 检查方向是否有效
+     */
+    inline bool isValid(Direction dir) {
+        const size_t idx = static_cast<size_t>(dir);
+        return idx < 6;
     }
 
     /**
@@ -296,6 +329,10 @@ namespace Directions {
      * @return 对应的方向，如果无效返回Direction::None
      */
     inline Direction fromDelta(i32 dx, i32 dy, i32 dz) {
+        // 检查值是否在有效范围内
+        if (dx < -1 || dx > 1 || dy < -1 || dy > 1 || dz < -1 || dz > 1) {
+            return Direction::None;
+        }
         if (dy < 0 && dx == 0 && dz == 0) return Direction::Down;
         if (dy > 0 && dx == 0 && dz == 0) return Direction::Up;
         if (dz < 0 && dx == 0 && dy == 0) return Direction::North;

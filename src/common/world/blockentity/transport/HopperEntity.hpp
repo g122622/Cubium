@@ -11,7 +11,7 @@ namespace mc {
 
 // 前向声明
 class ItemEntity;
-class World;
+class IWorld;
 
 namespace blockentity {
 
@@ -50,7 +50,8 @@ public:
 
     // ========== BlockEntity 接口 ==========
 
-    void tick(World& world) override;
+    void tick(IWorld& world) override;
+    [[nodiscard]] bool needsTick() const override { return true; }
 
     /**
      * @brief 创建方块实体副本
@@ -130,6 +131,13 @@ public:
      * 目标漏斗的冷却时间会减少1 tick（7 tick而非8 tick）
      */
     [[nodiscard]] bool mayTransfer() const { return m_transferCooldown > TRANSFER_COOLDOWN; }
+
+    /**
+     * @brief 处理实体碰撞
+     * @param world 世界
+     * @param entity 碰撞的实体
+     */
+    void onEntityCollision(IWorld& world, Entity* entity);
 
     // ========== 静态工具方法 ==========
 
@@ -287,13 +295,6 @@ private:
      * @return 如果可以合并返回true
      */
     [[nodiscard]] static bool canCombine(const ItemStack& stack1, const ItemStack& stack2);
-
-    /**
-     * @brief 处理实体碰撞
-     * @param world 世界
-     * @param entity 碰撞的实体
-     */
-    void onEntityCollision(IWorld& world, Entity* entity);
 
     // ========== 成员变量 ==========
 

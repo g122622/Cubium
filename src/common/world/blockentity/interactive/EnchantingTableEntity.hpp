@@ -44,7 +44,7 @@ public:
      * @brief 每tick更新
      * @param world 所在世界
      */
-    void tick(World& world) override;
+    void tick(IWorld& world) override;
 
     /**
      * @brief 检查是否需要tick

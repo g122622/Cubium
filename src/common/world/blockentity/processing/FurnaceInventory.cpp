@@ -1,5 +1,5 @@
 #include "world/blockentity/processing/FurnaceInventory.hpp"
-#include "network/PacketSerializer.hpp"
+#include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {

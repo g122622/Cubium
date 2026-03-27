@@ -11,7 +11,7 @@ namespace blockentity {
 HopperContainer::HopperContainer(ContainerId id,
                                  PlayerInventory* playerInventory,
                                  IInventory* hopperInventory)
-    : Container(ContainerType::GENERIC_3X3, id)  // TODO: 使用专用的 HOPPER 类型
+    : Container(ContainerType::Hopper, id)
     , m_hopperInventory(hopperInventory) {
 
     MC_ASSERT(playerInventory != nullptr);
@@ -26,8 +26,8 @@ HopperContainer::HopperContainer(ContainerId id,
 
 ItemStack HopperContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     // 获取槽位
-    const Slot* slot = getSlot(slotIndex);
-    if (!slot || !slot->hasItem()) {
+    Slot* slot = getSlot(slotIndex);
+    if (!slot || slot->isEmpty()) {
         return cursorItem;
     }
 
@@ -53,7 +53,7 @@ ItemStack HopperContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     if (slotStack.isEmpty()) {
         slot->set(ItemStack());
     } else {
-        slot->setChanged();
+        slot->getInventory()->setChanged();
     }
 
     // 如果数量没变，表示没有移动成功

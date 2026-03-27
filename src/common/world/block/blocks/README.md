@@ -22,6 +22,7 @@ blocks/
 ├── HopperBlock.cpp          # 漏斗方块实现
 ├── AbstractFurnaceBlock.hpp # 熔炉方块基类头文件
 ├── FurnaceBlocks.hpp        # 熔炉方块实现（熔炉/高炉/烟熏炉）
+├── FurnaceBlocks.cpp        # 熔炉方块实现
 ├── DoorBlock.hpp            # 门方块头文件
 ├── DoorBlock.cpp            # 门方块实现
 ├── FenceGateBlock.hpp       # 栅栏门方块头文件
@@ -79,6 +80,7 @@ classDiagram
 
     class ChestBlock {
         +CHEST_TYPE() EnumProperty
+        +FACING() DirectionProperty
         +createBlockEntity()
         +getShape()
     }
@@ -100,6 +102,7 @@ classDiagram
         +FACING() DirectionProperty
         +OPEN() BooleanProperty
         +HINGE() EnumProperty
+        +POWERED() BooleanProperty
         +toggleDoor()
     }
 
@@ -107,6 +110,7 @@ classDiagram
         +FACING() DirectionProperty
         +OPEN() BooleanProperty
         +IN_WALL() BooleanProperty
+        +POWERED() BooleanProperty
         +getShape()
     }
 
@@ -114,13 +118,15 @@ classDiagram
         +LEVEL_0_3() IntegerProperty
         +getLevel() i32
         +setLevel()
-        +getComparatorInputOverride()
+        +getComparatorInputOverride() i32
+        +randomTick()
     }
 
     class EnchantingTableBlock {
         +createBlockEntity()
         +getShape()
         +getOcclusionShape()
+        +onBlockAdded()
     }
 
     Block <|-- AirBlock
@@ -264,6 +270,130 @@ auto waterBlock = std::make_unique<LiquidBlock>(
 );
 ```
 
+---
+
+### ChestBlock.hpp/cpp
+
+**职责**: 箱子方块实现，提供27格存储容器。
+
+**主要特性**:
+- 拥有`CHEST_TYPE`属性（Single, Left, Right）用于双箱合并
+- 拥有`HORIZONTAL_FACING`属性控制朝向
+- 创建`ChestEntity`方块实体
+- 支持红石比较器信号输出
+
+**状态数量**: 12个（4朝向 × 3类型）
+
+**参考**: `net.minecraft.block.ChestBlock`
+
+---
+
+### HopperBlock.hpp/cpp
+
+**职责**: 漏斗方块实现，提供物品自动传输功能。
+
+**主要特性**:
+- 拥有`FACING`属性控制输出方向（下、北、南、东、西）
+- 拥有`ENABLED`属性控制红石禁用状态
+- 创建`HopperEntity`方块实体
+- 支持物品拉取和推送
+
+**状态数量**: 10个（5方向 × 2启用状态）
+
+**参考**: `net.minecraft.block.HopperBlock`
+
+---
+
+### AbstractFurnaceBlock.hpp / FurnaceBlocks.hpp/cpp
+
+**职责**: 熔炉方块基类及实现（普通熔炉、高炉、烟熏炉）。
+
+**主要特性**:
+- 拥有`FACING`属性控制朝向
+- 拥有`LIT`属性表示燃烧状态
+- 创建对应的`FurnaceEntity`/`BlastFurnaceEntity`/`SmokerEntity`
+- 支持交互打开GUI
+
+**状态数量**: 8个（4朝向 × 2燃烧状态）
+
+**参考**: `net.minecraft.block.AbstractFurnaceBlock`, `net.minecraft.block.FurnaceBlock`
+
+---
+
+### DoorBlock.hpp/cpp
+
+**职责**: 门方块实现，支持双方块结构和红石控制。
+
+**主要特性**:
+- 拥有`HALF`属性区分上下半部分
+- 拥有`FACING`属性控制朝向
+- 拥有`OPEN`属性控制开关状态
+- 拥有`HINGE`属性区分左/右铰链
+- 拥有`POWERED`属性表示红石充能
+
+**状态数量**: 64个（2半 × 4朝向 × 2开关 × 2铰链 × 2充能）
+
+**参考**: `net.minecraft.block.DoorBlock`
+
+---
+
+### FenceGateBlock.hpp/cpp
+
+**职责**: 栅栏门方块实现，支持开关和围墙连接。
+
+**主要特性**:
+- 拥有`FACING`属性控制朝向
+- 拥有`OPEN`属性控制开关状态
+- 拥有`IN_WALL`属性表示在围墙中的状态
+- 支持红石控制
+
+**状态数量**: 32个（4朝向 × 2开关 × 2围墙 × 2充能）
+
+**参考**: `net.minecraft.block.FenceGateBlock`
+
+---
+
+### CauldronBlock.hpp/cpp
+
+**职责**: 炼药锅方块实现，使用方块状态存储水位。
+
+**主要特性**:
+- 拥有`LEVEL_0_3`属性表示水位（0-3）
+- 无方块实体，使用状态存储
+- 支持水桶、玻璃瓶、皮革盔甲、旗帜清洗交互
+- 雨天自动填充水
+- 支持红石比较器信号（水位）
+
+**状态数量**: 4个（0-3水位）
+
+**交互操作**:
+- 水桶：装水（水位→3）、取水（水位-1）
+- 玻璃瓶：取水（水位-1，变为水瓶）、倒水（水位+1，变为玻璃瓶）
+- 皮革盔甲：清洗（水位-1，移除颜色）
+- 旗帜/潜影盒：清洗（水位-1，移除图案/颜色）
+
+**参考**: `net.minecraft.block.CauldronBlock`
+
+---
+
+### EnchantingTableBlock.hpp/cpp
+
+**职责**: 附魔台方块实现，提供附魔功能。
+
+**主要特性**:
+- 创建`EnchantingTableEntity`方块实体
+- 支持书架增强附魔力量
+- 特殊形状和遮挡
+
+**附魔力量计算**:
+- 有效书架：距离附魔台水平2格，垂直0-1格
+- 书架与附魔台之间必须是空气
+- 每个有效书架增加1点附魔力量（最大15）
+
+**参考**: `net.minecraft.block.EnchantingTableBlock`
+
+---
+
 ## 模块整体职责
 
 ```mermaid
@@ -279,14 +409,29 @@ flowchart TB
         B --> G[SimpleBlock]
         B --> H[RotatedPillarBlock]
         B --> E
+        B --> I[ChestBlock]
+        B --> J[HopperBlock]
+        B --> K[AbstractFurnaceBlock]
+        B --> L[DoorBlock]
+        B --> M[FenceGateBlock]
+        B --> N[CauldronBlock]
+        B --> O[EnchantingTableBlock]
     end
 
     subgraph "输出"
-        F --> I[空气方块实例]
-        G --> J[简单方块实例]
-        H --> K[柱状方块实例]
-        E --> L[液体方块实例]
+        F --> P[空气方块实例]
+        G --> Q[简单方块实例]
+        H --> R[柱状方块实例]
+        E --> S[液体方块实例]
+        I --> T[箱子方块实例]
+        J --> U[漏斗方块实例]
+        K --> V[熔炉方块实例]
+        L --> W[门方块实例]
+        M --> X[栅栏门实例]
+        N --> Y[炼药锅实例]
+        O --> Z[附魔台实例]
     end
+```
 
     subgraph "依赖"
         M[Block基类] --> B

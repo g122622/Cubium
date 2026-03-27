@@ -1,6 +1,6 @@
 #include "SimpleInventory.hpp"
-#include "../../../network/packet/PacketSerializer.hpp"
-#include "../../../util/assert/AssertAll.hpp"
+#include "network/packet/PacketSerializer.hpp"
+#include "util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blockentity {

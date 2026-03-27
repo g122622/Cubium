@@ -1,9 +1,9 @@
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
+#include "util/property/Properties.hpp"
 #include <cmath>
 
 namespace mc {
@@ -39,22 +39,73 @@ ChestEntity::~ChestEntity() = default;
 
 // ========== 双箱相关 ==========
 
-bool ChestEntity::isDoubleChest(World& world) const {
-    // TODO: 检查方块状态中的ChestType属性
-    // 如果是LEFT或RIGHT，则为双箱
+bool ChestEntity::isDoubleChest(IWorld& world) const {
     return getConnectedChest(world) != nullptr;
 }
 
-ChestEntity* ChestEntity::getConnectedChest(World& world) const {
-    // TODO: 根据方块状态中的ChestType和FACING属性
-    // 确定相邻箱子的位置，然后获取其方块实体
+ChestEntity* ChestEntity::getConnectedChest(IWorld& world) const {
+    // 获取当前方块的方块状态
+    const BlockState* statePtr = world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
+    if (statePtr == nullptr) {
+        return nullptr;
+    }
 
-    // 临时返回nullptr，待ChestBlock实现后完善
-    (void)world;
-    return nullptr;
+    // 获取箱子类型
+    BlockStateProperties::ChestType chestType = statePtr->get(BlockStateProperties::CHEST_TYPE());
+    if (chestType == BlockStateProperties::ChestType::Single) {
+        return nullptr;  // 单箱，无连接
+    }
+
+    // 获取朝向
+    Direction facing = statePtr->get(BlockStateProperties::HORIZONTAL_FACING());
+
+    // 计算连接方向
+    // LEFT 箱子向右连接（顺时针旋转），RIGHT 箱子向左连接（逆时针旋转）
+    Direction connectDir = Direction::None;
+    if (chestType == BlockStateProperties::ChestType::Left) {
+        connectDir = Directions::rotateY(facing);  // 左箱子向右连接
+    } else if (chestType == BlockStateProperties::ChestType::Right) {
+        connectDir = Directions::rotateYCCW(facing);  // 右箱子向左连接
+    }
+
+    if (connectDir == Direction::None) {
+        return nullptr;
+    }
+
+    // 获取相邻位置的方块实体
+    BlockPos neighborPos = m_pos.offset(connectDir);
+    BlockEntity* neighborEntity = world.getBlockEntity(neighborPos);
+    if (neighborEntity == nullptr) {
+        return nullptr;
+    }
+
+    // 检查是否是箱子实体
+    BlockEntityType neighborType = neighborEntity->getType();
+    if (neighborType != BlockEntityType::Chest && neighborType != BlockEntityType::TrappedChest) {
+        return nullptr;
+    }
+
+    // 验证相邻箱子确实是连接的
+    const BlockState* neighborStatePtr = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    if (neighborStatePtr == nullptr) {
+        return nullptr;
+    }
+
+    BlockStateProperties::ChestType neighborChestType = neighborStatePtr->get(BlockStateProperties::CHEST_TYPE());
+    if (neighborChestType == BlockStateProperties::ChestType::Single) {
+        return nullptr;  // 相邻的是单箱，不应该发生
+    }
+
+    // 验证连接方向是否正确
+    Direction neighborFacing = neighborStatePtr->get(BlockStateProperties::HORIZONTAL_FACING());
+    if (neighborFacing != facing) {
+        return nullptr;  // 朝向不同，不是有效连接
+    }
+
+    return static_cast<ChestEntity*>(neighborEntity);
 }
 
-std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(World& world) {
+std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(IWorld& world) {
     ChestEntity* connected = getConnectedChest(world);
     if (!connected) {
         return nullptr;
@@ -62,12 +113,20 @@ std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(World& wor
 
     // 根据ChestType确定顺序
     // LEFT类型在左侧（上半部分），RIGHT类型在右侧（下半部分）
-    // TODO: 根据实际方块状态确定顺序
+    const BlockState* statePtr = world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
+    if (statePtr == nullptr) {
+        return nullptr;
+    }
 
-    return std::make_unique<DoubleSidedInventory>(
-        &m_inventory,
-        &connected->m_inventory
-    );
+    BlockStateProperties::ChestType chestType = statePtr->get(BlockStateProperties::CHEST_TYPE());
+
+    if (chestType == BlockStateProperties::ChestType::Left) {
+        // 当前箱子是左半部分
+        return std::make_unique<DoubleSidedInventory>(&m_inventory, &connected->m_inventory);
+    } else {
+        // 当前箱子是右半部分
+        return std::make_unique<DoubleSidedInventory>(&connected->m_inventory, &m_inventory);
+    }
 }
 
 // ========== 打开计数 ==========
@@ -98,6 +157,7 @@ i32 ChestEntity::getComparatorSignal(IWorld& world) const {
     // 计算填充度
     i32 nonEmptySlots = 0;
     f32 fillRatio = 0.0f;
+    i32 totalSlots = CHEST_SIZE;
 
     for (i32 i = 0; i < CHEST_SIZE; ++i) {
         const ItemStack& stack = m_inventory.getItem(i);
@@ -108,19 +168,27 @@ i32 ChestEntity::getComparatorSignal(IWorld& world) const {
         }
     }
 
-    fillRatio /= static_cast<f32>(CHEST_SIZE);
+    // 如果是双箱，需要计算合并的信号
+    ChestEntity* connected = getConnectedChest(world);
+    if (connected != nullptr) {
+        // 添加相邻箱子的数据
+        for (i32 i = 0; i < CHEST_SIZE; ++i) {
+            const ItemStack& stack = connected->m_inventory.getItem(i);
+            if (!stack.isEmpty()) {
+                ++nonEmptySlots;
+                fillRatio += static_cast<f32>(stack.getCount()) /
+                             static_cast<f32>(stack.getMaxStackSize());
+            }
+        }
+        totalSlots += CHEST_SIZE;
+    }
+
+    fillRatio /= static_cast<f32>(totalSlots);
 
     // 信号强度 = floor(填充度 * 14) + (非空槽位数 > 0 ? 1 : 0)
     i32 signal = static_cast<i32>(std::floor(fillRatio * 14.0f));
     if (nonEmptySlots > 0) {
         signal += 1;
-    }
-
-    // 如果是双箱，需要计算合并的信号
-    if (isDoubleChest(world)) {
-        // TODO: 获取相邻箱子并合并计算
-        // ChestEntity* connected = getConnectedChest(world);
-        // 需要合并两个箱子的填充度
     }
 
     return std::min(signal, 15);
@@ -148,7 +216,7 @@ void ChestEntity::updateLidAnimation(f32 partialTick) {
 
 // ========== Tick 更新 ==========
 
-void ChestEntity::tick(World& world) {
+void ChestEntity::tick(IWorld& world) {
     // 更新同步计数器
     ++m_ticksSinceSync;
 
@@ -235,7 +303,7 @@ std::unique_ptr<BlockEntity> ChestEntity::clone() const {
 
 // ========== 受保护方法 ==========
 
-void ChestEntity::broadcastChestState(World& world, bool open) {
+void ChestEntity::broadcastChestState(IWorld& world, bool open) {
     // TODO: 实现World广播
     // world.addBlockEvent(m_pos, getBlockState()->getBlock(), 1, m_openCount);
     // world.notifyNeighborsOfStateChange(m_pos, getBlockState()->getBlock());
@@ -244,7 +312,7 @@ void ChestEntity::broadcastChestState(World& world, bool open) {
     (void)open;
 }
 
-void ChestEntity::playSound(World& world, bool open) {
+void ChestEntity::playSound(IWorld& world, bool open) {
     // TODO: 实现音效播放
     // 只在RIGHT类型或SINGLE类型播放音效
     // if (isLeftPartOfDoubleChest()) {

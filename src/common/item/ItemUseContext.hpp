@@ -74,6 +74,11 @@ public:
     [[nodiscard]] Direction face() const { return m_face; }
 
     /**
+     * @brief 获取击中的面（别名，与face()相同）
+     */
+    [[nodiscard]] Direction getClickedFace() const { return m_face; }
+
+    /**
      * @brief 获取击中点在方块内的相对坐标（0-1范围）
      * @return 相对坐标向量
      */

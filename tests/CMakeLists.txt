@@ -39,7 +39,18 @@ add_executable(mc_tests
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/tool/ToolTests.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
+    common/entity/inventory/container/ChestContainerTest.cpp
+    common/entity/inventory/container/HopperContainerTest.cpp
+    common/entity/inventory/container/FurnaceContainerTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
+    common/world/blockentity/ChestEntityTest.cpp
+    common/world/blockentity/FurnaceEntityTest.cpp
+    common/world/blockentity/HopperEntityTest.cpp
+    common/world/block/blocks/DoorBlockTest.cpp
+    common/world/block/blocks/CauldronBlockTest.cpp
+    common/world/block/blocks/EnchantingTableBlockTest.cpp
+    common/world/block/blocks/ChestBlockTest.cpp
+    common/world/block/blocks/HopperBlockTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/AttributeTests.cpp
@@ -305,6 +316,21 @@ target_sources(mc_tests
         # 方块实体系统
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntityType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/LockableBlockEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/SimpleInventory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/BlockEntityRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/ChestEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/TrappedChestEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/DoubleSidedInventory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/AbstractFurnaceEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/BlastFurnaceEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/SmokerEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceInventory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/HopperEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/IHopper.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/CraftingTableEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/interactive/EnchantingTableEntity.cpp
         # 物品实体和掉落表
         ${CMAKE_SOURCE_DIR}/src/common/entity/ItemEntity.cpp
         # 掉落系统

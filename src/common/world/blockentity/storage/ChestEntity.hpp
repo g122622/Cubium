@@ -7,7 +7,7 @@
 
 namespace mc {
 
-class World;
+class IWorld;
 class ChestBlock;
 
 namespace blockentity {
@@ -70,21 +70,21 @@ public:
      * @param world 世界引用
      * @return 如果连接到另一个箱子返回true
      */
-    [[nodiscard]] bool isDoubleChest(World& world) const;
+    [[nodiscard]] bool isDoubleChest(IWorld& world) const;
 
     /**
      * @brief 获取相邻箱子（如果是双箱）
      * @param world 世界引用
      * @return 相邻箱子实体指针，如果不是双箱返回nullptr
      */
-    [[nodiscard]] ChestEntity* getConnectedChest(World& world) const;
+    [[nodiscard]] ChestEntity* getConnectedChest(IWorld& world) const;
 
     /**
      * @brief 获取合并后的双箱背包
      * @param world 世界引用
      * @return 双箱背包，如果是单箱返回nullptr
      */
-    [[nodiscard]] std::unique_ptr<DoubleSidedInventory> getDoubleInventory(World& world);
+    [[nodiscard]] std::unique_ptr<DoubleSidedInventory> getDoubleInventory(IWorld& world);
 
     /**
      * @brief 获取打开计数
@@ -131,7 +131,7 @@ public:
 
     // ========== Tick 更新 ==========
 
-    void tick(World& world) override;
+    void tick(IWorld& world) override;
     [[nodiscard]] bool needsTick() const override { return true; }
 
     // ========== 序列化 ==========
@@ -148,14 +148,14 @@ protected:
      * @param world 世界引用
      * @param open true=打开, false=关闭
      */
-    void broadcastChestState(World& world, bool open);
+    void broadcastChestState(IWorld& world, bool open);
 
     /**
      * @brief 播放音效
      * @param world 世界引用
      * @param open true=打开音效, false=关闭音效
      */
-    void playSound(World& world, bool open);
+    void playSound(IWorld& world, bool open);
 
 private:
     SimpleInventory m_inventory;   ///< 27格物品存储

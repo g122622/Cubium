@@ -55,4 +55,34 @@ Optional<BlockStateProperties::DoubleBlockHalf> EnumProperty<BlockStatePropertie
     return std::nullopt;
 }
 
+// ============================================================================
+// ChestType Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::ChestType>::Traits::toString(
+    const BlockStateProperties::ChestType& value) {
+    switch (value) {
+        case BlockStateProperties::ChestType::Single:
+            return "single";
+        case BlockStateProperties::ChestType::Left:
+            return "left";
+        case BlockStateProperties::ChestType::Right:
+            return "right";
+        default:
+            return "single";
+    }
+}
+
+Optional<BlockStateProperties::ChestType> EnumProperty<BlockStateProperties::ChestType>::Traits::fromName(
+    StringView name) {
+    if (name == "single") {
+        return BlockStateProperties::ChestType::Single;
+    } else if (name == "left") {
+        return BlockStateProperties::ChestType::Left;
+    } else if (name == "right") {
+        return BlockStateProperties::ChestType::Right;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc
