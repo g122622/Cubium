@@ -341,6 +341,22 @@ add_library(mc_common STATIC
 
     # Assert library
     util/assert/Assert.cpp
+
+    # World - Save System
+    world/save/core/SessionLock.cpp
+    world/save/core/LevelSave.cpp
+    world/save/io/CompressionUtil.cpp
+    world/save/io/FileUtil.cpp
+    world/save/io/IOWorker.cpp
+    world/save/data/GameRules.cpp
+    world/save/data/WorldSettings.cpp
+    world/save/data/LevelData.cpp
+    world/save/data/PlayerData.cpp
+    world/save/region/RegionBitmap.cpp
+    world/save/region/RegionFile.cpp
+    world/save/region/RegionFileCache.cpp
+    world/save/serializer/ChunkSerializer.cpp
+    world/save/manager/SaveManager.cpp
 )
 
 target_include_directories(mc_common
