@@ -2,6 +2,8 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../entity/Entity.hpp"
+#include "../../../../util/AxisAlignedBB.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include <unordered_map>
 
@@ -156,13 +158,29 @@ void TripWireBlock::updateState(IWorld& world, const BlockPos& pos) {
 }
 
 bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) const {
-    // TODO: 实现实体碰撞检测
-    // 1. 获取绊线所在的碰撞箱
-    // 2. 检测在该区域内的实体
-    // 3. 排除玩家潜行的情况
+    // 创建绊线的碰撞箱
+    // 绊线是一个细线，检测范围为方块内的一小片区域
+    AxisAlignedBB detectionBox(
+        static_cast<f32>(pos.x) + 0.0f,
+        static_cast<f32>(pos.y) + 0.0f,
+        static_cast<f32>(pos.z) + 0.0f,
+        static_cast<f32>(pos.x) + 1.0f,
+        static_cast<f32>(pos.y) + 0.5f,  // 检测向上0.5格
+        static_cast<f32>(pos.z) + 1.0f
+    );
 
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // 查询碰撞箱内的实体
+    std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
+
+    // 绊线被任何实体触发（玩家、生物、物品等）
+    // 注意：潜行的玩家不会触发绊线，但需要实体系统支持 isSneaking()
+    for (Entity* entity : entities) {
+        if (entity != nullptr) {
+            // TODO: 检查玩家是否在潜行 (entity->isSneaking())
+            // 目前所有实体都会触发
+            return true;
+        }
+    }
 
     return false;
 }

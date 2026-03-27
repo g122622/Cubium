@@ -91,25 +91,6 @@ private:
      * @param state 当前方块状态
      */
     void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
-
-    /**
-     * @brief 检查是否会导致无限循环（烧毁）
-     *
-     * @param world 世界引用
-     * @param pos 火把位置
-     * @param currentTick 当前tick
-     * @return true 如果应该烧毁
-     */
-    [[nodiscard]] bool checkForBurnout(IWorld& world, const BlockPos& pos, u64 currentTick);
-
-    /// 烧毁检测的时间窗口（tick）
-    static constexpr i32 BURNOUT_WINDOW = 60;
-
-    /// 触发烧毁的翻转次数
-    static constexpr i32 BURNOUT_FLIPS = 8;
-
-    /// 烧毁后冷却时间（tick）
-    static constexpr i32 BURNOUT_COOLDOWN = 160;
 };
 
 } // namespace blocks

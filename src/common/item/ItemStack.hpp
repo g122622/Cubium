@@ -6,6 +6,7 @@
 #include "enchantment/EnchantmentContainer.hpp"
 #include <memory>
 #include <optional>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -289,6 +290,19 @@ public:
      * @brief 从网络包反序列化
      */
     [[nodiscard]] static Result<ItemStack> deserialize(network::PacketDeserializer& deser);
+
+    /**
+     * @brief 序列化到 JSON
+     * @return JSON 对象
+     */
+    [[nodiscard]] nlohmann::json toJson() const;
+
+    /**
+     * @brief 从 JSON 反序列化
+     * @param json JSON 对象
+     * @return 物品堆
+     */
+    [[nodiscard]] static Result<ItemStack> fromJson(const nlohmann::json& json);
 
     // ========== 比较操作符 ==========
 

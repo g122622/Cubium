@@ -121,6 +121,44 @@ Result<EnchantmentContainer> EnchantmentContainer::deserialize(network::PacketDe
     return container;
 }
 
+nlohmann::json EnchantmentContainer::toJson() const {
+    nlohmann::json json = nlohmann::json::array();
+    for (const auto& instance : m_enchantments) {
+        nlohmann::json enchJson;
+        enchJson["id"] = instance.enchantmentId;
+        enchJson["lvl"] = instance.level;
+        json.push_back(enchJson);
+    }
+    return json;
+}
+
+Result<EnchantmentContainer> EnchantmentContainer::fromJson(const nlohmann::json& json) {
+    EnchantmentContainer container;
+
+    if (!json.is_array()) {
+        return container;
+    }
+
+    for (const auto& enchJson : json) {
+        if (!enchJson.is_object()) {
+            continue;
+        }
+        if (!enchJson.contains("id") || !enchJson["id"].is_string()) {
+            continue;
+        }
+
+        String id = enchJson["id"].get<String>();
+        i32 level = 1;
+        if (enchJson.contains("lvl") && enchJson["lvl"].is_number()) {
+            level = enchJson["lvl"].get<i32>();
+        }
+
+        container.m_enchantments.emplace_back(id, level);
+    }
+
+    return container;
+}
+
 } // namespace enchant
 } // namespace item
 } // namespace mc

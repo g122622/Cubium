@@ -88,30 +88,37 @@ public:
     /**
      * @brief 发射物品
      *
+     * 子类可以重写此方法实现不同的发射行为。
+     * 例如，投掷器重写此方法使用简单的投掷行为。
+     *
      * @param world 世界引用
      * @param pos 方块位置
      * @param state 当前方块状态
      */
-    void dispense(IWorld& world, const BlockPos& pos, const BlockState& state);
+    virtual void dispense(IWorld& world, const BlockPos& pos, const BlockState& state);
 
 protected:
     /**
      * @brief 尝试从发射器位置发射物品
+     *
+     * 子类可以重写此方法实现不同的发射逻辑。
      *
      * @param world 世界引用
      * @param pos 发射器位置
      * @param state 当前方块状态
      * @return true 如果成功发射
      */
-    bool tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state);
+    virtual bool tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 播放发射音效
      *
+     * 子类可以重写此方法播放不同的音效。
+     *
      * @param world 世界引用
      * @param pos 方块位置
      */
-    void playDispenseSound(IWorld& world, const BlockPos& pos);
+    virtual void playDispenseSound(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

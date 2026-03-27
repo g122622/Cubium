@@ -6,7 +6,9 @@
 #include "../block/BlockPos.hpp"
 #include "../tick/base/TickPriority.hpp"
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
+#include <deque>
 
 namespace mc {
 
@@ -18,6 +20,22 @@ namespace world {
 namespace redstone {
 
 /**
+ * @brief 红石火把烧毁记录
+ *
+ * 记录单个红石火把的翻转历史和烧毁状态。
+ */
+struct TorchBurnoutRecord {
+    /// 翻转时间戳队列（存储最近的翻转时间）
+    std::deque<u64> flipTimes;
+
+    /// 是否已烧毁
+    bool isBurnedOut = false;
+
+    /// 烧毁时间（用于冷却检测）
+    u64 burnoutTime = 0;
+};
+
+/**
  * @brief 红石系统管理器
  *
  * 协调红石信号的计算、更新和传播。
@@ -27,6 +45,7 @@ namespace redstone {
  * 1. 红石信号传播和更新调度
  * 2. 防止无限递归更新
  * 3. 更新批处理和优化
+ * 4. 红石火把烧毁跟踪
  *
  * ## 使用示例
  * ```cpp
@@ -43,6 +62,11 @@ namespace redstone {
  *     redstone.beginUpdate(pos);
  *     // 执行红石计算...
  *     redstone.endUpdate(pos);
+ * }
+ *
+ * // 红石火把翻转记录
+ * if (redstone.checkAndRecordTorchFlip(pos, currentTick)) {
+ *     // 火把烧毁
  * }
  * ```
  *
@@ -214,6 +238,65 @@ public:
         return RedstonePower::isPowered(world, pos);
     }
 
+    // ========== 红石火把烧毁跟踪 ==========
+
+    /**
+     * @brief 烧毁检测窗口（tick）
+     *
+     * 在此时间窗口内翻转达到 BURNOUT_FLIPS 次会触发烧毁。
+     */
+    static constexpr i32 BURNOUT_WINDOW = 60;
+
+    /**
+     * @brief 触发烧毁的翻转次数
+     */
+    static constexpr i32 BURNOUT_FLIPS = 8;
+
+    /**
+     * @brief 烧毁后冷却时间（tick）
+     */
+    static constexpr i32 BURNOUT_COOLDOWN = 160;
+
+    /**
+     * @brief 记录红石火把翻转并检查是否应烧毁
+     *
+     * 此方法实现 MC 1.16.5 的红石火把烧毁机制：
+     * - 在 BURNOUT_WINDOW (60) tick 内翻转 BURNOUT_FLIPS (8) 次会烧毁
+     * - 烧毁后需要等待 BURNOUT_COOLDOWN (160) tick 冷却
+     *
+     * @param pos 火把位置
+     * @param currentTick 当前游戏 tick
+     * @return true 如果火把应该烧毁
+     */
+    bool checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTick);
+
+    /**
+     * @brief 检查火把是否处于烧毁状态
+     *
+     * @param pos 火把位置
+     * @param currentTick 当前游戏 tick
+     * @return true 如果火把已烧毁且仍在冷却中
+     */
+    [[nodiscard]] bool isTorchBurnedOut(const BlockPos& pos, u64 currentTick) const;
+
+    /**
+     * @brief 清除火把的烧毁记录
+     *
+     * 当火把被移除时调用。
+     *
+     * @param pos 火把位置
+     */
+    void clearTorchRecord(const BlockPos& pos);
+
+    /**
+     * @brief 清理过期的烧毁记录
+     *
+     * 定期调用以避免内存泄漏。
+     *
+     * @param currentTick 当前游戏 tick
+     */
+    void cleanupBurnoutRecords(u64 currentTick);
+
     // ========== 重置 ==========
 
     /**
@@ -223,6 +306,7 @@ public:
      */
     void clear() {
         m_context.clear();
+        m_torchRecords.clear();
     }
 
 private:
@@ -230,6 +314,9 @@ private:
 
     /// 红石上下文（防止递归）
     RedstoneContext m_context;
+
+    /// 红石火把烧毁记录（位置 -> 记录）
+    std::unordered_map<BlockPos, TorchBurnoutRecord> m_torchRecords;
 };
 
 } // namespace redstone

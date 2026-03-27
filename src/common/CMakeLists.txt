@@ -207,6 +207,11 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/TNTBlock.cpp
     world/block/blocks/redstone/TargetBlock.cpp
 
+    # World - Block - Dispense
+    world/block/dispense/IBlockSource.cpp
+    world/block/dispense/IDispenseItemBehavior.cpp
+    world/block/dispense/DispenseItemBehaviorRegistry.cpp
+
     # World - Block Entity
     world/blockentity/core/SimpleInventory.cpp
     world/blockentity/core/LockableBlockEntity.cpp

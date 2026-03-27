@@ -1,4 +1,5 @@
 #include "RedstonePower.hpp"
+#include "RedstoneHelper.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockPos.hpp"
@@ -145,7 +146,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
 
             // 检查向上/向下连接
             // 如果相邻是实体方块，检查其上方是否有红石线
-            if (isNormalCube(*neighborState)) {
+            if (RedstoneHelper::isNormalCube(*neighborState)) {
                 BlockPos upPos = neighborPos.up();
                 const BlockState* upState = world.getBlockState(upPos.x, upPos.y, upPos.z);
                 // 检查上方红石线信号（待实现）
@@ -236,11 +237,6 @@ i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& 
 }
 
 // ========== 私有方法 ==========
-
-bool RedstonePower::isNormalCube(const BlockState& state) {
-    // 检查是否是实体方块（可以传导红石信号）
-    return state.isSolid() && state.isOpaque() && !state.isAir();
-}
 
 bool RedstonePower::canConnectRedstone(const BlockState& state) {
     // 检查方块是否可以连接红石

@@ -182,14 +182,6 @@ public:
 
 private:
     /**
-     * @brief 检查方块是否是实体方块（可以传导信号）
-     *
-     * @param state 方块状态
-     * @return true 如果是实体方块
-     */
-    [[nodiscard]] static bool isNormalCube(const BlockState& state);
-
-    /**
      * @brief 检查方块是否可以连接红石
      *
      * @param state 方块状态

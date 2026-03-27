@@ -59,10 +59,11 @@ void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     bool isCurrentlyLit = isLit(state);
 
     if (isCurrentlyLit != shouldBeLit) {
-        // 检查烧毁
-        if (checkForBurnout(world, pos, world.currentTick())) {
-            // 烧毁，暂时不改变状态，调度冷却
-            world.scheduleBlockTick(pos, *this, BURNOUT_COOLDOWN, world::tick::TickPriority::ExtremelyHigh);
+        // 记录翻转并检查烧毁
+        if (world::redstone::RedstoneSystem::instance().checkAndRecordTorchFlip(pos, world.currentTick())) {
+            // 烧毁！保持当前状态，调度下一次检查
+            world.scheduleBlockTick(pos, *this, world::redstone::RedstoneSystem::BURNOUT_COOLDOWN,
+                                   world::tick::TickPriority::ExtremelyHigh);
             return;
         }
 
@@ -95,6 +96,11 @@ i32 RedstoneTorchBlock::getWeakPower(
         return 0;
     }
 
+    // 检查是否已烧毁
+    if (world::redstone::RedstoneSystem::instance().isTorchBurnedOut(pos, world.currentTick())) {
+        return 0;
+    }
+
     // 点亮时输出强度15
     return world::redstone::RedstonePower::MAX_POWER;
 }
@@ -108,16 +114,6 @@ void RedstoneTorchBlock::updateState(IWorld& world, const BlockPos& pos, const B
         // 调度更新（延迟1 tick）
         world.scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::ExtremelyHigh);
     }
-}
-
-bool RedstoneTorchBlock::checkForBurnout(IWorld& world, const BlockPos& pos, u64 currentTick) {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(currentTick);
-    // TODO: 实现烧毁检测逻辑
-    // 需要在世界中记录火把的翻转历史
-    // 当前简化实现，不进行烧毁检测
-    return false;
 }
 
 } // namespace blocks

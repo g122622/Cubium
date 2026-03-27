@@ -97,6 +97,8 @@ add_executable(mc_tests
     # 红石系统测试
     common/world/redstone/RedstoneContextTest.cpp
     common/world/redstone/RedstoneHelperTest.cpp
+    common/world/redstone/RedstoneSystemTest.cpp
+    common/world/redstone/RedstonePowerTest.cpp
     # 射线检测测试
     common/math/RaycastTest.cpp
     # 实体生成回调测试

@@ -5,6 +5,7 @@
 #include "common/core/Result.hpp"
 #include <vector>
 #include <utility>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace item {
@@ -130,6 +131,19 @@ public:
      * @brief 从网络包反序列化
      */
     [[nodiscard]] static Result<EnchantmentContainer> deserialize(network::PacketDeserializer& deser);
+
+    /**
+     * @brief 序列化到 JSON
+     * @return JSON 数组
+     */
+    [[nodiscard]] nlohmann::json toJson() const;
+
+    /**
+     * @brief 从 JSON 反序列化
+     * @param json JSON 数组
+     * @return 附魔容器
+     */
+    [[nodiscard]] static Result<EnchantmentContainer> fromJson(const nlohmann::json& json);
 
 private:
     std::vector<EnchantmentInstance> m_enchantments;

@@ -1,6 +1,7 @@
 #include "ItemStack.hpp"
 #include "Item.hpp"
 #include "ItemRegistry.hpp"
+#include "../resource/ResourceLocation.hpp"
 #include "../world/block/Block.hpp"
 #include <algorithm>
 
@@ -291,6 +292,75 @@ Result<ItemStack> ItemStack::deserialize(network::PacketDeserializer& deser) {
         return enchantmentsResult.error();
     }
     stack.m_enchantments = std::move(enchantmentsResult.value());
+
+    return stack;
+}
+
+// ============================================================================
+// JSON 序列化
+// ============================================================================
+
+nlohmann::json ItemStack::toJson() const {
+    nlohmann::json json;
+    if (isEmpty()) {
+        return json;
+    }
+
+    json["id"] = m_item->itemLocation().toString();
+    json["Count"] = m_count;
+
+    if (m_damage > 0) {
+        json["Damage"] = m_damage;
+    }
+
+    if (hasEnchantments()) {
+        json["Enchantments"] = m_enchantments.toJson();
+    }
+
+    if (!m_customName.empty()) {
+        json["CustomName"] = m_customName;
+    }
+
+    return json;
+}
+
+Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
+    if (json.is_null() || !json.is_object()) {
+        return EMPTY;
+    }
+
+    if (!json.contains("id") || !json["id"].is_string()) {
+        return Error(ErrorCode::InvalidData, "ItemStack JSON missing 'id' field");
+    }
+
+    String itemId = json["id"].get<String>();
+    ResourceLocation itemLocation(itemId);
+    const Item* item = ItemRegistry::instance().getItem(itemLocation);
+    if (item == nullptr) {
+        return Error(ErrorCode::InvalidItem, "Unknown item ID: " + itemId);
+    }
+
+    i32 count = 1;
+    if (json.contains("Count") && json["Count"].is_number()) {
+        count = json["Count"].get<i32>();
+    }
+
+    ItemStack stack(item, count);
+
+    if (json.contains("Damage") && json["Damage"].is_number()) {
+        stack.setDamage(json["Damage"].get<i32>());
+    }
+
+    if (json.contains("Enchantments")) {
+        auto enchantResult = item::enchant::EnchantmentContainer::fromJson(json["Enchantments"]);
+        if (enchantResult.success()) {
+            stack.m_enchantments = std::move(enchantResult.value());
+        }
+    }
+
+    if (json.contains("CustomName") && json["CustomName"].is_string()) {
+        stack.m_customName = json["CustomName"].get<String>();
+    }
 
     return stack;
 }

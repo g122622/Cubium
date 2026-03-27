@@ -2,6 +2,8 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../entity/Entity.hpp"
+#include "../../../../util/AxisAlignedBB.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -113,10 +115,29 @@ i32 AbstractPressurePlateBlock::getStrongPower(
 }
 
 bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos& pos) const {
-    // TODO: 实现实体检测
-    // 当前简化实现，始终返回false
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // 创建压力板上方的碰撞箱
+    // 压力板检测范围为方块上方的一个薄层
+    AxisAlignedBB detectionBox(
+        static_cast<f32>(pos.x) + 0.125f,  // 略微收缩水平范围
+        static_cast<f32>(pos.y) + 0.0f,
+        static_cast<f32>(pos.z) + 0.125f,
+        static_cast<f32>(pos.x) + 0.875f,
+        static_cast<f32>(pos.y) + 0.25f,   // 检测向上0.25格
+        static_cast<f32>(pos.z) + 0.875f
+    );
+
+    // 查询碰撞箱内的实体
+    std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
+
+    // 过滤：只检测可以触发压力板的实体（玩家、生物、物品等）
+    for (Entity* entity : entities) {
+        if (entity != nullptr) {
+            // 根据实体类型判断是否可以触发
+            // 玩家、生物、物品实体都可以触发压力板
+            return true;
+        }
+    }
+
     return false;
 }
 
