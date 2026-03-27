@@ -99,6 +99,8 @@ add_executable(mc_tests
     common/world/redstone/RedstoneHelperTest.cpp
     common/world/redstone/RedstoneSystemTest.cpp
     common/world/redstone/RedstonePowerTest.cpp
+    # 红石方块测试
+    common/world/block/test_redstone_blocks.cpp
     # 射线检测测试
     common/math/RaycastTest.cpp
     # 实体生成回调测试

@@ -1,5 +1,7 @@
 #include "StonePressurePlateBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../entity/Entity.hpp"
+#include "../../../../util/AxisAlignedBB.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,11 +14,34 @@ StonePressurePlateBlock::StonePressurePlateBlock(const BlockProperties& properti
 }
 
 i32 StonePressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const {
-    // TODO: 实现实体检测
     // 石头压力板只能被生物触发，物品不会触发
     // 有生物时输出15，无生物时输出0
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+
+    // 创建压力板上方的碰撞箱
+    AxisAlignedBB detectionBox(
+        static_cast<f32>(pos.x) + 0.125f,
+        static_cast<f32>(pos.y) + 0.0f,
+        static_cast<f32>(pos.z) + 0.125f,
+        static_cast<f32>(pos.x) + 0.875f,
+        static_cast<f32>(pos.y) + 0.25f,
+        static_cast<f32>(pos.z) + 0.875f
+    );
+
+    // 查询碰撞箱内的实体
+    std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
+
+    // 石头压力板只被生物触发（不包括物品）
+    for (Entity* entity : entities) {
+        if (entity != nullptr) {
+            LegacyEntityType type = entity->legacyType();
+            // 石头压力板只检测玩家（后续可添加 Mob 类型）
+            if (type == LegacyEntityType::Player) {
+                return 15;  // 有生物就输出最大信号
+            }
+            // Item 类型不触发石头压力板
+        }
+    }
+
     return 0;
 }
 

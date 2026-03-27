@@ -245,6 +245,33 @@ public:
     static Block* OBSIDIAN;
 
     // ========================================================================
+    // 红石方块
+    // ========================================================================
+    static Block* REDSTONE_WIRE;          // 红石线
+    static Block* REDSTONE_TORCH;         // 红石火把
+    static Block* REDSTONE_LAMP;          // 红石灯
+    static Block* REDSTONE_REPEATER;      // 红石中继器
+    static Block* REDSTONE_COMPARATOR;    // 红石比较器
+    static Block* OBSERVER;               // 侦测器
+    static Block* LEVER;                  // 拉杆
+    static Block* STONE_BUTTON;           // 石头按钮
+    static Block* OAK_BUTTON;             // 橡木按钮
+    static Block* STONE_PRESSURE_PLATE;   // 石头压力板
+    static Block* OAK_PRESSURE_PLATE;     // 橡木压力板
+    static Block* LIGHT_WEIGHTED_PRESSURE_PLATE;  // 轻质测重压力板
+    static Block* HEAVY_WEIGHTED_PRESSURE_PLATE;  // 重质测重压力板
+    static Block* DAYLIGHT_DETECTOR;      // 日光探测器
+    static Block* PISTON;                 // 活塞
+    static Block* STICKY_PISTON;          // 粘性活塞
+    static Block* PISTON_HEAD;            // 活塞头
+    static Block* DISPENSER;              // 发射器
+    static Block* DROPPER;                // 投掷器
+    static Block* NOTE_BLOCK;             // 音符盒
+    static Block* TRIPWIRE;               // 绊线
+    static Block* TRIPWIRE_HOOK;          // 绊线钩
+    static Block* TARGET;                 // 标靶
+
+    // ========================================================================
     // 染色玻璃 (16色)
     // ========================================================================
     static Block* WHITE_STAINED_GLASS;
@@ -396,6 +423,7 @@ private:
     static void registerBoneAndHayBlocks(); // 骨块和干草块
     static void registerNetherExtensionBlocks(); // 下界扩展方块（岩浆块等）
     static void registerNaturalBlocks();    // 自然扩展方块
+    static void registerRedstoneBlocks();   // 红石方块
 };
 
 } // namespace mc

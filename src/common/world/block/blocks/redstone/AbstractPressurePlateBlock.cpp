@@ -132,9 +132,12 @@ bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos&
     // 过滤：只检测可以触发压力板的实体（玩家、生物、物品等）
     for (Entity* entity : entities) {
         if (entity != nullptr) {
-            // 根据实体类型判断是否可以触发
-            // 玩家、生物、物品实体都可以触发压力板
-            return true;
+            // 检查实体类型：玩家、生物、物品实体都可以触发压力板
+            LegacyEntityType type = entity->legacyType();
+            if (type == LegacyEntityType::Player || type == LegacyEntityType::Item) {
+                return true;
+            }
+            // 后续可以添加更多类型：Mob, Animal 等
         }
     }
 

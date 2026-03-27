@@ -218,6 +218,7 @@ add_library(mc_common STATIC
     world/blockentity/core/BlockEntityRegistry.cpp
     world/blockentity/interactive/EnchantingTableEntity.cpp
     world/blockentity/interactive/DispenserBlockEntity.cpp
+    world/blockentity/interactive/PistonBlockEntity.cpp
     world/blockentity/storage/ChestEntity.cpp
     world/blockentity/storage/TrappedChestEntity.cpp
     world/blockentity/storage/DoubleSidedInventory.cpp

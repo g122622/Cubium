@@ -5,6 +5,29 @@
 #include "blocks/FenceGateBlock.hpp"
 #include "blocks/CauldronBlock.hpp"
 #include "blocks/EnchantingTableBlock.hpp"
+#include "blocks/redstone/RedstoneWireBlock.hpp"
+#include "blocks/redstone/RedstoneTorchBlock.hpp"
+#include "blocks/redstone/RedstoneBlock.hpp"
+#include "blocks/redstone/RedstoneLampBlock.hpp"
+#include "blocks/redstone/RedstoneRepeaterBlock.hpp"
+#include "blocks/redstone/RedstoneComparatorBlock.hpp"
+#include "blocks/redstone/ObserverBlock.hpp"
+#include "blocks/redstone/LeverBlock.hpp"
+#include "blocks/redstone/StoneButtonBlock.hpp"
+#include "blocks/redstone/WoodButtonBlock.hpp"
+#include "blocks/redstone/StonePressurePlateBlock.hpp"
+#include "blocks/redstone/WoodPressurePlateBlock.hpp"
+#include "blocks/redstone/WeightedPressurePlateBlock.hpp"
+#include "blocks/redstone/DaylightDetectorBlock.hpp"
+#include "blocks/redstone/PistonBlock.hpp"
+#include "blocks/redstone/PistonHeadBlock.hpp"
+#include "blocks/redstone/DispenserBlock.hpp"
+#include "blocks/redstone/DropperBlock.hpp"
+#include "blocks/redstone/NoteBlock.hpp"
+#include "blocks/redstone/TNTBlock.hpp"
+#include "blocks/redstone/TargetBlock.hpp"
+#include "blocks/redstone/TripWireBlock.hpp"
+#include "blocks/redstone/TripWireHookBlock.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/WaterFluid.hpp"
 #include "../fluid/fluids/LavaFluid.hpp"
@@ -161,6 +184,31 @@ Block* VanillaBlocks::GLOWSTONE = nullptr;
 Block* VanillaBlocks::END_STONE = nullptr;
 Block* VanillaBlocks::OBSIDIAN = nullptr;
 
+// 红石方块
+Block* VanillaBlocks::REDSTONE_WIRE = nullptr;
+Block* VanillaBlocks::REDSTONE_TORCH = nullptr;
+Block* VanillaBlocks::REDSTONE_LAMP = nullptr;
+Block* VanillaBlocks::REDSTONE_REPEATER = nullptr;
+Block* VanillaBlocks::REDSTONE_COMPARATOR = nullptr;
+Block* VanillaBlocks::OBSERVER = nullptr;
+Block* VanillaBlocks::LEVER = nullptr;
+Block* VanillaBlocks::STONE_BUTTON = nullptr;
+Block* VanillaBlocks::OAK_BUTTON = nullptr;
+Block* VanillaBlocks::STONE_PRESSURE_PLATE = nullptr;
+Block* VanillaBlocks::OAK_PRESSURE_PLATE = nullptr;
+Block* VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE = nullptr;
+Block* VanillaBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE = nullptr;
+Block* VanillaBlocks::DAYLIGHT_DETECTOR = nullptr;
+Block* VanillaBlocks::PISTON = nullptr;
+Block* VanillaBlocks::STICKY_PISTON = nullptr;
+Block* VanillaBlocks::PISTON_HEAD = nullptr;
+Block* VanillaBlocks::DISPENSER = nullptr;
+Block* VanillaBlocks::DROPPER = nullptr;
+Block* VanillaBlocks::NOTE_BLOCK = nullptr;
+Block* VanillaBlocks::TRIPWIRE = nullptr;
+Block* VanillaBlocks::TRIPWIRE_HOOK = nullptr;
+Block* VanillaBlocks::TARGET = nullptr;
+
 // 下界方块
 Block* VanillaBlocks::SOUL_SAND = nullptr;
 Block* VanillaBlocks::SOUL_SOIL = nullptr;
@@ -305,6 +353,7 @@ void VanillaBlocks::initialize() {
     registerMineralBlocks();
     registerBuildingBlocks();
     registerFunctionalBlocks();
+    registerRedstoneBlocks();
     registerWoolBlocks();
     registerPlanksVariants();
     registerNetherBlocks();
@@ -1468,6 +1517,184 @@ void VanillaBlocks::registerNaturalBlocks() {
     SUGAR_CANE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:sugar_cane"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+}
+
+// ============================================================================
+// 红石方块注册
+// ============================================================================
+void VanillaBlocks::registerRedstoneBlocks() {
+    auto& registry = BlockRegistry::instance();
+
+    // 红石线
+    // 参考: new RedstoneWireBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
+    REDSTONE_WIRE = &registry.registerBlock<blocks::RedstoneWireBlock>(
+        ResourceLocation("minecraft:redstone_wire"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid()
+    );
+
+    // 红石火把
+    // 参考: new RedstoneTorchBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(7))
+    REDSTONE_TORCH = &registry.registerBlock<blocks::RedstoneTorchBlock>(
+        ResourceLocation("minecraft:redstone_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7)
+    );
+
+    // 红石灯
+    // 参考: new RedstoneLampBlock(Properties.create(Material.REDSTONE_LIGHT).hardnessAndResistance(0.3F))
+    REDSTONE_LAMP = &registry.registerBlock<blocks::RedstoneLampBlock>(
+        ResourceLocation("minecraft:redstone_lamp"),
+        BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f)
+    );
+
+    // 红石中继器
+    // 参考: new RepeaterBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
+    REDSTONE_REPEATER = &registry.registerBlock<blocks::RedstoneRepeaterBlock>(
+        ResourceLocation("minecraft:repeater"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid()
+    );
+
+    // 红石比较器
+    // 参考: new ComparatorBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
+    REDSTONE_COMPARATOR = &registry.registerBlock<blocks::RedstoneComparatorBlock>(
+        ResourceLocation("minecraft:comparator"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid()
+    );
+
+    // 侦测器
+    // 参考: new ObserverBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F))
+    OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
+        ResourceLocation("minecraft:observer"),
+        BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f)
+    );
+
+    // 拉杆
+    // 参考: new LeverBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
+    LEVER = &registry.registerBlock<blocks::LeverBlock>(
+        ResourceLocation("minecraft:lever"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid()
+    );
+
+    // 石头按钮
+    // 参考: new StoneButtonBlock(Properties.create(Material.ROCK).doesNotBlockMovement().zeroHardnessAndResistance())
+    STONE_BUTTON = &registry.registerBlock<blocks::StoneButtonBlock>(
+        ResourceLocation("minecraft:stone_button"),
+        BlockProperties(Material::ROCK).noCollision().notSolid()
+    );
+
+    // 橡木按钮
+    // 参考: new WoodButtonBlock(Properties.create(Material.WOOD).doesNotBlockMovement().zeroHardnessAndResistance())
+    OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:oak_button"),
+        BlockProperties(Material::WOOD).noCollision().notSolid().flammable()
+    );
+
+    // 石头压力板
+    // 参考: new PressurePlateBlock(PressurePlateBlock.Sensitivity.EVERYTHING, Properties.create(Material.ROCK).doesNotBlockMovement().hardnessAndResistance(0.5F))
+    STONE_PRESSURE_PLATE = &registry.registerBlock<blocks::StonePressurePlateBlock>(
+        ResourceLocation("minecraft:stone_pressure_plate"),
+        BlockProperties(Material::ROCK).noCollision().notSolid().hardness(0.5f)
+    );
+
+    // 橡木压力板
+    // 参考: new PressurePlateBlock(PressurePlateBlock.Sensitivity.EVERYTHING, Properties.create(Material.WOOD).doesNotBlockMovement().hardnessAndResistance(0.5F))
+    OAK_PRESSURE_PLATE = &registry.registerBlock<blocks::WoodPressurePlateBlock>(
+        ResourceLocation("minecraft:oak_pressure_plate"),
+        BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable()
+    );
+
+    // 轻质测重压力板
+    // 参考: new WeightedPressurePlateBlock(1, Properties.create(Material.IRON).doesNotBlockMovement().hardnessAndResistance(0.5F))
+    LIGHT_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
+        ResourceLocation("minecraft:light_weighted_pressure_plate"),
+        BlockProperties(Material::IRON).noCollision().notSolid().hardness(0.5f),
+        blocks::WeightedPressurePlateBlock::Sensitivity::Light
+    );
+
+    // 重质测重压力板
+    // 参考: new WeightedPressurePlateBlock(10, Properties.create(Material.IRON).doesNotBlockMovement().hardnessAndResistance(0.5F))
+    HEAVY_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
+        ResourceLocation("minecraft:heavy_weighted_pressure_plate"),
+        BlockProperties(Material::IRON).noCollision().notSolid().hardness(0.5f),
+        blocks::WeightedPressurePlateBlock::Sensitivity::Heavy
+    );
+
+    // 日光探测器
+    // 参考: new DaylightDetectorBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.2F))
+    DAYLIGHT_DETECTOR = &registry.registerBlock<blocks::DaylightDetectorBlock>(
+        ResourceLocation("minecraft:daylight_detector"),
+        BlockProperties(Material::WOOD).hardness(0.2f).flammable()
+    );
+
+    // 活塞
+    // 参考: new PistonBlock(false, Properties.create(Material.PISTON).hardnessAndResistance(0.5F))
+    PISTON = &registry.registerBlock<blocks::PistonBlock>(
+        ResourceLocation("minecraft:piston"),
+        BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f),
+        false  // not sticky
+    );
+
+    // 粘性活塞
+    // 参考: new PistonBlock(true, Properties.create(Material.PISTON).hardnessAndResistance(0.5F))
+    STICKY_PISTON = &registry.registerBlock<blocks::PistonBlock>(
+        ResourceLocation("minecraft:sticky_piston"),
+        BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f),
+        true  // sticky
+    );
+
+    // 活塞头
+    PISTON_HEAD = &registry.registerBlock<blocks::PistonHeadBlock>(
+        ResourceLocation("minecraft:piston_head"),
+        BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f)
+    );
+
+    // 发射器
+    // 参考: new DispenserBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F))
+    DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(
+        ResourceLocation("minecraft:dispenser"),
+        BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f)
+    );
+
+    // 投掷器
+    // 参考: new DropperBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F))
+    DROPPER = &registry.registerBlock<blocks::DropperBlock>(
+        ResourceLocation("minecraft:dropper"),
+        BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f)
+    );
+
+    // 音符盒
+    // 参考: new NoteBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.8F))
+    NOTE_BLOCK = &registry.registerBlock<blocks::NoteBlock>(
+        ResourceLocation("minecraft:note_block"),
+        BlockProperties(Material::WOOD).hardness(0.8f).flammable()
+    );
+
+    // TNT
+    // 参考: new TNTBlock(Properties.create(Material.TNT).hardnessAndResistance(0.0F, 0.0F))
+    TNT = &registry.registerBlock<blocks::TNTBlock>(
+        ResourceLocation("minecraft:tnt"),
+        BlockProperties(Material::TNT).hardness(0.0f)
+    );
+
+    // 标靶
+    // 参考: new TargetBlock(Properties.create(Material.WOOL).hardnessAndResistance(0.5F))
+    TARGET = &registry.registerBlock<blocks::TargetBlock>(
+        ResourceLocation("minecraft:target"),
+        BlockProperties(Material::WOOL).hardness(0.5f)
+    );
+
+    // 绊线
+    // 参考: new TripWireBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
+    TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(
+        ResourceLocation("minecraft:tripwire"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid()
+    );
+
+    // 绊线钩
+    // 参考: new TripWireHookBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
+    TRIPWIRE_HOOK = &registry.registerBlock<blocks::TripWireHookBlock>(
+        ResourceLocation("minecraft:tripwire_hook"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid()
+    );
 }
 
 } // namespace mc

@@ -3,6 +3,8 @@
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockPos.hpp"
+#include "../block/VanillaBlocks.hpp"
+#include "../block/blocks/redstone/RedstoneWireBlock.hpp"
 #include "../../util/Direction.hpp"
 
 namespace mc {
@@ -137,26 +139,39 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
             BlockPos neighborPos = pos.offset(dir);
             const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
 
-            if (!neighborState || neighborState->isAir()) {
+            if (!neighborState) {
                 continue;
             }
 
-            // 检查是否是红石线（这里需要后续实现 RedstoneWireBlock 后补充）
-            // 暂时跳过，在实现红石线时会修改这个方法
+            // 检查水平相邻的红石线
+            if (neighborState->is(VanillaBlocks::REDSTONE_WIRE)) {
+                i32 wirePower = blocks::RedstoneWireBlock::getPower(*neighborState) - 1;
+                if (wirePower > maxPower) {
+                    maxPower = wirePower;
+                }
+            }
 
             // 检查向上/向下连接
             // 如果相邻是实体方块，检查其上方是否有红石线
             if (RedstoneHelper::isNormalCube(*neighborState)) {
                 BlockPos upPos = neighborPos.up();
                 const BlockState* upState = world.getBlockState(upPos.x, upPos.y, upPos.z);
-                // 检查上方红石线信号（待实现）
-                (void)upState;  // 暂时忽略
+                if (upState && upState->is(VanillaBlocks::REDSTONE_WIRE)) {
+                    i32 wirePower = blocks::RedstoneWireBlock::getPower(*upState) - 1;
+                    if (wirePower > maxPower) {
+                        maxPower = wirePower;
+                    }
+                }
             } else {
                 // 相邻不是实体方块，检查其下方是否有红石线
                 BlockPos downPos = neighborPos.down();
                 const BlockState* downState = world.getBlockState(downPos.x, downPos.y, downPos.z);
-                // 检查下方红石线信号（待实现）
-                (void)downState;  // 暂时忽略
+                if (downState && downState->is(VanillaBlocks::REDSTONE_WIRE)) {
+                    i32 wirePower = blocks::RedstoneWireBlock::getPower(*downState) - 1;
+                    if (wirePower > maxPower) {
+                        maxPower = wirePower;
+                    }
+                }
             }
         }
     }
@@ -182,7 +197,9 @@ i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direct
 
     // 2. 检查红石线信号
     // 如果输入端是红石线，获取其信号强度
-    // （待红石线实现后补充）
+    if (inputState->is(VanillaBlocks::REDSTONE_WIRE)) {
+        return blocks::RedstoneWireBlock::getPower(*inputState);
+    }
 
     // 3. 获取普通的红石信号
     i32 power = MIN_POWER;

@@ -4,6 +4,7 @@
 #include "../block/BlockPos.hpp"
 #include <unordered_set>
 #include <mutex>
+#include <atomic>
 
 namespace mc {
 namespace world {
@@ -84,7 +85,7 @@ public:
     /**
      * @brief 获取当前更新深度
      */
-    [[nodiscard]] i32 depth() const { return m_depth; }
+    [[nodiscard]] i32 depth() const { return m_depth.load(std::memory_order_relaxed); }
 
     /**
      * @brief 清空所有状态
@@ -101,7 +102,7 @@ public:
 private:
     mutable std::mutex m_mutex;
     std::unordered_set<BlockPos> m_updatingPositions;
-    i32 m_depth = 0;
+    std::atomic<i32> m_depth{0};
 };
 
 } // namespace redstone

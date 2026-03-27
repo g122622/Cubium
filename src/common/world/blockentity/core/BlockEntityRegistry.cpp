@@ -1,5 +1,6 @@
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
 #include "world/blockentity/CraftingTableEntity.hpp"
+#include "world/blockentity/interactive/PistonBlockEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -19,6 +20,11 @@ void BlockEntityRegistry::registerBuiltinTypes() {
     // 注册工作台方块实体
     registerType(BlockEntityType::CraftingTable, [](const BlockPos& pos) {
         return std::make_unique<CraftingTableEntity>(pos);
+    });
+
+    // 注册活塞方块实体
+    registerType(BlockEntityType::Piston, [](const BlockPos& pos) {
+        return std::make_unique<PistonBlockEntity>(pos);
     });
 
     // 其他方块实体类型将在后续实现中注册：

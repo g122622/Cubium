@@ -103,12 +103,19 @@ i32 DaylightDetectorBlock::getStrongPower(
 }
 
 i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted) {
-    // TODO: 实现天空光照检测
-    // 当前简化实现，返回0
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(inverted);
-    return 0;
+    // 获取天空光照级别
+    u8 skyLight = world.getSkyLight(pos.x, pos.y + 1, pos.z);  // 检测上方一格
+
+    // 转换为信号强度
+    // 天空光照 0-15 直接对应信号强度
+    // 反转模式下，信号强度 = 15 - 天空光照
+    i32 power = static_cast<i32>(skyLight);
+
+    if (inverted) {
+        power = 15 - power;
+    }
+
+    return std::clamp(power, 0, 15);
 }
 
 void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, const BlockState& state) {

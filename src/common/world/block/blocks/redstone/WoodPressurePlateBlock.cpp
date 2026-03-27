@@ -1,5 +1,7 @@
 #include "WoodPressurePlateBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../entity/Entity.hpp"
+#include "../../../../util/AxisAlignedBB.hpp"
 
 namespace mc {
 namespace blocks {
@@ -12,11 +14,29 @@ WoodPressurePlateBlock::WoodPressurePlateBlock(const BlockProperties& properties
 }
 
 i32 WoodPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const {
-    // TODO: 实现实体检测
     // 木压力板可以被所有实体触发（玩家、怪物、物品等）
     // 有实体时输出15，无实体时输出0
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+
+    // 创建压力板上方的碰撞箱
+    AxisAlignedBB detectionBox(
+        static_cast<f32>(pos.x) + 0.125f,
+        static_cast<f32>(pos.y) + 0.0f,
+        static_cast<f32>(pos.z) + 0.125f,
+        static_cast<f32>(pos.x) + 0.875f,
+        static_cast<f32>(pos.y) + 0.25f,
+        static_cast<f32>(pos.z) + 0.875f
+    );
+
+    // 查询碰撞箱内的实体
+    std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
+
+    // 木压力板被任何实体触发
+    for (Entity* entity : entities) {
+        if (entity != nullptr) {
+            return 15;  // 有实体就输出最大信号
+        }
+    }
+
     return 0;
 }
 
