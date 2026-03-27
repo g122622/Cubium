@@ -1,0 +1,170 @@
+#pragma once
+
+#include "world/block/Block.hpp"
+#include "world/block/BlockState.hpp"
+#include "world/block/Material.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/blockentity/BlockEntityType.hpp"
+#include "util/property/Properties.hpp"
+#include <memory>
+
+namespace mc {
+
+class World;
+class BlockItemUseContext;
+class Player;
+
+namespace blocks {
+
+/**
+ * @brief 熔炉方块基类
+ *
+ * 提供熔炉、高炉、烟熏炉的通用功能：
+ * - FACING 属性：水平朝向
+ * - LIT 属性：是否点燃
+ * - 红石比较器信号
+ * - 方块实体交互
+ *
+ * 参考: net.minecraft.block.AbstractFurnaceBlock
+ *
+ * 子类:
+ * - FurnaceBlock（普通熔炉）
+ * - BlastFurnaceBlock（高炉）
+ * - SmokerBlock（烟熏炉）
+ */
+class AbstractFurnaceBlock : public Block {
+public:
+    // ========== 构造函数 ==========
+
+    /**
+     * @brief 构造函数
+     * @param properties 方块属性
+     */
+    explicit AbstractFurnaceBlock(const BlockProperties& properties);
+
+    /**
+     * @brief 析构函数
+     */
+    ~AbstractFurnaceBlock() override = default;
+
+    // ========== 方块状态 ==========
+
+    /**
+     * @brief 创建方块状态容器
+     */
+    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+
+    /**
+     * @brief 获取默认状态
+     */
+    [[nodiscard]] const BlockState& getDefaultState() const override;
+
+    // ========== 放置和更新 ==========
+
+    /**
+     * @brief 获取放置时的方块状态
+     * @param context 放置上下文
+     * @return 方块状态
+     */
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    // ========== 方块实体 ==========
+
+    /**
+     * @brief 检查是否有方块实体
+     */
+    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家右键点击
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     * @param hand 手
+     * @param hit 射线检测结果
+     * @return 交互结果
+     */
+    [[nodiscard]] ActionResult onBlockActivated(
+        const BlockState& state,
+        World& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit
+    ) override;
+
+    // ========== 红石 ==========
+
+    /**
+     * @brief 检查是否有红石比较器输入覆盖
+     */
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+        return true;
+    }
+
+    /**
+     * @brief 获取红石比较器信号
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @return 信号强度 (0-15)
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state,
+        World& world,
+        const BlockPos& pos
+    ) const override;
+
+    // ========== 旋转和镜像 ==========
+
+    /**
+     * @brief 旋转方块状态
+     * @param state 原状态
+     * @param rotation 旋转
+     * @return 旋转后的状态
+     */
+    [[nodiscard]] const BlockState& rotate(
+        const BlockState& state,
+        Rotation rotation
+    ) const override;
+
+    /**
+     * @brief 镜像方块状态
+     * @param state 原状态
+     * @param mirror 镜像
+     * @return 镜像后的状态
+     */
+    [[nodiscard]] const BlockState& mirror(
+        const BlockState& state,
+        Mirror mirror
+    ) const override;
+
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 检查熔炉是否点燃
+     * @param state 方块状态
+     * @return 如果点燃返回true
+     */
+    [[nodiscard]] static bool isLit(const BlockState& state);
+
+protected:
+    /**
+     * @brief 与熔炉交互（打开GUI）
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     */
+    virtual void interactWith(World& world, const BlockPos& pos, Player& player) = 0;
+
+    /**
+     * @brief 获取方块实体类型
+     */
+    [[nodiscard]] virtual BlockEntityType getBlockEntityType() const = 0;
+};
+
+} // namespace blocks
+} // namespace mc

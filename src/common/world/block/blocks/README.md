@@ -6,15 +6,31 @@
 
 ```
 blocks/
-├── AirBlock.hpp         # 空气方块头文件
-├── AirBlock.cpp         # 空气方块实现
-├── LiquidBlock.hpp      # 液体方块头文件
-├── LiquidBlock.cpp      # 液体方块实现
-├── RotatedPillarBlock.hpp  # 旋转柱状方块头文件
-├── RotatedPillarBlock.cpp  # 旋转柱状方块实现
-├── SimpleBlock.hpp      # 简单方块头文件
-├── SimpleBlock.cpp      # 简单方块实现
-└── README.md            # 本文档
+├── AirBlock.hpp             # 空气方块头文件
+├── AirBlock.cpp             # 空气方块实现
+├── LiquidBlock.hpp          # 液体方块头文件
+├── LiquidBlock.cpp          # 液体方块实现
+├── RotatedPillarBlock.hpp   # 旋转柱状方块头文件
+├── RotatedPillarBlock.cpp   # 旋转柱状方块实现
+├── SimpleBlock.hpp          # 简单方块头文件
+├── SimpleBlock.cpp          # 简单方块实现
+├── ChestBlock.hpp           # 箱子方块头文件
+├── ChestBlock.cpp           # 箱子方块实现
+├── TrappedChestBlock.hpp    # 陷阱箱方块头文件
+├── TrappedChestBlock.cpp    # 陷阱箱方块实现
+├── HopperBlock.hpp          # 漏斗方块头文件
+├── HopperBlock.cpp          # 漏斗方块实现
+├── AbstractFurnaceBlock.hpp # 熔炉方块基类头文件
+├── FurnaceBlocks.hpp        # 熔炉方块实现（熔炉/高炉/烟熏炉）
+├── DoorBlock.hpp            # 门方块头文件
+├── DoorBlock.cpp            # 门方块实现
+├── FenceGateBlock.hpp       # 栅栏门方块头文件
+├── FenceGateBlock.cpp       # 栅栏门方块实现
+├── CauldronBlock.hpp        # 炼药锅方块头文件
+├── CauldronBlock.cpp        # 炼药锅方块实现
+├── EnchantingTableBlock.hpp # 附魔台方块头文件
+├── EnchantingTableBlock.cpp # 附魔台方块实现
+└── README.md                # 本文档
 ```
 
 ## 类继承关系
@@ -61,10 +77,63 @@ classDiagram
         +fluidLevelToBlockLevel() i32
     }
 
+    class ChestBlock {
+        +CHEST_TYPE() EnumProperty
+        +createBlockEntity()
+        +getShape()
+    }
+
+    class HopperBlock {
+        +FACING() DirectionProperty
+        +ENABLED() BooleanProperty
+        +createBlockEntity()
+    }
+
+    class AbstractFurnaceBlock {
+        +FACING() DirectionProperty
+        +LIT() BooleanProperty
+        +createBlockEntity()
+    }
+
+    class DoorBlock {
+        +HALF() EnumProperty
+        +FACING() DirectionProperty
+        +OPEN() BooleanProperty
+        +HINGE() EnumProperty
+        +toggleDoor()
+    }
+
+    class FenceGateBlock {
+        +FACING() DirectionProperty
+        +OPEN() BooleanProperty
+        +IN_WALL() BooleanProperty
+        +getShape()
+    }
+
+    class CauldronBlock {
+        +LEVEL_0_3() IntegerProperty
+        +getLevel() i32
+        +setLevel()
+        +getComparatorInputOverride()
+    }
+
+    class EnchantingTableBlock {
+        +createBlockEntity()
+        +getShape()
+        +getOcclusionShape()
+    }
+
     Block <|-- AirBlock
     Block <|-- SimpleBlock
     Block <|-- RotatedPillarBlock
     Block <|-- LiquidBlock
+    Block <|-- ChestBlock
+    Block <|-- HopperBlock
+    Block <|-- AbstractFurnaceBlock
+    Block <|-- DoorBlock
+    Block <|-- FenceGateBlock
+    Block <|-- CauldronBlock
+    Block <|-- EnchantingTableBlock
 ```
 
 ## 文件详解

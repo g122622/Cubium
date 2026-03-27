@@ -439,6 +439,93 @@ public:
         return *prop;
     }
 
+    // ========================================================================
+    // 箱子类型属性
+    // ========================================================================
+
+    /**
+     * @brief 箱子类型枚举
+     */
+    enum class ChestType : u8 {
+        Single = 0,   ///< 单箱
+        Left = 1,     ///< 双箱左半
+        Right = 2     ///< 双箱右半
+    };
+
+    /**
+     * @brief 箱子类型属性
+     */
+    static const EnumProperty<ChestType>& CHEST_TYPE() {
+        static auto prop = EnumProperty<ChestType>::create("type", {
+            ChestType::Single,
+            ChestType::Left,
+            ChestType::Right
+        });
+        return *prop;
+    }
+
+    // ========================================================================
+    // 门相关属性
+    // ========================================================================
+
+    /**
+     * @brief 双方块半部分枚举（门）
+     */
+    enum class DoubleBlockHalf : u8 {
+        Upper = 0,  ///< 上半部分
+        Lower = 1   ///< 下半部分
+    };
+
+    /**
+     * @brief 双方块半部分属性
+     */
+    static const EnumProperty<DoubleBlockHalf>& HALF() {
+        static auto prop = EnumProperty<DoubleBlockHalf>::create("half", {
+            DoubleBlockHalf::Upper,
+            DoubleBlockHalf::Lower
+        });
+        return *prop;
+    }
+
+    /**
+     * @brief 门铰链位置枚举
+     */
+    enum class DoorHinge : u8 {
+        Left = 0,   ///< 左铰链
+        Right = 1   ///< 右铰链
+    };
+
+    /**
+     * @brief 门铰链属性
+     */
+    static const EnumProperty<DoorHinge>& HINGE() {
+        static auto prop = EnumProperty<DoorHinge>::create("hinge", {
+            DoorHinge::Left,
+            DoorHinge::Right
+        });
+        return *prop;
+    }
+
+    /**
+     * @brief 栅栏门在墙内状态
+     */
+    static const BooleanProperty& IN_WALL() {
+        static auto prop = BooleanProperty::create("in_wall");
+        return *prop;
+    }
+
+    // ========================================================================
+    // 炼药锅属性
+    // ========================================================================
+
+    /**
+     * @brief 炼药锅水位 (0-3)
+     */
+    static const IntegerProperty& LEVEL_0_3() {
+        static auto prop = IntegerProperty::create("level", 0, 3);
+        return *prop;
+    }
+
 private:
     // 禁止实例化
     BlockStateProperties() = delete;

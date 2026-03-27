@@ -408,6 +408,18 @@ bool Block::isSolidSide(const BlockState& state, IWorld& world, const BlockPos& 
     return m_material->isSolid() && m_hasCollision;
 }
 
+const BlockState& Block::rotate(const BlockState& state, Rotation rotation) const {
+    // 默认实现：不旋转，返回原状态
+    (void)rotation;
+    return state;
+}
+
+const BlockState& Block::mirror(const BlockState& state, Mirror mirror) const {
+    // 默认实现：不镜像，返回原状态
+    (void)mirror;
+    return state;
+}
+
 const loot::LootTable* Block::getLootTable(const loot::LootTableManager& manager) const {
     if (m_lootTableId.empty()) {
         return nullptr;

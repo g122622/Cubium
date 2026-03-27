@@ -35,6 +35,29 @@ enum class Axis : u8 {
 };
 
 /**
+ * @brief 旋转枚举（用于结构旋转）
+ *
+ * 参考: net.minecraft.util.Rotation
+ */
+enum class Rotation : u8 {
+    None = 0,       ///< 无旋转
+    Clockwise90 = 1, ///< 顺时针90度
+    Clockwise180 = 2, ///< 180度
+    CounterClockwise90 = 3 ///< 逆时针90度（顺时针270度）
+};
+
+/**
+ * @brief 镜像枚举（用于结构镜像）
+ *
+ * 参考: net.minecraft.util.Mirror
+ */
+enum class Mirror : u8 {
+    None = 0,   ///< 无镜像
+    LeftRight = 1, ///< 左右镜像（X轴）
+    FrontBack = 2  ///< 前后镜像（Z轴）
+};
+
+/**
  * @brief 轴方向枚举
  */
 enum class AxisDirection : u8 {
@@ -280,6 +303,63 @@ namespace Directions {
         if (dx < 0 && dy == 0 && dz == 0) return Direction::West;
         if (dx > 0 && dy == 0 && dz == 0) return Direction::East;
         return Direction::None;
+    }
+
+    /**
+     * @brief 旋转方向
+     *
+     * 根据旋转类型旋转水平方向。
+     *
+     * @param dir 方向（仅水平方向有效）
+     * @param rotation 旋转类型
+     * @return 旋转后的方向
+     */
+    inline Direction rotateDirection(Direction dir, Rotation rotation) {
+        if (!isHorizontal(dir)) {
+            return dir;
+        }
+
+        switch (rotation) {
+            case Rotation::None:
+                return dir;
+            case Rotation::Clockwise90:
+                return rotateY(dir);
+            case Rotation::Clockwise180:
+                return opposite(dir);
+            case Rotation::CounterClockwise90:
+                return rotateYCCW(dir);
+            default:
+                return dir;
+        }
+    }
+
+    /**
+     * @brief 将镜像转换为旋转
+     *
+     * 根据镜像类型和原始朝向计算旋转角度。
+     *
+     * @param mirror 镜像类型
+     * @param dir 原始朝向
+     * @return 旋转类型
+     */
+    inline Rotation mirrorToRotation(Mirror mirror, Direction dir) {
+        switch (mirror) {
+            case Mirror::LeftRight:
+                // 左右镜像：南北朝向需要180度旋转
+                if (dir == Direction::North || dir == Direction::South) {
+                    return Rotation::Clockwise180;
+                }
+                return Rotation::None;
+            case Mirror::FrontBack:
+                // 前后镜像：东西朝向需要180度旋转
+                if (dir == Direction::East || dir == Direction::West) {
+                    return Rotation::Clockwise180;
+                }
+                return Rotation::None;
+            case Mirror::None:
+            default:
+                return Rotation::None;
+        }
     }
 }
 

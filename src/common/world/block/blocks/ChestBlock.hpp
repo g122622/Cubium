@@ -1,0 +1,210 @@
+#pragma once
+
+#include "world/block/Block.hpp"
+#include "world/block/BlockState.hpp"
+#include "world/block/Material.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/blockentity/BlockEntityType.hpp"
+#include "util/property/Properties.hpp"
+#include <memory>
+
+namespace mc {
+
+class World;
+class BlockItemUseContext;
+class ChestEntity;
+
+namespace blocks {
+
+/**
+ * @brief 箱子方块
+ *
+ * 方块状态属性：
+ * - FACING: 朝向（北/南/东/西）
+ * - TYPE: 箱子类型（SINGLE/LEFT/RIGHT）
+ * - WATERLOGGED: 是否含水
+ *
+ * 参考: net.minecraft.block.ChestBlock
+ *
+ * 双箱机制：
+ * - 当两个箱子相邻放置时会自动合并
+ * - 左箱子(ChestType::LEFT)向右连接
+ * - 右箱子(ChestType::RIGHT)向左连接
+ * - 合并后形成54格双箱
+ */
+class ChestBlock : public Block {
+public:
+    /**
+     * @brief 构造函数
+     * @param properties 方块属性
+     */
+    explicit ChestBlock(const BlockProperties& properties);
+
+    /**
+     * @brief 析构函数
+     */
+    ~ChestBlock() override = default;
+
+    // ========== 方块状态 ==========
+
+    /**
+     * @brief 创建方块状态容器
+     */
+    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+
+    /**
+     * @brief 获取默认状态
+     */
+    [[nodiscard]] const BlockState& getDefaultState() const override;
+
+    // ========== 放置和更新 ==========
+
+    /**
+     * @brief 获取放置时的方块状态
+     * @param context 放置上下文
+     * @return 方块状态
+     */
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    /**
+     * @brief 邻居方块更新
+     * @param state 当前方块状态
+     * @param world 世界
+     * @param pos 当前位置
+     * @param neighborBlock 邻居方块
+     * @param neighborPos 邻居位置
+     * @param isMoving 是否正在移动
+     * @return 更新后的方块状态
+     */
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& neighborState,
+        IWorld& world,
+        const BlockPos& pos,
+        const BlockPos& neighborPos
+    ) override;
+
+    // ========== 方块实体 ==========
+
+    /**
+     * @brief 检查是否有方块实体
+     */
+    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+
+    /**
+     * @brief 创建方块实体
+     * @param pos 方块位置
+     * @return 方块实体
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家右键点击
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     * @param hand 手
+     * @param hit 射线检测结果
+     * @return 交互结果
+     */
+    [[nodiscard]] ActionResult onBlockActivated(
+        const BlockState& state,
+        World& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit
+    ) override;
+
+    // ========== 红石 ==========
+
+    /**
+     * @brief 检查是否可以提供红石信号
+     */
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+        return false;  // 普通箱子不提供信号
+    }
+
+    /**
+     * @brief 获取红石比较器信号
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @return 信号强度 (0-15)
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state,
+        World& world,
+        const BlockPos& pos
+    ) const override;
+
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 获取箱子连接的方向
+     * @param state 方块状态
+     * @return 连接方向，如果是单箱返回Direction::None
+     */
+    [[nodiscard]] static Direction getConnectedDirection(const BlockState& state);
+
+    /**
+     * @brief 检查位置是否被阻挡
+     * @param world 世界
+     * @param pos 位置
+     * @return 如果被阻挡返回true
+     */
+    [[nodiscard]] static bool isBlocked(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 检查猫是否坐在箱子上
+     * @param world 世界
+     * @param pos 位置
+     * @return 如果有猫坐着返回true
+     */
+    [[nodiscard]] static bool isCatSittingOn(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 获取方块实体类型
+     * @return 方块实体类型
+     */
+    [[nodiscard]] virtual BlockEntityType getBlockEntityType() const {
+        return BlockEntityType::Chest;
+    }
+
+protected:
+    /**
+     * @brief 合并两个箱子
+     * @param state 当前方块状态
+     * @param world 世界
+     * @param pos 当前位置
+     * @param facing 合并方向
+     */
+    void combineChests(
+        const BlockState& state,
+        World& world,
+        const BlockPos& pos,
+        Direction facing
+    );
+
+    /**
+     * @brief 检查相邻位置是否可以合并
+     * @param world 世界
+     * @param pos 当前位置
+     * @param facing 检查方向
+     * @param expectedFacing 期望的朝向
+     * @return 如果可以合并返回true
+     */
+    [[nodiscard]] bool canCombineWithChestAt(
+        IWorld& world,
+        const BlockPos& pos,
+        Direction facing,
+        Direction expectedFacing
+    ) const;
+};
+
+} // namespace blocks
+} // namespace mc

@@ -12,7 +12,15 @@ blockentity/
 ├── BlockEntityType.cpp       # 类型转换函数
 ├── ContainerBlockEntity.hpp  # 容器方块实体基类
 ├── CraftingTableEntity.hpp   # 工作台方块实体
-└── CraftingTableEntity.cpp   # 工作台实现
+├── CraftingTableEntity.cpp   # 工作台实现
+├── core/                     # 核心基础设施（预留）
+├── storage/                  # 存储类方块实体（预留）
+├── transport/                # 传输类方块实体（预留）
+├── processing/               # 加工类方块实体（预留）
+└── interactive/              # 交互类方块实体
+    ├── README.md
+    ├── EnchantingTableEntity.hpp  # 附魔台方块实体
+    └── EnchantingTableEntity.cpp  # 附魔台实现
 ```
 
 ## 文件详解

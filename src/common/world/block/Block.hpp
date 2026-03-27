@@ -857,6 +857,34 @@ public:
      */
     [[nodiscard]] virtual bool ticksRandomly() const { return false; }
 
+    // ========================================================================
+    // 旋转和镜像
+    // ========================================================================
+
+    /**
+     * @brief 旋转方块状态
+     *
+     * 用于结构放置时的旋转处理。
+     * 默认实现返回原状态（不旋转）。
+     *
+     * @param state 原状态
+     * @param rotation 旋转类型
+     * @return 旋转后的状态
+     */
+    [[nodiscard]] virtual const BlockState& rotate(const BlockState& state, Rotation rotation) const;
+
+    /**
+     * @brief 镜像方块状态
+     *
+     * 用于结构放置时的镜像处理。
+     * 默认实现返回原状态（不镜像）。
+     *
+     * @param state 原状态
+     * @param mirror 镜像类型
+     * @return 镜像后的状态
+     */
+    [[nodiscard]] virtual const BlockState& mirror(const BlockState& state, Mirror mirror) const;
+
     /**
      * @brief 转换为字符串
      */
