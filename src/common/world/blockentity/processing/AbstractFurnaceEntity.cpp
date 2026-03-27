@@ -57,8 +57,11 @@ void AbstractFurnaceEntity::tick(IWorld& world) {
     ItemStack inputItem = m_inventory.getInputItem();
     ItemStack fuelItem = m_inventory.getFuelItem();
 
+    // 缓存配方以避免重复查询
+    const crafting::SmeltingRecipe* cachedRecipe = getRecipe(world);
+
     // 检查是否可以燃烧/熔炼
-    bool canSmeltNow = canSmelt(world);
+    bool canSmeltNow = canSmeltWithRecipe(cachedRecipe);
 
     if (isBurning() || (!fuelItem.isEmpty() && canSmeltNow)) {
         // 如果没在燃烧且可以熔炼，尝试消耗燃料
@@ -79,8 +82,8 @@ void AbstractFurnaceEntity::tick(IWorld& world) {
             if (m_cookTime >= m_cookTimeTotal) {
                 // 完成熔炼
                 m_cookTime = 0;
-                m_cookTimeTotal = getCookTime(world);
-                smelt(world);
+                m_cookTimeTotal = getCookTimeFromRecipe(cachedRecipe);
+                smeltWithRecipe(cachedRecipe);
                 setChanged();
             }
         } else if (!canSmeltNow) {
@@ -197,6 +200,10 @@ i32 AbstractFurnaceEntity::getBurnTime(const ItemStack& stack) {
 
 i32 AbstractFurnaceEntity::getCookTime(IWorld& world) const {
     const crafting::SmeltingRecipe* recipe = getRecipe(world);
+    return getCookTimeFromRecipe(recipe);
+}
+
+i32 AbstractFurnaceEntity::getCookTimeFromRecipe(const crafting::SmeltingRecipe* recipe) const {
     if (recipe != nullptr) {
         return recipe->getCookTime();
     }
@@ -204,13 +211,15 @@ i32 AbstractFurnaceEntity::getCookTime(IWorld& world) const {
 }
 
 bool AbstractFurnaceEntity::canSmelt(IWorld& world) const {
+    return canSmeltWithRecipe(getRecipe(world));
+}
+
+bool AbstractFurnaceEntity::canSmeltWithRecipe(const crafting::SmeltingRecipe* recipe) const {
     const ItemStack& input = m_inventory.getInputItem();
     if (input.isEmpty()) {
         return false;
     }
 
-    // 获取熔炼配方
-    const crafting::SmeltingRecipe* recipe = getRecipe(world);
     if (recipe == nullptr) {
         return false;
     }
@@ -234,11 +243,14 @@ bool AbstractFurnaceEntity::canSmelt(IWorld& world) const {
 }
 
 void AbstractFurnaceEntity::smelt(IWorld& world) {
-    if (!canSmelt(world)) {
+    smeltWithRecipe(getRecipe(world));
+}
+
+void AbstractFurnaceEntity::smeltWithRecipe(const crafting::SmeltingRecipe* recipe) {
+    if (!canSmeltWithRecipe(recipe)) {
         return;
     }
 
-    const crafting::SmeltingRecipe* recipe = getRecipe(world);
     if (recipe == nullptr) {
         return;
     }

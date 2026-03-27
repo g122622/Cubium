@@ -34,9 +34,6 @@ ItemStack HopperContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     ItemStack slotStack = slot->getItem();
     const i32 originalCount = slotStack.getCount();
 
-    // 确定目标范围
-    ItemStack result;
-
     if (slotIndex < HOPPER_SIZE) {
         // 从漏斗移到玩家背包
         if (!mergeItem(slotStack, playerInventoryRange(), true)) {

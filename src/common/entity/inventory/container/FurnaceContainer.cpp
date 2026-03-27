@@ -34,9 +34,6 @@ ItemStack FurnaceContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     ItemStack slotStack = slot->getItem();
     const i32 originalCount = slotStack.getCount();
 
-    // 确定目标范围
-    ItemStack result;
-
     if (slotIndex < FURNACE_SLOTS) {
         // 从熔炉移到玩家背包
         if (slotIndex == SLOT_OUTPUT) {

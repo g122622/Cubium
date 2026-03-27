@@ -10,6 +10,7 @@
 #include "common/world/chunk/IChunk.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
@@ -221,14 +222,20 @@ void ServerWorld::tick()
         m_weatherManager->tick();
     }
 
+    // 获取当前 tick
+    u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
+
     if (m_tickManager) {
-        // 从 TimeManager 获取当前 tick
-        u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
         m_tickManager->tick(currentTick);
     }
 
     if (m_lightManager && m_lightManager->hasLightWork()) {
         m_lightManager->tick(32768, true, true);
+    }
+
+    // 定期清理红石火把烧毁记录（每 200 tick）
+    if (currentTick % 200 == 0) {
+        world::redstone::RedstoneSystem::instance().cleanupBurnoutRecords(currentTick);
     }
 
     // EntityManager 由 MinecraftServer 驱动

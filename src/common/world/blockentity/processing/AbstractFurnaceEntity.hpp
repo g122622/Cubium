@@ -188,6 +188,26 @@ protected:
      */
     [[nodiscard]] const crafting::SmeltingRecipe* getRecipe(IWorld& world) const;
 
+    /**
+     * @brief 检查是否可以熔炼（使用缓存的配方）
+     * @param recipe 配方指针（可为nullptr）
+     * @return 如果可以熔炼返回true
+     */
+    [[nodiscard]] bool canSmeltWithRecipe(const crafting::SmeltingRecipe* recipe) const;
+
+    /**
+     * @brief 获取配方的熔炼时间
+     * @param recipe 配方指针（可为nullptr）
+     * @return 熔炼时间（tick），如果没有配方返回默认值
+     */
+    [[nodiscard]] i32 getCookTimeFromRecipe(const crafting::SmeltingRecipe* recipe) const;
+
+    /**
+     * @brief 执行熔炼（使用缓存的配方）
+     * @param recipe 配方指针（可为nullptr）
+     */
+    void smeltWithRecipe(const crafting::SmeltingRecipe* recipe);
+
 private:
     FurnaceInventory m_inventory;   ///< 熔炉背包
     i32 m_burnTime = 0;              ///< 当前燃烧时间

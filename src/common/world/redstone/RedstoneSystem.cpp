@@ -12,7 +12,6 @@ RedstoneSystem& RedstoneSystem::instance() {
 }
 
 void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& block) {
-    // 遍历六个方向，通知相邻方块更新
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
 
@@ -21,7 +20,6 @@ void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& 
             continue;
         }
 
-        // 触发邻居更新回调
         Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
         neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
     }
@@ -29,7 +27,6 @@ void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& 
 
 void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos,
                                            Block& block, Direction skipDirection) {
-    // 遍历六个方向，跳过指定方向
     for (Direction dir : Directions::all()) {
         if (dir == skipDirection) {
             continue;
@@ -42,14 +39,12 @@ void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos,
             continue;
         }
 
-        // 触发邻居更新回调
         Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
         neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
     }
 }
 
 void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const BlockPos& pos, Block& block) {
-    // 更新水平方向（北、东、南、西）和下方
     for (Direction dir : Directions::horizontal()) {
         BlockPos neighborPos = pos.offset(dir);
 
@@ -62,7 +57,6 @@ void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const Block
         neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
     }
 
-    // 更新下方
     BlockPos downPos = pos.down();
     const BlockState* downState = world.getBlockState(downPos.x, downPos.y, downPos.z);
     if (downState && !downState->isAir()) {

@@ -71,7 +71,6 @@ ItemStack ChestContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
 
     // 确定目标范围
     const i32 chestSlotCount = getChestSlotCount();
-    ItemStack result;
 
     if (slotIndex < chestSlotCount) {
         // 从箱子移到玩家背包

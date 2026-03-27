@@ -2,7 +2,7 @@
 
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
-#include <random>
+#include "util/math/random/Random.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -102,7 +102,7 @@ protected:
     SimpleInventory m_inventory;
 
     /// 随机数生成器
-    mutable std::mt19937 m_rng;
+    mutable math::Random m_rng;
 
     /// 战利品表ID（用于生成内容）
     String m_lootTable;

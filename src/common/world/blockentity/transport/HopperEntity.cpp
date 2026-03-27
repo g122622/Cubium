@@ -21,7 +21,10 @@ HopperEntity::HopperEntity(const BlockPos& pos)
 // ========== BlockEntity 接口 ==========
 
 void HopperEntity::tick(IWorld& world) {
-    m_world = &world;
+    // 只在第一次 tick 时设置 world 指针
+    if (m_world == nullptr) {
+        m_world = &world;
+    }
 
     // 客户端不执行传输逻辑
     // 注意：IWorld 没有 isRemote() 方法，这里假设服务端执行
@@ -91,13 +94,7 @@ void HopperEntity::save(nlohmann::json& data) const {
 // ========== 漏斗特定方法 ==========
 
 bool HopperEntity::isFull() const {
-    for (i32 i = 0; i < HOPPER_SIZE; ++i) {
-        const ItemStack& stack = m_inventory.getItem(i);
-        if (stack.isEmpty() || stack.getCount() < stack.getMaxStackSize()) {
-            return false;
-        }
-    }
-    return true;
+    return isInventoryFull(&m_inventory, Direction::None);
 }
 
 void HopperEntity::setTransferCooldown(i32 cooldown) {
@@ -434,11 +431,13 @@ ItemStack HopperEntity::insertStack(
     }
 
     bool inserted = false;
+    ItemStack remaining = stack;  // 初始化为原始物品
     bool wasEmpty = destination->isEmpty();
 
     if (existingStack.isEmpty()) {
         // 空槽位，直接放入
         destination->setItem(slotIndex, stack);
+        remaining = ItemStack::EMPTY;  // 全部插入，无剩余
         inserted = true;
     } else if (canCombine(existingStack, stack)) {
         // 可合并的物品，尝试堆叠
@@ -451,8 +450,8 @@ ItemStack HopperEntity::insertStack(
             merged.grow(toInsert);
             destination->setItem(slotIndex, merged);
 
-            // 返回剩余物品
-            ItemStack remaining = stack.copy();
+            // 计算剩余物品
+            remaining = stack.copy();
             remaining.shrink(toInsert);
             inserted = true;
         }
@@ -472,7 +471,7 @@ ItemStack HopperEntity::insertStack(
         destination->setChanged();
     }
 
-    return stack;  // 返回原始栈，调用者需要处理剩余
+    return remaining;
 }
 
 bool HopperEntity::canInsertItemInSlot(
@@ -513,24 +512,7 @@ bool HopperEntity::canExtractItemFromSlot(
 }
 
 bool HopperEntity::canCombine(const ItemStack& stack1, const ItemStack& stack2) {
-    if (stack1.getItem() != stack2.getItem()) {
-        return false;
-    }
-
-    if (stack1.getDamage() != stack2.getDamage()) {
-        return false;
-    }
-
-    // 检查数量是否超过最大堆叠
-    if (stack1.getCount() > stack1.getMaxStackSize()) {
-        return false;
-    }
-
-    // 检查NBT标签是否相同
-    // TODO: 实现 ItemStack 的 NBT 标签比较
-    // return ItemStack::areItemStackTagsEqual(stack1, stack2);
-
-    return true;
+    return stack1.canMergeWith(stack2);
 }
 
 void HopperEntity::onEntityCollision(IWorld& world, Entity* entity) {

@@ -1,6 +1,6 @@
 #include "DispenserBlockEntity.hpp"
 #include "item/ItemStack.hpp"
-#include <algorithm>
+#include <random>
 
 namespace mc {
 namespace blockentity {
@@ -75,21 +75,29 @@ void DispenserBlockEntity::clearContainer() {
 }
 
 i32 DispenserBlockEntity::getRandomSlot() {
-    // 收集所有非空槽位
-    std::vector<i32> nonEmptySlots;
+    i32 nonEmptyCount = 0;
     for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
         if (!m_inventory.getItem(i).isEmpty()) {
-            nonEmptySlots.push_back(i);
+            ++nonEmptyCount;
         }
     }
 
-    if (nonEmptySlots.empty()) {
+    if (nonEmptyCount == 0) {
         return -1;
     }
 
-    // 随机选择一个非空槽位
-    std::uniform_int_distribution<i32> dist(0, static_cast<i32>(nonEmptySlots.size()) - 1);
-    return nonEmptySlots[dist(m_rng)];
+    i32 selectedIndex = m_rng.nextInt(nonEmptyCount);
+    i32 currentIndex = 0;
+    for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
+        if (!m_inventory.getItem(i).isEmpty()) {
+            if (currentIndex == selectedIndex) {
+                return i;
+            }
+            ++currentIndex;
+        }
+    }
+
+    return -1;
 }
 
 i32 DispenserBlockEntity::getDispenseSlot() {
@@ -101,8 +109,7 @@ i32 DispenserBlockEntity::getDispenseSlot() {
         if (!m_inventory.getItem(i).isEmpty()) {
             ++nonEmptyCount;
             // 以 1/nonEmptyCount 的概率替换当前选择
-            std::uniform_int_distribution<i32> dist(1, nonEmptyCount);
-            if (dist(m_rng) == 1) {
+            if (m_rng.nextInt(nonEmptyCount) == 0) {
                 selectedSlot = i;
             }
         }
@@ -116,36 +123,11 @@ ItemStack DispenserBlockEntity::addItemStack(ItemStack stack) {
         return ItemStack::EMPTY;
     }
 
-    // 尝试与现有堆叠合并
-    for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
-        ItemStack existing = m_inventory.getItem(i);
-        if (!existing.isEmpty() && existing.canMergeWith(stack)) {
-            i32 maxStack = existing.getMaxStackSize();
-            i32 space = maxStack - existing.getCount();
-            i32 toAdd = std::min(space, stack.getCount());
-
-            existing.grow(toAdd);
-            m_inventory.setItem(i, existing);
-            stack.shrink(toAdd);
-
-            if (stack.isEmpty()) {
-                setChanged();
-                return ItemStack::EMPTY;
-            }
-        }
+    ItemStack remaining = m_inventory.addItem(stack);
+    if (remaining.getCount() != stack.getCount()) {
+        setChanged();
     }
-
-    // 尝试放入空槽位
-    for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
-        if (m_inventory.getItem(i).isEmpty()) {
-            m_inventory.setItem(i, stack);
-            setChanged();
-            return ItemStack::EMPTY;
-        }
-    }
-
-    setChanged();
-    return stack;
+    return remaining;
 }
 
 void DispenserBlockEntity::setLootTable(const String& lootTable, u64 seed) {

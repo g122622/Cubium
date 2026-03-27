@@ -34,6 +34,12 @@ ItemStack SimpleInventory::getItem(i32 slot) const {
 
 void SimpleInventory::setItem(i32 slot, const ItemStack& stack) {
     MC_ASSERT(isValidSlot(slot) && "Slot index out of bounds");
+
+    // 只在物品实际变化时触发回调
+    if (m_items[slot] == stack) {
+        return;
+    }
+
     m_items[slot] = stack;
     onChanged();
 }
