@@ -1,6 +1,10 @@
 #include "VanillaBlocks.hpp"
 #include "HarvestTool.hpp"
 #include "blocks/LiquidBlock.hpp"
+#include "blocks/DoorBlock.hpp"
+#include "blocks/FenceGateBlock.hpp"
+#include "blocks/CauldronBlock.hpp"
+#include "blocks/EnchantingTableBlock.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/WaterFluid.hpp"
 #include "../fluid/fluids/LavaFluid.hpp"
@@ -76,6 +80,13 @@ Block* VanillaBlocks::WET_SPONGE = nullptr;
 
 // 功能方块
 Block* VanillaBlocks::CRAFTING_TABLE = nullptr;
+Block* VanillaBlocks::CAULDRON = nullptr;
+Block* VanillaBlocks::ENCHANTING_TABLE = nullptr;
+
+// 门和栅栏门
+Block* VanillaBlocks::OAK_DOOR = nullptr;
+Block* VanillaBlocks::IRON_DOOR = nullptr;
+Block* VanillaBlocks::OAK_FENCE_GATE = nullptr;
 
 // 羊毛
 Block* VanillaBlocks::WHITE_WOOL = nullptr;
@@ -785,6 +796,43 @@ void VanillaBlocks::registerFunctionalBlocks() {
     CRAFTING_TABLE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:crafting_table"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable()
+    );
+
+    // 炼药锅
+    // 参考: new CauldronBlock(Properties.create(Material.IRON).hardnessAndResistance(2.0F).notSolid())
+    CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(
+        ResourceLocation("minecraft:cauldron"),
+        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid()
+    );
+
+    // 附魔台
+    // 参考: new EnchantingTableBlock(Properties.create(Material.ROCK).hardnessAndResistance(5.0F).notSolid())
+    ENCHANTING_TABLE = &registry.registerBlock<blocks::EnchantingTableBlock>(
+        ResourceLocation("minecraft:enchanting_table"),
+        BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid().lightLevel(7)
+    );
+
+    // 橡木门
+    // 参考: new DoorBlock(Material.WOOD, Block.Properties.create(Material.WOOD).hardnessAndResistance(3.0F).notSolid())
+    OAK_DOOR = &registry.registerBlock<blocks::DoorBlock>(
+        ResourceLocation("minecraft:oak_door"),
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable(),
+        false  // 不是铁门
+    );
+
+    // 铁门
+    // 参考: new DoorBlock(Material.IRON, Block.Properties.create(Material.IRON).hardnessAndResistance(5.0F).notSolid())
+    IRON_DOOR = &registry.registerBlock<blocks::DoorBlock>(
+        ResourceLocation("minecraft:iron_door"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid(),
+        true  // 是铁门
+    );
+
+    // 橡木栅栏门
+    // 参考: new FenceGateBlock(Material.WOOD, Block.Properties.create(Material.WOOD).hardnessAndResistance(2.0F).notSolid())
+    OAK_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
+        ResourceLocation("minecraft:oak_fence_gate"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable()
     );
 }
 

@@ -29,6 +29,11 @@ public:
      */
     ~BlastFurnaceEntity() override = default;
 
+    /**
+     * @brief 创建方块实体副本
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
+
 protected:
     /**
      * @brief 获取默认显示名称
@@ -52,7 +57,7 @@ protected:
      *
      * 高炉只能熔炼矿石和金属物品。
      */
-    [[nodiscard]] bool canSmelt(IWorld& world) const override;
+    [[nodiscard]] bool canSmelt(World& world) const override;
 };
 
 } // namespace blockentity

@@ -1,10 +1,9 @@
-#include "world/block/blocks/EnchantingTableBlock.hpp"
-#include "world/blockentity/interactive/EnchantingTableEntity.hpp"
-#include "world/IWorld.hpp"
-#include "world/World.hpp"
-#include "entity/Player.hpp"
-#include "item/BlockItemUseContext.hpp"
-#include "util/assert/AssertAll.hpp"
+#include "EnchantingTableBlock.hpp"
+#include "../../blockentity/interactive/EnchantingTableEntity.hpp"
+#include "../../IWorld.hpp"
+#include "../../../entity/Player.hpp"
+#include "../../../item/BlockItemUseContext.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -40,7 +39,7 @@ std::unique_ptr<BlockEntity> EnchantingTableBlock::createBlockEntity(const Block
 
 ActionResult EnchantingTableBlock::onBlockActivated(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
@@ -68,7 +67,7 @@ ActionResult EnchantingTableBlock::onBlockActivated(
         // player.openContainer(new EnchantmentContainer(player.getInventory(), enchantingTable));
     }
 
-    return ActionResult::CONSUME;
+    return ActionResult::Consume;
 }
 
 // ========== 形状 ==========

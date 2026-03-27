@@ -1,6 +1,6 @@
 #pragma once
 
-#include "entity/inventory/IInventory.hpp"
+#include "../../../entity/inventory/IInventory.hpp"
 #include <vector>
 #include <functional>
 
@@ -26,7 +26,7 @@ namespace blockentity {
  * - 非线程安全，需要在正确的线程上操作
  * - 方块实体的tick和保存/加载会在不同线程调用
  */
-class SimpleInventory : public entity::IInventory {
+class SimpleInventory : public IInventory {
 public:
     /**
      * @brief 构造函数

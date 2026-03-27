@@ -6,6 +6,8 @@
 #include "../../util/property/StateHolder.hpp"
 #include "../../util/property/StateContainer.hpp"
 #include "../../util/Direction.hpp"
+#include "../../util/assert/AssertAll.hpp"
+#include "../../core/BlockRaycastResult.hpp"
 #include "Material.hpp"
 #include "HarvestTool.hpp"
 #include <memory>
@@ -35,7 +37,14 @@ class BlockRegistry;
 class IWorld;
 class IBlockReader;
 class BlockPos;
+class World;
+class BlockItemUseContext;
+class Player;
+class BlockEntity;
+
+namespace math {
 class IRandom;
+}
 
 namespace loot {
 class LootTableManager;
@@ -135,6 +144,14 @@ public:
      */
     [[nodiscard]] bool is(const Block* block) const {
         return block != nullptr && &owner() == block;
+    }
+
+    /**
+     * @brief 获取此状态所属的方块
+     * @return 方块引用
+     */
+    [[nodiscard]] const Block& getBlock() const {
+        return owner();
     }
 
     /**
@@ -805,7 +822,7 @@ public:
      * @param state 方块状态
      * @param random 随机数生成器
      */
-    virtual void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, IRandom& random);
+    virtual void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random);
 
     /**
      * @brief 邻居方块更新
@@ -856,6 +873,184 @@ public:
      * @return 是否响应随机刻
      */
     [[nodiscard]] virtual bool ticksRandomly() const { return false; }
+
+    // ========================================================================
+    // 方块状态
+    // ========================================================================
+
+    /**
+     * @brief 填充方块状态容器
+     *
+     * 子类重写此方法添加自定义状态属性。
+     * 默认实现为空（无属性）。
+     *
+     * @param container 状态容器构建器
+     */
+    virtual void fillStateContainer(StateContainer<Block, BlockState>& container);
+
+    /**
+     * @brief 获取默认方块状态
+     *
+     * 返回方块的默认状态。
+     * 子类应重写此方法返回带默认属性值的状态。
+     *
+     * @return 默认方块状态
+     */
+    [[nodiscard]] virtual const BlockState& getDefaultState() const;
+
+    /**
+     * @brief 获取放置时的方块状态
+     *
+     * 根据放置上下文确定方块的状态。
+     * 默认实现返回默认状态。
+     *
+     * @param context 放置上下文
+     * @return 方块状态
+     */
+    [[nodiscard]] virtual BlockState getStateForPlacement(BlockItemUseContext& context);
+
+    /**
+     * @brief 方块放置后的处理
+     *
+     * 在方块被玩家放置后调用。
+     * 默认实现为空。
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    virtual void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 方块更新后处理
+     *
+     * 当邻居方块更新时调用，返回更新后的状态。
+     * 默认实现返回原状态。
+     *
+     * @param state 当前方块状态
+     * @param facing 更新的方向
+     * @param facingState 邻居状态
+     * @param world 世界
+     * @param currentPos 当前方块位置
+     * @param facingPos 邻居位置
+     * @return 更新后的状态
+     */
+    [[nodiscard]] virtual BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos);
+
+    /**
+     * @brief 检查是否可以放置
+     *
+     * @param state 方块状态
+     * @param world 世界读取器
+     * @param pos 方块位置
+     * @return 如果可以放置返回true
+     */
+    [[nodiscard]] virtual bool isValidPosition(
+        const BlockState& state,
+        IBlockReader& world,
+        const BlockPos& pos) const;
+
+    // ========================================================================
+    // 交互
+    // ========================================================================
+
+    /**
+     * @brief 玩家右键点击
+     *
+     * 当玩家右键点击方块时调用。
+     * 默认实现返回 Pass。
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     * @param hand 手
+     * @param hit 射线检测结果
+     * @return 交互结果
+     */
+    [[nodiscard]] virtual ActionResult onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit);
+
+    // ========================================================================
+    // 方块实体
+    // ========================================================================
+
+    /**
+     * @brief 检查是否有方块实体
+     *
+     * @return 如果此方块有对应的方块实体返回true
+     */
+    [[nodiscard]] virtual bool hasBlockEntity() const { return false; }
+
+    /**
+     * @brief 创建方块实体
+     *
+     * @param pos 方块位置
+     * @return 方块实体，如果无实体返回nullptr
+     */
+    [[nodiscard]] virtual std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos);
+
+    // ========================================================================
+    // 红石
+    // ========================================================================
+
+    /**
+     * @brief 检查是否可以提供红石信号
+     *
+     * @param state 方块状态
+     * @return 如果可以提供信号返回true
+     */
+    [[nodiscard]] virtual bool canProvidePower(const BlockState& state) const {
+        MC_UNUSED(state);
+        return false;
+    }
+
+    /**
+     * @brief 检查是否有红石比较器输入覆盖
+     *
+     * @param state 方块状态
+     * @return 如果有比较器输入覆盖返回true
+     */
+    [[nodiscard]] virtual bool hasComparatorInputOverride(const BlockState& state) const {
+        MC_UNUSED(state);
+        return false;
+    }
+
+    /**
+     * @brief 获取红石比较器信号
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @return 信号强度 (0-15)
+     */
+    [[nodiscard]] virtual i32 getComparatorInputOverride(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos) const;
+
+    // ========================================================================
+    // 推动反应
+    // ========================================================================
+
+    /**
+     * @brief 获取推动反应
+     *
+     * @param state 方块状态
+     * @return 推动反应类型
+     */
+    [[nodiscard]] virtual Material::PushReaction getPushReaction(const BlockState& state) const;
 
     // ========================================================================
     // 旋转和镜像

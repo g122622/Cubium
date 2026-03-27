@@ -6,6 +6,10 @@
 #include "../fluid/Fluid.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/EmptyFluid.hpp"
+#include "../../entity/Player.hpp"
+#include "../../item/ItemStack.hpp"
+#include "../../item/ItemUseContext.hpp"
+#include "../blockentity/BlockEntity.hpp"
 #include "../../util/math/random/IRandom.hpp"
 #include "../../util/Direction.hpp"
 #include "../../entity/loot/LootTable.hpp"
@@ -357,7 +361,7 @@ void Block::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     (void)state;
 }
 
-void Block::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, IRandom& random) {
+void Block::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // 默认实现：空操作
     // 需要随机tick行为的方块应重写此方法
     (void)world;
@@ -425,6 +429,99 @@ const loot::LootTable* Block::getLootTable(const loot::LootTableManager& manager
         return nullptr;
     }
     return manager.getTable(m_lootTableId);
+}
+
+// ============================================================================
+// 新增虚方法默认实现
+// ============================================================================
+
+void Block::fillStateContainer(StateContainer<Block, BlockState>& container) {
+    // 默认实现：无属性
+    (void)container;
+}
+
+const BlockState& Block::getDefaultState() const {
+    return *m_defaultState;
+}
+
+BlockState Block::getStateForPlacement(BlockItemUseContext& context) {
+    // 默认实现：返回默认状态
+    (void)context;
+    return defaultState();
+}
+
+void Block::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // 默认实现：空操作
+    (void)world;
+    (void)pos;
+    (void)state;
+}
+
+BlockState Block::updatePostPlacement(
+    const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos) {
+    // 默认实现：返回原状态
+    (void)facing;
+    (void)facingState;
+    (void)world;
+    (void)currentPos;
+    (void)facingPos;
+    return state;
+}
+
+bool Block::isValidPosition(
+    const BlockState& state,
+    IBlockReader& world,
+    const BlockPos& pos) const {
+    // 默认实现：总是有效
+    (void)state;
+    (void)world;
+    (void)pos;
+    return true;
+}
+
+ActionResult Block::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+    // 默认实现：返回 Pass（未处理）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hand;
+    (void)hit;
+    return ActionResult::Pass;
+}
+
+std::unique_ptr<BlockEntity> Block::createBlockEntity(const BlockPos& pos) {
+    // 默认实现：无方块实体
+    (void)pos;
+    return nullptr;
+}
+
+i32 Block::getComparatorInputOverride(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos) const {
+    // 默认实现：无比较器输入覆盖
+    (void)state;
+    (void)world;
+    (void)pos;
+    return 0;
+}
+
+Material::PushReaction Block::getPushReaction(const BlockState& state) const {
+    // 默认实现：正常推动
+    (void)state;
+    return Material::PushReaction::Normal;
 }
 
 } // namespace mc

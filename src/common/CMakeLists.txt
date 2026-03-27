@@ -130,6 +130,7 @@ add_library(mc_common STATIC
     item/crafting/ShapelessRecipe.cpp
     item/crafting/RecipeSerializers.cpp
     item/crafting/RecipeLoader.cpp
+    item/crafting/SmeltingRecipe.cpp
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp
@@ -152,6 +153,10 @@ add_library(mc_common STATIC
     world/blockentity/BlockEntityType.cpp
     world/blockentity/BlockEntity.cpp
     world/blockentity/CraftingTableEntity.cpp
+    world/blockentity/core/SimpleInventory.cpp
+    world/blockentity/core/LockableBlockEntity.cpp
+    world/blockentity/core/BlockEntityRegistry.cpp
+    world/blockentity/interactive/EnchantingTableEntity.cpp
 
     # Screen
     screen/ScreenType.cpp
@@ -165,6 +170,32 @@ add_library(mc_common STATIC
     world/block/blocks/SimpleBlock.cpp
     world/block/blocks/RotatedPillarBlock.cpp
     world/block/blocks/LiquidBlock.cpp
+    world/block/blocks/CauldronBlock.cpp
+    world/block/blocks/EnchantingTableBlock.cpp
+    world/block/blocks/AbstractFurnaceBlock.cpp
+    world/block/blocks/FurnaceBlocks.cpp
+    world/block/blocks/ChestBlock.cpp
+    world/block/blocks/TrappedChestBlock.cpp
+    world/block/blocks/HopperBlock.cpp
+    world/block/blocks/DoorBlock.cpp
+    world/block/blocks/FenceGateBlock.cpp
+
+    # World - Block Entity
+    world/blockentity/core/SimpleInventory.cpp
+    world/blockentity/core/LockableBlockEntity.cpp
+    world/blockentity/core/BlockEntityRegistry.cpp
+    world/blockentity/interactive/EnchantingTableEntity.cpp
+    world/blockentity/storage/ChestEntity.cpp
+    world/blockentity/storage/TrappedChestEntity.cpp
+    world/blockentity/storage/DoubleSidedInventory.cpp
+    world/blockentity/transport/HopperEntity.cpp
+    world/blockentity/transport/IHopper.cpp
+    world/blockentity/processing/AbstractFurnaceEntity.cpp
+    world/blockentity/processing/FurnaceEntity.cpp
+    world/blockentity/processing/BlastFurnaceEntity.cpp
+    world/blockentity/processing/SmokerEntity.cpp
+    world/blockentity/processing/FurnaceInventory.cpp
+    world/item/crafting/SmeltingRecipe.cpp
 
     # World - Chunk
     world/chunk/ChunkData.cpp
@@ -331,6 +362,9 @@ add_library(mc_common STATIC
 
     # NibbleArray (4-bit compact storage for lighting)
     util/NibbleArray.cpp
+
+    # Property system
+    util/property/EnumProperty.cpp
 
     # Cache utilities
     util/cache/Long2IntLRUCache.cpp

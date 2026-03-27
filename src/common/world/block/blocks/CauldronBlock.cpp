@@ -1,21 +1,33 @@
-#include "world/block/blocks/CauldronBlock.hpp"
-#include "world/IWorld.hpp"
-#include "world/World.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "entity/Player.hpp"
-#include "entity/living/LivingEntity.hpp"
-#include "item/ItemStack.hpp"
-#include "item/Items.hpp"
-#include "util/math/random/IRandom.hpp"
-#include "util/assert/AssertAll.hpp"
+#include "CauldronBlock.hpp"
+#include "../../IWorld.hpp"
+#include "../VanillaBlocks.hpp"
+#include "../../../entity/Player.hpp"
+#include "../../../entity/living/LivingEntity.hpp"
+#include "../../../item/ItemStack.hpp"
+#include "../../../item/Items.hpp"
+#include "../../../util/math/random/IRandom.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
+
+using math::IRandom;
 
 // ========== 构造函数 ==========
 
 CauldronBlock::CauldronBlock(const BlockProperties& properties)
     : Block(properties) {
+
+    // 创建状态容器
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::LEVEL_0_3())
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+
+    // 设置默认状态
+    setDefaultState(defaultState().with(BlockStateProperties::LEVEL_0_3(), 0));
 
     // 炼药锅外部形状：
     // 底部: (0, 0, 0) -> (16, 3, 16)
@@ -62,17 +74,6 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
     m_contentShapes[3] = VoxelShapes::cube(innerMaxX1, innerMinY, innerMaxZ1, innerMaxX2, innerMinY + 0.6f, innerMaxZ2);
 }
 
-// ========== 方块状态 ==========
-
-void CauldronBlock::fillStateContainer(StateContainer<Block, BlockState>& container) {
-    container.add(BlockStateProperties::LEVEL_0_3());
-}
-
-const BlockState& CauldronBlock::getDefaultState() const {
-    return defaultState()
-        .with(BlockStateProperties::LEVEL_0_3(), 0);
-}
-
 // ========== 放置和更新 ==========
 
 void CauldronBlock::neighborChanged(IWorld& world, const BlockPos& pos,
@@ -87,23 +88,31 @@ void CauldronBlock::neighborChanged(IWorld& world, const BlockPos& pos,
 }
 
 void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, IRandom& random) {
+    MC_UNUSED(state);
     MC_UNUSED(random);
 
     // 雨天时填充水
-    // TODO: 检查是否下雨
-    // if (world.isRainingAt(pos)) {
-    //     i32 level = getLevel(state);
-    //     if (level < 3) {
-    //         setLevel(world, pos, state, level + 1);
-    //     }
-    // }
+    // 检查是否下雨且该位置可以接收雨水
+    if (world.isRaining() && world.canRainAt(pos)) {
+        const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+        if (currentState != nullptr) {
+            i32 level = getLevel(*currentState);
+            if (level < 3) {
+                // 约 1/20 概率在雨天填充（每个随机tick）
+                if (random.nextFloat() < 0.05f) {
+                    BlockState newState = currentState->with(BlockStateProperties::LEVEL_0_3(), level + 1);
+                    world.setBlock(pos.x, pos.y, pos.z, &newState);
+                }
+            }
+        }
+    }
 }
 
 // ========== 交互 ==========
 
 ActionResult CauldronBlock::onBlockActivated(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
@@ -115,37 +124,37 @@ ActionResult CauldronBlock::onBlockActivated(
     ItemStack& heldItem = player.getHeldItem(hand);
 
     if (heldItem.isEmpty()) {
-        return ActionResult::PASS;
+        return ActionResult::Pass;
     }
 
     // 根据物品类型处理不同的交互
-    ActionResult result = ActionResult::PASS;
+    ActionResult result = ActionResult::Pass;
 
     // 水桶交互
     result = handleBucketInteraction(world, pos, state, player, heldItem);
-    if (result != ActionResult::PASS) {
+    if (result != ActionResult::Pass) {
         return result;
     }
 
     // 玻璃瓶交互
     result = handleBottleInteraction(world, pos, state, player, heldItem);
-    if (result != ActionResult::PASS) {
+    if (result != ActionResult::Pass) {
         return result;
     }
 
     // 皮革盔甲清洗
     result = handleLeatherArmorCleaning(world, pos, state, player, heldItem);
-    if (result != ActionResult::PASS) {
+    if (result != ActionResult::Pass) {
         return result;
     }
 
     // 旗帜清洗
     result = handleBannerCleaning(world, pos, state, player, heldItem);
-    if (result != ActionResult::PASS) {
+    if (result != ActionResult::Pass) {
         return result;
     }
 
-    return ActionResult::PASS;
+    return ActionResult::Pass;
 }
 
 // ========== 形状 ==========
@@ -171,7 +180,7 @@ const CollisionShape& CauldronBlock::getContentShape(i32 level) const {
 
 i32 CauldronBlock::getComparatorInputOverride(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos) const {
 
     MC_UNUSED(world);
@@ -187,7 +196,7 @@ i32 CauldronBlock::getLevel(const BlockState& state) {
     return state.get(BlockStateProperties::LEVEL_0_3());
 }
 
-void CauldronBlock::setLevel(World& world, const BlockPos& pos, const BlockState& state, i32 level) {
+void CauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const BlockState& state, i32 level) {
     if (level < 0) level = 0;
     if (level > 3) level = 3;
 
@@ -209,13 +218,17 @@ bool CauldronBlock::isFull(const BlockState& state) {
 // ========== 私有方法 ==========
 
 ActionResult CauldronBlock::handleBucketInteraction(
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     Player& player,
     ItemStack& heldItem) {
 
     MC_UNUSED(player);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(heldItem);
 
     // TODO: 检查物品类型
     // if (heldItem.getItem() == Items::WATER_BUCKET) {
@@ -225,7 +238,7 @@ ActionResult CauldronBlock::handleBucketInteraction(
     //         playFillSound(world, pos);
     //         // TODO: 替换为空桶
     //         // heldItem = new ItemStack(Items::BUCKET);
-    //         return ActionResult::SUCCESS;
+    //         return ActionResult::Success;
     //     }
     // } else if (heldItem.getItem() == Items::BUCKET) {
     //     // 空桶取水：满炼药锅 -> 空炼药锅
@@ -234,21 +247,25 @@ ActionResult CauldronBlock::handleBucketInteraction(
     //         playEmptySound(world, pos);
     //         // TODO: 替换为水桶
     //         // heldItem = new ItemStack(Items::WATER_BUCKET);
-    //         return ActionResult::SUCCESS;
+    //         return ActionResult::Success;
     //     }
     // }
 
-    return ActionResult::PASS;
+    return ActionResult::Pass;
 }
 
 ActionResult CauldronBlock::handleBottleInteraction(
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     Player& player,
     ItemStack& heldItem) {
 
     MC_UNUSED(player);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(heldItem);
 
     // TODO: 检查物品类型
     // if (heldItem.getItem() == Items::GLASS_BOTTLE) {
@@ -258,7 +275,7 @@ ActionResult CauldronBlock::handleBottleInteraction(
     //         playEmptySound(world, pos);
     //         // TODO: 替换为水瓶
     //         // heldItem = new ItemStack(Items::POTION);
-    //         return ActionResult::SUCCESS;
+    //         return ActionResult::Success;
     //     }
     // } else if (heldItem.getItem() == Items::POTION && heldItem.getMetadata() == 0) {
     //     // 水瓶倒水：水位+1
@@ -267,21 +284,25 @@ ActionResult CauldronBlock::handleBottleInteraction(
     //         playFillSound(world, pos);
     //         // TODO: 替换为玻璃瓶
     //         // heldItem = new ItemStack(Items::GLASS_BOTTLE);
-    //         return ActionResult::SUCCESS;
+    //         return ActionResult::Success;
     //     }
     // }
 
-    return ActionResult::PASS;
+    return ActionResult::Pass;
 }
 
 ActionResult CauldronBlock::handleLeatherArmorCleaning(
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     Player& player,
     ItemStack& heldItem) {
 
     MC_UNUSED(player);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(heldItem);
 
     // TODO: 检查是否为皮革盔甲
     // if (heldItem.getItem() instanceof LeatherArmorItem) {
@@ -290,21 +311,25 @@ ActionResult CauldronBlock::handleLeatherArmorCleaning(
     //         // TODO: 移除颜色
     //         // heldItem.removeColor();
     //         playEmptySound(world, pos);
-    //         return ActionResult::SUCCESS;
+    //         return ActionResult::Success;
     //     }
     // }
 
-    return ActionResult::PASS;
+    return ActionResult::Pass;
 }
 
 ActionResult CauldronBlock::handleBannerCleaning(
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     Player& player,
     ItemStack& heldItem) {
 
     MC_UNUSED(player);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(heldItem);
 
     // TODO: 检查是否为旗帜
     // if (heldItem.getItem() == Items::BANNER) {
@@ -313,21 +338,21 @@ ActionResult CauldronBlock::handleBannerCleaning(
     //         // TODO: 移除最顶层的图案
     //         // BannerBlock.removeTopPattern(heldItem);
     //         playEmptySound(world, pos);
-    //         return ActionResult::SUCCESS;
+    //         return ActionResult::Success;
     //     }
     // }
 
-    return ActionResult::PASS;
+    return ActionResult::Pass;
 }
 
-void CauldronBlock::playFillSound(World& world, const BlockPos& pos) {
+void CauldronBlock::playFillSound(IWorld& world, const BlockPos& pos) {
     // TODO: 实现音效系统
     // world.playEvent(nullptr, 1040, pos, 0);
     MC_UNUSED(world);
     MC_UNUSED(pos);
 }
 
-void CauldronBlock::playEmptySound(World& world, const BlockPos& pos) {
+void CauldronBlock::playEmptySound(IWorld& world, const BlockPos& pos) {
     // TODO: 实现音效系统
     // world.playEvent(nullptr, 1041, pos, 0);
     MC_UNUSED(world);

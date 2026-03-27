@@ -16,6 +16,7 @@ class BlockPos;
 class PhysicsEngine;
 class Block;
 class IRandom;
+class BlockEntity;
 
 namespace fluid {
 class Fluid;
@@ -50,6 +51,32 @@ public:
      * @return 是否成功
      */
     virtual bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) = 0;
+
+    /**
+     * @brief 设置方块状态（带标志）
+     * @param x, y, z 方块坐标
+     * @param state 方块状态
+     * @param flags 更新标志（2=通知邻居，3=通知邻居+更新客户端）
+     * @return 是否成功
+     */
+    virtual bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) {
+        (void)flags;
+        return setBlock(x, y, z, state);
+    }
+
+    /**
+     * @brief 获取方块实体
+     * @param pos 方块位置
+     * @return 方块实体指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] virtual BlockEntity* getBlockEntity(const BlockPos& pos) {
+        (void)pos;
+        return nullptr;
+    }
+    [[nodiscard]] virtual const BlockEntity* getBlockEntity(const BlockPos& pos) const {
+        (void)pos;
+        return nullptr;
+    }
 
     // ========== 流体访问 ==========
 
@@ -326,7 +353,19 @@ protected:
     IWorld() = default;
 };
 
-// 前向声明区块读取器接口
+/**
+ * @brief 区块读取器接口
+ *
+ * IBlockReader 继承自 IWorld，用于表示只读的方块访问接口。
+ * 参考 MC 1.16.5 IBlockReader
+ */
 class IBlockReader : public IWorld {};
+
+/**
+ * @brief 世界读取器接口
+ *
+ * IWorldReader 是 IWorld 的别名，用于表示只读的世界访问接口。
+ */
+using IWorldReader = IWorld;
 
 } // namespace mc

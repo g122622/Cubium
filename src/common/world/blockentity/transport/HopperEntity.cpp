@@ -1,4 +1,6 @@
-#include "HopperEntity.hpp"
+#include "world/blockentity/transport/HopperEntity.hpp"
+#include "world/blockentity/transport/IHopper.hpp"
+#include "world/World.hpp"
 #include "entity/ItemEntity.hpp"
 #include "world/block/BlockState.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
@@ -18,7 +20,7 @@ HopperEntity::HopperEntity(const BlockPos& pos)
 
 // ========== BlockEntity 接口 ==========
 
-void HopperEntity::tick(IWorld& world) {
+void HopperEntity::tick(World& world) {
     m_world = &world;
 
     // 客户端不执行传输逻辑
@@ -50,6 +52,12 @@ void HopperEntity::tick(IWorld& world) {
     updateHopper([&]() {
         return pullItems(*this);
     });
+}
+
+std::unique_ptr<BlockEntity> HopperEntity::clone() const {
+    auto cloned = std::make_unique<HopperEntity>(m_pos);
+    // TODO: 复制物品数据
+    return cloned;
 }
 
 // ========== 序列化 ==========

@@ -4,7 +4,7 @@
 namespace mc {
 namespace blockentity {
 
-DoubleSidedInventory::DoubleSidedInventory(IInventory* upper, IInventory* lower)
+DoubleSidedInventory::DoubleSidedInventory(::mc::IInventory* upper, ::mc::IInventory* lower)
     : m_upper(upper)
     , m_lower(lower) {
     MC_ASSERT(upper != nullptr && "Upper inventory cannot be null");

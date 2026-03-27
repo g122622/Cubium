@@ -59,8 +59,8 @@ public:
 
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] entity::IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const entity::IInventory* getInventory() const override { return &m_inventory; }
+    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
+    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
     [[nodiscard]] i32 getContainerSize() const override { return CHEST_SIZE; }
 
     // ========== 箱子特有接口 ==========
@@ -107,7 +107,7 @@ public:
      * @param world 世界引用
      * @return 信号强度 (0-15)
      */
-    [[nodiscard]] i32 getComparatorSignal(World& world) const;
+    [[nodiscard]] i32 getComparatorSignal(IWorld& world) const;
 
     // ========== 动画支持 ==========
 

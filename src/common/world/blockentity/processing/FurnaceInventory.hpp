@@ -1,6 +1,6 @@
 #pragma once
 
-#include "entity/inventory/IInventory.hpp"
+#include "../../../entity/inventory/IInventory.hpp"
 #include <array>
 #include <functional>
 
@@ -17,7 +17,7 @@ namespace blockentity {
  *
  * 参考: net.minecraft.inventory.FurnaceInventory
  */
-class FurnaceInventory : public entity::IInventory {
+class FurnaceInventory : public IInventory {
 public:
     /// 槽位索引常量
     static constexpr i32 SLOT_INPUT = 0;   ///< 输入槽

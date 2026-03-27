@@ -1,9 +1,13 @@
 #pragma once
 
-#include "entity/inventory/IInventory.hpp"
+#include "../../../entity/inventory/IInventory.hpp"
 #include <memory>
 
 namespace mc {
+
+// Forward declaration
+class IInventory;
+
 namespace blockentity {
 
 class ChestEntity;
@@ -29,7 +33,7 @@ class ChestEntity;
  * - 箱子的生命周期由区块管理
  * - 打开/关闭操作会同时影响两个箱子
  */
-class DoubleSidedInventory : public entity::IInventory {
+class DoubleSidedInventory : public IInventory {
 public:
     /**
      * @brief 构造函数

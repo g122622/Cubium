@@ -1,13 +1,12 @@
-#include "world/block/blocks/ChestBlock.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockState.hpp"
-#include "world/IWorld.hpp"
-#include "world/World.hpp"
-#include "world/blockentity/storage/ChestEntity.hpp"
-#include "entity/Player.hpp"
-#include "item/ItemStack.hpp"
-#include "item/ItemUseContext.hpp"
-#include "util/assert/AssertAll.hpp"
+#include "ChestBlock.hpp"
+#include "../BlockRegistry.hpp"
+#include "../Block.hpp"
+#include "../../IWorld.hpp"
+#include "../../blockentity/storage/ChestEntity.hpp"
+#include "../../../entity/Player.hpp"
+#include "../../../item/ItemStack.hpp"
+#include "../../../item/BlockItemUseContext.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -26,27 +25,24 @@ namespace {
 
 ChestBlock::ChestBlock(const BlockProperties& properties)
     : Block(properties) {
-}
-
-// ========== 方块状态 ==========
-
-void ChestBlock::fillStateContainer(StateContainer<Block, BlockState>& container) {
-    container.add(BlockStateProperties::HORIZONTAL_FACING());
-    container.add(BlockStateProperties::CHEST_TYPE());
-    container.add(BlockStateProperties::WATERLOGGED());
-}
-
-const BlockState& ChestBlock::getDefaultState() const {
-    return defaultState()
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::HORIZONTAL_FACING())
+        .add(BlockStateProperties::CHEST_TYPE())
+        .add(BlockStateProperties::WATERLOGGED())
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+    setDefaultState(defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
         .with(BlockStateProperties::CHEST_TYPE(), BlockStateProperties::ChestType::Single)
-        .with(BlockStateProperties::WATERLOGGED(), false);
+        .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 // ========== 放置和更新 ==========
 
 BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context) {
-    Direction facing = context.getHorizontalFacing().getOpposite();
+    Direction facing = Directions::opposite(context.horizontalDirection());
 
     // 默认为单箱
     BlockStateProperties::ChestType chestType = BlockStateProperties::ChestType::Single;
@@ -54,20 +50,21 @@ BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context) {
     // 检查是否可以与相邻箱子合并
     // 检查四个水平方向
     for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
-        BlockPos neighborPos = context.getPos().offset(dir);
-        BlockState neighborState = context.getWorld().getBlockState(neighborPos);
+        BlockPos neighborPos = context.placementPos().offset(dir);
+        const BlockState* neighborStatePtr = context.getWorld().getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
 
-        if (neighborState.getBlock() == this) {
+        if (neighborStatePtr != nullptr && &neighborStatePtr->getBlock() == this) {
+            const BlockState& neighborState = *neighborStatePtr;
             Direction neighborFacing = neighborState.get(BlockStateProperties::HORIZONTAL_FACING());
             BlockStateProperties::ChestType neighborType = neighborState.get(BlockStateProperties::CHEST_TYPE());
 
             // 只有朝向相同且是单箱的才能合并
             if (neighborFacing == facing && neighborType == BlockStateProperties::ChestType::Single) {
                 // 根据相对位置确定LEFT或RIGHT
-                if (dir == facing.rotateYCCW()) {
+                if (dir == Directions::rotateYCCW(facing)) {
                     // 玩家面对的左边有箱子，当前箱子是RIGHT
                     chestType = BlockStateProperties::ChestType::Right;
-                } else if (dir == facing.rotateY()) {
+                } else if (dir == Directions::rotateY(facing)) {
                     // 玩家面对的右边有箱子，当前箱子是LEFT
                     chestType = BlockStateProperties::ChestType::Left;
                 }
@@ -76,8 +73,8 @@ BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context) {
         }
     }
 
-    // 检查水logged状态
-    bool waterlogged = context.getWorld().getFluidState(context.getPos()).getType() != FluidType::Empty;
+    // 检查水logged状态 - 暂时不支持，默认false
+    bool waterlogged = false;
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
@@ -99,10 +96,10 @@ BlockState ChestBlock::updatePostPlacement(
     }
 
     // 检查是否与相邻箱子连接/断开
-    if (facing.getAxis().isHorizontal()) {
+    if (Directions::isHorizontal(facing)) {
         BlockStateProperties::ChestType currentType = state.get(BlockStateProperties::CHEST_TYPE());
 
-        if (neighborState.getBlock() == this) {
+        if (&neighborState.getBlock() == this) {
             Direction currentFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
             Direction neighborFacing = neighborState.get(BlockStateProperties::HORIZONTAL_FACING());
             BlockStateProperties::ChestType neighborType = neighborState.get(BlockStateProperties::CHEST_TYPE());
@@ -113,7 +110,7 @@ BlockState ChestBlock::updatePostPlacement(
                 currentFacing == neighborFacing) {
 
                 Direction connectedDir = getConnectedDirection(neighborState);
-                if (connectedDir == facing.getOpposite()) {
+                if (connectedDir == Directions::opposite(facing)) {
                     // 连接到相邻箱子
                     return state.with(BlockStateProperties::CHEST_TYPE(),
                         neighborType == BlockStateProperties::ChestType::Left
@@ -144,7 +141,7 @@ std::unique_ptr<BlockEntity> ChestBlock::createBlockEntity(const BlockPos& pos) 
 
 ActionResult ChestBlock::onBlockActivated(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
@@ -183,7 +180,7 @@ ActionResult ChestBlock::onBlockActivated(
 
 i32 ChestBlock::getComparatorInputOverride(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos
 ) const {
     BlockEntity* blockEntity = world.getBlockEntity(pos);
@@ -203,16 +200,23 @@ Direction ChestBlock::getConnectedDirection(const BlockState& state) {
 
     switch (type) {
         case BlockStateProperties::ChestType::Left:
-            return facing.rotateY();  // 左箱子向右连接
+            return Directions::rotateY(facing);  // 左箱子向右连接
         case BlockStateProperties::ChestType::Right:
-            return facing.rotateYCCW();  // 右箱子向左连接
+            return Directions::rotateYCCW(facing);  // 右箱子向左连接
         default:
             return Direction::None;  // 单箱无连接
     }
 }
 
 bool ChestBlock::isBlocked(IWorld& world, const BlockPos& pos) {
-    return isBlocked(world, pos.up());
+    // 检查上方位置是否有不透明方块阻挡箱子打开
+    BlockPos abovePos = pos.up();
+    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    if (aboveState == nullptr) {
+        return false;  // 上方为空气，不阻挡
+    }
+    // 检查方块是否是不透明的固体方块
+    return aboveState->hasOpaqueCollisionShape();
 }
 
 bool ChestBlock::isCatSittingOn(IWorld& world, const BlockPos& pos) {
@@ -232,7 +236,7 @@ bool ChestBlock::isCatSittingOn(IWorld& world, const BlockPos& pos) {
 
 void ChestBlock::combineChests(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     Direction facing
 ) {
@@ -240,25 +244,25 @@ void ChestBlock::combineChests(
     Direction currentFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
     BlockStateProperties::ChestType newType = BlockStateProperties::ChestType::Single;
-    if (facing == currentFacing.rotateYCCW()) {
+    if (facing == Directions::rotateYCCW(currentFacing)) {
         newType = BlockStateProperties::ChestType::Right;
-    } else if (facing == currentFacing.rotateY()) {
+    } else if (facing == Directions::rotateY(currentFacing)) {
         newType = BlockStateProperties::ChestType::Left;
     }
 
-    world.setBlockState(pos, state.with(BlockStateProperties::CHEST_TYPE(), newType), 3);
+    world.setBlockState(pos.x, pos.y, pos.z, &state.with(BlockStateProperties::CHEST_TYPE(), newType), 3);
 
     // 更新相邻箱子的类型
     BlockPos neighborPos = pos.offset(facing);
-    BlockState neighborState = world.getBlockState(neighborPos);
-
-    if (neighborState.getBlock() == this) {
+    const BlockState* neighborStatePtr = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    if (neighborStatePtr != nullptr && &neighborStatePtr->getBlock() == this) {
+        BlockState neighborState = *neighborStatePtr;
         BlockStateProperties::ChestType neighborType =
             newType == BlockStateProperties::ChestType::Left
                 ? BlockStateProperties::ChestType::Right
                 : BlockStateProperties::ChestType::Left;
-        world.setBlockState(neighborPos,
-            neighborState.with(BlockStateProperties::CHEST_TYPE(), neighborType), 3);
+        world.setBlockState(neighborPos.x, neighborPos.y, neighborPos.z,
+            &neighborState.with(BlockStateProperties::CHEST_TYPE(), neighborType), 3);
     }
 }
 
@@ -269,14 +273,14 @@ bool ChestBlock::canCombineWithChestAt(
     Direction expectedFacing
 ) const {
     BlockPos neighborPos = pos.offset(facing);
-    BlockState neighborState = world.getBlockState(neighborPos);
+    const BlockState* neighborStatePtr = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
 
-    if (neighborState.getBlock() != this) {
+    if (neighborStatePtr == nullptr || &neighborStatePtr->getBlock() != this) {
         return false;
     }
 
-    Direction neighborFacing = neighborState.get(BlockStateProperties::HORIZONTAL_FACING());
-    BlockStateProperties::ChestType neighborType = neighborState.get(BlockStateProperties::CHEST_TYPE());
+    Direction neighborFacing = neighborStatePtr->get(BlockStateProperties::HORIZONTAL_FACING());
+    BlockStateProperties::ChestType neighborType = neighborStatePtr->get(BlockStateProperties::CHEST_TYPE());
 
     return neighborFacing == expectedFacing &&
            neighborType == BlockStateProperties::ChestType::Single;

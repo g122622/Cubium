@@ -290,6 +290,14 @@ public:
     PlayerInventory& inventory() { return m_inventory; }
 
     /**
+     * @brief 获取手持物品
+     * @param hand 主手或副手
+     * @return 物品堆引用
+     */
+    [[nodiscard]] ItemStack getHeldItem(Hand hand) const;
+    ItemStack& getHeldItem(Hand hand);
+
+    /**
      * @brief 设置创造模式背包
      *
      * 为创造模式玩家添加常见方块到背包。

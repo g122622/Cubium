@@ -50,7 +50,12 @@ public:
 
     // ========== BlockEntity 接口 ==========
 
-    void tick(IWorld& world) override;
+    void tick(World& world) override;
+
+    /**
+     * @brief 创建方块实体副本
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
     // ========== IInventory 接口（通过组合） ==========
 

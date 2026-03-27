@@ -94,7 +94,7 @@ void ChestEntity::closeContainer() {
 
 // ========== 红石比较器 ==========
 
-i32 ChestEntity::getComparatorSignal(World& world) const {
+i32 ChestEntity::getComparatorSignal(IWorld& world) const {
     // 计算填充度
     i32 nonEmptySlots = 0;
     f32 fillRatio = 0.0f;

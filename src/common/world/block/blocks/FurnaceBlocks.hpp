@@ -1,7 +1,7 @@
 #pragma once
 
-#include "world/block/blocks/AbstractFurnaceBlock.hpp"
-#include "world/blockentity/BlockEntityType.hpp"
+#include "AbstractFurnaceBlock.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {
@@ -47,7 +47,7 @@ protected:
     /**
      * @brief 与熔炉交互
      */
-    void interactWith(World& world, const BlockPos& pos, Player& player) override;
+    void interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
 };
 
 /**
@@ -91,7 +91,7 @@ protected:
     /**
      * @brief 与熔炉交互
      */
-    void interactWith(World& world, const BlockPos& pos, Player& player) override;
+    void interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
 };
 
 /**
@@ -135,7 +135,7 @@ protected:
     /**
      * @brief 与熔炉交互
      */
-    void interactWith(World& world, const BlockPos& pos, Player& player) override;
+    void interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
 };
 
 } // namespace blocks

@@ -6,7 +6,7 @@
 
 namespace mc {
 
-class World;
+class IWorld;
 
 namespace blockentity {
 
@@ -85,7 +85,7 @@ public:
      * @brief 重新计算附魔力量
      * @param world 世界
      */
-    void recalculateEnchantPower(World& world);
+    void recalculateEnchantPower(IWorld& world);
 
     // ========== 自定义名称 ==========
 
@@ -126,7 +126,7 @@ public:
      * @param world 世界
      * @param dt Delta时间（秒）
      */
-    void updateAnimation(World& world, f32 dt);
+    void updateAnimation(IWorld& world, f32 dt);
 
 private:
     /**
@@ -136,7 +136,7 @@ private:
      * @param tablePos 附魔台位置
      * @return 如果有效返回true
      */
-    [[nodiscard]] static bool isValidBookshelf(World& world,
+    [[nodiscard]] static bool isValidBookshelf(IWorld& world,
                                                 const BlockPos& bookshelfPos,
                                                 const BlockPos& tablePos);
 

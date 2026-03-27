@@ -1,10 +1,10 @@
 #pragma once
 
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/BlockPos.hpp"
-#include "util/property/Properties.hpp"
+#include "../Block.hpp"
+#include "../Material.hpp"
+#include "../BlockPos.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include <memory>
 
 namespace mc {
@@ -48,18 +48,6 @@ public:
      */
     ~DoorBlock() override = default;
 
-    // ========== 方块状态 ==========
-
-    /**
-     * @brief 创建方块状态容器
-     */
-    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
-
-    /**
-     * @brief 获取默认状态
-     */
-    [[nodiscard]] const BlockState& getDefaultState() const override;
-
     // ========== 放置和更新 ==========
 
     /**
@@ -75,7 +63,7 @@ public:
      * @param pos 方块位置
      * @param state 方块状态
      */
-    void onBlockPlacedBy(World& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     /**
      * @brief 邻居方块更新
@@ -117,7 +105,7 @@ public:
      */
     [[nodiscard]] bool isValidPosition(
         const BlockState& state,
-        IWorldReader& world,
+        IBlockReader& world,
         const BlockPos& pos
     ) const override;
 
@@ -135,7 +123,7 @@ public:
      */
     [[nodiscard]] ActionResult onBlockActivated(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
@@ -149,7 +137,7 @@ public:
      * @param pos 方块位置
      * @param open 是否打开
      */
-    void toggleDoor(World& world, const BlockPos& pos, bool open);
+    void toggleDoor(IWorld& world, const BlockPos& pos, bool open);
 
     // ========== 形状 ==========
 
@@ -241,7 +229,7 @@ private:
      * @param pos 方块位置
      * @param isOpening 是否正在打开
      */
-    void playSound(World& world, const BlockPos& pos, bool isOpening);
+    void playSound(IWorld& world, const BlockPos& pos, bool isOpening);
 
     /**
      * @brief 获取开门音效ID

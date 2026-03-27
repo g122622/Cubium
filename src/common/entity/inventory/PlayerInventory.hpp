@@ -105,6 +105,22 @@ public:
     [[nodiscard]] ItemStack getSelectedStack() const;
 
     /**
+     * @brief 获取当前选中物品的引用（可修改）
+     * @return 物品堆引用
+     */
+    [[nodiscard]] ItemStack& getSelectedStackRef() {
+        return m_items[m_selectedSlot];
+    }
+
+    /**
+     * @brief 获取当前选中物品的const引用
+     * @return 物品堆引用
+     */
+    [[nodiscard]] const ItemStack& getSelectedStackRef() const {
+        return m_items[m_selectedSlot];
+    }
+
+    /**
      * @brief 检查索引是否在快捷栏范围内
      */
     [[nodiscard]] static bool isHotbar(i32 slot) {
@@ -208,6 +224,18 @@ public:
      * @brief 获取副手物品
      */
     [[nodiscard]] ItemStack getOffhandItem() const { return m_items[InventorySlots::OFFHAND]; }
+
+    /**
+     * @brief 获取副手物品的引用（可修改）
+     * @return 物品堆引用
+     */
+    [[nodiscard]] ItemStack& getOffhandItemRef() { return m_items[InventorySlots::OFFHAND]; }
+
+    /**
+     * @brief 获取副手物品的const引用
+     * @return 物品堆引用
+     */
+    [[nodiscard]] const ItemStack& getOffhandItemRef() const { return m_items[InventorySlots::OFFHAND]; }
 
     /**
      * @brief 设置头盔

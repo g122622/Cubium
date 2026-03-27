@@ -1,4 +1,5 @@
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
+#include "world/World.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -7,7 +8,13 @@ BlastFurnaceEntity::BlastFurnaceEntity(const BlockPos& pos)
     : AbstractFurnaceEntity(BlockEntityType::BlastFurnace, pos) {
 }
 
-bool BlastFurnaceEntity::canSmelt(IWorld& world) const {
+std::unique_ptr<BlockEntity> BlastFurnaceEntity::clone() const {
+    auto cloned = std::make_unique<BlastFurnaceEntity>(m_pos);
+    // TODO: 复制熔炉状态（燃烧时间、熔炼进度等）
+    return cloned;
+}
+
+bool BlastFurnaceEntity::canSmelt(World& world) const {
     // 首先检查基础条件
     if (!AbstractFurnaceEntity::canSmelt(world)) {
         return false;

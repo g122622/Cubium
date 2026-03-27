@@ -1,4 +1,5 @@
 #include "world/blockentity/processing/SmokerEntity.hpp"
+#include "world/World.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -7,7 +8,13 @@ SmokerEntity::SmokerEntity(const BlockPos& pos)
     : AbstractFurnaceEntity(BlockEntityType::Smoker, pos) {
 }
 
-bool SmokerEntity::canSmelt(IWorld& world) const {
+std::unique_ptr<BlockEntity> SmokerEntity::clone() const {
+    auto cloned = std::make_unique<SmokerEntity>(m_pos);
+    // TODO: 复制熔炉状态（燃烧时间、熔炼进度等）
+    return cloned;
+}
+
+bool SmokerEntity::canSmelt(World& world) const {
     // 首先检查基础条件
     if (!AbstractFurnaceEntity::canSmelt(world)) {
         return false;

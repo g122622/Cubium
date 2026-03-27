@@ -43,7 +43,7 @@ AbstractFurnaceEntity::AbstractFurnaceEntity(BlockEntityType type, const BlockPo
 
 // ========== BlockEntity 接口 ==========
 
-void AbstractFurnaceEntity::tick(IWorld& world) {
+void AbstractFurnaceEntity::tick(World& world) {
     // 检查是否在燃烧
     bool wasBurning = isBurning();
 
@@ -197,7 +197,7 @@ i32 AbstractFurnaceEntity::getBurnTime(const ItemStack& stack) {
 
 // ========== 保护方法 ==========
 
-i32 AbstractFurnaceEntity::getCookTime(IWorld& world) const {
+i32 AbstractFurnaceEntity::getCookTime(World& world) const {
     const crafting::SmeltingRecipe* recipe = getRecipe(world);
     if (recipe != nullptr) {
         return recipe->getCookTime();
@@ -205,7 +205,7 @@ i32 AbstractFurnaceEntity::getCookTime(IWorld& world) const {
     return getDefaultCookTime();
 }
 
-bool AbstractFurnaceEntity::canSmelt(IWorld& world) const {
+bool AbstractFurnaceEntity::canSmelt(World& world) const {
     const ItemStack& input = m_inventory.getInputItem();
     if (input.isEmpty()) {
         return false;
@@ -235,7 +235,7 @@ bool AbstractFurnaceEntity::canSmelt(IWorld& world) const {
     return resultCount <= output.getMaxStackSize();
 }
 
-void AbstractFurnaceEntity::smelt(IWorld& world) {
+void AbstractFurnaceEntity::smelt(World& world) {
     if (!canSmelt(world)) {
         return;
     }
@@ -283,7 +283,7 @@ bool AbstractFurnaceEntity::burnFuel() {
     return true;
 }
 
-void AbstractFurnaceEntity::updateBurnState(IWorld& world) {
+void AbstractFurnaceEntity::updateBurnState(World& world) {
     // 更新方块的 LIT 属性
     // const BlockState* state = world.getBlockState(getPos().x, getPos().y, getPos().z);
     // if (state != nullptr) {
@@ -292,7 +292,7 @@ void AbstractFurnaceEntity::updateBurnState(IWorld& world) {
     // }
 }
 
-const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(IWorld& world) const {
+const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(World& world) const {
     const ItemStack& input = m_inventory.getInputItem();
     if (input.isEmpty()) {
         return nullptr;
@@ -302,6 +302,7 @@ const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(IWorld& world) 
     // TODO: 实现配方管理器查询
     // return world.getRecipeManager().getSmeltingRecipe(input, getRecipeType());
 
+    (void)world;
     return nullptr;
 }
 

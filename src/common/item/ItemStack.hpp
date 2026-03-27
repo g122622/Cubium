@@ -238,7 +238,22 @@ public:
      *
      * @return 是否有自定义名称
      */
-    [[nodiscard]] bool hasCustomName() const { return false; }
+    [[nodiscard]] bool hasCustomName() const { return !m_customName.empty(); }
+
+    /**
+     * @brief 获取自定义名称
+     *
+     * 返回自定义名称，如果没有则返回空字符串。
+     *
+     * @return 自定义名称
+     */
+    [[nodiscard]] String getCustomName() const { return m_customName; }
+
+    /**
+     * @brief 设置自定义名称
+     * @param name 新名称
+     */
+    void setCustomName(const String& name) { m_customName = name; }
 
     /**
      * @brief 获取显示名称
@@ -249,6 +264,19 @@ public:
      * @return 显示名称
      */
     [[nodiscard]] String getDisplayName() const;
+
+    // ========== 堆叠兼容性检查 ==========
+
+    /**
+     * @brief 检查两个物品堆是否可以堆叠（物品类型相同且数据兼容）
+     * @param other 另一个物品堆
+     * @return 是否可以堆叠
+     *
+     * 这是canMergeWith的别名，用于与MC源码命名保持一致。
+     */
+    [[nodiscard]] bool canStackWith(const ItemStack& other) const {
+        return isSameItem(other) && m_damage == other.m_damage;
+    }
 
     // ========== 序列化 ==========
 
@@ -280,6 +308,7 @@ private:
     const Item* m_item = nullptr;
     i32 m_count = 0;
     i32 m_damage = 0;       // 已承受的伤害（耐久度）
+    String m_customName;    // 自定义名称（铁砧重命名）
     item::enchant::EnchantmentContainer m_enchantments;  // 附魔容器
 };
 

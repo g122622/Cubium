@@ -1,8 +1,7 @@
-#include "world/blockentity/interactive/EnchantingTableEntity.hpp"
-#include "world/World.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "world/block/BlockState.hpp"
-#include "util/math/random/Random.hpp"
+#include "EnchantingTableEntity.hpp"
+#include "../../IWorld.hpp"
+#include "../../block/VanillaBlocks.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc {
@@ -52,7 +51,7 @@ std::unique_ptr<BlockEntity> EnchantingTableEntity::clone() const {
 
 // ========== 附魔力量 ==========
 
-void EnchantingTableEntity::recalculateEnchantPower(World& world) {
+void EnchantingTableEntity::recalculateEnchantPower(IWorld& world) {
     m_enchantPower = 0;
 
     // 检查附魔台周围2格范围内的书架
@@ -86,7 +85,7 @@ void EnchantingTableEntity::recalculateEnchantPower(World& world) {
     m_enchantPower = std::min(m_enchantPower, 15);
 }
 
-bool EnchantingTableEntity::isValidBookshelf(World& world,
+bool EnchantingTableEntity::isValidBookshelf(IWorld& world,
                                               const BlockPos& bookshelfPos,
                                               const BlockPos& tablePos) {
     // 检查书架位置是否是书架方块
@@ -97,10 +96,10 @@ bool EnchantingTableEntity::isValidBookshelf(World& world,
         return false;
     }
 
-    // TODO: 检查是否是实际的书架方块类型
-    // 正确实现应该检查: bookshelfState->getBlock() == VanillaBlocks::BOOKSHELF
-    // 目前简化为检查方块是否不透明（临时方案）
-    // 需要在 VanillaBlocks 注册 BOOKSHELF 后启用完整检查
+    // 检查是否是实际的书架方块类型
+    if (&bookshelfState->getBlock() != VanillaBlocks::BOOKSHELF) {
+        return false;
+    }
 
     // 检查书架与附魔台之间的方块是否是空气
     // 中间位置在书架和附魔台之间
@@ -131,7 +130,7 @@ void EnchantingTableEntity::setCustomName(const String& name) {
 
 // ========== 动画 ==========
 
-void EnchantingTableEntity::updateAnimation(World& world, f32 dt) {
+void EnchantingTableEntity::updateAnimation(IWorld& world, f32 dt) {
     MC_UNUSED(world);
 
     m_prevBookRotation = m_bookRotation;

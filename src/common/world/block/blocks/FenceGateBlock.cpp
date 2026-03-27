@@ -1,11 +1,10 @@
-#include "world/block/blocks/FenceGateBlock.hpp"
-#include "world/IWorld.hpp"
-#include "world/World.hpp"
-#include "world/block/VanillaBlocks.hpp"
-#include "entity/Player.hpp"
-#include "item/BlockItemUseContext.hpp"
-#include "util/Direction.hpp"
-#include "util/assert/AssertAll.hpp"
+#include "FenceGateBlock.hpp"
+#include "../../IWorld.hpp"
+#include "../VanillaBlocks.hpp"
+#include "../../../entity/Player.hpp"
+#include "../../../item/BlockItemUseContext.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -14,6 +13,24 @@ namespace blocks {
 
 FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     : Block(properties) {
+
+    // 创建状态容器
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::HORIZONTAL_FACING())
+        .add(BlockStateProperties::OPEN())
+        .add(BlockStateProperties::IN_WALL())
+        .add(BlockStateProperties::POWERED())
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+
+    // 设置默认状态
+    setDefaultState(defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+        .with(BlockStateProperties::OPEN(), false)
+        .with(BlockStateProperties::IN_WALL(), false)
+        .with(BlockStateProperties::POWERED(), false));
 
     // 关闭状态碰撞形状：2像素厚（根据朝向旋转）
     // 像素坐标：关闭时为 (0, 0, 7) -> (16, 16, 9) 或旋转后
@@ -51,23 +68,6 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
         VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 0.8125f, 1.0f);
 }
 
-// ========== 方块状态 ==========
-
-void FenceGateBlock::fillStateContainer(StateContainer<Block, BlockState>& container) {
-    container.add(BlockStateProperties::HORIZONTAL_FACING());
-    container.add(BlockStateProperties::OPEN());
-    container.add(BlockStateProperties::IN_WALL());
-    container.add(BlockStateProperties::POWERED());
-}
-
-const BlockState& FenceGateBlock::getDefaultState() const {
-    return defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::OPEN(), false)
-        .with(BlockStateProperties::IN_WALL(), false)
-        .with(BlockStateProperties::POWERED(), false);
-}
-
 // ========== 放置和更新 ==========
 
 BlockState FenceGateBlock::getStateForPlacement(BlockItemUseContext& context) {
@@ -96,7 +96,7 @@ void FenceGateBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     MC_UNUSED(isMoving);
 
     const BlockState* statePtr = world.getBlockState(pos.x, pos.y, pos.z);
-    if (statePtr == nullptr || statePtr->getBlock() != this) {
+    if (statePtr == nullptr || &statePtr->getBlock() != this) {
         return;
     }
 
@@ -151,7 +151,7 @@ BlockState FenceGateBlock::updatePostPlacement(
 
 ActionResult FenceGateBlock::onBlockActivated(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
@@ -172,7 +172,7 @@ ActionResult FenceGateBlock::onBlockActivated(
     // 播放音效
     playSound(world, pos, !wasOpen);
 
-    return ActionResult::SUCCESS;
+    return ActionResult::Success;
 }
 
 // ========== 形状 ==========
@@ -239,7 +239,7 @@ const CollisionShape& FenceGateBlock::getOcclusionShape(const BlockState& state)
 
 const BlockState& FenceGateBlock::rotate(const BlockState& state, Rotation rotation) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction rotated = rotateDirection(facing, rotation);
+    Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
@@ -249,10 +249,10 @@ const BlockState& FenceGateBlock::mirror(const BlockState& state, Mirror mirror)
     }
 
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Rotation rotation = mirrorToRotation(mirror, facing);
-    BlockState rotated = rotate(state, rotation);
+    Rotation rotation = Directions::mirrorToRotation(mirror, facing);
 
-    return rotated;
+    // 直接返回 rotate 的结果，不要创建局部副本
+    return rotate(state, rotation);
 }
 
 // ========== 静态工具方法 ==========
@@ -263,7 +263,7 @@ bool FenceGateBlock::isOpen(const BlockState& state) {
 
 // ========== 私有方法 ==========
 
-bool FenceGateBlock::isWall(IWorld& world, const BlockPos& pos, Direction facing) const {
+bool FenceGateBlock::isWall(const IWorld& world, const BlockPos& pos, Direction facing) const {
     // 检查栅栏门两侧是否有墙
     // 栅栏门的朝向是门的"面"方向，墙应该在门的左右两侧
 
@@ -307,7 +307,7 @@ bool FenceGateBlock::isWall(IWorld& world, const BlockPos& pos, Direction facing
     return leftWall && rightWall;
 }
 
-void FenceGateBlock::playSound(World& world, const BlockPos& pos, bool isOpening) {
+void FenceGateBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
     // TODO: 实现音效系统
     // int soundId = isOpening ? 1003 : 1004; // 栅栏门开/关音效
     // world.playEvent(nullptr, soundId, pos, 0);

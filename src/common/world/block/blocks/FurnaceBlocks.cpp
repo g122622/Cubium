@@ -1,9 +1,9 @@
-#include "world/block/blocks/FurnaceBlocks.hpp"
-#include "world/blockentity/processing/FurnaceEntity.hpp"
-#include "world/blockentity/processing/BlastFurnaceEntity.hpp"
-#include "world/blockentity/processing/SmokerEntity.hpp"
-#include "world/World.hpp"
-#include "entity/Player.hpp"
+#include "FurnaceBlocks.hpp"
+#include "../../blockentity/processing/FurnaceEntity.hpp"
+#include "../../blockentity/processing/BlastFurnaceEntity.hpp"
+#include "../../blockentity/processing/SmokerEntity.hpp"
+#include "../../IWorld.hpp"
+#include "../../../entity/Player.hpp"
 
 namespace mc {
 namespace blocks {
@@ -18,10 +18,13 @@ std::unique_ptr<BlockEntity> FurnaceBlock::createBlockEntity(const BlockPos& pos
     return std::make_unique<blockentity::FurnaceEntity>(pos);
 }
 
-void FurnaceBlock::interactWith(World& world, const BlockPos& pos, Player& player) {
+void FurnaceBlock::interactWith(IWorld& world, const BlockPos& pos, Player& player) {
     // 打开普通熔炉GUI
     // TODO: 实现GUI打开
     // player.openContainer(new FurnaceContainer(player.getInventory(), furnace->getInventory()));
+    (void)world;
+    (void)pos;
+    (void)player;
 }
 
 // ========== BlastFurnaceBlock ==========
@@ -34,9 +37,12 @@ std::unique_ptr<BlockEntity> BlastFurnaceBlock::createBlockEntity(const BlockPos
     return std::make_unique<blockentity::BlastFurnaceEntity>(pos);
 }
 
-void BlastFurnaceBlock::interactWith(World& world, const BlockPos& pos, Player& player) {
+void BlastFurnaceBlock::interactWith(IWorld& world, const BlockPos& pos, Player& player) {
     // 打开高炉GUI
     // TODO: 实现GUI打开
+    (void)world;
+    (void)pos;
+    (void)player;
 }
 
 // ========== SmokerBlock ==========
@@ -49,9 +55,12 @@ std::unique_ptr<BlockEntity> SmokerBlock::createBlockEntity(const BlockPos& pos)
     return std::make_unique<blockentity::SmokerEntity>(pos);
 }
 
-void SmokerBlock::interactWith(World& world, const BlockPos& pos, Player& player) {
+void SmokerBlock::interactWith(IWorld& world, const BlockPos& pos, Player& player) {
     // 打开烟熏炉GUI
     // TODO: 实现GUI打开
+    (void)world;
+    (void)pos;
+    (void)player;
 }
 
 } // namespace blocks

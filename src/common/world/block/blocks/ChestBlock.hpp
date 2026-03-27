@@ -1,11 +1,10 @@
 #pragma once
 
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/blockentity/BlockEntityType.hpp"
-#include "util/property/Properties.hpp"
+#include "../Block.hpp"
+#include "../Material.hpp"
+#include "../BlockPos.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
+#include "../../../util/property/Properties.hpp"
 #include <memory>
 
 namespace mc {
@@ -44,18 +43,6 @@ public:
      * @brief 析构函数
      */
     ~ChestBlock() override = default;
-
-    // ========== 方块状态 ==========
-
-    /**
-     * @brief 创建方块状态容器
-     */
-    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
-
-    /**
-     * @brief 获取默认状态
-     */
-    [[nodiscard]] const BlockState& getDefaultState() const override;
 
     // ========== 放置和更新 ==========
 
@@ -113,7 +100,7 @@ public:
      */
     [[nodiscard]] ActionResult onBlockActivated(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
@@ -138,7 +125,7 @@ public:
      */
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos
     ) const override;
 
@@ -185,7 +172,7 @@ protected:
      */
     void combineChests(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         Direction facing
     );

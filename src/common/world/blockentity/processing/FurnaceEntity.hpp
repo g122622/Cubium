@@ -29,6 +29,11 @@ public:
      */
     ~FurnaceEntity() override = default;
 
+    /**
+     * @brief 创建方块实体副本
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
+
 protected:
     /**
      * @brief 获取默认显示名称

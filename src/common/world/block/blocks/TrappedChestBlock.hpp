@@ -1,6 +1,6 @@
 #pragma once
 
-#include "world/block/blocks/ChestBlock.hpp"
+#include "ChestBlock.hpp"
 
 namespace mc {
 namespace blocks {

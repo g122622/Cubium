@@ -1,18 +1,23 @@
 #pragma once
 
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/BlockPos.hpp"
-#include "util/property/Properties.hpp"
+#include "../Block.hpp"
+#include "../Material.hpp"
+#include "../BlockPos.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include <memory>
 
 namespace mc {
+
+namespace math {
+class IRandom;
+}
 
 class World;
 class BlockItemUseContext;
 class Player;
 struct BlockRaycastResult;
+class ItemStack;
 
 namespace blocks {
 
@@ -52,18 +57,6 @@ public:
      */
     ~CauldronBlock() override = default;
 
-    // ========== 方块状态 ==========
-
-    /**
-     * @brief 创建方块状态容器
-     */
-    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
-
-    /**
-     * @brief 获取默认状态
-     */
-    [[nodiscard]] const BlockState& getDefaultState() const override;
-
     // ========== 放置和更新 ==========
 
     /**
@@ -85,7 +78,7 @@ public:
      * @param state 方块状态
      * @param random 随机数生成器
      */
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, IRandom& random) override;
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 是否响应随机刻
@@ -106,7 +99,7 @@ public:
      */
     [[nodiscard]] ActionResult onBlockActivated(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
@@ -147,7 +140,7 @@ public:
      */
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos
     ) const override;
 
@@ -175,7 +168,7 @@ public:
      * @param state 当前方块状态
      * @param level 新水位 (0-3)
      */
-    static void setLevel(World& world, const BlockPos& pos, const BlockState& state, i32 level);
+    static void setLevel(IWorld& world, const BlockPos& pos, const BlockState& state, i32 level);
 
     /**
      * @brief 检查是否为空
@@ -202,7 +195,7 @@ private:
      * @return 交互结果
      */
     ActionResult handleBucketInteraction(
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         Player& player,
@@ -218,7 +211,7 @@ private:
      * @return 交互结果
      */
     ActionResult handleBottleInteraction(
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         Player& player,
@@ -234,7 +227,7 @@ private:
      * @return 交互结果
      */
     ActionResult handleLeatherArmorCleaning(
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         Player& player,
@@ -250,7 +243,7 @@ private:
      * @return 交互结果
      */
     ActionResult handleBannerCleaning(
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         Player& player,
@@ -261,14 +254,14 @@ private:
      * @param world 世界
      * @param pos 方块位置
      */
-    void playFillSound(World& world, const BlockPos& pos);
+    void playFillSound(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 播放取水音效
      * @param world 世界
      * @param pos 方块位置
      */
-    void playEmptySound(World& world, const BlockPos& pos);
+    void playEmptySound(IWorld& world, const BlockPos& pos);
 
     /// 炼药锅外部形状
     CollisionShape m_outerShape;

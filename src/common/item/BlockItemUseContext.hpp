@@ -104,6 +104,12 @@ public:
      */
     [[nodiscard]] const BlockState* getBlockStateAtPlacementPos() const;
 
+    /**
+     * @brief 获取世界引用
+     * @return 世界引用
+     */
+    [[nodiscard]] const IWorld& getWorld() const { return m_world; }
+
 private:
     /**
      * @brief 初始化放置上下文

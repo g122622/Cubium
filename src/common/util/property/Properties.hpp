@@ -534,3 +534,21 @@ private:
 };
 
 } // namespace mc
+
+// ============================================================================
+// 枚举特征特化 - BlockStateProperties 枚举类型
+// 实现在 EnumProperty.cpp
+// 注意：特化必须在命名空间外，使用完整限定名
+// ============================================================================
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::DoorHinge>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::DoorHinge& value);
+    static mc::Optional<mc::BlockStateProperties::DoorHinge> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::DoubleBlockHalf>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::DoubleBlockHalf& value);
+    static mc::Optional<mc::BlockStateProperties::DoubleBlockHalf> fromName(mc::StringView name);
+};

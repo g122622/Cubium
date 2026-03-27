@@ -1,10 +1,10 @@
 #pragma once
 
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/BlockPos.hpp"
-#include "util/property/Properties.hpp"
+#include "../Block.hpp"
+#include "../Material.hpp"
+#include "../BlockPos.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include <memory>
 
 namespace mc {
@@ -43,18 +43,6 @@ public:
      * @brief 析构函数
      */
     ~FenceGateBlock() override = default;
-
-    // ========== 方块状态 ==========
-
-    /**
-     * @brief 创建方块状态容器
-     */
-    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
-
-    /**
-     * @brief 获取默认状态
-     */
-    [[nodiscard]] const BlockState& getDefaultState() const override;
 
     // ========== 放置和更新 ==========
 
@@ -110,7 +98,7 @@ public:
      */
     [[nodiscard]] ActionResult onBlockActivated(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
@@ -191,7 +179,7 @@ private:
      * @param facing 栅栏门朝向
      * @return 如果在墙内返回true
      */
-    [[nodiscard]] bool isWall(IWorld& world, const BlockPos& pos, Direction facing) const;
+    [[nodiscard]] bool isWall(const IWorld& world, const BlockPos& pos, Direction facing) const;
 
     /**
      * @brief 播放开关门音效
@@ -199,7 +187,7 @@ private:
      * @param pos 方块位置
      * @param isOpening 是否正在打开
      */
-    void playSound(World& world, const BlockPos& pos, bool isOpening);
+    void playSound(IWorld& world, const BlockPos& pos, bool isOpening);
 
     /// 关闭状态碰撞形状（2像素厚）
     CollisionShape m_closedShape;

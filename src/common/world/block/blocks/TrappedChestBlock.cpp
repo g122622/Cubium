@@ -1,5 +1,5 @@
-#include "world/block/blocks/TrappedChestBlock.hpp"
-#include "world/blockentity/storage/TrappedChestEntity.hpp"
+#include "TrappedChestBlock.hpp"
+#include "../../blockentity/storage/TrappedChestEntity.hpp"
 
 namespace mc {
 namespace blocks {

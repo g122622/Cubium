@@ -1,5 +1,6 @@
 #include "Player.hpp"
 #include "GameModeUtils.hpp"
+#include "inventory/Slot.hpp"
 #include "../physics/PhysicsEngine.hpp"
 #include "../physics/PhysicsConstants.hpp"
 #include "../util/math/random/Random.hpp"
@@ -649,6 +650,26 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
     player->m_totalExperience = totalResult.value();
 
     return player;
+}
+
+// ============================================================================
+// getHeldItem 实现
+// ============================================================================
+
+ItemStack Player::getHeldItem(Hand hand) const {
+    if (hand == Hand::MainHand) {
+        return m_inventory.getSelectedStack();
+    } else {
+        return m_inventory.getOffhandItem();
+    }
+}
+
+ItemStack& Player::getHeldItem(Hand hand) {
+    if (hand == Hand::MainHand) {
+        return m_inventory.getSelectedStackRef();
+    } else {
+        return m_inventory.getOffhandItemRef();
+    }
 }
 
 } // namespace mc

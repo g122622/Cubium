@@ -1,11 +1,11 @@
-#include "world/block/blocks/HopperBlock.hpp"
-#include "world/blockentity/transport/HopperEntity.hpp"
-#include "world/IWorld.hpp"
-#include "world/World.hpp"
-#include "entity/Player.hpp"
-#include "item/ItemStack.hpp"
-#include "util/Direction.hpp"
-#include "util/assert/AssertAll.hpp"
+#include "HopperBlock.hpp"
+#include "../../blockentity/transport/HopperEntity.hpp"
+#include "../../IWorld.hpp"
+#include "../../../entity/Player.hpp"
+#include "../../../item/ItemStack.hpp"
+#include "../../../item/BlockItemUseContext.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -14,32 +14,17 @@ namespace blocks {
 
 HopperBlock::HopperBlock(const BlockProperties& properties)
     : Block(properties) {
-    initShapes();
-}
-
-// ========== 方块状态 ==========
-
-void HopperBlock::fillStateContainer(StateContainer<Block, BlockState>& container) {
-    container.add(BlockStateProperties::FACING_EXCEPT_UP());
-    container.add(BlockStateProperties::ENABLED());
-}
-
-const BlockState& HopperBlock::getDefaultState() const {
-    return defaultState()
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::FACING_EXCEPT_UP())
+        .add(BlockStateProperties::ENABLED())
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+    setDefaultState(defaultState()
         .with(BlockStateProperties::FACING_EXCEPT_UP(), Direction::Down)
-        .with(BlockStateProperties::ENABLED(), true);
-}
-
-// ========== 形状 ==========
-
-const CollisionShape& HopperBlock::getShape(const BlockState& state) const {
-    Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
-    return m_shapes[static_cast<size_t>(facing)];
-}
-
-const CollisionShape& HopperBlock::getRaytraceShape(const BlockState& state) const {
-    Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
-    return m_raytraceShapes[static_cast<size_t>(facing)];
+        .with(BlockStateProperties::ENABLED(), true));
+    initShapes();
 }
 
 // ========== 放置和更新 ==========
@@ -82,17 +67,29 @@ void HopperBlock::neighborChanged(
     }
 }
 
+// ========== 形状 ==========
+
+const CollisionShape& HopperBlock::getShape(const BlockState& state) const {
+    Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
+    return m_shapes[static_cast<size_t>(facing)];
+}
+
+const CollisionShape& HopperBlock::getRaytraceShape(const BlockState& state) const {
+    Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
+    return m_raytraceShapes[static_cast<size_t>(facing)];
+}
+
 // ========== 方块实体 ==========
 
 std::unique_ptr<BlockEntity> HopperBlock::createBlockEntity(const BlockPos& pos) {
-    return std::make_unique<HopperEntity>(pos);
+    return std::make_unique<blockentity::HopperEntity>(pos);
 }
 
 // ========== 交互 ==========
 
 ActionResult HopperBlock::onBlockActivated(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
@@ -111,20 +108,20 @@ ActionResult HopperBlock::onBlockActivated(
     // 打开漏斗GUI
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Hopper) {
-        // auto* hopper = static_cast<HopperEntity*>(blockEntity);
+        // auto* hopper = static_cast<blockentity::HopperEntity*>(blockEntity);
         // player.openContainer(hopper);
         // player.addStat(Stats.INSPECT_HOPPER);
-        return ActionResult::CONSUME;
+        return ActionResult::Consume;
     }
 
-    return ActionResult::PASS;
+    return ActionResult::Pass;
 }
 
 // ========== 红石 ==========
 
 i32 HopperBlock::getComparatorInputOverride(
     const BlockState& state,
-    World& world,
+    IWorld& world,
     const BlockPos& pos) const {
 
     MC_UNUSED(state);
@@ -134,7 +131,7 @@ i32 HopperBlock::getComparatorInputOverride(
         return 0;
     }
 
-    auto* hopper = static_cast<HopperEntity*>(blockEntity);
+    auto* hopper = static_cast<blockentity::HopperEntity*>(blockEntity);
     IInventory* inventory = hopper->getInventory();
     if (inventory == nullptr) {
         return 0;
@@ -184,7 +181,7 @@ void HopperBlock::onEntityCollision(
         return;
     }
 
-    auto* hopper = static_cast<HopperEntity*>(blockEntity);
+    auto* hopper = static_cast<blockentity::HopperEntity*>(blockEntity);
     hopper->onEntityCollision(world, &entity);
 }
 
@@ -192,7 +189,7 @@ void HopperBlock::onEntityCollision(
 
 const BlockState& HopperBlock::rotate(const BlockState& state, Rotation rotation) const {
     Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
-    Direction rotated = rotateDirection(facing, rotation);
+    Direction rotated = Directions::rotateDirection(facing, rotation);
 
     // 如果旋转后变成 Up，保持原方向
     if (rotated == Direction::Up) {
@@ -204,7 +201,7 @@ const BlockState& HopperBlock::rotate(const BlockState& state, Rotation rotation
 
 const BlockState& HopperBlock::mirror(const BlockState& state, Mirror mirror) const {
     Direction facing = state.get(BlockStateProperties::FACING_EXCEPT_UP());
-    Rotation rotation = mirrorToRotation(mirror, facing);
+    Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     return rotate(state, rotation);
 }
 

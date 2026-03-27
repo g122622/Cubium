@@ -1,12 +1,11 @@
 #pragma once
 
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/blockentity/BlockEntityType.hpp"
-#include "util/property/Properties.hpp"
-#include "physics/collision/CollisionShape.hpp"
+#include "../Block.hpp"
+#include "../Material.hpp"
+#include "../BlockPos.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../../physics/collision/CollisionShape.hpp"
 #include <memory>
 
 namespace mc {
@@ -46,36 +45,6 @@ public:
      */
     ~HopperBlock() override = default;
 
-    // ========== 方块状态 ==========
-
-    /**
-     * @brief 创建方块状态容器
-     */
-    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
-
-    /**
-     * @brief 获取默认状态
-     */
-    [[nodiscard]] const BlockState& getDefaultState() const override;
-
-    // ========== 形状 ==========
-
-    /**
-     * @brief 获取碰撞形状
-     * @param state 方块状态
-     * @return 碰撞形状
-     */
-    [[nodiscard]] const CollisionShape& getShape(
-        const BlockState& state) const override;
-
-    /**
-     * @brief 获取射线追踪形状
-     * @param state 方块状态
-     * @return 射线追踪形状
-     */
-    [[nodiscard]] const CollisionShape& getRaytraceShape(
-        const BlockState& state) const;
-
     // ========== 放置和更新 ==========
 
     /**
@@ -108,6 +77,24 @@ public:
         const BlockPos& neighborPos,
         bool isMoving
     ) override;
+
+    // ========== 形状 ==========
+
+    /**
+     * @brief 获取碰撞形状
+     * @param state 方块状态
+     * @return 碰撞形状
+     */
+    [[nodiscard]] const CollisionShape& getShape(
+        const BlockState& state) const override;
+
+    /**
+     * @brief 获取射线追踪形状
+     * @param state 方块状态
+     * @return 射线追踪形状
+     */
+    [[nodiscard]] const CollisionShape& getRaytraceShape(
+        const BlockState& state) const;
 
     // ========== 方块实体 ==========
 
@@ -145,7 +132,7 @@ public:
      */
     [[nodiscard]] ActionResult onBlockActivated(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
@@ -177,7 +164,7 @@ public:
      */
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos
     ) const override;
 

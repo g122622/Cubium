@@ -1,11 +1,11 @@
 #pragma once
 
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/blockentity/BlockEntityType.hpp"
-#include "util/property/Properties.hpp"
+#include "../Block.hpp"
+#include "../Material.hpp"
+#include "../BlockPos.hpp"
+#include "../../blockentity/BlockEntityType.hpp"
+#include "../../../util/property/Properties.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include <memory>
 
 namespace mc {
@@ -14,6 +14,7 @@ class World;
 class BlockItemUseContext;
 class Player;
 struct BlockRaycastResult;
+class BlockEntity;
 
 namespace blocks {
 
@@ -79,7 +80,7 @@ public:
      */
     [[nodiscard]] ActionResult onBlockActivated(
         const BlockState& state,
-        World& world,
+        IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,

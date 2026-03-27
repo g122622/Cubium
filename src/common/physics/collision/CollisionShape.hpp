@@ -77,6 +77,41 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 合并操作类型
+     */
+    enum class CombineOp : u8 {
+        OR,     // 并集
+        AND,    // 交集
+        NOT     // 差集
+    };
+
+    /**
+     * @brief 合并两个碰撞形状
+     * @param a 第一个形状
+     * @param b 第二个形状
+     * @param op 合并操作（目前只支持 OR）
+     * @return 合并后的形状
+     */
+    [[nodiscard]] static CollisionShape combine(const CollisionShape& a, const CollisionShape& b,
+                                                CombineOp op = CombineOp::OR) {
+        CollisionShape result;
+
+        if (op == CombineOp::OR) {
+            // 并集：简单地复制所有碰撞盒
+            result.m_type = (a.m_type == Type::FullBlock || b.m_type == Type::FullBlock)
+                           ? Type::FullBlock : Type::SimpleBox;
+
+            result.m_boxes = a.m_boxes;
+            for (const auto& box : b.m_boxes) {
+                result.m_boxes.push_back(box);
+            }
+        }
+        // AND 和 NOT 操作暂不实现（需要更复杂的几何运算）
+
+        return result;
+    }
+
     // 查询
     [[nodiscard]] bool isEmpty() const noexcept { return m_type == Type::Empty; }
     [[nodiscard]] bool isFullBlock() const noexcept { return m_type == Type::FullBlock; }
