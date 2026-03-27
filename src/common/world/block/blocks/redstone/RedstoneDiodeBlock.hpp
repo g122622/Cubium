@@ -1,0 +1,186 @@
+#pragma once
+
+#include "../../Block.hpp"
+#include "../../../redstone/RedstonePower.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../../util/Direction.hpp"
+
+namespace mc {
+namespace blocks {
+
+/**
+ * @brief 红石二极管基类
+ *
+ * 中继器和比较器的公共基类。
+ * 提供方向性信号传输、锁定检测等通用功能。
+ *
+ * ## 特性
+ * - 只能水平放置
+ * - 有明确的输入端和输出端
+ * - 支持侧面锁定
+ * - 支持延迟更新
+ *
+ * ## 子类需要实现
+ * - getDelay(): 返回延迟tick数
+ * - shouldBePowered(): 判断是否应该输出信号
+ * - calculateOutputSignal(): 计算输出信号强度
+ *
+ * 参考: net.minecraft.block.RedstoneDiodeBlock
+ */
+class RedstoneDiodeBlock : public Block {
+public:
+    // ========== 构造函数 ==========
+
+    RedstoneDiodeBlock(const String& id, const BlockProperties& behaviour);
+
+    // ========== Block 接口实现 ==========
+
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state, Direction facing,
+        const BlockState& facingState, IWorld& world,
+        const BlockPos& currentPos, const BlockPos& facingPos) override;
+
+    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
+                        const BlockPos& neighborPos, bool isMoving) override;
+
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side
+    ) const override;
+
+    // ========== 红石二极管特有方法 ==========
+
+    /**
+     * @brief 获取延迟tick数
+     *
+     * 子类必须实现，返回信号延迟。
+     * - 中继器：2-8 ticks
+     * - 比较器：2 ticks
+     *
+     * @param state 当前方块状态
+     * @return i32 延迟tick数
+     */
+    [[nodiscard]] virtual i32 getDelay(const BlockState& state) const = 0;
+
+    /**
+     * @brief 判断是否应该输出信号
+     *
+     * 根据输入信号判断是否应该激活。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return true 如果应该输出信号
+     */
+    [[nodiscard]] virtual bool shouldBePowered(IWorld& world, const BlockPos& pos,
+                                               const BlockState& state) const = 0;
+
+    /**
+     * @brief 计算输出信号强度
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return i32 输出信号强度 0-15
+     */
+    [[nodiscard]] virtual i32 calculateOutputSignal(IWorld& world, const BlockPos& pos,
+                                                    const BlockState& state) const;
+
+    /**
+     * @brief 检查是否被锁定
+     *
+     * 当侧面有信号输入时，二极管被锁定，
+     * 保持当前输出状态不变。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return true 如果被锁定
+     */
+    [[nodiscard]] virtual bool isLocked(IWorld& world, const BlockPos& pos,
+                                        const BlockState& state) const;
+
+    /**
+     * @brief 获取输入信号强度
+     *
+     * 从前方获取红石信号，支持红石线信号检测。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return i32 输入信号强度 0-15
+     */
+    [[nodiscard]] i32 getInputSignal(IWorld& world, const BlockPos& pos,
+                                     const BlockState& state) const;
+
+    /**
+     * @brief 获取侧面信号强度
+     *
+     * 用于锁定检测。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return i32 侧面信号最大强度
+     */
+    [[nodiscard]] i32 getPowerOnSides(IWorld& world, const BlockPos& pos,
+                                      const BlockState& state) const;
+
+    /**
+     * @brief 获取朝向
+     *
+     * @param state 方块状态
+     * @return Direction 朝向（输出方向）
+     */
+    [[nodiscard]] static Direction getFacing(const BlockState& state);
+
+    /**
+     * @brief 检查是否已充能
+     *
+     * @param state 方块状态
+     * @return true 如果已充能
+     */
+    [[nodiscard]] static bool isPowered(const BlockState& state);
+
+protected:
+    /**
+     * @brief 触发状态更新
+     *
+     * 检查是否需要改变状态，如果需要则调度延迟更新。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     */
+    void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 检查是否朝向另一个二极管
+     *
+     * 用于确定更新优先级。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return true 如果朝向另一个二极管
+     */
+    [[nodiscard]] bool isFacingTowardsRepeater(IWorld& world, const BlockPos& pos,
+                                               const BlockState& state) const;
+
+    /// 方块ID（用于日志和调试）
+    String m_id;
+};
+
+} // namespace blocks
+} // namespace mc

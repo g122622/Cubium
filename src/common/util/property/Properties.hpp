@@ -122,6 +122,14 @@ public:
     }
 
     /**
+     * @brief 是否反转（日光探测器夜间模式）
+     */
+    static const BooleanProperty& INVERTED() {
+        static auto prop = BooleanProperty::create("inverted");
+        return *prop;
+    }
+
+    /**
      * @brief 是否点亮（火把、熔炉等）
      */
     static const BooleanProperty& LIT() {
@@ -526,6 +534,31 @@ public:
         return *prop;
     }
 
+    // ========================================================================
+    // 附着面属性（按钮、拉杆等）
+    // ========================================================================
+
+    /**
+     * @brief 附着面枚举
+     */
+    enum class AttachFace : u8 {
+        Floor = 0,   ///< 附着在地面（按钮朝上）
+        Wall = 1,    ///< 附着在墙上
+        Ceiling = 2  ///< 附着在天花板（按钮朝下）
+    };
+
+    /**
+     * @brief 附着面属性
+     */
+    static const EnumProperty<AttachFace>& ATTACH_FACE() {
+        static auto prop = EnumProperty<AttachFace>::create("face", {
+            AttachFace::Floor,
+            AttachFace::Wall,
+            AttachFace::Ceiling
+        });
+        return *prop;
+    }
+
 private:
     // 禁止实例化
     BlockStateProperties() = delete;
@@ -557,4 +590,10 @@ template<>
 struct mc::EnumProperty<mc::BlockStateProperties::ChestType>::Traits {
     static mc::String toString(const mc::BlockStateProperties::ChestType& value);
     static mc::Optional<mc::BlockStateProperties::ChestType> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::AttachFace>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::AttachFace& value);
+    static mc::Optional<mc::BlockStateProperties::AttachFace> fromName(mc::StringView name);
 };

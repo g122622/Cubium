@@ -94,6 +94,9 @@ add_executable(mc_tests
     common/world/tick/ServerTickListTest.cpp
     # 流体系统测试
     common/world/fluid/FluidTest.cpp
+    # 红石系统测试
+    common/world/redstone/RedstoneContextTest.cpp
+    common/world/redstone/RedstoneHelperTest.cpp
     # 射线检测测试
     common/math/RaycastTest.cpp
     # 实体生成回调测试

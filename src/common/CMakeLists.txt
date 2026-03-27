@@ -179,11 +179,40 @@ add_library(mc_common STATIC
     world/block/blocks/DoorBlock.cpp
     world/block/blocks/FenceGateBlock.cpp
 
+    # World - Block - Redstone
+    world/block/blocks/redstone/RedstoneBlock.cpp
+    world/block/blocks/redstone/RedstoneTorchBlock.cpp
+    world/block/blocks/redstone/RedstoneWireBlock.cpp
+    world/block/blocks/redstone/RedstoneDiodeBlock.cpp
+    world/block/blocks/redstone/RedstoneRepeaterBlock.cpp
+    world/block/blocks/redstone/RedstoneComparatorBlock.cpp
+    world/block/blocks/redstone/ObserverBlock.cpp
+    world/block/blocks/redstone/AbstractButtonBlock.cpp
+    world/block/blocks/redstone/StoneButtonBlock.cpp
+    world/block/blocks/redstone/WoodButtonBlock.cpp
+    world/block/blocks/redstone/LeverBlock.cpp
+    world/block/blocks/redstone/AbstractPressurePlateBlock.cpp
+    world/block/blocks/redstone/StonePressurePlateBlock.cpp
+    world/block/blocks/redstone/WoodPressurePlateBlock.cpp
+    world/block/blocks/redstone/WeightedPressurePlateBlock.cpp
+    world/block/blocks/redstone/DaylightDetectorBlock.cpp
+    world/block/blocks/redstone/PistonBlock.cpp
+    world/block/blocks/redstone/PistonHeadBlock.cpp
+    world/block/blocks/redstone/DispenserBlock.cpp
+    world/block/blocks/redstone/DropperBlock.cpp
+    world/block/blocks/redstone/RedstoneLampBlock.cpp
+    world/block/blocks/redstone/TripWireBlock.cpp
+    world/block/blocks/redstone/TripWireHookBlock.cpp
+    world/block/blocks/redstone/NoteBlock.cpp
+    world/block/blocks/redstone/TNTBlock.cpp
+    world/block/blocks/redstone/TargetBlock.cpp
+
     # World - Block Entity
     world/blockentity/core/SimpleInventory.cpp
     world/blockentity/core/LockableBlockEntity.cpp
     world/blockentity/core/BlockEntityRegistry.cpp
     world/blockentity/interactive/EnchantingTableEntity.cpp
+    world/blockentity/interactive/DispenserBlockEntity.cpp
     world/blockentity/storage/ChestEntity.cpp
     world/blockentity/storage/TrappedChestEntity.cpp
     world/blockentity/storage/DoubleSidedInventory.cpp
@@ -306,6 +335,12 @@ add_library(mc_common STATIC
     # World - Tick System
     world/tick/manager/TickManager.cpp
     # (header-only templates: TickPriority.hpp, ScheduledTick.hpp, ITickList.hpp, EmptyTickList.hpp, ServerTickList.hpp)
+
+    # World - Redstone System
+    world/redstone/RedstoneContext.cpp
+    world/redstone/RedstonePower.cpp
+    world/redstone/RedstoneSystem.cpp
+    world/redstone/RedstoneHelper.cpp
 
     # World - Lighting System
     world/lighting/InternalLight.cpp

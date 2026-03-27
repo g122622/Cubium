@@ -85,4 +85,34 @@ Optional<BlockStateProperties::ChestType> EnumProperty<BlockStateProperties::Che
     return std::nullopt;
 }
 
+// ============================================================================
+// AttachFace Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::AttachFace>::Traits::toString(
+    const BlockStateProperties::AttachFace& value) {
+    switch (value) {
+        case BlockStateProperties::AttachFace::Floor:
+            return "floor";
+        case BlockStateProperties::AttachFace::Wall:
+            return "wall";
+        case BlockStateProperties::AttachFace::Ceiling:
+            return "ceiling";
+        default:
+            return "wall";
+    }
+}
+
+Optional<BlockStateProperties::AttachFace> EnumProperty<BlockStateProperties::AttachFace>::Traits::fromName(
+    StringView name) {
+    if (name == "floor") {
+        return BlockStateProperties::AttachFace::Floor;
+    } else if (name == "wall") {
+        return BlockStateProperties::AttachFace::Wall;
+    } else if (name == "ceiling") {
+        return BlockStateProperties::AttachFace::Ceiling;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc
