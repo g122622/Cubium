@@ -293,15 +293,32 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
     }
 
     // 回退匹配：允许方块状态定义只约束部分属性
+    // 性能优化：m_blockAppearances 是有序 map，使用 lower_bound 将扫描范围
+    // 缩小到同一 blockId 前缀区间，避免全表遍历。
     const String blockPrefix = blockId.toString();
-    const String blockWithQueryPrefix = blockPrefix + "?";
+    const size_t blockPrefixSize = blockPrefix.size();
 
     const BlockAppearance* bestMatch = nullptr;
     const BlockAppearance* firstBlockAppearance = nullptr;
     size_t bestSpecificity = 0;
 
-    for (const auto& [appearanceKey, appearance] : m_blockAppearances) {
-        if (appearanceKey != blockPrefix && appearanceKey.rfind(blockWithQueryPrefix, 0) != 0) {
+    auto itRange = m_blockAppearances.lower_bound(blockPrefix);
+    for (; itRange != m_blockAppearances.end(); ++itRange) {
+        const auto& appearanceKey = itRange->first;
+        const auto& appearance = itRange->second;
+
+        // 已经离开 blockPrefix 前缀范围，直接结束扫描
+        if (appearanceKey.compare(0, blockPrefixSize, blockPrefix) != 0) {
+            break;
+        }
+
+        // 只接受两类 key：
+        // 1) "namespace:block"
+        // 2) "namespace:block?prop=value,..."
+        const bool isExactKey = appearanceKey.size() == blockPrefixSize;
+        const bool isStateKey = appearanceKey.size() > blockPrefixSize &&
+                                appearanceKey[blockPrefixSize] == '?';
+        if (!isExactKey && !isStateKey) {
             continue;
         }
 
@@ -310,10 +327,9 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
         }
 
         StringView statePart = "normal";
-        if (appearanceKey.size() > blockWithQueryPrefix.size() &&
-            appearanceKey.rfind(blockWithQueryPrefix, 0) == 0) {
-            statePart = StringView(appearanceKey.data() + blockWithQueryPrefix.size(),
-                                   appearanceKey.size() - blockWithQueryPrefix.size());
+        if (isStateKey && appearanceKey.size() > blockPrefixSize + 1) {
+            statePart = StringView(appearanceKey.data() + blockPrefixSize + 1,
+                                   appearanceKey.size() - blockPrefixSize - 1);
         }
 
         const auto conditions = parseStateConditions(statePart);
