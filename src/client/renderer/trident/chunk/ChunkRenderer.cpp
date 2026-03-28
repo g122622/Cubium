@@ -335,16 +335,18 @@ Result<void> ChunkRenderer::createChunkBuffer(
     }
     VkCommandBuffer commandBuffer = cmdResult.value();
 
+    // 使用分段上传布局，确保顶点和索引在暂存缓冲区内不重叠
+    const StagingCopyLayout stagingLayout = buildStagingCopyLayout(vertexSize, indexSize);
+
     // 确保暂存缓冲区足够大
-    VkDeviceSize maxDataSize = std::max(vertexSize, indexSize);
-    if (maxDataSize > m_stagingBufferSize || m_stagingBuffer == VK_NULL_HANDLE) {
+    if (stagingLayout.totalSize > m_stagingBufferSize || m_stagingBuffer == VK_NULL_HANDLE) {
         // 销毁旧的暂存缓冲区
         if (m_stagingBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(m_device, m_stagingBuffer, nullptr);
             vkFreeMemory(m_device, m_stagingMemory, nullptr);
         }
 
-        m_stagingBufferSize = std::max(maxDataSize, static_cast<VkDeviceSize>(16 * 1024 * 1024));
+        m_stagingBufferSize = std::max(stagingLayout.totalSize, static_cast<VkDeviceSize>(16 * 1024 * 1024));
         auto result = createBuffer(
             m_stagingBufferSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -358,25 +360,38 @@ Result<void> ChunkRenderer::createChunkBuffer(
         }
     }
 
-    // 映射并上传顶点数据
-    void* mapped;
-    vkMapMemory(m_device, m_stagingMemory, 0, vertexSize, 0, &mapped);
-    std::memcpy(mapped, meshData.vertices.data(), static_cast<size_t>(vertexSize));
+    // 一次映射，分别写入顶点段和索引段，避免覆盖导致网格损坏
+    void* mapped = nullptr;
+    VkResult mapResult = vkMapMemory(m_device, m_stagingMemory, 0, stagingLayout.totalSize, 0, &mapped);
+    if (mapResult != VK_SUCCESS || mapped == nullptr) {
+        endSingleTimeCommands(commandBuffer);
+        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer memory");
+    }
+
+    u8* stagingBytes = static_cast<u8*>(mapped);
+    std::memcpy(
+        stagingBytes + stagingLayout.vertexOffset,
+        meshData.vertices.data(),
+        static_cast<size_t>(vertexSize));
+    std::memcpy(
+        stagingBytes + stagingLayout.indexOffset,
+        meshData.indices.data(),
+        static_cast<size_t>(indexSize));
     vkUnmapMemory(m_device, m_stagingMemory);
 
     // 复制顶点数据
-    VkBufferCopy copyRegion{};
-    copyRegion.size = vertexSize;
-    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.vertexBuffer, 1, &copyRegion);
-
-    // 映射并上传索引数据
-    vkMapMemory(m_device, m_stagingMemory, 0, indexSize, 0, &mapped);
-    std::memcpy(mapped, meshData.indices.data(), static_cast<size_t>(indexSize));
-    vkUnmapMemory(m_device, m_stagingMemory);
+    VkBufferCopy vertexCopy{};
+    vertexCopy.srcOffset = stagingLayout.vertexOffset;
+    vertexCopy.dstOffset = 0;
+    vertexCopy.size = vertexSize;
+    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.vertexBuffer, 1, &vertexCopy);
 
     // 复制索引数据
-    copyRegion.size = indexSize;
-    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.indexBuffer, 1, &copyRegion);
+    VkBufferCopy indexCopy{};
+    indexCopy.srcOffset = stagingLayout.indexOffset;
+    indexCopy.dstOffset = 0;
+    indexCopy.size = indexSize;
+    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.indexBuffer, 1, &indexCopy);
 
     endSingleTimeCommands(commandBuffer);
 
@@ -470,7 +485,7 @@ Result<void> ChunkRenderer::createTextureAtlas(u32 width, u32 height) {
     auto samplerResult = renderer::VulkanUtils::createSampler(
         m_device,
         VK_FILTER_NEAREST, VK_FILTER_NEAREST,
-        VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         m_textureAtlas.sampler);
 
     if (samplerResult.failed()) {

@@ -75,6 +75,36 @@ struct ChunkTextureAtlas {
 // 区块渲染器
 class ChunkRenderer {
 public:
+    struct StagingCopyLayout {
+        VkDeviceSize vertexOffset = 0;
+        VkDeviceSize indexOffset = 0;
+        VkDeviceSize totalSize = 0;
+    };
+
+    [[nodiscard]] static constexpr VkDeviceSize stagingCopyAlignment() {
+        return 4;
+    }
+
+    [[nodiscard]] static constexpr VkDeviceSize alignStagingOffset(
+        VkDeviceSize value,
+        VkDeviceSize alignment)
+    {
+        return alignment == 0
+            ? value
+            : ((value + alignment - 1) / alignment) * alignment;
+    }
+
+    [[nodiscard]] static constexpr StagingCopyLayout buildStagingCopyLayout(
+        VkDeviceSize vertexSize,
+        VkDeviceSize indexSize)
+    {
+        StagingCopyLayout layout{};
+        layout.vertexOffset = 0;
+        layout.indexOffset = alignStagingOffset(vertexSize, stagingCopyAlignment());
+        layout.totalSize = layout.indexOffset + indexSize;
+        return layout;
+    }
+
     ChunkRenderer();
     ~ChunkRenderer();
 

@@ -75,6 +75,7 @@ add_executable(mc_tests
     client/renderer/test_renderer.cpp
     client/renderer/test_trident_api.cpp
     client/renderer/test_cloud_renderer.cpp
+    client/renderer/ChunkRendererStagingLayoutTest.cpp
     client/renderer/entity/AnimalModelTests.cpp
     client/renderer/entity/test_entity_renderer_manager.cpp
     client/renderer/test_gui_item_color.cpp
