@@ -100,6 +100,11 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     Direction face,
     const ItemStack& heldItem)
 {
+    // 调试世界禁止方块放置
+    if (m_world.isDebugWorld()) {
+        return Error(ErrorCode::PermissionDenied, "Cannot place blocks in debug world");
+    }
+
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
         return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
@@ -174,6 +179,11 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
     PlayerId playerId,
     const BlockPos& pos)
 {
+    // 调试世界禁止方块破坏
+    if (m_world.isDebugWorld()) {
+        return Error(ErrorCode::PermissionDenied, "Cannot break blocks in debug world");
+    }
+
     // 获取玩家数据
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {

@@ -8,6 +8,7 @@
 #include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/network/packet/Packet.hpp"
@@ -114,6 +115,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     worldConfig.viewDistance = config.viewDistance;
     worldConfig.dimension = 0;  // 主世界
     worldConfig.seed = static_cast<u64>(config.seed);
+    worldConfig.isDebugWorld = (config.worldType == WorldType::Debug);
 
     m_world = std::make_unique<ServerWorld>(worldConfig);
 
@@ -126,9 +128,38 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
                      "Failed to initialize world: " + worldInitResult.error().message());
     }
 
-    // 创建区块管理器
-    auto chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-        static_cast<u64>(config.seed), DimensionSettings::overworld());
+    // 根据世界类型创建区块管理器
+    std::unique_ptr<IChunkGenerator> chunkGenerator;
+    switch (config.worldType) {
+        case WorldType::Debug:
+            spdlog::info("Using DebugChunkGenerator for debug world");
+            chunkGenerator = std::make_unique<DebugChunkGenerator>();
+            break;
+        case WorldType::Flat:
+            // TODO: 实现 FlatChunkGenerator
+            spdlog::warn("FlatChunkGenerator not implemented, using NoiseChunkGenerator");
+            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                static_cast<u64>(config.seed), DimensionSettings::flat());
+            break;
+        case WorldType::LargeBiomes:
+            // TODO: 实现大型生物群系
+            spdlog::info("Using NoiseChunkGenerator with large biomes (not yet implemented)");
+            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                static_cast<u64>(config.seed), DimensionSettings::overworld());
+            break;
+        case WorldType::Amplified:
+            // TODO: 实现放大化地形
+            spdlog::info("Using NoiseChunkGenerator with amplified settings (not yet implemented)");
+            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                static_cast<u64>(config.seed), DimensionSettings::overworld());
+            break;
+        case WorldType::Default:
+        default:
+            spdlog::info("Using NoiseChunkGenerator for normal world");
+            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                static_cast<u64>(config.seed), DimensionSettings::overworld());
+            break;
+    }
     auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
     chunkManager->initialize();
     chunkManager->startWorkers(4);
@@ -142,6 +173,27 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {
         return worldResult;
+    }
+
+    // 调试模式特殊初始化
+    if (config.worldType == WorldType::Debug) {
+        spdlog::info("Configuring debug world special settings...");
+
+        // 设置游戏模式为旁观者
+        m_config.defaultGameMode = GameMode::Spectator;
+
+        // 禁用日光周期，设置时间为正午（6000）
+        if (m_timeManager) {
+            m_timeManager->setDayTime(6000);  // 正午
+            m_timeManager->setDaylightCycleEnabled(false);
+            spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
+        }
+
+        // 禁用天气（晴朗）
+        if (m_world->weatherManager()) {
+            m_world->weatherManager()->setClear(999999999);  // 长时间晴天
+            spdlog::info("Debug world: Weather set to clear");
+        }
     }
 
     // 初始化交互管理器
@@ -465,7 +517,8 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 void IntegratedServer::sendLoginResponse(bool success, PlayerId playerId,
                                           const String& username, const String& message)
 {
-    network::LoginResponsePacket response(success, playerId, username, message);
+    bool isDebugWorld = m_world && m_world->isDebugWorld();
+    network::LoginResponsePacket response(success, playerId, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);
 

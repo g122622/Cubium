@@ -182,6 +182,11 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 
 bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 {
+    // 调试世界禁止方块修改
+    if (m_config.isDebugWorld) {
+        return false;
+    }
+
     ChunkCoord chunkX = blockToChunk(static_cast<f32>(x));
     ChunkCoord chunkZ = blockToChunk(static_cast<f32>(z));
 
@@ -218,14 +223,16 @@ void ServerWorld::tick()
 {
     // 时间由外部 TimeManager 管理，不再自增 tick 计数
 
-    if (m_weatherManager) {
+    // 调试世界不执行天气 tick
+    if (!m_config.isDebugWorld && m_weatherManager) {
         m_weatherManager->tick();
     }
 
     // 获取当前 tick
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
 
-    if (m_tickManager) {
+    // 调试世界不执行计划刻
+    if (!m_config.isDebugWorld && m_tickManager) {
         m_tickManager->tick(currentTick);
     }
 
@@ -233,9 +240,12 @@ void ServerWorld::tick()
         m_lightManager->tick(32768, true, true);
     }
 
-    // 定期清理红石火把烧毁记录（每 200 tick）
-    if (currentTick % 200 == 0) {
-        world::redstone::RedstoneSystem::instance().cleanupBurnoutRecords(currentTick);
+    // 调试世界不执行红石清理
+    if (!m_config.isDebugWorld) {
+        // 定期清理红石火把烧毁记录（每 200 tick）
+        if (currentTick % 200 == 0) {
+            world::redstone::RedstoneSystem::instance().cleanupBurnoutRecords(currentTick);
+        }
     }
 
     // EntityManager 由 MinecraftServer 驱动

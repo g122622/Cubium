@@ -165,11 +165,12 @@ private:
 class LoginResponsePacket {
 public:
     LoginResponsePacket() = default;
-    LoginResponsePacket(bool success, PlayerId playerId, const String& username, const String& message = "")
+    LoginResponsePacket(bool success, PlayerId playerId, const String& username, const String& message = "", bool isDebugWorld = false)
         : m_success(success)
         , m_playerId(playerId)
         , m_username(username)
         , m_message(message)
+        , m_isDebugWorld(isDebugWorld)
     {}
 
     // Getters
@@ -177,12 +178,14 @@ public:
     PlayerId playerId() const { return m_playerId; }
     const String& username() const { return m_username; }
     const String& message() const { return m_message; }
+    bool isDebugWorld() const { return m_isDebugWorld; }
 
     // Setters
     void setSuccess(bool success) { m_success = success; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
     void setUsername(const String& username) { m_username = username; }
     void setMessage(const String& message) { m_message = message; }
+    void setIsDebugWorld(bool isDebugWorld) { m_isDebugWorld = isDebugWorld; }
 
     // 序列化
     void serialize(PacketSerializer& ser) const {
@@ -190,6 +193,7 @@ public:
         ser.writeU64(m_playerId);
         ser.writeString(m_username);
         ser.writeString(m_message);
+        ser.writeBool(m_isDebugWorld);
     }
 
     [[nodiscard]] static Result<LoginResponsePacket> deserialize(PacketDeserializer& deser) {
@@ -211,6 +215,12 @@ public:
         if (messageResult.failed()) return messageResult.error();
         packet.m_message = messageResult.value();
 
+        // 向后兼容：isDebugWorld 是可选字段
+        auto debugResult = deser.readBool();
+        if (debugResult.success()) {
+            packet.m_isDebugWorld = debugResult.value();
+        }
+
         return packet;
     }
 
@@ -219,6 +229,7 @@ private:
     PlayerId m_playerId = 0;
     String m_username;
     String m_message;
+    bool m_isDebugWorld = false;  // 调试世界标志
 };
 
 // ============================================================================

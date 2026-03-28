@@ -171,6 +171,8 @@ add_executable(mc_tests
     common/entity/PlayerMovementTest.cpp
     # Assert库测试
     common/util/assert/AssertTest.cpp
+    # 调试区块生成器测试
+    common/world/gen/DebugChunkGeneratorTest.cpp
 )
 
 # 添加服务端源文件
@@ -240,6 +242,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/OctavesNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/IChunkGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/NoiseChunkGenerator.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/DebugChunkGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CaveCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CanyonCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/WorldCarver.cpp

@@ -10,6 +10,7 @@
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/CollisionCache.hpp"
+#include "common/world/WorldConfig.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
@@ -36,6 +37,7 @@ struct ServerWorldConfig {
     i32 viewDistance = 10;              // 视距
     DimensionId dimension = 0;          // 维度ID
     u64 seed = 12345;                   // 世界种子
+    bool isDebugWorld = false;          // 是否为调试世界
 };
 
 // ============================================================================
@@ -231,6 +233,20 @@ public:
     void setOnLightChanged(std::function<void(LightType, const SectionPos&)> callback) {
         m_onLightChanged = std::move(callback);
     }
+
+    // ========== 调试模式 ==========
+
+    /**
+     * @brief 检查是否为调试世界
+     *
+     * 调试世界特性：
+     * - 无法放置或破坏方块
+     * - 计划刻不会执行
+     * - 方块状态由调试生成器决定
+     *
+     * @return 是否为调试世界
+     */
+    [[nodiscard]] bool isDebugWorld() const { return m_config.isDebugWorld; }
 
 private:
     void syncLightDataToChunk(LightType type, const SectionPos& pos);

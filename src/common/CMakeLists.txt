@@ -336,6 +336,7 @@ add_library(mc_common STATIC
     # World - Generation - Chunk Generators
     world/gen/chunk/IChunkGenerator.cpp
     world/gen/chunk/NoiseChunkGenerator.cpp
+    world/gen/chunk/DebugChunkGenerator.cpp
 
     # World - Generation - Settings
     world/gen/settings/DimensionSettings.cpp

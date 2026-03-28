@@ -1,6 +1,6 @@
 # Chunk Generation Module
 
-本模块实现了 Minecraft 1.16.5 风格的区块生成系统，包含区块生成器接口和噪声地形生成器。
+本模块实现了 Minecraft 1.16.5 风格的区块生成系统，包含区块生成器接口、噪声地形生成器和调试模式生成器。
 
 ## 目录结构
 
@@ -9,7 +9,10 @@ chunk/
 ├── IChunkGenerator.hpp      # 区块生成器接口定义
 ├── IChunkGenerator.cpp      # 接口实现和基类
 ├── NoiseChunkGenerator.hpp  # 噪声地形生成器头文件
-└── NoiseChunkGenerator.cpp  # 噪声地形生成器实现
+├── NoiseChunkGenerator.cpp  # 噪声地形生成器实现
+├── DebugChunkGenerator.hpp  # 调试模式生成器头文件
+├── DebugChunkGenerator.cpp  # 调试模式生成器实现
+└── README.md                # 本文档
 ```
 
 ## 文件详细介绍
@@ -535,3 +538,144 @@ ChunkPrimer primer(chunkX, chunkZ);  // 内部预分配 16x256x16
 - Minecraft 1.16.5 `NoiseChunkGenerator`
 - Minecraft 1.16.5 `ChunkGenerator`
 - Minecraft 1.16.5 `WorldGenRegion`
+
+---
+
+## DebugChunkGenerator 调试区块生成器
+
+### 职责
+
+`DebugChunkGenerator` 生成一个特殊的调试世界，用于展示所有方块的所有状态。这是资源包开发者和模组制作者的重要调试工具。
+
+### 文件详细介绍
+
+#### DebugChunkGenerator.hpp
+
+```cpp
+class DebugChunkGenerator : public BaseChunkGenerator {
+public:
+    explicit DebugChunkGenerator();
+
+    // === 静态方法 ===
+    static const std::vector<const BlockState*>& getAllValidStates();
+    static i32 getGridWidth();
+    static i32 getGridHeight();
+    static const BlockState* getBlockStateFor(i32 x, i32 z);
+    static void initializeValidStates();
+    static bool isInitialized();
+
+    // === IChunkGenerator 接口 ===
+    void generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) override;
+    // ... 其他方法为空操作
+};
+```
+
+### 方块网格生成算法
+
+```mermaid
+flowchart TD
+    A[初始化] --> B[收集所有方块状态]
+    B --> C[计算网格尺寸]
+    C --> D[GRID_WIDTH = ceil sqrt count]
+    D --> E[GRID_HEIGHT = ceil count / width]
+    E --> F{遍历区块内每个位置}
+    F --> G{Y == 60?}
+    G -->|是| H[放置屏障方块]
+    G -->|否| I{Y == 70?}
+    I -->|是| J{奇数坐标?}
+    J -->|是| K[计算索引并放置方块状态]
+    J -->|否| L[放置空气]
+    I -->|否| L
+    H --> F
+    K --> F
+    L --> F
+    F -->|完成| M[区块生成完成]
+```
+
+### 网格布局
+
+```
+坐标系统（方块只在奇数坐标放置）：
+    Z轴 →
+    ┌───┬───┬───┬───┬───┬───┐
+    │   │ 1 │   │ 2 │   │ 3 │  ...
+X   ├───┼───┼───┼───┼───┼───┤
+轴  │   │   │   │   │   │   │
+↓   ├───┼───┼───┼───┼───┼───┤
+    │   │ 4 │   │ 5 │   │ 6 │  ...
+    └───┴───┴───┴───┴───┴───┘
+
+索引计算：index = abs(x/2 * GRID_WIDTH + z/2)
+Y=60: 屏障层（Barrier）
+Y=70: 方块状态网格
+```
+
+### 使用方法
+
+```cpp
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/WorldConfig.hpp"
+
+// 1. 创建调试生成器
+DebugChunkGenerator generator;
+
+// 2. 初始化方块状态列表（BlockRegistry 注册后调用）
+DebugChunkGenerator::initializeValidStates();
+
+// 3. 查询方块状态
+const BlockState* state = DebugChunkGenerator::getBlockStateFor(1, 1);
+if (state && !state->isAir()) {
+    // 该位置有一个方块状态
+}
+
+// 4. 获取网格信息
+i32 width = DebugChunkGenerator::getGridWidth();
+i32 height = DebugChunkGenerator::getGridHeight();
+const auto& allStates = DebugChunkGenerator::getAllValidStates();
+```
+
+### 与服务器集成
+
+```cpp
+// 在 IntegratedServerConfig 中设置世界类型
+IntegratedServerConfig config;
+config.worldType = WorldType::Debug;
+
+// 服务器初始化时自动使用 DebugChunkGenerator
+if (config.worldType == WorldType::Debug) {
+    chunkGenerator = std::make_unique<DebugChunkGenerator>();
+}
+```
+
+### 调试模式行为
+
+当 `ServerWorld::isDebugWorld()` 为 true 时：
+
+| 行为 | 限制 |
+|------|------|
+| 方块放置 | 禁止 |
+| 方块破坏 | 禁止 |
+| 计划刻执行 | 跳过 |
+| 天气更新 | 跳过 |
+| 红石更新 | 跳过 |
+| 日光周期 | 禁用（固定正午6000） |
+| 游戏模式 | 旁观者模式 |
+| 难度 | 和平 |
+
+### 测试用例
+
+| 测试名称 | 描述 |
+|----------|------|
+| CreateGenerator | 验证生成器创建 |
+| InitializeValidStates | 验证方块状态收集 |
+| GetBlockStateFor | 验证方块位置映射 |
+| GridIndexCalculation | 验证网格索引计算 |
+| BiomeAlwaysPlains | 验证生物群系始终为平原 |
+| GetHeight | 验证高度返回60或70 |
+| GridSizeConsistency | 验证网格尺寸一致性 |
+
+### 参考
+
+- Minecraft 1.16.5 `DebugChunkGenerator`
+- Minecraft Wiki: Debug mode
+

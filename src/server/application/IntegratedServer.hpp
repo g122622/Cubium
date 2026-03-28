@@ -3,6 +3,7 @@
 #include "MinecraftServer.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/world/WorldConfig.hpp"
 #include <thread>
 #include <mutex>
 
@@ -17,6 +18,7 @@ struct IntegratedServerConfig {
     GameMode defaultGameMode = GameMode::Survival;
     i32 viewDistance = 6;
     i32 tickRate = 20;  // TPS
+    WorldType worldType = WorldType::Debug;  // 默认使用调试模式
 };
 
 /**
