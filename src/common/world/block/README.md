@@ -17,8 +17,28 @@ block/
     ├── AirBlock.hpp/cpp    # 空气方块
     ├── LiquidBlock.hpp/cpp # 液体方块
     ├── RotatedPillarBlock.hpp/cpp # 旋转柱状方块
-    └── SimpleBlock.hpp/cpp # 简单方块基类
+    ├── SimpleBlock.hpp/cpp # 简单方块基类
+    ├── ChestBlock.hpp/cpp  # 箱子方块
+    ├── HopperBlock.hpp/cpp # 漏斗方块
+    ├── FurnaceBlocks.hpp/cpp # 熔炉方块
+    ├── DoorBlock.hpp/cpp   # 门方块
+    ├── FenceGateBlock.hpp/cpp # 栅栏门方块
+    ├── CauldronBlock.hpp/cpp # 炼药锅方块
+    ├── EnchantingTableBlock.hpp/cpp # 附魔台方块
+    ├── redstone/           # 红石方块（详见 redstone/README.md）
+    │   ├── RedstoneBlock.hpp/cpp
+    │   ├── RedstoneTorchBlock.hpp/cpp
+    │   ├── RedstoneWallTorchBlock.hpp/cpp
+    │   ├── RedstoneWireBlock.hpp/cpp
+    │   ├── RedstoneRepeaterBlock.hpp/cpp
+    │   ├── RedstoneComparatorBlock.hpp/cpp
+    │   ├── ObserverBlock.hpp/cpp
+    │   ├── PistonBlock.hpp/cpp
+    │   └── ... 更多红石方块
+    └── README.md           # blocks 子目录文档
 ```
+
+**注意**：红石方块详情请参阅 [blocks/redstone/README.md](blocks/redstone/README.md)
 
 ## 文件详细介绍
 

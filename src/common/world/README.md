@@ -151,6 +151,11 @@ world/
 │       ├── SectionLightStorage.hpp
 │       ├── EmptinessMap.hpp/cpp
 │       └── SWMRNibbleArray.hpp/cpp
+├── redstone/                   # Redstone system
+│   ├── RedstoneSystem.hpp/cpp  # Redstone system manager
+│   ├── RedstonePower.hpp/cpp   # Signal strength calculation
+│   ├── RedstoneContext.hpp/cpp # Recursion protection
+│   └── RedstoneHelper.hpp/cpp  # Helper functions
 ├── spawn/                      # Mob spawn info
 │   └── MobSpawnInfo.hpp/cpp
 ├── tick/                       # Tick scheduling

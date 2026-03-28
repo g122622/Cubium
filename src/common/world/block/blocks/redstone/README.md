@@ -11,6 +11,8 @@ redstone/
 ├── RedstoneBlock.cpp
 ├── RedstoneTorchBlock.hpp       # 红石火把（信号反转）
 ├── RedstoneTorchBlock.cpp
+├── RedstoneWallTorchBlock.hpp   # 墙上红石火把
+├── RedstoneWallTorchBlock.cpp
 ├── RedstoneWireBlock.hpp        # 红石线（信号传输）
 ├── RedstoneWireBlock.cpp
 ├── RedstoneDiodeBlock.hpp       # 红石二极管基类
@@ -38,11 +40,166 @@ redstone/
 ├── WeightedPressurePlateBlock.hpp  # 测重压力板
 ├── WeightedPressurePlateBlock.cpp
 ├── DaylightDetectorBlock.hpp    # 日光探测器
-├── PistonBlock.hpp            # 活塞
+├── DaylightDetectorBlock.cpp
+├── PistonBlock.hpp              # 活塞
 ├── PistonBlock.cpp
-├── PistonHeadBlock.hpp        # 活塞头
-└── PistonHeadBlock.cpp
+├── PistonHeadBlock.hpp          # 活塞头
+├── PistonHeadBlock.cpp
+├── MovingPistonBlock.hpp        # 移动中的活塞（动画代理）
+├── MovingPistonBlock.cpp
+├── DispenserBlock.hpp           # 发射器
+├── DispenserBlock.cpp
+├── DropperBlock.hpp             # 投掷器
+├── DropperBlock.cpp
+├── TripWireBlock.hpp            # 绊线
+├── TripWireBlock.cpp
+├── TripWireHookBlock.hpp        # 绊线钩
+├── TripWireHookBlock.cpp
+├── NoteBlock.hpp                # 音符盒
+├── NoteBlock.cpp
+├── TNTBlock.hpp                 # TNT
+├── TNTBlock.cpp
+├── TargetBlock.hpp              # 标靶
+├── TargetBlock.cpp
+├── RedstoneLampBlock.hpp        # 红石灯
+└── RedstoneLampBlock.cpp
 ```
+
+## 文件介绍
+
+### 核心信号方块
+
+| 文件 | 职责 |
+|------|------|
+| `RedstoneBlock.hpp/cpp` | 红石块，恒定输出15强度信号，无需外部输入 |
+| `RedstoneTorchBlock.hpp/cpp` | 红石火把，信号反转器，下方有信号时熄灭 |
+| `RedstoneWallTorchBlock.hpp/cpp` | 墙上红石火把，可附着在墙面上的红石火把 |
+| `RedstoneWireBlock.hpp/cpp` | 红石线，传输信号，每格衰减1强度 |
+
+### 信号处理方块
+
+| 文件 | 职责 |
+|------|------|
+| `RedstoneDiodeBlock.hpp/cpp` | 红石二极管基类，提供单向传输基础功能 |
+| `RedstoneRepeaterBlock.hpp/cpp` | 红石中继器，信号增强+延迟+锁定 |
+| `RedstoneComparatorBlock.hpp/cpp` | 红石比较器，比较/减法模式信号处理 |
+
+### 信号源方块
+
+| 文件 | 职责 |
+|------|------|
+| `AbstractButtonBlock.hpp/cpp` | 按钮基类，瞬时信号源 |
+| `StoneButtonBlock.hpp/cpp` | 石头按钮，10 tick 脉冲 |
+| `WoodButtonBlock.hpp/cpp` | 木按钮，15 tick 脉冲 |
+| `LeverBlock.hpp/cpp` | 拉杆，持久信号源，手动切换 |
+| `AbstractPressurePlateBlock.hpp/cpp` | 压力板基类，实体检测信号源 |
+| `StonePressurePlateBlock.hpp/cpp` | 石头压力板，仅生物触发，输出15 |
+| `WoodPressurePlateBlock.hpp/cpp` | 木压力板，所有实体触发，输出15 |
+| `WeightedPressurePlateBlock.hpp/cpp` | 测重压力板，根据实体数量输出强度 |
+| `DaylightDetectorBlock.hpp/cpp` | 日光探测器，根据天空亮度输出信号 |
+| `ObserverBlock.hpp/cpp` | 侦测器，检测前方方块变化输出脉冲 |
+
+### 机械方块
+
+| 文件 | 职责 |
+|------|------|
+| `PistonBlock.hpp/cpp` | 活塞，推动/拉回方块 |
+| `PistonHeadBlock.hpp/cpp` | 活塞头，扩展状态的活塞头部 |
+| `MovingPistonBlock.hpp/cpp` | 移动中的活塞，动画代理方块 |
+| `DispenserBlock.hpp/cpp` | 发射器，发射物品/使用物品 |
+| `DropperBlock.hpp/cpp` | 投掷器，投掷物品 |
+
+### 其他方块
+
+| 文件 | 职责 |
+|------|------|
+| `TripWireBlock.hpp/cpp` | 绊线，检测实体穿越 |
+| `TripWireHookBlock.hpp/cpp` | 绊线钩，绊线连接点 |
+| `NoteBlock.hpp/cpp` | 音符盒，播放音符 |
+| `TNTBlock.hpp/cpp` | TNT，红石触发爆炸 |
+| `TargetBlock.hpp/cpp` | 标靶，箭矢命中输出信号 |
+| `RedstoneLampBlock.hpp/cpp` | 红石灯，接收信号发光 |
+
+## 模块关系
+
+```mermaid
+flowchart TB
+    subgraph Core["红石核心"]
+        RS[RedstoneSystem]
+        RP[RedstonePower]
+        RC[RedstoneContext]
+    end
+
+    subgraph Blocks["红石方块"]
+        Signal["信号源方块"]
+        Process["信号处理方块"]
+        Output["输出方块"]
+    end
+
+    subgraph World["世界系统"]
+        IWorld[IWorld]
+        Tick[TickSystem]
+        BE[BlockEntity]
+    end
+
+    Signal -->|"提供信号"| RS
+    Process -->|"处理信号"| RS
+    RS -->|"更新状态"| Output
+    RS -->|"调度tick"| Tick
+    RS -->|"查询"| RP
+    RS -->|"递归保护"| RC
+    Blocks -->|"方块状态"| IWorld
+    Output -->|"创建"| BE
+```
+
+## 整体职责
+
+红石方块模块负责：
+
+1. **信号源管理**：提供各种信号源（按钮、拉杆、压力板等）
+2. **信号传输**：红石线传输信号，中继器增强信号
+3. **信号处理**：比较器、火把等进行信号逻辑运算
+4. **机械操作**：活塞推动方块，发射器/投掷器操作物品
+5. **世界交互**：检测方块变化、实体检测、时间检测等
+
+## 输入/输出
+
+### 输入
+- 世界状态（方块位置、状态）
+- 方块属性（FACING、POWERED 等）
+- 红石信号强度（0-15）
+- 实体位置（压力板检测）
+- 时间信息（日光探测器）
+- 玩家交互（按钮、拉杆）
+
+### 输出
+- 红石信号强度（getWeakPower/getStrongPower）
+- 方块状态变化（点亮/熄灭、扩展/收回）
+- 方块移动（活塞）
+- 物品发射（发射器/投掷器）
+- 音效（音符盒）
+- 爆炸（TNT）
+
+## 依赖项
+
+### 内部依赖
+
+| 模块 | 用途 |
+|------|------|
+| `world/redstone/RedstoneSystem` | 红石系统核心，信号传播管理 |
+| `world/redstone/RedstonePower` | 红石信号查询工具 |
+| `world/redstone/RedstoneContext` | 递归保护上下文 |
+| `world/tick/TickPriority` | tick 优先级 |
+| `world/blockentity/BlockEntity` | 方块实体基类 |
+| `world/blockentity/redstone/PistonBlockEntity` | 活塞方块实体 |
+| `world/IWorld` | 世界接口 |
+| `item/BlockItemUseContext` | 放置上下文 |
+| `util/property/Properties` | 方块属性 |
+
+### 外部依赖
+
+- `glm` - 数学库
+- `spdlog` - 日志
 
 ## 类图
 
@@ -67,6 +224,13 @@ classDiagram
         +LIT() BooleanProperty
         +shouldBeOff() bool
         +isLit() bool
+    }
+
+    class RedstoneWallTorchBlock {
+        +HORIZONTAL_FACING() DirectionProperty
+        +shouldBeOff() bool
+        +getFacing() Direction
+        +canPlaceAt() bool
     }
 
     class RedstoneWireBlock {
@@ -146,8 +310,32 @@ classDiagram
         +calculateSignalStrength() i32
     }
 
+    class PistonBlock {
+        +EXTENDED() BooleanProperty
+        +FACING() DirectionProperty
+        +STICKY: bool
+        +extend()
+        +retract()
+        +canPush() bool
+    }
+
+    class PistonHeadBlock {
+        +FACING() DirectionProperty
+        +TYPE() EnumProperty
+        +SHORT() BooleanProperty
+        +getType() PistonType
+    }
+
+    class MovingPistonBlock {
+        +FACING() DirectionProperty
+        +TYPE() EnumProperty
+        +hasBlockEntity() bool
+        +createBlockEntity()
+    }
+
     Block <|-- RedstoneBlock
     Block <|-- RedstoneTorchBlock
+    RedstoneTorchBlock <|-- RedstoneWallTorchBlock
     Block <|-- RedstoneWireBlock
     Block <|-- RedstoneDiodeBlock
     Block <|-- ObserverBlock
@@ -162,6 +350,9 @@ classDiagram
     AbstractPressurePlateBlock <|-- StonePressurePlateBlock
     AbstractPressurePlateBlock <|-- WoodPressurePlateBlock
     AbstractPressurePlateBlock <|-- WeightedPressurePlateBlock
+    Block <|-- PistonBlock
+    Block <|-- PistonHeadBlock
+    Block <|-- MovingPistonBlock
 ```
 
 ## 信号强度规则
@@ -298,6 +489,35 @@ DaylightDetectorBlock::toggleMode(world, pos, state);
 bool inverted = DaylightDetectorBlock::isInverted(state);
 ```
 
+### 活塞
+
+```cpp
+// 扩展活塞
+PistonBlock::extend(world, pos, state);
+
+// 收回活塞
+PistonBlock::retract(world, pos, state);
+
+// 检查是否为粘性活塞
+bool isSticky = PistonBlock::isSticky(state);
+
+// 检查方块是否可推动
+bool canPush = PistonBlock::canPush(blockState, world, pos, direction, false);
+```
+
+### 墙上红石火把
+
+```cpp
+// 获取火把朝向
+Direction facing = RedstoneWallTorchBlock::getFacing(state);
+
+// 检查是否应该熄灭（附着面被充能）
+bool shouldOff = wallTorchBlock.shouldBeOff(world, pos, state);
+
+// 放置时自动选择合适的墙面
+BlockState placementState = wallTorchBlock.getStateForPlacement(context);
+```
+
 ## 容易踩的坑
 
 ### 1. 红石火把无限递归
@@ -402,6 +622,76 @@ void neighborChanged(IWorld& world, const BlockPos& pos, ...) {
 // 侦测器脉冲持续 2 tick
 static constexpr i32 PULSE_DURATION = 2;
 world.scheduleBlockTick(pos, *this, PULSE_DURATION, TickPriority::High);
+```
+
+### 7. 墙上红石火把方向计算
+
+**问题**：墙上红石火把的方向和输出信号混淆。
+
+**解决方案**：注意 `HORIZONTAL_FACING` 指向火把朝向的方向，输出信号时需要排除该方向。
+
+```cpp
+// 错误：向所有方向输出
+i32 getWeakPower(...) {
+    return isLit(state) ? 15 : 0;  // 向所有方向输出
+}
+
+// 正确：不向附着面方向输出
+i32 getWeakPower(..., Direction side) {
+    if (!isLit(state)) return 0;
+    Direction facing = getFacing(state);  // 火把朝向
+    if (side == facing) return 0;  // 不向附着面输出
+    return 15;
+}
+```
+
+### 8. 活塞推动链检测
+
+**问题**：活塞推动时未正确检测推动链长度。
+
+**解决方案**：限制最大推动距离为 12 格。
+
+```cpp
+// 推动链检测
+std::vector<BlockPos> pushChain;
+if (!checkPushChain(world, pos, direction, pushChain, 12)) {
+    return;  // 推动链过长或遇到不可推动方块
+}
+```
+
+### 9. 活塞收回时的方块实体处理
+
+**问题**：活塞收回时方块实体丢失。
+
+**解决方案**：使用 `MovingPistonBlock` 作为动画代理，正确处理方块实体。
+
+```cpp
+// 创建移动活塞状态
+world.setBlockState(pos, movingPistonState, 3);
+
+// MovingPistonBlock 创建 PistonBlockEntity 管理动画
+// 动画结束后恢复原始方块
+```
+
+### 10. 信号源强/弱信号区分
+
+**问题**：按钮、拉杆等信号源未正确区分强弱信号。
+
+**解决方案**：强信号只向输出方向输出，弱信号向所有方向输出。
+
+```cpp
+// 按钮的强弱信号区分
+i32 getWeakPower(..., Direction side) {
+    // 弱信号：向所有方向输出
+    return isPowered(state) ? 15 : 0;
+}
+
+i32 getStrongPower(..., Direction side) {
+    // 强信号：只向输出方向输出
+    if (!isPowered(state)) return 0;
+    Direction outputDir = /* 从附着面计算 */;
+    return (side == outputDir) ? 15 : 0;
+}
 ```
 
 ## 测试用例

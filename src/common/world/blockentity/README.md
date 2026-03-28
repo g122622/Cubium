@@ -35,8 +35,14 @@ blockentity/
 │   ├── SmokerEntity.hpp/cpp          # 烟熏炉
 │   ├── FurnaceInventory.hpp/cpp      # 熔炉背包
 │   └── README.md
+├── redstone/                    # 红石类方块实体
+│   ├── ComparatorEntity.hpp/cpp     # 比较器实体
+│   ├── DaylightDetectorEntity.hpp/cpp # 日光探测器实体
+│   └── README.md
 └── interactive/                 # 交互类方块实体
     ├── EnchantingTableEntity.hpp/cpp # 附魔台
+    ├── PistonBlockEntity.hpp/cpp     # 活塞实体
+    ├── DispenserBlockEntity.hpp/cpp  # 发射器/投掷器实体
     └── README.md
 ```
 
@@ -142,11 +148,22 @@ blockentity/
 
 ### interactive/ - 交互类方块实体
 
-提供附魔台等交互类方块实体：
+提供附魔台、活塞等交互类方块实体：
 
 - **EnchantingTableEntity** - 附魔台，书本动画
+- **PistonBlockEntity** - 活塞，方块移动动画
+- **DispenserBlockEntity** - 发射器/投掷器，物品发射
 
 详见 [interactive/README.md](interactive/README.md)
+
+### redstone/ - 红石类方块实体
+
+提供比较器、日光探测器等红石相关方块实体：
+
+- **ComparatorEntity** - 比较器，存储输出信号强度
+- **DaylightDetectorEntity** - 日光探测器，定期更新信号
+
+详见 [redstone/README.md](redstone/README.md)
 
 ## 类继承关系
 
@@ -169,7 +186,15 @@ BlockEntity (基类)
 │   │
 │   └── CraftingTableEntity (工作台)
 │
-└── EnchantingTableEntity (附魔台)
+├── EnchantingTableEntity (附魔台)
+│
+├── PistonBlockEntity (活塞)
+│
+├── DispenserBlockEntity (发射器/投掷器)
+│
+├── ComparatorEntity (比较器)
+│
+└── DaylightDetectorEntity (日光探测器)
 ```
 
 ## 文件关系图

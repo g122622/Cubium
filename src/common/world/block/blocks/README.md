@@ -31,8 +31,40 @@ blocks/
 ├── CauldronBlock.cpp        # 炼药锅方块实现
 ├── EnchantingTableBlock.hpp # 附魔台方块头文件
 ├── EnchantingTableBlock.cpp # 附魔台方块实现
+├── redstone/                # 红石方块子目录
+│   ├── README.md            # 红石方块文档
+│   ├── RedstoneBlock.hpp/cpp
+│   ├── RedstoneTorchBlock.hpp/cpp
+│   ├── RedstoneWallTorchBlock.hpp/cpp
+│   ├── RedstoneWireBlock.hpp/cpp
+│   ├── RedstoneDiodeBlock.hpp/cpp
+│   ├── RedstoneRepeaterBlock.hpp/cpp
+│   ├── RedstoneComparatorBlock.hpp/cpp
+│   ├── ObserverBlock.hpp/cpp
+│   ├── AbstractButtonBlock.hpp/cpp
+│   ├── StoneButtonBlock.hpp/cpp
+│   ├── WoodButtonBlock.hpp/cpp
+│   ├── LeverBlock.hpp/cpp
+│   ├── AbstractPressurePlateBlock.hpp/cpp
+│   ├── StonePressurePlateBlock.hpp/cpp
+│   ├── WoodPressurePlateBlock.hpp/cpp
+│   ├── WeightedPressurePlateBlock.hpp/cpp
+│   ├── DaylightDetectorBlock.hpp/cpp
+│   ├── PistonBlock.hpp/cpp
+│   ├── PistonHeadBlock.hpp/cpp
+│   ├── MovingPistonBlock.hpp/cpp
+│   ├── DispenserBlock.hpp/cpp
+│   ├── DropperBlock.hpp/cpp
+│   ├── TripWireBlock.hpp/cpp
+│   ├── TripWireHookBlock.hpp/cpp
+│   ├── NoteBlock.hpp/cpp
+│   ├── TNTBlock.hpp/cpp
+│   ├── TargetBlock.hpp/cpp
+│   └── RedstoneLampBlock.hpp/cpp
 └── README.md                # 本文档
 ```
+
+**注意**：红石方块详情请参阅 [redstone/README.md](redstone/README.md)
 
 ## 类继承关系
 
