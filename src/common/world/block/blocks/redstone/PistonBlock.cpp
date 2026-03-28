@@ -91,27 +91,22 @@ void PistonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
 
 bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const BlockState& state) const {
     Direction facing = getFacing(state);
-    BlockPos frontPos = pos.offset(facing);
 
-    // 检查前方是否有信号
-    const BlockState* frontState = world.getBlockState(frontPos.x, frontPos.y, frontPos.z);
-    if (frontState && frontState->getBlock().canProvidePower(*frontState)) {
-        if (frontState->getBlock().getWeakPower(*frontState, world, frontPos, facing) > 0) {
-            return true;
-        }
-    }
+    // MC Java 逻辑：检查除了朝向以外的所有方向是否被侧面充能
+    // 注意：不检查活塞朝向方向的信号！
 
-    // 检查活塞本体是否被充能（不包括前面）
+    // 检查活塞本体除前面外5个方向是否被充能
     for (Direction dir : Directions::all()) {
-        if (dir == facing) continue;  // 排除前面
+        if (dir == facing) {
+            // 不检查活塞朝向方向（前面）
+            continue;
+        }
 
         BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
-        if (neighborState && neighborState->getBlock().canProvidePower(*neighborState)) {
-            Direction oppositeDir = Directions::opposite(dir);
-            if (neighborState->getBlock().getWeakPower(*neighborState, world, neighborPos, oppositeDir) > 0) {
-                return true;
-            }
+        // MC Java: worldIn.isSidePowered(pos.offset(direction), direction)
+        // 检查相邻方块在该方向是否被充能（从该方向接收强信号）
+        if (world::redstone::RedstonePower::isSidePowered(world, neighborPos, dir)) {
+            return true;
         }
     }
 

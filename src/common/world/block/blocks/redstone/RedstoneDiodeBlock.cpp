@@ -1,8 +1,10 @@
 #include "RedstoneDiodeBlock.hpp"
+#include "RedstoneWireBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../VanillaBlocks.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -162,12 +164,35 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
         if (sideState && !sideState->isAir()) {
             const Block& sideBlock = sideState->getBlock();
             Direction oppositeSide = Directions::opposite(side);
-            i32 power = sideBlock.getStrongPower(*sideState, world, sidePos, oppositeSide);
+
+            // MC Java: 使用 getAlternateInput 检查
+            // 对于中继器，只有其他二极管的信号才能锁定
+            // getAlternateInput 在 RepeaterBlock 中重写为 isDiode
+            i32 power = 0;
+
+            // 检查是否是二极管（中继器或比较器）
+            if (isDiode(*sideState)) {
+                // 对于二极管，获取其输出信号
+                power = sideBlock.getWeakPower(*sideState, world, sidePos, oppositeSide);
+            } else if (sideState->is(VanillaBlocks::REDSTONE_WIRE)) {
+                // 红石线的信号
+                power = RedstoneWireBlock::getPower(*sideState);
+            } else if (sideBlock.canProvidePower(*sideState)) {
+                // 其他红石信号源
+                power = sideBlock.getStrongPower(*sideState, world, sidePos, oppositeSide);
+            }
+
             maxPower = std::max(maxPower, power);
         }
     }
 
     return maxPower;
+}
+
+bool RedstoneDiodeBlock::isDiode(const BlockState& state) const {
+    const Block& block = state.getBlock();
+    // 检查是否是中继器或比较器
+    return dynamic_cast<const RedstoneDiodeBlock*>(&block) != nullptr;
 }
 
 bool RedstoneDiodeBlock::isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const {
@@ -215,8 +240,14 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
     }
 
     // 检查输出端是否是另一个二极管
-    const Block& outputBlock = outputState->getBlock();
-    return dynamic_cast<const RedstoneDiodeBlock*>(&outputBlock) != nullptr;
+    if (!isDiode(*outputState)) {
+        return false;
+    }
+
+    // MC Java: 检查二极管是否不是背向自己
+    // 即：输出端的二极管朝向不能是自己的反方向
+    Direction outputFacing = getFacing(*outputState);
+    return outputFacing != Directions::opposite(facing);
 }
 
 } // namespace blocks

@@ -27,6 +27,7 @@ public:
 
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
     // ========== 容器接口 ==========
 

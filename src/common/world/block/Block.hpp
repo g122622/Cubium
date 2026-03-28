@@ -1036,6 +1036,21 @@ public:
     }
 
     /**
+     * @brief 检查方块是否可以连接红石线
+     *
+     * 某些方块（如红石火把、红石块）不能被红石线连接，
+     * 但仍然可以输出红石信号。默认实现返回 canProvidePower。
+     *
+     * @param state 方块状态
+     * @param side 连接方向（从红石线的角度看）
+     * @return 如果可以连接红石线返回true
+     */
+    [[nodiscard]] virtual bool canConnectRedstone(const BlockState& state, Direction side) const {
+        MC_UNUSED(side);
+        return canProvidePower(state);
+    }
+
+    /**
      * @brief 检查是否有红石比较器输入覆盖
      *
      * @param state 方块状态

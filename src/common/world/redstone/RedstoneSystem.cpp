@@ -11,8 +11,22 @@ RedstoneSystem& RedstoneSystem::instance() {
     return instance;
 }
 
-void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& block) {
-    for (Direction dir : Directions::all()) {
+void RedstoneSystem::notifyNeighbor(IWorld& world, const BlockPos& neighborPos,
+                                    const BlockState& neighborState,
+                                    Block& sourceBlock, const BlockPos& sourcePos) {
+    // 注意：这里使用 const_cast 是安全的，因为 neighborChanged 是通知回调，
+    // 不会修改邻居方块本身的状态。neighborChanged 的签名需要 Block& 是因为
+    // 它需要知道是哪个方块类型触发了更新，而不是要修改邻居方块。
+    // TODO: 考虑在 IWorld 中添加 notifyNeighborChanged 方法来避免 const_cast
+    Block& neighborBlock = const_cast<Block&>(neighborState.getBlock());
+    neighborBlock.neighborChanged(world, neighborPos, sourceBlock, sourcePos, false);
+}
+
+void RedstoneSystem::updateNeighborsInDirections(IWorld& world, const BlockPos& pos,
+                                                  Block& block,
+                                                  const Direction* directions, size_t directionCount) {
+    for (size_t i = 0; i < directionCount; ++i) {
+        Direction dir = directions[i];
         BlockPos neighborPos = pos.offset(dir);
 
         const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
@@ -20,49 +34,36 @@ void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& 
             continue;
         }
 
-        Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-        neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
+        notifyNeighbor(world, neighborPos, *neighborState, block, pos);
     }
+}
+
+void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& block) {
+    const auto& allDirs = Directions::all();
+    updateNeighborsInDirections(world, pos, block, allDirs.data(), allDirs.size());
 }
 
 void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos,
                                            Block& block, Direction skipDirection) {
+    Direction directions[5];
+    size_t count = 0;
     for (Direction dir : Directions::all()) {
-        if (dir == skipDirection) {
-            continue;
+        if (dir != skipDirection) {
+            directions[count++] = dir;
         }
-
-        BlockPos neighborPos = pos.offset(dir);
-
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
-        if (!neighborState || neighborState->isAir()) {
-            continue;
-        }
-
-        Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-        neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
     }
+    updateNeighborsInDirections(world, pos, block, directions, count);
 }
 
 void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const BlockPos& pos, Block& block) {
-    for (Direction dir : Directions::horizontal()) {
-        BlockPos neighborPos = pos.offset(dir);
-
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
-        if (!neighborState || neighborState->isAir()) {
-            continue;
-        }
-
-        Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-        neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
+    const auto& horizDirs = Directions::horizontal();
+    Direction directions[5];
+    size_t count = 0;
+    for (Direction dir : horizDirs) {
+        directions[count++] = dir;
     }
-
-    BlockPos downPos = pos.down();
-    const BlockState* downState = world.getBlockState(downPos.x, downPos.y, downPos.z);
-    if (downState && !downState->isAir()) {
-        Block& downBlock = const_cast<Block&>(downState->getBlock());
-        downBlock.neighborChanged(world, downPos, block, pos, false);
-    }
+    directions[count++] = Direction::Down;
+    updateNeighborsInDirections(world, pos, block, directions, count);
 }
 
 void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
@@ -76,12 +77,10 @@ void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
             continue;
         }
 
-        // 检查是否是比较器（待比较器实现后补充）
-        // 如果是，触发其更新
-        // 暂时触发邻居更新
-        Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+        const Block& neighborBlock = neighborState->getBlock();
+        // 检查是否是红石元件（包括比较器）
         if (neighborBlock.canProvidePower(*neighborState)) {
-            neighborBlock.neighborChanged(world, neighborPos, neighborBlock, pos, false);
+            notifyNeighbor(world, neighborPos, *neighborState, const_cast<Block&>(neighborBlock), pos);
         }
     }
 }

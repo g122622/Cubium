@@ -1,8 +1,9 @@
 #include "PistonBlockEntity.hpp"
 #include "../../IWorld.hpp"
 #include "../../block/Block.hpp"
+#include "../../block/BlockRegistry.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
-#include "../../../entity/Entity.hpp"
+#include "../../../util/Direction.hpp"
 #include <nlohmann/json.hpp>
 #include <cmath>
 
@@ -50,10 +51,10 @@ bool PistonBlockEntity::load(const nlohmann::json& data) {
     }
 
     // 加载活塞状态
-    // TODO: 从JSON加载BlockState
-    // if (data.contains("blockState")) {
-    //     m_pistonState = BlockState::fromJson(data["blockState"]);
-    // }
+    if (data.contains("blockStateId") && data["blockStateId"].is_number_unsigned()) {
+        u32 stateId = data["blockStateId"].get<u32>();
+        m_pistonState = std::unique_ptr<BlockState>(const_cast<BlockState*>(Block::getBlockState(stateId)));
+    }
 
     m_facing = static_cast<Direction>(data.value("facing", 0));
     m_extending = data.value("extending", true);
@@ -67,11 +68,10 @@ bool PistonBlockEntity::load(const nlohmann::json& data) {
 void PistonBlockEntity::save(nlohmann::json& data) const {
     BlockEntity::save(data);
 
-    // 保存活塞状态
-    // TODO: 保存BlockState到JSON
-    // if (m_pistonState) {
-    //     data["blockState"] = m_pistonState->toJson();
-    // }
+    // 保存活塞状态（使用 stateId）
+    if (m_pistonState) {
+        data["blockStateId"] = m_pistonState->stateId();
+    }
 
     data["facing"] = static_cast<i32>(m_facing);
     data["extending"] = m_extending;
@@ -87,7 +87,11 @@ std::unique_ptr<BlockEntity> PistonBlockEntity::clone() const {
     cloned->m_progress = m_progress;
     cloned->m_lastProgress = m_lastProgress;
     cloned->m_lastTicked = m_lastTicked;
-    // TODO: 克隆 m_pistonState
+    // 克隆 m_pistonState（通过 stateId 获取新指针）
+    if (m_pistonState) {
+        u32 stateId = m_pistonState->stateId();
+        cloned->m_pistonState = std::unique_ptr<BlockState>(const_cast<BlockState*>(Block::getBlockState(stateId)));
+    }
     return cloned;
 }
 
@@ -119,28 +123,34 @@ float PistonBlockEntity::getOffsetZ(float partialTick) const {
 }
 
 void PistonBlockEntity::clearPistonBlockEntity(IWorld& world) {
+    // 确保进度完成
     if (m_progress < COMPLETE_THRESHOLD) {
-        // 动画未完成，强制完成
         m_progress = COMPLETE_THRESHOLD;
         m_lastProgress = m_progress;
     }
 
     // 移除方块实体
-    // world.removeBlockEntity(m_pos);
+    world.removeBlockEntity(m_pos);
 
-    // 检查当前位置是否是移动活塞方块
-    const BlockState* currentState = world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
-    if (currentState && currentState->getBlock().canProvidePower(*currentState)) {
-        // TODO: 检查是否是 MOVING_PISTON 方块
-        // 如果是，替换为最终方块
-        if (m_shouldRenderHead) {
-            // 放置空气
-            // world.setBlockState(m_pos.x, m_pos.y, m_pos.z, nullptr, 3);
-        } else if (m_pistonState) {
-            // 放置被移动的方块
-            // world.setBlockState(m_pos.x, m_pos.y, m_pos.z, m_pistonState.get(), 67);
-            // 触发邻居更新
-            // world.neighborChanged(m_pos, m_pistonState->getBlock(), m_pos);
+    // 根据是否渲染活塞头决定最终方块
+    if (m_shouldRenderHead) {
+        // 活塞收回时，活塞头位置变为空气
+        world.setBlockState(m_pos.x, m_pos.y, m_pos.z, nullptr, 3);
+    } else if (m_pistonState) {
+        // 活塞完成移动后，放置被移动的方块
+        // 使用标志 67 = 3 (通知邻居) | 64 (移动活塞标志)
+        world.setBlockState(m_pos.x, m_pos.y, m_pos.z, m_pistonState.get(), 67);
+
+        // 触发邻居更新
+        Block& block = const_cast<Block&>(m_pistonState->getBlock());
+        BlockPos neighborPos;
+        for (Direction dir : Directions::all()) {
+            neighborPos = m_pos.offset(dir);
+            const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+            if (neighborState && !neighborState->isAir()) {
+                Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                neighborBlock.neighborChanged(world, neighborPos, block, m_pos, false);
+            }
         }
     }
 }
@@ -151,12 +161,11 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world) {
 
 void PistonBlockEntity::tick(IWorld& world) {
     // 记录上次tick时间
-    // m_lastTicked = world.getGameTime();
     m_lastProgress = m_progress;
 
     if (m_lastProgress >= COMPLETE_THRESHOLD) {
         // 动画已完成，移除方块实体
-        // world.removeBlockEntity(m_pos);
+        clearPistonBlockEntity(world);
         return;
     }
 
@@ -173,6 +182,8 @@ void PistonBlockEntity::tick(IWorld& world) {
 
     if (m_progress >= COMPLETE_THRESHOLD) {
         m_progress = COMPLETE_THRESHOLD;
+        // 动画完成，调用清除方法
+        clearPistonBlockEntity(world);
     }
 }
 

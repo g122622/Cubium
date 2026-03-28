@@ -112,6 +112,21 @@ public:
     [[nodiscard]] static bool canConnectTo(const BlockState& state);
 
     /**
+     * @brief 判断方块是否可以在指定方向连接红石
+     *
+     * MC Java: canConnectTo 方法重载
+     * - 红石线总是可以连接
+     * - 中继器/比较器只有输出端朝向该方向时才连接
+     * - 观察者只有输出端朝向该方向时才连接
+     * - 其他方块通过 canProvidePower 或 canConnectRedstone 判断
+     *
+     * @param state 方块状态
+     * @param side 连接方向（从红石线指向相邻方块的方向）
+     * @return true 如果可以连接
+     */
+    [[nodiscard]] static bool canConnectTo(const BlockState& state, Direction side);
+
+    /**
      * @brief 检查方块是否是实体方块
      */
     [[nodiscard]] static bool isNormalCube(const BlockState& state);

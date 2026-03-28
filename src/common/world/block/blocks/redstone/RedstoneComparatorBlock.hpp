@@ -94,7 +94,21 @@ private:
     static constexpr i32 COMPARATOR_DELAY = 2;
 
     /**
-     * @brief 计算输入信号强度（包括侧面信号）
+     * @brief 计算输入信号强度（包括容器信号检测）
+     *
+     * MC Java: calculateInputStrength
+     * 不仅检测红石信号，还检测容器信号和物品展示框信号。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return i32 输入信号强度 0-15
+     */
+    [[nodiscard]] i32 calculateInputStrength(IWorld& world, const BlockPos& pos,
+                                              const BlockState& state) const;
+
+    /**
+     * @brief 计算输出信号强度
      *
      * @param world 世界引用
      * @param pos 方块位置

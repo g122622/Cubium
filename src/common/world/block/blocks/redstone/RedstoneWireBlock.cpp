@@ -1,7 +1,10 @@
 #include "RedstoneWireBlock.hpp"
+#include "RedstoneDiodeBlock.hpp"
+#include "ObserverBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 
 namespace mc {
@@ -91,7 +94,39 @@ bool RedstoneWireBlock::isNormalCube(const BlockState& state) {
 }
 
 bool RedstoneWireBlock::canConnectTo(const BlockState& state) {
+    // 基础检查：如果方块可以输出红石信号，则可以连接
     return state.getBlock().canProvidePower(state);
+}
+
+bool RedstoneWireBlock::canConnectTo(const BlockState& state, Direction side) {
+    const Block& block = state.getBlock();
+
+    // 红石线总是可以连接到其他红石线
+    if (state.is(VanillaBlocks::REDSTONE_WIRE)) {
+        return true;
+    }
+
+    // 检查中继器 - 只有朝向正确时才连接
+    if (state.is(VanillaBlocks::REDSTONE_REPEATER) || state.is(VanillaBlocks::REDSTONE_COMPARATOR)) {
+        Direction facing = RedstoneDiodeBlock::getFacing(state);
+        // 中继器/比较器的输出端朝向我们时才连接
+        return side == facing;
+    }
+
+    // 检查观察者 - 只有观察者的输出端朝向我们时才连接
+    if (state.is(VanillaBlocks::OBSERVER)) {
+        Direction facing = ObserverBlock::getFacing(state);
+        // 观察者的输出端朝向我们时才连接
+        return side == facing;
+    }
+
+    // 其他方块：检查 canProvidePower 和 canConnectRedstone
+    if (block.canProvidePower(state)) {
+        return true;
+    }
+
+    // 调用方块的 canConnectRedstone 方法
+    return block.canConnectRedstone(state, side);
 }
 
 BlockState RedstoneWireBlock::updatePostPlacement(
@@ -170,15 +205,42 @@ i32 RedstoneWireBlock::getWeakPower(
     Direction side
 ) const {
     MC_UNUSED(world);
-    MC_UNUSED(pos);
 
     // 如果暂时禁用信号输出，返回0
     if (!m_canProvidePower) {
         return 0;
     }
 
-    // 红石线不向上输出信号
-    if (side == Direction::Up) {
+    // MC Java: 红石线不向下输出信号 (side != Direction.DOWN)
+    if (side == Direction::Down) {
+        return 0;
+    }
+
+    // MC Java: 只有该方向有连接时才输出信号
+    // 获取该方向对应的连接属性
+    RedstoneSide connection = RedstoneSide::None;
+    switch (side) {
+        case Direction::North:
+            connection = state.get(NORTH_PROP());
+            break;
+        case Direction::East:
+            connection = state.get(EAST_PROP());
+            break;
+        case Direction::South:
+            connection = state.get(SOUTH_PROP());
+            break;
+        case Direction::West:
+            connection = state.get(WEST_PROP());
+            break;
+        case Direction::Up:
+            // 向上总是可以输出（如果有信号）
+            return getPower(state);
+        default:
+            return 0;
+    }
+
+    // 只有该方向有连接时才输出信号
+    if (connection == RedstoneSide::None) {
         return 0;
     }
 

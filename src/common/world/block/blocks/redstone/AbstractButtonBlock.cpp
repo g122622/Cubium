@@ -153,6 +153,10 @@ i32 AbstractButtonBlock::getWeakPower(
     Direction facing = getFacing(state);
     AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
 
+    // MC Java: 按钮向其附着面方向输出信号
+    // - 地板按钮：向上输出
+    // - 天花板按钮：向下输出
+    // - 墙按钮：向附着面（背面）输出，即 facing 的反方向
     Direction outputDir = Direction::North;  // 默认值
     switch (attachFace) {
         case AttachFace::Floor:
@@ -162,7 +166,8 @@ i32 AbstractButtonBlock::getWeakPower(
             outputDir = Direction::Down;
             break;
         case AttachFace::Wall:
-            outputDir = facing;
+            // MC Java: 墙按钮向附着面方向输出，即 facing 的反方向
+            outputDir = Directions::opposite(facing);
             break;
         default:
             break;
@@ -221,16 +226,23 @@ void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Di
 
     AttachFace attachFace = state->get(BlockStateProperties::ATTACH_FACE());
 
+    // MC Java: 计算输出方向和支撑位置
     Direction outputDir = Direction::North;  // 默认值
+    BlockPos supportPos = pos;
+
     switch (attachFace) {
         case AttachFace::Floor:
             outputDir = Direction::Up;
+            supportPos = pos.down();  // 支撑在下方
             break;
         case AttachFace::Ceiling:
             outputDir = Direction::Down;
+            supportPos = pos.up();  // 支撑在上方
             break;
         case AttachFace::Wall:
-            outputDir = facing;
+            // 墙按钮向附着面方向输出，即 facing 的反方向
+            outputDir = Directions::opposite(facing);
+            supportPos = pos.offset(Directions::opposite(facing));  // 支撑在背面
             break;
         default:
             break;
@@ -244,22 +256,7 @@ void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Di
         outputBlock.neighborChanged(world, outputPos, *this, pos, false);
     }
 
-    // 通过支撑方块传递信号
-    BlockPos supportPos = pos;  // 默认值
-    switch (attachFace) {
-        case AttachFace::Floor:
-            supportPos = pos.down();
-            break;
-        case AttachFace::Ceiling:
-            supportPos = pos.up();
-            break;
-        case AttachFace::Wall:
-            supportPos = pos.offset(Directions::opposite(facing));
-            break;
-        default:
-            break;
-    }
-
+    // 通过支撑方块传递信号（支撑方块也被充能）
     const BlockState* supportState = world.getBlockState(supportPos.x, supportPos.y, supportPos.z);
     if (supportState && !supportState->isAir()) {
         Block& supportBlock = const_cast<Block&>(supportState->getBlock());

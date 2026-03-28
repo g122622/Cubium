@@ -317,6 +317,32 @@ private:
 
     /// 红石火把烧毁记录（位置 -> 记录）
     std::unordered_map<BlockPos, TorchBurnoutRecord> m_torchRecords;
+
+    /**
+     * @brief 内部方法：通知单个邻居更新
+     *
+     * @param world 世界引用
+     * @param neighborPos 邻居位置
+     * @param neighborState 邻居方块状态
+     * @param sourceBlock 触发更新的源方块
+     * @param sourcePos 源方块位置
+     */
+    void notifyNeighbor(IWorld& world, const BlockPos& neighborPos,
+                        const BlockState& neighborState,
+                        Block& sourceBlock, const BlockPos& sourcePos);
+
+    /**
+     * @brief 内部方法：更新指定方向列表的邻居
+     *
+     * @param world 世界引用
+     * @param pos 源位置
+     * @param block 源方块
+     * @param directions 方向列表
+     * @param directionCount 方向数量
+     */
+    void updateNeighborsInDirections(IWorld& world, const BlockPos& pos,
+                                      Block& block,
+                                      const Direction* directions, size_t directionCount);
 };
 
 } // namespace redstone

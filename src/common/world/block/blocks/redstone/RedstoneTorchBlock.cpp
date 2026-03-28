@@ -22,9 +22,11 @@ RedstoneTorchBlock::RedstoneTorchBlock(const BlockProperties& properties)
 }
 
 bool RedstoneTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos) const {
-    // 检查下方方块是否被充能
+    // MC Java: worldIn.isSidePowered(pos.down(), Direction.DOWN)
+    // 检查火把附着方块（下方）是否从下方方向接收到强信号
+    // 即：检查附着方块是否有来自其下方的强信号输入
     BlockPos belowPos = pos.down();
-    return world::redstone::RedstonePower::isSidePowered(world, belowPos, Direction::Up);
+    return world::redstone::RedstonePower::isSidePowered(world, belowPos, Direction::Down);
 }
 
 bool RedstoneTorchBlock::isLit(const BlockState& state) {
@@ -32,11 +34,21 @@ bool RedstoneTorchBlock::isLit(const BlockState& state) {
 }
 
 void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // MC Java: 放置时通知六个方向的邻居
+    for (Direction dir : Directions::all()) {
+        BlockPos neighborPos = pos.offset(dir);
+        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        if (neighborState && !neighborState->isAir()) {
+            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
+        }
+    }
+
     // 检查初始状态是否正确
     bool shouldBeLit = !shouldBeOff(world, pos);
     if (isLit(state) != shouldBeLit) {
-        // 需要更新状态
-        world.scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::ExtremelyHigh);
+        // 需要更新状态（MC Java 使用 2 tick 延迟）
+        world.scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 
@@ -111,8 +123,8 @@ void RedstoneTorchBlock::updateState(IWorld& world, const BlockPos& pos, const B
     bool isCurrentlyLit = isLit(state);
 
     if (isCurrentlyLit != shouldBeLit) {
-        // 调度更新（延迟1 tick）
-        world.scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::ExtremelyHigh);
+        // 调度更新（MC Java 使用 2 tick 延迟）
+        world.scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 

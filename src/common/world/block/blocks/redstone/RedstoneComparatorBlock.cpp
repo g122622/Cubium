@@ -1,5 +1,6 @@
 #include "RedstoneComparatorBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
+#include "../../../redstone/RedstoneHelper.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
 #include <unordered_map>
@@ -73,8 +74,35 @@ bool RedstoneComparatorBlock::isSubtractMode(const BlockState& state) {
 
 bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos,
                                             const BlockState& state) const {
-    // 计算输出信号，如果大于0则应该激活
-    return calculateOutput(world, pos, state) > 0;
+    // MC Java 正确逻辑：
+    // 1. 获取主输入信号（背面）
+    // 2. 获取侧面输入信号
+    // 3. 如果输入为0，不充能
+    // 4. 如果输入 > 侧面信号，充能
+    // 5. 如果输入 == 侧面信号且是比较模式，充能
+    // 6. 否则不充能
+
+    i32 mainInput = getInputSignal(world, pos, state);
+
+    // 输入为0时不激活
+    if (mainInput == 0) {
+        return false;
+    }
+
+    i32 sidePower = getPowerOnSides(world, pos, state);
+
+    // 主输入 > 侧面信号时激活
+    if (mainInput > sidePower) {
+        return true;
+    }
+
+    // 主输入 == 侧面信号时，只有比较模式才激活
+    if (mainInput == sidePower) {
+        return getMode(state) == ComparatorMode::Compare;
+    }
+
+    // 其他情况不激活
+    return false;
 }
 
 i32 RedstoneComparatorBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos,
@@ -88,7 +116,8 @@ i32 RedstoneComparatorBlock::calculateOutputSignal(IWorld& world, const BlockPos
 i32 RedstoneComparatorBlock::calculateOutput(IWorld& world, const BlockPos& pos,
                                             const BlockState& state) const {
     // 获取主输入信号（背面）
-    i32 mainInput = getInputSignal(world, pos, state);
+    // MC Java: calculateInputStrength 包含容器信号检测
+    i32 mainInput = calculateInputStrength(world, pos, state);
 
     // 获取侧面输入信号
     i32 sidePower = getPowerOnSides(world, pos, state);
@@ -103,6 +132,51 @@ i32 RedstoneComparatorBlock::calculateOutput(IWorld& world, const BlockPos& pos,
         }
         return 0;
     }
+}
+
+i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPos& pos,
+                                                     const BlockState& state) const {
+    // 先获取基础红石信号
+    i32 input = getInputSignal(world, pos, state);
+
+    Direction facing = getFacing(state);
+    BlockPos inputPos = pos.offset(Directions::opposite(facing));
+    const BlockState* inputState = world.getBlockState(inputPos.x, inputPos.y, inputPos.z);
+
+    if (!inputState || inputState->isAir()) {
+        return input;
+    }
+
+    const Block& inputBlock = inputState->getBlock();
+
+    // MC Java: 检查容器信号覆盖（hasComparatorInputOverride）
+    if (inputBlock.hasComparatorInputOverride(*inputState)) {
+        i32 containerSignal = inputBlock.getComparatorInputOverride(*inputState, world, inputPos);
+        return containerSignal;
+    }
+
+    // 如果输入信号 < 15 且输入端是实体方块
+    // 检查实体方块后面是否有容器或物品展示框
+    if (input < 15 && world::redstone::RedstoneHelper::isNormalCube(*inputState)) {
+        BlockPos behindPos = inputPos.offset(Directions::opposite(facing));
+        const BlockState* behindState = world.getBlockState(behindPos.x, behindPos.y, behindPos.z);
+
+        if (behindState && !behindState->isAir()) {
+            const Block& behindBlock = behindState->getBlock();
+
+            // 检查后面的容器信号
+            if (behindBlock.hasComparatorInputOverride(*behindState)) {
+                i32 behindSignal = behindBlock.getComparatorInputOverride(*behindState, world, behindPos);
+                if (behindSignal > input) {
+                    input = behindSignal;
+                }
+            }
+        }
+
+        // TODO: 检查物品展示框的模拟信号（需要实体系统支持）
+    }
+
+    return input;
 }
 
 } // namespace blocks

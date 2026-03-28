@@ -178,6 +178,16 @@ protected:
     [[nodiscard]] bool isFacingTowardsRepeater(IWorld& world, const BlockPos& pos,
                                                const BlockState& state) const;
 
+    /**
+     * @brief 检查方块是否是二极管（中继器或比较器）
+     *
+     * 用于锁定检测，只有其他二极管的侧面信号才能锁定中继器。
+     *
+     * @param state 方块状态
+     * @return true 如果是二极管
+     */
+    [[nodiscard]] bool isDiode(const BlockState& state) const;
+
     /// 方块ID（用于日志和调试）
     String m_id;
 };

@@ -65,6 +65,24 @@ void DispenserBlockEntity::save(nlohmann::json& data) const {
     }
 }
 
+std::unique_ptr<BlockEntity> DispenserBlockEntity::clone() const {
+    auto cloned = std::make_unique<DispenserBlockEntity>(m_type, m_pos);
+
+    // 复制库存内容
+    for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
+        const ItemStack& stack = m_inventory.getItem(i);
+        if (!stack.isEmpty()) {
+            cloned->m_inventory.setItem(i, stack.copy());
+        }
+    }
+
+    // 复制战利品表信息
+    cloned->m_lootTable = m_lootTable;
+    cloned->m_lootTableSeed = m_lootTableSeed;
+
+    return cloned;
+}
+
 bool DispenserBlockEntity::isEmpty() const {
     return m_inventory.isEmpty();
 }

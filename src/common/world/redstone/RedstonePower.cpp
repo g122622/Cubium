@@ -97,14 +97,23 @@ bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos) {
 
 bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction side) {
     BlockPos neighborPos = pos.offset(side);
-    Direction oppositeDir = Directions::opposite(side);
 
     const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
     if (!neighborState || neighborState->isAir()) {
         return false;
     }
 
-    return neighborState->getBlock().getStrongPower(*neighborState, world, neighborPos, oppositeDir) > 0;
+    const Block& neighborBlock = neighborState->getBlock();
+
+    // MC Java: 特殊处理红石线
+    // 如果相邻方块是红石线，直接获取其信号强度
+    if (neighborState->is(VanillaBlocks::REDSTONE_WIRE)) {
+        return blocks::RedstoneWireBlock::getPower(*neighborState) > 0;
+    }
+
+    // 其他方块：检查强信号
+    Direction oppositeDir = Directions::opposite(side);
+    return neighborBlock.getStrongPower(*neighborState, world, neighborPos, oppositeDir) > 0;
 }
 
 // ========== 特殊信号计算 ==========
