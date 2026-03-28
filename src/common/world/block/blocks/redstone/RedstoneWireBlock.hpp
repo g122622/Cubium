@@ -85,6 +85,25 @@ public:
         Direction side
     ) const override;
 
+    /**
+     * @brief 获取强信号强度
+     *
+     * MC Java 中红石线也输出强信号（委托给 getWeakPower）。
+     * 这是因为红石线可以直接充能相邻的实体方块。
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param side 方向
+     * @return i32 强信号强度
+     */
+    [[nodiscard]] i32 getStrongPower(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side
+    ) const override;
+
     // ========== 红石线特有方法 ==========
 
     /**

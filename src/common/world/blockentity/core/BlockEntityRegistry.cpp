@@ -9,6 +9,8 @@
 #include "world/blockentity/processing/FurnaceEntity.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "world/blockentity/processing/SmokerEntity.hpp"
+#include "world/blockentity/redstone/ComparatorEntity.hpp"
+#include "world/blockentity/redstone/DaylightDetectorEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -78,6 +80,16 @@ void BlockEntityRegistry::registerBuiltinTypes() {
     // 注册附魔台方块实体
     registerType(BlockEntityType::EnchantingTable, [](const BlockPos& pos) {
         return std::make_unique<EnchantingTableEntity>(pos);
+    });
+
+    // 注册比较器方块实体
+    registerType(BlockEntityType::Comparator, [](const BlockPos& pos) {
+        return std::make_unique<ComparatorEntity>(pos);
+    });
+
+    // 注册日光探测器方块实体
+    registerType(BlockEntityType::DaylightDetector, [](const BlockPos& pos) {
+        return std::make_unique<DaylightDetectorEntity>(pos);
     });
 }
 

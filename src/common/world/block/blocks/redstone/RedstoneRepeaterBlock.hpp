@@ -20,6 +20,7 @@ namespace blocks {
  * - 延迟 = 档位 × 2 tick
  * - 锁定时保持当前输出不变
  * - 面向其他中继器时使用更高优先级
+ * - updatePostPlacement 需要更新 LOCKED 状态
  *
  * 参考: net.minecraft.block.RepeaterBlock
  */
@@ -30,6 +31,18 @@ public:
      * @param properties 方块属性
      */
     explicit RedstoneRepeaterBlock(const BlockProperties& properties);
+
+    // ========== Block 接口重写 ==========
+
+    /**
+     * @brief 更新方块状态
+     *
+     * 重写以更新 LOCKED 状态。
+     */
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state, Direction facing,
+        const BlockState& facingState, IWorld& world,
+        const BlockPos& currentPos, const BlockPos& facingPos) override;
 
     // ========== 红石二极管接口实现 ==========
 
@@ -67,6 +80,15 @@ public:
      * @return true 如果锁定
      */
     [[nodiscard]] static bool isLockedState(const BlockState& state);
+
+    /**
+     * @brief 设置锁定状态
+     *
+     * @param state 方块状态
+     * @param locked 是否锁定
+     * @return BlockState 更新后的状态
+     */
+    [[nodiscard]] static BlockState withLocked(BlockState state, bool locked);
 
 private:
     /// 最小延迟档位

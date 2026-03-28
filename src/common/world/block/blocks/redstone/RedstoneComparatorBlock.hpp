@@ -2,8 +2,12 @@
 
 #include "RedstoneDiodeBlock.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include <memory>
 
 namespace mc {
+
+class BlockEntity;
+
 namespace blocks {
 
 /**
@@ -36,11 +40,13 @@ namespace blocks {
  * - 容器检测：可以检测容器内容物
  * - 2 tick延迟
  * - 侧面锁定
+ * - 前端信号保持（需要 BlockEntity 存储）
  *
  * ## 容易踩的坑
- * - 比较器需要检测容器信号
+ * - 比较器需要 BlockEntity 存储输出信号强度
  * - 减法模式计算复杂
  * - 方向性处理
+ * - 输出信号在 tick 时存储到 BlockEntity，而不是实时计算
  *
  * 参考: net.minecraft.block.ComparatorBlock
  */
@@ -51,6 +57,21 @@ public:
      * @param properties 方块属性
      */
     explicit RedstoneComparatorBlock(const BlockProperties& properties);
+
+    // ========== Block 接口实现 ==========
+
+    /**
+     * @brief 是否有方块实体
+     * @return true 比较器需要 BlockEntity 存储输出信号
+     */
+    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+
+    /**
+     * @brief 创建方块实体
+     * @param pos 方块位置
+     * @return 新创建的比较器方块实体
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
     // ========== 红石二极管接口实现 ==========
 
@@ -88,6 +109,37 @@ public:
      * @return true 如果是减法模式
      */
     [[nodiscard]] static bool isSubtractMode(const BlockState& state);
+
+    /**
+     * @brief 获取存储的输出信号强度
+     *
+     * 从 BlockEntity 读取输出信号。如果 BlockEntity 不存在，返回 0。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @return i32 存储的输出信号强度 0-15
+     */
+    [[nodiscard]] i32 getStoredOutputSignal(IWorld& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 存储输出信号强度
+     *
+     * 将输出信号存储到 BlockEntity 中。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param signal 信号强度 0-15
+     */
+    void storeOutputSignal(IWorld& world, const BlockPos& pos, i32 signal) const;
+
+protected:
+    /**
+     * @brief 状态更新时触发
+     *
+     * 重写以在状态变化时更新 BlockEntity 中的输出信号。
+     */
+    void onStateChanged(IWorld& world, const BlockPos& pos, const BlockState& oldState,
+                        const BlockState& newState);
 
 private:
     /// 比较器延迟（固定2 tick）

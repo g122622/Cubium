@@ -21,15 +21,18 @@ Optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Ty
 
 namespace blocks {
 
-// 活塞头类型属性
-namespace {
-    const EnumProperty<PistonHeadBlock::Type>& TYPE_PROP() {
-        static auto prop = EnumProperty<PistonHeadBlock::Type>::create("type", {
-            PistonHeadBlock::Type::Normal,
-            PistonHeadBlock::Type::Sticky
-        });
-        return *prop;
-    }
+// 活塞头类型属性 - 使用静态函数返回引用
+const EnumProperty<PistonHeadBlock::Type>& TYPE_PROP() {
+    static auto prop = EnumProperty<PistonHeadBlock::Type>::create("type", {
+        PistonHeadBlock::Type::Normal,
+        PistonHeadBlock::Type::Sticky
+    });
+    return *prop;
+}
+
+// 静态方法实现 - 返回类型属性
+const EnumProperty<PistonHeadBlock::Type>& PistonHeadBlock::getTypeProperty() {
+    return TYPE_PROP();
 }
 
 PistonHeadBlock::PistonHeadBlock(const BlockProperties& properties)

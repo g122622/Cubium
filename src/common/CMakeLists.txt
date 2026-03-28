@@ -182,6 +182,7 @@ add_library(mc_common STATIC
     # World - Block - Redstone
     world/block/blocks/redstone/RedstoneBlock.cpp
     world/block/blocks/redstone/RedstoneTorchBlock.cpp
+    world/block/blocks/redstone/RedstoneWallTorchBlock.cpp
     world/block/blocks/redstone/RedstoneWireBlock.cpp
     world/block/blocks/redstone/RedstoneDiodeBlock.cpp
     world/block/blocks/redstone/RedstoneRepeaterBlock.cpp
@@ -198,6 +199,7 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/DaylightDetectorBlock.cpp
     world/block/blocks/redstone/PistonBlock.cpp
     world/block/blocks/redstone/PistonHeadBlock.cpp
+    world/block/blocks/redstone/MovingPistonBlock.cpp
     world/block/blocks/redstone/DispenserBlock.cpp
     world/block/blocks/redstone/DropperBlock.cpp
     world/block/blocks/redstone/RedstoneLampBlock.cpp
@@ -229,6 +231,8 @@ add_library(mc_common STATIC
     world/blockentity/processing/BlastFurnaceEntity.cpp
     world/blockentity/processing/SmokerEntity.cpp
     world/blockentity/processing/FurnaceInventory.cpp
+    world/blockentity/redstone/ComparatorEntity.cpp
+    world/blockentity/redstone/DaylightDetectorEntity.cpp
 
     # World - Chunk
     world/chunk/ChunkData.cpp

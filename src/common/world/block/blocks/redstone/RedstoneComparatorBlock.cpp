@@ -3,6 +3,8 @@
 #include "../../../redstone/RedstoneHelper.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../blockentity/redstone/ComparatorEntity.hpp"
+#include "../../../blockentity/BlockEntity.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -55,6 +57,10 @@ RedstoneComparatorBlock::RedstoneComparatorBlock(const BlockProperties& properti
         .with(MODE_PROP(), ComparatorMode::Compare));
 }
 
+std::unique_ptr<BlockEntity> RedstoneComparatorBlock::createBlockEntity(const BlockPos& pos) {
+    return std::make_unique<blockentity::ComparatorEntity>(pos);
+}
+
 i32 RedstoneComparatorBlock::getDelay(const BlockState& state) const {
     MC_UNUSED(state);
     return COMPARATOR_DELAY;
@@ -70,6 +76,21 @@ BlockState RedstoneComparatorBlock::withMode(BlockState state, ComparatorMode mo
 
 bool RedstoneComparatorBlock::isSubtractMode(const BlockState& state) {
     return getMode(state) == ComparatorMode::Subtract;
+}
+
+i32 RedstoneComparatorBlock::getStoredOutputSignal(IWorld& world, const BlockPos& pos) const {
+    BlockEntity* be = world.getBlockEntity(pos);
+    if (auto* comparator = dynamic_cast<blockentity::ComparatorEntity*>(be)) {
+        return comparator->getOutputSignal();
+    }
+    return 0;
+}
+
+void RedstoneComparatorBlock::storeOutputSignal(IWorld& world, const BlockPos& pos, i32 signal) const {
+    BlockEntity* be = world.getBlockEntity(pos);
+    if (auto* comparator = dynamic_cast<blockentity::ComparatorEntity*>(be)) {
+        comparator->setOutputSignal(signal);
+    }
 }
 
 bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos,
@@ -107,10 +128,32 @@ bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos
 
 i32 RedstoneComparatorBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos,
                                                   const BlockState& state) const {
+    // MC Java: 从 BlockEntity 读取输出信号
+    // 这实现了"前端信号保持"特性
     if (!isPowered(state)) {
         return 0;
     }
+
+    // 尝试从 BlockEntity 读取存储的信号
+    i32 storedSignal = getStoredOutputSignal(world, pos);
+    if (storedSignal > 0) {
+        return storedSignal;
+    }
+
+    // 如果 BlockEntity 中没有存储信号，重新计算
     return calculateOutput(world, pos, state);
+}
+
+void RedstoneComparatorBlock::onStateChanged(IWorld& world, const BlockPos& pos,
+                                             const BlockState& oldState,
+                                             const BlockState& newState) {
+    // 当状态变化时，更新 BlockEntity 中的输出信号
+    if (isPowered(newState)) {
+        i32 outputSignal = calculateOutput(world, pos, newState);
+        storeOutputSignal(world, pos, outputSignal);
+    } else {
+        storeOutputSignal(world, pos, 0);
+    }
 }
 
 i32 RedstoneComparatorBlock::calculateOutput(IWorld& world, const BlockPos& pos,

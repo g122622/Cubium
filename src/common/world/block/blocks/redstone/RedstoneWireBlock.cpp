@@ -247,6 +247,17 @@ i32 RedstoneWireBlock::getWeakPower(
     return getPower(state);
 }
 
+i32 RedstoneWireBlock::getStrongPower(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Direction side
+) const {
+    // MC Java: 红石线的 getStrongPower 委托给 getWeakPower
+    // 这使得红石线可以充能相邻的实体方块
+    return getWeakPower(state, world, pos, side);
+}
+
 bool RedstoneWireBlock::updatePower(IWorld& world, const BlockPos& pos) {
     const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
     if (!state || !state->is(this)) {

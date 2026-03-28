@@ -249,6 +249,7 @@ public:
     // ========================================================================
     static Block* REDSTONE_WIRE;          // 红石线
     static Block* REDSTONE_TORCH;         // 红石火把
+    static Block* REDSTONE_WALL_TORCH;    // 墙上的红石火把
     static Block* REDSTONE_LAMP;          // 红石灯
     static Block* REDSTONE_REPEATER;      // 红石中继器
     static Block* REDSTONE_COMPARATOR;    // 红石比较器
@@ -264,6 +265,7 @@ public:
     static Block* PISTON;                 // 活塞
     static Block* STICKY_PISTON;          // 粘性活塞
     static Block* PISTON_HEAD;            // 活塞头
+    static Block* MOVING_PISTON;          // 移动中的活塞
     static Block* DISPENSER;              // 发射器
     static Block* DROPPER;                // 投掷器
     static Block* NOTE_BLOCK;             // 音符盒

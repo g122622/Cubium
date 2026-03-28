@@ -1,4 +1,5 @@
 #include "RedstoneRepeaterBlock.hpp"
+#include "../../../IWorld.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -26,6 +27,28 @@ RedstoneRepeaterBlock::RedstoneRepeaterBlock(const BlockProperties& properties)
         .with(BlockStateProperties::LOCKED(), false));
 }
 
+BlockState RedstoneRepeaterBlock::updatePostPlacement(
+    const BlockState& state, Direction facing,
+    const BlockState& facingState, IWorld& world,
+    const BlockPos& currentPos, const BlockPos& facingPos) {
+
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
+    // MC Java: 如果更新方向不是中继器的朝向方向，更新 LOCKED 状态
+    Direction blockFacing = getFacing(state);
+    if (Directions::getAxis(facing) != Directions::getAxis(blockFacing)) {
+        // 检查是否被锁定
+        bool locked = isLocked(world, currentPos, state);
+        if (isLockedState(state) != locked) {
+            return withLocked(state, locked);
+        }
+    }
+
+    // 调用基类实现
+    return RedstoneDiodeBlock::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
+}
+
 i32 RedstoneRepeaterBlock::getDelay(const BlockState& state) const {
     return getDelaySetting(state) * DELAY_MULTIPLIER;
 }
@@ -42,15 +65,23 @@ bool RedstoneRepeaterBlock::isLockedState(const BlockState& state) {
     return state.get(BlockStateProperties::LOCKED());
 }
 
+BlockState RedstoneRepeaterBlock::withLocked(BlockState state, bool locked) {
+    return state.with(BlockStateProperties::LOCKED(), locked);
+}
+
 bool RedstoneRepeaterBlock::shouldBePowered(IWorld& world, const BlockPos& pos,
                                             const BlockState& state) const {
+    // 如果被锁定，保持当前状态
+    if (isLockedState(state)) {
+        return isPowered(state);
+    }
     // 获取输入信号
     return getInputSignal(world, pos, state) > 0;
 }
 
 bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos,
                                      const BlockState& state) const {
-    // 检查侧面信号
+    // 检查侧面是否有来自其他二极管的信号
     return getPowerOnSides(world, pos, state) > 0;
 }
 

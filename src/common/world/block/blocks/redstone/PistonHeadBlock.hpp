@@ -2,9 +2,16 @@
 
 #include "../../Block.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../../util/property/EnumProperty.hpp"
 #include "../../../../util/Direction.hpp"
 
 namespace mc {
+
+namespace util {
+    template<typename T>
+    class EnumProperty;
+}
+
 namespace blocks {
 
 /**
@@ -73,6 +80,15 @@ public:
      * @return BlockState 更新后的状态
      */
     [[nodiscard]] static BlockState withType(BlockState state, Type type);
+
+    /**
+     * @brief 获取活塞头类型属性
+     *
+     * 用于 MovingPistonBlock 共享相同的属性。
+     *
+     * @return 类型属性的引用
+     */
+    [[nodiscard]] static const EnumProperty<Type>& getTypeProperty();
 };
 
 } // namespace blocks

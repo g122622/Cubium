@@ -120,12 +120,29 @@ i32 LeverBlock::getWeakPower(
 ) const {
     MC_UNUSED(world);
     MC_UNUSED(pos);
+    MC_UNUSED(side);
 
+    // MC Java: return blockState.get(POWERED) ? 15 : 0;
+    // 拉杆开启时向所有方向输出弱信号
+    return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
+}
+
+i32 LeverBlock::getStrongPower(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Direction side
+) const {
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // MC Java: return blockState.get(POWERED) && getFacing(blockState) == side ? 15 : 0;
+    // 只在朝向方向输出强信号
     if (!isPowered(state)) {
         return 0;
     }
 
-    // 获取拉杆输出方向
+    // 获取拉杆朝向（输出方向）
     Direction facing = getFacing(state);
     AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
 
@@ -144,22 +161,12 @@ i32 LeverBlock::getWeakPower(
             break;
     }
 
-    // 只在输出方向输出信号
+    // 只在输出方向输出强信号
     if (side == outputDir) {
         return world::redstone::RedstonePower::MAX_POWER;
     }
 
     return 0;
-}
-
-i32 LeverBlock::getStrongPower(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Direction side
-) const {
-    // 拉杆只输出弱信号
-    return getWeakPower(state, world, pos, side);
 }
 
 void LeverBlock::playClickSound(IWorld& world, const BlockPos& pos, bool powered) {

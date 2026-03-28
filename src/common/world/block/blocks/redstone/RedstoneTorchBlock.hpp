@@ -79,7 +79,7 @@ public:
      */
     [[nodiscard]] static bool isLit(const BlockState& state);
 
-private:
+protected:
     /**
      * @brief 更新火把状态
      *

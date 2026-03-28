@@ -1,0 +1,111 @@
+#pragma once
+
+#include "RedstoneTorchBlock.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../../util/Direction.hpp"
+
+namespace mc {
+namespace blocks {
+
+/**
+ * @brief 墙上的红石火把方块
+ *
+ * 附着在墙上的红石火把，功能与普通红石火把相同，
+ * 但附着方向不同（水平方向而非垂直向上）。
+ *
+ * ## 特性
+ * - 信号反转：附着面有信号时熄灭
+ * - 输出强度：点亮时15，熄灭时0
+ * - 弱信号输出：向除附着面外的所有方向输出
+ * - 可旋转
+ *
+ * ## 容易踩的坑
+ * - 不向附着面输出信号
+ * - shouldBeOff 检查附着面方向的信号
+ * - 需要处理支撑方块检测
+ *
+ * 参考: net.minecraft.block.RedstoneWallTorchBlock
+ */
+class RedstoneWallTorchBlock : public RedstoneTorchBlock {
+public:
+    /**
+     * @brief 构造函数
+     * @param properties 方块属性
+     */
+    explicit RedstoneWallTorchBlock(const BlockProperties& properties);
+
+    // ========== Block 接口实现 ==========
+
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
+                        const BlockPos& neighborPos, bool isMoving) override;
+
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state, Direction facing,
+        const BlockState& facingState, IWorld& world,
+        const BlockPos& currentPos, const BlockPos& facingPos) override;
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side
+    ) const override;
+
+    // ========== 墙红石火把特有方法 ==========
+
+    /**
+     * @brief 获取火把朝向
+     *
+     * @param state 方块状态
+     * @return Direction 朝向方向（火把指向的方向）
+     */
+    [[nodiscard]] static Direction getFacing(const BlockState& state);
+
+    /**
+     * @brief 设置火把朝向
+     *
+     * @param state 方块状态
+     * @param facing 朝向
+     * @return BlockState 更新后的状态
+     */
+    [[nodiscard]] static BlockState withFacing(BlockState state, Direction facing);
+
+    /**
+     * @brief 检查火把是否应该熄灭
+     *
+     * 当附着方块被充能时，火把应该熄灭。
+     *
+     * @param world 世界引用
+     * @param pos 火把位置
+     * @param state 当前方块状态
+     * @return true 如果应该熄灭
+     */
+    [[nodiscard]] bool shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+
+private:
+    /**
+     * @brief 检查是否可以放置在指定位置
+     *
+     * @param world 世界引用
+     * @param pos 火把位置
+     * @param facing 火把朝向
+     * @return true 如果可以放置
+     */
+    [[nodiscard]] bool canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const;
+
+    /**
+     * @brief 更新火把状态
+     *
+     * @param world 世界引用
+     * @param pos 火把位置
+     * @param state 当前方块状态
+     */
+    void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+};
+
+} // namespace blocks
+} // namespace mc

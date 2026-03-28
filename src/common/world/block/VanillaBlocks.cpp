@@ -7,6 +7,7 @@
 #include "blocks/EnchantingTableBlock.hpp"
 #include "blocks/redstone/RedstoneWireBlock.hpp"
 #include "blocks/redstone/RedstoneTorchBlock.hpp"
+#include "blocks/redstone/RedstoneWallTorchBlock.hpp"
 #include "blocks/redstone/RedstoneBlock.hpp"
 #include "blocks/redstone/RedstoneLampBlock.hpp"
 #include "blocks/redstone/RedstoneRepeaterBlock.hpp"
@@ -21,6 +22,7 @@
 #include "blocks/redstone/DaylightDetectorBlock.hpp"
 #include "blocks/redstone/PistonBlock.hpp"
 #include "blocks/redstone/PistonHeadBlock.hpp"
+#include "blocks/redstone/MovingPistonBlock.hpp"
 #include "blocks/redstone/DispenserBlock.hpp"
 #include "blocks/redstone/DropperBlock.hpp"
 #include "blocks/redstone/NoteBlock.hpp"
@@ -187,6 +189,7 @@ Block* VanillaBlocks::OBSIDIAN = nullptr;
 // 红石方块
 Block* VanillaBlocks::REDSTONE_WIRE = nullptr;
 Block* VanillaBlocks::REDSTONE_TORCH = nullptr;
+Block* VanillaBlocks::REDSTONE_WALL_TORCH = nullptr;
 Block* VanillaBlocks::REDSTONE_LAMP = nullptr;
 Block* VanillaBlocks::REDSTONE_REPEATER = nullptr;
 Block* VanillaBlocks::REDSTONE_COMPARATOR = nullptr;
@@ -202,6 +205,7 @@ Block* VanillaBlocks::DAYLIGHT_DETECTOR = nullptr;
 Block* VanillaBlocks::PISTON = nullptr;
 Block* VanillaBlocks::STICKY_PISTON = nullptr;
 Block* VanillaBlocks::PISTON_HEAD = nullptr;
+Block* VanillaBlocks::MOVING_PISTON = nullptr;
 Block* VanillaBlocks::DISPENSER = nullptr;
 Block* VanillaBlocks::DROPPER = nullptr;
 Block* VanillaBlocks::NOTE_BLOCK = nullptr;
@@ -1539,6 +1543,12 @@ void VanillaBlocks::registerRedstoneBlocks() {
         BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7)
     );
 
+    // 墙上的红石火把
+    REDSTONE_WALL_TORCH = &registry.registerBlock<blocks::RedstoneWallTorchBlock>(
+        ResourceLocation("minecraft:redstone_wall_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7)
+    );
+
     // 红石灯
     // 参考: new RedstoneLampBlock(Properties.create(Material.REDSTONE_LIGHT).hardnessAndResistance(0.3F))
     REDSTONE_LAMP = &registry.registerBlock<blocks::RedstoneLampBlock>(
@@ -1645,6 +1655,14 @@ void VanillaBlocks::registerRedstoneBlocks() {
     PISTON_HEAD = &registry.registerBlock<blocks::PistonHeadBlock>(
         ResourceLocation("minecraft:piston_head"),
         BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f)
+    );
+
+    // 移动中的活塞
+    // 参考: new MovingPistonBlock(Properties.create(Material.PISTON).hardnessAndResistance(-1.0F))
+    // MC Java: 移动中的活塞是不可破坏的，硬度为 -1.0
+    MOVING_PISTON = &registry.registerBlock<blocks::MovingPistonBlock>(
+        ResourceLocation("minecraft:moving_piston"),
+        BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f)
     );
 
     // 发射器

@@ -144,41 +144,11 @@ i32 AbstractButtonBlock::getWeakPower(
 ) const {
     MC_UNUSED(world);
     MC_UNUSED(pos);
+    MC_UNUSED(side);
 
-    if (!isPowered(state)) {
-        return 0;
-    }
-
-    // 获取按钮输出方向
-    Direction facing = getFacing(state);
-    AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
-
-    // MC Java: 按钮向其附着面方向输出信号
-    // - 地板按钮：向上输出
-    // - 天花板按钮：向下输出
-    // - 墙按钮：向附着面（背面）输出，即 facing 的反方向
-    Direction outputDir = Direction::North;  // 默认值
-    switch (attachFace) {
-        case AttachFace::Floor:
-            outputDir = Direction::Up;
-            break;
-        case AttachFace::Ceiling:
-            outputDir = Direction::Down;
-            break;
-        case AttachFace::Wall:
-            // MC Java: 墙按钮向附着面方向输出，即 facing 的反方向
-            outputDir = Directions::opposite(facing);
-            break;
-        default:
-            break;
-    }
-
-    // 只在输出方向输出信号
-    if (side == outputDir) {
-        return world::redstone::RedstonePower::MAX_POWER;
-    }
-
-    return 0;
+    // MC Java: return blockState.get(POWERED) ? 15 : 0;
+    // 按钮按下时向所有方向输出弱信号
+    return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
 }
 
 i32 AbstractButtonBlock::getStrongPower(
@@ -187,8 +157,40 @@ i32 AbstractButtonBlock::getStrongPower(
     const BlockPos& pos,
     Direction side
 ) const {
-    // 按钮只输出弱信号
-    return getWeakPower(state, world, pos, side);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // MC Java: return blockState.get(POWERED) && getFacing(blockState) == side ? 15 : 0;
+    // 只在附着面方向输出强信号
+    if (!isPowered(state)) {
+        return 0;
+    }
+
+    // getFacing 返回附着面方向
+    Direction facing = getFacing(state);
+    AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
+
+    Direction outputDir = Direction::North;  // 默认值
+    switch (attachFace) {
+        case AttachFace::Floor:
+            outputDir = Direction::Up;    // 地板按钮强信号向上（附着面）
+            break;
+        case AttachFace::Ceiling:
+            outputDir = Direction::Down;  // 天花板按钮强信号向下（附着面）
+            break;
+        case AttachFace::Wall:
+            outputDir = Directions::opposite(facing);  // 墙按钮强信号向附着面（背面）
+            break;
+        default:
+            break;
+    }
+
+    // 只在输出方向输出强信号
+    if (side == outputDir) {
+        return world::redstone::RedstonePower::MAX_POWER;
+    }
+
+    return 0;
 }
 
 void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockState& state) {

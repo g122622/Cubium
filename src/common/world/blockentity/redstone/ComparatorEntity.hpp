@@ -1,0 +1,74 @@
+#pragma once
+
+#include "world/blockentity/BlockEntity.hpp"
+
+namespace mc {
+namespace blockentity {
+
+/**
+ * @brief 红石比较器方块实体
+ *
+ * 比较器需要存储其输出信号强度，因为输出信号在更新时需要保持稳定。
+ * 这对于前端信号保持特性非常重要。
+ *
+ * ## 功能
+ * - 存储输出信号强度
+ * - NBT序列化/反序列化
+ *
+ * ## 参考
+ * - MC 1.16.5: net.minecraft.tileentity.ComparatorTileEntity
+ *
+ * ## 容易踩的坑
+ * - 输出信号需要持久化，否则重新加载世界后信号会丢失
+ * - 输出信号由比较器在 updateState 时设置，getActiveSignal 时读取
+ */
+class ComparatorEntity : public BlockEntity {
+public:
+    /**
+     * @brief 构造函数
+     * @param pos 方块位置
+     */
+    explicit ComparatorEntity(const BlockPos& pos);
+
+    // ========== BlockEntity 接口实现 ==========
+
+    /**
+     * @brief 从JSON加载数据
+     * @param data JSON数据
+     * @return 是否成功
+     */
+    bool load(const nlohmann::json& data) override;
+
+    /**
+     * @brief 保存数据到JSON
+     * @param data 输出JSON数据
+     */
+    void save(nlohmann::json& data) const override;
+
+    /**
+     * @brief 创建方块实体的副本
+     * @return 副本的unique_ptr
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
+
+    // ========== 比较器特有方法 ==========
+
+    /**
+     * @brief 获取输出信号强度
+     * @return 输出信号强度 0-15
+     */
+    [[nodiscard]] i32 getOutputSignal() const { return m_outputSignal; }
+
+    /**
+     * @brief 设置输出信号强度
+     * @param signal 输出信号强度 0-15
+     */
+    void setOutputSignal(i32 signal);
+
+private:
+    /// 输出信号强度 (0-15)
+    i32 m_outputSignal = 0;
+};
+
+} // namespace blockentity
+} // namespace mc
