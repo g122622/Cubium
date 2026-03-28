@@ -1,0 +1,92 @@
+#pragma once
+
+#include "../../Block.hpp"
+#include "../../Material.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
+
+namespace mc {
+namespace blocks {
+
+/**
+ * @brief 玻璃板/铁栏杆基类
+ *
+ * 玻璃板和铁栏杆共享相同的连接逻辑：
+ * - 根据相邻方块自动连接
+ * - 四个方向的布尔属性
+ * - 支持水logged状态
+ *
+ * 参考: net.minecraft.block.PaneBlock
+ */
+class PaneBlock : public Block {
+public:
+    /**
+     * @brief 构造函数
+     * @param properties 方块属性
+     */
+    explicit PaneBlock(const BlockProperties& properties);
+
+    // ========== 状态创建 ==========
+
+    /**
+     * @brief 获取放置状态
+     */
+    BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    // ========== 更新 ==========
+
+    /**
+     * @brief 邻居更新
+     */
+    BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    // ========== 形状 ==========
+
+    /**
+     * @brief 获取碰撞形状
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取形状（用于渲染）
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    // ========== 属性访问 ==========
+
+    /**
+     * @brief 检查是否连接到指定方向
+     * @param state 方块状态
+     * @param facing 方向
+     * @return 如果连接返回true
+     */
+    [[nodiscard]] static bool connectsTo(const BlockState& state, Direction facing);
+
+protected:
+    /**
+     * @brief 检查是否应该连接到相邻方块
+     * @param world 世界引用
+     * @param pos 本方块位置
+     * @param neighborState 邻居方块状态
+     * @param direction 方向
+     * @return 如果应该连接返回true
+     */
+    [[nodiscard]] bool shouldConnectTo(IWorld& world, const BlockPos& pos,
+                                        const BlockState& neighborState, Direction direction) const;
+
+    /// 碰撞形状
+    CollisionShape m_collisionShape;
+    /// 中心柱形状
+    CollisionShape m_centerShape;
+    /// 边缘形状
+    CollisionShape m_sideShapes[4];
+};
+
+} // namespace blocks
+} // namespace mc

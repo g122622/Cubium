@@ -1,0 +1,203 @@
+#pragma once
+
+#include "BushBlock.hpp"
+#include <array>
+
+namespace mc {
+
+class IWorld;
+class IBlockReader;
+class BlockItemUseContext;
+class ServerWorld;
+
+namespace blocks {
+
+// Forward declaration
+class StemGrownBlock;
+
+/**
+ * @brief 茎类作物方块（南瓜茎、西瓜茎）
+ *
+ * 茎类作物的生长逻辑与普通作物不同：
+ * - 年龄达到最大时会在相邻位置生成果实
+ * - 果实生成后茎变为连接茎
+ *
+ * 状态属性：
+ * - AGE_0_7: 生长阶段 (0-7)
+ *
+ * 参考: net.minecraft.block.StemBlock
+ */
+class StemBlock : public BushBlock {
+public:
+    /**
+     * @brief 构造函数
+     * @param crop 对应的果实方块
+     * @param properties 方块属性
+     */
+    StemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
+
+    /**
+     * @brief 析构函数
+     */
+    ~StemBlock() override = default;
+
+    // ========== 状态属性 ==========
+
+    /**
+     * @brief 获取最大年龄
+     */
+    [[nodiscard]] int getMaxAge() const { return 7; }
+
+    /**
+     * @brief 获取当前年龄
+     */
+    [[nodiscard]] int getAge(const BlockState& state) const;
+
+    /**
+     * @brief 创建指定年龄的状态
+     */
+    [[nodiscard]] BlockState withAge(int age) const;
+
+    /**
+     * @brief 是否为最大年龄
+     */
+    [[nodiscard]] bool isMaxAge(const BlockState& state) const;
+
+    // ========== 放置逻辑 ==========
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state,
+        IBlockReader& world,
+        const BlockPos& pos) const override;
+
+    // ========== 生长逻辑 ==========
+
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    [[nodiscard]] bool ticksRandomly() const override { return true; }
+
+    /**
+     * @brief 生长（使用骨粉）
+     */
+    void grow(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    // ========== 形状 ==========
+
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    // ========== 物品 ==========
+
+    /**
+     * @brief 获取种子物品ID
+     */
+    [[nodiscard]] virtual u32 getSeedItem() const = 0;
+
+    /**
+     * @brief 获取对应的果实方块
+     */
+    [[nodiscard]] const StemGrownBlock* getCrop() const { return m_crop; }
+
+protected:
+    /**
+     * @brief 检查下方是否可支撑
+     */
+    [[nodiscard]] bool canSustain(
+        const BlockState& groundState,
+        IWorld& world,
+        const BlockPos& groundPos) const override;
+
+    /**
+     * @brief 尝试生成果实
+     * @return 如果成功生成了果实返回true
+     */
+    bool tryGrowFruit(BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random);
+
+    /// 对应的果实方块
+    const StemGrownBlock* m_crop;
+
+    /// 各年龄阶段的形状缓存
+    std::array<CollisionShape, 8> m_shapesByAge;
+};
+
+/**
+ * @brief 茎类果实方块（南瓜、西瓜）
+ *
+ * 由茎类作物生成的果实方块。
+ *
+ * 参考: net.minecraft.block.StemGrownBlock
+ */
+class StemGrownBlock : public Block {
+public:
+    /**
+     * @brief 构造函数
+     * @param properties 方块属性
+     */
+    explicit StemGrownBlock(const BlockProperties& properties)
+        : Block(properties) {}
+
+    /**
+     * @brief 析构函数
+     */
+    ~StemGrownBlock() override = default;
+
+    /**
+     * @brief 获取对应的连接茎方块
+     */
+    [[nodiscard]] virtual const Block* getAttachedStem() const = 0;
+};
+
+/**
+ * @brief 连接茎方块
+ *
+ * 果实生成后茎变成的方块，朝向果实方向。
+ *
+ * 状态属性：
+ * - HORIZONTAL_FACING: 朝向（指向果实方向）
+ *
+ * 参考: net.minecraft.block.AttachedStemBlock
+ */
+class AttachedStemBlock : public BushBlock {
+public:
+    /**
+     * @brief 构造函数
+     * @param crop 对应的果实方块
+     * @param properties 方块属性
+     */
+    AttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
+
+    /**
+     * @brief 析构函数
+     */
+    ~AttachedStemBlock() override = default;
+
+    // ========== 放置逻辑 ==========
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    // ========== 旋转 ==========
+
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    // ========== 物品 ==========
+
+    /**
+     * @brief 获取种子物品ID
+     */
+    [[nodiscard]] virtual u32 getSeedItem() const = 0;
+
+    /**
+     * @brief 获取对应的果实方块
+     */
+    [[nodiscard]] const StemGrownBlock* getCrop() const { return m_crop; }
+
+protected:
+    /// 对应的果实方块
+    const StemGrownBlock* m_crop;
+};
+
+} // namespace blocks
+} // namespace mc

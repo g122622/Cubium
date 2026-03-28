@@ -64,6 +64,7 @@ enum class BlockEntityType : u16 {
     Campfire,           ///< 营火
     Conduit,            ///< 潮涌核心
     Lectern,            ///< 讲台
+    Jukebox,            ///< 唱片机
 
     Count               ///< 类型数量
 };

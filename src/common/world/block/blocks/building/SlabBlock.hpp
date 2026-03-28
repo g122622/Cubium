@@ -1,0 +1,84 @@
+#pragma once
+
+#include "../../Block.hpp"
+#include "../../Material.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
+
+namespace mc {
+
+class IWorld;
+class IBlockReader;
+class BlockItemUseContext;
+
+namespace blocks {
+
+/**
+ * @brief 台阶方块
+ *
+ * 支持单层和双层状态，双层时变成完整方块。
+ *
+ * 状态属性：
+ * - TYPE: 台阶类型 (BOTTOM, TOP, DOUBLE)
+ * - WATERLOGGED: 是否含水
+ *
+ * 参考: net.minecraft.block.SlabBlock
+ */
+class SlabBlock : public Block {
+public:
+    /**
+     * @brief 构造函数
+     * @param properties 方块属性
+     */
+    explicit SlabBlock(const BlockProperties& properties);
+
+    /**
+     * @brief 析构函数
+     */
+    ~SlabBlock() override = default;
+
+    // ========== 放置和更新 ==========
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state,
+        IBlockReader& world,
+        const BlockPos& pos) const override;
+
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    // ========== 形状 ==========
+
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    // ========== 其他 ==========
+
+    /**
+     * @brief 检查是否为双层
+     * @param state 方块状态
+     * @return 如果是双层返回true
+     */
+    [[nodiscard]] static bool isDouble(const BlockState& state);
+
+private:
+    /// 下半台阶形状
+    CollisionShape m_bottomShape;
+
+    /// 上半台阶形状
+    CollisionShape m_topShape;
+
+    /// 完整方块形状
+    CollisionShape m_fullCubeShape;
+};
+
+} // namespace blocks
+} // namespace mc

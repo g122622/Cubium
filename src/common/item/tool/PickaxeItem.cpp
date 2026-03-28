@@ -94,8 +94,8 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::STONE_BRICKS) blocks.insert(VanillaBlocks::STONE_BRICKS);
     if (VanillaBlocks::MOSSY_STONE_BRICKS) blocks.insert(VanillaBlocks::MOSSY_STONE_BRICKS);
 
-    // 石英
-    if (VanillaBlocks::QUARTZ_ORE) blocks.insert(VanillaBlocks::QUARTZ_ORE);
+    // 石英方块
+    if (VanillaBlocks::QUARTZ_BLOCK) blocks.insert(VanillaBlocks::QUARTZ_BLOCK);
 
     // 其他石头类
     if (VanillaBlocks::BRICKS) blocks.insert(VanillaBlocks::BRICKS);

@@ -43,7 +43,8 @@ namespace {
         {BlockEntityType::Beehive,        ResourceLocation("minecraft", "beehive")},
         {BlockEntityType::Campfire,       ResourceLocation("minecraft", "campfire")},
         {BlockEntityType::Conduit,        ResourceLocation("minecraft", "conduit")},
-        {BlockEntityType::Lectern,        ResourceLocation("minecraft", "lectern")}
+        {BlockEntityType::Lectern,        ResourceLocation("minecraft", "lectern")},
+        {BlockEntityType::Jukebox,        ResourceLocation("minecraft", "jukebox")}
     };
 
     const std::unordered_map<String, BlockEntityType> idToTypeMap = {
@@ -87,6 +88,7 @@ namespace {
         {"minecraft:campfire",       BlockEntityType::Campfire},
         {"minecraft:conduit",        BlockEntityType::Conduit},
         {"minecraft:lectern",        BlockEntityType::Lectern},
+        {"minecraft:jukebox",        BlockEntityType::Jukebox},
         // 简写形式
         {"chest",          BlockEntityType::Chest},
         {"crafting_table", BlockEntityType::CraftingTable},

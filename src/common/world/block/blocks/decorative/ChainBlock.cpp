@@ -1,0 +1,70 @@
+#include "ChainBlock.hpp"
+#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../util/Direction.hpp"
+
+namespace mc {
+namespace blocks {
+
+ChainBlock::ChainBlock(const BlockProperties& properties)
+    : Block(properties)
+{
+    // 创建状态容器（AXIS 属性）
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::AXIS())
+        .add(BlockStateProperties::WATERLOGGED())
+        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+    setDefaultState(defaultState()
+        .with(BlockStateProperties::AXIS(), Axis::Y)
+        .with(BlockStateProperties::WATERLOGGED(), false));
+
+    // 创建形状 - 锁链是细长的柱子
+    // Y轴：垂直锁链
+    m_yShape = CollisionShape::box(6.0f, 0.0f, 6.0f, 10.0f, 16.0f, 10.0f);
+    // X轴：水平锁链（东西方向）
+    m_xShape = CollisionShape::box(0.0f, 6.0f, 6.0f, 16.0f, 10.0f, 10.0f);
+    // Z轴：水平锁链（南北方向）
+    m_zShape = CollisionShape::box(6.0f, 6.0f, 0.0f, 10.0f, 10.0f, 16.0f);
+}
+
+BlockState ChainBlock::getStateForPlacement(BlockItemUseContext& context) {
+    // 根据点击面确定轴向
+    Direction face = context.getClickedFace();
+    Axis axis = Directions::getAxis(face);
+
+    return defaultState().with(BlockStateProperties::AXIS(), axis);
+}
+
+const BlockState& ChainBlock::rotate(const BlockState& state, Rotation rotation) const {
+    Axis axis = state.get(BlockStateProperties::AXIS());
+
+    if (rotation == Rotation::Clockwise90 || rotation == Rotation::CounterClockwise90) {
+        // 旋转90度切换X和Z轴
+        if (axis == Axis::X) {
+            return state.with(BlockStateProperties::AXIS(), Axis::Z);
+        } else if (axis == Axis::Z) {
+            return state.with(BlockStateProperties::AXIS(), Axis::X);
+        }
+    }
+
+    return state;
+}
+
+const CollisionShape& ChainBlock::getShape(const BlockState& state) const {
+    Axis axis = state.get(BlockStateProperties::AXIS());
+
+    switch (axis) {
+        case Axis::X:
+            return m_xShape;
+        case Axis::Z:
+            return m_zShape;
+        case Axis::Y:
+        default:
+            return m_yShape;
+    }
+}
+
+} // namespace blocks
+} // namespace mc

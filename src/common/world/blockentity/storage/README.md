@@ -6,9 +6,12 @@
 
 ```
 storage/
-├── ChestEntity.hpp/cpp       # 箱子实体
-├── TrappedChestEntity.hpp/cpp # 陷阱箱实体
+├── ChestEntity.hpp/cpp          # 箱子实体
+├── TrappedChestEntity.hpp/cpp   # 陷阱箱实体
 ├── DoubleSidedInventory.hpp/cpp # 双箱合并容器
+├── EnderChestEntity.hpp/cpp     # 末影箱实体
+├── ShulkerBoxEntity.hpp/cpp     # 潜影盒实体
+├── BarrelEntity.hpp/cpp         # 木桶实体
 └── README.md
 ```
 
@@ -25,25 +28,6 @@ storage/
 - 红石比较器信号
 - 锁定功能（继承自LockableBlockEntity）
 
-**关键方法**：
-- `isDoubleChest()` - 检查是否是双箱
-- `getConnectedChest()` - 获取相邻箱子
-- `getDoubleInventory()` - 获取合并后的双箱容器
-- `getComparatorSignal()` - 计算红石信号
-- `getLidAngle()` - 获取盖子角度（动画用）
-- `tick()` - 更新盖子动画
-
-**动画机制**：
-```cpp
-// 每tick更新盖子角度
-if (m_openCount > 0) {
-    m_lidAngle += 0.1f;  // 打开
-} else {
-    m_lidAngle -= 0.1f;  // 关闭
-}
-m_lidAngle = clamp(m_lidAngle, 0.0f, 1.0f);
-```
-
 ### TrappedChestEntity.hpp/cpp
 
 **职责**：陷阱箱实体，输出红石信号。
@@ -53,9 +37,35 @@ m_lidAngle = clamp(m_lidAngle, 0.0f, 1.0f);
 - 红石信号输出 = 打开玩家数（最大15）
 - 打开/关闭时通知邻居更新
 
-**关键方法**：
-- `getRedstoneSignal()` - 获取红石信号强度
-- `openContainer()` / `closeContainer()` - 重写以通知邻居
+### EnderChestEntity.hpp/cpp
+
+**职责**：末影箱方块实体。
+
+**主要功能**：
+- 不存储实际物品（物品在玩家数据中）
+- 打开动画与普通箱子相同
+- 爆破抗性高（600）
+- 每个玩家有独立的物品存储
+
+### ShulkerBoxEntity.hpp/cpp
+
+**职责**：潜影盒方块实体。
+
+**主要功能**：
+- 27格物品存储
+- 被破坏时保留物品（不掉落）
+- 可以被锁定（需要正确名称的物品打开）
+- 打开时有动画效果
+
+### BarrelEntity.hpp/cpp
+
+**职责**：木桶方块实体。
+
+**主要功能**：
+- 27格物品存储（与箱子相同）
+- 可以在上方有方块时打开（与箱子不同）
+- 没有双箱合并功能
+- 可以面向任意六个方向放置
 
 ### DoubleSidedInventory.hpp/cpp
 
@@ -66,36 +76,25 @@ m_lidAngle = clamp(m_lidAngle, 0.0f, 1.0f);
 - 54格容器（27+27）
 - 槽位映射：前27格→上半部分，后27格→下半部分
 
-**使用方式**：
-```cpp
-if (chestA.isDoubleChest(world)) {
-    auto doubleInv = chestA.getDoubleInventory(world);
-    // 使用54格容器
-    ItemStack item = doubleInv->getItem(0);   // 来自chestA
-    ItemStack item2 = doubleInv->getItem(27); // 来自chestB
-}
+## 类继承关系
+
 ```
-
-## 模块关系
-
-```mermaid
-graph TB
-    BlockEntity[BlockEntity]
-    ContainerBlockEntity[ContainerBlockEntity]
-    LockableBlockEntity[LockableBlockEntity]
-    ChestEntity[ChestEntity]
-    TrappedChestEntity[TrappedChestEntity]
-    DoubleSidedInventory[DoubleSidedInventory]
-    SimpleInventory[SimpleInventory]
-    IInventory[IInventory]
-
-    BlockEntity --> ContainerBlockEntity
-    ContainerBlockEntity --> LockableBlockEntity
-    LockableBlockEntity --> ChestEntity
-    ChestEntity --> TrappedChestEntity
-    ChestEntity -.使用.-> SimpleInventory
-    DoubleSidedInventory -.实现.-> IInventory
-    DoubleSidedInventory -.委托.-> SimpleInventory
+BlockEntity (基类)
+│
+├── ContainerBlockEntity (容器基类)
+│   │
+│   ├── LockableBlockEntity (可锁定容器基类)
+│   │   │
+│   │   ├── ChestEntity (箱子)
+│   │   │   └── TrappedChestEntity (陷阱箱)
+│   │   │
+│   │   ├── ShulkerBoxEntity (潜影盒)
+│   │   │
+│   │   └── BarrelEntity (木桶)
+│   │
+│   └── DoubleSidedInventory (双箱容器)
+│
+└── EnderChestEntity (末影箱)
 ```
 
 ## 依赖项
@@ -142,51 +141,18 @@ if (chest.isDoubleChest(world)) {
 }
 ```
 
-## 容易踩的坑
-
-### 1. 双箱生命周期
-
-DoubleSidedInventory不拥有底层箱子的所有权：
+### 创建潜影盒
 
 ```cpp
-// 错误：返回局部变量的包装器
-DoubleSidedInventory getDoubleInventory() {
-    SimpleInventory temp1(27), temp2(27);
-    return DoubleSidedInventory(&temp1, &temp2);  // 悬空指针！
-}
+// 创建潜影盒
+auto shulker = std::make_unique<ShulkerBoxEntity>(BlockPos(0, 0, 0));
 
-// 正确：使用成员变量
-DoubleSidedInventory getDoubleInventory() {
-    return DoubleSidedInventory(&m_inventory, &connected->m_inventory);
-}
-```
+// 设置物品
+shulker->getInventory()->setItem(0, ItemStack(Items::DIAMOND, 64));
 
-### 2. 打开计数同步
-
-箱子打开计数需要定期同步，避免客户端和服务端不一致：
-
-```cpp
-void tick(World& world) {
-    ++m_ticksSinceSync;
-
-    // 每200tick重新计算
-    if (!world.isRemote() && m_ticksSinceSync % 200 == 0) {
-        m_openCount = calculatePlayersUsing(world);
-    }
-}
-```
-
-### 3. 盖子音效
-
-只在RIGHT或SINGLE类型播放音效，避免双箱重复播放：
-
-```cpp
-void playSound(World& world, bool open) {
-    ChestType type = getChestType();
-    if (type == ChestType::LEFT) {
-        return;  // 左半部分不播放
-    }
-    // ...播放音效
+// 检查动画状态
+if (shulker->getAnimationStatus() == ShulkerBoxEntity::AnimationStatus::Opened) {
+    // 潜影盒已打开
 }
 ```
 
@@ -197,12 +163,5 @@ void playSound(World& world, bool open) {
 - `ChestEntityTest.cpp` - 箱子实体测试
 - `DoubleSidedInventoryTest.cpp` - 双箱容器测试
 - `TrappedChestTest.cpp` - 陷阱箱测试
-
-### 测试覆盖
-
-- 物品存取和堆叠
-- 打开计数和动画
-- 双箱合并和分离
-- 红石比较器信号
-- 锁定功能
-- 序列化和反序列化
+- `ShulkerBoxEntityTest.cpp` - 潜影盒测试
+- `BarrelEntityTest.cpp` - 木桶测试

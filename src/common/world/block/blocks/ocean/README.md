@@ -1,0 +1,73 @@
+# 海洋方块模块 (Ocean Blocks)
+
+海洋方块模块提供水下植物和装饰方块的实现。
+
+## 目录结构
+
+```
+ocean/
+├── README.md              # 本文档
+├── SeaPickleBlock.hpp/cpp # 海泡菜、海带、海草、气泡柱
+```
+
+## 方块类型
+
+| 类名 | 说明 | 状态属性 |
+|------|------|----------|
+| `SeaPickleBlock` | 海泡菜（可堆叠1-4个，水下发光） | PICKLES_1_4, WATERLOGGED |
+| `KelpBlock` | 海带（可生长到很高） | AGE_0_25, WATERLOGGED |
+| `SeagrassBlock` | 海草（单格水下植物） | 无 |
+| `TallSeagrassBlock` | 高海草（双格水下植物） | HALF, WATERLOGGED |
+| `BubbleColumnBlock` | 气泡柱（推动实体） | DRAG |
+
+## 核心机制
+
+### 海泡菜发光
+- 在水中时发光
+- 亮度随数量增加：1个=6, 2个=9, 3个=12, 4个=15
+- 离开水不发光
+
+### 海带生长
+- 随机 tick 生长
+- 高度限制基于 AGE_0_25
+- 只能在水中生长
+
+### 气泡柱
+- 灵魂沙产生上推气泡柱
+- 岩浆块产生下拖气泡柱
+- 推动实体移动
+
+## 使用方法
+
+```cpp
+// 创建海泡菜
+auto seaPickle = std::make_unique<SeaPickleBlock>(
+    BlockProperties(Materials::UNDERWATER_PLANT())
+        .hardness(0.0f)
+        .noCollision()
+        .lightLevel(6)  // 基础亮度
+);
+
+// 创建海带
+auto kelp = std::make_unique<KelpBlock>(
+    BlockProperties(Materials::UNDERWATER_PLANT())
+        .hardness(0.0f)
+        .noCollision()
+);
+
+// 创建气泡柱
+auto bubbleColumn = std::make_unique<BubbleColumnBlock>(
+    BlockProperties(Materials::BUBBLE_COLUMN())
+        .hardness(0.0f)
+        .noCollision()
+);
+```
+
+## 依赖项
+
+| 模块 | 用途 |
+|------|------|
+| `world/block/Block` | 方块基类 |
+| `world/block/Material` | 材质系统 |
+| `world/IWorld` | 世界接口 |
+| `util/property/Properties` | 方块属性 |

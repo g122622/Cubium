@@ -1,11 +1,13 @@
 #include "world/blockentity/BlockEntity.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 
 const BlockState* BlockEntity::getBlockState() const {
-    // TODO: 需要World类支持获取方块状态
-    // 目前返回nullptr
-    return nullptr;
+    if (m_world == nullptr) {
+        return nullptr;
+    }
+    return m_world->getBlockState(m_pos.x, m_pos.y, m_pos.z);
 }
 
 } // namespace mc

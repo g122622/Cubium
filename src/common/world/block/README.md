@@ -25,6 +25,13 @@ block/
     ├── FenceGateBlock.hpp/cpp # 栅栏门方块
     ├── CauldronBlock.hpp/cpp # 炼药锅方块
     ├── EnchantingTableBlock.hpp/cpp # 附魔台方块
+    ├── building/           # 建筑方块（楼梯、台阶、墙等）
+    │   ├── StairsBlock.hpp/cpp   # 楼梯方块
+    │   ├── SlabBlock.hpp/cpp     # 台阶方块
+    │   ├── WallBlock.hpp/cpp     # 墙方块
+    │   ├── FenceBlock.hpp/cpp    # 栅栏方块
+    │   ├── TrapDoorBlock.hpp/cpp # 活板门方块
+    │   └── README.md
     ├── redstone/           # 红石方块（详见 redstone/README.md）
     │   ├── RedstoneBlock.hpp/cpp
     │   ├── RedstoneTorchBlock.hpp/cpp

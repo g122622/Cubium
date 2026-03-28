@@ -179,6 +179,77 @@ add_library(mc_common STATIC
     world/block/blocks/DoorBlock.cpp
     world/block/blocks/FenceGateBlock.cpp
 
+    # World - Block - Building
+    world/block/blocks/building/StairsBlock.cpp
+    world/block/blocks/building/SlabBlock.cpp
+    world/block/blocks/building/WallBlock.cpp
+    world/block/blocks/building/FenceBlock.cpp
+    world/block/blocks/building/TrapDoorBlock.cpp
+
+    # World - Block - Agricultural
+    world/block/blocks/agricultural/BushBlock.cpp
+    world/block/blocks/agricultural/CropBlock.cpp
+    world/block/blocks/agricultural/FarmlandBlock.cpp
+    world/block/blocks/agricultural/StemBlock.cpp
+
+    # World - Block - Functional
+    world/block/blocks/functional/BedBlock.cpp
+    world/block/blocks/functional/BrewingStandBlock.cpp
+    world/block/blocks/functional/ComposterBlock.cpp
+    world/block/blocks/functional/CakeBlock.cpp
+    world/block/blocks/functional/BeaconBlock.cpp
+    world/block/blocks/functional/BarrelBlock.cpp
+    world/block/blocks/functional/LecternBlock.cpp
+    world/block/blocks/functional/GrindstoneBlock.cpp
+    world/block/blocks/functional/StonecutterBlock.cpp
+    world/block/blocks/functional/LoomBlock.cpp
+    world/block/blocks/functional/BellBlock.cpp
+    world/block/blocks/functional/JukeboxBlock.cpp
+    world/block/blocks/functional/RespawnAnchorBlock.cpp
+    world/block/blocks/functional/LodestoneBlock.cpp
+    world/block/blocks/functional/CartographyTableBlock.cpp
+    world/block/blocks/functional/FletchingTableBlock.cpp
+    world/block/blocks/functional/SmithingTableBlock.cpp
+
+    # World - Block - Decorative
+    world/block/blocks/decorative/PaneBlock.cpp
+    world/block/blocks/decorative/CarpetBlock.cpp
+    world/block/blocks/decorative/GlazedTerracottaBlock.cpp
+    world/block/blocks/decorative/LanternBlock.cpp
+    world/block/blocks/decorative/ChainBlock.cpp
+    world/block/blocks/decorative/LadderBlock.cpp
+    world/block/blocks/decorative/FlowerPotBlock.cpp
+    world/block/blocks/decorative/ScaffoldingBlock.cpp
+
+    # World - Block - Vegetation
+    world/block/blocks/vegetation/DoublePlantBlock.cpp
+    world/block/blocks/vegetation/TallGrassBlock.cpp
+    world/block/blocks/vegetation/FlowerBlock.cpp
+    world/block/blocks/vegetation/SaplingBlock.cpp
+    world/block/blocks/vegetation/MushroomBlock.cpp
+    world/block/blocks/vegetation/CactusBlock.cpp
+    world/block/blocks/vegetation/SugarCaneBlock.cpp
+    world/block/blocks/vegetation/VineBlock.cpp
+    world/block/blocks/vegetation/LilyPadBlock.cpp
+
+    # World - Block - Coral
+    world/block/blocks/coral/CoralBlock.cpp
+
+    # World - Block - Ocean
+    world/block/blocks/ocean/SeaPickleBlock.cpp
+
+    # World - Block - Nether
+    world/block/blocks/nether/FireBlock.cpp
+
+    # World - Block - End
+    world/block/blocks/end/EndPortalBlock.cpp
+
+    # World - Block - Special
+    world/block/blocks/special/SpecialBlocks.cpp
+
+    # World - Block - Mob
+    world/block/blocks/mob/MobBlocks.cpp
+
     # World - Block - Redstone
     world/block/blocks/redstone/RedstoneBlock.cpp
     world/block/blocks/redstone/RedstoneTorchBlock.cpp
@@ -208,6 +279,12 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/NoteBlock.cpp
     world/block/blocks/redstone/TNTBlock.cpp
     world/block/blocks/redstone/TargetBlock.cpp
+    # World - Block - Redstone - Rails
+    world/block/blocks/redstone/AbstractRailBlock.cpp
+    world/block/blocks/redstone/RailBlock.cpp
+    world/block/blocks/redstone/PoweredRailBlock.cpp
+    world/block/blocks/redstone/DetectorRailBlock.cpp
+    world/block/blocks/redstone/ActivatorRailBlock.cpp
 
     # World - Block - Dispense
     world/block/dispense/IBlockSource.cpp
@@ -221,9 +298,16 @@ add_library(mc_common STATIC
     world/blockentity/interactive/EnchantingTableEntity.cpp
     world/blockentity/interactive/DispenserBlockEntity.cpp
     world/blockentity/interactive/PistonBlockEntity.cpp
+    world/blockentity/interactive/SignEntity.cpp
+    world/blockentity/interactive/BannerEntity.cpp
+    world/blockentity/interactive/JukeboxEntity.cpp
+    world/blockentity/interactive/LecternEntity.cpp
     world/blockentity/storage/ChestEntity.cpp
     world/blockentity/storage/TrappedChestEntity.cpp
     world/blockentity/storage/DoubleSidedInventory.cpp
+    world/blockentity/storage/EnderChestEntity.cpp
+    world/blockentity/storage/ShulkerBoxEntity.cpp
+    world/blockentity/storage/BarrelEntity.cpp
     world/blockentity/transport/HopperEntity.cpp
     world/blockentity/transport/IHopper.cpp
     world/blockentity/processing/AbstractFurnaceEntity.cpp
@@ -231,6 +315,8 @@ add_library(mc_common STATIC
     world/blockentity/processing/BlastFurnaceEntity.cpp
     world/blockentity/processing/SmokerEntity.cpp
     world/blockentity/processing/FurnaceInventory.cpp
+    world/blockentity/processing/BrewingStandEntity.cpp
+    world/blockentity/processing/BeaconEntity.cpp
     world/blockentity/redstone/ComparatorEntity.cpp
     world/blockentity/redstone/DaylightDetectorEntity.cpp
 

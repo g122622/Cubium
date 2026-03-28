@@ -23,6 +23,9 @@ blockentity/
 │   ├── ChestEntity.hpp/cpp          # 箱子实体
 │   ├── TrappedChestEntity.hpp/cpp   # 陷阱箱实体
 │   ├── DoubleSidedInventory.hpp/cpp # 双箱合并容器
+│   ├── EnderChestEntity.hpp/cpp     # 末影箱实体
+│   ├── ShulkerBoxEntity.hpp/cpp     # 潜影盒实体
+│   ├── BarrelEntity.hpp/cpp         # 木桶实体
 │   └── README.md
 ├── transport/                   # 传输类方块实体
 │   ├── IHopper.hpp/cpp              # 漏斗接口
@@ -34,6 +37,8 @@ blockentity/
 │   ├── BlastFurnaceEntity.hpp/cpp    # 高炉
 │   ├── SmokerEntity.hpp/cpp          # 烟熏炉
 │   ├── FurnaceInventory.hpp/cpp      # 熔炉背包
+│   ├── BrewingStandEntity.hpp/cpp    # 酿造台
+│   ├── BeaconEntity.hpp/cpp          # 信标
 │   └── README.md
 ├── redstone/                    # 红石类方块实体
 │   ├── ComparatorEntity.hpp/cpp     # 比较器实体
@@ -43,6 +48,10 @@ blockentity/
     ├── EnchantingTableEntity.hpp/cpp # 附魔台
     ├── PistonBlockEntity.hpp/cpp     # 活塞实体
     ├── DispenserBlockEntity.hpp/cpp  # 发射器/投掷器实体
+    ├── SignEntity.hpp/cpp            # 告示牌
+    ├── BannerEntity.hpp/cpp          # 旗帜
+    ├── JukeboxEntity.hpp/cpp         # 唱片机
+    ├── LecternEntity.hpp/cpp         # 讲台
     └── README.md
 ```
 

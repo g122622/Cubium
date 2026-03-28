@@ -115,4 +115,162 @@ Optional<BlockStateProperties::AttachFace> EnumProperty<BlockStateProperties::At
     return std::nullopt;
 }
 
+// ============================================================================
+// StairsShape Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::StairsShape>::Traits::toString(
+    const BlockStateProperties::StairsShape& value) {
+    switch (value) {
+        case BlockStateProperties::StairsShape::Straight:
+            return "straight";
+        case BlockStateProperties::StairsShape::InnerLeft:
+            return "inner_left";
+        case BlockStateProperties::StairsShape::InnerRight:
+            return "inner_right";
+        case BlockStateProperties::StairsShape::OuterLeft:
+            return "outer_left";
+        case BlockStateProperties::StairsShape::OuterRight:
+            return "outer_right";
+        default:
+            return "straight";
+    }
+}
+
+Optional<BlockStateProperties::StairsShape> EnumProperty<BlockStateProperties::StairsShape>::Traits::fromName(
+    StringView name) {
+    if (name == "straight") {
+        return BlockStateProperties::StairsShape::Straight;
+    } else if (name == "inner_left") {
+        return BlockStateProperties::StairsShape::InnerLeft;
+    } else if (name == "inner_right") {
+        return BlockStateProperties::StairsShape::InnerRight;
+    } else if (name == "outer_left") {
+        return BlockStateProperties::StairsShape::OuterLeft;
+    } else if (name == "outer_right") {
+        return BlockStateProperties::StairsShape::OuterRight;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// SlabType Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::SlabType>::Traits::toString(
+    const BlockStateProperties::SlabType& value) {
+    switch (value) {
+        case BlockStateProperties::SlabType::Bottom:
+            return "bottom";
+        case BlockStateProperties::SlabType::Top:
+            return "top";
+        case BlockStateProperties::SlabType::Double:
+            return "double";
+        default:
+            return "bottom";
+    }
+}
+
+Optional<BlockStateProperties::SlabType> EnumProperty<BlockStateProperties::SlabType>::Traits::fromName(
+    StringView name) {
+    if (name == "bottom") {
+        return BlockStateProperties::SlabType::Bottom;
+    } else if (name == "top") {
+        return BlockStateProperties::SlabType::Top;
+    } else if (name == "double") {
+        return BlockStateProperties::SlabType::Double;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// WallHeight Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::WallHeight>::Traits::toString(
+    const BlockStateProperties::WallHeight& value) {
+    switch (value) {
+        case BlockStateProperties::WallHeight::None:
+            return "none";
+        case BlockStateProperties::WallHeight::Low:
+            return "low";
+        case BlockStateProperties::WallHeight::Tall:
+            return "tall";
+        default:
+            return "none";
+    }
+}
+
+Optional<BlockStateProperties::WallHeight> EnumProperty<BlockStateProperties::WallHeight>::Traits::fromName(
+    StringView name) {
+    if (name == "none") {
+        return BlockStateProperties::WallHeight::None;
+    } else if (name == "low") {
+        return BlockStateProperties::WallHeight::Low;
+    } else if (name == "tall") {
+        return BlockStateProperties::WallHeight::Tall;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// BedPart Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::BedPart>::Traits::toString(
+    const BlockStateProperties::BedPart& value) {
+    switch (value) {
+        case BlockStateProperties::BedPart::Head:
+            return "head";
+        case BlockStateProperties::BedPart::Foot:
+            return "foot";
+        default:
+            return "foot";
+    }
+}
+
+Optional<BlockStateProperties::BedPart> EnumProperty<BlockStateProperties::BedPart>::Traits::fromName(
+    StringView name) {
+    if (name == "head") {
+        return BlockStateProperties::BedPart::Head;
+    } else if (name == "foot") {
+        return BlockStateProperties::BedPart::Foot;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// BellAttachment Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::BellAttachment>::Traits::toString(
+    const BlockStateProperties::BellAttachment& value) {
+    switch (value) {
+        case BlockStateProperties::BellAttachment::Floor:
+            return "floor";
+        case BlockStateProperties::BellAttachment::Ceiling:
+            return "ceiling";
+        case BlockStateProperties::BellAttachment::SingleWall:
+            return "single_wall";
+        case BlockStateProperties::BellAttachment::DoubleWall:
+            return "double_wall";
+        default:
+            return "floor";
+    }
+}
+
+Optional<BlockStateProperties::BellAttachment> EnumProperty<BlockStateProperties::BellAttachment>::Traits::fromName(
+    StringView name) {
+    if (name == "floor") {
+        return BlockStateProperties::BellAttachment::Floor;
+    } else if (name == "ceiling") {
+        return BlockStateProperties::BellAttachment::Ceiling;
+    } else if (name == "single_wall") {
+        return BlockStateProperties::BellAttachment::SingleWall;
+    } else if (name == "double_wall") {
+        return BlockStateProperties::BellAttachment::DoubleWall;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc

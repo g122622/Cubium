@@ -118,6 +118,37 @@ public:
     static Block* OAK_FENCE_GATE;
 
     // ========================================================================
+    // 楼梯（示例）
+    // ========================================================================
+    static Block* OAK_STAIRS;
+    static Block* STONE_STAIRS;
+    static Block* COBBLESTONE_STAIRS;
+
+    // ========================================================================
+    // 台阶（示例）
+    // ========================================================================
+    static Block* OAK_SLAB;
+    static Block* STONE_SLAB;
+    static Block* COBBLESTONE_SLAB;
+
+    // ========================================================================
+    // 墙（示例）
+    // ========================================================================
+    static Block* COBBLESTONE_WALL;
+    static Block* STONE_BRICK_WALL;
+
+    // ========================================================================
+    // 栅栏（示例）
+    // ========================================================================
+    static Block* OAK_FENCE;
+
+    // ========================================================================
+    // 活板门（示例）
+    // ========================================================================
+    static Block* OAK_TRAPDOOR;
+    static Block* IRON_TRAPDOOR;
+
+    // ========================================================================
     // 羊毛 (16色)
     // ========================================================================
     static Block* WHITE_WOOL;
@@ -205,7 +236,7 @@ public:
     static Block* QUARTZ_BLOCK;
     static Block* CHISELED_QUARTZ_BLOCK;
     static Block* QUARTZ_PILLAR;
-    static Block* QUARTZ_ORE;
+    // 注：NETHER_QUARTZ_ORE 在"下界矿石"部分定义
 
     // ========================================================================
     // 海晶系列
@@ -272,6 +303,14 @@ public:
     static Block* TRIPWIRE;               // 绊线
     static Block* TRIPWIRE_HOOK;          // 绊线钩
     static Block* TARGET;                 // 标靶
+
+    // ========================================================================
+    // 铁轨方块
+    // ========================================================================
+    static Block* RAIL;                   // 普通铁轨
+    static Block* POWERED_RAIL;           // 动力铁轨
+    static Block* DETECTOR_RAIL;          // 探测铁轨
+    static Block* ACTIVATOR_RAIL;         // 激活铁轨
 
     // ========================================================================
     // 染色玻璃 (16色)
@@ -426,6 +465,7 @@ private:
     static void registerNetherExtensionBlocks(); // 下界扩展方块（岩浆块等）
     static void registerNaturalBlocks();    // 自然扩展方块
     static void registerRedstoneBlocks();   // 红石方块
+    static void registerStairsSlabsWalls(); // 楼梯、台阶、墙、栅栏、活板门
 };
 
 } // namespace mc

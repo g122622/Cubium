@@ -62,7 +62,17 @@ redstone/
 ├── TargetBlock.hpp              # 标靶
 ├── TargetBlock.cpp
 ├── RedstoneLampBlock.hpp        # 红石灯
-└── RedstoneLampBlock.cpp
+├── RedstoneLampBlock.cpp
+├── AbstractRailBlock.hpp        # 铁轨基类
+├── AbstractRailBlock.cpp
+├── RailBlock.hpp                # 普通铁轨
+├── RailBlock.cpp
+├── PoweredRailBlock.hpp         # 动力铁轨
+├── PoweredRailBlock.cpp
+├── DetectorRailBlock.hpp        # 探测铁轨
+├── DetectorRailBlock.cpp
+├── ActivatorRailBlock.hpp       # 激活铁轨
+└── ActivatorRailBlock.cpp
 ```
 
 ## 文件介绍

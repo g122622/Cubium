@@ -2,23 +2,32 @@
 
 此目录包含交互类方块实体的实现。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `EnchantingTableEntity.hpp/cpp` | 附魔台方块实体 |
-| `DispenserBlockEntity.hpp/cpp` | 发射器/投掷器方块实体 |
-| `PistonBlockEntity.hpp/cpp` | 活塞方块实体 |
+```
+interactive/
+├── EnchantingTableEntity.hpp/cpp  # 附魔台
+├── DispenserBlockEntity.hpp/cpp    # 发射器/投掷器
+├── PistonBlockEntity.hpp/cpp       # 活塞实体
+├── SignEntity.hpp/cpp              # 告示牌
+├── BannerEntity.hpp/cpp            # 旗帜
+├── JukeboxEntity.hpp/cpp           # 唱片机
+├── LecternEntity.hpp/cpp           # 讲台
+└── README.md
+```
 
-## 附魔台方块实体 (EnchantingTableEntity)
+## 文件详解
 
-### 功能
+### EnchantingTableEntity.hpp/cpp
 
-- 检测周围书架计算附魔力量
-- 管理书本动画状态
-- 支持自定义名称（铁砧重命名）
+**职责**：附魔台方块实体。
 
-### 附魔力量计算
+**主要功能**：
+- 附魔界面交互
+- 书本动画
+- 环绕粒子效果
+
+**附魔力量计算**：
 
 ```
 附魔台周围2格范围内:
@@ -30,57 +39,209 @@
 每个有效书架增加1点附魔力量，最大15点。
 ```
 
-### 书架检测逻辑
+### DispenserBlockEntity.hpp/cpp
+
+**职责**：发射器/投掷器方块实体。
+
+**主要功能**：
+- 9格物品存储
+- 红石信号触发发射
+- 物品行为分发
+
+### PistonBlockEntity.hpp/cpp
+
+**职责**：活塞方块实体。
+
+**主要功能**：
+- 方块移动动画
+- 推/拉逻辑
+- 活塞头状态管理
+
+**活塞移动流程**：
 
 ```
-    S . . . S
-    . . . . .
-    . . T . .
-    . . . . .
-    S . . . S
-
-S = 书架（距离2格）
-T = 附魔台
-. = 空气（必须）
+1. 红石信号触发 → PistonBlock.neighborChanged()
+2. 计算推动链 → PistonBlock.extend() 或 retract()
+3. 创建移动活塞方块 → 创建 PistonBlockEntity
+4. 每 tick 更新进度 → tick() 中 progress += 0.5
+5. 动画完成后 → 替换为最终方块
 ```
 
-### 动画系统
+### SignEntity.hpp/cpp
 
-附魔台的书本有三种动画：
-1. **翻开动画**: 玩家靠近时书本翻开
-2. **翻转动画**: 书本在空中轻微旋转
-3. **书页动画**: 书页翻动效果
+**职责**：告示牌方块实体，存储文本。
 
-### API
+**主要功能**：
+- 4行文本，每行最多15个字符
+- 支持彩色文本（使用§代码）
+- 可编辑（右键点击）
+- 木告示牌和苂石告示牌
+
+**关键方法**：
+- `getLine(i32 line)` - 获取指定行文本
+- `setLine(i32 line, const String& text)` - 设置文本
+- `isEditable()` - 检查是否可编辑
+- `setTextColor()` / `getTextColor()` - 文本颜色
+- `isGlowing()` / `setGlowing()` - 发光状态
+
+### BannerEntity.hpp/cpp
+
+**职责**：旗帜方块实体，存储图案。
+
+**主要功能**：
+- 支持最多6层图案叠加
+- 每层图案有类型和颜色
+- 墙挂式和站立式两种形态
+- 16种底色可选
+
+**关键方法**：
+- `addPattern(const BannerPattern& pattern)` - 添加图案
+- `removeTopPattern()` - 移除顶层图案
+- `clearPatterns()` - 清空图案
+- `getBaseColor()` / `setBaseColor()` - 底色
+
+### JukeboxEntity.hpp/cpp
+
+**职责**：唱片机方块实体，播放音乐唱片。
+
+**主要功能**：
+- 1个槽位存放唱片
+- 播放音乐时发射红石信号
+- 可以被漏斗提取唱片
+
+**关键方法**：
+- `getRecord()` / `setRecord()` - 获取/设置唱片
+- `hasRecord()` - 检查是否有唱片
+- `startPlaying()` / `stopPlaying()` - 播放控制
+- `isPlaying()` - 是否正在播放
+- `getComparatorSignal()` - 红石比较器信号
+
+### LecternEntity.hpp/cpp
+
+**职责**：讲台方块实体，展示和阅读书本。
+
+**主要功能**：
+- 1个槽位存放书
+- 支持书与笔、成书、附魔书
+- 红石比较器输出当前页数
+- 右键翻页
+
+**关键方法**：
+- `getBook()` / `setBook()` - 获取/设置书本
+- `hasBook()` - 检查是否有书
+- `getPage()` / `setPage()` - 当前页码
+- `nextPage()` / `prevPage()` - 翻页
+- `getTotalPages()` - 总页数
+- `getComparatorSignal()` - 红石比较器信号
+
+## 类继承关系
+
+```
+BlockEntity (基类)
+│
+├── EnchantingTableEntity (附魔台)
+│
+├── DispenserBlockEntity (发射器/投掷器)
+│
+├── PistonBlockEntity (活塞)
+│
+├── SignEntity (告示牌)
+│
+├── BannerEntity (旗帜)
+│
+├── JukeboxEntity (唱片机)
+│   └── ContainerBlockEntity (容器基类)
+│
+└── LecternEntity (讲台)
+```
+
+## 依赖项
+
+### 内部依赖
+- `world/blockentity/BlockEntity.hpp` - 方块实体基类
+- `world/blockentity/ContainerBlockEntity.hpp` - 容器基类
+- `world/blockentity/core/SimpleInventory.hpp` - 简单背包
+- `entity/inventory/IInventory.hpp` - 背包接口
+
+### 外部依赖
+- `<memory>` - 智能指针
+- `<array>` - 静态数组
+- `<string>` - 字符串
+
+## 使用方法
+
+### 创建告示牌
 
 ```cpp
-// 创建附魔台实体
-EnchantingTableEntity table(BlockPos(0, 0, 0));
+// 创建告示牌
+auto sign = std::make_unique<SignEntity>(BlockPos(0, 0, 0));
 
-// 重新计算附魔力量（书架变化后调用）
-table.recalculateEnchantPower(world);
+// 设置文本
+sign->setLine(0, "Hello World!");
+sign->setLine(1, "Line 2");
+sign->setLine(2, "Line 3");
+sign->setLine(3, "Line 4");
 
-// 获取附魔力量
-i32 power = table.getEnchantPower(); // 0-15
+// 设置颜色
+sign->setTextColor(0); // 黑色
 
-// 自定义名称
-table.setCustomName("My Enchanting Table");
-String name = table.getCustomName();
-
-// 动画更新（客户端渲染调用）
-table.updateAnimation(world, dt);
-f32 rotation = table.getBookRotation();
-f32 openAmount = table.getBookOpenAmount();
-f32 pageAngle = table.getBookPageAngle();
+// 设置发光（苂石告示牌）
+sign->setGlowing(true);
 ```
 
-### 与其他组件的关系
+### 创建旗帜
 
-- **EnchantingTableBlock**: 创建附魔台方块实体
-- **World**: 方块实体注册和查询
-- **Player**: 玩家交互和GUI打开
+```cpp
+// 创建旗帜
+auto banner = std::make_unique<BannerEntity>(BlockPos(0, 0, 0));
 
-### 实现状态
+// 设置底色
+banner->setBaseColor(15); // 黑色
+
+// 添加图案
+BannerPattern pattern;
+pattern.pattern = "stripe_bottom";
+pattern.color = 0; // 白色
+banner->addPattern(pattern);
+```
+
+### 创建唱片机
+
+```cpp
+// 创建唱片机
+auto jukebox = std::make_unique<JukeboxEntity>(BlockPos(0, 0, 0));
+
+// 放入唱片
+jukebox->setRecord(ItemStack(Items::MUSIC_DISC_13, 1));
+
+// 开始播放
+jukebox->startPlaying(world);
+
+// 检查状态
+if (jukebox->isPlaying()) {
+    // 正在播放
+}
+```
+
+### 创建讲台
+
+```cpp
+// 创建讲台
+auto lectern = std::make_unique<LecternEntity>(BlockPos(0, 0, 0));
+
+// 放入书本
+lectern->setBook(ItemStack(Items::WRITTEN_BOOK, 1));
+
+// 翻页
+lectern->nextPage();
+
+// 获取红石信号
+i32 signal = lectern->getComparatorSignal();
+```
+
+## 实现状态
+
+### 附魔台 (EnchantingTableEntity)
 
 | 功能 | 状态 |
 |------|------|
@@ -92,64 +253,7 @@ f32 pageAngle = table.getBookPageAngle();
 | 玩家靠近检测 | ⏳ TODO |
 | GUI打开 | ⏳ TODO |
 
-## 活塞方块实体 (PistonBlockEntity)
-
-### 功能
-
-- 处理活塞移动动画（伸出/收回）
-- 推动碰撞的实体
-- 管理移动中的方块状态
-
-### 活塞移动流程
-
-```
-1. 红石信号触发 → PistonBlock.neighborChanged()
-2. 计算推动链 → PistonBlock.extend() 或 retract()
-3. 创建移动活塞方块 → 创建 PistonBlockEntity
-4. 每 tick 更新进度 → tick() 中 progress += 0.5
-5. 动画完成后 → 替换为最终方块
-```
-
-### 动画进度
-
-```
-progress: 0.0 → 1.0 （每 tick +0.5，共 2 tick）
-伸出：offset = progress - 1.0（-1.0 → 0.0）
-收回：offset = 1.0 - progress（1.0 → 0.0）
-```
-
-### API
-
-```cpp
-// 创建活塞方块实体
-auto piston = std::make_unique<PistonBlockEntity>(
-    pos, std::move(blockState), Direction::North, true, true);
-
-// 获取动画进度
-float progress = piston->getProgress(partialTick);  // 插值进度
-
-// 获取渲染偏移
-float offsetX = piston->getOffsetX(partialTick);
-float offsetY = piston->getOffsetY(partialTick);
-float offsetZ = piston->getOffsetZ(partialTick);
-
-// 检查状态
-bool extending = piston->isExtending();
-Direction facing = piston->getFacing();
-bool complete = piston->isComplete();
-
-// 清除活塞实体（动画完成后）
-piston->clearPistonBlockEntity(world);
-```
-
-### 与其他组件的关系
-
-- **PistonBlock**: 创建和管理活塞方块实体
-- **PistonHeadBlock**: 活塞头方块（伸出时显示）
-- **World**: 方块实体生命周期管理
-- **Entity**: 实体推动系统
-
-### 实现状态
+### 活塞 (PistonBlockEntity)
 
 | 功能 | 状态 |
 |------|------|
@@ -160,3 +264,51 @@ piston->clearPistonBlockEntity(world);
 | 实体推动 | ⏳ 框架完成（待实体系统完善） |
 | 方块状态保存/恢复 | ⏳ TODO（待 BlockState 序列化） |
 | 蜂蜜块特殊处理 | ⏳ TODO |
+
+### 告示牌 (SignEntity)
+
+| 功能 | 状态 |
+|------|------|
+| 文本存储 | ✅ 完成 |
+| 颜色支持 | ✅ 完成 |
+| 发光状态 | ✅ 完成 |
+| 序列化/反序列化 | ✅ 完成 |
+| 编辑状态管理 | ✅ 完成 |
+
+### 旗帜 (BannerEntity)
+
+| 功能 | 状态 |
+|------|------|
+| 图案存储 | ✅ 完成 |
+| 底色支持 | ✅ 完成 |
+| 序列化/反序列化 | ✅ 完成 |
+
+### 唱片机 (JukeboxEntity)
+
+| 功能 | 状态 |
+|------|------|
+| 唱片存储 | ✅ 完成 |
+| 播放状态 | ✅ 完成 |
+| 红石信号 | ✅ 完成 |
+| 序列化/反序列化 | ✅ 完成 |
+| 音乐播放 | ⏳ TODO |
+
+### 讲台 (LecternEntity)
+
+| 功能 | 状态 |
+|------|------|
+| 书本存储 | ✅ 完成 |
+| 翻页功能 | ✅ 完成 |
+| 红石信号 | ✅ 完成 |
+| 序列化/反序列化 | ✅ 完成 |
+
+## 测试用例
+
+测试文件位于 `tests/common/world/blockentity/`：
+
+- `EnchantingTableEntityTest.cpp` - 附魔台测试
+- `PistonBlockEntityTest.cpp` - 活塞测试
+- `SignEntityTest.cpp` - 告示牌测试
+- `BannerEntityTest.cpp` - 旗帜测试
+- `JukeboxEntityTest.cpp` - 唱片机测试
+- `LecternEntityTest.cpp` - 讲台测试

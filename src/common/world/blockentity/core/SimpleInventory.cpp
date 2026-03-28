@@ -219,5 +219,30 @@ void SimpleInventory::onChanged() {
     }
 }
 
+void SimpleInventory::load(const nlohmann::json& data) {
+    if (!data.is_array()) {
+        return;
+    }
+
+    for (size_t i = 0; i < data.size() && i < m_items.size(); ++i) {
+        const auto& itemJson = data[i];
+        if (itemJson.is_object()) {
+            // TODO: 实现ItemStack从JSON加载
+            // m_items[i] = ItemStack::fromJson(itemJson).valueOr(ItemStack());
+        }
+    }
+}
+
+void SimpleInventory::save(nlohmann::json& data) const {
+    data = nlohmann::json::array();
+    for (size_t i = 0; i < m_items.size(); ++i) {
+        if (!m_items[i].isEmpty()) {
+            data.push_back(m_items[i].toJson());
+        } else {
+            data.push_back(nlohmann::json::object());
+        }
+    }
+}
+
 } // namespace blockentity
 } // namespace mc

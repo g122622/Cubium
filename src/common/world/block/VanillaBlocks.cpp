@@ -5,6 +5,11 @@
 #include "blocks/FenceGateBlock.hpp"
 #include "blocks/CauldronBlock.hpp"
 #include "blocks/EnchantingTableBlock.hpp"
+#include "blocks/building/StairsBlock.hpp"
+#include "blocks/building/SlabBlock.hpp"
+#include "blocks/building/WallBlock.hpp"
+#include "blocks/building/FenceBlock.hpp"
+#include "blocks/building/TrapDoorBlock.hpp"
 #include "blocks/redstone/RedstoneWireBlock.hpp"
 #include "blocks/redstone/RedstoneTorchBlock.hpp"
 #include "blocks/redstone/RedstoneWallTorchBlock.hpp"
@@ -30,6 +35,10 @@
 #include "blocks/redstone/TargetBlock.hpp"
 #include "blocks/redstone/TripWireBlock.hpp"
 #include "blocks/redstone/TripWireHookBlock.hpp"
+#include "blocks/redstone/RailBlock.hpp"
+#include "blocks/redstone/PoweredRailBlock.hpp"
+#include "blocks/redstone/DetectorRailBlock.hpp"
+#include "blocks/redstone/ActivatorRailBlock.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/WaterFluid.hpp"
 #include "../fluid/fluids/LavaFluid.hpp"
@@ -112,6 +121,27 @@ Block* VanillaBlocks::ENCHANTING_TABLE = nullptr;
 Block* VanillaBlocks::OAK_DOOR = nullptr;
 Block* VanillaBlocks::IRON_DOOR = nullptr;
 Block* VanillaBlocks::OAK_FENCE_GATE = nullptr;
+
+// 楼梯
+Block* VanillaBlocks::OAK_STAIRS = nullptr;
+Block* VanillaBlocks::STONE_STAIRS = nullptr;
+Block* VanillaBlocks::COBBLESTONE_STAIRS = nullptr;
+
+// 台阶
+Block* VanillaBlocks::OAK_SLAB = nullptr;
+Block* VanillaBlocks::STONE_SLAB = nullptr;
+Block* VanillaBlocks::COBBLESTONE_SLAB = nullptr;
+
+// 墙
+Block* VanillaBlocks::COBBLESTONE_WALL = nullptr;
+Block* VanillaBlocks::STONE_BRICK_WALL = nullptr;
+
+// 栅栏
+Block* VanillaBlocks::OAK_FENCE = nullptr;
+
+// 活板门
+Block* VanillaBlocks::OAK_TRAPDOOR = nullptr;
+Block* VanillaBlocks::IRON_TRAPDOOR = nullptr;
 
 // 羊毛
 Block* VanillaBlocks::WHITE_WOOL = nullptr;
@@ -213,6 +243,12 @@ Block* VanillaBlocks::TRIPWIRE = nullptr;
 Block* VanillaBlocks::TRIPWIRE_HOOK = nullptr;
 Block* VanillaBlocks::TARGET = nullptr;
 
+// 铁轨方块
+Block* VanillaBlocks::RAIL = nullptr;
+Block* VanillaBlocks::POWERED_RAIL = nullptr;
+Block* VanillaBlocks::DETECTOR_RAIL = nullptr;
+Block* VanillaBlocks::ACTIVATOR_RAIL = nullptr;
+
 // 下界方块
 Block* VanillaBlocks::SOUL_SAND = nullptr;
 Block* VanillaBlocks::SOUL_SOIL = nullptr;
@@ -247,7 +283,6 @@ Block* VanillaBlocks::CHISELED_STONE_BRICKS = nullptr;
 Block* VanillaBlocks::QUARTZ_BLOCK = nullptr;
 Block* VanillaBlocks::CHISELED_QUARTZ_BLOCK = nullptr;
 Block* VanillaBlocks::QUARTZ_PILLAR = nullptr;
-Block* VanillaBlocks::QUARTZ_ORE = nullptr;
 
 // 海晶系列
 Block* VanillaBlocks::PRISMARINE = nullptr;
@@ -372,6 +407,7 @@ void VanillaBlocks::initialize() {
     registerBoneAndHayBlocks();
     registerNetherExtensionBlocks();
     registerNaturalBlocks();
+    registerStairsSlabsWalls();
 
     s_initialized = true;
 }
@@ -815,13 +851,6 @@ void VanillaBlocks::registerBuildingBlocks() {
     BOOKSHELF = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:bookshelf"),
         BlockProperties(Material::WOOD).hardness(1.5f).flammable()
-    );
-
-    // TNT
-    // 参考: new TNTBlock(Properties.create(Material.TNT).zeroHardnessAndResistance())
-    TNT = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:tnt"),
-        BlockProperties(Material::TNT).hardness(0.0f)
     );
 
     // 海绵
@@ -1342,11 +1371,7 @@ void VanillaBlocks::registerQuartzBlocks() {
     // 石英柱 - 有轴属性
     QUARTZ_PILLAR = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:quartz_pillar"), quartzProps);
-
-    // 下界石英矿
-    QUARTZ_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:nether_quartz_ore"),
-        BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    // 注：下界石英矿 NETHER_QUARTZ_ORE 已在 registerNetherBlocks() 中注册
 }
 
 // ============================================================================
@@ -1712,6 +1737,122 @@ void VanillaBlocks::registerRedstoneBlocks() {
     TRIPWIRE_HOOK = &registry.registerBlock<blocks::TripWireHookBlock>(
         ResourceLocation("minecraft:tripwire_hook"),
         BlockProperties(Material::DECORATION).noCollision().notSolid()
+    );
+
+    // 普通铁轨
+    // 参考: new RailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
+    RAIL = &registry.registerBlock<blocks::RailBlock>(
+        ResourceLocation("minecraft:rail"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f)
+    );
+
+    // 动力铁轨
+    // 参考: new PoweredRailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
+    POWERED_RAIL = &registry.registerBlock<blocks::PoweredRailBlock>(
+        ResourceLocation("minecraft:powered_rail"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f)
+    );
+
+    // 探测铁轨
+    // 参考: new DetectorRailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
+    DETECTOR_RAIL = &registry.registerBlock<blocks::DetectorRailBlock>(
+        ResourceLocation("minecraft:detector_rail"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f)
+    );
+
+    // 激活铁轨
+    // 参考: new ActivatorRailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
+    ACTIVATOR_RAIL = &registry.registerBlock<blocks::ActivatorRailBlock>(
+        ResourceLocation("minecraft:activator_rail"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f)
+    );
+}
+
+// ============================================================================
+// 楼梯、台阶、墙、栅栏、活板门注册
+// ============================================================================
+void VanillaBlocks::registerStairsSlabsWalls() {
+    auto& registry = BlockRegistry::instance();
+
+    // ========== 楼梯 ==========
+    // 橡木楼梯
+    // 参考: new StairsBlock(OAK_PLANKS.defaultBlockState(), Properties.create(Material.WOOD).hardnessAndResistance(2.0F))
+    OAK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:oak_stairs"),
+        OAK_PLANKS->defaultState(),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable()
+    );
+
+    // 石头楼梯
+    STONE_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:stone_stairs"),
+        STONE->defaultState(),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
+    // 圆石楼梯
+    COBBLESTONE_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:cobblestone_stairs"),
+        COBBLESTONE->defaultState(),
+        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
+    // ========== 台阶 ==========
+    // 橡木台阶
+    // 参考: new SlabBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.0F))
+    OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:oak_slab"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable()
+    );
+
+    // 石头台阶
+    STONE_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:stone_slab"),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
+    // 圆石台阶
+    COBBLESTONE_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:cobblestone_slab"),
+        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
+    // ========== 墙 ==========
+    // 圆石墙
+    // 参考: new WallBlock(Properties.create(Material.ROCK).doesNotBlockMovement().hardnessAndResistance(1.5F).setRequiresTool())
+    COBBLESTONE_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:cobblestone_wall"),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
+    // 石砖墙
+    STONE_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:stone_brick_wall"),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
+    // ========== 栅栏 ==========
+    // 橡木栅栏
+    // 参考: new FenceBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.0F, 3.0F))
+    OAK_FENCE = &registry.registerBlock<blocks::FenceBlock>(
+        ResourceLocation("minecraft:oak_fence"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable()
+    );
+
+    // ========== 活板门 ==========
+    // 橡木活板门
+    // 参考: new TrapDoorBlock(Properties.create(Material.WOOD).hardnessAndResistance(3.0F).noCollission())
+    OAK_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:oak_trapdoor"),
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable(),
+        false  // not iron
+    );
+
+    // 铁活板门
+    IRON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
+        ResourceLocation("minecraft:iron_trapdoor"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe),
+        true  // iron
     );
 }
 

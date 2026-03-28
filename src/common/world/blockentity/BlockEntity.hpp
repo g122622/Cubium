@@ -48,6 +48,18 @@ public:
     [[nodiscard]] BlockPos getPos() const { return m_pos; }
 
     /**
+     * @brief 获取世界引用
+     * @return 世界引用，可能为nullptr
+     */
+    [[nodiscard]] IWorld* getWorld() const { return m_world; }
+
+    /**
+     * @brief 设置世界引用
+     * @param world 世界引用
+     */
+    void setWorld(IWorld* world) { m_world = world; }
+
+    /**
      * @brief 从JSON加载数据
      * @param data JSON数据
      * @return 是否成功
@@ -99,7 +111,7 @@ public:
      * @brief 获取方块实体的方块状态
      * @return 方块状态，如果不存在返回nullptr
      */
-    [[nodiscard]] virtual const BlockState* getBlockState() const;
+    [[nodiscard]] const BlockState* getBlockState() const;
 
     /**
      * @brief 标记方块实体已修改
@@ -152,10 +164,12 @@ protected:
     BlockEntity(BlockEntityType type, const BlockPos& pos)
         : m_type(type)
         , m_pos(pos)
+        , m_world(nullptr)
         , m_changed(false) {}
 
     BlockEntityType m_type;
     BlockPos m_pos;
+    IWorld* m_world;
     bool m_changed;
 };
 

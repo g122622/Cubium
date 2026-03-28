@@ -114,6 +114,20 @@ public:
      */
     void forEachItem(std::function<bool(i32 slot, const ItemStack& stack)> consumer) const;
 
+    // ========== 序列化 ==========
+
+    /**
+     * @brief 从JSON加载数据
+     * @param data JSON数据
+     */
+    void load(const nlohmann::json& data);
+
+    /**
+     * @brief 保存数据到JSON
+     * @param data 输出JSON数据
+     */
+    void save(nlohmann::json& data) const;
+
 private:
     /**
      * @brief 验证槽位索引
