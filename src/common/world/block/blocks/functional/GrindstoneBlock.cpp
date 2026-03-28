@@ -124,7 +124,7 @@ const BlockState& GrindstoneBlock::mirror(const BlockState& state, Mirror mirror
 const CollisionShape& GrindstoneBlock::getShape(const BlockState& state) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
-    MC_ASSERT(index < 4);
+    MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
 }
 

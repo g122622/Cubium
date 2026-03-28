@@ -16,7 +16,7 @@ TripWireHookBlock::TripWireHookBlock(const BlockProperties& properties)
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::FACING())
+        .add(BlockStateProperties::HORIZONTAL_FACING())
         .add(BlockStateProperties::POWERED())
         .add(BlockStateProperties::ATTACHED())
         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
@@ -26,7 +26,7 @@ TripWireHookBlock::TripWireHookBlock(const BlockProperties& properties)
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING(), Direction::North)
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
         .with(BlockStateProperties::POWERED(), false)
         .with(BlockStateProperties::ATTACHED(), false));
 }
@@ -40,7 +40,7 @@ bool TripWireHookBlock::isConnected(const BlockState& state) {
 }
 
 Direction TripWireHookBlock::getFacing(const BlockState& state) {
-    return state.get(BlockStateProperties::FACING());
+    return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
 BlockState TripWireHookBlock::withPowered(BlockState state, bool powered) {

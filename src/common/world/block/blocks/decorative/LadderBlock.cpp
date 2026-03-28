@@ -93,7 +93,7 @@ const CollisionShape& LadderBlock::getShape(const BlockState& state) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
 
-    if (index < 4) {
+    if (index < Directions::COUNT && Directions::isHorizontal(facing)) {
         return m_shapes[index];
     }
 

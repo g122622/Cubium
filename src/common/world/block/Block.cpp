@@ -14,6 +14,8 @@
 #include "../../util/Direction.hpp"
 #include "../../entity/loot/LootTable.hpp"
 #include "../../entity/loot/LootConditions.hpp"
+#include <algorithm>
+#include <cmath>
 #include <sstream>
 
 namespace mc {
@@ -36,8 +38,19 @@ const CollisionShape& VoxelShapes::fullCube() {
 }
 
 CollisionShape VoxelShapes::cube(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2) {
-    return CollisionShape::box(x1 / 16.0f, y1 / 16.0f, z1 / 16.0f,
-                               x2 / 16.0f, y2 / 16.0f, z2 / 16.0f);
+    // 兼容两种写法：
+    // 1) 像素坐标（0-16）- 与 Java 版 Block.makeCuboidShape 一致
+    // 2) 归一化坐标（0-1）- 项目内已有大量此写法
+    const f32 maxCoord = std::max({
+        std::abs(x1), std::abs(y1), std::abs(z1),
+        std::abs(x2), std::abs(y2), std::abs(z2)
+    });
+
+    if (maxCoord <= 1.0f) {
+        return CollisionShape::box(x1, y1, z1, x2, y2, z2);
+    }
+
+    return CollisionShape::fromPixelBox(x1, y1, z1, x2, y2, z2);
 }
 
 // ============================================================================
@@ -277,6 +290,14 @@ Block::Block(BlockProperties properties)
     , m_harvestTool(properties.m_harvestTool)
     , m_harvestLevel(properties.m_harvestLevel)
     , m_lootTableId(properties.m_lootTableId) {
+    // 所有方块都必须至少拥有一个基础状态。
+    // 这与 Java 版 StateContainer 行为一致，可避免遗漏 createBlockState()
+    // 时在注册阶段出现空指针崩溃。
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
 }
 
 void Block::createBlockState(std::unique_ptr<StateContainer<Block, BlockState>> container) {

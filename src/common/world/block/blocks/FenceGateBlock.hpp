@@ -199,13 +199,13 @@ private:
     CollisionShape m_inWallClosedShape;
 
     /// 关闭状态各朝向形状缓存
-    std::array<CollisionShape, 4> m_closedShapes;
+    std::array<CollisionShape, 6> m_closedShapes;
 
     /// 打开状态各朝向形状缓存
-    std::array<CollisionShape, 4> m_openShapes;
+    std::array<CollisionShape, 6> m_openShapes;
 
     /// 墙内关闭状态各朝向形状缓存
-    std::array<CollisionShape, 4> m_inWallClosedShapes;
+    std::array<CollisionShape, 6> m_inWallClosedShapes;
 };
 
 } // namespace blocks

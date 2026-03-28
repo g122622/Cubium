@@ -72,7 +72,7 @@ public:
 
 protected:
     /// 各朝向的形状缓存
-    std::array<CollisionShape, 4> m_shapesByFacing;
+    std::array<CollisionShape, 6> m_shapesByFacing;
 
     /// 碰撞形状（北朝向）
     CollisionShape m_collisionShape;

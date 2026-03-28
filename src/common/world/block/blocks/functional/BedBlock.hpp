@@ -90,7 +90,7 @@ protected:
     u32 m_color;
 
     /// 各朝向的形状缓存
-    std::array<CollisionShape, 4> m_shapesByFacing;
+    std::array<CollisionShape, 6> m_shapesByFacing;
 };
 
 } // namespace blocks

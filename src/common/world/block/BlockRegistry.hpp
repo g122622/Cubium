@@ -78,7 +78,16 @@ public:
         block->m_blockId = blockId;
 
         // 注册所有状态
-        for (const auto& state : block->stateContainer().validStates()) {
+        const auto& validStates = block->stateContainer().validStates();
+        if (validStates.empty()) {
+            throw std::logic_error("Block has no valid states: " + id.toString());
+        }
+
+        for (const auto& state : validStates) {
+            if (!state) {
+                throw std::logic_error("Block has null state in container: " + id.toString());
+            }
+
             state->m_blockId = block->m_blockId;
             u32 stateId = allocateStateId();
             const_cast<BlockState*>(state.get())->m_stateId = stateId;

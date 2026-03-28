@@ -85,7 +85,7 @@ protected:
     /// 中心柱形状
     CollisionShape m_centerShape;
     /// 边缘形状
-    CollisionShape m_sideShapes[4];
+    CollisionShape m_sideShapes[6];
 };
 
 } // namespace blocks

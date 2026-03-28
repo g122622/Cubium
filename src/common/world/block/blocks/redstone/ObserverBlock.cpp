@@ -21,7 +21,7 @@ ObserverBlock::ObserverBlock(const BlockProperties& properties)
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING(), Direction::South)
+        .with(BlockStateProperties::FACING(), Direction::North)
         .with(BlockStateProperties::POWERED(), false));
 }
 

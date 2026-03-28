@@ -6,6 +6,7 @@
 #include "../src/common/world/block/BlockRegistry.hpp"
 #include "../src/common/world/block/VanillaBlocks.hpp"
 #include "../src/common/util/property/Properties.hpp"
+#include <atomic>
 
 using namespace mc;
 
@@ -86,6 +87,23 @@ public:
             block.stateContainer().getProperty("lit"));
     }
 };
+
+class TestBlockWithoutExplicitStateContainer : public Block {
+public:
+    explicit TestBlockWithoutExplicitStateContainer(BlockProperties properties)
+        : Block(properties) {
+    }
+};
+
+namespace {
+
+ResourceLocation makeUniqueTestBlockId() {
+    static std::atomic<u32> counter{0};
+    const u32 suffix = ++counter;
+    return ResourceLocation("test:auto_state_block_" + std::to_string(suffix));
+}
+
+} // namespace
 
 // ============================================================================
 // Material 测试
@@ -374,6 +392,41 @@ TEST(BlockTest, StateCount) {
     EXPECT_EQ(block.stateContainer().stateCount(), 8u);
 }
 
+TEST(BlockTest, BlockWithoutExplicitStateContainer_HasValidDefaultState) {
+    TestBlockWithoutExplicitStateContainer block{BlockProperties{Material::ROCK}};
+
+    EXPECT_EQ(block.stateContainer().stateCount(), 1u);
+
+    const auto& defaultState = block.defaultState();
+    EXPECT_EQ(&defaultState.owner(), &block);
+}
+
+TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates) {
+    const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 8.0f, 16.0f);
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const AxisAlignedBB& box = shape.boxes().front();
+    EXPECT_FLOAT_EQ(box.minX, 0.0f);
+    EXPECT_FLOAT_EQ(box.minY, 0.0f);
+    EXPECT_FLOAT_EQ(box.minZ, 0.0f);
+    EXPECT_FLOAT_EQ(box.maxX, 1.0f);
+    EXPECT_FLOAT_EQ(box.maxY, 0.5f);
+    EXPECT_FLOAT_EQ(box.maxZ, 1.0f);
+}
+
+TEST(VoxelShapesTest, CubeAcceptsNormalizedCoordinates) {
+    const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const AxisAlignedBB& box = shape.boxes().front();
+    EXPECT_FLOAT_EQ(box.minX, 0.0f);
+    EXPECT_FLOAT_EQ(box.minY, 0.0f);
+    EXPECT_FLOAT_EQ(box.minZ, 0.0f);
+    EXPECT_FLOAT_EQ(box.maxX, 1.0f);
+    EXPECT_FLOAT_EQ(box.maxY, 0.5f);
+    EXPECT_FLOAT_EQ(box.maxZ, 1.0f);
+}
+
 // ============================================================================
 // BlockRegistry 测试
 // ============================================================================
@@ -388,6 +441,19 @@ TEST(BlockRegistryTest, RegisterBlock) {
     EXPECT_NE(&block, nullptr);
     EXPECT_EQ(block.blockLocation(), ResourceLocation("test:test_block_reg1"));
     EXPECT_GT(block.blockId(), 0u);  // ID should be > 0
+}
+
+TEST(BlockRegistryTest, RegisterBlockWithoutExplicitStateContainer) {
+    auto& block = BlockRegistry::instance().registerBlock<TestBlockWithoutExplicitStateContainer>(
+        makeUniqueTestBlockId(),
+        BlockProperties{Material::ROCK}
+    );
+
+    EXPECT_EQ(block.stateContainer().stateCount(), 1u);
+
+    const BlockState* state = BlockRegistry::instance().getBlockState(block.defaultState().stateId());
+    ASSERT_NE(state, nullptr);
+    EXPECT_EQ(state->blockId(), block.blockId());
 }
 
 TEST(BlockRegistryTest, GetBlockById) {

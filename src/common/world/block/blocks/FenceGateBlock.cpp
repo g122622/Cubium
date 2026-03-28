@@ -183,7 +183,7 @@ const CollisionShape& FenceGateBlock::getShape(const BlockState& state) const {
     bool inWall = state.get(BlockStateProperties::IN_WALL());
 
     size_t index = static_cast<size_t>(facing);
-    if (index >= 4) {
+    if (index >= Directions::COUNT || !Directions::isHorizontal(facing)) {
         index = static_cast<size_t>(Direction::North);
     }
 
@@ -207,7 +207,7 @@ const CollisionShape& FenceGateBlock::getCollisionShape(const BlockState& state)
     bool inWall = state.get(BlockStateProperties::IN_WALL());
 
     size_t index = static_cast<size_t>(facing);
-    if (index >= 4) {
+    if (index >= Directions::COUNT || !Directions::isHorizontal(facing)) {
         index = static_cast<size_t>(Direction::North);
     }
 
@@ -228,7 +228,7 @@ const CollisionShape& FenceGateBlock::getOcclusionShape(const BlockState& state)
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
     size_t index = static_cast<size_t>(facing);
-    if (index >= 4) {
+    if (index >= Directions::COUNT || !Directions::isHorizontal(facing)) {
         index = static_cast<size_t>(Direction::North);
     }
 

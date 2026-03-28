@@ -28,7 +28,7 @@ LoomBlock::LoomBlock(const BlockProperties& properties)
     CollisionShape base = CollisionShape::fullBlock();
 
     // 各朝向形状相同
-    for (int i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < Directions::COUNT; ++i) {
         m_shapesByFacing[i] = base;
     }
 }
@@ -57,7 +57,7 @@ const BlockState& LoomBlock::mirror(const BlockState& state, Mirror mirror) cons
 const CollisionShape& LoomBlock::getShape(const BlockState& state) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
-    MC_ASSERT(index < 4);
+    MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
 }
 

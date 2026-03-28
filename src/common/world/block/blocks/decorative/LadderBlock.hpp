@@ -81,7 +81,7 @@ public:
 
 protected:
     /// 各方向的形状
-    CollisionShape m_shapes[4];
+    CollisionShape m_shapes[6];
 };
 
 } // namespace blocks
