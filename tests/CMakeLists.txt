@@ -117,6 +117,8 @@ add_executable(mc_tests
     server/world/ItemPickupManagerTest.cpp
     # 资源包兼容层测试
     common/resource/compat/CompatLayerTest.cpp
+    # 内置模型着色配置测试
+    common/resource/VanillaResourcesTintModelTest.cpp
     # 缓存性能对比测试
     common/util/cache/CacheBenchmark.cpp
     # 生物群系层测试
@@ -384,6 +386,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/resource/compat/v1_12/ResourceMapperV112.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/compat/v1_13/ResourceMapperV113.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/loader/ResourceLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/VanillaResources.cpp
         # Kagero UI模板系统（仅核心解析组件）
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Ast.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/AstVisitor.cpp

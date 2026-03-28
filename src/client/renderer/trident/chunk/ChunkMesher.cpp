@@ -1,10 +1,14 @@
 #include "ChunkMesher.hpp"
 #include "AmbientOcclusionCalculator.hpp"
 #include "../../../resource/BlockModelCache.hpp"
+#include "../../../resource/ResourceManager.hpp"
 #include "../../../../common/perfetto/TraceEvents.hpp"
+#include "../../../../common/world/biome/BiomeRegistry.hpp"
+#include "../../../../common/world/block/VanillaBlocks.hpp"
 #include "../../../../common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace mc {
@@ -17,6 +21,10 @@ BlockModelCache* ChunkMesher::s_modelCache = nullptr;
 bool ChunkMesher::s_useGreedyMeshing = false;
 bool ChunkMesher::s_lightingEnabled = true;
 LightingMode ChunkMesher::s_lightingMode = LightingMode::Smooth;
+std::array<u32, 65536> ChunkMesher::s_grassColorMap{};
+std::array<u32, 65536> ChunkMesher::s_foliageColorMap{};
+bool ChunkMesher::s_grassColorMapLoaded = false;
+bool ChunkMesher::s_foliageColorMapLoaded = false;
 
 namespace {
 
@@ -55,14 +63,92 @@ namespace {
     }
 }
 
-/**
- * @brief 将亮度因子转换为灰度顶点色（RGB 同值，A 固定 255）
- */
-[[nodiscard]] u32 makeGrayscaleVertexColor(float factor) {
-    MC_ASSERT_RELEASE_MSG(factor >= -0.01f && factor <= 1.01f, "Vertex color factor out of range");
+[[nodiscard]] constexpr u32 packRgb(u32 rgb) {
+    return packVertexColor(
+        static_cast<u8>((rgb >> 16) & 0xFF),
+        static_cast<u8>((rgb >> 8) & 0xFF),
+        static_cast<u8>(rgb & 0xFF),
+        255
+    );
+}
+
+[[nodiscard]] u32 applyShadeToPackedColor(u32 packedColor, float factor) {
     const float clamped = std::clamp(factor, 0.0f, 1.0f);
-    const u8 channel = static_cast<u8>(std::round(clamped * 255.0f));
-    return packVertexColor(channel, channel, channel, 255);
+    const float r = static_cast<float>(packedColor & 0xFFu) / 255.0f;
+    const float g = static_cast<float>((packedColor >> 8) & 0xFFu) / 255.0f;
+    const float b = static_cast<float>((packedColor >> 16) & 0xFFu) / 255.0f;
+
+    return packVertexColor(
+        static_cast<u8>(std::round(std::clamp(r * clamped, 0.0f, 1.0f) * 255.0f)),
+        static_cast<u8>(std::round(std::clamp(g * clamped, 0.0f, 1.0f) * 255.0f)),
+        static_cast<u8>(std::round(std::clamp(b * clamped, 0.0f, 1.0f) * 255.0f)),
+        255
+    );
+}
+
+struct FaceLayerRenderData {
+    TextureRegion texture;
+    i32 tintIndex = -1;
+};
+
+[[nodiscard]] std::vector<FaceLayerRenderData> collectFaceLayers(
+    const BlockAppearance* appearance,
+    const String& faceName
+) {
+    if (!appearance) {
+        return {};
+    }
+
+    const auto tryLayerKey = [&](const String& key) -> std::vector<FaceLayerRenderData> {
+        auto it = appearance->faceTextureLayers.find(key);
+        if (it == appearance->faceTextureLayers.end() || it->second.empty()) {
+            return {};
+        }
+
+        std::vector<FaceLayerRenderData> layers;
+        layers.reserve(it->second.size());
+        for (const auto& layer : it->second) {
+            layers.push_back(FaceLayerRenderData{layer.texture, layer.tintIndex});
+        }
+        return layers;
+    };
+
+    if (auto layers = tryLayerKey(faceName); !layers.empty()) {
+        return layers;
+    }
+    if (auto layers = tryLayerKey("side"); !layers.empty()) {
+        return layers;
+    }
+    if (auto layers = tryLayerKey("all"); !layers.empty()) {
+        return layers;
+    }
+
+    auto texIt = appearance->faceTextures.find(faceName);
+    String resolvedKey = faceName;
+    if (texIt == appearance->faceTextures.end()) {
+        texIt = appearance->faceTextures.find("side");
+        resolvedKey = "side";
+        if (texIt == appearance->faceTextures.end()) {
+            texIt = appearance->faceTextures.find("all");
+            resolvedKey = "all";
+            if (texIt == appearance->faceTextures.end()) {
+                return {};
+            }
+        }
+    }
+
+    i32 tintIndex = -1;
+    auto tintIt = appearance->faceTintIndices.find(resolvedKey);
+    if (tintIt != appearance->faceTintIndices.end()) {
+        tintIndex = tintIt->second;
+    } else {
+        tintIt = appearance->faceTintIndices.find(faceName);
+        if (tintIt != appearance->faceTintIndices.end()) {
+            tintIndex = tintIt->second;
+        }
+    }
+
+    return {FaceLayerRenderData{texIt->second, tintIndex}};
 }
 
 } // namespace
@@ -73,6 +159,7 @@ namespace {
 
 void ChunkMesher::setModelCache(BlockModelCache* cache) {
     s_modelCache = cache;
+    refreshBiomeColorMaps();
     if (cache) {
         spdlog::info("ChunkMesher: Using BlockModelCache for block appearances");
     } else {
@@ -123,6 +210,7 @@ void ChunkMesher::generateSectionMesh(
     MeshData& outMesh,
     const ChunkData* neighborChunks[6]
 ) {
+    MC_TRACE_CHUNK_MESH_EVENT("GenerateSectionMesh");
     if (s_useGreedyMeshing) {
         greedyMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
     } else {
@@ -281,12 +369,107 @@ u8 ChunkMesher::sampleBlockLight(
     return sampleChunk->getBlockLight(localX, y, localZ);
 }
 
+u32 ChunkMesher::resolveTintColor(
+    const ChunkData& chunk,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
+    const BlockState* block,
+    i32 tintIndex
+) {
+    if (tintIndex < 0 || !block) {
+        return packVertexColor(255, 255, 255, 255);
+    }
+
+    const auto clampToColorIndex = [](f32 value) -> i32 {
+        return static_cast<i32>((1.0f - std::clamp(value, 0.0f, 1.0f)) * 255.0f);
+    };
+
+    const BiomeId biomeId = chunk.getBiomeAtBlock(blockX, blockY, blockZ);
+    const Biome& biome = BiomeRegistry::instance().get(biomeId);
+    const f32 temperature = std::clamp(biome.temperature(), 0.0f, 1.0f);
+    const f32 humidity = std::clamp(biome.humidity(), 0.0f, 1.0f) * temperature;
+    const i32 tempIndex = clampToColorIndex(temperature);
+    const i32 humidityIndex = clampToColorIndex(humidity);
+    const i32 colorIndex = (humidityIndex << 8) | tempIndex;
+
+    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES)
+        || block->is(VanillaBlocks::JUNGLE_LEAVES)
+        || block->is(VanillaBlocks::ACACIA_LEAVES)
+        || block->is(VanillaBlocks::DARK_OAK_LEAVES)
+        || block->is(VanillaBlocks::SPRUCE_LEAVES)
+        || block->is(VanillaBlocks::BIRCH_LEAVES);
+
+    if (isLeaves) {
+        if (block->is(VanillaBlocks::SPRUCE_LEAVES)) {
+            return packRgb(0x619961); // FoliageColors.getSpruce()
+        }
+        if (block->is(VanillaBlocks::BIRCH_LEAVES)) {
+            return packRgb(0x80A755); // FoliageColors.getBirch()
+        }
+
+        if (s_foliageColorMapLoaded && colorIndex >= 0 && colorIndex < static_cast<i32>(s_foliageColorMap.size())) {
+            return packRgb(s_foliageColorMap[static_cast<size_t>(colorIndex)]);
+        }
+
+        return packRgb(0x48B518); // FoliageColors.getDefault()
+    }
+
+    // 草色系：grass_block、short_grass、fern、tall_grass
+    if (s_grassColorMapLoaded && colorIndex >= 0 && colorIndex < static_cast<i32>(s_grassColorMap.size())) {
+        return packRgb(s_grassColorMap[static_cast<size_t>(colorIndex)]);
+    }
+
+    // Java 在缺失色图时会返回品红；这里使用常见平原草色避免出现异常闪烁色
+    return packRgb(0x91BD59);
+}
+
+bool ChunkMesher::tryLoadColorMap(StringView path, std::array<u32, 65536>& outColorMap) {
+    if (!s_modelCache || !s_modelCache->resourceManager()) {
+        return false;
+    }
+
+    auto* resourceManager = s_modelCache->resourceManager();
+    auto colorMapResult = resourceManager->loadTextureRGBA(ResourceLocation(String(path)));
+    if (colorMapResult.failed()) {
+        return false;
+    }
+
+    const auto& colorMap = colorMapResult.value();
+    if (colorMap.width != 256 || colorMap.height != 256 || colorMap.pixels.size() < 256u * 256u * 4u) {
+        return false;
+    }
+
+    for (size_t i = 0; i < outColorMap.size(); ++i) {
+        const size_t offset = i * 4;
+        const u32 r = static_cast<u32>(colorMap.pixels[offset]);
+        const u32 g = static_cast<u32>(colorMap.pixels[offset + 1]);
+        const u32 b = static_cast<u32>(colorMap.pixels[offset + 2]);
+        outColorMap[i] = (r << 16) | (g << 8) | b;
+    }
+
+    return true;
+}
+
+void ChunkMesher::refreshBiomeColorMaps() {
+    s_grassColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/grass", s_grassColorMap);
+    s_foliageColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/foliage", s_foliageColorMap);
+
+    spdlog::info("ChunkMesher: Biome color maps loaded (grass={}, foliage={})",
+                 s_grassColorMapLoaded, s_foliageColorMapLoaded);
+}
+
 void ChunkMesher::addFaceFromAppearance(
     MeshData& mesh,
     Face face,
     f32 x, f32 y, f32 z,
+    const ChunkData& chunk,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
     u8 skyLight,
     u8 blockLight,
+    const BlockState* block,
     const BlockAppearance* appearance
 ) {
     if (!appearance) {
@@ -310,61 +493,57 @@ void ChunkMesher::addFaceFromAppearance(
         default: return;
     }
 
-    auto texIt = appearance->faceTextures.find(faceName);
-    if (texIt == appearance->faceTextures.end()) {
-        // 尝试使用 "side" 作为后备
-        texIt = appearance->faceTextures.find("side");
-        if (texIt == appearance->faceTextures.end()) {
-            // 尝试使用 "all" 作为后备
-            texIt = appearance->faceTextures.find("all");
-            if (texIt == appearance->faceTextures.end()) {
-                return; // 没有找到纹理，跳过此面
-            }
-        }
+    const auto faceLayers = collectFaceLayers(appearance, faceName);
+    if (faceLayers.empty()) {
+        return;
     }
-
-    TextureRegion tex = texIt->second;
 
     auto normal = BlockGeometry::getFaceNormal(face);
     auto vertices = BlockGeometry::getFaceVertices(face);
 
-    // 创建4个顶点
-    std::array<Vertex, 4> faceVerts;
-    const u32 shadedWhiteColor = makeGrayscaleVertexColor(getFaceShade(face));
-
-    // UV坐标根据顶点位置设置
-    // 顶点顺序: 左下、右下、右上、左上
-    f32 uvs[4][2] = {
-        { tex.u0, tex.v1 }, // 左下
-        { tex.u1, tex.v1 }, // 右下
-        { tex.u1, tex.v0 }, // 右上
-        { tex.u0, tex.v0 }  // 左上
-    };
-
     // 打包双通道光照：高4位=天空光，低4位=方块光
     const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
 
-    for (size_t i = 0; i < 4; ++i) {
-        faceVerts[i] = Vertex(
-            x + vertices[i * 3 + 0],
-            y + vertices[i * 3 + 1],
-            z + vertices[i * 3 + 2],
-            normal[0], normal[1], normal[2],
-            uvs[i][0], uvs[i][1],
-            shadedWhiteColor,
-            packedLight
-        );
-    }
+    for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
+        const auto& layer = faceLayers[layerIndex];
+        const u32 tintColor = resolveTintColor(chunk, blockX, blockY, blockZ, block, layer.tintIndex);
+        const u32 shadedColor = applyShadeToPackedColor(tintColor, getFaceShade(face));
 
-    // 添加顶点和索引
-    u32 baseIndex = static_cast<u32>(mesh.vertices.size());
-    for (const auto& v : faceVerts) {
-        mesh.vertices.push_back(v);
-    }
+        // UV坐标根据顶点位置设置
+        // 顶点顺序: 左下、右下、右上、左上
+        f32 uvs[4][2] = {
+            { layer.texture.u0, layer.texture.v1 }, // 左下
+            { layer.texture.u1, layer.texture.v1 }, // 右下
+            { layer.texture.u1, layer.texture.v0 }, // 右上
+            { layer.texture.u0, layer.texture.v0 }  // 左上
+        };
 
-    auto indices = BlockGeometry::getFaceIndices();
-    for (u32 idx : indices) {
-        mesh.indices.push_back(baseIndex + idx);
+        // 叠加层沿法线轻微外移，避免与底层完全重合导致闪烁
+        const f32 layerOffset = static_cast<f32>(layerIndex) * 0.001f;
+
+        std::array<Vertex, 4> faceVerts;
+        for (size_t i = 0; i < 4; ++i) {
+            faceVerts[i] = Vertex(
+                x + vertices[i * 3 + 0] + normal[0] * layerOffset,
+                y + vertices[i * 3 + 1] + normal[1] * layerOffset,
+                z + vertices[i * 3 + 2] + normal[2] * layerOffset,
+                normal[0], normal[1], normal[2],
+                uvs[i][0], uvs[i][1],
+                shadedColor,
+                packedLight
+            );
+        }
+
+        // 添加顶点和索引
+        u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+        for (const auto& v : faceVerts) {
+            mesh.vertices.push_back(v);
+        }
+
+        auto indices = BlockGeometry::getFaceIndices();
+        for (u32 idx : indices) {
+            mesh.indices.push_back(baseIndex + idx);
+        }
     }
 }
 
@@ -374,6 +553,7 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     f32 x, f32 y, f32 z,
     const ChunkData& chunk,
     i32 blockX, i32 blockY, i32 blockZ,
+    const BlockState* block,
     const BlockAppearance* appearance,
     const ChunkData* neighborChunks[6]
 ) {
@@ -398,20 +578,10 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         default: return;
     }
 
-    auto texIt = appearance->faceTextures.find(faceName);
-    if (texIt == appearance->faceTextures.end()) {
-        // 尝试使用 "side" 作为后备
-        texIt = appearance->faceTextures.find("side");
-        if (texIt == appearance->faceTextures.end()) {
-            // 尝试使用 "all" 作为后备
-            texIt = appearance->faceTextures.find("all");
-            if (texIt == appearance->faceTextures.end()) {
-                return; // 没有找到纹理，跳过此面
-            }
-        }
+    const auto faceLayers = collectFaceLayers(appearance, faceName);
+    if (faceLayers.empty()) {
+        return;
     }
-
-    TextureRegion tex = texIt->second;
 
     auto normal = BlockGeometry::getFaceNormal(face);
     auto vertices = BlockGeometry::getFaceVertices(face);
@@ -420,51 +590,59 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     client::renderer::AmbientOcclusionCalculator aoCalc;
     auto aoResult = aoCalc.calculate(chunk, blockX, blockY, blockZ, face, neighborChunks);
 
-    // UV坐标根据顶点位置设置
-    // 顶点顺序: 左下、右下、右上、左上
-    f32 uvs[4][2] = {
-        { tex.u0, tex.v1 }, // 左下
-        { tex.u1, tex.v1 }, // 右下
-        { tex.u1, tex.v0 }, // 右上
-        { tex.u0, tex.v0 }  // 左上
-    };
-
-    // 创建4个顶点，每个顶点有独立的光照和AO
-    std::array<Vertex, 4> faceVerts;
     const float faceShade = getFaceShade(face);
-    for (size_t i = 0; i < 4; ++i) {
-        // 打包双通道光照：高4位=天空光，低4位=方块光
-        const u8 packedLight = static_cast<u8>(
-            ((aoResult.vertexSkyLight[i] & 0x0F) << 4) |
-            (aoResult.vertexBlockLight[i] & 0x0F)
-        );
+    for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
+        const auto& layer = faceLayers[layerIndex];
+        const u32 tintColor = resolveTintColor(chunk, blockX, blockY, blockZ, block, layer.tintIndex);
 
-        // AO 乘数与面向明暗共同作用于顶点颜色。
-        // 注意：颜色打包必须遵循 RGBA 字节顺序，避免出现偏色（例如偏红）问题。
-        const float ao = aoResult.vertexColorMultiplier[i];
-        const float finalShade = std::clamp(ao * faceShade, 0.0f, 1.0f);
-        const u32 color = makeGrayscaleVertexColor(finalShade);
+        // UV坐标根据顶点位置设置
+        // 顶点顺序: 左下、右下、右上、左上
+        f32 uvs[4][2] = {
+            { layer.texture.u0, layer.texture.v1 }, // 左下
+            { layer.texture.u1, layer.texture.v1 }, // 右下
+            { layer.texture.u1, layer.texture.v0 }, // 右上
+            { layer.texture.u0, layer.texture.v0 }  // 左上
+        };
 
-        faceVerts[i] = Vertex(
-            x + vertices[i * 3 + 0],
-            y + vertices[i * 3 + 1],
-            z + vertices[i * 3 + 2],
-            normal[0], normal[1], normal[2],
-            uvs[i][0], uvs[i][1],
-            color,
-            packedLight
-        );
-    }
+        // 叠加层沿法线轻微外移，避免与底层完全重合导致闪烁
+        const f32 layerOffset = static_cast<f32>(layerIndex) * 0.001f;
 
-    // 添加顶点和索引
-    u32 baseIndex = static_cast<u32>(mesh.vertices.size());
-    for (const auto& v : faceVerts) {
-        mesh.vertices.push_back(v);
-    }
+        // 创建4个顶点，每个顶点有独立的光照和AO
+        std::array<Vertex, 4> faceVerts;
+        for (size_t i = 0; i < 4; ++i) {
+            // 打包双通道光照：高4位=天空光，低4位=方块光
+            const u8 packedLight = static_cast<u8>(
+                ((aoResult.vertexSkyLight[i] & 0x0F) << 4) |
+                (aoResult.vertexBlockLight[i] & 0x0F)
+            );
 
-    auto indices = BlockGeometry::getFaceIndices();
-    for (u32 idx : indices) {
-        mesh.indices.push_back(baseIndex + idx);
+            // AO 乘数与面向明暗共同作用于顶点颜色。
+            // 注意：颜色打包必须遵循 RGBA 字节顺序，避免出现偏色（例如偏红）问题。
+            const float ao = aoResult.vertexColorMultiplier[i];
+            const float finalShade = std::clamp(ao * faceShade, 0.0f, 1.0f);
+            const u32 color = applyShadeToPackedColor(tintColor, finalShade);
+
+            faceVerts[i] = Vertex(
+                x + vertices[i * 3 + 0] + normal[0] * layerOffset,
+                y + vertices[i * 3 + 1] + normal[1] * layerOffset,
+                z + vertices[i * 3 + 2] + normal[2] * layerOffset,
+                normal[0], normal[1], normal[2],
+                uvs[i][0], uvs[i][1],
+                color,
+                packedLight
+            );
+        }
+
+        // 添加顶点和索引
+        u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+        for (const auto& v : faceVerts) {
+            mesh.vertices.push_back(v);
+        }
+
+        auto indices = BlockGeometry::getFaceIndices();
+        for (u32 idx : indices) {
+            mesh.indices.push_back(baseIndex + idx);
+        }
     }
 }
 
@@ -474,6 +652,7 @@ void ChunkMesher::simpleMeshSection(
     MeshData& outMesh,
     const ChunkData* neighborChunks[6]
 ) {
+    MC_TRACE_CHUNK_MESH_EVENT("SimplyGenerateSectionMesh");
     // 必须有 BlockModelCache
     if (!s_modelCache) {
         spdlog::error("ChunkMesher: BlockModelCache not initialized, cannot generate mesh");
@@ -573,6 +752,7 @@ void ChunkMesher::simpleMeshSection(
                             addFaceFromAppearanceSmooth(outMesh, face,
                                     fx, fy, fz,
                                     chunk, x, baseY + y, z,
+                                    block,
                                     appearance, neighborChunks);
                         } else {
                             // 平面光照模式
@@ -599,8 +779,13 @@ void ChunkMesher::simpleMeshSection(
 
                             addFaceFromAppearance(outMesh, face,
                                     fx, fy, fz,
+                                    chunk,
+                                    x,
+                                    baseY + y,
+                                    z,
                                     skyLight,
                                     blockLight,
+                                    block,
                                     appearance);
                         }
                     }

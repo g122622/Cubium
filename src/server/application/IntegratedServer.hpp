@@ -18,7 +18,7 @@ struct IntegratedServerConfig {
     GameMode defaultGameMode = GameMode::Survival;
     i32 viewDistance = 6;
     i32 tickRate = 20;  // TPS
-    WorldType worldType = WorldType::Debug;  // 默认使用调试模式
+    WorldType worldType = WorldType::Default;  // 默认使用调试模式
 };
 
 /**

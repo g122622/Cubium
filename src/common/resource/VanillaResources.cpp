@@ -95,12 +95,12 @@ const char* VanillaResources::MODEL_LEAVES = R"({
             "from": [0, 0, 0],
             "to": [16, 16, 16],
             "faces": {
-                "down": {"uv": [0, 0, 16, 16], "texture": "#all"},
-                "up": {"uv": [0, 0, 16, 16], "texture": "#all"},
-                "north": {"uv": [0, 0, 16, 16], "texture": "#all"},
-                "south": {"uv": [0, 0, 16, 16], "texture": "#all"},
-                "west": {"uv": [0, 0, 16, 16], "texture": "#all"},
-                "east": {"uv": [0, 0, 16, 16], "texture": "#all"}
+                "down": {"uv": [0, 0, 16, 16], "texture": "#all", "tintindex": 0},
+                "up": {"uv": [0, 0, 16, 16], "texture": "#all", "tintindex": 0},
+                "north": {"uv": [0, 0, 16, 16], "texture": "#all", "tintindex": 0},
+                "south": {"uv": [0, 0, 16, 16], "texture": "#all", "tintindex": 0},
+                "west": {"uv": [0, 0, 16, 16], "texture": "#all", "tintindex": 0},
+                "east": {"uv": [0, 0, 16, 16], "texture": "#all", "tintindex": 0}
             }
         }
     ]
@@ -225,13 +225,35 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
         "parent": "block/cube",
         "textures": {
             "particle": "block/grass_block_top",
-            "down": "block/grass_block_bottom",
-            "up": "block/grass_block_top",
-            "north": "block/grass_block_side",
-            "east": "block/grass_block_side",
-            "south": "block/grass_block_side",
-            "west": "block/grass_block_side"
-        }
+            "bottom": "block/dirt",
+            "top": "block/grass_block_top",
+            "side": "block/grass_block_side",
+            "overlay": "block/grass_block_side_overlay"
+        },
+        "elements": [
+            {
+                "from": [0, 0, 0],
+                "to": [16, 16, 16],
+                "faces": {
+                    "down": {"uv": [0, 0, 16, 16], "texture": "#bottom", "cullface": "down"},
+                    "up": {"uv": [0, 0, 16, 16], "texture": "#top", "cullface": "up", "tintindex": 0},
+                    "north": {"uv": [0, 0, 16, 16], "texture": "#side", "cullface": "north"},
+                    "south": {"uv": [0, 0, 16, 16], "texture": "#side", "cullface": "south"},
+                    "west": {"uv": [0, 0, 16, 16], "texture": "#side", "cullface": "west"},
+                    "east": {"uv": [0, 0, 16, 16], "texture": "#side", "cullface": "east"}
+                }
+            },
+            {
+                "from": [0, 0, 0],
+                "to": [16, 16, 16],
+                "faces": {
+                    "north": {"uv": [0, 0, 16, 16], "texture": "#overlay", "cullface": "north", "tintindex": 0},
+                    "south": {"uv": [0, 0, 16, 16], "texture": "#overlay", "cullface": "south", "tintindex": 0},
+                    "west": {"uv": [0, 0, 16, 16], "texture": "#overlay", "cullface": "west", "tintindex": 0},
+                    "east": {"uv": [0, 0, 16, 16], "texture": "#overlay", "cullface": "east", "tintindex": 0}
+                }
+            }
+        ]
     })");
 
     // 基岩
@@ -759,7 +781,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
 
     const char* flowers[] = {"dandelion", "poppy", "blue_orchid", "allium", "azure_bluet",
                              "red_tulip", "orange_tulip", "white_tulip", "pink_tulip", "oxeye_daisy",
-                             "brown_mushroom", "red_mushroom", "short_grass", "fern"};
+                             "brown_mushroom", "red_mushroom"};
     for (const auto& flower : flowers) {
         String model = String(flowerTemplate);
         size_t pos = model.find("%s");
@@ -769,9 +791,27 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
         pack.addResource("assets/minecraft/models/block/" + String(flower) + ".json", model);
     }
 
+    // 草与蕨类（需要生物群系着色）
+    const char* tintedCrossTemplate = R"({
+        "parent": "block/tinted_cross",
+        "textures": {
+            "cross": "block/%s"
+        }
+    })";
+
+    const char* tintedCrossPlants[] = {"short_grass", "fern"};
+    for (const auto& plant : tintedCrossPlants) {
+        String model = String(tintedCrossTemplate);
+        size_t pos = model.find("%s");
+        if (pos != String::npos) {
+            model.replace(pos, 2, plant);
+        }
+        pack.addResource("assets/minecraft/models/block/" + String(plant) + ".json", model);
+    }
+
     // Tall grass
     pack.addResource("assets/minecraft/models/block/tall_grass.json", R"({
-        "parent": "block/cross",
+        "parent": "block/tinted_cross",
         "textures": {
             "cross": "block/tall_grass_top"
         }

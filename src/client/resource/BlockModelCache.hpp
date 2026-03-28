@@ -140,6 +140,11 @@ public:
      */
     [[nodiscard]] size_t cachedAppearanceCount() const { return m_stateCache.size(); }
 
+    /**
+     * @brief 获取当前绑定的 ResourceManager
+     */
+    [[nodiscard]] ResourceManager* resourceManager() const { return m_resourceManager; }
+
 private:
     // 状态 ID -> 外观指针的缓存
     std::unordered_map<u32, const BlockAppearance*> m_stateCache;

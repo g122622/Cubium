@@ -570,10 +570,13 @@ void ResourceManager::computeBlockAppearances() {
             for (const auto& element : bakedModel.elements) {
                 for (const auto& [dir, face] : element.faces) {
                     String dirStr = directionToString(dir);
-                    ResourceLocation texLoc = bakedModel.resolveTexture(face.texture);
 
-                    // 如果纹理区域已存在，跳过
-                    if (appearance.faceTextures.count(dirStr)) continue;
+                    // 保留 tintindex（仅记录有着色需求的面）
+                    if (face.tintIndex >= 0 && !appearance.faceTintIndices.count(dirStr)) {
+                        appearance.faceTintIndices[dirStr] = face.tintIndex;
+                    }
+
+                    ResourceLocation texLoc = bakedModel.resolveTexture(face.texture);
 
                     // 转换纹理路径为完整的 textures/ 路径
                     ResourceLocation fullTexLoc = texturePathToLocation(texLoc.path());
@@ -582,7 +585,15 @@ void ResourceManager::computeBlockAppearances() {
                     const TextureRegion* region = findTextureRegion(fullTexLoc);
 
                     if (region) {
-                        appearance.faceTextures[dirStr] = *region;
+                        // 保留首层纹理用于兼容旧逻辑
+                        if (!appearance.faceTextures.count(dirStr)) {
+                            appearance.faceTextures[dirStr] = *region;
+                        }
+
+                        // 收集全部层，支持草方块侧面 overlay 等多层模型
+                        appearance.faceTextureLayers[dirStr].push_back(
+                            BlockAppearance::FaceTextureLayer{*region, face.tintIndex}
+                        );
                     }
                 }
             }

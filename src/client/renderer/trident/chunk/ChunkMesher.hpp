@@ -5,6 +5,7 @@
 #include "../../../../common/world/block/Block.hpp"
 #include "../../MeshTypes.hpp"
 #include "../../../settings/ClientSettings.hpp"
+#include <array>
 #include <memory>
 #include <functional>
 
@@ -185,8 +186,13 @@ private:
         MeshData& mesh,
         Face face,
         f32 x, f32 y, f32 z,
+        const ChunkData& chunk,
+        i32 blockX,
+        i32 blockY,
+        i32 blockZ,
         u8 skyLight,
         u8 blockLight,
+        const BlockState* block,
         const BlockAppearance* appearance
     );
 
@@ -197,9 +203,26 @@ private:
         f32 x, f32 y, f32 z,
         const ChunkData& chunk,
         i32 blockX, i32 blockY, i32 blockZ,
+        const BlockState* block,
         const BlockAppearance* appearance,
         const ChunkData* neighborChunks[6]
     );
+
+    [[nodiscard]] static u32 resolveTintColor(
+        const ChunkData& chunk,
+        i32 blockX,
+        i32 blockY,
+        i32 blockZ,
+        const BlockState* block,
+        i32 tintIndex
+    );
+
+    [[nodiscard]] static bool tryLoadColorMap(
+        StringView path,
+        std::array<u32, 65536>& outColorMap
+    );
+
+    static void refreshBiomeColorMaps();
 
     // 获取天空光照
     [[nodiscard]] static u8 sampleSkyLight(
@@ -239,6 +262,10 @@ private:
     static bool s_useGreedyMeshing;
     static bool s_lightingEnabled;
     static LightingMode s_lightingMode;
+    static std::array<u32, 65536> s_grassColorMap;
+    static std::array<u32, 65536> s_foliageColorMap;
+    static bool s_grassColorMapLoaded;
+    static bool s_foliageColorMapLoaded;
 };
 
 // ============================================================================

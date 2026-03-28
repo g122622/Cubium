@@ -22,8 +22,15 @@ class ResourcePackList;
  * 包含渲染方块所需的所有数据
  */
 struct BlockAppearance {
+    struct FaceTextureLayer {
+        TextureRegion texture;
+        i32 tintIndex = -1;
+    };
+
     std::vector<ModelElement> elements;
     std::map<String, TextureRegion> faceTextures; // 方向 -> 纹理区域
+    std::map<String, i32> faceTintIndices;         // 方向 -> tintindex（仅存储 >= 0）
+    std::map<String, std::vector<FaceTextureLayer>> faceTextureLayers; // 方向 -> 多层纹理（按模型顺序）
     i32 xRotation = 0;  // X轴旋转
     i32 yRotation = 0;  // Y轴旋转
     bool uvLock = false;
