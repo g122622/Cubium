@@ -3,6 +3,53 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
+namespace {
+
+std::vector<std::pair<mc::String, mc::String>> parseStateConditions(mc::StringView stateStr) {
+    std::vector<std::pair<mc::String, mc::String>> conditions;
+
+    if (stateStr.empty() || stateStr == "normal") {
+        return conditions;
+    }
+
+    size_t start = 0;
+    while (start < stateStr.size()) {
+        size_t end = stateStr.find(',', start);
+        if (end == mc::StringView::npos) {
+            end = stateStr.size();
+        }
+
+        mc::StringView token(stateStr.data() + start, end - start);
+        size_t eq = token.find('=');
+        if (eq != mc::StringView::npos) {
+            mc::String key(token.substr(0, eq));
+            mc::String value(token.substr(eq + 1));
+            if (!key.empty()) {
+                conditions.emplace_back(std::move(key), std::move(value));
+            }
+        }
+
+        start = end + 1;
+    }
+
+    return conditions;
+}
+
+bool matchesProperties(
+    const std::vector<std::pair<mc::String, mc::String>>& conditions,
+    const std::map<mc::String, mc::String>& properties)
+{
+    for (const auto& [key, value] : conditions) {
+        auto it = properties.find(key);
+        if (it == properties.end() || it->second != value) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
 namespace mc {
 
 Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack) {
@@ -89,7 +136,41 @@ const BlockStateVariant* BlockStateLoader::getVariant(
     const std::map<String, String>& properties) const
 {
     String stateStr = propertiesToStateStr(properties);
-    return getVariant(blockId, stateStr);
+
+    // 先尝试精确匹配
+    if (const auto* variant = getVariant(blockId, stateStr)) {
+        return variant;
+    }
+
+    // 回退：允许 JSON 只声明部分属性（与 Java 版匹配策略一致）
+    const auto* def = getBlockState(blockId);
+    if (!def) {
+        return nullptr;
+    }
+
+    const VariantList* bestList = nullptr;
+    size_t bestSpecificity = 0;
+    bool hasMatch = false;
+
+    for (const auto& [variantKey, list] : def->getAllVariants()) {
+        const auto conditions = parseStateConditions(variantKey);
+        if (!matchesProperties(conditions, properties)) {
+            continue;
+        }
+
+        const size_t specificity = conditions.size();
+        if (!hasMatch || specificity > bestSpecificity) {
+            bestList = &list;
+            bestSpecificity = specificity;
+            hasMatch = true;
+        }
+    }
+
+    if (!bestList || bestList->variants.empty()) {
+        return nullptr;
+    }
+
+    return &bestList->select();
 }
 
 void BlockStateLoader::clearCache() {

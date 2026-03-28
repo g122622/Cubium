@@ -82,6 +82,54 @@ TEST(BlockStateDefinitionTest, ParseVariantArray) {
     EXPECT_EQ(variants->variants[1].weight, 1);
 }
 
+TEST(BlockStateDefinitionTest, VariantLookupIgnoresPropertyOrder) {
+    const char* json = R"({
+        "variants": {
+            "facing=north,lit=true": { "model": "block/redstone_lamp_on" }
+        }
+    })";
+
+    auto result = BlockStateDefinition::parse(json);
+    ASSERT_TRUE(result.success());
+
+    const auto* variants = result.value().getVariants("lit=true,facing=north");
+    ASSERT_NE(variants, nullptr);
+    ASSERT_EQ(variants->variants.size(), 1u);
+    EXPECT_EQ(variants->variants[0].model.toString(), "minecraft:block/redstone_lamp_on");
+}
+
+TEST(BlockStateDefinitionTest, EmptyAndNormalStateKeyAreEquivalent) {
+    const char* json = R"({
+        "variants": {
+            "": { "model": "block/stone" }
+        }
+    })";
+
+    auto result = BlockStateDefinition::parse(json);
+    ASSERT_TRUE(result.success());
+
+    EXPECT_NE(result.value().getVariants(""), nullptr);
+    EXPECT_NE(result.value().getVariants("normal"), nullptr);
+}
+
+TEST(BlockStateDefinitionTest, MultipartProvidesNormalFallbackVariant) {
+    const char* json = R"({
+        "multipart": [
+            { "apply": { "model": "block/redstone_dust_dot" } },
+            { "apply": { "model": "block/redstone_dust_side", "y": 90 } }
+        ]
+    })";
+
+    auto result = BlockStateDefinition::parse(json);
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().hasMultipart());
+
+    const auto* variants = result.value().getVariants("normal");
+    ASSERT_NE(variants, nullptr);
+    ASSERT_FALSE(variants->variants.empty());
+    EXPECT_EQ(variants->variants[0].model.toString(), "minecraft:block/redstone_dust_dot");
+}
+
 // BlockModelLoader测试 - 使用实际资源包
 class BlockModelLoaderTest : public ::testing::Test {
 protected:

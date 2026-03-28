@@ -144,6 +144,9 @@ public:
     [[nodiscard]] bool hasMultipart() const { return m_hasMultipart; }
 
 private:
+    // 规范化状态键，保证属性顺序一致（例如 a=1,b=2 与 b=2,a=1 等价）
+    [[nodiscard]] static String normalizeStateKey(StringView stateKey);
+
     std::map<String, VariantList> m_variants;
     bool m_hasMultipart = false;
 };

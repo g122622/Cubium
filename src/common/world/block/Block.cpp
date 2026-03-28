@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <vector>
 
 namespace mc {
 
@@ -136,9 +137,21 @@ String BlockState::toModelKey() const {
         return "";
     }
 
+    // 按属性名排序，确保模型键稳定且与资源系统缓存键一致
+    std::vector<std::pair<const IProperty*, size_t>> sortedValues;
+    sortedValues.reserve(m_values.size());
+    for (const auto& entry : m_values) {
+        sortedValues.push_back(entry);
+    }
+
+    std::sort(sortedValues.begin(), sortedValues.end(),
+        [](const auto& a, const auto& b) {
+            return a.first->name() < b.first->name();
+        });
+
     std::ostringstream ss;
     bool first = true;
-    for (const auto& [prop, valueIndex] : m_values) {
+    for (const auto& [prop, valueIndex] : sortedValues) {
         if (!first) ss << ',';
         ss << prop->name() << '=' << prop->valueToString(valueIndex);
         first = false;

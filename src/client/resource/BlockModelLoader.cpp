@@ -2,6 +2,26 @@
 #include "../common/resource/IResourcePack.hpp"
 #include "../common/util/math/random/Random.hpp"
 #include <nlohmann/json.hpp>
+#include <cctype>
+
+namespace {
+
+mc::String trimWhitespace(mc::StringView input)
+{
+    size_t begin = 0;
+    size_t end = input.size();
+
+    while (begin < end && std::isspace(static_cast<unsigned char>(input[begin]))) {
+        ++begin;
+    }
+    while (end > begin && std::isspace(static_cast<unsigned char>(input[end - 1]))) {
+        --end;
+    }
+
+    return mc::String(input.substr(begin, end - begin));
+}
+
+} // namespace
 
 namespace mc {
 
@@ -100,7 +120,7 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
 
             for (auto it = variants.begin(); it != variants.end(); ++it)
             {
-                String stateKey = it.key();
+                String stateKey = normalizeStateKey(it.key());
                 VariantList list;
 
                 if (it.value().is_array())
@@ -179,7 +199,86 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
         if (json.contains("multipart"))
         {
             def.m_hasMultipart = true;
-            // TODO: 实现multipart解析
+
+            VariantList multipartList;
+            const auto& multipart = json["multipart"];
+
+            if (multipart.is_array())
+            {
+                auto appendVariantFromJson = [&multipartList](const nlohmann::json& applyJson) {
+                    if (!applyJson.is_object())
+                    {
+                        return;
+                    }
+
+                    BlockStateVariant variant;
+
+                    if (applyJson.contains("model"))
+                    {
+                        variant.model = ResourceLocation(applyJson["model"].get<String>());
+                    }
+
+                    if (applyJson.contains("x"))
+                    {
+                        variant.x = applyJson["x"].get<i32>();
+                    }
+
+                    if (applyJson.contains("y"))
+                    {
+                        variant.y = applyJson["y"].get<i32>();
+                    }
+
+                    if (applyJson.contains("uvlock"))
+                    {
+                        variant.uvLock = applyJson["uvlock"].get<bool>();
+                    }
+
+                    if (applyJson.contains("weight"))
+                    {
+                        variant.weight = applyJson["weight"].get<i32>();
+                    }
+
+                    if (!variant.model.path().empty())
+                    {
+                        multipartList.variants.push_back(std::move(variant));
+                    }
+                };
+
+                for (const auto& part : multipart)
+                {
+                    if (!part.is_object() || !part.contains("apply"))
+                    {
+                        continue;
+                    }
+
+                    const auto& apply = part["apply"];
+                    if (apply.is_array())
+                    {
+                        for (const auto& applyEntry : apply)
+                        {
+                            appendVariantFromJson(applyEntry);
+                        }
+                    }
+                    else
+                    {
+                        appendVariantFromJson(apply);
+                    }
+                }
+            }
+
+            if (!multipartList.variants.empty())
+            {
+                auto normalIt = def.m_variants.find("normal");
+                if (normalIt == def.m_variants.end())
+                {
+                    def.m_variants["normal"] = std::move(multipartList);
+                }
+                else
+                {
+                    auto& target = normalIt->second.variants;
+                    target.insert(target.end(), multipartList.variants.begin(), multipartList.variants.end());
+                }
+            }
         }
 
         return def;
@@ -200,6 +299,16 @@ const VariantList* BlockStateDefinition::getVariants(StringView stateStr) const
         return &it->second;
     }
 
+    String normalizedKey = normalizeStateKey(stateStr);
+    if (normalizedKey != key)
+    {
+        it = m_variants.find(normalizedKey);
+        if (it != m_variants.end())
+        {
+            return &it->second;
+        }
+    }
+
     // 尝试空键 (normal状态)
     if (stateStr == "normal" || stateStr == "")
     {
@@ -211,6 +320,74 @@ const VariantList* BlockStateDefinition::getVariants(StringView stateStr) const
     }
 
     return nullptr;
+}
+
+String BlockStateDefinition::normalizeStateKey(StringView stateKey)
+{
+    String trimmed = trimWhitespace(stateKey);
+    if (trimmed.empty() || trimmed == "normal")
+    {
+        return "normal";
+    }
+
+    std::vector<std::pair<String, String>> props;
+
+    size_t start = 0;
+    while (start < trimmed.size())
+    {
+        size_t end = trimmed.find(',', start);
+        if (end == String::npos)
+        {
+            end = trimmed.size();
+        }
+
+        String token = trimWhitespace(StringView(trimmed.data() + start, end - start));
+        if (!token.empty())
+        {
+            size_t eq = token.find('=');
+            if (eq != String::npos)
+            {
+                String key = trimWhitespace(StringView(token.data(), eq));
+                String value = trimWhitespace(StringView(token.data() + eq + 1, token.size() - eq - 1));
+                if (!key.empty())
+                {
+                    props.emplace_back(std::move(key), std::move(value));
+                }
+            }
+            else
+            {
+                props.emplace_back(std::move(token), String());
+            }
+        }
+
+        start = end + 1;
+    }
+
+    if (props.empty())
+    {
+        return "normal";
+    }
+
+    std::sort(props.begin(), props.end(),
+              [](const auto& a, const auto& b) { return a.first < b.first; });
+
+    String normalized;
+    for (size_t i = 0; i < props.size(); ++i)
+    {
+        if (i > 0)
+        {
+            normalized += ",";
+        }
+
+        normalized += props[i].first;
+        if (!props[i].second.empty())
+        {
+            normalized += "=";
+            normalized += props[i].second;
+        }
+    }
+
+    return normalized;
 }
 
 Result<void> BlockModelLoader::loadFromResourcePack(IResourcePack& resourcePack)

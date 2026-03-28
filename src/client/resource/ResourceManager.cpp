@@ -4,6 +4,8 @@
 #include "../common/resource/compat/ResourceMapper.hpp"
 #include <spdlog/spdlog.h>
 
+#include <cctype>
+
 // stb_image 用于 PNG 加载（实现在 TextureAtlasBuilder.cpp 中）
 #include <stb_image.h>
 
@@ -15,6 +17,114 @@ namespace compat {
 }}}
 
 namespace mc {
+
+namespace {
+
+String trimStateToken(StringView token) {
+    size_t start = 0;
+    size_t end = token.size();
+
+    while (start < end && std::isspace(static_cast<unsigned char>(token[start]))) {
+        ++start;
+    }
+    while (end > start && std::isspace(static_cast<unsigned char>(token[end - 1]))) {
+        --end;
+    }
+
+    return String(token.substr(start, end - start));
+}
+
+String normalizeStateString(StringView stateStr) {
+    String trimmed = trimStateToken(stateStr);
+    if (trimmed.empty() || trimmed == "normal") {
+        return "normal";
+    }
+
+    std::map<String, String> props;
+    size_t start = 0;
+    while (start < trimmed.size()) {
+        size_t end = trimmed.find(',', start);
+        if (end == String::npos) {
+            end = trimmed.size();
+        }
+
+        String token = trimStateToken(StringView(trimmed.data() + start, end - start));
+        if (!token.empty()) {
+            size_t eq = token.find('=');
+            if (eq != String::npos) {
+                String key = trimStateToken(StringView(token.data(), eq));
+                String value = trimStateToken(StringView(token.data() + eq + 1, token.size() - eq - 1));
+                if (!key.empty()) {
+                    props[key] = value;
+                }
+            }
+        }
+
+        start = end + 1;
+    }
+
+    if (props.empty()) {
+        return "normal";
+    }
+
+    String normalized;
+    bool first = true;
+    for (const auto& [key, value] : props) {
+        if (!first) {
+            normalized += ",";
+        }
+        normalized += key + "=" + value;
+        first = false;
+    }
+
+    return normalized;
+}
+
+std::vector<std::pair<String, String>> parseStateConditions(StringView stateStr) {
+    std::vector<std::pair<String, String>> conditions;
+
+    const String normalized = normalizeStateString(stateStr);
+    if (normalized.empty() || normalized == "normal") {
+        return conditions;
+    }
+
+    size_t start = 0;
+    while (start < normalized.size()) {
+        size_t end = normalized.find(',', start);
+        if (end == String::npos) {
+            end = normalized.size();
+        }
+
+        StringView token(normalized.data() + start, end - start);
+        size_t eq = token.find('=');
+        if (eq != StringView::npos) {
+            String key(token.substr(0, eq));
+            String value(token.substr(eq + 1));
+            if (!key.empty()) {
+                conditions.emplace_back(std::move(key), std::move(value));
+            }
+        }
+
+        start = end + 1;
+    }
+
+    return conditions;
+}
+
+bool matchConditions(
+    const std::vector<std::pair<String, String>>& conditions,
+    const std::map<String, String>& properties)
+{
+    for (const auto& [key, value] : conditions) {
+        auto it = properties.find(key);
+        if (it == properties.end() || it->second != value) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
 
 Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack) {
     if (!resourcePack) {
@@ -180,6 +290,50 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
     auto it = m_blockAppearances.find(cacheKey);
     if (it != m_blockAppearances.end()) {
         return &it->second;
+    }
+
+    // 回退匹配：允许方块状态定义只约束部分属性
+    const String blockPrefix = blockId.toString();
+    const String blockWithQueryPrefix = blockPrefix + "?";
+
+    const BlockAppearance* bestMatch = nullptr;
+    const BlockAppearance* firstBlockAppearance = nullptr;
+    size_t bestSpecificity = 0;
+
+    for (const auto& [appearanceKey, appearance] : m_blockAppearances) {
+        if (appearanceKey != blockPrefix && appearanceKey.rfind(blockWithQueryPrefix, 0) != 0) {
+            continue;
+        }
+
+        if (!firstBlockAppearance) {
+            firstBlockAppearance = &appearance;
+        }
+
+        StringView statePart = "normal";
+        if (appearanceKey.size() > blockWithQueryPrefix.size() &&
+            appearanceKey.rfind(blockWithQueryPrefix, 0) == 0) {
+            statePart = StringView(appearanceKey.data() + blockWithQueryPrefix.size(),
+                                   appearanceKey.size() - blockWithQueryPrefix.size());
+        }
+
+        const auto conditions = parseStateConditions(statePart);
+        if (!matchConditions(conditions, properties)) {
+            continue;
+        }
+
+        const size_t specificity = conditions.size();
+        if (!bestMatch || specificity > bestSpecificity) {
+            bestMatch = &appearance;
+            bestSpecificity = specificity;
+        }
+    }
+
+    if (bestMatch) {
+        return bestMatch;
+    }
+
+    if (firstBlockAppearance) {
+        return firstBlockAppearance;
     }
 
     return nullptr;
@@ -389,8 +543,9 @@ void ResourceManager::computeBlockAppearances() {
         for (const auto& [stateStr, variantList] : def->getAllVariants()) {
             // 构建缓存键
             String cacheKey = blockId.toString();
-            if (stateStr != "normal" && !stateStr.empty()) {
-                cacheKey += "?" + stateStr;
+            const String normalizedState = normalizeStateString(stateStr);
+            if (normalizedState != "normal" && !normalizedState.empty()) {
+                cacheKey += "?" + normalizedState;
             }
 
             // 选择第一个变体 (或默认变体)

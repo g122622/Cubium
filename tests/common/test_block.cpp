@@ -336,6 +336,16 @@ TEST(BlockStateTest, ToString) {
     EXPECT_TRUE(str.find("axis") != String::npos);
 }
 
+TEST(BlockStateTest, ToModelKeyUsesStableSortedOrder) {
+    TestBlockWithMultiple block{BlockProperties{Material::ROCK}};
+    const auto& state = block.defaultState()
+        .with(TestBlockWithMultiple::FACING(block), Direction::West)
+        .with(TestBlockWithMultiple::LIT(block), true);
+
+    const String modelKey = state.toModelKey();
+    EXPECT_EQ(modelKey, "facing=west,lit=true");
+}
+
 TEST(BlockStateTest, MultiplePropertiesInteraction) {
     TestBlockWithMultiple block{BlockProperties{Material::ROCK}};
     const auto& state = block.defaultState();
