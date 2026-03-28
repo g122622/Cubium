@@ -3,6 +3,8 @@
 
 #include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/resource/BlockModelCache.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;
@@ -334,6 +336,9 @@ protected:
     void SetUp() override {
         VanillaBlocks::initialize();
 
+        // 确保每个测试从一致状态开始，避免静态全局配置在测试间串扰。
+        ChunkMesher::setModelCache(nullptr);
+
         // 创建一个简单的测试区块
         testChunk = std::make_unique<ChunkData>(0, 0);
 
@@ -429,4 +434,84 @@ TEST_F(ChunkMesherTest, SampleCombinedLight_DiagonalOutOfBounds_UsesAvailableNei
 TEST_F(ChunkMesherTest, ModelCacheIsNullByDefault) {
     // 默认情况下 BlockModelCache 应该是 nullptr
     EXPECT_EQ(ChunkMesher::modelCache(), nullptr);
+}
+
+class ChunkMesherWithModelCacheTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+
+        m_originalModelCache = ChunkMesher::modelCache();
+        m_originalGreedy = ChunkMesher::isGreedyMeshingEnabled();
+        m_originalLightingEnabled = ChunkMesher::isLightingEnabled();
+        m_originalLightingMode = ChunkMesher::lightingMode();
+
+        m_resourceManager = std::make_unique<ResourceManager>();
+        m_modelCache = std::make_unique<BlockModelCache>();
+        ASSERT_TRUE(m_modelCache->initialize(*m_resourceManager));
+        ChunkMesher::setModelCache(m_modelCache.get());
+
+        m_chunk = std::make_unique<ChunkData>(0, 0);
+    }
+
+    void TearDown() override {
+        ChunkMesher::setModelCache(m_originalModelCache);
+        ChunkMesher::setGreedyMeshing(m_originalGreedy);
+        ChunkMesher::setLightingEnabled(m_originalLightingEnabled);
+        ChunkMesher::setLightingMode(m_originalLightingMode);
+    }
+
+    std::unique_ptr<ResourceManager> m_resourceManager;
+    std::unique_ptr<BlockModelCache> m_modelCache;
+    std::unique_ptr<ChunkData> m_chunk;
+
+    BlockModelCache* m_originalModelCache = nullptr;
+    bool m_originalGreedy = false;
+    bool m_originalLightingEnabled = true;
+    LightingMode m_originalLightingMode = LightingMode::Smooth;
+};
+
+TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQuads) {
+    constexpr i32 y = 64;
+    for (i32 z = 0; z < ChunkData::WIDTH; ++z) {
+        for (i32 x = 0; x < ChunkData::WIDTH; ++x) {
+            m_chunk->setBlock(x, y, z, &VanillaBlocks::STONE->defaultState());
+        }
+    }
+
+    ChunkMesher::setLightingEnabled(false);
+    ChunkMesher::setLightingMode(LightingMode::Flat);
+
+    MeshData simpleMesh;
+    ChunkMesher::setGreedyMeshing(false);
+    ChunkMesher::generateMesh(*m_chunk, simpleMesh, nullptr);
+    ASSERT_FALSE(simpleMesh.empty());
+
+    MeshData greedyMesh;
+    ChunkMesher::setGreedyMeshing(true);
+    ChunkMesher::generateMesh(*m_chunk, greedyMesh, nullptr);
+    ASSERT_FALSE(greedyMesh.empty());
+
+    EXPECT_LT(greedyMesh.vertexCount(), simpleMesh.vertexCount());
+    EXPECT_LT(greedyMesh.indexCount(), simpleMesh.indexCount());
+    EXPECT_EQ(greedyMesh.vertexCount(), 24u);
+    EXPECT_EQ(greedyMesh.indexCount(), 36u);
+}
+
+TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_SmoothLightingFallsBackToSimplePath) {
+    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::STONE->defaultState());
+
+    ChunkMesher::setLightingEnabled(true);
+    ChunkMesher::setLightingMode(LightingMode::Smooth);
+
+    MeshData simpleMesh;
+    ChunkMesher::setGreedyMeshing(false);
+    ChunkMesher::generateMesh(*m_chunk, simpleMesh, nullptr);
+
+    MeshData greedyMesh;
+    ChunkMesher::setGreedyMeshing(true);
+    ChunkMesher::generateMesh(*m_chunk, greedyMesh, nullptr);
+
+    EXPECT_EQ(greedyMesh.vertexCount(), simpleMesh.vertexCount());
+    EXPECT_EQ(greedyMesh.indexCount(), simpleMesh.indexCount());
 }

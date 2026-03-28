@@ -18,7 +18,7 @@ namespace mc {
 // ============================================================================
 
 BlockModelCache* ChunkMesher::s_modelCache = nullptr;
-bool ChunkMesher::s_useGreedyMeshing = false;
+bool ChunkMesher::s_useGreedyMeshing = true;
 bool ChunkMesher::s_lightingEnabled = true;
 LightingMode ChunkMesher::s_lightingMode = LightingMode::Smooth;
 std::array<u32, 65536> ChunkMesher::s_grassColorMap{};
@@ -801,10 +801,401 @@ void ChunkMesher::greedyMeshSection(
     MeshData& outMesh,
     const ChunkData* neighborChunks[6]
 ) {
-    // 贪婪网格合并算法
-    // 暂时使用简单网格生成，贪婪网格合并算法较复杂
-    // TODO: 实现完整的贪婪网格合并
-    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+    MC_TRACE_CHUNK_MESH_EVENT("GreedyGenerateSectionMesh");
+
+    // 必须有 BlockModelCache
+    if (!s_modelCache) {
+        spdlog::error("ChunkMesher: BlockModelCache not initialized, cannot generate greedy mesh");
+        return;
+    }
+
+    constexpr i32 SIZE = ChunkSection::SIZE;
+    const i32 baseY = sectionIndex * SIZE;
+
+    const ChunkSection* section = chunk.getSection(sectionIndex);
+    if (!section || section->isEmpty()) {
+        return;
+    }
+
+    // 平滑 AO 依赖逐顶点采样，无法在不引入插值误差的前提下做大面合并，直接回退到逐面路径。
+    if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
+        simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+        return;
+    }
+
+    struct FaceCellData {
+        bool visible = false;
+        const BlockState* block = nullptr;
+        const BlockAppearance* appearance = nullptr;
+        std::vector<FaceLayerRenderData> layers;
+        std::vector<u32> shadedLayerColors;
+        u8 skyLight = 15;
+        u8 blockLight = 0;
+    };
+
+    const auto sameTextureRegion = [](const TextureRegion& a, const TextureRegion& b) {
+        constexpr float EPSILON = 1e-6f;
+        return std::abs(a.u0 - b.u0) <= EPSILON
+            && std::abs(a.v0 - b.v0) <= EPSILON
+            && std::abs(a.u1 - b.u1) <= EPSILON
+            && std::abs(a.v1 - b.v1) <= EPSILON;
+    };
+
+    const auto sameCell = [&](const FaceCellData& a, const FaceCellData& b) {
+        if (!a.visible || !b.visible) {
+            return false;
+        }
+
+        if (a.block != b.block
+            || a.appearance != b.appearance
+            || a.skyLight != b.skyLight
+            || a.blockLight != b.blockLight
+            || a.layers.size() != b.layers.size()
+            || a.shadedLayerColors.size() != b.shadedLayerColors.size()) {
+            return false;
+        }
+
+        for (size_t i = 0; i < a.layers.size(); ++i) {
+            if (a.layers[i].tintIndex != b.layers[i].tintIndex
+                || !sameTextureRegion(a.layers[i].texture, b.layers[i].texture)) {
+                return false;
+            }
+        }
+
+        for (size_t i = 0; i < a.shadedLayerColors.size(); ++i) {
+            if (a.shadedLayerColors[i] != b.shadedLayerColors[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    const auto getNeighborBlock = [&](i32 x, i32 y, i32 z, Face face) -> const BlockState* {
+        const auto dir = BlockGeometry::getFaceDirection(face);
+        const i32 nx = x + dir[0];
+        const i32 ny = y + dir[1];
+        const i32 nz = z + dir[2];
+
+        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
+            return section->getBlock(nx, ny, nz);
+        }
+
+        const i32 worldX = nx;
+        const i32 worldY = baseY + ny;
+        const i32 worldZ = nz;
+
+        if (worldY < 0 || worldY >= world::CHUNK_HEIGHT) {
+            return nullptr;
+        }
+
+        if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
+            worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
+            return chunk.getBlock(worldX, worldY, worldZ);
+        }
+
+        if (!neighborChunks) {
+            return nullptr;
+        }
+
+        i32 neighborIdx = -1;
+        if (worldX < 0) {
+            neighborIdx = 0;        // -X
+        } else if (worldX >= SIZE) {
+            neighborIdx = 1;        // +X
+        } else if (worldZ < 0) {
+            neighborIdx = 2;        // -Z
+        } else if (worldZ >= SIZE) {
+            neighborIdx = 3;        // +Z
+        }
+
+        if (neighborIdx < 0 || !neighborChunks[neighborIdx]) {
+            return nullptr;
+        }
+
+        const i32 lx = (worldX + SIZE) % SIZE;
+        const i32 lz = (worldZ + SIZE) % SIZE;
+        return neighborChunks[neighborIdx]->getBlock(lx, worldY, lz);
+    };
+
+    const auto buildCellData = [&](Face face, i32 x, i32 y, i32 z) -> FaceCellData {
+        FaceCellData cell;
+
+        const BlockState* block = section->getBlock(x, y, z);
+        if (!shouldRenderBlock(block)) {
+            return cell;
+        }
+
+        const BlockState* neighbor = getNeighborBlock(x, y, z, face);
+        if (!shouldRenderFace(block, neighbor)) {
+            return cell;
+        }
+
+        const BlockAppearance* appearance = s_modelCache->getBlockAppearance(block);
+        if (!appearance) {
+            appearance = s_modelCache->getMissingAppearance();
+        }
+        if (!appearance) {
+            return cell;
+        }
+
+        if (appearance->elements.empty() && appearance->faceTextures.empty()) {
+            return cell;
+        }
+
+        String faceName;
+        switch (face) {
+            case Face::Bottom: faceName = "down"; break;
+            case Face::Top: faceName = "up"; break;
+            case Face::North: faceName = "north"; break;
+            case Face::South: faceName = "south"; break;
+            case Face::West: faceName = "west"; break;
+            case Face::East: faceName = "east"; break;
+            default: return cell;
+        }
+
+        auto faceLayers = collectFaceLayers(appearance, faceName);
+        if (faceLayers.empty()) {
+            return cell;
+        }
+
+        u8 skyLight = 15;
+        u8 blockLight = 0;
+        if (s_lightingEnabled) {
+            const auto dir = BlockGeometry::getFaceDirection(face);
+            const i32 worldY = baseY + y;
+            const i32 sampleX = x + dir[0];
+            const i32 sampleY = worldY + dir[1];
+            const i32 sampleZ = z + dir[2];
+
+            // 对透明方块接触不透明邻居时，采样自身光照，避免采样到邻居内部导致黑边
+            if (block->isTransparent() && neighbor && !neighbor->isAir() && !neighbor->isTransparent()) {
+                skyLight = sampleSkyLight(chunk, x, worldY, z, neighborChunks);
+                blockLight = sampleBlockLight(chunk, x, worldY, z, neighborChunks);
+            } else {
+                skyLight = sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                blockLight = sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+            }
+        }
+
+        std::vector<u32> shadedLayerColors;
+        shadedLayerColors.reserve(faceLayers.size());
+        const float faceShade = getFaceShade(face);
+        for (const auto& layer : faceLayers) {
+            const u32 tintColor = resolveTintColor(chunk, x, baseY + y, z, block, layer.tintIndex);
+            shadedLayerColors.push_back(applyShadeToPackedColor(tintColor, faceShade));
+        }
+
+        cell.visible = true;
+        cell.block = block;
+        cell.appearance = appearance;
+        cell.layers = std::move(faceLayers);
+        cell.shadedLayerColors = std::move(shadedLayerColors);
+        cell.skyLight = skyLight;
+        cell.blockLight = blockLight;
+        return cell;
+    };
+
+    const auto emitMergedFace = [&](Face face, i32 d, i32 u, i32 v, i32 width, i32 height, const FaceCellData& cell) {
+        const auto normal = BlockGeometry::getFaceNormal(face);
+        const u8 packedLight = static_cast<u8>(((cell.skyLight & 0x0F) << 4) | (cell.blockLight & 0x0F));
+
+        for (size_t layerIndex = 0; layerIndex < cell.layers.size(); ++layerIndex) {
+            const auto& layer = cell.layers[layerIndex];
+            const u32 color = cell.shadedLayerColors[layerIndex];
+
+            f32 x0 = 0.0f;
+            f32 x1 = 0.0f;
+            f32 y0 = 0.0f;
+            f32 y1 = 0.0f;
+            f32 z0 = 0.0f;
+            f32 z1 = 0.0f;
+
+            switch (face) {
+                case Face::Bottom:
+                case Face::Top:
+                    x0 = static_cast<f32>(u);
+                    x1 = static_cast<f32>(u + width);
+                    z0 = static_cast<f32>(v);
+                    z1 = static_cast<f32>(v + height);
+                    y0 = static_cast<f32>(baseY + d + (face == Face::Top ? 1 : 0));
+                    y1 = y0;
+                    break;
+
+                case Face::North:
+                case Face::South:
+                    x0 = static_cast<f32>(u);
+                    x1 = static_cast<f32>(u + width);
+                    y0 = static_cast<f32>(baseY + v);
+                    y1 = static_cast<f32>(baseY + v + height);
+                    z0 = static_cast<f32>(d + (face == Face::South ? 1 : 0));
+                    z1 = z0;
+                    break;
+
+                case Face::West:
+                case Face::East:
+                    z0 = static_cast<f32>(u);
+                    z1 = static_cast<f32>(u + width);
+                    y0 = static_cast<f32>(baseY + v);
+                    y1 = static_cast<f32>(baseY + v + height);
+                    x0 = static_cast<f32>(d + (face == Face::East ? 1 : 0));
+                    x1 = x0;
+                    break;
+
+                default:
+                    return;
+            }
+
+            std::array<std::array<f32, 3>, 4> positions{};
+            switch (face) {
+                case Face::Bottom:
+                    positions = {{{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}}};
+                    break;
+                case Face::Top:
+                    positions = {{{x0, y0, z1}, {x1, y0, z1}, {x1, y0, z0}, {x0, y0, z0}}};
+                    break;
+                case Face::North:
+                    positions = {{{x1, y0, z0}, {x0, y0, z0}, {x0, y1, z0}, {x1, y1, z0}}};
+                    break;
+                case Face::South:
+                    positions = {{{x0, y0, z0}, {x1, y0, z0}, {x1, y1, z0}, {x0, y1, z0}}};
+                    break;
+                case Face::West:
+                    positions = {{{x0, y0, z0}, {x0, y0, z1}, {x0, y1, z1}, {x0, y1, z0}}};
+                    break;
+                case Face::East:
+                    positions = {{{x0, y0, z1}, {x0, y0, z0}, {x0, y1, z0}, {x0, y1, z1}}};
+                    break;
+                default:
+                    return;
+            }
+
+            // UV 仍按单方块面的标准布局，保持与现有渲染路径一致。
+            // 若后续需要平铺纹理，可扩展顶点格式传递 UV 缩放参数。
+            const f32 uvs[4][2] = {
+                { layer.texture.u0, layer.texture.v1 },
+                { layer.texture.u1, layer.texture.v1 },
+                { layer.texture.u1, layer.texture.v0 },
+                { layer.texture.u0, layer.texture.v0 }
+            };
+
+            const f32 layerOffset = static_cast<f32>(layerIndex) * 0.001f;
+
+            std::array<Vertex, 4> faceVerts;
+            for (size_t i = 0; i < 4; ++i) {
+                faceVerts[i] = Vertex(
+                    positions[i][0] + normal[0] * layerOffset,
+                    positions[i][1] + normal[1] * layerOffset,
+                    positions[i][2] + normal[2] * layerOffset,
+                    normal[0], normal[1], normal[2],
+                    uvs[i][0], uvs[i][1],
+                    color,
+                    packedLight
+                );
+            }
+
+            const u32 baseIndex = static_cast<u32>(outMesh.vertices.size());
+            for (const auto& vert : faceVerts) {
+                outMesh.vertices.push_back(vert);
+            }
+
+            const auto indices = BlockGeometry::getFaceIndices();
+            for (u32 idx : indices) {
+                outMesh.indices.push_back(baseIndex + idx);
+            }
+        }
+    };
+
+    constexpr i32 MASK_WIDTH = SIZE;
+    constexpr i32 MASK_HEIGHT = SIZE;
+    std::vector<FaceCellData> mask(static_cast<size_t>(MASK_WIDTH * MASK_HEIGHT));
+    std::vector<bool> visited(static_cast<size_t>(MASK_WIDTH * MASK_HEIGHT), false);
+
+    for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
+        const Face face = static_cast<Face>(faceIdx);
+
+        for (i32 d = 0; d < SIZE; ++d) {
+            for (i32 v = 0; v < MASK_HEIGHT; ++v) {
+                for (i32 u = 0; u < MASK_WIDTH; ++u) {
+                    i32 x = 0;
+                    i32 y = 0;
+                    i32 z = 0;
+
+                    switch (face) {
+                        case Face::Bottom:
+                        case Face::Top:
+                            x = u;
+                            y = d;
+                            z = v;
+                            break;
+                        case Face::North:
+                        case Face::South:
+                            x = u;
+                            y = v;
+                            z = d;
+                            break;
+                        case Face::West:
+                        case Face::East:
+                            x = d;
+                            y = v;
+                            z = u;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    const size_t idx = static_cast<size_t>(v * MASK_WIDTH + u);
+                    mask[idx] = buildCellData(face, x, y, z);
+                    visited[idx] = false;
+                }
+            }
+
+            for (i32 v = 0; v < MASK_HEIGHT; ++v) {
+                for (i32 u = 0; u < MASK_WIDTH; ++u) {
+                    const size_t startIdx = static_cast<size_t>(v * MASK_WIDTH + u);
+                    if (visited[startIdx] || !mask[startIdx].visible) {
+                        continue;
+                    }
+
+                    const FaceCellData& seed = mask[startIdx];
+
+                    i32 width = 1;
+                    while (u + width < MASK_WIDTH) {
+                        const size_t idx = static_cast<size_t>(v * MASK_WIDTH + (u + width));
+                        if (visited[idx] || !sameCell(seed, mask[idx])) {
+                            break;
+                        }
+                        ++width;
+                    }
+
+                    i32 height = 1;
+                    bool canExpand = true;
+                    while (v + height < MASK_HEIGHT && canExpand) {
+                        for (i32 k = 0; k < width; ++k) {
+                            const size_t idx = static_cast<size_t>((v + height) * MASK_WIDTH + (u + k));
+                            if (visited[idx] || !sameCell(seed, mask[idx])) {
+                                canExpand = false;
+                                break;
+                            }
+                        }
+
+                        if (canExpand) {
+                            ++height;
+                        }
+                    }
+
+                    for (i32 dy = 0; dy < height; ++dy) {
+                        for (i32 dx = 0; dx < width; ++dx) {
+                            const size_t idx = static_cast<size_t>((v + dy) * MASK_WIDTH + (u + dx));
+                            visited[idx] = true;
+                        }
+                    }
+
+                    emitMergedFace(face, d, u, v, width, height, seed);
+                }
+            }
+        }
+    }
 }
 
 // ============================================================================
