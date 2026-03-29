@@ -407,8 +407,8 @@ void ClientWorld::rebuildMesh(ClientChunk& chunk) {
 
     // -Y 和 +Y 暂时不考虑（多区块高度）
 
-    // 生成网格
-    ChunkMesher::generateMesh(*chunk.data, chunk.solidMesh, neighbors);
+    // 生成分层网格
+    ChunkMesher::generateSplitMesh(*chunk.data, chunk.solidMesh, chunk.transparentMesh, neighbors);
 
     chunk.needsMeshUpdate = false;
 }

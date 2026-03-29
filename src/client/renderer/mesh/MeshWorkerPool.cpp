@@ -233,14 +233,11 @@ void MeshWorkerPool::executeTask(const ClientMeshTask& task)
             neighborPtrs[i] = task.neighbors[i].get();
         }
 
-        // 生成实心方块网格
+        // 生成分层网格（实心 + 半透明）
         {
             MC_TRACE_CHUNK_MESH_EVENT("GenerateSolidMesh");
-            ChunkMesher::generateMesh(*task.chunkData, result.solidMesh, neighborPtrs);
+            ChunkMesher::generateSplitMesh(*task.chunkData, result.solidMesh, result.transparentMesh, neighborPtrs);
         }
-
-        // TODO: 生成透明方块网格（水、玻璃等）
-        // ChunkMesher::generateTransparentMesh(*task.chunkData, result.transparentMesh, neighborPtrs);
 
         result.success = true;
 

@@ -76,6 +76,7 @@ add_executable(minecraft-client
     resource/DestroyStageTextures.cpp
     # 世界
     world/ClientWorld.cpp
+    world/color/BiomeColors.cpp
     network/NetworkClient.cpp
     # 聊天系统
     chat/ChatHistory.cpp

@@ -2,6 +2,8 @@
 #include "../util/VulkanUtils.hpp"
 #include <spdlog/spdlog.h>
 #include <cstring>
+#include <algorithm>
+#include <glm/geometric.hpp>
 
 namespace mc::client {
 
@@ -167,13 +169,49 @@ Result<void> ChunkRenderer::updateChunk(
     const ChunkId& chunkId,
     const MeshData& meshData)
 {
+    return updateChunkLayer(chunkId, meshData, ChunkRenderLayer::Solid);
+}
+
+Result<void> ChunkRenderer::updateChunk(
+    const ChunkId& chunkId,
+    const MeshData& solidMesh,
+    const MeshData& transparentMesh)
+{
+    auto solidResult = updateChunkLayer(chunkId, solidMesh, ChunkRenderLayer::Solid);
+    if (solidResult.failed()) {
+        return solidResult;
+    }
+
+    return updateChunkLayer(chunkId, transparentMesh, ChunkRenderLayer::Transparent);
+}
+
+Result<void> ChunkRenderer::updateChunkLayer(
+    const ChunkId& chunkId,
+    const MeshData& meshData,
+    ChunkRenderLayer layer)
+{
+    const u64 id = makeBufferKey(chunkId, layer);
+
     if (meshData.empty()) {
-        removeChunk(chunkId);
+        auto it = m_chunkBuffers.find(id);
+        if (it != m_chunkBuffers.end()) {
+            m_totalVertices -= it->second->vertexCount;
+            m_totalIndices -= it->second->indexCount;
+
+            {
+                std::lock_guard<std::mutex> lock(m_pendingDestroysMutex);
+                PendingBufferDestroy pending;
+                pending.buffer = std::move(it->second);
+                pending.frameIndex = m_destroyFrameCounter;
+                m_pendingDestroys.push_back(std::move(pending));
+            }
+
+            m_chunkBuffers.erase(it);
+        }
         return {};
     }
 
     // 查找或创建缓冲区
-    u64 id = chunkId.toId();
     auto it = m_chunkBuffers.find(id);
 
     if (it == m_chunkBuffers.end()) {
@@ -183,6 +221,7 @@ Result<void> ChunkRenderer::updateChunk(
 
         auto buffer = std::make_unique<ChunkGpuBuffer>();
         buffer->chunkId = chunkId;
+    buffer->layer = layer;
 
         auto result = createChunkBuffer(*buffer, meshData);
         if (!result.success()) {
@@ -202,14 +241,21 @@ Result<void> ChunkRenderer::updateChunk(
 }
 
 void ChunkRenderer::removeChunk(const ChunkId& chunkId) {
-    u64 id = chunkId.toId();
-    auto it = m_chunkBuffers.find(id);
+    const std::array<ChunkRenderLayer, 2> layers = {
+        ChunkRenderLayer::Solid,
+        ChunkRenderLayer::Transparent
+    };
 
-    if (it != m_chunkBuffers.end()) {
+    for (const auto layer : layers) {
+        const u64 id = makeBufferKey(chunkId, layer);
+        auto it = m_chunkBuffers.find(id);
+        if (it == m_chunkBuffers.end()) {
+            continue;
+        }
+
         m_totalVertices -= it->second->vertexCount;
         m_totalIndices -= it->second->indexCount;
 
-        // 将缓冲区移入延迟销毁队列
         {
             std::lock_guard<std::mutex> lock(m_pendingDestroysMutex);
             PendingBufferDestroy pending;
@@ -578,6 +624,9 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
     // 渲染所有区块
     for (const auto& pair : m_chunkBuffers) {
         const auto& buffer = pair.second;
+        if (buffer->layer != ChunkRenderLayer::Solid) {
+            continue;
+        }
         if (!buffer->isValid || buffer->vertexBuffer == VK_NULL_HANDLE || buffer->indexBuffer == VK_NULL_HANDLE) {
             continue;
         }
@@ -603,6 +652,9 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
     // 渲染所有区块
     for (const auto& pair : m_chunkBuffers) {
         const auto& buffer = pair.second;
+        if (buffer->layer != ChunkRenderLayer::Solid) {
+            continue;
+        }
         if (!buffer->isValid || buffer->vertexBuffer == VK_NULL_HANDLE || buffer->indexBuffer == VK_NULL_HANDLE) {
             continue;
         }
@@ -624,6 +676,66 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
             0,  // first index
             0,  // vertex offset
             0   // first instance
+        );
+    }
+}
+
+void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
+                                      VkPipelineLayout /*pipelineLayout*/,
+                                      PushConstantsCallback pushConstantsCallback,
+                                      const glm::vec3& cameraPosition,
+                                      bool sortBackToFront) {
+    std::vector<const ChunkGpuBuffer*> transparentBuffers;
+    transparentBuffers.reserve(m_chunkBuffers.size());
+
+    for (const auto& pair : m_chunkBuffers) {
+        const auto& buffer = pair.second;
+        if (buffer->layer != ChunkRenderLayer::Transparent) {
+            continue;
+        }
+        if (!buffer->isValid || buffer->vertexBuffer == VK_NULL_HANDLE || buffer->indexBuffer == VK_NULL_HANDLE) {
+            continue;
+        }
+        transparentBuffers.push_back(buffer.get());
+    }
+
+    if (sortBackToFront) {
+        std::sort(transparentBuffers.begin(), transparentBuffers.end(),
+            [&cameraPosition](const ChunkGpuBuffer* lhs, const ChunkGpuBuffer* rhs) {
+                const glm::vec3 lhsCenter(
+                    static_cast<f32>(lhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
+                    64.0f,
+                    static_cast<f32>(lhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
+                );
+                const glm::vec3 rhsCenter(
+                    static_cast<f32>(rhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
+                    64.0f,
+                    static_cast<f32>(rhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
+                );
+
+                const f32 lhsDist2 = glm::dot(lhsCenter - cameraPosition, lhsCenter - cameraPosition);
+                const f32 rhsDist2 = glm::dot(rhsCenter - cameraPosition, rhsCenter - cameraPosition);
+                return lhsDist2 > rhsDist2;
+            });
+    }
+
+    for (const ChunkGpuBuffer* buffer : transparentBuffers) {
+        if (pushConstantsCallback) {
+            pushConstantsCallback(buffer->chunkId);
+        }
+
+        VkBuffer vertexBuffers[] = { buffer->vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(
+            commandBuffer,
+            buffer->indexCount,
+            1,
+            0,
+            0,
+            0
         );
     }
 }

@@ -193,6 +193,10 @@ src/client/
 └── world/                 # 客户端世界
     ├── ClientWorld.hpp/cpp      # 客户端世界管理
     ├── ClientWeather.hpp        # 客户端天气状态
+    ├── color/                   # 颜色解析系统
+    │   ├── ColorResolver.hpp    # 颜色解析器接口
+    │   ├── BiomeColors.hpp/cpp  # 生物群系颜色解析器
+    │   └── README.md            # 模块文档
     └── entity/
         ├── ClientEntity.hpp/cpp       # 客户端实体
         └── ClientEntityManager.hpp/cpp # 客户端实体管理
@@ -476,13 +480,19 @@ input.endFrame();
 
 ### 7. world/ - 客户端世界
 
-**职责**: 管理客户端区块、实体、天气等。
+**职责**: 管理客户端区块、实体、天气、颜色解析等。
 
 **核心类**:
 - `ClientWorld`: 客户端世界管理器
 - `ClientChunk`: 客户端区块数据
 - `ClientEntityManager`: 客户端实体管理
 - `ClientWeather`: 客户端天气状态
+
+**子模块**:
+- `color/`: 颜色解析系统，从生物群系获取草、树叶、水体颜色
+  - `ColorResolver`: 颜色解析器抽象接口
+  - `GrassColorResolver`/`FoliageColorResolver`/`WaterColorResolver`: 具体解析器
+  - `BiomeColors`: 颜色常量和工具函数
 
 **功能**:
 - 区块加载/卸载管理
@@ -491,6 +501,9 @@ input.endFrame();
 - 光照查询
 - 实体管理
 - 时间和天气同步
+- 生物群系颜色解析（草、树叶、水体等）
+
+详细文档请参阅 [`world/README.md`](world/README.md) 和 [`world/color/README.md`](world/color/README.md)。
 
 ### 8. chat/ - 聊天系统
 
@@ -738,6 +751,9 @@ tests/client/
 │   ├── test_entity_texture_loader.cpp           # 实体纹理测试
 │   ├── test_resource_location.cpp               # 资源位置测试
 │   └── ItemTextureAtlasTest.cpp                 # 物品图集测试
+├── world/
+│   └── color/
+│       └── BiomeColorsTest.cpp            # 生物群系颜色测试
 ├── test_mesh_worker_pool.cpp               # 网格线程池测试
 └── ui/
     └── kagero/

@@ -2,6 +2,7 @@
 
 #include "client/resource/ResourceManager.hpp"
 #include "common/resource/IResourcePack.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 #include <unordered_map>
 
@@ -75,6 +76,10 @@ std::vector<u8> makeValid1x1Png() {
     };
 }
 
+std::vector<u8> toBytes(StringView content) {
+    return std::vector<u8>(content.begin(), content.end());
+}
+
 } // namespace
 
 TEST(ResourceManagerTextureDecodeTest, LoadCloudTextureFromResourcePack) {
@@ -104,6 +109,36 @@ TEST(ResourceManagerTextureDecodeTest, ReturnNotFoundWhenCloudTextureMissing) {
 
     auto decodedResult = manager.loadTextureRGBA(ResourceLocation("minecraft:textures/environment/clouds"));
     ASSERT_TRUE(decodedResult.failed());
+}
+
+TEST(ResourceManagerTextureDecodeTest, WaterModelWithParticleTextureKeepsParticleOnlyAppearance) {
+        VanillaBlocks::initialize();
+
+        ResourceManager manager;
+        auto pack = std::make_shared<InMemoryResourcePack>();
+
+        pack->add("assets/minecraft/blockstates/water.json", toBytes(R"({
+    "variants": {
+        "": { "model": "minecraft:block/water" }
+    }
+})"));
+
+        pack->add("assets/minecraft/models/block/water.json", toBytes(R"({
+    "textures": {
+        "particle": "block/water_still"
+    }
+})"));
+
+        pack->add("assets/minecraft/textures/block/water_still.png", makeValid1x1Png());
+
+        ASSERT_TRUE(manager.addResourcePack(pack).success());
+        ASSERT_TRUE(manager.loadAllResources().success());
+        ASSERT_TRUE(manager.buildTextureAtlas().success());
+
+        const auto* appearance = manager.getBlockAppearance(ResourceLocation("minecraft:water"));
+        ASSERT_NE(appearance, nullptr);
+        EXPECT_TRUE(appearance->faceTextures.empty());
+        EXPECT_TRUE(appearance->faceTextureLayers.empty());
 }
 
 } // namespace mc::test

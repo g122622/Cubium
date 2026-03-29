@@ -271,6 +271,7 @@ void TridentEngine::destroy() {
     m_renderPassManager.reset();
     m_swapchain.reset();
     m_chunkPipeline.reset();
+    m_chunkTranslucentPipeline.reset();
     m_chunkTextureDescriptorSet = VK_NULL_HANDLE;
 
     if (m_context) {
@@ -450,13 +451,24 @@ Result<void> TridentEngine::render() {
             cameraPos = m_frameContext.camera->position();
         }
 
-        m_fogManager->update(
-            12,  // 渲染距离（区块）TODO: 从设置获取
-            m_rainStrength,
-            m_thunderStrength,
-            m_skyRendererPtr->fogColor(),
-            cameraPos
-        );
+        // 根据液体状态切换雾模式
+        if (m_inLava) {
+            // 岩浆中的雾效果
+            m_fogManager->setInLava();
+        } else if (m_inWater) {
+            // 水中的雾效果
+            m_fogManager->setUnderwater(m_waterFogColor);
+        } else {
+            // 陆地上的雾效果
+            m_fogManager->resetToLand();
+            m_fogManager->update(
+                12,  // 渲染距离（区块）TODO: 从设置获取
+                m_rainStrength,
+                m_thunderStrength,
+                m_skyRendererPtr->fogColor(),
+                cameraPos
+            );
+        }
     }
 
     // 4.5 渲染云（在天空之后，区块之前）
@@ -558,6 +570,81 @@ Result<void> TridentEngine::render() {
                 );
             }
         );
+
+        // 半透明层（如水）延后渲染：开启混合，关闭深度写入，并按距离排序。
+        if (m_chunkTranslucentPipeline && m_chunkTranslucentPipeline->isValid()) {
+            m_chunkTranslucentPipeline->bind(cmd);
+
+            VkDescriptorSet translucentCameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+            vkCmdBindDescriptorSets(
+                cmd,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                m_chunkTranslucentPipeline->layout(),
+                0,
+                1,
+                &translucentCameraSet,
+                0,
+                nullptr
+            );
+
+            vkCmdBindDescriptorSets(
+                cmd,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                m_chunkTranslucentPipeline->layout(),
+                1,
+                1,
+                &m_chunkTextureDescriptorSet,
+                0,
+                nullptr
+            );
+
+            if (m_fogManagerInitialized && m_fogManager) {
+                VkDescriptorSet fogSet = m_fogManager->descriptorSet(m_frameContext.frameIndex);
+                if (fogSet != VK_NULL_HANDLE) {
+                    vkCmdBindDescriptorSets(
+                        cmd,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        m_chunkTranslucentPipeline->layout(),
+                        2,
+                        1,
+                        &fogSet,
+                        0,
+                        nullptr
+                    );
+                }
+            }
+
+            glm::vec3 cameraPos(0.0f);
+            if (m_frameContext.camera) {
+                cameraPos = m_frameContext.camera->position();
+            }
+
+            m_chunkRenderer->renderTransparent(
+                cmd,
+                m_chunkTranslucentPipeline->layout(),
+                [this, cmd](const ChunkId& chunkId) {
+                    ChunkPushConstants pushConstants{};
+                    pushConstants.model = glm::mat4(1.0f);
+                    pushConstants.chunkOffset = glm::vec3(
+                        static_cast<f32>(chunkId.x * constants::CHUNK_WIDTH),
+                        0.0f,
+                        static_cast<f32>(chunkId.z * constants::CHUNK_WIDTH)
+                    );
+                    pushConstants.padding = 0.0f;
+
+                    vkCmdPushConstants(
+                        cmd,
+                        m_chunkTranslucentPipeline->layout(),
+                        VK_SHADER_STAGE_VERTEX_BIT,
+                        0,
+                        sizeof(ChunkPushConstants),
+                        &pushConstants
+                    );
+                },
+                cameraPos,
+                true
+            );
+        }
     }
 
     // 5.5 渲染破坏进度覆盖层
@@ -868,6 +955,12 @@ void TridentEngine::updateWeather(f32 rainStrength, f32 thunderStrength) {
     m_thunderStrength = thunderStrength;
 }
 
+void TridentEngine::updateLiquidState(bool inWater, bool inLava, u32 waterFogColor) {
+    m_inWater = inWater;
+    m_inLava = inLava;
+    m_waterFogColor = waterFogColor;
+}
+
 VkCommandPool TridentEngine::commandPool() const {
     return m_frameManager ? m_frameManager->commandPool() : VK_NULL_HANDLE;
 }
@@ -1118,6 +1211,10 @@ Result<void> TridentEngine::initializeChunkRenderer() {
         m_chunkPipeline = std::make_unique<TridentPipeline>();
     }
 
+    if (!m_chunkTranslucentPipeline) {
+        m_chunkTranslucentPipeline = std::make_unique<TridentPipeline>();
+    }
+
     TridentPipelineConfig pipelineConfig{};
     const auto vertPath = resolveShaderPath("chunk.vert.spv");
     const auto fragPath = resolveShaderPath("chunk.frag.spv");
@@ -1166,7 +1263,20 @@ Result<void> TridentEngine::initializeChunkRenderer() {
         m_chunkRenderer->destroy();
         m_chunkRenderer.reset();
         m_chunkPipeline.reset();
+        m_chunkTranslucentPipeline.reset();
         return pipelineResult.error();
+    }
+
+    TridentPipelineConfig translucentConfig = pipelineConfig;
+    translucentConfig.depthWriteEnable = VK_FALSE;
+    translucentConfig.blendEnable = VK_TRUE;
+    auto translucentPipelineResult = m_chunkTranslucentPipeline->create(m_context.get(), translucentConfig);
+    if (translucentPipelineResult.failed()) {
+        m_chunkRenderer->destroy();
+        m_chunkRenderer.reset();
+        m_chunkPipeline.reset();
+        m_chunkTranslucentPipeline.reset();
+        return translucentPipelineResult.error();
     }
 
     // 预分配纹理描述符集（纹理上传后再写入）
@@ -1175,6 +1285,7 @@ Result<void> TridentEngine::initializeChunkRenderer() {
         m_chunkRenderer->destroy();
         m_chunkRenderer.reset();
         m_chunkPipeline.reset();
+        m_chunkTranslucentPipeline.reset();
         return textureSetResult.error();
     }
     m_chunkTextureDescriptorSet = textureSetResult.value();

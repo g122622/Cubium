@@ -3,6 +3,7 @@
 #include "common/item/BlockItemRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/biome/BiomeEffects.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/resource/VanillaResources.hpp"
 #include "common/entity/VanillaEntities.hpp"
@@ -1250,21 +1251,42 @@ void ClientApplication::update(f32 deltaTime)
             m_world.weather().rainStrength(m_renderTickAccumulator),
             m_world.weather().thunderStrength(m_renderTickAccumulator)
         );
+
+        // 更新液体状态（用于水下/岩浆雾效果）
+        if (m_player) {
+            bool inWater = m_player->isInWater();
+            bool inLava = m_player->isInLava();
+            u32 waterFogColor = world::biome::BiomeEffects::DEFAULT_WATER_FOG_COLOR;
+
+            // 获取当前生物群系的水下雾颜色
+            if (inWater) {
+                const auto* biome = m_world.getBiomeAtBlock(
+                    static_cast<i32>(std::floor(m_player->x())),
+                    static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
+                    static_cast<i32>(std::floor(m_player->z()))
+                );
+                if (biome) {
+                    waterFogColor = biome->waterFogColor();
+                }
+            }
+
+            m_renderer->updateLiquidState(inWater, inLava, waterFogColor);
+        }
     }
 
     // 上传网格到 GPU（只处理已完成异步构建的网格）
     if (m_renderer->isChunkRendererInitialized()) {
         auto& chunkRenderer = m_renderer->chunkRenderer();
-        m_world.forEachDirtyMesh([this, &chunkRenderer](const ChunkId& id, ClientChunk& chunk) {
-            // 检查网格是否为空
-            if (chunk.solidMesh.empty()) {
+        m_world.forEachDirtyMesh([&chunkRenderer](const ChunkId& id, ClientChunk& chunk) {
+            // 两层都为空时，清理 GPU 缓冲并结束本次更新。
+            if (chunk.solidMesh.empty() && chunk.transparentMesh.empty()) {
+                chunkRenderer.removeChunk(id);
                 chunk.needsMeshUpdate = false;
                 return;
             }
 
-            // 上传网格到GPU
-            ChunkId chunkId(id.x, id.z);
-            auto result = chunkRenderer.updateChunk(chunkId, chunk.solidMesh);
+            // 上传双层网格到 GPU
+            auto result = chunkRenderer.updateChunk(id, chunk.solidMesh, chunk.transparentMesh);
             if (result.success()) {
                 chunk.needsMeshUpdate = false;
 

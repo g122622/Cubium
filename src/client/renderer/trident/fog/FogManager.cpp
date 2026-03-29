@@ -160,11 +160,16 @@ void FogManager::setFogMode(FogMode mode) {
     m_fogUBO.fogMode = static_cast<i32>(mode);
 }
 
-void FogManager::setUnderwater() {
+void FogManager::setUnderwater(u32 waterFogColor) {
     setFogMode(FogMode::Exp2);
     m_fogUBO.fogDensity = WATER_FOG_DENSITY;
-    // 水下雾颜色是深蓝色
-    m_fogUBO.fogColor = glm::vec4(0.1f, 0.2f, 0.4f, 1.0f);
+    // 从 RGB 格式转换为 glm::vec4
+    m_fogUBO.fogColor = glm::vec4(
+        static_cast<f32>((waterFogColor >> 16) & 0xFF) / 255.0f,  // R
+        static_cast<f32>((waterFogColor >> 8) & 0xFF) / 255.0f,   // G
+        static_cast<f32>(waterFogColor & 0xFF) / 255.0f,          // B
+        1.0f
+    );
 }
 
 void FogManager::setInLava() {

@@ -88,8 +88,9 @@ public:
      * @brief 设置水中雾参数
      *
      * 切换到指数雾模式并设置水的雾密度。
+     * @param waterFogColor 水下雾颜色 (RGB格式，如 0x050533)
      */
-    void setUnderwater();
+    void setUnderwater(u32 waterFogColor);
 
     /**
      * @brief 设置岩浆雾参数

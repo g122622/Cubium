@@ -242,6 +242,15 @@ public:
     void updateWeather(f32 rainStrength, f32 thunderStrength);
 
     /**
+     * @brief 更新液体状态（用于雾效果）
+     *
+     * @param inWater 是否在水中
+     * @param inLava 是否在岩浆中
+     * @param waterFogColor 水下雾颜色（RGB格式）
+     */
+    void updateLiquidState(bool inWater, bool inLava, u32 waterFogColor = 0x050533);
+
+    /**
      * @brief 执行一帧渲染
      *
      * 这是便捷方法，整合了 beginFrame、渲染、endFrame 和 present。
@@ -518,6 +527,7 @@ private:
     std::unique_ptr<DescriptorManager> m_descriptorManager;
     std::unique_ptr<UniformManager> m_uniformManager;
     std::unique_ptr<TridentPipeline> m_chunkPipeline;
+    std::unique_ptr<TridentPipeline> m_chunkTranslucentPipeline;
 
     // 区块纹理描述符集（set = 1）
     VkDescriptorSet m_chunkTextureDescriptorSet = VK_NULL_HANDLE;
@@ -590,6 +600,11 @@ private:
     bool m_particleManagerInitialized = false;
     bool m_weatherRendererInitialized = false;
     bool m_breakProgressRendererInitialized = false;
+
+    // 液体状态（用于雾效果）
+    bool m_inWater = false;
+    bool m_inLava = false;
+    u32 m_waterFogColor = 0x050533;  // 默认水下雾颜色
 
     // 内部方法
     [[nodiscard]] Result<void> recreateSwapchain();

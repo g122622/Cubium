@@ -9,6 +9,11 @@ src/client/world/
 ├── ClientWorld.hpp           # 客户端世界管理器（头文件）
 ├── ClientWorld.cpp           # 客户端世界管理器（实现）
 ├── ClientWeather.hpp         # 客户端天气状态
+├── color/                    # 颜色解析系统
+│   ├── ColorResolver.hpp     # 颜色解析器接口
+│   ├── BiomeColors.hpp       # 生物群系颜色解析器
+│   ├── BiomeColors.cpp       # 实现文件
+│   └── README.md             # 模块文档
 └── entity/
     ├── ClientEntity.hpp      # 客户端实体代理类（头文件）
     ├── ClientEntity.cpp      # 客户端实体代理类（实现）
@@ -140,6 +145,47 @@ flowchart TB
 
 ---
 
+### color/ 模块
+
+**职责**：客户端颜色解析系统，负责从生物群系获取各种颜色值（草、树叶、水体等）。
+
+详细文档请参阅 [`color/README.md`](color/README.md)。
+
+**主要类型**：
+
+| 类型 | 描述 |
+|------|------|
+| `ColorResolver` | 颜色解析器抽象接口 |
+| `GrassColorResolver` | 草颜色解析器 |
+| `FoliageColorResolver` | 树叶颜色解析器 |
+| `WaterColorResolver` | 水颜色解析器 |
+| `BiomeColors` | 颜色常量和工具函数 |
+
+**核心功能**：
+
+1. **颜色解析**：根据生物群系类型和位置计算颜色值
+2. **特殊生物群系处理**：沼泽双色噪声混合、黑森林深绿色、恶地黄褐色
+3. **颜色覆盖**：支持生物群系自定义颜色覆盖
+
+**使用示例**：
+
+```cpp
+#include "client/world/color/BiomeColors.hpp"
+
+// 获取水体颜色
+const Biome& biome = ...;
+u32 waterColor = BiomeColors::waterColorResolver().getColor(biome, x, z);
+
+// 获取草颜色（可能需要 colormap）
+u32 grassColor = BiomeColors::grassColorResolver().getColor(biome, x, z);
+if (grassColor == 0xFFFFFFFF) {
+    // 从 grass colormap 计算
+    grassColor = getColorFromGrassColormap(biome.temperature(), biome.humidity());
+}
+```
+
+---
+
 ### entity/ClientEntity.hpp / ClientEntity.cpp
 
 **职责**：客户端实体代理类，存储渲染所需的位置、旋转、动画状态。
@@ -215,51 +261,58 @@ graph TB
         B[ClientWeather]
         C[ClientEntityManager]
         D[ClientEntity]
+        E[color/BiomeColors]
     end
-    
+
     subgraph client/renderer
-        E[ChunkRenderer]
-        F[EntityRenderer]
-        G[WeatherRenderer]
-        H[SkyRenderer]
-        I[MeshWorkerPool]
+        F[ChunkRenderer]
+        G[EntityRenderer]
+        H[WeatherRenderer]
+        I[SkyRenderer]
+        J[MeshWorkerPool]
+        K[ChunkMesher]
     end
-    
+
     subgraph client/application
-        J[ClientApplication]
+        L[ClientApplication]
     end
-    
+
     subgraph common/world
-        K[ChunkData]
-        L[BlockState]
-        M[Biome]
+        M[ChunkData]
+        N[BlockState]
+        O[Biome]
+        P[BiomeEffects]
     end
-    
+
     subgraph common/network
-        N[ChunkSerializer]
-        O[Packets]
+        Q[ChunkSerializer]
+        R[Packets]
     end
-    
+
     subgraph common/physics
-        P[ICollisionWorld]
+        S[ICollisionWorld]
     end
-    
+
     A --> B
     A --> C
+    A --> E
     C --> D
-    A --> I
-    A --> K
-    A --> L
+    A --> J
     A --> M
-    A --> P
-    A -.->|接收| N
-    A -.->|接收| O
-    E --> A
-    F --> C
-    F --> D
-    G --> B
-    H --> A
-    J --> A
+    A --> N
+    A --> O
+    A --> S
+    A -.->|接收| Q
+    A -.->|接收| R
+    E --> O
+    E --> P
+    F --> A
+    K --> E
+    G --> C
+    G --> D
+    H --> B
+    I --> A
+    L --> A
 ```
 
 ---
@@ -275,6 +328,7 @@ graph TB
 3. **天气状态**：维护天气效果状态，支持平滑过渡
 4. **时间同步**：接收服务端时间更新，计算天体角度
 5. **碰撞检测**：实现 `ICollisionWorld` 接口，提供物理碰撞查询
+6. **颜色解析**：从生物群系获取各种颜色值（草、树叶、水体等）
 
 ### 输入和输出
 
@@ -311,6 +365,7 @@ graph TB
 | `common/world/chunk/ChunkData` | 区块数据结构 |
 | `common/world/block/BlockState` | 方块状态 |
 | `common/world/biome/BiomeRegistry` | 生物群系注册表 |
+| `common/world/biome/BiomeEffects` | 生物群系视觉效果（颜色） |
 | `common/network/sync/ChunkSerializer` | 区块序列化/反序列化 |
 | `common/physics/PhysicsEngine` | 碰撞检测接口 |
 | `client/renderer/mesh/MeshWorkerPool` | 异步网格构建 |
@@ -444,5 +499,22 @@ world.destroy();
 | - | 结果处理帧限制测试 |
 | - | 并发提交测试 |
 | - | 待处理任务计数测试 |
+| `tests/client/world/color/BiomeColorsTest.cpp` | 颜色模块测试 |
+| - | BiomeEffectsTest.DefaultColors |
+| - | BiomeEffectsTest.BuilderPattern |
+| - | BiomeEffectsTest.SpecialBiomeColors |
+| - | BiomeColorsTest.ColorConstants |
+| - | BiomeColorsTest.SwampColorCalculation |
+| - | BiomeColorsTest.ResolverSingletons |
+| - | WaterColorResolverTest.BasicResolution |
+| - | GrassColorResolverTest.BasicResolution |
+| - | GrassColorResolverTest.SwampModifier |
+| - | GrassColorResolverTest.DarkForestModifier |
+| - | GrassColorResolverTest.BadlandsModifier |
+| - | FoliageColorResolverTest.BasicResolution |
+| - | FoliageColorResolverTest.SwampFoliage |
+| - | FoliageColorResolverTest.BadlandsFoliage |
+| - | ColorResolverTest.OverridePriority |
+| - | ColorResolverTest.Polymorphism |
 
 **注意**：`ClientWorld`、`ClientEntity`、`ClientEntityManager`、`ClientWeather` 目前没有专门的单元测试，主要集成测试通过客户端运行时验证。

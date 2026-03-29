@@ -11,8 +11,14 @@
 #include <mutex>
 #include <queue>
 #include <functional>
+#include <glm/vec3.hpp>
 
 namespace mc::client {
+
+enum class ChunkRenderLayer : u8 {
+    Solid = 0,
+    Transparent = 1,
+};
 
 // 区块GPU缓冲区 - 使用原始 Vulkan handles
 struct ChunkGpuBuffer {
@@ -23,6 +29,7 @@ struct ChunkGpuBuffer {
     u32 indexCount = 0;
     u32 vertexCount = 0;
     ChunkId chunkId{0, 0};
+    ChunkRenderLayer layer = ChunkRenderLayer::Solid;
     bool isValid = false;
 
     void destroy(VkDevice device);
@@ -127,6 +134,18 @@ public:
         const ChunkId& chunkId,
         const MeshData& meshData);
 
+    /**
+     * @brief 更新区块双层网格
+     *
+     * @param chunkId 区块 ID
+     * @param solidMesh 实心网格
+     * @param transparentMesh 半透明网格
+     */
+    [[nodiscard]] Result<void> updateChunk(
+        const ChunkId& chunkId,
+        const MeshData& solidMesh,
+        const MeshData& transparentMesh);
+
     void removeChunk(const ChunkId& chunkId);
 
     void clearChunks();
@@ -149,6 +168,21 @@ public:
     using PushConstantsCallback = std::function<void(const ChunkId&)>;
     void render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
                 PushConstantsCallback pushConstantsCallback);
+
+    /**
+     * @brief 渲染半透明层（可选按距离排序）
+     *
+     * @param commandBuffer Vulkan 命令缓冲
+     * @param pipelineLayout 管线布局
+     * @param pushConstantsCallback 区块推送常量回调
+     * @param cameraPosition 相机位置（用于排序）
+     * @param sortBackToFront 是否按远到近排序
+     */
+    void renderTransparent(VkCommandBuffer commandBuffer,
+                           VkPipelineLayout pipelineLayout,
+                           PushConstantsCallback pushConstantsCallback,
+                           const glm::vec3& cameraPosition,
+                           bool sortBackToFront = true);
 
     // ========== 异步 GPU 上传 ==========
 
@@ -195,6 +229,10 @@ public:
     u32 totalIndexCount() const { return m_totalIndices; }
 
 private:
+    [[nodiscard]] static u64 makeBufferKey(const ChunkId& chunkId, ChunkRenderLayer layer) {
+        return (chunkId.toId() << 1ULL) | static_cast<u64>(layer);
+    }
+
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
@@ -249,6 +287,11 @@ private:
     [[nodiscard]] Result<void> createChunkBuffer(
         ChunkGpuBuffer& buffer,
         const MeshData& meshData);
+
+    [[nodiscard]] Result<void> updateChunkLayer(
+        const ChunkId& chunkId,
+        const MeshData& meshData,
+        ChunkRenderLayer layer);
 
     // 上传缓冲区数据
     [[nodiscard]] Result<void> uploadBufferData(

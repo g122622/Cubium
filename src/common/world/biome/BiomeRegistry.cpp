@@ -1,8 +1,13 @@
 #include "BiomeRegistry.hpp"
+#include "BiomeEffects.hpp"
 #include "../block/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
+
+// 使用 biome 命名空间中的类型
+using world::biome::BiomeEffects;
+using world::biome::GrassColorModifier;
 
 // ============================================================================
 // BiomeRegistry 实现
@@ -373,6 +378,7 @@ Biome createSavannaPlateau()
 Biome createBadlands()
 {
     // MC: depth=0.1F, scale=0.2F
+    // 恶地有特殊的草和树叶颜色
     Biome biome(Biomes::Badlands, "badlands");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -382,12 +388,19 @@ Biome createBadlands()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE)); // Terracotta substitute
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setGenerationSettings(BiomeGenerationSettings::createBadlands());
+    // 恶地特殊的黄褐色草和树叶
+    biome.setEffects(BiomeEffects::Builder()
+        .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
+        .foliageColor(BiomeEffects::BADLANDS_FOLIAGE_COLOR)
+        .grassColorModifier(GrassColorModifier::Badlands)
+        .build());
     return biome;
 }
 
 Biome createErodedBadlands()
 {
     // MC: depth=0.1F, scale=0.2F
+    // 风蚀恶地使用与恶地相同的颜色
     Biome biome(Biomes::ErodedBadlands, "eroded_badlands");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -397,12 +410,19 @@ Biome createErodedBadlands()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    // 与恶地相同的颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
+        .foliageColor(BiomeEffects::BADLANDS_FOLIAGE_COLOR)
+        .grassColorModifier(GrassColorModifier::Badlands)
+        .build());
     return biome;
 }
 
 Biome createBadlandsPlateau()
 {
     // MC: depth=1.5F, scale=0.025F
+    // 恶地高原使用与恶地相同的颜色
     Biome biome(Biomes::BadlandsPlateau, "badlands_plateau");
     biome.setDepth(1.5f);
     biome.setScale(0.025f);
@@ -412,12 +432,19 @@ Biome createBadlandsPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    // 与恶地相同的颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
+        .foliageColor(BiomeEffects::BADLANDS_FOLIAGE_COLOR)
+        .grassColorModifier(GrassColorModifier::Badlands)
+        .build());
     return biome;
 }
 
 Biome createWoodedBadlandsPlateau()
 {
     // MC: depth=1.5F, scale=0.025F
+    // 繁茂恶地高原有草和树叶
     Biome biome(Biomes::WoodedBadlandsPlateau, "wooded_badlands_plateau");
     biome.setDepth(1.5f);
     biome.setScale(0.025f);
@@ -427,6 +454,12 @@ Biome createWoodedBadlandsPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    // 与恶地相同的颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
+        .foliageColor(BiomeEffects::BADLANDS_FOLIAGE_COLOR)
+        .grassColorModifier(GrassColorModifier::Badlands)
+        .build());
     return biome;
 }
 
@@ -478,6 +511,7 @@ Biome createSnowyBeach()
 Biome createSwamp()
 {
     // MC: depth=-0.2F, scale=0.1F
+    // 沼泽有特殊的水体颜色和草颜色修改器
     Biome biome(Biomes::Swamp, "swamp");
     biome.setDepth(-0.2f);
     biome.setScale(0.1f);
@@ -488,6 +522,13 @@ Biome createSwamp()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createSwamp());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSwamp());
+    // 沼泽特殊颜色：水体为灰绿色，使用双色草/树叶
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::SWAMP_WATER_COLOR)
+        .waterFogColor(BiomeEffects::SWAMP_WATER_FOG_COLOR)
+        .fogColor(BiomeEffects::SWAMP_FOG_COLOR)
+        .grassColorModifier(GrassColorModifier::Swamp)
+        .build());
     return biome;
 }
 
@@ -542,6 +583,7 @@ Biome createBirchForest()
 Biome createDarkForest()
 {
     // MC: depth=0.1F, scale=0.2F
+    // 黑森林有特殊的深绿色草
     Biome biome(Biomes::DarkForest, "dark_forest");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -552,6 +594,11 @@ Biome createDarkForest()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
+    // 黑森林草颜色变暗
+    biome.setEffects(BiomeEffects::Builder()
+        .grassColor(BiomeEffects::DARK_FOREST_GRASS_COLOR)
+        .grassColorModifier(GrassColorModifier::DarkForest)
+        .build());
     return biome;
 }
 
@@ -623,6 +670,7 @@ Biome createMountainEdge()
 Biome createFrozenOcean()
 {
     // MC: depth=-1.0F, scale=0.1F
+    // 冻洋有特殊的深紫色水体
     Biome biome(Biomes::FrozenOcean, "frozen_ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
@@ -633,6 +681,11 @@ Biome createFrozenOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 冻洋水体颜色为深紫色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::DEFAULT_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
@@ -649,6 +702,11 @@ Biome createFrozenRiver()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
+    // 冻河使用冻洋的水体颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::DEFAULT_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
@@ -687,6 +745,7 @@ Biome createIceSpikes()
 Biome createDeepFrozenOcean()
 {
     // MC: depth=-1.8F, scale=0.1F
+    // 深海冻洋使用与冻洋相同的水体颜色
     Biome biome(Biomes::DeepFrozenOcean, "deep_frozen_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
@@ -697,6 +756,11 @@ Biome createDeepFrozenOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 与冻洋相同的水体颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::DEFAULT_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
@@ -707,7 +771,7 @@ Biome createDeepFrozenOcean()
 Biome createWarmOcean()
 {
     // MC: depth=-1.0F, scale=0.1F
-    // 温暖海洋，温度高，沙子底部
+    // 温暖海洋，温度高，沙子底部，水体为青绿色
     Biome biome(Biomes::WarmOcean, "warm_ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
@@ -718,12 +782,18 @@ Biome createWarmOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 暖水海洋水体颜色为青绿色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::WARM_OCEAN_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
 Biome createLukewarmOcean()
 {
     // MC: depth=-1.0F, scale=0.1F
+    // 温水海洋，水体为浅蓝色
     Biome biome(Biomes::LukewarmOcean, "lukewarm_ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
@@ -734,12 +804,18 @@ Biome createLukewarmOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 温水海洋水体颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::LUKEWARM_OCEAN_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
 Biome createColdOcean()
 {
     // MC: depth=-1.0F, scale=0.1F
+    // 冷水海洋，水体为深蓝色
     Biome biome(Biomes::ColdOcean, "cold_ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
@@ -750,12 +826,18 @@ Biome createColdOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 冷水海洋水体颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::COLD_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::COLD_OCEAN_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
 Biome createDeepWarmOcean()
 {
     // MC: depth=-1.8F, scale=0.1F
+    // 深海暖水海洋，使用与暖水海洋相同的水体颜色
     Biome biome(Biomes::DeepWarmOcean, "deep_warm_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
@@ -766,12 +848,18 @@ Biome createDeepWarmOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 与暖水海洋相同的水体颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::WARM_OCEAN_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
 Biome createDeepLukewarmOcean()
 {
     // MC: depth=-1.8F, scale=0.1F
+    // 深海温水海洋
     Biome biome(Biomes::DeepLukewarmOcean, "deep_lukewarm_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
@@ -782,12 +870,18 @@ Biome createDeepLukewarmOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 与温水海洋相同的水体颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::LUKEWARM_OCEAN_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
 Biome createDeepColdOcean()
 {
     // MC: depth=-1.8F, scale=0.1F
+    // 深海冷水海洋
     Biome biome(Biomes::DeepColdOcean, "deep_cold_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
@@ -798,6 +892,11 @@ Biome createDeepColdOcean()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    // 与冷水海洋相同的水体颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::COLD_OCEAN_WATER_COLOR)
+        .waterFogColor(BiomeEffects::COLD_OCEAN_WATER_FOG_COLOR)
+        .build());
     return biome;
 }
 
@@ -1126,6 +1225,13 @@ Biome createSwampHills()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSwamp());
+    // 沼泽山丘使用与沼泽相同的颜色
+    biome.setEffects(BiomeEffects::Builder()
+        .waterColor(BiomeEffects::SWAMP_WATER_COLOR)
+        .waterFogColor(BiomeEffects::SWAMP_WATER_FOG_COLOR)
+        .fogColor(BiomeEffects::SWAMP_FOG_COLOR)
+        .grassColorModifier(GrassColorModifier::Swamp)
+        .build());
     return biome;
 }
 

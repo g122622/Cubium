@@ -176,6 +176,8 @@ add_executable(mc_tests
     common/util/assert/AssertTest.cpp
     # 调试区块生成器测试
     common/world/gen/DebugChunkGeneratorTest.cpp
+    # 生物群系颜色测试
+    client/world/color/BiomeColorsTest.cpp
 )
 
 # 添加服务端源文件
@@ -252,6 +254,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeEffects.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeGenerationSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/LayerContext.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/BiomeValues.cpp
@@ -263,6 +266,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/BiomeLayers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/MergeLayers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/surface/SurfaceBuilders.cpp
+        # 生物群系颜色解析器
+        ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/Feature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/FeatureSpread.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ConfiguredFeature.cpp
@@ -543,6 +548,9 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
+            # 生物群系颜色
+            ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeEffects.cpp
             # 常用资源
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourcePackList.cpp

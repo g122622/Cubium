@@ -80,6 +80,23 @@ public:
     );
 
     /**
+     * @brief 生成分层区块网格（实心层 + 半透明层）
+     *
+     * 用于水、玻璃等需要延后混合渲染的方块。
+     * 
+     * @param chunk 区块数据
+     * @param outSolidMesh 输出实心网格
+     * @param outTransparentMesh 输出半透明网格
+     * @param neighbors 周围6个区块 (用于边界面的剔除)
+     */
+    static void generateSplitMesh(
+        const ChunkData& chunk,
+        MeshData& outSolidMesh,
+        MeshData& outTransparentMesh,
+        const ChunkData* neighbors[6] = nullptr
+    );
+
+    /**
      * @brief 生成单个区块段的网格 (用于渐进加载)
      *
      * @param chunk 区块数据

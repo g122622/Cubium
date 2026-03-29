@@ -2,8 +2,10 @@
 #include "AmbientOcclusionCalculator.hpp"
 #include "../../../resource/BlockModelCache.hpp"
 #include "../../../resource/ResourceManager.hpp"
+#include "../../../world/color/BiomeColors.hpp"
 #include "../../../../common/perfetto/TraceEvents.hpp"
 #include "../../../../common/world/biome/BiomeRegistry.hpp"
+#include "../../../../common/world/biome/BiomeEffects.hpp"
 #include "../../../../common/world/block/VanillaBlocks.hpp"
 #include "../../../../common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
@@ -27,6 +29,29 @@ bool ChunkMesher::s_grassColorMapLoaded = false;
 bool ChunkMesher::s_foliageColorMapLoaded = false;
 
 namespace {
+
+enum class MeshPass : u8 {
+    All = 0,
+    SolidOnly = 1,
+    TransparentOnly = 2,
+};
+
+thread_local MeshPass t_meshPass = MeshPass::All;
+
+class MeshPassScope {
+public:
+    explicit MeshPassScope(MeshPass pass)
+        : m_prevPass(t_meshPass) {
+        t_meshPass = pass;
+    }
+
+    ~MeshPassScope() {
+        t_meshPass = m_prevPass;
+    }
+
+private:
+    MeshPass m_prevPass;
+};
 
 /**
  * @brief 将 RGBA 分量打包为顶点颜色（与 VK_FORMAT_R8G8B8A8_UNORM 对齐）
@@ -84,6 +109,16 @@ namespace {
         static_cast<u8>(std::round(std::clamp(b * clamped, 0.0f, 1.0f) * 255.0f)),
         255
     );
+}
+
+[[nodiscard]] u32 applyBlockAlpha(u32 packedColor, const BlockState* block) {
+    if (block != nullptr && block->isLiquid()) {
+        // 对齐原版观感：水体处于半透明层时仍保留一定透视能力。
+        // 纹理 alpha 在不同资源包下差异较大，这里提供稳定 alpha 兜底。
+        constexpr u8 LIQUID_ALPHA = 180;
+        return (packedColor & 0x00FFFFFFu) | (static_cast<u32>(LIQUID_ALPHA) << 24);
+    }
+    return packedColor;
 }
 
 struct FaceLayerRenderData {
@@ -151,6 +186,63 @@ struct FaceLayerRenderData {
     return {FaceLayerRenderData{texIt->second, tintIndex}};
 }
 
+[[nodiscard]] std::vector<FaceLayerRenderData> collectLiquidFaceLayers(
+    const BlockState* block,
+    Face face
+) {
+    if (block == nullptr || !block->isLiquid()) {
+        return {};
+    }
+
+    BlockModelCache* modelCache = ChunkMesher::modelCache();
+    if (modelCache == nullptr || modelCache->resourceManager() == nullptr) {
+        return {};
+    }
+
+    ResourceManager* resourceManager = modelCache->resourceManager();
+    const ResourceLocation& blockLocation = block->blockLocation();
+
+    const bool isWater = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "water";
+    const bool isLava = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "lava";
+
+    const String stillName = isWater ? "water_still"
+                           : isLava  ? "lava_still"
+                                     : blockLocation.path() + "_still";
+    const String flowName = isWater ? "water_flow"
+                          : isLava  ? "lava_flow"
+                                    : blockLocation.path() + "_flow";
+
+    const ResourceLocation stillTexture(
+        blockLocation.namespace_(),
+        "textures/block/" + stillName
+    );
+    const ResourceLocation flowTexture(
+        blockLocation.namespace_(),
+        "textures/block/" + flowName
+    );
+
+    const bool useStillTexture = (face == Face::Top || face == Face::Bottom);
+    const TextureRegion* region = nullptr;
+
+    if (useStillTexture) {
+        region = resourceManager->getTextureRegion(stillTexture);
+        if (region == nullptr) {
+            region = resourceManager->getTextureRegion(flowTexture);
+        }
+    } else {
+        region = resourceManager->getTextureRegion(flowTexture);
+        if (region == nullptr) {
+            region = resourceManager->getTextureRegion(stillTexture);
+        }
+    }
+
+    if (region == nullptr) {
+        return {};
+    }
+
+    return {FaceLayerRenderData{*region, -1}};
+}
+
 } // namespace
 
 // ============================================================================
@@ -204,6 +296,25 @@ void ChunkMesher::generateMesh(
     }
 }
 
+void ChunkMesher::generateSplitMesh(
+    const ChunkData& chunk,
+    MeshData& outSolidMesh,
+    MeshData& outTransparentMesh,
+    const ChunkData* neighbors[6]
+) {
+    // 第一遍：实心层
+    {
+        MeshPassScope passScope(MeshPass::SolidOnly);
+        generateMesh(chunk, outSolidMesh, neighbors);
+    }
+
+    // 第二遍：半透明层（含水体/玻璃等）
+    {
+        MeshPassScope passScope(MeshPass::TransparentOnly);
+        generateMesh(chunk, outTransparentMesh, neighbors);
+    }
+}
+
 void ChunkMesher::generateSectionMesh(
     const ChunkData& chunk,
     i32 sectionIndex,
@@ -219,9 +330,21 @@ void ChunkMesher::generateSectionMesh(
 }
 
 bool ChunkMesher::shouldRenderBlock(const BlockState* state) {
-    // 空气和液体不渲染实体网格
-    if (!state) return false;
-    return !state->isAir();
+    if (!state || state->isAir()) {
+        return false;
+    }
+
+    const bool isTransparentLike = state->isTransparent() || state->isLiquid();
+    switch (t_meshPass) {
+        case MeshPass::All:
+            return true;
+        case MeshPass::SolidOnly:
+            return !isTransparentLike;
+        case MeshPass::TransparentOnly:
+            return isTransparentLike;
+        default:
+            return true;
+    }
 }
 
 bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* neighbor) {
@@ -259,6 +382,12 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
         if (block->isTransparent() && block->blockId() == neighbor->blockId()) {
             return false;
         }
+        return true;
+    }
+
+    // 透明方块贴着不透明方块时必须保留面。
+    // 否则会出现玻璃/水体与石头相接处“整面消失”的问题。
+    if (block->isTransparent()) {
         return true;
     }
 
@@ -377,7 +506,7 @@ u32 ChunkMesher::resolveTintColor(
     const BlockState* block,
     i32 tintIndex
 ) {
-    if (tintIndex < 0 || !block) {
+    if (!block) {
         return packVertexColor(255, 255, 255, 255);
     }
 
@@ -387,6 +516,24 @@ u32 ChunkMesher::resolveTintColor(
 
     const BiomeId biomeId = chunk.getBiomeAtBlock(blockX, blockY, blockZ);
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
+
+    // 水体颜色处理 - 水方块使用生物群系的水体颜色
+    // 注意：MC 中水的 tintIndex 通常为 -1，但我们通过 isLiquid() 检测
+    if (block->isLiquid()) {
+        if (block->is(VanillaBlocks::WATER)) {
+            const u32 waterColor = biome.waterColor();
+            // 水体颜色是 RGB 格式，需要打包
+            return packRgb(waterColor);
+        }
+        // 岩浆不使用着色，保持纹理原色
+        return packVertexColor(255, 255, 255, 255);
+    }
+
+    // 非 tint 着色的情况（tintIndex < 0）
+    if (tintIndex < 0) {
+        return packVertexColor(255, 255, 255, 255);
+    }
+
     const f32 temperature = std::clamp(biome.temperature(), 0.0f, 1.0f);
     const f32 humidity = std::clamp(biome.humidity(), 0.0f, 1.0f) * temperature;
     const i32 tempIndex = clampToColorIndex(temperature);
@@ -401,11 +548,27 @@ u32 ChunkMesher::resolveTintColor(
         || block->is(VanillaBlocks::BIRCH_LEAVES);
 
     if (isLeaves) {
+        // 检查是否有树叶颜色覆盖（如沼泽）
+        auto foliageOverride = biome.effects().foliageColor();
+        if (foliageOverride.has_value()) {
+            return packRgb(foliageOverride.value());
+        }
+
+        // 检查沼泽特殊处理
+        if (biome.effects().grassColorModifier() == world::biome::GrassColorModifier::Swamp) {
+            // 沼泽树叶使用双色混合
+            return client::BiomeColors::calculateSwampColor(
+                static_cast<f64>(blockX), static_cast<f64>(blockZ),
+                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR,
+                world::biome::BiomeEffects::SWAMP_FOLIAGE_COLOR_DARK
+            );
+        }
+
         if (block->is(VanillaBlocks::SPRUCE_LEAVES)) {
-            return packRgb(0x619961); // FoliageColors.getSpruce()
+            return packRgb(client::BiomeColors::SPRUCE_LEAVES_COLOR);
         }
         if (block->is(VanillaBlocks::BIRCH_LEAVES)) {
-            return packRgb(0x80A755); // FoliageColors.getBirch()
+            return packRgb(client::BiomeColors::BIRCH_LEAVES_COLOR);
         }
 
         if (s_foliageColorMapLoaded && colorIndex >= 0 && colorIndex < static_cast<i32>(s_foliageColorMap.size())) {
@@ -415,7 +578,36 @@ u32 ChunkMesher::resolveTintColor(
         return packRgb(0x48B518); // FoliageColors.getDefault()
     }
 
-    // 草色系：grass_block、short_grass、fern、tall_grass
+    // 草色系：检查草颜色覆盖和修改器
+    auto grassOverride = biome.effects().grassColor();
+    if (grassOverride.has_value()) {
+        return packRgb(grassOverride.value());
+    }
+
+    // 检查草颜色修改器
+    switch (biome.effects().grassColorModifier()) {
+        case world::biome::GrassColorModifier::Swamp: {
+            // 沼泽草使用双色混合
+            return client::BiomeColors::calculateSwampColor(
+                static_cast<f64>(blockX), static_cast<f64>(blockZ),
+                world::biome::BiomeEffects::SWAMP_GRASS_COLOR,
+                world::biome::BiomeEffects::SWAMP_GRASS_COLOR_DARK
+            );
+        }
+        case world::biome::GrassColorModifier::DarkForest: {
+            // 黑森林草变暗
+            return packRgb(world::biome::BiomeEffects::DARK_FOREST_GRASS_COLOR);
+        }
+        case world::biome::GrassColorModifier::Badlands: {
+            // 恶地草颜色
+            return packRgb(world::biome::BiomeEffects::BADLANDS_GRASS_COLOR);
+        }
+        case world::biome::GrassColorModifier::None:
+        default:
+            break;
+    }
+
+    // 从 grass colormap 获取颜色
     if (s_grassColorMapLoaded && colorIndex >= 0 && colorIndex < static_cast<i32>(s_grassColorMap.size())) {
         return packRgb(s_grassColorMap[static_cast<size_t>(colorIndex)]);
     }
@@ -476,11 +668,6 @@ void ChunkMesher::addFaceFromAppearance(
         return;
     }
 
-    // 检查是否有 elements
-    if (appearance->elements.empty()) {
-        return;
-    }
-
     // 查找面的纹理
     String faceName;
     switch (face) {
@@ -493,7 +680,10 @@ void ChunkMesher::addFaceFromAppearance(
         default: return;
     }
 
-    const auto faceLayers = collectFaceLayers(appearance, faceName);
+    auto faceLayers = collectFaceLayers(appearance, faceName);
+    if (faceLayers.empty()) {
+        faceLayers = collectLiquidFaceLayers(block, face);
+    }
     if (faceLayers.empty()) {
         return;
     }
@@ -507,7 +697,10 @@ void ChunkMesher::addFaceFromAppearance(
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
         const u32 tintColor = resolveTintColor(chunk, blockX, blockY, blockZ, block, layer.tintIndex);
-        const u32 shadedColor = applyShadeToPackedColor(tintColor, getFaceShade(face));
+        const u32 shadedColor = applyBlockAlpha(
+            applyShadeToPackedColor(tintColor, getFaceShade(face)),
+            block
+        );
 
         // UV坐标根据顶点位置设置
         // 顶点顺序: 左下、右下、右上、左上
@@ -561,11 +754,6 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         return;
     }
 
-    // 检查是否有 elements
-    if (appearance->elements.empty()) {
-        return;
-    }
-
     // 查找面的纹理
     String faceName;
     switch (face) {
@@ -578,7 +766,10 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         default: return;
     }
 
-    const auto faceLayers = collectFaceLayers(appearance, faceName);
+    auto faceLayers = collectFaceLayers(appearance, faceName);
+    if (faceLayers.empty()) {
+        faceLayers = collectLiquidFaceLayers(block, face);
+    }
     if (faceLayers.empty()) {
         return;
     }
@@ -620,7 +811,10 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
             // 注意：颜色打包必须遵循 RGBA 字节顺序，避免出现偏色（例如偏红）问题。
             const float ao = aoResult.vertexColorMultiplier[i];
             const float finalShade = std::clamp(ao * faceShade, 0.0f, 1.0f);
-            const u32 color = applyShadeToPackedColor(tintColor, finalShade);
+            const u32 color = applyBlockAlpha(
+                applyShadeToPackedColor(tintColor, finalShade),
+                block
+            );
 
             faceVerts[i] = Vertex(
                 x + vertices[i * 3 + 0] + normal[0] * layerOffset,
@@ -688,7 +882,7 @@ void ChunkMesher::simpleMeshSection(
                 }
 
                 // 检查外观是否有效
-                if (appearance->elements.empty() && appearance->faceTextures.empty()) {
+                if (appearance->elements.empty() && appearance->faceTextures.empty() && !block->isLiquid()) {
                     continue;
                 }
 
@@ -939,7 +1133,7 @@ void ChunkMesher::greedyMeshSection(
             return cell;
         }
 
-        if (appearance->elements.empty() && appearance->faceTextures.empty()) {
+        if (appearance->elements.empty() && appearance->faceTextures.empty() && !block->isLiquid()) {
             return cell;
         }
 
@@ -955,6 +1149,9 @@ void ChunkMesher::greedyMeshSection(
         }
 
         auto faceLayers = collectFaceLayers(appearance, faceName);
+        if (faceLayers.empty()) {
+            faceLayers = collectLiquidFaceLayers(block, face);
+        }
         if (faceLayers.empty()) {
             return cell;
         }
@@ -983,7 +1180,12 @@ void ChunkMesher::greedyMeshSection(
         const float faceShade = getFaceShade(face);
         for (const auto& layer : faceLayers) {
             const u32 tintColor = resolveTintColor(chunk, x, baseY + y, z, block, layer.tintIndex);
-            shadedLayerColors.push_back(applyShadeToPackedColor(tintColor, faceShade));
+            shadedLayerColors.push_back(
+                applyBlockAlpha(
+                    applyShadeToPackedColor(tintColor, faceShade),
+                    block
+                )
+            );
         }
 
         cell.visible = true;

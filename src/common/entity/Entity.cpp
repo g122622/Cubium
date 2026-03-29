@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <sstream>
 #include <chrono>
+#include <cmath>
 
 namespace mc {
 
@@ -128,11 +129,22 @@ void Entity::baseTick() {
 void Entity::updateEnvironmentState() {
     // 如果有世界引用，检测水中/岩浆中状态
     if (m_world) {
-        // 检测当前位置的方块
-        // TODO: 实现完整的液体检测
-        // 暂时通过位置简单判断
-        m_inWater = false;
-        m_inLava = false;
+        // 检测实体眼睛高度位置是否在液体中
+        // 参考 MC 1.16.5 Entity.updateFluidOnEyes()
+        const f32 eyeY = m_position.y + eyeHeight();
+
+        // 检测眼睛位置是否在水中或岩浆中
+        m_inWater = m_world->isWaterAt(
+            static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(eyeY)),
+            static_cast<i32>(std::floor(m_position.z))
+        );
+
+        m_inLava = m_world->isLavaAt(
+            static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(eyeY)),
+            static_cast<i32>(std::floor(m_position.z))
+        );
     }
 }
 

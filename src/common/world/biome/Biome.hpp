@@ -2,6 +2,7 @@
 
 #include "../../core/Types.hpp"
 #include "../block/Block.hpp"
+#include "BiomeEffects.hpp"
 #include "BiomeGenerationSettings.hpp"
 #include "../spawn/MobSpawnInfo.hpp"
 #include <string>
@@ -138,6 +139,39 @@ public:
     [[nodiscard]] f32 creatureSpawnProbability() const { return m_creatureSpawnProbability; }
     void setCreatureSpawnProbability(f32 prob) { m_creatureSpawnProbability = prob; }
 
+    // === 视觉效果 ===
+
+    /**
+     * @brief 获取生物群系视觉效果
+     * @return BiomeEffects 引用
+     */
+    [[nodiscard]] const world::biome::BiomeEffects& effects() const { return m_effects; }
+    [[nodiscard]] world::biome::BiomeEffects& effects() { return m_effects; }
+
+    /**
+     * @brief 设置生物群系视觉效果
+     * @param effects 视觉效果配置
+     */
+    void setEffects(const world::biome::BiomeEffects& effects) { m_effects = effects; }
+
+    /**
+     * @brief 获取水体颜色
+     * @return 水体颜色 (ARGB格式)
+     */
+    [[nodiscard]] u32 waterColor() const { return m_effects.waterColor(); }
+
+    /**
+     * @brief 获取水下雾颜色
+     * @return 水下雾颜色 (ARGB格式)
+     */
+    [[nodiscard]] u32 waterFogColor() const { return m_effects.waterFogColor(); }
+
+    /**
+     * @brief 获取雾颜色
+     * @return 雾颜色 (ARGB格式)
+     */
+    [[nodiscard]] u32 fogColor() const { return m_effects.fogColor(); }
+
 private:
     BiomeId m_id;
     String m_name;
@@ -165,6 +199,9 @@ private:
     // 生物生成设置
     world::spawn::MobSpawnInfo m_spawnInfo;
     f32 m_creatureSpawnProbability = 10.0f / 128.0f;  ///< 动物生成概率，默认 ~7.8%
+
+    // 视觉效果
+    world::biome::BiomeEffects m_effects;  ///< 生物群系视觉效果（水体颜色、雾颜色等）
 };
 
 // ============================================================================

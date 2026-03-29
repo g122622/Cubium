@@ -625,6 +625,7 @@ void ResourceManager::computeBlockAppearances() {
 
     spdlog::info("computeBlockAppearances: {} total, {} with textures",
                  totalAppearances, appearancesWithTextures);
+
 }
 
 const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& texLoc) const {
