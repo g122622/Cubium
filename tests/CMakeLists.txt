@@ -81,6 +81,7 @@ add_executable(mc_tests
     client/renderer/test_gui_item_color.cpp
     client/resource/test_entity_texture_loader.cpp
     client/resource/ItemTextureAtlasTest.cpp
+    client/resource/TextureAtlasBuilderTest.cpp
     client/resource/test_resource_manager_cloud_texture.cpp
     network/EntityPacketsTest.cpp
     network/LocalServerConnectionTest.cpp

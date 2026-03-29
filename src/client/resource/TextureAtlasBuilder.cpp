@@ -10,8 +10,44 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace mc {
+
+namespace {
+
+[[nodiscard]] std::vector<u8> extractTopLeftFrameRgba(
+    const std::vector<u8>& pixels,
+    u32 imageWidth,
+    u32 imageHeight,
+    u32 frameWidth,
+    u32 frameHeight)
+{
+    if (frameWidth == 0 || frameHeight == 0
+        || frameWidth > imageWidth
+        || frameHeight > imageHeight
+        || pixels.size() < static_cast<size_t>(imageWidth) * static_cast<size_t>(imageHeight) * 4) {
+        return pixels;
+    }
+
+    if (frameWidth == imageWidth && frameHeight == imageHeight) {
+        return pixels;
+    }
+
+    std::vector<u8> framePixels(
+        static_cast<size_t>(frameWidth) * static_cast<size_t>(frameHeight) * 4,
+        0);
+
+    for (u32 y = 0; y < frameHeight; ++y) {
+        const u8* src = pixels.data() + (static_cast<size_t>(y) * imageWidth * 4);
+        u8* dst = framePixels.data() + (static_cast<size_t>(y) * frameWidth * 4);
+        std::memcpy(dst, src, static_cast<size_t>(frameWidth) * 4);
+    }
+
+    return framePixels;
+}
+
+} // namespace
 
 TextureAtlasBuilder::TextureAtlasBuilder()
     : m_maxWidth(4096)
@@ -80,16 +116,46 @@ void TextureAtlasBuilder::addTexture(
     u32 width,
     u32 height)
 {
+    addTextureFrame(location, pixels, width, height, width, height);
+}
+
+void TextureAtlasBuilder::addTextureFrame(
+    const ResourceLocation& location,
+    const std::vector<u8>& pixels,
+    u32 width,
+    u32 height,
+    u32 frameWidth,
+    u32 frameHeight)
+{
     // 检查是否已添加
     if (m_addedLocations.count(location) > 0) {
         return;
     }
 
+    if (width == 0 || height == 0) {
+        return;
+    }
+
+    const u32 normalizedFrameWidth = (frameWidth == 0) ? width : frameWidth;
+    const u32 normalizedFrameHeight = (frameHeight == 0) ? height : frameHeight;
+
+    // 仅当帧尺寸合法且与整图不同才裁剪首帧。
+    const bool canUseFrameSize =
+        normalizedFrameWidth <= width
+        && normalizedFrameHeight <= height
+        && (width % normalizedFrameWidth == 0)
+        && (height % normalizedFrameHeight == 0);
+
+    const u32 storedWidth = canUseFrameSize ? normalizedFrameWidth : width;
+    const u32 storedHeight = canUseFrameSize ? normalizedFrameHeight : height;
+
     TextureInfo info;
     info.location = location;
-    info.pixels = pixels;
-    info.width = width;
-    info.height = height;
+    info.pixels = canUseFrameSize
+        ? extractTopLeftFrameRgba(pixels, width, height, storedWidth, storedHeight)
+        : pixels;
+    info.width = storedWidth;
+    info.height = storedHeight;
 
     m_textures.push_back(std::move(info));
     m_addedLocations.insert(location);

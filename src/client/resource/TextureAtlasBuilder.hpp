@@ -59,6 +59,15 @@ public:
         u32 width,
         u32 height);
 
+    // 添加纹理并按动画首帧尺寸裁剪（用于MC动画长条贴图）
+    void addTextureFrame(
+        const ResourceLocation& location,
+        const std::vector<u8>& pixels,
+        u32 width,
+        u32 height,
+        u32 frameWidth,
+        u32 frameHeight);
+
     // 构建图集
     [[nodiscard]] Result<AtlasBuildResult> build();
 

@@ -7,6 +7,7 @@
 #include "../../common/item/ItemRegistry.hpp"
 #include "../../common/item/BlockItem.hpp"
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 // stb_image - only header, implementation in TextureAtlasBuilder.cpp
 #include <stb_image.h>
@@ -17,14 +18,70 @@ namespace mc::client {
 
 namespace {
 
+[[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
+    const std::vector<u8>& mcmetaData,
+    u32 imageWidth,
+    u32 imageHeight,
+    u32& outFrameWidth,
+    u32& outFrameHeight)
+{
+    if (mcmetaData.empty() || imageWidth == 0 || imageHeight == 0) {
+        return false;
+    }
+
+    try {
+        const String jsonText(mcmetaData.begin(), mcmetaData.end());
+        const auto json = nlohmann::json::parse(jsonText);
+        if (!json.is_object() || !json.contains("animation") || !json["animation"].is_object()) {
+            return false;
+        }
+
+        const auto& animation = json["animation"];
+        i32 frameWidth = animation.value("width", 0);
+        i32 frameHeight = animation.value("height", 0);
+
+        if (frameWidth <= 0 && frameHeight <= 0) {
+            frameWidth = static_cast<i32>(imageWidth);
+            frameHeight = static_cast<i32>(imageWidth);
+        } else if (frameWidth <= 0) {
+            frameWidth = frameHeight;
+        } else if (frameHeight <= 0) {
+            frameHeight = frameWidth;
+        }
+
+        if (frameWidth <= 0 || frameHeight <= 0) {
+            return false;
+        }
+
+        if (frameWidth > static_cast<i32>(imageWidth)
+            || frameHeight > static_cast<i32>(imageHeight)) {
+            return false;
+        }
+
+        if ((imageWidth % static_cast<u32>(frameWidth)) != 0
+            || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
+            return false;
+        }
+
+        outFrameWidth = static_cast<u32>(frameWidth);
+        outFrameHeight = static_cast<u32>(frameHeight);
+        return true;
+    } catch (const nlohmann::json::exception&) {
+        return false;
+    }
+}
+
 Result<void> loadTexturePixels(
     IResourcePack& pack,
     const ResourceLocation& location,
     std::vector<u8>& outPixels,
     u32& outWidth,
-    u32& outHeight)
+    u32& outHeight,
+    u32& outFrameWidth,
+    u32& outFrameHeight)
 {
-    const auto readResult = pack.readResource(location.toFilePath("png"));
+    const String pngPath = location.toFilePath("png");
+    const auto readResult = pack.readResource(pngPath);
     if (readResult.failed()) {
         return readResult.error();
     }
@@ -50,6 +107,22 @@ Result<void> loadTexturePixels(
 
     outWidth = static_cast<u32>(width);
     outHeight = static_cast<u32>(height);
+    outFrameWidth = outWidth;
+    outFrameHeight = outHeight;
+
+    const String mcmetaPath = pngPath + ".mcmeta";
+    if (pack.hasResource(mcmetaPath)) {
+        const auto mcmetaResult = pack.readResource(mcmetaPath);
+        if (mcmetaResult.success()) {
+            parseAnimatedFrameSizeFromMcmeta(
+                mcmetaResult.value(),
+                outWidth,
+                outHeight,
+                outFrameWidth,
+                outFrameHeight);
+        }
+    }
+
     outPixels.assign(pixels, pixels + (static_cast<size_t>(outWidth) * static_cast<size_t>(outHeight) * 4));
     stbi_image_free(pixels);
     return {};
@@ -313,7 +386,16 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(
                 std::vector<u8> pixels;
                 u32 width = 0;
                 u32 height = 0;
-                const auto loadResult = loadTexturePixels(*pack, sourceLoc, pixels, width, height);
+                u32 frameWidth = 0;
+                u32 frameHeight = 0;
+                const auto loadResult = loadTexturePixels(
+                    *pack,
+                    sourceLoc,
+                    pixels,
+                    width,
+                    height,
+                    frameWidth,
+                    frameHeight);
                 if (loadResult.success()) {
                     constexpr u32 MAX_ICON_SIZE = 64;
                     if (width > MAX_ICON_SIZE || height > MAX_ICON_SIZE) {
@@ -322,9 +404,17 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(
                         pixels = resizeNearestRGBA(pixels, width, height, dstWidth, dstHeight);
                         width = dstWidth;
                         height = dstHeight;
+                        frameWidth = std::min(frameWidth, dstWidth);
+                        frameHeight = std::min(frameHeight, dstHeight);
                     }
 
-                    builder.addTexture(atlasKey, pixels, width, height);
+                    builder.addTextureFrame(
+                        atlasKey,
+                        pixels,
+                        width,
+                        height,
+                        frameWidth,
+                        frameHeight);
                     return true;
                 }
             }

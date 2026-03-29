@@ -3,6 +3,7 @@
 #include "../common/resource/compat/TextureMapper.hpp"
 #include "../common/resource/compat/ResourceMapper.hpp"
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include <cctype>
 
@@ -124,6 +125,66 @@ bool matchConditions(
     return true;
 }
 
+[[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
+    const std::vector<u8>& mcmetaData,
+    u32 imageWidth,
+    u32 imageHeight,
+    u32& outFrameWidth,
+    u32& outFrameHeight)
+{
+    if (imageWidth == 0 || imageHeight == 0 || mcmetaData.empty()) {
+        return false;
+    }
+
+    try {
+        const String jsonText(mcmetaData.begin(), mcmetaData.end());
+        const auto json = nlohmann::json::parse(jsonText);
+
+        if (!json.is_object() || !json.contains("animation") || !json["animation"].is_object()) {
+            return false;
+        }
+
+        const auto& animation = json["animation"];
+        const i32 configuredWidth = animation.value("width", 0);
+        const i32 configuredHeight = animation.value("height", 0);
+
+        // 对齐 MC 行为：
+        // - 未配置时默认使用方形帧（frame = imageWidth）
+        // - 仅配置单边时，另一边沿用同值
+        i32 frameWidth = configuredWidth;
+        i32 frameHeight = configuredHeight;
+
+        if (frameWidth <= 0 && frameHeight <= 0) {
+            frameWidth = static_cast<i32>(imageWidth);
+            frameHeight = static_cast<i32>(imageWidth);
+        } else if (frameWidth <= 0) {
+            frameWidth = frameHeight;
+        } else if (frameHeight <= 0) {
+            frameHeight = frameWidth;
+        }
+
+        if (frameWidth <= 0 || frameHeight <= 0) {
+            return false;
+        }
+
+        if (frameWidth > static_cast<i32>(imageWidth)
+            || frameHeight > static_cast<i32>(imageHeight)) {
+            return false;
+        }
+
+        if ((imageWidth % static_cast<u32>(frameWidth)) != 0
+            || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
+            return false;
+        }
+
+        outFrameWidth = static_cast<u32>(frameWidth);
+        outFrameHeight = static_cast<u32>(frameHeight);
+        return true;
+    } catch (const nlohmann::json::exception&) {
+        return false;
+    }
+}
+
 } // namespace
 
 Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack) {
@@ -217,10 +278,30 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
                             std::vector<u8> pixelData(pixels, pixels + width * height * 4);
                             stbi_image_free(pixels);
 
+                            u32 frameWidth = static_cast<u32>(width);
+                            u32 frameHeight = static_cast<u32>(height);
+
+                            const String mcmetaPath = filePath + ".mcmeta";
+                            if (pack->hasResource(mcmetaPath)) {
+                                const auto mcmetaResult = pack->readResource(mcmetaPath);
+                                if (mcmetaResult.success()) {
+                                    parseAnimatedFrameSizeFromMcmeta(
+                                        mcmetaResult.value(),
+                                        static_cast<u32>(width),
+                                        static_cast<u32>(height),
+                                        frameWidth,
+                                        frameHeight);
+                                }
+                            }
+
                             // 用原始请求名称注册
-                            builder.addTexture(texLoc, pixelData,
-                                               static_cast<u32>(width),
-                                               static_cast<u32>(height));
+                            builder.addTextureFrame(
+                                texLoc,
+                                pixelData,
+                                static_cast<u32>(width),
+                                static_cast<u32>(height),
+                                frameWidth,
+                                frameHeight);
                             added = true;
                             addedCount++;
 
