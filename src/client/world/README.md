@@ -459,13 +459,59 @@ world.destroy();
    ```
 
 3. **边界方块的网格更新**
-   
+
    当方块位于区块边界时，修改方块需要同时更新相邻区块的网格，否则会出现渲染空洞。
-   
+
    ```cpp
    // setBlock 后检查边界
    if (localX == 0) scheduleChunkMeshRebuild(ChunkId(chunkX - 1, chunkZ));
    if (localX == CHUNK_WIDTH - 1) scheduleChunkMeshRebuild(ChunkId(chunkX + 1, chunkZ));
+   ```
+
+   **区块加载时同样需要处理**：当新区块加载时，需要通知已存在的邻居区块重建网格，以修复边界面剔除问题。
+
+   ```cpp
+   // onChunkData 中
+   m_meshWorkerPool->submitTask(id, chunkData, neighbors, priority);
+   scheduleNeighborMeshRebuild(id);  // 通知邻居重建
+   ```
+
+   这是因为：
+   - 区块 A 先加载时，邻居 B 不存在，A 的边界面被渲染
+   - 区块 B 后加载时，B 能正确剔除靠近 A 的边界面
+   - 但 A 的网格没有重建，A 靠近 B 的边界面仍然渲染
+   - 结果：边界处出现重复面或穿模
+
+4. **异步网格构建时的邻居重建竞态**
+
+   当邻居区块正在异步构建网格时，不能立即重建它。解决方案是使用 `needsNeighborRebuild` 标志：
+
+   ```cpp
+   struct ClientChunk {
+       // ...
+       bool meshBuilding = false;         // 是否正在构建网格
+       bool needsNeighborRebuild = false; // 是否需要因邻居加载而重建
+   };
+   ```
+
+   ```cpp
+   // scheduleNeighborMeshRebuild 中
+   if (neighbor->meshBuilding) {
+       // 邻居正在构建，标记需要在构建完成后重建
+       neighbor->needsNeighborRebuild = true;
+   } else {
+       // 邻居未在构建，立即安排重建
+       scheduleChunkMeshRebuildAsync(neighborId, priority);
+   }
+   ```
+
+   ```cpp
+   // processMeshBuildResults 中
+   chunk->meshBuilding = false;
+   if (chunk->needsNeighborRebuild) {
+       chunk->needsNeighborRebuild = false;
+       scheduleChunkMeshRebuildAsync(result.chunkId, priority);
+   }
    ```
 
 4. **实体位置插值**

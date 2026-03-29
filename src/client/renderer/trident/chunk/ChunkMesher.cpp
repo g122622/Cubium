@@ -364,14 +364,19 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
         return false;
     }
 
-    // 液体特殊规则：
-    // - 同类型液体之间不渲染内部面（海洋场景显存暴涨的主要来源）
-    // - 不同类型液体（如水/岩浆）之间保留边界面
+    // 液体渲染规则：
+    // - 邻居不存在或空气 → 渲染（外露面）
+    // - 邻居是液体 → 剔除（液体之间不渲染内部面，包括同类型和不同类型）
+    // - 邻居是透明方块（非液体） → 渲染（如水贴玻璃）
+    // - 邻居是不透明方块 → 剔除（被遮挡）
     if (block->isLiquid()) {
         if (neighbor->isLiquid()) {
-            return block->blockId() != neighbor->blockId();
+            return false;  // 液体之间不渲染面
         }
-        return true;
+        if (neighbor->isTransparent()) {
+            return true;   // 液体贴透明方块时渲染面
+        }
+        return false;  // 液体贴不透明方块时剔除
     }
 
     // 非液体方块与液体相邻，需要渲染交界面

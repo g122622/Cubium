@@ -33,6 +33,7 @@ struct ClientChunk {
     bool isGenerating = false;
     bool isLoaded = false;
     bool meshBuilding = false;  // 是否正在异步构建网格
+    bool needsNeighborRebuild = false;  // 是否需要因邻居加载而重建网格
 };
 
 /**
@@ -343,6 +344,12 @@ private:
     void generateChunk(ClientChunk& chunk);
     void rebuildMesh(ClientChunk& chunk);
     void scheduleChunkMeshRebuild(const ChunkId& id);
+
+    // 异步重建区块网格（使用线程池）
+    void scheduleChunkMeshRebuildAsync(const ChunkId& id, i32 priority = static_cast<i32>(world::ChunkLoadPriority::Normal));
+
+    // 通知已存在的邻居区块重建网格（在新区块加载后调用）
+    void scheduleNeighborMeshRebuild(const ChunkId& id);
 
     // 获取相邻区块
     void getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6]);

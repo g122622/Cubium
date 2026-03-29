@@ -433,6 +433,43 @@ void ClientWorld::scheduleChunkMeshRebuild(const ChunkId& id) {
     //              chunk->solidMesh.indexCount());
 }
 
+void ClientWorld::scheduleChunkMeshRebuildAsync(const ChunkId& id, i32 priority) {
+    ClientChunk* chunk = getChunk(id);
+    if (!chunk || !chunk->data || chunk->meshBuilding) {
+        return;
+    }
+
+    chunk->meshBuilding = true;
+    auto neighbors = getNeighborChunkData(id);
+    m_meshWorkerPool->submitTask(id, chunk->data, neighbors, priority);
+}
+
+void ClientWorld::scheduleNeighborMeshRebuild(const ChunkId& id) {
+    // 四个方向的邻居
+    ChunkId neighborIds[4] = {
+        ChunkId(id.x - 1, id.z),  // -X
+        ChunkId(id.x + 1, id.z),  // +X
+        ChunkId(id.x, id.z - 1),  // -Z
+        ChunkId(id.x, id.z + 1)   // +Z
+    };
+
+    for (const auto& neighborId : neighborIds) {
+        ClientChunk* neighbor = getChunk(neighborId);
+        if (!neighbor || !neighbor->data || !neighbor->isLoaded) {
+            continue;  // 邻居不存在或未加载
+        }
+
+        if (neighbor->meshBuilding) {
+            // 邻居正在构建，标记需要在构建完成后重建
+            neighbor->needsNeighborRebuild = true;
+        } else {
+            // 邻居未在构建，立即安排重建
+            i32 priority = static_cast<i32>(calculatePriority(neighborId, m_cameraPosition)) + 1;
+            scheduleChunkMeshRebuildAsync(neighborId, priority);
+        }
+    }
+}
+
 std::array<std::shared_ptr<const ChunkData>, 6> ClientWorld::getNeighborChunkData(const ChunkId& id) {
     std::array<std::shared_ptr<const ChunkData>, 6> neighbors;
 
@@ -527,6 +564,9 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data
         auto neighbors = getNeighborChunkData(id);
         i32 priority = static_cast<i32>(calculatePriority(id, m_cameraPosition));
         m_meshWorkerPool->submitTask(id, chunkData, neighbors, priority);
+
+        // 通知已存在的邻居区块重建网格（修复边界面的剔除问题）
+        scheduleNeighborMeshRebuild(id);
     } else {
         // 回退到同步构建（如果线程池不可用）
         ClientChunk* chunkPtr = getChunk(id);
@@ -643,6 +683,13 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame) {
             }
 
             chunk->meshBuilding = false;
+
+            // 如果在构建期间有新邻居加载，需要重建网格
+            if (chunk->needsNeighborRebuild) {
+                chunk->needsNeighborRebuild = false;
+                i32 priority = static_cast<i32>(calculatePriority(result.chunkId, m_cameraPosition)) + 1;
+                scheduleChunkMeshRebuildAsync(result.chunkId, priority);
+            }
         },
         dynamicBudget
     );
