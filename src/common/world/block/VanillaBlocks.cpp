@@ -426,6 +426,11 @@ void VanillaBlocks::registerBaseBlocks() {
     AIR = &registry.registerBlock<AirBlock>(
         ResourceLocation("minecraft:air"),
         BlockProperties(Material::AIR)
+            .noCollision()
+            .notSolid()
+            .replaceable()
+            .opacity(0)
+            .propagatesSkylightDown()
     );
 
     // 石头 - ID 1
@@ -471,7 +476,8 @@ void VanillaBlocks::registerBaseBlocks() {
     // 水 - ID 6
     // 使用LiquidBlock注册，关联FlowingFluid
     // 参考: net.minecraft.block.FlowingFluidBlock
-    // 水：透明度2，传播天空光，tick延迟5
+    // 视觉修正：当前渲染链路下，opacity=1 会导致海底在约 15 格深度后出现纯黑。
+    // 这里改为 opacity=0，保留不传播天空光语义，同时避免“y48 以下全黑”的断崖现象。
     {
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
             fluid::FluidRegistry::WATER_ID);
@@ -481,7 +487,7 @@ void VanillaBlocks::registerBaseBlocks() {
                 WATER = &registry.registerBlock<block::LiquidBlock>(
                     ResourceLocation("minecraft:water"),
                     *flowingWater,
-                    BlockProperties(Material::WATER).noCollision().notSolid().opacity(2).propagatesSkylightDown()
+                    BlockProperties(Material::WATER).noCollision().notSolid().opacity(0)
                 );
             }
         }
@@ -541,10 +547,10 @@ void VanillaBlocks::registerBaseBlocks() {
     );
 
     // 玻璃 - ID 20 (调整后的ID)
-    // 玻璃：透明度0，不传播天空光（完全透明但阻挡天空光）
+    // 玻璃：完全透光并传播天空光
     GLASS = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:glass"),
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid()
+        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().opacity(0).propagatesSkylightDown()
     );
 
     // 下界岩 - ID 21

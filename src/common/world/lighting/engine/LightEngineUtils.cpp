@@ -49,6 +49,14 @@ const BlockState* LightEngineUtils::getBlockAndOpacity(
         return nullptr;
     }
 
+    // 空气方块按“无方块”处理，避免误参与光照遮挡计算。
+    if (state->isAir()) {
+        if (opacityOut != nullptr) {
+            *opacityOut = 0;
+        }
+        return nullptr;
+    }
+
     if (opacityOut != nullptr) {
         *opacityOut = state->getOpacity();
     }

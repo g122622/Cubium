@@ -73,8 +73,9 @@ void BlockState::cacheProperties() {
     m_isLiquid = m_owner->material().isLiquid();
     m_isFlammable = m_owner->material().isFlammable();
     m_lightLevel = m_owner->lightLevel();
-    m_opacity = m_owner->opacity();
-    m_propagatesSkylightDown = m_owner->doesPropagateSkylightDown();
+    // 与 Java 版对齐：通过虚函数计算缓存值，确保子类重写生效。
+    m_opacity = m_owner->getOpacity(*this, nullptr, nullptr);
+    m_propagatesSkylightDown = m_owner->propagatesSkylightDown(*this, nullptr, nullptr);
     m_hardness = m_owner->hardness();
     m_resistance = m_owner->resistance();
     m_blockId = m_owner->blockId();
@@ -358,11 +359,20 @@ bool Block::isOpaque(const BlockState& state) const {
 i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* pos) const {
     (void)world;
     (void)pos;
-    // 默认实现：如果不透明则返回15（完全阻挡光线），否则返回属性值
+    // 默认实现对齐 Java 1.16.5：
+    // - 不透明方块 -> 15
+    // - 透明方块且显式设置 opacity -> 使用显式值
+    // - 透明方块未显式设置 opacity（默认 15 作为哨兵）
+    //   -> propagatesSkylightDown ? 0 : 1
     if (isOpaque(state)) {
         return 15;
     }
-    return m_opacity;
+
+    if (m_opacity != 15) {
+        return m_opacity;
+    }
+
+    return propagatesSkylightDown(state, world, pos) ? 0 : 1;
 }
 
 bool Block::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const {

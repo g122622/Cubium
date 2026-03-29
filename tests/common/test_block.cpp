@@ -196,6 +196,12 @@ TEST(BlockPropertiesTest, Strength) {
     EXPECT_EQ(props.resistance(), 2.5f);
 }
 
+TEST(BlockPropertiesTest, TransparentDefaultOpacityMatchesVanillaRule) {
+    // 非不透明方块在未显式设置 opacity 时，默认应为 1（非全黑遮挡）。
+    TestBlock glassLike{BlockProperties{Material::GLASS}.notSolid()};
+    EXPECT_EQ(glassLike.defaultState().getOpacity(), 1);
+}
+
 // ============================================================================
 // StateContainer 测试
 // ============================================================================
@@ -600,6 +606,16 @@ TEST(VanillaBlocksTest, Initialization) {
 
     // 检查哭泣的黑曜石发光
     EXPECT_EQ(VanillaBlocks::CRYING_OBSIDIAN->defaultState().lightLevel(), 10);
+
+    // 光照参数回归测试：防止透明/液体方块导致异常发黑
+    EXPECT_EQ(VanillaBlocks::AIR->defaultState().getOpacity(), 0);
+    EXPECT_TRUE(VanillaBlocks::AIR->defaultState().propagatesSkylightDown());
+
+    EXPECT_EQ(VanillaBlocks::WATER->defaultState().getOpacity(), 0);
+    EXPECT_FALSE(VanillaBlocks::WATER->defaultState().propagatesSkylightDown());
+
+    EXPECT_EQ(VanillaBlocks::GLASS->defaultState().getOpacity(), 0);
+    EXPECT_TRUE(VanillaBlocks::GLASS->defaultState().propagatesSkylightDown());
 }
 
 TEST(BlockStateTest, Caching) {
