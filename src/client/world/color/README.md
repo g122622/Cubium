@@ -1,15 +1,24 @@
 # Color 模块
 
-本目录包含客户端颜色解析系统，负责从生物群系获取各种颜色值（草、树叶、水体等）。
+本目录包含客户端颜色解析系统，负责从生物群系获取各种颜色值（草、树叶、水体等）以及生物群系边界处的颜色平滑过渡。
 
 ## 目录结构
 
 ```
 color/
-├── ColorResolver.hpp    # 颜色解析器接口
-├── BiomeColors.hpp      # 生物群系颜色解析器和常量
-├── BiomeColors.cpp      # 实现文件
-└── README.md            # 本文档
+├── ColorResolver.hpp       # 颜色解析器接口
+├── BiomeColors.hpp         # 生物群系颜色解析器和常量
+├── BiomeColors.cpp         # 实现文件
+├── blend/                  # 生物群系颜色混合模块
+│   ├── blend.hpp           # 统一头文件
+│   ├── BiomeColorCache.hpp # 颜色缓存
+│   ├── BiomeColorCache.cpp
+│   ├── BiomeColorBlender.hpp # 颜色混合器
+│   ├── BiomeColorBlender.cpp
+│   ├── ChunkBiomeAccessor.hpp # 区块生物群系访问器
+│   ├── ChunkBiomeAccessor.cpp
+│   └── README.md           # blend 模块文档
+└── README.md               # 本文档
 ```
 
 ## 文件详细说明
@@ -62,6 +71,38 @@ BiomeColors.grassColorResolver().getColor(biome, x, z)
     └─ 调用方检测 0xFFFFFFFF，从 grass colormap 计算
 ```
 
+### blend/ 子模块
+
+**职责**：实现生物群系边界处的颜色平滑过渡。
+
+**主要组件**：
+
+| 类 | 描述 |
+|---|---|
+| `BiomeColorBlender` | 颜色混合器，在 (2r+1)×(2r+1) 区域内平均颜色 |
+| `BiomeColorCache` | 按区块缓存计算结果，避免重复计算 |
+| `ChunkBiomeAccessor` | 区块生物群系访问器，支持邻居区块查询 |
+
+**使用示例**：
+```cpp
+// 创建混合器
+BiomeColorBlender blender;
+blender.setBlendRadius(2);  // 5x5 混合区域
+
+// 创建访问器
+std::array<const ChunkData*, 4> neighbors = {west, east, north, south};
+ChunkBiomeAccessor accessor(chunk, neighbors, chunkX, chunkZ);
+
+// 获取混合后的草颜色
+u32 grassColor = blender.getBlendedColorCached(
+    accessor, x, y, z,
+    BiomeColors::grassColorResolver(),
+    BiomeColorBlender::ResolverId::Grass
+);
+```
+
+详细文档见 [blend/README.md](blend/README.md)。
+
 ## 颜色常量
 
 ### 特殊树叶颜色
@@ -75,7 +116,7 @@ BiomeColors.grassColorResolver().getColor(biome, x, z)
 
 | 生物群系 | 草颜色 | 树叶颜色 | 说明 |
 |---------|--------|----------|------|
-| 沼泽 | `0x6A7039` / `0x4C6139` | `0x6A7039` / `0x4C6139` | 双色噪声混合 |
+| 沼泽 | `0x6A7039` / `0x4C613C` | `0x6A7039` / `0x4C613C` | 双色噪声混合 |
 | 黑森林 | `0x507A50` | 从 colormap | 草颜色变暗 |
 | 恶地 | `0x90814D` | `0x9E814D` | 特殊黄褐色 |
 
@@ -93,25 +134,39 @@ BiomeColors.grassColorResolver().getColor(biome, x, z)
 ## 模块关系图
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                     ChunkMesher                                 │
-│                          │                                      │
-│                          ▼                                      │
-│                   resolveTintColor()                            │
-│                          │                                      │
-│                          ▼                                      │
-│                   BiomeColors.waterColorResolver()              │
-│                          │                                      │
-│                          ▼                                      │
-│                   WaterColorResolver.getColor()                 │
-│                          │                                      │
-│                          ▼                                      │
-│                      Biome.waterColor()                         │
-│                          │                                      │
-│                          ▼                                      │
-│                    BiomeEffects                                 │
-│                   (存储实际颜色值)                               │
-└────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          ChunkMesher                                 │
+│                               │                                      │
+│                               ▼                                      │
+│              resolveTintColorBlended()                               │
+│                               │                                      │
+│                               ▼                                      │
+│                     BiomeColorBlender                                │
+│                      /            \                                  │
+│                     /              \                                 │
+│              BiomeColorCache    ChunkBiomeAccessor                   │
+│                     │                  │                             │
+│                     │                  ▼                             │
+│                     │           ChunkData + 邻居区块                  │
+│                     │                  │                             │
+│                     ▼                  ▼                             │
+│              [缓存结果]           BiomeRegistry                       │
+│                                        │                             │
+│                                        ▼                             │
+│                                   Biome                              │
+│                                        │                             │
+│                                        ▼                             │
+│                              ColorResolver                           │
+│                    ┌──────────┼──────────┐                          │
+│                    │          │          │                          │
+│             GrassResolver FoliageResolver WaterResolver             │
+│                    │          │          │                          │
+│                    └──────────┴──────────┘                          │
+│                               │                                      │
+│                               ▼                                      │
+│                         BiomeEffects                                 │
+│                        (存储实际颜色值)                               │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 与其他模块的交互
@@ -121,6 +176,7 @@ BiomeColors.grassColorResolver().getColor(biome, x, z)
 ```
 common/world/biome/Biome.hpp          # 生物群系定义
 common/world/biome/BiomeEffects.hpp   # 视觉效果
+common/world/chunk/ChunkData.hpp      # 区块数据（用于 ChunkBiomeAccessor）
 common/util/math/random/Random.hpp    # 随机数（噪声计算）
 ```
 
@@ -169,6 +225,18 @@ if (color == 0xFFFFFFFF) {
 vertex.color = packColor(color);
 ```
 
+### 获取混合后的颜色（带生物群系渐变）
+
+```cpp
+#include "client/world/color/blend/blend.hpp"
+
+// 设置混合半径（默认 2，即 5x5 混合区域）
+ChunkMesher::setBiomeBlendRadius(2);
+
+// 在 ChunkMesher 中，颜色自动通过 resolveTintColorBlended 获取
+// 该方法内部使用 BiomeColorBlender 实现平滑过渡
+```
+
 ### 沼泽颜色混合
 
 ```cpp
@@ -176,7 +244,7 @@ vertex.color = packColor(color);
 u32 swampColor = BiomeColors::calculateSwampColor(
     blockPos.x, blockPos.z,
     0x6A7039,  // 浅色
-    0x4C6139   // 深色
+    0x4C613C   // 深色
 );
 ```
 
@@ -218,6 +286,23 @@ u32 swampColor = BiomeColors::calculateSwampColor(
 - 沼泽使用位置进行双色混合
 - 保持接口统一，非沼泽实现可忽略位置参数
 
+### 5. 生物群系混合半径
+
+**问题**：混合半径太大导致性能问题，太小导致颜色突变。
+
+**解决方案**：
+- MC 默认使用半径 2（5x5 混合区域）
+- 用户可在设置中调整（0-7）
+- 半径 0 表示禁用混合
+
+### 6. 缓存一致性
+
+**问题**：区块卸载后缓存未清理。
+
+**解决方案**：
+- 区块卸载时调用 `invalidateChunk()`
+- 同时清理邻居区块的边缘缓存
+
 ## 测试用例
 
 测试文件位于 `tests/client/world/color/`：
@@ -229,6 +314,11 @@ u32 swampColor = BiomeColors::calculateSwampColor(
 | GrassColorResolver_DarkForestReturnsFixed | 验证黑森林返回固定颜色 |
 | FoliageColorResolver_ReturnsOverride | 验证覆盖颜色优先级 |
 | BiomeColorsConstants_Correct | 验证颜色常量值正确 |
+| BiomeColorBlender_BlendRadius | 验证混合半径设置 |
+| BiomeColorBlender_ColorAveraging | 验证颜色平均计算 |
+| BiomeColorCache_CacheHit | 验证缓存命中 |
+| BiomeColorCache_CacheInvalidation | 验证缓存失效 |
+| ChunkBiomeAccessor_NeighborAccess | 验证邻居区块访问 |
 
 ## 参考资料
 
@@ -236,3 +326,4 @@ u32 swampColor = BiomeColors::calculateSwampColor(
 - MC 1.16.5 BiomeColors.java
 - MC 1.16.5 ColorResolver.java
 - MC 1.16.5 BiomeAmbience.java
+- MC 1.16.5 ClientWorld.getBlockColorRaw() (生物群系混合)

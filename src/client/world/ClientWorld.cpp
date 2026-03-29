@@ -281,6 +281,9 @@ void ClientWorld::unloadChunk(const ChunkId& id, std::vector<ChunkId>* outUnload
             m_chunkUnloadCallback(id);
         }
 
+        // 使生物群系颜色缓存失效
+        ChunkMesher::invalidateBiomeColorCache(id.x, id.z);
+
         m_chunks.erase(it);
         m_chunksUnloaded++;
         spdlog::debug("Unloaded chunk ({}, {})", id.x, id.z);

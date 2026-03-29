@@ -178,6 +178,8 @@ add_executable(mc_tests
     common/world/gen/DebugChunkGeneratorTest.cpp
     # 生物群系颜色测试
     client/world/color/BiomeColorsTest.cpp
+    # 生物群系颜色混合测试
+    client/world/color/blend/BiomeColorBlenderTest.cpp
 )
 
 # 添加服务端源文件
@@ -268,6 +270,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/surface/SurfaceBuilders.cpp
         # 生物群系颜色解析器
         ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/Feature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/FeatureSpread.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ConfiguredFeature.cpp
@@ -550,6 +555,9 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
             # 生物群系颜色
             ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
+            ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
+            ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
+            ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeEffects.cpp
             # 常用资源
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp

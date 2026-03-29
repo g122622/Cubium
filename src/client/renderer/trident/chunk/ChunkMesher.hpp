@@ -5,6 +5,7 @@
 #include "../../../../common/world/block/Block.hpp"
 #include "../../MeshTypes.hpp"
 #include "../../../settings/ClientSettings.hpp"
+#include "../../../world/color/blend/blend.hpp"
 #include <array>
 #include <memory>
 #include <functional>
@@ -169,6 +170,39 @@ public:
     }
 
     /**
+     * @brief 设置生物群系颜色混合半径
+     *
+     * @param radius 混合半径 (0-7)，默认为 2（5x5 混合区域）
+     *               0 表示禁用混合，直接使用当前生物群系颜色
+     */
+    static void setBiomeBlendRadius(i32 radius);
+
+    /**
+     * @brief 获取当前生物群系颜色混合半径
+     */
+    [[nodiscard]] static i32 biomeBlendRadius();
+
+    /**
+     * @brief 获取生物群系颜色混合器
+     */
+    [[nodiscard]] static client::BiomeColorBlender& biomeColorBlender() { return s_biomeColorBlender; }
+
+    /**
+     * @brief 使区块的颜色缓存失效
+     *
+     * 当区块卸载或生物群系变化时调用。
+     *
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     */
+    static void invalidateBiomeColorCache(ChunkCoord chunkX, ChunkCoord chunkZ);
+
+    /**
+     * @brief 清空所有生物群系颜色缓存
+     */
+    static void clearBiomeColorCache();
+
+    /**
      * @brief 采样指定坐标的合成光照（天空光/方块光取最大值）
      *
      * 用于区块网格构建阶段的光照查询。
@@ -210,7 +244,8 @@ private:
         u8 skyLight,
         u8 blockLight,
         const BlockState* block,
-        const BlockAppearance* appearance
+        const BlockAppearance* appearance,
+        const ChunkData* neighborChunks[6]
     );
 
     // 添加单个面的顶点（使用 BlockAppearance）- 平滑光照版本
@@ -230,6 +265,26 @@ private:
         i32 blockX,
         i32 blockY,
         i32 blockZ,
+        const BlockState* block,
+        i32 tintIndex
+    );
+
+    /**
+     * @brief 解析方块着色颜色（带生物群系混合）
+     *
+     * @param accessor 生物群系访问器
+     * @param worldX 方块世界X坐标
+     * @param worldY 方块世界Y坐标
+     * @param worldZ 方块世界Z坐标
+     * @param block 方块状态
+     * @param tintIndex 着色索引
+     * @return 打包的 RGBA 颜色值
+     */
+    [[nodiscard]] static u32 resolveTintColorBlended(
+        const client::ChunkBiomeAccessor& accessor,
+        i32 worldX,
+        i32 worldY,
+        i32 worldZ,
         const BlockState* block,
         i32 tintIndex
     );
@@ -283,6 +338,7 @@ private:
     static std::array<u32, 65536> s_foliageColorMap;
     static bool s_grassColorMapLoaded;
     static bool s_foliageColorMapLoaded;
+    static client::BiomeColorBlender s_biomeColorBlender;
 };
 
 // ============================================================================

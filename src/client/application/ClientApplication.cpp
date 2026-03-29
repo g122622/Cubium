@@ -1398,6 +1398,13 @@ void ClientApplication::applySettings()
 {
     // 设置变更回调在 setupSettingCallbacks 中设置
     // 这里应用初始设置值
+
+    // 应用光照模式（环境光遮蔽）
+    ChunkMesher::syncFromSettings(static_cast<client::AmbientOcclusionMode>(
+        m_settings.ambientOcclusion.get()));
+
+    // 应用生物群系颜色混合半径
+    ChunkMesher::setBiomeBlendRadius(m_settings.biomeBlendRadius.get());
 }
 
 void ClientApplication::setupSettingCallbacks()
@@ -1435,6 +1442,20 @@ void ClientApplication::setupSettingCallbacks()
     m_settings.fov.onChange([this](f32 value) {
         spdlog::info("FOV changed to: {}", value);
         m_camera.setFOV(value);
+    });
+
+    // 光照模式（环境光遮蔽）变更
+    m_settings.ambientOcclusion.onChange([this](u8 value) {
+        auto mode = static_cast<client::AmbientOcclusionMode>(value);
+        spdlog::info("Ambient occlusion changed to: {}", static_cast<i32>(mode));
+        ChunkMesher::syncFromSettings(mode);
+    });
+
+    // 生物群系颜色混合半径变更
+    m_settings.biomeBlendRadius.onChange([this](i32 value) {
+        spdlog::info("Biome blend radius changed to: {} ({}x{} area)",
+                     value, value * 2 + 1, value * 2 + 1);
+        ChunkMesher::setBiomeBlendRadius(value);
     });
 }
 

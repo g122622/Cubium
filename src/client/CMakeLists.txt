@@ -77,6 +77,9 @@ add_executable(minecraft-client
     # 世界
     world/ClientWorld.cpp
     world/color/BiomeColors.cpp
+    world/color/blend/BiomeColorCache.cpp
+    world/color/blend/BiomeColorBlender.cpp
+    world/color/blend/ChunkBiomeAccessor.cpp
     network/NetworkClient.cpp
     # 聊天系统
     chat/ChatHistory.cpp

@@ -3,6 +3,7 @@
 #include "../../../resource/BlockModelCache.hpp"
 #include "../../../resource/ResourceManager.hpp"
 #include "../../../world/color/BiomeColors.hpp"
+#include "../../../world/color/blend/ChunkBiomeAccessor.hpp"
 #include "../../../../common/perfetto/TraceEvents.hpp"
 #include "../../../../common/world/biome/BiomeRegistry.hpp"
 #include "../../../../common/world/biome/BiomeEffects.hpp"
@@ -27,6 +28,7 @@ std::array<u32, 65536> ChunkMesher::s_grassColorMap{};
 std::array<u32, 65536> ChunkMesher::s_foliageColorMap{};
 bool ChunkMesher::s_grassColorMapLoaded = false;
 bool ChunkMesher::s_foliageColorMapLoaded = false;
+client::BiomeColorBlender ChunkMesher::s_biomeColorBlender;
 
 namespace {
 
@@ -616,6 +618,77 @@ u32 ChunkMesher::resolveTintColor(
     return packRgb(0x91BD59);
 }
 
+u32 ChunkMesher::resolveTintColorBlended(
+    const client::ChunkBiomeAccessor& accessor,
+    i32 worldX,
+    i32 worldY,
+    i32 worldZ,
+    const BlockState* block,
+    i32 tintIndex
+) {
+    if (!block) {
+        return packVertexColor(255, 255, 255, 255);
+    }
+
+    // 水体颜色处理
+    if (block->isLiquid()) {
+        if (block->is(VanillaBlocks::WATER)) {
+            // 使用颜色混合器获取混合后的水体颜色
+            const u32 waterColor = s_biomeColorBlender.getBlendedColorCached(
+                accessor,
+                worldX, worldY, worldZ,
+                client::BiomeColors::waterColorResolver(),
+                client::BiomeColorBlender::ResolverId::Water
+            );
+            return packRgb(waterColor);
+        }
+        // 岩浆不使用着色
+        return packVertexColor(255, 255, 255, 255);
+    }
+
+    // 非 tint 着色的情况
+    if (tintIndex < 0) {
+        return packVertexColor(255, 255, 255, 255);
+    }
+
+    const bool isLeaves = block->is(VanillaBlocks::OAK_LEAVES)
+        || block->is(VanillaBlocks::JUNGLE_LEAVES)
+        || block->is(VanillaBlocks::ACACIA_LEAVES)
+        || block->is(VanillaBlocks::DARK_OAK_LEAVES)
+        || block->is(VanillaBlocks::SPRUCE_LEAVES)
+        || block->is(VanillaBlocks::BIRCH_LEAVES);
+
+    if (isLeaves) {
+        // 云杉和桦树叶使用固定颜色，不进行混合
+        if (block->is(VanillaBlocks::SPRUCE_LEAVES)) {
+            return packRgb(client::BiomeColors::SPRUCE_LEAVES_COLOR);
+        }
+        if (block->is(VanillaBlocks::BIRCH_LEAVES)) {
+            return packRgb(client::BiomeColors::BIRCH_LEAVES_COLOR);
+        }
+
+        // 其他树叶使用颜色混合器（混合器会处理 colormap）
+        const u32 foliageColor = s_biomeColorBlender.getBlendedColorCached(
+            accessor,
+            worldX, worldY, worldZ,
+            client::BiomeColors::foliageColorResolver(),
+            client::BiomeColorBlender::ResolverId::Foliage
+        );
+
+        return packRgb(foliageColor);
+    }
+
+    // 草色系：使用颜色混合器（混合器会处理 colormap）
+    const u32 grassColor = s_biomeColorBlender.getBlendedColorCached(
+        accessor,
+        worldX, worldY, worldZ,
+        client::BiomeColors::grassColorResolver(),
+        client::BiomeColorBlender::ResolverId::Grass
+    );
+
+    return packRgb(grassColor);
+}
+
 bool ChunkMesher::tryLoadColorMap(StringView path, std::array<u32, 65536>& outColorMap) {
     if (!s_modelCache || !s_modelCache->resourceManager()) {
         return false;
@@ -647,8 +720,32 @@ void ChunkMesher::refreshBiomeColorMaps() {
     s_grassColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/grass", s_grassColorMap);
     s_foliageColorMapLoaded = tryLoadColorMap("minecraft:textures/colormap/foliage", s_foliageColorMap);
 
+    // 设置 BiomeColorBlender 的 colormap 指针
+    s_biomeColorBlender.setGrassColorMap(s_grassColorMapLoaded ? &s_grassColorMap : nullptr);
+    s_biomeColorBlender.setFoliageColorMap(s_foliageColorMapLoaded ? &s_foliageColorMap : nullptr);
+
     spdlog::info("ChunkMesher: Biome color maps loaded (grass={}, foliage={})",
                  s_grassColorMapLoaded, s_foliageColorMapLoaded);
+}
+
+void ChunkMesher::setBiomeBlendRadius(i32 radius) {
+    s_biomeColorBlender.setBlendRadius(radius);
+    // 清除缓存，因为混合半径变化会使所有缓存失效
+    s_biomeColorBlender.clearCache();
+    spdlog::info("ChunkMesher: Biome blend radius set to {} ({}x{} area)",
+                 radius, radius * 2 + 1, radius * 2 + 1);
+}
+
+i32 ChunkMesher::biomeBlendRadius() {
+    return s_biomeColorBlender.blendRadius();
+}
+
+void ChunkMesher::invalidateBiomeColorCache(ChunkCoord chunkX, ChunkCoord chunkZ) {
+    s_biomeColorBlender.invalidateChunk(chunkX, chunkZ);
+}
+
+void ChunkMesher::clearBiomeColorCache() {
+    s_biomeColorBlender.clearCache();
 }
 
 void ChunkMesher::addFaceFromAppearance(
@@ -662,7 +759,8 @@ void ChunkMesher::addFaceFromAppearance(
     u8 skyLight,
     u8 blockLight,
     const BlockState* block,
-    const BlockAppearance* appearance
+    const BlockAppearance* appearance,
+    const ChunkData* neighborChunks[6]
 ) {
     if (!appearance) {
         return;
@@ -694,9 +792,30 @@ void ChunkMesher::addFaceFromAppearance(
     // 打包双通道光照：高4位=天空光，低4位=方块光
     const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
 
+    // 创建生物群系访问器用于颜色混合
+    std::array<const ChunkData*, 4> biomeNeighbors = {};
+    if (neighborChunks) {
+        biomeNeighbors[0] = neighborChunks[0]; // -X
+        biomeNeighbors[1] = neighborChunks[1]; // +X
+        biomeNeighbors[2] = neighborChunks[2]; // -Z
+        biomeNeighbors[3] = neighborChunks[3]; // +Z
+    }
+    client::ChunkBiomeAccessor biomeAccessor(
+        chunk,
+        biomeNeighbors,
+        chunk.x(),
+        chunk.z()
+    );
+
+    // 计算世界坐标用于生物群系颜色混合
+    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
+    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColor(chunk, blockX, blockY, blockZ, block, layer.tintIndex);
+        const u32 tintColor = resolveTintColorBlended(
+            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
+        );
         const u32 shadedColor = applyBlockAlpha(
             applyShadeToPackedColor(tintColor, getFaceShade(face)),
             block
@@ -781,10 +900,31 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     client::renderer::AmbientOcclusionCalculator aoCalc;
     auto aoResult = aoCalc.calculate(chunk, blockX, blockY, blockZ, face, neighborChunks);
 
+    // 创建生物群系访问器用于颜色混合
+    std::array<const ChunkData*, 4> biomeNeighbors = {};
+    if (neighborChunks) {
+        biomeNeighbors[0] = neighborChunks[0]; // -X
+        biomeNeighbors[1] = neighborChunks[1]; // +X
+        biomeNeighbors[2] = neighborChunks[2]; // -Z
+        biomeNeighbors[3] = neighborChunks[3]; // +Z
+    }
+    client::ChunkBiomeAccessor biomeAccessor(
+        chunk,
+        biomeNeighbors,
+        chunk.x(),
+        chunk.z()
+    );
+
+    // 计算世界坐标用于生物群系颜色混合
+    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
+    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+
     const float faceShade = getFaceShade(face);
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
-        const u32 tintColor = resolveTintColor(chunk, blockX, blockY, blockZ, block, layer.tintIndex);
+        const u32 tintColor = resolveTintColorBlended(
+            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
+        );
 
         // UV坐标根据顶点位置设置
         // 顶点顺序: 左下、右下、右上、左上
@@ -980,7 +1120,8 @@ void ChunkMesher::simpleMeshSection(
                                     skyLight,
                                     blockLight,
                                     block,
-                                    appearance);
+                                    appearance,
+                                    neighborChunks);
                         }
                     }
                 }
@@ -1016,6 +1157,21 @@ void ChunkMesher::greedyMeshSection(
         simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
         return;
     }
+
+    // 创建生物群系访问器用于颜色混合
+    std::array<const ChunkData*, 4> biomeNeighbors = {};
+    if (neighborChunks) {
+        biomeNeighbors[0] = neighborChunks[0]; // -X
+        biomeNeighbors[1] = neighborChunks[1]; // +X
+        biomeNeighbors[2] = neighborChunks[2]; // -Z
+        biomeNeighbors[3] = neighborChunks[3]; // +Z
+    }
+    client::ChunkBiomeAccessor biomeAccessor(
+        chunk,
+        biomeNeighbors,
+        chunk.x(),
+        chunk.z()
+    );
 
     struct FaceCellData {
         bool visible = false;
@@ -1175,11 +1331,18 @@ void ChunkMesher::greedyMeshSection(
             }
         }
 
+        // 计算世界坐标用于生物群系颜色混合
+        const i32 worldX = chunk.x() * ChunkData::WIDTH + x;
+        const i32 worldZ = chunk.z() * ChunkData::WIDTH + z;
+        const i32 worldY = baseY + y;
+
         std::vector<u32> shadedLayerColors;
         shadedLayerColors.reserve(faceLayers.size());
         const float faceShade = getFaceShade(face);
         for (const auto& layer : faceLayers) {
-            const u32 tintColor = resolveTintColor(chunk, x, baseY + y, z, block, layer.tintIndex);
+            const u32 tintColor = resolveTintColorBlended(
+                biomeAccessor, worldX, worldY, worldZ, block, layer.tintIndex
+            );
             shadedLayerColors.push_back(
                 applyBlockAlpha(
                     applyShadeToPackedColor(tintColor, faceShade),
