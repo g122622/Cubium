@@ -120,7 +120,13 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("client.input.mining")
         .SetDescription("挖掘输入事件处理"),
     perfetto::Category("server.world.mining")
-        .SetDescription("进一步的挖掘处理")
+        .SetDescription("进一步的挖掘处理"),
+
+    // === 声音系统 ===
+    perfetto::Category("server.sound")
+        .SetDescription("服务端声音事件处理"),
+    perfetto::Category("client.sound")
+        .SetDescription("客户端声音播放")
 );
 
 #if defined(_MSC_VER)

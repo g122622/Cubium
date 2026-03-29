@@ -507,6 +507,56 @@ endif()
 
 **解决**：使用 info 级别或调整日志配置（已在使用 info 级别）。
 
+### 8. MC_TRACE_EVENT 是 RAII 作用域事件
+
+**问题**：`MC_TRACE_EVENT` 是作用域事件，严格遵循 RAII，在作用域结束时自动结束事件。如果在同一作用域内使用多个 `MC_TRACE_EVENT`，会导致事件嵌套错误。
+
+**解决**：每个 `MC_TRACE_EVENT` 必须放在独立的大括号作用域内：
+```cpp
+// 错误：同一作用域内有多个 trace event
+void processFrame() {
+    MC_TRACE_EVENT("rendering.frame", "HandleEvents");  // 不会正确结束
+    handleEvents();
+    MC_TRACE_EVENT("rendering.frame", "Update");  // 嵌套错误
+    update(deltaTime);
+}
+
+// 正确：每个 trace event 放在独立的作用域内
+void processFrame() {
+    {
+        MC_TRACE_EVENT("rendering.frame", "HandleEvents");
+        handleEvents();
+    }
+    {
+        MC_TRACE_EVENT("rendering.frame", "Update");
+        update(deltaTime);
+    }
+    {
+        MC_TRACE_EVENT("rendering.frame", "Render");
+        render();
+    }
+}
+```
+
+### 9. 不要在 Lambda 中使用 MC_TRACE_EVENT（MSVC Bug）
+
+**问题**：在 MSVC 中，在 lambda 表达式内使用 `MC_TRACE_EVENT` 宏可能导致编译器卡死或内部错误。这是 Perfetto SDK 与 MSVC 的已知兼容性问题。
+
+**解决**：避免在 lambda 内部使用 trace event 宏，改用其他调试手段（如 `spdlog::info`）：
+```cpp
+// 错误：lambda 内使用 trace event 可能导致 MSVC 卡死
+m_callback = [this]() {
+    MC_TRACE_EVENT("category", "name");  // 危险！
+    doSomething();
+};
+
+// 正确：使用日志代替
+m_callback = [this]() {
+    spdlog::info("[Module] Callback triggered");
+    doSomething();
+};
+```
+
 ## 测试用例
 
 ### 测试文件位置

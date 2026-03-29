@@ -439,6 +439,16 @@ public:
      */
     [[nodiscard]] virtual bool hasBuffer(AudioBufferId id) const noexcept = 0;
 
+    /**
+     * @brief 获取音频缓冲区对象
+     *
+     * 用于将后端内部创建的缓冲区绑定到音频源。
+     * 不存在时返回 nullptr。
+     *
+     * @param id 缓冲区 ID
+     */
+    [[nodiscard]] virtual std::shared_ptr<IAudioBuffer> getBuffer(AudioBufferId id) const = 0;
+
     // ========================================================================
     // 音频源管理
     // ========================================================================

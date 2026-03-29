@@ -1,8 +1,11 @@
 #include "client/sound/SoundHandler.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+
+#include <set>
 
 namespace mc::client::sound {
 
@@ -23,6 +26,19 @@ Result<void> SoundHandler::reload() {
     SoundLoadProgress progress;
     progress.totalPacks = packs.size();
 
+    spdlog::info("[SoundHandler] Starting reload: {} packs to process", packs.size());
+
+    // 已知的命名空间列表（优先加载 minecraft）
+    // 大多数资源包只使用 minecraft 命名空间
+    static const std::vector<String> knownNamespaces = {
+        "minecraft"
+        // 未来可以添加其他常用命名空间
+        // 例如：如果检测到 mod 资源包，动态添加
+    };
+
+    // 收集已处理的命名空间，避免重复
+    std::set<String> processedNamespaces;
+
     // 遍历资源包（从低优先级到高优先级）
     // 这样高优先级的资源包可以覆盖低优先级的
     for (auto it = packs.rbegin(); it != packs.rend(); ++it) {
@@ -31,38 +47,65 @@ Result<void> SoundHandler::reload() {
         progress.currentPackName = pack->name();
         notifyProgress(progress);
 
-        // 获取所有命名空间
-        // 通常只需要 minecraft 命名空间，但也支持自定义命名空间
-        auto namespacesResult = m_resourcePacks.listResources("assets", "");
-        if (!namespacesResult.success()) {
-            continue;
-        }
-
-        // 从每个命名空间加载 sounds.json
-        for (const auto& nsPath : namespacesResult.value()) {
-            // 提取命名空间名称
-            // 格式: assets/<namespace>/...
-            String namespace_;
-            if (nsPath.size() > 7 && nsPath.substr(0, 7) == "assets/") {
-                auto slashPos = nsPath.find('/', 7);
-                if (slashPos != String::npos) {
-                    namespace_ = nsPath.substr(7, slashPos - 7);
-                } else {
-                    namespace_ = nsPath.substr(7);
-                }
-            } else {
-                continue;
-            }
-
-            if (namespace_.empty()) {
-                continue;
-            }
-
+        // 快速路径：直接尝试加载已知命名空间的 sounds.json
+        for (const auto& namespace_ : knownNamespaces) {
             // 加载 sounds.json
             auto result = loadSoundsJson(*pack, namespace_);
             if (result.success()) {
                 progress.loadedEvents += result.value();
                 notifyProgress(progress);
+                processedNamespaces.insert(namespace_);
+            }
+        }
+    }
+
+    // 如果需要发现自定义命名空间（当已知命名空间没有找到声音时）
+    // 使用更高效的方式：只列出顶层目录，而不是递归遍历
+    if (progress.loadedEvents == 0) {
+        spdlog::info("[SoundHandler] No sounds found in known namespaces, scanning for custom namespaces...");
+
+        for (auto it = packs.rbegin(); it != packs.rend(); ++it) {
+            const auto& pack = *it;
+
+            // 尝试直接检查 assets/<namespace>/sounds.json 是否存在
+            // 使用 listResources 获取 assets 下的直接子目录
+            auto namespacesResult = m_resourcePacks.listResources("assets", "");
+            if (!namespacesResult.success()) {
+                continue;
+            }
+
+            std::set<String> foundNamespaces;
+            for (const auto& nsPath : namespacesResult.value()) {
+                // 提取命名空间名称
+                // 格式: assets/<namespace>/...
+                String namespace_;
+                if (nsPath.size() > 7 && nsPath.substr(0, 7) == "assets/") {
+                    auto slashPos = nsPath.find('/', 7);
+                    if (slashPos != String::npos) {
+                        namespace_ = nsPath.substr(7, slashPos - 7);
+                    } else {
+                        namespace_ = nsPath.substr(7);
+                    }
+                }
+
+                if (namespace_.empty() || processedNamespaces.count(namespace_) > 0) {
+                    continue;
+                }
+
+                foundNamespaces.insert(namespace_);
+            }
+
+            // 加载新发现的命名空间
+            for (const auto& namespace_ : foundNamespaces) {
+                {
+                    MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_LoadSoundsJson");
+                    auto result = loadSoundsJson(*pack, namespace_);
+                    if (result.success()) {
+                        progress.loadedEvents += result.value();
+                        notifyProgress(progress);
+                        processedNamespaces.insert(namespace_);
+                    }
+                }
             }
         }
     }

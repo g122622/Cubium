@@ -3,6 +3,10 @@
 #include "common/sound/SoundEvent.hpp"
 #include "common/sound/SoundTypes.hpp"
 #include "client/sound/resource/SoundDefinition.hpp"
+#include "common/util/math/random/Random.hpp"
+
+#include <chrono>
+#include <unordered_map>
 
 namespace mc::sound {
 namespace {
@@ -148,7 +152,7 @@ TEST(SoundDefinitionTest, ToOggLocation) {
     SoundDefinition def("minecraft:dig/stone1");
     ResourceLocation oggLoc = def.toOggLocation();
 
-    EXPECT_EQ(oggLoc.toString(), "minecraft:sounds/dig/stone1.ogg");
+    EXPECT_EQ(oggLoc.toString(), "minecraft:dig/stone1");
 }
 
 TEST(SoundDefinitionTest, ParseSimpleString) {
@@ -298,11 +302,75 @@ TEST(SoundEventDefinitionTest, SelectSoundSingle) {
     ASSERT_TRUE(result.success());
 
     const auto& def = result.value();
-    mc::math::Random rng;
+    mc::math::Random rng(42);
     const auto* sound = def.selectSound(rng);
 
     ASSERT_NE(sound, nullptr);
     EXPECT_EQ(sound->location.path(), "only_sound");
+}
+
+TEST(SoundEventDefinitionTest, SelectSoundMultipleDifferentSelections) {
+    // 测试多次调用 selectSound 会选择不同的声音（概率性）
+    nlohmann::json json = R"({
+        "sounds": ["sound_a", "sound_b", "sound_c", "sound_d"]
+    })"_json;
+
+    auto result = SoundEventDefinition::parse("test:multi", json, "minecraft");
+    ASSERT_TRUE(result.success());
+
+    const auto& def = result.value();
+
+    // 使用时间种子确保随机性
+    mc::math::Random rng(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+    // 统计每个声音被选择的次数
+    std::unordered_map<std::string, int> selectionCounts;
+    constexpr int NUM_SELECTIONS = 100;
+
+    for (int i = 0; i < NUM_SELECTIONS; ++i) {
+        const auto* sound = def.selectSound(rng);
+        ASSERT_NE(sound, nullptr);
+        selectionCounts[sound->location.path()]++;
+    }
+
+    // 应该选择了所有4个声音（每个至少选择几次）
+    // 在 100 次选择中，每个应该平均 25 次
+    // 允许一定的偏差，但确保没有哪个声音从未被选择
+    for (const auto& [path, count] : selectionCounts) {
+        EXPECT_GT(count, 0) << "Sound " << path << " was never selected";
+        EXPECT_LT(count, 60) << "Sound " << path << " was selected too many times (may indicate biased selection)";
+    }
+
+    // 应该选择了所有4个不同的声音
+    EXPECT_EQ(selectionCounts.size(), 4u);
+}
+
+TEST(SoundEventDefinitionTest, RandomNotStuckOnFirstSound) {
+    // 专门测试修复的问题：默认种子 0 不应导致总是选择第一个声音
+    nlohmann::json json = R"({
+        "sounds": ["first", "second", "third"]
+    })"_json;
+
+    auto result = SoundEventDefinition::parse("test:random", json, "minecraft");
+    ASSERT_TRUE(result.success());
+
+    const auto& def = result.value();
+
+    // 模拟多次独立的随机选择（模拟 SoundEngine 的行为）
+    // 使用不同种子创建多个 Random 实例
+    std::unordered_map<std::string, int> counts;
+
+    for (int i = 0; i < 50; ++i) {
+        // 使用不同的种子
+        mc::math::Random rng(static_cast<u64>(i * 12345 + 67890));
+        const auto* sound = def.selectSound(rng);
+        ASSERT_NE(sound, nullptr);
+        counts[sound->location.path()]++;
+    }
+
+    // 应该选择了至少 2 个不同的声音
+    // 如果只选择了 1 个，说明随机数生成器有问题
+    EXPECT_GE(counts.size(), 2u) << "Random selection is stuck on single sound";
 }
 
 TEST(SoundEventDefinitionTest, EmptySoundsError) {

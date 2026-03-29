@@ -2,11 +2,15 @@
 
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/sound/SoundPool.hpp"
+#include "client/sound/SoundLoader.hpp"
 #include "client/sound/backend/AudioBuffer.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundTypes.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/resource/ResourceLocation.hpp"
+
+#include <array>
+#include <limits>
 
 using namespace mc::client::sound;
 using namespace mc;
@@ -399,6 +403,32 @@ TEST_F(AudioDataTest, CalculateDuration) {
     AudioData data(format, std::move(samples));
 
     EXPECT_FLOAT_EQ(data.calculateDuration(), 1.0f);
+}
+
+// ============================================================================
+// SoundLoader 解码健壮性测试
+// ============================================================================
+
+TEST(SoundLoaderTest, DecodeRejectsEmptyData) {
+    auto result = SoundLoader::decode(nullptr, 0);
+    EXPECT_FALSE(result.success());
+}
+
+TEST(SoundLoaderTest, DecodeRejectsInvalidBytesWithoutCrash) {
+    const std::array<u8, 8> invalidData = {0x4E, 0x4F, 0x54, 0x4F, 0x47, 0x47, 0x00, 0x01};
+
+    auto result = SoundLoader::decode(invalidData.data(), invalidData.size());
+    EXPECT_FALSE(result.success());
+}
+
+TEST(SoundLoaderTest, DecodeRejectsTooLargeInput) {
+    const std::array<u8, 1> dummy = {0x00};
+
+    auto result = SoundLoader::decode(
+        dummy.data(),
+        static_cast<size_t>(std::numeric_limits<int>::max()) + 1ull
+    );
+    EXPECT_FALSE(result.success());
 }
 
 // ============================================================================

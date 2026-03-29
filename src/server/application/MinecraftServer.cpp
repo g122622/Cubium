@@ -301,11 +301,19 @@ void MinecraftServer::setupWorldCallbacks()
     // 设置方块破坏回调 - 播放破坏声音
     m_blockInteractionManager->setOnBlockBreak(
         [this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
+            // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_Callback", "playerId", playerId,
+            //                             "x", pos.x, "y", pos.y, "z", pos.z);
+
             // 获取方块的破坏声音
             const auto& soundType = state.getSoundType();
             Vector3 position(static_cast<f32>(pos.x) + 0.5f,
                            static_cast<f32>(pos.y) + 0.5f,
                            static_cast<f32>(pos.z) + 0.5f);
+
+            // MC_TRACE_SERVER_SOUND_EVENT("OnBlockBreak_BroadcastSound",
+            //                             "sound", soundType.getBreakSound().toString().c_str(),
+            //                             "volume", soundType.getVolume(),
+            //                             "pitch", soundType.getPitch());
 
             // 广播声音给范围内的玩家（16格范围）
             broadcastSoundInRange(
@@ -1022,6 +1030,9 @@ void MinecraftServer::broadcastSound(const ResourceLocation& soundEventId,
                                     const Vector3& position,
                                     f32 volume,
                                     f32 pitch) {
+    spdlog::debug("[Sound] Broadcasting sound: {} at ({}, {}, {})",
+                  soundEventId.toString(), position.x, position.y, position.z);
+
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 
@@ -1042,6 +1053,9 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
                                             f32 range,
                                             f32 volume,
                                             f32 pitch) {
+    spdlog::debug("[Sound] Broadcasting sound in range: {} at ({}, {}, {}) range={}",
+                  soundEventId.toString(), position.x, position.y, position.z, range);
+
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 
@@ -1055,7 +1069,8 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
         network::PacketType::PlaySound, result.value());
 
     // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &position, range, &fullPacket](ServerPlayerData& player) {
+    u32 playersNotified = 0;
+    m_playerManager->forEachPlayer([this, &position, range, &fullPacket, &playersNotified](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -1068,8 +1083,11 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
 
         if (distSq <= rangeSq) {
             sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            playersNotified++;
         }
     });
+
+    spdlog::debug("[Sound] Sound {} sent to {} players", soundEventId.toString(), playersNotified);
 }
 
 void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
@@ -1078,6 +1096,8 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
                                         const Vector3& position,
                                         f32 volume,
                                         f32 pitch) {
+    spdlog::debug("[Sound] Sending sound {} to player {}", soundEventId.toString(), playerId);
+
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 

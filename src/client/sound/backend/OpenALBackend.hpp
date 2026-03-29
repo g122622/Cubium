@@ -274,6 +274,7 @@ public:
     [[nodiscard]] Result<AudioBufferId> createBuffer(const AudioData& data) override;
     void destroyBuffer(AudioBufferId id) override;
     [[nodiscard]] bool hasBuffer(AudioBufferId id) const noexcept override;
+    [[nodiscard]] std::shared_ptr<IAudioBuffer> getBuffer(AudioBufferId id) const override;
 
     // ========================================================================
     // 音频源管理
@@ -332,7 +333,7 @@ private:
     AudioSourceId m_nextSourceId = 1;
 
     /// 缓冲区映射
-    std::unordered_map<AudioBufferId, std::unique_ptr<OpenALBuffer>> m_buffers;
+    std::unordered_map<AudioBufferId, std::shared_ptr<OpenALBuffer>> m_buffers;
 
     /// 缓冲区互斥锁
     mutable std::mutex m_bufferMutex;

@@ -365,3 +365,15 @@
 #define MC_TRACE_SERVER_ENTITY_EVENT(name, ...)   ((void)0)
 #define MC_TRACE_SERVER_TICK_COUNTER(name, value) ((void)0)
 #endif
+
+// ============================================================================
+// 声音系统追踪宏
+// ============================================================================
+
+#if MC_ENABLE_TRACING
+#define MC_TRACE_SERVER_SOUND_EVENT(name, ...)    MC_TRACE_EVENT("server.sound", name, ##__VA_ARGS__)
+#define MC_TRACE_CLIENT_SOUND_EVENT(name, ...)    MC_TRACE_EVENT("client.sound", name, ##__VA_ARGS__)
+#else
+#define MC_TRACE_SERVER_SOUND_EVENT(name, ...)    ((void)0)
+#define MC_TRACE_CLIENT_SOUND_EVENT(name, ...)    ((void)0)
+#endif

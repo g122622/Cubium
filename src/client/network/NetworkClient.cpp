@@ -1261,8 +1261,12 @@ void NetworkClient::handlePlaySound(network::PacketDeserializer& deser) {
         return;
     }
 
+    const glm::vec3 pos = packet.getPosition();
+    spdlog::debug("[NetworkClient] Received PlaySound: {} at ({}, {}, {}) vol={} pitch={}",
+                  packet.getSoundEventId().toString(), pos.x, pos.y, pos.z,
+                  packet.getVolume(), packet.getPitch());
+
     if (m_callbacks.onPlaySound) {
-        const glm::vec3 pos = packet.getPosition();
         m_callbacks.onPlaySound(packet.getSoundEventId(),
                                 packet.getCategory(),
                                 pos.x,

@@ -1846,6 +1846,7 @@ void ClientApplication::setupNetworkCallbacks()
                                    f32 volume,
                                    f32 pitch) {
         if (!m_soundEngine) {
+            spdlog::warn("Received sound event '{}' but sound engine is not initialized", soundEventId.toString());
             return;
         }
 
@@ -1859,6 +1860,7 @@ void ClientApplication::setupNetworkCallbacks()
             pitch);
 
         (void)m_soundEngine->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+        // MC_TRACE_CLIENT_SOUND_EVENT("OnPlaySound_Result", "soundId", id);
     };
 
     callbacks.onStopSound = [this](const Optional<ResourceLocation>& soundEventId,

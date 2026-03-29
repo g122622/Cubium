@@ -1,5 +1,6 @@
 #include "Block.hpp"
 #include "BlockRegistry.hpp"
+#include "BlockSoundType.hpp"
 #include "Material.hpp"
 #include "BlockPos.hpp"
 #include "../IWorld.hpp"
@@ -193,6 +194,61 @@ bool BlockState::requiresTool() const {
 // BlockProperties
 // ============================================================================
 
+namespace {
+    /**
+     * @brief 根据材质获取默认的声音类型
+     *
+     * 参考 Java 版 net.minecraft.block.SoundType 和 Material 的对应关系
+     */
+    const BlockSoundType& getDefaultSoundType(const Material& material) {
+        // 木头材质 -> 木头声音
+        if (&material == &Material::WOOD || &material == &Material::NETHER_WOOD) {
+            return BlockSoundTypes::WOOD;
+        }
+        // 泥土材质 -> 泥土声音
+        if (&material == &Material::EARTH) {
+            return BlockSoundTypes::DIRT;
+        }
+        // 草材质 -> 草声音
+        if (&material == &Material::PLANT || &material == &Material::REPLACEABLE_PLANT
+            || &material == &Material::LEAVES || &material == &Material::TALL_PLANTS
+            || &material == &Material::OCEAN_PLANT || &material == &Material::SEA_GRASS
+            || &material == &Material::MOSS) {
+            return BlockSoundTypes::GRASS;
+        }
+        // 沙子材质 -> 沙子声音
+        if (&material == &Material::SAND) {
+            return BlockSoundTypes::SAND;
+        }
+        // 玻璃材质 -> 玻璃声音
+        if (&material == &Material::GLASS || &material == &Material::ICE) {
+            return BlockSoundTypes::GLASS;
+        }
+        // 金属材质 -> 金属声音
+        if (&material == &Material::IRON) {
+            return BlockSoundTypes::METAL;
+        }
+        // 雪材质 -> 雪声音
+        if (&material == &Material::SNOW) {
+            return BlockSoundTypes::SNOW;
+        }
+        // 羊毛材质 -> 羊毛声音
+        if (&material == &Material::WOOL) {
+            return BlockSoundTypes::WOOL;
+        }
+        // 水材质 -> 水声音
+        if (&material == &Material::WATER) {
+            return BlockSoundTypes::WATER;
+        }
+        // 岩浆材质 -> 岩浆声音
+        if (&material == &Material::LAVA) {
+            return BlockSoundTypes::LAVA;
+        }
+        // 空气和其他材质 -> 默认石头声音
+        return BlockSoundTypes::STONE;
+    }
+}
+
 BlockProperties::BlockProperties(const Material& material)
     : m_material(&material)
     , m_hardness(0.0f)
@@ -202,7 +258,8 @@ BlockProperties::BlockProperties(const Material& material)
     , m_isSolid(material.isSolid())
     , m_isFlammable(material.isFlammable())
     , m_requiresTool(false)
-    , m_isReplaceable(material.isReplaceable()) {
+    , m_isReplaceable(material.isReplaceable())
+    , m_soundType(&getDefaultSoundType(material)) {
 }
 
 BlockProperties& BlockProperties::hardness(f32 value) {

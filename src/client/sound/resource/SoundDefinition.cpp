@@ -22,9 +22,10 @@ SoundDefinition::SoundDefinition(const ResourceLocation& loc)
 }
 
 ResourceLocation SoundDefinition::toOggLocation() const {
-    // 将 "minecraft:dig/stone1" 转换为 "minecraft:sounds/dig/stone1.ogg"
-    String oggPath = "sounds/" + location.path() + ".ogg";
-    return ResourceLocation(location.namespace_(), std::move(oggPath));
+    // sounds.json 中的路径（如 "dig/stone1"）是相对于 sounds/ 目录的
+    // SoundLoader::toAudioPath() 会负责添加 "sounds/" 前缀和 ".ogg" 后缀
+    // 这里直接返回原始路径，不做转换
+    return location;
 }
 
 Result<SoundDefinition> SoundDefinition::parse(

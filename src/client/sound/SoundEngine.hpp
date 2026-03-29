@@ -8,6 +8,7 @@
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <glm/glm.hpp>
 
@@ -279,6 +280,7 @@ private:
         SoundInstanceId soundId;
         std::unique_ptr<IAudioSource> source;
         std::shared_ptr<IAudioBuffer> buffer;
+        AudioBufferId bufferId = 0;
         bool isPaused = false;
     };
 
@@ -299,6 +301,34 @@ private:
      * @return 实际音调（限制在0.5-2.0）
      */
     [[nodiscard]] f32 calculatePitch(const ISoundInstance& sound) const;
+
+    /**
+     * @brief 解析声音定义（处理事件引用）
+     *
+     * 如果声音定义是事件引用，则递归解析直到获得文件引用。
+     * 同时累积事件引用中的音量和音调修正。
+     *
+     * @param soundDef 声音定义（可能被修改）
+     * @param depth 当前递归深度（防止无限循环）
+     * @param outVolume 累积的音量修正（输出）
+     * @param outPitch 累积的音调修正（输出）
+     * @return 是否成功解析
+     */
+    [[nodiscard]] bool resolveSoundDefinition(
+        SoundDefinition& soundDef,
+        u32 depth,
+        f32& outVolume,
+        f32& outPitch
+    ) const;
+
+    /**
+     * @brief 检查声音是否在可听范围内
+     *
+     * @param sound 声音实例
+     * @param attenuationDistance 衰减距离
+     * @return true 如果声音在可听范围内
+     */
+    [[nodiscard]] bool isInRange(const ISoundInstance& sound, f32 attenuationDistance) const;
 
     /**
      * @brief 更新声音位置
@@ -348,6 +378,12 @@ private:
 
     /// 下一个声音ID
     SoundInstanceId m_nextSoundId = 1;
+
+    /// 听者位置（用于距离剔除）
+    glm::vec3 m_listenerPosition{0.0f};
+
+    /// 随机数生成器（用于声音选择）
+    mutable math::Random m_rng;
 };
 
 } // namespace mc::client::sound

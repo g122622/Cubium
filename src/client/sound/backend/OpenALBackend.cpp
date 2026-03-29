@@ -1,6 +1,6 @@
 #include "client/sound/backend/OpenALBackend.hpp"
-
 #include "common/core/Result.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -23,8 +23,12 @@ OpenALSource::OpenALSource(AudioSourceId id, ALuint source)
 }
 
 OpenALSource::~OpenALSource() {
-    // 注意：source 的删除由 OpenALBackend 管理
-    // 这里不删除，因为源可能被移动
+    // 由音频源对象负责自身 OpenAL 资源释放（RAII）
+    // 仅在上下文可用时删除，避免关闭阶段误调用
+    if (m_source != 0 && alcGetCurrentContext() != nullptr) {
+        alDeleteSources(1, &m_source);
+    }
+    m_source = 0;
 }
 
 OpenALSource::OpenALSource(OpenALSource&& other) noexcept
@@ -38,6 +42,10 @@ OpenALSource::OpenALSource(OpenALSource&& other) noexcept
 
 OpenALSource& OpenALSource::operator=(OpenALSource&& other) noexcept {
     if (this != &other) {
+        if (m_source != 0 && alcGetCurrentContext() != nullptr) {
+            alDeleteSources(1, &m_source);
+        }
+
         m_id = other.m_id;
         m_source = other.m_source;
         m_buffer = std::move(other.m_buffer);
@@ -97,6 +105,7 @@ void OpenALSource::play() {
         return;
     }
 
+    spdlog::info("[OpenALSource] Playing source (id={}), source handle: {}", m_id, m_source);
     alSourcePlay(m_source);
     checkError("play");
 }
@@ -508,14 +517,20 @@ Result<void> OpenALBackend::initialize() {
     spdlog::info("[OpenALBackend] Initializing OpenAL...");
 
     // 打开默认音频设备
-    m_device = alcOpenDevice(nullptr);
+    {
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_OpenDevice");
+        m_device = alcOpenDevice(nullptr);
+    }
     if (!m_device) {
         return Error(ErrorCode::InitializationFailed,
                      "Failed to open OpenAL device");
     }
 
     // 创建上下文
-    m_context = alcCreateContext(m_device, nullptr);
+    {
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_CreateContext");
+        m_context = alcCreateContext(m_device, nullptr);
+    }
     if (!m_context) {
         const char* deviceName = alcGetString(m_device, ALC_DEVICE_SPECIFIER);
         alcCloseDevice(m_device);
@@ -526,13 +541,16 @@ Result<void> OpenALBackend::initialize() {
     }
 
     // 激活上下文
-    if (!alcMakeContextCurrent(m_context)) {
-        alcDestroyContext(m_context);
-        alcCloseDevice(m_device);
-        m_context = nullptr;
-        m_device = nullptr;
-        return Error(ErrorCode::InitializationFailed,
-                     "Failed to make OpenAL context current");
+    {
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_MakeContextCurrent");
+        if (!alcMakeContextCurrent(m_context)) {
+            alcDestroyContext(m_context);
+            alcCloseDevice(m_device);
+            m_context = nullptr;
+            m_device = nullptr;
+            return Error(ErrorCode::InitializationFailed,
+                         "Failed to make OpenAL context current");
+        }
     }
 
     // 打印设备信息
@@ -683,10 +701,12 @@ Result<AudioBufferId> OpenALBackend::createBuffer(const AudioData& data) {
         return result.error();
     }
 
+    std::shared_ptr<OpenALBuffer> buffer = std::move(result.value());
+
     // 存储缓冲区
     {
         std::lock_guard<std::mutex> lock(m_bufferMutex);
-        m_buffers[id] = std::move(result.value());
+        m_buffers[id] = std::move(buffer);
     }
 
     return id;
@@ -704,6 +724,16 @@ void OpenALBackend::destroyBuffer(AudioBufferId id) {
 bool OpenALBackend::hasBuffer(AudioBufferId id) const noexcept {
     std::lock_guard<std::mutex> lock(m_bufferMutex);
     return m_buffers.find(id) != m_buffers.end();
+}
+
+std::shared_ptr<IAudioBuffer> OpenALBackend::getBuffer(AudioBufferId id) const {
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    auto it = m_buffers.find(id);
+    if (it == m_buffers.end()) {
+        return nullptr;
+    }
+
+    return it->second;
 }
 
 Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource() {
