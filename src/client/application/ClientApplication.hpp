@@ -7,6 +7,10 @@
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/ResourcePackList.hpp"
 #include "client/settings/ClientSettings.hpp"
+#include "client/sound/SoundEngine.hpp"
+#include "client/sound/SoundHandler.hpp"
+#include "client/sound/handler/BiomeAmbientHandler.hpp"
+#include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "../window/Window.hpp"
 #include "../input/InputManager.hpp"
 #include "../renderer/Camera.hpp"
@@ -118,6 +122,18 @@ public:
     [[nodiscard]] ClientWorld& world() noexcept { return m_world; }
     [[nodiscard]] const ClientWorld& world() const noexcept { return m_world; }
 
+    /**
+     * @brief 获取声音引擎
+     */
+    [[nodiscard]] sound::SoundEngine& soundEngine() noexcept { return *m_soundEngine; }
+    [[nodiscard]] const sound::SoundEngine& soundEngine() const noexcept { return *m_soundEngine; }
+
+    /**
+     * @brief 获取声音处理器
+     */
+    [[nodiscard]] sound::SoundHandler& soundHandler() noexcept { return *m_soundHandler; }
+    [[nodiscard]] const sound::SoundHandler& soundHandler() const noexcept { return *m_soundHandler; }
+
     // 友元声明，用于回调
     friend void onWindowResize(i32 width, i32 height, void* userData);
 
@@ -184,6 +200,12 @@ private:
 
     // 物理系统
     std::unique_ptr<PhysicsEngine> m_physicsEngine;
+
+    // 声音系统
+    std::unique_ptr<sound::SoundHandler> m_soundHandler;
+    std::unique_ptr<sound::SoundEngine> m_soundEngine;
+    std::unique_ptr<sound::BiomeAmbientHandler> m_biomeAmbientHandler;
+    std::unique_ptr<sound::UnderwaterAmbientHandler> m_underwaterAmbientHandler;
 
     // 玩家实体
     std::unique_ptr<Player> m_player;

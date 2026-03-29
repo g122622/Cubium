@@ -3,6 +3,7 @@
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(OpenAL CONFIG REQUIRED)
 
 add_executable(minecraft-client
     main.cpp
@@ -74,6 +75,20 @@ add_executable(minecraft-client
     resource/ItemTextureAtlas.cpp
     resource/EntityTextureLoader.cpp
     resource/DestroyStageTextures.cpp
+    # 声音系统
+    sound/resource/SoundDefinition.cpp
+    sound/resource/SoundRegistry.cpp
+    sound/SoundHandler.cpp
+    sound/SoundLoader.cpp
+    sound/StbVorbisImpl.cpp
+    sound/SoundPool.cpp
+    sound/SoundEngine.cpp
+    sound/MusicPlayer.cpp
+    sound/backend/AudioBuffer.cpp
+    sound/backend/OpenALBackend.cpp
+    sound/instance/SoundInstance.cpp
+    sound/handler/BiomeAmbientHandler.cpp
+    sound/handler/UnderwaterAmbientHandler.cpp
     # 世界
     world/ClientWorld.cpp
     world/color/BiomeColors.cpp
@@ -194,6 +209,7 @@ target_link_libraries(minecraft-client
         nlohmann_json::nlohmann_json
         glfw
         Vulkan::Vulkan
+        OpenAL::OpenAL
 )
 
 if(WIN32)

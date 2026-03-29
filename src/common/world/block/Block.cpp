@@ -133,6 +133,10 @@ const Material& BlockState::getMaterial() const {
     return m_owner->material();
 }
 
+const BlockSoundType& BlockState::getSoundType() const {
+    return m_owner->getSoundType();
+}
+
 String BlockState::toModelKey() const {
     if (m_values.empty()) {
         return "";
@@ -303,7 +307,8 @@ Block::Block(BlockProperties properties)
     , m_requiresTool(properties.m_requiresTool)
     , m_harvestTool(properties.m_harvestTool)
     , m_harvestLevel(properties.m_harvestLevel)
-    , m_lootTableId(properties.m_lootTableId) {
+    , m_lootTableId(properties.m_lootTableId)
+    , m_soundType(properties.m_soundType) {
     // 所有方块都必须至少拥有一个基础状态。
     // 这与 Java 版 StateContainer 行为一致，可避免遗漏 createBlockState()
     // 时在注册阶段出现空指针崩溃。

@@ -12,7 +12,8 @@
     "glfw3",
     "stb",
     "zlib",
-    "libarchive"
+    "libarchive",
+    "openal-soft"
   ],
   "features": {
     "vulkan": {
