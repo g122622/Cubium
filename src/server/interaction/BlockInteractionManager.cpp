@@ -206,13 +206,15 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
         return BlockBreakResult{false, 0, "No block to break"};
     }
 
+    const BlockState oldState = *state;
+
     // 检查是否可破坏
     if (!canBreakBlock(playerId, pos, state)) {
         return BlockBreakResult{false, 0, "Cannot break this block"};
     }
 
     // 生成掉落物
-    generateBlockDrops(pos, *state, playerId, nullptr);
+    generateBlockDrops(pos, oldState, playerId, nullptr);
 
     // 设置为空气
     Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
@@ -222,7 +224,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
         m_world.setBlock(pos.x, pos.y, pos.z, &airBlock->defaultState());
 
         if (m_onBlockBreak) {
-            m_onBlockBreak(playerId, pos, *state);
+            m_onBlockBreak(playerId, pos, oldState);
         }
     }
 

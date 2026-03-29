@@ -37,9 +37,9 @@ glm::vec3 PlaySoundPacket::getPosition() const noexcept {
 }
 
 size_t PlaySoundPacket::expectedSize() const {
-    // 字符串长度(varint) + 命名空间 + ':' + 路径
-    // + category(varint) + x(4) + y(4) + z(4) + volume(4) + pitch(4)
-    return network::PACKET_HEADER_SIZE + 64;
+    // 包体大小预估：
+    // 声音事件ID字符串 + category(varint) + x/y/z(i32*3) + volume/pitch(f32*2)
+    return 64;
 }
 
 Result<std::vector<u8>> PlaySoundPacket::serialize() const {
@@ -61,21 +61,8 @@ Result<std::vector<u8>> PlaySoundPacket::serialize() const {
     serializer.writeF32(m_volume);
     serializer.writeF32(m_pitch);
 
-    // 创建带包头的数据包
-    std::vector<u8> packet;
-    packet.resize(network::PACKET_HEADER_SIZE + serializer.size());
-
-    // 写入包头
-    network::PacketHeader header;
-    header.type = static_cast<u8>(type());
-    header.size = static_cast<u32>(serializer.size());
-    std::memcpy(packet.data(), &header, network::PACKET_HEADER_SIZE);
-
-    // 写入数据
-    std::memcpy(packet.data() + network::PACKET_HEADER_SIZE,
-                serializer.data(), serializer.size());
-
-    return packet;
+    // 仅返回包体。外层网络头由 ConnectionManager::encapsulatePacket 写入。
+    return serializer.buffer();
 }
 
 Result<void> PlaySoundPacket::deserialize(const u8* data, size_t size) {
@@ -168,7 +155,7 @@ StopSoundPacket::StopSoundPacket(SoundCategory category)
 
 size_t StopSoundPacket::expectedSize() const {
     // 标志字节 + 可选的声音事件ID + 可选的类别
-    return network::PACKET_HEADER_SIZE + 64;
+    return 64;
 }
 
 Result<std::vector<u8>> StopSoundPacket::serialize() const {
@@ -197,21 +184,8 @@ Result<std::vector<u8>> StopSoundPacket::serialize() const {
         serializer.writeVarInt(static_cast<i32>(m_category.value()));
     }
 
-    // 创建带包头的数据包
-    std::vector<u8> packet;
-    packet.resize(network::PACKET_HEADER_SIZE + serializer.size());
-
-    // 写入包头
-    network::PacketHeader header;
-    header.type = static_cast<u8>(type());
-    header.size = static_cast<u32>(serializer.size());
-    std::memcpy(packet.data(), &header, network::PACKET_HEADER_SIZE);
-
-    // 写入数据
-    std::memcpy(packet.data() + network::PACKET_HEADER_SIZE,
-                serializer.data(), serializer.size());
-
-    return packet;
+    // 仅返回包体。外层网络头由 ConnectionManager::encapsulatePacket 写入。
+    return serializer.buffer();
 }
 
 Result<void> StopSoundPacket::deserialize(const u8* data, size_t size) {
@@ -288,7 +262,7 @@ glm::vec3 PlaySoundEffectPacket::getPosition() const noexcept {
 }
 
 size_t PlaySoundEffectPacket::expectedSize() const {
-    return network::PACKET_HEADER_SIZE + 64;
+    return 64;
 }
 
 Result<std::vector<u8>> PlaySoundEffectPacket::serialize() const {
@@ -304,21 +278,8 @@ Result<std::vector<u8>> PlaySoundEffectPacket::serialize() const {
     serializer.writeF32(m_volume);
     serializer.writeF32(m_pitch);
 
-    // 创建带包头的数据包
-    std::vector<u8> packet;
-    packet.resize(network::PACKET_HEADER_SIZE + serializer.size());
-
-    // 写入包头
-    network::PacketHeader header;
-    header.type = static_cast<u8>(type());
-    header.size = static_cast<u32>(serializer.size());
-    std::memcpy(packet.data(), &header, network::PACKET_HEADER_SIZE);
-
-    // 写入数据
-    std::memcpy(packet.data() + network::PACKET_HEADER_SIZE,
-                serializer.data(), serializer.size());
-
-    return packet;
+    // 仅返回包体。外层网络头由 ConnectionManager::encapsulatePacket 写入。
+    return serializer.buffer();
 }
 
 Result<void> PlaySoundEffectPacket::deserialize(const u8* data, size_t size) {

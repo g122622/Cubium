@@ -4,6 +4,7 @@
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
+#include "common/sound/network/SoundPackets.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
 
@@ -614,6 +615,21 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
 
         case network::PacketType::BlockBreakAnim: {
             handleBlockBreakAnim(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::PlaySound: {
+            handlePlaySound(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::StopSound: {
+            handleStopSound(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::PlaySoundEffect: {
+            handlePlaySoundEffect(bodyDeser);
             break;
         }
 
@@ -1231,6 +1247,69 @@ void NetworkClient::handleBlockBreakAnim(network::PacketDeserializer& deser) {
             packet.position().z,
             packet.stage()
         );
+    }
+}
+
+void NetworkClient::handlePlaySound(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    sound::PlaySoundPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize PlaySound packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onPlaySound) {
+        const glm::vec3 pos = packet.getPosition();
+        m_callbacks.onPlaySound(packet.getSoundEventId(),
+                                packet.getCategory(),
+                                pos.x,
+                                pos.y,
+                                pos.z,
+                                packet.getVolume(),
+                                packet.getPitch());
+    }
+}
+
+void NetworkClient::handleStopSound(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    sound::StopSoundPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize StopSound packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onStopSound) {
+        m_callbacks.onStopSound(packet.getSoundEventId(), packet.getCategory());
+    }
+}
+
+void NetworkClient::handlePlaySoundEffect(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    sound::PlaySoundEffectPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize PlaySoundEffect packet: {}", result.error().message());
+        return;
+    }
+
+    // 当前客户端没有区分 sound 与 sound effect，统一通过 onPlaySound 回调播放
+    if (m_callbacks.onPlaySound) {
+        const glm::vec3 pos = packet.getPosition();
+        m_callbacks.onPlaySound(packet.getSoundEventId(),
+                                packet.getCategory(),
+                                pos.x,
+                                pos.y,
+                                pos.z,
+                                packet.getVolume(),
+                                packet.getPitch());
     }
 }
 

@@ -31,6 +31,7 @@
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <spdlog/spdlog.h>
@@ -1819,7 +1820,7 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     // ========== 方块破坏动画回调 ==========
-    callbacks.onBlockBreakAnim = [this](u32 breakerEntityId, i32 x, i32 y, i32 z, i8 stage) {
+    callbacks.onBlockBreakAnim = [this](EntityId breakerEntityId, i32 x, i32 y, i32 z, i8 stage) {
         // 使用 BreakProgressManager 更新远程玩家的挖掘进度
         using namespace mc::client::renderer::trident::block;
         auto& manager = BreakProgressManager::instance();
@@ -1829,10 +1830,55 @@ void ClientApplication::setupNetworkCallbacks()
 
         if (stage < 0) {
             // stage = -1 表示移除破坏效果
-            manager.removeRemoteProgress(static_cast<EntityId>(breakerEntityId));
+            manager.removeRemoteProgress(breakerEntityId);
         } else {
             // stage = 0-9 表示破坏阶段
-            manager.updateRemoteProgress(static_cast<EntityId>(breakerEntityId), pos, stage, currentTick);
+            manager.updateRemoteProgress(breakerEntityId, pos, stage, currentTick);
+        }
+    };
+
+    // ========== 声音回调 ==========
+    callbacks.onPlaySound = [this](const ResourceLocation& soundEventId,
+                                   mc::sound::SoundCategory category,
+                                   f32 x,
+                                   f32 y,
+                                   f32 z,
+                                   f32 volume,
+                                   f32 pitch) {
+        if (!m_soundEngine) {
+            return;
+        }
+
+        auto sound = sound::SoundInstance::createLocated(
+            soundEventId,
+            category,
+            x,
+            y,
+            z,
+            volume,
+            pitch);
+
+        (void)m_soundEngine->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+    };
+
+    callbacks.onStopSound = [this](const Optional<ResourceLocation>& soundEventId,
+                                   const Optional<mc::sound::SoundCategory>& category) {
+        if (!m_soundEngine) {
+            return;
+        }
+
+        if (!soundEventId.has_value() && !category.has_value()) {
+            m_soundEngine->stopAll();
+            return;
+        }
+
+        if (soundEventId.has_value()) {
+            m_soundEngine->stop(*soundEventId);
+            return;
+        }
+
+        if (category.has_value()) {
+            m_soundEngine->stop(*category);
         }
     };
 

@@ -7,6 +7,8 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/connection/LocalConnection.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include <asio.hpp>
 #include <functional>
 #include <memory>
@@ -104,7 +106,16 @@ struct NetworkClientCallbacks {
                        bool trustEdges)> onLightUpdate;
 
     // 方块破坏动画事件
-    std::function<void(u32 breakerEntityId, i32 x, i32 y, i32 z, i8 stage)> onBlockBreakAnim;
+    std::function<void(EntityId breakerEntityId, i32 x, i32 y, i32 z, i8 stage)> onBlockBreakAnim;
+
+    // 声音事件
+    std::function<void(const ResourceLocation& soundEventId,
+                       mc::sound::SoundCategory category,
+                       f32 x, f32 y, f32 z,
+                       f32 volume,
+                       f32 pitch)> onPlaySound;
+    std::function<void(const Optional<ResourceLocation>& soundEventId,
+                       const Optional<mc::sound::SoundCategory>& category)> onStopSound;
 
     // 实体元数据事件
     std::function<void(u32 entityId, const std::vector<u8>& metadata)> onEntityMetadata;
@@ -216,6 +227,11 @@ private:
 
     // 方块破坏动画包处理
     void handleBlockBreakAnim(network::PacketDeserializer& deser);
+
+    // 声音包处理
+    void handlePlaySound(network::PacketDeserializer& deser);
+    void handleStopSound(network::PacketDeserializer& deser);
+    void handlePlaySoundEffect(network::PacketDeserializer& deser);
 
     // ASIO 网络
     asio::io_context m_ioContext;
