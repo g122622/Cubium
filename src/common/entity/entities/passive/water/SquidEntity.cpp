@@ -1,6 +1,5 @@
 #include "SquidEntity.hpp"
-#include "../../../world/World.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <random>
 
 namespace mc {

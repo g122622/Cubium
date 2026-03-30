@@ -1,13 +1,14 @@
 #pragma once
 
 #include "../water/WaterMobEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
 
 // Forward declarations
-class BlockPos;
+class LivingEntity;
 
 /**
  * @brief 海豚实体

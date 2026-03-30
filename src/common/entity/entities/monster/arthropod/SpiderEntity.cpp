@@ -1,6 +1,5 @@
 #include "SpiderEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../world/World.hpp"
 
 namespace mc {
 
@@ -36,7 +35,7 @@ void SpiderEntity::tick() {
     //     m_climbing = false;
     // }
 
-    m_wasOnGround = isOnGround();
+    m_wasOnGround = onGround();
 }
 
 void SpiderEntity::registerGoals() {

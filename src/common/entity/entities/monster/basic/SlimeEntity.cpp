@@ -62,7 +62,7 @@ void SlimeEntity::tick() {
     }
 
     // 弹跳行为
-    if (!m_jumping && m_jumpCooldown <= 0 && isOnGround()) {
+    if (!m_jumping && m_jumpCooldown <= 0 && onGround()) {
         // 随机弹跳
         static std::random_device rd;
         static std::mt19937 gen(rd());

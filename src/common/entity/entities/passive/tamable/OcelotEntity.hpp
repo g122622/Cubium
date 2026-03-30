@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../basic/AnimalEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -140,7 +140,7 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return m_isChild ? 0.3f : 0.6f; }
+    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.3f : 0.6f; }
 
     // ========== 生命周期 ==========
 

@@ -1,14 +1,14 @@
 #include "ParrotEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../core/EntityRegistry.hpp"
-#include "../../ai/goal/GoalSelector.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/PanicGoal.hpp"
-#include "../../ai/goal/goals/TemptGoal.hpp"
-#include "../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <random>
 
 namespace mc {
@@ -33,7 +33,7 @@ std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/) {
 void ParrotEntity::randomizeVariant() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::uniform_int_distribution<u8> dist(0, 4);
+    std::uniform_int_distribution<int> dist(0, 4);
     m_variant = static_cast<ParrotVariant>(dist(gen));
 }
 

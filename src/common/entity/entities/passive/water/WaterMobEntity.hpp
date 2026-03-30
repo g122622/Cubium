@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/LivingEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../core/CreatureEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -19,7 +19,7 @@ namespace mc {
  *
  * 参考 MC 1.16.5 WaterMobEntity / WaterCreatureEntity
  */
-class WaterMobEntity : public LivingEntity {
+class WaterMobEntity : public CreatureEntity {
 public:
     /**
      * @brief 构造函数

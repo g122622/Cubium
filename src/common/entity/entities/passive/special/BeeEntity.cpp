@@ -1,14 +1,14 @@
 #include "BeeEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../core/EntityRegistry.hpp"
-#include "../../ai/goal/GoalSelector.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/PanicGoal.hpp"
-#include "../../ai/goal/goals/BreedGoal.hpp"
-#include "../../ai/goal/goals/TemptGoal.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
@@ -84,26 +84,13 @@ void BeeEntity::tick() {
 }
 
 void BeeEntity::registerGoals() {
-    // 调用父类方法
+    // 调用父类方法注册基础动物 AI
+    // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
 
-    // 优先级 0: 游泳
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
-
-    // 优先级 1: 恐慌逃跑
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.0));
-
-    // 优先级 2: 繁殖
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
-
+    // 蜜蜂特有目标
     // 优先级 3: 食物诱惑（花朵）
     // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isFlowerPredicate));
-
-    // 优先级 4: 看向玩家
-    m_goalSelector.addGoal(4, new entity::ai::goal::LookAtGoal(this, 8.0f));
-
-    // 优先级 5: 随机看向
-    m_goalSelector.addGoal(5, new entity::ai::goal::LookRandomlyGoal(this));
 
     // TODO: 蜜蜂特有目标
     // - BeeFindFlowerGoal: 寻找花朵

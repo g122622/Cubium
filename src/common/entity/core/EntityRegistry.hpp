@@ -235,6 +235,9 @@ namespace EntityTypes {
     constexpr const char* BLAZE = "minecraft:blaze";
     constexpr const char* WITCH = "minecraft:witch";
     constexpr const char* SLIME = "minecraft:slime";
+    // 海洋怪物
+    constexpr const char* GUARDIAN = "minecraft:guardian";
+    constexpr const char* ELDER_GUARDIAN = "minecraft:elder_guardian";
     // 亡灵变种
     constexpr const char* HUSK = "minecraft:husk";
     constexpr const char* DROWNED = "minecraft:drowned";

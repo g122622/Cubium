@@ -1,6 +1,5 @@
 #include "CodEntity.hpp"
-#include "../../../world/World.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 

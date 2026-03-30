@@ -6,12 +6,15 @@
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
 AnimalEntity::AnimalEntity(LegacyEntityType type, EntityId id)
     : AgeableEntity(type, id)
 {
+    // 注册属性
+    registerAttributes();
 }
 
 bool AnimalEntity::isBreedingItem(const ItemStack& /*itemStack*/) const {
@@ -94,6 +97,16 @@ void AnimalEntity::updateInLove() {
 void AnimalEntity::resetInLove() {
     m_inLoveTimer = 0;
     m_loveCause = 0;
+}
+
+void AnimalEntity::registerAttributes() {
+    // 调用父类方法
+    AgeableEntity::registerAttributes();
+
+    // 动物的基础属性
+    // 参考 MC 1.16.5 AnimalEntity 默认属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }
 
 } // namespace mc

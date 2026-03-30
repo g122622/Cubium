@@ -1,5 +1,6 @@
 #include "SheepEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <memory>
 
 namespace mc {
@@ -13,6 +14,8 @@ std::unique_ptr<Entity> SheepEntity::create(IWorld* /*world*/) {
 SheepEntity::SheepEntity(LegacyEntityType type, EntityId id)
     : AnimalEntity(type, id)
 {
+    // 注册属性
+    registerAttributes();
     // 注册 AI 目标
     registerGoals();
     // SheepEntity 有特殊的 EatGrassGoal，后续添加
@@ -55,6 +58,16 @@ void SheepEntity::registerGoals() {
     //     this, 1.0, [](const ItemStack& stack) { return stack.getItem() == Items::WHEAT; }));
 
     // TODO: 添加吃草目标 (EatGrassGoal)
+}
+
+void SheepEntity::registerAttributes() {
+    // 调用父类方法
+    AnimalEntity::registerAttributes();
+
+    // 羊的属性
+    // 参考 MC 1.16.5 SheepEntity 属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
 }
 
 void SheepEntity::tick() {

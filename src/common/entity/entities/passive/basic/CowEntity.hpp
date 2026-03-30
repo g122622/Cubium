@@ -40,6 +40,7 @@ public:
 
 protected:
     void registerGoals() override;
+    void registerAttributes() override;
 
     // TODO: 挤奶逻辑
 };

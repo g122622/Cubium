@@ -1,7 +1,7 @@
 #pragma once
 
 #include "TameableEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 #include <random>
 
@@ -111,6 +111,13 @@ public:
      */
     [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const;
 
+    // ========== 繁殖 ==========
+
+    /**
+     * @brief 生成幼体
+     */
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
+
     // ========== 行为 ==========
 
     /**
@@ -139,7 +146,7 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return m_isChild ? 0.2f : 0.35f; }
+    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.35f; }
 
 protected:
     // ========== AI 目标注册 ==========

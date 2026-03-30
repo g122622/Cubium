@@ -50,6 +50,7 @@ public:
 
 protected:
     void registerGoals() override;
+    void registerAttributes() override;
 
 private:
     bool m_hasSaddle = false;

@@ -1,13 +1,14 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc {
-namespace entity {
 
 // Forward declarations
 class Player;
-class ItemStack;
+
+namespace entity {
 
 /**
  * @brief 可骑乘接口 - 用于可以被玩家骑乘的实体

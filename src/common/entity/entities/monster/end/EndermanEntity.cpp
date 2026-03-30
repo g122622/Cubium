@@ -1,7 +1,5 @@
 #include "EndermanEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../world/World.hpp"
-#include "../../../world/block/BlockState.hpp"
 #include <random>
 
 namespace mc {

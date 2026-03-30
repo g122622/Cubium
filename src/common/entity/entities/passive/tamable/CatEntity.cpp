@@ -1,19 +1,19 @@
 #include "CatEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../core/EntityRegistry.hpp"
-#include "../../ai/goal/GoalSelector.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/PanicGoal.hpp"
-#include "../../ai/goal/goals/BreedGoal.hpp"
-#include "../../ai/goal/goals/TemptGoal.hpp"
-#include "../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../ai/goal/goals/interact/TameableGoals.hpp"
-#include "../../attribute/Attributes.hpp"
-#include "../../core/MobEntity.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../../ai/goal/goals/interact/TameableGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/MobEntity.hpp"
 #include <random>
 
 namespace mc {
@@ -38,7 +38,7 @@ std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/) {
 void CatEntity::setRandomCatType() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::uniform_int_distribution<u8> dist(0, 10);
+    std::uniform_int_distribution<int> dist(0, 10);
     m_catType = static_cast<CatType>(dist(gen));
 }
 
@@ -60,6 +60,14 @@ bool CatEntity::isFoodItem(const ItemStack& itemStack) const {
     // TODO: 同上
     (void)itemStack;
     return false;
+}
+
+std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/) {
+    // TODO: 创建小猫
+    // auto baby = std::make_unique<CatEntity>(LegacyEntityType::Unknown, 0);
+    // baby->setChild(true);
+    // return baby;
+    return nullptr;
 }
 
 void CatEntity::registerGoals() {

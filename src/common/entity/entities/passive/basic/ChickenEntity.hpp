@@ -53,6 +53,7 @@ public:
 
 protected:
     void registerGoals() override;
+    void registerAttributes() override;
 
 private:
     i32 m_eggTimer = 0;        // 下蛋计时器

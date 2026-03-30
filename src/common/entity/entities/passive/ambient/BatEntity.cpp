@@ -1,7 +1,5 @@
 #include "BatEntity.hpp"
-#include "../../../world/World.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <random>
 
 namespace mc {

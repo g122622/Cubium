@@ -1,10 +1,13 @@
 #pragma once
 
 #include "../MonsterEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {
+
+// Forward declarations
+using BlockId = u32;  // 方块ID类型
 
 /**
  * @brief 末影人实体

@@ -1,8 +1,8 @@
 #include "AutoJump.hpp"
-#include "common/entity/Player.hpp"
-#include "common/physics/PhysicsEngine.hpp"
-#include "common/util/AxisAlignedBB.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "../entities/player/Player.hpp"
+#include "../../physics/PhysicsEngine.hpp"
+#include "../../util/AxisAlignedBB.hpp"
+#include "../../util/math/MathUtils.hpp"
 #include <cmath>
 #include <algorithm>
 

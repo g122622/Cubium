@@ -1,7 +1,7 @@
 #include "MooshroomEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../core/EntityRegistry.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include <random>
 
 namespace mc {

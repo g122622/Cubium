@@ -291,8 +291,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/spawn/WorldGenSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfo.cpp
         # ${CMAKE_SOURCE_DIR}/src/common/world/BlockID.cpp  # 已移除 - 使用新的方块系统
-        ${CMAKE_SOURCE_DIR}/src/common/entity/Player.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/Entity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/player/Player.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/PhysicsEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/CollisionCache.cpp
@@ -360,7 +360,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/CraftingTableEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/interactive/EnchantingTableEntity.cpp
         # 物品实体和掉落表
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ItemEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/item/ItemEntity.cpp
         # 掉落系统
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootContext.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/RandomRanges.cpp

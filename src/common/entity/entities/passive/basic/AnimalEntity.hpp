@@ -112,6 +112,16 @@ protected:
     void registerGoals();
 
     /**
+     * @brief 注册属性
+     *
+     * 注册动物的基础属性。子类应该调用此方法然后覆盖特定属性值。
+     * MC 1.16.5 动物默认属性：
+     * - MAX_HEALTH: 10.0
+     * - MOVEMENT_SPEED: 0.2
+     */
+    void registerAttributes() override;
+
+    /**
      * @brief 更新爱心状态
      */
     void updateInLove();

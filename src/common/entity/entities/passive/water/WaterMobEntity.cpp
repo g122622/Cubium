@@ -1,11 +1,10 @@
 #include "WaterMobEntity.hpp"
-#include "../../../world/World.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
 WaterMobEntity::WaterMobEntity(LegacyEntityType type, EntityId id)
-    : LivingEntity(type, id)
+    : CreatureEntity(type, id)
 {
     // 注册属性
     registerAttributes();
@@ -24,7 +23,7 @@ bool WaterMobEntity::isInWaterOrBubble() const {
 }
 
 void WaterMobEntity::tick() {
-    LivingEntity::tick();
+    CreatureEntity::tick();
 
     // 更新空气供应
     updateAirSupply();
@@ -32,7 +31,7 @@ void WaterMobEntity::tick() {
 
 void WaterMobEntity::registerAttributes() {
     // 调用父类方法
-    LivingEntity::registerAttributes();
+    CreatureEntity::registerAttributes();
 
     // 水生生物的基础属性
     // 参考 MC 1.16.5 水生生物属性

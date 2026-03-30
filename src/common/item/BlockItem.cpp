@@ -1,5 +1,5 @@
 #include "BlockItem.hpp"
-#include "../entity/Player.hpp"
+#include "../entity/entities/player/Player.hpp"
 #include "../world/block/Material.hpp"
 
 namespace mc {

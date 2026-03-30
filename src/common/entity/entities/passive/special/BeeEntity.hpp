@@ -1,13 +1,13 @@
 #pragma once
 
 #include "../basic/AnimalEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
 
 // Forward declarations
-class BlockPos;
 class LivingEntity;
 
 /**

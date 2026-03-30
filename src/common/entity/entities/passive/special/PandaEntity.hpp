@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../basic/AnimalEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 #include <random>
 
@@ -174,7 +174,7 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return m_isChild ? 0.6f : 1.2f; }
+    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.6f : 1.2f; }
 
 protected:
     // ========== AI 目标注册 ==========

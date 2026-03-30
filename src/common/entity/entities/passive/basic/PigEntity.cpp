@@ -1,5 +1,6 @@
 #include "PigEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <memory>
 
 namespace mc {
@@ -44,6 +45,16 @@ void PigEntity::registerGoals() {
     // 猪特有目标：食物诱惑（胡萝卜）
     // m_goalSelector.addGoal(3, std::make_shared<entity::ai::goal::TemptGoal>(
     //     this, 1.2, [](const ItemStack& stack) { return stack.getItem() == Items::CARROT; }));
+}
+
+void PigEntity::registerAttributes() {
+    // 调用父类方法
+    AnimalEntity::registerAttributes();
+
+    // 猪的属性
+    // 参考 MC 1.16.5 PigEntity 属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 } // namespace mc

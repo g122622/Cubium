@@ -61,16 +61,68 @@ add_library(mc_common STATIC
     entity/entities/player/GameModeUtils.cpp
     # Entity - Item
     entity/entities/item/ItemEntity.cpp
-    # Entity - Passive Animals
+    # Entity - Passive Animals (basic)
     entity/entities/passive/basic/AnimalEntity.cpp
     entity/entities/passive/basic/PigEntity.cpp
     entity/entities/passive/basic/CowEntity.cpp
     entity/entities/passive/basic/SheepEntity.cpp
     entity/entities/passive/basic/ChickenEntity.cpp
-    # Entity - Tameable Animals
+    entity/entities/passive/basic/RabbitEntity.cpp
+    entity/entities/passive/basic/MooshroomEntity.cpp
+    # Entity - Passive Animals (tamable)
     entity/entities/passive/tamable/TameableEntity.cpp
+    entity/entities/passive/tamable/WolfEntity.cpp
+    entity/entities/passive/tamable/CatEntity.cpp
+    entity/entities/passive/tamable/OcelotEntity.cpp
+    entity/entities/passive/tamable/ParrotEntity.cpp
+    # Entity - Passive Animals (special)
+    entity/entities/passive/special/FoxEntity.cpp
+    entity/entities/passive/special/PandaEntity.cpp
+    entity/entities/passive/special/PolarBearEntity.cpp
+    entity/entities/passive/special/TurtleEntity.cpp
+    entity/entities/passive/special/BeeEntity.cpp
+    entity/entities/passive/special/StriderEntity.cpp
+    # Entity - Passive Animals (water)
+    entity/entities/passive/water/WaterMobEntity.cpp
+    entity/entities/passive/water/SquidEntity.cpp
+    entity/entities/passive/water/DolphinEntity.cpp
+    # Entity - Passive Animals (fish)
+    entity/entities/passive/fish/AbstractFishEntity.cpp
+    entity/entities/passive/fish/CodEntity.cpp
+    entity/entities/passive/fish/SalmonEntity.cpp
+    entity/entities/passive/fish/PufferfishEntity.cpp
+    entity/entities/passive/fish/TropicalFishEntity.cpp
+    # Entity - Passive Animals (ambient)
+    entity/entities/passive/ambient/AmbientEntity.cpp
+    entity/entities/passive/ambient/BatEntity.cpp
+    # Entity - Passive Animals (golem)
+    entity/entities/passive/golem/GolemEntity.cpp
+    entity/entities/passive/golem/IronGolemEntity.cpp
+    entity/entities/passive/golem/SnowGolemEntity.cpp
     # Entity - Monster
     entity/entities/monster/MonsterEntity.cpp
+    # Entity - Monster (undead)
+    entity/entities/monster/undead/ZombieEntity.cpp
+    entity/entities/monster/undead/SkeletonEntity.cpp
+    entity/entities/monster/undead/HuskEntity.cpp
+    entity/entities/monster/undead/DrownedEntity.cpp
+    entity/entities/monster/undead/StrayEntity.cpp
+    entity/entities/monster/undead/WitherSkeletonEntity.cpp
+    # Entity - Monster (arthropod)
+    entity/entities/monster/arthropod/SpiderEntity.cpp
+    entity/entities/monster/arthropod/CaveSpiderEntity.cpp
+    # Entity - Monster (basic)
+    entity/entities/monster/basic/CreeperEntity.cpp
+    entity/entities/monster/basic/SlimeEntity.cpp
+    # Entity - Monster (end)
+    entity/entities/monster/end/EndermanEntity.cpp
+    # Entity - Monster (nether)
+    entity/entities/monster/nether/BlazeEntity.cpp
+    # Entity - Monster (ocean)
+    entity/entities/monster/ocean/GuardianEntity.cpp
+    entity/entities/monster/ocean/ElderGuardianEntity.cpp
+    # Entity - Monster (illager)
+    entity/entities/monster/illager/WitchEntity.cpp
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Entity - Loot System
@@ -96,6 +148,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/FollowParentGoal.cpp
     entity/ai/goal/goals/MeleeAttackGoal.cpp
     entity/ai/goal/goals/AvoidEntityGoal.cpp
+    entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/pathfinding/PathPoint.cpp
     entity/ai/pathfinding/WalkNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../SpiderEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "SpiderEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {

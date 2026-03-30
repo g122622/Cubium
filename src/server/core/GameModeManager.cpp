@@ -2,8 +2,8 @@
 #include "PlayerManager.hpp"
 #include "ConnectionManager.hpp"
 #include "ServerPlayerData.hpp"
-#include "common/entity/GameModeUtils.hpp"
-#include "common/entity/Player.hpp"
+#include "common/entity/entities/player/GameModeUtils.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {

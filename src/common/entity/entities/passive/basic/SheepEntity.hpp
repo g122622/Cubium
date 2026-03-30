@@ -76,6 +76,7 @@ public:
 
 protected:
     void registerGoals() override;
+    void registerAttributes() override;
 
 private:
     u8 m_woolColor = 0;         // 羊毛颜色（默认白色）

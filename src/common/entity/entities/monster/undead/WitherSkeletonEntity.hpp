@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SkeletonEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {

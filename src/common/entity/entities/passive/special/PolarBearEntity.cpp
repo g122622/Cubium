@@ -1,13 +1,13 @@
 #include "PolarBearEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../core/EntityRegistry.hpp"
-#include "../../ai/goal/GoalSelector.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/PanicGoal.hpp"
-#include "../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <random>
 
 namespace mc {

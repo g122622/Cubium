@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../core/MobEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {

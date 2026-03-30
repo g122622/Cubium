@@ -41,6 +41,13 @@
 #include "../entities/monster/end/EndermanEntity.hpp"
 #include "../entities/monster/nether/BlazeEntity.hpp"
 #include "../entities/monster/illager/WitchEntity.hpp"
+#include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
+#include "../entities/monster/undead/HuskEntity.hpp"
+#include "../entities/monster/undead/DrownedEntity.hpp"
+#include "../entities/monster/undead/StrayEntity.hpp"
+#include "../entities/monster/undead/WitherSkeletonEntity.hpp"
+#include "../entities/monster/ocean/GuardianEntity.hpp"
+#include "../entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "../entities/item/ItemEntity.hpp"
 #include <spdlog/spdlog.h>
 #include <mutex>
@@ -234,7 +241,7 @@ private:
         registry.registerType(
             EntityTypes::BEE,
             EntityType::Builder(&BeeEntity::create, EntityClassification::Creature)
-                .size(0.7f, 0.6f)
+                .size(0.4f, 0.3f)  // MC 1.16.5: 0.4 x 0.3
                 .trackingRange(8)
                 .updateInterval(1) // 蜜蜂更新频繁
                 .canSummon(true)
@@ -245,7 +252,7 @@ private:
         registry.registerType(
             EntityTypes::STRIDER,
             EntityType::Builder(&StriderEntity::create, EntityClassification::Creature)
-                .size(0.9f, 1.7f)
+                .size(0.9f, 1.8f)  // MC 1.16.5: 0.9 x 1.8
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
@@ -303,7 +310,7 @@ private:
             EntityTypes::COD,
             EntityType::Builder(&CodEntity::create, EntityClassification::WaterCreature)
                 .size(0.5f, 0.3f)
-                .trackingRange(6)
+                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
                 .build()
@@ -314,7 +321,7 @@ private:
             EntityTypes::SALMON,
             EntityType::Builder(&SalmonEntity::create, EntityClassification::WaterCreature)
                 .size(0.7f, 0.4f)
-                .trackingRange(6)
+                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
                 .build()
@@ -325,7 +332,7 @@ private:
             EntityTypes::PUFFERFISH,
             EntityType::Builder(&PufferfishEntity::create, EntityClassification::WaterCreature)
                 .size(0.7f, 0.7f)
-                .trackingRange(6)
+                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
                 .build()
@@ -336,7 +343,7 @@ private:
             EntityTypes::TROPICAL_FISH,
             EntityType::Builder(&TropicalFishEntity::create, EntityClassification::WaterCreature)
                 .size(0.5f, 0.4f)
-                .trackingRange(6)
+                .trackingRange(8)  // MC 1.16.5: 鱼类追踪范围为 8
                 .updateInterval(3)
                 .canSummon(true)
                 .build()
@@ -461,6 +468,86 @@ private:
             EntityType::Builder(&SlimeEntity::create, EntityClassification::Monster)
                 .size(0.6f, 0.6f) // 尺寸会动态变化
                 .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 海洋怪物 ==========
+        // 守卫者
+        registry.registerType(
+            EntityTypes::GUARDIAN,
+            EntityType::Builder(&GuardianEntity::create, EntityClassification::Monster)
+                .size(0.85f, 0.85f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 远古守卫者
+        registry.registerType(
+            EntityTypes::ELDER_GUARDIAN,
+            EntityType::Builder(&ElderGuardianEntity::create, EntityClassification::Monster)
+                .size(1.9975f, 1.9975f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 亡灵变种 ==========
+        // 尸壳
+        registry.registerType(
+            EntityTypes::HUSK,
+            EntityType::Builder(&HuskEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 溺尸
+        registry.registerType(
+            EntityTypes::DROWNED,
+            EntityType::Builder(&DrownedEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 流浪者
+        registry.registerType(
+            EntityTypes::STRAY,
+            EntityType::Builder(&StrayEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.99f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 凋灵骷髅
+        registry.registerType(
+            EntityTypes::WITHER_SKELETON,
+            EntityType::Builder(&WitherSkeletonEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.99f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 节肢动物变种 ==========
+        // 洞穴蜘蛛
+        registry.registerType(
+            EntityTypes::CAVE_SPIDER,
+            EntityType::Builder(&CaveSpiderEntity::create, EntityClassification::Monster)
+                .size(0.7f, 0.5f)
+                .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)
                 .build()

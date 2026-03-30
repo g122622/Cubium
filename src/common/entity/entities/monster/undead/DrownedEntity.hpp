@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ZombieEntity.hpp"
-#include "../water/WaterMobEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../passive/water/WaterMobEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {

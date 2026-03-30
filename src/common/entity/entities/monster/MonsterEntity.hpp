@@ -75,7 +75,7 @@ protected:
     /**
      * @brief 注册 AI 目标
      *
-     * 子类应调用此方法来注册敌对生物的基础行为：
+     * 子类应重写此方法来注册敌对生物的基础行为：
      * - SwimGoal (优先级 0)
      * - HurtByTargetGoal (优先级 1)
      * - NearestAttackableTargetGoal (优先级 2)

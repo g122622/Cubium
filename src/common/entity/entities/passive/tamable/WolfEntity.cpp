@@ -1,17 +1,17 @@
 #include "WolfEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../core/EntityRegistry.hpp"
-#include "../../ai/goal/GoalSelector.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/PanicGoal.hpp"
-#include "../../ai/goal/goals/BreedGoal.hpp"
-#include "../../ai/goal/goals/TemptGoal.hpp"
-#include "../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../ai/goal/goals/interact/TameableGoals.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/interact/TameableGoals.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -61,6 +61,14 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const {
     //     || itemStack.getItem() == Items::ROTTEN_FLESH;
     (void)itemStack;
     return false;
+}
+
+std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/) {
+    // TODO: 创建小狼
+    // auto baby = std::make_unique<WolfEntity>(LegacyEntityType::Unknown, 0);
+    // baby->setChild(true);
+    // return baby;
+    return nullptr;
 }
 
 f32 WolfEntity::getTailAngle() const {

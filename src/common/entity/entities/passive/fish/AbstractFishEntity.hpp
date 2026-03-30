@@ -1,7 +1,7 @@
 #pragma once
 
-#include "WaterMobEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../water/WaterMobEntity.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {

@@ -1,9 +1,11 @@
 #include "TameableGoals.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../passive/tamable/TameableEntity.hpp"
-#include "../player/Player.hpp"
-#include "../../item/ItemStack.hpp"
+#include "../../../../core/MobEntity.hpp"
+#include "../../../../entities/passive/tamable/TameableEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
+#include "../../../../../item/ItemStack.hpp"
 #include <cmath>
+
+using namespace mc::entity::ai;
 
 namespace mc::entity::ai::goal {
 
@@ -12,7 +14,7 @@ namespace mc::entity::ai::goal {
 // ============================================================================
 
 FollowOwnerGoal::FollowOwnerGoal(TameableEntity* entity, f64 speed, f32 minDistance, f32 maxDistance, f32 teleportDistance)
-    : Goal(GoalFlags::MOVE)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
     , m_entity(entity)
     , m_speed(speed)
     , m_minDistance(minDistance)
@@ -122,7 +124,7 @@ bool FollowOwnerGoal::teleportToOwner() {
 // ============================================================================
 
 SitGoal::SitGoal(TameableEntity* entity)
-    : Goal(GoalFlags::STAY)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Target})
     , m_entity(entity)
 {
     MC_ASSERT(entity != nullptr);
@@ -151,7 +153,7 @@ void SitGoal::resetTask() {
 // ============================================================================
 
 BegGoal::BegGoal(TameableEntity* entity, f32 maxDistance)
-    : Goal(GoalFlags::LOOK)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Look})
     , m_entity(entity)
     , m_maxDistance(maxDistance)
 {

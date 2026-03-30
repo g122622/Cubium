@@ -1,5 +1,6 @@
 #include "ChickenEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <memory>
 
@@ -14,6 +15,8 @@ std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/) {
 ChickenEntity::ChickenEntity(LegacyEntityType type, EntityId id)
     : AnimalEntity(type, id)
 {
+    // 注册属性
+    registerAttributes();
     // 注册 AI 目标
     registerGoals();
     // 初始化下蛋计时器
@@ -49,6 +52,16 @@ void ChickenEntity::registerGoals() {
     // 鸡特有目标：食物诱惑（种子）
     // m_goalSelector.addGoal(3, std::make_shared<entity::ai::goal::TemptGoal>(
     //     this, 1.0, [](const ItemStack& stack) { return stack.getItem()->isIn(ItemTags::SEEDS); }));
+}
+
+void ChickenEntity::registerAttributes() {
+    // 调用父类方法
+    AnimalEntity::registerAttributes();
+
+    // 鸡的属性
+    // 参考 MC 1.16.5 ChickenEntity 属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 4.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 void ChickenEntity::tick() {

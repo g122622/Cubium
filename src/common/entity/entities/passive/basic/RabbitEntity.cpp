@@ -1,17 +1,17 @@
 #include "RabbitEntity.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../core/EntityRegistry.hpp"
-#include "../../ai/goal/GoalSelector.hpp"
-#include "../../ai/goal/goals/SwimGoal.hpp"
-#include "../../ai/goal/goals/PanicGoal.hpp"
-#include "../../ai/goal/goals/BreedGoal.hpp"
-#include "../../ai/goal/goals/TemptGoal.hpp"
-#include "../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <random>
 
 namespace mc {
@@ -45,7 +45,7 @@ void RabbitEntity::setRandomRabbitType() {
     }
 
     // 正常皮肤随机
-    std::uniform_int_distribution<u8> dist(0, 5);
+    std::uniform_int_distribution<int> dist(0, 5);
     m_rabbitType = static_cast<RabbitType>(dist(gen));
 }
 
@@ -68,37 +68,21 @@ std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& /*partner*/)
 }
 
 void RabbitEntity::registerGoals() {
-    // 调用父类方法
+    // 调用父类方法注册基础动物 AI
+    // AnimalEntity 已经注册了：SwimGoal(0), PanicGoal(1), BreedGoal(2),
+    // FollowParentGoal(4), RandomWalkingGoal(5), LookAtGoal(6), LookRandomlyGoal(7)
     AnimalEntity::registerGoals();
 
     // 兔子特有目标
-    // 优先级 0: 游泳（最高优先级）
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
-
-    // 优先级 1: 恐慌逃跑（受到伤害时）
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.2));
+    // 注意：兔子速度更快，所以用更高的速度参数替换 PanicGoal
+    // 但由于 GoalSelector 不支持替换，这里只添加额外的目标
 
     // 优先级 2: 逃离玩家（野生兔子）
     // TODO: 需要 AvoidEntityGoal 支持
     // m_goalSelector.addGoal(2, new entity::ai::goal::AvoidEntityGoal(this, Player.class, 8.0f, 2.2, 2.2));
 
-    // 优先级 3: 繁殖（当处于爱心状态时）
-    m_goalSelector.addGoal(3, new entity::ai::goal::BreedGoal(this, 1.0));
-
-    // 优先级 4: 食物诱惑（胡萝卜）
-    // m_goalSelector.addGoal(4, new entity::ai::goal::TemptGoal(this, 1.0, isCarrotPredicate));
-
-    // 优先级 5: 跟随父母（幼体行为）
-    m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));
-
-    // 优先级 6: 随机漫步（兔子跳跃式移动）
-    m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 0.6));
-
-    // 优先级 7: 看向玩家
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 6.0f));
-
-    // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    // 优先级 3: 食物诱惑（胡萝卜）
+    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isCarrotPredicate));
 }
 
 void RabbitEntity::registerAttributes() {

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../Goal.hpp"
-#include "../../../mob/CreatureEntity.hpp"
-#include "../../../living/LivingEntity.hpp"
-#include "../../../Entity.hpp"
+#include "../../../core/CreatureEntity.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/Entity.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/Vector3.hpp"

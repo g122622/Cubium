@@ -2,7 +2,7 @@
 
 #include "../basic/AnimalEntity.hpp"
 #include "../../../interfaces/IRideable.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -85,8 +85,8 @@ public:
 
     [[nodiscard]] bool hasSaddle() const override { return m_saddled; }
     void setSaddle(bool saddle) override;
-    void onPlayerStartRiding(Player* player) override;
-    void onPlayerStopRiding(Player* player) override;
+    void onPlayerStartRiding(mc::Player* player) override { (void)player; m_isBeingRidden = true; }
+    void onPlayerStopRiding(mc::Player* player) override { (void)player; m_isBeingRidden = false; }
     [[nodiscard]] f32 getSteeringSpeed() const override;
     bool boost() override;
 
@@ -140,7 +140,7 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return m_isChild ? 0.5f : 1.0f; }
+    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.5f : 1.0f; }
 
     // ========== 生命周期 ==========
 

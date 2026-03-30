@@ -1,13 +1,11 @@
 #pragma once
 
 #include "../basic/AnimalEntity.hpp"
-#include "../../../core/Types.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
-
-// Forward declarations
-class BlockPos;
 
 /**
  * @brief 海龟实体
@@ -142,7 +140,7 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return m_isChild ? 0.2f : 0.4f; }
+    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.4f; }
 
     // ========== 生命周期 ==========
 

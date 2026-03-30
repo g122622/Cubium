@@ -1,5 +1,6 @@
 #include "CowEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <memory>
 
 namespace mc {
@@ -42,6 +43,16 @@ void CowEntity::registerGoals() {
     // 牛特有目标：食物诱惑（小麦）
     // m_goalSelector.addGoal(3, std::make_shared<entity::ai::goal::TemptGoal>(
     //     this, 1.0, [](const ItemStack& stack) { return stack.getItem() == Items::WHEAT; }));
+}
+
+void CowEntity::registerAttributes() {
+    // 调用父类方法
+    AnimalEntity::registerAttributes();
+
+    // 牛的属性
+    // 参考 MC 1.16.5 CowEntity 属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }
 
 } // namespace mc

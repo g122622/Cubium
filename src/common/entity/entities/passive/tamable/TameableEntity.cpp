@@ -1,11 +1,14 @@
 #include "TameableEntity.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
 TameableEntity::TameableEntity(LegacyEntityType type, EntityId id)
-    : AgeableEntity(type, id) {
+    : AnimalEntity(type, id) {
+    // 注册属性
+    registerAttributes();
 }
 
 void TameableEntity::setTamed(bool tamed) {
@@ -52,7 +55,7 @@ void TameableEntity::setAngry(bool angry) {
 }
 
 void TameableEntity::tick() {
-    AgeableEntity::tick();
+    AnimalEntity::tick();
     updateAnger();
 }
 
@@ -70,7 +73,16 @@ void TameableEntity::updateAnger() {
 void TameableEntity::registerGoals() {
     // 基础目标由子类添加
     // 子类应该调用此方法然后添加自己的目标
-    AgeableEntity::registerGoals();
+    AnimalEntity::registerGoals();
+}
+
+void TameableEntity::registerAttributes() {
+    // 调用父类方法
+    AnimalEntity::registerAttributes();
+
+    // 驯服动物的基础属性（子类可以覆盖）
+    // 参考 MC 1.16.5 TameableEntity
+    // 大多数驯服动物的属性由子类设置
 }
 
 } // namespace mc

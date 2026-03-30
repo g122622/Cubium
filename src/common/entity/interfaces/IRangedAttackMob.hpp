@@ -1,12 +1,13 @@
 #pragma once
 
-#include "common/core/Types.hpp"
+#include "../../core/Types.hpp"
 
 namespace mc {
-namespace entity {
 
 // Forward declarations
 class LivingEntity;
+
+namespace entity {
 
 /**
  * @brief 远程攻击接口 - 用于可以进行远程攻击的实体

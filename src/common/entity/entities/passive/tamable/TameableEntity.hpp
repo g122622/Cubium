@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../core/AgeableEntity.hpp"
+#include "../basic/AnimalEntity.hpp"
 #include "../../../interfaces/IAngerable.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../util/assert/AssertMacros.hpp"
@@ -26,7 +26,7 @@ class Player;
  *
  * 参考 MC 1.16.5 TameableEntity
  */
-class TameableEntity : public AgeableEntity, public entity::IAngerable {
+class TameableEntity : public AnimalEntity, public entity::IAngerable {
 public:
     /**
      * @brief 构造函数
@@ -135,6 +135,13 @@ protected:
      * - LookRandomlyGoal (优先级 8)
      */
     void registerGoals() override;
+
+    /**
+     * @brief 注册属性
+     *
+     * 注册驯服动物的基础属性。
+     */
+    void registerAttributes() override;
 
     /**
      * @brief 更新愤怒状态

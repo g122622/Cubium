@@ -1,6 +1,5 @@
 #include "TropicalFishEntity.hpp"
-#include "../../../world/World.hpp"
-#include "../../attribute/Attributes.hpp"
+#include "../../../attribute/Attributes.hpp"
 #include <random>
 
 namespace mc {
@@ -33,13 +32,13 @@ void TropicalFishEntity::randomizeVariant() {
     static std::mt19937 gen(rd());
 
     // 随机选择形状
-    std::uniform_int_distribution<u8> shapeDist(0, 11);
-    u8 shape = shapeDist(gen);
+    std::uniform_int_distribution<int> shapeDist(0, 11);
+    u8 shape = static_cast<u8>(shapeDist(gen));
 
     // 随机选择颜色
-    std::uniform_int_distribution<u8> colorDist(0, 15);
-    u8 baseColor = colorDist(gen);
-    u8 patternColor = colorDist(gen);
+    std::uniform_int_distribution<int> colorDist(0, 15);
+    u8 baseColor = static_cast<u8>(colorDist(gen));
+    u8 patternColor = static_cast<u8>(colorDist(gen));
 
     // 编码变种
     m_variant = shape | (baseColor << 8) | (patternColor << 16);
