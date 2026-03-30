@@ -179,6 +179,13 @@ public:
     virtual ~ITransformer0() = default;
 
     /**
+     * @brief 此变换器是否依赖位置随机数
+     *
+     * 返回 false 时，工厂将跳过 setPosition 调用，减少热路径开销。
+     */
+    [[nodiscard]] virtual bool usesRandom() const { return true; }
+
+    /**
      * @brief 在指定位置生成值
      * @param ctx 区域上下文
      * @param x X 坐标
@@ -208,6 +215,13 @@ public:
 class ITransformer1 {
 public:
     virtual ~ITransformer1() = default;
+
+    /**
+     * @brief 此变换器是否依赖位置随机数
+     *
+     * 返回 false 时，工厂将跳过 setPosition 调用，减少热路径开销。
+     */
+    [[nodiscard]] virtual bool usesRandom() const { return true; }
 
     /**
      * @brief 应用变换
@@ -257,6 +271,13 @@ public:
 class ITransformer2 {
 public:
     virtual ~ITransformer2() = default;
+
+    /**
+     * @brief 此变换器是否依赖位置随机数
+     *
+     * 返回 false 时，工厂将跳过 setPosition 调用，减少热路径开销。
+     */
+    [[nodiscard]] virtual bool usesRandom() const { return true; }
 
     /**
      * @brief 应用变换

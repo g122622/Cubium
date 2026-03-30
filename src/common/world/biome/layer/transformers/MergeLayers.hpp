@@ -55,6 +55,7 @@ class RiverLayer : public ICastleTransformer {
 public:
     using ICastleTransformer::apply;
     [[nodiscard]] i32 apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) override;
+    [[nodiscard]] bool usesRandom() const override { return false; }
 
 private:
     /**
@@ -94,6 +95,7 @@ class MixRiverLayer : public ITransformer2 {
 public:
     using ITransformer2::apply;
     [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& riverArea, i32 x, i32 z) override;
+    [[nodiscard]] bool usesRandom() const override { return false; }
 
     // 无偏移 (类似 IDimOffset0Transformer)
     [[nodiscard]] i32 getOffsetX(i32 x) const override final { return x; }
@@ -115,6 +117,7 @@ class MixOceansLayer : public ITransformer2 {
 public:
     using ITransformer2::apply;
     [[nodiscard]] i32 apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& oceanArea, i32 x, i32 z) override;
+    [[nodiscard]] bool usesRandom() const override { return false; }
 
     // 无偏移 (类似 IDimOffset0Transformer)
     [[nodiscard]] i32 getOffsetX(i32 x) const override final { return x; }
