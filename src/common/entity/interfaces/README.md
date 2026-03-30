@@ -56,11 +56,28 @@ public:
 };
 ```
 
-## 依赖关系
+## 接口实现状态
 
-```
-ICrossbowUser
-    └── extends IRangedAttackMob
+| 接口 | 已实现者 | 备注 |
+|------|----------|------|
+| `IAngerable` | TameableEntity, GolemEntity | 狼、铁傀儡已正确实现 |
+| `IRideable` | AbstractHorseEntity, StriderEntity | PigEntity有方法但未正式继承接口 |
+| `IShearable` | - | SheepEntity, MooshroomEntity有方法但未正式继承接口 |
+| `IRangedAttackMob` | SkeletonEntity, BlazeEntity | 已在实体中实现attackEntityWithRangedAttack |
+| `ICrossbowUser` | - | 接口已定义，待PiglinEntity/PillagerEntity实现 |
+| `IFlyingAnimal` | - | BeeEntity, ParrotEntity有方法但未正式继承接口 |
+| `IJumpingMount` | AbstractHorseEntity | 马类跳跃系统已实现 |
+| `IEquipable` | - | 接口已定义，待实现 |
 
-其他接口相互独立
-```
+## 待修复问题
+
+部分实体有相关方法但未正式继承接口：
+
+| 实体 | 缺失接口 | 现有方法 |
+|------|----------|----------|
+| PigEntity | IRideable | hasSaddle(), setSaddle(), boost() |
+| SheepEntity | IShearable | shear(), hasWool() |
+| MooshroomEntity | IShearable | shear(), isShearable() |
+| SnowGolemEntity | IShearable | shearPumpkin() |
+| BeeEntity | IFlyingAnimal | isFlying(), setFlying() |
+| ParrotEntity | IFlyingAnimal | isFlying(), setFlying() |

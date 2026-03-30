@@ -55,32 +55,74 @@ MobEntity
 | 1 | SitGoal | 坐下（当被命令时） |
 | 3 | FollowOwnerGoal | 跟随主人 |
 
-## 繁殖系统
+## 子目录详细说明
 
-```cpp
-// 检查是否可以繁殖
-if (animal->canBreedWith(partner)) {
-    // 生成幼体
-    auto baby = animal->spawnBaby(partner);
-    // 重置爱心状态
-    animal->resetLove();
-    partner->resetLove();
-}
-```
+### basic/ - 普通动物
+| 实体 | 说明 | 繁殖物品 |
+|------|------|----------|
+| AnimalEntity | 动物基类 | - |
+| PigEntity | 猪 | 胡萝卜 |
+| CowEntity | 牛 | 小麦 |
+| SheepEntity | 羊 | 小麦 |
+| ChickenEntity | 鸡 | 种子 |
+| RabbitEntity | 兔子 | 胡萝卜/蒲公英 |
+| MooshroomEntity | 哞菇 | 小麦 |
 
-## 驯服系统
+### tamable/ - 可驯服动物
+| 实体 | 说明 | 驯服物品 |
+|------|------|----------|
+| TameableEntity | 可驯服基类 | - |
+| WolfEntity | 狼 | 骨头 |
+| CatEntity | 猫 | 生鱼 |
+| OcelotEntity | 豹猫 | 生鱼 |
+| ParrotEntity | 鹦鹉 | 种子 |
 
-```cpp
-// 驯服动物
-if (!wolf->isTamed() && player->hasItem(Items::BONE)) {
-    if (random.nextFloat() < 0.33f) {
-        wolf->setTamed(true);
-        wolf->setOwnerId(player->entityId());
-    }
-}
+### special/ - 特殊动物
+| 实体 | 说明 | 特殊行为 |
+|------|------|----------|
+| FoxEntity | 狐狸 | 叼物品、信任机制 |
+| PandaEntity | 熊猫 | 7种性格基因 |
+| PolarBearEntity | 北极熊 | 保护幼崽 |
+| TurtleEntity | 海龟 | 出生地记忆、产卵 |
+| BeeEntity | 蜜蜂 | 授粉、蜂巢记忆 |
+| StriderEntity | 炽足兽 | 熔岩行走、可骑乘 |
 
-// 命令坐下
-if (wolf->isOwner(player->entityId())) {
-    wolf->toggleSitting();
-}
-```
+### horse/ - 马类
+| 实体 | 说明 | 状态 |
+|------|------|------|
+| AbstractHorseEntity | 马类基类 | ✅ 已实现 |
+| HorseEntity | 马 | ❌ 未实现 |
+| DonkeyEntity | 驴 | ❌ 未实现 |
+| MuleEntity | 骡 | ❌ 未实现 |
+| SkeletonHorseEntity | 骷髅马 | ❌ 未实现 |
+| ZombieHorseEntity | 僵尸马 | ❌ 未实现 |
+| LlamaEntity | 羊驼 | ❌ 未实现 |
+
+### fish/ - 鱼类
+| 实体 | 说明 |
+|------|------|
+| AbstractFishEntity | 鱼类基类 |
+| CodEntity | 鳕鱼 |
+| SalmonEntity | 鲑鱼 |
+| PufferfishEntity | 河豚 |
+| TropicalFishEntity | 热带鱼 |
+
+### water/ - 水生生物
+| 实体 | 说明 |
+|------|------|
+| WaterMobEntity | 水生生物基类 |
+| SquidEntity | 鱿鱼 |
+| DolphinEntity | 海豚 |
+
+### ambient/ - 环境生物
+| 实体 | 说明 |
+|------|------|
+| AmbientEntity | 环境生物基类 |
+| BatEntity | 蝙蝠 |
+
+### golem/ - 傀儡
+| 实体 | 说明 |
+|------|------|
+| GolemEntity | 傀儡基类 |
+| IronGolemEntity | 铁傀儡 |
+| SnowGolemEntity | 雪傀儡 |

@@ -146,14 +146,6 @@ src/common/entity/
 │   ├── AbstractContainerMenu.hpp/cpp  # 容器菜单
 │   └── Slot.hpp/cpp               # 槽位
 │
-├── living/                        # 生物实体
-│   └── LivingEntity.hpp/cpp       # 生物基类（生命值、属性、装备）
-│
-├── mob/                           # Mob 实体
-│   ├── MobEntity.hpp/cpp          # Mob 基类（AI 系统、控制器）
-│   ├── AgeableEntity.hpp/cpp      # 可成长实体
-│   └── CreatureEntity.hpp/cpp     # 生物实体（陆地移动）
-│
 ├── movement/                      # 移动系统
 │   ├── AutoJump.hpp/cpp           # 自动跳跃
 │   └── AutoJumpConstants.hpp      # 自动跳跃常量
@@ -165,6 +157,12 @@ src/common/entity/
     ├── LootContext.hpp/cpp        # 掉落上下文
     ├── LootConditions.hpp/cpp     # 掉落条件
     └── RandomRanges.hpp/cpp       # 随机范围
+
+> **注意**: `living/` 和 `mob/` 目录已被整合到 `core/` 目录中。
+> - `LivingEntity` 现在位于 `core/LivingEntity.hpp/cpp`
+> - `MobEntity` 现在位于 `core/MobEntity.hpp/cpp`
+> - `AgeableEntity` 现在位于 `core/AgeableEntity.hpp/cpp`
+> - `CreatureEntity` 现在位于 `core/CreatureEntity.hpp/cpp`
 ```
 
 ## 模块职责

@@ -4,11 +4,12 @@
 #include <vector>
 
 namespace mc {
-namespace entity {
 
-// Forward declarations
-class ItemStack;
+// 前向声明
 class Player;
+class ItemStack;
+
+namespace entity {
 
 /**
  * @brief 可剪毛接口 - 用于可以被剪刀剪毛的实体

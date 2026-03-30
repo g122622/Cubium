@@ -1,18 +1,25 @@
 #pragma once
 
 #include "AnimalEntity.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
 #include "../../../../core/Types.hpp"
+#include <vector>
 
 namespace mc {
+
+// 前向声明
+class ItemStack;
+class Player;
 
 /**
  * @brief 羊实体
  *
  * 可剪羊毛的被动动物，用小麦繁殖。
+ * 实现 IShearable 接口以支持剪羊毛功能。
  *
  * 参考 MC 1.16.5 SheepEntity
  */
-class SheepEntity : public AnimalEntity {
+class SheepEntity : public AnimalEntity, public entity::IShearable {
 public:
     SheepEntity(LegacyEntityType type, EntityId id);
     ~SheepEntity() override = default;
@@ -49,13 +56,13 @@ public:
      */
     void setWool(bool hasWool) { m_hasWool = hasWool; }
 
-    // ========== 剪毛 ==========
+    // ========== IShearable 接口实现 ==========
 
-    /**
-     * @brief 剪羊毛
-     * @return 剪下的羊毛数量
-     */
-    i32 shear();
+    [[nodiscard]] bool isShearable() const override { return m_hasWool; }
+
+    std::vector<ItemStack> shear(Player* player = nullptr) override;
+
+    [[nodiscard]] i32 getShearCooldown() const override { return m_shearCooldown; }
 
     // ========== 繁殖 ==========
 
@@ -82,6 +89,9 @@ private:
     u8 m_woolColor = 0;         // 羊毛颜色（默认白色）
     bool m_hasWool = true;       // 是否有羊毛
     i32 m_eatAnimationTimer = 0; // 吃草动画计时器
+    i32 m_shearCooldown = 0;     // 剪毛冷却（ticks）
+
+    static constexpr i32 WOOL_REGROW_TIME = 2400; // 羊毛重新生长时间（2分钟 = 2400 ticks）
 };
 
 } // namespace mc

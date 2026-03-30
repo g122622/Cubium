@@ -3,6 +3,7 @@
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -22,16 +23,26 @@ SheepEntity::SheepEntity(LegacyEntityType type, EntityId id)
     // SheepEntity 有特殊的 EatGrassGoal，后续添加
 }
 
-i32 SheepEntity::shear() {
+std::vector<ItemStack> SheepEntity::shear(Player* /*player*/) {
+    std::vector<ItemStack> drops;
+
     if (!m_hasWool) {
-        return 0;
+        return drops;
     }
 
     m_hasWool = false;
 
-    // 返回羊毛数量（1-3个，受幸运影响）
-    // TODO: 实际掉落逻辑
-    return 1;
+    // 根据羊毛颜色掉落对应羊毛
+    // TODO: 使用正确的羊毛物品映射
+    // 参考 MC 1.16.5: 掉落1-3个羊毛
+    // 注：Items::WOOL 或类似物品尚未定义，暂时返回空
+    // 实际应该根据 m_woolColor 获取对应颜色的羊毛
+
+    // math::Random rng;
+    // i32 woolCount = 1 + rng.nextInt(3);
+    // drops.emplace_back(Items::getWoolByColor(m_woolColor), static_cast<u8>(woolCount));
+
+    return drops;
 }
 
 bool SheepEntity::isBreedingItem(const ItemStack& itemStack) const {
@@ -91,10 +102,15 @@ void SheepEntity::tick() {
         --m_eatAnimationTimer;
     }
 
+    // 剪毛冷却更新
+    if (m_shearCooldown > 0) {
+        --m_shearCooldown;
+    }
+
     // 羊毛重新生长
-    if (!m_hasWool) {
-        // 每吃一次草有概率长出羊毛
-        // TODO: 实现羊毛重新生长
+    if (!m_hasWool && m_shearCooldown <= 0) {
+        // 吃草后有概率长出羊毛
+        // TODO: 实现基于吃草的羊毛重新生长
     }
 
     AnimalEntity::tick();
