@@ -166,13 +166,29 @@ virtual void tick();                         // 每帧更新
 | `AvoidEntityGoal` | Move | 避开特定类型的实体 |
 | `BreedGoal` | Move, Look | 两只动物靠近并繁殖 |
 | `FollowParentGoal` | Move | 幼体动物跟随成年动物 |
+| `FollowOwnerGoal` | Move | 驯服动物跟随主人 |
+| `SitGoal` | Jump | 驯服动物坐下 |
+| `BegGoal` | Look | 狼向玩家乞求食物 |
 | `LookAtGoal` | Look | 看向附近的实体 |
 | `LookRandomlyGoal` | Look | 随机看向某个方向 |
 | `MeleeAttackGoal` | Move, Look | 近战攻击目标实体 |
+| `RangedAttackGoal` | Move, Look | 远程攻击目标实体 |
+| `RangedBowAttackGoal` | Move, Look | 使用弓箭攻击 |
 | `PanicGoal` | Move | 受伤或着火时随机逃跑 |
 | `RandomWalkingGoal` | Move | 随机选择方向移动 |
 | `SwimGoal` | Jump | 在水中或岩浆中向上游动 |
 | `TemptGoal` | Move, Look | 被玩家手持物品诱惑 |
+| `EatGrassGoal` | Move, Look | 羊吃草 |
+| `FlyGoal` | Move | 飞行目标 |
+| `SleepGoal` | Move, Look, Jump | 村民睡觉 |
+| `WorkAtPoiGoal` | Move | 村民工作 |
+| `FindShelterGoal` | Move | 寻找遮蔽 |
+| `FleeSunGoal` | Move | 亡灵逃离阳光 |
+| `ReturnToHomeGoal` | Move | 返回家 |
+| `TradeWithPlayerGoal` | Move, Look | 村民交易 |
+| `ShowWaresGoal` | Look | 村民展示商品 |
+| `HurtByTargetGoal` | Target | 被攻击后反击 |
+| `NearestAttackableTargetGoal` | Target | 攻击最近目标 |
 
 ---
 
@@ -291,13 +307,52 @@ virtual void tick();                         // 每帧更新
 
 ---
 
-### 4. 大脑系统 (brain/) - 预留
+### 4. 大脑系统 (brain/)
 
-**状态**: 目录已创建，但尚未实现。
+大脑系统提供比Goal系统更高级的AI控制，支持记忆、传感器、任务和日程。
 
-**规划用途**: 实现类似 Minecraft 1.14+ 的大脑系统，包含：
-- `sensor/` - 传感器系统（检测环境变化）
-- `task/` - 任务系统（更复杂的行为树）
+#### Brain - 大脑核心
+
+**核心组件**:
+- **Memory**: 记忆模块，存储短期和长期记忆
+- **Sensor**: 传感器，自动更新记忆
+- **Task**: 任务，基于记忆执行行为
+- **Schedule**: 日程，基于时间切换活动
+
+```cpp
+// 使用Brain
+Brain<VillagerEntity> brain;
+brain.registerMemory(MemoryModuleTypes::HOME);
+brain.registerMemory(MemoryModuleTypes::JOB_SITE);
+brain.registerSensor(std::make_unique<NearestPlayersSensor<VillagerEntity>>());
+brain.setSchedule(villagerSchedule);
+```
+
+#### Sensor - 传感器
+
+| 传感器 | 功能 |
+|--------|------|
+| `NearestPlayersSensor` | 检测附近玩家 |
+| `NearestVisibleLivingEntitySensor` | 检测可见生物 |
+| `HurtBySensor` | 检测伤害来源 |
+| `MobSensor` | 检测附近生物 |
+| `WorkStationSensor` | 检测工作站点 |
+| `VillagePoiSensor` | 检测床和集会点 |
+| `BabySensor` | 检测幼年和成年实体 |
+| `AvoidEntitySensor` | 检测避险目标 |
+
+#### MemoryModuleType - 记忆模块类型
+
+| 类型 | 描述 |
+|------|------|
+| `HOME` | 家的位置 |
+| `JOB_SITE` | 工作站点 |
+| `MOBS` | 附近生物列表 |
+| `VISIBLE_MOBS` | 可见生物列表 |
+| `NEAREST_PLAYERS` | 附近玩家 |
+| `ATTACK_TARGET` | 攻击目标 |
+| `HURT_BY_ENTITY` | 受伤来源 |
+| `PATH` | 当前路径 |
 
 ---
 

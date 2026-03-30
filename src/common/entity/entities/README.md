@@ -27,14 +27,25 @@ entities/
 │   ├── illager/      # 灾厄村民 (Vindicator, Evoker, Illusioner, Pillager, Ravager, Vex, Witch + AbstractIllagerEntity基类)
 │   └── piglin/       # 猪灵相关 (预留)
 │
-├── boss/             # Boss生物 (预留)
-│   └── dragon/       # 末影龙相关 (预留)
+├── boss/             # Boss实体
+│   ├── EnderDragonEntity.hpp/cpp  # 末影龙 + EnderDragonPartEntity
+│   ├── WitherEntity.hpp/cpp       # 凋灵
+│   └── README.md
 │
-├── villager/         # 村民/商人 (预留)
-│   # 计划: AbstractVillagerEntity, VillagerEntity, VillagerData, WanderingTraderEntity
+├── villager/         # 村民实体
+│   ├── AbstractVillagerEntity.hpp/cpp  # 抽象村民基类
+│   ├── VillagerEntity.hpp/cpp          # 村民实体 + VillagerData
+│   └── README.md
 │
-├── projectile/       # 投掷物 (预留)
-│   # 计划: ProjectileEntity, ArrowEntity, SnowballEntity, FireballEntity等
+├── projectile/       # 投掷物实体
+│   ├── ProjectileEntity.hpp/cpp       # 投掷物基类
+│   ├── ThrowableEntity.hpp/cpp        # 可投掷物品基类
+│   ├── AbstractArrowEntity.hpp/cpp    # 箭矢基类 + ArrowEntity, SpectralArrowEntity
+│   ├── AbstractFireballEntity.hpp/cpp # 火球基类 + FireballEntity, SmallFireballEntity等
+│   ├── ProjectileItemEntity.hpp/cpp   # 投掷物品 + SnowballEntity, EggEntity等
+│   ├── TridentEntity.hpp/cpp          # 三叉戟实体
+│   ├── OtherProjectiles.hpp/cpp       # 其他投掷物
+│   └── README.md
 │
 ├── vehicle/          # 交通工具 (预留)
 │   └── minecart/     # 矿车类 (预留)
@@ -80,13 +91,13 @@ entities/
 | monster/illager | 8 | AbstractIllagerEntity + 7种灾厄村民 |
 | player | 3 | Player, PlayerManager, GameModeUtils |
 | item | 1 | ItemEntity |
+| **projectile** | **18+** | **ProjectileEntity + Arrow, Snowball, Fireball, Trident等** |
+| **villager** | **3** | **AbstractVillagerEntity + VillagerEntity, WanderingTraderEntity** |
+| **boss** | **3** | **BossEntity + EnderDragonEntity, WitherEntity** |
 
 ### ❌ 未实现
 | 类别 | 缺失实体 |
 |------|----------|
-| boss/ | WitherEntity, EnderDragonEntity, EnderDragonPartEntity |
-| villager/ | AbstractVillagerEntity, VillagerEntity, WanderingTraderEntity |
-| projectile/ | 全部投掷物（Arrow, Snowball, Fireball等约18种） |
 | vehicle/ | BoatEntity, AbstractMinecartEntity + 8种矿车 |
 | hanging/ | HangingEntity, ItemFrameEntity, PaintingEntity, LeashKnotEntity |
 | effect/ | LightningBoltEntity, EndCrystalEntity |
