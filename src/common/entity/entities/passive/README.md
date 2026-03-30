@@ -58,34 +58,34 @@ MobEntity
 ## 子目录详细说明
 
 ### basic/ - 普通动物
-| 实体 | 说明 | 繁殖物品 |
-|------|------|----------|
-| AnimalEntity | 动物基类 | - |
-| PigEntity | 猪 | 胡萝卜 |
-| CowEntity | 牛 | 小麦 |
-| SheepEntity | 羊 | 小麦 |
-| ChickenEntity | 鸡 | 种子 |
-| RabbitEntity | 兔子 | 胡萝卜/蒲公英 |
-| MooshroomEntity | 哞菇 | 小麦 |
+| 实体 | 说明 | 繁殖物品 | 接口 |
+|------|------|----------|------|
+| AnimalEntity | 动物基类 | - | - |
+| PigEntity | 猪 | 胡萝卜 | IRideable |
+| CowEntity | 牛 | 小麦 | - |
+| SheepEntity | 羊 | 小麦 | IShearable |
+| ChickenEntity | 鸡 | 种子 | - |
+| RabbitEntity | 兔子 | 胡萝卜/蒲公英 | - |
+| MooshroomEntity | 哞菇 | 小麦 | IShearable |
 
 ### tamable/ - 可驯服动物
-| 实体 | 说明 | 驯服物品 |
-|------|------|----------|
-| TameableEntity | 可驯服基类 | - |
-| WolfEntity | 狼 | 骨头 |
-| CatEntity | 猫 | 生鱼 |
-| OcelotEntity | 豹猫 | 生鱼 |
-| ParrotEntity | 鹦鹉 | 种子 |
+| 实体 | 说明 | 驯服物品 | 接口 |
+|------|------|----------|------|
+| TameableEntity | 可驯服基类 | - | IAngerable |
+| WolfEntity | 狼 | 骨头 | - |
+| CatEntity | 猫 | 生鱼 | - |
+| OcelotEntity | 豹猫 | 生鱼 | - |
+| ParrotEntity | 鹦鹉 | 种子 | IFlyingAnimal |
 
 ### special/ - 特殊动物
-| 实体 | 说明 | 特殊行为 |
-|------|------|----------|
-| FoxEntity | 狐狸 | 叼物品、信任机制 |
-| PandaEntity | 熊猫 | 7种性格基因 |
-| PolarBearEntity | 北极熊 | 保护幼崽 |
-| TurtleEntity | 海龟 | 出生地记忆、产卵 |
-| BeeEntity | 蜜蜂 | 授粉、蜂巢记忆 |
-| StriderEntity | 炽足兽 | 熔岩行走、可骑乘 |
+| 实体 | 说明 | 特殊行为 | 接口 |
+|------|------|----------|------|
+| FoxEntity | 狐狸 | 叼物品、信任机制 | - |
+| PandaEntity | 熊猫 | 7种性格基因 | - |
+| PolarBearEntity | 北极熊 | 保护幼崽 | - |
+| TurtleEntity | 海龟 | 出生地记忆、产卵 | - |
+| BeeEntity | 蜜蜂 | 授粉、蜂巢记忆 | IFlyingAnimal |
+| StriderEntity | 炽足兽 | 熔岩行走、可骑乘 | IRideable |
 
 ### horse/ - 马类
 | 实体 | 说明 | 状态 |
@@ -121,8 +121,8 @@ MobEntity
 | BatEntity | 蝙蝠 |
 
 ### golem/ - 傀儡
-| 实体 | 说明 |
-|------|------|
-| GolemEntity | 傀儡基类 |
-| IronGolemEntity | 铁傀儡 |
-| SnowGolemEntity | 雪傀儡 |
+| 实体 | 说明 | 接口 |
+|------|------|------|
+| GolemEntity | 傀儡基类 | IAngerable |
+| IronGolemEntity | 铁傀儡 | - |
+| SnowGolemEntity | 雪傀儡 | IShearable |

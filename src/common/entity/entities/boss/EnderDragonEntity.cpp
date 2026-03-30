@@ -1,6 +1,7 @@
 #include "EnderDragonEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../attribute/Attributes.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc {

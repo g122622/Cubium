@@ -46,9 +46,9 @@ void WitherEntity::tick() {
     // TODO: 对周围玩家/生物施加凋零效果
 }
 
-bool WitherEntity::isInvulnerableTo(DamageType type) const {
+bool WitherEntity::isInvulnerableTo(DamageSource& source) const {
     // 凋灵免疫火焰、溺水、凋零伤害
-    switch (type) {
+    switch (source.type()) {
         case DamageType::OnFire:
         case DamageType::Lava:
         case DamageType::Drown:

@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 namespace mc {
@@ -129,6 +130,55 @@ public:
     static const MemoryModuleType<bool>* DANCING;
     static const MemoryModuleType<bool>* ATE_RECENTLY;
     static const MemoryModuleType<bool>* PACIFIED;
+    static const MemoryModuleType<bool>* IS_IN_WATER;
+    static const MemoryModuleType<bool>* IS_PREGNANT;
+    static const MemoryModuleType<bool>* GOLEM_DETECTED_RECENTLY;
+    static const MemoryModuleType<bool>* AGGRESSIVE;
+    static const MemoryModuleType<bool>* UNIVERSAL_ANGER;
+    static const MemoryModuleType<bool>* PLAY_DEAD;
+    static const MemoryModuleType<bool>* DISABLE_WALK_TO_ADMIRE_ITEM;
+
+    // 冷却/计时相关
+    static const MemoryModuleType<i32>* PLAY_DEAD_TICKS;
+    static const MemoryModuleType<i32>* TEMPTATION_COOLDOWN_TICKS;
+    static const MemoryModuleType<i32>* ITEM_PICKUP_COOLDOWN;
+    static const MemoryModuleType<i32>* CROPS_GROWTH;
+    static const MemoryModuleType<i32>* SKY_COOLDOWN;
+    static const MemoryModuleType<i32>* JUMP_COOLDOWN;
+    static const MemoryModuleType<i32>* LOVING_COOLDOWN;
+    static const MemoryModuleType<i32>* UNHAPPY_COUNTER;
+    static const MemoryModuleType<i32>* TIME_TRYING_TO_REACH_ADMIRE_ITEM;
+    static const MemoryModuleType<i32>* HOME_HOLDING_TICKS;
+    static const MemoryModuleType<i32>* LIKED_NOTEBLOCK_COOLDOWN_TICKS;
+    static const MemoryModuleType<i32>* LISTENING_NOTEBLOCK_COOLDOWN_TICKS;
+
+    // 玩家相关
+    static const MemoryModuleType<Player*>* TEMPTING_PLAYER;
+
+    // 门相关
+    static const MemoryModuleType<std::vector<GlobalPos>>* OPENED_DOORS;
+    static const MemoryModuleType<std::unordered_set<GlobalPos>>* DOORS_TO_CLOSE;
+
+    // 其他位置相关
+    static const MemoryModuleType<GlobalPos>* SECONDARY_JOB_SITE;
+    static const MemoryModuleType<GlobalPos>* LIKED_NOTEBLOCK;
+    static const MemoryModuleType<GlobalPos>* LISTENING_NOTEBLOCK;
+    static const MemoryModuleType<BlockPos>* TONGUE_TARGET;
+    static const MemoryModuleType<BlockPos>* SNIFFER_SNIFFING_TARGET;
+
+    // 特殊实体相关
+    static const MemoryModuleType<LivingEntity*>* OWNER_HURT_BY;
+    static const MemoryModuleType<LivingEntity*>* OWNER_HURT_TARGET;
+    static const MemoryModuleType<Entity*>* RAM_TARGET;
+
+    // UUID相关
+    static const MemoryModuleType<u64>* ANGRY_AT;  // 使用u64简化UUID
+
+    // 其他时间戳
+    static const MemoryModuleType<i64>* LAST_ATTACKED_BY_PLAYER;
+
+    // Sniffer相关
+    static const MemoryModuleType<bool>* SNIFFER_DIGGING;
 
     // 初始化所有类型
     static void initialize();

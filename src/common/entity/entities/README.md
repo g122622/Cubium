@@ -10,7 +10,7 @@ entities/
 │   ├── basic/        # 普通动物 (Pig, Cow, Sheep, Chicken, Rabbit, Mooshroom)
 │   ├── tamable/      # 可驯服动物 (Wolf, Cat, Ocelot, Parrot + TameableEntity基类)
 │   ├── special/      # 特殊动物 (Fox, Panda, PolarBear, Turtle, Bee, Strider)
-│   ├── horse/        # 马类 (AbstractHorseEntity基类)
+│   ├── horse/        # 马类 (Horse, Donkey, Mule, SkeletonHorse, ZombieHorse, Llama)
 │   ├── fish/         # 鱼类 (Cod, Salmon, Pufferfish, TropicalFish + AbstractFishEntity基类)
 │   ├── water/        # 水生生物 (Squid, Dolphin + WaterMobEntity基类)
 │   ├── ambient/      # 环境生物 (Bat + AmbientEntity基类)
@@ -18,7 +18,7 @@ entities/
 │
 ├── monster/          # 敌对生物
 │   ├── MonsterEntity.hpp/cpp  # 敌对生物基类
-│   ├── undead/       # 亡灵类 (Zombie, Skeleton, Husk, Stray, Drowned, WitherSkeleton, Phantom, ZombieVillager, ZombifiedPiglin)
+│   ├── undead/       # 亡灵类 (Zombie, Skeleton, Husk, Stray, Drowned, WitherSkeleton, Phantom, ZombieVillager)
 │   ├── arthropod/    # 节肢类 (Spider, CaveSpider, Silverfish, Endermite)
 │   ├── nether/       # 地狱生物 (Blaze, Ghast, MagmaCube, Piglin, PiglinBrute, Hoglin, Zoglin)
 │   ├── end/          # 末地生物 (Enderman, Shulker)
@@ -47,21 +47,25 @@ entities/
 │   ├── OtherProjectiles.hpp/cpp       # 其他投掷物
 │   └── README.md
 │
-├── vehicle/          # 交通工具 (预留)
-│   └── minecart/     # 矿车类 (预留)
+├── vehicle/          # 交通工具
+│   ├── BoatEntity.hpp/cpp        # 船 (6种木材变体)
+│   ├── MinecartEntity.hpp/cpp    # 矿车 (7种变体)
+│   └── README.md
+│
+├── hanging/          # 悬挂实体
+│   ├── HangingEntity.hpp/cpp     # 画、物品展示框、拴绳结
+│   └── README.md
+│
+├── effect/           # 效果实体
+│   ├── EffectEntities.hpp/cpp    # EnderCrystal, Lightning, AreaEffectCloud, ExperienceOrb, ArmorStand
+│   └── README.md
+│
+├── misc/             # 杂项实体
+│   ├── MiscEntities.hpp/cpp      # FallingBlock, TNT, EyeOfEnder, Conduit, EvokerFangs
+│   └── README.md
 │
 ├── item/             # 物品相关实体
 │   └── ItemEntity.hpp/cpp  # 掉落物品实体
-│   # 计划: FallingBlockEntity, TNTEntity, ExperienceOrbEntity, AreaEffectCloudEntity
-│
-├── hanging/          # 悬挂实体 (预留)
-│   # 计划: HangingEntity, ItemFrameEntity, PaintingEntity, LeashKnotEntity
-│
-├── effect/           # 效果实体 (预留)
-│   # 计划: LightningBoltEntity, EndCrystalEntity
-│
-├── equipment/        # 装备实体 (预留)
-│   # 计划: ArmorStandEntity
 │
 └── player/           # 玩家实体
     ├── Player.hpp/cpp         # 玩家实体类
@@ -81,29 +85,31 @@ entities/
 | passive/water | 3 | WaterMobEntity + Squid, Dolphin |
 | passive/ambient | 2 | AmbientEntity + Bat |
 | passive/golem | 3 | GolemEntity + IronGolem, SnowGolem |
-| passive/horse | 1 | AbstractHorseEntity (基类) |
-| monster/undead | 9 | Zombie系列 + Skeleton系列 + Phantom |
+| passive/horse | 7 | AbstractHorseEntity + Horse, Donkey, Mule, SkeletonHorse, ZombieHorse, Llama |
+| monster/undead | 9 | Zombie系列 + Skeleton系列 + Phantom + ZombieVillager |
 | monster/arthropod | 4 | Spider, CaveSpider, Silverfish, Endermite |
 | monster/nether | 7 | Blaze, Ghast, MagmaCube, Piglin系列, Hoglin系列 |
 | monster/end | 2 | Enderman, Shulker |
-| monster/basic | 3 | Creeper, Slime, Phantom |
+| monster/basic | 4 | Creeper, Slime, Phantom, Giant |
 | monster/ocean | 2 | Guardian, ElderGuardian |
-| monster/illager | 8 | AbstractIllagerEntity + 7种灾厄村民 |
+| monster/illager | 8 | AbstractIllagerEntity + Evoker, Illusioner, Ravager, Vex 等 |
 | player | 3 | Player, PlayerManager, GameModeUtils |
 | item | 1 | ItemEntity |
 | **projectile** | **18+** | **ProjectileEntity + Arrow, Snowball, Fireball, Trident等** |
 | **villager** | **3** | **AbstractVillagerEntity + VillagerEntity, WanderingTraderEntity** |
 | **boss** | **3** | **BossEntity + EnderDragonEntity, WitherEntity** |
+| **vehicle** | **8** | **BoatEntity + 7种MinecartEntity** |
+| **hanging** | **3** | **PaintingEntity, ItemFrameEntity, LeashKnotEntity** |
+| **effect** | **5** | **EnderCrystalEntity, LightningBoltEntity, AreaEffectCloudEntity, ExperienceOrbEntity, ArmorStandEntity** |
+| **misc** | **5** | **FallingBlockEntity, TNTEntity, EyeOfEnderEntity, ConduitEntity, EvokerFangsEntity** |
 
-### ❌ 未实现
-| 类别 | 缺失实体 |
-|------|----------|
-| vehicle/ | BoatEntity, AbstractMinecartEntity + 8种矿车 |
-| hanging/ | HangingEntity, ItemFrameEntity, PaintingEntity, LeashKnotEntity |
-| effect/ | LightningBoltEntity, EndCrystalEntity |
-| equipment/ | ArmorStandEntity |
-| passive/horse/ | HorseEntity, DonkeyEntity, MuleEntity, SkeletonHorseEntity, ZombieHorseEntity, LlamaEntity |
-| item/ | FallingBlockEntity, TNTEntity, ExperienceOrbEntity, AreaEffectCloudEntity |
+### ⚠️ 框架完成 (TODO需填充)
+| 类别 | 说明 |
+|------|------|
+| vehicle | Boat, Minecart 框架完成，需要实现铁轨逻辑和水上物理 |
+| hanging | 画、展示框、拴绳结框架完成，需要实现方块检测 |
+| effect | 末影水晶、闪电等框架完成，需要实现效果应用 |
+| misc | 下落方块、TNT等框架完成，需要实现爆炸和物理 |
 
 ## 继承层次
 
@@ -136,11 +142,30 @@ Entity (core/Entity.hpp)
 │   │       ├── arthropod/ (Spider, CaveSpider, Silverfish, Endermite)
 │   │       ├── nether/ (Blaze, Ghast, MagmaCube, Piglin系列, Hoglin系列)
 │   │       ├── end/ (Enderman, Shulker)
-│   │       ├── basic/ (Creeper, Slime, Phantom)
+│   │       ├── basic/ (Creeper, Slime, Phantom, Giant)
 │   │       ├── ocean/ (Guardian, ElderGuardian)
 │   │       └── illager/ (Vindicator, Evoker, Illusioner, Pillager, Ravager, Vex, Witch)
 │   └── Player (player/Player.hpp)
-└── ItemEntity (item/ItemEntity.hpp)
+├── ItemEntity (item/ItemEntity.hpp)
+├── VehicleEntity (vehicle/)
+│   ├── BoatEntity (+ IRideable)
+│   └── AbstractMinecartEntity (+ IRideable)
+├── HangingEntity (hanging/)
+│   ├── PaintingEntity
+│   ├── ItemFrameEntity
+│   └── LeashKnotEntity
+├── EffectEntity (effect/)
+│   ├── EnderCrystalEntity
+│   ├── LightningBoltEntity
+│   ├── AreaEffectCloudEntity
+│   ├── ExperienceOrbEntity
+│   └── ArmorStandEntity
+└── MiscEntity (misc/)
+    ├── FallingBlockEntity
+    ├── TNTEntity
+    ├── EyeOfEnderEntity
+    ├── ConduitEntity
+    └── EvokerFangsEntity
 ```
 
 ## 设计原则

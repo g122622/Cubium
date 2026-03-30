@@ -18,7 +18,7 @@ std::unique_ptr<Entity> MooshroomEntity::create(IWorld* /*world*/) {
     return std::make_unique<MooshroomEntity>(LegacyEntityType::Unknown, 0);
 }
 
-std::vector<ItemStack> MooshroomEntity::shear() {
+std::vector<ItemStack> MooshroomEntity::shear(Player* /*player*/) {
     // 剪毛后变成普通牛
     // TODO: 返回红色或棕色蘑菇
     // std::vector<ItemStack> drops;

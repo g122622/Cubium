@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../MonsterEntity.hpp"
+#include "../../../interfaces/IAngerable.hpp"
 #include "../../../../core/Types.hpp"
 #include <memory>
 
@@ -22,7 +23,7 @@ using BlockId = u32;  // 方块ID类型
  *
  * 参考 MC 1.16.5 EndermanEntity
  */
-class EndermanEntity : public MonsterEntity {
+class EndermanEntity : public MonsterEntity, public entity::IAngerable {
 public:
     /**
      * @brief 构造函数
@@ -47,17 +48,44 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    // ========== 愤怒系统 ==========
+    // ========== IAngerable接口实现 ==========
 
     /**
-     * @brief 是否愤怒
+     * @brief 设置攻击目标 (IAngerable接口实现)
      */
-    [[nodiscard]] bool isAngry() const { return m_angry; }
+    void setAttackTarget(LivingEntity* target) override { m_attackTarget = target; }
 
     /**
-     * @brief 设置愤怒状态
+     * @brief 获取攻击目标 (IAngerable接口实现)
      */
-    void setAngry(bool angry) { m_angry = angry; }
+    [[nodiscard]] LivingEntity* getAttackTarget() const override { return m_attackTarget; }
+
+    /**
+     * @brief 设置复仇目标 (IAngerable接口实现)
+     */
+    void setRevengeTarget(LivingEntity* target) override;
+
+    /**
+     * @brief 是否愤怒 (IAngerable接口实现)
+     */
+    [[nodiscard]] bool isAngry() const override { return m_angry || m_angerTime > 0; }
+
+    /**
+     * @brief 设置愤怒状态 (IAngerable接口实现)
+     */
+    void setAngry(bool angry) override;
+
+    /**
+     * @brief 获取愤怒时间 (IAngerable接口实现)
+     */
+    [[nodiscard]] i32 getAngerTime() const override { return m_angerTime; }
+
+    /**
+     * @brief 设置愤怒时间 (IAngerable接口实现)
+     */
+    void setAngerTime(i32 time) override { m_angerTime = time; }
+
+    // ========== 激怒系统 ==========
 
     /**
      * @brief 是否被激怒
@@ -148,6 +176,9 @@ protected:
     void registerAttributes() override;
 
 private:
+    // IAngerable接口
+    LivingEntity* m_attackTarget = nullptr;
+
     // 愤怒状态
     bool m_angry = false;
     bool m_provoked = false;

@@ -1,5 +1,6 @@
 #include "SnowGolemEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../item/ItemStack.hpp"
 
 namespace mc {
 
@@ -17,11 +18,14 @@ std::unique_ptr<Entity> SnowGolemEntity::create(IWorld* /*world*/) {
     return std::make_unique<SnowGolemEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void SnowGolemEntity::shearPumpkin() {
+std::vector<ItemStack> SnowGolemEntity::shear(Player* /*player*/) {
+    std::vector<ItemStack> drops;
     if (m_hasPumpkin) {
         m_hasPumpkin = false;
-        // TODO: 掉落南瓜物品
+        // TODO: 返回南瓜物品
+        // drops.emplace_back(Items::CARVED_PUMPKIN, 1);
     }
+    return drops;
 }
 
 bool SnowGolemEntity::willMelt() const {

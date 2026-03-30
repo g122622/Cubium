@@ -18,6 +18,22 @@ std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/) {
     return std::make_unique<EndermanEntity>(LegacyEntityType::Unknown, 0);
 }
 
+void EndermanEntity::setRevengeTarget(LivingEntity* target) {
+    m_attackTarget = target;
+    if (target != nullptr) {
+        setAngry(true);
+        m_angerTime = ANGER_DURATION;
+    }
+}
+
+void EndermanEntity::setAngry(bool angry) {
+    m_angry = angry;
+    if (!angry) {
+        m_angerTime = 0;
+        m_attackTarget = nullptr;
+    }
+}
+
 bool EndermanEntity::teleport() {
     if (m_teleportCooldown > 0) {
         return false;

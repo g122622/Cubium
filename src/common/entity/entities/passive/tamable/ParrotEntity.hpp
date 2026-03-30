@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../tamable/TameableEntity.hpp"
+#include "TameableEntity.hpp"
+#include "../../../interfaces/IFlyingAnimal.hpp"
 #include "../../../../core/Types.hpp"
 #include <memory>
 
@@ -25,7 +26,7 @@ class LivingEntity;
  *
  * 参考 MC 1.16.5 ParrotEntity
  */
-class ParrotEntity : public TameableEntity {
+class ParrotEntity : public TameableEntity, public entity::IFlyingAnimal {
 public:
     /**
      * @brief 鹦鹉变种
@@ -78,17 +79,17 @@ public:
      */
     void randomizeVariant();
 
-    // ========== 飞行系统 ==========
+    // ========== 飞行系统 (IFlyingAnimal接口) ==========
 
     /**
-     * @brief 是否正在飞行
+     * @brief 是否正在飞行 (IFlyingAnimal接口实现)
      */
-    [[nodiscard]] bool isFlying() const { return m_flying; }
+    [[nodiscard]] bool isFlying() const override { return m_flying; }
 
     /**
-     * @brief 设置飞行状态
+     * @brief 设置飞行状态 (IFlyingAnimal接口实现)
      */
-    void setFlying(bool flying) { m_flying = flying; }
+    void setFlying(bool flying) override { m_flying = flying; }
 
     /**
      * @brief 是否可以飞行

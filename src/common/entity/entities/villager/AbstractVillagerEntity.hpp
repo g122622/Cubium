@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/AgeableEntity.hpp"
-#include "../../inventory/Inventory.hpp"
+#include "../../inventory/IInventory.hpp"
 #include <memory>
 
 namespace mc {
@@ -203,8 +203,8 @@ public:
     /**
      * @brief 获取库存
      */
-    [[nodiscard]] Inventory& inventory() { return *m_inventory; }
-    [[nodiscard]] const Inventory& inventory() const { return *m_inventory; }
+    [[nodiscard]] IInventory& inventory() { return *m_inventory; }
+    [[nodiscard]] const IInventory& inventory() const { return *m_inventory; }
 
     // ========== 其他 ==========
 
@@ -234,7 +234,7 @@ protected:
     i32 m_experience = 0;
 
     // 库存
-    std::unique_ptr<Inventory> m_inventory;
+    std::unique_ptr<IInventory> m_inventory;
 
     // 繁殖意愿
     bool m_willingToBreed = false;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GolemEntity.hpp"
+#include "../../../interfaces/IShearable.hpp"
 #include "../../../../core/Types.hpp"
 #include <memory>
 
@@ -20,7 +21,7 @@ namespace mc {
  *
  * 参考 MC 1.16.5 SnowGolemEntity
  */
-class SnowGolemEntity : public GolemEntity {
+class SnowGolemEntity : public GolemEntity, public entity::IShearable {
 public:
     /**
      * @brief 构造函数
@@ -57,11 +58,20 @@ public:
      */
     void setPumpkin(bool hasPumpkin) { m_hasPumpkin = hasPumpkin; }
 
+    // ========== IShearable接口实现 ==========
+
     /**
-     * @brief 取下南瓜
-     * 用剪刀取下南瓜
+     * @brief 检查是否可以被剪毛 (IShearable接口实现)
+     * @return 如果戴着南瓜返回true
      */
-    void shearPumpkin();
+    [[nodiscard]] bool isShearable() const override { return hasPumpkin(); }
+
+    /**
+     * @brief 剪毛 (IShearable接口实现)
+     * @param player 执行剪毛的玩家
+     * @return 获得的南瓜物品
+     */
+    std::vector<ItemStack> shear(Player* player = nullptr) override;
 
     // ========== 融化 ==========
 

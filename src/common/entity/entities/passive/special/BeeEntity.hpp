@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../basic/AnimalEntity.hpp"
+#include "../../../interfaces/IFlyingAnimal.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include <memory>
@@ -24,7 +25,7 @@ class LivingEntity;
  *
  * 参考 MC 1.16.5 BeeEntity
  */
-class BeeEntity : public AnimalEntity {
+class BeeEntity : public AnimalEntity, public entity::IFlyingAnimal {
 public:
     /**
      * @brief 构造函数
@@ -137,7 +138,17 @@ public:
      */
     void setAttacking(bool attacking) { m_attacking = attacking; }
 
-    // ========== 飞行系统 ==========
+    // ========== 飞行系统 (IFlyingAnimal接口) ==========
+
+    /**
+     * @brief 是否正在飞行 (IFlyingAnimal接口实现)
+     */
+    [[nodiscard]] bool isFlying() const override { return m_flying; }
+
+    /**
+     * @brief 设置飞行状态 (IFlyingAnimal接口实现)
+     */
+    void setFlying(bool flying) override { m_flying = flying; }
 
     /**
      * @brief 获取飞行目标位置
@@ -217,6 +228,9 @@ private:
     i32 m_angerTime = 0;
     bool m_attacking = false;
     u64 m_targetPlayerId = 0;
+
+    // 飞行状态
+    bool m_flying = false;
 
     // 计时器
     i32 m_underWaterTimer = 0;

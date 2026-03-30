@@ -267,4 +267,64 @@ void OwnerHurtTargetGoal::startExecuting() {
     TargetGoal::startExecuting();
 }
 
+// ==================== NonTamedTargetGoal ====================
+
+// 显式实例化模板类
+template class NonTamedTargetGoal<LivingEntity>;
+template class NonTamedTargetGoal<Player>;
+template class NonTamedTargetGoal<MobEntity>;
+
+template<typename T>
+NonTamedTargetGoal<T>::NonTamedTargetGoal(MobEntity* mob, bool checkSight)
+    : TargetGoal(mob, checkSight)
+{
+}
+
+template<typename T>
+bool NonTamedTargetGoal<T>::shouldExecute() {
+    if (!m_mob) return false;
+
+    // 检查是否是驯服动物
+    TameableEntity* tameable = dynamic_cast<TameableEntity*>(m_mob);
+    if (!tameable) return false;
+
+    // 已驯服的动物不执行此目标
+    if (tameable->isTamed()) return false;
+
+    // 寻找最近的目标
+    // TODO: 使用世界接口搜索附近实体
+    // IWorld* world = m_mob->world();
+    // if (!world) return false;
+    //
+    // AABB searchBox = m_mob->getBoundingBox().grow(16.0, 16.0, 16.0);
+    // std::vector<T*> targets = world->getEntitiesWithinAABB<T>(searchBox);
+    //
+    // T* nearestTarget = nullptr;
+    // f64 nearestDistSq = std::numeric_limits<f64>::max();
+    //
+    // for (T* target : targets) {
+    //     if (!isSuitableTarget(target)) continue;
+    //     if (m_checkSight && !m_mob->canSee(*target)) continue;
+    //
+    //     f64 distSq = m_mob->distanceSqTo(*target);
+    //     if (distSq < nearestDistSq) {
+    //         nearestDistSq = distSq;
+    //         nearestTarget = target;
+    //     }
+    // }
+    //
+    // if (nearestTarget) {
+    //     m_targetEntity = nearestTarget;
+    //     m_target = nearestTarget;
+    //     return true;
+    // }
+
+    return false;
+}
+
+template<typename T>
+void NonTamedTargetGoal<T>::startExecuting() {
+    TargetGoal::startExecuting();
+}
+
 } // namespace mc::entity::ai::goal

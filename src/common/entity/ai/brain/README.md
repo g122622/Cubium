@@ -10,20 +10,54 @@ brain/
 ├── memory/                      # 记忆模块
 │   ├── Memory.hpp               # 内存存储容器(带TTL)
 │   ├── MemoryModuleStatus.hpp   # 内存状态枚举
-│   ├── MemoryModuleType.hpp     # 内存类型定义
+│   ├── MemoryModuleType.hpp     # 内存类型定义 (85+种)
 │   └── MemoryModuleType.cpp     # 内存类型注册
 ├── schedule/                    # 日程系统
-│   ├── Activity.hpp             # 活动类型定义
+│   ├── Activity.hpp             # 活动类型定义 (15种)
 │   ├── Activity.cpp             # 活动类型实现
 │   ├── Schedule.hpp             # 日程安排
-│   └── Schedule.cpp             # 日程实现
+│   └── Schedule.cpp             # 日程实现 (4种预定义日程)
 ├── sensor/                      # 传感器系统
 │   ├── Sensor.hpp               # 传感器基类
-│   └── SensorType.hpp           # 传感器类型
+│   ├── SensorType.hpp           # 传感器类型
+│   └── Sensors.hpp              # 传感器实现 (7种)
 ├── task/                        # 任务系统
-│   └── Task.hpp                 # 任务基类
+│   ├── Task.hpp                 # 任务基类
+│   ├── tasks/                   # 具体任务实现
+│   │   ├── movement/            # 移动相关任务
+│   │   │   └── MovementTasks.hpp
+│   │   ├── action/              # 行动相关任务
+│   │   │   └── ActionTasks.hpp
+│   │   └── interact/            # 互动相关任务
+│   │       └── InteractTasks.hpp
+│   └── README.md
 └── README.md
 ```
+
+## 实现状态
+
+### ✅ 已完成
+| 组件 | 状态 | 说明 |
+|------|------|------|
+| Brain | ✅ | 模板类，支持记忆、传感器、任务、日程 |
+| Memory | ✅ | 支持永久记忆和带TTL的临时记忆 |
+| MemoryModuleType | ✅ | 85+种记忆类型 |
+| Activity | ✅ | 15种活动类型 |
+| Schedule | ✅ | 4种预定义日程 |
+| Sensor | ⚠️ | 7种传感器，框架完成，TODO需填充 |
+| Task | ✅ | 基类完成 |
+| Task实现 | ⚠️ | 20种任务，框架完成，TODO需填充 |
+
+### ⚠️ 待完善
+| 问题 | 说明 |
+|------|------|
+| Sensor实现 | 所有传感器的update()方法只有TODO注释 |
+| Task实现 | 所有任务的update()方法只有TODO注释 |
+| 实体集成 | VillagerEntity、PiglinEntity未使用Brain |
+
+### ❌ 未集成
+- VillagerEntity 仍使用传统Goal系统
+- PiglinEntity 仍使用传统Goal系统
 
 ## 核心组件
 

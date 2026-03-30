@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CowEntity.hpp"
+#include "../../../interfaces/IShearable.hpp"
 #include "../../../../core/Types.hpp"
 #include <memory>
 
@@ -25,7 +26,7 @@ class ItemStack;
  *
  * 参考 MC 1.16.5 MooshroomEntity
  */
-class MooshroomEntity : public CowEntity {
+class MooshroomEntity : public CowEntity, public entity::IShearable {
 public:
     /**
      * @brief 哞菇类型
@@ -80,19 +81,22 @@ public:
      */
     [[nodiscard]] bool isBrown() const { return m_mooshroomType == MooshroomType::Brown; }
 
-    // ========== 交互 ==========
+    // ========== IShearable接口实现 ==========
 
     /**
-     * @brief 检查是否可以被剪毛
+     * @brief 检查是否可以被剪毛 (IShearable接口实现)
      * @return 如果有蘑菇返回true
      */
-    [[nodiscard]] bool isShearable() const { return true; }
+    [[nodiscard]] bool isShearable() const override { return true; }
 
     /**
-     * @brief 剪毛
+     * @brief 剪毛 (IShearable接口实现)
+     * @param player 执行剪毛的玩家
      * @return 获得的蘑菇物品
      */
-    std::vector<ItemStack> shear();
+    std::vector<ItemStack> shear(Player* player = nullptr) override;
+
+    // ========== 其他交互 ==========
 
     /**
      * @brief 检查是否可以用空碗获取蘑菇汤

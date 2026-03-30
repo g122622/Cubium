@@ -156,5 +156,32 @@ public:
     void startExecuting() override;
 };
 
+/**
+ * @brief 未驯服状态目标选择
+ *
+ * 驯服动物在未驯服状态下选择攻击目标。
+ * 用于狼等动物。
+ *
+ * 参考 MC 1.16.5 NonTamedTargetGoal
+ */
+template<typename T>
+class NonTamedTargetGoal : public TargetGoal {
+public:
+    /**
+     * @brief 构造函数
+     * @param mob 拥有此目标的驯服动物
+     * @param checkSight 是否需要视线检查
+     */
+    NonTamedTargetGoal(MobEntity* mob, bool checkSight);
+
+    ~NonTamedTargetGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void startExecuting() override;
+
+private:
+    T* m_targetEntity = nullptr;
+};
+
 } // namespace entity::ai::goal
 } // namespace mc

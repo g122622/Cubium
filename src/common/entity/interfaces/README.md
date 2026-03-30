@@ -7,7 +7,7 @@
 | 接口 | 说明 | 实现者示例 |
 |------|------|-----------|
 | `IAngerable` | 愤怒接口，可记住攻击者 | 狼、铁傀儡、末影人、僵尸猪灵 |
-| `IRideable` | 可骑乘接口 | 猪、炽足兽 |
+| `IRideable` | 可骑乘接口 | 猪、炽足兽、马类 |
 | `IShearable` | 可剪毛接口 | 羊、雪傀儡、哞菇 |
 | `IRangedAttackMob` | 远程攻击接口 | 骷髅、烈焰人、女巫 |
 | `ICrossbowUser` | 弩使用者接口 | 掠夺者、猪灵 |
@@ -60,24 +60,54 @@ public:
 
 | 接口 | 已实现者 | 备注 |
 |------|----------|------|
-| `IAngerable` | TameableEntity, GolemEntity | 狼、铁傀儡已正确实现 |
-| `IRideable` | AbstractHorseEntity, StriderEntity | PigEntity有方法但未正式继承接口 |
-| `IShearable` | - | SheepEntity, MooshroomEntity有方法但未正式继承接口 |
-| `IRangedAttackMob` | SkeletonEntity, BlazeEntity | 已在实体中实现attackEntityWithRangedAttack |
+| `IAngerable` | TameableEntity, GolemEntity, EndermanEntity | 狼、铁傀儡、末影人已正确实现 |
+| `IRideable` | PigEntity, AbstractHorseEntity, StriderEntity | 猪、马类、炽足兽已实现 |
+| `IShearable` | SheepEntity, MooshroomEntity, SnowGolemEntity | 羊、哞菇、雪傀儡已实现 |
+| `IRangedAttackMob` | SkeletonEntity, BlazeEntity, WitherEntity | 已在实体中实现attackEntityWithRangedAttack |
 | `ICrossbowUser` | - | 接口已定义，待PiglinEntity/PillagerEntity实现 |
-| `IFlyingAnimal` | - | BeeEntity, ParrotEntity有方法但未正式继承接口 |
+| `IFlyingAnimal` | BeeEntity, ParrotEntity | 蜜蜂、鹦鹉已实现 |
 | `IJumpingMount` | AbstractHorseEntity | 马类跳跃系统已实现 |
 | `IEquipable` | - | 接口已定义，待实现 |
 
-## 待修复问题
+## 目录结构
 
-部分实体有相关方法但未正式继承接口：
+```
+interfaces/
+├── IAngerable.hpp         # 愤怒接口
+├── IRideable.hpp          # 可骑乘接口
+├── IShearable.hpp         # 可剪毛接口
+├── IRangedAttackMob.hpp   # 远程攻击接口
+├── ICrossbowUser.hpp      # 弩使用者接口
+├── IFlyingAnimal.hpp      # 飞行动物接口
+├── IJumpingMount.hpp      # 可跳跃骑乘接口
+├── IEquipable.hpp         # 可装备接口
+└── README.md              # 本文件
+```
 
-| 实体 | 缺失接口 | 现有方法 |
-|------|----------|----------|
-| PigEntity | IRideable | hasSaddle(), setSaddle(), boost() |
-| SheepEntity | IShearable | shear(), hasWool() |
-| MooshroomEntity | IShearable | shear(), isShearable() |
-| SnowGolemEntity | IShearable | shearPumpkin() |
-| BeeEntity | IFlyingAnimal | isFlying(), setFlying() |
-| ParrotEntity | IFlyingAnimal | isFlying(), setFlying() |
+## 依赖关系
+
+```
+IAngerable
+    └── 需要: LivingEntity (前向声明)
+
+IRideable
+    └── 需要: Player (前向声明)
+
+IShearable
+    └── 需要: Player, ItemStack (前向声明)
+
+IRangedAttackMob
+    └── 需要: LivingEntity (前向声明)
+
+ICrossbowUser (继承自 IRangedAttackMob)
+    └── 需要: LivingEntity (前向声明)
+
+IFlyingAnimal
+    └── 无外部依赖
+
+IJumpingMount
+    └── 无外部依赖
+
+IEquipable
+    └── 需要: ItemStack (前向声明)
+```

@@ -102,6 +102,12 @@ add_library(mc_common STATIC
 
     # Entity - Passive - Horse
     entity/entities/passive/horse/AbstractHorseEntity.cpp
+    entity/entities/passive/horse/HorseEntity.cpp
+    entity/entities/passive/horse/DonkeyEntity.cpp
+    entity/entities/passive/horse/MuleEntity.cpp
+    entity/entities/passive/horse/SkeletonHorseEntity.cpp
+    entity/entities/passive/horse/ZombieHorseEntity.cpp
+    entity/entities/passive/horse/LlamaEntity.cpp
     # Entity - Monster
     entity/entities/monster/MonsterEntity.cpp
     # Entity - Monster (undead)
@@ -111,6 +117,7 @@ add_library(mc_common STATIC
     entity/entities/monster/undead/DrownedEntity.cpp
     entity/entities/monster/undead/StrayEntity.cpp
     entity/entities/monster/undead/WitherSkeletonEntity.cpp
+    entity/entities/monster/undead/ZombieVillagerEntity.cpp
     # Entity - Monster (arthropod)
     entity/entities/monster/arthropod/SpiderEntity.cpp
     entity/entities/monster/arthropod/CaveSpiderEntity.cpp
@@ -119,8 +126,10 @@ add_library(mc_common STATIC
     entity/entities/monster/basic/CreeperEntity.cpp
     entity/entities/monster/basic/SlimeEntity.cpp
     entity/entities/monster/basic/PhantomEntity.cpp
+    entity/entities/monster/basic/GiantEntity.cpp
     # Entity - Monster (end)
     entity/entities/monster/end/EndermanEntity.cpp
+    entity/entities/monster/end/ShulkerEntity.cpp
     # Entity - Monster (nether)
     entity/entities/monster/nether/BlazeEntity.cpp
     entity/entities/monster/nether/NetherEntities.cpp
@@ -130,6 +139,32 @@ add_library(mc_common STATIC
     # Entity - Monster (illager)
     entity/entities/monster/illager/WitchEntity.cpp
     entity/entities/monster/illager/IllagerEntities.cpp
+    entity/entities/monster/illager/EvokerEntity.cpp
+    entity/entities/monster/illager/IllusionerEntity.cpp
+    entity/entities/monster/illager/RavagerEntity.cpp
+    entity/entities/monster/illager/VexEntity.cpp
+    # Entity - Vehicle
+    entity/entities/vehicle/BoatEntity.cpp
+    entity/entities/vehicle/MinecartEntity.cpp
+    # Entity - Hanging
+    entity/entities/hanging/HangingEntity.cpp
+    # Entity - Effect
+    entity/entities/effect/EffectEntities.cpp
+    # Entity - Misc
+    entity/entities/misc/MiscEntities.cpp
+    # NOTE: Boss, Villager, and Projectile entities have incomplete implementations
+    # with compilation errors. They need further development before being added.
+    # entity/entities/boss/EnderDragonEntity.cpp
+    # entity/entities/boss/WitherEntity.cpp
+    # entity/entities/villager/AbstractVillagerEntity.cpp
+    # entity/entities/villager/VillagerEntity.cpp
+    # entity/entities/projectile/ProjectileEntity.cpp
+    # entity/entities/projectile/ThrowableEntity.cpp
+    # entity/entities/projectile/AbstractArrowEntity.cpp
+    # entity/entities/projectile/AbstractFireballEntity.cpp
+    # entity/entities/projectile/ProjectileItemEntity.cpp
+    # entity/entities/projectile/TridentEntity.cpp
+    # entity/entities/projectile/OtherProjectiles.cpp
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Entity - Loot System
@@ -159,6 +194,8 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/movement/MovementGoals.cpp
     entity/ai/goal/goals/attack/RangedAttackGoals.cpp
     entity/ai/goal/goals/target/TargetGoals.cpp
+    entity/ai/goal/goals/special/SpecialGoals.cpp
+    entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Brain System
     entity/ai/brain/memory/MemoryModuleType.cpp
     entity/ai/brain/schedule/Activity.cpp

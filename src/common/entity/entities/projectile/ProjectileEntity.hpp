@@ -2,7 +2,7 @@
 
 #include "../../core/Entity.hpp"
 #include "../../damage/DamageSource.hpp"
-#include "../../util/math/Vector3.hpp"
+#include "../../../util/math/Vector3.hpp"
 #include <memory>
 
 namespace mc {

@@ -1,0 +1,110 @@
+#include "ShulkerEntity.hpp"
+#include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include <memory>
+
+namespace mc {
+
+ShulkerEntity::ShulkerEntity(LegacyEntityType type, EntityId id)
+    : MonsterEntity(type, id)
+{
+    // 潜影贝不移动
+    // TODO: 禁用移动控制器
+}
+
+std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/) {
+    return std::make_unique<ShulkerEntity>(LegacyEntityType::Unknown, 0);
+}
+
+void ShulkerEntity::openShell() {
+    if (m_shellState == ShellState::Closed) {
+        m_shellState = ShellState::Opening;
+        m_shellStateTime = OPEN_DURATION;
+    }
+}
+
+void ShulkerEntity::closeShell() {
+    if (m_shellState == ShellState::Open) {
+        m_shellState = ShellState::Closing;
+        m_shellStateTime = CLOSE_DURATION;
+    }
+}
+
+bool ShulkerEntity::isImmuneToDamage() const {
+    return m_shellState == ShellState::Closed;
+}
+
+void ShulkerEntity::teleport() {
+    // TODO: 实现瞬移逻辑
+    // 随机选择附近的一个有效位置
+}
+
+void ShulkerEntity::shootBullet() {
+    if (m_attackCooldown > 0) {
+        return;
+    }
+
+    // TODO: 生成潜影贝子弹
+    // auto bullet = std::make_unique<ShulkerBulletEntity>(LegacyEntityType::Unknown, 0);
+    // bullet->setOwner(this);
+    // bullet->setTarget(getAttackTarget());
+    // world().spawnEntity(std::move(bullet), position());
+
+    m_attackCooldown = ATTACK_COOLDOWN;
+    m_attacking = true;
+}
+
+void ShulkerEntity::updateShellState() {
+    if (m_shellStateTime > 0) {
+        m_shellStateTime--;
+
+        if (m_shellStateTime <= 0) {
+            switch (m_shellState) {
+                case ShellState::Opening:
+                    m_shellState = ShellState::Open;
+                    break;
+                case ShellState::Closing:
+                    m_shellState = ShellState::Closed;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+}
+
+void ShulkerEntity::tick() {
+    MonsterEntity::tick();
+
+    // 更新贝壳状态
+    updateShellState();
+
+    // 更新攻击冷却
+    if (m_attackCooldown > 0) {
+        m_attackCooldown--;
+    }
+
+    // 如果闭合且受到伤害，瞬移
+    // TODO: 检测伤害并瞬移
+}
+
+void ShulkerEntity::registerGoals() {
+    MonsterEntity::registerGoals();
+
+    // TODO: 潜影贝特有 AI 目标
+    // - ShulkerAttackGoal (发射子弹攻击)
+    // - ShulkerDefenseGoal (闭合贝壳防御)
+    // - ShulkerTeleportGoal (受伤瞬移)
+}
+
+void ShulkerEntity::registerAttributes() {
+    MonsterEntity::registerAttributes();
+
+    // 潜影贝属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f);  // 不移动
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);
+}
+
+} // namespace mc
