@@ -1,7 +1,7 @@
 #include "HopperBlock.hpp"
 #include "../../blockentity/transport/HopperEntity.hpp"
 #include "../../IWorld.hpp"
-#include "../../../entity/Player.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/ItemStack.hpp"
 #include "../../../item/BlockItemUseContext.hpp"
 #include "../../../util/Direction.hpp"

@@ -1,5 +1,5 @@
 #include "world/blockentity/storage/EnderChestEntity.hpp"
-#include "entity/Player.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "world/IWorld.hpp"
 #include "util/assert/AssertAll.hpp"
 

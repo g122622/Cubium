@@ -7,7 +7,7 @@
 #include "../fluid/Fluid.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/EmptyFluid.hpp"
-#include "../../entity/Player.hpp"
+#include "../../entity/entities/player/Player.hpp"
 #include "../../item/ItemStack.hpp"
 #include "../../item/ItemUseContext.hpp"
 #include "../blockentity/BlockEntity.hpp"

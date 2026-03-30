@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include "common/world/entity/EntityManager.hpp"
-#include "common/entity/VanillaEntities.hpp"
-#include "common/entity/EntityRegistry.hpp"
-#include "common/entity/Entity.hpp"
-#include "common/entity/EntityClassification.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include <memory>
 #include <vector>

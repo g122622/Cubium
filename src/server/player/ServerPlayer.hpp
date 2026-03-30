@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/entity/Player.hpp"
+#include "../../common/entity/entities/player/Player.hpp"
 #include <memory>
 
 namespace mc {

@@ -1,0 +1,189 @@
+#include "FoxEntity.hpp"
+#include "../../../core/Types.hpp"
+#include "../../../item/ItemStack.hpp"
+#include "../../core/EntityRegistry.hpp"
+#include "../../ai/goal/GoalSelector.hpp"
+#include "../../ai/goal/goals/SwimGoal.hpp"
+#include "../../ai/goal/goals/PanicGoal.hpp"
+#include "../../ai/goal/goals/BreedGoal.hpp"
+#include "../../ai/goal/goals/TemptGoal.hpp"
+#include "../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../attribute/Attributes.hpp"
+#include <random>
+
+namespace mc {
+
+FoxEntity::FoxEntity(LegacyEntityType type, EntityId id)
+    : AnimalEntity(type, id)
+{
+    // 注册 AI 目标
+    registerGoals();
+
+    // 注册属性
+    registerAttributes();
+}
+
+std::unique_ptr<Entity> FoxEntity::create(IWorld* /*world*/) {
+    return std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
+}
+
+bool FoxEntity::trusts(u64 playerId) const {
+    for (u64 trustedId : m_trustedPlayers) {
+        if (trustedId == playerId) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void FoxEntity::addTrustedPlayer(u64 playerId) {
+    if (trusts(playerId)) {
+        return;
+    }
+
+    if (m_trustedPlayers.size() < MAX_TRUSTED_PLAYERS) {
+        m_trustedPlayers.push_back(playerId);
+    } else {
+        // 替换最早的信任
+        m_trustedPlayers.erase(m_trustedPlayers.begin());
+        m_trustedPlayers.push_back(playerId);
+    }
+}
+
+void FoxEntity::removeTrustedPlayer(u64 playerId) {
+    auto it = std::find(m_trustedPlayers.begin(), m_trustedPlayers.end(), playerId);
+    if (it != m_trustedPlayers.end()) {
+        m_trustedPlayers.erase(it);
+    }
+}
+
+std::optional<u64> FoxEntity::getFirstTrustedPlayer() const {
+    if (m_trustedPlayers.empty()) {
+        return std::nullopt;
+    }
+    return m_trustedPlayers[0];
+}
+
+void FoxEntity::setSleeping(bool sleeping) {
+    m_sleeping = sleeping;
+    if (sleeping) {
+        m_sleepTimer = 100 + (rand() % 100); // 5-10秒
+    }
+}
+
+bool FoxEntity::isHoldingItem() const {
+    return m_heldItem != nullptr && !m_heldItem->isEmpty();
+}
+
+void FoxEntity::setHeldItem(std::unique_ptr<ItemStack> item) {
+    m_heldItem = std::move(item);
+}
+
+void FoxEntity::dropHeldItem() {
+    // TODO: 在世界生成掉落物
+    m_heldItem.reset();
+}
+
+bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const {
+    // TODO: 检查是否是甜浆果或发光浆果
+    // return itemStack.getItem() == Items::SWEET_BERRIES
+    //     || itemStack.getItem() == Items::GLOW_BERRIES;
+    (void)itemStack;
+    return false;
+}
+
+std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner) {
+    // TODO: 创建小狐狸
+    // auto baby = std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
+    // baby->setChild(true);
+    //
+    // // 遗传皮肤类型
+    // FoxEntity* parent = dynamic_cast<FoxEntity*>(&partner);
+    // if (parent) {
+    //     static std::random_device rd;
+    //     static std::mt19937 gen(rd());
+    //     std::uniform_int_distribution<int> dist(0, 1);
+    //     baby->setFoxType(dist(gen) == 0 ? m_foxType : parent->getFoxType());
+    // }
+    //
+    // // 幼狐信任父母的信任玩家
+    // for (u64 playerId : m_trustedPlayers) {
+    //     baby->addTrustedPlayer(playerId);
+    // }
+    // if (parent) {
+    //     for (u64 playerId : parent->m_trustedPlayers) {
+    //         baby->addTrustedPlayer(playerId);
+    //     }
+    // }
+    //
+    // return baby;
+    (void)partner;
+    return nullptr;
+}
+
+void FoxEntity::tick() {
+    AnimalEntity::tick();
+
+    // 睡眠计时器
+    if (m_sleeping) {
+        m_sleepTimer--;
+        if (m_sleepTimer <= 0) {
+            setSleeping(false);
+        }
+    }
+}
+
+void FoxEntity::registerGoals() {
+    // 调用父类方法
+    AnimalEntity::registerGoals();
+
+    // 狐狸特有目标
+    // 优先级 0: 游泳
+    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+
+    // 优先级 1: 恐慌逃跑
+    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.2));
+
+    // 优先级 2: 繁殖
+    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+
+    // 优先级 3: 食物诱惑（甜浆果）
+    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isBerryPredicate));
+
+    // 优先级 4: 跟随父母
+    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.0));
+
+    // 优先级 5: 逃离玩家（未信任的玩家）
+    // TODO: 需要 AvoidEntityGoal 支持
+    // m_goalSelector.addGoal(5, new entity::ai::goal::AvoidEntityGoal(this, Player.class, 16.0f, 1.6, 1.4));
+
+    // 优先级 6: 随机漫步
+    m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 0.4));
+
+    // 优先级 7: 看向玩家
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0f));
+
+    // 优先级 8: 随机看向
+    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+
+    // TODO: 狐狸特有目标
+    // - FoxPounceGoal: 扑击攻击
+    // - FoxEatBerriesGoal: 吃浆果
+    // - FoxHuntGoal: 狩猎小动物
+    // - FoxSleepGoal: 睡觉
+}
+
+void FoxEntity::registerAttributes() {
+    // 调用父类方法
+    AnimalEntity::registerAttributes();
+
+    // 狐狸的属性
+    // 参考 MC 1.16.5 狐狸属性
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+}
+
+} // namespace mc

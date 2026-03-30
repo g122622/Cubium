@@ -4,7 +4,7 @@
 #include "../../../common/world/chunk/ChunkData.hpp"
 #include "../../../common/util/math/random/Random.hpp"
 #include "../../../common/core/Types.hpp"
-#include "../../../common/entity/EntityClassification.hpp"
+#include "../../../common/entity/core/EntityClassification.hpp"
 #include "../../../common/world/chunk/IChunk.hpp"
 #include <functional>
 #include <memory>

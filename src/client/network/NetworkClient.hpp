@@ -2,7 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/entity/Player.hpp"
+#include "../../common/entity/entities/player/Player.hpp"
 #include "common/item/ItemStack.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"

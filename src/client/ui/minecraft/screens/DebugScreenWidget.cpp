@@ -11,7 +11,7 @@
 #include "client/renderer/Camera.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/entity/ClientEntityManager.hpp"
-#include "common/entity/Player.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "client/renderer/trident/sky/CelestialCalculations.hpp"
 #include <spdlog/spdlog.h>
 #include <iomanip>

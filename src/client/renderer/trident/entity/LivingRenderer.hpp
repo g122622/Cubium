@@ -2,7 +2,7 @@
 
 #include "EntityRenderer.hpp"
 #include "model/EntityModel.hpp"
-#include "../../../../common/entity/living/LivingEntity.hpp"
+#include "../../../../common/entity/core/LivingEntity.hpp"
 #include <memory>
 
 namespace mc::client::renderer {

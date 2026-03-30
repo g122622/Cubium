@@ -3,7 +3,7 @@
 #include "../../blockentity/processing/BlastFurnaceEntity.hpp"
 #include "../../blockentity/processing/SmokerEntity.hpp"
 #include "../../IWorld.hpp"
-#include "../../../entity/Player.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 
 namespace mc {
 namespace blocks {

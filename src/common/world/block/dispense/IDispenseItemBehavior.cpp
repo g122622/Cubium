@@ -2,7 +2,7 @@
 #include "../../IWorld.hpp"
 #include "../Block.hpp"
 #include "../../../util/property/Properties.hpp"
-#include "../../../entity/ItemEntity.hpp"
+#include "../../../entity/entities/item/ItemEntity.hpp"
 
 namespace mc {
 namespace blocks {

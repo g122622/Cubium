@@ -2,7 +2,7 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
-#include "entity/Player.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "item/ItemStack.hpp"
 #include "item/Item.hpp"

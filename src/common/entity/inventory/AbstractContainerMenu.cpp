@@ -1,7 +1,7 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
-#include "entity/Player.hpp"
+#include "entity/entities/player/Player.hpp"
 
 namespace mc {
 

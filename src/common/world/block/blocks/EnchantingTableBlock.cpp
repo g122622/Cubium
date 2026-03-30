@@ -1,7 +1,7 @@
 #include "EnchantingTableBlock.hpp"
 #include "../../blockentity/interactive/EnchantingTableEntity.hpp"
 #include "../../IWorld.hpp"
-#include "../../../entity/Player.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/BlockItemUseContext.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 

@@ -1,5 +1,5 @@
 #include "EntityManager.hpp"
-#include "../../entity/Entity.hpp"
+#include "../../entity/core/Entity.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 

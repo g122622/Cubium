@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "server/world/entity/EntityTracker.hpp"
-#include "common/entity/Entity.hpp"
-#include "common/entity/living/LivingEntity.hpp"
-#include "common/entity/mob/MobEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;

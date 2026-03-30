@@ -3,7 +3,7 @@
 #include "../Block.hpp"
 #include "../../IWorld.hpp"
 #include "../../blockentity/storage/ChestEntity.hpp"
-#include "../../../entity/Player.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/ItemStack.hpp"
 #include "../../../item/BlockItemUseContext.hpp"
 #include "../../../util/assert/AssertAll.hpp"

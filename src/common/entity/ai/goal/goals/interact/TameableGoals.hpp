@@ -1,0 +1,136 @@
+#pragma once
+
+#include "../Goal.hpp"
+#include "../../../core/Types.hpp"
+
+namespace mc {
+
+// Forward declarations
+class TameableEntity;
+class Player;
+class MobEntity;
+
+namespace entity::ai::goal {
+
+/**
+ * @brief 跟随主人目标
+ *
+ * 使驯服动物跟随主人。
+ * 当距离主人太远时会自动移动靠近。
+ *
+ * 参考 MC 1.16.5 FollowOwnerGoal
+ */
+class FollowOwnerGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param entity 驯服动物
+     * @param speed 移动速度倍率
+     * @param minDistance 最小跟随距离
+     * @param maxDistance 最大跟随距离（超过此距离开始跟随）
+     * @param teleportDistance 传送距离（超过此距离传送）
+     */
+    FollowOwnerGoal(TameableEntity* entity, f64 speed, f32 minDistance, f32 maxDistance, f32 teleportDistance);
+
+    ~FollowOwnerGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+private:
+    /**
+     * @brief 检查主人是否存在且可跟随
+     * @return 如果可以跟随返回true
+     */
+    [[nodiscard]] bool canFollowOwner() const;
+
+    /**
+     * @brief 传送到主人身边
+     * @return 如果传送成功返回true
+     */
+    bool teleportToOwner();
+
+    TameableEntity* m_entity;
+    Player* m_owner = nullptr;
+    f64 m_speed;
+    f32 m_minDistance;
+    f32 m_maxDistance;
+    f32 m_teleportDistance;
+    i32 m_timeToRecalcPath = 0;
+
+    static constexpr i32 PATH_RECALC_INTERVAL = 10; // 路径重新计算间隔
+};
+
+/**
+ * @brief 坐下目标
+ *
+ * 使驯服动物保持坐下状态。
+ * 坐下时不会移动或跟随主人。
+ *
+ * 参考 MC 1.16.5 SitGoal
+ */
+class SitGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param entity 驯服动物
+     */
+    explicit SitGoal(TameableEntity* entity);
+
+    ~SitGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+
+private:
+    TameableEntity* m_entity;
+};
+
+/**
+ * @brief 乞求目标
+ *
+ * 当玩家手持食物时，动物会看向玩家并乞求。
+ * 主要用于狼（狗）的行为。
+ *
+ * 参考 MC 1.16.5 BegGoal
+ */
+class BegGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param entity 驯服动物
+     * @param maxDistance 最大乞求距离
+     */
+    BegGoal(TameableEntity* entity, f32 maxDistance);
+
+    ~BegGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+private:
+    /**
+     * @brief 检查玩家是否手持食物
+     * @param player 玩家
+     * @return 如果手持食物返回true
+     */
+    [[nodiscard]] bool isPlayerHoldingFood(const Player* player) const;
+
+    TameableEntity* m_entity;
+    Player* m_targetPlayer = nullptr;
+    f32 m_maxDistance;
+    f32 m_begAngle = 0.0f;
+
+    static constexpr f32 BEG_ANGLE_SPEED = 0.15f;
+};
+
+} // namespace entity::ai::goal
+} // namespace mc

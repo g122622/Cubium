@@ -1,73 +1,125 @@
 # Entity System
 
-实体系统是 Minecraft Reborn 项目中所有游戏实体（玩家、生物、物品等）的核心模块，提供实体定义、AI 行为、属性系统、战斗系统、背包系统、掉落表等功能。
+实体系统是 Minecraft Reborn 项目中所有游戏实体（玩家、生物、物品等）的核心模块。
 
 ## 目录结构
 
 ```
 src/common/entity/
-├── Entity.hpp/cpp                 # 实体基类
-├── EntityType.hpp/cpp             # 实体类型定义
-├── EntityRegistry.hpp             # 实体类型注册表
-├── EntityClassification.hpp/cpp   # 实体分类（怪物、动物等）
-├── EntityDataManager.hpp          # 实体数据同步管理
-├── EntityPose.hpp                 # 实体姿态枚举
-├── EntitySize.hpp                 # 实体尺寸
-├── EntitySpawnPlacementRegistry.hpp/cpp  # 实体生成放置规则
-├── EntityUtils.hpp                # 实体工具函数
-├── DataParameter.hpp              # 数据参数定义
-├── MoverType.hpp                  # 移动类型枚举
-├── ItemEntity.hpp/cpp             # 物品实体
-├── Player.hpp/cpp                 # 玩家实体
-├── PlayerManager.hpp/cpp          # 玩家管理器
-├── GameModeUtils.hpp/cpp          # 游戏模式工具
-├── VanillaEntities.hpp            # 原版实体注册
+├── core/                           # 核心实体框架
+│   ├── Entity.hpp/cpp              # 实体基类
+│   ├── LivingEntity.hpp/cpp        # 生物实体基类
+│   ├── MobEntity.hpp/cpp           # AI生物基类
+│   ├── CreatureEntity.hpp/cpp      # 陆地生物基类
+│   ├── AgeableEntity.hpp/cpp       # 可成长实体基类
+│   ├── FlyingEntity.hpp/cpp        # 飞行生物基类
+│   ├── EntityType.hpp/cpp          # 实体类型定义
+│   ├── EntityRegistry.hpp          # 实体类型注册表
+│   ├── EntityClassification.hpp/cpp # 实体分类
+│   ├── EntityDataManager.hpp       # 实体数据同步管理
+│   ├── EntityPose.hpp              # 实体姿态枚举
+│   ├── EntitySize.hpp              # 实体尺寸
+│   ├── EntitySpawnPlacementRegistry.hpp/cpp # 实体生成放置规则
+│   ├── EntityUtils.hpp             # 实体工具函数
+│   ├── DataParameter.hpp           # 数据参数定义
+│   ├── MoverType.hpp               # 移动类型枚举
+│   └── VanillaEntities.hpp         # 原版实体注册
 │
-├── ai/                            # AI 系统
-│   ├── brain/                     # 大脑系统（预留）
-│   │   ├── sensor/                # 传感器
-│   │   └── task/                  # 任务
+├── entities/                       # 具体实体实现
+│   ├── passive/                    # 被动/中立生物
+│   │   ├── basic/                  # 普通动物
+│   │   │   ├── AnimalEntity.hpp/cpp # 动物基类
+│   │   │   ├── PigEntity.hpp/cpp   # 猪
+│   │   │   ├── CowEntity.hpp/cpp   # 牛
+│   │   │   ├── SheepEntity.hpp/cpp # 羊
+│   │   │   └── ChickenEntity.hpp/cpp # 鸡
+│   │   ├── tamable/                # 可驯服动物
+│   │   │   └── TameableEntity.hpp/cpp # 可驯服基类
+│   │   ├── special/                # 特殊动物
+│   │   ├── horse/                  # 马类
+│   │   ├── fish/                   # 鱼类
+│   │   ├── water/                  # 水生生物
+│   │   ├── ambient/                # 环境生物
+│   │   └── golem/                  # 傀儡
 │   │
-│   ├── controller/                # 控制器
-│   │   ├── LookController.hpp/cpp     # 视线控制器
+│   ├── monster/                    # 敌对生物
+│   │   ├── MonsterEntity.hpp/cpp   # 敌对生物基类
+│   │   ├── undead/                 # 亡灵类
+│   │   ├── arthropod/              # 节肢类
+│   │   ├── nether/                 # 地狱生物
+│   │   ├── end/                    # 末地生物
+│   │   ├── basic/                  # 基础怪物
+│   │   ├── ocean/                  # 海洋怪物
+│   │   └── illager/                # 灾厄村民
+│   │
+│   ├── boss/                       # Boss生物
+│   ├── villager/                   # 村民/商人
+│   ├── projectile/                 # 投掷物
+│   ├── vehicle/                    # 交通工具
+│   ├── item/                       # 物品相关实体
+│   │   └── ItemEntity.hpp/cpp      # 掉落物品
+│   ├── hanging/                    # 悬挂实体
+│   ├── effect/                     # 效果实体
+│   ├── equipment/                  # 装备实体
+│   └── player/                     # 玩家实体
+│       ├── Player.hpp/cpp          # 玩家实体
+│       ├── PlayerManager.hpp/cpp   # 玩家管理器
+│       └── GameModeUtils.hpp/cpp   # 游戏模式工具
+│
+├── interfaces/                     # 实体接口
+│   ├── IAngerable.hpp              # 愤怒接口
+│   ├── IRideable.hpp               # 可骑乘接口
+│   ├── IShearable.hpp              # 可剪毛接口
+│   ├── IRangedAttackMob.hpp        # 远程攻击接口
+│   ├── ICrossbowUser.hpp           # 弩使用者接口
+│   ├── IFlyingAnimal.hpp           # 飞行动物接口
+│   ├── IJumpingMount.hpp           # 可跳跃骑乘接口
+│   └── IEquipable.hpp              # 可装备接口
+│
+├── ai/                             # AI 系统
+│   ├── controller/                 # 控制器
+│   │   ├── LookController.hpp/cpp  # 视线控制器
 │   │   ├── MovementController.hpp/cpp # 移动控制器
-│   │   └── JumpController.hpp/cpp     # 跳跃控制器
+│   │   └── JumpController.hpp/cpp  # 跳跃控制器
 │   │
-│   ├── goal/                      # AI 目标系统
-│   │   ├── Goal.hpp               # 目标基类
-│   │   ├── GoalFlag.hpp           # 目标互斥标志
-│   │   ├── GoalConstants.hpp      # 目标常量
-│   │   ├── GoalSelector.hpp       # 目标选择器
-│   │   ├── PrioritizedGoal.hpp    # 优先级目标包装
-│   │   │
-│   │   └── goals/                 # 具体 AI 目标
-│   │       ├── RandomWalkingGoal.hpp/cpp      # 随机漫步
-│   │       ├── LookAtGoal.hpp/cpp              # 看向目标
-│   │       ├── SwimGoal.hpp/cpp                # 游泳
-│   │       ├── PanicGoal.hpp/cpp               # 恐慌逃跑
-│   │       ├── BreedGoal.hpp/cpp               # 繁殖
-│   │       ├── FollowParentGoal.hpp/cpp        # 跟随父母
-│   │       ├── TemptGoal.hpp/cpp               # 诱惑（跟随食物）
-│   │       ├── AvoidEntityGoal.hpp/cpp         # 避开实体
-│   │       └── MeleeAttackGoal.hpp/cpp         # 近战攻击
+│   ├── goal/                       # AI 目标系统
+│   │   ├── Goal.hpp                # 目标基类
+│   │   ├── GoalFlag.hpp            # 目标互斥标志
+│   │   ├── GoalConstants.hpp       # 目标常量
+│   │   ├── GoalSelector.hpp        # 目标选择器
+│   │   ├── PrioritizedGoal.hpp     # 优先级目标包装
+│   │   └── goals/                  # 具体 AI 目标
+│   │       ├── SwimGoal.cpp        # 游泳
+│   │       ├── RandomWalkingGoal.cpp # 随机漫步
+│   │       ├── LookAtGoal.cpp      # 看向目标
+│   │       ├── PanicGoal.cpp       # 恐慌逃跑
+│   │       ├── BreedGoal.cpp       # 繁殖
+│   │       ├── FollowParentGoal.cpp # 跟随父母
+│   │       ├── TemptGoal.cpp       # 诱惑
+│   │       ├── AvoidEntityGoal.cpp # 避开实体
+│   │       ├── MeleeAttackGoal.cpp # 近战攻击
+│   │       ├── movement/           # 移动类Goal
+│   │       ├── attack/             # 攻击类Goal
+│   │       ├── target/             # 目标选择Goal
+│   │       ├── interact/           # 交互类Goal
+│   │       └── special/            # 特殊Goal
 │   │
-│   └── pathfinding/               # 寻路系统
-│       ├── Path.hpp               # 路径表示
-│       ├── PathPoint.hpp/cpp      # 路径点
-│       ├── PathHeap.hpp           # 路径堆（A* 算法）
-│       ├── PathFinder.hpp/cpp     # A* 寻路器
-│       ├── PathNavigator.hpp/cpp  # 路径导航器
-│       ├── PathNodeType.hpp       # 路径节点类型
-│       ├── NodeProcessor.hpp      # 节点处理器接口
-│       ├── WalkNodeProcessor.hpp/cpp  # 行走节点处理器
-│       └── Region.hpp             # 世界区域接口
-│
-├── animal/                        # 动物实体
-│   ├── AnimalEntity.hpp/cpp       # 动物基类（繁殖、喂食）
-│   ├── PigEntity.hpp/cpp          # 猪
-│   ├── CowEntity.hpp/cpp          # 牛
-│   ├── SheepEntity.hpp/cpp        # 羊
-│   └── ChickenEntity.hpp/cpp      # 鸡
+│   ├── brain/                      # 大脑系统（预留）
+│   │   ├── memory/                 # 记忆模块
+│   │   ├── sensor/                 # 传感器
+│   │   ├── task/                   # 任务
+│   │   └── schedule/               # 日程
+│   │
+│   └── pathfinding/                # 寻路系统
+│       ├── Path.hpp                # 路径表示
+│       ├── PathPoint.hpp/cpp       # 路径点
+│       ├── PathHeap.hpp            # 路径堆（A* 算法）
+│       ├── PathFinder.hpp/cpp      # A* 寻路器
+│       ├── PathNavigator.hpp/cpp   # 路径导航器
+│       ├── PathNodeType.hpp        # 路径节点类型
+│       ├── NodeProcessor.hpp       # 节点处理器接口
+│       ├── WalkNodeProcessor.hpp/cpp # 行走节点处理器
+│       └── Region.hpp              # 世界区域接口
 │
 ├── attribute/                     # 属性系统
 │   ├── Attribute.hpp              # 属性定义

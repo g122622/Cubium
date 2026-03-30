@@ -2,8 +2,8 @@
 
 #include "server/world/entity/ItemPickupManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "common/entity/ItemEntity.hpp"
-#include "common/entity/Player.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/ItemStack.hpp"
 #include "common/item/Items.hpp"
 #include "common/world/block/VanillaBlocks.hpp"

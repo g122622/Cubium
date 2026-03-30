@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../../common/core/Types.hpp"
-#include "../../../common/entity/Entity.hpp"
+#include "../../../common/entity/core/Entity.hpp"
 #include "../../../common/util/math/Vector3.hpp"
 #include <unordered_map>
 #include <unordered_set>

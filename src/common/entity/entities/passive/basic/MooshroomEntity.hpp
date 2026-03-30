@@ -1,0 +1,138 @@
+#pragma once
+
+#include "CowEntity.hpp"
+#include "../../../core/Types.hpp"
+#include <memory>
+
+namespace mc {
+
+// Forward declarations
+class Player;
+class ItemStack;
+
+/**
+ * @brief 哞菇实体
+ *
+ * 长着蘑菇的牛，只生成在蘑菇岛生物群系。
+ *
+ * 特性：
+ * - 两种皮肤：红色哞菇、棕色哞菇
+ * - 蘑菇繁殖：被雷击后红色哞菇变为棕色
+ * - 剪毛：使用剪刀获得蘑菇并变成普通牛
+ * - 碗交互：使用空碗获得蘑菇汤
+ * - 繁殖：与普通牛相同
+ * - 棕色哞菇：喂食花朵后可产出迷之炖菜
+ *
+ * 参考 MC 1.16.5 MooshroomEntity
+ */
+class MooshroomEntity : public CowEntity {
+public:
+    /**
+     * @brief 哞菇类型
+     */
+    enum class MooshroomType : u8 {
+        Red = 0,    // 红色哞菇
+        Brown = 1   // 棕色哞菇
+    };
+
+    /**
+     * @brief 构造函数
+     * @param type 实体类型
+     * @param id 实体ID
+     */
+    MooshroomEntity(LegacyEntityType type, EntityId id);
+    ~MooshroomEntity() override = default;
+
+    // 禁止拷贝
+    MooshroomEntity(const MooshroomEntity&) = delete;
+    MooshroomEntity& operator=(const MooshroomEntity&) = delete;
+
+    // 允许移动
+    MooshroomEntity(MooshroomEntity&&) = default;
+    MooshroomEntity& operator=(MooshroomEntity&&) = default;
+
+    /**
+     * @brief 创建哞菇实体
+     * @param world 世界实例
+     * @return 新的哞菇实体
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
+    // ========== 类型 ==========
+
+    /**
+     * @brief 获取哞菇类型
+     */
+    [[nodiscard]] MooshroomType getMooshroomType() const { return m_mooshroomType; }
+
+    /**
+     * @brief 设置哞菇类型
+     */
+    void setMooshroomType(MooshroomType type) { m_mooshroomType = type; }
+
+    /**
+     * @brief 是否是红色哞菇
+     */
+    [[nodiscard]] bool isRed() const { return m_mooshroomType == MooshroomType::Red; }
+
+    /**
+     * @brief 是否是棕色哞菇
+     */
+    [[nodiscard]] bool isBrown() const { return m_mooshroomType == MooshroomType::Brown; }
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 检查是否可以被剪毛
+     * @return 如果有蘑菇返回true
+     */
+    [[nodiscard]] bool isShearable() const { return true; }
+
+    /**
+     * @brief 剪毛
+     * @return 获得的蘑菇物品
+     */
+    std::vector<ItemStack> shear();
+
+    /**
+     * @brief 检查是否可以用空碗获取蘑菇汤
+     * @param itemStack 物品
+     * @return 如果是空碗返回true
+     */
+    [[nodiscard]] bool canBeStewed(const ItemStack& itemStack) const;
+
+    /**
+     * @brief 获取蘑菇汤
+     * @return 蘑菇汤物品
+     */
+    ItemStack getStew();
+
+    // ========== 繁殖 ==========
+
+    /**
+     * @brief 生成幼体
+     */
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
+
+    // ========== 雷击 ==========
+
+    /**
+     * @brief 被雷击时触发
+     * 红色哞菇变为棕色哞菇
+     */
+    void onStruckByLightning();
+
+protected:
+    // ========== AI 目标注册 ==========
+    void registerGoals() override;
+
+private:
+    // 哞菇类型
+    MooshroomType m_mooshroomType = MooshroomType::Red;
+
+    // 效果花（棕色哞菇用）
+    // TODO: 效果系统
+    // EffectInstance m_effect;
+};
+
+} // namespace mc

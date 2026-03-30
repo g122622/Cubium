@@ -2,10 +2,10 @@
 #include "../chunk/IChunkGenerator.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../WorldConstants.hpp"
-#include "../../../entity/EntityRegistry.hpp"
-#include "../../../entity/EntityClassification.hpp"
-#include "../../../entity/EntitySpawnPlacementRegistry.hpp"
-#include "../../../entity/mob/MobEntity.hpp"
+#include "../../../entity/core/EntityRegistry.hpp"
+#include "../../../entity/core/EntityClassification.hpp"
+#include "../../../entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "../../../entity/core/MobEntity.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {

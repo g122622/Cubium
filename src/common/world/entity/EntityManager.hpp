@@ -3,7 +3,7 @@
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../util/AxisAlignedBB.hpp"
-#include "../../entity/Entity.hpp"
+#include "../../entity/core/Entity.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>

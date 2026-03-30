@@ -4,7 +4,7 @@
 #include "entity/inventory/Slot.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/crafting/RecipeManager.hpp"
-#include "entity/Player.hpp"
+#include "entity/entities/player/Player.hpp"
 
 #include <algorithm>
 

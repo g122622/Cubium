@@ -2,7 +2,7 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/entity/VanillaEntities.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include <memory>

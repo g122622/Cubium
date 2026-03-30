@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "server/world/spawn/NaturalSpawner.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
-#include "common/entity/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
 
 namespace mc {

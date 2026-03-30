@@ -1,7 +1,7 @@
 #include "PlayerAbilitiesPacket.hpp"
 #include "PacketSerializer.hpp"
-#include "../../entity/Player.hpp"
-#include "../../entity/GameModeUtils.hpp"
+#include "../../entity/entities/player/Player.hpp"
+#include "../../entity/entities/player/GameModeUtils.hpp"
 
 namespace mc::network {
 

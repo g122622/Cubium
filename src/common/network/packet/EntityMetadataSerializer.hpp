@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../entity/EntityDataManager.hpp"
+#include "../../entity/core/EntityDataManager.hpp"
 #include "../../core/Types.hpp"
 #include <vector>
 

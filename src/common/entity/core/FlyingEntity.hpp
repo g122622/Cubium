@@ -1,0 +1,88 @@
+#pragma once
+
+#include "MobEntity.hpp"
+
+namespace mc {
+
+/**
+ * @brief 飞行生物基类
+ *
+ * 所有可以飞行的生物实体的基类。
+ * 包括恶魂、幻翼、蜜蜂等。
+ *
+ * 特性：
+ * - 不受重力影响
+ * - 可以在空中自由移动
+ * - 特殊的空中寻路逻辑
+ *
+ * 参考 MC 1.16.5 FlyingEntity
+ */
+class FlyingEntity : public MobEntity {
+public:
+    /**
+     * @brief 构造函数
+     * @param type 实体类型
+     * @param id 实体ID
+     */
+    FlyingEntity(LegacyEntityType type, EntityId id);
+
+    ~FlyingEntity() override = default;
+
+    // 禁止拷贝
+    FlyingEntity(const FlyingEntity&) = delete;
+    FlyingEntity& operator=(const FlyingEntity&) = delete;
+
+    // 允许移动
+    FlyingEntity(FlyingEntity&&) = default;
+    FlyingEntity& operator=(FlyingEntity&&) = default;
+
+    // ========== 飞行属性 ==========
+
+    /**
+     * @brief 检查是否正在飞行
+     * @return 如果正在飞行返回true
+     */
+    [[nodiscard]] bool isFlying() const { return m_flying; }
+
+    /**
+     * @brief 设置飞行状态
+     * @param flying 是否飞行
+     */
+    void setFlying(bool flying) { m_flying = flying; }
+
+    /**
+     * @brief 获取最大飞行高度（相对地面）
+     * @return 最大飞行高度
+     */
+    [[nodiscard]] f32 getMaxFlightHeight() const { return m_maxFlightHeight; }
+
+    /**
+     * @brief 设置最大飞行高度
+     * @param height 最大高度
+     */
+    void setMaxFlightHeight(f32 height) { m_maxFlightHeight = height; }
+
+    // ========== 重力 ==========
+
+    /**
+     * @brief 检查是否受重力影响
+     * @return 飞行生物不受重力影响
+     */
+    [[nodiscard]] bool hasGravity() const { return false; }
+
+    // ========== 移动 ==========
+
+    /**
+     * @brief 飞行移动
+     * @param x X方向移动
+     * @param y Y方向移动
+     * @param z Z方向移动
+     */
+    void travel(f32 x, f32 y, f32 z) override;
+
+protected:
+    bool m_flying = true;
+    f32 m_maxFlightHeight = 64.0f;
+};
+
+} // namespace mc

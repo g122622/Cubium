@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../entity/EntityClassification.hpp"
+#include "../../entity/core/EntityClassification.hpp"
 #include <vector>
 #include <string>
 #include <unordered_map>

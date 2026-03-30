@@ -4,7 +4,7 @@
  */
 
 #include "CombatTracker.hpp"
-#include "../living/LivingEntity.hpp"
+#include "../core/LivingEntity.hpp"
 #include <algorithm>
 
 namespace mc {

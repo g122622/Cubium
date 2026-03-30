@@ -1,5 +1,5 @@
 #include "ContainerPacketHandler.hpp"
-#include "../../entity/Player.hpp"
+#include "../../entity/entities/player/Player.hpp"
 #include "../../entity/inventory/PlayerInventory.hpp"
 #include "../../entity/inventory/Slot.hpp"
 #include "../../entity/inventory/AbstractContainerMenu.hpp"

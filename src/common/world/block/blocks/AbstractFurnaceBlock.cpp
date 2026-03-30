@@ -1,7 +1,7 @@
 #include "AbstractFurnaceBlock.hpp"
 #include "../../blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "../../IWorld.hpp"
-#include "../../../entity/Player.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../item/BlockItemUseContext.hpp"
 #include "../../../util/assert/AssertAll.hpp"

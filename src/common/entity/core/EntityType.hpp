@@ -1,0 +1,359 @@
+#pragma once
+
+#include "../../core/Types.hpp"
+#include "../../core/Result.hpp"
+#include "EntityClassification.hpp"
+#include "EntitySize.hpp"
+#include <functional>
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
+namespace mc {
+
+// 前向声明
+class Entity;
+class IWorld;
+
+namespace entity {
+
+// 引入 mc 命名空间的类型
+using mc::u16;
+using mc::u32;
+using mc::i32;
+using mc::f32;
+using mc::String;
+
+/**
+ * @brief 实体类型ID
+ *
+ * 用于唯一标识实体类型的数字ID。
+ * 正整数ID由注册表自动分配，负数ID保留给特殊用途。
+ */
+using EntityTypeId = u16;
+
+/**
+ * @brief 实体类型标志
+ *
+ * 定义实体类型的各种属性标志
+ */
+enum class EntityFlags : u32 {
+    None = 0,
+    ImmuneToFire = 1 << 0,       // 免疫火焰
+    ImmuneToLava = 1 << 1,       // 免疫岩浆
+    CanSummon = 1 << 2,          // 可以被召唤
+    Serializable = 1 << 3,       // 可以序列化到NBT
+    ImmuneToDrowning = 1 << 4,   // 免疫溺水
+    ImmuneToFall = 1 << 5,       // 免疫摔落伤害
+};
+
+inline EntityFlags operator|(EntityFlags a, EntityFlags b) {
+    return static_cast<EntityFlags>(static_cast<u32>(a) | static_cast<u32>(b));
+}
+
+inline EntityFlags operator&(EntityFlags a, EntityFlags b) {
+    return static_cast<EntityFlags>(static_cast<u32>(a) & static_cast<u32>(b));
+}
+
+inline bool hasEntityFlag(EntityFlags flags, EntityFlags flag) {
+    return (static_cast<u32>(flags) & static_cast<u32>(flag)) != 0;
+}
+
+/**
+ * @brief 实体工厂函数类型
+ *
+ * 用于创建实体实例的函数指针。
+ * 返回 std::unique_ptr<Entity> 以支持多态。
+ */
+using EntityFactory = std::function<std::unique_ptr<Entity>(IWorld*)>;
+
+/**
+ * @brief 实体类型基类
+ *
+ * 存储实体类型的各种属性，包括：
+ * - 分类（怪物、动物等）
+ * - 尺寸（宽度、高度）
+ * - 追踪距离
+ * - 更新频率
+ * - 各种标志
+ *
+ * 参考 MC 1.16.5 EntityType
+ */
+class EntityType {
+public:
+    /**
+     * @brief 实体类型构建器
+     *
+     * 用于流式构建实体类型配置
+     */
+    class Builder {
+    public:
+        explicit Builder(EntityFactory factory, EntityClassification classification)
+            : m_factory(std::move(factory))
+            , m_classification(classification)
+            , m_size(EntitySize::flexible(0.6f, 1.8f))
+            , m_trackingRange(5)
+            , m_updateInterval(3)
+            , m_flags(EntityFlags::Serializable)
+        {}
+
+        /**
+         * @brief 设置实体尺寸
+         * @param width 宽度
+         * @param height 高度
+         * @return Builder引用
+         */
+        Builder& size(f32 width, f32 height) {
+            m_size = EntitySize::flexible(width, height);
+            return *this;
+        }
+
+        /**
+         * @brief 设置固定尺寸
+         * @param width 宽度
+         * @param height 高度
+         * @return Builder引用
+         */
+        Builder& fixedSize(f32 width, f32 height) {
+            m_size = EntitySize::fixed(width, height);
+            return *this;
+        }
+
+        /**
+         * @brief 设置追踪距离
+         * @param range 区块距离
+         * @return Builder引用
+         */
+        Builder& trackingRange(i32 range) {
+            m_trackingRange = range;
+            return *this;
+        }
+
+        /**
+         * @brief 设置更新间隔
+         * @param interval tick间隔
+         * @return Builder引用
+         */
+        Builder& updateInterval(i32 interval) {
+            m_updateInterval = interval;
+            return *this;
+        }
+
+        /**
+         * @brief 设置火焰免疫
+         * @return Builder引用
+         */
+        Builder& immuneToFire() {
+            m_flags = m_flags | EntityFlags::ImmuneToFire;
+            return *this;
+        }
+
+        /**
+         * @brief 设置岩浆免疫
+         * @return Builder引用
+         */
+        Builder& immuneToLava() {
+            m_flags = m_flags | EntityFlags::ImmuneToLava;
+            return *this;
+        }
+
+        /**
+         * @brief 禁用序列化
+         * @return Builder引用
+         */
+        Builder& disableSerialization() {
+            m_flags = static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::Serializable));
+            return *this;
+        }
+
+        /**
+         * @brief 设置可召唤
+         * @return Builder引用
+         */
+        Builder& canSummon(bool value = true) {
+            if (value) {
+                m_flags = m_flags | EntityFlags::CanSummon;
+            } else {
+                m_flags = static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::CanSummon));
+            }
+            return *this;
+        }
+
+        /**
+         * @brief 构建实体类型
+         * @return 配置好的EntityType
+         */
+        EntityType build() const {
+            return EntityType(
+                m_factory,
+                m_classification,
+                m_size,
+                m_trackingRange,
+                m_updateInterval,
+                m_flags
+            );
+        }
+
+    private:
+        EntityFactory m_factory;
+        EntityClassification m_classification;
+        EntitySize m_size;
+        i32 m_trackingRange;
+        i32 m_updateInterval;
+        EntityFlags m_flags;
+    };
+
+    // 默认构造函数
+    EntityType() = default;
+
+    /**
+     * @brief 析构函数
+     *
+     * 必须在 cpp 文件中定义，因为 unique_ptr<Entity> 需要完整类型
+     */
+    ~EntityType();
+
+    /**
+     * @brief 移动构造函数
+     */
+    EntityType(EntityType&&) = default;
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    EntityType& operator=(EntityType&&) = default;
+
+    // 禁止拷贝
+    EntityType(const EntityType&) = delete;
+    EntityType& operator=(const EntityType&) = delete;
+
+    /**
+     * @brief 构造实体类型
+     */
+    EntityType(EntityFactory factory,
+               EntityClassification classification,
+               EntitySize size,
+               i32 trackingRange,
+               i32 updateInterval,
+               EntityFlags flags)
+        : m_factory(std::move(factory))
+        , m_classification(classification)
+        , m_size(size)
+        , m_trackingRange(trackingRange)
+        , m_updateInterval(updateInterval)
+        , m_flags(flags)
+    {}
+
+    /**
+     * @brief 创建实体实例
+     * @param world 世界实例
+     * @return 实体实例，如果工厂无效则返回nullptr
+     */
+    std::unique_ptr<Entity> create(IWorld* world) const {
+        if (m_factory) {
+            return m_factory(world);
+        }
+        return nullptr;
+    }
+
+    /**
+     * @brief 获取实体分类
+     */
+    [[nodiscard]] EntityClassification classification() const { return m_classification; }
+
+    /**
+     * @brief 获取实体尺寸
+     */
+    [[nodiscard]] EntitySize size() const { return m_size; }
+
+    /**
+     * @brief 获取追踪距离（区块）
+     */
+    [[nodiscard]] i32 trackingRange() const { return m_trackingRange; }
+
+    /**
+     * @brief 获取更新间隔（tick）
+     */
+    [[nodiscard]] i32 updateInterval() const { return m_updateInterval; }
+
+    /**
+     * @brief 获取实体标志
+     */
+    [[nodiscard]] EntityFlags flags() const { return m_flags; }
+
+    /**
+     * @brief 检查是否有特定标志
+     */
+    [[nodiscard]] bool hasFlag(EntityFlags flag) const {
+        return entity::hasEntityFlag(m_flags, flag);
+    }
+
+    /**
+     * @brief 是否免疫火焰
+     */
+    [[nodiscard]] bool immuneToFire() const {
+        return hasFlag(EntityFlags::ImmuneToFire);
+    }
+
+    /**
+     * @brief 是否免疫岩浆
+     */
+    [[nodiscard]] bool immuneToLava() const {
+        return hasFlag(EntityFlags::ImmuneToLava);
+    }
+
+    /**
+     * @brief 是否可以序列化
+     */
+    [[nodiscard]] bool serializable() const {
+        return hasFlag(EntityFlags::Serializable);
+    }
+
+    /**
+     * @brief 是否可以被召唤
+     */
+    [[nodiscard]] bool canSummon() const {
+        return hasFlag(EntityFlags::CanSummon);
+    }
+
+    /**
+     * @brief 获取ID
+     */
+    [[nodiscard]] EntityTypeId id() const { return m_id; }
+
+    /**
+     * @brief 获取名称
+     */
+    [[nodiscard]] const String& name() const { return m_name; }
+
+    /**
+     * @brief 检查是否有效
+     */
+    [[nodiscard]] bool isValid() const { return m_factory != nullptr; }
+
+    /**
+     * @brief 比较操作符
+     */
+    bool operator==(const EntityType& other) const { return m_id == other.m_id; }
+    bool operator!=(const EntityType& other) const { return m_id != other.m_id; }
+
+private:
+    friend class EntityRegistry;
+
+    EntityFactory m_factory;
+    EntityClassification m_classification = EntityClassification::Misc;
+    EntitySize m_size = EntitySize::flexible(0.6f, 1.8f);
+    i32 m_trackingRange = 5;
+    i32 m_updateInterval = 3;
+    EntityFlags m_flags = EntityFlags::Serializable;
+    EntityTypeId m_id = 0;
+    String m_name;
+};
+
+} // namespace entity
+
+// 注意：不使用 using EntityType = entity::EntityType;
+// 因为 Constants.hpp 中已有 entity::EntityTypeId 枚举
+// 使用时请明确使用 mc::entity::EntityType
+
+} // namespace mc

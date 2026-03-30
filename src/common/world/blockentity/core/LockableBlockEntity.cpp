@@ -1,5 +1,5 @@
 #include "world/blockentity/core/LockableBlockEntity.hpp"
-#include "entity/Player.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "item/ItemStack.hpp"
 
 namespace mc {

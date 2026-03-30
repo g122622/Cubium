@@ -1,5 +1,5 @@
 #include "PlayerInventory.hpp"
-#include "../../entity/Player.hpp"
+#include "../entities/player/Player.hpp"
 #include <algorithm>
 
 namespace mc {

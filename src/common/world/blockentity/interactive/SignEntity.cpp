@@ -1,6 +1,6 @@
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/IWorld.hpp"
-#include "entity/Player.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {

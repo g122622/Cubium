@@ -2,7 +2,7 @@
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "entity/Player.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "item/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 

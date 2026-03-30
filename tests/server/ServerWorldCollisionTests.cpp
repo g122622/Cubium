@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "server/world/ServerWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/entity/Entity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 
 using namespace mc;

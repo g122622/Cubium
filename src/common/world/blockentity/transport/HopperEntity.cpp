@@ -1,7 +1,7 @@
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
 #include "world/IWorld.hpp"
-#include "entity/ItemEntity.hpp"
+#include "entity/entities/item/ItemEntity.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "util/assert/AssertAll.hpp"

@@ -45,26 +45,34 @@ add_library(mc_common STATIC
     # Network - Sync
     network/sync/ChunkSync.cpp
 
-    # Entity
-    entity/Entity.cpp
-    entity/EntityType.cpp
-    entity/EntityClassification.cpp
-    entity/EntitySpawnPlacementRegistry.cpp
-    entity/Player.cpp
-    entity/PlayerManager.cpp
-    entity/ItemEntity.cpp
-    entity/GameModeUtils.cpp
-    entity/living/LivingEntity.cpp
+    # Entity Core
+    entity/core/Entity.cpp
+    entity/core/EntityType.cpp
+    entity/core/EntityClassification.cpp
+    entity/core/EntitySpawnPlacementRegistry.cpp
+    entity/core/LivingEntity.cpp
+    entity/core/MobEntity.cpp
+    entity/core/CreatureEntity.cpp
+    entity/core/AgeableEntity.cpp
+    entity/core/FlyingEntity.cpp
+    # Entity - Player
+    entity/entities/player/Player.cpp
+    entity/entities/player/PlayerManager.cpp
+    entity/entities/player/GameModeUtils.cpp
+    # Entity - Item
+    entity/entities/item/ItemEntity.cpp
+    # Entity - Passive Animals
+    entity/entities/passive/basic/AnimalEntity.cpp
+    entity/entities/passive/basic/PigEntity.cpp
+    entity/entities/passive/basic/CowEntity.cpp
+    entity/entities/passive/basic/SheepEntity.cpp
+    entity/entities/passive/basic/ChickenEntity.cpp
+    # Entity - Tameable Animals
+    entity/entities/passive/tamable/TameableEntity.cpp
+    # Entity - Monster
+    entity/entities/monster/MonsterEntity.cpp
     # Entity - Movement
     entity/movement/AutoJump.cpp
-    entity/mob/MobEntity.cpp
-    entity/mob/CreatureEntity.cpp
-    entity/mob/AgeableEntity.cpp
-    entity/animal/AnimalEntity.cpp
-    entity/animal/PigEntity.cpp
-    entity/animal/CowEntity.cpp
-    entity/animal/SheepEntity.cpp
-    entity/animal/ChickenEntity.cpp
     # Entity - Loot System
     entity/loot/LootContext.cpp
     entity/loot/RandomRanges.cpp

@@ -4,7 +4,7 @@
 #include "common/item/BlockItemRegistry.hpp"
 #include "common/item/BlockItemUseContext.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
-#include "common/entity/Player.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
