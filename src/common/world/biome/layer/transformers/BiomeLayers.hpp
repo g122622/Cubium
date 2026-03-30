@@ -75,6 +75,7 @@ class ShoreLayer : public ICastleTransformer {
 public:
     using ICastleTransformer::apply;
     [[nodiscard]] i32 apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center) override;
+    [[nodiscard]] bool usesRandom() const override { return false; }
 };
 
 /**

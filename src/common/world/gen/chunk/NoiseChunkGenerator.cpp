@@ -349,14 +349,42 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
     f32 totalWeight = 0.0f;  // f2 - 累加权重
 
     {
+        // 使用 5x5 批量采样 + 滑窗复用，减少重复调用 getNoiseBiome()
+        if (m_biomeWindowValid && noiseX == m_biomeWindowCenterX && noiseZ == m_biomeWindowCenterZ + 1) {
+            // 沿 Z 正方向滑窗：将第 1~4 行上移到第 0~3 行
+            for (i32 row = 0; row < 4; ++row) {
+                for (i32 col = 0; col < 5; ++col) {
+                    m_biomeWindow[static_cast<size_t>(row * 5 + col)] =
+                        m_biomeWindow[static_cast<size_t>((row + 1) * 5 + col)];
+                }
+            }
+
+            // 仅采样新进入窗口的最后一行（dz = +2）
+            std::array<BiomeId, 5> newRow{};
+            m_biomeProvider->getBiomesBatch(noiseX - 2, 0, noiseZ + 2, 5, 1, newRow.data());
+            for (i32 col = 0; col < 5; ++col) {
+                m_biomeWindow[static_cast<size_t>(20 + col)] = newRow[static_cast<size_t>(col)];
+            }
+
+            m_biomeWindowCenterX = noiseX;
+            m_biomeWindowCenterZ = noiseZ;
+        } else {
+            // 首次或不连续访问：完整采样 5x5
+            m_biomeProvider->getBiomesBatch(noiseX - 2, 0, noiseZ - 2, 5, 5, m_biomeWindow.data());
+            m_biomeWindowValid = true;
+            m_biomeWindowCenterX = noiseX;
+            m_biomeWindowCenterZ = noiseZ;
+        }
+
         // 获取中心生物群系的深度（用于权重调整）
-        const BiomeId centerBiome = m_biomeProvider->getNoiseBiome(noiseX, 0, noiseZ);
+        const BiomeId centerBiome = m_biomeWindow[12];
         const Biome& centerDef = m_biomeProvider->getBiomeDefinition(centerBiome);
         const f32 centerDepth = centerDef.depth();
 
         for (i32 dz = -2; dz <= 2; ++dz) {
             for (i32 dx = -2; dx <= 2; ++dx) {
-                const BiomeId biome = m_biomeProvider->getNoiseBiome(noiseX + dx, 0, noiseZ + dz);
+                const i32 kernelIndex = (dx + 2) + (dz + 2) * 5;
+                const BiomeId biome = m_biomeWindow[static_cast<size_t>(kernelIndex)];
                 const Biome& def = m_biomeProvider->getBiomeDefinition(biome);
 
                 const f32 depth = def.depth();   // f4
@@ -369,8 +397,7 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
                 const f32 depthFactor = (depth > centerDepth) ? 0.5f : 1.0f;  // f8
 
                 // 参考 MC：计算权重
-                const i32 weightIndex = (dx + 2) + (dz + 2) * 5;
-                const f32 baseWeight = m_biomeWeights[weightIndex];
+                const f32 baseWeight = m_biomeWeights[static_cast<size_t>(kernelIndex)];
                 const f32 weightFactor = depthFactor * baseWeight / (weightedDepth + 2.0f);  // f9
 
                 // 参考 MC：累加

@@ -15,6 +15,7 @@
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include <array>
 #include <memory>
 
 namespace mc {
@@ -119,6 +120,12 @@ private:
 
     // === 5x5 权重查找表（参考 MC field_236081_j_）===
     std::array<f32, 25> m_biomeWeights;
+
+    // === fillNoiseColumn 生物群系滑窗缓存（5x5）===
+    bool m_biomeWindowValid = false;
+    i32 m_biomeWindowCenterX = 0;
+    i32 m_biomeWindowCenterZ = 0;
+    std::array<BiomeId, 25> m_biomeWindow{};
 
     // === 核心生成方法 ===
 
