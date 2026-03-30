@@ -1,7 +1,8 @@
 #include "EffectEntities.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../entities/player/Player.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../player/Player.hpp"
 #include "../../core/LivingEntity.hpp"
+#include "../../../core/Types.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -11,10 +12,8 @@ namespace entity {
 // ==================== EnderCrystalEntity ====================
 
 EnderCrystalEntity::EnderCrystalEntity()
-    : Entity()
+    : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
-    setSize(2.0f, 2.0f);
-    setMaxHealth(1.0f);
 }
 
 void EnderCrystalEntity::tick() {
@@ -29,11 +28,8 @@ void EnderCrystalEntity::tick() {
     // TODO: 生成粒子
 }
 
-void EnderCrystalEntity::onEntityCollision(Entity& other) {
-    // 碰撞时爆炸
-    if (other.isAlive()) {
-        explode();
-    }
+bool EnderCrystalEntity::hasBeamTarget() const {
+    return m_beamTarget.x != 0 || m_beamTarget.y != 0 || m_beamTarget.z != 0;
 }
 
 void EnderCrystalEntity::setBeamTarget(BlockPos pos) {
@@ -42,28 +38,18 @@ void EnderCrystalEntity::setBeamTarget(BlockPos pos) {
 
 void EnderCrystalEntity::healDragon() {
     // TODO: 找到末影龙并治愈
-    // EnderDragonEntity* dragon = findNearestDragon();
-    // if (dragon && dragon->getHealth() < dragon->getMaxHealth()) {
-    //     dragon->heal(1.0f);
-    //     m_healCooldown = HEAL_COOLDOWN;
-    // }
 }
 
 void EnderCrystalEntity::explode() {
     // TODO: 创建爆炸
-    // if (world) {
-    //     world->createExplosion(position(), EXPLOSION_RADIUS, true, false);
-    // }
     remove();
 }
 
 // ==================== LightningBoltEntity ====================
 
 LightningBoltEntity::LightningBoltEntity()
-    : Entity()
+    : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
-    setSize(0.0f, 0.0f);
-    setMaxHealth(1.0f);
 }
 
 void LightningBoltEntity::tick() {
@@ -79,7 +65,6 @@ void LightningBoltEntity::tick() {
 
     // 闪电视觉效果
     if (m_ticksLived < 2) {
-        // 闪光效果
         m_flashCount++;
     }
 
@@ -91,37 +76,23 @@ void LightningBoltEntity::tick() {
 
 void LightningBoltEntity::damageEntities() {
     if (m_effectOnly) return;
-
     // TODO: 伤害周围实体
-    // auto entities = world->getEntitiesInRange(position(), DAMAGE_RADIUS);
-    // for (auto* entity : entities) {
-    //     if (auto* living = dynamic_cast<LivingEntity*>(entity)) {
-    //         living->hurt(this, DAMAGE_AMOUNT);
-    //         // 雷击可能产生火焰
-    //         living->setFire(8);
-    //     }
-    // }
 }
 
 void LightningBoltEntity::spawnFire() {
     if (m_effectOnly) return;
-
     // TODO: 在闪电击中位置生成火焰
-    // world->setBlockState(position(), Blocks::FIRE.getDefaultState());
 }
 
 void LightningBoltEntity::triggerLightningEffect() {
-    // TODO: 触发闪电事件（用于成就等）
-    // world->onLightningStrike(this);
+    // TODO: 触发闪电事件
 }
 
 // ==================== AreaEffectCloudEntity ====================
 
 AreaEffectCloudEntity::AreaEffectCloudEntity()
-    : Entity()
+    : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
-    setSize(6.0f, 0.5f);
-    setMaxHealth(1.0f);
 }
 
 void AreaEffectCloudEntity::tick() {
@@ -148,38 +119,22 @@ void AreaEffectCloudEntity::tick() {
 
 void AreaEffectCloudEntity::applyEffects() {
     // TODO: 应用效果到范围内的实体
-    // auto entities = world->getEntitiesInRange(position(), m_radius);
-    // for (auto* entity : entities) {
-    //     if (auto* living = dynamic_cast<LivingEntity*>(entity)) {
-    //         for (const auto& effect : m_effects) {
-    //             living->addEffect(effect);
-    //         }
-    //     }
-    // }
-
-    // 缩短持续时间
     if (m_durationOnUse > 0) {
         m_duration = std::max(0, m_duration - m_durationOnUse);
     }
 }
 
 void AreaEffectCloudEntity::updateRadius() {
-    // 半径随时间减小
     m_radius += RADIUS_GROWTH;
     m_radius = std::max(0.5f, m_radius);
-
-    // 更新碰撞箱
-    setSize(m_radius * 2.0f, 0.5f);
 }
 
 // ==================== ExperienceOrbEntity ====================
 
 ExperienceOrbEntity::ExperienceOrbEntity(i32 xpValue)
-    : Entity()
+    : Entity(LegacyEntityType::Unknown, EntityId(0))
     , m_xpValue(xpValue)
 {
-    setSize(0.5f, 0.5f);
-    setMaxHealth(1.0f);
 }
 
 void ExperienceOrbEntity::tick() {
@@ -189,13 +144,6 @@ void ExperienceOrbEntity::tick() {
     if (m_collectDelay > 0) {
         m_collectDelay--;
     }
-
-    // 寻找附近的玩家
-    // TODO: 获取附近玩家
-    // Player* nearestPlayer = findNearestPlayer(FOLLOW_RANGE);
-    // if (nearestPlayer && m_collectDelay <= 0) {
-    //     m_trackingPlayer = nearestPlayer;
-    // }
 
     // 追踪玩家
     if (m_trackingPlayer && m_trackingPlayer->isAlive()) {
@@ -209,49 +157,37 @@ void ExperienceOrbEntity::tick() {
     }
 
     // 物理运动
-    m_velocityY -= 0.03; // 重力
-    move(m_velocityX, m_velocityY, m_velocityZ);
+    Vector3 vel = velocity();
+    vel.y -= 0.03f; // 重力
+    move(vel.x, vel.y, vel.z);
 
     // 减速
-    m_velocityX *= 0.98;
-    m_velocityY *= 0.98;
-    m_velocityZ *= 0.98;
-}
-
-void ExperienceOrbEntity::onEntityCollision(Entity& other) {
-    Player* player = dynamic_cast<Player*>(&other);
-    if (player && m_collectDelay <= 0) {
-        // 玩家拾取经验球
-        // player->giveExperience(m_xpValue);
-        player->onEntityCollision(*this);
-        remove();
-    }
+    vel.x *= 0.98f;
+    vel.y *= 0.98f;
+    vel.z *= 0.98f;
+    setVelocity(vel);
 }
 
 ExperienceOrbEntity* ExperienceOrbEntity::split() {
     if (m_xpValue <= 1) return nullptr;
 
-    // 分割成更小的经验球
     i32 splitValue = m_xpValue / 2;
     m_xpValue -= splitValue;
 
     // TODO: 创建新的经验球
-    // return new ExperienceOrbEntity(splitValue);
     return nullptr;
 }
 
 u32 ExperienceOrbEntity::getExperienceColor() const {
-    // 根据经验值返回不同颜色
-    if (m_xpValue <= 5) return 0xFFAA00FF;      // 小经验：黄色
-    if (m_xpValue <= 20) return 0xFF55FFFF;     // 中等经验：绿色
-    if (m_xpValue <= 100) return 0xFF55FF55;    // 大经验：青色
-    return 0xFFFF5555;                          // 超大经验：红色
+    if (m_xpValue <= 5) return 0xFFAA00FF;
+    if (m_xpValue <= 20) return 0xFF55FFFF;
+    if (m_xpValue <= 100) return 0xFF55FF55;
+    return 0xFFFF5555;
 }
 
 void ExperienceOrbEntity::followPlayer(Player* player) {
     if (!player) return;
 
-    // 计算方向
     f64 dx = player->x() - x();
     f64 dy = player->y() - y();
     f64 dz = player->z() - z();
@@ -259,19 +195,19 @@ void ExperienceOrbEntity::followPlayer(Player* player) {
 
     if (dist > 0.0 && dist < FOLLOW_RANGE) {
         f32 speed = FOLLOW_SPEED * (1.0f - static_cast<f32>(dist / FOLLOW_RANGE));
-        m_velocityX += (dx / dist) * speed;
-        m_velocityY += (dy / dist) * speed;
-        m_velocityZ += (dz / dist) * speed;
+        Vector3 vel = velocity();
+        vel.x += static_cast<f32>((dx / dist) * speed);
+        vel.y += static_cast<f32>((dy / dist) * speed);
+        vel.z += static_cast<f32>((dz / dist) * speed);
+        setVelocity(vel);
     }
 }
 
 // ==================== ArmorStandEntity ====================
 
 ArmorStandEntity::ArmorStandEntity()
-    : Entity()
+    : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
-    setSize(0.5f, 1.975f);
-    setMaxHealth(1.0f);
 }
 
 void ArmorStandEntity::tick() {
@@ -279,19 +215,16 @@ void ArmorStandEntity::tick() {
 
     // 如果不是标记模式，应用重力
     if (!m_marker && m_hasGravity) {
-        m_velocityY -= 0.04; // 重力
-        move(m_velocityX, m_velocityY, m_velocityZ);
+        Vector3 vel = velocity();
+        vel.y -= 0.04f; // 重力
+        move(vel.x, vel.y, vel.z);
 
         // 减速
-        m_velocityX *= 0.98;
-        m_velocityY *= 0.98;
-        m_velocityZ *= 0.98;
+        vel.x *= 0.98f;
+        vel.y *= 0.98f;
+        vel.z *= 0.98f;
+        setVelocity(vel);
     }
-}
-
-void ArmorStandEntity::onEntityCollision(Entity& other) {
-    // 盔甲架不能被推动
-    // 但是可以被玩家交互
 }
 
 void ArmorStandEntity::setHeadRotation(f32 x, f32 y, f32 z) {

@@ -44,7 +44,7 @@ void DonkeyEntity::registerAttributes() {
     AbstractHorseEntity::registerAttributes();
 
     // 驴的属性比马稍低
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_health > 0 ? m_health : 15.0f);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth > 0 ? m_horseHealth : 15.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed > 0 ? m_speed : 0.175f);
 }
 

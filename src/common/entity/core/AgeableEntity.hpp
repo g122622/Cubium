@@ -136,6 +136,32 @@ protected:
     [[nodiscard]] f32 getChildScale() const;
 
     /**
+     * @brief 获取基础宽度（子类应重写）
+     * @return 成体的宽度
+     */
+    [[nodiscard]] virtual f32 getBaseWidth() const { return CreatureEntity::width(); }
+
+    /**
+     * @brief 获取基础高度（子类应重写）
+     * @return 成体的高度
+     */
+    [[nodiscard]] virtual f32 getBaseHeight() const { return CreatureEntity::height(); }
+
+    /**
+     * @brief 获取实体宽度（考虑幼体缩放）
+     */
+    [[nodiscard]] f32 width() const override {
+        return getBaseWidth() * (isChild() ? BABY_SCALE : 1.0f);
+    }
+
+    /**
+     * @brief 获取实体高度（考虑幼体缩放）
+     */
+    [[nodiscard]] f32 height() const override {
+        return getBaseHeight() * (isChild() ? BABY_SCALE : 1.0f);
+    }
+
+    /**
      * @brief 幼体变成成体时调用
      */
     virtual void onGrowUp() {}

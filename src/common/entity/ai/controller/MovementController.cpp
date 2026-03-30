@@ -1,7 +1,7 @@
 #include "MovementController.hpp"
 #include "JumpController.hpp"
-#include "../../mob/MobEntity.hpp"
-#include "../../living/LivingEntity.hpp"
+#include "../../core/MobEntity.hpp"
+#include "../../core/LivingEntity.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include <cmath>

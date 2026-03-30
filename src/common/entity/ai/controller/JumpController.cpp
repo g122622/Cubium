@@ -1,5 +1,5 @@
 #include "JumpController.hpp"
-#include "../../mob/MobEntity.hpp"
+#include "../../core/MobEntity.hpp"
 
 namespace mc::entity::ai::controller {
 

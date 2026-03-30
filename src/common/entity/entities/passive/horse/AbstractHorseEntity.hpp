@@ -164,6 +164,12 @@ public:
 protected:
     void registerAttributes() override;
 
+    // ========== 尺寸 ==========
+    // 子类应该重写这些方法以提供正确的尺寸
+
+    [[nodiscard]] f32 getBaseWidth() const override { return 1.3964844f; }
+    [[nodiscard]] f32 getBaseHeight() const override { return 1.6f; }
+
     /**
      * @brief 更新骑乘状态
      */
@@ -191,7 +197,7 @@ protected:
      */
     void initRandomAttributes();
 
-private:
+protected:
     // 骑乘状态
     Player* m_rider = nullptr;
     bool m_saddled = false;
@@ -215,7 +221,9 @@ private:
     // 属性（马特有）
     f32 m_speed = 0.0f;
     f32 m_jumpHeight = 0.0f;
-    f32 m_health = 0.0f;
+    f32 m_horseHealth = 0.0f;  // 改名避免与基类冲突
+
+private:
 
     // 常量
     static constexpr f32 MIN_SPEED = 0.1127f;       // 最小速度

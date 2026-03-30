@@ -8,8 +8,7 @@ namespace mc {
 RavagerEntity::RavagerEntity(LegacyEntityType type, EntityId id)
     : AbstractRaiderEntity(type, id)
 {
-    // 劫掠兽体型大
-    setSize(1.95f, 2.2f);
+    // 劫掠兽体型大 - 通过 width()/height() 设置
 }
 
 std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/) {

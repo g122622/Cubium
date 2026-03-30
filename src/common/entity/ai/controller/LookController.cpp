@@ -1,5 +1,5 @@
 #include "LookController.hpp"
-#include "../../mob/MobEntity.hpp"
+#include "../../core/MobEntity.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include <cmath>
 

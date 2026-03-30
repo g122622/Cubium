@@ -1,6 +1,6 @@
 #include "SwimGoal.hpp"
-#include "../../../mob/MobEntity.hpp"
-#include "../../../Entity.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../core/Entity.hpp"
 #include "../../../ai/controller/JumpController.hpp"
 #include "../../../../util/math/random/Random.hpp"
 

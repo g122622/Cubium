@@ -8,8 +8,7 @@ namespace mc {
 GiantEntity::GiantEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
-    // 巨人体型巨大
-    setSize(3.6f, 12.0f);
+    // 巨人体型巨大 - 通过 width()/height() 设置
 }
 
 std::unique_ptr<Entity> GiantEntity::create(IWorld* /*world*/) {

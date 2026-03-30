@@ -105,6 +105,16 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.7f; }
 
+    /**
+     * @brief 获取实体宽度
+     */
+    [[nodiscard]] f32 width() const override { return 0.7f; }
+
+    /**
+     * @brief 获取实体高度
+     */
+    [[nodiscard]] f32 height() const override { return 1.9f; }
+
     // ========== 生命周期 ==========
 
     void tick() override;

@@ -51,7 +51,7 @@ public:
      * @brief 检查玩家是否可以骑乘
      * 僵尸马不需要驯服即可骑乘
      */
-    [[nodiscard]] bool canBeRiddenBy(Player* player) const override;
+    [[nodiscard]] bool canBeRiddenBy(Player* player) const;
 
     // ========== 繁殖系统 ==========
 
@@ -78,13 +78,13 @@ public:
     /**
      * @brief 是否免疫溺水
      */
-    [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
+    [[nodiscard]] bool canBreatheUnderwater() const { return true; }
 
     /**
      * @brief 是否应该燃烧（阳光）
      * 僵尸马不会燃烧
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    [[nodiscard]] bool shouldBurnInDaylight() const { return false; }
 
     // ========== 属性 ==========
 

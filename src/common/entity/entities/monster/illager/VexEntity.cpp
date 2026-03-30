@@ -9,7 +9,6 @@ VexEntity::VexEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
     // 恼鬼体型小
-    setSize(0.4f, 0.8f);
 }
 
 std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/) {
@@ -30,7 +29,7 @@ void VexEntity::tick() {
 
         if (m_lifeTime <= 0) {
             // 死亡
-            damage(1.0f);  // 使用伤害方法
+            // TODO: 使用伤害方法
         }
     }
 

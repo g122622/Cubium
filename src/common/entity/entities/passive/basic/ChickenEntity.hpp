@@ -55,6 +55,11 @@ protected:
     void registerGoals() override;
     void registerAttributes() override;
 
+    // ========== 尺寸 ==========
+
+    [[nodiscard]] f32 getBaseWidth() const override { return 0.4f; }
+    [[nodiscard]] f32 getBaseHeight() const override { return 0.7f; }
+
 private:
     i32 m_eggTimer = 0;        // 下蛋计时器
     f32 m_eggTime = 0.0f;      // 累计时间

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
-#include "../../world/block/BlockPos.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include <string>
 
 namespace mc {
@@ -37,9 +37,8 @@ public:
 
     // Entity overrides
     void tick() override;
-    void onEntityCollision(Entity& other) override;
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return true; }
 
     /**
      * @brief 设置悬挂位置

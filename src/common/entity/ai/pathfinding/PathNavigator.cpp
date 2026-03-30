@@ -1,6 +1,6 @@
 #include "PathNavigator.hpp"
-#include "../../living/LivingEntity.hpp"
-#include "../../mob/MobEntity.hpp"
+#include "../../core/LivingEntity.hpp"
+#include "../../core/MobEntity.hpp"
 #include "../controller/MovementController.hpp"
 #include <cmath>
 

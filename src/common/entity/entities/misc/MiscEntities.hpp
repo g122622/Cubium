@@ -1,12 +1,13 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
-#include "../../world/block/BlockState.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
 
 // Forward declarations
+class Block;
 class Player;
 class LivingEntity;
 class DamageSource;
@@ -23,19 +24,20 @@ namespace entity {
 class FallingBlockEntity : public Entity {
 public:
     FallingBlockEntity();
-    explicit FallingBlockEntity(const BlockState& block);
     ~FallingBlockEntity() override = default;
 
     void tick() override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override { return 0.98f; }
+    [[nodiscard]] f32 height() const override { return 0.98f; }
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
-     * @brief 获取方块状态
+     * @brief 设置方块ID
      */
-    [[nodiscard]] const BlockState& getBlockState() const { return *m_block; }
-    void setBlockState(const BlockState& block);
+    void setBlockId(u32 blockId) { m_blockId = blockId; }
+    [[nodiscard]] u32 getBlockId() const { return m_blockId; }
 
     /**
      * @brief 设置是否在落地时造成伤害
@@ -56,7 +58,7 @@ public:
 private:
     void handleLanding();
 
-    std::unique_ptr<BlockState> m_block;
+    u32 m_blockId = 0;  // 方块ID
     bool m_hurtEntities = false;
     bool m_placeBlock = true;
     f64 m_fallStartY = 0.0;
@@ -80,8 +82,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override { return 0.98f; }
+    [[nodiscard]] f32 height() const override { return 0.98f; }
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 获取爆炸倒计时
@@ -132,8 +136,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override { return 0.25f; }
+    [[nodiscard]] f32 height() const override { return 0.25f; }
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 设置目标位置
@@ -174,8 +180,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override { return 2.0f; }
+    [[nodiscard]] f32 height() const override { return 2.0f; }
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 设置激活状态
@@ -249,8 +257,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override { return 0.5f; }
+    [[nodiscard]] f32 height() const override { return 0.8f; }
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 设置召唤者

@@ -102,7 +102,7 @@ void HorseEntity::registerAttributes() {
 
     // 马的基础属性已在父类初始化
     // 这里可以覆盖特定值
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_health);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
 }
 

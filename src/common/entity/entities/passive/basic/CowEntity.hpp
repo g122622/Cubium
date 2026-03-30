@@ -42,6 +42,11 @@ protected:
     void registerGoals() override;
     void registerAttributes() override;
 
+    // ========== 尺寸 ==========
+
+    [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
+    [[nodiscard]] f32 getBaseHeight() const override { return 1.4f; }
+
     // TODO: 挤奶逻辑
 };
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
-#include "../../world/block/BlockPos.hpp"
+#include "../../../world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -24,10 +24,11 @@ public:
     ~EnderCrystalEntity() override = default;
 
     void tick() override;
-    void onEntityCollision(Entity& other) override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override;
+    [[nodiscard]] f32 height() const override;
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 检查是否显示基岩
@@ -40,7 +41,7 @@ public:
      */
     void setBeamTarget(BlockPos pos);
     [[nodiscard]] const BlockPos& getBeamTarget() const { return m_beamTarget; }
-    [[nodiscard]] bool hasBeamTarget() const { return m_beamTarget != BlockPos::ZERO; }
+    [[nodiscard]] bool hasBeamTarget() const;
 
     /**
      * @brief 治愈末影龙
@@ -74,8 +75,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override;
+    [[nodiscard]] f32 height() const override;
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 设置是否只对实体造成伤害（不影响方块）
@@ -127,8 +130,10 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override;
+    [[nodiscard]] f32 height() const override;
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 设置效果半径
@@ -193,10 +198,11 @@ public:
     ~ExperienceOrbEntity() override = default;
 
     void tick() override;
-    void onEntityCollision(Entity& other) override;
 
-    [[nodiscard]] bool isPushable() const override { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    [[nodiscard]] f32 width() const override;
+    [[nodiscard]] f32 height() const override;
+    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
      * @brief 获取经验值
@@ -246,10 +252,11 @@ public:
     ~ArmorStandEntity() override = default;
 
     void tick() override;
-    void onEntityCollision(Entity& other) override;
 
-    [[nodiscard]] bool isPushable() const override { return !m_marker; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return !m_marker; }
+    [[nodiscard]] f32 width() const override;
+    [[nodiscard]] f32 height() const override;
+    [[nodiscard]] bool isPushable() const { return !m_marker; }
+    [[nodiscard]] bool canBeCollidedWith() const { return !m_marker; }
 
     /**
      * @brief 检查是否有重力

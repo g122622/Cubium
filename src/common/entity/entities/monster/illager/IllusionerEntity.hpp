@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AbstractIllagerEntity.hpp"
+#include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../../../../core/Types.hpp"
 #include <memory>
 

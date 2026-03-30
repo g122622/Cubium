@@ -1,8 +1,10 @@
 #include "HangingEntity.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../entities/player/Player.hpp"
-#include "../../entities/item/ItemEntity.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../player/Player.hpp"
+#include "../item/ItemEntity.hpp"
+#include "../../../core/Types.hpp"
 #include <cmath>
+#include <algorithm>
 
 namespace mc {
 namespace entity {
@@ -10,17 +12,15 @@ namespace entity {
 // ==================== HangingEntity ====================
 
 HangingEntity::HangingEntity()
-    : Entity()
+    : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
-    setMaxHealth(1.0f);
 }
 
 HangingEntity::HangingEntity(BlockPos pos, Direction direction)
-    : Entity()
+    : Entity(LegacyEntityType::Unknown, EntityId(0))
     , m_hangingPos(pos)
     , m_direction(direction)
 {
-    setMaxHealth(1.0f);
     updateBoundingBox();
 }
 
@@ -37,10 +37,6 @@ void HangingEntity::tick() {
     }
 }
 
-void HangingEntity::onEntityCollision(Entity& other) {
-    // 悬挂实体不能被推动
-}
-
 void HangingEntity::setHangingPosition(BlockPos pos, Direction direction) {
     m_hangingPos = pos;
     m_direction = direction;
@@ -51,36 +47,26 @@ bool HangingEntity::isValidPosition() const {
     if (!canPlaceOn()) {
         return false;
     }
-
-    // 检查范围内是否有足够空间
-    // TODO: 根据宽高检查方块
-
     return true;
 }
 
 bool HangingEntity::canPlaceOn() const {
     // TODO: 检查背后的方块是否可以支撑
-    // BlockState* block = world->getBlockState(m_hangingPos);
-    // return block && block->isSolid();
     return true;
 }
 
 void HangingEntity::onAttacked(Entity* attacker, f32 damage) {
-    // 悬挂实体一击即碎
     dropItem();
     remove();
 }
 
 void HangingEntity::updateBoundingBox() {
     // 根据方向和尺寸更新边界框
-    f32 width = static_cast<f32>(getWidth());
-    f32 height = static_cast<f32>(getHeight());
-
     // 设置位置
     setPosition(
-        static_cast<f64>(m_hangingPos.x()) + 0.5,
-        static_cast<f64>(m_hangingPos.y()) + 0.5,
-        static_cast<f64>(m_hangingPos.z()) + 0.5
+        static_cast<f64>(m_hangingPos.x) + 0.5,
+        static_cast<f64>(m_hangingPos.y) + 0.5,
+        static_cast<f64>(m_hangingPos.z) + 0.5
     );
 
     // 设置朝向
@@ -118,7 +104,6 @@ PaintingEntity::PaintingEntity(BlockPos pos, Direction direction, const std::str
 
 void PaintingEntity::dropItem() {
     // TODO: 生成画作物品
-    // ItemEntity* item = spawnItem(Items::PAINTING);
 }
 
 i32 PaintingEntity::getWidth() const {
@@ -159,9 +144,7 @@ ItemFrameEntity::ItemFrameEntity(BlockPos pos, Direction direction)
 void ItemFrameEntity::tick() {
     HangingEntity::tick();
 
-    // 物品展示框的额外逻辑
     if (m_item) {
-        // 检查物品是否有效
         if (!m_item->isAlive()) {
             m_item = nullptr;
         }
@@ -170,18 +153,12 @@ void ItemFrameEntity::tick() {
 
 void ItemFrameEntity::dropItem() {
     // 掉落展示框物品
-    // ItemEntity* frame = spawnItem(Items::ITEM_FRAME);
-
-    // 掉落展示的物品
     if (m_item) {
-        // spawnItem(m_item->getItemStack());
         m_item = nullptr;
     }
 }
 
 void ItemFrameEntity::setItem(const ItemEntity& item) {
-    // TODO: 复制物品到展示框
-    // m_item = item.copy();
     m_rotation = 0;
 }
 
@@ -226,7 +203,6 @@ void LeashKnotEntity::tick() {
 
 void LeashKnotEntity::dropItem() {
     // TODO: 掉落拴绳物品
-    // ItemEntity* item = spawnItem(Items::LEAD);
 }
 
 void LeashKnotEntity::attachLeash(Entity* entity) {

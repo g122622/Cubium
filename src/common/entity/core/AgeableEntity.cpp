@@ -9,15 +9,7 @@ AgeableEntity::AgeableEntity(LegacyEntityType type, EntityId id)
 
 void AgeableEntity::setGrowingAge(i32 age) {
     m_growingAge = age;
-
-    // 更新尺寸
-    if (isChild()) {
-        // 幼体尺寸
-        // TODO: 设置实体尺寸
-    } else {
-        // 成体尺寸
-        // TODO: 设置实体尺寸
-    }
+    // 尺寸缩放由 width() 和 height() 方法自动处理
 }
 
 void AgeableEntity::setChild(bool child) {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
-#include "../../interfaces/IRideable.hpp"
 #include <string>
 
 namespace mc {
@@ -21,7 +20,7 @@ namespace entity {
  *
  * 参考 MC 1.16.5 BoatEntity
  */
-class BoatEntity : public Entity, public IRideable {
+class BoatEntity : public Entity {
 public:
     /**
      * @brief 船的类型（木材类型）
@@ -40,22 +39,8 @@ public:
 
     // Entity overrides
     void tick() override;
-    void onEntityCollision(Entity& other) override;
-    [[nodiscard]] bool isPushable() const override { return true; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
-    [[nodiscard]] f64 getRideHeight() const override { return 0.0; }
-
-    // IRideable overrides
-    [[nodiscard]] bool canRide() const override { return true; }
-    [[nodiscard]] bool canBeSteered() const override { return true; }
-    void onRiderMounted(Entity& rider) override;
-    void onRiderDismounted(Entity& rider) override;
-    [[nodiscard]] std::vector<Entity*> getPassengers() const override;
 
     // Boat-specific methods
-    [[nodiscard]] Type getBoatType() const { return m_type; }
-    void setBoatType(Type type) { m_type = type; }
-
     [[nodiscard]] bool isInWater() const { return m_inWater; }
     [[nodiscard]] f32 getBoatSpeed() const { return m_speed; }
     void setBoatSpeed(f32 speed) { m_speed = speed; }
@@ -74,13 +59,6 @@ public:
      * @param right 右转输入
      */
     void handleInput(f32 forward, f32 backward, f32 left, f32 right);
-
-    /**
-     * @brief 检查是否可以上船
-     * @param rider 要上船的实体
-     * @return 如果可以上船返回true
-     */
-    [[nodiscard]] bool canAddPassenger(Entity& rider) const;
 
     /**
      * @brief 掉落船物品

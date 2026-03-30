@@ -42,7 +42,7 @@ void ZombieVillagerEntity::finishConverting() {
 }
 
 f32 ZombieVillagerEntity::eyeHeight() const {
-    return isChild() ? 0.93f : 1.79f;
+    return isBaby() ? 0.93f : 1.79f;
 }
 
 void ZombieVillagerEntity::tick() {

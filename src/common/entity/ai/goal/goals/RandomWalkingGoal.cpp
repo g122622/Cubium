@@ -1,9 +1,9 @@
 #include "RandomWalkingGoal.hpp"
-#include "../../../mob/MobEntity.hpp"
-#include "../../../mob/CreatureEntity.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../core/CreatureEntity.hpp"
 #include "../GoalConstants.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../ai/controller/MovementController.hpp"
+#include "../../pathfinding/PathNavigator.hpp"
+#include "../../controller/MovementController.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <cmath>
 

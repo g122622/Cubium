@@ -126,6 +126,11 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 尺寸 ==========
+
+    [[nodiscard]] f32 getBaseWidth() const override { return 0.4f; }
+    [[nodiscard]] f32 getBaseHeight() const override { return 0.5f; }
+
 private:
     // 皮肤类型
     RabbitType m_rabbitType = RabbitType::Brown;

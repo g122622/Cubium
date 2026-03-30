@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
-#include "../../interfaces/IRideable.hpp"
 #include <string>
 
 namespace mc {
@@ -21,7 +20,7 @@ namespace entity {
  *
  * 参考 MC 1.16.5 AbstractMinecartEntity
  */
-class AbstractMinecartEntity : public Entity, public IRideable {
+class AbstractMinecartEntity : public Entity {
 public:
     /**
      * @brief 矿车类型
@@ -41,17 +40,6 @@ public:
 
     // Entity overrides
     void tick() override;
-    void onEntityCollision(Entity& other) override;
-    [[nodiscard]] bool isPushable() const override { return true; }
-    [[nodiscard]] bool canBeCollidedWith() const override { return true; }
-    [[nodiscard]] f64 getRideHeight() const override { return 0.0; }
-
-    // IRideable overrides
-    [[nodiscard]] bool canRide() const override { return m_type == Type::RIDEABLE; }
-    [[nodiscard]] bool canBeSteered() const override { return false; } // 矿车不能被转向
-    void onRiderMounted(Entity& rider) override;
-    void onRiderDismounted(Entity& rider) override;
-    [[nodiscard]] std::vector<Entity*> getPassengers() const override;
 
     // Minecart-specific methods
     [[nodiscard]] Type getMinecartType() const { return m_type; }

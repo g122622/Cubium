@@ -81,7 +81,7 @@ public:
      * @brief 检查玩家是否可以骑乘
      * 羊驼可以骑乘但不能控制方向
      */
-    [[nodiscard]] bool canBeRiddenBy(Player* player) const override;
+    [[nodiscard]] bool canBeRiddenBy(Player* player) const;
 
     /**
      * @brief 是否可以装备鞍

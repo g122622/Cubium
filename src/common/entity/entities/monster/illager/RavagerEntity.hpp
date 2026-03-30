@@ -114,6 +114,16 @@ public:
     // ========== 属性 ==========
 
     /**
+     * @brief 获取实体宽度
+     */
+    [[nodiscard]] f32 width() const override { return 1.95f; }
+
+    /**
+     * @brief 获取实体高度
+     */
+    [[nodiscard]] f32 height() const override { return 2.2f; }
+
+    /**
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 2.05f; }

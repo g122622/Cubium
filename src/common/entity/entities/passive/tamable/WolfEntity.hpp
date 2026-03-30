@@ -141,6 +141,11 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 尺寸 ==========
+
+    [[nodiscard]] f32 getBaseWidth() const override { return 0.6f; }
+    [[nodiscard]] f32 getBaseHeight() const override { return 0.85f; }
+
     // ========== 驯服回调 ==========
     void onTamed(bool tamed) override;
 

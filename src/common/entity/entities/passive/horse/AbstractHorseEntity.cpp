@@ -172,7 +172,7 @@ void AbstractHorseEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::JUMP_STRENGTH, m_jumpStrength);
 
     // 设置生命值和速度
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_health);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
 }
 
@@ -220,7 +220,7 @@ void AbstractHorseEntity::initRandomAttributes() {
     // 随机生成马特有属性
     m_speed = rng.nextFloat(MIN_SPEED, MAX_SPEED);
     m_jumpStrength = rng.nextFloat(MIN_JUMP, MAX_JUMP);
-    m_health = rng.nextFloat(MIN_HEALTH, MAX_HEALTH);
+    m_horseHealth = rng.nextFloat(MIN_HEALTH, MAX_HEALTH);
 }
 
 } // namespace mc

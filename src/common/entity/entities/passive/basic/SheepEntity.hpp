@@ -85,6 +85,11 @@ protected:
     void registerGoals() override;
     void registerAttributes() override;
 
+    // ========== 尺寸 ==========
+
+    [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
+    [[nodiscard]] f32 getBaseHeight() const override { return 1.3f; }
+
 private:
     u8 m_woolColor = 0;         // 羊毛颜色（默认白色）
     bool m_hasWool = true;       // 是否有羊毛

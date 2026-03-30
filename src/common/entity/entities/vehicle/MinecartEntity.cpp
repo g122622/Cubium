@@ -1,17 +1,16 @@
 #include "MinecartEntity.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../entities/player/Player.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../player/Player.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
 
 AbstractMinecartEntity::AbstractMinecartEntity(Type type)
-    : Entity()
+    : Entity(LegacyEntityType::Item, EntityId(0)) // Using Item type temporarily
     , m_type(type)
 {
-    setSize(0.98f, 0.7f);
-    setMaxHealth(4.0f);
+    // 尺寸通过 width()/height() 设置
 }
 
 void AbstractMinecartEntity::tick() {
@@ -20,46 +19,23 @@ void AbstractMinecartEntity::tick() {
     // 检查是否在铁轨上
     adjustOnRail();
 
+    Vector3 vel = velocity();
     if (m_onRail) {
         // 在铁轨上移动
         handleRailLogic();
         moveAlongRail(m_maxSpeed);
     } else {
         // 不在铁轨上，自由移动
-        m_velocityX *= FRICTION;
-        m_velocityZ *= FRICTION;
-        move(m_velocityX, m_velocityY, m_velocityZ);
+        vel.x *= FRICTION;
+        vel.z *= FRICTION;
+        setVelocity(vel);
+        move(vel.x, vel.y, vel.z);
     }
 
     // 损坏处理
     if (m_damage > 0) {
         m_damage--;
     }
-}
-
-void AbstractMinecartEntity::onEntityCollision(Entity& other) {
-    // 矿车碰撞逻辑
-    if (m_type == Type::RIDEABLE && getPassengers().empty()) {
-        // 空矿车可以被推
-        f64 dx = other.x() - x();
-        f64 dz = other.z() - z();
-        f64 dist = std::sqrt(dx * dx + dz * dz);
-        if (dist > 0.0) {
-            applyForce(static_cast<f32>(-dx / dist * 0.1), static_cast<f32>(-dz / dist * 0.1));
-        }
-    }
-}
-
-void AbstractMinecartEntity::onRiderMounted(Entity& rider) {
-    Entity::onRiderMounted(rider);
-}
-
-void AbstractMinecartEntity::onRiderDismounted(Entity& rider) {
-    Entity::onRiderDismounted(rider);
-}
-
-std::vector<Entity*> AbstractMinecartEntity::getPassengers() const {
-    return Entity::getPassengers();
 }
 
 void AbstractMinecartEntity::adjustOnRail() {
@@ -72,11 +48,11 @@ void AbstractMinecartEntity::adjustOnRail() {
 void AbstractMinecartEntity::moveAlongRail(f32 distance) {
     // 计算移动方向
     f32 yawRad = m_yaw * 3.14159265f / 180.0f;
-    m_velocityX = -std::sin(yawRad) * distance;
-    m_velocityZ = std::cos(yawRad) * distance;
+    f32 vx = -std::sin(yawRad) * distance;
+    f32 vz = std::cos(yawRad) * distance;
 
     // 移动
-    move(m_velocityX, m_velocityY, m_velocityZ);
+    move(vx, velocityY(), vz);
 }
 
 void AbstractMinecartEntity::dropItem() {
@@ -88,8 +64,7 @@ void AbstractMinecartEntity::activate() {
 }
 
 void AbstractMinecartEntity::applyForce(f32 x, f32 z) {
-    m_velocityX += x;
-    m_velocityZ += z;
+    addVelocity(x, 0.0f, z);
 }
 
 void AbstractMinecartEntity::handleRailLogic() {
