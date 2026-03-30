@@ -378,4 +378,31 @@ Vector3 Entity::getRidingPosition() const {
     return Vector3(0.0f, height(), 0.0f);
 }
 
+bool Entity::canSee(const Entity& other) const {
+    // TODO: 使用射线检测实现视线检查
+    // 当前简化实现：只检查距离和基本条件
+    // 完整实现需要使用世界的射线追踪功能
+
+    // 检查目标是否存活
+    if (!other.isAlive()) {
+        return false;
+    }
+
+    // 计算到目标的距离
+    f32 distSq = distanceSqTo(other);
+
+    // 如果距离超过视线范围（64格），返回false
+    constexpr f32 SIGHT_RANGE_SQ = 64.0f * 64.0f;
+    if (distSq > SIGHT_RANGE_SQ) {
+        return false;
+    }
+
+    // TODO: 使用世界射线追踪检查视线是否被方块阻挡
+    // Vector3 eyePos = Vector3(x(), y() + eyeHeight(), z());
+    // Vector3 targetEyePos = Vector3(other.x(), other.y() + other.eyeHeight(), other.z());
+    // return m_world && !m_world->raycastBlocks(eyePos, targetEyePos);
+
+    return true;
+}
+
 } // namespace mc

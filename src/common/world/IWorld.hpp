@@ -5,6 +5,7 @@
 #include "../util/AxisAlignedBB.hpp"
 #include "tick/base/TickPriority.hpp"
 #include <vector>
+#include <memory>
 
 namespace mc {
 
@@ -209,6 +210,18 @@ public:
      */
     [[nodiscard]] virtual PhysicsEngine* physicsEngine() = 0;
     [[nodiscard]] virtual const PhysicsEngine* physicsEngine() const = 0;
+
+    // ========== 实体管理 ==========
+
+    /**
+     * @brief 生成实体到世界中
+     * @param entity 实体实例
+     * @return 实体ID，如果失败返回 0
+     *
+     * 默认实现返回 0（不支持生成实体）。
+     * ServerWorld 会重写此方法以实际生成实体。
+     */
+    virtual EntityId spawnEntity(std::unique_ptr<Entity> entity);
 
     // ========== 实体查询 ==========
 

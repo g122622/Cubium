@@ -2,7 +2,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../entity/Entity.hpp"
+#include "../../../../entity/core/Entity.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include <unordered_map>

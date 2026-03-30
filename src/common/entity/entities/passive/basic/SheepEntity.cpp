@@ -1,5 +1,6 @@
 #include "SheepEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include <memory>
 
@@ -35,18 +36,32 @@ i32 SheepEntity::shear() {
 
 bool SheepEntity::isBreedingItem(const ItemStack& itemStack) const {
     // 羊用小麦繁殖
-    // TODO: 检查是否是小麦
-    (void)itemStack;
-    return false;
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+    return item == Items::WHEAT;
 }
 
 bool SheepEntity::canMateWith(const AnimalEntity& other) const {
     return AnimalEntity::canMateWith(other);
 }
 
-std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // TODO: 创建小羊，继承父母颜色混合
-    return nullptr;
+std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner) {
+    // 创建小羊
+    auto baby = std::make_unique<SheepEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // TODO: 继承父母颜色混合
+    // SheepEntity* partnerSheep = dynamic_cast<SheepEntity*>(&partner);
+    // if (partnerSheep) {
+    //     baby->setWoolColor(blendColors(m_woolColor, partnerSheep->getWoolColor()));
+    // }
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void SheepEntity::registerGoals() {

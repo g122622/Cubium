@@ -2,7 +2,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../../item/BlockItemUseContext.hpp"
 #include "../../../fluid/Fluid.hpp"
-#include "../../../../entity/Player.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 

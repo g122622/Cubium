@@ -52,6 +52,9 @@ public:
      */
     void setBurnsInDaylight(bool burn) { m_burnsInDaylight = burn; }
 
+protected:
+    bool m_burnsInDaylight = true;
+
     /**
      * @brief 检查是否在阳光下
      * @return 如果暴露在阳光下返回true
@@ -88,7 +91,6 @@ protected:
     void handleDaylightBurning();
 
 private:
-    bool m_burnsInDaylight = true;
     i32 m_burnTime = 0;
 };
 

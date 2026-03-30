@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Goal.hpp"
-#include "../../../core/Types.hpp"
+#include "../../Goal.hpp"
+#include "../../../../../core/Types.hpp"
 #include <functional>
 
 namespace mc {

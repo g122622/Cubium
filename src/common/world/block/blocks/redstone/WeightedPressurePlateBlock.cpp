@@ -1,6 +1,6 @@
 #include "WeightedPressurePlateBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../entity/Entity.hpp"
+#include "../../../../entity/core/Entity.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
 
 namespace mc {

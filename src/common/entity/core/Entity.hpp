@@ -408,6 +408,16 @@ public:
     [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
 
     /**
+     * @brief 检查是否能看见另一个实体
+     *
+     * 通过射线检测判断视线是否被方块阻挡。
+     *
+     * @param other 目标实体
+     * @return 如果视线未被阻挡返回true
+     */
+    [[nodiscard]] virtual bool canSee(const Entity& other) const;
+
+    /**
      * @brief 检查实体是否着火
      */
     [[nodiscard]] bool isOnFire() const { return m_fire > 0; }

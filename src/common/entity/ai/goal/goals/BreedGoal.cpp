@@ -1,11 +1,11 @@
 #include "BreedGoal.hpp"
-#include "../../../animal/AnimalEntity.hpp"
-#include "../../../mob/MobEntity.hpp"
-#include "../../../living/LivingEntity.hpp"
-#include "../../../Entity.hpp"
-#include "../../../EntityUtils.hpp"
-#include "../../../ai/controller/LookController.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
+#include "../../../entities/passive/basic/AnimalEntity.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../core/EntityUtils.hpp"
+#include "../../controller/LookController.hpp"
+#include "../../pathfinding/PathNavigator.hpp"
 #include "../GoalConstants.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -97,13 +97,27 @@ void BreedGoal::spawnBaby() {
     m_animal->setInLove(0);
     m_targetMate->setInLove(0);
 
+    // 重置繁殖冷却
+    m_animal->setGrowingAge(6000);   // 5分钟冷却
+    m_targetMate->setGrowingAge(6000);
+
     // 生成幼体
     auto baby = m_animal->spawnBaby(*m_targetMate);
-    if (baby && m_animal->world()) {
-        // TODO: 将幼体添加到世界
-        // ServerWorld* serverWorld = ...;
-        // baby->setPosition(m_animal->x(), m_animal->y(), m_animal->z());
-        // serverWorld->spawnEntity(std::move(baby));
+    if (baby) {
+        IWorld* world = m_animal->world();
+        if (world) {
+            // 设置幼体位置
+            baby->setPosition(m_animal->x(), m_animal->y(), m_animal->z());
+
+            // 生成到世界中
+            EntityId babyId = world->spawnEntity(std::move(baby));
+
+            // TODO: 生成爱心粒子效果
+            // TODO: 播放繁殖音效
+            // TODO: 给玩家经验值
+
+            (void)babyId; // 避免未使用警告
+        }
     }
 }
 

@@ -1,6 +1,8 @@
 #include "PigEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include <memory>
 
 namespace mc {
@@ -20,10 +22,9 @@ PigEntity::PigEntity(LegacyEntityType type, EntityId id)
 
 bool PigEntity::isBreedingItem(const ItemStack& itemStack) const {
     // 猪用胡萝卜繁殖
-    // TODO: 检查是否是胡萝卜
-    // return itemStack.getItem() == Items::CARROT;
-    (void)itemStack;
-    return false;
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+    return item == Items::CARROT;
 }
 
 bool PigEntity::canMateWith(const AnimalEntity& other) const {
@@ -33,9 +34,16 @@ bool PigEntity::canMateWith(const AnimalEntity& other) const {
 }
 
 std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // TODO: 创建小猪
-    // return std::make_unique<PigEntity>(...);
-    return nullptr;
+    // 创建小猪
+    auto baby = std::make_unique<PigEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void PigEntity::registerGoals() {

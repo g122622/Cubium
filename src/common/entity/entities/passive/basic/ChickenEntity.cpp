@@ -1,5 +1,6 @@
 #include "ChickenEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <memory>
@@ -30,10 +31,12 @@ void ChickenEntity::resetEggTimer() {
 
 bool ChickenEntity::isBreedingItem(const ItemStack& itemStack) const {
     // 鸡用种子繁殖
-    // TODO: 检查是否是种子
-    // return itemStack.getItem()->isIn(ItemTags::SEEDS);
-    (void)itemStack;
-    return false;
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+    return item == Items::WHEAT_SEEDS
+        || item == Items::PUMPKIN_SEEDS
+        || item == Items::MELON_SEEDS
+        || item == Items::BEETROOT_SEEDS;
 }
 
 bool ChickenEntity::canMateWith(const AnimalEntity& other) const {
@@ -41,8 +44,16 @@ bool ChickenEntity::canMateWith(const AnimalEntity& other) const {
 }
 
 std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // TODO: 创建小鸡
-    return nullptr;
+    // 创建小鸡
+    auto baby = std::make_unique<ChickenEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void ChickenEntity::registerGoals() {

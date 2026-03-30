@@ -1,5 +1,6 @@
 #include "CowEntity.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include <memory>
 
@@ -20,10 +21,9 @@ CowEntity::CowEntity(LegacyEntityType type, EntityId id)
 
 bool CowEntity::isBreedingItem(const ItemStack& itemStack) const {
     // 牛用小麦繁殖
-    // TODO: 检查是否是小麦
-    // return itemStack.getItem() == Items::WHEAT;
-    (void)itemStack;
-    return false;
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+    return item == Items::WHEAT;
 }
 
 bool CowEntity::canMateWith(const AnimalEntity& other) const {
@@ -32,8 +32,16 @@ bool CowEntity::canMateWith(const AnimalEntity& other) const {
 }
 
 std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // TODO: 创建小牛
-    return nullptr;
+    // 创建小牛
+    auto baby = std::make_unique<CowEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void CowEntity::registerGoals() {

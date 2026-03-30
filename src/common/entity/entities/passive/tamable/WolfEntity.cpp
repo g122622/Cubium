@@ -1,6 +1,7 @@
 #include "WolfEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
@@ -32,43 +33,45 @@ std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/) {
 }
 
 bool WolfEntity::isTameItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是骨头
-    // return itemStack.getItem() == Items::BONE;
-    (void)itemStack;
-    return false;
+    // 狼用骨头驯服
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+    return item == Items::BONE;
 }
 
 bool WolfEntity::isBreedingItem(const ItemStack& itemStack) const {
     // 驯服后用肉类繁殖
-    // TODO: 检查是否是肉类
-    // return itemStack.getItem()->isFood() && itemStack.getItem() != Items::BONE;
-    (void)itemStack;
-    return false;
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+    return item == Items::PORKCHOP
+        || item == Items::COOKED_PORKCHOP
+        || item == Items::BEEF
+        || item == Items::COOKED_BEEF
+        || item == Items::CHICKEN
+        || item == Items::COOKED_CHICKEN
+        || item == Items::RABBIT
+        || item == Items::COOKED_RABBIT
+        || item == Items::MUTTON
+        || item == Items::COOKED_MUTTON;
+        // TODO: 添加 ROTTEN_FLESH（腐肉）当 Items 中定义后
 }
 
 bool WolfEntity::isFoodItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是肉类（包括腐肉）
-    // return itemStack.getItem() == Items::PORKCHOP
-    //     || itemStack.getItem() == Items::COOKED_PORKCHOP
-    //     || itemStack.getItem() == Items::BEEF
-    //     || itemStack.getItem() == Items::COOKED_BEEF
-    //     || itemStack.getItem() == Items::CHICKEN
-    //     || itemStack.getItem() == Items::COOKED_CHICKEN
-    //     || itemStack.getItem() == Items::RABBIT
-    //     || itemStack.getItem() == Items::COOKED_RABBIT
-    //     || itemStack.getItem() == Items::MUTTON
-    //     || itemStack.getItem() == Items::COOKED_MUTTON
-    //     || itemStack.getItem() == Items::ROTTEN_FLESH;
-    (void)itemStack;
-    return false;
+    // 同繁殖物品
+    return isBreedingItem(itemStack);
 }
 
 std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // TODO: 创建小狼
-    // auto baby = std::make_unique<WolfEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    // return baby;
-    return nullptr;
+    // 创建小狼
+    auto baby = std::make_unique<WolfEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 f32 WolfEntity::getTailAngle() const {
@@ -85,46 +88,26 @@ f32 WolfEntity::getTailAngle() const {
 }
 
 bool WolfEntity::isInWater() const {
-    // TODO: 检查是否在水中
-    // return isInWaterOrBubble();
-    return false;
+    // 调用父类实现检查是否在水中
+    return TameableEntity::isInWater();
 }
 
 void WolfEntity::registerGoals() {
-    // 调用父类方法
+    // 调用父类方法（已包含 SwimGoal, PanicGoal, BreedGoal, FollowParentGoal, RandomWalkingGoal, LookAtGoal, LookRandomlyGoal）
     TameableEntity::registerGoals();
 
     // 狼特有目标
-    // 优先级 0: 游泳（最高优先级）
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    // 注意：不要重复注册父类已注册的Goal
 
-    // 优先级 1: 恐慌逃跑（受到伤害时）
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.5));
-
-    // 优先级 1: 坐下目标（驯服后）
+    // 优先级 1: 坐下目标（驯服后）- 与PanicGoal同优先级，但SitGoal会检查是否驯服
     m_goalSelector.addGoal(1, new entity::ai::goal::SitGoal(this));
 
-    // 优先级 2: 繁殖（当处于爱心状态时）
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
-
-    // 优先级 3: 跟随主人（驯服后）
+    // 优先级 3: 跟随主人（驯服后）- 替换FollowParentGoal的行为
     m_goalSelector.addGoal(3, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 3.0f, 10.0f, 32.0f));
 
     // 优先级 4: 食物诱惑（骨头用于驯服）
     // TODO: 需要实现骨头诱惑
     // m_goalSelector.addGoal(4, new entity::ai::goal::TemptGoal(this, 1.2, isTameItemPredicate));
-
-    // 优先级 5: 跟随父母（幼体行为）
-    m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.0));
-
-    // 优先级 6: 随机漫步
-    m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
-
-    // 优先级 7: 看向玩家
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0f));
-
-    // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
     // TODO: 添加攻击目标
     // 优先级 1: 攻击目标（未驯服时攻击附近生物，驯服后保护主人）

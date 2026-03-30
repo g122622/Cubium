@@ -1,13 +1,14 @@
 #pragma once
 
-#include "../Goal.hpp"
-#include "../../../core/Types.hpp"
+#include "../../Goal.hpp"
+#include "../../../../../core/Types.hpp"
 
 namespace mc {
 
 // Forward declarations
-class MobEntity;
+class CreatureEntity;
 class LivingEntity;
+class MobEntity;
 
 namespace entity::ai::goal {
 
@@ -23,18 +24,18 @@ class WaterAvoidingRandomWalkingGoal : public Goal {
 public:
     /**
      * @brief 构造函数
-     * @param mob 拥有此目标的生物
+     * @param creature 拥有此目标的生物
      * @param speed 移动速度倍率
      */
-    WaterAvoidingRandomWalkingGoal(MobEntity* mob, f64 speed);
+    WaterAvoidingRandomWalkingGoal(CreatureEntity* creature, f64 speed);
 
     /**
      * @brief 构造函数（带概率）
-     * @param mob 拥有此目标的生物
+     * @param creature 拥有此目标的生物
      * @param speed 移动速度倍率
      * @param chance 每tick执行的概率（0.0-1.0）
      */
-    WaterAvoidingRandomWalkingGoal(MobEntity* mob, f64 speed, f32 chance);
+    WaterAvoidingRandomWalkingGoal(CreatureEntity* creature, f64 speed, f32 chance);
 
     ~WaterAvoidingRandomWalkingGoal() override = default;
 
@@ -60,7 +61,7 @@ protected:
      */
     [[nodiscard]] bool isInWaterOrLava(f64 x, f64 y, f64 z) const;
 
-    MobEntity* m_mob;
+    CreatureEntity* m_creature;
     f64 m_speed;
     f32 m_chance;
     f64 m_targetX = 0.0;

@@ -99,6 +99,9 @@ add_library(mc_common STATIC
     entity/entities/passive/golem/GolemEntity.cpp
     entity/entities/passive/golem/IronGolemEntity.cpp
     entity/entities/passive/golem/SnowGolemEntity.cpp
+
+    # Entity - Passive - Horse
+    entity/entities/passive/horse/AbstractHorseEntity.cpp
     # Entity - Monster
     entity/entities/monster/MonsterEntity.cpp
     # Entity - Monster (undead)
@@ -111,18 +114,22 @@ add_library(mc_common STATIC
     # Entity - Monster (arthropod)
     entity/entities/monster/arthropod/SpiderEntity.cpp
     entity/entities/monster/arthropod/CaveSpiderEntity.cpp
+    entity/entities/monster/arthropod/EndermiteEntity.cpp
     # Entity - Monster (basic)
     entity/entities/monster/basic/CreeperEntity.cpp
     entity/entities/monster/basic/SlimeEntity.cpp
+    entity/entities/monster/basic/PhantomEntity.cpp
     # Entity - Monster (end)
     entity/entities/monster/end/EndermanEntity.cpp
     # Entity - Monster (nether)
     entity/entities/monster/nether/BlazeEntity.cpp
+    entity/entities/monster/nether/NetherEntities.cpp
     # Entity - Monster (ocean)
     entity/entities/monster/ocean/GuardianEntity.cpp
     entity/entities/monster/ocean/ElderGuardianEntity.cpp
     # Entity - Monster (illager)
     entity/entities/monster/illager/WitchEntity.cpp
+    entity/entities/monster/illager/IllagerEntities.cpp
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Entity - Loot System
@@ -149,6 +156,13 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/MeleeAttackGoal.cpp
     entity/ai/goal/goals/AvoidEntityGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
+    entity/ai/goal/goals/movement/MovementGoals.cpp
+    entity/ai/goal/goals/attack/RangedAttackGoals.cpp
+    entity/ai/goal/goals/target/TargetGoals.cpp
+    # Entity - AI - Brain System
+    entity/ai/brain/memory/MemoryModuleType.cpp
+    entity/ai/brain/schedule/Activity.cpp
+    entity/ai/brain/schedule/Schedule.cpp
     entity/ai/pathfinding/PathPoint.cpp
     entity/ai/pathfinding/WalkNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp

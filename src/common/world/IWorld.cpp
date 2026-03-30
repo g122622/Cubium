@@ -2,6 +2,7 @@
 #include "fluid/Fluid.hpp"
 #include "fluid/FluidRegistry.hpp"
 #include "block/Block.hpp"
+#include "entity/core/Entity.hpp"
 
 namespace mc {
 
@@ -34,6 +35,13 @@ bool IWorld::isLavaAt(i32 x, i32 y, i32 z) const {
     const auto& loc = fluid.fluidLocation();
     return loc.namespace_() == "minecraft" &&
            (loc.path() == "lava" || loc.path() == "flowing_lava");
+}
+
+EntityId IWorld::spawnEntity(std::unique_ptr<Entity> entity) {
+    (void)entity;
+    // 默认实现：不支持生成实体
+    // ServerWorld 会重写此方法
+    return 0;
 }
 
 } // namespace mc

@@ -174,6 +174,17 @@ inline std::unique_ptr<Attribute> jumpBoost() {
     return std::make_unique<Attribute>("generic.jump_boost", 0.42, 0.0, 8.0);
 }
 
+/**
+ * @brief 马匹跳跃强度
+ *
+ * 决定马类实体的跳跃能力。
+ * 默认值: 0.7
+ * 范围: 0.0 ~ 2.0
+ */
+inline std::unique_ptr<Attribute> horseJumpStrength() {
+    return std::make_unique<Attribute>("horse.jump_strength", 0.7, 0.0, 2.0);
+}
+
 // ============================================================================
 // 属性名称常量
 // ============================================================================
@@ -192,6 +203,7 @@ constexpr const char* LUCK = "generic.luck";
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max";
 constexpr const char* JUMP_BOOST = "generic.jump_boost";
+constexpr const char* JUMP_STRENGTH = "horse.jump_strength";
 
 } // namespace Attributes
 
