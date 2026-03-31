@@ -123,50 +123,6 @@ private:
 };
 
 /**
- * @brief 末影之眼实体
- *
- * 投掷后的末影之眼，飞向要塞。
- *
- * 参考 MC 1.16.5 EyeOfEnderEntity
- */
-class EyeOfEnderEntity : public Entity {
-public:
-    EyeOfEnderEntity();
-    ~EyeOfEnderEntity() override = default;
-
-    void tick() override;
-
-    [[nodiscard]] f32 width() const override { return 0.25f; }
-    [[nodiscard]] f32 height() const override { return 0.25f; }
-    [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
-
-    /**
-     * @brief 设置目标位置
-     */
-    void setTargetPos(f64 x, f64 y, f64 z);
-
-    /**
-     * @brief 设置是否应该掉落
-     */
-    void setShouldDrop(bool drop) { m_shatter = drop; }
-    [[nodiscard]] bool shouldDrop() const { return m_shatter; }
-
-    /**
-     * @brief 获取生存时间
-     */
-    [[nodiscard]] i32 getLifeTime() const { return m_lifeTime; }
-
-private:
-    f64 m_targetX = 0.0;
-    f64 m_targetY = 0.0;
-    f64 m_targetZ = 0.0;
-    i32 m_lifeTime = 0;
-    bool m_shatter = false;
-    static constexpr i32 MAX_LIFE = 80;
-};
-
-/**
  * @brief 潮涌核心实体
  *
  * 潮涌核心激活后产生的效果实体。
@@ -242,48 +198,8 @@ private:
     static constexpr i32 DECREASE_INTERVAL = 200;
 };
 
-/**
- * @brief 唤魔者尖牙实体
- *
- * 唤魔者召唤的地刺攻击。
- *
- * 参考 MC 1.16.5 EvokerFangsEntity
- */
-class EvokerFangsEntity : public Entity {
-public:
-    EvokerFangsEntity();
-    EvokerFangsEntity(f64 x, f64 y, f64 z, f32 yaw, i32 delay);
-    ~EvokerFangsEntity() override = default;
-
-    void tick() override;
-
-    [[nodiscard]] f32 width() const override { return 0.5f; }
-    [[nodiscard]] f32 height() const override { return 0.8f; }
-    [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
-
-    /**
-     * @brief 设置召唤者
-     */
-    void setOwner(LivingEntity* owner) { m_owner = owner; }
-    [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
-
-    /**
-     * @brief 设置伤害值
-     */
-    void setDamage(f32 damage) { m_damage = damage; }
-
-private:
-    void attackEntities();
-
-    LivingEntity* m_owner = nullptr;
-    i32 m_delay = 0;
-    i32 m_ticksLived = 0;
-    bool m_hasAttacked = false;
-    f32 m_damage = 6.0f;
-    static constexpr i32 WARMUP_DELAY = 14;
-    static constexpr i32 LIFETIME = 22;
-};
+// 注意: EvokerFangsEntity 和 EyeOfEnderEntity 已移至
+// src/common/entity/entities/projectile/OtherProjectiles.hpp 以避免重复定义
 
 } // namespace entity
 } // namespace mc

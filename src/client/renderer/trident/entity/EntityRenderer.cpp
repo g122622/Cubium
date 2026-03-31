@@ -1,5 +1,5 @@
 #include "EntityRenderer.hpp"
-#include "../../../../common/entity/Entity.hpp"
+#include "../../../../common/entity/core/Entity.hpp"
 
 namespace mc::client::renderer {
 

@@ -437,10 +437,10 @@ graph TB
 
 ```cpp
 // 实体系统
-#include "common/entity/mob/MobEntity.hpp"
-#include "common/entity/mob/CreatureEntity.hpp"
-#include "common/entity/living/LivingEntity.hpp"
-#include "common/entity/animal/AnimalEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 
 // 控制器
 #include "common/entity/ai/controller/LookController.hpp"
@@ -457,13 +457,13 @@ graph TB
 
 ```cpp
 // 动物实体
-#include "common/entity/animal/Pig.hpp"
-#include "common/entity/animal/Cow.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
+#include "common/entity/entities/passive/basic/CowEntity.hpp"
 // ...其他动物
 
 // 敌对生物
-#include "common/entity/mob/Zombie.hpp"
-#include "common/entity/mob/Skeleton.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 // ...其他生物
 ```
 

@@ -112,59 +112,6 @@ void TNTEntity::explode() {
     remove();
 }
 
-// ==================== EyeOfEnderEntity ====================
-
-EyeOfEnderEntity::EyeOfEnderEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
-{
-}
-
-void EyeOfEnderEntity::tick() {
-    Entity::tick();
-
-    m_lifeTime++;
-
-    // 飞向目标
-    if (m_targetX != 0.0 || m_targetY != 0.0 || m_targetZ != 0.0) {
-        f64 dx = m_targetX - x();
-        f64 dy = m_targetY - y();
-        f64 dz = m_targetZ - z();
-        f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-        if (dist > 1.0) {
-            f32 speed = 0.3f;
-            setVelocity(
-                static_cast<f32>((dx / dist) * speed),
-                static_cast<f32>((dy / dist) * speed),
-                static_cast<f32>((dz / dist) * speed)
-            );
-        } else {
-            if (m_shatter && (rand() % 5) == 0) {
-                // 碎裂掉落
-            }
-            remove();
-        }
-    }
-
-    // 最大生存时间
-    if (m_lifeTime >= MAX_LIFE) {
-        if (m_shatter) {
-            // 生成末影之眼物品
-        }
-        remove();
-    }
-
-    // 移动
-    Vector3 vel = velocity();
-    move(vel.x, vel.y, vel.z);
-}
-
-void EyeOfEnderEntity::setTargetPos(f64 x, f64 y, f64 z) {
-    m_targetX = x;
-    m_targetY = y;
-    m_targetZ = z;
-}
-
 // ==================== ConduitEntity ====================
 
 ConduitEntity::ConduitEntity()
@@ -237,45 +184,6 @@ void WardenWarningEffect::decreaseWarning() {
     if (m_warningLevel > 0) {
         m_warningLevel--;
     }
-}
-
-// ==================== EvokerFangsEntity ====================
-
-EvokerFangsEntity::EvokerFangsEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
-{
-}
-
-EvokerFangsEntity::EvokerFangsEntity(f64 x, f64 y, f64 z, f32 yaw, i32 delay)
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
-    , m_delay(delay)
-{
-    setPosition(x, y, z);
-    setRotation(yaw, 0.0f);
-}
-
-void EvokerFangsEntity::tick() {
-    Entity::tick();
-
-    m_ticksLived++;
-
-    if (m_ticksLived < m_delay) {
-        return;
-    }
-
-    if (m_ticksLived == m_delay + WARMUP_DELAY) {
-        attackEntities();
-        m_hasAttacked = true;
-    }
-
-    if (m_ticksLived >= m_delay + LIFETIME) {
-        remove();
-    }
-}
-
-void EvokerFangsEntity::attackEntities() {
-    if (m_hasAttacked) return;
-    // 伤害范围内的实体
 }
 
 } // namespace entity

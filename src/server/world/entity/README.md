@@ -280,11 +280,11 @@ graph TB
 #include "server/world/ServerWorld.hpp"
 
 // 实体系统
-#include "common/entity/Entity.hpp"
-#include "common/entity/living/LivingEntity.hpp"
-#include "common/entity/mob/MobEntity.hpp"
-#include "common/entity/ItemEntity.hpp"
-#include "common/entity/Player.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 
 // 网络包

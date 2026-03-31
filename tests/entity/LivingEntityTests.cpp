@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/living/LivingEntity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 

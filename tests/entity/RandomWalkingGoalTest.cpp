@@ -2,7 +2,7 @@
 #include <gmock/gmock.h>
 
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
-#include "common/entity/mob/CreatureEntity.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"

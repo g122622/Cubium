@@ -1,5 +1,5 @@
 #include "client/sound/instance/EntitySoundInstance.hpp"
-#include "common/entity/Entity.hpp"
+#include "common/entity/core/Entity.hpp"
 
 namespace mc::client::sound {
 
