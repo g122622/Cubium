@@ -1,15 +1,136 @@
 # Dimension 模块
 
-维度渲染设置模块，定义各维度特有的渲染参数。
+维度系统核心模块，包含维度类型定义、维度实例、维度管理器和渲染参数等功能。
 
 ## 目录结构
 
 ```
 dimension/
-└── DimensionRenderSettings.hpp    # 维度渲染设置
+├── DimensionType.hpp            # 维度类型定义
+├── DimensionType.cpp            # 维度类型实现
+├── Dimension.hpp                # 维度实例类
+├── Dimension.cpp                # 维度实例实现
+├── DimensionManager.hpp         # 维度管理器
+├── DimensionManager.cpp         # 维度管理器实现
+├── DimensionRenderSettings.hpp  # 维度渲染设置
+└── README.md                    # 本文档
 ```
 
 ## 文件详解
+
+### DimensionType.hpp/cpp
+
+**职责**: 定义维度类型的固有属性，如坐标缩放、环境特性、高度限制等。
+
+参考 MC 1.16.5 DimensionType。
+
+**主要属性**:
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `m_id` | `DimensionId` | 维度ID |
+| `m_name` | `String` | 维度名称 |
+| `m_hasCeiling` | `bool` | 是否有天花板（下界） |
+| `m_hasSkyLight` | `bool` | 是否有天空光照 |
+| `m_ultraWarm` | `bool` | 是否超热（水蒸发） |
+| `m_natural` | `bool` | 是否自然维度 |
+| `m_bedWorks` | `bool` | 床是否可用 |
+| `m_respawnAnchorWorks` | `bool` | 重生锚是否可用 |
+| `m_coordinateScale` | `f32` | 坐标缩放比例（下界=8） |
+| `m_minHeight` | `i32` | 最低建筑高度 |
+| `m_maxHeight` | `i32` | 最高建筑高度 |
+| `m_logicalHeight` | `i32` | 逻辑高度上限 |
+| `m_ambientLight` | `f32` | 环境光照强度 |
+| `m_fixedTime` | `Optional<i64>` | 固定时间值 |
+
+**静态工厂方法**:
+- `overworld()` - 主世界类型
+- `nether()` - 下界类型
+- `theEnd()` - 末地类型
+
+**坐标转换方法**:
+- `scaleFromOverworld(pos)` - 从主世界坐标转换
+- `scaleToOverworld(pos)` - 转换到主世界坐标
+- `transformPosition(pos, from, to)` - 通用坐标转换
+
+**使用示例**:
+```cpp
+// 获取下界维度类型
+auto nether = DimensionType::nether();
+
+// 检查属性
+if (nether.ultraWarm()) {
+    // 水会蒸发
+}
+
+// 坐标转换
+Vector3d netherPos(800, 64, 200);
+Vector3d overworldPos = nether.scaleToOverworld(netherPos);
+// overworldPos = (6400, 64, 1600)
+
+// 检查床是否可用
+if (!nether.bedWorks()) {
+    // 床会爆炸
+}
+```
+
+### Dimension.hpp/cpp
+
+**职责**: 维度实例类，组合维度类型、区块生成器和生物群系提供者。
+
+**主要成员**:
+
+| 成员 | 类型 | 说明 |
+|------|------|------|
+| `m_id` | `DimensionId` | 维度ID |
+| `m_type` | `DimensionType` | 维度类型 |
+| `m_generator` | `IChunkGenerator*` | 区块生成器 |
+| `m_biomeProvider` | `BiomeProvider*` | 生物群系提供者 |
+| `m_spawnPoint` | `Vector3d` | 出生点位置 |
+
+**工厂方法**:
+- `createOverworld(seed)` - 创建主世界维度
+- `createNether(seed)` - 创建下界维度
+- `createTheEnd(seed)` - 创建末地维度
+
+**使用示例**:
+```cpp
+auto overworld = Dimension::createOverworld(seed);
+auto biome = overworld->biomeProvider()->getBiome(x, y, z);
+auto spawnPoint = overworld->spawnPoint();
+```
+
+### DimensionManager.hpp/cpp
+
+**职责**: 维度管理器，管理所有维度实例的注册表。
+
+**维度ID常量**:
+- `OVERWORLD = 0` - 主世界
+- `NETHER = 1` - 下界
+- `THE_END = 2` - 末地
+
+**主要方法**:
+- `initialize(seed)` - 初始化维度管理器
+- `shutdown()` - 关闭维度管理器
+- `getDimension(id)` - 获取维度
+- `getOverworld()` - 获取主世界
+- `getNether()` - 获取下界
+- `getTheEnd()` - 获取末地
+- `forEachDimension(func)` - 遍历所有维度
+
+**使用示例**:
+```cpp
+DimensionManager manager;
+manager.initialize(seed);
+
+// 访问维度
+Dimension* overworld = manager.getDimension(DimensionManager::OVERWORLD);
+
+// 遍历所有维度
+manager.forEachDimension([](Dimension& dim) {
+    dim.tick();
+});
+```
 
 ### DimensionRenderSettings.hpp
 
@@ -174,10 +295,9 @@ if (settings.hasNaturalLight) {
 
 ## 未来扩展
 
-当前模块仅包含渲染设置，完整的维度系统可能还需要：
+当前维度系统已实现核心框架，后续计划：
 
-- `Dimension.hpp` - 维度基类
-- `DimensionType.hpp` - 维度类型枚举
-- `DimensionManager.hpp` - 维度管理器
-
-这些功能目前在 `world/gen/settings/DimensionSettings.hpp` 中有生成相关的设置。
+- 完善传送系统实现（传送门方块触发逻辑）
+- 生物群系提供者目录隔离（provider/overworld, provider/nether, provider/end）
+- 专用区块生成器（NetherChunkGenerator, EndChunkGenerator）
+- 服务端维度管理集成到 MinecraftServer

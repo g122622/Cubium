@@ -163,6 +163,15 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 初始化交互管理器
     initializeInteractionManagers();
 
+    // 初始化维度管理器
+    auto dimInitResult = m_dimensionManager->initialize(
+        static_cast<u64>(std::stoll(m_settings.levelSeed.get())),
+        m_settings.viewDistance.get());
+    if (dimInitResult.failed()) {
+        return Error(ErrorCode::InitializationFailed,
+                     "Failed to initialize dimension manager: " + dimInitResult.error().message());
+    }
+
     // 初始化同步管理器
     initializeSyncManagers();
 
@@ -610,7 +619,9 @@ void StandaloneServer::setupChunkSendCallback()
     chunkSendManager().setOnChunkSend([this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (player && player->loggedIn && player->hasConnection()) {
-            network::ChunkDataPacket packet(x, z, data);
+            // TODO: 从玩家获取实际维度ID
+            DimensionId dimension = 0;  // 暂时默认主世界
+            network::ChunkDataPacket packet(x, z, dimension, data);
             network::PacketSerializer ser;
             packet.serialize(ser);
 
@@ -625,7 +636,9 @@ void StandaloneServer::setupChunkSendCallback()
     chunkSendManager().setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (player && player->loggedIn && player->hasConnection()) {
-            network::UnloadChunkPacket packet(x, z);
+            // TODO: 从玩家获取实际维度ID
+            DimensionId dimension = 0;  // 暂时默认主世界
+            network::UnloadChunkPacket packet(x, z, dimension);
             network::PacketSerializer ser;
             packet.serialize(ser);
 

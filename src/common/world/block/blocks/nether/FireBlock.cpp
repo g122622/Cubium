@@ -1,9 +1,12 @@
 #include "FireBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../dimension/teleport/PortalSize.hpp"
+#include "../../VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -119,6 +122,10 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     if (!isValidPosition(state, blockReader, pos)) {
         world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
     }
+
+    // 尝试点燃下界传送门
+    // 参考 MC 1.16.5 FireBlock.tick
+    tryLightNetherPortal(world, pos);
 }
 
 void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
@@ -165,6 +172,29 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
     MC_UNUSED(pos);
     MC_UNUSED(age);
     MC_UNUSED(random);
+}
+
+void FireBlock::tryLightNetherPortal(IWorld& world, const BlockPos& pos) {
+    // 参考 MC 1.16.5 FireBlock
+    // 检查火焰周围是否形成有效的下界传送门框架
+
+    if (VanillaBlocks::OBSIDIAN == nullptr) {
+        return;
+    }
+
+    // 遍历火焰周围的每个位置，尝试检测传送门
+    for (Direction dir : Directions::horizontal()) {
+        BlockPos adjacentPos = pos.offset(dir);
+
+        // 尝试从相邻位置检测传送门框架
+        auto portalResult = PortalSize::findNetherPortal(world, adjacentPos);
+
+        if (portalResult.has_value() && portalResult->valid) {
+            // 找到有效的传送门框架，点燃传送门
+            PortalSize::lightNetherPortal(world, portalResult.value());
+            return;
+        }
+    }
 }
 
 bool FireBlock::isFlammable(const BlockState& state) const {
@@ -253,10 +283,20 @@ BlockState NetherPortalBlock::updatePostPlacement(
 }
 
 void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
-    MC_UNUSED(state);
+    // 参考 MC 1.16.5 NetherPortalBlock.onEntityCollision
+    // 实体进入传送门后开始传送计时
+    // 玩家需要站立在传送门中约 4 秒（80 ticks）才能传送
+    // 其他实体约 1 秒（约 20 ticks）
+
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    // TODO: 处理传送逻辑
+
+    // 设置实体在传送门中
+    entity.setInPortal(true);
+
+    // 注意：传送逻辑由 Entity::tickPortal() 处理
+    // 玩家的 tickPortal() 在 Player.cpp 中实现
+    // 当 portalTime 达到 80 ticks 时，返回 true 触发传送
 }
 
 const CollisionShape& NetherPortalBlock::getShape(const BlockState& state) const {

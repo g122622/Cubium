@@ -19,6 +19,10 @@ add_executable(minecraft-server
     core/PositionTracker.cpp
     core/PacketHandler.cpp
     core/GameModeManager.cpp
+    # 维度模块
+    dimension/ServerDimension.cpp
+    dimension/ServerDimensionManager.cpp
+    # 世界模块
     world/ServerWorld.cpp
     world/ChunkWorkerPool.cpp
     world/ServerChunkManager.cpp

@@ -199,6 +199,13 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     // 初始化交互管理器
     initializeInteractionManagers();
 
+    // 初始化维度管理器
+    auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(config.seed), config.viewDistance);
+    if (dimInitResult.failed()) {
+        return Error(ErrorCode::InitializationFailed,
+                     "Failed to initialize dimension manager: " + dimInitResult.error().message());
+    }
+
     // 初始化同步管理器
     initializeSyncManagers();
 
@@ -565,7 +572,9 @@ void IntegratedServer::sendChunkData(ChunkCoord x, ChunkCoord z, const std::vect
     MC_TRACE_EVENT("server.chunk", "sendChunkData",
                "Chunk", fmt::format("({}, {})", x, z),
                "DataSize", data.size());
-    network::ChunkDataPacket packet(x, z, data);
+    // TODO: 获取实际维度ID
+    DimensionId dimension = 0;  // 暂时默认主世界
+    network::ChunkDataPacket packet(x, z, dimension, data);
     network::PacketSerializer ser;
     packet.serialize(ser);
 
@@ -576,7 +585,9 @@ void IntegratedServer::sendChunkData(ChunkCoord x, ChunkCoord z, const std::vect
 
 void IntegratedServer::sendUnloadChunk(ChunkCoord x, ChunkCoord z)
 {
-    network::UnloadChunkPacket packet(x, z);
+    // TODO: 获取实际维度ID
+    DimensionId dimension = 0;  // 暂时默认主世界
+    network::UnloadChunkPacket packet(x, z, dimension);
     network::PacketSerializer ser;
     packet.serialize(ser);
 

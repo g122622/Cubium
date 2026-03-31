@@ -39,6 +39,8 @@
 #include "blocks/redstone/PoweredRailBlock.hpp"
 #include "blocks/redstone/DetectorRailBlock.hpp"
 #include "blocks/redstone/ActivatorRailBlock.hpp"
+#include "blocks/nether/FireBlock.hpp"
+#include "blocks/end/EndPortalBlock.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/WaterFluid.hpp"
 #include "../fluid/fluids/LavaFluid.hpp"
@@ -215,6 +217,10 @@ Block* VanillaBlocks::NETHERRACK = nullptr;
 Block* VanillaBlocks::GLOWSTONE = nullptr;
 Block* VanillaBlocks::END_STONE = nullptr;
 Block* VanillaBlocks::OBSIDIAN = nullptr;
+Block* VanillaBlocks::NETHER_PORTAL = nullptr;
+Block* VanillaBlocks::END_PORTAL = nullptr;
+Block* VanillaBlocks::END_PORTAL_FRAME = nullptr;
+Block* VanillaBlocks::END_GATEWAY = nullptr;
 
 // 红石方块
 Block* VanillaBlocks::REDSTONE_WIRE = nullptr;
@@ -259,6 +265,9 @@ Block* VanillaBlocks::POLISHED_BLACKSTONE = nullptr;
 Block* VanillaBlocks::CRYING_OBSIDIAN = nullptr;
 Block* VanillaBlocks::MAGMA = nullptr;
 Block* VanillaBlocks::NETHER_WART_BLOCK = nullptr;
+Block* VanillaBlocks::FIRE = nullptr;
+Block* VanillaBlocks::SOUL_FIRE = nullptr;
+Block* VanillaBlocks::NETHER_WART = nullptr;
 
 // 自然方块扩展
 Block* VanillaBlocks::CLAY = nullptr;
@@ -297,6 +306,9 @@ Block* VanillaBlocks::PURPUR_PILLAR = nullptr;
 // 末地系列
 Block* VanillaBlocks::END_STONE_BRICKS = nullptr;
 Block* VanillaBlocks::END_ROD = nullptr;
+Block* VanillaBlocks::CHORUS_PLANT = nullptr;
+Block* VanillaBlocks::CHORUS_FLOWER = nullptr;
+Block* VanillaBlocks::DRAGON_EGG = nullptr;
 
 // 骨块与干草块
 Block* VanillaBlocks::BONE_BLOCK = nullptr;
@@ -1042,6 +1054,34 @@ void VanillaBlocks::registerNetherBlocks() {
         ResourceLocation("minecraft:crying_obsidian"),
         BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f).lightLevel(10)
     );
+
+    // 火 - 普通火焰
+    // 参考: new FireBlock(Properties.create(Material.FIRE).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
+    FIRE = &registry.registerBlock<blocks::FireBlock>(
+        ResourceLocation("minecraft:fire"),
+        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(15)
+    );
+
+    // 灵魂火 - 蓝色火焰，伤害更高
+    // 参考: new SoulFireBlock(Properties.create(Material.FIRE).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(10))
+    SOUL_FIRE = &registry.registerBlock<blocks::SoulFireBlock>(
+        ResourceLocation("minecraft:soul_fire"),
+        BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(10)
+    );
+
+    // 下界传送门
+    // 参考: new NetherPortalBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(11))
+    NETHER_PORTAL = &registry.registerBlock<blocks::NetherPortalBlock>(
+        ResourceLocation("minecraft:nether_portal"),
+        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(11)
+    );
+
+    // 下界疣 - 作物方块
+    // 参考: new NetherWartBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
+    NETHER_WART = &registry.registerBlock<blocks::NetherWartBlock>(
+        ResourceLocation("minecraft:nether_wart"),
+        BlockProperties(Material::PLANT).noCollision().hardness(0.0f)
+    );
 }
 
 // ============================================================================
@@ -1440,6 +1480,48 @@ void VanillaBlocks::registerEndBlocks() {
     END_ROD = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:end_rod"),
         BlockProperties(Material::DECORATION).noCollision().lightLevel(14));
+
+    // 末地传送门 - 穿越后传送到末地
+    // 参考: new EndPortalBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
+    END_PORTAL = &registry.registerBlock<blocks::EndPortalBlock>(
+        ResourceLocation("minecraft:end_portal"),
+        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15)
+    );
+
+    // 末地传送门框架 - 放置末影之眼激活传送门
+    // 参考: new EndPortalFrameBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F))
+    END_PORTAL_FRAME = &registry.registerBlock<blocks::EndPortalFrameBlock>(
+        ResourceLocation("minecraft:end_portal_frame"),
+        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f)
+    );
+
+    // 末地折跃门 - 在末地之间传送
+    // 参考: new EndGatewayBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
+    END_GATEWAY = &registry.registerBlock<blocks::EndGatewayBlock>(
+        ResourceLocation("minecraft:end_gateway"),
+        BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15)
+    );
+
+    // 紫颂植物 - 末地植物
+    // 参考: new ChorusPlantBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
+    CHORUS_PLANT = &registry.registerBlock<blocks::ChorusPlantBlock>(
+        ResourceLocation("minecraft:chorus_plant"),
+        BlockProperties(Material::PLANT).noCollision().hardness(0.0f)
+    );
+
+    // 紫颂花 - 紫颂植物的顶部
+    // 参考: new ChorusFlowerBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
+    CHORUS_FLOWER = &registry.registerBlock<blocks::ChorusFlowerBlock>(
+        ResourceLocation("minecraft:chorus_flower"),
+        BlockProperties(Material::PLANT).noCollision().hardness(0.0f)
+    );
+
+    // 龙蛋 - 末影龙掉落物
+    // 参考: new DragonEggBlock(Properties.create(Material.DRAGON_EGG).hardnessAndResistance(3.0F).setLightLevel(15))
+    DRAGON_EGG = &registry.registerBlock<blocks::DragonEggBlock>(
+        ResourceLocation("minecraft:dragon_egg"),
+        BlockProperties(Material::ROCK).hardness(3.0f).lightLevel(0)
+    );
 }
 
 // ============================================================================

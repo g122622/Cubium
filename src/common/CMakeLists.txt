@@ -41,6 +41,7 @@ add_library(mc_common STATIC
     network/packet/GameStateChangePacket.cpp
     network/packet/PlayerAbilitiesPacket.cpp
     network/packet/BlockBreakAnimPacket.cpp
+    network/packet/DimensionPackets.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp
@@ -481,7 +482,16 @@ add_library(mc_common STATIC
     # World - Generation - Chunk Generators
     world/gen/chunk/IChunkGenerator.cpp
     world/gen/chunk/NoiseChunkGenerator.cpp
+    world/gen/chunk/NetherChunkGenerator.cpp
+    world/gen/chunk/EndChunkGenerator.cpp
     world/gen/chunk/DebugChunkGenerator.cpp
+
+    # World - Dimension
+    world/dimension/DimensionType.cpp
+    world/dimension/Dimension.cpp
+    world/dimension/DimensionManager.cpp
+    world/dimension/teleport/PortalSize.cpp
+    world/dimension/teleport/Teleporter.cpp
 
     # World - Generation - Settings
     world/gen/settings/DimensionSettings.cpp
@@ -509,6 +519,10 @@ add_library(mc_common STATIC
     world/biome/layer/transformers/ZoomLayers.cpp
     world/biome/layer/transformers/BiomeLayers.cpp
     world/biome/layer/transformers/MergeLayers.cpp
+
+    # World - Biome - Provider
+    world/biome/provider/nether/NetherBiomeProvider.cpp
+    world/biome/provider/end/EndBiomeProvider.cpp
 
     # World - Generation - Surface
     world/gen/surface/SurfaceBuilders.cpp

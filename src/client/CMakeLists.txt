@@ -95,6 +95,8 @@ add_executable(minecraft-client
     world/color/blend/BiomeColorCache.cpp
     world/color/blend/BiomeColorBlender.cpp
     world/color/blend/ChunkBiomeAccessor.cpp
+    # 维度
+    dimension/ClientDimensionManager.cpp
     network/NetworkClient.cpp
     # 聊天系统
     chat/ChatHistory.cpp
@@ -196,6 +198,9 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
+    # 维度模块
+    ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
     # 同步管理器
     ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp

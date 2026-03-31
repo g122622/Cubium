@@ -26,7 +26,9 @@ src/common/network/packet/
 ├── GameStateChangePacket.hpp      # 游戏状态变化包
 ├── GameStateChangePacket.cpp      # 状态变化包实现
 ├── PlayerAbilitiesPacket.hpp      # 玩家能力同步包
-└── PlayerAbilitiesPacket.cpp      # 玩家能力包实现
+├── PlayerAbilitiesPacket.cpp      # 玩家能力包实现
+├── DimensionPackets.hpp           # 维度切换数据包
+└── DimensionPackets.cpp           # 维度数据包实现
 ```
 
 ## 文件详细说明
@@ -144,10 +146,10 @@ src/common/network/packet/
   - 确认传送ID
 
 - **区块数据包** (`ChunkDataPacket`) [S→C]
-  - 区块坐标、压缩的区块数据
+  - 区块坐标 (x, z)、维度ID、压缩的区块数据
 
 - **卸载区块包** (`UnloadChunkPacket`) [S→C]
-  - 区块坐标
+  - 区块坐标 (x, z)、维度ID
 
 - **玩家生成包** (`PlayerSpawnPacket`) [S→C]
   - 玩家ID、用户名、初始位置
@@ -168,6 +170,32 @@ src/common/network/packet/
 
 - **光照更新包** (`LightUpdatePacket`) [S→C]
   - 区块段坐标、天空光照、方块光照、信任边缘标志
+
+### 维度数据包
+
+#### DimensionPackets.hpp / DimensionPackets.cpp
+
+**职责**: 维度切换和重生相关数据包
+
+**主要内容**:
+
+- **维度切换包** (`ChangeDimensionPacket`) [S→C]
+  - 当玩家切换维度时发送
+  - 包含: 目标维度ID、目标位置、是否为重生触发
+  - 客户端应卸载当前维度的所有区块
+
+- **重生包** (`RespawnPacket`) [S→C]
+  - 当玩家死亡重生或从末地返回时发送
+  - 包含: 维度ID、位置、朝向、游戏模式、世界类型标志
+
+- **维度信息包** (`DimensionInfoPacket`) [S→C]
+  - 在玩家登录时发送
+  - 告知客户端服务器支持的所有维度信息
+  - 包含: 维度ID、名称、环境属性(天空光、天花板、环境光)
+
+- **确认维度切换包** (`ConfirmDimensionChangePacket`) [C→S]
+  - 客户端完成维度切换后发送
+  - 通知服务端可以发送新区块数据
 
 ### 实体数据包
 

@@ -6,6 +6,7 @@
 #include "server/world/entity/ItemPickupManager.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/ConnectionManager.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/LightType.hpp"
@@ -60,6 +61,11 @@ void MinecraftServer::tick()
 
     // 执行核心 tick
     tickCore();
+
+    // 更新所有维度
+    if (m_dimensionManager) {
+        m_dimensionManager->tick();
+    }
 
     // 执行实体 tick
     tickEntities();
@@ -119,6 +125,9 @@ void MinecraftServer::initializeCoreManagers()
         *m_timeManager,
         m_config);
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
+
+    // 创建维度管理器
+    m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
 }
 
 Result<void> MinecraftServer::initializeWorld()
@@ -363,6 +372,10 @@ void MinecraftServer::shutdownManagers()
     m_miningManager.reset();
     m_blockInteractionManager.reset();
     m_commandRegistry.reset();
+    if (m_dimensionManager) {
+        m_dimensionManager->shutdown();
+    }
+    m_dimensionManager.reset();
     m_world.reset();
     m_gameModeManager.reset();
     m_packetHandler.reset();

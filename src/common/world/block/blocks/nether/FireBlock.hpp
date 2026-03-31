@@ -87,6 +87,17 @@ protected:
     void trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRandom& random);
 
     /**
+     * @brief 尝试点燃下界传送门
+     *
+     * 检查火焰周围是否形成有效的下界传送门框架，
+     * 如果有效则点燃传送门。
+     *
+     * @param world 世界引用
+     * @param pos 火焰位置
+     */
+    void tryLightNetherPortal(IWorld& world, const BlockPos& pos);
+
+    /**
      * @brief 检查方块是否可燃
      */
     [[nodiscard]] bool isFlammable(const BlockState& state) const;

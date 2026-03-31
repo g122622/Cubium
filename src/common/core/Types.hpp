@@ -153,14 +153,8 @@ inline constexpr f32 TICK_DURATION = 1.0f / 20.0f; // 每刻50ms
 // 枚举类型
 // ============================================================================
 
-/**
- * @brief 维度类型
- */
-enum class Dimension : DimensionId {
-    Overworld = 0,
-    Nether = 1,
-    TheEnd = 2
-};
+// 注意: DimensionType 类在 world/dimension/DimensionType.hpp 中定义
+// DimensionId 类型别名已定义，用于标识维度
 
 /**
  * @brief 游戏模式

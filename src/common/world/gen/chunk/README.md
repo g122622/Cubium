@@ -8,8 +8,12 @@
 chunk/
 ├── IChunkGenerator.hpp      # 区块生成器接口定义
 ├── IChunkGenerator.cpp      # 接口实现和基类
-├── NoiseChunkGenerator.hpp  # 噪声地形生成器头文件
+├── NoiseChunkGenerator.hpp  # 噪声地形生成器头文件（主世界）
 ├── NoiseChunkGenerator.cpp  # 噪声地形生成器实现
+├── NetherChunkGenerator.hpp # 下界区块生成器头文件
+├── NetherChunkGenerator.cpp # 下界区块生成器实现
+├── EndChunkGenerator.hpp    # 末地区块生成器头文件
+├── EndChunkGenerator.cpp    # 末地区块生成器实现
 ├── DebugChunkGenerator.hpp  # 调试模式生成器头文件
 ├── DebugChunkGenerator.cpp  # 调试模式生成器实现
 └── README.md                # 本文档

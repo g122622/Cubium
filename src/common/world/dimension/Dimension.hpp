@@ -1,0 +1,211 @@
+#pragma once
+
+#include "DimensionType.hpp"
+#include "../gen/chunk/IChunkGenerator.hpp"
+#include "../biome/BiomeProvider.hpp"
+#include "../../core/Types.hpp"
+#include "../../util/math/Vector3.hpp"
+#include <memory>
+
+namespace mc {
+
+// 前向声明
+class WorldLightManager;
+
+/**
+ * @brief 维度实例
+ *
+ * 参考 MC 1.16.5 Dimension
+ * 将维度类型与区块生成器、生物群系提供者组合，
+ * 表示一个完整的维度实例。
+ *
+ * 使用示例:
+ * @code
+ * auto dimension = Dimension::createOverworld(seed);
+ * auto& type = dimension.type();
+ * auto spawnPoint = dimension.spawnPoint();
+ * auto biome = dimension.biomeProvider()->getBiome(x, y, z);
+ * @endcode
+ *
+ * @note 维度实例是不可变的，应在初始化时创建。
+ */
+class Dimension {
+public:
+    /**
+     * @brief 构造维度实例
+     *
+     * @param id 维度ID
+     * @param type 维度类型
+     * @param generator 区块生成器
+     * @param biomeProvider 生物群系提供者
+     */
+    Dimension(DimensionId id,
+              DimensionType type,
+              std::unique_ptr<IChunkGenerator> generator,
+              std::unique_ptr<BiomeProvider> biomeProvider);
+
+    virtual ~Dimension() = default;
+
+    // 禁止拷贝
+    Dimension(const Dimension&) = delete;
+    Dimension& operator=(const Dimension&) = delete;
+
+    // 允许移动
+    Dimension(Dimension&&) noexcept = default;
+    Dimension& operator=(Dimension&&) noexcept = default;
+
+    // ========== 标识 ==========
+
+    /**
+     * @brief 获取维度ID
+     */
+    [[nodiscard]] DimensionId id() const { return m_id; }
+
+    /**
+     * @brief 获取维度类型
+     */
+    [[nodiscard]] const DimensionType& type() const { return m_type; }
+
+    // ========== 生成器访问 ==========
+
+    /**
+     * @brief 获取区块生成器
+     */
+    [[nodiscard]] IChunkGenerator* generator() { return m_generator.get(); }
+    [[nodiscard]] const IChunkGenerator* generator() const { return m_generator.get(); }
+
+    // ========== 生物群系 ==========
+
+    /**
+     * @brief 获取生物群系提供者
+     */
+    [[nodiscard]] BiomeProvider* biomeProvider() { return m_biomeProvider.get(); }
+    [[nodiscard]] const BiomeProvider* biomeProvider() const { return m_biomeProvider.get(); }
+
+    // ========== 出生点 ==========
+
+    /**
+     * @brief 获取出生点位置
+     */
+    [[nodiscard]] Vector3d spawnPoint() const { return m_spawnPoint; }
+
+    /**
+     * @brief 设置出生点位置
+     */
+    void setSpawnPoint(const Vector3d& pos) { m_spawnPoint = pos; }
+
+    // ========== 维度能力 ==========
+
+    /**
+     * @brief 是否有天空光照
+     */
+    [[nodiscard]] bool hasSkyLight() const { return m_type.hasSkyLight(); }
+
+    /**
+     * @brief 是否有天花板
+     */
+    [[nodiscard]] bool hasCeiling() const { return m_type.hasCeiling(); }
+
+    /**
+     * @brief 最低建筑高度
+     */
+    [[nodiscard]] i32 minHeight() const { return m_type.minHeight(); }
+
+    /**
+     * @brief 最高建筑高度
+     */
+    [[nodiscard]] i32 maxHeight() const { return m_type.maxHeight(); }
+
+    /**
+     * @brief 逻辑高度上限（传送门放置等）
+     */
+    [[nodiscard]] i32 logicalHeight() const { return m_type.logicalHeight(); }
+
+    // ========== 坐标转换 ==========
+
+    /**
+     * @brief 从主世界坐标转换到当前维度
+     */
+    [[nodiscard]] Vector3d fromOverworld(const Vector3d& pos) const {
+        return m_type.scaleFromOverworld(pos);
+    }
+
+    /**
+     * @brief 从当前维度转换到主世界坐标
+     */
+    [[nodiscard]] Vector3d toOverworld(const Vector3d& pos) const {
+        return m_type.scaleToOverworld(pos);
+    }
+
+    // ========== 维度特性 ==========
+
+    /**
+     * @brief 是否超热（水会蒸发）
+     */
+    [[nodiscard]] bool ultraWarm() const { return m_type.ultraWarm(); }
+
+    /**
+     * @brief 床是否可用
+     */
+    [[nodiscard]] bool bedWorks() const { return m_type.bedWorks(); }
+
+    /**
+     * @brief 重生锚是否可用
+     */
+    [[nodiscard]] bool respawnAnchorWorks() const { return m_type.respawnAnchorWorks(); }
+
+    /**
+     * @brief 是否自然维度
+     */
+    [[nodiscard]] bool natural() const { return m_type.natural(); }
+
+    /**
+     * @brief 是否有末影龙战斗
+     */
+    [[nodiscard]] bool hasEnderDragonFight() const { return m_type.hasEnderDragonFight(); }
+
+    /**
+     * @brief 获取环境光照强度
+     */
+    [[nodiscard]] f32 ambientLight() const { return m_type.ambientLight(); }
+
+    /**
+     * @brief 获取固定时间值（如果有）
+     */
+    [[nodiscard]] Optional<i64> fixedTime() const { return m_type.fixedTimeValue(); }
+
+    // ========== 更新 ==========
+
+    /**
+     * @brief 维度刻更新
+     *
+     * 子类可覆盖以实现维度特定逻辑（如天气）。
+     */
+    virtual void tick();
+
+    // ========== 工厂方法 ==========
+
+    /**
+     * @brief 创建主世界维度
+     */
+    static std::unique_ptr<Dimension> createOverworld(u64 seed);
+
+    /**
+     * @brief 创建下界维度
+     */
+    static std::unique_ptr<Dimension> createNether(u64 seed);
+
+    /**
+     * @brief 创建末地维度
+     */
+    static std::unique_ptr<Dimension> createTheEnd(u64 seed);
+
+protected:
+    DimensionId m_id;
+    DimensionType m_type;
+    std::unique_ptr<IChunkGenerator> m_generator;
+    std::unique_ptr<BiomeProvider> m_biomeProvider;
+    Vector3d m_spawnPoint{0.0, 64.0, 0.0};
+};
+
+} // namespace mc

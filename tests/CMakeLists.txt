@@ -233,6 +233,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
+        # 维度模块
+        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
         # 同步管理器
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
