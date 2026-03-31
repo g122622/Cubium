@@ -24,6 +24,27 @@ namespace loot {
 class LootTableManager;
 }
 
+namespace entity {
+class ExperienceDropHandler;
+}
+
+/**
+ * @brief 矿石类型枚举
+ *
+ * 用于确定矿石经验掉落的类型。
+ */
+enum class OreType : i32 {
+    None = -1,          // 非矿石
+    Coal = 0,           // 煤矿 (0-2 经验)
+    Diamond = 1,        // 钻石矿 (3-7 经验)
+    Emerald = 2,        // 绿宝石矿 (3-7 经验)
+    Lapis = 3,          // 青金石矿 (2-5 经验)
+    NetherQuartz = 4,   // 下界石英矿 (2-5 经验)
+    NetherGold = 5,     // 下界金矿 (0-1 经验)
+    Redstone = 6,       // 红石矿 (1-5 经验)
+    Spawner = 7         // 刷怪笼 (15-44 经验)
+};
+
 /**
  * @brief 方块掉落处理器
  *
@@ -125,6 +146,62 @@ public:
      * @return 默认掉落物列表（通常为空）
      */
     [[nodiscard]] static std::vector<ItemStack> getDefaultDrops(const BlockState& state);
+
+    // ========================================================================
+    // 经验掉落
+    // ========================================================================
+
+    /**
+     * @brief 判断方块是否掉落经验
+     *
+     * 检查方块是否是掉落经验的矿石类型。
+     *
+     * @param state 方块状态
+     * @return 如果方块掉落经验返回对应的矿石类型，否则返回 OreType::None
+     */
+    [[nodiscard]] static OreType getOreType(const BlockState& state);
+
+    /**
+     * @brief 生成矿石经验掉落
+     *
+     * 当矿石被破坏时，在位置生成经验球。
+     * 只有使用正确工具破坏时才会掉落经验。
+     *
+     * @param entityManager 实体管理器
+     * @param physicsEngine 物理引擎（可选）
+     * @param pos 方块位置
+     * @param oreType 矿石类型
+     * @param rng 随机数生成器
+     * @return 生成的经验球数量
+     */
+    static i32 spawnOreExperience(
+        EntityManager& entityManager,
+        PhysicsEngine* physicsEngine,
+        const BlockPos& pos,
+        OreType oreType,
+        math::Random& rng);
+
+    /**
+     * @brief 处理方块破坏的经验掉落
+     *
+     * 检查方块是否是矿石，如果是则生成经验球。
+     * 自动判断矿石类型和是否使用正确工具。
+     *
+     * @param entityManager 实体管理器
+     * @param physicsEngine 物理引擎（可选）
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param tool 使用的工具（可为null）
+     * @param rng 随机数生成器
+     * @return 生成的经验球数量
+     */
+    static i32 handleBlockBreakExperience(
+        EntityManager& entityManager,
+        PhysicsEngine* physicsEngine,
+        const BlockPos& pos,
+        const BlockState& state,
+        const ItemStack* tool,
+        math::Random& rng);
 
 private:
     /**

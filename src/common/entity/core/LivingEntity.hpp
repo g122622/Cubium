@@ -123,6 +123,13 @@ public:
      */
     virtual void die(DamageSource& cause);
 
+    /**
+     * @brief 掉落经验
+     *
+     * 在死亡时调用，生成经验球。子类可以重写此方法。
+     */
+    virtual void dropExperience() {}
+
     // ========== 属性 ==========
 
     /**

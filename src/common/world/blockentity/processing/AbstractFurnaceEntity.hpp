@@ -72,6 +72,28 @@ public:
     // ========== 熔炉状态 ==========
 
     /**
+     * @brief 获取累积的熔炼经验
+     * @return 累积的经验值
+     */
+    [[nodiscard]] f32 getStoredExperience() const { return m_storedExperience; }
+
+    /**
+     * @brief 设置累积的熔炼经验
+     * @param xp 经验值
+     */
+    void setStoredExperience(f32 xp) { m_storedExperience = xp; }
+
+    /**
+     * @brief 提取并清除累积的熔炼经验
+     * @return 累积的经验值
+     */
+    f32 extractStoredExperience() {
+        f32 xp = m_storedExperience;
+        m_storedExperience = 0.0f;
+        return xp;
+    }
+
+    /**
      * @brief 检查是否正在燃烧
      * @return 如果燃烧中返回true
      */
@@ -209,11 +231,12 @@ protected:
     void smeltWithRecipe(const crafting::SmeltingRecipe* recipe);
 
 private:
-    FurnaceInventory m_inventory;   ///< 熔炉背包
-    i32 m_burnTime = 0;              ///< 当前燃烧时间
-    i32 m_burnTimeTotal = 0;         ///< 当前燃料的总燃烧时间
-    i32 m_cookTime = 0;              ///< 当前熔炼时间
-    i32 m_cookTimeTotal = 200;       ///< 总熔炼时间
+    FurnaceInventory m_inventory;       ///< 熔炉背包
+    i32 m_burnTime = 0;                 ///< 当前燃烧时间
+    i32 m_burnTimeTotal = 0;            ///< 当前燃料的总燃烧时间
+    i32 m_cookTime = 0;                 ///< 当前熔炼时间
+    i32 m_cookTimeTotal = 200;          ///< 总熔炼时间
+    f32 m_storedExperience = 0.0f;      ///< 累积的熔炼经验（玩家取出物品时发放）
     const crafting::SmeltingRecipe* m_lastRecipe = nullptr;  ///< 上次使用的配方
 };
 

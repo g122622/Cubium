@@ -162,6 +162,30 @@ public:
      */
     void lookAt(f64 x, f64 y, f64 z, f32 deltaYaw = 10.0f, f32 deltaPitch = 10.0f);
 
+    // ========== 经验值 ==========
+
+    /**
+     * @brief 获取经验值
+     *
+     * 死亡时掉落的经验值数量。
+     */
+    [[nodiscard]] i32 experienceValue() const { return m_experienceValue; }
+
+    /**
+     * @brief 设置经验值
+     * @param value 经验值
+     */
+    void setExperienceValue(i32 value) { m_experienceValue = value; }
+
+    // ========== 掉落 ==========
+
+    /**
+     * @brief 掉落经验
+     *
+     * 重写 LivingEntity::dropExperience()，在死亡时生成经验球。
+     */
+    void dropExperience() override;
+
 protected:
     // AI 目标选择器
     entity::ai::GoalSelector m_goalSelector;
@@ -181,6 +205,9 @@ protected:
     // AI 状态
     bool m_aiEnabled = true;
     i32 m_idleTime = 0;  // 空闲时间（用于随机漫步等）
+
+    // 经验值（死亡时掉落）
+    i32 m_experienceValue = 0;
 };
 
 } // namespace mc

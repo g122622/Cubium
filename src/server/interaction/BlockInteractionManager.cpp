@@ -5,10 +5,12 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
 
@@ -296,6 +298,17 @@ void BlockInteractionManager::generateBlockDrops(
             drops,
             "");
     }
+
+    // 处理矿石经验掉落
+    // 使用随机种子生成器
+    math::Random rng(static_cast<u64>(pos.x ^ pos.y ^ pos.z ^ std::hash<PlayerId>{}(playerId)));
+    BlockDropHandler::handleBlockBreakExperience(
+        m_world.entityManager(),
+        m_world.physicsEngine(),
+        pos,
+        state,
+        tool,
+        rng);
 }
 
 } // namespace mc::server::interaction

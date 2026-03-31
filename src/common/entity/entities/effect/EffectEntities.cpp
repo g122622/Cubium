@@ -129,79 +129,8 @@ void AreaEffectCloudEntity::updateRadius() {
     m_radius = std::max(0.5f, m_radius);
 }
 
-// ==================== ExperienceOrbEntity ====================
-
-ExperienceOrbEntity::ExperienceOrbEntity(i32 xpValue)
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
-    , m_xpValue(xpValue)
-{
-}
-
-void ExperienceOrbEntity::tick() {
-    Entity::tick();
-
-    // 减少收集延迟
-    if (m_collectDelay > 0) {
-        m_collectDelay--;
-    }
-
-    // 追踪玩家
-    if (m_trackingPlayer && m_trackingPlayer->isAlive()) {
-        followPlayer(m_trackingPlayer);
-    }
-
-    // 自然消失
-    m_despawnDelay--;
-    if (m_despawnDelay <= 0) {
-        remove();
-    }
-
-    // 物理运动
-    Vector3 vel = velocity();
-    vel.y -= 0.03f; // 重力
-    move(vel.x, vel.y, vel.z);
-
-    // 减速
-    vel.x *= 0.98f;
-    vel.y *= 0.98f;
-    vel.z *= 0.98f;
-    setVelocity(vel);
-}
-
-ExperienceOrbEntity* ExperienceOrbEntity::split() {
-    if (m_xpValue <= 1) return nullptr;
-
-    i32 splitValue = m_xpValue / 2;
-    m_xpValue -= splitValue;
-
-    // TODO: 创建新的经验球
-    return nullptr;
-}
-
-u32 ExperienceOrbEntity::getExperienceColor() const {
-    if (m_xpValue <= 5) return 0xFFAA00FF;
-    if (m_xpValue <= 20) return 0xFF55FFFF;
-    if (m_xpValue <= 100) return 0xFF55FF55;
-    return 0xFFFF5555;
-}
-
-void ExperienceOrbEntity::followPlayer(Player* player) {
-    if (!player) return;
-
-    f64 dx = player->x() - x();
-    f64 dy = player->y() - y();
-    f64 dz = player->z() - z();
-    f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-    if (dist > 0.0 && dist < FOLLOW_RANGE) {
-        f32 speed = FOLLOW_SPEED * (1.0f - static_cast<f32>(dist / FOLLOW_RANGE));
-        Vector3 vel = velocity();
-        vel.x += static_cast<f32>((dx / dist) * speed);
-        vel.y += static_cast<f32>((dy / dist) * speed);
-        vel.z += static_cast<f32>((dz / dist) * speed);
-        setVelocity(vel);
-    }
-}
+// 注意: ExperienceOrbEntity 已移动到独立的 orb/ 目录
+// 文件位置: src/common/entity/entities/orb/ExperienceOrbEntity.cpp
 
 // ==================== ArmorStandEntity ====================
 

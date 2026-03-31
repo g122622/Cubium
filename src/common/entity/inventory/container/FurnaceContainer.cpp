@@ -1,6 +1,8 @@
 #include "entity/inventory/container/FurnaceContainer.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
+#include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -10,9 +12,11 @@ namespace blockentity {
 
 FurnaceContainer::FurnaceContainer(ContainerId id,
                                    PlayerInventory* playerInventory,
-                                   IInventory* furnaceInventory)
+                                   IInventory* furnaceInventory,
+                                   AbstractFurnaceEntity* furnaceEntity)
     : Container(ContainerType::Furnace, id)
-    , m_furnaceInventory(furnaceInventory) {
+    , m_furnaceInventory(furnaceInventory)
+    , m_furnaceEntity(furnaceEntity) {
 
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(furnaceInventory != nullptr);
@@ -20,6 +24,44 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
 
     // 初始化槽位布局
     initSlots(playerInventory);
+}
+
+// ========== 经验相关 ==========
+
+f32 FurnaceContainer::getStoredExperience() const {
+    if (m_furnaceEntity) {
+        return m_furnaceEntity->getStoredExperience();
+    }
+    return 0.0f;
+}
+
+f32 FurnaceContainer::extractStoredExperience() {
+    if (m_furnaceEntity) {
+        return m_furnaceEntity->extractStoredExperience();
+    }
+    return 0.0f;
+}
+
+void FurnaceContainer::grantExperienceForOutput(i32 extractedCount) {
+    // 只有在有玩家且有累积经验时才发放
+    if (!m_player || !m_furnaceEntity) {
+        return;
+    }
+
+    f32 storedXp = m_furnaceEntity->getStoredExperience();
+    if (storedXp <= 0.0f) {
+        return;
+    }
+
+    // 计算要发放的经验（按取出数量比例发放，每次取出发放全部累积经验）
+    // 参考 MC 1.16.5: 玩家从输出槽取出物品时，发放所有累积经验
+    // 这里简化处理：每当玩家取出输出物品时，发放所有累积经验
+    // 更精确的做法是按配方数量记录，但 MC 实际上是一次性发放所有
+
+    f32 xpToGrant = m_furnaceEntity->extractStoredExperience();
+    if (xpToGrant > 0.0f) {
+        m_player->addExperience(static_cast<i32>(std::floor(xpToGrant)));
+    }
 }
 
 // ========== 快速移动 ==========
@@ -37,9 +79,13 @@ ItemStack FurnaceContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
     if (slotIndex < FURNACE_SLOTS) {
         // 从熔炉移到玩家背包
         if (slotIndex == SLOT_OUTPUT) {
-            // 输出槽：优先移到玩家背包
+            // 输出槽：优先移到玩家背包，并发放经验
             if (!mergeItem(slotStack, playerInventoryRange(), true)) {
                 return cursorItem;
+            }
+            // 取出成功，发放经验
+            if (slotStack.getCount() < originalCount) {
+                grantExperienceForOutput(originalCount - slotStack.getCount());
             }
         } else {
             // 输入槽/燃料槽：移到玩家背包

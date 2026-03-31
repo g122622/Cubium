@@ -3,11 +3,13 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/item/core/Item.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "common/world/entity/EntityManager.hpp"
@@ -268,54 +270,82 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
             //               entity->id(), entity->getTypeId(), playerId);
         }
     } else {
-        // 非生物实体，使用 SpawnEntityPacket
-        network::SpawnEntityPacket packet;
-        packet.setEntityId(static_cast<u32>(entity->id()));
+        // 非生物实体，检查是否是 ExperienceOrbEntity
+        ExperienceOrbEntity* xpOrb = dynamic_cast<ExperienceOrbEntity*>(entity);
+        if (xpOrb != nullptr) {
+            // 经验球使用 SpawnExperienceOrbPacket
+            network::SpawnExperienceOrbPacket packet(
+                static_cast<i32>(entity->id()),
+                entity->x(),
+                entity->y(),
+                entity->z(),
+                static_cast<i16>(xpOrb->getXpValue())
+            );
 
-        // 生成 UUID（简化：使用实体ID作为基础）
-        std::array<u8, 16> uuid = {};
-        uuid[0] = static_cast<u8>(entity->id() & 0xFF);
-        uuid[1] = static_cast<u8>((entity->id() >> 8) & 0xFF);
-        uuid[2] = static_cast<u8>((entity->id() >> 16) & 0xFF);
-        uuid[3] = static_cast<u8>((entity->id() >> 24) & 0xFF);
-        packet.setUuid(uuid);
+            auto result = packet.serialize();
+            if (result.success()) {
+                network::PacketSerializer fullPacket;
+                fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+                fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnExperienceOrb));
+                fullPacket.writeU16(0);
+                fullPacket.writeU16(0);
+                fullPacket.writeU16(0);
+                fullPacket.writeBytes(result.value());
 
-        packet.setEntityTypeId(entity->getTypeId());
-        packet.setPosition(entity->x(), entity->y(), entity->z());
-        packet.setRotation(entity->yaw(), entity->pitch());
+                player->send(fullPacket.data(), fullPacket.size());
+                spdlog::debug("Sent SpawnExperienceOrb packet for entity {} (xp: {}) to player {}",
+                              entity->id(), xpOrb->getXpValue(), playerId);
+            }
+        } else {
+            // 其他非生物实体，使用 SpawnEntityPacket
+            network::SpawnEntityPacket packet;
+            packet.setEntityId(static_cast<u32>(entity->id()));
 
-        // 转换速度（m/tick -> 1/8000 block/tick）
-        auto velocity = entity->velocity();
-        packet.setVelocity(
-            static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
-            static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-            static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f))
-        );
+            // 生成 UUID（简化：使用实体ID作为基础）
+            std::array<u8, 16> uuid = {};
+            uuid[0] = static_cast<u8>(entity->id() & 0xFF);
+            uuid[1] = static_cast<u8>((entity->id() >> 8) & 0xFF);
+            uuid[2] = static_cast<u8>((entity->id() >> 16) & 0xFF);
+            uuid[3] = static_cast<u8>((entity->id() >> 24) & 0xFF);
+            packet.setUuid(uuid);
 
-        // 检查是否是 ItemEntity，如果是则序列化 ItemStack 数据
-        ItemEntity* itemEntity = dynamic_cast<ItemEntity*>(entity);
-        if (itemEntity != nullptr) {
-            packet.setItemStack(itemEntity->getItemStack());
-            const auto& stack = itemEntity->getItemStack();
-            spdlog::debug("SpawnEntity packet includes ItemStack: {} x{}",
-                          stack.getItem() ? std::to_string(stack.getItem()->itemId()) : "null",
-                          stack.getCount());
-        }
+            packet.setEntityTypeId(entity->getTypeId());
+            packet.setPosition(entity->x(), entity->y(), entity->z());
+            packet.setRotation(entity->yaw(), entity->pitch());
 
-        auto result = packet.serialize();
-        if (result.success()) {
-            // 封装为完整数据包
-            network::PacketSerializer fullPacket;
-            fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-            fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnEntity));
-            fullPacket.writeU16(0);
-            fullPacket.writeU16(0);
-            fullPacket.writeU16(0);
-            fullPacket.writeBytes(result.value());
+            // 转换速度（m/tick -> 1/8000 block/tick）
+            auto velocity = entity->velocity();
+            packet.setVelocity(
+                static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+                static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
+                static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f))
+            );
 
-            player->send(fullPacket.data(), fullPacket.size());
-            spdlog::debug("Sent SpawnEntity packet for entity {} (type: {}) to player {}",
-                          entity->id(), entity->getTypeId(), playerId);
+            // 检查是否是 ItemEntity，如果是则序列化 ItemStack 数据
+            ItemEntity* itemEntity = dynamic_cast<ItemEntity*>(entity);
+            if (itemEntity != nullptr) {
+                packet.setItemStack(itemEntity->getItemStack());
+                const auto& stack = itemEntity->getItemStack();
+                spdlog::debug("SpawnEntity packet includes ItemStack: {} x{}",
+                              stack.getItem() ? std::to_string(stack.getItem()->itemId()) : "null",
+                              stack.getCount());
+            }
+
+            auto result = packet.serialize();
+            if (result.success()) {
+                // 封装为完整数据包
+                network::PacketSerializer fullPacket;
+                fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+                fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnEntity));
+                fullPacket.writeU16(0);
+                fullPacket.writeU16(0);
+                fullPacket.writeU16(0);
+                fullPacket.writeBytes(result.value());
+
+                player->send(fullPacket.data(), fullPacket.size());
+                spdlog::debug("Sent SpawnEntity packet for entity {} (type: {}) to player {}",
+                              entity->id(), entity->getTypeId(), playerId);
+            }
         }
     }
 }

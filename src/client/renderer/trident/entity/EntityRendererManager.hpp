@@ -215,6 +215,17 @@ private:
                                 std::vector<u32>& indices);
 
     /**
+     * @brief 生成 ExperienceOrb 的网格
+     *
+     * ExperienceOrb 使用简单的四边形网格（billboard 方式）
+     *
+     * @param vertices 输出顶点
+     * @param indices 输出索引
+     */
+    void generateExperienceOrbMesh(std::vector<ModelVertex>& vertices,
+                                   std::vector<u32>& indices);
+
+    /**
      * @brief 将 ItemEntity 的 UV 映射到物品纹理图集
      *
      * 根据 ItemStack 中的物品获取纹理区域，重映射 UV 坐标
@@ -245,6 +256,14 @@ private:
      * @return 旋转角度（度）
      */
     [[nodiscard]] f32 calculateItemRotation(u32 ticksExisted, f32 partialTick) const;
+
+    /**
+     * @brief 计算 ExperienceOrb 浮动偏移
+     * @param ticksExisted 实体存活时间
+     * @param partialTick 部分 tick
+     * @return Y 轴偏移
+     */
+    [[nodiscard]] f32 calculateExperienceOrbBobOffset(u32 ticksExisted, f32 partialTick) const;
 };
 
 } // namespace renderer

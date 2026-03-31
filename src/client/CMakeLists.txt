@@ -57,6 +57,7 @@ add_executable(minecraft-client
     renderer/trident/entity/EntityRenderer.cpp
     renderer/trident/entity/EntityRendererManager.cpp
     renderer/trident/entity/ItemEntityRenderer.cpp
+    renderer/trident/entity/ExperienceOrbRenderer.cpp
     renderer/trident/entity/model/ModelRenderer.cpp
     renderer/trident/entity/model/EntityModel.cpp
     renderer/trident/entity/model/AnimalModels.cpp
@@ -193,6 +194,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExperienceCommand.cpp
     # 交互管理器
     ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp

@@ -10,6 +10,9 @@ class PlayerInventory;
 
 namespace blockentity {
 
+// 前向声明
+class AbstractFurnaceEntity;
+
 /**
  * @brief 熔炉容器
  *
@@ -50,10 +53,12 @@ public:
      * @param id 容器ID
      * @param playerInventory 玩家背包
      * @param furnaceInventory 熔炉背包
+     * @param furnaceEntity 熔炉实体（可选，用于经验发放）
      */
     FurnaceContainer(ContainerId id,
                      PlayerInventory* playerInventory,
-                     IInventory* furnaceInventory);
+                     IInventory* furnaceInventory,
+                     AbstractFurnaceEntity* furnaceEntity = nullptr);
 
     /**
      * @brief 析构函数
@@ -67,6 +72,24 @@ public:
      */
     [[nodiscard]] IInventory* getFurnaceInventory() const { return m_furnaceInventory; }
 
+    /**
+     * @brief 设置玩家引用（用于经验发放）
+     * @param player 玩家指针
+     */
+    void setPlayer(Player* player) { m_player = player; }
+
+    /**
+     * @brief 获取累积的烧炼经验
+     * @return 累积的经验值
+     */
+    [[nodiscard]] f32 getStoredExperience() const;
+
+    /**
+     * @brief 提取并清除累积的烧炼经验
+     * @return 提取的经验值
+     */
+    f32 extractStoredExperience();
+
     // ========== 快速移动 ==========
 
 protected:
@@ -79,7 +102,15 @@ private:
      */
     void initSlots(PlayerInventory* playerInventory);
 
-    IInventory* m_furnaceInventory;  ///< 熔炉背包
+    /**
+     * @brief 从输出槽取出物品时发放经验
+     * @param extractedCount 取出的物品数量
+     */
+    void grantExperienceForOutput(i32 extractedCount);
+
+    IInventory* m_furnaceInventory;       ///< 熔炉背包
+    AbstractFurnaceEntity* m_furnaceEntity; ///< 熔炉实体（用于经验发放）
+    Player* m_player = nullptr;            ///< 玩家（用于经验发放）
 };
 
 } // namespace blockentity

@@ -9,6 +9,7 @@
 #include "commands/GiveCommand.hpp"
 #include "commands/ClearCommand.hpp"
 #include "commands/WeatherCommand.hpp"
+#include "commands/ExperienceCommand.hpp"
 
 namespace mc {
 namespace command {
@@ -38,10 +39,12 @@ void CommandRegistry::registerDefaults() {
     GiveCommand::registerTo(m_dispatcher);
     ClearCommand::registerTo(m_dispatcher);
     WeatherCommand::registerTo(m_dispatcher);
+    ExperienceCommand::registerTo(m_dispatcher);
 
     // 记录命令名称
     m_commandNames = {
-        "gamemode", "time", "kill", "list", "help", "seed", "tp", "give", "clear", "weather"
+        "gamemode", "time", "kill", "list", "help", "seed", "tp", "give", "clear", "weather",
+        "experience", "xp"
     };
     m_commandNameSet = std::unordered_set<String>(m_commandNames.begin(), m_commandNames.end());
 }
