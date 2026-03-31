@@ -2,7 +2,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include <unordered_map>

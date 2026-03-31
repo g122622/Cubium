@@ -1,12 +1,12 @@
 #include "Items.hpp"
 
-#include "BlockItem.hpp"
+#include "items/block/BlockItem.hpp"
 #include "tier/ItemTiers.hpp"
-#include "tool/PickaxeItem.hpp"
-#include "tool/AxeItem.hpp"
-#include "tool/ShovelItem.hpp"
-#include "tool/HoeItem.hpp"
-#include "tool/SwordItem.hpp"
+#include "items/tool/PickaxeItem.hpp"
+#include "items/tool/AxeItem.hpp"
+#include "items/tool/ShovelItem.hpp"
+#include "items/tool/HoeItem.hpp"
+#include "items/tool/SwordItem.hpp"
 #include "../world/block/VanillaBlocks.hpp"
 
 namespace {

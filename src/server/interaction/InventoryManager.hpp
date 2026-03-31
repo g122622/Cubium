@@ -3,7 +3,7 @@
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <unordered_map>
 #include <functional>
 

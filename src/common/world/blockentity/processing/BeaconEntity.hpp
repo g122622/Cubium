@@ -1,7 +1,7 @@
 #pragma once
 
 #include "world/blockentity/BlockEntity.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/ItemStack.hpp"
 #include <array>
 #include <memory>
 

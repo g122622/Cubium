@@ -8,7 +8,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
-#include "common/item/Item.hpp"
+#include "common/item/core/Item.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include <spdlog/spdlog.h>

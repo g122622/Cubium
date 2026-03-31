@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IRecipe.hpp"
-#include "../ItemStack.hpp"
+#include "../core/ItemStack.hpp"
 #include "../../world/blockentity/processing/FurnaceInventory.hpp"
 #include <memory>
 

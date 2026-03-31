@@ -4,8 +4,8 @@
 #include "client/renderer/trident/item/ItemRenderer.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/Slot.hpp"
-#include "item/ItemStack.hpp"
-#include "item/Item.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/core/Item.hpp"
 
 namespace mc::client {
 

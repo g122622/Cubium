@@ -213,29 +213,51 @@ add_library(mc_common STATIC
     entity/inventory/container/HopperContainer.cpp
     entity/inventory/container/FurnaceContainer.cpp
 
-    # Item System
-    item/Item.cpp
-    item/ItemStack.cpp
-    item/ItemRegistry.cpp
+    # Item System - Core
+    item/core/Item.cpp
+    item/core/ItemStack.cpp
+    item/core/ItemRegistry.cpp
+    item/core/ItemGroup.cpp
     item/Items.cpp
-    item/BlockItem.cpp
-    item/BlockItemRegistry.cpp
-    item/ItemUseContext.cpp
-    item/BlockItemUseContext.cpp
+
+    # Item System - Context
+    item/context/ItemUseContext.cpp
+    item/context/BlockItemUseContext.cpp
+
+    # Item System - Food
+    item/food/Food.cpp
+    item/food/Foods.cpp
+    item/items/food/FoodItem.cpp
+
+    # Item System - Armor
+    item/armor/ArmorMaterial.cpp
+    item/items/armor/ArmorItem.cpp
+    item/items/armor/DyeableArmorItem.cpp
+    item/items/armor/ElytraItem.cpp
+
+    # Item System - Attributes
+    item/attribute/ItemAttributeModifiers.cpp
+
+    # Item System - Tags
+    item/tag/ItemTag.cpp
+
+    # Item System - Block Items
+    item/items/block/BlockItem.cpp
+    item/items/block/BlockItemRegistry.cpp
 
     # Item - Tier System
     item/tier/IItemTier.cpp
     item/tier/ItemTiers.cpp
 
-    # Item - Tool System
-    item/tool/ToolType.cpp
-    item/tool/TieredItem.cpp
-    item/tool/ToolItem.cpp
-    item/tool/PickaxeItem.cpp
-    item/tool/AxeItem.cpp
-    item/tool/ShovelItem.cpp
-    item/tool/HoeItem.cpp
-    item/tool/SwordItem.cpp
+    # Item - Tool System (moved to items/tool)
+    item/items/tool/ToolType.cpp
+    item/items/tool/TieredItem.cpp
+    item/items/tool/ToolItem.cpp
+    item/items/tool/PickaxeItem.cpp
+    item/items/tool/AxeItem.cpp
+    item/items/tool/ShovelItem.cpp
+    item/items/tool/HoeItem.cpp
+    item/items/tool/SwordItem.cpp
 
     # Item - Crafting
     item/crafting/Ingredient.cpp
@@ -254,6 +276,13 @@ add_library(mc_common STATIC
     item/enchantment/EnchantmentHelper.cpp
     item/enchantment/enchantments/FortuneEnchantment.cpp
     item/enchantment/enchantments/SilkTouchEnchantment.cpp
+    item/enchantment/enchantments/AllEnchantments.cpp
+    item/enchantment/enchantments/protection/ProtectionEnchantment.cpp
+    item/enchantment/enchantments/protection/ThornsEnchantment.cpp
+    item/enchantment/enchantments/protection/DepthStriderEnchantment.cpp
+    item/enchantment/enchantments/protection/FrostWalkerEnchantment.cpp
+    item/enchantment/enchantments/weapon/DamageEnchantment.cpp
+    item/enchantment/enchantments/tool/UnbreakingEnchantment.cpp
 
     # World - Entity
     world/entity/EntityManager.cpp

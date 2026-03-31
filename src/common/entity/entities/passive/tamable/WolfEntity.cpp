@@ -1,6 +1,6 @@
 #include "WolfEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"

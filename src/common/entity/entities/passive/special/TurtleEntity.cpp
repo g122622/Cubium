@@ -1,6 +1,6 @@
 #include "TurtleEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"

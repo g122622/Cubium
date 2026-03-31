@@ -15,7 +15,7 @@
 #include "common/world/chunk/ChunkLoadTicket.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/BlockItemRegistry.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Item.hpp"
-#include "ItemRegistry.hpp"
+#include "core/Item.hpp"
+#include "core/ItemRegistry.hpp"
 
 namespace mc {
 

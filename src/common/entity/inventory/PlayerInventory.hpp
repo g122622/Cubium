@@ -2,7 +2,7 @@
 
 #include "IInventory.hpp"
 #include "Slot.hpp"
-#include "../../item/ItemStack.hpp"
+#include "../../item/core/ItemStack.hpp"
 #include <array>
 #include <functional>
 

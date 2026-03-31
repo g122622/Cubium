@@ -28,6 +28,7 @@ enum class EnchantmentType : u8 {
     Bow,            ///< 弓
     Wearable,       ///< 可穿戴物品
     Crossbow,       ///< 弩
+    Trident,        ///< 三叉戟
     Vanishable,     ///< 可消失物品
     All             ///< 所有物品
 };

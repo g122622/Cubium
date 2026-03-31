@@ -1,7 +1,7 @@
 #include "JukeboxBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/interactive/JukeboxEntity.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {

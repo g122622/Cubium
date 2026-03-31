@@ -1,6 +1,6 @@
 #include "DolphinEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include <random>

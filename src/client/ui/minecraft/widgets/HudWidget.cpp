@@ -2,10 +2,10 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
-#include "common/entity/Player.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/item/ItemStack.hpp"
-#include "common/item/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc::client::ui::minecraft::widgets {
 

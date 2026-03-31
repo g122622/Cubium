@@ -1,6 +1,6 @@
 #include "AbstractHorseEntity.hpp"
 #include "../../../entities/player/Player.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <cmath>

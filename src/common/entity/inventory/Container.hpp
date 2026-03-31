@@ -4,7 +4,7 @@
 #include "ContainerTypes.hpp"
 #include "IInventory.hpp"
 #include "Slot.hpp"
-#include "../../item/ItemStack.hpp"
+#include "../../item/core/ItemStack.hpp"
 #include <vector>
 #include <memory>
 #include <functional>

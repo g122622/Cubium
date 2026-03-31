@@ -2,7 +2,7 @@
 
 #include "../../../common/core/Types.hpp"
 #include "../../../common/util/math/Vector3.hpp"
-#include "../../../common/item/ItemStack.hpp"
+#include "../../../common/item/core/ItemStack.hpp"
 #include <string>
 #include <memory>
 

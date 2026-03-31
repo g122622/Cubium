@@ -2,7 +2,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include <unordered_map>
 
 namespace mc {

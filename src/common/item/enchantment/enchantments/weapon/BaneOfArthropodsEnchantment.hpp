@@ -1,0 +1,53 @@
+#pragma once
+
+#include "DamageEnchantment.hpp"
+
+namespace mc {
+namespace item {
+namespace enchant {
+
+/**
+ * @brief 节肢杀手附魔
+ *
+ * 增加对节肢生物的伤害。
+ * 参考 MC 1.16.5 BaneOfArthropodsEnchantment
+ *
+ * 效果:
+ * - 对节肢生物每级增加 2.5 点伤害
+ * - 节肢生物包括：蜘蛛、洞穴蜘蛛、蠹虫、末影螨、蜜蜂等
+ * - 被击中的节肢生物会获得缓慢 IV 效果 1-1.5 秒
+ * - 最大 V 级
+ * - 与锋利、亡灵杀手互斥
+ */
+class BaneOfArthropodsEnchantment : public DamageEnchantment {
+public:
+    BaneOfArthropodsEnchantment() : DamageEnchantment(Type::Arthropods) {}
+
+    [[nodiscard]] String id() const override {
+        return "minecraft:bane_of_arthropods";
+    }
+
+    [[nodiscard]] String getNameKey(i32 level) const override {
+        (void)level;
+        return "enchantment.minecraft.bane_of_arthropods";
+    }
+
+    [[nodiscard]] EnchantmentRarity rarity() const override {
+        return EnchantmentRarity::Uncommon;
+    }
+
+    /**
+     * @brief 获取缓慢效果的持续时间（tick）
+     * @param level 附魔等级
+     * @return 持续时间（tick）
+     */
+    [[nodiscard]] static i32 getSlownessDuration(i32 level) {
+        // 1-1.5秒随机，但等级不影响持续时间
+        (void)level;
+        return 10 + (rand() % 10);  // 10-20 tick
+    }
+};
+
+} // namespace enchant
+} // namespace item
+} // namespace mc

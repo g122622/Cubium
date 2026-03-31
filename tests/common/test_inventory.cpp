@@ -2,7 +2,7 @@
 #include "../src/common/entity/inventory/IInventory.hpp"
 #include "../src/common/entity/inventory/Slot.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
-#include "../src/common/item/ItemRegistry.hpp"
+#include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
 
 using namespace mc;

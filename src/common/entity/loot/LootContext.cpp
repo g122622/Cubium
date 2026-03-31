@@ -3,7 +3,7 @@
 #include "LootConditions.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <chrono>
 
 namespace mc {

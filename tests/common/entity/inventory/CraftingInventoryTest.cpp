@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "entity/inventory/CraftingInventory.hpp"
-#include "item/ItemRegistry.hpp"
+#include "item/core/ItemRegistry.hpp"
 
 using namespace mc;
 

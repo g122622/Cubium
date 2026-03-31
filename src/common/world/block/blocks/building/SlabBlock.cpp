@@ -1,6 +1,6 @@
 #include "SlabBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 

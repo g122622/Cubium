@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IBlockSource.hpp"
-#include "../../../item/ItemStack.hpp"
+#include "../../../item/core/ItemStack.hpp"
 
 namespace mc {
 namespace blocks {

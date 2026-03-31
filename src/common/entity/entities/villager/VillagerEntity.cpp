@@ -1,5 +1,5 @@
 #include "VillagerEntity.hpp"
-#include "../../../item/ItemStack.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../attribute/Attributes.hpp"

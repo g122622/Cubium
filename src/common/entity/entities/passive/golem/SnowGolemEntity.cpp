@@ -1,6 +1,6 @@
 #include "SnowGolemEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 
 namespace mc {
 

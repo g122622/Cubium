@@ -6,7 +6,7 @@
 #include "entity/loot/LootEntry.hpp"
 #include "entity/loot/LootConditions.hpp"
 #include "entity/loot/RandomRanges.hpp"
-#include "item/ItemRegistry.hpp"
+#include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
 #include "world/IWorld.hpp"
 #include "world/chunk/ChunkData.hpp"

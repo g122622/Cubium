@@ -1,5 +1,5 @@
 #include "item/crafting/RecipeSerializers.hpp"
-#include "item/ItemRegistry.hpp"
+#include "item/core/ItemRegistry.hpp"
 #include <algorithm>
 #include <limits>
 

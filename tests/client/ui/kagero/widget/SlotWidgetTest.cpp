@@ -7,7 +7,7 @@
 #include "client/ui/kagero/widget/SlotWidget.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;

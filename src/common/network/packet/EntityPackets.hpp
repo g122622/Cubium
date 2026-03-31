@@ -3,7 +3,7 @@
 #include "Packet.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
-#include "../../item/ItemStack.hpp"
+#include "../../item/core/ItemStack.hpp"
 #include <vector>
 #include <array>
 #include <memory>

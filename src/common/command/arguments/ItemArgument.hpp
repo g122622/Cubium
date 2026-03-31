@@ -4,8 +4,8 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
-#include "common/item/ItemRegistry.hpp"
-#include "common/item/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/Item.hpp"
 #include "ArgumentType.hpp"
 #include <memory>
 #include <vector>

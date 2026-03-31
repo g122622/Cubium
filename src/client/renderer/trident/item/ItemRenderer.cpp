@@ -2,9 +2,9 @@
 #include "../gui/GuiRenderer.hpp"
 #include "../../../resource/ResourceManager.hpp"
 #include "../../../resource/ItemTextureAtlas.hpp"
-#include "../../../../common/item/Item.hpp"
-#include "../../../../common/item/ItemStack.hpp"
-#include "../../../../common/item/BlockItem.hpp"
+#include "../../../../common/item/core/Item.hpp"
+#include "../../../../common/item/core/ItemStack.hpp"
+#include "../../../../common/item/items/block/BlockItem.hpp"
 #include "../../../../common/world/block/Block.hpp"
 #include <spdlog/spdlog.h>
 

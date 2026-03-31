@@ -7,7 +7,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"

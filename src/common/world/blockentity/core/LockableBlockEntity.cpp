@@ -1,6 +1,6 @@
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/ItemStack.hpp"
 
 namespace mc {
 namespace blockentity {

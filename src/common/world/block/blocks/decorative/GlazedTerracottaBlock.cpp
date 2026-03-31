@@ -1,5 +1,5 @@
 #include "GlazedTerracottaBlock.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 
 namespace mc {

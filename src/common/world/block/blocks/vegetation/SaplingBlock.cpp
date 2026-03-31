@@ -1,6 +1,6 @@
 #include "SaplingBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
 namespace mc {

@@ -54,6 +54,14 @@ public:
     static bool registerEnchantment(std::unique_ptr<Enchantment> enchantment);
 
     /**
+     * @brief 注册附魔（引用版本）
+     *
+     * @param enchantment 附魔实例（全局静态变量）
+     * @return 如果注册成功返回true
+     */
+    static bool registerEnchantment(const Enchantment& enchantment);
+
+    /**
      * @brief 按ID获取附魔
      *
      * @param id 附魔ID（如 "minecraft:fortune"）

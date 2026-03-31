@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/Types.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/ItemStack.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
 #include "resource/ResourceLocation.hpp"
 #include <functional>

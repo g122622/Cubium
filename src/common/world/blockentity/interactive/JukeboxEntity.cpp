@@ -1,6 +1,6 @@
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/IWorld.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {

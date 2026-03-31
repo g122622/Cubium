@@ -7,8 +7,8 @@
 #include "../../../world/entity/ClientEntity.hpp"
 #include "../../../../common/entity/core/EntityRegistry.hpp"
 #include "../../../../common/entity/entities/item/ItemEntity.hpp"
-#include "../../../../common/item/ItemStack.hpp"
-#include "../../../../common/item/Item.hpp"
+#include "../../../../common/item/core/ItemStack.hpp"
+#include "../../../../common/item/core/Item.hpp"
 #include "../../../../common/resource/ResourceLocation.hpp"
 #include "../../../../common/util/math/MathUtils.hpp"
 #include <spdlog/spdlog.h>

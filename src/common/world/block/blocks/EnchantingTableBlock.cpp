@@ -2,7 +2,7 @@
 #include "../../blockentity/interactive/EnchantingTableEntity.hpp"
 #include "../../IWorld.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/BlockItemUseContext.hpp"
+#include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {

@@ -1,6 +1,6 @@
 #include "world/blockentity/processing/BrewingStandEntity.hpp"
 #include "world/IWorld.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/ItemStack.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 

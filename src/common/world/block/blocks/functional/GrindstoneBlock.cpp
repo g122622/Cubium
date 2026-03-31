@@ -1,6 +1,6 @@
 #include "GrindstoneBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 

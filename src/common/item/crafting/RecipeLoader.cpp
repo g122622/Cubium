@@ -1,5 +1,5 @@
 #include "item/crafting/RecipeLoader.hpp"
-#include "item/ItemRegistry.hpp"
+#include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
 #include <fstream>
 #include <filesystem>

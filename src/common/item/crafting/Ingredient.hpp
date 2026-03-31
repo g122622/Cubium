@@ -1,7 +1,7 @@
 #pragma once
 
-#include "item/Item.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/Item.hpp"
+#include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
 #include <vector>
 #include <functional>

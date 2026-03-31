@@ -1,7 +1,7 @@
 #include "SpecialBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
 

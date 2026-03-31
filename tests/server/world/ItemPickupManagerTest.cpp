@@ -4,7 +4,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/Items.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"

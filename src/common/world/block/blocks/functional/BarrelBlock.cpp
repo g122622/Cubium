@@ -1,7 +1,7 @@
 #include "BarrelBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/storage/BarrelEntity.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 

@@ -4,7 +4,7 @@
 #include "../../core/Result.hpp"
 #include "PacketSerializer.hpp"
 #include "../../resource/ResourceLocation.hpp"
-#include "../../item/ItemStack.hpp"
+#include "../../item/core/ItemStack.hpp"
 #include <vector>
 #include <memory>
 

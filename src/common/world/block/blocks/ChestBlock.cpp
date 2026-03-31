@@ -4,8 +4,8 @@
 #include "../../IWorld.hpp"
 #include "../../blockentity/storage/ChestEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/ItemStack.hpp"
-#include "../../../item/BlockItemUseContext.hpp"
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "../src/common/entity/inventory/Container.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
-#include "../src/common/item/ItemRegistry.hpp"
+#include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
 #include "../src/common/network/packet/InventoryPackets.hpp"
 

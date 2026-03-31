@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "LootContext.hpp"
 #include "RandomRanges.hpp"
 #include <functional>

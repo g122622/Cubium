@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Enchantment.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <vector>
 
 namespace mc {

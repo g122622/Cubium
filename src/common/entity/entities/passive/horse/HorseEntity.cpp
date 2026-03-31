@@ -1,7 +1,7 @@
 #include "HorseEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <memory>
 

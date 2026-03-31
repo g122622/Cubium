@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
-#include "../../../item/ItemStack.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include <random>
 
 namespace mc {

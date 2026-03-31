@@ -5,8 +5,8 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/item/BlockItemRegistry.hpp"
-#include "common/item/BlockItemUseContext.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/WorldConstants.hpp"
 #include <spdlog/spdlog.h>

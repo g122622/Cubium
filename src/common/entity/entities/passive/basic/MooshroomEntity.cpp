@@ -1,6 +1,6 @@
 #include "MooshroomEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include <random>
 

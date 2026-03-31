@@ -2,7 +2,7 @@
 #include "entity/inventory/container/ChestContainer.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
-#include "item/ItemRegistry.hpp"
+#include "item/core/ItemRegistry.hpp"
 
 using namespace mc;
 using namespace mc::blockentity;

@@ -1,6 +1,6 @@
 #include "IllagerEntities.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../core/LivingEntity.hpp"
 
 namespace mc {

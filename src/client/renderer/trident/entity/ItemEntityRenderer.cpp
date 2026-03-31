@@ -2,8 +2,8 @@
 #include "../../../world/entity/ClientEntity.hpp"
 #include "../../../resource/ItemTextureAtlas.hpp"
 #include "../item/ItemRenderer.hpp"
-#include "../../../../common/item/ItemStack.hpp"
-#include "../../../../common/item/Item.hpp"
+#include "../../../../common/item/core/ItemStack.hpp"
+#include "../../../../common/item/core/Item.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 

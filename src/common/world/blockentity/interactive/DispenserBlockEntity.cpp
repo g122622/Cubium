@@ -1,5 +1,5 @@
 #include "DispenserBlockEntity.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/ItemStack.hpp"
 #include <random>
 
 namespace mc {

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "IDispenseItemBehavior.hpp"
-#include "../../../item/Item.hpp"
-#include "../../../item/ItemStack.hpp"
+#include "../../../item/core/Item.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include <unordered_map>
 #include <memory>
 

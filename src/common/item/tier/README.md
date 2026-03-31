@@ -168,7 +168,7 @@ src/common/item/tier/
 
 ```cpp
 #include "common/item/tier/ItemTiers.hpp"
-#include "common/item/tool/PickaxeItem.hpp"
+#include "common/item/items/tool/PickaxeItem.hpp"
 
 // 1. 初始化（必须在 Items::initialize() 之后）
 Items::initialize();

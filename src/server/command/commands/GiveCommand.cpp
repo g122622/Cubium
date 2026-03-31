@@ -3,7 +3,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <sstream>
 
 namespace mc {

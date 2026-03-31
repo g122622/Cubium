@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "../../item/ItemStack.hpp"
+#include "../../item/core/ItemStack.hpp"
 #include <functional>
 
 namespace mc {

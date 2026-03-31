@@ -1,7 +1,7 @@
 #include "AbstractArrowEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/player/Player.hpp"
-#include "../../../item/ItemStack.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../world/IWorld.hpp"
 #include <cmath>
 

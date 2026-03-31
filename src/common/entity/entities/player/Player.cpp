@@ -4,8 +4,8 @@
 #include "../../../physics/PhysicsEngine.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../../item/BlockItemRegistry.hpp"
-#include "../../../item/ItemRegistry.hpp"
+#include "../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../item/core/ItemRegistry.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include <algorithm>
 #include <cmath>

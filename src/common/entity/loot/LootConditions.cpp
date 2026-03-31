@@ -1,6 +1,6 @@
 #include "LootConditions.hpp"
-#include "common/item/ItemStack.hpp"
-#include "common/item/tool/ToolItem.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/tool/ToolItem.hpp"
 #include "common/world/block/Block.hpp"
 #include <algorithm>
 

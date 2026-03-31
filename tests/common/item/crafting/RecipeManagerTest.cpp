@@ -2,7 +2,7 @@
 #include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/IRecipe.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
-#include "item/ItemRegistry.hpp"
+#include "item/core/ItemRegistry.hpp"
 
 using namespace mc;
 using namespace mc::crafting;

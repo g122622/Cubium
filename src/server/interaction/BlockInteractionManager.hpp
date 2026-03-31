@@ -5,7 +5,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/util/Direction.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include <functional>
 #include <optional>

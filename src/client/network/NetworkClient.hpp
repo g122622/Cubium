@@ -3,7 +3,7 @@
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
 #include "../../common/entity/entities/player/Player.hpp"
-#include "common/item/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/connection/LocalConnection.hpp"

@@ -6,7 +6,7 @@
 #include "item/enchantment/EnchantmentContainer.hpp"
 #include "item/enchantment/enchantments/FortuneEnchantment.hpp"
 #include "item/enchantment/enchantments/SilkTouchEnchantment.hpp"
-#include "item/ItemStack.hpp"
+#include "item/core/ItemStack.hpp"
 #include "item/Items.hpp"
 #include "util/math/random/Random.hpp"
 

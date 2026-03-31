@@ -1,6 +1,6 @@
 #include "LilyPadBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 
 namespace mc {
 namespace blocks {

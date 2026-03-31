@@ -1,6 +1,6 @@
 #include "LootTable.hpp"
 #include "LootConditions.hpp"
-#include "common/item/ItemRegistry.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include <algorithm>
 
 namespace mc {

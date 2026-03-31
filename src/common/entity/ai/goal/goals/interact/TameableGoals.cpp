@@ -2,7 +2,7 @@
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
-#include "../../../../../item/ItemStack.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
 #include <cmath>
 
 using namespace mc::entity::ai;

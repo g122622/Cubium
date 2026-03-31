@@ -1,7 +1,7 @@
 #include "CoralBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 
 namespace mc {

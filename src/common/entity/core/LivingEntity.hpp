@@ -5,7 +5,7 @@
 #include "../attribute/Attributes.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../damage/CombatTracker.hpp"
-#include "../../item/ItemStack.hpp"
+#include "../../item/core/ItemStack.hpp"
 #include <array>
 #include <memory>
 

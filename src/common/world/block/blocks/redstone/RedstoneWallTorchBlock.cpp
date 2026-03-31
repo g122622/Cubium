@@ -3,7 +3,7 @@
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../item/BlockItemUseContext.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include <unordered_map>
 
 namespace mc {

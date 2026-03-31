@@ -1,6 +1,6 @@
 #include "StriderEntity.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../item/ItemStack.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"

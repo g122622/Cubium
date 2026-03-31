@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include "item/crafting/Ingredient.hpp"
-#include "item/Item.hpp"
-#include "item/ItemStack.hpp"
-#include "item/ItemRegistry.hpp"
+#include "item/core/Item.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/core/ItemRegistry.hpp"
 
 using namespace mc;
 using namespace mc::crafting;

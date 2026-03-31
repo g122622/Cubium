@@ -1,0 +1,90 @@
+#pragma once
+
+#include "../../core/Item.hpp"
+
+namespace mc {
+namespace item::items {
+
+/**
+ * @brief 鞘翅
+ *
+ * 允许玩家滑翔的特殊胸甲。
+ * 参考: net.minecraft.item.ElytraItem
+ *
+ * 特性：
+ * - 占用胸甲槽位
+ * - 有432点耐久度
+ * - 每滑翔1秒消耗1点耐久度
+ * - 可用幻翼膜修复
+ */
+class ElytraItem : public Item {
+public:
+    /**
+     * @brief 构造鞘翅
+     * @param properties 物品属性
+     */
+    explicit ElytraItem(ItemProperties properties);
+
+    // ========== 物品重写方法 ==========
+
+    /**
+     * @brief 是否可修复
+     */
+    [[nodiscard]] bool isRepairable() const override { return true; }
+
+    /**
+     * @brief 右键使用物品
+     *
+     * 如果玩家当前胸甲槽位为空，则装备鞘翅。
+     *
+     * @param world 世界
+     * @param player 玩家
+     * @param hand 使用的手
+     * @return 动作结果
+     */
+    ItemActionResult onItemRightClick(World& world, Player& player, Hand hand) override;
+
+    /**
+     * @brief 物品Tick
+     *
+     * 每tick检查滑翔状态并消耗耐久度。
+     *
+     * @param stack 物品堆
+     * @param world 世界
+     * @param entity 持有实体
+     * @param itemSlot 物品栏槽位
+     * @param isSelected 是否被选中
+     */
+    void inventoryTick(ItemStack& stack, World& world, Entity& entity,
+                        i32 itemSlot, bool isSelected) override;
+
+    // ========== 鞘翅特有方法 ==========
+
+    /**
+     * @brief 检查鞘翅是否受损
+     * @param stack 物品堆
+     * @return 是否受损（耐久度低于阈值）
+     */
+    [[nodiscard]] static bool isUsable(const ItemStack& stack);
+
+    /**
+     * @brief 检查实体是否正在滑翔
+     * @param entity 实体
+     * @return 是否正在滑翔
+     */
+    [[nodiscard]] static bool isGliding(const LivingEntity& entity);
+
+    /**
+     * @brief 滑翔时消耗耐久度
+     * @param stack 物品堆
+     * @param entity 使用者
+     */
+    static void damageElytra(ItemStack& stack, LivingEntity& entity);
+
+private:
+    /// 鞘翅的最大耐久度
+    static constexpr i32 MAX_DURABILITY = 432;
+};
+
+} // namespace item::items
+} // namespace mc

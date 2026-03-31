@@ -1,6 +1,6 @@
 # Enchantment 附魔系统
 
-本目录实现了 Minecraft 1.16.5 风格的附魔系统。
+本目录实现了 Minecraft 1.16.5 风格的附魔系统，包含全部 34 种原版附魔。
 
 ## 目录结构
 
@@ -16,301 +16,226 @@ enchantment/
 ├── EnchantmentRegistry.cpp      # 附魔注册表实现
 ├── README.md                    # 本文件
 └── enchantments/                # 具体附魔实现
+    ├── AllEnchantments.hpp      # 所有附魔统一包含
+    ├── AllEnchantments.cpp      # 所有附魔注册
     ├── FortuneEnchantment.hpp   # 时运附魔
-    ├── FortuneEnchantment.cpp
     ├── SilkTouchEnchantment.hpp # 精准采集附魔
-    └── SilkTouchEnchantment.cpp
+    ├── protection/              # 保护类附魔（11种）
+    │   ├── ProtectionEnchantment.hpp/cpp    # 保护基类
+    │   ├── AllProtectionEnchantment.hpp     # 全保护
+    │   ├── FireProtectionEnchantment.hpp    # 火焰保护
+    │   ├── FeatherFallingEnchantment.hpp    # 摔落保护
+    │   ├── BlastProtectionEnchantment.hpp   # 爆炸保护
+    │   ├── ProjectileProtectionEnchantment.hpp # 弹射物保护
+    │   ├── ThornsEnchantment.hpp/cpp        # 荆棘
+    │   ├── RespirationEnchantment.hpp       # 水下呼吸
+    │   ├── AquaAffinityEnchantment.hpp      # 水下速掘
+    │   ├── DepthStriderEnchantment.hpp/cpp  # 深海探索者
+    │   └── FrostWalkerEnchantment.hpp/cpp   # 冰霜行者
+    ├── weapon/                  # 武器类附魔（7种）
+    │   ├── DamageEnchantment.hpp/cpp        # 伤害附魔基类
+    │   ├── SharpnessEnchantment.hpp         # 锋利
+    │   ├── SmiteEnchantment.hpp             # 亡灵杀手
+    │   ├── BaneOfArthropodsEnchantment.hpp  # 节肢杀手
+    │   ├── KnockbackEnchantment.hpp         # 击退
+    │   ├── FireAspectEnchantment.hpp        # 火焰附加
+    │   ├── LootingEnchantment.hpp           # 抢夺
+    │   └── SweepingEnchantment.hpp          # 横扫之刃
+    ├── tool/                    # 工具类附魔（4种）
+    │   ├── EfficiencyEnchantment.hpp        # 效率
+    │   ├── UnbreakingEnchantment.hpp/cpp    # 耐久
+    │   ├── FortuneEnchantment.cpp           # 时运
+    │   └── SilkTouchEnchantment.cpp         # 精准采集
+    ├── bow/                     # 弓类附魔（4种）
+    │   ├── PowerEnchantment.hpp             # 力量
+    │   ├── PunchEnchantment.hpp             # 冲击
+    │   ├── FlameEnchantment.hpp             # 火矢
+    │   └── InfinityEnchantment.hpp          # 无限
+    ├── fishing/                 # 钓鱼类附魔（2种）
+    │   ├── LuckOfTheSeaEnchantment.hpp      # 海之眷顾
+    │   └── LureEnchantment.hpp              # 饵钓
+    ├── trident/                 # 三叉戟附魔（4种）
+    │   ├── LoyaltyEnchantment.hpp           # 忠诚
+    │   ├── ImpalingEnchantment.hpp          # 穿刺
+    │   ├── RiptideEnchantment.hpp           # 激流
+    │   └── ChannelingEnchantment.hpp        # 引雷
+    ├── crossbow/                # 弩类附魔（3种）
+    │   ├── MultishotEnchantment.hpp         # 多重射击
+    │   ├── QuickChargeEnchantment.hpp       # 快速装填
+    │   └── PiercingEnchantment.hpp          # 穿透
+    └── special/                 # 特殊附魔（4种）
+        ├── MendingEnchantment.hpp           # 经验修补
+        ├── VanishingCurseEnchantment.hpp    # 消失诅咒
+        ├── BindingCurseEnchantment.hpp      # 绑定诅咒
+        └── SoulSpeedEnchantment.hpp         # 灵魂疾行
 ```
 
-## 文件详解
+## 已实现附魔（34种）
 
-### 核心文件
+### 保护类附魔（11种）
 
-#### Enchantment.hpp / Enchantment.cpp
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 保护 | minecraft:protection | IV | 普通 | 减少所有伤害 |
+| 火焰保护 | minecraft:fire_protection | IV | 稀有 | 减少火焰伤害 |
+| 摔落保护 | minecraft:feather_falling | IV | 稀有 | 减少摔落伤害 |
+| 爆炸保护 | minecraft:blast_protection | IV | 罕见 | 减少爆炸伤害 |
+| 弹射物保护 | minecraft:projectile_protection | IV | 稀有 | 减少弹射物伤害 |
+| 荆棘 | minecraft:thorns | III | 极罕见 | 攻击者受反伤 |
+| 水下呼吸 | minecraft:respiration | III | 罕见 | 延长水下呼吸时间 |
+| 水下速掘 | minecraft:aqua_affinity | I | 罕见 | 水下挖掘不减慢 |
+| 深海探索者 | minecraft:depth_strider | III | 罕见 | 增加水下移动速度 |
+| 冰霜行者 | minecraft:frost_walker | II | 罕见 | 水面行走生成冰 |
 
-附魔基类，定义所有附魔的通用接口和属性。
+### 武器类附魔（7种）
 
-**核心枚举：**
-- `EnchantmentType`：附魔类型，定义附魔可应用的物品类型
-  - `Armor`：护甲（头盔、胸甲、护腿、靴子）
-  - `ArmorFeet`：仅靴子
-  - `ArmorHead`：仅头盔
-  - `ArmorChest`：仅胸甲
-  - `Weapon`：武器（剑）
-  - `Digger`：挖掘工具（镐、斧、铲、锄）
-  - `FishingRod`：钓鱼竿
-  - `Breakable`：可破坏物品
-  - `Bow`：弓
-  - `Wearable`：可穿戴物品
-  - `Crossbow`：弩
-  - `Vanishable`：可消失物品
-  - `All`：所有物品
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 锋利 | minecraft:sharpness | V | 普通 | 增加对所有生物伤害 |
+| 亡灵杀手 | minecraft:smite | V | 稀有 | 增加对亡灵伤害 |
+| 节肢杀手 | minecraft:bane_of_arthropods | V | 稀有 | 增加对节肢伤害 |
+| 击退 | minecraft:knockback | II | 稀有 | 增加击退距离 |
+| 火焰附加 | minecraft:fire_aspect | II | 罕见 | 目标燃烧 |
+| 抢夺 | minecraft:looting | III | 罕见 | 增加掉落物 |
+| 横扫之刃 | minecraft:sweeping | III | 罕见 | 增加横扫伤害 |
 
-- `EnchantmentRarity`：附魔稀有度，影响附魔台出现概率
-  - `Common`（权重10）：保护、锋利等
-  - `Uncommon`（权重5）：冲击、火焰附加等
-  - `Rare`（权重2）：时运等
-  - `VeryRare`（权重1）：精准采集、经验修补等
+### 工具类附魔（4种）
 
-**核心接口：**
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 效率 | minecraft:efficiency | V | 普通 | 增加挖掘速度 |
+| 耐久 | minecraft:unbreaking | III | 稀有 | 减少耐久消耗 |
+| 时运 | minecraft:fortune | III | 罕见 | 增加方块掉落 |
+| 精准采集 | minecraft:silk_touch | I | 极罕见 | 采集方块本身 |
+
+### 弓类附魔（4种）
+
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 力量 | minecraft:power | V | 普通 | 增加箭矢伤害 |
+| 冲击 | minecraft:punch | II | 罕见 | 增加箭矢击退 |
+| 火矢 | minecraft:flame | I | 罕见 | 箭矢点燃目标 |
+| 无限 | minecraft:infinity | I | 极罕见 | 不消耗箭矢 |
+
+### 钓鱼类附魔（2种）
+
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 海之眷顾 | minecraft:luck_of_the_sea | III | 罕见 | 增加宝藏概率 |
+| 饵钓 | minecraft:lure | III | 罕见 | 减少等待时间 |
+
+### 三叉戟附魔（4种）
+
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 忠诚 | minecraft:loyalty | III | 稀有 | 三叉戟返回 |
+| 穿刺 | minecraft:impaling | V | 罕见 | 增加对水生生物伤害 |
+| 激流 | minecraft:riptide | III | 罕见 | 水中冲刺 |
+| 引雷 | minecraft:channeling | I | 极罕见 | 雷暴时召唤闪电 |
+
+### 弩类附魔（3种）
+
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 多重射击 | minecraft:multishot | I | 罕见 | 射出三支箭 |
+| 快速装填 | minecraft:quick_charge | III | 稀有 | 减少装填时间 |
+| 穿透 | minecraft:piercing | IV | 普通 | 箭矢穿透目标 |
+
+### 特殊附魔（4种）
+
+| 附魔 | ID | 最大等级 | 稀有度 | 效果 |
+|------|-----|---------|--------|------|
+| 经验修补 | minecraft:mending | I | 罕见 | 经验修复耐久 |
+| 消失诅咒 | minecraft:vanishing_curse | I | 极罕见 | 死亡时消失 |
+| 绑定诅咒 | minecraft:binding_curse | I | 极罕见 | 无法取下 |
+| 灵魂疾行 | minecraft:soul_speed | III | 极罕见 | 灵魂沙上加速 |
+
+## 核心枚举
+
+### EnchantmentType 附魔类型
+
 ```cpp
-class Enchantment {
-public:
-    // 标识
-    virtual String id() const = 0;
-    virtual String getNameKey(i32 level = 1) const;
-    
-    // 等级
-    virtual i32 minLevel() const;
-    virtual i32 maxLevel() const;
-    
-    // 类型与稀有度
-    virtual EnchantmentType type() const = 0;
-    virtual EnchantmentRarity rarity() const;
-    
-    // 适用性
-    virtual bool canApplyTo(u32 itemType) const;
-    virtual bool isCompatibleWith(const Enchantment& other) const;
-    
-    // 附魔台成本
-    virtual i32 getMinCost(i32 level) const;
-    virtual i32 getMaxCost(i32 level) const;
-    virtual i32 getMinEnchantability(i32 level) const;
-    virtual i32 getMaxEnchantability(i32 level) const;
-    
-    // 修饰符
-    virtual f32 getDamageBonus(i32 level, u32 entityType) const;
-    virtual i32 getDamageProtection(i32 level, u32 damageType) const;
-    
-    // 静态方法
-    static i32 getRarityWeight(EnchantmentRarity rarity);
+enum class EnchantmentType : u8 {
+    Armor,          // 护甲（头盔、胸甲、护腿、靴子）
+    ArmorFeet,      // 仅靴子
+    ArmorHead,      // 仅头盔
+    ArmorChest,     // 仅胸甲
+    Weapon,         // 武器（剑）
+    Digger,         // 挖掘工具（镐、斧、铲、锄）
+    FishingRod,     // 钓鱼竿
+    Breakable,      // 可破坏物品
+    Bow,            // 弓
+    Wearable,       // 可穿戴物品
+    Crossbow,       // 弩
+    Trident,        // 三叉戟
+    Vanishable,     // 可消失物品
+    All             // 所有物品
 };
 ```
 
-#### EnchantmentContainer.hpp / EnchantmentContainer.cpp
+### EnchantmentRarity 附魔稀有度
 
-附魔容器，存储物品上的所有附魔实例。
-
-**核心类型：**
 ```cpp
-struct EnchantmentInstance {
-    String enchantmentId;   // 附魔ID
-    i32 level;              // 附魔等级
-    const Enchantment* getEnchantment() const;
+enum class EnchantmentRarity : u8 {
+    Common,     // 普通（权重10）
+    Uncommon,   // 稀有（权重5）
+    Rare,       // 罕见（权重2）
+    VeryRare    // 极罕见（权重1）
 };
 ```
 
-**核心接口：**
-```cpp
-class EnchantmentContainer {
-public:
-    // 查询
-    bool isEmpty() const;
-    size_t size() const;
-    i32 getLevel(const String& enchantmentId) const;
-    bool has(const String& enchantmentId) const;
-    bool hasType(EnchantmentType type) const;
-    const std::vector<EnchantmentInstance>& getAll() const;
-    
-    // 修改
-    void set(const String& enchantmentId, i32 level);
-    bool remove(const String& enchantmentId);
-    void clear();
-    
-    // 兼容性检查
-    bool canAdd(const String& enchantmentId) const;
-    
-    // 序列化
-    void serialize(network::PacketSerializer& ser) const;
-    static Result<EnchantmentContainer> deserialize(network::PacketDeserializer& deser);
-};
-```
+## 使用方法
 
-#### EnchantmentHelper.hpp / EnchantmentHelper.cpp
-
-附魔查询工具类，提供静态方法查询物品附魔。
-
-**核心接口：**
-```cpp
-class EnchantmentHelper {
-public:
-    // 基础查询
-    static i32 getEnchantmentLevel(const ItemStack& stack, const String& enchantmentId);
-    static i32 getEnchantmentLevel(const ItemStack& stack, const Enchantment* enchantment);
-    static bool hasEnchantment(const ItemStack& stack, const String& enchantmentId);
-    static bool hasEnchantmentType(const ItemStack& stack, EnchantmentType type);
-    static bool hasEnchantments(const ItemStack& stack);
-    static std::vector<std::pair<const Enchantment*, i32>> getEnchantments(const ItemStack& stack);
-    
-    // 便捷方法
-    static bool hasSilkTouch(const ItemStack& stack);
-    static i32 getFortuneLevel(const ItemStack& stack);
-    static i32 getSharpnessLevel(const ItemStack& stack);
-    static i32 getUnbreakingLevel(const ItemStack& stack);
-    
-    // 计算
-    static i32 getTotalProtection(const ItemStack& stack, u32 damageType);
-    static f32 getTotalDamageBonus(const ItemStack& stack, u32 entityType);
-};
-```
-
-#### EnchantmentRegistry.hpp / EnchantmentRegistry.cpp
-
-附魔注册表，管理所有已注册的附魔。
-
-**核心接口：**
-```cpp
-class EnchantmentRegistry {
-public:
-    static void initialize();                              // 初始化原版附魔
-    static bool registerEnchantment(std::unique_ptr<Enchantment> enchantment);
-    static const Enchantment* get(const String& id);       // 按ID获取
-    static bool has(const String& id);                     // 检查是否存在
-    static const std::unordered_map<String, std::unique_ptr<Enchantment>>& all();
-    static std::vector<const Enchantment*> getByType(EnchantmentType type);
-    static std::vector<const Enchantment*> getAvailableForItem(u32 itemType);
-    static void clear();                                   // 清除所有
-    static bool isInitialized();
-};
-```
-
-### 具体附魔实现
-
-#### enchantments/FortuneEnchantment.hpp / FortuneEnchantment.cpp
-
-时运附魔，增加方块掉落物数量。
-
-**效果：**
-- Fortune I：33%概率掉落+1
-- Fortune II：25%概率掉落+1，25%概率掉落+2
-- Fortune III：20%概率掉落+1，20%概率掉落+2，20%概率掉落+3
-
-**适用物品：** 镐、铲、斧、锄
-
-**不兼容：** 精准采集
-
-**静态方法：**
-```cpp
-static i32 applyBonus(i32 baseCount, i32 level, math::Random& random);      // 时运加成
-static i32 applyUniformBonus(i32 level, math::Random& random);              // 均匀分布加成
-static i32 applyOreDropBonus(i32 baseMin, i32 baseMax, i32 level, math::Random& random); // 矿石掉落加成
-```
-
-#### enchantments/SilkTouchEnchantment.hpp / SilkTouchEnchantment.cpp
-
-精准采集附魔，采集方块本身而非掉落物。
-
-**效果：**
-- 采集矿石时掉落矿石本身而非矿物
-- 采集玻璃时掉落玻璃
-- 采集草方块时掉落草方块
-- 采集树叶时掉落树叶
-
-**适用物品：** 镐、铲、斧、锄、剪刀
-
-**不兼容：** 时运
-
-## 模块职责
-
-### 整体职责
-
-附魔系统负责：
-1. **定义附魔基类**：提供所有附魔的通用接口和属性
-2. **管理附魔注册**：全局注册表，支持按ID、类型查询
-3. **存储物品附魔**：容器类支持添加、移除、查询、序列化
-4. **提供便捷查询**：工具类封装常用操作
-5. **实现具体附魔**：每个附魔有独立的逻辑实现
-
-### 输入和输出
-
-**输入：**
-- 附魔ID（如 `"minecraft:fortune"`）
-- 物品堆（`ItemStack`）
-- 附魔等级
-- 随机数生成器（用于时运计算）
-
-**输出：**
-- 附魔定义（属性、等级范围、兼容性）
-- 附魔等级
-- 伤害加成、保护值
-- 时运加成后的掉落数量
-
-### 依赖项
-
-```
-Enchantment
-    ├── common/core/Types.hpp
-    ├── common/core/Result.hpp
-    └── common/util/math/random/Random.hpp
-
-EnchantmentContainer
-    ├── Enchantment.hpp
-    └── common/network/packet/PacketSerializer.hpp
-
-EnchantmentHelper
-    ├── Enchantment.hpp
-    ├── EnchantmentRegistry.hpp
-    └── common/item/ItemStack.hpp
-
-EnchantmentRegistry
-    ├── Enchantment.hpp
-    └── enchantments/* (具体附魔实现)
-```
-
-### 使用方法
-
-#### 初始化附魔系统
+### 初始化附魔系统
 
 ```cpp
-// 游戏启动时初始化
+// 游戏启动时初始化（自动注册所有34种附魔）
 mc::item::enchant::EnchantmentRegistry::initialize();
 ```
 
-#### 查询附魔
+### 查询附魔
 
 ```cpp
 using namespace mc::item::enchant;
 
 // 获取附魔定义
-const Enchantment* fortune = EnchantmentRegistry::get("minecraft:fortune");
-if (fortune) {
-    i32 maxLevel = fortune->maxLevel();  // 3
-    i32 minCost = fortune->getMinCost(1); // 15
+const Enchantment* sharpness = EnchantmentRegistry::get("minecraft:sharpness");
+if (sharpness) {
+    i32 maxLevel = sharpness->maxLevel();  // 5
+    i32 minCost = sharpness->getMinCost(1); // 1
+    f32 damage = sharpness->getDamageBonus(5, 0); // 3.0
 }
 
+// 按类型查询
+auto weaponEnchants = EnchantmentRegistry::getByType(EnchantmentType::Weapon);
+
 // 检查兼容性
-const Enchantment* silkTouch = EnchantmentRegistry::get("minecraft:silk_touch");
-bool compatible = fortune->isCompatibleWith(*silkTouch);  // false
+const Enchantment* smite = EnchantmentRegistry::get("minecraft:smite");
+bool compatible = sharpness->isCompatibleWith(*smite);  // false（锋利与亡灵杀手互斥）
 ```
 
-#### 使用附魔容器
+### 使用附魔容器
 
 ```cpp
-// 创建附魔容器
 EnchantmentContainer container;
 
 // 添加附魔
-container.set("minecraft:fortune", 3);
-container.set("minecraft:unbreaking", 2);
+container.set("minecraft:sharpness", 5);
+container.set("minecraft:looting", 3);
+container.set("minecraft:unbreaking", 3);
 
 // 查询
-i32 level = container.getLevel("minecraft:fortune");  // 3
-bool has = container.has("minecraft:fortune");        // true
+i32 level = container.getLevel("minecraft:sharpness");  // 5
+bool has = container.has("minecraft:looting");          // true
 
 // 兼容性检查
-bool canAdd = container.canAdd("minecraft:silk_touch");  // false（与时运互斥）
-
-// 遍历
-for (const auto& instance : container.getAll()) {
-    const Enchantment* enchant = instance.getEnchantment();
-    // ...
-}
+bool canAdd = container.canAdd("minecraft:smite");  // false（与锋利互斥）
 ```
 
-#### 使用工具类
+### 使用工具类
 
 ```cpp
-// 检查物品附魔
+// 便捷查询
 bool hasSilkTouch = EnchantmentHelper::hasSilkTouch(stack);
 i32 fortuneLevel = EnchantmentHelper::getFortuneLevel(stack);
 
@@ -321,7 +246,7 @@ f32 damageBonus = EnchantmentHelper::getTotalDamageBonus(stack, entityType);
 i32 protection = EnchantmentHelper::getTotalProtection(stack, damageType);
 ```
 
-#### 计算时运加成
+### 时运计算
 
 ```cpp
 math::Random random(seed);
@@ -332,127 +257,42 @@ i32 diamonds = FortuneEnchantment::applyBonus(1, 3, random);  // 1-4
 // 煤矿石掉落（均匀分布）
 i32 coal = 1 + FortuneEnchantment::applyUniformBonus(3, random);  // 1-4
 
-// 红石矿掉落（矿石类型）
+// 红石矿掉落
 i32 redstone = FortuneEnchantment::applyOreDropBonus(4, 5, 3, random);  // 4-8
 ```
 
-### 容易踩的坑
-
-#### 1. 忘记初始化注册表
+### 耐久计算
 
 ```cpp
-// 错误：使用前未初始化
-const Enchantment* enchant = EnchantmentRegistry::get("minecraft:fortune");  // nullptr!
+math::Random random(seed);
 
-// 正确：先初始化
-EnchantmentRegistry::initialize();
-const Enchantment* enchant = EnchantmentRegistry::get("minecraft:fortune");  // OK
+// 工具耐久检查
+bool shouldDamage = UnbreakingEnchantment::shouldConsumeDurability(3, random);
+
+// 盔甲耐久检查
+bool shouldArmorDamage = UnbreakingEnchantment::shouldArmorConsumeDurability(3, random);
 ```
 
-#### 2. 忽略兼容性检查
+## 附魔互斥关系
 
-```cpp
-// 错误：直接添加不检查兼容性
-container.set("minecraft:fortune", 3);
-container.set("minecraft:silk_touch", 1);  // 应该被阻止！
-
-// 正确：先检查兼容性
-if (container.canAdd("minecraft:silk_touch")) {
-    container.set("minecraft:silk_touch", 1);
-}
-```
-
-#### 3. 线程安全问题
-
-```cpp
-// 错误：多线程同时访问注册表
-// 虽然注册表有内部锁，但频繁加锁影响性能
-
-// 正确：缓存附魔指针
-const Enchantment* fortune = EnchantmentRegistry::get("minecraft:fortune");
-// 后续直接使用 fortune 指针，无需再次查询
-```
-
-#### 4. 未检查附魔是否存在
-
-```cpp
-// 错误：未检查返回值
-const Enchantment* enchant = EnchantmentRegistry::get("minecraft:invalid");
-i32 maxLevel = enchant->maxLevel();  // 崩溃！
-
-// 正确：检查返回值
-const Enchantment* enchant = EnchantmentRegistry::get("minecraft:fortune");
-if (enchant) {
-    i32 maxLevel = enchant->maxLevel();
-}
-```
-
-#### 5. 时运计算公式混淆
-
-```cpp
-// applyBonus：用于钻石矿等，每级有概率+1
-// applyUniformBonus：用于煤矿石等，0-level 均匀随机
-// applyOreDropBonus：用于红石矿等，基础范围 + 额外加成
-
-// 错误：用于错误的方块类型
-i32 drop = FortuneEnchantment::applyBonus(4, 3, random);  // 红石不应该用这个
-
-// 正确：根据方块类型选择方法
-i32 coal = 1 + FortuneEnchantment::applyUniformBonus(level, random);     // 煤
-i32 diamond = FortuneEnchantment::applyBonus(1, level, random);          // 钻石
-i32 redstone = FortuneEnchantment::applyOreDropBonus(4, 5, level, random); // 红石
-```
-
-### 涉及的测试用例
-
-测试文件：`tests/common/item/enchantment/EnchantmentTest.cpp`
-
-**测试覆盖：**
-
-| 测试套件 | 测试用例 |
-|---------|---------|
-| EnchantmentRegistryTest | InitializeRegistersEnchantments |
-| | GetFortuneEnchantment |
-| | GetSilkTouchEnchantment |
-| | GetNonExistentEnchantment |
-| | HasEnchantment |
-| | DoubleInitializeIsSafe |
-| FortuneEnchantmentTest | GetMinCost |
-| | GetMaxCost |
-| | IsIncompatibleWithSilkTouch |
-| | ApplyBonus |
-| | ApplyUniformBonus |
-| | ApplyOreDropBonus |
-| SilkTouchEnchantmentTest | Properties |
-| | GetMinCost |
-| EnchantmentContainerTest | EmptyContainer |
-| | SetAndGetEnchantment |
-| | UpdateEnchantment |
-| | RemoveEnchantment |
-| | ClearEnchantments |
-| | MultipleEnchantments |
-| | CompatibilityCheck |
-| | HasEnchantmentType |
-| EnchantmentTest | RarityWeight |
-| | GetNameKey |
-| EnchantmentInstanceTest | GetEnchantment |
-
-**测试要点：**
-1. 注册表初始化和查询
-2. 附魔属性正确性（ID、等级范围、类型、稀有度）
-3. 附魔互斥性（时运与精准采集不兼容）
-4. 时运三种计算方法
-5. 容器的增删改查和兼容性检查
-6. 附魔实例与注册表的关联
+| 附魔组 | 互斥附魔 |
+|--------|----------|
+| 保护类 | 保护、火焰保护、爆炸保护、弹射物保护互斥（摔落保护除外） |
+| 伤害类 | 锋利、亡灵杀手、节肢杀手互斥 |
+| 时运/精准采集 | 时运与精准采集互斥 |
+| 弓附魔 | 无限与经验修补互斥 |
+| 三叉戟 | 激流与忠诚、引雷互斥 |
+| 弩附魔 | 多重射击与穿透互斥 |
+| 靴子附魔 | 深海探索者与冰霜行者互斥 |
 
 ## 扩展指南
 
 ### 添加新附魔
 
-1. 在 `enchantments/` 目录创建新的附魔类：
+1. 在 `enchantments/` 适当子目录创建附魔类：
 
 ```cpp
-// enchantments/SharpnessEnchantment.hpp
+// enchantments/weapon/ExampleEnchantment.hpp
 #pragma once
 
 #include "../Enchantment.hpp"
@@ -461,30 +301,24 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-class SharpnessEnchantment : public Enchantment {
+class ExampleEnchantment : public Enchantment {
 public:
     [[nodiscard]] String id() const override {
-        return "minecraft:sharpness";
+        return "minecraft:example";
     }
 
-    [[nodiscard]] i32 maxLevel() const override {
-        return 5;
-    }
+    [[nodiscard]] i32 maxLevel() const override { return 3; }
 
     [[nodiscard]] EnchantmentType type() const override {
         return EnchantmentType::Weapon;
     }
 
     [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Common;
+        return EnchantmentRarity::Rare;
     }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 1 + (level - 1) * 11;
-    }
-
-    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override {
-        return static_cast<f32>(level) * 1.25f;
+        return 10 + (level - 1) * 5;
     }
 };
 
@@ -493,19 +327,8 @@ public:
 } // namespace mc
 ```
 
-2. 在 `EnchantmentRegistry.cpp` 中注册：
-
-```cpp
-#include "enchantments/SharpnessEnchantment.hpp"
-
-void EnchantmentRegistry::initialize() {
-    // ...
-    registerEnchantmentInternal(std::make_unique<SharpnessEnchantment>());
-    // ...
-}
-```
-
-3. 添加对应测试用例。
+2. 在 `AllEnchantments.hpp` 中添加头文件和静态成员
+3. 在 `AllEnchantments.cpp` 中注册
 
 ## 参考
 

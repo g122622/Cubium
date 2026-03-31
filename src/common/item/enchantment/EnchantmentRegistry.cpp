@@ -1,6 +1,5 @@
 #include "EnchantmentRegistry.hpp"
-#include "enchantments/FortuneEnchantment.hpp"
-#include "enchantments/SilkTouchEnchantment.hpp"
+#include "enchantments/AllEnchantments.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -9,6 +8,7 @@ namespace enchant {
 
 // 静态成员定义
 std::unordered_map<String, std::unique_ptr<Enchantment>> EnchantmentRegistry::s_enchantments;
+std::unordered_map<String, const Enchantment*> s_enchantmentRefs;
 bool EnchantmentRegistry::s_initialized = false;
 std::mutex EnchantmentRegistry::s_mutex;
 
@@ -26,18 +26,11 @@ void EnchantmentRegistry::initialize() {
 
     spdlog::info("Initializing enchantment registry...");
 
-    // 注册原版附魔 - 内部版本不加锁
-    // 工具附魔
-    registerEnchantmentInternal(std::make_unique<FortuneEnchantment>());
-    registerEnchantmentInternal(std::make_unique<SilkTouchEnchantment>());
-
-    // TODO: 注册更多附魔
-    // 武器附魔: Sharpness, Smite, Bane of Arthropods, etc.
-    // 护甲附魔: Protection, Fire Protection, etc.
-    // 特殊附魔: Mending, Unbreaking, etc.
+    // 使用 AllEnchantments::registerAll() 注册所有附魔
+    AllEnchantments::registerAll();
 
     s_initialized = true;
-    spdlog::info("Registered {} enchantments", s_enchantments.size());
+    spdlog::info("Registered {} enchantments", s_enchantments.size() + s_enchantmentRefs.size());
 }
 
 bool EnchantmentRegistry::registerEnchantment(std::unique_ptr<Enchantment> enchantment) {
@@ -48,6 +41,22 @@ bool EnchantmentRegistry::registerEnchantment(std::unique_ptr<Enchantment> encha
 
     std::lock_guard<std::mutex> lock(s_mutex);
     return registerEnchantmentInternal(std::move(enchantment));
+}
+
+bool EnchantmentRegistry::registerEnchantment(const Enchantment& enchantment) {
+    std::lock_guard<std::mutex> lock(s_mutex);
+
+    String id = enchantment.id();
+
+    if (s_enchantments.find(id) != s_enchantments.end() ||
+        s_enchantmentRefs.find(id) != s_enchantmentRefs.end()) {
+        spdlog::warn("Enchantment {} already registered", id);
+        return false;
+    }
+
+    spdlog::debug("Registering enchantment (ref): {}", id);
+    s_enchantmentRefs[id] = &enchantment;
+    return true;
 }
 
 bool EnchantmentRegistry::registerEnchantmentInternal(std::unique_ptr<Enchantment> enchantment) {
@@ -75,12 +84,18 @@ const Enchantment* EnchantmentRegistry::get(const String& id) {
     if (it != s_enchantments.end()) {
         return it->second.get();
     }
+
+    auto refIt = s_enchantmentRefs.find(id);
+    if (refIt != s_enchantmentRefs.end()) {
+        return refIt->second;
+    }
     return nullptr;
 }
 
 bool EnchantmentRegistry::has(const String& id) {
     std::lock_guard<std::mutex> lock(s_mutex);
-    return s_enchantments.find(id) != s_enchantments.end();
+    return s_enchantments.find(id) != s_enchantments.end() ||
+           s_enchantmentRefs.find(id) != s_enchantmentRefs.end();
 }
 
 const std::unordered_map<String, std::unique_ptr<Enchantment>>& EnchantmentRegistry::all() {
@@ -96,6 +111,11 @@ std::vector<const Enchantment*> EnchantmentRegistry::getByType(EnchantmentType t
             result.push_back(enchantment.get());
         }
     }
+    for (const auto& [id, enchantment] : s_enchantmentRefs) {
+        if (enchantment->type() == type) {
+            result.push_back(enchantment);
+        }
+    }
     return result;
 }
 
@@ -108,12 +128,18 @@ std::vector<const Enchantment*> EnchantmentRegistry::getAvailableForItem(u32 ite
             result.push_back(enchantment.get());
         }
     }
+    for (const auto& [id, enchantment] : s_enchantmentRefs) {
+        if (enchantment->canApplyTo(itemType)) {
+            result.push_back(enchantment);
+        }
+    }
     return result;
 }
 
 void EnchantmentRegistry::clear() {
     std::lock_guard<std::mutex> lock(s_mutex);
     s_enchantments.clear();
+    s_enchantmentRefs.clear();
     s_initialized = false;
 }
 

@@ -3,7 +3,7 @@
 #include "../VanillaBlocks.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
-#include "../../../item/ItemStack.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../util/math/random/IRandom.hpp"
 #include "../../../util/assert/AssertAll.hpp"
