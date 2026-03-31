@@ -3,7 +3,7 @@
 #include "../../core/ActionResult.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
-#include "../../../world/World.hpp"
+#include "../../../world/IWorld.hpp"
 
 namespace mc {
 namespace item::items {
@@ -27,38 +27,27 @@ UseAction FoodItem::getUseAction(const ItemStack& /*stack*/) const {
     return UseAction::Drink;  // 非肉类使用饮用动作（如药水）
 }
 
-ItemActionResult FoodItem::onItemRightClick(World& world, Player& player, Hand hand) {
+ItemActionResult FoodItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
     // 检查是否可以食用
     ItemStack stack = player.getHeldItem(hand);
     if (canEat(stack, player)) {
-        // 设置玩家正在使用物品
-        player.setActiveHand(hand);
+        // TODO: 设置玩家正在使用物品
+        // player.setActiveHand(hand);
+        (void)hand;
         return ItemActionResult::consume(stack);
     }
     return ItemActionResult::pass(stack);
 }
 
-ItemStack FoodItem::onItemUseFinish(ItemStack& stack, World& world, LivingEntity& entity) {
+ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, LivingEntity& entity) {
     if (m_food == nullptr) {
         return stack;
     }
 
     // 如果是玩家，应用食物效果
-    if (entity.isPlayer()) {
-        Player& player = static_cast<Player&>(entity);
-
-        // 恢复饥饿值和饱和度
-        // TODO: 实现 Player::getFoodStats() 和 FoodStats::eat()
-        // player.getFoodStats().eat(m_food->getHunger(), m_food->getSaturation());
-
-        // 应用药水效果
-        for (const auto& effectEntry : m_food->getEffects()) {
-            // TODO: 实现概率判定和效果应用
-            // if (world.getRandom().nextFloat() < effectEntry.probability) {
-            //     player.addEffect(effectEntry.effect->clone());
-            // }
-        }
-    }
+    // TODO: 实现 Player::getFoodStats() 和 FoodStats::eat()
+    // TODO: 实现 LivingEntity::isPlayer() 和类型转换
+    (void)entity;
 
     // 减少物品数量
     stack.shrink(1);
@@ -71,7 +60,7 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, World& world, LivingEntity
     return stack;
 }
 
-bool FoodItem::canEat(const ItemStack& /*stack*/, const Player& player) const {
+bool FoodItem::canEat(const ItemStack& /*stack*/, const Player& /*player*/) const {
     if (m_food == nullptr) {
         return false;
     }

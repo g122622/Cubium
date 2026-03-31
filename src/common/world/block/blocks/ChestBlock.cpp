@@ -139,7 +139,7 @@ std::unique_ptr<BlockEntity> ChestBlock::createBlockEntity(const BlockPos& pos) 
 
 // ========== 交互 ==========
 
-ActionResult ChestBlock::onBlockActivated(
+ActionResultType ChestBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -149,13 +149,13 @@ ActionResult ChestBlock::onBlockActivated(
 ) {
     // 检查是否被阻挡
     if (isBlocked(world, pos)) {
-        return ActionResult::Success;
+        return ActionResultType::Success;
     }
 
     // 获取方块实体
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (!blockEntity || blockEntity->getType() != BlockEntityType::Chest) {
-        return ActionResult::Pass;
+        return ActionResultType::Pass;
     }
 
     auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
@@ -164,7 +164,7 @@ ActionResult ChestBlock::onBlockActivated(
     if (!chest->canOpen(&player, player.getHeldItem(hand))) {
         // 播放锁定音效
         // TODO: world.playSound(player, pos, SoundEvents.BLOCK_CHEST_LOCKED, SoundCategory::BLOCKS, 1.0f, 1.0f);
-        return ActionResult::Success;
+        return ActionResultType::Success;
     }
 
     // 打开箱子GUI
@@ -173,7 +173,7 @@ ActionResult ChestBlock::onBlockActivated(
     // 增加打开计数
     chest->openContainer();
 
-    return ActionResult::Consume;
+    return ActionResultType::Consume;
 }
 
 // ========== 红石 ==========

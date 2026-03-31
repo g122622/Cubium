@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/AgeableEntity.hpp"
-#include "../../inventory/IInventory.hpp"
+#include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include <memory>
 
 namespace mc {

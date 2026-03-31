@@ -106,6 +106,18 @@ public:
      */
     [[nodiscard]] virtual EnchantmentRarity rarity() const { return EnchantmentRarity::Common; }
 
+    /**
+     * @brief 是否为宝藏附魔
+     * @return 如果只能从箱子或交易获得返回true
+     */
+    [[nodiscard]] virtual bool isTreasure() const { return false; }
+
+    /**
+     * @brief 是否为诅咒附魔
+     * @return 如果是诅咒返回true
+     */
+    [[nodiscard]] virtual bool isCurse() const { return false; }
+
     // ========== 适用性 ==========
 
     /**

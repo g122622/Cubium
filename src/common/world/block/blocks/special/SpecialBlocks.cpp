@@ -59,7 +59,7 @@ StructureBlock::Mode StructureBlock::getMode(const BlockState& state) const {
     return Mode::Save;
 }
 
-ActionResult StructureBlock::onBlockActivated(
+ActionResultType StructureBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -75,7 +75,7 @@ ActionResult StructureBlock::onBlockActivated(
     MC_UNUSED(hit);
 
     // TODO: 打开结构方块界面
-    return ActionResult::Success;
+    return ActionResultType::Success;
 }
 
 // ========== JigsawBlock ==========
@@ -90,7 +90,7 @@ JigsawBlock::JigsawBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 }
 
-ActionResult JigsawBlock::onBlockActivated(
+ActionResultType JigsawBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -106,7 +106,7 @@ ActionResult JigsawBlock::onBlockActivated(
     MC_UNUSED(hit);
 
     // TODO: 打开拼图方块界面
-    return ActionResult::Success;
+    return ActionResultType::Success;
 }
 
 // ========== CommandBlock ==========
@@ -184,7 +184,7 @@ const BlockState& CommandBlock::mirror(const BlockState& state, Mirror mirror) c
     return state.with(BlockStateProperties::FACING(), newFacing);
 }
 
-ActionResult CommandBlock::onBlockActivated(
+ActionResultType CommandBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -200,7 +200,7 @@ ActionResult CommandBlock::onBlockActivated(
     MC_UNUSED(hit);
 
     // TODO: 打开命令方块界面
-    return ActionResult::Success;
+    return ActionResultType::Success;
 }
 
 void CommandBlock::execute(IWorld& world, const BlockPos& pos, const BlockState& state) {

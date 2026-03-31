@@ -6,7 +6,7 @@
 #include "../food/Food.hpp"
 #include "../tag/ItemTag.hpp"
 #include "../../world/block/Block.hpp"
-#include "../../world/World.hpp"
+#include "../../world/IWorld.hpp"
 #include "../../entity/core/LivingEntity.hpp"
 #include "../../entity/entities/player/Player.hpp"
 #include <sstream>
@@ -136,7 +136,7 @@ ActionResultType Item::onItemUse(ItemUseContext& context) {
     return ActionResultType::Pass;
 }
 
-ItemActionResult Item::onItemRightClick(World& world, Player& player, Hand hand) {
+ItemActionResult Item::onItemRightClick(IWorld& world, Player& player, Hand hand) {
     // 默认实现：返回传递结果
     (void)world;
     (void)player;
@@ -154,7 +154,7 @@ bool Item::itemInteractionForEntity(ItemStack& stack, Player& player,
     return false;
 }
 
-ItemStack Item::onItemUseFinish(ItemStack& stack, World& world, LivingEntity& entity) {
+ItemStack Item::onItemUseFinish(ItemStack& stack, IWorld& world, LivingEntity& entity) {
     // 默认实现：返回原物品堆
     // 食物类物品会重写此方法来应用食物效果
     (void)world;
@@ -162,7 +162,7 @@ ItemStack Item::onItemUseFinish(ItemStack& stack, World& world, LivingEntity& en
     return stack;
 }
 
-void Item::onPlayerStoppedUsing(ItemStack& stack, World& world,
+void Item::onPlayerStoppedUsing(ItemStack& stack, IWorld& world,
                                  LivingEntity& entity, i32 timeLeft) {
     // 默认实现：不做任何操作
     // 弓、三叉戟等会重写此方法
@@ -176,7 +176,7 @@ void Item::onPlayerStoppedUsing(ItemStack& stack, World& world,
 // 物品Tick与提示
 // ============================================================================
 
-void Item::inventoryTick(ItemStack& stack, World& world, Entity& entity,
+void Item::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
                           i32 itemSlot, bool isSelected) {
     // 默认实现：不做任何操作
     // 地图、时钟等会重写此方法
@@ -187,7 +187,7 @@ void Item::inventoryTick(ItemStack& stack, World& world, Entity& entity,
     (void)isSelected;
 }
 
-void Item::addInformation(const ItemStack& stack, World& world,
+void Item::addInformation(const ItemStack& stack, IWorld& world,
                            std::vector<String>& tooltip, bool advanced) const {
     // 默认实现：不做任何操作
     // 子类可重写以添加自定义提示
@@ -229,7 +229,7 @@ bool Item::canEat(const ItemStack& stack, const Player& player) const {
 // 耐久度与修复
 // ============================================================================
 
-void Item::onDestroyed(ItemStack& stack, World& world, Entity& entity) {
+void Item::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity) {
     // 默认实现：不做任何操作
     // 子类可重写以播放破坏音效等
     (void)stack;

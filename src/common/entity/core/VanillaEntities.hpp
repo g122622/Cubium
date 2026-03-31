@@ -46,7 +46,7 @@
 #include "../entities/monster/undead/DrownedEntity.hpp"
 #include "../entities/monster/undead/StrayEntity.hpp"
 #include "../entities/monster/undead/WitherSkeletonEntity.hpp"
-#include "../entities/monster/undead/PhantomEntity.hpp"
+#include "../entities/monster/basic/PhantomEntity.hpp"
 #include "../entities/monster/arthropod/SpiderEntity.hpp"
 #include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
 #include "../entities/monster/arthropod/EndermiteEntity.hpp"
@@ -65,15 +65,15 @@
 #include "../entities/monster/illager/RavagerEntity.hpp"
 #include "../entities/monster/illager/VexEntity.hpp"
 #include "../entities/monster/illager/IllagerEntities.hpp"
-#include "../entities/boss/EnderDragonEntity.hpp"
-#include "../entities/boss/WitherEntity.hpp"
-#include "../entities/villager/VillagerEntity.hpp"
-#include "../entities/projectile/ProjectileEntity.hpp"
-#include "../entities/projectile/AbstractArrowEntity.hpp"
-#include "../entities/projectile/TridentEntity.hpp"
-#include "../entities/projectile/ProjectileItemEntity.hpp"
-#include "../entities/projectile/AbstractFireballEntity.hpp"
-#include "../entities/projectile/OtherProjectiles.hpp"
+// #include "../entities/boss/EnderDragonEntity.hpp"
+// #include "../entities/boss/WitherEntity.hpp"
+// #include "../entities/villager/VillagerEntity.hpp"
+// #include "../entities/projectile/ProjectileEntity.hpp"
+// #include "../entities/projectile/AbstractArrowEntity.hpp"
+// #include "../entities/projectile/TridentEntity.hpp"
+// #include "../entities/projectile/ProjectileItemEntity.hpp"
+// #include "../entities/projectile/AbstractFireballEntity.hpp"
+// #include "../entities/projectile/OtherProjectiles.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../entities/vehicle/MinecartEntity.hpp"
 #include "../entities/item/ItemEntity.hpp"
@@ -649,51 +649,51 @@ private:
         );
 
         // ========== Boss ==========
-        // 末影龙
-        registry.registerType(
-            EntityTypes::ENDER_DRAGON,
-            EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
-                .size(16.0f, 8.0f)
-                .trackingRange(128)
-                .updateInterval(1)
-                .immuneToFire()
-                .build()
-        );
+        // 末影龙 - TODO: 需要完成实现
+        // registry.registerType(
+        //     EntityTypes::ENDER_DRAGON,
+        //     EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
+        //         .size(16.0f, 8.0f)
+        //         .trackingRange(128)
+        //         .updateInterval(1)
+        //         .immuneToFire()
+        //         .build()
+        // );
 
-        // 凋灵
-        registry.registerType(
-            EntityTypes::WITHER,
-            EntityType::Builder(&WitherEntity::create, EntityClassification::Monster)
-                .size(0.9f, 3.5f)
-                .trackingRange(10)
-                .updateInterval(3)
-                .immuneToFire()
-                .canSummon(true)
-                .build()
-        );
+        // 凋灵 - TODO: 需要完成实现
+        // registry.registerType(
+        //     EntityTypes::WITHER,
+        //     EntityType::Builder(&WitherEntity::create, EntityClassification::Monster)
+        //         .size(0.9f, 3.5f)
+        //         .trackingRange(10)
+        //         .updateInterval(3)
+        //         .immuneToFire()
+        //         .canSummon(true)
+        //         .build()
+        // );
 
         // ========== 村民 ==========
-        // 村民
-        registry.registerType(
-            EntityTypes::VILLAGER,
-            EntityType::Builder(&VillagerEntity::create, EntityClassification::Creature)
-                .size(0.6f, 1.95f)
-                .trackingRange(10)
-                .updateInterval(3)
-                .canSummon(true)
-                .build()
-        );
+        // 村民 - TODO: 需要完成实现
+        // registry.registerType(
+        //     EntityTypes::VILLAGER,
+        //     EntityType::Builder(&VillagerEntity::create, EntityClassification::Creature)
+        //         .size(0.6f, 1.95f)
+        //         .trackingRange(10)
+        //         .updateInterval(3)
+        //         .canSummon(true)
+        //         .build()
+        // );
 
-        // 流浪商人
-        registry.registerType(
-            EntityTypes::WANDERING_TRADER,
-            EntityType::Builder(&WanderingTraderEntity::create, EntityClassification::Creature)
-                .size(0.6f, 1.95f)
-                .trackingRange(10)
-                .updateInterval(3)
-                .canSummon(true)
-                .build()
-        );
+        // 流浪商人 - TODO: 需要完成实现
+        // registry.registerType(
+        //     EntityTypes::WANDERING_TRADER,
+        //     EntityType::Builder(&WanderingTraderEntity::create, EntityClassification::Creature)
+        //         .size(0.6f, 1.95f)
+        //         .trackingRange(10)
+        //         .updateInterval(3)
+        //         .canSummon(true)
+        //         .build()
+        // );
 
         // ========== 更多怪物 ==========
         // 巨人

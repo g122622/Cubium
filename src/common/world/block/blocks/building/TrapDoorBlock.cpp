@@ -201,7 +201,7 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
 
 // ========== 交互 ==========
 
-ActionResult TrapDoorBlock::onBlockActivated(
+ActionResultType TrapDoorBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -215,7 +215,7 @@ ActionResult TrapDoorBlock::onBlockActivated(
 
     // 铁活板门不能手动开关
     if (m_isIron) {
-        return ActionResult::Pass;
+        return ActionResultType::Pass;
     }
 
     // 切换开关状态
@@ -225,7 +225,7 @@ ActionResult TrapDoorBlock::onBlockActivated(
 
     playSound(world, pos, !wasOpen);
 
-    return ActionResult::Success;
+    return ActionResultType::Success;
 }
 
 // ========== 形状 ==========

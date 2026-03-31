@@ -97,7 +97,7 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResult onBlockActivated(
+    [[nodiscard]] ActionResultType onBlockActivated(
         const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
@@ -194,7 +194,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResult handleBucketInteraction(
+    ActionResultType handleBucketInteraction(
         IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
@@ -210,7 +210,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResult handleBottleInteraction(
+    ActionResultType handleBottleInteraction(
         IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
@@ -226,7 +226,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResult handleLeatherArmorCleaning(
+    ActionResultType handleLeatherArmorCleaning(
         IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
@@ -242,7 +242,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResult handleBannerCleaning(
+    ActionResultType handleBannerCleaning(
         IWorld& world,
         const BlockPos& pos,
         const BlockState& state,

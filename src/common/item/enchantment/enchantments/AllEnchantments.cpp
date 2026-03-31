@@ -36,7 +36,7 @@ SilkTouchEnchantment AllEnchantments::SILK_TOUCH;
 PowerEnchantment AllEnchantments::POWER;
 PunchEnchantment AllEnchantments::PUNCH;
 FlameEnchantment AllEnchantments::FLAME;
-InfinityEnchantment AllEnchantments::INFINITY;
+InfinityEnchantment AllEnchantments::INFINITY_ARROW;
 
 // ========== 钓鱼类附魔静态实例 ==========
 LuckOfTheSeaEnchantment AllEnchantments::LUCK_OF_THE_SEA;
@@ -60,61 +60,59 @@ BindingCurseEnchantment AllEnchantments::BINDING_CURSE;
 SoulSpeedEnchantment AllEnchantments::SOUL_SPEED;
 
 void AllEnchantments::registerAll() {
-    auto& registry = EnchantmentRegistry::instance();
-
     // 保护类
-    registry.registerEnchantment(PROTECTION);
-    registry.registerEnchantment(FIRE_PROTECTION);
-    registry.registerEnchantment(FEATHER_FALLING);
-    registry.registerEnchantment(BLAST_PROTECTION);
-    registry.registerEnchantment(PROJECTILE_PROTECTION);
-    registry.registerEnchantment(THORNS);
-    registry.registerEnchantment(RESPIRATION);
-    registry.registerEnchantment(AQUA_AFFINITY);
-    registry.registerEnchantment(DEPTH_STRIDER);
-    registry.registerEnchantment(FROST_WALKER);
+    EnchantmentRegistry::registerEnchantment(PROTECTION);
+    EnchantmentRegistry::registerEnchantment(FIRE_PROTECTION);
+    EnchantmentRegistry::registerEnchantment(FEATHER_FALLING);
+    EnchantmentRegistry::registerEnchantment(BLAST_PROTECTION);
+    EnchantmentRegistry::registerEnchantment(PROJECTILE_PROTECTION);
+    EnchantmentRegistry::registerEnchantment(THORNS);
+    EnchantmentRegistry::registerEnchantment(RESPIRATION);
+    EnchantmentRegistry::registerEnchantment(AQUA_AFFINITY);
+    EnchantmentRegistry::registerEnchantment(DEPTH_STRIDER);
+    EnchantmentRegistry::registerEnchantment(FROST_WALKER);
 
     // 武器类
-    registry.registerEnchantment(SHARPNESS);
-    registry.registerEnchantment(SMITE);
-    registry.registerEnchantment(BANE_OF_ARTHROPODS);
-    registry.registerEnchantment(KNOCKBACK);
-    registry.registerEnchantment(FIRE_ASPECT);
-    registry.registerEnchantment(LOOTING);
-    registry.registerEnchantment(SWEEPING);
+    EnchantmentRegistry::registerEnchantment(SHARPNESS);
+    EnchantmentRegistry::registerEnchantment(SMITE);
+    EnchantmentRegistry::registerEnchantment(BANE_OF_ARTHROPODS);
+    EnchantmentRegistry::registerEnchantment(KNOCKBACK);
+    EnchantmentRegistry::registerEnchantment(FIRE_ASPECT);
+    EnchantmentRegistry::registerEnchantment(LOOTING);
+    EnchantmentRegistry::registerEnchantment(SWEEPING);
 
     // 工具类
-    registry.registerEnchantment(EFFICIENCY);
-    registry.registerEnchantment(UNBREAKING);
-    registry.registerEnchantment(FORTUNE);
-    registry.registerEnchantment(SILK_TOUCH);
+    EnchantmentRegistry::registerEnchantment(EFFICIENCY);
+    EnchantmentRegistry::registerEnchantment(UNBREAKING);
+    EnchantmentRegistry::registerEnchantment(FORTUNE);
+    EnchantmentRegistry::registerEnchantment(SILK_TOUCH);
 
     // 弓类
-    registry.registerEnchantment(POWER);
-    registry.registerEnchantment(PUNCH);
-    registry.registerEnchantment(FLAME);
-    registry.registerEnchantment(INFINITY);
+    EnchantmentRegistry::registerEnchantment(POWER);
+    EnchantmentRegistry::registerEnchantment(PUNCH);
+    EnchantmentRegistry::registerEnchantment(FLAME);
+    EnchantmentRegistry::registerEnchantment(INFINITY_ARROW);
 
     // 钓鱼类
-    registry.registerEnchantment(LUCK_OF_THE_SEA);
-    registry.registerEnchantment(LURE);
+    EnchantmentRegistry::registerEnchantment(LUCK_OF_THE_SEA);
+    EnchantmentRegistry::registerEnchantment(LURE);
 
     // 三叉戟
-    registry.registerEnchantment(LOYALTY);
-    registry.registerEnchantment(IMPALING);
-    registry.registerEnchantment(RIPTIDE);
-    registry.registerEnchantment(CHANNELING);
+    EnchantmentRegistry::registerEnchantment(LOYALTY);
+    EnchantmentRegistry::registerEnchantment(IMPALING);
+    EnchantmentRegistry::registerEnchantment(RIPTIDE);
+    EnchantmentRegistry::registerEnchantment(CHANNELING);
 
     // 弩类
-    registry.registerEnchantment(MULTISHOT);
-    registry.registerEnchantment(QUICK_CHARGE);
-    registry.registerEnchantment(PIERCING);
+    EnchantmentRegistry::registerEnchantment(MULTISHOT);
+    EnchantmentRegistry::registerEnchantment(QUICK_CHARGE);
+    EnchantmentRegistry::registerEnchantment(PIERCING);
 
     // 特殊
-    registry.registerEnchantment(MENDING);
-    registry.registerEnchantment(VANISHING_CURSE);
-    registry.registerEnchantment(BINDING_CURSE);
-    registry.registerEnchantment(SOUL_SPEED);
+    EnchantmentRegistry::registerEnchantment(MENDING);
+    EnchantmentRegistry::registerEnchantment(VANISHING_CURSE);
+    EnchantmentRegistry::registerEnchantment(BINDING_CURSE);
+    EnchantmentRegistry::registerEnchantment(SOUL_SPEED);
 }
 
 } // namespace enchant

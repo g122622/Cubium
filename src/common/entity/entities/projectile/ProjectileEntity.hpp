@@ -101,12 +101,12 @@ public:
     /**
      * @brief 检查是否不受重力影响
      */
-    [[nodiscard]] bool hasNoGravity() const override { return m_noGravity; }
+    [[nodiscard]] bool hasNoGravity() const { return m_noGravity; }
 
     /**
      * @brief 设置是否受重力影响
      */
-    void setNoGravity(bool noGravity) override { m_noGravity = noGravity; }
+    void setNoGravity(bool noGravity) { m_noGravity = noGravity; }
 
     // ========== 发射方法 ==========
 

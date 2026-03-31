@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/Player.hpp"
-#include "common/item/BlockItemRegistry.hpp"
-#include "common/item/BlockItemUseContext.hpp"
-#include "common/item/Items.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/fluid/Fluid.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "item/items/block/BlockItemRegistry.hpp"
+#include "item/context/BlockItemUseContext.hpp"
+#include "item/Items.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/fluid/Fluid.hpp"
 
 #include <unordered_map>
 

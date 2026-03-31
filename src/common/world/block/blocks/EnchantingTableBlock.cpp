@@ -37,7 +37,7 @@ std::unique_ptr<BlockEntity> EnchantingTableBlock::createBlockEntity(const Block
 
 // ========== 交互 ==========
 
-ActionResult EnchantingTableBlock::onBlockActivated(
+ActionResultType EnchantingTableBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -67,7 +67,7 @@ ActionResult EnchantingTableBlock::onBlockActivated(
         // player.openContainer(new EnchantmentContainer(player.getInventory(), enchantingTable));
     }
 
-    return ActionResult::Consume;
+    return ActionResultType::Consume;
 }
 
 // ========== 形状 ==========

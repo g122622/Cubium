@@ -8,6 +8,7 @@
 #include "../../util/Direction.hpp"
 #include "../../util/assert/AssertAll.hpp"
 #include "../../core/BlockRaycastResult.hpp"
+#include "../../item/core/ActionResult.hpp"
 #include "Material.hpp"
 #include "HarvestTool.hpp"
 #include "BlockSoundType.hpp"
@@ -1024,9 +1025,9 @@ public:
      * @param player 玩家
      * @param hand 手
      * @param hit 射线检测结果
-     * @return 交互结果
+     * @return 交互结果类型
      */
-    [[nodiscard]] virtual ActionResult onBlockActivated(
+    [[nodiscard]] virtual ActionResultType onBlockActivated(
         const BlockState& state,
         IWorld& world,
         const BlockPos& pos,

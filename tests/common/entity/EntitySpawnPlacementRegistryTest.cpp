@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "common/entity/EntitySpawnPlacementRegistry.hpp"
-#include "common/world/spawn/MobSpawnInfo.hpp"
-#include "common/world/chunk/IChunk.hpp"
-#include "common/world/block/Block.hpp"
+#include "entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "world/spawn/MobSpawnInfo.hpp"
+#include "world/chunk/IChunk.hpp"
+#include "world/block/Block.hpp"
 
 namespace mc {
 namespace test {

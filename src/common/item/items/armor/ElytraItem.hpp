@@ -30,7 +30,7 @@ public:
     /**
      * @brief 是否可修复
      */
-    [[nodiscard]] bool isRepairable() const override { return true; }
+    [[nodiscard]] bool isRepairable() const { return true; }
 
     /**
      * @brief 右键使用物品
@@ -42,7 +42,7 @@ public:
      * @param hand 使用的手
      * @return 动作结果
      */
-    ItemActionResult onItemRightClick(World& world, Player& player, Hand hand) override;
+    ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     /**
      * @brief 物品Tick
@@ -55,7 +55,7 @@ public:
      * @param itemSlot 物品栏槽位
      * @param isSelected 是否被选中
      */
-    void inventoryTick(ItemStack& stack, World& world, Entity& entity,
+    void inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
                         i32 itemSlot, bool isSelected) override;
 
     // ========== 鞘翅特有方法 ==========

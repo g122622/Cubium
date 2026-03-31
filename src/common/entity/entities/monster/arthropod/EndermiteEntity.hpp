@@ -14,6 +14,11 @@ namespace mc {
  */
 class EndermiteEntity : public MonsterEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     EndermiteEntity(LegacyEntityType type, EntityId id);
     ~EndermiteEntity() override = default;
 
@@ -39,6 +44,11 @@ private:
  */
 class SilverfishEntity : public MonsterEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     SilverfishEntity(LegacyEntityType type, EntityId id);
     ~SilverfishEntity() override = default;
 

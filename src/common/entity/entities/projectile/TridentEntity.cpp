@@ -31,7 +31,7 @@ void TridentEntity::tick() {
     // 如果已击中方块且没有忠诚附魔，不需要额外处理
     if (m_inGround) {
         // 检查忠诚附魔
-        if (m_loaltyLevel > 0) {
+        if (m_loyaltyLevel > 0) {
             // 忠诚附魔的三叉戟会返回
             m_returning = true;
         }
@@ -69,7 +69,7 @@ void TridentEntity::tickReturning() {
 
     // 归一化并设置速度
     direction = direction.normalized();
-    f32 speed = 1.5f + static_cast<f32>(m_loaltyLevel) * 0.5f;
+    f32 speed = 1.5f + static_cast<f32>(m_loyaltyLevel) * 0.5f;
     m_velocity = direction * speed;
 
     // 更新位置
@@ -133,7 +133,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     // 如果没有穿透，移除
     if (m_pierceLevel <= 0) {
         // 三叉戟不移除，而是返回
-        if (m_loaltyLevel > 0) {
+        if (m_loyaltyLevel > 0) {
             m_returning = true;
         }
     }

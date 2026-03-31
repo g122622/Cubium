@@ -34,8 +34,8 @@
 // 工具类附魔
 #include "tool/EfficiencyEnchantment.hpp"
 #include "tool/UnbreakingEnchantment.hpp"
-#include "../FortuneEnchantment.hpp"
-#include "../SilkTouchEnchantment.hpp"
+#include "FortuneEnchantment.hpp"
+#include "SilkTouchEnchantment.hpp"
 
 // 弓类附魔
 #include "bow/PowerEnchantment.hpp"
@@ -113,7 +113,7 @@ public:
     static PowerEnchantment POWER;
     static PunchEnchantment PUNCH;
     static FlameEnchantment FLAME;
-    static InfinityEnchantment INFINITY;
+    static InfinityEnchantment INFINITY_ARROW;
 
     // ========== 钓鱼类附魔 ==========
     static LuckOfTheSeaEnchantment LUCK_OF_THE_SEA;

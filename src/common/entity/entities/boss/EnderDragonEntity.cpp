@@ -1,11 +1,13 @@
 #include "EnderDragonEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../attribute/Attributes.hpp"
-#include "../../../util/math/MathUtils.hpp"
+#include "../../../core/Constants.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
+
+using namespace mc::math;
 
 // ============================================================================
 // BossEntity
@@ -21,7 +23,7 @@ BossEntity::BossEntity(LegacyEntityType type, EntityId id)
 // ============================================================================
 
 std::unique_ptr<Entity> EnderDragonEntity::create(IWorld* /*world*/) {
-    return std::make_unique<EnderDragonEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<EnderDragonEntity>(LegacyEntityType::EnderDragon, EntityId(0));
 }
 
 EnderDragonEntity::EnderDragonEntity(LegacyEntityType type, EntityId id)
@@ -30,7 +32,7 @@ EnderDragonEntity::EnderDragonEntity(LegacyEntityType type, EntityId id)
     // 初始化路径点
     // 末影龙围绕末地中心盘旋
     for (int i = 0; i < 8; ++i) {
-        f32 angle = i * (MathUtils::PI * 2.0f / 8.0f);
+        f32 angle = i * (PI * 2.0f / 8.0f);
         m_pathPoints.emplace_back(
             std::cos(angle) * 64.0f,
             64.0f,
@@ -105,7 +107,7 @@ void EnderDragonEntity::tick() {
 
 Vector3 EnderDragonEntity::breathOrigin() const {
     // 龙息从嘴部发出
-    f32 yaw = m_yaw * (MathUtils::PI / 180.0f);
+    f32 yaw = m_yaw * (PI / 180.0f);
     return Vector3(
         m_position.x + std::sin(yaw) * 5.0f,
         m_position.y + 2.0f,
@@ -262,7 +264,7 @@ void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ
     }
 
     // 根据父龙的旋转计算实际位置
-    f32 yaw = m_parent->yaw() * (MathUtils::PI / 180.0f);
+    f32 yaw = m_parent->yaw() * (PI / 180.0f);
 
     m_position.x = m_parent->x() + std::cos(yaw) * offsetX - std::sin(yaw) * offsetZ;
     m_position.y = m_parent->y() + offsetY;

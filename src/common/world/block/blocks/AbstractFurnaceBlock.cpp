@@ -39,7 +39,7 @@ BlockState AbstractFurnaceBlock::getStateForPlacement(BlockItemUseContext& conte
 
 // ========== 交互 ==========
 
-ActionResult AbstractFurnaceBlock::onBlockActivated(
+ActionResultType AbstractFurnaceBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -54,12 +54,12 @@ ActionResult AbstractFurnaceBlock::onBlockActivated(
     // 客户端直接返回成功
     // TODO: 检查 world.isRemote()
     // if (world.isRemote()) {
-    //     return ActionResult::Success;
+    //     return ActionResultType::Success;
     // }
 
     // 打开熔炉GUI
     interactWith(world, pos, player);
-    return ActionResult::Consume;
+    return ActionResultType::Consume;
 }
 
 // ========== 红石 ==========

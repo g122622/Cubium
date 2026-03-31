@@ -137,6 +137,8 @@ add_library(mc_common STATIC
     entity/entities/monster/ocean/GuardianEntity.cpp
     entity/entities/monster/ocean/ElderGuardianEntity.cpp
     # Entity - Monster (illager)
+    entity/entities/monster/illager/AbstractIllagerEntity.cpp
+    entity/entities/monster/illager/AbstractRaiderEntity.cpp
     entity/entities/monster/illager/WitchEntity.cpp
     entity/entities/monster/illager/IllagerEntities.cpp
     entity/entities/monster/illager/EvokerEntity.cpp
@@ -152,12 +154,13 @@ add_library(mc_common STATIC
     entity/entities/effect/EffectEntities.cpp
     # Entity - Misc
     entity/entities/misc/MiscEntities.cpp
-    # NOTE: Boss, Villager, and Projectile entities have incomplete implementations
-    # with compilation errors. They need further development before being added.
+    # Entity - Boss (incomplete - needs MerchantOffers, etc.)
     # entity/entities/boss/EnderDragonEntity.cpp
     # entity/entities/boss/WitherEntity.cpp
+    # Entity - Villager (incomplete - needs MerchantOffers, etc.)
     # entity/entities/villager/AbstractVillagerEntity.cpp
     # entity/entities/villager/VillagerEntity.cpp
+    # Entity - Projectile (incomplete - needs more work)
     # entity/entities/projectile/ProjectileEntity.cpp
     # entity/entities/projectile/ThrowableEntity.cpp
     # entity/entities/projectile/AbstractArrowEntity.cpp

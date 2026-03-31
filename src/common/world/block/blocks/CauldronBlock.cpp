@@ -110,7 +110,7 @@ void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
 
 // ========== 交互 ==========
 
-ActionResult CauldronBlock::onBlockActivated(
+ActionResultType CauldronBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -124,37 +124,37 @@ ActionResult CauldronBlock::onBlockActivated(
     ItemStack& heldItem = player.getHeldItem(hand);
 
     if (heldItem.isEmpty()) {
-        return ActionResult::Pass;
+        return ActionResultType::Pass;
     }
 
     // 根据物品类型处理不同的交互
-    ActionResult result = ActionResult::Pass;
+    ActionResultType result = ActionResultType::Pass;
 
     // 水桶交互
     result = handleBucketInteraction(world, pos, state, player, heldItem);
-    if (result != ActionResult::Pass) {
+    if (result != ActionResultType::Pass) {
         return result;
     }
 
     // 玻璃瓶交互
     result = handleBottleInteraction(world, pos, state, player, heldItem);
-    if (result != ActionResult::Pass) {
+    if (result != ActionResultType::Pass) {
         return result;
     }
 
     // 皮革盔甲清洗
     result = handleLeatherArmorCleaning(world, pos, state, player, heldItem);
-    if (result != ActionResult::Pass) {
+    if (result != ActionResultType::Pass) {
         return result;
     }
 
     // 旗帜清洗
     result = handleBannerCleaning(world, pos, state, player, heldItem);
-    if (result != ActionResult::Pass) {
+    if (result != ActionResultType::Pass) {
         return result;
     }
 
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
 // ========== 形状 ==========
@@ -217,7 +217,7 @@ bool CauldronBlock::isFull(const BlockState& state) {
 
 // ========== 私有方法 ==========
 
-ActionResult CauldronBlock::handleBucketInteraction(
+ActionResultType CauldronBlock::handleBucketInteraction(
     IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
@@ -238,7 +238,7 @@ ActionResult CauldronBlock::handleBucketInteraction(
     //         playFillSound(world, pos);
     //         // TODO: 替换为空桶
     //         // heldItem = new ItemStack(Items::BUCKET);
-    //         return ActionResult::Success;
+    //         return ActionResultType::Success;
     //     }
     // } else if (heldItem.getItem() == Items::BUCKET) {
     //     // 空桶取水：满炼药锅 -> 空炼药锅
@@ -247,14 +247,14 @@ ActionResult CauldronBlock::handleBucketInteraction(
     //         playEmptySound(world, pos);
     //         // TODO: 替换为水桶
     //         // heldItem = new ItemStack(Items::WATER_BUCKET);
-    //         return ActionResult::Success;
+    //         return ActionResultType::Success;
     //     }
     // }
 
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
-ActionResult CauldronBlock::handleBottleInteraction(
+ActionResultType CauldronBlock::handleBottleInteraction(
     IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
@@ -275,7 +275,7 @@ ActionResult CauldronBlock::handleBottleInteraction(
     //         playEmptySound(world, pos);
     //         // TODO: 替换为水瓶
     //         // heldItem = new ItemStack(Items::POTION);
-    //         return ActionResult::Success;
+    //         return ActionResultType::Success;
     //     }
     // } else if (heldItem.getItem() == Items::POTION && heldItem.getMetadata() == 0) {
     //     // 水瓶倒水：水位+1
@@ -284,14 +284,14 @@ ActionResult CauldronBlock::handleBottleInteraction(
     //         playFillSound(world, pos);
     //         // TODO: 替换为玻璃瓶
     //         // heldItem = new ItemStack(Items::GLASS_BOTTLE);
-    //         return ActionResult::Success;
+    //         return ActionResultType::Success;
     //     }
     // }
 
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
-ActionResult CauldronBlock::handleLeatherArmorCleaning(
+ActionResultType CauldronBlock::handleLeatherArmorCleaning(
     IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
@@ -311,14 +311,14 @@ ActionResult CauldronBlock::handleLeatherArmorCleaning(
     //         // TODO: 移除颜色
     //         // heldItem.removeColor();
     //         playEmptySound(world, pos);
-    //         return ActionResult::Success;
+    //         return ActionResultType::Success;
     //     }
     // }
 
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
-ActionResult CauldronBlock::handleBannerCleaning(
+ActionResultType CauldronBlock::handleBannerCleaning(
     IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
@@ -338,11 +338,11 @@ ActionResult CauldronBlock::handleBannerCleaning(
     //         // TODO: 移除最顶层的图案
     //         // BannerBlock.removeTopPattern(heldItem);
     //         playEmptySound(world, pos);
-    //         return ActionResult::Success;
+    //         return ActionResultType::Success;
     //     }
     // }
 
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
 void CauldronBlock::playFillSound(IWorld& world, const BlockPos& pos) {

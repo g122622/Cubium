@@ -15,6 +15,11 @@ namespace mc {
  */
 class GhastEntity : public MonsterEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     GhastEntity(LegacyEntityType type, EntityId id);
     ~GhastEntity() override = default;
 
@@ -57,6 +62,11 @@ private:
  */
 class MagmaCubeEntity : public MonsterEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     MagmaCubeEntity(LegacyEntityType type, EntityId id);
     ~MagmaCubeEntity() override = default;
 
@@ -122,6 +132,11 @@ private:
  */
 class PiglinEntity : public AbstractPiglinEntity, public entity::ICrossbowUser {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     PiglinEntity(LegacyEntityType type, EntityId id);
     ~PiglinEntity() override = default;
 
@@ -162,6 +177,11 @@ private:
  */
 class PiglinBruteEntity : public AbstractPiglinEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     PiglinBruteEntity(LegacyEntityType type, EntityId id);
     ~PiglinBruteEntity() override = default;
 
@@ -212,6 +232,11 @@ private:
  */
 class HoglinEntity : public MonsterEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     HoglinEntity(LegacyEntityType type, EntityId id);
     ~HoglinEntity() override = default;
 
@@ -244,6 +269,11 @@ private:
  */
 class ZoglinEntity : public MonsterEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     ZoglinEntity(LegacyEntityType type, EntityId id);
     ~ZoglinEntity() override = default;
 

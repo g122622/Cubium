@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../core/Item.hpp"
-#include "ArmorMaterial.hpp"
-#include "../../entity/core/LivingEntity.hpp"
+#include "../../core/Item.hpp"
+#include "../../armor/ArmorMaterial.hpp"
+#include "../../../entity/core/LivingEntity.hpp"
 
 namespace mc {
 
@@ -53,9 +53,7 @@ public:
      * @brief 是否可修复
      * @return 盔甲材质有修复材料时可修复
      */
-    [[nodiscard]] bool isRepairable() const override {
-        return true;
-    }
+    [[nodiscard]] bool isRepairable() const { return true; }
 
     /**
      * @brief 获取挖掘速度
@@ -75,7 +73,7 @@ public:
      * @param hand 使用的手
      * @return 动作结果
      */
-    ItemActionResult onItemRightClick(World& world, Player& player, Hand hand) override;
+    ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     // ========== 盔甲特有方法 ==========
 

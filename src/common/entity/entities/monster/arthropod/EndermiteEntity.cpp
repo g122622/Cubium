@@ -1,9 +1,15 @@
 #include "EndermiteEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../../world/IWorld.hpp"
 
 namespace mc {
 
 // EndermiteEntity
+std::unique_ptr<Entity> EndermiteEntity::create(IWorld* world) {
+    return std::make_unique<EndermiteEntity>(LegacyEntityType::Endermite, EntityId(0));
+}
+
 EndermiteEntity::EndermiteEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
@@ -36,6 +42,10 @@ void EndermiteEntity::registerAttributes() {
 }
 
 // SilverfishEntity
+std::unique_ptr<Entity> SilverfishEntity::create(IWorld* world) {
+    return std::make_unique<SilverfishEntity>(LegacyEntityType::Silverfish, EntityId(0));
+}
+
 SilverfishEntity::SilverfishEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {

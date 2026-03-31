@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "../src/common/item/Item.hpp"
-#include "../src/common/item/ItemStack.hpp"
-#include "../src/common/item/ItemRegistry.hpp"
-#include "../src/common/item/Items.hpp"
+#include "item/core/Item.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include "item/Items.hpp"
 
 using namespace mc;
 

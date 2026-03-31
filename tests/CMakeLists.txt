@@ -308,26 +308,26 @@ target_sources(mc_tests
         # 时间系统
         ${CMAKE_SOURCE_DIR}/src/common/world/time/GameTime.cpp
         # 物品系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/Item.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/ItemStack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/ItemRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/Items.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/BlockItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/BlockItemRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/ItemUseContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/BlockItemUseContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItemRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/context/ItemUseContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/context/BlockItemUseContext.cpp
         # 工具层级系统
         ${CMAKE_SOURCE_DIR}/src/common/item/tier/IItemTier.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tier/ItemTiers.cpp
         # 工具系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/ToolType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/TieredItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/ToolItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/PickaxeItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/AxeItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/ShovelItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/HoeItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tool/SwordItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ToolType.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/TieredItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ToolItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/PickaxeItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/AxeItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ShovelItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/HoeItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/SwordItem.cpp
         # 背包系统
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/Slot.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerInventory.cpp

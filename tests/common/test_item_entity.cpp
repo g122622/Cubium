@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "../src/common/entity/ItemEntity.hpp"
-#include "../src/common/item/ItemRegistry.hpp"
-#include "../src/common/item/Items.hpp"
+#include "entity/entities/item/ItemEntity.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include "item/Items.hpp"
 
 using namespace mc;
 

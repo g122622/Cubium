@@ -1,7 +1,8 @@
 #pragma once
 
 #include "AbstractVillagerEntity.hpp"
-#include "../../memory/MemoryModuleType.hpp"
+#include "../../ai/brain/memory/MemoryModuleType.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include <memory>
 #include <vector>
 
@@ -108,12 +109,12 @@ public:
     /**
      * @brief 获取工作站点位置
      */
-    [[nodiscard]] BlockCoord workStation() const { return m_workStation; }
+    [[nodiscard]] BlockPos workStation() const { return m_workStation; }
 
     /**
      * @brief 设置工作站点
      */
-    void setWorkStation(BlockCoord pos) { m_workStation = pos; }
+    void setWorkStation(BlockPos pos) { m_workStation = pos; }
 
     /**
      * @brief 是否在工作站点
@@ -127,9 +128,9 @@ public:
 
     // ========== 繁殖 ==========
 
-    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
+    [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const;
 
-    std::unique_ptr<AgeableEntity> createChild() override;
+    std::unique_ptr<AgeableEntity> createChild();
 
     // ========== 其他 ==========
 
@@ -160,6 +161,11 @@ public:
      */
     void play();
 
+    /**
+     * @brief 补充交易物品
+     */
+    void restockTrades();
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
@@ -168,7 +174,7 @@ private:
     VillagerData m_villagerData;
 
     // 工作站点
-    BlockCoord m_workStation;
+    BlockPos m_workStation;
     bool m_atWorkstation = false;
     bool m_working = false;
 

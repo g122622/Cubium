@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include "common/entity/Player.hpp"
-#include "common/entity/GameModeUtils.hpp"
-#include "common/physics/PhysicsEngine.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/entities/player/GameModeUtils.hpp"
+#include "physics/PhysicsEngine.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/chunk/ChunkData.hpp"
 #include <cmath>
 
 namespace mc {

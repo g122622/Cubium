@@ -1,6 +1,7 @@
 #include "ProjectileEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include <cmath>
 
 namespace mc {

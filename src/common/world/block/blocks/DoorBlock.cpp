@@ -205,7 +205,7 @@ bool DoorBlock::isValidPosition(
 
 // ========== 交互 ==========
 
-ActionResult DoorBlock::onBlockActivated(
+ActionResultType DoorBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -219,7 +219,7 @@ ActionResult DoorBlock::onBlockActivated(
 
     // 铁门不能手动开关
     if (m_isIron) {
-        return ActionResult::Pass;
+        return ActionResultType::Pass;
     }
 
     // 切换开关状态
@@ -231,7 +231,7 @@ ActionResult DoorBlock::onBlockActivated(
     // 播放音效
     playSound(world, pos, !wasOpen);
 
-    return ActionResult::Success;
+    return ActionResultType::Success;
 }
 
 void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open) {

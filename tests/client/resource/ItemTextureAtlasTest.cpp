@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "client/resource/ItemTextureAtlas.hpp"
-#include "common/item/BlockItem.hpp"
-#include "common/item/ItemRegistry.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 

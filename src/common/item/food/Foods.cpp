@@ -17,17 +17,17 @@ const Food CARROT(3, 0.2f);
 
 const Food CHORUS_FRUIT(4, 0.2f);  // 可传送
 
-const Food COOKED_CHICKEN(6, 0.6f).setMeat();
+const Food COOKED_CHICKEN = Food(6, 0.6f).setMeat();
 
-const Food COOKED_COD(5, 0.6f).setMeat();
+const Food COOKED_COD = Food(5, 0.6f).setMeat();
 
-const Food COOKED_MUTTON(6, 0.8f).setMeat();
+const Food COOKED_MUTTON = Food(6, 0.8f).setMeat();
 
-const Food COOKED_PORKCHOP(8, 0.8f).setMeat();
+const Food COOKED_PORKCHOP = Food(8, 0.8f).setMeat();
 
-const Food COOKED_RABBIT(5, 0.6f).setMeat();
+const Food COOKED_RABBIT = Food(5, 0.6f).setMeat();
 
-const Food COOKED_SALMON(6, 0.8f).setMeat();
+const Food COOKED_SALMON = Food(6, 0.8f).setMeat();
 
 const Food COOKIE(2, 0.1f);
 
@@ -63,9 +63,9 @@ const Food SWEET_BERRIES(2, 0.1f);
 
 // ========== 金苹果 ==========
 
-const Food GOLDEN_APPLE(4, 1.2f).setAlwaysEdible();
+const Food GOLDEN_APPLE = Food(4, 1.2f).setAlwaysEdible();
 
-const Food ENCHANTED_GOLDEN_APPLE(4, 1.2f).setAlwaysEdible();
+const Food ENCHANTED_GOLDEN_APPLE = Food(4, 1.2f).setAlwaysEdible();
 
 // ========== 汤类 ==========
 

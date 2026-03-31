@@ -1,7 +1,7 @@
 #include "ProjectileItemEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../../item/Items.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "../../damage/DamageSource.hpp"
 #include <cmath>
 
 namespace mc {

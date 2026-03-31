@@ -17,14 +17,17 @@ class Item;
 class ItemStack;
 class ItemRegistry;
 class ItemUseContext;
-class World;
+class IWorld;
 class Player;
 class LivingEntity;
 class Entity;
 class BlockRaycastResult;
 struct Vec3;
 struct BlockPos;
-class Direction;
+
+// Forward declaration for Direction enum (defined in util/Direction.hpp)
+// Note: We cannot forward declare an enum class across namespaces,
+// so we use the full qualified name where needed, or include Direction.hpp
 
 // Forward declaration for attribute system
 namespace entity::attribute {
@@ -354,7 +357,7 @@ public:
      * @param hand 使用的手
      * @return 动作结果（包含结果物品堆）
      */
-    virtual ItemActionResult onItemRightClick(World& world, Player& player, Hand hand);
+    virtual ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand);
 
     /**
      * @brief 与实体交互
@@ -382,7 +385,7 @@ public:
      * @param entity 使用的实体
      * @return 使用后的物品堆
      */
-    virtual ItemStack onItemUseFinish(ItemStack& stack, World& world, LivingEntity& entity);
+    virtual ItemStack onItemUseFinish(ItemStack& stack, IWorld& world, LivingEntity& entity);
 
     /**
      * @brief 玩家停止使用物品
@@ -395,7 +398,7 @@ public:
      * @param entity 使用的实体
      * @param timeLeft 剩余使用时间（ticks）
      */
-    virtual void onPlayerStoppedUsing(ItemStack& stack, World& world,
+    virtual void onPlayerStoppedUsing(ItemStack& stack, IWorld& world,
                                       LivingEntity& entity, i32 timeLeft);
 
     /**
@@ -427,7 +430,7 @@ public:
      * @param itemSlot 物品栏槽位
      * @param isSelected 是否被选中
      */
-    virtual void inventoryTick(ItemStack& stack, World& world, Entity& entity,
+    virtual void inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
                                i32 itemSlot, bool isSelected);
 
     /**
@@ -441,7 +444,7 @@ public:
      * @param tooltip 提示文本列表
      * @param advanced 是否显示高级提示
      */
-    virtual void addInformation(const ItemStack& stack, World& world,
+    virtual void addInformation(const ItemStack& stack, IWorld& world,
                                 std::vector<String>& tooltip, bool advanced) const;
 
     /**
@@ -506,20 +509,6 @@ public:
      */
     [[nodiscard]] virtual bool canEat(const ItemStack& stack, const Player& player) const;
 
-    // ========================================================================
-    // 耐久度与修复
-    // ========================================================================
-
-    /**
-     * @brief 物品是否可以损坏
-     *
-     * 检查物品是否可以被使用损坏（如工具、武器）。
-     * 参考: net.minecraft.item.Item#isDamageable
-     *
-     * @return 是否可以损坏
-     */
-    [[nodiscard]] bool isDamageable() const { return m_maxDamage > 0; }
-
     /**
      * @brief 物品被破坏时调用
      *
@@ -530,38 +519,7 @@ public:
      * @param world 世界引用
      * @param entity 持有实体
      */
-    virtual void onDestroyed(ItemStack& stack, World& world, Entity& entity);
-
-    /**
-     * @brief 获取翻译键
-     */
-    [[nodiscard]] virtual String getTranslationKey() const;
-
-    /**
-     * @brief 获取翻译键（带物品堆）
-     */
-    [[nodiscard]] virtual String getTranslationKey(const ItemStack& stack) const;
-
-    /**
-     * @brief 获取物品名称
-     *
-     * 返回物品的简单名称（不含格式）。
-     * 子类可重写以提供自定义名称。
-     *
-     * @return 物品名称
-     */
-    [[nodiscard]] virtual String getName() const;
-
-    /**
-     * @brief 获取附魔能力
-     * @return 附魔能力值（0表示不可附魔）
-     */
-    [[nodiscard]] virtual i32 getItemEnchantability() const { return 0; }
-
-    /**
-     * @brief 物品是否为食物
-     */
-    [[nodiscard]] virtual bool isFood() const { return m_food != nullptr; }
+    virtual void onDestroyed(ItemStack& stack, IWorld& world, Entity& entity);
 
     /**
      * @brief 转换为字符串

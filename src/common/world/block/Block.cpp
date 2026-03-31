@@ -590,7 +590,7 @@ bool Block::isValidPosition(
     return true;
 }
 
-ActionResult Block::onBlockActivated(
+ActionResultType Block::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -604,7 +604,7 @@ ActionResult Block::onBlockActivated(
     (void)player;
     (void)hand;
     (void)hit;
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
 std::unique_ptr<BlockEntity> Block::createBlockEntity(const BlockPos& pos) {

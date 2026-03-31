@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AbstractArrowEntity.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include <memory>
 
 namespace mc {

@@ -1,7 +1,13 @@
 #include "PhantomEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../../world/IWorld.hpp"
 
 namespace mc {
+
+std::unique_ptr<Entity> PhantomEntity::create(IWorld* world) {
+    return std::make_unique<PhantomEntity>(LegacyEntityType::Phantom, EntityId(0));
+}
 
 PhantomEntity::PhantomEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)

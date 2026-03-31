@@ -20,7 +20,7 @@ i32 ProtectionEnchantment::getMinCost(i32 level) const {
 }
 
 i32 ProtectionEnchantment::getMaxCost(i32 level) const {
-    return getMinCost(level) + m_protectionType == Type::All ? 11 : 8;
+    return getMinCost(level) + (m_protectionType == Type::All ? 11 : 8);
 }
 
 i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const {

@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/Entity.hpp"
-#include "common/entity/Player.hpp"
-#include "common/entity/PlayerManager.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/entities/player/PlayerManager.hpp"
+#include "network/packet/PacketSerializer.hpp"
 
 using namespace mc;
 

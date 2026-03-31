@@ -13,7 +13,7 @@ void AbstractRaiderEntity::startCelebrating() {
 }
 
 void AbstractRaiderEntity::tick() {
-    AbstractIllagerEntity::tick();
+    MonsterEntity::tick();
 
     // 更新庆祝时间
     if (m_celebrationTime > 0) {

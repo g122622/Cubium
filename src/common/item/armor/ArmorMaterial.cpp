@@ -1,5 +1,5 @@
 #include "ArmorMaterial.hpp"
-#include "../../crafting/Ingredient.hpp"
+#include "../crafting/Ingredient.hpp"
 #include "../../sound/SoundEvent.hpp"
 
 namespace mc {
@@ -42,9 +42,9 @@ i32 LeatherArmorMaterial::getDefense(ArmorSlot slot) const {
     }
 }
 
-SoundEvent LeatherArmorMaterial::getEquipSound() const {
+sound::SoundEvent LeatherArmorMaterial::getEquipSound() const {
     // TODO: 返回物品装备音效
-    return SoundEvent();  // item.armor.equip_leather
+    return sound::SoundEvent();  // item.armor.equip_leather
 }
 
 crafting::Ingredient LeatherArmorMaterial::getRepairMaterial() const {
@@ -71,8 +71,8 @@ i32 ChainArmorMaterial::getDefense(ArmorSlot slot) const {
     }
 }
 
-SoundEvent ChainArmorMaterial::getEquipSound() const {
-    return SoundEvent();  // item.armor.equip_chain
+sound::SoundEvent ChainArmorMaterial::getEquipSound() const {
+    return sound::SoundEvent();  // item.armor.equip_chain
 }
 
 crafting::Ingredient ChainArmorMaterial::getRepairMaterial() const {
@@ -99,8 +99,8 @@ i32 IronArmorMaterial::getDefense(ArmorSlot slot) const {
     }
 }
 
-SoundEvent IronArmorMaterial::getEquipSound() const {
-    return SoundEvent();  // item.armor.equip_iron
+sound::SoundEvent IronArmorMaterial::getEquipSound() const {
+    return sound::SoundEvent();  // item.armor.equip_iron
 }
 
 crafting::Ingredient IronArmorMaterial::getRepairMaterial() const {
@@ -127,8 +127,8 @@ i32 GoldArmorMaterial::getDefense(ArmorSlot slot) const {
     }
 }
 
-SoundEvent GoldArmorMaterial::getEquipSound() const {
-    return SoundEvent();  // item.armor.equip_gold
+sound::SoundEvent GoldArmorMaterial::getEquipSound() const {
+    return sound::SoundEvent();  // item.armor.equip_gold
 }
 
 crafting::Ingredient GoldArmorMaterial::getRepairMaterial() const {
@@ -155,8 +155,8 @@ i32 DiamondArmorMaterial::getDefense(ArmorSlot slot) const {
     }
 }
 
-SoundEvent DiamondArmorMaterial::getEquipSound() const {
-    return SoundEvent();  // item.armor.equip_diamond
+sound::SoundEvent DiamondArmorMaterial::getEquipSound() const {
+    return sound::SoundEvent();  // item.armor.equip_diamond
 }
 
 crafting::Ingredient DiamondArmorMaterial::getRepairMaterial() const {
@@ -180,8 +180,8 @@ i32 TurtleArmorMaterial::getDefense(ArmorSlot slot) const {
     }
 }
 
-SoundEvent TurtleArmorMaterial::getEquipSound() const {
-    return SoundEvent();  // item.armor.equip_turtle
+sound::SoundEvent TurtleArmorMaterial::getEquipSound() const {
+    return sound::SoundEvent();  // item.armor.equip_turtle
 }
 
 crafting::Ingredient TurtleArmorMaterial::getRepairMaterial() const {
@@ -208,8 +208,8 @@ i32 NetheriteArmorMaterial::getDefense(ArmorSlot slot) const {
     }
 }
 
-SoundEvent NetheriteArmorMaterial::getEquipSound() const {
-    return SoundEvent();  // item.armor.equip_netherite
+sound::SoundEvent NetheriteArmorMaterial::getEquipSound() const {
+    return sound::SoundEvent();  // item.armor.equip_netherite
 }
 
 crafting::Ingredient NetheriteArmorMaterial::getRepairMaterial() const {

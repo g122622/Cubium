@@ -239,7 +239,7 @@ public:
 
     // ========== 交互 ==========
 
-    [[nodiscard]] ActionResult onBlockActivated(
+    [[nodiscard]] ActionResultType onBlockActivated(
         const BlockState& state,
         IWorld& world,
         const BlockPos& pos,

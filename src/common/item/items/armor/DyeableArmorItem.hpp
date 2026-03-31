@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ArmorItem.hpp"
-#include "../../core/Types.hpp"
 
 namespace mc {
 namespace item::items {

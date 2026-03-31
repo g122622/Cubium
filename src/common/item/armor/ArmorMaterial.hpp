@@ -3,13 +3,16 @@
 #include "../../core/Types.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../crafting/Ingredient.hpp"
+#include "../../entity/core/LivingEntity.hpp"  // For EquipmentSlot enum
+#include "../../sound/SoundEvent.hpp"
 #include <string>
 
 namespace mc {
 
 // Forward declarations
-class SoundEvent;
-class EquipmentSlot;
+namespace sound {
+    class SoundEvent;
+}
 
 namespace item::armor {
 
@@ -78,7 +81,7 @@ public:
      * @brief 获取装备音效
      * @return 音效事件
      */
-    [[nodiscard]] virtual SoundEvent getEquipSound() const = 0;
+    [[nodiscard]] virtual sound::SoundEvent getEquipSound() const = 0;
 
     // ========== 修复 ==========
 
@@ -143,7 +146,7 @@ public:
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 15; }
-    [[nodiscard]] SoundEvent getEquipSound() const override;
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
 
@@ -159,7 +162,7 @@ public:
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 12; }
-    [[nodiscard]] SoundEvent getEquipSound() const override;
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
 
@@ -175,7 +178,7 @@ public:
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 9; }
-    [[nodiscard]] SoundEvent getEquipSound() const override;
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
 
@@ -192,7 +195,7 @@ public:
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 25; }
-    [[nodiscard]] SoundEvent getEquipSound() const override;
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
 
@@ -209,7 +212,7 @@ public:
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 10; }
-    [[nodiscard]] SoundEvent getEquipSound() const override;
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
     [[nodiscard]] f32 getToughness() const override { return 2.0f; }
 };
@@ -226,7 +229,7 @@ public:
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 9; }
-    [[nodiscard]] SoundEvent getEquipSound() const override;
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
 };
 
@@ -245,7 +248,7 @@ public:
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 15; }
-    [[nodiscard]] SoundEvent getEquipSound() const override;
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
     [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
     [[nodiscard]] f32 getToughness() const override { return 3.0f; }
     [[nodiscard]] f32 getKnockbackResistance() const override { return 0.1f; }

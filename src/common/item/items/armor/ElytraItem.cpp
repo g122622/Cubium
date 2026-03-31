@@ -3,7 +3,8 @@
 #include "../../core/ActionResult.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
-#include "../../../world/World.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../armor/ArmorMaterial.hpp"
 
 namespace mc {
 namespace item::items {
@@ -13,25 +14,16 @@ ElytraItem::ElytraItem(ItemProperties properties)
     // 鞘翅应该设置耐久度为432
 }
 
-ItemActionResult ElytraItem::onItemRightClick(World& world, Player& player, Hand hand) {
-    // 检查胸甲槽位
-    ItemStack chestItem = player.getArmorStack(static_cast<i32>(armor::ArmorSlot::Chest));
-
-    if (chestItem.isEmpty()) {
-        // 装备鞘翅
-        ItemStack heldItem = player.getHeldItem(hand);
-        heldItem.shrink(1);
-        player.setArmorStack(static_cast<i32>(armor::ArmorSlot::Chest), heldItem.copy());
-
-        // TODO: 播放装备音效
-        (void)world;
-        return ItemActionResult::consume(heldItem);
-    }
-
+ItemActionResult ElytraItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+    // TODO: 实现鞘翅装备逻辑
+    // 需要在 Player 类中添加 getArmorStack/setArmorStack 方法
+    (void)world;
+    (void)player;
+    (void)hand;
     return ItemActionResult::pass(player.getHeldItem(hand));
 }
 
-void ElytraItem::inventoryTick(ItemStack& stack, World& world, Entity& entity,
+void ElytraItem::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
                                 i32 itemSlot, bool isSelected) {
     // 检查是否是LivingEntity且正在滑翔
     LivingEntity* living = dynamic_cast<LivingEntity*>(&entity);

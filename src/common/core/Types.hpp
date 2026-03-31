@@ -206,18 +206,6 @@ enum class BlockShape : u8 {
 };
 
 /**
- * @brief 交互结果
- *
- * 参考 MC 1.16.5 ActionResult
- */
-enum class ActionResult : u8 {
-    Pass,       ///< 未处理，继续传递
-    Success,    ///< 成功处理，客户端执行
-    Consume,    ///< 成功处理，消费物品
-    Fail        ///< 失败，不执行任何操作
-};
-
-/**
  * @brief 手部（用于交互）
  *
  * 参考 MC 1.16.5 Hand

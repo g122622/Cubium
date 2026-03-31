@@ -1,14 +1,14 @@
 #pragma once
 
 #include "../../core/Item.hpp"
-#include "../food/Food.hpp"
-#include "../core/UseAction.hpp"
+#include "../../food/Food.hpp"
+#include "../../core/UseAction.hpp"
 
 namespace mc {
 
 // Forward declarations
 class Player;
-class World;
+class IWorld;
 class LivingEntity;
 
 namespace item::items {
@@ -76,7 +76,7 @@ public:
      * @param hand 使用的手
      * @return 动作结果
      */
-    ItemActionResult onItemRightClick(World& world, Player& player, Hand hand) override;
+    ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     /**
      * @brief 物品使用完成
@@ -91,7 +91,7 @@ public:
      * @param entity 使用者
      * @return 使用后的物品堆
      */
-    ItemStack onItemUseFinish(ItemStack& stack, World& world, LivingEntity& entity) override;
+    ItemStack onItemUseFinish(ItemStack& stack, IWorld& world, LivingEntity& entity) override;
 
     /**
      * @brief 检查是否可以食用

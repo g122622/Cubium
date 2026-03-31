@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 
-#include "common/entity/EntityClassification.hpp"
-#include "common/entity/EntitySize.hpp"
-#include "common/entity/EntityPose.hpp"
-#include "common/entity/MoverType.hpp"
-#include "common/entity/EntityType.hpp"
-#include "common/entity/EntityRegistry.hpp"
-#include "common/entity/DataParameter.hpp"
-#include "common/entity/EntityDataManager.hpp"
-#include "common/entity/Entity.hpp"
+#include "entity/core/EntityClassification.hpp"
+#include "entity/core/EntitySize.hpp"
+#include "entity/core/EntityPose.hpp"
+#include "entity/core/MoverType.hpp"
+#include "entity/core/EntityType.hpp"
+#include "entity/core/EntityRegistry.hpp"
+#include "entity/core/DataParameter.hpp"
+#include "entity/core/EntityDataManager.hpp"
+#include "entity/core/Entity.hpp"
 
 using namespace mc;
 using namespace mc::entity;

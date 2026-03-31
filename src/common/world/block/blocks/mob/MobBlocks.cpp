@@ -57,7 +57,7 @@ const BlockState& BeehiveBlock::mirror(const BlockState& state, Mirror mirror) c
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-ActionResult BeehiveBlock::onBlockActivated(
+ActionResultType BeehiveBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -73,7 +73,7 @@ ActionResult BeehiveBlock::onBlockActivated(
     MC_UNUSED(hit);
 
     // TODO: 收集蜂蜜或打开蜂巢界面
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
 // ========== TurtleEggBlock ==========
@@ -197,7 +197,7 @@ SpawnerBlock::SpawnerBlock(const BlockProperties& properties)
     // 刷怪笼没有特殊状态
 }
 
-ActionResult SpawnerBlock::onBlockActivated(
+ActionResultType SpawnerBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -213,7 +213,7 @@ ActionResult SpawnerBlock::onBlockActivated(
     MC_UNUSED(hit);
 
     // 只有创造模式可以打开刷怪笼界面
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
 // ========== DragonBreathBlock ==========

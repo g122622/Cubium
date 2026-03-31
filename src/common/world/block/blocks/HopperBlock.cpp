@@ -87,7 +87,7 @@ std::unique_ptr<BlockEntity> HopperBlock::createBlockEntity(const BlockPos& pos)
 
 // ========== 交互 ==========
 
-ActionResult HopperBlock::onBlockActivated(
+ActionResultType HopperBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -111,10 +111,10 @@ ActionResult HopperBlock::onBlockActivated(
         // auto* hopper = static_cast<blockentity::HopperEntity*>(blockEntity);
         // player.openContainer(hopper);
         // player.addStat(Stats.INSPECT_HOPPER);
-        return ActionResult::Consume;
+        return ActionResultType::Consume;
     }
 
-    return ActionResult::Pass;
+    return ActionResultType::Pass;
 }
 
 // ========== 红石 ==========

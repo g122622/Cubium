@@ -9,7 +9,7 @@ namespace mc {
 namespace entity {
 
 std::unique_ptr<Entity> WitherEntity::create(IWorld* /*world*/) {
-    return std::make_unique<WitherEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<WitherEntity>(LegacyEntityType::Wither, EntityId(0));
 }
 
 WitherEntity::WitherEntity(LegacyEntityType type, EntityId id)

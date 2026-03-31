@@ -9,6 +9,9 @@ namespace mc {
 
 class Item;
 
+// Forward declaration for ItemStack (defined in item/core/ItemStack.hpp)
+class ItemStack;
+
 namespace item::tag {
 
 /**
@@ -61,7 +64,7 @@ public:
      * @param stack 物品堆
      * @return 是否在标签中
      */
-    [[nodiscard]] bool contains(const class ItemStack& stack) const;
+    [[nodiscard]] bool contains(const ItemStack& stack) const;
 
     /**
      * @brief 获取标签中的所有物品

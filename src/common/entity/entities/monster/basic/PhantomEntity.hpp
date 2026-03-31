@@ -23,6 +23,11 @@ public:
         NONE         // 无
     };
 
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     PhantomEntity(LegacyEntityType type, EntityId id);
     ~PhantomEntity() override = default;
 

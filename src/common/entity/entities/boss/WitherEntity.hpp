@@ -51,7 +51,7 @@ public:
     /**
      * @brief 凋灵免疫火焰和溺水
      */
-    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
+    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const;
 
     // ========== IRangedAttackMob 接口实现 ==========
 

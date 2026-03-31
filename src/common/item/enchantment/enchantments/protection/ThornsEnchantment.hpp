@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Enchantment.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {

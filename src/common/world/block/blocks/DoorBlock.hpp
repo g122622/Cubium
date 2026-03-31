@@ -121,7 +121,7 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResult onBlockActivated(
+    [[nodiscard]] ActionResultType onBlockActivated(
         const BlockState& state,
         IWorld& world,
         const BlockPos& pos,

@@ -1,9 +1,15 @@
 #include "NetherEntities.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../../world/IWorld.hpp"
 
 namespace mc {
 
 // GhastEntity
+std::unique_ptr<Entity> GhastEntity::create(IWorld* world) {
+    return std::make_unique<GhastEntity>(LegacyEntityType::Ghast, EntityId(0));
+}
+
 GhastEntity::GhastEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
@@ -46,6 +52,10 @@ void GhastEntity::registerAttributes() {
 }
 
 // MagmaCubeEntity
+std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* world) {
+    return std::make_unique<MagmaCubeEntity>(LegacyEntityType::MagmaCube, EntityId(0));
+}
+
 MagmaCubeEntity::MagmaCubeEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
@@ -82,6 +92,10 @@ void AbstractPiglinEntity::registerGoals() {
 }
 
 // PiglinEntity
+std::unique_ptr<Entity> PiglinEntity::create(IWorld* world) {
+    return std::make_unique<PiglinEntity>(LegacyEntityType::Piglin, EntityId(0));
+}
+
 PiglinEntity::PiglinEntity(LegacyEntityType type, EntityId id)
     : AbstractPiglinEntity(type, id)
 {
@@ -119,6 +133,10 @@ void PiglinEntity::registerAttributes() {
 }
 
 // PiglinBruteEntity
+std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world) {
+    return std::make_unique<PiglinBruteEntity>(LegacyEntityType::PiglinBrute, EntityId(0));
+}
+
 PiglinBruteEntity::PiglinBruteEntity(LegacyEntityType type, EntityId id)
     : AbstractPiglinEntity(type, id)
 {
@@ -169,6 +187,10 @@ void ZombifiedPiglinEntity::registerAttributes() {
 }
 
 // HoglinEntity
+std::unique_ptr<Entity> HoglinEntity::create(IWorld* world) {
+    return std::make_unique<HoglinEntity>(LegacyEntityType::Hoglin, EntityId(0));
+}
+
 HoglinEntity::HoglinEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
@@ -197,6 +219,10 @@ void HoglinEntity::registerAttributes() {
 }
 
 // ZoglinEntity
+std::unique_ptr<Entity> ZoglinEntity::create(IWorld* world) {
+    return std::make_unique<ZoglinEntity>(LegacyEntityType::Zoglin, EntityId(0));
+}
+
 ZoglinEntity::ZoglinEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {

@@ -1,6 +1,6 @@
 #include "AbstractFireballEntity.hpp"
 #include "../../core/LivingEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "../../damage/DamageSource.hpp"
 #include "../../../world/IWorld.hpp"
 #include <cmath>
 

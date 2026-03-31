@@ -27,6 +27,11 @@ namespace mc {
 class PillagerEntity : public AbstractRaiderEntity, public entity::ICrossbowUser {
 public:
     /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
+    /**
      * @brief 构造函数
      * @param type 实体类型
      * @param id 实体ID
@@ -92,6 +97,11 @@ private:
  */
 class VindicatorEntity : public AbstractRaiderEntity {
 public:
+    /**
+     * @brief 工厂方法
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
     /**
      * @brief 构造函数
      * @param type 实体类型

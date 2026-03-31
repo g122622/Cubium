@@ -2,10 +2,16 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../core/EntityRegistry.hpp"
+#include "../../../../world/IWorld.hpp"
 
 namespace mc {
 
 // PillagerEntity
+std::unique_ptr<Entity> PillagerEntity::create(IWorld* world) {
+    return std::make_unique<PillagerEntity>(LegacyEntityType::Pillager, EntityId(0));
+}
+
 PillagerEntity::PillagerEntity(LegacyEntityType type, EntityId id)
     : AbstractRaiderEntity(type, id)
 {
@@ -43,6 +49,10 @@ void PillagerEntity::registerAttributes() {
 }
 
 // VindicatorEntity
+std::unique_ptr<Entity> VindicatorEntity::create(IWorld* world) {
+    return std::make_unique<VindicatorEntity>(LegacyEntityType::Vindicator, EntityId(0));
+}
+
 VindicatorEntity::VindicatorEntity(LegacyEntityType type, EntityId id)
     : AbstractRaiderEntity(type, id)
 {

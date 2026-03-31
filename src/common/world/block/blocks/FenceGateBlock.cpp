@@ -149,7 +149,7 @@ BlockState FenceGateBlock::updatePostPlacement(
 
 // ========== 交互 ==========
 
-ActionResult FenceGateBlock::onBlockActivated(
+ActionResultType FenceGateBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -172,7 +172,7 @@ ActionResult FenceGateBlock::onBlockActivated(
     // 播放音效
     playSound(world, pos, !wasOpen);
 
-    return ActionResult::Success;
+    return ActionResultType::Success;
 }
 
 // ========== 形状 ==========

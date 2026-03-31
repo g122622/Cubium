@@ -343,7 +343,7 @@ BlockState DragonEggBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState();
 }
 
-ActionResult DragonEggBlock::onBlockActivated(
+ActionResultType DragonEggBlock::onBlockActivated(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
@@ -357,7 +357,7 @@ ActionResult DragonEggBlock::onBlockActivated(
 
     // 点击传送
     teleport(world, pos, state);
-    return ActionResult::Success;
+    return ActionResultType::Success;
 }
 
 void DragonEggBlock::neighborChanged(

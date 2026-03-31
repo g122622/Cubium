@@ -13,7 +13,7 @@ namespace entity {
 // ============================================================================
 
 std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/) {
-    return std::make_unique<VillagerEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<VillagerEntity>(LegacyEntityType::Villager, 0);
 }
 
 VillagerEntity::VillagerEntity(LegacyEntityType type, EntityId id)
@@ -69,7 +69,7 @@ std::unique_ptr<AgeableEntity> VillagerEntity::createChild() {
 bool VillagerEntity::canWork() const {
     // 不是傻子且有工作站点
     return !isNitwit() &&
-           m_workStation.x != 0 || m_workStation.y != 0 || m_workStation.z != 0;
+           (m_workStation.x != 0 || m_workStation.y != 0 || m_workStation.z != 0);
 }
 
 void VillagerEntity::rest() {
@@ -123,7 +123,7 @@ void VillagerEntity::restockTrades() {
 // ============================================================================
 
 std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/) {
-    return std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, 0);
+    return std::make_unique<WanderingTraderEntity>(LegacyEntityType::Unknown, EntityId(0));
 }
 
 WanderingTraderEntity::WanderingTraderEntity(LegacyEntityType type, EntityId id)
