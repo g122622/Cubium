@@ -2,7 +2,6 @@
 #include "../../BiomeRegistry.hpp"
 #include "../../layer/BiomeValues.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include <cmath>
 
 namespace mc {
 namespace biome {
@@ -81,8 +80,8 @@ bool EndBiomeProvider::isInMainIsland(i32 x, i32 z) const {
     // 主岛是圆形，半径 256 方块
     // 参考 MC 1.16.5: 主岛中心在 (0, 0)
     // MC 使用 (x >> 2)^2 + (z >> 2)^2 <= 4096，即 x^2 + z^2 <= 65536
-    const f32 distance = std::sqrt(static_cast<f32>(x * x + z * z));
-    return distance <= static_cast<f32>(MAIN_ISLAND_RADIUS);
+    const i64 distSq = static_cast<i64>(x) * x + static_cast<i64>(z) * z;
+    return distSq <= static_cast<i64>(MAIN_ISLAND_RADIUS) * MAIN_ISLAND_RADIUS;
 }
 
 f32 EndBiomeProvider::getIslandNoise(i32 x, i32 z) const {

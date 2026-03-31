@@ -4,6 +4,7 @@
 // Note: ServerWorld is forward declared in Teleporter.hpp
 // Implementation of teleport methods is in server module
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../block/VanillaBlocks.hpp"
@@ -153,9 +154,9 @@ bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim) {
 
 std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vector3d& pos) {
     // 转换为方块坐标
-    BlockPos blockPos(static_cast<BlockCoord>(std::floor(pos.x)),
-                      static_cast<BlockCoord>(std::floor(pos.y)),
-                      static_cast<BlockCoord>(std::floor(pos.z)));
+    BlockPos blockPos(math::floorTo<BlockCoord>(pos.x),
+                      math::floorTo<BlockCoord>(pos.y),
+                      math::floorTo<BlockCoord>(pos.z));
 
     // 根据目标维度确定搜索半径
     // 下界 -> 主世界: 搜索半径 128 格
@@ -168,21 +169,16 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
         return std::nullopt;
     }
 
-    // 找到最近的传送门
-    // 计算到每个传送门的距离
+    // 找到最近的传送门（使用平方距离避免开方）
     BlockPos closest = portalBlocks[0];
-    f64 closestDist = std::sqrt(
-        static_cast<f64>(closest.x - blockPos.x) * (closest.x - blockPos.x) +
-        static_cast<f64>(closest.z - blockPos.z) * (closest.z - blockPos.z)
-    );
+    i64 closestDistSq = static_cast<i64>(closest.x - blockPos.x) * (closest.x - blockPos.x) +
+                        static_cast<i64>(closest.z - blockPos.z) * (closest.z - blockPos.z);
 
     for (size_t i = 1; i < portalBlocks.size(); ++i) {
-        f64 dist = std::sqrt(
-            static_cast<f64>(portalBlocks[i].x - blockPos.x) * (portalBlocks[i].x - blockPos.x) +
-            static_cast<f64>(portalBlocks[i].z - blockPos.z) * (portalBlocks[i].z - blockPos.z)
-        );
-        if (dist < closestDist) {
-            closestDist = dist;
+        i64 distSq = static_cast<i64>(portalBlocks[i].x - blockPos.x) * (portalBlocks[i].x - blockPos.x) +
+                     static_cast<i64>(portalBlocks[i].z - blockPos.z) * (portalBlocks[i].z - blockPos.z);
+        if (distSq < closestDistSq) {
+            closestDistSq = distSq;
             closest = portalBlocks[i];
         }
     }
@@ -202,9 +198,9 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
 
 PortalInfo NetherTeleporter::createPortal(IWorld& world, const Vector3d& pos) {
     // 在目标位置创建传送门
-    BlockPos blockPos(static_cast<BlockCoord>(std::floor(pos.x)),
-                      static_cast<BlockCoord>(std::floor(pos.y)),
-                      static_cast<BlockCoord>(std::floor(pos.z)));
+    BlockPos blockPos(math::floorTo<BlockCoord>(pos.x),
+                      math::floorTo<BlockCoord>(pos.y),
+                      math::floorTo<BlockCoord>(pos.z));
 
     return createNetherPortal(world, blockPos);
 }

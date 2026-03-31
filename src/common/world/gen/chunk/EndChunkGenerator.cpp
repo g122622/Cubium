@@ -230,8 +230,8 @@ i32 EndChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
 // ============================================================================
 
 bool EndChunkGenerator::isInMainIsland(i32 x, i32 z) const {
-    const f32 distance = std::sqrt(static_cast<f32>(x * x + z * z));
-    return distance <= static_cast<f32>(m_mainIslandRadius);
+    const i64 distSq = static_cast<i64>(x) * x + static_cast<i64>(z) * z;
+    return distSq <= static_cast<i64>(m_mainIslandRadius) * m_mainIslandRadius;
 }
 
 bool EndChunkGenerator::isChunkInMainIsland(ChunkCoord chunkX, ChunkCoord chunkZ) const {
@@ -249,8 +249,8 @@ f32 EndChunkGenerator::calculateIslandHeight(i32 x, i32 z) const {
 
     // 外岛：使用噪声确定高度
     // 外岛距离主岛至少 1000 方块
-    const f32 distance = std::sqrt(static_cast<f32>(x * x + z * z));
-    if (distance < 1000.0f) {
+    const i64 distSq = static_cast<i64>(x) * x + static_cast<i64>(z) * z;
+    if (distSq < 1000000LL) {  // 1000^2
         return 0.0f;  // 主岛和外岛之间的虚空
     }
 
@@ -299,15 +299,17 @@ void EndChunkGenerator::generateMainIsland(ChunkPrimer& chunk) {
 
     const i32 chunkX = chunk.x();
     const i32 chunkZ = chunk.z();
+    const f32 radiusF = static_cast<f32>(m_mainIslandRadius);
+    const i64 radiusSq = static_cast<i64>(m_mainIslandRadius) * m_mainIslandRadius;
 
     for (i32 lx = 0; lx < 16; ++lx) {
         for (i32 lz = 0; lz < 16; ++lz) {
             const i32 worldX = chunkX * 16 + lx;
             const i32 worldZ = chunkZ * 16 + lz;
 
-            // 计算到中心的距离
-            const f32 distance = std::sqrt(static_cast<f32>(worldX * worldX + worldZ * worldZ));
-            const f32 normalizedDist = distance / static_cast<f32>(m_mainIslandRadius);
+            // 计算到中心的距离（使用平方距离避免开方）
+            const i64 distSq = static_cast<i64>(worldX) * worldX + static_cast<i64>(worldZ) * worldZ;
+            const f32 normalizedDist = static_cast<f32>(std::sqrt(static_cast<f64>(distSq))) / radiusF;
 
             // 主岛地形
             // 边缘较高，中间较低（战斗平台）
@@ -423,8 +425,9 @@ void EndChunkGenerator::generateObsidianPillars(ChunkPrimer& chunk) {
             const i32 worldX = chunkX * 16 + lx;
             const i32 worldZ = chunkZ * 16 + lz;
 
-            // 检查是否在黑曜石柱圆周上
-            const f32 distance = std::sqrt(static_cast<f32>(worldX * worldX + worldZ * worldZ));
+            // 检查是否在黑曜石柱圆周上（使用平方距离）
+            const f64 distSq = static_cast<f64>(worldX) * worldX + static_cast<f64>(worldZ) * worldZ;
+            const f32 distance = static_cast<f32>(std::sqrt(distSq));
 
             if (std::abs(distance - PILLAR_RADIUS) < 5.0f) {
                 // 计算角度，确定是哪根柱子
