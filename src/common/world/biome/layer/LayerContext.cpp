@@ -232,9 +232,12 @@ std::unique_ptr<IArea> SourceFactory::create() const {
     // 捕获 shared_ptr 以保持生命周期
     ITransformer0* transformer = m_transformer;
     std::shared_ptr<LayerContext> ctx = m_context;
+    const bool useRandom = transformer->usesRandom();
 
-    PixelFunc func = [transformer, ctx](i32 x, i32 z) -> i32 {
-        ctx->setPosition(x, z);
+    PixelFunc func = [transformer, ctx, useRandom](i32 x, i32 z) -> i32 {
+        if (useRandom) {
+            ctx->setPosition(x, z);
+        }
         return transformer->apply(*ctx, x, z);
     };
 
@@ -262,9 +265,12 @@ std::unique_ptr<IArea> TransformFactory::create() const {
     ITransformer1* transformer = m_transformer;
     std::shared_ptr<LayerContext> ctx = m_context;
     IArea* inputPtr = inputArea.get();
+    const bool useRandom = transformer->usesRandom();
 
-    PixelFunc func = [transformer, ctx, inputPtr](i32 x, i32 z) -> i32 {
-        ctx->setPosition(x, z);
+    PixelFunc func = [transformer, ctx, inputPtr, useRandom](i32 x, i32 z) -> i32 {
+        if (useRandom) {
+            ctx->setPosition(x, z);
+        }
         return transformer->apply(*ctx, *inputPtr, x, z);
     };
 
@@ -295,9 +301,12 @@ std::unique_ptr<IArea> MergeFactory::create() const {
     std::shared_ptr<LayerContext> ctx = m_context;
     IArea* ptr1 = area1.get();
     IArea* ptr2 = area2.get();
+    const bool useRandom = transformer->usesRandom();
 
-    PixelFunc func = [transformer, ctx, ptr1, ptr2](i32 x, i32 z) -> i32 {
-        ctx->setPosition(x, z);
+    PixelFunc func = [transformer, ctx, ptr1, ptr2, useRandom](i32 x, i32 z) -> i32 {
+        if (useRandom) {
+            ctx->setPosition(x, z);
+        }
         return transformer->apply(*ctx, *ptr1, *ptr2, x, z);
     };
 

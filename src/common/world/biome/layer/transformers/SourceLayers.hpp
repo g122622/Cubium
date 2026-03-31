@@ -43,6 +43,7 @@ public:
 class OceanLayer : public ITransformer0 {
 public:
     [[nodiscard]] i32 apply(IAreaContext& ctx, i32 x, i32 z) override;
+    [[nodiscard]] bool usesRandom() const override { return false; }
 
     [[nodiscard]] std::unique_ptr<IAreaFactory> apply(IExtendedAreaContext& context) override;
 };
