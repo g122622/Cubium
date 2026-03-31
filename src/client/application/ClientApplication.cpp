@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
+#include <thread>
 
 namespace mc::client {
 
@@ -345,6 +346,11 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         m_window.destroy();
         return rendererResult.error();
     }
+
+    // 从 settings 同步运行时渲染参数
+    m_renderer->setRenderDistanceChunks(m_settings.renderDistance.get());
+    m_renderer->setLandFogDensity(m_settings.fogDensity.get());
+    m_renderer->setCloudMode(static_cast<renderer::trident::cloud::CloudMode>(m_settings.clouds.get()));
 
     // 设置相机
     setupCamera();
@@ -928,6 +934,8 @@ void ClientApplication::mainLoop()
     while (m_running && !m_window.shouldClose()) {
         MC_TRACE_EVENT("rendering.frame", "Frame");
 
+        const auto frameStart = clock::now();
+
         // 计算帧时间
         const f64 currentTime = glfwGetTime();
         const f32 deltaTime = static_cast<f32>(currentTime - m_lastFrameTime);
@@ -958,11 +966,22 @@ void ClientApplication::mainLoop()
         ++m_frameCount;
 
         // 追踪 FPS
-        MC_TRACE_COUNTER("rendering.frame", "FPS", static_cast<i64>(1.0 / deltaTime));
+        const f32 safeDeltaTime = std::max(deltaTime, 0.0001f);
+        MC_TRACE_COUNTER("rendering.frame", "FPS", static_cast<i64>(1.0f / safeDeltaTime));
 
         // 每秒输出一次FPS
         if (m_frameCount % 60 == 0) {
-            SPDLOG_TRACE("FPS: {:.1f}, Frame: {}", 1.0f / deltaTime, m_frameCount);
+            SPDLOG_TRACE("FPS: {:.1f}, Frame: {}", 1.0f / safeDeltaTime, m_frameCount);
+        }
+
+        // 帧率限制（0=不限制）
+        const i32 fpsLimit = m_settings.framerateLimit.get();
+        if (fpsLimit > 0) {
+            const auto minFrameDuration = std::chrono::duration<f64>(1.0 / static_cast<f64>(fpsLimit));
+            const auto frameElapsed = clock::now() - frameStart;
+            if (frameElapsed < minFrameDuration) {
+                std::this_thread::sleep_for(minFrameDuration - frameElapsed);
+            }
         }
     }
 
@@ -1447,6 +1466,13 @@ void ClientApplication::applySettings()
     // 设置变更回调在 setupSettingCallbacks 中设置
     // 这里应用初始设置值
 
+    // 同步渲染器运行时参数
+    if (m_renderer) {
+        m_renderer->setRenderDistanceChunks(m_settings.renderDistance.get());
+        m_renderer->setLandFogDensity(m_settings.fogDensity.get());
+        m_renderer->setCloudMode(static_cast<renderer::trident::cloud::CloudMode>(m_settings.clouds.get()));
+    }
+
     // 应用光照模式（环境光遮蔽）
     ChunkMesher::syncFromSettings(static_cast<client::AmbientOcclusionMode>(
         m_settings.ambientOcclusion.get()));
@@ -1460,6 +1486,9 @@ void ClientApplication::setupSettingCallbacks()
     // 渲染距离变更
     m_settings.renderDistance.onChange([this](i32 value) {
         spdlog::info("Render distance changed to: {}", value);
+        if (m_renderer) {
+            m_renderer->setRenderDistanceChunks(value);
+        }
         auto* debugWidget = m_kageroEngine ?
             static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId)) : nullptr;
         if (debugWidget) {
@@ -1471,13 +1500,27 @@ void ClientApplication::setupSettingCallbacks()
     // 全屏模式变更
     m_settings.fullscreen.onChange([this](bool value) {
         spdlog::info("Fullscreen changed to: {}", value);
-        // TODO: 实现全屏切换
+        m_window.setFullscreen(value);
     });
 
     // VSync 变更
     m_settings.vsync.onChange([this](bool value) {
         spdlog::info("VSync changed to: {}", value);
-        // TODO: 实现动态 VSync 切换
+        m_window.setVSync(value);
+        if (m_renderer) {
+            auto result = m_renderer->setVSyncEnabled(value);
+            if (result.failed()) {
+                spdlog::warn("Failed to apply VSync change: {}", result.error().toString());
+            }
+        }
+    });
+
+    // 云模式变更
+    m_settings.clouds.onChange([this](u8 value) {
+        spdlog::info("Cloud mode changed to: {}", static_cast<i32>(value));
+        if (m_renderer) {
+            m_renderer->setCloudMode(static_cast<renderer::trident::cloud::CloudMode>(value));
+        }
     });
 
     // 鼠标灵敏度变更
@@ -1490,6 +1533,14 @@ void ClientApplication::setupSettingCallbacks()
     m_settings.fov.onChange([this](f32 value) {
         spdlog::info("FOV changed to: {}", value);
         m_camera.setFOV(value);
+    });
+
+    // 雾气密度变更
+    m_settings.fogDensity.onChange([this](f32 value) {
+        spdlog::info("Fog density changed to: {}", value);
+        if (m_renderer) {
+            m_renderer->setLandFogDensity(value);
+        }
     });
 
     // 光照模式（环境光遮蔽）变更

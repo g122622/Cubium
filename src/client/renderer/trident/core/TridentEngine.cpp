@@ -462,9 +462,10 @@ Result<void> TridentEngine::render() {
             // 陆地上的雾效果
             m_fogManager->resetToLand();
             m_fogManager->update(
-                12,  // 渲染距离（区块）TODO: 从设置获取
+                m_renderDistanceChunks,
                 m_rainStrength,
                 m_thunderStrength,
+                m_landFogDensity,
                 m_skyRendererPtr->fogColor(),
                 cameraPos
             );
@@ -495,7 +496,7 @@ Result<void> TridentEngine::render() {
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
             cameraPos,
-            cloud::CloudMode::Fancy, // TODO: 从设置获取
+            m_cloudMode,
             m_frameContext.frameIndex
         );
     }
@@ -953,6 +954,41 @@ void TridentEngine::updateTime(i64 dayTime, i64 gameTime, f32 partialTick) {
 void TridentEngine::updateWeather(f32 rainStrength, f32 thunderStrength) {
     m_rainStrength = rainStrength;
     m_thunderStrength = thunderStrength;
+}
+
+Result<void> TridentEngine::setVSyncEnabled(bool enabled) {
+    if (m_config.enableVSync == enabled) {
+        return Result<void>::ok();
+    }
+
+    m_config.enableVSync = enabled;
+    m_tridentConfig.enableVSync = enabled;
+
+    if (m_swapchain) {
+        m_swapchain->setVSync(enabled);
+    }
+
+    if (m_initialized && !m_minimized) {
+        spdlog::info("Applying VSync change: {}", enabled);
+        return recreateSwapchain();
+    }
+
+    return Result<void>::ok();
+}
+
+void TridentEngine::setRenderDistanceChunks(i32 renderDistanceChunks) {
+    m_renderDistanceChunks = std::max(2, renderDistanceChunks);
+}
+
+void TridentEngine::setLandFogDensity(f32 fogDensity) {
+    m_landFogDensity = std::clamp(fogDensity, 0.0f, 2.0f);
+}
+
+void TridentEngine::setCloudMode(cloud::CloudMode mode) {
+    m_cloudMode = mode;
+    if (m_cloudRenderer) {
+        m_cloudRenderer->setCloudMode(mode);
+    }
 }
 
 void TridentEngine::updateLiquidState(bool inWater, bool inLava, u32 waterFogColor) {

@@ -74,6 +74,7 @@ public:
     void update(i32 renderDistanceChunks,
                 f32 rainStrength,
                 f32 thunderStrength,
+                f32 landFogDensity,
                 const glm::vec4& skyFogColor,
                 const glm::vec3& cameraPos);
 

@@ -163,6 +163,12 @@ private:
     bool m_cursorVisible = true;
     bool m_initialized = false;
 
+    // 窗口化模式下的位置和尺寸（用于全屏切换恢复）
+    i32 m_windowedX = 100;
+    i32 m_windowedY = 100;
+    i32 m_windowedWidth = 1280;
+    i32 m_windowedHeight = 720;
+
     // 回调
     ResizeCallback m_resizeCallback = nullptr;
     void* m_resizeUserData = nullptr;

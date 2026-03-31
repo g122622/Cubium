@@ -57,6 +57,11 @@ public:
     [[nodiscard]] Result<void> recreate(u32 width, u32 height);
 
     /**
+     * @brief 设置 VSync 状态（在下次重建交换链时生效）
+     */
+    void setVSync(bool enabled) { m_config.vsync = enabled; }
+
+    /**
      * @brief 获取下一帧图像
      */
     [[nodiscard]] Result<u32> acquireNextImage(VkSemaphore semaphore, VkFence fence = VK_NULL_HANDLE);

@@ -121,6 +121,14 @@ Result<void> Window::create(const WindowConfig& config)
     glfwSwapInterval(config.vsync ? 1 : 0);
 
     m_fullscreen = config.fullscreen;
+    if (!config.fullscreen) {
+        glfwGetWindowPos(m_window, &m_windowedX, &m_windowedY);
+        m_windowedWidth = m_width;
+        m_windowedHeight = m_height;
+    } else {
+        m_windowedWidth = config.width;
+        m_windowedHeight = config.height;
+    }
     m_initialized = true;
 
     spdlog::info("Window created: {}x{} (framebuffer: {}x{})",
@@ -189,21 +197,30 @@ void Window::setFullscreen(bool fullscreen)
     }
 
     if (fullscreen) {
-        // 保存窗口位置和尺寸
-        glfwGetWindowPos(m_window, &m_width, &m_height); // 临时存储
+        // 保存窗口化模式的位置和尺寸
+        glfwGetWindowPos(m_window, &m_windowedX, &m_windowedY);
+        glfwGetWindowSize(m_window, &m_windowedWidth, &m_windowedHeight);
+
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+        if (!monitor || !mode) {
+            spdlog::warn("Failed to enter fullscreen: monitor or video mode unavailable");
+            return;
+        }
+
         glfwSetWindowMonitor(
             m_window,
-            glfwGetPrimaryMonitor(),
+            monitor,
             0, 0,
-            m_width, m_height,
-            GLFW_DONT_CARE
+            mode->width, mode->height,
+            mode->refreshRate
         );
     } else {
         glfwSetWindowMonitor(
             m_window,
             nullptr,
-            100, 100, // 恢复位置
-            m_width, m_height,
+            m_windowedX, m_windowedY,
+            m_windowedWidth, m_windowedHeight,
             GLFW_DONT_CARE
         );
     }

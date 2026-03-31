@@ -53,6 +53,7 @@ class FogManager;
 }
 
 namespace cloud {
+enum class CloudMode : u8;
 class CloudRenderer;
 }
 
@@ -240,6 +241,30 @@ public:
      * @param thunderStrength 雷暴强度 (0.0 - 1.0)
      */
     void updateWeather(f32 rainStrength, f32 thunderStrength);
+
+    /**
+     * @brief 运行时切换 VSync（会触发交换链重建）
+     */
+    [[nodiscard]] Result<void> setVSyncEnabled(bool enabled);
+
+    /**
+     * @brief 更新渲染距离（区块）
+     *
+     * 该值会用于地表雾计算。
+     */
+    void setRenderDistanceChunks(i32 renderDistanceChunks);
+
+    /**
+     * @brief 更新地表雾气密度（来自 video.fogDensity）
+     *
+     * 范围建议：[0.0, 2.0]，1.0 表示默认效果。
+     */
+    void setLandFogDensity(f32 fogDensity);
+
+    /**
+     * @brief 更新云渲染模式（Off/Fast/Fancy）
+     */
+    void setCloudMode(cloud::CloudMode mode);
 
     /**
      * @brief 更新液体状态（用于雾效果）
@@ -550,6 +575,11 @@ private:
     // 天气状态
     f32 m_rainStrength = 0.0f;
     f32 m_thunderStrength = 0.0f;
+
+    // 可配置渲染参数（由 options.json 驱动）
+    i32 m_renderDistanceChunks = 12;
+    f32 m_landFogDensity = 1.0f;
+    cloud::CloudMode m_cloudMode = static_cast<cloud::CloudMode>(2);
 
     // 窗口尺寸
     u32 m_windowWidth = 0;

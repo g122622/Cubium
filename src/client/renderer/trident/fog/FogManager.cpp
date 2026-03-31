@@ -126,6 +126,7 @@ void FogManager::update(
     i32 renderDistanceChunks,
     f32 rainStrength,
     f32 thunderStrength,
+    f32 landFogDensity,
     const glm::vec4& skyFogColor,
     const glm::vec3& cameraPos)
 {
@@ -144,6 +145,14 @@ void FogManager::update(
         const f32 weatherFactor = 1.0f - (rainStrength * 0.3f) - (thunderStrength * 0.2f);
         m_fogUBO.fogStart *= weatherFactor;
         m_fogUBO.fogEnd *= weatherFactor;
+
+        // 用户设置影响：video.fogDensity = 1.0 时保持当前效果
+        // - 0.0：更清晰（雾更远）
+        // - 2.0：更浓（雾更近）
+        const f32 clampedLandFogDensity = std::clamp(landFogDensity, 0.0f, 2.0f);
+        const f32 distanceScale = std::clamp(2.0f - clampedLandFogDensity, 0.25f, 2.0f);
+        m_fogUBO.fogStart *= distanceScale;
+        m_fogUBO.fogEnd *= distanceScale;
     }
 
     // 设置雾颜色（从天空颜色获取）
