@@ -130,6 +130,12 @@ constexpr i32 ModifiedBadlandsPlateau = 167;
 constexpr i32 BambooJungle = 168;
 constexpr i32 BambooJungleHills = 169;
 
+// 下界生物群系 (170-173，MC 1.16 新增)
+constexpr i32 SoulSandValley = 170;
+constexpr i32 CrimsonForest = 171;
+constexpr i32 WarpedForest = 172;
+constexpr i32 BasaltDeltas = 173;
+
 // ============================================================================
 // 温度区域值（Layer 内部使用）
 // 这些值在 AddSnowLayer 中生成，在 BiomeLayer 中转换为实际生物群系

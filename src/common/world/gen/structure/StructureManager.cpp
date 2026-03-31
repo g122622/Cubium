@@ -7,6 +7,7 @@
 #include "structures/DesertPyramidStructure.hpp"
 #include "structures/JungleTempleStructure.hpp"
 #include "structures/OceanMonumentStructure.hpp"
+#include "structures/FortressStructure.hpp"
 #include "../jigsaw/JigsawPattern.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
 #include "../../../resource/ResourceLocation.hpp"
@@ -41,6 +42,7 @@ void StructureRegistry::initialize() {
     registerStructure(std::make_unique<DesertPyramidStructure>());
     registerStructure(std::make_unique<JungleTempleStructure>());
     registerStructure(std::make_unique<OceanMonumentStructure>());
+    registerStructure(std::make_unique<FortressStructure>());
 
     s_initialized = true;
 }
@@ -51,6 +53,7 @@ void StructureRegistry::initializeDefaultJigsawPatterns() {
     // 注册村庄模板池（简化版本，实际应从资源包加载）
     registerVillagePatterns(registry);
     registerStrongholdPatterns(registry);
+    registerFortressPatterns(registry);
 }
 
 void StructureRegistry::registerVillagePatterns(mc::world::gen::jigsaw::JigsawPatternRegistry& registry) {
@@ -123,6 +126,70 @@ void StructureRegistry::registerStrongholdPatterns(mc::world::gen::jigsaw::Jigsa
         JigsawPlacementBehaviour::Rigid
     ), 1);
     registry.registerPattern(std::move(corridors));
+}
+
+void StructureRegistry::registerFortressPatterns(mc::world::gen::jigsaw::JigsawPatternRegistry& registry) {
+    using namespace mc::world::gen::jigsaw;
+
+    // 下界要塞起始模板池
+    auto fortressStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "nether_fortress/start"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    fortressStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/bridge_crossing",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(fortressStart));
+
+    // 下界要塞桥模板池
+    auto bridge = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "nether_fortress/bridge"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    bridge->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/bridge_straight",
+        JigsawPlacementBehaviour::Rigid
+    ), 30);
+    bridge->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/bridge_crossing",
+        JigsawPlacementBehaviour::Rigid
+    ), 10);
+    bridge->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/bridge_stairs",
+        JigsawPlacementBehaviour::Rigid
+    ), 10);
+    registry.registerPattern(std::move(bridge));
+
+    // 下界要塞走廊模板池
+    auto corridor = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "nether_fortress/corridor"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    corridor->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/corridor_5",
+        JigsawPlacementBehaviour::Rigid
+    ), 25);
+    corridor->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/corridor_crossing",
+        JigsawPlacementBehaviour::Rigid
+    ), 15);
+    registry.registerPattern(std::move(corridor));
+
+    // 下界要塞房间模板池
+    auto rooms = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "nether_fortress/rooms"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    rooms->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/throne_room",
+        JigsawPlacementBehaviour::Rigid
+    ), 5);
+    rooms->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:nether_fortress/nether_wart_room",
+        JigsawPlacementBehaviour::Rigid
+    ), 5);
+    registry.registerPattern(std::move(rooms));
 }
 
 void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure) {

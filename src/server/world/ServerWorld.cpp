@@ -11,6 +11,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
@@ -83,7 +84,12 @@ Result<void> ServerWorld::initialize()
     m_collisionCache = std::make_unique<physics::CollisionCache>();
     m_physicsEngine = std::make_unique<PhysicsEngine>(*this);
     m_tickManager = std::make_unique<world::tick::TickManager>(*this);
-    m_lightManager = std::make_unique<WorldLightManager>(this, true, true);
+
+    // 根据维度类型动态设置光照参数
+    DimensionType dimensionType = getDimensionType();
+    bool hasSkyLight = dimensionType.hasSkyLight();
+    m_lightManager = std::make_unique<WorldLightManager>(this, true, hasSkyLight);
+
     m_weatherManager = std::make_unique<WeatherManager>();
     m_weatherManager->initialize(m_config.seed);
     m_weatherManager->setWorld(this);
@@ -698,7 +704,21 @@ void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
 
 bool ServerWorld::hasSkyLight() const
 {
-    return true;
+    return getDimensionType().hasSkyLight();
+}
+
+DimensionType ServerWorld::getDimensionType() const
+{
+    switch (m_config.dimension) {
+        case 0:
+            return DimensionType::overworld();
+        case 1:
+            return DimensionType::nether();
+        case 2:
+            return DimensionType::theEnd();
+        default:
+            return DimensionType::overworld();
+    }
 }
 
 i32 ServerWorld::getMinBuildHeight() const

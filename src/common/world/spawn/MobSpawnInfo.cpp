@@ -291,4 +291,121 @@ MobSpawnInfo MobSpawnInfo::createEmpty() {
     return info;
 }
 
+// ============================================================================
+// 下界生物群系生成信息
+// ============================================================================
+
+MobSpawnInfo MobSpawnInfo::createNetherWastes() {
+    // 参考 MC 1.16.5 NetherWastesBiome
+    // 生物：猪灵、僵尸猪灵、恶魂、岩浆怪、末影人、炽足兽
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.0f; // 下界没有被动动物生成
+
+    // 怪物
+    info.setMaxMonsterInstances(70);
+    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 10, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 5, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 3, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:piglin", 15, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
+
+    // 生物（炽足兽）
+    info.setMaxCreatureInstances(10);
+    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createSoulSandValley() {
+    // 参考 MC 1.16.5 SoulSandValleyBiome
+    // 生物：骷髅、恶魂、末影人、炽足兽
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.0f;
+
+    // 怪物
+    info.setMaxMonsterInstances(70);
+    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 20, 5, 5));
+    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 50, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 4, 4, 4));
+
+    // 生物（炽足兽）
+    info.setMaxCreatureInstances(10);
+    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createCrimsonForest() {
+    // 参考 MC 1.16.5 CrimsonForestBiome
+    // 生物：猪灵、僵尸猪灵、疣猪兽、炽足兽
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.0f;
+
+    // 怪物
+    info.setMaxMonsterInstances(70);
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 1, 2, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:piglin", 15, 3, 4));
+
+    // 生物（疣猪兽和炽足兽）
+    info.setMaxCreatureInstances(10);
+    info.addCreatureSpawn(SpawnEntry("minecraft:hoglin", 9, 3, 4));
+    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createWarpedForest() {
+    // 参考 MC 1.16.5 WarpedForestBiome
+    // 生物：末影人、炽足兽
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.0f;
+
+    // 怪物（末影人为主）
+    info.setMaxMonsterInstances(70);
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
+    // 末影人设置生成成本，参考MC
+    info.setSpawnCost("minecraft:enderman", SpawnCosts(1.0, 0.12));
+
+    // 生物（炽足兽）
+    info.setMaxCreatureInstances(10);
+    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createBasaltDeltas() {
+    // 参考 MC 1.16.5 BasaltDeltasBiome
+    // 生物：岩浆怪、恶魂、炽足兽
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.0f;
+
+    // 怪物（岩浆怪为主）
+    info.setMaxMonsterInstances(70);
+    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 80, 2, 5));
+    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 2, 1, 1));
+
+    // 生物（炽足兽）
+    info.setMaxCreatureInstances(10);
+    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+
+    return info;
+}
+
+// ============================================================================
+// 末地生物群系生成信息
+// ============================================================================
+
+MobSpawnInfo MobSpawnInfo::createTheEnd() {
+    // 参考 MC 1.16.5 TheEndBiome
+    // 只有末影人
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.0f;
+
+    // 怪物（只有末影人）
+    info.setMaxMonsterInstances(70);
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 4, 4));
+
+    return info;
+}
+
 } // namespace mc::world::spawn

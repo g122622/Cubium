@@ -115,6 +115,64 @@ public:
      */
     static BiomeGenerationSettings createOcean();
 
+    // ========================================================================
+    // 下界生物群系生成设置
+    // ========================================================================
+
+    /**
+     * @brief 创建下界荒地生物群系的生成设置
+     */
+    static BiomeGenerationSettings createNether();
+
+    /**
+     * @brief 创建灵魂沙谷生物群系的生成设置
+     */
+    static BiomeGenerationSettings createSoulSandValley();
+
+    /**
+     * @brief 创建绯红森林生物群系的生成设置
+     */
+    static BiomeGenerationSettings createCrimsonForest();
+
+    /**
+     * @brief 创建诡异森林生物群系的生成设置
+     */
+    static BiomeGenerationSettings createWarpedForest();
+
+    /**
+     * @brief 创建玄武岩三角洲生物群系的生成设置
+     */
+    static BiomeGenerationSettings createBasaltDeltas();
+
+    // ========================================================================
+    // 末地生物群系生成设置
+    // ========================================================================
+
+    /**
+     * @brief 创建末地主岛生物群系的生成设置
+     */
+    static BiomeGenerationSettings createTheEnd();
+
+    /**
+     * @brief 创建小型末地岛屿生物群系的生成设置
+     */
+    static BiomeGenerationSettings createSmallEndIslands();
+
+    /**
+     * @brief 创建末地中部生物群系的生成设置
+     */
+    static BiomeGenerationSettings createEndMidlands();
+
+    /**
+     * @brief 创建末地高地生物群系的生成设置
+     */
+    static BiomeGenerationSettings createEndHighlands();
+
+    /**
+     * @brief 创建末地荒地生物群系的生成设置
+     */
+    static BiomeGenerationSettings createEndBarrens();
+
 private:
     // 按阶段存储特征ID列表
     // 使用特征ID而不是直接存储特征对象，以减少内存占用

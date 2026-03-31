@@ -163,6 +163,20 @@ void BiomeRegistry::registerDefaultBiomes()
     registerBiome(BiomeFactory::createErodedBadlands());
     registerBiome(BiomeFactory::createModifiedWoodedBadlandsPlateau());
     registerBiome(BiomeFactory::createModifiedBadlandsPlateau());
+
+    // === 下界生物群系 (8, 170-173) ===
+    registerBiome(BiomeFactory::createNetherWastes());        // ID: 8
+    registerBiome(BiomeFactory::createSoulSandValley());      // ID: 170
+    registerBiome(BiomeFactory::createCrimsonForest());       // ID: 171
+    registerBiome(BiomeFactory::createWarpedForest());        // ID: 172
+    registerBiome(BiomeFactory::createBasaltDeltas());        // ID: 173
+
+    // === 末地生物群系 (9, 40-43) ===
+    registerBiome(BiomeFactory::createTheEnd());              // ID: 9
+    registerBiome(BiomeFactory::createSmallEndIslands());     // ID: 40
+    registerBiome(BiomeFactory::createEndMidlands());         // ID: 41
+    registerBiome(BiomeFactory::createEndHighlands());        // ID: 42
+    registerBiome(BiomeFactory::createEndBarrens());          // ID: 43
 }
 
 // ============================================================================
@@ -1377,6 +1391,272 @@ Biome createSnowyTaigaHills()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
+    return biome;
+}
+
+// ============================================================================
+// 下界生物群系工厂函数（参考 MC 1.16.5 BiomeMaker）
+// ============================================================================
+
+Biome createNetherWastes()
+{
+    // MC: 下界荒地 - 下界岩为主，猪灵、恶魂、岩浆怪
+    // depth=0.1F, scale=0.2F, temperature=2.0F
+    Biome biome(Biomes::NetherWastes, "nether_wastes");
+    biome.setCategory(Biome::Category::Nether);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(2.0f);
+    biome.setHumidity(0.0f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
+
+    // 视觉效果：雾颜色 3344392 (暗红色)
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(3344392)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createNether());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createNetherWastes());
+    return biome;
+}
+
+Biome createSoulSandValley()
+{
+    // MC: 灵魂沙谷 - 灵魂沙和灵魂土，骷髅和恶魂
+    // depth=0.1F, scale=0.2F, temperature=2.0F
+    Biome biome(Biomes::SoulSandValley, "soul_sand_valley");
+    biome.setCategory(Biome::Category::Nether);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(2.0f);
+    biome.setHumidity(0.0f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::SOUL_SAND));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SOUL_SOIL));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
+
+    // 视觉效果：雾颜色 1787717 (蓝灰色)
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(1787717)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createSoulSandValley());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSoulSandValley());
+    return biome;
+}
+
+Biome createCrimsonForest()
+{
+    // MC: 绯红森林 - 绯红菌和疣猪兽，红色主题
+    // depth=0.1F, scale=0.2F, temperature=2.0F
+    Biome biome(Biomes::CrimsonForest, "crimson_forest");
+    biome.setCategory(Biome::Category::Nether);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(2.0f);
+    biome.setHumidity(0.0f);
+    // TODO: 添加绯红菌岩方块
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
+
+    // 视觉效果：雾颜色 3343107 (暗红色)
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(3343107)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createCrimsonForest());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createCrimsonForest());
+    return biome;
+}
+
+Biome createWarpedForest()
+{
+    // MC: 诡异森林 - 诡异菌和末影人，青色主题
+    // depth=0.1F, scale=0.2F, temperature=2.0F
+    Biome biome(Biomes::WarpedForest, "warped_forest");
+    biome.setCategory(Biome::Category::Nether);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(2.0f);
+    biome.setHumidity(0.0f);
+    // TODO: 添加诡异菌岩方块
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
+
+    // 视觉效果：雾颜色 1705242 (青色)
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(1705242)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createWarpedForest());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarpedForest());
+    return biome;
+}
+
+Biome createBasaltDeltas()
+{
+    // MC: 玄武岩三角洲 - 玄武岩和岩浆块，黑色颗粒效果
+    // depth=0.1F, scale=0.2F, temperature=2.0F
+    Biome biome(Biomes::BasaltDeltas, "basalt_deltas");
+    biome.setCategory(Biome::Category::Nether);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(2.0f);
+    biome.setHumidity(0.0f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::BASALT));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::BASALT));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
+
+    // 视觉效果：雾颜色 6840176 (深灰蓝)
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(6840176)
+        .waterColor(4341314)
+        .waterFogColor(4341314)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createBasaltDeltas());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBasaltDeltas());
+    return biome;
+}
+
+// ============================================================================
+// 末地生物群系工厂函数（参考 MC 1.16.5 BiomeMaker）
+// ============================================================================
+
+Biome createTheEnd()
+{
+    // MC: 末地主岛 - 末影龙战斗区域
+    // depth=0.1F, scale=0.2F, temperature=0.5F
+    Biome biome(Biomes::TheEnd, "the_end");
+    biome.setCategory(Biome::Category::TheEnd);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(0.5f);
+    biome.setHumidity(0.5f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, 0.0f, 0.5f));
+
+    // 视觉效果：雾颜色 10518688 (暗紫色)
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(10518688)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createTheEnd());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
+    return biome;
+}
+
+Biome createSmallEndIslands()
+{
+    // MC: 小型末地岛屿 - 外岛的小型岛屿群
+    // depth=0.1F, scale=0.2F, temperature=0.5F
+    Biome biome(Biomes::SmallEndIslands, "small_end_islands");
+    biome.setCategory(Biome::Category::TheEnd);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(0.5f);
+    biome.setHumidity(0.5f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, 0.0f, 0.5f));
+
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(10518688)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createSmallEndIslands());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
+    return biome;
+}
+
+Biome createEndMidlands()
+{
+    // MC: 末地中部 - 外岛过渡区域
+    // depth=0.1F, scale=0.2F, temperature=0.5F
+    Biome biome(Biomes::EndMidlands, "end_midlands");
+    biome.setCategory(Biome::Category::TheEnd);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(0.5f);
+    biome.setHumidity(0.5f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, 0.0f, 0.5f));
+
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(10518688)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createEndMidlands());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
+    return biome;
+}
+
+Biome createEndHighlands()
+{
+    // MC: 末地高地 - 末地城和紫颂树生成区域
+    // depth=0.1F, scale=0.2F, temperature=0.5F
+    Biome biome(Biomes::EndHighlands, "end_highlands");
+    biome.setCategory(Biome::Category::TheEnd);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(0.5f);
+    biome.setHumidity(0.5f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, 0.0f, 0.5f));
+
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(10518688)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createEndHighlands());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
+    return biome;
+}
+
+Biome createEndBarrens()
+{
+    // MC: 末地荒地 - 空旷区域，无特征
+    // depth=0.1F, scale=0.2F, temperature=0.5F
+    Biome biome(Biomes::EndBarrens, "end_barrens");
+    biome.setCategory(Biome::Category::TheEnd);
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(0.5f);
+    biome.setHumidity(0.5f);
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, 0.0f, 0.5f));
+
+    biome.setEffects(world::biome::BiomeEffects::Builder()
+        .fogColor(10518688)
+        .waterColor(4159204)
+        .waterFogColor(329011)
+        .build());
+
+    biome.setGenerationSettings(BiomeGenerationSettings::createEndBarrens());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
 }
 

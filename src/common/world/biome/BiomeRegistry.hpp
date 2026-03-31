@@ -435,6 +435,74 @@ Biome createGiantTreeTaigaHillsBiome();
  */
 Biome createSnowyTaigaHills();
 
+// ============================================================================
+// 下界生物群系 (MC 1.16 新增)
+// ============================================================================
+
+/**
+ * @brief 创建下界荒地生物群系 (ID: 8)
+ * @note 下界默认生物群系，以下界岩为主，有猪灵、恶魂、岩浆怪等
+ */
+Biome createNetherWastes();
+
+/**
+ * @brief 创建灵魂沙谷生物群系 (ID: 170)
+ * @note 灵魂沙和灵魂土为主，蓝色迷雾，骷髅和恶魂
+ */
+Biome createSoulSandValley();
+
+/**
+ * @brief 创建绯红森林生物群系 (ID: 171)
+ * @note 绯红菌和疣猪兽，红色主题
+ */
+Biome createCrimsonForest();
+
+/**
+ * @brief 创建诡异森林生物群系 (ID: 172)
+ * @note 诡异菌和末影人，青色主题
+ */
+Biome createWarpedForest();
+
+/**
+ * @brief 创建玄武岩三角洲生物群系 (ID: 173)
+ * @note 玄武岩和岩浆块，黑色颗粒效果
+ */
+Biome createBasaltDeltas();
+
+// ============================================================================
+// 末地生物群系
+// ============================================================================
+
+/**
+ * @brief 创建末地生物群系 (ID: 9)
+ * @note 末地主岛，末影龙战斗区域
+ */
+Biome createTheEnd();
+
+/**
+ * @brief 创建小型末地岛屿生物群系 (ID: 40)
+ * @note 外岛的小型岛屿群
+ */
+Biome createSmallEndIslands();
+
+/**
+ * @brief 创建末地中部生物群系 (ID: 41)
+ * @note 外岛过渡区域
+ */
+Biome createEndMidlands();
+
+/**
+ * @brief 创建末地高地生物群系 (ID: 42)
+ * @note 末地城和紫颂树生成区域
+ */
+Biome createEndHighlands();
+
+/**
+ * @brief 创建末地荒地生物群系 (ID: 43)
+ * @note 空旷区域，无特征
+ */
+Biome createEndBarrens();
+
 } // namespace BiomeFactory
 
 } // namespace mc

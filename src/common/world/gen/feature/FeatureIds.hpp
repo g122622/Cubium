@@ -27,7 +27,11 @@ namespace OreFeatureIds {
     constexpr u32 LapisOre = 5;      // 青金石矿
     constexpr u32 EmeraldOre = 6;    // 绿宝石矿
     constexpr u32 CopperOre = 7;     // 铜矿
-    constexpr u32 Count = 8;         // 矿石特征总数
+    // 下界矿石 (8-10)
+    constexpr u32 NetherQuartzOre = 8;   // 下界石英矿
+    constexpr u32 NetherGoldOre = 9;     // 下界金矿
+    constexpr u32 AncientDebris = 10;    // 远古残骸
+    constexpr u32 Count = 11;             // 矿石特征总数
 }
 
 // ============================================================================

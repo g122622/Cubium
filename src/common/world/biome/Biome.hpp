@@ -294,12 +294,6 @@ constexpr BiomeId DeepLukewarmOcean = 48;
 constexpr BiomeId DeepColdOcean = 49;
 constexpr BiomeId DeepFrozenOcean = 50;
 
-// 下界生物群系 (51-54，MC 1.16 新增)
-constexpr BiomeId SoulSandValley = 51;
-constexpr BiomeId CrimsonForest = 52;
-constexpr BiomeId WarpedForest = 53;
-constexpr BiomeId BasaltDeltas = 54;
-
 // TheVoid (55)
 // 56-127 保留
 
@@ -333,8 +327,14 @@ constexpr BiomeId ModifiedBadlandsPlateau = 167;
 constexpr BiomeId BambooJungle = 168;
 constexpr BiomeId BambooJungleHills = 169;
 
+// 下界生物群系 (170-173，MC 1.16 新增)
+constexpr BiomeId SoulSandValley = 170;
+constexpr BiomeId CrimsonForest = 171;
+constexpr BiomeId WarpedForest = 172;
+constexpr BiomeId BasaltDeltas = 173;
+
 // 生物群系总数（最大 ID + 1）
-constexpr BiomeId Count = 170;
+constexpr BiomeId Count = 174;
 
 } // namespace Biomes
 

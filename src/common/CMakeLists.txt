@@ -553,6 +553,15 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/SugarCaneFeature.cpp
     world/gen/feature/vegetation/IceSpikeFeature.cpp
 
+    # World - Generation - Feature - Spike
+    world/gen/feature/spike/EndSpikeFeature.cpp
+
+    # World - Generation - Feature - Gateway
+    world/gen/feature/gateway/EndGatewayFeature.cpp
+
+    # World - Generation - Feature - Fungus
+    world/gen/feature/fungus/HugeFungusFeature.cpp
+
     # World - Generation - Feature - Lake
     world/gen/feature/lake/LakeFeature.cpp
 
@@ -567,6 +576,7 @@ add_library(mc_common STATIC
     world/gen/structure/structures/DesertPyramidStructure.cpp
     world/gen/structure/structures/JungleTempleStructure.cpp
     world/gen/structure/structures/OceanMonumentStructure.cpp
+    world/gen/structure/structures/FortressStructure.cpp
     world/gen/structure/JigsawStructure.cpp
 
     # World - Generation - Jigsaw
