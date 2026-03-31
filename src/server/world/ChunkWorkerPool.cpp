@@ -22,9 +22,9 @@ ChunkWorkerPool::~ChunkWorkerPool()
 
 i32 ChunkWorkerPool::getOptimalThreadCount()
 {
-    // 使用硬件并发数，至少 1 个，最多 8 个
+    // 使用硬件并发数，至少 1 个，最多 114514 个
     const unsigned int hardwareConcurrency = std::thread::hardware_concurrency();
-    return static_cast<i32>(std::clamp(hardwareConcurrency, 1u, 8u));
+    return static_cast<i32>(std::clamp(hardwareConcurrency / 2, 1u, 114514u));
 }
 
 // ============================================================================
