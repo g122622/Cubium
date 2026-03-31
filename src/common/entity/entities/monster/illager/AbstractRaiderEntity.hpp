@@ -2,9 +2,19 @@
 
 #include "AbstractIllagerEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../entity/damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
+
+// 前向声明
+namespace world {
+namespace village {
+namespace raid {
+class Raid;
+}
+}
+}
 
 /**
  * @brief 掠夺者抽象基类
@@ -59,6 +69,33 @@ public:
     void setCanJoinRaid(bool canJoin) { m_canJoinRaid = canJoin; }
 
     /**
+     * @brief 获取当前参与的袭击
+     */
+    [[nodiscard]] world::village::raid::Raid* getCurrentRaid() const { return m_raid; }
+
+    /**
+     * @brief 加入袭击
+     * @param raid 袭击指针
+     * @param wave 波次
+     */
+    void joinRaid(world::village::raid::Raid* raid, i32 wave);
+
+    /**
+     * @brief 离开袭击
+     */
+    void leaveRaid();
+
+    /**
+     * @brief 获取当前波次
+     */
+    [[nodiscard]] i32 getRaidWave() const { return m_wave; }
+
+    /**
+     * @brief 设置当前波次
+     */
+    void setRaidWave(i32 wave) { m_wave = wave; }
+
+    /**
      * @brief 获取庆祝时间
      */
     [[nodiscard]] i32 getCelebrationTime() const { return m_celebrationTime; }
@@ -72,11 +109,23 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 死亡时调用
+     * @param cause 死亡原因
+     *
+     * 重写以通知Raid掠夺者死亡
+     */
+    void die(DamageSource& cause) override;
+
 protected:
     // 掠夺相关
     bool m_hasLeaderBonus = false;
     bool m_canJoinRaid = true;
     i32 m_celebrationTime = 0;
+
+    // 袭击关联
+    world::village::raid::Raid* m_raid = nullptr;  ///< 当前参与的袭击
+    i32 m_wave = 0;                                ///< 当前波次
 
     // 常量
     static constexpr i32 CELEBRATION_DURATION = 200;

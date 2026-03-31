@@ -1,0 +1,33 @@
+{
+    "name": "minecraft:village/taiga/town_centers",
+    "fallback": "minecraft:village/taiga/terminators",
+    "elements": [
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/taiga/town_centers/taiga_fountain_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/taiga/town_centers/taiga_meeting_point_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/taiga/town_centers/taiga_meeting_point_02",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        }
+    ]
+}

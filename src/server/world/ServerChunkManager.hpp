@@ -179,6 +179,13 @@ public:
     void setChunkLoadedCallback(ChunkLoadedCallback callback) { m_chunkLoadedCallback = std::move(callback); }
 
     /**
+     * @brief 设置区块卸载回调
+     *
+     * 当区块即将卸载前调用，用于通知系统清理相关数据。
+     */
+    void setChunkUnloadedCallback(ChunkLoadedCallback callback) { m_chunkUnloadedCallback = std::move(callback); }
+
+    /**
      * @brief 设置区块发送管理器
      *
      * 区块卸载前会通知 ChunkSendManager 发送卸载包给客户端。
@@ -391,6 +398,7 @@ private:
     std::unique_ptr<IChunkGenerator> m_generator;
     EntitySpawnCallback m_entitySpawnCallback;  // 实体生成回调（用于 IntegratedServer）
     ChunkLoadedCallback m_chunkLoadedCallback;  // 区块加载回调（用于光照初始化等）
+    ChunkLoadedCallback m_chunkUnloadedCallback;  // 区块卸载回调（用于清理 POI 等）
 
     // 区块持有者
     std::unordered_map<u64, std::unique_ptr<SingleChunkLifecycleManager>> m_singleChunkLifecycleManagers;

@@ -55,6 +55,10 @@ add_library(mc_common STATIC
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
+    # Entity - Effect
+    entity/effect/EffectType.cpp
+    entity/effect/EffectInstance.cpp
+    entity/effect/EffectManager.cpp
     # Entity - Player
     entity/entities/player/Player.cpp
     entity/entities/player/PlayerManager.cpp
@@ -157,9 +161,9 @@ add_library(mc_common STATIC
     # Entity - Boss (incomplete - needs MerchantOffers, etc.)
     # entity/entities/boss/EnderDragonEntity.cpp
     # entity/entities/boss/WitherEntity.cpp
-    # Entity - Villager (incomplete - needs MerchantOffers, etc.)
-    # entity/entities/villager/AbstractVillagerEntity.cpp
-    # entity/entities/villager/VillagerEntity.cpp
+    # Entity - Villager
+    entity/entities/villager/AbstractVillagerEntity.cpp
+    entity/entities/villager/VillagerEntity.cpp
     # Entity - Projectile (incomplete - needs more work)
     # entity/entities/projectile/ProjectileEntity.cpp
     # entity/entities/projectile/ThrowableEntity.cpp
@@ -199,8 +203,12 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/target/TargetGoals.cpp
     entity/ai/goal/goals/special/SpecialGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
+    # Entity - AI - Villager Goals
+    entity/ai/goal/goals/villager/VillagerGoals.cpp
     # Entity - AI - Brain System
     entity/ai/brain/memory/MemoryModuleType.cpp
+    # Entity - Villager
+    entity/entities/villager/ProfessionMapping.cpp
     entity/ai/brain/schedule/Activity.cpp
     entity/ai/brain/schedule/Schedule.cpp
     entity/ai/pathfinding/PathPoint.cpp
@@ -606,6 +614,24 @@ add_library(mc_common STATIC
     world/fluid/fluids/EmptyFluid.cpp
     world/fluid/fluids/WaterFluid.cpp
     world/fluid/fluids/LavaFluid.cpp
+
+    # World - Village System
+    world/village/Village.cpp
+    world/village/VillageManager.cpp
+    world/village/VillageGossip.cpp
+    world/village/VillageGossipType.cpp
+    # World - Village - POI
+    world/village/poi/PointOfInterest.cpp
+    world/village/poi/PointOfInterestStorage.cpp
+    world/village/poi/PointOfInterestType.cpp
+    # World - Village - Trade
+    world/village/trade/MerchantOffer.cpp
+    world/village/trade/MerchantOffers.cpp
+    world/village/trade/VillagerTrades.cpp
+    # World - Village - Raid
+    world/village/raid/Raid.cpp
+    world/village/raid/RaidManager.cpp
+    world/village/raid/RaiderType.cpp
 
     # Physics
     physics/PhysicsEngine.cpp

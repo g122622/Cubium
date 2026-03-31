@@ -73,6 +73,17 @@ Result<void> ServerWorld::initialize()
 
     m_chunkManager->setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
         initializeChunkLighting(x, z);
+        // 通知村庄管理器区块加载
+        if (m_villageManager) {
+            m_villageManager->onChunkLoaded(x, z);
+        }
+    });
+
+    m_chunkManager->setChunkUnloadedCallback([this](ChunkCoord x, ChunkCoord z) {
+        // 通知村庄管理器区块卸载（用于清理 POI 等）
+        if (m_villageManager) {
+            m_villageManager->onChunkUnloaded(x, z);
+        }
     });
 
     auto result = m_chunkManager->initialize();
@@ -88,6 +99,10 @@ Result<void> ServerWorld::initialize()
     m_weatherManager->initialize(m_config.seed);
     m_weatherManager->setWorld(this);
 
+    // 初始化村庄和袭击管理器
+    m_villageManager = std::make_unique<world::village::VillageManager>(*this);
+    m_raidManager = std::make_unique<world::village::raid::RaidManager>(*this, *m_villageManager);
+
     m_initialized = true;
     spdlog::info("Server world initialized");
     return Result<void>::ok();
@@ -97,6 +112,12 @@ void ServerWorld::shutdown()
 {
     spdlog::info("Shutting down server world...");
     m_initialized = false;
+
+    // 先清理袭击管理器（可能引用村庄）
+    m_raidManager.reset();
+    // 再清理村庄管理器
+    m_villageManager.reset();
+
     m_weatherManager.reset();
     m_lightManager.reset();
     m_tickManager.reset();
@@ -200,8 +221,20 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     i32 oldLightLevel = oldState ? oldState->lightLevel() : 0;
     i32 newLightLevel = state ? state->lightLevel() : 0;
 
+    // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
+    if (m_villageManager && oldState != nullptr && !oldState->isAir()) {
+        m_villageManager->onBlockRemoved(BlockPos(x, y, z));
+    }
+
     chunk->setBlock(localX, y, localZ, state);
     chunk->setDirty(true);
+
+    // 通知村庄管理器方块放置（如果新方块存在且不是空气）
+    if (m_villageManager && state != nullptr && !state->isAir()) {
+        // 获取方块ID
+        u32 blockId = state->blockId();
+        m_villageManager->onBlockPlaced(BlockPos(x, y, z), blockId);
+    }
 
     if (m_lightManager) {
         BlockPos pos(x, y, z);
@@ -230,6 +263,7 @@ void ServerWorld::tick()
 
     // 获取当前 tick
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
+    i64 gameTime = m_timeManager ? m_timeManager->dayTime() : 0;
 
     // 调试世界不执行计划刻
     if (!m_config.isDebugWorld && m_tickManager) {
@@ -246,6 +280,16 @@ void ServerWorld::tick()
         if (currentTick % 200 == 0) {
             world::redstone::RedstoneSystem::instance().cleanupBurnoutRecords(currentTick);
         }
+    }
+
+    // 更新村庄系统（流言衰减、边界重算等）
+    if (m_villageManager) {
+        m_villageManager->tick(gameTime);
+    }
+
+    // 更新袭击系统（波次推进、掠夺者生成等）
+    if (m_raidManager) {
+        m_raidManager->tick();
     }
 
     // EntityManager 由 MinecraftServer 驱动

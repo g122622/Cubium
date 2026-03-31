@@ -14,12 +14,17 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkLoadTicket.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/ai/brain/schedule/Schedule.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
+#include "common/world/village/trade/VillagerTrades.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
@@ -213,6 +218,17 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     if (registerEntities) {
         entity::VanillaEntities::registerAll();
     }
+
+    // 初始化预定义日程（村民AI行为日程）
+    entity::ai::brain::schedule::Schedule::initialize();
+    spdlog::info("Schedules initialized");
+
+    // 初始化记忆模块类型
+    entity::ai::brain::memory::MemoryModuleTypes::initialize();
+    spdlog::info("Memory module types initialized");
+
+    // 初始化村民交易配方表
+    world::village::trade::VillagerTrades::initialize();
 }
 
 void MinecraftServer::setupWorldCallbacks()
@@ -703,6 +719,9 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     auto& packet = result.value();
     const auto& pos = packet.position();
 
+    // 保存旧位置用于村庄进入检测
+    BlockPos prevPos(static_cast<i32>(player->x), static_cast<i32>(player->y), static_cast<i32>(player->z));
+
     // 计算新区块坐标
     ChunkCoord newChunkX = static_cast<ChunkCoord>(std::floor(pos.x / 16.0));
     ChunkCoord newChunkZ = static_cast<ChunkCoord>(std::floor(pos.z / 16.0));
@@ -741,6 +760,36 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     if (m_world && m_world->chunkManager()) {
         m_world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
         m_world->chunkManager()->processTicketUpdates();
+    }
+
+    // 村庄进入检测（用于触发袭击）
+    // 仅在位置实际改变时检测
+    if (m_world && packet.type() != network::PlayerMovePacket::MoveType::Rotation &&
+        packet.type() != network::PlayerMovePacket::MoveType::GroundOnly) {
+        auto* villageManager = m_world->villageManager();
+        auto* raidManager = m_world->raidManager();
+        if (villageManager && raidManager) {
+            BlockPos currentPos(static_cast<i32>(player->x), static_cast<i32>(player->y), static_cast<i32>(player->z));
+            world::village::Village* enteredVillage = villageManager->checkPlayerEnterVillage(currentPos, prevPos);
+            if (enteredVillage) {
+                // 玩家进入了村庄，使用回调检查不祥之兆并触发袭击
+                raidManager->onPlayerEnterVillageWithCallback(
+                    [player](BlockPos) -> i32 {
+                        if (player->hasEffect(entity::effect::EffectType::BadOmen)) {
+                            const entity::effect::EffectInstance* effect = player->getEffect(entity::effect::EffectType::BadOmen);
+                            if (effect != nullptr) {
+                                i32 level = effect->getEffectLevel();
+                                // 移除不祥之兆效果
+                                player->removeEffect(entity::effect::EffectType::BadOmen);
+                                return level;
+                            }
+                        }
+                        return 0;
+                    },
+                    enteredVillage
+                );
+            }
+        }
     }
 }
 

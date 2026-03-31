@@ -1,0 +1,78 @@
+{
+    "name": "minecraft:village/snowy/houses",
+    "fallback": "minecraft:village/snowy/terminators",
+    "elements": [
+        {
+            "weight": 6,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_small_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 4,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_small_house_02",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 3,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_medium_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_large_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_butcher_shop_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_temple_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_shepherd_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/snowy/houses/snowy_armorer_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        }
+    ]
+}

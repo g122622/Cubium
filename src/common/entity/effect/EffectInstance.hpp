@@ -1,0 +1,139 @@
+#pragma once
+
+#include "EffectType.hpp"
+#include "../../core/Types.hpp"
+#include <memory>
+
+namespace mc {
+
+// 前向声明
+class LivingEntity;
+
+namespace entity {
+namespace effect {
+
+/**
+ * @brief 效果实例
+ *
+ * 表示一个实体的具体效果实例，包含等级和持续时间。
+ * 参考 MC 1.16.5 EffectInstance
+ */
+class EffectInstance {
+public:
+    /**
+     * @brief 构造效果实例
+     * @param type 效果类型
+     * @param duration 持续时间（tick），-1表示永久
+     * @param amplifier 效果等级（0 = I, 1 = II, 等）
+     * @param ambient 是否为环境效果（如信标）
+     * @param visible 是否显示粒子
+     * @param showIcon 是否显示图标
+     */
+    EffectInstance(
+        EffectType type,
+        i32 duration = 600,
+        i32 amplifier = 0,
+        bool ambient = false,
+        bool visible = true,
+        bool showIcon = true
+    );
+
+    /**
+     * @brief 复制构造
+     */
+    EffectInstance(const EffectInstance& other);
+
+    /**
+     * @brief 移动构造
+     */
+    EffectInstance(EffectInstance&& other) noexcept = default;
+
+    /**
+     * @brief 赋值操作符
+     */
+    EffectInstance& operator=(const EffectInstance& other);
+    EffectInstance& operator=(EffectInstance&& other) noexcept = default;
+
+    // ========== 基本属性 ==========
+
+    [[nodiscard]] EffectType type() const { return m_type; }
+    [[nodiscard]] i32 duration() const { return m_duration; }
+    [[nodiscard]] i32 amplifier() const { return m_amplifier; }
+    [[nodiscard]] bool isAmbient() const { return m_ambient; }
+    [[nodiscard]] bool isVisible() const { return m_visible; }
+    [[nodiscard]] bool showIcon() const { return m_showIcon; }
+
+    /**
+     * @brief 获取效果等级（1-based，用于显示）
+     */
+    [[nodiscard]] i32 getEffectLevel() const { return m_amplifier + 1; }
+
+    /**
+     * @brief 检查效果是否过期
+     */
+    [[nodiscard]] bool isExpired() const { return m_duration == 0; }
+
+    /**
+     * @brief 检查效果是否永久
+     */
+    [[nodiscard]] bool isPermanent() const { return m_duration < 0; }
+
+    // ========== 更新 ==========
+
+    /**
+     * @brief 更新效果（每tick调用）
+     * @param entity 受影响的实体
+     * @return 是否仍然有效（true = 继续，false = 移除）
+     */
+    bool tick(LivingEntity& entity);
+
+    /**
+     * @brief 合并另一个效果
+     * @param other 要合并的效果
+     * @return 是否成功合并
+     */
+    bool merge(const EffectInstance& other);
+
+    /**
+     * @brief 应用效果（添加时调用）
+     */
+    void apply(LivingEntity& entity);
+
+    /**
+     * @brief 移除效果（移除时调用）
+     */
+    void remove(LivingEntity& entity);
+
+    // ========== 静态工厂方法 ==========
+
+    /**
+     * @brief 创建不祥之兆效果
+     * @param level 等级（1-5）
+     */
+    [[nodiscard]] static EffectInstance badOmen(i32 level = 1);
+
+    /**
+     * @brief 创建村庄英雄效果
+     * @param level 等级（1-5）
+     */
+    [[nodiscard]] static EffectInstance heroOfTheVillage(i32 level = 1);
+
+private:
+    /**
+     * @brief 执行效果的具体逻辑
+     */
+    void applyEffect(LivingEntity& entity);
+
+private:
+    EffectType m_type;
+    i32 m_duration;
+    i32 m_amplifier;
+    bool m_ambient;
+    bool m_visible;
+    bool m_showIcon;
+    bool m_applied = false;  // 是否已应用属性修改
+};
+
+} // namespace effect
+} // namespace entity
+} // namespace mc

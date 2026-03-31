@@ -1,0 +1,30 @@
+{
+    "name": "minecraft:village/savanna/terminators",
+    "fallback": "minecraft:empty",
+    "elements": [
+        {
+            "weight": 4,
+            "element": {
+                "location": "minecraft:village/savanna/terminators/savanna_terminator_01",
+                "processors": "minecraft:street_savanna",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 4,
+            "element": {
+                "location": "minecraft:village/savanna/terminators/savanna_terminator_02",
+                "processors": "minecraft:street_savanna",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:empty_pool_element"
+            }
+        }
+    ]
+}

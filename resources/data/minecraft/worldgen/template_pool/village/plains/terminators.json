@@ -1,0 +1,39 @@
+{
+    "name": "minecraft:village/plains/terminators",
+    "fallback": "minecraft:empty",
+    "elements": [
+        {
+            "weight": 4,
+            "element": {
+                "location": "minecraft:village/plains/terminators/plains_terminator_01",
+                "processors": "minecraft:street_plains",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 4,
+            "element": {
+                "location": "minecraft:village/plains/terminators/plains_terminator_02",
+                "processors": "minecraft:street_plains",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 4,
+            "element": {
+                "location": "minecraft:village/plains/terminators/plains_terminator_03",
+                "processors": "minecraft:street_plains",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:empty_pool_element"
+            }
+        }
+    ]
+}

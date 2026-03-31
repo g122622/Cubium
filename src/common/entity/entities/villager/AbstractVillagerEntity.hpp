@@ -2,6 +2,7 @@
 
 #include "../../core/AgeableEntity.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
+#include "../../../world/village/trade/Merchant.hpp"
 #include <memory>
 
 namespace mc {
@@ -9,8 +10,10 @@ namespace mc {
 // 前向声明
 class Player;
 class ItemStack;
-class MerchantOffer;
-class MerchantOffers;
+
+// 使用命名空间中的类型
+using MerchantOffers = world::village::trade::MerchantOffers;
+using MerchantOffer = world::village::trade::MerchantOffer;
 
 namespace entity {
 

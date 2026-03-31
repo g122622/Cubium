@@ -1081,40 +1081,43 @@ struct compound_tag final : public tag {
      */
     template <typename T>
     auto put(std::string&& name, T&& item) {
-        return value.insert_or_assign(std::move(name), std::make_unique<tag_of<T>>(std::move(item)));
+        using DecayedT = std::decay_t<T>;
+        return value.insert_or_assign(std::move(name), std::make_unique<tag_of<DecayedT>>(static_cast<const typename tag_of<DecayedT>::value_type&>(item)));
     }
 
     template <typename T>
     auto put(const std::string& name, T&& item) {
-        return value.insert_or_assign(name, std::make_unique<tag_of<T>>(item));
+        using DecayedT = std::decay_t<T>;
+        return value.insert_or_assign(name, std::make_unique<tag_of<DecayedT>>(static_cast<const typename tag_of<DecayedT>::value_type&>(item)));
     }
 
     /**
-     * @brief 获取值（类型必须匹配）
+     * @brief 获取值（标签类型版本）
      */
-    template <typename T>
-    typename tag_of<T>::value_type& get(const std::string& name) {
-        return dynamic_cast<tag_of<T>&>(*value.at(name)).value;
+    template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
+    typename TagT::value_type& get(const std::string& name) {
+        return dynamic_cast<TagT&>(*value.at(name)).value;
     }
 
-    template <typename T>
-    const typename tag_of<T>::value_type& get(const std::string& name) const {
-        return dynamic_cast<const tag_of<T>&>(*value.at(name)).value;
+    template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
+    const typename TagT::value_type& get(const std::string& name) const {
+        return dynamic_cast<const TagT&>(*value.at(name)).value;
     }
 
     /**
      * @brief 获取或创建标签
      */
     template <typename T>
-    typename tag_of<T>::value_type& tag(const std::string& name) {
+    typename tag_of<std::decay_t<T>>::value_type& tag(const std::string& name) {
+        using TagType = tag_of<std::decay_t<T>>;
         auto iter = value.find(name);
         if (iter == value.end()) {
-            auto ptr = std::make_unique<tag_of<T>>();
-            typename tag_of<T>::value_type& result = ptr->value;
+            auto ptr = std::make_unique<TagType>();
+            typename TagType::value_type& result = ptr->value;
             value.emplace(name, std::move(ptr));
             return result;
         } else {
-            return dynamic_cast<tag_of<T>&>(*iter->second).value;
+            return dynamic_cast<TagType&>(*iter->second).value;
         }
     }
 
@@ -1160,8 +1163,8 @@ FIND_LIST_TAG(compound_list_tag)
  * @brief 包装值为标签
  */
 template <typename T>
-tag_of<T> wrap(T&& value) {
-    return tag_of<T>(value);
+tag_of<std::decay_t<T>> wrap(T&& value) {
+    return tag_of<std::decay_t<T>>(value);
 }
 
 /**
