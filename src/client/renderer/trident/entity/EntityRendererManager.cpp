@@ -1,12 +1,15 @@
 #include "EntityRendererManager.hpp"
 #include "AnimalRenderers.hpp"
 #include "ItemEntityRenderer.hpp"
+#include "ExperienceOrbRenderer.hpp"
 #include "EntityTextureAtlas.hpp"
 #include "../../../resource/EntityTextureLoader.hpp"
 #include "../../../resource/ItemTextureAtlas.hpp"
 #include "../../../world/entity/ClientEntity.hpp"
 #include "../../../../common/entity/core/EntityRegistry.hpp"
 #include "../../../../common/entity/entities/item/ItemEntity.hpp"
+#include "../../../../common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "../../../../common/entity/experience/ExperienceUtils.hpp"
 #include "../../../../common/item/core/ItemStack.hpp"
 #include "../../../../common/item/core/Item.hpp"
 #include "../../../../common/resource/ResourceLocation.hpp"
@@ -94,9 +97,10 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         return;
     }
 
-    // 检查是否为 ItemEntity
+    // 检查是否为 ItemEntity 或 ExperienceOrb
     String normalizedType = normalizeEntityTypeId(entity.typeId());
     bool isItemEntity = (normalizedType == entity::EntityTypes::ITEM);
+    bool isExperienceOrb = (normalizedType == entity::EntityTypes::EXPERIENCE_ORB);
 
     // 对于 ItemEntity，使用 ItemTextureAtlas
     if (isItemEntity && m_itemTextureAtlas && m_itemTextureAtlas->isValid()) {
@@ -165,6 +169,27 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // 绘制网格（使用更大的缩放）
         m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f);
+    } else if (isExperienceOrb) {
+        // ExperienceOrb 特殊渲染：应用浮动动画和动态大小
+        f32 bobOffset = calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
+
+        // Y 翻转
+        modelMatrix[5] = -1.0f;
+
+        // 获取经验值以确定大小
+        i32 xpValue = entity.xpValue();
+        i32 orbSize = mc::entity::experience::utils::getOrbSize(xpValue);
+
+        // 根据经验球大小计算缩放因子
+        // 大小等级 0-10，基础大小为 0.25，每级增加约 0.015
+        f32 scale = MODEL_SCALE * (16.0f + static_cast<f32>(orbSize) * 0.5f);
+
+        // 获取插值位置并应用浮动偏移
+        Vector3 posInterp = entity.getInterpolatedPosition(partialTicks);
+        Vector3f pos(posInterp.x, posInterp.y + bobOffset, posInterp.z);
+
+        // 绘制网格
+        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale);
     } else {
         // 普通实体渲染
         // MC 实体模型局部坐标系的 Y 轴方向与世界坐标相反，先做一次 Y 翻转
@@ -209,6 +234,13 @@ f32 EntityRendererManager::calculateItemRotation(u32 ticksExisted, f32 partialTi
     // 参考 MC 1.16.5 ItemEntityRenderer
     // 旋转速度：每 tick 旋转 2 度
     return static_cast<f32>(ticksExisted) * 2.0f + partialTick * 2.0f;
+}
+
+f32 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f32 partialTick) const {
+    // 参考 MC 1.16.5 ExperienceOrbRenderer
+    // 经验球浮动动画：sin(ticks * 0.05) * 0.1 + 0.2
+    f32 ticks = static_cast<f32>(ticksExisted) + partialTick;
+    return std::sin(ticks * 0.05f) * 0.1f + 0.3f;  // 0.3 是基础高度偏移（略高于物品）
 }
 
 EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity) {
@@ -312,8 +344,13 @@ void EntityRendererManager::initializeDefaults() {
         return renderer;
     });
 
-    spdlog::debug("EntityRendererManager: Registered {} entity types including ItemEntity",
-                  static_cast<size_t>(4) + 1);  // 4 animals + 1 item
+    // ExperienceOrb 渲染器
+    registerRenderer(ET::EXPERIENCE_ORB, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<ExperienceOrbRenderer>();
+    });
+
+    spdlog::debug("EntityRendererManager: Registered {} entity types including ItemEntity and ExperienceOrb",
+                  static_cast<size_t>(4) + 2);  // 4 animals + 1 item + 1 orb
 }
 
 EntityRenderer* EntityRendererManager::getOrCreateRenderer(const String& typeId) {
@@ -382,6 +419,12 @@ bool EntityRendererManager::generateModelMesh(const String& typeId,
         generateItemEntityMesh(vertices, indices);
         return true;
     }
+    if (normalizedId == ET::EXPERIENCE_ORB) {
+        // ExperienceOrb 使用简单的四边形网格（billboard）
+        // 颜色会根据经验和时间动态变化
+        generateExperienceOrbMesh(vertices, indices);
+        return true;
+    }
 
     // 未知实体类型
     spdlog::debug("Unknown entity type for mesh generation: {}", normalizedId);
@@ -410,6 +453,39 @@ void EntityRendererManager::generateItemEntityMesh(std::vector<ModelVertex>& ver
         ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),  // 左上
         ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f),  // 右上
         ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),  // 右下
+    };
+
+    indices = {
+        // 背面
+        0, 1, 2, 0, 2, 3,
+        // 正面
+        4, 5, 6, 4, 6, 7
+    };
+}
+
+void EntityRendererManager::generateExperienceOrbMesh(std::vector<ModelVertex>& vertices,
+                                                       std::vector<u32>& indices) {
+    // 生成一个简单的四边形网格用于经验球
+    // 经验球使用 billboard 方式渲染，始终面向摄像机
+    // 参考 MC 1.16.5 ExperienceOrbRenderer
+
+    // 经验球基础大小：0.25 块，会根据经验值等级动态缩放
+    constexpr f32 HALF_SIZE = 0.125f;  // 基础尺寸的一半
+    constexpr f32 Y_OFFSET = 0.25f;    // 地面偏移
+
+    // 创建双面四边形（billboard）
+    // 颜色会在渲染时根据经验值和时间动态计算
+    vertices = {
+        // 背面（法线 -Z）
+        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f),
+        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f),
+        ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f),
+        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f),
+        // 正面（法线 +Z）
+        ModelVertex(HALF_SIZE, Y_OFFSET, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+        ModelVertex(HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+        ModelVertex(-HALF_SIZE, Y_OFFSET + 0.25f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+        ModelVertex(-HALF_SIZE, Y_OFFSET, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),
     };
 
     indices = {

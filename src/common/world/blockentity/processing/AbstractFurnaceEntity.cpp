@@ -122,6 +122,11 @@ bool AbstractFurnaceEntity::load(const nlohmann::json& data) {
         m_cookTimeTotal = data["CookTimeTotal"].get<i32>();
     }
 
+    // 加载累积经验
+    if (data.contains("StoredExperience") && data["StoredExperience"].is_number()) {
+        m_storedExperience = data["StoredExperience"].get<f32>();
+    }
+
     // 设置当前燃料的总燃烧时间
     m_burnTimeTotal = getBurnTime(m_inventory.getFuelItem());
 
@@ -136,6 +141,7 @@ void AbstractFurnaceEntity::save(nlohmann::json& data) const {
     data["BurnTime"] = m_burnTime;
     data["CookTime"] = m_cookTime;
     data["CookTimeTotal"] = m_cookTimeTotal;
+    data["StoredExperience"] = m_storedExperience;
 
     // TODO: 保存背包内容
 }
@@ -270,6 +276,10 @@ void AbstractFurnaceEntity::smeltWithRecipe(const crafting::SmeltingRecipe* reci
         output.grow(result.getCount());
         m_inventory.setOutputItem(output);
     }
+
+    // 累积经验值（玩家取出物品时发放）
+    f32 recipeXp = recipe->getExperience();
+    m_storedExperience += recipeXp;
 
     // 特殊处理：湿海绵干燥
     // TODO: 实现湿海绵的特殊处理

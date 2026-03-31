@@ -3,8 +3,10 @@
 #include "../../core/Entity.hpp"
 #include "../../movement/AutoJump.hpp"
 #include "../../inventory/PlayerInventory.hpp"
+#include "../../experience/ExperienceManager.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include <array>
+#include <memory>
 
 namespace mc {
 
@@ -147,7 +149,7 @@ public:
     static constexpr f32 SNEAK_EDGE_DISTANCE = 0.05f; // 潜行边缘检测距离
 
     Player(EntityId id, const String& username);
-    ~Player() override = default;
+    ~Player() override;
 
     // 禁止拷贝
     Player(const Player&) = delete;
@@ -181,13 +183,90 @@ public:
     [[nodiscard]] const FoodStats& foodStats() const { return m_foodStats; }
     FoodStats& foodStats() { return m_foodStats; }
 
-    // 经验
-    [[nodiscard]] i32 experienceLevel() const { return m_experienceLevel; }
-    [[nodiscard]] f32 experienceProgress() const { return m_experienceProgress; }
-    [[nodiscard]] i32 totalExperience() const { return m_totalExperience; }
-    void addExperience(i32 amount);
-    void setExperienceLevel(i32 level);
-    i32 experienceBarCapacity() const;  // 当前等级填满经验条需要的经验值
+    // ========== 经验系统 ==========
+
+    /**
+     * @brief 获取经验管理器
+     */
+    [[nodiscard]] const entity::experience::ExperienceManager& experienceManager() const { return *m_experienceManager; }
+    entity::experience::ExperienceManager& experienceManager() { return *m_experienceManager; }
+
+    // 经验相关便捷方法（委托给 ExperienceManager）
+    [[nodiscard]] i32 experienceLevel() const { return m_experienceManager->getLevel(); }
+    [[nodiscard]] f32 experienceProgress() const { return m_experienceManager->getProgress(); }
+    [[nodiscard]] i32 totalExperience() const { return m_experienceManager->getTotalExperience(); }
+    [[nodiscard]] i32 xpSeed() const { return m_experienceManager->getXpSeed(); }
+
+    /**
+     * @brief 添加经验值
+     * @param amount 经验值数量
+     */
+    virtual void addExperience(i32 amount);
+
+    /**
+     * @brief 设置经验等级
+     * @param level 目标等级
+     */
+    virtual void setExperienceLevel(i32 level);
+
+    /**
+     * @brief 添加经验等级
+     * @param levels 要添加的等级数（可以为负数）
+     */
+    void addExperienceLevels(i32 levels);
+
+    /**
+     * @brief 消耗经验值
+     * @param amount 要消耗的经验值
+     * @return 是否成功消耗
+     */
+    [[nodiscard]] bool consumeExperience(i32 amount);
+
+    /**
+     * @brief 消耗经验等级（用于附魔）
+     * @param levels 要消耗的等级数
+     * @return 是否成功消耗
+     */
+    [[nodiscard]] bool consumeExperienceLevels(i32 levels);
+
+    /**
+     * @brief 当前等级填满经验条需要的经验值
+     */
+    [[nodiscard]] i32 experienceBarCapacity() const;
+
+    /**
+     * @brief 设置完整的经验状态
+     * @param level 等级
+     * @param progress 进度 (0.0-1.0)
+     * @param totalExperience 总经验值
+     */
+    void setExperience(i32 level, f32 progress, i32 totalExperience);
+
+    /**
+     * @brief 掉落经验（死亡时调用）
+     *
+     * 玩家死亡时掉落 min(level * 7, 100) 点经验。
+     */
+    void dropExperience();
+
+    // ========== XP 冷却 ==========
+
+    /**
+     * @brief 获取 XP 冷却时间
+     * @return 剩余冷却 ticks
+     */
+    [[nodiscard]] i32 xpCooldown() const { return m_xpCooldown; }
+
+    /**
+     * @brief 设置 XP 冷却时间
+     * @param cooldown 冷却 ticks
+     */
+    void setXpCooldown(i32 cooldown) { m_xpCooldown = cooldown; }
+
+    /**
+     * @brief 检查是否可以拾取 XP
+     */
+    [[nodiscard]] bool canPickupXp() const { return m_xpCooldown <= 0; }
 
     // 能力
     [[nodiscard]] const PlayerAbilities& abilities() const { return m_abilities; }
@@ -365,10 +444,11 @@ private:
     PlayerAbilities m_abilities;
     PlayerInventory m_inventory{this};  // 玩家背包
 
-    i32 m_experienceLevel = 0;
-    f32 m_experienceProgress = 0.0f;
-    i32 m_totalExperience = 0;
-    i32 m_xpSeed = 0;
+    // 经验管理器（唯一数据源）
+    std::unique_ptr<entity::experience::ExperienceManager> m_experienceManager;
+
+    // XP 冷却（拾取经验球的延迟）
+    i32 m_xpCooldown = 0;
 
     bool m_isSprinting = false;
     bool m_isSneaking = false;

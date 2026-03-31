@@ -1,10 +1,14 @@
 #include "BlockDropHandler.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/entity/loot/LootTable.hpp"
 #include "common/entity/loot/LootConditions.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/experience/ExperienceConstants.hpp"
+#include "common/entity/experience/ExperienceUtils.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -294,6 +298,134 @@ i32 BlockDropHandler::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::R
     }
 
     return baseCount + bonus;
+}
+
+// ============================================================================
+// 经验掉落
+// ============================================================================
+
+OreType BlockDropHandler::getOreType(const BlockState& state) {
+    const Block& block = state.owner();
+
+    // 检查是否是各种矿石
+    if (&block == VanillaBlocks::COAL_ORE) {
+        return OreType::Coal;
+    }
+    if (&block == VanillaBlocks::DIAMOND_ORE) {
+        return OreType::Diamond;
+    }
+    if (&block == VanillaBlocks::EMERALD_ORE) {
+        return OreType::Emerald;
+    }
+    if (&block == VanillaBlocks::LAPIS_ORE) {
+        return OreType::Lapis;
+    }
+    if (&block == VanillaBlocks::NETHER_QUARTZ_ORE) {
+        return OreType::NetherQuartz;
+    }
+    if (&block == VanillaBlocks::NETHER_GOLD_ORE) {
+        return OreType::NetherGold;
+    }
+    if (&block == VanillaBlocks::REDSTONE_ORE) {
+        return OreType::Redstone;
+    }
+
+    return OreType::None;
+}
+
+i32 BlockDropHandler::spawnOreExperience(
+    EntityManager& entityManager,
+    PhysicsEngine* physicsEngine,
+    const BlockPos& pos,
+    OreType oreType,
+    math::Random& rng)
+{
+    if (oreType == OreType::None) {
+        return 0;
+    }
+
+    // 使用 ExperienceUtils 计算随机经验值
+    i32 xp = entity::experience::utils::randomOreExperience(
+        rng, static_cast<i32>(oreType));
+
+    if (xp <= 0) {
+        return 0;
+    }
+
+    // 在方块中心位置生成经验球
+    f32 centerX = static_cast<f32>(pos.x) + 0.5f;
+    f32 centerY = static_cast<f32>(pos.y) + 0.5f;
+    f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
+
+    // 分割经验值为多个经验球
+    std::vector<i32> xpValues;
+    entity::experience::utils::splitExperience(xp, xpValues);
+
+    i32 spawnedCount = 0;
+    for (i32 xpValue : xpValues) {
+        // 创建经验球实体（不传 world，后续添加到 entityManager 时设置）
+        auto orb = std::make_unique<ExperienceOrbEntity>(xpValue);
+
+        // 设置位置
+        orb->setPosition(centerX, centerY, centerZ);
+
+        // 设置随机散射速度
+        f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
+        f32 vy = rng.nextFloat() * 0.2f + 0.1f;
+        f32 vz = (rng.nextFloat() - 0.5f) * 0.2f;
+        orb->setVelocity(vx, vy, vz);
+
+        // 设置拾取延迟
+        orb->setPickupDelay(10);
+
+        if (physicsEngine) {
+            orb->setPhysicsEngine(physicsEngine);
+        }
+
+        EntityId entityId = entityManager.addEntity(std::move(orb));
+        if (entityId != 0) {
+            spawnedCount++;
+        }
+    }
+
+    return spawnedCount;
+}
+
+i32 BlockDropHandler::handleBlockBreakExperience(
+    EntityManager& entityManager,
+    PhysicsEngine* physicsEngine,
+    const BlockPos& pos,
+    const BlockState& state,
+    const ItemStack* tool,
+    math::Random& rng)
+{
+    // 检查是否是矿石
+    OreType oreType = getOreType(state);
+    if (oreType == OreType::None) {
+        return 0;
+    }
+
+    // 精准采集不掉落经验
+    if (hasSilkTouch(tool)) {
+        return 0;
+    }
+
+    // 检查是否使用正确工具
+    // 参考 MC: 只有使用正确工具才能获得经验
+    // 如果方块需要工具才能采集，检查工具是否有效
+    if (state.requiresTool()) {
+        if (!tool || tool->isEmpty()) {
+            return 0;  // 需要工具但没有工具
+        }
+
+        // 使用 ItemStack 的 canHarvestBlock 方法检查
+        if (!tool->canHarvestBlock(state)) {
+            return 0;  // 工具不能采集此方块
+        }
+    }
+
+    // 生成经验球
+    return spawnOreExperience(entityManager, physicsEngine, pos, oreType, rng);
 }
 
 } // namespace mc

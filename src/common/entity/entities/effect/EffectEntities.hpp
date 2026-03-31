@@ -185,59 +185,8 @@ private:
     static constexpr f32 RADIUS_GROWTH = -0.005f;
 };
 
-/**
- * @brief 经验球实体
- *
- * 玩家拾取后获得经验值。
- *
- * 参考 MC 1.16.5 ExperienceOrbEntity
- */
-class ExperienceOrbEntity : public Entity {
-public:
-    explicit ExperienceOrbEntity(i32 xpValue = 1);
-    ~ExperienceOrbEntity() override = default;
-
-    void tick() override;
-
-    [[nodiscard]] f32 width() const override;
-    [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
-
-    /**
-     * @brief 获取经验值
-     */
-    [[nodiscard]] i32 getXpValue() const { return m_xpValue; }
-    void setXpValue(i32 value) { m_xpValue = value; }
-
-    /**
-     * @brief 检查是否正在被玩家追踪
-     */
-    [[nodiscard]] bool isBeingTracked() const { return m_trackingPlayer != nullptr; }
-
-    /**
-     * @brief 分割经验球
-     * @return 分割后的经验球
-     */
-    ExperienceOrbEntity* split();
-
-    /**
-     * @brief 计算经验值对应的颜色
-     */
-    [[nodiscard]] u32 getExperienceColor() const;
-
-private:
-    void followPlayer(Player* player);
-
-    i32 m_xpValue;
-    Player* m_trackingPlayer = nullptr;
-    i32 m_trackingCooldown = 0;
-    i32 m_despawnDelay = 6000;
-    i32 m_collectDelay = 0;
-    static constexpr f32 FOLLOW_RANGE = 8.0f;
-    static constexpr f32 FOLLOW_SPEED = 0.5f;
-    static constexpr i32 MAX_XP_VALUE = 2477;
-};
+// 注意: ExperienceOrbEntity 已移动到独立的 orb/ 目录
+// 文件位置: src/common/entity/entities/orb/ExperienceOrbEntity.hpp
 
 /**
  * @brief 盔甲架实体

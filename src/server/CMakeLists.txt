@@ -51,6 +51,7 @@ add_executable(minecraft-server
     command/commands/GiveCommand.cpp
     command/commands/ClearCommand.cpp
     command/commands/WeatherCommand.cpp
+    command/commands/ExperienceCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
 )

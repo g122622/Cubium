@@ -3,6 +3,7 @@
 #include "../ai/controller/MovementController.hpp"
 #include "../ai/controller/JumpController.hpp"
 #include "../ai/pathfinding/PathNavigator.hpp"
+#include "../experience/ExperienceDropHandler.hpp"
 #include "../../util/math/random/Random.hpp"
 
 namespace mc {
@@ -111,6 +112,16 @@ void MobEntity::tick() {
     // 这会根据 m_moveForward 和 m_moveStrafing 执行实际移动
     // 参考 MC MobEntity.livingTick() 中的 aiStep() 调用
     aiStep();
+}
+
+void MobEntity::dropExperience() {
+    // 如果有经验值，生成经验球
+    if (m_experienceValue > 0 && m_world) {
+        math::Random rng = getRandom();
+        entity::ExperienceDropHandler::spawnHostileMobExperience(
+            m_world, x(), y(), z(), m_experienceValue, &rng
+        );
+    }
 }
 
 } // namespace mc

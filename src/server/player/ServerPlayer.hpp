@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../common/entity/entities/player/Player.hpp"
+#include "../../common/network/packet/ExperiencePackets.hpp"
 #include <memory>
 
 namespace mc {
@@ -37,6 +38,25 @@ public:
      * @brief 发送系统消息给玩家
      */
     void sendSystemMessage(const String& message);
+
+    /**
+     * @brief 同步经验状态到客户端
+     */
+    void syncExperience();
+
+    // ========== 重写经验方法 ==========
+
+    /**
+     * @brief 添加经验并同步到客户端
+     * @param amount 经验值
+     */
+    void addExperience(i32 amount) override;
+
+    /**
+     * @brief 设置经验等级并同步到客户端
+     * @param level 等级
+     */
+    void setExperienceLevel(i32 level) override;
 
     // ========== 世界相关 ==========
 

@@ -633,6 +633,16 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::SetExperience: {
+            handleSetExperience(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::SpawnExperienceOrb: {
+            handleSpawnExperienceOrb(bodyDeser);
+            break;
+        }
+
         default:
             spdlog::debug("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
@@ -1314,6 +1324,44 @@ void NetworkClient::handlePlaySoundEffect(network::PacketDeserializer& deser) {
                                 pos.z,
                                 packet.getVolume(),
                                 packet.getPitch());
+    }
+}
+
+void NetworkClient::handleSetExperience(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::SetExperiencePacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize SetExperience packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onSetExperience) {
+        m_callbacks.onSetExperience(packet.progress(), packet.totalXp(), packet.level());
+    }
+}
+
+void NetworkClient::handleSpawnExperienceOrb(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::SpawnExperienceOrbPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize SpawnExperienceOrb packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onSpawnExperienceOrb) {
+        m_callbacks.onSpawnExperienceOrb(
+            static_cast<u32>(packet.entityId()),
+            packet.x(),
+            packet.y(),
+            packet.z(),
+            packet.xpValue()
+        );
     }
 }
 

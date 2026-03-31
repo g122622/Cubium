@@ -41,6 +41,7 @@ add_library(mc_common STATIC
     network/packet/GameStateChangePacket.cpp
     network/packet/PlayerAbilitiesPacket.cpp
     network/packet/BlockBreakAnimPacket.cpp
+    network/packet/ExperiencePackets.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp
@@ -152,6 +153,11 @@ add_library(mc_common STATIC
     entity/entities/hanging/HangingEntity.cpp
     # Entity - Effect
     entity/entities/effect/EffectEntities.cpp
+    # Entity - Orb (Experience Orb)
+    entity/entities/orb/ExperienceOrbEntity.cpp
+    # Entity - Experience System
+    entity/experience/ExperienceManager.cpp
+    entity/experience/ExperienceDropHandler.cpp
     # Entity - Misc
     entity/entities/misc/MiscEntities.cpp
     # Entity - Boss (incomplete - needs MerchantOffers, etc.)

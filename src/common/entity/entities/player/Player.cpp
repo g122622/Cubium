@@ -1,12 +1,14 @@
 #include "Player.hpp"
 #include "GameModeUtils.hpp"
 #include "../../inventory/Slot.hpp"
+#include "../../experience/ExperienceManager.hpp"
 #include "../../../physics/PhysicsEngine.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../item/core/ItemRegistry.hpp"
 #include "../../../resource/ResourceLocation.hpp"
+#include "../../experience/ExperienceDropHandler.hpp"
 #include <algorithm>
 #include <cmath>
 #include <chrono>
@@ -20,11 +22,14 @@ namespace mc {
 Player::Player(EntityId id, const String& username)
     : Entity(LegacyEntityType::Player, id)
     , m_username(username)
+    , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
 {
     // 生成随机XP seed
     math::Random rng(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-    m_xpSeed = rng.nextInt();
+    m_experienceManager->resetXpSeed(rng);
 }
+
+Player::~Player() = default;
 
 void Player::setGameMode(GameMode mode) {
     m_gameMode = mode;
@@ -55,39 +60,53 @@ void Player::damage(f32 amount) {
     }
 }
 
+// ============================================================================
+// 经验系统 - 委托给 ExperienceManager
+// ============================================================================
+
 void Player::addExperience(i32 amount) {
-    m_totalExperience += amount;
+    m_experienceManager->addExperience(amount);
+}
 
-    while (amount > 0) {
-        i32 capacity = experienceBarCapacity();
-        f32 needed = static_cast<f32>(capacity) - m_experienceProgress * capacity;
+void Player::setExperienceLevel(i32 level) {
+    m_experienceManager->setLevel(level);
+}
 
-        if (amount >= static_cast<i32>(needed)) {
-            amount -= static_cast<i32>(needed);
-            m_experienceLevel++;
-            m_experienceProgress = 0.0f;
-        } else {
-            m_experienceProgress += static_cast<f32>(amount) / capacity;
-            amount = 0;
+void Player::addExperienceLevels(i32 levels) {
+    m_experienceManager->addLevels(levels);
+}
+
+bool Player::consumeExperience(i32 amount) {
+    return m_experienceManager->consumeExperience(amount);
+}
+
+bool Player::consumeExperienceLevels(i32 levels) {
+    return m_experienceManager->consumeLevels(levels);
+}
+
+i32 Player::experienceBarCapacity() const {
+    return m_experienceManager->getExperienceForNextLevel();
+}
+
+void Player::setExperience(i32 level, f32 progress, i32 totalExperience) {
+    m_experienceManager->setExperience(level, progress, totalExperience);
+}
+
+void Player::dropExperience() {
+    // 玩家死亡时掉落经验
+    // 参考 MC 1.16.5: min(level * 7, 100)
+    if (m_world && m_experienceManager->getLevel() > 0) {
+        i32 xpToDrop = m_experienceManager->calculateDeathDropXp();
+        if (xpToDrop > 0) {
+            math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
+            entity::ExperienceDropHandler::spawnExperienceOrbs(
+                m_world, x(), y(), z(), xpToDrop, &rng
+            );
         }
     }
 }
 
-void Player::setExperienceLevel(i32 level) {
-    m_experienceLevel = std::max(0, level);
-    m_experienceProgress = 0.0f;
-}
-
-i32 Player::experienceBarCapacity() const {
-    // 经验条容量公式
-    if (m_experienceLevel < 15) {
-        return 7 + m_experienceLevel * 2;
-    } else if (m_experienceLevel < 30) {
-        return 37 + (m_experienceLevel - 15) * 5;
-    } else {
-        return 112 + (m_experienceLevel - 30) * 9;
-    }
-}
+// ============================================================================
 
 void Player::setSprinting(bool sprinting) {
     m_isSprinting = sprinting;
@@ -168,6 +187,11 @@ f32 Player::eyeHeight() const {
 
 void Player::tick() {
     Entity::tick();
+
+    // 更新 XP 冷却
+    if (m_xpCooldown > 0) {
+        m_xpCooldown--;
+    }
 
     // 更新受伤/死亡计时器
     if (hurtTime > 0) {
@@ -544,6 +568,9 @@ void Player::respawn() {
     m_jumpTicks = 0;
     sleepTimer = 0;
     setPose(EntityPose::Standing);
+
+    // 重置经验
+    m_experienceManager->reset();
 }
 
 void Player::serialize(network::PacketSerializer& ser) const {
@@ -568,10 +595,10 @@ void Player::serialize(network::PacketSerializer& ser) const {
     // 饥饿
     m_foodStats.serialize(ser);
 
-    // 经验
-    ser.writeI32(m_experienceLevel);
-    ser.writeF32(m_experienceProgress);
-    ser.writeI32(m_totalExperience);
+    // 经验（从 ExperienceManager 获取）
+    ser.writeI32(m_experienceManager->getLevel());
+    ser.writeF32(m_experienceManager->getProgress());
+    ser.writeI32(m_experienceManager->getTotalExperience());
 }
 
 Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer& deser) {
@@ -636,18 +663,21 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
     if (foodResult.failed()) return foodResult.error();
     player->m_foodStats = foodResult.value();
 
-    // 经验
+    // 经验（设置到 ExperienceManager）
     auto levelResult = deser.readI32();
     if (levelResult.failed()) return levelResult.error();
-    player->m_experienceLevel = levelResult.value();
 
     auto progressResult = deser.readF32();
     if (progressResult.failed()) return progressResult.error();
-    player->m_experienceProgress = progressResult.value();
 
     auto totalResult = deser.readI32();
     if (totalResult.failed()) return totalResult.error();
-    player->m_totalExperience = totalResult.value();
+
+    player->m_experienceManager->setExperience(
+        levelResult.value(),
+        progressResult.value(),
+        totalResult.value()
+    );
 
     return player;
 }

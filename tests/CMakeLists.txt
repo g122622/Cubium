@@ -43,6 +43,10 @@ add_executable(mc_tests
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
+    # 经验系统测试
+    common/entity/experience/ExperienceTest.cpp
+    common/entity/experience/ExperienceManagerTest.cpp
+    common/entity/experience/ExperienceOrbEntityTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
@@ -228,6 +232,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExperienceCommand.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp

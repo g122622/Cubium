@@ -27,6 +27,7 @@ enum class LegacyEntityType : u32 {
     Unknown = 0,
     Player = 1,
     Item = 2,           // 物品实体
+    ExperienceOrb = 3,  // 经验球实体
 
     // 被动生物
     Pig = 10,

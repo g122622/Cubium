@@ -77,6 +77,7 @@
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../entities/vehicle/MinecartEntity.hpp"
 #include "../entities/item/ItemEntity.hpp"
+#include "../entities/orb/ExperienceOrbEntity.hpp"
 #include <spdlog/spdlog.h>
 #include <mutex>
 
@@ -883,6 +884,17 @@ private:
                 .size(0.25f, 0.25f)
                 .trackingRange(4)
                 .updateInterval(20)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 经验球 ==========
+        registry.registerType(
+            EntityTypes::EXPERIENCE_ORB,
+            EntityType::Builder(&ExperienceOrbEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(6)
+                .updateInterval(1)  // 经验球需要频繁更新
                 .canSummon(true)
                 .build()
         );

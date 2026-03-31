@@ -218,6 +218,21 @@ public:
         m_itemStack = std::make_unique<ItemStack>(stack);
     }
 
+    // ========== XP 支持（用于 ExperienceOrb 渲染） ==========
+
+    /**
+     * @brief 获取经验值
+     * 用于 ExperienceOrb 渲染
+     */
+    [[nodiscard]] i32 xpValue() const { return m_xpValue; }
+
+    /**
+     * @brief 设置经验值
+     * 用于客户端接收 SpawnExperienceOrb 包时设置经验球的值
+     * @param value 经验值
+     */
+    void setXpValue(i32 value) { m_xpValue = value; }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -258,6 +273,9 @@ private:
 
     // ItemEntity 物品数据
     std::unique_ptr<ItemStack> m_itemStack;
+
+    // ExperienceOrb 经验值数据
+    i32 m_xpValue = 1;  // 默认值为1
 };
 
 } // namespace mc::client

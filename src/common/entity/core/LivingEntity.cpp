@@ -112,7 +112,9 @@ void LivingEntity::die(DamageSource& /*cause*/) {
     }
 
     m_deathTime = 0;
-    // TODO: 掉落物品、经验等
+
+    // 掉落经验
+    dropExperience();
 }
 
 // ============================================================================
