@@ -10,14 +10,14 @@ namespace enchant {
 std::unordered_map<String, std::unique_ptr<Enchantment>> EnchantmentRegistry::s_enchantments;
 std::unordered_map<String, const Enchantment*> s_enchantmentRefs;
 bool EnchantmentRegistry::s_initialized = false;
-std::mutex EnchantmentRegistry::s_mutex;
+std::recursive_mutex EnchantmentRegistry::s_mutex;
 
 // ============================================================================
 // EnchantmentRegistry 实现
 // ============================================================================
 
 void EnchantmentRegistry::initialize() {
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
 
     if (s_initialized) {
         spdlog::warn("EnchantmentRegistry already initialized");
@@ -39,12 +39,12 @@ bool EnchantmentRegistry::registerEnchantment(std::unique_ptr<Enchantment> encha
         return false;
     }
 
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
     return registerEnchantmentInternal(std::move(enchantment));
 }
 
 bool EnchantmentRegistry::registerEnchantment(const Enchantment& enchantment) {
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
 
     String id = enchantment.id();
 
@@ -67,7 +67,8 @@ bool EnchantmentRegistry::registerEnchantmentInternal(std::unique_ptr<Enchantmen
 
     String id = enchantment->id();
 
-    if (s_enchantments.find(id) != s_enchantments.end()) {
+    if (s_enchantments.find(id) != s_enchantments.end() ||
+        s_enchantmentRefs.find(id) != s_enchantmentRefs.end()) {
         spdlog::warn("Enchantment {} already registered", id);
         return false;
     }
@@ -78,7 +79,7 @@ bool EnchantmentRegistry::registerEnchantmentInternal(std::unique_ptr<Enchantmen
 }
 
 const Enchantment* EnchantmentRegistry::get(const String& id) {
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
 
     auto it = s_enchantments.find(id);
     if (it != s_enchantments.end()) {
@@ -93,7 +94,7 @@ const Enchantment* EnchantmentRegistry::get(const String& id) {
 }
 
 bool EnchantmentRegistry::has(const String& id) {
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
     return s_enchantments.find(id) != s_enchantments.end() ||
            s_enchantmentRefs.find(id) != s_enchantmentRefs.end();
 }
@@ -103,7 +104,7 @@ const std::unordered_map<String, std::unique_ptr<Enchantment>>& EnchantmentRegis
 }
 
 std::vector<const Enchantment*> EnchantmentRegistry::getByType(EnchantmentType type) {
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
 
     std::vector<const Enchantment*> result;
     for (const auto& [id, enchantment] : s_enchantments) {
@@ -120,7 +121,7 @@ std::vector<const Enchantment*> EnchantmentRegistry::getByType(EnchantmentType t
 }
 
 std::vector<const Enchantment*> EnchantmentRegistry::getAvailableForItem(u32 itemType) {
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
 
     std::vector<const Enchantment*> result;
     for (const auto& [id, enchantment] : s_enchantments) {
@@ -137,13 +138,14 @@ std::vector<const Enchantment*> EnchantmentRegistry::getAvailableForItem(u32 ite
 }
 
 void EnchantmentRegistry::clear() {
-    std::lock_guard<std::mutex> lock(s_mutex);
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
     s_enchantments.clear();
     s_enchantmentRefs.clear();
     s_initialized = false;
 }
 
 bool EnchantmentRegistry::isInitialized() {
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
     return s_initialized;
 }
 

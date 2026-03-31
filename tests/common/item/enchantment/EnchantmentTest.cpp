@@ -72,6 +72,14 @@ TEST_F(EnchantmentRegistryTest, DoubleInitializeIsSafe) {
     EXPECT_EQ(EnchantmentRegistry::all().size(), count);
 }
 
+TEST_F(EnchantmentRegistryTest, InitializeDoesNotThrow) {
+    EnchantmentRegistry::clear();
+
+    EXPECT_NO_THROW(EnchantmentRegistry::initialize());
+    EXPECT_TRUE(EnchantmentRegistry::isInitialized());
+    EXPECT_TRUE(EnchantmentRegistry::has("minecraft:protection"));
+}
+
 // ============================================================================
 // FortuneEnchantment 测试
 // ============================================================================

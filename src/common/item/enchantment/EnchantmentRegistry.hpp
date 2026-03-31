@@ -123,7 +123,8 @@ private:
 
     static std::unordered_map<String, std::unique_ptr<Enchantment>> s_enchantments;
     static bool s_initialized;
-    static std::mutex s_mutex;
+    // 使用递归互斥锁以支持 initialize() 内部批量注册时的同线程重入
+    static std::recursive_mutex s_mutex;
 
     // 私有构造函数，防止实例化
     EnchantmentRegistry() = delete;

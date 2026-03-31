@@ -185,6 +185,7 @@ add_executable(mc_tests
     # 声音系统测试
     common/sound/SoundCategoryTest.cpp
     client/sound/SoundTest.cpp
+    client/sound/SoundRegistryTest.cpp
 )
 
 # 添加服务端源文件

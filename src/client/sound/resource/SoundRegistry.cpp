@@ -70,8 +70,11 @@ size_t SoundRegistry::getSoundEventCount() const {
 }
 
 void SoundRegistry::merge(const SoundRegistry& other) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    std::lock_guard<std::mutex> otherLock(other.m_mutex);
+    if (this == &other) {
+        return;
+    }
+
+    std::scoped_lock lock(m_mutex, other.m_mutex);
 
     for (const auto& [id, definition] : other.m_soundEvents) {
         auto it = m_soundEvents.find(id);
