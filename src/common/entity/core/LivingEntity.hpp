@@ -5,6 +5,7 @@
 #include "../attribute/Attributes.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../damage/CombatTracker.hpp"
+#include "../effect/EffectManager.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include <array>
 #include <memory>
@@ -346,6 +347,52 @@ public:
     [[nodiscard]] CombatTracker& combatTracker() { return m_combatTracker; }
     [[nodiscard]] const CombatTracker& combatTracker() const { return m_combatTracker; }
 
+    // ========== 效果系统 ==========
+
+    /**
+     * @brief 获取效果管理器
+     */
+    [[nodiscard]] entity::effect::EffectManager& effectManager() { return m_effectManager; }
+    [[nodiscard]] const entity::effect::EffectManager& effectManager() const { return m_effectManager; }
+
+    /**
+     * @brief 添加效果
+     * @param effect 效果实例
+     * @return 是否成功添加
+     */
+    bool addEffect(entity::effect::EffectInstance effect);
+
+    /**
+     * @brief 移除效果
+     * @param type 效果类型
+     */
+    void removeEffect(entity::effect::EffectType type);
+
+    /**
+     * @brief 移除所有效果
+     */
+    void removeAllEffects();
+
+    /**
+     * @brief 检查是否有效果
+     * @param type 效果类型
+     */
+    [[nodiscard]] bool hasEffect(entity::effect::EffectType type) const;
+
+    /**
+     * @brief 获取效果实例
+     * @param type 效果类型
+     * @return 效果实例指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const;
+
+    /**
+     * @brief 获取效果等级
+     * @param type 效果类型
+     * @return 效果等级（0 = 无效果）
+     */
+    [[nodiscard]] i32 getEffectLevel(entity::effect::EffectType type) const;
+
     // ========== 死亡 ==========
 
     /**
@@ -449,6 +496,9 @@ protected:
 
     // 战斗追踪
     CombatTracker m_combatTracker;       // 战斗追踪器
+
+    // 效果管理
+    entity::effect::EffectManager m_effectManager;  // 效果管理器
 };
 
 } // namespace mc

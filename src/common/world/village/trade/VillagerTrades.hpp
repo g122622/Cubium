@@ -1,0 +1,155 @@
+#pragma once
+
+#include "Merchant.hpp"
+#include "MerchantOffer.hpp"
+#include "../../../entity/entities/villager/AbstractVillagerEntity.hpp"
+#include <memory>
+#include <vector>
+#include <functional>
+#include <unordered_map>
+
+namespace mc {
+namespace world {
+namespace village {
+namespace trade {
+
+/**
+ * @brief 交易配方工厂函数类型
+ *
+ * 根据需求和随机种子生成一个交易优惠。
+ * 使用函数而不是静态配方，以支持动态价格调整。
+ */
+using TradeFactory = std::function<std::unique_ptr<MerchantOffer>(i32 demand, u64 seed)>;
+
+/**
+ * @brief 村民交易配方表
+ *
+ * 管理所有村民职业的交易配方。
+ * 每个职业有5个等级（新手1-5级大师），每个等级有多个交易选项。
+ *
+ * 参考 MC 1.16.5 VillagerTrades
+ */
+class VillagerTrades {
+public:
+    /**
+     * @brief 初始化所有交易配方
+     *
+     * 在游戏启动时调用，注册所有职业的交易配方。
+     */
+    static void initialize();
+
+    /**
+     * @brief 获取指定职业和等级的交易列表
+     * @param profession 职业
+     * @param type 村民类型（影响某些外观相关交易）
+     * @param level 等级（1-5）
+     * @param demand 需求修正
+     * @param seed 随机种子
+     * @return 交易列表
+     */
+    [[nodiscard]] static std::unique_ptr<MerchantOffers> generateOffers(
+        entity::VillagerProfession profession,
+        entity::VillagerType type,
+        i32 level,
+        i32 demand = 0,
+        u64 seed = 0);
+
+    /**
+     * @brief 检查职业是否有交易
+     */
+    [[nodiscard]] static bool hasTrades(entity::VillagerProfession profession);
+
+    /**
+     * @brief 获取职业的交易等级数量
+     */
+    [[nodiscard]] static i32 getTradeLevelCount(entity::VillagerProfession profession);
+
+private:
+    // 交易配方存储：[职业][等级] -> 交易工厂列表
+    using LevelTrades = std::unordered_map<i32, std::vector<TradeFactory>>;
+    static std::unordered_map<entity::VillagerProfession, LevelTrades> s_trades;
+
+    // 是否已初始化
+    static bool s_initialized;
+
+    // ========== 职业交易注册 ==========
+
+    static void registerArmorerTrades();
+    static void registerButcherTrades();
+    static void registerCartographerTrades();
+    static void registerClericTrades();
+    static void registerFarmerTrades();
+    static void registerFishermanTrades();
+    static void registerFletcherTrades();
+    static void registerLeatherworkerTrades();
+    static void registerLibrarianTrades();
+    static void registerMasonTrades();
+    static void registerShepherdTrades();
+    static void registerToolsmithTrades();
+    static void registerWeaponsmithTrades();
+    static void registerNitwitTrades();
+
+    // ========== 交易工厂辅助方法 ==========
+
+    /**
+     * @brief 创建简单物品交易（单物品买入）
+     * @param buyItem 买入物品
+     * @param buyCount 买入数量
+     * @param sellItem 卖出物品
+     * @param sellCount 卖出数量
+     * @param maxUses 最大使用次数
+     * @param xp 交易经验
+     * @param priceMultiplier 价格乘数
+     */
+    static TradeFactory simpleTrade(
+        const char* buyItem, i32 buyCount,
+        const char* sellItem, i32 sellCount,
+        i32 maxUses = 12, i32 xp = 2, f32 priceMultiplier = 0.05f);
+
+    /**
+     * @brief 创建双物品交易
+     * @param buyItemA 第一买入物品
+     * @param buyCountA 第一买入数量
+     * @param buyItemB 第二买入物品
+     * @param buyCountB 第二买入数量
+     * @param sellItem 卖出物品
+     * @param sellCount 卖出数量
+     * @param maxUses 最大使用次数
+     * @param xp 交易经验
+     * @param priceMultiplier 价格乘数
+     */
+    static TradeFactory twoItemTrade(
+        const char* buyItemA, i32 buyCountA,
+        const char* buyItemB, i32 buyCountB,
+        const char* sellItem, i32 sellCount,
+        i32 maxUses = 12, i32 xp = 2, f32 priceMultiplier = 0.05f);
+
+    /**
+     * @brief 创建带需求调整的交易
+     * @param baseBuyCount 基础买入数量
+     * @param buyItem 买入物品
+     * @param sellItem 卖出物品
+     * @param sellCount 卖出数量
+     * @param maxUses 最大使用次数
+     * @param xp 交易经验
+     * @param priceMultiplier 价格乘数
+     */
+    static TradeFactory demandTrade(
+        i32 baseBuyCount,
+        const char* buyItem,
+        const char* sellItem, i32 sellCount,
+        i32 maxUses = 12, i32 xp = 2, f32 priceMultiplier = 0.05f);
+
+    /**
+     * @brief 注册交易配方
+     * @param profession 职业
+     * @param level 等级（1-5）
+     * @param factory 交易工厂
+     */
+    static void registerTrade(entity::VillagerProfession profession, i32 level, TradeFactory factory);
+};
+
+} // namespace trade
+} // namespace village
+} // namespace world
+} // namespace mc

@@ -770,6 +770,11 @@ void ServerChunkManager::checkChunkUnloading()
             m_chunkSendManager->onChunkPreUnload(chunkId.x, chunkId.z);
         }
 
+        // 通知村庄管理器区块卸载（用于清理 POI 等）
+        if (m_chunkUnloadedCallback) {
+            m_chunkUnloadedCallback(chunkId.x, chunkId.z);
+        }
+
         spdlog::info("[ServerChunkManager] Unloading chunk: ({}, {})", chunkId.x, chunkId.z);
         MC_TRACE_INSTANT("server.chunk", "UnloadChunk", "x", chunkId.x, "z", chunkId.z);
         unloadChunk(chunkId.x, chunkId.z);

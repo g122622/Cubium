@@ -9,6 +9,8 @@
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -147,6 +149,11 @@ public:
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] i32 difficulty() const override { return 1; }
 
+    // ========== 类型转换 ==========
+
+    [[nodiscard]] ServerWorld* asServerWorld() override { return this; }
+    [[nodiscard]] const ServerWorld* asServerWorld() const override { return this; }
+
     // ========== 天气接口 (IWorld) ==========
 
     [[nodiscard]] bool isRaining() const override;
@@ -250,6 +257,16 @@ public:
      */
     [[nodiscard]] bool isDebugWorld() const { return m_config.isDebugWorld; }
 
+    // ========== 村庄管理 ==========
+
+    [[nodiscard]] world::village::VillageManager* villageManager() { return m_villageManager.get(); }
+    [[nodiscard]] const world::village::VillageManager* villageManager() const { return m_villageManager.get(); }
+
+    // ========== 袭击管理 ==========
+
+    [[nodiscard]] world::village::raid::RaidManager* raidManager() { return m_raidManager.get(); }
+    [[nodiscard]] const world::village::raid::RaidManager* raidManager() const { return m_raidManager.get(); }
+
 private:
     void syncLightDataToChunk(LightType type, const SectionPos& pos);
 
@@ -266,6 +283,10 @@ private:
     server::ItemPickupManager m_itemPickupManager;
     core::TimeManager* m_timeManager = nullptr;  // 外部引用，不拥有
     bool m_initialized = false;
+
+    // 村庄和袭击系统
+    std::unique_ptr<world::village::VillageManager> m_villageManager;
+    std::unique_ptr<world::village::raid::RaidManager> m_raidManager;
 
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
 };

@@ -14,16 +14,23 @@
 #include <optional>
 #include <vector>
 #include <functional>
+#include <any>
 
 namespace mc {
 
 // Forward declarations
 class LivingEntity;
+
+namespace server {
 class ServerWorld;
+}
 
 namespace entity {
 namespace ai {
 namespace brain {
+
+// 使用完整命名空间
+using ::mc::server::ServerWorld;
 
 /**
  * @brief Brain系统 - 高级AI控制系统
@@ -41,7 +48,9 @@ namespace brain {
 template <typename E>
 class Brain {
 public:
-    using MemoryMap = std::unordered_map<const memory::MemoryModuleTypeBase*, std::optional<memory::Memory<void*>>>;
+    // 使用 std::any 存储类型安全的记忆值
+    // 存储的值是 Memory<T> 类型，通过 std::any 进行类型擦除
+    using MemoryMap = std::unordered_map<const memory::MemoryModuleTypeBase*, std::optional<std::any>>;
     using SensorMap = std::unordered_map<std::string, std::unique_ptr<sensor::Sensor<E>>>;
     using TaskSet = std::unordered_set<std::unique_ptr<task::Task<E>>>;
     using ActivityTaskMap = std::unordered_map<schedule::Activity, TaskSet>;
@@ -80,16 +89,17 @@ public:
 
     /**
      * @brief 设置日程
+     * @param schedule 日程指针（通常指向静态日程实例）
      */
-    void setSchedule(const schedule::Schedule& schedule) {
-        m_schedule = schedule;
+    void setSchedule(const schedule::Schedule* schedule) {
+        m_schedulePtr = schedule;
     }
 
     /**
      * @brief 获取日程
      */
-    [[nodiscard]] const schedule::Schedule& getSchedule() const {
-        return m_schedule;
+    [[nodiscard]] const schedule::Schedule* getSchedule() const {
+        return m_schedulePtr;
     }
 
     /**
@@ -197,6 +207,9 @@ public:
 
     /**
      * @brief 获取记忆值
+     * @tparam T 记忆值类型
+     * @param type 记忆模块类型
+     * @return 记忆值，如果不存在或类型不匹配返回 std::nullopt
      */
     template <typename T>
     std::optional<T> getMemory(const memory::MemoryModuleType<T>* type) const {
@@ -204,42 +217,53 @@ public:
         if (it == m_memories.end() || !it->second.has_value()) {
             return std::nullopt;
         }
-        // 注意：这里需要类型转换，实际实现可能需要更复杂的存储
-        auto* typedMemory = static_cast<const memory::Memory<T>*>(it->second.value().getValue());
-        if (typedMemory) {
-            return typedMemory->getValue();
+        try {
+            // 尝试从 std::any 中提取 Memory<T>
+            const auto& anyValue = it->second.value();
+            if (anyValue.type() == typeid(memory::Memory<T>)) {
+                const auto& memory = std::any_cast<const memory::Memory<T>&>(anyValue);
+                return memory.getValue();
+            }
+        } catch (const std::bad_any_cast&) {
+            // 类型不匹配，返回 nullopt
         }
         return std::nullopt;
     }
 
     /**
      * @brief 设置记忆(永久)
+     * @tparam T 记忆值类型
+     * @param type 记忆模块类型
+     * @param value 记忆值
      */
     template <typename T>
     void setMemory(const memory::MemoryModuleType<T>* type, const T& value) {
-        auto it = m_memories.find(type);
-        if (it != m_memories.end()) {
-            m_memories[type] = memory::Memory<void*>(reinterpret_cast<void*>(const_cast<T*>(&value)));
-        }
+        m_memories[type] = memory::Memory<T>::permanent(value);
+        m_memoryTTL[type] = std::numeric_limits<i64>::max();  // 永不过期
     }
 
     /**
      * @brief 设置记忆(带TTL)
+     * @tparam T 记忆值类型
+     * @param type 记忆模块类型
+     * @param value 记忆值
+     * @param ttl 存活时间(ticks)
      */
     template <typename T>
     void setMemoryWithTTL(const memory::MemoryModuleType<T>* type, const T& value, i64 ttl) {
-        auto it = m_memories.find(type);
-        if (it != m_memories.end()) {
-            m_memories[type] = memory::Memory<void*>(reinterpret_cast<void*>(const_cast<T*>(&value)), ttl);
-        }
+        m_memories[type] = memory::Memory<T>::timed(value, ttl);
+        m_memoryTTL[type] = ttl;
     }
 
     /**
      * @brief 移除记忆
+     * @tparam T 记忆值类型
+     * @param type 记忆模块类型
      */
     template <typename T>
     void removeMemory(const memory::MemoryModuleType<T>* type) {
         m_memories[type] = std::nullopt;
+        m_memoryTTL.erase(type);
     }
 
     // ========== Tick更新 ==========
@@ -289,11 +313,10 @@ private:
     void tickMemories() {
         std::vector<const memory::MemoryModuleTypeBase*> toRemove;
 
-        for (auto& [type, memoryOpt] : m_memories) {
-            if (memoryOpt.has_value()) {
-                auto& memory = memoryOpt.value();
-                memory.tick();
-                if (memory.isExpired()) {
+        for (auto& [type, ttl] : m_memoryTTL) {
+            if (ttl != std::numeric_limits<i64>::max()) {
+                ttl--;
+                if (ttl <= 0) {
                     toRemove.push_back(type);
                 }
             }
@@ -301,6 +324,7 @@ private:
 
         for (auto* type : toRemove) {
             m_memories[type] = std::nullopt;
+            m_memoryTTL.erase(type);
         }
     }
 
@@ -317,9 +341,9 @@ private:
      * @brief 根据日程更新活动
      */
     void updateActivity(i32 dayTime, i64 gameTime) {
-        if (gameTime - m_lastGameTime > 20) {
+        if (m_schedulePtr && gameTime - m_lastGameTime > 20) {
             m_lastGameTime = gameTime;
-            auto scheduledActivity = m_schedule.getScheduledActivity(dayTime);
+            auto scheduledActivity = m_schedulePtr->getScheduledActivity(dayTime);
             if (!hasActivity(scheduledActivity)) {
                 switchTo(scheduledActivity);
             }
@@ -412,10 +436,13 @@ private:
     }
 
     // 数据成员
-    std::unordered_map<const memory::MemoryModuleTypeBase*, std::optional<memory::Memory<void*>>> m_memories;
+    // m_memories 存储 Memory<T> 类型的值（通过 std::any 类型擦除）
+    MemoryMap m_memories;
+    // m_memoryTTL 存储每个记忆的剩余TTL（用于过期检查）
+    std::unordered_map<const memory::MemoryModuleTypeBase*, i64> m_memoryTTL;
     std::vector<std::unique_ptr<sensor::Sensor<E>>> m_sensors;
     PriorityTaskMap m_tasks;
-    schedule::Schedule m_schedule;
+    const schedule::Schedule* m_schedulePtr = nullptr;
     ActivityRequirementMap m_requiredMemoryStates;
     ForgettingMap m_memoriesToForget;
     std::unordered_set<schedule::Activity> m_defaultActivities;

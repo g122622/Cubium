@@ -719,4 +719,52 @@ ItemStack& Player::getHeldItem(Hand hand) {
     }
 }
 
+// ============================================================================
+// 效果系统实现
+// Player 不继承 LivingEntity，所以使用简化的效果管理
+// ============================================================================
+
+bool Player::addEffect(const entity::effect::EffectInstance& effect) {
+    // 查找是否已存在相同类型的效果
+    for (auto& existing : m_effects) {
+        if (existing.type() == effect.type()) {
+            // 已存在，尝试合并
+            return existing.merge(effect);
+        }
+    }
+
+    // 新效果，添加到列表
+    m_effects.push_back(effect);
+    return true;
+}
+
+void Player::removeEffect(entity::effect::EffectType type) {
+    m_effects.erase(
+        std::remove_if(m_effects.begin(), m_effects.end(),
+            [type](const entity::effect::EffectInstance& e) { return e.type() == type; }),
+        m_effects.end());
+}
+
+void Player::removeAllEffects() {
+    m_effects.clear();
+}
+
+bool Player::hasEffect(entity::effect::EffectType type) const {
+    for (const auto& effect : m_effects) {
+        if (effect.type() == type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const entity::effect::EffectInstance* Player::getEffect(entity::effect::EffectType type) const {
+    for (const auto& effect : m_effects) {
+        if (effect.type() == type) {
+            return &effect;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace mc

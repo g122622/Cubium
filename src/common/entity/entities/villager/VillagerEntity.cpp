@@ -3,7 +3,18 @@
 #include "../../../item/Items.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../attribute/Attributes.hpp"
+#include "../../ai/goal/goals/villager/VillagerGoals.hpp"
+#include "../../ai/brain/memory/MemoryModuleType.hpp"
+#include "../../ai/brain/schedule/Schedule.hpp"
+#include "../../ai/brain/schedule/Activity.hpp"
+#include "../../../world/village/trade/VillagerTrades.hpp"
+#include "../../../world/village/trade/Merchant.hpp"
 #include <memory>
+
+// ServerWorld 前向声明在 server 模块
+namespace mc {
+class ServerWorld;
+}
 
 namespace mc {
 namespace entity {
@@ -18,13 +29,27 @@ std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/) {
 
 VillagerEntity::VillagerEntity(LegacyEntityType type, EntityId id)
     : AbstractVillagerEntity(type, id)
+    , m_brain(std::make_unique<VillagerBrain>())
 {
     registerAttributes();
     registerGoals();
+    initializeBrain();
 }
 
 void VillagerEntity::tick() {
     AbstractVillagerEntity::tick();
+
+    // 更新Brain系统
+    if (m_brain && m_world) {
+        // 获取游戏时间和白天时间
+        i64 gameTime = m_world->currentTick();
+        i32 dayTime = static_cast<i32>(m_world->dayTime());
+
+        // Brain tick需要ServerWorld
+        if (auto* serverWorld = m_world->asServerWorld()) {
+            m_brain->tick(serverWorld, this, gameTime, dayTime);
+        }
+    }
 
     // 更新声音冷却
     if (m_soundCooldown > 0) {
@@ -33,6 +58,38 @@ void VillagerEntity::tick() {
 
     // 检查工作站点
     // TODO: 检查是否在工作时间且在工作站点附近
+}
+
+void VillagerEntity::initializeBrain() {
+    if (!m_brain) {
+        return;
+    }
+
+    using namespace ai::brain::memory;
+
+    // 注册记忆模块 - 使用 MemoryModuleTypes 标准类型
+    // 注意：必须先调用 MemoryModuleTypes::initialize() 初始化
+    m_brain->registerMemory(MemoryModuleTypes::HOME);
+    m_brain->registerMemory(MemoryModuleTypes::JOB_SITE);
+    m_brain->registerMemory(MemoryModuleTypes::MEETING_POINT);
+    m_brain->registerMemory(MemoryModuleTypes::NEAREST_BED);
+    m_brain->registerMemory(MemoryModuleTypes::WALK_TARGET);
+    m_brain->registerMemory(MemoryModuleTypes::LOOK_TARGET);
+    m_brain->registerMemory(MemoryModuleTypes::VISIBLE_MOBS);
+    m_brain->registerMemory(MemoryModuleTypes::NEAREST_HOSTILE);
+    m_brain->registerMemory(MemoryModuleTypes::HURT_BY_ENTITY);
+    m_brain->registerMemory(MemoryModuleTypes::LAST_SLEPT);
+    m_brain->registerMemory(MemoryModuleTypes::LAST_WORKED_AT_POI);
+
+    // 设置日程
+    m_brain->setSchedule(&ai::brain::schedule::Schedule::VILLAGER_DEFAULT);
+
+    // 设置默认活动
+    m_brain->setDefaultActivities({ai::brain::schedule::Activity::IDLE});
+    m_brain->setFallbackActivity(ai::brain::schedule::Activity::IDLE);
+
+    // 注意：传感器和任务的注册需要在有ServerWorld的环境中进行
+    // 这里只完成基础初始化
 }
 
 void VillagerEntity::setProfession(VillagerProfession profession) {
@@ -96,13 +153,30 @@ void VillagerEntity::play() {
 void VillagerEntity::registerGoals() {
     AgeableEntity::registerGoals();
 
-    // TODO: 添加村民特有AI目标
-    // - 寻找工作站点
-    // - 工作
-    // - 睡觉
-    // - 闲逛
-    // - 与玩家交易
-    // - 繁殖
+    using namespace ai::goal::villager;
+
+    // 优先级1: 逃避敌对生物（最高优先级）
+    m_goalSelector.addGoal(1, std::make_unique<AvoidHostileGoal>(this));
+
+    // 优先级2: 繁殖
+    m_goalSelector.addGoal(2, std::make_unique<VillagerBreedGoal>(this));
+
+    // 优先级3: 夜间睡眠
+    m_goalSelector.addGoal(3, std::make_unique<SleepAtNightGoal>(this));
+
+    // 优先级3: 工作时间工作（与睡眠互斥）
+    m_goalSelector.addGoal(3, std::make_unique<WorkAtJobSiteGoal>(this));
+
+    // 优先级4: 寻找工作站点
+    m_goalSelector.addGoal(4, std::make_unique<LookForJobSiteGoal>(this));
+
+    // 优先级5: 收集物品
+    m_goalSelector.addGoal(5, std::make_unique<GatherItemsGoal>(this));
+
+    // 农民特殊目标（替代普通工作目标）
+    if (m_villagerData.profession() == VillagerProfession::Farmer) {
+        m_goalSelector.addGoal(3, std::make_unique<FarmerWorkGoal>(this));
+    }
 }
 
 void VillagerEntity::registerAttributes() {
@@ -114,8 +188,31 @@ void VillagerEntity::registerAttributes() {
 }
 
 void VillagerEntity::restockTrades() {
-    // TODO: 补充交易物品
+    // 补充交易物品
+    if (m_offers) {
+        m_offers->restockAll();
+    }
     m_lastRestock = m_workTime;
+}
+
+void VillagerEntity::updateOffers() {
+    // 根据职业和等级生成交易列表
+    using namespace world::village::trade;
+
+    // 傻子村民没有交易
+    if (isNitwit()) {
+        m_offers = std::make_unique<MerchantOffers>();
+        return;
+    }
+
+    // 生成新的交易列表
+    m_offers = VillagerTrades::generateOffers(
+        m_villagerData.profession(),
+        m_villagerData.type(),
+        m_villagerData.level(),
+        0,  // 需求修正
+        0   // 种子
+    );
 }
 
 // ============================================================================

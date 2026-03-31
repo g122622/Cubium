@@ -1,7 +1,9 @@
 #pragma once
 
 #include "AbstractVillagerEntity.hpp"
+#include "../../ai/brain/Brain.hpp"
 #include "../../ai/brain/memory/MemoryModuleType.hpp"
+#include "../../ai/brain/schedule/Schedule.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include <memory>
 #include <vector>
@@ -13,11 +15,15 @@ namespace entity {
  * @brief 村民实体
  *
  * 可交易的NPC村民，具有职业系统和繁殖能力。
+ * 使用Brain系统进行高级AI控制。
  *
  * 参考 MC 1.16.5 VillagerEntity
  */
 class VillagerEntity : public AbstractVillagerEntity {
 public:
+    // Brain类型别名
+    using VillagerBrain = ai::brain::Brain<VillagerEntity>;
+
     /**
      * @brief 工作站点类型
      */
@@ -52,6 +58,19 @@ public:
     // ========== Entity 接口重写 ==========
 
     void tick() override;
+
+    // ========== Brain系统 ==========
+
+    /**
+     * @brief 获取Brain
+     */
+    [[nodiscard]] VillagerBrain& brain() { return *m_brain; }
+    [[nodiscard]] const VillagerBrain& brain() const { return *m_brain; }
+
+    /**
+     * @brief 初始化Brain（注册记忆模块、传感器、日程等）
+     */
+    void initializeBrain();
 
     // ========== 村民数据 ==========
 
@@ -169,6 +188,7 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+    void updateOffers() override;
 
 private:
     VillagerData m_villagerData;
@@ -185,6 +205,9 @@ private:
 
     // 声音冷却
     i32 m_soundCooldown = 0;
+
+    // Brain系统
+    std::unique_ptr<VillagerBrain> m_brain;
 };
 
 /**

@@ -1,0 +1,78 @@
+{
+    "name": "minecraft:village/taiga/houses",
+    "fallback": "minecraft:village/taiga/terminators",
+    "elements": [
+        {
+            "weight": 6,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_small_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 4,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_small_house_02",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 3,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_medium_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_large_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_butcher_shop_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_temple_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_shepherd_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/taiga/houses/taiga_armorer_house_01",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "element_type": "minecraft:single_pool_element"
+            }
+        }
+    ]
+}

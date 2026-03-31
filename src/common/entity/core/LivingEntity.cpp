@@ -179,6 +179,9 @@ void LivingEntity::tick() {
     m_prevRenderYawOffset = m_renderYawOffset;
     m_prevRotationYawHead = m_rotationYawHead;
 
+    // 更新效果
+    m_effectManager.tick(*this);
+
     // 更新受伤无敌帧
     if (m_hurtTime > 0) {
         m_hurtTime--;
@@ -398,6 +401,34 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
         m_velocity.x *= DRAG_GROUND;
         m_velocity.z *= DRAG_GROUND;
     }
+}
+
+// ============================================================================
+// 效果系统
+// ============================================================================
+
+bool LivingEntity::addEffect(entity::effect::EffectInstance effect) {
+    return m_effectManager.addEffect(std::move(effect), *this);
+}
+
+void LivingEntity::removeEffect(entity::effect::EffectType type) {
+    m_effectManager.removeEffect(type, *this);
+}
+
+void LivingEntity::removeAllEffects() {
+    m_effectManager.removeAllEffects(*this);
+}
+
+bool LivingEntity::hasEffect(entity::effect::EffectType type) const {
+    return m_effectManager.hasEffect(type);
+}
+
+const entity::effect::EffectInstance* LivingEntity::getEffect(entity::effect::EffectType type) const {
+    return m_effectManager.getEffect(type);
+}
+
+i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const {
+    return m_effectManager.getEffectLevel(type);
 }
 
 } // namespace mc

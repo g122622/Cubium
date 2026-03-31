@@ -4,6 +4,7 @@
 #include "../../movement/AutoJump.hpp"
 #include "../../inventory/PlayerInventory.hpp"
 #include "../../experience/ExperienceManager.hpp"
+#include "../../effect/EffectInstance.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include <array>
 #include <memory>
@@ -425,6 +426,45 @@ public:
 
     void respawn();
 
+    // ========== 效果系统 ==========
+    // Player 不继承 LivingEntity，但需要效果系统来支持不祥之兆等效果
+
+    /**
+     * @brief 添加效果
+     * @param effect 效果实例
+     * @return 是否成功添加
+     */
+    bool addEffect(const entity::effect::EffectInstance& effect);
+
+    /**
+     * @brief 移除效果
+     * @param type 效果类型
+     */
+    void removeEffect(entity::effect::EffectType type);
+
+    /**
+     * @brief 移除所有效果
+     */
+    void removeAllEffects();
+
+    /**
+     * @brief 检查是否有效果
+     * @param type 效果类型
+     */
+    [[nodiscard]] bool hasEffect(entity::effect::EffectType type) const;
+
+    /**
+     * @brief 获取效果实例
+     * @param type 效果类型
+     * @return 效果实例指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const;
+
+    /**
+     * @brief 获取所有效果
+     */
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const { return m_effects; }
+
     // ========== 序列化 ==========
 
     void serialize(network::PacketSerializer& ser) const;
@@ -473,6 +513,9 @@ private:
 
     // 自动跳跃系统
     entity::movement::AutoJump m_autoJump;
+
+    // 效果列表（Player 不继承 LivingEntity，独立管理效果）
+    std::vector<entity::effect::EffectInstance> m_effects;
 };
 
 } // namespace mc

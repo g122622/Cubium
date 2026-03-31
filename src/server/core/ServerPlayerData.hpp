@@ -5,8 +5,11 @@
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include <memory>
 #include <unordered_set>
+#include <vector>
+#include <algorithm>
 
 namespace mc {
 class AbstractContainerMenu;  // 前向声明
@@ -71,6 +74,9 @@ struct ServerPlayerData {
 
     // 已加载的区块
     std::unordered_set<ChunkId> loadedChunks;
+
+    // 效果系统
+    std::vector<entity::effect::EffectInstance> effects;
 
     // 容器相关（使用原始指针避免 incomplete type 问题）
     mc::AbstractContainerMenu* openMenu = nullptr;
@@ -145,6 +151,83 @@ struct ServerPlayerData {
      */
     [[nodiscard]] Vector2f rotation() const {
         return Vector2f(yaw, pitch);
+    }
+
+    // ========== 效果系统 ==========
+
+    /**
+     * @brief 添加效果
+     * @param effect 效果实例
+     * @return true 如果成功添加或合并
+     */
+    bool addEffect(const entity::effect::EffectInstance& effect) {
+        // 查找是否已有同类型效果
+        for (auto& existing : effects) {
+            if (existing.type() == effect.type()) {
+                // 尝试合并效果
+                return existing.merge(effect);
+            }
+        }
+
+        // 没有找到同类型效果，添加新效果
+        effects.push_back(effect);
+        return true;
+    }
+
+    /**
+     * @brief 移除效果
+     * @param type 效果类型
+     */
+    void removeEffect(entity::effect::EffectType type) {
+        effects.erase(
+            std::remove_if(effects.begin(), effects.end(),
+                [type](const entity::effect::EffectInstance& e) {
+                    return e.type() == type;
+                }),
+            effects.end()
+        );
+    }
+
+    /**
+     * @brief 移除所有效果
+     */
+    void removeAllEffects() {
+        effects.clear();
+    }
+
+    /**
+     * @brief 检查是否有指定效果
+     * @param type 效果类型
+     * @return true 如果有该效果
+     */
+    [[nodiscard]] bool hasEffect(entity::effect::EffectType type) const {
+        for (const auto& effect : effects) {
+            if (effect.type() == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @brief 获取效果实例
+     * @param type 效果类型
+     * @return 效果实例指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const {
+        for (const auto& effect : effects) {
+            if (effect.type() == type) {
+                return &effect;
+            }
+        }
+        return nullptr;
+    }
+
+    /**
+     * @brief 获取所有效果
+     */
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const {
+        return effects;
     }
 };
 

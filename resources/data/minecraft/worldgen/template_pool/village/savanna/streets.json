@@ -1,0 +1,42 @@
+{
+    "name": "minecraft:village/savanna/streets",
+    "fallback": "minecraft:village/savanna/terminators",
+    "elements": [
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/savanna/streets/savanna_street_01",
+                "processors": "minecraft:street_savanna",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 2,
+            "element": {
+                "location": "minecraft:village/savanna/streets/savanna_street_02",
+                "processors": "minecraft:street_savanna",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/savanna/streets/savanna_corner_01",
+                "processors": "minecraft:street_savanna",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "location": "minecraft:village/savanna/streets/savanna_crossroad_01",
+                "processors": "minecraft:street_savanna",
+                "projection": "terrain_matching",
+                "element_type": "minecraft:single_pool_element"
+            }
+        }
+    ]
+}

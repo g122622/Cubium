@@ -19,6 +19,10 @@ class Block;
 class IRandom;
 class BlockEntity;
 
+namespace server {
+class ServerWorld;  // 前向声明，用于asServerWorld()
+}
+
 namespace fluid {
 class Fluid;
 class FluidState;
@@ -223,6 +227,16 @@ public:
      */
     virtual EntityId spawnEntity(std::unique_ptr<Entity> entity);
 
+    /**
+     * @brief 通过ID获取实体
+     * @param id 实体ID
+     * @return 实体指针，如果不存在返回 nullptr
+     *
+     * 默认实现返回 nullptr。
+     */
+    [[nodiscard]] virtual Entity* getEntity(EntityId id) { return nullptr; }
+    [[nodiscard]] virtual const Entity* getEntity(EntityId id) const { return nullptr; }
+
     // ========== 实体查询 ==========
 
     /**
@@ -379,6 +393,19 @@ public:
         (void)delay;
         (void)priority;
     }
+
+    // ========== 类型转换 ==========
+
+    /**
+     * @brief 转换为ServerWorld指针
+     *
+     * 只有ServerWorld会返回有效的指针，其他实现返回nullptr。
+     * 用于需要访问ServerWorld特有功能（如Brain系统）的场景。
+     *
+     * @return ServerWorld指针，如果不是ServerWorld返回nullptr
+     */
+    [[nodiscard]] virtual server::ServerWorld* asServerWorld() { return nullptr; }
+    [[nodiscard]] virtual const server::ServerWorld* asServerWorld() const { return nullptr; }
 
 protected:
     IWorld() = default;
