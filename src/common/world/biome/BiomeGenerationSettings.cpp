@@ -255,6 +255,124 @@ BiomeGenerationSettings BiomeGenerationSettings::createOcean() {
 }
 
 // ============================================================================
+// 下界生物群系生成设置
+// ============================================================================
+
+BiomeGenerationSettings BiomeGenerationSettings::createNether() {
+    // 下界荒地：下界石英矿石 + 下界金矿石 + 萤石
+    BiomeGenerationSettings settings;
+
+    // 下界矿石
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
+
+    // TODO: 添加下界要塞、堡垒遗迹等结构
+    // TODO: 添加萤石、岩浆块等特征
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createSoulSandValley() {
+    // 灵魂沙谷：下界矿石 + 灵魂沙 + 玄武岩
+    BiomeGenerationSettings settings;
+
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
+
+    // TODO: 添加下界化石结构
+    // TODO: 添加玄武岩柱特征
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest() {
+    // 绯红森林：下界矿石 + 绯红巨型真菌
+    BiomeGenerationSettings settings;
+
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
+
+    // TODO: 添加绯红巨型真菌特征
+    // TODO: 添加垂泪藤特征
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createWarpedForest() {
+    // 诡异森林：下界矿石 + 诡异巨型真菌
+    BiomeGenerationSettings settings;
+
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
+
+    // TODO: 添加诡异巨型真菌特征
+    // TODO: 添加扭曲藤特征
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas() {
+    // 玄武岩三角洲：下界矿石 + 玄武岩柱 + 岩浆块
+    BiomeGenerationSettings settings;
+
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
+
+    // TODO: 添加玄武岩柱特征
+    // TODO: 添加岩浆块特征
+
+    return settings;
+}
+
+// ============================================================================
+// 末地生物群系生成设置
+// ============================================================================
+
+BiomeGenerationSettings BiomeGenerationSettings::createTheEnd() {
+    // 末地主岛：黑曜石柱 + 末影龙战斗
+    BiomeGenerationSettings settings;
+
+    // TODO: 添加黑曜石柱特征
+    // 末地主岛没有常规矿石生成
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createSmallEndIslands() {
+    // 小型末地岛屿：末地岛特征
+    BiomeGenerationSettings settings;
+
+    // TODO: 添加末地岛特征
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createEndMidlands() {
+    // 末地中部：过渡区域，无特殊特征
+    BiomeGenerationSettings settings;
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createEndHighlands() {
+    // 末地高地：末地城 + 紫颂树
+    BiomeGenerationSettings settings;
+
+    // TODO: 添加末地城结构
+    // TODO: 添加末地折跃门
+    // TODO: 添加紫颂树特征
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createEndBarrens() {
+    // 末地荒地：空旷区域，无特征
+    BiomeGenerationSettings settings;
+
+    return settings;
+}
+
+// ============================================================================
 // BiomeFeaturePlacer 实现
 // ============================================================================
 

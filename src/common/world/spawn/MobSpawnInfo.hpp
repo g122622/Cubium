@@ -467,6 +467,50 @@ public:
      */
     static MobSpawnInfo createEmpty();
 
+    // ========================================================================
+    // 下界生物群系生成信息
+    // ========================================================================
+
+    /**
+     * @brief 创建下界荒地生物群系的生成信息
+     * 生物：猪灵(15)、僵尸猪灵(5)、恶魂(10)、岩浆怪(3)、末影人(1)、炽足兽(60)
+     */
+    static MobSpawnInfo createNetherWastes();
+
+    /**
+     * @brief 创建灵魂沙谷生物群系的生成信息
+     * 生物：骷髅(20)、恶魂(50)、末影人(4)、炽足兽(60)
+     */
+    static MobSpawnInfo createSoulSandValley();
+
+    /**
+     * @brief 创建绯红森林生物群系的生成信息
+     * 生物：猪灵(15)、僵尸猪灵(1)、疣猪兽(9)、炽足兽(60)
+     */
+    static MobSpawnInfo createCrimsonForest();
+
+    /**
+     * @brief 创建诡异森林生物群系的生成信息
+     * 生物：末影人(80)、炽足兽(60)
+     */
+    static MobSpawnInfo createWarpedForest();
+
+    /**
+     * @brief 创建玄武岩三角洲生物群系的生成信息
+     * 生物：岩浆怪(80)、恶魂(2)、炽足兽(60)
+     */
+    static MobSpawnInfo createBasaltDeltas();
+
+    // ========================================================================
+    // 末地生物群系生成信息
+    // ========================================================================
+
+    /**
+     * @brief 创建末地生物群系的生成信息
+     * 生物：末影人(10)
+     */
+    static MobSpawnInfo createTheEnd();
+
 private:
     SpawnCategory m_monsters;           // 怪物（僵尸、骷髅等）
     SpawnCategory m_creatures;          // 动物（猪、牛、羊等）

@@ -79,6 +79,10 @@ PERFETTO_DEFINE_CATEGORIES(
         .SetDescription("区块加载和卸载"),
     perfetto::Category("world.biome")
         .SetDescription("生物群系生成"),
+    perfetto::Category("world.gen.nether")
+        .SetDescription("下界区块生成"),
+    perfetto::Category("world.gen.end")
+        .SetDescription("末地区块生成"),
 
     // === 网络分类 ===
     perfetto::Category("network.packet")

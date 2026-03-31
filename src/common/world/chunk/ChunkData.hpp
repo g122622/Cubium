@@ -270,15 +270,23 @@ struct ChunkId {
         : x(x), z(z), dimension(dim) {}
 
     [[nodiscard]] u64 toId() const {
-        u64 dx = static_cast<u64>(static_cast<i64>(x) & 0xFFFFFFFFLL);
-        u64 dz = static_cast<u64>(static_cast<i64>(z) & 0xFFFFFFFFLL);
-        return (dx << 32) | dz;
+        // 编码：高16位=维度，中间24位=X，低24位=Z
+        // 这样可以支持 -8388608 到 8388607 的坐标范围
+        u64 dim = static_cast<u64>(static_cast<u32>(dimension) & 0xFFFF);
+        u64 dx = static_cast<u64>(static_cast<u32>(x) & 0xFFFFFF);
+        u64 dz = static_cast<u64>(static_cast<u32>(z) & 0xFFFFFF);
+        return (dim << 48) | (dx << 24) | dz;
     }
 
     [[nodiscard]] static ChunkId fromId(u64 id) {
         ChunkId cid;
-        cid.x = static_cast<ChunkCoord>(static_cast<i64>(id >> 32));
-        cid.z = static_cast<ChunkCoord>(static_cast<i64>(id & 0xFFFFFFFFLL));
+        cid.dimension = static_cast<i32>(static_cast<u16>(id >> 48));
+        // 处理24位有符号数
+        u32 ux = static_cast<u32>((id >> 24) & 0xFFFFFF);
+        u32 uz = static_cast<u32>(id & 0xFFFFFF);
+        // 如果最高位为1，扩展为负数
+        cid.x = (ux & 0x800000) ? static_cast<ChunkCoord>(ux | 0xFF000000) : static_cast<ChunkCoord>(ux);
+        cid.z = (uz & 0x800000) ? static_cast<ChunkCoord>(uz | 0xFF000000) : static_cast<ChunkCoord>(uz);
         return cid;
     }
 

@@ -455,6 +455,64 @@ public:
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }
     void setDimension(DimensionId dimension) { m_dimension = dimension; }
 
+    // ========== 传送门 ==========
+
+    /**
+     * @brief 获取传送冷却时间
+     * @return 剩余冷却时间（tick），0 表示可以传送
+     */
+    [[nodiscard]] i32 portalCooldown() const { return m_portalCooldown; }
+
+    /**
+     * @brief 设置传送冷却时间
+     * @param cooldown 冷却时间（tick）
+     */
+    void setPortalCooldown(i32 cooldown) { m_portalCooldown = cooldown; }
+
+    /**
+     * @brief 检查是否可以传送
+     * @return 如果冷却时间为 0 则返回 true
+     */
+    [[nodiscard]] bool canTeleport() const { return m_portalCooldown <= 0; }
+
+    /**
+     * @brief 获取在传送门中的累计时间
+     * @return 累计时间（tick）
+     */
+    [[nodiscard]] i32 portalTime() const { return m_portalTime; }
+
+    /**
+     * @brief 设置在传送门中的累计时间
+     * @param time 累计时间（tick）
+     */
+    void setPortalTime(i32 time) { m_portalTime = time; }
+
+    /**
+     * @brief 重置传送门计时
+     */
+    void resetPortalTime() { m_portalTime = 0; }
+
+    /**
+     * @brief 检查是否在传送门中
+     */
+    [[nodiscard]] bool isInPortal() const { return m_inPortal; }
+
+    /**
+     * @brief 设置是否在传送门中
+     */
+    void setInPortal(bool inPortal) { m_inPortal = inPortal; }
+
+    /**
+     * @brief 处理传送门 tick
+     *
+     * 每帧调用，更新传送冷却和传送门计时。
+     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
+     * 其他实体需要约 1 tick。
+     *
+     * @return true 如果应该触发传送
+     */
+    virtual bool tickPortal();
+
     // ========== 存活时间 ==========
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
@@ -718,6 +776,11 @@ protected:
 
     DimensionId m_dimension = 0;
     u32 m_ticksExisted = 0;
+
+    // 传送门相关
+    i32 m_portalCooldown = 0;    // 传送冷却（防止频繁传送，单位：tick）
+    i32 m_portalTime = 0;        // 在传送门中的累计时间（单位：tick）
+    bool m_inPortal = false;     // 是否在传送门中
 
     // 世界引用
     IWorld* m_world = nullptr;

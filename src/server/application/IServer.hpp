@@ -9,6 +9,7 @@ class AbstractContainerMenu;
 class WorldLightManager;
 class PhysicsEngine;
 class EntityManager;
+class ServerDimensionManager;
 namespace time {
 class GameTime;
 }
@@ -115,6 +116,15 @@ public:
 
     [[nodiscard]] virtual core::GameModeManager& gameModeManager() = 0;
     [[nodiscard]] virtual const core::GameModeManager& gameModeManager() const = 0;
+
+    // ========== 维度管理器 ==========
+
+    /**
+     * @brief 获取维度管理器
+     * @return 维度管理器引用
+     */
+    [[nodiscard]] virtual ServerDimensionManager& dimensionManager() = 0;
+    [[nodiscard]] virtual const ServerDimensionManager& dimensionManager() const = 0;
 
     // ========== 世界管理器 ==========
 

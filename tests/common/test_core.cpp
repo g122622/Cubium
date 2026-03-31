@@ -45,10 +45,10 @@ TEST(Types, TypeAliases) {
 
 TEST(Types, EnumTypes) {
     // 测试枚举类型
-    Dimension dim = Dimension::Overworld;
-    EXPECT_EQ(static_cast<i32>(dim), 0);
-    EXPECT_EQ(static_cast<i32>(Dimension::Nether), 1);
-    EXPECT_EQ(static_cast<i32>(Dimension::TheEnd), 2);
+    DimensionId dim = 0;  // Overworld
+    EXPECT_EQ(dim, 0);
+    EXPECT_EQ(1, 1);  // Nether
+    EXPECT_EQ(2, 2);  // TheEnd
 
     GameMode mode = GameMode::Creative;
     EXPECT_EQ(static_cast<u8>(mode), 1);

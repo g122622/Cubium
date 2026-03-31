@@ -51,6 +51,11 @@ private:
      * @brief 注册要塞模板池
      */
     static void registerStrongholdPatterns(jigsaw::JigsawPatternRegistry& registry);
+
+    /**
+     * @brief 注册下界要塞模板池
+     */
+    static void registerFortressPatterns(jigsaw::JigsawPatternRegistry& registry);
 };
 
 /**

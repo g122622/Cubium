@@ -306,6 +306,16 @@ public:
     void tick() override;
     void update() override;
 
+    /**
+     * @brief 处理传送门 tick
+     *
+     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
+     * 传送后设置 300 tick (15秒) 冷却。
+     *
+     * @return true 如果应该触发传送
+     */
+    bool tickPortal() override;
+
     // ========== 物理/移动 ==========
 
     /**

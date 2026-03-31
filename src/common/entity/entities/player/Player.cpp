@@ -218,6 +218,23 @@ void Player::tick() {
     }
 }
 
+bool Player::tickPortal() {
+    // 玩家需要 80 tick (4秒) 在传送门中才能传送
+    // 参考 MC 1.16.5 PlayerEntity.tick() line 578-607
+    if (m_inPortal && m_portalCooldown <= 0) {
+        m_portalTime++;
+
+        // 80 ticks = 4 秒 (20 ticks/秒)
+        if (m_portalTime >= 80) {
+            m_portalTime = 0;
+            return true; // 触发传送
+        }
+    } else {
+        m_portalTime = 0;
+    }
+    return false;
+}
+
 void Player::update() {
     Entity::update();
 }

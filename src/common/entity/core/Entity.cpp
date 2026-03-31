@@ -100,6 +100,16 @@ void Entity::baseTick() {
     m_prevYaw = m_yaw;
     m_prevPitch = m_pitch;
 
+    // 更新传送冷却
+    if (m_portalCooldown > 0) {
+        m_portalCooldown--;
+    }
+
+    // 如果不在传送门中，重置传送门计时
+    if (!m_inPortal) {
+        m_portalTime = 0;
+    }
+
     // 处理着火
     if (m_fire > 0) {
         if (isInWater() || isInLava()) {
@@ -124,6 +134,13 @@ void Entity::baseTick() {
 
     // 更新环境状态
     updateEnvironmentState();
+}
+
+bool Entity::tickPortal() {
+    // 基类默认不触发传送
+    // Player 会重写此方法，需要 80 tick (4秒)
+    // 其他实体需要约 1 tick
+    return false;
 }
 
 void Entity::updateEnvironmentState() {

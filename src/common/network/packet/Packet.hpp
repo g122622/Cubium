@@ -54,6 +54,12 @@ enum class PacketType : u16 {
     CollectItem = 222,          // 物品拾取动画 (S->C)
     BlockBreakAnim = 223,       // 方块破坏动画 (S->C)
 
+    // 维度相关包
+    ChangeDimension = 224,      // 维度切换 (S->C)
+    Respawn = 225,              // 重生 (S->C)
+    DimensionInfo = 226,        // 维度信息 (S->C)
+    ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
+
     // 背包相关包 (双向)
     ContainerContent = 300,     // 容器内容同步 (S->C)
     ContainerSlot = 301,        // 单个槽位更新 (S->C)

@@ -99,6 +99,15 @@ template<typename T>
 }
 
 /**
+ * @brief 向上取整到整数 (f64 版本)
+ */
+template<typename T>
+[[nodiscard]] inline T ceilTo(f64 x) noexcept
+{
+    return static_cast<T>(std::ceil(x));
+}
+
+/**
  * @brief 向下取整到整数
  */
 template<typename T>
@@ -108,10 +117,28 @@ template<typename T>
 }
 
 /**
+ * @brief 向下取整到整数 (f64 版本)
+ */
+template<typename T>
+[[nodiscard]] inline T floorTo(f64 x) noexcept
+{
+    return static_cast<T>(std::floor(x));
+}
+
+/**
  * @brief 四舍五入到整数
  */
 template<typename T>
 [[nodiscard]] inline T roundTo(f32 x) noexcept
+{
+    return static_cast<T>(std::round(x));
+}
+
+/**
+ * @brief 四舍五入到整数 (f64 版本)
+ */
+template<typename T>
+[[nodiscard]] inline T roundTo(f64 x) noexcept
 {
     return static_cast<T>(std::round(x));
 }

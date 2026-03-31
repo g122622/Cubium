@@ -1573,11 +1573,13 @@ void ClientApplication::setupNetworkCallbacks()
         spdlog::warn("Disconnected: {}", reason);
     };
 
-    callbacks.onChunkData = [this](ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
+    callbacks.onChunkData = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension, const std::vector<u8>& data) {
+        MC_UNUSED(dimension);  // TODO: 多维度支持
         m_world.onChunkData(x, z, std::vector<u8>(data));
     };
 
-    callbacks.onChunkUnload = [this](ChunkCoord x, ChunkCoord z) {
+    callbacks.onChunkUnload = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension) {
+        MC_UNUSED(dimension);  // TODO: 多维度支持
         m_world.onChunkUnload(x, z);
     };
 

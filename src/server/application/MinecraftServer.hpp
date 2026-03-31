@@ -18,6 +18,7 @@
 #include "server/sync/EntitySyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/LightSyncManager.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "common/entity/loot/LootTable.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
@@ -60,6 +61,8 @@ class ServerChunkManager;
  * - 特定的数据包处理
  */
 class MinecraftServer : public IServer {
+    // ServerDimensionManager 需要访问 sendPacketToPlayer
+    friend class mc::ServerDimensionManager;
 public:
     /**
      * @brief 构造函数
@@ -112,6 +115,11 @@ public:
 
     [[nodiscard]] ServerWorld& world() override { return *m_world; }
     [[nodiscard]] const ServerWorld& world() const override { return *m_world; }
+
+    // ========== 维度管理器 ==========
+
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return *m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return *m_dimensionManager; }
 
     [[nodiscard]] ServerChunkManager& chunkManager() override;
     [[nodiscard]] const ServerChunkManager& chunkManager() const override;
@@ -492,6 +500,9 @@ protected:
 
     // 世界（由子类创建并设置）
     std::unique_ptr<ServerWorld> m_world;
+
+    // 维度管理器
+    std::unique_ptr<ServerDimensionManager> m_dimensionManager;
 
     // 交互管理器
     std::unique_ptr<interaction::BlockInteractionManager> m_blockInteractionManager;

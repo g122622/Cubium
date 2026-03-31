@@ -570,7 +570,7 @@ TEST(SimpleKeepAlive, SerializeDeserialize) {
 
 TEST(ChunkDataPacket, SerializeDeserialize) {
     std::vector<u8> chunkData(1024, 0xAB);
-    ChunkDataPacket original(10, -5, std::move(chunkData));
+    ChunkDataPacket original(10, -5, 0, std::move(chunkData));  // dimension=0 (主世界)
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -581,11 +581,12 @@ TEST(ChunkDataPacket, SerializeDeserialize) {
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value().x(), 10);
     EXPECT_EQ(result.value().z(), -5);
+    EXPECT_EQ(result.value().dimension(), 0);
     EXPECT_EQ(result.value().size(), 1024u);
 }
 
 TEST(UnloadChunkPacket, SerializeDeserialize) {
-    UnloadChunkPacket original(15, -20);
+    UnloadChunkPacket original(15, -20, 0);  // dimension=0 (主世界)
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -596,6 +597,7 @@ TEST(UnloadChunkPacket, SerializeDeserialize) {
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value().x(), 15);
     EXPECT_EQ(result.value().z(), -20);
+    EXPECT_EQ(result.value().dimension(), 0);
 }
 
 TEST(PlayerSpawnPacket, SerializeDeserialize) {

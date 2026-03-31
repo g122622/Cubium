@@ -753,10 +753,10 @@ void NetworkClient::handleChunkData(network::PacketDeserializer& deser) {
     }
 
     auto& packet = result.value();
-    spdlog::debug("Received chunk data: ({}, {}) size: {} bytes", packet.x(), packet.z(), packet.data().size());
+    spdlog::debug("Received chunk data: ({}, {}) dim={} size: {} bytes", packet.x(), packet.z(), packet.dimension(), packet.data().size());
 
     if (m_callbacks.onChunkData) {
-        m_callbacks.onChunkData(packet.x(), packet.z(), packet.data());
+        m_callbacks.onChunkData(packet.x(), packet.z(), packet.dimension(), packet.data());
     }
 }
 
@@ -782,9 +782,10 @@ void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser) {
     }
 
     auto& packet = result.value();
+    spdlog::debug("Received unload chunk: ({}, {}) dim={}", packet.x(), packet.z(), packet.dimension());
 
     if (m_callbacks.onChunkUnload) {
-        m_callbacks.onChunkUnload(packet.x(), packet.z());
+        m_callbacks.onChunkUnload(packet.x(), packet.z(), packet.dimension());
     }
 }
 

@@ -1,0 +1,196 @@
+#pragma once
+
+#include "common/world/dimension/Dimension.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
+#include <unordered_set>
+#include <vector>
+
+namespace mc {
+
+// 前向声明
+namespace server {
+class ServerWorld;
+class ServerChunkManager;
+}
+
+class WorldLightManager;
+
+namespace server {
+class MinecraftServer;
+}
+
+/**
+ * @brief 服务端维度实例
+ *
+ * 继承 Dimension，添加服务端特有的功能：
+ * - ServerWorld 管理
+ * - 区块管理器
+ * - 玩家追踪
+ * - 传送门位置记录
+ *
+ * 参考 MC 1.16.5 ServerWorld 的维度相关功能。
+ */
+class ServerDimension : public Dimension {
+public:
+    /**
+     * @brief 构造服务端维度
+     *
+     * @param id 维度ID
+     * @param type 维度类型
+     * @param generator 区块生成器
+     * @param biomeProvider 生物群系提供者
+     * @param seed 世界种子
+     * @param viewDistance 视野距离
+     */
+    ServerDimension(DimensionId id,
+                    DimensionType type,
+                    std::unique_ptr<IChunkGenerator> generator,
+                    std::unique_ptr<BiomeProvider> biomeProvider,
+                    u64 seed,
+                    i32 viewDistance);
+
+    ~ServerDimension() override;
+
+    // 禁止拷贝
+    ServerDimension(const ServerDimension&) = delete;
+    ServerDimension& operator=(const ServerDimension&) = delete;
+
+    // ========== 初始化 ==========
+
+    /**
+     * @brief 初始化维度
+     *
+     * 创建 ServerWorld、区块管理器、光照管理器等。
+     *
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> initialize();
+
+    /**
+     * @brief 关闭维度
+     *
+     * 清理所有资源。
+     */
+    void shutdown();
+
+    // ========== 更新 ==========
+
+    /**
+     * @brief 维度刻更新
+     *
+     * 更新区块管理器、实体、天气等。
+     */
+    void tick() override;
+
+    // ========== 世界访问 ==========
+
+    /**
+     * @brief 获取服务端世界
+     */
+    [[nodiscard]] server::ServerWorld* world() { return m_world.get(); }
+    [[nodiscard]] const server::ServerWorld* world() const { return m_world.get(); }
+
+    /**
+     * @brief 获取区块管理器
+     */
+    [[nodiscard]] server::ServerChunkManager* chunkManager() { return m_chunkManager.get(); }
+    [[nodiscard]] const server::ServerChunkManager* chunkManager() const { return m_chunkManager.get(); }
+
+    /**
+     * @brief 获取光照管理器
+     */
+    [[nodiscard]] WorldLightManager* lightManager() { return m_lightManager.get(); }
+    [[nodiscard]] const WorldLightManager* lightManager() const { return m_lightManager.get(); }
+
+    // ========== 玩家追踪 ==========
+
+    /**
+     * @brief 添加玩家到维度
+     */
+    void addPlayer(PlayerId playerId);
+
+    /**
+     * @brief 从维度移除玩家
+     */
+    void removePlayer(PlayerId playerId);
+
+    /**
+     * @brief 检查玩家是否在维度中
+     */
+    [[nodiscard]] bool hasPlayer(PlayerId playerId) const;
+
+    /**
+     * @brief 获取维度中的所有玩家
+     */
+    [[nodiscard]] const std::vector<PlayerId>& players() const { return m_players; }
+
+    /**
+     * @brief 检查维度是否有玩家
+     */
+    [[nodiscard]] bool hasPlayers() const { return !m_players.empty(); }
+
+    /**
+     * @brief 获取玩家数量
+     */
+    [[nodiscard]] size_t playerCount() const { return m_players.size(); }
+
+    // ========== 传送门追踪 ==========
+
+    /**
+     * @brief 记录传送门位置
+     *
+     * 用于传送门搜索，避免重复创建传送门。
+     */
+    void recordPortalPosition(const BlockPos& pos);
+
+    /**
+     * @brief 忘记传送门位置
+     */
+    void forgetPortalPosition(const BlockPos& pos);
+
+    /**
+     * @brief 检查位置是否有传送门
+     */
+    [[nodiscard]] bool hasPortalAt(const BlockPos& pos) const;
+
+    /**
+     * @brief 获取最近的传送门位置
+     *
+     * @param pos 搜索中心位置
+     * @param radius 搜索半径
+     * @return 最近的传送门位置，如果没有则返回空
+     */
+    [[nodiscard]] Optional<BlockPos> findNearestPortal(const BlockPos& pos, i32 radius) const;
+
+    // ========== 配置 ==========
+
+    /**
+     * @brief 获取视野距离
+     */
+    [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
+
+    /**
+     * @brief 获取世界种子
+     */
+    [[nodiscard]] u64 seed() const { return m_seed; }
+
+private:
+    std::unique_ptr<server::ServerWorld> m_world;
+    std::unique_ptr<server::ServerChunkManager> m_chunkManager;
+    std::unique_ptr<WorldLightManager> m_lightManager;
+
+    std::vector<PlayerId> m_players;
+    std::unordered_set<u64> m_portalPositions;  // 使用哈希的 BlockPos
+
+    u64 m_seed;
+    i32 m_viewDistance;
+    bool m_initialized = false;
+
+    /**
+     * @brief 计算 BlockPos 的哈希值
+     */
+    [[nodiscard]] static u64 hashBlockPos(const BlockPos& pos);
+};
+
+} // namespace mc

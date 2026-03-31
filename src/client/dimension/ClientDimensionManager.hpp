@@ -1,0 +1,160 @@
+#pragma once
+
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
+#include <vector>
+
+namespace mc {
+
+// 前向声明
+namespace client {
+class ClientWorld;
+}
+
+/**
+ * @brief 客户端维度管理器
+ *
+ * 管理客户端的维度状态，处理维度切换。
+ */
+class ClientDimensionManager {
+public:
+    /**
+     * @brief 维度切换状态
+     */
+    enum class TransitionState {
+        None,           ///< 无切换
+        Leaving,        ///< 正在离开当前维度
+        Loading,        ///< 正在加载新维度
+        Entering        ///< 正在进入新维度
+    };
+
+    ClientDimensionManager();
+    ~ClientDimensionManager() = default;
+
+    // 禁止拷贝
+    ClientDimensionManager(const ClientDimensionManager&) = delete;
+    ClientDimensionManager& operator=(const ClientDimensionManager&) = delete;
+
+    // ========== 初始化 ==========
+
+    /**
+     * @brief 初始化维度信息
+     *
+     * @param dimensionInfo 从服务器接收的维度信息
+     */
+    void initialize(const std::vector<DimensionId>& dimensionInfo);
+
+    /**
+     * @brief 重置状态
+     */
+    void reset();
+
+    // ========== 当前维度 ==========
+
+    /**
+     * @brief 获取当前维度ID
+     */
+    [[nodiscard]] DimensionId currentDimension() const { return m_currentDimension; }
+
+    /**
+     * @brief 设置当前维度
+     */
+    void setCurrentDimension(DimensionId dimension);
+
+    /**
+     * @brief 获取当前维度类型
+     */
+    [[nodiscard]] const DimensionType* currentDimensionType() const;
+
+    // ========== 维度切换 ==========
+
+    /**
+     * @brief 开始维度切换
+     *
+     * @param targetDimension 目标维度ID
+     * @param position 目标位置
+     */
+    void beginDimensionChange(DimensionId targetDimension, const Vector3d& position);
+
+    /**
+     * @brief 完成维度切换
+     *
+     * 在客户端加载完新区块后调用。
+     */
+    void completeDimensionChange();
+
+    /**
+     * @brief 取消维度切换
+     */
+    void cancelDimensionChange();
+
+    /**
+     * @brief 获取切换状态
+     */
+    [[nodiscard]] TransitionState transitionState() const { return m_transitionState; }
+
+    /**
+     * @brief 是否正在切换维度
+     */
+    [[nodiscard]] bool isChangingDimension() const { return m_transitionState != TransitionState::None; }
+
+    /**
+     * @brief 获取目标维度
+     */
+    [[nodiscard]] DimensionId targetDimension() const { return m_targetDimension; }
+
+    /**
+     * @brief 获取目标位置
+     */
+    [[nodiscard]] const Vector3d& targetPosition() const { return m_targetPosition; }
+
+    // ========== 维度信息 ==========
+
+    /**
+     * @brief 获取可用维度列表
+     */
+    [[nodiscard]] const std::vector<DimensionId>& availableDimensions() const { return m_availableDimensions; }
+
+    /**
+     * @brief 检查维度是否可用
+     */
+    [[nodiscard]] bool isDimensionAvailable(DimensionId dimension) const;
+
+    /**
+     * @brief 获取维度类型
+     *
+     * @param dimension 维度ID
+     * @return 维度类型，如果维度不存在则返回 nullptr
+     */
+    [[nodiscard]] const DimensionType* getDimensionType(DimensionId dimension) const;
+
+    // ========== 渲染设置 ==========
+
+    /**
+     * @brief 是否需要清除渲染状态
+     *
+     * 维度切换时需要清除区块缓存等。
+     */
+    [[nodiscard]] bool needsRenderReset() const { return m_needsRenderReset; }
+
+    /**
+     * @brief 标记渲染已重置
+     */
+    void markRenderReset() { m_needsRenderReset = false; }
+
+private:
+    DimensionId m_currentDimension = 0;
+    DimensionId m_targetDimension = 0;
+    Vector3d m_targetPosition;
+    TransitionState m_transitionState = TransitionState::None;
+
+    std::vector<DimensionId> m_availableDimensions;
+    std::unique_ptr<DimensionType> m_overworldType;
+    std::unique_ptr<DimensionType> m_netherType;
+    std::unique_ptr<DimensionType> m_endType;
+
+    bool m_needsRenderReset = false;
+};
+
+} // namespace mc

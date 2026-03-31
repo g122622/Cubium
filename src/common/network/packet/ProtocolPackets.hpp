@@ -165,12 +165,13 @@ private:
 class LoginResponsePacket {
 public:
     LoginResponsePacket() = default;
-    LoginResponsePacket(bool success, PlayerId playerId, const String& username, const String& message = "", bool isDebugWorld = false)
+    LoginResponsePacket(bool success, PlayerId playerId, const String& username, const String& message = "", bool isDebugWorld = false, DimensionId dimension = 0)
         : m_success(success)
         , m_playerId(playerId)
         , m_username(username)
         , m_message(message)
         , m_isDebugWorld(isDebugWorld)
+        , m_dimension(dimension)
     {}
 
     // Getters
@@ -179,6 +180,7 @@ public:
     const String& username() const { return m_username; }
     const String& message() const { return m_message; }
     bool isDebugWorld() const { return m_isDebugWorld; }
+    DimensionId dimension() const { return m_dimension; }
 
     // Setters
     void setSuccess(bool success) { m_success = success; }
@@ -186,6 +188,7 @@ public:
     void setUsername(const String& username) { m_username = username; }
     void setMessage(const String& message) { m_message = message; }
     void setIsDebugWorld(bool isDebugWorld) { m_isDebugWorld = isDebugWorld; }
+    void setDimension(DimensionId dimension) { m_dimension = dimension; }
 
     // 序列化
     void serialize(PacketSerializer& ser) const {
@@ -194,6 +197,7 @@ public:
         ser.writeString(m_username);
         ser.writeString(m_message);
         ser.writeBool(m_isDebugWorld);
+        ser.writeI32(m_dimension);
     }
 
     [[nodiscard]] static Result<LoginResponsePacket> deserialize(PacketDeserializer& deser) {
@@ -221,6 +225,12 @@ public:
             packet.m_isDebugWorld = debugResult.value();
         }
 
+        // 向后兼容：dimension 是可选字段
+        auto dimResult = deser.readI32();
+        if (dimResult.success()) {
+            packet.m_dimension = dimResult.value();
+        }
+
         return packet;
     }
 
@@ -230,6 +240,7 @@ private:
     String m_username;
     String m_message;
     bool m_isDebugWorld = false;  // 调试世界标志
+    DimensionId m_dimension = 0;  // 初始维度ID
 };
 
 // ============================================================================
@@ -723,21 +734,24 @@ private:
 class ChunkDataPacket {
 public:
     ChunkDataPacket() = default;
-    ChunkDataPacket(ChunkCoord x, ChunkCoord z, std::vector<u8> data)
+    ChunkDataPacket(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8> data)
         : m_x(x)
         , m_z(z)
+        , m_dimension(dimension)
         , m_data(std::move(data))
     {}
 
     // Getters
     ChunkCoord x() const { return m_x; }
     ChunkCoord z() const { return m_z; }
+    DimensionId dimension() const { return m_dimension; }
     const std::vector<u8>& data() const { return m_data; }
     size_t size() const { return m_data.size(); }
 
     // Setters
     void setX(ChunkCoord x) { m_x = x; }
     void setZ(ChunkCoord z) { m_z = z; }
+    void setDimension(DimensionId dimension) { m_dimension = dimension; }
     void setData(const std::vector<u8>& data) { m_data = data; }
     void setData(std::vector<u8>&& data) { m_data = std::move(data); }
 
@@ -745,6 +759,7 @@ public:
     void serialize(PacketSerializer& ser) const {
         ser.writeI32(m_x);
         ser.writeI32(m_z);
+        ser.writeI32(m_dimension);
         ser.writeVarUInt(static_cast<u32>(m_data.size()));
         ser.writeBytes(m_data);
     }
@@ -759,6 +774,10 @@ public:
         auto zResult = deser.readI32();
         if (zResult.failed()) return zResult.error();
         packet.m_z = zResult.value();
+
+        auto dimResult = deser.readI32();
+        if (dimResult.failed()) return dimResult.error();
+        packet.m_dimension = dimResult.value();
 
         auto sizeResult = deser.readVarUInt();
         if (sizeResult.failed()) return sizeResult.error();
@@ -778,6 +797,7 @@ public:
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
+    DimensionId m_dimension = 0;  // 主世界=0, 下界=1, 末地=2
     std::vector<u8> m_data;
 };
 
@@ -788,22 +808,25 @@ private:
 class UnloadChunkPacket {
 public:
     UnloadChunkPacket() = default;
-    UnloadChunkPacket(ChunkCoord x, ChunkCoord z)
-        : m_x(x), m_z(z)
+    UnloadChunkPacket(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+        : m_x(x), m_z(z), m_dimension(dimension)
     {}
 
     // Getters
     ChunkCoord x() const { return m_x; }
     ChunkCoord z() const { return m_z; }
+    DimensionId dimension() const { return m_dimension; }
 
     // Setters
     void setX(ChunkCoord x) { m_x = x; }
     void setZ(ChunkCoord z) { m_z = z; }
+    void setDimension(DimensionId dimension) { m_dimension = dimension; }
 
     // 序列化
     void serialize(PacketSerializer& ser) const {
         ser.writeI32(m_x);
         ser.writeI32(m_z);
+        ser.writeI32(m_dimension);
     }
 
     [[nodiscard]] static Result<UnloadChunkPacket> deserialize(PacketDeserializer& deser) {
@@ -817,12 +840,17 @@ public:
         if (zResult.failed()) return zResult.error();
         packet.m_z = zResult.value();
 
+        auto dimResult = deser.readI32();
+        if (dimResult.failed()) return dimResult.error();
+        packet.m_dimension = dimResult.value();
+
         return packet;
     }
 
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
+    DimensionId m_dimension = 0;  // 主世界=0, 下界=1, 末地=2
 };
 
 // ============================================================================

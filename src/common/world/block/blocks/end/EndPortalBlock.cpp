@@ -1,6 +1,6 @@
 #include "EndPortalBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -18,11 +18,34 @@ EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
 }
 
 void EndPortalBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+    // 参考 MC 1.16.5 EndPortalBlock.onEntityCollision
+    // 末地传送门是立即传送的，不需要等待时间
+    // 玩家进入末地传送门后会立即传送到末地出生点 (100, 49, 0)
+
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(entity);
-    // TODO: 传送到末地
+
+    // 检查传送冷却
+    if (!entity.canTeleport()) {
+        return;  // 还在冷却中
+    }
+
+    // 设置传送冷却，防止重复传送
+    entity.setPortalCooldown(300);  // 15秒冷却
+
+    // 确定目标维度
+    // 主世界 -> 末地: 传送到固定出生点 (100, 49, 0)
+    // 末地 -> 主世界: 返回重生点或床
+    DimensionId targetDim = (entity.dimension() == 2) ? DimensionId(0) : DimensionId(2);
+
+    // 设置实体的目标维度标志
+    // 实际传送由 ServerDimensionManager 处理
+    // 这里只设置传送请求标志
+    entity.setDimension(targetDim);
+
+    // 注意：实际的维度切换逻辑由服务端的 ServerDimensionManager 处理
+    // 客户端只需要处理动画效果
 }
 
 const CollisionShape& EndPortalBlock::getShape(const BlockState& state) const {

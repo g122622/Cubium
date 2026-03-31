@@ -257,6 +257,9 @@ public:
     // ========================================================================
     static Block* END_STONE_BRICKS;
     static Block* END_ROD;
+    static Block* CHORUS_PLANT;       // 紫颂植物
+    static Block* CHORUS_FLOWER;      // 紫颂花
+    static Block* DRAGON_EGG;         // 龙蛋
 
     // ========================================================================
     // 骨块与干草块
@@ -274,6 +277,10 @@ public:
     static Block* GLOWSTONE;
     static Block* END_STONE;
     static Block* OBSIDIAN;
+    static Block* NETHER_PORTAL;      // 下界传送门
+    static Block* END_PORTAL;         // 末地传送门
+    static Block* END_PORTAL_FRAME;   // 末地传送门框架
+    static Block* END_GATEWAY;        // 末地折跃门
 
     // ========================================================================
     // 红石方块
@@ -405,6 +412,9 @@ public:
     static Block* CRYING_OBSIDIAN;
     static Block* MAGMA;              // 岩浆块 (发光)
     static Block* NETHER_WART_BLOCK;  // 地狱疣块
+    static Block* FIRE;               // 火
+    static Block* SOUL_FIRE;          // 灵魂火
+    static Block* NETHER_WART;        // 下界疣（作物）
 
     // ========================================================================
     // 自然方块扩展

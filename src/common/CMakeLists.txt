@@ -41,6 +41,7 @@ add_library(mc_common STATIC
     network/packet/GameStateChangePacket.cpp
     network/packet/PlayerAbilitiesPacket.cpp
     network/packet/BlockBreakAnimPacket.cpp
+    network/packet/DimensionPackets.cpp
     network/packet/ExperiencePackets.cpp
 
     # Network - Sync
@@ -487,7 +488,16 @@ add_library(mc_common STATIC
     # World - Generation - Chunk Generators
     world/gen/chunk/IChunkGenerator.cpp
     world/gen/chunk/NoiseChunkGenerator.cpp
+    world/gen/chunk/NetherChunkGenerator.cpp
+    world/gen/chunk/EndChunkGenerator.cpp
     world/gen/chunk/DebugChunkGenerator.cpp
+
+    # World - Dimension
+    world/dimension/DimensionType.cpp
+    world/dimension/Dimension.cpp
+    world/dimension/DimensionManager.cpp
+    world/dimension/teleport/PortalSize.cpp
+    world/dimension/teleport/Teleporter.cpp
 
     # World - Generation - Settings
     world/gen/settings/DimensionSettings.cpp
@@ -516,6 +526,10 @@ add_library(mc_common STATIC
     world/biome/layer/transformers/BiomeLayers.cpp
     world/biome/layer/transformers/MergeLayers.cpp
 
+    # World - Biome - Provider
+    world/biome/provider/nether/NetherBiomeProvider.cpp
+    world/biome/provider/end/EndBiomeProvider.cpp
+
     # World - Generation - Surface
     world/gen/surface/SurfaceBuilders.cpp
 
@@ -539,6 +553,15 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/SugarCaneFeature.cpp
     world/gen/feature/vegetation/IceSpikeFeature.cpp
 
+    # World - Generation - Feature - Spike
+    world/gen/feature/spike/EndSpikeFeature.cpp
+
+    # World - Generation - Feature - Gateway
+    world/gen/feature/gateway/EndGatewayFeature.cpp
+
+    # World - Generation - Feature - Fungus
+    world/gen/feature/fungus/HugeFungusFeature.cpp
+
     # World - Generation - Feature - Lake
     world/gen/feature/lake/LakeFeature.cpp
 
@@ -553,6 +576,7 @@ add_library(mc_common STATIC
     world/gen/structure/structures/DesertPyramidStructure.cpp
     world/gen/structure/structures/JungleTempleStructure.cpp
     world/gen/structure/structures/OceanMonumentStructure.cpp
+    world/gen/structure/structures/FortressStructure.cpp
     world/gen/structure/JigsawStructure.cpp
 
     # World - Generation - Jigsaw

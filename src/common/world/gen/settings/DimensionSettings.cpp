@@ -20,7 +20,7 @@ DimensionSettings DimensionSettings::nether()
     settings.noise = NoiseSettings::nether();
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::LAVA);
-    settings.seaLevel = 32;
+    settings.seaLevel = 31;  // MC 1.16.5: 熔岩海高度 Y<=31
     settings.bedrockRoof = 127;
     settings.bedrockFloor = 0;
     return settings;
