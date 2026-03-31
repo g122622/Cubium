@@ -23,11 +23,11 @@ MeshWorkerPool::~MeshWorkerPool()
 
 i32 MeshWorkerPool::getOptimalThreadCount()
 {
-    // 使用硬件并发数 - 1，保留一个核心给主线程
-    // 至少 1 个，最多 4 个
+    // 使用硬件并发数 - 1，并除以 2 来给区块生成线程留出足够资源
+    // 至少 1 个，最多 114514 个
     const unsigned int hardwareConcurrency = std::thread::hardware_concurrency();
     i32 count = static_cast<i32>(hardwareConcurrency) - 1;
-    return std::clamp(count, 1, 4);
+    return std::clamp(count / 2, 1, 114514);
 }
 
 // ============================================================================
