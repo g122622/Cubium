@@ -122,10 +122,10 @@ private:
     std::array<f32, 25> m_biomeWeights;
 
     // === fillNoiseColumn 生物群系滑窗缓存（5x5）===
-    bool m_biomeWindowValid = false;
-    i32 m_biomeWindowCenterX = 0;
-    i32 m_biomeWindowCenterZ = 0;
-    std::array<BiomeId, 25> m_biomeWindow{};
+    mutable bool m_biomeWindowValid = false;
+    mutable i32 m_biomeWindowCenterX = 0;
+    mutable i32 m_biomeWindowCenterZ = 0;
+    mutable std::array<BiomeId, 25> m_biomeWindow{};
 
     // === 核心生成方法 ===
 
@@ -135,7 +135,7 @@ private:
      * 参考 MC fillNoiseColumn，计算噪声柱的高度值。
      * 这是地形生成的核心算法。
      */
-    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ);
+    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const;
 
     /**
      * @brief 计算噪声密度

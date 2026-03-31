@@ -336,7 +336,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
     chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
-void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ)
+void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const
 {
     MC_TRACE_EVENT("world.chunk_gen", "FillNoiseColumn", "x", noiseX, "z", noiseZ);
     column.resize(m_noiseSizeY + 1);
@@ -461,20 +461,24 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
         density += columnTerrainBias;
 
         // 顶部滑动
+        // 参考 MC: MathHelper.clampedLerp(target, density, slide)
+        // 仅 clamp 插值因子到 [0, 1]，不裁剪 density 本身，避免整列密度被硬截断。
         if (noise.topSlide.size > 0) {
             const f32 slide = static_cast<f32>(m_noiseSizeY - y - noise.topSlide.offset) / static_cast<f32>(noise.topSlide.size);
-            density = std::clamp<f32>(
-                math::lerp(static_cast<f32>(noise.topSlide.target), density, slide),
-                -1.0f, 1.0f
+            density = math::lerp(
+                static_cast<f32>(noise.topSlide.target),
+                density,
+                std::clamp(slide, 0.0f, 1.0f)
             );
         }
 
         // 底部滑动
         if (noise.bottomSlide.size > 0) {
             const f32 slide = static_cast<f32>(y - noise.bottomSlide.offset) / static_cast<f32>(noise.bottomSlide.size);
-            density = std::clamp<f32>(
-                math::lerp(static_cast<f32>(noise.bottomSlide.target), density, slide),
-                -1.0f, 1.0f
+            density = math::lerp(
+                static_cast<f32>(noise.bottomSlide.target),
+                density,
+                std::clamp(slide, 0.0f, 1.0f)
             );
         }
 
@@ -818,16 +822,99 @@ BiomeId NoiseChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) c
 
 i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
-    (void)type;
+    const NoiseSettings& noise = m_settings.noise;
+    const i32 hGranularity = m_horizontalNoiseGranularity;
+    const i32 vGranularity = m_verticalNoiseGranularity;
 
-    // 简化实现：生成一个临时的高度估计
-    const f32 depth = m_biomeProvider->getDepth(x, z);
-    const f32 scale = m_biomeProvider->getScale(x, z);
+    if (hGranularity <= 0 || vGranularity <= 0 || m_noiseSizeY <= 0) {
+        return m_settings.seaLevel + 1;
+    }
 
-    const f32 baseHeight = static_cast<f32>(m_settings.seaLevel) + 1.0f + depth * 18.0f;
-    const f32 variation = scale * 26.0f;
+    // 向下取整除法（支持负坐标）
+    const auto floorDiv = [](i32 value, i32 divisor) -> i32 {
+        i32 q = value / divisor;
+        i32 r = value % divisor;
+        if (r != 0 && ((r > 0) != (divisor > 0))) {
+            --q;
+        }
+        return q;
+    };
 
-    return static_cast<i32>(baseHeight + variation);
+    const i32 noiseX = floorDiv(x, hGranularity);
+    const i32 noiseZ = floorDiv(z, hGranularity);
+    const i32 localX = x - noiseX * hGranularity;
+    const i32 localZ = z - noiseZ * hGranularity;
+
+    const f32 xLerp = static_cast<f32>(localX) / static_cast<f32>(hGranularity);
+    const f32 zLerp = static_cast<f32>(localZ) / static_cast<f32>(hGranularity);
+
+    std::vector<f32> column00;
+    std::vector<f32> column01;
+    std::vector<f32> column10;
+    std::vector<f32> column11;
+
+    fillNoiseColumn(column00, noiseX, noiseZ);
+    fillNoiseColumn(column01, noiseX, noiseZ + 1);
+    fillNoiseColumn(column10, noiseX + 1, noiseZ);
+    fillNoiseColumn(column11, noiseX + 1, noiseZ + 1);
+
+    auto matchesHeightmap = [type](const BlockState* state) -> bool {
+        if (!state || state->isAir()) {
+            return false;
+        }
+
+        const Block& block = state->owner();
+        switch (type) {
+            case HeightmapType::WorldSurface:
+            case HeightmapType::WorldSurfaceWG:
+                return true;
+
+            case HeightmapType::OceanFloor:
+            case HeightmapType::OceanFloorWG:
+                return block.isSolid(*state);
+
+            case HeightmapType::MotionBlocking:
+                return block.isSolid(*state) || state->isLiquid();
+
+            case HeightmapType::MotionBlockingNoLeaves:
+                return (block.isSolid(*state) || state->isLiquid()) &&
+                       (&block.material() != &Material::LEAVES) &&
+                       (&block.material() != &Material::PLANT);
+
+            case HeightmapType::LightBlocking:
+                return block.isSolid(*state) && state->getOpacity() > 0;
+
+            default:
+                return true;
+        }
+    };
+
+    for (i32 worldY = noise.height - 1; worldY >= 0; --worldY) {
+        const i32 noiseY = worldY / vGranularity;
+        const i32 localY = worldY % vGranularity;
+
+        if (noiseY < 0 || noiseY >= m_noiseSizeY) {
+            continue;
+        }
+
+        const f32 yLerp = static_cast<f32>(localY) / static_cast<f32>(vGranularity);
+
+        const f32 y00 = math::lerp(column00[noiseY], column00[noiseY + 1], yLerp);
+        const f32 y01 = math::lerp(column01[noiseY], column01[noiseY + 1], yLerp);
+        const f32 y10 = math::lerp(column10[noiseY], column10[noiseY + 1], yLerp);
+        const f32 y11 = math::lerp(column11[noiseY], column11[noiseY + 1], yLerp);
+
+        const f32 x0 = math::lerp(y00, y10, xLerp);
+        const f32 x1 = math::lerp(y01, y11, xLerp);
+        const f32 density = math::lerp(x0, x1, zLerp);
+
+        const BlockState* blockState = getBlockForDensity(density, worldY);
+        if (matchesHeightmap(blockState)) {
+            return worldY + 1;
+        }
+    }
+
+    return 0;
 }
 
 i32 NoiseChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,

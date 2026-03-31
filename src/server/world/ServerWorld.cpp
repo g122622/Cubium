@@ -14,6 +14,7 @@
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include <algorithm>
 #include <spdlog/spdlog.h>
 #include <cmath>
 
@@ -392,12 +393,32 @@ const fluid::FluidState* ServerWorld::getFluidState(i32 x, i32 y, i32 z) const
 
 bool ServerWorld::isWithinWorldBounds(i32, i32 y, i32) const
 {
-    return y >= 0 && y < 256;
+    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
 }
 
-i32 ServerWorld::getHeight(i32, i32) const
+i32 ServerWorld::getHeight(i32 x, i32 z) const
 {
-    return 64;
+    const ChunkCoord chunkX = blockToChunk(static_cast<f32>(x));
+    const ChunkCoord chunkZ = blockToChunk(static_cast<f32>(z));
+
+    const ChunkData* chunk = getChunk(chunkX, chunkZ);
+    if (!chunk) {
+        // 区块未加载时返回海平面附近，避免调用方得到无意义常量值。
+        return world::SEA_LEVEL + 1;
+    }
+
+    const i32 localX = x - chunkX * 16;
+    const i32 localZ = z - chunkZ * 16;
+
+    // 优先使用世界生成高度图（返回的是“顶部空气层 Y”）。
+    i32 height = chunk->getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ);
+    if (height <= world::MIN_BUILD_HEIGHT) {
+        // 回退到基础高度图（m_heightMap 存储的是最高实心方块 Y，需要 +1 对齐语义）。
+        const i32 highestSolidY = chunk->getHighestBlock(localX, localZ);
+        height = highestSolidY + 1;
+    }
+
+    return std::clamp(height, world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
 }
 
 u8 ServerWorld::getBlockLight(i32 x, i32 y, i32 z) const

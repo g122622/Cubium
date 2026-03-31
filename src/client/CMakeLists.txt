@@ -33,6 +33,7 @@ add_executable(minecraft-client
     # 粒子系统
     renderer/trident/particle/Particle.cpp
     renderer/trident/particle/ParticleManager.cpp
+    renderer/trident/particle/ParticleTextureAtlas.cpp
     renderer/trident/particle/particles/RainParticle.cpp
     renderer/trident/particle/particles/SnowParticle.cpp
     # 方块破坏效果
