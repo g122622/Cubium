@@ -292,11 +292,11 @@ size_t ParticleManager::aliveParticleCount() const {
         [](const std::unique_ptr<Particle>& p) { return p && p->isAlive(); });
 }
 
-void ParticleManager::tick() {
+void ParticleManager::tick(ClientWorld* world) {
     // 更新所有粒子
     for (auto& particle : m_particles) {
         if (particle && particle->isAlive()) {
-            particle->tick();
+            particle->tick(world);
         }
     }
 
@@ -327,7 +327,7 @@ void ParticleManager::render(VkCommandBuffer cmd,
     m_vertexData.clear();
     for (const auto& particle : m_particles) {
         if (particle && particle->isAlive()) {
-            particle->buildVertices(cameraPos, m_partialTick, m_vertexData);
+            particle->buildVertices(cameraPos, m_partialTick, m_textureAtlas, m_vertexData);
         }
     }
 

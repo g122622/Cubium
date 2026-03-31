@@ -1,20 +1,9 @@
 #include "RainParticle.hpp"
+#include "../../../../../common/util/math/random/Random.hpp"
+#include "../../../../../common/util/assert/AssertAll.hpp"
 #include <cmath>
-#include <random>
 
 namespace mc::client::renderer::trident::particle::particles {
-
-namespace {
-    std::mt19937& getRandomEngine() {
-        static std::mt19937 engine(42);
-        return engine;
-    }
-
-    f32 randomFloat() {
-        static std::uniform_real_distribution<f32> dist(0.0f, 1.0f);
-        return dist(getRandomEngine());
-    }
-}
 
 RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
@@ -23,21 +12,26 @@ RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setGravity(DEFAULT_GRAVITY);
     setSize(DEFAULT_SIZE);
     setColor(glm::vec4(0.7f, 0.8f, 1.0f, 0.6f));  // 淡蓝色半透明
+    setFriction(0.98f);
+    setHasPhysics(false);  // 雨滴暂时不进行碰撞检测
 
     // 雨滴生命周期较短
     // 参考 MC: maxAge = (int)(8.0D / (Math.random() * 0.8D + 0.2D))
-    f32 lifeMultiplier = 0.2f + randomFloat() * 0.8f;
+    mc::math::Random rng;
+    f32 lifeMultiplier = 0.2f + rng.nextFloat() * 0.8f;
     setMaxAge(8.0f / lifeMultiplier);
-
-    // 设置阻力
-    m_drag = 0.98f;
 }
 
-std::unique_ptr<Particle> RainParticle::create(const glm::vec3& pos, const glm::vec3& velocity) {
+std::unique_ptr<Particle> RainParticle::create(
+    const glm::vec3& pos,
+    const glm::vec3& velocity,
+    ClientWorld* world)
+{
+    MC_UNUSED(world);
     return std::make_unique<RainParticle>(pos, velocity);
 }
 
-void RainParticle::tick() {
+void RainParticle::tick(ClientWorld* world) {
     // 保存上一帧位置
     m_prevPosition = m_position;
 
@@ -49,9 +43,9 @@ void RainParticle::tick() {
     }
 
     // 应用重力
-    m_velocity.y -= m_gravity;
+    m_velocity.y -= m_gravity * 0.04f;
 
-    // 限制下落速度
+    // 限制下落速度（终端速度）
     if (m_velocity.y < TERMINAL_VELOCITY) {
         m_velocity.y = TERMINAL_VELOCITY;
     }
@@ -60,14 +54,16 @@ void RainParticle::tick() {
     m_position += m_velocity;
 
     // 应用阻力
-    m_velocity.x *= m_drag;
-    m_velocity.z *= m_drag;
+    m_velocity.x *= m_friction;
+    m_velocity.z *= m_friction;
 
     // 检查地面碰撞
-    // 注意：实际项目中需要与世界进行碰撞检测
+    // TODO: 当实现碰撞检测后，使用 world 进行检测
+    MC_UNUSED(world);
     if (m_onGround) {
-        // 雨滴碰撞地面时有 50% 概率消失
-        if (randomFloat() < 0.5f) {
+        // 雨滴碰撞地面时有概率消失
+        mc::math::Random rng;
+        if (rng.nextFloat() < 0.5f) {
             setExpired();
         }
         m_velocity.x *= 0.7f;
@@ -75,6 +71,7 @@ void RainParticle::tick() {
     }
 
     // 雨滴不淡出，直接消失
+    // 不修改 alpha
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

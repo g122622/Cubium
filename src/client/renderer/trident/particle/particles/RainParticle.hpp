@@ -13,6 +13,15 @@ namespace mc::client::renderer::trident::particle::particles {
  * - 快速下落
  * - 碰撞地面时消失或产生溅射效果
  * - 雨滴大小和速度随机变化
+ *
+ * 用法：
+ * @code
+ * auto rain = std::make_unique<RainParticle>(
+ *     glm::vec3(x, y, z),
+ *     glm::vec3(0.0f, -3.0f, 0.0f)
+ * );
+ * particleManager.addParticle(std::move(rain));
+ * @endcode
  */
 class RainParticle : public Particle {
 public:
@@ -29,14 +38,22 @@ public:
      *
      * @param pos 位置
      * @param velocity 速度
+     * @param world 客户端世界（可选）
      * @return 雨滴粒子实例
      */
-    static std::unique_ptr<Particle> create(const glm::vec3& pos, const glm::vec3& velocity);
+    static std::unique_ptr<Particle> create(
+        const glm::vec3& pos,
+        const glm::vec3& velocity,
+        ClientWorld* world);
 
-    void tick() override;
+    void tick(ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::Translucent;
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+    }
+
+    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+        return ResourceLocation("minecraft:particle/rain");
     }
 
 private:

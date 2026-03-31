@@ -1,0 +1,33 @@
+#include "ItemParticleData.hpp"
+#include "../ParticleRegistry.hpp"
+#include "../../../../../common/util/assert/AssertAll.hpp"
+
+namespace mc::client::renderer::trident::particle::data {
+
+ItemParticleData::ItemParticleData(ParticleTypeId type, const ItemStack& itemStack)
+    : m_type(type)
+    , m_itemStack(itemStack)
+{
+    MC_ASSERT_MSG(requiresItemData(type),
+                  "ItemParticleData requires an item-type particle");
+}
+
+String ItemParticleData::getTypeName() const {
+    return ParticleRegistry::instance().getTypeName(m_type);
+}
+
+String ItemParticleData::getParameters() const {
+    // 物品粒子参数格式: item_id
+    // 例如: minecraft:diamond
+    if (m_itemStack.isEmpty()) {
+        return "minecraft:air";
+    }
+    // TODO: 实现 Item 的资源位置获取
+    return "minecraft:item";
+}
+
+std::unique_ptr<ParticleData> ItemParticleData::clone() const {
+    return std::make_unique<ItemParticleData>(m_type, m_itemStack);
+}
+
+} // namespace mc::client::renderer::trident::particle::data

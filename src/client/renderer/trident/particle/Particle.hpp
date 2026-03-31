@@ -1,7 +1,10 @@
 #pragma once
 
+#include "ParticleRenderType.hpp"
+#include "ParticleTypes.hpp"
 #include "../../../../common/core/Types.hpp"
 #include "../../../../common/core/Result.hpp"
+#include "../../../../common/resource/ResourceLocation.hpp"
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>
@@ -9,6 +12,11 @@
 #include <functional>
 
 namespace mc::client::renderer::trident::particle {
+
+// 前置声明
+class ClientWorld;
+class ParticleTextureAtlas;
+struct SpriteInfo;
 
 /**
  * @brief 粒子顶点数据
@@ -24,27 +32,53 @@ struct ParticleVertex {
 };
 
 /**
- * @brief 粒子渲染类型
- *
- * 决定粒子的渲染方式（透明度、混合模式等）。
- * 参考 MC 1.16.5 IParticleRenderType
- */
-enum class ParticleRenderType : u8 {
-    Opaque,         ///< 不透明粒子
-    Translucent,    ///< 半透明粒子（正常混合）
-    Lit,            ///< 发光粒子（不受光照影响）
-    Custom          ///< 自定义渲染
-};
-
-/**
  * @brief 粒子基类
  *
  * 所有粒子的基类，定义粒子的基本属性和行为。
  * 参考 MC 1.16.5 Particle 类
+ *
+ * 生命周期：
+ * 1. 构造：设置初始位置、速度、颜色等属性
+ * 2. tick()：每帧更新位置、速度、年龄等
+ * 3. buildVertices()：生成渲染顶点
+ * 4. isAlive() == false 时销毁
+ *
+ * 用法示例：
+ * @code
+ * class MyParticle : public Particle {
+ * public:
+ *     MyParticle(const glm::vec3& pos, const glm::vec3& velocity)
+ *         : Particle(pos, velocity) {
+ *         setGravity(0.02f);
+ *         setMaxAge(60.0f);
+ *         setColor(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
+ *     }
+ *
+ *     void tick(ClientWorld* world) override {
+ *         Particle::tick(world);
+ *         // 自定义行为
+ *     }
+ *
+ *     ParticleRenderType getRenderType() const override {
+ *         return ParticleRenderType::PARTICLE_SHEET_LIT;
+ *     }
+ *
+ *     ResourceLocation getTextureLocation() const override {
+ *         return ResourceLocation("minecraft:particle/flame");
+ *     }
+ * };
+ * @endcode
  */
 class Particle {
 public:
+    /**
+     * @brief 构造粒子
+     *
+     * @param pos 初始位置
+     * @param velocity 初始速度
+     */
     Particle(const glm::vec3& pos, const glm::vec3& velocity);
+
     virtual ~Particle() = default;
 
     // 禁止拷贝
@@ -62,12 +96,17 @@ public:
     /**
      * @brief 更新粒子状态
      *
-     * 每帧调用，更新粒子位置、速度等。
+     * 每游戏 tick 调用。更新位置、速度、年龄等属性。
+     * 子类应调用父类的 tick() 方法以保持基本行为。
+     *
+     * @param world 客户端世界（可选，用于碰撞检测和光照采样）
      */
-    virtual void tick();
+    virtual void tick(ClientWorld* world = nullptr);
 
     /**
      * @brief 粒子是否存活
+     *
+     * @return 是否存活
      */
     [[nodiscard]] bool isAlive() const { return !m_expired; }
 
@@ -82,24 +121,89 @@ public:
 
     /**
      * @brief 获取渲染类型
+     *
+     * 决定粒子的渲染方式（混合模式、纹理来源、光照处理）。
+     * 子类应重写此方法以指定渲染类型。
+     *
+     * @return 渲染类型
      */
     [[nodiscard]] virtual ParticleRenderType getRenderType() const {
-        return ParticleRenderType::Translucent;
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
     /**
      * @brief 生成渲染顶点数据
      *
+     * 生成 billboard quad 的四个顶点。
+     * 子类可以重写此方法以实现自定义渲染。
+     *
      * @param cameraPos 相机位置（用于 billboard 计算）
      * @param partialTick 部分 tick（用于插值）
+     * @param atlas 纹理图集（用于获取 UV 坐标）
      * @param outVertices 输出顶点数组（4 个顶点组成一个 quad）
      */
-    virtual void buildVertices(const glm::vec3& cameraPos,
-                               f32 partialTick,
-                               std::vector<ParticleVertex>& outVertices) const;
+    virtual void buildVertices(
+        const glm::vec3& cameraPos,
+        f32 partialTick,
+        const ParticleTextureAtlas& atlas,
+        std::vector<ParticleVertex>& outVertices) const;
+
+    /**
+     * @brief 获取纹理资源位置
+     *
+     * 用于从纹理图集中获取 UV 坐标。
+     * 子类应重写此方法以使用不同纹理。
+     *
+     * @return 纹理资源位置（如 "minecraft:particle/flame"）
+     */
+    [[nodiscard]] virtual ResourceLocation getTextureLocation() const;
+
+    /**
+     * @brief 获取光照值
+     *
+     * 从世界采样粒子位置的光照。
+     * 发光粒子可以返回固定的高亮度值。
+     *
+     * @param world 客户端世界
+     * @return 组合光照值（skyLight << 4 | blockLight），范围 0-255
+     */
+    [[nodiscard]] virtual u32 getLightColor(ClientWorld* world) const;
+
+    /**
+     * @brief 获取粒子缩放比例
+     *
+     * 可用于实现粒子随年龄变化大小。
+     *
+     * @param partialTick 部分 tick
+     * @return 缩放比例
+     */
+    [[nodiscard]] virtual f32 getScale(f32 partialTick) const;
 
     // ========================================================================
-    // 属性访问
+    // 物理属性
+    // ========================================================================
+
+    /**
+     * @brief 移动并碰撞检测
+     *
+     * 参考 MC 1.16.5 Particle.move()
+     * 如果 world 为 nullptr，则只移动不检测碰撞。
+     *
+     * @param world 客户端世界
+     * @param delta 移动增量
+     */
+    void move(ClientWorld* world, const glm::vec3& delta);
+
+    /**
+     * @brief 设置碰撞盒尺寸
+     *
+     * @param width 宽度（X/Z 轴）
+     * @param height 高度（Y 轴）
+     */
+    void setBoundingBox(f32 width, f32 height);
+
+    // ========================================================================
+    // 属性访问器
     // ========================================================================
 
     [[nodiscard]] const glm::vec3& position() const { return m_position; }
@@ -108,34 +212,81 @@ public:
     [[nodiscard]] f32 age() const { return m_age; }
     [[nodiscard]] f32 maxAge() const { return m_maxAge; }
     [[nodiscard]] f32 gravity() const { return m_gravity; }
+    [[nodiscard]] f32 friction() const { return m_friction; }
     [[nodiscard]] f32 size() const { return m_size; }
     [[nodiscard]] const glm::vec4& color() const { return m_color; }
+    [[nodiscard]] bool onGround() const { return m_onGround; }
+    [[nodiscard]] bool hasPhysics() const { return m_hasPhysics; }
+    [[nodiscard]] f32 roll() const { return m_roll; }
 
     void setPosition(const glm::vec3& pos) { m_position = pos; }
     void setVelocity(const glm::vec3& vel) { m_velocity = vel; }
     void setGravity(f32 g) { m_gravity = g; }
+    void setFriction(f32 f) { m_friction = f; }
     void setSize(f32 s) { m_size = s; }
     void setColor(const glm::vec4& c) { m_color = c; }
     void setMaxAge(f32 age) { m_maxAge = age; }
+    void setHasPhysics(bool physics) { m_hasPhysics = physics; }
+    void setRoll(f32 roll) { m_roll = roll; }
 
 protected:
+    // ========================================================================
+    // 位置和运动
+    // ========================================================================
+
     glm::vec3 m_position;       ///< 当前位置
     glm::vec3 m_prevPosition;   ///< 上一帧位置（用于插值）
     glm::vec3 m_velocity;       ///< 速度
+
+    // ========================================================================
+    // 外观
+    // ========================================================================
+
     glm::vec4 m_color = glm::vec4(1.0f);  ///< RGBA 颜色
+    f32 m_size = 0.1f;                    ///< 粒子大小
+    f32 m_roll = 0.0f;                    ///< 旋转角度（弧度）
+    f32 m_prevRoll = 0.0f;                ///< 上一帧旋转角度
+
+    // ========================================================================
+    // 生命周期
+    // ========================================================================
+
     f32 m_age = 0.0f;           ///< 已存活时间（ticks）
     f32 m_maxAge = 1.0f;        ///< 最大存活时间（ticks）
-    f32 m_gravity = 0.0f;       ///< 重力加速度
-    f32 m_size = 0.1f;          ///< 粒子大小
-    f32 m_drag = 0.98f;         ///< 空气阻力
     bool m_expired = false;     ///< 是否已过期
+
+    // ========================================================================
+    // 物理
+    // ========================================================================
+
+    f32 m_gravity = 0.0f;       ///< 重力加速度（方块/tick²）
+    f32 m_friction = 0.98f;     ///< 空气阻力系数
     bool m_onGround = false;    ///< 是否在地面
+    bool m_hasPhysics = true;   ///< 是否进行碰撞检测
+
+    // ========================================================================
+    // 碰撞盒
+    // ========================================================================
+
+    glm::vec3 m_bboxMin;        ///< 碰撞盒最小点
+    glm::vec3 m_bboxMax;        ///< 碰撞盒最大点
+    f32 m_bboxWidth = 0.0f;     ///< 碰撞盒宽度
+    f32 m_bboxHeight = 0.0f;    ///< 碰撞盒高度
 };
 
 /**
  * @brief 粒子工厂函数类型
+ *
+ * 用于创建粒子实例的工厂函数。
+ *
+ * @param pos 初始位置
+ * @param velocity 初始速度
+ * @param world 客户端世界（可选）
+ * @return 粒子实例
  */
 using ParticleFactory = std::function<std::unique_ptr<Particle>(
-    const glm::vec3& pos, const glm::vec3& velocity)>;
+    const glm::vec3& pos,
+    const glm::vec3& velocity,
+    ClientWorld* world)>;
 
 } // namespace mc::client::renderer::trident::particle

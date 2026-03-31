@@ -1,0 +1,58 @@
+#include "UnderwaterParticle.hpp"
+#include "../../../../../../common/util/math/random/Random.hpp"
+
+namespace mc::client::renderer::trident::particle::particles {
+
+UnderwaterParticle::UnderwaterParticle(const glm::vec3& pos, const glm::vec3& velocity)
+    : Particle(pos, velocity)
+    , m_initialAlpha(0.4f)
+{
+    mc::math::Random rng;
+
+    setGravity(DEFAULT_GRAVITY);
+    setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
+    m_initialAlpha = 0.2f + rng.nextFloat() * 0.3f;
+    setColor(glm::vec4(0.6f, 0.8f, 1.0f, m_initialAlpha));
+
+    setFriction(0.95f);
+    setHasPhysics(false);
+    setMaxAge(DEFAULT_LIFETIME * (0.7f + rng.nextFloat() * 0.6f));
+}
+
+std::unique_ptr<Particle> UnderwaterParticle::create(
+    const glm::vec3& pos,
+    const glm::vec3& velocity,
+    ClientWorld* world)
+{
+    MC_UNUSED(world);
+    return std::make_unique<UnderwaterParticle>(pos, velocity);
+}
+
+void UnderwaterParticle::tick(ClientWorld* world) {
+    MC_UNUSED(world);
+
+    m_prevPosition = m_position;
+
+    m_age += 1.0f;
+    if (m_age >= m_maxAge) {
+        setExpired();
+        return;
+    }
+
+    // 缓慢随机漂移
+    mc::math::Random rng;
+    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.y += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.002f;
+
+    m_position += m_velocity;
+    m_velocity *= m_friction;
+
+    // 淡出
+    f32 lifeRatio = m_age / m_maxAge;
+    if (lifeRatio > 0.6f) {
+        m_color.a = m_initialAlpha * (1.0f - (lifeRatio - 0.6f) / 0.4f);
+    }
+}
+
+} // namespace mc::client::renderer::trident::particle::particles

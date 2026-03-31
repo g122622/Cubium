@@ -13,6 +13,15 @@ namespace mc::client::renderer::trident::particle::particles {
  * - 缓慢飘落
  * - 左右摇摆
  * - 随机大小和旋转
+ *
+ * 用法：
+ * @code
+ * auto snow = std::make_unique<SnowParticle>(
+ *     glm::vec3(x, y, z),
+ *     glm::vec3(0.0f, -0.5f, 0.0f)
+ * );
+ * particleManager.addParticle(std::move(snow));
+ * @endcode
  */
 class SnowParticle : public Particle {
 public:
@@ -29,18 +38,28 @@ public:
      *
      * @param pos 位置
      * @param velocity 速度
+     * @param world 客户端世界（可选）
      * @return 雪花粒子实例
      */
-    static std::unique_ptr<Particle> create(const glm::vec3& pos, const glm::vec3& velocity);
+    static std::unique_ptr<Particle> create(
+        const glm::vec3& pos,
+        const glm::vec3& velocity,
+        ClientWorld* world);
 
-    void tick() override;
+    void tick(ClientWorld* world) override;
 
-    void buildVertices(const glm::vec3& cameraPos,
-                       f32 partialTick,
-                       std::vector<ParticleVertex>& outVertices) const override;
+    void buildVertices(
+        const glm::vec3& cameraPos,
+        f32 partialTick,
+        const ParticleTextureAtlas& atlas,
+        std::vector<ParticleVertex>& outVertices) const override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::Translucent;
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+    }
+
+    [[nodiscard]] ResourceLocation getTextureLocation() const override {
+        return ResourceLocation("minecraft:particle/snowflake");
     }
 
 private:

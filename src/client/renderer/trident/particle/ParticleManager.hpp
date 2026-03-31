@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Particle.hpp"
+#include "ParticleTextureAtlas.hpp"
 #include "../../../../common/core/Result.hpp"
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
@@ -32,6 +33,7 @@ struct ParticleUBO {
  * - 按渲染类型分组管理
  * - GPU 缓冲区管理
  * - Vulkan 渲染管线
+ * - 纹理图集支持
  */
 class ParticleManager {
 public:
@@ -109,8 +111,10 @@ public:
      * @brief 更新所有粒子
      *
      * 更新粒子位置、生命周期等。
+     *
+     * @param world 客户端世界（用于碰撞检测和光照采样）
      */
-    void tick();
+    void tick(ClientWorld* world = nullptr);
 
     /**
      * @brief 渲染所有粒子
@@ -126,6 +130,18 @@ public:
                 const glm::mat4& view,
                 const glm::vec3& cameraPos,
                 u32 frameIndex);
+
+    // ========================================================================
+    // 纹理图集
+    // ========================================================================
+
+    /**
+     * @brief 获取粒子纹理图集
+     *
+     * @return 纹理图集引用
+     */
+    [[nodiscard]] ParticleTextureAtlas& textureAtlas() { return m_textureAtlas; }
+    [[nodiscard]] const ParticleTextureAtlas& textureAtlas() const { return m_textureAtlas; }
 
     // ========================================================================
     // 状态查询
@@ -180,6 +196,9 @@ private:
     std::vector<std::unique_ptr<Particle>> m_particles;
     std::vector<ParticleVertex> m_vertexData;
     static constexpr size_t MAX_PARTICLES = 16384;  ///< 最大粒子数量
+
+    // 纹理图集
+    ParticleTextureAtlas m_textureAtlas;
 
     // 顶点缓冲区
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
