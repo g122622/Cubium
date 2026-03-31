@@ -215,14 +215,93 @@ BiomeId EndChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) con
 }
 
 i32 EndChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
-    MC_UNUSED(type);
+    auto matchesHeightmap = [type](bool isSolid) -> bool {
+        if (!isSolid) {
+            return false;
+        }
 
-    // 计算岛屿高度
-    const f32 height = calculateIslandHeight(x, z);
-    if (height <= 0.0f) {
-        return 0;  // 虚空
+        switch (type) {
+            case HeightmapType::WorldSurface:
+            case HeightmapType::WorldSurfaceWG:
+            case HeightmapType::OceanFloor:
+            case HeightmapType::OceanFloorWG:
+            case HeightmapType::MotionBlocking:
+            case HeightmapType::MotionBlockingNoLeaves:
+            case HeightmapType::LightBlocking:
+                return true;
+
+            default:
+                return true;
+        }
+    };
+
+    const auto isSolidAt = [this, x, z](i32 y) -> bool {
+        if (y < END_MIN_Y || y >= END_HEIGHT) {
+            return false;
+        }
+
+        // 主岛地形（与 generateMainIsland 保持一致）
+        if (isInMainIsland(x, z)) {
+            const f32 radiusF = static_cast<f32>(m_mainIslandRadius);
+            const i64 distSq = static_cast<i64>(x) * x + static_cast<i64>(z) * z;
+            const f32 normalizedDist = static_cast<f32>(std::sqrt(static_cast<f64>(distSq))) / radiusF;
+
+            i32 height = 0;
+            if (normalizedDist < 0.3f) {
+                height = 45 + static_cast<i32>((1.0f - normalizedDist / 0.3f) * 20.0f);
+            } else if (normalizedDist < 0.7f) {
+                height = 50 + static_cast<i32>((normalizedDist - 0.3f) / 0.4f * 20.0f);
+            } else if (normalizedDist < 1.0f) {
+                height = 70 + static_cast<i32>((normalizedDist - 0.7f) / 0.3f * 25.0f);
+            }
+
+            if (y >= 40 && y <= height) {
+                const f32 noise = m_islandNoise->noise2D(static_cast<f32>(x) * 0.1f, static_cast<f32>(z) * 0.1f);
+                if (y < height - 5 || noise > -0.3f) {
+                    return true;
+                }
+            }
+
+            // 黑曜石柱（与 generateObsidianPillars 保持一致）
+            constexpr f32 PILLAR_RADIUS = 43.0f;
+            const f64 pillarDistSq = static_cast<f64>(x) * x + static_cast<f64>(z) * z;
+            const f32 distance = static_cast<f32>(std::sqrt(pillarDistSq));
+            if (std::abs(distance - PILLAR_RADIUS) < 5.0f) {
+                const f32 angle = std::atan2(static_cast<f32>(z), static_cast<f32>(x));
+                const i32 pillarIndex = static_cast<i32>((angle + static_cast<f32>(M_PI)) /
+                    (2.0f * static_cast<f32>(M_PI)) * static_cast<f32>(PILLAR_COUNT)) % PILLAR_COUNT;
+                const i32 pillarHeight = MIN_PILLAR_HEIGHT +
+                    (pillarIndex * (MAX_PILLAR_HEIGHT - MIN_PILLAR_HEIGHT)) / PILLAR_COUNT;
+                const i32 pillarRadius = MIN_PILLAR_RADIUS + (pillarIndex % 3);
+                const f32 distFromPillarCenter = std::abs(distance - PILLAR_RADIUS);
+                if (distFromPillarCenter < static_cast<f32>(pillarRadius) && y <= pillarHeight) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // 外岛地形（与 generateOuterIslands 保持一致）
+        const f32 height = calculateIslandHeight(x, z);
+        if (height <= 0.0f) {
+            return false;
+        }
+
+        const f32 thicknessNoise = m_islandNoise->noise2D(static_cast<f32>(x) * 0.05f, static_cast<f32>(z) * 0.05f);
+        const i32 thickness = static_cast<i32>(5.0f + thicknessNoise * 10.0f);
+        const i32 topY = static_cast<i32>(height);
+        const i32 bottomY = std::max(40, topY - thickness);
+        return y >= bottomY && y <= topY;
+    };
+
+    for (i32 y = END_HEIGHT - 1; y >= END_MIN_Y; --y) {
+        if (matchesHeightmap(isSolidAt(y))) {
+            return y + 1;
+        }
     }
-    return static_cast<i32>(height);
+
+    return 0;
 }
 
 // ============================================================================

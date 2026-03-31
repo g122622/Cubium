@@ -145,64 +145,90 @@ void NetherChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& c
 
 void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) {
     MC_TRACE_EVENT("world.gen.nether", "GenerateNoise");
+    MC_UNUSED(region);
 
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
 
-    // 获取默认方块（下界岩）
-    const BlockState* netherrack = &VanillaBlocks::NETHERRACK->getDefaultState();
-    const BlockState* lava = &VanillaBlocks::LAVA->getDefaultState();
-    const BlockState* air = &VanillaBlocks::AIR->getDefaultState();
+    const i32 horizontalNoiseGranularity = 16 / m_noiseSizeX;
+    const i32 verticalNoiseGranularity = NETHER_HEIGHT / m_noiseSizeY;
 
-    // 计算噪声列
-    const i32 noiseSizeX = m_noiseSizeX + 1;
-    const i32 noiseSizeZ = m_noiseSizeZ + 1;
-
-    // 存储噪声列
-    std::vector<std::vector<f32>> noiseColumns(noiseSizeX);
-    for (auto& col : noiseColumns) {
-        col.resize(m_noiseSizeY + 1);
+    if (horizontalNoiseGranularity <= 0 || verticalNoiseGranularity <= 0) {
+        return;
     }
 
-    // 计算每个噪声列
-    for (i32 nx = 0; nx < noiseSizeX; ++nx) {
-        const i32 noiseX = chunkX * m_noiseSizeX + nx;
-        for (i32 nz = 0; nz < noiseSizeZ; ++nz) {
-            const i32 noiseZ = chunkZ * m_noiseSizeZ + nz;
-            fillNoiseColumn(noiseColumns[nx], noiseX, noiseZ);
-        }
+    // 与主世界噪声生成一致：使用两列缓存并进行三线性插值
+    std::vector<std::vector<f32>> noiseCache[2];
+    noiseCache[0].resize(m_noiseSizeZ + 1, std::vector<f32>(m_noiseSizeY + 1));
+    noiseCache[1].resize(m_noiseSizeZ + 1, std::vector<f32>(m_noiseSizeY + 1));
+
+    for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
+        const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
+        fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ);
     }
 
-    // 填充方块
-    for (i32 sectionY = 0; sectionY < 8; ++sectionY) { // 下界只有 8 个区块段 (0-127)
-        if (!chunk.hasSection(sectionY)) {
-            chunk.createSection(sectionY);
+    const i32 startX = chunkX << 4;
+    const i32 startZ = chunkZ << 4;
+
+    for (i32 noiseX = 0; noiseX < m_noiseSizeX; ++noiseX) {
+        for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
+            const i32 globalNoiseX = chunkX * m_noiseSizeX + noiseX + 1;
+            const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
+            fillNoiseColumn(noiseCache[1][noiseZ], globalNoiseX, globalNoiseZ);
         }
 
-        ChunkSection* section = chunk.getSection(sectionY);
-        const i32 worldY = sectionY * 16;
+        for (i32 noiseZ = 0; noiseZ < m_noiseSizeZ; ++noiseZ) {
+            for (i32 noiseY = m_noiseSizeY - 1; noiseY >= 0; --noiseY) {
+                const f32 d0 = noiseCache[0][noiseZ][noiseY];
+                const f32 d1 = noiseCache[0][noiseZ + 1][noiseY];
+                const f32 d2 = noiseCache[1][noiseZ][noiseY];
+                const f32 d3 = noiseCache[1][noiseZ + 1][noiseY];
+                const f32 d4 = noiseCache[0][noiseZ][noiseY + 1];
+                const f32 d5 = noiseCache[0][noiseZ + 1][noiseY + 1];
+                const f32 d6 = noiseCache[1][noiseZ][noiseY + 1];
+                const f32 d7 = noiseCache[1][noiseZ + 1][noiseY + 1];
 
-        for (i32 lx = 0; lx < 16; ++lx) {
-            for (i32 lz = 0; lz < 16; ++lz) {
-                // 计算噪声索引
-                const i32 nx = lx / 4;
-                const i32 nz = lz / 4;
+                for (i32 localY = verticalNoiseGranularity - 1; localY >= 0; --localY) {
+                    const i32 worldY = noiseY * verticalNoiseGranularity + localY;
+                    const f32 yLerp = static_cast<f32>(localY) / static_cast<f32>(verticalNoiseGranularity);
 
-                for (i32 ly = 0; ly < 16; ++ly) {
-                    const i32 globalY = worldY + ly;
-                    const i32 ny = globalY / 8;
+                    const f32 y0 = math::lerp(d0, d4, yLerp);
+                    const f32 y1 = math::lerp(d1, d5, yLerp);
+                    const f32 y2 = math::lerp(d2, d6, yLerp);
+                    const f32 y3 = math::lerp(d3, d7, yLerp);
 
-                    // 双线性插值噪声值
-                    const f32 density = noiseColumns[nx][ny];
+                    for (i32 localX = 0; localX < horizontalNoiseGranularity; ++localX) {
+                        const i32 worldX = startX + noiseX * horizontalNoiseGranularity + localX;
+                        const f32 xLerp = static_cast<f32>(localX) / static_cast<f32>(horizontalNoiseGranularity);
 
-                    // 判断方块类型
-                    const BlockState* block = getBlockForDensity(density, globalY);
-                    if (block != nullptr) {
-                        section->setBlock(lx, ly, lz, block);
+                        const f32 x0 = math::lerp(y0, y2, xLerp);
+                        const f32 x1 = math::lerp(y1, y3, xLerp);
+
+                        for (i32 localZ = 0; localZ < horizontalNoiseGranularity; ++localZ) {
+                            const i32 worldZ = startZ + noiseZ * horizontalNoiseGranularity + localZ;
+                            const f32 zLerp = static_cast<f32>(localZ) / static_cast<f32>(horizontalNoiseGranularity);
+                            const f32 density = math::lerp(x0, x1, zLerp);
+
+                            const BlockState* blockState = getBlockForDensity(density, worldY);
+                            if (blockState == nullptr) {
+                                continue;
+                            }
+
+                            const i32 localBlockX = worldX & 15;
+                            const i32 localBlockZ = worldZ & 15;
+                            chunk.setBlock(localBlockX, worldY, localBlockZ, blockState);
+
+                            chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, localBlockX, worldY, localBlockZ, blockState);
+                            if (blockState->isSolid()) {
+                                chunk.updateHeightmap(HeightmapType::OceanFloorWG, localBlockX, worldY, localBlockZ, blockState);
+                            }
+                        }
                     }
                 }
             }
         }
+
+        std::swap(noiseCache[0], noiseCache[1]);
     }
 }
 
@@ -274,22 +300,105 @@ BiomeId NetherChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) 
 }
 
 i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
-    MC_UNUSED(x);
-    MC_UNUSED(z);
-    MC_UNUSED(type);
-    // 下界地形复杂，返回中间高度
-    return 64;
+    const i32 horizontalNoiseGranularity = 16 / m_noiseSizeX;
+    const i32 verticalNoiseGranularity = NETHER_HEIGHT / m_noiseSizeY;
+
+    if (horizontalNoiseGranularity <= 0 || verticalNoiseGranularity <= 0 || m_noiseSizeY <= 0) {
+        return m_lavaLevel + 1;
+    }
+
+    const auto floorDiv = [](i32 value, i32 divisor) -> i32 {
+        i32 q = value / divisor;
+        i32 r = value % divisor;
+        if (r != 0 && ((r > 0) != (divisor > 0))) {
+            --q;
+        }
+        return q;
+    };
+
+    const i32 noiseX = floorDiv(x, horizontalNoiseGranularity);
+    const i32 noiseZ = floorDiv(z, horizontalNoiseGranularity);
+    const i32 localX = x - noiseX * horizontalNoiseGranularity;
+    const i32 localZ = z - noiseZ * horizontalNoiseGranularity;
+
+    const f32 xLerp = static_cast<f32>(localX) / static_cast<f32>(horizontalNoiseGranularity);
+    const f32 zLerp = static_cast<f32>(localZ) / static_cast<f32>(horizontalNoiseGranularity);
+
+    std::vector<f32> column00;
+    std::vector<f32> column01;
+    std::vector<f32> column10;
+    std::vector<f32> column11;
+
+    fillNoiseColumn(column00, noiseX, noiseZ);
+    fillNoiseColumn(column01, noiseX, noiseZ + 1);
+    fillNoiseColumn(column10, noiseX + 1, noiseZ);
+    fillNoiseColumn(column11, noiseX + 1, noiseZ + 1);
+
+    auto matchesHeightmap = [type](const BlockState* state) -> bool {
+        if (!state || state->isAir()) {
+            return false;
+        }
+
+        const Block& block = state->owner();
+        switch (type) {
+            case HeightmapType::WorldSurface:
+            case HeightmapType::WorldSurfaceWG:
+                return true;
+
+            case HeightmapType::OceanFloor:
+            case HeightmapType::OceanFloorWG:
+                return block.isSolid(*state);
+
+            case HeightmapType::MotionBlocking:
+                return block.isSolid(*state) || state->isLiquid();
+
+            case HeightmapType::MotionBlockingNoLeaves:
+                return (block.isSolid(*state) || state->isLiquid()) &&
+                       (&block.material() != &Material::LEAVES) &&
+                       (&block.material() != &Material::PLANT);
+
+            case HeightmapType::LightBlocking:
+                return block.isSolid(*state) && state->getOpacity() > 0;
+
+            default:
+                return true;
+        }
+    };
+
+    for (i32 worldY = NETHER_HEIGHT - 1; worldY >= 0; --worldY) {
+        const i32 noiseY = worldY / verticalNoiseGranularity;
+        const i32 localY = worldY % verticalNoiseGranularity;
+
+        if (noiseY < 0 || noiseY >= m_noiseSizeY) {
+            continue;
+        }
+
+        const f32 yLerp = static_cast<f32>(localY) / static_cast<f32>(verticalNoiseGranularity);
+
+        const f32 y00 = math::lerp(column00[noiseY], column00[noiseY + 1], yLerp);
+        const f32 y01 = math::lerp(column01[noiseY], column01[noiseY + 1], yLerp);
+        const f32 y10 = math::lerp(column10[noiseY], column10[noiseY + 1], yLerp);
+        const f32 y11 = math::lerp(column11[noiseY], column11[noiseY + 1], yLerp);
+
+        const f32 x0 = math::lerp(y00, y10, xLerp);
+        const f32 x1 = math::lerp(y01, y11, xLerp);
+        const f32 density = math::lerp(x0, x1, zLerp);
+
+        const BlockState* blockState = getBlockForDensity(density, worldY);
+        if (matchesHeightmap(blockState)) {
+            return worldY + 1;
+        }
+    }
+
+    return 0;
 }
 
 // ============================================================================
 // 核心生成方法
 // ============================================================================
 
-void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) {
+void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const {
     column.resize(m_noiseSizeY + 1);
-
-    // 计算基础密度
-    const f32 baseDensity = calculateNoiseDensity(noiseX, 0, noiseZ);
 
     for (i32 y = 0; y <= m_noiseSizeY; ++y) {
         const i32 worldY = y * 8; // 8 格一个噪声采样点
@@ -336,6 +445,10 @@ const BlockState* NetherChunkGenerator::getBlockForDensity(f32 density, i32 y) c
     // 密度 > 0 表示实心方块
     if (density > 0.0f) {
         return &VanillaBlocks::NETHERRACK->getDefaultState();
+    }
+    // 低于熔岩海高度使用默认流体
+    if (m_settings.defaultFluid != nullptr && y < m_lavaLevel) {
+        return m_settings.defaultFluid;
     }
     // 空气
     return nullptr;

@@ -453,4 +453,13 @@ void LayerBiomeProvider::getBiomesBatch(i32 startX, i32 startY, i32 startZ, i32 
     m_layerStack->sampleBatch(startX, startZ, width, height, output);
 }
 
+void LayerBiomeProvider::getNoiseBiomesBatch(i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ,
+                                              i32 width, i32 height, BiomeId* output) const {
+    MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetNoiseBiomesBatch", "startNoiseX", startNoiseX, "startNoiseZ", startNoiseZ, "width", width, "height", height);
+    (void)startNoiseY;  // Layer 系统不使用 Y 坐标
+
+    // 噪声坐标转换为方块坐标（1 噪声单元 = 4 方块）
+    m_layerStack->sampleBatch(startNoiseX << 2, startNoiseZ << 2, width, height, output);
+}
+
 } // namespace mc

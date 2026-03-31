@@ -150,6 +150,14 @@ public:
     void getBiomesBatch(i32 startX, i32 startY, i32 startZ, i32 width, i32 height,
                          BiomeId* output) const override;
 
+    /**
+     * @brief 批量获取噪声坐标的生物群系
+     *
+     * Layer 系统本质是 2D，噪声坐标会先转换为方块坐标再批量采样。
+     */
+    void getNoiseBiomesBatch(i32 startNoiseX, i32 startNoiseY, i32 startNoiseZ,
+                              i32 width, i32 height, BiomeId* output) const override;
+
 private:
     std::unique_ptr<LayerStack> m_layerStack;
 };

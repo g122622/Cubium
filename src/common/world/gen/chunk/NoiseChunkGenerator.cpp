@@ -349,6 +349,9 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
     f32 totalWeight = 0.0f;  // f2 - 累加权重
 
     {
+        // 参考 MC：地形密度计算使用 sea level 作为 biome 噪声采样 Y
+        const i32 biomeNoiseY = m_settings.seaLevel;
+
         // 使用 5x5 批量采样 + 滑窗复用，减少重复调用 getNoiseBiome()
         if (m_biomeWindowValid && noiseX == m_biomeWindowCenterX && noiseZ == m_biomeWindowCenterZ + 1) {
             // 沿 Z 正方向滑窗：将第 1~4 行上移到第 0~3 行
@@ -361,7 +364,7 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
 
             // 仅采样新进入窗口的最后一行（dz = +2）
             std::array<BiomeId, 5> newRow{};
-            m_biomeProvider->getBiomesBatch(noiseX - 2, 0, noiseZ + 2, 5, 1, newRow.data());
+            m_biomeProvider->getNoiseBiomesBatch(noiseX - 2, biomeNoiseY, noiseZ + 2, 5, 1, newRow.data());
             for (i32 col = 0; col < 5; ++col) {
                 m_biomeWindow[static_cast<size_t>(20 + col)] = newRow[static_cast<size_t>(col)];
             }
@@ -370,7 +373,7 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
             m_biomeWindowCenterZ = noiseZ;
         } else {
             // 首次或不连续访问：完整采样 5x5
-            m_biomeProvider->getBiomesBatch(noiseX - 2, 0, noiseZ - 2, 5, 5, m_biomeWindow.data());
+            m_biomeProvider->getNoiseBiomesBatch(noiseX - 2, biomeNoiseY, noiseZ - 2, 5, 5, m_biomeWindow.data());
             m_biomeWindowValid = true;
             m_biomeWindowCenterX = noiseX;
             m_biomeWindowCenterZ = noiseZ;
@@ -392,6 +395,12 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
 
                 f32 weightedDepth = depth;  // f6
                 f32 weightedScale = scale;  // f7
+
+                // 参考 MC：放大化世界对正深度生物群系进行额外拉伸
+                if (noise.isAmplified && depth > 0.0f) {
+                    weightedDepth = 1.0f + depth * 2.0f;
+                    weightedScale = 1.0f + scale * 4.0f;
+                }
 
                 // 参考 MC：权重因子
                 const f32 depthFactor = (depth > centerDepth) ? 0.5f : 1.0f;  // f8

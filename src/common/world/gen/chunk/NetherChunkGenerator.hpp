@@ -114,7 +114,7 @@ private:
      *
      * 下界使用类似主世界的密度噪声算法，但参数不同。
      */
-    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ);
+    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const;
 
     /**
      * @brief 计算噪声密度
