@@ -87,6 +87,24 @@ PiglinEntity::PiglinEntity(LegacyEntityType type, EntityId id)
 {
 }
 
+void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge) {
+    // TODO: 实现弩攻击逻辑
+    (void)target;
+    (void)charge;
+}
+
+void PiglinEntity::onCrossbowLoadComplete(ItemStack& crossbow) {
+    // TODO: 实现弩装填完成逻辑
+    (void)crossbow;
+}
+
+void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) {
+    // TODO: 实现弩射击逻辑
+    (void)target;
+    (void)crossbow;
+    (void)charge;
+}
+
 void PiglinEntity::registerGoals() {
     AbstractPiglinEntity::registerGoals();
     // TODO: 添加猪灵特有AI

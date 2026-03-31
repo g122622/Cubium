@@ -32,22 +32,50 @@
 #include "../entities/passive/golem/GolemEntity.hpp"
 #include "../entities/passive/golem/IronGolemEntity.hpp"
 #include "../entities/passive/golem/SnowGolemEntity.hpp"
+#include "../entities/passive/horse/AbstractHorseEntity.hpp"
+#include "../entities/passive/horse/HorseEntity.hpp"
+#include "../entities/passive/horse/DonkeyEntity.hpp"
+#include "../entities/passive/horse/MuleEntity.hpp"
+#include "../entities/passive/horse/SkeletonHorseEntity.hpp"
+#include "../entities/passive/horse/ZombieHorseEntity.hpp"
+#include "../entities/passive/horse/LlamaEntity.hpp"
 #include "../entities/monster/MonsterEntity.hpp"
 #include "../entities/monster/undead/ZombieEntity.hpp"
 #include "../entities/monster/undead/SkeletonEntity.hpp"
-#include "../entities/monster/basic/CreeperEntity.hpp"
-#include "../entities/monster/basic/SlimeEntity.hpp"
-#include "../entities/monster/arthropod/SpiderEntity.hpp"
-#include "../entities/monster/end/EndermanEntity.hpp"
-#include "../entities/monster/nether/BlazeEntity.hpp"
-#include "../entities/monster/illager/WitchEntity.hpp"
-#include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
 #include "../entities/monster/undead/HuskEntity.hpp"
 #include "../entities/monster/undead/DrownedEntity.hpp"
 #include "../entities/monster/undead/StrayEntity.hpp"
 #include "../entities/monster/undead/WitherSkeletonEntity.hpp"
+#include "../entities/monster/undead/PhantomEntity.hpp"
+#include "../entities/monster/arthropod/SpiderEntity.hpp"
+#include "../entities/monster/arthropod/CaveSpiderEntity.hpp"
+#include "../entities/monster/arthropod/EndermiteEntity.hpp"
+#include "../entities/monster/basic/CreeperEntity.hpp"
+#include "../entities/monster/basic/SlimeEntity.hpp"
+#include "../entities/monster/basic/GiantEntity.hpp"
+#include "../entities/monster/end/EndermanEntity.hpp"
+#include "../entities/monster/end/ShulkerEntity.hpp"
+#include "../entities/monster/nether/BlazeEntity.hpp"
+#include "../entities/monster/nether/NetherEntities.hpp"
 #include "../entities/monster/ocean/GuardianEntity.hpp"
 #include "../entities/monster/ocean/ElderGuardianEntity.hpp"
+#include "../entities/monster/illager/WitchEntity.hpp"
+#include "../entities/monster/illager/EvokerEntity.hpp"
+#include "../entities/monster/illager/IllusionerEntity.hpp"
+#include "../entities/monster/illager/RavagerEntity.hpp"
+#include "../entities/monster/illager/VexEntity.hpp"
+#include "../entities/monster/illager/IllagerEntities.hpp"
+#include "../entities/boss/EnderDragonEntity.hpp"
+#include "../entities/boss/WitherEntity.hpp"
+#include "../entities/villager/VillagerEntity.hpp"
+#include "../entities/projectile/ProjectileEntity.hpp"
+#include "../entities/projectile/AbstractArrowEntity.hpp"
+#include "../entities/projectile/TridentEntity.hpp"
+#include "../entities/projectile/ProjectileItemEntity.hpp"
+#include "../entities/projectile/AbstractFireballEntity.hpp"
+#include "../entities/projectile/OtherProjectiles.hpp"
+#include "../entities/vehicle/BoatEntity.hpp"
+#include "../entities/vehicle/MinecartEntity.hpp"
 #include "../entities/item/ItemEntity.hpp"
 #include <spdlog/spdlog.h>
 #include <mutex>
@@ -547,6 +575,301 @@ private:
             EntityTypes::CAVE_SPIDER,
             EntityType::Builder(&CaveSpiderEntity::create, EntityClassification::Monster)
                 .size(0.7f, 0.5f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 马类 ==========
+        // 马
+        registry.registerType(
+            EntityTypes::HORSE,
+            EntityType::Builder(&HorseEntity::create, EntityClassification::Creature)
+                .size(1.3964844f, 1.6f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 驴
+        registry.registerType(
+            EntityTypes::DONKEY,
+            EntityType::Builder(&DonkeyEntity::create, EntityClassification::Creature)
+                .size(1.3964844f, 1.5f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 骡
+        registry.registerType(
+            EntityTypes::MULE,
+            EntityType::Builder(&MuleEntity::create, EntityClassification::Creature)
+                .size(1.3964844f, 1.6f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 骷髅马
+        registry.registerType(
+            EntityTypes::SKELETON_HORSE,
+            EntityType::Builder(&SkeletonHorseEntity::create, EntityClassification::Creature)
+                .size(1.3964844f, 1.6f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 僵尸马
+        registry.registerType(
+            EntityTypes::ZOMBIE_HORSE,
+            EntityType::Builder(&ZombieHorseEntity::create, EntityClassification::Creature)
+                .size(1.3964844f, 1.6f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 羊驼
+        registry.registerType(
+            EntityTypes::LLAMA,
+            EntityType::Builder(&LlamaEntity::create, EntityClassification::Creature)
+                .size(0.9f, 1.87f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== Boss ==========
+        // 末影龙
+        registry.registerType(
+            EntityTypes::ENDER_DRAGON,
+            EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
+                .size(16.0f, 8.0f)
+                .trackingRange(128)
+                .updateInterval(1)
+                .immuneToFire()
+                .build()
+        );
+
+        // 凋灵
+        registry.registerType(
+            EntityTypes::WITHER,
+            EntityType::Builder(&WitherEntity::create, EntityClassification::Monster)
+                .size(0.9f, 3.5f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .immuneToFire()
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 村民 ==========
+        // 村民
+        registry.registerType(
+            EntityTypes::VILLAGER,
+            EntityType::Builder(&VillagerEntity::create, EntityClassification::Creature)
+                .size(0.6f, 1.95f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 流浪商人
+        registry.registerType(
+            EntityTypes::WANDERING_TRADER,
+            EntityType::Builder(&WanderingTraderEntity::create, EntityClassification::Creature)
+                .size(0.6f, 1.95f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 更多怪物 ==========
+        // 巨人
+        registry.registerType(
+            EntityTypes::GIANT,
+            EntityType::Builder(&GiantEntity::create, EntityClassification::Monster)
+                .size(3.6f, 12.0f)
+                .trackingRange(16)
+                .updateInterval(3)
+                .build()  // 不可召唤
+        );
+
+        // 幻翼
+        registry.registerType(
+            EntityTypes::PHANTOM,
+            EntityType::Builder(&PhantomEntity::create, EntityClassification::Monster)
+                .size(0.9f, 0.5f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 末影螨
+        registry.registerType(
+            EntityTypes::ENDERMITE,
+            EntityType::Builder(&EndermiteEntity::create, EntityClassification::Monster)
+                .size(0.4f, 0.3f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 潜影贝
+        registry.registerType(
+            EntityTypes::SHULKER,
+            EntityType::Builder(&ShulkerEntity::create, EntityClassification::Monster)
+                .size(1.0f, 1.0f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .immuneToFire()
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 地狱生物 ==========
+        // 恶魂
+        registry.registerType(
+            EntityTypes::GHAST,
+            EntityType::Builder(&GhastEntity::create, EntityClassification::Monster)
+                .size(4.0f, 4.0f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .immuneToFire()
+                .canSummon(true)
+                .build()
+        );
+
+        // 岩浆怪
+        registry.registerType(
+            EntityTypes::MAGMA_CUBE,
+            EntityType::Builder(&MagmaCubeEntity::create, EntityClassification::Monster)
+                .size(0.6f, 0.6f)  // 尺寸会动态变化
+                .trackingRange(10)
+                .updateInterval(3)
+                .immuneToFire()
+                .canSummon(true)
+                .build()
+        );
+
+        // 猪灵
+        registry.registerType(
+            EntityTypes::PIGLIN,
+            EntityType::Builder(&PiglinEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 猪灵蛮兵
+        registry.registerType(
+            EntityTypes::PIGLIN_BRUTE,
+            EntityType::Builder(&PiglinBruteEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 疣猪兽
+        registry.registerType(
+            EntityTypes::HOGLIN,
+            EntityType::Builder(&HoglinEntity::create, EntityClassification::Creature)
+                .size(1.3964844f, 1.4f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 僵尸疣猪兽
+        registry.registerType(
+            EntityTypes::ZOGLIN,
+            EntityType::Builder(&ZoglinEntity::create, EntityClassification::Monster)
+                .size(1.3964844f, 1.4f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== 灾厄村民 ==========
+        // 卫道士
+        registry.registerType(
+            EntityTypes::VINDICATOR,
+            EntityType::Builder(&VindicatorEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 唤魔者
+        registry.registerType(
+            EntityTypes::EVOKER,
+            EntityType::Builder(&EvokerEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 幻术师
+        registry.registerType(
+            EntityTypes::ILLUSIONER,
+            EntityType::Builder(&IllusionerEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 掠夺者
+        registry.registerType(
+            EntityTypes::PILLAGER,
+            EntityType::Builder(&PillagerEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.95f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 劫掠兽
+        registry.registerType(
+            EntityTypes::RAVAGER,
+            EntityType::Builder(&RavagerEntity::create, EntityClassification::Monster)
+                .size(1.95f, 2.2f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
+        // 恼鬼
+        registry.registerType(
+            EntityTypes::VEX,
+            EntityType::Builder(&VexEntity::create, EntityClassification::Monster)
+                .size(0.4f, 0.8f)
                 .trackingRange(8)
                 .updateInterval(3)
                 .canSummon(true)

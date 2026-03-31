@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../MonsterEntity.hpp"
+#include "../../../interfaces/ICrossbowUser.hpp"
 #include "../../../../core/Types.hpp"
 
 namespace mc {
@@ -119,7 +120,7 @@ private:
  *
  * 参考 MC 1.16.5 PiglinEntity
  */
-class PiglinEntity : public AbstractPiglinEntity {
+class PiglinEntity : public AbstractPiglinEntity, public entity::ICrossbowUser {
 public:
     PiglinEntity(LegacyEntityType type, EntityId id);
     ~PiglinEntity() override = default;
@@ -129,12 +130,27 @@ public:
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
     void setBaby(bool baby) { m_isBaby = baby; }
 
+    // ========== IRangedAttackMob 接口 ==========
+
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    [[nodiscard]] i32 getAttackInterval() const override { return 20; }
+    [[nodiscard]] bool canRangedAttack() const override { return true; }
+
+    // ========== ICrossbowUser 接口 ==========
+
+    void setChargingCrossbow(bool charging) override { m_isChargingCrossbow = charging; }
+    [[nodiscard]] bool isChargingCrossbow() const override { return m_isChargingCrossbow; }
+    void onCrossbowLoadComplete(::mc::ItemStack& crossbow) override;
+    void shootCrossbow(::mc::LivingEntity* target, ::mc::ItemStack& crossbow, f32 charge) override;
+    [[nodiscard]] i32 getCrossbowChargeTime() const override { return 25; }
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
 
 private:
     bool m_isBaby = false;
+    bool m_isChargingCrossbow = false;
 };
 
 /**

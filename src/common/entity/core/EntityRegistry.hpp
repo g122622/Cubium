@@ -210,6 +210,8 @@ namespace EntityTypes {
     constexpr const char* DONKEY = "minecraft:donkey";
     constexpr const char* MULE = "minecraft:mule";
     constexpr const char* LLAMA = "minecraft:llama";
+    constexpr const char* SKELETON_HORSE = "minecraft:skeleton_horse";
+    constexpr const char* ZOMBIE_HORSE = "minecraft:zombie_horse";
 
     // 水生生物
     constexpr const char* COD = "minecraft:cod";
@@ -235,6 +237,7 @@ namespace EntityTypes {
     constexpr const char* BLAZE = "minecraft:blaze";
     constexpr const char* WITCH = "minecraft:witch";
     constexpr const char* SLIME = "minecraft:slime";
+    constexpr const char* GIANT = "minecraft:giant";
     // 海洋怪物
     constexpr const char* GUARDIAN = "minecraft:guardian";
     constexpr const char* ELDER_GUARDIAN = "minecraft:elder_guardian";
@@ -243,19 +246,76 @@ namespace EntityTypes {
     constexpr const char* DROWNED = "minecraft:drowned";
     constexpr const char* STRAY = "minecraft:stray";
     constexpr const char* WITHER_SKELETON = "minecraft:wither_skeleton";
+    constexpr const char* PHANTOM = "minecraft:phantom";
+    constexpr const char* ZOMBIE_VILLAGER = "minecraft:zombie_villager";
+    constexpr const char* ZOMBIFIED_PIGLIN = "minecraft:zombified_piglin";
     // 节肢动物变种
     constexpr const char* CAVE_SPIDER = "minecraft:cave_spider";
+    constexpr const char* SILVERFISH = "minecraft:silverfish";
+    constexpr const char* ENDERMITE = "minecraft:endermite";
+    // 末地生物
+    constexpr const char* SHULKER = "minecraft:shulker";
+    // 地狱生物
+    constexpr const char* GHAST = "minecraft:ghast";
+    constexpr const char* MAGMA_CUBE = "minecraft:magma_cube";
+    constexpr const char* PIGLIN = "minecraft:piglin";
+    constexpr const char* PIGLIN_BRUTE = "minecraft:piglin_brute";
+    constexpr const char* HOGLIN = "minecraft:hoglin";
+    constexpr const char* ZOGLIN = "minecraft:zoglin";
+    // 灾厄村民
+    constexpr const char* VINDICATOR = "minecraft:vindicator";
+    constexpr const char* EVOKER = "minecraft:evoker";
+    constexpr const char* ILLUSIONER = "minecraft:illusioner";
+    constexpr const char* PILLAGER = "minecraft:pillager";
+    constexpr const char* RAVAGER = "minecraft:ravager";
+    constexpr const char* VEX = "minecraft:vex";
     // Boss
     constexpr const char* ENDER_DRAGON = "minecraft:ender_dragon";
     constexpr const char* WITHER = "minecraft:wither";
+    // 村民
+    constexpr const char* VILLAGER = "minecraft:villager";
+    constexpr const char* WANDERING_TRADER = "minecraft:wandering_trader";
 
     // 其他
     constexpr const char* PLAYER = "minecraft:player";
     constexpr const char* ITEM = "minecraft:item";
     constexpr const char* EXPERIENCE_ORB = "minecraft:experience_orb";
+    // 投掷物
     constexpr const char* ARROW = "minecraft:arrow";
+    constexpr const char* SPECTRAL_ARROW = "minecraft:spectral_arrow";
+    constexpr const char* TRIDENT = "minecraft:trident";
+    constexpr const char* SNOWBALL = "minecraft:snowball";
+    constexpr const char* EGG = "minecraft:egg";
+    constexpr const char* ENDER_PEARL = "minecraft:ender_pearl";
+    constexpr const char* POTION = "minecraft:potion";
+    constexpr const char* EXPERIENCE_BOTTLE = "minecraft:experience_bottle";
+    constexpr const char* FIREBALL = "minecraft:fireball";
+    constexpr const char* SMALL_FIREBALL = "minecraft:small_fireball";
+    constexpr const char* DRAGON_FIREBALL = "minecraft:dragon_fireball";
+    constexpr const char* WITHER_SKULL = "minecraft:wither_skull";
+    constexpr const char* LLAMA_SPIT = "minecraft:llama_spit";
+    constexpr const char* SHULKER_BULLET = "minecraft:shulker_bullet";
+    constexpr const char* FISHING_BOBBER = "minecraft:fishing_bobber";
+    constexpr const char* EYE_OF_ENDER = "minecraft:eye_of_ender";
+    constexpr const char* FIREWORK_ROCKET = "minecraft:firework_rocket";
+    // 交通工具
     constexpr const char* BOAT = "minecraft:boat";
     constexpr const char* MINECART = "minecraft:minecart";
+    constexpr const char* CHEST_MINECART = "minecraft:chest_minecart";
+    constexpr const char* FURNACE_MINECART = "minecraft:furnace_minecart";
+    constexpr const char* HOPPER_MINECART = "minecraft:hopper_minecart";
+    constexpr const char* TNT_MINECART = "minecraft:tnt_minecart";
+    // 其他实体
+    constexpr const char* FALLING_BLOCK = "minecraft:falling_block";
+    constexpr const char* TNT = "minecraft:tnt";
+    constexpr const char* END_CRYSTAL = "minecraft:end_crystal";
+    constexpr const char* LIGHTNING_BOLT = "minecraft:lightning_bolt";
+    constexpr const char* AREA_EFFECT_CLOUD = "minecraft:area_effect_cloud";
+    constexpr const char* ARMOR_STAND = "minecraft:armor_stand";
+    // 悬挂实体
+    constexpr const char* PAINTING = "minecraft:painting";
+    constexpr const char* ITEM_FRAME = "minecraft:item_frame";
+    constexpr const char* LEASH_KNOT = "minecraft:leash_knot";
 }
 
 } // namespace entity

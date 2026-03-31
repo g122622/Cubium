@@ -32,35 +32,127 @@ src/common/entity/
 │   │   │   ├── PigEntity.hpp/cpp   # 猪
 │   │   │   ├── CowEntity.hpp/cpp   # 牛
 │   │   │   ├── SheepEntity.hpp/cpp # 羊
-│   │   │   └── ChickenEntity.hpp/cpp # 鸡
+│   │   │   ├── ChickenEntity.hpp/cpp # 鸡
+│   │   │   ├── RabbitEntity.hpp/cpp # 兔子
+│   │   │   └── MooshroomEntity.hpp/cpp # 哞菇
 │   │   ├── tamable/                # 可驯服动物
-│   │   │   └── TameableEntity.hpp/cpp # 可驯服基类
+│   │   │   ├── TameableEntity.hpp/cpp # 可驯服基类
+│   │   │   ├── WolfEntity.hpp/cpp  # 狼
+│   │   │   ├── CatEntity.hpp/cpp   # 猫
+│   │   │   ├── OcelotEntity.hpp/cpp # 豹猫
+│   │   │   └── ParrotEntity.hpp/cpp # 鹦鹉
 │   │   ├── special/                # 特殊动物
+│   │   │   ├── FoxEntity.hpp/cpp   # 狐狸
+│   │   │   ├── PandaEntity.hpp/cpp # 熊猫
+│   │   │   ├── PolarBearEntity.hpp/cpp # 北极熊
+│   │   │   ├── TurtleEntity.hpp/cpp # 海龟
+│   │   │   ├── BeeEntity.hpp/cpp   # 蜜蜂
+│   │   │   └── StriderEntity.hpp/cpp # 炽足兽
 │   │   ├── horse/                  # 马类
+│   │   │   ├── AbstractHorseEntity.hpp/cpp # 马类基类
+│   │   │   ├── HorseEntity.hpp/cpp # 马
+│   │   │   ├── DonkeyEntity.hpp/cpp # 驴
+│   │   │   ├── MuleEntity.hpp/cpp  # 骡
+│   │   │   ├── SkeletonHorseEntity.hpp/cpp # 骷髅马
+│   │   │   ├── ZombieHorseEntity.hpp/cpp # 僵尸马
+│   │   │   └── LlamaEntity.hpp/cpp # 羊驼
 │   │   ├── fish/                   # 鱼类
+│   │   │   ├── AbstractFishEntity.hpp/cpp # 鱼类基类
+│   │   │   ├── CodEntity.hpp/cpp   # 鳕鱼
+│   │   │   ├── SalmonEntity.hpp/cpp # 鲑鱼
+│   │   │   ├── PufferfishEntity.hpp/cpp # 河豚
+│   │   │   └── TropicalFishEntity.hpp/cpp # 热带鱼
 │   │   ├── water/                  # 水生生物
+│   │   │   ├── WaterMobEntity.hpp/cpp # 水生生物基类
+│   │   │   ├── SquidEntity.hpp/cpp # 鱿鱼
+│   │   │   └── DolphinEntity.hpp/cpp # 海豚
 │   │   ├── ambient/                # 环境生物
+│   │   │   ├── AmbientEntity.hpp/cpp # 环境生物基类
+│   │   │   └── BatEntity.hpp/cpp   # 蝙蝠
 │   │   └── golem/                  # 傀儡
+│   │       ├── GolemEntity.hpp/cpp # 傀儡基类
+│   │       ├── IronGolemEntity.hpp/cpp # 铁傀儡
+│   │       └── SnowGolemEntity.hpp/cpp # 雪傀儡
 │   │
 │   ├── monster/                    # 敌对生物
 │   │   ├── MonsterEntity.hpp/cpp   # 敌对生物基类
 │   │   ├── undead/                 # 亡灵类
+│   │   │   ├── ZombieEntity.hpp/cpp # 僵尸
+│   │   │   ├── HuskEntity.hpp/cpp  # 尸壳
+│   │   │   ├── DrownedEntity.hpp/cpp # 溺尸
+│   │   │   ├── ZombieVillagerEntity.hpp/cpp # 僵尸村民
+│   │   │   ├── SkeletonEntity.hpp/cpp # 骷髅
+│   │   │   ├── StrayEntity.hpp/cpp # 流浪者
+│   │   │   ├── WitherSkeletonEntity.hpp/cpp # 凋灵骷髅
+│   │   │   └── PhantomEntity.hpp/cpp # 幻翼
 │   │   ├── arthropod/              # 节肢类
+│   │   │   ├── SpiderEntity.hpp/cpp # 蜘蛛
+│   │   │   ├── CaveSpiderEntity.hpp/cpp # 洞穴蜘蛛
+│   │   │   ├── SilverfishEntity.hpp/cpp # 蠹虫
+│   │   │   └── EndermiteEntity.hpp/cpp # 末影螨
 │   │   ├── nether/                 # 地狱生物
+│   │   │   ├── BlazeEntity.hpp/cpp # 烈焰人
+│   │   │   ├── GhastEntity.hpp/cpp # 恶魂
+│   │   │   ├── MagmaCubeEntity.hpp/cpp # 岩浆怪
+│   │   │   └── NetherEntities.hpp  # 猪灵等(集合文件)
 │   │   ├── end/                    # 末地生物
+│   │   │   ├── EndermanEntity.hpp/cpp # 末影人
+│   │   │   └── ShulkerEntity.hpp/cpp # 潜影贝
 │   │   ├── basic/                  # 基础怪物
+│   │   │   ├── CreeperEntity.hpp/cpp # 苦力怕
+│   │   │   ├── SlimeEntity.hpp/cpp # 史莱姆
+│   │   │   ├── GiantEntity.hpp/cpp # 巨人
+│   │   │   └── PhantomEntity.hpp/cpp # 幻翼
 │   │   ├── ocean/                  # 海洋怪物
+│   │   │   ├── GuardianEntity.hpp/cpp # 守卫者
+│   │   │   └── ElderGuardianEntity.hpp/cpp # 远古守卫者
 │   │   └── illager/                # 灾厄村民
+│   │       ├── AbstractIllagerEntity.hpp/cpp # 灾厄村民基类
+│   │       ├── AbstractRaiderEntity.hpp/cpp # 袭击者基类
+│   │       ├── EvokerEntity.hpp/cpp # 唤魔者
+│   │       ├── IllusionerEntity.hpp/cpp # 幻术师
+│   │       ├── RavagerEntity.hpp/cpp # 劫掠兽
+│   │       ├── VexEntity.hpp/cpp   # 恼鬼
+│   │       ├── WitchEntity.hpp/cpp # 女巫
+│   │       └── IllagerEntities.hpp # 掠夺者、卫道士
 │   │
 │   ├── boss/                       # Boss生物
+│   │   ├── EnderDragonEntity.hpp/cpp # 末影龙
+│   │   └── WitherEntity.hpp/cpp    # 凋灵
+│   │
 │   ├── villager/                   # 村民/商人
+│   │   ├── AbstractVillagerEntity.hpp/cpp # 村民基类
+│   │   └── VillagerEntity.hpp/cpp  # 村民、流浪商人
+│   │
 │   ├── projectile/                 # 投掷物
+│   │   ├── ProjectileEntity.hpp/cpp # 投掷物基类
+│   │   ├── ThrowableEntity.hpp/cpp # 可投掷物基类
+│   │   ├── AbstractArrowEntity.hpp/cpp # 箭矢基类
+│   │   ├── ProjectileItemEntity.hpp/cpp # 物品投掷物基类
+│   │   ├── AbstractFireballEntity.hpp/cpp # 火球基类
+│   │   ├── OtherProjectiles.hpp/cpp # 其他投掷物
+│   │   └── README.md
+│   │
 │   ├── vehicle/                    # 交通工具
+│   │   ├── BoatEntity.hpp/cpp      # 船
+│   │   ├── MinecartEntity.hpp/cpp  # 矿车及变种
+│   │   └── README.md
+│   │
 │   ├── item/                       # 物品相关实体
 │   │   └── ItemEntity.hpp/cpp      # 掉落物品
+│   │
 │   ├── hanging/                    # 悬挂实体
+│   │   ├── HangingEntity.hpp/cpp   # 悬挂实体基类
+│   │   └── README.md
+│   │
 │   ├── effect/                     # 效果实体
-│   ├── equipment/                  # 装备实体
+│   │   ├── EffectEntities.hpp/cpp  # 闪电、末影水晶等
+│   │   └── README.md
+│   │
+│   ├── misc/                       # 杂项实体
+│   │   ├── MiscEntities.hpp/cpp    # 下落方块、TNT等
+│   │   └── README.md
+│   │
 │   └── player/                     # 玩家实体
 │       ├── Player.hpp/cpp          # 玩家实体
 │       ├── PlayerManager.hpp/cpp   # 玩家管理器
@@ -104,11 +196,25 @@ src/common/entity/
 │   │       ├── interact/           # 交互类Goal
 │   │       └── special/            # 特殊Goal
 │   │
-│   ├── brain/                      # 大脑系统（预留）
+│   ├── brain/                      # 大脑系统
+│   │   ├── Brain.hpp               # Brain主类（模板）
 │   │   ├── memory/                 # 记忆模块
+│   │   │   ├── Memory.hpp          # 记忆容器
+│   │   │   ├── MemoryModuleType.hpp/cpp # 85+种记忆类型
+│   │   │   └── MemoryModuleStatus.hpp # 记忆状态
 │   │   ├── sensor/                 # 传感器
+│   │   │   ├── Sensor.hpp          # 传感器基类
+│   │   │   ├── SensorType.hpp      # 传感器类型工厂
+│   │   │   └── Sensors.hpp         # 具体传感器(框架)
 │   │   ├── task/                   # 任务
+│   │   │   ├── Task.hpp            # 任务基类
+│   │   │   └── tasks/              # 任务实现(框架)
+│   │   │       ├── movement/       # 移动任务
+│   │   │       ├── action/         # 行动任务
+│   │   │       └── interact/       # 互动任务
 │   │   └── schedule/               # 日程
+│   │       ├── Activity.hpp/cpp    # 15种活动类型
+│   │       └── Schedule.hpp/cpp    # 日程系统
 │   │
 │   └── pathfinding/                # 寻路系统
 │       ├── Path.hpp                # 路径表示

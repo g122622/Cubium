@@ -25,7 +25,6 @@ entities/
 │   ├── basic/        # 基础怪物 (Creeper, Slime, Phantom, Giant)
 │   ├── ocean/        # 海洋怪物 (Guardian, ElderGuardian)
 │   ├── illager/      # 灾厄村民 (Vindicator, Evoker, Illusioner, Pillager, Ravager, Vex, Witch + AbstractIllagerEntity基类)
-│   └── piglin/       # 猪灵相关 (预留)
 │
 ├── boss/             # Boss实体
 │   ├── EnderDragonEntity.hpp/cpp  # 末影龙 + EnderDragonPartEntity

@@ -4,10 +4,12 @@
 #include "common/entity/interfaces/IRangedAttackMob.hpp"
 
 namespace mc {
-namespace entity {
 
 // Forward declarations
 class ItemStack;
+class LivingEntity;
+
+namespace entity {
 
 /**
  * @brief 弩使用者接口 - 用于可以使用弩的实体
@@ -37,7 +39,7 @@ public:
      * @brief 当弩装填完成时调用
      * @param crossbow 弩物品
      */
-    virtual void onCrossbowLoadComplete(ItemStack& crossbow) = 0;
+    virtual void onCrossbowLoadComplete(::mc::ItemStack& crossbow) = 0;
 
     /**
      * @brief 发射弩箭
@@ -45,7 +47,7 @@ public:
      * @param crossbow 弩物品
      * @param charge 蓄力程度
      */
-    virtual void shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) = 0;
+    virtual void shootCrossbow(::mc::LivingEntity* target, ::mc::ItemStack& crossbow, f32 charge) = 0;
 
     /**
      * @brief 获取弩装填时间（ticks）

@@ -1,34 +1,32 @@
 #include "IllagerEntities.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../item/ItemStack.hpp"
+#include "../../../core/LivingEntity.hpp"
 
 namespace mc {
-
-// AbstractIllagerEntity
-AbstractIllagerEntity::AbstractIllagerEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
-{
-}
-
-void AbstractIllagerEntity::registerGoals() {
-    MonsterEntity::registerGoals();
-    // TODO: 添加灾厄村民基础AI
-}
-
-// AbstractRaiderEntity
-AbstractRaiderEntity::AbstractRaiderEntity(LegacyEntityType type, EntityId id)
-    : AbstractIllagerEntity(type, id)
-{
-}
-
-void AbstractRaiderEntity::registerGoals() {
-    AbstractIllagerEntity::registerGoals();
-    // TODO: 添加袭击者基础AI
-}
 
 // PillagerEntity
 PillagerEntity::PillagerEntity(LegacyEntityType type, EntityId id)
     : AbstractRaiderEntity(type, id)
 {
+}
+
+void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge) {
+    // TODO: 实现弩攻击逻辑
+    (void)target;
+    (void)charge;
+}
+
+void PillagerEntity::onCrossbowLoadComplete(ItemStack& crossbow) {
+    // TODO: 实现弩装填完成逻辑
+    (void)crossbow;
+}
+
+void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 charge) {
+    // TODO: 实现弩射击逻辑
+    (void)target;
+    (void)crossbow;
+    (void)charge;
 }
 
 void PillagerEntity::registerGoals() {

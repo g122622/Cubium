@@ -18,7 +18,18 @@ goal/
     ├── PanicGoal.hpp/cpp         # 恐慌逃跑目标
     ├── RandomWalkingGoal.hpp/cpp # 随机漫步目标
     ├── SwimGoal.hpp/cpp          # 游泳目标
-    └── TemptGoal.hpp/cpp         # 食物诱惑目标
+    ├── TemptGoal.hpp/cpp         # 食物诱惑目标
+    ├── AdditionalGoals.hpp/cpp   # 其他目标(占位符)
+    ├── movement/                 # 移动类目标
+    │   └── MovementGoals.hpp/cpp # WaterAvoidingRandomWalkingGoal, LeapAtTargetGoal
+    ├── attack/                   # 攻击类目标
+    │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal
+    ├── target/                   # 目标选择目标
+    │   └── TargetGoals.hpp/cpp   # TargetGoal, NearestAttackableTargetGoal, HurtByTargetGoal等
+    ├── interact/                 # 交互类目标
+    │   └── TameableGoals.hpp/cpp # FollowOwnerGoal, SitGoal, BegGoal
+    └── special/                  # 特殊目标(占位符)
+        └── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
 ```
 
 ## 整体职责
