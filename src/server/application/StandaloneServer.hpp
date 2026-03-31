@@ -5,6 +5,7 @@
 #include "server/network/TcpServer.hpp"
 #include <thread>
 #include <atomic>
+#include <filesystem>
 
 namespace mc::server {
 
@@ -117,6 +118,8 @@ private:
                           const String& username, const String& message);
 
     ServerSettings m_settings;
+    // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
+    std::filesystem::path m_settingsPath;
     std::unique_ptr<TcpServer> m_tcpServer;
 };
 

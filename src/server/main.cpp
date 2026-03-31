@@ -49,6 +49,7 @@ void printHelp()
               << "  -p, --port <port>   Set server port (default: 19132)\n"
               << "  -n, --name <name>   Set server/world name (default: world)\n"
               << "  -s, --seed <seed>   Set world seed (default: random)\n"
+              << "  --settings <path>   Use custom server.json path\n"
               << "  -m, --max <count>   Set max players (default: 20)\n"
               << "  -v, --verbose       Enable verbose logging (debug level)\n"
               << std::endl;
@@ -87,6 +88,9 @@ int main(int argc, char* argv[])
         }
         if ((arg == "-m" || arg == "--max") && i + 1 < argc) {
             params.maxPlayers = static_cast<mc::u32>(std::stoi(argv[++i]));
+        }
+        if (arg == "--settings" && i + 1 < argc) {
+            params.settingsPath = argv[++i];
         }
         if (arg == "-v" || arg == "--verbose") {
             verboseLogging = true;

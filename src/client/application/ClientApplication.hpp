@@ -28,6 +28,7 @@
 #include <string>
 #include <memory>
 #include <atomic>
+#include <filesystem>
 
 namespace mc::client {
 
@@ -176,6 +177,8 @@ private:
     void reloadResources();
 
     ClientSettings m_settings;
+    // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
+    std::filesystem::path m_settingsPath;
     Window m_window;
     InputManager m_input;
     std::unique_ptr<renderer::trident::TridentEngine> m_renderer;

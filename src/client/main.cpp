@@ -42,6 +42,7 @@ void printHelp()
               << "  -s, --server <addr> Server address to connect to\n"
               << "  -p, --port <port>   Server port (default: 19132)\n"
               << "  -u, --username <n>  Player username\n"
+              << "  --settings <path>   Use custom options.json path\n"
               << "  -v, --verbose       Enable verbose logging\n"
               << "  --skip-integrated   Skip integrated server (for external server)\n"
               << std::endl;
@@ -82,6 +83,9 @@ int main(int argc, char* argv[])
         }
         if ((arg == "-u" || arg == "--username") && i + 1 < argc) {
             params.username = argv[++i];
+        }
+        if (arg == "--settings" && i + 1 < argc) {
+            params.settingsPath = argv[++i];
         }
         if (arg == "-v" || arg == "--verbose") {
             // 通过设置日志级别来启用详细日志

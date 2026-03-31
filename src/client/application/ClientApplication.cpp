@@ -1379,8 +1379,10 @@ void ClientApplication::shutdown()
     spdlog::info("Shutting down client...");
 
     // 保存设置
-    auto saveResult = m_settings.saveSettings(
-        ClientSettings::getSettingsPath("minecraft-reborn"));
+    const auto savePath = m_settingsPath.empty()
+        ? ClientSettings::getSettingsPath("minecraft-reborn")
+        : m_settingsPath;
+    auto saveResult = m_settings.saveSettings(savePath);
     if (saveResult.failed()) {
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
     }
@@ -1447,16 +1449,27 @@ void ClientApplication::shutdown()
 
 Result<void> ClientApplication::loadSettings(const String& path)
 {
+    m_settingsPath = std::filesystem::path(path);
+
     auto result = m_settings.loadSettings(path);
     if (result.failed()) {
         return result;
     }
 
-    // 确保设置目录存在
-    (void)ClientSettings::ensureSettingsDir("minecraft-reborn");
+    // 确保设置目录存在（使用当前实际设置路径，避免写到默认目录）
+    const auto settingsDir = m_settingsPath.parent_path();
+    if (!settingsDir.empty()) {
+        std::error_code ec;
+        std::filesystem::create_directories(settingsDir, ec);
+        if (ec) {
+            spdlog::warn("Failed to create settings directory: {}", settingsDir.string());
+        }
+    }
 
     // 启用自动保存
-    m_settings.enableAutoSave(path);
+    m_settings.enableAutoSave(m_settingsPath);
+
+    spdlog::info("Client settings path: {}", m_settingsPath.string());
 
     return Result<void>::ok();
 }
