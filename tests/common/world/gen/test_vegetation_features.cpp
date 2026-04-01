@@ -42,7 +42,10 @@ TEST_F(VegetationFeatureTest, OreFeatureIdsAreConsecutive) {
     EXPECT_EQ(OreFeatureIds::LapisOre, 5u);
     EXPECT_EQ(OreFeatureIds::EmeraldOre, 6u);
     EXPECT_EQ(OreFeatureIds::CopperOre, 7u);
-    EXPECT_EQ(OreFeatureIds::Count, 8u);
+    EXPECT_EQ(OreFeatureIds::NetherQuartzOre, 8u);
+    EXPECT_EQ(OreFeatureIds::NetherGoldOre, 9u);
+    EXPECT_EQ(OreFeatureIds::AncientDebris, 10u);
+    EXPECT_EQ(OreFeatureIds::Count, 11u);
 }
 
 TEST_F(VegetationFeatureTest, TreeFeatureIdsAreConsecutive) {
@@ -57,7 +60,13 @@ TEST_F(VegetationFeatureTest, TreeFeatureIdsAreConsecutive) {
     EXPECT_EQ(TreeFeatureIds::SparseOakTree, 6u);
     EXPECT_EQ(TreeFeatureIds::GiantSpruceTree, 7u);
     EXPECT_EQ(TreeFeatureIds::GiantJungleTree, 8u);
-    EXPECT_EQ(TreeFeatureIds::Count, 9u);
+    EXPECT_EQ(TreeFeatureIds::FancyOakTree, 9u);
+    EXPECT_EQ(TreeFeatureIds::PineTree, 10u);
+    EXPECT_EQ(TreeFeatureIds::JungleBush, 11u);
+    EXPECT_EQ(TreeFeatureIds::SwampTree, 12u);
+    EXPECT_EQ(TreeFeatureIds::MegaPineTree, 13u);
+    EXPECT_EQ(TreeFeatureIds::TallBirchTree, 14u);
+    EXPECT_EQ(TreeFeatureIds::Count, 15u);
 }
 
 TEST_F(VegetationFeatureTest, FlowerFeatureIdsHaveCorrectOffset) {
@@ -130,7 +139,7 @@ TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount) {
         SugarCaneFeatureIds::Count;
 
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, expectedTotal);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 27u); // 9+5+7+2+2+2
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 33u); // 15+5+7+2+2+2
 }
 
 // ============================================================================

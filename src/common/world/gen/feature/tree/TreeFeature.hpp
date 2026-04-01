@@ -301,6 +301,24 @@ struct TreeFeatures {
     /// 创建巨型丛林木配置
     static std::unique_ptr<ConfiguredTreeFeature> createGiantJungleTree();
 
+    /// 创建精美橡树配置（大型橡树）
+    static std::unique_ptr<ConfiguredTreeFeature> createFancyOakTree();
+
+    /// 创建松树配置
+    static std::unique_ptr<ConfiguredTreeFeature> createPineTree();
+
+    /// 创建丛林灌木配置
+    static std::unique_ptr<ConfiguredTreeFeature> createJungleBush();
+
+    /// 创建沼泽橡树配置
+    static std::unique_ptr<ConfiguredTreeFeature> createSwampTree();
+
+    /// 创建巨型松树配置
+    static std::unique_ptr<ConfiguredTreeFeature> createMegaPineTree();
+
+    /// 创建高白桦配置
+    static std::unique_ptr<ConfiguredTreeFeature> createTallBirchTree();
+
 private:
     static std::vector<std::unique_ptr<ConfiguredTreeFeature>> s_features;
 
@@ -313,6 +331,12 @@ private:
     static TreeFeatureConfig darkOakConfig();
     static TreeFeatureConfig giantSpruceConfig();
     static TreeFeatureConfig giantJungleConfig();
+    static TreeFeatureConfig fancyOakConfig();
+    static TreeFeatureConfig pineConfig();
+    static TreeFeatureConfig jungleBushConfig();
+    static TreeFeatureConfig swampConfig();
+    static TreeFeatureConfig megaPineConfig();
+    static TreeFeatureConfig tallBirchConfig();
 };
 
 } // namespace mc

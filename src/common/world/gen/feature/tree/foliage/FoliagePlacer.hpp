@@ -41,8 +41,9 @@ public:
      * @param trunkHeight 树干高度
      * @param foliagePositions 树叶位置列表
      * @param trunkBlocks 树干方块集合
-     * @param trunkHeight 树干顶部的偏移（从树干顶部到树叶底部的距离）
+     * @param trunkOffset 树干顶部的偏移（从树干顶部到树叶底部的距离）
      * @param foliageBlock 树叶方块状态
+     * @param outFoliageBlocks 输出参数，放置的树叶方块位置集合
      */
     void placeFoliage(
         WorldGenRegion& world,
@@ -51,7 +52,8 @@ public:
         const std::vector<FoliagePosition>& foliagePositions,
         const std::set<BlockPos>& trunkBlocks,
         i32 trunkOffset,
-        const BlockState* foliageBlock
+        const BlockState* foliageBlock,
+        std::set<BlockPos>& outFoliageBlocks
     );
 
     /**

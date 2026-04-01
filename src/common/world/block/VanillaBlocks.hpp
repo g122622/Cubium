@@ -209,8 +209,18 @@ public:
     static Block* WHITE_TULIP;
     static Block* PINK_TULIP;
     static Block* OXEYE_DAISY;
+    static Block* LILY_OF_THE_VALLEY;  // 铃兰
+    static Block* SUNFLOWER;           // 向日葵
+    static Block* LILAC;               // 丁香
+    static Block* ROSE_BUSH;           // 玫瑰丛
+    static Block* PEONY;               // 牡丹
+    static Block* CORNFLOWER;          // 矢车菊
+    static Block* WITHER_ROSE;         // 凋零玫瑰
     static Block* BROWN_MUSHROOM;
     static Block* RED_MUSHROOM;
+    static Block* BROWN_MUSHROOM_BLOCK; // 棕色蘑菇方块
+    static Block* RED_MUSHROOM_BLOCK;   // 红色蘑菇方块
+    static Block* MUSHROOM_STEM;        // 蘑菇柄
 
     // ========================================================================
     // 树苗
@@ -430,6 +440,21 @@ public:
     static Block* VINE;               // 藤蔓
     static Block* COBWEB;             // 蜘蛛网
     static Block* SUGAR_CANE;         // 甘蔗
+    static Block* FARMLAND;           // 耕地
+    static Block* RED_SAND;           // 红沙
+
+    // ========================================================================
+    // 下界扩展植物方块
+    // ========================================================================
+    static Block* CRIMSON_STEM;       // 绯红菌柄
+    static Block* WARPED_STEM;        // 诡异菌柄
+    static Block* CRIMSON_NYLIUM;     // 绯红菌岩
+    static Block* WARPED_NYLIUM;      // 诡异菌岩
+    static Block* SHROOMLIGHT;        // 菌光体
+    static Block* CRIMSON_FUNGUS;     // 绯红菌
+    static Block* WARPED_FUNGUS;      // 诡异菌
+    static Block* WEEPING_VINES;      // 垂泪藤
+    static Block* TWISTING_VINES;     // 扭曲藤
 
     // ========================================================================
     // 辅助函数

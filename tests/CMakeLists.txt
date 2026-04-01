@@ -26,6 +26,7 @@ add_executable(mc_tests
     common/test_ore_feature.cpp
     common/test_carver.cpp
     common/test_tree_feature.cpp
+    common/test_new_tree_features.cpp
     common/test_decoration_stage.cpp
     common/test_time.cpp
     common/test_item.cpp

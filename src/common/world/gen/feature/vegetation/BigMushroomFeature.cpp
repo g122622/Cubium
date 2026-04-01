@@ -49,8 +49,17 @@ void BigMushroomFeature::generateStem(
         // 检查是否可以放置（可被原木替换）
         const BlockState* currentState = world.getBlock(stemPos);
         if (currentState && !currentState->isAir()) {
-            // TODO: 检查是否可被原木替换
-            continue;
+            // 蘑菇柄可以替换树叶方块
+            if (currentState->is(VanillaBlocks::OAK_LEAVES) ||
+                currentState->is(VanillaBlocks::SPRUCE_LEAVES) ||
+                currentState->is(VanillaBlocks::BIRCH_LEAVES) ||
+                currentState->is(VanillaBlocks::JUNGLE_LEAVES) ||
+                currentState->is(VanillaBlocks::ACACIA_LEAVES) ||
+                currentState->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+                // 允许替换树叶
+            } else {
+                continue;
+            }
         }
 
         if (config.stemState) {
@@ -113,7 +122,15 @@ bool BigMushroomFeature::canPlaceAt(
 
                 // 必须为空气或树叶
                 if (state && !state->isAir()) {
-                    // TODO: 检查是否为树叶
+                    // 允许替换树叶方块
+                    if (state->is(VanillaBlocks::OAK_LEAVES) ||
+                        state->is(VanillaBlocks::SPRUCE_LEAVES) ||
+                        state->is(VanillaBlocks::BIRCH_LEAVES) ||
+                        state->is(VanillaBlocks::JUNGLE_LEAVES) ||
+                        state->is(VanillaBlocks::ACACIA_LEAVES) ||
+                        state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+                        continue;
+                    }
                     return false;
                 }
             }
@@ -237,8 +254,7 @@ void BigRedMushroomFeature::generateCap(
                     // 计算 up 属性（顶层为 true）
                     bool isTop = (y >= height - 1);
 
-                    // 简化处理：直接放置蘑菇盖
-                    // TODO: 添加 HugeMushroomBlock 方块属性支持
+                    // 放置蘑菇盖
                     if (config.capState) {
                         world.setBlock(capPos, config.capState);
                     }
@@ -311,12 +327,15 @@ std::unique_ptr<ConfiguredBigMushroomFeature> BigMushroomFeatures::createBrownMu
 {
     auto config = std::make_unique<BigMushroomFeatureConfig>();
 
-    // 使用棕色蘑菇方块作为盖，棕色蘑菇柄
-    // TODO: 需要创建 HugeMushroomBlock 来支持不同方向的蘑菇方块
-    if (VanillaBlocks::BROWN_MUSHROOM) {
+    // 使用棕色蘑菇方块作为盖，蘑菇柄作为茎
+    if (VanillaBlocks::BROWN_MUSHROOM_BLOCK) {
+        config->capState = &VanillaBlocks::BROWN_MUSHROOM_BLOCK->defaultState();
+    } else if (VanillaBlocks::BROWN_MUSHROOM) {
         config->capState = &VanillaBlocks::BROWN_MUSHROOM->defaultState();
     }
-    if (VanillaBlocks::BROWN_MUSHROOM) {
+    if (VanillaBlocks::MUSHROOM_STEM) {
+        config->stemState = &VanillaBlocks::MUSHROOM_STEM->defaultState();
+    } else if (VanillaBlocks::BROWN_MUSHROOM) {
         config->stemState = &VanillaBlocks::BROWN_MUSHROOM->defaultState();
     }
     config->capRadius = 2;
@@ -330,10 +349,14 @@ std::unique_ptr<ConfiguredBigMushroomFeature> BigMushroomFeatures::createRedMush
     auto config = std::make_unique<BigMushroomFeatureConfig>();
 
     // 使用红色蘑菇方块作为盖
-    if (VanillaBlocks::RED_MUSHROOM) {
+    if (VanillaBlocks::RED_MUSHROOM_BLOCK) {
+        config->capState = &VanillaBlocks::RED_MUSHROOM_BLOCK->defaultState();
+    } else if (VanillaBlocks::RED_MUSHROOM) {
         config->capState = &VanillaBlocks::RED_MUSHROOM->defaultState();
     }
-    if (VanillaBlocks::RED_MUSHROOM) {
+    if (VanillaBlocks::MUSHROOM_STEM) {
+        config->stemState = &VanillaBlocks::MUSHROOM_STEM->defaultState();
+    } else if (VanillaBlocks::RED_MUSHROOM) {
         config->stemState = &VanillaBlocks::RED_MUSHROOM->defaultState();
     }
     config->capRadius = 2;

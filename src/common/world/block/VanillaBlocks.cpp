@@ -198,8 +198,18 @@ Block* VanillaBlocks::ORANGE_TULIP = nullptr;
 Block* VanillaBlocks::WHITE_TULIP = nullptr;
 Block* VanillaBlocks::PINK_TULIP = nullptr;
 Block* VanillaBlocks::OXEYE_DAISY = nullptr;
+Block* VanillaBlocks::LILY_OF_THE_VALLEY = nullptr;
+Block* VanillaBlocks::SUNFLOWER = nullptr;
+Block* VanillaBlocks::LILAC = nullptr;
+Block* VanillaBlocks::ROSE_BUSH = nullptr;
+Block* VanillaBlocks::PEONY = nullptr;
+Block* VanillaBlocks::CORNFLOWER = nullptr;
+Block* VanillaBlocks::WITHER_ROSE = nullptr;
 Block* VanillaBlocks::BROWN_MUSHROOM = nullptr;
 Block* VanillaBlocks::RED_MUSHROOM = nullptr;
+Block* VanillaBlocks::BROWN_MUSHROOM_BLOCK = nullptr;
+Block* VanillaBlocks::RED_MUSHROOM_BLOCK = nullptr;
+Block* VanillaBlocks::MUSHROOM_STEM = nullptr;
 
 // 树苗
 Block* VanillaBlocks::OAK_SAPLING = nullptr;
@@ -281,6 +291,17 @@ Block* VanillaBlocks::LILY_PAD = nullptr;
 Block* VanillaBlocks::VINE = nullptr;
 Block* VanillaBlocks::COBWEB = nullptr;
 Block* VanillaBlocks::SUGAR_CANE = nullptr;
+Block* VanillaBlocks::FARMLAND = nullptr;
+Block* VanillaBlocks::RED_SAND = nullptr;
+Block* VanillaBlocks::CRIMSON_STEM = nullptr;
+Block* VanillaBlocks::WARPED_STEM = nullptr;
+Block* VanillaBlocks::CRIMSON_NYLIUM = nullptr;
+Block* VanillaBlocks::WARPED_NYLIUM = nullptr;
+Block* VanillaBlocks::SHROOMLIGHT = nullptr;
+Block* VanillaBlocks::CRIMSON_FUNGUS = nullptr;
+Block* VanillaBlocks::WARPED_FUNGUS = nullptr;
+Block* VanillaBlocks::WEEPING_VINES = nullptr;
+Block* VanillaBlocks::TWISTING_VINES = nullptr;
 
 // 石砖系列
 Block* VanillaBlocks::STONE_BRICKS = nullptr;
@@ -1188,6 +1209,37 @@ void VanillaBlocks::registerVegetationBlocks() {
     OXEYE_DAISY = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:oxeye_daisy"), flowerProps);
 
+    // 铃兰
+    LILY_OF_THE_VALLEY = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:lily_of_the_valley"), flowerProps);
+
+    // 矢车菊
+    CORNFLOWER = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:cornflower"), flowerProps);
+
+    // 凋零玫瑰
+    WITHER_ROSE = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:wither_rose"), flowerProps);
+
+    // 高花属性（双高植物）
+    BlockProperties tallFlowerProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
+
+    // 向日葵
+    SUNFLOWER = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:sunflower"), tallFlowerProps);
+
+    // 丁香
+    LILAC = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:lilac"), tallFlowerProps);
+
+    // 玫瑰丛
+    ROSE_BUSH = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:rose_bush"), tallFlowerProps);
+
+    // 牡丹
+    PEONY = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:peony"), tallFlowerProps);
+
     // 蘑菇属性
     BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1);
 
@@ -1198,6 +1250,21 @@ void VanillaBlocks::registerVegetationBlocks() {
     // 红色蘑菇 - ID 65
     RED_MUSHROOM = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:red_mushroom"), mushroomProps);
+
+    // 巨型蘑菇方块属性
+    BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD).hardness(0.2f);
+
+    // 棕色蘑菇方块
+    BROWN_MUSHROOM_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:brown_mushroom_block"), hugeMushroomProps);
+
+    // 红色蘑菇方块
+    RED_MUSHROOM_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:red_mushroom_block"), hugeMushroomProps);
+
+    // 蘑菇柄
+    MUSHROOM_STEM = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:mushroom_stem"), hugeMushroomProps);
 
     // 树苗属性
     BlockProperties saplingProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
@@ -1560,6 +1627,51 @@ void VanillaBlocks::registerNetherExtensionBlocks() {
     NETHER_WART_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:nether_wart_block"),
         BlockProperties(Material::EARTH).hardness(1.0f));
+
+    // 绯红菌柄
+    CRIMSON_STEM = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:crimson_stem"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 诡异菌柄
+    WARPED_STEM = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:warped_stem"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 绯红菌岩
+    CRIMSON_NYLIUM = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:crimson_nylium"),
+        BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f));
+
+    // 诡异菌岩
+    WARPED_NYLIUM = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:warped_nylium"),
+        BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f));
+
+    // 菌光体
+    SHROOMLIGHT = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:shroomlight"),
+        BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
+
+    // 绯红菌
+    CRIMSON_FUNGUS = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:crimson_fungus"),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    // 诡异菌
+    WARPED_FUNGUS = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:warped_fungus"),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    // 垂泪藤
+    WEEPING_VINES = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:weeping_vines"),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    // 扭曲藤
+    TWISTING_VINES = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:twisting_vines"),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 }
 
 // ============================================================================
@@ -1634,6 +1746,16 @@ void VanillaBlocks::registerNaturalBlocks() {
     SUGAR_CANE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:sugar_cane"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    // 耕地
+    FARMLAND = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:farmland"),
+        BlockProperties(Material::EARTH).hardness(0.6f));
+
+    // 红沙
+    RED_SAND = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:red_sand"),
+        BlockProperties(Material::SAND).hardness(0.5f));
 }
 
 // ============================================================================

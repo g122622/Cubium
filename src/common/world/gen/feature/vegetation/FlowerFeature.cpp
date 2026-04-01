@@ -110,8 +110,8 @@ bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) co
 
     // 花卉可以生长在草方块和泥土上
     return blockId == VanillaBlocks::GRASS_BLOCK->blockId() ||
-           blockId == VanillaBlocks::DIRT->blockId();
-    // TODO: 添加 FARMLAND 支持后启用
+           blockId == VanillaBlocks::DIRT->blockId() ||
+           (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
 }
 
 // ============================================================================
@@ -201,7 +201,9 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createForestFlowers()
     if (VanillaBlocks::POPPY) {
         config->addFlower(&VanillaBlocks::POPPY->defaultState());
     }
-    // TODO: 添加 LILY_OF_THE_VALLEY（铃兰）方块后启用
+    if (VanillaBlocks::LILY_OF_THE_VALLEY) {
+        config->addFlower(&VanillaBlocks::LILY_OF_THE_VALLEY->defaultState());
+    }
 
     return std::make_unique<ConfiguredFlowerFeature>(std::move(config), "forest_flowers");
 }
@@ -219,10 +221,12 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createFlowerForestFlowe
     if (VanillaBlocks::POPPY) {
         config->addFlower(&VanillaBlocks::POPPY->defaultState());
     }
-    // TODO: 添加更多花卉方块后启用
-    // if (VanillaBlocks::LILY_OF_THE_VALLEY) {
-    //     config->addFlower(&VanillaBlocks::LILY_OF_THE_VALLEY->defaultState());
-    // }
+    if (VanillaBlocks::LILY_OF_THE_VALLEY) {
+        config->addFlower(&VanillaBlocks::LILY_OF_THE_VALLEY->defaultState());
+    }
+    if (VanillaBlocks::CORNFLOWER) {
+        config->addFlower(&VanillaBlocks::CORNFLOWER->defaultState());
+    }
     if (VanillaBlocks::ALLIUM) {
         config->addFlower(&VanillaBlocks::ALLIUM->defaultState());
     }
@@ -269,11 +273,10 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createSunflower()
     config->xzSpread = 8;
 
     // 向日葵平原：向日葵
-    // TODO: 添加 SUNFLOWER（向日葵）方块后启用
-    // if (VanillaBlocks::SUNFLOWER) {
-    //     config->addFlower(&VanillaBlocks::SUNFLOWER->defaultState());
-    // }
-    // 暂时使用蒲公英替代
+    if (VanillaBlocks::SUNFLOWER) {
+        config->addFlower(&VanillaBlocks::SUNFLOWER->defaultState());
+    }
+    // 也添加蒲公英作为补充
     if (VanillaBlocks::DANDELION) {
         config->addFlower(&VanillaBlocks::DANDELION->defaultState());
     }

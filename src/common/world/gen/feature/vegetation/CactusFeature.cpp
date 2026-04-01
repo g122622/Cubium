@@ -97,7 +97,10 @@ bool CactusFeature::hasValidSpace(WorldGenRegion& world, const BlockPos& pos) co
         const BlockState* neighborState = world.getBlock(neighborPos);
 
         if (neighborState && !neighborState->isAir()) {
-            // TODO: 检查是否为水
+            // 仙人掌旁边可以有水
+            if (VanillaBlocks::WATER && neighborState->blockId() == VanillaBlocks::WATER->blockId()) {
+                continue;
+            }
             return false;
         }
     }
@@ -124,7 +127,11 @@ bool CactusFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) co
         return true;
     }
 
-    // TODO: 红沙支持
+    // 红沙支持
+    if (VanillaBlocks::RED_SAND && blockId == VanillaBlocks::RED_SAND->blockId()) {
+        return true;
+    }
+
     return false;
 }
 

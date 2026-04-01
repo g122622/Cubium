@@ -80,10 +80,6 @@ bool GrassFeature::canPlaceAt(
         if (!state->isAir() && !config.canReplace) {
             return false;
         }
-        // TODO: 检查材料是否可替换
-        if (!state->isAir() && !config.canReplace) {
-            return false;
-        }
     }
 
     // 检查下方方块
@@ -124,8 +120,8 @@ bool GrassFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) con
            blockId == VanillaBlocks::DIRT->blockId() ||
            blockId == VanillaBlocks::COARSE_DIRT->blockId() ||
            blockId == VanillaBlocks::PODZOL->blockId() ||
-           blockId == VanillaBlocks::MYCELIUM->blockId();
-    // TODO: 添加 FARMLAND 支持后启用
+           blockId == VanillaBlocks::MYCELIUM->blockId() ||
+           (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
 }
 
 // ============================================================================

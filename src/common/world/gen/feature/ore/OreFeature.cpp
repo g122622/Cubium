@@ -306,6 +306,11 @@ void OreFeatures::initialize() {
     s_features.push_back(createLapisOre());
     s_features.push_back(createEmeraldOre());
     s_features.push_back(createCopperOre());
+
+    // 下界矿石
+    s_features.push_back(createNetherQuartzOre());
+    s_features.push_back(createNetherGoldOre());
+    s_features.push_back(createAncientDebris());
 }
 
 const std::vector<std::unique_ptr<ConfiguredOreFeature>>& OreFeatures::getAllFeatures() {

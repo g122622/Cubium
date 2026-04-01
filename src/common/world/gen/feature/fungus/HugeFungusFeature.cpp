@@ -77,13 +77,17 @@ void HugeFungusFeature::generateStem(
     i32 height,
     FungusType type)
 {
-    // 获取菌柄方块（由于特殊方块尚未实现，使用下界岩代替）
-    const BlockState* stem = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
-
-    // 根据类型选择不同的菌柄颜色
-    // TODO: 当实现绯红/诡异菌柄后替换
-    // Crimson: 绯红菌柄 (深红色)
-    // Warped: 诡异菌柄 (青色)
+    // 根据类型选择菌柄方块
+    const BlockState* stem = nullptr;
+    if (type == FungusType::Crimson && VanillaBlocks::CRIMSON_STEM) {
+        stem = VanillaBlocks::getState(VanillaBlocks::CRIMSON_STEM);
+    } else if (type == FungusType::Warped && VanillaBlocks::WARPED_STEM) {
+        stem = VanillaBlocks::getState(VanillaBlocks::WARPED_STEM);
+    }
+    // 回退到下界岩
+    if (!stem) {
+        stem = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
+    }
     if (!stem) {
         return;
     }
@@ -101,8 +105,18 @@ void HugeFungusFeature::generateCap(
     i32 radius,
     FungusType type)
 {
-    // 获取菌盖方块（由于特殊方块尚未实现，使用萤石代替）
-    const BlockState* cap = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
+    // 根据类型选择菌盖方块
+    const BlockState* cap = nullptr;
+    if (type == FungusType::Crimson && VanillaBlocks::NETHER_WART_BLOCK) {
+        cap = VanillaBlocks::getState(VanillaBlocks::NETHER_WART_BLOCK);
+    } else if (type == FungusType::Warped && VanillaBlocks::WARPED_NYLIUM) {
+        // 诡异菌盖使用诡异疣块（暂用诡异菌岩代替）
+        cap = VanillaBlocks::getState(VanillaBlocks::WARPED_NYLIUM);
+    }
+    // 回退到萤石
+    if (!cap) {
+        cap = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
+    }
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
     if (!cap) {
@@ -110,9 +124,6 @@ void HugeFungusFeature::generateCap(
     }
 
     // 生成菌盖（球形或扁平球形）
-    // 绯红真菌：红色菌盖
-    // 诡异真菌：青色菌盖
-    // TODO: 当实现绯红/诡异菌块后替换
 
     // 菌盖层数
     i32 layers = 2 + random.nextInt(2);
@@ -142,16 +153,35 @@ void HugeFungusFeature::generateVines(
     const BlockPos& capPos,
     FungusType type)
 {
-    // 获取藤蔓方块（由于特殊方块尚未实现，暂时跳过）
-    // 绯红真菌：垂泪藤（Weeping Vines）
-    // 诡异真菌：扭曲藤（Twisting Vines）
-    // TODO: 当实现垂泪藤和扭曲藤后替换
+    // 根据类型选择藤蔓方块
+    const BlockState* vine = nullptr;
+    if (type == FungusType::Crimson && VanillaBlocks::WEEPING_VINES) {
+        vine = VanillaBlocks::getState(VanillaBlocks::WEEPING_VINES);
+    } else if (type == FungusType::Warped && VanillaBlocks::TWISTING_VINES) {
+        vine = VanillaBlocks::getState(VanillaBlocks::TWISTING_VINES);
+    }
 
-    // 跳过藤蔓生成，直到实现垂泪藤和扭曲藤
-    (void)world;
-    (void)random;
-    (void)capPos;
-    (void)type;
+    if (!vine) {
+        return;
+    }
+
+    // 在菌盖下方生成藤蔓
+    i32 vineCount = 3 + random.nextInt(4);
+    for (i32 i = 0; i < vineCount; ++i) {
+        i32 offsetX = -2 + random.nextInt(5);
+        i32 offsetZ = -2 + random.nextInt(5);
+        i32 vineLength = 1 + random.nextInt(4);
+
+        for (i32 y = 0; y < vineLength; ++y) {
+            BlockPos vinePos(capPos.x + offsetX, capPos.y - y - 1, capPos.z + offsetZ);
+            const BlockState* existing = world.getBlock(vinePos);
+            if (existing && existing->isAir()) {
+                world.setBlock(vinePos, vine);
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 void HugeFungusFeature::generateShroomlights(
@@ -160,9 +190,14 @@ void HugeFungusFeature::generateShroomlights(
     const BlockPos& capPos,
     i32 radius)
 {
-    // 获取菌光体方块（由于特殊方块尚未实现，使用萤石代替）
-    // TODO: 当实现菌光体后替换
-    const BlockState* shroomlight = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
+    // 使用菌光体方块，回退到萤石
+    const BlockState* shroomlight = nullptr;
+    if (VanillaBlocks::SHROOMLIGHT) {
+        shroomlight = VanillaBlocks::getState(VanillaBlocks::SHROOMLIGHT);
+    }
+    if (!shroomlight) {
+        shroomlight = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
+    }
 
     if (!shroomlight) {
         return;
@@ -176,9 +211,10 @@ void HugeFungusFeature::generateShroomlights(
         i32 offsetZ = -radius + random.nextInt(2 * radius + 1);
         i32 offsetY = random.nextInt(2);
 
-        // 只替换菌盖方块
+        // 只替换菌盖方块（非空气方块）
         const BlockState* existing = world.getBlock(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ);
-        if (existing && &existing->getBlock() == VanillaBlocks::GLOWSTONE) {
+        if (existing && !existing->isAir() &&
+            &existing->getBlock() != VanillaBlocks::AIR) {
             world.setBlock(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ, shroomlight);
         }
     }

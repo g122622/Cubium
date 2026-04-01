@@ -19,10 +19,9 @@ void FoliagePlacer::placeFoliage(
     const std::vector<FoliagePosition>& foliagePositions,
     const std::set<BlockPos>& /*trunkBlocks*/,
     i32 /*trunkOffset*/,
-    const BlockState* foliageBlock
+    const BlockState* foliageBlock,
+    std::set<BlockPos>& outFoliageBlocks
 ) {
-    std::set<BlockPos> foliageBlocks;
-
     for (const auto& foliagePos : foliagePositions) {
         i32 radius = m_radius.get(random);
         i32 offset = m_offset.get(random);
@@ -30,7 +29,7 @@ void FoliagePlacer::placeFoliage(
 
         placeFoliageInternal(
             world, random, trunkHeight, foliagePos,
-            foliageHeight, radius, offset, foliageBlocks, foliageBlock
+            foliageHeight, radius, offset, outFoliageBlocks, foliageBlock
         );
     }
 }
