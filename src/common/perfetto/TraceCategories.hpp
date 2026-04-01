@@ -130,7 +130,11 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("server.sound")
         .SetDescription("服务端声音事件处理"),
     perfetto::Category("client.sound")
-        .SetDescription("客户端声音播放")
+        .SetDescription("客户端声音播放"),
+    
+    // === memory ===
+    perfetto::Category("memory")
+        .SetDescription("内存使用统计")
 );
 
 #if defined(_MSC_VER)

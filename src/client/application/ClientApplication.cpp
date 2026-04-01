@@ -10,6 +10,7 @@
 #include "common/entity/inventory/Slot.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/PlatformInfo.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/EntityRendererManager.hpp"
@@ -965,14 +966,17 @@ void ClientApplication::mainLoop()
         // 帧计数
         ++m_frameCount;
 
+#if MC_ENABLE_TRACING
         // 追踪 FPS
         const f32 safeDeltaTime = std::max(deltaTime, 0.0001f);
-        MC_TRACE_COUNTER("rendering.frame", "FPS", static_cast<i64>(1.0f / safeDeltaTime));
-
-        // 每秒输出一次FPS
-        if (m_frameCount % 60 == 0) {
-            SPDLOG_TRACE("FPS: {:.1f}, Frame: {}", 1.0f / safeDeltaTime, m_frameCount);
+        const i32 fps = static_cast<i32>(1.0f / safeDeltaTime);
+        if (fps < 1000) { // 过滤掉异常值
+            MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
         }
+
+        // 追踪内存信息
+        MC_TRACE_COUNTER("memory", "ProcessMemory", static_cast<int64_t>(util::PlatformInfo::getProcessMemoryMB()));
+#endif
 
         // 帧率限制（0=不限制）
         const i32 fpsLimit = m_settings.framerateLimit.get();
@@ -980,6 +984,7 @@ void ClientApplication::mainLoop()
             const auto minFrameDuration = std::chrono::duration<f64>(1.0 / static_cast<f64>(fpsLimit));
             const auto frameElapsed = clock::now() - frameStart;
             if (frameElapsed < minFrameDuration) {
+                MC_TRACE_EVENT("rendering.frame", "FrameRateLimitSleep", "Sleeping to limit FPS");
                 std::this_thread::sleep_for(minFrameDuration - frameElapsed);
             }
         }
