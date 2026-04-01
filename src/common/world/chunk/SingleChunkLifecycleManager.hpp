@@ -164,6 +164,7 @@ public:
      * @brief 设置区块数据（加载完成时）
      */
     void setChunkData(std::unique_ptr<ChunkData> data) {
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_chunkData = std::move(data);
     }
 

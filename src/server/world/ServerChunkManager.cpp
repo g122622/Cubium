@@ -159,6 +159,26 @@ void ServerChunkManager::shutdown()
 {
     stopWorkers();
 
+    // 清理挂起请求，避免 future 永久阻塞
+    std::unordered_map<u64, PendingGeneration> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingGenerationsMutex);
+        pending.swap(m_pendingGenerations);
+    }
+    for (auto& [key, entry] : pending) {
+        (void)key;
+        for (auto& p : entry.promises) {
+            if (p) {
+                p->set_value(nullptr);
+            }
+        }
+        for (auto& cb : entry.callbacks) {
+            if (cb) {
+                cb(false, nullptr);
+            }
+        }
+    }
+
     // 清理区块持有者
     std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
     m_singleChunkLifecycleManagers.clear();
@@ -308,7 +328,7 @@ bool ServerChunkManager::hasChunk(ChunkCoord x, ChunkCoord z) const
 
 ChunkData* ServerChunkManager::getChunkSync(ChunkCoord x, ChunkCoord z)
 {
-    spdlog::info("Requesting chunk synchronously at ({}, {}), current m_chunks size: {}", x, z, m_chunks.size());
+    spdlog::debug("Requesting chunk synchronously at ({}, {}), current m_chunks size: {}", x, z, m_chunks.size());
 
     // 先检查缓存
     if (ChunkData* cached = getChunk(x, z)) {
@@ -380,17 +400,10 @@ std::future<ChunkData*> ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoo
     // 调度异步生成
     const ChunkStatus& target = targetStatus ? *targetStatus : ChunkStatuses::FULL;
 
-    m_workerPool.submitGenerate(x, z, target,
-        [this, promise, x, z](bool success, ChunkPrimer* primer) {
-            if (success && primer) {
-                ChunkData* stored = finalizeChunkGeneration(x, z, *primer);
-                promise->set_value(stored);
-            } else {
-                promise->set_value(nullptr);
-            }
-        },
-        singleChunkLifecycleManager->getLevel()  // 使用加载级别作为优先级
-    );
+    requestChunkGeneration(x, z, target,
+                           singleChunkLifecycleManager->getLevel(),
+                           nullptr,
+                           promise);
 
     return future;
 }
@@ -413,17 +426,10 @@ void ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback
     // 调度异步生成
     const ChunkStatus& target = targetStatus ? *targetStatus : ChunkStatuses::FULL;
 
-    m_workerPool.submitGenerate(x, z, target,
-        [this, callback, x, z](bool success, ChunkPrimer* primer) {
-            if (success && primer) {
-                ChunkData* stored = finalizeChunkGeneration(x, z, *primer);
-                if (callback) callback(stored != nullptr, stored);
-            } else {
-                if (callback) callback(false, nullptr);
-            }
-        },
-        singleChunkLifecycleManager->getLevel()  // 使用加载级别作为优先级
-    );
+    requestChunkGeneration(x, z, target,
+                           singleChunkLifecycleManager->getLevel(),
+                           std::move(callback),
+                           nullptr);
 }
 
 // ============================================================================
@@ -537,18 +543,71 @@ void ServerChunkManager::scheduleGeneration(SingleChunkLifecycleManager& singleC
         return;
     }
 
-    // 提交异步任务
-    m_workerPool.submitGenerate(
-        singleChunkLifecycleManager.x(),
-        singleChunkLifecycleManager.z(),
-        targetStatus,
-        [this, x = singleChunkLifecycleManager.x(), z = singleChunkLifecycleManager.z()](bool success, ChunkPrimer* primer) {
+    requestChunkGeneration(singleChunkLifecycleManager.x(),
+                           singleChunkLifecycleManager.z(),
+                           targetStatus,
+                           singleChunkLifecycleManager.getLevel(),
+                           nullptr,
+                           nullptr);
+}
+
+void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
+                                                const ChunkStatus& targetStatus,
+                                                i32 priority,
+                                                ChunkCallback callback,
+                                                std::shared_ptr<std::promise<ChunkData*>> promise)
+{
+    const u64 key = posToKey(x, z);
+    bool needSubmit = false;
+
+    {
+        std::lock_guard<std::mutex> lock(m_pendingGenerationsMutex);
+        auto [it, inserted] = m_pendingGenerations.try_emplace(key);
+        if (callback) {
+            it->second.callbacks.push_back(std::move(callback));
+        }
+        if (promise) {
+            it->second.promises.push_back(std::move(promise));
+        }
+        needSubmit = inserted;
+    }
+
+    if (!needSubmit) {
+        return;
+    }
+
+    m_workerPool.submitGenerate(x, z, targetStatus,
+        [this, key, x, z](bool success, ChunkPrimer* primer) {
+            ChunkData* stored = nullptr;
             if (success && primer) {
-                finalizeChunkGeneration(x, z, *primer);
+                stored = finalizeChunkGeneration(x, z, *primer);
+            }
+
+            PendingGeneration pending;
+            {
+                std::lock_guard<std::mutex> lock(m_pendingGenerationsMutex);
+                auto it = m_pendingGenerations.find(key);
+                if (it != m_pendingGenerations.end()) {
+                    pending = std::move(it->second);
+                    m_pendingGenerations.erase(it);
+                }
+            }
+
+            const bool callbackSuccess = stored != nullptr;
+
+            for (auto& p : pending.promises) {
+                if (p) {
+                    p->set_value(stored);
+                }
+            }
+
+            for (auto& cb : pending.callbacks) {
+                if (cb) {
+                    cb(callbackSuccess, stored);
+                }
             }
         },
-        singleChunkLifecycleManager.getLevel()
-    );
+        priority);
 }
 
 void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& status)

@@ -11,6 +11,8 @@
 #include <vector>
 #include <functional>
 #include <atomic>
+#include <unordered_map>
+#include <memory>
 
 namespace mc::server {
 
@@ -132,6 +134,11 @@ public:
     void setGenerator(GeneratorFunc generator) { m_generator = std::move(generator); }
 
 private:
+    struct CoalescedCallbacks {
+        std::mutex mutex;
+        std::vector<CompletionCallback> callbacks;
+    };
+
     /**
      * @brief 内部任务结构
      */
@@ -139,6 +146,8 @@ private:
         ChunkTask task;
         GeneratorFunc generator;
         CompletionCallback callback;
+        u64 coalesceKey = 0;
+        std::shared_ptr<CoalescedCallbacks> coalescedCallbacks;
     };
 
     /**
@@ -162,8 +171,9 @@ private:
      * C++17 不支持 lambda 作为模板参数，使用仿函数
      */
     struct TaskComparator {
-        bool operator()(const InternalTask& a, const InternalTask& b) const {
-            return a.task < b.task;
+        bool operator()(const std::shared_ptr<InternalTask>& a,
+                        const std::shared_ptr<InternalTask>& b) const {
+            return a->task < b->task;
         }
     };
 
@@ -172,7 +182,10 @@ private:
     i32 m_threadCount;
 
     // 任务队列
-    std::priority_queue<InternalTask, std::vector<InternalTask>, TaskComparator> m_taskQueue;
+    std::priority_queue<std::shared_ptr<InternalTask>,
+                        std::vector<std::shared_ptr<InternalTask>>,
+                        TaskComparator> m_taskQueue;
+    std::unordered_map<u64, std::shared_ptr<CoalescedCallbacks>> m_pendingGenerateTasks;
     std::vector<std::unique_ptr<ChunkPrimer>> m_completedChunks;
 
     mutable std::mutex m_queueMutex;

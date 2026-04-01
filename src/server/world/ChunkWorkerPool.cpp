@@ -3,8 +3,20 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include <chrono>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::server {
+
+namespace {
+
+[[nodiscard]] u64 makeChunkKey(ChunkCoord x, ChunkCoord z)
+{
+    const u32 ux = static_cast<u32>(x);
+    const u32 uz = static_cast<u32>(z);
+    return (static_cast<u64>(ux) << 32) | static_cast<u64>(uz);
+}
+
+} // namespace
 
 // ============================================================================
 // 构造与析构
@@ -71,6 +83,7 @@ void ChunkWorkerPool::shutdown()
         while (!m_taskQueue.empty()) {
             m_taskQueue.pop();
         }
+        m_pendingGenerateTasks.clear();
     }
 
     {
@@ -99,18 +112,46 @@ void ChunkWorkerPool::submitGenerate(ChunkCoord x, ChunkCoord z,
     chunkTask.timestamp = static_cast<u64>(
         std::chrono::steady_clock::now().time_since_epoch().count());
 
-    InternalTask task{
-        std::move(chunkTask),
-        m_generator,
-        std::move(callback)
-    };
+    const u64 chunkKey = makeChunkKey(x, z);
+    auto coalescedCallbacks = std::make_shared<CoalescedCallbacks>();
+    std::shared_ptr<CoalescedCallbacks> existingCallbacks;
+    bool shouldNotifyWorker = false;
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
-        m_taskQueue.push(std::move(task));
+
+        auto pendingIt = m_pendingGenerateTasks.find(chunkKey);
+        if (pendingIt != m_pendingGenerateTasks.end()) {
+            existingCallbacks = pendingIt->second;
+        } else {
+            if (callback) {
+                std::lock_guard<std::mutex> callbackLock(coalescedCallbacks->mutex);
+                coalescedCallbacks->callbacks.push_back(std::move(callback));
+            }
+
+            auto task = std::make_shared<InternalTask>();
+            task->task = std::move(chunkTask);
+            task->generator = m_generator;
+            task->coalesceKey = chunkKey;
+            task->coalescedCallbacks = coalescedCallbacks;
+
+            m_pendingGenerateTasks.emplace(chunkKey, coalescedCallbacks);
+            m_taskQueue.push(std::move(task));
+            shouldNotifyWorker = true;
+        }
     }
 
-    m_condition.notify_one();
+    if (existingCallbacks) {
+        if (callback) {
+            std::lock_guard<std::mutex> callbackLock(existingCallbacks->mutex);
+            existingCallbacks->callbacks.push_back(std::move(callback));
+        }
+        return;
+    }
+
+    if (shouldNotifyWorker) {
+        m_condition.notify_one();
+    }
 }
 
 void ChunkWorkerPool::submitTask(ChunkTask task,
@@ -127,11 +168,10 @@ void ChunkWorkerPool::submitTask(ChunkTask task,
     task.timestamp = static_cast<u64>(
         std::chrono::steady_clock::now().time_since_epoch().count());
 
-    InternalTask internalTask{
-        std::move(task),
-        std::move(generator),
-        std::move(callback)
-    };
+    auto internalTask = std::make_shared<InternalTask>();
+    internalTask->task = std::move(task);
+    internalTask->generator = std::move(generator);
+    internalTask->callback = std::move(callback);
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
@@ -162,8 +202,7 @@ void ChunkWorkerPool::workerThread(i32 workerId)
     mc::perfetto::PerfettoManager::instance().setThreadName(threadName);
 
     while (true) {
-        InternalTask taskCopy;
-        bool hasTask = false;
+        std::shared_ptr<InternalTask> taskCopy;
 
         {
             std::unique_lock<std::mutex> lock(m_queueMutex);
@@ -178,15 +217,14 @@ void ChunkWorkerPool::workerThread(i32 workerId)
             }
 
             if (!m_taskQueue.empty()) {
-                taskCopy = std::move(const_cast<InternalTask&>(m_taskQueue.top()));
+                taskCopy = m_taskQueue.top();
                 m_taskQueue.pop();
-                hasTask = true;
             }
         }
 
         // 执行任务
-        if (hasTask) {
-            executeTask(taskCopy);
+        if (taskCopy) {
+            executeTask(*taskCopy);
         }
     }
 }
@@ -211,17 +249,34 @@ void ChunkWorkerPool::executeTask(InternalTask& task)
         success = false;
     }
 
-    // 调用回调
-    if (task.callback) {
-        ChunkPrimer* callbackChunk = nullptr;
+    ChunkPrimer* callbackChunk = nullptr;
 
-        if (success) {
-            std::lock_guard<std::mutex> lock(m_completedMutex);
-            m_completedChunks.push_back(std::move(primer));
-            callbackChunk = m_completedChunks.back().get();
+    if (success) {
+        std::lock_guard<std::mutex> lock(m_completedMutex);
+        m_completedChunks.push_back(std::move(primer));
+        callbackChunk = m_completedChunks.back().get();
+    }
+
+    std::vector<CompletionCallback> callbacks;
+
+    if (task.coalescedCallbacks) {
+        {
+            std::lock_guard<std::mutex> lock(task.coalescedCallbacks->mutex);
+            callbacks = task.coalescedCallbacks->callbacks;
         }
 
-        task.callback(success, callbackChunk);
+        std::lock_guard<std::mutex> lock(m_queueMutex);
+        m_pendingGenerateTasks.erase(task.coalesceKey);
+    } else if (task.callback) {
+        callbacks.push_back(task.callback);
+    }
+
+    if (!callbacks.empty()) {
+        for (const auto& callback : callbacks) {
+            if (callback) {
+                callback(success, callbackChunk);
+            }
+        }
     }
 }
 

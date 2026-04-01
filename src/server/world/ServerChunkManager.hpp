@@ -327,6 +327,15 @@ private:
     void scheduleGeneration(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& targetStatus);
 
     /**
+     * @brief 请求区块异步生成（同坐标请求自动合并）
+     */
+    void requestChunkGeneration(ChunkCoord x, ChunkCoord z,
+                                const ChunkStatus& targetStatus,
+                                i32 priority,
+                                ChunkCallback callback,
+                                std::shared_ptr<std::promise<ChunkData*>> promise);
+
+    /**
      * @brief 执行生成任务
      */
     void executeGenerationTask(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& status);
@@ -410,6 +419,13 @@ private:
 
     // 同步生成保护，避免多线程同时对同一 SingleChunkLifecycleManager 执行同步生成
     mutable std::mutex m_syncGenerationMutex;
+
+    struct PendingGeneration {
+        std::vector<ChunkCallback> callbacks;
+        std::vector<std::shared_ptr<std::promise<ChunkData*>>> promises;
+    };
+    std::unordered_map<u64, PendingGeneration> m_pendingGenerations;
+    mutable std::mutex m_pendingGenerationsMutex;
 
     // 票据管理器
     world::ChunkLoadTicketManager m_ticketManager;
