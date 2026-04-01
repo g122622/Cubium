@@ -28,7 +28,7 @@ void BreakProgressManager::cleanup() {
     spdlog::info("BreakProgressManager: Cleaned up");
 }
 
-void BreakProgressManager::tick(f32 deltaTime, u64 currentTick) {
+void BreakProgressManager::tick(f64 deltaTime, u64 currentTick) {
     m_currentTick = currentTick;
     cleanupStaleProgress(currentTick);
 }
@@ -43,14 +43,14 @@ void BreakProgressManager::startBreaking(const BlockPos& pos) {
                   pos.x, pos.y, pos.z);
 }
 
-u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f32 progress) {
+u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress) {
     if (!m_localBreaking || m_localBreakPos != pos) {
         startBreaking(pos);
     }
 
-    m_localProgress = std::clamp(progress, 0.0f, 1.0f);
+    m_localProgress = std::clamp(progress, 0.0, 1.0);
 
-    u8 newStage = static_cast<u8>(std::min(9.0f, progress * 10.0f));
+    u8 newStage = static_cast<u8>(std::min<f64>(9.0, progress * 10.0));
 
     if (newStage != m_localDamageStage) {
         m_localDamageStage = newStage;
@@ -175,14 +175,10 @@ BreakProgressManager::getVisibleProgress(const Vector3& cameraPos) const {
 
     // 添加本地进度
     if (m_localBreaking) {
-        f32 distSq = math::distanceSq(
-            static_cast<f32>(m_localBreakPos.x),
-            static_cast<f32>(m_localBreakPos.y),
-            static_cast<f32>(m_localBreakPos.z),
-            cameraPos.x,
-            cameraPos.y,
-            cameraPos.z
-        );
+        const f64 dx = static_cast<f64>(m_localBreakPos.x) - cameraPos.x;
+        const f64 dy = static_cast<f64>(m_localBreakPos.y) - cameraPos.y;
+        const f64 dz = static_cast<f64>(m_localBreakPos.z) - cameraPos.z;
+        const f64 distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq <= MAX_RENDER_DISTANCE_SQ) {
             positionToStage[m_localBreakPos] = m_localDamageStage;
@@ -191,14 +187,10 @@ BreakProgressManager::getVisibleProgress(const Vector3& cameraPos) const {
 
     // 添加远程进度
     for (const auto& [breakerId, progress] : m_remoteProgressByEntity) {
-        f32 distSq = math::distanceSq(
-            static_cast<f32>(progress.position.x),
-            static_cast<f32>(progress.position.y),
-            static_cast<f32>(progress.position.z),
-            cameraPos.x,
-            cameraPos.y,
-            cameraPos.z
-        );
+        const f64 dx = static_cast<f64>(progress.position.x) - cameraPos.x;
+        const f64 dy = static_cast<f64>(progress.position.y) - cameraPos.y;
+        const f64 dz = static_cast<f64>(progress.position.z) - cameraPos.z;
+        const f64 distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq <= MAX_RENDER_DISTANCE_SQ) {
             auto it = positionToStage.find(progress.position);
@@ -234,14 +226,10 @@ void BreakProgressManager::getVisibleProgress(const Vector3& cameraPos,
 
     // 添加本地进度
     if (m_localBreaking) {
-        f32 distSq = math::distanceSq(
-            static_cast<f32>(m_localBreakPos.x),
-            static_cast<f32>(m_localBreakPos.y),
-            static_cast<f32>(m_localBreakPos.z),
-            cameraPos.x,
-            cameraPos.y,
-            cameraPos.z
-        );
+        const f64 dx = static_cast<f64>(m_localBreakPos.x) - cameraPos.x;
+        const f64 dy = static_cast<f64>(m_localBreakPos.y) - cameraPos.y;
+        const f64 dz = static_cast<f64>(m_localBreakPos.z) - cameraPos.z;
+        const f64 distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq <= MAX_RENDER_DISTANCE_SQ) {
             outProgress.emplace_back(m_localBreakPos, m_localDamageStage);
@@ -250,14 +238,10 @@ void BreakProgressManager::getVisibleProgress(const Vector3& cameraPos,
 
     // 添加远程进度，去重处理
     for (const auto& [breakerId, progress] : m_remoteProgressByEntity) {
-        f32 distSq = math::distanceSq(
-            static_cast<f32>(progress.position.x),
-            static_cast<f32>(progress.position.y),
-            static_cast<f32>(progress.position.z),
-            cameraPos.x,
-            cameraPos.y,
-            cameraPos.z
-        );
+        const f64 dx = static_cast<f64>(progress.position.x) - cameraPos.x;
+        const f64 dy = static_cast<f64>(progress.position.y) - cameraPos.y;
+        const f64 dz = static_cast<f64>(progress.position.z) - cameraPos.z;
+        const f64 distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq <= MAX_RENDER_DISTANCE_SQ) {
             // 线性搜索去重（对于小数量更高效）

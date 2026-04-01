@@ -18,7 +18,7 @@ void ParticleRegistry::registerType(
     const String& name,
     ParticleFactory factory,
     ParticleRenderType defaultRenderType,
-    f32 defaultLifetime,
+    f64 defaultLifetime,
     bool hasPhysics,
     bool ignoreDistance) {
 

@@ -26,7 +26,7 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
 
     // 雪花生命周期较长
     // 参考 MC: maxAge = (int)(200.0F / (Math.random() * 0.2F + 0.8F))
-    f32 lifeMultiplier = 0.8f + rng.nextFloat() * 0.2f;
+    f64 lifeMultiplier = 0.8f + rng.nextFloat() * 0.2f;
     setMaxAge(200.0f / lifeMultiplier);
 }
 
@@ -55,7 +55,7 @@ void SnowParticle::tick(ClientWorld* world) {
 
     // 雪花摇摆效果
     m_swingPhase += SWING_FREQUENCY;
-    f32 swing = std::sin(m_swingPhase) * m_swingAmplitude;
+    f64 swing = std::sin(m_swingPhase) * m_swingAmplitude;
     m_velocity.x += swing * 0.01f;
 
     // 应用速度
@@ -67,7 +67,7 @@ void SnowParticle::tick(ClientWorld* world) {
 
     // 根据年龄淡出
     if (m_age > m_maxAge * 0.8f) {
-        f32 fadeProgress = (m_age - m_maxAge * 0.8f) / (m_maxAge * 0.2f);
+        f64 fadeProgress = (m_age - m_maxAge * 0.8f) / (m_maxAge * 0.2f);
         m_color.a = 0.9f * (1.0f - fadeProgress);
     }
 
@@ -76,7 +76,7 @@ void SnowParticle::tick(ClientWorld* world) {
 
 void SnowParticle::buildVertices(
     const glm::vec3& cameraPos,
-    f32 partialTick,
+    f64 partialTick,
     const ParticleTextureAtlas& atlas,
     std::vector<ParticleVertex>& outVertices) const
 {

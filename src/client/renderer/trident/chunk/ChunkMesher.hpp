@@ -236,7 +236,7 @@ private:
     static void addFaceFromAppearance(
         MeshData& mesh,
         Face face,
-        f32 x, f32 y, f32 z,
+        f64 x, f64 y, f64 z,
         const ChunkData& chunk,
         i32 blockX,
         i32 blockY,
@@ -252,7 +252,7 @@ private:
     static void addFaceFromAppearanceSmooth(
         MeshData& mesh,
         Face face,
-        f32 x, f32 y, f32 z,
+        f64 x, f64 y, f64 z,
         const ChunkData& chunk,
         i32 blockX, i32 blockY, i32 blockZ,
         const BlockState* block,

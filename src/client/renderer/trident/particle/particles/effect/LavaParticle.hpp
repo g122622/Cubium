@@ -40,9 +40,9 @@ public:
     }
 
 private:
-    static constexpr f32 DEFAULT_GRAVITY = 0.025f;
-    static constexpr f32 DEFAULT_SIZE = 0.05f;
-    static constexpr f32 DEFAULT_LIFETIME = 30.0f;
+    static constexpr f64 DEFAULT_GRAVITY = 0.025f;
+    static constexpr f64 DEFAULT_SIZE = 0.05f;
+    static constexpr f64 DEFAULT_LIFETIME = 30.0f;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

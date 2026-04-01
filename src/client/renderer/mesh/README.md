@@ -62,10 +62,10 @@ src/client/renderer/
 
 ```cpp
 // 获取面的法线向量
-std::array<f32, 3> getFaceNormal(Face face);
+std::array<f64, 3> getFaceNormal(Face face);
 
 // 获取面的 4 个顶点位置 (相对于方块左下角)
-std::array<f32, 12> getFaceVertices(Face face);
+std::array<f64, 12> getFaceVertices(Face face);
 
 // 获取标准面的索引 (两个三角形)
 std::array<u32, 6> getFaceIndices();
@@ -81,9 +81,9 @@ bool shouldRenderFace(Face face, bool neighborOpaque);
 
 ```cpp
 struct Vertex {
-    f32 x, y, z;           // 位置 (12 字节)
-    f32 nx, ny, nz;        // 法线 (12 字节)
-    f32 u, v;              // 纹理坐标 (8 字节)
+    f64 x, y, z;           // 位置 (12 字节)
+    f64 nx, ny, nz;        // 法线 (12 字节)
+    f64 u, v;              // 纹理坐标 (8 字节)
     u32 color;             // 顶点颜色 RGBA (4 字节)
     u8 light;              // 光照 (高4位=天空光, 低4位=方块光)
 };

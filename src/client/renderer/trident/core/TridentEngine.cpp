@@ -44,8 +44,8 @@ namespace {
  */
 struct ChunkPushConstants {
     glm::mat4 model;
-    glm::vec3 chunkOffset;
-    f32 padding;
+    glm::dvec4 chunkOffset;
+    glm::dvec4 cameraWorldPos;
 };
 
 } // anonymous namespace
@@ -427,8 +427,8 @@ Result<void> TridentEngine::render() {
     if (m_skyRendererInitialized && m_skyRendererPtr) {
         m_skyRendererPtr->update(m_dayTime, m_gameTime, m_partialTick, m_rainStrength, m_thunderStrength);
 
-        glm::vec3 cameraPos(0.0f);
-        glm::vec3 cameraForward(0.0f, 0.0f, -1.0f);
+        glm::dvec3 cameraPos(0.0);
+        glm::dvec3 cameraForward(0.0, 0.0, -1.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
             cameraForward = m_frameContext.camera->forward();
@@ -438,15 +438,15 @@ Result<void> TridentEngine::render() {
             cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
-            cameraPos,
-            cameraForward,
+            glm::vec3(cameraPos),
+            glm::vec3(cameraForward),
             m_frameContext.frameIndex
         );
     }
 
     // 4. 更新雾效果（在渲染区块之前）
     if (m_fogManagerInitialized && m_fogManager && m_skyRendererInitialized && m_skyRendererPtr) {
-        glm::vec3 cameraPos(0.0f);
+        glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
         }
@@ -467,21 +467,21 @@ Result<void> TridentEngine::render() {
                 m_thunderStrength,
                 m_landFogDensity,
                 m_skyRendererPtr->fogColor(),
-                cameraPos
+                glm::vec3(cameraPos)
             );
         }
     }
 
     // 4.5 渲染云（在天空之后，区块之前）
     if (m_cloudRendererInitialized && m_cloudRenderer && m_skyRendererInitialized && m_skyRendererPtr) {
-        glm::vec3 cameraPos(0.0f);
+        glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
         }
 
         // TODO: 从游戏状态获取云模式和维度设置
         // 目前使用 Fancy 模式和主世界云高度
-        constexpr f32 CLOUD_HEIGHT = 192.0f; // 主世界云高度
+        constexpr f64 CLOUD_HEIGHT = 192.0f; // 主世界云高度
 
         m_cloudRenderer->update(
             m_dayTime,
@@ -495,7 +495,7 @@ Result<void> TridentEngine::render() {
             cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
-            cameraPos,
+            glm::vec3(cameraPos),
             m_cloudMode,
             m_frameContext.frameIndex
         );
@@ -550,16 +550,27 @@ Result<void> TridentEngine::render() {
             }
         }
 
+        glm::dvec3 chunkCameraPos(0.0);
+        if (m_frameContext.camera) {
+            const auto cameraPos = m_frameContext.camera->position();
+            chunkCameraPos = glm::dvec3(
+                static_cast<f64>(cameraPos.x),
+                static_cast<f64>(cameraPos.y),
+                static_cast<f64>(cameraPos.z)
+            );
+        }
+
         m_chunkRenderer->render(cmd, m_chunkPipeline->layout(),
-            [this, cmd](const ChunkId& chunkId) {
+            [this, cmd, chunkCameraPos](const ChunkId& chunkId) {
                 ChunkPushConstants pushConstants{};
                 pushConstants.model = glm::mat4(1.0f);
-                pushConstants.chunkOffset = glm::vec3(
-                    static_cast<f32>(chunkId.x * constants::CHUNK_WIDTH),
+                pushConstants.chunkOffset = glm::dvec4(
+                    static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH),
                     0.0f,
-                    static_cast<f32>(chunkId.z * constants::CHUNK_WIDTH)
+                    static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH),
+                    0.0f
                 );
-                pushConstants.padding = 0.0f;
+                pushConstants.cameraWorldPos = glm::dvec4(chunkCameraPos, 0.0f);
 
                 vkCmdPushConstants(
                     cmd,
@@ -615,7 +626,7 @@ Result<void> TridentEngine::render() {
                 }
             }
 
-            glm::vec3 cameraPos(0.0f);
+            glm::dvec3 cameraPos(0.0);
             if (m_frameContext.camera) {
                 cameraPos = m_frameContext.camera->position();
             }
@@ -623,15 +634,16 @@ Result<void> TridentEngine::render() {
             m_chunkRenderer->renderTransparent(
                 cmd,
                 m_chunkTranslucentPipeline->layout(),
-                [this, cmd](const ChunkId& chunkId) {
+                [this, cmd, chunkCameraPos](const ChunkId& chunkId) {
                     ChunkPushConstants pushConstants{};
                     pushConstants.model = glm::mat4(1.0f);
-                    pushConstants.chunkOffset = glm::vec3(
-                        static_cast<f32>(chunkId.x * constants::CHUNK_WIDTH),
+                    pushConstants.chunkOffset = glm::dvec4(
+                        static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH),
                         0.0f,
-                        static_cast<f32>(chunkId.z * constants::CHUNK_WIDTH)
+                        static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH),
+                        0.0f
                     );
-                    pushConstants.padding = 0.0f;
+                    pushConstants.cameraWorldPos = glm::dvec4(chunkCameraPos, 0.0f);
 
                     vkCmdPushConstants(
                         cmd,
@@ -651,11 +663,11 @@ Result<void> TridentEngine::render() {
     // 5.5 渲染破坏进度覆盖层
     if (m_breakProgressRendererInitialized && m_breakProgressRenderer) {
         // 更新网格数据
-        glm::vec3 cameraPos(0.0f);
+        glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
         }
-        m_breakProgressRenderer->updateMesh(Vector3(cameraPos.x, cameraPos.y, cameraPos.z));
+        m_breakProgressRenderer->updateMesh(Vector3(static_cast<f32>(cameraPos.x), static_cast<f32>(cameraPos.y), static_cast<f32>(cameraPos.z)));
 
         // 渲染
         if (m_breakProgressRenderer->hasProgressToRender()) {
@@ -679,7 +691,7 @@ Result<void> TridentEngine::render() {
 
     // 6.5 渲染天气效果（雨/雪）
     if (m_weatherRendererInitialized && m_weatherRenderer && m_rainStrength > 0.01f) {
-        glm::vec3 cameraPos(0.0f);
+        glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
         }
@@ -689,14 +701,14 @@ Result<void> TridentEngine::render() {
             cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
-            cameraPos,
+            glm::vec3(cameraPos),
             m_frameContext.frameIndex
         );
     }
 
     // 6.6 渲染粒子
     if (m_particleManagerInitialized && m_particleManager && m_particleManager->particleCount() > 0) {
-        glm::vec3 cameraPos(0.0f);
+        glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
         }
@@ -706,14 +718,14 @@ Result<void> TridentEngine::render() {
             cmd,
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
-            cameraPos,
+            glm::vec3(cameraPos),
             m_frameContext.frameIndex
         );
     }
 
     // 7. 渲染 GUI
     if (m_guiRendererInitialized && m_guiRendererPtr) {
-        m_guiRendererPtr->beginFrame(static_cast<f32>(m_windowWidth), static_cast<f32>(m_windowHeight));
+        m_guiRendererPtr->beginFrame(static_cast<f64>(m_windowWidth), static_cast<f64>(m_windowHeight));
         if (m_guiRenderCallback) {
             m_guiRenderCallback();
         }
@@ -941,7 +953,7 @@ VkDescriptorSet TridentEngine::cameraDescriptorSet() const {
     return m_uniformManager->cameraDescriptorSet(m_frameManager->currentFrameIndex());
 }
 
-void TridentEngine::updateTime(i64 dayTime, i64 gameTime, f32 partialTick) {
+void TridentEngine::updateTime(i64 dayTime, i64 gameTime, f64 partialTick) {
     m_dayTime = dayTime;
     m_gameTime = gameTime;
     m_partialTick = partialTick;
@@ -951,7 +963,7 @@ void TridentEngine::updateTime(i64 dayTime, i64 gameTime, f32 partialTick) {
     }
 }
 
-void TridentEngine::updateWeather(f32 rainStrength, f32 thunderStrength) {
+void TridentEngine::updateWeather(f64 rainStrength, f64 thunderStrength) {
     m_rainStrength = rainStrength;
     m_thunderStrength = thunderStrength;
 }
@@ -977,11 +989,11 @@ Result<void> TridentEngine::setVSyncEnabled(bool enabled) {
 }
 
 void TridentEngine::setRenderDistanceChunks(i32 renderDistanceChunks) {
-    m_renderDistanceChunks = std::max(2, renderDistanceChunks);
+    m_renderDistanceChunks = std::max<i32>(2, renderDistanceChunks);
 }
 
-void TridentEngine::setLandFogDensity(f32 fogDensity) {
-    m_landFogDensity = std::clamp(fogDensity, 0.0f, 2.0f);
+void TridentEngine::setLandFogDensity(f64 fogDensity) {
+    m_landFogDensity = std::clamp(fogDensity, 0.0, 2.0);
 }
 
 void TridentEngine::setCloudMode(cloud::CloudMode mode) {
@@ -1275,11 +1287,11 @@ Result<void> TridentEngine::initializeChunkRenderer() {
     pipelineConfig.vertexBindings.push_back(bindingDesc);
 
     std::array<VkVertexInputAttributeDescription, 5> attrs{};
-    attrs[0] = {0, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<u32>(offsetof(Vertex, x))};
-    attrs[1] = {1, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<u32>(offsetof(Vertex, nx))};
-    attrs[2] = {2, 0, VK_FORMAT_R32G32_SFLOAT,    static_cast<u32>(offsetof(Vertex, u))};
-    attrs[3] = {3, 0, VK_FORMAT_R8G8B8A8_UNORM,   static_cast<u32>(offsetof(Vertex, color))};
-    attrs[4] = {4, 0, VK_FORMAT_R8_UINT,          static_cast<u32>(offsetof(Vertex, light))};
+    attrs[0] = {0, 0, VK_FORMAT_R64G64B64_SFLOAT, static_cast<u32>(offsetof(Vertex, x))};
+    attrs[1] = {2, 0, VK_FORMAT_R64G64B64_SFLOAT, static_cast<u32>(offsetof(Vertex, nx))};
+    attrs[2] = {4, 0, VK_FORMAT_R64G64_SFLOAT,    static_cast<u32>(offsetof(Vertex, u))};
+    attrs[3] = {5, 0, VK_FORMAT_R8G8B8A8_UNORM,   static_cast<u32>(offsetof(Vertex, color))};
+    attrs[4] = {6, 0, VK_FORMAT_R8_UINT,          static_cast<u32>(offsetof(Vertex, light))};
     pipelineConfig.vertexAttributes.assign(attrs.begin(), attrs.end());
 
     pipelineConfig.descriptorSetLayouts = {

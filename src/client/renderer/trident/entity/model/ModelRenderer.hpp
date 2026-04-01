@@ -19,8 +19,10 @@ struct ModelVertex {
     Vector3f normal;     // 法线
 
     ModelVertex() = default;
-    ModelVertex(f32 x, f32 y, f32 z, f32 u, f32 v, f32 nx = 0, f32 ny = 0, f32 nz = 0)
-        : position(x, y, z), texCoord(u, v), normal(nx, ny, nz) {}
+    ModelVertex(f64 x, f64 y, f64 z, f64 u, f64 v, f64 nx = 0, f64 ny = 0, f64 nz = 0)
+        : position(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z))
+        , texCoord(static_cast<f32>(u), static_cast<f32>(v))
+        , normal(static_cast<f32>(nx), static_cast<f32>(ny), static_cast<f32>(nz)) {}
 
     ModelVertex(const Vector3f& pos, const Vector2f& tex, const Vector3f& norm)
         : position(pos), texCoord(tex), normal(norm) {}
@@ -47,8 +49,8 @@ struct TexturedQuad {
      * @param mirror 是否镜像（影响顶点顺序）
      */
     TexturedQuad(const std::array<Vector3f, 4>& positions,
-                 f32 u1, f32 v1, f32 u2, f32 v2,
-                 f32 texWidth, f32 texHeight,
+                 f64 u1, f64 v1, f64 u2, f64 v2,
+                 f64 texWidth, f64 texHeight,
                  const Vector3f& normal,
                  bool mirror = false);
 };
@@ -60,8 +62,8 @@ struct TexturedQuad {
  * UV坐标根据纹理偏移自动计算。
  */
 struct ModelBox {
-    f32 posX1, posY1, posZ1;  // 最小角
-    f32 posX2, posY2, posZ2;  // 最大角
+    f64 posX1, posY1, posZ1;  // 最小角
+    f64 posX2, posY2, posZ2;  // 最大角
     std::array<TexturedQuad, 6> quads;  // 6个面：东、西、北、下、上、南
 
     /**
@@ -82,10 +84,10 @@ struct ModelBox {
      * @param mirror 是否镜像
      */
     ModelBox(i32 texOffX, i32 texOffY,
-             f32 x, f32 y, f32 z,
-             f32 width, f32 height, f32 depth,
-             f32 deltaX = 0.0f, f32 deltaY = 0.0f, f32 deltaZ = 0.0f,
-             f32 texWidth = 64.0f, f32 texHeight = 32.0f,
+             f64 x, f64 y, f64 z,
+             f64 width, f64 height, f64 depth,
+             f64 deltaX = 0.0f, f64 deltaY = 0.0f, f64 deltaZ = 0.0f,
+             f64 texWidth = 64.0f, f64 texHeight = 32.0f,
              bool mirror = false);
 };
 
@@ -123,7 +125,7 @@ public:
     /**
      * @brief 设置位置偏移
      */
-    void setOffset(f32 x, f32 y, f32 z) {
+    void setOffset(f64 x, f64 y, f64 z) {
         m_offsetX = x;
         m_offsetY = y;
         m_offsetZ = z;
@@ -132,7 +134,7 @@ public:
     /**
      * @brief 设置旋转点
      */
-    void setRotationPoint(f32 x, f32 y, f32 z) {
+    void setRotationPoint(f64 x, f64 y, f64 z) {
         m_rotationPointX = x;
         m_rotationPointY = y;
         m_rotationPointZ = z;
@@ -141,7 +143,7 @@ public:
     /**
      * @brief 设置旋转角度（弧度）
      */
-    void setRotation(f32 x, f32 y, f32 z) {
+    void setRotation(f64 x, f64 y, f64 z) {
         m_rotateAngleX = x;
         m_rotateAngleY = y;
         m_rotateAngleZ = z;
@@ -150,7 +152,7 @@ public:
     /**
      * @brief 设置缩放
      */
-    void setScale(f32 x, f32 y, f32 z) {
+    void setScale(f64 x, f64 y, f64 z) {
         m_scaleX = x;
         m_scaleY = y;
         m_scaleZ = z;
@@ -169,7 +171,7 @@ public:
      * @param delta 膨胀值（用于防止Z-fighting）
      * @return 本部件引用
      */
-    ModelRenderer& addBox(f32 x, f32 y, f32 z, f32 width, f32 height, f32 depth, f32 delta = 0.0f);
+    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth, f64 delta = 0.0f);
 
     /**
      * @brief 添加一个盒子（带纹理偏移）
@@ -185,16 +187,16 @@ public:
      * @return 本部件引用
      */
     ModelRenderer& addBox(i32 textureOffsetX, i32 textureOffsetY,
-                          f32 x, f32 y, f32 z,
-                          f32 width, f32 height, f32 depth,
-                          f32 delta = 0.0f);
+                          f64 x, f64 y, f64 z,
+                          f64 width, f64 height, f64 depth,
+                          f64 delta = 0.0f);
 
     /**
      * @brief 添加一个盒子（带镜像选项）
      */
-    ModelRenderer& addBox(f32 x, f32 y, f32 z,
-                          f32 width, f32 height, f32 depth,
-                          bool mirror, f32 delta = 0.0f);
+    ModelRenderer& addBox(f64 x, f64 y, f64 z,
+                          f64 width, f64 height, f64 depth,
+                          bool mirror, f64 delta = 0.0f);
 
     // ========== 镜像 ==========
 
@@ -231,7 +233,7 @@ public:
      */
     void generateMesh(std::vector<ModelVertex>& vertices,
                       std::vector<u32>& indices,
-                      f32 scale = 1.0f / 16.0f) const;
+                      f64 scale = 1.0f / 16.0f) const;
 
     /**
      * @brief 生成渲染网格（带变换矩阵）
@@ -242,8 +244,8 @@ public:
      */
     void generateMesh(std::vector<ModelVertex>& vertices,
                       std::vector<u32>& indices,
-                      const std::array<f32, 16>& parentMatrix,
-                      f32 scale = 1.0f / 16.0f) const;
+                      const std::array<f64, 16>& parentMatrix,
+                      f64 scale = 1.0f / 16.0f) const;
 
     // ========== 渲染（遗留接口，未来移除） ==========
 
@@ -251,13 +253,13 @@ public:
      * @brief 渲染模型
      * @param scale 缩放因子
      */
-    void render(f32 scale = 1.0f / 16.0f);
+    void render(f64 scale = 1.0f / 16.0f);
 
     /**
      * @brief 渲染时不进行旋转
      * @param scale 缩放因子
      */
-    void renderNoRotate(f32 scale = 1.0f / 16.0f);
+    void renderNoRotate(f64 scale = 1.0f / 16.0f);
 
     // ========== 动画 ==========
 
@@ -266,7 +268,7 @@ public:
      * @param target 目标角度
      * @param speed 插值速度
      */
-    void interpolateRotation(const Vector3f& target, f32 speed);
+    void interpolateRotation(const Vector3f& target, f64 speed);
 
     // ========== 状态 ==========
 
@@ -281,19 +283,19 @@ public:
 
     // ========== 旋转访问器 ==========
 
-    [[nodiscard]] f32 rotateAngleX() const { return m_rotateAngleX; }
-    [[nodiscard]] f32 rotateAngleY() const { return m_rotateAngleY; }
-    [[nodiscard]] f32 rotateAngleZ() const { return m_rotateAngleZ; }
+    [[nodiscard]] f64 rotateAngleX() const { return m_rotateAngleX; }
+    [[nodiscard]] f64 rotateAngleY() const { return m_rotateAngleY; }
+    [[nodiscard]] f64 rotateAngleZ() const { return m_rotateAngleZ; }
 
-    void setRotateAngleX(f32 angle) { m_rotateAngleX = angle; }
-    void setRotateAngleY(f32 angle) { m_rotateAngleY = angle; }
-    void setRotateAngleZ(f32 angle) { m_rotateAngleZ = angle; }
+    void setRotateAngleX(f64 angle) { m_rotateAngleX = angle; }
+    void setRotateAngleY(f64 angle) { m_rotateAngleY = angle; }
+    void setRotateAngleZ(f64 angle) { m_rotateAngleZ = angle; }
 
     // ========== 旋转点访问器 ==========
 
-    [[nodiscard]] f32 rotationPointX() const { return m_rotationPointX; }
-    [[nodiscard]] f32 rotationPointY() const { return m_rotationPointY; }
-    [[nodiscard]] f32 rotationPointZ() const { return m_rotationPointZ; }
+    [[nodiscard]] f64 rotationPointX() const { return m_rotationPointX; }
+    [[nodiscard]] f64 rotationPointY() const { return m_rotationPointY; }
+    [[nodiscard]] f64 rotationPointZ() const { return m_rotationPointZ; }
 
     // ========== 复制旋转 ==========
 
@@ -306,22 +308,22 @@ private:
     String m_name;
 
     // 变换
-    f32 m_offsetX = 0.0f;
-    f32 m_offsetY = 0.0f;
-    f32 m_offsetZ = 0.0f;
-    f32 m_rotationPointX = 0.0f;
-    f32 m_rotationPointY = 0.0f;
-    f32 m_rotationPointZ = 0.0f;
-    f32 m_rotateAngleX = 0.0f;
-    f32 m_rotateAngleY = 0.0f;
-    f32 m_rotateAngleZ = 0.0f;
-    f32 m_scaleX = 1.0f;
-    f32 m_scaleY = 1.0f;
-    f32 m_scaleZ = 1.0f;
+    f64 m_offsetX = 0.0f;
+    f64 m_offsetY = 0.0f;
+    f64 m_offsetZ = 0.0f;
+    f64 m_rotationPointX = 0.0f;
+    f64 m_rotationPointY = 0.0f;
+    f64 m_rotationPointZ = 0.0f;
+    f64 m_rotateAngleX = 0.0f;
+    f64 m_rotateAngleY = 0.0f;
+    f64 m_rotateAngleZ = 0.0f;
+    f64 m_scaleX = 1.0f;
+    f64 m_scaleY = 1.0f;
+    f64 m_scaleZ = 1.0f;
 
     // 纹理
-    f32 m_textureWidth = 64.0f;
-    f32 m_textureHeight = 32.0f;
+    f64 m_textureWidth = 64.0f;
+    f64 m_textureHeight = 32.0f;
     i32 m_textureOffsetX = 0;
     i32 m_textureOffsetY = 0;
 
@@ -342,42 +344,42 @@ private:
     /**
      * @brief 创建单位矩阵
      */
-    static std::array<f32, 16> identityMatrix();
+    static std::array<f64, 16> identityMatrix();
 
     /**
      * @brief 矩阵乘法
      */
-    static std::array<f32, 16> multiplyMatrices(const std::array<f32, 16>& a, const std::array<f32, 16>& b);
+    static std::array<f64, 16> multiplyMatrices(const std::array<f64, 16>& a, const std::array<f64, 16>& b);
 
     /**
      * @brief 创建平移矩阵
      */
-    static std::array<f32, 16> translationMatrix(f32 x, f32 y, f32 z);
+    static std::array<f64, 16> translationMatrix(f64 x, f64 y, f64 z);
 
     /**
      * @brief 创建绕X轴旋转矩阵
      */
-    static std::array<f32, 16> rotationXMatrix(f32 angle);
+    static std::array<f64, 16> rotationXMatrix(f64 angle);
 
     /**
      * @brief 创建绕Y轴旋转矩阵
      */
-    static std::array<f32, 16> rotationYMatrix(f32 angle);
+    static std::array<f64, 16> rotationYMatrix(f64 angle);
 
     /**
      * @brief 创建绕Z轴旋转矩阵
      */
-    static std::array<f32, 16> rotationZMatrix(f32 angle);
+    static std::array<f64, 16> rotationZMatrix(f64 angle);
 
     /**
      * @brief 创建缩放矩阵
      */
-    static std::array<f32, 16> scaleMatrix(f32 x, f32 y, f32 z);
+    static std::array<f64, 16> scaleMatrix(f64 x, f64 y, f64 z);
 
     /**
      * @brief 应用矩阵变换到顶点
      */
-    static ModelVertex transformVertex(const ModelVertex& vertex, const std::array<f32, 16>& matrix);
+    static ModelVertex transformVertex(const ModelVertex& vertex, const std::array<f64, 16>& matrix);
 };
 
 } // namespace mc::client::renderer

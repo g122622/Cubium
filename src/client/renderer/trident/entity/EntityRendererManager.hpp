@@ -97,7 +97,7 @@ public:
      * @param partialTicks 部分tick
      * @deprecated 使用 renderWithPipeline 代替
      */
-    void render(Entity& entity, f32 partialTicks);
+    void render(Entity& entity, f64 partialTicks);
 
     /**
      * @brief 使用管线渲染实体
@@ -105,7 +105,7 @@ public:
      * @param entity 客户端实体
      * @param partialTicks 部分tick
      */
-    void renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f32 partialTicks);
+    void renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks);
 
     // ========== 管线 ==========
 
@@ -247,7 +247,7 @@ private:
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f32 calculateItemBobOffset(u32 ticksExisted, f32 partialTick) const;
+    [[nodiscard]] f64 calculateItemBobOffset(u32 ticksExisted, f64 partialTick) const;
 
     /**
      * @brief 计算 ItemEntity 旋转角度
@@ -255,7 +255,7 @@ private:
      * @param partialTick 部分 tick
      * @return 旋转角度（度）
      */
-    [[nodiscard]] f32 calculateItemRotation(u32 ticksExisted, f32 partialTick) const;
+    [[nodiscard]] f64 calculateItemRotation(u32 ticksExisted, f64 partialTick) const;
 
     /**
      * @brief 计算 ExperienceOrb 浮动偏移
@@ -263,7 +263,7 @@ private:
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f32 calculateExperienceOrbBobOffset(u32 ticksExisted, f32 partialTick) const;
+    [[nodiscard]] f64 calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const;
 };
 
 } // namespace renderer

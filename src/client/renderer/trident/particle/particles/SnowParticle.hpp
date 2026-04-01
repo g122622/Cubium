@@ -50,7 +50,7 @@ public:
 
     void buildVertices(
         const glm::vec3& cameraPos,
-        f32 partialTick,
+        f64 partialTick,
         const ParticleTextureAtlas& atlas,
         std::vector<ParticleVertex>& outVertices) const override;
 
@@ -63,12 +63,12 @@ public:
     }
 
 private:
-    static constexpr f32 DEFAULT_GRAVITY = 0.02f;   ///< 雪花重力（比雨滴小）
-    static constexpr f32 SWING_AMPLITUDE = 0.1f;    ///< 摇摆振幅
-    static constexpr f32 SWING_FREQUENCY = 0.05f;   ///< 摇摆频率
+    static constexpr f64 DEFAULT_GRAVITY = 0.02f;   ///< 雪花重力（比雨滴小）
+    static constexpr f64 SWING_AMPLITUDE = 0.1f;    ///< 摇摆振幅
+    static constexpr f64 SWING_FREQUENCY = 0.05f;   ///< 摇摆频率
 
-    f32 m_swingPhase;      ///< 摇摆相位（随机初始值）
-    f32 m_swingAmplitude;  ///< 摇摆振幅（个体差异）
+    f64 m_swingPhase;      ///< 摇摆相位（随机初始值）
+    f64 m_swingAmplitude;  ///< 摇摆振幅（个体差异）
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

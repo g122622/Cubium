@@ -22,7 +22,7 @@ public:
      * @param maxAge 粒子最大年龄（ticks）
      * @return UV 坐标 (minU, minV, maxU, maxV)
      */
-    [[nodiscard]] virtual glm::vec4 getFrameUV(f32 age, f32 maxAge) const = 0;
+    [[nodiscard]] virtual glm::vec4 getFrameUV(f64 age, f64 maxAge) const = 0;
 
     /**
      * @brief 获取随机帧的 UV 坐标
@@ -53,7 +53,7 @@ public:
      *
      * @return 每帧持续时间（秒），静态精灵返回 0
      */
-    [[nodiscard]] virtual f32 frameTime() const = 0;
+    [[nodiscard]] virtual f64 frameTime() const = 0;
 };
 
 } // namespace mc::client::renderer::trident::particle

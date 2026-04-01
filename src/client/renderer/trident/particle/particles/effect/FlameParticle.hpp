@@ -58,14 +58,14 @@ public:
         return 0xF0;  // 始终最大亮度
     }
 
-    [[nodiscard]] f32 getScale(f32 partialTick) const override;
+    [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f32 DEFAULT_GRAVITY = 0.0f;  // 火焰不受重力
-    static constexpr f32 DEFAULT_SIZE = 0.04f;
-    static constexpr f32 DEFAULT_LIFETIME = 30.0f;  // 约 1.5 秒
+    static constexpr f64 DEFAULT_GRAVITY = 0.0f;  // 火焰不受重力
+    static constexpr f64 DEFAULT_SIZE = 0.04f;
+    static constexpr f64 DEFAULT_LIFETIME = 30.0f;  // 约 1.5 秒
 
-    f32 m_initialSize;  ///< 初始大小（用于缩放动画）
+    f64 m_initialSize;  ///< 初始大小（用于缩放动画）
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

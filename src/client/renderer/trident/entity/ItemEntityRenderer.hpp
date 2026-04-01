@@ -42,14 +42,14 @@ public:
      * @param entity 实体（必须是 ClientEntity）
      * @param partialTicks 部分 tick
      */
-    void render(Entity& entity, f32 partialTicks) override;
+    void render(Entity& entity, f64 partialTicks) override;
 
     /**
      * @brief 渲染阴影（ItemEntity 通常没有阴影或阴影很小）
      * @param entity 实体
      * @param partialTicks 部分 tick
      */
-    void renderShadow(Entity& entity, f32 partialTicks) override;
+    void renderShadow(Entity& entity, f64 partialTicks) override;
 
     /**
      * @brief 设置物品纹理图集
@@ -70,7 +70,7 @@ private:
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f32 calculateBobOffset(u32 ticksExisted, f32 partialTick) const;
+    [[nodiscard]] f64 calculateBobOffset(u32 ticksExisted, f64 partialTick) const;
 
     /**
      * @brief 计算旋转角度
@@ -78,7 +78,7 @@ private:
      * @param partialTick 部分 tick
      * @return 旋转角度（度）
      */
-    [[nodiscard]] f32 calculateRotation(u32 ticksExisted, f32 partialTick) const;
+    [[nodiscard]] f64 calculateRotation(u32 ticksExisted, f64 partialTick) const;
 
     /**
      * @brief 获取物品纹理区域
@@ -91,11 +91,11 @@ private:
     trident::gui::GuiRenderer* m_guiRenderer = nullptr;
 
     // ItemEntity 动画常量（参考 MC 1.16.5）
-    static constexpr f32 BOB_AMPLITUDE = 0.1f;       // 浮动高度
-    static constexpr f32 BOB_FREQUENCY = 0.1f;       // 浮动速度（弧度/tick）
-    static constexpr f32 ROTATION_SPEED = 2.0f;      // 旋转速度（度/tick）
-    static constexpr f32 GROUND_OFFSET = 0.25f;      // 地面高度偏移
-    static constexpr f32 ITEM_SIZE = 0.25f;          // 渲染大小
+    static constexpr f64 BOB_AMPLITUDE = 0.1f;       // 浮动高度
+    static constexpr f64 BOB_FREQUENCY = 0.1f;       // 浮动速度（弧度/tick）
+    static constexpr f64 ROTATION_SPEED = 2.0f;      // 旋转速度（度/tick）
+    static constexpr f64 GROUND_OFFSET = 0.25f;      // 地面高度偏移
+    static constexpr f64 ITEM_SIZE = 0.25f;          // 渲染大小
 };
 
 } // namespace client::renderer

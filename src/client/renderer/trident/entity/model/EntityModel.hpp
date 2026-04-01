@@ -24,7 +24,7 @@ public:
      * @brief 渲染模型
      * @param scale 缩放因子
      */
-    virtual void render(f32 scale = 1.0f / 16.0f);
+    virtual void render(f64 scale = 1.0f / 16.0f);
 
     /**
      * @brief 生成模型网格
@@ -34,7 +34,7 @@ public:
      */
     virtual void generateMesh(std::vector<ModelVertex>& vertices,
                               std::vector<u32>& indices,
-                              f32 scale = 1.0f / 16.0f) const;
+                              f64 scale = 1.0f / 16.0f) const;
 
     /**
      * @brief 设置动画参数
@@ -45,9 +45,9 @@ public:
      * @param headPitch 头部俯仰角
      * @param scale 缩放因子
      */
-    virtual void setAngles(f32 limbSwing, f32 limbSwingAmount,
-                           f32 ageInTicks, f32 netHeadYaw,
-                           f32 headPitch, f32 scale);
+    virtual void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                           f64 ageInTicks, f64 netHeadYaw,
+                           f64 headPitch, f64 scale);
 
     // ========== 动画 ==========
 
@@ -94,11 +94,11 @@ public:
     QuadrupedModel();
     ~QuadrupedModel() override = default;
 
-    void render(f32 scale = 1.0f / 16.0f) override;
+    void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f32 limbSwing, f32 limbSwingAmount,
-                   f32 ageInTicks, f32 netHeadYaw,
-                   f32 headPitch, f32 scale) override;
+    void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                   f64 ageInTicks, f64 netHeadYaw,
+                   f64 headPitch, f64 scale) override;
 
 protected:
     /**
@@ -127,11 +127,11 @@ public:
     BipedModel();
     ~BipedModel() override = default;
 
-    void render(f32 scale = 1.0f / 16.0f) override;
+    void render(f64 scale = 1.0f / 16.0f) override;
 
-    void setAngles(f32 limbSwing, f32 limbSwingAmount,
-                   f32 ageInTicks, f32 netHeadYaw,
-                   f32 headPitch, f32 scale) override;
+    void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                   f64 ageInTicks, f64 netHeadYaw,
+                   f64 headPitch, f64 scale) override;
 
 protected:
     /**

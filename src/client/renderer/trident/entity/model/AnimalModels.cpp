@@ -16,9 +16,9 @@ PigModel::PigModel()
     m_textureHeight = 32;
 }
 
-void PigModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
-                          f32 ageInTicks, f32 netHeadYaw,
-                          f32 headPitch, f32 scale) {
+void PigModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
+                          f64 ageInTicks, f64 netHeadYaw,
+                          f64 headPitch, f64 scale) {
     // 调用基类动画
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
@@ -72,9 +72,9 @@ CowModel::CowModel()
     m_textureHeight = 32;
 }
 
-void CowModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
-                          f32 ageInTicks, f32 netHeadYaw,
-                          f32 headPitch, f32 scale) {
+void CowModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
+                          f64 ageInTicks, f64 netHeadYaw,
+                          f64 headPitch, f64 scale) {
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
     (void)scale;
@@ -124,9 +124,9 @@ SheepModel::SheepModel()
     m_textureHeight = 32;
 }
 
-void SheepModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
-                            f32 ageInTicks, f32 netHeadYaw,
-                            f32 headPitch, f32 scale) {
+void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
+                            f64 ageInTicks, f64 netHeadYaw,
+                            f64 headPitch, f64 scale) {
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
     (void)scale;
@@ -202,13 +202,13 @@ ChickenModel::ChickenModel()
     m_textureHeight = 32;
 }
 
-void ChickenModel::render(f32 scale) {
+void ChickenModel::render(f64 scale) {
     EntityModel::render(scale);
 }
 
-void ChickenModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
-                              f32 ageInTicks, f32 netHeadYaw,
-                              f32 headPitch, f32 scale) {
+void ChickenModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
+                              f64 ageInTicks, f64 netHeadYaw,
+                              f64 headPitch, f64 scale) {
     // 头部旋转
     m_head->setRotateAngleX(math::toRadians(headPitch));
     m_head->setRotateAngleY(math::toRadians(netHeadYaw));
@@ -227,8 +227,8 @@ void ChickenModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
     m_body->setRotateAngleX(math::PI * 0.5f);
 
     // 步态动画
-    const f32 walkAngle = limbSwing * 0.6662f;
-    const f32 walkAmount = limbSwingAmount * 1.4f;
+    const f64 walkAngle = limbSwing * 0.6662f;
+    const f64 walkAmount = limbSwingAmount * 1.4f;
 
     // 腿部动画
     m_rightLeg->setRotateAngleX(std::cos(walkAngle) * walkAmount);

@@ -517,8 +517,8 @@ u32 ChunkMesher::resolveTintColor(
         return packVertexColor(255, 255, 255, 255);
     }
 
-    const auto clampToColorIndex = [](f32 value) -> i32 {
-        return static_cast<i32>((1.0f - std::clamp(value, 0.0f, 1.0f)) * 255.0f);
+    const auto clampToColorIndex = [](f64 value) -> i32 {
+        return static_cast<i32>((1.0 - std::clamp(value, 0.0, 1.0)) * 255.0);
     };
 
     const BiomeId biomeId = chunk.getBiomeAtBlock(blockX, blockY, blockZ);
@@ -541,8 +541,8 @@ u32 ChunkMesher::resolveTintColor(
         return packVertexColor(255, 255, 255, 255);
     }
 
-    const f32 temperature = std::clamp(biome.temperature(), 0.0f, 1.0f);
-    const f32 humidity = std::clamp(biome.humidity(), 0.0f, 1.0f) * temperature;
+    const f64 temperature = std::clamp(static_cast<f64>(biome.temperature()), 0.0, 1.0);
+    const f64 humidity = std::clamp(static_cast<f64>(biome.humidity()), 0.0, 1.0) * temperature;
     const i32 tempIndex = clampToColorIndex(temperature);
     const i32 humidityIndex = clampToColorIndex(humidity);
     const i32 colorIndex = (humidityIndex << 8) | tempIndex;
@@ -756,7 +756,7 @@ void ChunkMesher::clearBiomeColorCache() {
 void ChunkMesher::addFaceFromAppearance(
     MeshData& mesh,
     Face face,
-    f32 x, f32 y, f32 z,
+    f64 x, f64 y, f64 z,
     const ChunkData& chunk,
     i32 blockX,
     i32 blockY,
@@ -828,7 +828,7 @@ void ChunkMesher::addFaceFromAppearance(
 
         // UV坐标根据顶点位置设置
         // 顶点顺序: 左下、右下、右上、左上
-        f32 uvs[4][2] = {
+        f64 uvs[4][2] = {
             { layer.texture.u0, layer.texture.v1 }, // 左下
             { layer.texture.u1, layer.texture.v1 }, // 右下
             { layer.texture.u1, layer.texture.v0 }, // 右上
@@ -836,7 +836,7 @@ void ChunkMesher::addFaceFromAppearance(
         };
 
         // 叠加层沿法线轻微外移，避免与底层完全重合导致闪烁
-        const f32 layerOffset = static_cast<f32>(layerIndex) * 0.001f;
+        const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
 
         std::array<Vertex, 4> faceVerts;
         for (size_t i = 0; i < 4; ++i) {
@@ -867,7 +867,7 @@ void ChunkMesher::addFaceFromAppearance(
 void ChunkMesher::addFaceFromAppearanceSmooth(
     MeshData& mesh,
     Face face,
-    f32 x, f32 y, f32 z,
+    f64 x, f64 y, f64 z,
     const ChunkData& chunk,
     i32 blockX, i32 blockY, i32 blockZ,
     const BlockState* block,
@@ -933,7 +933,7 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
 
         // UV坐标根据顶点位置设置
         // 顶点顺序: 左下、右下、右上、左上
-        f32 uvs[4][2] = {
+        f64 uvs[4][2] = {
             { layer.texture.u0, layer.texture.v1 }, // 左下
             { layer.texture.u1, layer.texture.v1 }, // 右下
             { layer.texture.u1, layer.texture.v0 }, // 右上
@@ -941,7 +941,7 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         };
 
         // 叠加层沿法线轻微外移，避免与底层完全重合导致闪烁
-        const f32 layerOffset = static_cast<f32>(layerIndex) * 0.001f;
+        const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
 
         // 创建4个顶点，每个顶点有独立的光照和AO
         std::array<Vertex, 4> faceVerts;
@@ -1082,9 +1082,9 @@ void ChunkMesher::simpleMeshSection(
 
                     // 决定是否渲染该面
                     if (shouldRenderFace(block, neighbor)) {
-                        const f32 fx = static_cast<f32>(x);
-                        const f32 fy = static_cast<f32>(baseY + y);
-                        const f32 fz = static_cast<f32>(z);
+                        const f64 fx = static_cast<f64>(x);
+                        const f64 fy = static_cast<f64>(baseY + y);
+                        const f64 fz = static_cast<f64>(z);
 
                         if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
                             // 平滑光照模式：使用AO计算
@@ -1374,41 +1374,41 @@ void ChunkMesher::greedyMeshSection(
             const auto& layer = cell.layers[layerIndex];
             const u32 color = cell.shadedLayerColors[layerIndex];
 
-            f32 x0 = 0.0f;
-            f32 x1 = 0.0f;
-            f32 y0 = 0.0f;
-            f32 y1 = 0.0f;
-            f32 z0 = 0.0f;
-            f32 z1 = 0.0f;
+            f64 x0 = 0.0f;
+            f64 x1 = 0.0f;
+            f64 y0 = 0.0f;
+            f64 y1 = 0.0f;
+            f64 z0 = 0.0f;
+            f64 z1 = 0.0f;
 
             switch (face) {
                 case Face::Bottom:
                 case Face::Top:
-                    x0 = static_cast<f32>(u);
-                    x1 = static_cast<f32>(u + width);
-                    z0 = static_cast<f32>(v);
-                    z1 = static_cast<f32>(v + height);
-                    y0 = static_cast<f32>(baseY + d + (face == Face::Top ? 1 : 0));
+                    x0 = static_cast<f64>(u);
+                    x1 = static_cast<f64>(u + width);
+                    z0 = static_cast<f64>(v);
+                    z1 = static_cast<f64>(v + height);
+                    y0 = static_cast<f64>(baseY + d + (face == Face::Top ? 1 : 0));
                     y1 = y0;
                     break;
 
                 case Face::North:
                 case Face::South:
-                    x0 = static_cast<f32>(u);
-                    x1 = static_cast<f32>(u + width);
-                    y0 = static_cast<f32>(baseY + v);
-                    y1 = static_cast<f32>(baseY + v + height);
-                    z0 = static_cast<f32>(d + (face == Face::South ? 1 : 0));
+                    x0 = static_cast<f64>(u);
+                    x1 = static_cast<f64>(u + width);
+                    y0 = static_cast<f64>(baseY + v);
+                    y1 = static_cast<f64>(baseY + v + height);
+                    z0 = static_cast<f64>(d + (face == Face::South ? 1 : 0));
                     z1 = z0;
                     break;
 
                 case Face::West:
                 case Face::East:
-                    z0 = static_cast<f32>(u);
-                    z1 = static_cast<f32>(u + width);
-                    y0 = static_cast<f32>(baseY + v);
-                    y1 = static_cast<f32>(baseY + v + height);
-                    x0 = static_cast<f32>(d + (face == Face::East ? 1 : 0));
+                    z0 = static_cast<f64>(u);
+                    z1 = static_cast<f64>(u + width);
+                    y0 = static_cast<f64>(baseY + v);
+                    y1 = static_cast<f64>(baseY + v + height);
+                    x0 = static_cast<f64>(d + (face == Face::East ? 1 : 0));
                     x1 = x0;
                     break;
 
@@ -1416,7 +1416,7 @@ void ChunkMesher::greedyMeshSection(
                     return;
             }
 
-            std::array<std::array<f32, 3>, 4> positions{};
+            std::array<std::array<f64, 3>, 4> positions{};
             switch (face) {
                 case Face::Bottom:
                     positions = {{{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}}};
@@ -1442,14 +1442,14 @@ void ChunkMesher::greedyMeshSection(
 
             // UV 仍按单方块面的标准布局，保持与现有渲染路径一致。
             // 若后续需要平铺纹理，可扩展顶点格式传递 UV 缩放参数。
-            const f32 uvs[4][2] = {
+            const f64 uvs[4][2] = {
                 { layer.texture.u0, layer.texture.v1 },
                 { layer.texture.u1, layer.texture.v1 },
                 { layer.texture.u1, layer.texture.v0 },
                 { layer.texture.u0, layer.texture.v0 }
             };
 
-            const f32 layerOffset = static_cast<f32>(layerIndex) * 0.001f;
+            const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
 
             std::array<Vertex, 4> faceVerts;
             for (size_t i = 0; i < 4; ++i) {

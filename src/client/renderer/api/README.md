@@ -114,8 +114,8 @@ static RasterizerState wireframe();    // 线框模式
 **BlockGeometry 命名空间**：
 ```cpp
 // 获取面的几何数据
-std::array<f32, 3> getFaceNormal(Face face);      // 法线向量
-std::array<f32, 12> getFaceVertices(Face face);   // 4个顶点位置
+std::array<f64, 3> getFaceNormal(Face face);      // 法线向量
+std::array<f64, 12> getFaceVertices(Face face);   // 4个顶点位置
 std::array<u32, 6> getFaceIndices();              // 2个三角形索引
 std::array<i32, 3> getFaceDirection(Face face);   // 方向向量（整数）
 bool shouldRenderFace(Face face, bool neighborOpaque); // 面剔除判断
@@ -213,13 +213,13 @@ void bind(void* commandBuffer);           // 绑定到管线
 
 ```cpp
 struct CameraConfig {
-    f32 fov = 70.0f;               // 视野角度
-    f32 aspectRatio = 16.0f / 9.0f; // 宽高比
-    f32 nearPlane = 0.1f;          // 近裁剪面
-    f32 farPlane = 1000.0f;        // 远裁剪面
-    f32 orthoSize = 10.0f;         // 正交投影大小
-    f32 moveSpeed = 5.0f;          // 移动速度
-    f32 mouseSensitivity = 0.1f;   // 鼠标灵敏度
+    f64 fov = 70.0f;               // 视野角度
+    f64 aspectRatio = 16.0f / 9.0f; // 宽高比
+    f64 nearPlane = 0.1f;          // 近裁剪面
+    f64 farPlane = 1000.0f;        // 远裁剪面
+    f64 orthoSize = 10.0f;         // 正交投影大小
+    f64 moveSpeed = 5.0f;          // 移动速度
+    f64 mouseSensitivity = 0.1f;   // 鼠标灵敏度
     ProjectionMode projectionMode = ProjectionMode::Perspective;
 };
 ```
@@ -240,8 +240,8 @@ glm::vec3 up() const;       // 上向向量
 **投影控制**：
 ```cpp
 void setProjectionMode(ProjectionMode mode);
-void setFOV(f32 fov);
-void setAspectRatio(f32 aspectRatio);
+void setFOV(f64 fov);
+void setAspectRatio(f64 aspectRatio);
 const glm::mat4& viewMatrix() const;
 const glm::mat4& projectionMatrix() const;
 const glm::mat4& viewProjectionMatrix() const;
@@ -376,11 +376,11 @@ if (rt.shouldRenderBefore(otherRt)) {
 
 ```cpp
 struct TextureRegion {
-    f32 u0, v0;  // 左上角
-    f32 u1, v1;  // 右下角
+    f64 u0, v0;  // 左上角
+    f64 u1, v1;  // 右下角
 
-    f32 width() const;   // UV 宽度
-    f32 height() const;  // UV 高度
+    f64 width() const;   // UV 宽度
+    f64 height() const;  // UV 高度
     static TextureRegion full();  // 整个纹理
 };
 
@@ -526,7 +526,7 @@ graph TB
 | 依赖 | 用途 |
 |------|------|
 | `glm` | 数学库（vec3, mat4, quaternion） |
-| `common/core/Types.hpp` | 基础类型定义（u8, u32, f32, String 等） |
+| `common/core/Types.hpp` | 基础类型定义（u8, u32, f64, String 等） |
 | `common/core/Result.hpp` | 错误处理 |
 | `common/resource/ResourceLocation.hpp` | 资源定位符 |
 | `common/util/math/MathUtils.hpp` | 数学工具 |

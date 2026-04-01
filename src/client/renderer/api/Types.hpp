@@ -17,14 +17,14 @@ namespace mc::client::renderer::api {
  * 与着色器中的顶点输入布局对应。
  */
 struct Vertex {
-    f32 x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
-    f32 nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
-    f32 u = 0.0f, v = 0.0f;                  // 纹理坐标
+    f64 x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
+    f64 nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
+    f64 u = 0.0f, v = 0.0f;                  // 纹理坐标
     u32 color = 0xFFFFFFFF;                  // 顶点颜色 (RGBA)
     u8 light = 255;                          // 光照 (R8_UNORM 编码，0-255)
 
     Vertex() = default;
-    Vertex(f32 px, f32 py, f32 pz, f32 nu, f32 nv, f32 nw, f32 tu, f32 tv, u32 col = 0xFFFFFFFF, u8 l = 255)
+    Vertex(f64 px, f64 py, f64 pz, f64 nu, f64 nv, f64 nw, f64 tu, f64 tv, u32 col = 0xFFFFFFFF, u8 l = 255)
         : x(px), y(py), z(pz)
         , nx(nu), ny(nv), nz(nw)
         , u(tu), v(tv)
@@ -73,14 +73,14 @@ constexpr u32 INDICES_PER_FACE = 6;
  * @param face 面朝向
  * @return 法线向量 (3个分量: x, y, z)
  */
-[[nodiscard]] std::array<f32, 3> getFaceNormal(Face face);
+[[nodiscard]] std::array<f64, 3> getFaceNormal(Face face);
 
 /**
  * @brief 获取面的顶点位置
  * @param face 面朝向
- * @return 4个顶点的位置，每个顶点3个分量 (共12个f32)
+ * @return 4个顶点的位置，每个顶点3个分量 (共12个f64)
  */
-[[nodiscard]] std::array<f32, 12> getFaceVertices(Face face);
+[[nodiscard]] std::array<f64, 12> getFaceVertices(Face face);
 
 /**
  * @brief 获取标准面的索引 (两个三角形)

@@ -67,8 +67,8 @@ public:
     // 属性访问器
     const glm::vec3& position() const;
     const glm::vec3& velocity() const;
-    f32 age() const;
-    f32 maxAge() const;
+    f64 age() const;
+    f64 maxAge() const;
     // ...
 };
 ```

@@ -38,14 +38,14 @@ public:
      * @param entity 实体（必须是 ExperienceOrbEntity）
      * @param partialTicks 部分 tick
      */
-    void render(Entity& entity, f32 partialTicks) override;
+    void render(Entity& entity, f64 partialTicks) override;
 
     /**
      * @brief 渲染阴影（经验球没有阴影）
      * @param entity 实体
      * @param partialTicks 部分 tick
      */
-    void renderShadow(Entity& entity, f32 partialTicks) override;
+    void renderShadow(Entity& entity, f64 partialTicks) override;
 
 private:
     /**
@@ -54,7 +54,7 @@ private:
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f32 calculateBobOffset(u32 ticksExisted, f32 partialTick) const;
+    [[nodiscard]] f64 calculateBobOffset(u32 ticksExisted, f64 partialTick) const;
 
     /**
      * @brief 计算颜色动画相位
@@ -62,14 +62,14 @@ private:
      * @param partialTick 部分 tick
      * @return 颜色相位 (0.0 - 1.0)
      */
-    [[nodiscard]] f32 calculateColorPhase(u32 ticksExisted, f32 partialTick) const;
+    [[nodiscard]] f64 calculateColorPhase(u32 ticksExisted, f64 partialTick) const;
 
     // 动画常量（参考 MC 1.16.5）
-    static constexpr f32 BOB_AMPLITUDE = 0.1f;       // 浮动高度
-    static constexpr f32 BOB_FREQUENCY = 0.05f;      // 浮动速度（弧度/tick）
-    static constexpr f32 COLOR_SPEED = 0.1f;         // 颜色变化速度
-    static constexpr f32 BASE_SIZE = 0.25f;          // 基础大小
-    static constexpr f32 SIZE_INCREMENT = 0.015f;    // 每级大小增量
+    static constexpr f64 BOB_AMPLITUDE = 0.1f;       // 浮动高度
+    static constexpr f64 BOB_FREQUENCY = 0.05f;      // 浮动速度（弧度/tick）
+    static constexpr f64 COLOR_SPEED = 0.1f;         // 颜色变化速度
+    static constexpr f64 BASE_SIZE = 0.25f;          // 基础大小
+    static constexpr f64 SIZE_INCREMENT = 0.015f;    // 每级大小增量
 };
 
 } // namespace client::renderer

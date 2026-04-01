@@ -43,12 +43,12 @@ struct TridentPipelineConfig {
     VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
     VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
     VkFrontFace frontFace = VK_FRONT_FACE_CLOCKWISE;
-    f32 lineWidth = 1.0f;
+    f64 lineWidth = 1.0f;
 
     // 多重采样
     VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     VkBool32 sampleShadingEnable = VK_FALSE;
-    f32 minSampleShading = 1.0f;
+    f64 minSampleShading = 1.0f;
 
     // 深度/模板
     VkBool32 depthTestEnable = VK_TRUE;

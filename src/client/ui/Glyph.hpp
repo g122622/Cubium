@@ -80,8 +80,8 @@ struct EmptyGlyph : public Glyph {
  * 片段着色器根据槽位ID选择对应的采样器进行纹理采样。
  */
 struct GuiVertex {
-    f32 x, y;       ///< 屏幕坐标 (像素)
-    f32 u, v;       ///< 纹理坐标
+    f64 x, y;       ///< 屏幕坐标 (像素)
+    f64 u, v;       ///< 纹理坐标
     u32 color;      ///< ARGB颜色
     u8 atlasSlot;   ///< 图集槽位ID (0-15)
     u8 padding[3];  ///< 对齐填充
@@ -97,7 +97,7 @@ struct GuiVertex {
      * @param col ARGB颜色
      * @param slot 图集槽位ID (默认0)
      */
-    GuiVertex(f32 px, f32 py, f32 pu, f32 pv, u32 col, u8 slot = 0)
+    GuiVertex(f64 px, f64 py, f64 pu, f64 pv, u32 col, u8 slot = 0)
         : x(px), y(py), u(pu), v(pv), color(col), atlasSlot(slot), padding{0, 0, 0} {}
 
     /**

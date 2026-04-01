@@ -13,7 +13,7 @@ LavaParticle::LavaParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
 
     // 熔岩颜色：橙红色
-    f32 colorVar = rng.nextFloat() * 0.2f;
+    f64 colorVar = rng.nextFloat() * 0.2f;
     setColor(glm::vec4(1.0f, 0.3f + colorVar, 0.0f, 1.0f));
 
     setFriction(0.98f);
@@ -54,7 +54,7 @@ void LavaParticle::tick(ClientWorld* world) {
     m_velocity.z *= m_friction;
 
     // 随年龄淡出
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     if (lifeRatio > 0.6f) {
         m_color.a = 1.0f - (lifeRatio - 0.6f) / 0.4f;
     }

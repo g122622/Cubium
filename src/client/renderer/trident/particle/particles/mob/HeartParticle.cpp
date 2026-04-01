@@ -47,7 +47,7 @@ void HeartParticle::tick(ClientWorld* world) {
     m_velocity *= m_friction;
 
     // 随年龄淡出
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     if (lifeRatio > 0.5f) {
         m_color.a = 1.0f - (lifeRatio - 0.5f) * 2.0f;
     }

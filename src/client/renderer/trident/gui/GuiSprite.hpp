@@ -72,10 +72,10 @@ struct GuiSprite {
     String id;           ///< 精灵ID，如 "button_normal"
 
     // UV坐标（归一化）
-    f32 u0 = 0.0f;       ///< 左边缘U坐标 [0, 1]
-    f32 v0 = 0.0f;       ///< 上边缘V坐标 [0, 1]
-    f32 u1 = 1.0f;       ///< 右边缘U坐标 [0, 1]
-    f32 v1 = 1.0f;       ///< 下边缘V坐标 [0, 1]
+    f64 u0 = 0.0f;       ///< 左边缘U坐标 [0, 1]
+    f64 v0 = 0.0f;       ///< 上边缘V坐标 [0, 1]
+    f64 u1 = 1.0f;       ///< 右边缘U坐标 [0, 1]
+    f64 v1 = 1.0f;       ///< 下边缘V坐标 [0, 1]
 
     // 像素尺寸
     i32 width = 0;       ///< 精灵原始宽度（像素）
@@ -107,10 +107,10 @@ struct GuiSprite {
               i32 x, i32 y, i32 w, i32 h,
               i32 atlasWidth, i32 atlasHeight)
         : id(spriteId)
-        , u0(static_cast<f32>(x) / static_cast<f32>(atlasWidth))
-        , v0(static_cast<f32>(y) / static_cast<f32>(atlasHeight))
-        , u1(static_cast<f32>(x + w) / static_cast<f32>(atlasWidth))
-        , v1(static_cast<f32>(y + h) / static_cast<f32>(atlasHeight))
+        , u0(static_cast<f64>(x) / static_cast<f64>(atlasWidth))
+        , v0(static_cast<f64>(y) / static_cast<f64>(atlasHeight))
+        , u1(static_cast<f64>(x + w) / static_cast<f64>(atlasWidth))
+        , v1(static_cast<f64>(y + h) / static_cast<f64>(atlasHeight))
         , width(w)
         , height(h) {}
 

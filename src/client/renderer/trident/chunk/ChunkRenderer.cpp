@@ -59,8 +59,8 @@ void ChunkTextureAtlas::destroy(VkDevice device) {
 
 TextureRegion ChunkTextureAtlas::getRegion(u32 tileX, u32 tileY) const {
     TextureRegion region;
-    region.u0 = static_cast<f32>(tileX * tileSize) / static_cast<f32>(width);
-    region.v0 = static_cast<f32>(tileY * tileSize) / static_cast<f32>(height);
+    region.u0 = static_cast<f64>(tileX * tileSize) / static_cast<f64>(width);
+    region.v0 = static_cast<f64>(tileY * tileSize) / static_cast<f64>(height);
     region.u1 = region.u0 + tileU;
     region.v1 = region.v0 + tileV;
     return region;
@@ -489,8 +489,8 @@ Result<void> ChunkRenderer::loadTextureAtlas(
 
     m_textureAtlas.tileSize = tileSize;
     m_textureAtlas.tilesPerRow = width / tileSize;
-    m_textureAtlas.tileU = static_cast<f32>(tileSize) / static_cast<f32>(width);
-    m_textureAtlas.tileV = static_cast<f32>(tileSize) / static_cast<f32>(height);
+    m_textureAtlas.tileU = static_cast<f64>(tileSize) / static_cast<f64>(width);
+    m_textureAtlas.tileV = static_cast<f64>(tileSize) / static_cast<f64>(height);
 
     // 上传纹理数据
     return uploadTextureData(pixelData, width, height);
@@ -683,7 +683,7 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
 void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
                                       VkPipelineLayout /*pipelineLayout*/,
                                       PushConstantsCallback pushConstantsCallback,
-                                      const glm::vec3& cameraPosition,
+                                      const glm::dvec3& cameraPosition,
                                       bool sortBackToFront) {
     std::vector<const ChunkGpuBuffer*> transparentBuffers;
     transparentBuffers.reserve(m_chunkBuffers.size());
@@ -702,19 +702,19 @@ void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
     if (sortBackToFront) {
         std::sort(transparentBuffers.begin(), transparentBuffers.end(),
             [&cameraPosition](const ChunkGpuBuffer* lhs, const ChunkGpuBuffer* rhs) {
-                const glm::vec3 lhsCenter(
-                    static_cast<f32>(lhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
-                    64.0f,
-                    static_cast<f32>(lhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
+                const glm::dvec3 lhsCenter(
+                    static_cast<f64>(lhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
+                    64.0,
+                    static_cast<f64>(lhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
                 );
-                const glm::vec3 rhsCenter(
-                    static_cast<f32>(rhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
-                    64.0f,
-                    static_cast<f32>(rhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
+                const glm::dvec3 rhsCenter(
+                    static_cast<f64>(rhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
+                    64.0,
+                    static_cast<f64>(rhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
                 );
 
-                const f32 lhsDist2 = glm::dot(lhsCenter - cameraPosition, lhsCenter - cameraPosition);
-                const f32 rhsDist2 = glm::dot(rhsCenter - cameraPosition, rhsCenter - cameraPosition);
+                const f64 lhsDist2 = glm::dot(lhsCenter - cameraPosition, lhsCenter - cameraPosition);
+                const f64 rhsDist2 = glm::dot(rhsCenter - cameraPosition, rhsCenter - cameraPosition);
                 return lhsDist2 > rhsDist2;
             });
     }

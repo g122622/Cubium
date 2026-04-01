@@ -26,53 +26,53 @@ public:
     // ========================================================================
 
     // 更新
-    void update(f32 deltaTime) override;
+    void update(f64 deltaTime) override;
 
     // 位置
-    void setPosition(const glm::vec3& position) override;
-    void setPosition(f32 x, f32 y, f32 z) override;
-    [[nodiscard]] const glm::vec3& position() const override { return m_position; }
+    void setPosition(const glm::dvec3& position) override;
+    void setPosition(f64 x, f64 y, f64 z) override;
+    [[nodiscard]] const glm::dvec3& position() const override { return m_position; }
 
     // 旋转（欧拉角，度）
-    void setRotation(const glm::vec3& rotation) override;
-    void setRotation(f32 pitch, f32 yaw, f32 roll = 0.0f) override;
-    [[nodiscard]] const glm::vec3& rotation() const override { return m_rotation; }
+    void setRotation(const glm::dvec3& rotation) override;
+    void setRotation(f64 pitch, f64 yaw, f64 roll = 0.0f) override;
+    [[nodiscard]] const glm::dvec3& rotation() const override { return m_rotation; }
 
     // 俯仰和偏航（更常用）
-    [[nodiscard]] f32 pitch() const override { return m_rotation.x; }
-    [[nodiscard]] f32 yaw() const override { return m_rotation.y; }
-    [[nodiscard]] f32 roll() const override { return m_rotation.z; }
+    [[nodiscard]] f64 pitch() const override { return m_rotation.x; }
+    [[nodiscard]] f64 yaw() const override { return m_rotation.y; }
+    [[nodiscard]] f64 roll() const override { return m_rotation.z; }
 
-    void setPitch(f32 pitch) override;
-    void setYaw(f32 yaw) override;
-    void setRoll(f32 roll) override;
+    void setPitch(f64 pitch) override;
+    void setYaw(f64 yaw) override;
+    void setRoll(f64 roll) override;
 
     // 方向向量
-    [[nodiscard]] glm::vec3 forward() const override;
-    [[nodiscard]] glm::vec3 right() const override;
-    [[nodiscard]] glm::vec3 up() const override;
+    [[nodiscard]] glm::dvec3 forward() const override;
+    [[nodiscard]] glm::dvec3 right() const override;
+    [[nodiscard]] glm::dvec3 up() const override;
 
     // 移动
-    void moveForward(f32 distance) override;
-    void moveRight(f32 distance) override;
-    void moveUp(f32 distance) override;
+    void moveForward(f64 distance) override;
+    void moveRight(f64 distance) override;
+    void moveUp(f64 distance) override;
 
     // 旋转
-    void rotate(f32 pitchDelta, f32 yawDelta) override;
-    void look(f32 mouseDeltaX, f32 mouseDeltaY) override;
+    void rotate(f64 pitchDelta, f64 yawDelta) override;
+    void look(f64 mouseDeltaX, f64 mouseDeltaY) override;
 
     // 投影
     void setProjectionMode(ProjectionMode mode) override;
-    void setFOV(f32 fov) override;
-    void setAspectRatio(f32 aspectRatio) override;
-    void setNearFar(f32 nearPlane, f32 farPlane) override;
-    void setOrthoSize(f32 size) override;
+    void setFOV(f64 fov) override;
+    void setAspectRatio(f64 aspectRatio) override;
+    void setNearFar(f64 nearPlane, f64 farPlane) override;
+    void setOrthoSize(f64 size) override;
 
     [[nodiscard]] ProjectionMode projectionMode() const override { return m_config.projectionMode; }
-    [[nodiscard]] f32 fov() const override { return m_config.fov; }
-    [[nodiscard]] f32 aspectRatio() const override { return m_config.aspectRatio; }
-    [[nodiscard]] f32 nearPlane() const override { return m_config.nearPlane; }
-    [[nodiscard]] f32 farPlane() const override { return m_config.farPlane; }
+    [[nodiscard]] f64 fov() const override { return m_config.fov; }
+    [[nodiscard]] f64 aspectRatio() const override { return m_config.aspectRatio; }
+    [[nodiscard]] f64 nearPlane() const override { return m_config.nearPlane; }
+    [[nodiscard]] f64 farPlane() const override { return m_config.farPlane; }
 
     // 矩阵
     [[nodiscard]] const glm::mat4& viewMatrix() const override { return m_viewMatrix; }
@@ -84,12 +84,12 @@ public:
     [[nodiscard]] const CameraConfig& config() const override { return m_config; }
 
     // 移动速度
-    void setMoveSpeed(f32 speed) override { m_config.moveSpeed = speed; }
-    [[nodiscard]] f32 moveSpeed() const override { return m_config.moveSpeed; }
+    void setMoveSpeed(f64 speed) override { m_config.moveSpeed = speed; }
+    [[nodiscard]] f64 moveSpeed() const override { return m_config.moveSpeed; }
 
     // 鼠标灵敏度
-    void setMouseSensitivity(f32 sensitivity) override { m_config.mouseSensitivity = sensitivity; }
-    [[nodiscard]] f32 mouseSensitivity() const override { return m_config.mouseSensitivity; }
+    void setMouseSensitivity(f64 sensitivity) override { m_config.mouseSensitivity = sensitivity; }
+    [[nodiscard]] f64 mouseSensitivity() const override { return m_config.mouseSensitivity; }
 
     // 脏标记
     [[nodiscard]] bool isDirty() const override { return m_dirty; }
@@ -104,13 +104,13 @@ private:
     CameraConfig m_config;
 
     // 位置和旋转
-    glm::vec3 m_position{0.0f, 0.0f, 0.0f};
-    glm::vec3 m_rotation{0.0f, 0.0f, 0.0f}; // pitch, yaw, roll (度)
+    glm::dvec3 m_position{0.0, 0.0, 0.0};
+    glm::dvec3 m_rotation{0.0, 0.0, 0.0}; // pitch, yaw, roll (度)
 
     // 方向向量
-    glm::vec3 m_forward{0.0f, 0.0f, -1.0f};
-    glm::vec3 m_right{1.0f, 0.0f, 0.0f};
-    glm::vec3 m_up{0.0f, 1.0f, 0.0f};
+    glm::dvec3 m_forward{0.0, 0.0, -1.0};
+    glm::dvec3 m_right{1.0, 0.0, 0.0};
+    glm::dvec3 m_up{0.0, 1.0, 0.0};
 
     // 矩阵
     glm::mat4 m_viewMatrix{1.0f};
@@ -135,11 +135,11 @@ public:
 
     // 输入处理
     void handleKeyboardInput(i32 key, i32 action);
-    void handleMouseMove(f32 deltaX, f32 deltaY);
-    void handleScroll(f32 deltaY);
+    void handleMouseMove(f64 deltaX, f64 deltaY);
+    void handleScroll(f64 deltaY);
 
     // 更新
-    void update(f32 deltaTime);
+    void update(f64 deltaTime);
 
     // 设置按键映射
     void setMoveForwardKey(i32 key) { m_moveForwardKey = key; }

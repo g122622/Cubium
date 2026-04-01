@@ -24,13 +24,13 @@ public:
     virtual ~ISprite() = default;
 
     // 获取 UV 坐标
-    [[nodiscard]] virtual glm::vec4 getFrameUV(f32 age, f32 maxAge) const = 0;
+    [[nodiscard]] virtual glm::vec4 getFrameUV(f64 age, f64 maxAge) const = 0;
     [[nodiscard]] virtual glm::vec4 getRandomFrameUV(u32 seed) const = 0;
 
     // 属性查询
     [[nodiscard]] virtual bool isAnimated() const = 0;
     [[nodiscard]] virtual u32 frameCount() const = 0;
-    [[nodiscard]] virtual f32 frameTime() const = 0;
+    [[nodiscard]] virtual f64 frameTime() const = 0;
 };
 ```
 
@@ -141,7 +141,7 @@ glm::vec4 uv = sprite->getRandomFrameUV(seed);
 基于游戏时间循环播放：
 
 ```cpp
-f32 time = GameTime::ticks() / 20.0f;  // 秒
+f64 time = GameTime::ticks() / 20.0f;  // 秒
 u32 frame = static_cast<u32>(time / sprite->frameTime()) % sprite->frameCount();
 ```
 

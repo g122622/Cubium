@@ -475,7 +475,7 @@ Result<void> TridentContext::createLogicalDevice() {
         indices.presentFamily.value()
     };
 
-    f32 queuePriority = 1.0f;
+    float queuePriority = 1.0f;
     for (u32 queueFamily : uniqueQueueFamilies) {
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -491,6 +491,7 @@ Result<void> TridentContext::createLogicalDevice() {
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
     deviceFeatures.fillModeNonSolid = VK_TRUE;
+    deviceFeatures.shaderFloat64 = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -564,7 +565,11 @@ bool TridentContext::isDeviceSuitable(VkPhysicalDevice device) {
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+    return indices.isComplete()
+        && extensionsSupported
+        && swapChainAdequate
+        && supportedFeatures.samplerAnisotropy
+        && supportedFeatures.shaderFloat64;
 }
 
 QueueFamilyIndices TridentContext::findQueueFamilies(VkPhysicalDevice device) {

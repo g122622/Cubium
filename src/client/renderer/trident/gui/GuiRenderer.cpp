@@ -215,7 +215,7 @@ void GuiRenderer::setFont(mc::client::Font* font) {
 
 }
 
-void GuiRenderer::beginFrame(f32 screenW, f32 screenH) {
+void GuiRenderer::beginFrame(f64 screenW, f64 screenH) {
     m_screenWidth = screenW;
     m_screenHeight = screenH;
     m_vertices.clear();
@@ -247,9 +247,9 @@ void GuiRenderer::render(VkCommandBuffer commandBuffer) {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
     // 设置推送常量（屏幕尺寸）
     struct PushConstants {
-        f32 screenWidth;
-        f32 screenHeight;
-        f32 padding[2];
+        f64 screenWidth;
+        f64 screenHeight;
+        f64 padding[2];
     } pc;
     pc.screenWidth = m_screenWidth;
     pc.screenHeight = m_screenHeight;
@@ -274,11 +274,11 @@ void GuiRenderer::render(VkCommandBuffer commandBuffer) {
     vkCmdDrawIndexed(commandBuffer, static_cast<u32>(m_indices.size()), 1, 0, 0, 0);
 }
 
-f32 GuiRenderer::drawText(const std::string& text, f32 x, f32 y, u32 color, bool shadow) {
+f64 GuiRenderer::drawText(const std::string& text, f64 x, f64 y, u32 color, bool shadow) {
     if (m_font == nullptr) return 0.0f;
 
     m_fontRenderer.beginBatch();
-    f32 width;
+    f64 width;
     if (shadow) {
         width = m_fontRenderer.addTextWithShadow(text, x, y, color);
     } else {
@@ -303,12 +303,12 @@ f32 GuiRenderer::drawText(const std::string& text, f32 x, f32 y, u32 color, bool
     return width;
 }
 
-f32 GuiRenderer::drawTextCentered(const std::string& text, f32 x, f32 y, u32 color) {
-    f32 width = getTextWidth(text);
+f64 GuiRenderer::drawTextCentered(const std::string& text, f64 x, f64 y, u32 color) {
+    f64 width = getTextWidth(text);
     return drawText(text, x - width * 0.5f, y, color, true);
 }
 
-f32 GuiRenderer::getTextWidth(const std::string& text) {
+f64 GuiRenderer::getTextWidth(const std::string& text) {
     if (m_font == nullptr) return 0.0f;
     return m_fontRenderer.getTextWidth(text);
 }
@@ -317,22 +317,22 @@ u32 GuiRenderer::getFontHeight() const {
     return m_fontRenderer.getFontHeight();
 }
 
-void GuiRenderer::setFontScale(f32 scale) {
+void GuiRenderer::setFontScale(f64 scale) {
     m_fontRenderer.setScale(scale);
 }
 
-f32 GuiRenderer::getFontScale() const {
+f64 GuiRenderer::getFontScale() const {
     return m_fontRenderer.scale();
 }
 
-void GuiRenderer::fillRect(f32 x, f32 y, f32 width, f32 height, u32 color) {
+void GuiRenderer::fillRect(f64 x, f64 y, f64 width, f64 height, u32 color) {
     u32 baseIndex = static_cast<u32>(m_vertices.size());
 
     // 四个顶点
     // 注意：使用负UV作为”纯色矩形”标记，片段着色器将跳过纹理采样。
     // 否则会错误地使用字体纹理alpha，导致准星/背景矩形不可见。
     // 纯色矩形使用槽位0（字体槽位），但不会采样纹理
-    constexpr f32 SOLID_RECT_UV = -1.0f;
+    constexpr f64 SOLID_RECT_UV = -1.0f;
     m_vertices.emplace_back(x, y, SOLID_RECT_UV, SOLID_RECT_UV, color, FONT_ATLAS_SLOT);                  // 左上
     m_vertices.emplace_back(x + width, y, SOLID_RECT_UV, SOLID_RECT_UV, color, FONT_ATLAS_SLOT);          // 右上
     m_vertices.emplace_back(x + width, y + height, SOLID_RECT_UV, SOLID_RECT_UV, color, FONT_ATLAS_SLOT); // 右下
@@ -348,14 +348,14 @@ void GuiRenderer::fillRect(f32 x, f32 y, f32 width, f32 height, u32 color) {
     m_indices.push_back(baseIndex + 3);
 }
 
-void GuiRenderer::drawTexturedRect(f32 x, f32 y, f32 width, f32 height,
-                                     f32 u0, f32 v0, f32 u1, f32 v1, u32 color) {
+void GuiRenderer::drawTexturedRect(f64 x, f64 y, f64 width, f64 height,
+                                     f64 u0, f64 v0, f64 u1, f64 v1, u32 color) {
     // 默认使用物品图集槽位
     drawTexturedRect(x, y, width, height, u0, v0, u1, v1, color, ITEM_ATLAS_SLOT);
 }
 
-void GuiRenderer::drawTexturedRect(f32 x, f32 y, f32 width, f32 height,
-                                     f32 u0, f32 v0, f32 u1, f32 v1,
+void GuiRenderer::drawTexturedRect(f64 x, f64 y, f64 width, f64 height,
+                                     f64 u0, f64 v0, f64 u1, f64 v1,
                                      u32 color, u8 atlasSlot) {
     u32 baseIndex = static_cast<u32>(m_vertices.size());
 
@@ -375,12 +375,12 @@ void GuiRenderer::drawTexturedRect(f32 x, f32 y, f32 width, f32 height,
     m_indices.push_back(baseIndex + 3);
 }
 
-void GuiRenderer::fillGradientRect(f32 x, f32 y, f32 width, f32 height,
+void GuiRenderer::fillGradientRect(f64 x, f64 y, f64 width, f64 height,
                                     u32 colorTop, u32 colorBottom) {
     u32 baseIndex = static_cast<u32>(m_vertices.size());
 
     // 四个顶点，顶部和底部不同颜色
-    constexpr f32 SOLID_RECT_UV = -1.0f;
+    constexpr f64 SOLID_RECT_UV = -1.0f;
     m_vertices.emplace_back(x, y, SOLID_RECT_UV, SOLID_RECT_UV, colorTop, FONT_ATLAS_SLOT);                  // 左上
     m_vertices.emplace_back(x + width, y, SOLID_RECT_UV, SOLID_RECT_UV, colorTop, FONT_ATLAS_SLOT);          // 右上
     m_vertices.emplace_back(x + width, y + height, SOLID_RECT_UV, SOLID_RECT_UV, colorBottom, FONT_ATLAS_SLOT); // 右下
@@ -395,12 +395,12 @@ void GuiRenderer::fillGradientRect(f32 x, f32 y, f32 width, f32 height,
     m_indices.push_back(baseIndex + 3);
 }
 
-void GuiRenderer::fillGradientRectHorizontal(f32 x, f32 y, f32 width, f32 height,
+void GuiRenderer::fillGradientRectHorizontal(f64 x, f64 y, f64 width, f64 height,
                                                u32 colorLeft, u32 colorRight) {
     u32 baseIndex = static_cast<u32>(m_vertices.size());
 
     // 四个顶点，左侧和右侧不同颜色
-    constexpr f32 SOLID_RECT_UV = -1.0f;
+    constexpr f64 SOLID_RECT_UV = -1.0f;
     m_vertices.emplace_back(x, y, SOLID_RECT_UV, SOLID_RECT_UV, colorLeft, FONT_ATLAS_SLOT);                  // 左上
     m_vertices.emplace_back(x + width, y, SOLID_RECT_UV, SOLID_RECT_UV, colorRight, FONT_ATLAS_SLOT);         // 右上
     m_vertices.emplace_back(x + width, y + height, SOLID_RECT_UV, SOLID_RECT_UV, colorRight, FONT_ATLAS_SLOT); // 右下
@@ -415,7 +415,7 @@ void GuiRenderer::fillGradientRectHorizontal(f32 x, f32 y, f32 width, f32 height
     m_indices.push_back(baseIndex + 3);
 }
 
-void GuiRenderer::drawRect(f32 x, f32 y, f32 width, f32 height, u32 color) {
+void GuiRenderer::drawRect(f64 x, f64 y, f64 width, f64 height, u32 color) {
     // 上边
     fillRect(x, y, width, 1.0f, color);
     // 下边
@@ -433,7 +433,7 @@ Result<void> GuiRenderer::createPipelineLayout() {
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f32) * 4; // screenWidth, screenHeight, padding
+    pushConstantRange.size = sizeof(f64) * 4; // screenWidth, screenHeight, padding
 
     // 管线布局创建信息
     VkPipelineLayoutCreateInfo layoutInfo = {};
@@ -512,14 +512,14 @@ Result<void> GuiRenderer::createPipeline(VkRenderPass renderPass) {
     VkVertexInputAttributeDescription positionAttr = {};
     positionAttr.binding = 0;
     positionAttr.location = 0;
-    positionAttr.format = VK_FORMAT_R32G32_SFLOAT;
+    positionAttr.format = VK_FORMAT_R64G64_SFLOAT;
     positionAttr.offset = offsetof(GuiVertex, x);
 
     // 纹理坐标属性
     VkVertexInputAttributeDescription texCoordAttr = {};
     texCoordAttr.binding = 0;
     texCoordAttr.location = 1;
-    texCoordAttr.format = VK_FORMAT_R32G32_SFLOAT;
+    texCoordAttr.format = VK_FORMAT_R64G64_SFLOAT;
     texCoordAttr.offset = offsetof(GuiVertex, u);
 
     // 颜色属性

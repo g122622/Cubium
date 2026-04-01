@@ -313,9 +313,9 @@ void EntityPipeline::destroyMesh(EntityMesh& mesh) {
 
 void EntityPipeline::drawMesh(VkCommandBuffer cmd,
                                const EntityMesh& mesh,
-                               const std::array<f32, 16>& modelMatrix,
+                               const std::array<f64, 16>& modelMatrix,
                                const Vector3f& position,
-                               f32 scale) {
+                               f64 scale) {
     if (mesh.vertexCount == 0 || mesh.indexCount == 0) {
         return;
     }
@@ -330,9 +330,9 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
 
     // 推送常量
     struct PushConstants {
-        std::array<f32, 16> model;
-        f32 posX, posY, posZ;
-        f32 scale;
+        std::array<f64, 16> model;
+        f64 posX, posY, posZ;
+        f64 scale;
     } pc;
 
     pc.model = modelMatrix;
@@ -586,7 +586,7 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f32) * 16 + sizeof(f32) * 4;  // mat4 + vec3 + float
+    pushConstantRange.size = sizeof(f64) * 16 + sizeof(f64) * 4;  // mat4 + vec3 + float
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

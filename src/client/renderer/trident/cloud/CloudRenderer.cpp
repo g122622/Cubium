@@ -21,22 +21,22 @@ namespace {
 constexpr u32 CLOUD_TEXTURE_SIZE = 256;
 
 // 云动画速度 (MC 1.16.5: 0.03F per tick)
-constexpr f32 CLOUD_SPEED = 0.03f;
+constexpr f64 CLOUD_SPEED = 0.03f;
 
 // 云纹理缩放
-constexpr f32 CLOUD_TEXTURE_SCALE = 0.00390625f; // 1/256
+constexpr f64 CLOUD_TEXTURE_SCALE = 0.00390625f; // 1/256
 
 // 云层厚度
-constexpr f32 CLOUD_THICKNESS = 4.0f;
+constexpr f64 CLOUD_THICKNESS = 4.0f;
 
 // 云透明度
-constexpr f32 CLOUD_ALPHA = 0.8f;
+constexpr f64 CLOUD_ALPHA = 0.8f;
 
 // 云掩码阈值（与 MC 硬边效果一致，避免半透明糊边）
 constexpr u8 CLOUD_MASK_ALPHA_THRESHOLD = 8;
 
 // 云顶偏移量（避免 z-fighting）
-constexpr f32 CLOUD_TOP_OFFSET = 0.0009765625f; // 约 1/1024
+constexpr f64 CLOUD_TOP_OFFSET = 0.0009765625f; // 约 1/1024
 
 // 云网格单元范围（-32..31，共 64x64）
 constexpr i32 CLOUD_GRID_MIN = -32;
@@ -109,9 +109,9 @@ Result<VkShaderModule> createShaderModule(VkDevice device, const char* path) {
  * @brief 云顶点结构
  */
 struct CloudVertex {
-    f32 x, y, z;       // 位置
-    f32 u, v;          // 纹理坐标
-    f32 nx, ny, nz;    // 法线
+    f64 x, y, z;       // 位置
+    f64 u, v;          // 纹理坐标
+    f64 nx, ny, nz;    // 法线
 };
 
 // ============================================================================
@@ -394,8 +394,8 @@ Result<void> CloudRenderer::reloadTexture(const ResourceManager* resourceManager
 // 更新与渲染
 // ============================================================================
 
-void CloudRenderer::update(i64 dayTime, i64 gameTime, f32 partialTick,
-                           f32 cloudHeight, const glm::vec4& cloudColor) {
+void CloudRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
+                           f64 cloudHeight, const glm::vec4& cloudColor) {
     m_dayTime = dayTime;
     m_gameTime = gameTime;
     m_partialTick = partialTick;
@@ -404,7 +404,7 @@ void CloudRenderer::update(i64 dayTime, i64 gameTime, f32 partialTick,
 
     // 计算云偏移（云随时间移动）
     // 参考 MC 1.16.5: d1 = (ticks + partialTick) * 0.03
-    f32 totalTicks = static_cast<f32>(gameTime) + partialTick;
+    f64 totalTicks = static_cast<f64>(gameTime) + partialTick;
     m_cloudOffsetX = totalTicks * CLOUD_SPEED;
 
     // 参考 MC 1.16.5 WorldRenderer.renderClouds():
@@ -413,9 +413,9 @@ void CloudRenderer::update(i64 dayTime, i64 gameTime, f32 partialTick,
     // d4 = viewEntityZ / 12.0D + 0.33D
     // 网格坐标用于判断是否需要重建 VBO
     // 当玩家移动超过一个云网格单元（12世界单位）时，重建云网格
-    f32 cloudX = (m_cameraPos.x + m_cloudOffsetX) / 12.0f;
-    f32 cloudZ = m_cameraPos.z / 12.0f + 0.33f;
-    f32 cloudY = (cloudHeight - m_cameraPos.y + 0.33f) / 4.0f;
+    f64 cloudX = (m_cameraPos.x + m_cloudOffsetX) / 12.0f;
+    f64 cloudZ = m_cameraPos.z / 12.0f + 0.33f;
+    f64 cloudY = (cloudHeight - m_cameraPos.y + 0.33f) / 4.0f;
 
     // 取模 2048 防止浮点精度问题
     cloudX = std::fmod(cloudX, 2048.0f);
@@ -454,10 +454,10 @@ void CloudRenderer::render(VkCommandBuffer cmd,
     // d2 = (viewEntityX + d1) / 12.0D (X 坐标，包含动画)
     // d3 = (cloudHeight - viewEntityY + 0.33F) (Y 坐标，相对相机)
     // d4 = viewEntityZ / 12.0D + 0.33D (Z 坐标)
-    f32 animOffset = (static_cast<f32>(m_gameTime) + m_partialTick) * CLOUD_SPEED;
-    f32 cloudsX = (cameraPos.x + animOffset) / 12.0f;
-    f32 cloudsY = (m_cloudHeight - cameraPos.y + 0.33f) / 4.0f;
-    f32 cloudsZ = cameraPos.z / 12.0f + 0.33f;
+    f64 animOffset = (static_cast<f64>(m_gameTime) + m_partialTick) * CLOUD_SPEED;
+    f64 cloudsX = (cameraPos.x + animOffset) / 12.0f;
+    f64 cloudsY = (m_cloudHeight - cameraPos.y + 0.33f) / 4.0f;
+    f64 cloudsZ = cameraPos.z / 12.0f + 0.33f;
 
     // 取模 2048 防止浮点精度问题
     cloudsX = std::fmod(cloudsX, 2048.0f);
@@ -536,9 +536,9 @@ void CloudRenderer::render(VkCommandBuffer cmd,
 
     // 分数部分（用于平滑过渡）
     // 参考 MC: f3 = d2 - floor(d2), f4 = (d3/4 - floor(d3/4)) * 4, f5 = d4 - floor(d4)
-    f32 fracX = cloudsX - std::floor(cloudsX);
-    f32 fracZ = cloudsZ - std::floor(cloudsZ);
-    f32 f4 = (cloudsY - std::floor(cloudsY)) * 4.0f;
+    f64 fracX = cloudsX - std::floor(cloudsX);
+    f64 fracZ = cloudsZ - std::floor(cloudsZ);
+    f64 f4 = (cloudsY - std::floor(cloudsY)) * 4.0f;
 
     // 变换矩阵：scale(12, 1, 12) * translate(-fracX, f4, -fracZ)
     // 参考 MC: matrixStackIn.scale(12.0F, 1.0F, 12.0F);
@@ -588,13 +588,13 @@ Result<void> CloudRenderer::createCloudVBO() {
     const i32 gridOffsetZ = m_cloudGridZ;
 
     // Y 基础坐标（参考 MC: f17 = floor(cloudsY / 4) * 4）
-    const f32 baseY = static_cast<f32>(gridOffsetY) * 4.0f;
+    const f64 baseY = static_cast<f64>(gridOffsetY) * 4.0f;
 
     // UV 计算函数：基于世界网格坐标计算纹理坐标
     // 参考 MC 1.16.5: tex = pos * 0.00390625F + floor(cloudsX/Z) * 0.00390625F
     // 纹理偏移通过 UBO 动态应用，这里只计算基础 UV
-    const auto getUV = [](f32 x, f32 z) -> glm::vec2 {
-        constexpr f32 UV_SCALE = 0.00390625f; // 1/256
+    const auto getUV = [](f64 x, f64 z) -> glm::vec2 {
+        constexpr f64 UV_SCALE = 0.00390625f; // 1/256
         return glm::vec2(x * UV_SCALE, z * UV_SCALE);
     };
 
@@ -646,10 +646,10 @@ Result<void> CloudRenderer::createCloudVBO() {
                 }
 
                 // 世界坐标 = 局部坐标 + 网格偏移
-                const f32 minX = static_cast<f32>(CLOUD_GRID_MIN + localX);
-                const f32 maxX = static_cast<f32>(CLOUD_GRID_MIN + localX + 1);
-                const f32 minZ = static_cast<f32>(CLOUD_GRID_MIN + localZ);
-                const f32 maxZ = static_cast<f32>(CLOUD_GRID_MIN + localZ + 1);
+                const f64 minX = static_cast<f64>(CLOUD_GRID_MIN + localX);
+                const f64 maxX = static_cast<f64>(CLOUD_GRID_MIN + localX + 1);
+                const f64 minZ = static_cast<f64>(CLOUD_GRID_MIN + localZ);
+                const f64 maxZ = static_cast<f64>(CLOUD_GRID_MIN + localZ + 1);
 
                 const glm::vec2 uv0 = getUV(minX, maxZ);
                 const glm::vec2 uv1 = getUV(maxX, maxZ);
@@ -744,12 +744,12 @@ Result<void> CloudRenderer::createCloudVBO() {
                 const i32 worldMaxX = worldMinX + runWidth;
                 const i32 worldMaxZ = worldMinZ + runHeight;
 
-                const f32 minX = static_cast<f32>(worldMinX);
-                const f32 maxX = static_cast<f32>(worldMaxX);
-                const f32 minZ = static_cast<f32>(worldMinZ);
-                const f32 maxZ = static_cast<f32>(worldMaxZ);
-                const f32 minY = baseY;
-                const f32 maxY = baseY + CLOUD_THICKNESS - CLOUD_TOP_OFFSET;
+                const f64 minX = static_cast<f64>(worldMinX);
+                const f64 maxX = static_cast<f64>(worldMaxX);
+                const f64 minZ = static_cast<f64>(worldMinZ);
+                const f64 maxZ = static_cast<f64>(worldMaxZ);
+                const f64 minY = baseY;
+                const f64 maxY = baseY + CLOUD_THICKNESS - CLOUD_TOP_OFFSET;
 
                 const glm::vec2 uv0 = getUV(minX, maxZ);
                 const glm::vec2 uv1 = getUV(maxX, maxZ);
@@ -783,12 +783,12 @@ Result<void> CloudRenderer::createCloudVBO() {
                     continue;
                 }
 
-                const f32 minX = static_cast<f32>(CLOUD_GRID_MIN + localX);
-                const f32 maxX = static_cast<f32>(CLOUD_GRID_MIN + localX + 1);
-                const f32 minZ = static_cast<f32>(CLOUD_GRID_MIN + localZ);
-                const f32 maxZ = static_cast<f32>(CLOUD_GRID_MIN + localZ + 1);
-                const f32 minY = baseY;
-                const f32 maxY = baseY + CLOUD_THICKNESS - CLOUD_TOP_OFFSET;
+                const f64 minX = static_cast<f64>(CLOUD_GRID_MIN + localX);
+                const f64 maxX = static_cast<f64>(CLOUD_GRID_MIN + localX + 1);
+                const f64 minZ = static_cast<f64>(CLOUD_GRID_MIN + localZ);
+                const f64 maxZ = static_cast<f64>(CLOUD_GRID_MIN + localZ + 1);
+                const f64 minY = baseY;
+                const f64 maxY = baseY + CLOUD_THICKNESS - CLOUD_TOP_OFFSET;
 
                 // 侧面 UV 使用单元格中心
                 const glm::vec2 uv = getUV(minX + 0.5f, maxZ);
@@ -869,20 +869,20 @@ std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height) {
     // 云纹理是灰度透明度图
     for (u32 y = 0; y < height; ++y) {
         for (u32 x = 0; x < width; ++x) {
-            f32 fx = static_cast<f32>(x) / static_cast<f32>(width);
-            f32 fy = static_cast<f32>(y) / static_cast<f32>(height);
+            f64 fx = static_cast<f64>(x) / static_cast<f64>(width);
+            f64 fy = static_cast<f64>(y) / static_cast<f64>(height);
 
             // 使用多层噪声叠加
-            f32 noise = 0.0f;
-            f32 amplitude = 1.0f;
-            f32 frequency = 4.0f;
+            f64 noise = 0.0f;
+            f64 amplitude = 1.0f;
+            f64 frequency = 4.0f;
 
             for (int octave = 0; octave < 4; ++octave) {
                 // 简单的伪随机噪声
-                f32 sampleX = fx * frequency;
-                f32 sampleY = fy * frequency;
+                f64 sampleX = fx * frequency;
+                f64 sampleY = fy * frequency;
 
-                f32 n = std::sin(sampleX * 12.9898f + sampleY * 78.233f + octave * 43.758f) * 43758.5453f;
+                f64 n = std::sin(sampleX * 12.9898f + sampleY * 78.233f + octave * 43.758f) * 43758.5453f;
                 n = n - std::floor(n);
 
                 noise += amplitude * n;
@@ -894,14 +894,14 @@ std::vector<u8> CloudRenderer::generateCloudTexture(u32 width, u32 height) {
             noise = noise / 2.0f;
 
             // 阈值化：创建明显的云边界
-            f32 alpha = 0.0f;
-            if (noise > 0.4f) {
-                alpha = std::min(1.0f, (noise - 0.4f) * 2.5f);
+            f64 alpha = 0.0f;
+            if (noise > 0.4) {
+                alpha = std::min(1.0, (noise - 0.4) * 2.5);
             }
 
             // 应用抖动以避免明显的边界
-            f32 dither = (rng.nextFloat() - 0.5f) * 0.1f;
-            alpha = std::clamp(alpha + dither, 0.0f, 1.0f);
+            f64 dither = (rng.nextFloat() - 0.5f) * 0.1;
+            alpha = std::clamp(alpha + dither, 0.0, 1.0);
 
             u32 idx = (y * width + x) * 4;
             data[idx + 0] = 255; // R
@@ -1572,22 +1572,22 @@ void CloudRenderer::updateUniformBuffer(u32 frameIndex) {
     // 计算纹理偏移（基于相机整数网格坐标）
     // 参考 MC 1.16.5: f3 = floor(cloudsX) * 0.00390625F
     // 其中 cloudsX = (viewEntityX + animOffset) / 12.0
-    f32 animOffset = (static_cast<f32>(m_gameTime) + m_partialTick) * CLOUD_SPEED;
-    f32 cloudsX = (m_cameraPos.x + animOffset) / 12.0f;
-    f32 cloudsZ = m_cameraPos.z / 12.0f + 0.33f;
+    f64 animOffset = (static_cast<f64>(m_gameTime) + m_partialTick) * CLOUD_SPEED;
+    f64 cloudsX = (m_cameraPos.x + animOffset) / 12.0f;
+    f64 cloudsZ = m_cameraPos.z / 12.0f + 0.33f;
 
     // 取模防止浮点精度问题
     cloudsX = std::fmod(cloudsX, 2048.0f);
     cloudsZ = std::fmod(cloudsZ, 2048.0f);
 
     // 纹理偏移（整数部分 * 纹理缩放）
-    f32 texOffsetX = std::floor(cloudsX) * CLOUD_TEXTURE_SCALE;
-    f32 texOffsetZ = std::floor(cloudsZ) * CLOUD_TEXTURE_SCALE;
+    f64 texOffsetX = std::floor(cloudsX) * CLOUD_TEXTURE_SCALE;
+    f64 texOffsetZ = std::floor(cloudsZ) * CLOUD_TEXTURE_SCALE;
 
     CloudUBO ubo{};
     ubo.cloudColor = m_cloudColor;
     ubo.cloudHeight = m_cloudHeight;
-    ubo.time = static_cast<f32>(m_gameTime) + m_partialTick;
+    ubo.time = static_cast<f64>(m_gameTime) + m_partialTick;
     ubo.textureScale = CLOUD_TEXTURE_SCALE;
     ubo.cameraY = m_cameraPos.y;
     ubo.textureOffsetX = texOffsetX;

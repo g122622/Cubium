@@ -42,8 +42,8 @@ public:
      * @brief 顶点格式
      */
     struct Vertex {
-        f32 x, y, z;       // 位置
-        f32 u, v;          // UV坐标
+        f64 x, y, z;       // 位置
+        f64 u, v;          // UV坐标
     };
 
     /**

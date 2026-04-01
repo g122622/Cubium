@@ -15,7 +15,7 @@ PortalParticle::PortalParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
 
     // 传送门颜色：紫色
-    f32 purple = 0.6f + rng.nextFloat() * 0.4f;
+    f64 purple = 0.6f + rng.nextFloat() * 0.4f;
     setColor(glm::vec4(0.4f, 0.1f, purple, 0.8f));
 
     setFriction(0.95f);
@@ -45,10 +45,10 @@ void PortalParticle::tick(ClientWorld* world) {
     }
 
     // 传送门粒子向下飘落，带有水平摆动
-    f32 ageRatio = m_age / m_maxAge;
+    f64 ageRatio = m_age / m_maxAge;
 
     // 水平摆动
-    f32 swing = std::sin(ageRatio * 3.14159f * 4.0f) * 0.05f;
+    f64 swing = std::sin(ageRatio * 3.14159f * 4.0f) * 0.05f;
     m_position.x = m_startX + swing;
     m_position.z = m_startZ + std::cos(ageRatio * 3.14159f * 4.0f) * 0.05f;
 

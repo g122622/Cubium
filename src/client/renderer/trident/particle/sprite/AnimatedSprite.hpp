@@ -25,7 +25,7 @@ public:
         const glm::vec2& uvMin,
         const glm::vec2& uvMax,
         u32 frameCount,
-        f32 frameTime);
+        f64 frameTime);
 
     ~AnimatedSprite() override = default;
 
@@ -33,11 +33,11 @@ public:
     // ISprite 接口实现
     // ========================================================================
 
-    [[nodiscard]] glm::vec4 getFrameUV(f32 age, f32 maxAge) const override;
+    [[nodiscard]] glm::vec4 getFrameUV(f64 age, f64 maxAge) const override;
     [[nodiscard]] glm::vec4 getRandomFrameUV(u32 seed) const override;
     [[nodiscard]] bool isAnimated() const override { return m_frameCount > 1; }
     [[nodiscard]] u32 frameCount() const override { return m_frameCount; }
-    [[nodiscard]] f32 frameTime() const override { return m_frameTime; }
+    [[nodiscard]] f64 frameTime() const override { return m_frameTime; }
 
     // ========================================================================
     // 属性访问器
@@ -51,7 +51,7 @@ public:
      *
      * @return 单帧在 UV 空间中的高度
      */
-    [[nodiscard]] f32 frameHeight() const;
+    [[nodiscard]] f64 frameHeight() const;
 
     /**
      * @brief 获取指定帧的 UV 坐标
@@ -65,7 +65,7 @@ private:
     glm::vec2 m_uvMin;
     glm::vec2 m_uvMax;
     u32 m_frameCount;
-    f32 m_frameTime;
+    f64 m_frameTime;
 };
 
 } // namespace mc::client::renderer::trident::particle

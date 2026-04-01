@@ -33,7 +33,7 @@ Result<void> ItemRenderer::initialize(
     return {};
 }
 
-void ItemRenderer::renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f32 x, f32 y, f32 size) {
+void ItemRenderer::renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64 x, f64 y, f64 size) {
     if (stack.isEmpty()) {
         return;
     }
@@ -46,7 +46,7 @@ void ItemRenderer::renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f32
     renderItem(gui, item, x, y, size);
 }
 
-void ItemRenderer::renderItem(gui::GuiRenderer& gui, const Item* item, f32 x, f32 y, f32 size) {
+void ItemRenderer::renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f64 y, f64 size) {
     if (item == nullptr || !m_initialized) {
         return;
     }
@@ -62,7 +62,7 @@ void ItemRenderer::renderItem(gui::GuiRenderer& gui, const Item* item, f32 x, f3
     renderItem(gui, *region, x, y, size);
 }
 
-void ItemRenderer::renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f32 x, f32 y, f32 size) {
+void ItemRenderer::renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f64 x, f64 y, f64 size) {
     // 使用drawTexturedRect绘制物品纹理
     // 使用 alpha=254 的颜色，确保走物品纹理采样分支且保持可见
     gui.drawTexturedRect(x, y, size, size,

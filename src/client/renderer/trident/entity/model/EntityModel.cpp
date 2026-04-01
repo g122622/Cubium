@@ -6,7 +6,7 @@ namespace mc::client::renderer {
 
 // ==================== EntityModel ====================
 
-void EntityModel::render(f32 scale) {
+void EntityModel::render(f64 scale) {
     for (auto& part : m_parts) {
         if (part) {
             part->render(scale);
@@ -14,9 +14,9 @@ void EntityModel::render(f32 scale) {
     }
 }
 
-void EntityModel::setAngles(f32 /*limbSwing*/, f32 /*limbSwingAmount*/,
-                            f32 /*ageInTicks*/, f32 /*netHeadYaw*/,
-                            f32 /*headPitch*/, f32 /*scale*/) {
+void EntityModel::setAngles(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
+                            f64 /*ageInTicks*/, f64 /*netHeadYaw*/,
+                            f64 /*headPitch*/, f64 /*scale*/) {
     // 基类不实现动画
 }
 
@@ -26,7 +26,7 @@ void EntityModel::copyAnglesTo(const EntityModel& /*target*/) const {
 
 void EntityModel::generateMesh(std::vector<ModelVertex>& vertices,
                                 std::vector<u32>& indices,
-                                f32 scale) const {
+                                f64 scale) const {
     for (const auto& part : m_parts) {
         if (part) {
             part->generateMesh(vertices, indices, scale);
@@ -85,13 +85,13 @@ void QuadrupedModel::setupParts() {
     m_legBackLeft->setRotationPoint(3.0f, 18.0f, 7.0f);
 }
 
-void QuadrupedModel::render(f32 scale) {
+void QuadrupedModel::render(f64 scale) {
     EntityModel::render(scale);
 }
 
-void QuadrupedModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
-                                f32 /*ageInTicks*/, f32 netHeadYaw,
-                                f32 headPitch, f32 /*scale*/) {
+void QuadrupedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
+                                f64 /*ageInTicks*/, f64 netHeadYaw,
+                                f64 headPitch, f64 /*scale*/) {
     // 头部旋转
     m_head->setRotateAngleX(math::toRadians(headPitch));
     m_head->setRotateAngleY(math::toRadians(netHeadYaw));
@@ -100,8 +100,8 @@ void QuadrupedModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
     m_body->setRotateAngleX(math::PI * 0.5f);
 
     // 步态动画（与 MC 1.16.5 一致）
-    const f32 walkAngle = limbSwing * 0.6662f;
-    const f32 walkAmount = limbSwingAmount * 1.4f;
+    const f64 walkAngle = limbSwing * 0.6662f;
+    const f64 walkAmount = limbSwingAmount * 1.4f;
 
     m_legBackRight->setRotateAngleX(std::cos(walkAngle) * walkAmount);
     m_legBackLeft->setRotateAngleX(std::cos(walkAngle + math::PI) * walkAmount);
@@ -165,13 +165,13 @@ void BipedModel::setupParts() {
     m_leftLeg->setRotationPoint(2.0f, 12.0f, 0.0f);
 }
 
-void BipedModel::render(f32 scale) {
+void BipedModel::render(f64 scale) {
     EntityModel::render(scale);
 }
 
-void BipedModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
-                            f32 /*ageInTicks*/, f32 netHeadYaw,
-                            f32 headPitch, f32 /*scale*/) {
+void BipedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
+                            f64 /*ageInTicks*/, f64 netHeadYaw,
+                            f64 headPitch, f64 /*scale*/) {
     // 头部旋转
     m_head->setRotateAngleX(math::toRadians(headPitch));
     m_head->setRotateAngleY(math::toRadians(netHeadYaw));
@@ -181,8 +181,8 @@ void BipedModel::setAngles(f32 limbSwing, f32 limbSwingAmount,
     m_headwear->setRotateAngleY(math::toRadians(netHeadYaw));
 
     // 步态动画
-    f32 walkAngle = limbSwing * math::PI;
-    f32 walkAmount = limbSwingAmount;
+    f64 walkAngle = limbSwing * math::PI;
+    f64 walkAmount = limbSwingAmount;
 
     // 手臂摆动
     m_rightArm->setRotateAngleX(std::cos(walkAngle) * 2.0f * walkAmount);

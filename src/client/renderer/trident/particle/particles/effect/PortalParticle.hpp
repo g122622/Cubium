@@ -35,12 +35,12 @@ public:
     }
 
 private:
-    static constexpr f32 DEFAULT_GRAVITY = 0.0f;
-    static constexpr f32 DEFAULT_SIZE = 0.04f;
-    static constexpr f32 DEFAULT_LIFETIME = 50.0f;  // 约 2.5 秒
+    static constexpr f64 DEFAULT_GRAVITY = 0.0f;
+    static constexpr f64 DEFAULT_SIZE = 0.04f;
+    static constexpr f64 DEFAULT_LIFETIME = 50.0f;  // 约 2.5 秒
 
-    f32 m_startX;  ///< 初始 X 位置（用于水平摆动）
-    f32 m_startZ;  ///< 初始 Z 位置
+    f64 m_startX;  ///< 初始 X 位置（用于水平摆动）
+    f64 m_startZ;  ///< 初始 Z 位置
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

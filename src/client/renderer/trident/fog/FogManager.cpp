@@ -6,11 +6,11 @@
 namespace mc::client::renderer::trident::fog {
 
 // 雾效果常量（参考 MC 1.16.5）
-static constexpr f32 WATER_FOG_DENSITY = 0.05f;   // 水中雾密度
-static constexpr f32 LAVA_FOG_DENSITY = 0.25f;    // 岩浆雾密度
-static constexpr f32 FOG_START_RATIO = 0.75f;     // 雾起始距离比例（相对于远平面）
-static constexpr f32 FOG_END_RATIO = 1.0f;        // 雾结束距离比例
-static constexpr f32 CHUNK_SIZE = 16.0f;          // 区块大小（方块）
+static constexpr f64 WATER_FOG_DENSITY = 0.05f;   // 水中雾密度
+static constexpr f64 LAVA_FOG_DENSITY = 0.25f;    // 岩浆雾密度
+static constexpr f64 FOG_START_RATIO = 0.75f;     // 雾起始距离比例（相对于远平面）
+static constexpr f64 FOG_END_RATIO = 1.0f;        // 雾结束距离比例
+static constexpr f64 CHUNK_SIZE = 16.0f;          // 区块大小（方块）
 
 FogManager::FogManager() = default;
 
@@ -124,9 +124,9 @@ void FogManager::destroy() {
 
 void FogManager::update(
     i32 renderDistanceChunks,
-    f32 rainStrength,
-    f32 thunderStrength,
-    f32 landFogDensity,
+    f64 rainStrength,
+    f64 thunderStrength,
+    f64 landFogDensity,
     const glm::vec4& skyFogColor,
     const glm::vec3& cameraPos)
 {
@@ -135,22 +135,22 @@ void FogManager::update(
     }
 
     // 计算渲染距离（方块数）
-    const f32 renderDistance = static_cast<f32>(renderDistanceChunks) * CHUNK_SIZE;
+    const f64 renderDistance = static_cast<f64>(renderDistanceChunks) * CHUNK_SIZE;
 
     // 根据雾模式计算参数
     if (m_currentFogMode == FogMode::Linear) {
         calculateLinearFog(renderDistance);
 
         // 天气影响：雨和雷暴会减少可视距离
-        const f32 weatherFactor = 1.0f - (rainStrength * 0.3f) - (thunderStrength * 0.2f);
+        const f64 weatherFactor = 1.0f - (rainStrength * 0.3f) - (thunderStrength * 0.2f);
         m_fogUBO.fogStart *= weatherFactor;
         m_fogUBO.fogEnd *= weatherFactor;
 
         // 用户设置影响：video.fogDensity = 1.0 时保持当前效果
         // - 0.0：更清晰（雾更远）
         // - 2.0：更浓（雾更近）
-        const f32 clampedLandFogDensity = std::clamp(landFogDensity, 0.0f, 2.0f);
-        const f32 distanceScale = std::clamp(2.0f - clampedLandFogDensity, 0.25f, 2.0f);
+        const f64 clampedLandFogDensity = std::clamp(landFogDensity, 0.0, 2.0);
+        const f64 distanceScale = std::clamp(2.0 - clampedLandFogDensity, 0.25, 2.0);
         m_fogUBO.fogStart *= distanceScale;
         m_fogUBO.fogEnd *= distanceScale;
     }
@@ -174,9 +174,9 @@ void FogManager::setUnderwater(u32 waterFogColor) {
     m_fogUBO.fogDensity = WATER_FOG_DENSITY;
     // 从 RGB 格式转换为 glm::vec4
     m_fogUBO.fogColor = glm::vec4(
-        static_cast<f32>((waterFogColor >> 16) & 0xFF) / 255.0f,  // R
-        static_cast<f32>((waterFogColor >> 8) & 0xFF) / 255.0f,   // G
-        static_cast<f32>(waterFogColor & 0xFF) / 255.0f,          // B
+        static_cast<f64>((waterFogColor >> 16) & 0xFF) / 255.0,  // R
+        static_cast<f64>((waterFogColor >> 8) & 0xFF) / 255.0,   // G
+        static_cast<f64>(waterFogColor & 0xFF) / 255.0,          // B
         1.0f
     );
 }
@@ -200,7 +200,7 @@ VkDescriptorSet FogManager::descriptorSet(u32 frameIndex) const {
     return m_descriptorSets[frameIndex];
 }
 
-void FogManager::calculateLinearFog(f32 renderDistance) {
+void FogManager::calculateLinearFog(f64 renderDistance) {
     // 参考 MC 1.16.5 FogRenderer.setupFog()
     // 线性雾：fogStart 和 fogEnd 控制雾的范围
     m_fogUBO.fogStart = renderDistance * FOG_START_RATIO;

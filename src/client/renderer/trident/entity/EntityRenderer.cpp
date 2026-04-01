@@ -3,12 +3,12 @@
 
 namespace mc::client::renderer {
 
-void EntityRenderer::renderShadow(Entity& entity, f32 partialTicks) {
+void EntityRenderer::renderShadow(Entity& entity, f64 partialTicks) {
     if (!shouldRenderShadow(entity)) {
         return;
     }
 
-    f32 scale = getShadowScale(entity, partialTicks);
+    f64 scale = getShadowScale(entity, partialTicks);
     if (scale <= 0.0f) {
         return;
     }
@@ -31,7 +31,7 @@ bool EntityRenderer::shouldRenderShadow(Entity& entity) const {
     return m_shadowSize > 0.0f;
 }
 
-f32 EntityRenderer::getShadowScale(Entity& entity, f32 partialTicks) const {
+f64 EntityRenderer::getShadowScale(Entity& entity, f64 partialTicks) const {
     // 根据实体高度计算阴影缩放
     // TODO: 实现完整的阴影缩放计算
     (void)partialTicks;

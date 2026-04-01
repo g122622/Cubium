@@ -57,9 +57,9 @@ public:
     }
 
 private:
-    static constexpr f32 DEFAULT_GRAVITY = 0.06f;   ///< 雨滴重力
-    static constexpr f32 DEFAULT_SIZE = 0.01f;      ///< 雨滴大小
-    static constexpr f32 TERMINAL_VELOCITY = -3.0f; ///< 终端速度
+    static constexpr f64 DEFAULT_GRAVITY = 0.06f;   ///< 雨滴重力
+    static constexpr f64 DEFAULT_SIZE = 0.01f;      ///< 雨滴大小
+    static constexpr f64 TERMINAL_VELOCITY = -3.0f; ///< 终端速度
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

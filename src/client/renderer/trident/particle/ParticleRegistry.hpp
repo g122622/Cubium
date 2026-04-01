@@ -26,7 +26,7 @@ struct ParticleTypeInfo {
     ParticleFactory factory;             ///< 工厂函数
     ParticleRenderType defaultRenderType;///< 默认渲染类型
     bool ignoreDistance;                 ///< 是否忽略距离限制
-    f32 defaultLifetime;                 ///< 默认生命周期（ticks）
+    f64 defaultLifetime;                 ///< 默认生命周期（ticks）
     bool hasPhysics;                     ///< 是否有物理碰撞
 };
 
@@ -89,7 +89,7 @@ public:
         const String& name,
         ParticleFactory factory,
         ParticleRenderType defaultRenderType = ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
-        f32 defaultLifetime = 1.0f,
+        f64 defaultLifetime = 1.0f,
         bool hasPhysics = true,
         bool ignoreDistance = false);
 

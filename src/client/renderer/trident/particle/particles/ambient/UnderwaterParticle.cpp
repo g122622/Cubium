@@ -49,7 +49,7 @@ void UnderwaterParticle::tick(ClientWorld* world) {
     m_velocity *= m_friction;
 
     // 淡出
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     if (lifeRatio > 0.6f) {
         m_color.a = m_initialAlpha * (1.0f - (lifeRatio - 0.6f) / 0.4f);
     }

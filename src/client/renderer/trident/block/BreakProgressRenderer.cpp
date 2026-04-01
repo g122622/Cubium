@@ -270,17 +270,17 @@ void BreakProgressRenderer::render(VkCommandBuffer commandBuffer,
 
     // 推送常量结构体（与着色器匹配）
     struct PushConstants {
-        f32 blockPosX, blockPosY, blockPosZ;
-        f32 damageStage;
+        f64 blockPosX, blockPosY, blockPosZ;
+        f64 damageStage;
     };
 
     // 为每个破坏进度设置推送常量并绘制
     for (const auto& entry : m_progressEntries) {
         PushConstants pc;
-        pc.blockPosX = static_cast<f32>(entry.position.x);
-        pc.blockPosY = static_cast<f32>(entry.position.y);
-        pc.blockPosZ = static_cast<f32>(entry.position.z);
-        pc.damageStage = static_cast<f32>(entry.stage);
+        pc.blockPosX = static_cast<f64>(entry.position.x);
+        pc.blockPosY = static_cast<f64>(entry.position.y);
+        pc.blockPosZ = static_cast<f64>(entry.position.z);
+        pc.damageStage = static_cast<f64>(entry.stage);
 
         vkCmdPushConstants(commandBuffer, m_pipelineLayout,
                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -467,7 +467,7 @@ bool BreakProgressRenderer::createPipeline() {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f32) * 4;  // vec3 blockPos + float damageStage
+    pushConstantRange.size = sizeof(f64) * 4;  // vec3 blockPos + float damageStage
 
     // 创建纹理描述符布局
     VkDescriptorSetLayoutBinding textureBinding{};
@@ -829,9 +829,9 @@ void BreakProgressRenderer::generateCubeMesh(size_t cubeIndex,
     // 生成立方体顶点（局部坐标 0-1 范围）
     // 方块位置通过 push constants 传入着色器
     // 立方体稍微放大以避免 z-fighting
-    constexpr f32 EXPAND = 0.005f;
-    constexpr f32 x0 = -EXPAND, y0 = -EXPAND, z0 = -EXPAND;
-    constexpr f32 x1 = 1.0f + EXPAND, y1 = 1.0f + EXPAND, z1 = 1.0f + EXPAND;
+    constexpr f64 EXPAND = 0.005f;
+    constexpr f64 x0 = -EXPAND, y0 = -EXPAND, z0 = -EXPAND;
+    constexpr f64 x1 = 1.0f + EXPAND, y1 = 1.0f + EXPAND, z1 = 1.0f + EXPAND;
 
     // 6个面，每面4个顶点
     // 底面 (y = y0)

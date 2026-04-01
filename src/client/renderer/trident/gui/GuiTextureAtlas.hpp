@@ -21,8 +21,8 @@ class GuiRenderer;
  * @deprecated 请使用 GuiSprite 代替
  */
 struct GuiTextureRegion {
-    f32 u0, v0;     ///< 左上角UV坐标
-    f32 u1, v1;     ///< 右下角UV坐标
+    f64 u0, v0;     ///< 左上角UV坐标
+    f64 u1, v1;     ///< 右下角UV坐标
     i32 width;      ///< 纹理宽度（像素）
     i32 height;     ///< 纹理高度（像素）
 };
@@ -111,7 +111,7 @@ public:
      * @param height 绘制高度
      */
     void drawTexture(GuiRenderer& gui, const String& textureId,
-                     f32 x, f32 y, f32 width, f32 height);
+                     f64 x, f64 y, f64 width, f64 height);
 
     /**
      * @brief 绘制纹理区域
@@ -124,9 +124,9 @@ public:
      * @param height 绘制高度
      */
     void drawTextureRegion(GuiRenderer& gui, const String& textureId,
-                           f32 x, f32 y,
+                           f64 x, f64 y,
                            i32 regionX, i32 regionY, i32 regionWidth, i32 regionHeight,
-                           f32 width, f32 height);
+                           f64 width, f64 height);
 
     /**
      * @brief 检查纹理是否已加载

@@ -29,14 +29,14 @@ public:
      * @param entity 要渲染的实体
      * @param partialTicks 部分tick（用于插值）
      */
-    virtual void render(Entity& entity, f32 partialTicks) = 0;
+    virtual void render(Entity& entity, f64 partialTicks) = 0;
 
     /**
      * @brief 渲染实体的阴影
      * @param entity 要渲染阴影的实体
      * @param partialTicks 部分tick
      */
-    virtual void renderShadow(Entity& entity, f32 partialTicks);
+    virtual void renderShadow(Entity& entity, f64 partialTicks);
 
     /**
      * @brief 渲染实体的名称标签
@@ -49,26 +49,26 @@ public:
     /**
      * @brief 获取阴影大小
      */
-    [[nodiscard]] f32 shadowSize() const { return m_shadowSize; }
+    [[nodiscard]] f64 shadowSize() const { return m_shadowSize; }
 
     /**
      * @brief 设置阴影大小
      */
-    void setShadowSize(f32 size) { m_shadowSize = size; }
+    void setShadowSize(f64 size) { m_shadowSize = size; }
 
     /**
      * @brief 获取阴影透明度
      */
-    [[nodiscard]] f32 shadowAlpha() const { return m_shadowAlpha; }
+    [[nodiscard]] f64 shadowAlpha() const { return m_shadowAlpha; }
 
     /**
      * @brief 设置阴影透明度
      */
-    void setShadowAlpha(f32 alpha) { m_shadowAlpha = alpha; }
+    void setShadowAlpha(f64 alpha) { m_shadowAlpha = alpha; }
 
 protected:
-    f32 m_shadowSize = 0.5f;     // 阴影半径
-    f32 m_shadowAlpha = 0.8f;    // 阴影透明度
+    f64 m_shadowSize = 0.5f;     // 阴影半径
+    f64 m_shadowAlpha = 0.8f;    // 阴影透明度
 
     /**
      * @brief 讨论是否应该渲染阴影
@@ -78,7 +78,7 @@ protected:
     /**
      * @brief 计算阴影缩放
      */
-    [[nodiscard]] f32 getShadowScale(Entity& entity, f32 partialTicks) const;
+    [[nodiscard]] f64 getShadowScale(Entity& entity, f64 partialTicks) const;
 };
 
 /**

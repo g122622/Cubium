@@ -9,7 +9,7 @@ SimpleSprite::SimpleSprite(const glm::vec2& uvMin, const glm::vec2& uvMax)
 {
 }
 
-glm::vec4 SimpleSprite::getFrameUV(f32 age, f32 maxAge) const {
+glm::vec4 SimpleSprite::getFrameUV(f64 age, f64 maxAge) const {
     MC_UNUSED(age);
     MC_UNUSED(maxAge);
     return glm::vec4(m_uvMin.x, m_uvMin.y, m_uvMax.x, m_uvMax.y);

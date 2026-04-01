@@ -27,8 +27,8 @@ struct ParticleVertex {
     glm::vec3 position;     ///< 粒子位置
     glm::vec2 texCoord;     ///< 纹理坐标
     glm::vec4 color;        ///< RGBA 颜色（含透明度）
-    f32 size;               ///< 粒子大小
-    f32 alpha;              ///< 额外的 alpha 值（用于淡出）
+    f64 size;               ///< 粒子大小
+    f64 alpha;              ///< 额外的 alpha 值（用于淡出）
 };
 
 /**
@@ -144,7 +144,7 @@ public:
      */
     virtual void buildVertices(
         const glm::vec3& cameraPos,
-        f32 partialTick,
+        f64 partialTick,
         const ParticleTextureAtlas& atlas,
         std::vector<ParticleVertex>& outVertices) const;
 
@@ -177,7 +177,7 @@ public:
      * @param partialTick 部分 tick
      * @return 缩放比例
      */
-    [[nodiscard]] virtual f32 getScale(f32 partialTick) const;
+    [[nodiscard]] virtual f64 getScale(f64 partialTick) const;
 
     // ========================================================================
     // 物理属性
@@ -200,7 +200,7 @@ public:
      * @param width 宽度（X/Z 轴）
      * @param height 高度（Y 轴）
      */
-    void setBoundingBox(f32 width, f32 height);
+    void setBoundingBox(f64 width, f64 height);
 
     // ========================================================================
     // 属性访问器
@@ -209,25 +209,25 @@ public:
     [[nodiscard]] const glm::vec3& position() const { return m_position; }
     [[nodiscard]] const glm::vec3& prevPosition() const { return m_prevPosition; }
     [[nodiscard]] const glm::vec3& velocity() const { return m_velocity; }
-    [[nodiscard]] f32 age() const { return m_age; }
-    [[nodiscard]] f32 maxAge() const { return m_maxAge; }
-    [[nodiscard]] f32 gravity() const { return m_gravity; }
-    [[nodiscard]] f32 friction() const { return m_friction; }
-    [[nodiscard]] f32 size() const { return m_size; }
+    [[nodiscard]] f64 age() const { return m_age; }
+    [[nodiscard]] f64 maxAge() const { return m_maxAge; }
+    [[nodiscard]] f64 gravity() const { return m_gravity; }
+    [[nodiscard]] f64 friction() const { return m_friction; }
+    [[nodiscard]] f64 size() const { return m_size; }
     [[nodiscard]] const glm::vec4& color() const { return m_color; }
     [[nodiscard]] bool onGround() const { return m_onGround; }
     [[nodiscard]] bool hasPhysics() const { return m_hasPhysics; }
-    [[nodiscard]] f32 roll() const { return m_roll; }
+    [[nodiscard]] f64 roll() const { return m_roll; }
 
     void setPosition(const glm::vec3& pos) { m_position = pos; }
     void setVelocity(const glm::vec3& vel) { m_velocity = vel; }
-    void setGravity(f32 g) { m_gravity = g; }
-    void setFriction(f32 f) { m_friction = f; }
-    void setSize(f32 s) { m_size = s; }
+    void setGravity(f64 g) { m_gravity = g; }
+    void setFriction(f64 f) { m_friction = f; }
+    void setSize(f64 s) { m_size = s; }
     void setColor(const glm::vec4& c) { m_color = c; }
-    void setMaxAge(f32 age) { m_maxAge = age; }
+    void setMaxAge(f64 age) { m_maxAge = age; }
     void setHasPhysics(bool physics) { m_hasPhysics = physics; }
-    void setRoll(f32 roll) { m_roll = roll; }
+    void setRoll(f64 roll) { m_roll = roll; }
 
 protected:
     // ========================================================================
@@ -243,24 +243,24 @@ protected:
     // ========================================================================
 
     glm::vec4 m_color = glm::vec4(1.0f);  ///< RGBA 颜色
-    f32 m_size = 0.1f;                    ///< 粒子大小
-    f32 m_roll = 0.0f;                    ///< 旋转角度（弧度）
-    f32 m_prevRoll = 0.0f;                ///< 上一帧旋转角度
+    f64 m_size = 0.1f;                    ///< 粒子大小
+    f64 m_roll = 0.0f;                    ///< 旋转角度（弧度）
+    f64 m_prevRoll = 0.0f;                ///< 上一帧旋转角度
 
     // ========================================================================
     // 生命周期
     // ========================================================================
 
-    f32 m_age = 0.0f;           ///< 已存活时间（ticks）
-    f32 m_maxAge = 1.0f;        ///< 最大存活时间（ticks）
+    f64 m_age = 0.0f;           ///< 已存活时间（ticks）
+    f64 m_maxAge = 1.0f;        ///< 最大存活时间（ticks）
     bool m_expired = false;     ///< 是否已过期
 
     // ========================================================================
     // 物理
     // ========================================================================
 
-    f32 m_gravity = 0.0f;       ///< 重力加速度（方块/tick²）
-    f32 m_friction = 0.98f;     ///< 空气阻力系数
+    f64 m_gravity = 0.0f;       ///< 重力加速度（方块/tick²）
+    f64 m_friction = 0.98f;     ///< 空气阻力系数
     bool m_onGround = false;    ///< 是否在地面
     bool m_hasPhysics = true;   ///< 是否进行碰撞检测
 
@@ -270,8 +270,8 @@ protected:
 
     glm::vec3 m_bboxMin;        ///< 碰撞盒最小点
     glm::vec3 m_bboxMax;        ///< 碰撞盒最大点
-    f32 m_bboxWidth = 0.0f;     ///< 碰撞盒宽度
-    f32 m_bboxHeight = 0.0f;    ///< 碰撞盒高度
+    f64 m_bboxWidth = 0.0f;     ///< 碰撞盒宽度
+    f64 m_bboxHeight = 0.0f;    ///< 碰撞盒高度
 };
 
 /**

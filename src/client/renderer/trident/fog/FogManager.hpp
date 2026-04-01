@@ -72,9 +72,9 @@ public:
      * @param cameraPos 相机位置（用于高度雾）
      */
     void update(i32 renderDistanceChunks,
-                f32 rainStrength,
-                f32 thunderStrength,
-                f32 landFogDensity,
+                f64 rainStrength,
+                f64 thunderStrength,
+                f64 landFogDensity,
                 const glm::vec4& skyFogColor,
                 const glm::vec3& cameraPos);
 
@@ -131,7 +131,7 @@ private:
      *
      * @param renderDistance 渲染距离（方块数）
      */
-    void calculateLinearFog(f32 renderDistance);
+    void calculateLinearFog(f64 renderDistance);
 
     /**
      * @brief 更新 Uniform 缓冲区

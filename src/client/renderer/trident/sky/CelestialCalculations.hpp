@@ -22,9 +22,9 @@ namespace mc::client {
 class CelestialCalculations {
 public:
     /// 主世界默认天空色 (#78A7FF)
-    static constexpr f32 OVERWORLD_BASE_SKY_R = 120.0f / 255.0f;
-    static constexpr f32 OVERWORLD_BASE_SKY_G = 167.0f / 255.0f;
-    static constexpr f32 OVERWORLD_BASE_SKY_B = 1.0f;
+    static constexpr f64 OVERWORLD_BASE_SKY_R = 120.0f / 255.0f;
+    static constexpr f64 OVERWORLD_BASE_SKY_G = 167.0f / 255.0f;
+    static constexpr f64 OVERWORLD_BASE_SKY_B = 1.0f;
 
     // ========== 天体角度计算 ==========
 
@@ -44,7 +44,7 @@ public:
      * d1 = 0.5 - cos(d0 * PI) / 2.0
      * return (d0 * 2.0 + d1) / 3.0
      */
-    [[nodiscard]] static f32 calculateCelestialAngle(i64 dayTime);
+    [[nodiscard]] static f64 calculateCelestialAngle(i64 dayTime);
 
     /**
      * @brief 计算插值后的天体角度 (用于平滑渲染)
@@ -52,7 +52,7 @@ public:
      * @param partialTick 部分 tick (0.0-1.0)
      * @return 插值后的天体角度
      */
-    [[nodiscard]] static f32 calculateCelestialAngleInterpolated(i64 dayTime, f32 partialTick);
+    [[nodiscard]] static f64 calculateCelestialAngleInterpolated(i64 dayTime, f64 partialTick);
 
     // ========== 月相计算 ==========
 
@@ -80,7 +80,7 @@ public:
      *
      * 满月 = 1.0, 新月 = 0.0
      */
-    [[nodiscard]] static f32 getMoonPhaseFactor(i32 moonPhase);
+    [[nodiscard]] static f64 getMoonPhaseFactor(i32 moonPhase);
 
     // ========== 太阳方向计算 ==========
 
@@ -92,7 +92,7 @@ public:
      * 向量指向太阳在天空中的方向。
      * 白天向量朝上，夜晚朝下。
      */
-    [[nodiscard]] static glm::vec3 calculateSunDirection(f32 celestialAngle);
+    [[nodiscard]] static glm::vec3 calculateSunDirection(f64 celestialAngle);
 
     /**
      * @brief 计算太阳强度 (光照强度)
@@ -102,7 +102,7 @@ public:
      * 白天强度高，夜晚强度低。
      * 用于计算环境光照和阴影强度。
      */
-    [[nodiscard]] static f32 calculateSunIntensity(f32 celestialAngle);
+    [[nodiscard]] static f64 calculateSunIntensity(f64 celestialAngle);
 
     // ========== 天空颜色计算 ==========
 
@@ -120,9 +120,9 @@ public:
      * - 雨天: 灰色
      */
     [[nodiscard]] static glm::vec4 calculateSkyColor(
-        f32 celestialAngle,
-        f32 rainStrength = 0.0f,
-        f32 thunderStrength = 0.0f);
+        f64 celestialAngle,
+        f64 rainStrength = 0.0f,
+        f64 thunderStrength = 0.0f);
 
     /**
      * @brief 计算主世界日出/日落颜色（含强度）
@@ -137,9 +137,9 @@ public:
      * - 受天气影响衰减
      */
     [[nodiscard]] static glm::vec4 calculateSunriseSunsetColor(
-        f32 celestialAngle,
-        f32 rainStrength = 0.0f,
-        f32 thunderStrength = 0.0f);
+        f64 celestialAngle,
+        f64 rainStrength = 0.0f,
+        f64 thunderStrength = 0.0f);
 
     /**
      * @brief 计算摄像机朝向与日出日落中心方向的对齐因子
@@ -151,7 +151,7 @@ public:
      * - 仅使用水平面（XZ）分量，不受俯仰角影响。
      * - 若任一向量在 XZ 平面长度过小，返回 0 以避免除零。
      */
-    [[nodiscard]] static f32 calculateSunriseFacingFactor(
+    [[nodiscard]] static f64 calculateSunriseFacingFactor(
         const glm::vec3& cameraForward,
         const glm::vec3& sunriseDirection);
 
@@ -171,9 +171,9 @@ public:
      * @return RGBA 雾颜色
      */
     [[nodiscard]] static glm::vec4 calculateFogColor(
-        f32 celestialAngle,
-        f32 rainStrength = 0.0f,
-        f32 thunderStrength = 0.0f);
+        f64 celestialAngle,
+        f64 rainStrength = 0.0f,
+        f64 thunderStrength = 0.0f);
 
     // ========== 星星计算 ==========
 
@@ -184,7 +184,7 @@ public:
      *
      * 夜晚亮度高，白天不可见。
      */
-    [[nodiscard]] static f32 calculateStarBrightness(f32 celestialAngle);
+    [[nodiscard]] static f64 calculateStarBrightness(f64 celestialAngle);
 
     /**
      * @brief 获取星星生成种子
@@ -200,7 +200,7 @@ public:
 
 private:
     /// 月相亮度因子 (满月=1.0, 新月=0.0)
-    static constexpr f32 MOON_PHASE_FACTORS[8] = {
+    static constexpr f64 MOON_PHASE_FACTORS[8] = {
         1.0f,  // 满月
         0.75f, // 盈凸月
         0.5f,  // 上弦月
@@ -212,7 +212,7 @@ private:
     };
 
     /// 天空颜色查找表 (日出/白天/日落/夜晚)
-    static constexpr f32 SKY_COLORS[4][3] = {
+    static constexpr f64 SKY_COLORS[4][3] = {
         { 0.94f, 0.44f, 0.0f },  // 日出 (橙红色)
         { 0.53f, 0.81f, 0.92f }, // 正午 (亮蓝色)
         { 0.94f, 0.44f, 0.0f },  // 日落 (橙红色)

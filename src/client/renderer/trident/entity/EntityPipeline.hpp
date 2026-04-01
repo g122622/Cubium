@@ -31,9 +31,9 @@ struct EntityMesh {
     u32 vertexCount = 0;
 
     // 实体位置（用于更新）
-    f32 posX = 0.0f;
-    f32 posY = 0.0f;
-    f32 posZ = 0.0f;
+    f64 posX = 0.0f;
+    f64 posY = 0.0f;
+    f64 posZ = 0.0f;
 };
 
 /**
@@ -122,9 +122,9 @@ public:
      */
     void drawMesh(VkCommandBuffer cmd,
                   const EntityMesh& mesh,
-                  const std::array<f32, 16>& modelMatrix,
+                  const std::array<f64, 16>& modelMatrix,
                   const Vector3f& position,
-                  f32 scale = 1.0f);
+                  f64 scale = 1.0f);
 
     /**
      * @brief 绑定纹理描述符集

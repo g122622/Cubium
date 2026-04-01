@@ -16,7 +16,7 @@ namespace mc::client::renderer::trident::sky {
 
 namespace {
 
-constexpr f32 SKY_CLIP_SCALE = 0.0075f;
+constexpr f64 SKY_CLIP_SCALE = 0.0075;
 
 Result<std::vector<u8>> readBinaryFile(const char* path) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -267,8 +267,8 @@ Result<void> SkyRenderer::onResize(VkExtent2D extent) {
 // 更新
 // ============================================================================
 
-void SkyRenderer::update(i64 dayTime, i64 gameTime, f32 partialTick,
-                         f32 rainStrength, f32 thunderStrength) {
+void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick,
+                         f64 rainStrength, f64 thunderStrength) {
     MC_ASSERT_RELEASE_MSG(partialTick >= 0.0f && partialTick <= 1.0f, "partialTick must be in range [0, 1]");
 
     m_dayTime = dayTime;
@@ -295,11 +295,11 @@ void SkyRenderer::update(i64 dayTime, i64 gameTime, f32 partialTick,
     m_sunIntensity = client::CelestialCalculations::calculateSunIntensity(m_celestialAngle);
 
     // 日出日落中心方向（始终在水平面）
-    glm::vec2 sunriseXZ(m_sunDirection.x, m_sunDirection.z);
-    const f32 sunriseLen2 = glm::dot(sunriseXZ, sunriseXZ);
+    glm::dvec2 sunriseXZ(static_cast<f64>(m_sunDirection.x), static_cast<f64>(m_sunDirection.z));
+    const f64 sunriseLen2 = glm::dot(sunriseXZ, sunriseXZ);
     if (sunriseLen2 > 1e-6f) {
         sunriseXZ = sunriseXZ / std::sqrt(sunriseLen2);
-        m_sunriseDirection = glm::vec3(sunriseXZ.x, 0.0f, sunriseXZ.y);
+        m_sunriseDirection = glm::vec3(static_cast<f32>(sunriseXZ.x), 0.0f, static_cast<f32>(sunriseXZ.y));
     }
 
     // 计算星星亮度
@@ -356,7 +356,7 @@ void SkyRenderer::render(VkCommandBuffer cmd,
 
         // 组合投影矩阵和无平移视图矩阵
         // 由于视图矩阵没有平移，天体位置相对于相机旋转固定，不会随相机移动
-        pushConstants.viewProjection = projection * viewNoTranslation * SKY_CLIP_SCALE;
+        pushConstants.viewProjection = projection * viewNoTranslation * static_cast<f32>(SKY_CLIP_SCALE);
 
         vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
                            0, sizeof(SkyPushConstants), &pushConstants);
@@ -381,7 +381,7 @@ void SkyRenderer::render(VkCommandBuffer cmd,
     }
 
     // 渲染星星 (夜晚可见)
-    if (m_starBrightness > 0.005f) {
+    if (m_starBrightness > 0.005) {
         MC_TRACE_SKY("Stars");
         renderStars(cmd);
     }
@@ -450,7 +450,7 @@ Result<void> SkyRenderer::createSkyDomeVBO() {
     // 说明：
     // - 原先的平面天空无法区分”上半天空/下半天空”，无法实现 MC 晨昏时下半天空填充。
     // - 使用球面后，可基于方向向量按半球分别着色并叠加日出日落扇形效果。
-    constexpr f32 SKY_RADIUS = 384.0f;
+    constexpr f64 SKY_RADIUS = 384.0;
     constexpr i32 STACK_COUNT = 32;
     constexpr i32 SLICE_COUNT = 64;
 
@@ -462,19 +462,19 @@ Result<void> SkyRenderer::createSkyDomeVBO() {
 
     // 生成球面顶点（纬度-经度）
     for (i32 stack = 0; stack <= STACK_COUNT; ++stack) {
-        const f32 v = static_cast<f32>(stack) / static_cast<f32>(STACK_COUNT);
-        const f32 phi = v * mc::math::PI; // [0, PI]
+        const f64 v = static_cast<f64>(stack) / static_cast<f64>(STACK_COUNT);
+        const f64 phi = v * mc::math::PI; // [0, PI]
 
-        const f32 y = std::cos(phi) * SKY_RADIUS;
-        const f32 ringRadius = std::sin(phi) * SKY_RADIUS;
+        const f64 y = std::cos(phi) * SKY_RADIUS;
+        const f64 ringRadius = std::sin(phi) * SKY_RADIUS;
 
         for (i32 slice = 0; slice <= SLICE_COUNT; ++slice) {
-            const f32 u = static_cast<f32>(slice) / static_cast<f32>(SLICE_COUNT);
-            const f32 theta = u * mc::math::TAU_F; // [0, 2PI]
+            const f64 u = static_cast<f64>(slice) / static_cast<f64>(SLICE_COUNT);
+            const f64 theta = u * mc::math::TAU_F; // [0, 2PI]
 
-            const f32 x = std::cos(theta) * ringRadius;
-            const f32 z = std::sin(theta) * ringRadius;
-            vertices.push_back({x, y, z});
+            const f64 x = std::cos(theta) * ringRadius;
+            const f64 z = std::sin(theta) * ringRadius;
+            vertices.push_back({static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)});
         }
     }
 
@@ -545,18 +545,18 @@ Result<void> SkyRenderer::createStarVBO() {
 
     // 在单位球面上均匀分布星星
     for (i32 i = 0; i < client::CelestialCalculations::getStarCount(); ++i) {
-        // 使用球面均匀分布算法（Random.nextDouble() 返回 f64，转换为 f32 用于内部计算）
-        f32 theta = static_cast<f32>(2.0 * mc::math::PI_DOUBLE * rng.nextDouble());
-        f32 phi = static_cast<f32>(std::acos(2.0 * rng.nextDouble() - 1.0));
-        constexpr f32 radius = 100.0f; // 星星距离
+        // 使用球面均匀分布算法（Random.nextDouble() 返回 f64，转换为 f64 用于内部计算）
+        f64 theta = 2.0 * mc::math::PI_DOUBLE * rng.nextDouble();
+        f64 phi = std::acos(2.0 * rng.nextDouble() - 1.0);
+        constexpr f64 radius = 100.0; // 星星距离
 
-        f32 x = radius * std::sin(phi) * std::cos(theta);
-        f32 y = radius * std::sin(phi) * std::sin(theta);
-        f32 z = radius * std::cos(phi);
+        f64 x = radius * std::sin(phi) * std::cos(theta);
+        f64 y = radius * std::sin(phi) * std::sin(theta);
+        f64 z = radius * std::cos(phi);
 
         // 只保留 y > 0 的星星 (地平线以上)
-        if (y > 0.0f) {
-            vertices.push_back({x, y, z});
+        if (y > 0.0) {
+            vertices.push_back({static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)});
         }
     }
 
@@ -961,28 +961,31 @@ void SkyRenderer::updateUniformBuffer(u32 frameIndex) {
     ubo.sunriseColor = m_sunriseSunsetColor;
     ubo.sunriseDirection = glm::vec4(m_sunriseDirection, 0.0f);
 
-    glm::vec3 cameraForward = m_cameraForward;
-    const f32 cameraForwardLen2 = glm::dot(cameraForward, cameraForward);
-    if (cameraForwardLen2 > 1e-6f) {
+    glm::dvec3 cameraForward(m_cameraForward.x, m_cameraForward.y, m_cameraForward.z);
+    const f64 cameraForwardLen2 = glm::dot(cameraForward, cameraForward);
+    if (cameraForwardLen2 > 1e-6) {
         cameraForward /= std::sqrt(cameraForwardLen2);
     } else {
-        cameraForward = glm::vec3(0.0f, 0.0f, -1.0f);
+        cameraForward = glm::dvec3(0.0, 0.0, -1.0);
     }
-    ubo.cameraForward = glm::vec4(cameraForward, 0.0f);
+    ubo.cameraForward = glm::vec4(static_cast<f32>(cameraForward.x),
+                                  static_cast<f32>(cameraForward.y),
+                                  static_cast<f32>(cameraForward.z),
+                                  0.0f);
 
     // sun.vert 在太阳接近天顶/天底时会出现 right=normalize(cross(up, sunDir)) 退化。
     // 这里做极小偏移，避免精确零向量导致太阳四边形退化不可见。
-    f32 adjustedAngle = m_celestialAngle;
-    const f32 angleRad = adjustedAngle * mc::math::TAU_F;
-    if (std::abs(std::sin(angleRad)) < 1e-4f) {
-        adjustedAngle += 1e-4f;
-        if (adjustedAngle >= 1.0f) {
-            adjustedAngle -= 1.0f;
+    f64 adjustedAngle = m_celestialAngle;
+    const f64 angleRad = adjustedAngle * mc::math::TAU_F;
+    if (std::abs(std::sin(angleRad)) < 1e-4) {
+        adjustedAngle += 1e-4;
+        if (adjustedAngle >= 1.0) {
+            adjustedAngle -= 1.0;
         }
     }
 
-    ubo.celestialAngle = adjustedAngle;
-    ubo.starBrightness = m_starBrightness;
+    ubo.celestialAngle = static_cast<f32>(adjustedAngle);
+    ubo.starBrightness = static_cast<f32>(m_starBrightness);
     ubo.moonPhase = m_moonPhase;
     ubo.padding = 0.0f;
 

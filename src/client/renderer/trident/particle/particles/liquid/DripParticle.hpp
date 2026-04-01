@@ -34,7 +34,7 @@ public:
     void tick(ClientWorld* world) override;
 
     [[nodiscard]] DripState dripState() const { return m_dripState; }
-    [[nodiscard]] f32 dripProgress() const { return m_dripProgress; }
+    [[nodiscard]] f64 dripProgress() const { return m_dripProgress; }
 
 protected:
     /**
@@ -59,7 +59,7 @@ protected:
     virtual void onLand(ClientWorld* world);
 
     DripState m_dripState = DripState::Hanging;
-    f32 m_dripProgress = 0.0f;    ///< 悬挂积累进度 (0-1)
+    f64 m_dripProgress = 0.0f;    ///< 悬挂积累进度 (0-1)
     glm::vec3 m_hangPosition;     ///< 悬挂位置
 };
 

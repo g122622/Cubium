@@ -30,18 +30,18 @@ namespace ContainerTex {
     constexpr i32 TEXTURE_HEIGHT = 256;
 
     // 背包屏幕背景 (0, 0) - (176, 166)
-    constexpr f32 INVENTORY_BG_U0 = 0.0f / TEXTURE_WIDTH;
-    constexpr f32 INVENTORY_BG_V0 = 0.0f / TEXTURE_HEIGHT;
-    constexpr f32 INVENTORY_BG_U1 = 176.0f / TEXTURE_WIDTH;
-    constexpr f32 INVENTORY_BG_V1 = 166.0f / TEXTURE_HEIGHT;
+    constexpr f64 INVENTORY_BG_U0 = 0.0f / TEXTURE_WIDTH;
+    constexpr f64 INVENTORY_BG_V0 = 0.0f / TEXTURE_HEIGHT;
+    constexpr f64 INVENTORY_BG_U1 = 176.0f / TEXTURE_WIDTH;
+    constexpr f64 INVENTORY_BG_V1 = 166.0f / TEXTURE_HEIGHT;
     constexpr i32 INVENTORY_BG_WIDTH = 176;
     constexpr i32 INVENTORY_BG_HEIGHT = 166;
 
     // 工作台背景 (0, 0) - (176, 166)
-    constexpr f32 CRAFTING_TABLE_BG_U0 = 0.0f / TEXTURE_WIDTH;
-    constexpr f32 CRAFTING_TABLE_BG_V0 = 0.0f / TEXTURE_HEIGHT;
-    constexpr f32 CRAFTING_TABLE_BG_U1 = 176.0f / TEXTURE_WIDTH;
-    constexpr f32 CRAFTING_TABLE_BG_V1 = 166.0f / TEXTURE_HEIGHT;
+    constexpr f64 CRAFTING_TABLE_BG_U0 = 0.0f / TEXTURE_WIDTH;
+    constexpr f64 CRAFTING_TABLE_BG_V0 = 0.0f / TEXTURE_HEIGHT;
+    constexpr f64 CRAFTING_TABLE_BG_U1 = 176.0f / TEXTURE_WIDTH;
+    constexpr f64 CRAFTING_TABLE_BG_V1 = 166.0f / TEXTURE_HEIGHT;
 }
 
 /**
@@ -132,7 +132,7 @@ public:
      * @param x 屏幕X坐标
      * @param y 屏幕Y坐标
      */
-    void drawInventoryBackground(GuiRenderer& gui, f32 x, f32 y);
+    void drawInventoryBackground(GuiRenderer& gui, f64 x, f64 y);
 
     /**
      * @brief 绘制工作台屏幕背景
@@ -141,7 +141,7 @@ public:
      * @param x 屏幕X坐标
      * @param y 屏幕Y坐标
      */
-    void drawCraftingTableBackground(GuiRenderer& gui, f32 x, f32 y);
+    void drawCraftingTableBackground(GuiRenderer& gui, f64 x, f64 y);
 
     /**
      * @brief 检查背包纹理是否已加载

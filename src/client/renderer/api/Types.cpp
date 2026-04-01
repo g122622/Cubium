@@ -4,7 +4,7 @@ namespace mc::client::renderer::api {
 
 namespace BlockGeometry {
 
-std::array<f32, 3> getFaceNormal(Face face) {
+std::array<f64, 3> getFaceNormal(Face face) {
     switch (face) {
         case Face::Bottom: return { 0.0f, -1.0f, 0.0f };
         case Face::Top:    return { 0.0f,  1.0f, 0.0f };
@@ -16,7 +16,7 @@ std::array<f32, 3> getFaceNormal(Face face) {
     }
 }
 
-std::array<f32, 12> getFaceVertices(Face face) {
+std::array<f64, 12> getFaceVertices(Face face) {
     // 方块顶点 (单位立方体 0-1)
     // v0 = (0,0,0), v1 = (1,0,0), v2 = (1,1,0), v3 = (0,1,0)
     // v4 = (0,0,1), v5 = (1,0,1), v6 = (1,1,1), v7 = (0,1,1)

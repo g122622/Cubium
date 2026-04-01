@@ -11,22 +11,22 @@ namespace mc::client::renderer::api {
  * UV 坐标范围 [0, 1]，其中 (u0, v0) 是左上角，(u1, v1) 是右下角。
  */
 struct TextureRegion {
-    f32 u0 = 0.0f, v0 = 0.0f;  // 左上角
-    f32 u1 = 1.0f, v1 = 1.0f;  // 右下角
+    f64 u0 = 0.0f, v0 = 0.0f;  // 左上角
+    f64 u1 = 1.0f, v1 = 1.0f;  // 右下角
 
     TextureRegion() = default;
-    TextureRegion(f32 u0_, f32 v0_, f32 u1_, f32 v1_)
+    TextureRegion(f64 u0_, f64 v0_, f64 u1_, f64 v1_)
         : u0(u0_), v0(v0_), u1(u1_), v1(v1_) {}
 
     /**
      * @brief 获取区域宽度 (UV单位)
      */
-    [[nodiscard]] f32 width() const { return u1 - u0; }
+    [[nodiscard]] f64 width() const { return u1 - u0; }
 
     /**
      * @brief 获取区域高度 (UV单位)
      */
-    [[nodiscard]] f32 height() const { return v1 - v0; }
+    [[nodiscard]] f64 height() const { return v1 - v0; }
 
     /**
      * @brief 创建默认区域 (整个纹理)

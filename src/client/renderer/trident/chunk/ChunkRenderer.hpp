@@ -69,8 +69,8 @@ struct ChunkTextureAtlas {
     u32 height = 0;
     u32 tileSize = 16;
     u32 tilesPerRow = 0;
-    f32 tileU = 0.0f;
-    f32 tileV = 0.0f;
+    f64 tileU = 0.0f;
+    f64 tileV = 0.0f;
     bool isValid = false;
 
     void destroy(VkDevice device);
@@ -181,7 +181,7 @@ public:
     void renderTransparent(VkCommandBuffer commandBuffer,
                            VkPipelineLayout pipelineLayout,
                            PushConstantsCallback pushConstantsCallback,
-                           const glm::vec3& cameraPosition,
+                           const glm::dvec3& cameraPosition,
                            bool sortBackToFront = true);
 
     // ========== 异步 GPU 上传 ==========

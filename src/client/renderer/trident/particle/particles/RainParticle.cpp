@@ -18,7 +18,7 @@ RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
     // 雨滴生命周期较短
     // 参考 MC: maxAge = (int)(8.0D / (Math.random() * 0.8D + 0.2D))
     mc::math::Random rng;
-    f32 lifeMultiplier = 0.2f + rng.nextFloat() * 0.8f;
+    f64 lifeMultiplier = 0.2f + rng.nextFloat() * 0.8f;
     setMaxAge(8.0f / lifeMultiplier);
 }
 

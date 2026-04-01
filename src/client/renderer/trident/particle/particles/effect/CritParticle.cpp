@@ -50,7 +50,7 @@ void CritParticle::tick(ClientWorld* world) {
     m_roll += 0.3f;
 
     // 随年龄变大
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     setSize(m_initialSize * (1.0f + lifeRatio * 0.5f));
 
     // 淡出

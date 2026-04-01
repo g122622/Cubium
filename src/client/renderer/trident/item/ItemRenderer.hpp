@@ -71,7 +71,7 @@ public:
      * @param y 屏幕Y坐标
      * @param size 渲染尺寸（默认16像素）
      */
-    void renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f32 x, f32 y, f32 size = 16.0f);
+    void renderItem(gui::GuiRenderer& gui, const ItemStack& stack, f64 x, f64 y, f64 size = 16.0f);
 
     /**
      * @brief 渲染物品图标（无数量显示）
@@ -82,7 +82,7 @@ public:
      * @param y 屏幕Y坐标
      * @param size 渲染尺寸（默认16像素）
      */
-    void renderItem(gui::GuiRenderer& gui, const Item* item, f32 x, f32 y, f32 size = 16.0f);
+    void renderItem(gui::GuiRenderer& gui, const Item* item, f64 x, f64 y, f64 size = 16.0f);
 
     /**
      * @brief 渲染物品图标（使用纹理区域）
@@ -95,7 +95,7 @@ public:
      * @param y 屏幕Y坐标
      * @param size 渲染尺寸（默认16像素）
      */
-    void renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f32 x, f32 y, f32 size = 16.0f);
+    void renderItem(gui::GuiRenderer& gui, const TextureRegion& region, f64 x, f64 y, f64 size = 16.0f);
 
     /**
      * @brief 检查物品是否为方块物品

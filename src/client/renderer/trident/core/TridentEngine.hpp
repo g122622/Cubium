@@ -87,7 +87,7 @@ using GuiRenderCallback = std::function<void()>;
  * @param cmd 当前命令缓冲区
  * @param partialTick 部分 tick（用于插值）
  */
-using EntityRenderCallback = std::function<void(VkCommandBuffer, f32)>;
+using EntityRenderCallback = std::function<void(VkCommandBuffer, f64)>;
 
 /**
  * @brief 最大同时在飞帧数
@@ -232,7 +232,7 @@ public:
     /**
      * @brief 更新时间状态
      */
-    void updateTime(i64 dayTime, i64 gameTime, f32 partialTick = 0.0f);
+    void updateTime(i64 dayTime, i64 gameTime, f64 partialTick = 0.0f);
 
     /**
      * @brief 更新天气状态
@@ -240,7 +240,7 @@ public:
      * @param rainStrength 降雨强度 (0.0 - 1.0)
      * @param thunderStrength 雷暴强度 (0.0 - 1.0)
      */
-    void updateWeather(f32 rainStrength, f32 thunderStrength);
+    void updateWeather(f64 rainStrength, f64 thunderStrength);
 
     /**
      * @brief 运行时切换 VSync（会触发交换链重建）
@@ -259,7 +259,7 @@ public:
      *
      * 范围建议：[0.0, 2.0]，1.0 表示默认效果。
      */
-    void setLandFogDensity(f32 fogDensity);
+    void setLandFogDensity(f64 fogDensity);
 
     /**
      * @brief 更新云渲染模式（Off/Fast/Fancy）
@@ -570,15 +570,15 @@ private:
     // 时间状态（用于天空/光照）
     i64 m_dayTime = 0;
     i64 m_gameTime = 0;
-    f32 m_partialTick = 0.0f;
+    f64 m_partialTick = 0.0f;
 
     // 天气状态
-    f32 m_rainStrength = 0.0f;
-    f32 m_thunderStrength = 0.0f;
+    f64 m_rainStrength = 0.0f;
+    f64 m_thunderStrength = 0.0f;
 
     // 可配置渲染参数（由 options.json 驱动）
     i32 m_renderDistanceChunks = 12;
-    f32 m_landFogDensity = 1.0f;
+    f64 m_landFogDensity = 1.0f;
     cloud::CloudMode m_cloudMode = static_cast<cloud::CloudMode>(2);
 
     // 窗口尺寸

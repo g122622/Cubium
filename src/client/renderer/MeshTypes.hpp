@@ -11,14 +11,14 @@ namespace mc {
 // ============================================================================
 
 struct Vertex {
-    f32 x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
-    f32 nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
-    f32 u = 0.0f, v = 0.0f;                  // 纹理坐标
+    f64 x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
+    f64 nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
+    f64 u = 0.0f, v = 0.0f;                  // 纹理坐标
     u32 color = 0xFFFFFFFF;                  // 顶点颜色 (RGBA)
     u8 light = 255;                          // 光照 (R8_UNORM 编码，0-255)
 
     Vertex() = default;
-    Vertex(f32 px, f32 py, f32 pz, f32 nu, f32 nv, f32 nw, f32 tu, f32 tv, u32 col = 0xFFFFFFFF, u8 l = 255)
+    Vertex(f64 px, f64 py, f64 pz, f64 nu, f64 nv, f64 nw, f64 tu, f64 tv, u32 col = 0xFFFFFFFF, u8 l = 255)
         : x(px), y(py), z(pz)
         , nx(nu), ny(nv), nz(nw)
         , u(tu), v(tv)
@@ -53,11 +53,11 @@ constexpr u32 VERTICES_PER_FACE = 4;
 constexpr u32 INDICES_PER_FACE = 6;
 
 // 获取面的法线
-[[nodiscard]] std::array<f32, 3> getFaceNormal(Face face);
+[[nodiscard]] std::array<f64, 3> getFaceNormal(Face face);
 
 // 获取面的顶点位置 (相对于方块左下角)
 // 返回4个顶点的位置，每个顶点3个分量
-[[nodiscard]] std::array<f32, 12> getFaceVertices(Face face);
+[[nodiscard]] std::array<f64, 12> getFaceVertices(Face face);
 
 // 获取标准面的索引 (两个三角形)
 [[nodiscard]] std::array<u32, 6> getFaceIndices();
@@ -109,11 +109,11 @@ struct MeshData {
 // ============================================================================
 
 struct TextureRegion {
-    f32 u0, v0;  // 左上角
-    f32 u1, v1;  // 右下角
+    f64 u0, v0;  // 左上角
+    f64 u1, v1;  // 右下角
 
     TextureRegion() = default;
-    TextureRegion(f32 u0_, f32 v0_, f32 u1_, f32 v1_)
+    TextureRegion(f64 u0_, f64 v0_, f64 u1_, f64 v1_)
         : u0(u0_), v0(v0_), u1(u1_), v1(v1_) {}
 };
 
@@ -142,8 +142,8 @@ private:
     u32 m_textureHeight;
     u32 m_tileSize;
     u32 m_tilesPerRow;
-    f32 m_tileU;
-    f32 m_tileV;
+    f64 m_tileU;
+    f64 m_tileV;
 };
 
 } // namespace mc

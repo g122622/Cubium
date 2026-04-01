@@ -20,9 +20,9 @@ namespace mc::client::renderer {
 
 namespace {
 
-inline constexpr f32 MODEL_SCALE = 1.0f / 16.0f;
-inline constexpr f32 MODEL_MESH_SCALE = 1.0f;
-inline constexpr f32 MODEL_Y_OFFSET = 24.0f;
+inline constexpr f64 MODEL_SCALE = 1.0f / 16.0f;
+inline constexpr f64 MODEL_MESH_SCALE = 1.0f;
+inline constexpr f64 MODEL_Y_OFFSET = 24.0f;
 
 /**
  * @brief 规范化实体类型ID
@@ -78,7 +78,7 @@ EntityRenderer* EntityRendererManager::getRenderer(const String& typeId) {
     return nullptr;
 }
 
-void EntityRendererManager::render(Entity& entity, f32 partialTicks) {
+void EntityRendererManager::render(Entity& entity, f64 partialTicks) {
     // 获取实体类型ID并查找渲染器（已在 getOrCreateRenderer 中规范化）
     EntityRenderer* renderer = getOrCreateRenderer(entity.getTypeId());
     if (renderer) {
@@ -92,7 +92,7 @@ void EntityRendererManager::render(Entity& entity, f32 partialTicks) {
     }
 }
 
-void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f32 partialTicks) {
+void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks) {
     if (!m_pipeline) {
         return;
     }
@@ -139,7 +139,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     m_pipeline->bindTextureDescriptor(cmd);
 
     // 计算模型矩阵
-    std::array<f32, 16> modelMatrix = {
+    std::array<f64, 16> modelMatrix = {
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
@@ -148,16 +148,16 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
     if (isItemEntity) {
         // ItemEntity 特殊渲染：应用浮动和旋转动画
-        f32 bobOffset = calculateItemBobOffset(entity.ticksExisted(), partialTicks);
-        f32 rotation = calculateItemRotation(entity.ticksExisted(), partialTicks);
+        f64 bobOffset = calculateItemBobOffset(entity.ticksExisted(), partialTicks);
+        f64 rotation = calculateItemRotation(entity.ticksExisted(), partialTicks);
 
         // Y 翻转
         modelMatrix[5] = -1.0f;
 
         // 应用 Y 轴旋转（物品自转）
-        f32 rotRad = math::toRadians(rotation);
-        f32 cosRot = std::cos(rotRad);
-        f32 sinRot = std::sin(rotRad);
+        f64 rotRad = math::toRadians(rotation);
+        f64 cosRot = std::cos(rotRad);
+        f64 sinRot = std::sin(rotRad);
         modelMatrix[0] = cosRot;
         modelMatrix[2] = sinRot;
         modelMatrix[8] = -sinRot;
@@ -171,7 +171,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f);
     } else if (isExperienceOrb) {
         // ExperienceOrb 特殊渲染：应用浮动动画和动态大小
-        f32 bobOffset = calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
+        f64 bobOffset = calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
 
         // Y 翻转
         modelMatrix[5] = -1.0f;
@@ -182,7 +182,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // 根据经验球大小计算缩放因子
         // 大小等级 0-10，基础大小为 0.25，每级增加约 0.015
-        f32 scale = MODEL_SCALE * (16.0f + static_cast<f32>(orbSize) * 0.5f);
+        f64 scale = MODEL_SCALE * (16.0f + static_cast<f64>(orbSize) * 0.5f);
 
         // 获取插值位置并应用浮动偏移
         Vector3 posInterp = entity.getInterpolatedPosition(partialTicks);
@@ -198,10 +198,10 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         modelMatrix[7] = MODEL_Y_OFFSET;
 
         // 应用实体旋转（yaw）
-        f32 yaw = entity.getInterpolatedYaw(partialTicks);
-        f32 yawRad = math::toRadians(yaw);
-        f32 cosYaw = std::cos(yawRad);
-        f32 sinYaw = std::sin(yawRad);
+        f64 yaw = entity.getInterpolatedYaw(partialTicks);
+        f64 yawRad = math::toRadians(yaw);
+        f64 cosYaw = std::cos(yawRad);
+        f64 sinYaw = std::sin(yawRad);
 
         // 旋转矩阵（绕Y轴）
         modelMatrix[0] = cosYaw;
@@ -223,23 +223,23 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 }
 
-f32 EntityRendererManager::calculateItemBobOffset(u32 ticksExisted, f32 partialTick) const {
+f64 EntityRendererManager::calculateItemBobOffset(u32 ticksExisted, f64 partialTick) const {
     // 参考 MC 1.16.5 ItemEntityRenderer
     // 浮动动画：sin(ticks * 0.1) * 0.1
-    f32 ticks = static_cast<f32>(ticksExisted) + partialTick;
+    f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
     return std::sin(ticks * 0.1f) * 0.1f + 0.2f;  // 0.2 是基础高度偏移
 }
 
-f32 EntityRendererManager::calculateItemRotation(u32 ticksExisted, f32 partialTick) const {
+f64 EntityRendererManager::calculateItemRotation(u32 ticksExisted, f64 partialTick) const {
     // 参考 MC 1.16.5 ItemEntityRenderer
     // 旋转速度：每 tick 旋转 2 度
-    return static_cast<f32>(ticksExisted) * 2.0f + partialTick * 2.0f;
+    return static_cast<f64>(ticksExisted) * 2.0f + partialTick * 2.0f;
 }
 
-f32 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f32 partialTick) const {
+f64 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const {
     // 参考 MC 1.16.5 ExperienceOrbRenderer
     // 经验球浮动动画：sin(ticks * 0.05) * 0.1 + 0.2
-    f32 ticks = static_cast<f32>(ticksExisted) + partialTick;
+    f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
     return std::sin(ticks * 0.05f) * 0.1f + 0.3f;  // 0.3 是基础高度偏移（略高于物品）
 }
 
@@ -437,8 +437,8 @@ void EntityRendererManager::generateItemEntityMesh(std::vector<ModelVertex>& ver
     // 物品图标是一个面向摄像机的 billboard（双面渲染）
     // 尺寸参考 MC 1.16.5：物品在地面上的渲染大小约为 0.25 块
 
-    constexpr f32 HALF_SIZE = 0.125f;  // 物品尺寸的一半 (0.25 / 2)
-    constexpr f32 Y_OFFSET = 0.25f;    // 地面偏移
+    constexpr f64 HALF_SIZE = 0.125f;  // 物品尺寸的一半 (0.25 / 2)
+    constexpr f64 Y_OFFSET = 0.25f;    // 地面偏移
 
     // 创建一个垂直的四边形（面向 +Z 方向）
     // 实际渲染时会根据摄像机朝向旋转
@@ -470,8 +470,8 @@ void EntityRendererManager::generateExperienceOrbMesh(std::vector<ModelVertex>& 
     // 参考 MC 1.16.5 ExperienceOrbRenderer
 
     // 经验球基础大小：0.25 块，会根据经验值等级动态缩放
-    constexpr f32 HALF_SIZE = 0.125f;  // 基础尺寸的一半
-    constexpr f32 Y_OFFSET = 0.25f;    // 地面偏移
+    constexpr f64 HALF_SIZE = 0.125f;  // 基础尺寸的一半
+    constexpr f64 Y_OFFSET = 0.25f;    // 地面偏移
 
     // 创建双面四边形（billboard）
     // 颜色会在渲染时根据经验值和时间动态计算
@@ -532,8 +532,8 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
     }
 
     // 重映射 UV 坐标
-    const f32 du = region->u1 - region->u0;
-    const f32 dv = region->v1 - region->v0;
+    const f64 du = region->u1 - region->u0;
+    const f64 dv = region->v1 - region->v0;
 
     for (auto& vertex : vertices) {
         vertex.texCoord.x = region->u0 + vertex.texCoord.x * du;
@@ -561,8 +561,8 @@ void EntityRendererManager::remapUvToAtlasRegion(const String& normalizedTypeId,
         return;
     }
 
-    const f32 du = region->u1 - region->u0;
-    const f32 dv = region->v1 - region->v0;
+    const f64 du = region->u1 - region->u0;
+    const f64 dv = region->v1 - region->v0;
 
     for (auto& vertex : vertices) {
         vertex.texCoord.x = region->u0 + vertex.texCoord.x * du;

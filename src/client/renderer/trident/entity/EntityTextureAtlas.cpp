@@ -174,10 +174,10 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build() {
 
         // 计算UV坐标
         TextureRegion region;
-        region.u0 = static_cast<f32>(offsetX) / static_cast<f32>(m_width);
-        region.v0 = static_cast<f32>(offsetY) / static_cast<f32>(m_height);
-        region.u1 = static_cast<f32>(offsetX + tex.width) / static_cast<f32>(m_width);
-        region.v1 = static_cast<f32>(offsetY + tex.height) / static_cast<f32>(m_height);
+        region.u0 = static_cast<f64>(offsetX) / static_cast<f64>(m_width);
+        region.v0 = static_cast<f64>(offsetY) / static_cast<f64>(m_height);
+        region.u1 = static_cast<f64>(offsetX + tex.width) / static_cast<f64>(m_width);
+        region.v1 = static_cast<f64>(offsetY + tex.height) / static_cast<f64>(m_height);
 
         m_regions[tex.location] = region;
 

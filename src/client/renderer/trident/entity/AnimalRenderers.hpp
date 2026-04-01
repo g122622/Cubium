@@ -43,7 +43,7 @@ public:
     }
     ~SheepRenderer() override = default;
 
-    void render(Entity& entity, f32 partialTicks) override {
+    void render(Entity& entity, f64 partialTicks) override {
         // TODO: 处理羊毛渲染
         // 羊有两个模型层：身体和羊毛
         LivingRenderer<SheepModel>::render(entity, partialTicks);

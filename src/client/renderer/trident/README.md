@@ -643,10 +643,10 @@ void onWindowResize(int width, int height) {
 ```cpp
 struct FogUBO {
     alignas(16) glm::vec4 fogColor;
-    alignas(4)  f32 fogStart;
-    alignas(4)  f32 fogEnd;
-    alignas(4)  f32 fogDensity;
-    alignas(4)  f32 fogMode;
+    alignas(4)  f64 fogStart;
+    alignas(4)  f64 fogEnd;
+    alignas(4)  f64 fogDensity;
+    alignas(4)  f64 fogMode;
 };
 ```
 

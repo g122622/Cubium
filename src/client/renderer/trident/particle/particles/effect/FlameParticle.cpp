@@ -16,7 +16,7 @@ FlameParticle::FlameParticle(const glm::vec3& pos, const glm::vec3& velocity)
     m_initialSize = size();
 
     // 火焰颜色：橙黄色
-    f32 colorVariation = rng.nextFloat() * 0.2f;
+    f64 colorVariation = rng.nextFloat() * 0.2f;
     setColor(glm::vec4(1.0f, 0.6f + colorVariation, 0.1f, 1.0f));
 
     setFriction(0.95f);
@@ -57,7 +57,7 @@ void FlameParticle::tick(ClientWorld* world) {
     m_velocity *= m_friction;
 
     // 随年龄缩小
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     setSize(m_initialSize * (1.0f - lifeRatio * 0.5f));
 
     // 淡出
@@ -66,7 +66,7 @@ void FlameParticle::tick(ClientWorld* world) {
     }
 }
 
-f32 FlameParticle::getScale(f32 partialTick) const {
+f64 FlameParticle::getScale(f64 partialTick) const {
     MC_UNUSED(partialTick);
     // 使用 size 属性直接控制大小
     return 1.0f;

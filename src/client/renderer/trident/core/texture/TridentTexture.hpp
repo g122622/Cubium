@@ -216,8 +216,8 @@ private:
     u32 m_height = 0;
     u32 m_tileSize = 16;
     u32 m_tilesPerRow = 0;
-    f32 m_tileU = 0.0f;  // 单个瓦片在U方向的宽度
-    f32 m_tileV = 0.0f;  // 单个瓦片在V方向的高度
+    f64 m_tileU = 0.0f;  // 单个瓦片在U方向的宽度
+    f64 m_tileV = 0.0f;  // 单个瓦片在V方向的高度
 };
 
 } // namespace mc::client::renderer::trident

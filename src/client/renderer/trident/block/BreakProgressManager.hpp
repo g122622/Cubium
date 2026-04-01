@@ -35,23 +35,23 @@ class BreakProgressManager {
 public:
     static constexpr size_t MAX_DAMAGE_STAGE = 9;
     static constexpr u64 PROGRESS_TIMEOUT_TICKS = 400;  // 20秒
-    static constexpr f32 MAX_RENDER_DISTANCE_SQ = 1024.0f;  // 32格
+    static constexpr f64 MAX_RENDER_DISTANCE_SQ = 1024.0f;  // 32格
     static constexpr size_t INITIAL_BUFFER_CAPACITY = 16;  // 预分配缓冲区初始容量
 
     static BreakProgressManager& instance();
 
     void initialize();
     void cleanup();
-    void tick(f32 deltaTime, u64 currentTick);
+    void tick(f64 deltaTime, u64 currentTick);
 
     // 本地玩家挖掘进度
     void startBreaking(const BlockPos& pos);
-    u8 updateLocalProgress(const BlockPos& pos, f32 progress);
+    u8 updateLocalProgress(const BlockPos& pos, f64 progress);
     void stopBreaking();
 
     [[nodiscard]] bool isBreaking() const { return m_localBreaking; }
     [[nodiscard]] const BlockPos& getLocalBreakPos() const { return m_localBreakPos; }
-    [[nodiscard]] f32 getLocalProgress() const { return m_localProgress; }
+    [[nodiscard]] f64 getLocalProgress() const { return m_localProgress; }
     [[nodiscard]] u8 getLocalDamageStage() const { return m_localDamageStage; }
 
     // 远程玩家挖掘进度（多人游戏）
@@ -84,7 +84,7 @@ private:
     // 本地玩家状态
     bool m_localBreaking = false;
     BlockPos m_localBreakPos;
-    f32 m_localProgress = 0.0f;
+    f64 m_localProgress = 0.0f;
     u8 m_localDamageStage = 0;
 
     // 远程玩家状态（多人游戏）

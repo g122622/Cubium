@@ -21,13 +21,13 @@ struct WeatherUBO {
     alignas(16) glm::mat4 projection;
     alignas(16) glm::mat4 view;
     alignas(16) glm::vec3 cameraPos;
-    alignas(4) f32 partialTick;
-    alignas(4) f32 rainStrength;
-    alignas(4) f32 thunderStrength;
+    alignas(4) f64 partialTick;
+    alignas(4) f64 rainStrength;
+    alignas(4) f64 thunderStrength;
 };
 
 // 初始化随机偏移数组（参考 MC 1.16.5）
-void initRainOffsets(f32* offsetX, f32* offsetZ, i32 size) {
+void initRainOffsets(f64* offsetX, f64* offsetZ, i32 size) {
     mc::math::Random rng(42);  // 固定种子保证一致性
 
     for (i32 i = 0; i < size * size; ++i) {
@@ -265,7 +265,7 @@ Result<void> WeatherRenderer::onResize(VkExtent2D extent) {
     return {};
 }
 
-void WeatherRenderer::update(f32 rainStrength, f32 thunderStrength, i64 ticks, f32 partialTick) {
+void WeatherRenderer::update(f64 rainStrength, f64 thunderStrength, i64 ticks, f64 partialTick) {
     m_rainStrength = rainStrength;
     m_thunderStrength = thunderStrength;
     m_ticks = ticks;
@@ -372,7 +372,7 @@ void WeatherRenderer::generateWeatherGeometry() {
     i32 camX = static_cast<i32>(std::floor(m_cameraPos.x));
     i32 camZ = static_cast<i32>(std::floor(m_cameraPos.z));
 
-    f32 f1 = static_cast<f32>(m_ticks) + m_partialTick;
+    f64 f1 = static_cast<f64>(m_ticks) + m_partialTick;
 
     // 渲染范围
     i32 radius = m_renderRadius;
@@ -383,30 +383,30 @@ void WeatherRenderer::generateWeatherGeometry() {
             i32 idx = ((z - camZ + 16) * RAIN_SIZE + (x - camX + 16)) % (RAIN_SIZE * RAIN_SIZE);
             if (idx < 0) idx += RAIN_SIZE * RAIN_SIZE;
 
-            f32 offsetX = m_rainOffsetX[idx];
-            f32 offsetZ = m_rainOffsetZ[idx];
+            f64 offsetX = m_rainOffsetX[idx];
+            f64 offsetZ = m_rainOffsetZ[idx];
 
             // TODO: 检查生物群系温度决定雨/雪
             // 暂时假设全是雨
-            f32 temperature = 0.5f;  // 假设温度
+            f64 temperature = 0.5f;  // 假设温度
 
             // 计算到相机的距离，用于淡出
-            f32 dx = static_cast<f32>(x) + 0.5f - m_cameraPos.x;
-            f32 dz = static_cast<f32>(z) + 0.5f - m_cameraPos.z;
-            f32 dist = std::sqrt(dx * dx + dz * dz);
-            f32 fade = 1.0f - (dist / static_cast<f32>(radius));
+            f64 dx = static_cast<f64>(x) + 0.5f - m_cameraPos.x;
+            f64 dz = static_cast<f64>(z) + 0.5f - m_cameraPos.z;
+            f64 dist = std::sqrt(dx * dx + dz * dz);
+            f64 fade = 1.0f - (dist / static_cast<f64>(radius));
             fade = fade * fade * 0.5f + 0.5f;  // 平滑淡出
-            f32 alpha = fade * m_rainStrength;
+            f64 alpha = fade * m_rainStrength;
 
             // TODO: 获取地形高度
-            f32 groundY = 64.0f;  // 假设地面高度
-            f32 topY = m_cameraPos.y + 20.0f;  // 雨层顶部
-            f32 bottomY = groundY + 5.0f;  // 雨层底部
+            f64 groundY = 64.0f;  // 假设地面高度
+            f64 topY = m_cameraPos.y + 20.0f;  // 雨层顶部
+            f64 bottomY = groundY + 5.0f;  // 雨层底部
 
             if (temperature >= 0.15f) {
                 // 雨
                 // 参考 MC: 每个位置渲染 4 个顶点（一个 quad）
-                f32 texOffset = -((static_cast<i32>(m_ticks) & 31) + m_partialTick) / 32.0f * 3.0f;
+                f64 texOffset = -((static_cast<i32>(m_ticks) & 31) + m_partialTick) / 32.0f * 3.0f;
 
                 // 光照（简化处理）
                 u16 lightU = 240;
@@ -415,35 +415,35 @@ void WeatherRenderer::generateWeatherGeometry() {
                 // 四个顶点
                 WeatherVertex v0, v1, v2, v3;
 
-                v0.x = static_cast<f32>(x) - m_cameraPos.x - offsetX + 0.5f;
+                v0.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
                 v0.y = topY - m_cameraPos.y;
-                v0.z = static_cast<f32>(z) - m_cameraPos.z - offsetZ + 0.5f;
+                v0.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
                 v0.u = 0.0f;
-                v0.v = static_cast<f32>(bottomY) * 0.25f + texOffset;
+                v0.v = static_cast<f64>(bottomY) * 0.25f + texOffset;
                 v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = alpha;
                 v0.lightU = lightU; v0.lightV = lightV;
 
-                v1.x = static_cast<f32>(x) - m_cameraPos.x + offsetX + 0.5f;
+                v1.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
                 v1.y = topY - m_cameraPos.y;
-                v1.z = static_cast<f32>(z) - m_cameraPos.z + offsetZ + 0.5f;
+                v1.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
                 v1.u = 1.0f;
-                v1.v = static_cast<f32>(bottomY) * 0.25f + texOffset;
+                v1.v = static_cast<f64>(bottomY) * 0.25f + texOffset;
                 v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = alpha;
                 v1.lightU = lightU; v1.lightV = lightV;
 
-                v2.x = static_cast<f32>(x) - m_cameraPos.x + offsetX + 0.5f;
+                v2.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
                 v2.y = bottomY - m_cameraPos.y;
-                v2.z = static_cast<f32>(z) - m_cameraPos.z + offsetZ + 0.5f;
+                v2.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
                 v2.u = 1.0f;
-                v2.v = static_cast<f32>(topY) * 0.25f + texOffset;
+                v2.v = static_cast<f64>(topY) * 0.25f + texOffset;
                 v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = alpha;
                 v2.lightU = lightU; v2.lightV = lightV;
 
-                v3.x = static_cast<f32>(x) - m_cameraPos.x - offsetX + 0.5f;
+                v3.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
                 v3.y = bottomY - m_cameraPos.y;
-                v3.z = static_cast<f32>(z) - m_cameraPos.z - offsetZ + 0.5f;
+                v3.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
                 v3.u = 0.0f;
-                v3.v = static_cast<f32>(topY) * 0.25f + texOffset;
+                v3.v = static_cast<f64>(topY) * 0.25f + texOffset;
                 v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = alpha;
                 v3.lightU = lightU; v3.lightV = lightV;
 
@@ -457,45 +457,45 @@ void WeatherRenderer::generateWeatherGeometry() {
             } else {
                 // 雪
                 // 参考 MC: 雪花有更复杂的动画
-                f32 texOffsetX = static_cast<f32>(std::sin(f1 * 0.01) * 0.5);
-                f32 texOffsetY = -((static_cast<i32>(m_ticks) & 511) + m_partialTick) / 512.0f;
+                f64 texOffsetX = static_cast<f64>(std::sin(f1 * 0.01) * 0.5);
+                f64 texOffsetY = -((static_cast<i32>(m_ticks) & 511) + m_partialTick) / 512.0f;
 
                 u16 lightU = 240;
                 u16 lightV = 240;
 
-                f32 snowAlpha = alpha * 0.8f;
+                f64 snowAlpha = alpha * 0.8f;
 
                 WeatherVertex v0, v1, v2, v3;
 
-                v0.x = static_cast<f32>(x) - m_cameraPos.x - offsetX + 0.5f;
+                v0.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
                 v0.y = topY - m_cameraPos.y;
-                v0.z = static_cast<f32>(z) - m_cameraPos.z - offsetZ + 0.5f;
+                v0.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
                 v0.u = 0.0f + texOffsetX;
-                v0.v = static_cast<f32>(bottomY) * 0.25f + texOffsetY;
+                v0.v = static_cast<f64>(bottomY) * 0.25f + texOffsetY;
                 v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = snowAlpha;
                 v0.lightU = lightU; v0.lightV = lightV;
 
-                v1.x = static_cast<f32>(x) - m_cameraPos.x + offsetX + 0.5f;
+                v1.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
                 v1.y = topY - m_cameraPos.y;
-                v1.z = static_cast<f32>(z) - m_cameraPos.z + offsetZ + 0.5f;
+                v1.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
                 v1.u = 1.0f + texOffsetX;
-                v1.v = static_cast<f32>(bottomY) * 0.25f + texOffsetY;
+                v1.v = static_cast<f64>(bottomY) * 0.25f + texOffsetY;
                 v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = snowAlpha;
                 v1.lightU = lightU; v1.lightV = lightV;
 
-                v2.x = static_cast<f32>(x) - m_cameraPos.x + offsetX + 0.5f;
+                v2.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
                 v2.y = bottomY - m_cameraPos.y;
-                v2.z = static_cast<f32>(z) - m_cameraPos.z + offsetZ + 0.5f;
+                v2.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
                 v2.u = 1.0f + texOffsetX;
-                v2.v = static_cast<f32>(topY) * 0.25f + texOffsetY;
+                v2.v = static_cast<f64>(topY) * 0.25f + texOffsetY;
                 v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = snowAlpha;
                 v2.lightU = lightU; v2.lightV = lightV;
 
-                v3.x = static_cast<f32>(x) - m_cameraPos.x - offsetX + 0.5f;
+                v3.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
                 v3.y = bottomY - m_cameraPos.y;
-                v3.z = static_cast<f32>(z) - m_cameraPos.z - offsetZ + 0.5f;
+                v3.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
                 v3.u = 0.0f + texOffsetX;
-                v3.v = static_cast<f32>(topY) * 0.25f + texOffsetY;
+                v3.v = static_cast<f64>(topY) * 0.25f + texOffsetY;
                 v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = snowAlpha;
                 v3.lightU = lightU; v3.lightV = lightV;
 
@@ -941,14 +941,14 @@ std::vector<u8> WeatherRenderer::generateRainTexture(u32 width, u32 height) {
             size_t idx = (y * width + x) * 4;
 
             // 雨滴是垂直条纹
-            f32 xNorm = static_cast<f32>(x) / width;
-            f32 yNorm = static_cast<f32>(y) / height;
+            f64 xNorm = static_cast<f64>(x) / width;
+            f64 yNorm = static_cast<f64>(y) / height;
 
             // 创建多个垂直条纹
-            f32 stripe = 0.0f;
+            f64 stripe = 0.0f;
             for (int i = 0; i < 4; ++i) {
-                f32 stripeX = 0.2f + i * 0.2f + rng.nextFloat() * 0.05f;
-                f32 distance = std::abs(xNorm - stripeX);
+                f64 stripeX = 0.2f + i * 0.2f + rng.nextFloat() * 0.05f;
+                f64 distance = std::abs(xNorm - stripeX);
                 if (distance < 0.02f) {
                     stripe = 1.0f - distance / 0.02f;
                     break;
@@ -956,9 +956,9 @@ std::vector<u8> WeatherRenderer::generateRainTexture(u32 width, u32 height) {
             }
 
             // 渐变效果（从上到下）
-            f32 gradient = 1.0f - yNorm * 0.3f;
+            f64 gradient = 1.0f - yNorm * 0.3f;
 
-            f32 alpha = stripe * gradient * 0.7f;
+            f64 alpha = stripe * gradient * 0.7f;
 
             data[idx + 0] = 200;  // R
             data[idx + 1] = 220;  // G
@@ -980,26 +980,26 @@ std::vector<u8> WeatherRenderer::generateSnowTexture(u32 width, u32 height) {
         for (u32 x = 0; x < width; ++x) {
             size_t idx = (y * width + x) * 4;
 
-            f32 xNorm = static_cast<f32>(x) / width;
-            f32 yNorm = static_cast<f32>(y) / height;
+            f64 xNorm = static_cast<f64>(x) / width;
+            f64 yNorm = static_cast<f64>(y) / height;
 
             // 创建多个圆形雪花
-            f32 snow = 0.0f;
+            f64 snow = 0.0f;
             for (int i = 0; i < 5; ++i) {
-                f32 cx = rng.nextFloat();
-                f32 cy = rng.nextFloat();
-                f32 radius = 0.05f + rng.nextFloat() * 0.1f;
+                f64 cx = rng.nextFloat();
+                f64 cy = rng.nextFloat();
+                f64 radius = 0.05f + rng.nextFloat() * 0.1f;
 
-                f32 dx = xNorm - cx;
-                f32 dy = yNorm - cy;
-                f32 distance = std::sqrt(dx * dx + dy * dy);
+                f64 dx = xNorm - cx;
+                f64 dy = yNorm - cy;
+                f64 distance = std::sqrt(dx * dx + dy * dy);
 
                 if (distance < radius) {
                     snow = std::max(snow, 1.0f - distance / radius);
                 }
             }
 
-            f32 alpha = snow * 0.9f;
+            f64 alpha = snow * 0.9f;
 
             data[idx + 0] = 255;  // R
             data[idx + 1] = 255;  // G

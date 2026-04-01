@@ -562,7 +562,7 @@ Result<void> TridentTexture::createSampler(
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = static_cast<f32>(m_mipLevels);
+    samplerInfo.maxLod = static_cast<f64>(m_mipLevels);
 
     VkResult result = vkCreateSampler(device, &samplerInfo, nullptr, &m_sampler);
     if (result != VK_SUCCESS) {
@@ -723,8 +723,8 @@ Result<void> TridentTextureAtlas::create(
     m_height = height;
     m_tileSize = tileSize;
     m_tilesPerRow = width / tileSize;
-    m_tileU = 1.0f / static_cast<f32>(m_tilesPerRow);
-    m_tileV = static_cast<f32>(tileSize) / static_cast<f32>(height);
+    m_tileU = 1.0f / static_cast<f64>(m_tilesPerRow);
+    m_tileV = static_cast<f64>(tileSize) / static_cast<f64>(height);
 
     // 创建纹理
     api::TextureDesc desc;
@@ -768,10 +768,10 @@ void TridentTextureAtlas::destroy() {
 }
 
 api::TextureRegion TridentTextureAtlas::getRegion(u32 tileX, u32 tileY) const {
-    f32 u0 = static_cast<f32>(tileX * m_tileSize) / static_cast<f32>(m_width);
-    f32 v0 = static_cast<f32>(tileY * m_tileSize) / static_cast<f32>(m_height);
-    f32 u1 = static_cast<f32>((tileX + 1) * m_tileSize) / static_cast<f32>(m_width);
-    f32 v1 = static_cast<f32>((tileY + 1) * m_tileSize) / static_cast<f32>(m_height);
+    f64 u0 = static_cast<f64>(tileX * m_tileSize) / static_cast<f64>(m_width);
+    f64 v0 = static_cast<f64>(tileY * m_tileSize) / static_cast<f64>(m_height);
+    f64 u1 = static_cast<f64>((tileX + 1) * m_tileSize) / static_cast<f64>(m_width);
+    f64 v1 = static_cast<f64>((tileY + 1) * m_tileSize) / static_cast<f64>(m_height);
     return api::TextureRegion(u0, v0, u1, v1);
 }
 

@@ -39,9 +39,9 @@ public:
     [[nodiscard]] ResourceLocation getTextureLocation() const override;
 
 private:
-    static constexpr f32 DEFAULT_GRAVITY = 0.03f;
-    static constexpr f32 DEFAULT_SIZE = 0.1f;
-    static constexpr f32 DEFAULT_LIFETIME = 20.0f;
+    static constexpr f64 DEFAULT_GRAVITY = 0.03f;
+    static constexpr f64 DEFAULT_SIZE = 0.1f;
+    static constexpr f64 DEFAULT_LIFETIME = 20.0f;
 
     BlockState m_blockState;
 };

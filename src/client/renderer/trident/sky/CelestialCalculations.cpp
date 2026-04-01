@@ -5,47 +5,47 @@
 namespace mc::client {
 
 // 静态成员定义
-constexpr f32 CelestialCalculations::MOON_PHASE_FACTORS[8];
-constexpr f32 CelestialCalculations::SKY_COLORS[4][3];
+constexpr f64 CelestialCalculations::MOON_PHASE_FACTORS[8];
+constexpr f64 CelestialCalculations::SKY_COLORS[4][3];
 
-f32 CelestialCalculations::calculateCelestialAngle(i64 dayTime) {
+f64 CelestialCalculations::calculateCelestialAngle(i64 dayTime) {
     // MC 1.16.5 DimensionType.calculateCelestialAngle()
     // d0 = frac(dayTime / 24000 - 0.25)
     // d1 = 0.5 - cos(d0 * PI) / 2.0
     // return (d0 * 2.0 + d1) / 3.0
 
-    constexpr f32 TICKS_PER_DAY = 24000.0f;
+    constexpr f64 TICKS_PER_DAY = 24000.0;
 
-    f32 d0 = std::fmod(dayTime / TICKS_PER_DAY - 0.25f, 1.0f);
-    if (d0 < 0.0f) {
-        d0 += 1.0f;
+    f64 d0 = std::fmod(dayTime / TICKS_PER_DAY - 0.25, 1.0);
+    if (d0 < 0.0) {
+        d0 += 1.0;
     }
 
-    f32 d1 = 0.5f - std::cos(d0 * mc::math::PI) / 2.0f;
+    f64 d1 = 0.5 - std::cos(d0 * mc::math::PI) / 2.0;
 
-    return (d0 * 2.0f + d1) / 3.0f;
+    return (d0 * 2.0 + d1) / 3.0;
 }
 
-f32 CelestialCalculations::calculateCelestialAngleInterpolated(i64 dayTime, f32 partialTick) {
+f64 CelestialCalculations::calculateCelestialAngleInterpolated(i64 dayTime, f64 partialTick) {
     // 计算插值后的 dayTime
     i64 nextDayTime = (dayTime + 1) % mc::game::DAY_LENGTH_TICKS;
-    f32 currentAngle = calculateCelestialAngle(dayTime);
-    f32 nextAngle = calculateCelestialAngle(nextDayTime);
+    f64 currentAngle = calculateCelestialAngle(dayTime);
+    f64 nextAngle = calculateCelestialAngle(nextDayTime);
 
     // 线性插值
     // 注意: 需要处理角度跨越 0/1 边界的情况
-    f32 diff = nextAngle - currentAngle;
-    if (diff > 0.5f) {
-        diff -= 1.0f;
-    } else if (diff < -0.5f) {
-        diff += 1.0f;
+    f64 diff = nextAngle - currentAngle;
+    if (diff > 0.5) {
+        diff -= 1.0;
+    } else if (diff < -0.5) {
+        diff += 1.0;
     }
 
-    f32 result = currentAngle + diff * partialTick;
-    if (result < 0.0f) {
-        result += 1.0f;
-    } else if (result >= 1.0f) {
-        result -= 1.0f;
+    f64 result = currentAngle + diff * partialTick;
+    if (result < 0.0) {
+        result += 1.0;
+    } else if (result >= 1.0) {
+        result -= 1.0;
     }
 
     return result;
@@ -56,14 +56,14 @@ i32 CelestialCalculations::calculateMoonPhase(i64 gameTime) {
     return static_cast<i32>((gameTime / mc::game::DAY_LENGTH_TICKS) % 8);
 }
 
-f32 CelestialCalculations::getMoonPhaseFactor(i32 moonPhase) {
+f64 CelestialCalculations::getMoonPhaseFactor(i32 moonPhase) {
     if (moonPhase < 0 || moonPhase > 7) {
-        return 0.5f;
+        return 0.5;
     }
     return MOON_PHASE_FACTORS[moonPhase];
 }
 
-glm::vec3 CelestialCalculations::calculateSunDirection(f32 celestialAngle) {
+glm::vec3 CelestialCalculations::calculateSunDirection(f64 celestialAngle) {
     // 天体角度转弧度
     // 0.0 = 正午 (太阳在头顶)
     // 0.5 = 午夜 (太阳在脚底)
@@ -79,50 +79,53 @@ glm::vec3 CelestialCalculations::calculateSunDirection(f32 celestialAngle) {
     // - 太阳角度从正午开始，所以需要偏移
 
     // celestialAngle 转弧度，乘以 2π
-    f32 angle = celestialAngle * mc::math::TAU_F;
+    f64 angle = celestialAngle * mc::math::TAU_F;
 
     // 太阳高度角:
     // - 正午 (angle=0): cos(0) = 1, 太阳在头顶
     // - 日落 (angle=π/2): cos(π/2) = 0, 太阳在地平线
     // - 午夜 (angle=π): cos(π) = -1, 太阳在地下
-    f32 height = std::cos(angle);
+    f64 height = std::cos(angle);
 
     // 太阳绕 Y 轴的角度 (东西方向)
     // 使用 sin 来模拟太阳从东到西的运动
-    f32 xz = std::sin(angle);
+    f64 xz = std::sin(angle);
 
     // 太阳方向: X 是东西方向，Y 是高度，Z 是南北方向
     // 注意: MC 使用右手坐标系，Z 是南北
-    glm::vec3 dir(xz, height, 0.0f);
+    glm::dvec3 dir(xz, height, 0.0);
 
-    return glm::normalize(dir);
+    const glm::dvec3 normalized = glm::normalize(dir);
+    return glm::vec3(static_cast<f32>(normalized.x),
+                     static_cast<f32>(normalized.y),
+                     static_cast<f32>(normalized.z));
 }
 
-f32 CelestialCalculations::calculateSunIntensity(f32 celestialAngle) {
-    f32 angleRad = celestialAngle * mc::math::TAU_F;
-    f32 sunHeight = std::cos(angleRad); // 正午=1, 午夜=-1
+f64 CelestialCalculations::calculateSunIntensity(f64 celestialAngle) {
+    f64 angleRad = celestialAngle * mc::math::TAU_F;
+    f64 sunHeight = std::cos(angleRad); // 正午=1, 午夜=-1
 
     // 在地平线附近做轻微软过渡，避免晨昏突变。
-    f32 t = glm::clamp((sunHeight + 0.06f) / 1.06f, 0.0f, 1.0f);
-    return glm::smoothstep(0.0f, 1.0f, t);
+    f64 t = glm::clamp((sunHeight + 0.06) / 1.06, 0.0, 1.0);
+    return glm::smoothstep(0.0, 1.0, t);
 }
 
 glm::vec4 CelestialCalculations::calculateSkyColor(
-    f32 celestialAngle,
-    f32 rainStrength,
-    f32 thunderStrength) {
+    f64 celestialAngle,
+    f64 rainStrength,
+    f64 thunderStrength) {
     MC_ASSERT_RELEASE_MSG(std::isfinite(celestialAngle), "celestialAngle must be finite");
 
-    const f32 angleRad = celestialAngle * mc::math::TAU_F;
-    const f32 sunHeight = std::cos(angleRad);
+    const f64 angleRad = celestialAngle * mc::math::TAU_F;
+    const f64 sunHeight = std::cos(angleRad);
 
     // 主世界基础昼夜渐变（白天默认 #78A7FF）。
     const glm::vec3 daySky = getOverworldBaseSkyColor();
     const glm::vec3 nightSky(0.02f, 0.03f, 0.08f);
 
     // 接近 MC 的昼夜过渡：白天拉满，夜晚降到深蓝。
-    const f32 daylight = glm::smoothstep(-0.18f, 0.14f, sunHeight);
-    glm::vec3 skyColor = glm::mix(nightSky, daySky, daylight);
+    const f64 daylight = glm::smoothstep(-0.18, 0.14, sunHeight);
+    glm::vec3 skyColor = glm::mix(nightSky, daySky, static_cast<f32>(daylight));
 
     // 日出/日落暖色（主色由 MC sunrise/sunset 曲线提供）。
     const glm::vec4 sunrise = calculateSunriseSunsetColor(celestialAngle, rainStrength, thunderStrength);
@@ -134,62 +137,62 @@ glm::vec4 CelestialCalculations::calculateSkyColor(
     if (rainStrength > 0.0f || thunderStrength > 0.0f) {
         // 雨天/雷暴时天空偏灰偏暗（Java 版观感）。
         glm::vec3 fogGray(0.58f, 0.60f, 0.64f);
-        f32 weatherFactor = glm::clamp(std::max(rainStrength, thunderStrength), 0.0f, 1.0f);
-        skyColor = glm::mix(skyColor, fogGray, weatherFactor * 0.82f);
+        f64 weatherFactor = glm::clamp(std::max(rainStrength, thunderStrength), 0.0, 1.0);
+        skyColor = glm::mix(skyColor, fogGray, static_cast<f32>(weatherFactor * 0.82));
     }
 
     return glm::vec4(skyColor, 1.0f);
 }
 
 glm::vec4 CelestialCalculations::calculateSunriseSunsetColor(
-    f32 celestialAngle,
-    f32 rainStrength,
-    f32 thunderStrength) {
+    f64 celestialAngle,
+    f64 rainStrength,
+    f64 thunderStrength) {
     MC_ASSERT_RELEASE_MSG(std::isfinite(celestialAngle), "celestialAngle must be finite");
 
     // 对齐 MC 1.16.5 DimensionType#calcSunriseSunsetColors。
-    const f32 cosine = std::cos(celestialAngle * mc::math::TAU_F);
-    if (cosine < -0.4f || cosine > 0.4f) {
+    const f64 cosine = std::cos(celestialAngle * mc::math::TAU_F);
+    if (cosine < -0.4 || cosine > 0.4) {
         return glm::vec4(0.0f);
     }
 
-    const f32 t = cosine / 0.4f * 0.5f + 0.5f;
-    f32 alpha = 1.0f - (1.0f - std::sin(t * mc::math::PI)) * 0.99f;
+    const f64 t = cosine / 0.4 * 0.5 + 0.5;
+    f64 alpha = 1.0 - (1.0 - std::sin(t * mc::math::PI)) * 0.99;
     alpha *= alpha;
 
     glm::vec3 color;
-    color.r = t * 0.20f + 0.80f;
-    color.g = t * t * 0.52f + 0.12f;
+    color.r = static_cast<f32>(t * 0.20 + 0.80);
+    color.g = static_cast<f32>(t * t * 0.52 + 0.12);
     color.b = 0.10f;
 
-    const f32 rainAttenuation = 1.0f - glm::clamp(rainStrength, 0.0f, 1.0f) * 0.75f;
-    const f32 thunderAttenuation = 1.0f - glm::clamp(thunderStrength, 0.0f, 1.0f) * 0.75f;
+    const f64 rainAttenuation = 1.0 - glm::clamp(rainStrength, 0.0, 1.0) * 0.75;
+    const f64 thunderAttenuation = 1.0 - glm::clamp(thunderStrength, 0.0, 1.0) * 0.75;
     alpha *= rainAttenuation * thunderAttenuation;
 
-    return glm::vec4(color, glm::clamp(alpha, 0.0f, 1.0f));
+    return glm::vec4(color, static_cast<f32>(glm::clamp(alpha, 0.0, 1.0)));
 }
 
-f32 CelestialCalculations::calculateSunriseFacingFactor(
+f64 CelestialCalculations::calculateSunriseFacingFactor(
     const glm::vec3& cameraForward,
     const glm::vec3& sunriseDirection) {
-    const glm::vec2 cam(cameraForward.x, cameraForward.z);
-    const glm::vec2 sunrise(sunriseDirection.x, sunriseDirection.z);
+    const glm::dvec2 cam(cameraForward.x, cameraForward.z);
+    const glm::dvec2 sunrise(sunriseDirection.x, sunriseDirection.z);
 
-    const f32 camLen2 = glm::dot(cam, cam);
-    const f32 sunriseLen2 = glm::dot(sunrise, sunrise);
-    if (camLen2 < 1e-6f || sunriseLen2 < 1e-6f) {
-        return 0.0f;
+    const f64 camLen2 = glm::dot(cam, cam);
+    const f64 sunriseLen2 = glm::dot(sunrise, sunrise);
+    if (camLen2 < 1e-6 || sunriseLen2 < 1e-6) {
+        return 0.0;
     }
 
-    const glm::vec2 camN = cam / std::sqrt(camLen2);
-    const glm::vec2 sunriseN = sunrise / std::sqrt(sunriseLen2);
-    return glm::clamp(glm::dot(camN, sunriseN), 0.0f, 1.0f);
+    const glm::dvec2 camN = cam / std::sqrt(camLen2);
+    const glm::dvec2 sunriseN = sunrise / std::sqrt(sunriseLen2);
+    return glm::clamp(glm::dot(camN, sunriseN), 0.0, 1.0);
 }
 
 glm::vec4 CelestialCalculations::calculateFogColor(
-    f32 celestialAngle,
-    f32 rainStrength,
-    f32 thunderStrength) {
+    f64 celestialAngle,
+    f64 rainStrength,
+    f64 thunderStrength) {
     glm::vec4 skyColor = calculateSkyColor(celestialAngle, rainStrength, thunderStrength);
     glm::vec3 fogColor = glm::vec3(skyColor);
 
@@ -199,14 +202,14 @@ glm::vec4 CelestialCalculations::calculateFogColor(
     return glm::vec4(fogColor, 1.0f);
 }
 
-f32 CelestialCalculations::calculateStarBrightness(f32 celestialAngle) {
+f64 CelestialCalculations::calculateStarBrightness(f64 celestialAngle) {
     // MC 风格的星空亮度曲线：
     // f = 1 - (cos(angle * TAU) * 2 + 0.25)
     // clamp 到 [0,1] 后平方再缩放。
-    const f32 angleRad = celestialAngle * mc::math::TAU_F;
-    f32 brightness = 1.0f - (std::cos(angleRad) * 2.0f + 0.25f);
-    brightness = glm::clamp(brightness, 0.0f, 1.0f);
-    return brightness * brightness * 0.5f;
+    const f64 angleRad = celestialAngle * mc::math::TAU_F;
+    f64 brightness = 1.0f - (std::cos(angleRad) * 2.0f + 0.25f);
+    brightness = glm::clamp(brightness, 0.0, 1.0);
+    return brightness * brightness * 0.5;
 }
 
 } // namespace mc::client

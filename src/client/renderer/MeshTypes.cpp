@@ -8,7 +8,7 @@ namespace mc {
 
 namespace BlockGeometry {
 
-std::array<f32, 3> getFaceNormal(Face face) {
+std::array<f64, 3> getFaceNormal(Face face) {
     switch (face) {
         case Face::Bottom: return { 0.0f, -1.0f, 0.0f };
         case Face::Top:    return { 0.0f,  1.0f, 0.0f };
@@ -20,7 +20,7 @@ std::array<f32, 3> getFaceNormal(Face face) {
     }
 }
 
-std::array<f32, 12> getFaceVertices(Face face) {
+std::array<f64, 12> getFaceVertices(Face face) {
     // 顶点按逆时针顺序排列 (从面外侧看)
     // 方块范围为 [0,0,0] 到 [1,1,1]
     switch (face) {
@@ -123,14 +123,14 @@ TextureAtlas::TextureAtlas(u32 textureWidth, u32 textureHeight, u32 tileSize)
     , m_textureHeight(textureHeight)
     , m_tileSize(tileSize)
     , m_tilesPerRow(textureWidth / tileSize)
-    , m_tileU(1.0f / static_cast<f32>(textureWidth / tileSize))
-    , m_tileV(1.0f / static_cast<f32>(textureHeight / tileSize))
+    , m_tileU(1.0f / static_cast<f64>(textureWidth / tileSize))
+    , m_tileV(1.0f / static_cast<f64>(textureHeight / tileSize))
 {
 }
 
 TextureRegion TextureAtlas::getRegion(u32 tileX, u32 tileY) const {
-    f32 u0 = static_cast<f32>(tileX) * m_tileU;
-    f32 v0 = static_cast<f32>(tileY) * m_tileV;
+    f64 u0 = static_cast<f64>(tileX) * m_tileU;
+    f64 v0 = static_cast<f64>(tileY) * m_tileV;
     return TextureRegion(u0, v0, u0 + m_tileU, v0 + m_tileV);
 }
 

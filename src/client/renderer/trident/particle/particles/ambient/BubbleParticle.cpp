@@ -55,7 +55,7 @@ void BubbleParticle::tick(ClientWorld* world) {
     // 如果不在水中则消失
 
     // 淡出
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     if (lifeRatio > 0.8f) {
         m_color.a = 0.6f * (1.0f - (lifeRatio - 0.8f) / 0.2f);
     }

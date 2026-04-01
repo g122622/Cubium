@@ -25,20 +25,20 @@ constexpr u32 INDICES_PER_PARTICLE = 6;
 // 生成默认粒子纹理数据（简单白色圆形）
 std::vector<u8> generateDefaultParticleTexture(u32 width, u32 height) {
     std::vector<u8> data(width * height * 4, 0);
-    f32 centerX = width / 2.0f;
-    f32 centerY = height / 2.0f;
-    f32 radius = std::min(centerX, centerY) * 0.8f;
+    f64 centerX = width / 2.0f;
+    f64 centerY = height / 2.0f;
+    f64 radius = std::min(centerX, centerY) * 0.8f;
 
     for (u32 y = 0; y < height; ++y) {
         for (u32 x = 0; x < width; ++x) {
-            f32 dx = static_cast<f32>(x) - centerX;
-            f32 dy = static_cast<f32>(y) - centerY;
-            f32 dist = std::sqrt(dx * dx + dy * dy);
+            f64 dx = static_cast<f64>(x) - centerX;
+            f64 dy = static_cast<f64>(y) - centerY;
+            f64 dist = std::sqrt(dx * dx + dy * dy);
 
             size_t idx = (y * width + x) * 4;
             if (dist <= radius) {
                 // 白色，带圆滑边缘 alpha
-                f32 alpha = 1.0f - math::smoothstep(radius * 0.7f, radius, dist);
+                f64 alpha = 1.0f - math::smoothstep(radius * 0.7f, radius, dist);
                 data[idx + 0] = 255;  // R
                 data[idx + 1] = 255;  // G
                 data[idx + 2] = 255;  // B
@@ -843,8 +843,8 @@ Result<void> ParticleManager::createPipelines() {
     VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<f32>(m_extent.width);
-    viewport.height = static_cast<f32>(m_extent.height);
+    viewport.width = static_cast<f64>(m_extent.width);
+    viewport.height = static_cast<f64>(m_extent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 

@@ -195,16 +195,16 @@ Result<u32> GuiTextureManager::registerToRenderer(GuiRenderer& renderer) {
 // 绘制方法
 // ============================================================================
 
-void GuiTextureManager::drawInventoryBackground(GuiRenderer& gui, f32 x, f32 y) {
+void GuiTextureManager::drawInventoryBackground(GuiRenderer& gui, f64 x, f64 y) {
     if (m_atlasSlot == 255) {
         // 未注册到渲染器，使用默认颜色绘制
         gui.fillRect(x, y,
-                     static_cast<f32>(ContainerTex::INVENTORY_BG_WIDTH),
-                     static_cast<f32>(ContainerTex::INVENTORY_BG_HEIGHT),
+                     static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
+                     static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
                      GuiColors::CONTAINER_BG);
         gui.drawRect(x, y,
-                     static_cast<f32>(ContainerTex::INVENTORY_BG_WIDTH),
-                     static_cast<f32>(ContainerTex::INVENTORY_BG_HEIGHT),
+                     static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
+                     static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
                      GuiColors::CONTAINER_BORDER);
         return;
     }
@@ -212,8 +212,8 @@ void GuiTextureManager::drawInventoryBackground(GuiRenderer& gui, f32 x, f32 y) 
     // 使用纹理绘制
     gui.drawTexturedRect(
         x, y,
-        static_cast<f32>(ContainerTex::INVENTORY_BG_WIDTH),
-        static_cast<f32>(ContainerTex::INVENTORY_BG_HEIGHT),
+        static_cast<f64>(ContainerTex::INVENTORY_BG_WIDTH),
+        static_cast<f64>(ContainerTex::INVENTORY_BG_HEIGHT),
         ContainerTex::INVENTORY_BG_U0,
         ContainerTex::INVENTORY_BG_V0,
         ContainerTex::INVENTORY_BG_U1,
@@ -223,7 +223,7 @@ void GuiTextureManager::drawInventoryBackground(GuiRenderer& gui, f32 x, f32 y) 
     );
 }
 
-void GuiTextureManager::drawCraftingTableBackground(GuiRenderer& gui, f32 x, f32 y) {
+void GuiTextureManager::drawCraftingTableBackground(GuiRenderer& gui, f64 x, f64 y) {
     // 暂时使用背包纹理（纹理坐标相同）
     drawInventoryBackground(gui, x, y);
 }

@@ -3,11 +3,11 @@
 // 区块顶点着色器
 
 // 顶点输入 - 与Vertex结构匹配
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec2 inTexCoord;
-layout(location = 3) in vec4 inColor;
-layout(location = 4) in uint inLight;
+layout(location = 0) in dvec3 inPosition;
+layout(location = 2) in dvec3 inNormal;
+layout(location = 4) in dvec2 inTexCoord;
+layout(location = 5) in vec4 inColor;
+layout(location = 6) in uint inLight;
 
 // 输出到片段着色器
 layout(location = 0) out vec3 fragNormal;
@@ -21,8 +21,8 @@ layout(location = 6) out float fragBlockLight;
 // 推送常量 - 模型矩阵
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    vec3 chunkOffset;
-    float padding;
+    dvec4 chunkOffset;
+    dvec4 cameraWorldPos;
 } pc;
 
 // 描述符集 0 - 相机UBO
@@ -38,16 +38,20 @@ out gl_PerVertex {
 
 void main() {
     // 应用区块偏移
-    vec3 worldPos = inPosition + pc.chunkOffset;
+    dvec3 worldPos = inPosition + pc.chunkOffset.xyz;
+    vec3 relativePos = vec3(worldPos - pc.cameraWorldPos.xyz);
 
-    gl_Position = camera.viewProjection * pc.model * vec4(worldPos, 1.0);
-    fragNormal = inNormal;
-    fragTexCoord = inTexCoord;
+    mat4 viewNoTranslation = camera.view;
+    viewNoTranslation[3] = vec4(0.0, 0.0, 0.0, 1.0);
+
+    gl_Position = camera.projection * viewNoTranslation * pc.model * vec4(relativePos, 1.0);
+    fragNormal = vec3(inNormal);
+    fragTexCoord = vec2(inTexCoord);
     fragColor = inColor;
     fragSkyLight = float((inLight >> 4) & 0xFu) / 15.0;
     fragBlockLight = float(inLight & 0xFu) / 15.0;
 
     // 输出世界坐标和视图距离（用于雾效果）
-    fragWorldPos = worldPos;
-    fragViewDistance = length(gl_Position.xyz);
+    fragWorldPos = vec3(worldPos);
+    fragViewDistance = length(relativePos);
 }

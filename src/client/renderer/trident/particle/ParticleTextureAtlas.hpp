@@ -23,7 +23,7 @@ struct SpriteInfo {
     glm::vec2 uvMin;        ///< UV 左上角坐标
     glm::vec2 uvMax;        ///< UV 右下角坐标
     u32 frameCount = 1;     ///< 动画帧数（1 表示静态纹理）
-    f32 frameTime = 0.0f;   ///< 每帧时间（秒）
+    f64 frameTime = 0.0f;   ///< 每帧时间（秒）
 
     /**
      * @brief 检查是否为动画精灵
@@ -33,11 +33,11 @@ struct SpriteInfo {
     /**
      * @brief 获取单帧 UV 高度
      */
-    [[nodiscard]] f32 frameHeight() const {
+    [[nodiscard]] f64 frameHeight() const {
         if (frameCount <= 1) {
             return uvMax.y - uvMin.y;
         }
-        return (uvMax.y - uvMin.y) / static_cast<f32>(frameCount);
+        return (uvMax.y - uvMin.y) / static_cast<f64>(frameCount);
     }
 };
 
@@ -154,8 +154,8 @@ public:
      */
     [[nodiscard]] glm::vec4 getAnimatedFrameUV(
         const ResourceLocation& location,
-        f32 age,
-        f32 maxAge) const;
+        f64 age,
+        f64 maxAge) const;
 
     /**
      * @brief 获取动画精灵的随机帧 UV 坐标

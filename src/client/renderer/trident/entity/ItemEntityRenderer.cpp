@@ -11,11 +11,11 @@ namespace mc::client::renderer {
 
 namespace {
     // ItemEntity 动画常量（参考 MC 1.16.5）
-    constexpr f32 BOB_AMPLITUDE = 0.1f;       // 浮动高度
-    constexpr f32 BOB_FREQUENCY = 0.1f;       // 浮动速度（弧度/tick）
-    constexpr f32 ROTATION_SPEED = 2.0f;      // 旋转速度（度/tick）
-    constexpr f32 GROUND_OFFSET = 0.25f;      // 地面高度偏移
-    constexpr f32 ITEM_SIZE = 0.25f;          // 渲染大小
+    constexpr f64 BOB_AMPLITUDE = 0.1f;       // 浮动高度
+    constexpr f64 BOB_FREQUENCY = 0.1f;       // 浮动速度（弧度/tick）
+    constexpr f64 ROTATION_SPEED = 2.0f;      // 旋转速度（度/tick）
+    constexpr f64 GROUND_OFFSET = 0.25f;      // 地面高度偏移
+    constexpr f64 ITEM_SIZE = 0.25f;          // 渲染大小
 }
 
 ItemEntityRenderer::ItemEntityRenderer()
@@ -25,26 +25,26 @@ ItemEntityRenderer::ItemEntityRenderer()
     m_shadowAlpha = 0.0f;
 }
 
-void ItemEntityRenderer::render(Entity& entity, f32 partialTicks) {
+void ItemEntityRenderer::render(Entity& entity, f64 partialTicks) {
     // ItemEntity 渲染由 EntityRendererManager::renderWithPipeline 处理
     // 这里是传统渲染路径，暂时不实现
     (void)entity;
     (void)partialTicks;
 }
 
-void ItemEntityRenderer::renderShadow(Entity& entity, f32 partialTicks) {
+void ItemEntityRenderer::renderShadow(Entity& entity, f64 partialTicks) {
     // ItemEntity 没有阴影
     (void)entity;
     (void)partialTicks;
 }
 
-f32 ItemEntityRenderer::calculateBobOffset(u32 ticksExisted, f32 partialTick) const {
-    f32 ticks = static_cast<f32>(ticksExisted) + partialTick;
+f64 ItemEntityRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick) const {
+    f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
     return std::sin(ticks * BOB_FREQUENCY) * BOB_AMPLITUDE;
 }
 
-f32 ItemEntityRenderer::calculateRotation(u32 ticksExisted, f32 partialTick) const {
-    return static_cast<f32>(ticksExisted) * ROTATION_SPEED + partialTick * ROTATION_SPEED;
+f64 ItemEntityRenderer::calculateRotation(u32 ticksExisted, f64 partialTick) const {
+    return static_cast<f64>(ticksExisted) * ROTATION_SPEED + partialTick * ROTATION_SPEED;
 }
 
 const TextureRegion* ItemEntityRenderer::getItemTextureRegion(const ItemStack& stack) const {

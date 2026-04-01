@@ -23,7 +23,7 @@ namespace {
     u32 imageHeight,
     u32& outFrameWidth,
     u32& outFrameHeight,
-    f32& outFrameTime)
+    f64& outFrameTime)
 {
     if (mcmetaData.empty() || imageWidth == 0 || imageHeight == 0) {
         return false;
@@ -96,7 +96,7 @@ namespace {
 
     outFrameWidth = static_cast<u32>(frameWidth);
     outFrameHeight = static_cast<u32>(frameHeight);
-    outFrameTime = frameTime > 0 ? static_cast<f32>(frameTime) / 20.0f : 0.1f; // 默认 0.1 秒
+    outFrameTime = frameTime > 0 ? static_cast<f64>(frameTime) / 20.0f : 0.1f; // 默认 0.1 秒
     return true;
 }
 
@@ -303,7 +303,7 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
     builder.setPadding(1);  // 1 像素边距防止纹理溢出
 
     // 收集所有粒子纹理
-    std::vector<std::pair<ResourceLocation, std::tuple<std::vector<u8>, u32, u32, u32, u32, f32>>> textureData;
+    std::vector<std::pair<ResourceLocation, std::tuple<std::vector<u8>, u32, u32, u32, u32, f64>>> textureData;
 
     for (IResourcePack* pack : resourcePacks) {
         if (pack == nullptr) {
@@ -371,7 +371,7 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
             // 检查动画元数据
             u32 frameWidth = width;
             u32 frameHeight = width;  // 默认为正方形帧
-            f32 frameTime = 0.1f;     // 默认帧时间
+            f64 frameTime = 0.1f;     // 默认帧时间
 
             const String mcmetaPath = path + ".mcmeta";
             if (pack->hasResource(mcmetaPath)) {
@@ -596,8 +596,8 @@ const SpriteInfo* ParticleTextureAtlas::getSprite(const ResourceLocation& locati
 
 glm::vec4 ParticleTextureAtlas::getAnimatedFrameUV(
     const ResourceLocation& location,
-    f32 age,
-    f32 maxAge) const
+    f64 age,
+    f64 maxAge) const
 {
     const SpriteInfo* sprite = getSprite(location);
     if (sprite == nullptr) {
@@ -610,15 +610,15 @@ glm::vec4 ParticleTextureAtlas::getAnimatedFrameUV(
     }
 
     // 计算当前帧
-    const f32 frameHeight = sprite->frameHeight();
-    const f32 totalHeight = sprite->uvMax.y - sprite->uvMin.y;
-    const f32 frameVHeight = frameHeight / totalHeight;
+    const f64 frameHeight = sprite->frameHeight();
+    const f64 totalHeight = sprite->uvMax.y - sprite->uvMin.y;
+    const f64 frameVHeight = frameHeight / totalHeight;
 
     // 基于时间的帧选择
-    const u32 frameIndex = static_cast<u32>((age / maxAge) * static_cast<f32>(sprite->frameCount));
+    const u32 frameIndex = static_cast<u32>((age / maxAge) * static_cast<f64>(sprite->frameCount));
     const u32 clampedFrame = std::min(frameIndex, sprite->frameCount - 1);
 
-    const f32 frameVOffset = sprite->uvMin.y + static_cast<f32>(clampedFrame) * frameVHeight;
+    const f64 frameVOffset = sprite->uvMin.y + static_cast<f64>(clampedFrame) * frameVHeight;
 
     return glm::vec4(
         sprite->uvMin.x,
@@ -642,10 +642,10 @@ glm::vec4 ParticleTextureAtlas::getRandomFrameUV(
 
     // 使用种子选择帧
     const u32 frameIndex = seed % sprite->frameCount;
-    const f32 frameHeight = sprite->frameHeight();
-    const f32 totalHeight = sprite->uvMax.y - sprite->uvMin.y;
-    const f32 frameVHeight = frameHeight / totalHeight;
-    const f32 frameVOffset = sprite->uvMin.y + static_cast<f32>(frameIndex) * frameVHeight;
+    const f64 frameHeight = sprite->frameHeight();
+    const f64 totalHeight = sprite->uvMax.y - sprite->uvMin.y;
+    const f64 frameVHeight = frameHeight / totalHeight;
+    const f64 frameVOffset = sprite->uvMin.y + static_cast<f64>(frameIndex) * frameVHeight;
 
     return glm::vec4(
         sprite->uvMin.x,

@@ -66,7 +66,7 @@ void DiggingParticle::tick(ClientWorld* world) {
     }
 
     // 淡出
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     if (lifeRatio > 0.7f) {
         m_color.a = 1.0f - (lifeRatio - 0.7f) / 0.3f;
     }

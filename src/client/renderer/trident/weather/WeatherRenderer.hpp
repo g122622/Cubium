@@ -15,7 +15,7 @@ namespace mc::client::renderer::trident::weather {
 // 天气渲染常量
 namespace WeatherRenderConstants {
 /// 最小渲染强度阈值（低于此值不渲染）
-constexpr f32 MIN_RENDER_STRENGTH = 0.001f;
+constexpr f64 MIN_RENDER_STRENGTH = 0.001f;
 
 /// 雨顶点最大数量（每个渲染位置 6 个顶点）
 constexpr size_t MAX_RAIN_VERTICES = 21 * 21 * 6;  // radius = 10
@@ -95,7 +95,7 @@ public:
      * @param ticks 游戏帧数（用于动画）
      * @param partialTick 部分 tick（用于插值）
      */
-    void update(f32 rainStrength, f32 thunderStrength, i64 ticks, f32 partialTick);
+    void update(f64 rainStrength, f64 thunderStrength, i64 ticks, f64 partialTick);
 
     /**
      * @brief 渲染天气效果
@@ -235,10 +235,10 @@ private:
     VkDescriptorSet m_descriptorSets[MAX_FRAMES_IN_FLIGHT] = {VK_NULL_HANDLE, VK_NULL_HANDLE};
 
     // 天气状态
-    f32 m_rainStrength = 0.0f;
-    f32 m_thunderStrength = 0.0f;
+    f64 m_rainStrength = 0.0f;
+    f64 m_thunderStrength = 0.0f;
     i64 m_ticks = 0;
-    f32 m_partialTick = 0.0f;
+    f64 m_partialTick = 0.0f;
     glm::vec3 m_cameraPos = glm::vec3(0.0f);
 
     // 当前渲染参数
@@ -256,8 +256,8 @@ private:
 
     // 随机偏移数组（参考 MC 的 rainSizeX/rainSizeZ）
     static constexpr i32 RAIN_SIZE = 32;
-    f32 m_rainOffsetX[RAIN_SIZE * RAIN_SIZE] = {};
-    f32 m_rainOffsetZ[RAIN_SIZE * RAIN_SIZE] = {};
+    f64 m_rainOffsetX[RAIN_SIZE * RAIN_SIZE] = {};
+    f64 m_rainOffsetZ[RAIN_SIZE * RAIN_SIZE] = {};
 };
 
 } // namespace mc::client::renderer::trident::weather

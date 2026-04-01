@@ -134,8 +134,8 @@ Result<void> GuiTextureAtlas::createDefaultTextures() {
     GuiTextureRegion slotRegion;
     slotRegion.u0 = 0.0f / ATLAS_WIDTH;
     slotRegion.v0 = 0.0f / ATLAS_HEIGHT;
-    slotRegion.u1 = static_cast<f32>(DEFAULT_SLOT_SIZE) / ATLAS_WIDTH;
-    slotRegion.v1 = static_cast<f32>(DEFAULT_SLOT_SIZE) / ATLAS_HEIGHT;
+    slotRegion.u1 = static_cast<f64>(DEFAULT_SLOT_SIZE) / ATLAS_WIDTH;
+    slotRegion.v1 = static_cast<f64>(DEFAULT_SLOT_SIZE) / ATLAS_HEIGHT;
     slotRegion.width = DEFAULT_SLOT_SIZE;
     slotRegion.height = DEFAULT_SLOT_SIZE;
     m_regions["minecraft:gui/slot"] = slotRegion;
@@ -144,8 +144,8 @@ Result<void> GuiTextureAtlas::createDefaultTextures() {
     GuiTextureRegion containerRegion;
     containerRegion.u0 = 20.0f / ATLAS_WIDTH;
     containerRegion.v0 = 0.0f / ATLAS_HEIGHT;
-    containerRegion.u1 = static_cast<f32>(20 + DEFAULT_CONTAINER_WIDTH) / ATLAS_WIDTH;
-    containerRegion.v1 = static_cast<f32>(DEFAULT_CONTAINER_HEIGHT) / ATLAS_HEIGHT;
+    containerRegion.u1 = static_cast<f64>(20 + DEFAULT_CONTAINER_WIDTH) / ATLAS_WIDTH;
+    containerRegion.v1 = static_cast<f64>(DEFAULT_CONTAINER_HEIGHT) / ATLAS_HEIGHT;
     containerRegion.width = DEFAULT_CONTAINER_WIDTH;
     containerRegion.height = DEFAULT_CONTAINER_HEIGHT;
     m_regions["minecraft:gui/container/generic"] = containerRegion;
@@ -258,7 +258,7 @@ Result<void> GuiTextureAtlas::loadDefaultTextures() {
 // ============================================================================
 
 void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const String& textureId,
-                                   f32 x, f32 y, f32 width, f32 height) {
+                                   f64 x, f64 y, f64 width, f64 height) {
     const GuiTextureRegion* region = getRegion(textureId);
     if (region == nullptr) {
         // 使用默认颜色绘制
@@ -273,10 +273,10 @@ void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const String& textureId,
 }
 
 void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui, const String& textureId,
-                                          f32 x, f32 y,
+                                          f64 x, f64 y,
                                           i32 regionX, i32 regionY,
                                           i32 regionWidth, i32 regionHeight,
-                                          f32 width, f32 height) {
+                                          f64 width, f64 height) {
     (void)regionX;
     (void)regionY;
     (void)regionWidth;

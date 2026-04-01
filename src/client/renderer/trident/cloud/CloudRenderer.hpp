@@ -34,12 +34,12 @@ enum class CloudMode : u8 {
  */
 struct CloudUBO {
     alignas(16) glm::vec4 cloudColor;       ///< 云颜色 (RGBA)
-    alignas(4)  f32 cloudHeight;            ///< 云高度 (192.0f 主世界)
-    alignas(4)  f32 time;                   ///< 时间（用于动画）
-    alignas(4)  f32 textureScale;           ///< 纹理缩放因子
-    alignas(4)  f32 cameraY;                ///< 相机 Y 坐标（用于高度雾）
-    alignas(4)  f32 textureOffsetX;         ///< 纹理 X 偏移（基于相机位置）
-    alignas(4)  f32 textureOffsetZ;         ///< 纹理 Z 偏移（基于相机位置）
+    alignas(4)  f64 cloudHeight;            ///< 云高度 (192.0f 主世界)
+    alignas(4)  f64 time;                   ///< 时间（用于动画）
+    alignas(4)  f64 textureScale;           ///< 纹理缩放因子
+    alignas(4)  f64 cameraY;                ///< 相机 Y 坐标（用于高度雾）
+    alignas(4)  f64 textureOffsetX;         ///< 纹理 X 偏移（基于相机位置）
+    alignas(4)  f64 textureOffsetZ;         ///< 纹理 Z 偏移（基于相机位置）
 };
 
 /**
@@ -133,8 +133,8 @@ public:
      * @param cloudHeight 云高度（维度相关，NaN 表示无云）
      * @param cloudColor 云颜色（来自 SkyRenderer）
      */
-    void update(i64 dayTime, i64 gameTime, f32 partialTick,
-                f32 cloudHeight, const glm::vec4& cloudColor);
+    void update(i64 dayTime, i64 gameTime, f64 partialTick,
+                f64 cloudHeight, const glm::vec4& cloudColor);
 
     /**
      * @brief 渲染云
@@ -369,11 +369,11 @@ private:
     CloudMode m_cloudMode = CloudMode::Fancy;
     i64 m_dayTime = 0;
     i64 m_gameTime = 0;
-    f32 m_partialTick = 0.0f;
-    f32 m_cloudHeight = 192.0f;    // 主世界云高度
+    f64 m_partialTick = 0.0f;
+    f64 m_cloudHeight = 192.0f;    // 主世界云高度
     glm::vec4 m_cloudColor = glm::vec4(1.0f);
     glm::vec3 m_cameraPos = glm::vec3(0.0f);
-    f32 m_cloudOffsetX = 0.0f;     // 云 X 偏移（用于动画）
+    f64 m_cloudOffsetX = 0.0f;     // 云 X 偏移（用于动画）
 
     // 云网格更新检测
     // 参考 MC 1.16.5: 当整数网格坐标变化时重建 VBO

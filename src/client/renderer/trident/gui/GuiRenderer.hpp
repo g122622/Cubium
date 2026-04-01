@@ -84,7 +84,7 @@ public:
      * @param screenW 屏幕宽度
      * @param screenH 屏幕高度
      */
-    void beginFrame(f32 screenW, f32 screenH);
+    void beginFrame(f64 screenW, f64 screenH);
 
     /**
      * @brief 准备帧数据（在渲染通道外调用）
@@ -110,7 +110,7 @@ public:
      * @param shadow 是否绘制阴影
      * @return 文本宽度
      */
-    f32 drawText(const std::string& text, f32 x, f32 y,
+    f64 drawText(const std::string& text, f64 x, f64 y,
                  u32 color = Colors::WHITE, bool shadow = true);
 
     /**
@@ -121,13 +121,13 @@ public:
      * @param color 颜色
      * @return 文本宽度
      */
-    f32 drawTextCentered(const std::string& text, f32 x, f32 y,
+    f64 drawTextCentered(const std::string& text, f64 x, f64 y,
                          u32 color = Colors::WHITE);
 
     /**
      * @brief 获取文本宽度
      */
-    [[nodiscard]] f32 getTextWidth(const std::string& text);
+    [[nodiscard]] f64 getTextWidth(const std::string& text);
 
     /**
      * @brief 获取字体高度
@@ -143,12 +143,12 @@ public:
      * @brief 设置字体缩放因子
      * @param scale 缩放因子（默认1.0）
      */
-    void setFontScale(f32 scale);
+    void setFontScale(f64 scale);
 
     /**
      * @brief 获取字体缩放因子
      */
-    [[nodiscard]] f32 getFontScale() const;
+    [[nodiscard]] f64 getFontScale() const;
 
     // ==================== 矩形绘制 ====================
 
@@ -160,7 +160,7 @@ public:
      * @param height 高度
      * @param color 颜色（ARGB）
      */
-    void fillRect(f32 x, f32 y, f32 width, f32 height, u32 color);
+    void fillRect(f64 x, f64 y, f64 width, f64 height, u32 color);
 
     /**
      * @brief 绘制纹理矩形（使用物品纹理图集）
@@ -177,8 +177,8 @@ public:
      * @param v1 纹理右下角V
      * @param color 颜色（ARGB，默认白色）
      */
-    void drawTexturedRect(f32 x, f32 y, f32 width, f32 height,
-                          f32 u0, f32 v0, f32 u1, f32 v1,
+    void drawTexturedRect(f64 x, f64 y, f64 width, f64 height,
+                          f64 u0, f64 v0, f64 u1, f64 v1,
                           u32 color = ITEM_TEXTURE_COLOR);
 
     /**
@@ -197,8 +197,8 @@ public:
      * @param color 颜色（ARGB）
      * @param atlasSlot 图集槽位ID
      */
-    void drawTexturedRect(f32 x, f32 y, f32 width, f32 height,
-                          f32 u0, f32 v0, f32 u1, f32 v1,
+    void drawTexturedRect(f64 x, f64 y, f64 width, f64 height,
+                          f64 u0, f64 v0, f64 u1, f64 v1,
                           u32 color, u8 atlasSlot);
 
     /**
@@ -210,7 +210,7 @@ public:
      * @param colorTop 顶部颜色
      * @param colorBottom 底部颜色
      */
-    void fillGradientRect(f32 x, f32 y, f32 width, f32 height,
+    void fillGradientRect(f64 x, f64 y, f64 width, f64 height,
                           u32 colorTop, u32 colorBottom);
 
     /**
@@ -222,7 +222,7 @@ public:
      * @param colorLeft 左侧颜色
      * @param colorRight 右侧颜色
      */
-    void fillGradientRectHorizontal(f32 x, f32 y, f32 width, f32 height,
+    void fillGradientRectHorizontal(f64 x, f64 y, f64 width, f64 height,
                                      u32 colorLeft, u32 colorRight);
 
     /**
@@ -233,19 +233,19 @@ public:
      * @param height 高度
      * @param color 颜色
      */
-    void drawRect(f32 x, f32 y, f32 width, f32 height, u32 color);
+    void drawRect(f64 x, f64 y, f64 width, f64 height, u32 color);
 
     // ==================== 获取器 ====================
 
     /**
      * @brief 获取屏幕宽度
      */
-    [[nodiscard]] f32 screenWidth() const { return m_screenWidth; }
+    [[nodiscard]] f64 screenWidth() const { return m_screenWidth; }
 
     /**
      * @brief 获取屏幕高度
      */
-    [[nodiscard]] f32 screenHeight() const { return m_screenHeight; }
+    [[nodiscard]] f64 screenHeight() const { return m_screenHeight; }
 
     /**
      * @brief 检查是否已初始化
@@ -409,8 +409,8 @@ private:
     mc::client::FontRenderer m_fontRenderer;
 
     // 屏幕尺寸
-    f32 m_screenWidth = 0.0f;
-    f32 m_screenHeight = 0.0f;
+    f64 m_screenWidth = 0.0f;
+    f64 m_screenHeight = 0.0f;
 
     // 顶点/索引数据
     std::vector<mc::client::GuiVertex> m_vertices;

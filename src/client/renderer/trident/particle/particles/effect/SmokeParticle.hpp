@@ -34,14 +34,14 @@ public:
         return ResourceLocation("minecraft:particle/smoke");
     }
 
-    [[nodiscard]] f32 getScale(f32 partialTick) const override;
+    [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f32 DEFAULT_GRAVITY = 0.0f;   // 烟雾不受重力
-    static constexpr f32 DEFAULT_SIZE = 0.1f;
-    static constexpr f32 DEFAULT_LIFETIME = 40.0f;  // 约 2 秒
+    static constexpr f64 DEFAULT_GRAVITY = 0.0f;   // 烟雾不受重力
+    static constexpr f64 DEFAULT_SIZE = 0.1f;
+    static constexpr f64 DEFAULT_LIFETIME = 40.0f;  // 约 2 秒
 
-    f32 m_initialSize;
+    f64 m_initialSize;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

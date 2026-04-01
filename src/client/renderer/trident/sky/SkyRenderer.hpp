@@ -83,8 +83,8 @@ public:
      * @param rainStrength 雨强度 (0.0-1.0)
      * @param thunderStrength 雷暴强度 (0.0-1.0)
      */
-    void update(i64 dayTime, i64 gameTime, f32 partialTick,
-                f32 rainStrength = 0.0f, f32 thunderStrength = 0.0f);
+    void update(i64 dayTime, i64 gameTime, f64 partialTick,
+                f64 rainStrength = 0.0f, f64 thunderStrength = 0.0f);
 
     /**
      * @brief 渲染天空
@@ -121,7 +121,7 @@ public:
     /**
      * @brief 获取太阳强度
      */
-    [[nodiscard]] f32 sunIntensity() const { return m_sunIntensity; }
+    [[nodiscard]] f64 sunIntensity() const { return m_sunIntensity; }
 
     /**
      * @brief 检查是否已初始化
@@ -273,18 +273,18 @@ private:
     // 天空状态
     i64 m_dayTime = 0;
     i64 m_gameTime = 0;
-    f32 m_celestialAngle = 0.0f;
+    f64 m_celestialAngle = 0.0f;
     i32 m_moonPhase = 0;
-    f32 m_starBrightness = 0.0f;
+    f64 m_starBrightness = 0.0f;
     glm::vec4 m_skyColor = glm::vec4(120.0f / 255.0f, 167.0f / 255.0f, 1.0f, 1.0f);
     glm::vec4 m_fogColor = glm::vec4(0.7f, 0.75f, 0.8f, 1.0f);
     glm::vec4 m_sunriseSunsetColor = glm::vec4(0.0f);
     glm::vec3 m_sunriseDirection = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 m_cameraForward = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 m_sunDirection = glm::vec3(0.0f, 1.0f, 0.0f);
-    f32 m_sunIntensity = 1.0f;
-    f32 m_rainStrength = 0.0f;
-    f32 m_thunderStrength = 0.0f;
+    f64 m_sunIntensity = 1.0f;
+    f64 m_rainStrength = 0.0f;
+    f64 m_thunderStrength = 0.0f;
 };
 
 } // namespace mc::client::renderer::trident::sky

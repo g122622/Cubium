@@ -15,7 +15,7 @@ Camera::Camera(const CameraConfig& config)
     updateProjectionMatrix();
 }
 
-void Camera::update(f32 deltaTime) {
+void Camera::update(f64 deltaTime) {
     (void)deltaTime; // 暂时不使用
 
     if (m_viewDirty) {
@@ -32,91 +32,93 @@ void Camera::update(f32 deltaTime) {
     }
 }
 
-void Camera::setPosition(const glm::vec3& position) {
+void Camera::setPosition(const glm::dvec3& position) {
     m_position = position;
     m_viewDirty = true;
 }
 
-void Camera::setPosition(f32 x, f32 y, f32 z) {
-    m_position = glm::vec3(x, y, z);
+void Camera::setPosition(f64 x, f64 y, f64 z) {
+    m_position = glm::dvec3(x, y, z);
     m_viewDirty = true;
 }
 
-void Camera::setRotation(const glm::vec3& rotation) {
+void Camera::setRotation(const glm::dvec3& rotation) {
     m_rotation = rotation;
     // 限制俯仰角
-    m_rotation.x = math::clamp(m_rotation.x, -m_config.pitchLimit, m_config.pitchLimit);
+    m_rotation.x = math::clamp<f64>(m_rotation.x, -m_config.pitchLimit, m_config.pitchLimit);
     updateVectors();
     m_viewDirty = true;
 }
 
-void Camera::setRotation(f32 pitch, f32 yaw, f32 roll) {
-    m_rotation = glm::vec3(pitch, yaw, roll);
-    m_rotation.x = math::clamp(m_rotation.x, -m_config.pitchLimit, m_config.pitchLimit);
+void Camera::setRotation(f64 pitch, f64 yaw, f64 roll) {
+    m_rotation = glm::dvec3(pitch, yaw, roll);
+    m_rotation.x = math::clamp<f64>(m_rotation.x, -m_config.pitchLimit, m_config.pitchLimit);
     updateVectors();
     m_viewDirty = true;
 }
 
-void Camera::setPitch(f32 pitch) {
-    m_rotation.x = math::clamp(pitch, -m_config.pitchLimit, m_config.pitchLimit);
+void Camera::setPitch(f64 pitch) {
+    m_rotation.x = math::clamp<f64>(pitch, -m_config.pitchLimit, m_config.pitchLimit);
     updateVectors();
     m_viewDirty = true;
 }
 
-void Camera::setYaw(f32 yaw) {
+void Camera::setYaw(f64 yaw) {
     m_rotation.y = yaw;
     updateVectors();
     m_viewDirty = true;
 }
 
-void Camera::setRoll(f32 roll) {
+void Camera::setRoll(f64 roll) {
     m_rotation.z = roll;
     updateVectors();
     m_viewDirty = true;
 }
 
-glm::vec3 Camera::forward() const {
+glm::dvec3 Camera::forward() const {
     return m_forward;
 }
 
-glm::vec3 Camera::right() const {
+glm::dvec3 Camera::right() const {
     return m_right;
 }
 
-glm::vec3 Camera::up() const {
+glm::dvec3 Camera::up() const {
     return m_up;
 }
 
-void Camera::moveForward(f32 distance) {
+void Camera::moveForward(f64 distance) {
     // 水平移动（忽略Y分量）
     m_position.x += m_forward.x * distance;
     m_position.z += m_forward.z * distance;
     m_viewDirty = true;
 }
 
-void Camera::moveRight(f32 distance) {
-    m_position += m_right * distance;
+void Camera::moveRight(f64 distance) {
+    m_position += glm::dvec3(m_right.x * distance,
+                             m_right.y * distance,
+                             m_right.z * distance);
     m_viewDirty = true;
 }
 
-void Camera::moveUp(f32 distance) {
+void Camera::moveUp(f64 distance) {
     m_position.y += distance;
     m_viewDirty = true;
 }
 
-void Camera::rotate(f32 pitchDelta, f32 yawDelta) {
-    m_rotation.x = math::clamp(m_rotation.x + pitchDelta, -m_config.pitchLimit, m_config.pitchLimit);
+void Camera::rotate(f64 pitchDelta, f64 yawDelta) {
+    m_rotation.x = math::clamp<f64>(m_rotation.x + pitchDelta, -m_config.pitchLimit, m_config.pitchLimit);
     m_rotation.y += yawDelta;
     updateVectors();
     m_viewDirty = true;
 }
 
-void Camera::look(f32 mouseDeltaX, f32 mouseDeltaY) {
+void Camera::look(f64 mouseDeltaX, f64 mouseDeltaY) {
     // 应用鼠标灵敏度和方向
     // 鼠标右移 -> yaw 增大 -> 视角右转
-    f32 yawDelta = mouseDeltaX * m_config.mouseSensitivity;
+    f64 yawDelta = mouseDeltaX * m_config.mouseSensitivity;
     // 鼠标上移 -> pitch 增大 -> 视角上抬
-    f32 pitchDelta = -mouseDeltaY * m_config.mouseSensitivity;
+    f64 pitchDelta = -mouseDeltaY * m_config.mouseSensitivity;
 
     rotate(pitchDelta, yawDelta);
 }
@@ -126,23 +128,23 @@ void Camera::setProjectionMode(ProjectionMode mode) {
     m_projectionDirty = true;
 }
 
-void Camera::setFOV(f32 fov) {
+void Camera::setFOV(f64 fov) {
     m_config.fov = fov;
     m_projectionDirty = true;
 }
 
-void Camera::setAspectRatio(f32 aspectRatio) {
+void Camera::setAspectRatio(f64 aspectRatio) {
     m_config.aspectRatio = aspectRatio;
     m_projectionDirty = true;
 }
 
-void Camera::setNearFar(f32 nearPlane, f32 farPlane) {
+void Camera::setNearFar(f64 nearPlane, f64 farPlane) {
     m_config.nearPlane = nearPlane;
     m_config.farPlane = farPlane;
     m_projectionDirty = true;
 }
 
-void Camera::setOrthoSize(f32 size) {
+void Camera::setOrthoSize(f64 size) {
     m_config.orthoSize = size;
     m_projectionDirty = true;
 }
@@ -170,8 +172,8 @@ void Camera::setConfig(const CameraConfig& config) {
  */
 void Camera::updateVectors() {
     // 从欧拉角计算方向向量
-    f32 pitchRad = math::toRadians(m_rotation.x);
-    f32 yawRad = math::toRadians(m_rotation.y);
+    const f64 pitchRad = m_rotation.x * 0.017453292519943295;
+    const f64 yawRad = m_rotation.y * 0.017453292519943295;
 
     // 前向向量 - MC坐标系
     // MC: yaw=0 看向 +Z, yaw=90 看向 -X
@@ -182,33 +184,33 @@ void Camera::updateVectors() {
 
     // 右向量和上向量
     // 假设世界上方向为Y轴正方向
-    glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+    glm::dvec3 worldUp(0.0, 1.0, 0.0);
     m_right = glm::normalize(glm::cross(m_forward, worldUp));
     m_up = glm::normalize(glm::cross(m_right, m_forward));
 }
 
 void Camera::updateViewMatrix() {
     // 视图矩阵：将世界坐标转换到相机空间
-    m_viewMatrix = glm::lookAt(m_position, m_position + m_forward, m_up);
+    m_viewMatrix = glm::mat4(glm::lookAt(m_position, m_position + m_forward, m_up));
 }
 
 void Camera::updateProjectionMatrix() {
     if (m_config.projectionMode == ProjectionMode::Perspective) {
         m_projectionMatrix = glm::perspective(
-            math::toRadians(m_config.fov),
-            m_config.aspectRatio,
-            m_config.nearPlane,
-            m_config.farPlane
+            static_cast<f32>(m_config.fov * 0.017453292519943295),
+            static_cast<f32>(m_config.aspectRatio),
+            static_cast<f32>(m_config.nearPlane),
+            static_cast<f32>(m_config.farPlane)
         );
     } else {
         // 正交投影
-        f32 halfWidth = m_config.orthoSize * m_config.aspectRatio * 0.5f;
-        f32 halfHeight = m_config.orthoSize * 0.5f;
+        const f64 halfWidth = m_config.orthoSize * m_config.aspectRatio * 0.5;
+        const f64 halfHeight = m_config.orthoSize * 0.5;
         m_projectionMatrix = glm::ortho(
-            -halfWidth, halfWidth,
-            -halfHeight, halfHeight,
-            m_config.nearPlane,
-            m_config.farPlane
+            static_cast<f32>(-halfWidth), static_cast<f32>(halfWidth),
+            static_cast<f32>(-halfHeight), static_cast<f32>(halfHeight),
+            static_cast<f32>(m_config.nearPlane),
+            static_cast<f32>(m_config.farPlane)
         );
     }
 
@@ -256,27 +258,27 @@ void CameraController::handleKeyboardInput(i32 key, i32 action) {
     }
 }
 
-void CameraController::handleMouseMove(f32 deltaX, f32 deltaY) {
+void CameraController::handleMouseMove(f64 deltaX, f64 deltaY) {
     if (!m_camera) return;
 
-    m_camera->look(static_cast<f32>(deltaX), static_cast<f32>(deltaY));
+    m_camera->look(static_cast<f64>(deltaX), static_cast<f64>(deltaY));
 }
 
-void CameraController::handleScroll(f32 deltaY) {
+void CameraController::handleScroll(f64 deltaY) {
     if (!m_camera) return;
 
     // 滚轮可以用来调整FOV或缩放
-    f32 fov = m_camera->fov();
-    fov -= static_cast<f32>(deltaY) * 2.0f;
-    fov = math::clamp(fov, 10.0f, 120.0f);
+    f64 fov = m_camera->fov();
+    fov -= deltaY * 2.0;
+    fov = math::clamp<f64>(fov, 10.0, 120.0);
     m_camera->setFOV(fov);
 }
 
-void CameraController::update(f32 deltaTime) {
+void CameraController::update(f64 deltaTime) {
     if (!m_camera) return;
 
     // 计算移动速度
-    f32 speed = m_camera->moveSpeed();
+    f64 speed = m_camera->moveSpeed();
     if (m_sprinting) {
         speed *= m_camera->config().sprintMultiplier;
     }
@@ -284,7 +286,7 @@ void CameraController::update(f32 deltaTime) {
         speed *= m_camera->config().sneakMultiplier;
     }
 
-    f32 distance = speed * deltaTime;
+    f64 distance = speed * deltaTime;
 
     // 移动
     if (m_moveForward) {

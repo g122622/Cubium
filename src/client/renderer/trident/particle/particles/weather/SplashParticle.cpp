@@ -50,7 +50,7 @@ void SplashParticle::tick(ClientWorld* world) {
     m_velocity.z *= m_friction;
 
     // 淡出
-    f32 lifeRatio = m_age / m_maxAge;
+    f64 lifeRatio = m_age / m_maxAge;
     if (lifeRatio > 0.5f) {
         m_color.a = 0.7f * (1.0f - (lifeRatio - 0.5f) / 0.5f);
     }

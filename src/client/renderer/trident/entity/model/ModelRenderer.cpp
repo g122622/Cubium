@@ -9,17 +9,17 @@ namespace mc::client::renderer {
 // ============================================================================
 
 TexturedQuad::TexturedQuad(const std::array<Vector3f, 4>& positions,
-                           f32 u1, f32 v1, f32 u2, f32 v2,
-                           f32 texWidth, f32 texHeight,
+                           f64 u1, f64 v1, f64 u2, f64 v2,
+                           f64 texWidth, f64 texHeight,
                            const Vector3f& normal,
                            bool mirror)
     : normal(normal)
 {
     // 计算UV坐标（归一化到0-1范围）
-    f32 u1n = u1 / texWidth;
-    f32 v1n = v1 / texHeight;
-    f32 u2n = u2 / texWidth;
-    f32 v2n = v2 / texHeight;
+    f32 u1n = static_cast<f32>(u1 / texWidth);
+    f32 v1n = static_cast<f32>(v1 / texHeight);
+    f32 u2n = static_cast<f32>(u2 / texWidth);
+    f32 v2n = static_cast<f32>(v2 / texHeight);
 
     // 设置顶点UV坐标
     // 顶点顺序：右下 -> 左下 -> 左上 -> 右上（逆时针，符合OpenGL约定）
@@ -43,10 +43,10 @@ TexturedQuad::TexturedQuad(const std::array<Vector3f, 4>& positions,
 // ============================================================================
 
 ModelBox::ModelBox(i32 texOffX, i32 texOffY,
-                   f32 x, f32 y, f32 z,
-                   f32 width, f32 height, f32 depth,
-                   f32 deltaX, f32 deltaY, f32 deltaZ,
-                   f32 texWidth, f32 texHeight,
+                   f64 x, f64 y, f64 z,
+                   f64 width, f64 height, f64 depth,
+                   f64 deltaX, f64 deltaY, f64 deltaZ,
+                   f64 texWidth, f64 texHeight,
                    bool mirror)
 {
     // 计算盒子边界
@@ -58,12 +58,12 @@ ModelBox::ModelBox(i32 texOffX, i32 texOffY,
     posZ2 = z + depth;
 
     // 应用膨胀（防止Z-fighting）
-    f32 x1 = x - deltaX;
-    f32 y1 = y - deltaY;
-    f32 z1 = z - deltaZ;
-    f32 x2 = posX2 + deltaX;
-    f32 y2 = posY2 + deltaY;
-    f32 z2 = posZ2 + deltaZ;
+    f64 x1 = x - deltaX;
+    f64 y1 = y - deltaY;
+    f64 z1 = z - deltaZ;
+    f64 x2 = posX2 + deltaX;
+    f64 y2 = posY2 + deltaY;
+    f64 z2 = posZ2 + deltaZ;
 
     // 如果镜像，交换X方向
     if (mirror) {
@@ -72,14 +72,14 @@ ModelBox::ModelBox(i32 texOffX, i32 texOffY,
 
     // 创建8个顶点
     // 参考 MC 1.16.5 ModelBox 构造函数
-    Vector3f v0(x1, y1, z1);  // 左下后
-    Vector3f v1(x2, y1, z1);  // 右下后
-    Vector3f v2(x2, y2, z1);  // 右上后
-    Vector3f v3(x1, y2, z1);  // 左上后
-    Vector3f v4(x1, y1, z2);  // 左下前
-    Vector3f v5(x2, y1, z2);  // 右下前
-    Vector3f v6(x2, y2, z2);  // 右上前
-    Vector3f v7(x1, y2, z2);  // 左上前
+    Vector3f v0(static_cast<f32>(x1), static_cast<f32>(y1), static_cast<f32>(z1));  // 左下后
+    Vector3f v1(static_cast<f32>(x2), static_cast<f32>(y1), static_cast<f32>(z1));  // 右下后
+    Vector3f v2(static_cast<f32>(x2), static_cast<f32>(y2), static_cast<f32>(z1));  // 右上后
+    Vector3f v3(static_cast<f32>(x1), static_cast<f32>(y2), static_cast<f32>(z1));  // 左上后
+    Vector3f v4(static_cast<f32>(x1), static_cast<f32>(y1), static_cast<f32>(z2));  // 左下前
+    Vector3f v5(static_cast<f32>(x2), static_cast<f32>(y1), static_cast<f32>(z2));  // 右下前
+    Vector3f v6(static_cast<f32>(x2), static_cast<f32>(y2), static_cast<f32>(z2));  // 右上前
+    Vector3f v7(static_cast<f32>(x1), static_cast<f32>(y2), static_cast<f32>(z2));  // 左上前
 
     // 计算UV坐标
     // 参考 MC 1.16.5 纹理布局
@@ -91,24 +91,24 @@ ModelBox::ModelBox(i32 texOffX, i32 texOffY,
     // - 下底面(Y-): width x depth
     // - 上顶面(Y+): width x depth
 
-    f32 f4 = static_cast<f32>(texOffX);                          // 西面U起点
-    f32 f5 = static_cast<f32>(texOffX + depth);                  // 下底面U起点
-    f32 f6 = static_cast<f32>(texOffX + depth + width);          // 北面U起点
-    f32 f7 = static_cast<f32>(texOffX + depth + width + width);  // 上顶面U起点
-    f32 f8 = static_cast<f32>(texOffX + depth + width + depth);  // 东面U起点
-    f32 f9 = static_cast<f32>(texOffX + depth + width + depth + width);  // 南面U起点
+    f64 f4 = static_cast<f64>(texOffX);                          // 西面U起点
+    f64 f5 = static_cast<f64>(texOffX + depth);                  // 下底面U起点
+    f64 f6 = static_cast<f64>(texOffX + depth + width);          // 北面U起点
+    f64 f7 = static_cast<f64>(texOffX + depth + width + width);  // 上顶面U起点
+    f64 f8 = static_cast<f64>(texOffX + depth + width + depth);  // 东面U起点
+    f64 f9 = static_cast<f64>(texOffX + depth + width + depth + width);  // 南面U起点
 
-    f32 f10 = static_cast<f32>(texOffY);          // 上部分V起点
-    f32 f11 = static_cast<f32>(texOffY + depth);  // 中部分V起点
-    f32 f12 = static_cast<f32>(texOffY + depth + height);  // 下部分V起点
+    f64 f10 = static_cast<f64>(texOffY);          // 上部分V起点
+    f64 f11 = static_cast<f64>(texOffY + depth);  // 中部分V起点
+    f64 f12 = static_cast<f64>(texOffY + depth + height);  // 下部分V起点
 
     // 定义法线方向
-    Vector3f normalEast(1, 0, 0);   // 东面 X+
-    Vector3f normalWest(-1, 0, 0);  // 西面 X-
-    Vector3f normalNorth(0, 0, -1); // 北面 Z-
-    Vector3f normalSouth(0, 0, 1);  // 南面 Z+
-    Vector3f normalUp(0, 1, 0);     // 上顶面 Y+
-    Vector3f normalDown(0, -1, 0);  // 下底面 Y-
+    Vector3f normalEast(1.0f, 0.0f, 0.0f);   // 东面 X+
+    Vector3f normalWest(-1.0f, 0.0f, 0.0f);  // 西面 X-
+    Vector3f normalNorth(0.0f, 0.0f, -1.0f); // 北面 Z-
+    Vector3f normalSouth(0.0f, 0.0f, 1.0f);  // 南面 Z+
+    Vector3f normalUp(0.0f, 1.0f, 0.0f);     // 上顶面 Y+
+    Vector3f normalDown(0.0f, -1.0f, 0.0f);  // 下底面 Y-
 
     // 创建6个面
     // 注意：面的顶点顺序需要符合逆时针约定（从外部看）
@@ -172,8 +172,8 @@ ModelRenderer::ModelRenderer(const String& name)
 }
 
 void ModelRenderer::setTextureSize(i32 width, i32 height) {
-    m_textureWidth = static_cast<f32>(width);
-    m_textureHeight = static_cast<f32>(height);
+    m_textureWidth = static_cast<f64>(width);
+    m_textureHeight = static_cast<f64>(height);
 }
 
 ModelRenderer& ModelRenderer::setTextureOffset(i32 offsetX, i32 offsetY) {
@@ -182,9 +182,9 @@ ModelRenderer& ModelRenderer::setTextureOffset(i32 offsetX, i32 offsetY) {
     return *this;
 }
 
-ModelRenderer& ModelRenderer::addBox(f32 x, f32 y, f32 z,
-                                      f32 width, f32 height, f32 depth,
-                                      f32 delta) {
+ModelRenderer& ModelRenderer::addBox(f64 x, f64 y, f64 z,
+                                      f64 width, f64 height, f64 depth,
+                                      f64 delta) {
     m_boxes.emplace_back(
         m_textureOffsetX, m_textureOffsetY,
         x, y, z, width, height, depth,
@@ -196,9 +196,9 @@ ModelRenderer& ModelRenderer::addBox(f32 x, f32 y, f32 z,
 }
 
 ModelRenderer& ModelRenderer::addBox(i32 textureOffsetX, i32 textureOffsetY,
-                                      f32 x, f32 y, f32 z,
-                                      f32 width, f32 height, f32 depth,
-                                      f32 delta) {
+                                      f64 x, f64 y, f64 z,
+                                      f64 width, f64 height, f64 depth,
+                                      f64 delta) {
     m_boxes.emplace_back(
         textureOffsetX, textureOffsetY,
         x, y, z, width, height, depth,
@@ -209,9 +209,9 @@ ModelRenderer& ModelRenderer::addBox(i32 textureOffsetX, i32 textureOffsetY,
     return *this;
 }
 
-ModelRenderer& ModelRenderer::addBox(f32 x, f32 y, f32 z,
-                                      f32 width, f32 height, f32 depth,
-                                      bool mirror, f32 delta) {
+ModelRenderer& ModelRenderer::addBox(f64 x, f64 y, f64 z,
+                                      f64 width, f64 height, f64 depth,
+                                      bool mirror, f64 delta) {
     bool oldMirror = m_mirror;
     m_mirror = mirror;
     m_boxes.emplace_back(
@@ -245,7 +245,7 @@ void ModelRenderer::copyModelAngles(const ModelRenderer& other) {
 // 矩阵工具
 // ============================================================================
 
-std::array<f32, 16> ModelRenderer::identityMatrix() {
+std::array<f64, 16> ModelRenderer::identityMatrix() {
     return {
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
@@ -254,8 +254,8 @@ std::array<f32, 16> ModelRenderer::identityMatrix() {
     };
 }
 
-std::array<f32, 16> ModelRenderer::multiplyMatrices(const std::array<f32, 16>& a, const std::array<f32, 16>& b) {
-    std::array<f32, 16> result;
+std::array<f64, 16> ModelRenderer::multiplyMatrices(const std::array<f64, 16>& a, const std::array<f64, 16>& b) {
+    std::array<f64, 16> result;
     for (int row = 0; row < 4; ++row) {
         for (int col = 0; col < 4; ++col) {
             result[row * 4 + col] = 0.0f;
@@ -267,7 +267,7 @@ std::array<f32, 16> ModelRenderer::multiplyMatrices(const std::array<f32, 16>& a
     return result;
 }
 
-std::array<f32, 16> ModelRenderer::translationMatrix(f32 x, f32 y, f32 z) {
+std::array<f64, 16> ModelRenderer::translationMatrix(f64 x, f64 y, f64 z) {
     return {
         1.0f, 0.0f, 0.0f, x,
         0.0f, 1.0f, 0.0f, y,
@@ -276,9 +276,9 @@ std::array<f32, 16> ModelRenderer::translationMatrix(f32 x, f32 y, f32 z) {
     };
 }
 
-std::array<f32, 16> ModelRenderer::rotationXMatrix(f32 angle) {
-    f32 c = std::cos(angle);
-    f32 s = std::sin(angle);
+std::array<f64, 16> ModelRenderer::rotationXMatrix(f64 angle) {
+    f64 c = std::cos(angle);
+    f64 s = std::sin(angle);
     return {
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, c,    -s,   0.0f,
@@ -287,9 +287,9 @@ std::array<f32, 16> ModelRenderer::rotationXMatrix(f32 angle) {
     };
 }
 
-std::array<f32, 16> ModelRenderer::rotationYMatrix(f32 angle) {
-    f32 c = std::cos(angle);
-    f32 s = std::sin(angle);
+std::array<f64, 16> ModelRenderer::rotationYMatrix(f64 angle) {
+    f64 c = std::cos(angle);
+    f64 s = std::sin(angle);
     return {
         c,    0.0f, s,    0.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
@@ -298,9 +298,9 @@ std::array<f32, 16> ModelRenderer::rotationYMatrix(f32 angle) {
     };
 }
 
-std::array<f32, 16> ModelRenderer::rotationZMatrix(f32 angle) {
-    f32 c = std::cos(angle);
-    f32 s = std::sin(angle);
+std::array<f64, 16> ModelRenderer::rotationZMatrix(f64 angle) {
+    f64 c = std::cos(angle);
+    f64 s = std::sin(angle);
     return {
         c,    -s,   0.0f, 0.0f,
         s,    c,    0.0f, 0.0f,
@@ -309,7 +309,7 @@ std::array<f32, 16> ModelRenderer::rotationZMatrix(f32 angle) {
     };
 }
 
-std::array<f32, 16> ModelRenderer::scaleMatrix(f32 x, f32 y, f32 z) {
+std::array<f64, 16> ModelRenderer::scaleMatrix(f64 x, f64 y, f64 z) {
     return {
         x,    0.0f, 0.0f, 0.0f,
         0.0f, y,    0.0f, 0.0f,
@@ -318,8 +318,8 @@ std::array<f32, 16> ModelRenderer::scaleMatrix(f32 x, f32 y, f32 z) {
     };
 }
 
-ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std::array<f32, 16>& matrix) {
-    const f32* m = matrix.data();
+ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std::array<f64, 16>& matrix) {
+    const f64* m = matrix.data();
     ModelVertex result;
 
     // 变换位置 (齐次坐标)
@@ -334,7 +334,7 @@ ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std:
     result.normal.z = m[8] * vertex.normal.x + m[9] * vertex.normal.y + m[10] * vertex.normal.z;
 
     // 归一化法线
-    f32 len = std::sqrt(result.normal.x * result.normal.x +
+    f64 len = std::sqrt(result.normal.x * result.normal.x +
                         result.normal.y * result.normal.y +
                         result.normal.z * result.normal.z);
     if (len > 0.0f) {
@@ -351,15 +351,15 @@ ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std:
 
 void ModelRenderer::generateMesh(std::vector<ModelVertex>& vertices,
                                   std::vector<u32>& indices,
-                                  f32 scale) const {
+                                  f64 scale) const {
     auto matrix = identityMatrix();
     generateMesh(vertices, indices, matrix, scale);
 }
 
 void ModelRenderer::generateMesh(std::vector<ModelVertex>& vertices,
                                   std::vector<u32>& indices,
-                                  const std::array<f32, 16>& parentMatrix,
-                                  f32 scale) const {
+                                  const std::array<f64, 16>& parentMatrix,
+                                  f64 scale) const {
     if (!m_visible) {
         return;
     }
@@ -421,7 +421,7 @@ void ModelRenderer::generateMesh(std::vector<ModelVertex>& vertices,
     }
 }
 
-void ModelRenderer::render(f32 scale) {
+void ModelRenderer::render(f64 scale) {
     if (!m_visible) {
         return;
     }
@@ -439,7 +439,7 @@ void ModelRenderer::render(f32 scale) {
     }
 }
 
-void ModelRenderer::renderNoRotate(f32 scale) {
+void ModelRenderer::renderNoRotate(f64 scale) {
     if (!m_visible) {
         return;
     }
@@ -456,7 +456,7 @@ void ModelRenderer::renderNoRotate(f32 scale) {
     }
 }
 
-void ModelRenderer::interpolateRotation(const Vector3f& target, f32 speed) {
+void ModelRenderer::interpolateRotation(const Vector3f& target, f64 speed) {
     m_rotateAngleX += (target.x - m_rotateAngleX) * speed;
     m_rotateAngleY += (target.y - m_rotateAngleY) * speed;
     m_rotateAngleZ += (target.z - m_rotateAngleZ) * speed;

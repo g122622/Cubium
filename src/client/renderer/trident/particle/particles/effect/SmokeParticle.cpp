@@ -15,7 +15,7 @@ SmokeParticle::SmokeParticle(const glm::vec3& pos, const glm::vec3& velocity)
     m_initialSize = size();
 
     // 灰色烟雾
-    f32 gray = 0.3f + rng.nextFloat() * 0.2f;
+    f64 gray = 0.3f + rng.nextFloat() * 0.2f;
     setColor(glm::vec4(gray, gray, gray, 0.8f));
 
     setFriction(0.96f);
@@ -53,15 +53,15 @@ void SmokeParticle::tick(ClientWorld* world) {
     m_velocity *= m_friction;
 
     // 随年龄变大并淡出
-    f32 lifeRatio = m_age / m_maxAge;
-    f32 scale = 1.0f + lifeRatio * 2.0f;
+    f64 lifeRatio = m_age / m_maxAge;
+    f64 scale = 1.0f + lifeRatio * 2.0f;
     setSize(m_initialSize * scale);
 
     // 淡出
     m_color.a = 0.8f * (1.0f - lifeRatio);
 }
 
-f32 SmokeParticle::getScale(f32 partialTick) const {
+f64 SmokeParticle::getScale(f64 partialTick) const {
     MC_UNUSED(partialTick);
     return 1.0f;
 }
