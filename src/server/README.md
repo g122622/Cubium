@@ -132,13 +132,15 @@ server/
 | 类 | 职责 |
 |---|---|
 | `ServerWorld` | 服务端世界容器（区块、实体、光照、物理、天气） |
-| `ServerChunkManager` | 区块生命周期（加载、生成、卸载），Worker 线程池 |
-| `ChunkWorkerPool` | 异步区块生成线程池 |
+| `ServerChunkManager` | 区块生命周期（加载、生成、卸载、取消），统一调度 |
+| `ChunkWorkerPool` | 异步区块生成线程池，支持协作取消 |
 | `EntityTracker` | 实体可见性管理，基于距离追踪 |
 | `ItemPickupManager` | 物品拾取检测和处理 |
 | `WeatherManager` | 天气周期、闪电生成、天气命令 |
 | `NaturalSpawner` | 自然实体生成（怪物、动物） |
 | `BlockDropHandler` | 方块掉落物生成（LootTable 系统） |
+
+`ServerChunkManager` 现在不只服务玩家视距：玩家、强制区块、传送、末影龙、区块灯光等票据都会进入同一条调度链路，避免快速移动或短暂触发造成的过期生成浪费。
 
 ### network/ - 网络层
 

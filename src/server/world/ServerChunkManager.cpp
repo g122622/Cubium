@@ -111,13 +111,7 @@ ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChun
 {
     // 设置票据管理器回调
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
-        // 级别变化时创建或更新 SingleChunkLifecycleManager
-        if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
-            SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
-            if (singleChunkLifecycleManager) {
-                singleChunkLifecycleManager->setLevel(newLevel);
-            }
-        }
+        onTicketLevelChanged(x, z, oldLevel, newLevel);
     });
 }
 
@@ -128,13 +122,7 @@ ServerChunkManager::ServerChunkManager(std::unique_ptr<IChunkGenerator> generato
 {
     // 设置票据管理器回调
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
-        // 级别变化时创建或更新 SingleChunkLifecycleManager
-        if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
-            SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
-            if (singleChunkLifecycleManager) {
-                singleChunkLifecycleManager->setLevel(newLevel);
-            }
-        }
+        onTicketLevelChanged(x, z, oldLevel, newLevel);
     });
 }
 
@@ -167,6 +155,9 @@ void ServerChunkManager::shutdown()
     }
     for (auto& [key, entry] : pending) {
         (void)key;
+        if (entry.cancelToken) {
+            entry.cancelToken->store(true, std::memory_order_release);
+        }
         for (auto& p : entry.promises) {
             if (p) {
                 p->set_value(nullptr);
@@ -196,7 +187,7 @@ void ServerChunkManager::startWorkers(i32 count)
 {
     (void)count;
     // 设置生成器函数
-    m_workerPool.setGenerator([this](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+    m_workerPool.setGenerator([this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
         // 创建 WorldGenRegion（简化版）
         std::array<IChunk*, 9> chunks{};
         std::array<std::unique_ptr<IChunk>, 9> neighborAdapters{};
@@ -210,6 +201,10 @@ void ServerChunkManager::startWorkers(i32 count)
         // 按阶段生成
         const auto& allStatuses = ChunkStatus::getAll();
         for (const auto& status : allStatuses) {
+            if (cancelSignal.load(std::memory_order_acquire)) {
+                return;
+            }
+
             if (status.ordinal() > targetStatus.ordinal()) {
                 break;
             }
@@ -255,10 +250,17 @@ void ServerChunkManager::startWorkers(i32 count)
             }
         }
 
+        if (cancelSignal.load(std::memory_order_acquire)) {
+            return;
+        }
+
         // 在区块生成完成后调用 spawnInitialMobs
         // 参考 MC 1.16.5 performWorldGenSpawning
         // 注意：这里我们已经在 FEATURES 阶段之后，地形已经完整生成
         if (chunk.hasCompletedStatus(ChunkStatuses::FEATURES)) {
+            if (cancelSignal.load(std::memory_order_acquire)) {
+                return;
+            }
             MC_TRACE_EVENT("world.chunk_gen", "SpawnInitialMobs");
             std::vector<SpawnedEntityData> entities;
             m_generator->spawnInitialMobs(region, chunk, entities);
@@ -401,7 +403,7 @@ std::future<ChunkData*> ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoo
     const ChunkStatus& target = targetStatus ? *targetStatus : ChunkStatuses::FULL;
 
     requestChunkGeneration(x, z, target,
-                           singleChunkLifecycleManager->getLevel(),
+                           computeSchedulePriority(x, z, target, m_ticketManager.getChunkLevel(x, z)),
                            nullptr,
                            promise);
 
@@ -427,7 +429,7 @@ void ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback
     const ChunkStatus& target = targetStatus ? *targetStatus : ChunkStatuses::FULL;
 
     requestChunkGeneration(x, z, target,
-                           singleChunkLifecycleManager->getLevel(),
+                           computeSchedulePriority(x, z, target, m_ticketManager.getChunkLevel(x, z)),
                            std::move(callback),
                            nullptr);
 }
@@ -448,14 +450,6 @@ SingleChunkLifecycleManager* ServerChunkManager::getOrCreateSingleChunkLifecycle
     }
 
     auto singleChunkLifecycleManager = std::make_unique<SingleChunkLifecycleManager>(x, z);
-
-    // 设置回调
-    singleChunkLifecycleManager->setLevelChangeCallback([this](SingleChunkLifecycleManager& h) {
-        // 级别变化时可能需要调度生成
-        if (h.shouldLoad()) {
-            scheduleGeneration(h, ChunkStatuses::FULL);
-        }
-    });
 
     auto* ptr = singleChunkLifecycleManager.get();
     m_singleChunkLifecycleManagers[key] = std::move(singleChunkLifecycleManager);
@@ -538,15 +532,26 @@ void ServerChunkManager::scheduleGeneration(SingleChunkLifecycleManager& singleC
 {
     // 如果已经达到目标状态、已有缓存结果或已有正在使用的 primer，则不重复调度
     if (singleChunkLifecycleManager.hasCompletedStatus(targetStatus) ||
-        getChunk(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z()) != nullptr ||
-        singleChunkLifecycleManager.hasGeneratingChunk()) {
+        getChunk(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z()) != nullptr) {
         return;
     }
+
+    if (!singleChunkLifecycleManager.shouldLoad()) {
+        cancelPendingGeneration(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z());
+        return;
+    }
+
+    const i32 ticketLevel = m_ticketManager.getChunkLevel(singleChunkLifecycleManager.x(),
+                                                           singleChunkLifecycleManager.z());
+    const i32 priority = computeSchedulePriority(singleChunkLifecycleManager.x(),
+                                                 singleChunkLifecycleManager.z(),
+                                                 targetStatus,
+                                                 ticketLevel);
 
     requestChunkGeneration(singleChunkLifecycleManager.x(),
                            singleChunkLifecycleManager.z(),
                            targetStatus,
-                           singleChunkLifecycleManager.getLevel(),
+                           priority,
                            nullptr,
                            nullptr);
 }
@@ -557,43 +562,104 @@ void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
                                                 ChunkCallback callback,
                                                 std::shared_ptr<std::promise<ChunkData*>> promise)
 {
+    MC_ASSERT_RELEASE_MSG(targetStatus.ordinal() >= 0, "Invalid target chunk status ordinal");
+
     const u64 key = posToKey(x, z);
-    bool needSubmit = false;
+    SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
+    if (!singleChunkLifecycleManager) {
+        if (promise) {
+            promise->set_value(nullptr);
+        }
+        if (callback) {
+            callback(false, nullptr);
+        }
+        return;
+    }
+
+    ChunkRequestControl control = singleChunkLifecycleManager->upsertRequest(targetStatus, priority);
+
+    PendingGeneration stalePending;
+    bool hasStalePending = false;
 
     {
         std::lock_guard<std::mutex> lock(m_pendingGenerationsMutex);
-        auto [it, inserted] = m_pendingGenerations.try_emplace(key);
+        auto& entry = m_pendingGenerations[key];
+
+        if (entry.generation != 0 && entry.generation != control.generation) {
+            stalePending = std::move(entry);
+            hasStalePending = true;
+            entry = PendingGeneration{};
+        }
+
+        entry.generation = control.generation;
+        entry.cancelToken = control.cancelToken;
         if (callback) {
-            it->second.callbacks.push_back(std::move(callback));
+            entry.callbacks.push_back(std::move(callback));
         }
         if (promise) {
-            it->second.promises.push_back(std::move(promise));
+            entry.promises.push_back(std::move(promise));
         }
-        needSubmit = inserted;
     }
 
-    if (!needSubmit) {
+    if (hasStalePending) {
+        for (auto& p : stalePending.promises) {
+            if (p) {
+                p->set_value(nullptr);
+            }
+        }
+        for (auto& cb : stalePending.callbacks) {
+            if (cb) {
+                cb(false, nullptr);
+            }
+        }
+    }
+
+    if (!control.shouldEnqueue) {
         return;
     }
 
     m_workerPool.submitGenerate(x, z, targetStatus,
-        [this, key, x, z](bool success, ChunkPrimer* primer) {
+        [this, key, x, z, generation = control.generation](bool success, ChunkPrimer* primer) {
             ChunkData* stored = nullptr;
+
+            SingleChunkLifecycleManager* singleChunkLifecycleManager = getSingleChunkLifecycleManager(x, z);
+            if (singleChunkLifecycleManager && !singleChunkLifecycleManager->tryStartRequest(generation)) {
+                success = false;
+            }
+
+            if (singleChunkLifecycleManager && !singleChunkLifecycleManager->isGenerationCurrent(generation)) {
+                success = false;
+            }
+
             if (success && primer) {
                 stored = finalizeChunkGeneration(x, z, *primer);
             }
 
             PendingGeneration pending;
+            bool staleGeneration = false;
             {
                 std::lock_guard<std::mutex> lock(m_pendingGenerationsMutex);
                 auto it = m_pendingGenerations.find(key);
                 if (it != m_pendingGenerations.end()) {
-                    pending = std::move(it->second);
-                    m_pendingGenerations.erase(it);
+                    if (it->second.generation != generation) {
+                        staleGeneration = true;
+                    } else {
+                        pending = std::move(it->second);
+                        m_pendingGenerations.erase(it);
+                    }
                 }
             }
 
+            if (staleGeneration) {
+                return;
+            }
+
             const bool callbackSuccess = stored != nullptr;
+
+            if (singleChunkLifecycleManager) {
+                const bool cancelled = !callbackSuccess;
+                singleChunkLifecycleManager->finishRequest(generation, callbackSuccess, cancelled);
+            }
 
             for (auto& p : pending.promises) {
                 if (p) {
@@ -607,7 +673,74 @@ void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
                 }
             }
         },
+        control.cancelToken,
         priority);
+}
+
+void ServerChunkManager::cancelPendingGeneration(ChunkCoord x, ChunkCoord z)
+{
+    const u64 key = posToKey(x, z);
+
+    if (SingleChunkLifecycleManager* singleChunkLifecycleManager = getSingleChunkLifecycleManager(x, z)) {
+        singleChunkLifecycleManager->cancelActiveRequest();
+    }
+
+    PendingGeneration pending;
+    bool hasPending = false;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingGenerationsMutex);
+        auto it = m_pendingGenerations.find(key);
+        if (it != m_pendingGenerations.end()) {
+            pending = std::move(it->second);
+            m_pendingGenerations.erase(it);
+            hasPending = true;
+        }
+    }
+
+    if (hasPending) {
+        if (pending.cancelToken) {
+            pending.cancelToken->store(true, std::memory_order_release);
+        }
+        for (auto& p : pending.promises) {
+            if (p) {
+                p->set_value(nullptr);
+            }
+        }
+        for (auto& cb : pending.callbacks) {
+            if (cb) {
+                cb(false, nullptr);
+            }
+        }
+    }
+}
+
+void ServerChunkManager::onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
+{
+    (void)oldLevel;
+
+    SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
+    if (!singleChunkLifecycleManager) {
+        return;
+    }
+
+    singleChunkLifecycleManager->setLevel(newLevel);
+
+    if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+        scheduleGeneration(*singleChunkLifecycleManager, ChunkStatuses::FULL);
+        return;
+    }
+
+    cancelPendingGeneration(x, z);
+}
+
+i32 ServerChunkManager::computeSchedulePriority(ChunkCoord x, ChunkCoord z,
+                                                const ChunkStatus& targetStatus,
+                                                i32 ticketLevel) const
+{
+    const i32 normalizedLevel = std::clamp(ticketLevel, 0, world::ChunkDistanceGraph::MAX_LEVEL);
+    const i32 statusPenalty = std::max(0, ChunkStatuses::FULL.ordinal() - targetStatus.ordinal());
+    const i32 spatialPenalty = static_cast<i32>((std::abs(x) + std::abs(z)) & 0xFF);
+    return normalizedLevel * 1024 + statusPenalty * 32 + spatialPenalty;
 }
 
 void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& status)
@@ -823,6 +956,8 @@ void ServerChunkManager::checkChunkUnloading()
     // 卸载区块
     for (u64 key : toUnload) {
         auto chunkId = ChunkId::fromId(key);
+
+        cancelPendingGeneration(chunkId.x, chunkId.z);
 
         // 在卸载前通知 ChunkSendManager 发送卸载包
         if (m_chunkSendManager) {

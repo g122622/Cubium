@@ -53,7 +53,6 @@ TEST_F(ItemPickupManagerTest, DefaultConstructor) {
 
 TEST_F(ItemPickupManagerTest, CalculatePickupRange_Normal) {
     // 普通玩家拾取范围应为 1.0
-    ItemPickupManager manager;
     // 由于 Player 需要 World，这里只能间接测试
     // 实际测试在集成测试中进行
     EXPECT_FLOAT_EQ(ItemPickupManager::PICKUP_RANGE, 1.0f);

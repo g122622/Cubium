@@ -61,12 +61,13 @@ class ServerWorld : public IWorld, public ICollisionWorld, public IChunkLightPro
 
 ### ServerChunkManager.hpp/cpp
 
-**职责**：区块加载、生成、卸载的协调器，使用票据系统管理区块生命周期。
+**职责**：区块加载、生成、卸载和取消的协调器，使用票据系统和生命周期状态机管理区块请求。
 
 **主要功能**：
 - 异步区块生成（Worker 线程池）
-- 票据系统控制区块加载/卸载
-- 玩家位置追踪自动加载周围区块
+- 票据系统控制区块加载/卸载/取消
+- 多来源票据统一调度（玩家、强制、传送、门、光照等）
+- 请求代际保护，避免旧结果回写
 - 区块状态管理（EMPTY → FULL）
 
 **关键方法**：
@@ -99,6 +100,8 @@ EMPTY → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → HE
 **主要功能**：
 - 优先级任务队列
 - 线程池生命周期管理
+- 协作取消令牌
+- 执行中取消检查
 - 任务完成回调通知
 
 **使用方法**：
@@ -106,8 +109,8 @@ EMPTY → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → HE
 ChunkWorkerPool pool(4);  // 4 个 Worker 线程
 pool.start();
 
-// 提交生成任务
-pool.submitGenerate(x, z, &ChunkStatuses::FULL, [](bool success, ChunkPrimer* chunk) {
+auto cancelToken = std::make_shared<std::atomic_bool>(false);
+pool.submitGenerate(x, z, &ChunkStatuses::FULL, cancelToken, [](bool success, ChunkPrimer* chunk, const std::atomic_bool& cancelSignal) {
     // 任务完成回调
 });
 

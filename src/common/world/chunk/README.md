@@ -272,10 +272,18 @@ auto players = manager.getTrackingPlayers(x, z);
 ```
 
 **追踪系统**：
+
 - 玩家进入区块视距范围时触发 `TrackingChangeCallback(playerId, x, z, true)`
 - 玩家离开区块视距范围时触发 `TrackingChangeCallback(playerId, x, z, false)`
 
+**当前实现特性**：
+
+- 票据级别变化会统一驱动区块生命周期，而不是只更新数值
+- 玩家、强制加载、传送门、传送后、世界启动、末影龙、光照等票据都会进入同一调度管线
+- 当区块离开有效加载范围时，会主动触发取消，避免 Worker 继续消耗算力
+
 **依赖项**：
+
 - `ChunkLoadTicket` - 票据类型
 - `ChunkDistanceGraph` - 距离图
 - `PlayerChunkTracker` - 玩家追踪器
@@ -287,6 +295,7 @@ auto players = manager.getTrackingPlayers(x, z);
 **职责**：BFS 级别传播算法，计算区块加载级别。
 
 **主要内容**：
+
 - `ChunkDistanceGraph` - 区块距离图基类
   - 级别传播算法（Dijkstra 风格）
   - 更新队列处理
@@ -297,7 +306,8 @@ auto players = manager.getTrackingPlayers(x, z);
   - 视距内区块集合
 
 **算法原理**：
-```
+
+```text
 1. 源区块设置初始级别（如玩家位置 level = 23）
 2. 级别向相邻区块传播，每次传播 +1
 3. 相邻区块的级别 = min(当前级别, 源级别+1)
@@ -305,6 +315,7 @@ auto players = manager.getTrackingPlayers(x, z);
 ```
 
 **使用示例**：
+
 ```cpp
 PlayerChunkTracker tracker(10);  // 视距 10
 tracker.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -323,17 +334,20 @@ tracker.processUpdates(1000);
 
 ### SingleChunkLifecycleManager.hpp/cpp
 
-**职责**：管理单个区块的生命周期和生成状态。
+**职责**：管理单个区块的生命周期、请求代际和取消状态。
 
 **主要内容**：
+
 - `SingleChunkLifecycleManager` - 单区块生命周期管理器
-  - 区块状态管理（ChunkStatus）
+  - 区块状态管理（`ChunkStatus`）
   - 加载级别管理
-  - ChunkPrimer 和 ChunkData 管理
-  - Future 链管理（每个阶段一个 Future）
-  - 票据管理
-  - 玩家追踪
-  - 回调支持
+  - 请求代际与取消令牌
+  - 生成中 `ChunkPrimer` 和完成后 `ChunkData` 管理
+  - 票据、追踪玩家与回调
+- `ChunkLifecycleState` - 生命周期状态
+  - `Idle` / `Queued` / `Generating` / `Ready` / `Cancelled` / `Failed` / `Unloaded`
+- `ChunkRequestControl` - 请求快照
+  - 记录当前代际、优先级、目标阶段、取消令牌
 
 - `ChunkTask` - 区块生成任务
   - 任务类型（Generate, Load, Unload, Save）
@@ -341,6 +355,7 @@ tracker.processUpdates(1000);
   - 时间戳
 
 **使用示例**：
+
 ```cpp
 // 创建管理器
 SingleChunkLifecycleManager holder(x, z);
@@ -363,12 +378,49 @@ holder.removeTicket(ticket);
 
 // 玩家追踪
 holder.addTrackingPlayer(playerId);
+
+// 创建/升级请求
+auto request = holder.upsertRequest(ChunkStatuses::FULL, 123);
+if (request.shouldEnqueue) {
+    // 交给调度器排队
+}
+
+// 取消当前请求
+holder.cancelActiveRequest();
 ```
 
 **Future 机制**：
+
 - 每个生成阶段对应一个 Future
 - 允许多个消费者等待同一区块
 - 支持异步生成
+- 新实现同时保留 Future 语义和请求代际校验，避免过期任务写回
+
+**与 Worker 的关系**：
+
+- `ChunkWorkerPool` 不再做单纯的“任务执行器”，而是接收带取消令牌的调度任务
+- `ServerChunkManager` 统一决定是否入队、是否提升优先级、是否取消旧请求
+- 区块离开有效加载范围后，旧请求会被标记取消并在回调阶段失效
+
+## 模块关系
+
+```mermaid
+flowchart LR
+    A[票据变化] --> B[ChunkLoadTicketManager]
+    B --> C[ServerChunkManager]
+    C --> D[SingleChunkLifecycleManager]
+    D --> E[ChunkWorkerPool]
+    E --> F[ChunkPrimer]
+    F --> G[ChunkData]
+
+    style A fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1
+    style B fill:#f3e5f5,stroke:#8e24aa,color:#4a148c
+    style C fill:#e8f5e9,stroke:#43a047,color:#1b5e20
+    style D fill:#fff3e0,stroke:#fb8c00,color:#e65100
+    style E fill:#ede7f6,stroke:#5e35b1,color:#311b92
+    style F fill:#e0f7fa,stroke:#00acc1,color:#006064
+    style G fill:#fce4ec,stroke:#d81b60,color:#880e4f
+```
 
 ---
 
@@ -377,6 +429,7 @@ holder.addTrackingPlayer(playerId);
 ### 整体职责
 
 chunk 模块负责：
+
 1. **数据存储**：定义区块的数据结构（ChunkData, ChunkSection）
 2. **生成流程**：管理区块生成的各个阶段（ChunkStatus, ChunkPrimer）
 3. **加载管理**：基于票据系统管理区块加载优先级（ChunkLoadTicket）
@@ -386,6 +439,7 @@ chunk 模块负责：
 ### 模块输入输出
 
 **输入**：
+
 - 区块坐标（ChunkPos）
 - 方块数据（BlockState）
 - 生物群系数据（BiomeContainer）
@@ -393,6 +447,7 @@ chunk 模块负责：
 - 加载票据（ChunkLoadTicket）
 
 **输出**：
+
 - 完整区块数据（ChunkData）
 - 区块加载/卸载事件
 - 玩家追踪变化通知
@@ -401,6 +456,7 @@ chunk 模块负责：
 ### 依赖项
 
 **内部依赖**：
+
 - `common/core/Types.hpp` - 基础类型
 - `common/core/Result.hpp` - 错误处理
 - `common/world/block/Block.hpp` - 方块状态
@@ -410,6 +466,7 @@ chunk 模块负责：
 - `common/util/math/MathUtils.hpp` - 数学工具
 
 **外部依赖**：
+
 - 标准库：`<vector>`, `<memory>`, `<array>`, `<unordered_map>`, `<mutex>`, `<future>`
 - spdlog - 日志
 
@@ -479,10 +536,15 @@ ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
    - 每个 ChunkStatus 对应一个 Future
    - 需要正确处理 Future 完成和错误
 
+8. **请求已取消但仍有回调**
+
+    - 当前实现会保留回调入口，但会将结果标记为失败并返回空指针
+    - 不要假设回调一定表示区块可用，必须检查 `success`
+
 ### 相关测试用例
 
 | 测试文件 | 测试内容 |
-|---------|---------|
+| --- | --- |
 | `tests/common/test_chunkloadticket.cpp` | 票据系统、ChunkStatus、ChunkPrimer、SingleChunkLifecycleManager |
 | `tests/common/test_chunk_generation.cpp` | 区块生成集成测试 |
 | `tests/common/test_world.cpp` | 世界和区块数据测试 |
@@ -492,6 +554,7 @@ ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
 ### 设计参考
 
 本模块的设计参考了 Minecraft Java Edition 1.16.5 的架构：
+
 - 区块生成阶段与 MC 1.16.5 完全一致
 - 票据系统参考 MC 的 `TicketManager`
 - 距离图参考 MC 的 `ChunkDistanceGraph` / `LevelBasedGraph`

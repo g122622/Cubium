@@ -81,7 +81,8 @@ TEST_F(ChunkWorkerPoolTest, DoubleShutdown) {
 
 TEST_F(ChunkWorkerPoolTest, SubmitGenerateBasic) {
     ChunkWorkerPool pool(2);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        (void)cancelSignal;
         // 简单的生成器，标记为完成
         chunk.setChunkStatus(ChunkStatuses::FULL);
     });
@@ -114,7 +115,8 @@ TEST_F(ChunkWorkerPoolTest, SubmitGenerateBasic) {
 
 TEST_F(ChunkWorkerPoolTest, SubmitGenerateMultiple) {
     ChunkWorkerPool pool(4);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        (void)cancelSignal;
         chunk.setChunkStatus(ChunkStatuses::FULL);
     });
     pool.start();
@@ -143,7 +145,8 @@ TEST_F(ChunkWorkerPoolTest, SubmitGenerateMultiple) {
 
 TEST_F(ChunkWorkerPoolTest, SubmitGeneratePriority) {
     ChunkWorkerPool pool(1);  // 单线程确保顺序执行
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        (void)cancelSignal;
         // 短暂延迟以便测试优先级
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
         chunk.setChunkStatus(ChunkStatuses::FULL);
@@ -202,7 +205,8 @@ TEST_F(ChunkWorkerPoolTest, SubmitTaskCustom) {
     ChunkTask task(ChunkTask::Type::Generate, 5, 10, &ChunkStatuses::FULL, 0);
 
     pool.submitTask(std::move(task),
-        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            (void)cancelSignal;
             chunk.setChunkStatus(ChunkStatuses::FULL);
         },
         [&](bool success, ChunkPrimer* chunk) {
@@ -229,7 +233,8 @@ TEST_F(ChunkWorkerPoolTest, SubmitTaskCustom) {
 
 TEST_F(ChunkWorkerPoolTest, GeneratorException) {
     ChunkWorkerPool pool(2);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        (void)cancelSignal;
         throw std::runtime_error("Test exception");
     });
     pool.start();
@@ -259,7 +264,8 @@ TEST_F(ChunkWorkerPoolTest, GeneratorException) {
 
 TEST_F(ChunkWorkerPoolTest, PendingTaskCount) {
     ChunkWorkerPool pool(1);  // 单线程
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        (void)cancelSignal;
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         chunk.setChunkStatus(ChunkStatuses::FULL);
     });
@@ -283,7 +289,8 @@ TEST_F(ChunkWorkerPoolTest, PendingTaskCount) {
 
 TEST_F(ChunkWorkerPoolTest, ConcurrentSubmissions) {
     ChunkWorkerPool pool(4);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus) {
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        (void)cancelSignal;
         chunk.setChunkStatus(ChunkStatuses::FULL);
     });
     pool.start();
@@ -313,5 +320,63 @@ TEST_F(ChunkWorkerPoolTest, ConcurrentSubmissions) {
     }
 
     EXPECT_EQ(completedCount, 40);
+    pool.shutdown();
+}
+
+TEST_F(ChunkWorkerPoolTest, CancelTokenSkipsExecution) {
+    ChunkWorkerPool pool(1);
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        if (cancelSignal.load(std::memory_order_acquire)) {
+            return;
+        }
+        chunk.setChunkStatus(targetStatus);
+    });
+    pool.start();
+
+    auto token = std::make_shared<std::atomic<bool>>(true);
+    std::atomic<bool> completed{false};
+    std::atomic<bool> success{true};
+
+    pool.submitGenerate(0, 0, ChunkStatuses::FULL,
+        [&](bool s, ChunkPrimer* chunk) {
+            completed = true;
+            success = s;
+            EXPECT_EQ(chunk, nullptr);
+        },
+        token,
+        0);
+
+    for (int i = 0; i < 100 && !completed; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    EXPECT_TRUE(completed);
+    EXPECT_FALSE(success);
+
+    pool.shutdown();
+}
+
+TEST_F(ChunkWorkerPoolTest, PruneCancelledTasksRemovesQueueEntries) {
+    ChunkWorkerPool pool(1);
+    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+        if (cancelSignal.load(std::memory_order_acquire)) {
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        chunk.setChunkStatus(targetStatus);
+    });
+    pool.start();
+
+    auto tokenA = std::make_shared<std::atomic<bool>>(false);
+    auto tokenB = std::make_shared<std::atomic<bool>>(false);
+
+    pool.submitGenerate(1, 0, ChunkStatuses::FULL, nullptr, tokenA, 0);
+    pool.submitGenerate(2, 0, ChunkStatuses::FULL, nullptr, tokenB, 1);
+
+    tokenB->store(true, std::memory_order_release);
+    pool.pruneCancelledTasks();
+
+    EXPECT_LE(pool.pendingTaskCount(), 1u);
+
     pool.shutdown();
 }

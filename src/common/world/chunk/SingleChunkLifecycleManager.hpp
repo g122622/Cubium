@@ -11,11 +11,36 @@
 #include <future>
 #include <functional>
 #include <atomic>
+#include <variant>
 
 namespace mc {
 
 // 导入票据类型到当前命名空间
 using ChunkLoadTicket = world::ChunkLoadTicket;
+
+/**
+ * @brief 生命周期状态
+ */
+enum class ChunkLifecycleState {
+    Idle,
+    Queued,
+    Generating,
+    Ready,
+    Cancelled,
+    Failed,
+    Unloaded
+};
+
+/**
+ * @brief 请求控制快照
+ */
+struct ChunkRequestControl {
+    u64 generation = 0;
+    i32 priority = 0;
+    const ChunkStatus* targetStatus = nullptr;
+    std::shared_ptr<std::atomic<bool>> cancelToken;
+    bool shouldEnqueue = false;
+};
 
 /**
  * @brief 区块持有者
@@ -126,6 +151,48 @@ public:
      * @note 级别 <= 33 的区块应该被加载（参考 ChunkLoadTicketManager::MAX_LOADED_LEVEL）
      */
     [[nodiscard]] bool shouldLoad() const { return getLevel() <= 33; }
+
+    /**
+     * @brief 获取生命周期状态
+     */
+    [[nodiscard]] ChunkLifecycleState lifecycleState() const {
+        return m_lifecycleState.load(std::memory_order_acquire);
+    }
+
+    /**
+     * @brief 检查是否有活动请求
+     */
+    [[nodiscard]] bool hasActiveRequest() const;
+
+    /**
+     * @brief 创建或升级请求
+     */
+    ChunkRequestControl upsertRequest(const ChunkStatus& targetStatus, i32 priority);
+
+    /**
+     * @brief 尝试进入 Generating 状态
+     */
+    [[nodiscard]] bool tryStartRequest(u64 generation);
+
+    /**
+     * @brief 结束请求
+     */
+    void finishRequest(u64 generation, bool success, bool cancelled);
+
+    /**
+     * @brief 取消活动请求
+     */
+    void cancelActiveRequest();
+
+    /**
+     * @brief 请求代际是否仍然有效
+     */
+    [[nodiscard]] bool isGenerationCurrent(u64 generation) const;
+
+    /**
+     * @brief 当前请求代际
+     */
+    [[nodiscard]] u64 requestGeneration() const;
 
     // ============================================================================
     // 区块数据访问
@@ -309,6 +376,15 @@ private:
 
     // 加载级别（原子操作）
     std::atomic<i32> m_level{33};
+
+    // 生命周期状态
+    std::atomic<ChunkLifecycleState> m_lifecycleState{ChunkLifecycleState::Idle};
+
+    // 请求代际与调度信息
+    u64 m_requestGeneration = 0;
+    i32 m_requestPriority = 0;
+    const ChunkStatus* m_requestTarget = &ChunkStatuses::EMPTY;
+    std::shared_ptr<std::atomic<bool>> m_cancelToken;
 
     // 正在生成的区块
     std::unique_ptr<ChunkPrimer> m_generatingChunk;

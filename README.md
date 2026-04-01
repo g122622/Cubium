@@ -25,7 +25,11 @@ cmake --build build --config Release
 # 构建过程可能出现“cl : 命令行  error D8040: 创建子进程或与子进程通讯时出错”这种错误，此时只需要重新跑一遍构建命令就行，不用清理构建目录、不用重新生成构建脚本。
 
 # 运行测试
-./build/bin/Release/mc_tests.exe
+# 强烈建议只运行特定测试并设置brief，运行全部测试会更慢（测试用例有几千个），且很快就会耗尽上下文，导致你无法有效地分析测试结果。
+# 建议只在全部编码工作完成之后运行回归测试的时候才运行全部测试，且也要启用brief。
+./build/bin/Release/mc_tests.exe --gtest_filter=ChunkWorkerPoolTest.* --gtest_brief=1
+
+```
 
 # 运行服务端
 ./build/bin/Release/minecraft-server.exe --help

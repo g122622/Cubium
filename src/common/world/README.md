@@ -55,8 +55,8 @@ world/
 │   ├── IChunk.hpp/cpp          # Chunk interface
 │   ├── ChunkDistanceGraph.hpp/cpp    # BFS distance calculation
 │   ├── ChunkLoadTicket.hpp     # Ticket types for chunk loading
-│   ├── ChunkLoadTicketManager.hpp/cpp # Ticket-based chunk management
-│   └── SingleChunkLifecycleManager.hpp/cpp # Per-chunk lifecycle
+│   ├── ChunkLoadTicketManager.hpp/cpp # Multi-source ticket aggregation
+│   └── SingleChunkLifecycleManager.hpp/cpp # Per-chunk lifecycle and request generations
 ├── dimension/                  # Dimension system
 │   └── DimensionRenderSettings.hpp
 ├── entity/                     # World entity management
@@ -220,8 +220,18 @@ The chunk system manages world data in 16x16x256 block sections:
 - **ChunkSection**: Stores block states, sky light, block light
 - **ChunkPrimer**: Intermediate chunk during generation
 - **ChunkStatus**: 13 generation stages (EMPTY to FULL)
-- **SingleChunkLifecycleManager**: Manages chunk loading state and futures
-- **ChunkLoadTicketManager**: Ticket-based chunk loading priority
+- **SingleChunkLifecycleManager**: Manages chunk loading state, request generations, and cancellation
+- **ChunkLoadTicketManager**: Aggregates ticket sources and computes load pressure
+
+### Chunk Loading Flow
+
+1. Ticket sources update `ChunkLoadTicketManager`.
+2. `ChunkDistanceGraph` converts ticket pressure into chunk levels.
+3. `SingleChunkLifecycleManager` decides whether a chunk can queue, start, finish, or cancel generation.
+4. `ServerChunkManager` and the server-side worker pool execute the request.
+5. Late results are dropped when the request generation no longer matches.
+
+This design keeps player movement, forced tickets, portal tickets, teleport tickets, and other request sources on the same scheduling path.
 
 **Generation Stages:**
 ```

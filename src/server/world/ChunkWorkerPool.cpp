@@ -83,7 +83,6 @@ void ChunkWorkerPool::shutdown()
         while (!m_taskQueue.empty()) {
             m_taskQueue.pop();
         }
-        m_pendingGenerateTasks.clear();
     }
 
     {
@@ -101,6 +100,15 @@ void ChunkWorkerPool::submitGenerate(ChunkCoord x, ChunkCoord z,
                                        CompletionCallback callback,
                                        i32 priority)
 {
+    submitGenerate(x, z, targetStatus, std::move(callback), nullptr, priority);
+}
+
+void ChunkWorkerPool::submitGenerate(ChunkCoord x, ChunkCoord z,
+                                       const ChunkStatus& targetStatus,
+                                       CompletionCallback callback,
+                                       std::shared_ptr<std::atomic<bool>> cancelToken,
+                                       i32 priority)
+{
     if (!m_running.load(std::memory_order_acquire)) {
         if (callback) {
             callback(false, nullptr);
@@ -112,51 +120,31 @@ void ChunkWorkerPool::submitGenerate(ChunkCoord x, ChunkCoord z,
     chunkTask.timestamp = static_cast<u64>(
         std::chrono::steady_clock::now().time_since_epoch().count());
 
-    const u64 chunkKey = makeChunkKey(x, z);
-    auto coalescedCallbacks = std::make_shared<CoalescedCallbacks>();
-    std::shared_ptr<CoalescedCallbacks> existingCallbacks;
-    bool shouldNotifyWorker = false;
+    auto internalTask = std::make_shared<InternalTask>();
+    internalTask->task = std::move(chunkTask);
+    internalTask->generator = m_generator;
+    internalTask->callback = std::move(callback);
+    internalTask->cancelToken = std::move(cancelToken);
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
-
-        auto pendingIt = m_pendingGenerateTasks.find(chunkKey);
-        if (pendingIt != m_pendingGenerateTasks.end()) {
-            existingCallbacks = pendingIt->second;
-        } else {
-            if (callback) {
-                std::lock_guard<std::mutex> callbackLock(coalescedCallbacks->mutex);
-                coalescedCallbacks->callbacks.push_back(std::move(callback));
-            }
-
-            auto task = std::make_shared<InternalTask>();
-            task->task = std::move(chunkTask);
-            task->generator = m_generator;
-            task->coalesceKey = chunkKey;
-            task->coalescedCallbacks = coalescedCallbacks;
-
-            m_pendingGenerateTasks.emplace(chunkKey, coalescedCallbacks);
-            m_taskQueue.push(std::move(task));
-            shouldNotifyWorker = true;
-        }
+        m_taskQueue.push(std::move(internalTask));
     }
 
-    if (existingCallbacks) {
-        if (callback) {
-            std::lock_guard<std::mutex> callbackLock(existingCallbacks->mutex);
-            existingCallbacks->callbacks.push_back(std::move(callback));
-        }
-        return;
-    }
-
-    if (shouldNotifyWorker) {
-        m_condition.notify_one();
-    }
+    m_condition.notify_one();
 }
 
 void ChunkWorkerPool::submitTask(ChunkTask task,
                                    GeneratorFunc generator,
                                    CompletionCallback callback)
+{
+    submitTask(std::move(task), std::move(generator), std::move(callback), nullptr);
+}
+
+void ChunkWorkerPool::submitTask(ChunkTask task,
+                                   GeneratorFunc generator,
+                                   CompletionCallback callback,
+                                   std::shared_ptr<std::atomic<bool>> cancelToken)
 {
     if (!m_running.load(std::memory_order_acquire)) {
         if (callback) {
@@ -172,6 +160,7 @@ void ChunkWorkerPool::submitTask(ChunkTask task,
     internalTask->task = std::move(task);
     internalTask->generator = std::move(generator);
     internalTask->callback = std::move(callback);
+    internalTask->cancelToken = std::move(cancelToken);
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
@@ -189,6 +178,12 @@ size_t ChunkWorkerPool::pendingTaskCount() const
 {
     std::lock_guard<std::mutex> lock(m_queueMutex);
     return m_taskQueue.size();
+}
+
+void ChunkWorkerPool::pruneCancelledTasks()
+{
+    std::lock_guard<std::mutex> lock(m_queueMutex);
+    pruneCancelledTasksLocked();
 }
 
 // ============================================================================
@@ -231,6 +226,13 @@ void ChunkWorkerPool::workerThread(i32 workerId)
 
 void ChunkWorkerPool::executeTask(InternalTask& task)
 {
+    if (isTaskCancelled(task)) {
+        if (task.callback) {
+            task.callback(false, nullptr);
+        }
+        return;
+    }
+
     MC_TRACE_CHUNK_GEN_EVENT("GenerateChunk");
 
     // 创建区块生成器
@@ -241,11 +243,19 @@ void ChunkWorkerPool::executeTask(InternalTask& task)
     try {
         // 执行生成
         if (task.generator && task.task.targetStatus) {
-            task.generator(*primer, *task.task.targetStatus);
+            static const std::atomic<bool> neverCancel{false};
+            const std::atomic<bool>& cancelSignal = task.cancelToken
+                ? *task.cancelToken
+                : neverCancel;
+            task.generator(*primer, *task.task.targetStatus, cancelSignal);
         }
     } catch (const std::exception&) {
         success = false;
     } catch (...) {
+        success = false;
+    }
+
+    if (isTaskCancelled(task)) {
         success = false;
     }
 
@@ -257,26 +267,38 @@ void ChunkWorkerPool::executeTask(InternalTask& task)
         callbackChunk = m_completedChunks.back().get();
     }
 
-    std::vector<CompletionCallback> callbacks;
+    if (task.callback) {
+        task.callback(success, callbackChunk);
+    }
+}
 
-    if (task.coalescedCallbacks) {
-        {
-            std::lock_guard<std::mutex> lock(task.coalescedCallbacks->mutex);
-            callbacks = task.coalescedCallbacks->callbacks;
-        }
+bool ChunkWorkerPool::isTaskCancelled(const InternalTask& task)
+{
+    if (!task.cancelToken) {
+        return false;
+    }
+    return task.cancelToken->load(std::memory_order_acquire);
+}
 
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-        m_pendingGenerateTasks.erase(task.coalesceKey);
-    } else if (task.callback) {
-        callbacks.push_back(task.callback);
+void ChunkWorkerPool::pruneCancelledTasksLocked()
+{
+    if (m_taskQueue.empty()) {
+        return;
     }
 
-    if (!callbacks.empty()) {
-        for (const auto& callback : callbacks) {
-            if (callback) {
-                callback(success, callbackChunk);
-            }
+    std::vector<std::shared_ptr<InternalTask>> retained;
+    retained.reserve(m_taskQueue.size());
+
+    while (!m_taskQueue.empty()) {
+        auto task = m_taskQueue.top();
+        m_taskQueue.pop();
+        if (task && !isTaskCancelled(*task)) {
+            retained.push_back(std::move(task));
         }
+    }
+
+    for (auto& task : retained) {
+        m_taskQueue.push(std::move(task));
     }
 }
 

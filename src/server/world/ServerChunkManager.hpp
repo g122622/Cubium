@@ -336,6 +336,23 @@ private:
                                 std::shared_ptr<std::promise<ChunkData*>> promise);
 
     /**
+     * @brief 取消指定区块的挂起请求
+     */
+    void cancelPendingGeneration(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 区块加载级别变化处理
+     */
+    void onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
+
+    /**
+     * @brief 计算调度优先级（越小越高）
+     */
+    [[nodiscard]] i32 computeSchedulePriority(ChunkCoord x, ChunkCoord z,
+                                              const ChunkStatus& targetStatus,
+                                              i32 ticketLevel) const;
+
+    /**
      * @brief 执行生成任务
      */
     void executeGenerationTask(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& status);
@@ -421,6 +438,8 @@ private:
     mutable std::mutex m_syncGenerationMutex;
 
     struct PendingGeneration {
+        u64 generation = 0;
+        std::shared_ptr<std::atomic<bool>> cancelToken;
         std::vector<ChunkCallback> callbacks;
         std::vector<std::shared_ptr<std::promise<ChunkData*>>> promises;
     };

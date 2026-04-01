@@ -13,6 +13,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <memory>
+#include <unordered_set>
 
 namespace mc::server {
 
@@ -47,8 +48,14 @@ public:
 
     /**
      * @brief 生成器函数类型
+     *
+     * @param chunk 区块中间态
+     * @param targetStatus 目标生成阶段
+     * @param cancelSignal 协作取消信号（true 表示应尽快停止）
      */
-    using GeneratorFunc = std::function<void(ChunkPrimer& chunk, const ChunkStatus& targetStatus)>;
+    using GeneratorFunc = std::function<void(ChunkPrimer& chunk,
+                                             const ChunkStatus& targetStatus,
+                                             const std::atomic<bool>& cancelSignal)>;
 
     // ============================================================================
     // 构造与析构
@@ -105,6 +112,22 @@ public:
                         i32 priority = 0);
 
     /**
+     * @brief 提交可取消的生成任务
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param targetStatus 目标状态
+     * @param callback 完成回调
+     * @param cancelToken 取消令牌（可为空）
+     * @param priority 优先级（越小越高）
+     */
+    void submitGenerate(ChunkCoord x, ChunkCoord z,
+                        const ChunkStatus& targetStatus,
+                        CompletionCallback callback,
+                        std::shared_ptr<std::atomic<bool>> cancelToken,
+                        i32 priority);
+
+    /**
      * @brief 提交自定义任务
      * @param task 任务
      * @param generator 生成器函数
@@ -114,6 +137,14 @@ public:
                     GeneratorFunc generator,
                     CompletionCallback callback);
 
+    /**
+     * @brief 提交可取消的自定义任务
+     */
+    void submitTask(ChunkTask task,
+                    GeneratorFunc generator,
+                    CompletionCallback callback,
+                    std::shared_ptr<std::atomic<bool>> cancelToken);
+
     // ============================================================================
     // 统计
     // ============================================================================
@@ -122,6 +153,13 @@ public:
      * @brief 获取待处理任务数量
      */
     [[nodiscard]] size_t pendingTaskCount() const;
+
+    /**
+     * @brief 裁剪已取消的排队任务
+     *
+     * @note 该操作会重建优先队列，适合在大量取消后调用。
+     */
+    void pruneCancelledTasks();
 
     /**
      * @brief 获取线程数量
@@ -146,6 +184,7 @@ private:
         ChunkTask task;
         GeneratorFunc generator;
         CompletionCallback callback;
+        std::shared_ptr<std::atomic<bool>> cancelToken;
         u64 coalesceKey = 0;
         std::shared_ptr<CoalescedCallbacks> coalescedCallbacks;
     };
@@ -164,6 +203,16 @@ private:
      * @brief 获取最优线程数
      */
     static i32 getOptimalThreadCount();
+
+    /**
+     * @brief 检查任务是否已被取消
+     */
+    [[nodiscard]] static bool isTaskCancelled(const InternalTask& task);
+
+    /**
+     * @brief 在持锁状态下裁剪已取消任务
+     */
+    void pruneCancelledTasksLocked();
 
     /**
      * @brief 任务比较器（用于优先队列）
@@ -185,7 +234,6 @@ private:
     std::priority_queue<std::shared_ptr<InternalTask>,
                         std::vector<std::shared_ptr<InternalTask>>,
                         TaskComparator> m_taskQueue;
-    std::unordered_map<u64, std::shared_ptr<CoalescedCallbacks>> m_pendingGenerateTasks;
     std::vector<std::unique_ptr<ChunkPrimer>> m_completedChunks;
 
     mutable std::mutex m_queueMutex;

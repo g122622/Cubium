@@ -27,6 +27,9 @@ void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
 
     if (m_status != &status) {
         m_status = &status;
+        if (status == ChunkStatuses::FULL) {
+            m_lifecycleState.store(ChunkLifecycleState::Ready, std::memory_order_release);
+        }
 
         // 回调
         if (m_statusChangeCallback) {
@@ -44,6 +47,105 @@ void SingleChunkLifecycleManager::setLevel(i32 level)
     }
 }
 
+bool SingleChunkLifecycleManager::hasActiveRequest() const
+{
+    const ChunkLifecycleState state = m_lifecycleState.load(std::memory_order_acquire);
+    return state == ChunkLifecycleState::Queued || state == ChunkLifecycleState::Generating;
+}
+
+ChunkRequestControl SingleChunkLifecycleManager::upsertRequest(const ChunkStatus& targetStatus, i32 priority)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const ChunkLifecycleState state = m_lifecycleState.load(std::memory_order_acquire);
+    const bool noActive = (state != ChunkLifecycleState::Queued && state != ChunkLifecycleState::Generating);
+    const bool targetUpgrade = targetStatus.ordinal() > m_requestTarget->ordinal();
+    const bool priorityUpgrade = noActive || priority < m_requestPriority;
+
+    ChunkRequestControl control;
+
+    if (!noActive && !targetUpgrade && !priorityUpgrade) {
+        control.generation = m_requestGeneration;
+        control.priority = m_requestPriority;
+        control.targetStatus = m_requestTarget;
+        control.cancelToken = m_cancelToken;
+        control.shouldEnqueue = false;
+        return control;
+    }
+
+    if (m_cancelToken) {
+        m_cancelToken->store(true, std::memory_order_release);
+    }
+
+    ++m_requestGeneration;
+    m_requestPriority = priority;
+    m_requestTarget = &targetStatus;
+    m_cancelToken = std::make_shared<std::atomic<bool>>(false);
+    m_lifecycleState.store(ChunkLifecycleState::Queued, std::memory_order_release);
+
+    control.generation = m_requestGeneration;
+    control.priority = m_requestPriority;
+    control.targetStatus = m_requestTarget;
+    control.cancelToken = m_cancelToken;
+    control.shouldEnqueue = true;
+    return control;
+}
+
+bool SingleChunkLifecycleManager::tryStartRequest(u64 generation)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (generation != m_requestGeneration) {
+        return false;
+    }
+
+    if (m_cancelToken && m_cancelToken->load(std::memory_order_acquire)) {
+        m_lifecycleState.store(ChunkLifecycleState::Cancelled, std::memory_order_release);
+        return false;
+    }
+
+    m_lifecycleState.store(ChunkLifecycleState::Generating, std::memory_order_release);
+    return true;
+}
+
+void SingleChunkLifecycleManager::finishRequest(u64 generation, bool success, bool cancelled)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (generation != m_requestGeneration) {
+        return;
+    }
+
+    if (cancelled) {
+        m_lifecycleState.store(ChunkLifecycleState::Cancelled, std::memory_order_release);
+        return;
+    }
+
+    m_lifecycleState.store(success ? ChunkLifecycleState::Ready : ChunkLifecycleState::Failed,
+                           std::memory_order_release);
+}
+
+void SingleChunkLifecycleManager::cancelActiveRequest()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_cancelToken) {
+        m_cancelToken->store(true, std::memory_order_release);
+    }
+
+    ++m_requestGeneration;
+    m_lifecycleState.store(ChunkLifecycleState::Cancelled, std::memory_order_release);
+}
+
+bool SingleChunkLifecycleManager::isGenerationCurrent(u64 generation) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return generation == m_requestGeneration;
+}
+
+u64 SingleChunkLifecycleManager::requestGeneration() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_requestGeneration;
+}
+
 // ============================================================================
 // 区块数据访问
 // ============================================================================
@@ -56,6 +158,8 @@ ChunkPrimer* SingleChunkLifecycleManager::createGeneratingChunk()
         m_generatingChunk = std::make_unique<ChunkPrimer>(m_x, m_z);
     }
 
+    m_lifecycleState.store(ChunkLifecycleState::Generating, std::memory_order_release);
+
     return m_generatingChunk.get();
 }
 
@@ -67,6 +171,7 @@ std::unique_ptr<ChunkData> SingleChunkLifecycleManager::completeGeneration()
         m_chunkData = m_generatingChunk->toChunkData();
         m_generatingChunk.reset();
         m_status = &ChunkStatuses::FULL;
+        m_lifecycleState.store(ChunkLifecycleState::Ready, std::memory_order_release);
     }
 
     return std::move(m_chunkData);
