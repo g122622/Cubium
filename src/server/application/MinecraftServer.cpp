@@ -957,6 +957,19 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     u32 teleportId = m_teleportManager->requestTeleport(playerId, x, y, z, yaw, pitch);
     sendTeleportPacket(playerId, x, y, z, yaw, pitch, teleportId);
 
+    // 立即发送时间，避免客户端在首次周期同步前短暂显示默认时间(0)
+    const auto& time = timeManager().gameTimeObj();
+    network::TimeUpdatePacket timePacket(
+        time.gameTime(),
+        time.dayTime(),
+        time.daylightCycleEnabled()
+    );
+    network::PacketSerializer timeSer;
+    timePacket.serialize(timeSer);
+    auto fullTimePacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::TimeUpdate, timeSer.buffer());
+    sendPacketToPlayer(playerId, fullTimePacket.data(), fullTimePacket.size());
+
     // 发送初始天气状态
     sendInitialWeatherStateToPlayer(playerId);
 }
