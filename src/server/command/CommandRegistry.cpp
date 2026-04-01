@@ -10,6 +10,7 @@
 #include "commands/ClearCommand.hpp"
 #include "commands/WeatherCommand.hpp"
 #include "commands/ExperienceCommand.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -17,6 +18,7 @@ namespace command {
 CommandRegistry::CommandRegistry()
     : m_dispatcher()
 {
+    registerDefaults();
 }
 
 Result<i32> CommandRegistry::execute(const String& input, ServerCommandSource& source) {
@@ -28,6 +30,10 @@ Result<i32> CommandRegistry::execute(const String& input, ServerCommandSource& s
 }
 
 void CommandRegistry::registerDefaults() {
+    if (m_defaultsRegistered) {
+        return;
+    }
+
     // 注册核心命令
     GameModeCommand::registerTo(m_dispatcher);
     TimeCommand::registerTo(m_dispatcher);
@@ -47,6 +53,9 @@ void CommandRegistry::registerDefaults() {
         "experience", "xp"
     };
     m_commandNameSet = std::unordered_set<String>(m_commandNames.begin(), m_commandNames.end());
+    m_defaultsRegistered = true;
+
+    spdlog::info("[CommandRegistry] Registered {} default commands", m_commandNames.size());
 }
 
 std::vector<String> CommandRegistry::getCommandNames() const {
@@ -59,11 +68,6 @@ bool CommandRegistry::hasCommand(const String& name) const {
 
 CommandRegistry& CommandRegistry::getGlobal() {
     static CommandRegistry registry;
-    static const bool initialized = [] {
-        registry.registerDefaults();
-        return true;
-    }();
-    (void)initialized;
     return registry;
 }
 

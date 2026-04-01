@@ -21,6 +21,9 @@ static const struct {
     {"tp", "Teleports entities", "/tp <target>\n/tp <x> <y> <z>"},
     {"give", "Gives items to a player", "/give <player> <item> [count]"},
     {"clear", "Clears items from player inventory", "/clear [player] [item] [maxCount]"},
+    {"weather", "Sets or queries weather", "/weather clear [duration]\n/weather rain [duration]\n/weather thunder [duration]\n/weather query"},
+    {"experience", "Modifies player experience", "/experience add <player> <amount> [points|levels]\n/experience set <player> <amount> [points|levels]\n/experience query <player> [points|levels]"},
+    {"xp", "Alias of /experience", "/xp add <player> <amount> [points|levels]\n/xp set <player> <amount> [points|levels]\n/xp query <player> [points|levels]"},
 };
 
 void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {

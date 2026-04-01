@@ -86,6 +86,7 @@ private:
     Dispatcher m_dispatcher;
     std::vector<String> m_commandNames;
     std::unordered_set<String> m_commandNameSet;  // 用于快速查找
+    bool m_defaultsRegistered = false;
 };
 
 } // namespace command

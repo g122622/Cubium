@@ -984,7 +984,7 @@ void ClientApplication::mainLoop()
             const auto minFrameDuration = std::chrono::duration<f64>(1.0 / static_cast<f64>(fpsLimit));
             const auto frameElapsed = clock::now() - frameStart;
             if (frameElapsed < minFrameDuration) {
-                MC_TRACE_EVENT("rendering.frame", "FrameRateLimitSleep", "Sleeping to limit FPS");
+                MC_TRACE_EVENT("rendering.frame", "FrameRateLimitSleep");
                 std::this_thread::sleep_for(minFrameDuration - frameElapsed);
             }
         }
