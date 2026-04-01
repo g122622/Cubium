@@ -117,7 +117,8 @@ void MinecraftServer::initializeCoreManagers()
     // 创建核心管理器
     m_playerManager = std::make_unique<core::PlayerManager>(m_config);
     m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
-    m_timeManager = std::make_unique<core::TimeManager>();
+    // 与 Java 版一致：世界初始白天时间从 1000 开始（清晨后）
+    m_timeManager = std::make_unique<core::TimeManager>(0, 1000);
     m_teleportManager = std::make_unique<core::TeleportManager>(*m_playerManager);
     m_keepAliveManager = std::make_unique<core::KeepAliveManager>(*m_playerManager, m_config);
     m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_config);

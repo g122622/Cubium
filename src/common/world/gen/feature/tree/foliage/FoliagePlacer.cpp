@@ -32,6 +32,29 @@ void FoliagePlacer::placeFoliage(
             foliageHeight, radius, offset, outFoliageBlocks, foliageBlock
         );
     }
+
+    // 子类只负责计算并收集树叶坐标，这里统一执行实际放置。
+    // 允许覆盖空气或已有树叶，避免覆盖实心方块。
+    if (foliageBlock == nullptr) {
+        return;
+    }
+
+    for (const auto& pos : outFoliageBlocks) {
+        if (pos.y < 0 || pos.y >= 256) {
+            continue;
+        }
+
+        const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+        if (state == nullptr || state->isAir() ||
+            state->is(VanillaBlocks::OAK_LEAVES) ||
+            state->is(VanillaBlocks::SPRUCE_LEAVES) ||
+            state->is(VanillaBlocks::BIRCH_LEAVES) ||
+            state->is(VanillaBlocks::JUNGLE_LEAVES) ||
+            state->is(VanillaBlocks::ACACIA_LEAVES) ||
+            state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+            world.setBlock(pos.x, pos.y, pos.z, foliageBlock);
+        }
+    }
 }
 
 void FoliagePlacer::placeFoliageLayer(
