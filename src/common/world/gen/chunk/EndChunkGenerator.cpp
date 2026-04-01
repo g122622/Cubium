@@ -136,6 +136,8 @@ void EndChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chun
     if (m_biomeProvider) {
         m_biomeProvider->fillBiomeContainer(chunk.getBiomes(), chunk.x(), chunk.z());
     }
+
+    chunk.setChunkStatus(ChunkStatuses::BIOMES);
 }
 
 void EndChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) {
@@ -158,6 +160,8 @@ void EndChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk
         // 生成外岛
         generateOuterIslands(chunk);
     }
+
+    chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
 void EndChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) {
@@ -169,14 +173,15 @@ void EndChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
     }
 
     // 末地无地表生成（无草地、泥土等）
+    chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
 void EndChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) {
     MC_TRACE_EVENT("world.gen.end", "ApplyCarvers");
     // 末地无洞穴雕刻
     MC_UNUSED(region);
-    MC_UNUSED(chunk);
-    MC_UNUSED(isLiquid);
+
+    chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
 }
 
 void EndChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) {
@@ -184,6 +189,8 @@ void EndChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk
     // 末地特性：紫颂树、末地城等
     // 暂时使用基类实现
     BaseChunkGenerator::placeFeatures(region, chunk);
+
+    chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }
 
 i32 EndChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,

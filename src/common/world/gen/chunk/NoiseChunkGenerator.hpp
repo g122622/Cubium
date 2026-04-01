@@ -87,8 +87,8 @@ private:
     std::unique_ptr<OctavesNoiseGenerator> m_mainDensityNoise;      // 主密度噪声 (16倍频)
     std::unique_ptr<OctavesNoiseGenerator> m_secondaryDensityNoise; // 次密度噪声 (16倍频)
     std::unique_ptr<OctavesNoiseGenerator> m_weightNoise;           // 权重噪声 (8倍频)
-    std::unique_ptr<PerlinNoiseGenerator> m_surfaceDepthNoise;      // 地表深度噪声
-    std::unique_ptr<SimplexNoiseGenerator> m_endNoise;              // 末地噪声（用于末地维度）
+    std::unique_ptr<INoiseGenerator> m_surfaceDepthNoise;           // 地表深度噪声（Perlin 或 Octaves）
+    std::unique_ptr<OctavesNoiseGenerator> m_randomDensityOffsetNoise; // 随机密度偏移噪声
 
     // === 生物群系 ===
     std::unique_ptr<BiomeProvider> m_biomeProvider;

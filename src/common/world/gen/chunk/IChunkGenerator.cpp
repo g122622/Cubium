@@ -179,18 +179,22 @@ void BaseChunkGenerator::generateBiomes(WorldGenRegion& /*region*/, ChunkPrimer&
             }
         }
     }
+
+    chunk.setChunkStatus(ChunkStatuses::BIOMES);
 }
 
-void BaseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/, bool /*isLiquid*/)
+void BaseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& chunk, bool isLiquid)
 {
     // 默认实现：无雕刻
     // 子类可以覆盖以添加洞穴和峡谷生成
+    chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
 }
 
-void BaseChunkGenerator::placeFeatures(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/)
+void BaseChunkGenerator::placeFeatures(WorldGenRegion& /*region*/, ChunkPrimer& chunk)
 {
     // 默认实现：无特性
     // 子类可以覆盖以添加树木、矿石等
+    chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }
 
 i32 BaseChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,

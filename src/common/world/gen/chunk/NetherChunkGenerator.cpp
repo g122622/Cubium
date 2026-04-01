@@ -141,6 +141,8 @@ void NetherChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& c
     if (m_biomeProvider) {
         m_biomeProvider->fillBiomeContainer(chunk.getBiomes(), chunk.x(), chunk.z());
     }
+
+    chunk.setChunkStatus(ChunkStatuses::BIOMES);
 }
 
 void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) {
@@ -230,6 +232,8 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
 
         std::swap(noiseCache[0], noiseCache[1]);
     }
+
+    chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
 void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) {
@@ -255,6 +259,8 @@ void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chu
             }
         }
     }
+
+    chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
 void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) {
@@ -262,6 +268,8 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     // 下界洞穴雕刻
     // 暂时使用基类实现
     BaseChunkGenerator::applyCarvers(region, chunk, isLiquid);
+
+    chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
 }
 
 void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) {
@@ -269,6 +277,8 @@ void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& ch
     // 下界特性：萤石、岩浆块、灵魂沙等
     // 暂时使用基类实现
     BaseChunkGenerator::placeFeatures(region, chunk);
+
+    chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }
 
 i32 NetherChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,

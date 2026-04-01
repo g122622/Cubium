@@ -125,19 +125,22 @@ void NoiseChunkGenerator::initNoiseGenerators()
     m_weightNoise = std::make_unique<OctavesNoiseGenerator>(rng, -7, 0);
 
     // 地表深度噪声
+    // 参考 MC：simplexSurfaceNoise=true 时使用 PerlinNoiseGenerator，
+    // 否则使用 OctavesNoiseGenerator。
     if (noise.simplexSurfaceNoise) {
         m_surfaceDepthNoise = std::make_unique<PerlinNoiseGenerator>(rng, -3, 0);
     } else {
-        m_surfaceDepthNoise = std::make_unique<PerlinNoiseGenerator>(rng, -3, 0);
+        m_surfaceDepthNoise = std::make_unique<OctavesNoiseGenerator>(rng, -3, 0);
     }
 
     // 跳过一些随机数（参考 MC）
     rng.skip(2620);
 
-    // 随机密度偏移噪声（用于放大化或末地）
-    if (noise.randomDensityOffset) {
-        m_endNoise = std::make_unique<SimplexNoiseGenerator>(rng);
-    }
+    // 随机密度偏移噪声
+    // 参考 MC：使用独立种子并 skip(17292) 初始化 OctavesNoiseGenerator。
+    math::Random randomDensityRng(m_seed);
+    randomDensityRng.skip(17292);
+    m_randomDensityOffsetNoise = std::make_unique<OctavesNoiseGenerator>(randomDensityRng, -15, 0);
 }
 
 void NoiseChunkGenerator::initBiomeWeights()
@@ -554,12 +557,19 @@ f32 NoiseChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noise
 
 f32 NoiseChunkGenerator::calculateRandomDensityOffset(i32 noiseX, i32 noiseZ) const
 {
-    if (!m_endNoise) {
+    if (!m_randomDensityOffsetNoise) {
         return 0.0f;
     }
 
     // 参考 MC func_236095_c_
-    const f32 noise = m_endNoise->noise2D(static_cast<f32>(noiseX * 200), static_cast<f32>(noiseZ * 200));
+    const f32 noise = m_randomDensityOffsetNoise->getValue(
+        static_cast<f32>(noiseX) * 200.0f,
+        10.0f,
+        static_cast<f32>(noiseZ) * 200.0f,
+        1.0f,
+        0.0f,
+        true
+    );
 
     f32 offset;
     if (noise < 0.0f) {
