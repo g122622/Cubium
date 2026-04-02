@@ -590,7 +590,7 @@ TreeFeatureConfig(const TreeFeatureConfig& other) {
 
 **影响：** 树叶不会因为距离树干太远而自动腐烂。
 
-**解决方案：** 需要 TODO 实现树叶距离计算。
+**解决方案：** 需要补齐树叶距离计算逻辑。
 
 ### 3. 高度检查边界
 

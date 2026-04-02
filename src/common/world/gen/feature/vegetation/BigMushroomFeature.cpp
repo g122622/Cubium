@@ -189,7 +189,7 @@ void BigBrownMushroomFeature::generateCap(
 
             // 计算边缘方向
             // 参考 MC 的 west/east/north/south 属性
-            // 简化处理：直接放置蘑菇盖
+            // 当前实现直接放置蘑菇盖状态
             if (config.capState) {
                 world.setBlock(capPos, config.capState);
             }

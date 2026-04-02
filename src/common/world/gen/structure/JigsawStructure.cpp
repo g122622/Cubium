@@ -1,8 +1,36 @@
 #include "JigsawStructure.hpp"
 #include "../jigsaw/JigsawManager.hpp"
 #include "../jigsaw/JigsawPattern.hpp"
+#include "../chunk/IChunkGenerator.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../block/BlockPos.hpp"
+
+namespace {
+
+class JigsawPlacedPieceAdapter final : public mc::world::gen::structure::StructurePiece {
+public:
+    explicit JigsawPlacedPieceAdapter(const mc::world::gen::jigsaw::PlacedPiece& placed)
+        : StructurePiece(
+              90,
+              placed.boundingBox.minX(),
+              placed.boundingBox.minY(),
+              placed.boundingBox.minZ(),
+              placed.boundingBox.maxX(),
+              placed.boundingBox.maxY(),
+              placed.boundingBox.maxZ()) {
+    }
+
+    void generate(
+        mc::IWorldWriter&,
+        mc::math::Random&,
+        mc::i32,
+        mc::i32,
+        const mc::world::gen::structure::StructureBoundingBox&) override {
+        // 实际方块放置已在 JigsawManager::assembleAndPlace 中完成
+    }
+};
+
+} // anonymous namespace
 
 namespace mc {
 namespace world {
@@ -32,6 +60,24 @@ bool JigsawStructure::canGenerate(
     i32 chunkX,
     i32 chunkZ)
 {
+    (void)world;
+    (void)rng;
+
+    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
+    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(m_config.startPool);
+    if (!startPool || startPool->isEmpty()) {
+        return false;
+    }
+
+    if (m_nearTerrain) {
+        const i32 centerX = chunkX * 16 + 8;
+        const i32 centerZ = chunkZ * 16 + 8;
+        const i32 topY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
+        if (topY < 20 || topY > 220) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -64,7 +110,9 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
         rng
     );
 
-    // TODO: 将 placedPieces 转换为 StructurePieces 并添加到 StructureStart
+    for (const auto& placed : placedPieces) {
+        start->addPiece(std::make_unique<JigsawPlacedPieceAdapter>(placed));
+    }
 
     return start;
 }

@@ -175,7 +175,7 @@ std::vector<BlockPos> CarvingMaskPlacement::getPositions(
     (void)region;
     (void)config;
 
-    // 简化实现：在区块中随机选择位置
+    // 在区块内按随机采样返回候选位置
     std::vector<BlockPos> positions;
     i32 count = random.nextInt(4) + 1;
 

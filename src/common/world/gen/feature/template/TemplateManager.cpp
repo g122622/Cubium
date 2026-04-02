@@ -1,5 +1,8 @@
 #include "TemplateManager.hpp"
 
+#include <filesystem>
+#include <fstream>
+
 namespace mc {
 namespace world {
 namespace gen {
@@ -77,8 +80,40 @@ std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& 
         }
     }
 
-    // TODO: 尝试从文件系统加载（世界保存的结构模板）
-    // 例如: <world>/generated/<namespace>/structures/<path>.nbt
+    // 从文件系统加载（支持开发期目录和存档 generated 目录）
+    const std::vector<std::filesystem::path> baseDirs = {
+        std::filesystem::current_path(),
+        std::filesystem::current_path() / "generated",
+        std::filesystem::current_path() / "data"
+    };
+
+    for (const auto& baseDir : baseDirs) {
+        std::filesystem::path path = baseDir / location.namespace_() / "structures" / (location.path() + ".nbt");
+        if (!std::filesystem::exists(path)) {
+            continue;
+        }
+
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        if (!file.is_open()) {
+            continue;
+        }
+
+        const std::streamsize fileSize = file.tellg();
+        if (fileSize <= 0) {
+            continue;
+        }
+
+        file.seekg(0, std::ios::beg);
+        std::vector<u8> data(static_cast<size_t>(fileSize));
+        if (!file.read(reinterpret_cast<char*>(data.data()), fileSize)) {
+            continue;
+        }
+
+        auto templ = TemplateLoader::loadFromCompressedNbt(data);
+        if (templ) {
+            return templ;
+        }
+    }
 
     return nullptr;
 }

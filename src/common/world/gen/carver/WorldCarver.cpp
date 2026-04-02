@@ -81,9 +81,7 @@ bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockStat
     // 参考 MC: (state.isIn(Blocks.SAND) || state.isIn(Blocks.GRAVEL)) && !aboveState.getFluidState().isTagged(FluidTags.WATER)
     bool isSandOrGravel = state->is(VanillaBlocks::SAND) || state->is(VanillaBlocks::GRAVEL);
     if (isSandOrGravel && aboveState) {
-        // 简化处理：上方不是水就可以雕刻
-        bool isWater = aboveState->is(VanillaBlocks::WATER);
-        return !isWater;
+        return !aboveState->isLiquid();
     }
 
     return false;

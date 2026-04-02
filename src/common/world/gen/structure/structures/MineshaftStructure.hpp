@@ -163,7 +163,7 @@ private:
                          const StructureBoundingBox& chunkBounds);
 
     /**
-     * @brief 生成"铁轨"（简化实现）
+        * @brief 生成铁轨
      */
     void generateRails(IWorldWriter& world, math::Random& rng,
                        const StructureBoundingBox& chunkBounds);

@@ -1,12 +1,14 @@
 #include "WorldGenSpawner.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../block/VanillaBlocks.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntityClassification.hpp"
 #include "../../../entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../entity/core/MobEntity.hpp"
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 namespace mc {
 
@@ -348,14 +350,42 @@ bool WorldGenSpawner::canSpawnAt(
 }
 
 bool WorldGenSpawner::checkSpawnRules(
-    WorldGenRegion& /*region*/,
-    const entity::EntityType& /*entityType*/,
-    i32 /*x*/,
-    i32 /*y*/,
-    i32 /*z*/) const
+    WorldGenRegion& region,
+    const entity::EntityType& entityType,
+    i32 x,
+    i32 y,
+    i32 z) const
 {
-    // TODO: 实现特定实体的生成规则检查
-    // 例如：羊需要草方块，马需要足够平坦的地面等
+    const BlockState* ground = region.getBlock(x, y - 1, z);
+    if (!ground || ground->isAir() || ground->isLiquid()) {
+        return false;
+    }
+
+    const String& typeName = entityType.name();
+
+    // 参考原版常见被动生物规则：大多数生物偏好草方块
+    if (typeName == "minecraft:sheep" ||
+        typeName == "minecraft:cow" ||
+        typeName == "minecraft:horse" ||
+        typeName == "minecraft:donkey") {
+        if (!ground->is(VanillaBlocks::GRASS_BLOCK)) {
+            return false;
+        }
+    }
+
+    // 马与驴对地形平坦度要求更高
+    if (typeName == "minecraft:horse" || typeName == "minecraft:donkey") {
+        const i32 centerTop = region.getTopBlockY(x, z, HeightmapType::MotionBlockingNoLeaves);
+        for (i32 dx = -1; dx <= 1; ++dx) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                const i32 h = region.getTopBlockY(x + dx, z + dz, HeightmapType::MotionBlockingNoLeaves);
+                if (std::abs(h - centerTop) > 1) {
+                    return false;
+                }
+            }
+        }
+    }
+
     return true;
 }
 

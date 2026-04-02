@@ -4,6 +4,7 @@
 #include "../../../block/BlockRegistry.hpp"
 #include <sstream>
 #include <cstring>
+#include <unordered_map>
 
 // 对于 gzip 解压
 #include <zlib.h>
@@ -44,6 +45,63 @@ std::vector<u8> decompressGzip(const std::vector<u8>& compressed) {
 
     inflateEnd(&stream);
     return decompressed;
+}
+
+const BlockState* applyPropertiesToState(
+    const Block& block,
+    const BlockState* defaultState,
+    const nbt::CompoundTag& propsCompound)
+{
+    if (!defaultState) {
+        return nullptr;
+    }
+
+    const auto& container = block.stateContainer();
+    std::unordered_map<const IProperty*, size_t> wanted;
+
+    for (const auto& [key, valueTag] : propsCompound.value) {
+        if (!valueTag || valueTag->id() != nbt::TagId::String) {
+            continue;
+        }
+
+        const IProperty* prop = container.getProperty(key);
+        if (!prop) {
+            continue;
+        }
+
+        const String& value = dynamic_cast<const nbt::StringTag&>(*valueTag).value;
+        auto parsedValue = prop->parseValue(value);
+        if (!parsedValue) {
+            continue;
+        }
+
+        wanted[prop] = *parsedValue;
+    }
+
+    if (wanted.empty()) {
+        return defaultState;
+    }
+
+    for (const auto& candidate : container.validStates()) {
+        if (!candidate) {
+            continue;
+        }
+
+        bool matches = true;
+        for (const auto& [prop, index] : wanted) {
+            const auto it = candidate->values().find(prop);
+            if (it == candidate->values().end() || it->second != index) {
+                matches = false;
+                break;
+            }
+        }
+
+        if (matches) {
+            return candidate.get();
+        }
+    }
+
+    return defaultState;
 }
 
 } // anonymous namespace
@@ -269,16 +327,7 @@ u32 TemplateLoader::parseBlockStateId(const nbt::CompoundTag& paletteEntry) {
         auto& propsTag = *paletteEntry.value.at("Properties");
         if (propsTag.id() == nbt::TagId::Compound) {
             auto& propsCompound = dynamic_cast<const nbt::CompoundTag&>(propsTag);
-            for (const auto& [key, valueTag] : propsCompound.value) {
-                if (valueTag && valueTag->id() == nbt::TagId::String) {
-                    std::string value = dynamic_cast<const nbt::StringTag&>(*valueTag).value;
-                    // 尝试应用属性 - 需要遍历方块的属性容器查找匹配的属性
-                    // 目前仅使用默认状态，属性应用需要更复杂的实现
-                    // TODO: 实现 BlockState::with(const String& name, const String& value)
-                    (void)key;
-                    (void)value;
-                }
-            }
+            state = applyPropertiesToState(*block, state, propsCompound);
         }
     }
 

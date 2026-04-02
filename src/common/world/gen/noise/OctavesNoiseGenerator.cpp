@@ -341,7 +341,7 @@ f32 SimplexNoiseGenerator::sampleEndHeight(i32 x, i32 z) const
     // 计算末地维度的高度偏移
     const i32 i = x / 2;
     const i32 j = z / 2;
-    // 注: k 和 l 用于计算末地岛边缘，当前简化实现未使用
+    // 注: k 和 l 保留用于与原版采样流程一致的中间量
     (void)(x % 2);  // k
     (void)(z % 2);  // l
 

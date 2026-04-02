@@ -1,7 +1,9 @@
 #include "LakeFeature.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../IWorldWriter.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include <cmath>
 
 namespace mc::world::gen::feature::lake {
 
@@ -68,38 +70,39 @@ bool LakeFeature::canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const {
     // 水湖限制: Y >= 8
     // 熔岩湖限制: Y >= 8，在较低高度更常见
 
-    // 水湖限制
-    if (m_config.fluidBlock == VanillaBlocks::WATER) {
-        return y >= 8 && y <= 256;
+    if (y < 8 || y > 256) {
+        return false;
     }
 
-    // 熔岩湖限制
-    if (m_config.fluidBlock == VanillaBlocks::LAVA) {
-        return y >= 8 && y <= 256;
+    // 尝试从 WorldGenRegion 读取周围方块，避免生成在大面积空腔中
+    const auto* region = dynamic_cast<const WorldGenRegion*>(&world);
+    if (!region) {
+        return true;
     }
 
-    // 检查周围是否有足够的固体方块来支撑湖泊
-    // 这可以防止湖泊生成在空中或不稳定位置
     i32 solidCount = 0;
+    i32 sampleCount = 0;
     constexpr i32 CHECK_RADIUS = 2;
 
     for (i32 dx = -CHECK_RADIUS; dx <= CHECK_RADIUS; ++dx) {
         for (i32 dy = -CHECK_RADIUS; dy <= CHECK_RADIUS; ++dy) {
             for (i32 dz = -CHECK_RADIUS; dz <= CHECK_RADIUS; ++dz) {
-                // 跳过湖泊中心区域
                 if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && std::abs(dz) <= 1) {
                     continue;
                 }
 
-                // 这里简化处理：假设检查位置的方块
-                // 完整实现需要从 world 读取方块
-                ++solidCount;
+                ++sampleCount;
+                const BlockState* state = region->getBlock(x + dx, y + dy, z + dz);
+                if (state && (state->isSolid() || state->isLiquid())) {
+                    ++solidCount;
+                }
             }
         }
     }
 
-    // 至少需要一定数量的固体方块
-    return solidCount >= 20;
+    // 熔岩湖对支撑要求更高，尽量避免悬空熔岩池
+    const i32 thresholdMultiplier = (m_config.fluidBlock == VanillaBlocks::LAVA) ? 3 : 2;
+    return sampleCount > 0 && solidCount * thresholdMultiplier >= sampleCount * 2;
 }
 
 LakeFeatureConfig LakeFeature::createWaterLake() {

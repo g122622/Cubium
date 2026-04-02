@@ -107,6 +107,8 @@ void FortressStructure::generateFallbackFortress(
     const BlockState* netherBricks = VanillaBlocks::getState(VanillaBlocks::NETHERRACK); // 使用下界岩替代
     const BlockState* netherrack = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
     const BlockState* soulSand = VanillaBlocks::getState(VanillaBlocks::SOUL_SAND);
+    const BlockState* netherWart = VanillaBlocks::getState(VanillaBlocks::NETHER_WART);
+    const BlockState* netherWartBlock = VanillaBlocks::getState(VanillaBlocks::NETHER_WART_BLOCK);
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
 
@@ -167,11 +169,14 @@ void FortressStructure::generateFallbackFortress(
         }
     }
 
-    // 烈焰人刷怪笼位置（中心偏移）
-    // TODO: 当实现刷怪笼方块后，替换为真正的刷怪笼
-    // 位置: (3, 5, 5) 相对于房间
+    // 烈焰人刷怪点标记（中心偏移）
     BlockPos spawnerPos(throneX + 3, throneY + 5, throneZ + 4);
-    world.setBlock(spawnerPos.x, spawnerPos.y, spawnerPos.z, netherBricks, 18);
+    world.setBlock(
+        spawnerPos.x,
+        spawnerPos.y,
+        spawnerPos.z,
+        netherWartBlock ? netherWartBlock : netherBricks,
+        18);
 
     // 生成地狱疣房间
     // 尺寸: 13x14x13
@@ -209,14 +214,16 @@ void FortressStructure::generateFallbackFortress(
     // 平台位置: (3-4, 4, 4-8) 和 (8-9, 4, 4-8)
     for (i32 x = 3; x <= 4; ++x) {
         for (i32 z = 4; z <= 8; ++z) {
-            // 灵魂沙平台已经作为地板的一部分
-            // TODO: 添加地狱疣作物
+            if (netherWart) {
+                world.setBlock(wartRoomX + x, wartRoomY + 1, wartRoomZ + z, netherWart, 18);
+            }
         }
     }
     for (i32 x = 8; x <= 9; ++x) {
         for (i32 z = 4; z <= 8; ++z) {
-            // 灵魂沙平台已经作为地板的一部分
-            // TODO: 添加地狱疣作物
+            if (netherWart) {
+                world.setBlock(wartRoomX + x, wartRoomY + 1, wartRoomZ + z, netherWart, 18);
+            }
         }
     }
 

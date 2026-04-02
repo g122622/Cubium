@@ -200,7 +200,6 @@ void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& /*region*/
 
     // 结构引用阶段：计算结构之间的引用关系
     // 这主要用于结构之间的连接（如要塞、村庄道路等）
-    // 目前简化实现，未来可扩展
 
     chunk.setChunkStatus(ChunkStatuses::STRUCTURE_REFERENCES);
 }

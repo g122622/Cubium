@@ -1,6 +1,7 @@
 #include "Placement.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../WorldConstants.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include <cmath>
@@ -72,8 +73,8 @@ std::unique_ptr<ConfiguredPlacement> ConfiguredPlacement::then(
         std::move(placement),
         std::move(config));
 
-    // 复制当前配置并设置链
-    // 注意：这里简化处理，实际MC中是创建新的DecoratedPlacement
+    // 当前实现采用显式链式构建（通过 setNext）
+    // 此处返回新节点，供调用方挂接到已有链路
     return next;
 }
 
@@ -190,9 +191,8 @@ std::vector<BlockPos> SurfacePlacement::getPositions(
     const auto& surfaceConfig = static_cast<const SurfacePlacementConfig&>(config);
 
     // 从顶部向下搜索第一个固体方块
-    // 世界高度范围通常是 -64 到 320，我们简化为 0 到 256
-    constexpr i32 MIN_Y = 0;
-    constexpr i32 MAX_Y = 255;
+    constexpr i32 MIN_Y = world::MIN_BUILD_HEIGHT;
+    constexpr i32 MAX_Y = world::MAX_BUILD_HEIGHT - 1;
 
     for (i32 y = MAX_Y; y >= MIN_Y; --y) {
         const BlockState* state = region.getBlock(basePos.x, y, basePos.z);

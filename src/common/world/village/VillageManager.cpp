@@ -1,12 +1,36 @@
 #include "VillageManager.hpp"
 #include "../../util/nbt/Nbt.hpp"
 #include "../IWorld.hpp"
+#include <array>
 #include <algorithm>
 #include <cmath>
 
 namespace mc {
 namespace world {
 namespace village {
+
+namespace {
+
+constexpr std::array<poi::PointOfInterestType, 16> ALL_BED_TYPES = {
+    poi::PointOfInterestType::BedRed,
+    poi::PointOfInterestType::BedBlack,
+    poi::PointOfInterestType::BedBlue,
+    poi::PointOfInterestType::BedBrown,
+    poi::PointOfInterestType::BedCyan,
+    poi::PointOfInterestType::BedGray,
+    poi::PointOfInterestType::BedGreen,
+    poi::PointOfInterestType::BedLightBlue,
+    poi::PointOfInterestType::BedLightGray,
+    poi::PointOfInterestType::BedLime,
+    poi::PointOfInterestType::BedMagenta,
+    poi::PointOfInterestType::BedOrange,
+    poi::PointOfInterestType::BedPink,
+    poi::PointOfInterestType::BedPurple,
+    poi::PointOfInterestType::BedWhite,
+    poi::PointOfInterestType::BedYellow,
+};
+
+} // anonymous namespace
 
 VillageManager::VillageManager(IWorld& world)
     : m_world(world)
@@ -40,9 +64,12 @@ Village* VillageManager::getOrCreateVillage(BlockPos pos) {
         return existing;
     }
 
-    // 检查附近是否有POI（床位或工作站）
-    auto beds = m_poiStorage.findAllInRange(pos, VillageConfig::BASE_RADIUS,
-        poi::PointOfInterestType::BedRed); // TODO: 检查所有床位颜色
+    // 检查附近是否有床位 POI（包含所有床颜色）
+    std::vector<const poi::PointOfInterest*> beds;
+    for (const auto bedType : ALL_BED_TYPES) {
+        auto found = m_poiStorage.findAllInRange(pos, VillageConfig::BASE_RADIUS, bedType);
+        beds.insert(beds.end(), found.begin(), found.end());
+    }
 
     if (beds.empty()) {
         // 没有POI，不创建村庄

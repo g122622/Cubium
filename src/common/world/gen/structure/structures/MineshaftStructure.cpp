@@ -3,6 +3,7 @@
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../WorldConstants.hpp"
 #include <cmath>
 
 namespace mc::world::gen::structure {
@@ -144,10 +145,8 @@ MineshaftPiece::MineshaftPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX,
 {
 }
 
-bool MineshaftPiece::canPlaceAt(i32 /*x*/, i32 /*y*/, i32 /*z*/) {
-    // 简化实现：总是返回 true
-    // 完整实现需要检查是否与其他片段碰撞
-    return true;
+bool MineshaftPiece::canPlaceAt(i32 /*x*/, i32 y, i32 /*z*/) {
+    return world::isValidY(y) && y > world::MIN_BUILD_HEIGHT + 4;
 }
 
 void MineshaftPiece::generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::Random& rng) {
@@ -315,7 +314,7 @@ void MineshaftCorridor::generate(IWorldWriter& world, math::Random& rng,
         }
     }
 
-    // 生成"铁轨"（使用石砖简化）
+    // 生成铁轨
     if (m_hasRails) {
         generateRails(world, rng, chunkBounds);
     }
@@ -415,8 +414,10 @@ void MineshaftCorridor::generatePillars(IWorldWriter& world, i32 /*sectionIndex*
 
 void MineshaftCorridor::generateRails(IWorldWriter& world, math::Random& /*rng*/,
                                        const StructureBoundingBox& chunkBounds) {
-    // 简化实现：使用石砖代替铁轨（完整实现需要铁轨方块）
-    const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+    const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::RAIL);
+    if (!railState) {
+        railState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+    }
 
     if (m_direction == 0 || m_direction == 1) {
         // 南北方向
@@ -441,11 +442,24 @@ void MineshaftCorridor::generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z
                                          const StructureBoundingBox& chunkBounds) {
     if (!chunkBounds.contains(x, y, z)) return;
 
-    // 简化实现：使用圆石代替刷怪笼
-    // 完整实现需要刷怪笼方块和实体数据
-    const BlockState* cobbleState = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
-    if (cobbleState) {
-        world.setBlock(x, y, z, cobbleState);
+    const BlockState* centerState = VanillaBlocks::getState(VanillaBlocks::COBWEB);
+    if (!centerState) {
+        centerState = VanillaBlocks::getState(VanillaBlocks::MOSSY_COBBLESTONE);
+    }
+    if (centerState) {
+        world.setBlock(x, y, z, centerState);
+    }
+
+    const BlockState* webState = VanillaBlocks::getState(VanillaBlocks::COBWEB);
+    if (webState) {
+        for (i32 dx = -1; dx <= 1; ++dx) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                if ((dx == 0 && dz == 0) || !chunkBounds.contains(x + dx, y, z + dz)) {
+                    continue;
+                }
+                world.setBlock(x + dx, y, z + dz, webState, 18);
+            }
+        }
     }
 }
 
@@ -454,11 +468,14 @@ void MineshaftCorridor::generateChestMinecart(IWorldWriter& world, i32 x, i32 y,
                                                const StructureBoundingBox& chunkBounds) {
     if (!chunkBounds.contains(x, y, z)) return;
 
-    // 简化实现：使用金块代替宝箱矿车
-    // 完整实现需要实体系统和战利品表
-    const BlockState* goldBlockState = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
-    if (goldBlockState) {
-        world.setBlock(x, y, z, goldBlockState);
+    const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::RAIL);
+    const BlockState* lootMarker = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
+
+    if (railState) {
+        world.setBlock(x, y, z, railState, 18);
+    }
+    if (lootMarker) {
+        world.setBlock(x, y + 1, z, lootMarker, 18);
     }
 }
 

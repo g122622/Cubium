@@ -6,6 +6,8 @@
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../IWorldWriter.hpp"
+#include <algorithm>
+#include <limits>
 
 namespace mc {
 namespace world {
@@ -62,10 +64,39 @@ bool VillageStructure::canGenerate(
     i32 chunkX,
     i32 chunkZ)
 {
-    // 基本检查
-    // TODO: 检查生物群系是否合适
-    // TODO: 检查是否有足够的空间
-    return true;
+    (void)world;
+    (void)rng;
+
+    const i32 centerX = chunkX * 16 + 8;
+    const i32 centerZ = chunkZ * 16 + 8;
+
+    // 检查生物群系
+    const BiomeId biomeId = generator.getBiome(centerX, 64, centerZ);
+    if (!isValidBiome(biomeId)) {
+        return false;
+    }
+
+    // 检查地形是否具备建造空间：中心与四角高差不能过大
+    constexpr i32 SAMPLE_OFFSETS[5][2] = {
+        {0, 0}, {-8, -8}, {-8, 8}, {8, -8}, {8, 8}
+    };
+
+    i32 minHeight = std::numeric_limits<i32>::max();
+    i32 maxHeight = std::numeric_limits<i32>::min();
+
+    for (const auto& offset : SAMPLE_OFFSETS) {
+        const i32 sampleX = centerX + offset[0];
+        const i32 sampleZ = centerZ + offset[1];
+        const i32 h = generator.getHeight(sampleX, sampleZ, HeightmapType::WorldSurfaceWG);
+        minHeight = std::min(minHeight, h);
+        maxHeight = std::max(maxHeight, h);
+    }
+
+    if (minHeight < 50) {
+        return false;
+    }
+
+    return (maxHeight - minHeight) <= 12;
 }
 
 std::unique_ptr<StructureStart> VillageStructure::generate(

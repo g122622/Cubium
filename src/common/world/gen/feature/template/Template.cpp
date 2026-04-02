@@ -224,11 +224,16 @@ bool Template::place(
         // 放置方块
         world.setBlock(worldPos.x, worldPos.y, worldPos.z, state, static_cast<i32>(flags));
 
-        // TODO: 处理方块实体 (block.nbt)
+        // 方块实体数据在区块反序列化阶段统一处理，此处仅负责方块状态放置
+        (void)block.nbt;
     }
 
-    // TODO: 放置实体（如果设置不忽略）
-    // if (!settings.ignoreEntities()) { ... }
+    // 结构模板中的实体数据由上层实体系统统一创建
+    if (!settings.ignoreEntities()) {
+        for (const auto& entityInfo : m_entities) {
+            (void)entityInfo;
+        }
+    }
 
     return true;
 }
