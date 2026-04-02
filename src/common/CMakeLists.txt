@@ -61,6 +61,7 @@ add_library(mc_common STATIC
     entity/effect/EffectType.cpp
     entity/effect/EffectInstance.cpp
     entity/effect/EffectManager.cpp
+    entity/effect/EffectAttributeModifiers.cpp
     # Entity - Player
     entity/entities/player/Player.cpp
     entity/entities/player/PlayerManager.cpp
