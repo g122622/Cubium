@@ -260,6 +260,26 @@ private:
         const ChunkData* neighborChunks[6]
     );
 
+    // 检查外观是否为交叉平面模型（草/花/甘蔗等）
+    [[nodiscard]] static bool isCrossLikeAppearance(const BlockAppearance* appearance);
+
+    // 生成交叉平面模型网格（双面）
+    static void addCrossedPlantGeometry(
+        MeshData& mesh,
+        f64 x,
+        f64 y,
+        f64 z,
+        const ChunkData& chunk,
+        i32 blockX,
+        i32 blockY,
+        i32 blockZ,
+        u8 skyLight,
+        u8 blockLight,
+        const BlockState* block,
+        const BlockAppearance* appearance,
+        const ChunkData* neighborChunks[6]
+    );
+
     [[nodiscard]] static u32 resolveTintColor(
         const ChunkData& chunk,
         i32 blockX,

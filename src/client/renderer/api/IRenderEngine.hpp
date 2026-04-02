@@ -27,6 +27,8 @@ struct RenderEngineConfig {
     String appName = "Trident";
     bool enableValidation = true;    // 启用验证层
     bool enableVSync = true;         // 垂直同步
+    bool enableAntiAliasing = true;  // 抗锯齿开关
+    u32 msaaSamples = 4;             // MSAA 采样数（当前用于配置与日志）
     u32 maxFramesInFlight = 2;       // 最大帧在飞数
     u32 initialWindowWidth = 1280;   // 初始窗口宽度
     u32 initialWindowHeight = 720;   // 初始窗口高度

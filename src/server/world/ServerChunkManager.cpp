@@ -969,7 +969,7 @@ void ServerChunkManager::checkChunkUnloading()
             m_chunkUnloadedCallback(chunkId.x, chunkId.z);
         }
 
-        spdlog::info("[ServerChunkManager] Unloading chunk: ({}, {})", chunkId.x, chunkId.z);
+        // spdlog::info("[ServerChunkManager] Unloading chunk: ({}, {})", chunkId.x, chunkId.z);
         MC_TRACE_INSTANT("server.chunk", "UnloadChunk", "x", chunkId.x, "z", chunkId.z);
         unloadChunk(chunkId.x, chunkId.z);
     }

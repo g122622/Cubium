@@ -177,6 +177,8 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
     m_frameContext = api::FrameContext{};
 
     m_initialized = true;
+    spdlog::info("Renderer AA config: enabled={}, samples={}",
+                 config.enableAntiAliasing, config.msaaSamples);
     spdlog::info("TridentEngine initialized successfully");
     return {};
 }

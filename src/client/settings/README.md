@@ -50,6 +50,7 @@ graph TB
     V --> V7[screenShakeScale<br/>屏幕抖动强度]
     V --> V8[fogDensity<br/>雾效果密度]
     V --> V9[ambientOcclusion<br/>环境光遮蔽]
+    V --> V10[antiAliasing<br/>抗锯齿开关]
 
     A --> A1[masterVolume<br/>主音量]
     A --> A2[musicVolume<br/>音乐音量]

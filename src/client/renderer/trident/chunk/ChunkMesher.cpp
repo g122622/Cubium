@@ -985,6 +985,157 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     }
 }
 
+bool ChunkMesher::isCrossLikeAppearance(const BlockAppearance* appearance) {
+    if (appearance == nullptr || appearance->elements.size() != 2) {
+        return false;
+    }
+
+    // 交叉模型通常只有水平四个方向面（无上下）
+    bool hasHorizontalFace = false;
+    for (const auto& element : appearance->elements) {
+        for (const auto& [dir, face] : element.faces) {
+            (void)face;
+            if (dir == Direction::Up || dir == Direction::Down) {
+                return false;
+            }
+            if (dir == Direction::North || dir == Direction::South || dir == Direction::West || dir == Direction::East) {
+                hasHorizontalFace = true;
+            }
+        }
+    }
+
+    return hasHorizontalFace;
+}
+
+void ChunkMesher::addCrossedPlantGeometry(
+    MeshData& mesh,
+    f64 x,
+    f64 y,
+    f64 z,
+    const ChunkData& chunk,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
+    u8 skyLight,
+    u8 blockLight,
+    const BlockState* block,
+    const BlockAppearance* appearance,
+    const ChunkData* neighborChunks[6]
+) {
+    if (appearance == nullptr || block == nullptr) {
+        return;
+    }
+
+    auto layerA = collectFaceLayers(appearance, "north");
+    if (layerA.empty()) {
+        layerA = collectFaceLayers(appearance, "south");
+    }
+    if (layerA.empty()) {
+        layerA = collectFaceLayers(appearance, "all");
+    }
+
+    auto layerB = collectFaceLayers(appearance, "west");
+    if (layerB.empty()) {
+        layerB = collectFaceLayers(appearance, "east");
+    }
+    if (layerB.empty()) {
+        layerB = layerA;
+    }
+
+    if (layerA.empty() || layerB.empty()) {
+        return;
+    }
+
+    std::array<const ChunkData*, 4> biomeNeighbors = {};
+    if (neighborChunks) {
+        biomeNeighbors[0] = neighborChunks[0];
+        biomeNeighbors[1] = neighborChunks[1];
+        biomeNeighbors[2] = neighborChunks[2];
+        biomeNeighbors[3] = neighborChunks[3];
+    }
+
+    client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
+    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
+    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+    const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
+
+    constexpr f64 INV_SQRT2 = 0.7071067811865476;
+    auto emitDoubleSidedQuad = [&](const std::array<std::array<f64, 3>, 4>& positions,
+                                   const std::array<f64, 3>& frontNormal,
+                                   const FaceLayerRenderData& layer,
+                                   u32 color,
+                                   f64 layerOffset) {
+        const f64 uvs[4][2] = {
+            { layer.texture.u0, layer.texture.v1 },
+            { layer.texture.u1, layer.texture.v1 },
+            { layer.texture.u1, layer.texture.v0 },
+            { layer.texture.u0, layer.texture.v0 }
+        };
+
+        auto pushFace = [&](bool reverse, const std::array<f64, 3>& normal) {
+            std::array<Vertex, 4> verts;
+            for (size_t i = 0; i < 4; ++i) {
+                const size_t src = reverse ? (3 - i) : i;
+                verts[i] = Vertex(
+                    positions[src][0] + normal[0] * layerOffset,
+                    positions[src][1] + normal[1] * layerOffset,
+                    positions[src][2] + normal[2] * layerOffset,
+                    normal[0], normal[1], normal[2],
+                    uvs[i][0], uvs[i][1],
+                    color,
+                    packedLight
+                );
+            }
+
+            const u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+            for (const auto& v : verts) {
+                mesh.vertices.push_back(v);
+            }
+
+            const auto indices = BlockGeometry::getFaceIndices();
+            for (u32 idx : indices) {
+                mesh.indices.push_back(baseIndex + idx);
+            }
+        };
+
+        pushFace(false, frontNormal);
+        pushFace(true, {-frontNormal[0], -frontNormal[1], -frontNormal[2]});
+    };
+
+    const std::array<std::array<f64, 3>, 4> diagA = {{
+        {x + 0.0f, y + 0.0f, z + 0.0f},
+        {x + 1.0f, y + 0.0f, z + 1.0f},
+        {x + 1.0f, y + 1.0f, z + 1.0f},
+        {x + 0.0f, y + 1.0f, z + 0.0f}
+    }};
+    const std::array<std::array<f64, 3>, 4> diagB = {{
+        {x + 1.0f, y + 0.0f, z + 0.0f},
+        {x + 0.0f, y + 0.0f, z + 1.0f},
+        {x + 0.0f, y + 1.0f, z + 1.0f},
+        {x + 1.0f, y + 1.0f, z + 0.0f}
+    }};
+
+    for (size_t i = 0; i < layerA.size(); ++i) {
+        const auto& layer = layerA[i];
+        const u32 tintColor = resolveTintColorBlended(
+            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
+        );
+        const u32 color = applyBlockAlpha(tintColor, block);
+        const f64 layerOffset = static_cast<f64>(i) * 0.001f;
+        emitDoubleSidedQuad(diagA, {INV_SQRT2, 0.0f, -INV_SQRT2}, layer, color, layerOffset);
+    }
+
+    for (size_t i = 0; i < layerB.size(); ++i) {
+        const auto& layer = layerB[i];
+        const u32 tintColor = resolveTintColorBlended(
+            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
+        );
+        const u32 color = applyBlockAlpha(tintColor, block);
+        const f64 layerOffset = static_cast<f64>(i) * 0.001f;
+        emitDoubleSidedQuad(diagB, {-INV_SQRT2, 0.0f, -INV_SQRT2}, layer, color, layerOffset);
+    }
+}
+
 void ChunkMesher::simpleMeshSection(
     const ChunkData& chunk,
     i32 sectionIndex,
@@ -1028,6 +1179,32 @@ void ChunkMesher::simpleMeshSection(
 
                 // 检查外观是否有效
                 if (appearance->elements.empty() && appearance->faceTextures.empty() && !block->isLiquid()) {
+                    continue;
+                }
+
+                if (isCrossLikeAppearance(appearance)) {
+                    u8 skyLight = 15;
+                    u8 blockLight = 0;
+                    if (s_lightingEnabled) {
+                        skyLight = sampleSkyLight(chunk, x, baseY + y, z, neighborChunks);
+                        blockLight = sampleBlockLight(chunk, x, baseY + y, z, neighborChunks);
+                    }
+
+                    addCrossedPlantGeometry(
+                        outMesh,
+                        static_cast<f64>(x),
+                        static_cast<f64>(baseY + y),
+                        static_cast<f64>(z),
+                        chunk,
+                        x,
+                        baseY + y,
+                        z,
+                        skyLight,
+                        blockLight,
+                        block,
+                        appearance,
+                        neighborChunks
+                    );
                     continue;
                 }
 
@@ -1295,6 +1472,10 @@ void ChunkMesher::greedyMeshSection(
         }
 
         if (appearance->elements.empty() && appearance->faceTextures.empty() && !block->isLiquid()) {
+            return cell;
+        }
+
+        if (isCrossLikeAppearance(appearance)) {
             return cell;
         }
 

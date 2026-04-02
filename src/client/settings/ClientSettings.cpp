@@ -34,6 +34,7 @@ ClientSettings::ClientSettings()
                        static_cast<u8>(AmbientOcclusionMode::Max),
                        {"off", "min", "max"})
     , biomeBlendRadius("biomeBlendRadius", 0, 7, 2)  // MC 默认 2 (5x5 混合区域)
+    , antiAliasing("antiAliasing", true)
 
     // 音频设置
     , masterVolume("masterVolume", 0.0f, 1.0f, 1.0f)
@@ -87,6 +88,7 @@ ClientSettings::ClientSettings()
     registerOption("video", &fogDensity);
     registerOption("video", &ambientOcclusion);
     registerOption("video", &biomeBlendRadius);
+    registerOption("video", &antiAliasing);
 
     // 注册音频设置
     registerOption("audio", &masterVolume);

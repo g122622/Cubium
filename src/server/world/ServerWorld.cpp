@@ -7,6 +7,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/chunk/IChunk.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
@@ -822,7 +823,20 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
         return;
     }
 
-    // TODO: 从 WorldLightManager 读取数据并写入 ChunkSection
+    SWMRNibbleArray* lightData = m_lightManager->getData(type, pos);
+    if (!lightData) {
+        return;
+    }
+
+    std::vector<u8> data = lightData->toByteArray();
+    if (data.size() != NibbleArray::BYTE_SIZE) {
+        return;
+    }
+
+    NibbleArray& targetArray = (type == LightType::SKY)
+        ? section->skyLightNibble()
+        : section->blockLightNibble();
+    targetArray.data() = std::move(data);
 }
 
 } // namespace mc::server
