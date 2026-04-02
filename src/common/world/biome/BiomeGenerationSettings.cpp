@@ -239,7 +239,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createMountains() {
 }
 
 BiomeGenerationSettings BiomeGenerationSettings::createOcean() {
-    // 海洋：只有矿石，没有植被
+    // 海洋：矿石 + 海带 + 海草
     BiomeGenerationSettings settings;
 
     // 添加矿石（不包含绿宝石，因为绿宝石只在山地生成）
@@ -250,6 +250,127 @@ BiomeGenerationSettings BiomeGenerationSettings::createOcean() {
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    // 添加海带
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+
+    // 添加海草
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createDeepOcean() {
+    // 深海：矿石 + 海带 + 海草（更多海带）
+    BiomeGenerationSettings settings;
+
+    // 添加矿石
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    // 深海有更多的海带
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+
+    // 添加海草
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createWarmOcean() {
+    // 暖水海洋：矿石 + 珊瑚 + 海泡菜
+    BiomeGenerationSettings settings;
+
+    // 添加矿石
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    // 暖水海洋有珊瑚
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Tube);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Brain);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Bubble);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Fire);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Horn);
+
+    // 海泡菜
+    settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
+
+    // 少量海草
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createLukewarmOcean() {
+    // 温水海洋：矿石 + 海带 + 海草
+    BiomeGenerationSettings settings;
+
+    // 添加矿石
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    // 海带
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+
+    // 海草
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createColdOcean() {
+    // 冷水海洋：矿石 + 海带 + 海草
+    BiomeGenerationSettings settings;
+
+    // 添加矿石
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    // 海带
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+
+    // 海草
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createFrozenOcean() {
+    // 冻洋：矿石 + 少量海带
+    BiomeGenerationSettings settings;
+
+    // 添加矿石
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    // 冻洋只有少量海带（寒冷环境）
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
 
     return settings;
 }

@@ -2,6 +2,10 @@
 #include "ore/OreFeature.hpp"
 #include "tree/TreeFeature.hpp"
 #include "vegetation/VegetationFeatures.hpp"
+#include "ocean/KelpFeature.hpp"
+#include "ocean/SeagrassFeature.hpp"
+#include "ocean/SeaPickleFeature.hpp"
+#include "ocean/CoralFeature.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../biome/Biome.hpp"
@@ -96,6 +100,43 @@ void FeatureRegistry::initialize() {
     for (auto& feature : iceSpikeFeatures) {
         if (feature) {
             registerFeature(std::move(feature), DecorationStage::SurfaceStructures);
+        }
+    }
+
+    // 注册海洋特征（VEGETAL_DECORATION 阶段）
+    // 海带
+    KelpFeatures::initialize();
+    auto kelpFeatures = KelpFeatures::getAllFeaturesAndClear();
+    for (auto& feature : kelpFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 海草
+    SeagrassFeatures::initialize();
+    auto seagrassFeatures = SeagrassFeatures::getAllFeaturesAndClear();
+    for (auto& feature : seagrassFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 海泡菜
+    SeaPickleFeatures::initialize();
+    auto seaPickleFeatures = SeaPickleFeatures::getAllFeaturesAndClear();
+    for (auto& feature : seaPickleFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 珊瑚
+    CoralFeatures::initialize();
+    auto coralFeatures = CoralFeatures::getAllFeaturesAndClear();
+    for (auto& feature : coralFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
         }
     }
 

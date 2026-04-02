@@ -268,6 +268,15 @@ public:
     static Item* SUGAR_CANE;
     static Item* SUGAR;
 
+    // ========================================================================
+    // 水域更新材料
+    // ========================================================================
+    static Item* SCUTE;                  // 鳞甲 - 海龟掉落
+    static Item* HEART_OF_THE_SEA;       // 海洋之心 - 宝藏物品
+    static Item* NAUTILUS_SHELL;         // 鹦鹉螺壳 - 溺尸掉落/钓鱼
+    static Item* PHANTOM_MEMBRANE;       // 幻翼膜 - 幻翼掉落
+    static Item* DRIED_KELP;             // 干海带 - 食物
+
 private:
     static bool s_initialized;
 
@@ -279,6 +288,7 @@ private:
     static void registerDyes();
     static void registerSeeds();
     static void registerCrops();
+    static void registerAquaticMaterials();
 };
 
 } // namespace mc

@@ -174,9 +174,13 @@ TEST_F(BiomeGenerationSettingsTest, CreateOcean) {
 
     EXPECT_TRUE(settings.hasFeatures());
 
-    // 海洋只有矿石，没有植被
+    // 海洋现在有海带和海草
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
-    EXPECT_TRUE(vegetal.empty());
+    EXPECT_GE(vegetal.size(), 2u);  // 至少有海带和海草
+
+    // 海洋也有矿石
+    const auto& ores = settings.getFeatures(DecorationStage::UndergroundOres);
+    EXPECT_GE(ores.size(), 7u);  // 基础矿石
 }
 
 // ============================================================================

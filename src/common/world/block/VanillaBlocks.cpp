@@ -10,6 +10,8 @@
 #include "blocks/building/WallBlock.hpp"
 #include "blocks/building/FenceBlock.hpp"
 #include "blocks/building/TrapDoorBlock.hpp"
+#include "blocks/ice/IceBlock.hpp"
+#include "blocks/ocean/DriedKelpBlock.hpp"
 #include "blocks/redstone/RedstoneWireBlock.hpp"
 #include "blocks/redstone/RedstoneTorchBlock.hpp"
 #include "blocks/redstone/RedstoneWallTorchBlock.hpp"
@@ -284,6 +286,8 @@ Block* VanillaBlocks::CLAY = nullptr;
 Block* VanillaBlocks::MYCELIUM = nullptr;
 Block* VanillaBlocks::GRASS_PATH = nullptr;
 Block* VanillaBlocks::PACKED_ICE = nullptr;
+Block* VanillaBlocks::BLUE_ICE = nullptr;
+Block* VanillaBlocks::FROSTED_ICE = nullptr;
 Block* VanillaBlocks::SLIME_BLOCK = nullptr;
 Block* VanillaBlocks::CACTUS = nullptr;
 Block* VanillaBlocks::DEAD_BUSH = nullptr;
@@ -293,6 +297,8 @@ Block* VanillaBlocks::COBWEB = nullptr;
 Block* VanillaBlocks::SUGAR_CANE = nullptr;
 Block* VanillaBlocks::FARMLAND = nullptr;
 Block* VanillaBlocks::RED_SAND = nullptr;
+Block* VanillaBlocks::DRIED_KELP_BLOCK = nullptr;
+Block* VanillaBlocks::CONDUIT = nullptr;
 Block* VanillaBlocks::CRIMSON_STEM = nullptr;
 Block* VanillaBlocks::WARPED_STEM = nullptr;
 Block* VanillaBlocks::CRIMSON_NYLIUM = nullptr;
@@ -572,9 +578,9 @@ void VanillaBlocks::registerBaseBlocks() {
         BlockProperties(Material::SNOW).hardness(0.2f).opacity(1)
     );
 
-    // 冰 - ID 19
-    // 冰：透明度2，传播天空光
-    ICE = &registry.registerBlock<SimpleBlock>(
+    // 冰 - ID 79
+    // 冰：透明度2，传播天空光，会融化
+    ICE = &registry.registerBlock<blocks::IceBlock>(
         ResourceLocation("minecraft:ice"),
         BlockProperties(Material::ICE).hardness(0.5f).notSolid().opacity(2).propagatesSkylightDown()
     );
@@ -1698,12 +1704,26 @@ void VanillaBlocks::registerNaturalBlocks() {
         ResourceLocation("minecraft:grass_path"),
         BlockProperties(Material::EARTH).hardness(0.65f));
 
-    // 浮冰
+    // 浮冰 - ID 174
     // 参考: new Block(Properties.create(Material.ICE).hardnessAndResistance(0.5F))
-    // 浮冰：透明度2，传播天空光
-    PACKED_ICE = &registry.registerBlock<SimpleBlock>(
+    // 浮冰：不透明，不融化
+    PACKED_ICE = &registry.registerBlock<blocks::PackedIceBlock>(
         ResourceLocation("minecraft:packed_ice"),
         BlockProperties(Material::ICE).hardness(0.5f).opacity(2).propagatesSkylightDown());
+
+    // 蓝冰 - ID 266
+    // 参考: new Block(Properties.create(Material.ICE).hardnessAndResistance(2.8F))
+    // 蓝冰：最滑的方块，摩擦力0.989
+    BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(
+        ResourceLocation("minecraft:blue_ice"),
+        BlockProperties(Material::ICE).hardness(2.8f).resistance(2.8f));
+
+    // 霜冰 - ID 212
+    // 由冰霜行者附魔生成的临时冰
+    // 霜冰：透明，会在光源附近融化
+    FROSTED_ICE = &registry.registerBlock<blocks::FrostedIceBlock>(
+        ResourceLocation("minecraft:frosted_ice"),
+        BlockProperties(Material::ICE).hardness(0.5f).notSolid().opacity(2).propagatesSkylightDown());
 
     // 粘液块
     // 参考: new Block(Properties.create(Material.SLIME).hardnessAndResistance(0.0F).slipperiness(0.8F))
@@ -1756,6 +1776,20 @@ void VanillaBlocks::registerNaturalBlocks() {
     RED_SAND = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:red_sand"),
         BlockProperties(Material::SAND).hardness(0.5f));
+
+    // 干海带块 - ID 171
+    // 可以作为燃料使用，燃烧时间200tick（10秒）
+    // 参考: new Block(Properties.create(Material.PLANT).hardnessAndResistance(0.5F))
+    DRIED_KELP_BLOCK = &registry.registerBlock<blocks::DriedKelpBlock>(
+        ResourceLocation("minecraft:dried_kelp_block"),
+        BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f));
+
+    // 潮涌核心 - ID 545
+    // 水下信标类方块，需要潮涌框架激活
+    // 参考: new ConduitBlock(Properties.create(Material.GLASS).hardnessAndResistance(3.0F).notSolid())
+    CONDUIT = &registry.registerBlock<blocks::ConduitBlock>(
+        ResourceLocation("minecraft:conduit"),
+        BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid());
 }
 
 // ============================================================================

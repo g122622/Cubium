@@ -123,6 +123,45 @@ namespace IceSpikeFeatureIds {
 }
 
 // ============================================================================
+// OceanFeatures 阶段特征ID (VegetalDecoration阶段)
+// ============================================================================
+
+namespace KelpFeatureIds {
+    // 海带特征 (0)
+    constexpr u32 Normal = 0;  // 普通海带
+    constexpr u32 Count = 1;    // 海带特征总数
+}
+
+namespace SeagrassFeatureIds {
+    // 海草特征 (1-2)
+    // 基础偏移量 = KelpFeatureIds::Count = 1
+    constexpr u32 Offset = KelpFeatureIds::Count;
+    constexpr u32 Simple = 0 + Offset;  // 普通海草
+    constexpr u32 Mixed = 1 + Offset;   // 混合海草（含高海草）
+    constexpr u32 Count = 2;             // 海草特征总数
+}
+
+namespace SeaPickleFeatureIds {
+    // 海泡菜特征 (3)
+    // 基础偏移量 = KelpFeatureIds::Count + SeagrassFeatureIds::Count = 3
+    constexpr u32 Offset = KelpFeatureIds::Count + SeagrassFeatureIds::Count;
+    constexpr u32 Normal = 0 + Offset;  // 普通海泡菜
+    constexpr u32 Count = 1;             // 海泡菜特征总数
+}
+
+namespace CoralFeatureIds {
+    // 珊瑚特征 (4-8)
+    // 基础偏移量 = KelpFeatureIds::Count + SeagrassFeatureIds::Count + SeaPickleFeatureIds::Count = 4
+    constexpr u32 Offset = KelpFeatureIds::Count + SeagrassFeatureIds::Count + SeaPickleFeatureIds::Count;
+    constexpr u32 Tube = 0 + Offset;    // 管状珊瑚
+    constexpr u32 Brain = 1 + Offset;   // 脑珊瑚
+    constexpr u32 Bubble = 2 + Offset;  // 气泡珊瑚
+    constexpr u32 Fire = 3 + Offset;    // 火焰珊瑚
+    constexpr u32 Horn = 4 + Offset;    // 角珊瑚
+    constexpr u32 Count = 5;             // 珊瑚特征总数
+}
+
+// ============================================================================
 // 便捷组合常量
 // ============================================================================
 
@@ -135,6 +174,19 @@ namespace VegetationIds {
         MushroomFeatureIds::Count +
         CactusFeatureIds::Count +
         SugarCaneFeatureIds::Count;
+}
+
+// ============================================================================
+// 海洋特征总数
+// ============================================================================
+
+namespace OceanFeatureIds {
+    /// 所有海洋特征总数（用于VegetalDecoration阶段）
+    constexpr u32 TotalOceanFeatures =
+        KelpFeatureIds::Count +
+        SeagrassFeatureIds::Count +
+        SeaPickleFeatureIds::Count +
+        CoralFeatureIds::Count;
 }
 
 } // namespace mc

@@ -115,6 +115,40 @@ public:
      */
     static BiomeGenerationSettings createOcean();
 
+    /**
+     * @brief 创建深海生物群系的生成设置
+     * @return 深海设置
+     */
+    static BiomeGenerationSettings createDeepOcean();
+
+    /**
+     * @brief 创建暖水海洋生物群系的生成设置
+     * 包含珊瑚和海泡菜
+     * @return 暖水海洋设置
+     */
+    static BiomeGenerationSettings createWarmOcean();
+
+    /**
+     * @brief 创建温水海洋生物群系的生成设置
+     * 包含海带和海草
+     * @return 温水海洋设置
+     */
+    static BiomeGenerationSettings createLukewarmOcean();
+
+    /**
+     * @brief 创建冷水海洋生物群系的生成设置
+     * 包含海带和海草
+     * @return 冷水海洋设置
+     */
+    static BiomeGenerationSettings createColdOcean();
+
+    /**
+     * @brief 创建冻洋生物群系的生成设置
+     * 包含少量海带
+     * @return 冻洋设置
+     */
+    static BiomeGenerationSettings createFrozenOcean();
+
     // ========================================================================
     // 下界生物群系生成设置
     // ========================================================================

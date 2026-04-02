@@ -233,6 +233,13 @@ Item* Items::BEETROOT = nullptr;
 Item* Items::SUGAR_CANE = nullptr;
 Item* Items::SUGAR = nullptr;
 
+// 水域更新材料
+Item* Items::SCUTE = nullptr;
+Item* Items::HEART_OF_THE_SEA = nullptr;
+Item* Items::NAUTILUS_SHELL = nullptr;
+Item* Items::PHANTOM_MEMBRANE = nullptr;
+Item* Items::DRIED_KELP = nullptr;
+
 // ============================================================================
 // 初始化
 // ============================================================================
@@ -262,6 +269,7 @@ void Items::initialize() {
     registerDyes();
     registerSeeds();
     registerCrops();
+    registerAquaticMaterials();
 
     s_initialized = true;
 }
@@ -1078,6 +1086,45 @@ void Items::registerCrops() {
 
     SUGAR = &registry.registerItem(
         ResourceLocation("minecraft:sugar"),
+        ItemProperties().maxStackSize(64)
+    );
+}
+
+void Items::registerAquaticMaterials() {
+    auto& registry = ItemRegistry::instance();
+
+    // 鳞甲 - 海龟掉落，用于合成海龟壳
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    SCUTE = &registry.registerItem(
+        ResourceLocation("minecraft:scute"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 海洋之心 - 宝藏物品，用于合成潮涌核心
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS).rarity(Rarity.UNCOMMON))
+    HEART_OF_THE_SEA = &registry.registerItem(
+        ResourceLocation("minecraft:heart_of_the_sea"),
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon)
+    );
+
+    // 鹦鹉螺壳 - 溺尸掉落或钓鱼获得，用于合成潮涌核心
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    NAUTILUS_SHELL = &registry.registerItem(
+        ResourceLocation("minecraft:nautilus_shell"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 幻翼膜 - 幻翼掉落，用于修复鞘翅和酿造缓降药水
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    PHANTOM_MEMBRANE = &registry.registerItem(
+        ResourceLocation("minecraft:phantom_membrane"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 干海带 - 食物，快速食用（32tick）
+    // 参考: new Item(new Item.Properties().group(ItemGroup.FOOD).food(Food.Builder().hunger(1).saturation(0.1F).fast().build()))
+    DRIED_KELP = &registry.registerItem(
+        ResourceLocation("minecraft:dried_kelp"),
         ItemProperties().maxStackSize(64)
     );
 }

@@ -433,6 +433,8 @@ public:
     static Block* MYCELIUM;           // 菌丝
     static Block* GRASS_PATH;         // 草径
     static Block* PACKED_ICE;         // 浮冰
+    static Block* BLUE_ICE;           // 蓝冰
+    static Block* FROSTED_ICE;        // 霜冰
     static Block* SLIME_BLOCK;        // 粘液块
     static Block* CACTUS;             // 仙人掌
     static Block* DEAD_BUSH;          // 枯萎灌木
@@ -442,6 +444,8 @@ public:
     static Block* SUGAR_CANE;         // 甘蔗
     static Block* FARMLAND;           // 耕地
     static Block* RED_SAND;           // 红沙
+    static Block* DRIED_KELP_BLOCK;   // 干海带块
+    static Block* CONDUIT;            // 潮涌核心
 
     // ========================================================================
     // 下界扩展植物方块

@@ -152,7 +152,9 @@ TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
     EXPECT_EQ(oreFeatures.size(), OreFeatureIds::Count);
 
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
-    EXPECT_EQ(vegetalFeatures.size(), VegetationIds::TotalVegetalFeatures);
+    // 现在包含海洋特征: 原有33个 + 海带1 + 海草2 + 海泡菜1 + 珊瑚5 = 42
+    const u32 expectedVegetalCount = VegetationIds::TotalVegetalFeatures + OceanFeatureIds::TotalOceanFeatures;
+    EXPECT_EQ(vegetalFeatures.size(), expectedVegetalCount);
 
     const auto& surfaceFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::SurfaceStructures);
     EXPECT_EQ(surfaceFeatures.size(), IceSpikeFeatureIds::Count);
@@ -471,9 +473,19 @@ TEST_F(VegetationFeatureTest, OceanBiomeSettings) {
 
     EXPECT_FALSE(hasEmeraldOre);
 
-    // 海洋不应该有植被
+    // 海洋现在有海带和海草
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
-    EXPECT_TRUE(vegetal.empty());
+    EXPECT_GE(vegetal.size(), 2u);  // 至少有海带和海草
+
+    // 检查是否有海带
+    bool hasKelp = false;
+    for (u32 id : vegetal) {
+        if (id == KelpFeatureIds::Normal) {
+            hasKelp = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasKelp);
 }
 
 TEST_F(VegetationFeatureTest, TaigaBiomeSettings) {

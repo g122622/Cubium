@@ -396,8 +396,12 @@ add_library(mc_common STATIC
     # World - Block - Coral
     world/block/blocks/coral/CoralBlock.cpp
 
+    # World - Block - Ice
+    world/block/blocks/ice/IceBlock.cpp
+
     # World - Block - Ocean
     world/block/blocks/ocean/SeaPickleBlock.cpp
+    world/block/blocks/ocean/DriedKelpBlock.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp
@@ -561,6 +565,12 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/CactusFeature.cpp
     world/gen/feature/vegetation/SugarCaneFeature.cpp
     world/gen/feature/vegetation/IceSpikeFeature.cpp
+
+    # World - Generation - Feature - Ocean
+    world/gen/feature/ocean/KelpFeature.cpp
+    world/gen/feature/ocean/SeagrassFeature.cpp
+    world/gen/feature/ocean/SeaPickleFeature.cpp
+    world/gen/feature/ocean/CoralFeature.cpp
 
     # World - Generation - Feature - Spike
     world/gen/feature/spike/EndSpikeFeature.cpp
