@@ -23,7 +23,7 @@ class LivingEntity;
 class Entity;
 class BlockRaycastResult;
 struct Vec3;
-struct BlockPos;
+class BlockPos;
 
 // Forward declaration for Direction enum (defined in util/Direction.hpp)
 // Note: We cannot forward declare an enum class across namespaces,

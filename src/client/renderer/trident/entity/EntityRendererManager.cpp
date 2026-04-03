@@ -145,6 +145,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
     };
+    const f32 partialTickF32 = static_cast<f32>(partialTicks);
 
     if (isItemEntity) {
         // ItemEntity 特殊渲染：应用浮动和旋转动画
@@ -155,7 +156,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         modelMatrix[5] = -1.0f;
 
         // 应用 Y 轴旋转（物品自转）
-        f64 rotRad = math::toRadians(rotation);
+        f64 rotRad = rotation * static_cast<f64>(math::DEG_TO_RAD);
         f64 cosRot = std::cos(rotRad);
         f64 sinRot = std::sin(rotRad);
         modelMatrix[0] = cosRot;
@@ -164,8 +165,11 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         modelMatrix[10] = cosRot;
 
         // 获取插值位置并应用浮动偏移
-        Vector3 posInterp = entity.getInterpolatedPosition(partialTicks);
-        Vector3f pos(posInterp.x, posInterp.y + bobOffset, posInterp.z);
+        Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
+        Vector3f pos(
+            static_cast<f32>(posInterp.x),
+            static_cast<f32>(posInterp.y + bobOffset),
+            static_cast<f32>(posInterp.z));
 
         // 绘制网格（使用更大的缩放）
         m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f);
@@ -185,8 +189,11 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         f64 scale = MODEL_SCALE * (16.0f + static_cast<f64>(orbSize) * 0.5f);
 
         // 获取插值位置并应用浮动偏移
-        Vector3 posInterp = entity.getInterpolatedPosition(partialTicks);
-        Vector3f pos(posInterp.x, posInterp.y + bobOffset, posInterp.z);
+        Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
+        Vector3f pos(
+            static_cast<f32>(posInterp.x),
+            static_cast<f32>(posInterp.y + bobOffset),
+            static_cast<f32>(posInterp.z));
 
         // 绘制网格
         m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale);
@@ -198,8 +205,8 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         modelMatrix[7] = MODEL_Y_OFFSET;
 
         // 应用实体旋转（yaw）
-        f64 yaw = entity.getInterpolatedYaw(partialTicks);
-        f64 yawRad = math::toRadians(yaw);
+        f64 yaw = static_cast<f64>(entity.getInterpolatedYaw(partialTickF32));
+        f64 yawRad = yaw * static_cast<f64>(math::DEG_TO_RAD);
         f64 cosYaw = std::cos(yawRad);
         f64 sinYaw = std::sin(yawRad);
 
@@ -210,8 +217,11 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         modelMatrix[10] = cosYaw;
 
         // 获取插值位置
-        Vector3 posInterp = entity.getInterpolatedPosition(partialTicks);
-        Vector3f pos(posInterp.x, posInterp.y, posInterp.z);
+        Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
+        Vector3f pos(
+            static_cast<f32>(posInterp.x),
+            static_cast<f32>(posInterp.y),
+            static_cast<f32>(posInterp.z));
 
         // 绘制网格
         m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE);
@@ -536,8 +546,10 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
     const f64 dv = region->v1 - region->v0;
 
     for (auto& vertex : vertices) {
-        vertex.texCoord.x = region->u0 + vertex.texCoord.x * du;
-        vertex.texCoord.y = region->v0 + vertex.texCoord.y * dv;
+        const f64 remappedU = region->u0 + static_cast<f64>(vertex.texCoord.x) * du;
+        const f64 remappedV = region->v0 + static_cast<f64>(vertex.texCoord.y) * dv;
+        vertex.texCoord.x = static_cast<f32>(remappedU);
+        vertex.texCoord.y = static_cast<f32>(remappedV);
     }
 }
 
@@ -565,8 +577,10 @@ void EntityRendererManager::remapUvToAtlasRegion(const String& normalizedTypeId,
     const f64 dv = region->v1 - region->v0;
 
     for (auto& vertex : vertices) {
-        vertex.texCoord.x = region->u0 + vertex.texCoord.x * du;
-        vertex.texCoord.y = region->v0 + vertex.texCoord.y * dv;
+        const f64 remappedU = region->u0 + static_cast<f64>(vertex.texCoord.x) * du;
+        const f64 remappedV = region->v0 + static_cast<f64>(vertex.texCoord.y) * dv;
+        vertex.texCoord.x = static_cast<f32>(remappedU);
+        vertex.texCoord.y = static_cast<f32>(remappedV);
     }
 }
 

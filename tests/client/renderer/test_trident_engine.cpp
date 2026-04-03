@@ -709,17 +709,17 @@ TEST_F(TridentTextureAtlasTest, GetRegion) {
 
     // 获取 (0, 0) 位置的纹理区域
     auto region = atlas.getRegion(0, 0);
-    EXPECT_FLOAT_EQ(region.u0, 0.0f);
-    EXPECT_FLOAT_EQ(region.v0, 0.0f);
-    EXPECT_FLOAT_EQ(region.u1, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(region.v1, 1.0f / 16.0f);
+    EXPECT_DOUBLE_EQ(region.u0, 0.0);
+    EXPECT_DOUBLE_EQ(region.v0, 0.0);
+    EXPECT_DOUBLE_EQ(region.u1, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(region.v1, 1.0 / 16.0);
 
     // 获取 (1, 1) 位置的纹理区域
     region = atlas.getRegion(1, 1);
-    EXPECT_FLOAT_EQ(region.u0, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(region.v0, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(region.u1, 2.0f / 16.0f);
-    EXPECT_FLOAT_EQ(region.v1, 2.0f / 16.0f);
+    EXPECT_DOUBLE_EQ(region.u0, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(region.v0, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(region.u1, 2.0 / 16.0);
+    EXPECT_DOUBLE_EQ(region.v1, 2.0 / 16.0);
 
     atlas.destroy();
 }
@@ -730,18 +730,18 @@ TEST_F(TridentTextureAtlasTest, GetRegionByIndex) {
 
     // 索引 0 = (0, 0)
     auto region = atlas.getRegion(0);
-    EXPECT_FLOAT_EQ(region.u0, 0.0f);
-    EXPECT_FLOAT_EQ(region.v0, 0.0f);
+    EXPECT_DOUBLE_EQ(region.u0, 0.0);
+    EXPECT_DOUBLE_EQ(region.v0, 0.0);
 
     // 索引 1 = (1, 0)
     region = atlas.getRegion(1);
-    EXPECT_FLOAT_EQ(region.u0, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(region.v0, 0.0f);
+    EXPECT_DOUBLE_EQ(region.u0, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(region.v0, 0.0);
 
     // 索引 16 = (0, 1)
     region = atlas.getRegion(16);
-    EXPECT_FLOAT_EQ(region.u0, 0.0f);
-    EXPECT_FLOAT_EQ(region.v0, 1.0f / 16.0f);
+    EXPECT_DOUBLE_EQ(region.u0, 0.0);
+    EXPECT_DOUBLE_EQ(region.v0, 1.0 / 16.0);
 
     atlas.destroy();
 }
@@ -844,7 +844,7 @@ TEST_F(TridentPipelineConfigTest, DefaultConfiguration) {
     EXPECT_EQ(config.polygonMode, VK_POLYGON_MODE_FILL);
     EXPECT_EQ(config.cullMode, VK_CULL_MODE_BACK_BIT);
     EXPECT_EQ(config.frontFace, VK_FRONT_FACE_CLOCKWISE);
-    EXPECT_FLOAT_EQ(config.lineWidth, 1.0f);
+    EXPECT_DOUBLE_EQ(config.lineWidth, 1.0);
 }
 
 TEST_F(TridentPipelineConfigTest, DepthStencilDefaults) {

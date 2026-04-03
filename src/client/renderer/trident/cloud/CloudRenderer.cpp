@@ -109,9 +109,21 @@ Result<VkShaderModule> createShaderModule(VkDevice device, const char* path) {
  * @brief 云顶点结构
  */
 struct CloudVertex {
-    f64 x, y, z;       // 位置
-    f64 u, v;          // 纹理坐标
-    f64 nx, ny, nz;    // 法线
+    f32 x, y, z;       // 位置
+    f32 u, v;          // 纹理坐标
+    f32 nx, ny, nz;    // 法线
+
+    CloudVertex(f64 px, f64 py, f64 pz,
+                f64 tu, f64 tv,
+                f64 pnx, f64 pny, f64 pnz)
+        : x(static_cast<f32>(px))
+        , y(static_cast<f32>(py))
+        , z(static_cast<f32>(pz))
+        , u(static_cast<f32>(tu))
+        , v(static_cast<f32>(tv))
+        , nx(static_cast<f32>(pnx))
+        , ny(static_cast<f32>(pny))
+        , nz(static_cast<f32>(pnz)) {}
 };
 
 // ============================================================================
@@ -1586,12 +1598,12 @@ void CloudRenderer::updateUniformBuffer(u32 frameIndex) {
 
     CloudUBO ubo{};
     ubo.cloudColor = m_cloudColor;
-    ubo.cloudHeight = m_cloudHeight;
-    ubo.time = static_cast<f64>(m_gameTime) + m_partialTick;
-    ubo.textureScale = CLOUD_TEXTURE_SCALE;
-    ubo.cameraY = m_cameraPos.y;
-    ubo.textureOffsetX = texOffsetX;
-    ubo.textureOffsetZ = texOffsetZ;
+    ubo.cloudHeight = static_cast<f32>(m_cloudHeight);
+    ubo.time = static_cast<f32>(static_cast<f64>(m_gameTime) + m_partialTick);
+    ubo.textureScale = static_cast<f32>(CLOUD_TEXTURE_SCALE);
+    ubo.cameraY = static_cast<f32>(m_cameraPos.y);
+    ubo.textureOffsetX = static_cast<f32>(texOffsetX);
+    ubo.textureOffsetZ = static_cast<f32>(texOffsetZ);
 
     std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
 }

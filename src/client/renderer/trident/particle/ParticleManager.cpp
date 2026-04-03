@@ -38,7 +38,11 @@ std::vector<u8> generateDefaultParticleTexture(u32 width, u32 height) {
             size_t idx = (y * width + x) * 4;
             if (dist <= radius) {
                 // 白色，带圆滑边缘 alpha
-                f64 alpha = 1.0f - math::smoothstep(radius * 0.7f, radius, dist);
+                const f64 edge0 = radius * 0.7;
+                const f64 edge1 = radius;
+                const f64 t = std::clamp((dist - edge0) / (edge1 - edge0), 0.0, 1.0);
+                const f64 smooth = t * t * (3.0 - 2.0 * t);
+                f64 alpha = 1.0 - smooth;
                 data[idx + 0] = 255;  // R
                 data[idx + 1] = 255;  // G
                 data[idx + 2] = 255;  // B
@@ -843,8 +847,8 @@ Result<void> ParticleManager::createPipelines() {
     VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<f64>(m_extent.width);
-    viewport.height = static_cast<f64>(m_extent.height);
+    viewport.width = static_cast<f32>(m_extent.width);
+    viewport.height = static_cast<f32>(m_extent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -938,7 +942,7 @@ void ParticleManager::updateUniformBuffer(u32 frameIndex) {
     ubo.projection = m_projection;
     ubo.view = m_view;
     ubo.cameraPos = m_cameraPos;
-    ubo.partialTick = m_partialTick;
+    ubo.partialTick = static_cast<f32>(m_partialTick);
 
     std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
 }

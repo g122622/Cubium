@@ -52,9 +52,9 @@ enum class FogMode : i32 {
  * 线性雾用于陆地场景，指数雾用于水下和岩浆环境。
  */
 struct FogUBO {
-    alignas(4)  f64 fogStart;       // 雾开始距离（线性雾）
-    alignas(4)  f64 fogEnd;         // 雾结束距离（线性雾）
-    alignas(4)  f64 fogDensity;     // 指数雾密度（水中/岩浆）
+    alignas(4)  f32 fogStart;       // 雾开始距离（线性雾）
+    alignas(4)  f32 fogEnd;         // 雾结束距离（线性雾）
+    alignas(4)  f32 fogDensity;     // 指数雾密度（水中/岩浆）
     alignas(4)  i32 fogMode;        // 雾模式 (FogMode 枚举值)
     alignas(16) glm::vec4 fogColor; // 雾颜色（RGBA）
 };

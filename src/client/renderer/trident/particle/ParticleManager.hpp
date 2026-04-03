@@ -19,7 +19,7 @@ struct ParticleUBO {
     alignas(16) glm::mat4 projection;   ///< 投影矩阵
     alignas(16) glm::mat4 view;         ///< 视图矩阵
     alignas(16) glm::vec3 cameraPos;    ///< 相机位置
-    alignas(4) f64 partialTick;         ///< 部分 tick
+    alignas(4) f32 partialTick;         ///< 部分 tick
 };
 
 /**

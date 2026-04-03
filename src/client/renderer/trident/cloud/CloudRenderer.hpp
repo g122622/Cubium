@@ -34,12 +34,12 @@ enum class CloudMode : u8 {
  */
 struct CloudUBO {
     alignas(16) glm::vec4 cloudColor;       ///< 云颜色 (RGBA)
-    alignas(4)  f64 cloudHeight;            ///< 云高度 (192.0f 主世界)
-    alignas(4)  f64 time;                   ///< 时间（用于动画）
-    alignas(4)  f64 textureScale;           ///< 纹理缩放因子
-    alignas(4)  f64 cameraY;                ///< 相机 Y 坐标（用于高度雾）
-    alignas(4)  f64 textureOffsetX;         ///< 纹理 X 偏移（基于相机位置）
-    alignas(4)  f64 textureOffsetZ;         ///< 纹理 Z 偏移（基于相机位置）
+    alignas(4)  f32 cloudHeight;            ///< 云高度 (192.0f 主世界)
+    alignas(4)  f32 time;                   ///< 时间（用于动画）
+    alignas(4)  f32 textureScale;           ///< 纹理缩放因子
+    alignas(4)  f32 cameraY;                ///< 相机 Y 坐标（用于高度雾）
+    alignas(4)  f32 textureOffsetX;         ///< 纹理 X 偏移（基于相机位置）
+    alignas(4)  f32 textureOffsetZ;         ///< 纹理 Z 偏移（基于相机位置）
 };
 
 /**

@@ -48,6 +48,37 @@ struct ChunkPushConstants {
     glm::dvec4 cameraWorldPos;
 };
 
+/**
+ * @brief 将 TridentTextureAtlas 适配为 ITextureAtlas 接口
+ */
+class TridentTextureAtlasAdapter final : public api::ITextureAtlas {
+public:
+    [[nodiscard]] Result<void> initialize(TridentContext* context, u32 width, u32 height, u32 tileSize) {
+        return m_atlas.create(context, width, height, tileSize);
+    }
+
+    [[nodiscard]] u32 width() const override { return m_atlas.width(); }
+    [[nodiscard]] u32 height() const override { return m_atlas.height(); }
+    [[nodiscard]] u32 tileSize() const override { return m_atlas.tileSize(); }
+    [[nodiscard]] u32 tilesPerRow() const override { return m_atlas.tilesPerRow(); }
+
+    [[nodiscard]] api::TextureRegion getRegion(u32 tileX, u32 tileY) const override {
+        return m_atlas.getRegion(tileX, tileY);
+    }
+
+    [[nodiscard]] api::TextureRegion getRegion(u32 tileIndex) const override {
+        return m_atlas.getRegion(tileIndex);
+    }
+
+    [[nodiscard]] api::ITexture* texture() override { return &m_atlas.texture(); }
+    [[nodiscard]] const api::ITexture* texture() const override { return &m_atlas.texture(); }
+
+    [[nodiscard]] bool isValid() const override { return m_atlas.isValid(); }
+
+private:
+    TridentTextureAtlas m_atlas;
+};
+
 } // anonymous namespace
 
 // ============================================================================
@@ -821,8 +852,12 @@ Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::T
 }
 
 Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u32 width, u32 height, u32 tileSize) {
-    // TODO: 实现 ITextureAtlas 接口
-    return Error(ErrorCode::Unsupported, "createTextureAtlas not yet implemented");
+    auto atlas = std::make_unique<TridentTextureAtlasAdapter>();
+    auto result = atlas->initialize(m_context.get(), width, height, tileSize);
+    if (result.failed()) {
+        return result.error();
+    }
+    return atlas;
 }
 
 // ============================================================================
@@ -839,11 +874,70 @@ const api::RenderType& TridentEngine::currentRenderType() const {
 }
 
 void TridentEngine::bindTexture(u32 binding, const api::ITexture* texture) {
-    // TODO: 实现纹理绑定
+    if (texture == nullptr || !texture->isValid()) {
+        return;
+    }
+
+    if (binding != 0 || m_chunkTextureDescriptorSet == VK_NULL_HANDLE) {
+        return;
+    }
+
+    const auto* tridentTexture = dynamic_cast<const TridentTexture*>(texture);
+    if (tridentTexture == nullptr) {
+        return;
+    }
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = tridentTexture->imageView();
+    imageInfo.sampler = tridentTexture->sampler();
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_chunkTextureDescriptorSet;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(device(), 1, &descriptorWrite, 0, nullptr);
 }
 
 void TridentEngine::bindUniformBuffer(u32 binding, const api::IUniformBuffer* buffer) {
-    // TODO: 实现 Uniform 缓冲区绑定
+    if (buffer == nullptr || !buffer->isValid() || m_uniformManager == nullptr) {
+        return;
+    }
+
+    if (binding > 1) {
+        return;
+    }
+
+    VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+    if (cameraSet == VK_NULL_HANDLE) {
+        return;
+    }
+
+    VkBuffer vkBuffer = reinterpret_cast<VkBuffer>(buffer->nativeHandle());
+    if (vkBuffer == VK_NULL_HANDLE) {
+        return;
+    }
+
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = vkBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = buffer->size();
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = cameraSet;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(device(), 1, &descriptorWrite, 0, nullptr);
 }
 
 // ============================================================================
@@ -866,16 +960,10 @@ void TridentEngine::draw(u32 vertexCount, u32 firstVertex) {
 
 void TridentEngine::drawIndexedInstanced(u32 indexCount, u32 instanceCount,
                                           u32 firstIndex, i32 vertexOffset, u32 firstInstance) {
-    // TODO: 实现实例化渲染
-    // 暂时使用循环绘制代替
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
     if (cmd == VK_NULL_HANDLE) return;
 
-    // 简化实现：使用多次绘制代替实例化
-    // 实际实现应该使用 vkCmdDrawIndexedInstanced 或间接绘制
-    for (u32 i = 0; i < instanceCount; ++i) {
-        vkCmdDrawIndexed(cmd, indexCount, 1, firstIndex, vertexOffset, firstInstance + i);
-    }
+    vkCmdDrawIndexed(cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
 // ============================================================================

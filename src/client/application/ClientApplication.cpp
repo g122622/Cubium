@@ -572,7 +572,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     });
 
     // 设置实体渲染回调
-    m_renderer->setEntityRenderCallback([this](VkCommandBuffer cmd, f32 partialTick) {
+    m_renderer->setEntityRenderCallback([this](VkCommandBuffer cmd, f64 partialTick) {
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
             m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick);
         });
@@ -818,7 +818,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 // 层 Z=100: 调试屏幕
                 auto debugWidget = std::make_unique<ui::minecraft::DebugScreenWidget>();
                 debugWidget->setTextWidthCallback([this](const std::string& text) -> f32 {
-                    return m_renderer->guiRenderer().getTextWidth(text);
+                    return static_cast<f32>(m_renderer->guiRenderer().getTextWidth(text));
                 });
                 debugWidget->setLineHeight(static_cast<i32>(m_renderer->guiRenderer().getFontHeight()) + 2);
                 debugWidget->setCamera(&m_camera);
@@ -1431,6 +1431,9 @@ void ClientApplication::shutdown()
     }
     if (m_widgetsAtlas) {
         m_widgetsAtlas.reset();
+    }
+    if (m_guiTextureManager) {
+        m_guiTextureManager.reset();
     }
 
     // 清理渲染器

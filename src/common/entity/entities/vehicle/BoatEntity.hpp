@@ -8,7 +8,7 @@ namespace mc {
 // Forward declarations
 class Player;
 class ItemEntity;
-struct BlockState;
+class BlockState;
 
 namespace entity {
 

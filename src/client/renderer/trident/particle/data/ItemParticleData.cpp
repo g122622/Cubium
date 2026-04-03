@@ -1,5 +1,6 @@
 #include "ItemParticleData.hpp"
 #include "../ParticleRegistry.hpp"
+#include "../../../../../common/item/core/Item.hpp"
 #include "../../../../../common/util/assert/AssertAll.hpp"
 
 namespace mc::client::renderer::trident::particle::data {
@@ -22,8 +23,13 @@ String ItemParticleData::getParameters() const {
     if (m_itemStack.isEmpty()) {
         return "minecraft:air";
     }
-    // TODO: 实现 Item 的资源位置获取
-    return "minecraft:item";
+
+    const Item* item = m_itemStack.getItem();
+    if (item == nullptr) {
+        return "minecraft:air";
+    }
+
+    return item->itemLocation().toString();
 }
 
 std::unique_ptr<ParticleData> ItemParticleData::clone() const {

@@ -16,7 +16,7 @@ class IRandom;
 class World;
 class BlockItemUseContext;
 class Player;
-struct BlockRaycastResult;
+class BlockRaycastResult;
 class ItemStack;
 
 namespace blocks {

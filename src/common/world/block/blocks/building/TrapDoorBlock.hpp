@@ -11,8 +11,7 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
-class Player;
-struct BlockRaycastResult;
+class BlockRaycastResult;
 
 namespace blocks {
 

@@ -18,8 +18,14 @@ String BlockParticleData::getTypeName() const {
 String BlockParticleData::getParameters() const {
     // 方块粒子参数格式: block_state
     // 例如: minecraft:stone
-    // TODO: 实现 BlockState 的字符串表示
-    return "minecraft:stone"; // 占位符
+    String result = m_blockState.blockLocation().toString();
+    const String modelKey = m_blockState.toModelKey();
+    if (!modelKey.empty()) {
+        result += "[";
+        result += modelKey;
+        result += "]";
+    }
+    return result;
 }
 
 std::unique_ptr<ParticleData> BlockParticleData::clone() const {

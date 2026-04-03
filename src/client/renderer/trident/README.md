@@ -642,11 +642,11 @@ void onWindowResize(int width, int height) {
 **解决方案**：使用 `alignas` 确保正确对齐：
 ```cpp
 struct FogUBO {
+    alignas(4)  f32 fogStart;
+    alignas(4)  f32 fogEnd;
+    alignas(4)  f32 fogDensity;
+    alignas(4)  i32 fogMode;
     alignas(16) glm::vec4 fogColor;
-    alignas(4)  f64 fogStart;
-    alignas(4)  f64 fogEnd;
-    alignas(4)  f64 fogDensity;
-    alignas(4)  f64 fogMode;
 };
 ```
 

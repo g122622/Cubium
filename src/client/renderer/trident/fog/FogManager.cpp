@@ -6,11 +6,11 @@
 namespace mc::client::renderer::trident::fog {
 
 // 雾效果常量（参考 MC 1.16.5）
-static constexpr f64 WATER_FOG_DENSITY = 0.05f;   // 水中雾密度
-static constexpr f64 LAVA_FOG_DENSITY = 0.25f;    // 岩浆雾密度
-static constexpr f64 FOG_START_RATIO = 0.75f;     // 雾起始距离比例（相对于远平面）
-static constexpr f64 FOG_END_RATIO = 1.0f;        // 雾结束距离比例
-static constexpr f64 CHUNK_SIZE = 16.0f;          // 区块大小（方块）
+static constexpr f64 WATER_FOG_DENSITY = 0.05;   // 水中雾密度
+static constexpr f64 LAVA_FOG_DENSITY = 0.25;    // 岩浆雾密度
+static constexpr f64 FOG_START_RATIO = 0.75;     // 雾起始距离比例（相对于远平面）
+static constexpr f64 FOG_END_RATIO = 1.0;        // 雾结束距离比例
+static constexpr f64 CHUNK_SIZE = 16.0;          // 区块大小（方块）
 
 FogManager::FogManager() = default;
 
@@ -143,16 +143,16 @@ void FogManager::update(
 
         // 天气影响：雨和雷暴会减少可视距离
         const f64 weatherFactor = 1.0f - (rainStrength * 0.3f) - (thunderStrength * 0.2f);
-        m_fogUBO.fogStart *= weatherFactor;
-        m_fogUBO.fogEnd *= weatherFactor;
+        m_fogUBO.fogStart = static_cast<f32>(m_fogUBO.fogStart * weatherFactor);
+        m_fogUBO.fogEnd = static_cast<f32>(m_fogUBO.fogEnd * weatherFactor);
 
         // 用户设置影响：video.fogDensity = 1.0 时保持当前效果
         // - 0.0：更清晰（雾更远）
         // - 2.0：更浓（雾更近）
         const f64 clampedLandFogDensity = std::clamp(landFogDensity, 0.0, 2.0);
         const f64 distanceScale = std::clamp(2.0 - clampedLandFogDensity, 0.25, 2.0);
-        m_fogUBO.fogStart *= distanceScale;
-        m_fogUBO.fogEnd *= distanceScale;
+        m_fogUBO.fogStart = static_cast<f32>(m_fogUBO.fogStart * distanceScale);
+        m_fogUBO.fogEnd = static_cast<f32>(m_fogUBO.fogEnd * distanceScale);
     }
 
     // 设置雾颜色（从天空颜色获取）
@@ -171,19 +171,19 @@ void FogManager::setFogMode(FogMode mode) {
 
 void FogManager::setUnderwater(u32 waterFogColor) {
     setFogMode(FogMode::Exp2);
-    m_fogUBO.fogDensity = WATER_FOG_DENSITY;
+    m_fogUBO.fogDensity = static_cast<f32>(WATER_FOG_DENSITY);
     // 从 RGB 格式转换为 glm::vec4
     m_fogUBO.fogColor = glm::vec4(
-        static_cast<f64>((waterFogColor >> 16) & 0xFF) / 255.0,  // R
-        static_cast<f64>((waterFogColor >> 8) & 0xFF) / 255.0,   // G
-        static_cast<f64>(waterFogColor & 0xFF) / 255.0,          // B
+        static_cast<f32>((waterFogColor >> 16) & 0xFF) / 255.0f,  // R
+        static_cast<f32>((waterFogColor >> 8) & 0xFF) / 255.0f,   // G
+        static_cast<f32>(waterFogColor & 0xFF) / 255.0f,          // B
         1.0f
     );
 }
 
 void FogManager::setInLava() {
     setFogMode(FogMode::Exp2);
-    m_fogUBO.fogDensity = LAVA_FOG_DENSITY;
+    m_fogUBO.fogDensity = static_cast<f32>(LAVA_FOG_DENSITY);
     // 岩浆雾颜色是深橙红色
     m_fogUBO.fogColor = glm::vec4(0.6f, 0.1f, 0.0f, 1.0f);
 }
@@ -203,8 +203,8 @@ VkDescriptorSet FogManager::descriptorSet(u32 frameIndex) const {
 void FogManager::calculateLinearFog(f64 renderDistance) {
     // 参考 MC 1.16.5 FogRenderer.setupFog()
     // 线性雾：fogStart 和 fogEnd 控制雾的范围
-    m_fogUBO.fogStart = renderDistance * FOG_START_RATIO;
-    m_fogUBO.fogEnd = renderDistance * FOG_END_RATIO;
+    m_fogUBO.fogStart = static_cast<f32>(renderDistance * FOG_START_RATIO);
+    m_fogUBO.fogEnd = static_cast<f32>(renderDistance * FOG_END_RATIO);
 }
 
 void FogManager::updateUniformBuffer(u32 frameIndex) {

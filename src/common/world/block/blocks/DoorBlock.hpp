@@ -12,7 +12,7 @@ namespace mc {
 class World;
 class BlockItemUseContext;
 class Player;
-struct BlockRaycastResult;
+class BlockRaycastResult;
 
 namespace blocks {
 

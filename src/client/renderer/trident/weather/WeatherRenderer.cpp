@@ -21,9 +21,9 @@ struct WeatherUBO {
     alignas(16) glm::mat4 projection;
     alignas(16) glm::mat4 view;
     alignas(16) glm::vec3 cameraPos;
-    alignas(4) f64 partialTick;
-    alignas(4) f64 rainStrength;
-    alignas(4) f64 thunderStrength;
+    alignas(4) f32 partialTick;
+    alignas(4) f32 rainStrength;
+    alignas(4) f32 thunderStrength;
 };
 
 // 初始化随机偏移数组（参考 MC 1.16.5）
@@ -415,36 +415,36 @@ void WeatherRenderer::generateWeatherGeometry() {
                 // 四个顶点
                 WeatherVertex v0, v1, v2, v3;
 
-                v0.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
-                v0.y = topY - m_cameraPos.y;
-                v0.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
+                v0.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v0.y = static_cast<f32>(topY - m_cameraPos.y);
+                v0.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
                 v0.u = 0.0f;
-                v0.v = static_cast<f64>(bottomY) * 0.25f + texOffset;
-                v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = alpha;
+                v0.v = static_cast<f32>(bottomY * 0.25f + texOffset);
+                v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = static_cast<f32>(alpha);
                 v0.lightU = lightU; v0.lightV = lightV;
 
-                v1.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
-                v1.y = topY - m_cameraPos.y;
-                v1.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
+                v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v1.y = static_cast<f32>(topY - m_cameraPos.y);
+                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
                 v1.u = 1.0f;
-                v1.v = static_cast<f64>(bottomY) * 0.25f + texOffset;
-                v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = alpha;
+                v1.v = static_cast<f32>(bottomY * 0.25f + texOffset);
+                v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = static_cast<f32>(alpha);
                 v1.lightU = lightU; v1.lightV = lightV;
 
-                v2.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
-                v2.y = bottomY - m_cameraPos.y;
-                v2.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
+                v2.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v2.y = static_cast<f32>(bottomY - m_cameraPos.y);
+                v2.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
                 v2.u = 1.0f;
-                v2.v = static_cast<f64>(topY) * 0.25f + texOffset;
-                v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = alpha;
+                v2.v = static_cast<f32>(topY * 0.25f + texOffset);
+                v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = static_cast<f32>(alpha);
                 v2.lightU = lightU; v2.lightV = lightV;
 
-                v3.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
-                v3.y = bottomY - m_cameraPos.y;
-                v3.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
+                v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v3.y = static_cast<f32>(bottomY - m_cameraPos.y);
+                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
                 v3.u = 0.0f;
-                v3.v = static_cast<f64>(topY) * 0.25f + texOffset;
-                v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = alpha;
+                v3.v = static_cast<f32>(topY * 0.25f + texOffset);
+                v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = static_cast<f32>(alpha);
                 v3.lightU = lightU; v3.lightV = lightV;
 
                 // 添加两个三角形（6个顶点）
@@ -467,36 +467,36 @@ void WeatherRenderer::generateWeatherGeometry() {
 
                 WeatherVertex v0, v1, v2, v3;
 
-                v0.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
-                v0.y = topY - m_cameraPos.y;
-                v0.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
-                v0.u = 0.0f + texOffsetX;
-                v0.v = static_cast<f64>(bottomY) * 0.25f + texOffsetY;
-                v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = snowAlpha;
+                v0.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v0.y = static_cast<f32>(topY - m_cameraPos.y);
+                v0.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
+                v0.u = static_cast<f32>(0.0f + texOffsetX);
+                v0.v = static_cast<f32>(bottomY * 0.25f + texOffsetY);
+                v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = static_cast<f32>(snowAlpha);
                 v0.lightU = lightU; v0.lightV = lightV;
 
-                v1.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
-                v1.y = topY - m_cameraPos.y;
-                v1.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
-                v1.u = 1.0f + texOffsetX;
-                v1.v = static_cast<f64>(bottomY) * 0.25f + texOffsetY;
-                v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = snowAlpha;
+                v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v1.y = static_cast<f32>(topY - m_cameraPos.y);
+                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
+                v1.u = static_cast<f32>(1.0f + texOffsetX);
+                v1.v = static_cast<f32>(bottomY * 0.25f + texOffsetY);
+                v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = static_cast<f32>(snowAlpha);
                 v1.lightU = lightU; v1.lightV = lightV;
 
-                v2.x = static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f;
-                v2.y = bottomY - m_cameraPos.y;
-                v2.z = static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f;
-                v2.u = 1.0f + texOffsetX;
-                v2.v = static_cast<f64>(topY) * 0.25f + texOffsetY;
-                v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = snowAlpha;
+                v2.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v2.y = static_cast<f32>(bottomY - m_cameraPos.y);
+                v2.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
+                v2.u = static_cast<f32>(1.0f + texOffsetX);
+                v2.v = static_cast<f32>(topY * 0.25f + texOffsetY);
+                v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = static_cast<f32>(snowAlpha);
                 v2.lightU = lightU; v2.lightV = lightV;
 
-                v3.x = static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f;
-                v3.y = bottomY - m_cameraPos.y;
-                v3.z = static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f;
-                v3.u = 0.0f + texOffsetX;
-                v3.v = static_cast<f64>(topY) * 0.25f + texOffsetY;
-                v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = snowAlpha;
+                v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v3.y = static_cast<f32>(bottomY - m_cameraPos.y);
+                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
+                v3.u = static_cast<f32>(0.0f + texOffsetX);
+                v3.v = static_cast<f32>(topY * 0.25f + texOffsetY);
+                v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = static_cast<f32>(snowAlpha);
                 v3.lightU = lightU; v3.lightV = lightV;
 
                 m_snowVertices.push_back(v0);
@@ -923,9 +923,9 @@ void WeatherRenderer::updateUniformBuffer(u32 frameIndex) {
     ubo.projection = m_currentProjection;
     ubo.view = m_currentView;
     ubo.cameraPos = m_cameraPos;
-    ubo.partialTick = m_partialTick;
-    ubo.rainStrength = m_rainStrength;
-    ubo.thunderStrength = m_thunderStrength;
+    ubo.partialTick = static_cast<f32>(m_partialTick);
+    ubo.rainStrength = static_cast<f32>(m_rainStrength);
+    ubo.thunderStrength = static_cast<f32>(m_thunderStrength);
 
     std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
 }
