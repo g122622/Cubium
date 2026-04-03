@@ -1063,6 +1063,33 @@ TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceChangeUpdatesLevel) {
     EXPECT_EQ(tracker.getLevel(16, 0), 34);
 }
 
+TEST_F(PlayerChunkTrackerExtendedTest, ViewDistanceDecreaseUpdatesLevel) {
+    PlayerChunkTracker tracker(15);
+    tracker.setPlayerPosition(0, 0);
+    tracker.processUpdates(1000);
+
+    const i32 oldLevel = tracker.getLevel(0, 0);
+    EXPECT_EQ(oldLevel, viewDistanceToLevel(15));
+    const i32 oldFarLevel = tracker.getLevel(7, 0);
+
+    // 视距缩小，票据级别应升高（加载范围变小）。
+    tracker.setViewDistance(6);
+    for (i32 i = 0; i < 20; ++i) {
+        if (tracker.processUpdates(1000) == 0) {
+            break;
+        }
+    }
+
+    const i32 newLevel = tracker.getLevel(0, 0);
+    EXPECT_EQ(newLevel, viewDistanceToLevel(6));
+    EXPECT_GT(newLevel, oldLevel);
+
+    // 距离 7 的区块应被提升到 MAX_LEVEL（不再加载）。
+    const i32 newFarLevel = tracker.getLevel(7, 0);
+    EXPECT_GE(newFarLevel, oldFarLevel);
+    EXPECT_EQ(newFarLevel, ChunkDistanceGraph::MAX_LEVEL);
+}
+
 TEST_F(PlayerChunkTrackerExtendedTest, MultiplePositionUpdates) {
     PlayerChunkTracker tracker(5);
 

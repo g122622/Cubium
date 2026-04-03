@@ -26,6 +26,7 @@ namespace mc::client {
  */
 struct MeshBuildResult {
     ChunkId chunkId;              ///< 区块 ID
+    u64 taskId = 0;               ///< 任务代际 ID（用于丢弃过期结果）
     MeshData solidMesh;           ///< 实心方块网格
     MeshData transparentMesh;     ///< 透明方块网格
     bool success = false;         ///< 是否成功构建
@@ -47,6 +48,7 @@ struct ClientMeshTask {
     ChunkId chunkId;                                           ///< 区块 ID
     std::shared_ptr<const ChunkData> chunkData;               ///< 区块数据
     std::array<std::shared_ptr<const ChunkData>, 6> neighbors; ///< 相邻区块 (-X, +X, -Z, +Z, -Y, +Y)
+    u64 taskId = 0;                                            ///< 任务代际 ID
     i32 priority = 0;                                          ///< 优先级（越小越高）
     u64 timestamp = 0;                                         ///< 提交时间戳
 
@@ -155,12 +157,14 @@ public:
      * @param chunkData 区块数据（shared_ptr 共享所有权）
      * @param neighbors 相邻区块数据（可为 nullptr）
      * @param priority 优先级（越小越高，默认 0）
+     * @param taskId 任务代际 ID（同一 chunk 的旧任务结果会被丢弃）
      */
     void submitTask(
         const ChunkId& chunkId,
         std::shared_ptr<const ChunkData> chunkData,
         std::array<std::shared_ptr<const ChunkData>, 6> neighbors,
-        i32 priority = 0
+        i32 priority = 0,
+        u64 taskId = 0
     );
 
     // ============================================================================

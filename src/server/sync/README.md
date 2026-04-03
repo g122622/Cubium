@@ -41,13 +41,13 @@ src/server/sync/
 
 | 方法 | 说明 |
 |------|------|
-| `sendChunkToPlayers(x, z, players)` | 发送区块给指定玩家列表 |
+| `sendChunkToPlayers(x, z, players, validateTracking=false)` | 发送区块给指定玩家列表，可选发送前校验追踪状态 |
 | `sendChunkToTrackingPlayers(x, z)` | 发送区块给所有追踪该区块的玩家 |
 | `unloadChunkFromPlayers(x, z, players)` | 发送卸载通知给指定玩家列表 |
 | `unloadChunkFromTrackingPlayers(x, z)` | 发送卸载通知给所有追踪玩家 |
 | `onPlayerTrackingChange(player, x, z, isTracking)` | 处理玩家追踪变化 |
 | `onChunkPreUnload(x, z)` | 区块卸载前的处理 |
-| `submitChunkData(x, z, data, players)` | 从 Worker 线程提交序列化数据（线程安全） |
+| `submitChunkData(x, z, data, players, validateTracking=false)` | 从 Worker 线程提交序列化数据（线程安全） |
 | `processPendingSends()` | 主线程处理待发送队列 |
 | `setOnChunkSend(callback)` | 设置区块发送回调 |
 | `setOnChunkUnload(callback)` | 设置区块卸载回调 |
@@ -57,6 +57,7 @@ src/server/sync/
 - 区块序列化在 Worker 线程执行
 - 序列化完成后通过 `submitChunkData()` 提交到队列
 - 主线程通过 `processPendingSends()` 处理队列并发送
+- 当 `validateTracking=true` 时，发送前会调用 `isPlayerTracking()` 过滤过期目标，避免“先卸载后晚到加载包”导致客户端重现幽灵区块
 
 ---
 

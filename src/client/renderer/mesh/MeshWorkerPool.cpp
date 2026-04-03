@@ -97,7 +97,8 @@ void MeshWorkerPool::submitTask(
     const ChunkId& chunkId,
     std::shared_ptr<const ChunkData> chunkData,
     std::array<std::shared_ptr<const ChunkData>, 6> neighbors,
-    i32 priority)
+    i32 priority,
+    u64 taskId)
 {
     if (!m_running.load(std::memory_order_acquire)) {
         spdlog::warn("MeshWorkerPool: cannot submit task, pool not running");
@@ -114,6 +115,7 @@ void MeshWorkerPool::submitTask(
     task.chunkId = chunkId;
     task.chunkData = std::move(chunkData);
     task.neighbors = std::move(neighbors);
+    task.taskId = taskId;
     task.priority = priority;
     task.timestamp = m_timestampCounter.fetch_add(1, std::memory_order_relaxed);
 
@@ -224,6 +226,7 @@ void MeshWorkerPool::executeTask(const ClientMeshTask& task)
 
     MeshBuildResult result;
     result.chunkId = task.chunkId;
+    result.taskId = task.taskId;
     result.success = false;
 
     try {

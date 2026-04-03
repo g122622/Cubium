@@ -81,6 +81,7 @@ src/client/world/
 **关键设计**：
 
 - **异步网格构建**：使用 `MeshWorkerPool` 在后台线程构建区块网格，避免主线程卡顿
+- **任务代际校验**：每次异步网格提交都会分配 `taskId`，主线程只接受当前区块最新 `taskId` 的结果，防止旧任务覆盖新区块状态
 - **服务端驱动的区块生命周期**：客户端不主动卸载区块，由服务端统一控制
 - **优先级队列**：区块加载按距离相机的远近排序
 
@@ -456,6 +457,14 @@ world.destroy();
    auto chunkData = std::shared_ptr<ChunkData>(std::move(result.value()));
    // ...
    m_meshWorkerPool->submitTask(id, chunkData, neighbors, priority);
+   ```
+
+   另外，主线程处理完成结果时必须验证 `taskId`：
+
+   ```cpp
+   if (result.taskId != chunk->activeMeshTaskId) {
+       return; // 丢弃过期任务结果
+   }
    ```
 
 3. **边界方块的网格更新**

@@ -34,6 +34,7 @@ struct ClientChunk {
     bool isLoaded = false;
     bool meshBuilding = false;  // 是否正在异步构建网格
     bool needsNeighborRebuild = false;  // 是否需要因邻居加载而重建网格
+    u64 activeMeshTaskId = 0;  // 当前有效的网格构建任务 ID
 };
 
 /**
@@ -385,6 +386,9 @@ private:
     // 统计
     u32 m_chunksLoaded = 0;
     u32 m_chunksUnloaded = 0;
+
+    // 网格任务代际计数器（避免旧任务结果覆盖新状态）
+    u64 m_nextMeshTaskId = 1;
 
     // 时间 (从服务端同步)
     i64 m_gameTime = 0;

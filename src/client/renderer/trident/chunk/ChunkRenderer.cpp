@@ -93,9 +93,11 @@ Result<void> ChunkRenderer::initialize(
     m_physicalDevice = physicalDevice;
     m_commandPool = commandPool;
     m_graphicsQueue = graphicsQueue;
-    m_maxChunks = maxChunks;
+    // 1024 在高视距或双层网格场景下容易触顶，导致近处区块上传失败。
+    m_maxChunks = std::max(maxChunks, 8192u);
 
-    spdlog::info("ChunkRenderer initialized (max chunks: {})", maxChunks);
+    spdlog::info("ChunkRenderer initialized (requested max chunks: {}, effective max chunks: {})",
+                 maxChunks, m_maxChunks);
     return {};
 }
 

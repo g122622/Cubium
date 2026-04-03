@@ -4,6 +4,7 @@
 #include "common/network/sync/ChunkSync.hpp"
 #include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
+#include <algorithm>
 
 namespace mc::server::sync {
 
@@ -14,7 +15,8 @@ ChunkSendManager::ChunkSendManager(ServerChunkManager& chunkManager,
 {
 }
 
-void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players) {
+void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players,
+                                          bool validateTracking) {
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::sendChunkToPlayers");
 
     if (players.empty()) {
@@ -27,7 +29,7 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
         if (chunk) {
             auto result = network::ChunkSerializer::serializeChunk(*chunk);
             if (result.success()) {
-                submitChunkData(x, z, std::move(result.value()), players);
+                submitChunkData(x, z, std::move(result.value()), players, validateTracking);
                 // spdlog::info("Chunk ({}, {}) serialized for {} players", x, z, players.size());
             } else {
                 spdlog::warn("Failed to serialize chunk ({}, {}): {}", x, z, result.error().message());
@@ -36,11 +38,11 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
     } else {
         // 区块未加载，触发异步加载
         // 注意：玩家列表需要复制到回调中
-        m_chunkManager.getChunkAsync(x, z, [this, x, z, players](bool success, ChunkData* chunk) {
+        m_chunkManager.getChunkAsync(x, z, [this, x, z, players, validateTracking](bool success, ChunkData* chunk) {
             if (success && chunk) {
                 auto result = network::ChunkSerializer::serializeChunk(*chunk);
                 if (result.success()) {
-                    submitChunkData(x, z, std::move(result.value()), players);
+                    submitChunkData(x, z, std::move(result.value()), players, validateTracking);
                     // spdlog::info("Chunk ({}, {}) loaded async, serialized for {} players", x, z, players.size());
                 }
             } else {
@@ -52,7 +54,7 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
 
 void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z) {
     auto players = m_ticketManager.getTrackingPlayers(x, z);
-    sendChunkToPlayers(x, z, players);
+    sendChunkToPlayers(x, z, players, true);
 }
 
 void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players) {
@@ -77,7 +79,7 @@ void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, Chu
         // 检查区块是否已加载
         if (m_chunkManager.hasChunk(x, z)) {
             // 区块已加载，立即发送
-            sendChunkToPlayers(x, z, {player});
+            sendChunkToPlayers(x, z, {player}, true);
         }
         // 区块未加载：票据系统会触发加载，加载完成后通过回调发送
     } else {
@@ -93,23 +95,46 @@ void ChunkSendManager::onChunkPreUnload(ChunkCoord x, ChunkCoord z) {
 }
 
 void ChunkSendManager::removePlayer(PlayerId playerId) {
-    // 当前实现中，追踪信息由 ChunkLoadTicketManager 管理
-    // 这里只需要确保没有待发送的数据给该玩家
-    // 由于 submitChunkData 复制了玩家列表，我们无法取消已提交的数据
-    // 但可以确保未来不会发送给该玩家
-    (void)playerId;
+    // 追踪状态由 ChunkLoadTicketManager 管理。
+    // 这里额外清理待发送队列里的目标玩家，避免断开后仍尝试发包。
+    std::lock_guard<std::mutex> lock(m_readyChunksMutex);
+
+    auto chunkIt = m_readyChunks.begin();
+    while (chunkIt != m_readyChunks.end()) {
+        auto& players = chunkIt->players;
+        players.erase(std::remove(players.begin(), players.end(), playerId), players.end());
+
+        if (players.empty()) {
+            chunkIt = m_readyChunks.erase(chunkIt);
+        } else {
+            ++chunkIt;
+        }
+    }
 }
 
-void ChunkSendManager::submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players) {
+void ChunkSendManager::submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8> data,
+                                       std::vector<PlayerId> players, bool validateTracking) {
+    std::sort(players.begin(), players.end());
+    players.erase(std::unique(players.begin(), players.end()), players.end());
+    if (players.empty()) {
+        return;
+    }
+
     std::lock_guard<std::mutex> lock(m_readyChunksMutex);
-    m_readyChunks.emplace_back(x, z, std::move(data), std::move(players));
+    ReadyChunkData ready;
+    ready.x = x;
+    ready.z = z;
+    ready.data = std::move(data);
+    ready.players = std::move(players);
+    ready.validateTracking = validateTracking;
+    m_readyChunks.emplace_back(std::move(ready));
 }
 
 void ChunkSendManager::processPendingSends() {
     MC_TRACE_EVENT("server.chunk", "processPendingSends");
 
     // 取出准备好的区块数据
-    std::vector<std::tuple<ChunkCoord, ChunkCoord, std::vector<u8>, std::vector<PlayerId>>> chunks;
+    std::vector<ReadyChunkData> chunks;
     {
         std::lock_guard<std::mutex> lock(m_readyChunksMutex);
         chunks = std::move(m_readyChunks);
@@ -117,14 +142,18 @@ void ChunkSendManager::processPendingSends() {
     }
 
     // 处理每个区块
-    for (const auto& [x, z, data, players] : chunks) {
+    for (const auto& chunk : chunks) {
         // 发送给每个玩家
-        for (PlayerId playerId : players) {
+        for (PlayerId playerId : chunk.players) {
+            if (chunk.validateTracking && !m_ticketManager.isPlayerTracking(playerId, chunk.x, chunk.z)) {
+                continue;
+            }
+
             if (m_onChunkSend) {
-                m_onChunkSend(playerId, x, z, data);
+                m_onChunkSend(playerId, chunk.x, chunk.z, chunk.data);
             }
         }
-        if (!players.empty()) {
+        if (!chunk.players.empty()) {
             // spdlog::info("Sent chunk ({}, {}) to {} players", x, z, players.size());
         }
     }

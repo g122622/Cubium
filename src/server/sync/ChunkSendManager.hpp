@@ -51,11 +51,13 @@ public:
      * @param x 区块X坐标
      * @param z 区块Z坐标
      * @param players 玩家ID列表
+    * @param validateTracking 发送前是否校验玩家仍在追踪该区块
      *
      * 如果区块已加载，立即序列化并发送；
      * 如果区块未加载，触发异步加载，加载完成后发送。
      */
-    void sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players);
+    void sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players,
+                       bool validateTracking = false);
 
     /**
      * @brief 发送区块给所有追踪该区块的玩家
@@ -118,9 +120,11 @@ public:
      * @param z 区块Z坐标
      * @param data 序列化数据
      * @param players 目标玩家列表
+    * @param validateTracking 发送前是否校验玩家仍在追踪该区块
      * @thread-safe
      */
-    void submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players);
+    void submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players,
+                    bool validateTracking = false);
 
     /**
      * @brief 主线程处理待发送队列
@@ -148,11 +152,19 @@ private:
     }
 
 private:
+    struct ReadyChunkData {
+        ChunkCoord x = 0;
+        ChunkCoord z = 0;
+        std::vector<u8> data;
+        std::vector<PlayerId> players;
+        bool validateTracking = false;
+    };
+
     ServerChunkManager& m_chunkManager;
     world::ChunkLoadTicketManager& m_ticketManager;
 
     // 准备好的区块数据队列（包含目标玩家列表）
-    std::vector<std::tuple<ChunkCoord, ChunkCoord, std::vector<u8>, std::vector<PlayerId>>> m_readyChunks;
+    std::vector<ReadyChunkData> m_readyChunks;
     std::mutex m_readyChunksMutex;
 
     std::function<void(PlayerId, ChunkCoord, ChunkCoord, const std::vector<u8>&)> m_onChunkSend;

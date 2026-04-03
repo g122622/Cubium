@@ -304,6 +304,7 @@ auto players = manager.getTrackingPlayers(x, z);
   - 继承 ChunkDistanceGraph
   - 视距管理
   - 视距内区块集合
+  - 视距增大/缩小时都会同步更新玩家源级别（避免缩视距后仍保留过低级别）
 
 **算法原理**：
 

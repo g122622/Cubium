@@ -23,6 +23,7 @@ ClientWorld::~ClientWorld() {
 Result<void> ClientWorld::initialize(u64 seed) {
     m_seed = seed;
     m_destroyed = false;
+    m_nextMeshTaskId = 1;
     spdlog::info("ClientWorld initialized with seed: {}", seed);
     return Result<void>::ok();
 }
@@ -425,6 +426,7 @@ void ClientWorld::scheduleChunkMeshRebuild(const ChunkId& id) {
     rebuildMesh(*chunk);
     chunk->needsMeshUpdate = true;
     chunk->meshBuilding = false;
+    chunk->activeMeshTaskId = 0;
 
     // spdlog::info("[Mining] Rebuilt chunk mesh synchronously for chunk ({}, {}), vertices={}, indices={}",
     //              id.x,
@@ -439,9 +441,20 @@ void ClientWorld::scheduleChunkMeshRebuildAsync(const ChunkId& id, i32 priority)
         return;
     }
 
+    if (!m_meshWorkerPool || !m_meshWorkerPool->isRunning()) {
+        scheduleChunkMeshRebuild(id);
+        return;
+    }
+
+    u64 taskId = m_nextMeshTaskId++;
+    if (taskId == 0) {
+        taskId = m_nextMeshTaskId++;
+    }
+
     chunk->meshBuilding = true;
+    chunk->activeMeshTaskId = taskId;
     auto neighbors = getNeighborChunkData(id);
-    m_meshWorkerPool->submitTask(id, chunk->data, neighbors, priority);
+    m_meshWorkerPool->submitTask(id, chunk->data, neighbors, priority, taskId);
 }
 
 void ClientWorld::scheduleNeighborMeshRebuild(const ChunkId& id) {
@@ -554,16 +567,14 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data
     chunk->chunkId = id;
     chunk->data = chunkData;
     chunk->isLoaded = true;
-    chunk->meshBuilding = true;  // 标记正在构建网格
 
     m_chunks[id] = std::move(chunk);
     m_chunksLoaded++;
 
     // 异步构建网格（如果线程池已初始化）
     if (m_meshWorkerPool && m_meshWorkerPool->isRunning()) {
-        auto neighbors = getNeighborChunkData(id);
         i32 priority = static_cast<i32>(calculatePriority(id, m_cameraPosition));
-        m_meshWorkerPool->submitTask(id, chunkData, neighbors, priority);
+        scheduleChunkMeshRebuildAsync(id, priority);
 
         // 通知已存在的邻居区块重建网格（修复边界面的剔除问题）
         scheduleNeighborMeshRebuild(id);
@@ -574,6 +585,7 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8>&& data
             rebuildMesh(*chunkPtr);
             chunkPtr->needsMeshUpdate = true;
             chunkPtr->meshBuilding = false;
+            chunkPtr->activeMeshTaskId = 0;
         }
     }
 }
@@ -586,6 +598,9 @@ void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z) {
         if (m_chunkUnloadCallback) {
             m_chunkUnloadCallback(id);
         }
+
+        // 使生物群系颜色缓存失效，避免后续同坐标区块复用过期颜色。
+        ChunkMesher::invalidateBiomeColorCache(x, z);
 
         m_chunks.erase(it);
         m_chunksUnloaded++;
@@ -673,6 +688,11 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame) {
                 return;
             }
 
+            // 只接受当前有效任务的结果，避免旧任务覆盖新区块状态。
+            if (result.taskId == 0 || result.taskId != chunk->activeMeshTaskId) {
+                return;
+            }
+
             if (result.success) {
                 chunk->solidMesh = std::move(result.solidMesh);
                 chunk->transparentMesh = std::move(result.transparentMesh);
@@ -683,6 +703,7 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame) {
             }
 
             chunk->meshBuilding = false;
+            chunk->activeMeshTaskId = 0;
 
             // 如果在构建期间有新邻居加载，需要重建网格
             if (chunk->needsNeighborRebuild) {

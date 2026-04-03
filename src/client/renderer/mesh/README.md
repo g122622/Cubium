@@ -110,7 +110,7 @@ classDiagram
         -atomic~bool~ m_stop
         +start()
         +shutdown()
-        +submitTask(chunkId, chunkData, neighbors, priority)
+        +submitTask(chunkId, chunkData, neighbors, priority, taskId)
         +processCompletedTasks(processor, maxPerFrame)
         +pendingTaskCount()
         +completedTaskCount()
@@ -120,12 +120,14 @@ classDiagram
         +ChunkId chunkId
         +shared_ptr~ChunkData~ chunkData
         +array~shared_ptr~ChunkData~, 6~ neighbors
+        +u64 taskId
         +i32 priority
         +u64 timestamp
     }
     
     class MeshBuildResult {
         +ChunkId chunkId
+        +u64 taskId
         +MeshData solidMesh
         +MeshData transparentMesh
         +bool success
@@ -143,7 +145,7 @@ MeshWorkerPool pool(4);  // 4 个 Worker 线程
 pool.start();
 
 // 2. 提交任务 (非阻塞)
-pool.submitTask(chunkId, chunkData, neighbors, priority);
+pool.submitTask(chunkId, chunkData, neighbors, priority, taskId);
 
 // 3. 每帧处理完成的结果 (主线程调用)
 pool.processCompletedTasks([](MeshBuildResult result) {
@@ -165,6 +167,7 @@ pool.shutdown();
 - 任务队列和完成队列使用 mutex 保护
 - ChunkData 通过 `shared_ptr` 共享，创建后不可变
 - MeshData 所有权从 Worker 转移到主线程
+- `taskId` 用于在主线程过滤过期结果，避免卸载/重载后的旧任务污染新区块网格
 
 ---
 

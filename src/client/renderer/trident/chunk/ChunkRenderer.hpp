@@ -125,7 +125,7 @@ public:
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
-        u32 maxChunks = 1024);
+        u32 maxChunks = 8192);
 
     void destroy();
 
@@ -240,7 +240,7 @@ private:
 
     // 区块缓冲区
     std::unordered_map<u64, std::unique_ptr<ChunkGpuBuffer>> m_chunkBuffers;
-    u32 m_maxChunks = 1024;
+    u32 m_maxChunks = 8192;
 
     // 统计
     u32 m_totalVertices = 0;

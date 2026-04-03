@@ -572,8 +572,13 @@ void IntegratedServer::sendChunkData(ChunkCoord x, ChunkCoord z, const std::vect
     MC_TRACE_EVENT("server.chunk", "sendChunkData",
                "Chunk", fmt::format("({}, {})", x, z),
                "DataSize", data.size());
-    // TODO: 获取实际维度ID
-    DimensionId dimension = 0;  // 暂时默认主世界
+    DimensionId dimension = 0;
+    if (m_dimensionManager) {
+        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(m_clientPlayerId);
+        if (resolvedDimension >= 0) {
+            dimension = resolvedDimension;
+        }
+    }
     network::ChunkDataPacket packet(x, z, dimension, data);
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -585,8 +590,13 @@ void IntegratedServer::sendChunkData(ChunkCoord x, ChunkCoord z, const std::vect
 
 void IntegratedServer::sendUnloadChunk(ChunkCoord x, ChunkCoord z)
 {
-    // TODO: 获取实际维度ID
-    DimensionId dimension = 0;  // 暂时默认主世界
+    DimensionId dimension = 0;
+    if (m_dimensionManager) {
+        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(m_clientPlayerId);
+        if (resolvedDimension >= 0) {
+            dimension = resolvedDimension;
+        }
+    }
     network::UnloadChunkPacket packet(x, z, dimension);
     network::PacketSerializer ser;
     packet.serialize(ser);

@@ -633,8 +633,13 @@ void StandaloneServer::setupChunkSendCallback()
     chunkSendManager().setOnChunkSend([this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (player && player->loggedIn && player->hasConnection()) {
-            // TODO: 从玩家获取实际维度ID
-            DimensionId dimension = 0;  // 暂时默认主世界
+            DimensionId dimension = 0;
+            if (m_dimensionManager) {
+                const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(playerId);
+                if (resolvedDimension >= 0) {
+                    dimension = resolvedDimension;
+                }
+            }
             network::ChunkDataPacket packet(x, z, dimension, data);
             network::PacketSerializer ser;
             packet.serialize(ser);
@@ -650,8 +655,13 @@ void StandaloneServer::setupChunkSendCallback()
     chunkSendManager().setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (player && player->loggedIn && player->hasConnection()) {
-            // TODO: 从玩家获取实际维度ID
-            DimensionId dimension = 0;  // 暂时默认主世界
+            DimensionId dimension = 0;
+            if (m_dimensionManager) {
+                const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(playerId);
+                if (resolvedDimension >= 0) {
+                    dimension = resolvedDimension;
+                }
+            }
             network::UnloadChunkPacket packet(x, z, dimension);
             network::PacketSerializer ser;
             packet.serialize(ser);

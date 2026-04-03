@@ -214,10 +214,14 @@ void PlayerChunkTracker::setViewDistance(i32 distance) {
     }
 
     m_viewDistance = clampedDistance;
+    const i32 oldTicketLevel = m_ticketLevel;
     m_ticketLevel = viewDistanceToLevel(clampedDistance);
 
-    // 更新票据级别
-    updateSourceLevel(m_playerX, m_playerZ, m_ticketLevel, true);
+    // 更新票据级别：视距增大时级别降低，视距减小时级别升高。
+    if (m_positionSet) {
+        const bool isDecreasing = m_ticketLevel < oldTicketLevel;
+        updateSourceLevel(m_playerX, m_playerZ, m_ticketLevel, isDecreasing);
+    }
 
     // 更新视距内的区块
     updateChunksInRange();
