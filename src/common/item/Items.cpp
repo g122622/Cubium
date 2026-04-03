@@ -1,6 +1,9 @@
 #include "Items.hpp"
 
 #include "items/block/BlockItem.hpp"
+#include "items/potion/PotionItem.hpp"
+#include "items/potion/SplashPotionItem.hpp"
+#include "items/potion/LingeringPotionItem.hpp"
 #include "tier/ItemTiers.hpp"
 #include "items/tool/PickaxeItem.hpp"
 #include "items/tool/AxeItem.hpp"
@@ -241,6 +244,27 @@ Item* Items::PHANTOM_MEMBRANE = nullptr;
 Item* Items::DRIED_KELP = nullptr;
 
 // ============================================================================
+// 酿造材料
+// ============================================================================
+Item* Items::NETHER_WART = nullptr;
+Item* Items::GOLDEN_CARROT = nullptr;
+Item* Items::GHAST_TEAR = nullptr;
+Item* Items::RABBIT_FOOT = nullptr;
+Item* Items::MAGMA_CREAM = nullptr;
+Item* Items::DRAGON_BREATH = nullptr;
+Item* Items::PUFFERFISH = nullptr;
+Item* Items::TURTLE_HELMET = nullptr;
+Item* Items::GLISTERING_MELON_SLICE = nullptr;
+
+// ============================================================================
+// 药水相关
+// ============================================================================
+Item* Items::GLASS_BOTTLE = nullptr;
+Item* Items::POTION = nullptr;
+Item* Items::SPLASH_POTION = nullptr;
+Item* Items::LINGERING_POTION = nullptr;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 
@@ -270,6 +294,8 @@ void Items::initialize() {
     registerSeeds();
     registerCrops();
     registerAquaticMaterials();
+    registerBrewingIngredients();
+    registerPotions();
 
     s_initialized = true;
 }
@@ -1126,6 +1152,105 @@ void Items::registerAquaticMaterials() {
     DRIED_KELP = &registry.registerItem(
         ResourceLocation("minecraft:dried_kelp"),
         ItemProperties().maxStackSize(64)
+    );
+}
+
+void Items::registerBrewingIngredients() {
+    auto& registry = ItemRegistry::instance();
+
+    // 地狱疣 - 酿造基础材料，用于制作尴尬的药水
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    NETHER_WART = &registry.registerItem(
+        ResourceLocation("minecraft:nether_wart"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 金胡萝卜 - 夜视药水材料
+    // 参考: new Item(new Item.Properties().group(ItemGroup.FOOD).food(Food.Builder().hunger(6).saturation(8.1F).build()).rarity(Rarity.UNCOMMON))
+    GOLDEN_CARROT = &registry.registerItem(
+        ResourceLocation("minecraft:golden_carrot"),
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon)
+    );
+
+    // 恶魂之泪 - 生命恢复药水材料
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    GHAST_TEAR = &registry.registerItem(
+        ResourceLocation("minecraft:ghast_tear"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 兔子脚 - 跳跃药水材料
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    RABBIT_FOOT = &registry.registerItem(
+        ResourceLocation("minecraft:rabbit_foot"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 岩浆膏 - 防火药水材料
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    MAGMA_CREAM = &registry.registerItem(
+        ResourceLocation("minecraft:magma_cream"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 龙息 - 滞留药水材料
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS).rarity(Rarity.UNCOMMON))
+    DRAGON_BREATH = &registry.registerItem(
+        ResourceLocation("minecraft:dragon_breath"),
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon)
+    );
+
+    // 河豚 - 水下呼吸药水材料（也是食物，有毒性）
+    // 参考: new Item(new Item.Properties().group(ItemGroup.FOOD).food(Food.Builder().hunger(1).saturation(0.2F).effect(new EffectInstance(Effects.POISON, 60, 0), 1.0F).build()))
+    PUFFERFISH = &registry.registerItem(
+        ResourceLocation("minecraft:pufferfish"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 海龟壳 - 海龟大师药水材料（装备，但也可用于酿造）
+    // 参考: new ArmorItem(ArmorMaterial.TURTLE, EquipmentSlotType.HEAD, new Item.Properties().group(ItemGroup.COMBAT))
+    TURTLE_HELMET = &registry.registerItem(
+        ResourceLocation("minecraft:turtle_helmet"),
+        ItemProperties().maxStackSize(1).maxDamage(275)
+    );
+
+    // 闪烁的西瓜片 - 瞬间治疗药水材料
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    GLISTERING_MELON_SLICE = &registry.registerItem(
+        ResourceLocation("minecraft:glistering_melon_slice"),
+        ItemProperties().maxStackSize(64)
+    );
+}
+
+void Items::registerPotions() {
+    auto& registry = ItemRegistry::instance();
+
+    // 玻璃瓶 - 用于装水和酿造
+    // 参考: new GlassBottleItem(new Item.Properties().group(ItemGroup.BREWING))
+    GLASS_BOTTLE = &registry.registerItem(
+        ResourceLocation("minecraft:glass_bottle"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 药水 - 饮用药水
+    // 参考: new PotionItem(new Item.Properties().group(ItemGroup.BREWING))
+    POTION = &registry.registerItem<item::PotionItem>(
+        ResourceLocation("minecraft:potion"),
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 喷溅药水 - 投掷药水
+    // 参考: new SplashPotionItem(new Item.Properties().group(ItemGroup.BREWING))
+    SPLASH_POTION = &registry.registerItem<item::SplashPotionItem>(
+        ResourceLocation("minecraft:splash_potion"),
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 滞留药水 - 留下效果云
+    // 参考: new LingeringPotionItem(new Item.Properties().group(ItemGroup.BREWING))
+    LINGERING_POTION = &registry.registerItem<item::LingeringPotionItem>(
+        ResourceLocation("minecraft:lingering_potion"),
+        ItemProperties().maxStackSize(1)
     );
 }
 

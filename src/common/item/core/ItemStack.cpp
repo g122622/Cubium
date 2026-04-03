@@ -190,6 +190,8 @@ ItemStack ItemStack::copy() const {
     }
     ItemStack result(*m_item, m_count);
     result.m_damage = m_damage;
+    result.m_customName = m_customName;
+    result.m_potionId = m_potionId;
     // 复制附魔
     result.m_enchantments = m_enchantments;
     return result;
@@ -321,6 +323,10 @@ nlohmann::json ItemStack::toJson() const {
         json["CustomName"] = m_customName;
     }
 
+    if (!m_potionId.empty()) {
+        json["Potion"] = m_potionId;
+    }
+
     return json;
 }
 
@@ -360,6 +366,10 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
 
     if (json.contains("CustomName") && json["CustomName"].is_string()) {
         stack.m_customName = json["CustomName"].get<String>();
+    }
+
+    if (json.contains("Potion") && json["Potion"].is_string()) {
+        stack.m_potionId = json["Potion"].get<String>();
     }
 
     return stack;

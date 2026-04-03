@@ -278,6 +278,19 @@ add_library(mc_common STATIC
     item/items/tool/HoeItem.cpp
     item/items/tool/SwordItem.cpp
 
+    # Item - Potion System
+    item/potion/Potion.cpp
+    item/potion/PotionRegistry.cpp
+    item/potion/Potions.cpp
+    item/potion/PotionUtils.cpp
+    item/potion/PotionBrewing.cpp
+
+    # Item - Potion Items
+    item/items/potion/PotionItem.cpp
+    item/items/potion/SplashPotionItem.cpp
+    item/items/potion/LingeringPotionItem.cpp
+    item/items/potion/GlassBottleItem.cpp
+
     # Item - Crafting
     item/crafting/Ingredient.cpp
     item/crafting/RecipeType.cpp
@@ -381,6 +394,7 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/LadderBlock.cpp
     world/block/blocks/decorative/FlowerPotBlock.cpp
     world/block/blocks/decorative/ScaffoldingBlock.cpp
+    world/block/blocks/decorative/CampfireBlock.cpp
 
     # World - Block - Vegetation
     world/block/blocks/vegetation/DoublePlantBlock.cpp

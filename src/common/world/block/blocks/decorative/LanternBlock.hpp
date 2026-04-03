@@ -23,8 +23,9 @@ public:
     /**
      * @brief 构造函数
      * @param properties 方块属性
+     * @param lightValue 光照等级（默认15）
      */
-    explicit LanternBlock(const BlockProperties& properties);
+    explicit LanternBlock(BlockProperties properties, u8 lightValue = 15);
 
     // ========== 状态创建 ==========
 
@@ -60,6 +61,29 @@ public:
      * @brief 获取形状
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    // ========== 光照 ==========
+
+    /**
+     * @brief 获取光照等级
+     *
+     * 普通灯笼始终发出15级光照。
+     * 灵魂灯笼的光照等级在构造函数中通过属性设置。
+     *
+     * @param state 方块状态
+     * @param world 世界（可选）
+     * @param pos 位置（可选）
+     * @return 光照等级
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const override {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return m_lightValue;
+    }
 
 protected:
     /// 悬挂形状

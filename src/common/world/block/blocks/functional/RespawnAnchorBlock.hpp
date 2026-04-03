@@ -99,6 +99,28 @@ public:
      */
     static void discharge(IWorld& world, const BlockPos& pos, BlockState& state);
 
+    // ========== 动态光照 ==========
+
+    /**
+     * @brief 获取动态光照等级
+     *
+     * 重生锚的光照等级根据充能等级变化：
+     * - 0级: 0
+     * - 1级: 3
+     * - 2级: 7
+     * - 3级: 11
+     * - 4级: 15
+     *
+     * @param state 方块状态
+     * @param world 世界（可选）
+     * @param pos 位置（可选）
+     * @return 光照等级 (0-15)
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const override;
+
 protected:
     /// 重生锚形状
     CollisionShape m_shape;

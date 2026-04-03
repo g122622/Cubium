@@ -12,6 +12,10 @@
 #include "blocks/building/TrapDoorBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ocean/DriedKelpBlock.hpp"
+#include "blocks/decorative/LanternBlock.hpp"
+#include "blocks/decorative/CampfireBlock.hpp"
+#include "blocks/functional/BeaconBlock.hpp"
+#include "blocks/functional/BrewingStandBlock.hpp"
 #include "blocks/redstone/RedstoneWireBlock.hpp"
 #include "blocks/redstone/RedstoneTorchBlock.hpp"
 #include "blocks/redstone/RedstoneWallTorchBlock.hpp"
@@ -233,6 +237,14 @@ Block* VanillaBlocks::NETHER_PORTAL = nullptr;
 Block* VanillaBlocks::END_PORTAL = nullptr;
 Block* VanillaBlocks::END_PORTAL_FRAME = nullptr;
 Block* VanillaBlocks::END_GATEWAY = nullptr;
+Block* VanillaBlocks::BEACON = nullptr;
+Block* VanillaBlocks::BREWING_STAND = nullptr;
+Block* VanillaBlocks::ENDER_CHEST = nullptr;
+Block* VanillaBlocks::LANTERN = nullptr;
+Block* VanillaBlocks::SOUL_LANTERN = nullptr;
+Block* VanillaBlocks::CAMPFIRE = nullptr;
+Block* VanillaBlocks::SOUL_CAMPFIRE = nullptr;
+Block* VanillaBlocks::JACK_O_LANTERN = nullptr;
 
 // 红石方块
 Block* VanillaBlocks::REDSTONE_WIRE = nullptr;
@@ -1562,10 +1574,10 @@ void VanillaBlocks::registerEndBlocks() {
     );
 
     // 末地传送门框架 - 放置末影之眼激活传送门
-    // 参考: new EndPortalFrameBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F))
+    // 参考: new EndPortalFrameBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F).setLightLevel(1))
     END_PORTAL_FRAME = &registry.registerBlock<blocks::EndPortalFrameBlock>(
         ResourceLocation("minecraft:end_portal_frame"),
-        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f)
+        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).lightLevel(1)
     );
 
     // 末地折跃门 - 在末地之间传送
@@ -1590,10 +1602,69 @@ void VanillaBlocks::registerEndBlocks() {
     );
 
     // 龙蛋 - 末影龙掉落物
-    // 参考: new DragonEggBlock(Properties.create(Material.DRAGON_EGG).hardnessAndResistance(3.0F).setLightLevel(15))
+    // 参考: new DragonEggBlock(Properties.create(Material.DRAGON_EGG).hardnessAndResistance(3.0F).setLightLevel(1))
     DRAGON_EGG = &registry.registerBlock<blocks::DragonEggBlock>(
         ResourceLocation("minecraft:dragon_egg"),
-        BlockProperties(Material::ROCK).hardness(3.0f).lightLevel(0)
+        BlockProperties(Material::ROCK).hardness(3.0f).lightLevel(1)
+    );
+
+    // 信标 - 发光15级（通过 getLightLevel）
+    // 参考: new BeaconBlock(Properties.create(Material.GLASS).setLightLevel(15))
+    BEACON = &registry.registerBlock<blocks::BeaconBlock>(
+        ResourceLocation("minecraft:beacon"),
+        BlockProperties(Material::GLASS).hardness(3.0f)
+    );
+
+    // 酿造台 - 发光1级（通过 getLightLevel）
+    // 参考: new BrewingStandBlock(Properties.create(Material.IRON).setLightLevel(1))
+    BREWING_STAND = &registry.registerBlock<blocks::BrewingStandBlock>(
+        ResourceLocation("minecraft:brewing_stand"),
+        BlockProperties(Material::IRON).hardness(0.5f)
+    );
+
+    // 末影箱 - 发光7级
+    // 参考: new EnderChestBlock(Properties.create(Material.ROCK).hardnessAndResistance(22.5F).setLightLevel(7))
+    ENDER_CHEST = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:ender_chest"),
+        BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7)
+    );
+
+    // 灯笼 - 发光15级（通过构造函数参数）
+    // 参考: new LanternBlock(Properties.create(Material.IRON).hardnessAndResistance(3.5F).setLightLevel(15))
+    LANTERN = &registry.registerBlock<blocks::LanternBlock>(
+        ResourceLocation("minecraft:lantern"),
+        BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f),
+        15  // 光照等级
+    );
+
+    // 灵魂灯笼 - 发光10级（通过构造函数参数）
+    // 参考: new LanternBlock(Properties.create(Material.IRON).hardnessAndResistance(3.5F).setLightLevel(10))
+    SOUL_LANTERN = &registry.registerBlock<blocks::LanternBlock>(
+        ResourceLocation("minecraft:soul_lantern"),
+        BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f),
+        10  // 光照等级
+    );
+
+    // 营火 - 发光15级（点燃时，通过 getLightLevel 动态计算）
+    // 参考: new CampfireBlock(Properties.create(Material.WOOD).hardness(2.0F).setLightLevel(15))
+    CAMPFIRE = &registry.registerBlock<blocks::CampfireBlock>(
+        ResourceLocation("minecraft:campfire"),
+        BlockProperties(Material::WOOD).hardness(2.0f),
+        15  // 点燃时光照等级
+    );
+
+    // 灵魂营火 - 发光10级（点燃时，通过 getLightLevel 动态计算）
+    // 参考: new CampfireBlock(Properties.create(Material.WOOD).hardness(2.0F).setLightLevel(10))
+    SOUL_CAMPFIRE = &registry.registerBlock<blocks::SoulCampfireBlock>(
+        ResourceLocation("minecraft:soul_campfire"),
+        BlockProperties(Material::WOOD).hardness(2.0f)
+    );
+
+    // 南瓜灯 - 发光15级
+    // 参考: new Block(Properties.create(Material.GOURD).hardness(1.0F).setLightLevel(15))
+    JACK_O_LANTERN = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:jack_o_lantern"),
+        BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15)
     );
 }
 

@@ -52,6 +52,28 @@ public:
         return false;
     }
 
+    // ========== 光照 ==========
+
+    /**
+     * @brief 获取光照等级
+     *
+     * 酿造台始终发出1级光照。
+     *
+     * @param state 方块状态
+     * @param world 世界（可选）
+     * @param pos 位置（可选）
+     * @return 光照等级 (1)
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const override {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return 1;
+    }
+
     // ========== 红石 ==========
 
     [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {

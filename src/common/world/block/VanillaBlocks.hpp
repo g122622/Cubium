@@ -291,6 +291,14 @@ public:
     static Block* END_PORTAL;         // 末地传送门
     static Block* END_PORTAL_FRAME;   // 末地传送门框架
     static Block* END_GATEWAY;        // 末地折跃门
+    static Block* BEACON;             // 信标
+    static Block* BREWING_STAND;      // 酿造台
+    static Block* ENDER_CHEST;        // 末影箱
+    static Block* LANTERN;            // 灯笼
+    static Block* SOUL_LANTERN;       // 灵魂灯笼
+    static Block* CAMPFIRE;           // 营火
+    static Block* SOUL_CAMPFIRE;      // 灵魂营火
+    static Block* JACK_O_LANTERN;     // 南瓜灯
 
     // ========================================================================
     // 红石方块

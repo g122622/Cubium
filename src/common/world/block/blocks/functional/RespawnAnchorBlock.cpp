@@ -65,6 +65,20 @@ int RespawnAnchorBlock::getComparatorInputOverride(
     return getCharges(state);
 }
 
+u8 RespawnAnchorBlock::getLightLevel(
+    const BlockState& state,
+    IWorld* world,
+    const BlockPos* pos) const {
+
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 光照等级 = charges * 3.75，向下取整
+    // 0 -> 0, 1 -> 3, 2 -> 7, 3 -> 11, 4 -> 15
+    int charges = getCharges(state);
+    return static_cast<u8>(std::floor(charges * 3.75f));
+}
+
 BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockState& state) {
     int charges = getCharges(state);
     if (charges < 4) {

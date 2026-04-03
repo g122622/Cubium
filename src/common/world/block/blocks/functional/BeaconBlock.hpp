@@ -38,6 +38,28 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    // ========== 光照 ==========
+
+    /**
+     * @brief 获取光照等级
+     *
+     * 信标始终发出15级光照。
+     *
+     * @param state 方块状态
+     * @param world 世界（可选）
+     * @param pos 位置（可选）
+     * @return 光照等级 (15)
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const override {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return 15;
+    }
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override {

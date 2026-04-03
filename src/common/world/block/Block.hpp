@@ -635,6 +635,28 @@ public:
     [[nodiscard]] u8 lightLevel() const { return m_lightLevel; }
 
     /**
+     * @brief 获取方块状态的动态光照等级
+     *
+     * 默认返回静态光照等级，子类可重写以实现状态相关的动态光照。
+     * 例如：熔炉在燃烧时发光、重生锚根据充能等级发光。
+     *
+     * @param state 方块状态
+     * @param world 世界（可选，用于上下文感知）
+     * @param pos 位置（可选）
+     * @return 光照等级 (0-15)
+     *
+     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getLightValue
+     */
+    [[nodiscard]] virtual u8 getLightLevel(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return state.lightLevel();
+    }
+
+    /**
      * @brief 获取光照透明度 (0-15)
      */
     [[nodiscard]] i32 opacity() const { return m_opacity; }

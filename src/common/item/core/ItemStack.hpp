@@ -8,6 +8,13 @@
 #include <optional>
 #include <nlohmann/json.hpp>
 
+// Forward declarations
+namespace mc {
+namespace potion {
+class PotionUtils;
+}
+}
+
 namespace mc {
 
 // Forward declarations
@@ -324,6 +331,10 @@ private:
     i32 m_damage = 0;       // 已承受的伤害（耐久度）
     String m_customName;    // 自定义名称（铁砧重命名）
     item::enchant::EnchantmentContainer m_enchantments;  // 附魔容器
+    String m_potionId;      // 药水ID（用于药水物品）
+
+    // 允许 PotionUtils 访问私有成员
+    friend class potion::PotionUtils;
 };
 
 } // namespace mc

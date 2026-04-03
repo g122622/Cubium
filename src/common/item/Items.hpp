@@ -277,6 +277,27 @@ public:
     static Item* PHANTOM_MEMBRANE;       // 幻翼膜 - 幻翼掉落
     static Item* DRIED_KELP;             // 干海带 - 食物
 
+    // ========================================================================
+    // 酿造材料
+    // ========================================================================
+    static Item* NETHER_WART;            // 地狱疣 - 酿造基础材料
+    static Item* GOLDEN_CARROT;          // 金胡萝卜 - 夜视药水
+    static Item* GHAST_TEAR;             // 恶魂之泪 - 生命恢复药水
+    static Item* RABBIT_FOOT;            // 兔子脚 - 跳跃药水
+    static Item* MAGMA_CREAM;            // 岩浆膏 - 防火药水
+    static Item* DRAGON_BREATH;          // 龙息 - 滞留药水
+    static Item* PUFFERFISH;             // 河豚 - 水下呼吸药水
+    static Item* TURTLE_HELMET;          // 海龟壳 - 海龟大师药水
+    static Item* GLISTERING_MELON_SLICE; // 闪烁的西瓜片 - 瞬间治疗药水
+
+    // ========================================================================
+    // 药水相关
+    // ========================================================================
+    static Item* GLASS_BOTTLE;           // 玻璃瓶
+    static Item* POTION;                 // 药水
+    static Item* SPLASH_POTION;          // 喷溅药水
+    static Item* LINGERING_POTION;       // 滞留药水
+
 private:
     static bool s_initialized;
 
@@ -289,6 +310,8 @@ private:
     static void registerSeeds();
     static void registerCrops();
     static void registerAquaticMaterials();
+    static void registerBrewingIngredients();
+    static void registerPotions();
 };
 
 } // namespace mc

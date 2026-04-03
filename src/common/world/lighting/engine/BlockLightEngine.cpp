@@ -266,7 +266,8 @@ i32 BlockLightEngine::getLightValue(i64 worldPos) const {
         return 0;
     }
 
-    return state->lightLevel();
+    // 使用动态光照等级（支持熔炉、重生锚等动态光源）
+    return state->getBlock().getLightLevel(*state);
 }
 
 const IChunk* BlockLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {

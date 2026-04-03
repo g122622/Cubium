@@ -210,6 +210,14 @@ public:
     }
 
     /**
+     * @brief 是否为信号火（营火）
+     */
+    static const BooleanProperty& SIGNAL_FIRE() {
+        static auto prop = BooleanProperty::create("signal_fire");
+        return *prop;
+    }
+
+    /**
      * @brief 是否向上（栅栏、墙等）
      */
     static const BooleanProperty& UP() {
@@ -332,6 +340,14 @@ public:
      */
     static const IntegerProperty& AGE_0_3() {
         static auto prop = IntegerProperty::create("age", 0, 3);
+        return *prop;
+    }
+
+    /**
+     * @brief 年龄属性 (0-4)
+     */
+    static const IntegerProperty& AGE_0_4() {
+        static auto prop = IntegerProperty::create("age", 0, 4);
         return *prop;
     }
 

@@ -6,8 +6,9 @@
 namespace mc {
 namespace blocks {
 
-LanternBlock::LanternBlock(const BlockProperties& properties)
-    : Block(properties)
+LanternBlock::LanternBlock(BlockProperties properties, u8 lightValue)
+    : Block(std::move(properties))
+    , m_lightValue(lightValue)
 {
     // 创建状态容器（HANGING 属性）
     auto container = StateContainer<Block, BlockState>::Builder(*this)

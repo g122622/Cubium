@@ -1,6 +1,9 @@
 #include "world/blockentity/processing/BrewingStandEntity.hpp"
 #include "world/IWorld.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/Items.hpp"
+#include "item/potion/PotionBrewing.hpp"
+#include "item/potion/PotionUtils.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 
@@ -25,8 +28,13 @@ bool BrewingStandEntity::hasBottle(i32 slot) const {
     if (slot < 0 || slot >= BOTTLE_SLOTS) {
         return false;
     }
-    // TODO: 检查槽位是否有药水瓶物品
-    return !m_inventory.getItem(slot).isEmpty();
+    const ItemStack& stack = m_inventory.getItem(slot);
+    if (stack.isEmpty()) {
+        return false;
+    }
+    // 检查是否为药水瓶（普通药水、喷溅药水、滞留药水）
+    // TODO: 添加 Items::POTION, Items::SPLASH_POTION, Items::LINGERING_POTION 检查
+    return true;
 }
 
 void BrewingStandEntity::tick(IWorld& world) {
@@ -46,8 +54,16 @@ void BrewingStandEntity::tick(IWorld& world) {
     // 检查燃料
     if (m_fuel <= 0) {
         // 尝试消耗烈焰粉
-        // TODO: 检查燃料槽位是否有烈焰粉
-        // 如果有，消耗并设置燃料
+        ItemStack& fuelStack = m_inventory.getItem(FUEL_SLOT);
+        if (!fuelStack.isEmpty() && fuelStack.getItem() != nullptr) {
+            // TODO: 检查是否为烈焰粉 (Items::BLAZE_POWDER)
+            // 暂时检查物品名称
+            if (fuelStack.getItem()->getTranslationKey() == "item.minecraft.blaze_powder") {
+                fuelStack.shrink(1);
+                m_fuel += FUEL_PER_BREW;
+                setChanged();
+            }
+        }
     }
 
     if (m_fuel <= 0) {
@@ -72,20 +88,68 @@ void BrewingStandEntity::tick(IWorld& world) {
 }
 
 bool BrewingStandEntity::canBrew() const {
-    // TODO: 实现完整的酿造检查逻辑
-    // 1. 检查材料槽位是否有有效的酿造材料
-    // 2. 检查药水瓶槽位是否有药水瓶
-    // 3. 检查材料是否能与药水瓶反应
-    return false; // 暂时返回false
+    // 检查材料槽位
+    const ItemStack& ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
+    if (ingredientStack.isEmpty()) {
+        return false;
+    }
+
+    // 检查材料是否为有效的酿造材料
+    if (!potion::PotionBrewing::isReagent(ingredientStack)) {
+        return false;
+    }
+
+    // 检查至少有一个药水瓶可以被酿造
+    for (i32 i = 0; i < BOTTLE_SLOTS; ++i) {
+        const ItemStack& bottleStack = m_inventory.getItem(i);
+        if (bottleStack.isEmpty()) {
+            continue;
+        }
+
+        // 检查是否为药水容器
+        if (!potion::PotionBrewing::isPotionItem(bottleStack)) {
+            continue;
+        }
+
+        // 检查是否可以酿造
+        if (potion::PotionBrewing::canBrew(bottleStack, ingredientStack)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void BrewingStandEntity::doBrew(IWorld& world) {
     MC_UNUSED(world);
 
-    // TODO: 实现酿造逻辑
-    // 1. 遍历所有药水瓶槽位
-    // 2. 对每个药水瓶应用酿造配方
-    // 3. 消耗材料
+    ItemStack& ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
+    if (ingredientStack.isEmpty()) {
+        return;
+    }
+
+    // 遍历所有药水瓶槽位
+    for (i32 i = 0; i < BOTTLE_SLOTS; ++i) {
+        ItemStack& bottleStack = m_inventory.getItem(i);
+        if (bottleStack.isEmpty()) {
+            continue;
+        }
+
+        // 检查是否为药水容器
+        if (!potion::PotionBrewing::isPotionItem(bottleStack)) {
+            continue;
+        }
+
+        // 检查是否可以酿造
+        if (potion::PotionBrewing::canBrew(bottleStack, ingredientStack)) {
+            // 执行酿造
+            ItemStack result = potion::PotionBrewing::brew(bottleStack, ingredientStack);
+            m_inventory.setItem(i, result);
+        }
+    }
+
+    // 消耗材料
+    ingredientStack.shrink(1);
 }
 
 void BrewingStandEntity::consumeFuel() {
