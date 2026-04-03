@@ -2,6 +2,8 @@
 #include "server/world/ServerWorld.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include <thread>
 #include <atomic>
 
@@ -254,6 +256,36 @@ TEST_F(ServerWorldTest, SetConfig) {
 
     EXPECT_EQ(world->config().viewDistance, 16);
     EXPECT_EQ(world->config().dimension, 2);
+}
+
+TEST_F(ServerWorldTest, Initialize_AppliesConfiguredViewDistance) {
+    ServerWorldConfig config;
+    config.viewDistance = 18;
+    config.dimension = 0;
+    config.seed = 12345;
+
+    ServerWorld configuredWorld(config);
+    auto result = configuredWorld.initialize();
+    ASSERT_TRUE(result.success());
+    ASSERT_NE(configuredWorld.chunkManager(), nullptr);
+    EXPECT_EQ(configuredWorld.chunkManager()->viewDistance(), 18);
+}
+
+TEST_F(ServerWorldTest, SetChunkManager_AppliesConfiguredViewDistance) {
+    ServerWorldConfig config;
+    config.viewDistance = 18;
+    config.dimension = 0;
+    config.seed = 67890;
+
+    ServerWorld configuredWorld(config);
+
+    auto generator = std::make_unique<NoiseChunkGenerator>(config.seed, DimensionSettings::overworld());
+    auto chunkManager = std::make_unique<ServerChunkManager>(configuredWorld, std::move(generator));
+    ASSERT_NE(chunkManager, nullptr);
+
+    configuredWorld.setChunkManager(std::move(chunkManager));
+    ASSERT_NE(configuredWorld.chunkManager(), nullptr);
+    EXPECT_EQ(configuredWorld.chunkManager()->viewDistance(), 18);
 }
 
 // ============================================================================

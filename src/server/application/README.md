@@ -88,6 +88,12 @@ src/server/application/
 - Single player only (`maxPlayers = 1`)
 - Direct inventory management (`m_clientInventory`)
 - Container menu handling (`m_openMenu`)
+- World type routing:
+    - `Default` -> `NoiseChunkGenerator + DimensionSettings::overworld()`
+    - `Flat` -> `NoiseChunkGenerator + DimensionSettings::flat()`
+    - `LargeBiomes` -> `NoiseChunkGenerator + LayerBiomeProvider(seed, true)`
+    - `Amplified` -> `NoiseChunkGenerator + NoiseSettings::amplified()`
+    - `Debug` -> `DebugChunkGenerator`
 
 **Configuration (`IntegratedServerConfig`):**
 ```cpp

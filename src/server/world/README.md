@@ -403,8 +403,9 @@ world.initialize();
 // 设置区块管理器
 auto chunkManager = std::make_unique<ServerChunkManager>(world, std::move(generator));
 chunkManager->initialize();
-chunkManager->startWorkers(4);
+chunkManager->startWorkers();
 world.setChunkManager(std::move(chunkManager));
+// 注意：setChunkManager 会自动将 ServerWorldConfig.viewDistance 同步到新管理器
 
 // 主循环
 while (running) {
@@ -489,6 +490,12 @@ if (weather.hasWeatherChanged()) {
 chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, ChunkCoord z) {
     lightSyncManager.initializeChunkLighting(x, z);
 });
+
+### 7. 替换 ChunkManager 时视距回退
+
+**问题**：替换 `ServerChunkManager` 后，如果未同步 `viewDistance`，新管理器会使用默认值 10，导致首帧加载区块数量异常。
+
+**解决方案**：`ServerWorld::setChunkManager()` 现在会自动同步 `ServerWorldConfig.viewDistance`，无需在调用方重复设置。
 ```
 
 ---

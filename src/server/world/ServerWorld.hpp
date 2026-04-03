@@ -235,7 +235,7 @@ public:
 
     // ========== 区块管理器设置 ==========
 
-    void setChunkManager(std::unique_ptr<ServerChunkManager> manager) { m_chunkManager = std::move(manager); }
+    void setChunkManager(std::unique_ptr<ServerChunkManager> manager);
 
     // ========== 光照变化回调 ==========
 

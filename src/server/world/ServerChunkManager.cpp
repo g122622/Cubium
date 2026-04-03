@@ -183,9 +183,8 @@ void ServerChunkManager::shutdown()
 // Worker 管理
 // ============================================================================
 
-void ServerChunkManager::startWorkers(i32 count)
+void ServerChunkManager::startWorkers()
 {
-    (void)count;
     // 设置生成器函数
     m_workerPool.setGenerator([this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
         // 创建 WorldGenRegion（简化版）

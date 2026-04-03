@@ -142,8 +142,8 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     auto chunkGenerator = std::make_unique<NoiseChunkGenerator>(
         static_cast<u64>(std::stoll(m_settings.levelSeed.get())), DimensionSettings::overworld());
     auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
+    chunkManager->setViewDistance(m_settings.viewDistance.get());
     chunkManager->initialize();
-    chunkManager->startWorkers(4);
     m_world->setChunkManager(std::move(chunkManager));
 
     // 创建光照管理器
@@ -156,9 +156,6 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         return Error(ErrorCode::InitializationFailed,
                      "Failed to initialize world: " + worldResult.error().message());
     }
-
-    // 设置世界回调
-    setupWorldCallbacks();
 
     // 初始化交互管理器
     initializeInteractionManagers();

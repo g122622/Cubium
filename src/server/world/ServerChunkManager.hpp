@@ -30,7 +30,7 @@ class ChunkSendManager;
  * @code
  * ServerChunkManager manager(world, std::move(generator));
  * manager.initialize();
- * manager.startWorkers(4);
+ * manager.startWorkers();
  *
  * // 获取区块（同步）
  * ChunkData* chunk = manager.getChunk(x, z);
@@ -90,9 +90,8 @@ public:
 
     /**
      * @brief 启动 Worker 线程
-     * @param count 线程数量（-1 表示自动）
      */
-    void startWorkers(i32 count = -1);
+    void startWorkers();
 
     /**
      * @brief 停止 Worker 线程

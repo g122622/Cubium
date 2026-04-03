@@ -72,7 +72,7 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities) {
     });
 
     // 启动工作线程
-    m_manager->startWorkers(1);
+    m_manager->startWorkers();
 
     // 同步生成一个区块（会触发实体生成）
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
@@ -104,7 +104,7 @@ TEST_F(ServerChunkManagerCallbackTest, MultipleChunksGenerate) {
         totalEntities += static_cast<int>(entities.size());
     });
 
-    m_manager->startWorkers(2);
+    m_manager->startWorkers();
 
     // 生成多个区块
     ChunkData* chunk1 = m_manager->getChunkSync(0, 0);
@@ -139,7 +139,7 @@ TEST_F(ServerChunkManagerCallbackTest, AsyncGenerateWithCallback) {
         callbackCompleted = true;
     });
 
-    m_manager->startWorkers(1);
+    m_manager->startWorkers();
 
     // 异步生成
     auto future = m_manager->getChunkAsync(5, 5);
@@ -189,7 +189,7 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback) {
     // 重置为空回调
     m_manager->setEntitySpawnCallback(nullptr);
 
-    m_manager->startWorkers(1);
+    m_manager->startWorkers();
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
@@ -210,7 +210,7 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback) {
 // ============================================================================
 
 TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
-    m_manager->startWorkers(1);
+    m_manager->startWorkers();
 
     EXPECT_EQ(m_manager->loadedChunkCount(), 0u);
 
@@ -225,7 +225,7 @@ TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
 }
 
 TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount) {
-    m_manager->startWorkers(1);
+    m_manager->startWorkers();
 
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
 

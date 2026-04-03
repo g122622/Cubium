@@ -7,6 +7,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
+#include "common/world/biome/layer/LayerUtil.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -136,22 +137,25 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
             chunkGenerator = std::make_unique<DebugChunkGenerator>();
             break;
         case WorldType::Flat:
-            // TODO: 实现 FlatChunkGenerator
-            spdlog::warn("FlatChunkGenerator not implemented, using NoiseChunkGenerator");
+            spdlog::info("Using flat world settings");
             chunkGenerator = std::make_unique<NoiseChunkGenerator>(
                 static_cast<u64>(config.seed), DimensionSettings::flat());
             break;
         case WorldType::LargeBiomes:
-            // TODO: 实现大型生物群系
-            spdlog::info("Using NoiseChunkGenerator with large biomes (not yet implemented)");
+            spdlog::info("Using large biomes world settings");
             chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                static_cast<u64>(config.seed), DimensionSettings::overworld());
+                static_cast<u64>(config.seed),
+                DimensionSettings::overworld(),
+                std::make_unique<LayerBiomeProvider>(static_cast<u64>(config.seed), true));
             break;
         case WorldType::Amplified:
-            // TODO: 实现放大化地形
-            spdlog::info("Using NoiseChunkGenerator with amplified settings (not yet implemented)");
-            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                static_cast<u64>(config.seed), DimensionSettings::overworld());
+            spdlog::info("Using amplified world settings");
+            {
+                DimensionSettings amplifiedSettings = DimensionSettings::overworld();
+                amplifiedSettings.noise = NoiseSettings::amplified();
+                chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                    static_cast<u64>(config.seed), std::move(amplifiedSettings));
+            }
             break;
         case WorldType::Default:
         default:
@@ -161,8 +165,8 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
             break;
     }
     auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
+    chunkManager->setViewDistance(config.viewDistance);
     chunkManager->initialize();
-    chunkManager->startWorkers(4);
     m_world->setChunkManager(std::move(chunkManager));
 
     // 创建光照管理器

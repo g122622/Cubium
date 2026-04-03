@@ -41,6 +41,7 @@ ServerWorld::ServerWorld()
         DimensionSettings::overworld()
     );
     m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
+    m_chunkManager->setViewDistance(m_config.viewDistance);
 }
 
 ServerWorld::ServerWorld(const ServerWorldConfig& config)
@@ -51,6 +52,7 @@ ServerWorld::ServerWorld(const ServerWorldConfig& config)
         DimensionSettings::overworld()
     );
     m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
+    m_chunkManager->setViewDistance(m_config.viewDistance);
 }
 
 ServerWorld::~ServerWorld()
@@ -72,7 +74,11 @@ Result<void> ServerWorld::initialize()
             DimensionSettings::overworld()
         );
         m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
+        m_chunkManager->setViewDistance(m_config.viewDistance);
     }
+
+    // 确保区块管理器始终使用世界配置中的视距。
+    m_chunkManager->setViewDistance(m_config.viewDistance);
 
     m_chunkManager->setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
         initializeChunkLighting(x, z);
@@ -145,6 +151,15 @@ void ServerWorld::setConfig(const ServerWorldConfig& config)
     m_config = config;
     if (m_chunkManager) {
         m_chunkManager->setViewDistance(config.viewDistance);
+    }
+}
+
+void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)
+{
+    m_chunkManager = std::move(manager);
+    if (m_chunkManager) {
+        // 替换区块管理器时同步当前世界视距，避免回落到默认值。
+        m_chunkManager->setViewDistance(m_config.viewDistance);
     }
 }
 
