@@ -46,7 +46,7 @@ src/common/world/gen/surface/
 - `sand()` - 沙地配置（沙子/沙子/沙子）
 - `stone()` - 石头配置（石头/石头/石头）
 - `gravel()` - 沙砾配置（沙砾/沙砾/沙砾）
-- `redSand()` - 红沙配置（红砂岩替代）
+- `redSand()` - 红沙配置（红沙/红沙/红沙）
 
 #### SurfaceBuilder 抽象基类
 ```cpp
@@ -97,10 +97,10 @@ public:
 |--------|------|-------------|---------|
 | `DefaultSurfaceBuilder` | `default` | 平原、森林等 | 标准草地/泥土层，水下用沙砾 |
 | `MountainSurfaceBuilder` | `mountain` | 山地、雪山 | 高海拔生成雪，温度<0.15且Y>90 |
-| `DesertSurfaceBuilder` | `desert` | 沙漠 | 沙子表层，石头作为砂岩替代 |
+| `DesertSurfaceBuilder` | `desert` | 沙漠 | 沙子表层，砂岩次层 |
 | `SwampSurfaceBuilder` | `swamp` | 沼泽 | 水下生成粘土斑块（噪声>0.5） |
 | `FrozenOceanSurfaceBuilder` | `frozen_ocean` | 冻洋 | 海平面生成冰层 |
-| `BadlandsSurfaceBuilder` | `badlands` | 恶地 | 红沙表层，陶瓦层（用圆石替代） |
+| `BadlandsSurfaceBuilder` | `badlands` | 恶地 | 红沙表层，分层彩色陶瓦带 |
 | `BeachSurfaceBuilder` | `beach` | 海滩 | 海平面±2格使用沙子 |
 | `GiantTreeTaigaSurfaceBuilder` | `giant_tree_taiga` | 巨型针叶林 | 灰化土表层，砂土次层 |
 | `ShatteredSavannaSurfaceBuilder` | `shattered_savanna` | 破碎热带草原 | 30%概率生成石头斑块 |
@@ -310,31 +310,25 @@ if (!topState || !underState || !underWaterState || !defaultBlock) {
 }
 ```
 
-### 2. 红沙方块未定义
+### 2. 恶地色带连续性
 
-**问题**: `VanillaBlocks::RED_SAND` 尚未定义，`SurfaceBuilderConfig::redSand()` 使用 `RED_SANDSTONE` 作为替代。
+**问题**: 恶地陶瓦色带依赖世界坐标，如果误用区块内坐标会在区块边界出现明显断层。
 
-**解决方案**: 待红沙方块实现后，更新预设配置。
+**解决方案**: 在 `BadlandsSurfaceBuilder` 中使用世界坐标（`chunk.x()*16 + x`、`chunk.z()*16 + z`）计算色带。
 
-### 3. 陶瓦方块未完全实现
-
-**问题**: 恶地生物群系需要彩色陶瓦，当前使用圆石作为替代。
-
-**解决方案**: 待陶瓦系统实现后，更新 `BadlandsSurfaceBuilder`。
-
-### 4. 区块坐标范围
+### 3. 区块坐标范围
 
 **问题**: `buildSurface()` 的 `x` 和 `z` 参数是区块内坐标 (0-15)，不是世界坐标。
 
 **解决方案**: 调用时确保使用正确的坐标转换。
 
-### 5. 噪声值范围
+### 4. 噪声值范围
 
 **问题**: `surfaceNoise` 参数直接影响地表深度，过大或过小可能导致异常。
 
 **解决方案**: 确保噪声值在合理范围内（通常由区块生成器控制）。
 
-### 6. 生物群系温度判断
+### 5. 生物群系温度判断
 
 **问题**: `MountainSurfaceBuilder` 中的 `shouldPlaceSnow()` 依赖生物群系温度。
 
@@ -350,14 +344,14 @@ if (!topState || !underState || !underWaterState || !defaultBlock) {
 
 | 测试套件 | 测试数量 | 覆盖内容 |
 |----------|---------|---------|
-| `SurfaceBuilderConfigTest` | 6 | 默认值、自定义值、预设配置 |
+| `SurfaceBuilderConfigTest` | 7 | 默认值、自定义值、预设配置 |
 | `RandomTest` | 4 | 随机数范围、可重复性 |
 | `DefaultSurfaceBuilderTest` | 2 | 名称、基本构建功能 |
 | `MountainSurfaceBuilderTest` | 1 | 名称 |
 | `DesertSurfaceBuilderTest` | 2 | 名称、沙漠地表构建 |
 | `SwampSurfaceBuilderTest` | 1 | 名称 |
 | `FrozenOceanSurfaceBuilderTest` | 1 | 名称 |
-| `BadlandsSurfaceBuilderTest` | 1 | 名称 |
+| `BadlandsSurfaceBuilderTest` | 2 | 名称、红沙+陶瓦层构建 |
 | `BeachSurfaceBuilderTest` | 1 | 名称 |
 | `SurfaceBuilderPolymorphismTest` | 2 | 多态性、所有构建器有效性 |
 

@@ -10,6 +10,34 @@
 
 using namespace mc;
 
+namespace {
+
+[[nodiscard]] bool isTerracottaState(const BlockState* state) {
+    if (state == nullptr) {
+        return false;
+    }
+
+    return state->is(VanillaBlocks::TERRACOTTA) ||
+           state->is(VanillaBlocks::WHITE_TERRACOTTA) ||
+           state->is(VanillaBlocks::ORANGE_TERRACOTTA) ||
+           state->is(VanillaBlocks::MAGENTA_TERRACOTTA) ||
+           state->is(VanillaBlocks::LIGHT_BLUE_TERRACOTTA) ||
+           state->is(VanillaBlocks::YELLOW_TERRACOTTA) ||
+           state->is(VanillaBlocks::LIME_TERRACOTTA) ||
+           state->is(VanillaBlocks::PINK_TERRACOTTA) ||
+           state->is(VanillaBlocks::GRAY_TERRACOTTA) ||
+           state->is(VanillaBlocks::LIGHT_GRAY_TERRACOTTA) ||
+           state->is(VanillaBlocks::CYAN_TERRACOTTA) ||
+           state->is(VanillaBlocks::PURPLE_TERRACOTTA) ||
+           state->is(VanillaBlocks::BLUE_TERRACOTTA) ||
+           state->is(VanillaBlocks::BROWN_TERRACOTTA) ||
+           state->is(VanillaBlocks::GREEN_TERRACOTTA) ||
+           state->is(VanillaBlocks::RED_TERRACOTTA) ||
+           state->is(VanillaBlocks::BLACK_TERRACOTTA);
+}
+
+} // namespace
+
 // ============================================================================
 // SurfaceBuilderConfig 测试
 // ============================================================================
@@ -69,10 +97,12 @@ TEST_F(SurfaceBuilderConfigTest, GravelPreset) {
 
 TEST_F(SurfaceBuilderConfigTest, RedSandPreset) {
     auto config = SurfaceBuilderConfig::redSand();
-    // RED_SAND not defined yet, uses RED_SANDSTONE
     ASSERT_NE(config.topBlock, nullptr);
     ASSERT_NE(config.underBlock, nullptr);
     ASSERT_NE(config.underWaterBlock, nullptr);
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::RED_SAND));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::RED_SAND));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::RED_SAND));
 }
 
 // ============================================================================
@@ -347,6 +377,45 @@ protected:
 
 TEST_F(BadlandsSurfaceBuilderTest, Name) {
     EXPECT_STREQ(builder->name(), "badlands");
+}
+
+TEST_F(BadlandsSurfaceBuilderTest, BuildSurfaceUsesRedSandAndTerracotta) {
+    ChunkPrimer chunk(0, 0);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* air = &VanillaBlocks::AIR->defaultState();
+
+    for (int y = 0; y < 64; ++y) {
+        chunk.setBlock(8, y, 8, stone);
+    }
+
+    for (int y = 64; y < 256; ++y) {
+        chunk.setBlock(8, y, 8, air);
+    }
+
+    const Biome& biome = BiomeRegistry::instance().get(Biomes::Badlands);
+    auto config = SurfaceBuilderConfig::redSand();
+
+    builder->buildSurface(
+        *random,
+        chunk,
+        biome,
+        8,
+        8,
+        63,
+        0.5f,
+        stone,
+        &VanillaBlocks::WATER->defaultState(),
+        63,
+        config
+    );
+
+    const BlockState* topBlock = chunk.getBlock(8, 63, 8);
+    ASSERT_NE(topBlock, nullptr);
+    EXPECT_TRUE(topBlock->is(VanillaBlocks::RED_SAND));
+
+    const BlockState* underBlock = chunk.getBlock(8, 62, 8);
+    ASSERT_NE(underBlock, nullptr);
+    EXPECT_TRUE(isTerracottaState(underBlock));
 }
 
 // 注意：BadlandsSurfaceBuilder 不再提供 getTerracottaLayer 方法

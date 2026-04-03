@@ -4,8 +4,101 @@
 #include "../../block/VanillaBlocks.hpp"
 #include "../../biome/Biome.hpp"
 #include <algorithm>
+#include <array>
+#include <cmath>
 
 namespace mc {
+
+namespace {
+
+[[nodiscard]] const BlockState* getStateOrNull(Block* block) {
+    return block != nullptr ? VanillaBlocks::getState(block) : nullptr;
+}
+
+[[nodiscard]] const BlockState* getBadlandsTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ) {
+    static const std::array<Block*, 64> kBands = {
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::YELLOW_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::BROWN_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::RED_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::WHITE_TERRACOTTA,
+        VanillaBlocks::LIGHT_GRAY_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::YELLOW_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::BROWN_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::RED_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::WHITE_TERRACOTTA,
+        VanillaBlocks::LIGHT_GRAY_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::YELLOW_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::BROWN_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::RED_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::WHITE_TERRACOTTA,
+        VanillaBlocks::LIGHT_GRAY_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::YELLOW_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::BROWN_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::RED_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::WHITE_TERRACOTTA,
+        VanillaBlocks::LIGHT_GRAY_TERRACOTTA,
+        VanillaBlocks::TERRACOTTA,
+        VanillaBlocks::ORANGE_TERRACOTTA
+    };
+
+    const f64 bandNoise = std::sin(
+        static_cast<f64>(worldX) / 512.0 +
+        static_cast<f64>(worldZ) / 512.0
+    );
+    const i32 offset = static_cast<i32>(std::round(bandNoise * 2.0));
+    const i32 bandIndex = ((worldY + offset) % 64 + 64) % 64;
+
+    const BlockState* state = getStateOrNull(kBands[static_cast<size_t>(bandIndex)]);
+    if (state != nullptr) {
+        return state;
+    }
+
+    return getStateOrNull(VanillaBlocks::TERRACOTTA);
+}
+
+} // namespace
 
 // ============================================================================
 // SurfaceBuilderConfig 静态方法实现
@@ -49,11 +142,10 @@ SurfaceBuilderConfig SurfaceBuilderConfig::gravel()
 
 SurfaceBuilderConfig SurfaceBuilderConfig::redSand()
 {
-    // RED_SAND not defined yet, use RED_SANDSTONE
     return SurfaceBuilderConfig(
-        VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE),
-        VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE),
-        VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE)
+        VanillaBlocks::getState(VanillaBlocks::RED_SAND),
+        VanillaBlocks::getState(VanillaBlocks::RED_SAND),
+        VanillaBlocks::getState(VanillaBlocks::RED_SAND)
     );
 }
 
@@ -216,7 +308,7 @@ void DesertSurfaceBuilder::buildSurface(
     (void)seaLevel;
 
     const BlockState* sandState = config.topBlock;
-    const BlockState* sandstoneState = VanillaBlocks::getState(VanillaBlocks::STONE);  // 用 Stone 代替 Sandstone
+    const BlockState* sandstoneState = VanillaBlocks::getState(VanillaBlocks::SANDSTONE);
 
     if (!sandState || !defaultBlock) {
         return;
@@ -238,7 +330,6 @@ void DesertSurfaceBuilder::buildSurface(
                 chunk.setBlock(x, y, z, sandState);
                 currentDepth = depth;
             } else if (currentDepth > 0) {
-                // 沙漠下层使用石头（作为砂岩替代）
                 if (sandstoneState) {
                     chunk.setBlock(x, y, z, sandstoneState);
                 } else {
@@ -271,7 +362,7 @@ void SwampSurfaceBuilder::buildSurface(
 
     const BlockState* topState = config.topBlock;
     const BlockState* underState = config.underBlock;
-    const BlockState* clayState = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE); // Use COBBLESTONE as Terracotta substitute
+    const BlockState* clayState = VanillaBlocks::getState(VanillaBlocks::CLAY);
 
     if (!topState || !underState || !defaultBlock) {
         return;
@@ -390,8 +481,9 @@ void BadlandsSurfaceBuilder::buildSurface(
     (void)defaultFluid;
     (void)seaLevel;
 
-    const BlockState* terracottaState = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE); // Terracotta substitute
-    const BlockState* redSandState = VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE);
+    const BlockState* terracottaState = getStateOrNull(VanillaBlocks::TERRACOTTA);
+    const BlockState* redSandState = VanillaBlocks::getState(VanillaBlocks::RED_SAND);
+    const BlockState* orangeTerracottaState = VanillaBlocks::getState(VanillaBlocks::ORANGE_TERRACOTTA);
     const BlockState* topState = config.topBlock;
 
     if (!topState || !defaultBlock) {
@@ -400,41 +492,49 @@ void BadlandsSurfaceBuilder::buildSurface(
 
     i32 depth = static_cast<i32>(surfaceNoise / 3.0 + 3.0 + random.nextDouble() * 0.25);
     i32 currentDepth = -1;
-    i32 terracottaDepth = 0;
+    bool useOrangeLayer = false;
+    const i32 worldX = chunk.x() * 16 + x;
+    const i32 worldZ = chunk.z() * 16 + z;
 
     for (i32 y = startHeight; y >= 0; --y) {
         const BlockState* currentState = chunk.getBlock(x, y, z);
 
         if (!currentState || currentState->isAir()) {
             currentDepth = -1;
-            terracottaDepth = 0;
+            useOrangeLayer = false;
             continue;
         }
 
         if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
             if (currentDepth == -1) {
-                // 表层使用红沙
-                if (redSandState) {
-                    chunk.setBlock(x, y, z, redSandState);
+                currentDepth = depth + std::max(0, y - seaLevel);
+
+                if (y >= seaLevel - 1) {
+                    const BlockState* surfaceState = redSandState ? redSandState : topState;
+                    chunk.setBlock(x, y, z, surfaceState);
+                    useOrangeLayer = true;
                 } else {
-                    chunk.setBlock(x, y, z, topState);
-                }
-                currentDepth = depth;
-                terracottaDepth = 0;
-            } else if (currentDepth > 0) {
-                // 下层使用彩色陶瓦
-                if (terracottaState) {
-                    const BlockState* layerState = terracottaState; // 简化：使用同一颜色
-                    if (layerState) {
-                        chunk.setBlock(x, y, z, layerState);
-                    } else {
-                        chunk.setBlock(x, y, z, terracottaState);
+                    const BlockState* layerState = getBadlandsTerracottaLayer(worldX, y, worldZ);
+                    if (!layerState) {
+                        layerState = terracottaState ? terracottaState : topState;
                     }
-                } else {
-                    chunk.setBlock(x, y, z, topState);
+                    chunk.setBlock(x, y, z, layerState);
+                    useOrangeLayer = false;
                 }
+            } else if (currentDepth > 0) {
                 --currentDepth;
-                ++terracottaDepth;
+
+                const BlockState* layerState = nullptr;
+                if (useOrangeLayer && orangeTerracottaState) {
+                    layerState = orangeTerracottaState;
+                }
+                if (!layerState) {
+                    layerState = getBadlandsTerracottaLayer(worldX, y, worldZ);
+                }
+                if (!layerState) {
+                    layerState = terracottaState ? terracottaState : topState;
+                }
+                chunk.setBlock(x, y, z, layerState);
             }
         }
     }
@@ -460,7 +560,7 @@ void BeachSurfaceBuilder::buildSurface(
     (void)defaultFluid;
 
     const BlockState* sandState = config.topBlock;
-    const BlockState* sandstoneState = VanillaBlocks::getState(VanillaBlocks::STONE);  // 用 Stone 代替 Sandstone
+    const BlockState* sandstoneState = VanillaBlocks::getState(VanillaBlocks::SANDSTONE);
     const BlockState* topState = config.underBlock;
 
     if (!sandState || !defaultBlock) {
