@@ -1,6 +1,7 @@
 #include "FlowingFluid.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
+#include "../block/ILiquidContainer.hpp"
 #include "../block/BlockPos.hpp"
 #include "../block/Material.hpp"
 #include "../block/VanillaBlocks.hpp"
@@ -252,8 +253,22 @@ void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
 
 void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
                              Direction dir, const FluidState& state) {
-    if (blockState != nullptr && !blockState->isAir()) {
-        beforeReplacingBlock(world, pos, blockState);
+    if (blockState != nullptr) {
+        Block* blockRef = Block::getBlock(blockState->blockId());
+
+        // 支持 ILiquidContainer（如大锅）优先接收流体，不直接替换为液体方块。
+        if (blockRef != nullptr) {
+            if (auto* container = dynamic_cast<ILiquidContainer*>(blockRef)) {
+                if (container->canContainFluid(world, pos, *blockState, state.getFluid()) &&
+                    container->receiveFluid(world, pos, blockState, state)) {
+                    return;
+                }
+            }
+        }
+
+        if (!blockState->isAir()) {
+            beforeReplacingBlock(world, pos, blockState);
+        }
     }
 
     // 设置流体方块
@@ -447,12 +462,10 @@ bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos,
         return false;
     }
 
-    // 检查是否为 ILiquidContainer（大锅、炼药锅等可以容纳液体的方块）
-    // 使用 dynamic_cast 检查方块是否实现了 ILiquidContainer 接口
-    // TODO: 当具体方块实现后启用此检查
-    // if (auto* container = dynamic_cast<const ILiquidContainer*>(&blockRef)) {
-    //     return container->canContainFluid(world, pos, *block, fluid);
-    // }
+    // 允许实现 ILiquidContainer 的方块按自身规则接收流体。
+    if (auto* container = dynamic_cast<const ILiquidContainer*>(&blockRef)) {
+        return container->canContainFluid(world, pos, *block, fluid);
+    }
 
     // 特殊方块检查（门、告示牌、梯子、甘蔗、气泡柱）
     // 这些方块允许流体通过

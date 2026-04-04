@@ -181,6 +181,21 @@ TEST_F(RedstoneBlockTest, RedstoneTorchCanProvidePower) {
     EXPECT_TRUE(VanillaBlocks::REDSTONE_TORCH->canProvidePower(state));
 }
 
+TEST_F(RedstoneBlockTest, RedstoneTorchShapeNotFullBlock) {
+    const BlockState& state = VanillaBlocks::REDSTONE_TORCH->defaultState();
+    const CollisionShape& shape = state.getShape();
+
+    ASSERT_FALSE(shape.isEmpty());
+    ASSERT_FALSE(shape.isFullBlock());
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const auto& box = shape.boxes().front();
+    const f32 dx = box.maxX - box.minX;
+    const f32 dy = box.maxY - box.minY;
+    const f32 dz = box.maxZ - box.minZ;
+    EXPECT_TRUE(dx < 1.0f || dy < 1.0f || dz < 1.0f);
+}
+
 // ============================================================================
 // 红石灯属性测试
 // ============================================================================
@@ -256,6 +271,18 @@ TEST_F(RedstoneBlockTest, PressurePlateCanProvidePower) {
     EXPECT_TRUE(VanillaBlocks::OAK_PRESSURE_PLATE->canProvidePower(oakState));
 }
 
+TEST_F(RedstoneBlockTest, PressurePlateShapeNotFullBlock) {
+    const BlockState& state = VanillaBlocks::STONE_PRESSURE_PLATE->defaultState();
+    const CollisionShape& shape = state.getShape();
+
+    ASSERT_FALSE(shape.isEmpty());
+    ASSERT_FALSE(shape.isFullBlock());
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const auto& box = shape.boxes().front();
+    EXPECT_LT(box.maxY - box.minY, 1.0f);
+}
+
 // ============================================================================
 // 日光探测器属性测试
 // ============================================================================
@@ -307,6 +334,18 @@ TEST_F(RedstoneBlockTest, RedstoneRepeaterDelayRange) {
         state = state.with(BlockStateProperties::DELAY_1_4(), delay);
         EXPECT_EQ(state.get(BlockStateProperties::DELAY_1_4()), delay);
     }
+}
+
+TEST_F(RedstoneBlockTest, RedstoneRepeaterShapeNotFullBlock) {
+    const BlockState& state = VanillaBlocks::REDSTONE_REPEATER->defaultState();
+    const CollisionShape& shape = state.getShape();
+
+    ASSERT_FALSE(shape.isEmpty());
+    ASSERT_FALSE(shape.isFullBlock());
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const auto& box = shape.boxes().front();
+    EXPECT_LT(box.maxY - box.minY, 1.0f);
 }
 
 // ============================================================================

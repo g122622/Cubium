@@ -27,6 +27,8 @@ struct ContainerClickResult {
 
 namespace interaction {
 
+class InventoryManager;
+
 /**
  * @brief 容器管理器
  *
@@ -41,6 +43,11 @@ public:
      * @brief 构造函数
      */
     explicit ContainerManager(core::PlayerManager& playerManager);
+
+    /**
+     * @brief 设置物品栏管理器（用于创建需要玩家背包的容器菜单）
+     */
+    void setInventoryManager(InventoryManager* inventoryManager);
 
     /**
      * @brief 打开容器
@@ -115,6 +122,7 @@ public:
 
 private:
     core::PlayerManager& m_playerManager;
+    InventoryManager* m_inventoryManager = nullptr;
 
     struct OpenContainer {
         std::unique_ptr<AbstractContainerMenu> menu;

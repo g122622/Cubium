@@ -4,9 +4,79 @@
 #include "common/world/fluid/fluids/EmptyFluid.hpp"
 #include "common/util/property/FluidProperties.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/BlockPos.hpp"
+
+#include <unordered_map>
 
 using namespace mc::fluid;
 using namespace mc;
+
+namespace {
+
+class FlowingFluidTestWorld final : public IBlockReader {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        const auto it = m_blocks.find(packPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+        m_blocks[packPos(x, y, z)] = state;
+        return true;
+    }
+
+    [[nodiscard]] const FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+        const BlockState* state = getBlockState(x, y, z);
+        if (state != nullptr) {
+            const FluidState* fluidState = state->getFluidState();
+            if (fluidState != nullptr) {
+                return fluidState;
+            }
+        }
+        return Fluid::getFluidState(FluidRegistry::EMPTY_ID);
+    }
+
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+        return {};
+    }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] i32 difficulty() const override { return 0; }
+
+private:
+    static i64 packPos(i32 x, i32 y, i32 z) {
+        return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
+    }
+
+    std::unordered_map<i64, const BlockState*> m_blocks;
+};
+
+} // namespace
 
 // ============================================================================
 // FluidState Tests
@@ -116,6 +186,27 @@ TEST(FluidTest, IsEquivalentTo) {
 
     // 不同对象不是等效的（默认实现比较指针）
     EXPECT_FALSE(emptyFluid1.isEquivalentTo(emptyFluid2));
+}
+
+TEST(FluidFlowBehaviorTest, SourceWaterFlowsDownwardIntoAir) {
+    FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    FlowingFluidTestWorld world;
+    const BlockPos sourcePos(0, 64, 0);
+    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z, &VanillaBlocks::WATER->defaultState());
+
+    const FluidState* sourceStatePtr = world.getFluidState(sourcePos.x, sourcePos.y, sourcePos.z);
+    ASSERT_NE(sourceStatePtr, nullptr);
+    ASSERT_FALSE(sourceStatePtr->isEmpty());
+
+    FluidState sourceState = *sourceStatePtr;
+    Fluid& sourceFluid = const_cast<Fluid&>(sourceState.getFluid());
+    sourceFluid.tick(world, sourcePos, sourceState);
+
+    const BlockState* belowState = world.getBlockState(sourcePos.x, sourcePos.y - 1, sourcePos.z);
+    ASSERT_NE(belowState, nullptr);
+    EXPECT_TRUE(belowState->is(VanillaBlocks::WATER));
 }
 
 // ============================================================================

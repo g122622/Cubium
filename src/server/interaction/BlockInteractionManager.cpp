@@ -6,6 +6,7 @@
 #include "server/world/drop/BlockDropHandler.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -175,6 +176,47 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     }
 
     return BlockPlacementResult{true, true, itemConsumed, placePos, newState->stateId(), "Block placed"};
+}
+
+Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
+    PlayerId playerId,
+    const BlockPos& pos,
+    Hand hand,
+    const Vector3& hitPos,
+    Direction face)
+{
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (!playerData || !playerData->loggedIn) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    }
+
+    if (!canInteract(playerId, pos)) {
+        return Error(ErrorCode::InvalidArgument, "Block too far away");
+    }
+
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    if (!state || state->isAir()) {
+        return BlockInteractionResult{false, "No block to use"};
+    }
+
+    Block* block = Block::getBlock(state->blockId());
+    if (!block) {
+        return Error(ErrorCode::NotFound, "Block not found for state");
+    }
+
+    Player interactionPlayer(playerId, playerData->username);
+    const BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, face, 0.0f);
+
+    ActionResultType result = block->onBlockActivated(
+        *state,
+        m_world,
+        pos,
+        interactionPlayer,
+        hand,
+        hitResult);
+
+    const bool handled = (result == ActionResultType::Success || result == ActionResultType::Consume);
+    return BlockInteractionResult{handled, handled ? "Block used" : "Block use pass"};
 }
 
 Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(

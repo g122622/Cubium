@@ -113,6 +113,22 @@ public:
         const ItemStack& heldItem);
 
     /**
+     * @brief 处理方块使用（右键激活）
+     * @param playerId 玩家ID
+     * @param pos 目标方块位置
+     * @param hand 使用的手
+     * @param hitPos 击中点
+     * @param face 击中面
+     * @return 交互结果
+     */
+    [[nodiscard]] Result<BlockInteractionResult> handleBlockUse(
+        PlayerId playerId,
+        const BlockPos& pos,
+        Hand hand,
+        const Vector3& hitPos,
+        Direction face);
+
+    /**
      * @brief 处理方块破坏（挖掘完成）
      * @param playerId 玩家ID
      * @param pos 方块位置

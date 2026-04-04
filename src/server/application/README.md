@@ -88,6 +88,9 @@ src/server/application/
 - Single player only (`maxPlayers = 1`)
 - Direct inventory management (`m_clientInventory`)
 - Container menu handling (`m_openMenu`)
+- Right-click crafting-table interaction is now wired in packet handling:
+    - empty hand / non-block item opens `CraftingMenu`
+- Generic right-click block activation is routed to `BlockInteractionManager::handleBlockUse()` when placement path does not apply
 - World type routing:
     - `Default` -> `NoiseChunkGenerator + DimensionSettings::overworld()`
     - `Flat` -> `NoiseChunkGenerator + DimensionSettings::flat()`
@@ -129,6 +132,8 @@ struct IntegratedServerConfig {
 - Settings file persistence (`ServerSettings`)
 - Command-line parameter overrides
 - Perfetto tracing integration
+- `ContainerManager` callbacks are forwarded to client protocol packets (`OpenContainer`, `CloseContainer`, `ContainerContent`)
+- Non-placement right-click interaction path now routes through `BlockInteractionManager::handleBlockUse()` for block activation
 
 **Configuration (`StandaloneServerParams`):**
 ```cpp

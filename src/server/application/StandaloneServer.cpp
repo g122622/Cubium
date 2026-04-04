@@ -2,6 +2,8 @@
 #include "minecraft-reborn/version.h"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/packet/ContainerPacketHandler.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -23,6 +25,15 @@
 #include <thread>
 
 namespace mc::server {
+
+namespace {
+
+[[nodiscard]] bool isCraftingTableState(const BlockState* state)
+{
+    return state != nullptr && state->blockLocation() == ResourceLocation("minecraft:crafting_table");
+}
+
+} // namespace
 
 StandaloneServer::StandaloneServer()
     : MinecraftServer(ServerCoreConfig{})
@@ -159,6 +170,52 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     // 初始化交互管理器
     initializeInteractionManagers();
+
+    // 容器网络回调：将 ContainerManager 事件转发为客户端协议包。
+    containerManager().setOnContainerOpen([this](PlayerId playerId,
+                                                 ContainerId containerId,
+                                                 mc::ContainerType type,
+                                                 const String& title,
+                                                 i32 slotCount) {
+        const String resolvedTitle = title.empty()
+            ? String(ContainerTypes::getDefaultTitle(type))
+            : title;
+
+        network::PacketSerializer ser;
+        auto packet = ContainerPacketHandler::createOpenContainerPacket(
+            containerId,
+            ContainerTypes::toNetworkType(type),
+            resolvedTitle,
+            slotCount);
+        packet.serialize(ser);
+
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(
+            network::PacketType::OpenContainer,
+            ser.buffer());
+        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    });
+
+    containerManager().setOnContainerClose([this](PlayerId playerId, ContainerId containerId) {
+        network::PacketSerializer ser;
+        CloseContainerPacket packet(containerId);
+        packet.serialize(ser);
+
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(
+            network::PacketType::CloseContainer,
+            ser.buffer());
+        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    });
+
+    containerManager().setOnContainerUpdate([this](PlayerId playerId, const AbstractContainerMenu& menu) {
+        network::PacketSerializer ser;
+        auto packet = ContainerPacketHandler::createContentPacket(menu);
+        packet.serialize(ser);
+
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(
+            network::PacketType::ContainerContent,
+            ser.buffer());
+        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    });
 
     // 初始化维度管理器
     auto dimInitResult = m_dimensionManager->initialize(
@@ -515,9 +572,49 @@ void StandaloneServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
 
     const auto& packet = result.value();
     BlockPos pos(packet.x(), packet.y(), packet.z());
+    const BlockState* clickedState = m_world ? m_world->getBlockState(pos.x, pos.y, pos.z) : nullptr;
+    const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
+
+    const auto tryOpenCraftingContainer = [this, playerId, pos, clickedState]() {
+        if (!isCraftingTableState(clickedState)) {
+            return false;
+        }
+
+        auto openResult = containerManager().openContainer(playerId, mc::ContainerType::CraftingTable, pos);
+        return openResult.success();
+    };
 
     // 获取手持物品
     ItemStack heldStack = inventoryManager().getHeldItem(playerId);
+
+    if (heldStack.isEmpty()) {
+        if (!tryOpenCraftingContainer()) {
+            (void)blockInteractionManager().handleBlockUse(
+                playerId,
+                pos,
+                hand,
+                packet.hitPosition(),
+                packet.face());
+        }
+        return;
+    }
+
+    const Item* heldItem = heldStack.getItem();
+    const bool holdingBlockItem =
+        (heldItem != nullptr) &&
+        (BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr);
+
+    if (!holdingBlockItem) {
+        if (!tryOpenCraftingContainer()) {
+            (void)blockInteractionManager().handleBlockUse(
+                playerId,
+                pos,
+                hand,
+                packet.hitPosition(),
+                packet.face());
+        }
+        return;
+    }
 
     auto interactionResult = blockInteractionManager().handleBlockPlacement(
         playerId, pos, packet.hitPosition(), packet.face(), heldStack);

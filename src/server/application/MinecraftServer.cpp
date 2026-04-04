@@ -165,6 +165,8 @@ void MinecraftServer::initializeInteractionManagers()
 
     m_inventoryManager = std::make_unique<interaction::InventoryManager>(
         *m_playerManager);
+
+    m_containerManager->setInventoryManager(m_inventoryManager.get());
 }
 
 void MinecraftServer::initializeSyncManagers()

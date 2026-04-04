@@ -1,7 +1,10 @@
 #include "ContainerManager.hpp"
+#include "InventoryManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/network/packet/ContainerPacketHandler.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server::interaction {
@@ -9,6 +12,11 @@ namespace mc::server::interaction {
 ContainerManager::ContainerManager(core::PlayerManager& playerManager)
     : m_playerManager(playerManager)
 {
+}
+
+void ContainerManager::setInventoryManager(InventoryManager* inventoryManager)
+{
+    m_inventoryManager = inventoryManager;
 }
 
 Result<mc::ContainerId> ContainerManager::openContainer(
@@ -37,11 +45,19 @@ Result<mc::ContainerId> ContainerManager::openContainer(
     openContainer.type = type;
     openContainer.position = pos;
 
+    PlayerInventory* playerInventory =
+        (m_inventoryManager != nullptr) ? m_inventoryManager->getInventory(playerId) : nullptr;
+
     switch (type) {
         case mc::ContainerType::CraftingTable:
-            // CraftingMenu 需要 PlayerInventory，这里暂时不创建菜单
-            // 实际菜单创建应该在玩家打开工作台时进行
-            // openContainer.menu = std::make_unique<CraftingMenu>(containerId, playerInventory, nullptr);
+            if (playerInventory == nullptr) {
+                return Error(ErrorCode::InvalidState, "Player inventory not initialized");
+            }
+            {
+                auto menu = std::make_unique<CraftingMenu>(containerId, playerInventory, nullptr);
+                menu->updateResult();
+                openContainer.menu = std::move(menu);
+            }
             break;
         case mc::ContainerType::Player:
         default:
@@ -51,12 +67,12 @@ Result<mc::ContainerId> ContainerManager::openContainer(
 
     m_openContainers[playerId] = std::move(openContainer);
 
-    String title;
-    i32 slotCount = 0;
+    String title = String(ContainerTypes::getDefaultTitle(type));
+    i32 slotCount = ContainerTypes::getSlotCount(type);
 
-    if (type == mc::ContainerType::CraftingTable) {
-        title = "Crafting";
-        slotCount = 10;  // 9 格合成 + 1 格结果
+    const auto& opened = m_openContainers[playerId];
+    if (opened.menu) {
+        slotCount = opened.menu->getSlotCount();
     }
 
     if (m_onContainerOpen) {
@@ -79,6 +95,11 @@ void ContainerManager::closeContainer(PlayerId playerId)
     mc::ContainerId containerId = 0;
     if (it->second.menu) {
         containerId = it->second.menu->getId();
+
+        auto* playerData = m_playerManager.getPlayer(playerId);
+        const String username = (playerData != nullptr) ? playerData->username : String("ContainerPlayer");
+        Player menuPlayer(playerId, username);
+        it->second.menu->removed(menuPlayer);
     }
 
     if (m_onContainerClose) {
@@ -113,17 +134,20 @@ Result<ContainerClickResult> ContainerManager::handleClick(
         return Error(ErrorCode::InvalidArgument, "Container ID mismatch");
     }
 
-    // 处理点击
-    // TODO: 实现 Player 对象传递
-    // ClickType clickType = (button == 0) ? ClickType::Pick : ClickType::PickSome;
-    // if (mode == 1) clickType = ClickType::QuickMove;
-    // openContainer.menu->clicked(slot, button, clickType, player);
+    ClickType clickType = (button == 0) ? ClickType::Pick : ClickType::PickSome;
+    if (mode == static_cast<u8>(ClickAction::QuickMove)) {
+        clickType = ClickType::QuickMove;
+    }
+
+    Player menuPlayer(playerId, playerData->username);
+    openContainer.menu->setCarriedItem(carriedItem);
+    openContainer.menu->clicked(slot, button, clickType, menuPlayer);
 
     if (m_onContainerUpdate) {
         m_onContainerUpdate(playerId, *openContainer.menu);
     }
 
-    return ContainerClickResult{true, ItemStack{}, "Click handled"};
+    return ContainerClickResult{true, openContainer.menu->getCarriedItem(), "Click handled"};
 }
 
 AbstractContainerMenu* ContainerManager::getOpenMenu(PlayerId playerId)

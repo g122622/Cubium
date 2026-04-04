@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <cmath>
+#include <limits>
 
 #include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
@@ -81,6 +82,31 @@ std::vector<u8> makeValid1x1Png() {
 
 std::vector<u8> toBytes(StringView content) {
     return std::vector<u8>(content.begin(), content.end());
+}
+
+struct MeshBounds {
+    f32 minX = std::numeric_limits<f32>::max();
+    f32 minY = std::numeric_limits<f32>::max();
+    f32 minZ = std::numeric_limits<f32>::max();
+    f32 maxX = std::numeric_limits<f32>::lowest();
+    f32 maxY = std::numeric_limits<f32>::lowest();
+    f32 maxZ = std::numeric_limits<f32>::lowest();
+};
+
+MeshBounds computeBounds(const MeshData& mesh) {
+    MeshBounds bounds;
+    for (const auto& v : mesh.vertices) {
+        const f32 x = static_cast<f32>(v.x);
+        const f32 y = static_cast<f32>(v.y);
+        const f32 z = static_cast<f32>(v.z);
+        bounds.minX = std::min(bounds.minX, x);
+        bounds.minY = std::min(bounds.minY, y);
+        bounds.minZ = std::min(bounds.minZ, z);
+        bounds.maxX = std::max(bounds.maxX, x);
+        bounds.maxY = std::max(bounds.maxY, y);
+        bounds.maxZ = std::max(bounds.maxZ, z);
+    }
+    return bounds;
 }
 
 } // namespace
@@ -641,6 +667,51 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
     }
 
     EXPECT_TRUE(hasExpectedAlphaVertex);
+}
+
+TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube) {
+    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::REDSTONE_TORCH->defaultState());
+
+    ChunkMesher::setGreedyMeshing(false);
+    ChunkMesher::setLightingEnabled(false);
+
+    MeshData mesh;
+    ChunkMesher::generateMesh(*m_chunk, mesh, nullptr);
+    ASSERT_FALSE(mesh.empty());
+
+    const MeshBounds bounds = computeBounds(mesh);
+    EXPECT_LT(bounds.maxX - bounds.minX, 1.0f);
+    EXPECT_LT(bounds.maxY - bounds.minY, 1.0f);
+    EXPECT_LT(bounds.maxZ - bounds.minZ, 1.0f);
+}
+
+TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreNotFullCube) {
+    ChunkMesher::setGreedyMeshing(false);
+    ChunkMesher::setLightingEnabled(false);
+
+    {
+        ChunkData repeaterChunk(0, 0);
+        repeaterChunk.setBlock(8, 64, 8, &VanillaBlocks::REDSTONE_REPEATER->defaultState());
+
+        MeshData mesh;
+        ChunkMesher::generateMesh(repeaterChunk, mesh, nullptr);
+        ASSERT_FALSE(mesh.empty());
+
+        const MeshBounds bounds = computeBounds(mesh);
+        EXPECT_LT(bounds.maxY - bounds.minY, 1.0f);
+    }
+
+    {
+        ChunkData pressurePlateChunk(0, 0);
+        pressurePlateChunk.setBlock(8, 64, 8, &VanillaBlocks::STONE_PRESSURE_PLATE->defaultState());
+
+        MeshData mesh;
+        ChunkMesher::generateMesh(pressurePlateChunk, mesh, nullptr);
+        ASSERT_FALSE(mesh.empty());
+
+        const MeshBounds bounds = computeBounds(mesh);
+        EXPECT_LT(bounds.maxY - bounds.minY, 1.0f);
+    }
 }
 
 TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquidTextures) {

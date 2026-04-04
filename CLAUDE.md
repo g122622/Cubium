@@ -356,6 +356,13 @@ enum class Operation : u8 { ... };
     - crops and stems now require farmland support
     - farmland moisture/water checks and dirt fallback are active
     - sugar cane now checks vanilla-like ground and water adjacency
+- Fluid flow path now integrates `ILiquidContainer` checks in `FlowingFluid`:
+    - `isBlocked` consults `ILiquidContainer::canContainFluid`
+    - `flowInto` attempts `ILiquidContainer::receiveFluid` before block replacement
+- Crafting-table interaction is now wired into right-click packet handling:
+    - Integrated server opens the existing `CraftingMenu` when right-clicking crafting table with empty/non-block hand
+    - Standalone server routes crafting-table open events through `ContainerManager` callbacks and sends open/close/content container packets
+    - `ContainerManager` is now connected to `InventoryManager`, creates real `CraftingMenu` instances, and processes container click updates through menu state
 
 ## Gotchas & Pitfalls
 

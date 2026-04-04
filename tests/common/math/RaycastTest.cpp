@@ -4,6 +4,7 @@
 #include "core/BlockRaycastResult.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "util/Direction.hpp"
@@ -89,8 +90,22 @@ void ensureTestBlocksRegistered() {
             ResourceLocation("minecraft:stone"),
             BlockProperties(Material::ROCK).hardness(1.5f)
         );
+        // 初始化原版方块，确保植被方块可用于射线测试。
+        VanillaBlocks::initialize();
         initialized = true;
     }
+}
+
+const BlockState* getShortGrassState() {
+    return VanillaBlocks::SHORT_GRASS ? &VanillaBlocks::SHORT_GRASS->defaultState() : nullptr;
+}
+
+const BlockState* getDandelionState() {
+    return VanillaBlocks::DANDELION ? &VanillaBlocks::DANDELION->defaultState() : nullptr;
+}
+
+const BlockState* getSugarCaneState() {
+    return VanillaBlocks::SUGAR_CANE ? &VanillaBlocks::SUGAR_CANE->defaultState() : nullptr;
 }
 
 /**
@@ -346,4 +361,59 @@ TEST_F(RaycastTest, CloseRange) {
     EXPECT_TRUE(result.isHit());
     EXPECT_EQ(result.blockPos(), BlockPos(1, 64, 0));
     EXPECT_LT(result.distance(), 1.0f);  // 距离应该小于1
+}
+
+/**
+ * @brief 射线应命中短草等无碰撞植被方块
+ */
+TEST_F(RaycastTest, HitShortGrassBlock) {
+    const BlockState* shortGrass = getShortGrassState();
+    ASSERT_NE(shortGrass, nullptr);
+
+    world.setBlock(2, 64, 0, shortGrass);
+
+    Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    RaycastContext context(ray, 5.0f);
+
+    BlockRaycastResult result = raycastBlocks(context, world);
+
+    EXPECT_TRUE(result.isHit());
+    EXPECT_EQ(result.blockPos(), BlockPos(2, 64, 0));
+}
+
+/**
+ * @brief 射线应命中花朵方块
+ */
+TEST_F(RaycastTest, HitFlowerBlock) {
+    const BlockState* flower = getDandelionState();
+    ASSERT_NE(flower, nullptr);
+
+    world.setBlock(2, 64, 0, flower);
+
+    // 花朵高度较低，使用较低射线高度确保穿过其形状。
+    Ray ray(Vector3(0.0f, 64.2f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    RaycastContext context(ray, 5.0f);
+
+    BlockRaycastResult result = raycastBlocks(context, world);
+
+    EXPECT_TRUE(result.isHit());
+    EXPECT_EQ(result.blockPos(), BlockPos(2, 64, 0));
+}
+
+/**
+ * @brief 射线应命中甘蔗方块
+ */
+TEST_F(RaycastTest, HitSugarCaneBlock) {
+    const BlockState* sugarCane = getSugarCaneState();
+    ASSERT_NE(sugarCane, nullptr);
+
+    world.setBlock(2, 64, 0, sugarCane);
+
+    Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    RaycastContext context(ray, 5.0f);
+
+    BlockRaycastResult result = raycastBlocks(context, world);
+
+    EXPECT_TRUE(result.isHit());
+    EXPECT_EQ(result.blockPos(), BlockPos(2, 64, 0));
 }

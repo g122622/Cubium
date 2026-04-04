@@ -5,8 +5,17 @@
 #include "../src/common/world/block/Block.hpp"
 #include "../src/common/world/block/BlockRegistry.hpp"
 #include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/IWorld.hpp"
+#include "../src/common/world/block/blocks/FallingBlock.hpp"
+#include "../src/common/world/block/blocks/agricultural/FarmlandBlock.hpp"
+#include "../src/common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
+#include "../src/common/world/fluid/Fluid.hpp"
+#include "../src/common/world/fluid/FluidRegistry.hpp"
+#include "../src/common/entity/core/Entity.hpp"
+#include "../src/common/util/math/random/Random.hpp"
 #include "../src/common/util/property/Properties.hpp"
 #include <atomic>
+#include <unordered_map>
 
 using namespace mc;
 
@@ -102,6 +111,83 @@ ResourceLocation makeUniqueTestBlockId() {
     const u32 suffix = ++counter;
     return ResourceLocation("test:auto_state_block_" + std::to_string(suffix));
 }
+
+class BlockRulesTestWorld final : public IBlockReader {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        const auto it = m_blocks.find(packPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+        m_blocks[packPos(x, y, z)] = state;
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+        const BlockState* state = getBlockState(x, y, z);
+        if (state != nullptr) {
+            const fluid::FluidState* fluidState = state->getFluidState();
+            if (fluidState != nullptr) {
+                return fluidState;
+            }
+        }
+        return fluid::Fluid::getFluidState(0);
+    }
+
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+        return {};
+    }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] i32 difficulty() const override { return 0; }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+        (void)entity;
+        ++m_spawnedEntityCount;
+        return m_spawnEntityResult;
+    }
+
+    void setSpawnEntityResult(EntityId result) {
+        m_spawnEntityResult = result;
+    }
+
+    [[nodiscard]] i32 spawnedEntityCount() const {
+        return m_spawnedEntityCount;
+    }
+
+private:
+    static i64 packPos(i32 x, i32 y, i32 z) {
+        return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
+    }
+
+    std::unordered_map<i64, const BlockState*> m_blocks;
+    EntityId m_spawnEntityResult = 1;
+    i32 m_spawnedEntityCount = 0;
+};
 
 } // namespace
 
@@ -783,4 +869,73 @@ TEST(BlockRegistryTest, UniqueBlockIds) {
     // OAK_LOG + SPRUCE_LOG + BIRCH_LOG + JUNGLE_LOG + ACACIA_LOG + DARK_OAK_LOG = 6 (共 22)
     // OAK_LEAVES + SPRUCE_LEAVES + BIRCH_LEAVES + JUNGLE_LEAVES + ACACIA_LEAVES + DARK_OAK_LEAVES = 6 (共 28)
     EXPECT_EQ(ids.size(), 28u);
+}
+
+TEST(VanillaBlocksTest, SandFamilyRegisteredAsFallingBlocks) {
+    VanillaBlocks::initialize();
+
+    EXPECT_NE(dynamic_cast<blocks::FallingBlock*>(VanillaBlocks::SAND), nullptr);
+    EXPECT_NE(dynamic_cast<blocks::FallingBlock*>(VanillaBlocks::GRAVEL), nullptr);
+    EXPECT_NE(dynamic_cast<blocks::FallingBlock*>(VanillaBlocks::RED_SAND), nullptr);
+}
+
+TEST(AgriculturalBehaviorTest, SugarCaneRequiresAdjacentWater) {
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    auto* sugarCaneBlock = dynamic_cast<blocks::SugarCaneBlock*>(VanillaBlocks::SUGAR_CANE);
+    ASSERT_NE(sugarCaneBlock, nullptr);
+
+    BlockRulesTestWorld world;
+    world.setBlock(0, 63, 0, &VanillaBlocks::SAND->defaultState());
+
+    const BlockPos canePos(0, 64, 0);
+    const BlockState& caneState = VanillaBlocks::SUGAR_CANE->defaultState();
+
+    EXPECT_FALSE(sugarCaneBlock->isValidPosition(caneState, world, canePos));
+
+    world.setBlock(1, 63, 0, &VanillaBlocks::WATER->defaultState());
+    EXPECT_TRUE(sugarCaneBlock->isValidPosition(caneState, world, canePos));
+}
+
+TEST(AgriculturalBehaviorTest, DryFarmlandWithoutCropsTurnsToDirt) {
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    auto* farmlandBlock = dynamic_cast<blocks::FarmlandBlock*>(VanillaBlocks::FARMLAND);
+    ASSERT_NE(farmlandBlock, nullptr);
+
+    BlockRulesTestWorld world;
+    const BlockPos farmlandPos(0, 64, 0);
+    world.setBlock(farmlandPos.x, farmlandPos.y, farmlandPos.z, &VanillaBlocks::FARMLAND->defaultState());
+
+    BlockState farmlandState = VanillaBlocks::FARMLAND->defaultState();
+    math::Random random(123456);
+    farmlandBlock->randomTick(world, farmlandPos, farmlandState, random);
+
+    const BlockState* updated = world.getBlockState(farmlandPos.x, farmlandPos.y, farmlandPos.z);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_TRUE(updated->is(VanillaBlocks::DIRT));
+}
+
+TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    auto* fallingSand = dynamic_cast<blocks::FallingBlock*>(VanillaBlocks::SAND);
+    ASSERT_NE(fallingSand, nullptr);
+
+    BlockRulesTestWorld world;
+    world.setSpawnEntityResult(1);
+
+    const BlockPos sandPos(0, 70, 0);
+    world.setBlock(sandPos.x, sandPos.y, sandPos.z, &VanillaBlocks::SAND->defaultState());
+
+    BlockState sandState = VanillaBlocks::SAND->defaultState();
+    fallingSand->tick(world, sandPos, sandState);
+
+    EXPECT_EQ(world.spawnedEntityCount(), 1);
+    const BlockState* stateAfterTick = world.getBlockState(sandPos.x, sandPos.y, sandPos.z);
+    ASSERT_NE(stateAfterTick, nullptr);
+    EXPECT_TRUE(stateAfterTick->isAir());
 }

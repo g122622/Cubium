@@ -402,16 +402,53 @@ void IntegratedServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
     }
 
     const auto& packet = result.value();
+    const BlockPos clickedPos(packet.x(), packet.y(), packet.z());
+    const BlockState* clickedState = m_world ? m_world->getBlockState(clickedPos.x, clickedPos.y, clickedPos.z) : nullptr;
+    const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
+
+    const auto tryOpenCraftingMenu = [this, clickedState]() {
+        if (isCraftingTableState(clickedState)) {
+            openCraftingTableMenu();
+            return true;
+        }
+        return false;
+    };
 
     // 获取手持物品
     ItemStack heldStack = m_clientInventory.getSelectedStack();
     if (heldStack.isEmpty()) {
+        // 空手右键时优先尝试交互方块（例如工作台）。
+        if (!tryOpenCraftingMenu()) {
+            (void)blockInteractionManager().handleBlockUse(
+                m_clientPlayerId,
+                clickedPos,
+                hand,
+                packet.hitPosition(),
+                packet.face());
+        }
+        return;
+    }
+
+    const Item* heldItem = heldStack.getItem();
+    const bool holdingBlockItem =
+        (heldItem != nullptr) &&
+        (BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr);
+
+    if (!holdingBlockItem) {
+        if (!tryOpenCraftingMenu()) {
+            (void)blockInteractionManager().handleBlockUse(
+                m_clientPlayerId,
+                clickedPos,
+                hand,
+                packet.hitPosition(),
+                packet.face());
+        }
         return;
     }
 
     auto placementResult = blockInteractionManager().handleBlockPlacement(
         m_clientPlayerId,
-        BlockPos(packet.x(), packet.y(), packet.z()),
+        clickedPos,
         packet.hitPosition(),
         packet.face(),
         heldStack);

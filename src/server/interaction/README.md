@@ -56,6 +56,7 @@ struct BlockPlacementResult {
 | `handleBlockInteraction()` | 处理方块交互数据包（开始/中止/停止破坏） |
 | `handleBlockPlacement()` | 处理方块放置（位置验证、碰撞检测、物品消耗） |
 | `handleBlockBreak()` | 处理方块破坏（验证、掉落物生成、设置为空气） |
+| `handleBlockUse()` | 处理右键激活（调用方块 `onBlockActivated`） |
 | `canInteract()` | 验证玩家是否可以与方块交互（距离检查，最大6格） |
 | `canBreakBlock()` | 验证玩家是否可以破坏方块（硬度检查） |
 | `generateBlockDrops()` | 生成方块掉落物 |
@@ -154,6 +155,10 @@ struct OpenContainer {
 **支持的容器类型**：
 - `ContainerType::Player`：玩家背包
 - `ContainerType::CraftingTable`：工作台
+
+**当前实现状态**：
+- `CraftingTable` 打开时会创建真实 `CraftingMenu`，并可处理 `handleClick()` 点击逻辑
+- 容器更新通过 `setOnContainerUpdate()` 回调推送到网络层
 
 ---
 

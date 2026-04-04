@@ -36,7 +36,7 @@ public:
      * @param fluid 要容纳的流体
      * @return 是否可以容纳
      */
-    [[nodiscard]] virtual bool canContainFluid(IBlockReader& world, const BlockPos& pos,
+    [[nodiscard]] virtual bool canContainFluid(IWorld& world, const BlockPos& pos,
                                                 const BlockState& state,
                                                 const fluid::Fluid& fluid) const = 0;
 
@@ -63,7 +63,7 @@ public:
      * @param state 当前方块状态
      * @return 是否包含流体
      */
-    [[nodiscard]] virtual bool containsFluid(IBlockReader& world, const BlockPos& pos,
+    [[nodiscard]] virtual bool containsFluid(IWorld& world, const BlockPos& pos,
                                               const BlockState& state) const = 0;
 };
 
