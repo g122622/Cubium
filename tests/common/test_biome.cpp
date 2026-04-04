@@ -13,6 +13,7 @@
 #include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
 #include "common/world/biome/provider/end/EndBiomeProvider.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/feature/FeatureIds.hpp"
 
 using namespace mc;
 
@@ -209,6 +210,87 @@ TEST_F(BiomeRegistryTest, CreateColdOcean) {
     EXPECT_EQ(biome.name(), "cold_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
     EXPECT_FLOAT_EQ(biome.temperature(), 0.3f);
+}
+
+TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings) {
+    Biome biome = BiomeFactory::createColdOcean();
+    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
+
+    bool hasBlueIce = false;
+    bool hasLiveCoral = false;
+    bool hasKelp = false;
+    bool hasSeagrass = false;
+    for (u32 id : vegetal) {
+        if (id == BlueIceFeatureIds::Normal) {
+            hasBlueIce = true;
+        }
+        if (id == KelpFeatureIds::Normal) {
+            hasKelp = true;
+        }
+        if (id == SeagrassFeatureIds::Simple || id == SeagrassFeatureIds::Mixed) {
+            hasSeagrass = true;
+        }
+        if (id == CoralFeatureIds::Tube ||
+            id == CoralFeatureIds::Brain ||
+            id == CoralFeatureIds::Bubble ||
+            id == CoralFeatureIds::Fire ||
+            id == CoralFeatureIds::Horn) {
+            hasLiveCoral = true;
+        }
+    }
+
+    // 冷海不应直接挂接蓝冰与暖水珊瑚，应包含海带/海草。
+    EXPECT_FALSE(hasBlueIce);
+    EXPECT_FALSE(hasLiveCoral);
+    EXPECT_TRUE(hasKelp);
+    EXPECT_TRUE(hasSeagrass);
+}
+
+TEST_F(BiomeRegistryTest, CreateDeepLukewarmOceanUsesLukewarmGenerationSettings) {
+    Biome biome = BiomeFactory::createDeepLukewarmOcean();
+    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
+
+    bool hasBlueIce = false;
+    for (u32 id : vegetal) {
+        if (id == BlueIceFeatureIds::Normal) {
+            hasBlueIce = true;
+            break;
+        }
+    }
+
+    // 深温水海洋不应包含蓝冰
+    EXPECT_FALSE(hasBlueIce);
+}
+
+TEST_F(BiomeRegistryTest, CreateDeepColdOceanUsesColdGenerationSettings) {
+    Biome biome = BiomeFactory::createDeepColdOcean();
+    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
+
+    bool hasBlueIce = false;
+    for (u32 id : vegetal) {
+        if (id == BlueIceFeatureIds::Normal) {
+            hasBlueIce = true;
+            break;
+        }
+    }
+
+    // 深冷海洋不应直接挂接蓝冰
+    EXPECT_FALSE(hasBlueIce);
+}
+
+TEST_F(BiomeRegistryTest, CreateDeepFrozenOceanUsesFrozenGenerationSettings) {
+    Biome biome = BiomeFactory::createDeepFrozenOcean();
+    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
+
+    bool hasBlueIce = false;
+    for (u32 id : vegetal) {
+        if (id == BlueIceFeatureIds::Normal) {
+            hasBlueIce = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(hasBlueIce);
 }
 
 TEST_F(BiomeRegistryTest, CreateDeepWarmOcean) {
@@ -863,14 +945,14 @@ TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid) {
     constexpr ChunkCoord chunkZ = -2;
     provider.fillBiomeContainer(container, chunkX, chunkZ);
 
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 startNoiseX = chunkX << 2;
+    const i32 startNoiseZ = chunkZ << 2;
 
     for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
         for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-            const i32 sampleX = startX + (bx << 2) + 2;
-            const i32 sampleZ = startZ + (bz << 2) + 2;
-            const BiomeId expected = provider.getBiome(sampleX, 0, sampleZ);
+            const i32 noiseX = startNoiseX + bx;
+            const i32 noiseZ = startNoiseZ + bz;
+            const BiomeId expected = provider.getNoiseBiome(noiseX, 0, noiseZ);
 
             for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
                 const BiomeId actual = container.getBiome(bx, by, bz);

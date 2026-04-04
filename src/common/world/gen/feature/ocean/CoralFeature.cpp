@@ -11,7 +11,34 @@ namespace mc {
 
 namespace {
 
-[[nodiscard]] const BlockState* getCoralBlockState(blocks::CoralColor color) {
+[[nodiscard]] const BlockState* getCoralBlockState(blocks::CoralColor color, bool isDead) {
+    if (isDead) {
+        switch (color) {
+            case blocks::CoralColor::Tube:
+                return VanillaBlocks::DEAD_TUBE_CORAL_BLOCK
+                    ? &VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Brain:
+                return VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK
+                    ? &VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Bubble:
+                return VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK
+                    ? &VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Fire:
+                return VanillaBlocks::DEAD_FIRE_CORAL_BLOCK
+                    ? &VanillaBlocks::DEAD_FIRE_CORAL_BLOCK->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Horn:
+                return VanillaBlocks::DEAD_HORN_CORAL_BLOCK
+                    ? &VanillaBlocks::DEAD_HORN_CORAL_BLOCK->defaultState()
+                    : nullptr;
+            default:
+                return nullptr;
+        }
+    }
+
     switch (color) {
         case blocks::CoralColor::Tube:
             return VanillaBlocks::TUBE_CORAL_BLOCK ? &VanillaBlocks::TUBE_CORAL_BLOCK->defaultState() : nullptr;
@@ -28,7 +55,34 @@ namespace {
     }
 }
 
-[[nodiscard]] const BlockState* getCoralFanState(blocks::CoralColor color) {
+[[nodiscard]] const BlockState* getCoralFanState(blocks::CoralColor color, bool isDead) {
+    if (isDead) {
+        switch (color) {
+            case blocks::CoralColor::Tube:
+                return VanillaBlocks::DEAD_TUBE_CORAL_FAN
+                    ? &VanillaBlocks::DEAD_TUBE_CORAL_FAN->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Brain:
+                return VanillaBlocks::DEAD_BRAIN_CORAL_FAN
+                    ? &VanillaBlocks::DEAD_BRAIN_CORAL_FAN->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Bubble:
+                return VanillaBlocks::DEAD_BUBBLE_CORAL_FAN
+                    ? &VanillaBlocks::DEAD_BUBBLE_CORAL_FAN->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Fire:
+                return VanillaBlocks::DEAD_FIRE_CORAL_FAN
+                    ? &VanillaBlocks::DEAD_FIRE_CORAL_FAN->defaultState()
+                    : nullptr;
+            case blocks::CoralColor::Horn:
+                return VanillaBlocks::DEAD_HORN_CORAL_FAN
+                    ? &VanillaBlocks::DEAD_HORN_CORAL_FAN->defaultState()
+                    : nullptr;
+            default:
+                return nullptr;
+        }
+    }
+
     switch (color) {
         case blocks::CoralColor::Tube:
             return VanillaBlocks::TUBE_CORAL_FAN ? &VanillaBlocks::TUBE_CORAL_FAN->defaultState() : nullptr;
@@ -45,31 +99,57 @@ namespace {
     }
 }
 
-[[nodiscard]] const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction supportDirection) {
+[[nodiscard]] const BlockState* getCoralWallFanState(
+    blocks::CoralColor color,
+    Direction supportDirection,
+    bool isDead) {
     if (supportDirection == Direction::Up || supportDirection == Direction::Down || supportDirection == Direction::None) {
         return nullptr;
     }
 
     Block* wallFanBlock = nullptr;
-    switch (color) {
-        case blocks::CoralColor::Tube:
-            wallFanBlock = VanillaBlocks::TUBE_CORAL_WALL_FAN;
-            break;
-        case blocks::CoralColor::Brain:
-            wallFanBlock = VanillaBlocks::BRAIN_CORAL_WALL_FAN;
-            break;
-        case blocks::CoralColor::Bubble:
-            wallFanBlock = VanillaBlocks::BUBBLE_CORAL_WALL_FAN;
-            break;
-        case blocks::CoralColor::Fire:
-            wallFanBlock = VanillaBlocks::FIRE_CORAL_WALL_FAN;
-            break;
-        case blocks::CoralColor::Horn:
-            wallFanBlock = VanillaBlocks::HORN_CORAL_WALL_FAN;
-            break;
-        default:
-            wallFanBlock = nullptr;
-            break;
+    if (isDead) {
+        switch (color) {
+            case blocks::CoralColor::Tube:
+                wallFanBlock = VanillaBlocks::DEAD_TUBE_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Brain:
+                wallFanBlock = VanillaBlocks::DEAD_BRAIN_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Bubble:
+                wallFanBlock = VanillaBlocks::DEAD_BUBBLE_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Fire:
+                wallFanBlock = VanillaBlocks::DEAD_FIRE_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Horn:
+                wallFanBlock = VanillaBlocks::DEAD_HORN_CORAL_WALL_FAN;
+                break;
+            default:
+                wallFanBlock = nullptr;
+                break;
+        }
+    } else {
+        switch (color) {
+            case blocks::CoralColor::Tube:
+                wallFanBlock = VanillaBlocks::TUBE_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Brain:
+                wallFanBlock = VanillaBlocks::BRAIN_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Bubble:
+                wallFanBlock = VanillaBlocks::BUBBLE_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Fire:
+                wallFanBlock = VanillaBlocks::FIRE_CORAL_WALL_FAN;
+                break;
+            case blocks::CoralColor::Horn:
+                wallFanBlock = VanillaBlocks::HORN_CORAL_WALL_FAN;
+                break;
+            default:
+                wallFanBlock = nullptr;
+                break;
+        }
     }
 
     if (wallFanBlock == nullptr) {
@@ -107,8 +187,8 @@ namespace {
     return -1;
 }
 
-[[nodiscard]] bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) {
-    const BlockState* coralState = getCoralBlockState(color);
+[[nodiscard]] bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead) {
+    const BlockState* coralState = getCoralBlockState(color, isDead);
     if (coralState == nullptr || !isWaterAt(world, pos)) {
         return false;
     }
@@ -122,6 +202,7 @@ void placeCoralDecorations(
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
+    bool isDead,
     bool includeDecorations) {
     if (!includeDecorations) {
         return;
@@ -135,7 +216,7 @@ void placeCoralDecorations(
                 BlockStateProperties::PICKLES_1_4(),
                 pickleCount);
             world.setBlock(topPos, pickleState);
-        } else if (const BlockState* fanState = getCoralFanState(color); fanState != nullptr) {
+        } else if (const BlockState* fanState = getCoralFanState(color, isDead); fanState != nullptr) {
             world.setBlock(topPos, fanState);
         }
     }
@@ -152,7 +233,7 @@ void placeCoralDecorations(
         }
 
         const Direction supportDirection = Directions::opposite(horizontal);
-        if (const BlockState* wallFanState = getCoralWallFanState(color, supportDirection);
+        if (const BlockState* wallFanState = getCoralWallFanState(color, supportDirection, isDead);
             wallFanState != nullptr) {
             world.setBlock(sidePos, wallFanState);
         }
@@ -164,12 +245,13 @@ void placeCoralDecorations(
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
+    bool isDead,
     bool includeDecorations) {
-    if (!placeCoralBase(world, pos, color)) {
+    if (!placeCoralBase(world, pos, color, isDead)) {
         return false;
     }
 
-    placeCoralDecorations(world, random, pos, color, includeDecorations);
+    placeCoralDecorations(world, random, pos, color, isDead, includeDecorations);
     return true;
 }
 
@@ -221,7 +303,13 @@ bool CoralFeature::place(
     }
 
     if (!placed) {
-        placed = placeCoralWithDecorations(world, random, placePos, config.color, config.includeWallFan);
+        placed = placeCoralWithDecorations(
+            world,
+            random,
+            placePos,
+            config.color,
+            config.isDead,
+            config.includeWallFan);
     }
 
     return placed;
@@ -266,7 +354,7 @@ void CoralFeature::placeCoralBlock(
     const BlockPos& pos,
     blocks::CoralColor color) const
 {
-    placeCoralBase(world, pos, color);
+    placeCoralBase(world, pos, color, false);
 }
 
 void CoralFeature::placeCoralFan(
@@ -280,13 +368,13 @@ void CoralFeature::placeCoralFan(
     }
 
     if (direction == Direction::Up) {
-        if (const BlockState* fanState = getCoralFanState(color); fanState != nullptr) {
+        if (const BlockState* fanState = getCoralFanState(color, false); fanState != nullptr) {
             world.setBlock(pos, fanState);
         }
         return;
     }
 
-    if (const BlockState* wallFanState = getCoralWallFanState(color, direction); wallFanState != nullptr) {
+    if (const BlockState* wallFanState = getCoralWallFanState(color, direction, false); wallFanState != nullptr) {
         world.setBlock(pos, wallFanState);
     }
 }
@@ -307,7 +395,13 @@ bool CoralTreeFeature::place(
     i32 placedTrunk = 0;
     for (i32 y = 0; y < trunkHeight; ++y) {
         const BlockPos trunkPos(pos.x, pos.y + y, pos.z);
-        if (!placeCoralWithDecorations(world, random, trunkPos, config.color, config.includeWallFan)) {
+        if (!placeCoralWithDecorations(
+            world,
+            random,
+            trunkPos,
+            config.color,
+            config.isDead,
+            config.includeWallFan)) {
             break;
         }
         topPos = trunkPos;
@@ -327,6 +421,7 @@ bool CoralTreeFeature::place(
             random,
             topPos,
             config.color,
+            config.isDead,
             direction,
             random.nextInt(3) + 2,
             config.includeWallFan);
@@ -340,6 +435,7 @@ void CoralTreeFeature::generateBranch(
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
+    bool isDead,
     Direction direction,
     i32 length,
     bool includeDecorations)
@@ -351,7 +447,7 @@ void CoralTreeFeature::generateBranch(
             currentPos = currentPos.offset(Direction::Up);
         }
 
-        if (!placeCoralWithDecorations(world, random, currentPos, color, includeDecorations)) {
+        if (!placeCoralWithDecorations(world, random, currentPos, color, isDead, includeDecorations)) {
             break;
         }
     }
@@ -372,7 +468,13 @@ bool CoralMushroomFeature::place(
 
     for (i32 y = 0; y < stemHeight; ++y) {
         const BlockPos stemPos(pos.x, pos.y + y, pos.z);
-        if (!placeCoralWithDecorations(world, random, stemPos, config.color, config.includeWallFan)) {
+        if (!placeCoralWithDecorations(
+            world,
+            random,
+            stemPos,
+            config.color,
+            config.isDead,
+            config.includeWallFan)) {
             break;
         }
         placedAny = true;
@@ -384,7 +486,7 @@ bool CoralMushroomFeature::place(
 
     const BlockPos capPos(pos.x, pos.y + stemHeight, pos.z);
     const i32 radius = random.nextInt(2) + 2;
-    generateCap(world, random, capPos, config.color, radius, config.includeWallFan);
+    generateCap(world, random, capPos, config.color, config.isDead, radius, config.includeWallFan);
 
     return true;
 }
@@ -394,6 +496,7 @@ void CoralMushroomFeature::generateCap(
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
+    bool isDead,
     i32 radius,
     bool includeDecorations)
 {
@@ -406,7 +509,7 @@ void CoralMushroomFeature::generateCap(
                 }
 
                 const BlockPos capPos(pos.x + dx, pos.y + dy, pos.z + dz);
-                placeCoralWithDecorations(world, random, capPos, color, includeDecorations);
+                placeCoralWithDecorations(world, random, capPos, color, isDead, includeDecorations);
             }
         }
     }
@@ -422,7 +525,13 @@ bool CoralClawFeature::place(
     const BlockPos& pos,
     const CoralFeatureConfig& config)
 {
-    bool placedAny = placeCoralWithDecorations(world, random, pos, config.color, config.includeWallFan);
+    bool placedAny = placeCoralWithDecorations(
+        world,
+        random,
+        pos,
+        config.color,
+        config.isDead,
+        config.includeWallFan);
 
     const auto directions = Directions::horizontal();
     const Direction mainDirection = directions[static_cast<size_t>(random.nextInt(4))];
@@ -434,7 +543,7 @@ bool CoralClawFeature::place(
 
     for (Direction direction : clawDirections) {
         if (random.nextFloat() < 0.75f) {
-            generateClaw(world, random, pos, config.color, direction, config.includeWallFan);
+            generateClaw(world, random, pos, config.color, config.isDead, direction, config.includeWallFan);
             placedAny = true;
         }
     }
@@ -447,6 +556,7 @@ void CoralClawFeature::generateClaw(
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
+    bool isDead,
     Direction direction,
     bool includeDecorations)
 {
@@ -460,7 +570,7 @@ void CoralClawFeature::generateClaw(
             currentPos = currentPos.offset(Direction::Up);
         }
 
-        if (!placeCoralWithDecorations(world, random, currentPos, color, includeDecorations)) {
+        if (!placeCoralWithDecorations(world, random, currentPos, color, isDead, includeDecorations)) {
             break;
         }
 
@@ -510,6 +620,11 @@ void CoralFeatures::initialize()
     s_features.push_back(createBubbleCoral());
     s_features.push_back(createFireCoral());
     s_features.push_back(createHornCoral());
+    s_features.push_back(createDeadTubeCoral());
+    s_features.push_back(createDeadBrainCoral());
+    s_features.push_back(createDeadBubbleCoral());
+    s_features.push_back(createDeadFireCoral());
+    s_features.push_back(createDeadHornCoral());
 }
 
 const std::vector<std::unique_ptr<ConfiguredCoralFeature>>& CoralFeatures::getAllFeatures()
@@ -526,32 +641,62 @@ std::vector<std::unique_ptr<ConfiguredCoralFeature>> CoralFeatures::getAllFeatur
 
 std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createTubeCoral()
 {
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Tube, true);
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Tube, true, false);
     return std::make_unique<ConfiguredCoralFeature>(std::move(config), "tube_coral");
 }
 
 std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createBrainCoral()
 {
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Brain, true);
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Brain, true, false);
     return std::make_unique<ConfiguredCoralFeature>(std::move(config), "brain_coral");
 }
 
 std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createBubbleCoral()
 {
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Bubble, true);
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Bubble, true, false);
     return std::make_unique<ConfiguredCoralFeature>(std::move(config), "bubble_coral");
 }
 
 std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createFireCoral()
 {
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Fire, true);
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Fire, true, false);
     return std::make_unique<ConfiguredCoralFeature>(std::move(config), "fire_coral");
 }
 
 std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createHornCoral()
 {
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Horn, true);
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Horn, true, false);
     return std::make_unique<ConfiguredCoralFeature>(std::move(config), "horn_coral");
+}
+
+std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadTubeCoral()
+{
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Tube, true, true);
+    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_tube_coral");
+}
+
+std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadBrainCoral()
+{
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Brain, true, true);
+    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_brain_coral");
+}
+
+std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadBubbleCoral()
+{
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Bubble, true, true);
+    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_bubble_coral");
+}
+
+std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadFireCoral()
+{
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Fire, true, true);
+    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_fire_coral");
+}
+
+std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadHornCoral()
+{
+    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Horn, true, true);
+    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_horn_coral");
 }
 
 } // namespace mc

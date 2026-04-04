@@ -66,8 +66,7 @@ bool SeaPickleFeature::place(
 
         const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
 
-        // 检查是否可以放置
-        if (canPlaceAt(world, placePos)) {
+        if (canPlaceAt(world, placePos, *config.seaPickleState)) {
             // 随机数量 (1-4)
             const i32 maxCount = std::clamp(config.maxCount, 1, 4);
             const i32 count = random.nextInt(maxCount) + 1;
@@ -85,16 +84,20 @@ bool SeaPickleFeature::place(
     return placedAny;
 }
 
-bool SeaPickleFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool SeaPickleFeature::canPlaceAt(
+    WorldGenRegion& world,
+    const BlockPos& pos,
+    const BlockState& pickleState) const
 {
-    // 检查位置是否为水
+    MC_UNUSED(pickleState);
+
     if (!isWater(world, pos)) {
         return false;
     }
 
-    // 检查下方是否为活珊瑚
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    return isLivingCoral(world, belowPos);
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlock(belowPos);
+    return belowState != nullptr && belowState->isSolid();
 }
 
 bool SeaPickleFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
@@ -110,21 +113,6 @@ bool SeaPickleFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
     }
 
     return false;
-}
-
-bool SeaPickleFeature::isLivingCoral(WorldGenRegion& world, const BlockPos& pos) const
-{
-    const BlockState* state = world.getBlock(pos);
-    if (!state) {
-        return false;
-    }
-
-    // 仅允许放置在活珊瑚块上，避免海泡菜扩散到普通海底方块。
-    return (VanillaBlocks::TUBE_CORAL_BLOCK && state->is(VanillaBlocks::TUBE_CORAL_BLOCK)) ||
-           (VanillaBlocks::BRAIN_CORAL_BLOCK && state->is(VanillaBlocks::BRAIN_CORAL_BLOCK)) ||
-           (VanillaBlocks::BUBBLE_CORAL_BLOCK && state->is(VanillaBlocks::BUBBLE_CORAL_BLOCK)) ||
-           (VanillaBlocks::FIRE_CORAL_BLOCK && state->is(VanillaBlocks::FIRE_CORAL_BLOCK)) ||
-           (VanillaBlocks::HORN_CORAL_BLOCK && state->is(VanillaBlocks::HORN_CORAL_BLOCK));
 }
 
 // ============================================================================
@@ -181,7 +169,7 @@ std::unique_ptr<ConfiguredSeaPickleFeature> SeaPickleFeatures::createNormalSeaPi
     if (VanillaBlocks::SEA_PICKLE != nullptr) {
         config->seaPickleState = &VanillaBlocks::SEA_PICKLE->defaultState();
     }
-    config->tries = 10;
+    config->tries = 20;
     config->maxCount = 4;
 
     return std::make_unique<ConfiguredSeaPickleFeature>(std::move(config), "sea_pickle");

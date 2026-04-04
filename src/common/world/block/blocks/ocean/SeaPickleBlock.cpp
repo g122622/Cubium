@@ -1,6 +1,7 @@
 #include "SeaPickleBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -446,22 +447,29 @@ bool BubbleColumnBlock::isValidPosition(
 
     MC_UNUSED(state);
 
-    // 气泡柱需要在水中
-    // TODO: 检查当前方块是否为水
-
-    // 检查下方是否有岩浆块或灵魂沙
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
-
-    if (belowState != nullptr) {
-        // TODO: 检查是否为岩浆块或灵魂沙
-        return true;
+    // 气泡柱只能出现在水中（或已有气泡柱位置）
+    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    const bool isWater = currentState != nullptr && VanillaBlocks::WATER != nullptr &&
+        currentState->is(VanillaBlocks::WATER);
+    const bool isBubbleColumn = currentState != nullptr && currentState->is(this);
+    if (!isWater && !isBubbleColumn) {
+        return false;
     }
 
-    // 或者在另一个气泡柱上方
-    // TODO: 检查下方是否为气泡柱
+    // 检查下方是否是气泡源或另一段气泡柱
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    if (belowState == nullptr) {
+        return false;
+    }
 
-    return false;
+    if (VanillaBlocks::MAGMA != nullptr && belowState->is(VanillaBlocks::MAGMA)) {
+        return true;
+    }
+    if (VanillaBlocks::SOUL_SAND != nullptr && belowState->is(VanillaBlocks::SOUL_SAND)) {
+        return true;
+    }
+    return belowState->is(this);
 }
 
 BlockState BubbleColumnBlock::updatePostPlacement(
@@ -524,8 +532,20 @@ bool BubbleColumnBlock::checkSource(const IWorld& world, const BlockPos& pos) co
         return false;
     }
 
-    // TODO: 检查是否为岩浆块（返回 true，下拖）
-    // 灵魂沙返回 false（上推）
+    // 岩浆块产生下拖气泡柱
+    if (VanillaBlocks::MAGMA != nullptr && belowState->is(VanillaBlocks::MAGMA)) {
+        return true;
+    }
+
+    // 灵魂沙产生上升气泡柱
+    if (VanillaBlocks::SOUL_SAND != nullptr && belowState->is(VanillaBlocks::SOUL_SAND)) {
+        return false;
+    }
+
+    // 继承下方气泡柱的拖拽方向
+    if (belowState->is(this)) {
+        return isDrag(*belowState);
+    }
 
     return false;
 }

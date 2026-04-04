@@ -167,6 +167,14 @@ TEST_F(VegetationFeatureTest, OceanFeatureIdsAreOffsetAfterLandVegetation) {
     EXPECT_EQ(SeaPickleFeatureIds::Offset, SeagrassFeatureIds::Offset + SeagrassFeatureIds::Count);
     EXPECT_EQ(CoralFeatureIds::Offset, SeaPickleFeatureIds::Offset + SeaPickleFeatureIds::Count);
     EXPECT_EQ(CoralFeatureIds::Horn, CoralFeatureIds::Offset + 4);
+    EXPECT_EQ(CoralFeatureIds::DeadTube, CoralFeatureIds::Offset + 5);
+    EXPECT_EQ(CoralFeatureIds::DeadHorn, CoralFeatureIds::Offset + 9);
+
+    EXPECT_EQ(OceanDecorationFeatureIds::Offset, CoralFeatureIds::Offset + CoralFeatureIds::Count);
+    EXPECT_EQ(OceanDecorationFeatureIds::OceanProps, OceanDecorationFeatureIds::Offset);
+
+    EXPECT_EQ(BlueIceFeatureIds::Offset, OceanDecorationFeatureIds::Offset + OceanDecorationFeatureIds::Count);
+    EXPECT_EQ(BlueIceFeatureIds::Normal, BlueIceFeatureIds::Offset);
 }
 
 TEST_F(VegetationFeatureTest, NetherFungusIdsAreOffsetAfterOceanFeatures) {
@@ -192,7 +200,7 @@ TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
 
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
     // 现在包含海洋特征和下界植被特征:
-    // 33(陆地植被) + 9(海洋特征) + 3(下界植被) = 45
+    // 33(陆地植被) + 16(海洋特征) + 3(下界植被) = 52
     const u32 expectedVegetalCount =
         VegetationIds::TotalVegetalFeatures +
         OceanFeatureIds::TotalOceanFeatures +
@@ -230,12 +238,18 @@ TEST_F(VegetationFeatureTest, FeatureRegistryOceanAndNetherFeatureNames) {
 
     ASSERT_LT(KelpFeatureIds::Normal, vegetalFeatures.size());
     ASSERT_LT(SeagrassFeatureIds::Simple, vegetalFeatures.size());
+    ASSERT_LT(CoralFeatureIds::DeadTube, vegetalFeatures.size());
+    ASSERT_LT(OceanDecorationFeatureIds::OceanProps, vegetalFeatures.size());
+    ASSERT_LT(BlueIceFeatureIds::Normal, vegetalFeatures.size());
     ASSERT_LT(NetherFungusIds::CrimsonFungus, vegetalFeatures.size());
     ASSERT_LT(NetherFungusIds::WarpedFungus, vegetalFeatures.size());
     ASSERT_LT(NetherFungusIds::NetherFire, vegetalFeatures.size());
 
     EXPECT_STREQ(vegetalFeatures[KelpFeatureIds::Normal]->name(), "kelp");
     EXPECT_STREQ(vegetalFeatures[SeagrassFeatureIds::Simple]->name(), "seagrass_simple");
+    EXPECT_STREQ(vegetalFeatures[CoralFeatureIds::DeadTube]->name(), "dead_tube_coral");
+    EXPECT_STREQ(vegetalFeatures[OceanDecorationFeatureIds::OceanProps]->name(), "ocean_props");
+    EXPECT_STREQ(vegetalFeatures[BlueIceFeatureIds::Normal]->name(), "blue_ice");
     EXPECT_STREQ(vegetalFeatures[NetherFungusIds::CrimsonFungus]->name(), "crimson_fungus");
     EXPECT_STREQ(vegetalFeatures[NetherFungusIds::WarpedFungus]->name(), "warped_fungus");
     EXPECT_STREQ(vegetalFeatures[NetherFungusIds::NetherFire]->name(), "nether_fire");
@@ -649,19 +663,125 @@ TEST_F(VegetationFeatureTest, OceanBiomeSettings) {
 
     EXPECT_FALSE(hasEmeraldOre);
 
-    // 海洋现在有海带和海草
+    // 海洋应包含海带与海草
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
-    EXPECT_GE(vegetal.size(), 2u);  // 至少有海带和海草
+    EXPECT_GE(vegetal.size(), 2u);
 
-    // 检查是否有海带
     bool hasKelp = false;
+    bool hasSeagrass = false;
+    bool hasDeadCoral = false;
+    bool hasOceanProps = false;
     for (u32 id : vegetal) {
         if (id == KelpFeatureIds::Normal) {
             hasKelp = true;
-            break;
+        }
+        if (id == SeagrassFeatureIds::Simple || id == SeagrassFeatureIds::Mixed) {
+            hasSeagrass = true;
+        }
+        if (id == CoralFeatureIds::DeadTube ||
+            id == CoralFeatureIds::DeadBrain ||
+            id == CoralFeatureIds::DeadBubble ||
+            id == CoralFeatureIds::DeadFire ||
+            id == CoralFeatureIds::DeadHorn) {
+            hasDeadCoral = true;
+        }
+        if (id == OceanDecorationFeatureIds::OceanProps) {
+            hasOceanProps = true;
         }
     }
+
     EXPECT_TRUE(hasKelp);
+    EXPECT_TRUE(hasSeagrass);
+    EXPECT_FALSE(hasDeadCoral);
+    EXPECT_FALSE(hasOceanProps);
+}
+
+TEST_F(VegetationFeatureTest, WarmOceanBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createWarmOcean();
+
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasLiveCoral = false;
+    bool hasDeadCoral = false;
+    bool hasSeaPickle = false;
+    bool hasOceanProps = false;
+
+    for (u32 id : vegetal) {
+        if (id == CoralFeatureIds::Tube ||
+            id == CoralFeatureIds::Brain ||
+            id == CoralFeatureIds::Bubble ||
+            id == CoralFeatureIds::Fire ||
+            id == CoralFeatureIds::Horn) {
+            hasLiveCoral = true;
+        }
+        if (id == CoralFeatureIds::DeadTube ||
+            id == CoralFeatureIds::DeadBrain ||
+            id == CoralFeatureIds::DeadBubble ||
+            id == CoralFeatureIds::DeadFire ||
+            id == CoralFeatureIds::DeadHorn) {
+            hasDeadCoral = true;
+        }
+        if (id == SeaPickleFeatureIds::Normal) {
+            hasSeaPickle = true;
+        }
+        if (id == OceanDecorationFeatureIds::OceanProps) {
+            hasOceanProps = true;
+        }
+    }
+
+    EXPECT_TRUE(hasLiveCoral);
+    EXPECT_FALSE(hasDeadCoral);
+    EXPECT_TRUE(hasSeaPickle);
+    EXPECT_FALSE(hasOceanProps);
+}
+
+TEST_F(VegetationFeatureTest, ColdOceanBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createColdOcean();
+
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasBlueIce = false;
+    bool hasOceanProps = false;
+    bool hasKelp = false;
+    bool hasSeagrass = false;
+
+    for (u32 id : vegetal) {
+        if (id == BlueIceFeatureIds::Normal) {
+            hasBlueIce = true;
+        }
+        if (id == OceanDecorationFeatureIds::OceanProps) {
+            hasOceanProps = true;
+        }
+        if (id == KelpFeatureIds::Normal) {
+            hasKelp = true;
+        }
+        if (id == SeagrassFeatureIds::Simple || id == SeagrassFeatureIds::Mixed) {
+            hasSeagrass = true;
+        }
+    }
+
+    EXPECT_FALSE(hasBlueIce);
+    EXPECT_FALSE(hasOceanProps);
+    EXPECT_TRUE(hasKelp);
+    EXPECT_TRUE(hasSeagrass);
+}
+
+TEST_F(VegetationFeatureTest, FrozenOceanBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createFrozenOcean();
+
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    i32 blueIceCount = 0;
+    bool hasOceanProps = false;
+
+    for (u32 id : vegetal) {
+        if (id == BlueIceFeatureIds::Normal) {
+            ++blueIceCount;
+        }
+        if (id == OceanDecorationFeatureIds::OceanProps) {
+            hasOceanProps = true;
+        }
+    }
+
+    EXPECT_GE(blueIceCount, 1);
+    EXPECT_FALSE(hasOceanProps);
 }
 
 TEST_F(VegetationFeatureTest, TaigaBiomeSettings) {

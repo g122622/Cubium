@@ -7,6 +7,8 @@
 #include "ocean/SeagrassFeature.hpp"
 #include "ocean/SeaPickleFeature.hpp"
 #include "ocean/CoralFeature.hpp"
+#include "ocean/OceanDecorationFeature.hpp"
+#include "ocean/BlueIceFeature.hpp"
 #include "nether/NetherFeatures.hpp"
 #include "spike/EndSpikeFeature.hpp"
 #include "gateway/EndGatewayFeature.hpp"
@@ -165,6 +167,24 @@ void FeatureRegistry::initialize() {
     CoralFeatures::initialize();
     auto coralFeatures = CoralFeatures::getAllFeaturesAndClear();
     for (auto& feature : coralFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 海洋装饰（潮涌核心/气泡柱/海晶石部件等）
+    OceanDecorationFeatures::initialize();
+    auto oceanDecorationFeatures = OceanDecorationFeatures::getAllFeaturesAndClear();
+    for (auto& feature : oceanDecorationFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 蓝冰
+    BlueIceFeatures::initialize();
+    auto blueIceFeatures = BlueIceFeatures::getAllFeaturesAndClear();
+    for (auto& feature : blueIceFeatures) {
         if (feature) {
             registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
         }

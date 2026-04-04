@@ -59,17 +59,14 @@ private:
      */
     [[nodiscard]] bool canPlaceAt(
         WorldGenRegion& world,
-        const BlockPos& pos) const;
+        const BlockPos& pos,
+        const BlockState& pickleState) const;
 
     /**
      * @brief 检查位置是否为水
      */
     [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
 
-    /**
-     * @brief 检查下方方块是否为活珊瑚
-     */
-    [[nodiscard]] bool isLivingCoral(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**

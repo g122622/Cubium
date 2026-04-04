@@ -17,14 +17,18 @@ struct KelpFeatureConfig : public IFeatureConfig {
     /// 海带顶部方块状态（用于顶端海带）
     const BlockState* kelpTopState = nullptr;
 
-    /// 最大高度
-    i32 maxHeight = 25;
+    /// 放置尝试次数（用于模拟原版放置器的高频尝试）
+    i32 tries = 80;
+
+    /// 单株最大高度（原版约为 10）
+    i32 maxHeight = 10;
 
     KelpFeatureConfig() = default;
 
-    explicit KelpFeatureConfig(const BlockState* kelp, const BlockState* kelpTop, i32 maxH = 25)
+    explicit KelpFeatureConfig(const BlockState* kelp, const BlockState* kelpTop, i32 t = 80, i32 maxH = 10)
         : kelpState(kelp)
         , kelpTopState(kelpTop)
+        , tries(t)
         , maxHeight(maxH)
     {}
 };

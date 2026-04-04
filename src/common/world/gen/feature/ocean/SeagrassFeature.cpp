@@ -5,6 +5,8 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
 
+#include <algorithm>
+
 namespace mc {
 
 namespace {
@@ -48,56 +50,63 @@ bool SeagrassFeature::place(
         return false;
     }
 
-    // 在当前区块内随机选择一个 X/Z，使用海底高度图定位放置起点。
-    const i32 placeX = pos.x + random.nextInt(16);
-    const i32 placeZ = pos.z + random.nextInt(16);
-    const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
-    if (oceanFloorY <= 0) {
-        return false;
-    }
+    // 参考原版 SeaGrassFeature：每次调用尝试多个随机偏移点。
+    const i32 tries = std::max(1, config.tries);
+    const i32 spread = std::max(1, config.horizontalSpread);
 
-    const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
+    bool placedAny = false;
+    for (i32 attempt = 0; attempt < tries; ++attempt) {
+        const i32 dx = random.nextInt(spread) - random.nextInt(spread);
+        const i32 dz = random.nextInt(spread) - random.nextInt(spread);
 
-    // 检查是否可以放置
-    if (!canPlaceAt(world, placePos)) {
-        return false;
-    }
-
-    // 决定是否放置高海草
-    if (config.tallSeagrassChance > 0.0f &&
-        config.tallSeagrassLowerState &&
-        config.tallSeagrassUpperState &&
-        random.nextFloat() < config.tallSeagrassChance)
-    {
-        // 检查上方是否有空间放置高海草
-        BlockPos abovePos(placePos.x, placePos.y + 1, placePos.z);
-        if (isWater(world, abovePos)) {
-            return placeTallSeagrass(world, placePos, config);
+        const i32 placeX = pos.x + dx;
+        const i32 placeZ = pos.z + dz;
+        const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
+        if (oceanFloorY <= 0) {
+            continue;
         }
+
+        const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
+        if (!canPlaceAt(world, placePos, *config.seagrassState)) {
+            continue;
+        }
+
+        const bool shouldPlaceTall =
+            config.tallSeagrassChance > 0.0f &&
+            config.tallSeagrassLowerState != nullptr &&
+            config.tallSeagrassUpperState != nullptr &&
+            random.nextFloat() < config.tallSeagrassChance;
+
+        if (shouldPlaceTall) {
+            const BlockPos abovePos(placePos.x, placePos.y + 1, placePos.z);
+            if (isWater(world, abovePos)) {
+                placeTallSeagrass(world, placePos, config);
+                placedAny = true;
+                continue;
+            }
+        }
+
+        world.setBlock(placePos, config.seagrassState);
+        placedAny = true;
     }
 
-    // 放置普通海草
-    world.setBlock(placePos, config.seagrassState);
-    return true;
+    return placedAny;
 }
 
-bool SeagrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool SeagrassFeature::canPlaceAt(
+    WorldGenRegion& world,
+    const BlockPos& pos,
+    const BlockState& seagrassState) const
 {
-    // 检查位置是否为水
+    MC_UNUSED(seagrassState);
+
     if (!isWater(world, pos)) {
         return false;
     }
 
-    // 检查下方方块是否为固体
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlock(belowPos);
-
-    if (!belowState) {
-        return false;
-    }
-
-    // 下方必须是固体方块
-    return belowState->owner().isSolid(*belowState);
+    return belowState != nullptr && belowState->isSolid();
 }
 
 bool SeagrassFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const

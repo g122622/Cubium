@@ -76,7 +76,7 @@ enum class Category {
 
 **主要内容**：
 - 按装饰阶段（DecorationStage）组织特征列表
-- 提供预设配置（createPlains、createForest、createDesert、createRiver、createFrozenRiver、createSwampHills 等）
+- 提供预设配置（createPlains、createForest、createDesert、createRiver、createFrozenRiver、createSwampHills、createWarmOcean、createColdOcean、createFrozenOcean、createDeepWarmOcean、createDeepLukewarmOcean、createDeepColdOcean、createDeepFrozenOcean 等）
 - `BiomeFeaturePlacer` 类：在区块中放置特征
 
 **装饰阶段**：

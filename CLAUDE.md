@@ -329,6 +329,28 @@ enum class Operation : u8 { ... };
 }}}
 ```
 
+## Current Status
+
+- Ocean biome generation has been aligned toward MC 1.16.5 behavior for shallow/deep warm, lukewarm, cold, and frozen variants.
+- `BiomeGenerationSettings` now provides deep-ocean-specific factory methods:
+    - `createDeepWarmOcean`
+    - `createDeepLukewarmOcean`
+    - `createDeepColdOcean`
+    - `createDeepFrozenOcean`
+- Blue ice generation now uses a vanilla-style spread model:
+    - sea-level gating
+    - packed-ice neighbor precondition
+    - iterative propagation (`spreadAttempts`)
+- End biome provider now follows vanilla island-height selection logic (`func_235317_a_` equivalent), including RNG skip behavior and noise-grid container filling.
+- Ocean feature tests and biome-setting tests were updated to match the new parity-oriented expectations.
+
+## Gotchas & Pitfalls
+
+- `WorldGenRegion` is not an `IBlockReader`; do not pass it directly to `Block::isValidPosition`.
+    - In worldgen features, use explicit local placement checks (`isWater`, support block checks) when running in `WorldGenRegion` context.
+- Blue ice placement will always fail if there is no packed-ice neighbor around the sampled start position.
+    - Tests must set up packed ice at the exact sampled neighborhood, not by replacing whole water layers in a way that shifts ocean-floor detection.
+
 ## Self-Maintenance Rule
 
 **After every major change** (new model, new page, new controller, route changes, migration changes, new test files, architectural shifts), update this CLAUDE.md file to reflect the current state. Specifically:

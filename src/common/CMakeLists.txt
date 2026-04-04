@@ -586,6 +586,8 @@ add_library(mc_common STATIC
     world/gen/feature/ocean/SeagrassFeature.cpp
     world/gen/feature/ocean/SeaPickleFeature.cpp
     world/gen/feature/ocean/CoralFeature.cpp
+    world/gen/feature/ocean/OceanDecorationFeature.cpp
+    world/gen/feature/ocean/BlueIceFeature.cpp
 
     # World - Generation - Feature - Spike
     world/gen/feature/spike/EndSpikeFeature.cpp

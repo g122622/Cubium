@@ -3,8 +3,10 @@
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkPrimer.hpp"
 #include "world/gen/chunk/IChunkGenerator.hpp"
+#include "world/gen/feature/ocean/BlueIceFeature.hpp"
 #include "world/gen/feature/ocean/CoralFeature.hpp"
 #include "world/gen/feature/ocean/KelpFeature.hpp"
+#include "world/gen/feature/ocean/OceanDecorationFeature.hpp"
 #include "world/gen/feature/ocean/SeaPickleFeature.hpp"
 #include "world/gen/feature/ocean/SeagrassFeature.hpp"
 
@@ -148,7 +150,30 @@ TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesConfiguredCoralBlock) {
     EXPECT_TRUE(foundCoralBlock);
 }
 
-TEST_F(OceanFeatureWorldTest, SeaPickleFeatureFailsOnNonCoralGround) {
+TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesDeadCoralBlock) {
+    CoralFeature feature;
+    CoralFeatureConfig config(blocks::CoralColor::Tube, true, true);
+    math::Random random(77889);
+
+    ASSERT_NE(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, nullptr);
+    EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
+
+    bool foundDeadCoralBlock = false;
+    for (i32 x = 0; x < 16 && !foundDeadCoralBlock; ++x) {
+        for (i32 z = 0; z < 16 && !foundDeadCoralBlock; ++z) {
+            for (i32 y = 41; y <= 70; ++y) {
+                const BlockState* state = getWorldBlock(x, y, z);
+                if (state != nullptr && state->is(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK)) {
+                    foundDeadCoralBlock = true;
+                    break;
+                }
+            }
+        }
+    }
+    EXPECT_TRUE(foundDeadCoralBlock);
+}
+
+TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnSolidOceanFloor) {
     auto configured = SeaPickleFeatures::createNormalSeaPickle();
     ASSERT_NE(configured, nullptr);
 
@@ -158,7 +183,7 @@ TEST_F(OceanFeatureWorldTest, SeaPickleFeatureFailsOnNonCoralGround) {
     SeaPickleFeature feature;
     math::Random random(33445);
 
-    EXPECT_FALSE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
+    EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
 }
 
 TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral) {
@@ -188,4 +213,125 @@ TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral) {
         }
     }
     EXPECT_TRUE(foundSeaPickle);
+}
+
+TEST_F(OceanFeatureWorldTest, OceanDecorationFeaturePlacesOceanProps) {
+    auto configured = OceanDecorationFeatures::createOceanProps();
+    ASSERT_NE(configured, nullptr);
+
+    OceanDecorationFeatureConfig config = configured->getConfig();
+    config.tries = 12;
+    config.driedKelpCount = 8;
+    config.bubbleColumnMaxHeight = 16;
+
+    OceanDecorationFeature feature;
+    math::Random random(99881);
+
+    EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
+
+    bool foundConduit = false;
+    bool foundDriedKelpBlock = false;
+    bool foundTurtleEgg = false;
+    bool foundBubbleColumn = false;
+    bool foundPrismarinePart = false;
+
+    for (i32 x = 0; x < 16; ++x) {
+        for (i32 z = 0; z < 16; ++z) {
+            for (i32 y = 40; y <= 62; ++y) {
+                const BlockState* state = getWorldBlock(x, y, z);
+                if (state == nullptr) {
+                    continue;
+                }
+
+                if (VanillaBlocks::CONDUIT != nullptr && state->is(VanillaBlocks::CONDUIT)) {
+                    foundConduit = true;
+                }
+                if (VanillaBlocks::DRIED_KELP_BLOCK != nullptr && state->is(VanillaBlocks::DRIED_KELP_BLOCK)) {
+                    foundDriedKelpBlock = true;
+                }
+                if (VanillaBlocks::TURTLE_EGG != nullptr && state->is(VanillaBlocks::TURTLE_EGG)) {
+                    foundTurtleEgg = true;
+                }
+                if (VanillaBlocks::BUBBLE_COLUMN != nullptr && state->is(VanillaBlocks::BUBBLE_COLUMN)) {
+                    foundBubbleColumn = true;
+                }
+                if ((VanillaBlocks::PRISMARINE_STAIRS != nullptr && state->is(VanillaBlocks::PRISMARINE_STAIRS)) ||
+                    (VanillaBlocks::PRISMARINE_SLAB != nullptr && state->is(VanillaBlocks::PRISMARINE_SLAB))) {
+                    foundPrismarinePart = true;
+                }
+            }
+        }
+    }
+
+    EXPECT_TRUE(foundConduit);
+    EXPECT_TRUE(foundDriedKelpBlock);
+    EXPECT_TRUE(foundTurtleEgg);
+    EXPECT_TRUE(foundBubbleColumn);
+    EXPECT_TRUE(foundPrismarinePart);
+}
+
+TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater) {
+    ASSERT_NE(VanillaBlocks::PACKED_ICE, nullptr);
+
+    // 与特征内部一致地预采样起点，保证存在一个打包冰邻居。
+    math::Random probeRandom(1234567);
+    const i32 startX = probeRandom.nextInt(16);
+    const i32 startZ = probeRandom.nextInt(16);
+
+    i32 oceanFloorY = m_region->getTopBlockY(startX, startZ, HeightmapType::OceanFloorWG);
+    if (oceanFloorY <= 0) {
+        for (i32 y = 255; y >= 1; --y) {
+            const BlockState* state = getWorldBlock(startX, y, startZ);
+            if (state == nullptr || state->isAir()) {
+                continue;
+            }
+            if (VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER)) {
+                continue;
+            }
+            oceanFloorY = y;
+            break;
+        }
+    }
+    ASSERT_GT(oceanFloorY, 0);
+    const i32 startY = oceanFloorY + 1;
+
+    const i32 packedX = (startX < 15) ? (startX + 1) : (startX - 1);
+    setWorldBlock(packedX, startY, startZ, &VanillaBlocks::PACKED_ICE->defaultState());
+
+    auto configured = BlueIceFeatures::createBlueIce();
+    ASSERT_NE(configured, nullptr);
+
+    BlueIceFeatureConfig config = configured->getConfig();
+    config.spreadAttempts = 120;
+
+    BlueIceFeature feature;
+    math::Random random(1234567);
+
+    EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config, 63));
+
+    ASSERT_NE(VanillaBlocks::BLUE_ICE, nullptr);
+    bool foundBlueIce = false;
+    for (i32 x = 0; x < 16 && !foundBlueIce; ++x) {
+        for (i32 z = 0; z < 16 && !foundBlueIce; ++z) {
+            for (i32 y = 41; y <= 62; ++y) {
+                const BlockState* state = getWorldBlock(x, y, z);
+                if (state != nullptr && state->is(VanillaBlocks::BLUE_ICE)) {
+                    foundBlueIce = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    EXPECT_TRUE(foundBlueIce);
+}
+
+TEST_F(OceanFeatureWorldTest, BlueIceFeatureFailsWithoutPackedIceNeighbor) {
+    auto configured = BlueIceFeatures::createBlueIce();
+    ASSERT_NE(configured, nullptr);
+
+    BlueIceFeature feature;
+    math::Random random(1234567);
+
+    EXPECT_FALSE(feature.place(*m_region, random, BlockPos(0, 0, 0), configured->getConfig(), 63));
 }

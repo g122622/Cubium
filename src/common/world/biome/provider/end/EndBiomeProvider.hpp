@@ -12,7 +12,7 @@ namespace end {
  * @brief 末地生物群系提供者
  *
  * 参考 MC 1.16.5 EndBiomeProvider
- * 使用简单的噪声采样区分主岛和外岛区域。
+ * 使用原版岛屿高度函数区分主岛与外岛四类生物群系。
  *
  * 末地生物群系：
  * - The End (末地) - 主岛，包含末地龙战斗区域
@@ -56,27 +56,33 @@ public:
     [[nodiscard]] bool isInMainIsland(i32 x, i32 z) const;
 
     /**
-     * @brief 获取岛屿噪声值
-     * @param x 世界 X 坐标
-     * @param z 世界 Z 坐标
-     * @return 岛屿噪声值
+     * @brief 获取岛屿高度值
+     * @param x 采样 X（与原版 func_235317_a_ 输入一致）
+     * @param z 采样 Z（与原版 func_235317_a_ 输入一致）
+     * @return 岛屿高度值
      */
-    [[nodiscard]] f32 getIslandNoise(i32 x, i32 z) const;
+    [[nodiscard]] f32 getIslandHeight(i32 x, i32 z) const;
 
 private:
     // 岛屿噪声生成器
     std::unique_ptr<SimplexNoiseGenerator> m_islandNoise;
 
-    // 主岛半径（方块单位）
-    // MC 1.16.5: 主岛中心半径约为 256 方块 (sqrt(4096) * 4)
-    // 距离判断: (x >> 2)^2 + (z >> 2)^2 <= 4096
-    // 转换: x^2 + z^2 <= 4096 * 16 = 65536, sqrt(65536) = 256
-    static constexpr i32 MAIN_ISLAND_RADIUS = 256;
+    // 原版主岛判定阈值：在 getNoiseBiome 中使用 (i*i + j*j <= 4096)
+    // 其中 i = noiseX >> 2（等价于世界坐标 x >> 4）。
+    static constexpr i64 MAIN_ISLAND_RADIUS_SQ = 4096;
 
     /**
-     * @brief 根据噪声值和位置选择生物群系
+     * @brief 根据噪声坐标选择末地生物群系
      */
-    [[nodiscard]] BiomeId selectBiome(i32 x, i32 z, f32 noise) const;
+    [[nodiscard]] BiomeId selectBiome(i32 noiseX, i32 noiseZ) const;
+
+    /**
+     * @brief 原版末地岛屿高度函数（func_235317_a_）
+     */
+    [[nodiscard]] static f32 computeIslandHeight(
+        const SimplexNoiseGenerator& noise,
+        i32 x,
+        i32 z);
 };
 
 } // namespace end

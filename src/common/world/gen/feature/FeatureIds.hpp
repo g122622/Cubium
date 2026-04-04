@@ -214,7 +214,26 @@ namespace CoralFeatureIds {
     constexpr u32 Bubble = 2 + Offset;  // 气泡珊瑚
     constexpr u32 Fire = 3 + Offset;    // 火焰珊瑚
     constexpr u32 Horn = 4 + Offset;    // 角珊瑚
-    constexpr u32 Count = 5;             // 珊瑚特征总数
+    constexpr u32 DeadTube = 5 + Offset;   // 失活管状珊瑚
+    constexpr u32 DeadBrain = 6 + Offset;  // 失活脑珊瑚
+    constexpr u32 DeadBubble = 7 + Offset; // 失活气泡珊瑚
+    constexpr u32 DeadFire = 8 + Offset;   // 失活火焰珊瑚
+    constexpr u32 DeadHorn = 9 + Offset;   // 失活角珊瑚
+    constexpr u32 Count = 10;              // 珊瑚特征总数
+}
+
+namespace OceanDecorationFeatureIds {
+    // 海洋装饰特征（珊瑚之后）
+    constexpr u32 Offset = CoralFeatureIds::Offset + CoralFeatureIds::Count;
+    constexpr u32 OceanProps = 0 + Offset;  // 海洋装饰物（潮涌核心/气泡柱/海晶石部件等）
+    constexpr u32 Count = 1;                // 海洋装饰特征总数
+}
+
+namespace BlueIceFeatureIds {
+    // 蓝冰特征（海洋装饰之后）
+    constexpr u32 Offset = OceanDecorationFeatureIds::Offset + OceanDecorationFeatureIds::Count;
+    constexpr u32 Normal = 0 + Offset;  // 蓝冰簇
+    constexpr u32 Count = 1;            // 蓝冰特征总数
 }
 
 // ============================================================================
@@ -223,7 +242,7 @@ namespace CoralFeatureIds {
 
 namespace NetherFungusIds {
     // 下界真菌特征
-    constexpr u32 Offset = CoralFeatureIds::Offset + CoralFeatureIds::Count;
+    constexpr u32 Offset = BlueIceFeatureIds::Offset + BlueIceFeatureIds::Count;
     constexpr u32 CrimsonFungus = 0 + Offset;  // 绯红巨型真菌
     constexpr u32 WarpedFungus = 1 + Offset;   // 诡异巨型真菌
     constexpr u32 NetherFire = 2 + Offset;     // 下界火焰
@@ -240,7 +259,9 @@ namespace OceanFeatureIds {
         KelpFeatureIds::Count +
         SeagrassFeatureIds::Count +
         SeaPickleFeatureIds::Count +
-        CoralFeatureIds::Count;
+        CoralFeatureIds::Count +
+        OceanDecorationFeatureIds::Count +
+        BlueIceFeatureIds::Count;
 }
 
 } // namespace mc

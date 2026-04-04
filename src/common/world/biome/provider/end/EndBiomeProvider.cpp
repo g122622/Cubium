@@ -3,6 +3,9 @@
 #include "../../layer/BiomeValues.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 namespace mc {
 namespace biome {
 namespace end {
@@ -30,8 +33,8 @@ EndBiomeProvider::EndBiomeProvider(u64 seed)
 {
     math::Random rng(seed);
 
-    // 初始化岛屿噪声生成器
-    // 参考 MC 1.16.5 EndBiomeProvider 构造函数
+    // 参考原版：SharedSeedRandom(seed).skip(17292) 后初始化 SimplexNoiseGenerator。
+    rng.skip(17292);
     m_islandNoise = std::make_unique<SimplexNoiseGenerator>(rng);
 }
 
@@ -40,21 +43,13 @@ EndBiomeProvider::EndBiomeProvider(u64 seed)
 // ============================================================================
 
 BiomeId EndBiomeProvider::getBiome(i32 x, i32 y, i32 z) const {
-    // 末地使用 2D 生物群系采样（忽略 Y 坐标）
-    // 参考 MC 1.16.5 EndBiomeProvider.getNoiseBiomeAt
     MC_UNUSED(y);
-    return selectBiome(x, z, getIslandNoise(x, z));
+    return getNoiseBiome(x >> 2, 0, z >> 2);
 }
 
 BiomeId EndBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
-    // 末地使用 2D 采样，noiseY 被忽略
     MC_UNUSED(noiseY);
-
-    // 噪声坐标转回世界坐标（乘以 4）
-    const i32 worldX = noiseX << 2;
-    const i32 worldZ = noiseZ << 2;
-
-    return selectBiome(worldX, worldZ, getIslandNoise(worldX, worldZ));
+    return selectBiome(noiseX, noiseZ);
 }
 
 f32 EndBiomeProvider::getDepth(i32 x, i32 z) const {
@@ -76,62 +71,87 @@ f32 EndBiomeProvider::getScale(i32 x, i32 z) const {
 // ============================================================================
 
 bool EndBiomeProvider::isInMainIsland(i32 x, i32 z) const {
-    // 检查是否在主岛范围内
-    // 主岛是圆形，半径 256 方块
-    // 参考 MC 1.16.5: 主岛中心在 (0, 0)
-    // MC 使用 (x >> 2)^2 + (z >> 2)^2 <= 4096，即 x^2 + z^2 <= 65536
-    const i64 distSq = static_cast<i64>(x) * x + static_cast<i64>(z) * z;
-    return distSq <= static_cast<i64>(MAIN_ISLAND_RADIUS) * MAIN_ISLAND_RADIUS;
+    // 对外部世界坐标保持语义：等价于原版 (noiseX >> 2)^2 + (noiseZ >> 2)^2 <= 4096。
+    const i64 i = static_cast<i64>(x >> 4);
+    const i64 j = static_cast<i64>(z >> 4);
+    return i * i + j * j <= MAIN_ISLAND_RADIUS_SQ;
 }
 
-f32 EndBiomeProvider::getIslandNoise(i32 x, i32 z) const {
-    // 岛屿噪声采样
-    // 参考 MC 1.16.5 EndBiomeProvider.islandNoise
-    // 使用较大的缩放因子，使外岛分布更分散
-    constexpr f32 ISLAND_SCALE = 0.0078125f;  // 1/128
-
-    const f32 nx = static_cast<f32>(x) * ISLAND_SCALE;
-    const f32 nz = static_cast<f32>(z) * ISLAND_SCALE;
-
-    return m_islandNoise->noise2D(nx, nz);
+f32 EndBiomeProvider::getIslandHeight(i32 x, i32 z) const {
+    return computeIslandHeight(*m_islandNoise, x, z);
 }
 
 // ============================================================================
 // 生物群系选择
 // ============================================================================
 
-BiomeId EndBiomeProvider::selectBiome(i32 x, i32 z, f32 noise) const {
-    // 参考 MC 1.16.5 EndBiomeProvider.getBiome
-    //
-    // 末地生物群系选择逻辑：
-    // 1. 如果在主岛范围内，返回 The End
-    // 2. 外岛区域根据噪声值选择生物群系：
-    //    - 噪声 < -0.5: 小型末地岛屿
-    //    - 噪声 < 0: 末地荒地
-    //    - 噪声 < 0.5: 末地中部
-    //    - 噪声 >= 0.5: 末地高地
+BiomeId EndBiomeProvider::selectBiome(i32 noiseX, i32 noiseZ) const {
+    // 参考原版 EndBiomeProvider#getNoiseBiome：
+    // i = noiseX >> 2, j = noiseZ >> 2
+    // if i*i + j*j <= 4096 -> THE_END
+    // f = func_235317_a_(generator, i*2+1, j*2+1)
+    // f > 40 -> END_HIGHLANDS
+    // f >= 0 -> END_MIDLANDS
+    // f < -20 -> SMALL_END_ISLANDS
+    // else -> END_BARRENS
 
-    // 主岛区域
-    if (isInMainIsland(x, z)) {
+    const i64 i = static_cast<i64>(noiseX >> 2);
+    const i64 j = static_cast<i64>(noiseZ >> 2);
+    if (i * i + j * j <= MAIN_ISLAND_RADIUS_SQ) {
         return EndBiomes::TheEnd;
     }
 
-    // 外岛区域
-    // 噪声值划分：
-    // - 小型岛屿：噪声非常低，形成小型岛屿群
-    // - 荒地：噪声较低，空旷区域
-    // - 中部：噪声中等，过渡区域
-    // - 高地：噪声较高，有末地城和紫颂树
+    const f32 height = getIslandHeight((noiseX >> 2) * 2 + 1, (noiseZ >> 2) * 2 + 1);
 
-    if (noise < -0.5f) {
-        return EndBiomes::SmallEndIslands;
-    } else if (noise < 0.0f) {
-        return EndBiomes::EndBarrens;
-    } else if (noise < 0.5f) {
-        return EndBiomes::EndMidlands;
-    } else {
+    if (height > 40.0f) {
         return EndBiomes::EndHighlands;
     }
+
+    if (height >= 0.0f) {
+        return EndBiomes::EndMidlands;
+    }
+
+    return height < -20.0f ? EndBiomes::SmallEndIslands : EndBiomes::EndBarrens;
+}
+
+f32 EndBiomeProvider::computeIslandHeight(
+    const SimplexNoiseGenerator& noise,
+    i32 x,
+    i32 z)
+{
+    const i32 i = x / 2;
+    const i32 j = z / 2;
+    const i32 k = x % 2;
+    const i32 l = z % 2;
+
+    f32 height = 100.0f - std::sqrt(static_cast<f32>(x * x + z * z)) * 8.0f;
+    height = std::clamp(height, -100.0f, 80.0f);
+
+    for (i32 i1 = -12; i1 <= 12; ++i1) {
+        for (i32 j1 = -12; j1 <= 12; ++j1) {
+            const i64 k1 = static_cast<i64>(i + i1);
+            const i64 l1 = static_cast<i64>(j + j1);
+
+            if (k1 * k1 + l1 * l1 <= MAIN_ISLAND_RADIUS_SQ) {
+                continue;
+            }
+
+            if (noise.getValue(static_cast<f64>(k1), static_cast<f64>(l1)) >= -0.9) {
+                continue;
+            }
+
+            const f32 f1 =
+                std::fmod(std::abs(static_cast<f32>(k1)) * 3439.0f + std::abs(static_cast<f32>(l1)) * 147.0f, 13.0f) +
+                9.0f;
+            const f32 f2 = static_cast<f32>(k - i1 * 2);
+            const f32 f3 = static_cast<f32>(l - j1 * 2);
+            f32 f4 = 100.0f - std::sqrt(f2 * f2 + f3 * f3) * f1;
+            f4 = std::clamp(f4, -100.0f, 80.0f);
+            height = std::max(height, f4);
+        }
+    }
+
+    return height;
 }
 
 // ============================================================================
@@ -139,17 +159,15 @@ BiomeId EndBiomeProvider::selectBiome(i32 x, i32 z, f32 noise) const {
 // ============================================================================
 
 void EndBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) {
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 startNoiseX = chunkX << 2;
+    const i32 startNoiseZ = chunkZ << 2;
 
     for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
         for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-            // 每个水平槽位对应一个 4x4 区域，取中心点采样。
-            const i32 sampleX = startX + (bx << 2) + 2;
-            const i32 sampleZ = startZ + (bz << 2) + 2;
-            const BiomeId biome = getBiome(sampleX, 0, sampleZ);
+            const i32 noiseX = startNoiseX + bx;
+            const i32 noiseZ = startNoiseZ + bz;
+            const BiomeId biome = getNoiseBiome(noiseX, 0, noiseZ);
 
-            // 末地生物群系仅按 2D 分布，垂直方向复用。
             for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
                 container.setBiome(bx, by, bz, biome);
             }

@@ -88,7 +88,7 @@ world/
 │   │   ├── DecorationStage.hpp # Feature decoration stages
 │   │   ├── FeatureIds.hpp      # Feature IDs
 │   │   ├── lake/               # Lake features
-│   │   ├── ocean/              # Ocean features (kelp, seagrass, coral)
+│   │   ├── ocean/              # Ocean features (kelp, seagrass, live/dead coral, blue ice, ocean props)
 │   │   ├── ore/                # Ore features
 │   │   ├── template/           # Structure templates
 │   │   ├── tree/               # Tree generation

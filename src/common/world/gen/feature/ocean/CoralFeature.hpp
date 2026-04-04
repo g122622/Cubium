@@ -18,11 +18,15 @@ struct CoralFeatureConfig : public IFeatureConfig {
     /// 是否生成墙上的珊瑚扇
     bool includeWallFan = true;
 
+    /// 是否生成失活珊瑚
+    bool isDead = false;
+
     CoralFeatureConfig() = default;
 
-    explicit CoralFeatureConfig(blocks::CoralColor coralColor, bool wallFan = true)
+    explicit CoralFeatureConfig(blocks::CoralColor coralColor, bool wallFan = true, bool dead = false)
         : color(coralColor)
         , includeWallFan(wallFan)
+        , isDead(dead)
     {}
 };
 
@@ -126,6 +130,7 @@ private:
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
+        bool isDead,
         Direction direction,
         i32 length,
         bool includeDecorations);
@@ -150,6 +155,7 @@ private:
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
+        bool isDead,
         i32 radius,
         bool includeDecorations);
 };
@@ -173,6 +179,7 @@ private:
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
+        bool isDead,
         Direction direction,
         bool includeDecorations);
 };
@@ -204,6 +211,21 @@ struct CoralFeatures {
 
     /// 创建角珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createHornCoral();
+
+    /// 创建失活管状珊瑚
+    static std::unique_ptr<ConfiguredCoralFeature> createDeadTubeCoral();
+
+    /// 创建失活脑珊瑚
+    static std::unique_ptr<ConfiguredCoralFeature> createDeadBrainCoral();
+
+    /// 创建失活气泡珊瑚
+    static std::unique_ptr<ConfiguredCoralFeature> createDeadBubbleCoral();
+
+    /// 创建失活火焰珊瑚
+    static std::unique_ptr<ConfiguredCoralFeature> createDeadFireCoral();
+
+    /// 创建失活角珊瑚
+    static std::unique_ptr<ConfiguredCoralFeature> createDeadHornCoral();
 
 private:
     static std::vector<std::unique_ptr<ConfiguredCoralFeature>> s_features;

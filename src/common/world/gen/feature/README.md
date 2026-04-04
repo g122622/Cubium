@@ -40,6 +40,8 @@ feature/
 │   ├── SeagrassFeature.hpp/cpp # 海草特征
 │   ├── SeaPickleFeature.hpp/cpp # 海泡菜特征
 │   ├── CoralFeature.hpp/cpp  # 珊瑚特征
+│   ├── OceanDecorationFeature.hpp/cpp # 海洋装饰特征
+│   ├── BlueIceFeature.hpp/cpp # 蓝冰特征
 │   └── README.md             # 海洋特征说明
 └── vegetation/               # 植被特征
     ├── FlowerFeature.hpp/cpp # 花卉特征
@@ -279,12 +281,14 @@ config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
 
 ### ocean/ - 海洋特征
 
-海洋特征负责海底生态生成，包含海带、海草、海泡菜和珊瑚结构。
+海洋特征负责海底生态与装饰生成，包含海带、海草、海泡菜、活/失活珊瑚、蓝冰与海洋道具装饰结构。
 
 - `KelpFeature`：使用 `kelp_plant + kelp` 组合生成柱状海带。
 - `SeagrassFeature`：支持普通海草与高海草混合放置。
-- `SeaPickleFeature`：在活珊瑚基底上放置不同数量海泡菜。
-- `CoralFeature`：随机生成树形/蘑菇形/爪形珊瑚并附带珊瑚扇装饰。
+- `SeaPickleFeature`：在水体内按地面支撑条件放置不同数量海泡菜。
+- `CoralFeature`：随机生成树形/蘑菇形/爪形珊瑚并附带珊瑚扇装饰，支持活体与失活变种。
+- `OceanDecorationFeature`：生成潮涌核心、海龟蛋、气泡柱、海晶石楼梯/台阶、干海带块等海洋装饰物。
+- `BlueIceFeature`：在冷海域/冻洋中生成蓝冰簇。
 
 ### nether/、fungus/ - 下界特征
 

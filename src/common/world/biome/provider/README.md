@@ -16,7 +16,7 @@ provider/
 │   ├── NetherBiomeProvider.cpp
 │   └── README.md
 └── end/                         # 末地生物群系提供者
-    ├── EndBiomeProvider.hpp     # 2D 噪声生物群系提供者
+    ├── EndBiomeProvider.hpp     # 原版岛屿高度函数生物群系提供者
     ├── EndBiomeProvider.cpp
     └── README.md
 ```
@@ -39,7 +39,7 @@ provider/
 | 采样方式 | 2D Layer 系统 | 3D 噪声采样 | 2D 噪声采样 |
 | 生物群系数 | 170+ | 5 | 5 |
 | 垂直变化 | 无 | 有 | 无 |
-| 主要噪声 | 温度/湿度/大陆度 Layer | 温度/湿度/生物群系噪声 | 岛屿噪声 |
+| 主要噪声 | 温度/湿度/大陆度 Layer | 温度/湿度/生物群系噪声 | 岛屿高度函数 + Simplex 噪声 |
 
 ## 使用示例
 

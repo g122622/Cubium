@@ -3,6 +3,9 @@
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
+
+#include <algorithm>
 
 namespace mc {
 
@@ -47,63 +50,66 @@ bool KelpFeature::place(
         return false;
     }
 
-    // 在当前区块内随机选择一个 X/Z，使用海底高度图定位生长起点。
-    const i32 placeX = pos.x + random.nextInt(16);
-    const i32 placeZ = pos.z + random.nextInt(16);
-    const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
-    if (oceanFloorY <= 0) {
-        return false;
-    }
+    // 参考原版 KelpFeature：单次放置会尝试多次随机点，并在顶端设置 AGE 20-23。
+    const i32 tries = std::max(1, config.tries);
+    const i32 maxHeight = std::max(1, config.maxHeight);
 
-    const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
+    bool placedAny = false;
+    for (i32 attempt = 0; attempt < tries; ++attempt) {
+        const i32 placeX = pos.x + random.nextInt(16);
+        const i32 placeZ = pos.z + random.nextInt(16);
+        const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
+        if (oceanFloorY <= 0) {
+            continue;
+        }
 
-    // 检查是否可以放置
-    if (!canPlaceAt(world, placePos)) {
-        return false;
-    }
+        BlockPos currentPos(placeX, oceanFloorY + 1, placeZ);
+        if (!isWater(world, currentPos)) {
+            continue;
+        }
 
-    // 随机高度 (1-25)
-    i32 height = random.nextInt(config.maxHeight) + 1;
+        const i32 height = 1 + random.nextInt(maxHeight);
+        for (i32 y = 0; y <= height; ++y) {
+            const BlockPos abovePos(currentPos.x, currentPos.y + 1, currentPos.z);
+            const bool canGrowHere = isWater(world, currentPos) && isWater(world, abovePos) && canPlaceAt(world, currentPos);
 
-    // 检查是否有足够空间（需要在水中）
-    for (i32 y = 0; y < height; ++y) {
-        BlockPos checkPos(placePos.x, placePos.y + y, placePos.z);
-        const BlockState* state = world.getBlock(checkPos);
+            if (canGrowHere) {
+                if (y == height) {
+                    const i32 age = random.nextInt(4) + 20;
+                    world.setBlock(
+                        currentPos,
+                        &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
+                    placedAny = true;
+                } else {
+                    world.setBlock(currentPos, config.kelpState);
+                }
+            } else if (y > 0) {
+                const BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
+                const BlockPos belowBelowPos(belowPos.x, belowPos.y - 1, belowPos.z);
+                const BlockState* belowBelowState = world.getBlock(belowBelowPos);
 
-        // 必须在水或空气中
-        if (state && !state->isAir()) {
-            // 检查是否为水
-            if (!isWater(world, checkPos)) {
-                height = y;
+                const bool belowHasKelp =
+                    (VanillaBlocks::KELP != nullptr && belowBelowState != nullptr && belowBelowState->is(VanillaBlocks::KELP));
+
+                if (canPlaceAt(world, belowPos) && !belowHasKelp) {
+                    const i32 age = random.nextInt(4) + 20;
+                    world.setBlock(
+                        belowPos,
+                        &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
+                    placedAny = true;
+                }
                 break;
             }
+
+            currentPos = BlockPos(currentPos.x, currentPos.y + 1, currentPos.z);
         }
     }
 
-    if (height <= 0) {
-        return false;
-    }
-
-    // 放置海带
-    for (i32 y = 0; y < height; ++y) {
-        BlockPos kelpPos(placePos.x, placePos.y + y, placePos.z);
-
-        // 顶端使用 kelpTopState，其他使用 kelpState
-        const BlockState* stateToPlace = (y == height - 1) ? config.kelpTopState : config.kelpState;
-        world.setBlock(kelpPos, stateToPlace);
-    }
-
-    return true;
+    return placedAny;
 }
 
 bool KelpFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
-    // 检查位置是否为水
-    if (!isWater(world, pos)) {
-        return false;
-    }
-
-    // 检查下方方块是否为固体
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlock(belowPos);
 
@@ -111,7 +117,13 @@ bool KelpFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
         return false;
     }
 
-    // 下方必须是固体方块
+    if (VanillaBlocks::KELP != nullptr && belowState->is(VanillaBlocks::KELP)) {
+        return true;
+    }
+    if (VanillaBlocks::KELP_PLANT != nullptr && belowState->is(VanillaBlocks::KELP_PLANT)) {
+        return true;
+    }
+
     return belowState->owner().isSolid(*belowState);
 }
 
@@ -186,7 +198,8 @@ std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createNormalKelp()
         config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
         config->kelpTopState = &VanillaBlocks::KELP->defaultState();
     }
-    config->maxHeight = 25;
+    config->tries = 80;
+    config->maxHeight = 10;
 
     return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp");
 }
