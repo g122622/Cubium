@@ -4,7 +4,7 @@
 
 ## 概述
 
-`src/common/world/gen/structure` 目录实现了 Minecraft 1.16.5 风格的世界结构生成系统。该系统负责在区块生成过程中放置各种复杂结构，包括村庄、废弃矿井、要塞、沙漠神殿、丛林神庙、海洋纪念碑、废弃传送门和埋藏宝藏等。
+`src/common/world/gen/structure` 目录实现了 Minecraft 1.16.5 风格的世界结构生成系统。该系统负责在区块生成过程中放置各种复杂结构，包括村庄、废弃矿井、要塞、沙漠神殿、丛林神庙、海洋纪念碑、废弃传送门、埋藏宝藏、沉船和海底废墟等。
 
 ## 目录结构
 
@@ -19,6 +19,7 @@ structure/
 ├── StructureManager.cpp
 ├── pieces/                        # 结构片段（预留目录）
 └── structures/                    # 具体结构实现
+    ├── README.md                  # 结构实现子目录说明
     ├── VillageStructure.hpp       # 村庄结构
     ├── VillageStructure.cpp
     ├── StrongholdStructure.hpp    # 要塞结构
@@ -34,7 +35,11 @@ structure/
     ├── RuinedPortalStructure.hpp  # 废弃传送门结构
     ├── RuinedPortalStructure.cpp
     ├── BuriedTreasureStructure.hpp # 埋藏宝藏结构
-    └── BuriedTreasureStructure.cpp
+    ├── BuriedTreasureStructure.cpp
+    ├── ShipwreckStructure.hpp      # 沉船结构
+    ├── ShipwreckStructure.cpp
+    ├── OceanRuinStructure.hpp      # 海底废墟结构
+    └── OceanRuinStructure.cpp
 ```
 
 ## 文件详细说明
@@ -197,6 +202,8 @@ sequenceDiagram
     Registry->>Registry: registerStructure(DesertPyramidStructure)
     Registry->>Registry: registerStructure(JungleTempleStructure)
     Registry->>Registry: registerStructure(OceanMonumentStructure)
+    Registry->>Registry: registerStructure(ShipwreckStructure)
+    Registry->>Registry: registerStructure(OceanRuinStructure)
 ```
 
 ### 具体结构实现
@@ -372,6 +379,46 @@ sequenceDiagram
 
 **有效生物群系**: Beach, SnowyBeach
 
+#### ShipwreckStructure（沉船）
+
+**职责**: 在海洋与海滩边缘生成沉船残骸。
+
+**特点**:
+- 木板船体 + 去皮原木桅杆
+- 甲板护栏与船首/船尾坡面
+- 随机破损开口，保留沉船视觉特征
+
+**配置参数**:
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| spacing | 24 | 沉船平均间距 |
+| separation | 4 | 最小分离距离 |
+| salt | 165745296 | 随机种子盐 |
+| probability | 0.35 | 生成概率 |
+
+**有效生物群系**: Ocean, WarmOcean, LukewarmOcean, ColdOcean, FrozenOcean, Deep*Ocean, Beach, SnowyBeach
+
+#### OceanRuinStructure（海底废墟）
+
+**职责**: 在海底生成冷/暖两种风格的小型废墟结构。
+
+**特点**:
+- 冷海：石砖/苔石砖/圆石混合风化风格
+- 暖海：砂岩/切制砂岩风格
+- 中央塌陷区与死珊瑚侵蚀装饰
+
+**配置参数**:
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| spacing | 20 | 海底废墟平均间距 |
+| separation | 8 | 最小分离距离 |
+| salt | 14357623 | 随机种子盐 |
+| probability | 0.4 | 生成概率 |
+
+**有效生物群系**: Ocean, WarmOcean, LukewarmOcean, ColdOcean, FrozenOcean, Deep*Ocean
+
 ## 模块架构
 
 ```mermaid
@@ -396,6 +443,8 @@ graph TB
             OMS[OceanMonumentStructure]
             RPS[RuinedPortalStructure]
             BTS[BuriedTreasureStructure]
+            SWS[ShipwreckStructure]
+            ORS[OceanRuinStructure]
         end
         
         subgraph "Jigsaw 系统"
@@ -416,6 +465,8 @@ graph TB
     S <|-- OMS
     S <|-- RPS
     S <|-- BTS
+    S <|-- SWS
+    S <|-- ORS
     S <|-- JS
     
     SS --> SP

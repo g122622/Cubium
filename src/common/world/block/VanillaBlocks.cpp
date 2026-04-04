@@ -13,6 +13,7 @@
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ocean/DriedKelpBlock.hpp"
 #include "blocks/ocean/SeaPickleBlock.hpp"
+#include "blocks/mob/MobBlocks.hpp"
 #include "blocks/coral/CoralBlock.hpp"
 #include "blocks/decorative/LanternBlock.hpp"
 #include "blocks/decorative/CampfireBlock.hpp"
@@ -180,12 +181,30 @@ Block* VanillaBlocks::DARK_OAK_PLANKS = nullptr;
 
 // 原木和树叶
 Block* VanillaBlocks::OAK_LOG = nullptr;
+Block* VanillaBlocks::OAK_WOOD = nullptr;
 Block* VanillaBlocks::OAK_LEAVES = nullptr;
 Block* VanillaBlocks::SPRUCE_LOG = nullptr;
+Block* VanillaBlocks::SPRUCE_WOOD = nullptr;
 Block* VanillaBlocks::BIRCH_LOG = nullptr;
+Block* VanillaBlocks::BIRCH_WOOD = nullptr;
 Block* VanillaBlocks::JUNGLE_LOG = nullptr;
+Block* VanillaBlocks::JUNGLE_WOOD = nullptr;
 Block* VanillaBlocks::ACACIA_LOG = nullptr;
+Block* VanillaBlocks::ACACIA_WOOD = nullptr;
 Block* VanillaBlocks::DARK_OAK_LOG = nullptr;
+Block* VanillaBlocks::DARK_OAK_WOOD = nullptr;
+Block* VanillaBlocks::STRIPPED_OAK_LOG = nullptr;
+Block* VanillaBlocks::STRIPPED_SPRUCE_LOG = nullptr;
+Block* VanillaBlocks::STRIPPED_BIRCH_LOG = nullptr;
+Block* VanillaBlocks::STRIPPED_JUNGLE_LOG = nullptr;
+Block* VanillaBlocks::STRIPPED_ACACIA_LOG = nullptr;
+Block* VanillaBlocks::STRIPPED_DARK_OAK_LOG = nullptr;
+Block* VanillaBlocks::STRIPPED_OAK_WOOD = nullptr;
+Block* VanillaBlocks::STRIPPED_SPRUCE_WOOD = nullptr;
+Block* VanillaBlocks::STRIPPED_BIRCH_WOOD = nullptr;
+Block* VanillaBlocks::STRIPPED_JUNGLE_WOOD = nullptr;
+Block* VanillaBlocks::STRIPPED_ACACIA_WOOD = nullptr;
+Block* VanillaBlocks::STRIPPED_DARK_OAK_WOOD = nullptr;
 Block* VanillaBlocks::SPRUCE_LEAVES = nullptr;
 Block* VanillaBlocks::BIRCH_LEAVES = nullptr;
 Block* VanillaBlocks::JUNGLE_LEAVES = nullptr;
@@ -317,6 +336,23 @@ Block* VanillaBlocks::KELP = nullptr;
 Block* VanillaBlocks::KELP_PLANT = nullptr;
 Block* VanillaBlocks::SEAGRASS = nullptr;
 Block* VanillaBlocks::TALL_SEAGRASS = nullptr;
+Block* VanillaBlocks::BUBBLE_COLUMN = nullptr;
+Block* VanillaBlocks::TURTLE_EGG = nullptr;
+Block* VanillaBlocks::DEAD_TUBE_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::DEAD_FIRE_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::DEAD_HORN_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::DEAD_TUBE_CORAL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_BRAIN_CORAL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_BUBBLE_CORAL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_FIRE_CORAL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_HORN_CORAL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_TUBE_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_BRAIN_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_BUBBLE_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_FIRE_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::DEAD_HORN_CORAL_WALL_FAN = nullptr;
 Block* VanillaBlocks::TUBE_CORAL_BLOCK = nullptr;
 Block* VanillaBlocks::BRAIN_CORAL_BLOCK = nullptr;
 Block* VanillaBlocks::BUBBLE_CORAL_BLOCK = nullptr;
@@ -358,6 +394,12 @@ Block* VanillaBlocks::QUARTZ_PILLAR = nullptr;
 Block* VanillaBlocks::PRISMARINE = nullptr;
 Block* VanillaBlocks::PRISMARINE_BRICKS = nullptr;
 Block* VanillaBlocks::DARK_PRISMARINE = nullptr;
+Block* VanillaBlocks::PRISMARINE_STAIRS = nullptr;
+Block* VanillaBlocks::PRISMARINE_BRICK_STAIRS = nullptr;
+Block* VanillaBlocks::DARK_PRISMARINE_STAIRS = nullptr;
+Block* VanillaBlocks::PRISMARINE_SLAB = nullptr;
+Block* VanillaBlocks::PRISMARINE_BRICK_SLAB = nullptr;
+Block* VanillaBlocks::DARK_PRISMARINE_SLAB = nullptr;
 Block* VanillaBlocks::SEA_LANTERN = nullptr;
 
 // 紫珀系列
@@ -1159,6 +1201,46 @@ void VanillaBlocks::registerTreeVariants() {
     BlockProperties leavesProps = BlockProperties(Material::LEAVES)
         .hardness(0.2f).flammable().notSolid().opacity(1).propagatesSkylightDown();
 
+    // 木头与去皮木头（各向异性）
+    OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:oak_wood"), logProps);
+    SPRUCE_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:spruce_wood"), logProps);
+    BIRCH_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:birch_wood"), logProps);
+    JUNGLE_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:jungle_wood"), logProps);
+    ACACIA_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:acacia_wood"), logProps);
+    DARK_OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:dark_oak_wood"), logProps);
+
+    STRIPPED_OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_oak_log"), logProps);
+    STRIPPED_SPRUCE_LOG = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_spruce_log"), logProps);
+    STRIPPED_BIRCH_LOG = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_birch_log"), logProps);
+    STRIPPED_JUNGLE_LOG = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_jungle_log"), logProps);
+    STRIPPED_ACACIA_LOG = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_acacia_log"), logProps);
+    STRIPPED_DARK_OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_dark_oak_log"), logProps);
+
+    STRIPPED_OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_oak_wood"), logProps);
+    STRIPPED_SPRUCE_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_spruce_wood"), logProps);
+    STRIPPED_BIRCH_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_birch_wood"), logProps);
+    STRIPPED_JUNGLE_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_jungle_wood"), logProps);
+    STRIPPED_ACACIA_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_acacia_wood"), logProps);
+    STRIPPED_DARK_OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_dark_oak_wood"), logProps);
+
     // 云杉原木和树叶
     SPRUCE_LOG = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:spruce_log"), logProps);
@@ -1898,10 +1980,99 @@ void VanillaBlocks::registerNaturalBlocks() {
         ResourceLocation("minecraft:tall_seagrass"),
         BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
-    // 珊瑚（生成逻辑当前主要使用珊瑚块和珊瑚扇）
+    // 气泡柱与海龟蛋
+    BUBBLE_COLUMN = &registry.registerBlock<blocks::BubbleColumnBlock>(
+        ResourceLocation("minecraft:bubble_column"),
+        BlockProperties(Material::WATER).noCollision().notSolid().opacity(0).propagatesSkylightDown());
+    TURTLE_EGG = &registry.registerBlock<blocks::TurtleEggBlock>(
+        ResourceLocation("minecraft:turtle_egg"),
+        BlockProperties(Material::CORAL).hardness(0.5f).noCollision().notSolid());
+
+    // 珊瑚（补齐死亡变种，便于海洋废墟/暖海装饰复用）
     const u32 deadFallbackId = AIR ? AIR->blockId() : 0;
     const BlockProperties coralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
     const BlockProperties coralPlantProps = BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid();
+    const BlockProperties deadCoralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
+    const BlockProperties deadCoralPlantProps = BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid();
+
+    DEAD_TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:dead_tube_coral_block"),
+        blocks::CoralColor::Tube,
+        deadCoralBlockProps);
+    DEAD_BRAIN_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:dead_brain_coral_block"),
+        blocks::CoralColor::Brain,
+        deadCoralBlockProps);
+    DEAD_BUBBLE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:dead_bubble_coral_block"),
+        blocks::CoralColor::Bubble,
+        deadCoralBlockProps);
+    DEAD_FIRE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:dead_fire_coral_block"),
+        blocks::CoralColor::Fire,
+        deadCoralBlockProps);
+    DEAD_HORN_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:dead_horn_coral_block"),
+        blocks::CoralColor::Horn,
+        deadCoralBlockProps);
+
+    const u32 deadTubeBlockId = DEAD_TUBE_CORAL_BLOCK ? DEAD_TUBE_CORAL_BLOCK->blockId() : deadFallbackId;
+    const u32 deadBrainBlockId = DEAD_BRAIN_CORAL_BLOCK ? DEAD_BRAIN_CORAL_BLOCK->blockId() : deadFallbackId;
+    const u32 deadBubbleBlockId = DEAD_BUBBLE_CORAL_BLOCK ? DEAD_BUBBLE_CORAL_BLOCK->blockId() : deadFallbackId;
+    const u32 deadFireBlockId = DEAD_FIRE_CORAL_BLOCK ? DEAD_FIRE_CORAL_BLOCK->blockId() : deadFallbackId;
+    const u32 deadHornBlockId = DEAD_HORN_CORAL_BLOCK ? DEAD_HORN_CORAL_BLOCK->blockId() : deadFallbackId;
+
+    DEAD_TUBE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:dead_tube_coral_fan"),
+        blocks::CoralColor::Tube,
+        deadTubeBlockId,
+        deadCoralPlantProps);
+    DEAD_BRAIN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:dead_brain_coral_fan"),
+        blocks::CoralColor::Brain,
+        deadBrainBlockId,
+        deadCoralPlantProps);
+    DEAD_BUBBLE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:dead_bubble_coral_fan"),
+        blocks::CoralColor::Bubble,
+        deadBubbleBlockId,
+        deadCoralPlantProps);
+    DEAD_FIRE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:dead_fire_coral_fan"),
+        blocks::CoralColor::Fire,
+        deadFireBlockId,
+        deadCoralPlantProps);
+    DEAD_HORN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:dead_horn_coral_fan"),
+        blocks::CoralColor::Horn,
+        deadHornBlockId,
+        deadCoralPlantProps);
+
+    DEAD_TUBE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:dead_tube_coral_wall_fan"),
+        blocks::CoralColor::Tube,
+        deadTubeBlockId,
+        deadCoralPlantProps);
+    DEAD_BRAIN_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:dead_brain_coral_wall_fan"),
+        blocks::CoralColor::Brain,
+        deadBrainBlockId,
+        deadCoralPlantProps);
+    DEAD_BUBBLE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:dead_bubble_coral_wall_fan"),
+        blocks::CoralColor::Bubble,
+        deadBubbleBlockId,
+        deadCoralPlantProps);
+    DEAD_FIRE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:dead_fire_coral_wall_fan"),
+        blocks::CoralColor::Fire,
+        deadFireBlockId,
+        deadCoralPlantProps);
+    DEAD_HORN_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:dead_horn_coral_wall_fan"),
+        blocks::CoralColor::Horn,
+        deadHornBlockId,
+        deadCoralPlantProps);
 
     TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:tube_coral_block"),
@@ -1927,53 +2098,53 @@ void VanillaBlocks::registerNaturalBlocks() {
     TUBE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
         ResourceLocation("minecraft:tube_coral_fan"),
         blocks::CoralColor::Tube,
-        deadFallbackId,
+        deadTubeBlockId,
         coralPlantProps);
     BRAIN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
         ResourceLocation("minecraft:brain_coral_fan"),
         blocks::CoralColor::Brain,
-        deadFallbackId,
+        deadBrainBlockId,
         coralPlantProps);
     BUBBLE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
         ResourceLocation("minecraft:bubble_coral_fan"),
         blocks::CoralColor::Bubble,
-        deadFallbackId,
+        deadBubbleBlockId,
         coralPlantProps);
     FIRE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
         ResourceLocation("minecraft:fire_coral_fan"),
         blocks::CoralColor::Fire,
-        deadFallbackId,
+        deadFireBlockId,
         coralPlantProps);
     HORN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
         ResourceLocation("minecraft:horn_coral_fan"),
         blocks::CoralColor::Horn,
-        deadFallbackId,
+        deadHornBlockId,
         coralPlantProps);
 
     TUBE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
         ResourceLocation("minecraft:tube_coral_wall_fan"),
         blocks::CoralColor::Tube,
-        deadFallbackId,
+        deadTubeBlockId,
         coralPlantProps);
     BRAIN_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
         ResourceLocation("minecraft:brain_coral_wall_fan"),
         blocks::CoralColor::Brain,
-        deadFallbackId,
+        deadBrainBlockId,
         coralPlantProps);
     BUBBLE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
         ResourceLocation("minecraft:bubble_coral_wall_fan"),
         blocks::CoralColor::Bubble,
-        deadFallbackId,
+        deadBubbleBlockId,
         coralPlantProps);
     FIRE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
         ResourceLocation("minecraft:fire_coral_wall_fan"),
         blocks::CoralColor::Fire,
-        deadFallbackId,
+        deadFireBlockId,
         coralPlantProps);
     HORN_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
         ResourceLocation("minecraft:horn_coral_wall_fan"),
         blocks::CoralColor::Horn,
-        deadFallbackId,
+        deadHornBlockId,
         coralPlantProps);
 
     // 潮涌核心 - ID 545
@@ -2233,6 +2404,23 @@ void VanillaBlocks::registerStairsSlabsWalls() {
         BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
     );
 
+    // 海晶楼梯
+    PRISMARINE_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:prismarine_stairs"),
+        PRISMARINE->defaultState(),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+    PRISMARINE_BRICK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:prismarine_brick_stairs"),
+        PRISMARINE_BRICKS->defaultState(),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+    DARK_PRISMARINE_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:dark_prismarine_stairs"),
+        DARK_PRISMARINE->defaultState(),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
     // ========== 台阶 ==========
     // 橡木台阶
     // 参考: new SlabBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.0F))
@@ -2251,6 +2439,20 @@ void VanillaBlocks::registerStairsSlabsWalls() {
     COBBLESTONE_SLAB = &registry.registerBlock<blocks::SlabBlock>(
         ResourceLocation("minecraft:cobblestone_slab"),
         BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+
+    // 海晶台阶
+    PRISMARINE_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:prismarine_slab"),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+    PRISMARINE_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:prismarine_brick_slab"),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
+    );
+    DARK_PRISMARINE_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:dark_prismarine_slab"),
+        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe)
     );
 
     // ========== 墙 ==========

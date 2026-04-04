@@ -7,6 +7,8 @@
 #include "structures/DesertPyramidStructure.hpp"
 #include "structures/JungleTempleStructure.hpp"
 #include "structures/OceanMonumentStructure.hpp"
+#include "structures/ShipwreckStructure.hpp"
+#include "structures/OceanRuinStructure.hpp"
 #include "structures/FortressStructure.hpp"
 #include "../jigsaw/JigsawPattern.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
@@ -42,6 +44,8 @@ void StructureRegistry::initialize() {
     registerStructure(std::make_unique<DesertPyramidStructure>());
     registerStructure(std::make_unique<JungleTempleStructure>());
     registerStructure(std::make_unique<OceanMonumentStructure>());
+    registerStructure(std::make_unique<ShipwreckStructure>());
+    registerStructure(std::make_unique<OceanRuinStructure>());
     registerStructure(std::make_unique<FortressStructure>());
 
     s_initialized = true;

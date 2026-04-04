@@ -557,7 +557,7 @@ Biome createRiver()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings::createRiver());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
     return biome;
 }
@@ -714,7 +714,7 @@ Biome createFrozenRiver()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::ICE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings::createFrozenRiver());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     // 冻河使用冻洋的水体颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -1237,7 +1237,7 @@ Biome createSwampHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings::createSwampHills());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSwamp());
     // 沼泽山丘使用与沼泽相同的颜色
     biome.setEffects(BiomeEffects::Builder()

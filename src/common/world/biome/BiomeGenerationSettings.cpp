@@ -184,6 +184,54 @@ BiomeGenerationSettings BiomeGenerationSettings::createSwamp() {
     return settings;
 }
 
+BiomeGenerationSettings BiomeGenerationSettings::createRiver() {
+    // 河流：矿石 + 河岸甘蔗 + 浅水海草（不额外生成湖泊）
+    BiomeGenerationSettings settings;
+
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
+    settings.addFeature(DecorationStage::VegetalDecoration, SugarCaneFeatureIds::Normal);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createFrozenRiver() {
+    // 冻河：保留基础矿石，不放置温暖水域植被
+    BiomeGenerationSettings settings;
+
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
+    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createSwampHills() {
+    // 沼泽山丘：保留湿地装饰，但降低甘蔗密度
+    BiomeGenerationSettings settings = createDefault();
+
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::SparseOakTree);
+    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::SwampFlowers);
+    settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::SwampGrass);
+    settings.addFeature(DecorationStage::VegetalDecoration, SugarCaneFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, MushroomFeatureIds::BrownMushroom);
+    settings.addFeature(DecorationStage::VegetalDecoration, MushroomFeatureIds::RedMushroom);
+
+    return settings;
+}
+
 BiomeGenerationSettings BiomeGenerationSettings::createIceSpikes() {
     // 冰刺平原：矿石 + 冰刺结构
     BiomeGenerationSettings settings = createDefault();

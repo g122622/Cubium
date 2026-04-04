@@ -181,12 +181,30 @@ public:
     // 原木和树叶
     // ========================================================================
     static Block* OAK_LOG;
+    static Block* OAK_WOOD;
     static Block* OAK_LEAVES;
     static Block* SPRUCE_LOG;
+    static Block* SPRUCE_WOOD;
     static Block* BIRCH_LOG;
+    static Block* BIRCH_WOOD;
     static Block* JUNGLE_LOG;
+    static Block* JUNGLE_WOOD;
     static Block* ACACIA_LOG;
+    static Block* ACACIA_WOOD;
     static Block* DARK_OAK_LOG;
+    static Block* DARK_OAK_WOOD;
+    static Block* STRIPPED_OAK_LOG;
+    static Block* STRIPPED_SPRUCE_LOG;
+    static Block* STRIPPED_BIRCH_LOG;
+    static Block* STRIPPED_JUNGLE_LOG;
+    static Block* STRIPPED_ACACIA_LOG;
+    static Block* STRIPPED_DARK_OAK_LOG;
+    static Block* STRIPPED_OAK_WOOD;
+    static Block* STRIPPED_SPRUCE_WOOD;
+    static Block* STRIPPED_BIRCH_WOOD;
+    static Block* STRIPPED_JUNGLE_WOOD;
+    static Block* STRIPPED_ACACIA_WOOD;
+    static Block* STRIPPED_DARK_OAK_WOOD;
     static Block* SPRUCE_LEAVES;
     static Block* BIRCH_LEAVES;
     static Block* JUNGLE_LEAVES;
@@ -254,6 +272,12 @@ public:
     static Block* PRISMARINE;
     static Block* PRISMARINE_BRICKS;
     static Block* DARK_PRISMARINE;
+    static Block* PRISMARINE_STAIRS;
+    static Block* PRISMARINE_BRICK_STAIRS;
+    static Block* DARK_PRISMARINE_STAIRS;
+    static Block* PRISMARINE_SLAB;
+    static Block* PRISMARINE_BRICK_SLAB;
+    static Block* DARK_PRISMARINE_SLAB;
     static Block* SEA_LANTERN;
 
     // ========================================================================
@@ -458,10 +482,30 @@ public:
     static Block* KELP_PLANT;         // 海带茎
     static Block* SEAGRASS;           // 海草
     static Block* TALL_SEAGRASS;      // 高海草
+    static Block* BUBBLE_COLUMN;      // 气泡柱
+    static Block* TURTLE_EGG;         // 海龟蛋
 
     // ========================================================================
     // 珊瑚方块
     // ========================================================================
+    static Block* DEAD_TUBE_CORAL_BLOCK;
+    static Block* DEAD_BRAIN_CORAL_BLOCK;
+    static Block* DEAD_BUBBLE_CORAL_BLOCK;
+    static Block* DEAD_FIRE_CORAL_BLOCK;
+    static Block* DEAD_HORN_CORAL_BLOCK;
+
+    static Block* DEAD_TUBE_CORAL_FAN;
+    static Block* DEAD_BRAIN_CORAL_FAN;
+    static Block* DEAD_BUBBLE_CORAL_FAN;
+    static Block* DEAD_FIRE_CORAL_FAN;
+    static Block* DEAD_HORN_CORAL_FAN;
+
+    static Block* DEAD_TUBE_CORAL_WALL_FAN;
+    static Block* DEAD_BRAIN_CORAL_WALL_FAN;
+    static Block* DEAD_BUBBLE_CORAL_WALL_FAN;
+    static Block* DEAD_FIRE_CORAL_WALL_FAN;
+    static Block* DEAD_HORN_CORAL_WALL_FAN;
+
     static Block* TUBE_CORAL_BLOCK;
     static Block* BRAIN_CORAL_BLOCK;
     static Block* BUBBLE_CORAL_BLOCK;

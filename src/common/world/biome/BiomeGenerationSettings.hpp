@@ -86,6 +86,24 @@ public:
     static BiomeGenerationSettings createSwamp();
 
     /**
+     * @brief 创建河流生物群系的生成设置
+     * @return 河流设置
+     */
+    static BiomeGenerationSettings createRiver();
+
+    /**
+     * @brief 创建冻河生物群系的生成设置
+     * @return 冻河设置
+     */
+    static BiomeGenerationSettings createFrozenRiver();
+
+    /**
+     * @brief 创建沼泽山丘生物群系的生成设置
+     * @return 沼泽山丘设置
+     */
+    static BiomeGenerationSettings createSwampHills();
+
+    /**
      * @brief 创建冰刺平原生物群系的生成设置
      * @return 冰刺平原设置
      */

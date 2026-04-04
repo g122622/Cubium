@@ -616,6 +616,8 @@ add_library(mc_common STATIC
     world/gen/structure/structures/DesertPyramidStructure.cpp
     world/gen/structure/structures/JungleTempleStructure.cpp
     world/gen/structure/structures/OceanMonumentStructure.cpp
+    world/gen/structure/structures/ShipwreckStructure.cpp
+    world/gen/structure/structures/OceanRuinStructure.cpp
     world/gen/structure/structures/FortressStructure.cpp
     world/gen/structure/JigsawStructure.cpp
 

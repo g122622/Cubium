@@ -76,11 +76,12 @@ enum class Category {
 
 **主要内容**：
 - 按装饰阶段（DecorationStage）组织特征列表
-- 提供预设配置（createPlains、createForest、createDesert 等）
+- 提供预设配置（createPlains、createForest、createDesert、createRiver、createFrozenRiver、createSwampHills 等）
 - `BiomeFeaturePlacer` 类：在区块中放置特征
 
 **装饰阶段**：
 - `UndergroundOres`：矿石生成
+- `Lakes`：湖泊装饰（水湖、熔岩湖）
 - `SurfaceStructures`：表面结构（冰刺等）
 - `VegetalDecoration`：植被装饰（树木、花卉、草丛）
 

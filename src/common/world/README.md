@@ -129,7 +129,7 @@ world/
 │   │       ├── VillageStructure.hpp/cpp
 │   │       ├── MineshaftStructure.hpp/cpp
 │   │       ├── StrongholdStructure.hpp/cpp
-│   │       └── ... (8 structures total)
+│   │       └── ... (10 structures total, 含 Shipwreck/OceanRuin)
 │   └── surface/                # Surface builders
 │       ├── Surface.hpp
 │       ├── SurfaceBuilder.hpp
@@ -315,7 +315,7 @@ generator.buildSurface(region, primer);
 - 13 placement modifiers (Count, Chance, HeightRange, Biome, Noise, etc.)
 - Surface Builders (12 types: Default, Mountain, Desert, Swamp, etc.)
 - Tree Generation (6 TrunkPlacers, 9 FoliagePlacers)
-- Structure Generation (8 structures: Village, Mineshaft, Stronghold, etc.)
+- Structure Generation (10 structures: Village, Mineshaft, Stronghold, OceanMonument, RuinedPortal, BuriedTreasure, Shipwreck, OceanRuin, etc.)
 
 ### Fluid System
 

@@ -385,12 +385,15 @@ src/common/
     │   │   ├── StructureManager.hpp
     │   │   ├── StructureBoundingBox.hpp
     │   │   └── structures/
+   │   │       ├── README.md
     │   │       ├── VillageStructure.hpp
     │   │       ├── MineshaftStructure.hpp
     │   │       ├── StrongholdStructure.hpp
     │   │       ├── DesertPyramidStructure.hpp
     │   │       ├── JungleTempleStructure.hpp
     │   │       ├── OceanMonumentStructure.hpp
+   │   │       ├── ShipwreckStructure.hpp
+   │   │       ├── OceanRuinStructure.hpp
     │   │       ├── RuinedPortalStructure.hpp
     │   │       └── BuriedTreasureStructure.hpp
     │   ├── jigsaw/           # Jigsaw 拼装系统

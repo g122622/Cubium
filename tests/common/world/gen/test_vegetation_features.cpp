@@ -447,6 +447,78 @@ TEST_F(VegetationFeatureTest, SwampBiomeSettings) {
     EXPECT_TRUE(hasSwampFlowers);
 }
 
+TEST_F(VegetationFeatureTest, RiverBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createRiver();
+
+    // 河流配置不应额外生成湖泊
+    const auto& lakes = settings.getFeatures(DecorationStage::Lakes);
+    EXPECT_TRUE(lakes.empty());
+
+    // 河流应包含河岸甘蔗和浅水海草
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasSugarCane = false;
+    bool hasSeagrass = false;
+
+    for (u32 id : vegetal) {
+        if (id == SugarCaneFeatureIds::Normal) {
+            hasSugarCane = true;
+        }
+        if (id == SeagrassFeatureIds::Simple || id == SeagrassFeatureIds::Mixed) {
+            hasSeagrass = true;
+        }
+    }
+
+    EXPECT_TRUE(hasSugarCane);
+    EXPECT_TRUE(hasSeagrass);
+}
+
+TEST_F(VegetationFeatureTest, FrozenRiverBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createFrozenRiver();
+
+    // 冻河配置不应额外生成湖泊
+    const auto& lakes = settings.getFeatures(DecorationStage::Lakes);
+    EXPECT_TRUE(lakes.empty());
+
+    // 冻河不应包含温暖水域植被
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasWarmWaterVegetation = false;
+
+    for (u32 id : vegetal) {
+        if (id == SugarCaneFeatureIds::Normal ||
+            id == SugarCaneFeatureIds::Dense ||
+            id == SeagrassFeatureIds::Simple ||
+            id == SeagrassFeatureIds::Mixed) {
+            hasWarmWaterVegetation = true;
+            break;
+        }
+    }
+
+    EXPECT_FALSE(hasWarmWaterVegetation);
+}
+
+TEST_F(VegetationFeatureTest, SwampHillsBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createSwampHills();
+
+    // 沼泽山丘应保留湿地装饰
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasSwampFlowers = false;
+    bool hasSwampGrass = false;
+    bool hasNormalSugarCane = false;
+    bool hasDenseSugarCane = false;
+
+    for (u32 id : vegetal) {
+        if (id == FlowerFeatureIds::SwampFlowers) hasSwampFlowers = true;
+        if (id == GrassFeatureIds::SwampGrass) hasSwampGrass = true;
+        if (id == SugarCaneFeatureIds::Normal) hasNormalSugarCane = true;
+        if (id == SugarCaneFeatureIds::Dense) hasDenseSugarCane = true;
+    }
+
+    EXPECT_TRUE(hasSwampFlowers);
+    EXPECT_TRUE(hasSwampGrass);
+    EXPECT_TRUE(hasNormalSugarCane);
+    EXPECT_FALSE(hasDenseSugarCane);
+}
+
 TEST_F(VegetationFeatureTest, IceSpikesBiomeSettings) {
     auto settings = BiomeGenerationSettings::createIceSpikes();
 

@@ -440,7 +440,7 @@ struct StructureSeparationSettings {
 };
 ```
 
-#### 已实现的结构（8种）
+#### 已实现的结构（10种）
 
 | 结构 | 文件 | 说明 |
 |------|------|------|
@@ -452,6 +452,8 @@ struct StructureSeparationSettings {
 | `OceanMonumentStructure` | `structures/OceanMonumentStructure.hpp` | 海洋纪念碑 |
 | `RuinedPortalStructure` | `structures/RuinedPortalStructure.hpp` | 废弃传送门 |
 | `BuriedTreasureStructure` | `structures/BuriedTreasureStructure.hpp` | 埋藏宝藏 |
+| `ShipwreckStructure` | `structures/ShipwreckStructure.hpp` | 沉船 |
+| `OceanRuinStructure` | `structures/OceanRuinStructure.hpp` | 海底废墟 |
 
 ---
 
