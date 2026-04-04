@@ -14,7 +14,7 @@ namespace mc::server {
  */
 struct IntegratedServerConfig {
     String worldName = "singleplayer";
-    i64 seed = 0;
+    i64 seed = 0; // TODO 这个会被后面代码覆盖，导致数据流混乱，需要重构配置系统
     GameMode defaultGameMode = GameMode::Survival;
     i32 viewDistance = 6;
     i32 tickRate = 20;  // TPS

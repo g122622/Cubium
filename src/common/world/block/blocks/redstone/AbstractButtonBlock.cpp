@@ -193,6 +193,47 @@ i32 AbstractButtonBlock::getStrongPower(
     return 0;
 }
 
+const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) const {
+    // 采用原版按钮的大致体素尺寸：墙面 6x4 像素，地板/天花板 6x6 像素。
+    static const CollisionShape floorUnpressed = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 2.0f, 11.0f);
+    static const CollisionShape floorPressed = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 1.0f, 11.0f);
+    static const CollisionShape ceilingUnpressed = CollisionShape::fromPixelBox(5.0f, 14.0f, 5.0f, 11.0f, 16.0f, 11.0f);
+    static const CollisionShape ceilingPressed = CollisionShape::fromPixelBox(5.0f, 15.0f, 5.0f, 11.0f, 16.0f, 11.0f);
+
+    static const CollisionShape wallNorthUnpressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 14.0f, 11.0f, 10.0f, 16.0f);
+    static const CollisionShape wallNorthPressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 15.0f, 11.0f, 10.0f, 16.0f);
+    static const CollisionShape wallSouthUnpressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 0.0f, 11.0f, 10.0f, 2.0f);
+    static const CollisionShape wallSouthPressed = CollisionShape::fromPixelBox(5.0f, 6.0f, 0.0f, 11.0f, 10.0f, 1.0f);
+    static const CollisionShape wallWestUnpressed = CollisionShape::fromPixelBox(14.0f, 6.0f, 5.0f, 16.0f, 10.0f, 11.0f);
+    static const CollisionShape wallWestPressed = CollisionShape::fromPixelBox(15.0f, 6.0f, 5.0f, 16.0f, 10.0f, 11.0f);
+    static const CollisionShape wallEastUnpressed = CollisionShape::fromPixelBox(0.0f, 6.0f, 5.0f, 2.0f, 10.0f, 11.0f);
+    static const CollisionShape wallEastPressed = CollisionShape::fromPixelBox(0.0f, 6.0f, 5.0f, 1.0f, 10.0f, 11.0f);
+
+    const bool powered = isPowered(state);
+    const AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
+    const Direction facing = getFacing(state);
+
+    if (attachFace == AttachFace::Floor) {
+        return powered ? floorPressed : floorUnpressed;
+    }
+    if (attachFace == AttachFace::Ceiling) {
+        return powered ? ceilingPressed : ceilingUnpressed;
+    }
+
+    switch (facing) {
+        case Direction::North:
+            return powered ? wallNorthPressed : wallNorthUnpressed;
+        case Direction::South:
+            return powered ? wallSouthPressed : wallSouthUnpressed;
+        case Direction::West:
+            return powered ? wallWestPressed : wallWestUnpressed;
+        case Direction::East:
+            return powered ? wallEastPressed : wallEastUnpressed;
+        default:
+            return powered ? wallNorthPressed : wallNorthUnpressed;
+    }
+}
+
 void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockState& state) {
     // 如果已经按下，不重复触发
     if (isPowered(state)) {

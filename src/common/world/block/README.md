@@ -18,6 +18,7 @@ block/
     ├── LiquidBlock.hpp/cpp # 液体方块
     ├── RotatedPillarBlock.hpp/cpp # 旋转柱状方块
     ├── SimpleBlock.hpp/cpp # 简单方块基类
+    ├── FallingBlock.hpp/cpp # 可下落方块基类（沙子/红沙/砾石）
     ├── ChestBlock.hpp/cpp  # 箱子方块
     ├── HopperBlock.hpp/cpp # 漏斗方块
     ├── FurnaceBlocks.hpp/cpp # 熔炉方块

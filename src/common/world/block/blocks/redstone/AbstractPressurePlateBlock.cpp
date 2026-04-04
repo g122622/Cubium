@@ -114,6 +114,12 @@ i32 AbstractPressurePlateBlock::getStrongPower(
     return 0;
 }
 
+const CollisionShape& AbstractPressurePlateBlock::getShape(const BlockState& state) const {
+    static const CollisionShape unpressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 1.0f, 15.0f);
+    static const CollisionShape pressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 0.5f, 15.0f);
+    return getPower(state) > 0 ? pressedShape : unpressedShape;
+}
+
 bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos& pos) const {
     // 创建压力板上方的碰撞箱
     // 压力板检测范围为方块上方的一个薄层

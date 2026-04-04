@@ -181,6 +181,26 @@ i32 RedstoneWallTorchBlock::getWeakPower(
     return world::redstone::RedstonePower::MAX_POWER;
 }
 
+const CollisionShape& RedstoneWallTorchBlock::getShape(const BlockState& state) const {
+    static const CollisionShape northShape = CollisionShape::fromPixelBox(5.5f, 3.0f, 11.0f, 10.5f, 13.0f, 16.0f);
+    static const CollisionShape southShape = CollisionShape::fromPixelBox(5.5f, 3.0f, 0.0f, 10.5f, 13.0f, 5.0f);
+    static const CollisionShape westShape = CollisionShape::fromPixelBox(11.0f, 3.0f, 5.5f, 16.0f, 13.0f, 10.5f);
+    static const CollisionShape eastShape = CollisionShape::fromPixelBox(0.0f, 3.0f, 5.5f, 5.0f, 13.0f, 10.5f);
+
+    switch (getFacing(state)) {
+        case Direction::North:
+            return northShape;
+        case Direction::South:
+            return southShape;
+        case Direction::West:
+            return westShape;
+        case Direction::East:
+            return eastShape;
+        default:
+            return northShape;
+    }
+}
+
 void RedstoneWallTorchBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state) {
     // 检查是否应该改变状态
     bool shouldBeLit = !shouldBeOff(world, pos, state);

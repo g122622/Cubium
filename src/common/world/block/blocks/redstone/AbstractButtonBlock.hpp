@@ -68,6 +68,8 @@ public:
         Direction side
     ) const override;
 
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
     // ========== 按钮特有方法 ==========
 
     /**

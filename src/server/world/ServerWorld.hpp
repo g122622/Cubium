@@ -36,11 +36,13 @@ namespace server {
 // 服务端世界配置
 // ============================================================================
 
+// TODO 这个结构体是多余的。比如isDebugWorld设为true之后根本无法启用调试区块生成器。
+// 要在这里才能配置世界生成器类型 D:\MiscProjects\minecraft-reborn\src\server\application\IntegratedServer.hpp 
 struct ServerWorldConfig {
     i32 viewDistance = 10;              // 视距
     DimensionId dimension = 0;          // 维度ID
-    u64 seed = 12345;                   // 世界种子
-    bool isDebugWorld = false;          // 是否为调试世界
+    u64 seed = 114514;                   // 世界种子
+    bool isDebugWorld = true;          // 是否为调试世界
 };
 
 // ============================================================================

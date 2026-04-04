@@ -58,6 +58,7 @@ protected:
         ServerWorldConfig config;
         config.viewDistance = 10;
         config.dimension = 0;
+        config.isDebugWorld = false;
         world = std::make_unique<ServerWorld>(config);
     }
 

@@ -1,9 +1,11 @@
 #include "StemBlock.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {
@@ -40,7 +42,7 @@ int StemBlock::getAge(const BlockState& state) const {
     return state.get(BlockStateProperties::AGE_0_7());
 }
 
-BlockState StemBlock::withAge(int age) const {
+const BlockState& StemBlock::withAge(int age) const {
     return defaultState().with(BlockStateProperties::AGE_0_7(), std::min(age, getMaxAge()));
 }
 
@@ -77,27 +79,21 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
-    // TODO: 检查光照等级
-    // if (world.getLightSubtracted(pos, 0) >= 9) {
-    //     float growthChance = CropBlock::getGrowthChance(*this, world, pos);
-    //     if (random.nextInt(static_cast<int>(25.0f / growthChance) + 1) == 0) {
-    //         world.setBlockState(pos, withAge(getAge(state) + 1), 2);
-    //     }
-    // }
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(pos.x, pos.y + 1, pos.z));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(pos.x, pos.y + 1, pos.z));
+    if (std::max(blockLight, skyLight) < 9) {
+        return;
+    }
 
-    // 简化实现：随机生长
-    int age = getAge(state);
-    if (age < getMaxAge()) {
-        if (random.nextInt(25) == 0) {
-            BlockState newState = withAge(age + 1);
-            world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
-        }
+    // 茎类作物成长速度与普通作物接近，使用基础随机概率。
+    if (random.nextInt(25) == 0) {
+        world.setBlockState(pos.x, pos.y, pos.z, &withAge(getAge(state) + 1), 2);
     }
 }
 
 void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
     int newAge = std::min(getAge(state) + 2 + (rand() % 4), getMaxAge());
-    BlockState newState = withAge(newAge);
+    const BlockState& newState = withAge(newAge);
     world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
 
     // 如果达到最大年龄，尝试生成果实
@@ -121,15 +117,10 @@ bool StemBlock::canSustain(
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
-    // 茎类作物需要耕地
-    // TODO: 检查是否为耕地方块
-    // return groundState.is(Blocks::FARMLAND);
-
-    const Material& material = groundState.getMaterial();
-    return material.isSolid();
+    return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
 }
 
-bool StemBlock::tryGrowFruit(BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random) {
+bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random) {
     MC_UNUSED(state);
 
     // 随机选择一个水平方向
@@ -152,9 +143,11 @@ bool StemBlock::tryGrowFruit(BlockState& state, IWorld& world, const BlockPos& p
         return false;
     }
 
-    // 检查下方是否为耕地、泥土或草方块
-    // TODO: 完整的土壤检查
-    if (!belowFruitState->isSolid()) {
+    const bool canSupportFruit =
+        (VanillaBlocks::FARMLAND != nullptr && belowFruitState->is(VanillaBlocks::FARMLAND)) ||
+        (VanillaBlocks::DIRT != nullptr && belowFruitState->is(VanillaBlocks::DIRT)) ||
+        (VanillaBlocks::GRASS_BLOCK != nullptr && belowFruitState->is(VanillaBlocks::GRASS_BLOCK));
+    if (!canSupportFruit) {
         return false;
     }
 

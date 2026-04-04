@@ -32,6 +32,7 @@ src/server/world/
 - 区块管理（加载、卸载、访问）
 - 实体管理（生成、移除、查询）
 - 光照计算与同步
+- 方块写入回调链（`onBlockAdded/onBlockRemoved`、`updatePostPlacement`、`neighborChanged`）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
 - 天气状态管理

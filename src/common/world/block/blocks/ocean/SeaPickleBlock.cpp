@@ -191,6 +191,10 @@ bool KelpBlock::isValidPosition(
         return true;
     }
 
+    if (VanillaBlocks::KELP_PLANT != nullptr && belowState->is(VanillaBlocks::KELP_PLANT)) {
+        return true;
+    }
+
     // TODO: 检查是否在水中
     return belowState->isSolid();
 }

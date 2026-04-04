@@ -58,6 +58,8 @@ public:
         Direction side
     ) const override;
 
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
     // ========== 红石火把特有方法 ==========
 
     /**

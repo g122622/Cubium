@@ -10,12 +10,15 @@
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/chunk/IChunk.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/util/NibbleArray.hpp"
+#include "common/util/Direction.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
+#include <array>
 #include <spdlog/spdlog.h>
 #include <cmath>
 
@@ -237,35 +240,171 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     ChunkData* chunk = getChunkSync(chunkX, chunkZ);
     if (!chunk) return false;
 
+    const BlockRegistry& blockRegistry = BlockRegistry::instance();
+    const BlockState* airState = blockRegistry.airState();
+
+    const auto canonicalizeState = [&](const BlockState* inputState) -> const BlockState* {
+        if (inputState == nullptr) {
+            return airState;
+        }
+
+        const BlockState* canonical = blockRegistry.getBlockState(inputState->stateId());
+        if (canonical != nullptr) {
+            return canonical;
+        }
+
+        if (inputState->isAir()) {
+            return airState;
+        }
+
+        return inputState;
+    };
+
+    const BlockPos changedPos(x, y, z);
     i32 localX = x - chunkX * 16;
     i32 localZ = z - chunkZ * 16;
 
-    const BlockState* oldState = chunk->getBlock(localX, y, localZ);
-    i32 oldLightLevel = oldState ? oldState->lightLevel() : 0;
-    i32 newLightLevel = state ? state->lightLevel() : 0;
-
-    // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
-    if (m_villageManager && oldState != nullptr && !oldState->isAir()) {
-        m_villageManager->onBlockRemoved(BlockPos(x, y, z));
+    const BlockState* oldState = canonicalizeState(chunk->getBlock(localX, y, localZ));
+    const BlockState* newState = canonicalizeState(state);
+    if (newState != nullptr && newState->isAir()) {
+        newState = airState;
     }
 
-    chunk->setBlock(localX, y, localZ, state);
+    if (oldState == newState) {
+        return false;
+    }
+
+    const bool oldIsAir = (oldState == nullptr || oldState->isAir());
+    const bool newIsAir = (newState == nullptr || newState->isAir());
+    const bool blockTypeChanged =
+        (oldState == nullptr || newState == nullptr || oldState->blockId() != newState->blockId());
+
+    i32 oldLightLevel = oldState ? oldState->lightLevel() : 0;
+    i32 newLightLevel = newState ? newState->lightLevel() : 0;
+
+    // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
+    if (m_villageManager && !oldIsAir) {
+        m_villageManager->onBlockRemoved(changedPos);
+    }
+
+    if (!oldIsAir && blockTypeChanged) {
+        Block& oldBlock = const_cast<Block&>(oldState->getBlock());
+        oldBlock.onBlockRemoved(*this, changedPos, *oldState);
+    }
+
+    const BlockState* storedState = newIsAir ? nullptr : newState;
+    chunk->setBlock(localX, y, localZ, storedState);
     chunk->setDirty(true);
 
+    if (!newIsAir && blockTypeChanged) {
+        Block& newBlock = const_cast<Block&>(newState->getBlock());
+        newBlock.onBlockAdded(*this, changedPos, *newState);
+    }
+
     // 通知村庄管理器方块放置（如果新方块存在且不是空气）
-    if (m_villageManager && state != nullptr && !state->isAir()) {
-        // 获取方块ID
-        u32 blockId = state->blockId();
-        m_villageManager->onBlockPlaced(BlockPos(x, y, z), blockId);
+    if (m_villageManager && !newIsAir) {
+        m_villageManager->onBlockPlaced(changedPos, newState->blockId());
+    }
+
+    const BlockState* sourceState = (!newIsAir) ? newState : oldState;
+    Block* sourceBlock = nullptr;
+    if (sourceState != nullptr && !sourceState->isAir()) {
+        sourceBlock = &const_cast<Block&>(sourceState->getBlock());
+    }
+
+    struct NeighborDelta {
+        i32 dx;
+        i32 dy;
+        i32 dz;
+        Direction direction;
+    };
+
+    constexpr std::array<NeighborDelta, 6> NEIGHBOR_DELTAS = {{
+        {-1, 0, 0, Direction::West},
+        {1, 0, 0, Direction::East},
+        {0, -1, 0, Direction::Down},
+        {0, 1, 0, Direction::Up},
+        {0, 0, -1, Direction::North},
+        {0, 0, 1, Direction::South}
+    }};
+
+    for (const auto& neighbor : NEIGHBOR_DELTAS) {
+        const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
+        const BlockState* neighborState = canonicalizeState(getBlockState(
+            neighborPos.x,
+            neighborPos.y,
+            neighborPos.z));
+
+        if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
+            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            BlockState updatedStateValue = neighborBlock.updatePostPlacement(
+                *neighborState,
+                Directions::opposite(neighbor.direction),
+                *newState,
+                *this,
+                neighborPos,
+                changedPos);
+
+            const BlockState* updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
+            if (updatedState == nullptr && updatedStateValue.isAir()) {
+                updatedState = airState;
+            }
+
+            if (updatedState != nullptr && updatedState != neighborState) {
+                setBlock(neighborPos.x, neighborPos.y, neighborPos.z, updatedState);
+                neighborState = canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
+            }
+        }
+
+        if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
+            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
+        }
     }
 
     if (m_lightManager) {
-        BlockPos pos(x, y, z);
-        m_lightManager->checkBlock(pos);
+        m_lightManager->checkBlock(changedPos);
 
         if (newLightLevel > oldLightLevel) {
-            m_lightManager->onBlockEmissionIncrease(pos, newLightLevel);
+            m_lightManager->onBlockEmissionIncrease(changedPos, newLightLevel);
         }
+    }
+
+    // setBlock 路径不会自动触发 LiquidBlock 回调，这里主动补一次流体初始调度。
+    // 同时调度周围六邻域，确保水/岩浆在方块变化后能及时重算流动。
+    const auto scheduleFluidAt = [&](const BlockPos& pos, const BlockState* blockState) {
+        if (blockState == nullptr || m_tickManager == nullptr) {
+            return;
+        }
+
+        const fluid::FluidState* fluidState = blockState->getFluidState();
+        if (fluidState == nullptr || fluidState->isEmpty()) {
+            return;
+        }
+
+        fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
+        const i32 delay = std::max(1, fluid.getTickDelay());
+        scheduleFluidTick(pos, fluid, delay, world::tick::TickPriority::Normal);
+    };
+
+    scheduleFluidAt(changedPos, newState);
+
+    constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {{
+        {{-1, 0, 0}},
+        {{1, 0, 0}},
+        {{0, -1, 0}},
+        {{0, 1, 0}},
+        {{0, 0, -1}},
+        {{0, 0, 1}}
+    }};
+
+    for (const auto& offset : NEIGHBOR_OFFSETS) {
+        const BlockPos neighborPos(x + offset[0], y + offset[1], z + offset[2]);
+        const BlockState* neighborState = canonicalizeState(getBlockState(
+            neighborPos.x,
+            neighborPos.y,
+            neighborPos.z));
+        scheduleFluidAt(neighborPos, neighborState);
     }
 
     return true;

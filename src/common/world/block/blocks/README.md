@@ -14,6 +14,8 @@ blocks/
 ├── RotatedPillarBlock.cpp   # 旋转柱状方块实现
 ├── SimpleBlock.hpp          # 简单方块头文件
 ├── SimpleBlock.cpp          # 简单方块实现
+├── FallingBlock.hpp         # 可下落方块头文件
+├── FallingBlock.cpp         # 可下落方块实现
 ├── ChestBlock.hpp           # 箱子方块头文件
 ├── ChestBlock.cpp           # 箱子方块实现
 ├── TrappedChestBlock.hpp    # 陷阱箱方块头文件
@@ -94,6 +96,12 @@ classDiagram
         +isSolid() bool
     }
 
+    class FallingBlock {
+        +onBlockAdded()
+        +neighborChanged()
+        +tick()
+    }
+
     class RotatedPillarBlock {
         +AXIS() EnumProperty~Axis~
         +getAxis() Axis
@@ -163,6 +171,7 @@ classDiagram
 
     Block <|-- AirBlock
     Block <|-- SimpleBlock
+    Block <|-- FallingBlock
     Block <|-- RotatedPillarBlock
     Block <|-- LiquidBlock
     Block <|-- ChestBlock
@@ -227,6 +236,24 @@ auto stoneBlock = std::make_unique<SimpleBlock>(
         .requiresTool()
 );
 ```
+
+---
+
+### FallingBlock.hpp/cpp
+
+**职责**: 可受重力影响的方块基类，用于沙子、红沙、砾石等。
+
+**主要特性**:
+- 放置后和邻居变化后会调度计划刻
+- 在计划刻中检测下方支撑是否可通过
+- 当下方不可支撑时，移除方块并生成 `FallingBlockEntity`
+
+**使用场景**:
+- 沙子（`minecraft:sand`）
+- 红沙（`minecraft:red_sand`）
+- 砾石（`minecraft:gravel`）
+
+**参考**: `net.minecraft.block.FallingBlock`
 
 ---
 

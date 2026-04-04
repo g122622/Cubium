@@ -1,7 +1,10 @@
 #include "Raycast.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../AxisAlignedBB.hpp"
 #include <cmath>
 #include <algorithm>
+#include <limits>
+#include <optional>
 
 namespace mc {
 
@@ -23,6 +26,132 @@ inline i32 signum(f32 x)
     if (x > 0.0f) return 1;
     if (x < 0.0f) return -1;
     return 0;
+}
+
+struct RayAabbHit {
+    f32 t = 0.0f;
+    Direction face = Direction::None;
+};
+
+[[nodiscard]] std::optional<RayAabbHit> intersectSegmentAabb(
+    const Vector3& origin,
+    const Vector3& delta,
+    const AxisAlignedBB& box)
+{
+    constexpr f32 EPSILON = 1.0e-7f;
+
+    f32 tMin = 0.0f;
+    f32 tMax = 1.0f;
+    Direction enterFace = Direction::None;
+
+    const auto updateAxis = [&](f32 axisOrigin, f32 axisDelta, f32 axisMin, f32 axisMax,
+                                Direction minFace, Direction maxFace) -> bool {
+        if (std::abs(axisDelta) < EPSILON) {
+            return axisOrigin >= axisMin && axisOrigin <= axisMax;
+        }
+
+        f32 t1 = (axisMin - axisOrigin) / axisDelta;
+        f32 t2 = (axisMax - axisOrigin) / axisDelta;
+        Direction nearFace = minFace;
+        Direction farFace = maxFace;
+
+        if (t1 > t2) {
+            std::swap(t1, t2);
+            std::swap(nearFace, farFace);
+        }
+
+        if (t1 > tMin) {
+            tMin = t1;
+            enterFace = nearFace;
+        }
+
+        tMax = std::min(tMax, t2);
+        return tMin <= tMax;
+    };
+
+    if (!updateAxis(origin.x, delta.x, box.minX, box.maxX, Direction::West, Direction::East)) {
+        return std::nullopt;
+    }
+    if (!updateAxis(origin.y, delta.y, box.minY, box.maxY, Direction::Down, Direction::Up)) {
+        return std::nullopt;
+    }
+    if (!updateAxis(origin.z, delta.z, box.minZ, box.maxZ, Direction::North, Direction::South)) {
+        return std::nullopt;
+    }
+
+    if (tMax < 0.0f || tMin > 1.0f) {
+        return std::nullopt;
+    }
+
+    RayAabbHit hit;
+    hit.t = std::clamp(tMin, 0.0f, 1.0f);
+    if (tMin < 0.0f) {
+        // 射线起点位于包围盒内部时，沿射线反方向给出命中面。
+        hit.face = Directions::fromVector(-delta.x, -delta.y, -delta.z);
+    } else {
+        hit.face = enterFace;
+    }
+    return hit;
+}
+
+[[nodiscard]] bool traceBlockShape(
+    const BlockState& state,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
+    const Vector3& adjustedStart,
+    const Vector3& delta,
+    const Vector3& originalStart,
+    Vector3& outHitPos,
+    Direction& outFace,
+    f32& outDistance)
+{
+    const CollisionShape& shape = state.getShape();
+    if (shape.isEmpty()) {
+        return false;
+    }
+
+    f32 bestT = std::numeric_limits<f32>::max();
+    Direction bestFace = Direction::None;
+    bool hitAny = false;
+
+    for (const auto& localBox : shape.boxes()) {
+        const AxisAlignedBB worldBox(
+            static_cast<f32>(blockX) + localBox.minX,
+            static_cast<f32>(blockY) + localBox.minY,
+            static_cast<f32>(blockZ) + localBox.minZ,
+            static_cast<f32>(blockX) + localBox.maxX,
+            static_cast<f32>(blockY) + localBox.maxY,
+            static_cast<f32>(blockZ) + localBox.maxZ
+        );
+
+        auto hit = intersectSegmentAabb(adjustedStart, delta, worldBox);
+        if (!hit.has_value()) {
+            continue;
+        }
+
+        if (hit->t < bestT) {
+            bestT = hit->t;
+            bestFace = hit->face;
+            hitAny = true;
+        }
+    }
+
+    if (!hitAny) {
+        return false;
+    }
+
+    outHitPos = Vector3(
+        adjustedStart.x + delta.x * bestT,
+        adjustedStart.y + delta.y * bestT,
+        adjustedStart.z + delta.z * bestT
+    );
+    outFace = bestFace;
+    outDistance = outHitPos.distance(originalStart);
+    if (outDistance < 1.0e-5f) {
+        outDistance = 0.0f;
+    }
+    return true;
 }
 
 } // anonymous namespace
@@ -71,6 +200,7 @@ BlockRaycastResult raycastBlocks(
     const f32 dx = adjustedEnd.x - adjustedStart.x;
     const f32 dy = adjustedEnd.y - adjustedStart.y;
     const f32 dz = adjustedEnd.z - adjustedStart.z;
+    const Vector3 ddaDelta(dx, dy, dz);
 
     // 当前方块坐标：从偏移后的起点开始
     i32 currentX = static_cast<i32>(std::floor(adjustedStart.x));
@@ -80,10 +210,20 @@ BlockRaycastResult raycastBlocks(
     // 先检查起点位置的方块（MC的重要步骤！）
     if (world.isWithinWorldBounds(currentX, currentY, currentZ)) {
         const BlockState* state = world.getBlockState(currentX, currentY, currentZ);
-        if (state != nullptr && !state->isAir() && state->blocksMovement()) {
-            // 起点位置有方块，返回起点
-            Direction face = Directions::fromVector(-dir.x, -dir.y, -dir.z);
-            return BlockRaycastResult::hit(start, BlockPos(currentX, currentY, currentZ), face, 0.0f);
+        if (state != nullptr && !state->isAir() && !state->isLiquid()) {
+            Vector3 hitPos;
+            Direction hitFace = Direction::None;
+            f32 hitDistance = 0.0f;
+            if (traceBlockShape(*state, currentX, currentY, currentZ,
+                                adjustedStart, ddaDelta, start,
+                                hitPos, hitFace, hitDistance)) {
+                return BlockRaycastResult::hit(
+                    start,
+                    BlockPos(currentX, currentY, currentZ),
+                    hitFace,
+                    0.0f
+                );
+            }
         }
     }
 
@@ -107,9 +247,6 @@ BlockRaycastResult raycastBlocks(
     f32 tMaxZ = (stepZ == 0) ? std::numeric_limits<f32>::max()
         : tDeltaZ * (stepZ > 0 ? (1.0f - fract(adjustedStart.z)) : fract(adjustedStart.z));
 
-    // 记录上次步进的面
-    Direction lastFace = Direction::None;
-
     // DDA步进
     // MC使用 1.0 作为循环条件（代表遍历完整的射线）
     while (tMaxX <= 1.0f || tMaxY <= 1.0f || tMaxZ <= 1.0f) {
@@ -119,24 +256,20 @@ BlockRaycastResult raycastBlocks(
                 // X方向步进
                 currentX += stepX;
                 tMaxX += tDeltaX;
-                lastFace = (stepX > 0) ? Direction::West : Direction::East;
             } else {
                 // Z方向步进
                 currentZ += stepZ;
                 tMaxZ += tDeltaZ;
-                lastFace = (stepZ > 0) ? Direction::North : Direction::South;
             }
         } else {
             if (tMaxY < tMaxZ) {
                 // Y方向步进
                 currentY += stepY;
                 tMaxY += tDeltaY;
-                lastFace = (stepY > 0) ? Direction::Down : Direction::Up;
             } else {
                 // Z方向步进
                 currentZ += stepZ;
                 tMaxZ += tDeltaZ;
-                lastFace = (stepZ > 0) ? Direction::North : Direction::South;
             }
         }
 
@@ -154,42 +287,25 @@ BlockRaycastResult raycastBlocks(
             continue;
         }
 
-        // 空气或无碰撞方块，继续
-        if (state->isAir() || !state->blocksMovement()) {
+        // 空气和液体不参与该射线选中
+        if (state->isAir() || state->isLiquid()) {
             continue;
         }
 
-        // 击中方块！
-        // 计算击中点的世界坐标
-        // t值表示从adjustedStart到击中点的比例
-        // 需要转换回从原始起点出发的距离
-        f32 hitT;
-        if (lastFace == Direction::West || lastFace == Direction::East) {
-            hitT = tMaxX - tDeltaX;
-        } else if (lastFace == Direction::Down || lastFace == Direction::Up) {
-            hitT = tMaxY - tDeltaY;
-        } else {
-            hitT = tMaxZ - tDeltaZ;
+        Vector3 hitPos;
+        Direction hitFace = Direction::None;
+        f32 hitDistance = 0.0f;
+        if (!traceBlockShape(*state, currentX, currentY, currentZ,
+                             adjustedStart, ddaDelta, start,
+                             hitPos, hitFace, hitDistance)) {
+            continue;
         }
-
-        // 限制在有效范围内
-        hitT = std::clamp(hitT, 0.0f, 1.0f);
-
-        // 从偏移后起点计算击中点
-        Vector3 hitPos(
-            adjustedStart.x + dx * hitT,
-            adjustedStart.y + dy * hitT,
-            adjustedStart.z + dz * hitT
-        );
-
-        // 计算从原始起点的距离
-        f32 distance = hitPos.distance(start);
 
         return BlockRaycastResult::hit(
             hitPos,
             BlockPos(currentX, currentY, currentZ),
-            lastFace,
-            distance
+            hitFace,
+            hitDistance
         );
     }
 

@@ -61,58 +61,58 @@ SoulSpeedEnchantment AllEnchantments::SOUL_SPEED;
 
 void AllEnchantments::registerAll() {
     // 保护类
-    EnchantmentRegistry::registerEnchantment(PROTECTION);
-    EnchantmentRegistry::registerEnchantment(FIRE_PROTECTION);
-    EnchantmentRegistry::registerEnchantment(FEATHER_FALLING);
-    EnchantmentRegistry::registerEnchantment(BLAST_PROTECTION);
-    EnchantmentRegistry::registerEnchantment(PROJECTILE_PROTECTION);
-    EnchantmentRegistry::registerEnchantment(THORNS);
-    EnchantmentRegistry::registerEnchantment(RESPIRATION);
-    EnchantmentRegistry::registerEnchantment(AQUA_AFFINITY);
-    EnchantmentRegistry::registerEnchantment(DEPTH_STRIDER);
-    EnchantmentRegistry::registerEnchantment(FROST_WALKER);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<AllProtectionEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<FireProtectionEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<FeatherFallingEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<BlastProtectionEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<ProjectileProtectionEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<ThornsEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<RespirationEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<AquaAffinityEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<DepthStriderEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<FrostWalkerEnchantment>());
 
     // 武器类
-    EnchantmentRegistry::registerEnchantment(SHARPNESS);
-    EnchantmentRegistry::registerEnchantment(SMITE);
-    EnchantmentRegistry::registerEnchantment(BANE_OF_ARTHROPODS);
-    EnchantmentRegistry::registerEnchantment(KNOCKBACK);
-    EnchantmentRegistry::registerEnchantment(FIRE_ASPECT);
-    EnchantmentRegistry::registerEnchantment(LOOTING);
-    EnchantmentRegistry::registerEnchantment(SWEEPING);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<SharpnessEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<SmiteEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<BaneOfArthropodsEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<KnockbackEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<FireAspectEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<LootingEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<SweepingEnchantment>());
 
     // 工具类
-    EnchantmentRegistry::registerEnchantment(EFFICIENCY);
-    EnchantmentRegistry::registerEnchantment(UNBREAKING);
-    EnchantmentRegistry::registerEnchantment(FORTUNE);
-    EnchantmentRegistry::registerEnchantment(SILK_TOUCH);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<EfficiencyEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<UnbreakingEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<FortuneEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<SilkTouchEnchantment>());
 
     // 弓类
-    EnchantmentRegistry::registerEnchantment(POWER);
-    EnchantmentRegistry::registerEnchantment(PUNCH);
-    EnchantmentRegistry::registerEnchantment(FLAME);
-    EnchantmentRegistry::registerEnchantment(INFINITY_ARROW);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<PowerEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<PunchEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<FlameEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<InfinityEnchantment>());
 
     // 钓鱼类
-    EnchantmentRegistry::registerEnchantment(LUCK_OF_THE_SEA);
-    EnchantmentRegistry::registerEnchantment(LURE);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<LuckOfTheSeaEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<LureEnchantment>());
 
     // 三叉戟
-    EnchantmentRegistry::registerEnchantment(LOYALTY);
-    EnchantmentRegistry::registerEnchantment(IMPALING);
-    EnchantmentRegistry::registerEnchantment(RIPTIDE);
-    EnchantmentRegistry::registerEnchantment(CHANNELING);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<LoyaltyEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<ImpalingEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<RiptideEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<ChannelingEnchantment>());
 
     // 弩类
-    EnchantmentRegistry::registerEnchantment(MULTISHOT);
-    EnchantmentRegistry::registerEnchantment(QUICK_CHARGE);
-    EnchantmentRegistry::registerEnchantment(PIERCING);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<MultishotEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<QuickChargeEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<PiercingEnchantment>());
 
     // 特殊
-    EnchantmentRegistry::registerEnchantment(MENDING);
-    EnchantmentRegistry::registerEnchantment(VANISHING_CURSE);
-    EnchantmentRegistry::registerEnchantment(BINDING_CURSE);
-    EnchantmentRegistry::registerEnchantment(SOUL_SPEED);
+    EnchantmentRegistry::registerEnchantment(std::make_unique<MendingEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<VanishingCurseEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<BindingCurseEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<SoulSpeedEnchantment>());
 }
 
 } // namespace enchant

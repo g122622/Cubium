@@ -1,4 +1,5 @@
 #include "BushBlock.hpp"
+#include "../../BlockRegistry.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
@@ -56,7 +57,10 @@ BlockState BushBlock::updatePostPlacement(
 
         if (belowState == nullptr || !canSustain(*belowState, world, belowPos)) {
             // 无法支撑，破坏（返回空气）
-            return world.getBlockState(currentPos.x, currentPos.y, currentPos.z)->getBlock().defaultState();
+            const BlockState* airState = BlockRegistry::instance().airState();
+            if (airState != nullptr) {
+                return *airState;
+            }
         }
     }
 

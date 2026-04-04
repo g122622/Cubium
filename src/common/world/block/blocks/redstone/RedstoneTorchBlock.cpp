@@ -117,6 +117,12 @@ i32 RedstoneTorchBlock::getWeakPower(
     return world::redstone::RedstonePower::MAX_POWER;
 }
 
+const CollisionShape& RedstoneTorchBlock::getShape(const BlockState& state) const {
+    MC_UNUSED(state);
+    static const CollisionShape torchShape = CollisionShape::fromPixelBox(7.0f, 0.0f, 7.0f, 9.0f, 10.0f, 9.0f);
+    return torchShape;
+}
+
 void RedstoneTorchBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state) {
     // 检查是否应该改变状态
     bool shouldBeLit = !shouldBeOff(world, pos);

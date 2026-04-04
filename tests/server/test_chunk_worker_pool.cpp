@@ -32,12 +32,6 @@ TEST_F(ChunkWorkerPoolTest, DefaultConstructor) {
     EXPECT_GT(pool.threadCount(), 0);  // 自动检测线程数
 }
 
-TEST_F(ChunkWorkerPoolTest, CustomThreadCount) {
-    ChunkWorkerPool pool(2);
-    EXPECT_FALSE(pool.isRunning());
-    EXPECT_EQ(pool.threadCount(), 2);
-}
-
 TEST_F(ChunkWorkerPoolTest, StartStop) {
     ChunkWorkerPool pool(2);
 

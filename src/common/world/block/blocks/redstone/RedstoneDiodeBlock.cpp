@@ -123,6 +123,12 @@ i32 RedstoneDiodeBlock::getWeakPower(
     return 0;
 }
 
+const CollisionShape& RedstoneDiodeBlock::getShape(const BlockState& state) const {
+    MC_UNUSED(state);
+    static const CollisionShape diodeShape = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 2.0f, 16.0f);
+    return diodeShape;
+}
+
 i32 RedstoneDiodeBlock::getInputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const {
     Direction facing = getFacing(state);
     Direction inputDir = Directions::opposite(facing);

@@ -1136,6 +1136,182 @@ void ChunkMesher::addCrossedPlantGeometry(
     }
 }
 
+void ChunkMesher::addShapeGeometryFromAppearance(
+    MeshData& mesh,
+    f64 x,
+    f64 y,
+    f64 z,
+    const ChunkData& chunk,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
+    const BlockState* block,
+    const BlockAppearance* appearance,
+    const CollisionShape& shape,
+    const std::array<const BlockState*, 6>& neighborStates,
+    const ChunkData* neighborChunks[6]
+) {
+    if (block == nullptr || appearance == nullptr || shape.isEmpty() || shape.boxCount() != 1) {
+        return;
+    }
+
+    const auto& box = shape.boxes().front();
+
+    std::array<const ChunkData*, 4> biomeNeighbors = {};
+    if (neighborChunks) {
+        biomeNeighbors[0] = neighborChunks[0];
+        biomeNeighbors[1] = neighborChunks[1];
+        biomeNeighbors[2] = neighborChunks[2];
+        biomeNeighbors[3] = neighborChunks[3];
+    }
+    client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
+    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
+    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+
+    for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
+        const Face face = static_cast<Face>(faceIdx);
+        const BlockState* neighbor = neighborStates[faceIdx];
+        if (!shouldRenderFace(block, neighbor)) {
+            continue;
+        }
+
+        const bool neighborOpaque =
+            neighbor != nullptr &&
+            !neighbor->isAir() &&
+            !neighbor->isTransparent() &&
+            !neighbor->isLiquid();
+
+        if (neighborOpaque) {
+            constexpr f32 EPSILON = 1.0e-4f;
+            const bool flushWithNeighbor =
+                (face == Face::Bottom && box.minY <= EPSILON) ||
+                (face == Face::Top && box.maxY >= 1.0f - EPSILON) ||
+                (face == Face::North && box.minZ <= EPSILON) ||
+                (face == Face::South && box.maxZ >= 1.0f - EPSILON) ||
+                (face == Face::West && box.minX <= EPSILON) ||
+                (face == Face::East && box.maxX >= 1.0f - EPSILON);
+            if (flushWithNeighbor) {
+                continue;
+            }
+        }
+
+        String faceName;
+        switch (face) {
+            case Face::Bottom: faceName = "down"; break;
+            case Face::Top: faceName = "up"; break;
+            case Face::North: faceName = "north"; break;
+            case Face::South: faceName = "south"; break;
+            case Face::West: faceName = "west"; break;
+            case Face::East: faceName = "east"; break;
+            default: continue;
+        }
+
+        auto faceLayers = collectFaceLayers(appearance, faceName);
+        if (faceLayers.empty()) {
+            continue;
+        }
+
+        u8 skyLight = 15;
+        u8 blockLight = 0;
+        if (s_lightingEnabled) {
+            const auto dir = BlockGeometry::getFaceDirection(face);
+            const i32 sampleX = blockX + dir[0];
+            const i32 sampleY = blockY + dir[1];
+            const i32 sampleZ = blockZ + dir[2];
+
+            if (block->isTransparent() && neighbor != nullptr && !neighbor->isAir() && !neighbor->isTransparent()) {
+                skyLight = sampleSkyLight(chunk, blockX, blockY, blockZ, neighborChunks);
+                blockLight = sampleBlockLight(chunk, blockX, blockY, blockZ, neighborChunks);
+            } else {
+                skyLight = sampleSkyLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+                blockLight = sampleBlockLight(chunk, sampleX, sampleY, sampleZ, neighborChunks);
+            }
+        }
+
+        const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
+        const auto normal = BlockGeometry::getFaceNormal(face);
+
+        const f64 x0 = x + box.minX;
+        const f64 y0 = y + box.minY;
+        const f64 z0 = z + box.minZ;
+        const f64 x1 = x + box.maxX;
+        const f64 y1 = y + box.maxY;
+        const f64 z1 = z + box.maxZ;
+
+        std::array<std::array<f64, 3>, 4> positions{};
+        switch (face) {
+            case Face::Bottom:
+                positions = {{{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}}};
+                break;
+            case Face::Top:
+                positions = {{{x0, y1, z1}, {x1, y1, z1}, {x1, y1, z0}, {x0, y1, z0}}};
+                break;
+            case Face::North:
+                positions = {{{x1, y0, z0}, {x0, y0, z0}, {x0, y1, z0}, {x1, y1, z0}}};
+                break;
+            case Face::South:
+                positions = {{{x0, y0, z1}, {x1, y0, z1}, {x1, y1, z1}, {x0, y1, z1}}};
+                break;
+            case Face::West:
+                positions = {{{x0, y0, z0}, {x0, y0, z1}, {x0, y1, z1}, {x0, y1, z0}}};
+                break;
+            case Face::East:
+                positions = {{{x1, y0, z1}, {x1, y0, z0}, {x1, y1, z0}, {x1, y1, z1}}};
+                break;
+            default:
+                continue;
+        }
+
+        for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
+            const auto& layer = faceLayers[layerIndex];
+            const u32 tintColor = resolveTintColorBlended(
+                biomeAccessor,
+                worldX,
+                blockY,
+                worldZ,
+                block,
+                layer.tintIndex
+            );
+            const u32 shadedColor = applyBlockAlpha(
+                applyShadeToPackedColor(tintColor, getFaceShade(face)),
+                block
+            );
+
+            const f64 uvs[4][2] = {
+                { layer.texture.u0, layer.texture.v1 },
+                { layer.texture.u1, layer.texture.v1 },
+                { layer.texture.u1, layer.texture.v0 },
+                { layer.texture.u0, layer.texture.v0 }
+            };
+
+            const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
+
+            std::array<Vertex, 4> faceVerts;
+            for (size_t i = 0; i < 4; ++i) {
+                faceVerts[i] = Vertex(
+                    positions[i][0] + normal[0] * layerOffset,
+                    positions[i][1] + normal[1] * layerOffset,
+                    positions[i][2] + normal[2] * layerOffset,
+                    normal[0], normal[1], normal[2],
+                    uvs[i][0], uvs[i][1],
+                    shadedColor,
+                    packedLight
+                );
+            }
+
+            const u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+            for (const auto& vert : faceVerts) {
+                mesh.vertices.push_back(vert);
+            }
+
+            const auto indices = BlockGeometry::getFaceIndices();
+            for (u32 idx : indices) {
+                mesh.indices.push_back(baseIndex + idx);
+            }
+        }
+    }
+}
+
 void ChunkMesher::simpleMeshSection(
     const ChunkData& chunk,
     i32 sectionIndex,
@@ -1157,6 +1333,53 @@ void ChunkMesher::simpleMeshSection(
     if (!section || section->isEmpty()) {
         return;
     }
+
+    const auto getNeighborBlock = [&](i32 x, i32 y, i32 z, Face face) -> const BlockState* {
+        const auto dir = BlockGeometry::getFaceDirection(face);
+        const i32 nx = x + dir[0];
+        const i32 ny = y + dir[1];
+        const i32 nz = z + dir[2];
+
+        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
+            return section->getBlock(nx, ny, nz);
+        }
+
+        const i32 worldX = nx;
+        const i32 worldY = baseY + ny;
+        const i32 worldZ = nz;
+
+        if (worldY < 0 || worldY >= world::CHUNK_HEIGHT) {
+            return nullptr;
+        }
+
+        if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
+            worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
+            return chunk.getBlock(worldX, worldY, worldZ);
+        }
+
+        if (!neighborChunks) {
+            return nullptr;
+        }
+
+        i32 neighborIdx = -1;
+        if (worldX < 0) {
+            neighborIdx = 0;        // -X
+        } else if (worldX >= SIZE) {
+            neighborIdx = 1;        // +X
+        } else if (worldZ < 0) {
+            neighborIdx = 2;        // -Z
+        } else if (worldZ >= SIZE) {
+            neighborIdx = 3;        // +Z
+        }
+
+        if (neighborIdx < 0 || !neighborChunks[neighborIdx]) {
+            return nullptr;
+        }
+
+        const i32 lx = (worldX + SIZE) % SIZE;
+        const i32 lz = (worldZ + SIZE) % SIZE;
+        return neighborChunks[neighborIdx]->getBlock(lx, worldY, lz);
+    };
 
     // 遍历段内所有方块
     for (i32 y = 0; y < SIZE; ++y) {
@@ -1208,54 +1431,43 @@ void ChunkMesher::simpleMeshSection(
                     continue;
                 }
 
+                const CollisionShape& blockShape = block->getShape();
+                const bool useShapeFallback =
+                    !block->isLiquid() &&
+                    !blockShape.isEmpty() &&
+                    !blockShape.isFullBlock() &&
+                    blockShape.boxCount() == 1;
+
+                if (useShapeFallback) {
+                    std::array<const BlockState*, 6> neighborStates = {};
+                    for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
+                        const Face face = static_cast<Face>(faceIdx);
+                        neighborStates[faceIdx] = getNeighborBlock(x, y, z, face);
+                    }
+
+                    addShapeGeometryFromAppearance(
+                        outMesh,
+                        static_cast<f64>(x),
+                        static_cast<f64>(baseY + y),
+                        static_cast<f64>(z),
+                        chunk,
+                        x,
+                        baseY + y,
+                        z,
+                        block,
+                        appearance,
+                        blockShape,
+                        neighborStates,
+                        neighborChunks
+                    );
+                    continue;
+                }
+
                 // 检查每个面
                 for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
                     Face face = static_cast<Face>(faceIdx);
                     auto dir = BlockGeometry::getFaceDirection(face);
-
-                    // 计算邻居坐标
-                    i32 nx = x + dir[0];
-                    i32 ny = y + dir[1];
-                    i32 nz = z + dir[2];
-
-                    const BlockState* neighbor = nullptr;
-
-                    // 检查是否在当前区块内
-                    if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
-                        neighbor = section->getBlock(nx, ny, nz);
-                    } else {
-                        // 在区块边界，需要查询邻居区块或当前区块的其他段
-                        i32 worldX = nx;
-                        i32 worldY = baseY + ny;
-                        i32 worldZ = nz;
-
-                        // 处理Y方向跨段
-                        if (worldY < 0 || worldY >= world::CHUNK_HEIGHT) {
-                            neighbor = nullptr; // 空气
-                        } else if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
-                                   worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
-                            // 仍在当前区块内
-                            neighbor = chunk.getBlock(worldX, worldY, worldZ);
-                        } else if (neighborChunks) {
-                            // 在邻居区块中
-                            i32 neighborIdx = -1;
-                            if (worldX < 0) neighborIdx = 0;        // -X
-                            else if (worldX >= SIZE) neighborIdx = 1; // +X
-                            else if (worldZ < 0) neighborIdx = 2;     // -Z
-                            else if (worldZ >= SIZE) neighborIdx = 3; // +Z
-
-                            if (neighborIdx >= 0 && neighborChunks[neighborIdx]) {
-                                // 计算邻居区块中的坐标
-                                i32 lx = (worldX + SIZE) % SIZE;
-                                i32 lz = (worldZ + SIZE) % SIZE;
-                                neighbor = neighborChunks[neighborIdx]->getBlock(lx, worldY, lz);
-                            } else {
-                                neighbor = nullptr;
-                            }
-                        } else {
-                            neighbor = nullptr;
-                        }
-                    }
+                    const BlockState* neighbor = getNeighborBlock(x, y, z, face);
 
                     // 决定是否渲染该面
                     if (shouldRenderFace(block, neighbor)) {
@@ -1338,6 +1550,34 @@ void ChunkMesher::greedyMeshSection(
     if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
         simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
         return;
+    }
+
+    // 贪婪合并无法正确表达交叉植物与非完整体素方块，回退到逐方块路径保证几何正确。
+    for (i32 y = 0; y < SIZE; ++y) {
+        for (i32 z = 0; z < SIZE; ++z) {
+            for (i32 x = 0; x < SIZE; ++x) {
+                const BlockState* block = section->getBlock(x, y, z);
+                if (!shouldRenderBlock(block)) {
+                    continue;
+                }
+
+                const BlockAppearance* appearance = s_modelCache->getBlockAppearance(block);
+                if (appearance == nullptr) {
+                    appearance = s_modelCache->getMissingAppearance();
+                }
+
+                if (appearance != nullptr && isCrossLikeAppearance(appearance)) {
+                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+                    return;
+                }
+
+                const CollisionShape& shape = block->getShape();
+                if (!block->isLiquid() && !shape.isEmpty() && !shape.isFullBlock()) {
+                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+                    return;
+                }
+            }
+        }
     }
 
     // 创建生物群系访问器用于颜色混合

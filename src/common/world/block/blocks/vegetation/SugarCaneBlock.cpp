@@ -1,9 +1,11 @@
 #include "SugarCaneBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {
@@ -30,7 +32,7 @@ i32 SugarCaneBlock::getAge(const BlockState& state) const {
     return state.get(BlockStateProperties::AGE_0_15());
 }
 
-BlockState SugarCaneBlock::withAge(i32 age) const {
+const BlockState& SugarCaneBlock::withAge(i32 age) const {
     return defaultState().with(BlockStateProperties::AGE_0_15(), std::min(age, 15));
 }
 
@@ -58,28 +60,24 @@ bool SugarCaneBlock::isValidPosition(
         return true;
     }
 
-    // TODO: 检查是否为草方块、泥土、沙子、红沙等
-    const Material& material = belowState->getMaterial();
-    if (material.isSolid()) {
-        // 检查是否靠近水源
-        return isNearWater(world, pos);
-    }
+    const bool validGround =
+        (VanillaBlocks::GRASS_BLOCK != nullptr && belowState->is(VanillaBlocks::GRASS_BLOCK)) ||
+        (VanillaBlocks::DIRT != nullptr && belowState->is(VanillaBlocks::DIRT)) ||
+        (VanillaBlocks::SAND != nullptr && belowState->is(VanillaBlocks::SAND)) ||
+        (VanillaBlocks::RED_SAND != nullptr && belowState->is(VanillaBlocks::RED_SAND));
 
-    return false;
+    return validGround && isNearWater(world, pos);
 }
 
 bool SugarCaneBlock::isNearWater(IBlockReader& world, const BlockPos& pos) const {
-    // 检查四个方向是否有水
+    // 检查根部同高度四个方向是否有水
+    const i32 waterY = pos.y - 1;
     for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
-        BlockPos adjPos = pos.offset(dir);
+        BlockPos adjPos(pos.x + Directions::xOffset(dir), waterY, pos.z + Directions::zOffset(dir));
         const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
 
-        if (adjState != nullptr) {
-            // TODO: 检查是否为水方块
-            const Material& material = adjState->getMaterial();
-            if (material.isLiquid()) {
-                return true;
-            }
+        if (adjState != nullptr && adjState->getMaterial() == Material::WATER) {
+            return true;
         }
     }
     return false;

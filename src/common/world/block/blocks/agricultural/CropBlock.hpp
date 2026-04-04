@@ -53,7 +53,7 @@ public:
     /**
      * @brief 创建指定年龄的状态
      */
-    [[nodiscard]] BlockState withAge(int age) const;
+    [[nodiscard]] const BlockState& withAge(int age) const;
 
     /**
      * @brief 是否为最大年龄

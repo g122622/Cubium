@@ -343,6 +343,19 @@ enum class Operation : u8 { ... };
     - iterative propagation (`spreadAttempts`)
 - End biome provider now follows vanilla island-height selection logic (`func_235317_a_` equivalent), including RNG skip behavior and noise-grid container filling.
 - Ocean feature tests and biome-setting tests were updated to match the new parity-oriented expectations.
+- `ServerWorld::setBlock` now executes a full block-update callback chain:
+    - canonicalizes incoming `BlockState*` by `stateId`
+    - invokes `onBlockRemoved/onBlockAdded`
+    - applies neighbor `updatePostPlacement`
+    - dispatches `neighborChanged` notifications
+- Gravity-sensitive blocks are now wired through `FallingBlock`:
+    - `minecraft:sand`
+    - `minecraft:gravel`
+    - `minecraft:red_sand`
+- Agricultural survival/growth rules were tightened:
+    - crops and stems now require farmland support
+    - farmland moisture/water checks and dirt fallback are active
+    - sugar cane now checks vanilla-like ground and water adjacency
 
 ## Gotchas & Pitfalls
 
@@ -350,6 +363,8 @@ enum class Operation : u8 { ... };
     - In worldgen features, use explicit local placement checks (`isWater`, support block checks) when running in `WorldGenRegion` context.
 - Blue ice placement will always fail if there is no packed-ice neighbor around the sampled start position.
     - Tests must set up packed ice at the exact sampled neighborhood, not by replacing whole water layers in a way that shifts ocean-floor detection.
+- Avoid passing temporary `BlockState` copies to world write APIs.
+    - Prefer canonical references returned by `state.with(...)` / `defaultState()`; `ServerWorld::setBlock` now canonicalizes by `stateId` as a safety net.
 
 ## Self-Maintenance Rule
 

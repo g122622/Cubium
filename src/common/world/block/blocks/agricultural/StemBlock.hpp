@@ -56,7 +56,7 @@ public:
     /**
      * @brief 创建指定年龄的状态
      */
-    [[nodiscard]] BlockState withAge(int age) const;
+    [[nodiscard]] const BlockState& withAge(int age) const;
 
     /**
      * @brief 是否为最大年龄
@@ -112,7 +112,7 @@ protected:
      * @brief 尝试生成果实
      * @return 如果成功生成了果实返回true
      */
-    bool tryGrowFruit(BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random);
+    bool tryGrowFruit(const BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random);
 
     /// 对应的果实方块
     const StemGrownBlock* m_crop;

@@ -61,6 +61,8 @@ public:
         Direction side
     ) const override;
 
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
     // ========== 压力板特有方法 ==========
 
     /**

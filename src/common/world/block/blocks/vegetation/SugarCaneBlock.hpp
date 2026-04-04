@@ -32,7 +32,7 @@ public:
     // ========== 状态属性 ==========
 
     [[nodiscard]] i32 getAge(const BlockState& state) const;
-    [[nodiscard]] BlockState withAge(i32 age) const;
+    [[nodiscard]] const BlockState& withAge(i32 age) const;
 
     // ========== 放置逻辑 ==========
 

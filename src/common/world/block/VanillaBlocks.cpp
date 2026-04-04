@@ -3,6 +3,7 @@
 #include "blocks/LiquidBlock.hpp"
 #include "blocks/DoorBlock.hpp"
 #include "blocks/FenceGateBlock.hpp"
+#include "blocks/FallingBlock.hpp"
 #include "blocks/CauldronBlock.hpp"
 #include "blocks/EnchantingTableBlock.hpp"
 #include "blocks/building/StairsBlock.hpp"
@@ -13,6 +14,11 @@
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ocean/DriedKelpBlock.hpp"
 #include "blocks/ocean/SeaPickleBlock.hpp"
+#include "blocks/vegetation/CactusBlock.hpp"
+#include "blocks/vegetation/FlowerBlock.hpp"
+#include "blocks/vegetation/SugarCaneBlock.hpp"
+#include "blocks/vegetation/TallGrassBlock.hpp"
+#include "blocks/agricultural/FarmlandBlock.hpp"
 #include "blocks/mob/MobBlocks.hpp"
 #include "blocks/coral/CoralBlock.hpp"
 #include "blocks/decorative/LanternBlock.hpp"
@@ -635,14 +641,14 @@ void VanillaBlocks::registerBaseBlocks() {
 
     // 沙子 - ID 9
     // 参考: new SandBlock(14406560, Properties.create(Material.SAND).hardnessAndResistance(0.5F))
-    SAND = &registry.registerBlock<SimpleBlock>(
+    SAND = &registry.registerBlock<blocks::FallingBlock>(
         ResourceLocation("minecraft:sand"),
         BlockProperties(Material::SAND).hardness(0.5f)
     );
 
     // 砾石 - ID 10
     // 参考: new GravelBlock(Properties.create(Material.SAND).hardnessAndResistance(0.6F))
-    GRAVEL = &registry.registerBlock<SimpleBlock>(
+    GRAVEL = &registry.registerBlock<blocks::FallingBlock>(
         ResourceLocation("minecraft:gravel"),
         BlockProperties(Material::SAND).hardness(0.6f)
     );
@@ -1283,83 +1289,83 @@ void VanillaBlocks::registerVegetationBlocks() {
 
     // 矮草 - ID 51
     // 参考: new TallGrassBlock(Properties.create(Material.REPLACEABLE_PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
-    SHORT_GRASS = &registry.registerBlock<SimpleBlock>(
+    SHORT_GRASS = &registry.registerBlock<blocks::TallGrassBlock>(
         ResourceLocation("minecraft:short_grass"), grassProps);
 
     // 高草 - ID 52
-    TALL_GRASS = &registry.registerBlock<SimpleBlock>(
+    TALL_GRASS = &registry.registerBlock<blocks::TallGrassBlock>(
         ResourceLocation("minecraft:tall_grass"), grassProps);
 
     // 蕨 - ID 53
-    FERN = &registry.registerBlock<SimpleBlock>(
+    FERN = &registry.registerBlock<blocks::FernBlock>(
         ResourceLocation("minecraft:fern"), grassProps);
 
     // 花朵属性
     BlockProperties flowerProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
 
     // 蒲公英 - ID 54
-    DANDELION = &registry.registerBlock<SimpleBlock>(
+    DANDELION = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:dandelion"), flowerProps);
 
     // 虞美人 - ID 55
-    POPPY = &registry.registerBlock<SimpleBlock>(
+    POPPY = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:poppy"), flowerProps);
 
     // 兰花 - ID 56
-    BLUE_ORCHID = &registry.registerBlock<SimpleBlock>(
+    BLUE_ORCHID = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:blue_orchid"), flowerProps);
 
     // 绒球葱 - ID 57
-    ALLIUM = &registry.registerBlock<SimpleBlock>(
+    ALLIUM = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:allium"), flowerProps);
 
     // 蓝花美耳草 - ID 58
-    AZURE_BLUET = &registry.registerBlock<SimpleBlock>(
+    AZURE_BLUET = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:azure_bluet"), flowerProps);
 
     // 郁金香系列 - ID 59-62
-    RED_TULIP = &registry.registerBlock<SimpleBlock>(
+    RED_TULIP = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:red_tulip"), flowerProps);
-    ORANGE_TULIP = &registry.registerBlock<SimpleBlock>(
+    ORANGE_TULIP = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:orange_tulip"), flowerProps);
-    WHITE_TULIP = &registry.registerBlock<SimpleBlock>(
+    WHITE_TULIP = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:white_tulip"), flowerProps);
-    PINK_TULIP = &registry.registerBlock<SimpleBlock>(
+    PINK_TULIP = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:pink_tulip"), flowerProps);
 
     // 滨菊 - ID 63
-    OXEYE_DAISY = &registry.registerBlock<SimpleBlock>(
+    OXEYE_DAISY = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:oxeye_daisy"), flowerProps);
 
     // 铃兰
-    LILY_OF_THE_VALLEY = &registry.registerBlock<SimpleBlock>(
+    LILY_OF_THE_VALLEY = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:lily_of_the_valley"), flowerProps);
 
     // 矢车菊
-    CORNFLOWER = &registry.registerBlock<SimpleBlock>(
+    CORNFLOWER = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:cornflower"), flowerProps);
 
     // 凋零玫瑰
-    WITHER_ROSE = &registry.registerBlock<SimpleBlock>(
+    WITHER_ROSE = &registry.registerBlock<blocks::FlowerBlock>(
         ResourceLocation("minecraft:wither_rose"), flowerProps);
 
     // 高花属性（双高植物）
     BlockProperties tallFlowerProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
 
     // 向日葵
-    SUNFLOWER = &registry.registerBlock<SimpleBlock>(
+    SUNFLOWER = &registry.registerBlock<blocks::SunflowerBlock>(
         ResourceLocation("minecraft:sunflower"), tallFlowerProps);
 
     // 丁香
-    LILAC = &registry.registerBlock<SimpleBlock>(
+    LILAC = &registry.registerBlock<blocks::LilacBlock>(
         ResourceLocation("minecraft:lilac"), tallFlowerProps);
 
     // 玫瑰丛
-    ROSE_BUSH = &registry.registerBlock<SimpleBlock>(
+    ROSE_BUSH = &registry.registerBlock<blocks::RoseBushBlock>(
         ResourceLocation("minecraft:rose_bush"), tallFlowerProps);
 
     // 牡丹
-    PEONY = &registry.registerBlock<SimpleBlock>(
+    PEONY = &registry.registerBlock<blocks::PeonyBlock>(
         ResourceLocation("minecraft:peony"), tallFlowerProps);
 
     // 蘑菇属性
@@ -1908,9 +1914,9 @@ void VanillaBlocks::registerNaturalBlocks() {
 
     // 仙人掌
     // 参考: new CactusBlock(Properties.create(Material.CACTUS).hardnessAndResistance(0.4F).noCollision())
-    CACTUS = &registry.registerBlock<SimpleBlock>(
+    CACTUS = &registry.registerBlock<blocks::CactusBlock>(
         ResourceLocation("minecraft:cactus"),
-        BlockProperties(Material::PLANT).hardness(0.4f).noCollision());
+        BlockProperties(Material::PLANT).hardness(0.4f));
 
     // 枯萎灌木
     // 参考: new BushBlock(Properties.create(Material.REPLACEABLE_PLANT).zeroHardnessAndResistance().noCollision())
@@ -1938,17 +1944,17 @@ void VanillaBlocks::registerNaturalBlocks() {
 
     // 甘蔗
     // 参考: new SugarCaneBlock(Properties.create(Material.REPLACEABLE_PLANT).zeroHardnessAndResistance().noCollision())
-    SUGAR_CANE = &registry.registerBlock<SimpleBlock>(
+    SUGAR_CANE = &registry.registerBlock<blocks::SugarCaneBlock>(
         ResourceLocation("minecraft:sugar_cane"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 耕地
-    FARMLAND = &registry.registerBlock<SimpleBlock>(
+    FARMLAND = &registry.registerBlock<blocks::FarmlandBlock>(
         ResourceLocation("minecraft:farmland"),
         BlockProperties(Material::EARTH).hardness(0.6f));
 
     // 红沙
-    RED_SAND = &registry.registerBlock<SimpleBlock>(
+    RED_SAND = &registry.registerBlock<blocks::FallingBlock>(
         ResourceLocation("minecraft:red_sand"),
         BlockProperties(Material::SAND).hardness(0.5f));
 

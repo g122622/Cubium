@@ -280,6 +280,23 @@ private:
         const ChunkData* neighborChunks[6]
     );
 
+    // 对于非完整方块，按方块 shape 生成几何，避免退化为整立方体。
+    static void addShapeGeometryFromAppearance(
+        MeshData& mesh,
+        f64 x,
+        f64 y,
+        f64 z,
+        const ChunkData& chunk,
+        i32 blockX,
+        i32 blockY,
+        i32 blockZ,
+        const BlockState* block,
+        const BlockAppearance* appearance,
+        const CollisionShape& shape,
+        const std::array<const BlockState*, 6>& neighborStates,
+        const ChunkData* neighborChunks[6]
+    );
+
     [[nodiscard]] static u32 resolveTintColor(
         const ChunkData& chunk,
         i32 blockX,

@@ -1,4 +1,7 @@
 #include "FarmlandBlock.hpp"
+#include "CropBlock.hpp"
+#include "StemBlock.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
@@ -40,7 +43,9 @@ BlockState FarmlandBlock::getStateForPlacement(BlockItemUseContext& context) {
 
     if (aboveState != nullptr && aboveState->isSolid()) {
         // 不能放置，返回泥土状态
-        // TODO: 返回泥土方块的默认状态
+        if (VanillaBlocks::DIRT != nullptr) {
+            return VanillaBlocks::DIRT->defaultState();
+        }
         return defaultState();
     }
 
@@ -83,7 +88,7 @@ BlockState FarmlandBlock::updatePostPlacement(
         const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
         if (aboveState != nullptr && aboveState->isSolid()) {
             // 安排下一 tick 转变为泥土
-            // TODO: world.getPendingBlockTicks().scheduleTick(currentPos, this, 1);
+            world.scheduleBlockTick(currentPos, *this, 1);
         }
     }
 
@@ -142,8 +147,9 @@ const CollisionShape& FarmlandBlock::getCollisionShape(const BlockState& state) 
 
 void FarmlandBlock::turnToDirt(IWorld& world, const BlockPos& pos, const BlockState& state) {
     MC_UNUSED(state);
-    // TODO: 设置为泥土方块
-    // world.setBlockState(pos.x, pos.y, pos.z, &Blocks::DIRT->defaultState(), 3);
+    if (VanillaBlocks::DIRT != nullptr) {
+        world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::DIRT->defaultState(), 3);
+    }
 }
 
 bool FarmlandBlock::hasWater(IWorld& world, const BlockPos& pos) {
@@ -153,12 +159,8 @@ bool FarmlandBlock::hasWater(IWorld& world, const BlockPos& pos) {
             for (int dy = 0; dy <= 1; ++dy) {
                 BlockPos checkPos(pos.x + dx, pos.y + dy, pos.z + dz);
                 const BlockState* state = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
-                if (state != nullptr) {
-                    const fluid::FluidState* fluid = state->getFluidState();
-                    if (fluid != nullptr && fluid->isSource()) {
-                        // TODO: 检查是否为水（使用标签）
-                        return true;
-                    }
+                if (state != nullptr && state->getMaterial() == Material::WATER) {
+                    return true;
                 }
             }
         }
@@ -175,10 +177,17 @@ bool FarmlandBlock::hasCrops(IWorld& world, const BlockPos& pos) {
         return false;
     }
 
-    // TODO: 检查是否为农作物方块（实现 IPlantable 接口）
-    // return aboveState->getBlock() instanceof IPlantable;
+    const Block& aboveBlock = aboveState->getBlock();
+    if (dynamic_cast<const CropBlock*>(&aboveBlock) != nullptr) {
+        return true;
+    }
+    if (dynamic_cast<const StemBlock*>(&aboveBlock) != nullptr) {
+        return true;
+    }
+    if (dynamic_cast<const AttachedStemBlock*>(&aboveBlock) != nullptr) {
+        return true;
+    }
 
-    // 简化实现：检查是否有 AGE 属性
     return aboveState->hasProperty(BlockStateProperties::AGE_0_7());
 }
 

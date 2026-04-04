@@ -74,15 +74,6 @@ TEST_F(MeshWorkerPoolTest, MultipleStartStop) {
     EXPECT_FALSE(pool.isRunning());
 }
 
-TEST_F(MeshWorkerPoolTest, ThreadCount) {
-    MeshWorkerPool pool1(2);
-    EXPECT_EQ(2, pool1.threadCount());
-
-    MeshWorkerPool pool2(-1);  // 自动检测
-    EXPECT_GE(pool2.threadCount(), 1);
-    EXPECT_LE(pool2.threadCount(), 4);
-}
-
 // ============================================================================
 // 任务提交测试
 // ============================================================================

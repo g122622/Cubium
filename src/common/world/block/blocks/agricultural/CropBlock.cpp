@@ -1,9 +1,11 @@
 #include "CropBlock.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {
@@ -33,7 +35,7 @@ int CropBlock::getAge(const BlockState& state) const {
     return state.get(getAgeProperty());
 }
 
-BlockState CropBlock::withAge(int age) const {
+const BlockState& CropBlock::withAge(int age) const {
     return defaultState().with(getAgeProperty(), std::min(age, getMaxAge()));
 }
 
@@ -77,21 +79,16 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
-    // TODO: 检查光照等级
-    // if (world.getLightSubtracted(pos, 0) >= 9) {
-    //     float growthChance = getGrowthChance(*this, world, pos);
-    //     if (random.nextInt(static_cast<int>(25.0f / growthChance) + 1) == 0) {
-    //         world.setBlockState(pos, withAge(getAge(state) + 1), 2);
-    //     }
-    // }
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(pos.x, pos.y + 1, pos.z));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(pos.x, pos.y + 1, pos.z));
+    if (std::max(blockLight, skyLight) < 9) {
+        return;
+    }
 
-    // 简化实现：随机生长
-    int age = getAge(state);
-    if (age < getMaxAge()) {
-        // 基础生长概率约为 1/25
-        if (random.nextInt(25) == 0) {
-            world.setBlockState(pos.x, pos.y, pos.z, &withAge(age + 1), 2);
-        }
+    const f32 growthChance = std::max(1.0f, getGrowthChance(*this, static_cast<IBlockReader&>(world), pos));
+    const i32 randomBound = std::max(1, static_cast<i32>(25.0f / growthChance) + 1);
+    if (random.nextInt(randomBound) == 0) {
+        world.setBlockState(pos.x, pos.y, pos.z, &withAge(getAge(state) + 1), 2);
     }
 }
 
@@ -134,13 +131,8 @@ bool CropBlock::canSustain(
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
-    // 农作物需要耕地
-    // TODO: 检查是否为耕地方块
-    // return groundState.is(Blocks::FARMLAND);
-
-    // 简化实现：检查材料
-    const Material& material = groundState.getMaterial();
-    return material.isSolid();
+    // 农作物只能种在耕地上
+    return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
 }
 
 float CropBlock::getGrowthChance(
@@ -148,20 +140,53 @@ float CropBlock::getGrowthChance(
     IBlockReader& world,
     const BlockPos& pos) {
 
-    MC_UNUSED(block);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-
-    // TODO: 实现完整的生长速度计算
-    // 包括：
-    // 1. 周围耕地（湿润耕地提供更高速度）
-    // 2. 相邻同种作物（降低速度）
-    // 3. 行/列布局优化
-
     float growthChance = 1.0f;
 
-    // 简化版本
-    return growthChance;
+    const auto& moistureProp = BlockStateProperties::MOISTURE_0_7();
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            const BlockPos groundPos(pos.x + dx, pos.y - 1, pos.z + dz);
+            const BlockState* groundState = world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+            if (groundState == nullptr || VanillaBlocks::FARMLAND == nullptr ||
+                !groundState->is(VanillaBlocks::FARMLAND)) {
+                continue;
+            }
+
+            f32 bonus = 1.0f;
+            if (groundState->hasProperty(moistureProp) && groundState->get(moistureProp) > 0) {
+                bonus = 3.0f;
+            }
+
+            if (dx != 0 || dz != 0) {
+                bonus *= 0.25f;
+            }
+
+            growthChance += bonus;
+        }
+    }
+
+    const auto isSameCrop = [&](i32 x, i32 z) {
+        const BlockState* check = world.getBlockState(x, pos.y, z);
+        return check != nullptr && check->is(&block);
+    };
+
+    const bool north = isSameCrop(pos.x, pos.z - 1);
+    const bool south = isSameCrop(pos.x, pos.z + 1);
+    const bool west = isSameCrop(pos.x - 1, pos.z);
+    const bool east = isSameCrop(pos.x + 1, pos.z);
+    const bool axisCrowded = (north || south) && (west || east);
+
+    const bool diagonalCrowded =
+        isSameCrop(pos.x - 1, pos.z - 1) ||
+        isSameCrop(pos.x + 1, pos.z - 1) ||
+        isSameCrop(pos.x - 1, pos.z + 1) ||
+        isSameCrop(pos.x + 1, pos.z + 1);
+
+    if (axisCrowded || diagonalCrowded) {
+        growthChance *= 0.5f;
+    }
+
+    return std::max(growthChance, 1.0f);
 }
 
 } // namespace blocks
