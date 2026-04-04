@@ -4,6 +4,7 @@
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
+#include "../carver/NetherCaveCarver.hpp"
 #include "../../biome/provider/nether/NetherBiomeProvider.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include <memory>
@@ -93,6 +94,10 @@ private:
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
+
+    // === 雕刻器 ===
+    std::unique_ptr<NetherCaveCarver> m_caveCarver;
+    ProbabilityConfig m_caveConfig{0.2f};  // 下界洞穴概率较高
 
     // === 下界特有参数 ===
     i32 m_lavaLevel = 31;        // 熔岩海高度

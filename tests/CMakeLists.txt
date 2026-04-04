@@ -94,6 +94,7 @@ add_executable(mc_tests
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
+    common/world/gen/feature/NetherFeatureTest.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp
     # Perfetto 测试（集成到主测试套件）

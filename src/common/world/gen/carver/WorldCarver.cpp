@@ -39,30 +39,72 @@ void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z) {
 // ============================================================================
 
 template<typename Config>
+const BlockState* WorldCarver<Config>::getCaveAirState() const
+{
+    // 目前使用普通 AIR，因为没有单独的 CAVE_AIR 方块
+    // TODO: 当添加 CAVE_AIR 方块后替换
+    return VanillaBlocks::getState(VanillaBlocks::AIR);
+}
+
+template<typename Config>
 bool WorldCarver<Config>::isCarvable(const BlockState& state) {
-    // 参考 MC WorldCarver.carvableBlocks
-    // 可雕刻的方块类型 - 使用方块材质判断
+    // 参考 MC WorldCarver.carvableBlocks（MC 1.16.5）
+    // 原版列表：STONE, GRANITE, DIORITE, ANDESITE, DIRT, COARSE_DIRT, PODZOL,
+    // GRASS_BLOCK, TERRACOTTA (及所有染色陶瓦), SANDSTONE, RED_SANDSTONE,
+    // MYCELIUM, SNOW, PACKED_ICE
+
     // 石头变种
     if (state.is(VanillaBlocks::STONE) ||
         state.is(VanillaBlocks::GRANITE) ||
         state.is(VanillaBlocks::DIORITE) ||
-        state.is(VanillaBlocks::ANDESITE) ||
-        // 泥土类
-        state.is(VanillaBlocks::DIRT) ||
-        state.is(VanillaBlocks::GRASS_BLOCK) ||
-        // 沙子类
-        state.is(VanillaBlocks::SAND) ||
-        state.is(VanillaBlocks::GRAVEL) ||
-        // 其他
-        state.is(VanillaBlocks::COBBLESTONE) || // Terracotta substitute
-        state.is(VanillaBlocks::RED_SANDSTONE) || // Red sand substitute
-        state.is(VanillaBlocks::SNOW) ||
-        state.is(VanillaBlocks::NETHERRACK) ||
-        state.is(VanillaBlocks::END_STONE) ||
+        state.is(VanillaBlocks::ANDESITE)) {
+        return true;
+    }
+
+    // 泥土类
+    if (state.is(VanillaBlocks::DIRT) ||
+        state.is(VanillaBlocks::COARSE_DIRT) ||
+        state.is(VanillaBlocks::PODZOL) ||
+        state.is(VanillaBlocks::GRASS_BLOCK)) {
+        return true;
+    }
+
+    // 陶瓦（包括染色陶瓦）
+    if (state.is(VanillaBlocks::TERRACOTTA) ||
+        state.is(VanillaBlocks::WHITE_TERRACOTTA) ||
+        state.is(VanillaBlocks::ORANGE_TERRACOTTA) ||
+        state.is(VanillaBlocks::MAGENTA_TERRACOTTA) ||
+        state.is(VanillaBlocks::LIGHT_BLUE_TERRACOTTA) ||
+        state.is(VanillaBlocks::YELLOW_TERRACOTTA) ||
+        state.is(VanillaBlocks::LIME_TERRACOTTA) ||
+        state.is(VanillaBlocks::PINK_TERRACOTTA) ||
+        state.is(VanillaBlocks::GRAY_TERRACOTTA) ||
+        state.is(VanillaBlocks::LIGHT_GRAY_TERRACOTTA) ||
+        state.is(VanillaBlocks::CYAN_TERRACOTTA) ||
+        state.is(VanillaBlocks::PURPLE_TERRACOTTA) ||
+        state.is(VanillaBlocks::BLUE_TERRACOTTA) ||
+        state.is(VanillaBlocks::BROWN_TERRACOTTA) ||
+        state.is(VanillaBlocks::GREEN_TERRACOTTA) ||
+        state.is(VanillaBlocks::RED_TERRACOTTA) ||
+        state.is(VanillaBlocks::BLACK_TERRACOTTA)) {
+        return true;
+    }
+
+    // 沙子和砂岩
+    if (state.is(VanillaBlocks::SAND) ||
+        state.is(VanillaBlocks::RED_SAND) ||
         state.is(VanillaBlocks::SANDSTONE) ||
         state.is(VanillaBlocks::RED_SANDSTONE)) {
         return true;
     }
+
+    // 其他可雕刻方块
+    if (state.is(VanillaBlocks::MYCELIUM) ||
+        state.is(VanillaBlocks::SNOW) ||
+        state.is(VanillaBlocks::PACKED_ICE)) {
+        return true;
+    }
+
     return false;
 }
 
@@ -189,13 +231,14 @@ bool WorldCarver<Config>::carveEllipsoid(
                 bool hasGrassAbove = state->is(VanillaBlocks::GRASS_BLOCK);
 
                 // 设置为空气或熔岩
-                if (y < 11) {
+                const i32 lavaLevel = getLavaLevel();
+                if (y < lavaLevel) {
                     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
                     if (lava) {
                         chunk.setBlock(lx, y, lz, lava);
                     }
                 } else {
-                    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+                    const BlockState* air = getCaveAirState();
                     if (air) {
                         chunk.setBlock(lx, y, lz, air);
                     }

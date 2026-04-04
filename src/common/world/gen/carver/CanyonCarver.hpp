@@ -73,7 +73,7 @@ protected:
         f32 dx, f32 dy, f32 dz, i32 y) const override;
 
 private:
-    /// 预计算的半径变化表（参考 MC field_202536_i）
+    /// 预计算的半径变化表（参考 MC field_202536_i，大小 1024）
     std::vector<f32> m_heightThresholds;
 
     /**

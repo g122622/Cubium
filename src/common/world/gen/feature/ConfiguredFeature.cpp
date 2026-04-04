@@ -6,6 +6,7 @@
 #include "ocean/SeagrassFeature.hpp"
 #include "ocean/SeaPickleFeature.hpp"
 #include "ocean/CoralFeature.hpp"
+#include "nether/NetherFeatures.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../biome/Biome.hpp"
@@ -135,6 +136,23 @@ void FeatureRegistry::initialize() {
     CoralFeatures::initialize();
     auto coralFeatures = CoralFeatures::getAllFeaturesAndClear();
     for (auto& feature : coralFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 注册下界特征（UndergroundDecoration 阶段）
+    NetherFeatureRegistry::initialize();
+    auto netherUndergroundFeatures = NetherFeatureRegistry::getAllUndergroundFeaturesAndClear();
+    for (auto& feature : netherUndergroundFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::UndergroundDecoration);
+        }
+    }
+
+    // 注册下界植被特征（VegetalDecoration 阶段）
+    auto netherVegetationFeatures = NetherFeatureRegistry::getAllVegetationFeaturesAndClear();
+    for (auto& feature : netherVegetationFeatures) {
         if (feature) {
             registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
         }

@@ -1,120 +1,60 @@
 #pragma once
 
 #include "WorldCarver.hpp"
+#include "CaveCarver.hpp"
+#include "CanyonCarver.hpp"
 #include "../../../core/Types.hpp"
 #include <memory>
 
 namespace mc::world::gen::carver {
 
 /**
- * @brief 水下洞穴雕刻器配置
- */
-struct UnderwaterCaveConfig {
-    f32 probability;  ///< 生成概率
-    i32 minLength;    ///< 最小长度
-    i32 maxLength;    ///< 最大长度
-    f32 horizontalScale;  ///< 水平缩放
-    f32 verticalScale;    ///< 垂直缩放
-
-    UnderwaterCaveConfig()
-        : probability(0.02f)
-        , minLength(8)
-        , maxLength(16)
-        , horizontalScale(1.0f)
-        , verticalScale(1.0f) {}
-};
-
-/**
  * @brief 水下洞穴雕刻器
  *
- * 生成填充水的洞穴，而非空气。
- * 参考 MC 1.16.5: UnderwaterCaveWorldCarver
+ * 参考 MC 1.16.5 UnderwaterCaveWorldCarver，继承自 CaveWorldCarver。
+ * 与普通洞穴的区别：
+ * - 可雕刻方块包含水下相关方块（水、熔岩、黑曜石、空气等）
+ * - 不检测区域是否在水下（始终可以在水下生成）
+ * - Y==10 处有特殊逻辑：25% 岩浆块，75% 黑曜石
+ * - Y<10 填充熔岩，Y>10 填充水
  */
-class UnderwaterCaveCarver : public WorldCarver<UnderwaterCaveConfig> {
+class UnderwaterCaveCarver : public CaveCarver {
 public:
-    /**
-     * @brief 构造函数
-     */
     UnderwaterCaveCarver();
 
-    /**
-     * @brief 在区块中执行雕刻
-     */
-    bool carve(ChunkPrimer& chunk,
-               const BiomeProvider& biomeProvider,
-               i32 seaLevel,
-               ChunkCoord chunkX,
-               ChunkCoord chunkZ,
-               CarvingMask& carvingMask,
-               const UnderwaterCaveConfig& config) override;
-
-    /**
-     * @brief 检查是否应该在这个区块执行雕刻
-     */
-    [[nodiscard]] bool shouldCarve(
-        math::IRandom& rng,
-        ChunkCoord chunkX,
-        ChunkCoord chunkZ,
-        const UnderwaterCaveConfig& config) const override;
+    ~UnderwaterCaveCarver() override = default;
 
 protected:
+    /**
+     * @brief 检查椭球位置是否有效
+     * 水下洞穴始终返回 false（不跳过任何位置）
+     */
     [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
-};
 
-/**
- * @brief 水下峡谷雕刻器配置
- */
-struct UnderwaterCanyonConfig {
-    f32 probability;      ///< 生成概率
-    i32 minLength;        ///< 最小长度
-    i32 maxLength;        ///< 最大长度
-    f32 horizontalScale;  ///< 水平缩放
-    f32 verticalScale;    ///< 垂直缩放
-    f32 thickness;        ///< 厚度
-
-    UnderwaterCanyonConfig()
-        : probability(0.02f)
-        , minLength(20)
-        , maxLength(64)
-        , horizontalScale(1.0f)
-        , verticalScale(1.0f)
-        , thickness(2.0f) {}
+    /**
+     * @brief 检查方块是否可雕刻
+     * 水下洞穴包含更多可雕刻方块
+     */
+    [[nodiscard]] static bool isUnderwaterCarvable(const BlockState& state);
 };
 
 /**
  * @brief 水下峡谷雕刻器
  *
- * 生成填充水的峡谷，而非空气。
- * 参考 MC 1.16.5: UnderwaterCanyonWorldCarver
+ * 参考 MC 1.16.5 UnderwaterCanyonWorldCarver，继承自 CanyonWorldCarver。
+ * 与普通峡谷的区别类似水下洞穴。
  */
-class UnderwaterCanyonCarver : public WorldCarver<UnderwaterCanyonConfig> {
+class UnderwaterCanyonCarver : public CanyonCarver {
 public:
-    /**
-     * @brief 构造函数
-     */
     UnderwaterCanyonCarver();
 
-    /**
-     * @brief 在区块中执行雕刻
-     */
-    bool carve(ChunkPrimer& chunk,
-               const BiomeProvider& biomeProvider,
-               i32 seaLevel,
-               ChunkCoord chunkX,
-               ChunkCoord chunkZ,
-               CarvingMask& carvingMask,
-               const UnderwaterCanyonConfig& config) override;
-
-    /**
-     * @brief 检查是否应该在这个区块执行雕刻
-     */
-    [[nodiscard]] bool shouldCarve(
-        math::IRandom& rng,
-        ChunkCoord chunkX,
-        ChunkCoord chunkZ,
-        const UnderwaterCanyonConfig& config) const override;
+    ~UnderwaterCanyonCarver() override = default;
 
 protected:
+    /**
+     * @brief 检查椭球位置是否有效
+     * 水下峡谷使用与普通峡谷相同的厚度检测
+     */
     [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
 };
 
@@ -129,3 +69,9 @@ std::unique_ptr<UnderwaterCaveCarver> createUnderwaterCaveCarver();
 std::unique_ptr<UnderwaterCanyonCarver> createUnderwaterCanyonCarver();
 
 } // namespace mc::world::gen::carver
+
+// 向后兼容：在 mc 命名空间中提供类型别名
+namespace mc {
+using UnderwaterCaveCarver = world::gen::carver::UnderwaterCaveCarver;
+using UnderwaterCanyonCarver = world::gen::carver::UnderwaterCanyonCarver;
+}

@@ -534,6 +534,7 @@ add_library(mc_common STATIC
     world/gen/carver/CaveCarver.cpp
     world/gen/carver/CanyonCarver.cpp
     world/gen/carver/UnderwaterCarver.cpp
+    world/gen/carver/NetherCaveCarver.cpp
 
     # World - Biome
     world/biome/Biome.cpp
@@ -594,6 +595,12 @@ add_library(mc_common STATIC
 
     # World - Generation - Feature - Fungus
     world/gen/feature/fungus/HugeFungusFeature.cpp
+
+    # World - Generation - Feature - Nether
+    world/gen/feature/nether/GlowstoneFeature.cpp
+    world/gen/feature/nether/BasaltFeature.cpp
+    world/gen/feature/nether/MagmaPatchFeature.cpp
+    world/gen/feature/nether/NetherFeatures.cpp
 
     # World - Generation - Feature - Lake
     world/gen/feature/lake/LakeFeature.cpp

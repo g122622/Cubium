@@ -152,6 +152,20 @@ public:
     [[nodiscard]] i32 getMaxHeight() const { return m_maxHeight; }
 
     /**
+     * @brief 获取熔岩填充高度
+     * 低于此高度的雕刻区域用熔岩填充
+     * @return 熔岩高度（默认 11）
+     */
+    [[nodiscard]] virtual i32 getLavaLevel() const { return 11; }
+
+    /**
+     * @brief 获取空气方块状态
+     * 主世界返回 CAVE_AIR，下界返回 CAVE_AIR
+     * @return 空气方块状态
+     */
+    [[nodiscard]] virtual const BlockState* getCaveAirState() const;
+
+    /**
      * @brief 检查方块是否可以被雕刻
      * @param state 方块状态
      * @return 是否可雕刻
@@ -164,7 +178,7 @@ public:
      * @param aboveState 上方方块状态
      * @return 是否可以雕刻
      */
-    [[nodiscard]] bool canCarveBlock(const BlockState* state, const BlockState* aboveState) const;
+    [[nodiscard]] virtual bool canCarveBlock(const BlockState* state, const BlockState* aboveState) const;
 
 protected:
     i32 m_maxHeight;

@@ -102,8 +102,7 @@ private:
     // === 水下雕刻器 ===
     std::unique_ptr<world::gen::carver::UnderwaterCaveCarver> m_underwaterCaveCarver;
     std::unique_ptr<world::gen::carver::UnderwaterCanyonCarver> m_underwaterCanyonCarver;
-    world::gen::carver::UnderwaterCaveConfig m_underwaterCaveConfig;
-    world::gen::carver::UnderwaterCanyonConfig m_underwaterCanyonConfig;
+    // 使用与普通洞穴/峡谷相同的概率配置
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;

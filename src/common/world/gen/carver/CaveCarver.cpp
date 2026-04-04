@@ -102,10 +102,10 @@ bool CaveCarver::carve(
 bool CaveCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
 {
     // 参考 MC CaveWorldCarver.func_222708_a_
-    // 洞穴雕刻器的标准椭球检测
-    // return y <= 0.7D || dx * dx + dy * dy + dz * dz >= 1.0D;
-    (void)y; // 基类不使用y参数
-    return dx * dx + dy * dy + dz * dz >= 1.0f;
+    // return p_222708_3_ <= -0.7D || dx * dx + dy * dy + dz * dz >= 1.0D;
+    // 其中 p_222708_3_ 是 dy
+    (void)y; // MC 原版不使用 y 坐标，只使用 dy
+    return dy <= -0.7f || dx * dx + dy * dy + dz * dz >= 1.0f;
 }
 
 i32 CaveCarver::getCaveStartY(math::IRandom& rng) const

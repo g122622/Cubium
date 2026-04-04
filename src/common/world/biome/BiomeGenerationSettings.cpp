@@ -380,41 +380,57 @@ BiomeGenerationSettings BiomeGenerationSettings::createFrozenOcean() {
 // ============================================================================
 
 BiomeGenerationSettings BiomeGenerationSettings::createNether() {
-    // 下界荒地：下界石英矿石 + 下界金矿石 + 萤石
+    // 下界荒地：下界石英矿石 + 下界金矿石 + 萤石 + 岩浆池
     BiomeGenerationSettings settings;
 
     // 下界矿石
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
+    // 萤石簇 (UndergroundDecoration 阶段)
+    settings.addFeature(DecorationStage::UndergroundDecoration, GlowstoneFeatureIds::Normal);
+    settings.addFeature(DecorationStage::UndergroundDecoration, GlowstoneFeatureIds::Large);
+
+    // 岩浆池
+    settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchNormal);
+
     // TODO: 添加下界要塞、堡垒遗迹等结构
-    // TODO: 添加萤石、岩浆块等特征
 
     return settings;
 }
 
 BiomeGenerationSettings BiomeGenerationSettings::createSoulSandValley() {
-    // 灵魂沙谷：下界矿石 + 灵魂沙 + 玄武岩
+    // 灵魂沙谷：下界矿石 + 玄武岩柱 + 火焰
     BiomeGenerationSettings settings;
 
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
+    // 玄武岩柱
+    settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnNormal);
+    settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnLarge);
+
+    // 下界火焰
+    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::NetherFire);
+
     // TODO: 添加下界化石结构
-    // TODO: 添加玄武岩柱特征
 
     return settings;
 }
 
 BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest() {
-    // 绯红森林：下界矿石 + 绯红巨型真菌
+    // 绯红森林：下界矿石 + 绯红巨型真菌 + 岩浆池
     BiomeGenerationSettings settings;
 
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
-    // TODO: 添加绯红巨型真菌特征
-    // TODO: 添加垂泪藤特征
+    // 绯红巨型真菌
+    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::CrimsonFungus);
+    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::CrimsonFungus);  // 增加密度
+
+    // 岩浆池（较少）
+    settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchNormal);
 
     return settings;
 }
@@ -426,21 +442,31 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarpedForest() {
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
-    // TODO: 添加诡异巨型真菌特征
-    // TODO: 添加扭曲藤特征
+    // 诡异巨型真菌
+    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::WarpedFungus);
+    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::WarpedFungus);  // 增加密度
 
     return settings;
 }
 
 BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas() {
-    // 玄武岩三角洲：下界矿石 + 玄武岩柱 + 岩浆块
+    // 玄武岩三角洲：下界矿石 + 玄武岩柱 + 玄武岩地面 + 岩浆池
     BiomeGenerationSettings settings;
 
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
-    // TODO: 添加玄武岩柱特征
-    // TODO: 添加岩浆块特征
+    // 玄武岩柱（密集）
+    settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnNormal);
+    settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnNormal);
+    settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnLarge);
+
+    // 玄武岩三角洲地面
+    settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::Delta);
+
+    // 密集岩浆池
+    settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchDense);
+    settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchDense);
 
     return settings;
 }

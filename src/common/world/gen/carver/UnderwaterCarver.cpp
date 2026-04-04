@@ -2,136 +2,89 @@
 #include "../../block/VanillaBlocks.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include <cmath>
+#include <unordered_set>
 
 namespace mc::world::gen::carver {
+
+// ============================================================================
+// 水下可雕刻方块集合
+// ============================================================================
+
+static const std::unordered_set<u32>& getUnderwaterCarvableBlocks()
+{
+    static std::unordered_set<u32> blocks = {
+        // 标准可雕刻方块
+        VanillaBlocks::STONE->blockId(),
+        VanillaBlocks::GRANITE->blockId(),
+        VanillaBlocks::DIORITE->blockId(),
+        VanillaBlocks::ANDESITE->blockId(),
+        VanillaBlocks::DIRT->blockId(),
+        VanillaBlocks::COARSE_DIRT->blockId(),
+        VanillaBlocks::PODZOL->blockId(),
+        VanillaBlocks::GRASS_BLOCK->blockId(),
+        // 陶瓦（包括染色陶瓦）
+        VanillaBlocks::TERRACOTTA->blockId(),
+        VanillaBlocks::WHITE_TERRACOTTA->blockId(),
+        VanillaBlocks::ORANGE_TERRACOTTA->blockId(),
+        VanillaBlocks::MAGENTA_TERRACOTTA->blockId(),
+        VanillaBlocks::LIGHT_BLUE_TERRACOTTA->blockId(),
+        VanillaBlocks::YELLOW_TERRACOTTA->blockId(),
+        VanillaBlocks::LIME_TERRACOTTA->blockId(),
+        VanillaBlocks::PINK_TERRACOTTA->blockId(),
+        VanillaBlocks::GRAY_TERRACOTTA->blockId(),
+        VanillaBlocks::LIGHT_GRAY_TERRACOTTA->blockId(),
+        VanillaBlocks::CYAN_TERRACOTTA->blockId(),
+        VanillaBlocks::PURPLE_TERRACOTTA->blockId(),
+        VanillaBlocks::BLUE_TERRACOTTA->blockId(),
+        VanillaBlocks::BROWN_TERRACOTTA->blockId(),
+        VanillaBlocks::GREEN_TERRACOTTA->blockId(),
+        VanillaBlocks::RED_TERRACOTTA->blockId(),
+        VanillaBlocks::BLACK_TERRACOTTA->blockId(),
+        // 沙子和砂岩
+        VanillaBlocks::SANDSTONE->blockId(),
+        VanillaBlocks::RED_SANDSTONE->blockId(),
+        VanillaBlocks::MYCELIUM->blockId(),
+        VanillaBlocks::SNOW->blockId(),
+        // 水下特有的可雕刻方块
+        VanillaBlocks::SAND->blockId(),
+        VanillaBlocks::GRAVEL->blockId(),
+        VanillaBlocks::WATER->blockId(),
+        VanillaBlocks::LAVA->blockId(),
+        VanillaBlocks::OBSIDIAN->blockId(),
+        // AIR 由 isAir() 检查
+        // CAVE_AIR 暂未实现
+        VanillaBlocks::PACKED_ICE->blockId()
+    };
+    return blocks;
+}
 
 // ============================================================================
 // UnderwaterCaveCarver 实现
 // ============================================================================
 
 UnderwaterCaveCarver::UnderwaterCaveCarver()
-    : WorldCarver<UnderwaterCaveConfig>(256)
+    : CaveCarver(256)
 {
 }
 
-bool UnderwaterCaveCarver::carve(ChunkPrimer& chunk,
-                                  const BiomeProvider& biomeProvider,
-                                  i32 seaLevel,
-                                  ChunkCoord chunkX,
-                                  ChunkCoord chunkZ,
-                                  CarvingMask& carvingMask,
-                                  const UnderwaterCaveConfig& config) {
-    (void)biomeProvider;
-    (void)carvingMask;
-
-    math::Random rng((chunkX * 3418731287LL + chunkZ * 132897987541LL) & 0xFFFFFFFF);
-
-    if (rng.nextFloat() >= config.probability) {
-        return false;
-    }
-
-    // 预缓存方块状态，避免在热循环中重复查找
-    const BlockState* waterState = VanillaBlocks::getState(VanillaBlocks::WATER);
-
-    // 生成起始点
-    i32 startX = rng.nextInt(16);
-    i32 startZ = rng.nextInt(16);
-    i32 startY = rng.nextInt(seaLevel - 8) + 8;
-
-    // 生成洞穴隧道
-    i32 length = config.minLength + rng.nextInt(config.maxLength - config.minLength);
-    f32 yaw = rng.nextFloat() * 6.283185f;  // 2 * PI
-    f32 pitch = (rng.nextFloat() - 0.5f) * 0.5f;
-
-    f64 x = static_cast<f64>((chunkX << 4) + startX);
-    f64 y = static_cast<f64>(startY);
-    f64 z = static_cast<f64>((chunkZ << 4) + startZ);
-
-    for (i32 i = 0; i < length; ++i) {
-        // 计算当前位置的半径
-        i32 radius = 1 + rng.nextInt(2);
-
-        // 更新位置
-        x += std::cos(yaw) * std::cos(pitch);
-        y += std::sin(pitch);
-        z += std::sin(yaw) * std::cos(pitch);
-
-        // 随机调整角度
-        yaw += (rng.nextFloat() - 0.5f) * 0.1f;
-        pitch += (rng.nextFloat() - 0.5f) * 0.05f;
-        pitch = std::clamp(pitch, -0.5f, 0.5f);
-
-        // 检查是否在当前区块内
-        i32 blockX = static_cast<i32>(x);
-        i32 blockY = static_cast<i32>(y);
-        i32 blockZ = static_cast<i32>(z);
-
-        // 计算相对于区块的坐标
-        i32 localX = blockX - (chunkX << 4);
-        i32 localZ = blockZ - (chunkZ << 4);
-
-        if (localX < -radius || localX >= 16 + radius ||
-            localZ < -radius || localZ >= 16 + radius) {
-            continue;
-        }
-
-        // 只在水面以下生成
-        if (blockY >= seaLevel || blockY < 0) {
-            continue;
-        }
-
-        // 雕刻球形区域 - 填充水
-        for (i32 dx = -radius; dx <= radius; ++dx) {
-            for (i32 dy = -radius; dy <= radius; ++dy) {
-                for (i32 dz = -radius; dz <= radius; ++dz) {
-                    f32 dist = static_cast<f32>(dx * dx + dy * dy + dz * dz);
-                    f32 radiusSq = static_cast<f32>(radius * radius);
-
-                    if (dist <= radiusSq) {
-                        i32 lx = localX + dx;
-                        i32 ly = blockY + dy;
-                        i32 lz = localZ + dz;
-
-                        if (lx >= 0 && lx < 16 && ly >= 0 && ly < 256 && lz >= 0 && lz < 16) {
-                            const BlockState* state = chunk.getBlock(lx, ly, lz);
-                            if (state && (state->isAir() ||
-                                         state->is(VanillaBlocks::STONE) ||
-                                         state->is(VanillaBlocks::DIRT) ||
-                                         state->is(VanillaBlocks::GRAVEL) ||
-                                         state->is(VanillaBlocks::SAND))) {
-                                chunk.setBlock(lx, ly, lz, waterState);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
-bool UnderwaterCaveCarver::shouldCarve(
-    math::IRandom& rng,
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
-    const UnderwaterCaveConfig& config) const {
-    math::Random random((chunkX * 3418731287LL + chunkZ * 132897987541LL) & 0xFFFFFFFF);
-    return random.nextFloat() < config.probability;
-}
-
-bool UnderwaterCaveCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const {
-    // 水下洞穴不跳过任何位置
-    (void)dx;
-    (void)dy;
-    (void)dz;
+bool UnderwaterCaveCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
+{
+    // 水下洞穴使用与普通洞穴相同的椭球检测
+    // 参考 MC: return p_222708_3_ <= -0.7D || dx * dx + dy * dy + dz * dz >= 1.0D;
     (void)y;
-    return false;
+    return dy <= -0.7f || dx * dx + dy * dy + dz * dz >= 1.0f;
 }
 
-std::unique_ptr<UnderwaterCaveCarver> createUnderwaterCaveCarver() {
-    return std::make_unique<UnderwaterCaveCarver>();
+bool UnderwaterCaveCarver::isUnderwaterCarvable(const BlockState& state)
+{
+    // 检查是否为空气
+    if (state.isAir()) {
+        return true;
+    }
+
+    // 检查是否在水下可雕刻方块列表中
+    const auto& blocks = getUnderwaterCarvableBlocks();
+    return blocks.find(state.blockId()) != blocks.end();
 }
 
 // ============================================================================
@@ -139,125 +92,27 @@ std::unique_ptr<UnderwaterCaveCarver> createUnderwaterCaveCarver() {
 // ============================================================================
 
 UnderwaterCanyonCarver::UnderwaterCanyonCarver()
-    : WorldCarver<UnderwaterCanyonConfig>(256)
+    : CanyonCarver(256)
 {
 }
 
-bool UnderwaterCanyonCarver::carve(ChunkPrimer& chunk,
-                                    const BiomeProvider& biomeProvider,
-                                    i32 seaLevel,
-                                    ChunkCoord chunkX,
-                                    ChunkCoord chunkZ,
-                                    CarvingMask& carvingMask,
-                                    const UnderwaterCanyonConfig& config) {
-    (void)biomeProvider;
-    (void)carvingMask;
-
-    math::Random rng((chunkX * 3418731287LL + chunkZ * 132897987541LL + 1) & 0xFFFFFFFF);
-
-    if (rng.nextFloat() >= config.probability) {
-        return false;
-    }
-
-    // 预缓存方块状态，避免在热循环中重复查找
-    const BlockState* waterState = VanillaBlocks::getState(VanillaBlocks::WATER);
-
-    // 生成起始点
-    i32 startX = rng.nextInt(16);
-    i32 startZ = rng.nextInt(16);
-    i32 startY = rng.nextInt(seaLevel - 20) + 10;
-
-    // 生成峡谷
-    i32 length = config.minLength + rng.nextInt(config.maxLength - config.minLength);
-    f32 yaw = rng.nextFloat() * 6.283185f;
-    f32 pitch = (rng.nextFloat() - 0.5f) * 0.2f;
-
-    f64 x = static_cast<f64>((chunkX << 4) + startX);
-    f64 y = static_cast<f64>(startY);
-    f64 z = static_cast<f64>((chunkZ << 4) + startZ);
-
-    for (i32 i = 0; i < length; ++i) {
-        // 峡谷厚度
-        f32 thickness = config.thickness * (1.0f + (rng.nextFloat() - 0.5f) * 0.5f);
-
-        // 更新位置
-        x += std::cos(yaw) * std::cos(pitch) * 2.0;
-        y += std::sin(pitch) * 0.5;
-        z += std::sin(yaw) * std::cos(pitch) * 2.0;
-
-        // 随机调整角度
-        yaw += (rng.nextFloat() - 0.5f) * 0.05f;
-        pitch += (rng.nextFloat() - 0.5f) * 0.02f;
-
-        // 检查是否在当前区块内
-        i32 blockX = static_cast<i32>(x);
-        i32 blockY = static_cast<i32>(y);
-        i32 blockZ = static_cast<i32>(z);
-
-        i32 localX = blockX - (chunkX << 4);
-        i32 localZ = blockZ - (chunkZ << 4);
-        i32 halfThickness = static_cast<i32>(thickness);
-
-        if (localX < -halfThickness || localX >= 16 + halfThickness ||
-            localZ < -halfThickness || localZ >= 16 + halfThickness) {
-            continue;
-        }
-
-        // 只在水面以下生成
-        if (blockY >= seaLevel || blockY < 0) {
-            continue;
-        }
-
-        // 雕刻峡谷形状 - 填充水
-        for (i32 dx = -halfThickness; dx <= halfThickness; ++dx) {
-            for (i32 dy = -halfThickness / 2; dy <= halfThickness / 2; ++dy) {
-                for (i32 dz = -halfThickness; dz <= halfThickness; ++dz) {
-                    // 峡谷形状：水平方向宽，垂直方向窄
-                    f32 dist = static_cast<f32>(dx * dx + dz * dz) / (thickness * thickness) +
-                               static_cast<f32>(dy * dy * 4) / (thickness * thickness);
-
-                    if (dist <= 1.0f) {
-                        i32 lx = localX + dx;
-                        i32 ly = blockY + dy;
-                        i32 lz = localZ + dz;
-
-                        if (lx >= 0 && lx < 16 && ly >= 0 && ly < 256 && lz >= 0 && lz < 16) {
-                            const BlockState* state = chunk.getBlock(lx, ly, lz);
-                            if (state && (state->isAir() ||
-                                         state->is(VanillaBlocks::STONE) ||
-                                         state->is(VanillaBlocks::DIRT) ||
-                                         state->is(VanillaBlocks::GRAVEL) ||
-                                         state->is(VanillaBlocks::SAND))) {
-                                chunk.setBlock(lx, ly, lz, waterState);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return true;
+bool UnderwaterCanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
+{
+    // 水下峡谷使用与普通峡谷相同的厚度检测
+    return CanyonCarver::shouldSkipEllipsoidPosition(dx, dy, dz, y);
 }
 
-bool UnderwaterCanyonCarver::shouldCarve(
-    math::IRandom& rng,
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
-    const UnderwaterCanyonConfig& config) const {
-    math::Random random((chunkX * 3418731287LL + chunkZ * 132897987541LL + 1) & 0xFFFFFFFF);
-    return random.nextFloat() < config.probability;
+// ============================================================================
+// 工厂函数
+// ============================================================================
+
+std::unique_ptr<UnderwaterCaveCarver> createUnderwaterCaveCarver()
+{
+    return std::make_unique<UnderwaterCaveCarver>();
 }
 
-bool UnderwaterCanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const {
-    (void)dx;
-    (void)dy;
-    (void)dz;
-    (void)y;
-    return false;
-}
-
-std::unique_ptr<UnderwaterCanyonCarver> createUnderwaterCanyonCarver() {
+std::unique_ptr<UnderwaterCanyonCarver> createUnderwaterCanyonCarver()
+{
     return std::make_unique<UnderwaterCanyonCarver>();
 }
 

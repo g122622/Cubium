@@ -6,3 +6,4 @@
 #include "WorldCarver.hpp"
 #include "CaveCarver.hpp"
 #include "CanyonCarver.hpp"
+#include "NetherCaveCarver.hpp"

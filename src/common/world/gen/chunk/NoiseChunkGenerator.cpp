@@ -787,14 +787,14 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
         chunk.setChunkStatus(ChunkStatuses::CARVERS);
     } else {
         // 液体雕刻阶段：水下洞穴和峡谷
-        // 应用水下洞穴雕刻器
+        // 应用水下洞穴雕刻器（使用与普通洞穴相同的概率）
         if (m_underwaterCaveCarver) {
-            m_underwaterCaveCarver->carve(chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_underwaterCaveConfig);
+            m_underwaterCaveCarver->carve(chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
         }
 
-        // 应用水下峡谷雕刻器
+        // 应用水下峡谷雕刻器（使用与普通峡谷相同的概率）
         if (m_underwaterCanyonCarver) {
-            m_underwaterCanyonCarver->carve(chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_underwaterCanyonConfig);
+            m_underwaterCanyonCarver->carve(chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
         }
 
         chunk.setChunkStatus(ChunkStatuses::LIQUID_CARVERS);

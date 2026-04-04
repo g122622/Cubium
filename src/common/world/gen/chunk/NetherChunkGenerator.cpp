@@ -2,6 +2,7 @@
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/StructureManager.hpp"
 #include "../structure/Structure.hpp"
+#include "../carver/WorldCarver.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../biome/BiomeRegistry.hpp"
@@ -116,6 +117,11 @@ void NetherChunkGenerator::initNoiseGenerators() {
 
     // Simplex 噪声（用于下界地形变化）
     m_simplexNoise = std::make_unique<SimplexNoiseGenerator>(rng);
+
+    // 初始化下界洞穴雕刻器
+    // 下界洞穴概率较高，参考 MC: 约 1/5
+    m_caveCarver = std::make_unique<NetherCaveCarver>();
+    m_caveConfig = ProbabilityConfig(0.2f);
 }
 
 // ============================================================================
@@ -265,9 +271,18 @@ void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chu
 
 void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) {
     MC_TRACE_EVENT("world.gen.nether", "ApplyCarvers");
-    // 下界洞穴雕刻
-    // 暂时使用基类实现
-    BaseChunkGenerator::applyCarvers(region, chunk, isLiquid);
+    MC_UNUSED(region);
+
+    const ChunkCoord chunkX = chunk.x();
+    const ChunkCoord chunkZ = chunk.z();
+
+    // 创建雕刻掩码
+    CarvingMask carvingMask(chunkX, chunkZ);
+
+    // 下界只使用洞穴雕刻器（不使用峡谷和水下雕刻器）
+    if (!isLiquid && m_caveCarver) {
+        m_caveCarver->carve(chunk, *m_biomeProvider, m_lavaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+    }
 
     chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
 }

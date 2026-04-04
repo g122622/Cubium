@@ -123,6 +123,34 @@ namespace IceSpikeFeatureIds {
 }
 
 // ============================================================================
+// UndergroundDecoration 阶段特征ID（下界特征）
+// ============================================================================
+
+namespace GlowstoneFeatureIds {
+    // 萤石簇特征 (0-1)
+    constexpr u32 Normal = 0;  // 普通萤石簇
+    constexpr u32 Large = 1;   // 大型萤石簇
+    constexpr u32 Count = 2;    // 萤石特征总数
+}
+
+namespace BasaltFeatureIds {
+    // 玄武岩特征 (2-4)
+    constexpr u32 Offset = GlowstoneFeatureIds::Count;
+    constexpr u32 ColumnNormal = 0 + Offset;  // 普通玄武岩柱
+    constexpr u32 ColumnLarge = 1 + Offset;   // 大型玄武岩柱
+    constexpr u32 Delta = 2 + Offset;         // 玄武岩三角洲
+    constexpr u32 Count = 3;                   // 玄武岩特征总数
+}
+
+namespace MagmaFeatureIds {
+    // 岩浆池特征 (5-6)
+    constexpr u32 Offset = GlowstoneFeatureIds::Count + BasaltFeatureIds::Count;
+    constexpr u32 PatchNormal = 0 + Offset;  // 普通岩浆池
+    constexpr u32 PatchDense = 1 + Offset;   // 密集岩浆池
+    constexpr u32 Count = 2;                  // 岩浆池特征总数
+}
+
+// ============================================================================
 // OceanFeatures 阶段特征ID (VegetalDecoration阶段)
 // ============================================================================
 
@@ -159,6 +187,20 @@ namespace CoralFeatureIds {
     constexpr u32 Fire = 3 + Offset;    // 火焰珊瑚
     constexpr u32 Horn = 4 + Offset;    // 角珊瑚
     constexpr u32 Count = 5;             // 珊瑚特征总数
+}
+
+// ============================================================================
+// 下界植被特征ID (VegetalDecoration阶段)
+// ============================================================================
+
+namespace NetherFungusIds {
+    // 下界真菌特征
+    constexpr u32 Offset = KelpFeatureIds::Count + SeagrassFeatureIds::Count +
+                           SeaPickleFeatureIds::Count + CoralFeatureIds::Count;
+    constexpr u32 CrimsonFungus = 0 + Offset;  // 绯红巨型真菌
+    constexpr u32 WarpedFungus = 1 + Offset;   // 诡异巨型真菌
+    constexpr u32 NetherFire = 2 + Offset;     // 下界火焰
+    constexpr u32 Count = 3;                    // 下界真菌特征总数
 }
 
 // ============================================================================
