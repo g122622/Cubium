@@ -55,10 +55,13 @@ bool TreeFeature::place(
         return false;
     }
 
-    // 检查是否有足够的空间放置树干
-    i32 availableHeight = calculateAvailableHeight(world, trunkHeight, startPos, config);
-    if (availableHeight < trunkHeight) {
-        return false;
+    // 检查是否有足够的空间放置树干。
+    // forcePlacement=true 时跳过空间约束，用于部分特例树木配置。
+    if (!config.forcePlacement) {
+        i32 availableHeight = calculateAvailableHeight(world, trunkHeight, startPos, config);
+        if (availableHeight < trunkHeight) {
+            return false;
+        }
     }
 
     // 放置树干
@@ -190,8 +193,13 @@ i32 TreeFeature::calculateAvailableHeight(
     BlockPos pos;
 
     for (i32 y = 0; y <= maxHeight + 1; ++y) {
-        // 计算检查半径（随高度变化）
-        i32 checkRadius = 0;  // 简化：只检查中心
+        // 参考 MC：树干底部只检查中心，中段检查 1 格，顶部放宽到 2 格。
+        i32 checkRadius = 1;
+        if (y == 0) {
+            checkRadius = 0;
+        } else if (y >= maxHeight - 1) {
+            checkRadius = 2;
+        }
 
         for (i32 dx = -checkRadius; dx <= checkRadius; ++dx) {
             for (i32 dz = -checkRadius; dz <= checkRadius; ++dz) {

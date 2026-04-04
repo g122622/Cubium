@@ -101,7 +101,7 @@ static bool isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos);
 | `foliagePlacer` | `std::unique_ptr<FoliagePlacer>` | 树叶放置器 |
 | `maxWaterDepth` | `i32` | 最大水深（树木不能生成在深水中） |
 | `ignoreVines` | `bool` | 是否忽略藤蔓 |
-| `forcePlacement` | `bool` | 强制放置（跳过高度检查） |
+| `forcePlacement` | `bool` | 强制放置（跳过空间体积检查） |
 | `minHeight` | `i32` | 最小高度 |
 
 ### trunk/ 目录
@@ -598,7 +598,13 @@ TreeFeatureConfig(const TreeFeatureConfig& other) {
 
 **注意：** `TreeFeature::place()` 会检查边界，但不检查生成后的树叶是否会超出世界高度。
 
-### 4. TrunkPlacer 和 FoliagePlacer 必须配对
+### 4. 空间检查半径与 forcePlacement
+
+**问题：** `calculateAvailableHeight()` 采用分层半径（底部 0，中段 1，顶部 2）检查可替换方块。
+
+**注意：** `forcePlacement=true` 会跳过该体积检查，只保留最基本的边界与地基约束。
+
+### 5. TrunkPlacer 和 FoliagePlacer 必须配对
 
 **问题：** 某些组合可能产生不自然的形状。
 
@@ -609,13 +615,13 @@ TreeFeatureConfig(const TreeFeatureConfig& other) {
 - DarkOakTrunkPlacer + DarkOakFoliagePlacer（深色橡树）
 - GiantTrunkPlacer + MegaPineFoliagePlacer（巨型云杉）
 
-### 5. 随机数种子一致性
+### 6. 随机数种子一致性
 
 **问题：** 相同种子必须生成相同的树木。
 
 **解决方案：** 使用 `math::Random` 类，确保随机序列可重现。
 
-### 6. FeatureSpread 理解
+### 7. FeatureSpread 理解
 
 **问题：** `FeatureSpread::spread(base, spread)` 返回 `[base, base + spread]`，不是 `[base - spread, base + spread]`。
 
@@ -638,6 +644,7 @@ FeatureSpread::fixed(5)      // 总是返回 5
 | `FeatureSpreadTest` | 数值范围配置：固定值、随机范围 |
 | `TrunkPlacerTest` | 树干高度计算、名称 |
 | `FoliagePlacerTest` | 树叶高度计算、名称 |
+| `TreeFeaturePlacementWorldTest` | 空间体积检查与 forcePlacement 行为 |
 | `TreeFeatureConfigTest` | 各种树木配置验证 |
 | `TreeFeatureTest` | 特征展开分布、高度分布统计 |
 | `VegetationFeatureTest` | 特征 ID 连续性、注册表完整性、生物群系配置 |

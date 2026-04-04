@@ -25,8 +25,6 @@ namespace mc {
 // 常量
 // ============================================================================
 
-// 参考 MC 的 5x5 权重查找表计算
-constexpr f32 BIOME_WEIGHT_RADIUS = 2.0f;
 constexpr f32 BIOME_WEIGHT_SCALE = 10.0f;
 
 // ============================================================================
@@ -40,7 +38,6 @@ NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings)
     , m_noiseSizeZ(0)
     , m_verticalNoiseGranularity(0)
     , m_horizontalNoiseGranularity(0)
-    , m_random(seed)
 {
     initNoiseGenerators();
     initBiomeWeights();
@@ -79,7 +76,6 @@ NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings,
     , m_noiseSizeZ(0)
     , m_verticalNoiseGranularity(0)
     , m_horizontalNoiseGranularity(0)
-    , m_random(seed)
 {
     initNoiseGenerators();
     initBiomeWeights();
@@ -137,10 +133,8 @@ void NoiseChunkGenerator::initNoiseGenerators()
     rng.skip(2620);
 
     // 随机密度偏移噪声
-    // 参考 MC：使用独立种子并 skip(17292) 初始化 OctavesNoiseGenerator。
-    math::Random randomDensityRng(m_seed);
-    randomDensityRng.skip(17292);
-    m_randomDensityOffsetNoise = std::make_unique<OctavesNoiseGenerator>(randomDensityRng, -15, 0);
+    // 参考 MC：基于同一个随机序列继续构建该噪声层。
+    m_randomDensityOffsetNoise = std::make_unique<OctavesNoiseGenerator>(rng, -15, 0);
 }
 
 void NoiseChunkGenerator::initBiomeWeights()
@@ -234,6 +228,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
 
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
+    BiomeWindowCache biomeWindowCache;
 
     // === 噪声缓存初始化 ===
     std::vector<std::vector<f32>> noiseCache[2];
@@ -245,7 +240,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
         // 初始化第一列噪声数据
         for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
             const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
-            fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ);
+            fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ, biomeWindowCache);
         }
     }
 
@@ -263,7 +258,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
             for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
                 const i32 globalNoiseX = chunkX * m_noiseSizeX + noiseX + 1;
                 const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
-                fillNoiseColumn(noiseCache[1][noiseZ], globalNoiseX, globalNoiseZ);
+                fillNoiseColumn(noiseCache[1][noiseZ], globalNoiseX, globalNoiseZ, biomeWindowCache);
             }
 
             // 处理当前噪声单元
@@ -338,7 +333,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
     chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
-void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const
+void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ, BiomeWindowCache& biomeWindowCache) const
 {
     MC_TRACE_EVENT("world.chunk_gen", "FillNoiseColumn", "x", noiseX, "z", noiseZ);
     column.resize(m_noiseSizeY + 1);
@@ -355,12 +350,12 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
         const i32 biomeNoiseY = m_settings.seaLevel;
 
         // 使用 5x5 批量采样 + 滑窗复用，减少重复调用 getNoiseBiome()
-        if (m_biomeWindowValid && noiseX == m_biomeWindowCenterX && noiseZ == m_biomeWindowCenterZ + 1) {
+        if (biomeWindowCache.valid && noiseX == biomeWindowCache.centerNoiseX && noiseZ == biomeWindowCache.centerNoiseZ + 1) {
             // 沿 Z 正方向滑窗：将第 1~4 行上移到第 0~3 行
             for (i32 row = 0; row < 4; ++row) {
                 for (i32 col = 0; col < 5; ++col) {
-                    m_biomeWindow[static_cast<size_t>(row * 5 + col)] =
-                        m_biomeWindow[static_cast<size_t>((row + 1) * 5 + col)];
+                    biomeWindowCache.window[static_cast<size_t>(row * 5 + col)] =
+                        biomeWindowCache.window[static_cast<size_t>((row + 1) * 5 + col)];
                 }
             }
 
@@ -368,28 +363,28 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
             std::array<BiomeId, 5> newRow{};
             m_biomeProvider->getNoiseBiomesBatch(noiseX - 2, biomeNoiseY, noiseZ + 2, 5, 1, newRow.data());
             for (i32 col = 0; col < 5; ++col) {
-                m_biomeWindow[static_cast<size_t>(20 + col)] = newRow[static_cast<size_t>(col)];
+                biomeWindowCache.window[static_cast<size_t>(20 + col)] = newRow[static_cast<size_t>(col)];
             }
 
-            m_biomeWindowCenterX = noiseX;
-            m_biomeWindowCenterZ = noiseZ;
+            biomeWindowCache.centerNoiseX = noiseX;
+            biomeWindowCache.centerNoiseZ = noiseZ;
         } else {
             // 首次或不连续访问：完整采样 5x5
-            m_biomeProvider->getNoiseBiomesBatch(noiseX - 2, biomeNoiseY, noiseZ - 2, 5, 5, m_biomeWindow.data());
-            m_biomeWindowValid = true;
-            m_biomeWindowCenterX = noiseX;
-            m_biomeWindowCenterZ = noiseZ;
+            m_biomeProvider->getNoiseBiomesBatch(noiseX - 2, biomeNoiseY, noiseZ - 2, 5, 5, biomeWindowCache.window.data());
+            biomeWindowCache.valid = true;
+            biomeWindowCache.centerNoiseX = noiseX;
+            biomeWindowCache.centerNoiseZ = noiseZ;
         }
 
         // 获取中心生物群系的深度（用于权重调整）
-        const BiomeId centerBiome = m_biomeWindow[12];
+        const BiomeId centerBiome = biomeWindowCache.window[12];
         const Biome& centerDef = m_biomeProvider->getBiomeDefinition(centerBiome);
         const f32 centerDepth = centerDef.depth();
 
         for (i32 dz = -2; dz <= 2; ++dz) {
             for (i32 dx = -2; dx <= 2; ++dx) {
                 const i32 kernelIndex = (dx + 2) + (dz + 2) * 5;
-                const BiomeId biome = m_biomeWindow[static_cast<size_t>(kernelIndex)];
+                const BiomeId biome = biomeWindowCache.window[static_cast<size_t>(kernelIndex)];
                 const Biome& def = m_biomeProvider->getBiomeDefinition(biome);
 
                 const f32 depth = def.depth();   // f4
@@ -435,9 +430,6 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
 
     // === 随机密度偏移 ===
     const f32 randomDensityOffset = noise.randomDensityOffset ? calculateRandomDensityOffset(noiseX, noiseZ) : 0.0f;
-    const f32 columnTerrainBias = m_surfaceDepthNoise
-        ? m_surfaceDepthNoise->noise2D(static_cast<f32>(noiseX) * 0.18f, static_cast<f32>(noiseZ) * 0.18f) * 0.35f
-        : 0.0f;
 
     const f32 densityFactor = noise.densityFactor;
     const f32 densityOffset = noise.densityOffset;
@@ -467,9 +459,6 @@ void NoiseChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, 
         } else {
             density += terrainMod;
         }
-
-        // 应用列地形偏差 (surface depth noise)
-        density += columnTerrainBias;
 
         // 顶部滑动
         // 参考 MC: MathHelper.clampedLerp(target, density, slide)
@@ -586,42 +575,6 @@ f32 NoiseChunkGenerator::calculateRandomDensityOffset(i32 noiseX, i32 noiseZ) co
     }
 }
 
-void NoiseChunkGenerator::calculateBiomeDepthAndScale(i32 noiseX, i32 noiseZ,
-                                                       f32& outDepth, f32& outScale) const
-{
-    f32 totalDepth = 0.0f;
-    f32 totalScale = 0.0f;
-    f32 totalWeight = 0.0f;
-
-    const f32 centerDepth = m_biomeProvider->getDepth(noiseX << 2, noiseZ << 2);
-
-    for (i32 dz = -2; dz <= 2; ++dz) {
-        for (i32 dx = -2; dx <= 2; ++dx) {
-            const BiomeId biome = m_biomeProvider->getNoiseBiome(noiseX + dx, 0, noiseZ + dz);
-            const Biome& def = m_biomeProvider->getBiomeDefinition(biome);
-
-            const f32 depth = def.depth();
-            const f32 scale = def.scale();
-
-            const i32 weightIndex = (dx + 2) + (dz + 2) * 5;
-            f32 weight = m_biomeWeights[weightIndex];
-
-            if (depth > centerDepth) {
-                weight *= 0.5f;
-            }
-
-            weight /= (depth + 2.0f);
-
-            totalDepth += depth * weight;
-            totalScale += scale * weight;
-            totalWeight += weight;
-        }
-    }
-
-    outDepth = totalDepth / totalWeight;
-    outScale = totalScale / totalWeight;
-}
-
 const BlockState* NoiseChunkGenerator::getBlockForDensity(f32 density, i32 y) const
 {
     if (density > 0.0f) {
@@ -631,6 +584,28 @@ const BlockState* NoiseChunkGenerator::getBlockForDensity(f32 density, i32 y) co
     } else {
         return nullptr;  // 空气
     }
+}
+
+f32 NoiseChunkGenerator::sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const
+{
+    if (!m_surfaceDepthNoise) {
+        return 0.0f;
+    }
+
+    const f32 sampleX = static_cast<f32>(worldX) * 0.0625f;
+    const f32 sampleZ = static_cast<f32>(worldZ) * 0.0625f;
+
+    // 参考 MC：Perlin 路径会额外乘 0.55，并忽略额外参数。
+    if (const auto* perlin = dynamic_cast<const PerlinNoiseGenerator*>(m_surfaceDepthNoise.get())) {
+        return perlin->noiseAt(sampleX, sampleZ, true) * 0.55f;
+    }
+
+    // 参考 MC：Octaves 路径使用 4 参数 noiseAt。
+    if (const auto* octaves = dynamic_cast<const OctavesNoiseGenerator*>(m_surfaceDepthNoise.get())) {
+        return octaves->noiseAt(sampleX, sampleZ, 0.0625f, static_cast<f32>(localX) * 0.0625f);
+    }
+
+    return m_surfaceDepthNoise->noise2D(sampleX, sampleZ);
 }
 
 // ============================================================================
@@ -667,13 +642,10 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& 
                 const BiomeId biomeId = chunk.getBiomeAtBlock(localX, surfaceHeight, localZ);
 
                 // 计算地表噪声
-                const f32 surfaceNoise = m_surfaceDepthNoise->noise2D(
-                    static_cast<f32>(worldX) * 0.0625f,
-                    static_cast<f32>(worldZ) * 0.0625f
-                ) * 15.0f;
+                const f32 surfaceNoise = sampleSurfaceDepthNoise(worldX, worldZ, localX) * 15.0f;
 
                 // 生成地表
-                buildSurfaceForColumn(chunk, localX, localZ, surfaceHeight, surfaceNoise + static_cast<f32>(surfaceRng.nextDouble(0.0, 0.25)) * 15.0f, biomeId);
+                buildSurfaceForColumn(chunk, localX, localZ, surfaceHeight, surfaceNoise, biomeId);
             }
         }
     }
@@ -870,11 +842,12 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     std::vector<f32> column01;
     std::vector<f32> column10;
     std::vector<f32> column11;
+    BiomeWindowCache biomeWindowCache;
 
-    fillNoiseColumn(column00, noiseX, noiseZ);
-    fillNoiseColumn(column01, noiseX, noiseZ + 1);
-    fillNoiseColumn(column10, noiseX + 1, noiseZ);
-    fillNoiseColumn(column11, noiseX + 1, noiseZ + 1);
+    fillNoiseColumn(column00, noiseX, noiseZ, biomeWindowCache);
+    fillNoiseColumn(column01, noiseX, noiseZ + 1, biomeWindowCache);
+    fillNoiseColumn(column10, noiseX + 1, noiseZ, biomeWindowCache);
+    fillNoiseColumn(column11, noiseX + 1, noiseZ + 1, biomeWindowCache);
 
     auto matchesHeightmap = [type](const BlockState* state) -> bool {
         if (!state || state->isAir()) {

@@ -111,7 +111,7 @@ class NoiseChunkGenerator : public BaseChunkGenerator {
     std::unique_ptr<OctavesNoiseGenerator> m_mainDensityNoise;      // 主密度噪声 (16倍频)
     std::unique_ptr<OctavesNoiseGenerator> m_secondaryDensityNoise; // 次密度噪声 (16倍频)
     std::unique_ptr<OctavesNoiseGenerator> m_weightNoise;           // 权重噪声 (8倍频)
-    std::unique_ptr<PerlinNoiseGenerator> m_surfaceDepthNoise;      // 地表深度噪声
+    std::unique_ptr<INoiseGenerator> m_surfaceDepthNoise;           // 地表深度噪声（Perlin 或 Octaves）
     
     // 生物群系
     std::unique_ptr<BiomeProvider> m_biomeProvider;
@@ -154,12 +154,14 @@ flowchart TD
 这是地形生成的核心算法，计算每个 XZ 位置的噪声柱：
 
 ```cpp
-void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) {
+void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ,
+                     BiomeWindowCache& biomeWindowCache) {
     // 1. 计算 5x5 生物群系权重
-    // 2. 获取生物群系深度和比例
-    // 3. 计算地形参数 (depthOffset, heightFactor)
-    // 4. 计算噪声密度 (16倍频叠加)
-    // 5. 应用顶部滑动和底部滑动
+    // 2. 使用调用栈局部滑窗缓存复用 5x5 生物群系采样
+    // 3. 获取生物群系深度和比例
+    // 4. 计算地形参数 (depthOffset, heightFactor)
+    // 5. 计算噪声密度 (16倍频叠加)
+    // 6. 应用顶部滑动和底部滑动
 }
 ```
 
@@ -469,11 +471,11 @@ rng.skip(2620);  // 噪声生成器初始化时跳过的随机数
 ### 7. 线程安全
 
 ```cpp
-// NoiseChunkGenerator 的某些成员不是线程安全的
-// 特别是 m_random 成员
+// fillNoiseColumn 的 5x5 生物群系滑窗缓存改为调用栈局部对象
+// 不再把该可变缓存状态存到 NoiseChunkGenerator 成员上
 
-// 解决方案：每个线程使用独立的生成器实例
-// 或者使用局部随机数生成器
+// 这能显著降低并发区块生成时的数据竞争风险
+// 但如果后续给生成器新增可变成员，仍需重新评估并发安全性
 ```
 
 ## 涉及的测试用例
@@ -502,6 +504,7 @@ rng.skip(2620);  // 噪声生成器初始化时跳过的随机数
 | `FeatureGenerationSeedDeterminism` | 特性生成种子确定性 |
 | `SurfaceGenerationSeedDeterminism` | 地表生成种子确定性 |
 | `NoiseGeneratorDeterminism` | 噪声生成器确定性 |
+| `PerlinNoiseManualBlendParity` | Perlin 倍频叠加/偏移轴一致性回归 |
 | `StructureSeedDeterminism` | 结构生成种子确定性 |
 | `NextLongNoArgs` | 随机数生成器 nextLong 方法 |
 | `LayerBiomeProviderMultipleSamples` | 生物群系多次采样一致性 |

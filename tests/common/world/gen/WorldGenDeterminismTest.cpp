@@ -4,6 +4,8 @@
 #include "common/world/biome/layer/LayerUtil.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <array>
+#include <cmath>
 #include <memory>
 
 namespace mc {
@@ -196,6 +198,72 @@ TEST_F(WorldGenDeterminismTest, NoiseGeneratorDeterminism) {
         f32 n2 = noise2.noise(x, y, z);
 
         EXPECT_NEAR(n1, n2, 1e-6f) << "Noise mismatch at sample " << i;
+    }
+}
+
+/**
+ * @brief 测试 PerlinNoiseGenerator 的倍频叠加与偏移轴一致性
+ *
+ * 该测试手动重建 MC 风格的 noiseAt 叠加流程，确保：
+ * 1. 使用 yOffset 作为第二坐标偏移（而非 zOffset）
+ * 2. 每层频率/振幅缩放顺序正确
+ * 3. useNoiseOffsets 开关行为稳定
+ */
+TEST_F(WorldGenDeterminismTest, PerlinNoiseManualBlendParity) {
+    constexpr u64 seed = 0x20260404ULL;
+    constexpr i32 minOctave = -3;
+    constexpr i32 maxOctave = 0;
+
+    math::Random rng(seed);
+    PerlinNoiseGenerator perlin(rng, minOctave, maxOctave);
+
+    auto manualNoiseAt = [&perlin](f32 x, f32 y, bool useNoiseOffsets) -> f64 {
+        constexpr i32 minOct = -3;
+        constexpr i32 maxOct = 0;
+        constexpr i32 octaveCount = (-minOct) + maxOct + 1;
+
+        f64 result = 0.0;
+        f64 xFactor = std::pow(2.0, static_cast<f64>(maxOct));
+        f64 yFactor = 1.0 / (std::pow(2.0, static_cast<f64>(octaveCount)) - 1.0);
+
+        for (i32 octave = maxOct; octave >= minOct; --octave) {
+            const SimplexNoiseGenerator* level = perlin.getOctave(octave);
+            if (level != nullptr) {
+                const f64 offsetX = useNoiseOffsets ? static_cast<f64>(level->xOffset()) : 0.0;
+                const f64 offsetY = useNoiseOffsets ? static_cast<f64>(level->yOffset()) : 0.0;
+
+                result += level->getValue(
+                    static_cast<f64>(x) * xFactor + offsetX,
+                    static_cast<f64>(y) * xFactor + offsetY
+                ) * yFactor;
+            }
+
+            xFactor /= 2.0;
+            yFactor *= 2.0;
+        }
+
+        return result;
+    };
+
+    const std::array<std::pair<f32, f32>, 5> samples{{
+        {0.0f, 0.0f},
+        {12.5f, -7.25f},
+        {-128.75f, 64.125f},
+        {333.0f, -999.0f},
+        {2048.5f, 1024.25f},
+    }};
+
+    for (const auto& [x, y] : samples) {
+        const f64 expectedWithOffsets = manualNoiseAt(x, y, true);
+        const f64 expectedWithoutOffsets = manualNoiseAt(x, y, false);
+
+        const f64 actualWithOffsets = static_cast<f64>(perlin.noiseAt(x, y, true));
+        const f64 actualWithoutOffsets = static_cast<f64>(perlin.noiseAt(x, y, false));
+
+        EXPECT_NEAR(actualWithOffsets, expectedWithOffsets, 1e-6)
+            << "Perlin noiseAt(useOffsets=true) mismatch at (" << x << ", " << y << ")";
+        EXPECT_NEAR(actualWithoutOffsets, expectedWithoutOffsets, 1e-6)
+            << "Perlin noiseAt(useOffsets=false) mismatch at (" << x << ", " << y << ")";
     }
 }
 

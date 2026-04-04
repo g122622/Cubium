@@ -82,7 +82,7 @@ explicit ImprovedNoiseGenerator(math::IRandom& rng);
 
 **主要内容**:
 - `OctavesNoiseGenerator` 类 - 多倍频 Perlin 噪声
-- `PerlinNoiseGenerator` 类 - 简化版 Perlin 噪声（用于地表深度）
+- `PerlinNoiseGenerator` 类 - MC 对齐 Perlin 噪声（用于地表深度）
 - `SimplexNoiseGenerator` 类 - Simplex 噪声（用于末地维度）
 
 **OctavesNoiseGenerator 核心算法**:
@@ -144,7 +144,7 @@ graph TB
     subgraph 实现层
         B[ImprovedNoiseGenerator<br/>Perlin 噪声生成器]
         C[OctavesNoiseGenerator<br/>多倍频噪声]
-        D[PerlinNoiseGenerator<br/>简化版 Perlin]
+        D[PerlinNoiseGenerator<br/>MC 对齐 Perlin]
         E[SimplexNoiseGenerator<br/>Simplex 噪声]
     end
     
@@ -303,7 +303,7 @@ f32 value = octaveNoise.noise(x, y, z);
 // 带参数采样（用于复杂地形）
 f32 complexValue = octaveNoise.getValue(x, y, z, yScale, yBound, fixY);
 
-// 简化的 2D 采样
+// 4 参数地形采样（用于地表深度噪声路径）
 f32 heightNoise = octaveNoise.noiseAt(x, y, z, scale);
 ```
 
@@ -367,6 +367,9 @@ ImprovedNoiseGenerator noise2(seed + 1);  // 或使用不同的种子
 // 如果需要精确控制坐标，注意偏移会被自动添加：
 // 实际采样坐标 = 输入坐标 + 随机偏移
 f32 actualX = x + noise.xOffset();
+
+// 但 SimplexNoiseGenerator::getValue(x, z) 本身不会自动叠加偏移。
+// 若需要 MC PerlinNoiseGenerator 风格偏移，需在调用侧显式加上 xo/yo。
 ```
 
 ### 4. 大坐标精度问题
@@ -434,6 +437,10 @@ TEST_F(WorldGenDeterminismTest, NoiseGeneratorDeterminism) {
 ```
 
 **测试目的**: 验证使用相同种子的噪声生成器产生完全相同的输出。
+
+**补充回归**:
+- `WorldGenDeterminismTest.PerlinNoiseManualBlendParity`
+- 用手工重建的倍频叠加流程校验 `PerlinNoiseGenerator::noiseAt` 的频率/振幅缩放与偏移轴行为
 
 ### 区块生成测试
 

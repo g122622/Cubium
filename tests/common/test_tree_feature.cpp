@@ -5,9 +5,12 @@
 #include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
 #include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
 #include "world/gen/feature/tree/TreeFeature.hpp"
+#include "world/gen/chunk/IChunkGenerator.hpp"
+#include "world/chunk/ChunkPrimer.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "util/math/MathUtils.hpp"
+#include <array>
 
 using namespace mc;
 
@@ -268,4 +271,88 @@ TEST_F(TreeFeatureTest, ConfigCreation) {
     EXPECT_TRUE(config.foliageBlock->is(VanillaBlocks::OAK_LEAVES));
     EXPECT_NE(config.trunkPlacer, nullptr);
     EXPECT_NE(config.foliagePlacer, nullptr);
+}
+
+// ============================================================================
+// TreeFeature 放置行为测试（含 WorldGenRegion）
+// ============================================================================
+
+class TreeFeaturePlacementWorldTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+
+        for (i32 relZ = -1; relZ <= 1; ++relZ) {
+            for (i32 relX = -1; relX <= 1; ++relX) {
+                const i32 index = (relZ + 1) * 3 + (relX + 1);
+                auto chunk = std::make_unique<ChunkPrimer>(relX, relZ);
+
+                // 初始化平坦地表：y=0 为草方块，y>=1 为空气。
+                const BlockState* ground = &VanillaBlocks::GRASS_BLOCK->defaultState();
+                for (i32 x = 0; x < 16; ++x) {
+                    for (i32 z = 0; z < 16; ++z) {
+                        chunk->setBlock(x, 0, z, ground);
+                    }
+                }
+
+                m_chunks[static_cast<size_t>(index)] = chunk.get();
+                m_ownedChunks.push_back(std::move(chunk));
+            }
+        }
+
+        m_region = std::make_unique<WorldGenRegion>(0, 0, m_chunks);
+    }
+
+    [[nodiscard]] TreeFeatureConfig makeFixedOakConfig() const {
+        TreeFeatureConfig config;
+        config.trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+        config.foliageBlock = &VanillaBlocks::OAK_LEAVES->defaultState();
+        config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(5, 0, 0);
+        config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
+            FeatureSpread::fixed(2),
+            FeatureSpread::fixed(0),
+            3
+        );
+        config.minHeight = 5;
+        return config;
+    }
+
+    void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state) {
+        ASSERT_TRUE(m_region->setBlock(x, y, z, state));
+    }
+
+    std::array<IChunk*, 9> m_chunks{};
+    std::vector<std::unique_ptr<ChunkPrimer>> m_ownedChunks;
+    std::unique_ptr<WorldGenRegion> m_region;
+};
+
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear) {
+    TreeFeature feature;
+    TreeFeatureConfig config = makeFixedOakConfig();
+    math::Random rng(12345);
+
+    EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeFailsWhenCanopySideBlocked) {
+    TreeFeature feature;
+    TreeFeatureConfig config = makeFixedOakConfig();
+    math::Random rng(12345);
+
+    // 在树干侧面放置不可替换方块，覆盖中层空间检查半径。
+    setWorldBlock(9, 4, 8, &VanillaBlocks::STONE->defaultState());
+
+    EXPECT_FALSE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, ForcePlacementIgnoresVolumeCheck) {
+    TreeFeature feature;
+    TreeFeatureConfig config = makeFixedOakConfig();
+    config.forcePlacement = true;
+    math::Random rng(12345);
+
+    // 与上一用例相同障碍物，forcePlacement 时应跳过空间检查。
+    setWorldBlock(9, 4, 8, &VanillaBlocks::STONE->defaultState());
+
+    EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
 }

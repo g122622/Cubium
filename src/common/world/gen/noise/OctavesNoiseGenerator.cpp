@@ -2,6 +2,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include <cmath>
 #include <algorithm>
+#include <limits>
 
 namespace mc {
 
@@ -164,16 +165,17 @@ void PerlinNoiseGenerator::initNoiseLevels(math::IRandom& rng)
 
     // 如果 j > 0，为 0 到 j-1 的倍频层创建新的 Simplex 噪声生成器
     if (j > 0) {
-        // 使用第一个 simplex 的值作为种子创建新的随机生成器
-        // 参考 MC: long k1 = (long)(simplexnoisegenerator.func_227464_a_(...) * 9.223372E18F)
-        // 这个功能暂时简化，直接使用当前 rng
-        rng.skip(262);
+        // 参考 MC：使用第一个 simplex 在偏移点的 3D 采样结果派生种子。
+        // 这里使用 noise(0,0,0) 等价于采样 func_227464_a_(xo, yo, zo)。
+        const f64 seedNoise = static_cast<f64>(firstSimplex->noise(0.0f, 0.0f, 0.0f));
+        const i64 reseedValue = static_cast<i64>(seedNoise * static_cast<f64>(std::numeric_limits<i64>::max()));
+        math::Random reseedRng(static_cast<u64>(reseedValue));
 
         for (i32 idx = j - 1; idx >= 0; --idx) {
             if (idx < k) {
-                m_noiseLevels[static_cast<size_t>(idx)] = std::make_unique<SimplexNoiseGenerator>(rng);
+                m_noiseLevels[static_cast<size_t>(idx)] = std::make_unique<SimplexNoiseGenerator>(reseedRng);
             } else {
-                rng.skip(262);
+                reseedRng.skip(262);
             }
         }
     }
@@ -196,11 +198,11 @@ f32 PerlinNoiseGenerator::noiseAt(f32 x, f32 z, bool useNoiseOffsets) const
         if (level) {
             // simplex.getValue(x * xFactor + offset, z * xFactor + offset) * yFactor
             f32 offsetX = useNoiseOffsets ? level->xOffset() : 0.0f;
-            f32 offsetZ = useNoiseOffsets ? level->zOffset() : 0.0f;
+            f32 offsetY = useNoiseOffsets ? level->yOffset() : 0.0f;
 
             result += static_cast<f32>(level->getValue(
                 static_cast<f64>(x) * static_cast<f64>(xFactor) + static_cast<f64>(offsetX),
-                static_cast<f64>(z) * static_cast<f64>(xFactor) + static_cast<f64>(offsetZ)
+                static_cast<f64>(z) * static_cast<f64>(xFactor) + static_cast<f64>(offsetY)
             )) * yFactor;
         }
 
@@ -409,10 +411,6 @@ f32 SimplexNoiseGenerator::noise2D(f32 x, f32 z) const
 f64 SimplexNoiseGenerator::getValue(f64 x, f64 z) const
 {
     // 参考 MC SimplexNoiseGenerator.getValue
-    // 添加偏移
-    x += static_cast<f64>(m_offset[0]);
-    z += static_cast<f64>(m_offset[2]);
-
     // 斜切
     const f64 s = (x + z) * F2D;
     const i32 i = fastFloor(x + s);

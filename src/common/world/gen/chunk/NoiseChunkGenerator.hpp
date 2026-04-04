@@ -83,6 +83,19 @@ public:
     [[nodiscard]] i32 noiseSizeZ() const { return m_noiseSizeZ; }
 
 private:
+    /**
+     * @brief fillNoiseColumn 的 5x5 生物群系滑窗缓存
+     *
+     * 该缓存由单次生成流程在栈上持有，避免将可变状态放在生成器实例中，
+     * 从而提升并发生成时的线程安全性。
+     */
+    struct BiomeWindowCache {
+        bool valid = false;
+        i32 centerNoiseX = 0;
+        i32 centerNoiseZ = 0;
+        std::array<BiomeId, 25> window{};
+    };
+
     // === 噪声生成器 ===
     std::unique_ptr<OctavesNoiseGenerator> m_mainDensityNoise;      // 主密度噪声 (16倍频)
     std::unique_ptr<OctavesNoiseGenerator> m_secondaryDensityNoise; // 次密度噪声 (16倍频)
@@ -114,17 +127,8 @@ private:
     i32 m_verticalNoiseGranularity;
     i32 m_horizontalNoiseGranularity;
 
-    // === 随机数生成 ===
-    mutable math::Random m_random;
-
     // === 5x5 权重查找表（参考 MC field_236081_j_）===
     std::array<f32, 25> m_biomeWeights;
-
-    // === fillNoiseColumn 生物群系滑窗缓存（5x5）===
-    mutable bool m_biomeWindowValid = false;
-    mutable i32 m_biomeWindowCenterX = 0;
-    mutable i32 m_biomeWindowCenterZ = 0;
-    mutable std::array<BiomeId, 25> m_biomeWindow{};
 
     // === 核心生成方法 ===
 
@@ -134,7 +138,7 @@ private:
      * 参考 MC fillNoiseColumn，计算噪声柱的高度值。
      * 这是地形生成的核心算法。
      */
-    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const;
+    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ, BiomeWindowCache& biomeWindowCache) const;
 
     /**
      * @brief 计算噪声密度
@@ -144,14 +148,6 @@ private:
     [[nodiscard]] f32 calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ,
                                              f32 xzScale, f32 yScale,
                                              f32 xzFactor, f32 yFactor) const;
-
-    /**
-     * @brief 计算生物群系深度和比例
-     *
-     * 参考 MC fillNoiseColumn 中的生物群系权重计算。
-     */
-    [[nodiscard]] void calculateBiomeDepthAndScale(i32 noiseX, i32 noiseZ,
-                                                    f32& outDepth, f32& outScale) const;
 
     /**
      * @brief 计算随机密度偏移
@@ -172,6 +168,14 @@ private:
     void initBiomeWeights();
 
     // === 地表生成 ===
+
+    /**
+     * @brief 采样地表深度噪声
+     *
+     * 该方法统一封装 Perlin/Octaves 两种地表噪声路径，
+     * 并尽量对齐 MC 1.16.5 的调用参数。
+     */
+    [[nodiscard]] f32 sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const;
 
     void buildSurfaceForColumn(ChunkPrimer& chunk, i32 x, i32 z,
                                 i32 surfaceHeight, f32 surfaceNoise, BiomeId biome);
