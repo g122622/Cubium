@@ -263,7 +263,9 @@ const std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>>& HugeFungusFeatu
 }
 
 std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>> HugeFungusFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto result = std::move(s_features);
+    s_features.clear();
+    return result;
 }
 
 std::unique_ptr<ConfiguredHugeFungusFeature> HugeFungusFeatures::createCrimson() {

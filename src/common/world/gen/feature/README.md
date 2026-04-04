@@ -11,6 +11,10 @@ feature/
 ├── DecorationStage.hpp       # 装饰阶段枚举
 ├── FeatureIds.hpp            # 特征ID常量定义
 ├── FeatureSpread.hpp/cpp     # 特征扩散配置
+├── nether/                   # 下界特征（萤石/玄武岩/岩浆/火焰）
+├── fungus/                   # 下界巨型菌类特征
+├── spike/                    # 末地黑曜石柱特征
+├── gateway/                  # 末地折跃门特征
 ├── lake/                     # 湖泊特征
 │   ├── LakeFeature.hpp       # 湖泊特征接口
 │   └── LakeFeature.cpp       # 湖泊特征实现
@@ -281,6 +285,20 @@ config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
 - `SeagrassFeature`：支持普通海草与高海草混合放置。
 - `SeaPickleFeature`：在活珊瑚基底上放置不同数量海泡菜。
 - `CoralFeature`：随机生成树形/蘑菇形/爪形珊瑚并附带珊瑚扇装饰。
+
+### nether/、fungus/ - 下界特征
+
+- `nether/` 提供萤石簇、玄武岩柱/三角洲、岩浆斑块、下界火焰等特征。
+- `fungus/` 提供绯红/诡异巨型真菌特征。
+- 这两部分在 `FeatureRegistry` 中分别接入：
+    - `UndergroundDecoration`（萤石/玄武岩/岩浆）
+    - `VegetalDecoration`（巨型菌类/下界火焰）
+
+### spike/、gateway/ - 末地地表结构特征
+
+- `spike/EndSpikeFeature`：末地主岛黑曜石柱。
+- `gateway/EndGatewayFeature`：末地折跃门与退出折跃门。
+- 两者统一注册到 `SurfaceStructures` 阶段，并由末地生物群系生成设置通过 `FeatureIds` 引用。
 
 ## 文件关系图
 

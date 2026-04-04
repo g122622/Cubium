@@ -3,14 +3,17 @@
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/StructureManager.hpp"
 #include "../structure/Structure.hpp"
+#include "../feature/ConfiguredFeature.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../biome/BiomeRegistry.hpp"
+#include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
+#include <mutex>
 #include <spdlog/spdlog.h>
 
 #ifndef M_PI
@@ -186,9 +189,20 @@ void EndChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk,
 
 void EndChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) {
     MC_TRACE_EVENT("world.gen.end", "PlaceFeatures");
-    // 末地特性：紫颂树、末地城等
-    // 暂时使用基类实现
-    BaseChunkGenerator::placeFeatures(region, chunk);
+
+    // 线程安全初始化特征注册表
+    static std::once_flag s_featureRegistryInitFlag;
+    std::call_once(s_featureRegistryInitFlag, []() {
+        FeatureRegistry::instance().initialize();
+    });
+
+    const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
+    const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
+    const BiomeGenerationSettings& settings = biome.generationSettings();
+
+    for (DecorationStage stage : DecorationStages::getAll()) {
+        BiomeFeaturePlacer::placeFeaturesForStage(region, chunk, *this, settings, stage, m_seed);
+    }
 
     chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }

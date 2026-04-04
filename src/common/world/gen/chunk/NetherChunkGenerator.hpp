@@ -109,9 +109,6 @@ private:
     i32 m_noiseSizeY;
     i32 m_noiseSizeZ;
 
-    // === 随机数生成 ===
-    mutable math::Random m_random;
-
     // === 核心生成方法 ===
 
     /**
@@ -140,7 +137,7 @@ private:
      * @param x 本地 X 坐标 (0-15)
      * @param z 本地 Z 坐标 (0-15)
      */
-    void generateBedrock(ChunkPrimer& chunk, i32 x, i32 z);
+    void generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const;
 
     // === 初始化方法 ===
     void initNoiseGenerators();

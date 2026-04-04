@@ -8,6 +8,32 @@
 
 namespace mc {
 
+namespace {
+
+[[nodiscard]] bool intersectsWorldGenRegion(
+    const EndSpike& spike,
+    const WorldGenRegion& world,
+    i32 centerX,
+    i32 centerZ)
+{
+    const i32 minX = (world.mainX() - 1) * 16;
+    const i32 maxX = (world.mainX() + 2) * 16 - 1;
+    const i32 minZ = (world.mainZ() - 1) * 16;
+    const i32 maxZ = (world.mainZ() + 2) * 16 - 1;
+
+    if (centerX + spike.radius < minX || centerX - spike.radius > maxX) {
+        return false;
+    }
+
+    if (centerZ + spike.radius < minZ || centerZ - spike.radius > maxZ) {
+        return false;
+    }
+
+    return true;
+}
+
+} // namespace
+
 // ============================================================================
 // EndSpikeFeatureConfig 实现
 // ============================================================================
@@ -68,6 +94,10 @@ bool EndSpikeFeature::place(
     if (config.destroying) {
         const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
         for (const auto& spike : spikes) {
+            if (!intersectsWorldGenRegion(spike, world, pos.x + spike.centerX, pos.z + spike.centerZ)) {
+                continue;
+            }
+
             // 销毁柱子区域的所有方块
             for (i32 y = 0; y < spike.height; ++y) {
                 for (i32 x = -spike.radius; x <= spike.radius; ++x) {
@@ -90,6 +120,10 @@ bool EndSpikeFeature::place(
 
     // 生成每根柱子
     for (const auto& spike : spikes) {
+        if (!intersectsWorldGenRegion(spike, world, spike.centerX, spike.centerZ)) {
+            continue;
+        }
+
         generateSpike(world, random, spike);
     }
 
@@ -200,7 +234,14 @@ bool ConfiguredEndSpikeFeature::place(
     math::Random& random,
     const BlockPos& pos)
 {
-    return m_feature.place(region, random, pos, *m_config);
+    MC_UNUSED(chunk);
+
+    EndSpikeFeatureConfig runtimeConfig = *m_config;
+    if (!runtimeConfig.destroying) {
+        runtimeConfig.spikes = EndSpikeFeatureConfig::generateSpikes(generator.seed());
+    }
+
+    return m_feature.place(region, random, pos, runtimeConfig);
 }
 
 // ============================================================================
@@ -222,7 +263,9 @@ const std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>>& EndSpikeFeatures:
 }
 
 std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> EndSpikeFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto extracted = std::move(s_features);
+    s_features.clear();
+    return extracted;
 }
 
 std::unique_ptr<ConfiguredEndSpikeFeature> EndSpikeFeatures::createStandard(u64 worldSeed) {

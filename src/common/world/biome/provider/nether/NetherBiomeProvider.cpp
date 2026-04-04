@@ -49,11 +49,6 @@ BiomeId NetherBiomeProvider::getBiome(i32 x, i32 y, i32 z) const {
 }
 
 BiomeId NetherBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
-    // 计算噪声坐标
-    const f32 nx = static_cast<f32>(noiseX) * TEMPERATURE_SCALE;
-    const f32 ny = static_cast<f32>(noiseY) * TEMPERATURE_SCALE;
-    const f32 nz = static_cast<f32>(noiseZ) * TEMPERATURE_SCALE;
-
     // 采样噪声值
     const f32 temperature = getTemperature(noiseX, noiseY, noiseZ);
     const f32 humidity = getHumidity(noiseX, noiseY, noiseZ);
@@ -155,29 +150,20 @@ BiomeId NetherBiomeProvider::selectBiome(f32 temperature, f32 humidity, f32 biom
 // ============================================================================
 
 void NetherBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) {
-    // 区块坐标转换为世界坐标
-    const i32 worldX = chunkX * 16;
-    const i32 worldZ = chunkZ * 16;
+    // 噪声坐标中：一个区块对应 4x4 个水平采样点
+    const i32 startNoiseX = chunkX << 2;
+    const i32 startNoiseZ = chunkZ << 2;
 
-    // 下界有 16 个区块段（Y 从 0 到 255）
-    // 生物群系容器尺寸：4x4x4 采样点
-    // 每个采样点覆盖 4x4x4 方块
-    for (i32 sectionY = 0; sectionY < 16; ++sectionY) {
-        for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-            for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                // 计算噪声坐标
-                // 每个 4x4x4 方块区域对应一个噪声采样点
-                const i32 noiseX = (worldX + bx * 4) >> 2;
-                const i32 noiseY = (sectionY * 16 + 0) >> 2;  // 采样区块段底部
-                const i32 noiseZ = (worldZ + bz * 4) >> 2;
+    for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
+        for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+            const i32 noiseX = startNoiseX + bx;
+            const i32 noiseZ = startNoiseZ + bz;
 
-                // 获取生物群系
-                const BiomeId biome = getNoiseBiome(noiseX, noiseY, noiseZ);
-
-                // 填充容器（整个区块段使用相同生物群系）
-                for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-                    container.setBiome(bx, sectionY * 4 + by, bz, biome);
-                }
+            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
+                // BiomeContainer 的 Y 槽位按 16 方块分段，这里采样分段中心点。
+                const i32 sampleBlockY = (by << 4) + 8;
+                const i32 noiseY = sampleBlockY >> 2;
+                container.setBiome(bx, by, bz, getNoiseBiome(noiseX, noiseY, noiseZ));
             }
         }
     }

@@ -35,9 +35,6 @@ struct NetherFeatureRegistry {
 
     /// 获取所有下界特征（VegetalDecoration阶段）
     [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredFeatureBase>> getAllVegetationFeaturesAndClear();
-
-private:
-    static bool s_initialized;
 };
 
 /**

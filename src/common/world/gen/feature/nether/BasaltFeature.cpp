@@ -121,7 +121,9 @@ const std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>>& BasaltColumnF
 }
 
 std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto result = std::move(s_features);
+    s_features.clear();
+    return result;
 }
 
 std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createNormal() {
@@ -249,7 +251,9 @@ const std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>>& BasaltDeltaFea
 }
 
 std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> BasaltDeltaFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto result = std::move(s_features);
+    s_features.clear();
+    return result;
 }
 
 std::unique_ptr<ConfiguredBasaltDeltaFeature> BasaltDeltaFeatures::createNormal() {

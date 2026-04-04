@@ -10,6 +10,8 @@
 #include "common/world/biome/layer/transformers/BiomeLayers.hpp"
 #include "common/world/biome/layer/transformers/SourceLayers.hpp"
 #include "common/world/biome/layer/transformers/ZoomLayers.hpp"
+#include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
+#include "common/world/biome/provider/end/EndBiomeProvider.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;
@@ -160,6 +162,24 @@ TEST_F(BiomeRegistryTest, CreateOcean) {
     EXPECT_EQ(ocean.id(), Biomes::Ocean);
     EXPECT_EQ(ocean.name(), "ocean");
     EXPECT_FLOAT_EQ(ocean.depth(), -1.0f); // 海洋深度为负
+}
+
+TEST_F(BiomeRegistryTest, CreateCrimsonForestUsesCrimsonNyliumSurface) {
+    Biome biome = BiomeFactory::createCrimsonForest();
+    EXPECT_EQ(biome.id(), Biomes::CrimsonForest);
+    ASSERT_NE(biome.surfaceBlock(), nullptr);
+    ASSERT_NE(biome.subSurfaceBlock(), nullptr);
+    EXPECT_TRUE(biome.surfaceBlock()->is(VanillaBlocks::CRIMSON_NYLIUM));
+    EXPECT_TRUE(biome.subSurfaceBlock()->is(VanillaBlocks::NETHERRACK));
+}
+
+TEST_F(BiomeRegistryTest, CreateWarpedForestUsesWarpedNyliumSurface) {
+    Biome biome = BiomeFactory::createWarpedForest();
+    EXPECT_EQ(biome.id(), Biomes::WarpedForest);
+    ASSERT_NE(biome.surfaceBlock(), nullptr);
+    ASSERT_NE(biome.subSurfaceBlock(), nullptr);
+    EXPECT_TRUE(biome.surfaceBlock()->is(VanillaBlocks::WARPED_NYLIUM));
+    EXPECT_TRUE(biome.subSurfaceBlock()->is(VanillaBlocks::NETHERRACK));
 }
 
 // ============================================================================
@@ -784,4 +804,79 @@ TEST_F(LayerBiomeProviderTest, BiomeDistribution) {
 
     // 应该有多种生物群系
     EXPECT_GT(distribution.size(), 1u);
+}
+
+// ============================================================================
+// NetherBiomeProvider / EndBiomeProvider 测试
+// ============================================================================
+
+class NetherBiomeProviderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+    }
+};
+
+TEST_F(NetherBiomeProviderTest, FillBiomeContainerUsesVerticalNoiseSamples) {
+    biome::nether::NetherBiomeProvider provider(12345);
+    BiomeContainer container;
+
+    constexpr ChunkCoord chunkX = 0;
+    constexpr ChunkCoord chunkZ = 0;
+    provider.fillBiomeContainer(container, chunkX, chunkZ);
+
+    const i32 startNoiseX = chunkX << 2;
+    const i32 startNoiseZ = chunkZ << 2;
+
+    for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
+        for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+            const i32 noiseX = startNoiseX + bx;
+            const i32 noiseZ = startNoiseZ + bz;
+
+            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
+                const i32 sampleBlockY = (by << 4) + 8;
+                const i32 noiseY = sampleBlockY >> 2;
+
+                const BiomeId expected = provider.getNoiseBiome(noiseX, noiseY, noiseZ);
+                const BiomeId actual = container.getBiome(bx, by, bz);
+                EXPECT_EQ(actual, expected)
+                    << "Nether biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
+            }
+        }
+    }
+}
+
+class EndBiomeProviderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+    }
+};
+
+TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid) {
+    biome::end::EndBiomeProvider provider(98765);
+    BiomeContainer container;
+
+    constexpr ChunkCoord chunkX = 3;
+    constexpr ChunkCoord chunkZ = -2;
+    provider.fillBiomeContainer(container, chunkX, chunkZ);
+
+    const i32 startX = chunkX << 4;
+    const i32 startZ = chunkZ << 4;
+
+    for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
+        for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+            const i32 sampleX = startX + (bx << 2) + 2;
+            const i32 sampleZ = startZ + (bz << 2) + 2;
+            const BiomeId expected = provider.getBiome(sampleX, 0, sampleZ);
+
+            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
+                const BiomeId actual = container.getBiome(bx, by, bz);
+                EXPECT_EQ(actual, expected)
+                    << "End biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
+            }
+        }
+    }
 }

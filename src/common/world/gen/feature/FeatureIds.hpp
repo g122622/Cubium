@@ -122,6 +122,15 @@ namespace IceSpikeFeatureIds {
     constexpr u32 Count = 2;    // 冰刺特征总数
 }
 
+namespace EndSurfaceFeatureIds {
+    // 末地地表结构特征（紧跟冰刺特征之后）
+    constexpr u32 Offset = IceSpikeFeatureIds::Count;
+    constexpr u32 ObsidianSpike = 0 + Offset;  // 黑曜石柱
+    constexpr u32 EndGateway = 1 + Offset;     // 末地折跃门
+    constexpr u32 EndGatewayExit = 2 + Offset; // 退出折跃门
+    constexpr u32 Count = 3;                    // 末地地表结构特征总数
+}
+
 // ============================================================================
 // UndergroundDecoration 阶段特征ID（下界特征）
 // ============================================================================
@@ -154,33 +163,42 @@ namespace MagmaFeatureIds {
 // OceanFeatures 阶段特征ID (VegetalDecoration阶段)
 // ============================================================================
 
+namespace VegetationIds {
+    /// VegetalDecoration阶段陆地植被特征总数
+    constexpr u32 TotalVegetalFeatures =
+        TreeFeatureIds::Count +
+        FlowerFeatureIds::Count +
+        GrassFeatureIds::Count +
+        MushroomFeatureIds::Count +
+        CactusFeatureIds::Count +
+        SugarCaneFeatureIds::Count;
+}
+
 namespace KelpFeatureIds {
-    // 海带特征 (0)
-    constexpr u32 Normal = 0;  // 普通海带
+    // 海带特征（紧跟陆地植被特征之后）
+    constexpr u32 Offset = VegetationIds::TotalVegetalFeatures;
+    constexpr u32 Normal = Offset;  // 普通海带
     constexpr u32 Count = 1;    // 海带特征总数
 }
 
 namespace SeagrassFeatureIds {
-    // 海草特征 (1-2)
-    // 基础偏移量 = KelpFeatureIds::Count = 1
-    constexpr u32 Offset = KelpFeatureIds::Count;
+    // 海草特征（海带之后）
+    constexpr u32 Offset = KelpFeatureIds::Offset + KelpFeatureIds::Count;
     constexpr u32 Simple = 0 + Offset;  // 普通海草
     constexpr u32 Mixed = 1 + Offset;   // 混合海草（含高海草）
     constexpr u32 Count = 2;             // 海草特征总数
 }
 
 namespace SeaPickleFeatureIds {
-    // 海泡菜特征 (3)
-    // 基础偏移量 = KelpFeatureIds::Count + SeagrassFeatureIds::Count = 3
-    constexpr u32 Offset = KelpFeatureIds::Count + SeagrassFeatureIds::Count;
+    // 海泡菜特征（海草之后）
+    constexpr u32 Offset = SeagrassFeatureIds::Offset + SeagrassFeatureIds::Count;
     constexpr u32 Normal = 0 + Offset;  // 普通海泡菜
     constexpr u32 Count = 1;             // 海泡菜特征总数
 }
 
 namespace CoralFeatureIds {
-    // 珊瑚特征 (4-8)
-    // 基础偏移量 = KelpFeatureIds::Count + SeagrassFeatureIds::Count + SeaPickleFeatureIds::Count = 4
-    constexpr u32 Offset = KelpFeatureIds::Count + SeagrassFeatureIds::Count + SeaPickleFeatureIds::Count;
+    // 珊瑚特征（海泡菜之后）
+    constexpr u32 Offset = SeaPickleFeatureIds::Offset + SeaPickleFeatureIds::Count;
     constexpr u32 Tube = 0 + Offset;    // 管状珊瑚
     constexpr u32 Brain = 1 + Offset;   // 脑珊瑚
     constexpr u32 Bubble = 2 + Offset;  // 气泡珊瑚
@@ -195,27 +213,11 @@ namespace CoralFeatureIds {
 
 namespace NetherFungusIds {
     // 下界真菌特征
-    constexpr u32 Offset = KelpFeatureIds::Count + SeagrassFeatureIds::Count +
-                           SeaPickleFeatureIds::Count + CoralFeatureIds::Count;
+    constexpr u32 Offset = CoralFeatureIds::Offset + CoralFeatureIds::Count;
     constexpr u32 CrimsonFungus = 0 + Offset;  // 绯红巨型真菌
     constexpr u32 WarpedFungus = 1 + Offset;   // 诡异巨型真菌
     constexpr u32 NetherFire = 2 + Offset;     // 下界火焰
     constexpr u32 Count = 3;                    // 下界真菌特征总数
-}
-
-// ============================================================================
-// 便捷组合常量
-// ============================================================================
-
-namespace VegetationIds {
-    /// VegetalDecoration阶段特征总数
-    constexpr u32 TotalVegetalFeatures =
-        TreeFeatureIds::Count +
-        FlowerFeatureIds::Count +
-        GrassFeatureIds::Count +
-        MushroomFeatureIds::Count +
-        CactusFeatureIds::Count +
-        SugarCaneFeatureIds::Count;
 }
 
 // ============================================================================

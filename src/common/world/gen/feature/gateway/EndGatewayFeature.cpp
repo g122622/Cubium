@@ -1,6 +1,7 @@
 #include "EndGatewayFeature.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
 #include "../../../block/VanillaBlocks.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <cmath>
@@ -142,7 +143,23 @@ bool ConfiguredEndGatewayFeature::place(
     math::Random& random,
     const BlockPos& pos)
 {
-    return m_feature.place(region, random, pos, *m_config);
+    MC_UNUSED(generator);
+
+    // 末地折跃门应稀疏生成，避免每个区块都尝试放置。
+    if (!m_config->isExit && random.nextInt(256) != 0) {
+        return false;
+    }
+
+    const i32 sampleX = chunk.x() * 16 + random.nextInt(16);
+    const i32 sampleZ = chunk.z() * 16 + random.nextInt(16);
+    const i32 topY = region.getTopBlockY(sampleX, sampleZ, HeightmapType::WorldSurfaceWG);
+
+    if (topY <= world::MIN_BUILD_HEIGHT) {
+        return false;
+    }
+
+    const BlockPos featurePos(sampleX, topY + 1, sampleZ);
+    return m_feature.place(region, random, featurePos, *m_config);
 }
 
 // ============================================================================
@@ -166,7 +183,9 @@ const std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>>& EndGatewayFeatu
 }
 
 std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> EndGatewayFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto extracted = std::move(s_features);
+    s_features.clear();
+    return extracted;
 }
 
 std::unique_ptr<ConfiguredEndGatewayFeature> EndGatewayFeatures::createGateway() {

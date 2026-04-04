@@ -2,11 +2,7 @@
 
 namespace mc {
 
-bool NetherFeatureRegistry::s_initialized = false;
-
 void NetherFeatureRegistry::initialize() {
-    if (s_initialized) return;
-
     // 初始化各个特征模块
     GlowstoneFeatures::initialize();
     BasaltColumnFeatures::initialize();
@@ -14,8 +10,6 @@ void NetherFeatureRegistry::initialize() {
     MagmaPatchFeatures::initialize();
     NetherFireFeatures::initialize();
     HugeFungusFeatures::initialize();
-
-    s_initialized = true;
 }
 
 std::vector<std::unique_ptr<ConfiguredFeatureBase>> NetherFeatureRegistry::getAllUndergroundFeaturesAndClear() {

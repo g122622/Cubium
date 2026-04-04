@@ -163,7 +163,9 @@ const std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>>& GlowstoneFeature
 }
 
 std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> GlowstoneFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto result = std::move(s_features);
+    s_features.clear();
+    return result;
 }
 
 std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createNormal() {

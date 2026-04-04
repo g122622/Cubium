@@ -140,7 +140,9 @@ const std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>>& MagmaPatchFeatu
 }
 
 std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>> MagmaPatchFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto result = std::move(s_features);
+    s_features.clear();
+    return result;
 }
 
 std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createNormal() {
@@ -249,7 +251,9 @@ const std::vector<std::unique_ptr<ConfiguredNetherFireFeature>>& NetherFireFeatu
 }
 
 std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::getAllFeaturesAndClear() {
-    return std::move(s_features);
+    auto result = std::move(s_features);
+    s_features.clear();
+    return result;
 }
 
 std::unique_ptr<ConfiguredNetherFireFeature> NetherFireFeatures::createNormal() {

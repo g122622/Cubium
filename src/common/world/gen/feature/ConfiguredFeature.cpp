@@ -7,6 +7,8 @@
 #include "ocean/SeaPickleFeature.hpp"
 #include "ocean/CoralFeature.hpp"
 #include "nether/NetherFeatures.hpp"
+#include "spike/EndSpikeFeature.hpp"
+#include "gateway/EndGatewayFeature.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../biome/Biome.hpp"
@@ -99,6 +101,23 @@ void FeatureRegistry::initialize() {
     // 注册冰刺特征
     auto iceSpikeFeatures = VegetationFeatureManager::getIceSpikeFeaturesAndClear();
     for (auto& feature : iceSpikeFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::SurfaceStructures);
+        }
+    }
+
+    // 注册末地地表结构特征（SURFACE_STRUCTURES 阶段）
+    EndSpikeFeatures::initialize();
+    auto endSpikeFeatures = EndSpikeFeatures::getAllFeaturesAndClear();
+    for (auto& feature : endSpikeFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::SurfaceStructures);
+        }
+    }
+
+    EndGatewayFeatures::initialize();
+    auto endGatewayFeatures = EndGatewayFeatures::getAllFeaturesAndClear();
+    for (auto& feature : endGatewayFeatures) {
         if (feature) {
             registerFeature(std::move(feature), DecorationStage::SurfaceStructures);
         }

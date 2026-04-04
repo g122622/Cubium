@@ -128,6 +128,14 @@ TEST_F(VegetationFeatureTest, IceSpikeFeatureIdsAreConsecutive) {
     EXPECT_EQ(IceSpikeFeatureIds::Count, 2u);
 }
 
+TEST_F(VegetationFeatureTest, EndSurfaceFeatureIdsAreOffsetAfterIceSpikes) {
+    EXPECT_EQ(EndSurfaceFeatureIds::Offset, IceSpikeFeatureIds::Count);
+    EXPECT_EQ(EndSurfaceFeatureIds::ObsidianSpike, IceSpikeFeatureIds::Count);
+    EXPECT_EQ(EndSurfaceFeatureIds::EndGateway, IceSpikeFeatureIds::Count + 1);
+    EXPECT_EQ(EndSurfaceFeatureIds::EndGatewayExit, IceSpikeFeatureIds::Count + 2);
+    EXPECT_EQ(EndSurfaceFeatureIds::Count, 3u);
+}
+
 TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount) {
     // 验证VegetalDecoration阶段特征总数正确
     const u32 expectedTotal =
@@ -140,6 +148,27 @@ TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount) {
 
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, expectedTotal);
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 33u); // 15+5+7+2+2+2
+}
+
+TEST_F(VegetationFeatureTest, OceanFeatureIdsAreOffsetAfterLandVegetation) {
+    const u32 oceanBase = VegetationIds::TotalVegetalFeatures;
+
+    EXPECT_EQ(KelpFeatureIds::Offset, oceanBase);
+    EXPECT_EQ(KelpFeatureIds::Normal, oceanBase);
+
+    EXPECT_EQ(SeagrassFeatureIds::Offset, oceanBase + KelpFeatureIds::Count);
+    EXPECT_EQ(SeaPickleFeatureIds::Offset, SeagrassFeatureIds::Offset + SeagrassFeatureIds::Count);
+    EXPECT_EQ(CoralFeatureIds::Offset, SeaPickleFeatureIds::Offset + SeaPickleFeatureIds::Count);
+    EXPECT_EQ(CoralFeatureIds::Horn, CoralFeatureIds::Offset + 4);
+}
+
+TEST_F(VegetationFeatureTest, NetherFungusIdsAreOffsetAfterOceanFeatures) {
+    const u32 expectedOffset = VegetationIds::TotalVegetalFeatures + OceanFeatureIds::TotalOceanFeatures;
+
+    EXPECT_EQ(NetherFungusIds::Offset, expectedOffset);
+    EXPECT_EQ(NetherFungusIds::CrimsonFungus, expectedOffset);
+    EXPECT_EQ(NetherFungusIds::WarpedFungus, expectedOffset + 1);
+    EXPECT_EQ(NetherFungusIds::NetherFire, expectedOffset + 2);
 }
 
 // ============================================================================
@@ -161,7 +190,8 @@ TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
     EXPECT_EQ(vegetalFeatures.size(), expectedVegetalCount);
 
     const auto& surfaceFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::SurfaceStructures);
-    EXPECT_EQ(surfaceFeatures.size(), IceSpikeFeatureIds::Count);
+    const u32 expectedSurfaceCount = IceSpikeFeatureIds::Count + EndSurfaceFeatureIds::Count;
+    EXPECT_EQ(surfaceFeatures.size(), expectedSurfaceCount);
 }
 
 TEST_F(VegetationFeatureTest, FeatureRegistryFeatureNames) {
@@ -177,6 +207,22 @@ TEST_F(VegetationFeatureTest, FeatureRegistryFeatureNames) {
 
     EXPECT_NE(oreFeatures[OreFeatureIds::DiamondOre], nullptr);
     EXPECT_STREQ(oreFeatures[OreFeatureIds::DiamondOre]->name(), "diamond_ore");
+}
+
+TEST_F(VegetationFeatureTest, FeatureRegistryOceanAndNetherFeatureNames) {
+    const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
+
+    ASSERT_LT(KelpFeatureIds::Normal, vegetalFeatures.size());
+    ASSERT_LT(SeagrassFeatureIds::Simple, vegetalFeatures.size());
+    ASSERT_LT(NetherFungusIds::CrimsonFungus, vegetalFeatures.size());
+    ASSERT_LT(NetherFungusIds::WarpedFungus, vegetalFeatures.size());
+    ASSERT_LT(NetherFungusIds::NetherFire, vegetalFeatures.size());
+
+    EXPECT_STREQ(vegetalFeatures[KelpFeatureIds::Normal]->name(), "kelp");
+    EXPECT_STREQ(vegetalFeatures[SeagrassFeatureIds::Simple]->name(), "seagrass_simple");
+    EXPECT_STREQ(vegetalFeatures[NetherFungusIds::CrimsonFungus]->name(), "crimson_fungus");
+    EXPECT_STREQ(vegetalFeatures[NetherFungusIds::WarpedFungus]->name(), "warped_fungus");
+    EXPECT_STREQ(vegetalFeatures[NetherFungusIds::NetherFire]->name(), "nether_fire");
 }
 
 TEST_F(VegetationFeatureTest, TreeFeatureNames) {
@@ -276,6 +322,14 @@ TEST_F(VegetationFeatureTest, IceSpikeFeatureNames) {
 
     EXPECT_NE(surfaceFeatures[IceSpikeFeatureIds::Iceberg], nullptr);
     EXPECT_STREQ(surfaceFeatures[IceSpikeFeatureIds::Iceberg]->name(), "ice_berg");
+
+    ASSERT_LT(EndSurfaceFeatureIds::ObsidianSpike, surfaceFeatures.size());
+    ASSERT_LT(EndSurfaceFeatureIds::EndGateway, surfaceFeatures.size());
+    ASSERT_LT(EndSurfaceFeatureIds::EndGatewayExit, surfaceFeatures.size());
+
+    EXPECT_STREQ(surfaceFeatures[EndSurfaceFeatureIds::ObsidianSpike]->name(), "end_spike");
+    EXPECT_STREQ(surfaceFeatures[EndSurfaceFeatureIds::EndGateway]->name(), "end_gateway");
+    EXPECT_STREQ(surfaceFeatures[EndSurfaceFeatureIds::EndGatewayExit]->name(), "end_gateway_exit");
 }
 
 // ============================================================================
@@ -392,6 +446,36 @@ TEST_F(VegetationFeatureTest, IceSpikesBiomeSettings) {
 
     EXPECT_TRUE(hasSpike);
     EXPECT_TRUE(hasIceberg);
+}
+
+TEST_F(VegetationFeatureTest, TheEndBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createTheEnd();
+
+    const auto& surface = settings.getFeatures(DecorationStage::SurfaceStructures);
+    bool hasEndSpike = false;
+    for (u32 id : surface) {
+        if (id == EndSurfaceFeatureIds::ObsidianSpike) {
+            hasEndSpike = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(hasEndSpike);
+}
+
+TEST_F(VegetationFeatureTest, EndHighlandsBiomeSettings) {
+    auto settings = BiomeGenerationSettings::createEndHighlands();
+
+    const auto& surface = settings.getFeatures(DecorationStage::SurfaceStructures);
+    bool hasEndGateway = false;
+    for (u32 id : surface) {
+        if (id == EndSurfaceFeatureIds::EndGateway) {
+            hasEndGateway = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(hasEndGateway);
 }
 
 TEST_F(VegetationFeatureTest, BadlandsBiomeSettings) {

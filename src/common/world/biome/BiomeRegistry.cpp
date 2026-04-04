@@ -1460,8 +1460,7 @@ Biome createCrimsonForest()
     biome.setScale(0.2f);
     biome.setTemperature(2.0f);
     biome.setHumidity(0.0f);
-    // TODO: 添加绯红菌岩方块
-    biome.setSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::CRIMSON_NYLIUM));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
     biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
 
@@ -1487,8 +1486,7 @@ Biome createWarpedForest()
     biome.setScale(0.2f);
     biome.setTemperature(2.0f);
     biome.setHumidity(0.0f);
-    // TODO: 添加诡异菌岩方块
-    biome.setSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
+    biome.setSurfaceBlock(getBlockState(VanillaBlocks::WARPED_NYLIUM));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
     biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
 

@@ -139,19 +139,19 @@ BiomeId EndBiomeProvider::selectBiome(i32 x, i32 z, f32 noise) const {
 // ============================================================================
 
 void EndBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) {
-    // 区块坐标转换为世界坐标
-    const i32 worldX = chunkX * 16;
-    const i32 worldZ = chunkZ * 16;
+    const i32 startX = chunkX << 4;
+    const i32 startZ = chunkZ << 4;
 
-    // 末地使用 2D 生物群系采样
-    // 整个区块垂直方向使用相同生物群系
-    const BiomeId biome = getBiome(worldX + 8, 0, worldZ + 8);
+    for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
+        for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+            // 每个水平槽位对应一个 4x4 区域，取中心点采样。
+            const i32 sampleX = startX + (bx << 2) + 2;
+            const i32 sampleZ = startZ + (bz << 2) + 2;
+            const BiomeId biome = getBiome(sampleX, 0, sampleZ);
 
-    // 填充整个容器
-    for (i32 y = 0; y < 64; ++y) {  // 16 区块段 * 4 采样点
-        for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
-            for (i32 x = 0; x < BiomeContainer::BIOME_WIDTH; ++x) {
-                container.setBiome(x, y, z, biome);
+            // 末地生物群系仅按 2D 分布，垂直方向复用。
+            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
+                container.setBiome(bx, by, bz, biome);
             }
         }
     }

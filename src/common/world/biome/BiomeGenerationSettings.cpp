@@ -479,7 +479,9 @@ BiomeGenerationSettings BiomeGenerationSettings::createTheEnd() {
     // 末地主岛：黑曜石柱 + 末影龙战斗
     BiomeGenerationSettings settings;
 
-    // TODO: 添加黑曜石柱特征
+    // 黑曜石柱（主岛核心地表结构）
+    settings.addFeature(DecorationStage::SurfaceStructures, EndSurfaceFeatureIds::ObsidianSpike);
+
     // 末地主岛没有常规矿石生成
 
     return settings;
@@ -505,8 +507,10 @@ BiomeGenerationSettings BiomeGenerationSettings::createEndHighlands() {
     // 末地高地：末地城 + 紫颂树
     BiomeGenerationSettings settings;
 
+    // 末地折跃门（用于连接外岛区域）
+    settings.addFeature(DecorationStage::SurfaceStructures, EndSurfaceFeatureIds::EndGateway);
+
     // TODO: 添加末地城结构
-    // TODO: 添加末地折跃门
     // TODO: 添加紫颂树特征
 
     return settings;

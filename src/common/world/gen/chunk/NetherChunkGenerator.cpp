@@ -2,15 +2,18 @@
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/StructureManager.hpp"
 #include "../structure/Structure.hpp"
+#include "../feature/ConfiguredFeature.hpp"
 #include "../carver/WorldCarver.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../biome/BiomeRegistry.hpp"
+#include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
+#include <mutex>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -39,7 +42,6 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed)
     , m_noiseSizeX(0)
     , m_noiseSizeY(0)
     , m_noiseSizeZ(0)
-    , m_random(seed)
 {
     initSettings();
     initNoiseGenerators();
@@ -60,7 +62,6 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed, DimensionSettings settings)
     , m_noiseSizeX(0)
     , m_noiseSizeY(0)
     , m_noiseSizeZ(0)
-    , m_random(seed)
 {
     initSettings();
     initNoiseGenerators();
@@ -244,12 +245,17 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
 
 void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) {
     MC_TRACE_EVENT("world.gen.nether", "BuildSurface");
+    MC_UNUSED(region);
 
     // 下界地表生成
     // 主要处理基岩层
+    math::Random bedrockRng(static_cast<u64>(chunk.x()) * 341873128712ULL +
+                            static_cast<u64>(chunk.z()) * 132897987541ULL +
+                            m_seed);
+
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
-            generateBedrock(chunk, x, z);
+            generateBedrock(chunk, x, z, bedrockRng);
         }
     }
 
@@ -289,9 +295,21 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
 
 void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) {
     MC_TRACE_EVENT("world.gen.nether", "PlaceFeatures");
-    // 下界特性：萤石、岩浆块、灵魂沙等
-    // 暂时使用基类实现
-    BaseChunkGenerator::placeFeatures(region, chunk);
+
+    // 线程安全初始化特征注册表（包含下界特征）
+    static std::once_flag s_featureRegistryInitFlag;
+    std::call_once(s_featureRegistryInitFlag, []() {
+        FeatureRegistry::instance().initialize();
+    });
+
+    const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
+    const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
+    const BiomeGenerationSettings& settings = biome.generationSettings();
+
+    // 使用统一的阶段管线放置下界生物群系配置的特征
+    for (DecorationStage stage : DecorationStages::getAll()) {
+        BiomeFeaturePlacer::placeFeaturesForStage(region, chunk, *this, settings, stage, m_seed);
+    }
 
     chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }
@@ -479,28 +497,29 @@ const BlockState* NetherChunkGenerator::getBlockForDensity(f32 density, i32 y) c
     return nullptr;
 }
 
-void NetherChunkGenerator::generateBedrock(ChunkPrimer& chunk, i32 x, i32 z) {
+void NetherChunkGenerator::generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const {
     const BlockState* bedrock = &VanillaBlocks::BEDROCK->getDefaultState();
 
-    // 底部基岩层（Y = 0 到几层）
-    // 基岩概率随高度递减
-    m_random.setSeed(chunk.x() * 341873128712LL + chunk.z() * 132897987541LL + x * 12345LL + z * 67890LL);
-
-    // 底部基岩
-    for (i32 y = 0; y <= m_bedrockFloor + 4; ++y) {
-        // 基岩概率：底部 100%，向上递减
-        const f32 probability = static_cast<f32>(m_bedrockFloor + 5 - y) / 5.0f;
-        if (m_random.nextFloat() < probability) {
-            chunk.setBlock(x, y, z, bedrock);
+    // 对齐 MC makeBedrock：底部/顶部各 5 层，按 nextInt(5) 决定每层是否放置。
+    if (m_bedrockFloor + 4 >= NETHER_MIN_Y && m_bedrockFloor < NETHER_HEIGHT) {
+        for (i32 offset = 0; offset < 5; ++offset) {
+            if (offset <= random.nextInt(5)) {
+                const i32 y = m_bedrockFloor + offset;
+                if (y >= NETHER_MIN_Y && y < NETHER_HEIGHT) {
+                    chunk.setBlock(x, y, z, bedrock);
+                }
+            }
         }
     }
 
-    // 顶部基岩（Y = ceiling 到 ceiling - 几层）
-    for (i32 y = m_bedrockCeiling - 4; y <= m_bedrockCeiling; ++y) {
-        // 基岩概率：顶部 100%，向下递减
-        const f32 probability = static_cast<f32>(y - (m_bedrockCeiling - 5)) / 5.0f;
-        if (m_random.nextFloat() < probability) {
-            chunk.setBlock(x, y, z, bedrock);
+    if (m_bedrockCeiling + 4 >= NETHER_MIN_Y && m_bedrockCeiling < NETHER_HEIGHT) {
+        for (i32 offset = 0; offset < 5; ++offset) {
+            if (offset <= random.nextInt(5)) {
+                const i32 y = m_bedrockCeiling - offset;
+                if (y >= NETHER_MIN_Y && y < NETHER_HEIGHT) {
+                    chunk.setBlock(x, y, z, bedrock);
+                }
+            }
         }
     }
 }
