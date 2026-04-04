@@ -487,6 +487,25 @@ rng.skip(2620);  // 噪声生成器初始化时跳过的随机数
 // 但如果后续给生成器新增可变成员，仍需重新评估并发安全性
 ```
 
+### 8. 噪声八度缩放方向
+
+```cpp
+// 错误：按常见 FBM 写法逐层放大坐标并衰减振幅
+frequency *= 2.0f;
+amplitude *= 2.0f;
+
+// 正确：对齐 MC 1.16.5 NoiseChunkGenerator
+// octaveScale 从 1.0 开始，每层乘 0.5；采样贡献除以 octaveScale
+octaveScale *= 0.5f;
+```
+
+如果这里实现方向错误，主世界会明显变平，常见现象是峰值高度长期卡在 80~90 左右。
+
+### 9. 地表构建器路由与维度基岩
+
+- `buildSurfaceForColumn()` 已接入“生物群系类别 -> 专用 SurfaceBuilder”主流程，并保留按 `BiomeId` 的回退映射，避免类别未完整配置时退化。
+- 基岩生成统一通过 `applyBedrock()` 实现，底部/顶部层均由 `DimensionSettings::bedrockFloor` 与 `DimensionSettings::bedrockRoof` 驱动。
+
 ## 涉及的测试用例
 
 ### test_chunk_generation.cpp
@@ -517,6 +536,9 @@ rng.skip(2620);  // 噪声生成器初始化时跳过的随机数
 | `StructureSeedDeterminism` | 结构生成种子确定性 |
 | `NextLongNoArgs` | 随机数生成器 nextLong 方法 |
 | `LayerBiomeProviderMultipleSamples` | 生物群系多次采样一致性 |
+| `LayerBiomeProviderNoiseBatchMatchesScalarSampling` | 噪声生物群系批量采样与逐点采样一致性 |
+| `LayerBiomeProviderContainerMatchesNoiseGrid` | 区块生物群系容器与噪声网格坐标一致性 |
+| `OverworldTerrainHasTallReliefInSampleWindow` | 主世界高度峰值/起伏回归（防止地形压扁） |
 
 ### NoiseSurfaceParityTest.cpp
 

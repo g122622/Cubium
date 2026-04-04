@@ -10,6 +10,7 @@
 #include "../feature/DecorationStage.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../structure/StructureManager.hpp"
+#include "../surface/SurfaceBuilders.hpp"
 #include "../../biome/BiomeProvider.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
@@ -176,6 +177,13 @@ private:
      * 并尽量对齐 MC 1.16.5 的调用参数。
      */
     [[nodiscard]] f32 sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const;
+
+    /**
+     * @brief 生成顶部/底部基岩层
+     *
+     * 参考 MC makeBedrock，使用维度设置中的基岩锚点控制上下基岩。
+     */
+    void applyBedrock(ChunkPrimer& chunk, math::Random& random) const;
 
     void buildSurfaceForColumn(
         ChunkPrimer& chunk,

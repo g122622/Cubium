@@ -501,13 +501,16 @@ for (i32 z = 0; z < 16; ++z) {
 ### 使用 LayerBiomeProvider
 
 ```cpp
-#include "world/biome/LayerBiomeProvider.hpp"
+#include "world/biome/layer/LayerUtil.hpp"
 
 // 创建生物群系提供者
 LayerBiomeProvider provider(worldSeed);
 
 // 查询生物群系
-BiomeId biome = provider.getBiome(blockX, blockZ);
+BiomeId biome = provider.getBiome(blockX, 64, blockZ);
+
+// 查询噪声坐标生物群系（1 噪声单元 = 4 方块）
+BiomeId noiseBiome = provider.getNoiseBiome(noiseX, 0, noiseZ);
 ```
 
 ## 容易踩的坑
@@ -582,6 +585,22 @@ value = value & ~BiomeValues::SpecialBits::Mask;  // 清除特殊位
 
 // 带 SpecialEdgeLayer 后，特殊位可能被设置
 // BiomeLayer 会根据特殊位生成恶地变体
+```
+
+### 7. 噪声坐标批量采样步长
+
+**问题**: 将噪声坐标批量采样错误地当作连续方块坐标会压缩采样窗口，导致地形起伏异常偏小。
+
+```cpp
+// 错误：起点放大后直接按 1 方块步长连续采样
+sampleBatch(startNoiseX << 2, startNoiseZ << 2, width, height, output);
+
+// 正确：保持噪声网格语义，与 getNoiseBiome(startNoiseX + x, ...) 一致
+for (i32 z = 0; z < height; ++z) {
+    for (i32 x = 0; x < width; ++x) {
+        output[idx++] = sample(startNoiseX + x, startNoiseZ + z);
+    }
+}
 ```
 
 ## 涉及的测试用例

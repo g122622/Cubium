@@ -401,8 +401,8 @@ BiomeId LayerBiomeProvider::getBiome(i32 x, i32 y, i32 z) const {
 BiomeId LayerBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const {
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetNoiseBiome", "noiseX", noiseX, "noiseZ", noiseZ);
     (void)noiseY;  // Layer 系统不使用 Y 坐标
-    // 噪声坐标是 4x4 方块一个大块
-    return m_layerStack->sample(noiseX << 2, noiseZ << 2);
+    // 对齐 MC 1.16.5 OverworldBiomeProvider：噪声坐标直接传入层采样。
+    return m_layerStack->sample(noiseX, noiseZ);
 }
 
 f32 LayerBiomeProvider::getDepth(i32 x, i32 z) const {
@@ -425,14 +425,13 @@ const Biome& LayerBiomeProvider::getBiomeDefinition(BiomeId id) const {
 
 void LayerBiomeProvider::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) {
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_FillBiomeContainer", "chunkX", chunkX, "chunkZ", chunkZ);
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 startNoiseX = chunkX << 2;
+    const i32 startNoiseZ = chunkZ << 2;
 
     // 使用批量采样优化
-    // BiomeContainer 是 4x4x4 网格，每个采样点间隔 4 方块
-    // 水平方向是 4x4 = 16 个采样点
+    // BiomeContainer 是 4x4x4 网格，水平坐标使用噪声坐标（每格对应 4 方块）
     std::array<BiomeId, 16> horizontalBiomes;
-    m_layerStack->sampleBatch(startX, startZ, 4, 4, horizontalBiomes.data());
+    getNoiseBiomesBatch(startNoiseX, 0, startNoiseZ, 4, 4, horizontalBiomes.data());
 
     // 填充到容器（高度方向复用水平分布）
     for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
@@ -458,8 +457,17 @@ void LayerBiomeProvider::getNoiseBiomesBatch(i32 startNoiseX, i32 startNoiseY, i
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetNoiseBiomesBatch", "startNoiseX", startNoiseX, "startNoiseZ", startNoiseZ, "width", width, "height", height);
     (void)startNoiseY;  // Layer 系统不使用 Y 坐标
 
-    // 噪声坐标转换为方块坐标（1 噪声单元 = 4 方块）
-    m_layerStack->sampleBatch(startNoiseX << 2, startNoiseZ << 2, width, height, output);
+    if (output == nullptr || width <= 0 || height <= 0) {
+        return;
+    }
+
+    // 对齐 getNoiseBiome：噪声坐标直接采样层系统。
+    size_t idx = 0;
+    for (i32 z = 0; z < height; ++z) {
+        for (i32 x = 0; x < width; ++x) {
+            output[idx++] = m_layerStack->sample(startNoiseX + x, startNoiseZ + z);
+        }
+    }
 }
 
 } // namespace mc

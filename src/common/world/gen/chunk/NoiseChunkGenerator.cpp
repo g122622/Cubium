@@ -11,6 +11,7 @@
 #include "../../biome/layer/LayerUtil.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/ore/OreFeature.hpp"
+#include "../surface/SurfaceBuilders.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -26,6 +27,109 @@ namespace mc {
 // ============================================================================
 
 constexpr f32 BIOME_WEIGHT_SCALE = 10.0f;
+
+namespace {
+
+[[nodiscard]] SurfaceBuilderConfig makeSurfaceConfigFromBiome(const Biome& biome, const BlockState* defaultBlock) {
+    const BlockState* top = biome.surfaceBlock();
+    const BlockState* under = biome.subSurfaceBlock();
+    const BlockState* underWater = biome.underWaterBlock();
+
+    if (top == nullptr) {
+        top = defaultBlock;
+    }
+    if (under == nullptr) {
+        under = defaultBlock;
+    }
+    if (underWater == nullptr) {
+        underWater = under;
+    }
+
+    return SurfaceBuilderConfig(top, under, underWater);
+}
+
+[[nodiscard]] SurfaceBuilder* selectSpecialSurfaceBuilder(const Biome& biome, BiomeId biomeId) {
+    static MountainSurfaceBuilder mountainBuilder;
+    static DesertSurfaceBuilder desertBuilder;
+    static SwampSurfaceBuilder swampBuilder;
+    static FrozenOceanSurfaceBuilder frozenOceanBuilder;
+    static BadlandsSurfaceBuilder badlandsBuilder;
+    static BeachSurfaceBuilder beachBuilder;
+    static GiantTreeTaigaSurfaceBuilder giantTaigaBuilder;
+    static ShatteredSavannaSurfaceBuilder shatteredSavannaBuilder;
+    static BambooJungleSurfaceBuilder bambooJungleBuilder;
+
+    switch (biome.category()) {
+        case Biome::Category::ExtremeHills:
+            return &mountainBuilder;
+        case Biome::Category::Desert:
+            return &desertBuilder;
+        case Biome::Category::Swamp:
+            return &swampBuilder;
+        case Biome::Category::Mesa:
+            return &badlandsBuilder;
+        case Biome::Category::Beach:
+            return &beachBuilder;
+        default:
+            break;
+    }
+
+    switch (biomeId) {
+        case Biomes::Mountains:
+        case Biomes::SnowyMountains:
+        case Biomes::MountainEdge:
+        case Biomes::WoodedMountains:
+        case Biomes::GravellyMountains:
+        case Biomes::ModifiedGravellyMountains:
+            return &mountainBuilder;
+
+        case Biomes::Desert:
+        case Biomes::DesertHills:
+        case Biomes::DesertLakes:
+            return &desertBuilder;
+
+        case Biomes::Swamp:
+        case Biomes::SwampHills:
+            return &swampBuilder;
+
+        case Biomes::Beach:
+        case Biomes::StoneShore:
+        case Biomes::SnowyBeach:
+        case Biomes::MushroomFieldShore:
+            return &beachBuilder;
+
+        case Biomes::FrozenOcean:
+        case Biomes::DeepFrozenOcean:
+            return &frozenOceanBuilder;
+
+        case Biomes::Badlands:
+        case Biomes::WoodedBadlandsPlateau:
+        case Biomes::BadlandsPlateau:
+        case Biomes::ErodedBadlands:
+        case Biomes::ModifiedWoodedBadlandsPlateau:
+        case Biomes::ModifiedBadlandsPlateau:
+            return &badlandsBuilder;
+
+        case Biomes::GiantTreeTaiga:
+        case Biomes::GiantTreeTaigaHills:
+        case Biomes::GiantSpruceTaiga:
+        case Biomes::GiantSpruceTaigaHills:
+            return &giantTaigaBuilder;
+
+        case Biomes::ShatteredSavanna:
+        case Biomes::ShatteredSavannaPlateau:
+            return &shatteredSavannaBuilder;
+
+        case Biomes::BambooJungle:
+        case Biomes::BambooJungleHills:
+            return &bambooJungleBuilder;
+
+        default:
+            return nullptr;
+    }
+}
+
+} // namespace
 
 // ============================================================================
 // NoiseChunkGenerator 实现
@@ -495,22 +599,21 @@ f32 NoiseChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noise
     f32 secondaryDensity = 0.0f;
     f32 weight = 0.0f;
 
-    f32 frequency = 1.0f;
-    f32 amplitude = 1.0f;
+    f32 octaveScale = 1.0f;
 
     for (i32 octave = 0; octave < 16; ++octave) {
         // 保持精度
-        const f32 px = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseX) * xzScale * frequency);
-        const f32 py = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseY) * yScale * frequency);
-        const f32 pz = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseZ) * xzScale * frequency);
+        const f32 px = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseX) * xzScale * octaveScale);
+        const f32 py = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseY) * yScale * octaveScale);
+        const f32 pz = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseZ) * xzScale * octaveScale);
 
-        const f32 yFreq = yScale * frequency;
+        const f32 yFreq = yScale * octaveScale;
 
         // 主密度噪声
         if (m_mainDensityNoise) {
             const ImprovedNoiseGenerator* gen = m_mainDensityNoise->getOctave(octave);
             if (gen) {
-                density += gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq) / amplitude;
+                density += gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq) / octaveScale;
             }
         }
 
@@ -518,7 +621,7 @@ f32 NoiseChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noise
         if (m_secondaryDensityNoise) {
             const ImprovedNoiseGenerator* gen = m_secondaryDensityNoise->getOctave(octave);
             if (gen) {
-                secondaryDensity += gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq) / amplitude;
+                secondaryDensity += gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq) / octaveScale;
             }
         }
 
@@ -526,16 +629,15 @@ f32 NoiseChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noise
         if (octave < 8 && m_weightNoise) {
             const ImprovedNoiseGenerator* gen = m_weightNoise->getOctave(octave);
             if (gen) {
-                const f32 wpx = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseX) * xzFactor * frequency);
-                const f32 wpy = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseY) * yFactor * frequency);
-                const f32 wpz = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseZ) * xzFactor * frequency);
+                const f32 wpx = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseX) * xzFactor * octaveScale);
+                const f32 wpy = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseY) * yFactor * octaveScale);
+                const f32 wpz = OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseZ) * xzFactor * octaveScale);
 
-                weight += gen->noise(wpx, wpy, wpz, yFactor * frequency, static_cast<f32>(noiseY) * yFactor * frequency) / amplitude;
+                weight += gen->noise(wpx, wpy, wpz, yFactor * octaveScale, static_cast<f32>(noiseY) * yFactor * octaveScale) / octaveScale;
             }
         }
 
-        frequency *= 2.0f;
-        amplitude *= 2.0f;
+        octaveScale *= 0.5f;
     }
 
     // 混合密度
@@ -653,18 +755,7 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     // === 阶段 2: 生成基岩 ===
     {
         MC_TRACE_EVENT("world.chunk_gen", "BuildSurface_Bedrock");
-        const BlockState* bedrockState = VanillaBlocks::BEDROCK ? &VanillaBlocks::BEDROCK->defaultState() : nullptr;
-        if (bedrockState) {
-            for (i32 localX = 0; localX < 16; ++localX) {
-                for (i32 localZ = 0; localZ < 16; ++localZ) {
-                    for (i32 y = 0; y < 5; ++y) {
-                        if (y <= surfaceRng.nextInt(5)) {
-                            chunk.setBlock(localX, y, localZ, bedrockState);
-                        }
-                    }
-                }
-            }
-        }
+        applyBedrock(chunk, surfaceRng);
     }
 
     // 标记阶段完成
@@ -685,6 +776,25 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
     }
 
     const Biome& biomeDef = m_biomeProvider->getBiomeDefinition(biome);
+
+    if (SurfaceBuilder* specialBuilder = selectSpecialSurfaceBuilder(biomeDef, biome);
+        specialBuilder != nullptr) {
+        const SurfaceBuilderConfig config = makeSurfaceConfigFromBiome(biomeDef, m_settings.defaultBlock);
+        specialBuilder->buildSurface(
+            random,
+            chunk,
+            biomeDef,
+            x,
+            z,
+            startHeight,
+            surfaceNoise,
+            m_settings.defaultBlock,
+            m_settings.defaultFluid,
+            m_settings.seaLevel,
+            config);
+        return;
+    }
+
     const i32 seaLevel = m_settings.seaLevel;
 
     const BlockState* airState = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
@@ -768,6 +878,50 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
                     }
                 } else if (VanillaBlocks::SANDSTONE != nullptr) {
                     middleState = &VanillaBlocks::SANDSTONE->defaultState();
+                }
+            }
+        }
+    }
+}
+
+void NoiseChunkGenerator::applyBedrock(ChunkPrimer& chunk, math::Random& random) const
+{
+    const BlockState* bedrockState = VanillaBlocks::BEDROCK ? &VanillaBlocks::BEDROCK->defaultState() : nullptr;
+    if (bedrockState == nullptr) {
+        return;
+    }
+
+    const i32 noiseHeight = m_settings.noise.height;
+    const i32 floorAnchor = m_settings.bedrockFloor;
+    const i32 roofAnchor = m_settings.bedrockRoof;
+
+    const bool hasFloor = floorAnchor + 4 >= 0 && floorAnchor < noiseHeight;
+    const bool hasRoof = roofAnchor + 4 >= 0 && roofAnchor < noiseHeight;
+    if (!hasFloor && !hasRoof) {
+        return;
+    }
+
+    for (i32 localX = 0; localX < 16; ++localX) {
+        for (i32 localZ = 0; localZ < 16; ++localZ) {
+            if (hasFloor) {
+                for (i32 offset = 0; offset < 5; ++offset) {
+                    if (offset <= random.nextInt(5)) {
+                        const i32 y = floorAnchor + offset;
+                        if (y >= 0 && y < noiseHeight) {
+                            chunk.setBlock(localX, y, localZ, bedrockState);
+                        }
+                    }
+                }
+            }
+
+            if (hasRoof) {
+                for (i32 offset = 0; offset < 5; ++offset) {
+                    if (offset <= random.nextInt(5)) {
+                        const i32 y = roofAnchor - offset;
+                        if (y >= 0 && y < noiseHeight) {
+                            chunk.setBlock(localX, y, localZ, bedrockState);
+                        }
+                    }
                 }
             }
         }

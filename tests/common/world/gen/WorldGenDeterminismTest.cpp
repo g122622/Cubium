@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/biome/layer/LayerUtil.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <array>
 #include <cmath>
+#include <limits>
 #include <memory>
 
 namespace mc {
@@ -19,6 +21,7 @@ namespace {
 class WorldGenDeterminismTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
     }
 };
@@ -42,6 +45,59 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderDeterminism) {
         BiomeId biome2 = provider2->getBiome(x, 64, z);
 
         EXPECT_EQ(biome1, biome2) << "Biome mismatch at (" << x << ", " << z << ")";
+    }
+}
+
+/**
+ * @brief 测试噪声坐标批量采样与逐点采样一致
+ */
+TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSampling) {
+    const u64 seed = 24680;
+    LayerBiomeProvider provider(seed, false);
+
+    constexpr i32 startNoiseX = -40;
+    constexpr i32 startNoiseZ = 28;
+    constexpr i32 width = 7;
+    constexpr i32 height = 6;
+
+    std::array<BiomeId, width * height> batch{};
+    provider.getNoiseBiomesBatch(startNoiseX, 0, startNoiseZ, width, height, batch.data());
+
+    size_t idx = 0;
+    for (i32 z = 0; z < height; ++z) {
+        for (i32 x = 0; x < width; ++x) {
+            const BiomeId scalar = provider.getNoiseBiome(startNoiseX + x, 0, startNoiseZ + z);
+            EXPECT_EQ(batch[idx], scalar)
+                << "Noise batch mismatch at local(" << x << ", " << z << ")";
+            ++idx;
+        }
+    }
+}
+
+/**
+ * @brief 测试区块生物群系容器使用噪声网格坐标填充
+ */
+TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid) {
+    const u64 seed = 13579;
+    LayerBiomeProvider provider(seed, false);
+
+    constexpr ChunkCoord chunkX = 3;
+    constexpr ChunkCoord chunkZ = -2;
+    constexpr i32 startNoiseX = chunkX << 2;
+    constexpr i32 startNoiseZ = chunkZ << 2;
+
+    BiomeContainer container;
+    provider.fillBiomeContainer(container, chunkX, chunkZ);
+
+    for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
+        for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
+            for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+                const BiomeId expected = provider.getNoiseBiome(startNoiseX + bx, 0, startNoiseZ + bz);
+                const BiomeId actual = container.getBiome(bx, by, bz);
+                EXPECT_EQ(actual, expected)
+                    << "Biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
+            }
+        }
     }
 }
 
@@ -337,6 +393,32 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderMultipleSamples) {
 
         EXPECT_EQ(b1, b2) << "Biome mismatch at (" << x << ", " << z << ") iteration " << i;
     }
+}
+
+/**
+ * @brief 测试主世界在采样窗口内具备足够地形起伏
+ */
+TEST_F(WorldGenDeterminismTest, OverworldTerrainHasTallReliefInSampleWindow) {
+    const std::array<u64, 3> seeds{12345ULL, 987654321ULL, 20260404ULL};
+
+    i32 maxHeight = std::numeric_limits<i32>::min();
+    i32 minHeight = std::numeric_limits<i32>::max();
+
+    for (u64 seed : seeds) {
+        DimensionSettings settings = DimensionSettings::overworld();
+        NoiseChunkGenerator generator(seed, std::move(settings));
+
+        for (i32 z = -512; z <= 512; z += 32) {
+            for (i32 x = -512; x <= 512; x += 32) {
+                const i32 height = generator.getHeight(x, z, HeightmapType::WorldSurfaceWG);
+                maxHeight = std::max(maxHeight, height);
+                minHeight = std::min(minHeight, height);
+            }
+        }
+    }
+
+    EXPECT_GE(maxHeight, 96) << "Terrain peak is unexpectedly low";
+    EXPECT_GE(maxHeight - minHeight, 30) << "Terrain relief is unexpectedly flat";
 }
 
 } // namespace
