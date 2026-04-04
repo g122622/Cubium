@@ -3,7 +3,15 @@
 #include "../../../IWorldWriter.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include <algorithm>
 #include <cmath>
+#include <mutex>
+
+namespace {
+
+std::mutex g_lakeFeaturesMutex;
+
+} // namespace
 
 namespace mc::world::gen::feature::lake {
 
@@ -13,6 +21,10 @@ LakeFeature::LakeFeature(const LakeFeatureConfig& config)
 }
 
 bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i32 z) {
+    if (m_config.fluidState == nullptr) {
+        return false;
+    }
+
     // 湖泊大小参数
     constexpr i32 RADIUS_X = 8;
     constexpr i32 RADIUS_Y = 4;
@@ -122,3 +134,99 @@ std::unique_ptr<LakeFeature> createLavaLakeFeature() {
 }
 
 } // namespace mc::world::gen::feature::lake
+
+namespace mc {
+
+std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::s_features;
+
+ConfiguredLakeFeature::ConfiguredLakeFeature(
+    world::gen::feature::lake::LakeFeatureConfig config,
+    const char* featureName,
+    i32 chance,
+    i32 minY,
+    i32 maxY)
+    : m_feature(config)
+    , m_name(featureName)
+    , m_chance(std::max(1, chance))
+    , m_minY(minY)
+    , m_maxY(std::max(minY, maxY))
+    , m_isLava(config.fluidBlock == VanillaBlocks::LAVA)
+{
+}
+
+bool ConfiguredLakeFeature::place(
+    WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos)
+{
+    (void)chunk;
+
+    if (m_chance > 1 && random.nextInt(m_chance) != 0) {
+        return false;
+    }
+
+    i32 minY = m_minY;
+    i32 maxY = m_maxY;
+
+    if (m_isLava) {
+        const i32 seaLevel = generator.seaLevel();
+        maxY = std::min(maxY, seaLevel + 8);
+
+        // 熔岩湖通常更偏地下，保留少量高位湖泊。
+        if (random.nextInt(10) != 0) {
+            maxY = std::min(maxY, seaLevel - 8);
+        }
+        maxY = std::max(maxY, minY);
+    }
+
+    const i32 x = pos.x + random.nextInt(16) + 8;
+    const i32 z = pos.z + random.nextInt(16) + 8;
+    const i32 y = minY + random.nextInt(maxY - minY + 1);
+
+    return m_feature.place(region, random, x, y, z);
+}
+
+void LakeFeatures::initialize()
+{
+    std::lock_guard<std::mutex> lock(g_lakeFeaturesMutex);
+    s_features.clear();
+    s_features.push_back(createWaterLake());
+    s_features.push_back(createLavaLake());
+}
+
+const std::vector<std::unique_ptr<ConfiguredLakeFeature>>& LakeFeatures::getAllFeatures()
+{
+    return s_features;
+}
+
+std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::getAllFeaturesAndClear()
+{
+    std::lock_guard<std::mutex> lock(g_lakeFeaturesMutex);
+    std::vector<std::unique_ptr<ConfiguredLakeFeature>> result;
+    result.swap(s_features);
+    return result;
+}
+
+std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createWaterLake()
+{
+    return std::make_unique<ConfiguredLakeFeature>(
+        world::gen::feature::lake::LakeFeature::createWaterLake(),
+        "water_lake",
+        4,
+        20,
+        127);
+}
+
+std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createLavaLake()
+{
+    return std::make_unique<ConfiguredLakeFeature>(
+        world::gen::feature::lake::LakeFeature::createLavaLake(),
+        "lava_lake",
+        8,
+        10,
+        63);
+}
+
+} // namespace mc

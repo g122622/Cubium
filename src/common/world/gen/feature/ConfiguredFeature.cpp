@@ -1,4 +1,5 @@
 #include "ConfiguredFeature.hpp"
+#include "lake/LakeFeature.hpp"
 #include "ore/OreFeature.hpp"
 #include "tree/TreeFeature.hpp"
 #include "vegetation/VegetationFeatures.hpp"
@@ -36,6 +37,15 @@ FeatureRegistry::~FeatureRegistry() = default;
 
 void FeatureRegistry::initialize() {
     clear();
+
+    // 注册湖泊特征（LAKES 阶段）
+    LakeFeatures::initialize();
+    auto lakeFeatures = LakeFeatures::getAllFeaturesAndClear();
+    for (auto& feature : lakeFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::Lakes);
+        }
+    }
 
     // 注册矿石特征（UNDERGROUND_ORES 阶段）
     OreFeatures::initialize();
@@ -234,24 +244,36 @@ void FeatureGenerator::placeFeatures(
 
     const auto& features = FeatureRegistry::instance().getFeatures(stage);
 
-    // 计算区块随机种子
     const i32 chunkX = chunk.x();
     const i32 chunkZ = chunk.z();
-    const u64 chunkSeed = seed
-        ^ static_cast<u64>(static_cast<i64>(chunkX) * 341873128712ULL)
-        ^ static_cast<u64>(static_cast<i64>(chunkZ) * 132897987541ULL);
+    const i32 startX = chunkX * 16;
+    const i32 startZ = chunkZ * 16;
 
-    math::Random random(static_cast<u32>(chunkSeed));
+    // 参考 MC setDecorationSeed：
+    // i = nextLong() | 1
+    // j = nextLong() | 1
+    // decorSeed = x * i + z * j ^ worldSeed
+    math::Random random(seed);
+    const u64 i = random.nextLong() | 1ULL;
+    const u64 j = random.nextLong() | 1ULL;
+    const u64 decorSeed = (static_cast<u64>(startX) * i + static_cast<u64>(startZ) * j) ^ seed;
+    random.setSeed(decorSeed);
 
     // 区块原点位置
-    const BlockPos chunkOrigin(chunkX * 16, 0, chunkZ * 16);
+    const BlockPos chunkOrigin(startX, 0, startZ);
+
+    // 参考 MC setFeatureSeed：featureSeed = decorSeed + featureIndex + 10000 * stageOrdinal
+    const i32 stageOrdinal = static_cast<i32>(stage);
+    i32 featureIndex = 0;
 
     // 放置每个特征
     for (u32 featureId : featureIds) {
         if (featureId < features.size() && features[featureId]) {
             ConfiguredFeatureBase* feature = features[featureId];
-            random.setSeed(chunkSeed ^ static_cast<u64>(featureId));
+            const u64 featureSeed = decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
+            random.setSeed(featureSeed);
             feature->place(region, chunk, generator, random, chunkOrigin);
+            ++featureIndex;
         }
     }
 }

@@ -12,6 +12,7 @@
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/ore/OreFeature.hpp"
 #include "../surface/SurfaceBuilders.hpp"
+#include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -150,25 +151,8 @@ NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings)
     BiomeRegistry::instance().initialize();
     m_biomeProvider = std::make_unique<LayerBiomeProvider>(seed);
 
-    // 初始化洞穴雕刻器
-    // 洞穴概率参考 MC: 1/7 ≈ 0.14285715
-    m_caveCarver = std::make_unique<CaveCarver>(256);
-    m_caveConfig = ProbabilityConfig(0.14285715f);
-
-    // 峡谷概率更低
-    m_canyonCarver = std::make_unique<CanyonCarver>(256);
-    m_canyonConfig = ProbabilityConfig(0.02f);
-
-    // 初始化水下雕刻器
-    m_underwaterCaveCarver = std::make_unique<world::gen::carver::UnderwaterCaveCarver>();
-    m_underwaterCanyonCarver = std::make_unique<world::gen::carver::UnderwaterCanyonCarver>();
-
-    // 初始化结构管理器
-    world::gen::structure::StructureRegistry::initialize();
-    m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(seed));
-
-    // 初始化放置器注册表
-    PlacementRegistry::instance().initialize();
+    initCarvers();
+    initGenerationRegistries();
 }
 
 NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings,
@@ -187,12 +171,14 @@ NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings,
     // 确保生物群系注册表已初始化（默认构造路径会初始化，注入路径也需要）
     BiomeRegistry::instance().initialize();
 
-    // 初始化结构管理器
-    world::gen::structure::StructureRegistry::initialize();
-    m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(seed));
+    MC_PRECONDITION(m_biomeProvider != nullptr);
+    if (m_biomeProvider == nullptr) {
+        spdlog::warn("[NoiseChunkGenerator] Injected biome provider is null, fallback to LayerBiomeProvider");
+        m_biomeProvider = std::make_unique<LayerBiomeProvider>(seed);
+    }
 
-    // 初始化放置器注册表
-    PlacementRegistry::instance().initialize();
+    initCarvers();
+    initGenerationRegistries();
 }
 
 NoiseChunkGenerator::~NoiseChunkGenerator() = default;
@@ -251,6 +237,31 @@ void NoiseChunkGenerator::initBiomeWeights()
             m_biomeWeights[index] = static_cast<f32>(BIOME_WEIGHT_SCALE / std::sqrt(distance + 0.2));
         }
     }
+}
+
+void NoiseChunkGenerator::initCarvers()
+{
+    // 洞穴概率参考 MC: 1/7 ≈ 0.14285715
+    m_caveCarver = std::make_unique<CaveCarver>(256);
+    m_caveConfig = ProbabilityConfig(0.14285715f);
+
+    // 峡谷概率更低
+    m_canyonCarver = std::make_unique<CanyonCarver>(256);
+    m_canyonConfig = ProbabilityConfig(0.02f);
+
+    // 水下雕刻器与普通雕刻阶段共用概率配置
+    m_underwaterCaveCarver = std::make_unique<world::gen::carver::UnderwaterCaveCarver>();
+    m_underwaterCanyonCarver = std::make_unique<world::gen::carver::UnderwaterCanyonCarver>();
+}
+
+void NoiseChunkGenerator::initGenerationRegistries()
+{
+    // 初始化结构管理器
+    world::gen::structure::StructureRegistry::initialize();
+    m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));
+
+    // 初始化放置器注册表
+    PlacementRegistry::instance().initialize();
 }
 
 // ============================================================================

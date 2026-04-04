@@ -1,7 +1,10 @@
 #pragma once
 
 #include "../Feature.hpp"
+#include "../ConfiguredFeature.hpp"
 #include <memory>
+#include <string>
+#include <vector>
 
 // Forward declarations
 namespace mc {
@@ -85,3 +88,79 @@ std::unique_ptr<LakeFeature> createWaterLakeFeature();
 std::unique_ptr<LakeFeature> createLavaLakeFeature();
 
 } // namespace mc::world::gen::feature::lake
+
+namespace mc {
+
+/**
+ * @brief 配置化湖泊特征
+ *
+ * 将 LakeFeature 适配到 ConfiguredFeatureBase 流水线，
+ * 用于在 Lakes 阶段统一注册和触发。
+ */
+class ConfiguredLakeFeature : public ConfiguredFeatureBase {
+public:
+    /**
+     * @brief 构造配置化湖泊特征
+     * @param config 湖泊配置
+     * @param featureName 特征名称
+     * @param chance 触发概率分母（1/chance）
+     * @param minY 采样最小高度（含）
+     * @param maxY 采样最大高度（含）
+     */
+    ConfiguredLakeFeature(
+        world::gen::feature::lake::LakeFeatureConfig config,
+        const char* featureName,
+        i32 chance,
+        i32 minY,
+        i32 maxY);
+
+    /**
+     * @brief 在区块中尝试放置湖泊
+     *
+     * @note 本方法会自行做概率门控和高度采样。
+     */
+    bool place(
+        WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
+
+    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
+    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::Lakes; }
+
+private:
+    world::gen::feature::lake::LakeFeature m_feature;
+    std::string m_name;
+    i32 m_chance;
+    i32 m_minY;
+    i32 m_maxY;
+    bool m_isLava;
+};
+
+/**
+ * @brief 湖泊特征集合
+ *
+ * 负责创建并缓存 Lakes 阶段的配置化特征。
+ */
+struct LakeFeatures {
+    /// 初始化所有湖泊特征
+    static void initialize();
+
+    /// 获取所有湖泊特征
+    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredLakeFeature>>& getAllFeatures();
+
+    /// 获取所有湖泊特征并转移所有权
+    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredLakeFeature>> getAllFeaturesAndClear();
+
+    /// 创建水湖特征
+    static std::unique_ptr<ConfiguredLakeFeature> createWaterLake();
+
+    /// 创建熔岩湖特征
+    static std::unique_ptr<ConfiguredLakeFeature> createLavaLake();
+
+private:
+    static std::vector<std::unique_ptr<ConfiguredLakeFeature>> s_features;
+};
+
+} // namespace mc

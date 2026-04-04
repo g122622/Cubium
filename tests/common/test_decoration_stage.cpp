@@ -1,9 +1,58 @@
 #include <gtest/gtest.h>
+#include <array>
+#include <vector>
 #include "../src/common/world/gen/feature/DecorationStage.hpp"
 #include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
+#include "../src/common/world/gen/feature/FeatureIds.hpp"
+#include "../src/common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "../src/common/world/chunk/ChunkPrimer.hpp"
+#include "../src/common/world/biome/Biome.hpp"
 #include "../src/common/world/biome/BiomeGenerationSettings.hpp"
+#include "../src/common/world/block/VanillaBlocks.hpp"
 
 using namespace mc;
+
+namespace {
+
+struct SeedProbeCall {
+    u32 featureOrdinal;
+    u64 sampledValue;
+};
+
+class SeedProbeFeature final : public ConfiguredFeatureBase {
+public:
+    explicit SeedProbeFeature(u32 featureOrdinal)
+        : m_featureOrdinal(featureOrdinal) {}
+
+    bool place(
+        WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override {
+        (void)region;
+        (void)chunk;
+        (void)generator;
+        (void)pos;
+
+        s_calls.push_back(SeedProbeCall{m_featureOrdinal, random.nextU64()});
+        return true;
+    }
+
+    [[nodiscard]] const char* name() const override { return "seed_probe"; }
+    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
+
+    static void clearCalls() { s_calls.clear(); }
+    [[nodiscard]] static const std::vector<SeedProbeCall>& calls() { return s_calls; }
+
+private:
+    u32 m_featureOrdinal;
+    static std::vector<SeedProbeCall> s_calls;
+};
+
+std::vector<SeedProbeCall> SeedProbeFeature::s_calls;
+
+} // namespace
 
 // ============================================================================
 // DecorationStage Tests
@@ -137,6 +186,12 @@ TEST_F(BiomeGenerationSettingsTest, CreateDefault) {
     // 矿石应该在 UndergroundOres 阶段
     const auto& ores = settings.getFeatures(DecorationStage::UndergroundOres);
     EXPECT_GE(ores.size(), 1u);
+
+    // 默认应挂接基础湖泊特征
+    const auto& lakes = settings.getFeatures(DecorationStage::Lakes);
+    ASSERT_EQ(lakes.size(), 2u);
+    EXPECT_EQ(lakes[0], LakeFeatureIds::WaterLake);
+    EXPECT_EQ(lakes[1], LakeFeatureIds::LavaLake);
 }
 
 TEST_F(BiomeGenerationSettingsTest, CreatePlains) {
@@ -220,4 +275,56 @@ TEST_F(FeatureRegistryTest, GetFeaturesReturnsEmptyForUnregisteredStage) {
 
     const auto& features = FeatureRegistry::instance().getFeatures(DecorationStage::UndergroundOres);
     EXPECT_TRUE(features.empty());
+}
+
+TEST_F(FeatureRegistryTest, FeatureGeneratorUsesMcStyleFeatureSeed) {
+    VanillaBlocks::initialize();
+    SeedProbeFeature::clearCalls();
+
+    FeatureRegistry::instance().registerFeature(
+        std::make_unique<SeedProbeFeature>(0), DecorationStage::VegetalDecoration);
+    FeatureRegistry::instance().registerFeature(
+        std::make_unique<SeedProbeFeature>(1), DecorationStage::VegetalDecoration);
+
+    Biome biome(Biomes::Plains, "seed_probe_biome");
+    BiomeGenerationSettings settings;
+    settings.addFeature(DecorationStage::VegetalDecoration, 0);
+    settings.addFeature(DecorationStage::VegetalDecoration, 1);
+    biome.setGenerationSettings(settings);
+
+    ChunkPrimer chunk(7, -3);
+    std::array<IChunk*, 9> chunks{};
+    chunks.fill(&chunk);
+    WorldGenRegion region(chunk.x(), chunk.z(), chunks);
+    DebugChunkGenerator generator;
+
+    constexpr u64 worldSeed = 0xABCDEF1234567890ULL;
+    FeatureGenerator::placeFeatures(
+        region,
+        chunk,
+        generator,
+        biome,
+        DecorationStage::VegetalDecoration,
+        worldSeed);
+
+    const auto& calls = SeedProbeFeature::calls();
+    ASSERT_EQ(calls.size(), 2u);
+    EXPECT_EQ(calls[0].featureOrdinal, 0u);
+    EXPECT_EQ(calls[1].featureOrdinal, 1u);
+
+    const i32 startX = chunk.x() * 16;
+    const i32 startZ = chunk.z() * 16;
+    math::Random decorRng(worldSeed);
+    const u64 i = decorRng.nextLong() | 1ULL;
+    const u64 j = decorRng.nextLong() | 1ULL;
+    const u64 decorSeed = (static_cast<u64>(startX) * i + static_cast<u64>(startZ) * j) ^ worldSeed;
+
+    const i32 stageOrdinal = static_cast<i32>(DecorationStage::VegetalDecoration);
+    for (u32 featureIndex = 0; featureIndex < 2u; ++featureIndex) {
+        const u64 featureSeed =
+            decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
+        math::Random expectedRng(featureSeed);
+        const u64 expectedSample = expectedRng.nextU64();
+        EXPECT_EQ(calls[featureIndex].sampledValue, expectedSample);
+    }
 }

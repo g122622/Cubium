@@ -96,6 +96,7 @@ add_executable(mc_tests
     common/world/gen/WorldGenSpawnerTest.cpp
     common/world/gen/OceanFeatureTest.cpp
     common/world/gen/NoiseSurfaceParityTest.cpp
+    common/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
     common/world/gen/NetherSurfaceParityTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp

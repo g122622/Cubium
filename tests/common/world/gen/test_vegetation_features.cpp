@@ -48,6 +48,13 @@ TEST_F(VegetationFeatureTest, OreFeatureIdsAreConsecutive) {
     EXPECT_EQ(OreFeatureIds::Count, 11u);
 }
 
+TEST_F(VegetationFeatureTest, LakeFeatureIdsAreConsecutive) {
+    // 验证湖泊特征ID是连续的（Lakes阶段）
+    EXPECT_EQ(LakeFeatureIds::WaterLake, 0u);
+    EXPECT_EQ(LakeFeatureIds::LavaLake, 1u);
+    EXPECT_EQ(LakeFeatureIds::Count, 2u);
+}
+
 TEST_F(VegetationFeatureTest, TreeFeatureIdsAreConsecutive) {
     // 验证树木特征ID是连续的
     // 注意：ID顺序必须与 TreeFeatures::initialize() 中注册顺序一致
@@ -177,6 +184,9 @@ TEST_F(VegetationFeatureTest, NetherFungusIdsAreOffsetAfterOceanFeatures) {
 
 TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
     // 验证FeatureRegistry中注册了所有特征
+    const auto& lakeFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::Lakes);
+    EXPECT_EQ(lakeFeatures.size(), LakeFeatureIds::Count);
+
     const auto& oreFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::UndergroundOres);
     EXPECT_EQ(oreFeatures.size(), OreFeatureIds::Count);
 
@@ -196,6 +206,12 @@ TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
 
 TEST_F(VegetationFeatureTest, FeatureRegistryFeatureNames) {
     // 验证特征名称正确设置
+    const auto& lakeFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::Lakes);
+    ASSERT_LT(LakeFeatureIds::WaterLake, lakeFeatures.size());
+    ASSERT_LT(LakeFeatureIds::LavaLake, lakeFeatures.size());
+    EXPECT_STREQ(lakeFeatures[LakeFeatureIds::WaterLake]->name(), "water_lake");
+    EXPECT_STREQ(lakeFeatures[LakeFeatureIds::LavaLake]->name(), "lava_lake");
+
     const auto& oreFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::UndergroundOres);
 
     // 验证矿石特征名称

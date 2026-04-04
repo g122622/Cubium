@@ -168,6 +168,20 @@ private:
     void initNoiseGenerators();
     void initBiomeWeights();
 
+    /**
+     * @brief 初始化洞穴/峡谷雕刻器与概率配置
+     *
+     * @note 该方法必须在所有构造路径中调用，避免生成阶段出现行为分叉。
+     */
+    void initCarvers();
+
+    /**
+     * @brief 初始化结构与放置器注册表
+     *
+     * @warning 该方法会触发全局注册逻辑，调用方需保证幂等语义。
+     */
+    void initGenerationRegistries();
+
     // === 地表生成 ===
 
     /**

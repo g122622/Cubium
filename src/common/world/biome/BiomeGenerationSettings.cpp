@@ -53,8 +53,12 @@ void BiomeGenerationSettings::clear() {
 }
 
 BiomeGenerationSettings BiomeGenerationSettings::createDefault() {
-    // 默认设置：包含所有主世界矿石
+    // 默认设置：包含主世界矿石与基础湖泊
     BiomeGenerationSettings settings;
+
+    // 添加湖泊（LAKES 阶段）
+    settings.addFeature(DecorationStage::Lakes, LakeFeatureIds::WaterLake);
+    settings.addFeature(DecorationStage::Lakes, LakeFeatureIds::LavaLake);
 
     // 添加矿石（UNDERGROUND_ORES 阶段）
     // 使用 FeatureIds 中定义的常量
