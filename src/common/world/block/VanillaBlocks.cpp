@@ -12,6 +12,8 @@
 #include "blocks/building/TrapDoorBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ocean/DriedKelpBlock.hpp"
+#include "blocks/ocean/SeaPickleBlock.hpp"
+#include "blocks/coral/CoralBlock.hpp"
 #include "blocks/decorative/LanternBlock.hpp"
 #include "blocks/decorative/CampfireBlock.hpp"
 #include "blocks/functional/BeaconBlock.hpp"
@@ -310,6 +312,26 @@ Block* VanillaBlocks::SUGAR_CANE = nullptr;
 Block* VanillaBlocks::FARMLAND = nullptr;
 Block* VanillaBlocks::RED_SAND = nullptr;
 Block* VanillaBlocks::DRIED_KELP_BLOCK = nullptr;
+Block* VanillaBlocks::SEA_PICKLE = nullptr;
+Block* VanillaBlocks::KELP = nullptr;
+Block* VanillaBlocks::KELP_PLANT = nullptr;
+Block* VanillaBlocks::SEAGRASS = nullptr;
+Block* VanillaBlocks::TALL_SEAGRASS = nullptr;
+Block* VanillaBlocks::TUBE_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::BRAIN_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::BUBBLE_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::FIRE_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::HORN_CORAL_BLOCK = nullptr;
+Block* VanillaBlocks::TUBE_CORAL_FAN = nullptr;
+Block* VanillaBlocks::BRAIN_CORAL_FAN = nullptr;
+Block* VanillaBlocks::BUBBLE_CORAL_FAN = nullptr;
+Block* VanillaBlocks::FIRE_CORAL_FAN = nullptr;
+Block* VanillaBlocks::HORN_CORAL_FAN = nullptr;
+Block* VanillaBlocks::TUBE_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::BRAIN_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::BUBBLE_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::FIRE_CORAL_WALL_FAN = nullptr;
+Block* VanillaBlocks::HORN_CORAL_WALL_FAN = nullptr;
 Block* VanillaBlocks::CONDUIT = nullptr;
 Block* VanillaBlocks::CRIMSON_STEM = nullptr;
 Block* VanillaBlocks::WARPED_STEM = nullptr;
@@ -1854,6 +1876,105 @@ void VanillaBlocks::registerNaturalBlocks() {
     DRIED_KELP_BLOCK = &registry.registerBlock<blocks::DriedKelpBlock>(
         ResourceLocation("minecraft:dried_kelp_block"),
         BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f));
+
+    // 海泡菜
+    SEA_PICKLE = &registry.registerBlock<blocks::SeaPickleBlock>(
+        ResourceLocation("minecraft:sea_pickle"),
+        BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid().lightLevel(6));
+
+    // 海带顶部和海带茎
+    KELP = &registry.registerBlock<blocks::KelpBlock>(
+        ResourceLocation("minecraft:kelp"),
+        BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid());
+    KELP_PLANT = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:kelp_plant"),
+        BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid());
+
+    // 海草与高海草
+    SEAGRASS = &registry.registerBlock<blocks::SeagrassBlock>(
+        ResourceLocation("minecraft:seagrass"),
+        BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
+    TALL_SEAGRASS = &registry.registerBlock<blocks::TallSeagrassBlock>(
+        ResourceLocation("minecraft:tall_seagrass"),
+        BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
+
+    // 珊瑚（生成逻辑当前主要使用珊瑚块和珊瑚扇）
+    const u32 deadFallbackId = AIR ? AIR->blockId() : 0;
+    const BlockProperties coralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
+    const BlockProperties coralPlantProps = BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid();
+
+    TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:tube_coral_block"),
+        blocks::CoralColor::Tube,
+        coralBlockProps);
+    BRAIN_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:brain_coral_block"),
+        blocks::CoralColor::Brain,
+        coralBlockProps);
+    BUBBLE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:bubble_coral_block"),
+        blocks::CoralColor::Bubble,
+        coralBlockProps);
+    FIRE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:fire_coral_block"),
+        blocks::CoralColor::Fire,
+        coralBlockProps);
+    HORN_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
+        ResourceLocation("minecraft:horn_coral_block"),
+        blocks::CoralColor::Horn,
+        coralBlockProps);
+
+    TUBE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:tube_coral_fan"),
+        blocks::CoralColor::Tube,
+        deadFallbackId,
+        coralPlantProps);
+    BRAIN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:brain_coral_fan"),
+        blocks::CoralColor::Brain,
+        deadFallbackId,
+        coralPlantProps);
+    BUBBLE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:bubble_coral_fan"),
+        blocks::CoralColor::Bubble,
+        deadFallbackId,
+        coralPlantProps);
+    FIRE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:fire_coral_fan"),
+        blocks::CoralColor::Fire,
+        deadFallbackId,
+        coralPlantProps);
+    HORN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
+        ResourceLocation("minecraft:horn_coral_fan"),
+        blocks::CoralColor::Horn,
+        deadFallbackId,
+        coralPlantProps);
+
+    TUBE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:tube_coral_wall_fan"),
+        blocks::CoralColor::Tube,
+        deadFallbackId,
+        coralPlantProps);
+    BRAIN_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:brain_coral_wall_fan"),
+        blocks::CoralColor::Brain,
+        deadFallbackId,
+        coralPlantProps);
+    BUBBLE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:bubble_coral_wall_fan"),
+        blocks::CoralColor::Bubble,
+        deadFallbackId,
+        coralPlantProps);
+    FIRE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:fire_coral_wall_fan"),
+        blocks::CoralColor::Fire,
+        deadFallbackId,
+        coralPlantProps);
+    HORN_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
+        ResourceLocation("minecraft:horn_coral_wall_fan"),
+        blocks::CoralColor::Horn,
+        deadFallbackId,
+        coralPlantProps);
 
     // 潮涌核心 - ID 545
     // 水下信标类方块，需要潮涌框架激活

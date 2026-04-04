@@ -10,6 +10,7 @@ gen/
 ├── chunk/               # 区块生成器
 ├── feature/             # 特征系统（树木、矿石、植被等）
 │   ├── lake/            # 湖泊特征
+│   ├── ocean/           # 海洋特征（海带、海草、海泡菜、珊瑚）
 │   ├── ore/             # 矿石特征
 │   ├── template/        # 结构模板系统
 │   ├── tree/            # 树木生成
@@ -180,6 +181,15 @@ public:
 ```
 
 **FeatureRegistry：** 管理所有配置化特征，按装饰阶段组织。
+
+#### 海洋特征 (`feature/ocean/`)
+
+海洋特征在 `VegetalDecoration` 阶段注册，负责补充海底生态：
+
+- `KelpFeature`：生成海带柱（`kelp_plant` 主体 + `kelp` 顶部）。
+- `SeagrassFeature`：放置普通海草与高海草（上下半状态）。
+- `SeaPickleFeature`：在活珊瑚基底上放置 1-4 个海泡菜。
+- `CoralFeature`：随机生成树形/蘑菇形/爪形珊瑚结构并附带扇状装饰。
 
 #### 树木生成 (`feature/tree/`)
 

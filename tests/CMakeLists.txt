@@ -94,6 +94,8 @@ add_executable(mc_tests
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
+    common/world/gen/OceanFeatureTest.cpp
+    common/world/gen/NoiseSurfaceParityTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp

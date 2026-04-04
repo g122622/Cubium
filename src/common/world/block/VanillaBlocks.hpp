@@ -453,6 +453,33 @@ public:
     static Block* FARMLAND;           // 耕地
     static Block* RED_SAND;           // 红沙
     static Block* DRIED_KELP_BLOCK;   // 干海带块
+    static Block* SEA_PICKLE;         // 海泡菜
+    static Block* KELP;               // 海带顶部
+    static Block* KELP_PLANT;         // 海带茎
+    static Block* SEAGRASS;           // 海草
+    static Block* TALL_SEAGRASS;      // 高海草
+
+    // ========================================================================
+    // 珊瑚方块
+    // ========================================================================
+    static Block* TUBE_CORAL_BLOCK;
+    static Block* BRAIN_CORAL_BLOCK;
+    static Block* BUBBLE_CORAL_BLOCK;
+    static Block* FIRE_CORAL_BLOCK;
+    static Block* HORN_CORAL_BLOCK;
+
+    static Block* TUBE_CORAL_FAN;
+    static Block* BRAIN_CORAL_FAN;
+    static Block* BUBBLE_CORAL_FAN;
+    static Block* FIRE_CORAL_FAN;
+    static Block* HORN_CORAL_FAN;
+
+    static Block* TUBE_CORAL_WALL_FAN;
+    static Block* BRAIN_CORAL_WALL_FAN;
+    static Block* BUBBLE_CORAL_WALL_FAN;
+    static Block* FIRE_CORAL_WALL_FAN;
+    static Block* HORN_CORAL_WALL_FAN;
+
     static Block* CONDUIT;            // 潮涌核心
 
     // ========================================================================

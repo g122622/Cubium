@@ -3,8 +3,36 @@
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
 
 namespace mc {
+
+namespace {
+
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
+    i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
+    if (oceanFloorY > 0) {
+        return oceanFloorY;
+    }
+
+    // 某些测试会绕过高度图更新，回退到显式扫描。
+    for (i32 y = 255; y >= 1; --y) {
+        const BlockState* state = world.getBlock(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            continue;
+        }
+
+        if (VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER)) {
+            continue;
+        }
+
+        return y;
+    }
+
+    return -1;
+}
+
+} // namespace
 
 // ============================================================================
 // SeagrassFeature 实现
@@ -20,25 +48,15 @@ bool SeagrassFeature::place(
         return false;
     }
 
-    // 寻找有效的放置位置（向下找到水下的地面）
-    BlockPos placePos = pos;
-    bool foundGround = false;
-
-    for (i32 y = pos.y; y >= 1; --y) {
-        BlockPos checkPos(pos.x, y, pos.z);
-        const BlockState* state = world.getBlock(checkPos);
-
-        if (state && !state->isAir()) {
-            // 找到非空气方块
-            placePos = BlockPos(pos.x, y + 1, pos.z);
-            foundGround = true;
-            break;
-        }
-    }
-
-    if (!foundGround) {
+    // 在当前区块内随机选择一个 X/Z，使用海底高度图定位放置起点。
+    const i32 placeX = pos.x + random.nextInt(16);
+    const i32 placeZ = pos.z + random.nextInt(16);
+    const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
+    if (oceanFloorY <= 0) {
         return false;
     }
+
+    const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
 
     // 检查是否可以放置
     if (!canPlaceAt(world, placePos)) {
@@ -164,9 +182,9 @@ std::vector<std::unique_ptr<ConfiguredSeagrassFeature>> SeagrassFeatures::getAll
 std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createSimpleSeagrass()
 {
     auto config = std::make_unique<SeagrassFeatureConfig>();
-
-    // TODO: 使用海草方块状态
-    // config->seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
+    if (VanillaBlocks::SEAGRASS != nullptr) {
+        config->seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
+    }
 
     return std::make_unique<ConfiguredSeagrassFeature>(std::move(config), "seagrass_simple");
 }
@@ -174,11 +192,17 @@ std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createSimpleSeagras
 std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createMixedSeagrass()
 {
     auto config = std::make_unique<SeagrassFeatureConfig>();
-
-    // TODO: 使用海草方块状态
-    // config->seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
-    // config->tallSeagrassLowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(HALF, LOWER);
-    // config->tallSeagrassUpperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(HALF, UPPER);
+    if (VanillaBlocks::SEAGRASS != nullptr) {
+        config->seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
+    }
+    if (VanillaBlocks::TALL_SEAGRASS != nullptr) {
+        config->tallSeagrassLowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
+            BlockStateProperties::HALF(),
+            BlockStateProperties::DoubleBlockHalf::Lower);
+        config->tallSeagrassUpperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
+            BlockStateProperties::HALF(),
+            BlockStateProperties::DoubleBlockHalf::Upper);
+    }
     config->tallSeagrassChance = 0.3f;
 
     return std::make_unique<ConfiguredSeagrassFeature>(std::move(config), "seagrass_mixed");

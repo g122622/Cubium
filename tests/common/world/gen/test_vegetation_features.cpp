@@ -152,8 +152,12 @@ TEST_F(VegetationFeatureTest, FeatureRegistryHasAllFeatures) {
     EXPECT_EQ(oreFeatures.size(), OreFeatureIds::Count);
 
     const auto& vegetalFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
-    // 现在包含海洋特征: 原有33个 + 海带1 + 海草2 + 海泡菜1 + 珊瑚5 = 42
-    const u32 expectedVegetalCount = VegetationIds::TotalVegetalFeatures + OceanFeatureIds::TotalOceanFeatures;
+    // 现在包含海洋特征和下界植被特征:
+    // 33(陆地植被) + 9(海洋特征) + 3(下界植被) = 45
+    const u32 expectedVegetalCount =
+        VegetationIds::TotalVegetalFeatures +
+        OceanFeatureIds::TotalOceanFeatures +
+        NetherFungusIds::Count;
     EXPECT_EQ(vegetalFeatures.size(), expectedVegetalCount);
 
     const auto& surfaceFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::SurfaceStructures);

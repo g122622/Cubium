@@ -177,8 +177,14 @@ private:
      */
     [[nodiscard]] f32 sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const;
 
-    void buildSurfaceForColumn(ChunkPrimer& chunk, i32 x, i32 z,
-                                i32 surfaceHeight, f32 surfaceNoise, BiomeId biome);
+    void buildSurfaceForColumn(
+        ChunkPrimer& chunk,
+        math::Random& random,
+        i32 x,
+        i32 z,
+        i32 startHeight,
+        f32 surfaceNoise,
+        BiomeId biome);
 };
 
 } // namespace mc

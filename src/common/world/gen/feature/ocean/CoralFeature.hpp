@@ -127,7 +127,8 @@ private:
         const BlockPos& pos,
         blocks::CoralColor color,
         Direction direction,
-        i32 length);
+        i32 length,
+        bool includeDecorations);
 };
 
 /**
@@ -149,7 +150,8 @@ private:
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
-        i32 radius);
+        i32 radius,
+        bool includeDecorations);
 };
 
 /**
@@ -171,7 +173,8 @@ private:
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
-        Direction direction);
+        Direction direction,
+        bool includeDecorations);
 };
 
 /**

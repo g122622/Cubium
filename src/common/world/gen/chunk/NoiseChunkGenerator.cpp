@@ -612,7 +612,7 @@ f32 NoiseChunkGenerator::sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 loc
 // 地表生成
 // ============================================================================
 
-void NoiseChunkGenerator::buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& chunk)
+void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "BuildSurface", "x", chunk.x(), "z", chunk.z());
     const ChunkCoord chunkX = chunk.x();
@@ -635,17 +635,17 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& 
                 const i32 worldX = startX + localX;
                 const i32 worldZ = startZ + localZ;
 
-                // 获取地表高度
-                const i32 surfaceHeight = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ);
+                // 参考 MC：从高度图高度再上移 1 格开始扫描。
+                const i32 startHeight = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ) + 1;
 
                 // 获取生物群系
-                const BiomeId biomeId = chunk.getBiomeAtBlock(localX, surfaceHeight, localZ);
+                const BiomeId biomeId = region.getBiome(worldX, startHeight, worldZ);
 
                 // 计算地表噪声
                 const f32 surfaceNoise = sampleSurfaceDepthNoise(worldX, worldZ, localX) * 15.0f;
 
                 // 生成地表
-                buildSurfaceForColumn(chunk, localX, localZ, surfaceHeight, surfaceNoise, biomeId);
+                buildSurfaceForColumn(chunk, surfaceRng, localX, localZ, startHeight, surfaceNoise, biomeId);
             }
         }
     }
@@ -671,62 +671,105 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& 
     chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
-void NoiseChunkGenerator::buildSurfaceForColumn(ChunkPrimer& chunk, i32 x, i32 z,
-                                                 i32 surfaceHeight, f32 surfaceNoise, BiomeId biome)
+void NoiseChunkGenerator::buildSurfaceForColumn(
+    ChunkPrimer& chunk,
+    math::Random& random,
+    i32 x,
+    i32 z,
+    i32 startHeight,
+    f32 surfaceNoise,
+    BiomeId biome)
 {
+    if (m_settings.defaultBlock == nullptr || m_settings.defaultFluid == nullptr) {
+        return;
+    }
+
     const Biome& biomeDef = m_biomeProvider->getBiomeDefinition(biome);
     const i32 seaLevel = m_settings.seaLevel;
 
-    // 地表深度
-    const i32 surfaceDepth = static_cast<i32>(surfaceNoise / 3.0f + 3.0f);
-    const bool isUnderwater = surfaceHeight < seaLevel;
+    const BlockState* airState = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
+    const BlockState* iceState = VanillaBlocks::ICE ? &VanillaBlocks::ICE->defaultState() : nullptr;
 
-    // 从地表向下遍历
-    i32 currentDepth = 0;
-    bool processedTopSurfaceRun = false;
-    for (i32 y = surfaceHeight; y >= 0; --y) {
+    const BlockState* topState = biomeDef.surfaceBlock();
+    const BlockState* middleState = biomeDef.subSurfaceBlock();
+    const BlockState* underWaterState = biomeDef.underWaterBlock();
+
+    // 参考 MC DefaultSurfaceBuilder：每列深度含随机抖动。
+    const i32 surfaceDepth = static_cast<i32>(surfaceNoise / 3.0f + 3.0f + random.nextDouble() * 0.25f);
+
+    i32 currentDepth = -1;
+    const i32 clampedStartHeight = std::min(startHeight, m_settings.noise.height - 1);
+
+    for (i32 y = clampedStartHeight; y >= 0; --y) {
         const BlockState* state = chunk.getBlock(x, y, z);
 
-        if (!state || state->isAir()) {
-            currentDepth = 0;
+        if (state == nullptr || state->isAir()) {
+            currentDepth = -1;
             continue;
         }
 
-        // 只处理默认方块（石头）
-        if (!m_settings.defaultBlock || state->blockId() != m_settings.defaultBlock->blockId()) {
+        if (state->blockId() != m_settings.defaultBlock->blockId()) {
             continue;
         }
 
-        // 只处理最上层那一段连续实心方块
-        if (processedTopSurfaceRun && currentDepth == 0) {
-            continue;
-        }
+        if (currentDepth == -1) {
+            if (surfaceDepth <= 0) {
+                topState = airState;
+                middleState = m_settings.defaultBlock;
+            } else if (y >= seaLevel - 4 && y <= seaLevel + 1) {
+                topState = biomeDef.surfaceBlock();
+                middleState = biomeDef.subSurfaceBlock();
+            }
 
-        if (currentDepth < surfaceDepth) {
-            // 地表层
-            if (isUnderwater && y < seaLevel - surfaceDepth) {
-                // 水下使用不同的方块
-                const BlockState* underWater = biomeDef.underWaterBlock();
-                if (underWater) {
-                    chunk.setBlock(x, y, z, underWater);
-                }
-            } else {
-                // 地表
-                const BlockState* surface = biomeDef.surfaceBlock();
-                if (surface) {
-                    chunk.setBlock(x, y, z, surface);
+            if (y < seaLevel && (topState == nullptr || topState->isAir())) {
+                if (biomeDef.temperature() < 0.15f && iceState != nullptr) {
+                    topState = iceState;
+                } else {
+                    topState = m_settings.defaultFluid;
                 }
             }
-            currentDepth++;
-            processedTopSurfaceRun = true;
-        } else if (currentDepth < surfaceDepth + 4) {
-            // 次地表层
-            const BlockState* subSurface = biomeDef.subSurfaceBlock();
-            if (subSurface) {
-                chunk.setBlock(x, y, z, subSurface);
+
+            currentDepth = surfaceDepth;
+            if (y >= seaLevel - 1) {
+                if (topState != nullptr) {
+                    chunk.setBlock(x, y, z, topState);
+                }
+            } else if (y < seaLevel - 7 - surfaceDepth) {
+                topState = airState;
+                middleState = m_settings.defaultBlock;
+                if (underWaterState != nullptr) {
+                    chunk.setBlock(x, y, z, underWaterState);
+                } else if (middleState != nullptr) {
+                    chunk.setBlock(x, y, z, middleState);
+                }
+            } else if (middleState != nullptr) {
+                chunk.setBlock(x, y, z, middleState);
             }
-            currentDepth++;
-            processedTopSurfaceRun = true;
+            continue;
+        }
+
+        if (currentDepth > 0) {
+            --currentDepth;
+            if (middleState != nullptr) {
+                chunk.setBlock(x, y, z, middleState);
+            }
+
+            const bool isSandLayer =
+                middleState != nullptr &&
+                ((VanillaBlocks::SAND != nullptr && middleState->is(VanillaBlocks::SAND)) ||
+                 (VanillaBlocks::RED_SAND != nullptr && middleState->is(VanillaBlocks::RED_SAND)));
+
+            if (currentDepth == 0 && isSandLayer && surfaceDepth > 1) {
+                currentDepth = random.nextInt(4) + std::max(0, y - 63);
+
+                if (VanillaBlocks::RED_SAND != nullptr && middleState->is(VanillaBlocks::RED_SAND)) {
+                    if (VanillaBlocks::RED_SANDSTONE != nullptr) {
+                        middleState = &VanillaBlocks::RED_SANDSTONE->defaultState();
+                    }
+                } else if (VanillaBlocks::SANDSTONE != nullptr) {
+                    middleState = &VanillaBlocks::SANDSTONE->defaultState();
+                }
+            }
         }
     }
 }

@@ -207,6 +207,15 @@ flowchart TD
     K --> L[标记 SURFACE 阶段完成]
 ```
 
+地表列处理细节（对齐 MC `DefaultSurfaceBuilder`）:
+
+- `startHeight` 使用 `WORLD_SURFACE_WG + 1` 作为起始扫描高度。
+- 生物群系通过 `WorldGenRegion` 按世界坐标采样，避免仅依赖局部区块缓存。
+- 地表厚度使用 `surfaceNoise / 3 + 3 + random * 0.25` 的列级随机抖动。
+- 顶层与次层分别使用 `surfaceBlock` / `subSurfaceBlock`，不再把整段厚度都写成顶层方块。
+- 深水下层优先使用 `underWaterBlock`，并保留沙层向砂岩/红砂岩过渡逻辑。
+- 当海平面以下顶层为空时，按温度切换 `ICE` 或默认流体。
+
 #### 5. 雕刻器应用 (`applyCarvers`)
 
 ```cpp
@@ -508,6 +517,12 @@ rng.skip(2620);  // 噪声生成器初始化时跳过的随机数
 | `StructureSeedDeterminism` | 结构生成种子确定性 |
 | `NextLongNoArgs` | 随机数生成器 nextLong 方法 |
 | `LayerBiomeProviderMultipleSamples` | 生物群系多次采样一致性 |
+
+### NoiseSurfaceParityTest.cpp
+
+| 测试名称 | 测试内容 |
+|----------|----------|
+| `PlainsSurfaceUsesDirtUnderTopLayer` | 验证平原地表顶层下方优先使用次表层方块（避免整段顶层覆盖） |
 
 ## 性能考虑
 

@@ -31,6 +31,12 @@ feature/
 │       ├── FoliagePlacer.hpp/cpp   # 树叶放置器基类
 │       ├── BlobFoliagePlacer.hpp/cpp # 球形树叶放置器
 │       └── FoliagePlacers.hpp/cpp  # 其他树叶放置器
+├── ocean/                    # 海洋特征
+│   ├── KelpFeature.hpp/cpp   # 海带特征
+│   ├── SeagrassFeature.hpp/cpp # 海草特征
+│   ├── SeaPickleFeature.hpp/cpp # 海泡菜特征
+│   ├── CoralFeature.hpp/cpp  # 珊瑚特征
+│   └── README.md             # 海洋特征说明
 └── vegetation/               # 植被特征
     ├── FlowerFeature.hpp/cpp # 花卉特征
     ├── GrassFeature.hpp/cpp  # 草丛特征
@@ -266,6 +272,15 @@ config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
 #### SugarCaneFeature
 
 甘蔗特征，在水源附近生成。
+
+### ocean/ - 海洋特征
+
+海洋特征负责海底生态生成，包含海带、海草、海泡菜和珊瑚结构。
+
+- `KelpFeature`：使用 `kelp_plant + kelp` 组合生成柱状海带。
+- `SeagrassFeature`：支持普通海草与高海草混合放置。
+- `SeaPickleFeature`：在活珊瑚基底上放置不同数量海泡菜。
+- `CoralFeature`：随机生成树形/蘑菇形/爪形珊瑚并附带珊瑚扇装饰。
 
 ## 文件关系图
 

@@ -19,6 +19,14 @@ coral/
 | `CoralWallFanBlock` | 墙珊瑚扇（墙面放置） | WATERLOGGED, FACING |
 | `CoralBlockBlock` | 珊瑚块（固体，不死亡） | 无 |
 
+## VanillaBlocks 注册
+
+以下珊瑚相关方块已接入 `VanillaBlocks::registerNaturalBlocks()`：
+
+- `minecraft:tube_coral_block` ~ `minecraft:horn_coral_block`
+- `minecraft:tube_coral_fan` ~ `minecraft:horn_coral_fan`
+- `minecraft:tube_coral_wall_fan` ~ `minecraft:horn_coral_wall_fan`
+
 ## 珊瑚颜色
 
 ```cpp

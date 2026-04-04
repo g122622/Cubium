@@ -3,8 +3,37 @@
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include <algorithm>
 
 namespace mc {
+
+namespace {
+
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
+    i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
+    if (oceanFloorY > 0) {
+        return oceanFloorY;
+    }
+
+    // 测试场景中高度图可能未初始化，回退到显式扫描。
+    for (i32 y = 255; y >= 1; --y) {
+        const BlockState* state = world.getBlock(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            continue;
+        }
+
+        if (VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER)) {
+            continue;
+        }
+
+        return y;
+    }
+
+    return -1;
+}
+
+} // namespace
 
 // ============================================================================
 // SeaPickleFeature 实现
@@ -28,28 +57,27 @@ bool SeaPickleFeature::place(
         i32 dx = random.nextInt(8) - random.nextInt(8);
         i32 dz = random.nextInt(8) - random.nextInt(8);
 
-        BlockPos placePos(pos.x + dx, pos.y, pos.z + dz);
-
-        // 向下查找有效的放置位置
-        for (i32 y = pos.y; y >= 1; --y) {
-            BlockPos checkPos(placePos.x, y, placePos.z);
-            const BlockState* state = world.getBlock(checkPos);
-
-            if (state && !state->isAir()) {
-                // 找到非空气方块，在其上方放置
-                placePos = BlockPos(placePos.x, y + 1, placePos.z);
-                break;
-            }
+        const i32 placeX = pos.x + dx;
+        const i32 placeZ = pos.z + dz;
+        const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
+        if (oceanFloorY <= 0) {
+            continue;
         }
+
+        const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
 
         // 检查是否可以放置
         if (canPlaceAt(world, placePos)) {
             // 随机数量 (1-4)
-            i32 count = random.nextInt(config.maxCount) + 1;
+            const i32 maxCount = std::clamp(config.maxCount, 1, 4);
+            const i32 count = random.nextInt(maxCount) + 1;
 
-            // TODO: 使用海泡菜的 PICKLES 属性设置数量
-            // const BlockState* pickleState = config.seaPickleState->with(PICKLES, count);
-            world.setBlock(placePos, config.seaPickleState);
+            const BlockState* pickleState = config.seaPickleState;
+            if (VanillaBlocks::SEA_PICKLE != nullptr && config.seaPickleState->is(VanillaBlocks::SEA_PICKLE)) {
+                pickleState = &config.seaPickleState->with(BlockStateProperties::PICKLES_1_4(), count);
+            }
+
+            world.setBlock(placePos, pickleState);
             placedAny = true;
         }
     }
@@ -91,10 +119,12 @@ bool SeaPickleFeature::isLivingCoral(WorldGenRegion& world, const BlockPos& pos)
         return false;
     }
 
-    // TODO: 检查是否为活珊瑚方块
-    // 珊瑚方块ID: TUBE_CORAL_BLOCK, BRAIN_CORAL_BLOCK, BUBBLE_CORAL_BLOCK, FIRE_CORAL_BLOCK, HORN_CORAL_BLOCK
-    // 目前简化为检查是否为固体方块
-    return state->owner().isSolid(*state);
+    // 仅允许放置在活珊瑚块上，避免海泡菜扩散到普通海底方块。
+    return (VanillaBlocks::TUBE_CORAL_BLOCK && state->is(VanillaBlocks::TUBE_CORAL_BLOCK)) ||
+           (VanillaBlocks::BRAIN_CORAL_BLOCK && state->is(VanillaBlocks::BRAIN_CORAL_BLOCK)) ||
+           (VanillaBlocks::BUBBLE_CORAL_BLOCK && state->is(VanillaBlocks::BUBBLE_CORAL_BLOCK)) ||
+           (VanillaBlocks::FIRE_CORAL_BLOCK && state->is(VanillaBlocks::FIRE_CORAL_BLOCK)) ||
+           (VanillaBlocks::HORN_CORAL_BLOCK && state->is(VanillaBlocks::HORN_CORAL_BLOCK));
 }
 
 // ============================================================================
@@ -148,9 +178,9 @@ std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>> SeaPickleFeatures::getA
 std::unique_ptr<ConfiguredSeaPickleFeature> SeaPickleFeatures::createNormalSeaPickle()
 {
     auto config = std::make_unique<SeaPickleFeatureConfig>();
-
-    // TODO: 使用海泡菜方块状态
-    // config->seaPickleState = &VanillaBlocks::SEA_PICKLE->defaultState();
+    if (VanillaBlocks::SEA_PICKLE != nullptr) {
+        config->seaPickleState = &VanillaBlocks::SEA_PICKLE->defaultState();
+    }
     config->tries = 10;
     config->maxCount = 4;
 

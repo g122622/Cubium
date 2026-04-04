@@ -3,10 +3,35 @@
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/Fluid.hpp"
 
 namespace mc {
+
+namespace {
+
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
+    i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
+    if (oceanFloorY > 0) {
+        return oceanFloorY;
+    }
+
+    // 某些测试场景会直接写方块而不更新高度图，回退到显式扫描。
+    for (i32 y = 255; y >= 1; --y) {
+        const BlockState* state = world.getBlock(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            continue;
+        }
+
+        if (VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER)) {
+            continue;
+        }
+
+        return y;
+    }
+
+    return -1;
+}
+
+} // namespace
 
 // ============================================================================
 // KelpFeature 实现
@@ -22,25 +47,15 @@ bool KelpFeature::place(
         return false;
     }
 
-    // 寻找有效的放置位置（向下找到水下的地面）
-    BlockPos placePos = pos;
-    bool foundGround = false;
-
-    for (i32 y = pos.y; y >= 1; --y) {
-        BlockPos checkPos(pos.x, y, pos.z);
-        const BlockState* state = world.getBlock(checkPos);
-
-        if (state && !state->isAir()) {
-            // 找到非空气方块
-            placePos = BlockPos(pos.x, y + 1, pos.z);
-            foundGround = true;
-            break;
-        }
-    }
-
-    if (!foundGround) {
+    // 在当前区块内随机选择一个 X/Z，使用海底高度图定位生长起点。
+    const i32 placeX = pos.x + random.nextInt(16);
+    const i32 placeZ = pos.z + random.nextInt(16);
+    const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
+    if (oceanFloorY <= 0) {
         return false;
     }
+
+    const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
 
     // 检查是否可以放置
     if (!canPlaceAt(world, placePos)) {
@@ -166,11 +181,11 @@ std::vector<std::unique_ptr<ConfiguredKelpFeature>> KelpFeatures::getAllFeatures
 std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createNormalKelp()
 {
     auto config = std::make_unique<KelpFeatureConfig>();
-
-    // TODO: 使用海带方块状态
-    // 目前使用占位状态，需要等待海带方块注册后更新
-    // config->kelpState = &VanillaBlocks::KELP->defaultState();
-    // config->kelpTopState = &VanillaBlocks::KELP_PLANT->defaultState();
+    if (VanillaBlocks::KELP_PLANT != nullptr && VanillaBlocks::KELP != nullptr) {
+        // 主体使用 kelp_plant，顶端使用 kelp。
+        config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
+        config->kelpTopState = &VanillaBlocks::KELP->defaultState();
+    }
     config->maxHeight = 25;
 
     return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp");

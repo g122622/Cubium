@@ -22,6 +22,16 @@ ocean/
 
 ## 核心机制
 
+### VanillaBlocks 注册
+
+以下方块已在 `VanillaBlocks::registerNaturalBlocks()` 中注册并可被世界生成直接使用：
+
+- `minecraft:sea_pickle`
+- `minecraft:kelp`
+- `minecraft:kelp_plant`
+- `minecraft:seagrass`
+- `minecraft:tall_seagrass`
+
 ### 海泡菜发光
 - 在水中时发光
 - 亮度随数量增加：1个=6, 2个=9, 3个=12, 4个=15
