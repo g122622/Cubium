@@ -85,6 +85,35 @@ TridentEngine::render()
               └── (同上)
 ```
 
+    ## 模块关系
+
+    - `TridentEngine` 负责初始化第一人称渲染器，并在每帧传入相机描述符集与部分 tick。
+    - `FirstPersonRenderer` 读取 `Player`、`PlayerInventory` 和 `ItemStack`，决定手臂姿态与手持物品表现。
+    - `EntityPipeline` 负责创建、绑定和销毁手臂/物品对应的 Vulkan 网格资源。
+    - `EntityTextureAtlas` 提供玩家皮肤区域，`ItemTextureAtlas` 提供物品 UV 区域。
+    - `MatrixStack` 负责把相机朝向、挥手动画和持物变换组合成最终模型矩阵。
+
+    ## 输入输出
+
+    ### 输入
+
+    - 玩家位置、视角朝向和主副手物品。
+    - `partialTick` 和挥动/装备动画状态。
+    - 相机描述符集、玩家皮肤图集和物品图集。
+
+    ### 输出
+
+    - 写入命令缓冲区的手臂与物品绘制命令。
+    - 短生命周期的 GPU 网格缓存：当前实现会按手位分别缓存物品网格，并在若干帧后延迟回收旧网格。
+
+    ## 资源生命周期
+
+    当前实现避免了“主手和副手共用一个物品网格”的做法。每只手都有独立缓存，旧网格不会立即销毁，而是进入退休队列，等待至少 `maxFramesInFlight` 帧后再释放。这样可以避免：
+
+    - 主副手物品不同导致缓存互相踢掉。
+    - 仍在飞行中的命令缓冲区引用已释放的 Vulkan 缓冲区。
+    - 物品频繁切换时，`vkAllocateMemory` 反复增长。
+
 ## 手部动画
 
 ### 挥动动画 (Swing)
@@ -166,6 +195,8 @@ void tick() {
 4. **物品变换覆盖**: 某些物品（地图）有特殊渲染逻辑
 5. **透明度混合**: 手部和物品渲染顺序很重要
 6. **变换顺序**: 不能手写“行列就地改值”去替代矩阵后乘，否则会出现水平转头时手臂自转
+7. **物品网格不要共享缓存**: 主手和副手可能在同一帧持有不同物品，单缓存会导致每帧反复重建 GPU 网格。
+8. **旧网格不能立即销毁**: 需要按帧延迟回收，否则在飞帧可能仍在使用旧的 Vulkan 缓冲区。
 
 ## 测试用例
 
@@ -174,3 +205,23 @@ void tick() {
 - `FirstPersonRendererTest.cpp` - 渲染器测试
 - `PlayerModelTest.cpp` - 玩家模型测试
 - `ItemCameraTransformsTest.cpp` - 物品变换测试
+
+## Mermaid 图表
+
+```mermaid
+flowchart LR
+    A[玩家状态] --> B[FirstPersonRenderer]
+    C[实体图集] --> B
+    D[物品图集] --> B
+    B --> E[MatrixStack]
+    E --> F[EntityPipeline]
+    F --> G[VkCommandBuffer]
+
+    classDef input fill:#d9f0ff,stroke:#3b82f6,color:#0f172a;
+    classDef core fill:#fce7f3,stroke:#db2777,color:#0f172a;
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#0f172a;
+
+    class A,C,D input;
+    class B,E,F core;
+    class G output;
+```

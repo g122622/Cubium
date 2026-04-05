@@ -1989,7 +1989,8 @@ Result<void> TridentEngine::initializeFirstPersonRenderer() {
         renderPass(),
         cameraDescriptorLayout(),
         descriptorPool(),
-        &m_entityTextureAtlas
+        &m_entityTextureAtlas,
+        maxFramesInFlight()
     );
 
     if (result.failed()) {

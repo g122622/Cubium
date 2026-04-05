@@ -367,6 +367,9 @@ enum class Operation : u8 { ... };
     - arm/item transforms now follow vanilla coefficients and order (`renderArmFirstPerson`, `transformSideFirstPerson`, `transformFirstPerson`)
     - first-person root orientation now uses camera-aligned basis derived from MC forward vector convention
     - custom `MatrixStack` transform composition is now strict post-multiply (`current = current * transform`) to match PoseStack semantics
+- First-person hand item meshes are now cached per hand and retired with a frame-based countdown tied to `maxFramesInFlight`, which prevents main/offhand cache thrashing and repeated `vkAllocateMemory` churn.
+- `EntityPipeline::destroy()` and `FirstPersonRenderer::destroy()` now clean up partially initialized Vulkan resources even when initialization fails early.
+- `VulkanUtils::createBuffer()` and `VulkanUtils::createImage()` now unwind correctly when `vkBind*Memory()` fails.
 
 ## Gotchas & Pitfalls
 
@@ -378,6 +381,10 @@ enum class Operation : u8 { ... };
     - Prefer canonical references returned by `state.with(...)` / `defaultState()`; `ServerWorld::setBlock` now canonicalizes by `stateId` as a safety net.
 - `MatrixStack` call-order intuition can be misleading after PoseStack alignment.
     - In first-person rendering, apply transforms in vanilla order and rely on post-multiply semantics; avoid ad-hoc in-place row/column edits.
+- Do not share one first-person item mesh cache across both hands.
+    - Main hand and off hand can hold different items in the same frame, so a single cache will thrash and allocate GPU memory every render.
+- Retired first-person meshes must be reclaimed on a frame countdown, not only in `destroy()`.
+    - Otherwise repeated item changes will keep old Vulkan buffers alive for the whole session.
 
 ## Self-Maintenance Rule
 

@@ -11,6 +11,14 @@ namespace mc::client::renderer::trident::firstperson {
 
 using namespace mc::math;
 
+namespace {
+
+[[nodiscard]] std::size_t handIndex(Hand hand) {
+    return hand == Hand::MainHand ? 0u : 1u;
+}
+
+} // namespace
+
 // ============================================================================
 // 常量定义
 // ============================================================================
@@ -107,7 +115,8 @@ Result<void> FirstPersonRenderer::initialize(
     VkRenderPass renderPass,
     VkDescriptorSetLayout cameraDescriptorLayout,
     VkDescriptorPool descriptorPool,
-    EntityTextureAtlas* entityTextureAtlas)
+    EntityTextureAtlas* entityTextureAtlas,
+    u32 maxFramesInFlight)
 {
     if (device == VK_NULL_HANDLE) {
         return Error(ErrorCode::NullPointer, "Device is null");
@@ -117,6 +126,12 @@ Result<void> FirstPersonRenderer::initialize(
         return Error(ErrorCode::NullPointer, "Graphics queue is null");
     }
 
+    destroy();
+
+    if (maxFramesInFlight == 0) {
+        return Error(ErrorCode::InvalidArgument, "maxFramesInFlight must be greater than zero");
+    }
+
     m_device = device;
     m_physicalDevice = physicalDevice;
     m_commandPool = commandPool;
@@ -124,6 +139,7 @@ Result<void> FirstPersonRenderer::initialize(
     m_cameraDescriptorLayout = cameraDescriptorLayout;
     m_descriptorPool = descriptorPool;
     m_entityTextureAtlas = entityTextureAtlas;
+    m_itemMeshRetirementFrames = maxFramesInFlight;
 
     // 创建渲染管线（手臂与物品分离，避免同一描述符集在多帧飞行时反复改写）
     m_armPipeline = std::make_unique<EntityPipeline>();
@@ -140,6 +156,7 @@ Result<void> FirstPersonRenderer::initialize(
     );
 
     if (result.failed()) {
+        destroy();
         return result.error();
     }
 
@@ -154,6 +171,7 @@ Result<void> FirstPersonRenderer::initialize(
     );
 
     if (result.failed()) {
+        destroy();
         return result.error();
     }
 
@@ -171,20 +189,8 @@ Result<void> FirstPersonRenderer::initialize(
 }
 
 void FirstPersonRenderer::destroy() {
+    destroyItemMeshes();
     invalidateArmMeshes();
-
-    // 销毁手持物品网格
-    if (m_itemPipeline && m_itemMeshValid) {
-        m_itemPipeline->destroyMesh(m_itemMesh);
-        m_itemMeshValid = false;
-    }
-
-    if (m_itemPipeline) {
-        for (auto& retiredMesh : m_retiredItemMeshes) {
-            m_itemPipeline->destroyMesh(retiredMesh);
-        }
-    }
-    m_retiredItemMeshes.clear();
 
     // 销毁管线
     m_itemPipeline.reset();
@@ -197,7 +203,7 @@ void FirstPersonRenderer::destroy() {
     m_descriptorPool = VK_NULL_HANDLE;
     m_entityTextureAtlas = nullptr;
     m_itemTextureAtlas = nullptr;
-    m_itemMeshItemId = std::numeric_limits<ItemId>::max();
+    m_itemMeshRetirementFrames = 0;
     m_initialized = false;
 }
 
@@ -205,13 +211,7 @@ void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas
     m_itemTextureAtlas = itemTextureAtlas;
 
     // 图集切换后强制重建手持物品网格，避免旧 UV 映射失效。
-    if (m_itemPipeline && m_itemMeshValid) {
-        // 不立即销毁，避免与在飞帧并发导致 device lost。
-        m_retiredItemMeshes.push_back(m_itemMesh);
-        m_itemMesh = {};
-        m_itemMeshValid = false;
-    }
-    m_itemMeshItemId = std::numeric_limits<ItemId>::max();
+    invalidateItemMeshes();
 
     if (m_itemPipeline && m_itemTextureAtlas && m_itemTextureAtlas->isValid()) {
         m_itemPipeline->setTextureAtlas(m_itemTextureAtlas->imageView(), m_itemTextureAtlas->sampler());
@@ -273,7 +273,13 @@ void FirstPersonRenderer::tick() {
 void FirstPersonRenderer::render(VkCommandBuffer cmd,
                                   VkDescriptorSet cameraDescriptorSet,
                                   const RenderContext& context) {
-    if (!m_initialized || context.player == nullptr || m_armPipeline == nullptr) {
+    if (!m_initialized) {
+        return;
+    }
+
+    cleanupRetiredItemMeshes();
+
+    if (context.player == nullptr || m_armPipeline == nullptr) {
         return;
     }
 
@@ -380,8 +386,9 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
             return;
         }
 
-        ensureItemMesh(heldItem);
-        if (!m_itemMeshValid || m_itemMesh.indexCount == 0) {
+        ensureItemMesh(hand, heldItem);
+        const ItemMeshState& itemMeshState = m_itemMeshes[handIndex(hand)];
+        if (!itemMeshState.valid || itemMeshState.mesh.indexCount == 0) {
             return;
         }
 
@@ -393,7 +400,7 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd,
                                 m_itemPipeline->pipelineLayout(), 0, 1, &cameraDescriptorSet, 0, nullptr);
         m_itemPipeline->bindTextureDescriptor(cmd);
         const auto itemModelMatrix = toModelMatrix(itemStack.last());
-        m_itemPipeline->drawMesh(cmd, m_itemMesh, itemModelMatrix, cameraPos, 1.0);
+        m_itemPipeline->drawMesh(cmd, itemMeshState.mesh, itemModelMatrix, cameraPos, 1.0);
 
         // 恢复手臂管线，供后续手臂绘制继续使用。
         m_armPipeline->bind(cmd);
@@ -556,6 +563,72 @@ void FirstPersonRenderer::invalidateArmMeshes() {
     }
 }
 
+void FirstPersonRenderer::invalidateItemMeshes() {
+    for (auto& itemMeshState : m_itemMeshes) {
+        if (itemMeshState.valid) {
+            retireItemMesh(itemMeshState.mesh);
+            itemMeshState.valid = false;
+        }
+        itemMeshState.itemId = std::numeric_limits<ItemId>::max();
+    }
+}
+
+void FirstPersonRenderer::cleanupRetiredItemMeshes() {
+    if (!m_itemPipeline) {
+        m_retiredItemMeshes.clear();
+        return;
+    }
+
+    auto it = m_retiredItemMeshes.begin();
+    while (it != m_retiredItemMeshes.end()) {
+        if (it->framesRemaining > 0) {
+            --it->framesRemaining;
+        }
+
+        if (it->framesRemaining == 0) {
+            m_itemPipeline->destroyMesh(it->mesh);
+            it = m_retiredItemMeshes.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void FirstPersonRenderer::retireItemMesh(EntityMesh& mesh) {
+    if (mesh.vertexBuffer == VK_NULL_HANDLE &&
+        mesh.vertexMemory == VK_NULL_HANDLE &&
+        mesh.indexBuffer == VK_NULL_HANDLE &&
+        mesh.indexMemory == VK_NULL_HANDLE) {
+        mesh = {};
+        return;
+    }
+
+    m_retiredItemMeshes.push_back(RetiredItemMesh{ mesh, m_itemMeshRetirementFrames });
+    mesh = {};
+}
+
+void FirstPersonRenderer::destroyItemMeshes() {
+    if (m_itemPipeline) {
+        for (auto& itemMeshState : m_itemMeshes) {
+            if (itemMeshState.valid) {
+                m_itemPipeline->destroyMesh(itemMeshState.mesh);
+            }
+        }
+
+        for (auto& retiredMesh : m_retiredItemMeshes) {
+            m_itemPipeline->destroyMesh(retiredMesh.mesh);
+        }
+    }
+
+    for (auto& itemMeshState : m_itemMeshes) {
+        itemMeshState.mesh = {};
+        itemMeshState.valid = false;
+        itemMeshState.itemId = std::numeric_limits<ItemId>::max();
+    }
+
+    m_retiredItemMeshes.clear();
+}
+
 void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand) {
     if (!m_armPipeline) {
         return;
@@ -593,10 +666,12 @@ void FirstPersonRenderer::ensureArmMesh(Hand hand, HandSide primaryHand) {
     }
 }
 
-void FirstPersonRenderer::ensureItemMesh(const ItemStack& itemStack) {
+void FirstPersonRenderer::ensureItemMesh(Hand hand, const ItemStack& itemStack) {
     if (!m_itemPipeline || !m_itemTextureAtlas || itemStack.isEmpty()) {
         return;
     }
+
+    ItemMeshState& itemMeshState = m_itemMeshes[handIndex(hand)];
 
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
@@ -604,7 +679,7 @@ void FirstPersonRenderer::ensureItemMesh(const ItemStack& itemStack) {
     }
 
     const ItemId itemId = item->itemId();
-    if (m_itemMeshValid && m_itemMeshItemId == itemId) {
+    if (itemMeshState.valid && itemMeshState.itemId == itemId) {
         return;
     }
 
@@ -624,11 +699,11 @@ void FirstPersonRenderer::ensureItemMesh(const ItemStack& itemStack) {
         return;
     }
 
-    if (m_itemMeshValid) {
+    if (itemMeshState.valid) {
         // 物品切换时将旧网格延后回收，避免上一帧仍在引用旧缓冲区。
-        m_retiredItemMeshes.push_back(m_itemMesh);
-        m_itemMesh = {};
-        m_itemMeshValid = false;
+        retireItemMesh(itemMeshState.mesh);
+        itemMeshState.valid = false;
+        itemMeshState.itemId = std::numeric_limits<ItemId>::max();
     }
 
     constexpr f64 halfSize = 0.14f;
@@ -659,9 +734,9 @@ void FirstPersonRenderer::ensureItemMesh(const ItemStack& itemStack) {
         return;
     }
 
-    m_itemMesh = std::move(createResult.value());
-    m_itemMeshValid = true;
-    m_itemMeshItemId = itemId;
+    itemMeshState.mesh = std::move(createResult.value());
+    itemMeshState.valid = true;
+    itemMeshState.itemId = itemId;
 }
 
 void FirstPersonRenderer::remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const {

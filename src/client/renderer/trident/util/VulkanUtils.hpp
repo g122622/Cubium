@@ -120,7 +120,14 @@ namespace VulkanUtils {
     }
 
     // 绑定内存
-    vkBindBufferMemory(device, outBuffer, outMemory, 0);
+    result = vkBindBufferMemory(device, outBuffer, outMemory, 0);
+    if (result != VK_SUCCESS) {
+        vkFreeMemory(device, outMemory, nullptr);
+        outMemory = VK_NULL_HANDLE;
+        vkDestroyBuffer(device, outBuffer, nullptr);
+        outBuffer = VK_NULL_HANDLE;
+        return Error(ErrorCode::OperationFailed, "Failed to bind buffer memory");
+    }
 
     return Result<void>::ok();
 }
@@ -194,7 +201,14 @@ namespace VulkanUtils {
         return Error(ErrorCode::OutOfMemory, "Failed to allocate image memory");
     }
 
-    vkBindImageMemory(device, outImage, outMemory, 0);
+    result = vkBindImageMemory(device, outImage, outMemory, 0);
+    if (result != VK_SUCCESS) {
+        vkFreeMemory(device, outMemory, nullptr);
+        outMemory = VK_NULL_HANDLE;
+        vkDestroyImage(device, outImage, nullptr);
+        outImage = VK_NULL_HANDLE;
+        return Error(ErrorCode::OperationFailed, "Failed to bind image memory");
+    }
 
     return Result<void>::ok();
 }

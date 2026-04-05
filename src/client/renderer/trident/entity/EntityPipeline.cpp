@@ -97,6 +97,8 @@ Result<void> EntityPipeline::initialize(
 
     m_device = device;
     m_physicalDevice = physicalDevice;
+
+        destroy();
     m_graphicsQueue = graphicsQueue;
     m_descriptorPool = descriptorPool;
     m_commandPool = commandPool;
@@ -104,24 +106,28 @@ Result<void> EntityPipeline::initialize(
     // 创建描述符布局
     auto result = createDescriptorLayouts();
     if (!result.success()) {
+        destroy();
         return result.error();
     }
 
     // 创建纹理采样器
     result = createTextureSampler();
     if (!result.success()) {
+        destroy();
         return result.error();
     }
 
     // 创建描述符集
     result = createDescriptorSets();
     if (!result.success()) {
+        destroy();
         return result.error();
     }
 
     // 创建图形管线
     result = createGraphicsPipeline(renderPass, cameraDescriptorLayout);
     if (!result.success()) {
+        destroy();
         return result.error();
     }
 
@@ -131,9 +137,11 @@ Result<void> EntityPipeline::initialize(
 }
 
 void EntityPipeline::destroy() {
-    if (!m_initialized) {
-        return;
-    }
+    const bool hadResources = m_initialized ||
+        m_pipeline != VK_NULL_HANDLE ||
+        m_pipelineLayout != VK_NULL_HANDLE ||
+        m_textureSampler != VK_NULL_HANDLE ||
+        m_textureDescriptorLayout != VK_NULL_HANDLE;
 
     // 销毁管线
     if (m_pipeline != VK_NULL_HANDLE) {
@@ -160,7 +168,10 @@ void EntityPipeline::destroy() {
     }
 
     m_initialized = false;
-    spdlog::info("EntityPipeline destroyed");
+
+    if (hadResources) {
+        spdlog::info("EntityPipeline destroyed");
+    }
 }
 
 void EntityPipeline::bind(VkCommandBuffer cmd) {

@@ -9,6 +9,7 @@
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include <array>
 #include <vulkan/vulkan.h>
 #include <memory>
 #include <limits>
@@ -108,7 +109,8 @@ public:
         VkRenderPass renderPass,
         VkDescriptorSetLayout cameraDescriptorLayout,
         VkDescriptorPool descriptorPool,
-        EntityTextureAtlas* entityTextureAtlas);
+        EntityTextureAtlas* entityTextureAtlas,
+        u32 maxFramesInFlight);
 
     /**
      * @brief 销毁资源
@@ -263,9 +265,29 @@ private:
     void invalidateArmMeshes();
 
     /**
+     * @brief 使手持物品网格缓存失效
+     */
+    void invalidateItemMeshes();
+
+    /**
      * @brief 确保手持物品网格已创建
      */
-    void ensureItemMesh(const ItemStack& itemStack);
+    void ensureItemMesh(Hand hand, const ItemStack& itemStack);
+
+    /**
+     * @brief 清理已退休的手持物品网格
+     */
+    void cleanupRetiredItemMeshes();
+
+    /**
+     * @brief 退休当前手持物品网格
+     */
+    void retireItemMesh(EntityMesh& mesh);
+
+    /**
+     * @brief 销毁当前和已退休的手持物品网格
+     */
+    void destroyItemMeshes();
 
     /**
      * @brief 创建或更新 GPU 缓冲区
@@ -320,11 +342,21 @@ private:
     EntityMesh m_offHandArmMesh;
     bool m_offHandArmMeshValid = false;
 
-    // 手持物品网格（简化四边形）
-    EntityMesh m_itemMesh;
-    bool m_itemMeshValid = false;
-    ItemId m_itemMeshItemId = std::numeric_limits<ItemId>::max();
-    std::vector<EntityMesh> m_retiredItemMeshes;
+    struct ItemMeshState {
+        EntityMesh mesh;
+        bool valid = false;
+        ItemId itemId = std::numeric_limits<ItemId>::max();
+    };
+
+    struct RetiredItemMesh {
+        EntityMesh mesh;
+        u32 framesRemaining = 0;
+    };
+
+    // 手持物品网格（按手位分别缓存，旧网格会延迟若干帧后再回收）
+    std::array<ItemMeshState, 2> m_itemMeshes;
+    std::vector<RetiredItemMesh> m_retiredItemMeshes;
+    u32 m_itemMeshRetirementFrames = 0;
 
     // 实体纹理图集
     EntityTextureAtlas* m_entityTextureAtlas = nullptr;
