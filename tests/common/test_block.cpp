@@ -288,6 +288,24 @@ TEST(BlockPropertiesTest, TransparentDefaultOpacityMatchesVanillaRule) {
     EXPECT_EQ(glassLike.defaultState().getOpacity(), 1);
 }
 
+TEST(BlockSoundTypeTest, DirtUsesVanillaGroundSoundEvents) {
+    const auto& soundType = BlockSoundTypes::DIRT;
+
+    EXPECT_EQ(soundType.getBreakSound().toString(), "minecraft:block.gravel.break");
+    EXPECT_EQ(soundType.getStepSound().toString(), "minecraft:block.gravel.step");
+    EXPECT_EQ(soundType.getPlaceSound().toString(), "minecraft:block.gravel.place");
+    EXPECT_EQ(soundType.getHitSound().toString(), "minecraft:block.gravel.hit");
+    EXPECT_EQ(soundType.getFallSound().toString(), "minecraft:block.gravel.fall");
+}
+
+TEST(BlockSoundTypeTest, GrassBlockUsesGrassSoundType) {
+    VanillaBlocks::initialize();
+
+    const auto& soundType = VanillaBlocks::GRASS_BLOCK->defaultState().getSoundType();
+    EXPECT_EQ(soundType.getBreakSound().toString(), BlockSoundTypes::GRASS.getBreakSound().toString());
+    EXPECT_EQ(soundType.getPlaceSound().toString(), BlockSoundTypes::GRASS.getPlaceSound().toString());
+}
+
 // ============================================================================
 // StateContainer 测试
 // ============================================================================

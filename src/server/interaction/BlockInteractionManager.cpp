@@ -148,6 +148,10 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         return BlockPlacementResult{false, false, false, pos, 0, "No placement state"};
     }
 
+    if (wouldCollideWithPlayer(playerId, placePos, *newState)) {
+        return BlockPlacementResult{false, false, false, placePos, 0, "Cannot place block inside player"};
+    }
+
     // 设置方块
     m_world.setBlock(placePos.x, placePos.y, placePos.z, newState);
 
@@ -320,6 +324,33 @@ bool BlockInteractionManager::canBreakBlock(
         return false;
     }
     return canInteract(playerId, pos);
+}
+
+bool BlockInteractionManager::wouldCollideWithPlayer(
+    PlayerId playerId,
+    const BlockPos& placePos,
+    const BlockState& state) const
+{
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (playerData == nullptr) {
+        return false;
+    }
+
+    const auto& collisionShape = state.getCollisionShape();
+    if (collisionShape.isEmpty()) {
+        return false;
+    }
+
+    const f32 halfWidth = Player::PLAYER_WIDTH * 0.5f;
+    const AxisAlignedBB playerBoundingBox(
+        playerData->x - halfWidth,
+        playerData->y,
+        playerData->z - halfWidth,
+        playerData->x + halfWidth,
+        playerData->y + Player::PLAYER_HEIGHT,
+        playerData->z + halfWidth);
+
+    return collisionShape.intersects(playerBoundingBox, placePos.x, placePos.y, placePos.z);
 }
 
 void BlockInteractionManager::generateBlockDrops(

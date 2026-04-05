@@ -95,9 +95,17 @@ src/client/renderer/
 │   │   └── VulkanUtils.hpp       # Vulkan 辅助函数
 │   ├── weather/                  # 天气渲染
 │   │   └── WeatherRenderer.hpp/cpp   # 雨/雪渲染器
-│   └── block/                    # 方块渲染
-│       ├── BreakProgressManager.hpp/cpp # 破坏进度管理
-│       └── BreakProgressRenderer.hpp/cpp # 破坏进度渲染器
+│   ├── block/                    # 方块渲染
+│   │   ├── BreakProgressManager.hpp/cpp # 破坏进度管理
+│   │   └── BreakProgressRenderer.hpp/cpp # 破坏进度渲染器
+│   └── firstperson/              # 第一人称手部渲染
+│       ├── README.md             # 模块文档
+│       ├── ArmPose.hpp           # 手臂姿态枚举
+│       ├── FirstPersonRenderer.hpp/cpp # 第一人称渲染器主类
+│       ├── ItemCameraTransforms.hpp/cpp # 物品相机变换
+│       ├── ItemInHandRenderer.hpp/cpp   # 手持物品渲染器
+│       ├── MatrixStack.hpp/cpp   # 矩阵栈（变换层级管理）
+│       └── PlayerModel.hpp/cpp   # 玩家模型（双足模型扩展）
 └── util/                         # 渲染工具
     ├── GpuInfo.hpp               # GPU 信息提取
     └── ShaderPath.hpp            # 着色器路径解析
@@ -621,6 +629,70 @@ pool.shutdown();
 ##### BreakProgressManager.hpp/cpp - 破坏进度管理器
 
 **职责**：管理玩家挖掘进度。
+
+#### 5.12 firstperson/ - 第一人称手部渲染
+
+**职责**：渲染玩家第一人称视角下的手部和手持物品。
+
+**主要文件**：
+
+##### FirstPersonRenderer.hpp/cpp - 第一人称渲染器主类
+
+**核心功能**：
+- 渲染玩家手臂（第一人称视角）
+- 渲染手持物品
+- 处理挥动手臂动画
+- 处理使用物品动画（吃食物、拉弓等）
+- 处理地图等特殊物品渲染
+
+**动画系统**：
+- 挥动动画（swing）：攻击或使用物品时触发
+- 装备动画（equip）：切换手持物品时触发
+- 使用物品动画（use）：根据物品类型不同（食物/弓/盾牌等）
+
+##### PlayerModel.hpp/cpp - 玩家模型
+
+**核心功能**：
+- 扩展 BipedModel，添加玩家特有部件
+- 外层皮肤装饰（帽子、外套、袖子、裤腿）
+- 细手臂支持（Alex 模型）
+- 手臂姿态支持（空手、持物品、拉弓、格挡等）
+
+##### MatrixStack.hpp/cpp - 矩阵栈
+
+**核心功能**：
+- 管理变换层级（push/pop）
+- translate/rotate/scale 变换
+- 矩阵乘法优化
+- 参考自 MC 1.16.5 MatrixStack
+
+##### ItemCameraTransforms.hpp/cpp - 物品相机变换
+
+**核心功能**：
+- 定义物品在各种渲染场景下的变换参数
+- TransformType：NONE, THIRD_PERSON_LEFT/RIGHT, FIRST_PERSON_LEFT/RIGHT, HEAD, GUI, GROUND, FIXED
+- ItemTransform：旋转、平移、缩放参数
+- 变换来源：物品模型 JSON 定义
+
+##### ItemInHandRenderer.hpp/cpp - 手持物品渲染器
+
+**核心功能**：
+- 渲染玩家手中的物品
+- 根据物品类型应用不同的变换
+- 方块物品 vs 普通物品的渲染逻辑
+
+##### ArmPose.hpp - 手臂姿态枚举
+
+**定义的手臂姿态**：
+- `Empty`：空手
+- `Item`：持有普通物品
+- `Block`：格挡（盾牌）
+- `BowAndArrow`：拉弓
+- `ThrowSpear`：投掷三叉戟
+- `CrossbowCharge`：装填弩
+- `CrossbowHold`：持有已装填的弩
+- `EatOrDrink`：吃食物/喝药水
+- `Map`：使用地图
 
 ---
 

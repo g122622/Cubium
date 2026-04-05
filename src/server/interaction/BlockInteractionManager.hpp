@@ -160,6 +160,16 @@ private:
     [[nodiscard]] bool canBreakBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state) const;
 
     /**
+     * @brief 检查候选放置方块是否与玩家碰撞箱相交
+     *
+     * 用于阻止将有碰撞体的方块放置到玩家体内。
+     */
+    [[nodiscard]] bool wouldCollideWithPlayer(
+        PlayerId playerId,
+        const BlockPos& placePos,
+        const BlockState& state) const;
+
+    /**
      * @brief 生成方块掉落物
      */
     void generateBlockDrops(const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool);

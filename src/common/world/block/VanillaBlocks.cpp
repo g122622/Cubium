@@ -570,7 +570,9 @@ void VanillaBlocks::registerBaseBlocks() {
     // 参考: new GrassBlock(Properties.create(Material.ORGANIC).tickRandomly().hardnessAndResistance(0.6F))
     GRASS_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:grass_block"),
-        BlockProperties(Material::EARTH).hardness(0.6f)
+        BlockProperties(Material::EARTH)
+            .hardness(0.6f)
+            .soundType(BlockSoundTypes::GRASS)
     );
 
     // 泥土 - ID 3

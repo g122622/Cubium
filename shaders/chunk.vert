@@ -21,8 +21,7 @@ layout(location = 6) out float fragBlockLight;
 // 推送常量 - 模型矩阵
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    dvec4 chunkOffset;
-    dvec4 cameraWorldPos;
+    vec4 chunkRelativeOffset;
 } pc;
 
 // 描述符集 0 - 相机UBO
@@ -37,9 +36,8 @@ out gl_PerVertex {
 };
 
 void main() {
-    // 应用区块偏移
-    dvec3 worldPos = inPosition + pc.chunkOffset.xyz;
-    vec3 relativePos = vec3(worldPos - pc.cameraWorldPos.xyz);
+    // 在 CPU 侧预先计算区块相对相机偏移，避免 dvec 推送常量在部分驱动上的不稳定行为。
+    vec3 relativePos = vec3(inPosition) + pc.chunkRelativeOffset.xyz;
 
     mat4 viewNoTranslation = camera.view;
     viewNoTranslation[3] = vec4(0.0, 0.0, 0.0, 1.0);
@@ -52,6 +50,6 @@ void main() {
     fragBlockLight = float(inLight & 0xFu) / 15.0;
 
     // 输出世界坐标和视图距离（用于雾效果）
-    fragWorldPos = vec3(worldPos);
+    fragWorldPos = relativePos;
     fragViewDistance = length(relativePos);
 }

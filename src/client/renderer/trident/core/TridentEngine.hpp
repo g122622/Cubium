@@ -73,6 +73,10 @@ namespace block {
 class BreakProgressRenderer;
 }
 
+namespace firstperson {
+class FirstPersonRenderer;
+}
+
 /**
  * @brief GUI 渲染回调类型
  *
@@ -88,6 +92,16 @@ using GuiRenderCallback = std::function<void()>;
  * @param partialTick 部分 tick（用于插值）
  */
 using EntityRenderCallback = std::function<void(VkCommandBuffer, f64)>;
+
+/**
+ * @brief 第一人称手部渲染回调类型
+ *
+ * 在每帧的第一人称手部渲染阶段被调用。
+ * @param cmd 当前命令缓冲区
+ * @param cameraDescriptorSet 相机描述符集
+ * @param partialTick 部分 tick（用于插值）
+ */
+using FirstPersonRenderCallback = std::function<void(VkCommandBuffer, VkDescriptorSet, f64)>;
 
 /**
  * @brief 最大同时在飞帧数
@@ -371,6 +385,15 @@ public:
      */
     void setEntityRenderCallback(EntityRenderCallback callback);
 
+    /**
+     * @brief 设置第一人称手部渲染回调
+     *
+     * 回调会在每帧的第一人称手部渲染阶段被调用。
+     *
+     * @param callback 第一人称手部渲染回调函数
+     */
+    void setFirstPersonRenderCallback(FirstPersonRenderCallback callback);
+
     // ========================================================================
     // 子渲染器访问器（用于迁移期间）
     // ========================================================================
@@ -463,6 +486,13 @@ public:
     [[nodiscard]] const block::BreakProgressRenderer& breakProgressRenderer() const;
     [[nodiscard]] bool isBreakProgressRendererInitialized() const { return m_breakProgressRendererInitialized; }
 
+    /**
+     * @brief 获取第一人称手部渲染器
+     */
+    [[nodiscard]] firstperson::FirstPersonRenderer& firstPersonRenderer();
+    [[nodiscard]] const firstperson::FirstPersonRenderer& firstPersonRenderer() const;
+    [[nodiscard]] bool isFirstPersonRendererInitialized() const { return m_firstPersonRendererInitialized; }
+
     // ========================================================================
     // 子渲染器初始化
     // ========================================================================
@@ -524,6 +554,11 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> initializeBreakProgressRenderer(ResourceManager* resourceManager = nullptr);
+
+    /**
+     * @brief 初始化第一人称手部渲染器
+     */
+    [[nodiscard]] Result<void> initializeFirstPersonRenderer();
 
     /**
      * @brief 重新加载云纹理
@@ -593,6 +628,7 @@ private:
     // 渲染回调
     GuiRenderCallback m_guiRenderCallback;
     EntityRenderCallback m_entityRenderCallback;
+    FirstPersonRenderCallback m_firstPersonRenderCallback;
 
     // 子渲染器
     std::unique_ptr<ChunkRenderer> m_chunkRenderer;
@@ -605,6 +641,7 @@ private:
     std::unique_ptr<particle::ParticleManager> m_particleManager;
     std::unique_ptr<weather::WeatherRenderer> m_weatherRenderer;
     std::unique_ptr<block::BreakProgressRenderer> m_breakProgressRenderer;
+    std::unique_ptr<firstperson::FirstPersonRenderer> m_firstPersonRenderer;
 
     // 实体渲染管线（独立于区块管线）
     std::unique_ptr<EntityPipeline> m_entityPipeline;
@@ -615,6 +652,7 @@ private:
     // 纹理图集
     ItemTextureAtlas m_itemTextureAtlas;
     EntityTextureAtlas m_entityTextureAtlas;
+    ResourceLocation m_localPlayerSkinLocation{"minecraft:textures/entity/steve.png"};
     std::map<ResourceLocation, TextureRegion> m_textureRegions;
 
     // 子渲染器初始化状态
@@ -630,6 +668,7 @@ private:
     bool m_particleManagerInitialized = false;
     bool m_weatherRendererInitialized = false;
     bool m_breakProgressRendererInitialized = false;
+    bool m_firstPersonRendererInitialized = false;
 
     // 液体状态（用于雾效果）
     bool m_inWater = false;

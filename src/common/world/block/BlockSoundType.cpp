@@ -49,11 +49,11 @@ const BlockSoundType STONE(
 
 // 泥土 - 柔软的泥土声
 const BlockSoundType DIRT(
-    ResourceLocation("minecraft:block.dirt.break"),
-    ResourceLocation("minecraft:block.dirt.step"),
-    ResourceLocation("minecraft:block.dirt.place"),
-    ResourceLocation("minecraft:block.dirt.hit"),
-    ResourceLocation("minecraft:block.dirt.fall"),
+    ResourceLocation("minecraft:block.gravel.break"),
+    ResourceLocation("minecraft:block.gravel.step"),
+    ResourceLocation("minecraft:block.gravel.place"),
+    ResourceLocation("minecraft:block.gravel.hit"),
+    ResourceLocation("minecraft:block.gravel.fall"),
     1.0f, 1.0f
 );
 

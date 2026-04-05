@@ -1,0 +1,364 @@
+#pragma once
+
+#include "MatrixStack.hpp"
+#include "PlayerModel.hpp"
+#include "ArmPose.hpp"
+#include "ItemCameraTransforms.hpp"
+#include "../entity/EntityPipeline.hpp"
+#include "../entity/EntityTextureAtlas.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include <vulkan/vulkan.h>
+#include <memory>
+#include <limits>
+#include <vector>
+
+// 前向声明
+namespace mc {
+class Player;
+}
+
+namespace mc::client {
+class ItemTextureAtlas;
+}
+
+namespace mc::client::renderer::trident::firstperson {
+
+/**
+ * @brief 第一人称手部渲染器
+ *
+ * 负责渲染玩家视角下的手部和手持物品。
+ *
+ * 主要功能：
+ * - 渲染玩家手臂（第一人称视角）
+ * - 渲染手持物品
+ * - 处理手臂挥动动画
+ * - 处理使用物品动画（吃食物、拉弓等）
+ * - 处理地图等特殊物品渲染
+ *
+ * 参考 MC 1.16.5 FirstPersonRenderer
+ */
+class FirstPersonRenderer {
+public:
+    /**
+     * @brief 手部渲染上下文
+     *
+     * 包含渲染所需的所有状态信息
+     */
+    struct RenderContext {
+        /// 当前玩家
+        mc::Player* player = nullptr;
+
+        /// 部分 tick（用于动画插值）
+        f64 partialTick = 0.0;
+
+        /// 主手挥动进度 (0.0 - 1.0)
+        f32 mainHandSwingProgress = 0.0f;
+
+        /// 副手挥动进度 (0.0 - 1.0)
+        f32 offHandSwingProgress = 0.0f;
+
+        /// 主手装备进度 (0.0 - 1.0)
+        f32 mainHandEquipProgress = 0.0f;
+
+        /// 副手装备进度 (0.0 - 1.0)
+        f32 offHandEquipProgress = 0.0f;
+
+        /// 是否正在使用主手物品
+        bool isMainHandActive = false;
+
+        /// 是否正在使用副手物品
+        bool isOffHandActive = false;
+
+        /// 主手使用物品的 tick 数
+        i32 mainHandUseCount = 0;
+
+        /// 副手使用物品的 tick 数
+        i32 offHandUseCount = 0;
+    };
+
+    FirstPersonRenderer();
+    ~FirstPersonRenderer();
+
+    // 禁止拷贝
+    FirstPersonRenderer(const FirstPersonRenderer&) = delete;
+    FirstPersonRenderer& operator=(const FirstPersonRenderer&) = delete;
+
+    // ========== 初始化 ==========
+
+    /**
+     * @brief 初始化渲染器
+     *
+     * @param device Vulkan 设备
+     * @param physicalDevice Vulkan 物理设备
+     * @param commandPool 命令池
+    * @param graphicsQueue 图形队列（必须与 commandPool 的队列族匹配）
+     * @param renderPass 渲染通道
+     * @param cameraDescriptorLayout 相机描述符布局
+     * @param descriptorPool 描述符池
+     * @param entityTextureAtlas 实体纹理图集（玩家皮肤）
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> initialize(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        VkCommandPool commandPool,
+        VkQueue graphicsQueue,
+        VkRenderPass renderPass,
+        VkDescriptorSetLayout cameraDescriptorLayout,
+        VkDescriptorPool descriptorPool,
+        EntityTextureAtlas* entityTextureAtlas);
+
+    /**
+     * @brief 销毁资源
+     */
+    void destroy();
+
+    /**
+     * @brief 检查是否已初始化
+     */
+    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+
+    // ========== 每帧更新 ==========
+
+    /**
+     * @brief 每游戏 tick 更新
+     *
+     * 更新手臂挥动动画、装备动画等状态。
+     */
+    void tick();
+
+    // ========== 渲染 ==========
+
+    /**
+     * @brief 渲染第一人称手部和物品
+     *
+     * 主渲染入口点，在实体渲染阶段之后、GUI 渲染阶段之前调用。
+     *
+     * @param cmd Vulkan 命令缓冲区
+     * @param cameraDescriptorSet 相机描述符集
+     * @param context 渲染上下文
+     */
+    void render(VkCommandBuffer cmd,
+                VkDescriptorSet cameraDescriptorSet,
+                const RenderContext& context);
+
+    // ========== 动画控制 ==========
+
+    /**
+     * @brief 重置装备进度
+     *
+     * 当玩家切换手持物品时调用，触发装备动画。
+     *
+     * @param hand 手
+     */
+    void resetEquippedProgress(Hand hand);
+
+    // ========== 访问器 ==========
+
+    /**
+     * @brief 获取玩家模型
+     */
+    [[nodiscard]] PlayerModel& model() { return m_model; }
+    [[nodiscard]] const PlayerModel& model() const { return m_model; }
+
+    /**
+     * @brief 设置物品纹理图集
+     *
+     * 第一人称手持物品渲染使用该图集查询 UV。
+     * 图集生命周期由 TridentEngine 管理，渲染器仅持有裸指针。
+     *
+     * @param itemTextureAtlas 物品纹理图集
+     */
+    void setItemTextureAtlas(const mc::client::ItemTextureAtlas* itemTextureAtlas);
+
+    /**
+     * @brief 设置玩家皮肤纹理位置
+     *
+     * 第一人称手臂网格会将 UV 重映射到该纹理区域。
+     *
+     * @param playerSkinLocation 玩家皮肤在实体图集中的资源键
+     */
+    void setPlayerSkinLocation(const ResourceLocation& playerSkinLocation);
+
+    /**
+     * @brief 获取当前玩家皮肤纹理位置
+     */
+    [[nodiscard]] const ResourceLocation& playerSkinLocation() const { return m_playerSkinLocation; }
+
+private:
+    // ========== 内部渲染方法 ==========
+
+    /**
+     * @brief 渲染单只手臂
+     *
+     * @param stack 矩阵栈
+    * @param side 手侧（左/右）
+     * @param equipProgress 装备进度
+     * @param swingProgress 挥动进度
+     */
+    void renderArmFirstPerson(MatrixStack& stack, HandSide side,
+                              f32 equipProgress, f32 swingProgress);
+
+    /**
+     * @brief 渲染手持物品
+     *
+     * @param stack 矩阵栈
+     * @param player 玩家
+     * @param itemStack 物品堆
+    * @param side 手侧（左/右）
+     * @param equipProgress 装备进度
+     * @param swingProgress 挥动进度
+     */
+    void renderItemInHand(MatrixStack& stack, mc::Player* player,
+                     const ItemStack& itemStack, HandSide side,
+                          f32 equipProgress, f32 swingProgress);
+
+    /**
+     * @brief 渲染地图（特殊物品）
+     */
+    void renderMapFirstPerson(MatrixStack& stack, const ItemStack& mapStack,
+                              f32 pitch, f32 equipProgress, f32 swingProgress);
+
+    // ========== 变换方法 ==========
+
+    /**
+     * @brief 应用手部侧边变换
+     *
+     * 将手部放置在屏幕侧边的正确位置。
+     */
+    void transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress);
+
+    /**
+     * @brief 应用第一人称挥动变换
+     */
+    void transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress);
+
+    /**
+     * @brief 应用吃东西变换
+     */
+    void transformEatFirstPerson(MatrixStack& matrixStack, f32 partialTicks, HandSide side, const ItemStack& item);
+
+    /**
+     * @brief 计算挥动动画参数
+     */
+    [[nodiscard]] f32 getSwingProgress(f32 partialTicks, mc::Player* player, Hand hand) const;
+
+    /**
+     * @brief 确定手臂姿态
+     */
+    [[nodiscard]] ArmPose determineArmPose(mc::Player* player, Hand hand) const;
+
+    // ========== GPU 资源管理 ==========
+
+    /**
+     * @brief 确保手臂网格已创建
+     */
+    void ensureArmMesh(Hand hand, HandSide primaryHand);
+
+    /**
+     * @brief 使手臂网格缓存失效
+     */
+    void invalidateArmMeshes();
+
+    /**
+     * @brief 确保手持物品网格已创建
+     */
+    void ensureItemMesh(const ItemStack& itemStack);
+
+    /**
+     * @brief 创建或更新 GPU 缓冲区
+     */
+    [[nodiscard]] Result<void> createOrUpdateBuffers(
+        const std::vector<ModelVertex>& vertices,
+        const std::vector<u32>& indices);
+
+    /**
+     * @brief 将模型 UV 重映射到玩家皮肤图集区域
+     */
+    void remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const;
+
+    // ========== 工具方法 ==========
+
+    /**
+     * @brief 获取玩家的主手
+     */
+    [[nodiscard]] static HandSide getPrimaryHand(mc::Player* player);
+
+    /**
+     * @brief 获取手持物品
+     */
+    [[nodiscard]] static ItemStack getHeldItem(mc::Player* player, Hand hand);
+
+    /**
+     * @brief 根据手槽位和主手设置解析实际左右手
+     */
+    [[nodiscard]] static HandSide resolveHandSide(Hand hand, HandSide primaryHand);
+
+    /**
+     * @brief 根据手槽位选择对应的手臂模型部件
+     */
+    [[nodiscard]] std::shared_ptr<ModelRenderer> selectArmModel(Hand hand, HandSide primaryHand) const;
+
+private:
+    // Vulkan 资源
+    VkDevice m_device = VK_NULL_HANDLE;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    VkCommandPool m_commandPool = VK_NULL_HANDLE;
+    VkRenderPass m_renderPass = VK_NULL_HANDLE;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_cameraDescriptorLayout = VK_NULL_HANDLE;
+
+    // 渲染管线（手臂与物品分离，避免同一描述符集在多帧飞行时被频繁更新）
+    std::unique_ptr<EntityPipeline> m_armPipeline;
+    std::unique_ptr<EntityPipeline> m_itemPipeline;
+
+    // 主手/副手手臂网格（分别缓存，避免每帧销毁重建导致 GPU 资源生命周期问题）
+    EntityMesh m_mainHandArmMesh;
+    bool m_mainHandArmMeshValid = false;
+    EntityMesh m_offHandArmMesh;
+    bool m_offHandArmMeshValid = false;
+
+    // 手持物品网格（简化四边形）
+    EntityMesh m_itemMesh;
+    bool m_itemMeshValid = false;
+    ItemId m_itemMeshItemId = std::numeric_limits<ItemId>::max();
+    std::vector<EntityMesh> m_retiredItemMeshes;
+
+    // 实体纹理图集
+    EntityTextureAtlas* m_entityTextureAtlas = nullptr;
+
+    // 物品纹理图集
+    const mc::client::ItemTextureAtlas* m_itemTextureAtlas = nullptr;
+
+    // 玩家皮肤纹理位置（默认 Steve）
+    ResourceLocation m_playerSkinLocation{"minecraft:textures/entity/steve.png"};
+
+    // 玩家模型
+    PlayerModel m_model;
+
+    // 动画状态
+    f32 m_prevMainHandEquipProgress = 0.0f;
+    f32 m_mainHandEquipProgress = 0.0f;
+    f32 m_prevOffHandEquipProgress = 0.0f;
+    f32 m_offHandEquipProgress = 0.0f;
+
+    // 上一次持有的物品（用于检测切换）
+    ItemStack m_prevMainHandItem;
+    ItemStack m_prevOffHandItem;
+
+    // 挥动进度
+    f32 m_prevSwingProgress = 0.0f;
+    f32 m_swingProgress = 0.0f;
+    Hand m_swingHand = Hand::MainHand;
+
+    // 当前帧缓存数据
+    std::vector<ModelVertex> m_cachedVertices;
+    std::vector<u32> m_cachedIndices;
+
+    // 初始化标志
+    bool m_initialized = false;
+};
+
+} // namespace mc::client::renderer::trident::firstperson

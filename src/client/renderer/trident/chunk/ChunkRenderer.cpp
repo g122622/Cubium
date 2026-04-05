@@ -293,15 +293,26 @@ Result<void> ChunkRenderer::createChunkBuffer(
     ChunkGpuBuffer& buffer,
     const MeshData& meshData)
 {
+    for (u32 index : meshData.indices) {
+        if (index >= meshData.vertices.size()) {
+            return Error(
+                ErrorCode::InvalidData,
+                "Chunk mesh index out of range for chunk (" + std::to_string(buffer.chunkId.x) +
+                ", " + std::to_string(buffer.chunkId.z) + ")"
+            );
+        }
+    }
+
     const u32 oldVertexCount = buffer.vertexCount;
     const u32 oldIndexCount = buffer.indexCount;
 
     VkDeviceSize vertexSize = static_cast<VkDeviceSize>(meshData.vertices.size() * sizeof(Vertex));
     VkDeviceSize indexSize = static_cast<VkDeviceSize>(meshData.indices.size() * sizeof(u32));
 
-    // 如果缓冲区已存在且大小足够，重用
-    bool needNewVertex = buffer.vertexBuffer == VK_NULL_HANDLE || buffer.vertexCount < meshData.vertices.size();
-    bool needNewIndex = buffer.indexBuffer == VK_NULL_HANDLE || buffer.indexCount < meshData.indices.size();
+    // 不在原地覆写正在使用中的 GPU 缓冲区。
+    // 即使容量足够，也创建新缓冲并延迟销毁旧缓冲，避免与在飞帧并发访问导致 device lost。
+    bool needNewVertex = true;
+    bool needNewIndex = true;
 
     // 创建顶点缓冲区
     if (needNewVertex) {

@@ -21,6 +21,7 @@
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
+#include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
@@ -484,6 +485,12 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         if (breakProgressInitResult.failed()) {
             spdlog::warn("Failed to initialize break progress renderer: {}", breakProgressInitResult.error().toString());
         }
+
+        // 初始化第一人称手部渲染器
+        auto firstPersonInitResult = m_renderer->initializeFirstPersonRenderer();
+        if (firstPersonInitResult.failed()) {
+            spdlog::warn("Failed to initialize first person renderer: {}", firstPersonInitResult.error().toString());
+        }
     }
 
     // 初始化声音系统
@@ -576,6 +583,19 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
             m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick);
         });
+    });
+
+    // 设置第一人称手部渲染回调
+    m_renderer->setFirstPersonRenderCallback([this](VkCommandBuffer cmd, VkDescriptorSet cameraSet, f64 partialTick) {
+        if (!m_renderer || !m_player || !m_renderer->isFirstPersonRendererInitialized()) {
+            return;
+        }
+
+        renderer::trident::firstperson::FirstPersonRenderer::RenderContext renderContext;
+        renderContext.player = m_player.get();
+        renderContext.partialTick = partialTick;
+
+        m_renderer->firstPersonRenderer().render(cmd, cameraSet, renderContext);
     });
 
     // 初始化方块碰撞注册表
@@ -1161,6 +1181,10 @@ void ClientApplication::update(f32 deltaTime)
     {
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().tick(deltaTime, m_world.gameTime());
+    }
+
+    if (m_renderer && m_renderer->isFirstPersonRendererInitialized()) {
+        m_renderer->firstPersonRenderer().tick();
     }
 
     // 更新玩家物理

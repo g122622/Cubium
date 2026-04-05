@@ -68,6 +68,7 @@ add_executable(mc_tests
     server/ServerWorldTest.cpp
     server/test_integrated_server.cpp
     server/BlockDropHandlerTest.cpp
+    server/BlockInteractionManagerTest.cpp
     server/test_chunk_worker_pool.cpp
     server/test_server_chunk_manager.cpp
     server/core/TimeManagerTest.cpp
@@ -196,6 +197,9 @@ add_executable(mc_tests
     # 粒子系统测试
     client/renderer/particle/ParticleTest.cpp
     client/renderer/particle/ParticleRegistryTest.cpp
+    # 第一人称手部渲染测试
+    client/renderer/firstperson/MatrixStackTest.cpp
+    client/renderer/firstperson/FirstPersonRendererTest.cpp
     # 声音系统测试
     common/sound/SoundCategoryTest.cpp
     client/sound/SoundTest.cpp
@@ -430,6 +434,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/ModelRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/EntityModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/AnimalModels.cpp
+        # 第一人称手部渲染
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/MatrixStack.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/PlayerModel.cpp
         # 区块模型缓存
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp

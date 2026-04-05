@@ -363,6 +363,10 @@ enum class Operation : u8 { ... };
     - Integrated server opens the existing `CraftingMenu` when right-clicking crafting table with empty/non-block hand
     - Standalone server routes crafting-table open events through `ContainerManager` callbacks and sends open/close/content container packets
     - `ContainerManager` is now connected to `InventoryManager`, creates real `CraftingMenu` instances, and processes container click updates through menu state
+- First-person hand rotation path has been rewritten against MC 1.16.5 `FirstPersonRenderer` formulas:
+    - arm/item transforms now follow vanilla coefficients and order (`renderArmFirstPerson`, `transformSideFirstPerson`, `transformFirstPerson`)
+    - first-person root orientation now uses camera-aligned basis derived from MC forward vector convention
+    - custom `MatrixStack` transform composition is now strict post-multiply (`current = current * transform`) to match PoseStack semantics
 
 ## Gotchas & Pitfalls
 
@@ -372,6 +376,8 @@ enum class Operation : u8 { ... };
     - Tests must set up packed ice at the exact sampled neighborhood, not by replacing whole water layers in a way that shifts ocean-floor detection.
 - Avoid passing temporary `BlockState` copies to world write APIs.
     - Prefer canonical references returned by `state.with(...)` / `defaultState()`; `ServerWorld::setBlock` now canonicalizes by `stateId` as a safety net.
+- `MatrixStack` call-order intuition can be misleading after PoseStack alignment.
+    - In first-person rendering, apply transforms in vanilla order and rely on post-multiply semantics; avoid ad-hoc in-place row/column edits.
 
 ## Self-Maintenance Rule
 
@@ -384,6 +390,8 @@ enum class Operation : u8 { ... };
 - Keep this file as the single source of truth for AI sessions working on this project
 
 ## 日志级别必须使用至少info，因为目前未开放debug级别的日志，debug级别日志看不到。
+
+## 函数参数和配置结构体不允许使用、设置默认值，因为大量的默认值会导致数据流变得难以理解，难以追踪某个值是如何被设置的、是某层默认的还是外部传入的，增加理解和调试难度。若不得不增加默认值，必须征求我的同意。
 
 ## 【重要】README.md 使用指南
 

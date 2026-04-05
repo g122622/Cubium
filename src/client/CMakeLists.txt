@@ -64,6 +64,12 @@ add_executable(minecraft-client
     renderer/trident/entity/model/AnimalModels.cpp
     renderer/trident/entity/EntityPipeline.cpp
     renderer/trident/entity/EntityTextureAtlas.cpp
+    # 第一人称手部渲染
+    renderer/trident/firstperson/MatrixStack.cpp
+    renderer/trident/firstperson/ItemCameraTransforms.cpp
+    renderer/trident/firstperson/PlayerModel.cpp
+    renderer/trident/firstperson/FirstPersonRenderer.cpp
+    renderer/trident/firstperson/ItemInHandRenderer.cpp
     # 共享渲染组件
     renderer/mesh/MeshWorkerPool.cpp
     renderer/MeshTypes.cpp

@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <filesystem>
 
 namespace mc {
 class IResourcePack;  // Forward declaration in mc namespace
@@ -73,6 +74,18 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> addTexture(mc::IResourcePack& pack, const ResourceLocation& location);
+
+    /**
+     * @brief 从文件系统添加实体纹理
+     *
+     * 支持直接加载 Java 版玩家皮肤 PNG 文件，用于本地玩家皮肤覆盖。
+     *
+     * @param filePath PNG 文件路径
+     * @param location 图集中的资源位置键
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> addTextureFromFile(const std::filesystem::path& filePath,
+                                                  const ResourceLocation& location);
 
     /**
      * @brief 构建图集

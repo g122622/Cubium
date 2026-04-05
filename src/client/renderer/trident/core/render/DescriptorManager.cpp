@@ -203,7 +203,7 @@ Result<void> DescriptorManager::createDescriptorSetLayouts() {
     lightingLayoutBinding.binding = 1;
     lightingLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     lightingLayoutBinding.descriptorCount = 1;
-    lightingLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightingLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     lightingLayoutBinding.pImmutableSamplers = nullptr;
 
     std::array<VkDescriptorSetLayoutBinding, 2> cameraBindings = { cameraLayoutBinding, lightingLayoutBinding };

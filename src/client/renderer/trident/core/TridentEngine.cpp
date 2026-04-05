@@ -28,12 +28,14 @@
 #include "../entity/EntityTextureAtlas.hpp"
 #include "../entity/EntityPipeline.hpp"
 #include "../block/BreakProgressRenderer.hpp"
+#include "../firstperson/FirstPersonRenderer.hpp"
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cstring>
 #include <array>
 #include <cstddef>
+#include <filesystem>
 
 namespace mc::client::renderer::trident {
 
@@ -44,9 +46,11 @@ namespace {
  */
 struct ChunkPushConstants {
     glm::mat4 model;
-    glm::dvec4 chunkOffset;
-    glm::dvec4 cameraWorldPos;
+    glm::vec4 chunkRelativeOffset;
 };
+
+static_assert(sizeof(ChunkPushConstants) == 80, "ChunkPushConstants layout must match chunk.vert push-constant block");
+static_assert(offsetof(ChunkPushConstants, chunkRelativeOffset) == 64, "ChunkPushConstants offset mismatch");
 
 /**
  * @brief 将 TridentTextureAtlas 适配为 ITextureAtlas 接口
@@ -99,7 +103,6 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "TridentEngine already initialized");
     }
-
     if (!window) {
         return Error(ErrorCode::NullPointer, "Window pointer is null");
     }
@@ -238,6 +241,11 @@ void TridentEngine::destroy() {
         m_guiRendererPtr.reset();
     }
 
+    if (m_firstPersonRenderer) {
+        m_firstPersonRenderer->destroy();
+        m_firstPersonRenderer.reset();
+    }
+
     // 销毁实体管线（必须在 EntityRendererManager 之前）
     if (m_entityPipeline) {
         m_entityPipeline->destroy();
@@ -293,9 +301,12 @@ void TridentEngine::destroy() {
     m_cloudRendererInitialized = false;
     m_particleManagerInitialized = false;
     m_weatherRendererInitialized = false;
+    m_breakProgressRendererInitialized = false;
+    m_firstPersonRendererInitialized = false;
 
     m_guiRenderCallback = nullptr;
     m_entityRenderCallback = nullptr;
+    m_firstPersonRenderCallback = nullptr;
 
     // 按相反顺序销毁
     m_uniformManager.reset();
@@ -538,96 +549,23 @@ Result<void> TridentEngine::render() {
     if (m_chunkRendererInitialized && m_chunkRenderer && m_chunkPipeline &&
         m_chunkPipeline->isValid() && m_chunkTextureDescriptorSet != VK_NULL_HANDLE) {
 
-        // 清理延迟销毁队列：避免在 GPU 仍在使用时立刻销毁旧缓冲区
-        m_chunkRenderer->processPendingDestroys(3);
+        // 清理延迟销毁队列：在高负载时延长保留窗口，降低旧缓冲区被过早释放的风险。
+        m_chunkRenderer->processPendingDestroys(32);
 
-        m_chunkPipeline->bind(cmd);
+        const VkPipelineLayout chunkLayout = m_chunkPipeline->layout();
+        if (chunkLayout == VK_NULL_HANDLE) {
+            spdlog::error("Chunk pipeline layout is null, skipping chunk rendering for this frame");
+        } else {
+            m_chunkPipeline->bind(cmd);
 
-        VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
-        vkCmdBindDescriptorSets(
-            cmd,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_chunkPipeline->layout(),
-            0,
-            1,
-            &cameraSet,
-            0,
-            nullptr
-        );
-
-        vkCmdBindDescriptorSets(
-            cmd,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_chunkPipeline->layout(),
-            1,
-            1,
-            &m_chunkTextureDescriptorSet,
-            0,
-            nullptr
-        );
-
-        // 绑定雾效果描述符集（set = 2）
-        if (m_fogManagerInitialized && m_fogManager) {
-            VkDescriptorSet fogSet = m_fogManager->descriptorSet(m_frameContext.frameIndex);
-            if (fogSet != VK_NULL_HANDLE) {
-                vkCmdBindDescriptorSets(
-                    cmd,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    m_chunkPipeline->layout(),
-                    2,
-                    1,
-                    &fogSet,
-                    0,
-                    nullptr
-                );
-            }
-        }
-
-        glm::dvec3 chunkCameraPos(0.0);
-        if (m_frameContext.camera) {
-            const auto cameraPos = m_frameContext.camera->position();
-            chunkCameraPos = glm::dvec3(
-                static_cast<f64>(cameraPos.x),
-                static_cast<f64>(cameraPos.y),
-                static_cast<f64>(cameraPos.z)
-            );
-        }
-
-        m_chunkRenderer->render(cmd, m_chunkPipeline->layout(),
-            [this, cmd, chunkCameraPos](const ChunkId& chunkId) {
-                ChunkPushConstants pushConstants{};
-                pushConstants.model = glm::mat4(1.0f);
-                pushConstants.chunkOffset = glm::dvec4(
-                    static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH),
-                    0.0f,
-                    static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH),
-                    0.0f
-                );
-                pushConstants.cameraWorldPos = glm::dvec4(chunkCameraPos, 0.0f);
-
-                vkCmdPushConstants(
-                    cmd,
-                    m_chunkPipeline->layout(),
-                    VK_SHADER_STAGE_VERTEX_BIT,
-                    0,
-                    sizeof(ChunkPushConstants),
-                    &pushConstants
-                );
-            }
-        );
-
-        // 半透明层（如水）延后渲染：开启混合，关闭深度写入，并按距离排序。
-        if (m_chunkTranslucentPipeline && m_chunkTranslucentPipeline->isValid()) {
-            m_chunkTranslucentPipeline->bind(cmd);
-
-            VkDescriptorSet translucentCameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+            VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
             vkCmdBindDescriptorSets(
                 cmd,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                m_chunkTranslucentPipeline->layout(),
+                chunkLayout,
                 0,
                 1,
-                &translucentCameraSet,
+                &cameraSet,
                 0,
                 nullptr
             );
@@ -635,7 +573,7 @@ Result<void> TridentEngine::render() {
             vkCmdBindDescriptorSets(
                 cmd,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                m_chunkTranslucentPipeline->layout(),
+                chunkLayout,
                 1,
                 1,
                 &m_chunkTextureDescriptorSet,
@@ -643,13 +581,14 @@ Result<void> TridentEngine::render() {
                 nullptr
             );
 
+            // 绑定雾效果描述符集（set = 2）
             if (m_fogManagerInitialized && m_fogManager) {
                 VkDescriptorSet fogSet = m_fogManager->descriptorSet(m_frameContext.frameIndex);
                 if (fogSet != VK_NULL_HANDLE) {
                     vkCmdBindDescriptorSets(
                         cmd,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        m_chunkTranslucentPipeline->layout(),
+                        chunkLayout,
                         2,
                         1,
                         &fogSet,
@@ -659,37 +598,117 @@ Result<void> TridentEngine::render() {
                 }
             }
 
-            glm::dvec3 cameraPos(0.0);
+            glm::dvec3 chunkCameraPos(0.0);
             if (m_frameContext.camera) {
-                cameraPos = m_frameContext.camera->position();
+                const auto cameraPos = m_frameContext.camera->position();
+                chunkCameraPos = glm::dvec3(
+                    static_cast<f64>(cameraPos.x),
+                    static_cast<f64>(cameraPos.y),
+                    static_cast<f64>(cameraPos.z)
+                );
             }
 
-            m_chunkRenderer->renderTransparent(
-                cmd,
-                m_chunkTranslucentPipeline->layout(),
-                [this, cmd, chunkCameraPos](const ChunkId& chunkId) {
+            m_chunkRenderer->render(cmd, chunkLayout,
+                [cmd, chunkLayout, chunkCameraPos](const ChunkId& chunkId) {
                     ChunkPushConstants pushConstants{};
                     pushConstants.model = glm::mat4(1.0f);
-                    pushConstants.chunkOffset = glm::dvec4(
-                        static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH),
-                        0.0f,
-                        static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH),
+                    pushConstants.chunkRelativeOffset = glm::vec4(
+                        static_cast<f32>(static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH) - chunkCameraPos.x),
+                        static_cast<f32>(-chunkCameraPos.y),
+                        static_cast<f32>(static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH) - chunkCameraPos.z),
                         0.0f
                     );
-                    pushConstants.cameraWorldPos = glm::dvec4(chunkCameraPos, 0.0f);
 
                     vkCmdPushConstants(
                         cmd,
-                        m_chunkTranslucentPipeline->layout(),
+                        chunkLayout,
                         VK_SHADER_STAGE_VERTEX_BIT,
                         0,
                         sizeof(ChunkPushConstants),
                         &pushConstants
                     );
-                },
-                cameraPos,
-                true
+                }
             );
+
+            // 半透明层（如水）延后渲染：开启混合，关闭深度写入，并按距离排序。
+            if (m_chunkTranslucentPipeline && m_chunkTranslucentPipeline->isValid()) {
+                const VkPipelineLayout translucentLayout = m_chunkTranslucentPipeline->layout();
+                if (translucentLayout == VK_NULL_HANDLE) {
+                    spdlog::error("Chunk translucent pipeline layout is null, skipping translucent chunk pass");
+                } else {
+                    m_chunkTranslucentPipeline->bind(cmd);
+
+                    VkDescriptorSet translucentCameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+                    vkCmdBindDescriptorSets(
+                        cmd,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        translucentLayout,
+                        0,
+                        1,
+                        &translucentCameraSet,
+                        0,
+                        nullptr
+                    );
+
+                    vkCmdBindDescriptorSets(
+                        cmd,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        translucentLayout,
+                        1,
+                        1,
+                        &m_chunkTextureDescriptorSet,
+                        0,
+                        nullptr
+                    );
+
+                    if (m_fogManagerInitialized && m_fogManager) {
+                        VkDescriptorSet fogSet = m_fogManager->descriptorSet(m_frameContext.frameIndex);
+                        if (fogSet != VK_NULL_HANDLE) {
+                            vkCmdBindDescriptorSets(
+                                cmd,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                translucentLayout,
+                                2,
+                                1,
+                                &fogSet,
+                                0,
+                                nullptr
+                            );
+                        }
+                    }
+
+                    glm::dvec3 cameraPos(0.0);
+                    if (m_frameContext.camera) {
+                        cameraPos = m_frameContext.camera->position();
+                    }
+
+                    m_chunkRenderer->renderTransparent(
+                        cmd,
+                        translucentLayout,
+                        [cmd, translucentLayout, chunkCameraPos](const ChunkId& chunkId) {
+                            ChunkPushConstants pushConstants{};
+                            pushConstants.model = glm::mat4(1.0f);
+                            pushConstants.chunkRelativeOffset = glm::vec4(
+                                static_cast<f32>(static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH) - chunkCameraPos.x),
+                                static_cast<f32>(-chunkCameraPos.y),
+                                static_cast<f32>(static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH) - chunkCameraPos.z),
+                                0.0f
+                            );
+
+                            vkCmdPushConstants(
+                                cmd,
+                                translucentLayout,
+                                VK_SHADER_STAGE_VERTEX_BIT,
+                                0,
+                                sizeof(ChunkPushConstants),
+                                &pushConstants
+                            );
+                        },
+                        cameraPos,
+                        true
+                    );
+                }
+            }
         }
     }
 
@@ -754,6 +773,12 @@ Result<void> TridentEngine::render() {
             glm::vec3(cameraPos),
             m_frameContext.frameIndex
         );
+    }
+
+    // 6.7 渲染第一人称手部
+    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_firstPersonRenderCallback) {
+        VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+        m_firstPersonRenderCallback(cmd, cameraSet, m_partialTick);
     }
 
     // 7. 渲染 GUI
@@ -1161,6 +1186,10 @@ void TridentEngine::setEntityRenderCallback(EntityRenderCallback callback) {
     m_entityRenderCallback = std::move(callback);
 }
 
+void TridentEngine::setFirstPersonRenderCallback(FirstPersonRenderCallback callback) {
+    m_firstPersonRenderCallback = std::move(callback);
+}
+
 // ============================================================================
 // 私有方法
 // ============================================================================
@@ -1566,6 +1595,10 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
         m_guiRendererPtr->setItemTextureAtlas(m_itemTextureAtlas.imageView(), m_itemTextureAtlas.sampler());
     }
 
+    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_itemTextureAtlas.isValid()) {
+        m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
+    }
+
     m_itemRendererInitialized = true;
     spdlog::info("Item renderer initialized");
     return {};
@@ -1645,6 +1678,8 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
 
     // 加载默认实体纹理 - 遍历所有资源包
     u32 loadedCount = 0;
+    m_localPlayerSkinLocation = ResourceLocation("minecraft:textures/entity/steve.png");
+
     for (size_t i = 0; i < resourceManager->resourcePackCount(); ++i) {
         auto* pack = resourceManager->getResourcePack(i);
         if (!pack) continue;
@@ -1656,6 +1691,35 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
             loadedCount += loadResult.value();
             spdlog::info("Loaded {} entity textures from resource pack {}", loadResult.value(), i);
         }
+    }
+
+    // 加载本地玩家皮肤（可选）
+    // 优先级高于资源包中的默认 steve/alex 纹理。
+    const ResourceLocation localPlayerSkinLocation("minecraft:textures/entity/player/local_player.png");
+    const std::array<std::filesystem::path, 4> localSkinCandidates = {
+        std::filesystem::path("resources/skins/player.png"),
+        std::filesystem::path("resources/skins/local_player.png"),
+        std::filesystem::path("resources/skins/steve.png"),
+        std::filesystem::path("resources/skins/alex.png")
+    };
+
+    for (const auto& candidate : localSkinCandidates) {
+        std::error_code existsError;
+        if (!std::filesystem::exists(candidate, existsError) || existsError) {
+            continue;
+        }
+
+        auto localSkinResult = m_entityTextureAtlas.addTextureFromFile(candidate, localPlayerSkinLocation);
+        if (localSkinResult.success()) {
+            ++loadedCount;
+            m_localPlayerSkinLocation = localPlayerSkinLocation;
+            spdlog::info("Loaded local player skin from {}", candidate.string());
+            break;
+        }
+
+        spdlog::warn("Failed to load local player skin from {}: {}",
+                     candidate.string(),
+                     localSkinResult.error().toString());
     }
 
     if (loadedCount > 0) {
@@ -1679,6 +1743,10 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
                     m_entityTextureAtlas.sampler()
                 );
                 spdlog::info("Entity texture atlas bound to pipeline");
+            }
+
+            if (m_firstPersonRendererInitialized && m_firstPersonRenderer) {
+                m_firstPersonRenderer->setPlayerSkinLocation(m_localPlayerSkinLocation);
             }
         }
     } else {
@@ -1900,6 +1968,56 @@ block::BreakProgressRenderer& TridentEngine::breakProgressRenderer() {
 
 const block::BreakProgressRenderer& TridentEngine::breakProgressRenderer() const {
     return *m_breakProgressRenderer;
+}
+
+Result<void> TridentEngine::initializeFirstPersonRenderer() {
+    if (m_firstPersonRendererInitialized) {
+        return {};
+    }
+
+    spdlog::info("Initializing first person renderer...");
+
+    if (!m_firstPersonRenderer) {
+        m_firstPersonRenderer = std::make_unique<firstperson::FirstPersonRenderer>();
+    }
+
+    auto result = m_firstPersonRenderer->initialize(
+        device(),
+        physicalDevice(),
+        commandPool(),
+        graphicsQueue(),
+        renderPass(),
+        cameraDescriptorLayout(),
+        descriptorPool(),
+        &m_entityTextureAtlas
+    );
+
+    if (result.failed()) {
+        m_firstPersonRenderer.reset();
+        spdlog::error("Failed to initialize first person renderer: {}", result.error().toString());
+        return result.error();
+    }
+
+    if (m_itemTextureAtlasInitialized && m_itemTextureAtlas.isValid()) {
+        m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
+    }
+
+    m_firstPersonRenderer->setPlayerSkinLocation(m_localPlayerSkinLocation);
+
+    m_firstPersonRendererInitialized = true;
+    spdlog::info("First person renderer initialized");
+    return {};
+}
+
+firstperson::FirstPersonRenderer& TridentEngine::firstPersonRenderer() {
+    if (!m_firstPersonRenderer) {
+        m_firstPersonRenderer = std::make_unique<firstperson::FirstPersonRenderer>();
+    }
+    return *m_firstPersonRenderer;
+}
+
+const firstperson::FirstPersonRenderer& TridentEngine::firstPersonRenderer() const {
+    return *m_firstPersonRenderer;
 }
 
 Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResult) {

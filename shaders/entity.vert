@@ -27,27 +27,18 @@ layout(set = 0, binding = 0) uniform CameraUBO {
     mat4 viewProjection;
 } camera;
 
-// 描述符集 1 - 光照UBO（需与 UniformBuffer.hpp::LightingUBO 保持一致）
+// 描述符集 1 - 光照UBO（需与 UniformManager::LightingUBO 保持一致）
 layout(set = 0, binding = 1) uniform LightingUBO {
     vec3 sunDirection;
     float sunIntensity;
 
-    vec3 ambientColor;
-    float ambientIntensity;
+    vec3 moonDirection;
+    float moonIntensity;
 
-    vec3 cameraPosition;
-    float padding1;
-
-    vec3 fogColor;
-    float fogStart;
-    float fogEnd;
-    float fogDensity;
-    uint fogMode;
-
-    float celestialAngle;
-    float skyBrightness;
-    int moonPhase;
-    float starBrightness;
+    float dayTime;
+    float gameTime;
+    float _padding0;
+    float _padding1;
 } lighting;
 
 out gl_PerVertex {
@@ -68,10 +59,14 @@ void main() {
     fragTexCoord = inTexCoord;
     fragColor = vec4(1.0);  // 白色，可以通过uniform覆盖
 
-    // 计算光照：环境光 + 太阳方向漫反射
-    // 使用最低亮度保护，避免因UBO异常或极端角度导致实体全黑
+    // 计算光照：太阳/月亮方向漫反射 + 基础环境光
     vec3 sunDir = normalize(lighting.sunDirection);
-    float diffuse = max(dot(fragNormal, sunDir), 0.0) * max(lighting.sunIntensity, 0.0);
-    float ambient = clamp(lighting.ambientIntensity, 0.15, 1.0);
-    fragLight = clamp(max(ambient + diffuse, 0.22), 0.0, 1.0);
+    vec3 moonDir = normalize(lighting.moonDirection);
+
+    float sunDiffuse = max(dot(fragNormal, sunDir), 0.0) * max(lighting.sunIntensity, 0.0);
+    float moonDiffuse = max(dot(fragNormal, moonDir), 0.0) * max(lighting.moonIntensity, 0.0) * 0.35;
+
+    float skyVisibility = clamp(lighting.sunIntensity + lighting.moonIntensity * 0.35, 0.0, 1.0);
+    float ambient = 0.18 + 0.12 * skyVisibility;
+    fragLight = clamp(ambient + sunDiffuse + moonDiffuse, 0.0, 1.0);
 }

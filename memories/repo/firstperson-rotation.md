@@ -1,0 +1,3 @@
+- 第一人称手部若出现“水平转头时自转”，优先检查 MatrixStack 是否严格采用 PoseStack 语义：current = current * transform。
+- 禁止在旋转函数里手写就地行列改值并连带改 translation 分量；这会破坏 vanilla 变换顺序。
+- 第一人称根矩阵需用相机基向量构造：forward=(-sin(yaw)cos(pitch), sin(pitch), cos(yaw)cos(pitch)，并使用 -forward 作为局部 +Z 列。

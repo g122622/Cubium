@@ -177,6 +177,16 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<renderer::ModelV
         return mesh;  // 隐式转换为Result<EntityMesh>
     }
 
+    for (u32 index : indices) {
+        if (index >= vertices.size()) {
+            return Error(
+                ErrorCode::InvalidData,
+                "Entity mesh index out of range: index=" + std::to_string(index) +
+                ", vertexCount=" + std::to_string(vertices.size())
+            );
+        }
+    }
+
     VkDevice device = m_device;
 
     // 创建顶点缓冲区
@@ -330,16 +340,26 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
 
     // 推送常量
     struct PushConstants {
-        std::array<f64, 16> model;
-        f64 posX, posY, posZ;
-        f64 scale;
-    } pc;
+        std::array<f32, 16> model;
+        f32 posX;
+        f32 posY;
+        f32 posZ;
+        f32 scale;
+    } pc{};
 
-    pc.model = modelMatrix;
+    // CPU 侧矩阵使用行主序存储，GLSL mat4 默认按列主序读取，
+    // 这里在上传前做一次转置，避免第一人称模型出现异常拉伸/错位。
+    for (i32 row = 0; row < 4; ++row) {
+        for (i32 col = 0; col < 4; ++col) {
+            pc.model[static_cast<size_t>(col * 4 + row)] =
+                static_cast<f32>(modelMatrix[static_cast<size_t>(row * 4 + col)]);
+        }
+    }
+
     pc.posX = position.x;
     pc.posY = position.y;
     pc.posZ = position.z;
-    pc.scale = scale;
+    pc.scale = static_cast<f32>(scale);
 
     vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
                        0, sizeof(PushConstants), &pc);
@@ -586,7 +606,7 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f64) * 16 + sizeof(f64) * 4;  // mat4 + vec3 + float
+    pushConstantRange.size = sizeof(f32) * 20;  // mat4 + vec3 + float (std430 对齐后 80 字节)
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

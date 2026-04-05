@@ -6,6 +6,7 @@ namespace mc::client {
 
 const std::vector<String>& EntityTextureLoader::getDefaultEntityTypes() {
     static const std::vector<String> defaultTypes = {
+        "minecraft:player",
         "minecraft:pig",
         "minecraft:cow",
         "minecraft:sheep",
@@ -60,6 +61,15 @@ Result<void> EntityTextureLoader::loadEntityTexture(mc::IResourcePack& pack,
 std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const String& entityTypeId) {
     std::vector<ResourceLocation> paths;
     String name = parseEntityName(entityTypeId);
+
+    if (name == "player") {
+        // 兼容不同版本资源路径的玩家默认皮肤。
+        paths.emplace_back("minecraft:textures/entity/steve.png");
+        paths.emplace_back("minecraft:textures/entity/alex.png");
+        paths.emplace_back("minecraft:textures/entity/player/wide/steve.png");
+        paths.emplace_back("minecraft:textures/entity/player/slim/alex.png");
+        return paths;
+    }
 
     // MC 1.13+ 格式: textures/entity/<name>/<name>.png
     paths.emplace_back("minecraft:textures/entity/" + name + "/" + name + ".png");

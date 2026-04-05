@@ -3,6 +3,7 @@
 #include "../../../../common/resource/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
 #include <cstring>
+#include <fstream>
 
 // stb_image is already implemented in TextureAtlasBuilder.cpp
 #include <stb_image.h>
@@ -108,6 +109,91 @@ Result<void> EntityTextureAtlas::addTexture(mc::IResourcePack& pack, const Resou
         spdlog::warn("Failed to load entity texture: {} - {}", location.toString(), result.error().toString());
         return {};  // 继续加载其他纹理
     }
+
+    m_textures.push_back(std::move(texData));
+    return {};
+}
+
+Result<void> EntityTextureAtlas::addTextureFromFile(const std::filesystem::path& filePath,
+                                                     const ResourceLocation& location) {
+    if (m_built) {
+        return Error(ErrorCode::InvalidState, "Atlas already built");
+    }
+
+    // 检查是否已存在（按资源位置去重）
+    for (const auto& tex : m_textures) {
+        if (tex.location == location) {
+            return {};
+        }
+    }
+
+    if (!std::filesystem::exists(filePath)) {
+        return Error(ErrorCode::FileNotFound, "Skin file not found: " + filePath.string());
+    }
+
+    std::ifstream input(filePath, std::ios::binary);
+    if (!input.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, "Failed to open skin file: " + filePath.string());
+    }
+
+    std::vector<u8> encoded(
+        (std::istreambuf_iterator<char>(input)),
+        std::istreambuf_iterator<char>());
+
+    if (encoded.empty()) {
+        return Error(ErrorCode::FileReadFailed, "Skin file is empty: " + filePath.string());
+    }
+
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    u8* pixels = stbi_load_from_memory(
+        encoded.data(),
+        static_cast<int>(encoded.size()),
+        &width,
+        &height,
+        &channels,
+        4);
+
+    if (pixels == nullptr) {
+        return Error(ErrorCode::InvalidData, "Failed to decode skin PNG: " + filePath.string());
+    }
+
+    TextureData texData;
+    texData.location = location;
+
+    // 兼容旧版 Java 皮肤（64x32）
+    if (width == 64 && height == 32) {
+        texData.width = 64;
+        texData.height = 64;
+        texData.pixels.assign(static_cast<size_t>(64 * 64 * 4), 0);
+
+        // 顶部 32 行直接复制
+        for (int y = 0; y < 32; ++y) {
+            const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
+            const size_t dstOffset = static_cast<size_t>(y * 64 * 4);
+            std::memcpy(texData.pixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
+        }
+
+        // 旧皮肤没有第二层与独立左肢，复制一份到下半区作为兼容兜底。
+        for (int y = 0; y < 32; ++y) {
+            const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
+            const size_t dstOffset = static_cast<size_t>((y + 32) * 64 * 4);
+            std::memcpy(texData.pixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
+        }
+
+        spdlog::info("EntityTextureAtlas: Loaded legacy 64x32 skin and expanded to 64x64: {}",
+                     filePath.string());
+    } else {
+        texData.width = static_cast<u32>(width);
+        texData.height = static_cast<u32>(height);
+        texData.pixels.resize(static_cast<size_t>(width * height * 4));
+        std::memcpy(texData.pixels.data(), pixels, texData.pixels.size());
+        spdlog::info("EntityTextureAtlas: Loaded skin from file {} ({}x{})",
+                     filePath.string(), width, height);
+    }
+
+    stbi_image_free(pixels);
 
     m_textures.push_back(std::move(texData));
     return {};
