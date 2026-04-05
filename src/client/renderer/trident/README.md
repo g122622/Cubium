@@ -25,7 +25,8 @@ trident/
 ├── chunk/                   # 区块渲染
 │   ├── AmbientOcclusionCalculator.hpp/cpp # 环境光遮蔽计算
 │   ├── ChunkMesher.hpp/cpp  # 区块网格生成
-│   └── ChunkRenderer.hpp/cpp # 区块 GPU 渲染
+│   ├── ChunkRenderer.hpp/cpp # 区块 GPU 渲染
+│   └── README.md             # 区块模块文档
 ├── cloud/                   # 云渲染
 │   └── CloudRenderer.hpp/cpp # 云层渲染器（Fast/Fancy 模式）
 ├── entity/                  # 实体渲染
@@ -173,6 +174,7 @@ Uniform 缓冲区管理：
 - AO 计算
 - 光照值嵌入
 - 分离实心和半透明网格
+- 支持协作取消信号（`generateMesh/generateSplitMesh/generateSectionMesh` 均接收 `cancelSignal`）
 
 #### ChunkRenderer
 

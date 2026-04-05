@@ -264,11 +264,16 @@ void ChunkMesher::setModelCache(BlockModelCache* cache) {
 void ChunkMesher::generateMesh(
     const ChunkData& chunk,
     MeshData& outMesh,
-    const ChunkData* neighbors[6]
+    const ChunkData* neighbors[6],
+    const std::atomic<bool>* cancelSignal
 ) {
     MC_TRACE_CHUNK_MESH_EVENT("GenerateMesh");
 
     outMesh.clear();
+
+    if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+        return;
+    }
 
     // 基于非空气方块数量进行预估，避免按最坏情况一次性分配过大内存。
     // 经验值：每个非空气方块平均约 2 个可见面（地形场景）。
@@ -292,8 +297,13 @@ void ChunkMesher::generateMesh(
 
     // 遍历所有区块段
     for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {
+        if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+            outMesh.clear();
+            return;
+        }
+
         if (chunk.hasSection(sectionY)) {
-            generateSectionMesh(chunk, sectionY, outMesh, neighbors);
+            generateSectionMesh(chunk, sectionY, outMesh, neighbors, cancelSignal);
         }
     }
 }
@@ -302,18 +312,31 @@ void ChunkMesher::generateSplitMesh(
     const ChunkData& chunk,
     MeshData& outSolidMesh,
     MeshData& outTransparentMesh,
-    const ChunkData* neighbors[6]
+    const ChunkData* neighbors[6],
+    const std::atomic<bool>* cancelSignal
 ) {
+    if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+        outSolidMesh.clear();
+        outTransparentMesh.clear();
+        return;
+    }
+
     // 第一遍：实心层
     {
         MeshPassScope passScope(MeshPass::SolidOnly);
-        generateMesh(chunk, outSolidMesh, neighbors);
+        generateMesh(chunk, outSolidMesh, neighbors, cancelSignal);
+    }
+
+    if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+        outSolidMesh.clear();
+        outTransparentMesh.clear();
+        return;
     }
 
     // 第二遍：半透明层（含水体/玻璃等）
     {
         MeshPassScope passScope(MeshPass::TransparentOnly);
-        generateMesh(chunk, outTransparentMesh, neighbors);
+        generateMesh(chunk, outTransparentMesh, neighbors, cancelSignal);
     }
 }
 
@@ -321,13 +344,19 @@ void ChunkMesher::generateSectionMesh(
     const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
-    const ChunkData* neighborChunks[6]
+    const ChunkData* neighborChunks[6],
+    const std::atomic<bool>* cancelSignal
 ) {
     MC_TRACE_CHUNK_MESH_EVENT("GenerateSectionMesh");
+
+    if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+        return;
+    }
+
     if (s_useGreedyMeshing) {
-        greedyMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+        greedyMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
     } else {
-        simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+        simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
     }
 }
 
@@ -1316,7 +1345,8 @@ void ChunkMesher::simpleMeshSection(
     const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
-    const ChunkData* neighborChunks[6]
+    const ChunkData* neighborChunks[6],
+    const std::atomic<bool>* cancelSignal
 ) {
     MC_TRACE_CHUNK_MESH_EVENT("SimplyGenerateSectionMesh");
     // 必须有 BlockModelCache
@@ -1331,6 +1361,11 @@ void ChunkMesher::simpleMeshSection(
     // 获取当前段
     const ChunkSection* section = chunk.getSection(sectionIndex);
     if (!section || section->isEmpty()) {
+        return;
+    }
+
+    if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+        outMesh.clear();
         return;
     }
 
@@ -1383,8 +1418,18 @@ void ChunkMesher::simpleMeshSection(
 
     // 遍历段内所有方块
     for (i32 y = 0; y < SIZE; ++y) {
+        if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+            outMesh.clear();
+            return;
+        }
+
         for (i32 z = 0; z < SIZE; ++z) {
             for (i32 x = 0; x < SIZE; ++x) {
+                if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+                    outMesh.clear();
+                    return;
+                }
+
                 const BlockState* block = section->getBlock(x, y, z);
                 if (!shouldRenderBlock(block)) {
                     continue;
@@ -1528,7 +1573,8 @@ void ChunkMesher::greedyMeshSection(
     const ChunkData& chunk,
     i32 sectionIndex,
     MeshData& outMesh,
-    const ChunkData* neighborChunks[6]
+    const ChunkData* neighborChunks[6],
+    const std::atomic<bool>* cancelSignal
 ) {
     MC_TRACE_CHUNK_MESH_EVENT("GreedyGenerateSectionMesh");
 
@@ -1548,14 +1594,24 @@ void ChunkMesher::greedyMeshSection(
 
     // 平滑 AO 依赖逐顶点采样，无法在不引入插值误差的前提下做大面合并，直接回退到逐面路径。
     if (s_lightingMode == LightingMode::Smooth && s_lightingEnabled) {
-        simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+        simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
         return;
     }
 
     // 贪婪合并无法正确表达交叉植物与非完整体素方块，回退到逐方块路径保证几何正确。
     for (i32 y = 0; y < SIZE; ++y) {
+        if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+            outMesh.clear();
+            return;
+        }
+
         for (i32 z = 0; z < SIZE; ++z) {
             for (i32 x = 0; x < SIZE; ++x) {
+                if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+                    outMesh.clear();
+                    return;
+                }
+
                 const BlockState* block = section->getBlock(x, y, z);
                 if (!shouldRenderBlock(block)) {
                     continue;
@@ -1567,13 +1623,13 @@ void ChunkMesher::greedyMeshSection(
                 }
 
                 if (appearance != nullptr && isCrossLikeAppearance(appearance)) {
-                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
                     return;
                 }
 
                 const CollisionShape& shape = block->getShape();
                 if (!block->isLiquid() && !shape.isEmpty() && !shape.isFullBlock()) {
-                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks);
+                    simpleMeshSection(chunk, sectionIndex, outMesh, neighborChunks, cancelSignal);
                     return;
                 }
             }
@@ -1903,11 +1959,26 @@ void ChunkMesher::greedyMeshSection(
     std::vector<bool> visited(static_cast<size_t>(MASK_WIDTH * MASK_HEIGHT), false);
 
     for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
+        if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+            outMesh.clear();
+            return;
+        }
+
         const Face face = static_cast<Face>(faceIdx);
 
         for (i32 d = 0; d < SIZE; ++d) {
+            if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+                outMesh.clear();
+                return;
+            }
+
             for (i32 v = 0; v < MASK_HEIGHT; ++v) {
                 for (i32 u = 0; u < MASK_WIDTH; ++u) {
+                    if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+                        outMesh.clear();
+                        return;
+                    }
+
                     i32 x = 0;
                     i32 y = 0;
                     i32 z = 0;
@@ -1943,6 +2014,11 @@ void ChunkMesher::greedyMeshSection(
 
             for (i32 v = 0; v < MASK_HEIGHT; ++v) {
                 for (i32 u = 0; u < MASK_WIDTH; ++u) {
+                    if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
+                        outMesh.clear();
+                        return;
+                    }
+
                     const size_t startIdx = static_cast<size_t>(v * MASK_WIDTH + u);
                     if (visited[startIdx] || !mask[startIdx].visible) {
                         continue;

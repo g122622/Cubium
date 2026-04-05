@@ -102,7 +102,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 6. **渲染器初始化** - 初始化 Trident Vulkan 渲染引擎及所有子渲染器
 7. **内置服务端** - 启动 IntegratedServer（单机模式）
 8. **网络连接** - 连接到服务端
-9. **世界初始化** - 初始化 ClientWorld 和网格构建线程池
+9. **世界初始化** - 初始化 ClientWorld 和网格构建系统（`MeshBuildScheduler` + `MeshWorkerPool`）
 10. **物理引擎** - 创建 PhysicsEngine
 11. **玩家实体** - 创建 Player 实体
 12. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层
@@ -512,7 +512,8 @@ ClientApplication 模块目前没有直接的单元测试，但其依赖的子�
 | GUI 精灵 | `tests/client/renderer/trident/gui/GuiSpriteParserTest.cpp` | GUI 精灵解析测试 |
 | 资源管理 | `tests/client/resource/test_resource_manager_cloud_texture.cpp` | 资源管理器测试 |
 | 资源管理 | `tests/client/resource/test_model_loader.cpp` | 模型加载器测试 |
-| 网格工作池 | `tests/client/test_mesh_worker_pool.cpp` | 网格构建线程池测试 |
+| 网格工作池 | `tests/client/test_mesh_worker_pool.cpp` | 网格执行线程池测试 |
+| 网格调度器 | `tests/client/test_mesh_build_scheduler.cpp` | 视锥/距离优先与取消策略测试 |
 | UI 组件 | `tests/client/ui/kagero/widget/*.cpp` | Kagero UI 组件测试 |
 
 ### 集成测试建议

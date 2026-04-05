@@ -74,8 +74,9 @@ src/client/
 │   │   │   └── BreakProgressRenderer.hpp/cpp
 │   │   └── util/          # Vulkan 工具
 │   │       └── VulkanUtils.hpp
-│   ├── mesh/              # 异步网格构建
-│   │   └── MeshWorkerPool.hpp/cpp
+│   ├── mesh/              # 网格调度与执行
+│   │   ├── MeshWorkerPool.hpp/cpp
+│   │   └── MeshBuildScheduler.hpp/cpp
 │   ├── Camera.hpp/cpp     # 第一人称相机控制器
 │   └── MeshTypes.hpp/cpp  # 网格数据类型
 ├── resource/              # 资源加载
@@ -282,29 +283,38 @@ TridentEngine::render()
   present()
 ```
 
-#### 2.3 mesh/ - 异步网格构建
+#### 2.3 mesh/ - 网格调度与执行
 
-**职责**: 多线程区块网格构建，避免主线程卡顿。
+**职责**: 为区块网格构建提供“策略层 + 执行层”拆分架构，降低主线程卡顿并提升有效构建命中率。
 
 **核心类**:
-- `MeshWorkerPool`: Worker 线程池
-- `ClientMeshTask`: 网格构建任务
-- `MeshBuildResult`: 构建结果
+- `MeshBuildScheduler`: 独立调度器（视锥优先、距离优先、过期取消、代际管理）
+- `MeshWorkerPool`: 纯执行线程池（FIFO 执行 + 协作取消）
+- `MeshWorkerTask` / `MeshWorkerResult`: 执行输入输出结构
 
 **使用方法**:
 ```cpp
-MeshWorkerPool pool(4);  // 4 个 Worker 线程
-pool.start();
+MeshWorkerPool workerPool(-1);
+workerPool.start();
 
-// 提交任务（非阻塞）
-pool.submitTask(chunkId, chunkData, neighbors, priority);
+MeshSchedulerConfig schedulerConfig;
+schedulerConfig.maxDispatchedTaskCount = 64;
+schedulerConfig.reprioritizeIntervalFrames = 6;
+schedulerConfig.cameraMoveThreshold = 2.0f;
+schedulerConfig.cameraDirectionDotThreshold = 0.96f;
+schedulerConfig.behindCancelDotThreshold = -0.35f;
+schedulerConfig.behindCancelDistanceChunks = 8.0f;
 
-// 每帧处理完成的结果
-pool.processCompletedTasks([](MeshBuildResult result) {
+MeshBuildScheduler scheduler(workerPool, schedulerConfig);
+
+// 每帧更新视图状态并驱动调度
+scheduler.setViewState(viewState);
+scheduler.tick();
+
+// 每帧回收已完成结果
+scheduler.drainCompleted([](MeshWorkerResult&& result) {
     // 更新 GPU 缓冲区
-}, 4);  // 每帧最多处理 4 个
-
-pool.shutdown();
+}, 4);
 ```
 
 ### 3. resource/ - 资源加载

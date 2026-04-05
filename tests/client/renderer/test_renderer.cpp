@@ -454,7 +454,7 @@ protected:
 
 TEST_F(ChunkMesherTest, GenerateEmptyChunk) {
     MeshData mesh;
-    ChunkMesher::generateMesh(*testChunk, mesh, nullptr);
+    ChunkMesher::generateMesh(*testChunk, mesh, nullptr, nullptr);
 
     // 空区块应该产生空网格
     EXPECT_TRUE(mesh.empty());
@@ -465,7 +465,7 @@ TEST_F(ChunkMesherTest, GenerateSingleBlockWithoutModelCache) {
     testChunk->setBlock(8, 64, 8, &VanillaBlocks::STONE->defaultState());
 
     MeshData mesh;
-    ChunkMesher::generateMesh(*testChunk, mesh, nullptr);
+    ChunkMesher::generateMesh(*testChunk, mesh, nullptr, nullptr);
 
     // 在没有 BlockModelCache 的情况下，不会生成任何面
     // 因为 ChunkMesher 需要从 BlockModelCache 获取方块外观
@@ -586,12 +586,12 @@ TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQua
 
     MeshData simpleMesh;
     ChunkMesher::setGreedyMeshing(false);
-    ChunkMesher::generateMesh(*m_chunk, simpleMesh, nullptr);
+    ChunkMesher::generateMesh(*m_chunk, simpleMesh, nullptr, nullptr);
     ASSERT_FALSE(simpleMesh.empty());
 
     MeshData greedyMesh;
     ChunkMesher::setGreedyMeshing(true);
-    ChunkMesher::generateMesh(*m_chunk, greedyMesh, nullptr);
+    ChunkMesher::generateMesh(*m_chunk, greedyMesh, nullptr, nullptr);
     ASSERT_FALSE(greedyMesh.empty());
 
     EXPECT_LT(greedyMesh.vertexCount(), simpleMesh.vertexCount());
@@ -608,11 +608,11 @@ TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_SmoothLightingFallsBackToSim
 
     MeshData simpleMesh;
     ChunkMesher::setGreedyMeshing(false);
-    ChunkMesher::generateMesh(*m_chunk, simpleMesh, nullptr);
+    ChunkMesher::generateMesh(*m_chunk, simpleMesh, nullptr, nullptr);
 
     MeshData greedyMesh;
     ChunkMesher::setGreedyMeshing(true);
-    ChunkMesher::generateMesh(*m_chunk, greedyMesh, nullptr);
+    ChunkMesher::generateMesh(*m_chunk, greedyMesh, nullptr, nullptr);
 
     EXPECT_EQ(greedyMesh.vertexCount(), simpleMesh.vertexCount());
     EXPECT_EQ(greedyMesh.indexCount(), simpleMesh.indexCount());
@@ -626,7 +626,7 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
     MeshData transparentMesh;
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
-    ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr);
+    ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr, nullptr);
 
     EXPECT_FALSE(solidMesh.empty());
     EXPECT_FALSE(transparentMesh.empty());
@@ -640,7 +640,7 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_TransparentFaceAgainstOpaqueIsKe
     MeshData transparentMesh;
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
-    ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr);
+    ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr, nullptr);
 
     // 玻璃单方块应保留 6 个面（含与石头交界面）= 36 索引。
     EXPECT_EQ(transparentMesh.indexCount(), 36u);
@@ -653,7 +653,7 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
     MeshData transparentMesh;
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
-    ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr);
+    ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr, nullptr);
 
     ASSERT_FALSE(transparentMesh.empty());
 
@@ -676,7 +676,7 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube) 
     ChunkMesher::setLightingEnabled(false);
 
     MeshData mesh;
-    ChunkMesher::generateMesh(*m_chunk, mesh, nullptr);
+    ChunkMesher::generateMesh(*m_chunk, mesh, nullptr, nullptr);
     ASSERT_FALSE(mesh.empty());
 
     const MeshBounds bounds = computeBounds(mesh);
@@ -694,7 +694,7 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreN
         repeaterChunk.setBlock(8, 64, 8, &VanillaBlocks::REDSTONE_REPEATER->defaultState());
 
         MeshData mesh;
-        ChunkMesher::generateMesh(repeaterChunk, mesh, nullptr);
+        ChunkMesher::generateMesh(repeaterChunk, mesh, nullptr, nullptr);
         ASSERT_FALSE(mesh.empty());
 
         const MeshBounds bounds = computeBounds(mesh);
@@ -706,7 +706,7 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreN
         pressurePlateChunk.setBlock(8, 64, 8, &VanillaBlocks::STONE_PRESSURE_PLATE->defaultState());
 
         MeshData mesh;
-        ChunkMesher::generateMesh(pressurePlateChunk, mesh, nullptr);
+        ChunkMesher::generateMesh(pressurePlateChunk, mesh, nullptr, nullptr);
         ASSERT_FALSE(mesh.empty());
 
         const MeshBounds bounds = computeBounds(mesh);
@@ -758,7 +758,7 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
 
     MeshData solidMesh;
     MeshData transparentMesh;
-    ChunkMesher::generateSplitMesh(chunk, solidMesh, transparentMesh, nullptr);
+    ChunkMesher::generateSplitMesh(chunk, solidMesh, transparentMesh, nullptr, nullptr);
 
     ChunkMesher::setModelCache(oldModelCache);
     ChunkMesher::setGreedyMeshing(oldGreedy);

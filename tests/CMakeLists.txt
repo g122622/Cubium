@@ -79,6 +79,7 @@ add_executable(mc_tests
     server/core/PositionTrackerTest.cpp
     server/weather/WeatherManagerTest.cpp
     client/test_mesh_worker_pool.cpp
+    client/test_mesh_build_scheduler.cpp
     client/renderer/test_renderer.cpp
     client/renderer/test_trident_api.cpp
     client/renderer/test_cloud_renderer.cpp
@@ -427,6 +428,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         # 网格构建线程池
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildScheduler.cpp
         # 区块网格生成
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp

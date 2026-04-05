@@ -31,7 +31,8 @@ src/client/renderer/
 ├── Camera.hpp/cpp                # 相机实现（第一人称）
 ├── MeshTypes.hpp/cpp             # 网格类型定义（顶点、面、图集）
 ├── mesh/
-│   └── MeshWorkerPool.hpp/cpp    # 异步网格构建线程池
+│   ├── MeshWorkerPool.hpp/cpp    # 纯执行线程池
+│   └── MeshBuildScheduler.hpp/cpp # 独立调度器（视锥/距离优先 + 取消）
 ├── trident/                      # Trident Vulkan 渲染引擎实现
 │   ├── core/                     # 核心组件
 │   │   ├── Trident.hpp           # 引擎统一头文件
@@ -325,36 +326,37 @@ engine.setCamera(&camera);
 
 ---
 
-### 4. mesh/MeshWorkerPool.hpp/cpp - 异步网格构建
+### 4. mesh/ - 网格调度与执行
 
-**职责**：在后台线程异步构建区块网格，避免主线程卡顿。
+**职责**：将“调度策略”与“线程执行”解耦，减少过期任务浪费并提升可见区块响应。
 
 **主要内容**：
-- `MeshBuildResult`：网格构建结果
-- `ClientMeshTask`：网格构建任务
-- `MeshWorkerPool`：线程池管理器
-  - 支持优先级队列
-  - 使用 `shared_ptr<ChunkData>` 共享数据所有权
-  - 每帧处理最多 N 个结果（避免卡顿）
+- `MeshBuildScheduler`：
+  - 接收 `MeshSchedulerViewState`，按距离/视锥重排 pending。
+  - 负责同区块任务代际管理与取消。
+- `MeshWorkerPool`：
+  - 仅消费 `MeshWorkerTask` 并产出 `MeshWorkerResult`。
+  - 支持协作取消信号。
 
 **使用方法**：
 ```cpp
-#include "renderer/mesh/MeshWorkerPool.hpp"
+mc::client::MeshWorkerPool workerPool(-1);
+workerPool.start();
 
-mc::client::MeshWorkerPool pool(4);  // 4 个 Worker 线程
-pool.start();
+mc::client::MeshSchedulerConfig config;
+config.maxDispatchedTaskCount = 64;
+config.reprioritizeIntervalFrames = 6;
+config.cameraMoveThreshold = 2.0f;
+config.cameraDirectionDotThreshold = 0.96f;
+config.behindCancelDotThreshold = -0.35f;
+config.behindCancelDistanceChunks = 8.0f;
 
-// 提交任务
-pool.submitTask(chunkId, chunkData, neighbors, priority);
-
-// 每帧处理完成结果
-pool.processCompletedTasks([](mc::client::MeshBuildResult result) {
-    if (result.success) {
-        // 更新 GPU 缓冲区
-    }
-}, 4);  // 每帧最多处理 4 个
-
-pool.shutdown();
+mc::client::MeshBuildScheduler scheduler(workerPool, config);
+scheduler.setViewState(viewState);
+scheduler.tick();
+scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
+    // 更新 GPU 缓冲区
+}, 4);
 ```
 
 ---
@@ -906,22 +908,18 @@ while (running) {
 ### 异步区块网格构建
 
 ```cpp
-// 创建网格构建线程池
-mc::client::MeshWorkerPool meshWorkerPool(4);
-meshWorkerPool.start();
+mc::client::MeshWorkerPool workerPool(-1);
+workerPool.start();
 
-// 提交区块构建任务
-meshWorkerPool.submitTask(chunkId, chunkData, neighbors, priority);
+mc::client::MeshBuildScheduler scheduler(workerPool, schedulerConfig);
+scheduler.setViewState(viewState);
+scheduler.tick();
 
-// 每帧处理完成的结果
-meshWorkerPool.processCompletedTasks([&chunkRenderer](mc::client::MeshBuildResult result) {
-    if (result.success) {
-        chunkRenderer.updateChunk(result.chunkId, result.solidMesh);
-    }
-}, 4);  // 每帧最多处理 4 个
+scheduler.drainCompleted([&chunkRenderer](mc::client::MeshWorkerResult&& result) {
+  chunkRenderer.updateChunk(result.chunkId, result.solidMesh);
+}, 4);
 
-// 关闭
-meshWorkerPool.shutdown();
+workerPool.shutdown();
 ```
 
 ---

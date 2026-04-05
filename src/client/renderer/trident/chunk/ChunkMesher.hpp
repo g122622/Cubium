@@ -73,11 +73,13 @@ public:
      * @param outMesh 输出网格
      * @param neighbors 周围6个区块 (用于边界面的剔除)
      *                  顺序: -X, +X, -Z, +Z, -Y, +Y (可以是nullptr)
+     * @param cancelSignal 协作取消信号（可为空）
      */
     static void generateMesh(
         const ChunkData& chunk,
         MeshData& outMesh,
-        const ChunkData* neighbors[6] = nullptr
+        const ChunkData* neighbors[6],
+        const std::atomic<bool>* cancelSignal
     );
 
     /**
@@ -89,12 +91,14 @@ public:
      * @param outSolidMesh 输出实心网格
      * @param outTransparentMesh 输出半透明网格
      * @param neighbors 周围6个区块 (用于边界面的剔除)
+     * @param cancelSignal 协作取消信号（可为空）
      */
     static void generateSplitMesh(
         const ChunkData& chunk,
         MeshData& outSolidMesh,
         MeshData& outTransparentMesh,
-        const ChunkData* neighbors[6] = nullptr
+        const ChunkData* neighbors[6],
+        const std::atomic<bool>* cancelSignal
     );
 
     /**
@@ -104,12 +108,14 @@ public:
      * @param sectionIndex 区段索引 (0-15)
      * @param outMesh 输出网格
      * @param neighborChunks 周围区块
+     * @param cancelSignal 协作取消信号（可为空）
      */
     static void generateSectionMesh(
         const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,
-        const ChunkData* neighborChunks[6] = nullptr
+        const ChunkData* neighborChunks[6],
+        const std::atomic<bool>* cancelSignal
     );
 
     // ========================================================================
@@ -356,7 +362,8 @@ private:
         const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,
-        const ChunkData* neighborChunks[6]
+        const ChunkData* neighborChunks[6],
+        const std::atomic<bool>* cancelSignal
     );
 
     // 简单网格生成 (逐面生成)
@@ -364,7 +371,8 @@ private:
         const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,
-        const ChunkData* neighborChunks[6]
+        const ChunkData* neighborChunks[6],
+        const std::atomic<bool>* cancelSignal
     );
 
     static BlockModelCache* s_modelCache;

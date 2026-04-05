@@ -370,6 +370,15 @@ enum class Operation : u8 { ... };
 - First-person hand item meshes are now cached per hand and retired with a frame-based countdown tied to `maxFramesInFlight`, which prevents main/offhand cache thrashing and repeated `vkAllocateMemory` churn.
 - `EntityPipeline::destroy()` and `FirstPersonRenderer::destroy()` now clean up partially initialized Vulkan resources even when initialization fails early.
 - `VulkanUtils::createBuffer()` and `VulkanUtils::createImage()` now unwind correctly when `vkBind*Memory()` fails.
+- Client-side chunk mesh build path has been split into two layers:
+    - `MeshBuildScheduler` owns priority, frustum weighting, reprioritization, and cancellation.
+    - `MeshWorkerPool` is now a pure FIFO executor with cooperative cancel checks.
+- `ClientWorld` now initializes mesh build via `initializeMeshSystem(threadCount, MeshSchedulerConfig)` and drives scheduling with `update(const MeshSchedulerViewState&)`.
+- `ClientWorld::update(...)` now reconciles stale `activeMeshTaskId` values via `MeshBuildScheduler::isTaskTracked(...)` and resubmits in-frustum chunks that still have no mesh result.
+- `ChunkMesher::generateMesh`, `generateSplitMesh`, and `generateSectionMesh` now accept a `cancelSignal` pointer and check cancellation in long-running loops.
+- New client tests cover the refactored path:
+    - `tests/client/test_mesh_worker_pool.cpp`
+    - `tests/client/test_mesh_build_scheduler.cpp`
 
 ## Gotchas & Pitfalls
 
@@ -385,6 +394,14 @@ enum class Operation : u8 { ... };
     - Main hand and off hand can hold different items in the same frame, so a single cache will thrash and allocate GPU memory every render.
 - Retired first-person meshes must be reclaimed on a frame countdown, not only in `destroy()`.
     - Otherwise repeated item changes will keep old Vulkan buffers alive for the whole session.
+- Do not put priority logic back into `MeshWorkerPool`.
+    - Priority and cancellation policy belong to `MeshBuildScheduler`; `MeshWorkerPool` should stay execution-only.
+- Always update `MeshSchedulerViewState` before calling `ClientWorld::update(...)` each frame.
+    - If the view state is stale, frustum priority and behind-camera cancellation will lag behind camera movement.
+- Pending mesh tasks cancelled before dispatch do not produce worker results.
+    - Keep `activeMeshTaskId` in sync with scheduler tracking (or chunks can get stuck with a stale task id and never be resubmitted).
+- When changing `ChunkMesher` mesh APIs, update both runtime and tests together.
+    - `tests/client/renderer/test_renderer.cpp` now calls the 5-argument `generateSplitMesh(..., neighbors, cancelSignal)` signature.
 
 ## Self-Maintenance Rule
 

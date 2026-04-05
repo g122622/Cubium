@@ -567,9 +567,16 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         return worldResult.error();
     }
 
-    // 初始化网格构建线程池
-    spdlog::info("Initializing mesh worker pool...");
-    m_world.initializeMeshWorkerPool();
+    // 初始化网格构建系统（执行器 + 独立调度器）
+    spdlog::info("Initializing mesh build system...");
+    MeshSchedulerConfig schedulerConfig;
+    schedulerConfig.maxDispatchedTaskCount = std::max(32, m_settings.renderDistance.get() * 12);
+    schedulerConfig.reprioritizeIntervalFrames = 6;
+    schedulerConfig.cameraMoveThreshold = 2.0f;
+    schedulerConfig.cameraDirectionDotThreshold = 0.96f;
+    schedulerConfig.behindCancelDotThreshold = -0.35f;
+    schedulerConfig.behindCancelDistanceChunks = static_cast<f32>(std::max(6, m_settings.renderDistance.get() / 2));
+    m_world.initializeMeshSystem(-1, schedulerConfig);
 
     // 设置区块卸载回调，通知 ChunkRenderer 释放 GPU 缓冲区
     m_world.setChunkUnloadCallback([this](const ChunkId& chunkId) {
@@ -1278,8 +1285,15 @@ void ClientApplication::update(f32 deltaTime)
     // 处理方块放置输入
     handleBlockPlacementInput(deltaTime);
 
-    // 更新世界（根据相机位置加载/卸载区块）
-    m_world.update(m_camera.position(), m_settings.renderDistance.get());
+    MeshSchedulerViewState meshViewState;
+    meshViewState.cameraPosition = glm::vec3(m_camera.position());
+    meshViewState.cameraForward = glm::vec3(m_camera.forward());
+    meshViewState.viewProjectionMatrix = m_camera.viewProjectionMatrix();
+    meshViewState.renderDistanceChunks = m_settings.renderDistance.get();
+    meshViewState.minBuildHeight = m_world.getMinBuildHeight();
+    meshViewState.maxBuildHeight = m_world.getMaxBuildHeight();
+
+    m_world.update(meshViewState);
 
     // 更新客户端实体（每tick调用）
     m_world.entityManager().tick();
