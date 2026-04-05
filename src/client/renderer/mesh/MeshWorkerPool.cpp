@@ -194,7 +194,13 @@ void MeshWorkerPool::workerLoop(i32 workerId)
 
 void MeshWorkerPool::executeTask(const MeshWorkerTask& task)
 {
-    MC_TRACE_CHUNK_MESH_EVENT("BuildMesh");
+    ChunkPos chunkPos(task.chunkId.x, task.chunkId.z);
+    MC_TRACE_CHUNK_MESH_EVENT(
+        "BuildMesh",
+        "pos", fmt::format("({}, {})", task.chunkId.x, task.chunkId.z),
+        [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
 
     MeshWorkerResult result;
     result.chunkId = task.chunkId;

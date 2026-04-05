@@ -2107,8 +2107,10 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
             fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
             "face",
             static_cast<i32>(m_breakingBlockFace),
-            "justPressed", attackJustPressed
-        );
+            "justPressed", attackJustPressed,
+            [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
 
         sendBlockInteraction(network::BlockInteractionAction::StartDestroyBlock,
                              m_breakingBlockPos,
@@ -2170,8 +2172,10 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
             fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
             "face",
             static_cast<i32>(m_breakingBlockFace),
-            "progress", m_breakingBlockProgress
-        );
+            "progress", m_breakingBlockProgress,
+            [flow = ::perfetto::Flow::ProcessScoped(m_breakingBlockPos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
 
         sendBlockInteraction(network::BlockInteractionAction::StopDestroyBlock,
                              m_breakingBlockPos,
@@ -2274,8 +2278,10 @@ void ClientApplication::sendBlockInteraction(network::BlockInteractionAction act
     MC_TRACE_INSTANT("client.input.mining", "sendBlockInteraction",
         "action", static_cast<i32>(action),
         "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        "face", static_cast<i32>(face)
-    );
+        "face", static_cast<i32>(face),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
 
     m_networkClient->sendBlockInteraction(action, pos.x, pos.y, pos.z, face);
 }

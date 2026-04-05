@@ -233,7 +233,13 @@ void ChunkWorkerPool::executeTask(InternalTask& task)
         return;
     }
 
-    MC_TRACE_CHUNK_GEN_EVENT("GenerateChunk");
+    ChunkPos chunkPos(task.task.x, task.task.z);
+    MC_TRACE_CHUNK_GEN_EVENT(
+        "GenerateChunk",
+        "pos", fmt::format("({}, {})", task.task.x, task.task.z),
+        [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
 
     // 创建区块生成器
     auto primer = std::make_unique<ChunkPrimer>(task.task.x, task.task.z);
