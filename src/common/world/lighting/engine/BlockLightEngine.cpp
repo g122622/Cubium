@@ -6,7 +6,7 @@
 #include <climits>
 #include <algorithm>
 #include "common/perfetto/TraceEvents.hpp"
-#include <spdlog/spdlog.h>
+#include <fmt/format.h>
 
 namespace mc {
 
@@ -24,6 +24,13 @@ BlockLightEngine::BlockLightEngine(IChunkLightProvider* provider)
 // ============================================================================
 
 void BlockLightEngine::checkLight(const BlockPos& pos) {
+    MC_TRACE_INSTANT("server.lighting",
+        "BlockLightEngine::checkLight",
+        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     m_storage.processAllLevelUpdates();
 
     i64 packedPos = LightEngineUtils::packPos(pos);

@@ -363,6 +363,15 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     if (m_lightManager) {
+        MC_TRACE_INSTANT("server.lighting",
+            "CheckBlock",
+            "pos", fmt::format("({}, {}, {})", changedPos.x, changedPos.y, changedPos.z),
+            "oldLight", oldLightLevel,
+            "newLight", newLightLevel,
+            [flow = ::perfetto::Flow::ProcessScoped(changedPos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
+
         m_lightManager->checkBlock(changedPos);
 
         if (newLightLevel > oldLightLevel) {

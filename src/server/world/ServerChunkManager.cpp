@@ -935,7 +935,12 @@ void ServerChunkManager::checkChunkUnloading()
 {
     // spdlog::info("[ServerChunkManager] Checking chunk unloading, current loaded chunks: {}, singleChunkLifecycleManagers: {}",
     //               loadedChunkCount(), singleChunkLifecycleManagerCount());
-    MC_TRACE_EVENT("server.chunk", "CheckUnloading", "loadedChunkCount", loadedChunkCount(), "singleChunkLifecycleManagerCount", singleChunkLifecycleManagerCount());
+    MC_TRACE_EVENT(
+        "server.chunk",
+        "CheckUnloading",
+        "loadedChunkCount", loadedChunkCount(),
+        "singleChunkLifecycleManagerCount", singleChunkLifecycleManagerCount()
+    );
 
     // 检查所有持有者
     std::vector<u64> toUnload;
@@ -969,7 +974,15 @@ void ServerChunkManager::checkChunkUnloading()
         }
 
         // spdlog::info("[ServerChunkManager] Unloading chunk: ({}, {})", chunkId.x, chunkId.z);
-        MC_TRACE_INSTANT("server.chunk", "UnloadChunk", "x", chunkId.x, "z", chunkId.z);
+        ChunkPos chunkPos{chunkId.x, chunkId.z};
+        MC_TRACE_INSTANT("server.chunk",
+            "UnloadChunk",
+            "x", chunkId.x,
+            "z", chunkId.z,
+            [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
+        
         unloadChunk(chunkId.x, chunkId.z);
     }
 }

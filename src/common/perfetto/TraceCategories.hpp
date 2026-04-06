@@ -119,6 +119,8 @@ PERFETTO_DEFINE_CATEGORIES(
         .SetDescription("服务端实体更新"),
     perfetto::Category("server.lighting")
         .SetDescription("服务端光照处理"),
+    perfetto::Category("client.lighting")
+        .SetDescription("客户端光照处理"),
 
     // === 挖掘 ===
     perfetto::Category("client.input.mining")

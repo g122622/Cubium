@@ -5,6 +5,7 @@
 #include "../../common/util/NibbleArray.hpp"
 #include "../../common/world/WorldConstants.hpp"
 #include "../../common/world/biome/BiomeRegistry.hpp"
+#include "../../common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
 #include <glm/geometric.hpp>
@@ -227,6 +228,15 @@ void ClientWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     if (!isValidY(y)) {
         return;
     }
+
+    const BlockPos pos(x, y, z);
+    MC_TRACE_INSTANT("client.lighting",
+        "ClientWorld::setBlock",
+        "pos", fmt::format("({}, {}, {})", x, y, z),
+        "stateId", state ? state->stateId() : 0,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
 
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
@@ -649,6 +659,16 @@ void ClientWorld::onLightUpdate(
     bool /*trustEdges*/
 )
 {
+    SectionPos sectionPos(chunkX, sectionY, chunkZ);
+    MC_TRACE_INSTANT("client.lighting",
+        "ClientWorld::onLightUpdate",
+        "Section", fmt::format("({}, {}, {})", chunkX, sectionY, chunkZ),
+        "SkyLightSize", skyLight.size(),
+        "BlockLightSize", blockLight.size(),
+        [flow = ::perfetto::Flow::ProcessScoped(sectionPos.toLong())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     const ChunkId id(chunkX, chunkZ);
     ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {

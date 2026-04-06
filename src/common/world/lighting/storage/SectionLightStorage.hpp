@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <vector>
 #include <climits>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -80,6 +79,10 @@ public:
     }
 
     [[nodiscard]] SWMRNibbleArray* getArray(i64 sectionPos) {
+        SWMRNibbleArray* cachedArray = m_cachedLightData.getArray(sectionPos);
+        if (cachedArray != nullptr) {
+            return cachedArray;
+        }
         return m_newArrays.getArray(sectionPos);
     }
 

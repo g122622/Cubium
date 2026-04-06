@@ -5,8 +5,12 @@
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::client {
 
@@ -832,6 +836,14 @@ void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser) {
     // spdlog::debug("[Mining] Received block update pos=({}, {}, {}) stateId={}",
     //              packet.x(), packet.y(), packet.z(), packet.blockStateId());
 
+    MC_TRACE_INSTANT("client.lighting",
+        "ReceiveBlockUpdate",
+        "pos", fmt::format("({}, {}, {})", packet.x(), packet.y(), packet.z()),
+        "stateId", packet.blockStateId(),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(packet.x(), packet.y(), packet.z()).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     if (m_callbacks.onBlockUpdate) {
         m_callbacks.onBlockUpdate(
             packet.x(), packet.y(), packet.z(),
@@ -1223,6 +1235,16 @@ void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser) {
     }
 
     const auto& packet = result.value();
+    SectionPos sectionPos(packet.chunkX(), packet.sectionY(), packet.chunkZ());
+    MC_TRACE_INSTANT("client.lighting",
+        "ReceiveLightUpdate",
+        "Section", fmt::format("({}, {}, {})", packet.chunkX(), packet.sectionY(), packet.chunkZ()),
+        "SkyLightSize", packet.skyLight().size(),
+        "BlockLightSize", packet.blockLight().size(),
+        [flow = ::perfetto::Flow::ProcessScoped(sectionPos.toLong())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     spdlog::debug("LightUpdate: chunk({}, {}, {}), skyLight={}B, blockLight={}B",
                   packet.chunkX(), packet.sectionY(), packet.chunkZ(),
                   packet.skyLight().size(), packet.blockLight().size());

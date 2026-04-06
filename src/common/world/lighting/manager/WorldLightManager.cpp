@@ -28,6 +28,13 @@ WorldLightManager::WorldLightManager(
 // ============================================================================
 
 void WorldLightManager::checkBlock(const BlockPos& pos) {
+    MC_TRACE_INSTANT("server.lighting",
+        "WorldLightManager::checkBlock",
+        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_blockLight != nullptr) {

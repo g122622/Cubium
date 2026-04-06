@@ -24,6 +24,13 @@ SkyLightEngine::SkyLightEngine(IChunkLightProvider* provider)
 // ============================================================================
 
 void SkyLightEngine::checkLight(const BlockPos& pos) {
+    MC_TRACE_INSTANT("server.lighting",
+        "SkyLightEngine::checkLight",
+        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     m_storage.processAllLevelUpdates();
 
     i64 packedPos = LightEngineUtils::packPos(pos);

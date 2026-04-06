@@ -750,10 +750,14 @@ void IntegratedServer::broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sect
                                              const std::vector<u8>& blockLight,
                                              bool trustEdges)
 {
+    SectionPos sectionPos(x, sectionY, z);
     MC_TRACE_INSTANT("server.lighting", "BroadcastLightUpdate",
                "Section", fmt::format("({}, {}, {})", x, sectionY, z),
                "SkyLightSize", skyLight.size(),
-               "BlockLightSize", blockLight.size());
+               "BlockLightSize", blockLight.size(),
+               [flow = ::perfetto::Flow::ProcessScoped(sectionPos.toLong())](::perfetto::EventContext ctx) {
+                   flow(ctx);
+    });
 
     network::LightUpdatePacket packet(x, z, sectionY,
                                        std::vector<u8>(skyLight),

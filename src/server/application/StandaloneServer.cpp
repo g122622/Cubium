@@ -7,6 +7,7 @@
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -566,7 +567,7 @@ void StandaloneServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
     network::PacketDeserializer deser(data, size);
     auto result = network::PlayerTryUseItemOnBlockPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse block placement packet: {}", result.error().message());
+        spdlog::error("Failed to parse block placement packet: {}", result.error().message());
         return;
     }
 
@@ -645,7 +646,7 @@ void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
     network::PacketDeserializer deser(data, size);
     auto result = HotbarSelectPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse hotbar select packet: {}", result.error().message());
+        spdlog::error("Failed to parse hotbar select packet: {}", result.error().message());
         return;
     }
 
@@ -661,7 +662,7 @@ void StandaloneServer::handleContainerClickPacket(PlayerId playerId, const u8* d
     network::PacketDeserializer deser(data, size);
     auto result = ContainerClickPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse container click packet: {}", result.error().message());
+        spdlog::error("Failed to parse container click packet: {}", result.error().message());
         return;
     }
 
@@ -689,7 +690,7 @@ void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
     network::PacketDeserializer deser(data, size);
     auto result = CloseContainerPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse close container packet: {}", result.error().message());
+        spdlog::error("Failed to parse close container packet: {}", result.error().message());
         return;
     }
 
@@ -741,7 +742,7 @@ void StandaloneServer::setupChunkSendCallback()
             auto fullPacket = core::ConnectionManager::encapsulatePacket(
                 network::PacketType::ChunkData, ser.buffer());
             player->send(fullPacket.data(), fullPacket.size());
-            spdlog::debug("StandaloneServer: Sent chunk ({}, {}) to player {}", x, z, playerId);
+            // spdlog::debug("StandaloneServer: Sent chunk ({}, {}) to player {}", x, z, playerId);
         }
     });
 
@@ -763,7 +764,7 @@ void StandaloneServer::setupChunkSendCallback()
             auto fullPacket = core::ConnectionManager::encapsulatePacket(
                 network::PacketType::UnloadChunk, ser.buffer());
             player->send(fullPacket.data(), fullPacket.size());
-            spdlog::debug("StandaloneServer: Sent unload chunk ({}, {}) to player {}", x, z, playerId);
+            // spdlog::debug("StandaloneServer: Sent unload chunk ({}, {}) to player {}", x, z, playerId);
         }
     });
 }
@@ -773,10 +774,14 @@ void StandaloneServer::broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sect
                                              const std::vector<u8>& blockLight,
                                              bool trustEdges)
 {
+    SectionPos sectionPos(x, sectionY, z);
     MC_TRACE_INSTANT("server.lighting", "BroadcastLightUpdate",
                "Section", fmt::format("({}, {}, {})", x, sectionY, z),
                "SkyLightSize", skyLight.size(),
-               "BlockLightSize", blockLight.size());
+               "BlockLightSize", blockLight.size(),
+               [flow = ::perfetto::Flow::ProcessScoped(sectionPos.toLong())](::perfetto::EventContext ctx) {
+                   flow(ctx);
+    });
 
     network::LightUpdatePacket packet(x, z, sectionY,
                                        std::vector<u8>(skyLight),

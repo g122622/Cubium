@@ -293,7 +293,10 @@ void MinecraftServer::setupWorldCallbacks()
     m_world->setOnLightChanged([this](LightType type, const SectionPos& pos) {
         MC_TRACE_INSTANT("server.lighting", "OnLightChanged",
                    "Type", (type == LightType::SKY) ? "Sky" : "Block",
-                   "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
+                   "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+                   [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
+                       flow(ctx);
+        });
 
         // 同步光照数据到 ChunkSection
         lightSyncManager().markLightChanged(type, pos);
@@ -901,6 +904,14 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
 
     // 处理方块破坏
     if (packet.action() == network::BlockInteractionAction::StopDestroyBlock) {
+        MC_TRACE_INSTANT("server.lighting",
+            "HandleBlockBreak",
+            "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+            "playerId", playerId,
+            [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        });
+
         auto interactionResult = blockInteractionManager().handleBlockBreak(playerId, pos);
         if (interactionResult.success() && interactionResult.value().blockBroken) {
             // 发送方块更新给该玩家
@@ -1015,6 +1026,11 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
     network::PacketType packetType = static_cast<network::PacketType>(typeResult.value());
     const u8* payload = data + network::PACKET_HEADER_SIZE;
     size_t payloadSize = size - network::PACKET_HEADER_SIZE;
+
+    MC_TRACE_EVENT("server.network", "DispatchPacket",
+                   "sessionId", sessionId,
+                   "packetType", static_cast<int>(packetType),
+                   "payloadSize", payloadSize);
 
     switch (packetType) {
         case network::PacketType::LoginRequest:

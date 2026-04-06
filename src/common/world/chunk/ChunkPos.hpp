@@ -138,6 +138,7 @@ public:
  * @brief 区块段位置
  *
  * 用于标识区块中的一个16x16x16的段
+ * TODO URGENT 将该类作为单独文件
  */
 class SectionPos {
 public:
