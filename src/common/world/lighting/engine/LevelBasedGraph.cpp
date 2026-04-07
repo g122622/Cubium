@@ -5,6 +5,33 @@
 
 namespace mc {
 
+namespace {
+
+DirectionBit computeCheckDirections(i64 fromPos, i64 toPos) {
+    if (fromPos == LightEngineUtils::ROOT_POS) {
+        return DIR_ALL;
+    }
+
+    i32 fromX, fromY, fromZ;
+    i32 toX, toY, toZ;
+    LightEngineUtils::unpackPos(fromPos, fromX, fromY, fromZ);
+    LightEngineUtils::unpackPos(toPos, toX, toY, toZ);
+
+    i32 dx = (toX > fromX) ? 1 : ((toX < fromX) ? -1 : 0);
+    i32 dy = (toY > fromY) ? 1 : ((toY < fromY) ? -1 : 0);
+    i32 dz = (toZ > fromZ) ? 1 : ((toZ < fromZ) ? -1 : 0);
+
+    Direction moveDir = Directions::fromDelta(dx, dy, dz);
+    if (moveDir == Direction::None) {
+        return DIR_ALL;
+    }
+
+    Direction blockedDirection = Directions::opposite(moveDir);
+    return DirectionBits::allExcept(DirectionBits::fromDirection(blockedDirection));
+}
+
+} // namespace
+
 // ============================================================================
 // 构造函数
 // ============================================================================
@@ -65,13 +92,25 @@ bool LevelBasedGraph::isSectionEmpty(i64 sectionPos) const {
 // ============================================================================
 
 void LevelBasedGraph::scheduleUpdate(i64 pos) {
-    // 解码世界坐标
+    // 对齐 Starlight 的 checkBlock 语义：
+    // 1) 如果当前位置是满亮源（level=0），先安排一次增亮重传播
+    // 2) 否则先将该点清为最暗
+    // 3) 再统一走减亮传播链
+    i32 currentLevel = getLevel(pos);
+
     i32 x, y, z;
     unpackWorldPos(pos, x, y, z);
 
-    // 编码为队列格式，所有方向
-    u64 entry = encodeQueueEntry(x, y, z, 15, DIR_ALL, FLAG_RECHECK_LEVEL);
-    appendToIncreaseQueue(entry);
+    if (currentLevel == 0) {
+        appendToIncreaseQueue(encodeQueueEntry(x, y, z,
+            static_cast<u8>(currentLevel), DIR_ALL,
+            FLAG_HAS_SIDED_TRANSPARENT | FLAG_RECHECK_LEVEL));
+    } else {
+        setLevel(pos, m_levelCount - 1);
+    }
+
+    appendToDecreaseQueue(encodeQueueEntry(x, y, z,
+        static_cast<u8>(currentLevel), DIR_ALL, 0));
 }
 
 void LevelBasedGraph::scheduleUpdate(i64 fromPos, i64 toPos, i32 level, bool isIncrease) {
@@ -79,55 +118,37 @@ void LevelBasedGraph::scheduleUpdate(i64 fromPos, i64 toPos, i32 level, bool isI
     i32 toX, toY, toZ;
     unpackWorldPos(toPos, toX, toY, toZ);
 
-    // 计算方向
-    i32 fromX, fromY, fromZ;
-    unpackWorldPos(fromPos, fromX, fromY, fromZ);
-
-    DirectionBit fromDir = DIR_ALL;
-    if (fromPos != LightEngineUtils::ROOT_POS) {
-        i32 dx = (toX > fromX) ? 1 : ((toX < fromX) ? -1 : 0);
-        i32 dy = (toY > fromY) ? 1 : ((toY < fromY) ? -1 : 0);
-        i32 dz = (toZ > fromZ) ? 1 : ((toZ < fromZ) ? -1 : 0);
-
-        fromDir = static_cast<DirectionBit>(
-            (dx != 0 ? (dx > 0 ? DIR_WEST : DIR_EAST) : 0) |
-            (dy != 0 ? (dy > 0 ? DIR_DOWN : DIR_UP) : 0) |
-            (dz != 0 ? (dz > 0 ? DIR_NORTH : DIR_SOUTH) : 0)
-        );
-    }
+    DirectionBit checkDirs = computeCheckDirections(fromPos, toPos);
 
     if (isIncrease) {
+        u64 flags = (fromPos == LightEngineUtils::ROOT_POS)
+            ? FLAG_WRITE_LEVEL
+            : FLAG_RECHECK_LEVEL;
+
         appendToIncreaseQueue(encodeQueueEntry(toX, toY, toZ,
-            static_cast<u8>(level), static_cast<u8>(fromDir), FLAG_RECHECK_LEVEL));
+            static_cast<u8>(level), static_cast<u8>(checkDirs), flags));
     } else {
         appendToDecreaseQueue(encodeQueueEntry(toX, toY, toZ,
-            static_cast<u8>(level), static_cast<u8>(fromDir), 0));
+            static_cast<u8>(level), static_cast<u8>(checkDirs), 0));
     }
 }
 
 void LevelBasedGraph::cancelUpdate(i64 pos) {
-    // 从队列中移除（线性搜索，但通常队列不大）
-    i32 x, y, z;
-    unpackWorldPos(pos, x, y, z);
-    i64 coord = static_cast<i64>((x & 0x3F) | ((z & 0x3F) << 6) | ((y & 0xFFF) << 12));
-    u64 targetCoord = static_cast<u64>((coord + m_coordinateOffset) & COORD_MASK);
-
-    // 从增亮队列移除
+    i32 writeIdx = 0;
     for (i32 i = 0; i < m_increaseQueueInitialLength; ++i) {
-        if ((m_increaseQueue[i] & COORD_MASK) == targetCoord) {
-            // 交换到末尾并减少长度
-            m_increaseQueue[i] = m_increaseQueue[--m_increaseQueueInitialLength];
-            break;
+        if (m_increaseQueue[i].pos != pos) {
+            m_increaseQueue[writeIdx++] = m_increaseQueue[i];
         }
     }
+    m_increaseQueueInitialLength = writeIdx;
 
-    // 从减亮队列移除
+    writeIdx = 0;
     for (i32 i = 0; i < m_decreaseQueueInitialLength; ++i) {
-        if ((m_decreaseQueue[i] & COORD_MASK) == targetCoord) {
-            m_decreaseQueue[i] = m_decreaseQueue[--m_decreaseQueueInitialLength];
-            break;
+        if (m_decreaseQueue[i].pos != pos) {
+            m_decreaseQueue[writeIdx++] = m_decreaseQueue[i];
         }
     }
+    m_decreaseQueueInitialLength = writeIdx;
 
     m_needsUpdate = m_increaseQueueInitialLength > 0 || m_decreaseQueueInitialLength > 0;
 }
@@ -136,10 +157,8 @@ void LevelBasedGraph::cancelUpdates(const std::function<bool(i64)>& predicate) {
     // 从增亮队列移除
     i32 writeIdx = 0;
     for (i32 i = 0; i < m_increaseQueueInitialLength; ++i) {
-        u64 entry = m_increaseQueue[i];
-        i32 x, y, z;
-        decodeQueueEntry(entry, x, y, z);
-        i64 worldPos = packWorldPos(x, y, z);
+        const QueueEntry& entry = m_increaseQueue[i];
+        i64 worldPos = entry.pos;
         if (!predicate(worldPos)) {
             m_increaseQueue[writeIdx++] = entry;
         }
@@ -149,10 +168,8 @@ void LevelBasedGraph::cancelUpdates(const std::function<bool(i64)>& predicate) {
     // 从减亮队列移除
     writeIdx = 0;
     for (i32 i = 0; i < m_decreaseQueueInitialLength; ++i) {
-        u64 entry = m_decreaseQueue[i];
-        i32 x, y, z;
-        decodeQueueEntry(entry, x, y, z);
-        i64 worldPos = packWorldPos(x, y, z);
+        const QueueEntry& entry = m_decreaseQueue[i];
+        i64 worldPos = entry.pos;
         if (!predicate(worldPos)) {
             m_decreaseQueue[writeIdx++] = entry;
         }
@@ -185,25 +202,21 @@ i32 LevelBasedGraph::processUpdates(i32 maxUpdates) {
 // ============================================================================
 
 i32 LevelBasedGraph::processIncreaseQueue(i32 maxUpdates) {
-    while (m_increaseQueueInitialLength > 0 && maxUpdates > 0) {
+    i32 readIndex = 0;
+
+    while (readIndex < m_increaseQueueInitialLength && maxUpdates > 0) {
         --maxUpdates;
 
-        // 取出队首元素
-        u64 entry = m_increaseQueue[--m_increaseQueueInitialLength];
+        // FIFO：按写入顺序处理，保持波前传播语义
+        const QueueEntry entry = m_increaseQueue[readIndex++];
 
-        // 解码
-        i32 x, y, z;
-        decodeQueueEntry(entry, x, y, z);
-        u8 propagatedLevel = decodeLevel(entry);
-        u8 directionBits = decodeDirections(entry);
-        u64 flags = decodeFlags(entry);
-
-        i64 worldPos = packWorldPos(x, y, z);
+        const i64 worldPos = entry.pos;
+        const i32 propagatedLevel = static_cast<i32>(entry.level);
+        const u64 flags = entry.flags;
 
         // 重新检查标志
         if (flags & FLAG_RECHECK_LEVEL) {
-            i32 currentLevel = getLevel(worldPos);
-            if (currentLevel != propagatedLevel) {
+            if (getLevel(worldPos) != propagatedLevel) {
                 continue;
             }
         }
@@ -213,162 +226,125 @@ i32 LevelBasedGraph::processIncreaseQueue(i32 maxUpdates) {
             setLevel(worldPos, propagatedLevel);
         }
 
-        // 获取检查方向
-        DirectionBit checkDirs = static_cast<DirectionBit>(directionBits);
-
-        // 如果没有特殊标志，检查所有方向
-        if ((flags & FLAG_HAS_SIDED_TRANSPARENT) == 0) {
-            // 快速路径：无需检查方块透明性
-            DirectionBit dirs = DirectionBits::opposite(checkDirs);
-
-            // 向下
-            if ((dirs & DIR_DOWN) && y > 0) {
-                i64 neighborPos = packWorldPos(x, y - 1, z);
-                // 空区块段优化：跳过空区块段
-                if (!isSectionEmpty(LightEngineUtils::worldToSectionPos(neighborPos))) {
-                    i32 newLevel = getEdgeLevel(worldPos, neighborPos, propagatedLevel);
-                    if (newLevel < 15) {
-                        setLevel(neighborPos, newLevel);
-                        if (newLevel > 0) {
-                            appendToIncreaseQueue(encodeQueueEntry(x, y - 1, z,
-                                static_cast<u8>(newLevel), DIR_UP, FLAG_RECHECK_LEVEL));
-                        }
-                    }
-                }
-            }
-
-            // 向上
-            if ((dirs & DIR_UP)) {
-                i64 neighborPos = packWorldPos(x, y + 1, z);
-                // 空区块段优化：跳过空区块段
-                if (!isSectionEmpty(LightEngineUtils::worldToSectionPos(neighborPos))) {
-                    i32 newLevel = getEdgeLevel(worldPos, neighborPos, propagatedLevel);
-                    if (newLevel < 15) {
-                        setLevel(neighborPos, newLevel);
-                        if (newLevel > 0) {
-                            appendToIncreaseQueue(encodeQueueEntry(x, y + 1, z,
-                                static_cast<u8>(newLevel), DIR_DOWN, FLAG_RECHECK_LEVEL));
-                        }
-                    }
-                }
-            }
-
-            // 北 (Z-)
-            if ((dirs & DIR_NORTH)) {
-                i64 neighborPos = packWorldPos(x, y, z - 1);
-                // 空区块段优化：跳过空区块段
-                if (!isSectionEmpty(LightEngineUtils::worldToSectionPos(neighborPos))) {
-                    i32 newLevel = getEdgeLevel(worldPos, neighborPos, propagatedLevel);
-                    if (newLevel < 15) {
-                        setLevel(neighborPos, newLevel);
-                        if (newLevel > 0) {
-                            appendToIncreaseQueue(encodeQueueEntry(x, y, z - 1,
-                                static_cast<u8>(newLevel), DIR_SOUTH, FLAG_RECHECK_LEVEL));
-                        }
-                    }
-                }
-            }
-
-            // 南 (Z+)
-            if ((dirs & DIR_SOUTH)) {
-                i64 neighborPos = packWorldPos(x, y, z + 1);
-                // 空区块段优化：跳过空区块段
-                if (!isSectionEmpty(LightEngineUtils::worldToSectionPos(neighborPos))) {
-                    i32 newLevel = getEdgeLevel(worldPos, neighborPos, propagatedLevel);
-                    if (newLevel < 15) {
-                        setLevel(neighborPos, newLevel);
-                        if (newLevel > 0) {
-                            appendToIncreaseQueue(encodeQueueEntry(x, y, z + 1,
-                                static_cast<u8>(newLevel), DIR_NORTH, FLAG_RECHECK_LEVEL));
-                        }
-                    }
-                }
-            }
-
-            // 西 (X-)
-            if ((dirs & DIR_WEST)) {
-                i64 neighborPos = packWorldPos(x - 1, y, z);
-                // 空区块段优化：跳过空区块段
-                if (!isSectionEmpty(LightEngineUtils::worldToSectionPos(neighborPos))) {
-                    i32 newLevel = getEdgeLevel(worldPos, neighborPos, propagatedLevel);
-                    if (newLevel < 15) {
-                        setLevel(neighborPos, newLevel);
-                        if (newLevel > 0) {
-                            appendToIncreaseQueue(encodeQueueEntry(x - 1, y, z,
-                                static_cast<u8>(newLevel), DIR_EAST, FLAG_RECHECK_LEVEL));
-                        }
-                    }
-                }
-            }
-
-            // 东 (X+)
-            if ((dirs & DIR_EAST)) {
-                i64 neighborPos = packWorldPos(x + 1, y, z);
-                // 空区块段优化：跳过空区块段
-                if (!isSectionEmpty(LightEngineUtils::worldToSectionPos(neighborPos))) {
-                    i32 newLevel = getEdgeLevel(worldPos, neighborPos, propagatedLevel);
-                    if (newLevel < 15) {
-                        setLevel(neighborPos, newLevel);
-                        if (newLevel > 0) {
-                            appendToIncreaseQueue(encodeQueueEntry(x + 1, y, z,
-                                static_cast<u8>(newLevel), DIR_WEST, FLAG_RECHECK_LEVEL));
-                        }
-                    }
-                }
-            }
-        } else {
-            // 慢速路径：需要检查方块透明性
-            notifyNeighbors(worldPos, propagatedLevel, false);
+        notifyNeighbors(worldPos, propagatedLevel, false, entry.directions);
+    }
+    // 压缩未处理队列项，保留到下一次 tick。
+    if (readIndex > 0) {
+        const i32 remaining = m_increaseQueueInitialLength - readIndex;
+        for (i32 i = 0; i < remaining; ++i) {
+            m_increaseQueue[i] = m_increaseQueue[readIndex + i];
         }
+        m_increaseQueueInitialLength = remaining;
     }
 
     return maxUpdates;
 }
 
 i32 LevelBasedGraph::processDecreaseQueue(i32 maxUpdates) {
-    while (m_decreaseQueueInitialLength > 0 && maxUpdates > 0) {
+    i32 readIndex = 0;
+
+    while (readIndex < m_decreaseQueueInitialLength && maxUpdates > 0) {
         --maxUpdates;
 
-        // 取出队首元素
-        u64 entry = m_decreaseQueue[--m_decreaseQueueInitialLength];
+        // FIFO：按写入顺序处理，先清暗再级联。
+        const QueueEntry entry = m_decreaseQueue[readIndex++];
 
-        // 解码
-        i32 x, y, z;
-        decodeQueueEntry(entry, x, y, z);
-        u8 propagatedLevel = decodeLevel(entry);
-        u8 directionBits = decodeDirections(entry);
-        u64 flags = decodeFlags(entry);
+        const i64 worldPos = entry.pos;
+        const i32 propagatedLevel = static_cast<i32>(entry.level);
 
-        i64 worldPos = packWorldPos(x, y, z);
-
-        // 获取当前等级
-        i32 currentLevel = getLevel(worldPos);
-
-        // 重新计算等级
-        i32 newLevel = computeLevel(worldPos, LightEngineUtils::ROOT_POS, currentLevel);
-
-        if (newLevel < currentLevel) {
-            // 光照减少
-            setLevel(worldPos, newLevel);
-
-            if (newLevel > 0) {
-                // 继续传播减少
-                appendToIncreaseQueue(encodeQueueEntry(x, y, z,
-                    static_cast<u8>(newLevel), DIR_ALL, FLAG_WRITE_LEVEL));
-            }
-
-            // 通知相邻方块
-            notifyNeighbors(worldPos, currentLevel, false);
-        } else if (newLevel > currentLevel) {
-            // 光照增加（不应该在减亮队列中发生，但作为安全检查）
-            if (newLevel > propagatedLevel) {
-                appendToIncreaseQueue(encodeQueueEntry(x, y, z,
-                    static_cast<u8>(newLevel), DIR_ALL, FLAG_RECHECK_LEVEL));
-            }
+        notifyNeighbors(worldPos, propagatedLevel, true, entry.directions);
+    }
+    // 压缩未处理队列项，保留到下一次 tick。
+    if (readIndex > 0) {
+        const i32 remaining = m_decreaseQueueInitialLength - readIndex;
+        for (i32 i = 0; i < remaining; ++i) {
+            m_decreaseQueue[i] = m_decreaseQueue[readIndex + i];
         }
+        m_decreaseQueueInitialLength = remaining;
     }
 
     return maxUpdates;
+}
+
+void LevelBasedGraph::propagateLevel(i64 fromPos, i64 toPos, i32 level, bool isDecreasing) {
+    if (toPos == LightEngineUtils::ROOT_POS) {
+        return;
+    }
+
+    i32 targetLevel = getEdgeLevel(fromPos, toPos, level);
+    if (targetLevel >= m_levelCount) {
+        return;
+    }
+
+    i32 currentLevel = getLevel(toPos);
+
+    i32 toX, toY, toZ;
+    unpackWorldPos(toPos, toX, toY, toZ);
+
+    if (!isDecreasing) {
+        if (targetLevel >= currentLevel) {
+            return;
+        }
+
+        setLevel(toPos, targetLevel);
+
+        if (targetLevel > 0) {
+            DirectionBit checkDirs = computeCheckDirections(fromPos, toPos);
+            appendToIncreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
+                static_cast<u8>(targetLevel), static_cast<u8>(checkDirs), FLAG_RECHECK_LEVEL));
+        }
+        return;
+    }
+
+    if (currentLevel >= (m_levelCount - 1)) {
+        return;
+    }
+
+    if (currentLevel < targetLevel) {
+        appendToIncreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
+            static_cast<u8>(currentLevel), DIR_ALL, FLAG_RECHECK_LEVEL));
+
+        // 在当前实现中，当边传播目标已经是最暗时，
+        // 仅做“回补重检”会导致封顶场景残留旧亮度。
+        // 这里先强制清暗并继续减亮级联，再由增亮重检恢复真实幸存光源。
+        if (targetLevel >= (m_levelCount - 1) &&
+            getEdgeLevel(LightEngineUtils::ROOT_POS, toPos, 0) >= (m_levelCount - 1)) {
+            setLevel(toPos, m_levelCount - 1);
+
+            for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
+                const i64 neighborPos = LightEngineUtils::offsetPos(toPos, dir);
+                const i32 neighborLevel = getLevel(neighborPos);
+                if (neighborLevel >= (m_levelCount - 1)) {
+                    continue;
+                }
+
+                i32 nx, ny, nz;
+                unpackWorldPos(neighborPos, nx, ny, nz);
+                appendToIncreaseQueue(encodeQueueEntryWorld(nx, ny, nz,
+                    static_cast<u8>(neighborLevel), DIR_ALL, FLAG_RECHECK_LEVEL));
+            }
+
+            DirectionBit checkDirs = computeCheckDirections(fromPos, toPos);
+            appendToDecreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
+                static_cast<u8>(m_levelCount - 1), static_cast<u8>(checkDirs), 0));
+        }
+
+        return;
+    }
+
+    i32 rootLevel = getEdgeLevel(LightEngineUtils::ROOT_POS, toPos, 0);
+    if (rootLevel < (m_levelCount - 1)) {
+        appendToIncreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
+            static_cast<u8>(rootLevel), DIR_ALL, FLAG_WRITE_LEVEL));
+    }
+
+    setLevel(toPos, m_levelCount - 1);
+
+    if (targetLevel < (m_levelCount - 1)) {
+        DirectionBit checkDirs = computeCheckDirections(fromPos, toPos);
+        appendToDecreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
+            static_cast<u8>(targetLevel), static_cast<u8>(checkDirs), 0));
+    }
 }
 
 } // namespace mc

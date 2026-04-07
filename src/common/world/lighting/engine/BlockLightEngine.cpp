@@ -34,22 +34,51 @@ void BlockLightEngine::checkLight(const BlockPos& pos) {
     m_storage.processAllLevelUpdates();
 
     i64 packedPos = LightEngineUtils::packPos(pos);
-    if (m_storage.hasSection(LightEngineUtils::worldToSectionPos(packedPos))) {
-        scheduleUpdate(packedPos);
+    i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
+    if (!m_storage.hasSection(sectionPos)) {
+        return;
     }
 
-    // 通知相邻方块
-    for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
-        scheduleUpdate(LightEngineUtils::offsetPos(packedPos, dir));
+    i32 currentLevel = getLevel(packedPos);
+    i32 sourceLevel = getEdgeLevel(LightEngineUtils::ROOT_POS, packedPos, 0);
+
+    // 与 Starlight 一致：先写当前位置，再通过增减队列统一处理邻居传播。
+    setLevel(packedPos, sourceLevel);
+
+    i32 x, y, z;
+    LightEngineUtils::unpackPos(packedPos, x, y, z);
+
+    if (sourceLevel < 15) {
+        appendToIncreaseQueue(encodeQueueEntry(x, y, z,
+            static_cast<u8>(sourceLevel), DIR_ALL, 0));
     }
+
+    appendToDecreaseQueue(encodeQueueEntry(x, y, z,
+        static_cast<u8>(currentLevel), DIR_ALL, 0));
 }
 
 void BlockLightEngine::onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel) {
     m_storage.processAllLevelUpdates();
-    i64 packedPos = LightEngineUtils::packPos(pos);
-    i64 sourcePos = LightEngineUtils::ROOT_POS;  // 根节点表示光源
 
-    scheduleUpdate(sourcePos, packedPos, 15 - lightLevel, true);
+    i64 packedPos = LightEngineUtils::packPos(pos);
+    i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
+    if (!m_storage.hasSection(sectionPos)) {
+        return;
+    }
+
+    i32 sourceLevel = std::max(0, 15 - std::min(lightLevel, 15));
+    i32 currentLevel = getLevel(packedPos);
+    if (sourceLevel >= currentLevel) {
+        return;
+    }
+
+    setLevel(packedPos, sourceLevel);
+
+    i32 x, y, z;
+    LightEngineUtils::unpackPos(packedPos, x, y, z);
+
+    appendToIncreaseQueue(encodeQueueEntry(x, y, z,
+        static_cast<u8>(sourceLevel), DIR_ALL, 0));
 }
 
 u8 BlockLightEngine::getLightFor(const BlockPos& pos) const {
@@ -164,10 +193,18 @@ i32 BlockLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     return minLevel;
 }
 
-void BlockLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing) {
+void BlockLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) {
     i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
+    DirectionBit dirs = static_cast<DirectionBit>(directionBits);
+    if (dirs == DIR_NONE) {
+        dirs = DIR_ALL;
+    }
 
     for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
+        if ((dirs & DirectionBits::fromDirection(dir)) == 0) {
+            continue;
+        }
+
         i64 neighborPos = LightEngineUtils::offsetPos(pos, dir);
         i64 neighborSectionPos = LightEngineUtils::worldToSectionPos(neighborPos);
 
@@ -241,14 +278,14 @@ i32 BlockLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
     }
 
     const BlockState* fromState = LightEngineUtils::getBlockAndOpacity(fromChunk, fromPos, nullptr);
-    IWorld* world = getChunkProvider()->getWorld();
 
-    // 检查面遮挡
-    if (fromState != nullptr && toState != nullptr &&
-        LightEngineUtils::facesHaveOcclusion(world, *fromState, BlockPos(fromX, fromY, fromZ),
-                              *toState, BlockPos(toX, toY, toZ),
-                              direction, opacity)) {
-        return 15;
+    // Starlight 中来源面遮挡主要用于“条件不透明”形状。
+    // 对于完整立方体（如萤石）不能在这里直接阻断，否则光源无法向外扩散。
+    if (fromState != nullptr) {
+        const CollisionShape& fromShape = LightEngineUtils::getVoxelShape(*fromState);
+        if (!fromShape.isFullBlock() && LightEngineUtils::blocksLightInDirection(*fromState, direction)) {
+            return 15;
+        }
     }
 
     return startLevel + std::max(1, opacity);

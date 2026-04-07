@@ -324,10 +324,7 @@ protected:
      * @brief 世界位置转区块段位置
      */
     [[nodiscard]] static i64 worldToSection(i64 worldPos) {
-        i32 x = static_cast<i32>(worldPos >> 42);
-        i32 y = static_cast<i32>((worldPos << 44) >> 44);
-        i32 z = static_cast<i32>((worldPos << 22) >> 42);
-        return sectionPosToLong(x >> 4, y >> 4, z >> 4);
+        return LightEngineUtils::worldToSectionPos(worldPos);
     }
 
     /**

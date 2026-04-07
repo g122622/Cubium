@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <cstdint>
+#include <functional>
 
 namespace mc {
 
@@ -15,13 +16,13 @@ class IChunkLightProvider;
 /**
  * @brief 基于级别的传播图（Starlight 优化版）
  *
- * 使用 64 位队列编码和方向位集优化的 BFS 传播算法。
+ * 使用方向位集优化的 BFS 传播算法。
  *
- * 队列元素编码格式：
- * [0-27]:  坐标 (x | (z << 6) | (y << 12))
- * [28-31]: 光照等级 (0-15)
- * [32-37]: 传播方向位集
- * [38-39]: 标志位
+ * 队列元素采用显式结构：
+ * - pos: 完整世界坐标编码（LightEngineUtils::packPos）
+ * - level: 传播级别
+ * - directions: 可继续传播方向位集
+ * - flags: WRITE/RECHECK/TRANSPARENT 标志
  *
  * 参考: ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine
  */
@@ -32,21 +33,6 @@ public:
 
     /** 无效级别标记 */
     static constexpr u8 INVALID_LEVEL = 255;
-
-    /** 队列编码：坐标掩码 (28位) */
-    static constexpr u64 COORD_MASK = (1ULL << 28) - 1;
-
-    /** 队列编码：光照等级偏移 */
-    static constexpr i32 LEVEL_SHIFT = 28;
-
-    /** 队列编码：光照等级掩码 */
-    static constexpr u64 LEVEL_MASK = 0xFULL;
-
-    /** 队列编码：方向位集偏移 */
-    static constexpr i32 DIRECTION_SHIFT = 32;
-
-    /** 队列编码：方向位集掩码 */
-    static constexpr u64 DIRECTION_MASK = 0x3FULL;
 
     /** 标志：需要写入光照等级 */
     static constexpr u64 FLAG_WRITE_LEVEL = 1ULL << 63;
@@ -114,10 +100,9 @@ public:
      * @brief 设置编码偏移（用于坐标压缩）
      */
     void setEncodeOffset(i32 offsetX, i32 offsetY, i32 offsetZ) {
-        m_encodeOffsetX = offsetX;
-        m_encodeOffsetY = offsetY;
-        m_encodeOffsetZ = offsetZ;
-        m_coordinateOffset = offsetX + (offsetZ << 6) + (offsetY << 12);
+        (void)offsetX;
+        (void)offsetY;
+        (void)offsetZ;
     }
 
     // ========================================================================
@@ -176,7 +161,7 @@ protected:
     [[nodiscard]] virtual i32 computeLevel(i64 pos, i64 excludedSource, i32 level) = 0;
 
     /** 通知相邻位置 */
-    virtual void notifyNeighbors(i64 pos, i32 level, bool isDecreasing) = 0;
+    virtual void notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) = 0;
 
     /** 获取位置的当前级别 */
     [[nodiscard]] virtual i32 getLevel(i64 pos) const = 0;
@@ -210,6 +195,13 @@ protected:
     [[nodiscard]] bool isCachedSectionEmpty(i32 sectionX, i32 sectionY, i32 sectionZ) const;
 
 protected:
+    struct QueueEntry {
+        i64 pos = 0;
+        u8 level = 0;
+        u8 directions = DIR_ALL;
+        u64 flags = 0;
+    };
+
     // 缓存系统
     LightEngineCache m_cache;
     IChunkLightProvider* m_chunkProvider = nullptr;
@@ -222,33 +214,7 @@ protected:
      * @param level 传播等级
      * @param isDecreasing 是否为减亮传播
      */
-    void propagateLevel(i64 fromPos, i64 toPos, i32 level, bool isDecreasing) {
-        // 解码坐标
-        i32 toX, toY, toZ;
-        unpackWorldPos(toPos, toX, toY, toZ);
-
-        // 计算方向位集
-        i32 fromX, fromY, fromZ;
-        unpackWorldPos(fromPos, fromX, fromY, fromZ);
-
-        i32 dx = (toX > fromX) ? 1 : ((toX < fromX) ? -1 : 0);
-        i32 dy = (toY > fromY) ? 1 : ((toY < fromY) ? -1 : 0);
-        i32 dz = (toZ > fromZ) ? 1 : ((toZ < fromZ) ? -1 : 0);
-
-        DirectionBit fromDir = static_cast<DirectionBit>(
-            (dx != 0 ? (dx > 0 ? DIR_WEST : DIR_EAST) : 0) |
-            (dy != 0 ? (dy > 0 ? DIR_DOWN : DIR_UP) : 0) |
-            (dz != 0 ? (dz > 0 ? DIR_NORTH : DIR_SOUTH) : 0)
-        );
-
-        if (isDecreasing) {
-            appendToDecreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
-                static_cast<u8>(level), static_cast<u8>(fromDir), 0));
-        } else {
-            appendToIncreaseQueue(encodeQueueEntryWorld(toX, toY, toZ,
-                static_cast<u8>(level), static_cast<u8>(fromDir), FLAG_RECHECK_LEVEL));
-        }
-    }
+    void propagateLevel(i64 fromPos, i64 toPos, i32 level, bool isDecreasing);
 
     // ========================================================================
     // 队列操作
@@ -257,57 +223,21 @@ protected:
     /**
      * @brief 编码队列元素
      */
-    [[nodiscard]] u64 encodeQueueEntry(i32 x, i32 y, i32 z, u8 level, u8 directions, u64 flags = 0) const {
-        i64 coord = static_cast<i64>((x & 0x3F) | ((z & 0x3F) << 6) | ((y & 0xFFF) << 12));
-        u64 result = static_cast<u64>((coord + m_coordinateOffset) & COORD_MASK);
-        result |= static_cast<u64>(level & LEVEL_MASK) << LEVEL_SHIFT;
-        result |= static_cast<u64>(directions & DIRECTION_MASK) << DIRECTION_SHIFT;
-        result |= flags;
-        return result;
+    [[nodiscard]] QueueEntry encodeQueueEntry(i32 x, i32 y, i32 z, u8 level, u8 directions, u64 flags = 0) const {
+        return QueueEntry{packWorldPos(x, y, z), level, directions, flags};
     }
 
     /**
      * @brief 编码队列元素（使用世界坐标）
      */
-    [[nodiscard]] u64 encodeQueueEntryWorld(i32 worldX, i32 worldY, i32 worldZ, u8 level, u8 directions, u64 flags = 0) const {
+    [[nodiscard]] QueueEntry encodeQueueEntryWorld(i32 worldX, i32 worldY, i32 worldZ, u8 level, u8 directions, u64 flags = 0) const {
         return encodeQueueEntry(worldX, worldY, worldZ, level, directions, flags);
-    }
-
-    /**
-     * @brief 解码队列元素的坐标
-     */
-    void decodeQueueEntry(u64 entry, i32& x, i32& y, i32& z) const {
-        i64 coord = static_cast<i64>(entry & COORD_MASK) - m_coordinateOffset;
-        x = static_cast<i32>(coord & 0x3F);
-        z = static_cast<i32>((coord >> 6) & 0x3F);
-        y = static_cast<i32>((coord >> 12) & 0xFFF);
-    }
-
-    /**
-     * @brief 解码队列元素的光照等级
-     */
-    [[nodiscard]] u8 decodeLevel(u64 entry) const {
-        return static_cast<u8>((entry >> LEVEL_SHIFT) & LEVEL_MASK);
-    }
-
-    /**
-     * @brief 解码队列元素的方向位集
-     */
-    [[nodiscard]] u8 decodeDirections(u64 entry) const {
-        return static_cast<u8>((entry >> DIRECTION_SHIFT) & DIRECTION_MASK);
-    }
-
-    /**
-     * @brief 解码队列元素的标志
-     */
-    [[nodiscard]] u64 decodeFlags(u64 entry) const {
-        return entry & (FLAG_WRITE_LEVEL | FLAG_RECHECK_LEVEL | FLAG_HAS_SIDED_TRANSPARENT);
     }
 
     /**
      * @brief 添加到增亮队列
      */
-    void appendToIncreaseQueue(u64 entry) {
+    void appendToIncreaseQueue(const QueueEntry& entry) {
         if (m_increaseQueueInitialLength >= static_cast<i32>(m_increaseQueue.size())) {
             resizeIncreaseQueue();
         }
@@ -318,7 +248,7 @@ protected:
     /**
      * @brief 添加到减亮队列
      */
-    void appendToDecreaseQueue(u64 entry) {
+    void appendToDecreaseQueue(const QueueEntry& entry) {
         if (m_decreaseQueueInitialLength >= static_cast<i32>(m_decreaseQueue.size())) {
             resizeDecreaseQueue();
         }
@@ -352,18 +282,12 @@ private:
     i32 m_levelCount;
 
     // 增亮队列（光照增加）
-    std::vector<u64> m_increaseQueue;
+    std::vector<QueueEntry> m_increaseQueue;
     i32 m_increaseQueueInitialLength = 0;
 
     // 减亮队列（光照减少）
-    std::vector<u64> m_decreaseQueue;
+    std::vector<QueueEntry> m_decreaseQueue;
     i32 m_decreaseQueueInitialLength = 0;
-
-    // 坐标编码偏移
-    i32 m_encodeOffsetX = 0;
-    i32 m_encodeOffsetY = 0;
-    i32 m_encodeOffsetZ = 0;
-    i32 m_coordinateOffset = 0;
 
     bool m_needsUpdate = false;
 

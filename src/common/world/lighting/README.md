@@ -91,23 +91,28 @@ public:
 基于级别的传播图，实现 Starlight 优化的 BFS 光照传播算法。
 
 **核心特性**：
-- 64位队列编码，紧凑存储坐标、等级和方向
+- 显式队列条目（完整世界坐标 + 方向位集 + 标志位）
 - 方向位集优化，跳过反向传播
 - 双队列设计：增亮队列和减亮队列
+- FIFO 波前处理顺序（队列按写入顺序处理，避免 LIFO 造成的传播震荡）
 
-**队列元素编码格式**：
+**队列元素结构**：
 ```
-[0-27]:  坐标 (x | (z << 6) | (y << 12))
-[28-31]: 光照等级 (0-15)
-[32-37]: 传播方向位集
-[38-39]: 标志位
+QueueEntry {
+    pos:        世界坐标编码（LightEngineUtils::packPos，完整 X/Y/Z）
+    level:      光照级别（0-15）
+    directions: 传播方向位集（DIR_*）
+    flags:      WRITE_LEVEL / RECHECK_LEVEL / HAS_SIDED_TRANSPARENT
+}
 ```
+
+说明：当前实现不再使用低位截断坐标压缩，避免大坐标或跨区块传播时的坐标回绕问题。
 
 **核心虚方法**（子类实现）：
 ```cpp
 virtual bool isRoot(i64 pos) const = 0;                          // 检查是否为根节点
 virtual i32 computeLevel(i64 pos, i64 excludedSource, i32 level) = 0;  // 计算新级别
-virtual void notifyNeighbors(i64 pos, i32 level, bool isDecreasing) = 0;  // 通知相邻位置
+virtual void notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) = 0;  // 通知相邻位置
 virtual i32 getLevel(i64 pos) const = 0;                          // 获取当前级别
 virtual void setLevel(i64 pos, i32 level) = 0;                    // 设置级别
 virtual i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) = 0;  // 计算边缘级别
@@ -625,7 +630,7 @@ u8 getOpacity() const override { return 15; }
 本光照系统参考了 [Starlight](https://github.com/PaperMC/Starlight) 的优化设计：
 
 1. **方向位集优化**：使用位集表示传播方向，快速获取相反方向
-2. **64位队列编码**：紧凑存储坐标、等级和方向，减少内存占用
+2. **显式队列条目**：使用完整世界坐标 + 方向位集 + 标志位，避免坐标截断回绕
 3. **空区块段跳过**：使用 `EmptinessMap` 快速跳过全空气区块段
 4. **区块缓存**：5x5区块缓存减少重复区块查找
 
@@ -647,6 +652,9 @@ if (remaining < 512) {
 |---------|---------|
 | `LightingTest.cpp` | NibbleArray、SectionPos、LightType、InternalLight、LightEngineUtils |
 | `LightUpdateTest.cpp` | LightUpdatePacket 序列化/反序列化、ChunkSection 光照数据、ChunkData 光照存储 |
+| `SkyLightRegressionTest.cpp` | 天空侧向补光、封顶变暗、开洞恢复、负Y表面检测 |
+| `LevelBasedGraphQueueTest.cpp` | FIFO 队列顺序、tick预算边界、取消更新行为 |
+| `BlockLightRegressionTest.cpp` | 发光方块增亮、移除减亮、遮挡削弱与解除恢复 |
 
 ### 关键测试用例
 

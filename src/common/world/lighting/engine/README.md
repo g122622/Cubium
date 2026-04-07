@@ -54,20 +54,27 @@ classDiagram
     }
 ```
 
-**队列元素编码格式** (64位):
+**队列元素结构**:
 
-| 位范围 | 内容 | 说明 |
-|--------|------|------|
-| 0-27 | 坐标 | x(6位) \| z(6位) \| y(16位) |
-| 28-31 | 光照等级 | 0-15 |
-| 32-37 | 方向位集 | 传播方向标记 |
-| 38-60 | 保留 | - |
-| 61-63 | 标志位 | WRITE_LEVEL, RECHECK_LEVEL, HAS_SIDED_TRANSPARENT |
+```cpp
+struct QueueEntry {
+    i64 pos;        // 世界坐标编码（完整 X/Y/Z，使用 LightEngineUtils::packPos）
+    u8 level;       // 0-15（内部传播级别）
+    u8 directions;  // 方向位集（DIR_*）
+    u64 flags;      // WRITE_LEVEL / RECHECK_LEVEL / HAS_SIDED_TRANSPARENT
+};
+```
+
+说明：
+- 不再使用 6-bit X / 6-bit Z 的截断坐标压缩。
+- 队列直接保存完整世界坐标，避免跨区块/远离原点时的坐标回绕错误。
+- 方向位集语义与 Starlight 对齐：队列中保存“可继续传播的方向集合”。
 
 **核心算法**:
 - **增亮队列**: 光照增加时传播到相邻方块
 - **减亮队列**: 光照减少时重新计算受影响方块
 - **空区块段优化**: 跳过全空气区块段
+- **FIFO 波前处理**: 队列按入队顺序处理，预算耗尽时保留剩余队列到下个 tick
 
 ### BlockLightEngine.hpp/cpp
 
@@ -105,6 +112,8 @@ classDiagram
 - 每穿过一个方块衰减 1 级（最小 1 级）
 - 部分透明方块（如水）有特定透明度
 - 完全不透明方块（透明度 15）阻挡光线
+- `checkLight()` 入口对齐 Starlight `checkBlock`：先写当前位置源级别，再同时入增亮/减亮队列
+- `getEdgeLevel()` 对来源面遮挡采用“条件形状优先”策略，不会错误阻断完整方块光源（如萤石）向外传播
 
 ### SkyLightEngine.hpp/cpp
 
@@ -140,6 +149,7 @@ classDiagram
 - 从天空向下传播时，透明方块不衰减
 - 遇到不透明方块时开始衰减
 - 支持跨区块段向下传播（空区块段优化）
+- `checkLight()` 会基于 `ROOT_POS` 贡献判断当前点是否可作为天空源重入增亮队列
 
 ### LightEngineCache.hpp/cpp
 
@@ -370,6 +380,13 @@ void onBlockChanged(World& world, const BlockPos& pos) {
 
 **原因**: 减亮操作需要先清除旧光照，增亮操作才能正确计算新光照。
 
+另外，队列内部应保持 FIFO 语义（按入队顺序），不要改回尾部弹出式 LIFO。
+LIFO 会导致传播波前顺序紊乱，在复杂遮挡场景下出现重复震荡与额外回补。
+
+对于 `currentLevel < targetLevel` 且 `target = 最暗` 的减亮分支，
+不能只做“强制清暗 + 继续减亮”，还要补充相邻节点的增亮重检入队。
+否则在 FIFO 波前下，像“悬空单石头下方”这类场景会丢失合法侧向天光。
+
 ```cpp
 // 正确的 tick 处理顺序
 i32 LevelBasedGraph::processUpdates(i32 maxUpdates) {
@@ -400,11 +417,13 @@ void onChunkSectionChanged(ChunkSection& section, SectionPos pos) {
 
 ### 3. 天空光照的特殊处理
 
-**问题**: 天空光照引擎的 `isRoot()` 始终返回 `false`，这与方块光照不同。
+**问题**: 天空光照引擎内部等级语义与可见光值相反。
 
-**原因**: 天空光照没有单一的"光源"位置，而是从上方无限高处照射。
+**原因**:
+- 内部传播级别使用 `0=最亮, 15=最暗`，而可见光值是 `15=最亮, 0=最暗`。
+- 天空光照没有单一的固定根节点，根贡献通过 `getEdgeLevel(ROOT_POS, ...)` 计算。
 
-**注意**: 在 `checkLight()` 中需要特殊处理天空光照为 15 的情况。
+**注意**: 在 `checkLight()` 与 `getEdgeLevel()` 中必须先做语义转换再比较大小，否则会出现“封顶不降光”或“侧向传播被反向阻断”。
 
 ### 4. 坐标范围限制
 
@@ -422,16 +441,16 @@ void onChunkSectionChanged(ChunkSection& section, SectionPos pos) {
 
 ### 6. 方向位集的正确使用
 
-**问题**: 错误理解方向位集的传播方向。
+**问题**: 错误理解方向位集的语义。
 
 **说明**:
-- `DIR_UP` 表示"向上传播"
-- `opposite(DIR_UP)` 返回 `DIR_DOWN`，表示"从上方传来"
+- 当前实现中，队列里的 `directions` 表示“允许继续传播的方向集合”，不是“来源方向”。
+- 从 `fromPos -> toPos` 继续传播时，通常需要排除回传方向（即来源的反方向）。
 
 ```cpp
-// 传播方向是"从哪里来"
-DirectionBit fromDirection = DIR_UP;  // 光从下方传来
-DirectionBit checkDirs = DirectionBits::opposite(fromDirection);  // 检查 DIR_DOWN（向上传播）
+// 示例：从当前点向东传播到邻居后，后续通常不再向西回传
+DirectionBit blocked = DIR_WEST;
+DirectionBit checkDirs = DirectionBits::allExcept(blocked);
 ```
 
 ## 性能优化
@@ -440,7 +459,7 @@ DirectionBit checkDirs = DirectionBits::opposite(fromDirection);  // 检查 DIR_
 
 本实现采用了 Starlight mod 的核心优化：
 
-1. **64 位队列编码**: 将坐标、等级、方向打包到单个 64 位整数，减少内存分配
+1. **紧凑队列条目**: 使用 `QueueEntry{pos, level, directions, flags}`，并保留完整世界坐标，避免远坐标回绕
 2. **方向位集**: 使用位运算快速计算相反方向，避免遍历所有方向
 3. **空区块段跳过**: 全空气区块段直接跳过光照计算
 4. **缓存系统**: 扁平数组缓存区块和区块段，避免重复查找

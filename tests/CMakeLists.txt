@@ -146,6 +146,9 @@ add_executable(mc_tests
     # 光照系统测试
     lighting/LightingTest.cpp
     lighting/LightUpdateTest.cpp
+    lighting/BlockLightRegressionTest.cpp
+    lighting/LevelBasedGraphQueueTest.cpp
+    lighting/SkyLightRegressionTest.cpp
     # 环境光遮蔽测试
     client/renderer/AmbientOcclusionCalculatorTest.cpp
     # NaturalSpawner 测试

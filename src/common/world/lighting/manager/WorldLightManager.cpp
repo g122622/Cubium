@@ -96,8 +96,18 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
                 skyRemaining);
         }
         return skyRemaining;
-    } else {
-        MC_ASSERT_RELEASE_MSG(false, "No light engines available");
+    }
+
+    if (m_blockLight != nullptr) {
+        return clampRemaining(
+            m_blockLight->tick(maxUpdates, false, updateBlockLight),
+            maxUpdates);
+    }
+
+    if (m_skyLight != nullptr) {
+        return clampRemaining(
+            m_skyLight->tick(maxUpdates, updateSkyLight, false),
+            maxUpdates);
     }
 
     return maxUpdates;

@@ -39,23 +39,23 @@ void SkyLightEngine::checkLight(const BlockPos& pos) {
     // 获取当前光照等级
     i32 currentLevel = getLevel(packedPos);
 
-    // 参考 Starlight: SkyStarLightEngine.checkBlock
-    // 天空光照处理逻辑：
-    // 1. 如果当前光照是 15（天空光源），重新传播
-    // 2. 否则设置光照为 0
-    // 3. 加入减亮队列，让减亮处理重新计算光照
+    // 参考 Starlight: SkyStarLightEngine.checkBlock。
+    // 注意本实现内部 level 为“距离值”：0 最亮，15 最暗。
 
     if (m_storage.hasSection(sectionPos)) {
         i32 x, y, z;
         LightEngineUtils::unpackPos(packedPos, x, y, z);
 
-        if (currentLevel == 15) {
-            // 当前是天空光源，必须重新传播
-            // 使用 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 因为不知道方块是否条件透明
-            appendToIncreaseQueue(encodeQueueEntry(x, y, z, 15, DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
+        i32 rootLevel = getEdgeLevel(LightEngineUtils::ROOT_POS, packedPos, 0);
+        if (rootLevel < 15) {
+            // 与 Starlight 一致：当前位置可接收天空源时，
+            // 先写入源级别，再走增亮传播。
+            setLevel(packedPos, rootLevel);
+            appendToIncreaseQueue(encodeQueueEntry(x, y, z,
+                static_cast<u8>(rootLevel), DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
         } else {
-            // 设置为 0，准备重新计算
-            setLevel(packedPos, 0);
+            // 先清空当前位置（最暗），再走减亮重算链。
+            setLevel(packedPos, 15);
         }
 
         // 加入减亮队列，传播到邻居
@@ -66,20 +66,20 @@ void SkyLightEngine::checkLight(const BlockPos& pos) {
         LightEngineUtils::unpackPos(packedPos, x, y, z);
         // 对齐到区块段底部 (清除Y的低4位)
         i64 currentPos = LightEngineUtils::packPos(x, y & ~0xF, z);
-        i64 currentSectionPos = LightEngineUtils::worldToSectionPos(currentPos);
+        SectionPos currentSection = SectionPos::fromLong(LightEngineUtils::worldToSectionPos(currentPos));
+        i64 currentSectionPos = currentSection.toLong();
 
         while (!m_storage.hasSection(currentSectionPos) &&
                !m_storage.isAboveWorld(currentSectionPos)) {
             // 向上移动一个区块段 (16格)
-            i32 currentY = static_cast<i32>(currentPos & 0xFFF);
-            currentPos = LightEngineUtils::packPos(x, currentY + 16, z);
-            currentSectionPos = SectionPos::fromLong(currentSectionPos).offset(Direction::Up).toLong();
+            currentSection = currentSection.offset(Direction::Up);
+            currentSectionPos = currentSection.toLong();
+            currentPos = LightEngineUtils::packPos(x, currentSection.worldY(), z);
         }
 
         if (m_storage.hasSection(currentSectionPos)) {
             LightEngineUtils::unpackPos(currentPos, x, y, z);
-            // 使用 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 标志
-            appendToIncreaseQueue(encodeQueueEntry(x, y, z, 15, DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
+            appendToIncreaseQueue(encodeQueueEntry(x, y, z, 0, DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
         }
     }
 }
@@ -203,14 +203,15 @@ i32 SkyLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
             LightEngineUtils::unpackPos(neighborPos, nx, ny, nz);
             // 对齐到区块段底部
             i64 searchPos = LightEngineUtils::packPos(nx, ny & ~0xF, nz);
-            i64 searchSectionPos = neighborSectionPos;
+            SectionPos searchSection = SectionPos::fromLong(neighborSectionPos);
+            i64 searchSectionPos = searchSection.toLong();
 
             while (!m_storage.hasSection(searchSectionPos) &&
                    !m_storage.isAboveWorld(searchSectionPos)) {
                 // 向上移动一个区块段 (16格)
-                i32 searchY = static_cast<i32>(searchPos & 0xFFF);
-                searchPos = LightEngineUtils::packPos(nx, searchY + 16, nz);
-                searchSectionPos = SectionPos::fromLong(searchSectionPos).offset(Direction::Up).toLong();
+                searchSection = searchSection.offset(Direction::Up);
+                searchSectionPos = searchSection.toLong();
+                searchPos = LightEngineUtils::packPos(nx, searchSection.worldY(), nz);
             }
 
             const SWMRNibbleArray* searchArray = m_storage.getArray(searchSectionPos, true);
@@ -236,48 +237,87 @@ i32 SkyLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     return minLevel;
 }
 
-void SkyLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing) {
+void SkyLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) {
     i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
-    i32 y = static_cast<i32>(pos & 0xFFF);
+    const SectionPos sourceSection = SectionPos::fromLong(sectionPos);
+    DirectionBit dirs = static_cast<DirectionBit>(directionBits);
+    if (dirs == DIR_NONE) {
+        dirs = DIR_ALL;
+    }
+
+    i32 x, y, z;
+    LightEngineUtils::unpackPos(pos, x, y, z);
+
+    if (!isDecreasing) {
+        const IChunk* fromChunk = getChunkCached(x >> 4, z >> 4);
+        const BlockState* fromState = LightEngineUtils::getBlockAndOpacity(fromChunk, pos, nullptr);
+
+        if (fromState != nullptr) {
+            bool hasOpenPropagationFace = false;
+            for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
+                if ((dirs & DirectionBits::fromDirection(dir)) == 0) {
+                    continue;
+                }
+
+                if (!LightEngineUtils::blocksLightInDirection(*fromState, dir)) {
+                    hasOpenPropagationFace = true;
+                    break;
+                }
+            }
+
+            if (!hasOpenPropagationFace) {
+                return;
+            }
+        }
+    }
+
     i32 localY = y & 0xF;
-    i32 sectionY = y >> 4;
+    i32 sectionY = sourceSection.y;
 
     // 计算需要向下传播多少区块段
     i32 skipSections = 0;
     if (localY == 0) {
         // 在区块段底部，需要检查下方有多少空区块段
-        while (!m_storage.hasSection(
-                SectionPos::fromLong(sectionPos).offset(Direction::Down).toLong()) &&
-               m_storage.isAboveBottom(sectionY - skipSections - 1)) {
+        while (m_storage.isAboveBottom(sectionY - skipSections - 1)) {
+            i64 belowSectionPos = SectionPos(sourceSection.x, sectionY - skipSections - 1, sourceSection.z).toLong();
+            if (m_storage.hasSection(belowSectionPos)) {
+                break;
+            }
             ++skipSections;
         }
     }
 
     // 向下传播（可能跨越多个区块段）
-    i32 x, z;
-    LightEngineUtils::unpackPos(pos, x, y, z);
-    i64 downPos = LightEngineUtils::packPos(x, y - 1 - skipSections * 16, z);
-    i64 downSectionPos = LightEngineUtils::worldToSectionPos(downPos);
+    if ((dirs & DIR_DOWN) != 0) {
+        const i32 verticalDrop = 1 + skipSections * 16;
+        i64 downPos = LightEngineUtils::packPos(x, y - verticalDrop, z);
+        i64 downSectionPos = LightEngineUtils::worldToSectionPos(downPos);
 
-    if (sectionPos == downSectionPos || m_storage.hasSection(downSectionPos)) {
-        propagateLevel(pos, downPos, level, isDecreasing);
+        if (sectionPos == downSectionPos || m_storage.hasSection(downSectionPos)) {
+            propagateLevel(pos, downPos, level, isDecreasing);
+        }
     }
 
     // 向上传播
-    i64 upPos = LightEngineUtils::offsetPos(pos, Direction::Up);
-    i64 upSectionPos = LightEngineUtils::worldToSectionPos(upPos);
-    if (sectionPos == upSectionPos || m_storage.hasSection(upSectionPos)) {
-        propagateLevel(pos, upPos, level, isDecreasing);
+    if ((dirs & DIR_UP) != 0) {
+        i64 upPos = LightEngineUtils::offsetPos(pos, Direction::Up);
+        i64 upSectionPos = LightEngineUtils::worldToSectionPos(upPos);
+        if (sectionPos == upSectionPos || m_storage.hasSection(upSectionPos)) {
+            propagateLevel(pos, upPos, level, isDecreasing);
+        }
     }
 
     // 水平方向传播
+    const i32 maxHorizontalDrop = (skipSections > 0) ? (skipSections * 16 + 1) : 0;
     for (Direction dir : LightEngineUtils::HORIZONTAL_DIRECTIONS) {
+        if ((dirs & DirectionBits::fromDirection(dir)) == 0) {
+            continue;
+        }
+
         i32 dx = (dir == Direction::East) ? 1 : ((dir == Direction::West) ? -1 : 0);
         i32 dz = (dir == Direction::South) ? 1 : ((dir == Direction::North) ? -1 : 0);
 
-        i32 offset = 0;
-        while (true) {
-            LightEngineUtils::unpackPos(pos, x, y, z);
+        for (i32 offset = 0; offset <= maxHorizontalDrop; ++offset) {
             i64 neighborPos = LightEngineUtils::packPos(x + dx, y - offset, z + dz);
             i64 neighborSectionPos = LightEngineUtils::worldToSectionPos(neighborPos);
 
@@ -288,11 +328,6 @@ void SkyLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing) {
 
             if (m_storage.hasSection(neighborSectionPos)) {
                 propagateLevel(pos, neighborPos, level, isDecreasing);
-            }
-
-            ++offset;
-            if (offset > skipSections * 16) {
-                break;
             }
         }
     }
@@ -351,7 +386,6 @@ i32 SkyLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
     }
 
     const BlockState* fromState = LightEngineUtils::getBlockAndOpacity(fromChunk, fromPos, nullptr);
-    IWorld* world = getChunkProvider()->getWorld();
 
     // 计算方向
     bool sameXZ = (fromX == toX) && (fromZ == toZ);
@@ -367,20 +401,15 @@ i32 SkyLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
     }
 
     if (direction != Direction::None) {
-        // 检查面遮挡
-        if (fromState != nullptr && toState != nullptr &&
-            LightEngineUtils::facesHaveOcclusion(world, *fromState, BlockPos(fromX, fromY, fromZ),
-                              *toState, BlockPos(toX, toY, toZ),
-                              direction, opacity)) {
+        // 对齐 Vanilla/SkyStarLightEngine：相邻传播主要由来源方块对应面的遮挡决定。
+        if (fromState != nullptr && LightEngineUtils::blocksLightInDirection(*fromState, direction)) {
             return 15;
         }
     } else {
-        // 非相邻方块，检查Y方向遮挡
-        if (fromState != nullptr) {
-            const CollisionShape& fromShape = LightEngineUtils::getVoxelShape(*fromState);
-            if (!fromShape.isEmpty()) {
-                return 15;
-            }
+        // 非相邻方块（Sky notifyNeighbors 的水平+垂直组合路径）。
+        // 对齐 Vanilla：先检查来源向下遮挡，再检查目标在调整方向上的反向遮挡。
+        if (fromState != nullptr && LightEngineUtils::blocksLightInDirection(*fromState, Direction::Down)) {
+            return 15;
         }
 
         i32 adjustedDy = sameXZ ? -1 : 0;
@@ -389,11 +418,9 @@ i32 SkyLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
             return 15;
         }
 
-        if (toState != nullptr) {
-            const CollisionShape& toShape = LightEngineUtils::getVoxelShape(*toState);
-            if (!toShape.isEmpty()) {
-                return 15;
-            }
+        if (toState != nullptr &&
+            LightEngineUtils::blocksLightInDirection(*toState, Directions::opposite(adjustedDir))) {
+            return 15;
         }
     }
 

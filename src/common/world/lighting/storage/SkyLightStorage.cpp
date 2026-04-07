@@ -91,7 +91,11 @@ bool SkyLightStorage::isAboveWorld(i64 sectionPos) const {
 }
 
 bool SkyLightStorage::isAtSurfaceTop(i64 worldPos) const {
-    i32 y = static_cast<i32>(worldPos & 0xFFF);
+    i32 x, y, z;
+    LightEngineUtils::unpackPos(worldPos, x, y, z);
+    (void)x;
+    (void)z;
+
     if ((y & 0xF) != 15) {
         return false;
     }
@@ -104,7 +108,8 @@ bool SkyLightStorage::isAtSurfaceTop(i64 worldPos) const {
     }
 
     i32 surfaceHeight = m_cachedLightData.getSurfaceHeight(columnPos);
-    return surfaceHeight == (y + 16) / 16;
+    i32 sectionY = y >> 4;
+    return surfaceHeight == (sectionY + 1);
 }
 
 bool SkyLightStorage::hasSectionsToUpdate() const {
@@ -112,7 +117,8 @@ bool SkyLightStorage::hasSectionsToUpdate() const {
 }
 
 bool SkyLightStorage::isAboveBottom(i32 sectionY) const {
-    return sectionY >= 0;
+    i32 minSection = m_chunkProvider->getMinBuildHeight() >> 4;
+    return sectionY >= minSection;
 }
 
 void SkyLightStorage::addSection(i64 sectionPos) {
@@ -120,8 +126,9 @@ void SkyLightStorage::addSection(i64 sectionPos) {
     i64 columnPos = pos.toColumnLong();
 
     // 更新表面高度
+    bool hasSurfaceHeight = m_cachedLightData.hasSurfaceHeight(columnPos);
     i32 currentSurfaceHeight = m_cachedLightData.getSurfaceHeight(columnPos);
-    if (pos.y + 1 > currentSurfaceHeight) {
+    if (!hasSurfaceHeight || pos.y + 1 > currentSurfaceHeight) {
         m_cachedLightData.setSurfaceHeight(columnPos, pos.y + 1);
     }
 

@@ -379,6 +379,46 @@ enum class Operation : u8 { ... };
 - New client tests cover the refactored path:
     - `tests/client/test_mesh_worker_pool.cpp`
     - `tests/client/test_mesh_build_scheduler.cpp`
+- Sky/block light propagation core has been realigned closer to Moonrise/Starlight behavior:
+    - `LevelBasedGraph` queue entries now store full world positions (`i64 pos`) instead of truncated packed local bits
+    - increase/decrease queue flow now follows a Starlight-style “decrease first, then re-propagate surviving sources” pattern
+    - queue direction bitsets are now treated as “allowed propagation directions” instead of single reverse-direction markers
+- Sky light block-change handling now respects inverted internal level semantics (`0` brightest, `15` darkest):
+    - `SkyLightEngine::checkLight` no longer writes wrong internal values on block updates
+    - sky increase propagation from fully opaque blocks is blocked, while decrease propagation still removes stale light below roofs
+- Sky/block edge-occlusion checks now follow a stricter source-face rule:
+    - `BlockLightEngine::getEdgeLevel` and `SkyLightEngine::getEdgeLevel` now use direction-aware `blocksLightInDirection` checks on the source face for adjacent propagation
+    - `SkyLightEngine::getEdgeLevel` non-adjacent path now mirrors vanilla-style downward-source and target-opposite-face gating
+- `LevelBasedGraph::propagateLevel` decrease branch now forces a darkening cascade on fully blocked edges (`target = darkest`) before source re-propagation:
+    - this prevents stale bright values from surviving under newly sealed skylight roofs
+    - surviving sources are still restored via queued increase rechecks/writebacks
+- New lighting regression tests were added in `tests/lighting/SkyLightRegressionTest.cpp`:
+    - floating single-stone underside keeps non-zero side skylight
+    - fully sealed roof drives cave skylight below 15
+    - negative-Y surface-top detection remains covered
+- Lighting queue runtime now uses FIFO wavefront processing in `LevelBasedGraph` for both increase/decrease queues:
+    - queued entries are consumed in insertion order (not pop-back)
+    - when tick budget runs out, unread queue entries are compacted and preserved for next tick
+- FIFO decrease handling now seeds adjacent increase rechecks when forcing a node to darkest:
+    - preserves valid side skylight restoration (e.g. floating single-block underside)
+    - still keeps sealed-roof darkening convergence
+- Block/Sky `checkLight` entry path now follows a Starlight-style dual-queue pattern more closely:
+    - writes the local source contribution first
+    - then enqueues coordinated increase/decrease propagation for neighbor reconciliation
+- Block edge propagation now avoids treating full-cube sources as source-face blockers:
+    - prevents emissive full blocks (e.g. glowstone) from being incorrectly trapped at source cell
+- `SWMRLightDataMap::worldToSection(...)` now uses canonical `LightEngineUtils::worldToSectionPos(...)` conversion:
+    - fixes section lookup mismatch caused by stale manual bit-decode offsets
+- `WorldLightManager::tick(...)` now correctly supports single-engine dimensions:
+    - block-only and sky-only worlds no longer hit the "No light engines available" assert path
+- New queue-order regression tests were added in `tests/lighting/LevelBasedGraphQueueTest.cpp`:
+    - FIFO order remains stable across tick-budget boundaries
+    - cancel behavior stays correct after queue wrap/compaction scenarios
+- New block-light regression tests were added in `tests/lighting/BlockLightRegressionTest.cpp`:
+    - emissive-source neighbor propagation
+    - source removal darkening
+    - opaque insert/remove response
+    - emission-increase event propagation
 
 ## Gotchas & Pitfalls
 
@@ -402,6 +442,20 @@ enum class Operation : u8 { ... };
     - Keep `activeMeshTaskId` in sync with scheduler tracking (or chunks can get stuck with a stale task id and never be resubmitted).
 - When changing `ChunkMesher` mesh APIs, update both runtime and tests together.
     - `tests/client/renderer/test_renderer.cpp` now calls the 5-argument `generateSplitMesh(..., neighbors, cancelSignal)` signature.
+- Do not assume old LevelBasedGraph queue bit-packing semantics are still valid.
+    - Lighting queue entries now carry full world coordinates; if you reintroduce 6-bit X/Z truncation or stale decode paths, sky/block light will desync badly away from origin.
+- In skylight code, be explicit about internal level meaning.
+    - Internal level is inverted (`0` brightest, `15` darkest). Porting logic from vanilla/Starlight direct-light code without conversion can silently invert clear/repropagation behavior.
+- For skylight roof-closure fixes, only block increase propagation from opaque source blocks.
+    - Do not apply the same opaque-source gate to decrease paths, or stale light under roofs will never be removed.
+- When handling `currentLevel < targetLevel` during decrease propagation, blocked-edge (`target=darkest`) cases cannot always be treated as “safe surviving source”.
+    - Force clear + decrease cascade first, and enqueue adjacent increase rechecks; otherwise side skylight can be lost under FIFO wavefront execution.
+- Do not switch `LevelBasedGraph` queue processing back to LIFO (`--length` pop-back).
+    - Starlight-style propagation depends on FIFO wavefront ordering; LIFO introduces unnecessary oscillation and delayed convergence under complex occlusion.
+- Keep world->section conversion centralized via `LightEngineUtils::worldToSectionPos(...)`.
+    - Re-introducing ad-hoc bit-decode logic in storage maps can silently route writes/reads to wrong sections.
+- Do not apply source-face blocking blindly to all block-light propagation.
+    - Full-cube emissive sources still need outward propagation; source-face occlusion checks should target conditional shapes.
 
 ## Self-Maintenance Rule
 

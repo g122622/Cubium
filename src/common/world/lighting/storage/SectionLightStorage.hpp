@@ -36,6 +36,10 @@ public:
         return it != m_surfaceHeights.end() ? it->second : 0;
     }
 
+    [[nodiscard]] bool hasSurfaceHeight(i64 columnPos) const {
+        return m_surfaceHeights.find(columnPos) != m_surfaceHeights.end();
+    }
+
     void removeSurfaceHeight(i64 columnPos) {
         m_surfaceHeights.erase(columnPos);
     }

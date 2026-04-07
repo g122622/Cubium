@@ -110,7 +110,7 @@ protected:
 
     [[nodiscard]] bool isRoot(i64 pos) const override;
     [[nodiscard]] i32 computeLevel(i64 pos, i64 excludedSource, i32 level) override;
-    void notifyNeighbors(i64 pos, i32 level, bool isDecreasing) override;
+    void notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) override;
     [[nodiscard]] i32 getLevel(i64 pos) const override;
     void setLevel(i64 pos, i32 level) override;
     [[nodiscard]] i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) override;
