@@ -14,7 +14,7 @@ namespace mc {
 class IChunk;
 class IChunkSection;
 class BlockState;
-class IChunkLightProvider;
+class StarLightLightingProvider;
 
 /**
  * @brief 光照引擎缓存系统
@@ -49,7 +49,7 @@ public:
     /**
      * @brief 设置缓存提供者
      */
-    void setProvider(IChunkLightProvider* provider);
+    void setProvider(StarLightLightingProvider* provider);
 
     /**
      * @brief 设置世界高度范围
@@ -71,7 +71,7 @@ public:
      * @param loadTwoRadius 是否加载两倍半径的区块
      */
     void setupCaches(i32 centerX, i32 centerY, i32 centerZ,
-                     bool relaxed = false, bool loadTwoRadius = false);
+                     bool relaxed, bool loadTwoRadius);
 
     /**
      * @brief 清除缓存
@@ -247,9 +247,6 @@ public:
 
 private:
     // 缓存提供者
-    IChunkLightProvider* m_provider = nullptr;
-
-    // 高度范围
     i32 m_minSection = 0;
     i32 m_maxSection = 15;
     i32 m_sectionCount = 16;  // maxSection - minSection + 1
@@ -260,16 +257,14 @@ private:
     i32 m_cacheOffsetX = 0;
     i32 m_cacheOffsetY = 0;
     i32 m_cacheOffsetZ = 0;
-
     // 编码偏移量（用于快速计算索引）
     i32 m_chunkIndexOffset = 0;
     i32 m_sectionIndexOffset = 0;
 
-    // 区块缓存 [5 * 5]
     std::array<const IChunk*, CHUNK_CACHE_SIZE> m_chunkCache{};
 
     // 区块段缓存（存储为 void* 以适应不同类型）
-    // 使用动态大小数组
+    StarLightLightingProvider* m_provider = nullptr;
     std::unique_ptr<const void*[]> m_sectionCache{};
 
     // 光照数据缓存（SWMRNibbleArray指针）

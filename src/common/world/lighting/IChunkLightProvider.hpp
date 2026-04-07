@@ -20,9 +20,9 @@ class BlockState;
  *
  * 参考: net.minecraft.world.chunk.IChunkLightProvider
  */
-class IChunkLightProvider {
+class StarLightLightingProvider {
 public:
-    virtual ~IChunkLightProvider() = default;
+    virtual ~StarLightLightingProvider() = default;
 
     // ========================================================================
     // 区块访问

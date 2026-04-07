@@ -8,10 +8,10 @@
 
 namespace {
 
-class TestLevelBasedGraph final : public mc::LevelBasedGraph {
+class TestLevelBasedGraph final : public mc::StarLightEngine {
 public:
     explicit TestLevelBasedGraph(mc::i32 expectedUpdates)
-        : LevelBasedGraph(16, expectedUpdates, nullptr) {
+        : StarLightEngine(16, expectedUpdates, nullptr) {
     }
 
     struct Visit {

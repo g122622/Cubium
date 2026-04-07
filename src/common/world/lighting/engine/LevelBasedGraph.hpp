@@ -11,7 +11,7 @@
 namespace mc {
 
 // 前向声明
-class IChunkLightProvider;
+class StarLightLightingProvider;
 
 /**
  * @brief 基于级别的传播图（Starlight 优化版）
@@ -26,7 +26,7 @@ class IChunkLightProvider;
  *
  * 参考: ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine
  */
-class LevelBasedGraph {
+class StarLightEngine {
 public:
     /** 最大级别数（光照最大15级 + 1个溢出级） */
     static constexpr i32 MAX_LEVEL_COUNT = 16;
@@ -43,7 +43,7 @@ public:
     /** 标志：有面透明方块 */
     static constexpr u64 FLAG_HAS_SIDED_TRANSPARENT = 1ULL << 61;
 
-    virtual ~LevelBasedGraph() = default;
+    virtual ~StarLightEngine() = default;
 
     // ========================================================================
     // 公共接口
@@ -109,20 +109,8 @@ public:
     // 缓存管理
     // ========================================================================
 
-    /**
-     * @brief 设置缓存模式
-     *
-     * 当启用缓存时，光照引擎会缓存区块查询结果，
-     * 避免重复的区块查找操作。适用于批量光照计算。
-     *
-     * @param centerX 中心X坐标（世界坐标）
-     * @param centerY 中心Y坐标（世界坐标）
-     * @param centerZ 中心Z坐标（世界坐标）
-     * @param relaxed 是否宽松模式（允许部分区块缺失）
-     * @param loadTwoRadius 是否加载两倍半径的区块
-     */
     void enableCache(i32 centerX, i32 centerY, i32 centerZ,
-                     bool relaxed = false, bool loadTwoRadius = false);
+                     bool relaxed, bool loadTwoRadius);
 
     /**
      * @brief 禁用缓存
@@ -148,7 +136,7 @@ protected:
      * @param expectedUpdates 预期更新数量（用于预分配）
      * @param provider 区块光照提供者（用于缓存）
      */
-    LevelBasedGraph(i32 levelCount, i32 expectedUpdates, IChunkLightProvider* provider = nullptr);
+    StarLightEngine(i32 levelCount, i32 expectedUpdates, StarLightLightingProvider* provider);
 
     // ========================================================================
     // 虚方法（子类实现）
@@ -187,7 +175,7 @@ protected:
     /**
      * @brief 获取缓存提供者
      */
-    [[nodiscard]] IChunkLightProvider* getChunkProvider() const noexcept { return m_chunkProvider; }
+    [[nodiscard]] StarLightLightingProvider* getChunkProvider() const noexcept { return m_chunkProvider; }
 
     /**
      * @brief 检查区块段是否为空（使用缓存）
@@ -204,7 +192,7 @@ protected:
 
     // 缓存系统
     LightEngineCache m_cache;
-    IChunkLightProvider* m_chunkProvider = nullptr;
+    StarLightLightingProvider* m_chunkProvider = nullptr;
     bool m_cacheEnabled = false;
 
     /**
@@ -223,14 +211,14 @@ protected:
     /**
      * @brief 编码队列元素
      */
-    [[nodiscard]] QueueEntry encodeQueueEntry(i32 x, i32 y, i32 z, u8 level, u8 directions, u64 flags = 0) const {
+    [[nodiscard]] QueueEntry encodeQueueEntry(i32 x, i32 y, i32 z, u8 level, u8 directions, u64 flags) const {
         return QueueEntry{packWorldPos(x, y, z), level, directions, flags};
     }
 
     /**
      * @brief 编码队列元素（使用世界坐标）
      */
-    [[nodiscard]] QueueEntry encodeQueueEntryWorld(i32 worldX, i32 worldY, i32 worldZ, u8 level, u8 directions, u64 flags = 0) const {
+    [[nodiscard]] QueueEntry encodeQueueEntryWorld(i32 worldX, i32 worldY, i32 worldZ, u8 level, u8 directions, u64 flags) const {
         return encodeQueueEntry(worldX, worldY, worldZ, level, directions, flags);
     }
 

@@ -402,7 +402,7 @@ enum class Operation : u8 { ... };
 - FIFO decrease handling now seeds adjacent increase rechecks when forcing a node to darkest:
     - preserves valid side skylight restoration (e.g. floating single-block underside)
     - still keeps sealed-roof darkening convergence
-- Block/Sky `checkLight` entry path now follows a Starlight-style dual-queue pattern more closely:
+- Block/Sky `checkBlock` entry path now follows a Starlight-style dual-queue pattern more closely:
     - writes the local source contribution first
     - then enqueues coordinated increase/decrease propagation for neighbor reconciliation
 - Block edge propagation now avoids treating full-cube sources as source-face blockers:
@@ -411,6 +411,19 @@ enum class Operation : u8 { ... };
     - fixes section lookup mismatch caused by stale manual bit-decode offsets
 - `WorldLightManager::tick(...)` now correctly supports single-engine dimensions:
     - block-only and sky-only worlds no longer hit the "No light engines available" assert path
+- `WorldLightManager::tick(...)` now uses a shared sequential budget instead of the previous split/retry policy:
+    - block light is processed first when enabled
+    - sky light then consumes the remaining budget when enabled
+    - this keeps the budget accounting predictable and avoids the old uneven split
+- `WorldLightManager` block-update and light-query entrypoints now use raw coordinates instead of `BlockPos` wrappers:
+    - `checkBlock(i32 x, i32 y, i32 z)`
+    - `onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel)`
+    - `getBlockLight(i32 x, i32 y, i32 z)`
+    - `getSkyLight(i32 x, i32 y, i32 z)`
+- `SkyStarLightEngine::checkBlock(...)` now follows the Starlight-style raw-level branch shape more closely:
+    - current light is read in raw form for the branch condition
+    - source positions requeue increase before clearing non-source positions
+- `BlockStarLightEngine::onBlockEmissionIncrease(...)` now compares explicit source brightness against the current light level instead of the old inverse-level shortcut
 - New queue-order regression tests were added in `tests/lighting/LevelBasedGraphQueueTest.cpp`:
     - FIFO order remains stable across tick-budget boundaries
     - cancel behavior stays correct after queue wrap/compaction scenarios
@@ -419,6 +432,9 @@ enum class Operation : u8 { ... };
     - source removal darkening
     - opaque insert/remove response
     - emission-increase event propagation
+- New regression tests were added to cover the `checkBlock()` entry path:
+    - `tests/lighting/BlockLightRegressionTest.cpp`
+    - `tests/lighting/SkyLightRegressionTest.cpp`
 
 ## Gotchas & Pitfalls
 
@@ -452,10 +468,20 @@ enum class Operation : u8 { ... };
     - Force clear + decrease cascade first, and enqueue adjacent increase rechecks; otherwise side skylight can be lost under FIFO wavefront execution.
 - Do not switch `LevelBasedGraph` queue processing back to LIFO (`--length` pop-back).
     - Starlight-style propagation depends on FIFO wavefront ordering; LIFO introduces unnecessary oscillation and delayed convergence under complex occlusion.
+- Do not reintroduce compatibility aliases for the lighting subsystem.
+    - `StarLightEngine`, `BlockStarLightEngine`, `SkyStarLightEngine`, and `StarLightLightingProvider` are the canonical names now.
 - Keep world->section conversion centralized via `LightEngineUtils::worldToSectionPos(...)`.
     - Re-introducing ad-hoc bit-decode logic in storage maps can silently route writes/reads to wrong sections.
 - Do not apply source-face blocking blindly to all block-light propagation.
     - Full-cube emissive sources still need outward propagation; source-face occlusion checks should target conditional shapes.
+- Do not reintroduce default parameters into lighting APIs.
+    - Where a call pattern needs a simplified form, add an overload instead of a default argument.
+- `WorldLightManager::tick(...)` now relies on ordered budget consumption.
+    - Do not restore the previous half/half split unless the budget model is redesigned with matching tests.
+- Do not reintroduce `BlockPos` wrapper overloads on `WorldLightManager` block-update or light-query entrypoints.
+    - Raw coordinates are the canonical surface for lighting dispatch now.
+- When mirroring Starlight branch flow, keep raw light-level handling local to the entrypoint and convert before queueing if the propagation core still expects internal levels.
+    - Feeding raw source levels straight into the propagation queues will desynchronize the current inverse-level storage model.
 
 ## Self-Maintenance Rule
 

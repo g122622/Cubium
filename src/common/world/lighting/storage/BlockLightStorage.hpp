@@ -12,7 +12,7 @@ namespace mc {
  */
 class BlockLightStorage : public SectionLightStorage<BlockLightDataMap> {
 public:
-    explicit BlockLightStorage(IChunkLightProvider* provider);
+    explicit BlockLightStorage(StarLightLightingProvider* provider);
 
     // ========================================================================
     // 光照访问

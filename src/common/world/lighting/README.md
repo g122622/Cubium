@@ -2,19 +2,21 @@
 
 本目录实现了 Minecraft 1.16.5 风格的光照系统，参考 Starlight 优化实现。
 
+如果你要迁移旧调用点，请先阅读 [光照系统迁移指南](../../../../docs/lighting-migration-guide.md)。当前实现的核心类型已经切换为 `StarLightEngine`、`BlockStarLightEngine`、`SkyStarLightEngine` 和 `StarLightLightingProvider`，不再保留旧的兼容别名。
+
 ## 目录结构
 
 ```
 lighting/
 ├── LightType.hpp              # 光照类型枚举和常量
-├── IChunkLightProvider.hpp    # 区块光照提供者接口
+├── IChunkLightProvider.hpp    # StarLightLightingProvider 接口
 ├── InternalLight.hpp/cpp      # 内部光照计算工具
 ├── engine/                    # 光照引擎
-│   ├── LevelBasedGraph.hpp/cpp        # 基于级别的传播图（Starlight优化版）
+│   ├── LevelBasedGraph.hpp/cpp        # StarLightEngine 基类（Starlight优化版）
 │   ├── LightEngineCache.hpp/cpp       # 光照引擎缓存系统
 │   ├── LightEngineUtils.hpp/cpp       # 光照引擎工具类
-│   ├── BlockLightEngine.hpp/cpp       # 方块光照引擎
-│   └── SkyLightEngine.hpp/cpp         # 天空光照引擎
+│   ├── BlockLightEngine.hpp/cpp       # BlockStarLightEngine 方块光照引擎
+│   └── SkyLightEngine.hpp/cpp         # SkyStarLightEngine 天空光照引擎
 ├── manager/                   # 光照管理器
 │   └── WorldLightManager.hpp/cpp      # 世界光照管理器
 └── storage/                   # 光照存储
@@ -54,7 +56,7 @@ namespace LightConstants {
 区块光照提供者接口，ServerWorld 和 ClientWorld 实现此接口：
 
 ```cpp
-class IChunkLightProvider {
+    class StarLightLightingProvider {
 public:
     // 区块访问
     virtual IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) = 0;
@@ -173,7 +175,7 @@ static bool blocksLightInDirection(const BlockState& state, Direction dir);
 
 方块光照引擎，处理火把、萤石等方块光源。
 
-**继承自**：`LevelBasedGraph`
+**继承自**：`StarLightEngine`
 
 **特殊逻辑**：
 - 光源方块发出初始光照等级
@@ -182,9 +184,9 @@ static bool blocksLightInDirection(const BlockState& state, Direction dir);
 
 **核心方法**：
 ```cpp
-void checkLight(const BlockPos& pos);              // 检查位置光照
-void onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel);  // 光源放置
-u8 getLightFor(const BlockPos& pos) const;         // 获取光照值
+void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ);              // 检查位置光照
+void onBlockEmissionIncrease(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 lightLevel);  // 光源放置
+u8 getLightFor(i32 worldX, i32 worldY, i32 worldZ) const;         // 获取光照值
 void updateSectionStatus(const SectionPos& pos, bool isEmpty);  // 更新区块段状态
 ```
 
@@ -192,7 +194,7 @@ void updateSectionStatus(const SectionPos& pos, bool isEmpty);  // 更新区块�
 
 天空光照引擎，处理来自天空的自然光。
 
-**继承自**：`LevelBasedGraph`
+**继承自**：`StarLightEngine`
 
 **特殊逻辑**：
 - 向下传播不衰减
@@ -202,8 +204,8 @@ void updateSectionStatus(const SectionPos& pos, bool isEmpty);  // 更新区块�
 
 **核心方法**：
 ```cpp
-void checkLight(const BlockPos& pos);              // 检查位置光照
-u8 getLightFor(const BlockPos& pos) const;         // 获取光照值
+void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ);              // 检查位置光照
+u8 getLightFor(i32 worldX, i32 worldY, i32 worldZ) const;         // 获取光照值
 void setColumnEnabled(i64 columnPos, bool enabled);  // 启用/禁用区块列
 bool isAtSurfaceTop(i64 worldPos) const;           // 检查是否在表面顶部
 ```
@@ -221,8 +223,8 @@ bool isAtSurfaceTop(i64 worldPos) const;           // 检查是否在表面顶�
 
 **核心方法**：
 ```cpp
-void checkBlock(const BlockPos& pos);              // 检查方块光照
-void onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel);  // 光源放置
+void checkBlock(i32 worldX, i32 worldY, i32 worldZ);              // 检查方块光照
+void onBlockEmissionIncrease(i32 worldX, i32 worldY, i32 worldZ, i32 lightLevel);  // 光源放置
 bool hasLightWork() const;                         // 检查是否有待处理工作
 i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight);  // 处理更新
 
@@ -230,8 +232,8 @@ void updateSectionStatus(const SectionPos& pos, bool isEmpty);  // 更新区块�
 void enableLightSources(const ChunkPos& pos, bool enable);  // 启用/禁用光源
 
 i32 getLightSubtracted(const BlockPos& pos, i32 skyDarkening) const;  // 获取实际亮度
-u8 getBlockLight(const BlockPos& pos) const;
-u8 getSkyLight(const BlockPos& pos) const;
+u8 getBlockLight(i32 worldX, i32 worldY, i32 worldZ) const;
+u8 getSkyLight(i32 worldX, i32 worldY, i32 worldZ) const;
 
 void setData(LightType type, const SectionPos& pos, const NibbleArray& array, bool retain);
 SWMRNibbleArray* getData(LightType type, const SectionPos& pos);
@@ -365,7 +367,7 @@ void updateVisible();  // 同步所有数组到可见侧
               │                │                │
               ▼                ▼                ▼
     ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-    │ BlockLightEngine│ │ SkyLightEngine  │ │ InternalLight   │
+    │ BlockStarLightEngine│ │ SkyStarLightEngine  │ │ InternalLight   │
     │  (方块光照)      │ │  (天空光照)      │ │  (游戏机制)     │
     └────────┬────────┘ └────────┬────────┘ └─────────────────┘
              │                   │
@@ -373,7 +375,7 @@ void updateVisible();  // 同步所有数组到可见侧
              │    │                             │
              ▼    ▼                             ▼
     ┌─────────────────┐               ┌─────────────────┐
-    │ LevelBasedGraph │               │LightEngineUtils │
+    │ StarLightEngine │               │LightEngineUtils │
     │  (BFS传播基类)   │               │   (工具方法)    │
     └────────┬────────┘               └─────────────────┘
              │
@@ -412,16 +414,16 @@ void updateVisible();  // 同步所有数组到可见侧
 方块放置/移除
     │
     ▼
-WorldLightManager.checkBlock(pos)
+WorldLightManager.checkBlock(worldX, worldY, worldZ)
     │
     ├──────────────────────────┐
     │                          │
     ▼                          ▼
-BlockLightEngine          SkyLightEngine
-.checkLight(pos)          .checkLight(pos)
+BlockStarLightEngine      SkyStarLightEngine
+.checkBlock(x, y, z)      .checkBlock(x, y, z)
     │                          │
     ▼                          ▼
-LevelBasedGraph           LevelBasedGraph
+StarLightEngine           StarLightEngine
 .scheduleUpdate(pos)      .scheduleUpdate(pos)
     │                          │
     ▼                          ▼
@@ -446,7 +448,7 @@ SWMRNibbleArray           SWMRNibbleArray
     └──────────┬───────────────┘
                │
                ▼
-    IChunkLightProvider.markLightChanged()
+    StarLightLightingProvider.markLightChanged()
                │
                ▼
         网络同步/渲染更新
@@ -459,7 +461,7 @@ SWMRNibbleArray           SWMRNibbleArray
 ```cpp
 // 创建世界光照管理器
 auto lightManager = std::make_unique<WorldLightManager>(
-    chunkProvider,  // 实现 IChunkLightProvider 的对象
+    chunkProvider,  // 实现 StarLightLightingProvider 的对象
     true,           // hasBlockLight
     true            // hasSkyLight (主世界)
 );
@@ -492,11 +494,11 @@ void onChunkUnload(ChunkPos pos) {
 ```cpp
 void onBlockChange(BlockPos pos, const BlockState* oldState, const BlockState* newState) {
     // 检查光照
-    lightManager->checkBlock(pos);
+    lightManager->checkBlock(pos.x, pos.y, pos.z);
 
     // 如果是光源方块
     if (newState && newState->lightLevel() > 0) {
-        lightManager->onBlockEmissionIncrease(pos, newState->lightLevel());
+        lightManager->onBlockEmissionIncrease(pos.x, pos.y, pos.z, newState->lightLevel());
     }
 }
 ```
@@ -517,8 +519,8 @@ void tick() {
 
 ```cpp
 // 获取原始光照值
-u8 blockLight = lightManager->getBlockLight(pos);
-u8 skyLight = lightManager->getSkyLight(pos);
+u8 blockLight = lightManager->getBlockLight(pos.x, pos.y, pos.z);
+u8 skyLight = lightManager->getSkyLight(pos.x, pos.y, pos.z);
 
 // 获取实际亮度（考虑天空减暗）
 i32 skyDarkening = InternalLight::calculateSkyDarkening(dayTime, isRaining, isThundering);

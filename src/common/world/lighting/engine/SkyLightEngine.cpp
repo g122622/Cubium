@@ -14,8 +14,8 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-SkyLightEngine::SkyLightEngine(IChunkLightProvider* provider)
-    : LevelBasedGraph(16, 8192, provider)
+SkyStarLightEngine::SkyStarLightEngine(StarLightLightingProvider* provider)
+    : StarLightEngine(16, 8192, provider)
     , m_storage(provider) {
 }
 
@@ -23,49 +23,41 @@ SkyLightEngine::SkyLightEngine(IChunkLightProvider* provider)
 // 光照操作
 // ============================================================================
 
-void SkyLightEngine::checkLight(const BlockPos& pos) {
+void SkyStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ) {
+    (void)lightAccess;
     MC_TRACE_INSTANT("server.lighting",
-        "SkyLightEngine::checkLight",
-        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+        "SkyStarLightEngine::checkBlock",
+        "pos", fmt::format("({}, {}, {})", worldX, worldY, worldZ),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(worldX, worldY, worldZ).toId())](::perfetto::EventContext ctx) {
             flow(ctx);
     });
 
     m_storage.processAllLevelUpdates();
 
-    i64 packedPos = LightEngineUtils::packPos(pos);
-    i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
+    const i64 packedPos = LightEngineUtils::packPos(worldX, worldY, worldZ);
+    const i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
+    const i32 currentLevel = getLightLevel(packedPos);
+    const i32 encodedCurrentLevel = static_cast<i32>(StarLightEngine::MAX_LEVEL_COUNT - 1 - currentLevel);
 
-    // 获取当前光照等级
-    i32 currentLevel = getLevel(packedPos);
-
-    // 参考 Starlight: SkyStarLightEngine.checkBlock。
-    // 注意本实现内部 level 为“距离值”：0 最亮，15 最暗。
-
+    // 参考 Starlight：方块可能改变不透明度，方块可能改变传播方向。
     if (m_storage.hasSection(sectionPos)) {
-        i32 x, y, z;
-        LightEngineUtils::unpackPos(packedPos, x, y, z);
-
-        i32 rootLevel = getEdgeLevel(LightEngineUtils::ROOT_POS, packedPos, 0);
-        if (rootLevel < 15) {
-            // 与 Starlight 一致：当前位置可接收天空源时，
-            // 先写入源级别，再走增亮传播。
-            setLevel(packedPos, rootLevel);
-            appendToIncreaseQueue(encodeQueueEntry(x, y, z,
-                static_cast<u8>(rootLevel), DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
+        if (currentLevel == 15) {
+            // 必须重新传播被覆盖的天空源。
+            appendToIncreaseQueue(encodeQueueEntry(worldX, worldY, worldZ,
+                static_cast<u8>(encodedCurrentLevel), DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
         } else {
-            // 先清空当前位置（最暗），再走减亮重算链。
-            setLevel(packedPos, 15);
+            // 非天空源位置，先清空当前位置再重新计算。
+            setLightLevel(packedPos, 0);
         }
 
-        // 加入减亮队列，传播到邻居
-        appendToDecreaseQueue(encodeQueueEntry(x, y, z, static_cast<u8>(currentLevel), DIR_ALL, 0));
+        appendToDecreaseQueue(encodeQueueEntry(worldX, worldY, worldZ,
+            static_cast<u8>(encodedCurrentLevel), DIR_ALL, 0));
     } else {
         // 向上查找有效的区块段
-        i32 x, y, z;
-        LightEngineUtils::unpackPos(packedPos, x, y, z);
-        // 对齐到区块段底部 (清除Y的低4位)
-        i64 currentPos = LightEngineUtils::packPos(x, y & ~0xF, z);
+        i32 x = worldX;
+        i32 y = worldY;
+        i32 z = worldZ;
+        const i64 currentPos = LightEngineUtils::packPos(x, y & ~0xF, z);
         SectionPos currentSection = SectionPos::fromLong(LightEngineUtils::worldToSectionPos(currentPos));
         i64 currentSectionPos = currentSection.toLong();
 
@@ -74,47 +66,47 @@ void SkyLightEngine::checkLight(const BlockPos& pos) {
             // 向上移动一个区块段 (16格)
             currentSection = currentSection.offset(Direction::Up);
             currentSectionPos = currentSection.toLong();
-            currentPos = LightEngineUtils::packPos(x, currentSection.worldY(), z);
         }
 
         if (m_storage.hasSection(currentSectionPos)) {
-            LightEngineUtils::unpackPos(currentPos, x, y, z);
+            const i64 topPos = LightEngineUtils::packPos(x, currentSection.worldY(), z);
+            LightEngineUtils::unpackPos(topPos, x, y, z);
             appendToIncreaseQueue(encodeQueueEntry(x, y, z, 0, DIR_ALL, FLAG_HAS_SIDED_TRANSPARENT));
         }
     }
 }
 
-u8 SkyLightEngine::getLightFor(const BlockPos& pos) const {
-    return m_storage.getLightOrDefault(LightEngineUtils::packPos(pos));
+u8 SkyStarLightEngine::getLightFor(i32 worldX, i32 worldY, i32 worldZ) const {
+    return m_storage.getLightOrDefault(LightEngineUtils::packPos(worldX, worldY, worldZ));
 }
 
-void SkyLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+void SkyStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
     m_storage.updateSectionStatus(pos.toLong(), isEmpty);
 }
 
-void SkyLightEngine::setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain) {
+void SkyStarLightEngine::setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain) {
     m_storage.setData(pos.toLong(), std::move(array), retain);
 }
 
-void SkyLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
+void SkyStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
     m_storage.setData(pos.toLong(), array, retain);
 }
 
-SWMRNibbleArray* SkyLightEngine::getData(const SectionPos& pos) {
+SWMRNibbleArray* SkyStarLightEngine::getData(const SectionPos& pos) {
     return m_storage.getArray(pos.toLong());
 }
 
-void SkyLightEngine::setColumnEnabled(i64 columnPos, bool enabled) {
+void SkyStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled) {
     m_storage.setColumnEnabled(columnPos, enabled);
 }
 
-bool SkyLightEngine::hasWork() const {
+bool SkyStarLightEngine::hasWork() const {
     bool result = needsUpdate() || m_storage.hasSectionsToUpdate();
     return result;
 }
 
-i32 SkyLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
-    MC_TRACE_EVENT("server.lighting", "SkyLightEngine::tick",
+i32 SkyStarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+    MC_TRACE_EVENT("server.lighting", "SkyStarLightEngine::tick",
                      "maxUpdates", maxUpdates,
                      "updateSkyLight", updateSkyLight,
                      "updateBlockLight", updateBlockLight);
@@ -125,14 +117,10 @@ i32 SkyLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLi
     m_storage.processAllLevelUpdates();
 
     // 处理区块段更新（添加/移除）
-    i32 updatesBeforeSections = maxUpdates;
     maxUpdates = m_storage.updateSections(this, maxUpdates, updateSkyLight, false);
-    bool sectionsConsumedAll = (maxUpdates == 0);
-    bool hasNeedsUpdate = needsUpdate();
 
     // 处理光照传播
-    i32 updatesBeforeProcess = maxUpdates;
-    if (hasNeedsUpdate && updateSkyLight) {
+    if (needsUpdate() && updateSkyLight) {
         maxUpdates = processUpdates(maxUpdates);
     }
 
@@ -146,12 +134,12 @@ i32 SkyLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLi
 // LevelBasedGraph 接口实现
 // ============================================================================
 
-bool SkyLightEngine::isRoot(i64 pos) const {
+bool SkyStarLightEngine::isRoot(i64 pos) const {
     (void)pos;
     return false;  // 天空光照没有根节点
 }
 
-i32 SkyLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
+i32 SkyStarLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     i32 minLevel = level;
 
     // 如果不是从根节点排除，检查天空光照贡献
@@ -237,7 +225,7 @@ i32 SkyLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     return minLevel;
 }
 
-void SkyLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) {
+void SkyStarLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) {
     i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
     const SectionPos sourceSection = SectionPos::fromLong(sectionPos);
     DirectionBit dirs = static_cast<DirectionBit>(directionBits);
@@ -333,15 +321,15 @@ void SkyLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 d
     }
 }
 
-i32 SkyLightEngine::getLevel(i64 pos) const {
+i32 SkyStarLightEngine::getLevel(i64 pos) const {
     return 15 - m_storage.getLightOrDefault(pos);
 }
 
-void SkyLightEngine::setLevel(i64 pos, i32 level) {
+void SkyStarLightEngine::setLevel(i64 pos, i32 level) {
     m_storage.setLight(pos, static_cast<u8>(15 - std::min(level, 15)));
 }
 
-i32 SkyLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
+i32 SkyStarLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
     if (toPos == LightEngineUtils::ROOT_POS) {
         return 15;
     }
@@ -437,13 +425,22 @@ i32 SkyLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
 // 私有方法
 // ============================================================================
 
-i32 SkyLightEngine::getLightValue(i64 worldPos) const {
+i32 SkyStarLightEngine::getLightValue(i64 worldPos) const {
     // 天空光照引擎不处理发光方块
     (void)worldPos;
     return 0;
 }
 
-i32 SkyLightEngine::getLevelFromArray(const SWMRNibbleArray* array, i64 worldPos) const {
+i32 SkyStarLightEngine::getLightLevel(i64 worldPos) {
+    return StarLightEngine::MAX_LEVEL_COUNT - 1 - getEdgeLevel(LightEngineUtils::ROOT_POS, worldPos, 0);
+}
+
+void SkyStarLightEngine::setLightLevel(i64 worldPos, i32 level) {
+    setLevel(worldPos,
+        StarLightEngine::MAX_LEVEL_COUNT - 1 - std::clamp(level, 0, StarLightEngine::MAX_LEVEL_COUNT - 1));
+}
+
+i32 SkyStarLightEngine::getLevelFromArray(const SWMRNibbleArray* array, i64 worldPos) const {
     if (array == nullptr) {
         return 15;
     }
@@ -454,9 +451,9 @@ i32 SkyLightEngine::getLevelFromArray(const SWMRNibbleArray* array, i64 worldPos
     return 15 - array->getUpdating(x, localY, z);
 }
 
-const IChunk* SkyLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {
+const IChunk* SkyStarLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {
     // 使用基类的缓存方法
-    return LevelBasedGraph::getCachedChunk(chunkX, chunkZ);
+    return StarLightEngine::getCachedChunk(chunkX, chunkZ);
 }
 
 } // namespace mc

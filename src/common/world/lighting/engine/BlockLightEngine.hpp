@@ -23,13 +23,13 @@ class CollisionShape;
  *
  * 参考: net.minecraft.world.lighting.BlockLightEngine
  */
-class BlockLightEngine : public LevelBasedGraph {
+class BlockStarLightEngine : public StarLightEngine {
 public:
     /**
      * @brief 构造函数
      * @param provider 区块光照提供者
      */
-    explicit BlockLightEngine(IChunkLightProvider* provider);
+    explicit BlockStarLightEngine(StarLightLightingProvider* provider);
 
     // ========================================================================
     // 光照操作
@@ -42,7 +42,7 @@ public:
      *
      * @param pos 方块位置
      */
-    void checkLight(const BlockPos& pos);
+    void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ);
 
     /**
      * @brief 方块发光等级增加时调用
@@ -52,7 +52,7 @@ public:
      * @param pos 方块位置
      * @param lightLevel 发光等级
      */
-    void onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel);
+    void onBlockEmissionIncrease(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 lightLevel);
 
     /**
      * @brief 获取指定位置的光照等级
@@ -60,7 +60,7 @@ public:
      * @param pos 方块位置
      * @return 光照等级 (0-15)
      */
-    [[nodiscard]] u8 getLightFor(const BlockPos& pos) const;
+    [[nodiscard]] u8 getLightFor(i32 worldX, i32 worldY, i32 worldZ) const;
 
     /**
      * @brief 更新区块段状态
@@ -147,6 +147,16 @@ private:
      * @brief 获取指定位置的发光等级
      */
     [[nodiscard]] i32 getLightValue(i64 worldPos) const;
+
+    /**
+     * @brief 获取当前位置的光照等级
+     */
+    [[nodiscard]] i32 getLightLevel(i64 worldPos) const;
+
+    /**
+     * @brief 设置当前位置的光照等级
+     */
+    void setLightLevel(i64 worldPos, i32 level);
 
     /**
      * @brief 从缓存获取区块（覆盖基类以使用存储层的区块提供者）

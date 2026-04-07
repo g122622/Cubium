@@ -56,13 +56,12 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
 
 void LightSyncManager::onBlockStateChanged(i32 x, i32 y, i32 z, i32 oldLightLevel, i32 newLightLevel)
 {
-    const BlockPos pos(x, y, z);
-    m_lightManager.checkBlock(pos);
+    m_lightManager.checkBlock(x, y, z);
 
     if (newLightLevel > oldLightLevel) {
         spdlog::debug("[LightSync] Emission increased at ({}, {}, {}): {} -> {}",
                       x, y, z, oldLightLevel, newLightLevel);
-        m_lightManager.onBlockEmissionIncrease(pos, newLightLevel);
+        m_lightManager.onBlockEmissionIncrease(x, y, z, newLightLevel);
     }
 }
 

@@ -9,7 +9,7 @@ namespace mc {
 // SkyLightStorage 实现
 // ============================================================================
 
-SkyLightStorage::SkyLightStorage(IChunkLightProvider* provider)
+SkyLightStorage::SkyLightStorage(StarLightLightingProvider* provider)
     : SectionLightStorage<SkyLightDataMap>(LightType::SKY, provider, SkyLightDataMap()) {
 }
 

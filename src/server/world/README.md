@@ -28,7 +28,7 @@ src/server/world/
 **职责**：服务端世界的核心容器类，管理世界的所有基础组件。
 
 **主要功能**：
-- 实现 `IWorld`、`ICollisionWorld`、`IChunkLightProvider` 接口
+- 实现 `IWorld`、`ICollisionWorld`、`StarLightLightingProvider` 接口
 - 区块管理（加载、卸载、访问）
 - 实体管理（生成、移除、查询）
 - 光照计算与同步
@@ -39,7 +39,7 @@ src/server/world/
 
 **关键成员**：
 ```cpp
-class ServerWorld : public IWorld, public ICollisionWorld, public IChunkLightProvider {
+class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLightingProvider {
     ServerWorldConfig m_config;                              // 世界配置
     std::unique_ptr<ServerChunkManager> m_chunkManager;      // 区块管理器
     EntityManager m_entityManager;                            // 实体管理器

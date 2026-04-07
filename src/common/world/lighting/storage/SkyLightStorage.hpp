@@ -14,7 +14,7 @@ namespace mc {
  */
 class SkyLightStorage : public SectionLightStorage<SkyLightDataMap> {
 public:
-    explicit SkyLightStorage(IChunkLightProvider* provider);
+    explicit SkyLightStorage(StarLightLightingProvider* provider);
 
     // ========================================================================
     // 光照访问

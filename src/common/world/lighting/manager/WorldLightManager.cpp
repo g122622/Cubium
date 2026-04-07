@@ -7,7 +7,7 @@
 namespace mc {
 
 WorldLightManager::WorldLightManager(
-    IChunkLightProvider* provider,
+    StarLightLightingProvider* provider,
     bool hasBlockLight,
     bool hasSkyLight)
     : m_provider(provider)
@@ -15,11 +15,11 @@ WorldLightManager::WorldLightManager(
     , m_hasSkyLight(hasSkyLight) {
 
     if (hasBlockLight) {
-        m_blockLight = std::make_unique<BlockLightEngine>(provider);
+        m_blockLight = std::make_unique<BlockStarLightEngine>(provider);
     }
 
     if (hasSkyLight) {
-        m_skyLight = std::make_unique<SkyLightEngine>(provider);
+        m_skyLight = std::make_unique<SkyStarLightEngine>(provider);
     }
 }
 
@@ -27,30 +27,30 @@ WorldLightManager::WorldLightManager(
 // 光照操作
 // ============================================================================
 
-void WorldLightManager::checkBlock(const BlockPos& pos) {
+void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
     MC_TRACE_INSTANT("server.lighting",
         "WorldLightManager::checkBlock",
-        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+        "pos", fmt::format("({}, {}, {})", x, y, z),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
             flow(ctx);
     });
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_blockLight != nullptr) {
-        m_blockLight->checkLight(pos);
+        m_blockLight->checkBlock(m_provider, x, y, z);
     }
 
     if (m_skyLight != nullptr) {
-        m_skyLight->checkLight(pos);
+        m_skyLight->checkBlock(m_provider, x, y, z);
     }
 }
 
-void WorldLightManager::onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel) {
+void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel) {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_blockLight != nullptr) {
-        m_blockLight->onBlockEmissionIncrease(pos, lightLevel);
+        m_blockLight->onBlockEmissionIncrease(m_provider, x, y, z, lightLevel);
     }
 }
 
@@ -73,44 +73,17 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
 
     MC_ASSERT_RELEASE_MSG(maxUpdates >= 0, "Max updates must be positive or zero");
 
-    const auto clampRemaining = [](i32 remaining, i32 budget) -> i32 {
-        return std::clamp(remaining, 0, budget);
-    };
+    i32 remaining = maxUpdates;
 
-    if (m_blockLight != nullptr && m_skyLight != nullptr) {
-        // 两个引擎都有，分配更新配额
-        i32 blockQuota = maxUpdates / 2;
-        i32 blockRemaining = clampRemaining(
-            m_blockLight->tick(blockQuota, updateSkyLight, updateBlockLight),
-            blockQuota);
-
-        i32 skyQuota = maxUpdates - blockQuota + blockRemaining;
-        i32 skyRemaining = clampRemaining(
-            m_skyLight->tick(skyQuota, updateSkyLight, updateBlockLight),
-            skyQuota);
-
-        // 如果方块光照用完了配额但天空光照还有剩余，给方块光照更多配额
-        if (blockRemaining == 0 && skyRemaining > 0) {
-            return clampRemaining(
-                m_blockLight->tick(skyRemaining, updateSkyLight, updateBlockLight),
-                skyRemaining);
-        }
-        return skyRemaining;
+    if (m_blockLight != nullptr && updateBlockLight) {
+        remaining = m_blockLight->tick(remaining, false, true);
     }
 
-    if (m_blockLight != nullptr) {
-        return clampRemaining(
-            m_blockLight->tick(maxUpdates, false, updateBlockLight),
-            maxUpdates);
+    if (m_skyLight != nullptr && updateSkyLight && remaining > 0) {
+        remaining = m_skyLight->tick(remaining, true, false);
     }
 
-    if (m_skyLight != nullptr) {
-        return clampRemaining(
-            m_skyLight->tick(maxUpdates, updateSkyLight, false),
-            maxUpdates);
-    }
-
-    return maxUpdates;
+    return std::clamp(remaining, 0, maxUpdates);
 }
 
 // ============================================================================
@@ -150,22 +123,22 @@ void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable) {
 // 光照访问
 // ============================================================================
 
-BlockLightEngine* WorldLightManager::getBlockLightEngine() {
+BlockStarLightEngine* WorldLightManager::getBlockLightEngine() {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_blockLight.get();
 }
 
-const BlockLightEngine* WorldLightManager::getBlockLightEngine() const {
+const BlockStarLightEngine* WorldLightManager::getBlockLightEngine() const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_blockLight.get();
 }
 
-SkyLightEngine* WorldLightManager::getSkyLightEngine() {
+SkyStarLightEngine* WorldLightManager::getSkyLightEngine() {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_skyLight.get();
 }
 
-const SkyLightEngine* WorldLightManager::getSkyLightEngine() const {
+const SkyStarLightEngine* WorldLightManager::getSkyLightEngine() const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_skyLight.get();
 }
@@ -175,32 +148,32 @@ i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening)
 
     i32 skyLight = 0;
     if (m_skyLight != nullptr) {
-        skyLight = static_cast<i32>(m_skyLight->getLightFor(pos)) - skyDarkening;
+        skyLight = static_cast<i32>(m_skyLight->getLightFor(pos.x, pos.y, pos.z)) - skyDarkening;
         skyLight = std::max(0, skyLight);
     }
 
     i32 blockLight = 0;
     if (m_blockLight != nullptr) {
-        blockLight = static_cast<i32>(m_blockLight->getLightFor(pos));
+        blockLight = static_cast<i32>(m_blockLight->getLightFor(pos.x, pos.y, pos.z));
     }
 
     return std::max(blockLight, skyLight);
 }
 
-u8 WorldLightManager::getBlockLight(const BlockPos& pos) const {
+u8 WorldLightManager::getBlockLight(i32 x, i32 y, i32 z) const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_blockLight != nullptr) {
-        return m_blockLight->getLightFor(pos);
+        return m_blockLight->getLightFor(x, y, z);
     }
     return 0;
 }
 
-u8 WorldLightManager::getSkyLight(const BlockPos& pos) const {
+u8 WorldLightManager::getSkyLight(i32 x, i32 y, i32 z) const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_skyLight != nullptr) {
-        return m_skyLight->getLightFor(pos);
+        return m_skyLight->getLightFor(x, y, z);
     }
     return 0;
 }

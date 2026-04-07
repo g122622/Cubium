@@ -1,14 +1,15 @@
 # 光照引擎模块 (Lighting Engine)
 
 本目录包含 Minecraft 光照系统的核心引擎实现，负责计算和传播方块光照和天空光照。
+当前实现已经切换为 `StarLightEngine`、`BlockStarLightEngine`、`SkyStarLightEngine` 和 `StarLightLightingProvider`，并且不保留兼容别名或默认参数式接口。
 
 ## 目录结构
 
 ```
 engine/
-├── LevelBasedGraph.hpp/cpp     # 基于级别的传播图基类（Starlight 优化版）
-├── BlockLightEngine.hpp/cpp    # 方块光照引擎
-├── SkyLightEngine.hpp/cpp      # 天空光照引擎
+├── LevelBasedGraph.hpp/cpp     # StarLightEngine 基类（Starlight 优化版）
+├── BlockLightEngine.hpp/cpp    # BlockStarLightEngine 方块光照引擎
+├── SkyLightEngine.hpp/cpp      # SkyStarLightEngine 天空光照引擎
 ├── LightEngineCache.hpp/cpp    # 光照引擎缓存系统
 ├── LightEngineUtils.hpp/cpp    # 光照引擎工具类
 └── README.md                   # 本文档
@@ -16,7 +17,7 @@ engine/
 
 ## 文件详细介绍
 
-### LevelBasedGraph.hpp/cpp
+### StarLightEngine（LevelBasedGraph.hpp/cpp）
 
 **职责**: 提供基于级别的 BFS 光照传播算法的核心框架，是所有光照引擎的基类。
 
@@ -24,14 +25,14 @@ engine/
 
 ```mermaid
 classDiagram
-    class LevelBasedGraph {
+    class StarLightEngine {
         <<abstract>>
         +MAX_LEVEL_COUNT: i32 = 16
         +INVALID_LEVEL: u8 = 255
         #m_increaseQueue: vector~u64~
         #m_decreaseQueue: vector~u64~
         #m_cache: LightEngineCache
-        #m_chunkProvider: IChunkLightProvider*
+        #m_chunkProvider: StarLightLightingProvider*
 
         +processUpdates(maxUpdates: i32) i32
         +scheduleUpdate(pos: i64)
@@ -76,7 +77,7 @@ struct QueueEntry {
 - **空区块段优化**: 跳过全空气区块段
 - **FIFO 波前处理**: 队列按入队顺序处理，预算耗尽时保留剩余队列到下个 tick
 
-### BlockLightEngine.hpp/cpp
+### BlockStarLightEngine（BlockLightEngine.hpp/cpp）
 
 **职责**: 实现方块光照的传播算法。方块光源（如火把、萤石）发出的光向相邻方块传播，每传播一个方块衰减 1 级。
 
@@ -84,14 +85,14 @@ struct QueueEntry {
 
 ```mermaid
 classDiagram
-    LevelBasedGraph <|-- BlockLightEngine
-    class BlockLightEngine {
+    StarLightEngine <|-- BlockStarLightEngine
+    class BlockStarLightEngine {
         -m_storage: BlockLightStorage
         -m_emptinessMaps: unordered_map~i64, EmptinessMap~
 
-        +checkLight(pos: BlockPos)
-        +onBlockEmissionIncrease(pos, lightLevel)
-        +getLightFor(pos: BlockPos) u8
+        +checkBlock(lightAccess, worldX, worldY, worldZ)
+        +onBlockEmissionIncrease(lightAccess, worldX, worldY, worldZ, lightLevel)
+        +getLightFor(worldX, worldY, worldZ) u8
         +updateSectionStatus(pos: SectionPos, isEmpty)
         +setData(pos, array, retain)
         +hasWork() bool
@@ -112,10 +113,10 @@ classDiagram
 - 每穿过一个方块衰减 1 级（最小 1 级）
 - 部分透明方块（如水）有特定透明度
 - 完全不透明方块（透明度 15）阻挡光线
-- `checkLight()` 入口对齐 Starlight `checkBlock`：先写当前位置源级别，再同时入增亮/减亮队列
+- `checkBlock()` 入口对齐 Starlight：先写当前位置源级别，再同时入增亮/减亮队列
 - `getEdgeLevel()` 对来源面遮挡采用“条件形状优先”策略，不会错误阻断完整方块光源（如萤石）向外传播
 
-### SkyLightEngine.hpp/cpp
+### SkyStarLightEngine（SkyLightEngine.hpp/cpp）
 
 **职责**: 实现天空光照的传播算法。天空光照从天空向下传播，在透明方块中传播时不衰减，只有在不透明方块阻挡时才会衰减。
 
@@ -123,12 +124,12 @@ classDiagram
 
 ```mermaid
 classDiagram
-    LevelBasedGraph <|-- SkyLightEngine
-    class SkyLightEngine {
+    StarLightEngine <|-- SkyStarLightEngine
+    class SkyStarLightEngine {
         -m_storage: SkyLightStorage
 
-        +checkLight(pos: BlockPos)
-        +getLightFor(pos: BlockPos) u8
+        +checkBlock(lightAccess, worldX, worldY, worldZ)
+        +getLightFor(worldX, worldY, worldZ) u8
         +updateSectionStatus(pos: SectionPos, isEmpty)
         +setData(pos, array, retain)
         +setColumnEnabled(columnPos, enabled)
@@ -149,7 +150,7 @@ classDiagram
 - 从天空向下传播时，透明方块不衰减
 - 遇到不透明方块时开始衰减
 - 支持跨区块段向下传播（空区块段优化）
-- `checkLight()` 会基于 `ROOT_POS` 贡献判断当前点是否可作为天空源重入增亮队列
+- `checkBlock()` 会基于 `ROOT_POS` 贡献判断当前点是否可作为天空源重入增亮队列
 
 ### LightEngineCache.hpp/cpp
 
@@ -163,7 +164,7 @@ classDiagram
         +CACHE_RADIUS: i32 = 2
         +CHUNK_CACHE_SIZE: i32 = 25
 
-        -m_provider: IChunkLightProvider*
+        -m_provider: StarLightLightingProvider*
         -m_minSection: i32
         -m_maxSection: i32
         -m_chunkCache: array~const IChunk*, 25~
@@ -257,30 +258,30 @@ flowchart TB
     end
 
     subgraph Engine["引擎层 (engine/)"]
-        LevelBasedGraph
-        BlockLightEngine
-        SkyLightEngine
+        StarLightEngine
+        BlockStarLightEngine
+        SkyStarLightEngine
         LightEngineCache
         LightEngineUtils
     end
 
     subgraph World["世界层"]
-        IChunkLightProvider
+        StarLightLightingProvider
         IChunk
         BlockState
     end
 
-    LevelBasedGraph --> LightEngineCache
-    LevelBasedGraph --> LightEngineUtils
+    StarLightEngine --> LightEngineCache
+    StarLightEngine --> LightEngineUtils
 
-    BlockLightEngine --> LevelBasedGraph
-    BlockLightEngine --> BlockLightStorage
-    BlockLightEngine --> EmptinessMap
+    BlockStarLightEngine --> StarLightEngine
+    BlockStarLightEngine --> BlockLightStorage
+    BlockStarLightEngine --> EmptinessMap
 
-    SkyLightEngine --> LevelBasedGraph
-    SkyLightEngine --> SkyLightStorage
+    SkyStarLightEngine --> StarLightEngine
+    SkyStarLightEngine --> SkyLightStorage
 
-    LightEngineCache --> IChunkLightProvider
+    LightEngineCache --> StarLightLightingProvider
     LightEngineCache --> IChunk
 
     LightEngineUtils --> BlockState
@@ -331,23 +332,23 @@ common/util/Direction.hpp       - 方向枚举
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 
 // 创建光照引擎
-BlockLightEngine blockLightEngine(chunkProvider);
-SkyLightEngine skyLightEngine(chunkProvider);
+BlockStarLightEngine blockLightEngine(chunkProvider);
+SkyStarLightEngine skyLightEngine(chunkProvider);
 
 // 设置区块段状态
 blockLightEngine.updateSectionStatus(SectionPos(0, 0, 0), false);  // 非空
 skyLightEngine.updateSectionStatus(SectionPos(0, 0, 0), false);
 
 // 当方块发光等级增加时
-blockLightEngine.onBlockEmissionIncrease(BlockPos(100, 64, 200), 15);  // 火把
+blockLightEngine.onBlockEmissionIncrease(chunkProvider, 100, 64, 200, 15);  // 火把
 
 // 处理光照更新（每 tick 调用）
 int remaining = blockLightEngine.tick(512, false, true);
 remaining = skyLightEngine.tick(512, true, false);
 
 // 获取光照等级
-u8 blockLight = blockLightEngine.getLightFor(BlockPos(100, 64, 200));
-u8 skyLight = skyLightEngine.getLightFor(BlockPos(100, 64, 200));
+u8 blockLight = blockLightEngine.getLightFor(100, 64, 200);
+u8 skyLight = skyLightEngine.getLightFor(100, 64, 200);
 ```
 
 ### 批量光照计算
@@ -367,8 +368,8 @@ blockLightEngine.disableCache();
 ```cpp
 void onBlockChanged(World& world, const BlockPos& pos) {
     // 检查光照更新
-    blockLightEngine.checkLight(pos);
-    skyLightEngine.checkLight(pos);
+    blockLightEngine.checkBlock(chunkProvider, pos.x, pos.y, pos.z);
+    skyLightEngine.checkBlock(chunkProvider, pos.x, pos.y, pos.z);
 }
 ```
 
@@ -389,7 +390,7 @@ LIFO 会导致传播波前顺序紊乱，在复杂遮挡场景下出现重复震
 
 ```cpp
 // 正确的 tick 处理顺序
-i32 LevelBasedGraph::processUpdates(i32 maxUpdates) {
+i32 StarLightEngine::processUpdates(i32 maxUpdates) {
     // 先处理减亮队列
     if (m_decreaseQueueInitialLength > 0) {
         maxUpdates = processDecreaseQueue(maxUpdates);
@@ -423,7 +424,7 @@ void onChunkSectionChanged(ChunkSection& section, SectionPos pos) {
 - 内部传播级别使用 `0=最亮, 15=最暗`，而可见光值是 `15=最亮, 0=最暗`。
 - 天空光照没有单一的固定根节点，根贡献通过 `getEdgeLevel(ROOT_POS, ...)` 计算。
 
-**注意**: 在 `checkLight()` 与 `getEdgeLevel()` 中必须先做语义转换再比较大小，否则会出现“封顶不降光”或“侧向传播被反向阻断”。
+**注意**: 在 `checkBlock()` 与 `getEdgeLevel()` 中必须先做语义转换再比较大小，否则会出现“封顶不降光”或“侧向传播被反向阻断”。
 
 ### 4. 坐标范围限制
 

@@ -18,7 +18,7 @@ void ensureVanillaBlocksInitialized() {
     }
 }
 
-class SkyLightChunkProvider : public mc::IChunkLightProvider {
+class SkyLightChunkProvider : public mc::StarLightLightingProvider {
 public:
     SkyLightChunkProvider(mc::i32 minBuildHeight, mc::i32 maxBuildHeight)
         : m_minBuildHeight(minBuildHeight)
@@ -92,7 +92,7 @@ private:
     mc::i32 m_maxBuildHeight;
 };
 
-void processSkyWork(mc::SkyLightEngine& engine) {
+void processSkyWork(mc::SkyStarLightEngine& engine) {
     for (int i = 0; i < 12 && engine.hasWork(); ++i) {
         engine.tick(65536, true, false);
     }
@@ -105,7 +105,7 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::SkyLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine(&provider);
 
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
     chunk.setBlock(8, 70, 8, stoneState);
@@ -118,10 +118,10 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     engine.setData(sectionPos, section->skyLightNibble().copy(), false);
     engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
-    engine.checkLight(mc::BlockPos(8, 70, 8));
+    engine.checkBlock(&provider, 8, 70, 8);
     processSkyWork(engine);
 
-    const mc::u8 belowLight = engine.getLightFor(mc::BlockPos(8, 69, 8));
+    const mc::u8 belowLight = engine.getLightFor(8, 69, 8);
     EXPECT_GT(belowLight, static_cast<mc::u8>(0))
         << "hasWork=" << engine.hasWork();
 }
@@ -133,7 +133,7 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::SkyLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine(&provider);
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
 
     // 在 section=4 顶层铺满石头，封闭下方空间。
@@ -153,12 +153,12 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
 
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
-            engine.checkLight(mc::BlockPos(x, 79, z));
+            engine.checkBlock(&provider, x, 79, z);
         }
     }
     processSkyWork(engine);
 
-    const mc::u8 caveSkyLight = engine.getLightFor(mc::BlockPos(8, 78, 8));
+    const mc::u8 caveSkyLight = engine.getLightFor(8, 78, 8);
     EXPECT_LT(caveSkyLight, static_cast<mc::u8>(15));
 }
 
@@ -169,7 +169,7 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::SkyLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine(&provider);
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
     const mc::BlockState* airState = &mc::VanillaBlocks::AIR->defaultState();
 
@@ -189,19 +189,19 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
 
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
-            engine.checkLight(mc::BlockPos(x, 79, z));
+            engine.checkBlock(&provider, x, 79, z);
         }
     }
     processSkyWork(engine);
 
-    const mc::u8 before = engine.getLightFor(mc::BlockPos(8, 78, 8));
+    const mc::u8 before = engine.getLightFor(8, 78, 8);
     EXPECT_LT(before, static_cast<mc::u8>(15));
 
     chunk.setBlock(8, 79, 8, airState);
-    engine.checkLight(mc::BlockPos(8, 79, 8));
+    engine.checkBlock(&provider, 8, 79, 8);
     processSkyWork(engine);
 
-    const mc::u8 after = engine.getLightFor(mc::BlockPos(8, 78, 8));
+    const mc::u8 after = engine.getLightFor(8, 78, 8);
     EXPECT_GT(after, before);
 }
 
@@ -220,6 +220,31 @@ TEST(SkyLightRegressionTest, SurfaceTopDetectionHandlesNegativeY) {
 
     EXPECT_TRUE(storage.isAtSurfaceTop(topBlockPos));
     EXPECT_FALSE(storage.isAtSurfaceTop(notTopBlockPos));
+}
+
+TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock) {
+    ensureVanillaBlocksInitialized();
+
+    SkyLightChunkProvider provider(0, 256);
+    mc::ChunkData chunk(0, 0);
+    provider.setChunk(&chunk);
+
+    mc::SkyStarLightEngine engine(&provider);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+    chunk.setBlock(8, 70, 8, stoneState);
+
+    mc::ChunkSection* section = chunk.getSection(4);
+    ASSERT_NE(section, nullptr);
+
+    const mc::SectionPos sectionPos(0, 4, 0);
+    engine.updateSectionStatus(sectionPos, false);
+    engine.setData(sectionPos, section->skyLightNibble().copy(), false);
+    engine.setColumnEnabled(sectionPos.toColumnLong(), true);
+
+    engine.checkBlock(&provider, 8, 70, 8);
+    processSkyWork(engine);
+
+    EXPECT_GT(engine.getLightFor(8, 69, 8), static_cast<mc::u8>(0));
 }
 
 } // namespace

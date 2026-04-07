@@ -3,7 +3,7 @@
 
 namespace mc {
 
-BlockLightStorage::BlockLightStorage(IChunkLightProvider* provider)
+BlockLightStorage::BlockLightStorage(StarLightLightingProvider* provider)
     : SectionLightStorage<BlockLightDataMap>(LightType::BLOCK, provider, BlockLightDataMap()) {
 }
 

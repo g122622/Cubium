@@ -61,7 +61,7 @@ public:
      * @param data 字节数组（必须为2048字节，可为nullptr）
      * @param isNull 是否为 null 状态
      */
-    explicit SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> data, bool isNull = false);
+    SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> data, bool isNull);
 
     /**
      * @brief 从字节数组构造，指定状态

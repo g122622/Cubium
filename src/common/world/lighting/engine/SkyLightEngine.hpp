@@ -17,13 +17,13 @@ namespace mc {
  *
  * 参考: net.minecraft.world.lighting.SkyLightEngine
  */
-class SkyLightEngine : public LevelBasedGraph {
+class SkyStarLightEngine : public StarLightEngine {
 public:
     /**
      * @brief 构造函数
      * @param provider 区块光照提供者
      */
-    explicit SkyLightEngine(IChunkLightProvider* provider);
+    explicit SkyStarLightEngine(StarLightLightingProvider* provider);
 
     // ========================================================================
     // 光照操作
@@ -36,7 +36,7 @@ public:
      *
      * @param pos 方块位置
      */
-    void checkLight(const BlockPos& pos);
+    void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ);
 
     /**
      * @brief 获取指定位置的光照等级
@@ -44,7 +44,7 @@ public:
      * @param pos 方块位置
      * @return 光照等级 (0-15)
      */
-    [[nodiscard]] u8 getLightFor(const BlockPos& pos) const;
+    [[nodiscard]] u8 getLightFor(i32 worldX, i32 worldY, i32 worldZ) const;
 
     /**
      * @brief 更新区块段状态
@@ -122,6 +122,16 @@ private:
      * @brief 获取指定位置的发光等级（天空光照始终为0）
      */
     [[nodiscard]] i32 getLightValue(i64 worldPos) const;
+
+    /**
+     * @brief 获取当前位置的光照等级
+     */
+    [[nodiscard]] i32 getLightLevel(i64 worldPos);
+
+    /**
+     * @brief 设置当前位置的光照等级
+     */
+    void setLightLevel(i64 worldPos, i32 level);
 
     /**
      * @brief 从SWMRNibbleArray获取光照等级

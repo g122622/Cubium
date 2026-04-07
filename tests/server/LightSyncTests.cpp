@@ -28,7 +28,7 @@ protected:
     }
 };
 
-class BlockLightStorageTestProvider : public IChunkLightProvider {
+class BlockLightStorageTestProvider : public StarLightLightingProvider {
 public:
     IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override { return nullptr; }
     const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override { return nullptr; }
@@ -214,8 +214,8 @@ TEST_F(LightSyncTest, SectionPosColumnPos) {
  * 验证 WorldLightManager 可以正确创建方块光照和天空光照引擎。
  */
 TEST_F(LightSyncTest, WorldLightManagerCreation) {
-    // 创建一个简单的 IChunkLightProvider 实现
-    class TestLightProvider : public IChunkLightProvider {
+    // 创建一个简单的 StarLightLightingProvider 实现
+    class TestLightProvider : public StarLightLightingProvider {
     public:
         IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override { return nullptr; }
         const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override { return nullptr; }
@@ -282,7 +282,7 @@ TEST_F(LightSyncTest, WorldLightManagerTickSkyDisabledKeepsBudget) {
  * 验证 WorldLightManager 可以正确设置和获取光照数据。
  */
 TEST_F(LightSyncTest, WorldLightManagerDataAccess) {
-    class TestLightProvider : public IChunkLightProvider {
+    class TestLightProvider : public StarLightLightingProvider {
     public:
         IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override { return nullptr; }
         const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override { return nullptr; }

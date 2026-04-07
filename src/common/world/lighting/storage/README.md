@@ -1,6 +1,7 @@
 # 光照存储模块 (Lighting Storage)
 
 本目录包含 Minecraft 光照系统的数据存储层，实现了单写多读（SWMR）的光照数据存储架构，参考了 Starlight 的优化设计。
+当前实现已经切换到新的光照类型命名，不再保留兼容别名。
 
 ## 目录结构
 
@@ -135,7 +136,7 @@ void removeSurfaceHeight(i64 columnPos);
 ```cpp
 protected:
     LightType m_type;                              // 光照类型
-    IChunkLightProvider* m_chunkProvider;          // 区块提供者
+    StarLightLightingProvider* m_chunkProvider;    // 区块提供者
     M m_cachedLightData;                           // 缓存的光照数据
     M m_newArrays;                                 // 待写入的新数组
 
@@ -275,8 +276,8 @@ graph TB
     end
 
     subgraph Engine["光照引擎层"]
-        BlockLightEngine["BlockLightEngine"]
-        SkyLightEngine["SkyLightEngine"]
+        BlockStarLightEngine["BlockStarLightEngine"]
+        SkyStarLightEngine["SkyStarLightEngine"]
         WorldLightManager["WorldLightManager"]
     end
 
@@ -291,10 +292,10 @@ graph TB
     SectionLightStorage --> BlockLightStorage
     SectionLightStorage --> SkyLightStorage
 
-    BlockLightStorage --> BlockLightEngine
-    SkyLightStorage --> SkyLightEngine
-    BlockLightEngine --> WorldLightManager
-    SkyLightEngine --> WorldLightManager
+    BlockLightStorage --> BlockStarLightEngine
+    SkyLightStorage --> SkyStarLightEngine
+    BlockStarLightEngine --> WorldLightManager
+    SkyStarLightEngine --> WorldLightManager
     EmptinessMap --> WorldLightManager
 
     ChunkSection --> NibbleArray
@@ -316,8 +317,8 @@ flowchart LR
 
     subgraph Processing["处理"]
         WorldLightManager["WorldLightManager"]
-        BlockLightEngine["BlockLightEngine"]
-        SkyLightEngine["SkyLightEngine"]
+        BlockStarLightEngine["BlockStarLightEngine"]
+        SkyStarLightEngine["SkyStarLightEngine"]
     end
 
     subgraph Storage["存储"]
@@ -337,11 +338,11 @@ flowchart LR
     BlockChange --> WorldLightManager
     LightSource --> WorldLightManager
 
-    WorldLightManager --> BlockLightEngine
-    WorldLightManager --> SkyLightEngine
+    WorldLightManager --> BlockStarLightEngine
+    WorldLightManager --> SkyStarLightEngine
 
-    BlockLightEngine --> BlockLightStorage
-    SkyLightEngine --> SkyLightStorage
+    BlockStarLightEngine --> BlockLightStorage
+    SkyStarLightEngine --> SkyLightStorage
 
     BlockLightStorage --> SWMRLightDataMap
     SkyLightStorage --> SWMRLightDataMap
@@ -369,9 +370,9 @@ flowchart LR
 | 来源 | 数据类型 | 说明 |
 |------|----------|------|
 | `WorldLightManager` | `NibbleArray` | 从 ChunkSection 加载的光照数据 |
-| `BlockLightEngine` | 光照更新 | 方块光照计算结果 |
-| `SkyLightEngine` | 光照更新 | 天空光照计算结果 |
-| `IChunkLightProvider` | 区块信息 | 区块状态查询和变更通知 |
+| `BlockStarLightEngine` | 光照更新 | 方块光照计算结果 |
+| `SkyStarLightEngine` | 光照更新 | 天空光照计算结果 |
+| `StarLightLightingProvider` | 区块信息 | 区块状态查询和变更通知 |
 
 ### 输出
 
@@ -393,7 +394,7 @@ common/world/lighting/storage/
 ├── common/world/chunk/ChunkPos.hpp # 区块位置
 ├── common/world/chunk/IChunk.hpp   # 区块接口
 ├── common/world/lighting/LightType.hpp          # 光照类型
-├── common/world/lighting/IChunkLightProvider.hpp # 区块光照提供者
+├── common/world/lighting/IChunkLightProvider.hpp # StarLightLightingProvider 定义
 └── common/world/lighting/engine/LightEngineUtils.hpp # 光照引擎工具
 ```
 
@@ -415,7 +416,7 @@ common/world/lighting/storage/
 #include "common/world/lighting/storage/BlockLightStorage.hpp"
 #include "common/world/lighting/storage/SkyLightStorage.hpp"
 
-// 创建存储（需要 IChunkLightProvider 实现）
+// 创建存储（需要 StarLightLightingProvider 实现）
 BlockLightStorage blockStorage(&provider);
 SkyLightStorage skyStorage(&provider);
 

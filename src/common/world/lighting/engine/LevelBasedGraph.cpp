@@ -36,7 +36,7 @@ DirectionBit computeCheckDirections(i64 fromPos, i64 toPos) {
 // 构造函数
 // ============================================================================
 
-LevelBasedGraph::LevelBasedGraph(i32 levelCount, i32 expectedUpdates, IChunkLightProvider* provider)
+StarLightEngine::StarLightEngine(i32 levelCount, i32 expectedUpdates, StarLightLightingProvider* provider)
     : m_levelCount(levelCount)
     , m_increaseQueue(static_cast<size_t>(expectedUpdates))
     , m_decreaseQueue(static_cast<size_t>(expectedUpdates))
@@ -49,22 +49,22 @@ LevelBasedGraph::LevelBasedGraph(i32 levelCount, i32 expectedUpdates, IChunkLigh
 // 缓存管理
 // ============================================================================
 
-void LevelBasedGraph::enableCache(i32 centerX, i32 centerY, i32 centerZ,
+void StarLightEngine::enableCache(i32 centerX, i32 centerY, i32 centerZ,
                                    bool relaxed, bool loadTwoRadius) {
     m_cacheEnabled = true;
     m_cache.setupCaches(centerX, centerY, centerZ, relaxed, loadTwoRadius);
 }
 
-void LevelBasedGraph::disableCache() {
+void StarLightEngine::disableCache() {
     m_cacheEnabled = false;
     m_cache.destroyCaches();
 }
 
-f32 LevelBasedGraph::getCacheHitRate() const {
+f32 StarLightEngine::getCacheHitRate() const {
     return m_cache.getCacheHitRate();
 }
 
-const IChunk* LevelBasedGraph::getCachedChunk(i32 chunkX, i32 chunkZ) const {
+const IChunk* StarLightEngine::getCachedChunk(i32 chunkX, i32 chunkZ) const {
     if (m_cacheEnabled) {
         return m_cache.getChunk(chunkX, chunkZ);
     }
@@ -74,14 +74,14 @@ const IChunk* LevelBasedGraph::getCachedChunk(i32 chunkX, i32 chunkZ) const {
     return nullptr;
 }
 
-bool LevelBasedGraph::isCachedSectionEmpty(i32 sectionX, i32 sectionY, i32 sectionZ) const {
+bool StarLightEngine::isCachedSectionEmpty(i32 sectionX, i32 sectionY, i32 sectionZ) const {
     if (m_cacheEnabled) {
         return m_cache.isSectionEmpty(sectionX, sectionY, sectionZ);
     }
     return false;
 }
 
-bool LevelBasedGraph::isSectionEmpty(i64 sectionPos) const {
+bool StarLightEngine::isSectionEmpty(i64 sectionPos) const {
     // 默认实现：使用缓存检查
     SectionPos pos = SectionPos::fromLong(sectionPos);
     return isCachedSectionEmpty(pos.x, pos.y, pos.z);
@@ -91,7 +91,7 @@ bool LevelBasedGraph::isSectionEmpty(i64 sectionPos) const {
 // 公共接口
 // ============================================================================
 
-void LevelBasedGraph::scheduleUpdate(i64 pos) {
+void StarLightEngine::scheduleUpdate(i64 pos) {
     // 对齐 Starlight 的 checkBlock 语义：
     // 1) 如果当前位置是满亮源（level=0），先安排一次增亮重传播
     // 2) 否则先将该点清为最暗
@@ -113,7 +113,7 @@ void LevelBasedGraph::scheduleUpdate(i64 pos) {
         static_cast<u8>(currentLevel), DIR_ALL, 0));
 }
 
-void LevelBasedGraph::scheduleUpdate(i64 fromPos, i64 toPos, i32 level, bool isIncrease) {
+void StarLightEngine::scheduleUpdate(i64 fromPos, i64 toPos, i32 level, bool isIncrease) {
     // 解码目标坐标
     i32 toX, toY, toZ;
     unpackWorldPos(toPos, toX, toY, toZ);
@@ -133,7 +133,7 @@ void LevelBasedGraph::scheduleUpdate(i64 fromPos, i64 toPos, i32 level, bool isI
     }
 }
 
-void LevelBasedGraph::cancelUpdate(i64 pos) {
+void StarLightEngine::cancelUpdate(i64 pos) {
     i32 writeIdx = 0;
     for (i32 i = 0; i < m_increaseQueueInitialLength; ++i) {
         if (m_increaseQueue[i].pos != pos) {
@@ -153,7 +153,7 @@ void LevelBasedGraph::cancelUpdate(i64 pos) {
     m_needsUpdate = m_increaseQueueInitialLength > 0 || m_decreaseQueueInitialLength > 0;
 }
 
-void LevelBasedGraph::cancelUpdates(const std::function<bool(i64)>& predicate) {
+void StarLightEngine::cancelUpdates(const std::function<bool(i64)>& predicate) {
     // 从增亮队列移除
     i32 writeIdx = 0;
     for (i32 i = 0; i < m_increaseQueueInitialLength; ++i) {
@@ -179,7 +179,7 @@ void LevelBasedGraph::cancelUpdates(const std::function<bool(i64)>& predicate) {
     m_needsUpdate = m_increaseQueueInitialLength > 0 || m_decreaseQueueInitialLength > 0;
 }
 
-i32 LevelBasedGraph::processUpdates(i32 maxUpdates) {
+i32 StarLightEngine::processUpdates(i32 maxUpdates) {
     // 先处理减亮队列（减少光照）
     if (m_decreaseQueueInitialLength > 0) {
         maxUpdates = processDecreaseQueue(maxUpdates);
@@ -201,7 +201,7 @@ i32 LevelBasedGraph::processUpdates(i32 maxUpdates) {
 // 队列处理
 // ============================================================================
 
-i32 LevelBasedGraph::processIncreaseQueue(i32 maxUpdates) {
+i32 StarLightEngine::processIncreaseQueue(i32 maxUpdates) {
     i32 readIndex = 0;
 
     while (readIndex < m_increaseQueueInitialLength && maxUpdates > 0) {
@@ -240,7 +240,7 @@ i32 LevelBasedGraph::processIncreaseQueue(i32 maxUpdates) {
     return maxUpdates;
 }
 
-i32 LevelBasedGraph::processDecreaseQueue(i32 maxUpdates) {
+i32 StarLightEngine::processDecreaseQueue(i32 maxUpdates) {
     i32 readIndex = 0;
 
     while (readIndex < m_decreaseQueueInitialLength && maxUpdates > 0) {
@@ -266,7 +266,7 @@ i32 LevelBasedGraph::processDecreaseQueue(i32 maxUpdates) {
     return maxUpdates;
 }
 
-void LevelBasedGraph::propagateLevel(i64 fromPos, i64 toPos, i32 level, bool isDecreasing) {
+void StarLightEngine::propagateLevel(i64 fromPos, i64 toPos, i32 level, bool isDecreasing) {
     if (toPos == LightEngineUtils::ROOT_POS) {
         return;
     }

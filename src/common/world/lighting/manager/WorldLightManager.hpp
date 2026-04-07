@@ -27,7 +27,7 @@ public:
      * @param hasBlockLight 是否有方块光照
      * @param hasSkyLight 是否有天空光照
      */
-    WorldLightManager(IChunkLightProvider* provider, bool hasBlockLight, bool hasSkyLight);
+    WorldLightManager(StarLightLightingProvider* provider, bool hasBlockLight, bool hasSkyLight);
 
     // ========================================================================
     // 光照操作
@@ -40,7 +40,7 @@ public:
      *
      * @param pos 方块位置
      */
-    void checkBlock(const BlockPos& pos);
+    void checkBlock(i32 x, i32 y, i32 z);
 
     /**
      * @brief 方块发光等级增加时调用
@@ -50,7 +50,7 @@ public:
      * @param pos 方块位置
      * @param lightLevel 发光等级
      */
-    void onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel);
+    void onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel);
 
     /**
      * @brief 检查是否有待处理的光照工作
@@ -101,10 +101,10 @@ public:
      * @param type 光照类型
      * @return 光照引擎指针，如果不存在返回nullptr
      */
-    [[nodiscard]] BlockLightEngine* getBlockLightEngine();
-    [[nodiscard]] const BlockLightEngine* getBlockLightEngine() const;
-    [[nodiscard]] SkyLightEngine* getSkyLightEngine();
-    [[nodiscard]] const SkyLightEngine* getSkyLightEngine() const;
+    [[nodiscard]] BlockStarLightEngine* getBlockLightEngine();
+    [[nodiscard]] const BlockStarLightEngine* getBlockLightEngine() const;
+    [[nodiscard]] SkyStarLightEngine* getSkyLightEngine();
+    [[nodiscard]] const SkyStarLightEngine* getSkyLightEngine() const;
 
     /**
      * @brief 获取指定位置的实际亮度
@@ -120,12 +120,12 @@ public:
     /**
      * @brief 获取方块光照等级
      */
-    [[nodiscard]] u8 getBlockLight(const BlockPos& pos) const;
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 获取天空光照等级
      */
-    [[nodiscard]] u8 getSkyLight(const BlockPos& pos) const;
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const;
 
     // ========================================================================
     // 数据管理
@@ -177,9 +177,9 @@ public:
 
 private:
     mutable std::recursive_mutex m_mutex;
-    std::unique_ptr<BlockLightEngine> m_blockLight;
-    std::unique_ptr<SkyLightEngine> m_skyLight;
-    IChunkLightProvider* m_provider;
+    std::unique_ptr<BlockStarLightEngine> m_blockLight;
+    std::unique_ptr<SkyStarLightEngine> m_skyLight;
+    StarLightLightingProvider* m_provider;
     bool m_hasBlockLight;
     bool m_hasSkyLight;
 };

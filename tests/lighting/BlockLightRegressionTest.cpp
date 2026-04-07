@@ -15,7 +15,7 @@ void ensureVanillaBlocksInitialized() {
     }
 }
 
-class BlockLightChunkProvider : public mc::IChunkLightProvider {
+class BlockLightChunkProvider : public mc::StarLightLightingProvider {
 public:
     BlockLightChunkProvider(mc::i32 minBuildHeight, mc::i32 maxBuildHeight)
         : m_minBuildHeight(minBuildHeight)
@@ -89,13 +89,13 @@ private:
     mc::i32 m_maxBuildHeight;
 };
 
-void processBlockWork(mc::BlockLightEngine& engine) {
+void processBlockWork(mc::BlockStarLightEngine& engine) {
     for (int i = 0; i < 16 && engine.hasWork(); ++i) {
         engine.tick(65536, false, true);
     }
 }
 
-void initSectionData(mc::BlockLightEngine& engine, mc::ChunkData& chunk, const mc::SectionPos& sectionPos) {
+void initSectionData(mc::BlockStarLightEngine& engine, mc::ChunkData& chunk, const mc::SectionPos& sectionPos) {
     mc::ChunkSection* section = chunk.getSection(sectionPos.y);
     ASSERT_NE(section, nullptr);
     engine.updateSectionStatus(sectionPos, false);
@@ -109,19 +109,19 @@ TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::BlockLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine(&provider);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
     chunk.setBlock(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     initSectionData(engine, chunk, sectionPos);
 
-    engine.checkLight(mc::BlockPos(8, 70, 8));
+    engine.checkBlock(&provider, 8, 70, 8);
     processBlockWork(engine);
 
-    const mc::u8 source = engine.getLightFor(mc::BlockPos(8, 70, 8));
-    const mc::u8 east = engine.getLightFor(mc::BlockPos(9, 70, 8));
-    const mc::u8 east2 = engine.getLightFor(mc::BlockPos(10, 70, 8));
+    const mc::u8 source = engine.getLightFor(8, 70, 8);
+    const mc::u8 east = engine.getLightFor(9, 70, 8);
+    const mc::u8 east2 = engine.getLightFor(10, 70, 8);
 
     EXPECT_GT(source, static_cast<mc::u8>(0));
     EXPECT_GT(east, static_cast<mc::u8>(0));
@@ -137,7 +137,7 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::BlockLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine(&provider);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
     const mc::BlockState* air = &mc::VanillaBlocks::AIR->defaultState();
 
@@ -146,17 +146,17 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
     const mc::SectionPos sectionPos(0, 4, 0);
     initSectionData(engine, chunk, sectionPos);
 
-    engine.checkLight(mc::BlockPos(8, 70, 8));
+    engine.checkBlock(&provider, 8, 70, 8);
     processBlockWork(engine);
 
-    EXPECT_GT(engine.getLightFor(mc::BlockPos(9, 70, 8)), static_cast<mc::u8>(0));
+    EXPECT_GT(engine.getLightFor(9, 70, 8), static_cast<mc::u8>(0));
 
     chunk.setBlock(8, 70, 8, air);
-    engine.checkLight(mc::BlockPos(8, 70, 8));
+    engine.checkBlock(&provider, 8, 70, 8);
     processBlockWork(engine);
 
-    EXPECT_EQ(engine.getLightFor(mc::BlockPos(8, 70, 8)), static_cast<mc::u8>(0));
-    EXPECT_EQ(engine.getLightFor(mc::BlockPos(9, 70, 8)), static_cast<mc::u8>(0));
+    EXPECT_EQ(engine.getLightFor(8, 70, 8), static_cast<mc::u8>(0));
+    EXPECT_EQ(engine.getLightFor(9, 70, 8), static_cast<mc::u8>(0));
 }
 
 TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
@@ -166,7 +166,7 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::BlockLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine(&provider);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
     const mc::BlockState* stone = &mc::VanillaBlocks::STONE->defaultState();
 
@@ -175,17 +175,17 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
     const mc::SectionPos sectionPos(0, 4, 0);
     initSectionData(engine, chunk, sectionPos);
 
-    engine.checkLight(mc::BlockPos(8, 70, 8));
+    engine.checkBlock(&provider, 8, 70, 8);
     processBlockWork(engine);
 
-    const mc::u8 before = engine.getLightFor(mc::BlockPos(10, 70, 8));
+    const mc::u8 before = engine.getLightFor(10, 70, 8);
     EXPECT_GT(before, static_cast<mc::u8>(0));
 
     chunk.setBlock(9, 70, 8, stone);
-    engine.checkLight(mc::BlockPos(9, 70, 8));
+    engine.checkBlock(&provider, 9, 70, 8);
     processBlockWork(engine);
 
-    const mc::u8 after = engine.getLightFor(mc::BlockPos(10, 70, 8));
+    const mc::u8 after = engine.getLightFor(10, 70, 8);
     EXPECT_LT(after, before);
 }
 
@@ -196,7 +196,7 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::BlockLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine(&provider);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
     const mc::BlockState* stone = &mc::VanillaBlocks::STONE->defaultState();
     const mc::BlockState* air = &mc::VanillaBlocks::AIR->defaultState();
@@ -207,17 +207,17 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
     const mc::SectionPos sectionPos(0, 4, 0);
     initSectionData(engine, chunk, sectionPos);
 
-    engine.checkLight(mc::BlockPos(8, 70, 8));
-    engine.checkLight(mc::BlockPos(9, 70, 8));
+    engine.checkBlock(&provider, 8, 70, 8);
+    engine.checkBlock(&provider, 9, 70, 8);
     processBlockWork(engine);
 
-    const mc::u8 blocked = engine.getLightFor(mc::BlockPos(10, 70, 8));
+    const mc::u8 blocked = engine.getLightFor(10, 70, 8);
 
     chunk.setBlock(9, 70, 8, air);
-    engine.checkLight(mc::BlockPos(9, 70, 8));
+    engine.checkBlock(&provider, 9, 70, 8);
     processBlockWork(engine);
 
-    const mc::u8 restored = engine.getLightFor(mc::BlockPos(10, 70, 8));
+    const mc::u8 restored = engine.getLightFor(10, 70, 8);
     EXPECT_GT(restored, blocked);
 }
 
@@ -228,18 +228,38 @@ TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation) {
     mc::ChunkData chunk(0, 0);
     provider.setChunk(&chunk);
 
-    mc::BlockLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine(&provider);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
     chunk.setBlock(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     initSectionData(engine, chunk, sectionPos);
 
-    engine.onBlockEmissionIncrease(mc::BlockPos(8, 70, 8), 15);
+    engine.onBlockEmissionIncrease(&provider, 8, 70, 8, 15);
     processBlockWork(engine);
 
-    const mc::u8 east = engine.getLightFor(mc::BlockPos(9, 70, 8));
+    const mc::u8 east = engine.getLightFor(9, 70, 8);
     EXPECT_GT(east, static_cast<mc::u8>(0));
+}
+
+TEST(BlockLightRegressionTest, CheckBlockMatchesCheckBlock) {
+    ensureVanillaBlocksInitialized();
+
+    BlockLightChunkProvider provider(0, 256);
+    mc::ChunkData chunk(0, 0);
+    provider.setChunk(&chunk);
+
+    mc::BlockStarLightEngine engine(&provider);
+    const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
+    chunk.setBlock(8, 70, 8, glowstone);
+
+    const mc::SectionPos sectionPos(0, 4, 0);
+    initSectionData(engine, chunk, sectionPos);
+
+    engine.checkBlock(&provider, 8, 70, 8);
+    processBlockWork(engine);
+
+    EXPECT_GT(engine.getLightFor(9, 70, 8), static_cast<mc::u8>(0));
 }
 
 } // namespace

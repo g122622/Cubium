@@ -11,7 +11,7 @@ LightEngineCache::LightEngineCache() {
     m_emptinessMapCache.fill(nullptr);
 }
 
-void LightEngineCache::setProvider(IChunkLightProvider* provider) {
+void LightEngineCache::setProvider(StarLightLightingProvider* provider) {
     m_provider = provider;
 }
 

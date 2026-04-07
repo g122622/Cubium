@@ -14,8 +14,8 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-BlockLightEngine::BlockLightEngine(IChunkLightProvider* provider)
-    : LevelBasedGraph(16, 8192, provider)
+BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
+    : StarLightEngine(16, 8192, provider)
     , m_storage(provider) {
 }
 
@@ -23,17 +23,18 @@ BlockLightEngine::BlockLightEngine(IChunkLightProvider* provider)
 // 光照操作
 // ============================================================================
 
-void BlockLightEngine::checkLight(const BlockPos& pos) {
+void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ) {
+    (void)lightAccess;
     MC_TRACE_INSTANT("server.lighting",
-        "BlockLightEngine::checkLight",
-        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+        "BlockStarLightEngine::checkBlock",
+        "pos", fmt::format("({}, {}, {})", worldX, worldY, worldZ),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(worldX, worldY, worldZ).toId())](::perfetto::EventContext ctx) {
             flow(ctx);
     });
 
     m_storage.processAllLevelUpdates();
 
-    i64 packedPos = LightEngineUtils::packPos(pos);
+    i64 packedPos = LightEngineUtils::packPos(worldX, worldY, worldZ);
     i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
     if (!m_storage.hasSection(sectionPos)) {
         return;
@@ -45,8 +46,9 @@ void BlockLightEngine::checkLight(const BlockPos& pos) {
     // 与 Starlight 一致：先写当前位置，再通过增减队列统一处理邻居传播。
     setLevel(packedPos, sourceLevel);
 
-    i32 x, y, z;
-    LightEngineUtils::unpackPos(packedPos, x, y, z);
+    i32 x = worldX;
+    i32 y = worldY;
+    i32 z = worldZ;
 
     if (sourceLevel < 15) {
         appendToIncreaseQueue(encodeQueueEntry(x, y, z,
@@ -57,56 +59,58 @@ void BlockLightEngine::checkLight(const BlockPos& pos) {
         static_cast<u8>(currentLevel), DIR_ALL, 0));
 }
 
-void BlockLightEngine::onBlockEmissionIncrease(const BlockPos& pos, i32 lightLevel) {
+void BlockStarLightEngine::onBlockEmissionIncrease(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 lightLevel) {
+    (void)lightAccess;
     m_storage.processAllLevelUpdates();
 
-    i64 packedPos = LightEngineUtils::packPos(pos);
-    i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
+    const i64 packedPos = LightEngineUtils::packPos(worldX, worldY, worldZ);
+    const i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
     if (!m_storage.hasSection(sectionPos)) {
         return;
     }
 
-    i32 sourceLevel = std::max(0, 15 - std::min(lightLevel, 15));
-    i32 currentLevel = getLevel(packedPos);
-    if (sourceLevel >= currentLevel) {
+    const i32 currentLevel = getLightLevel(packedPos);
+    const i32 sourceLevel = std::clamp(lightLevel, 0, 15);
+    if (sourceLevel <= currentLevel) {
         return;
     }
 
-    setLevel(packedPos, sourceLevel);
+    setLightLevel(packedPos, sourceLevel);
 
-    i32 x, y, z;
-    LightEngineUtils::unpackPos(packedPos, x, y, z);
+    const i32 x = worldX;
+    const i32 y = worldY;
+    const i32 z = worldZ;
 
     appendToIncreaseQueue(encodeQueueEntry(x, y, z,
-        static_cast<u8>(sourceLevel), DIR_ALL, 0));
+        static_cast<u8>(StarLightEngine::MAX_LEVEL_COUNT - 1 - sourceLevel), DIR_ALL, 0));
 }
 
-u8 BlockLightEngine::getLightFor(const BlockPos& pos) const {
-    return m_storage.getLightOrDefault(LightEngineUtils::packPos(pos));
+u8 BlockStarLightEngine::getLightFor(i32 worldX, i32 worldY, i32 worldZ) const {
+    return m_storage.getLightOrDefault(LightEngineUtils::packPos(worldX, worldY, worldZ));
 }
 
-void BlockLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
     m_storage.updateSectionStatus(pos.toLong(), isEmpty);
 }
 
-void BlockLightEngine::setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain) {
+void BlockStarLightEngine::setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain) {
     m_storage.setData(pos.toLong(), std::move(array), retain);
 }
 
-void BlockLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
+void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
     m_storage.setData(pos.toLong(), array, retain);
 }
 
-SWMRNibbleArray* BlockLightEngine::getData(const SectionPos& pos) {
+SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) {
     return m_storage.getArray(pos.toLong());
 }
 
-bool BlockLightEngine::hasWork() const {
+bool BlockStarLightEngine::hasWork() const {
     return needsUpdate() || m_storage.hasSectionsToUpdate();
 }
 
-i32 BlockLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
-    MC_TRACE_EVENT("server.lighting", "BlockLightEngine::tick",
+i32 BlockStarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+    MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::tick",
                      "maxUpdates", maxUpdates,
                      "updateSkyLight", updateSkyLight,
                      "updateBlockLight", updateBlockLight);
@@ -133,11 +137,11 @@ i32 BlockLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlock
 // LevelBasedGraph 接口实现
 // ============================================================================
 
-bool BlockLightEngine::isRoot(i64 pos) const {
+bool BlockStarLightEngine::isRoot(i64 pos) const {
     return pos == LightEngineUtils::ROOT_POS;
 }
 
-i32 BlockLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
+i32 BlockStarLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     i32 minLevel = level;
 
     // 如果不是从根节点排除，检查光源贡献
@@ -193,7 +197,7 @@ i32 BlockLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
     return minLevel;
 }
 
-void BlockLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) {
+void BlockStarLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) {
     i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
     DirectionBit dirs = static_cast<DirectionBit>(directionBits);
     if (dirs == DIR_NONE) {
@@ -214,18 +218,18 @@ void BlockLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8
     }
 }
 
-i32 BlockLightEngine::getLevel(i64 pos) const {
+i32 BlockStarLightEngine::getLevel(i64 pos) const {
     if (pos == LightEngineUtils::ROOT_POS) {
         return 0;
     }
     return 15 - m_storage.getLightOrDefault(pos);
 }
 
-void BlockLightEngine::setLevel(i64 pos, i32 level) {
+void BlockStarLightEngine::setLevel(i64 pos, i32 level) {
     m_storage.setLight(pos, static_cast<u8>(15 - std::min(level, 15)));
 }
 
-i32 BlockLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
+i32 BlockStarLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
     if (toPos == LightEngineUtils::ROOT_POS) {
         return 15;
     }
@@ -295,7 +299,7 @@ i32 BlockLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
 // 私有方法
 // ============================================================================
 
-i32 BlockLightEngine::getLightValue(i64 worldPos) const {
+i32 BlockStarLightEngine::getLightValue(i64 worldPos) const {
     i32 x, y, z;
     LightEngineUtils::unpackPos(worldPos, x, y, z);
 
@@ -314,16 +318,25 @@ i32 BlockLightEngine::getLightValue(i64 worldPos) const {
     return state->getBlock().getLightLevel(*state);
 }
 
-const IChunk* BlockLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {
+i32 BlockStarLightEngine::getLightLevel(i64 worldPos) const {
+    return StarLightEngine::MAX_LEVEL_COUNT - 1 - getLevel(worldPos);
+}
+
+void BlockStarLightEngine::setLightLevel(i64 worldPos, i32 level) {
+    setLevel(worldPos,
+        StarLightEngine::MAX_LEVEL_COUNT - 1 - std::clamp(level, 0, StarLightEngine::MAX_LEVEL_COUNT - 1));
+}
+
+const IChunk* BlockStarLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {
     // 使用基类的缓存方法
-    return LevelBasedGraph::getCachedChunk(chunkX, chunkZ);
+    return StarLightEngine::getCachedChunk(chunkX, chunkZ);
 }
 
 // ============================================================================
 // 空区块段检测
 // ============================================================================
 
-void BlockLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const IChunk* chunk) {
+void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const IChunk* chunk) {
     if (chunk == nullptr) {
         return;
     }
@@ -338,7 +351,7 @@ void BlockLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const IChunk* 
     }
 }
 
-bool BlockLightEngine::isSectionEmpty(i64 sectionPos) const {
+bool BlockStarLightEngine::isSectionEmpty(i64 sectionPos) const {
     // 从区块段位置提取区块列位置
     SectionPos pos = SectionPos::fromLong(sectionPos);
     i64 columnPos = SectionPos(pos.x, 0, pos.z).toLong();
@@ -353,7 +366,7 @@ bool BlockLightEngine::isSectionEmpty(i64 sectionPos) const {
     return it->second.isSectionEmpty(pos.y);
 }
 
-EmptinessMap* BlockLightEngine::getOrCreateEmptinessMap(i64 columnPos) {
+EmptinessMap* BlockStarLightEngine::getOrCreateEmptinessMap(i64 columnPos) {
     auto it = m_emptinessMaps.find(columnPos);
     if (it != m_emptinessMaps.end()) {
         return &it->second;

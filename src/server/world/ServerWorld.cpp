@@ -26,7 +26,7 @@ namespace mc::server {
 
 using mc::WorldLightManager;
 using mc::IChunk;
-using mc::IChunkLightProvider;
+using mc::StarLightLightingProvider;
 using mc::LightType;
 using mc::SectionPos;
 using mc::ChunkPos;
@@ -372,10 +372,10 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
                 flow(ctx);
         });
 
-        m_lightManager->checkBlock(changedPos);
+        m_lightManager->checkBlock(changedPos.x, changedPos.y, changedPos.z);
 
         if (newLightLevel > oldLightLevel) {
-            m_lightManager->onBlockEmissionIncrease(changedPos, newLightLevel);
+            m_lightManager->onBlockEmissionIncrease(changedPos.x, changedPos.y, changedPos.z, newLightLevel);
         }
     }
 
@@ -588,7 +588,7 @@ i32 ServerWorld::getHeight(i32 x, i32 z) const
 u8 ServerWorld::getBlockLight(i32 x, i32 y, i32 z) const
 {
     if (m_lightManager) {
-        return m_lightManager->getBlockLight(BlockPos(x, y, z));
+        return m_lightManager->getBlockLight(x, y, z);
     }
     return 0;
 }
@@ -596,7 +596,7 @@ u8 ServerWorld::getBlockLight(i32 x, i32 y, i32 z) const
 u8 ServerWorld::getSkyLight(i32 x, i32 y, i32 z) const
 {
     if (m_lightManager) {
-        return m_lightManager->getSkyLight(BlockPos(x, y, z));
+        return m_lightManager->getSkyLight(x, y, z);
     }
     return 15;
 }
@@ -883,7 +883,7 @@ void ServerWorld::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i3
 }
 
 // ============================================================================
-// IChunkLightProvider 接口实现
+// StarLightLightingProvider 接口实现
 // ============================================================================
 
 IChunk* ServerWorld::getChunkForLight(ChunkCoord x, ChunkCoord z)

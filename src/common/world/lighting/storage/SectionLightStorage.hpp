@@ -56,7 +56,7 @@ private:
 template<typename M>
 class SectionLightStorage {
 public:
-    SectionLightStorage(LightType type, IChunkLightProvider* provider, M&& dataMap)
+    SectionLightStorage(LightType type, StarLightLightingProvider* provider, M&& dataMap)
         : m_type(type)
         , m_chunkProvider(provider)
         , m_cachedLightData(std::move(dataMap)) {
@@ -211,7 +211,7 @@ public:
 
 protected:
     LightType m_type;
-    IChunkLightProvider* m_chunkProvider;
+    StarLightLightingProvider* m_chunkProvider;
     M m_cachedLightData;
     M m_newArrays;
 
