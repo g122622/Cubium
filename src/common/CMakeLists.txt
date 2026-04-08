@@ -671,6 +671,7 @@ add_library(mc_common STATIC
     world/lighting/storage/EmptinessMap.cpp
     world/lighting/storage/SWMRNibbleArray.cpp
     world/lighting/manager/WorldLightManager.cpp
+    world/lighting/LightInitializer.cpp
     # (header-only templates: LightType.hpp, IChunkLightProvider.hpp, SWMRLightDataMap.hpp, SectionLightStorage.hpp)
 
     # World - Fluid System

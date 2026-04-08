@@ -1,6 +1,7 @@
 #include "ChunkPrimer.hpp"
 #include "../block/BlockRegistry.hpp"
 #include "../WorldConstants.hpp"
+#include "../lighting/LightInitializer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -199,50 +200,16 @@ void ChunkPrimer::initializeSkyLight()
     // 获取世界表面高度图
     auto& surfaceWg = getHeightmap(HeightmapType::WorldSurfaceWG);
 
-    // 初始化天空光照
-    // 对每个 XZ 列，从顶部向下设置天空光照
-    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-        for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-            // 获取表面高度
-            i32 surfaceHeight = surfaceWg.getHeight(x, z);
-
-            // 从顶部到表面高度+1，天空光照为15
-            for (i32 y = world::MAX_BUILD_HEIGHT - 1; y > surfaceHeight; --y) {
-                m_data->setSkyLight(x, y, z, 15);
-            }
-
-            // 从表面向下递减
-            i32 skyLight = 15;
-            for (i32 y = surfaceHeight; y >= world::MIN_BUILD_HEIGHT; --y) {
-                const BlockState* state = m_data->getBlock(x, y, z);
-                if (state && !state->isAir()) {
-                    // 根据方块透明度衰减
-                    i32 opacity = state->getOpacity();
-                    if (opacity > 0) {
-                        skyLight = std::max(0, skyLight - std::max(1, opacity));
-                    }
-                }
-                m_data->setSkyLight(x, y, z, static_cast<u8>(skyLight));
-            }
-        }
-    }
+    // 委托给光照初始化器
+    LightInitializer::initializeSkyLight(*m_data, surfaceWg);
 }
 
 void ChunkPrimer::initializeBlockLight()
 {
     if (!m_data) return;
 
-    // 遍历所有发光方块
-    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-        for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-            for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
-                const BlockState* state = m_data->getBlock(x, y, z);
-                if (state && state->lightLevel() > 0) {
-                    m_data->setBlockLight(x, y, z, static_cast<u8>(state->lightLevel()));
-                }
-            }
-        }
-    }
+    // 委托给光照初始化器
+    LightInitializer::initializeBlockLight(*m_data);
 }
 
 // ============================================================================
