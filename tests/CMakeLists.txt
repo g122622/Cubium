@@ -80,6 +80,7 @@ add_executable(mc_tests
     server/weather/WeatherManagerTest.cpp
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
+    client/world/ClientWorldLightUpdateTest.cpp
     client/renderer/test_renderer.cpp
     client/renderer/test_trident_api.cpp
     client/renderer/test_cloud_renderer.cpp
@@ -429,6 +430,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/math/ray/Raycast.cpp
         # 设置系统
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         # 网格构建线程池
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildScheduler.cpp

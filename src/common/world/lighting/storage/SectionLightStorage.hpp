@@ -5,6 +5,8 @@
 #include "../IChunkLightProvider.hpp"
 #include "../engine/LightEngineUtils.hpp"
 #include "../../chunk/ChunkPos.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
@@ -140,6 +142,13 @@ public:
     }
 
     void processAllLevelUpdates() {
+        MC_TRACE_EVENT("server.lighting", "SectionLightStorage::processAllLevelUpdates",
+                         "type", (m_type == LightType::SKY) ? "Sky" : "Block",
+                         "newArrays", m_newArrays.size(),
+                         "noLightSections", m_noLightSections.size(),
+                         "addedActiveSections", m_addedActiveSections.size(),
+                         "addedEmptySections", m_addedEmptySections.size());
+
         // 处理区块段状态变化
         if (!m_addedActiveSections.empty()) {
             for (i64 sectionPos : m_addedActiveSections) {
@@ -190,6 +199,9 @@ public:
     }
 
     void updateAndNotify() {
+        MC_TRACE_EVENT("server.lighting", "SectionLightStorage::updateAndNotify",
+                         "type", (m_type == LightType::SKY) ? "Sky" : "Block");
+
         // 同步所有更新到可见侧
         m_cachedLightData.updateVisible();
 

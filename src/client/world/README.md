@@ -27,7 +27,7 @@ src/client/world/
 - 接收服务端区块包并维护 `ClientChunk` 映射。
 - 驱动“独立调度器 + 纯执行器”的网格构建管线。
 - 回收最新代际网格结果并标记 GPU 上传。
-- 处理时间、天气、光照同步与方块查询。
+- 处理时间、天气、光照同步与方块查询，并在光照连发时按区块合并重建请求。
 
 核心接口：
 - 生命周期：`initialize(seed)`、`destroy()`。
@@ -135,12 +135,15 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
   - 旧结果会在调度器层丢弃。
 - 被调度器提前取消的 pending 任务不会产生 worker 结果。
   - `ClientWorld::update()` 会用 `MeshBuildScheduler::isTaskTracked()` 回收失效 `activeMeshTaskId`，并对“视锥内且尚无 mesh 结果”的区块进行补提，避免区块长期不出网格。
+- 光照包不要直接当成“立即重建”事件处理。
+  - `onLightUpdate()` 现在会先标记 `meshRebuildPending`，如果同一 chunk 的网格任务还在路上，就等当前任务结束后再补提，避免单个 chunk 被光照更新线性打爆。
 
 ## 9. 测试用例
 
 直接相关：
 - `tests/client/test_mesh_build_scheduler.cpp`
 - `tests/client/test_mesh_worker_pool.cpp`
+- `tests/client/world/ClientWorldLightUpdateTest.cpp`
 
 间接相关：
 - `tests/client/renderer/test_renderer.cpp`（`ChunkMesher` 构建路径）
@@ -148,24 +151,28 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
 建议命令：
 
 ```powershell
-ctest --test-dir build -C RelWithDebInfo -R "MeshBuildSchedulerTest|MeshWorkerPoolTest|ChunkMesher" --output-on-failure
+ctest --test-dir build -C RelWithDebInfo -R "MeshBuildSchedulerTest|MeshWorkerPoolTest|ClientWorldLightUpdateTest|ChunkMesher" --output-on-failure
 ```
 
 ## 10. Mermaid 图表
 
 ```mermaid
 flowchart TD
-    A[onChunkData] --> B[deserialize ChunkData]
-    B --> C[scheduleChunkMeshRebuild]
-    C --> D[MeshBuildScheduler.submit]
-    D --> E[MeshWorkerPool.execute]
-    E --> F[ChunkMesher.generateSplitMesh]
-    F --> G[MeshBuildScheduler.drainCompleted]
-    G --> H[ClientChunk mesh更新]
-    H --> I[forEachDirtyMesh -> GPU上传]
+  A[onChunkData/onLightUpdate] --> B[更新 ChunkData / 光照数据]
+  B --> C{activeMeshTaskId?}
+  C -->|是| D[标记 meshRebuildPending]
+  C -->|否| E[scheduleChunkMeshRebuild]
+  D --> F[等待当前任务完成]
+  F --> E
+  E --> G[MeshBuildScheduler.submit]
+  G --> H[MeshWorkerPool.execute]
+  H --> I[ChunkMesher.generateSplitMesh]
+  I --> J[MeshBuildScheduler.drainCompleted]
+  J --> K[ClientChunk mesh更新]
+  K --> L[forEachDirtyMesh -> GPU上传]
 
     style A fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#111
-    style D fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#111
-    style E fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#111
-    style I fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#111
+  style C fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#111
+  style E fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#111
+  style J fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#111
 ```

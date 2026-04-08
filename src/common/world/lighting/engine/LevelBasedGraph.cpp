@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
+#include "common/perfetto/TraceEvents.hpp"
+
 namespace mc {
 
 namespace {
@@ -180,6 +182,11 @@ void StarLightEngine::cancelUpdates(const std::function<bool(i64)>& predicate) {
 }
 
 i32 StarLightEngine::processUpdates(i32 maxUpdates) {
+    MC_TRACE_EVENT("server.lighting", "StarLightEngine::processUpdates",
+                     "maxUpdates", maxUpdates,
+                     "increaseQueueLength", m_increaseQueueInitialLength,
+                     "decreaseQueueLength", m_decreaseQueueInitialLength);
+
     // 先处理减亮队列（减少光照）
     if (m_decreaseQueueInitialLength > 0) {
         maxUpdates = processDecreaseQueue(maxUpdates);

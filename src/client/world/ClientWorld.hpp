@@ -29,7 +29,7 @@ struct ClientChunk {
     MeshData transparentMesh;
     bool hasMeshResult = false;
     bool needsMeshUpdate = true;
-    bool isGenerating = false;
+    bool meshRebuildPending = false;
     bool isLoaded = false;
     u64 activeMeshTaskId = 0;
 };
@@ -127,6 +127,7 @@ public:
 private:
     void rebuildMesh(ClientChunk& chunk);
     void scheduleChunkMeshRebuild(const ChunkId& id);
+    void requestChunkMeshRebuild(const ChunkId& id);
     void scheduleNeighborMeshRebuild(const ChunkId& id);
     void scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount);
 

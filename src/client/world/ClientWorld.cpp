@@ -309,7 +309,8 @@ void ClientWorld::markChunkDirty(const ChunkId& id)
     }
 
     chunk->hasMeshResult = false;
-    chunk->needsMeshUpdate = true;
+    chunk->needsMeshUpdate = false;
+    chunk->meshRebuildPending = true;
 }
 
 void ClientWorld::rebuildMesh(ClientChunk& chunk)
@@ -329,6 +330,7 @@ void ClientWorld::rebuildMesh(ClientChunk& chunk)
         nullptr
     );
 
+    chunk.meshRebuildPending = false;
     chunk.hasMeshResult = true;
     chunk.needsMeshUpdate = true;
 }
@@ -341,6 +343,8 @@ void ClientWorld::scheduleChunkMeshRebuild(const ChunkId& id)
     }
 
     chunk->hasMeshResult = false;
+    chunk->needsMeshUpdate = false;
+    chunk->meshRebuildPending = false;
 
     if (m_meshBuildScheduler && m_meshWorkerPool && m_meshWorkerPool->isRunning()) {
         MeshBuildRequest request;
@@ -357,6 +361,24 @@ void ClientWorld::scheduleChunkMeshRebuild(const ChunkId& id)
 
     rebuildMesh(*chunk);
     chunk->activeMeshTaskId = 0;
+}
+
+void ClientWorld::requestChunkMeshRebuild(const ChunkId& id)
+{
+    ClientChunk* chunk = getChunk(id);
+    if (!chunk || !chunk->data || !chunk->isLoaded) {
+        return;
+    }
+
+    chunk->hasMeshResult = false;
+    chunk->needsMeshUpdate = false;
+    chunk->meshRebuildPending = true;
+
+    if (chunk->activeMeshTaskId != 0) {
+        return;
+    }
+
+    scheduleChunkMeshRebuild(id);
 }
 
 void ClientWorld::scheduleNeighborMeshRebuild(const ChunkId& id)
@@ -615,13 +637,27 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
                 return;
             }
 
+            const bool shouldResubmit = chunk->meshRebuildPending;
+
             if (result.cancelled || !result.success) {
+                chunk->meshRebuildPending = false;
                 chunk->activeMeshTaskId = 0;
+                if (shouldResubmit) {
+                    requestChunkMeshRebuild(result.chunkId);
+                }
+                return;
+            }
+
+            if (shouldResubmit) {
+                chunk->meshRebuildPending = false;
+                chunk->activeMeshTaskId = 0;
+                requestChunkMeshRebuild(result.chunkId);
                 return;
             }
 
             chunk->solidMesh = std::move(result.solidMesh);
             chunk->transparentMesh = std::move(result.transparentMesh);
+            chunk->meshRebuildPending = false;
             chunk->hasMeshResult = true;
             chunk->needsMeshUpdate = true;
             chunk->activeMeshTaskId = 0;
@@ -688,8 +724,7 @@ void ClientWorld::onLightUpdate(
         section->blockLightNibble() = NibbleArray(blockLight);
     }
 
-    chunk->hasMeshResult = false;
-    scheduleChunkMeshRebuild(id);
+    requestChunkMeshRebuild(id);
 }
 
 } // namespace mc::client

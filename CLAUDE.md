@@ -379,6 +379,10 @@ enum class Operation : u8 { ... };
 - New client tests cover the refactored path:
     - `tests/client/test_mesh_worker_pool.cpp`
     - `tests/client/test_mesh_build_scheduler.cpp`
+- Client-side light updates are now coalesced per chunk before mesh resubmission:
+    - `ClientWorld::onLightUpdate()` marks `meshRebuildPending` instead of blindly re-submitting while `activeMeshTaskId` is still in flight.
+    - repeated light packets for the same chunk no longer create one mesh task per packet.
+    - `tests/client/world/ClientWorldLightUpdateTest.cpp` covers the burst case.
 - Sky/block light propagation core has been realigned closer to Moonrise/Starlight behavior:
     - `LevelBasedGraph` queue entries now store full world positions (`i64 pos`) instead of truncated packed local bits
     - increase/decrease queue flow now follows a Starlight-style “decrease first, then re-propagate surviving sources” pattern
@@ -485,6 +489,8 @@ enum class Operation : u8 { ... };
     - Raw coordinates are the canonical surface for lighting dispatch now.
 - When mirroring Starlight branch flow, keep raw light-level handling local to the entrypoint and convert before queueing if the propagation core still expects internal levels.
     - Feeding raw source levels straight into the propagation queues will desynchronize the current inverse-level storage model.
+- Do not treat client light packets as immediate mesh rebuild triggers.
+    - `ClientWorld` now uses `meshRebuildPending` to coalesce repeated `onLightUpdate()` calls for the same chunk while a task is still active.
 
 ## Self-Maintenance Rule
 

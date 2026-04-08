@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "common/perfetto/TraceEvents.hpp"
+
 namespace mc {
 
 /**
@@ -87,6 +89,11 @@ private:
 
 template<typename E>
 i32 SkyLightStorage::updateSections(E* engine, i32 remainingUpdates, bool updateSkyLight, bool updateBlockLight) {
+    MC_TRACE_EVENT("server.lighting", "SkyLightStorage::updateSections",
+                     "remainingUpdates", remainingUpdates,
+                     "updateSkyLight", updateSkyLight,
+                     "updateBlockLight", updateBlockLight);
+
     (void)updateBlockLight;
 
     if (!updateSkyLight) {

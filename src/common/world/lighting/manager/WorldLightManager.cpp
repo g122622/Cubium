@@ -47,6 +47,14 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
 }
 
 void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel) {
+    MC_TRACE_INSTANT("server.lighting",
+        "WorldLightManager::onBlockEmissionIncrease",
+        "pos", fmt::format("({}, {}, {})", x, y, z),
+        "lightLevel", lightLevel,
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_blockLight != nullptr) {
@@ -103,6 +111,14 @@ void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
 }
 
 void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable) {
+    MC_TRACE_INSTANT("server.lighting",
+        "WorldLightManager::enableLightSources",
+        "chunkPos", fmt::format("({}, {})", pos.x, pos.z),
+        "enable", enable,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     // 区块列位置编码
