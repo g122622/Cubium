@@ -19,23 +19,23 @@ cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools
 # 编译
 chcp 65001 # 务必记得先执行这一行，避免中文乱码
 
-# 注：即使在开发过程中，也要尽量使用Release构建，因为Debug运行非常慢，除非必要否则不要用。
+# 注：即使在开发过程中，也要尽量使用RelWithDebInfo构建，因为Debug运行非常慢，除非必要否则不要用。
 # 这行命令除了编译cpp代码之外，还会编译着色器
-cmake --build build --config Release
+cmake --build build --config RelWithDebInfo
 # 构建过程可能出现“cl : 命令行  error D8040: 创建子进程或与子进程通讯时出错”这种错误，此时只需要重新跑一遍构建命令就行，不用清理构建目录、不用重新生成构建脚本。
 
 # 运行测试
 # 强烈建议只运行特定测试并设置brief，运行全部测试会更慢（测试用例有几千个），且很快就会耗尽上下文，导致你无法有效地分析测试结果。
 # 建议只在全部编码工作完成之后运行回归测试的时候才运行全部测试，且也要启用brief。
-./build/bin/Release/mc_tests.exe --gtest_filter=ChunkWorkerPoolTest.* --gtest_brief=1
+./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter=ChunkWorkerPoolTest.* --gtest_brief=1
 
 ```
 
 # 运行服务端
-./build/bin/Release/minecraft-server.exe --help
+./build/bin/RelWithDebInfo/minecraft-server.exe --help
 
 # 运行客户端
-./build/bin/Release/minecraft-client.exe
+./build/bin/RelWithDebInfo/minecraft-client.exe
 ```
 
 增加新的着色器之后要在shaders\CMakeLists.txt中新增文件
@@ -64,7 +64,7 @@ glslc shaders/debug.frag -o build/shaders/debug.frag.spv
 ```powershell
 # 重新配置并编译
 cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build --config Debug
+cmake --build build --config RelWithDebInfo
 ```
 
 ## 依赖
@@ -79,34 +79,3 @@ cmake --build build --config Debug
 - **asio** - 网络 (异步 I/O)
 - **GTest** - 测试框架
 - **stb** - 图像加载
-
-## 项目结构
-
-```
-src/
-├── common/          # 客户端和服务端共享代码
-│   ├── core/        # 类型、结果、常量
-│   ├── math/        # 数学工具、噪声
-│   ├── network/     # 数据包、序列化
-│   ├── world/       # 方块、区块、地形生成
-│   └── renderer/    # 网格数据、区块网格生成
-├── server/          # 服务端应用
-│   ├── application/ # 服务器应用、主循环
-│   └── network/     # TCP 服务器、会话管理
-├── client/          # 客户端应用
-│   ├── application/ # 客户端应用、游戏循环
-│   ├── window/      # 窗口管理 (GLFW)
-│   ├── input/       # 输入管理
-│   └── renderer/    # Vulkan 渲染
-└── shaders/         # GLSL 着色器
-```
-
-## 测试
-
-```powershell
-# 运行所有测试
-./build/bin/Debug/mc_tests.exe
-
-# 运行特定测试
-./build/bin/Debug/mc_tests.exe --gtest_filter="BlockGeometry.*"
-```
