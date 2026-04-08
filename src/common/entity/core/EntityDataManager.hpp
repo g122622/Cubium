@@ -175,7 +175,7 @@ public:
         if (it == m_entries.end()) {
             return T{};
         }
-        return it->second.value.get<T>();
+        return it->second.value.template get<T>();
     }
 
     /**

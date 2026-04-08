@@ -97,7 +97,7 @@ public:
      * @brief 检查漏斗是否为空
      * @return 如果所有槽位都为空返回true
      */
-    [[nodiscard]] bool isEmpty() const { return m_inventory.isEmpty(); }
+    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
 
     /**
      * @brief 检查漏斗是否已满

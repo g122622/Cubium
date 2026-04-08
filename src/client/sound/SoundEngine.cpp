@@ -34,7 +34,7 @@ Result<void> SoundEngine::initialize() {
     }
 
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("SoundEngine_Initialize");
+        MC_TRACE_CLIENT_SOUND_EVENT("SoundEngine_Initialize", "phase", "begin");
     }
 
     spdlog::info("[SoundEngine] Initializing sound engine...");
@@ -44,7 +44,7 @@ Result<void> SoundEngine::initialize() {
     auto startLoad = std::chrono::steady_clock::now();
 
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_Reload");
+        MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_Reload", "phase", "reload");
         auto reloadResult = m_handler.reload();
         if (!reloadResult.success()) {
             spdlog::warn("[SoundEngine] Failed to load sound events: {}", reloadResult.error().message());
@@ -60,7 +60,7 @@ Result<void> SoundEngine::initialize() {
 
     // 创建音频后端
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_Create");
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_Create", "phase", "create_backend");
         m_backend = createOpenALBackend();
     }
     if (!m_backend) {
@@ -70,7 +70,7 @@ Result<void> SoundEngine::initialize() {
 
     // 初始化音频后端
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_Initialize");
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_Initialize", "phase", "initialize_backend");
         auto result = m_backend->initialize();
         if (!result.success()) {
             m_backend.reset();
@@ -80,13 +80,13 @@ Result<void> SoundEngine::initialize() {
 
     // 创建声音加载器
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("SoundLoader_Create");
+        MC_TRACE_CLIENT_SOUND_EVENT("SoundLoader_Create", "phase", "create_loader");
         m_loader = std::make_unique<SoundLoader>(m_handler.getResourcePacks());
     }
 
     // 创建缓冲区管理器（简化实现，不使用后端创建缓冲区）
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("BufferManager_Create");
+        MC_TRACE_CLIENT_SOUND_EVENT("BufferManager_Create", "phase", "create_buffer_manager");
         m_bufferManager = std::make_unique<AudioBufferManager>();
     }
 

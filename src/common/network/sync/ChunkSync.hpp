@@ -66,7 +66,8 @@ struct ChunkView {
      */
     void getChunksInView(std::vector<ChunkPos>& out) const {
         out.clear();
-        out.reserve(static_cast<size_t>(viewDistance * 2 + 1) * (viewDistance * 2 + 1));
+        const size_t diameter = static_cast<size_t>(viewDistance) * 2 + 1;
+        out.reserve(diameter * diameter);
 
         for (ChunkCoord x = centerX - viewDistance; x <= centerX + viewDistance; ++x) {
             for (ChunkCoord z = centerZ - viewDistance; z <= centerZ + viewDistance; ++z) {

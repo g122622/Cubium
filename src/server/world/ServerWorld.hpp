@@ -186,10 +186,10 @@ public:
 
     // ========== 实体管理 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity);
     std::unique_ptr<Entity> removeEntity(EntityId id);
-    [[nodiscard]] Entity* getEntity(EntityId id);
-    [[nodiscard]] const Entity* getEntity(EntityId id) const;
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override;
+    [[nodiscard]] Entity* getEntity(EntityId id) override;
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override;
     [[nodiscard]] bool hasEntity(EntityId id) const;
     [[nodiscard]] size_t entityCount() const;
 
@@ -212,9 +212,9 @@ public:
     [[nodiscard]] const world::tick::TickManager& tickManager() const { return *m_tickManager; }
 
     void scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay,
-                          world::tick::TickPriority priority = world::tick::TickPriority::Normal);
+                          world::tick::TickPriority priority = world::tick::TickPriority::Normal) override;
     void scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay,
-                          world::tick::TickPriority priority = world::tick::TickPriority::Normal);
+                          world::tick::TickPriority priority = world::tick::TickPriority::Normal) override;
 
     // ========== StarLightLightingProvider 接口实现 ==========
 

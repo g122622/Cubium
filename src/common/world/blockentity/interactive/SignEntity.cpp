@@ -20,7 +20,7 @@ const String& SignEntity::getLine(i32 line) const {
     if (line < 0 || line >= LINE_COUNT) {
         return empty;
     }
-    return m_lines[line];
+    return m_lines[static_cast<std::size_t>(line)];
 }
 
 bool SignEntity::setLine(i32 line, const String& text) {
@@ -34,13 +34,13 @@ bool SignEntity::setLine(i32 line, const String& text) {
         return false;
     }
 
-    m_lines[line] = validated;
+    m_lines[static_cast<std::size_t>(line)] = validated;
     setChanged();
     return true;
 }
 
 void SignEntity::setLines(const std::array<String, LINE_COUNT>& lines) {
-    for (i32 i = 0; i < LINE_COUNT; ++i) {
+    for (std::size_t i = 0; i < m_lines.size(); ++i) {
         m_lines[i] = truncateText(lines[i]);
     }
     setChanged();

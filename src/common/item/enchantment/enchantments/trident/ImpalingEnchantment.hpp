@@ -59,7 +59,7 @@ public:
      * @param entityType 实体类型
      * @return 额外伤害
      */
-    [[nodiscard]] static f32 getDamageBonus(i32 level, u32 entityType) {
+    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override {
         // 水生生物类型常量
         constexpr u32 EntityTypeAquatic = 10;  // 海洋生物：鱼、鱿鱼、海龟、海豚等
 

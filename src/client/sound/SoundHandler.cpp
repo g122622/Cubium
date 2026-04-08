@@ -98,7 +98,7 @@ Result<void> SoundHandler::reload() {
             // 加载新发现的命名空间
             for (const auto& namespace_ : foundNamespaces) {
                 {
-                    MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_LoadSoundsJson");
+                    MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_LoadSoundsJson", "phase", "load_sounds_json");
                     auto result = loadSoundsJson(*pack, namespace_);
                     if (result.success()) {
                         progress.loadedEvents += result.value();

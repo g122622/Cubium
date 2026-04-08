@@ -540,9 +540,9 @@ public:
     void deserialize(const nlohmann::json& j) override {
         if (j.contains(m_key)) {
             if (j[m_key].is_string()) {
-                setByName(j[m_key].get<String>());
+                setByName(j[m_key].template get<String>());
             } else if (j[m_key].is_number()) {
-                set(static_cast<T>(j[m_key].get<i32>()));
+                set(static_cast<T>(j[m_key].template get<i32>()));
             }
         }
     }

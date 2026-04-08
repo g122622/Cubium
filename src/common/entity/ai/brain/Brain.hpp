@@ -16,6 +16,18 @@
 #include <functional>
 #include <any>
 
+// std::hash 特化用于 MemoryRequirement pair
+namespace std {
+template<>
+struct hash<std::pair<const mc::entity::ai::brain::memory::MemoryModuleTypeBase*, mc::entity::ai::brain::memory::MemoryModuleStatus>> {
+    size_t operator()(const std::pair<const mc::entity::ai::brain::memory::MemoryModuleTypeBase*, mc::entity::ai::brain::memory::MemoryModuleStatus>& p) const noexcept {
+        auto h1 = reinterpret_cast<size_t>(p.first);
+        auto h2 = static_cast<size_t>(p.second);
+        return h1 ^ (h2 << 1);
+    }
+};
+} // namespace std
+
 namespace mc {
 
 // Forward declarations

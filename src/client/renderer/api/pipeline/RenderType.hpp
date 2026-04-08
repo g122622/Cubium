@@ -1,8 +1,8 @@
 #pragma once
 
 #include "RenderState.hpp"
-#include "../../../common/core/Types.hpp"
-#include "../../../common/resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <string>
 #include <functional>
 

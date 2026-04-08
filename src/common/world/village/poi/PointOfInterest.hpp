@@ -71,7 +71,7 @@ public:
      * @brief 检查是否已被占用
      * @return 是否有所有者
      */
-    [[nodiscard]] bool isOccupied() const { return m_tickets.size() >= m_maxTickets; }
+    [[nodiscard]] bool isOccupied() const { return m_tickets.size() >= static_cast<std::size_t>(m_maxTickets); }
 
     /**
      * @brief 检查是否可被指定实体占用

@@ -291,8 +291,8 @@ public:
     /**
      * @brief 将短整型解包为方块坐标
      */
-    [[nodiscard]] static void unpackFromLocal(u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ,
-                                               BlockCoord& x, BlockCoord& y, BlockCoord& z);
+    static void unpackFromLocal(u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ,
+                                BlockCoord& x, BlockCoord& y, BlockCoord& z);
 
 private:
     ChunkCoord m_x;

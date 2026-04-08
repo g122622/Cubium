@@ -58,7 +58,7 @@ void MinecraftServer::shutdown()
 
 void MinecraftServer::tick()
 {
-    MC_TRACE_EVENT("server.tick", "MinecraftServerTick");
+    MC_TRACE_EVENT("server.tick", "MinecraftServerTick", "phase", "server_tick");
 
     if (!m_running.load()) {
         return;
@@ -411,23 +411,23 @@ void MinecraftServer::shutdownManagers()
 
 void MinecraftServer::tickCore()
 {
-    MC_TRACE_EVENT("server.tick", "CoreTick");
+    MC_TRACE_EVENT("server.tick", "CoreTick", "phase", "core_tick");
 
     // 更新时间
     {
-        MC_TRACE_EVENT("server.tick", "TickTime");
+        MC_TRACE_EVENT("server.tick", "TickTime", "phase", "time");
         m_timeManager->tick();
     }
 
     // 更新天气
     if (m_world && m_world->weatherManager()) {
-        MC_TRACE_EVENT("server.tick", "TickWeather");
+        MC_TRACE_EVENT("server.tick", "TickWeather", "phase", "weather");
         m_world->weatherManager()->tick();
     }
 
     // 清理断开连接的玩家
     if (m_tickCounter % CLEANUP_INTERVAL == 0) {
-        MC_TRACE_EVENT("server.player", "CleanupDisconnected");
+        MC_TRACE_EVENT("server.player", "CleanupDisconnected", "phase", "cleanup");
         std::vector<PlayerId> removedPlayers;
         m_connectionManager->cleanupDisconnectedPlayers(&removedPlayers);
         // 清理玩家相关的追踪和票据
@@ -441,7 +441,7 @@ void MinecraftServer::tickCore()
 
     // 检查心跳超时
     if (m_tickCounter % KEEPALIVE_INTERVAL == 0) {
-        MC_TRACE_EVENT("server.network", "CheckKeepAliveTimeout");
+        MC_TRACE_EVENT("server.network", "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
         u64 currentTickMs = currentTick() * 50;  // 50ms per tick
         auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTickMs);
         for (PlayerId playerId : timedOutPlayers) {
@@ -462,7 +462,7 @@ void MinecraftServer::tickEntities()
 {
     if (!m_world) return;
 
-    MC_TRACE_EVENT("server.tick", "EntityTick");
+    MC_TRACE_EVENT("server.tick", "EntityTick", "phase", "entities");
     m_world->entityManager().tick();
 
     // 物品拾取处理
@@ -496,7 +496,7 @@ void MinecraftServer::tickKeepAlive()
     u64 tick = currentTick();
     if (tick - m_lastKeepAliveTick >= KEEPALIVE_INTERVAL) {
         m_lastKeepAliveTick = tick;
-        MC_TRACE_EVENT("server.network", "SendKeepAlive");
+        MC_TRACE_EVENT("server.network", "SendKeepAlive", "phase", "keepalive_send");
         sendKeepAliveToAll();
     }
 }
@@ -520,7 +520,7 @@ void MinecraftServer::sendTimeUpdate()
 
 void MinecraftServer::sendWeatherUpdate()
 {
-    MC_TRACE_EVENT("server.tick", "sendWeatherUpdate");
+    MC_TRACE_EVENT("server.tick", "sendWeatherUpdate", "phase", "weather_sync");
 
     if (!m_world || !m_world->weatherManager()) return;
 

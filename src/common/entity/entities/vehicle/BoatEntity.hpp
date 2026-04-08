@@ -41,7 +41,7 @@ public:
     void tick() override;
 
     // Boat-specific methods
-    [[nodiscard]] bool isInWater() const { return m_inWater; }
+    [[nodiscard]] bool isInWater() const override { return m_inWater; }
     [[nodiscard]] f32 getBoatSpeed() const { return m_speed; }
     void setBoatSpeed(f32 speed) { m_speed = speed; }
 

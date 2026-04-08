@@ -338,9 +338,9 @@ u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count) {
     }
 
     std::vector<ALuint> alBuffers(count);
-    ALsizei processed = 0;
+    const size_t processed = count;
 
-    alSourceUnqueueBuffers(m_source, static_cast<ALsizei>(count), alBuffers.data());
+    alSourceUnqueueBuffers(m_source, static_cast<ALsizei>(processed), alBuffers.data());
 
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
@@ -350,8 +350,7 @@ u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count) {
 
     // 将 ALuint 转换回 AudioBufferId
     // 这是一个简化实现，需要实际的映射
-    processed = static_cast<ALsizei>(count);
-    for (ALsizei i = 0; i < processed; ++i) {
+    for (size_t i = 0; i < processed; ++i) {
         buffers[i] = static_cast<AudioBufferId>(alBuffers[i]);
     }
 
@@ -518,7 +517,7 @@ Result<void> OpenALBackend::initialize() {
 
     // 打开默认音频设备
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_OpenDevice");
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_OpenDevice", "phase", "open_device");
         m_device = alcOpenDevice(nullptr);
     }
     if (!m_device) {
@@ -528,7 +527,7 @@ Result<void> OpenALBackend::initialize() {
 
     // 创建上下文
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_CreateContext");
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_CreateContext", "phase", "create_context");
         m_context = alcCreateContext(m_device, nullptr);
     }
     if (!m_context) {
@@ -542,7 +541,7 @@ Result<void> OpenALBackend::initialize() {
 
     // 激活上下文
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_MakeContextCurrent");
+        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_MakeContextCurrent", "phase", "make_context_current");
         if (!alcMakeContextCurrent(m_context)) {
             alcDestroyContext(m_context);
             alcCloseDevice(m_device);
@@ -574,7 +573,7 @@ Result<void> OpenALBackend::initialize() {
 
     // 设置默认距离模型
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
-    checkALError("alDistanceModel");
+    static_cast<void>(checkALError("alDistanceModel"));
 
     // 设置默认听者属性
     setListenerPosition(glm::vec3(0.0f));
@@ -624,7 +623,7 @@ void OpenALBackend::setListenerPosition(const glm::vec3& position) {
     }
 
     alListener3f(AL_POSITION, position.x, position.y, position.z);
-    checkALError("setListenerPosition");
+    static_cast<void>(checkALError("setListenerPosition"));
     m_listenerPosition = position;
 }
 
@@ -642,7 +641,7 @@ void OpenALBackend::setListenerOrientation(const glm::vec3& forward, const glm::
         up.x, up.y, up.z
     };
     alListenerfv(AL_ORIENTATION, orientation);
-    checkALError("setListenerOrientation");
+    static_cast<void>(checkALError("setListenerOrientation"));
     m_listenerForward = forward;
     m_listenerUp = up;
 }
@@ -661,7 +660,7 @@ void OpenALBackend::setListenerVelocity(const glm::vec3& velocity) {
     }
 
     alListener3f(AL_VELOCITY, velocity.x, velocity.y, velocity.z);
-    checkALError("setListenerVelocity");
+    static_cast<void>(checkALError("setListenerVelocity"));
     m_listenerVelocity = velocity;
 }
 
@@ -675,7 +674,7 @@ void OpenALBackend::setListenerGain(f32 gain) {
     }
 
     alListenerf(AL_GAIN, std::max(0.0f, gain));
-    checkALError("setListenerGain");
+    static_cast<void>(checkALError("setListenerGain"));
     m_listenerGain = gain;
 }
 
@@ -759,7 +758,8 @@ Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource() {
     // 分配 ID
     AudioSourceId id = m_nextSourceId++;
 
-    return std::make_unique<OpenALSource>(id, source);
+    std::unique_ptr<IAudioSource> audioSource = std::make_unique<OpenALSource>(id, source);
+    return audioSource;
 }
 
 u32 OpenALBackend::getAvailableSources() const noexcept {

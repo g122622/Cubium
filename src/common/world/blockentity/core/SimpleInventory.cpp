@@ -6,12 +6,12 @@ namespace mc {
 namespace blockentity {
 
 SimpleInventory::SimpleInventory(i32 size)
-    : m_items(size) {
+    : m_items(static_cast<std::size_t>(size)) {
     MC_ASSERT(size > 0 && "Inventory size must be positive");
 }
 
 SimpleInventory::SimpleInventory(i32 size, std::function<void()> onChanged)
-    : m_items(size)
+    : m_items(static_cast<std::size_t>(size))
     , m_onChanged(std::move(onChanged)) {
     MC_ASSERT(size > 0 && "Inventory size must be positive");
 }
@@ -29,18 +29,19 @@ ItemStack SimpleInventory::getItem(i32 slot) const {
     if (!isValidSlot(slot)) {
         return ItemStack();
     }
-    return m_items[slot];
+    return m_items[static_cast<std::size_t>(slot)];
 }
 
 void SimpleInventory::setItem(i32 slot, const ItemStack& stack) {
     MC_ASSERT(isValidSlot(slot) && "Slot index out of bounds");
+    const std::size_t slotIndex = static_cast<std::size_t>(slot);
 
     // 只在物品实际变化时触发回调
-    if (m_items[slot] == stack) {
+    if (m_items[slotIndex] == stack) {
         return;
     }
 
-    m_items[slot] = stack;
+    m_items[slotIndex] = stack;
     onChanged();
 }
 
@@ -49,7 +50,7 @@ ItemStack SimpleInventory::removeItem(i32 slot, i32 count) {
         return ItemStack();
     }
 
-    ItemStack& stack = m_items[slot];
+    ItemStack& stack = m_items[static_cast<std::size_t>(slot)];
     if (stack.isEmpty()) {
         return ItemStack();
     }
@@ -60,7 +61,7 @@ ItemStack SimpleInventory::removeItem(i32 slot, i32 count) {
 
     // 如果堆叠变空，清空槽位
     if (stack.isEmpty()) {
-        m_items[slot] = ItemStack();
+        m_items[static_cast<std::size_t>(slot)] = ItemStack();
     }
 
     onChanged();
@@ -72,8 +73,9 @@ ItemStack SimpleInventory::removeItemNoUpdate(i32 slot) {
         return ItemStack();
     }
 
-    ItemStack result = std::move(m_items[slot]);
-    m_items[slot] = ItemStack();
+    const std::size_t slotIndex = static_cast<std::size_t>(slot);
+    ItemStack result = std::move(m_items[slotIndex]);
+    m_items[slotIndex] = ItemStack();
     return result;
 }
 
@@ -93,7 +95,7 @@ bool SimpleInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
         return false;
     }
 
-    const ItemStack& existing = m_items[slot];
+    const ItemStack& existing = m_items[static_cast<std::size_t>(slot)];
     if (existing.isEmpty()) {
         return true;
     }
@@ -123,7 +125,7 @@ ItemStack SimpleInventory::addItem(const ItemStack& stack) {
     ItemStack remaining = stack;
 
     // 首先尝试堆叠到已有物品
-    for (i32 i = 0; i < static_cast<i32>(m_items.size()) && !remaining.isEmpty(); ++i) {
+    for (std::size_t i = 0; i < m_items.size() && !remaining.isEmpty(); ++i) {
         ItemStack& existing = m_items[i];
         if (!existing.isEmpty() && existing.canStackWith(remaining)) {
             const i32 maxCount = std::min(m_maxStackSize, existing.getMaxStackSize());
@@ -138,7 +140,7 @@ ItemStack SimpleInventory::addItem(const ItemStack& stack) {
     }
 
     // 然后尝试放入空槽位
-    for (i32 i = 0; i < static_cast<i32>(m_items.size()) && !remaining.isEmpty(); ++i) {
+    for (std::size_t i = 0; i < m_items.size() && !remaining.isEmpty(); ++i) {
         if (m_items[i].isEmpty()) {
             const i32 maxCount = std::min(m_maxStackSize, remaining.getMaxStackSize());
             const i32 toAdd = std::min(maxCount, remaining.getCount());
@@ -162,7 +164,7 @@ bool SimpleInventory::canAddItem(const ItemStack& stack) const {
     i32 remaining = stack.getCount();
 
     // 检查已有物品的可堆叠空间
-    for (i32 i = 0; i < static_cast<i32>(m_items.size()) && remaining > 0; ++i) {
+    for (std::size_t i = 0; i < m_items.size() && remaining > 0; ++i) {
         const ItemStack& existing = m_items[i];
         if (!existing.isEmpty() && existing.canStackWith(stack)) {
             const i32 maxCount = std::min(m_maxStackSize, existing.getMaxStackSize());
@@ -172,7 +174,7 @@ bool SimpleInventory::canAddItem(const ItemStack& stack) const {
     }
 
     // 检查空槽位
-    for (i32 i = 0; i < static_cast<i32>(m_items.size()) && remaining > 0; ++i) {
+    for (std::size_t i = 0; i < m_items.size() && remaining > 0; ++i) {
         if (m_items[i].isEmpty()) {
             const i32 maxCount = std::min(m_maxStackSize, stack.getMaxStackSize());
             remaining -= maxCount;
@@ -190,7 +192,7 @@ bool SimpleInventory::isSlotEmpty(i32 slot) const {
     if (!isValidSlot(slot)) {
         return true;
     }
-    return m_items[slot].isEmpty();
+    return m_items[static_cast<std::size_t>(slot)].isEmpty();
 }
 
 i32 SimpleInventory::getNonEmptySlotCount() const {
@@ -204,9 +206,9 @@ i32 SimpleInventory::getNonEmptySlotCount() const {
 }
 
 void SimpleInventory::forEachItem(std::function<bool(i32 slot, const ItemStack& stack)> consumer) const {
-    for (i32 i = 0; i < static_cast<i32>(m_items.size()); ++i) {
+    for (std::size_t i = 0; i < m_items.size(); ++i) {
         if (!m_items[i].isEmpty()) {
-            if (!consumer(i, m_items[i])) {
+            if (!consumer(static_cast<i32>(i), m_items[i])) {
                 break;
             }
         }

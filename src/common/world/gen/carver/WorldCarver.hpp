@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include <BitSet>
+#include <bitset>
 
 namespace mc {
 

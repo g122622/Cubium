@@ -2,6 +2,7 @@
 
 #include "../../../../core/Types.hpp"
 #include <memory>
+#include <functional>
 
 namespace mc {
 namespace entity {
@@ -25,3 +26,15 @@ enum class MemoryModuleStatus {
 } // namespace ai
 } // namespace entity
 } // namespace mc
+
+// std::hash 特化 - 用于 std::unordered_set/std::unordered_map
+namespace std {
+
+template<>
+struct hash<mc::entity::ai::brain::memory::MemoryModuleStatus> {
+    size_t operator()(mc::entity::ai::brain::memory::MemoryModuleStatus status) const noexcept {
+        return static_cast<size_t>(status);
+    }
+};
+
+} // namespace std

@@ -156,6 +156,8 @@ public:
  */
 class WorldGenRegion : public IWorldWriter {
 public:
+    using IWorldWriter::setBlock;
+
     /**
      * @brief 构造世界生成区域
      * @param mainX 主区块 X
@@ -233,7 +235,7 @@ private:
     [[nodiscard]] i32 worldToChunkIndex(i32 x, i32 z) const;
 
     // 将世界坐标转换为本地坐标
-    [[nodiscard]] static void worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ);
+    static void worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ);
 };
 
 // ============================================================================

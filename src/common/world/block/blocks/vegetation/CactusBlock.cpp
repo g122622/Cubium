@@ -16,7 +16,7 @@ CactusBlock::CactusBlock(const BlockProperties& properties)
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::AGE_0_15())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -26,7 +26,7 @@ CactusBlock::CactusBlock(const BlockProperties& properties)
 
     // 仙人掌形状：稍小的方块
     CollisionShape cactusShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
-    for (int i = 0; i < 16; ++i) {
+    for (std::size_t i = 0; i < m_shapesByAge.size(); ++i) {
         m_shapesByAge[i] = cactusShape;
     }
 }
@@ -147,11 +147,15 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
         i32 age = getAge(state);
         if (age >= 15) {
             // 生长新的仙人掌
-            world.setBlockState(abovePos.x, abovePos.y, abovePos.z, &defaultState(), 2);
-            world.setBlockState(pos.x, pos.y, pos.z, &withAge(0), 2);
+            auto newTopState = defaultState();
+            world.setBlockState(abovePos.x, abovePos.y, abovePos.z, &newTopState, 2);
+
+            auto resetState = withAge(0);
+            world.setBlockState(pos.x, pos.y, pos.z, &resetState, 2);
         } else {
             // 增加年龄
-            world.setBlockState(pos.x, pos.y, pos.z, &withAge(age + 1), 2);
+            auto agedState = withAge(age + 1);
+            world.setBlockState(pos.x, pos.y, pos.z, &agedState, 2);
         }
     }
 }
@@ -160,7 +164,7 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
 
 const CollisionShape& CactusBlock::getShape(const BlockState& state) const {
     i32 age = getAge(state);
-    return m_shapesByAge[std::min(age, 15)];
+    return m_shapesByAge[static_cast<std::size_t>(std::min(age, 15))];
 }
 
 const CollisionShape& CactusBlock::getCollisionShape(const BlockState& state) const {

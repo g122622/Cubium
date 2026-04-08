@@ -109,7 +109,7 @@ public:
      * @return 物品堆引用
      */
     [[nodiscard]] ItemStack& getSelectedStackRef() {
-        return m_items[m_selectedSlot];
+        return m_items[static_cast<std::size_t>(m_selectedSlot)];
     }
 
     /**
@@ -117,7 +117,7 @@ public:
      * @return 物品堆引用
      */
     [[nodiscard]] const ItemStack& getSelectedStackRef() const {
-        return m_items[m_selectedSlot];
+        return m_items[static_cast<std::size_t>(m_selectedSlot)];
     }
 
     /**

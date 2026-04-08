@@ -18,7 +18,7 @@ BeehiveBlock::BeehiveBlock(const BlockProperties& properties)
     // TODO: 添加 HONEY_LEVEL_0_5 属性
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HORIZONTAL_FACING())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -85,7 +85,7 @@ TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::EGGS_1_4())
         .add(BlockStateProperties::HATCH_0_2())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -172,7 +172,7 @@ void TurtleEggBlock::onEntityCollision(const BlockState& state, IWorld& world, c
 
 const CollisionShape& TurtleEggBlock::getShape(const BlockState& state) const {
     i32 eggs = getEggs(state);
-    return m_shapesByEggCount[std::min(eggs - 1, 3)];
+    return m_shapesByEggCount[static_cast<std::size_t>(std::min(eggs - 1, 3))];
 }
 
 // ========== InfestedBlock ==========

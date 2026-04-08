@@ -267,7 +267,7 @@ void ChunkMesher::generateMesh(
     const ChunkData* neighbors[6],
     const std::atomic<bool>* cancelSignal
 ) {
-    MC_TRACE_CHUNK_MESH_EVENT("GenerateMesh");
+    MC_TRACE_CHUNK_MESH_EVENT("GenerateMesh", "phase", "mesh");
 
     outMesh.clear();
 
@@ -288,7 +288,7 @@ void ChunkMesher::generateMesh(
     }
 
     const size_t estimatedFaces = std::clamp(
-        nonAirBlockCount * 2ULL,
+        nonAirBlockCount * static_cast<size_t>(2),
         MIN_ESTIMATED_FACES,
         MAX_ESTIMATED_FACES
     );
@@ -347,7 +347,7 @@ void ChunkMesher::generateSectionMesh(
     const ChunkData* neighborChunks[6],
     const std::atomic<bool>* cancelSignal
 ) {
-    MC_TRACE_CHUNK_MESH_EVENT("GenerateSectionMesh");
+    MC_TRACE_CHUNK_MESH_EVENT("GenerateSectionMesh", "phase", "section");
 
     if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
         return;
@@ -1348,7 +1348,7 @@ void ChunkMesher::simpleMeshSection(
     const ChunkData* neighborChunks[6],
     const std::atomic<bool>* cancelSignal
 ) {
-    MC_TRACE_CHUNK_MESH_EVENT("SimplyGenerateSectionMesh");
+    MC_TRACE_CHUNK_MESH_EVENT("SimplyGenerateSectionMesh", "phase", "simple");
     // 必须有 BlockModelCache
     if (!s_modelCache) {
         spdlog::error("ChunkMesher: BlockModelCache not initialized, cannot generate mesh");
@@ -1576,7 +1576,7 @@ void ChunkMesher::greedyMeshSection(
     const ChunkData* neighborChunks[6],
     const std::atomic<bool>* cancelSignal
 ) {
-    MC_TRACE_CHUNK_MESH_EVENT("GreedyGenerateSectionMesh");
+    MC_TRACE_CHUNK_MESH_EVENT("GreedyGenerateSectionMesh", "phase", "greedy");
 
     // 必须有 BlockModelCache
     if (!s_modelCache) {

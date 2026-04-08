@@ -29,6 +29,7 @@ BlockState SaplingBlock::withStage(i32 stage) const {
 // ========== 放置逻辑 ==========
 
 BlockState SaplingBlock::getStateForPlacement(BlockItemUseContext& context) {
+    MC_UNUSED(context);
     return defaultState();
 }
 
@@ -52,7 +53,8 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state) {
 
     if (stage < 1) {
         // 生长到下一阶段
-        world.setBlockState(pos.x, pos.y, pos.z, &withStage(stage + 1), 2);
+        auto nextState = withStage(stage + 1);
+        world.setBlockState(pos.x, pos.y, pos.z, &nextState, 2);
         return true;
     } else {
         // 已成熟，生成树

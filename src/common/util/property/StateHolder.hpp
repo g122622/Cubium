@@ -27,6 +27,8 @@ namespace mc {
 template<typename Owner, typename State>
 class StateHolder {
 public:
+    virtual ~StateHolder() = default;
+
     /**
      * @brief 获取状态的拥有者
      */

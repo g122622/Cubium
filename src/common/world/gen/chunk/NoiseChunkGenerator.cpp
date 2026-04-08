@@ -741,7 +741,7 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
 
     // === 阶段 1: 遍历列生成地表 ===
     {
-        MC_TRACE_EVENT("world.chunk_gen", "BuildSurface_Columns");
+        MC_TRACE_EVENT("world.chunk_gen", "BuildSurface_Columns", "phase", "columns");
         // 遍历每个 XZ 列
         for (i32 localX = 0; localX < 16; ++localX) {
             for (i32 localZ = 0; localZ < 16; ++localZ) {
@@ -765,7 +765,7 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
 
     // === 阶段 2: 生成基岩 ===
     {
-        MC_TRACE_EVENT("world.chunk_gen", "BuildSurface_Bedrock");
+        MC_TRACE_EVENT("world.chunk_gen", "BuildSurface_Bedrock", "phase", "bedrock");
         applyBedrock(chunk, surfaceRng);
     }
 

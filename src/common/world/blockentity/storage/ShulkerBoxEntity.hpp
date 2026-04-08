@@ -37,6 +37,9 @@ public:
 
     // ========== 构造函数 ==========
 
+    using ContainerBlockEntity::openContainer;
+    using ContainerBlockEntity::closeContainer;
+
     /**
      * @brief 构造函数
      * @param pos 方块位置

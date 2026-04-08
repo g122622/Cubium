@@ -14,7 +14,7 @@ class IResourcePack;
 /**
  * @brief 方块状态加载器
  *
- * 解析 blockstates/*.json 文件，管理方块状态到模型的映射
+ * 解析 blockstates 目录下的 JSON 文件，管理方块状态到模型的映射
  */
 class BlockStateLoader {
 public:

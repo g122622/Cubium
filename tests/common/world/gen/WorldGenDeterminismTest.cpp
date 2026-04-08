@@ -83,8 +83,8 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid) {
 
     constexpr ChunkCoord chunkX = 3;
     constexpr ChunkCoord chunkZ = -2;
-    constexpr i32 startNoiseX = chunkX << 2;
-    constexpr i32 startNoiseZ = chunkZ << 2;
+    constexpr i32 startNoiseX = chunkX * 4;
+    constexpr i32 startNoiseZ = chunkZ * 4;
 
     BiomeContainer container;
     provider.fillBiomeContainer(container, chunkX, chunkZ);

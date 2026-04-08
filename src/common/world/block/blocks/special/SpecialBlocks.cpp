@@ -47,7 +47,7 @@ StructureBlock::StructureBlock(const BlockProperties& properties)
     : Block(properties) {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -84,7 +84,7 @@ JigsawBlock::JigsawBlock(const BlockProperties& properties)
     : Block(properties) {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
@@ -119,7 +119,7 @@ CommandBlock::CommandBlock(const BlockProperties& properties)
         .add(BlockStateProperties::FACING())
         .add(BlockStateProperties::CONDITIONAL())
         .add(BlockStateProperties::POWERED())
-        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));

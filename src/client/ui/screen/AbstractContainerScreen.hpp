@@ -3,7 +3,9 @@
 #include "common/screen/IScreen.hpp"
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
+#include "entity/inventory/Slot.hpp"
 #include "network/packet/InventoryPackets.hpp"
+#include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "core/Types.hpp"
 #include <memory>
 #include <functional>

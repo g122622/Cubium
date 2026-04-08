@@ -41,8 +41,14 @@ function(mc_set_compiler_warnings target)
             -Wsign-conversion
             -Wold-style-cast
             -Wnon-virtual-dtor
-            -Wunused-parameter      # 警告未使用的参数
-            -Wunused-variable       # 警告未使用的变量
+
+            # 禁用的警告
+            -Wno-unused-parameter       # 禁用：未使用的参数警告
+            -Wno-unused-variable        # 禁用：未使用的变量警告
+            -Wno-unused-private-field   # 禁用：未使用的私有成员警告
+            -Wno-unused-lambda-capture  # 禁用：未使用的lambda捕获警告
+            -Wno-defaulted-function-deleted # 禁用：默认函数被删除警告
+            -Wno-address-of-temporary   # 禁用：获取临时对象地址警告
 
             # 将关键警告视为错误
             -Werror=return-local-addr    # 错误：返回局部变量地址

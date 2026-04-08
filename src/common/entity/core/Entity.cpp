@@ -34,10 +34,10 @@ namespace {
 Entity::Entity(LegacyEntityType type, EntityId id, IWorld* world)
     : m_id(id)
     , m_legacyType(type)
-    , m_world(world)
     , m_position(0.0f, 0.0f, 0.0f)
     , m_prevPosition(0.0f, 0.0f, 0.0f)
     , m_velocity(0.0f, 0.0f, 0.0f)
+    , m_world(world)
 {
     // 生成随机UUID
     u64 seed = static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count());

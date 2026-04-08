@@ -28,12 +28,12 @@ ItemStack FurnaceInventory::getItem(i32 slot) const {
     if (!isValidSlot(slot)) {
         return ItemStack();
     }
-    return m_items[slot];
+    return m_items[static_cast<std::size_t>(slot)];
 }
 
 void FurnaceInventory::setItem(i32 slot, const ItemStack& stack) {
     MC_ASSERT(isValidSlot(slot) && "Slot index out of bounds");
-    m_items[slot] = stack;
+    m_items[static_cast<std::size_t>(slot)] = stack;
     onChanged();
 }
 
@@ -42,7 +42,7 @@ ItemStack FurnaceInventory::removeItem(i32 slot, i32 count) {
         return ItemStack();
     }
 
-    ItemStack& stack = m_items[slot];
+    ItemStack& stack = m_items[static_cast<std::size_t>(slot)];
     if (stack.isEmpty()) {
         return ItemStack();
     }
@@ -51,7 +51,7 @@ ItemStack FurnaceInventory::removeItem(i32 slot, i32 count) {
     ItemStack result = stack.split(actualCount);
 
     if (stack.isEmpty()) {
-        m_items[slot] = ItemStack();
+        m_items[static_cast<std::size_t>(slot)] = ItemStack();
     }
 
     onChanged();
@@ -63,8 +63,9 @@ ItemStack FurnaceInventory::removeItemNoUpdate(i32 slot) {
         return ItemStack();
     }
 
-    ItemStack result = std::move(m_items[slot]);
-    m_items[slot] = ItemStack();
+    const std::size_t slotIndex = static_cast<std::size_t>(slot);
+    ItemStack result = std::move(m_items[slotIndex]);
+    m_items[slotIndex] = ItemStack();
     return result;
 }
 
@@ -84,7 +85,7 @@ bool FurnaceInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
         return false;
     }
 
-    const ItemStack& existing = m_items[slot];
+    const ItemStack& existing = m_items[static_cast<std::size_t>(slot)];
 
     // 输出槽只能接受熔炼产物，通常限制不能手动放入
     // TODO: 根据具体实现调整逻辑
@@ -115,7 +116,7 @@ ItemStack FurnaceInventory::addToOutput(const ItemStack& stack) {
         return ItemStack();
     }
 
-    ItemStack& output = m_items[SLOT_OUTPUT];
+    ItemStack& output = m_items[static_cast<std::size_t>(SLOT_OUTPUT)];
 
     if (output.isEmpty()) {
         // 输出槽为空，直接放入
@@ -149,7 +150,7 @@ bool FurnaceInventory::canAcceptOutput(const ItemStack& stack) const {
         return true;
     }
 
-    const ItemStack& output = m_items[SLOT_OUTPUT];
+    const ItemStack& output = m_items[static_cast<std::size_t>(SLOT_OUTPUT)];
 
     if (output.isEmpty()) {
         return true;

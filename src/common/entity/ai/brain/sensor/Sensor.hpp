@@ -8,12 +8,18 @@ namespace mc {
 
 // Forward declarations
 class LivingEntity;
+
+namespace server {
 class ServerWorld;
+}
 
 namespace entity {
 namespace ai {
 namespace brain {
 namespace sensor {
+
+// 使用完整命名空间
+using ::mc::server::ServerWorld;
 
 /**
  * @brief 传感器基类

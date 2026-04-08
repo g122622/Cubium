@@ -211,7 +211,7 @@ void TcpServer::poll() {
 
 void TcpServer::acceptNewConnection() {
     sockaddr_in clientAddr{};
-    int clientAddrLen = sizeof(clientAddr);
+    socklen_t clientAddrLen = static_cast<socklen_t>(sizeof(clientAddr));
 
     SOCKET_TYPE clientSocket = accept(static_cast<SOCKET_TYPE>(m_listenSocket),
                               reinterpret_cast<sockaddr*>(&clientAddr),

@@ -54,13 +54,14 @@ void BrewingStandEntity::tick(IWorld& world) {
     // 检查燃料
     if (m_fuel <= 0) {
         // 尝试消耗烈焰粉
-        ItemStack& fuelStack = m_inventory.getItem(FUEL_SLOT);
+        ItemStack fuelStack = m_inventory.getItem(FUEL_SLOT);
         if (!fuelStack.isEmpty() && fuelStack.getItem() != nullptr) {
             // TODO: 检查是否为烈焰粉 (Items::BLAZE_POWDER)
             // 暂时检查物品名称
             if (fuelStack.getItem()->getTranslationKey() == "item.minecraft.blaze_powder") {
                 fuelStack.shrink(1);
                 m_fuel += FUEL_PER_BREW;
+                m_inventory.setItem(FUEL_SLOT, fuelStack);
                 setChanged();
             }
         }
@@ -123,14 +124,14 @@ bool BrewingStandEntity::canBrew() const {
 void BrewingStandEntity::doBrew(IWorld& world) {
     MC_UNUSED(world);
 
-    ItemStack& ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
+    ItemStack ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
     if (ingredientStack.isEmpty()) {
         return;
     }
 
     // 遍历所有药水瓶槽位
     for (i32 i = 0; i < BOTTLE_SLOTS; ++i) {
-        ItemStack& bottleStack = m_inventory.getItem(i);
+        ItemStack bottleStack = m_inventory.getItem(i);
         if (bottleStack.isEmpty()) {
             continue;
         }
@@ -150,6 +151,7 @@ void BrewingStandEntity::doBrew(IWorld& world) {
 
     // 消耗材料
     ingredientStack.shrink(1);
+    m_inventory.setItem(INGREDIENT_SLOT, ingredientStack);
 }
 
 void BrewingStandEntity::consumeFuel() {

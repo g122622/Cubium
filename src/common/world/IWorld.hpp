@@ -234,8 +234,14 @@ public:
      *
      * 默认实现返回 nullptr。
      */
-    [[nodiscard]] virtual Entity* getEntity(EntityId id) { return nullptr; }
-    [[nodiscard]] virtual const Entity* getEntity(EntityId id) const { return nullptr; }
+    [[nodiscard]] virtual Entity* getEntity(EntityId id) {
+        (void)id;
+        return nullptr;
+    }
+    [[nodiscard]] virtual const Entity* getEntity(EntityId id) const {
+        (void)id;
+        return nullptr;
+    }
 
     // ========== 实体查询 ==========
 

@@ -124,7 +124,7 @@ struct VariantList {
 };
 
 /**
- * @brief 方块状态定义 (解析blockstates/*.json)
+ * @brief 方块状态定义（解析 blockstates 目录下的 JSON）
  */
 class BlockStateDefinition {
 public:

@@ -1,6 +1,7 @@
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/IWorld.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/core/Item.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -41,9 +42,9 @@ void JukeboxEntity::startPlaying(IWorld& world) {
     // 获取唱片ID
     // TODO: 从物品获取唱片类型和音乐
     m_isPlaying = true;
-    // 使用物品指针作为ID
+    // 使用物品登记ID作为唱片ID
     const Item* item = record.getItem();
-    m_recordId = item != nullptr ? reinterpret_cast<i32>(item) % 16 : 0;
+    m_recordId = item != nullptr ? static_cast<i32>(item->itemId() % 16u) : 0;
 
     // TODO: 播放音乐
     // world.playEvent(pos, 1010, m_recordId);
@@ -79,7 +80,7 @@ i32 JukeboxEntity::getComparatorSignal() const {
 
     // TODO: 映射唱片ID到信号强度
     const Item* item = record.getItem();
-    return item != nullptr ? (reinterpret_cast<i32>(item) % 15) + 1 : 0;
+    return item != nullptr ? static_cast<i32>(item->itemId() % 15u) + 1 : 0;
 }
 
 void JukeboxEntity::tick(IWorld& world) {

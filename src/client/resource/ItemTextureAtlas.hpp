@@ -23,7 +23,7 @@ namespace client {
  * 方块物品使用方块纹理图集。
  *
  * 纹理来源：
- * - 资源包中的 textures/item/*.png
+ * - 资源包中的 textures/item 目录下 PNG 纹理
  * - 方块纹理图集中的纹理（用于方块物品）
  */
 class ItemTextureAtlas {
@@ -66,7 +66,7 @@ public:
     /**
      * @brief 从资源包加载物品纹理
      *
-     * 加载 textures/item/*.png 文件
+    * 加载 textures/item 目录下的 PNG 文件
      *
      * @param resourcePacks 资源包列表
      * @return 成功或错误

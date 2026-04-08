@@ -143,7 +143,7 @@ protected:
     }
 
     /// 键转换为区块位置（供子类使用）
-    [[nodiscard]] static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z) {
+    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z) {
         x = static_cast<ChunkCoord>(key >> 32);
         z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
     }

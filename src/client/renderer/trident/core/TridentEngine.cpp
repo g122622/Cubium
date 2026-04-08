@@ -846,7 +846,8 @@ Result<std::unique_ptr<api::IVertexBuffer>> TridentEngine::createVertexBuffer(u6
     if (result.failed()) {
         return result.error();
     }
-    return buffer;
+    std::unique_ptr<api::IVertexBuffer> vertexBuffer = std::move(buffer);
+    return vertexBuffer;
 }
 
 Result<std::unique_ptr<api::IIndexBuffer>> TridentEngine::createIndexBuffer(u64 size, api::IndexType type) {
@@ -855,7 +856,8 @@ Result<std::unique_ptr<api::IIndexBuffer>> TridentEngine::createIndexBuffer(u64 
     if (result.failed()) {
         return result.error();
     }
-    return buffer;
+    std::unique_ptr<api::IIndexBuffer> indexBuffer = std::move(buffer);
+    return indexBuffer;
 }
 
 Result<std::unique_ptr<api::IUniformBuffer>> TridentEngine::createUniformBuffer(u64 size, u32 frameCount) {
@@ -864,7 +866,8 @@ Result<std::unique_ptr<api::IUniformBuffer>> TridentEngine::createUniformBuffer(
     if (result.failed()) {
         return result.error();
     }
-    return buffer;
+    std::unique_ptr<api::IUniformBuffer> uniformBuffer = std::move(buffer);
+    return uniformBuffer;
 }
 
 Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::TextureDesc& desc) {
@@ -873,7 +876,8 @@ Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::T
     if (result.failed()) {
         return result.error();
     }
-    return texture;
+    std::unique_ptr<api::ITexture> apiTexture = std::move(texture);
+    return apiTexture;
 }
 
 Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u32 width, u32 height, u32 tileSize) {
@@ -882,7 +886,8 @@ Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u3
     if (result.failed()) {
         return result.error();
     }
-    return atlas;
+    std::unique_ptr<api::ITextureAtlas> apiAtlas = std::move(atlas);
+    return apiAtlas;
 }
 
 // ============================================================================

@@ -116,7 +116,9 @@ class BiomeLayerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         m_context = std::make_unique<MockAreaContext>();
-        m_biomeLayer = std::make_unique<BiomeLayer>();
+        BiomeLayer::Config config;
+        config.legacyDesertInit = false;
+        m_biomeLayer = std::make_unique<BiomeLayer>(config);
     }
 
     void TearDown() override {

@@ -28,7 +28,7 @@ public:
         bool legacyDesertInit = false;  // 是否使用旧的沙漠初始化
     };
 
-    explicit BiomeLayer(const Config& config = Config{});
+    explicit BiomeLayer(const Config& config);
 
     using IC0Transformer::apply;
     [[nodiscard]] i32 apply(IAreaContext& ctx, i32 value) override;
