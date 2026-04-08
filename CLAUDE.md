@@ -435,6 +435,7 @@ enum class Operation : u8 { ... };
 - New regression tests were added to cover the `checkBlock()` entry path:
     - `tests/lighting/BlockLightRegressionTest.cpp`
     - `tests/lighting/SkyLightRegressionTest.cpp`
+- Block model appearance lookup now uses the `stateId` cache in `BlockModelCache::getBlockAppearance(const BlockState*)`, and `BlockState::toModelKey()` now uses lightweight string appends instead of `ostringstream`.
 
 ## Gotchas & Pitfalls
 
@@ -474,6 +475,8 @@ enum class Operation : u8 { ... };
     - Re-introducing ad-hoc bit-decode logic in storage maps can silently route writes/reads to wrong sections.
 - Do not apply source-face blocking blindly to all block-light propagation.
     - Full-cube emissive sources still need outward propagation; source-face occlusion checks should target conditional shapes.
+- Do not route `BlockModelCache::getBlockAppearance(const BlockState*)` through `toModelKey()` in render hot paths.
+    - The `stateId` cache is the intended fast path; rebuilding model keys there reintroduces avoidable string parsing.
 - Do not reintroduce default parameters into lighting APIs.
     - Where a call pattern needs a simplified form, add an overload instead of a default argument.
 - `WorldLightManager::tick(...)` now relies on ordered budget consumption.

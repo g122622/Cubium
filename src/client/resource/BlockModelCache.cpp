@@ -56,7 +56,8 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(const BlockState* sta
         return getMissingAppearance();
     }
 
-    return getBlockAppearance(state->blockId(), state->toModelKey());
+    // 渲染热路径直接命中状态缓存，避免重复构建属性字符串。
+    return getBlockAppearance(state->stateId());
 }
 
 const BlockAppearance* BlockModelCache::getBlockAppearance(u32 stateId) const

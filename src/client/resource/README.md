@@ -195,6 +195,8 @@ class BlockStateDefinition {
 **缓存策略**：
 
 - 使用 `unordered_map<u32, const BlockAppearance*>` 按状态ID缓存
+- `getBlockAppearance(const BlockState*)` 会优先通过 `stateId` 命中缓存，区块网格生成阶段不会重复解析属性字符串
+- `toModelKey()` 只在构建缓存或必要的回退路径中使用
 - 未找到外观时返回 `m_missingAppearance`（紫黑方块）
 - 缺失模型外观：6面使用第一个纹理图集位置的UV坐标
 

@@ -17,7 +17,6 @@
 #include "../../entity/loot/LootConditions.hpp"
 #include <algorithm>
 #include <cmath>
-#include <sstream>
 #include <vector>
 
 namespace mc {
@@ -144,10 +143,11 @@ String BlockState::toModelKey() const {
     }
 
     // 按属性名排序，确保模型键稳定且与资源系统缓存键一致
+    // 直接拼接字符串，避免 ostringstream 的格式化和分配开销。
     std::vector<std::pair<const IProperty*, size_t>> sortedValues;
     sortedValues.reserve(m_values.size());
     for (const auto& entry : m_values) {
-        sortedValues.push_back(entry);
+        sortedValues.emplace_back(entry.first, entry.second);
     }
 
     std::sort(sortedValues.begin(), sortedValues.end(),
@@ -155,14 +155,19 @@ String BlockState::toModelKey() const {
             return a.first->name() < b.first->name();
         });
 
-    std::ostringstream ss;
+    String result;
+    result.reserve(sortedValues.size() * 16);
     bool first = true;
     for (const auto& [prop, valueIndex] : sortedValues) {
-        if (!first) ss << ',';
-        ss << prop->name() << '=' << prop->valueToString(valueIndex);
+        if (!first) {
+            result.push_back(',');
+        }
+        result += prop->name();
+        result.push_back('=');
+        result += prop->valueToString(valueIndex);
         first = false;
     }
-    return ss.str();
+    return result;
 }
 
 String BlockState::ownerName() const {

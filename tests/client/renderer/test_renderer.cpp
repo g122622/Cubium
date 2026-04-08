@@ -743,6 +743,10 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
     BlockModelCache modelCache;
     ASSERT_TRUE(modelCache.initialize(resourceManager));
 
+    const auto& waterState = VanillaBlocks::WATER->defaultState();
+    EXPECT_EQ(modelCache.getBlockAppearance(&waterState),
+              modelCache.getBlockAppearance(waterState.stateId()));
+
     BlockModelCache* oldModelCache = ChunkMesher::modelCache();
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
     const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
