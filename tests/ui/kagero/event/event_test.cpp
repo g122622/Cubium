@@ -1066,9 +1066,9 @@ TEST_F(EventBusThreadSafetyTest, ConcurrentSubscribeUnsubscribe) {
     const int opsPerThread = 50;
 
     std::vector<std::thread> threads;
-    std::vector<std::vector<u64>> ids(numThreads);
+    std::vector<std::vector<u64>> ids(static_cast<size_t>(numThreads));
 
-    for (int i = 0; i < numThreads; ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(numThreads); ++i) {
         threads.emplace_back([&ids, i, opsPerThread]() {
             for (int j = 0; j < opsPerThread; ++j) {
                 auto id = EventBus::instance().subscribe<MouseClickEvent>(
@@ -1084,7 +1084,7 @@ TEST_F(EventBusThreadSafetyTest, ConcurrentSubscribeUnsubscribe) {
     }
 
     // 取消订阅
-    for (int i = 0; i < numThreads; ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(numThreads); ++i) {
         for (auto id : ids[i]) {
             EventBus::instance().unsubscribe(id);
         }

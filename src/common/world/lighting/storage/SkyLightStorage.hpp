@@ -69,7 +69,7 @@ private:
         u64 ux = static_cast<u64>(static_cast<i64>(x) & 0xFFFFFFFLL);
         u64 uz = static_cast<u64>(static_cast<i64>(z) & 0xFFFFFFFLL);
         u64 uy = static_cast<u64>(y) & 0xFFF;
-        return (ux << 38) | (uz << 12) | uy;
+        return static_cast<i64>((ux << 38) | (uz << 12) | uy);
     }
 
     std::unordered_set<i64> m_sectionsWithLight;

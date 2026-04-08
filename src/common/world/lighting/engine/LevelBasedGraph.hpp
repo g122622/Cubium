@@ -226,7 +226,7 @@ protected:
      * @brief 添加到增亮队列
      */
     void appendToIncreaseQueue(const QueueEntry& entry) {
-        if (m_increaseQueueInitialLength >= static_cast<i32>(m_increaseQueue.size())) {
+        if (m_increaseQueueInitialLength >= m_increaseQueue.size()) {
             resizeIncreaseQueue();
         }
         m_increaseQueue[m_increaseQueueInitialLength++] = entry;
@@ -237,7 +237,7 @@ protected:
      * @brief 添加到减亮队列
      */
     void appendToDecreaseQueue(const QueueEntry& entry) {
-        if (m_decreaseQueueInitialLength >= static_cast<i32>(m_decreaseQueue.size())) {
+        if (m_decreaseQueueInitialLength >= m_decreaseQueue.size()) {
             resizeDecreaseQueue();
         }
         m_decreaseQueue[m_decreaseQueueInitialLength++] = entry;
@@ -271,11 +271,11 @@ private:
 
     // 增亮队列（光照增加）
     std::vector<QueueEntry> m_increaseQueue;
-    i32 m_increaseQueueInitialLength = 0;
+    size_t m_increaseQueueInitialLength = 0;
 
     // 减亮队列（光照减少）
     std::vector<QueueEntry> m_decreaseQueue;
-    i32 m_decreaseQueueInitialLength = 0;
+    size_t m_decreaseQueueInitialLength = 0;
 
     bool m_needsUpdate = false;
 

@@ -331,6 +331,10 @@ enum class Operation : u8 { ... };
 
 ## Current Status
 
+- `cmake --build build --config Release -j1` now completes cleanly on AppleClang/macOS with no remaining compile or link warnings.
+- Redundant direct `spdlog::spdlog` and `GTest::gtest` links were removed from executable targets; those dependencies now flow through `mc_common` and `GTest::gtest_main` to avoid Apple ld duplicate-library warnings.
+- Client application frame tracing, particle atlas code, and the pathfinding helper types were cleaned up to remove the last AppleClang signedness and variadic-macro warnings.
+
 - Ocean biome generation has been aligned toward MC 1.16.5 behavior for shallow/deep warm, lukewarm, cold, and frozen variants.
 - `BiomeGenerationSettings` now provides deep-ocean-specific factory methods:
     - `createDeepWarmOcean`
@@ -491,6 +495,10 @@ enum class Operation : u8 { ... };
     - Feeding raw source levels straight into the propagation queues will desynchronize the current inverse-level storage model.
 - Do not treat client light packets as immediate mesh rebuild triggers.
     - `ClientWorld` now uses `meshRebuildPending` to coalesce repeated `onLightUpdate()` calls for the same chunk while a task is still active.
+- Do not link `spdlog::spdlog` or `GTest::gtest` directly into executables that already consume `mc_common` or `GTest::gtest_main`.
+    - Apple ld will emit duplicate-library warnings when the same static library appears twice on the final link line.
+- On AppleClang, no-argument `MC_TRACE_EVENT(...)` or `MC_TRACE_*` calls can still trigger `-Wvariadic-macro-arguments-omitted`.
+    - Pass an explicit dummy key/value payload when a trace site has no real arguments.
 
 ## Self-Maintenance Rule
 

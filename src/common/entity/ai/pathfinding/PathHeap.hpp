@@ -34,8 +34,9 @@ public:
      */
     void insert(PathPoint* point) {
         m_heap.push_back(point);
-        point->setHeapIndex(static_cast<i32>(m_heap.size() - 1));
-        siftUp(static_cast<i32>(m_heap.size() - 1));
+        const size_t index = m_heap.size() - 1;
+        point->setHeapIndex(static_cast<i32>(index));
+        siftUp(index);
     }
 
     /**
@@ -77,7 +78,7 @@ public:
         }
 
         // 尝试上浮（如果代价减小）
-        siftUp(index);
+        siftUp(static_cast<size_t>(index));
         // 注意：如果代价增大，需要下沉，但通常不会发生
     }
 
@@ -143,9 +144,9 @@ private:
     /**
      * @brief 上浮调整
      */
-    void siftUp(i32 index) {
+    void siftUp(size_t index) {
         while (index > 0) {
-            i32 parent = (index - 1) / 2;
+            size_t parent = (index - 1) / 2;
             if (compare(m_heap[index], m_heap[parent])) {
                 swap(index, parent);
                 index = parent;
@@ -158,16 +159,16 @@ private:
     /**
      * @brief 下沉调整
      */
-    void siftDown(i32 index) {
+    void siftDown(size_t index) {
         while (true) {
-            i32 left = 2 * index + 1;
-            i32 right = 2 * index + 2;
-            i32 smallest = index;
+            size_t left = 2 * index + 1;
+            size_t right = 2 * index + 2;
+            size_t smallest = index;
 
-            if (left < static_cast<i32>(m_heap.size()) && compare(m_heap[left], m_heap[smallest])) {
+            if (left < m_heap.size() && compare(m_heap[left], m_heap[smallest])) {
                 smallest = left;
             }
-            if (right < static_cast<i32>(m_heap.size()) && compare(m_heap[right], m_heap[smallest])) {
+            if (right < m_heap.size() && compare(m_heap[right], m_heap[smallest])) {
                 smallest = right;
             }
 
@@ -183,13 +184,13 @@ private:
     /**
      * @brief 交换两个元素
      */
-    void swap(i32 i, i32 j) {
+    void swap(size_t i, size_t j) {
         PathPoint* temp = m_heap[i];
         m_heap[i] = m_heap[j];
         m_heap[j] = temp;
 
-        m_heap[i]->setHeapIndex(i);
-        m_heap[j]->setHeapIndex(j);
+        m_heap[i]->setHeapIndex(static_cast<i32>(i));
+        m_heap[j]->setHeapIndex(static_cast<i32>(j));
     }
 };
 

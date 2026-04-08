@@ -340,7 +340,7 @@ protected:
     /**
      * @brief 从世界位置提取区块段内坐标
      */
-    [[nodiscard]] static void extractNibbleIndices(i64 worldPos, i32& x, i32& localY, i32& z) {
+    static void extractNibbleIndices(i64 worldPos, i32& x, i32& localY, i32& z) {
         LightEngineUtils::extractNibbleIndices(worldPos, x, localY, z);
     }
 };

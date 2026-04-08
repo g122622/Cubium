@@ -49,7 +49,7 @@ public:
     /**
      * @brief 是否在水中
      */
-    [[nodiscard]] bool isInWater() const;
+    [[nodiscard]] bool isInWater() const override;
 
     /**
      * @brief 是否可以游泳

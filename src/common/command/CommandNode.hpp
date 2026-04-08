@@ -239,7 +239,6 @@ public:
      */
     ArgumentCommandNode(const String& name, std::shared_ptr<ArgumentType<T>> argumentType)
         : m_name(name)
-        , m_argumentType(std::move(argumentType))
         , m_parser([this](StringView input, i32& cursor, CommandException& error) -> T {
             StringReader reader(input);
             reader.setCursor(cursor);
@@ -252,7 +251,8 @@ public:
                 cursor = -1;
                 return T{};
             }
-        }) {}
+        })
+        , m_argumentType(std::move(argumentType)) {}
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Argument; }
     [[nodiscard]] String getName() const noexcept override { return m_name; }

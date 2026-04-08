@@ -44,14 +44,14 @@ struct Matrix4f {
      * @brief 访问元素（行主序）
      */
     f32& operator()(i32 row, i32 col) {
-        return data[row * 4 + col];
+        return data[static_cast<size_t>(row) * 4 + static_cast<size_t>(col)];
     }
 
     /**
      * @brief 访问元素（行主序，const 版本）
      */
     [[nodiscard]] f32 operator()(i32 row, i32 col) const {
-        return data[row * 4 + col];
+        return data[static_cast<size_t>(row) * 4 + static_cast<size_t>(col)];
     }
 
     /**

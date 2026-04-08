@@ -58,7 +58,7 @@ protected:
     /**
      * @brief 更新愤怒状态
      */
-    void updateAnger();
+    void updateAnger() override;
 
 private:
     // 愤怒系统

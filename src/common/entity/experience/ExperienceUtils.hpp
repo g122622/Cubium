@@ -120,7 +120,10 @@ inline u32 calculateOrbColor(i32 xpValue, f32 time) {
     u8 b = static_cast<u8>(std::min(255.0f, blue * 255.0f * brightness));
     u8 a = 255;  // 完全不透明
 
-    return (a << 24) | (b << 16) | (g << 8) | r;
+    return (static_cast<u32>(a) << 24) |
+           (static_cast<u32>(b) << 16) |
+           (static_cast<u32>(g) << 8) |
+           static_cast<u32>(r);
 }
 
 /**

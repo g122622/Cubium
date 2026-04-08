@@ -19,6 +19,8 @@ namespace entity::ai::controller {
  */
 class LookController {
 public:
+    virtual ~LookController() = default;
+
     /**
      * @brief 构造函数
      * @param mob 拥有此控制器的生物

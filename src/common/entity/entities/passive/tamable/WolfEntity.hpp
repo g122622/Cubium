@@ -125,7 +125,7 @@ public:
      * @brief 检查是否在水中
      * 狼在水中会减速
      */
-    [[nodiscard]] bool isInWater() const;
+    [[nodiscard]] bool isInWater() const override;
 
     // ========== 属性 ==========
 

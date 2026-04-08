@@ -214,11 +214,11 @@ TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
 
     EXPECT_EQ(m_manager->loadedChunkCount(), 0u);
 
-    m_manager->getChunkSync(0, 0);
+    static_cast<void>(m_manager->getChunkSync(0, 0));
     EXPECT_EQ(m_manager->loadedChunkCount(), 1u);
 
-    m_manager->getChunkSync(1, 0);
-    m_manager->getChunkSync(0, 1);
+    static_cast<void>(m_manager->getChunkSync(1, 0));
+    static_cast<void>(m_manager->getChunkSync(0, 1));
     EXPECT_EQ(m_manager->loadedChunkCount(), 3u);
 
     m_manager->stopWorkers();
@@ -229,7 +229,7 @@ TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount) {
 
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
 
-    m_manager->getChunkSync(0, 0);
+    static_cast<void>(m_manager->getChunkSync(0, 0));
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1u);
 
     m_manager->stopWorkers();

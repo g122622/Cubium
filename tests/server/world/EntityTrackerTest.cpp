@@ -188,12 +188,13 @@ TEST_F(EntityTrackerTest, ConcurrentTrackUntrack) {
     std::vector<std::thread> threads;
 
     // 并发追踪和取消追踪
-    for (int i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 10; ++i) {
         threads.emplace_back([this, i]() {
-            TestEntity entity(i);
+            const EntityId entityId = static_cast<EntityId>(i);
+            TestEntity entity(entityId);
             tracker->trackEntity(&entity);
-            tracker->isTracking(i);
-            tracker->untrackEntity(i);
+            tracker->isTracking(entityId);
+            tracker->untrackEntity(entityId);
         });
     }
 
@@ -210,12 +211,13 @@ TEST_F(EntityTrackerTest, ConcurrentTrackAndCount) {
     std::atomic<int> successCount{0};
 
     // 并发追踪和计数
-    for (int i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 10; ++i) {
         threads.emplace_back([this, i, &successCount]() {
-            TestEntity entity(i);
+            const EntityId entityId = static_cast<EntityId>(i);
+            TestEntity entity(entityId);
             tracker->trackEntity(&entity);
 
-            if (tracker->isTracking(i)) {
+            if (tracker->isTracking(entityId)) {
                 successCount++;
             }
         });

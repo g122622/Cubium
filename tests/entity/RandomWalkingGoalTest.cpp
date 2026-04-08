@@ -85,7 +85,7 @@ TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsFalseWhenNullCreatur
 }
 
 TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsTrueWhenActive) {
-    goal->shouldExecute();
+    static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
 
     // 应该继续执行（timeout counter > 0 且 movement controller 活跃）
@@ -93,7 +93,7 @@ TEST_F(RandomWalkingGoalTest, ShouldContinueExecutingReturnsTrueWhenActive) {
 }
 
 TEST_F(RandomWalkingGoalTest, StartExecutingSetsTargetPosition) {
-    goal->shouldExecute();
+    static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
 
     // 检查目标是否被设置（通过移动控制器）
@@ -103,7 +103,7 @@ TEST_F(RandomWalkingGoalTest, StartExecutingSetsTargetPosition) {
 }
 
 TEST_F(RandomWalkingGoalTest, ResetTaskClearsNavigation) {
-    goal->shouldExecute();
+    static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
     goal->resetTask();
 
@@ -113,7 +113,7 @@ TEST_F(RandomWalkingGoalTest, ResetTaskClearsNavigation) {
 }
 
 TEST_F(RandomWalkingGoalTest, TickDecrementsTimeoutCounter) {
-    goal->shouldExecute();
+    static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
 
     // 目标开始后，超时计数器应该是一个正值
@@ -351,7 +351,7 @@ TEST_F(RandomWalkingGoalIntegrationTest, MovementControllerFallbackWorks) {
 }
 
 TEST_F(RandomWalkingGoalIntegrationTest, ContinuesWhenMovementControllerActive) {
-    goal->shouldExecute();
+    static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
 
     // 即使没有 PathNavigator，shouldContinueExecuting 应该返回 true
@@ -360,7 +360,7 @@ TEST_F(RandomWalkingGoalIntegrationTest, ContinuesWhenMovementControllerActive) 
 }
 
 TEST_F(RandomWalkingGoalIntegrationTest, StopsWhenMovementControllerIdle) {
-    goal->shouldExecute();
+    static_cast<void>(goal->shouldExecute());
     goal->startExecuting();
 
     // 模拟移动控制器到达目标

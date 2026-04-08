@@ -502,12 +502,10 @@ target_sources(mc_tests
 target_link_libraries(mc_tests
     PRIVATE
         mc_common
-        GTest::gtest
         GTest::gtest_main
         asio::asio
         nlohmann_json::nlohmann_json
         glm::glm
-        spdlog::spdlog
         Vulkan::Vulkan
         OpenAL::OpenAL
 )
@@ -538,11 +536,9 @@ add_executable(mc_resource_tests
 target_link_libraries(mc_resource_tests
     PRIVATE
         mc_common
-        GTest::gtest
         GTest::gtest_main
         nlohmann_json::nlohmann_json
         glm::glm
-        spdlog::spdlog
 )
 
 # 添加客户端资源源文件
@@ -662,13 +658,11 @@ if(MC_BUILD_CLIENT)
     target_link_libraries(mc_trident_tests
         PRIVATE
             mc_common
-            GTest::gtest
             GTest::gtest_main
             glfw
             Vulkan::Vulkan
             nlohmann_json::nlohmann_json
             glm::glm
-            spdlog::spdlog
     )
 
     target_include_directories(mc_trident_tests

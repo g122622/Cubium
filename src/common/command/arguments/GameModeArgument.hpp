@@ -184,14 +184,9 @@ private:
      * @brief 解析单个坐标分量
      */
     i32 parseCoordinate(StringReader& reader, [[maybe_unused]] char axis) {
-        bool relative = false;
-        bool local = false;
-
         if (reader.canRead() && reader.peek() == '~') {
-            relative = true;
             reader.skip();
         } else if (reader.canRead() && reader.peek() == '^') {
-            local = true;
             reader.skip();
         }
 
@@ -247,10 +242,7 @@ public:
 
 private:
     f64 parseCoordinate(StringReader& reader) {
-        bool relative = false;
-
         if (reader.canRead() && reader.peek() == '~') {
-            relative = true;
             reader.skip();
         } else if (reader.canRead() && reader.peek() == '^') {
             reader.skip();  // 局部坐标，暂时忽略
@@ -299,10 +291,7 @@ public:
 
 private:
     f64 parseAngle(StringReader& reader) {
-        bool relative = false;
-
         if (reader.canRead() && reader.peek() == '~') {
-            relative = true;
             reader.skip();
         }
 

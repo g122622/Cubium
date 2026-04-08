@@ -109,7 +109,7 @@ protected:
      * - LookAtGoal (优先级 6)
      * - LookRandomlyGoal (优先级 7)
      */
-    void registerGoals();
+    void registerGoals() override;
 
     /**
      * @brief 注册属性

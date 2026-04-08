@@ -54,7 +54,7 @@ public:
     /**
      * @brief 是否在熔岩中
      */
-    [[nodiscard]] bool isInLava() const;
+    [[nodiscard]] bool isInLava() const override;
 
     /**
      * @brief 是否在熔岩表面
@@ -115,12 +115,12 @@ public:
     /**
      * @brief 获取加速时间
      */
-    [[nodiscard]] i32 getBoostTime() const { return m_boostTime; }
+    [[nodiscard]] i32 getBoostTime() const override { return m_boostTime; }
 
     /**
      * @brief 设置加速时间
      */
-    void setBoostTime(i32 time) { m_boostTime = time; }
+    void setBoostTime(i32 time) override { m_boostTime = time; }
 
     // ========== 繁殖 ==========
 

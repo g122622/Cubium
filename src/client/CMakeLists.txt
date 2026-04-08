@@ -220,7 +220,6 @@ add_executable(minecraft-client
 target_link_libraries(minecraft-client
     PRIVATE
         mc_common
-        spdlog::spdlog
         nlohmann_json::nlohmann_json
         glfw
         Vulkan::Vulkan

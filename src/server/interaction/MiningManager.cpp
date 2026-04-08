@@ -64,7 +64,7 @@ void MiningManager::handleBlockInteraction(PlayerId playerId, const BlockPos& po
 
 void MiningManager::tick(ServerWorld& world)
 {
-    MC_TRACE_EVENT("server.world.mining", "MiningManager::tick");
+    MC_TRACE_EVENT("server.world.mining", "MiningManager::tick", "phase", "tick");
 
     for (auto& [playerId, state] : m_miningStates) {
         if (!state.active) {
@@ -93,11 +93,11 @@ void MiningManager::tick(ServerWorld& world)
         state.progress += speed;
 
         // 计算动画阶段 (0-9)
-        i8 stage = static_cast<i8>(std::min(state.progress * 10.0f, 9.0f));
+        u8 stage = static_cast<u8>(std::min(state.progress * 10.0f, 9.0f));
 
         // 广播动画（阶段变化时）
-        if (stage != static_cast<i8>(state.lastStage)) {
-            broadcastBreakAnim(playerId, state.position, stage);
+        if (stage != state.lastStage) {
+            broadcastBreakAnim(playerId, state.position, static_cast<i8>(stage));
             state.lastStage = stage;
         }
 

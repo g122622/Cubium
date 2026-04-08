@@ -109,9 +109,9 @@ public:
      */
     [[nodiscard]] u64 hash() const {
         // Y 在高16位，X 和 Z 各占低32位
-        return (static_cast<u64>(m_y & 0xFFFF) << 48) |
-               (static_cast<u64>(m_x & 0xFFFFFFFF) << 16) |
-               (static_cast<u64>(m_z & 0xFFFFFFFF));
+         return (static_cast<u64>(static_cast<u16>(m_y)) << 48) |
+             (static_cast<u64>(static_cast<u32>(m_x)) << 16) |
+             static_cast<u64>(static_cast<u32>(m_z));
     }
 
 private:

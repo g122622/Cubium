@@ -42,15 +42,18 @@ public:
     }
 
     [[nodiscard]] bool canRead(i32 length = 1) const noexcept {
-        return m_cursor + length <= static_cast<i32>(m_input.length());
+        if (length < 0) {
+            return false;
+        }
+        return static_cast<size_t>(m_cursor) + static_cast<size_t>(length) <= m_input.length();
     }
 
     [[nodiscard]] char peek() const noexcept {
-        return canRead() ? m_input[m_cursor] : '\0';
+        return canRead() ? m_input[static_cast<size_t>(m_cursor)] : '\0';
     }
 
     [[nodiscard]] char peek(i32 offset) const noexcept {
-        return canRead(offset + 1) ? m_input[m_cursor + offset] : '\0';
+        return canRead(offset + 1) ? m_input[static_cast<size_t>(m_cursor + offset)] : '\0';
     }
 
     [[nodiscard]] char read() {
@@ -58,7 +61,7 @@ public:
             throw CommandException(CommandErrorType::StringExpected,
                 "Expected more input", m_cursor);
         }
-        return m_input[m_cursor++];
+        return m_input[static_cast<size_t>(m_cursor++)];
     }
 
     void skip() {
@@ -97,7 +100,9 @@ public:
         while (canRead() && !isWhitespace(peek()) && peek() != SYNTAX_QUOTE) {
             skip();
         }
-        return String(m_input.substr(start, m_cursor - start));
+        const size_t startIndex = static_cast<size_t>(start);
+        const size_t endIndex = static_cast<size_t>(m_cursor);
+        return String(m_input.substr(startIndex, endIndex - startIndex));
     }
 
     /**
@@ -313,7 +318,7 @@ public:
      * @brief 读取剩余内容
      */
     [[nodiscard]] String getRemaining() const {
-        return String(m_input.substr(m_cursor));
+        return String(m_input.substr(static_cast<size_t>(m_cursor)));
     }
 
     /**
@@ -324,7 +329,9 @@ public:
         while (canRead() && peek() != terminator) {
             skip();
         }
-        return String(m_input.substr(start, m_cursor - start));
+        const size_t startIndex = static_cast<size_t>(start);
+        const size_t endIndex = static_cast<size_t>(m_cursor);
+        return String(m_input.substr(startIndex, endIndex - startIndex));
     }
 
     /**
@@ -336,10 +343,10 @@ public:
             return false;
         }
 
-        size_t originalCursor = m_cursor;
+        i32 originalCursor = m_cursor;
         for (char c : expected) {
             if (peek() != c) {
-                m_cursor = static_cast<i32>(originalCursor);
+                m_cursor = originalCursor;
                 return false;
             }
             skip();

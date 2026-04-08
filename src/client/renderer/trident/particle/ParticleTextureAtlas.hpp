@@ -48,7 +48,7 @@ struct SpriteInfo {
  * 参考 MC 1.16.5 的粒子纹理图集系统。
  *
  * 功能：
- * - 从资源包加载粒子纹理（textures/particle/*.png）
+ * - 从资源包加载粒子纹理（textures/particle 目录下的 PNG 文件）
  * - 支持动画纹理（垂直帧条）
  * - 纹理打包优化
  * - GPU 纹理上传
@@ -111,7 +111,7 @@ public:
     /**
      * @brief 从资源包加载粒子纹理
      *
-     * 加载 textures/particle/*.png 文件。
+    * 加载 textures/particle 目录下的 PNG 文件。
      * 动画纹理通过垂直帧条存储（帧数 = 高度 / 宽度）。
      *
      * @param resourcePacks 资源包列表

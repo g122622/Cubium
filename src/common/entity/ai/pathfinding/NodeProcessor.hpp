@@ -135,9 +135,9 @@ protected:
      * @brief 生成哈希值
      */
     [[nodiscard]] static u64 makeHash(i32 x, i32 y, i32 z) {
-        return (static_cast<u64>(y & 0xFFFF) << 48) |
-               (static_cast<u64>(x & 0xFFFFFFFF) << 16) |
-               (static_cast<u64>(z & 0xFFFFFFFF));
+        return (static_cast<u64>(static_cast<u16>(y)) << 48) |
+               (static_cast<u64>(static_cast<u32>(x)) << 16) |
+               static_cast<u64>(static_cast<u32>(z));
     }
 };
 

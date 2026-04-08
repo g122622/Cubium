@@ -107,13 +107,13 @@ public:
 
     // ========== IAngerable 接口实现 ==========
 
-    void setAttackTarget(LivingEntity* target);
-    [[nodiscard]] LivingEntity* getAttackTarget() const { return m_attackTarget; }
-    void setRevengeTarget(LivingEntity* target);
-    [[nodiscard]] bool isAngry() const { return m_angerTime > 0; }
-    void setAngry(bool angry);
-    [[nodiscard]] i32 getAngerTime() const { return m_angerTime; }
-    void setAngerTime(i32 time) { m_angerTime = time; }
+    void setAttackTarget(LivingEntity* target) override;
+    [[nodiscard]] LivingEntity* getAttackTarget() const override { return m_attackTarget; }
+    void setRevengeTarget(LivingEntity* target) override;
+    [[nodiscard]] bool isAngry() const override { return m_angerTime > 0; }
+    void setAngry(bool angry) override;
+    [[nodiscard]] i32 getAngerTime() const override { return m_angerTime; }
+    void setAngerTime(i32 time) override { m_angerTime = time; }
 
     // ========== 生命周期 ==========
 
@@ -146,7 +146,7 @@ protected:
     /**
      * @brief 更新愤怒状态
      */
-    void updateAnger();
+    void updateAnger() override;
 
     /**
      * @brief 当驯服状态改变时调用

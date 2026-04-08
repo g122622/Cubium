@@ -877,7 +877,7 @@ void ServerChunkManager::getNeighborChunks(
         {-1, 1},  {0, 1},  {1, 1}    // SW, S, SE
     };
 
-    for (i32 i = 0; i < 9; ++i) {
+    for (size_t i = 0; i < 9; ++i) {
         // 跳过中心位置（调用者已设置）
         if (i == 4) {
             continue;

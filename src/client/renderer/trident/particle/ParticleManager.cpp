@@ -292,8 +292,8 @@ void ParticleManager::clear() {
 }
 
 size_t ParticleManager::aliveParticleCount() const {
-    return std::count_if(m_particles.begin(), m_particles.end(),
-        [](const std::unique_ptr<Particle>& p) { return p && p->isAlive(); });
+    return static_cast<size_t>(std::count_if(m_particles.begin(), m_particles.end(),
+        [](const std::unique_ptr<Particle>& p) { return p && p->isAlive(); }));
 }
 
 void ParticleManager::tick(ClientWorld* world) {

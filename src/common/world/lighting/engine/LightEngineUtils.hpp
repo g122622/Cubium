@@ -240,7 +240,7 @@ public:
      *
      * 参考 MC 1.16.5 BlockPos.unpackX/Y/Z()
      */
-    [[nodiscard]] static constexpr void unpackPos(i64 packed, i32& x, i32& y, i32& z) {
+    static constexpr void unpackPos(i64 packed, i32& x, i32& y, i32& z) {
         // 26位掩码
         constexpr i64 XZ_MASK = (1LL << 26) - 1;
         constexpr i64 Y_MASK = (1LL << 12) - 1;
@@ -290,7 +290,7 @@ public:
      * @param localY 输出：局部Y坐标 (0-15)
      * @param z 输出：局部Z坐标 (0-15)
      */
-    [[nodiscard]] static constexpr void extractNibbleIndices(i64 packed, i32& x, i32& localY, i32& z) {
+    static constexpr void extractNibbleIndices(i64 packed, i32& x, i32& localY, i32& z) {
         // X在高位，偏移38位；Z在中间，偏移12位；Y在低位
         x = static_cast<i32>((packed >> 38) & 0xF);
         i32 y = static_cast<i32>(packed & 0xFFF);

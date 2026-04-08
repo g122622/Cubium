@@ -137,7 +137,7 @@ Result<std::vector<u8>> loadTexturePixels(
     outWidth = static_cast<u32>(width);
     outHeight = static_cast<u32>(height);
 
-    std::vector<u8> result(pixels, pixels + (static_cast<size_t>(width) * height * 4));
+    std::vector<u8> result(pixels, pixels + (static_cast<size_t>(width) * static_cast<size_t>(height) * 4));
     stbi_image_free(pixels);
     return result;
 }
@@ -377,13 +377,13 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
             if (pack->hasResource(mcmetaPath)) {
                 auto mcmetaResult = pack->readResource(mcmetaPath);
                 if (mcmetaResult.success()) {
-                    parseAnimatedFrameSizeFromMcmeta(
+                    static_cast<void>(parseAnimatedFrameSizeFromMcmeta(
                         mcmetaResult.value(),
                         width,
                         height,
                         frameWidth,
                         frameHeight,
-                        frameTime);
+                        frameTime));
                 }
             }
 

@@ -374,7 +374,11 @@ void BlockInteractionManager::generateBlockDrops(
 
     // 处理矿石经验掉落
     // 使用随机种子生成器
-    math::Random rng(static_cast<u64>(pos.x ^ pos.y ^ pos.z ^ std::hash<PlayerId>{}(playerId)));
+    const u64 seed = static_cast<u64>(static_cast<u64>(pos.x)) ^
+                     static_cast<u64>(static_cast<u64>(pos.y) << 1) ^
+                     static_cast<u64>(static_cast<u64>(pos.z) << 2) ^
+                     static_cast<u64>(std::hash<PlayerId>{}(playerId));
+    math::Random rng(seed);
     BlockDropHandler::handleBlockBreakExperience(
         m_world.entityManager(),
         m_world.physicsEngine(),

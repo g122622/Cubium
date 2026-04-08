@@ -378,7 +378,9 @@ private:
             );
         }
 
-        return String(reader.getString().substr(start, reader.getCursor() - start));
+        const size_t startIndex = static_cast<size_t>(start);
+        const size_t endIndex = static_cast<size_t>(reader.getCursor());
+        return String(reader.getString().substr(startIndex, endIndex - startIndex));
     }
 };
 

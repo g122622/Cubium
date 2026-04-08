@@ -54,9 +54,9 @@ void applyContainerContents(Menu* menu, const std::vector<ItemStack>& items) {
         return;
     }
 
-    const i32 slotCount = std::min(menu->getSlotCount(), static_cast<i32>(items.size()));
-    for (i32 slotIndex = 0; slotIndex < slotCount; ++slotIndex) {
-        Slot* slot = menu->getSlot(slotIndex);
+    const size_t slotCount = std::min(static_cast<size_t>(menu->getSlotCount()), items.size());
+    for (size_t slotIndex = 0; slotIndex < slotCount; ++slotIndex) {
+        Slot* slot = menu->getSlot(static_cast<i32>(slotIndex));
         if (slot != nullptr) {
             slot->set(items[slotIndex]);
         }
@@ -966,7 +966,7 @@ void ClientApplication::mainLoop()
     m_lastFrameTime = glfwGetTime();
 
     while (m_running && !m_window.shouldClose()) {
-        MC_TRACE_EVENT("rendering.frame", "Frame");
+        MC_TRACE_EVENT("rendering.frame", "Frame", "phase", "frame");
 
         const auto frameStart = clock::now();
 
@@ -977,19 +977,19 @@ void ClientApplication::mainLoop()
 
         // 处理事件
         {
-            MC_TRACE_EVENT("rendering.frame", "HandleEvents");
+            MC_TRACE_EVENT("rendering.frame", "HandleEvents", "phase", "handle_events");
             handleEvents();
         }
 
         // 更新
         {
-            MC_TRACE_EVENT("rendering.frame", "Update");
+            MC_TRACE_EVENT("rendering.frame", "Update", "phase", "update");
             update(deltaTime);
         }
 
         // 渲染
         {
-            MC_TRACE_EVENT("rendering.frame", "Render");
+            MC_TRACE_EVENT("rendering.frame", "Render", "phase", "render");
             render();
         }
 
@@ -1017,7 +1017,7 @@ void ClientApplication::mainLoop()
             const auto minFrameDuration = std::chrono::duration<f64>(1.0 / static_cast<f64>(fpsLimit));
             const auto frameElapsed = clock::now() - frameStart;
             if (frameElapsed < minFrameDuration) {
-                MC_TRACE_EVENT("rendering.frame", "FrameRateLimitSleep");
+                MC_TRACE_EVENT("rendering.frame", "FrameRateLimitSleep", "phase", "sleep");
                 std::this_thread::sleep_for(minFrameDuration - frameElapsed);
             }
         }
@@ -1187,7 +1187,7 @@ void ClientApplication::update(f32 deltaTime)
     // 更新破坏进度管理器
     {
         using namespace mc::client::renderer::trident::block;
-        BreakProgressManager::instance().tick(deltaTime, m_world.gameTime());
+        BreakProgressManager::instance().tick(deltaTime, static_cast<u64>(m_world.gameTime()));
     }
 
     if (m_renderer && m_renderer->isFirstPersonRendererInitialized()) {
@@ -1734,9 +1734,9 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         m_player->inventory().clear();
-        const i32 maxSlots = std::min(static_cast<i32>(items.size()), PlayerInventory::TOTAL_SIZE);
-        for (i32 slot = 0; slot < maxSlots; ++slot) {
-            m_player->inventory().setItem(slot, items[slot]);
+        const size_t maxSlots = std::min(items.size(), static_cast<size_t>(PlayerInventory::TOTAL_SIZE));
+        for (size_t slot = 0; slot < maxSlots; ++slot) {
+            m_player->inventory().setItem(static_cast<i32>(slot), items[slot]);
         }
         m_player->inventory().setSelectedSlot(selectedSlot);
     };
@@ -1948,7 +1948,7 @@ void ClientApplication::setupNetworkCallbacks()
         auto& manager = BreakProgressManager::instance();
 
         BlockPos pos(x, y, z);
-        u64 currentTick = m_world.gameTime();  // 使用世界时间
+        u64 currentTick = static_cast<u64>(m_world.gameTime());  // 使用世界时间
 
         if (stage < 0) {
             // stage = -1 表示移除破坏效果
@@ -2378,13 +2378,11 @@ Result<void> ClientApplication::initializeResources()
     }
 
     // 5. 加载所有资源（如果有资源包）
-    bool hasResources = false;
     if (m_resourceManager->resourcePackCount() > 0) {
         auto loadResult = m_resourceManager->loadAllResources();
         if (loadResult.failed()) {
             spdlog::warn("Failed to load resources: {}", loadResult.error().toString());
         } else {
-            hasResources = true;
             spdlog::info("Loaded {} resource packs", m_resourceManager->resourcePackCount());
         }
 
