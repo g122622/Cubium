@@ -7,7 +7,6 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/chunk/IChunk.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -26,7 +25,6 @@ namespace mc::server {
 
 using mc::WorldLightManager;
 using mc::IChunk;
-using mc::StarLightLightingProvider;
 using mc::LightType;
 using mc::SectionPos;
 using mc::ChunkPos;
@@ -206,6 +204,12 @@ void ServerWorld::unloadChunk(ChunkCoord x, ChunkCoord z)
 {
     if (m_chunkManager) {
         m_chunkManager->unloadChunk(x, z);
+    }
+
+    if (m_lightManager) {
+        const ChunkPos chunkPos(x, z);
+        m_lightManager->enableLightSources(chunkPos, false);
+        m_lightManager->retainData(chunkPos, false);
     }
 }
 
@@ -484,11 +488,6 @@ void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ)
 
     ChunkPos chunkPos(chunkX, chunkZ);
 
-    auto* blockLightEngine = m_lightManager->getBlockLightEngine();
-    if (blockLightEngine != nullptr) {
-        blockLightEngine->updateEmptinessMap(chunkX, chunkZ, chunk);
-    }
-
     for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk->getSection(sectionY);
         SectionPos sectionPos(chunkX, sectionY, chunkZ);
@@ -497,12 +496,12 @@ void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ)
         m_lightManager->updateSectionStatus(sectionPos, isEmpty);
 
         if (section != nullptr) {
-            if (m_lightManager->getSkyLightEngine()) {
+            if (m_lightManager->hasSkyLight()) {
                 NibbleArray skyLightCopy = section->skyLightNibble().copy();
                 m_lightManager->setData(LightType::SKY, sectionPos, skyLightCopy, false);
             }
 
-            if (m_lightManager->getBlockLightEngine()) {
+            if (m_lightManager->hasBlockLight()) {
                 NibbleArray blockLightCopy = section->blockLightNibble().copy();
                 m_lightManager->setData(LightType::BLOCK, sectionPos, blockLightCopy, false);
             }
@@ -883,7 +882,7 @@ void ServerWorld::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i3
 }
 
 // ============================================================================
-// StarLightLightingProvider 接口实现
+// 光照提供者接口实现
 // ============================================================================
 
 IChunk* ServerWorld::getChunkForLight(ChunkCoord x, ChunkCoord z)
@@ -986,12 +985,7 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
         return;
     }
 
-    SWMRNibbleArray* lightData = m_lightManager->getData(type, pos);
-    if (!lightData) {
-        return;
-    }
-
-    std::vector<u8> data = lightData->toByteArray();
+    std::vector<u8> data = m_lightManager->getData(type, pos);
     if (data.size() != NibbleArray::BYTE_SIZE) {
         return;
     }

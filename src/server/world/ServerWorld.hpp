@@ -64,7 +64,7 @@ struct ServerWorldConfig {
 // - 游戏模式（由 GameModeManager 管理）
 // ============================================================================
 
-class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLightingProvider {
+class ServerWorld : public IWorld, public ICollisionWorld, public IChunkLightProvider {
 public:
     ServerWorld();
     explicit ServerWorld(const ServerWorldConfig& config);
@@ -216,7 +216,7 @@ public:
     void scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay,
                           world::tick::TickPriority priority = world::tick::TickPriority::Normal);
 
-    // ========== StarLightLightingProvider 接口实现 ==========
+    // ========== 光照提供者接口实现 ==========
 
     [[nodiscard]] IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) override;
     [[nodiscard]] const IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) const override;

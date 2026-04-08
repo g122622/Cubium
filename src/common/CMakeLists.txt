@@ -660,18 +660,8 @@ add_library(mc_common STATIC
     world/redstone/RedstoneHelper.cpp
 
     # World - Lighting System
-    world/lighting/InternalLight.cpp
-    world/lighting/engine/LevelBasedGraph.cpp
-    world/lighting/engine/BlockLightEngine.cpp
-    world/lighting/engine/SkyLightEngine.cpp
-    world/lighting/engine/LightEngineUtils.cpp
-    world/lighting/engine/LightEngineCache.cpp
-    world/lighting/storage/BlockLightStorage.cpp
-    world/lighting/storage/SkyLightStorage.cpp
-    world/lighting/storage/EmptinessMap.cpp
-    world/lighting/storage/SWMRNibbleArray.cpp
     world/lighting/manager/WorldLightManager.cpp
-    # (header-only templates: LightType.hpp, IChunkLightProvider.hpp, SWMRLightDataMap.hpp, SectionLightStorage.hpp)
+    world/lighting/storage/SWMRNibbleArray.cpp
 
     # World - Fluid System
     world/fluid/Fluid.cpp

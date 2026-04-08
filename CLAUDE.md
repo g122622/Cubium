@@ -29,6 +29,12 @@ All types are in namespace `mc` (client types in `mc::client`, server types in `
 - `ChunkSection` - 16x16x16 block section
 - `ChunkData` - Full chunk data (16 sections)
 
+### Lighting Types
+- `LightType` - `SKY` / `BLOCK` light selector
+- `IChunkLightProvider` - Internal light provider interface used by the lighting manager
+- `WorldLightManager` - Public lighting facade for all server-side light access
+- `SWMRNibbleArray` - Single-writer multi-reader nibble storage used by the light buffers
+
 ### Chunk Generation Types
 - `ChunkStatus`: Generation stages (EMPTY → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → HEIGHTMAPS → FULL)
 - `ChunkPrimer`: Intermediate chunk state during generation
@@ -329,113 +335,6 @@ enum class Operation : u8 { ... };
 }}}
 ```
 
-## Current Status
-
-- Ocean biome generation has been aligned toward MC 1.16.5 behavior for shallow/deep warm, lukewarm, cold, and frozen variants.
-- `BiomeGenerationSettings` now provides deep-ocean-specific factory methods:
-    - `createDeepWarmOcean`
-    - `createDeepLukewarmOcean`
-    - `createDeepColdOcean`
-    - `createDeepFrozenOcean`
-- Blue ice generation now uses a vanilla-style spread model:
-    - sea-level gating
-    - packed-ice neighbor precondition
-    - iterative propagation (`spreadAttempts`)
-- End biome provider now follows vanilla island-height selection logic (`func_235317_a_` equivalent), including RNG skip behavior and noise-grid container filling.
-- Ocean feature tests and biome-setting tests were updated to match the new parity-oriented expectations.
-- `ServerWorld::setBlock` now executes a full block-update callback chain:
-    - canonicalizes incoming `BlockState*` by `stateId`
-    - invokes `onBlockRemoved/onBlockAdded`
-    - applies neighbor `updatePostPlacement`
-    - dispatches `neighborChanged` notifications
-- Gravity-sensitive blocks are now wired through `FallingBlock`:
-    - `minecraft:sand`
-    - `minecraft:gravel`
-    - `minecraft:red_sand`
-- Agricultural survival/growth rules were tightened:
-    - crops and stems now require farmland support
-    - farmland moisture/water checks and dirt fallback are active
-    - sugar cane now checks vanilla-like ground and water adjacency
-- Fluid flow path now integrates `ILiquidContainer` checks in `FlowingFluid`:
-    - `isBlocked` consults `ILiquidContainer::canContainFluid`
-    - `flowInto` attempts `ILiquidContainer::receiveFluid` before block replacement
-- Crafting-table interaction is now wired into right-click packet handling:
-    - Integrated server opens the existing `CraftingMenu` when right-clicking crafting table with empty/non-block hand
-    - Standalone server routes crafting-table open events through `ContainerManager` callbacks and sends open/close/content container packets
-    - `ContainerManager` is now connected to `InventoryManager`, creates real `CraftingMenu` instances, and processes container click updates through menu state
-- First-person hand rotation path has been rewritten against MC 1.16.5 `FirstPersonRenderer` formulas:
-    - arm/item transforms now follow vanilla coefficients and order (`renderArmFirstPerson`, `transformSideFirstPerson`, `transformFirstPerson`)
-    - first-person root orientation now uses camera-aligned basis derived from MC forward vector convention
-    - custom `MatrixStack` transform composition is now strict post-multiply (`current = current * transform`) to match PoseStack semantics
-- First-person hand item meshes are now cached per hand and retired with a frame-based countdown tied to `maxFramesInFlight`, which prevents main/offhand cache thrashing and repeated `vkAllocateMemory` churn.
-- `EntityPipeline::destroy()` and `FirstPersonRenderer::destroy()` now clean up partially initialized Vulkan resources even when initialization fails early.
-- `VulkanUtils::createBuffer()` and `VulkanUtils::createImage()` now unwind correctly when `vkBind*Memory()` fails.
-- Client-side chunk mesh build path has been split into two layers:
-    - `MeshBuildScheduler` owns priority, frustum weighting, reprioritization, and cancellation.
-    - `MeshWorkerPool` is now a pure FIFO executor with cooperative cancel checks.
-- `ClientWorld` now initializes mesh build via `initializeMeshSystem(threadCount, MeshSchedulerConfig)` and drives scheduling with `update(const MeshSchedulerViewState&)`.
-- `ClientWorld::update(...)` now reconciles stale `activeMeshTaskId` values via `MeshBuildScheduler::isTaskTracked(...)` and resubmits in-frustum chunks that still have no mesh result.
-- `ChunkMesher::generateMesh`, `generateSplitMesh`, and `generateSectionMesh` now accept a `cancelSignal` pointer and check cancellation in long-running loops.
-- New client tests cover the refactored path:
-    - `tests/client/test_mesh_worker_pool.cpp`
-    - `tests/client/test_mesh_build_scheduler.cpp`
-- Sky/block light propagation core has been realigned closer to Moonrise/Starlight behavior:
-    - `LevelBasedGraph` queue entries now store full world positions (`i64 pos`) instead of truncated packed local bits
-    - increase/decrease queue flow now follows a Starlight-style “decrease first, then re-propagate surviving sources” pattern
-    - queue direction bitsets are now treated as “allowed propagation directions” instead of single reverse-direction markers
-- Sky light block-change handling now respects inverted internal level semantics (`0` brightest, `15` darkest):
-    - `SkyLightEngine::checkLight` no longer writes wrong internal values on block updates
-    - sky increase propagation from fully opaque blocks is blocked, while decrease propagation still removes stale light below roofs
-- Sky/block edge-occlusion checks now follow a stricter source-face rule:
-    - `BlockLightEngine::getEdgeLevel` and `SkyLightEngine::getEdgeLevel` now use direction-aware `blocksLightInDirection` checks on the source face for adjacent propagation
-    - `SkyLightEngine::getEdgeLevel` non-adjacent path now mirrors vanilla-style downward-source and target-opposite-face gating
-- `LevelBasedGraph::propagateLevel` decrease branch now forces a darkening cascade on fully blocked edges (`target = darkest`) before source re-propagation:
-    - this prevents stale bright values from surviving under newly sealed skylight roofs
-    - surviving sources are still restored via queued increase rechecks/writebacks
-- New lighting regression tests were added in `tests/lighting/SkyLightRegressionTest.cpp`:
-    - floating single-stone underside keeps non-zero side skylight
-    - fully sealed roof drives cave skylight below 15
-    - negative-Y surface-top detection remains covered
-- Lighting queue runtime now uses FIFO wavefront processing in `LevelBasedGraph` for both increase/decrease queues:
-    - queued entries are consumed in insertion order (not pop-back)
-    - when tick budget runs out, unread queue entries are compacted and preserved for next tick
-- FIFO decrease handling now seeds adjacent increase rechecks when forcing a node to darkest:
-    - preserves valid side skylight restoration (e.g. floating single-block underside)
-    - still keeps sealed-roof darkening convergence
-- Block/Sky `checkBlock` entry path now follows a Starlight-style dual-queue pattern more closely:
-    - writes the local source contribution first
-    - then enqueues coordinated increase/decrease propagation for neighbor reconciliation
-- Block edge propagation now avoids treating full-cube sources as source-face blockers:
-    - prevents emissive full blocks (e.g. glowstone) from being incorrectly trapped at source cell
-- `SWMRLightDataMap::worldToSection(...)` now uses canonical `LightEngineUtils::worldToSectionPos(...)` conversion:
-    - fixes section lookup mismatch caused by stale manual bit-decode offsets
-- `WorldLightManager::tick(...)` now correctly supports single-engine dimensions:
-    - block-only and sky-only worlds no longer hit the "No light engines available" assert path
-- `WorldLightManager::tick(...)` now uses a shared sequential budget instead of the previous split/retry policy:
-    - block light is processed first when enabled
-    - sky light then consumes the remaining budget when enabled
-    - this keeps the budget accounting predictable and avoids the old uneven split
-- `WorldLightManager` block-update and light-query entrypoints now use raw coordinates instead of `BlockPos` wrappers:
-    - `checkBlock(i32 x, i32 y, i32 z)`
-    - `onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel)`
-    - `getBlockLight(i32 x, i32 y, i32 z)`
-    - `getSkyLight(i32 x, i32 y, i32 z)`
-- `SkyStarLightEngine::checkBlock(...)` now follows the Starlight-style raw-level branch shape more closely:
-    - current light is read in raw form for the branch condition
-    - source positions requeue increase before clearing non-source positions
-- `BlockStarLightEngine::onBlockEmissionIncrease(...)` now compares explicit source brightness against the current light level instead of the old inverse-level shortcut
-- New queue-order regression tests were added in `tests/lighting/LevelBasedGraphQueueTest.cpp`:
-    - FIFO order remains stable across tick-budget boundaries
-    - cancel behavior stays correct after queue wrap/compaction scenarios
-- New block-light regression tests were added in `tests/lighting/BlockLightRegressionTest.cpp`:
-    - emissive-source neighbor propagation
-    - source removal darkening
-    - opaque insert/remove response
-    - emission-increase event propagation
-- New regression tests were added to cover the `checkBlock()` entry path:
-    - `tests/lighting/BlockLightRegressionTest.cpp`
-    - `tests/lighting/SkyLightRegressionTest.cpp`
-
 ## Gotchas & Pitfalls
 
 - `WorldGenRegion` is not an `IBlockReader`; do not pass it directly to `Block::isValidPosition`.
@@ -458,30 +357,13 @@ enum class Operation : u8 { ... };
     - Keep `activeMeshTaskId` in sync with scheduler tracking (or chunks can get stuck with a stale task id and never be resubmitted).
 - When changing `ChunkMesher` mesh APIs, update both runtime and tests together.
     - `tests/client/renderer/test_renderer.cpp` now calls the 5-argument `generateSplitMesh(..., neighbors, cancelSignal)` signature.
-- Do not assume old LevelBasedGraph queue bit-packing semantics are still valid.
-    - Lighting queue entries now carry full world coordinates; if you reintroduce 6-bit X/Z truncation or stale decode paths, sky/block light will desync badly away from origin.
-- In skylight code, be explicit about internal level meaning.
-    - Internal level is inverted (`0` brightest, `15` darkest). Porting logic from vanilla/Starlight direct-light code without conversion can silently invert clear/repropagation behavior.
-- For skylight roof-closure fixes, only block increase propagation from opaque source blocks.
-    - Do not apply the same opaque-source gate to decrease paths, or stale light under roofs will never be removed.
-- When handling `currentLevel < targetLevel` during decrease propagation, blocked-edge (`target=darkest`) cases cannot always be treated as “safe surviving source”.
-    - Force clear + decrease cascade first, and enqueue adjacent increase rechecks; otherwise side skylight can be lost under FIFO wavefront execution.
-- Do not switch `LevelBasedGraph` queue processing back to LIFO (`--length` pop-back).
-    - Starlight-style propagation depends on FIFO wavefront ordering; LIFO introduces unnecessary oscillation and delayed convergence under complex occlusion.
-- Do not reintroduce compatibility aliases for the lighting subsystem.
-    - `StarLightEngine`, `BlockStarLightEngine`, `SkyStarLightEngine`, and `StarLightLightingProvider` are the canonical names now.
-- Keep world->section conversion centralized via `LightEngineUtils::worldToSectionPos(...)`.
-    - Re-introducing ad-hoc bit-decode logic in storage maps can silently route writes/reads to wrong sections.
-- Do not apply source-face blocking blindly to all block-light propagation.
-    - Full-cube emissive sources still need outward propagation; source-face occlusion checks should target conditional shapes.
-- Do not reintroduce default parameters into lighting APIs.
-    - Where a call pattern needs a simplified form, add an overload instead of a default argument.
-- `WorldLightManager::tick(...)` now relies on ordered budget consumption.
-    - Do not restore the previous half/half split unless the budget model is redesigned with matching tests.
-- Do not reintroduce `BlockPos` wrapper overloads on `WorldLightManager` block-update or light-query entrypoints.
-    - Raw coordinates are the canonical surface for lighting dispatch now.
-- When mirroring Starlight branch flow, keep raw light-level handling local to the entrypoint and convert before queueing if the propagation core still expects internal levels.
-    - Feeding raw source levels straight into the propagation queues will desynchronize the current inverse-level storage model.
+- Lighting propagation is flood-fill based and can leak around isolated obstacles in open space.
+    - Do not assume a single roof block or wall block fully darkens the column below it.
+    - If you need to test total occlusion, build a sealed enclosure or a thicker barrier.
+- `BlockState::lightLevel()` is a cached static value.
+    - Runtime emission and opacity checks for lighting must go through `Block::getLightLevel(...)` and `Block::getOpacity(...)` when the block can vary by state or context.
+- 光照热路径不要逐方块回到 `ServerWorld::getBlockState(...)`。
+    - `WorldLightManager` 在 tick 内必须优先缓存 `IChunk` 指针，再从区块内直接读取方块状态；否则 `getChunkShared` / `getBlockState` 会成为主要瓶颈。
 
 ## Self-Maintenance Rule
 
@@ -490,41 +372,8 @@ enum class Operation : u8 { ... };
 - Add new models/controllers/pages/routes to the relevant tables below
 - Update test count if new tests are added
 - Add any new gotchas or patterns to the "Gotchas & Pitfalls" section
-- Update the "Current Status" section if the status changes
 - Keep this file as the single source of truth for AI sessions working on this project
 
 ## 日志级别必须使用至少info，因为目前未开放debug级别的日志，debug级别日志看不到。
 
 ## 函数参数和配置结构体不允许使用、设置默认值，因为大量的默认值会导致数据流变得难以理解，难以追踪某个值是如何被设置的、是某层默认的还是外部传入的，增加理解和调试难度。若不得不增加默认值，必须征求我的同意。
-
-## 【重要】README.md 使用指南
-
-几乎每个目录下都有一个简体中文编写的 README.md，它很重要，在你探索项目实现的时候，提前看看它，能节省不少多余的文件查找与查看，节省不少上下文开销。
-
-【重要】为了节省上下文，请你尽量阅读各级目录的 README.md 来获取你需要的信息，而不是直接查看代码文件。
-
-例如：当你修改想修改或查看`src\common\world\chunk\ChunkLoadTicketManager.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
-
-- src\common\README.md
-- src\common\world\README.md
-- src\common\world\chunk\README.md
-
-同理，当你对代码职责、接口、架构等做了修改，必须视情况决定是否递归修改/新增目录链上的各级README.md！
-
-如果你发现当前的README.md内容过时了，或者不够清晰了，或者缺乏重要信息了，你必须更正/更新它！如果你发现自己途径的目录没有README.md了，你必须新增一个！
-
-注意，tests目录不考虑，不要写 README.md。
-
-### 文档内容
-
-每个 README.md 都必须使用简体中文，必须至少包含：
-1. **目录结构树** - 清晰展示文件组织
-2. **文件介绍** - 每个文件的职责和主要内容
-3. **模块关系** - 分析各组件之间的依赖关系
-4. **整体职责** - 模块作为整体的职责说明
-5. **输入/输出** - 数据流向分析
-6. **依赖项** - 外部和内部依赖
-7. **使用方法** - 代码示例和集成指南
-8. **容易踩的坑** - 常见问题和解决方案
-9. **测试用例** - 相关测试文件说明
-10. **Mermaid图表** - 架构图、流程图、类图等（使用简体中文和彩色样式）

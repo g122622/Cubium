@@ -1,6 +1,5 @@
 #include "LightSyncManager.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/IChunk.hpp"
@@ -39,12 +38,12 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
         m_lightManager.updateSectionStatus(sectionPos, isEmpty);
 
         if (section != nullptr) {
-            if (m_lightManager.getSkyLightEngine()) {
+            if (m_lightManager.hasSkyLight()) {
                 NibbleArray skyLightCopy = section->skyLightNibble().copy();
                 m_lightManager.setData(LightType::SKY, sectionPos, skyLightCopy, false);
             }
 
-            if (m_lightManager.getBlockLightEngine()) {
+            if (m_lightManager.hasBlockLight()) {
                 NibbleArray blockLightCopy = section->blockLightNibble().copy();
                 m_lightManager.setData(LightType::BLOCK, sectionPos, blockLightCopy, false);
             }
@@ -103,19 +102,15 @@ void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& po
     }
 
     // 从 WorldLightManager 获取光照数据
-    SWMRNibbleArray* lightData = m_lightManager.getData(type, pos);
-    if (!lightData) {
+    std::vector<u8> data = m_lightManager.getData(type, pos);
+    if (data.size() != NibbleArray::BYTE_SIZE) {
         return;
     }
 
-    // 获取数据副本并同步到 ChunkSection
-    std::vector<u8> data = lightData->toByteArray();
-    if (data.size() == NibbleArray::BYTE_SIZE) {
-        NibbleArray& targetArray = (type == LightType::SKY)
-            ? section->skyLightNibble()
-            : section->blockLightNibble();
-        targetArray.data() = std::move(data);
-    }
+    NibbleArray& targetArray = (type == LightType::SKY)
+        ? section->skyLightNibble()
+        : section->blockLightNibble();
+    targetArray.data() = std::move(data);
 }
 
 } // namespace mc::server::sync

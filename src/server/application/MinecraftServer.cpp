@@ -311,16 +311,10 @@ void MinecraftServer::setupWorldCallbacks()
         std::vector<u8> blockLight;
 
         // 获取光照数据
-        if (type == LightType::SKY && lightManager->getSkyLightEngine()) {
-            auto* data = lightManager->getData(LightType::SKY, pos);
-            if (data) {
-                skyLight = data->toByteArray();
-            }
-        } else if (type == LightType::BLOCK && lightManager->getBlockLightEngine()) {
-            auto* data = lightManager->getData(LightType::BLOCK, pos);
-            if (data) {
-                blockLight = data->toByteArray();
-            }
+        if (type == LightType::SKY && lightManager->hasSkyLight()) {
+            skyLight = lightManager->getData(LightType::SKY, pos);
+        } else if (type == LightType::BLOCK && lightManager->hasBlockLight()) {
+            blockLight = lightManager->getData(LightType::BLOCK, pos);
         }
 
         // 发送光照更新包
