@@ -168,6 +168,10 @@ Result<void> TridentContext::createInstanceOnly(const TridentConfig& config) {
     createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
+#ifdef __APPLE__
+    // macOS 使用 MoltenVK，需要启用 portability enumeration
+    createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
     // 验证层
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -491,7 +495,10 @@ Result<void> TridentContext::createLogicalDevice() {
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
     deviceFeatures.fillModeNonSolid = VK_TRUE;
+#ifndef __APPLE__
+    // macOS 使用 MoltenVK/Metal，不支持 shaderFloat64
     deviceFeatures.shaderFloat64 = VK_TRUE;
+#endif
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -565,11 +572,19 @@ bool TridentContext::isDeviceSuitable(VkPhysicalDevice device) {
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    return indices.isComplete()
+    bool suitable = indices.isComplete()
         && extensionsSupported
         && swapChainAdequate
-        && supportedFeatures.samplerAnisotropy
-        && supportedFeatures.shaderFloat64;
+        && supportedFeatures.samplerAnisotropy;
+
+#ifdef __APPLE__
+    // macOS 使用 MoltenVK/Metal，不支持 shaderFloat64，跳过此检查
+    (void)supportedFeatures.shaderFloat64;
+#else
+    suitable = suitable && supportedFeatures.shaderFloat64;
+#endif
+
+    return suitable;
 }
 
 QueueFamilyIndices TridentContext::findQueueFamilies(VkPhysicalDevice device) {
@@ -641,6 +656,11 @@ std::vector<const char*> TridentContext::getRequiredInstanceExtensions() {
     if (m_validationEnabled) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+
+#ifdef __APPLE__
+    // macOS 使用 MoltenVK，需要启用 portability enumeration 扩展
+    extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
 
     return extensions;
 }
