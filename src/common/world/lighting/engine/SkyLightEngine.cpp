@@ -7,7 +7,6 @@
 #include "../../../physics/collision/CollisionShape.hpp"
 #include <algorithm>
 #include <cstring>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -607,36 +606,23 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
     }
     // else: 区块是空的
 
-    spdlog::info("lightChunk: before needsEdgeChecks branch, needsEdgeChecks={}, highestNonEmptySection={}",
-                 needsEdgeChecks, highestNonEmptySection);
-
     if (needsEdgeChecks) {
         // 不需要在这里传播，但可以减少边缘检查的开销
-        spdlog::info("lightChunk: calling performLightIncrease (needsEdgeChecks=true)");
         performLightIncrease(lightAccess);
-        spdlog::info("lightChunk: performLightIncrease done, calling checkNullSection loop");
 
         for (i32 y = highestNonEmptySection; y >= m_minLightSection; --y) {
             checkNullSection(chunkX, y, chunkZ, false);
         }
-        spdlog::info("lightChunk: checkNullSection loop done, calling checkChunkEdges");
 
         checkChunkEdges(lightAccess, chunk, m_minLightSection, highestNonEmptySection);
-        spdlog::info("lightChunk: checkChunkEdges done");
     } else {
-        spdlog::info("lightChunk: needsEdgeChecks=false branch");
         for (i32 y = highestNonEmptySection; y >= m_minLightSection; --y) {
             checkNullSection(chunkX, y, chunkZ, false);
         }
-        spdlog::info("lightChunk: checkNullSection loop done, calling propagateNeighbourLevels");
 
         propagateNeighbourLevels(lightAccess, chunk, m_minLightSection, highestNonEmptySection);
-        spdlog::info("lightChunk: propagateNeighbourLevels done, calling performLightIncrease");
-
         performLightIncrease(lightAccess);
-        spdlog::info("lightChunk: performLightIncrease done");
     }
-    spdlog::info("lightChunk: END");
 }
 
 // ============================================================================

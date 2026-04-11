@@ -335,8 +335,6 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         return;
     }
 
-    spdlog::info("StarLightEngine::light START chunk=({}, {})", chunk->x(), chunk->z());
-
     i32 chunkX = chunk->x();
     i32 chunkZ = chunk->z();
     i32 centerX = chunkX * 16 + 7;
@@ -371,21 +369,17 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         const bool* emptinessMap = getEmptinessMap(chunk);
         setEmptinessMapCache(chunkX, chunkZ, emptinessMap);
 
-        spdlog::info("StarLightEngine::light calling lightChunk");
         // 执行光照计算
         lightChunk(lightAccess, chunk, needsEdgeChecks);
 
-        spdlog::info("StarLightEngine::light calling updateVisible");
         // 更新可见数据
         updateVisible(lightAccess);
-        spdlog::info("StarLightEngine::light updateVisible done");
     } catch (...) {
         destroyCaches();
         throw;
     }
 
     destroyCaches();
-    spdlog::info("StarLightEngine::light END");
 }
 
 // ============================================================================
@@ -678,20 +672,16 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
     // 防止无限循环的安全限制
     constexpr i32 MAX_ITERATIONS = 100000;
     i32 iterations = 0;
-    i32 totalProcessed = 0;
 
     // 持续处理直到队列为空
     while (m_increaseQueueInitialLength > 0) {
         if (++iterations > MAX_ITERATIONS) {
-            spdlog::warn("performLightIncrease hit iteration limit: iterations={}, queueLength={}",
-                         iterations, m_increaseQueueInitialLength);
             m_increaseQueueInitialLength = 0;
             break;
         }
 
         i32 queueLength = m_increaseQueueInitialLength;
         m_increaseQueueInitialLength = 0;
-        totalProcessed += queueLength;
 
         for (i32 readIndex = 0; readIndex < queueLength; ++readIndex) {
             u64 queueValue = m_increaseQueue[static_cast<size_t>(readIndex)];
@@ -782,9 +772,6 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
             }
         }
     }
-
-    spdlog::info("performLightIncrease: END iterations={}, totalProcessed={}, remainingQueue={}",
-                 iterations, totalProcessed, m_increaseQueueInitialLength);
 }
 
 void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAccess) {
