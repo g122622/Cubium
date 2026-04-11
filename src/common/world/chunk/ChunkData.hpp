@@ -57,6 +57,7 @@ public:
 
     // 段信息
     [[nodiscard]] bool isEmpty() const { return m_blockCount == 0; }
+    [[nodiscard]] bool hasOnlyAir() const { return m_blockCount == 0; } // 与 isEmpty 等价，但语义更明确
     [[nodiscard]] u16 getBlockCount() const { return m_blockCount; }
     void setBlockCount(u16 count) { m_blockCount = count; }
     [[nodiscard]] bool needsRecalculate() const { return m_needsRecalculate; }

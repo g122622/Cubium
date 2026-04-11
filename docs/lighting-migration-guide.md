@@ -15,7 +15,7 @@
 
 ### 2. 引擎层
 
-- [StarLightEngine](../src/common/world/lighting/engine/LevelBasedGraph.hpp)
+- [StarLightEngine](../src/common/world/lighting/engine/BaseLightEngine.hpp)
 - [BlockStarLightEngine](../src/common/world/lighting/engine/BlockLightEngine.hpp)
 - [SkyStarLightEngine](../src/common/world/lighting/engine/SkyLightEngine.hpp)
 - [LightEngineCache](../src/common/world/lighting/engine/LightEngineCache.hpp)
@@ -34,7 +34,7 @@
 
 以下旧名称已经删除，不再提供兼容别名：
 
-- `LevelBasedGraph` -> `StarLightEngine`
+- `BaseLightEngine` -> `StarLightEngine`
 - `BlockLightEngine` -> `BlockStarLightEngine`
 - `SkyLightEngine` -> `SkyStarLightEngine`
 - `IChunkLightProvider` -> `StarLightLightingProvider`
@@ -95,7 +95,7 @@ if (lightData != nullptr) {
 
 ### 2. 不要破坏 FIFO 波前顺序
 
-`LevelBasedGraph` 的队列必须保持 FIFO 消费顺序。不要改回 LIFO，也不要在处理中间插入会改变波前顺序的逻辑。
+`BaseLightEngine` 的队列必须保持 FIFO 消费顺序。不要改回 LIFO，也不要在处理中间插入会改变波前顺序的逻辑。
 
 ### 3. 不要把源面遮挡规则泛化到所有发光方块
 
@@ -121,7 +121,7 @@ if (lightData != nullptr) {
 
 重点覆盖：
 
-- `LevelBasedGraphQueueTest`
+- `BaseLightEngineQueueTest`
 - `BlockLightRegressionTest`
 - `SkyLightRegressionTest`
 - `LightSyncTest`

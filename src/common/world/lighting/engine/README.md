@@ -7,7 +7,7 @@
 
 ```
 engine/
-├── LevelBasedGraph.hpp/cpp     # StarLightEngine 基类（Starlight 优化版）
+├── BaseLightEngine.hpp/cpp     # StarLightEngine 基类（Starlight 优化版）
 ├── BlockLightEngine.hpp/cpp    # BlockStarLightEngine 方块光照引擎
 ├── SkyLightEngine.hpp/cpp      # SkyStarLightEngine 天空光照引擎
 ├── LightEngineCache.hpp/cpp    # 光照引擎缓存系统（备用）

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LevelBasedGraph.hpp"
+#include "BaseLightEngine.hpp"
 #include "LightEngineUtils.hpp"
 #include "../storage/SkyLightStorage.hpp"
 #include "../storage/SWMRNibbleArray.hpp"

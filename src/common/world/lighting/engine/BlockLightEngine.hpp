@@ -3,7 +3,7 @@
 #include "../storage/BlockLightStorage.hpp"
 #include "../storage/SWMRNibbleArray.hpp"
 #include "../storage/EmptinessMap.hpp"
-#include "LevelBasedGraph.hpp"
+#include "BaseLightEngine.hpp"
 #include "LightEngineUtils.hpp"
 #include "../../block/BlockPos.hpp"
 #include <unordered_map>

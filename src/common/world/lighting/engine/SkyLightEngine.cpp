@@ -7,6 +7,7 @@
 #include "../../../physics/collision/CollisionShape.hpp"
 #include <algorithm>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -530,15 +531,14 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
     i32 highestNonEmptySection = m_maxSection;
     while (highestNonEmptySection >= m_minSection &&
            (sections[highestNonEmptySection - m_minSection] == nullptr ||
-            sections[highestNonEmptySection - m_minSection]->isEmpty())) {
+            sections[highestNonEmptySection - m_minSection]->hasOnlyAir())) {
 
         // 对于空区块段，将 Nibble 设置为全亮
         // 这是天空光照的关键：空区块段以上都应该有 15 级光照
         SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, highestNonEmptySection, chunkZ);
-        if (nibble != nullptr) {
-            nibble->setNonNull();
-            nibble->setFull();
-        }
+        MC_ASSERT_RELEASE(nibble != nullptr);
+        nibble->setNonNull();
+        nibble->setFull();
 
         checkNullSection(chunkX, highestNonEmptySection, chunkZ, false);
 
@@ -550,9 +550,15 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
             i32 neighbourX = chunkX + dx;
             i32 neighbourZ = chunkZ + dz;
             SWMRNibbleArray* neighbourNibble = getNibbleFromCache(neighbourX, highestNonEmptySection, neighbourZ);
+            // MC_ASSERT_RELEASE(neighbourNibble != nullptr);
             if (neighbourNibble == nullptr) {
                 // 未加载的邻居，跳过
+                // spdlog::warn("SkyStarLightEngine: Neighbor chunk at ({}, {}) is not loaded, skipping skylight propagation for empty section {}",
+                //              neighbourX, neighbourZ, highestNonEmptySection);
                 continue;
+            } else {
+                spdlog::info("SkyStarLightEngine: Propagating skylight for empty section {} to neighbor chunk at ({}, {})",
+                             highestNonEmptySection, neighbourX, neighbourZ);
             }
 
             // 计算边界传播参数
@@ -614,7 +620,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
             checkNullSection(chunkX, y, chunkZ, false);
         }
 
-        checkChunkEdges(lightAccess, chunk, m_minLightSection, highestNonEmptySection);
+        StarLightEngine::checkChunkEdges(lightAccess, chunk, m_minLightSection, highestNonEmptySection);
     } else {
         for (i32 y = highestNonEmptySection; y >= m_minLightSection; --y) {
             checkNullSection(chunkX, y, chunkZ, false);
@@ -642,6 +648,7 @@ void SkyStarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess,
         checkNullSection(chunkX, y, chunkZ, true);
     }
 
+    // 调用基类方法
     StarLightEngine::checkChunkEdges(lightAccess, chunk, fromSection, toSection);
 }
 

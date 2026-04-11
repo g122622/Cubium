@@ -1,4 +1,4 @@
-#include "LevelBasedGraph.hpp"
+#include "BaseLightEngine.hpp"
 #include "../IChunkLightProvider.hpp"
 #include "../../chunk/IChunk.hpp"
 #include "../../chunk/ChunkData.hpp"
@@ -317,6 +317,14 @@ void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, i3
 
 void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
                                        i32 fromSection, i32 toSection) {
+    // ChunkPos chunkPos = chunk->pos();
+    // i32 chunkX = chunkPos.x;
+    // i32 chunkZ = chunkPos.z;
+
+    // for (i32 sectionY = fromSection; sectionY <= toSection; ++sectionY) {
+    //     checkChunkEdge(lightAccess, chunk, chunkX, sectionY, chunkZ); // TODO 照着starlight源码实现
+    // }
+
     // 子类扩展
     performLightDecrease(lightAccess);
 }

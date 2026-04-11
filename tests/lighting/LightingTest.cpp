@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "common/util/NibbleArray.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "common/world/lighting/engine/LevelBasedGraph.hpp"
+#include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/InternalLight.hpp"
 #include "common/world/chunk/ChunkPos.hpp"

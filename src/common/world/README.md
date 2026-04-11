@@ -141,7 +141,7 @@ world/
 │   ├── engine/                 # Light engines
 │   │   ├── BlockLightEngine.hpp/cpp
 │   │   ├── SkyLightEngine.hpp/cpp
-│   │   ├── LevelBasedGraph.hpp/cpp
+│   │   ├── BaseLightEngine.hpp/cpp
 │   │   ├── LightEngineCache.hpp/cpp
 │   │   └── LightEngineUtils.hpp/cpp
 │   ├── manager/                # Light manager

@@ -12,7 +12,7 @@ lighting/
 ├── IChunkLightProvider.hpp    # StarLightLightingProvider 接口
 ├── InternalLight.hpp/cpp      # 内部光照计算工具
 ├── engine/                    # 光照引擎
-│   ├── LevelBasedGraph.hpp/cpp        # StarLightEngine 基类（Starlight优化版）
+│   ├── BaseLightEngine.hpp/cpp        # StarLightEngine 基类（Starlight优化版）
 │   ├── LightEngineCache.hpp/cpp       # 光照引擎缓存系统
 │   ├── LightEngineUtils.hpp/cpp       # 光照引擎工具类
 │   ├── BlockLightEngine.hpp/cpp       # BlockStarLightEngine 方块光照引擎
@@ -88,7 +88,7 @@ public:
 
 ### engine/ 目录 - 光照引擎
 
-#### LevelBasedGraph.hpp/cpp
+#### BaseLightEngine.hpp/cpp
 
 基于级别的传播图，实现 Starlight 优化的 BFS 光照传播算法。
 
@@ -655,7 +655,7 @@ if (remaining < 512) {
 | `LightingTest.cpp` | NibbleArray、SectionPos、LightType、InternalLight、LightEngineUtils |
 | `LightUpdateTest.cpp` | LightUpdatePacket 序列化/反序列化、ChunkSection 光照数据、ChunkData 光照存储 |
 | `SkyLightRegressionTest.cpp` | 天空侧向补光、封顶变暗、开洞恢复、负Y表面检测 |
-| `LevelBasedGraphQueueTest.cpp` | FIFO 队列顺序、tick预算边界、取消更新行为 |
+| `BaseLightEngineQueueTest.cpp` | FIFO 队列顺序、tick预算边界、取消更新行为 |
 | `BlockLightRegressionTest.cpp` | 发光方块增亮、移除减亮、遮挡削弱与解除恢复 |
 
 ### 关键测试用例

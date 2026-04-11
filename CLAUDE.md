@@ -351,7 +351,7 @@ enum class Operation : u8 { ... };
     - Keep `activeMeshTaskId` in sync with scheduler tracking (or chunks can get stuck with a stale task id and never be resubmitted).
 - When changing `ChunkMesher` mesh APIs, update both runtime and tests together.
     - `tests/client/renderer/test_renderer.cpp` now calls the 5-argument `generateSplitMesh(..., neighbors, cancelSignal)` signature.
-- Do not assume old LevelBasedGraph queue bit-packing semantics are still valid.
+- Do not assume old BaseLightEngine queue bit-packing semantics are still valid.
     - Lighting queue entries now carry full world coordinates; if you reintroduce 6-bit X/Z truncation or stale decode paths, sky/block light will desync badly away from origin.
 - In skylight code, be explicit about internal level meaning.
     - Internal level is inverted (`0` brightest, `15` darkest). Porting logic from vanilla/Starlight direct-light code without conversion can silently invert clear/repropagation behavior.
@@ -359,7 +359,7 @@ enum class Operation : u8 { ... };
     - Do not apply the same opaque-source gate to decrease paths, or stale light under roofs will never be removed.
 - When handling `currentLevel < targetLevel` during decrease propagation, blocked-edge (`target=darkest`) cases cannot always be treated as “safe surviving source”.
     - Force clear + decrease cascade first, and enqueue adjacent increase rechecks; otherwise side skylight can be lost under FIFO wavefront execution.
-- Do not switch `LevelBasedGraph` queue processing back to LIFO (`--length` pop-back).
+- Do not switch `BaseLightEngine` queue processing back to LIFO (`--length` pop-back).
     - Starlight-style propagation depends on FIFO wavefront ordering; LIFO introduces unnecessary oscillation and delayed convergence under complex occlusion.
 - Do not reintroduce compatibility aliases for the lighting subsystem.
     - `StarLightEngine`, `BlockStarLightEngine`, `SkyStarLightEngine`, and `StarLightLightingProvider` are the canonical names now.

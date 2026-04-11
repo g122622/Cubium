@@ -553,5 +553,5 @@ ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
 
 - 区块生成阶段与 MC 1.16.5 完全一致
 - 票据系统参考 MC 的 `TicketManager`
-- 距离图参考 MC 的 `ChunkDistanceGraph` / `LevelBasedGraph`
+- 距离图参考 MC 的 `ChunkDistanceGraph` / `BaseLightEngine`
 - 区块追踪系统参考 MC 的玩家区块追踪机制

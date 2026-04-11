@@ -12,7 +12,7 @@ namespace mc::world {
 /**
  * @brief 区块距离图 - 管理 BFS 级别传播
  *
- * 参考 Minecraft 的 ChunkDistanceGraph / LevelBasedGraph。
+ * 参考 Minecraft 的 ChunkDistanceGraph / BaseLightEngine。
  * 核心算法：Dijkstra 风格的最短路径传播。
  *
  * 工作原理：

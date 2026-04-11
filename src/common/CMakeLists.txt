@@ -661,7 +661,7 @@ add_library(mc_common STATIC
 
     # World - Lighting System
     world/lighting/InternalLight.cpp
-    world/lighting/engine/LevelBasedGraph.cpp
+    world/lighting/engine/BaseLightEngine.cpp
     world/lighting/engine/BlockLightEngine.cpp
     world/lighting/engine/SkyLightEngine.cpp
     world/lighting/engine/LightEngineUtils.cpp

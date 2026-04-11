@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "common/world/lighting/engine/LevelBasedGraph.hpp"
+#include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 
 #include <unordered_map>
@@ -13,9 +13,9 @@ namespace {
  *
  * 实现必要的抽象方法，记录访问位置用于测试验证。
  */
-class TestLevelBasedGraph final : public mc::StarLightEngine {
+class TestBaseLightEngine final : public mc::StarLightEngine {
 public:
-    TestLevelBasedGraph()
+    TestBaseLightEngine()
         : StarLightEngine(false) {  // false = 方块光照
         // 设置世界高度范围
         m_minSection = 0;
@@ -87,7 +87,7 @@ private:
  * - 位 32-37: 传播方向位集
  */
 mc::u64 encodeQueueEntry(mc::i32 x, mc::i32 y, mc::i32 z, mc::i32 level, mc::i32 directionBitset) {
-    // 编码格式参考 LevelBasedGraph.hpp
+    // 编码格式参考 BaseLightEngine.hpp
     return static_cast<mc::u64>(x & 0x3F) |
            (static_cast<mc::u64>(z & 0x3F) << 6) |
            (static_cast<mc::u64>(y & 0xFFFF) << 12) |
@@ -95,8 +95,8 @@ mc::u64 encodeQueueEntry(mc::i32 x, mc::i32 y, mc::i32 z, mc::i32 level, mc::i32
            (static_cast<mc::u64>(directionBitset & 0x3F) << 32);
 }
 
-TEST(LevelBasedGraphQueueTest, ScheduleUpdateWorks) {
-    TestLevelBasedGraph graph;
+TEST(BaseLightEngineQueueTest, ScheduleUpdateWorks) {
+    TestBaseLightEngine graph;
 
     const mc::i64 posA = mc::LightEngineUtils::packPos(0, 64, 0);
     const mc::i64 posB = mc::LightEngineUtils::packPos(1, 64, 0);
@@ -112,16 +112,16 @@ TEST(LevelBasedGraphQueueTest, ScheduleUpdateWorks) {
     EXPECT_TRUE(graph.hasWork());
 }
 
-TEST(LevelBasedGraphQueueTest, HasWorkReturnsFalseWhenEmpty) {
-    TestLevelBasedGraph graph;
+TEST(BaseLightEngineQueueTest, HasWorkReturnsFalseWhenEmpty) {
+    TestBaseLightEngine graph;
 
     EXPECT_FALSE(graph.needsUpdate());
     EXPECT_EQ(graph.queuedUpdateSize(), 0);
     EXPECT_FALSE(graph.hasWork());
 }
 
-TEST(LevelBasedGraphQueueTest, IncreaseQueueAcceptsEntries) {
-    TestLevelBasedGraph graph;
+TEST(BaseLightEngineQueueTest, IncreaseQueueAcceptsEntries) {
+    TestBaseLightEngine graph;
 
     // 设置编码偏移
     graph.setupEncodeOffset(0, 64, 0);
@@ -135,8 +135,8 @@ TEST(LevelBasedGraphQueueTest, IncreaseQueueAcceptsEntries) {
     EXPECT_TRUE(graph.needsUpdate());
 }
 
-TEST(LevelBasedGraphQueueTest, DecreaseQueueAcceptsEntries) {
-    TestLevelBasedGraph graph;
+TEST(BaseLightEngineQueueTest, DecreaseQueueAcceptsEntries) {
+    TestBaseLightEngine graph;
 
     // 设置编码偏移
     graph.setupEncodeOffset(0, 70, 0);
@@ -149,8 +149,8 @@ TEST(LevelBasedGraphQueueTest, DecreaseQueueAcceptsEntries) {
     EXPECT_TRUE(graph.needsUpdate());
 }
 
-TEST(LevelBasedGraphQueueTest, MixedQueuesWork) {
-    TestLevelBasedGraph graph;
+TEST(BaseLightEngineQueueTest, MixedQueuesWork) {
+    TestBaseLightEngine graph;
 
     // 设置编码偏移
     graph.setupEncodeOffset(0, 80, 0);

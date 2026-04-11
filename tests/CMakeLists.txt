@@ -148,7 +148,7 @@ add_executable(mc_tests
     lighting/LightingTest.cpp
     lighting/LightUpdateTest.cpp
     lighting/BlockLightRegressionTest.cpp
-    lighting/LevelBasedGraphQueueTest.cpp
+    lighting/BaseLightEngineQueueTest.cpp
     lighting/SkyLightRegressionTest.cpp
     # 环境光遮蔽测试
     client/renderer/AmbientOcclusionCalculatorTest.cpp
