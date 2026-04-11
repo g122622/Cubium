@@ -258,19 +258,9 @@ protected:
     void shutdownManagers();
 
     /**
-     * @brief 执行核心 tick 逻辑
-     */
-    void tickCore();
-
-    /**
      * @brief 执行实体 tick
      */
     void tickEntities();
-
-    /**
-     * @brief 执行光照 tick
-     */
-    void tickLighting();
 
     /**
      * @brief 执行心跳检查

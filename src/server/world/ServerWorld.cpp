@@ -407,53 +407,81 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 // ============================================================================
 // 更新循环
 // ============================================================================
-
+// ============================================================================
+// 服务端世界
+//
+// 纯粹的世界数据容器，职责：
+// - 区块管理
+// - 光照计算
+// - 物理模拟？
+// - Tick 调度
+// - 天气状态
+// - 村庄和袭击管理
+//
+// 不负责：
+// - 实体管理 (这个容易踩坑，我们认为实体不属于世界范畴，不交由世界管理)
+// - 玩家管理（由 PlayerManager 管理）
+// - 网络通信（由 ConnectionManager 管理）
+// - 时间管理（由 TimeManager 管理）
+// - 传送（由 TeleportManager 管理）
+// - 游戏模式（由 GameModeManager 管理）
+// ============================================================================
 void ServerWorld::tick()
 {
+    MC_TRACE_EVENT("server.tick", "ServerWorld::tick");
+
     // 时间由外部 TimeManager 管理，不再自增 tick 计数
 
-    // 调试世界不执行天气 tick
-    if (!m_config.isDebugWorld && m_weatherManager) {
-        m_weatherManager->tick();
+    // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
+    if (m_chunkManager) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
+        m_chunkManager->tick();
     }
-
+    
+    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
+    if (m_lightManager && m_lightManager->hasLightWork()) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
+        m_lightManager->tick(32768, true, true);
+    }
+    
     // 获取当前 tick
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
     i64 gameTime = m_timeManager ? m_timeManager->dayTime() : 0;
 
     // 调试世界不执行计划刻
     if (!m_config.isDebugWorld && m_tickManager) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::TickManager");
         m_tickManager->tick(currentTick);
-    }
-
-    if (m_lightManager && m_lightManager->hasLightWork()) {
-        m_lightManager->tick(32768, true, true);
     }
 
     // 调试世界不执行红石清理
     if (!m_config.isDebugWorld) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::RedstoneTick");
         // 定期清理红石火把烧毁记录（每 200 tick）
         if (currentTick % 200 == 0) {
             world::redstone::RedstoneSystem::instance().cleanupBurnoutRecords(currentTick);
         }
     }
 
+    // 调试世界不执行天气 tick
+    if (!m_config.isDebugWorld && m_weatherManager) {
+        m_weatherManager->tick();
+    }
+
     // 更新村庄系统（流言衰减、边界重算等）
     if (m_villageManager) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::VillageTick");
         m_villageManager->tick(gameTime);
     }
 
     // 更新袭击系统（波次推进、掠夺者生成等）
     if (m_raidManager) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::RaidTick");
         m_raidManager->tick();
     }
 
     // EntityManager 由 MinecraftServer 驱动
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动
-
-    if (m_chunkManager) {
-        m_chunkManager->tick();
-    }
 }
 
 size_t ServerWorld::chunkCount() const

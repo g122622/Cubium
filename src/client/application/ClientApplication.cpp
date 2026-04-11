@@ -197,6 +197,20 @@ ClientApplication::~ClientApplication()
 
 Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 {
+    // 初始化性能追踪
+    mc::perfetto::TraceConfig traceConfig;
+    traceConfig.outputPath = "client_trace.perfetto-trace";
+    traceConfig.bufferSizeKb = 65536; // 64MB
+    mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
+    mc::perfetto::PerfettoManager::instance().startTracing();
+
+    // 设置进程和主线程名称
+    mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftClient");
+    mc::perfetto::PerfettoManager::instance().setThreadName("ClientMainThread");
+    spdlog::info("Perfetto tracing initialized");
+
+    MC_TRACE_EVENT("client.initialization", "ClientApplication::initialize");
+
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "Client already initialized");
     }
@@ -247,39 +261,43 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     spdlog::info("Version: {}.{}.{}", MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_PATCH);
     spdlog::info("Initializing client...");
 
-    // 初始化性能追踪
-    mc::perfetto::TraceConfig traceConfig;
-    traceConfig.outputPath = "client_trace.perfetto-trace";
-    traceConfig.bufferSizeKb = 65536; // 64MB
-    mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
-    mc::perfetto::PerfettoManager::instance().startTracing();
-
-    // 设置进程和主线程名称
-    mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftClient");
-    mc::perfetto::PerfettoManager::instance().setThreadName("ClientMainThread");
-    spdlog::info("Perfetto tracing initialized");
-
     // 初始化方块注册表
-    VanillaBlocks::initialize();
-    spdlog::info("Vanilla blocks initialized");
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlocks");
+        VanillaBlocks::initialize();
+        spdlog::info("Vanilla blocks initialized");
+    }
 
-    Items::initialize();
-    spdlog::info("Vanilla items initialized");
+    // 初始化物品注册表
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeVanillaItems");
+        Items::initialize();
+        spdlog::info("Vanilla items initialized");
+    }
 
     // 注册实体类型
-    entity::VanillaEntities::registerAll();
-    spdlog::info("Entity types registered");
+    {
+        MC_TRACE_EVENT("client.initialization", "RegisterVanillaEntities");
+        entity::VanillaEntities::registerAll();
+        spdlog::info("Entity types registered");
+    }
 
     // 初始化方块物品注册表
-    BlockItemRegistry::instance().initializeVanillaBlockItems();
-    spdlog::info("Block items initialized");
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlockItems");
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
+        spdlog::info("Block items initialized");
+    }
 
     // 初始化资源系统
-    spdlog::info("Initializing resource system...");
-    auto resourceResult = initializeResources();
-    if (resourceResult.failed()) {
-        spdlog::warn("Failed to initialize resource system: {}. Using default rendering.",
-                     resourceResult.error().toString());
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeResources");
+        spdlog::info("Initializing resource system...");
+        auto resourceResult = initializeResources();
+        if (resourceResult.failed()) {
+            spdlog::warn("Failed to initialize resource system: {}. Using default rendering.",
+                        resourceResult.error().toString());
+        }
     }
 
     // 初始化按键绑定
@@ -288,21 +306,26 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
     // 创建窗口
     WindowConfig windowConfig;
-    windowConfig.width = 1280;
-    windowConfig.height = 720;
-    windowConfig.title = "Minecraft Reborn";
-    windowConfig.fullscreen = m_settings.fullscreen.get();
-    windowConfig.vsync = m_settings.vsync.get();
-    windowConfig.samples = m_settings.antiAliasing.get() ? 4 : 1;
 
-    if (m_settings.antiAliasing.get()) {
-        spdlog::info("Anti-aliasing enabled (MSAA x{})", windowConfig.samples);
-    }
+    {
+        MC_TRACE_EVENT("client.initialization", "CreateWindow");
 
-    auto windowResult = m_window.create(windowConfig);
-    if (windowResult.failed()) {
-        spdlog::error("Failed to create window: {}", windowResult.error().toString());
-        return windowResult.error();
+        windowConfig.width = 1280;
+        windowConfig.height = 720;
+        windowConfig.title = "Minecraft Reborn";
+        windowConfig.fullscreen = m_settings.fullscreen.get();
+        windowConfig.vsync = m_settings.vsync.get();
+        windowConfig.samples = m_settings.antiAliasing.get() ? 4 : 1;
+
+        if (m_settings.antiAliasing.get()) {
+            spdlog::info("Anti-aliasing enabled (MSAA x{})", windowConfig.samples);
+        }
+
+        auto windowResult = m_window.create(windowConfig);
+        if (windowResult.failed()) {
+            spdlog::error("Failed to create window: {}", windowResult.error().toString());
+            return windowResult.error();
+        }
     }
 
     // 初始化输入管理器
@@ -368,6 +391,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
     // 更新渲染器纹理图集（使用 ResourceManager 构建的纹理）
     if (m_resourceManager) {
+        MC_TRACE_EVENT("client.initialization", "UpdateRendererTextureAtlas");
+
         spdlog::info("ResourceManager exists, atlas built: {}", m_resourceManager->isAtlasBuilt());
         if (m_resourceManager->isAtlasBuilt()) {
             const auto& atlasResult = m_resourceManager->atlasResult();
@@ -393,6 +418,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
     // 初始化 Trident 子渲染器
     {
+        MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers");
+
         auto skyInitResult = m_renderer->initializeSkyRenderer();
         if (skyInitResult.failed()) {
             spdlog::warn("Failed to initialize sky renderer: {}", skyInitResult.error().toString());
@@ -494,29 +521,35 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     }
 
     // 初始化声音系统
-    spdlog::info("Initializing sound system...");
-    m_soundHandler = std::make_unique<sound::SoundHandler>(m_resourcePackList);
-    m_soundEngine = std::make_unique<sound::SoundEngine>(*m_soundHandler, m_settings);
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeSoundSystem");
 
-    auto soundInitResult = m_soundEngine->initialize();
-    if (soundInitResult.failed()) {
-        spdlog::warn("Failed to initialize sound engine: {}. Audio will be disabled.",
-                     soundInitResult.error().toString());
-        m_soundEngine.reset();
-        m_soundHandler.reset();
-    } else {
-        // 添加环境音效处理器
-        m_biomeAmbientHandler = std::make_unique<sound::BiomeAmbientHandler>();
-        m_soundEngine->addAmbientHandler(std::move(m_biomeAmbientHandler));
+        spdlog::info("Initializing sound system...");
+        m_soundHandler = std::make_unique<sound::SoundHandler>(m_resourcePackList);
+        m_soundEngine = std::make_unique<sound::SoundEngine>(*m_soundHandler, m_settings);
 
-        m_underwaterAmbientHandler = std::make_unique<sound::UnderwaterAmbientHandler>();
-        m_soundEngine->addAmbientHandler(std::move(m_underwaterAmbientHandler));
+        auto soundInitResult = m_soundEngine->initialize();
+        if (soundInitResult.failed()) {
+            spdlog::warn("Failed to initialize sound engine: {}. Audio will be disabled.",
+                        soundInitResult.error().toString());
+            m_soundEngine.reset();
+            m_soundHandler.reset();
+        } else {
+            // 添加环境音效处理器
+            m_biomeAmbientHandler = std::make_unique<sound::BiomeAmbientHandler>();
+            m_soundEngine->addAmbientHandler(std::move(m_biomeAmbientHandler));
 
-        spdlog::info("Sound system initialized successfully");
+            m_underwaterAmbientHandler = std::make_unique<sound::UnderwaterAmbientHandler>();
+            m_soundEngine->addAmbientHandler(std::move(m_underwaterAmbientHandler));
+
+            spdlog::info("Sound system initialized successfully");
+        }
     }
 
     // 启动内置服务端
     if (!params.skipIntegratedServer) {
+        MC_TRACE_EVENT("client.initialization", "StartIntegratedServer");
+
         spdlog::info("Starting integrated server...");
 
         m_integratedServer = std::make_unique<server::IntegratedServer>();
@@ -555,16 +588,19 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     }
 
     // 初始化世界
-    spdlog::info("Initializing world...");
-    auto worldResult = m_world.initialize(12345); // 使用固定种子
-    if (worldResult.failed()) {
-        spdlog::error("Failed to initialize world: {}", worldResult.error().toString());
-        if (m_integratedServer) {
-            m_integratedServer->stop();
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeWorld");
+        spdlog::info("Initializing world...");
+        auto worldResult = m_world.initialize(12345); // 使用固定种子
+        if (worldResult.failed()) {
+            spdlog::error("Failed to initialize world: {}", worldResult.error().toString());
+            if (m_integratedServer) {
+                m_integratedServer->stop();
+            }
+            m_renderer->destroy();
+            m_window.destroy();
+            return worldResult.error();
         }
-        m_renderer->destroy();
-        m_window.destroy();
-        return worldResult.error();
     }
 
     // 初始化网格构建系统（执行器 + 独立调度器）
@@ -628,10 +664,14 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
     // 初始化 Kagero UI 引擎
     if (m_renderer->isGuiRendererInitialized()) {
+        MC_TRACE_EVENT("client.initialization", "InitializeGuiRenderer");
+
         auto* guiFont = m_renderer->guiRenderer().font();
         if (guiFont == nullptr) {
             spdlog::error("Failed to get GUI font for KageroEngine");
         } else {
+            MC_TRACE_EVENT("client.initialization", "CreateKageroEngine");
+
             // 初始化 GUI 精灵图集（双图集架构）
             // 重要：纹理加载顺序 - 先初始化图集，再加载纹理（设置正确尺寸），最后注册精灵
 
@@ -669,6 +709,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
             // 从资源包加载纹理
             if (m_resourceManager && m_resourceManager->resourcePackCount() > 0) {
+                MC_TRACE_EVENT("client.initialization", "LoadGuiTexturesFromResourcePacks");
                 spdlog::info("[GUI] ResourceManager has {} resource packs", m_resourceManager->resourcePackCount());
 
                 // 添加启用的资源包到加载器
@@ -704,6 +745,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             // 加载纹理并注册精灵
             // 关键顺序：先加载纹理（设置正确的图集尺寸），再注册精灵（计算正确的UV）
             if (hasTextureLoader) {
+                MC_TRACE_EVENT("client.initialization", "LoadGuiTextures");
                 spdlog::info("[GUI] TextureLoader has {} resource packs", textureLoader.resourcePackCount());
 
                 // 加载 icons.png 到 iconsAtlas
@@ -736,7 +778,9 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
                 // 加载 widgets.png 到 widgetsAtlas
                 if (m_widgetsAtlas) {
+                    MC_TRACE_EVENT("client.initialization", "LoadWidgetsTexture");
                     spdlog::info("[GUI] Loading widgets.png to widgetsAtlas...");
+
                     auto loadResult = textureLoader.loadGuiTexture(*m_widgetsAtlas, "minecraft:textures/gui/widgets.png");
                     if (loadResult.failed()) {
                         spdlog::warn("[GUI] Failed to load widgets.png: {}. Using default textures.", loadResult.error().toString());
@@ -764,6 +808,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             } else {
                 // 无资源包，使用默认纹理
                 if (m_iconsAtlas) {
+                    MC_TRACE_EVENT("client.initialization", "LoadDefaultIconsTexture");
+
                     (void)m_iconsAtlas->loadDefaultTextures();
                     // 使用默认256x256尺寸注册精灵
                     renderer::trident::gui::GuiSpriteRegistry::registerIconsSprites(*m_iconsAtlas);
@@ -775,6 +821,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                     }
                 }
                 if (m_widgetsAtlas) {
+                    MC_TRACE_EVENT("client.initialization", "LoadDefaultWidgetsTexture");
+
                     (void)m_widgetsAtlas->loadDefaultTextures();
                     // 使用默认256x256尺寸注册精灵
                     renderer::trident::gui::GuiSpriteRegistry::registerWidgetsSprites(*m_widgetsAtlas);
@@ -803,6 +851,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             if (kageroInitResult.failed()) {
                 spdlog::error("Failed to initialize KageroEngine: {}", kageroInitResult.error().toString());
             } else {
+                MC_TRACE_EVENT("client.initialization", "ConfigureKageroLayers");
+
                 spdlog::info("KageroEngine initialized");
 
                 // 层 Z=0: 准星
@@ -1501,6 +1551,8 @@ void ClientApplication::shutdown()
 
 Result<void> ClientApplication::loadSettings(const String& path)
 {
+    MC_TRACE_EVENT("client.initialization", "LoadSettings", "path", path);
+
     m_settingsPath = std::filesystem::path(path);
 
     auto result = m_settings.loadSettings(path);
@@ -1528,6 +1580,8 @@ Result<void> ClientApplication::loadSettings(const String& path)
 
 void ClientApplication::applySettings()
 {
+    MC_TRACE_EVENT("client.initialization", "ApplySettings");
+
     // 设置变更回调在 setupSettingCallbacks 中设置
     // 这里应用初始设置值
 
@@ -1548,6 +1602,8 @@ void ClientApplication::applySettings()
 
 void ClientApplication::setupSettingCallbacks()
 {
+    MC_TRACE_EVENT("client.initialization", "SetupSettingCallbacks");
+
     // 渲染距离变更
     m_settings.renderDistance.onChange([this](i32 value) {
         spdlog::info("Render distance changed to: {}", value);
@@ -1631,6 +1687,8 @@ void ClientApplication::setupSettingCallbacks()
 
 void ClientApplication::setupInputBindings()
 {
+    MC_TRACE_EVENT("client.initialization", "SetupInputBindings");
+
     m_input.bindKeyAction(GLFW_KEY_ESCAPE, "exit");
 
     m_input.bindActionCallback("exit", [this]() {
@@ -1654,6 +1712,8 @@ void ClientApplication::setupInputBindings()
 
 void ClientApplication::setupCamera()
 {
+    MC_TRACE_EVENT("client.initialization", "SetupCamera");
+
     // 设置相机配置
     CameraConfig cameraConfig;
     cameraConfig.fov = m_settings.fov.get();
@@ -1676,6 +1736,8 @@ void ClientApplication::setupCamera()
 
 void ClientApplication::setupNetworkCallbacks()
 {
+    MC_TRACE_EVENT("client.initialization", "SetupNetworkCallbacks");
+
     if (!m_networkClient) return;
 
     NetworkClientCallbacks callbacks;

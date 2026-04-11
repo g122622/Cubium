@@ -24,7 +24,13 @@
 
 // 定义追踪分类
 PERFETTO_DEFINE_CATEGORIES(
+    // === 客户端启动 ===
+    perfetto::Category("client.initialization")
+        .SetDescription("客户端初始化过程"),
+
     // === 渲染分类 ===
+    perfetto::Category("rendering.initialization")
+        .SetDescription("渲染系统初始化"),
     perfetto::Category("rendering.frame")
         .SetDescription("帧渲染生命周期事件"),
     perfetto::Category("rendering.vulkan")

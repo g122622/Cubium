@@ -64,8 +64,48 @@ void MinecraftServer::tick()
         return;
     }
 
-    // 执行核心 tick
-    tickCore();
+    // 更新时间
+    {
+        MC_TRACE_EVENT("server.tick", "TickTime", "phase", "time");
+        m_timeManager->tick();
+    }
+
+    // world tick
+    if (m_world) {
+        m_world->tick();
+    }
+
+    // 清理断开连接的玩家
+    if (m_tickCounter % CLEANUP_INTERVAL == 0) {
+        MC_TRACE_EVENT("server.player", "CleanupDisconnected", "phase", "cleanup");
+        std::vector<PlayerId> removedPlayers;
+        m_connectionManager->cleanupDisconnectedPlayers(&removedPlayers);
+        // 清理玩家相关的追踪和票据
+        for (PlayerId playerId : removedPlayers) {
+            m_chunkSendManager->removePlayer(playerId);
+            if (m_world && m_world->chunkManager()) {
+                m_world->chunkManager()->removePlayer(playerId);
+            }
+        }
+    }
+
+    // 检查心跳超时
+    if (m_tickCounter % KEEPALIVE_INTERVAL == 0) {
+        MC_TRACE_EVENT("server.network", "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
+        u64 currentTickMs = currentTick() * 50;  // 50ms per tick
+        auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTickMs);
+        for (PlayerId playerId : timedOutPlayers) {
+            spdlog::info("MinecraftServer: Player {} timed out", playerId);
+            // 清理玩家相关的追踪和票据
+            m_chunkSendManager->removePlayer(playerId);
+            if (m_world && m_world->chunkManager()) {
+                m_world->chunkManager()->removePlayer(playerId);
+            }
+            m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
+        }
+    }
+
+    ++m_tickCounter;
 
     // 更新所有维度
     if (m_dimensionManager) {
@@ -90,14 +130,6 @@ void MinecraftServer::tick()
 
     // 处理区块发送队列
     chunkSendManager().processPendingSends();
-
-    // 更新区块管理器
-    if (m_world && m_world->chunkManager()) {
-        m_world->chunkManager()->tick();
-    }
-
-    // 更新光照
-    tickLighting();
 
     // 心跳（每 15 秒）
     tickKeepAlive();
@@ -421,55 +453,6 @@ void MinecraftServer::shutdownManagers()
     m_playerManager.reset();
 }
 
-void MinecraftServer::tickCore()
-{
-    MC_TRACE_EVENT("server.tick", "CoreTick", "phase", "core_tick");
-
-    // 更新时间
-    {
-        MC_TRACE_EVENT("server.tick", "TickTime", "phase", "time");
-        m_timeManager->tick();
-    }
-
-    // 更新天气
-    if (m_world && m_world->weatherManager()) {
-        MC_TRACE_EVENT("server.tick", "TickWeather", "phase", "weather");
-        m_world->weatherManager()->tick();
-    }
-
-    // 清理断开连接的玩家
-    if (m_tickCounter % CLEANUP_INTERVAL == 0) {
-        MC_TRACE_EVENT("server.player", "CleanupDisconnected", "phase", "cleanup");
-        std::vector<PlayerId> removedPlayers;
-        m_connectionManager->cleanupDisconnectedPlayers(&removedPlayers);
-        // 清理玩家相关的追踪和票据
-        for (PlayerId playerId : removedPlayers) {
-            m_chunkSendManager->removePlayer(playerId);
-            if (m_world && m_world->chunkManager()) {
-                m_world->chunkManager()->removePlayer(playerId);
-            }
-        }
-    }
-
-    // 检查心跳超时
-    if (m_tickCounter % KEEPALIVE_INTERVAL == 0) {
-        MC_TRACE_EVENT("server.network", "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
-        u64 currentTickMs = currentTick() * 50;  // 50ms per tick
-        auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTickMs);
-        for (PlayerId playerId : timedOutPlayers) {
-            spdlog::info("MinecraftServer: Player {} timed out", playerId);
-            // 清理玩家相关的追踪和票据
-            m_chunkSendManager->removePlayer(playerId);
-            if (m_world && m_world->chunkManager()) {
-                m_world->chunkManager()->removePlayer(playerId);
-            }
-            m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
-        }
-    }
-
-    ++m_tickCounter;
-}
-
 void MinecraftServer::tickEntities()
 {
     if (!m_world) return;
@@ -482,25 +465,6 @@ void MinecraftServer::tickEntities()
 
     // 实体追踪更新
     m_world->entityTracker().tick(*this);
-}
-
-void MinecraftServer::tickLighting()
-{
-    if (!m_world) return;
-
-    auto* lightMgr = m_world->lightManager();
-    if (!lightMgr) {
-        MC_TRACE_INSTANT("server.lighting", "tickLighting", "Status", "NoLightManager");
-        return;
-    }
-
-    bool hasWork = lightMgr->hasLightWork();
-    if (!hasWork) {
-        return;
-    }
-
-    MC_TRACE_EVENT("server.lighting", "tickLighting", "hasWork", hasWork);
-    lightMgr->tick(32768, true, true);
 }
 
 void MinecraftServer::tickKeepAlive()

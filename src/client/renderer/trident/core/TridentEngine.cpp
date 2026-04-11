@@ -36,6 +36,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::client::renderer::trident {
 
@@ -100,6 +101,8 @@ TridentEngine::~TridentEngine() {
 // ============================================================================
 
 Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConfig& config) {
+    MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initialize");
+
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "TridentEngine already initialized");
     }

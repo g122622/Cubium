@@ -43,10 +43,16 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
     // 单点更新需要初始化缓存环境
     i32 chunkX = x >> 4;
     i32 chunkZ = z >> 4;
+    (void)chunkX;
+    (void)chunkZ;
 
     if (m_blockLight != nullptr) {
         m_blockLight->setupCaches(m_provider, x, y, z, true, true);
         m_blockLight->checkBlock(m_provider, x, y, z);
+        // 处理队列中的更新（限制迭代次数防止无限循环）
+        for (int i = 0; i < 1000 && m_blockLight->hasWork(); ++i) {
+            m_blockLight->tick(65536, false, true);
+        }
         m_blockLight->updateVisible(m_provider);
         m_blockLight->destroyCaches();
     }
@@ -54,6 +60,10 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
     if (m_skyLight != nullptr) {
         m_skyLight->setupCaches(m_provider, x, y, z, true, true);
         m_skyLight->checkBlock(m_provider, x, y, z);
+        // 处理队列中的更新（限制迭代次数防止无限循环）
+        for (int i = 0; i < 1000 && m_skyLight->hasWork(); ++i) {
+            m_skyLight->tick(65536, true, false);
+        }
         m_skyLight->updateVisible(m_provider);
         m_skyLight->destroyCaches();
     }
