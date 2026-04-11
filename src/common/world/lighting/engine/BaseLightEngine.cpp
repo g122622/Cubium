@@ -317,21 +317,186 @@ void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, i3
 
 void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
                                        i32 fromSection, i32 toSection) {
-    // ChunkPos chunkPos = chunk->pos();
-    // i32 chunkX = chunkPos.x;
-    // i32 chunkZ = chunkPos.z;
+    ChunkPos chunkPos = chunk->pos();
+    i32 chunkX = chunkPos.x;
+    i32 chunkZ = chunkPos.z;
 
-    // for (i32 sectionY = fromSection; sectionY <= toSection; ++sectionY) {
-    //     checkChunkEdge(lightAccess, chunk, chunkX, sectionY, chunkZ); // TODO 照着starlight源码实现
-    // }
+    for (i32 sectionY = toSection; sectionY >= fromSection; --sectionY) {
+        checkChunkEdge(lightAccess, chunk, chunkX, sectionY, chunkZ);
+    }
 
-    // 子类扩展
     performLightDecrease(lightAccess);
+}
+
+void StarLightEngine::checkChunkEdge(StarLightLightingProvider* lightAccess, const IChunk* chunk,
+                                      i32 chunkX, i32 chunkY, i32 chunkZ) {
+    SWMRNibbleArray* currNibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
+    if (currNibble == nullptr) {
+        return;
+    }
+
+    for (LightAxisDirection dir : ONLY_HORIZONTAL_DIRECTIONS) {
+        i32 dx, dy, dz;
+        getDirectionOffset(dir, dx, dy, dz);
+
+        SWMRNibbleArray* neighbourNibble = getNibbleFromCache(chunkX + dx, chunkY, chunkZ + dz);
+        if (neighbourNibble == nullptr) {
+            continue;
+        }
+
+        if (!currNibble->isInitializedUpdating() && !neighbourNibble->isInitializedUpdating()) {
+            // 两者都是零，无需检查
+            continue;
+        }
+
+        // 当前区块
+        i32 incX, incZ, startX, startZ;
+        if (dx != 0) {
+            // X 方向
+            incX = 0;
+            incZ = 1;
+            if (dx < 0) {
+                // 负方向
+                startX = chunkX << 4;
+            } else {
+                startX = (chunkX << 4) | 15;
+            }
+            startZ = chunkZ << 4;
+        } else {
+            // Z 方向
+            incX = 1;
+            incZ = 0;
+            if (dz < 0) {
+                // 负方向
+                startZ = chunkZ << 4;
+            } else {
+                startZ = (chunkZ << 4) | 15;
+            }
+            startX = chunkX << 4;
+        }
+
+        i32 centerDelayedChecks = 0;
+        i32 neighbourDelayedChecks = 0;
+        for (i32 currY = chunkY << 4, maxY = currY | 15; currY <= maxY; ++currY) {
+            for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
+                i32 neighbourX = currX + dx;
+                i32 neighbourZ = currZ + dz;
+
+                i32 currentIndex = (currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << 8);
+                i32 currentLevel = currNibble->getUpdating(currentIndex);
+
+                i32 neighbourIndex = (neighbourX & 15) | ((neighbourZ & 15) << 4) | ((currY & 15) << 8);
+                i32 neighbourLevel = neighbourNibble->getUpdating(neighbourIndex);
+
+                // 延迟检查，因为 checkBlock 方法会覆盖光照值，这会影响后续的 calculateLightValue 操作
+                // 虽然这种行为上不显著，但会因排队更多值而影响性能
+
+                if (calculateLightValue(lightAccess, currX, currY, currZ, currentLevel) != currentLevel) {
+                    m_chunkCheckDelayedUpdatesCenter[static_cast<size_t>(centerDelayedChecks++)] = currentIndex;
+                }
+
+                if (calculateLightValue(lightAccess, neighbourX, currY, neighbourZ, neighbourLevel) != neighbourLevel) {
+                    m_chunkCheckDelayedUpdatesNeighbour[static_cast<size_t>(neighbourDelayedChecks++)] = neighbourIndex;
+                }
+            }
+        }
+
+        i32 currentChunkOffX = chunkX << 4;
+        i32 currentChunkOffZ = chunkZ << 4;
+        i32 neighbourChunkOffX = (chunkX + dx) << 4;
+        i32 neighbourChunkOffZ = (chunkZ + dz) << 4;
+        i32 chunkOffY = chunkY << 4;
+        for (i32 i = 0, len = std::max(centerDelayedChecks, neighbourDelayedChecks); i < len; ++i) {
+            // 尝试将邻居数据一起排队
+            // index = x | (z << 4) | (y << 8)
+            if (i < centerDelayedChecks) {
+                i32 value = m_chunkCheckDelayedUpdatesCenter[static_cast<size_t>(i)];
+                checkBlock(lightAccess, currentChunkOffX | (value & 15),
+                          chunkOffY | (value >> 8),
+                          currentChunkOffZ | ((value >> 4) & 0xF));
+            }
+            if (i < neighbourDelayedChecks) {
+                i32 value = m_chunkCheckDelayedUpdatesNeighbour[static_cast<size_t>(i)];
+                checkBlock(lightAccess, neighbourChunkOffX | (value & 15),
+                          chunkOffY | (value >> 8),
+                          neighbourChunkOffZ | ((value >> 4) & 0xF));
+            }
+        }
+    }
 }
 
 void StarLightEngine::propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
                                                 i32 fromSection, i32 toSection) {
-    // 子类实现
+    ChunkPos chunkPos = chunk->pos();
+    i32 chunkX = chunkPos.x;
+    i32 chunkZ = chunkPos.z;
+    i32 encodeOffset = m_coordinateOffset;
+
+    for (i32 currSectionY = toSection; currSectionY >= fromSection; --currSectionY) {
+        SWMRNibbleArray* currNibble = getNibbleFromCache(chunkX, currSectionY, chunkZ);
+        if (currNibble == nullptr) {
+            continue;
+        }
+        for (LightAxisDirection dir : ONLY_HORIZONTAL_DIRECTIONS) {
+            i32 dx, dy, dz;
+            getDirectionOffset(dir, dx, dy, dz);
+
+            SWMRNibbleArray* neighbourNibble = getNibbleFromCache(chunkX + dx, currSectionY, chunkZ + dz);
+            if (neighbourNibble == nullptr || !neighbourNibble->isInitializedUpdating()) {
+                // 无法从 0 拉取
+                continue;
+            }
+
+            // 邻居区块
+            i32 incX, incZ, startX, startZ;
+            if (dx != 0) {
+                // X 方向
+                incX = 0;
+                incZ = 1;
+                if (dx < 0) {
+                    // 负方向
+                    startX = (chunkX << 4) - 1;
+                } else {
+                    startX = (chunkX << 4) + 16;
+                }
+                startZ = chunkZ << 4;
+            } else {
+                // Z 方向
+                incX = 1;
+                incZ = 0;
+                if (dz < 0) {
+                    // 负方向
+                    startZ = (chunkZ << 4) - 1;
+                } else {
+                    startZ = (chunkZ << 4) + 16;
+                }
+                startX = chunkX << 4;
+            }
+
+            i32 propagateDirection = getDirectionBitset(getOppositeDirection(dir));  // 只想在这个方向检查向这个区块的传播
+            i32 sectionOffset = m_chunkSectionIndexOffset;
+
+            for (i32 currY = currSectionY << 4, maxY = currY | 15; currY <= maxY; ++currY) {
+                for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
+                    i32 level = neighbourNibble->getUpdating(
+                        (currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << 8)
+                    );
+
+                    if (level <= 1) {
+                        // 无需传播
+                        continue;
+                    }
+
+                    appendToIncreaseQueue(
+                        ((currX + (currZ << 6) + (currY << 12) + encodeOffset) & 0xFFFFFFFF) |
+                        (static_cast<u64>(level & 0xF) << 28) |
+                        (static_cast<u64>(propagateDirection) << 32) |
+                        FLAG_HAS_SIDED_TRANSPARENT_BLOCKS  // 不知道当前方块是否透明，必须检查
+                    );
+                }
+            }
+        }
+    }
 }
 
 void StarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks) {

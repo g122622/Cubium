@@ -238,6 +238,9 @@ public:
     // ========== 光照变化回调 ==========
 
     void setOnLightChanged(std::function<void(LightType, const SectionPos&)> callback) {
+        if (m_onLightChanged) {
+            throw std::runtime_error("Light change callback already set");
+        }
         m_onLightChanged = std::move(callback);
     }
 

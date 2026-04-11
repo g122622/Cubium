@@ -620,6 +620,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
             checkNullSection(chunkX, y, chunkZ, false);
         }
 
+        // 直接调基类方法，与 Moonrise Starlight 的实现保持一致（SkyStarLightEngine.lightChunk）
         StarLightEngine::checkChunkEdges(lightAccess, chunk, m_minLightSection, highestNonEmptySection);
     } else {
         for (i32 y = highestNonEmptySection; y >= m_minLightSection; --y) {
@@ -650,68 +651,6 @@ void SkyStarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess,
 
     // 调用基类方法
     StarLightEngine::checkChunkEdges(lightAccess, chunk, fromSection, toSection);
-}
-
-// ============================================================================
-// 邻居传播
-// ============================================================================
-
-void SkyStarLightEngine::propagateNeighbourLevels(StarLightLightingProvider* lightAccess,
-                                                   const IChunk* chunk,
-                                                   i32 fromSection, i32 toSection) {
-    i32 chunkX = chunk->pos().x;
-    i32 chunkZ = chunk->pos().z;
-    i32 encodeOffset = m_coordinateOffset;
-
-    for (i32 currSectionY = toSection; currSectionY >= fromSection; --currSectionY) {
-        SWMRNibbleArray* currNibble = getNibbleFromCache(chunkX, currSectionY, chunkZ);
-        if (currNibble == nullptr) {
-            continue;
-        }
-
-        for (LightAxisDirection dir : ONLY_HORIZONTAL_DIRECTIONS) {
-            i32 dx, dy, dz;
-            getDirectionOffset(dir, dx, dy, dz);
-
-            SWMRNibbleArray* neighbourNibble = getNibbleFromCache(chunkX + dx, currSectionY, chunkZ + dz);
-            if (neighbourNibble == nullptr || !neighbourNibble->isInitializedUpdating()) {
-                continue;
-            }
-
-            // 计算边界传播参数
-            i32 startX, startZ, incX, incZ;
-            if (dx != 0) {
-                incX = 0;
-                incZ = 1;
-                startX = dx < 0 ? (chunkX << 4) : ((chunkX << 4) | 15);
-                startZ = chunkZ << 4;
-            } else {
-                incX = 1;
-                incZ = 0;
-                startX = chunkX << 4;
-                startZ = dz < 0 ? (chunkZ << 4) : ((chunkZ << 4) | 15);
-            }
-
-            i32 propagateDir = getDirectionBitset(getOppositeDirection(dir));
-
-            for (i32 currY = currSectionY << 4, maxY = currY | 15; currY <= maxY; ++currY) {
-                for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
-                    i32 level = neighbourNibble->getUpdating((currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << 8));
-
-                    if (level <= 1) {
-                        continue;
-                    }
-
-                    appendToIncreaseQueue(
-                        ((currX + (currZ << 6) + (currY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                        (static_cast<u64>(level & 0xF) << 28) |
-                        (static_cast<u64>(propagateDir) << 32) |
-                        FLAG_HAS_SIDED_TRANSPARENT_BLOCKS
-                    );
-                }
-            }
-        }
-    }
 }
 
 // ============================================================================

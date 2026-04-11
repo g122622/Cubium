@@ -342,13 +342,17 @@ protected:
                                         const IChunk* chunk,
                                         const std::vector<BlockPos>& positions) = 0;
 
-    /** 检查区块段边缘（子类可扩展） */
+    /** 检查区块边缘（子类可扩展） */
     virtual void checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
                                   i32 fromSection, i32 toSection);
 
+    /** 检查单个区块段边缘 */
+    void checkChunkEdge(StarLightLightingProvider* lightAccess, const IChunk* chunk,
+                        i32 chunkX, i32 chunkY, i32 chunkZ);
+
     /** 从邻居传播光照到区块 */
-    virtual void propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                                           i32 fromSection, i32 toSection);
+    void propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
+                                   i32 fromSection, i32 toSection);
 
     // ========================================================================
     // 缓存访问方法

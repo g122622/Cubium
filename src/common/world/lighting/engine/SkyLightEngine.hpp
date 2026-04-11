@@ -70,12 +70,6 @@ public:
                           i32 fromSection, i32 toSection) override;
 
     /**
-     * @brief 从邻居传播光照
-     */
-    void propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
-                                   i32 fromSection, i32 toSection) override;
-
-    /**
      * @brief 设置世界引用
      */
     void setWorld(void* world) override;
