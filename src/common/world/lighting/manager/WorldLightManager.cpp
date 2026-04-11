@@ -31,7 +31,7 @@ WorldLightManager::WorldLightManager(
 // ============================================================================
 
 void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
-    MC_TRACE_INSTANT("server.lighting",
+    MC_TRACE_EVENT("server.lighting",
         "WorldLightManager::checkBlock",
         "pos", fmt::format("({}, {}, {})", x, y, z),
         [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
@@ -60,7 +60,7 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
 }
 
 void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel) {
-    MC_TRACE_INSTANT("server.lighting",
+    MC_TRACE_EVENT("server.lighting",
         "WorldLightManager::onBlockEmissionIncrease",
         "pos", fmt::format("({}, {}, {})", x, y, z),
         "lightLevel", lightLevel,
@@ -112,6 +112,14 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
 // ============================================================================
 
 void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+    MC_TRACE_EVENT("server.lighting",
+        "WorldLightManager::updateSectionStatus",
+        "sectionPos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        "isEmpty", isEmpty,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     if (m_blockLight != nullptr) {
@@ -124,7 +132,7 @@ void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
 }
 
 void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable) {
-    MC_TRACE_INSTANT("server.lighting",
+    MC_TRACE_EVENT("server.lighting",
         "WorldLightManager::enableLightSources",
         "chunkPos", fmt::format("({}, {})", pos.x, pos.z),
         "enable", enable,

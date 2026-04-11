@@ -7,6 +7,7 @@
 #include "../../../physics/collision/CollisionShape.hpp"
 #include <algorithm>
 #include <cstring>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
 
@@ -445,6 +446,8 @@ SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) {
 }
 
 void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk) {
+    MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::updateEmptinessMap");
+
     if (chunk == nullptr) {
         return;
     }

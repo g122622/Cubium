@@ -23,13 +23,22 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
     MC_TRACE_EVENT("server.lighting", "LightSyncManager::initializeChunkLighting",
                    "Chunk", fmt::format("({}, {})", x, z));
 
-    const ChunkData* chunk = m_chunkManager.getChunk(x, z);
-    if (!chunk) {
-        return;
+    
+    const ChunkData* chunk = nullptr;
+    {
+        MC_TRACE_EVENT("server.lighting", "GetChunkData");
+        chunk = m_chunkManager.getChunk(x, z);
+        if (!chunk) {
+            return;
+        }
     }
 
     // 更新空区块段状态
-    auto* blockLightEngine = m_lightManager.getBlockLightEngine();
+    BlockStarLightEngine* blockLightEngine = nullptr;
+    {
+        MC_TRACE_EVENT("server.lighting", "GetBlockLightEngine");
+        blockLightEngine = m_lightManager.getBlockLightEngine();
+    }
     if (blockLightEngine != nullptr) {
         blockLightEngine->updateEmptinessMap(x, z, chunk);
     }
