@@ -92,17 +92,12 @@ private:
     mc::i32 m_maxBuildHeight;
 };
 
-void processSkyWork(mc::SkyStarLightEngine& engine) {
-    for (int i = 0; i < 12 && engine.hasWork(); ++i) {
-        engine.tick(65536, true, false);
-    }
-}
-
 TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     ensureVanillaBlocksInitialized();
 
     SkyLightChunkProvider provider(0, 256);
     mc::ChunkData chunk(0, 0);
+    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态，使光照引擎可以使用它
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
@@ -110,20 +105,29 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
     chunk.setBlock(8, 70, 8, stoneState);
 
-    mc::ChunkSection* section = chunk.getSection(4);
-    ASSERT_NE(section, nullptr);
-
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setData(sectionPos, section->skyLightNibble().copy(), false);
     engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
-    engine.checkBlock(&provider, 8, 70, 8);
-    processSkyWork(engine);
+    // 使用 light() 方法初始化区块光照（这会设置缓存）
+    engine.light(&provider, &chunk, false);
 
-    const mc::u8 belowLight = engine.getLightFor(8, 69, 8);
-    EXPECT_GT(belowLight, static_cast<mc::u8>(0))
-        << "hasWork=" << engine.hasWork();
+    // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
+    // Y=69 在 section 4 (Y=64-79)
+    // LIGHT_SECTIONS = 18, 索引 0 对应 section -1, 索引 i 对应 section (i-1)
+    // Section 4 在 LIGHT_SECTIONS 数组中的索引是 4 - (-1) = 5
+    auto* nibbles = chunk.getSkyNibbles();
+    ASSERT_NE(nibbles, nullptr);
+    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    ASSERT_NE(nibble, nullptr);
+
+    // 检查状态
+    EXPECT_TRUE(nibble->isInitializedUpdating()) << "Nibble array should be initialized";
+
+    // 读取 (8, 69, 8) 位置的光照值
+    // localY = 69 - 64 = 5 (section 4 从 Y=64 开始)
+    mc::u8 belowLight = nibble->getUpdating(8, 69 - 64, 8);
+    EXPECT_GT(belowLight, static_cast<mc::u8>(0)) << "Light at (8, 69, 8) should be > 0";
 }
 
 TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
@@ -131,6 +135,7 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
 
     SkyLightChunkProvider provider(0, 256);
     mc::ChunkData chunk(0, 0);
+    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
@@ -143,22 +148,24 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
         }
     }
 
-    mc::ChunkSection* section = chunk.getSection(4);
-    ASSERT_NE(section, nullptr);
-
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setData(sectionPos, section->skyLightNibble().copy(), false);
     engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
-    for (int z = 0; z < 16; ++z) {
-        for (int x = 0; x < 16; ++x) {
-            engine.checkBlock(&provider, x, 79, z);
-        }
-    }
-    processSkyWork(engine);
+    // 使用 light() 方法初始化区块光照
+    engine.light(&provider, &chunk, false);
 
-    const mc::u8 caveSkyLight = engine.getLightFor(8, 78, 8);
+    // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
+    // Y=78 在 section 4 (Y=64-79)，在 LIGHT_SECTIONS 数组中索引为 5 (section 4 + 1)
+    auto* nibbles = chunk.getSkyNibbles();
+    ASSERT_NE(nibbles, nullptr);
+    // Section 4 在 LIGHT_SECTIONS 数组中的索引是 4 - minLightSection(-1) + 1 = 5
+    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    ASSERT_NE(nibble, nullptr);
+
+    // 读取 (8, 78, 8) 位置的光照值
+    // localY = 78 % 16 = 14
+    mc::u8 caveSkyLight = nibble->getUpdating(8, 14, 8);
     EXPECT_LT(caveSkyLight, static_cast<mc::u8>(15));
 }
 
@@ -167,6 +174,7 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
 
     SkyLightChunkProvider provider(0, 256);
     mc::ChunkData chunk(0, 0);
+    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
@@ -179,29 +187,29 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
         }
     }
 
-    mc::ChunkSection* section = chunk.getSection(4);
-    ASSERT_NE(section, nullptr);
-
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setData(sectionPos, section->skyLightNibble().copy(), false);
     engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
-    for (int z = 0; z < 16; ++z) {
-        for (int x = 0; x < 16; ++x) {
-            engine.checkBlock(&provider, x, 79, z);
-        }
-    }
-    processSkyWork(engine);
+    // 使用 light() 方法初始化区块光照
+    engine.light(&provider, &chunk, false);
 
-    const mc::u8 before = engine.getLightFor(8, 78, 8);
+    // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
+    auto* nibbles = chunk.getSkyNibbles();
+    ASSERT_NE(nibbles, nullptr);
+    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    ASSERT_NE(nibble, nullptr);
+
+    mc::u8 before = nibble->getUpdating(8, 14, 8);  // Y=78 -> localY=14
     EXPECT_LT(before, static_cast<mc::u8>(15));
 
+    // 打开一个洞
     chunk.setBlock(8, 79, 8, airState);
-    engine.checkBlock(&provider, 8, 79, 8);
-    processSkyWork(engine);
 
-    const mc::u8 after = engine.getLightFor(8, 78, 8);
+    // 重新运行光照检查
+    engine.light(&provider, &chunk, false);
+
+    mc::u8 after = nibble->getUpdating(8, 14, 8);
     EXPECT_GT(after, before);
 }
 
@@ -227,24 +235,29 @@ TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock) {
 
     SkyLightChunkProvider provider(0, 256);
     mc::ChunkData chunk(0, 0);
+    chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
     provider.setChunk(&chunk);
 
     mc::SkyStarLightEngine engine(&provider);
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
     chunk.setBlock(8, 70, 8, stoneState);
 
-    mc::ChunkSection* section = chunk.getSection(4);
-    ASSERT_NE(section, nullptr);
-
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setData(sectionPos, section->skyLightNibble().copy(), false);
     engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
-    engine.checkBlock(&provider, 8, 70, 8);
-    processSkyWork(engine);
+    // 使用 light() 方法初始化区块光照
+    engine.light(&provider, &chunk, false);
 
-    EXPECT_GT(engine.getLightFor(8, 69, 8), static_cast<mc::u8>(0));
+    // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
+    auto* nibbles = chunk.getSkyNibbles();
+    ASSERT_NE(nibbles, nullptr);
+    mc::SWMRNibbleArray* nibble = nibbles[5];  // section 4
+    ASSERT_NE(nibble, nullptr);
+
+    // Y=69 -> localY=5
+    mc::u8 light = nibble->getUpdating(8, 5, 8);
+    EXPECT_GT(light, static_cast<mc::u8>(0));
 }
 
 } // namespace

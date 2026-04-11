@@ -180,6 +180,7 @@ void ChunkSection::fill(u32 stateId) {
 
 ChunkData::ChunkData() {
     m_heightMap.fill(0);
+    initLightData();
 }
 
 ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
@@ -187,6 +188,7 @@ ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
     , m_z(z)
 {
     m_heightMap.fill(0);
+    initLightData();
 }
 
 const BlockState* ChunkData::getBlock(BlockCoord x, BlockCoord y, BlockCoord z) const {
@@ -369,6 +371,14 @@ void ChunkData::removeSection(i32 index) {
         m_sections[index].reset();
         m_dirty = true;
     }
+}
+
+const ChunkSection* const* ChunkData::getSections() const {
+    // 更新指针数组
+    for (size_t i = 0; i < SECTIONS; ++i) {
+        m_sectionPtrs[i] = m_sections[i].get();
+    }
+    return m_sectionPtrs.data();
 }
 
 std::vector<u8> ChunkData::serialize() const {
@@ -637,6 +647,139 @@ ChunkDataRef& ChunkDataRef::operator=(ChunkDataRef&& other) noexcept {
         other.m_writeAccess = false;
     }
     return *this;
+}
+
+// ============================================================================
+// Starlight 光照数据接口实现
+// ============================================================================
+
+void ChunkData::initLightData() {
+    // 初始化空映射（大小为 LIGHT_SECTIONS，包含上下缓冲区）
+    m_skyEmptinessMap.resize(LIGHT_SECTIONS, false);
+    m_blockEmptinessMap.resize(LIGHT_SECTIONS, false);
+
+    // 初始化原始指针数组
+    m_skyEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
+    m_blockEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
+    for (size_t i = 0; i < LIGHT_SECTIONS; ++i) {
+        m_skyEmptinessMapRaw[i] = false;
+        m_blockEmptinessMapRaw[i] = false;
+    }
+
+    // 初始化 Nibble 数组（延迟初始化状态）
+    for (size_t i = 0; i < LIGHT_SECTIONS; ++i) {
+        m_skyNibbles[i] = SWMRNibbleArray::createUninitialized();
+        m_blockNibbles[i] = SWMRNibbleArray::createUninitialized();
+    }
+
+    m_nibblePtrsInitialized = false;
+}
+
+void ChunkData::ensureNibblePtrs() const {
+    if (m_nibblePtrsInitialized) {
+        return;
+    }
+
+    for (size_t i = 0; i < LIGHT_SECTIONS; ++i) {
+        m_skyNibblePtrs[i] = const_cast<SWMRNibbleArray*>(&m_skyNibbles[i]);
+        m_blockNibblePtrs[i] = const_cast<SWMRNibbleArray*>(&m_blockNibbles[i]);
+    }
+
+    m_nibblePtrsInitialized = true;
+}
+
+const bool* ChunkData::getSkyEmptinessMap() const {
+    if (m_skyEmptinessMap.empty()) {
+        return nullptr;
+    }
+    // 注意：std::vector<bool> 特化不支持 data()，使用 m_skyEmptinessMapRaw 代替
+    return m_skyEmptinessMapRaw.get();
+}
+
+void ChunkData::setSkyEmptinessMap(const bool* map) {
+    if (map == nullptr) {
+        m_skyEmptinessMap.clear();
+        m_skyEmptinessMapRaw.reset();
+        return;
+    }
+
+    if (m_skyEmptinessMap.size() != static_cast<size_t>(LIGHT_SECTIONS)) {
+        m_skyEmptinessMap.resize(LIGHT_SECTIONS);
+    }
+
+    std::copy(map, map + LIGHT_SECTIONS, m_skyEmptinessMap.begin());
+
+    // 同时更新原始数组
+    if (!m_skyEmptinessMapRaw) {
+        m_skyEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
+    }
+    std::copy(map, map + LIGHT_SECTIONS, m_skyEmptinessMapRaw.get());
+}
+
+const bool* ChunkData::getBlockEmptinessMap() const {
+    if (m_blockEmptinessMap.empty()) {
+        return nullptr;
+    }
+    // 注意：std::vector<bool> 特化不支持 data()，使用 m_blockEmptinessMapRaw 代替
+    return m_blockEmptinessMapRaw.get();
+}
+
+void ChunkData::setBlockEmptinessMap(const bool* map) {
+    if (map == nullptr) {
+        m_blockEmptinessMap.clear();
+        m_blockEmptinessMapRaw.reset();
+        return;
+    }
+
+    if (m_blockEmptinessMap.size() != static_cast<size_t>(LIGHT_SECTIONS)) {
+        m_blockEmptinessMap.resize(LIGHT_SECTIONS);
+    }
+
+    std::copy(map, map + LIGHT_SECTIONS, m_blockEmptinessMap.begin());
+
+    // 同时更新原始数组
+    if (!m_blockEmptinessMapRaw) {
+        m_blockEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
+    }
+    std::copy(map, map + LIGHT_SECTIONS, m_blockEmptinessMapRaw.get());
+}
+
+SWMRNibbleArray* const* ChunkData::getSkyNibbles() const {
+    ensureNibblePtrs();
+    return m_skyNibblePtrs.data();
+}
+
+void ChunkData::setSkyNibbles(SWMRNibbleArray* const* nibbles) {
+    if (nibbles == nullptr) {
+        return;
+    }
+
+    for (size_t i = 0; i < LIGHT_SECTIONS; ++i) {
+        if (nibbles[i] != nullptr) {
+            m_skyNibbles[i] = std::move(*const_cast<SWMRNibbleArray*>(nibbles[i]));
+        }
+    }
+
+    m_nibblePtrsInitialized = false;
+}
+
+SWMRNibbleArray* const* ChunkData::getBlockNibbles() const {
+    ensureNibblePtrs();
+    return m_blockNibblePtrs.data();
+}
+
+void ChunkData::setBlockNibbles(SWMRNibbleArray* const* nibbles) {
+    if (nibbles == nullptr) {
+        return;
+    }
+
+    for (size_t i = 0; i < LIGHT_SECTIONS; ++i) {
+        if (nibbles[i] != nullptr) {
+            m_blockNibbles[i] = std::move(*const_cast<SWMRNibbleArray*>(nibbles[i]));
+        }
+    }
+
+    m_nibblePtrsInitialized = false;
 }
 
 } // namespace mc

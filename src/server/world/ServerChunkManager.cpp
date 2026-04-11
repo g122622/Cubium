@@ -57,6 +57,10 @@ public:
         return m_chunk ? m_chunk->createSection(index) : nullptr;
     }
 
+    [[nodiscard]] const ChunkSection* const* getSections() const override {
+        return m_chunk ? m_chunk->getSections() : nullptr;
+    }
+
     [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override {
         return m_chunk ? m_chunk->getBiomeAtBlock(x, y, z) : Biomes::Plains;
     }
@@ -231,10 +235,12 @@ void ServerChunkManager::startWorkers()
                     // 第二阶段：批量执行 FEATURES
                     m_generator->placeFeatures(region, chunk);
                 } else if (status == ChunkStatuses::LIGHT) {
+                    // LIGHT 阶段：区块生成系统中的占位阶段
+                    // 真正的光照计算在区块加载后由 WorldLightManager::lightChunk() 完成
+                    // 参考 Moonrise: ChunkLightTask 在区块加载后异步执行光照
                     MC_TRACE_EVENT("world.chunk_gen", "Lighting");
-                    // 光照初始化
-                    chunk.initializeSkyLight();
-                    chunk.initializeBlockLight();
+                    // 不在此处执行光照计算，因为需要访问已加载的邻居区块
+                    // 光照将在 storeGeneratedChunkToMem 触发的回调中完成
                 } else if (status == ChunkStatuses::SPAWN) {
                     // SPAWN 阶段：计算生物生成点
                     // 参考 MC 1.16.5: SPAWN 阶段计算初始生成位置
@@ -787,9 +793,8 @@ void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& sing
                 // 同步路径：不检查邻居依赖，直接执行
                 m_generator->placeFeatures(region, *primer);
             } else if (s == ChunkStatuses::LIGHT) {
-                // 光照初始化
-                primer->initializeSkyLight();
-                primer->initializeBlockLight();
+                // LIGHT 阶段：区块生成系统中的占位阶段
+                // 真正的光照计算在区块加载后由 WorldLightManager::lightChunk() 完成
             } else if (s == ChunkStatuses::SPAWN) {
                 // SPAWN 阶段：计算生物生成点
                 MC_TRACE_EVENT("world.chunk_gen", "Spawn");

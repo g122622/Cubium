@@ -168,21 +168,39 @@ public:
      *
      * 当没有 ServerWorld 时（如 IntegratedServer），通过此回调通知实体生成。
      */
-    void setEntitySpawnCallback(EntitySpawnCallback callback) { m_entitySpawnCallback = std::move(callback); }
+    void setEntitySpawnCallback(EntitySpawnCallback callback) {
+        // 若已有实体生成回调，直接抛错
+        if (m_entitySpawnCallback) {
+            throw std::logic_error("Entity spawn callback already set");
+        }
+        m_entitySpawnCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置区块加载回调
      *
      * 当区块完成加载/生成后调用，用于初始化光照等系统。
      */
-    void setChunkLoadedCallback(ChunkLoadedCallback callback) { m_chunkLoadedCallback = std::move(callback); }
+    void setChunkLoadedCallback(ChunkLoadedCallback callback) {
+        // 若已有加载回调，直接抛错
+        if (m_chunkLoadedCallback) {
+            throw std::logic_error("Chunk load callback already set");
+        }
+        m_chunkLoadedCallback = std::move(callback);
+     }
 
     /**
      * @brief 设置区块卸载回调
      *
      * 当区块即将卸载前调用，用于通知系统清理相关数据。
      */
-    void setChunkUnloadedCallback(ChunkLoadedCallback callback) { m_chunkUnloadedCallback = std::move(callback); }
+    void setChunkUnloadedCallback(ChunkLoadedCallback callback) {
+        // 若已有卸载回调，直接抛错
+        if (m_chunkUnloadedCallback) {
+            throw std::logic_error("Chunk unload callback already set");
+        }
+        m_chunkUnloadedCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置区块发送管理器

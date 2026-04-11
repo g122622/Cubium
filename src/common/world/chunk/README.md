@@ -191,13 +191,6 @@ generateNoise(primer);
 auto chunkData = primer.toChunkData();
 ```
 
-**关键方法**：
-- `initializeSkyLight()` - 初始化天空光照（委托给 LightInitializer）
-- `initializeBlockLight()` - 初始化方块光照（委托给 LightInitializer）
-- `updateAllHeightmaps()` - 更新所有高度图
-
-**注意**：光照初始化逻辑已迁移到 `src/common/world/lighting/LightInitializer.hpp`，ChunkPrimer 仅作为调用入口。
-
 **依赖项**：
 - `ChunkData` - 底层区块数据
 - `ChunkStatus` - 生成阶段

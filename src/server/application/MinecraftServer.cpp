@@ -260,6 +260,18 @@ void MinecraftServer::setupWorldCallbacks()
         if (m_chunkSendManager) {
             m_chunkSendManager->sendChunkToTrackingPlayers(x, z);
         }
+        // // TODO 通知村庄管理器区块加载
+        // if (m_villageManager) {
+        //     m_villageManager->onChunkLoaded(x, z);
+        // }
+    });
+
+    // 设置区块卸载回调 - 当区块即将卸载时触发
+    m_world->chunkManager()->setChunkUnloadedCallback([this](ChunkCoord x, ChunkCoord z) {
+        // // TODO 通知村庄管理器区块卸载（用于清理 POI 等）
+        // if (m_villageManager) {
+        //     m_villageManager->onChunkUnloaded(x, z);
+        // }
     });
 
     // 设置追踪变化回调 - 当玩家进入/离开区块视距时触发

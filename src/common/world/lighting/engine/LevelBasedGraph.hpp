@@ -3,45 +3,153 @@
 #include "../../../core/Types.hpp"
 #include "LightEngineUtils.hpp"
 #include "LightEngineCache.hpp"
+#include "../storage/SWMRNibbleArray.hpp"
+#include "../../block/Block.hpp"
+#include "../../chunk/ChunkPos.hpp"
+#include "../../../util/NibbleArray.hpp"
 #include <vector>
 #include <array>
 #include <cstdint>
-#include <functional>
 
 namespace mc {
 
 // 前向声明
 class StarLightLightingProvider;
+class BlockState;
+class CollisionShape;
+class IChunk;
+class ChunkSection;
+
+// ============================================================================
+// 方向枚举与工具（参考 Starlight 的 AxisDirection）
+// ============================================================================
+
+/**
+ * @brief 光照传播方向枚举
+ *
+ * 顺序很重要：正X(0)、负X(1)、正Z(2)、负Z(3)、正Y(4)、负Y(5)
+ * 偶数为正方向，奇数为负方向，可通过 XOR 1 获取相反方向
+ *
+ * 注意：这与 Direction.hpp 中的 AxisDirection 不同，
+ * AxisDirection 只有 Positive/Negative 两个值，
+ * 而 LightAxisDirection 包含六个具体方向。
+ */
+enum class LightAxisDirection : u8 {
+    POSITIVE_X = 0,  // 东
+    NEGATIVE_X = 1,  // 西
+    POSITIVE_Z = 2,  // 南
+    NEGATIVE_Z = 3,  // 北
+    POSITIVE_Y = 4,  // 上
+    NEGATIVE_Y = 5   // 下
+};
+
+/** 所有方向数组（顺序与 Starlight 一致） */
+constexpr LightAxisDirection ALL_AXIS_DIRECTIONS[6] = {
+    LightAxisDirection::POSITIVE_X,
+    LightAxisDirection::NEGATIVE_X,
+    LightAxisDirection::POSITIVE_Z,
+    LightAxisDirection::NEGATIVE_Z,
+    LightAxisDirection::POSITIVE_Y,
+    LightAxisDirection::NEGATIVE_Y
+};
+
+/** 仅水平方向 */
+constexpr LightAxisDirection ONLY_HORIZONTAL_DIRECTIONS[4] = {
+    LightAxisDirection::POSITIVE_X,
+    LightAxisDirection::NEGATIVE_X,
+    LightAxisDirection::POSITIVE_Z,
+    LightAxisDirection::NEGATIVE_Z
+};
+
+/** 所有方向位集 */
+constexpr i32 ALL_DIRECTIONS_BITSET = 0x3F;  // 0b111111
+
+/**
+ * @brief 获取方向的偏移量
+ */
+inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& dy, i32& dz) {
+    switch (dir) {
+        case LightAxisDirection::POSITIVE_X: dx = 1;  dy = 0;  dz = 0;  break;
+        case LightAxisDirection::NEGATIVE_X: dx = -1; dy = 0;  dz = 0;  break;
+        case LightAxisDirection::POSITIVE_Z: dx = 0;  dy = 0;  dz = 1;  break;
+        case LightAxisDirection::NEGATIVE_Z: dx = 0;  dy = 0;  dz = -1; break;
+        case LightAxisDirection::POSITIVE_Y: dx = 0;  dy = 1;  dz = 0;  break;
+        case LightAxisDirection::NEGATIVE_Y: dx = 0;  dy = -1; dz = 0;  break;
+    }
+}
+
+/**
+ * @brief 获取方向的 NMS Direction（用于面遮挡查询）
+ */
+inline constexpr Direction getNMSDirection(LightAxisDirection dir) {
+    switch (dir) {
+        case LightAxisDirection::POSITIVE_X: return Direction::East;
+        case LightAxisDirection::NEGATIVE_X: return Direction::West;
+        case LightAxisDirection::POSITIVE_Z: return Direction::South;
+        case LightAxisDirection::NEGATIVE_Z: return Direction::North;
+        case LightAxisDirection::POSITIVE_Y: return Direction::Up;
+        case LightAxisDirection::NEGATIVE_Y: return Direction::Down;
+    }
+    return Direction::None;
+}
+
+/**
+ * @brief 获取相反方向
+ * 偶数 XOR 1 得奇数（负方向），奇数 XOR 1 得偶数（正方向）
+ */
+inline constexpr LightAxisDirection getOppositeDirection(LightAxisDirection dir) {
+    return static_cast<LightAxisDirection>(static_cast<u8>(dir) ^ 1);
+}
+
+/**
+ * @brief 获取方向位集
+ */
+inline constexpr i32 getDirectionBitset(LightAxisDirection dir) {
+    return 1 << static_cast<u8>(dir);
+}
+
+/**
+ * @brief 获取排除某方向后的位集
+ */
+inline constexpr i32 getEverythingButDirection(LightAxisDirection dir) {
+    return ALL_DIRECTIONS_BITSET ^ getDirectionBitset(dir);
+}
+
+/**
+ * @brief 获取排除某方向及其反方向后的位集
+ */
+inline constexpr i32 getEverythingButOppositeDirection(LightAxisDirection dir) {
+    return ALL_DIRECTIONS_BITSET ^ (getDirectionBitset(dir) | getDirectionBitset(getOppositeDirection(dir)));
+}
 
 /**
  * @brief 基于级别的传播图（Starlight 优化版）
  *
- * 使用方向位集优化的 BFS 传播算法。
- *
- * 队列元素采用显式结构：
- * - pos: 完整世界坐标编码（LightEngineUtils::packPos）
- * - level: 传播级别
- * - directions: 可继续传播方向位集
- * - flags: WRITE/RECHECK/TRANSPARENT 标志
- *
  * 参考: ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine
+ *
+ * 队列元素采用紧凑64位编码：
+ * - 位 0-5: X坐标（相对于编码偏移，6位 = 64格范围）
+ * - 位 6-11: Z坐标（相对于编码偏移，6位 = 64格范围）
+ * - 位 12-27: Y坐标（相对于编码偏移，16位）
+ * - 位 28-31: 传播级别 (0-15)
+ * - 位 32-37: 传播方向位集
+ * - 位 38-40: 状态标志
+ * - 位 41-63: 未使用
  */
 class StarLightEngine {
 public:
     /** 最大级别数（光照最大15级 + 1个溢出级） */
     static constexpr i32 MAX_LEVEL_COUNT = 16;
 
-    /** 无效级别标记 */
-    static constexpr u8 INVALID_LEVEL = 255;
-
-    /** 标志：需要写入光照等级 */
+    // 标志位定义（与 Starlight 对齐）
+    /** 标志：需要写入光照等级（用于光源恢复） */
     static constexpr u64 FLAG_WRITE_LEVEL = 1ULL << 63;
 
     /** 标志：需要重新检查光照等级 */
     static constexpr u64 FLAG_RECHECK_LEVEL = 1ULL << 62;
 
-    /** 标志：有面透明方块 */
-    static constexpr u64 FLAG_HAS_SIDED_TRANSPARENT = 1ULL << 61;
+    /** 标志：当前方块有条件透明面（需要检查面遮挡） */
+    static constexpr u64 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS = 1ULL << 61;
 
     virtual ~StarLightEngine() = default;
 
@@ -62,254 +170,363 @@ public:
     }
 
     /**
-     * @brief 处理所有更新
+     * @brief 检查是否有待处理的工作
+     */
+    [[nodiscard]] bool hasWork() const noexcept {
+        return m_needsUpdate || queuedUpdateSize() > 0;
+    }
+
+    /**
+     * @brief 安排光照更新
      *
+     * 将位置添加到增亮队列，用于后续处理。
+     *
+     * @param pos 编码的世界位置
+     */
+    void scheduleUpdate(i64 pos) {
+        // 使用最大级别和所有方向
+        // 对于增加队列，使用级别 15（表示需要计算）
+        appendToIncreaseQueue(static_cast<u64>(pos) |
+                              (static_cast<u64>(15) << 28) |
+                              (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32));
+        m_needsUpdate = true;
+    }
+
+    /**
+     * @brief 处理所有更新
+     * @param lightAccess 光照区块访问器
      * @param maxUpdates 最大更新数量
      * @return 剩余配额
      */
-    i32 processUpdates(i32 maxUpdates);
+    i32 performUpdates(StarLightLightingProvider* lightAccess, i32 maxUpdates);
 
     /**
-     * @brief 调度位置更新
-     * @param pos 位置编码
+     * @brief 执行一个 tick 的光照更新
+     * @param maxUpdates 最大更新数量
+     * @param updateSkyLight 是否更新天空光照
+     * @param updateBlockLight 是否更新方块光照
+     * @return 剩余配额
      */
-    void scheduleUpdate(i64 pos);
+    virtual i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight);
 
     /**
-     * @brief 调度光照传播更新
-     * @param fromPos 源位置
-     * @param toPos 目标位置
-     * @param level 传播等级
-     * @param isIncrease 是否为增亮
+     * @brief 更新区块段状态
+     * @param pos 区块段位置
+     * @param isEmpty 是否为空
      */
-    void scheduleUpdate(i64 fromPos, i64 toPos, i32 level, bool isIncrease);
+    virtual void updateSectionStatus(const SectionPos& pos, bool isEmpty);
 
     /**
-     * @brief 取消位置更新
-     * @param pos 位置编码
+     * @brief 获取指定位置的光照等级
      */
-    void cancelUpdate(i64 pos);
+    [[nodiscard]] virtual u8 getLightFor(i32 x, i32 y, i32 z) const = 0;
 
     /**
-     * @brief 取消满足条件的位置更新
-     * @param predicate 条件函数
+     * @brief 设置光照数据
      */
-    void cancelUpdates(const std::function<bool(i64)>& predicate);
+    virtual void setData(const SectionPos& pos, const NibbleArray& array, bool retain) = 0;
 
     /**
-     * @brief 设置编码偏移（用于坐标压缩）
+     * @brief 获取光照数据
      */
-    void setEncodeOffset(i32 offsetX, i32 offsetY, i32 offsetZ) {
-        (void)offsetX;
-        (void)offsetY;
-        (void)offsetZ;
-    }
+    [[nodiscard]] virtual SWMRNibbleArray* getData(const SectionPos& pos) = 0;
 
     // ========================================================================
     // 缓存管理
     // ========================================================================
 
-    void enableCache(i32 centerX, i32 centerY, i32 centerZ,
+    /**
+     * @brief 设置世界引用（用于获取世界信息）
+     */
+    virtual void setWorld(void* world);
+
+    /**
+     * @brief 初始化缓存
+     */
+    void setupCaches(StarLightLightingProvider* lightAccess, i32 centerX, i32 centerY, i32 centerZ,
                      bool relaxed, bool loadTwoRadius);
 
     /**
-     * @brief 禁用缓存
+     * @brief 清除缓存
+     */
+    void destroyCaches();
+
+    /**
+     * @brief 同步可见侧数据并通知变更
+     */
+    void updateVisible(StarLightLightingProvider* lightAccess);
+
+    // ========================================================================
+    // 区块光照操作
+    // ========================================================================
+
+    /**
+     * @brief 处理区块内方块变化
+     */
+    void blocksChangedInChunk(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ,
+                              const std::vector<BlockPos>& positions, const std::vector<bool>& changedSections);
+
+    /**
+     * @brief 处理空区块段变化
+     * @return 如果空映射变更返回新的空映射，否则返回 nullptr
+     */
+    std::vector<bool> handleEmptySectionChanges(StarLightLightingProvider* lightAccess,
+                                                  const IChunk* chunk,
+                                                  const std::vector<bool>& emptinessChanges,
+                                                  bool isUnlit);
+
+    /**
+     * @brief 检查区块边缘
+     */
+    void checkChunkEdges(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ);
+
+    /**
+     * @brief 照亮区块（完整流程，包含缓存管理）
      *
-     * 清除所有缓存数据。
+     * 封装 setupCaches、缓存设置、lightChunk、updateVisible、destroyCaches 的完整流程。
+     * 用于区块首次加载时的初始光照计算。
+     *
+     * @param lightAccess 光照区块访问器
+     * @param chunk 要照亮的目标区块
+     * @param needsEdgeChecks 是否需要检查边缘
      */
-    void disableCache();
+    void light(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks = true);
 
     /**
-     * @brief 检查缓存是否启用
+     * @brief 照亮区块（子类实现，不包含缓存管理）
      */
-    [[nodiscard]] bool isCacheEnabled() const noexcept { return m_cacheEnabled; }
-
-    /**
-     * @brief 获取缓存命中率（调试用）
-     */
-    [[nodiscard]] f32 getCacheHitRate() const;
+    virtual void lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks);
 
 protected:
     /**
      * @brief 构造函数
-     * @param levelCount 级别数量（通常为16）
-     * @param expectedUpdates 预期更新数量（用于预分配）
-     * @param provider 区块光照提供者（用于缓存）
+     * @param isSkyLight 是否为天空光照引擎
      */
-    StarLightEngine(i32 levelCount, i32 expectedUpdates, StarLightLightingProvider* provider);
+    explicit StarLightEngine(bool isSkyLight);
 
     // ========================================================================
-    // 虚方法（子类实现）
+    // 抽象方法（子类实现）
     // ========================================================================
 
-    /** 检查是否为根节点 */
-    [[nodiscard]] virtual bool isRoot(i64 pos) const = 0;
+    /** 获取区块的空映射 */
+    [[nodiscard]] virtual const bool* getEmptinessMap(const IChunk* chunk) const = 0;
 
-    /** 计算位置的新级别 */
-    [[nodiscard]] virtual i32 computeLevel(i64 pos, i64 excludedSource, i32 level) = 0;
+    /** 设置区块的空映射 */
+    virtual void setEmptinessMap(const IChunk* chunk, const bool* map) = 0;
 
-    /** 通知相邻位置 */
-    virtual void notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) = 0;
+    /** 获取区块的光照数组 */
+    [[nodiscard]] virtual SWMRNibbleArray* const* getNibblesOnChunk(const IChunk* chunk) const = 0;
 
-    /** 获取位置的当前级别 */
-    [[nodiscard]] virtual i32 getLevel(i64 pos) const = 0;
+    /** 设置区块的光照数组 */
+    virtual void setNibbles(const IChunk* chunk, SWMRNibbleArray* const* nibbles) = 0;
 
-    /** 设置位置的级别 */
-    virtual void setLevel(i64 pos, i32 level) = 0;
+    /** 检查区块是否可用于光照计算 */
+    [[nodiscard]] virtual bool canUseChunk(const IChunk* chunk) const = 0;
 
-    /** 计算边缘级别 */
-    [[nodiscard]] virtual i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) = 0;
+    /** 初始化区块段 Nibble 数组 */
+    virtual void initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude, bool initRemovedNibbles) = 0;
 
-    /** 检查区块段是否为空（用于跳过优化） */
-    [[nodiscard]] virtual bool isSectionEmpty(i64 sectionPos) const;
+    /** 设置 Nibble 数组为 null */
+    virtual void setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ) = 0;
+
+    /** 检查方块（子类实现具体逻辑） */
+    virtual void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ) = 0;
+
+    /** 计算光照值（用于验证和重新计算） */
+    [[nodiscard]] virtual i32 calculateLightValue(StarLightLightingProvider* lightAccess,
+                                                   i32 worldX, i32 worldY, i32 worldZ,
+                                                   i32 expected) = 0;
+
+    /** 传播方块变化 */
+    virtual void propagateBlockChanges(StarLightLightingProvider* lightAccess,
+                                        const IChunk* chunk,
+                                        const std::vector<BlockPos>& positions) = 0;
+
+    /** 检查区块段边缘（子类可扩展） */
+    virtual void checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
+                                  i32 fromSection, i32 toSection);
+
+    /** 从邻居传播光照到区块 */
+    virtual void propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
+                                           i32 fromSection, i32 toSection);
 
     // ========================================================================
-    // 缓存访问（供子类使用）
+    // 缓存访问方法
     // ========================================================================
 
-    /**
-     * @brief 从缓存获取区块
-     */
-    [[nodiscard]] const IChunk* getCachedChunk(i32 chunkX, i32 chunkZ) const;
+    /** 从缓存获取区块 */
+    [[nodiscard]] const IChunk* getChunkInCache(i32 chunkX, i32 chunkZ) const;
 
-    /**
-     * @brief 获取缓存提供者
-     */
-    [[nodiscard]] StarLightLightingProvider* getChunkProvider() const noexcept { return m_chunkProvider; }
+    /** 设置区块到缓存 */
+    void setChunkInCache(i32 chunkX, i32 chunkZ, const IChunk* chunk);
 
-    /**
-     * @brief 检查区块段是否为空（使用缓存）
-     */
-    [[nodiscard]] bool isCachedSectionEmpty(i32 sectionX, i32 sectionY, i32 sectionZ) const;
+    /** 从缓存获取区块段 */
+    [[nodiscard]] const ChunkSection* getChunkSection(i32 chunkX, i32 chunkY, i32 chunkZ) const;
 
-protected:
-    struct QueueEntry {
-        i64 pos = 0;
-        u8 level = 0;
-        u8 directions = DIR_ALL;
-        u64 flags = 0;
-    };
+    /** 设置区块段到缓存 */
+    void setChunkSectionInCache(i32 chunkX, i32 chunkY, i32 chunkZ, const ChunkSection* section);
 
-    // 缓存系统
-    LightEngineCache m_cache;
-    StarLightLightingProvider* m_chunkProvider = nullptr;
-    bool m_cacheEnabled = false;
+    /** 设置区块的所有区块段到缓存 */
+    void setBlocksForChunkInCache(i32 chunkX, i32 chunkZ, const ChunkSection* const* sections);
 
-    /**
-     * @brief 传播光照等级到相邻位置
-     * @param fromPos 源位置
-     * @param toPos 目标位置
-     * @param level 传播等级
-     * @param isDecreasing 是否为减亮传播
-     */
-    void propagateLevel(i64 fromPos, i64 toPos, i32 level, bool isDecreasing);
+    /** 从缓存获取 Nibble 数组 */
+    [[nodiscard]] SWMRNibbleArray* getNibbleFromCache(i32 chunkX, i32 chunkY, i32 chunkZ) const;
+
+    /** 设置 Nibble 数组到缓存 */
+    void setNibbleInCache(i32 chunkX, i32 chunkY, i32 chunkZ, SWMRNibbleArray* nibble);
+
+    /** 设置区块的所有 Nibble 数组到缓存 */
+    void setNibblesForChunkInCache(i32 chunkX, i32 chunkZ, SWMRNibbleArray* const* nibbles);
+
+    /** 从缓存获取空映射 */
+    [[nodiscard]] const bool* getEmptinessMap(i32 chunkX, i32 chunkZ) const;
+
+    /** 设置空映射到缓存 */
+    void setEmptinessMapCache(i32 chunkX, i32 chunkZ, const bool* map);
+
+    /** 获取方块状态 */
+    [[nodiscard]] const BlockState* getBlockState(i32 worldX, i32 worldY, i32 worldZ) const;
+
+    /** 获取方块状态（通过区块段索引） */
+    [[nodiscard]] const BlockState* getBlockState(i32 sectionIndex, i32 localIndex) const;
+
+    /** 获取光照等级 */
+    [[nodiscard]] i32 getLightLevel(i32 worldX, i32 worldY, i32 worldZ) const;
+
+    /** 获取光照等级（通过区块段索引） */
+    [[nodiscard]] i32 getLightLevel(i32 sectionIndex, i32 localIndex) const;
+
+    /** 设置光照等级 */
+    void setLightLevel(i32 worldX, i32 worldY, i32 worldZ, i32 level);
+
+    /** 设置光照等级（带世界坐标） */
+    void setLightLevel(i32 sectionIndex, i32 localIndex, i32 worldX, i32 worldY, i32 worldZ, i32 level);
+
+    /** 光照更新后通知 */
+    void postLightUpdate(i32 worldX, i32 worldY, i32 worldZ);
 
     // ========================================================================
     // 队列操作
     // ========================================================================
 
-    /**
-     * @brief 编码队列元素
-     */
-    [[nodiscard]] QueueEntry encodeQueueEntry(i32 x, i32 y, i32 z, u8 level, u8 directions, u64 flags) const {
-        return QueueEntry{packWorldPos(x, y, z), level, directions, flags};
-    }
+    /** 添加到增亮队列 */
+    void appendToIncreaseQueue(u64 queueValue);
+
+    /** 添加到减亮队列 */
+    void appendToDecreaseQueue(u64 queueValue);
+
+    /** 扩展增亮队列 */
+    void resizeIncreaseQueue();
+
+    /** 扩展减亮队列 */
+    void resizeDecreaseQueue();
+
+    /** 执行增亮传播 */
+    void performLightIncrease(StarLightLightingProvider* lightAccess);
+
+    /** 执行减亮传播 */
+    void performLightDecrease(StarLightLightingProvider* lightAccess);
+
+    // ========================================================================
+    // 工具方法
+    // ========================================================================
+
+    /** 创建填充为空的 Nibble 数组 */
+    [[nodiscard]] static std::vector<SWMRNibbleArray*> getFilledEmptyLight(i32 totalLightSections);
+
+    /** 设置编码偏移 */
+    void setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ);
 
     /**
-     * @brief 编码队列元素（使用世界坐标）
+     * @brief 检查两个方块之间是否遮挡光线
+     *
+     * 条件透明检查：判断光线是否可以从源方块传播到目标方块。
+     * 使用 VoxelShape 系统进行精确的面遮挡检测。
+     *
+     * @param fromState 源方块状态（光线发出位置）
+     * @param toState 目标方块状态（光线进入位置）
+     * @param direction 光线传播方向（从源到目标）
+     * @return true 如果面被完全遮挡（光线无法通过）
      */
-    [[nodiscard]] QueueEntry encodeQueueEntryWorld(i32 worldX, i32 worldY, i32 worldZ, u8 level, u8 directions, u64 flags) const {
-        return encodeQueueEntry(worldX, worldY, worldZ, level, directions, flags);
-    }
+    [[nodiscard]] static bool isFaceOccluded(const BlockState* fromState,
+                                              const BlockState* toState,
+                                              LightAxisDirection direction);
 
     /**
-     * @brief 添加到增亮队列
+     * @brief 检查方块是否使用形状进行光照遮挡
+     *
+     * 某些方块（如台阶、楼梯、栅栏）有非完整方块的碰撞形状，
+     * 需要精确的面遮挡检测。
+     *
+     * @param state 方块状态
+     * @return true 如果需要使用形状进行遮挡检测
      */
-    void appendToIncreaseQueue(const QueueEntry& entry) {
-        if (m_increaseQueueInitialLength >= m_increaseQueue.size()) {
-            resizeIncreaseQueue();
-        }
-        m_increaseQueue[m_increaseQueueInitialLength++] = entry;
-        m_needsUpdate = true;
-    }
+    [[nodiscard]] static bool useShapeForLightOcclusion(const BlockState* state);
 
-    /**
-     * @brief 添加到减亮队列
-     */
-    void appendToDecreaseQueue(const QueueEntry& entry) {
-        if (m_decreaseQueueInitialLength >= m_decreaseQueue.size()) {
-            resizeDecreaseQueue();
-        }
-        m_decreaseQueue[m_decreaseQueueInitialLength++] = entry;
-        m_needsUpdate = true;
-    }
+protected:
+    // 世界引用
+    void* m_world = nullptr;
+    bool m_isSkyLight = false;
+    bool m_isClientSide = false;
 
-    /**
-     * @brief 从世界坐标编码位置
-     */
-    [[nodiscard]] static constexpr i64 packWorldPos(i32 x, i32 y, i32 z) {
-        constexpr i64 XZ_MASK = (1LL << 26) - 1;
-        constexpr i64 Y_MASK = (1LL << 12) - 1;
-        return ((static_cast<i64>(x) & XZ_MASK) << 38) |
-               (static_cast<i64>(y) & Y_MASK) |
-               ((static_cast<i64>(z) & XZ_MASK) << 12);
-    }
+    // 世界高度范围
+    i32 m_minSection = 0;
+    i32 m_maxSection = 15;
+    i32 m_minLightSection = -1;
+    i32 m_maxLightSection = 16;
 
-    /**
-     * @brief 解码世界坐标
-     */
-    static void unpackWorldPos(i64 packed, i32& x, i32& y, i32& z) {
-        constexpr i64 XZ_MASK = (1LL << 26) - 1;
-        x = static_cast<i32>(packed >> 38);
-        y = static_cast<i32>((packed << 52) >> 52);
-        z = static_cast<i32>((packed >> 12) & XZ_MASK);
-        z = (z << 6) >> 6; // 符号扩展
-    }
+    // 编码偏移（用于坐标压缩）
+    i32 m_encodeOffsetX = 0;
+    i32 m_encodeOffsetY = 0;
+    i32 m_encodeOffsetZ = 0;
+    i32 m_coordinateOffset = 0;
 
-private:
-    i32 m_levelCount;
+    // 区块缓存偏移
+    i32 m_chunkOffsetX = 0;
+    i32 m_chunkOffsetY = 0;
+    i32 m_chunkOffsetZ = 0;
+    i32 m_chunkIndexOffset = 0;
+    i32 m_chunkSectionIndexOffset = 0;
 
-    // 增亮队列（光照增加）
-    std::vector<QueueEntry> m_increaseQueue;
-    size_t m_increaseQueueInitialLength = 0;
+    // 发光掩码（方块光照为 0xF，天空光照为 0）
+    i32 m_emittedLightMask = 0;
 
-    // 减亮队列（光照减少）
-    std::vector<QueueEntry> m_decreaseQueue;
-    size_t m_decreaseQueueInitialLength = 0;
+    // 区块缓存（5x5）
+    std::array<const IChunk*, 25> m_chunkCache{};
+
+    // 区块段缓存
+    const ChunkSection** m_sectionCache = nullptr;
+    i32 m_sectionCacheSize = 0;
+
+    // Nibble 数组缓存
+    SWMRNibbleArray** m_nibbleCache = nullptr;
+
+    // 空映射缓存
+    std::array<const bool*, 25> m_emptinessMapCache{};
+
+    // 通知更新缓存（客户端）
+    bool* m_notifyUpdateCache = nullptr;
+
+    // 增亮队列（使用紧凑64位编码）
+    std::vector<u64> m_increaseQueue;
+    i32 m_increaseQueueInitialLength = 0;
+
+    // 减亮队列
+    std::vector<u64> m_decreaseQueue;
+    i32 m_decreaseQueueInitialLength = 0;
+
+    // 区块边缘检查延迟更新
+    std::array<i32, 256> m_chunkCheckDelayedUpdatesCenter{};
+    std::array<i32, 256> m_chunkCheckDelayedUpdatesNeighbour{};
 
     bool m_needsUpdate = false;
 
-    /**
-     * @brief 扩展增亮队列
-     */
-    void resizeIncreaseQueue() {
-        m_increaseQueue.resize(m_increaseQueue.size() + (m_increaseQueue.size() >> 1) + 256);
-    }
+private:
+    // 预计算的方向检查数组
+    static std::array<std::vector<LightAxisDirection>, 64> s_oldCheckDirections;
+    static bool s_directionsInitialized;
 
-    /**
-     * @brief 扩展减亮队列
-     */
-    void resizeDecreaseQueue() {
-        m_decreaseQueue.resize(m_decreaseQueue.size() + (m_decreaseQueue.size() >> 1) + 256);
-    }
-
-    /**
-     * @brief 处理增亮队列
-     */
-    i32 processIncreaseQueue(i32 maxUpdates);
-
-    /**
-     * @brief 处理减亮队列
-     */
-    i32 processDecreaseQueue(i32 maxUpdates);
-
-    /**
-     * @brief 获取最小级别
-     */
-    [[nodiscard]] i32 minLevel(i32 level1, i32 level2) const {
-        i32 result = level1 < level2 ? level1 : level2;
-        return result < m_levelCount ? result : m_levelCount - 1;
-    }
+    static void initializeDirections();
 };
 
 } // namespace mc

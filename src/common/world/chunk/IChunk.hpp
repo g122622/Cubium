@@ -11,6 +11,7 @@ namespace mc {
 // 前向声明
 class BlockState;
 class ChunkSection;
+class SWMRNibbleArray;
 
 // ============================================================================
 // 区块状态枚举 (简化版)
@@ -69,6 +70,12 @@ public:
     [[nodiscard]] virtual bool hasSection(i32 index) const = 0;
     virtual ChunkSection* createSection(i32 index) = 0;
 
+    /**
+     * @brief 获取所有区块段数组
+     * @return 指向区块段指针数组的指针，数组大小为 16
+     */
+    [[nodiscard]] virtual const ChunkSection* const* getSections() const = 0;
+
     // === 生物群系 ===
     [[nodiscard]] virtual BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const = 0;
 
@@ -83,6 +90,63 @@ public:
     // === 标记 ===
     [[nodiscard]] virtual bool isModified() const = 0;
     virtual void setModified(bool modified) = 0;
+
+    // ========================================================================
+    // Starlight 光照数据接口 (参考 Moonrise StarlightChunk)
+    // ========================================================================
+
+    /**
+     * @brief 获取天空光照空映射
+     * @return 空映射数组，每个元素对应一个区块段是否为空
+     */
+    [[nodiscard]] virtual const bool* getSkyEmptinessMap() const { return nullptr; }
+
+    /**
+     * @brief 设置天空光照空映射
+     */
+    virtual void setSkyEmptinessMap(const bool* map) { (void)map; }
+
+    /**
+     * @brief 获取方块光照空映射
+     */
+    [[nodiscard]] virtual const bool* getBlockEmptinessMap() const { return nullptr; }
+
+    /**
+     * @brief 设置方块光照空映射
+     */
+    virtual void setBlockEmptinessMap(const bool* map) { (void)map; }
+
+    /**
+     * @brief 获取天空光照 Nibble 数组
+     * @return Nibble 数组指针数组，索引为 [y - minLightSection]
+     */
+    [[nodiscard]] virtual SWMRNibbleArray* const* getSkyNibbles() const { return nullptr; }
+
+    /**
+     * @brief 设置天空光照 Nibble 数组
+     */
+    virtual void setSkyNibbles(SWMRNibbleArray* const* nibbles) { (void)nibbles; }
+
+    /**
+     * @brief 获取方块光照 Nibble 数组
+     */
+    [[nodiscard]] virtual SWMRNibbleArray* const* getBlockNibbles() const { return nullptr; }
+
+    /**
+     * @brief 设置方块光照 Nibble 数组
+     */
+    virtual void setBlockNibbles(SWMRNibbleArray* const* nibbles) { (void)nibbles; }
+
+    /**
+     * @brief 检查区块是否光照正确
+     * 用于判断区块是否可以用于光照计算
+     */
+    [[nodiscard]] virtual bool isLightCorrect() const { return true; }
+
+    /**
+     * @brief 设置区块光照正确状态
+     */
+    virtual void setLightCorrect(bool correct) { (void)correct; }
 };
 
 // ============================================================================

@@ -174,10 +174,6 @@ public:
     void invalidateCollisionCache(ChunkCoord chunkX, ChunkCoord chunkZ);
     void clearCollisionCache();
 
-    // ========== 光照初始化 ==========
-
-    void initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ);
-
     // ========== ICollisionWorld 接口实现 ==========
 
     [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord x, ChunkCoord z) const override {

@@ -99,6 +99,10 @@ const CollisionShape& BlockState::getOcclusionShape() const {
     return m_owner->getOcclusionShape(*this);
 }
 
+CollisionShape BlockState::getFaceOcclusionShape(Direction direction) const {
+    return m_owner->getFaceOcclusionShape(*this, direction);
+}
+
 bool BlockState::hasOpaqueCollisionShape() const {
     // 如果方块不透明且有碰撞，则有不透明碰撞形状
     // 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#hasOpaqueCollisionShape
@@ -404,6 +408,25 @@ const CollisionShape& Block::getCollisionShape(const BlockState& state) const {
 
 const CollisionShape& Block::getOcclusionShape(const BlockState& state) const {
     return getShape(state);
+}
+
+CollisionShape Block::getFaceOcclusionShape(const BlockState& state, Direction direction) const {
+    // 默认实现：如果遮挡形状是完整方块，返回完整方块
+    // 否则返回遮挡形状在指定方向的切片
+    const CollisionShape& occlusion = getOcclusionShape(state);
+    if (occlusion.isFullBlock()) {
+        return CollisionShape::fullBlock();
+    }
+    // 对于非完整方块，返回遮挡形状
+    // TODO: 实现 CollisionShape 的面切片方法
+    return occlusion;
+}
+
+bool Block::useShapeForLightOcclusion(const BlockState& state) const {
+    (void)state;
+    // 默认不使用形状进行光照遮挡
+    // 台阶、楼梯、栅栏等非完整方块需要覆盖此方法返回 true
+    return false;
 }
 
 bool Block::isAir(const BlockState& state) const {

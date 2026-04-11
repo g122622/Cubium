@@ -127,24 +127,6 @@ public:
                         std::shared_ptr<std::atomic<bool>> cancelToken,
                         i32 priority);
 
-    /**
-     * @brief 提交自定义任务
-     * @param task 任务
-     * @param generator 生成器函数
-     * @param callback 完成回调
-     */
-    void submitTask(ChunkTask task,
-                    GeneratorFunc generator,
-                    CompletionCallback callback);
-
-    /**
-     * @brief 提交可取消的自定义任务
-     */
-    void submitTask(ChunkTask task,
-                    GeneratorFunc generator,
-                    CompletionCallback callback,
-                    std::shared_ptr<std::atomic<bool>> cancelToken);
-
     // ============================================================================
     // 统计
     // ============================================================================

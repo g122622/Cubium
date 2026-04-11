@@ -92,7 +92,7 @@ public:
         if (this != &other) {
             // 释放当前的可见存储
             auto* oldVisible = m_storageVisible.load();
-            if (oldVisible != nullptr) {
+            if (oldVisible != nullptr && oldVisible != m_storageUpdating.get()) {
                 freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(oldVisible));
             }
 

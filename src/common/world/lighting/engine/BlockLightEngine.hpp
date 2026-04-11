@@ -13,160 +13,164 @@ namespace mc {
 // 前向声明
 class IWorld;
 class CollisionShape;
+class ChunkSection;
+class ChunkData;
 
 /**
  * @brief 方块光照引擎
  *
- * 实现方块光照的传播算法。
- * 方块光源（如火把、萤石）发出的光会向相邻方块传播，
- * 每传播一个方块衰减1级，直到衰减为0。
+ * 参考: ca.spottedleaf.moonrise.patches.starlight.light.BlockStarLightEngine
  *
- * 参考: net.minecraft.world.lighting.BlockLightEngine
+ * 实现方块光照的传播算法：
+ * - 光源方块发出初始光照等级
+ * - 向所有6个方向传播时都衰减1级
+ * - 检测方块的透明度来决定传播衰减
  */
 class BlockStarLightEngine : public StarLightEngine {
 public:
     /**
      * @brief 构造函数
-     * @param provider 区块光照提供者
      */
     explicit BlockStarLightEngine(StarLightLightingProvider* provider);
 
     // ========================================================================
-    // 光照操作
+    // 公共接口
     // ========================================================================
 
     /**
      * @brief 检查指定位置的光照
      *
-     * 调度该位置及其相邻位置的光照更新。
+     * 方块可以改变透明度、发光等级和传播方向。
      *
-     * @param pos 方块位置
+     * @param lightAccess 光照区块访问器
+     * @param worldX 世界X坐标
+     * @param worldY 世界Y坐标
+     * @param worldZ 世界Z坐标
      */
-    void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ);
+    void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ) override;
+
+    /**
+     * @brief 计算光照值
+     *
+     * 如果结果 > expected，则实际值至少为结果。
+     * 如果结果 == expected，则 expected 是正确值。
+     * 如果结果 < expected，则结果为实际值。
+     */
+    [[nodiscard]] i32 calculateLightValue(StarLightLightingProvider* lightAccess,
+                                           i32 worldX, i32 worldY, i32 worldZ,
+                                           i32 expected) override;
+
+    /**
+     * @brief 传播方块变化
+     */
+    void propagateBlockChanges(StarLightLightingProvider* lightAccess,
+                                const IChunk* chunk,
+                                const std::vector<BlockPos>& positions) override;
+
+    /**
+     * @brief 照亮区块
+     */
+    void lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks) override;
+
+    /**
+     * @brief 设置世界引用
+     */
+    void setWorld(void* world) override;
+
+    /**
+     * @brief 获取区块的空映射
+     */
+    [[nodiscard]] const bool* getEmptinessMap(const IChunk* chunk) const override;
+
+    /**
+     * @brief 设置区块的空映射
+     */
+    void setEmptinessMap(const IChunk* chunk, const bool* map) override;
+
+    /**
+     * @brief 获取区块的光照数组
+     */
+    [[nodiscard]] SWMRNibbleArray* const* getNibblesOnChunk(const IChunk* chunk) const override;
+
+    /**
+     * @brief 设置区块的光照数组
+     */
+    void setNibbles(const IChunk* chunk, SWMRNibbleArray* const* nibbles) override;
+
+    /**
+     * @brief 检查区块是否可用
+     */
+    [[nodiscard]] bool canUseChunk(const IChunk* chunk) const override;
+
+    /**
+     * @brief 初始化 Nibble 数组
+     */
+    void initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude, bool initRemovedNibbles) override;
+
+    /**
+     * @brief 设置 Nibble 为 null
+     */
+    void setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ) override;
+
+    // ========================================================================
+    // WorldLightManager 接口
+    // ========================================================================
 
     /**
      * @brief 方块发光等级增加时调用
-     *
-     * 当方块被放置且发光等级大于0时调用。
-     *
-     * @param pos 方块位置
-     * @param lightLevel 发光等级
      */
-    void onBlockEmissionIncrease(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 lightLevel);
+    void onBlockEmissionIncrease(StarLightLightingProvider* lightAccess, i32 x, i32 y, i32 z, i32 lightLevel);
 
     /**
-     * @brief 获取指定位置的光照等级
-     *
-     * @param pos 方块位置
-     * @return 光照等级 (0-15)
+     * @brief 执行一个 tick 的光照更新
      */
-    [[nodiscard]] u8 getLightFor(i32 worldX, i32 worldY, i32 worldZ) const;
+    i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) override;
 
     /**
      * @brief 更新区块段状态
-     *
-     * @param pos 区块段位置
-     * @param isEmpty 是否为空
      */
-    void updateSectionStatus(const SectionPos& pos, bool isEmpty);
+    void updateSectionStatus(const SectionPos& pos, bool isEmpty) override;
+
+    /**
+     * @brief 获取指定位置的光照等级
+     */
+    [[nodiscard]] u8 getLightFor(i32 x, i32 y, i32 z) const override;
 
     /**
      * @brief 设置光照数据
+     */
+    void setData(const SectionPos& pos, const NibbleArray& array, bool retain) override;
+
+    /**
+     * @brief 获取光照数据
+     */
+    [[nodiscard]] SWMRNibbleArray* getData(const SectionPos& pos) override;
+
+    /**
+     * @brief 更新区块的空映射
      *
-     * @param pos 区块段位置
-     * @param array 光照数组（SWMR格式）
-     * @param retain 是否保留
-     */
-    void setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain);
-
-    /**
-     * @brief 设置光照数据（从 NibbleArray）
-     *
-     * @param pos 区块段位置
-     * @param array 光照数组
-     * @param retain 是否保留
-     */
-    void setData(const SectionPos& pos, const NibbleArray& array, bool retain);
-
-    /**
-     * @brief 获取光照数组（更新侧）
-     *
-     * @param pos 区块段位置
-     * @return 光照数组指针
-     */
-    [[nodiscard]] SWMRNibbleArray* getData(const SectionPos& pos);
-
-    /**
-     * @brief 检查是否有待处理的工作
-     */
-    [[nodiscard]] bool hasWork() const;
-
-    /**
-     * @brief 处理光照更新
-     *
-     * @param maxUpdates 最大更新数量
-     * @param updateSkyLight 是否更新天空光照（忽略，方块光照引擎不处理）
-     * @param updateBlockLight 是否更新方块光照
-     * @return 剩余配额
-     */
-    i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight);
-
-    // ========================================================================
-    // 空区块段检测
-    // ========================================================================
-
-    /**
-     * @brief 更新区块的空区块段映射
+     * 根据区块中每个区块段是否为空来更新空映射。
      *
      * @param chunkX 区块X坐标
      * @param chunkZ 区块Z坐标
-     * @param chunk 区块指针
+     * @param chunk 区块数据
      */
-    void updateEmptinessMap(i32 chunkX, i32 chunkZ, const IChunk* chunk);
-
-protected:
-    // ========================================================================
-    // LevelBasedGraph 接口实现
-    // ========================================================================
-
-    [[nodiscard]] bool isRoot(i64 pos) const override;
-    [[nodiscard]] i32 computeLevel(i64 pos, i64 excludedSource, i32 level) override;
-    void notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) override;
-    [[nodiscard]] i32 getLevel(i64 pos) const override;
-    void setLevel(i64 pos, i32 level) override;
-    [[nodiscard]] i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) override;
-    [[nodiscard]] bool isSectionEmpty(i64 sectionPos) const override;
+    void updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk);
 
 private:
-    BlockLightStorage m_storage;
-
-    // 空区块段映射缓存
-    std::unordered_map<i64, EmptinessMap> m_emptinessMaps;
+    // 空映射缓存（每个区块）
+    std::vector<bool> m_emptinessMapCache;
 
     /**
-     * @brief 获取指定位置的发光等级
+     * @brief 获取区块的光源位置
      */
-    [[nodiscard]] i32 getLightValue(i64 worldPos) const;
+    std::vector<BlockPos> getSources(StarLightLightingProvider* lightAccess, const IChunk* chunk);
 
     /**
-     * @brief 获取当前位置的光照等级
+     * @brief 获取发射光照等级
      */
-    [[nodiscard]] i32 getLightLevel(i64 worldPos) const;
-
-    /**
-     * @brief 设置当前位置的光照等级
-     */
-    void setLightLevel(i64 worldPos, i32 level);
-
-    /**
-     * @brief 从缓存获取区块（覆盖基类以使用存储层的区块提供者）
-     */
-    [[nodiscard]] const IChunk* getChunkCached(i32 chunkX, i32 chunkZ) const;
-
-    /**
-     * @brief 获取或创建空区块段映射
-     */
-    EmptinessMap* getOrCreateEmptinessMap(i64 columnPos);
+    [[nodiscard]] i32 getLightEmission(StarLightLightingProvider* lightAccess,
+                                        const BlockState* state, i32 x, i32 y, i32 z) const;
 };
 
 } // namespace mc

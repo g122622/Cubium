@@ -1,147 +1,216 @@
 #pragma once
 
-#include "BlockLightEngine.hpp"
+#include "LevelBasedGraph.hpp"
 #include "LightEngineUtils.hpp"
 #include "../storage/SkyLightStorage.hpp"
 #include "../storage/SWMRNibbleArray.hpp"
 #include "../../block/Block.hpp"
+#include <vector>
+#include <unordered_set>
 
 namespace mc {
+
+// 前向声明
+class IWorld;
+class CollisionShape;
+class ChunkSection;
 
 /**
  * @brief 天空光照引擎
  *
- * 实现天空光照的传播算法。
- * 天空光照从天空向下传播，在透明方块中传播时不衰减，
- * 只有在不透明方块阻挡时才会衰减。
+ * 参考: ca.spottedleaf.moonrise.patches.starlight.light.SkyStarLightEngine
  *
- * 参考: net.minecraft.world.lighting.SkyLightEngine
+ * 天空光照特殊处理：
+ * - 向下传播不衰减
+ * - 向其他方向传播衰减1级
+ * - 追踪表面位置
+ * - 区块列启用/禁用管理
+ * - Null 区块段传播检查
+ * - 延迟光照设置
  */
 class SkyStarLightEngine : public StarLightEngine {
 public:
     /**
      * @brief 构造函数
-     * @param provider 区块光照提供者
      */
     explicit SkyStarLightEngine(StarLightLightingProvider* provider);
 
     // ========================================================================
-    // 光照操作
+    // 公共接口
     // ========================================================================
 
     /**
      * @brief 检查指定位置的光照
-     *
-     * 调度该位置及其相邻位置的光照更新。
-     *
-     * @param pos 方块位置
      */
-    void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ);
+    void checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ) override;
 
     /**
-     * @brief 获取指定位置的光照等级
-     *
-     * @param pos 方块位置
-     * @return 光照等级 (0-15)
+     * @brief 计算光照值
      */
-    [[nodiscard]] u8 getLightFor(i32 worldX, i32 worldY, i32 worldZ) const;
+    [[nodiscard]] i32 calculateLightValue(StarLightLightingProvider* lightAccess,
+                                           i32 worldX, i32 worldY, i32 worldZ,
+                                           i32 expected) override;
+
+    /**
+     * @brief 传播方块变化
+     */
+    void propagateBlockChanges(StarLightLightingProvider* lightAccess,
+                                const IChunk* chunk,
+                                const std::vector<BlockPos>& positions) override;
+
+    /**
+     * @brief 照亮区块
+     */
+    void lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks) override;
+
+    /**
+     * @brief 检查区块边缘（重写以处理 null 区块段）
+     */
+    void checkChunkEdges(StarLightLightingProvider* lightAccess, const IChunk* chunk,
+                          i32 fromSection, i32 toSection) override;
+
+    /**
+     * @brief 从邻居传播光照
+     */
+    void propagateNeighbourLevels(StarLightLightingProvider* lightAccess, const IChunk* chunk,
+                                   i32 fromSection, i32 toSection) override;
+
+    /**
+     * @brief 设置世界引用
+     */
+    void setWorld(void* world) override;
+
+    /**
+     * @brief 获取区块的空映射
+     */
+    [[nodiscard]] const bool* getEmptinessMap(const IChunk* chunk) const override;
+
+    /**
+     * @brief 设置区块的空映射
+     */
+    void setEmptinessMap(const IChunk* chunk, const bool* map) override;
+
+    /**
+     * @brief 获取区块的光照数组
+     */
+    [[nodiscard]] SWMRNibbleArray* const* getNibblesOnChunk(const IChunk* chunk) const override;
+
+    /**
+     * @brief 设置区块的光照数组
+     */
+    void setNibbles(const IChunk* chunk, SWMRNibbleArray* const* nibbles) override;
+
+    /**
+     * @brief 检查区块是否可用
+     */
+    [[nodiscard]] bool canUseChunk(const IChunk* chunk) const override;
+
+    /**
+     * @brief 初始化 Nibble 数组
+     */
+    void initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude, bool initRemovedNibbles) override;
+
+    /**
+     * @brief 设置 Nibble 为 null
+     */
+    void setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ) override;
+
+    // ========================================================================
+    // WorldLightManager 接口
+    // ========================================================================
+
+    /**
+     * @brief 执行一个 tick 的光照更新
+     */
+    i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) override;
 
     /**
      * @brief 更新区块段状态
-     *
-     * @param pos 区块段位置
-     * @param isEmpty 是否为空
      */
-    void updateSectionStatus(const SectionPos& pos, bool isEmpty);
+    void updateSectionStatus(const SectionPos& pos, bool isEmpty) override;
+
+    /**
+     * @brief 获取指定位置的光照等级
+     */
+    [[nodiscard]] u8 getLightFor(i32 x, i32 y, i32 z) const override;
 
     /**
      * @brief 设置光照数据
-     *
-     * @param pos 区块段位置
-     * @param array 光照数组（SWMR格式）
-     * @param retain 是否保留
      */
-    void setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain);
+    void setData(const SectionPos& pos, const NibbleArray& array, bool retain) override;
 
     /**
-     * @brief 设置光照数据（从 NibbleArray）
-     *
-     * @param pos 区块段位置
-     * @param array 光照数组
-     * @param retain 是否保留
+     * @brief 获取光照数据
      */
-    void setData(const SectionPos& pos, const NibbleArray& array, bool retain);
+    [[nodiscard]] SWMRNibbleArray* getData(const SectionPos& pos) override;
 
     /**
-     * @brief 获取光照数组（更新侧）
-     *
-     * @param pos 区块段位置
-     * @return 光照数组指针
-     */
-    [[nodiscard]] SWMRNibbleArray* getData(const SectionPos& pos);
-
-    /**
-     * @brief 启用/禁用区块列
-     *
-     * @param columnPos 区块列位置
-     * @param enabled 是否启用
+     * @brief 设置区块列启用状态
      */
     void setColumnEnabled(i64 columnPos, bool enabled);
 
-    /**
-     * @brief 检查是否有待处理的工作
-     */
-    [[nodiscard]] bool hasWork() const;
-
-    /**
-     * @brief 处理光照更新
-     *
-     * @param maxUpdates 最大更新数量
-     * @param updateSkyLight 是否更新天空光照
-     * @param updateBlockLight 是否更新方块光照（忽略）
-     * @return 剩余配额
-     */
-    i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight);
-
 protected:
-    // ========================================================================
-    // LevelBasedGraph 接口实现
-    // ========================================================================
+    /**
+     * @brief 初始化 Nibble 数组（内部方法）
+     */
+    void initNibble(SWMRNibbleArray* currNibble, i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude);
 
-    [[nodiscard]] bool isRoot(i64 pos) const override;
-    [[nodiscard]] i32 computeLevel(i64 pos, i64 excludedSource, i32 level) override;
-    void notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) override;
-    [[nodiscard]] i32 getLevel(i64 pos) const override;
-    void setLevel(i64 pos, i32 level) override;
-    [[nodiscard]] i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) override;
+    /**
+     * @brief 重写 Nibble 缓存（天空光照特殊处理）
+     */
+    void rewriteNibbleCacheForSkylight(const IChunk* chunk);
+
+    /**
+     * @brief 检查 null 区块段
+     * @return 是否需要初始化邻居
+     */
+    bool checkNullSection(i32 chunkX, i32 chunkY, i32 chunkZ, bool extrudeInitialised);
+
+    /**
+     * @brief 获取挤出光照等级
+     */
+    [[nodiscard]] i32 getLightLevelExtruded(i32 worldX, i32 worldY, i32 worldZ);
+
+    /**
+     * @brief 尝试传播天空光照
+     * @return 无法传播的最高 Y 坐标
+     */
+    i32 tryPropagateSkylight(IWorld* world, i32 worldX, i32 startY, i32 worldZ,
+                              bool extrudeInitialised, bool delayLightSet);
+
+    /**
+     * @brief 处理延迟的增亮设置
+     */
+    void processDelayedIncreases();
+
+    /**
+     * @brief 处理延迟的减亮设置
+     */
+    void processDelayedDecreases();
 
 private:
-    SkyLightStorage m_storage;
+    // 空映射缓存（每个区块）
+    std::vector<bool> m_emptinessMapCache;
+
+    // Null 区块段传播检查缓存
+    std::vector<bool> m_nullPropagationCheckCache;
+
+    // 高度图（用于方块变化）
+    std::array<i32, 256> m_heightMapBlockChange;
+
+    // 启用的区块列（用于控制光照更新范围）
+    std::unordered_set<i64> m_enabledColumns;
 
     /**
-     * @brief 获取指定位置的发光等级（天空光照始终为0）
+     * @brief 获取发射光照等级（天空光照始终为 0）
      */
-    [[nodiscard]] i32 getLightValue(i64 worldPos) const;
-
-    /**
-     * @brief 获取当前位置的光照等级
-     */
-    [[nodiscard]] i32 getLightLevel(i64 worldPos);
-
-    /**
-     * @brief 设置当前位置的光照等级
-     */
-    void setLightLevel(i64 worldPos, i32 level);
-
-    /**
-     * @brief 从SWMRNibbleArray获取光照等级
-     */
-    [[nodiscard]] i32 getLevelFromArray(const SWMRNibbleArray* array, i64 worldPos) const;
-
-    /**
-     * @brief 从缓存获取区块（覆盖基类以使用存储层的区块提供者）
-     */
-    [[nodiscard]] const IChunk* getChunkCached(i32 chunkX, i32 chunkZ) const;
+    [[nodiscard]] i32 getLightEmission(const BlockState* state, i32 x, i32 y, i32 z) const {
+        (void)state;
+        (void)x;
+        (void)y;
+        (void)z;
+        return 0;  // 天空光照没有光源
+    }
 };
 
 } // namespace mc

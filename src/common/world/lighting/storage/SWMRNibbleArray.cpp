@@ -20,9 +20,9 @@ SWMRNibbleArray::SWMRNibbleArray()
 }
 
 SWMRNibbleArray::~SWMRNibbleArray() {
-    // 释放可见侧存储
+    // 释放可见侧存储（只有当它与更新侧不同时）
     auto* visible = m_storageVisible.load();
-    if (visible != nullptr) {
+    if (visible != nullptr && visible != m_storageUpdating.get()) {
         freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(visible));
     }
     // 更新侧存储由 unique_ptr 自动释放
@@ -32,7 +32,7 @@ SWMRNibbleArray::SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> dat
     : m_stateUpdating(data ? State::Init : (isNull ? State::Null : State::Uninit))
     , m_stateVisible(m_stateUpdating)
     , m_storageUpdating(std::move(data))
-    , m_storageVisible(nullptr)  // 可见侧初始为空，需要 updateVisible() 才能看到数据
+    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr)  // 与 Moonrise 一致：初始时指向同一数组
     , m_updatingDirty(false) {
 }
 
@@ -40,7 +40,7 @@ SWMRNibbleArray::SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> dat
     : m_stateUpdating(state)
     , m_stateVisible(state)
     , m_storageUpdating(std::move(data))
-    , m_storageVisible(nullptr)  // 可见侧初始为空
+    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr)  // 与 Moonrise 一致：初始时指向同一数组
     , m_updatingDirty(false) {
     // 验证状态一致性
     if (m_storageUpdating == nullptr && (state == State::Init || state == State::Hidden)) {
@@ -126,6 +126,7 @@ void SWMRNibbleArray::setFull() {
         m_stateUpdating = State::Init;
     }
 
+    // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
     if (m_storageUpdating == nullptr || !m_updatingDirty) {
         m_storageUpdating = allocateBytes();
     }
@@ -139,6 +140,7 @@ void SWMRNibbleArray::setZero() {
         m_stateUpdating = State::Init;
     }
 
+    // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
     if (m_storageUpdating == nullptr || !m_updatingDirty) {
         m_storageUpdating = allocateBytes();
     }
@@ -248,11 +250,12 @@ bool SWMRNibbleArray::updateVisible() {
         return false;
     }
 
-    // 同步更新 - SWMR 模式：更新侧和可见侧使用独立存储
+    // 同步更新 - SWMR 模式：与 Moonrise 一致
     if (m_stateUpdating == State::Null || m_stateUpdating == State::Uninit) {
         // 对于 Null/Uninit 状态，可见侧也应该没有存储
-        auto* oldVisible = m_storageVisible.exchange(nullptr, std::memory_order_acq_rel);
-        if (oldVisible != nullptr) {
+        auto* oldVisible = m_storageVisible.load(std::memory_order_acquire);
+        m_storageVisible.store(nullptr, std::memory_order_release);
+        if (oldVisible != nullptr && oldVisible != m_storageUpdating.get()) {
             freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(oldVisible));
         }
         if (m_storageUpdating != nullptr) {
@@ -264,16 +267,21 @@ bool SWMRNibbleArray::updateVisible() {
         auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
 
         if (currentVisible == nullptr) {
-            // 可见侧为空，分配新存储
+            // 可见侧为空，复制更新侧数据
             auto newStorage = std::make_unique<std::array<u8, ARRAY_SIZE>>();
             *newStorage = *m_storageUpdating;
             m_storageVisible.store(newStorage.get(), std::memory_order_release);
-            newStorage.release(); // 转移所有权给可见侧
+            m_storageUpdating = std::move(newStorage);
         } else {
-            // 可见侧已有存储，复制数据
-            std::memcpy(currentVisible->data(),
-                       m_storageUpdating->data(),
-                       ARRAY_SIZE);
+            // 可见侧已有存储，如果更新侧和可见侧不同则复制数据
+            if (m_storageUpdating.get() != currentVisible) {
+                std::memcpy(currentVisible->data(),
+                           m_storageUpdating->data(),
+                           ARRAY_SIZE);
+                // 释放旧的更新侧存储
+                freeBytes(std::move(m_storageUpdating));
+                m_storageUpdating = std::unique_ptr<std::array<u8, ARRAY_SIZE>>(currentVisible);
+            }
         }
     }
 
@@ -403,7 +411,7 @@ void SWMRNibbleArray::ensureWritable() {
         m_storageUpdating = allocateBytes();
         std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), 0);
     } else {
-        // 写时复制
+        // 写时复制：创建新数组并复制数据
         auto newStorage = allocateBytes();
         *newStorage = *m_storageUpdating;
         m_storageUpdating = std::move(newStorage);

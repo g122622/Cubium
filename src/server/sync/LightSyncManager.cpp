@@ -20,38 +20,31 @@ LightSyncManager::LightSyncManager(WorldLightManager& lightManager,
 
 void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
 {
-    MC_TRACE_EVENT("server.lighting", "InitializeChunkLighting",
+    MC_TRACE_EVENT("server.lighting", "LightSyncManager::initializeChunkLighting",
                    "Chunk", fmt::format("({}, {})", x, z));
 
     const ChunkData* chunk = m_chunkManager.getChunk(x, z);
     if (!chunk) {
-        spdlog::warn("[LightSync] Chunk not loaded for ({}, {})", x, z);
         return;
     }
 
-    const ChunkPos chunkPos(x, z);
+    // 更新空区块段状态
+    auto* blockLightEngine = m_lightManager.getBlockLightEngine();
+    if (blockLightEngine != nullptr) {
+        blockLightEngine->updateEmptinessMap(x, z, chunk);
+    }
 
     for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk->getSection(sectionY);
-        const SectionPos sectionPos(x, sectionY, z);
+        SectionPos sectionPos(x, sectionY, z);
 
-        const bool isEmpty = (section == nullptr || section->isEmpty());
+        bool isEmpty = (section == nullptr || section->isEmpty());
         m_lightManager.updateSectionStatus(sectionPos, isEmpty);
-
-        if (section != nullptr) {
-            if (m_lightManager.getSkyLightEngine()) {
-                NibbleArray skyLightCopy = section->skyLightNibble().copy();
-                m_lightManager.setData(LightType::SKY, sectionPos, skyLightCopy, false);
-            }
-
-            if (m_lightManager.getBlockLightEngine()) {
-                NibbleArray blockLightCopy = section->blockLightNibble().copy();
-                m_lightManager.setData(LightType::BLOCK, sectionPos, blockLightCopy, false);
-            }
-        }
     }
 
-    m_lightManager.enableLightSources(chunkPos, true);
+    // 使用 StarLight 引擎执行完整光照计算
+    // needsEdgeChecks=true 因为这是区块首次加载
+    m_lightManager.lightChunk(chunk, true);
 }
 
 void LightSyncManager::onBlockStateChanged(i32 x, i32 y, i32 z, i32 oldLightLevel, i32 newLightLevel)

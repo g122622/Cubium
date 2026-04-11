@@ -1,12 +1,12 @@
 #include "BlockLightEngine.hpp"
-#include "LightEngineUtils.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/Block.hpp"
+#include "../IChunkLightProvider.hpp"
 #include "../../chunk/IChunk.hpp"
-#include <climits>
+#include "../../chunk/ChunkData.hpp"
+#include "../../block/Block.hpp"
+#include "../../IWorld.hpp"
+#include "../../../physics/collision/CollisionShape.hpp"
 #include <algorithm>
-#include "common/perfetto/TraceEvents.hpp"
-#include <fmt/format.h>
+#include <cstring>
 
 namespace mc {
 
@@ -15,370 +15,453 @@ namespace mc {
 // ============================================================================
 
 BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
-    : StarLightEngine(16, 8192, provider)
-    , m_storage(provider) {
+    : StarLightEngine(false) {  // false = 不是天空光照
+
+    // 设置世界高度范围
+    m_minSection = 0;
+    m_maxSection = 15;
+    m_minLightSection = -1;
+    m_maxLightSection = 16;
+
+    i32 totalLightSections = m_maxLightSection - m_minLightSection + 1;
+
+    // 初始化 Nibble 缓存
+    i32 sectionCacheSize = 5 * 5 * (totalLightSections + 2 + 2);
+    m_sectionCacheSize = sectionCacheSize;
+    m_sectionCache = new const ChunkSection*[static_cast<size_t>(sectionCacheSize)]();
+    m_nibbleCache = new SWMRNibbleArray*[static_cast<size_t>(sectionCacheSize)]();
+    m_notifyUpdateCache = new bool[static_cast<size_t>(sectionCacheSize)]();
+
+    // 初始化队列
+    m_increaseQueue.resize(16 * 16 * 16);
+    m_decreaseQueue.resize(16 * 16 * 16);
+
+    (void)provider;  // 暂时未使用
 }
 
 // ============================================================================
-// 光照操作
+// 世界设置
 // ============================================================================
 
-void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ) {
-    (void)lightAccess;
-    MC_TRACE_INSTANT("server.lighting",
-        "BlockStarLightEngine::checkBlock",
-        "pos", fmt::format("({}, {}, {})", worldX, worldY, worldZ),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(worldX, worldY, worldZ).toId())](::perfetto::EventContext ctx) {
-            flow(ctx);
-    });
+void BlockStarLightEngine::setWorld(void* world) {
+    StarLightEngine::setWorld(world);
+    // 缓存已在构造函数中初始化
+}
 
-    m_storage.processAllLevelUpdates();
+// ============================================================================
+// 空映射管理
+// ============================================================================
 
-    i64 packedPos = LightEngineUtils::packPos(worldX, worldY, worldZ);
-    i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
-    if (!m_storage.hasSection(sectionPos)) {
+const bool* BlockStarLightEngine::getEmptinessMap(const IChunk* chunk) const {
+    return chunk->getBlockEmptinessMap();
+}
+
+void BlockStarLightEngine::setEmptinessMap(const IChunk* chunk, const bool* map) {
+    // 注意: const_cast 是因为 IChunk 接口定义的 set 方法不是 const
+    const_cast<IChunk*>(chunk)->setBlockEmptinessMap(map);
+}
+
+SWMRNibbleArray* const* BlockStarLightEngine::getNibblesOnChunk(const IChunk* chunk) const {
+    return chunk->getBlockNibbles();
+}
+
+void BlockStarLightEngine::setNibbles(const IChunk* chunk, SWMRNibbleArray* const* nibbles) {
+    const_cast<IChunk*>(chunk)->setBlockNibbles(nibbles);
+}
+
+bool BlockStarLightEngine::canUseChunk(const IChunk* chunk) const {
+    // 区块必须处于 LIGHT 状态或之后，且光照数据正确
+    // 参考 Moonrise: chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && (isClientSide || chunk.isLightCorrect())
+    ChunkLoadStatus status = chunk->getStatus();
+    return status == ChunkLoadStatus::Generated ||
+           status == ChunkLoadStatus::Loaded;
+}
+
+// ============================================================================
+// Nibble 数组管理
+// ============================================================================
+
+void BlockStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude, bool initRemovedNibbles) {
+    if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
         return;
     }
 
-    i32 currentLevel = getLevel(packedPos);
-    i32 sourceLevel = getEdgeLevel(LightEngineUtils::ROOT_POS, packedPos, 0);
-
-    // 与 Starlight 一致：先写当前位置，再通过增减队列统一处理邻居传播。
-    setLevel(packedPos, sourceLevel);
-
-    i32 x = worldX;
-    i32 y = worldY;
-    i32 z = worldZ;
-
-    if (sourceLevel < 15) {
-        appendToIncreaseQueue(encodeQueueEntry(x, y, z,
-            static_cast<u8>(sourceLevel), DIR_ALL, 0));
-    }
-
-    appendToDecreaseQueue(encodeQueueEntry(x, y, z,
-        static_cast<u8>(currentLevel), DIR_ALL, 0));
-}
-
-void BlockStarLightEngine::onBlockEmissionIncrease(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 lightLevel) {
-    (void)lightAccess;
-    m_storage.processAllLevelUpdates();
-
-    const i64 packedPos = LightEngineUtils::packPos(worldX, worldY, worldZ);
-    const i64 sectionPos = LightEngineUtils::worldToSectionPos(packedPos);
-    if (!m_storage.hasSection(sectionPos)) {
+    if (getChunkInCache(chunkX, chunkZ) == nullptr) {
         return;
     }
 
-    const i32 currentLevel = getLightLevel(packedPos);
-    const i32 sourceLevel = std::clamp(lightLevel, 0, 15);
-    if (sourceLevel <= currentLevel) {
-        return;
-    }
-
-    setLightLevel(packedPos, sourceLevel);
-
-    const i32 x = worldX;
-    const i32 y = worldY;
-    const i32 z = worldZ;
-
-    appendToIncreaseQueue(encodeQueueEntry(x, y, z,
-        static_cast<u8>(StarLightEngine::MAX_LEVEL_COUNT - 1 - sourceLevel), DIR_ALL, 0));
-}
-
-u8 BlockStarLightEngine::getLightFor(i32 worldX, i32 worldY, i32 worldZ) const {
-    return m_storage.getLightOrDefault(LightEngineUtils::packPos(worldX, worldY, worldZ));
-}
-
-void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
-    m_storage.updateSectionStatus(pos.toLong(), isEmpty);
-}
-
-void BlockStarLightEngine::setData(const SectionPos& pos, SWMRNibbleArray&& array, bool retain) {
-    m_storage.setData(pos.toLong(), std::move(array), retain);
-}
-
-void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
-    m_storage.setData(pos.toLong(), array, retain);
-}
-
-SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) {
-    return m_storage.getArray(pos.toLong());
-}
-
-bool BlockStarLightEngine::hasWork() const {
-    return needsUpdate() || m_storage.hasSectionsToUpdate();
-}
-
-i32 BlockStarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
-    MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::tick",
-                     "maxUpdates", maxUpdates,
-                     "updateSkyLight", updateSkyLight,
-                     "updateBlockLight", updateBlockLight);
-
-    (void)updateSkyLight;   // 方块光照引擎不处理天空光照
-    (void)updateBlockLight; // 参数保留用于接口一致性
-
-    // 处理存储更新（如区块段状态变化）
-    m_storage.processAllLevelUpdates();
-
-    // 处理光照传播
-    if (needsUpdate()) {
-        maxUpdates = processUpdates(maxUpdates);
-        if (maxUpdates == 0) {
-            return 0;
+    SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
+    if (nibble == nullptr) {
+        if (!initRemovedNibbles) {
+            return;
         }
+        nibble = new SWMRNibbleArray(nullptr, true);  // Null 状态
+        setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
+    } else {
+        nibble->setNonNull();
     }
+}
 
-    m_storage.updateAndNotify();
-    return maxUpdates;
+void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ) {
+    SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
+    if (nibble != nullptr) {
+        // 方块光照去初始化时设为 Hidden 状态，保持外观但停止传播
+        nibble->setHidden();
+    }
 }
 
 // ============================================================================
-// LevelBasedGraph 接口实现
+// 方块检查
 // ============================================================================
 
-bool BlockStarLightEngine::isRoot(i64 pos) const {
-    return pos == LightEngineUtils::ROOT_POS;
+void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
+                                       i32 worldX, i32 worldY, i32 worldZ) {
+    // 方块可以改变透明度、发光等级和传播方向
+
+    i32 encodeOffset = m_coordinateOffset;
+    i32 emittedMask = m_emittedLightMask;
+
+    i32 currentLevel = getLightLevel(worldX, worldY, worldZ);
+    const BlockState* blockState = getBlockState(worldX, worldY, worldZ);
+
+    // 获取发光等级
+    i32 emittedLevel = 0;
+    if (blockState != nullptr) {
+        emittedLevel = blockState->getBlock().getLightLevel(*blockState) & emittedMask;
+    }
+
+    setLightLevel(worldX, worldY, worldZ, emittedLevel);
+
+    // 如果有发射光，添加到增亮队列
+    if (emittedLevel != 0) {
+        // 检查方块是否使用形状进行光照遮挡（条件透明）
+        bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
+
+        appendToIncreaseQueue(
+            ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & 0xFFFFFFFF) |
+            (static_cast<u64>(emittedLevel & 0xF) << 28) |
+            (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+            (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
+        );
+    }
+
+    // 添加到减亮队列
+    appendToDecreaseQueue(
+        ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & 0xFFFFFFFF) |
+        (static_cast<u64>(currentLevel & 0xF) << 28) |
+        (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+    );
 }
 
-i32 BlockStarLightEngine::computeLevel(i64 pos, i64 excludedSource, i32 level) {
-    i32 minLevel = level;
+// ============================================================================
+// 光照计算
+// ============================================================================
 
-    // 如果不是从根节点排除，检查光源贡献
-    if (excludedSource != LightEngineUtils::ROOT_POS) {
-        i32 sourceContribution = getEdgeLevel(LightEngineUtils::ROOT_POS, pos, 0);
-        if (level > sourceContribution) {
-            minLevel = sourceContribution;
-        }
+i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAccess,
+                                               i32 worldX, i32 worldY, i32 worldZ,
+                                               i32 expected) {
+    const BlockState* centerState = getBlockState(worldX, worldY, worldZ);
+    IWorld* world = lightAccess->getWorld();
 
-        if (minLevel == 0) {
-            return 0;
-        }
+    i32 level = 0;
+    if (centerState != nullptr) {
+        level = centerState->getBlock().getLightLevel(*centerState) & m_emittedLightMask;
     }
 
-    i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
-    const SWMRNibbleArray* array = m_storage.getArray(sectionPos, true);
-
-    // 检查所有相邻方向
-    for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
-        i64 neighborPos = LightEngineUtils::offsetPos(pos, dir);
-        if (neighborPos == excludedSource) {
-            continue;
-        }
-
-        i64 neighborSectionPos = LightEngineUtils::worldToSectionPos(neighborPos);
-        const SWMRNibbleArray* neighborArray;
-        if (neighborSectionPos == sectionPos) {
-            neighborArray = array;
-        } else {
-            neighborArray = m_storage.getArray(neighborSectionPos, true);
-        }
-
-        if (neighborArray == nullptr) {
-            continue;
-        }
-
-        // 获取相邻位置的光照等级
-        i32 x, localY, z;
-        LightEngineUtils::extractNibbleIndices(neighborPos, x, localY, z);
-
-        i32 neighborLevel = 15 - neighborArray->getUpdating(x, localY, z);
-        i32 edgeLevel = getEdgeLevel(neighborPos, pos, neighborLevel);
-
-        if (minLevel > edgeLevel) {
-            minLevel = edgeLevel;
-        }
-
-        if (minLevel == 0) {
-            return 0;
-        }
+    if (level >= 14 || level > expected) {
+        return level;
     }
 
-    return minLevel;
-}
-
-void BlockStarLightEngine::notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 directionBits) {
-    i64 sectionPos = LightEngineUtils::worldToSectionPos(pos);
-    DirectionBit dirs = static_cast<DirectionBit>(directionBits);
-    if (dirs == DIR_NONE) {
-        dirs = DIR_ALL;
+    i32 opacity = 1;
+    if (centerState != nullptr) {
+        opacity = std::max(1, centerState->getBlock().getOpacity(*centerState));
     }
-
-    for (Direction dir : LightEngineUtils::ALL_DIRECTIONS) {
-        if ((dirs & DirectionBits::fromDirection(dir)) == 0) {
-            continue;
-        }
-
-        i64 neighborPos = LightEngineUtils::offsetPos(pos, dir);
-        i64 neighborSectionPos = LightEngineUtils::worldToSectionPos(neighborPos);
-
-        if (sectionPos == neighborSectionPos || m_storage.hasSection(neighborSectionPos)) {
-            propagateLevel(pos, neighborPos, level, isDecreasing);
-        }
-    }
-}
-
-i32 BlockStarLightEngine::getLevel(i64 pos) const {
-    if (pos == LightEngineUtils::ROOT_POS) {
-        return 0;
-    }
-    return 15 - m_storage.getLightOrDefault(pos);
-}
-
-void BlockStarLightEngine::setLevel(i64 pos, i32 level) {
-    m_storage.setLight(pos, static_cast<u8>(15 - std::min(level, 15)));
-}
-
-i32 BlockStarLightEngine::getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) {
-    if (toPos == LightEngineUtils::ROOT_POS) {
-        return 15;
-    }
-
-    if (fromPos == LightEngineUtils::ROOT_POS) {
-        // 从光源发出
-        return startLevel + 15 - getLightValue(toPos);
-    }
-
-    if (startLevel >= 15) {
-        return startLevel;
-    }
-
-    // 计算方向
-    i32 fromX, fromY, fromZ;
-    i32 toX, toY, toZ;
-    LightEngineUtils::unpackPos(fromPos, fromX, fromY, fromZ);
-    LightEngineUtils::unpackPos(toPos, toX, toY, toZ);
-
-    i32 dx = (toX > fromX) ? 1 : ((toX < fromX) ? -1 : 0);
-    i32 dy = (toY > fromY) ? 1 : ((toY < fromY) ? -1 : 0);
-    i32 dz = (toZ > fromZ) ? 1 : ((toZ < fromZ) ? -1 : 0);
-
-    Direction direction = Directions::fromDelta(dx, dy, dz);
-    if (direction == Direction::None) {
-        return 15;
-    }
-
-    i32 opacity = 0;
-    i32 toChunkX = toX >> 4;
-    i32 toChunkZ = toZ >> 4;
-
-    // 使用缓存获取区块
-    const IChunk* toChunk = getChunkCached(toChunkX, toChunkZ);
-    const BlockState* toState = LightEngineUtils::getBlockAndOpacity(toChunk, toPos, &opacity);
 
     if (opacity >= 15) {
-        return 15;
+        return level;
     }
 
-    i32 fromChunkX = fromX >> 4;
-    i32 fromChunkZ = fromZ >> 4;
+    // 检查中心方块是否使用形状遮挡
+    bool centerUseShape = (centerState != nullptr && centerState->useShapeForLightOcclusion());
 
-    // 优化：如果两个位置在同一区块，复用区块指针
-    const IChunk* fromChunk;
-    if (fromChunkX == toChunkX && fromChunkZ == toChunkZ) {
-        fromChunk = toChunk;
-    } else {
-        fromChunk = getChunkCached(fromChunkX, fromChunkZ);
-    }
+    i32 sectionOffset = m_chunkSectionIndexOffset;
 
-    const BlockState* fromState = LightEngineUtils::getBlockAndOpacity(fromChunk, fromPos, nullptr);
+    for (LightAxisDirection dir : ALL_AXIS_DIRECTIONS) {
+        i32 dx, dy, dz;
+        getDirectionOffset(dir, dx, dy, dz);
 
-    // Starlight 中来源面遮挡主要用于“条件不透明”形状。
-    // 对于完整立方体（如萤石）不能在这里直接阻断，否则光源无法向外扩散。
-    if (fromState != nullptr) {
-        const CollisionShape& fromShape = LightEngineUtils::getVoxelShape(*fromState);
-        if (!fromShape.isFullBlock() && LightEngineUtils::blocksLightInDirection(*fromState, direction)) {
-            return 15;
+        i32 offX = worldX + dx;
+        i32 offY = worldY + dy;
+        i32 offZ = worldZ + dz;
+
+        i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
+        i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+
+        i32 neighbourLevel = getLightLevel(sectionIndex, localIndex);
+
+        if ((neighbourLevel - 1) <= level) {
+            continue;
+        }
+
+        const BlockState* neighbourState = getBlockState(offX, offY, offZ);
+
+        // 条件透明检查：如果任一方块使用形状遮挡，检查面是否被遮挡
+        if (centerUseShape || (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion())) {
+            // 光从邻居方块传播到中心方块，所以方向是反的
+            if (isFaceOccluded(neighbourState, centerState, getOppositeDirection(dir))) {
+                continue;
+            }
+        }
+
+        i32 calculated = neighbourLevel - opacity;
+        level = std::max(calculated, level);
+
+        if (level > expected) {
+            return level;
         }
     }
 
-    return startLevel + std::max(1, opacity);
+    return level;
 }
 
 // ============================================================================
-// 私有方法
+// 传播方块变化
 // ============================================================================
 
-i32 BlockStarLightEngine::getLightValue(i64 worldPos) const {
-    i32 x, y, z;
-    LightEngineUtils::unpackPos(worldPos, x, y, z);
-
-    // 使用缓存获取区块
-    const IChunk* chunk = getChunkCached(x >> 4, z >> 4);
-    if (chunk == nullptr) {
-        return 0;
+void BlockStarLightEngine::propagateBlockChanges(StarLightLightingProvider* lightAccess,
+                                                  const IChunk* chunk,
+                                                  const std::vector<BlockPos>& positions) {
+    for (const BlockPos& pos : positions) {
+        checkBlock(lightAccess, pos.x, pos.y, pos.z);
     }
 
-    const BlockState* state = chunk->getBlock(x & 0xF, y, z & 0xF);
+    performLightDecrease(lightAccess);
+}
+
+// ============================================================================
+// 光源获取
+// ============================================================================
+
+std::vector<BlockPos> BlockStarLightEngine::getSources(StarLightLightingProvider* lightAccess,
+                                                         const IChunk* chunk) {
+    std::vector<BlockPos> sources;
+
+    i32 offX = chunk->x() << 4;
+    i32 offZ = chunk->z() << 4;
+
+    const ChunkSection* const* sections = chunk->getSections();
+
+    for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
+        i32 sectionIndex = sectionY - m_minSection;
+        const ChunkSection* section = sections[sectionIndex];
+        if (section == nullptr || section->isEmpty()) {
+            continue;
+        }
+
+        // 检查区块段是否可能有光源（优化：如果段中没有发光方块则跳过）
+        i32 offY = sectionY << 4;
+
+        for (i32 index = 0; index < 4096; ++index) {
+            const BlockState* state = section->getBlock(
+                index & 15,           // x
+                (index >> 8) & 15,    // y
+                (index >> 4) & 15     // z
+            );
+            if (state == nullptr || state->getBlock().getLightLevel(*state) == 0) {
+                continue;
+            }
+
+            i32 x = offX | (index & 15);
+            i32 y = offY | ((index >> 8) & 15);
+            i32 z = offZ | ((index >> 4) & 15);
+
+            sources.emplace_back(x, y, z);
+        }
+    }
+
+    return sources;
+}
+
+i32 BlockStarLightEngine::getLightEmission(StarLightLightingProvider* lightAccess,
+                                            const BlockState* state, i32 x, i32 y, i32 z) const {
     if (state == nullptr) {
         return 0;
     }
-
-    // 使用动态光照等级（支持熔炉、重生锚等动态光源）
-    return state->getBlock().getLightLevel(*state);
-}
-
-i32 BlockStarLightEngine::getLightLevel(i64 worldPos) const {
-    return StarLightEngine::MAX_LEVEL_COUNT - 1 - getLevel(worldPos);
-}
-
-void BlockStarLightEngine::setLightLevel(i64 worldPos, i32 level) {
-    setLevel(worldPos,
-        StarLightEngine::MAX_LEVEL_COUNT - 1 - std::clamp(level, 0, StarLightEngine::MAX_LEVEL_COUNT - 1));
-}
-
-const IChunk* BlockStarLightEngine::getChunkCached(i32 chunkX, i32 chunkZ) const {
-    // 使用基类的缓存方法
-    return StarLightEngine::getCachedChunk(chunkX, chunkZ);
+    return state->getBlock().getLightLevel(*state) & m_emittedLightMask;
 }
 
 // ============================================================================
-// 空区块段检测
+// 区块照亮
 // ============================================================================
 
-void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const IChunk* chunk) {
+void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
+                                       const IChunk* chunk, bool needsEdgeChecks) {
+    IWorld* world = lightAccess->getWorld();
+
+    std::vector<BlockPos> positions = getSources(lightAccess, chunk);
+    i32 encodeOffset = m_coordinateOffset;
+    i32 emittedMask = m_emittedLightMask;
+
+    for (const BlockPos& pos : positions) {
+        const BlockState* blockState = getBlockState(pos.x, pos.y, pos.z);
+        i32 emittedLight = getLightEmission(lightAccess, blockState, pos.x, pos.y, pos.z);
+
+        if (emittedLight <= getLightLevel(pos.x, pos.y, pos.z)) {
+            continue;
+        }
+
+        // 检查方块是否使用形状进行光照遮挡（条件透明）
+        bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
+
+        appendToIncreaseQueue(
+            ((pos.x + (pos.z << 6) + (pos.y << 12) + encodeOffset) & 0xFFFFFFFF) |
+            (static_cast<u64>(emittedLight & 0xF) << 28) |
+            (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
+            (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
+        );
+
+        setLightLevel(pos.x, pos.y, pos.z, emittedLight);
+    }
+
+    if (needsEdgeChecks) {
+        performLightIncrease(lightAccess);
+        i32 chunkX = chunk->pos().x;
+        i32 chunkZ = chunk->pos().z;
+        checkChunkEdges(lightAccess, chunk, m_minLightSection, m_maxLightSection);
+    } else {
+        propagateNeighbourLevels(lightAccess, chunk, m_minLightSection, m_maxLightSection);
+        performLightIncrease(lightAccess);
+    }
+}
+
+// ============================================================================
+// WorldLightManager 接口实现
+// ============================================================================
+
+void BlockStarLightEngine::onBlockEmissionIncrease(StarLightLightingProvider* lightAccess,
+                                                      i32 x, i32 y, i32 z, i32 lightLevel) {
+    // 方块发光等级增加，需要重新检查该位置
+    (void)lightLevel;
+    checkBlock(lightAccess, x, y, z);
+}
+
+i32 BlockStarLightEngine::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight) {
+    if (!updateBlockLight) {
+        return maxUpdates;
+    }
+    return performUpdates(nullptr, maxUpdates);
+}
+
+void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
+    // 区块段状态更新
+    // 在 Starlight 架构中，空映射通过区块接口管理
+    // 空区块段可以跳过光照传播计算
+    // 实际的 Nibble 初始化/去初始化在 handleEmptySectionChanges 中处理
+    (void)pos;
+    (void)isEmpty;
+}
+
+u8 BlockStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const {
+    return static_cast<u8>(getLightLevel(x, y, z));
+}
+
+void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain) {
+    // 设置指定区块段的光照数据（从存档加载）
+    i32 chunkY = pos.y;
+    if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
+        return;
+    }
+
+    // 获取缓存中的区块
+    const IChunk* chunk = getChunkInCache(pos.x, pos.z);
     if (chunk == nullptr) {
         return;
     }
 
-    // 计算区块列位置
-    i64 columnPos = SectionPos(chunkX, 0, chunkZ).toLong();
-
-    // 获取或创建空区块段映射
-    EmptinessMap* map = getOrCreateEmptinessMap(columnPos);
-    if (map != nullptr) {
-        map->updateFromChunk(*chunk);
+    // 获取区块的 Nibble 数组
+    SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
+    if (nibbles == nullptr) {
+        return;
     }
+
+    // 计算索引
+    i32 index = chunkY - m_minLightSection;
+    i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    if (index < 0 || index >= totalSections) {
+        return;
+    }
+
+    SWMRNibbleArray* nibble = nibbles[index];
+    if (nibble == nullptr) {
+        return;
+    }
+
+    // 从 NibbleArray 复制数据到 SWMRNibbleArray
+    nibble->setNonNull();
+    const std::vector<u8>& data = array.data();
+    for (i32 i = 0; i < 4096 && i < static_cast<i32>(data.size() * 2); ++i) {
+        nibble->set(i, array.get(i));
+    }
+
+    if (!retain) {
+        nibble->updateVisible();
+    }
+
+    // 同时更新缓存
+    setNibbleInCache(pos.x, chunkY, pos.z, nibble);
 }
 
-bool BlockStarLightEngine::isSectionEmpty(i64 sectionPos) const {
-    // 从区块段位置提取区块列位置
-    SectionPos pos = SectionPos::fromLong(sectionPos);
-    i64 columnPos = SectionPos(pos.x, 0, pos.z).toLong();
-
-    // 查找空区块段映射
-    auto it = m_emptinessMaps.find(columnPos);
-    if (it == m_emptinessMaps.end()) {
-        // 没有映射，使用存储层检查
-        return !m_storage.hasSection(sectionPos);
+SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) {
+    // 获取指定区块段的光照数据（用于保存）
+    i32 chunkY = pos.y;
+    if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
+        return nullptr;
     }
 
-    return it->second.isSectionEmpty(pos.y);
+    // 首先尝试从缓存获取
+    SWMRNibbleArray* cached = getNibbleFromCache(pos.x, chunkY, pos.z);
+    if (cached != nullptr) {
+        return cached;
+    }
+
+    // 如果缓存中没有，尝试从区块获取
+    const IChunk* chunk = getChunkInCache(pos.x, pos.z);
+    if (chunk == nullptr) {
+        return nullptr;
+    }
+
+    SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
+    if (nibbles == nullptr) {
+        return nullptr;
+    }
+
+    i32 index = chunkY - m_minLightSection;
+    i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    if (index < 0 || index >= totalSections) {
+        return nullptr;
+    }
+
+    return nibbles[index];
 }
 
-EmptinessMap* BlockStarLightEngine::getOrCreateEmptinessMap(i64 columnPos) {
-    auto it = m_emptinessMaps.find(columnPos);
-    if (it != m_emptinessMaps.end()) {
-        return &it->second;
+void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk) {
+    if (chunk == nullptr) {
+        return;
     }
 
-    // 获取高度范围
-    i32 minSection = getChunkProvider()->getMinBuildHeight() >> 4;
-    i32 maxSection = (getChunkProvider()->getMaxBuildHeight() - 1) >> 4;
+    // 计算区块段数量
+    i32 totalSections = m_maxSection - m_minSection + 1;
+    if (totalSections <= 0) {
+        return;
+    }
 
-    // 创建新的映射
-    auto result = m_emptinessMaps.emplace(columnPos, EmptinessMap(minSection, maxSection));
-    return &result.first->second;
+    // 更新每个区块段的空状态
+    for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
+        i32 sectionIndex = sectionY - m_minSection;
+        const ChunkSection* section = chunk->getSection(sectionIndex);
+        bool isEmpty = (section == nullptr || section->isEmpty());
+        updateSectionStatus(SectionPos(chunkX, sectionY, chunkZ), isEmpty);
+    }
 }
 
 } // namespace mc

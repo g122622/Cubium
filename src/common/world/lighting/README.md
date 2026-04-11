@@ -11,7 +11,6 @@ lighting/
 ├── LightType.hpp              # 光照类型枚举和常量
 ├── IChunkLightProvider.hpp    # StarLightLightingProvider 接口
 ├── InternalLight.hpp/cpp      # 内部光照计算工具
-├── LightInitializer.hpp/cpp   # 区块光照初始化器（生成时初始光照计算）
 ├── engine/                    # 光照引擎
 │   ├── LevelBasedGraph.hpp/cpp        # StarLightEngine 基类（Starlight优化版）
 │   ├── LightEngineCache.hpp/cpp       # 光照引擎缓存系统
@@ -86,33 +85,6 @@ public:
 | `isDarkEnoughForSpawning(rawBrightness)` | 检查是否足够黑暗以生成敌对生物 |
 | `getCelestialAngle(dayTime)` | 获取天体角度 (0.0-1.0) |
 | `getMoonPhase(dayTime)` | 获取月相索引 (0-7) |
-
-#### LightInitializer.hpp/cpp
-
-区块光照初始化器，负责区块生成时的初始光照计算。
-
-**职责**：
-- 在区块生成 LIGHT 阶段初始化天空光照和方块光照
-- 将光照初始化逻辑从 ChunkPrimer 中分离，保持职责清晰
-
-**核心方法**：
-```cpp
-// 初始化天空光照（根据高度图）
-static void initializeSkyLight(ChunkData& data, const Heightmap& heightmap);
-
-// 初始化方块光照（扫描发光方块）
-static void initializeBlockLight(ChunkData& data);
-
-// 初始化区块光照（天空+方块）
-static void initializeChunkLight(ChunkData& data, const Heightmap& heightmap);
-```
-
-**使用方法**：
-```cpp
-// 在区块生成 LIGHT 阶段
-auto& heightmap = primer.getHeightmap(HeightmapType::WorldSurfaceWG);
-LightInitializer::initializeChunkLight(*primer.getChunkData(), heightmap);
-```
 
 ### engine/ 目录 - 光照引擎
 

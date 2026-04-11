@@ -1,7 +1,10 @@
 #include "WorldLightManager.hpp"
+#include "../../chunk/IChunk.hpp"
+#include "../../chunk/ChunkData.hpp"
+#include "../../WorldConstants.hpp"
+#include "../../../util/assert/AssertAll.hpp"
+#include "../../../perfetto/TraceEvents.hpp"
 #include <algorithm>
-#include "common/util/assert/AssertAll.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -37,12 +40,22 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
+    // 单点更新需要初始化缓存环境
+    i32 chunkX = x >> 4;
+    i32 chunkZ = z >> 4;
+
     if (m_blockLight != nullptr) {
+        m_blockLight->setupCaches(m_provider, x, y, z, true, true);
         m_blockLight->checkBlock(m_provider, x, y, z);
+        m_blockLight->updateVisible(m_provider);
+        m_blockLight->destroyCaches();
     }
 
     if (m_skyLight != nullptr) {
+        m_skyLight->setupCaches(m_provider, x, y, z, true, true);
         m_skyLight->checkBlock(m_provider, x, y, z);
+        m_skyLight->updateVisible(m_provider);
+        m_skyLight->destroyCaches();
     }
 }
 
@@ -245,6 +258,50 @@ void WorldLightManager::retainData(const ChunkPos& pos, bool retain) {
     // 目前简化实现，后续可扩展
     (void)pos;
     (void)retain;
+}
+
+// ============================================================================
+// 区块光照初始化
+// ============================================================================
+
+void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks) {
+    if (chunk == nullptr) {
+        return;
+    }
+
+    MC_TRACE_EVENT("server.lighting", "WorldLightManager::lightChunk",
+                   "chunk", fmt::format("({}, {})", chunk->x(), chunk->z()),
+                   "needsEdgeChecks", needsEdgeChecks);
+
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    // 执行天空光照计算
+    if (m_skyLight != nullptr) {
+        m_skyLight->light(m_provider, chunk, needsEdgeChecks);
+    }
+
+    // 执行方块光照计算
+    if (m_blockLight != nullptr) {
+        m_blockLight->light(m_provider, chunk, needsEdgeChecks);
+    }
+
+    // 启用区块光源
+    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
+}
+
+void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ) {
+    MC_TRACE_EVENT("server.lighting", "WorldLightManager::checkChunkEdges",
+                   "chunk", fmt::format("({}, {})", chunkX, chunkZ));
+
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    if (m_skyLight != nullptr) {
+        m_skyLight->StarLightEngine::checkChunkEdges(m_provider, chunkX, chunkZ);
+    }
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->StarLightEngine::checkChunkEdges(m_provider, chunkX, chunkZ);
+    }
 }
 
 // ============================================================================

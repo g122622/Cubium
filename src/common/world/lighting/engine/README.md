@@ -1,7 +1,7 @@
 # 光照引擎模块 (Lighting Engine)
 
 本目录包含 Minecraft 光照系统的核心引擎实现，负责计算和传播方块光照和天空光照。
-当前实现已经切换为 `StarLightEngine`、`BlockStarLightEngine`、`SkyStarLightEngine` 和 `StarLightLightingProvider`，并且不保留兼容别名或默认参数式接口。
+当前实现基于 Starlight 优化算法，核心类为 `StarLightEngine`、`BlockStarLightEngine`、`SkyStarLightEngine`。
 
 ## 目录结构
 
@@ -10,72 +10,71 @@ engine/
 ├── LevelBasedGraph.hpp/cpp     # StarLightEngine 基类（Starlight 优化版）
 ├── BlockLightEngine.hpp/cpp    # BlockStarLightEngine 方块光照引擎
 ├── SkyLightEngine.hpp/cpp      # SkyStarLightEngine 天空光照引擎
-├── LightEngineCache.hpp/cpp    # 光照引擎缓存系统
+├── LightEngineCache.hpp/cpp    # 光照引擎缓存系统（备用）
 ├── LightEngineUtils.hpp/cpp    # 光照引擎工具类
 └── README.md                   # 本文档
 ```
 
-## 文件详细介绍
+## 核心设计
 
-### StarLightEngine（LevelBasedGraph.hpp/cpp）
-
-**职责**: 提供基于级别的 BFS 光照传播算法的核心框架，是所有光照引擎的基类。
-
-**主要内容**:
-
-```mermaid
-classDiagram
-    class StarLightEngine {
-        <<abstract>>
-        +MAX_LEVEL_COUNT: i32 = 16
-        +INVALID_LEVEL: u8 = 255
-        #m_increaseQueue: vector~u64~
-        #m_decreaseQueue: vector~u64~
-        #m_cache: LightEngineCache
-        #m_chunkProvider: StarLightLightingProvider*
-
-        +processUpdates(maxUpdates: i32) i32
-        +scheduleUpdate(pos: i64)
-        +scheduleUpdate(fromPos, toPos, level, isIncrease)
-        +cancelUpdate(pos: i64)
-        +enableCache(centerX, centerY, centerZ)
-        +disableCache()
-
-        #processIncreaseQueue(maxUpdates) i32
-        #processDecreaseQueue(maxUpdates) i32
-        #propagateLevel(fromPos, toPos, level, isDecreasing)
-        #encodeQueueEntry(x, y, z, level, directions, flags) u64
-
-        [abstractmethod] isRoot(pos) bool
-        [abstractmethod] computeLevel(pos, excludedSource, level) i32
-        [abstractmethod] notifyNeighbors(pos, level, isDecreasing)
-        [abstractmethod] getLevel(pos) i32
-        [abstractmethod] setLevel(pos, level)
-        [abstractmethod] getEdgeLevel(fromPos, toPos, startLevel) i32
-    }
-```
-
-**队列元素结构**:
+### 方向枚举 (LightAxisDirection)
 
 ```cpp
-struct QueueEntry {
-    i64 pos;        // 世界坐标编码（完整 X/Y/Z，使用 LightEngineUtils::packPos）
-    u8 level;       // 0-15（内部传播级别）
-    u8 directions;  // 方向位集（DIR_*）
-    u64 flags;      // WRITE_LEVEL / RECHECK_LEVEL / HAS_SIDED_TRANSPARENT
+enum class LightAxisDirection : u8 {
+    POSITIVE_X = 0,  // 东
+    NEGATIVE_X = 1,  // 西
+    POSITIVE_Z = 2,  // 南
+    NEGATIVE_Z = 3,  // 北
+    POSITIVE_Y = 4,  // 上
+    NEGATIVE_Y = 5   // 下
 };
 ```
 
-说明：
-- 不再使用 6-bit X / 6-bit Z 的截断坐标压缩。
-- 队列直接保存完整世界坐标，避免跨区块/远离原点时的坐标回绕错误。
-- 方向位集语义与 Starlight 对齐：队列中保存“可继续传播的方向集合”。
+**设计要点**:
+- 偶数为正方向，奇数为负方向
+- 通过 XOR 1 可快速获取相反方向
+- 与 `Direction.hpp` 中的 `AxisDirection` 不同，后者只有 Positive/Negative 两个值
 
-**核心算法**:
-- **增亮队列**: 光照增加时传播到相邻方块
-- **减亮队列**: 光照减少时重新计算受影响方块
-- **空区块段优化**: 跳过全空气区块段
-- **FIFO 波前处理**: 队列按入队顺序处理，预算耗尽时保留剩余队列到下个 tick
+### 队列条目编码 (64位紧凑格式)
+
+```
+位 0-5:   X 坐标（相对于编码偏移）
+位 6-11:  Z 坐标（相对于编码偏移）
+位 12-27: Y 坐标（相对于编码偏移）
+位 28-31: 传播级别 (0-15)
+位 32-37: 方向位集
+位 38-40: 状态标志
+位 41-62: 未使用
+位 63:    FLAG_WRITE_LEVEL
+```
+
+**标志位定义**:
+- `FLAG_WRITE_LEVEL`: 需要写入光照等级
+- `FLAG_RECHECK_LEVEL`: 需要重新检查光照等级
+- `FLAG_HAS_SIDED_TRANSPARENT_BLOCKS`: 当前方块有条件透明面
+
+### SWMRNibbleArray 状态管理
+
+`SWMRNibbleArray` 采用 Starlight 的四状态设计：
+
+| 状态 | 说明 | 存储状态 |
+|------|------|----------|
+| Null | 不存在 | 无存储，读取返回 0 |
+| Uninit | 未初始化（全零） | 无存储，读取返回 0 |
+| Init | 已初始化 | 有实际数据 |
+| Hidden | 隐藏状态 | 有数据，但转换为 Vanilla 时视为 Null |
+
+**关键方法**:
+- `getUpdating()`: 更新侧读取
+- `getVisible()`: 可见侧读取（线程安全）
+- `set()`: 更新侧写入
+- `updateVisible()`: 同步更新侧到可见侧
+- `setNull()/setUninitialized()/setNonNull()/setHidden()`: 状态转换
+
+**写时复制 (Copy-on-Write)**:
+- `storageUpdating` 和 `storageVisible` 初始时指向同一数组
+- 写入时（`set()` 调用）会触发写时复制，创建独立副本
+- `updateVisible()` 同步时，两指针重新指向同一数组
 
 ### BlockStarLightEngine（BlockLightEngine.hpp/cpp）
 

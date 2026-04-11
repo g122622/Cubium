@@ -1,7 +1,6 @@
 #include "ChunkPrimer.hpp"
 #include "../block/BlockRegistry.hpp"
 #include "../WorldConstants.hpp"
-#include "../lighting/LightInitializer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -99,6 +98,11 @@ ChunkSection* ChunkPrimer::createSection(i32 index)
     return m_data ? m_data->createSection(index) : nullptr;
 }
 
+const ChunkSection* const* ChunkPrimer::getSections() const
+{
+    return m_data ? m_data->getSections() : nullptr;
+}
+
 // ============================================================================
 // 高度图
 // ============================================================================
@@ -191,25 +195,6 @@ void ChunkPrimer::updateAllHeightmaps()
             }
         }
     }
-}
-
-void ChunkPrimer::initializeSkyLight()
-{
-    if (!m_data) return;
-
-    // 获取世界表面高度图
-    auto& surfaceWg = getHeightmap(HeightmapType::WorldSurfaceWG);
-
-    // 委托给光照初始化器
-    LightInitializer::initializeSkyLight(*m_data, surfaceWg);
-}
-
-void ChunkPrimer::initializeBlockLight()
-{
-    if (!m_data) return;
-
-    // 委托给光照初始化器
-    LightInitializer::initializeBlockLight(*m_data);
 }
 
 // ============================================================================

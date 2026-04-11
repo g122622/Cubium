@@ -134,42 +134,6 @@ void ChunkWorkerPool::submitGenerate(ChunkCoord x, ChunkCoord z,
     m_condition.notify_one();
 }
 
-void ChunkWorkerPool::submitTask(ChunkTask task,
-                                   GeneratorFunc generator,
-                                   CompletionCallback callback)
-{
-    submitTask(std::move(task), std::move(generator), std::move(callback), nullptr);
-}
-
-void ChunkWorkerPool::submitTask(ChunkTask task,
-                                   GeneratorFunc generator,
-                                   CompletionCallback callback,
-                                   std::shared_ptr<std::atomic<bool>> cancelToken)
-{
-    if (!m_running.load(std::memory_order_acquire)) {
-        if (callback) {
-            callback(false, nullptr);
-        }
-        return;
-    }
-
-    task.timestamp = static_cast<u64>(
-        std::chrono::steady_clock::now().time_since_epoch().count());
-
-    auto internalTask = std::make_shared<InternalTask>();
-    internalTask->task = std::move(task);
-    internalTask->generator = std::move(generator);
-    internalTask->callback = std::move(callback);
-    internalTask->cancelToken = std::move(cancelToken);
-
-    {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-        m_taskQueue.push(std::move(internalTask));
-    }
-
-    m_condition.notify_one();
-}
-
 // ============================================================================
 // 统计
 // ============================================================================
@@ -233,13 +197,13 @@ void ChunkWorkerPool::executeTask(InternalTask& task)
         return;
     }
 
-    ChunkPos chunkPos(task.task.x, task.task.z);
     MC_TRACE_CHUNK_GEN_EVENT(
         "GenerateChunk",
         "pos", fmt::format("({}, {})", task.task.x, task.task.z),
-        [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) {
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(task.task.x, task.task.z).toId())](::perfetto::EventContext ctx) {
                 flow(ctx);
-        });
+        }
+    );
 
     // 创建区块生成器
     auto primer = std::make_unique<ChunkPrimer>(task.task.x, task.task.z);
@@ -247,6 +211,14 @@ void ChunkWorkerPool::executeTask(InternalTask& task)
     bool success = true;
 
     try {
+        MC_TRACE_CHUNK_GEN_EVENT(
+            "GenerateChunk.InvokeGenerator",
+            "pos", fmt::format("({}, {})", task.task.x, task.task.z),
+            [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(task.task.x, task.task.z).toId())](::perfetto::EventContext ctx) {
+                    flow(ctx);
+            }
+        );
+
         // 执行生成
         if (task.generator && task.task.targetStatus) {
             static const std::atomic<bool> neverCancel{false};
@@ -268,12 +240,28 @@ void ChunkWorkerPool::executeTask(InternalTask& task)
     ChunkPrimer* callbackChunk = nullptr;
 
     if (success) {
+        MC_TRACE_CHUNK_GEN_EVENT(
+            "GenerateChunk.Completed",
+            "pos", fmt::format("({}, {})", task.task.x, task.task.z),
+            [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(task.task.x, task.task.z).toId())](::perfetto::EventContext ctx) {
+                    flow(ctx);
+            }
+        );
+
         std::lock_guard<std::mutex> lock(m_completedMutex);
         m_completedChunks.push_back(std::move(primer));
         callbackChunk = m_completedChunks.back().get();
     }
 
     if (task.callback) {
+        MC_TRACE_CHUNK_GEN_EVENT(
+            "GenerateChunk.InvokePostCallback",
+            "pos", fmt::format("({}, {})", task.task.x, task.task.z),
+            [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(task.task.x, task.task.z).toId())](::perfetto::EventContext ctx) {
+                    flow(ctx);
+            }
+        );
+
         task.callback(success, callbackChunk);
     }
 }

@@ -671,7 +671,6 @@ add_library(mc_common STATIC
     world/lighting/storage/EmptinessMap.cpp
     world/lighting/storage/SWMRNibbleArray.cpp
     world/lighting/manager/WorldLightManager.cpp
-    world/lighting/LightInitializer.cpp
     # (header-only templates: LightType.hpp, IChunkLightProvider.hpp, SWMRLightDataMap.hpp, SectionLightStorage.hpp)
 
     # World - Fluid System
@@ -705,6 +704,9 @@ add_library(mc_common STATIC
     physics/PhysicsEngine.cpp
     physics/CollisionCache.cpp
     # physics/collision/BlockCollision.cpp  # 已移除 - 使用新的方块系统
+    physics/shape/DiscreteVoxelShape.cpp
+    physics/shape/VoxelShape.cpp
+    physics/shape/Shapes.cpp
 
     # Resource - Core
     resource/ResourceLocation.cpp

@@ -83,21 +83,6 @@ Result<void> ServerWorld::initialize()
     // 确保区块管理器始终使用世界配置中的视距。
     m_chunkManager->setViewDistance(m_config.viewDistance);
 
-    m_chunkManager->setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
-        initializeChunkLighting(x, z);
-        // 通知村庄管理器区块加载
-        if (m_villageManager) {
-            m_villageManager->onChunkLoaded(x, z);
-        }
-    });
-
-    m_chunkManager->setChunkUnloadedCallback([this](ChunkCoord x, ChunkCoord z) {
-        // 通知村庄管理器区块卸载（用于清理 POI 等）
-        if (m_villageManager) {
-            m_villageManager->onChunkUnloaded(x, z);
-        }
-    });
-
     auto result = m_chunkManager->initialize();
     if (result.failed()) {
         return result;
@@ -469,47 +454,6 @@ void ServerWorld::tick()
     if (m_chunkManager) {
         m_chunkManager->tick();
     }
-}
-
-void ServerWorld::initializeChunkLighting(ChunkCoord chunkX, ChunkCoord chunkZ)
-{
-    if (!m_lightManager) {
-        return;
-    }
-
-    const ChunkData* chunk = getChunk(chunkX, chunkZ);
-    if (!chunk) {
-        return;
-    }
-
-    ChunkPos chunkPos(chunkX, chunkZ);
-
-    auto* blockLightEngine = m_lightManager->getBlockLightEngine();
-    if (blockLightEngine != nullptr) {
-        blockLightEngine->updateEmptinessMap(chunkX, chunkZ, chunk);
-    }
-
-    for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk->getSection(sectionY);
-        SectionPos sectionPos(chunkX, sectionY, chunkZ);
-
-        bool isEmpty = (section == nullptr || section->isEmpty());
-        m_lightManager->updateSectionStatus(sectionPos, isEmpty);
-
-        if (section != nullptr) {
-            if (m_lightManager->getSkyLightEngine()) {
-                NibbleArray skyLightCopy = section->skyLightNibble().copy();
-                m_lightManager->setData(LightType::SKY, sectionPos, skyLightCopy, false);
-            }
-
-            if (m_lightManager->getBlockLightEngine()) {
-                NibbleArray blockLightCopy = section->blockLightNibble().copy();
-                m_lightManager->setData(LightType::BLOCK, sectionPos, blockLightCopy, false);
-            }
-        }
-    }
-
-    m_lightManager->enableLightSources(chunkPos, true);
 }
 
 size_t ServerWorld::chunkCount() const

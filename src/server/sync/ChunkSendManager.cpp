@@ -53,11 +53,15 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
 }
 
 void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z) {
+    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::sendChunkToTrackingPlayers");
+
     auto players = m_ticketManager.getTrackingPlayers(x, z);
     sendChunkToPlayers(x, z, players, true);
 }
 
 void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players) {
+    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::unloadChunkFromPlayers");
+
     for (PlayerId player : players) {
         if (m_onChunkUnload) {
             m_onChunkUnload(player, x, z);
@@ -69,11 +73,15 @@ void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const 
 }
 
 void ChunkSendManager::unloadChunkFromTrackingPlayers(ChunkCoord x, ChunkCoord z) {
+    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::unloadChunkFromTrackingPlayers");
+
     auto players = m_ticketManager.getTrackingPlayers(x, z);
     unloadChunkFromPlayers(x, z, players);
 }
 
 void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
+    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::onPlayerTrackingChange");
+
     if (isTracking) {
         // 玩家进入区块视距范围
         // 检查区块是否已加载
@@ -90,11 +98,15 @@ void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, Chu
 }
 
 void ChunkSendManager::onChunkPreUnload(ChunkCoord x, ChunkCoord z) {
+    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::onChunkPreUnload");
+
     // 向所有追踪该区块的玩家发送卸载通知
     unloadChunkFromTrackingPlayers(x, z);
 }
 
 void ChunkSendManager::removePlayer(PlayerId playerId) {
+    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::removePlayer", "playerId", playerId);
+
     // 追踪状态由 ChunkLoadTicketManager 管理。
     // 这里额外清理待发送队列里的目标玩家，避免断开后仍尝试发包。
     std::lock_guard<std::mutex> lock(m_readyChunksMutex);
@@ -114,6 +126,8 @@ void ChunkSendManager::removePlayer(PlayerId playerId) {
 
 void ChunkSendManager::submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8> data,
                                        std::vector<PlayerId> players, bool validateTracking) {
+    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::submitChunkData");
+
     std::sort(players.begin(), players.end());
     players.erase(std::unique(players.begin(), players.end()), players.end());
     if (players.empty()) {

@@ -190,37 +190,6 @@ TEST_F(ChunkWorkerPoolTest, SubmitGenerateWhenNotRunning) {
     EXPECT_TRUE(completed);
 }
 
-TEST_F(ChunkWorkerPoolTest, SubmitTaskCustom) {
-    ChunkWorkerPool pool(2);
-    pool.start();
-
-    std::atomic<bool> completed{false};
-
-    ChunkTask task(ChunkTask::Type::Generate, 5, 10, &ChunkStatuses::FULL, 0);
-
-    pool.submitTask(std::move(task),
-        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-            (void)cancelSignal;
-            chunk.setChunkStatus(ChunkStatuses::FULL);
-        },
-        [&](bool success, ChunkPrimer* chunk) {
-            completed = true;
-            EXPECT_TRUE(success);
-            EXPECT_NE(chunk, nullptr);
-            if (chunk) {
-                EXPECT_EQ(chunk->x(), 5);
-                EXPECT_EQ(chunk->z(), 10);
-            }
-        });
-
-    for (int i = 0; i < 100 && !completed; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    EXPECT_TRUE(completed);
-    pool.shutdown();
-}
-
 // ============================================================================
 // 异常处理测试
 // ============================================================================

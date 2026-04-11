@@ -4,6 +4,7 @@
 #include "../../core/Result.hpp"
 #include "../block/Block.hpp"
 #include "../../util/NibbleArray.hpp"
+#include "../lighting/storage/SWMRNibbleArray.hpp"
 #include "ChunkPos.hpp"
 #include "IChunk.hpp"
 #include "../WorldConstants.hpp"
@@ -165,6 +166,9 @@ public:
     [[nodiscard]] bool hasSection(i32 index) const override;
     ChunkSection* createSection(i32 index) override;
 
+    // 获取所有区块段（用于光照引擎缓存）
+    [[nodiscard]] const ChunkSection* const* getSections() const override;
+
     // 删除段
     void removeSection(i32 index);
 
@@ -203,12 +207,90 @@ public:
     [[nodiscard]] u8 getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const;
     void setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light);
 
+    // ========================================================================
+    // Starlight 光照数据接口 (IChunk 接口实现)
+    // ========================================================================
+
+    // 光照段数量（包含上下缓冲区）
+    static constexpr i32 LIGHT_SECTIONS = SECTIONS + 2;  // -1 到 16 段
+
+    /**
+     * @brief 获取天空光照空映射
+     */
+    [[nodiscard]] const bool* getSkyEmptinessMap() const override;
+
+    /**
+     * @brief 设置天空光照空映射
+     */
+    void setSkyEmptinessMap(const bool* map) override;
+
+    /**
+     * @brief 获取方块光照空映射
+     */
+    [[nodiscard]] const bool* getBlockEmptinessMap() const override;
+
+    /**
+     * @brief 设置方块光照空映射
+     */
+    void setBlockEmptinessMap(const bool* map) override;
+
+    /**
+     * @brief 获取天空光照 Nibble 数组
+     */
+    [[nodiscard]] SWMRNibbleArray* const* getSkyNibbles() const override;
+
+    /**
+     * @brief 设置天空光照 Nibble 数组
+     */
+    void setSkyNibbles(SWMRNibbleArray* const* nibbles) override;
+
+    /**
+     * @brief 获取方块光照 Nibble 数组
+     */
+    [[nodiscard]] SWMRNibbleArray* const* getBlockNibbles() const override;
+
+    /**
+     * @brief 设置方块光照 Nibble 数组
+     */
+    void setBlockNibbles(SWMRNibbleArray* const* nibbles) override;
+
+    /**
+     * @brief 检查区块光照是否正确
+     */
+    [[nodiscard]] bool isLightCorrect() const override { return m_lightCorrect; }
+
+    /**
+     * @brief 设置区块光照正确状态
+     */
+    void setLightCorrect(bool correct) override { m_lightCorrect = correct; }
+
+    // Starlight 光照数据存储（内部使用）
+    /**
+     * @brief 初始化光照数据
+     */
+    void initLightData();
+
+    /**
+     * @brief 获取可变的天空光照 Nibble 数组
+     */
+    [[nodiscard]] std::array<SWMRNibbleArray, LIGHT_SECTIONS>& skyNibbles() { return m_skyNibbles; }
+    [[nodiscard]] const std::array<SWMRNibbleArray, LIGHT_SECTIONS>& skyNibbles() const { return m_skyNibbles; }
+
+    /**
+     * @brief 获取可变的方块光照 Nibble 数组
+     */
+    [[nodiscard]] std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles() { return m_blockNibbles; }
+    [[nodiscard]] const std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles() const { return m_blockNibbles; }
+
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
 
     // 区块段 (可以为空)
     std::array<std::unique_ptr<ChunkSection>, SECTIONS> m_sections;
+
+    // 区块段指针数组（用于 getSections() 接口，mutable 允许 const 方法更新）
+    mutable std::array<const ChunkSection*, SECTIONS> m_sectionPtrs{};
 
     // 高度图 (最高方块Y坐标)
     std::array<BlockCoord, WIDTH * WIDTH> m_heightMap;
@@ -224,6 +306,35 @@ private:
     bool m_fullyGenerated = false;
     bool m_dirty = false;
     bool m_loaded = false;
+    bool m_lightCorrect = false;
+
+    // ========================================================================
+    // Starlight 光照数据
+    // ========================================================================
+
+    // 天空光照 Nibble 数组 (每个区块段一个)
+    std::array<SWMRNibbleArray, LIGHT_SECTIONS> m_skyNibbles;
+
+    // 方块光照 Nibble 数组 (每个区块段一个)
+    std::array<SWMRNibbleArray, LIGHT_SECTIONS> m_blockNibbles;
+
+    // 天空光照空映射 (每个区块段一个)
+    std::vector<bool> m_skyEmptinessMap;
+    std::unique_ptr<bool[]> m_skyEmptinessMapRaw;  // 用于返回原始指针
+
+    // 方块光照空映射 (每个区块段一个)
+    std::vector<bool> m_blockEmptinessMap;
+    std::unique_ptr<bool[]> m_blockEmptinessMapRaw;  // 用于返回原始指针
+
+    // Nibble 数组指针数组（用于 getSkyNibbles/getBlockNibbles 接口）
+    mutable std::array<SWMRNibbleArray*, LIGHT_SECTIONS> m_skyNibblePtrs{};
+    mutable std::array<SWMRNibbleArray*, LIGHT_SECTIONS> m_blockNibblePtrs{};
+    mutable bool m_nibblePtrsInitialized = false;
+
+    /**
+     * @brief 初始化 Nibble 指针数组
+     */
+    void ensureNibblePtrs() const;
 };
 
 // ============================================================================

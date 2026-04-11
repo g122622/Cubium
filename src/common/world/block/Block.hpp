@@ -200,6 +200,23 @@ public:
     [[nodiscard]] const CollisionShape& getOcclusionShape() const;
 
     /**
+     * @brief 获取指定面的遮挡形状
+     *
+     * 用于光照遮挡检测。返回方块在指定方向上的投影形状。
+     *
+     * @param direction 方向
+     * @return 面遮挡形状
+     */
+    [[nodiscard]] CollisionShape getFaceOcclusionShape(Direction direction) const;
+
+    /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * @return 是否使用形状进行光照遮挡
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion() const { return m_useShapeForLightOcclusion; }
+
+    /**
      * @brief 是否有不透明碰撞形状
      *
      * 用于环境光遮蔽(AO)计算。如果方块有不透明的完整碰撞箱，
@@ -349,6 +366,7 @@ private:
     bool m_isLiquid = false;
     bool m_isFlammable = false;
     bool m_propagatesSkylightDown = false;
+    bool m_useShapeForLightOcclusion = false;  // 是否使用形状进行光照遮挡
     u8 m_lightLevel = 0;
     u8 m_harvestTool = 0;  // HarvestTool::None
     i32 m_opacity = 15;  // 默认完全不透明
@@ -769,6 +787,36 @@ public:
      * @return 形状引用
      */
     [[nodiscard]] virtual const CollisionShape& getOcclusionShape(const BlockState& state) const;
+
+    /**
+     * @brief 获取指定面的遮挡形状
+     *
+     * 用于光照遮挡检测。返回方块在指定方向上的投影形状。
+     * 默认实现返回完整遮挡形状的切片。
+     *
+     * 参考: net.minecraft.block.BlockState#getFaceOcclusionShape
+     *
+     * @param state 方块状态
+     * @param direction 方向
+     * @return 面遮挡形状
+     */
+    [[nodiscard]] virtual CollisionShape getFaceOcclusionShape(const BlockState& state, Direction direction) const;
+
+    /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * 如果返回 true，光照引擎会使用 getOcclusionShape() 和
+     * getFaceOcclusionShape() 进行精确的光照传播计算。
+     * 如果返回 false，光照引擎会使用简单的透明度值。
+     *
+     * 用于台阶、楼梯、栅栏等非完整方块。
+     *
+     * 参考: net.minecraft.block.BlockState#useShapeForLightOcclusion
+     *
+     * @param state 方块状态
+     * @return 是否使用形状进行光照遮挡
+     */
+    [[nodiscard]] virtual bool useShapeForLightOcclusion(const BlockState& state) const;
 
     /**
      * @brief 是否为空气

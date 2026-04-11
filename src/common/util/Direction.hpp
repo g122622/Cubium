@@ -431,4 +431,175 @@ namespace Axes {
     }
 }
 
+/**
+ * @brief 轴循环枚举
+ *
+ * 用于在 X、Y、Z 轴之间循环变换坐标。
+ * 参考 MC AxisCycle。
+ *
+ * NONE: X -> X, Y -> Y, Z -> Z (无变换)
+ * FORWARD: X -> Y, Y -> Z, Z -> X (向前循环)
+ * BACKWARD: X -> Z, Y -> X, Z -> Y (向后循环)
+ */
+enum class AxisCycle : u8 {
+    NONE = 0,       ///< 无变换
+    FORWARD = 1,    ///< 向前循环 X->Y->Z->X
+    BACKWARD = 2    ///< 向后循环 X->Z->Y->X
+};
+
+/**
+ * @brief AxisCycle工具函数
+ */
+namespace AxisCycles {
+    constexpr size_t COUNT = 3;
+
+    /**
+     * @brief 获取所有轴循环
+     */
+    inline std::array<AxisCycle, 3> all() {
+        return {AxisCycle::NONE, AxisCycle::FORWARD, AxisCycle::BACKWARD};
+    }
+
+    /**
+     * @brief 循环轴
+     * @param cycle 循环类型
+     * @param axis 输入轴
+     * @return 循环后的轴
+     */
+    inline Axis cycle(AxisCycle cycle, Axis axis) {
+        const size_t idx = static_cast<size_t>(axis);
+        switch (cycle) {
+            case AxisCycle::NONE:
+                return axis;
+            case AxisCycle::FORWARD:
+                return static_cast<Axis>((idx + 1) % 3);
+            case AxisCycle::BACKWARD:
+                return static_cast<Axis>((idx + 2) % 3);
+        }
+        return axis;
+    }
+
+    /**
+     * @brief 循环坐标
+     * @param cycle 循环类型
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param axis 目标轴
+     * @return 在目标轴上的坐标值
+     */
+    inline i32 cycle(AxisCycle cycle, i32 x, i32 y, i32 z, Axis axis) {
+        switch (cycle) {
+            case AxisCycle::NONE:
+                return (axis == Axis::X) ? x : (axis == Axis::Y) ? y : z;
+            case AxisCycle::FORWARD:
+                // X->Y, Y->Z, Z->X
+                if (axis == Axis::X) return z;
+                if (axis == Axis::Y) return x;
+                return y;
+            case AxisCycle::BACKWARD:
+                // X->Z, Y->X, Z->Y
+                if (axis == Axis::X) return y;
+                if (axis == Axis::Y) return z;
+                return x;
+        }
+        return 0;
+    }
+
+    /**
+     * @brief 获取逆向循环
+     */
+    inline AxisCycle inverse(AxisCycle cycle) {
+        switch (cycle) {
+            case AxisCycle::NONE: return AxisCycle::NONE;
+            case AxisCycle::FORWARD: return AxisCycle::BACKWARD;
+            case AxisCycle::BACKWARD: return AxisCycle::FORWARD;
+        }
+        return AxisCycle::NONE;
+    }
+
+    /**
+     * @brief 获取两个轴之间的循环
+     * @param from 源轴
+     * @param to 目标轴
+     * @return 循环类型
+     */
+    inline AxisCycle between(Axis from, Axis to) {
+        const size_t fromIdx = static_cast<size_t>(from);
+        const size_t toIdx = static_cast<size_t>(to);
+
+        if (fromIdx == toIdx) {
+            return AxisCycle::NONE;
+        }
+
+        // 计算循环步数
+        const size_t diff = (toIdx + 3 - fromIdx) % 3;
+        if (diff == 1) {
+            return AxisCycle::FORWARD;
+        } else {
+            return AxisCycle::BACKWARD;
+        }
+    }
+}
+
+/**
+ * @brief Direction扩展方法
+ *
+ * 提供类似 Java Direction 类的成员方法。
+ */
+inline Direction getOpposite(Direction dir) {
+    return Directions::opposite(dir);
+}
+
+inline Axis getAxis(Direction dir) {
+    return Directions::getAxis(dir);
+}
+
+inline AxisDirection getAxisDirection(Direction dir) {
+    return Directions::getAxisDirection(dir);
+}
+
+inline i32 getStepX(Direction dir) {
+    return Directions::xOffset(dir);
+}
+
+inline i32 getStepY(Direction dir) {
+    return Directions::yOffset(dir);
+}
+
+inline i32 getStepZ(Direction dir) {
+    return Directions::zOffset(dir);
+}
+
+inline size_t ordinal(Direction dir) {
+    return static_cast<size_t>(dir);
+}
+
+/**
+ * @brief 获取近似最近的方向
+ */
+inline Direction getApproximateNearest(f32 x, f32 y, f32 z) {
+    return Directions::fromVector(x, y, z);
+}
+
+} // namespace mc
+
+// 为 Direction 枚举添加成员方法风格的访问
+namespace mc {
+
+/**
+ * @brief Direction 扩展方法包装器
+ *
+ * 允许使用 dir.getOpposite() 风格的调用
+ */
+struct DirectionExt {
+    static Direction getOpposite(Direction dir) { return Directions::opposite(dir); }
+    static Axis getAxis(Direction dir) { return Directions::getAxis(dir); }
+    static AxisDirection getAxisDirection(Direction dir) { return Directions::getAxisDirection(dir); }
+    static i32 getStepX(Direction dir) { return Directions::xOffset(dir); }
+    static i32 getStepY(Direction dir) { return Directions::yOffset(dir); }
+    static i32 getStepZ(Direction dir) { return Directions::zOffset(dir); }
+    static size_t ordinal(Direction dir) { return static_cast<size_t>(dir); }
+};
+
 } // namespace mc

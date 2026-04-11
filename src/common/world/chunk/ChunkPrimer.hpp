@@ -78,6 +78,7 @@ public:
     [[nodiscard]] const ChunkSection* getSection(i32 index) const override;
     [[nodiscard]] bool hasSection(i32 index) const override;
     ChunkSection* createSection(i32 index) override;
+    [[nodiscard]] const ChunkSection* const* getSections() const override;
 
     // 高度图
     [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override;
@@ -176,25 +177,6 @@ public:
      * @brief 更新所有高度图
      */
     void updateAllHeightmaps();
-
-    // ============================================================================
-    // 光照初始化
-    // ============================================================================
-
-    /**
-     * @brief 初始化天空光照
-     *
-     * 根据 WORLD_SURFACE 高度图初始化天空光照。
-     * 高度图以上的方块天空光照为15，以下逐级递减。
-     */
-    void initializeSkyLight();
-
-    /**
-     * @brief 初始化方块光照
-     *
-     * 扫描区块中所有发光方块，将其光照值写入区块数据。
-     */
-    void initializeBlockLight();
 
     // ============================================================================
     // 生成的实体

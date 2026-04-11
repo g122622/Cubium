@@ -611,8 +611,12 @@ void IntegratedServer::sendPlayerInventory()
 void IntegratedServer::sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
 {
     MC_TRACE_EVENT("server.chunk", "sendChunkData",
-               "Chunk", fmt::format("({}, {})", x, z),
-               "DataSize", data.size());
+                "Chunk", fmt::format("({}, {})", x, z),
+               "DataSize", data.size(),
+                [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+    });
+
     DimensionId dimension = 0;
     if (m_dimensionManager) {
         const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(m_clientPlayerId);
@@ -731,8 +735,10 @@ void IntegratedServer::setupChunkSendCallback()
         sendChunkData(x, z, data);
         MC_TRACE_INSTANT("server.chunk", "ChunkSent",
                    "Chunk", fmt::format("({}, {})", x, z),
-                   "DataSize", data.size());
-
+                   "DataSize", data.size(),
+                    [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) {
+                          flow(ctx);
+                    });  // 这里需要闭合 MC_TRACE_INSTANT 的括号
     });
 
     // 设置区块卸载回调
@@ -742,7 +748,7 @@ void IntegratedServer::setupChunkSendCallback()
         sendUnloadChunk(x, z);
         MC_TRACE_INSTANT("server.chunk", "ChunkUnloaded",
                    "Chunk", fmt::format("({}, {})", x, z));
-    });
+    });  // 闭合 setOnChunkUnload 的 lambda 和函数调用
 }
 
 void IntegratedServer::broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sectionY,

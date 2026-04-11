@@ -10,6 +10,10 @@
 
 namespace mc {
 
+// 前向声明
+class IChunk;
+class ChunkData;
+
 /**
  * @brief 世界光照管理器
  *
@@ -161,6 +165,31 @@ public:
      * @param retain 是否保留
      */
     void retainData(const ChunkPos& pos, bool retain);
+
+    // ========================================================================
+    // 区块光照初始化
+    // ========================================================================
+
+    /**
+     * @brief 照亮区块
+     *
+     * 执行完整的光照计算，包括天空光照和方块光照传播。
+     * 用于区块加载/生成时的初始光照计算。
+     *
+     * @param chunk 要照亮的目标区块
+     * @param needsEdgeChecks 是否需要检查边缘（首次光照时为true）
+     */
+    void lightChunk(const IChunk* chunk, bool needsEdgeChecks = true);
+
+    /**
+     * @brief 检查区块边缘
+     *
+     * 当邻居区块加载时，检查并修复边缘光照不一致。
+     *
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     */
+    void checkChunkEdges(i32 chunkX, i32 chunkZ);
 
     // ========================================================================
     // 调试信息
