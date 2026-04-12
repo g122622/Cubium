@@ -10,7 +10,6 @@ engine/
 ├── BaseLightEngine.hpp/cpp     # StarLightEngine 基类（Starlight 优化版）
 ├── BlockLightEngine.hpp/cpp    # BlockStarLightEngine 方块光照引擎
 ├── SkyLightEngine.hpp/cpp      # SkyStarLightEngine 天空光照引擎
-├── LightEngineCache.hpp/cpp    # 光照引擎缓存系统（备用）
 ├── LightEngineUtils.hpp/cpp    # 光照引擎工具类
 └── README.md                   # 本文档
 ```
@@ -151,42 +150,6 @@ classDiagram
 - 支持跨区块段向下传播（空区块段优化）
 - `checkBlock()` 会基于 `ROOT_POS` 贡献判断当前点是否可作为天空源重入增亮队列
 
-### LightEngineCache.hpp/cpp
-
-**职责**: 提供光照引擎的缓存系统，避免重复的区块查找操作。
-
-**主要内容**:
-
-```mermaid
-classDiagram
-    class LightEngineCache {
-        +CACHE_RADIUS: i32 = 2
-        +CHUNK_CACHE_SIZE: i32 = 25
-
-        -m_provider: StarLightLightingProvider*
-        -m_minSection: i32
-        -m_maxSection: i32
-        -m_chunkCache: array~const IChunk*, 25~
-        -m_sectionCache: unique_ptr~const void*[]~
-        -m_nibbleCache: unique_ptr~SWMRNibbleArray*[]~
-        -m_emptinessMapCache: array~const bool*, 25~
-
-        +setupCaches(centerX, centerY, centerZ, relaxed, loadTwoRadius)
-        +destroyCaches()
-        +getChunk(chunkX, chunkZ) const IChunk*
-        +getSection(sectionX, sectionY, sectionZ) const void*
-        +getNibble(sectionX, sectionY, sectionZ) SWMRNibbleArray*
-        +isSectionEmpty(sectionX, sectionY, sectionZ) bool
-        +getBlockState(worldX, worldY, worldZ) const BlockState*
-        +getLightLevel(worldX, worldY, worldZ) u8
-        +getCacheHitRate() f32
-    }
-```
-
-**缓存范围**:
-- 以中心区块为原点的 5x5 区块区域
-- 高度范围：从 `minSection - 1` 到 `maxSection + 1`（包含缓冲区）
-
 ### LightEngineUtils.hpp/cpp
 
 **职责**: 提供光照引擎的共享工具方法。
@@ -260,7 +223,6 @@ flowchart TB
         StarLightEngine
         BlockStarLightEngine
         SkyStarLightEngine
-        LightEngineCache
         LightEngineUtils
     end
 
@@ -270,7 +232,6 @@ flowchart TB
         BlockState
     end
 
-    StarLightEngine --> LightEngineCache
     StarLightEngine --> LightEngineUtils
 
     BlockStarLightEngine --> StarLightEngine
@@ -279,9 +240,6 @@ flowchart TB
 
     SkyStarLightEngine --> StarLightEngine
     SkyStarLightEngine --> SkyLightStorage
-
-    LightEngineCache --> StarLightLightingProvider
-    LightEngineCache --> IChunk
 
     LightEngineUtils --> BlockState
     LightEngineUtils --> IChunk

@@ -665,7 +665,6 @@ add_library(mc_common STATIC
     world/lighting/engine/BlockLightEngine.cpp
     world/lighting/engine/SkyLightEngine.cpp
     world/lighting/engine/LightEngineUtils.cpp
-    world/lighting/engine/LightEngineCache.cpp
     world/lighting/storage/BlockLightStorage.cpp
     world/lighting/storage/SkyLightStorage.cpp
     world/lighting/storage/EmptinessMap.cpp

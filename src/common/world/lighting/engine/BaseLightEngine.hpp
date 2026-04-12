@@ -2,7 +2,6 @@
 
 #include "../../../core/Types.hpp"
 #include "LightEngineUtils.hpp"
-#include "LightEngineCache.hpp"
 #include "../storage/SWMRNibbleArray.hpp"
 #include "../../block/Block.hpp"
 #include "../../chunk/ChunkPos.hpp"

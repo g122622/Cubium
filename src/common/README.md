@@ -416,7 +416,6 @@ src/common/
     │   │   ├── BlockLightEngine.hpp
     │   │   ├── SkyLightEngine.hpp
     │   │   ├── BaseLightEngine.hpp
-    │   │   ├── LightEngineCache.hpp
     │   │   └── LightEngineUtils.hpp
     │   ├── storage/
     │   │   ├── BlockLightStorage.hpp

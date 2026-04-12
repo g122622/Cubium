@@ -142,7 +142,6 @@ world/
 │   │   ├── BlockLightEngine.hpp/cpp
 │   │   ├── SkyLightEngine.hpp/cpp
 │   │   ├── BaseLightEngine.hpp/cpp
-│   │   ├── LightEngineCache.hpp/cpp
 │   │   └── LightEngineUtils.hpp/cpp
 │   ├── manager/                # Light manager
 │   │   └── WorldLightManager.hpp/cpp

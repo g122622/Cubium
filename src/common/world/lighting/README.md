@@ -13,7 +13,6 @@ lighting/
 ├── InternalLight.hpp/cpp      # 内部光照计算工具
 ├── engine/                    # 光照引擎
 │   ├── BaseLightEngine.hpp/cpp        # StarLightEngine 基类（Starlight优化版）
-│   ├── LightEngineCache.hpp/cpp       # 光照引擎缓存系统
 │   ├── LightEngineUtils.hpp/cpp       # 光照引擎工具类
 │   ├── BlockLightEngine.hpp/cpp       # BlockStarLightEngine 方块光照引擎
 │   └── SkyLightEngine.hpp/cpp         # SkyStarLightEngine 天空光照引擎
@@ -118,26 +117,6 @@ virtual void notifyNeighbors(i64 pos, i32 level, bool isDecreasing, u8 direction
 virtual i32 getLevel(i64 pos) const = 0;                          // 获取当前级别
 virtual void setLevel(i64 pos, i32 level) = 0;                    // 设置级别
 virtual i32 getEdgeLevel(i64 fromPos, i64 toPos, i32 startLevel) = 0;  // 计算边缘级别
-```
-
-#### LightEngineCache.hpp/cpp
-
-光照引擎缓存系统，避免重复的区块查找。
-
-**缓存范围**：以中心区块为中心的 5x5 区块区域
-
-**缓存内容**：
-- 区块指针缓存 (25个)
-- 区块段数据缓存
-- NibbleArray 缓存
-- 空区块段映射缓存
-
-**关键方法**：
-```cpp
-void setupCaches(i32 centerX, i32 centerY, i32 centerZ, bool relaxed, bool loadTwoRadius);
-void destroyCaches();
-const IChunk* getChunk(i32 chunkX, i32 chunkZ) const;
-bool isSectionEmpty(i32 sectionX, i32 sectionY, i32 sectionZ) const;
 ```
 
 #### LightEngineUtils.hpp/cpp
@@ -355,59 +334,6 @@ void setLight(i64 worldPos, u8 light);
 void updateVisible();  // 同步所有数组到可见侧
 ```
 
-## 模块关系图
-
-```
-                    ┌─────────────────────┐
-                    │  WorldLightManager  │
-                    │   (统一接口)         │
-                    └──────────┬──────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-              ▼                ▼                ▼
-    ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-    │ BlockStarLightEngine│ │ SkyStarLightEngine  │ │ InternalLight   │
-    │  (方块光照)      │ │  (天空光照)      │ │  (游戏机制)     │
-    └────────┬────────┘ └────────┬────────┘ └─────────────────┘
-             │                   │
-             │    ┌──────────────┴──────────────┐
-             │    │                             │
-             ▼    ▼                             ▼
-    ┌─────────────────┐               ┌─────────────────┐
-    │ StarLightEngine │               │LightEngineUtils │
-    │  (BFS传播基类)   │               │   (工具方法)    │
-    └────────┬────────┘               └─────────────────┘
-             │
-             ▼
-    ┌─────────────────┐
-    │LightEngineCache │
-    │   (区块缓存)     │
-    └─────────────────┘
-             │
-    ┌────────┴────────┐
-    │                 │
-    ▼                 ▼
-┌─────────────────┐ ┌─────────────────┐
-    │BlockLightStorage│ │ SkyLightStorage │
-    │  (方块光照存储)  │ │  (天空光照存储)  │
-    └────────┬────────┘ └────────┬────────┘
-             │                   │
-             └─────────┬─────────┘
-                       │
-                       ▼
-           ┌─────────────────────┐
-           │  SWMRLightDataMap   │
-           │   (数据映射基类)     │
-           └──────────┬──────────┘
-                      │
-                      ▼
-           ┌─────────────────────┐
-           │  SWMRNibbleArray    │
-           │  (单写多读Nibble数组)│
-           └─────────────────────┘
-```
-
 ## 数据流
 
 ```
@@ -591,12 +517,6 @@ void onChunkLoad(ChunkPos pos) {
 **问题**：方块光照和天空光照更新顺序不一致导致闪烁。
 
 **解决方案**：使用 `WorldLightManager::tick()` 统一管理更新配额分配。
-
-### 5. 缓存未清理
-
-**问题**：`LightEngineCache` 使用后未禁用导致内存泄漏。
-
-**解决方案**：光照计算完成后调用 `disableCache()`。
 
 ```cpp
 // 光照计算前
