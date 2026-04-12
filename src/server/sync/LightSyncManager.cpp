@@ -69,7 +69,7 @@ void LightSyncManager::onBlockStateChanged(i32 x, i32 y, i32 z, i32 oldLightLeve
 
 void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
 {
-    MC_TRACE_EVENT("server.lighting", "MarkLightChanged",
+    MC_TRACE_EVENT("server.lighting", "LightSyncManager::markLightChanged",
                    "Type", (type == LightType::SKY) ? "SKY" : "BLOCK",
                    "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 

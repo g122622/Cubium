@@ -1235,19 +1235,14 @@ void NetworkClient::handleLightUpdate(network::PacketDeserializer& deser) {
     }
 
     const auto& packet = result.value();
-    SectionPos sectionPos(packet.chunkX(), packet.sectionY(), packet.chunkZ());
-    MC_TRACE_INSTANT("client.lighting",
-        "ReceiveLightUpdate",
+        MC_TRACE_EVENT("client.lighting",
+        "NetworkClient::handleLightUpdate",
         "Section", fmt::format("({}, {}, {})", packet.chunkX(), packet.sectionY(), packet.chunkZ()),
         "SkyLightSize", packet.skyLight().size(),
         "BlockLightSize", packet.blockLight().size(),
-        [flow = ::perfetto::Flow::ProcessScoped(sectionPos.toLong())](::perfetto::EventContext ctx) {
+        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(packet.chunkX(), packet.sectionY(), packet.chunkZ()).toLong())](::perfetto::EventContext ctx) {
             flow(ctx);
     });
-
-    spdlog::debug("LightUpdate: chunk({}, {}, {}), skyLight={}B, blockLight={}B",
-                  packet.chunkX(), packet.sectionY(), packet.chunkZ(),
-                  packet.skyLight().size(), packet.blockLight().size());
 
     if (m_callbacks.onLightUpdate) {
         m_callbacks.onLightUpdate(

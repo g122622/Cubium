@@ -7,9 +7,15 @@
 #include "../../../util/Direction.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../physics/shape/Shapes.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/util/RateLimiter.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
+
+using mc::util::RateLimiter;
+static RateLimiter rateLimiter(10);
 
 namespace mc {
 
@@ -146,6 +152,12 @@ void StarLightEngine::destroyCaches() {
 }
 
 void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess) {
+    MC_TRACE_EVENT("server.lighting", "StarLightEngine::updateVisible", "isSkyLight", m_isSkyLight);
+    if (rateLimiter.try_acquire()) {
+        spdlog::info("Updating visible for {} light engine, queued updates: {}, needsUpdate: {}",
+            m_isSkyLight ? "sky" : "block", queuedUpdateSize(), m_needsUpdate);
+    }
+
     for (i32 index = 0, max = m_sectionCacheSize; index < max; ++index) {
         SWMRNibbleArray* nibble = m_nibbleCache[index];
         if (nibble == nullptr) {
@@ -154,6 +166,9 @@ void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess) {
 
         bool shouldNotify = m_notifyUpdateCache != nullptr && m_notifyUpdateCache[index];
         if (!shouldNotify && !nibble->isDirty()) {
+            if (rateLimiter.try_acquire()) {
+                spdlog::warn("Skipping notify for index {}, reason: not dirty and shouldNotify is false", index);
+            }
             continue;
         }
 
@@ -163,9 +178,27 @@ void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess) {
         i32 chunkY = ((index / (5 * 5)) % (ySections + 2 + 2)) - m_chunkOffsetY;
 
         if (nibble->updateVisible() || shouldNotify) {
+            MC_TRACE_EVENT("server.lighting", "InvokeMarkLightChangedCallback",
+                "chunkX", chunkX,
+                "chunkY", chunkY,
+                "chunkZ", chunkZ,
+                "updateVisible", nibble->updateVisible(),
+                "shouldNotify", shouldNotify
+            );
+
+            if (rateLimiter.try_acquire()) {
+                spdlog::info("Notifying light change for chunk ({}, {}, {}), updateVisible: {}, shouldNotify: {}",
+                    chunkX, chunkY, chunkZ, nibble->updateVisible(), shouldNotify
+                );
+            }
+
             lightAccess->markLightChanged(
                 m_isSkyLight ? LightType::SKY : LightType::BLOCK,
                 SectionPos(chunkX, chunkY, chunkZ)
+            );
+        } else {
+            spdlog::warn("Skipping notify for chunk ({}, {}, {}), reason: updateVisible is {}, shouldNotify is {}",
+                chunkX, chunkY, chunkZ, nibble->updateVisible(), shouldNotify
             );
         }
     }

@@ -774,12 +774,11 @@ void StandaloneServer::broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sect
                                              const std::vector<u8>& blockLight,
                                              bool trustEdges)
 {
-    SectionPos sectionPos(x, sectionY, z);
-    MC_TRACE_INSTANT("server.lighting", "BroadcastLightUpdate",
+    MC_TRACE_EVENT("server.lighting", "BroadcastLightUpdate",
                "Section", fmt::format("({}, {}, {})", x, sectionY, z),
                "SkyLightSize", skyLight.size(),
                "BlockLightSize", blockLight.size(),
-               [flow = ::perfetto::Flow::ProcessScoped(sectionPos.toLong())](::perfetto::EventContext ctx) {
+               [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](::perfetto::EventContext ctx) {
                    flow(ctx);
     });
 

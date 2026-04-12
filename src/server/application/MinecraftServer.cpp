@@ -335,7 +335,8 @@ void MinecraftServer::setupWorldCallbacks()
 
     // 设置光照变化回调：同步数据到 ChunkSection + 广播给客户端
     m_world->setOnLightChanged([this](LightType type, const SectionPos& pos) {
-        MC_TRACE_INSTANT("server.lighting", "OnLightChanged",
+        // 用MC_TRACE_EVENT会导致编译器死循环，故用MC_TRACE_INSTANT
+        MC_TRACE_INSTANT("server.lighting", "ServerWorld::OnLightChangedCallback.START",
                    "Type", (type == LightType::SKY) ? "Sky" : "Block",
                    "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
                    [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
@@ -371,6 +372,13 @@ void MinecraftServer::setupWorldCallbacks()
         if (!skyLight.empty() || !blockLight.empty()) {
             broadcastLightUpdate(pos.x, pos.z, pos.y, skyLight, blockLight, false);
         }
+
+        MC_TRACE_INSTANT("server.lighting", "ServerWorld::OnLightChangedCallback.END",
+                   "Type", (type == LightType::SKY) ? "Sky" : "Block",
+                   "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+                   [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) {
+                       flow(ctx);
+        });
     });
 
     // 设置方块破坏回调 - 播放破坏声音
@@ -880,7 +888,7 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
 
     // 处理方块破坏
     if (packet.action() == network::BlockInteractionAction::StopDestroyBlock) {
-        MC_TRACE_INSTANT("server.lighting",
+        MC_TRACE_EVENT("server.lighting",
             "HandleBlockBreak",
             "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
             "playerId", playerId,

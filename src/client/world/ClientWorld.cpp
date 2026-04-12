@@ -695,13 +695,12 @@ void ClientWorld::onLightUpdate(
     bool /*trustEdges*/
 )
 {
-    SectionPos sectionPos(chunkX, sectionY, chunkZ);
-    MC_TRACE_INSTANT("client.lighting",
+    MC_TRACE_EVENT("client.lighting",
         "ClientWorld::onLightUpdate",
         "Section", fmt::format("({}, {}, {})", chunkX, sectionY, chunkZ),
         "SkyLightSize", skyLight.size(),
         "BlockLightSize", blockLight.size(),
-        [flow = ::perfetto::Flow::ProcessScoped(sectionPos.toLong())](::perfetto::EventContext ctx) {
+        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(chunkX, sectionY, chunkZ).toLong())](::perfetto::EventContext ctx) {
             flow(ctx);
     });
 

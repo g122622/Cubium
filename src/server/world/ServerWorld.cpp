@@ -214,6 +214,16 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 
 bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 {
+    MC_TRACE_EVENT(
+        "server.world", "ServerWorld::setBlock",
+        "x", x,
+        "y", y,
+        "z", z,
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+        }
+    );
+
     // 调试世界禁止方块修改
     if (m_config.isDebugWorld) {
         return false;
@@ -348,20 +358,13 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     if (m_lightManager) {
-        MC_TRACE_INSTANT("server.lighting",
-            "CheckBlock",
-            "pos", fmt::format("({}, {}, {})", changedPos.x, changedPos.y, changedPos.z),
-            "oldLight", oldLightLevel,
-            "newLight", newLightLevel,
-            [flow = ::perfetto::Flow::ProcessScoped(changedPos.toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-        });
-
         m_lightManager->checkBlock(changedPos.x, changedPos.y, changedPos.z);
 
         if (newLightLevel > oldLightLevel) {
             m_lightManager->onBlockEmissionIncrease(changedPos.x, changedPos.y, changedPos.z, newLightLevel);
         }
+    } else {
+        MC_ASSERT_RELEASE(false);
     }
 
     // setBlock 路径不会自动触发 LiquidBlock 回调，这里主动补一次流体初始调度。
@@ -885,7 +888,7 @@ const IWorld* ServerWorld::getWorld() const
 
 void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
 {
-    MC_TRACE_INSTANT("server.lighting", "ServerWorld::markLightChanged",
+    MC_TRACE_EVENT("server.lighting", "ServerWorld::markLightChanged",
                "Type", (type == LightType::SKY) ? "Sky" : "Block",
                "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 
