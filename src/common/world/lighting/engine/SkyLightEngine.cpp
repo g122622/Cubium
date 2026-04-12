@@ -5,11 +5,44 @@
 #include "../../block/Block.hpp"
 #include "../../IWorld.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../physics/shape/Shapes.hpp"
+#include "../../../physics/shape/VoxelShape.hpp"
 #include <algorithm>
 #include <cstring>
 #include <spdlog/spdlog.h>
 
 namespace mc {
+
+// ============================================================================
+// 辅助函数：将 CollisionShape 转换为 VoxelShape
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 将 CollisionShape 转换为 VoxelShape
+ *
+ * 用于面遮挡检测。对于完整方块和空形状有优化路径。
+ * 参考 Moonrise 中使用 Shapes.faceShapeOccludes 的逻辑
+ */
+VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
+    if (shape.isEmpty()) {
+        return Shapes::empty();
+    }
+    if (shape.isFullBlock()) {
+        return Shapes::block();
+    }
+    // 对于简单盒，创建对应的 VoxelShape
+    const auto& boxes = shape.boxes();
+    if (boxes.empty()) {
+        return Shapes::empty();
+    }
+    // 使用第一个碰撞盒创建 VoxelShape
+    const auto& box = boxes[0];
+    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+}
+
+} // anonymous namespace
 
 // ============================================================================
 // 构造函数
@@ -110,9 +143,12 @@ void SkyStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool ext
 }
 
 void SkyStarLightEngine::initNibble(SWMRNibbleArray* currNibble, i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude) {
-    // 跳过已初始化且有数据的数组
-    if (currNibble->isInitializedUpdating()) {
-        return;  // 已有数据，不需要重新初始化
+    // 参考 Moonrise SkyStarLightEngine.initNibble
+    // 关键：使用 isNullUpdating() 而不是 !isInitializedUpdating()
+    // NULL 状态表示 nibble 不存在，UNINIT/INIT 状态都表示已存在（数据全零或实际数据）
+    if (!currNibble->isNullUpdating()) {
+        // already initialised
+        return;
     }
 
     const bool* emptinessMap = StarLightEngine::getEmptinessMap(chunkX, chunkZ);
@@ -242,60 +278,94 @@ i32 SkyStarLightEngine::getLightLevelExtruded(i32 worldX, i32 worldY, i32 worldZ
 
 i32 SkyStarLightEngine::tryPropagateSkylight(IWorld* world, i32 worldX, i32 startY, i32 worldZ,
                                               bool extrudeInitialised, bool delayLightSet) {
+    // 参考 Moonrise SkyStarLightEngine.tryPropagateSkylight
     i32 encodeOffset = m_coordinateOffset;
-    i32 propagateDirection = getEverythingButDirection(LightAxisDirection::POSITIVE_Y);  // 不检查向上
+    i64 propagateDirection = static_cast<i64>(getEverythingButDirection(LightAxisDirection::POSITIVE_Y));  // just don't check upwards
 
     if (getLightLevelExtruded(worldX, startY + 1, worldZ) != 15) {
         return startY;
     }
 
-    // 确保此区块段被检查
+    // ensure this section is always checked
     checkNullSection(worldX >> 4, startY >> 4, worldZ >> 4, extrudeInitialised);
 
     const BlockState* above = getBlockState(worldX, startY + 1, worldZ);
 
     for (i32 currY = startY; currY >= (m_minLightSection << 4); --currY) {
         if ((currY & 15) == 15) {
+            // ensure this section is always checked
             checkNullSection(worldX >> 4, currY >> 4, worldZ >> 4, extrudeInitialised);
         }
-
         const BlockState* current = getBlockState(worldX, currY, worldZ);
 
-        // 条件透明检查：检查从上方方块到当前方块的面是否被遮挡
-        // 注意：天空光向下传播，所以方向是 NEGATIVE_Y
-        if (above != nullptr && current != nullptr) {
-            if (isFaceOccluded(above, current, LightAxisDirection::NEGATIVE_Y)) {
-                break;  // 面被遮挡，停止传播
+        // 条件透明检查 - 参考 Moonrise 的精确检测
+        // 第一步：检查 above 方块是否阻止光向下传播
+        const CollisionShape* fromShape = nullptr;
+        if (above != nullptr && above->useShapeForLightOcclusion()) {
+            // 获取 above 方块底面的遮挡形状
+            fromShape = &above->getFaceOcclusionShape(Direction::Down);
+            // 如果 above 的底面完全遮挡空形状，则光无法通过
+            if (fromShape != nullptr && fromShape->isFullBlock()) {
+                break;  // above wont let us propagate
             }
         }
 
+        // 第二步：检查 current 方块是否接收来自上方的光
+        u64 flags = 0;
+        if (current != nullptr && current->useShapeForLightOcclusion()) {
+            // 获取 current 方块顶面的遮挡形状
+            const CollisionShape& cullingFace = current->getFaceOcclusionShape(Direction::Up);
+
+            // 如果 fromShape 和 cullingFace 的组合遮挡，光无法传播
+            if (fromShape != nullptr) {
+                // 使用 VoxelShape 进行精确检测
+                VoxelShape fromVoxel = collisionShapeToVoxelShape(*fromShape);
+                VoxelShape cullingVoxel = collisionShapeToVoxelShape(cullingFace);
+                if (Shapes::faceShapeOccludes(fromVoxel, cullingVoxel)) {
+                    break;  // can't propagate here, we're done on this column
+                }
+            } else if (cullingFace.isFullBlock()) {
+                // fromShape 是空的，但 cullingFace 完全遮挡
+                break;
+            }
+            flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+        }
+
+        // 获取透明度
         i32 opacity = 0;
         if (current != nullptr) {
-            opacity = std::max(0, current->getBlock().getOpacity(*current));
+            opacity = current->getBlock().getOpacity(*current);
         }
 
         if (opacity > 0) {
-            break;  // 不透明，停止传播
+            // let the queued value (if any) handle it from here.
+            break;
         }
 
-        // 检查当前方块是否需要形状遮挡检测
-        bool hasSidedTransparent = (current != nullptr && current->useShapeForLightOcclusion());
-
-        // 添加到增亮队列（可能延迟设置）
+        // light set delayed until we determine if this nibble section is null
         appendToIncreaseQueue(
-            ((worldX + (worldZ << 6) + (currY << 12) + encodeOffset) & 0xFFFFFFFF) |
-            (static_cast<u64>(15) << 28) |
-            (static_cast<u64>(propagateDirection) << 32) |
-            (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
+            ((worldX + (worldZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                | (15LL << 28)  // we know we're at full lit here
+                | (propagateDirection << 32)
+                | flags
         );
 
         above = current;
 
         if (getNibbleFromCache(worldX >> 4, currY >> 4, worldZ >> 4) == nullptr) {
-            // 跳过 null 区块段
-            --m_increaseQueueInitialLength;  // 移除最后添加的队列条目
-            currY = currY & ~15;  // 跳到下一区块段的顶部
-            above = nullptr;  // 空气
+            // we skip empty sections here, as this is just an easy way of making sure the above block
+            // can propagate through air.
+
+            // nothing can propagate in null sections, remove the queue entry for it
+            --m_increaseQueueInitialLength;
+
+            // advance currY to the top of the section below
+            currY = currY & ~15;
+            // note: this value ^ is actually 1 above the top, but the loop decrements by 1 so we actually
+            // end up there
+
+            // make sure this is marked as AIR
+            above = nullptr;  // AIR_BLOCK_STATE
         } else if (!delayLightSet) {
             setLightLevel(worldX, currY, worldZ, 15);
         }
@@ -353,20 +423,21 @@ void SkyStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
 
     if (currentLevel == 15) {
         // 必须重新传播被覆盖的天空源
+        // 使用 28 位掩码，与 Moonrise 一致
         appendToIncreaseQueue(
-            ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & 0xFFFFFFFF) |
-            (static_cast<u64>(currentLevel & 0xF) << 28) |
-            (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
-            FLAG_HAS_SIDED_TRANSPARENT_BLOCKS
+            ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                | (static_cast<u64>(currentLevel & 0xF) << 28)
+                | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+                | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS  // don't know if the block is conditionally transparent
         );
     } else {
         setLightLevel(worldX, worldY, worldZ, 0);
     }
 
     appendToDecreaseQueue(
-        ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & 0xFFFFFFFF) |
-        (static_cast<u64>(currentLevel & 0xF) << 28) |
-        (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+        ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1))
+            | (static_cast<u64>(currentLevel & 0xF) << 28)
+            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
     );
 }
 
@@ -377,22 +448,25 @@ void SkyStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
 i32 SkyStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAccess,
                                              i32 worldX, i32 worldY, i32 worldZ,
                                              i32 expected) {
+    // 参考 Moonrise SkyStarLightEngine.calculateLightValue
     if (expected == 15) {
         return expected;
     }
 
+    i32 sectionOffset = m_chunkSectionIndexOffset;
     const BlockState* centerState = getBlockState(worldX, worldY, worldZ);
 
-    i32 opacity = 0;
+    // 检查中心方块是否是条件透明方块
+    const BlockState* conditionallyOpaqueState = nullptr;
+    i32 opacity = 1;  // 默认透明度
     if (centerState != nullptr) {
         opacity = std::max(1, centerState->getBlock().getOpacity(*centerState));
+        if (centerState->useShapeForLightOcclusion()) {
+            conditionallyOpaqueState = centerState;
+        }
     }
 
-    // 检查中心方块是否使用形状遮挡
-    bool centerUseShape = (centerState != nullptr && centerState->useShapeForLightOcclusion());
-
     i32 level = 0;
-    i32 sectionOffset = m_chunkSectionIndexOffset;
 
     for (LightAxisDirection dir : ALL_AXIS_DIRECTIONS) {
         i32 dx, dy, dz;
@@ -408,15 +482,28 @@ i32 SkyStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAcce
         i32 neighbourLevel = getLightLevel(sectionIndex, localIndex);
 
         if ((neighbourLevel - 1) <= level) {
+            // don't need to test transparency, we know it wont affect the result.
             continue;
         }
 
         const BlockState* neighbourState = getBlockState(offX, offY, offZ);
 
-        // 条件透明检查：如果任一方块使用形状遮挡，检查面是否被遮挡
-        if (centerUseShape || (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion())) {
-            // 光从邻居方块传播到中心方块，所以方向是反的
-            if (isFaceOccluded(neighbourState, centerState, getOppositeDirection(dir))) {
+        // 条件透明检查 - 与 Moonrise 完全一致的逻辑
+        if (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion()) {
+            // here the block can be conditionally opaque (i.e light cannot propagate from it), so we need to test that
+            // we don't read the blockstate because most of the time this is false, so using the faster
+            // known transparency lookup results in a net win
+            CollisionShape neighbourFaceShape = neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
+            CollisionShape thisFaceShape = (conditionallyOpaqueState != nullptr)
+                ? conditionallyOpaqueState->getFaceOcclusionShape(getNMSDirection(dir))
+                : CollisionShape();  // 空形状
+
+            // 使用 VoxelShape 进行精确的面遮挡检测
+            VoxelShape neighbourVoxel = collisionShapeToVoxelShape(neighbourFaceShape);
+            VoxelShape thisVoxel = collisionShapeToVoxelShape(thisFaceShape);
+
+            if (Shapes::faceShapeOccludes(thisVoxel, neighbourVoxel)) {
+                // not allowed to propagate
                 continue;
             }
         }
@@ -494,9 +581,10 @@ void SkyStarLightEngine::propagateBlockChanges(StarLightLightingProvider* lightA
                 }
 
                 appendToDecreaseQueue(
-                    ((columnX + (columnZ << 6) + (currY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                    (static_cast<u64>(15) << 28) |
-                    (static_cast<u64>(propagateDirection) << 32)
+                    ((columnX + (columnZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                        | (15LL << 28)
+                        | (static_cast<u64>(propagateDirection) << 32)
+                        // do not set transparent blocks for the same reason we don't in the checkBlock method
                 );
             }
         }
@@ -585,10 +673,10 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
             for (i32 currY = highestNonEmptySection << 4, maxY = currY | 15; currY <= maxY; ++currY) {
                 for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
                     appendToIncreaseQueue(
-                        ((currX + (currZ << 6) + (currY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                        (static_cast<u64>(15) << 28) |  // 全亮
-                        (static_cast<u64>(propagateDir) << 32)
-                        // 无需 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS，因为区块段是空的
+                        ((currX + (currZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (15LL << 28)  // we know we're at full lit here
+                            | (static_cast<u64>(propagateDir) << 32)
+                            // no transparent flag, we know for a fact there are no blocks here that could be directionally transparent (as the section is EMPTY)
                     );
                 }
             }

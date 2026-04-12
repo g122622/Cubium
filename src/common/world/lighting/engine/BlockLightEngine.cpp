@@ -5,12 +5,46 @@
 #include "../../block/Block.hpp"
 #include "../../IWorld.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../physics/shape/Shapes.hpp"
+#include "../../../physics/shape/VoxelShape.hpp"
 #include <algorithm>
 #include <cstring>
 #include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
+
+// ============================================================================
+// 辅助函数：将 CollisionShape 转换为 VoxelShape
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 将 CollisionShape 转换为 VoxelShape
+ *
+ * 用于面遮挡检测。对于完整方块和空形状有优化路径。
+ * 参考 Moonrise 中使用 Shapes.faceShapeOccludes 的逻辑
+ */
+VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
+    if (shape.isEmpty()) {
+        return Shapes::empty();
+    }
+    if (shape.isFullBlock()) {
+        return Shapes::block();
+    }
+    // 对于简单盒，创建对应的 VoxelShape
+    const auto& boxes = shape.boxes();
+    if (boxes.empty()) {
+        return Shapes::empty();
+    }
+    // 使用第一个碰撞盒创建 VoxelShape
+    // 注意：对于复杂形状（多个盒），这只是一个近似
+    const auto& box = boxes[0];
+    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+}
+
+} // anonymous namespace
 
 // ============================================================================
 // 构造函数
@@ -145,18 +179,18 @@ void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
         bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
 
         appendToIncreaseQueue(
-            ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & 0xFFFFFFFF) |
-            (static_cast<u64>(emittedLevel & 0xF) << 28) |
-            (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
-            (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
+            ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                | (static_cast<u64>(emittedLevel & 0xF) << 28)
+                | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+                | (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
         );
     }
 
     // 添加到减亮队列
     appendToDecreaseQueue(
-        ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & 0xFFFFFFFF) |
-        (static_cast<u64>(currentLevel & 0xF) << 28) |
-        (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+        ((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1))
+            | (static_cast<u64>(currentLevel & 0xF) << 28)
+            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
     );
 }
 
@@ -167,6 +201,7 @@ void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
 i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAccess,
                                                i32 worldX, i32 worldY, i32 worldZ,
                                                i32 expected) {
+    // 参考 Moonrise BlockStarLightEngine.calculateLightValue
     const BlockState* centerState = getBlockState(worldX, worldY, worldZ);
     IWorld* world = lightAccess->getWorld();
 
@@ -175,6 +210,7 @@ i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAc
         level = centerState->getBlock().getLightLevel(*centerState) & m_emittedLightMask;
     }
 
+    // Moonrise: if (level >= (15 - 1) || level > expect)
     if (level >= 14 || level > expected) {
         return level;
     }
@@ -188,8 +224,11 @@ i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAc
         return level;
     }
 
-    // 检查中心方块是否使用形状遮挡
-    bool centerUseShape = (centerState != nullptr && centerState->useShapeForLightOcclusion());
+    // 检查中心方块是否是条件透明方块
+    const BlockState* conditionallyOpaqueState = nullptr;
+    if (centerState != nullptr && centerState->useShapeForLightOcclusion()) {
+        conditionallyOpaqueState = centerState;
+    }
 
     i32 sectionOffset = m_chunkSectionIndexOffset;
 
@@ -207,19 +246,34 @@ i32 BlockStarLightEngine::calculateLightValue(StarLightLightingProvider* lightAc
         i32 neighbourLevel = getLightLevel(sectionIndex, localIndex);
 
         if ((neighbourLevel - 1) <= level) {
+            // don't need to test transparency, we know it wont affect the result.
             continue;
         }
 
         const BlockState* neighbourState = getBlockState(offX, offY, offZ);
 
-        // 条件透明检查：如果任一方块使用形状遮挡，检查面是否被遮挡
-        if (centerUseShape || (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion())) {
-            // 光从邻居方块传播到中心方块，所以方向是反的
-            if (isFaceOccluded(neighbourState, centerState, getOppositeDirection(dir))) {
+        // 条件透明检查 - 与 Moonrise 完全一致
+        if (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion()) {
+            // here the block can be conditionally opaque (i.e light cannot propagate from it), so we need to test that
+            // we don't read the blockstate because most of the time this is false, so using the faster
+            // known transparency lookup results in a net win
+            CollisionShape neighbourFace = neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
+            CollisionShape thisFace;
+            if (conditionallyOpaqueState != nullptr) {
+                thisFace = conditionallyOpaqueState->getFaceOcclusionShape(getNMSDirection(dir));
+            }
+
+            // 使用 Shapes::faceShapeOccludes 进行精确的面遮挡检测
+            VoxelShape neighbourVoxel = collisionShapeToVoxelShape(neighbourFace);
+            VoxelShape thisVoxel = collisionShapeToVoxelShape(thisFace);
+
+            if (Shapes::faceShapeOccludes(thisVoxel, neighbourVoxel)) {
+                // not allowed to propagate
                 continue;
             }
         }
 
+        // passed transparency,
         i32 calculated = neighbourLevel - opacity;
         level = std::max(calculated, level);
 
@@ -321,10 +375,10 @@ void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
         bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
 
         appendToIncreaseQueue(
-            ((pos.x + (pos.z << 6) + (pos.y << 12) + encodeOffset) & 0xFFFFFFFF) |
-            (static_cast<u64>(emittedLight & 0xF) << 28) |
-            (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
-            (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
+            ((pos.x + (pos.z << 6) + (pos.y << 12) + encodeOffset) & ((1LL << 28) - 1))
+                | (static_cast<u64>(emittedLight & 0xF) << 28)
+                | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+                | (hasSidedTransparent ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
         );
 
         setLightLevel(pos.x, pos.y, pos.z, emittedLight);

@@ -7,6 +7,7 @@
 #include "../../../util/Direction.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../physics/shape/Shapes.hpp"
+#include "../../../physics/shape/VoxelShape.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
 #include <algorithm>
@@ -14,6 +15,38 @@
 #include <spdlog/spdlog.h>
 
 namespace mc {
+
+// ============================================================================
+// 辅助函数：将 CollisionShape 转换为 VoxelShape
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 将 CollisionShape 转换为 VoxelShape
+ *
+ * 用于面遮挡检测。对于完整方块和空形状有优化路径。
+ * 参考 Moonrise 中使用 Shapes.faceShapeOccludes 的逻辑
+ */
+VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
+    if (shape.isEmpty()) {
+        return Shapes::empty();
+    }
+    if (shape.isFullBlock()) {
+        return Shapes::block();
+    }
+    // 对于简单盒，创建对应的 VoxelShape
+    const auto& boxes = shape.boxes();
+    if (boxes.empty()) {
+        return Shapes::empty();
+    }
+    // 使用第一个碰撞盒创建 VoxelShape
+    // 注意：对于复杂形状（多个盒），这只是一个近似
+    const auto& box = boxes[0];
+    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+}
+
+} // anonymous namespace
 
 // ============================================================================
 // 静态成员初始化
@@ -502,10 +535,10 @@ void StarLightEngine::propagateNeighbourLevels(StarLightLightingProvider* lightA
                     }
 
                     appendToIncreaseQueue(
-                        ((currX + (currZ << 6) + (currY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                        (static_cast<u64>(level & 0xF) << 28) |
-                        (static_cast<u64>(propagateDirection) << 32) |
-                        FLAG_HAS_SIDED_TRANSPARENT_BLOCKS  // 不知道当前方块是否透明，必须检查
+                        ((currX + (currZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(level & 0xF) << 28)
+                            | (static_cast<u64>(propagateDirection) << 32)
+                            | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS  // 不知道当前方块是否透明，必须检查
                     );
                 }
             }
@@ -850,56 +883,45 @@ i32 StarLightEngine::performUpdates(StarLightLightingProvider* lightAccess, i32 
 // ============================================================================
 
 void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAccess) {
+    // 参考 Moonrise StarLightEngine.performLightIncrease
     i32 decodeOffsetX = -m_encodeOffsetX;
     i32 decodeOffsetY = -m_encodeOffsetY;
     i32 decodeOffsetZ = -m_encodeOffsetZ;
     i32 encodeOffset = m_coordinateOffset;
     i32 sectionOffset = m_chunkSectionIndexOffset;
 
-    // 防止无限循环的安全限制
-    constexpr i32 MAX_ITERATIONS = 100000;
-    i32 iterations = 0;
+    i32 queueReadIndex = 0;
+    i32 queueLength = m_increaseQueueInitialLength;
+    m_increaseQueueInitialLength = 0;
 
-    // 持续处理直到队列为空
-    while (m_increaseQueueInitialLength > 0) {
-        if (++iterations > MAX_ITERATIONS) {
-            m_increaseQueueInitialLength = 0;
-            break;
+    while (queueReadIndex < queueLength) {
+        u64 queueValue = m_increaseQueue[static_cast<size_t>(queueReadIndex++)];
+
+        // 解码队列条目
+        i32 posX = (static_cast<i32>(queueValue) & 63) + decodeOffsetX;
+        i32 posZ = ((static_cast<i32>(queueValue) >> 6) & 63) + decodeOffsetZ;
+        i32 posY = ((static_cast<i32>(queueValue) >> 12) & 0xFFFF) + decodeOffsetY;
+        i32 propagatedLevel = static_cast<i32>((queueValue >> 28) & 0xF);
+        i32 directionBits = static_cast<i32>((queueValue >> 32) & 0x3F);
+
+        // 检查重检标志
+        if ((queueValue & FLAG_RECHECK_LEVEL) != 0) {
+            if (getLightLevel(posX, posY, posZ) != propagatedLevel) {
+                // not at the level we expect, so something changed.
+                continue;
+            }
+        } else if ((queueValue & FLAG_WRITE_LEVEL) != 0) {
+            // these are used to restore block sources after a propagation decrease
+            setLightLevel(posX, posY, posZ, propagatedLevel);
         }
 
-        i32 queueLength = m_increaseQueueInitialLength;
-        m_increaseQueueInitialLength = 0;
-
-        for (i32 readIndex = 0; readIndex < queueLength; ++readIndex) {
-            u64 queueValue = m_increaseQueue[static_cast<size_t>(readIndex)];
-
-            // 解码队列条目
-            i32 posX = (static_cast<i32>(queueValue) & 63) + decodeOffsetX;
-            i32 posZ = ((static_cast<i32>(queueValue) >> 6) & 63) + decodeOffsetZ;
-            i32 posY = ((static_cast<i32>(queueValue) >> 12) & 0xFFFF) + decodeOffsetY;
-            i32 propagatedLevel = static_cast<i32>((queueValue >> 28) & 0xF);
-            i32 directionBits = static_cast<i32>((queueValue >> 32) & 0x3F);
-
-            // 检查重检标志
-            if ((queueValue & FLAG_RECHECK_LEVEL) != 0) {
-                if (getLightLevel(posX, posY, posZ) != propagatedLevel) {
-                    continue;
-                }
-            }
-
-            // 写入等级标志
-            if ((queueValue & FLAG_WRITE_LEVEL) != 0) {
-                setLightLevel(posX, posY, posZ, propagatedLevel);
-            }
-
-            // 获取源方块状态（用于条件透明检查）
-            const BlockState* fromState = getBlockState(posX, posY, posZ);
-
-            // 遍历方向传播
+        // 根据 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 标志选择处理路径
+        if ((queueValue & FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) == 0) {
+            // we don't need to worry about our state here.
             const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
-            for (LightAxisDirection dir : directions) {
+            for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
-                getDirectionOffset(dir, dx, dy, dz);
+                getDirectionOffset(propagate, dx, dy, dz);
 
                 i32 offX = posX + dx;
                 i32 offY = posY + dy;
@@ -908,53 +930,121 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
                 i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
 
-                // 边界检查：确保 sectionIndex 在有效范围内
-                if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize) {
-                    continue;
-                }
-
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 currentLevel;
                 if (currentNibble == nullptr || (currentLevel = currentNibble->getUpdating(localIndex)) >= (propagatedLevel - 1)) {
+                    continue; // already at the level we want or unloaded
+                }
+
+                const BlockState* blockState = getBlockState(sectionIndex, localIndex);
+                if (blockState == nullptr) {
                     continue;
                 }
 
-                // 获取目标方块状态
-                const BlockState* toState = getBlockState(offX, offY, offZ);
-
-                // 条件透明检查：检查面是否被遮挡
-                if (isFaceOccluded(fromState, toState, dir)) {
-                    continue;
+                u64 flags = 0;
+                if (blockState->useShapeForLightOcclusion()) {
+                    // 获取遮挡面
+                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                    if (cullingFace.isFullBlock()) {
+                        // 完全面遮挡，无法传播
+                        continue;
+                    }
+                    if (!cullingFace.isEmpty()) {
+                        // 部分遮挡，需要后续检测
+                        flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                    }
                 }
 
-                // 获取目标方块的透明度
-                i32 opacity = 1;
-                if (toState != nullptr) {
-                    opacity = std::max(1, toState->getBlock().getOpacity(*toState));
-                }
-
-                // 计算传播后的光照等级
-                i32 targetLevel = propagatedLevel - opacity;
+                i32 opacity = blockState->getBlock().getOpacity(*blockState);
+                i32 targetLevel = propagatedLevel - std::max(1, opacity);
                 if (targetLevel <= currentLevel) {
                     continue;
-                }
-
-                // 检查目标方块是否需要形状遮挡（用于后续传播）
-                u64 flags = 0;
-                if (toState != nullptr && toState->useShapeForLightOcclusion()) {
-                    flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
                 }
 
                 currentNibble->set(localIndex, static_cast<u8>(targetLevel));
                 postLightUpdate(offX, offY, offZ);
 
                 if (targetLevel > 1) {
-                    appendToIncreaseQueue(
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                        (static_cast<u64>(targetLevel & 0xF) << 28) |
-                        (static_cast<u64>(getEverythingButOppositeDirection(dir)) << 32) |
-                        flags
-                    );
+                    if (queueLength >= static_cast<i32>(m_increaseQueue.size())) {
+                        resizeIncreaseQueue();
+                    }
+                    m_increaseQueue[static_cast<size_t>(queueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(targetLevel & 0xF) << 28)
+                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
+                            | flags;
+                }
+            }
+        } else {
+            // we actually need to worry about our state here
+            const BlockState* fromBlock = getBlockState(posX, posY, posZ);
+            const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
+
+            for (LightAxisDirection propagate : directions) {
+                i32 dx, dy, dz;
+                getDirectionOffset(propagate, dx, dy, dz);
+
+                i32 offX = posX + dx;
+                i32 offY = posY + dy;
+                i32 offZ = posZ + dz;
+
+                // 检查源方块的遮挡面
+                CollisionShape fromShape;  // 空 shape
+                if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
+                    fromShape = fromBlock->getFaceOcclusionShape(getNMSDirection(propagate));
+                }
+
+                if (!fromShape.isEmpty() && fromShape.isFullBlock()) {
+                    // 源面完全遮挡，无法传播
+                    continue;
+                }
+
+                i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
+                i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+
+                SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
+                i32 currentLevel;
+                if (currentNibble == nullptr || (currentLevel = currentNibble->getUpdating(localIndex)) >= (propagatedLevel - 1)) {
+                    continue; // already at the level we want
+                }
+
+                const BlockState* blockState = getBlockState(sectionIndex, localIndex);
+                if (blockState == nullptr) {
+                    continue;
+                }
+
+                u64 flags = 0;
+                if (blockState->useShapeForLightOcclusion()) {
+                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+
+                    // 使用 VoxelShape 进行精确遮挡检测
+                    VoxelShape fromVoxel = collisionShapeToVoxelShape(fromShape);
+                    VoxelShape cullingVoxel = collisionShapeToVoxelShape(cullingFace);
+
+                    if (Shapes::faceShapeOccludes(fromVoxel, cullingVoxel)) {
+                        continue;
+                    }
+                    flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                }
+
+                i32 opacity = blockState->getBlock().getOpacity(*blockState);
+                i32 targetLevel = propagatedLevel - std::max(1, opacity);
+                if (targetLevel <= currentLevel) {
+                    continue;
+                }
+
+                currentNibble->set(localIndex, static_cast<u8>(targetLevel));
+                postLightUpdate(offX, offY, offZ);
+
+                if (targetLevel > 1) {
+                    if (queueLength >= static_cast<i32>(m_increaseQueue.size())) {
+                        resizeIncreaseQueue();
+                    }
+                    m_increaseQueue[static_cast<size_t>(queueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(targetLevel & 0xF) << 28)
+                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
+                            | flags;
                 }
             }
         }
@@ -962,6 +1052,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
 }
 
 void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAccess) {
+    // 参考 Moonrise StarLightEngine.performLightDecrease
     i32 decodeOffsetX = -m_encodeOffsetX;
     i32 decodeOffsetY = -m_encodeOffsetY;
     i32 decodeOffsetZ = -m_encodeOffsetZ;
@@ -969,37 +1060,27 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
     i32 sectionOffset = m_chunkSectionIndexOffset;
     i32 emittedMask = m_emittedLightMask;
 
-    // 防止无限循环的安全限制
-    constexpr i32 MAX_ITERATIONS = 100000;
-    i32 iterations = 0;
+    i32 queueReadIndex = 0;
+    i32 queueLength = m_decreaseQueueInitialLength;
+    m_decreaseQueueInitialLength = 0;
+    i32 increaseQueueLength = m_increaseQueueInitialLength;
 
-    // 持续处理直到队列为空
-    while (m_decreaseQueueInitialLength > 0) {
-        if (++iterations > MAX_ITERATIONS) {
-            spdlog::warn("performLightDecrease hit iteration limit: iterations={}", iterations);
-            m_decreaseQueueInitialLength = 0;
-            break;
-        }
+    while (queueReadIndex < queueLength) {
+        u64 queueValue = m_decreaseQueue[static_cast<size_t>(queueReadIndex++)];
 
-        i32 queueLength = m_decreaseQueueInitialLength;
-        m_decreaseQueueInitialLength = 0;
+        i32 posX = (static_cast<i32>(queueValue) & 63) + decodeOffsetX;
+        i32 posZ = ((static_cast<i32>(queueValue) >> 6) & 63) + decodeOffsetZ;
+        i32 posY = ((static_cast<i32>(queueValue) >> 12) & 0xFFFF) + decodeOffsetY;
+        i32 propagatedLevel = static_cast<i32>((queueValue >> 28) & 0xF);
+        i32 directionBits = static_cast<i32>((queueValue >> 32) & 0x3F);
 
-        for (i32 readIndex = 0; readIndex < queueLength; ++readIndex) {
-            u64 queueValue = m_decreaseQueue[static_cast<size_t>(readIndex)];
-
-            i32 posX = (static_cast<i32>(queueValue) & 63) + decodeOffsetX;
-            i32 posZ = ((static_cast<i32>(queueValue) >> 6) & 63) + decodeOffsetZ;
-            i32 posY = ((static_cast<i32>(queueValue) >> 12) & 0xFFFF) + decodeOffsetY;
-            i32 propagatedLevel = static_cast<i32>((queueValue >> 28) & 0xF);
-            i32 directionBits = static_cast<i32>((queueValue >> 32) & 0x3F);
-
-            // 获取源方块状态（用于条件透明检查）
-            const BlockState* fromState = getBlockState(posX, posY, posZ);
-
+        // 根据 FLAG_HAS_SIDED_TRANSPARENT_BLOCKS 标志选择处理路径
+        if ((queueValue & FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) == 0) {
+            // we don't need to worry about our state here.
             const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
-            for (LightAxisDirection dir : directions) {
+            for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
-                getDirectionOffset(dir, dx, dy, dz);
+                getDirectionOffset(propagate, dx, dy, dz);
 
                 i32 offX = posX + dx;
                 i32 offY = posY + dy;
@@ -1008,76 +1089,184 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
                 i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
 
-                // 边界检查：确保 sectionIndex 在有效范围内
-                if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize) {
-                    continue;
-                }
-
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 lightLevel;
 
                 if (currentNibble == nullptr || (lightLevel = currentNibble->getUpdating(localIndex)) == 0) {
+                    // already at lowest (or unloaded), nothing we can do
                     continue;
                 }
 
-                // 获取目标方块状态
-                const BlockState* toState = getBlockState(offX, offY, offZ);
-
-                // 条件透明检查（减亮传播时也需要检查，因为如果面被遮挡，光线本来就不会传播过去）
-                if (isFaceOccluded(fromState, toState, dir)) {
+                const BlockState* blockState = getBlockState(sectionIndex, localIndex);
+                if (blockState == nullptr) {
                     continue;
                 }
 
-                // 获取目标方块的透明度
-                i32 opacity = 1;
-                if (toState != nullptr) {
-                    opacity = std::max(1, toState->getBlock().getOpacity(*toState));
+                u64 flags = 0;
+                if (blockState->useShapeForLightOcclusion()) {
+                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                    if (cullingFace.isFullBlock()) {
+                        // 完全面遮挡
+                        continue;
+                    }
+                    if (!cullingFace.isEmpty()) {
+                        flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                    }
                 }
 
-                i32 targetLevel = std::max(0, propagatedLevel - opacity);
+                i32 opacity = blockState->getBlock().getOpacity(*blockState);
+                i32 targetLevel = std::max(0, propagatedLevel - std::max(1, opacity));
 
                 if (lightLevel > targetLevel) {
-                    // 检查是否有光源发射
-                    i32 emittedLevel = 0;
-                    if (toState != nullptr) {
-                        emittedLevel = toState->getBlock().getLightLevel(*toState) & emittedMask;
+                    // it looks like another source propagated here, so re-propagate it
+                    if (increaseQueueLength >= static_cast<i32>(m_increaseQueue.size())) {
+                        resizeIncreaseQueue();
                     }
-
-                    // 如果有光源，需要重新传播
-                    if (emittedLevel > 0) {
-                        appendToIncreaseQueue(
-                            ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                            (static_cast<u64>(emittedLevel & 0xF) << 28) |
-                            (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
-                            FLAG_RECHECK_LEVEL
-                        );
-                    } else {
-                        // 重新计算该位置的光照值
-                        appendToIncreaseQueue(
-                            ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                            (static_cast<u64>(lightLevel & 0xF) << 28) |
-                            (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
-                            FLAG_RECHECK_LEVEL
-                        );
-                    }
+                    m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(lightLevel & 0xF) << 28)
+                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+                            | (FLAG_RECHECK_LEVEL | flags);
                     continue;
+                }
+
+                i32 emittedLight = 0;
+                if (blockState != nullptr) {
+                    emittedLight = blockState->getBlock().getLightLevel(*blockState) & emittedMask;
+                }
+                if (emittedLight != 0) {
+                    // re-propagate source
+                    // note: do not set recheck level, or else the propagation will fail
+                    if (increaseQueueLength >= static_cast<i32>(m_increaseQueue.size())) {
+                        resizeIncreaseQueue();
+                    }
+                    m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(emittedLight & 0xF) << 28)
+                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+                            | (flags | FLAG_WRITE_LEVEL);
                 }
 
                 currentNibble->set(localIndex, 0);
                 postLightUpdate(offX, offY, offZ);
 
                 if (targetLevel > 0) {
-                    appendToDecreaseQueue(
-                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & 0xFFFFFFFF) |
-                        (static_cast<u64>(targetLevel & 0xF) << 28) |
-                        (static_cast<u64>(getEverythingButOppositeDirection(dir)) << 32)
-                    );
+                    if (queueLength >= static_cast<i32>(m_decreaseQueue.size())) {
+                        resizeDecreaseQueue();
+                    }
+                    m_decreaseQueue[static_cast<size_t>(queueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(targetLevel & 0xF) << 28)
+                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
+                            | flags;
+                }
+            }
+        } else {
+            // we actually need to worry about our state here
+            const BlockState* fromBlock = getBlockState(posX, posY, posZ);
+            const std::vector<LightAxisDirection>& directions = s_oldCheckDirections[static_cast<size_t>(directionBits)];
+
+            for (LightAxisDirection propagate : directions) {
+                i32 dx, dy, dz;
+                getDirectionOffset(propagate, dx, dy, dz);
+
+                i32 offX = posX + dx;
+                i32 offY = posY + dy;
+                i32 offZ = posZ + dz;
+
+                // 检查源方块的遮挡面
+                CollisionShape fromShape;  // 空 shape
+                if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
+                    fromShape = fromBlock->getFaceOcclusionShape(getNMSDirection(propagate));
+                }
+
+                if (!fromShape.isEmpty() && fromShape.isFullBlock()) {
+                    // 源面完全遮挡
+                    continue;
+                }
+
+                i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
+                i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+
+                SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
+                i32 lightLevel;
+
+                if (currentNibble == nullptr || (lightLevel = currentNibble->getUpdating(localIndex)) == 0) {
+                    // already at lowest (or unloaded), nothing we can do
+                    continue;
+                }
+
+                const BlockState* blockState = getBlockState(sectionIndex, localIndex);
+                if (blockState == nullptr) {
+                    continue;
+                }
+
+                u64 flags = 0;
+                if (blockState->useShapeForLightOcclusion()) {
+                    CollisionShape cullingFace = blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+
+                    // 使用 VoxelShape 进行精确遮挡检测
+                    VoxelShape fromVoxel = collisionShapeToVoxelShape(fromShape);
+                    VoxelShape cullingVoxel = collisionShapeToVoxelShape(cullingFace);
+
+                    if (Shapes::faceShapeOccludes(fromVoxel, cullingVoxel)) {
+                        continue;
+                    }
+                    flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                }
+
+                i32 opacity = blockState->getBlock().getOpacity(*blockState);
+                i32 targetLevel = std::max(0, propagatedLevel - std::max(1, opacity));
+
+                if (lightLevel > targetLevel) {
+                    // it looks like another source propagated here, so re-propagate it
+                    if (increaseQueueLength >= static_cast<i32>(m_increaseQueue.size())) {
+                        resizeIncreaseQueue();
+                    }
+                    m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(lightLevel & 0xF) << 28)
+                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+                            | (FLAG_RECHECK_LEVEL | flags);
+                    continue;
+                }
+
+                i32 emittedLight = 0;
+                if (blockState != nullptr) {
+                    emittedLight = blockState->getBlock().getLightLevel(*blockState) & emittedMask;
+                }
+                if (emittedLight != 0) {
+                    // re-propagate source
+                    // note: do not set recheck level, or else the propagation will fail
+                    if (increaseQueueLength >= static_cast<i32>(m_increaseQueue.size())) {
+                        resizeIncreaseQueue();
+                    }
+                    m_increaseQueue[static_cast<size_t>(increaseQueueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(emittedLight & 0xF) << 28)
+                            | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32)
+                            | (flags | FLAG_WRITE_LEVEL);
+                }
+
+                currentNibble->set(localIndex, 0);
+                postLightUpdate(offX, offY, offZ);
+
+                if (targetLevel > 0) {
+                    if (queueLength >= static_cast<i32>(m_decreaseQueue.size())) {
+                        resizeDecreaseQueue();
+                    }
+                    m_decreaseQueue[static_cast<size_t>(queueLength++)] =
+                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1))
+                            | (static_cast<u64>(targetLevel & 0xF) << 28)
+                            | (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32)
+                            | flags;
                 }
             }
         }
     }
 
-    // 处理增亮队列中的恢复光源
+    // propagate sources we clobbered
+    m_increaseQueueInitialLength = increaseQueueLength;
     performLightIncrease(lightAccess);
 }
 
@@ -1101,33 +1290,6 @@ void StarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty) {
 // ============================================================================
 // 条件透明检查
 // ============================================================================
-
-namespace {
-
-/**
- * @brief 将 CollisionShape 转换为 VoxelShape
- *
- * 用于面遮挡检测。对于完整方块和空形状有优化路径。
- */
-VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
-    if (shape.isEmpty()) {
-        return Shapes::empty();
-    }
-    if (shape.isFullBlock()) {
-        return Shapes::block();
-    }
-    // 对于简单盒，创建对应的 VoxelShape
-    const auto& boxes = shape.boxes();
-    if (boxes.empty()) {
-        return Shapes::empty();
-    }
-    // 使用第一个碰撞盒创建 VoxelShape
-    // 注意：对于复杂形状（多个盒），这只是一个近似
-    const auto& box = boxes[0];
-    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
-}
-
-} // anonymous namespace
 
 bool StarLightEngine::isFaceOccluded(const BlockState* fromState,
                                       const BlockState* toState,
