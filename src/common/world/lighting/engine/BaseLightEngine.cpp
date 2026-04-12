@@ -350,6 +350,38 @@ std::vector<bool> StarLightEngine::handleEmptySectionChanges(StarLightLightingPr
     return needsInit ? chunkEmptinessMap : std::vector<bool>{};
 }
 
+void StarLightEngine::forceHandleEmptySectionChanges(StarLightLightingProvider* lightAccess,
+                                                       const IChunk* chunk,
+                                                       const std::vector<bool>& emptySections) {
+    // 参考 Moonrise StarLightEngine.forceHandleEmptySectionChanges
+    // 用于已正确光照的区块，强制加载光照数据到缓存并处理空段变化
+    ChunkPos chunkPos = chunk->pos();
+    i32 chunkX = chunkPos.x;
+    i32 chunkZ = chunkPos.z;
+
+    setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, true);
+
+    // 强制将当前区块加载到缓存
+    setChunkInCache(chunkX, chunkZ, chunk);
+    setBlocksForChunkInCache(chunkX, chunkZ, chunk->getSections());
+    setNibblesForChunkInCache(chunkX, chunkZ, getNibblesOnChunk(chunk));
+    setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
+
+    // 处理空段变化，但不使用 unlit 模式
+    std::vector<bool> result = handleEmptySectionChanges(lightAccess, chunk, emptySections, false);
+    if (!result.empty()) {
+        // 需要复制结果到持久化存储
+        auto rawMap = std::make_unique<bool[]>(result.size());
+        for (size_t i = 0; i < result.size(); ++i) {
+            rawMap[i] = result[i];
+        }
+        setEmptinessMap(chunk, rawMap.get());
+    }
+
+    updateVisible(lightAccess);
+    destroyCaches();
+}
+
 void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ) {
     setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, false);
 
@@ -570,6 +602,16 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
     setupCaches(lightAccess, centerX, centerY, centerZ, true, true);
 
     try {
+        const i32 totalLightSections = m_maxLightSection - m_minLightSection + 1;
+
+        // 与 Moonrise 一致：light() 使用一组“全 NULL 状态”临时 nibble 作为点亮输入。
+        std::vector<SWMRNibbleArray> tempNibbles(static_cast<size_t>(totalLightSections));
+        std::vector<SWMRNibbleArray*> tempNibblePtrs(static_cast<size_t>(totalLightSections), nullptr);
+        for (i32 i = 0; i < totalLightSections; ++i) {
+            tempNibbles[static_cast<size_t>(i)] = SWMRNibbleArray(nullptr, true);
+            tempNibblePtrs[static_cast<size_t>(i)] = &tempNibbles[static_cast<size_t>(i)];
+        }
+
         // 设置当前区块到缓存
         setChunkInCache(chunkX, chunkZ, chunk);
 
@@ -579,18 +621,37 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
             setBlocksForChunkInCache(chunkX, chunkZ, sections);
         }
 
-        // 设置 Nibble 数组（从区块获取）
-        SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
-        if (nibbles != nullptr) {
-            setNibblesForChunkInCache(chunkX, chunkZ, nibbles);
+        // 将临时 nibble 写入缓存（而不是直接读取 chunk 上现有 nibble）
+        setNibblesForChunkInCache(chunkX, chunkZ, tempNibblePtrs.data());
+
+        // 与 Moonrise 一致：unlit 点亮流程先按“无空映射”处理，避免旧缓存干扰 initNibble。
+        setEmptinessMapCache(chunkX, chunkZ, nullptr);
+
+        // 计算 emptySections，并在未点亮模式下先跑一次空段处理（Moonrise light() 同构流程）
+        std::vector<bool> emptySections(static_cast<size_t>(m_maxSection - m_minSection + 1), true);
+        for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
+            const ChunkSection* section =
+                (sections == nullptr) ? nullptr : sections[static_cast<size_t>(sectionY - m_minSection)];
+            emptySections[static_cast<size_t>(sectionY - m_minSection)] =
+                (section == nullptr || section->hasOnlyAir());
         }
 
-        // 设置空映射
-        const bool* emptinessMap = getEmptinessMap(chunk);
-        setEmptinessMapCache(chunkX, chunkZ, emptinessMap);
+        std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);
+        if (!emptinessUpdate.empty()) {
+            std::vector<bool> copied = emptinessUpdate;
+            auto rawMap = std::make_unique<bool[]>(copied.size());
+            for (size_t i = 0; i < copied.size(); ++i) {
+                rawMap[i] = copied[i];
+            }
+            setEmptinessMap(chunk, rawMap.get());
+            setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
+        }
 
         // 执行光照计算
         lightChunk(lightAccess, chunk, needsEdgeChecks);
+
+        // 将临时 nibble 写回区块
+        setNibbles(chunk, tempNibblePtrs.data());
 
         // 更新可见数据
         updateVisible(lightAccess);

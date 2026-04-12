@@ -182,6 +182,20 @@ public:
     void lightChunk(const IChunk* chunk, bool needsEdgeChecks = true);
 
     /**
+     * @brief 强制加载区块光照数据
+     *
+     * 用于已正确光照的区块，只需要重新加载光照数据到缓存，
+     * 然后检查边缘以确保与邻居区块的一致性。
+     * 不执行完整的光照计算。
+     *
+     * 参考: Moonrise StarLightInterface.forceLoadInChunk
+     *
+     * @param chunk 区块
+     * @param emptySections 空区块段标记数组
+     */
+    void forceLoadInChunk(const IChunk* chunk, const std::vector<bool>& emptySections);
+
+    /**
      * @brief 检查区块边缘
      *
      * 当邻居区块加载时，检查并修复边缘光照不一致。

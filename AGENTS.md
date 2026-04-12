@@ -42,6 +42,10 @@
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
         m_lightManager->tick(32768, true, true);
     }
+
+    if (m_skyLight != nullptr) {
+        m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
+    }
 ```
 
 ✅ 正确例子，最佳实践：
@@ -57,6 +61,8 @@
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
         m_lightManager->tick(32768, true, true);
     }
+
+    m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
 ```
 
 这可能会导致一些空指针访问，但这通常是由于架构设计缺陷或其他bug引起的，过度防御会掩盖这些问题。正确的做法是通过单元测试、集成测试和代码审查来发现和修复这些问题，而不是在每个调用处添加冗余检查。
@@ -198,11 +204,6 @@ void setTexture(std::unique_ptr<Texture> texture);
 // ✅ 推荐：[[nodiscard]]标记可能产生新资源的函数
 [[nodiscard]] std::unique_ptr<Entity> createEntity();
 
-// ❌ 禁止：过长的参数列表（超过5个考虑使用配置对象）
-void createWindow(int width, int height, int x, int y, 
-                  const std::string& title, bool fullscreen,
-                  int monitor, bool vsync, int samples);
-
 // ✅ 推荐：使用BlockPos、ChunkPos等已有工具类表示方块/区块坐标，降低参数复杂度
 
 // ✅ 推荐：使用配置结构体
@@ -340,11 +341,9 @@ void UpdatePlayer();     // ❌ (应使用camelCase)
 namespace mc {
 namespace client {
 namespace renderer {
+}}}
 
-// ✅ 推荐：嵌套不超过3层
-namespace mc::client::renderer {
-
-// ✅ 推荐：命名空间别名（长命名空间）
+// ❌ 禁止：命名空间别名
 namespace fs = std::filesystem;
 namespace vk = vulkan;
 
@@ -487,7 +486,7 @@ float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
 // ❌ 禁止：冗余注释
 i++;  // i加1 ❌
 
-// ✅ 推荐：标记待办事项
+// ✅ 必须：标记待办事项。所有没做完的工作、妥协、简化实现等都必须明确标记，避免遗忘。
 // TODO: 优化区块加载算法，当前O(n²)复杂度
 // FIXME: 内存泄漏问题，需要在析构函数中释放
 // HACK: 临时解决方案，等待Vulkan驱动更新
@@ -671,41 +670,6 @@ Result<Chunk*> loadChunk(ChunkPos pos) {
 }
 ```
 
-### 7.2 异常使用规范
-
-```cpp
-// ✅ 允许：不可恢复的错误
-throw std::runtime_error("Critical system failure");
-
-// ✅ 允许：编程错误
-throw std::logic_error("Invalid state");
-
-// ❌ 禁止：异常用于流程控制
-try {
-    value = map.at(key);
-} catch (const std::out_of_range&) {
-    value = defaultValue;
-}
-
-// ✅ 推荐：检查后访问
-auto iter = map.find(key);
-if (iter != map.end()) {
-    value = iter->second;
-} else {
-    value = defaultValue;
-}
-
-// ✅ 推荐：异常边界（在API边界捕获异常）
-extern "C" int api_function() {
-    try {
-        // C++实现
-        return 0;
-    } catch (...) {
-        return -1;  // 转换为错误码
-    }
-}
-```
-
 ### 7.3 断言使用
 
 ```cpp
@@ -876,65 +840,6 @@ for (int i = 0, n = vec.size(); i < n; i++) {  // ✅
     // ...
 }
 
-// ❌ 禁止：不必要的虚函数调用（性能关键路径）
-class Entity {
-    virtual void update() = 0;  // ❌ 每帧调用
-};
-
-// ✅ 推荐：使用CRTP或函数指针
-template<typename T>
-class Entity {
-    void update() { static_cast<T*>(this)->updateImpl(); }
-};
-
-// ❌ 禁止：频繁内存分配
-void update() {
-    std::vector<Entity*> visible = getVisibleEntities();  // ❌ 每帧分配
-}
-
-// ✅ 推荐：对象池或预分配
-class EntityPool {
-    std::vector<Entity*> m_pool;
-    std::vector<Entity*> m_free;
-    
-    Entity* acquire() {
-        if (m_free.empty()) {
-            m_pool.push_back(new Entity());
-            return m_pool.back();
-        }
-        Entity* e = m_free.back();
-        m_free.pop_back();
-        return e;
-    }
-};
-```
-
-### 9.3 缓存友好
-
-```cpp
-// ✅ 推荐：数据局部性
-struct Entity {
-    Vector3 position;  // 经常一起访问的数据放在一起
-    Vector3 velocity;
-    float health;
-    // ...
-};
-
-// ✅ 推荐：SOA布局（适合批量处理）
-struct EntityArray {
-    std::vector<Vector3> positions;
-    std::vector<Vector3> velocities;
-    std::vector<float> healths;
-};
-
-// ❌ 禁止：指针追逐
-class Node {
-    Node* next;  // ❌ 缓存不友好
-    Node* prev;
-};
-
-// ✅ 推荐：连续内存
-std::vector<Node> nodes;  // ✅ 缓存友好
 ```
 
 ---

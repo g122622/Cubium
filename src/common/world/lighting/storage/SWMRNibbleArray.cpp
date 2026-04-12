@@ -1,6 +1,7 @@
 #include "SWMRNibbleArray.hpp"
 #include <algorithm>
 #include <cstring>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 
@@ -42,11 +43,8 @@ SWMRNibbleArray::SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> dat
     , m_storageUpdating(std::move(data))
     , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr)  // 与 Moonrise 一致：初始时指向同一数组
     , m_updatingDirty(false) {
-    // 验证状态一致性
-    if (m_storageUpdating == nullptr && (state == State::Init || state == State::Hidden)) {
-        m_stateUpdating = State::Null;
-        m_stateVisible.store(State::Null);
-    }
+    // 与 Moonrise 一致：data 为空时不允许 Init/Hidden 状态
+    MC_ASSERT_RELEASE(!(m_storageUpdating == nullptr && (state == State::Init || state == State::Hidden)));
 }
 
 SWMRNibbleArray SWMRNibbleArray::fromData(const std::vector<u8>& data) {

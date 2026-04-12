@@ -112,10 +112,11 @@ void SkyStarLightEngine::setNibbles(const IChunk* chunk, SWMRNibbleArray* const*
 }
 
 bool SkyStarLightEngine::canUseChunk(const IChunk* chunk) const {
-    // 区块必须处于 LIGHT 状态或之后，且光照数据正确
-    ChunkLoadStatus status = chunk->getStatus();
-    return status == ChunkLoadStatus::Generated ||
-           status == ChunkLoadStatus::Loaded;
+    // 与 Moonrise 一致：仅在可用状态且光照数据正确时使用区块
+    const ChunkLoadStatus status = chunk->getStatus();
+    const bool hasRequiredStatus = status == ChunkLoadStatus::Generated ||
+                                   status == ChunkLoadStatus::Loaded;
+    return hasRequiredStatus && (m_isClientSide || chunk->isLightCorrect());
 }
 
 // ============================================================================
@@ -133,11 +134,12 @@ void SkyStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool ext
 
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble == nullptr) {
+        MC_ASSERT_RELEASE(initRemovedNibbles);
         if (!initRemovedNibbles) {
             return;
         }
-        // 与 Moonrise 一致：创建 UNINIT 状态的 Nibble（不是 NULL 状态）
-        nibble = new SWMRNibbleArray(nullptr, false);  // UNINIT 状态
+        // 与 Moonrise 一致：先以 NULL 状态创建，再在 initNibble(...) 中决定是否变为 UNINIT/INIT
+        nibble = new SWMRNibbleArray(nullptr, true);
         setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
     }
 
@@ -174,11 +176,8 @@ void SkyStarLightEngine::initNibble(SWMRNibbleArray* currNibble, i32 chunkX, i32
 
     if (chunkY > lowestY) {
         // 在最高非空区块段之上，设置为全亮
-        SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
-        if (nibble != nullptr) {
-            nibble->setNonNull();
-            nibble->setFull();
-        }
+        currNibble->setNonNull();
+        currNibble->setFull();
         return;
     }
 
@@ -281,6 +280,7 @@ i32 SkyStarLightEngine::getLightLevelExtruded(i32 worldX, i32 worldY, i32 worldZ
 i32 SkyStarLightEngine::tryPropagateSkylight(IWorld* world, i32 worldX, i32 startY, i32 worldZ,
                                               bool extrudeInitialised, bool delayLightSet) {
     // 参考 Moonrise SkyStarLightEngine.tryPropagateSkylight
+    (void)world;
     i32 encodeOffset = m_coordinateOffset;
     i64 propagateDirection = static_cast<i64>(getEverythingButDirection(LightAxisDirection::POSITIVE_Y));  // just don't check upwards
 
@@ -300,44 +300,26 @@ i32 SkyStarLightEngine::tryPropagateSkylight(IWorld* world, i32 worldX, i32 star
         }
         const BlockState* current = getBlockState(worldX, currY, worldZ);
 
-        // 条件透明检查 - 参考 Moonrise 的精确检测
-        // 第一步：检查 above 方块是否阻止光向下传播
-        const CollisionShape* fromShape = nullptr;
+        VoxelShape fromShape = Shapes::empty();
         if (above != nullptr && above->useShapeForLightOcclusion()) {
-            // 获取 above 方块底面的遮挡形状
-            fromShape = &above->getFaceOcclusionShape(Direction::Down);
-            // 如果 above 的底面完全遮挡空形状，则光无法通过
-            if (fromShape != nullptr && fromShape->isFullBlock()) {
-                break;  // above wont let us propagate
+            fromShape = collisionShapeToVoxelShape(above->getFaceOcclusionShape(Direction::Down));
+            if (Shapes::faceShapeOccludes(Shapes::empty(), fromShape)) {
+                // above wont let us propagate
+                break;
             }
         }
 
-        // 第二步：检查 current 方块是否接收来自上方的光
         u64 flags = 0;
         if (current != nullptr && current->useShapeForLightOcclusion()) {
-            // 获取 current 方块顶面的遮挡形状
-            const CollisionShape& cullingFace = current->getFaceOcclusionShape(Direction::Up);
-
-            // 如果 fromShape 和 cullingFace 的组合遮挡，光无法传播
-            if (fromShape != nullptr) {
-                // 使用 VoxelShape 进行精确检测
-                VoxelShape fromVoxel = collisionShapeToVoxelShape(*fromShape);
-                VoxelShape cullingVoxel = collisionShapeToVoxelShape(cullingFace);
-                if (Shapes::faceShapeOccludes(fromVoxel, cullingVoxel)) {
-                    break;  // can't propagate here, we're done on this column
-                }
-            } else if (cullingFace.isFullBlock()) {
-                // fromShape 是空的，但 cullingFace 完全遮挡
+            const VoxelShape cullingFace = collisionShapeToVoxelShape(current->getFaceOcclusionShape(Direction::Up));
+            if (Shapes::faceShapeOccludes(fromShape, cullingFace)) {
+                // can't propagate here, we're done on this column
                 break;
             }
             flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
         }
 
-        // 获取透明度
-        i32 opacity = 0;
-        if (current != nullptr) {
-            opacity = current->getBlock().getOpacity(*current);
-        }
+        const i32 opacity = current == nullptr ? 0 : current->getBlock().getOpacity(*current);
 
         if (opacity > 0) {
             // let the queued value (if any) handle it from here.
@@ -539,7 +521,7 @@ void SkyStarLightEngine::propagateBlockChanges(StarLightLightingProvider* lightA
 
     // 设置高度图用于变化
     for (const BlockPos& pos : positions) {
-        i32 index = (pos.x & 15) | ((pos.z & 15) << 4);
+        i32 index = pos.x + (pos.z << 4) + heightMapOffset;
         i32 curr = m_heightMapBlockChange[static_cast<size_t>(index)];
         if (pos.y > curr) {
             m_heightMapBlockChange[static_cast<size_t>(index)] = pos.y;
@@ -623,17 +605,9 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
 
     // 找到最高非空区块段（参考 Moonrise SkyStarLightEngine.lightChunk）
     i32 highestNonEmptySection = m_maxSection;
-    while (highestNonEmptySection >= m_minSection &&
-           (sections[highestNonEmptySection - m_minSection] == nullptr ||
-            sections[highestNonEmptySection - m_minSection]->hasOnlyAir())) {
-
-        // 对于空区块段，将 Nibble 设置为全亮
-        // 这是天空光照的关键：空区块段以上都应该有 15 级光照
-        SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, highestNonEmptySection, chunkZ);
-        MC_ASSERT_RELEASE(nibble != nullptr);
-        nibble->setNonNull();
-        nibble->setFull();
-
+    while (highestNonEmptySection == (m_minSection - 1) ||
+           sections[highestNonEmptySection - m_minSection] == nullptr ||
+           sections[highestNonEmptySection - m_minSection]->hasOnlyAir()) {
         checkNullSection(chunkX, highestNonEmptySection, chunkZ, false);
 
         // 尝试向邻居传播全亮（空区块段需要将全亮传播到邻居）
@@ -684,7 +658,9 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
             }
         }
 
-        --highestNonEmptySection;
+        if (highestNonEmptySection-- == (m_minSection - 1)) {
+            break;
+        }
     }
 
     if (highestNonEmptySection >= m_minSection) {

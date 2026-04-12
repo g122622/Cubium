@@ -23,7 +23,6 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
     MC_TRACE_EVENT("server.lighting", "LightSyncManager::initializeChunkLighting",
                    "Chunk", fmt::format("({}, {})", x, z));
 
-    
     const ChunkData* chunk = nullptr;
     {
         MC_TRACE_EVENT("server.lighting", "GetChunkData");
@@ -33,27 +32,67 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
         }
     }
 
-    // 更新空区块段状态
-    BlockStarLightEngine* blockLightEngine = nullptr;
-    {
-        MC_TRACE_EVENT("server.lighting", "GetBlockLightEngine");
-        blockLightEngine = m_lightManager.getBlockLightEngine();
-    }
-    if (blockLightEngine != nullptr) {
-        blockLightEngine->updateEmptinessMap(x, z, chunk);
+    // 与 Moonrise ChunkLightTask 一致：区分区块是否已正确光照
+    // 参考: ChunkLightTask.java 第154-165行
+    //
+    // if (task.fromChunk.isLightCorrect() && task.fromChunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT)) {
+    //     this.lightEngine.forceLoadInChunk(task.fromChunk, emptySections);
+    //     this.lightEngine.checkChunkEdges(task.chunkX, task.chunkZ);
+    // } else {
+    //     task.fromChunk.setLightCorrect(false);
+    //     this.lightEngine.lightChunk(task.fromChunk, emptySections);
+    //     task.fromChunk.setLightCorrect(true);
+    // }
+
+    // 计算空区块段
+    std::vector<bool> emptySections;
+    const ChunkSection* const* sections = chunk->getSections();
+    constexpr i32 sectionCount = ChunkData::SECTIONS;
+    emptySections.resize(static_cast<size_t>(sectionCount), false);
+
+    for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+        const ChunkSection* section = (sections != nullptr) ? sections[sectionY] : nullptr;
+        emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->hasOnlyAir());
     }
 
-    for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk->getSection(sectionY);
-        SectionPos sectionPos(x, sectionY, z);
+    // 检查区块是否已正确光照
+    bool isLightCorrect = chunk->isLightCorrect();
+    ChunkLoadStatus status = chunk->getStatus();
+    bool hasLightStatus = (status == ChunkLoadStatus::Generated || status == ChunkLoadStatus::Loaded);
 
-        bool isEmpty = (section == nullptr || section->isEmpty());
-        m_lightManager.updateSectionStatus(sectionPos, isEmpty);
+    if (isLightCorrect && hasLightStatus) {
+        // 区块已正确光照，只需要重新加载光照数据并检查边缘
+        // 与 Moonrise 一致：使用 forceLoadInChunk + checkChunkEdges
+        // spdlog::debug("[LightSync] Chunk ({}, {}) already light correct, using forceLoadInChunk", x, z);
+        m_lightManager.forceLoadInChunk(chunk, emptySections);
+        m_lightManager.checkChunkEdges(x, z);
+    } else {
+        // 区块需要完整光照计算
+        // 与 Moonrise 一致：设置 lightCorrect = false，执行 lightChunk，然后设置 lightCorrect = true
+        // spdlog::debug("[LightSync] Chunk ({}, {}) needs lighting", x, z);
+
+        // 先更新空区块段状态
+        BlockStarLightEngine* blockLightEngine = m_lightManager.getBlockLightEngine();
+        if (blockLightEngine != nullptr) {
+            blockLightEngine->updateEmptinessMap(x, z, chunk);
+        }
+
+        for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+            const ChunkSection* section = (sections != nullptr) ? sections[sectionY] : nullptr;
+            SectionPos sectionPos(x, sectionY, z);
+            bool isEmpty = (section == nullptr || section->isEmpty());
+            m_lightManager.updateSectionStatus(sectionPos, isEmpty);
+        }
+
+        // 设置光照状态为不正确
+        const_cast<ChunkData*>(chunk)->setLightCorrect(false);
+
+        // 执行光照计算
+        m_lightManager.lightChunk(chunk, true);
+
+        // 设置光照状态为正确
+        const_cast<ChunkData*>(chunk)->setLightCorrect(true);
     }
-
-    // 使用 StarLight 引擎执行完整光照计算
-    // needsEdgeChecks=true 因为这是区块首次加载
-    m_lightManager.lightChunk(chunk, true);
 }
 
 void LightSyncManager::onBlockStateChanged(i32 x, i32 y, i32 z, i32 oldLightLevel, i32 newLightLevel)

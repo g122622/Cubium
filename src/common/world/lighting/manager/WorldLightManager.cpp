@@ -271,6 +271,28 @@ void WorldLightManager::retainData(const ChunkPos& pos, bool retain) {
 // 区块光照初始化
 // ============================================================================
 
+void WorldLightManager::forceLoadInChunk(const IChunk* chunk, const std::vector<bool>& emptySections) {
+    if (chunk == nullptr) {
+        return;
+    }
+
+    MC_TRACE_EVENT("server.lighting", "WorldLightManager::forceLoadInChunk",
+                   "chunk", fmt::format("({}, {})", chunk->x(), chunk->z()));
+
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    // 与 Moonrise StarLightInterface.forceLoadInChunk 一致
+    // 对已正确光照的区块，只需要加载光照数据到缓存并检查边缘
+
+    if (m_skyLight != nullptr) {
+        m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
+    }
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
+    }
+}
+
 void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks) {
     if (chunk == nullptr) {
         return;

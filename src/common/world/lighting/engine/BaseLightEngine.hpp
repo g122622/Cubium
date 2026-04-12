@@ -287,6 +287,23 @@ public:
                                                   bool isUnlit);
 
     /**
+     * @brief 强制处理空区块段变化
+     *
+     * 用于已正确光照的区块，只需要重新加载光照数据到缓存。
+     * 与 handleEmptySectionChanges 的区别是会强制将区块数据加载到缓存，
+     * 并且不使用 unlit 模式。
+     *
+     * 参考: Moonrise StarLightEngine.forceHandleEmptySectionChanges
+     *
+     * @param lightAccess 光照区块访问器
+     * @param chunk 区块
+     * @param emptySections 空区块段标记数组
+     */
+    void forceHandleEmptySectionChanges(StarLightLightingProvider* lightAccess,
+                                         const IChunk* chunk,
+                                         const std::vector<bool>& emptySections);
+
+    /**
      * @brief 检查区块边缘
      */
     void checkChunkEdges(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ);

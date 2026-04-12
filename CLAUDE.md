@@ -361,6 +361,10 @@ enum class Operation : u8 { ... };
     - Force clear + decrease cascade first, and enqueue adjacent increase rechecks; otherwise side skylight can be lost under FIFO wavefront execution.
 - Do not switch `BaseLightEngine` queue processing back to LIFO (`--length` pop-back).
     - Starlight-style propagation depends on FIFO wavefront ordering; LIFO introduces unnecessary oscillation and delayed convergence under complex occlusion.
+- Do not bootstrap `StarLightEngine::light(...)` from chunk-owned nibble arrays when running unlit initialization.
+    - Mirror Moonrise: start with temporary NULL-state nibbles, run `handleEmptySectionChanges(..., isUnlit=true)`, then `lightChunk(...)`, and finally write the generated nibbles back to the chunk.
+- In unlit `light(...)` bootstrap, do not seed emptiness cache from stale default maps.
+    - Seed the cache as null first; otherwise `SkyStarLightEngine::initNibble(...)` can compute a wrong `lowestY` and skip expected skylight source setup.
 - Do not reintroduce compatibility aliases for the lighting subsystem.
     - `StarLightEngine`, `BlockStarLightEngine`, `SkyStarLightEngine`, and `StarLightLightingProvider` are the canonical names now.
 - Keep world->section conversion centralized via `LightEngineUtils::worldToSectionPos(...)`.
