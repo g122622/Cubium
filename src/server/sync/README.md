@@ -323,8 +323,6 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 - **SectionPosEncodeDecode**：SectionPos 编码解码
 - **WorldLightManagerCreation**：WorldLightManager 创建
 - **WorldLightManagerTickWithoutWorkReturnsBudget**：无光照任务时 tick 返回预算
-- **BlockLightStorageAppliesPendingSectionData**：光照存储应用待处理数据
-- **BlockLightStorageSetLightMarksNeighborSections**：设置光照标记相邻区块段
 
 #### 测试数量统计
 

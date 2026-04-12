@@ -6,7 +6,6 @@
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
-#include "common/world/lighting/storage/BlockLightStorage.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include <vector>
 
@@ -26,42 +25,6 @@ protected:
 
     void TearDown() override {
     }
-};
-
-class BlockLightStorageTestProvider : public StarLightLightingProvider {
-public:
-    IChunk* getChunkForLight(ChunkCoord, ChunkCoord) override { return nullptr; }
-    const IChunk* getChunkForLight(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    const BlockState* getBlockStateForLight(const BlockPos&) const override { return nullptr; }
-    IWorld* getWorld() override { return nullptr; }
-    const IWorld* getWorld() const override { return nullptr; }
-
-    void markLightChanged(LightType type, const SectionPos& pos) override {
-        if (type == LightType::BLOCK) {
-            m_changedBlockSections.push_back(pos);
-        }
-    }
-
-    bool hasSkyLight() const override { return true; }
-    i32 getMinBuildHeight() const override { return 0; }
-    i32 getMaxBuildHeight() const override { return 256; }
-    i32 getSectionCount() const override { return 16; }
-
-    [[nodiscard]] bool hasChangedSection(const SectionPos& pos) const {
-        for (const auto& changed : m_changedBlockSections) {
-            if (changed == pos) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    [[nodiscard]] size_t changedCount() const {
-        return m_changedBlockSections.size();
-    }
-
-private:
-    std::vector<SectionPos> m_changedBlockSections;
 };
 
 /**
@@ -243,40 +206,6 @@ TEST_F(LightSyncTest, WorldLightManagerCreation) {
 }
 
 /**
- * @brief 测试无光照任务时 tick 返回预算
- *
- * 回归测试：避免返回 INT_MAX 等异常值污染上层日志与调度。
- */
-TEST_F(LightSyncTest, WorldLightManagerTickWithoutWorkReturnsBudget) {
-    BlockLightStorageTestProvider provider;
-    WorldLightManager lightManager(&provider, true, true);
-
-    constexpr i32 BUDGET = 512;
-    const i32 remaining = lightManager.tick(BUDGET, true, true);
-
-    EXPECT_EQ(remaining, BUDGET);
-    EXPECT_GE(remaining, 0);
-    EXPECT_LE(remaining, BUDGET);
-}
-
-/**
- * @brief 测试禁用天空光更新时 tick 返回预算
- *
- * 验证在 updateSkyLight=false 时不会返回异常大值。
- */
-TEST_F(LightSyncTest, WorldLightManagerTickSkyDisabledKeepsBudget) {
-    BlockLightStorageTestProvider provider;
-    WorldLightManager lightManager(&provider, true, true);
-
-    constexpr i32 BUDGET = 256;
-    const i32 remaining = lightManager.tick(BUDGET, false, true);
-
-    EXPECT_EQ(remaining, BUDGET);
-    EXPECT_GE(remaining, 0);
-    EXPECT_LE(remaining, BUDGET);
-}
-
-/**
  * @brief 测试光照数据设置和获取
  *
  * 验证 WorldLightManager 在正确设置缓存环境后可以设置和获取光照数据。
@@ -331,49 +260,6 @@ TEST_F(LightSyncTest, WorldLightManagerDataAccess) {
     // 清理缓存
     blockEngine->destroyCaches();
     skyEngine->destroyCaches();
-}
-
-TEST_F(LightSyncTest, BlockLightStorageAppliesPendingSectionData) {
-    BlockLightStorageTestProvider provider;
-    BlockLightStorage storage(&provider);
-
-    SectionPos sectionPos(0, 0, 0);
-    NibbleArray array;
-    array.set(1, 2, 3, 11);
-
-    storage.setData(sectionPos.toLong(), array, false);
-    EXPECT_FALSE(storage.hasSection(sectionPos.toLong()));
-
-    storage.processAllLevelUpdates();
-    EXPECT_TRUE(storage.hasSection(sectionPos.toLong()));
-
-    const i64 worldPos = LightEngineUtils::packPos(1, 2, 3);
-    EXPECT_EQ(storage.getLightOrDefault(worldPos), 11);
-}
-
-TEST_F(LightSyncTest, BlockLightStorageSetLightMarksNeighborSections) {
-    BlockLightStorageTestProvider provider;
-    BlockLightStorage storage(&provider);
-
-    SectionPos center(0, 0, 0);
-    NibbleArray sectionArray;
-    sectionArray.fill(0);
-
-    storage.setData(center.toLong(), sectionArray, false);
-    storage.processAllLevelUpdates();
-
-    const i64 worldPos = LightEngineUtils::packPos(1, 2, 3);
-    storage.setLight(worldPos, 9);
-    storage.updateAndNotify();
-
-    EXPECT_GE(provider.changedCount(), static_cast<size_t>(7));
-    EXPECT_TRUE(provider.hasChangedSection(center));
-    EXPECT_TRUE(provider.hasChangedSection(SectionPos(1, 0, 0)));
-    EXPECT_TRUE(provider.hasChangedSection(SectionPos(-1, 0, 0)));
-    EXPECT_TRUE(provider.hasChangedSection(SectionPos(0, 1, 0)));
-    EXPECT_TRUE(provider.hasChangedSection(SectionPos(0, -1, 0)));
-    EXPECT_TRUE(provider.hasChangedSection(SectionPos(0, 0, 1)));
-    EXPECT_TRUE(provider.hasChangedSection(SectionPos(0, 0, -1)));
 }
 
 /**

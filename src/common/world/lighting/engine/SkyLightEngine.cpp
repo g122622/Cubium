@@ -7,6 +7,8 @@
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../physics/shape/Shapes.hpp"
 #include "../../../physics/shape/VoxelShape.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+
 #include <algorithm>
 #include <cstring>
 #include <spdlog/spdlog.h>

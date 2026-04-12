@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../storage/BlockLightStorage.hpp"
 #include "../storage/SWMRNibbleArray.hpp"
 #include "../storage/EmptinessMap.hpp"
 #include "BaseLightEngine.hpp"

@@ -408,24 +408,6 @@ src/common/
     │   │   └── PlacementRegistry.hpp
     │   └── spawn/            # 世界生成生物生成
     │       └── WorldGenSpawner.hpp
-    ├── lighting/             # 光照系统
-    │   ├── LightType.hpp
-    │   ├── InternalLight.hpp
-    │   ├── IChunkLightProvider.hpp
-    │   ├── engine/
-    │   │   ├── BlockLightEngine.hpp
-    │   │   ├── SkyLightEngine.hpp
-    │   │   ├── BaseLightEngine.hpp
-    │   │   └── LightEngineUtils.hpp
-    │   ├── storage/
-    │   │   ├── BlockLightStorage.hpp
-    │   │   ├── SkyLightStorage.hpp
-    │   │   ├── SectionLightStorage.hpp
-    │   │   ├── SWMRLightDataMap.hpp
-    │   │   ├── SWMRNibbleArray.hpp
-    │   │   └── EmptinessMap.hpp
-    │   └── manager/
-    │       └── WorldLightManager.hpp
     ├── spawn/                # 生物生成
     │   └── MobSpawnInfo.hpp
     ├── tick/                 # Tick 系统

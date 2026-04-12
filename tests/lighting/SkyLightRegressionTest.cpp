@@ -6,7 +6,6 @@
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
-#include "common/world/lighting/storage/SkyLightStorage.hpp"
 
 namespace {
 
@@ -211,23 +210,6 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
 
     mc::u8 after = nibble->getUpdating(8, 14, 8);
     EXPECT_GT(after, before);
-}
-
-TEST(SkyLightRegressionTest, SurfaceTopDetectionHandlesNegativeY) {
-    SkyLightChunkProvider provider(-64, 320);
-    mc::SkyLightStorage storage(&provider);
-
-    const mc::SectionPos sectionPos(0, -2, 0);
-    storage.updateSectionStatus(sectionPos.toLong(), false);
-    storage.processAllLevelUpdates();
-
-    storage.setColumnEnabled(sectionPos.toColumnLong(), true);
-
-    const mc::i64 topBlockPos = mc::LightEngineUtils::packPos(0, -17, 0);
-    const mc::i64 notTopBlockPos = mc::LightEngineUtils::packPos(0, -18, 0);
-
-    EXPECT_TRUE(storage.isAtSurfaceTop(topBlockPos));
-    EXPECT_FALSE(storage.isAtSurfaceTop(notTopBlockPos));
 }
 
 TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock) {

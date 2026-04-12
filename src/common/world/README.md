@@ -134,23 +134,6 @@ world/
 │       ├── Surface.hpp
 │       ├── SurfaceBuilder.hpp
 │       └── SurfaceBuilders.hpp/cpp (12 builders)
-├── lighting/                   # Lighting system
-│   ├── LightType.hpp           # Light type enum
-│   ├── IChunkLightProvider.hpp # Light provider interface
-│   ├── InternalLight.hpp/cpp   # Internal light data
-│   ├── engine/                 # Light engines
-│   │   ├── BlockLightEngine.hpp/cpp
-│   │   ├── SkyLightEngine.hpp/cpp
-│   │   ├── BaseLightEngine.hpp/cpp
-│   │   └── LightEngineUtils.hpp/cpp
-│   ├── manager/                # Light manager
-│   │   └── WorldLightManager.hpp/cpp
-│   └── storage/                # Light storage
-│       ├── BlockLightStorage.hpp/cpp
-│       ├── SkyLightStorage.hpp/cpp
-│       ├── SectionLightStorage.hpp
-│       ├── EmptinessMap.hpp/cpp
-│       └── SWMRNibbleArray.hpp/cpp
 ├── redstone/                   # Redstone system
 │   ├── RedstoneSystem.hpp/cpp  # Redstone system manager
 │   ├── RedstonePower.hpp/cpp   # Signal strength calculation

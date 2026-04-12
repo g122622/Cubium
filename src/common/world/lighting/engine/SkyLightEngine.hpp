@@ -2,7 +2,6 @@
 
 #include "BaseLightEngine.hpp"
 #include "LightEngineUtils.hpp"
-#include "../storage/SkyLightStorage.hpp"
 #include "../storage/SWMRNibbleArray.hpp"
 #include "../../block/Block.hpp"
 #include <vector>
