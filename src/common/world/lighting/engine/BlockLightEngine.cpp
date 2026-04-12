@@ -7,6 +7,7 @@
 #include "../../../physics/collision/CollisionShape.hpp"
 #include <algorithm>
 #include <cstring>
+#include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
@@ -94,9 +95,11 @@ void BlockStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool e
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble == nullptr) {
         if (!initRemovedNibbles) {
+            // 与 Moonrise 一致：initRemovedNibbles 为 false 时 nibble 不应为 null
             return;
         }
-        nibble = new SWMRNibbleArray(nullptr, true);  // Null 状态
+        // 与 Moonrise 一致：创建 UNINIT 状态的 Nibble（不是 NULL 状态）
+        nibble = new SWMRNibbleArray(nullptr, false);  // UNINIT 状态
         setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
     } else {
         nibble->setNonNull();
@@ -117,6 +120,9 @@ void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ) {
 
 void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
                                        i32 worldX, i32 worldY, i32 worldZ) {
+    MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::checkBlock",
+                   "Position", fmt::format("({}, {}, {})", worldX, worldY, worldZ));
+
     // 方块可以改变透明度、发光等级和传播方向
 
     i32 encodeOffset = m_coordinateOffset;

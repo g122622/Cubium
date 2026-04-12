@@ -24,7 +24,7 @@ public:
      * @brief 尝试获取调用许可
      * @return true 如果允许调用，false 如果被限流
      */
-    bool try_acquire() {
+    bool tryAcquire() {
         std::lock_guard<std::mutex> lock(mutex_);
         
         auto now = std::chrono::steady_clock::now();
@@ -100,7 +100,7 @@ auto make_rate_limited(Func&& func, size_t max_calls_per_sec) {
         
         using ReturnType = std::invoke_result_t<Func, decltype(args)...>;
         
-        if (limiter->try_acquire()) {
+        if (limiter->tryAcquire()) {
             if constexpr (std::is_void_v<ReturnType>) {
                 func(std::forward<decltype(args)>(args)...);
             } else {
@@ -127,7 +127,7 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
     return [limiter, func = std::forward<Func>(func), 
             on_limit = std::forward<OnLimit>(on_limit)](auto&&... args) {
         
-        if (limiter->try_acquire()) {
+        if (limiter->tryAcquire()) {
             func(std::forward<decltype(args)>(args)...);
         } else {
             on_limit();
@@ -159,7 +159,7 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 //     RateLimiter limiter(5); // 每秒最多5次调用
     
 //     for (int i = 0; i < 10; ++i) {
-//         if (limiter.try_acquire()) {
+//         if (limiter.tryAcquire()) {
 //             std::cout << "Call " << i << " allowed" << std::endl;
 //         } else {
 //             std::cout << "Call " << i << " blocked" << std::endl;

@@ -177,6 +177,18 @@ public:
     }
 
     /**
+     * @brief 重置队列状态
+     *
+     * 在新的光照操作开始前调用，确保队列状态干净。
+     * 与 Moonrise StarLightEngine.light() 中的重置逻辑一致。
+     */
+    void resetQueueState() {
+        m_increaseQueueInitialLength = 0;
+        m_decreaseQueueInitialLength = 0;
+        m_needsUpdate = false;
+    }
+
+    /**
      * @brief 安排光照更新
      *
      * 将位置添加到增亮队列，用于后续处理。

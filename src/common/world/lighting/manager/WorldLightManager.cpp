@@ -40,32 +40,21 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z) {
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // 单点更新需要初始化缓存环境
     i32 chunkX = x >> 4;
     i32 chunkZ = z >> 4;
-    (void)chunkX;
-    (void)chunkZ;
 
-    if (m_blockLight != nullptr) {
-        m_blockLight->setupCaches(m_provider, x, y, z, true, true);
-        m_blockLight->checkBlock(m_provider, x, y, z);
-        // 处理队列中的更新（限制迭代次数防止无限循环）
-        for (int i = 0; i < 1000 && m_blockLight->hasWork(); ++i) {
-            m_blockLight->tick(65536, false, true);
-        }
-        m_blockLight->updateVisible(m_provider);
-        m_blockLight->destroyCaches();
-    }
+    // 使用 blocksChangedInChunk 流程（与 Moonrise StarLightInterface.blockChange 一致）
+    // 这会调用 propagateBlockChanges，对于天空光照会正确传播天空光
+    std::vector<BlockPos> positions;
+    positions.emplace_back(x, y, z);
+    std::vector<bool> changedSections;  // 空的，因为我们不知道段是否为空
 
     if (m_skyLight != nullptr) {
-        m_skyLight->setupCaches(m_provider, x, y, z, true, true);
-        m_skyLight->checkBlock(m_provider, x, y, z);
-        // 处理队列中的更新（限制迭代次数防止无限循环）
-        for (int i = 0; i < 1000 && m_skyLight->hasWork(); ++i) {
-            m_skyLight->tick(65536, true, false);
-        }
-        m_skyLight->updateVisible(m_provider);
-        m_skyLight->destroyCaches();
+        m_skyLight->blocksChangedInChunk(m_provider, chunkX, chunkZ, positions, changedSections);
+    }
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->blocksChangedInChunk(m_provider, chunkX, chunkZ, positions, changedSections);
     }
 }
 

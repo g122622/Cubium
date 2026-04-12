@@ -128,7 +128,19 @@ void SWMRNibbleArray::setFull() {
 
     // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
     if (m_storageUpdating == nullptr || !m_updatingDirty) {
-        m_storageUpdating = allocateBytes();
+        // 检查更新侧和可见侧是否共享同一块内存
+        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
+
+        if (sharedWithVisible && m_storageUpdating != nullptr) {
+            // 如果与可见侧共享内存，需要先创建新存储
+            auto newStorage = allocateBytes();
+            m_storageUpdating = std::move(newStorage);
+            // 更新可见侧指向新存储
+            m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+        } else {
+            m_storageUpdating = allocateBytes();
+        }
     }
 
     std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), static_cast<u8>(0xFF)); // 每字节两个15
@@ -142,7 +154,19 @@ void SWMRNibbleArray::setZero() {
 
     // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
     if (m_storageUpdating == nullptr || !m_updatingDirty) {
-        m_storageUpdating = allocateBytes();
+        // 检查更新侧和可见侧是否共享同一块内存
+        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
+
+        if (sharedWithVisible && m_storageUpdating != nullptr) {
+            // 如果与可见侧共享内存，需要先创建新存储
+            auto newStorage = allocateBytes();
+            m_storageUpdating = std::move(newStorage);
+            // 更新可见侧指向新存储
+            m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+        } else {
+            m_storageUpdating = allocateBytes();
+        }
     }
 
     std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), static_cast<u8>(0));
@@ -306,8 +330,19 @@ void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other) {
     }
 
     if (!m_updatingDirty) {
+        // 检查更新侧和可见侧是否共享同一块内存
+        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
+
         if (m_storageUpdating != nullptr) {
-            m_storageUpdating = allocateBytes();
+            if (sharedWithVisible) {
+                // 如果与可见侧共享内存，需要先创建新存储
+                auto newStorage = allocateBytes();
+                m_storageUpdating = std::move(newStorage);
+                m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+            } else {
+                m_storageUpdating = allocateBytes();
+            }
         } else {
             m_storageUpdating = allocateBytes();
             m_stateUpdating = State::Init;
@@ -411,10 +446,31 @@ void SWMRNibbleArray::ensureWritable() {
         m_storageUpdating = allocateBytes();
         std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), 0);
     } else {
+        // 检查更新侧和可见侧是否共享同一块内存
+        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
+
         // 写时复制：创建新数组并复制数据
         auto newStorage = allocateBytes();
         *newStorage = *m_storageUpdating;
-        m_storageUpdating = std::move(newStorage);
+
+        if (sharedWithVisible) {
+            // 如果与可见侧共享内存，先更新可见侧指向新存储
+            // 这样旧内存就不会被释放（因为 unique_ptr 的 move 会释放旧内存）
+            // 但由于可见侧仍持有指针，我们需要让可见侧也指向新存储
+            // 注意：这里不释放旧内存，因为可见侧仍在使用它
+            // 但 unique_ptr 的 move 会自动释放旧内存...
+            //
+            // 正确做法：先让更新侧指向新存储，同时让可见侧也指向新存储
+            // 然后旧内存由析构函数处理（只在可见侧 != 更新侧 时释放）
+            m_storageUpdating = std::move(newStorage);
+            m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+            // 此时 m_stateUpdating == m_stateVisible，所以 isDirty() == false
+            // 但我们需要标记为 dirty 以便后续 updateVisible() 能正确工作
+        } else {
+            // 不与可见侧共享，可以安全释放旧内存
+            m_storageUpdating = std::move(newStorage);
+        }
     }
 
     if (m_stateUpdating != State::Hidden) {

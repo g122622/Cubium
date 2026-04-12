@@ -123,16 +123,14 @@ void LightEngineCache::destroyCaches() {
     m_chunkCache.fill(nullptr);
     m_emptinessMapCache.fill(nullptr);
 
-    if (m_sectionCache) {
-        for (i32 i = 0; i < m_sectionCacheSize; ++i) {
-            m_sectionCache[static_cast<size_t>(i)] = nullptr;
-        }
+    MC_ASSERT_RELEASE(m_sectionCache);
+    for (i32 i = 0; i < m_sectionCacheSize; ++i) {
+        m_sectionCache[static_cast<size_t>(i)] = nullptr;
     }
 
-    if (m_nibbleCache) {
-        for (i32 i = 0; i < m_sectionCacheSize; ++i) {
-            m_nibbleCache[static_cast<size_t>(i)] = nullptr;
-        }
+    MC_ASSERT_RELEASE(m_nibbleCache);
+    for (i32 i = 0; i < m_sectionCacheSize; ++i) {
+        m_nibbleCache[static_cast<size_t>(i)] = nullptr;
     }
 }
 

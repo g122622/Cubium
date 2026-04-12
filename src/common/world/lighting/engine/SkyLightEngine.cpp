@@ -101,7 +101,8 @@ void SkyStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool ext
         if (!initRemovedNibbles) {
             return;
         }
-        nibble = new SWMRNibbleArray(nullptr, true);  // Null 状态
+        // 与 Moonrise 一致：创建 UNINIT 状态的 Nibble（不是 NULL 状态）
+        nibble = new SWMRNibbleArray(nullptr, false);  // UNINIT 状态
         setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
     }
 
@@ -342,6 +343,9 @@ void SkyStarLightEngine::processDelayedDecreases() {
 
 void SkyStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess,
                                      i32 worldX, i32 worldY, i32 worldZ) {
+    MC_TRACE_EVENT("server.lighting", "SkyStarLightEngine::checkBlock",
+                   "Position", fmt::format("({}, {}, {})", worldX, worldY, worldZ));
+
     // 方块可以改变透明度和传播方向
 
     i32 encodeOffset = m_coordinateOffset;
@@ -556,9 +560,6 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess,
                 // spdlog::warn("SkyStarLightEngine: Neighbor chunk at ({}, {}) is not loaded, skipping skylight propagation for empty section {}",
                 //              neighbourX, neighbourZ, highestNonEmptySection);
                 continue;
-            } else {
-                spdlog::info("SkyStarLightEngine: Propagating skylight for empty section {} to neighbor chunk at ({}, {})",
-                             highestNonEmptySection, neighbourX, neighbourZ);
             }
 
             // 计算边界传播参数

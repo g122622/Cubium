@@ -24,18 +24,54 @@
 2. 在代码中添加明确注释说明原因
 3. 结束任务之后给用户明确反馈
 
+### 1.4 有关防御性编程
+
+不要过度防御性编程，这会导致代码臃肿、不易发现真正的bug和架构缺陷。只在必要的边界和不受信任的输入处进行防御性检查，其他地方可以假设前置条件已经满足。
+
+❌ 不好的例子：
+
+```cpp
+    // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
+    if (m_chunkManager && pendingTasksCount >= 0) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
+        m_chunkManager->tick(pendingTasksCount);
+    }
+    
+    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
+    if (m_lightManager && m_lightManager->hasLightWork()) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
+        m_lightManager->tick(32768, true, true);
+    }
+```
+
+✅ 正确例子，最佳实践：
+
+```cpp
+    // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
+    MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
+    MC_ASSERT_RELEASE(pendingTasksCount >= 0); // 转为断言，便于迅速暴露问题
+    m_chunkManager->tick(pendingTasksCount);
+    
+    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
+    if (m_lightManager->hasLightWork()) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
+        m_lightManager->tick(32768, true, true);
+    }
+```
+
+这可能会导致一些空指针访问，但这通常是由于架构设计缺陷或其他bug引起的，过度防御会掩盖这些问题。正确的做法是通过单元测试、集成测试和代码审查来发现和修复这些问题，而不是在每个调用处添加冗余检查。
+
+我能容忍这些错误发生，但我不能容忍你通过防御性编程来掩盖这些错误。
+
+如果你在编写代码过程中发现现存了一些这样的冗余检查，务必顺手删除它们。
+
 ---
 
 ## 2. C++语言特性规范
 
 ### 2.1 C++标准
 
-```cmake
-# 强制使用C++17标准
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-```
+强制使用C++17标准。
 
 ### 2.2 允许使用的C++17特性
 

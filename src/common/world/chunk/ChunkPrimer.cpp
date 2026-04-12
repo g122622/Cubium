@@ -210,6 +210,7 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
     if (m_data) {
         m_data->setBiomes(m_biomes);
         m_data->setFullyGenerated(true);
+        m_data->setStatus(ChunkLoadStatus::Generated);  // 设置 ChunkData 的状态
     }
 
     // 设置状态
