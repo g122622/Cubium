@@ -701,10 +701,6 @@ const BlockState* StarLightEngine::getBlockState(i32 worldX, i32 worldY, i32 wor
         return nullptr;  // 空气
     }
 
-    if (section->isEmpty()) {
-        return nullptr;  // 空气
-    }
-
     // 通过区块获取方块状态
     const IChunk* chunk = getChunkInCache(worldX >> 4, worldZ >> 4);
     if (chunk == nullptr) {
@@ -720,7 +716,7 @@ const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localInde
     }
 
     const ChunkSection* section = static_cast<const ChunkSection*>(m_sectionCache[sectionIndex]);
-    if (section == nullptr || section->isEmpty()) {
+    if (section == nullptr) {
         return nullptr;
     }
 
