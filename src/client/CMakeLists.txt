@@ -180,8 +180,10 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkWorkerPool.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/ChunkTaskScheduler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/ChunkHolderManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/task/ChunkProgressionTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp

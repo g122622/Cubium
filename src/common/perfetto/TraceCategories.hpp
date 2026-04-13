@@ -83,6 +83,8 @@ PERFETTO_DEFINE_CATEGORIES(
         .SetDescription("区块生成各阶段"),
     perfetto::Category("world.chunk_load")
         .SetDescription("区块加载和卸载"),
+    perfetto::Category("world.chunk_task")
+        .SetDescription("区块任务调度"),
     perfetto::Category("world.biome")
         .SetDescription("生物群系生成"),
     perfetto::Category("world.gen.nether")

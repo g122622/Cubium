@@ -1,5 +1,6 @@
 #include "SingleChunkLifecycleManager.hpp"
 #include <chrono>
+#include <algorithm>
 
 namespace mc {
 
@@ -36,6 +37,18 @@ void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
             m_statusChangeCallback(*this);
         }
     }
+}
+
+bool SingleChunkLifecycleManager::upgradeGenTarget(const ChunkStatus& target)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // 只有新目标更高时才升级
+    if (target.ordinal() > m_requestTarget->ordinal()) {
+        m_requestTarget = &target;
+        return true;
+    }
+    return false;
 }
 
 void SingleChunkLifecycleManager::setLevel(i32 level)
@@ -239,6 +252,95 @@ void SingleChunkLifecycleManager::failFuture(const ChunkStatus& status, Error er
             m_promises[ordinal].set_value(error);
         }
     }
+}
+
+// ============================================================================
+// 状态消费者回调 (Moonrise 风格)
+// ============================================================================
+
+void SingleChunkLifecycleManager::addStatusConsumer(const ChunkStatus& status, StatusConsumer consumer)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const i32 ordinal = status.ordinal();
+    if (ordinal >= 0 && ordinal < ChunkStatuses::COUNT) {
+        // 如果已经完成该状态，立即调用
+        if (m_status->isAtLeast(status)) {
+            if (consumer) {
+                consumer(m_generatingChunk.get());
+            }
+        } else {
+            m_statusConsumers[ordinal].push_back(std::move(consumer));
+        }
+    }
+}
+
+void SingleChunkLifecycleManager::addFullStatusConsumer(FullChunkStatus status, FullStatusConsumer consumer)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const i32 statusValue = static_cast<i32>(status);
+    m_fullStatusConsumers[statusValue].push_back(std::move(consumer));
+}
+
+void SingleChunkLifecycleManager::notifyStatusComplete(const ChunkStatus& status, ChunkPrimer* primer)
+{
+    std::vector<StatusConsumer> consumers;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        const i32 ordinal = status.ordinal();
+        if (ordinal >= 0 && ordinal < ChunkStatuses::COUNT) {
+            // 获取并清除消费者
+            auto it = m_statusConsumers.find(ordinal);
+            if (it != m_statusConsumers.end()) {
+                consumers = std::move(it->second);
+                m_statusConsumers.erase(it);
+            }
+        }
+    }
+
+    // 在锁外调用消费者
+    for (auto& consumer : consumers) {
+        if (consumer) {
+            consumer(primer);
+        }
+    }
+}
+
+// ============================================================================
+// 优先级管理
+// ============================================================================
+
+void SingleChunkLifecycleManager::raisePriority(i32 priority)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    // 只有新优先级更高（数值更小）时才更新
+    if (priority < m_requestPriority) {
+        m_requestPriority = priority;
+    }
+}
+
+void SingleChunkLifecycleManager::setPriorityValue(i32 priority)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_requestPriority = priority;
+}
+
+void SingleChunkLifecycleManager::lowerPriority(i32 priority)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    // 只有新优先级更低（数值更大）时才更新
+    if (priority > m_requestPriority) {
+        m_requestPriority = priority;
+    }
+}
+
+i32 SingleChunkLifecycleManager::getEffectivePriority(i32 defaultPriority) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_requestPriority != 0 ? m_requestPriority : defaultPriority;
 }
 
 // ============================================================================

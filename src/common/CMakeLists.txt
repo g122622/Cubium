@@ -503,6 +503,7 @@ add_library(mc_common STATIC
     # World - Chunk
     world/chunk/ChunkData.cpp
     world/chunk/ChunkDistanceGraph.cpp
+    world/chunk/ThreadedTicketLevelPropagator.cpp
     world/chunk/ChunkLoadTicketManager.cpp
     world/chunk/ChunkStatus.cpp
     world/chunk/ChunkPrimer.cpp

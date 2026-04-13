@@ -2,10 +2,13 @@
 
 #include "../../common/world/chunk/ChunkData.hpp"
 #include "../../common/world/chunk/SingleChunkLifecycleManager.hpp"
+#include "../../common/world/chunk/ThreadedTicketLevelPropagator.hpp"
 #include "../../common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "../../common/world/gen/chunk/IChunkGenerator.hpp"
 #include "../../common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "ChunkWorkerPool.hpp"
+#include "../../common/util/concurrent/ReentrantAreaLock.hpp"
+#include "chunk/ChunkTaskScheduler.hpp"
+#include "chunk/ChunkHolderManager.hpp"
 #include <unordered_map>
 #include <memory>
 #include <future>
@@ -23,14 +26,18 @@ class ChunkSendManager;
 /**
  * @brief 服务端区块管理器
  *
- * 参考 MC ServerChunkProvider，协调区块加载、生成、卸载。
- * 使用 Worker 线程池异步生成区块，不阻塞主循环。
+ * 参考 Moonrise 的 ChunkTaskScheduler 架构，协调区块加载、生成、卸载。
+ * 使用多执行器异步生成区块，不阻塞主循环。
+ *
+ * 架构概览：
+ * - ChunkTaskScheduler: 管理并行生成执行器、半径感知调度器、主线程任务队列
+ * - ChunkHolderManager: 集中管理区块持有者、票据传播、卸载队列
+ * - ThreadedTicketLevelPropagator: Section 分组的高效票据级别传播
  *
  * 使用方法：
  * @code
  * ServerChunkManager manager(world, std::move(generator));
  * manager.initialize();
- * manager.startWorkers();
  *
  * // 获取区块（同步）
  * ChunkData* chunk = manager.getChunk(x, z);
@@ -101,7 +108,7 @@ public:
     /**
      * @brief 检查 Worker 是否运行
      */
-    [[nodiscard]] bool workersRunning() const { return m_workerPool.isRunning(); }
+    [[nodiscard]] bool workersRunning() const;
 
     // ============================================================================
     // 区块访问（同步）
@@ -236,13 +243,41 @@ public:
     /**
      * @brief 获取或创建区块持有者
      */
-    [[nodiscard]] SingleChunkLifecycleManager* getOrCreateSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] SingleChunkLifecycleManager* getOrCreateChunkHolder(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 获取区块持有者
      */
-    [[nodiscard]] SingleChunkLifecycleManager* getSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z);
-    [[nodiscard]] const SingleChunkLifecycleManager* getSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] SingleChunkLifecycleManager* getChunkHolder(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] const SingleChunkLifecycleManager* getChunkHolder(ChunkCoord x, ChunkCoord z) const;
+
+    // ============================================================================
+    // 向后兼容别名
+    // ============================================================================
+
+    /**
+     * @brief 向后兼容别名
+     * @deprecated 使用 getOrCreateChunkHolder() 替代
+     */
+    [[nodiscard]] SingleChunkLifecycleManager* getOrCreateSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z) {
+        return getOrCreateChunkHolder(x, z);
+    }
+
+    /**
+     * @brief 向后兼容别名
+     * @deprecated 使用 getChunkHolder() 替代
+     */
+    [[nodiscard]] SingleChunkLifecycleManager* getSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z) {
+        return getChunkHolder(x, z);
+    }
+
+    /**
+     * @brief 向后兼容别名
+     * @deprecated 使用 getChunkHolder() 替代
+     */
+    [[nodiscard]] const SingleChunkLifecycleManager* getSingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z) const {
+        return getChunkHolder(x, z);
+    }
 
     // ============================================================================
     // 票据管理
@@ -271,31 +306,46 @@ public:
     void setViewDistance(i32 distance);
 
     /**
-     * @brief 设置票据级别变化回调
-     */
-    void setTicketLevelChangeCallback(world::ChunkLoadTicketManager::LevelChangeCallback callback) {
-        m_ticketManager.setLevelChangeCallback(std::move(callback));
-    }
-
-    /**
      * @brief 检查区块是否应该被加载
      */
-    [[nodiscard]] bool shouldChunkLoad(ChunkCoord x, ChunkCoord z) const {
-        return m_ticketManager.shouldChunkLoad(x, z);
-    }
+    [[nodiscard]] bool shouldChunkLoad(ChunkCoord x, ChunkCoord z) const;
 
     /**
      * @brief 处理票据更新
      */
-    void processTicketUpdates() { m_ticketManager.processUpdates(); }
+    void processTicketUpdates();
+
+    /**
+     * @brief 获取票据级别
+     */
+    [[nodiscard]] i32 getTicketLevel(ChunkCoord x, ChunkCoord z) const;
+
+    /**
+     * @brief 获取票据传播器
+     */
+    [[nodiscard]] world::ThreadedTicketLevelPropagator& getTicketPropagator() { return m_ticketPropagator; }
+    [[nodiscard]] const world::ThreadedTicketLevelPropagator& getTicketPropagator() const { return m_ticketPropagator; }
 
     /**
      * @brief 获取票据管理器
      */
+    [[nodiscard]] ChunkHolderManager& getHolderManager() { return *m_holderManager; }
+    [[nodiscard]] const ChunkHolderManager& getHolderManager() const { return *m_holderManager; }
+
+    /**
+     * @brief 获取票据管理器（向后兼容）
+     * @deprecated 使用 getHolderManager() 或 getTicketPropagator() 替代
+     */
     [[nodiscard]] world::ChunkLoadTicketManager& ticketManager() { return m_ticketManager; }
     [[nodiscard]] const world::ChunkLoadTicketManager& ticketManager() const { return m_ticketManager; }
 
-    [[nodiscard]] i32 viewDistance() const { return m_ticketManager.viewDistance(); }
+    /**
+     * @brief 获取区块持有者数量（向后兼容）
+     * @deprecated 使用 holderCount() 替代
+     */
+    [[nodiscard]] size_t singleChunkLifecycleManagerCount() const { return holderCount(); }
+
+    [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
 
     // ============================================================================
     // 主循环
@@ -320,7 +370,7 @@ public:
     /**
      * @brief 获取区块持有者数量
      */
-    [[nodiscard]] size_t singleChunkLifecycleManagerCount() const;
+    [[nodiscard]] size_t holderCount() const;
 
     /**
      * @brief 获取待处理任务数量
@@ -333,6 +383,12 @@ public:
     [[nodiscard]] IChunkGenerator* generator() { return m_generator.get(); }
     [[nodiscard]] const IChunkGenerator* generator() const { return m_generator.get(); }
 
+    /**
+     * @brief 获取任务调度器
+     */
+    [[nodiscard]] ChunkTaskScheduler& getTaskScheduler() { return *m_taskScheduler; }
+    [[nodiscard]] const ChunkTaskScheduler& getTaskScheduler() const { return *m_taskScheduler; }
+
 private:
     // ============================================================================
     // 内部方法
@@ -341,14 +397,14 @@ private:
     /**
      * @brief 调度区块生成
      */
-    void scheduleGeneration(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& targetStatus);
+    void scheduleGeneration(SingleChunkLifecycleManager& holder, const ChunkStatus& targetStatus);
 
     /**
      * @brief 请求区块异步生成（同坐标请求自动合并）
      */
     void requestChunkGeneration(ChunkCoord x, ChunkCoord z,
                                 const ChunkStatus& targetStatus,
-                                i32 priority,
+                                Priority priority,
                                 ChunkCallback callback,
                                 std::shared_ptr<std::promise<ChunkData*>> promise);
 
@@ -365,14 +421,14 @@ private:
     /**
      * @brief 计算调度优先级（越小越高）
      */
-    [[nodiscard]] i32 computeSchedulePriority(ChunkCoord x, ChunkCoord z,
-                                              const ChunkStatus& targetStatus,
-                                              i32 ticketLevel) const;
+    [[nodiscard]] Priority computeSchedulePriority(ChunkCoord x, ChunkCoord z,
+                                                   const ChunkStatus& targetStatus,
+                                                   i32 ticketLevel) const;
 
     /**
      * @brief 执行生成任务
      */
-    void executeGenerationTask(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& status);
+    void executeGenerationTask(SingleChunkLifecycleManager& holder, const ChunkStatus& status);
 
     /**
      * @brief 检查邻居区块状态
@@ -401,7 +457,7 @@ private:
      * @brief 存储已生成区块并同步更新持有者状态
      * @return 缓存中的区块指针，失败返回 nullptr
      */
-    [[nodiscard]] ChunkData* storeGeneratedChunkToMem(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data);
+    [[nodiscard]] ChunkData* storeGeneratedChunk(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data);
 
     /**
      * @brief 处理完成的异步任务
@@ -430,7 +486,15 @@ private:
      * @brief 区块坐标转键
      */
     [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) {
-        return ChunkId(x, z, 0).toId();
+        return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
+    }
+
+    /**
+     * @brief 从键解析坐标
+     */
+    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z) {
+        x = static_cast<ChunkCoord>(static_cast<i32>(key >> 32));
+        z = static_cast<ChunkCoord>(static_cast<i32>(key & 0xFFFFFFFF));
     }
 
     // ============================================================================
@@ -443,15 +507,11 @@ private:
     ChunkLoadedCallback m_chunkLoadedCallback;  // 区块加载回调（用于光照初始化等）
     ChunkLoadedCallback m_chunkUnloadedCallback;  // 区块卸载回调（用于清理 POI 等）
 
-    // 区块持有者
-    std::unordered_map<u64, std::unique_ptr<SingleChunkLifecycleManager>> m_singleChunkLifecycleManagers;
-    mutable std::mutex m_singleChunkLifecycleManagersMutex;
-
     // 已完成的区块数据缓存
     std::unordered_map<u64, std::shared_ptr<ChunkData>> m_chunks;
     mutable std::mutex m_chunksMutex;
 
-    // 同步生成保护，避免多线程同时对同一 SingleChunkLifecycleManager 执行同步生成
+    // 同步生成保护，避免多线程同时对同一持有者执行同步生成
     mutable std::mutex m_syncGenerationMutex;
 
     struct PendingGeneration {
@@ -463,14 +523,30 @@ private:
     std::unordered_map<u64, PendingGeneration> m_pendingGenerations;
     mutable std::mutex m_pendingGenerationsMutex;
 
-    // 票据管理器
+    // 票据传播器（Section 分组）
+    world::ThreadedTicketLevelPropagator m_ticketPropagator;
+
+    // 票据管理器（向后兼容，用于玩家追踪等功能）
     world::ChunkLoadTicketManager m_ticketManager;
+
+    // 区块持有者管理器
+    std::unique_ptr<ChunkHolderManager> m_holderManager;
+
+    // 任务调度器
+    std::unique_ptr<ChunkTaskScheduler> m_taskScheduler;
+
+    // 玩家追踪
+    std::unordered_map<PlayerId, u64> m_playerPositions;  // PlayerId -> posToKey(x, z)
+    std::unordered_map<u64, std::unordered_set<PlayerId>> m_playersByChunk;  // posToKey -> players
+    mutable std::mutex m_playerMutex;
+    i32 m_viewDistance = 10;
+
+    // 强制加载区块
+    std::unordered_set<u64> m_forcedChunks;
+    mutable std::mutex m_forcedMutex;
 
     // 区块发送管理器（可选，由 MinecraftServer 设置）
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
-
-    // Worker 线程池
-    ChunkWorkerPool m_workerPool;
 
     // 统计
     u64 m_currentTick = 0;

@@ -12,11 +12,16 @@
 #include <functional>
 #include <atomic>
 #include <variant>
+#include <vector>
+#include <unordered_map>
 
 namespace mc {
 
 // 导入票据类型到当前命名空间
 using ChunkLoadTicket = world::ChunkLoadTicket;
+
+// 前向声明
+class ChunkProgressionTask;
 
 /**
  * @brief 生命周期状态
@@ -43,16 +48,27 @@ struct ChunkRequestControl {
 };
 
 /**
+ * @brief 区块完成状态（用于 FULL 状态后的额外信息）
+ */
+enum class FullChunkStatus {
+    INACCESSIBLE,   // 不可访问
+    BORDER,         // 边界区块（级别 33）
+    TICKING,        // Tick 区块（级别 32）
+    ENTITY_TICKING, // 实体 Tick 区块（级别 31）
+    FULL            // 完整区块（级别 <= 30）
+};
+
+/**
  * @brief 区块持有者
  *
- * 参考 MC SingleChunkLifecycleManager，管理单个区块的加载状态和生成进度。
- * 每个区块对应一个 SingleChunkLifecycleManager，跟踪其生成阶段和 Future 链。
+ * 参考 Moonrise 的 NewChunkHolder 设计，管理单个区块的加载状态和生成进度。
+ * 每个区块对应一个 ChunkHolder，跟踪其生成阶段、任务和回调。
  *
- * 使用方法：
- * 1. SingleChunkLifecycleManager 在区块首次被请求时创建
- * 2. 通过 scheduleGeneration() 启动生成流程
- * 3. 通过 getChunkFuture() 获取指定阶段的区块 Future
- * 4. 当区块不再需要时，标记为卸载
+ * 主要功能：
+ * - 状态消费者回调（每个 ChunkStatus 可注册多个消费者）
+ * - 完整区块状态回调
+ * - 优先级管理
+ * - 任务追踪
  */
 class SingleChunkLifecycleManager {
 public:
@@ -75,6 +91,16 @@ public:
      * @brief 区块 Future 类型
      */
     using ChunkFuture = std::shared_future<ChunkResult>;
+
+    /**
+     * @brief 状态消费者回调类型
+     */
+    using StatusConsumer = std::function<void(ChunkPrimer*)>;
+
+    /**
+     * @brief 完整区块状态消费者类型
+     */
+    using FullStatusConsumer = std::function<void(ChunkData*)>;
 
     /**
      * @brief 生成任务回调类型
@@ -131,6 +157,21 @@ public:
     [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const {
         return m_status->isAtLeast(status);
     }
+
+    /**
+     * @brief 获取当前生成目标状态
+     */
+    [[nodiscard]] const ChunkStatus* getTargetStatus() const {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_requestTarget;
+    }
+
+    /**
+     * @brief 尝试升级生成目标
+     * @param target 新目标状态
+     * @return 是否成功升级
+     */
+    bool upgradeGenTarget(const ChunkStatus& target);
 
     /**
      * @brief 获取加载级别
@@ -268,6 +309,70 @@ public:
     void failFuture(const ChunkStatus& status, Error error);
 
     // ============================================================================
+    // 状态消费者回调 (Moonrise 风格)
+    // ============================================================================
+
+    /**
+     * @brief 添加状态消费者回调
+     *
+     * 当区块达到指定状态时，回调会被调用。
+     * 如果区块已经达到该状态，回调会立即被调用。
+     *
+     * @param status 目标状态
+     * @param consumer 消费者回调
+     */
+    void addStatusConsumer(const ChunkStatus& status, StatusConsumer consumer);
+
+    /**
+     * @brief 添加完整区块状态消费者
+     *
+     * 当区块达到 FULL 状态后，状态变为指定的 FullChunkStatus 时回调。
+     *
+     * @param status 目标完整状态
+     * @param consumer 消费者回调
+     */
+    void addFullStatusConsumer(FullChunkStatus status, FullStatusConsumer consumer);
+
+    /**
+     * @brief 通知状态完成
+     *
+     * 由区块生成器调用，触发状态消费者。
+     *
+     * @param status 完成的状态
+     * @param primer 区块数据
+     */
+    void notifyStatusComplete(const ChunkStatus& status, ChunkPrimer* primer);
+
+    // ============================================================================
+    // 优先级管理
+    // ============================================================================
+
+    /**
+     * @brief 提升优先级
+     * @param priority 新优先级（如果更高）
+     */
+    void raisePriority(i32 priority);
+
+    /**
+     * @brief 设置优先级
+     * @param priority 新优先级
+     */
+    void setPriorityValue(i32 priority);
+
+    /**
+     * @brief 降低优先级
+     * @param priority 新优先级（如果更低）
+     */
+    void lowerPriority(i32 priority);
+
+    /**
+     * @brief 获取有效优先级
+     * @param defaultPriority 默认优先级
+     * @return 当前优先级或默认值
+     */
+    [[nodiscard]] i32 getEffectivePriority(i32 defaultPriority) const;
+
+    // ============================================================================
     // 票据管理
     // ============================================================================
 
@@ -367,6 +472,26 @@ public:
         m_queuedForUnload = queued;
     }
 
+    // ============================================================================
+    // 任务关联
+    // ============================================================================
+
+    /**
+     * @brief 设置关联的进度任务
+     */
+    void setProgressionTask(ChunkProgressionTask* task) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_progressionTask = task;
+    }
+
+    /**
+     * @brief 获取关联的进度任务
+     */
+    [[nodiscard]] ChunkProgressionTask* getProgressionTask() const {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_progressionTask;
+    }
+
 private:
     ChunkCoord m_x;
     ChunkCoord m_z;
@@ -397,6 +522,12 @@ private:
     std::array<ChunkFuture, ChunkStatuses::COUNT> m_futures;
     std::array<bool, ChunkStatuses::COUNT> m_futureInitialized{};
 
+    // 状态消费者回调
+    std::unordered_map<i32, std::vector<StatusConsumer>> m_statusConsumers;
+
+    // 完整区块状态消费者
+    std::unordered_map<i32, std::vector<FullStatusConsumer>> m_fullStatusConsumers;
+
     // 票据
     std::vector<ChunkLoadTicket> m_tickets;
 
@@ -410,6 +541,9 @@ private:
     // 标记
     bool m_dirty = false;
     bool m_queuedForUnload = false;
+
+    // 关联的进度任务
+    ChunkProgressionTask* m_progressionTask = nullptr;
 
     // 互斥锁
     mutable std::mutex m_mutex;

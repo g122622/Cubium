@@ -69,7 +69,6 @@ add_executable(mc_tests
     server/test_integrated_server.cpp
     server/BlockDropHandlerTest.cpp
     server/BlockInteractionManagerTest.cpp
-    server/test_chunk_worker_pool.cpp
     server/test_server_chunk_manager.cpp
     server/core/TimeManagerTest.cpp
     server/core/PlayerManagerTest.cpp
@@ -193,6 +192,10 @@ add_executable(mc_tests
     common/entity/PlayerMovementTest.cpp
     # Assert库测试
     common/util/assert/AssertTest.cpp
+    # 并发工具测试
+    common/util/concurrent/ReentrantAreaLockTest.cpp
+    # 票据级别传播器测试
+    common/world/chunk/ThreadedTicketLevelPropagatorTest.cpp
     # 调试区块生成器测试
     common/world/gen/DebugChunkGeneratorTest.cpp
     # 生物群系颜色测试
@@ -223,8 +226,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/chunk/ChunkTaskScheduler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/chunk/ChunkHolderManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/chunk/task/ChunkProgressionTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
