@@ -8,6 +8,8 @@
 #include "../../util/math/Vector3.hpp"
 #include "../../util/Direction.hpp"
 #include "../../physics/collision/CollisionShape.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+
 #include <cmath>
 #include <algorithm>
 
@@ -38,8 +40,19 @@ FluidState FlowingFluid::getStillState(bool falling) {
 }
 
 void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
+    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::tick",
+        "position", pos.toString(),
+        "fluidState", state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     // 非源头才需要计算正确状态
     if (!isSource(state)) {
+        MC_TRACE_EVENT("fluid.tick", "CalculatingSourceState",
+            "position", pos.toString(),
+            "currentState", state.toString());
+
         const BlockState* currentBlock = world.getBlockState(pos.x, pos.y, pos.z);
         FluidState correctState = calculateCorrectFlowingState(world, pos, currentBlock);
 
@@ -182,6 +195,13 @@ bool FlowingFluid::isFullHeight(const FluidState& state, IBlockReader& world, co
 }
 
 void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidState& state) {
+    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::flowAround",
+        "position", pos.toString(),
+        "fluidState", state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     if (state.isEmpty()) {
         return;
     }
@@ -226,6 +246,13 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
 
 void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
                                         const FluidState& state, const BlockState* blockState) {
+    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::spreadHorizontally",
+        "position", pos.toString(),
+        "fluidState", state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+    
     i32 newLevel = isSource(state) ? getSpreadDistance(world) : state.getLevel() - getLevelDecrease(world);
 
     // 下落流体的level固定为7
@@ -253,6 +280,14 @@ void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
 
 void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
                              Direction dir, const FluidState& state) {
+    MC_TRACE_EVENT("fluid.tick", "FlowingFluid::flowInto",
+        "position", pos.toString(),
+        "direction", Directions::toString(dir),
+        "fluidState", state.toString(),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     if (blockState != nullptr) {
         Block* blockRef = Block::getBlock(blockState->blockId());
 

@@ -139,6 +139,10 @@ PERFETTO_DEFINE_CATEGORIES(
         .SetDescription("服务端声音事件处理"),
     perfetto::Category("client.sound")
         .SetDescription("客户端声音播放"),
+
+    // === 流体 ===
+    perfetto::Category("fluid.tick")
+        .SetDescription("流体更新处理"),
     
     // === memory ===
     perfetto::Category("memory")

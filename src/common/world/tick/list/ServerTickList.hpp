@@ -5,6 +5,8 @@
 #include "../../../core/Types.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include "../../IWorld.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+
 #include <set>
 #include <unordered_set>
 #include <queue>
@@ -348,6 +350,15 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
 
         if (tick.target != nullptr) {
             m_executedThisTick.push_back(tick);
+
+            MC_TRACE_EVENT("server.tick", "ExecutingTick",
+                "position", tick.position.toString(),
+                "scheduledTick", tick.scheduledTick,
+                "priority", static_cast<i8>(tick.priority),
+                [flow = ::perfetto::Flow::ProcessScoped(tick.position.toId())](::perfetto::EventContext ctx) {
+                    flow(ctx);
+            });
+
             m_tickFunction(m_world, tick.position, *tick.target);
             ++m_totalProcessed;
         }

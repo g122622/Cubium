@@ -17,6 +17,7 @@
 
 namespace mc::server::interaction {
 
+// TODO 有不少方法中的逻辑重复，考虑抽离公共逻辑以减少重复代码
 BlockInteractionManager::BlockInteractionManager(
     ServerWorld& world,
     core::PlayerManager& playerManager,
@@ -37,6 +38,15 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
     const BlockPos& pos,
     network::BlockInteractionAction action)
 {
+    MC_TRACE_EVENT("server.world",
+        "BlockInteractionManager::handleBlockInteraction",
+        "pos", pos.toString(),
+        "playerId", playerId,
+        "action", static_cast<u8>(action),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     // 获取玩家数据
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
@@ -103,6 +113,15 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     Direction face,
     const ItemStack& heldItem)
 {
+    MC_TRACE_EVENT("server.world",
+        "BlockInteractionManager::handleBlockPlacement",
+        "pos", pos.toString(),
+        "playerId", playerId,
+        "face", Directions::toString(face),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     // 调试世界禁止方块放置
     if (m_world.isDebugWorld()) {
         return Error(ErrorCode::PermissionDenied, "Cannot place blocks in debug world");
@@ -189,6 +208,15 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     const Vector3& hitPos,
     Direction face)
 {
+    MC_TRACE_EVENT("server.world",
+        "BlockInteractionManager::handleBlockUse",
+        "pos", pos.toString(),
+        "playerId", playerId,
+        "hand", hand == Hand::MainHand ? "main" : "off",
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
         return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
@@ -227,6 +255,14 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
     PlayerId playerId,
     const BlockPos& pos)
 {
+    MC_TRACE_EVENT("server.world",
+        "BlockInteractionManager::handleBlockBreak",
+        "pos", pos.toString(),
+        "playerId", playerId,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     // 调试世界禁止方块破坏
     if (m_world.isDebugWorld()) {
         return Error(ErrorCode::PermissionDenied, "Cannot break blocks in debug world");

@@ -226,16 +226,33 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         }
     );
 
-    // 调试世界禁止方块修改
-    if (m_config.isDebugWorld) {
-        return false;
+    const BlockPos changedPos(x, y, z);
+
+    {
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::DebugWorldCheck", "x", x, "y", y, "z", z);
+
+        // 调试世界禁止方块修改
+        if (m_config.isDebugWorld) {
+            return false;
+        }
     }
 
     ChunkCoord chunkX = CoordConverter::blockToChunk(x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(z);
+    ChunkData* chunk = nullptr;
 
-    ChunkData* chunk = getChunkSync(chunkX, chunkZ);
-    if (!chunk) return false;
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::ChunkLookup",
+            "chunkX", chunkX,
+            "chunkZ", chunkZ
+        );
+
+        chunk = getChunkSync(chunkX, chunkZ);
+        if (!chunk) {
+            return false;
+        }
+    }
 
     const BlockRegistry& blockRegistry = BlockRegistry::instance();
     const BlockState* airState = blockRegistry.airState();
@@ -257,18 +274,38 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         return inputState;
     };
 
-    const BlockPos changedPos(x, y, z);
     i32 localX = x - chunkX * 16;
     i32 localZ = z - chunkZ * 16;
 
-    const BlockState* oldState = canonicalizeState(chunk->getBlock(localX, y, localZ));
-    const BlockState* newState = canonicalizeState(state);
-    if (newState != nullptr && newState->isAir()) {
-        newState = airState;
+    const BlockState* oldState = nullptr;
+    const BlockState* newState = nullptr;
+
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::CanonicalizeState",
+            "x", x,
+            "y", y,
+            "z", z
+        );
+
+        oldState = canonicalizeState(chunk->getBlock(localX, y, localZ));
+        newState = canonicalizeState(state);
+        if (newState != nullptr && newState->isAir()) {
+            newState = airState;
+        }
     }
 
-    if (oldState == newState) {
-        return false;
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::StateComparison",
+            "x", x,
+            "y", y,
+            "z", z
+        );
+
+        if (oldState == newState) {
+            return false;
+        }
     }
 
     const bool oldIsAir = (oldState == nullptr || oldState->isAir());
@@ -279,28 +316,57 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     i32 oldLightLevel = oldState ? oldState->lightLevel() : 0;
     i32 newLightLevel = newState ? newState->lightLevel() : 0;
 
-    // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
-    if (m_villageManager && !oldIsAir) {
-        m_villageManager->onBlockRemoved(changedPos);
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::OldBlockCallbacks",
+            "x", x,
+            "y", y,
+            "z", z
+        );
+
+        // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
+        if (m_villageManager && !oldIsAir) {
+            m_villageManager->onBlockRemoved(changedPos);
+        }
+
+        if (!oldIsAir && blockTypeChanged) {
+            Block& oldBlock = const_cast<Block&>(oldState->getBlock());
+            oldBlock.onBlockRemoved(*this, changedPos, *oldState);
+        }
     }
 
-    if (!oldIsAir && blockTypeChanged) {
-        Block& oldBlock = const_cast<Block&>(oldState->getBlock());
-        oldBlock.onBlockRemoved(*this, changedPos, *oldState);
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::WriteChunk",
+            "x", x,
+            "y", y,
+            "z", z,
+            "oldBlockId", oldState ? oldState->blockId() : 0,
+            "newBlockId", newState ? newState->blockId() : 0
+        );
+
+        const BlockState* storedState = newIsAir ? nullptr : newState;
+        chunk->setBlock(localX, y, localZ, storedState);
+        chunk->setDirty(true);
     }
 
-    const BlockState* storedState = newIsAir ? nullptr : newState;
-    chunk->setBlock(localX, y, localZ, storedState);
-    chunk->setDirty(true);
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::NewBlockCallbacks",
+            "x", x,
+            "y", y,
+            "z", z
+        );
 
-    if (!newIsAir && blockTypeChanged) {
-        Block& newBlock = const_cast<Block&>(newState->getBlock());
-        newBlock.onBlockAdded(*this, changedPos, *newState);
-    }
+        if (!newIsAir && blockTypeChanged) {
+            Block& newBlock = const_cast<Block&>(newState->getBlock());
+            newBlock.onBlockAdded(*this, changedPos, *newState);
+        }
 
-    // 通知村庄管理器方块放置（如果新方块存在且不是空气）
-    if (m_villageManager && !newIsAir) {
-        m_villageManager->onBlockPlaced(changedPos, newState->blockId());
+        // 通知村庄管理器方块放置（如果新方块存在且不是空气）
+        if (m_villageManager && !newIsAir) {
+            m_villageManager->onBlockPlaced(changedPos, newState->blockId());
+        }
     }
 
     const BlockState* sourceState = (!newIsAir) ? newState : oldState;
@@ -325,56 +391,94 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         {0, 0, 1, Direction::South}
     }};
 
-    for (const auto& neighbor : NEIGHBOR_DELTAS) {
-        const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
-        const BlockState* neighborState = canonicalizeState(getBlockState(
-            neighborPos.x,
-            neighborPos.y,
-            neighborPos.z));
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::NeighborUpdates",
+            "x", x,
+            "y", y,
+            "z", z
+        );
 
-        if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-            BlockState updatedStateValue = neighborBlock.updatePostPlacement(
-                *neighborState,
-                Directions::opposite(neighbor.direction),
-                *newState,
-                *this,
-                neighborPos,
-                changedPos);
+        for (const auto& neighbor : NEIGHBOR_DELTAS) {
+            const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
+            const BlockState* neighborState = canonicalizeState(getBlockState(
+                neighborPos.x,
+                neighborPos.y,
+                neighborPos.z));
 
-            const BlockState* updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
-            if (updatedState == nullptr && updatedStateValue.isAir()) {
-                updatedState = airState;
+            const BlockState* updatedState = nullptr;
+
+            {
+                MC_TRACE_EVENT(
+                    "server.world", "ServerWorld::setBlock::NeighborUpdatePostPlacement",
+                    "x", neighborPos.x,
+                    "y", neighborPos.y,
+                    "z", neighborPos.z
+                );
+
+                if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
+                    Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                    BlockState updatedStateValue = neighborBlock.updatePostPlacement(
+                        *neighborState,
+                        Directions::opposite(neighbor.direction),
+                        *newState,
+                        *this,
+                        neighborPos,
+                        changedPos);
+
+                    updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
+                    if (updatedState == nullptr && updatedStateValue.isAir()) {
+                        updatedState = airState;
+                    }
+                }
             }
 
             if (updatedState != nullptr && updatedState != neighborState) {
                 setBlock(neighborPos.x, neighborPos.y, neighborPos.z, updatedState);
                 neighborState = canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
             }
-        }
 
-        if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-            neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
+            {
+                MC_TRACE_EVENT(
+                    "server.world", "ServerWorld::setBlock::NeighborChanged",
+                    "x", neighborPos.x,
+                    "y", neighborPos.y,
+                    "z", neighborPos.z
+                );
+
+                if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
+                    Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                    neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
+                }
+            }
         }
     }
 
-    if (m_lightManager) {
-        m_lightManager->checkBlock(changedPos.x, changedPos.y, changedPos.z);
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::LightUpdates",
+            "x", x,
+            "y", y,
+            "z", z,
+            "oldLightLevel", oldLightLevel,
+            "newLightLevel", newLightLevel
+        );
 
-        if (newLightLevel > oldLightLevel) {
-            m_lightManager->onBlockEmissionIncrease(changedPos.x, changedPos.y, changedPos.z, newLightLevel);
+        if (m_lightManager) {
+            m_lightManager->checkBlock(changedPos.x, changedPos.y, changedPos.z);
+
+            if (newLightLevel > oldLightLevel) {
+                m_lightManager->onBlockEmissionIncrease(changedPos.x, changedPos.y, changedPos.z, newLightLevel);
+            }
+        } else {
+            MC_ASSERT_RELEASE(false);
         }
-    } else {
-        MC_ASSERT_RELEASE(false);
     }
 
     // setBlock 路径不会自动触发 LiquidBlock 回调，这里主动补一次流体初始调度。
     // 同时调度周围六邻域，确保水/岩浆在方块变化后能及时重算流动。
     const auto scheduleFluidAt = [&](const BlockPos& pos, const BlockState* blockState) {
-        if (blockState == nullptr || m_tickManager == nullptr) {
-            return;
-        }
+        MC_ASSERT_RELEASE(blockState && m_tickManager);
 
         const fluid::FluidState* fluidState = blockState->getFluidState();
         if (fluidState == nullptr || fluidState->isEmpty()) {
@@ -386,24 +490,33 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         scheduleFluidTick(pos, fluid, delay, world::tick::TickPriority::Normal);
     };
 
-    scheduleFluidAt(changedPos, newState);
+    {
+        MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::FluidScheduling",
+            "x", x,
+            "y", y,
+            "z", z
+        );
 
-    constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {{
-        {{-1, 0, 0}},
-        {{1, 0, 0}},
-        {{0, -1, 0}},
-        {{0, 1, 0}},
-        {{0, 0, -1}},
-        {{0, 0, 1}}
-    }};
+        scheduleFluidAt(changedPos, newState);
 
-    for (const auto& offset : NEIGHBOR_OFFSETS) {
-        const BlockPos neighborPos(x + offset[0], y + offset[1], z + offset[2]);
-        const BlockState* neighborState = canonicalizeState(getBlockState(
-            neighborPos.x,
-            neighborPos.y,
-            neighborPos.z));
-        scheduleFluidAt(neighborPos, neighborState);
+        constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {{
+            {{-1, 0, 0}},
+            {{1, 0, 0}},
+            {{0, -1, 0}},
+            {{0, 1, 0}},
+            {{0, 0, -1}},
+            {{0, 0, 1}}
+        }};
+
+        for (const auto& offset : NEIGHBOR_OFFSETS) {
+            const BlockPos neighborPos(x + offset[0], y + offset[1], z + offset[2]);
+            const BlockState* neighborState = canonicalizeState(getBlockState(
+                neighborPos.x,
+                neighborPos.y,
+                neighborPos.z));
+            scheduleFluidAt(neighborPos, neighborState);
+        }
     }
 
     return true;
@@ -846,17 +959,13 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 void ServerWorld::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay,
                                      world::tick::TickPriority priority)
 {
-    if (m_tickManager) {
-        m_tickManager->scheduleBlockTick(pos, block, delay, priority);
-    }
+    m_tickManager->scheduleBlockTick(pos, block, delay, priority);
 }
 
 void ServerWorld::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay,
                                      world::tick::TickPriority priority)
 {
-    if (m_tickManager) {
-        m_tickManager->scheduleFluidTick(pos, fluid, delay, priority);
-    }
+    m_tickManager->scheduleFluidTick(pos, fluid, delay, priority);
 }
 
 // ============================================================================

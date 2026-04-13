@@ -2,6 +2,7 @@
 #include "../../block/BlockRegistry.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../../IWorld.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::world::tick {
 
@@ -120,15 +121,24 @@ bool TickManager::cancelFluidTick(const BlockPos& pos, fluid::Fluid& fluid) {
 // ============================================================================
 
 void TickManager::tick(u64 currentTick) {
+    MC_TRACE_EVENT("server.tick", "TickManager::tick",
+        "currentTick", currentTick);
+
     // 设置当前tick用于调度计算
     m_blockTicks->setCurrentTick(currentTick);
     m_fluidTicks->setCurrentTick(currentTick);
 
     // 先执行方块计划刻
-    m_blockTicks->tick(currentTick);
+    {
+        MC_TRACE_EVENT("server.tick", "BlockTicks");
+        m_blockTicks->tick(currentTick);
+    }
 
     // 再执行流体计划刻
-    m_fluidTicks->tick(currentTick);
+    {
+        MC_TRACE_EVENT("server.tick", "FluidTicks");
+        m_fluidTicks->tick(currentTick);
+    }
 }
 
 // ============================================================================

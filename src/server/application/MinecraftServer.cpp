@@ -883,19 +883,19 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
     const auto& packet = result.value();
     BlockPos pos(packet.x(), packet.y(), packet.z());
 
+    MC_TRACE_EVENT("server.world",
+            "MinecraftServer::handleBlockInteractionPacket",
+            "pos", pos.toString(),
+            "playerId", playerId,
+            [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+    });
+
     // 处理挖掘状态
     miningManager().handleBlockInteraction(playerId, pos, packet.action());
 
     // 处理方块破坏
     if (packet.action() == network::BlockInteractionAction::StopDestroyBlock) {
-        MC_TRACE_EVENT("server.lighting",
-            "HandleBlockBreak",
-            "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-            "playerId", playerId,
-            [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-        });
-
         auto interactionResult = blockInteractionManager().handleBlockBreak(playerId, pos);
         if (interactionResult.success() && interactionResult.value().blockBroken) {
             // 发送方块更新给该玩家
