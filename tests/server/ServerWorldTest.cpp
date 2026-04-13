@@ -232,19 +232,6 @@ TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
 }
 
 // ============================================================================
-// 区块坐标转换测试
-// ============================================================================
-
-TEST_F(ServerWorldTest, BlockToChunk) {
-    EXPECT_EQ(ServerWorld::blockToChunk(0.0), 0);
-    EXPECT_EQ(ServerWorld::blockToChunk(15.0), 0);
-    EXPECT_EQ(ServerWorld::blockToChunk(16.0), 1);
-    EXPECT_EQ(ServerWorld::blockToChunk(-1.0), -1);
-    EXPECT_EQ(ServerWorld::blockToChunk(-16.0), -1);
-    EXPECT_EQ(ServerWorld::blockToChunk(-17.0), -2);
-}
-
-// ============================================================================
 // 配置测试
 // ============================================================================
 

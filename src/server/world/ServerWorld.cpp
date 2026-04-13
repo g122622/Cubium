@@ -17,6 +17,7 @@
 #include "common/util/NibbleArray.hpp"
 #include "common/util/Direction.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/core/CoordConverter.hpp"
 #include <algorithm>
 #include <array>
 #include <spdlog/spdlog.h>
@@ -32,6 +33,7 @@ using mc::SectionPos;
 using mc::ChunkPos;
 using mc::ChunkSection;
 using mc::NibbleArray;
+using mc::util::core::CoordConverter;
 
 // ============================================================================
 // ServerWorld 实现
@@ -200,8 +202,8 @@ void ServerWorld::unloadChunk(ChunkCoord x, ChunkCoord z)
 
 const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 {
-    ChunkCoord chunkX = blockToChunk(static_cast<f32>(x));
-    ChunkCoord chunkZ = blockToChunk(static_cast<f32>(z));
+    ChunkCoord chunkX = CoordConverter::blockToChunk(x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(z);
 
     const ChunkData* chunk = getChunk(chunkX, chunkZ);
     if (!chunk) return nullptr;
@@ -229,8 +231,8 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         return false;
     }
 
-    ChunkCoord chunkX = blockToChunk(static_cast<f32>(x));
-    ChunkCoord chunkZ = blockToChunk(static_cast<f32>(z));
+    ChunkCoord chunkX = CoordConverter::blockToChunk(x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(z);
 
     ChunkData* chunk = getChunkSync(chunkX, chunkZ);
     if (!chunk) return false;
@@ -537,8 +539,8 @@ bool ServerWorld::isWithinWorldBounds(i32, i32 y, i32) const
 
 i32 ServerWorld::getHeight(i32 x, i32 z) const
 {
-    const ChunkCoord chunkX = blockToChunk(static_cast<f32>(x));
-    const ChunkCoord chunkZ = blockToChunk(static_cast<f32>(z));
+    const ChunkCoord chunkX = CoordConverter::blockToChunk(x);
+    const ChunkCoord chunkZ = CoordConverter::blockToChunk(z);
 
     const ChunkData* chunk = getChunk(chunkX, chunkZ);
     if (!chunk) {
@@ -607,10 +609,10 @@ bool ServerWorld::canRainAt(const BlockPos& pos) const
 
 bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
 {
-    ChunkCoord minChunkX = blockToChunk(box.minX);
-    ChunkCoord maxChunkX = blockToChunk(box.maxX);
-    ChunkCoord minChunkZ = blockToChunk(box.minZ);
-    ChunkCoord maxChunkZ = blockToChunk(box.maxZ);
+    ChunkCoord minChunkX = CoordConverter::blockToChunk(box.minX);
+    ChunkCoord maxChunkX = CoordConverter::blockToChunk(box.maxX);
+    ChunkCoord minChunkZ = CoordConverter::blockToChunk(box.minZ);
+    ChunkCoord maxChunkZ = CoordConverter::blockToChunk(box.maxZ);
 
     for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
         for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
@@ -653,10 +655,10 @@ std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& 
 {
     std::vector<AxisAlignedBB> collisions;
 
-    ChunkCoord minChunkX = blockToChunk(box.minX);
-    ChunkCoord maxChunkX = blockToChunk(box.maxX);
-    ChunkCoord minChunkZ = blockToChunk(box.minZ);
-    ChunkCoord maxChunkZ = blockToChunk(box.maxZ);
+    ChunkCoord minChunkX = CoordConverter::blockToChunk(box.minX);
+    ChunkCoord maxChunkX = CoordConverter::blockToChunk(box.maxX);
+    ChunkCoord minChunkZ = CoordConverter::blockToChunk(box.minZ);
+    ChunkCoord maxChunkZ = CoordConverter::blockToChunk(box.maxZ);
 
     for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
         for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
