@@ -1,0 +1,4 @@
+- FluidTags::initialize() now runs during VanillaBlocks::registerBaseBlocks(); water/lava tag checks depend on that order.
+- FlowingFluid::canFlowInto() needs a separate fluidIn argument; do not replace every call path with *this.
+- LiquidBlock must keep delegating ticksRandomly() and randomTick() to its fluid so lava fire spread still works.
+- Lava tick delay, level decrease, and spread distance are world-aware via IWorld::isUltraWarm().

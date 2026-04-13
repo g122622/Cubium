@@ -63,7 +63,7 @@ world/
 │   └── EntityManager.hpp/cpp   # Entity lifecycle and queries
 ├── fluid/                      # Fluid system
 │   ├── Fluid.hpp/cpp           # Fluid base class
-│   ├── FlowingFluid.hpp/cpp    # Flowing fluid mechanics
+│   ├── FlowingFluid.hpp/cpp    # Flowing fluid mechanics（含世界感知时序和孔洞判断）
 │   ├── FluidRegistry.hpp/cpp   # Fluid registry
 │   ├── FluidTags.hpp/cpp       # Fluid tags
 │   ├── FLUID_TODO.md           # Fluid system TODO
@@ -191,6 +191,9 @@ public:
 
     // Tick scheduling
     virtual void scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay, TickPriority priority) = 0;
+
+    // 维度上下文
+    virtual bool isUltraWarm() const = 0;
 };
 ```
 

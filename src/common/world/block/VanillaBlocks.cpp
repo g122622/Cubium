@@ -57,6 +57,7 @@
 #include "blocks/nether/FireBlock.hpp"
 #include "blocks/end/EndPortalBlock.hpp"
 #include "../fluid/FluidRegistry.hpp"
+#include "../fluid/FluidTags.hpp"
 #include "../fluid/fluids/WaterFluid.hpp"
 #include "../fluid/fluids/LavaFluid.hpp"
 
@@ -542,6 +543,7 @@ void VanillaBlocks::registerBaseBlocks() {
     // 首先初始化流体注册表（确保流体先于方块注册）
     // 这样LiquidBlock可以引用已注册的流体
     fluid::FluidRegistry::instance().initialize();
+    fluid::FluidTags::initialize();
 
     // 空气 - ID 0
     AIR = &registry.registerBlock<AirBlock>(

@@ -140,6 +140,7 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
     [[nodiscard]] DimensionId dimension() const override { return m_config.dimension; }
+    [[nodiscard]] bool isUltraWarm() const override { return getDimensionType().ultraWarm(); }
     [[nodiscard]] DimensionType getDimensionType() const;
     [[nodiscard]] u64 seed() const override { return m_config.seed; }
     [[nodiscard]] bool isHardcore() const override { return false; }

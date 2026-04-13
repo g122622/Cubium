@@ -1,5 +1,6 @@
 #include "WaterFluid.hpp"
 #include "../FluidRegistry.hpp"
+#include "../FluidTags.hpp"
 #include "../../../util/property/FluidProperties.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../block/VanillaBlocks.hpp"
@@ -65,6 +66,15 @@ bool WaterFluid::isEquivalentTo(const Fluid& fluid) const {
     const auto& loc = fluid.fluidLocation();
     return loc.namespace_() == "minecraft" &&
            (loc.path() == "water" || loc.path() == "flowing_water");
+}
+
+bool WaterFluid::canDisplace(const FluidState& state, IWorld& world,
+                             const BlockPos& pos, const Fluid& fluid,
+                             Direction dir) const {
+    (void)state;
+    (void)world;
+    (void)pos;
+    return dir == Direction::Down && !fluid.isIn(FluidTags::WATER());
 }
 
 // ============================================================================

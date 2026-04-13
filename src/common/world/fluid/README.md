@@ -2,7 +2,7 @@
 
 ## 概述
 
-流体系统实现了 Minecraft 1.16.5 风格的流体物理模拟，包括水和岩浆的流动、源头形成、流体替换等核心机制。
+流体系统实现了 Minecraft 1.16.5 风格的流体物理模拟，包括水和岩浆的流动、源头形成、流体替换等核心机制。当前实现已经把岩浆 tick、衰减和扩散距离与世界维度上下文绑定，并通过液体方块把随机 tick 继续传递到流体层。
 
 ## 目录结构
 
@@ -38,6 +38,7 @@ src/common/world/fluid/
 - `Fluid`：所有流体的抽象基类
   - 静态访问器：`getFluid(id)`, `getFluid(location)`, `getFluidState(stateId)`
   - 纯虚函数：`isSource()`, `getLevel()`, `getTickDelay()`, `canSourcesMultiply()`, `getBlockState()`, `getExplosionResistance()`
+  - 世界相关函数：`getTickDelay(IWorld&)`，用于岩浆这类依赖维度的流体时序
   - 虚函数：`tick()`, `randomTick()`, `ticksRandomly()`, `isEquivalentTo()`, `isEmpty()`, `canDisplace()`, `getFlow()`, `getShape()`
 
 **关键设计**：
@@ -54,15 +55,16 @@ src/common/world/fluid/
 - `spreadHorizontally()` - 水平扩散
 - `calculateCorrectFlowingState()` - 计算正确状态（含源头形成检测）
 - `getFlowDirections()` - 获取流动方向（按优先级排序）
+- `canFlow()` / `canFlowInto()` / `canFlowDown()` - 流动可达性判定和阻挡检查
 - `canFormSource()` - 检查是否可形成源头
 - `getHorizontalSourceCount()` - 统计相邻源头数量
 - `doesSideHaveHoles()` - 检查方块间是否有空隙
 
 **流动规则**：
 1. 优先向下流动
-2. 水平扩散，距离由 `getSpreadDistance()` 决定
+2. 水平扩散，距离由 `getSpreadDistance()` 决定，孔洞检测依赖相邻方块碰撞形状和阻挡规则
 3. 水可以形成无限源（2+ 相邻源头且下方为固体）
-4. 岩浆不能形成无限源
+4. 岩浆不能形成无限源，且主世界/末地与下界的 tick、衰减和扩散距离不同
 
 **纯虚函数（子类实现）**：
 - `getFlowing()` - 获取流动版本
@@ -112,6 +114,7 @@ const FluidState& state = water->defaultState();
 - `FluidTags` 类 - 内置标签集合
   - `WATER()` - 水标签（包含 water 和 flowing_water）
   - `LAVA()` - 岩浆标签（包含 lava 和 flowing_lava）
+  - 当前在原版方块注册阶段初始化，避免水/岩浆判定依赖错误的加载顺序
 
 **使用示例**：
 ```cpp
@@ -161,14 +164,16 @@ if (fluid.isIn(FluidTags::WATER())) {
 - `LavaFlowingFluid` - 流动岩浆
 
 **特性**：
-- Tick 延迟：主世界 30 tick，下界 10 tick（TODO：维度感知）
-- 每格衰减：主世界 2 级，下界 1 级
-- 最大距离：主世界 4 格，下界 6 格
+- Tick 延迟：主世界/末地 30 tick，下界 10 tick
+- 每格衰减：主世界/末地 2 级，下界 1 级
+- 最大距离：主世界/末地 4 格，下界 6 格
 - 可形成无限源：否
 - 爆炸抗性：100.0
-- 随机 tick：可能引燃周围方块
+- 随机 tick：通过 `LiquidBlock` 透传到流体层，可能引燃周围方块
 
 **关键实现**：
+- `getTickDelay(IWorld&)` - 根据世界维度返回岩浆 tick 间隔
+- `canDisplace()` - 控制岩浆与水的替换规则
 - `randomTick()` - 随机引燃周围可燃方块
 - `checkForMixing()` - 检测与水的交互
 - `flowInto()` - 重写以处理岩浆遇水生成石头/黑曜石

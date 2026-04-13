@@ -64,7 +64,7 @@ public:
      * @param falling 是否下落
      * @return 流体状态
      */
-    [[nodiscard]] FluidState getFlowingState(i32 level, bool falling);
+    [[nodiscard]] FluidState getFlowingState(i32 level, bool falling) const;
 
     /**
      * @brief 获取源头状态
@@ -72,7 +72,7 @@ public:
      * @param falling 是否下落（水源头通常为false）
      * @return 源头流体状态
      */
-    [[nodiscard]] FluidState getStillState(bool falling);
+    [[nodiscard]] FluidState getStillState(bool falling) const;
 
     // ========== Fluid接口实现 ==========
 
@@ -143,7 +143,7 @@ protected:
      */
     [[nodiscard]] FluidState calculateCorrectFlowingState(IWorld& world,
                                                            const BlockPos& pos,
-                                                           const BlockState* blockState);
+                                                           const BlockState* blockState) const;
 
     /**
      * @brief 检查是否可以流向指定位置
@@ -162,6 +162,24 @@ protected:
                                 const BlockState* fromBlock, Direction dir,
                                 const BlockPos& toPos, const BlockState* toBlock,
                                 const FluidState& toFluid, const Fluid& fluid) const;
+
+    /**
+     * @brief 检查是否可以流入指定位置
+     *
+     * @param world 世界
+     * @param fromPos 源位置
+     * @param fromBlock 源方块状态
+     * @param dir 流动方向
+     * @param toPos 目标位置
+     * @param toBlock 目标方块状态
+     * @param toFluid 目标流体状态
+     * @param fluidIn 用于阻挡判断的流体类型
+     * @return 是否可以流入
+     */
+    [[nodiscard]] bool canFlowInto(IWorld& world, const BlockPos& fromPos,
+                                    const BlockState* fromBlock, Direction dir,
+                                    const BlockPos& toPos, const BlockState* toBlock,
+                                    const FluidState& toFluid, const Fluid& fluidIn) const;
 
     /**
      * @brief 检查侧面是否有孔洞
@@ -301,11 +319,6 @@ protected:
      * @param toFluid 目标流体状态
      * @return 是否可以流入
      */
-    [[nodiscard]] bool canFlowInto(IWorld& world, const BlockPos& fromPos,
-                                    const BlockState* fromBlock, Direction dir,
-                                    const BlockPos& toPos, const BlockState* toBlock,
-                                    const FluidState& toFluid) const;
-
     /**
      * @brief 计算流动衰减值
      *

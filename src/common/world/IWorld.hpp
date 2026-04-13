@@ -275,6 +275,15 @@ public:
     [[nodiscard]] virtual DimensionId dimension() const = 0;
 
     /**
+     * @brief 是否为超热维度
+     *
+     * 目前用于岩浆的原版流速差异判断。
+     */
+    [[nodiscard]] virtual bool isUltraWarm() const {
+        return dimension() == 1;
+    }
+
+    /**
      * @brief 获取世界种子
      */
     [[nodiscard]] virtual u64 seed() const = 0;

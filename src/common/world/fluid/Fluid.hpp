@@ -258,6 +258,16 @@ public:
     [[nodiscard]] virtual i32 getTickDelay() const = 0;
 
     /**
+     * @brief 获取依赖世界的tick延迟（游戏刻）
+     *
+     * 默认返回无上下文版本；岩浆会根据维度覆盖。
+     */
+    [[nodiscard]] virtual i32 getTickDelay(IWorld& world) const {
+        (void)world;
+        return getTickDelay();
+    }
+
+    /**
      * @brief 是否可以形成无限源
      *
      * 水返回true（2个相邻源头可形成新源头），

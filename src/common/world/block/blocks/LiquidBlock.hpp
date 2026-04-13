@@ -114,6 +114,17 @@ public:
     void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
 
     /**
+     * @brief 是否需要随机tick
+     */
+    [[nodiscard]] bool ticksRandomly() const override;
+
+    /**
+     * @brief 随机tick
+     */
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state,
+                    math::IRandom& random) override;
+
+    /**
      * @brief 获取关联的流体
      */
     [[nodiscard]] fluid::FlowingFluid& getFluid() const { return m_fluid; }

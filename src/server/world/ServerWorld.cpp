@@ -495,8 +495,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         }
 
         fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
-        const i32 delay = std::max(1, fluid.getTickDelay());
-        scheduleFluidTick(pos, fluid, delay, world::tick::TickPriority::Normal);
+        scheduleFluidTick(pos, fluid, fluid.getTickDelay(*this), world::tick::TickPriority::Normal);
     };
 
     {

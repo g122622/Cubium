@@ -23,6 +23,10 @@ public:
 
     [[nodiscard]] i32 getTickDelay() const override { return 5; }
 
+    [[nodiscard]] bool canDisplace(const FluidState& state, IWorld& world,
+                                   const BlockPos& pos, const Fluid& fluid,
+                                   Direction dir) const override;
+
     [[nodiscard]] i32 getLevelDecrease(IWorld& world) const override {
         (void)world;
         return 1;

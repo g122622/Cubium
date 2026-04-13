@@ -49,17 +49,29 @@ const CollisionShape& LiquidBlock::getCollisionShape(const BlockState& state) co
     return VoxelShapes::empty();
 }
 
+bool LiquidBlock::ticksRandomly() const {
+    return m_fluid.ticksRandomly();
+}
+
+void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state,
+                             math::IRandom& random) {
+    const fluid::FluidState* fluidState = getFluidState(state);
+    if (fluidState != nullptr && !fluidState->isEmpty()) {
+        m_fluid.randomTick(world, pos, *fluidState, random);
+    }
+}
+
 void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
     // 调度流体tick
     // 使用m_fluid直接调度（非const引用）
-    world.scheduleFluidTick(pos, m_fluid, m_fluid.getTickDelay());
+    world.scheduleFluidTick(pos, m_fluid, m_fluid.getTickDelay(world));
 }
 
 void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
                                    Block& neighborBlock, const BlockPos& neighborPos,
                                    bool isMoving) {
     // 邻居变化时重新调度流体tick
-    world.scheduleFluidTick(pos, m_fluid, m_fluid.getTickDelay());
+    world.scheduleFluidTick(pos, m_fluid, m_fluid.getTickDelay(world));
     (void)neighborBlock;
     (void)neighborPos;
     (void)isMoving;

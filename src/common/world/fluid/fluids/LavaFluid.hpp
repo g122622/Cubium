@@ -21,6 +21,8 @@ namespace fluid {
  */
 class LavaFluid : public FlowingFluid {
 public:
+    [[nodiscard]] i32 getTickDelay(IWorld& world) const override;
+
     [[nodiscard]] i32 getTickDelay() const override {
         // TODO: 根据维度返回不同值
         // 主世界: 30 tick
@@ -28,21 +30,13 @@ public:
         return 30;
     }
 
-    [[nodiscard]] i32 getLevelDecrease(IWorld& world) const override {
-        // TODO: 根据维度返回不同值
-        // 主世界: 2
-        // 下界: 1
-        (void)world;
-        return 2;
-    }
+    [[nodiscard]] bool canDisplace(const FluidState& state, IWorld& world,
+                                   const BlockPos& pos, const Fluid& fluid,
+                                   Direction dir) const override;
 
-    [[nodiscard]] i32 getSpreadDistance(IWorld& world) const override {
-        // TODO: 根据维度返回不同值
-        // 主世界: 4
-        // 下界: 6
-        (void)world;
-        return 4;
-    }
+    [[nodiscard]] i32 getLevelDecrease(IWorld& world) const override;
+
+    [[nodiscard]] i32 getSpreadDistance(IWorld& world) const override;
 
     [[nodiscard]] bool canSourcesMultiply() const override { return false; }
 

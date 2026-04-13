@@ -12,26 +12,187 @@
 
 #include <cmath>
 #include <algorithm>
+#include <cstring>
+#include <vector>
 
 namespace mc {
 namespace fluid {
+
+namespace {
+
+constexpr f32 FACE_EPSILON = 0.0001f;
+
+struct FaceRectangle {
+    f32 uMin;
+    f32 uMax;
+    f32 vMin;
+    f32 vMax;
+};
+
+[[nodiscard]] bool approximatelyEqual(f32 lhs, f32 rhs) {
+    return std::fabs(lhs - rhs) <= FACE_EPSILON;
+}
+
+[[nodiscard]] bool hasSuffix(const String& value, const char* suffix) {
+    const size_t suffixLength = std::strlen(suffix);
+    return value.size() >= suffixLength &&
+           value.compare(value.size() - suffixLength, suffixLength, suffix) == 0;
+}
+
+void addFaceRectangles(std::vector<FaceRectangle>& rectangles,
+                       const CollisionShape& shape,
+                       Direction direction) {
+    if (shape.isEmpty()) {
+        return;
+    }
+
+    for (const auto& box : shape.boxes()) {
+        switch (direction) {
+        case Direction::Up:
+            if (box.maxY >= 1.0f - FACE_EPSILON) {
+                rectangles.push_back({box.minX, box.maxX, box.minZ, box.maxZ});
+            }
+            break;
+        case Direction::Down:
+            if (box.minY <= FACE_EPSILON) {
+                rectangles.push_back({box.minX, box.maxX, box.minZ, box.maxZ});
+            }
+            break;
+        case Direction::North:
+            if (box.minZ <= FACE_EPSILON) {
+                rectangles.push_back({box.minX, box.maxX, box.minY, box.maxY});
+            }
+            break;
+        case Direction::South:
+            if (box.maxZ >= 1.0f - FACE_EPSILON) {
+                rectangles.push_back({box.minX, box.maxX, box.minY, box.maxY});
+            }
+            break;
+        case Direction::West:
+            if (box.minX <= FACE_EPSILON) {
+                rectangles.push_back({box.minZ, box.maxZ, box.minY, box.maxY});
+            }
+            break;
+        case Direction::East:
+            if (box.maxX >= 1.0f - FACE_EPSILON) {
+                rectangles.push_back({box.minZ, box.maxZ, box.minY, box.maxY});
+            }
+            break;
+        case Direction::None:
+            break;
+        }
+    }
+}
+
+[[nodiscard]] bool intervalsCoverUnit(std::vector<std::pair<f32, f32>> intervals) {
+    if (intervals.empty()) {
+        return false;
+    }
+
+    std::sort(intervals.begin(), intervals.end(), [](const auto& lhs, const auto& rhs) {
+        if (approximatelyEqual(lhs.first, rhs.first)) {
+            return lhs.second < rhs.second;
+        }
+        return lhs.first < rhs.first;
+    });
+
+    f32 coveredMax = 0.0f;
+    for (const auto& interval : intervals) {
+        if (interval.second <= interval.first + FACE_EPSILON) {
+            continue;
+        }
+
+        if (interval.first > coveredMax + FACE_EPSILON) {
+            return false;
+        }
+
+        if (interval.second > coveredMax) {
+            coveredMax = interval.second;
+            if (coveredMax >= 1.0f - FACE_EPSILON) {
+                return true;
+            }
+        }
+    }
+
+    return coveredMax >= 1.0f - FACE_EPSILON;
+}
+
+[[nodiscard]] bool facesFillSquare(const CollisionShape& firstShape,
+                                   const CollisionShape& secondShape,
+                                   Direction direction) {
+    std::vector<FaceRectangle> rectangles;
+    rectangles.reserve(firstShape.boxCount() + secondShape.boxCount());
+    addFaceRectangles(rectangles, firstShape, direction);
+    addFaceRectangles(rectangles, secondShape, Directions::opposite(direction));
+
+    if (rectangles.empty()) {
+        return false;
+    }
+
+    std::vector<f32> uCoordinates;
+    uCoordinates.reserve(rectangles.size() * 2 + 2);
+    uCoordinates.push_back(0.0f);
+    uCoordinates.push_back(1.0f);
+
+    for (const auto& rectangle : rectangles) {
+        uCoordinates.push_back(rectangle.uMin);
+        uCoordinates.push_back(rectangle.uMax);
+    }
+
+    std::sort(uCoordinates.begin(), uCoordinates.end());
+    std::vector<f32> uniqueUCoordinates;
+    uniqueUCoordinates.reserve(uCoordinates.size());
+    for (f32 value : uCoordinates) {
+        if (uniqueUCoordinates.empty() || !approximatelyEqual(uniqueUCoordinates.back(), value)) {
+            uniqueUCoordinates.push_back(value);
+        }
+    }
+
+    if (uniqueUCoordinates.size() < 2) {
+        return false;
+    }
+
+    for (size_t index = 0; index + 1 < uniqueUCoordinates.size(); ++index) {
+        const f32 left = uniqueUCoordinates[index];
+        const f32 right = uniqueUCoordinates[index + 1];
+        if (right <= left + FACE_EPSILON) {
+            continue;
+        }
+
+        const f32 mid = (left + right) * 0.5f;
+        std::vector<std::pair<f32, f32>> intervals;
+        for (const auto& rectangle : rectangles) {
+            if (mid >= rectangle.uMin - FACE_EPSILON && mid <= rectangle.uMax + FACE_EPSILON) {
+                intervals.emplace_back(rectangle.vMin, rectangle.vMax);
+            }
+        }
+
+        if (!intervalsCoverUnit(std::move(intervals))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+} // namespace
 
 // ============================================================================
 // FlowingFluid 实现
 // ============================================================================
 
-FluidState FlowingFluid::getFlowingState(i32 level, bool falling) {
+FluidState FlowingFluid::getFlowingState(i32 level, bool falling) const {
     // level范围是1-8，但源头是level=8
     level = std::clamp(level, 1, 8);
-    const FluidState& state = getFlowing().defaultState();
+    const FluidState& state = const_cast<FlowingFluid*>(this)->getFlowing().defaultState();
     auto& levelProp = FluidProperties::LEVEL_1_8();
     auto& fallingProp = FluidProperties::FALLING();
     return state.with(levelProp, level).with(fallingProp, falling);
 }
 
-FluidState FlowingFluid::getStillState(bool falling) {
+FluidState FlowingFluid::getStillState(bool falling) const {
     // 源头level=8，但isSource=true
-    const FluidState& state = getStill().defaultState();
+    const FluidState& state = const_cast<FlowingFluid*>(this)->getStill().defaultState();
     auto& fallingProp = FluidProperties::FALLING();
     if (falling) {
         return state.with(fallingProp, true);
@@ -55,13 +216,13 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
 
         const BlockState* currentBlock = world.getBlockState(pos.x, pos.y, pos.z);
         FluidState correctState = calculateCorrectFlowingState(world, pos, currentBlock);
+        const i32 tickDelay = getTickDelay(world);
 
         if (correctState.isEmpty()) {
             // 应该消失 - 设置为空气方块
             if (VanillaBlocks::AIR != nullptr) {
                 world.setBlock(pos.x, pos.y, pos.z, &VanillaBlocks::AIR->defaultState());
             }
-            return;
         } else if (!(correctState == state)) {
             // 状态改变
             state = correctState;
@@ -69,15 +230,16 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
             if (newBlockState != nullptr) {
                 world.setBlock(pos.x, pos.y, pos.z, newBlockState);
             }
-            // 通知邻居更新（TODO: 实现邻居更新机制）
+            world.scheduleFluidTick(pos, *this, tickDelay);
+        }
+
+        if (correctState.isEmpty()) {
+            return;
         }
     }
 
     // 执行流动
     flowAround(world, pos, state);
-
-    // 调度下一次tick
-    world.scheduleFluidTick(pos, *this, getTickDelay());
 }
 
 Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
@@ -212,7 +374,7 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
     BlockPos below = pos.down();
     const BlockState* belowBlock = world.getBlockState(below.x, below.y, below.z);
     const FluidState* belowFluid = world.getFluidState(below.x, below.y, below.z);
-    FluidState flowingDownState = getFlowingState(8, true);
+    FluidState flowingDownState = calculateCorrectFlowingState(world, below, belowBlock);
 
     // 检查是否可以向下流动
     if (belowFluid != nullptr && canFlow(world, pos, currentBlock, Direction::Down, below, belowBlock, *belowFluid, flowingDownState.getFluid())) {
@@ -225,23 +387,10 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
         return;
     }
 
-    // 2. 不能向下流动，检查是否为源头或可以水平扩散
-    if (!isSource(state)) {
-        FluidState correctState = calculateCorrectFlowingState(world, pos, currentBlock);
-        if (correctState.isEmpty()) {
-            // 应该消失
-            return;
-        }
-
-        // 检查是否应该消失（扩散距离用尽）
-        i32 newLevel = state.getLevel() - getLevelDecrease(world);
-        if (newLevel <= 0) {
-            return;
-        }
+    // 2. 不能向下流动时，只有源头或下方不能继续下沉才进行水平扩散
+    if (state.isSource() || !canFlowDown(world, flowingDownState.getFluid(), pos, currentBlock, below, belowBlock)) {
+        spreadHorizontally(world, pos, state, currentBlock);
     }
-
-    // 3. 水平流动
-    spreadHorizontally(world, pos, state, currentBlock);
 }
 
 void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
@@ -270,9 +419,7 @@ void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
     for (const auto& [dir, fluidState] : flowDirections) {
         BlockPos targetPos = pos.offset(Directions::toBlockFace(dir));
         const BlockState* targetBlock = world.getBlockState(targetPos.x, targetPos.y, targetPos.z);
-        const FluidState* targetFluid = world.getFluidState(targetPos.x, targetPos.y, targetPos.z);
-
-        if (targetFluid != nullptr && canFlow(world, pos, blockState, dir, targetPos, targetBlock, *targetFluid, fluidState.getFluid())) {
+        if (targetBlock != nullptr) {
             flowInto(world, targetPos, targetBlock, dir, fluidState);
         }
     }
@@ -311,14 +458,11 @@ void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState
     if (newBlockState != nullptr) {
         world.setBlock(pos.x, pos.y, pos.z, newBlockState);
     }
-
-    // 调度下一次tick
-    world.scheduleFluidTick(pos, *this, getTickDelay());
 }
 
 FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
                                                        const BlockPos& pos,
-                                                       const BlockState* blockState) {
+                                                       const BlockState* blockState) const {
     i32 maxLevel = 0;
     i32 sourceCount = 0;
 
@@ -400,36 +544,14 @@ bool FlowingFluid::doesSideHaveHoles(Direction dir, IWorld& world,
         return true;
     }
 
-    // 参考 MC 1.16.5: VoxelShapes.doAdjacentCubeSidesFillSquare
-    // 检查两个方块的碰撞形状在相邻面是否有空隙
-
-    // 获取碰撞形状
     const CollisionShape& fromShape = state->getCollisionShape();
     const CollisionShape& toShape = neighborState->getCollisionShape();
 
-    // 如果任一方块没有碰撞，则流体可以通过
     if (fromShape.isEmpty() || toShape.isEmpty()) {
         return true;
     }
 
-    // 冰块特殊处理：冰块的侧面不阻止流体流动
-    const Material& neighborMaterial = neighborState->owner().material();
-    if (neighborMaterial == Material::ICE) {
-        return true;
-    }
-
-    // 使用 isSolidSide 方法检查
-    // 这简化了 VoxelShape 检查，对于大多数情况足够准确
-    Direction oppositeDir = Directions::opposite(dir);
-
-    // 检查当前方块在该面是否为实体
-    bool fromSolid = state->isSolidSide(world, pos, dir);
-
-    // 检查相邻方块在对面是否为实体
-    bool toSolid = neighborState->isSolidSide(world, neighborPos, oppositeDir);
-
-    // 如果两个方块在该面都为实体，则流体不能通过
-    return !fromSolid || !toSolid;
+    return !facesFillSquare(fromShape, toShape, dir);
 }
 
 bool FlowingFluid::canFormSource(IWorld& world, const BlockPos& pos) {
@@ -475,41 +597,29 @@ i32 FlowingFluid::getHorizontalSourceCount(IWorld& world, const BlockPos& pos) c
 
 bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos,
                               const BlockState* block, const Fluid& fluid) const {
-    if (block == nullptr || block->isAir()) {
-        return true;
+    if (block == nullptr) {
+        return false;
     }
 
     const Block& blockRef = block->owner();
-    const Material& material = blockRef.material();
-
-    // 传送门材质（不允许流体进入）
-    if (material == Material::PORTAL) {
-        return false;
-    }
-
-    // 结构空位（不允许流体进入）
-    if (material == Material::STRUCTURE_VOID) {
-        return false;
-    }
-
-    // 海草、海洋植物
-    if (material == Material::OCEAN_PLANT || material == Material::SEA_GRASS) {
-        return false;
-    }
 
     // 允许实现 ILiquidContainer 的方块按自身规则接收流体。
     if (auto* container = dynamic_cast<const ILiquidContainer*>(&blockRef)) {
         return container->canContainFluid(world, pos, *block, fluid);
     }
 
-    // 特殊方块检查（门、告示牌、梯子、甘蔗、气泡柱）
-    // 这些方块允许流体通过
-    // TODO: 当这些方块实现后添加具体检查
-    // - DoorBlock: 门
-    // - SignBlock: 告示牌
-    // - LadderBlock: 梯子
-    // - SugarCaneBlock: 甘蔗
-    // - BubbleColumnBlock: 气泡柱
+    const String& path = blockRef.blockLocation().path();
+    if (hasSuffix(path, "_door") || hasSuffix(path, "_sign") ||
+        path == "ladder" || path == "sugar_cane" || path == "bubble_column") {
+        return false;
+    }
+
+    const Material& material = blockRef.material();
+
+    if (material == Material::PORTAL || material == Material::STRUCTURE_VOID ||
+        material == Material::OCEAN_PLANT || material == Material::SEA_GRASS) {
+        return false;
+    }
 
     // 默认：非固体方块可以被流体替换
     (void)world;
@@ -559,7 +669,9 @@ i32 FlowingFluid::calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 dec
             neighborFluid = it->second.second;
         }
 
-        if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid)) {
+        FluidState targetState = calculateCorrectFlowingState(world, neighborPos, neighborBlock);
+
+        if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid, targetState.getFluid())) {
             bool canFall = false;
             auto fallIt = fallCache.find(key);
             if (fallIt == fallCache.end()) {
@@ -607,11 +719,9 @@ bool FlowingFluid::canFlowDown(IWorld& world, const Fluid& fluid,
 bool FlowingFluid::canFlowInto(IWorld& world, const BlockPos& fromPos,
                                 const BlockState* fromBlock, Direction dir,
                                 const BlockPos& toPos, const BlockState* toBlock,
-                                const FluidState& toFluid) const {
-    if (toFluid.isEmpty() || !toFluid.getFluid().isEquivalentTo(*this)) {
-        if (doesSideHaveHoles(dir, world, fromPos, fromBlock, toPos, toBlock)) {
-            return isBlocked(world, toPos, toBlock, *this);
-        }
+                                const FluidState& toFluid, const Fluid& fluidIn) const {
+    if (!isSameSource(toFluid) && doesSideHaveHoles(dir, world, fromPos, fromBlock, toPos, toBlock)) {
+        return isBlocked(world, toPos, toBlock, fluidIn);
     }
     return false;
 }
@@ -647,7 +757,7 @@ std::unordered_map<Direction, FluidState> FlowingFluid::getFlowDirections(
 
         FluidState targetState = calculateCorrectFlowingState(world, neighborPos, neighborBlock);
 
-        if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid)) {
+        if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid, targetState.getFluid())) {
             BlockPos below = neighborPos.down();
             const BlockState* belowBlock = world.getBlockState(below.x, below.y, below.z);
             bool canFall = canFlowDown(world, *this, neighborPos, neighborBlock, below, belowBlock);

@@ -391,6 +391,12 @@ enum class Operation : u8 { ... };
     - Apple ld will emit duplicate-library warnings when the same static library appears twice on the final link line.
 - On AppleClang, no-argument `MC_TRACE_EVENT(...)` or `MC_TRACE_*` calls can still trigger `-Wvariadic-macro-arguments-omitted`.
     - Pass an explicit dummy key/value payload when a trace site has no real arguments.
+- 流体流动判定必须区分“目标流体状态”和“用于阻挡判断的流体类型”。
+    - 修改 `FlowingFluid::canFlow()` / `canFlowInto()` 时，不能把所有路径都硬塞成 `*this`，否则容器方块和特殊替换规则会偏离原版语义。
+- 液体方块必须继续把随机 tick 透传给流体。
+    - `LiquidBlock::ticksRandomly()` 和 `LiquidBlock::randomTick()` 是岩浆火焰扩散的入口，漏掉后会出现“方块看起来对了，但行为不触发”的假正确。
+- 岩浆时序是世界相关的。
+    - `ServerWorld::setBlock()` 和流体 tick 调度要继续使用 `fluid.getTickDelay(*this)`，不要把主世界/下界差异重新硬编码回固定常量。
 
 ## Self-Maintenance Rule
 

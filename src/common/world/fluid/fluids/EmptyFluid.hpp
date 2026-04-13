@@ -53,6 +53,17 @@ public:
         (void)state;
     }
 
+    [[nodiscard]] bool canDisplace(const FluidState& state, IWorld& world,
+                                   const BlockPos& pos, const Fluid& fluid,
+                                   Direction dir) const override {
+        (void)state;
+        (void)world;
+        (void)pos;
+        (void)fluid;
+        (void)dir;
+        return true;
+    }
+
     [[nodiscard]] bool ticksRandomly() const override {
         return false;
     }

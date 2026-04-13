@@ -1,5 +1,6 @@
 #include "LavaFluid.hpp"
 #include "../FluidRegistry.hpp"
+#include "../FluidTags.hpp"
 #include "../../../util/property/FluidProperties.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../../util/math/random/IRandom.hpp"
@@ -51,43 +52,70 @@ const BlockState* LavaFluid::getBlockState(const FluidState& state) const {
     return &lavaBlock->defaultState().with(levelProp, blockLevel);
 }
 
+i32 LavaFluid::getTickDelay(IWorld& world) const {
+    return world.isUltraWarm() ? 10 : 30;
+}
+
+bool LavaFluid::canDisplace(const FluidState& state, IWorld& world,
+                            const BlockPos& pos, const Fluid& fluid,
+                            Direction dir) const {
+    (void)dir;
+    return state.getActualHeight(world, pos) >= 0.44444445f && fluid.isIn(FluidTags::WATER());
+}
+
+namespace {
+
+[[nodiscard]] bool isWaterFluid(const Fluid& fluid) {
+    return fluid.isIn(FluidTags::WATER());
+}
+
+} // namespace
+
 void LavaFluid::randomTick(IWorld& world, const BlockPos& pos,
                             const FluidState& state, math::IRandom& random) {
-    // 岩浆的随机tick可能引燃周围方块
-    // 检查游戏规则 DO_FIRE_TICK
+    // TODO: 目前 IWorld 还没有 DO_FIRE_TICK 游戏规则接口，先保留原版的火焰检查骨架。
+    (void)state;
 
-    i32 chance = random.nextInt(3);
-    if (chance > 0) {
-        return;  // 只有1/3概率检查引燃
-    }
-
-    // 随机选择一个位置检查引燃
-    BlockPos checkPos = pos.offset(static_cast<BlockFace>(random.nextInt(6)));
-
-    // 检查位置是否在加载范围内
-    if (!world.isWithinWorldBounds(checkPos.x, checkPos.y, checkPos.z)) {
+    if (VanillaBlocks::FIRE == nullptr) {
         return;
     }
 
-    const BlockState* blockState = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
-    if (blockState == nullptr) {
+    if (random.nextInt(3) != 0) {
         return;
     }
 
-    // 如果是空气且周围有可燃物，放置火
-    if (blockState->isAir()) {
-        if (isSurroundingBlockFlammable(world, checkPos)) {
-            // TODO: 放置火方块
-            // world.setBlock(checkPos.x, checkPos.y, checkPos.z, Blocks::FIRE.getDefaultState());
+    BlockPos checkPos = pos;
+    const i32 steps = random.nextInt(3);
+    if (steps <= 0) {
+        return;
+    }
+
+    for (i32 index = 0; index < steps; ++index) {
+        checkPos = BlockPos(
+            checkPos.x + random.nextInt(3) - 1,
+            checkPos.y + 1,
+            checkPos.z + random.nextInt(3) - 1);
+
+        if (!world.isWithinWorldBounds(checkPos.x, checkPos.y, checkPos.z)) {
+            return;
         }
-    } else if (blockState->owner().material().blocksMovement()) {
-        // 如果是固体方块，向上检查
-        BlockPos above = checkPos.up();
-        const BlockState* aboveState = world.getBlockState(above.x, above.y, above.z);
-        if (aboveState != nullptr && aboveState->isAir()) {
-            if (isBlockFlammable(world, checkPos)) {
-                // TODO: 放置火方块在上方
-                // world.setBlock(above.x, above.y, above.z, Blocks::FIRE.getDefaultState());
+
+        const BlockState* blockState = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
+        if (blockState == nullptr) {
+            return;
+        }
+
+        if (blockState->isAir()) {
+            if (isSurroundingBlockFlammable(world, checkPos)) {
+                world.setBlock(checkPos.x, checkPos.y, checkPos.z, &VanillaBlocks::FIRE->defaultState());
+                return;
+            }
+        } else if (blockState->owner().material().blocksMovement()) {
+            BlockPos above = checkPos.up();
+            const BlockState* aboveState = world.getBlockState(above.x, above.y, above.z);
+            if (aboveState != nullptr && aboveState->isAir() && isBlockFlammable(world, checkPos)) {
+                world.setBlock(above.x, above.y, above.z, &VanillaBlocks::FIRE->defaultState());
+                return;
             }
         }
     }
@@ -131,28 +159,27 @@ bool LavaFluid::checkForMixing(IWorld& world, const BlockPos& pos, Direction dir
         return false;
     }
 
-    // 检查是否为水
-    const Fluid& neighborFluidType = neighborFluid->getFluid();
-    const auto& loc = neighborFluidType.fluidLocation();
-    bool isWater = loc.namespace_() == "minecraft" &&
-                   (loc.path() == "water" || loc.path() == "flowing_water");
-
-    if (!isWater) {
+    if (!isWaterFluid(neighborFluid->getFluid())) {
         return false;
     }
 
-    // 岩浆遇到水生成石头或黑曜石
-    const BlockState* blockState = world.getBlockState(pos.x, pos.y, pos.z);
-
-    if (isSource(defaultState())) {
-        // 源头岩浆遇水生成黑曜石
-        // TODO: 放置黑曜石方块
-        // world.setBlock(pos.x, pos.y, pos.z, Blocks::OBSIDIAN.getDefaultState());
-    } else {
-        // 流动岩浆遇水生成石头（圆石）
-        // TODO: 放置石头方块
-        // world.setBlock(pos.x, pos.y, pos.z, Blocks::STONE.getDefaultState());
+    if (direction == Direction::Down) {
+        if (VanillaBlocks::STONE != nullptr) {
+            world.setBlock(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+        }
+        triggerEffects(world, pos);
+        return true;
     }
+
+    if (VanillaBlocks::OBSIDIAN == nullptr || VanillaBlocks::COBBLESTONE == nullptr) {
+        return false;
+    }
+
+    const BlockState* replacement = isSource(defaultState())
+        ? &VanillaBlocks::OBSIDIAN->defaultState()
+        : &VanillaBlocks::COBBLESTONE->defaultState();
+
+    world.setBlock(pos.x, pos.y, pos.z, replacement);
 
     triggerEffects(world, pos);
     return true;
@@ -168,26 +195,8 @@ void LavaFluid::triggerEffects(IWorld& world, const BlockPos& pos) {
 void LavaFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
                           Direction dir, const FluidState& fluidState) {
     // 重写flowInto以处理岩浆与水的交互
-    if (dir == Direction::Down) {
-        const FluidState* targetFluid = world.getFluidState(pos.x, pos.y, pos.z);
-
-        // 检查是否为水
-        if (targetFluid != nullptr && !targetFluid->isEmpty()) {
-            const Fluid& targetFluidType = targetFluid->getFluid();
-            const auto& loc = targetFluidType.fluidLocation();
-            bool isWater = loc.namespace_() == "minecraft" &&
-                           (loc.path() == "water" || loc.path() == "flowing_water");
-
-            if (isWater) {
-                // 岩浆遇水生成石头
-                // TODO: 检查目标方块是否为液体方块
-                // if (blockState->getBlock() instanceof FlowingFluidBlock) {
-                //     world.setBlock(pos.x, pos.y, pos.z, Blocks::STONE.getDefaultState());
-                // }
-                triggerEffects(world, pos);
-                return;
-            }
-        }
+    if (checkForMixing(world, pos, dir)) {
+        return;
     }
 
     // 调用父类方法
@@ -199,6 +208,14 @@ bool LavaFluid::isEquivalentTo(const Fluid& fluid) const {
     const auto& loc = fluid.fluidLocation();
     return loc.namespace_() == "minecraft" &&
            (loc.path() == "lava" || loc.path() == "flowing_lava");
+}
+
+i32 LavaFluid::getLevelDecrease(IWorld& world) const {
+    return world.isUltraWarm() ? 1 : 2;
+}
+
+i32 LavaFluid::getSpreadDistance(IWorld& world) const {
+    return world.isUltraWarm() ? 6 : 4;
 }
 
 // ============================================================================

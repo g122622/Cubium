@@ -263,6 +263,8 @@ const BlockState& state = stone->defaultState();
 - 重写 `getFluidState()` 返回对应的流体状态
 - 方块等级（0-15）与流体等级（1-8）的映射
 - 支持流体tick调度
+- 重写 `ticksRandomly()` / `randomTick()`，把随机 tick 继续传给关联流体
+- 使用 `Fluid::getTickDelay(world)` 调度流体 tick，岩浆节奏会跟随维度变化
 
 ## 模块整体职责
 
