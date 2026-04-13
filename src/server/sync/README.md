@@ -10,6 +10,8 @@ src/server/sync/
 ├── ChunkSendManager.cpp    # 区块发送管理器实现
 ├── EntitySyncManager.hpp   # 实体同步管理器头文件
 ├── EntitySyncManager.cpp   # 实体同步管理器实现
+├── BlockUpdateSyncManager.hpp # 方块更新同步管理器头文件
+├── BlockUpdateSyncManager.cpp # 方块更新同步管理器实现
 ├── LightSyncManager.hpp    # 光照同步管理器头文件
 └── LightSyncManager.cpp    # 光照同步管理器实现
 ```
@@ -95,6 +97,44 @@ static constexpr f32 ROTATION_THRESHOLD = 1.0f;   // 旋转变化阈值（度）
 
 ---
 
+### BlockUpdateSyncManager.hpp/cpp
+
+方块更新同步管理器，负责把 `ServerWorld::setBlock()` 产生的方块变化缓存到 pending 表，在服务器 tick 末统一发送给追踪该区块的玩家。
+
+#### 职责
+
+- 接收 `ServerWorld::setOnBlockChanged()` 回调
+- 以方块坐标为粒度去重，同一坐标只保留最后一次状态
+- 不做跨坐标合并，每个方块位置仍然单独发送
+- Flush 时按区块查询 `ChunkLoadTicketManager::getTrackingPlayers()`
+- 通过 `setOnBlockUpdate()` 把最终数据交给 `MinecraftServer` 发送 `BlockUpdatePacket`
+
+#### 与 ServerWorld / ChunkLoadTicketManager 协同工作
+
+```cpp
+ServerWorld::setBlock()
+    → chunk->setBlock()
+    → setOnBlockChanged 回调
+    → BlockUpdateSyncManager.queueBlockUpdate()
+
+MinecraftServer::tick()
+    → chunkSendManager.processPendingSends()
+    → blockUpdateSyncManager.flushPendingUpdates()
+    → 按区块取 tracking 玩家
+    → 发送 BlockUpdatePacket
+```
+
+#### 关键方法
+
+| 方法 | 说明 |
+|------|------|
+| `queueBlockUpdate(pos, blockStateId)` | 记录方块更新，按位置覆盖旧状态 |
+| `queueBlockUpdate(x, y, z, blockStateId)` | 记录方块更新的坐标重载 |
+| `flushPendingUpdates()` | 主线程统一发送待处理的方块更新 |
+| `setOnBlockUpdate(callback)` | 设置最终发送回调 |
+
+---
+
 ### LightSyncManager.hpp/cpp
 
 光照同步管理器，负责将光照数据从 WorldLightManager 同步到 ChunkSection。
@@ -143,6 +183,7 @@ sync 模块是服务端数据同步的核心模块，负责将世界数据（区
 1. **区块同步**：管理区块的发送、卸载，与玩家追踪系统集成
 2. **实体同步**：追踪实体状态变化，广播给相关玩家
 3. **光照同步**：维护光照数据的一致性，确保客户端渲染正确
+4. **方块更新同步**：把世界写块事件批量化，避免手工直发和同坐标重复发送
 
 ### 输入和输出
 
@@ -154,6 +195,7 @@ sync 模块是服务端数据同步的核心模块，负责将世界数据（区
 | ChunkLoadTicketManager | 追踪玩家列表 | 区块→玩家映射 |
 | EntityManager | Entity 实体 | 实体数据 |
 | WorldLightManager | SWMRNibbleArray | 光照数据 |
+| ServerWorld | BlockPos / BlockStateId | 方块变化事件 |
 | 回调函数 | 网络发送 | 由 MinecraftServer 设置 |
 
 #### 输出
@@ -166,6 +208,7 @@ sync 模块是服务端数据同步的核心模块，负责将世界数据（区
 | 实体移动包 (EntityMovePacket) | 实体位置更新 |
 | 实体移除包 (DestroyEntityPacket) | 实体移除通知 |
 | 光照数据 | 写入 ChunkSection |
+| 方块更新包 (BlockUpdatePacket) | 发送单个方块状态变化 |
 
 ### 依赖项
 
@@ -177,6 +220,7 @@ sync/
 │   │   ├── chunk/ChunkData.hpp
 │   │   ├── chunk/ChunkPos.hpp
 │   │   ├── chunk/ChunkLoadTicketManager.hpp
+│   │   ├── block/BlockPos.hpp
 │   │   ├── lighting/LightType.hpp
 │   │   ├── lighting/manager/WorldLightManager.hpp
 │   │   ├── lighting/storage/SWMRNibbleArray.hpp
@@ -184,8 +228,16 @@ sync/
 │   ├── network/sync/ChunkSync.hpp
 │   └── util/math/Vector3.hpp
 └── server/
+    ├── world/ServerWorld.hpp
     └── world/ServerChunkManager.hpp
+
 ```
+
+#### 备注
+
+- `BlockUpdateSyncManager` 本身只负责 pending 去重和 flush，不直接拼接网络包
+- `MinecraftServer` 在 flush 回调里把 `BlockUpdatePacket` 序列化后发送给玩家
+- 所有 block update 的最终目标玩家都来自 `ChunkLoadTicketManager::getTrackingPlayers()`
 
 ### 使用方法
 
@@ -196,6 +248,7 @@ sync 模块的管理器由 MinecraftServer 创建和管理：
 class MinecraftServer : public IServer {
     // ...
     std::unique_ptr<sync::EntitySyncManager> m_entitySyncManager;
+    std::unique_ptr<sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
     std::unique_ptr<sync::ChunkSendManager> m_chunkSendManager;
     std::unique_ptr<sync::LightSyncManager> m_lightSyncManager;
     // ...
@@ -208,6 +261,17 @@ void MinecraftServer::initializeSyncManagers() {
 
 // 初始化区块同步（在 MinecraftServer::initializeChunkSyncManagers() 中）
 void MinecraftServer::initializeChunkSyncManagers() {
+    m_blockUpdateSyncManager = std::make_unique<sync::BlockUpdateSyncManager>(
+        chunkManager().ticketManager());
+    m_blockUpdateSyncManager->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
+        network::BlockUpdatePacket packet(x, y, z, blockStateId);
+        network::PacketSerializer ser;
+        packet.serialize(ser);
+
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockUpdate, ser.buffer());
+        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    });
+
     m_chunkSendManager = std::make_unique<sync::ChunkSendManager>(
         chunkManager(), chunkManager().ticketManager());
     m_lightSyncManager = std::make_unique<sync::LightSyncManager>(
@@ -221,6 +285,11 @@ void MinecraftServer::setupWorldCallbacks() {
         lightSyncManager().initializeChunkLighting(x, z);
         chunkSendManager().sendChunkToTrackingPlayers(x, z);
     });
+
+    // 方块变化回调：写入后进入 pending 队列，统一在 tick 末发送。
+    world().setOnBlockChanged([this](const BlockPos& pos, u32 blockStateId) {
+        blockUpdateSyncManager().queueBlockUpdate(pos, blockStateId);
+    });
     
     // 追踪变化回调
     chunkManager().ticketManager().setTrackingChangeCallback(
@@ -233,6 +302,7 @@ void MinecraftServer::setupWorldCallbacks() {
 void MinecraftServer::tick() {
     // ...
     m_chunkSendManager->processPendingSends();  // 处理待发送区块
+    m_blockUpdateSyncManager->flushPendingUpdates();  // 统一发送方块更新
     m_entitySyncManager->tick();                 // 同步实体位置
     // ...
 }
@@ -300,6 +370,12 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 
 **解决方案**：使用合理的阈值（位置 0.01，旋转 1 度），并在需要强制同步时使用 `forceFullUpdate()`。
 
+#### 6. 方块更新不要直接发包
+
+**问题描述**：如果在 `ServerWorld`、`IntegratedServer` 或 `StandaloneServer` 中直接发送 `BlockUpdatePacket`，会绕过 pending 去重和统一 flush，导致同一坐标重复发包。
+
+**解决方案**：只让 `ServerWorld::setOnBlockChanged()` 产出事件，由 `BlockUpdateSyncManager` 统一缓存和发送。
+
 ### 涉及的测试用例
 
 #### common/network/sync/ChunkSync 测试 (test_chunksync.cpp)
@@ -324,13 +400,30 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 - **WorldLightManagerCreation**：WorldLightManager 创建
 - **WorldLightManagerTickWithoutWorkReturnsBudget**：无光照任务时 tick 返回预算
 
+#### server/BlockUpdateSyncManagerTest.cpp
+
+测试方块更新同步管理器：
+
+- **DeduplicatesSameBlockWithinTick**：同一坐标多次写入只保留最后一次
+- **SendsDistinctPositionsSeparately**：不同坐标同 tick 独立发送
+- **SendsToAllTrackingPlayers**：同一区块的所有追踪玩家都会收到更新
+- **SkipsPlayersWhoStopTrackingBeforeFlush**：flush 前取消追踪的玩家不会收到更新
+
+#### server/ServerWorldBlockUpdateCallbackTest.cpp
+
+测试服务端世界的方块变化回调：
+
+- **SetBlockInvokesBlockChangedCallback**：`ServerWorld::setBlock()` 会触发方块变化回调，并传递最终 stateId
+
 #### 测试数量统计
 
 | 测试文件 | 测试用例数 |
 |----------|-----------|
 | test_chunksync.cpp | 45+ |
 | LightSyncTests.cpp | 15 |
-| **总计** | **60+** |
+| BlockUpdateSyncManagerTest.cpp | 4 |
+| ServerWorldBlockUpdateCallbackTest.cpp | 1 |
+| **总计** | **65+** |
 
 ## 数据流图
 
@@ -385,6 +478,13 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
                               └─────────────────┘
 ```
 
+**方块更新路径**：
+
+```
+ServerWorld::setBlock() → setOnBlockChanged() → BlockUpdateSyncManager.queueBlockUpdate()
+→ MinecraftServer::tick() 末 flushPendingUpdates() → BlockUpdatePacket → 客户端
+```
+
 ## 初始化顺序
 
 sync 模块的初始化有严格的顺序要求：
@@ -399,12 +499,14 @@ sync 模块的初始化有严格的顺序要求：
    └── 创建 WorldLightManager
 
 3. initializeChunkSyncManagers()
+    └── 创建 BlockUpdateSyncManager（依赖 ChunkLoadTicketManager）
    └── 创建 ChunkSendManager（依赖 ServerChunkManager + ChunkLoadTicketManager）
    └── 创建 LightSyncManager（依赖 WorldLightManager + ServerChunkManager）
 
 4. setupWorldCallbacks()
    └── 设置区块加载回调 → LightSyncManager.initializeChunkLighting()
                         → ChunkSendManager.sendChunkToTrackingPlayers()
+    └── 设置方块变化回调 → BlockUpdateSyncManager.queueBlockUpdate()
    └── 设置追踪变化回调 → ChunkSendManager.onPlayerTrackingChange()
    └── 设置光照变化回调 → (网络发送光照更新)
 ```
@@ -415,3 +517,26 @@ sync 模块的初始化有严格的顺序要求：
 2. **位置阈值检测**：只有超过阈值才发送更新，减少网络带宽
 3. **追踪玩家列表**：通过 ChunkLoadTicketManager 高效查询，避免遍历所有玩家
 4. **光照同步时机**：仅在光照变化时同步，避免每帧同步
+5. **方块更新去重**：同一坐标只保留最后一次写入，避免递归写块和短时间重复更新造成额外带宽
+
+## Mermaid 图
+
+```mermaid
+flowchart LR
+    world["ServerWorld::setBlock"] --> callback["setOnBlockChanged"]
+    callback --> manager["BlockUpdateSyncManager"]
+    manager --> ticket["ChunkLoadTicketManager"]
+    ticket --> players["追踪该区块的玩家"]
+    manager --> flush["flushPendingUpdates()"]
+    flush --> packet["BlockUpdatePacket"]
+    packet --> client["客户端"]
+
+    style world fill:#ffd166,stroke:#b7791f,color:#111
+    style callback fill:#8ecae6,stroke:#1d4ed8,color:#111
+    style manager fill:#90be6d,stroke:#2f6f3e,color:#111
+    style ticket fill:#f4a261,stroke:#b45309,color:#111
+    style players fill:#e9c46a,stroke:#a16207,color:#111
+    style flush fill:#bde0fe,stroke:#2563eb,color:#111
+    style packet fill:#cdb4db,stroke:#6d28d9,color:#111
+    style client fill:#f1f5f9,stroke:#475569,color:#111
+```

@@ -238,6 +238,15 @@ public:
         m_onLightChanged = std::move(callback);
     }
 
+    // ========== 方块变化回调 ==========
+
+    void setOnBlockChanged(std::function<void(const BlockPos&, u32)> callback) {
+        if (m_onBlockChanged) {
+            throw std::runtime_error("Block change callback already set");
+        }
+        m_onBlockChanged = std::move(callback);
+    }
+
     // ========== 调试模式 ==========
 
     /**
@@ -284,6 +293,7 @@ private:
     std::unique_ptr<world::village::raid::RaidManager> m_raidManager;
 
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
+    std::function<void(const BlockPos&, u32)> m_onBlockChanged;
 };
 
 } // namespace server

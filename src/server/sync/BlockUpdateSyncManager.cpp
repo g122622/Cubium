@@ -1,0 +1,94 @@
+#include "BlockUpdateSyncManager.hpp"
+
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+
+#include <algorithm>
+#include <vector>
+
+namespace mc::server::sync {
+
+BlockUpdateSyncManager::BlockUpdateSyncManager(world::ChunkLoadTicketManager& ticketManager)
+    : m_ticketManager(ticketManager)
+{
+}
+
+void BlockUpdateSyncManager::queueBlockUpdate(const BlockPos& pos, u32 blockStateId)
+{
+    m_pendingBlockUpdates[pos] = blockStateId;
+}
+
+void BlockUpdateSyncManager::flushPendingUpdates()
+{
+    MC_TRACE_EVENT("server.network", "FlushBlockUpdates", "pendingCount", m_pendingBlockUpdates.size());
+
+    if (m_pendingBlockUpdates.empty()) {
+        return;
+    }
+
+    std::vector<PendingBlockUpdate> pendingUpdates;
+    pendingUpdates.reserve(m_pendingBlockUpdates.size());
+
+    for (const auto& [pos, blockStateId] : m_pendingBlockUpdates) {
+        pendingUpdates.push_back(PendingBlockUpdate{pos, blockStateId});
+    }
+
+    m_pendingBlockUpdates.clear();
+
+    std::sort(pendingUpdates.begin(), pendingUpdates.end(), [](const PendingBlockUpdate& left, const PendingBlockUpdate& right) {
+        const u64 leftChunkKey = chunkKey(left.pos.chunkX(), left.pos.chunkZ());
+        const u64 rightChunkKey = chunkKey(right.pos.chunkX(), right.pos.chunkZ());
+        if (leftChunkKey != rightChunkKey) {
+            return leftChunkKey < rightChunkKey;
+        }
+
+        return left.pos < right.pos;
+    });
+
+    for (size_t index = 0; index < pendingUpdates.size();) {
+        const PendingBlockUpdate& firstUpdate = pendingUpdates[index];
+        const ChunkCoord chunkX = firstUpdate.pos.chunkX();
+        const ChunkCoord chunkZ = firstUpdate.pos.chunkZ();
+        const u64 currentChunkKey = chunkKey(chunkX, chunkZ);
+
+        size_t groupEnd = index + 1;
+        while (groupEnd < pendingUpdates.size()) {
+            const PendingBlockUpdate& nextUpdate = pendingUpdates[groupEnd];
+            if (chunkKey(nextUpdate.pos.chunkX(), nextUpdate.pos.chunkZ()) != currentChunkKey) {
+                break;
+            }
+            ++groupEnd;
+        }
+
+        std::vector<PlayerId> players = m_ticketManager.getTrackingPlayers(chunkX, chunkZ);
+        if (players.empty()) {
+            index = groupEnd;
+            continue;
+        }
+
+        MC_ASSERT_RELEASE(m_onBlockUpdate != nullptr);
+        std::sort(players.begin(), players.end());
+
+        for (size_t updateIndex = index; updateIndex < groupEnd; ++updateIndex) {
+            const PendingBlockUpdate& update = pendingUpdates[updateIndex];
+            for (PlayerId playerId : players) {
+                m_onBlockUpdate(playerId, update.pos.x, update.pos.y, update.pos.z, update.blockStateId);
+            }
+        }
+
+        index = groupEnd;
+    }
+}
+
+void BlockUpdateSyncManager::setOnBlockUpdate(std::function<void(PlayerId, i32, i32, i32, u32)> callback)
+{
+    m_onBlockUpdate = std::move(callback);
+}
+
+u64 BlockUpdateSyncManager::chunkKey(ChunkCoord x, ChunkCoord z)
+{
+    return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
+}
+
+} // namespace mc::server::sync

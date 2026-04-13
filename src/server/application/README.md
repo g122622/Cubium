@@ -48,9 +48,9 @@ src/server/application/
 - `initializeWorld()` - Initializes world and command registry
 - `initializeInteractionManagers()` - Creates BlockInteractionManager, MiningManager, etc.
 - `initializeSyncManagers()` - Creates EntitySyncManager
-- `initializeChunkSyncManagers()` - Creates ChunkSendManager, LightSyncManager
+- `initializeChunkSyncManagers()` - Creates BlockUpdateSyncManager, ChunkSendManager, LightSyncManager
 - `initializeRegistries()` - Loads vanilla blocks, items, enchantments, recipes
-- `setupWorldCallbacks()` - Sets up chunk loading, entity spawning, and light change callbacks
+- `setupWorldCallbacks()` - Sets up chunk loading, block change, entity spawning, and light change callbacks
 - `shutdownManagers()` - Cleanup in correct order
 
 **Pure Virtual Methods (must be implemented by subclasses):**
@@ -72,9 +72,10 @@ src/server/application/
 4. `miningManager().tick()` - Update mining progress
 5. `pollNetwork()` - Process network packets (subclass-specific)
 6. `chunkSendManager().processPendingSends()` - Send queued chunks
-7. `chunkManager().tick()` - Update chunk loading/unloading
-8. `tickLighting()` - Light engine update
-9. `tickKeepAlive()` - Send keep-alive packets
+7. `blockUpdateSyncManager().flushPendingUpdates()` - Send queued block updates
+8. `chunkManager().tick()` - Update chunk loading/unloading
+9. `tickLighting()` - Light engine update
+10. `tickKeepAlive()` - Send keep-alive packets
 
 ---
 
@@ -352,9 +353,9 @@ std::lock_guard<std::mutex> lock(server.m_clientDataMutex);
 4. `initializeWorld()` - Command registry
 5. `initializeInteractionManagers()` - Block, mining, container managers
 6. `initializeSyncManagers()` - Entity sync
-7. `initializeChunkSyncManagers()` - Chunk/light sync
+7. `initializeChunkSyncManagers()` - Block update, chunk/light sync
 8. `setupChunkSendCallback()` - Network callbacks
-9. `setupWorldCallbacks()` - World event callbacks
+9. `setupWorldCallbacks()` - World event callbacks（包括方块变化回调）
 
 ### 3. Packet Handling Must Check Session Validity
 
@@ -410,6 +411,8 @@ if (result.failed() && result.error().code() == ErrorCode::AlreadyExists) {
 | Test File | Description |
 |-----------|-------------|
 | `tests/server/test_integrated_server.cpp` | IntegratedServer unit tests |
+| `tests/server/BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
+| `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
 
 **Test Categories:**
 
@@ -460,3 +463,29 @@ if (result.failed() && result.error().code() == ErrorCode::AlreadyExists) {
 - Maintains consistent tick rate regardless of client frame rate
 - Isolates server state from client rendering
 - Enables true async chunk generation
+
+## Mermaid Diagram
+
+```mermaid
+flowchart LR
+    init["MinecraftServer 初始化"] --> sync["initializeChunkSyncManagers()"]
+    sync --> block["BlockUpdateSyncManager"]
+    sync --> chunk["ChunkSendManager"]
+    sync --> light["LightSyncManager"]
+    world["ServerWorld::setBlock"] --> callback["setOnBlockChanged"]
+    callback --> block
+    block --> flush["tick 末 flushPendingUpdates()"]
+    flush --> packet["BlockUpdatePacket"]
+    packet --> client["客户端"]
+
+    style init fill:#ffd166,stroke:#b7791f,color:#111
+    style sync fill:#8ecae6,stroke:#1d4ed8,color:#111
+    style block fill:#90be6d,stroke:#2f6f3e,color:#111
+    style chunk fill:#f4a261,stroke:#b45309,color:#111
+    style light fill:#cdb4db,stroke:#6d28d9,color:#111
+    style world fill:#ffe8a3,stroke:#c99700,color:#111
+    style callback fill:#bde0fe,stroke:#2563eb,color:#111
+    style flush fill:#e9c46a,stroke:#a16207,color:#111
+    style packet fill:#f1f5f9,stroke:#475569,color:#111
+    style client fill:#e2e8f0,stroke:#334155,color:#111
+```

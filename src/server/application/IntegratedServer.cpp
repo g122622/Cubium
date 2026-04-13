@@ -454,11 +454,6 @@ void IntegratedServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
         heldStack);
 
     if (placementResult.success() && placementResult.value().blockPlaced) {
-        sendBlockUpdate(placementResult.value().position.x,
-                       placementResult.value().position.y,
-                       placementResult.value().position.z,
-                       placementResult.value().newBlockStateId);
-
         // 更新物品栏
         if (placementResult.value().itemConsumed) {
             i32 selectedSlot = m_clientInventory.getSelectedSlot();
@@ -583,17 +578,6 @@ void IntegratedServer::sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(
         network::PacketType::Teleport, ser.buffer());
-    sendToClient(fullPacket.data(), fullPacket.size());
-}
-
-void IntegratedServer::sendBlockUpdate(i32 x, i32 y, i32 z, u32 blockStateId)
-{
-    network::BlockUpdatePacket packet(x, y, z, blockStateId);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::BlockUpdate, ser.buffer());
     sendToClient(fullPacket.data(), fullPacket.size());
 }
 

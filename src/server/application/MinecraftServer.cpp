@@ -131,6 +131,11 @@ void MinecraftServer::tick()
     // 处理区块发送队列
     chunkSendManager().processPendingSends();
 
+    // 统一发送待处理的方块更新
+    if (m_blockUpdateSyncManager) {
+        m_blockUpdateSyncManager->flushPendingUpdates();
+    }
+
     // 心跳（每 15 秒）
     tickKeepAlive();
 
@@ -211,7 +216,7 @@ void MinecraftServer::initializeSyncManagers()
     m_entitySyncManager = std::make_unique<sync::EntitySyncManager>(
         m_world->entityManager());
 
-    // ChunkSendManager 和 LightSyncManager 在 world 初始化后由子类创建
+    // ChunkSendManager/BlockUpdateSyncManager/LightSyncManager 在 world 初始化后由子类创建
 }
 
 void MinecraftServer::initializeChunkSyncManagers()
@@ -220,6 +225,18 @@ void MinecraftServer::initializeChunkSyncManagers()
         spdlog::warn("Cannot initialize chunk sync managers: world not ready");
         return;
     }
+
+    m_blockUpdateSyncManager = std::make_unique<sync::BlockUpdateSyncManager>(
+        m_world->chunkManager()->ticketManager());
+    m_blockUpdateSyncManager->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
+        network::BlockUpdatePacket packet(x, y, z, blockStateId);
+        network::PacketSerializer ser;
+        packet.serialize(ser);
+
+        auto fullPacket = core::ConnectionManager::encapsulatePacket(
+            network::PacketType::BlockUpdate, ser.buffer());
+        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    });
 
     m_chunkSendManager = std::make_unique<sync::ChunkSendManager>(
         *m_world->chunkManager(),
@@ -381,6 +398,12 @@ void MinecraftServer::setupWorldCallbacks()
         });
     });
 
+    // 设置方块变化回调：写入后记录到同步管理器，统一在 tick 末发送。
+    m_world->setOnBlockChanged([this](const BlockPos& pos, u32 blockStateId) {
+        MC_ASSERT_RELEASE(m_blockUpdateSyncManager != nullptr);
+        m_blockUpdateSyncManager->queueBlockUpdate(pos, blockStateId);
+    });
+
     // 设置方块破坏回调 - 播放破坏声音
     m_blockInteractionManager->setOnBlockBreak(
         [this](PlayerId playerId, const BlockPos& pos, const BlockState& state) {
@@ -438,6 +461,7 @@ void MinecraftServer::setupWorldCallbacks()
 
 void MinecraftServer::shutdownManagers()
 {
+    m_blockUpdateSyncManager.reset();
     m_lightSyncManager.reset();
     m_chunkSendManager.reset();
     m_entitySyncManager.reset();
@@ -897,14 +921,6 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
     // 处理方块破坏
     if (packet.action() == network::BlockInteractionAction::StopDestroyBlock) {
         auto interactionResult = blockInteractionManager().handleBlockBreak(playerId, pos);
-        if (interactionResult.success() && interactionResult.value().blockBroken) {
-            // 发送方块更新给该玩家
-            network::BlockUpdatePacket updatePacket(pos.x, pos.y, pos.z, interactionResult.value().newBlockStateId);
-            network::PacketSerializer ser;
-            updatePacket.serialize(ser);
-            auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockUpdate, ser.buffer());
-            sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-        }
     }
 }
 
@@ -920,17 +936,6 @@ void MinecraftServer::sendTeleportPacket(PlayerId playerId, f64 x, f64 y, f64 z,
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(
         network::PacketType::Teleport, ser.buffer());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-}
-
-void MinecraftServer::sendBlockUpdatePacket(PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId)
-{
-    network::BlockUpdatePacket packet(x, y, z, blockStateId);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(
-        network::PacketType::BlockUpdate, ser.buffer());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 

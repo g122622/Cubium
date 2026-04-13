@@ -383,6 +383,10 @@ enum class Operation : u8 { ... };
     - Feeding raw source levels straight into the propagation queues will desynchronize the current inverse-level storage model.
 - Do not treat client light packets as immediate mesh rebuild triggers.
     - `ClientWorld` now uses `meshRebuildPending` to coalesce repeated `onLightUpdate()` calls for the same chunk while a task is still active.
+- Do not send `BlockUpdatePacket` directly from server application code.
+    - `ServerWorld::setOnBlockChanged()` now feeds `BlockUpdateSyncManager`; same-coordinate dedupe and tick-end flush must stay centralized.
+- When testing `ServerWorld::setBlock()`, initialize the world first.
+    - Uninitialized worlds hit the light-update assert path (`MC_ASSERT_RELEASE(false)`) because `m_lightManager` is null.
 - Do not link `spdlog::spdlog` or `GTest::gtest` directly into executables that already consume `mc_common` or `GTest::gtest_main`.
     - Apple ld will emit duplicate-library warnings when the same static library appears twice on the final link line.
 - On AppleClang, no-argument `MC_TRACE_EVENT(...)` or `MC_TRACE_*` calls can still trigger `-Wvariadic-macro-arguments-omitted`.

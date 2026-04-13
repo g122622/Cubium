@@ -16,6 +16,7 @@
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
+#include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/LightSyncManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
@@ -160,6 +161,9 @@ public:
 
     [[nodiscard]] sync::EntitySyncManager& entitySyncManager() override { return *m_entitySyncManager; }
     [[nodiscard]] const sync::EntitySyncManager& entitySyncManager() const override { return *m_entitySyncManager; }
+
+    [[nodiscard]] sync::BlockUpdateSyncManager& blockUpdateSyncManager() { return *m_blockUpdateSyncManager; }
+    [[nodiscard]] const sync::BlockUpdateSyncManager& blockUpdateSyncManager() const { return *m_blockUpdateSyncManager; }
 
     [[nodiscard]] sync::ChunkSendManager& chunkSendManager() override { return *m_chunkSendManager; }
     [[nodiscard]] const sync::ChunkSendManager& chunkSendManager() const override { return *m_chunkSendManager; }
@@ -502,6 +506,7 @@ protected:
 
     // 同步管理器
     std::unique_ptr<sync::EntitySyncManager> m_entitySyncManager;
+    std::unique_ptr<sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
     std::unique_ptr<sync::ChunkSendManager> m_chunkSendManager;
     std::unique_ptr<sync::LightSyncManager> m_lightSyncManager;
 

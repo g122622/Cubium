@@ -335,7 +335,7 @@ bool ServerChunkManager::hasChunk(ChunkCoord x, ChunkCoord z) const
 
 ChunkData* ServerChunkManager::getChunkSync(ChunkCoord x, ChunkCoord z)
 {
-    spdlog::debug("Requesting chunk synchronously at ({}, {}), current m_chunks size: {}", x, z, m_chunks.size());
+    // spdlog::debug("Requesting chunk synchronously at ({}, {}), current m_chunks size: {}", x, z, m_chunks.size());
 
     // 先检查缓存
     if (ChunkData* cached = getChunk(x, z)) {

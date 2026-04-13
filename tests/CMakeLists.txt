@@ -66,9 +66,11 @@ add_executable(mc_tests
     entity/RandomWalkingGoalTest.cpp
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
+    server/ServerWorldBlockUpdateCallbackTest.cpp
     server/test_integrated_server.cpp
     server/BlockDropHandlerTest.cpp
     server/BlockInteractionManagerTest.cpp
+    server/BlockUpdateSyncManagerTest.cpp
     server/test_chunk_worker_pool.cpp
     server/test_server_chunk_manager.cpp
     server/core/TimeManagerTest.cpp
@@ -262,6 +264,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
         # 同步管理器
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalConnection.cpp

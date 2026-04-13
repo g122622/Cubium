@@ -33,6 +33,7 @@ src/server/world/
 - 实体管理（生成、移除、查询）
 - 光照计算与同步
 - 方块写入回调链（`onBlockAdded/onBlockRemoved`、`updatePostPlacement`、`neighborChanged`）
+- 方块变化回调（`setOnBlockChanged`，用于驱动方块更新同步）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
 - 天气状态管理
@@ -366,12 +367,14 @@ Server World 模块是服务端的核心世界管理系统，负责：
 **输入**：
 - 玩家位置更新（触发区块加载）
 - 方块破坏事件（触发掉落生成）
+- 方块写入事件（触发方块更新同步）
 - 游戏时间推进（tick 调用）
 - 天气命令（/weather）
 - 实体生成请求
 
 **输出**：
 - 区块数据（发送给客户端）
+- 方块更新事件（同步给 `BlockUpdateSyncManager`）
 - 实体生成/移动/销毁包
 - 天气更新包
 - 掉落物实体
@@ -387,7 +390,7 @@ Server World 模块是服务端的核心世界管理系统，负责：
 
 **外部依赖**：
 - `server/core/` - 核心管理器（PlayerManager, ConnectionManager）
-- `server/sync/` - 同步管理器（ChunkSendManager, EntitySyncManager）
+- `server/sync/` - 同步管理器（BlockUpdateSyncManager, ChunkSendManager, EntitySyncManager）
 
 ### 使用方法
 
@@ -407,6 +410,11 @@ chunkManager->initialize();
 chunkManager->startWorkers();
 world.setChunkManager(std::move(chunkManager));
 // 注意：setChunkManager 会自动将 ServerWorldConfig.viewDistance 同步到新管理器
+
+// 如果上层已经创建 BlockUpdateSyncManager，可以把方块变化事件转交给同步层
+world.setOnBlockChanged([&blockUpdateSyncManager](const BlockPos& pos, u32 blockStateId) {
+    blockUpdateSyncManager.queueBlockUpdate(pos, blockStateId);
+});
 
 // 主循环
 while (running) {
@@ -491,8 +499,15 @@ if (weather.hasWeatherChanged()) {
 chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, ChunkCoord z) {
     lightSyncManager.initializeChunkLighting(x, z);
 });
+```
 
-### 7. 替换 ChunkManager 时视距回退
+### 7. 未初始化世界直接调用 setBlock
+
+**问题**：在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlock()`，会在光照更新阶段触发 `MC_ASSERT_RELEASE(false)`。
+
+**解决方案**：所有方块写入测试和同步测试都必须先初始化世界，确保 `m_lightManager` 和 `m_tickManager` 已经创建。
+
+### 8. 替换 ChunkManager 时视距回退
 
 **问题**：替换 `ServerChunkManager` 后，如果未同步 `viewDistance`，新管理器会使用默认值 10，导致首帧加载区块数量异常。
 
@@ -508,6 +523,8 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 | `tests/server/world/EntityTrackerTest.cpp` | 实体追踪、玩家追踪、并发安全、距离计算 |
 | `tests/server/world/ItemPickupManagerTest.cpp` | 拾取常量、物品合并、拾取延迟、物品过期、背包添加 |
 | `tests/server/world/spawn/NaturalSpawnerTest.cpp` | 密度追踪、密度管理、生成限制、生成常量、MobSpawnInfo 工厂 |
+| `tests/server/BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
+| `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
 
 ### 测试覆盖范围
 
@@ -535,6 +552,16 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 - SpawnCosts 验证
 - MobSpawnInfo 工厂方法
 
+**BlockUpdateSyncManager**：
+- 同坐标多次写入只保留最后一次
+- 不同坐标同 tick 独立发送
+- 同一区块的所有追踪玩家都会收到更新
+- flush 前取消追踪的玩家不会收到更新
+
+**ServerWorldBlockUpdateCallback**：
+- `ServerWorld::setBlock()` 会触发方块变化回调
+- 回调会收到最终的 stateId（空气为 0）
+
 ---
 
 ## 性能注意事项
@@ -543,6 +570,7 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 2. **碰撞缓存**：`CollisionCache` 缓存区块碰撞数据，避免重复计算
 3. **实体追踪**：使用空间哈希优化追踪范围计算
 4. **物品合并**：使用网格哈希优化合并检测，O(n) 而非 O(n²)
+5. **方块变化同步**：`setOnBlockChanged()` 只记录 pending，不在写块路径里直接发包，避免重复序列化和跨线程发送
 
 ---
 
@@ -552,3 +580,25 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 - [光照系统](../../../common/world/lighting/README.md)
 - [实体系统](../../../common/entity/README.md)
 - [天气系统](../../../common/world/weather/README.md)
+
+## Mermaid 图
+
+```mermaid
+flowchart LR
+    setBlock["ServerWorld::setBlock"] --> callback["setOnBlockChanged"]
+    callback --> sync["BlockUpdateSyncManager"]
+    sync --> ticket["ChunkLoadTicketManager"]
+    ticket --> players["追踪玩家"]
+    sync --> flush["flushPendingUpdates()"]
+    flush --> packet["BlockUpdatePacket"]
+    packet --> client["客户端"]
+
+    style setBlock fill:#ffd166,stroke:#b7791f,color:#111
+    style callback fill:#8ecae6,stroke:#1d4ed8,color:#111
+    style sync fill:#90be6d,stroke:#2f6f3e,color:#111
+    style ticket fill:#f4a261,stroke:#b45309,color:#111
+    style players fill:#e9c46a,stroke:#a16207,color:#111
+    style flush fill:#bde0fe,stroke:#2563eb,color:#111
+    style packet fill:#cdb4db,stroke:#6d28d9,color:#111
+    style client fill:#f1f5f9,stroke:#475569,color:#111
+```

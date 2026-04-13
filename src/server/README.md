@@ -28,6 +28,7 @@ server/
 │   ├── ContainerManager.hpp/cpp # 容器管理
 │   └── InventoryManager.hpp/cpp # 物品栏管理
 ├── sync/                 # 同步管理器
+│   ├── BlockUpdateSyncManager.hpp/cpp # 方块更新同步
 │   ├── ChunkSendManager.hpp/cpp # 区块发送
 │   ├── EntitySyncManager.hpp/cpp # 实体同步
 │   └── LightSyncManager.hpp/cpp  # 光照同步
@@ -122,6 +123,7 @@ server/
 | 类 | 职责 |
 |---|---|
 | `ChunkSendManager` | 区块发送、卸载通知，与 ChunkLoadTicketManager 协同 |
+| `BlockUpdateSyncManager` | 方块更新 pending 去重、tick 末统一发送 |
 | `EntitySyncManager` | 实体位置同步、生成/销毁广播 |
 | `LightSyncManager` | 光照数据同步到 ChunkSection |
 
@@ -214,7 +216,7 @@ TCP 网络通信实现。
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │                    sync/ 管理器                       │    │
-│  │  ChunkSendManager │ EntitySyncManager │ LightSyncManager│
+│  │  BlockUpdateSyncManager │ ChunkSendManager │ EntitySyncManager │ LightSyncManager│
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │                     world/                           │    │
@@ -254,7 +256,13 @@ TCP 网络通信实现。
    → ChunkSendManager → ChunkData 序列化 → 发送给客户端
    ```
 
-4. **区块生成**：
+4. **方块更新同步**：
+    ```
+    ServerWorld::setBlock() → setOnBlockChanged() → BlockUpdateSyncManager
+    → tick 末 flushPendingUpdates() → BlockUpdatePacket → 追踪该区块的客户端
+    ```
+
+5. **区块生成**：
    ```
    ServerChunkManager.getChunkAsync() → ChunkWorkerPool
    → Worker 线程生成 → 回调主线程 → 存入缓存
@@ -268,7 +276,7 @@ TCP 网络通信实现。
 - **玩家管理**：连接、认证、状态维护、断开
 - **世界管理**：区块加载/生成/卸载、实体管理、光照计算
 - **游戏逻辑**：方块交互、挖掘、物品栏、合成
-- **数据同步**：区块、实体、光照、天气同步到客户端
+- **数据同步**：区块、方块更新、实体、光照、天气同步到客户端
 - **命令系统**：服务端命令注册和执行
 - **网络通信**：TCP 连接管理、数据包处理
 
@@ -414,6 +422,8 @@ server.commandRegistry().dispatcher().registerCommand(
 | `world/spawn/NaturalSpawnerTest.cpp` | 自然生成条件 |
 | `weather/WeatherManagerTest.cpp` | 天气周期、命令 |
 | `LightSyncTests.cpp` | 光照同步 |
+| `BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
+| `ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
 | `test_chunk_worker_pool.cpp` | Worker 线程池 |
 | `test_server_chunk_manager.cpp` | 区块管理器 |
 | `ServerChunkManagerCallbackTest.cpp` | 区块回调 |
@@ -423,4 +433,31 @@ server.commandRegistry().dispatcher().registerCommand(
 运行测试：
 ```powershell
 ./build/bin/Release/mc_tests.exe --gtest_filter="Server*"
+```
+
+
+## Mermaid 图
+
+```mermaid
+flowchart LR
+    client["客户端"] --> server["MinecraftServer"]
+    server --> sync["server/sync"]
+    sync --> block["BlockUpdateSyncManager"]
+    sync --> chunk["ChunkSendManager"]
+    sync --> light["LightSyncManager"]
+    server --> world["server/world"]
+    world --> callback["setOnBlockChanged"]
+    callback --> block
+    block --> packet["BlockUpdatePacket"]
+    packet --> client
+
+    style client fill:#f1f5f9,stroke:#475569,color:#111
+    style server fill:#ffd166,stroke:#b7791f,color:#111
+    style sync fill:#8ecae6,stroke:#1d4ed8,color:#111
+    style block fill:#90be6d,stroke:#2f6f3e,color:#111
+    style chunk fill:#f4a261,stroke:#b45309,color:#111
+    style light fill:#cdb4db,stroke:#6d28d9,color:#111
+    style world fill:#ffe8a3,stroke:#c99700,color:#111
+    style callback fill:#bde0fe,stroke:#2563eb,color:#111
+    style packet fill:#e9c46a,stroke:#a16207,color:#111
 ```

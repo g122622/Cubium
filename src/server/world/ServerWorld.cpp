@@ -214,6 +214,10 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
     return chunk->getBlock(localX, y, localZ);
 }
 
+// ============================================================================
+// 修改世界中的方块
+// 注意：会自动给客户端发包，不要在外部调用后再发一次！
+// ============================================================================
 bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 {
     MC_TRACE_EVENT(
@@ -348,6 +352,11 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         const BlockState* storedState = newIsAir ? nullptr : newState;
         chunk->setBlock(localX, y, localZ, storedState);
         chunk->setDirty(true);
+
+        // 先入队，后续递归写入同一位置时会覆盖旧状态。
+        if (m_onBlockChanged) {
+            m_onBlockChanged(changedPos, storedState ? storedState->stateId() : 0u);
+        }
     }
 
     {

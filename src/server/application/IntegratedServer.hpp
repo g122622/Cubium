@@ -117,7 +117,6 @@ private:
     // 发送数据包
     void sendLoginResponse(bool success, PlayerId playerId, const String& username, const String& message);
     void sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
-    void sendBlockUpdate(i32 x, i32 y, i32 z, u32 blockStateId);
     void sendPlayerInventory();
     void sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
     void sendUnloadChunk(ChunkCoord x, ChunkCoord z);

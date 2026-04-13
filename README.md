@@ -79,3 +79,26 @@ cmake --build build --config RelWithDebInfo
 - **asio** - 网络 (异步 I/O)
 - **GTest** - 测试框架
 - **stb** - 图像加载
+
+## Mermaid 图
+
+```mermaid
+flowchart LR
+	src["源码与资源"] --> cmake["CMake 配置"]
+	cmake --> build["构建 build/RelWithDebInfo"]
+	build --> server["minecraft-server.exe"]
+	build --> client["minecraft-client.exe"]
+	build --> tests["mc_tests.exe"]
+	server --> run["运行服务端"]
+	client --> run
+	tests --> verify["回归验证"]
+
+	style src fill:#ffd166,stroke:#b7791f,color:#111
+	style cmake fill:#8ecae6,stroke:#1d4ed8,color:#111
+	style build fill:#90be6d,stroke:#2f6f3e,color:#111
+	style server fill:#f4a261,stroke:#b45309,color:#111
+	style client fill:#cdb4db,stroke:#6d28d9,color:#111
+	style tests fill:#e9c46a,stroke:#a16207,color:#111
+	style run fill:#bde0fe,stroke:#2563eb,color:#111
+	style verify fill:#f1f5f9,stroke:#475569,color:#111
+```

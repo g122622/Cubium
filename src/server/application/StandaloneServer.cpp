@@ -621,12 +621,6 @@ void StandaloneServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
         playerId, pos, packet.hitPosition(), packet.face(), heldStack);
 
     if (interactionResult.success() && interactionResult.value().blockPlaced) {
-        sendBlockUpdatePacket(playerId,
-            interactionResult.value().position.x,
-            interactionResult.value().position.y,
-            interactionResult.value().position.z,
-            interactionResult.value().newBlockStateId);
-
         // 更新物品栏
         if (interactionResult.value().itemConsumed) {
             i32 selectedSlot = inventoryManager().getSelectedSlot(playerId);
