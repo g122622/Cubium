@@ -1,4 +1,5 @@
 #include "FlowingFluid.hpp"
+#include "FluidRegistry.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../block/ILiquidContainer.hpp"
@@ -208,106 +209,83 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
             flow(ctx);
     });
 
-    // 非源头才需要计算正确状态
-    if (!isSource(state)) {
-        MC_TRACE_EVENT("fluid.tick", "CalculatingSourceState",
-            "position", pos.toString(),
-            "currentState", state.toString());
-
+    if (!state.isSource()) {
         const BlockState* currentBlock = world.getBlockState(pos.x, pos.y, pos.z);
         FluidState correctState = calculateCorrectFlowingState(world, pos, currentBlock);
-        const i32 tickDelay = getTickDelay(world);
+        const i32 tickDelay = getTickDelay(world, pos, state, correctState);
 
         if (correctState.isEmpty()) {
-            // 应该消失 - 设置为空气方块
             if (VanillaBlocks::AIR != nullptr) {
                 world.setBlock(pos.x, pos.y, pos.z, &VanillaBlocks::AIR->defaultState());
             }
-        } else if (!(correctState == state)) {
-            // 状态改变
+            return;
+        }
+
+        if (!(correctState == state)) {
             state = correctState;
-            const BlockState* newBlockState = getBlockState(state);
+            const BlockState* newBlockState = correctState.getBlockState();
             if (newBlockState != nullptr) {
                 world.setBlock(pos.x, pos.y, pos.z, newBlockState);
             }
-            world.scheduleFluidTick(pos, *this, tickDelay);
-        }
-
-        if (correctState.isEmpty()) {
-            return;
+            world.scheduleFluidTick(pos, const_cast<Fluid&>(correctState.getFluid()), tickDelay);
         }
     }
 
-    // 执行流动
     flowAround(world, pos, state);
 }
 
 Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
                                const FluidState& state) const {
-    f32 dx = 0.0f;
-    f32 dz = 0.0f;
+    f32 flowX = 0.0f;
+    f32 flowZ = 0.0f;
+    BlockPos samplePos;
 
-    // 检查四个水平方向
     for (Direction dir : Directions::horizontal()) {
-        BlockPos neighborPos = pos.offset(Directions::toBlockFace(dir));
-        const FluidState* neighborFluid = world.getFluidState(neighborPos.x, neighborPos.y, neighborPos.z);
+        samplePos = pos.offset(Directions::toBlockFace(dir));
+        const FluidState* neighborFluid = world.getFluidState(samplePos.x, samplePos.y, samplePos.z);
+        if (neighborFluid == nullptr || !isSameOrEmpty(*neighborFluid)) {
+            continue;
+        }
 
-        if (neighborFluid != nullptr && isSameOrEmpty(*neighborFluid)) {
-            f32 neighborHeight = neighborFluid->getHeight();
-            f32 heightDiff = 0.0f;
+        f32 heightDelta = 0.0f;
+        f32 neighborHeight = neighborFluid->getHeight();
+        if (neighborHeight == 0.0f) {
+            const BlockState* neighborBlock = world.getBlockState(samplePos.x, samplePos.y, samplePos.z);
+            if (neighborBlock != nullptr && neighborBlock->owner().material().blocksMovement()) {
+                continue;
+            }
 
-            if (neighborHeight == 0.0f) {
-                // 相邻位置没有流体，检查下方
-                if (neighborFluid->isEmpty()) {
-                    const BlockState* neighborBlock = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
-                    if (neighborBlock == nullptr || !neighborBlock->owner().material().blocksMovement()) {
-                        BlockPos below = neighborPos.down();
-                        const FluidState* belowFluid = world.getFluidState(below.x, below.y, below.z);
-                        if (belowFluid != nullptr && isSameOrEmpty(*belowFluid)) {
-                            f32 belowHeight = belowFluid->getHeight();
-                            if (belowHeight > 0.0f) {
-                                // 流体从上方流下
-                                heightDiff = state.getHeight() - (belowHeight - 8.0f / 9.0f);
-                            }
-                        }
-                    }
+            BlockPos belowPos = samplePos.down();
+            const FluidState* belowFluid = world.getFluidState(belowPos.x, belowPos.y, belowPos.z);
+            if (belowFluid != nullptr && isSameOrEmpty(*belowFluid)) {
+                neighborHeight = belowFluid->getHeight();
+                if (neighborHeight > 0.0f) {
+                    heightDelta = state.getHeight() - (neighborHeight - 0.8888889f);
                 }
-            } else {
-                heightDiff = state.getHeight() - neighborHeight;
             }
+        } else {
+            heightDelta = state.getHeight() - neighborHeight;
+        }
 
-            if (heightDiff != 0.0f) {
-                dx += static_cast<f32>(Directions::xOffset(dir)) * heightDiff;
-                dz += static_cast<f32>(Directions::zOffset(dir)) * heightDiff;
-            }
+        if (heightDelta != 0.0f) {
+            flowX += static_cast<f32>(Directions::xOffset(dir)) * heightDelta;
+            flowZ += static_cast<f32>(Directions::zOffset(dir)) * heightDelta;
         }
     }
 
-    // 下落流体有额外的向下力
+    Vector3 flow(flowX, 0.0f, flowZ);
     if (state.isFalling()) {
         for (Direction dir : Directions::horizontal()) {
-            BlockPos neighborPos = pos.offset(Directions::toBlockFace(dir));
-            if (causesDownwardCurrent(world, neighborPos, dir) ||
-                causesDownwardCurrent(world, neighborPos.up(), dir)) {
-                // 归一化后添加向下分量
-                f32 len = std::sqrt(dx * dx + dz * dz);
-                if (len > 0.0f) {
-                    dx /= len;
-                    dz /= len;
-                }
-                return Vector3(dx, -6.0f, dz);
+            samplePos = pos.offset(Directions::toBlockFace(dir));
+            if (causesDownwardCurrent(world, samplePos, dir) ||
+                causesDownwardCurrent(world, samplePos.up(), dir)) {
+                flow = flow.normalized() + Vector3(0.0f, -6.0f, 0.0f);
+                break;
             }
         }
     }
 
-    // 归一化
-    f32 len = std::sqrt(dx * dx + dz * dz);
-    if (len > 0.0f) {
-        dx /= len;
-        dz /= len;
-    }
-
-    return Vector3(dx, 0.0f, dz);
+    return flow.normalized();
 }
 
 bool FlowingFluid::causesDownwardCurrent(IBlockReader& world, const BlockPos& pos, Direction side) const {
@@ -322,18 +300,16 @@ bool FlowingFluid::causesDownwardCurrent(IBlockReader& world, const BlockPos& po
         return true;
     }
 
-    // 检查方块是否在该侧面为固体
     if (blockState == nullptr) {
         return false;
     }
 
-    // 冰块不产生向下流
     const Material& material = blockState->owner().material();
     if (material == Material::ICE) {
         return false;
     }
 
-    return blockState->isSolid();
+    return blockState->isSolidSide(world, pos, side);
 }
 
 CollisionShape FlowingFluid::getShape(const FluidState& state, IBlockReader& world,
@@ -356,6 +332,15 @@ bool FlowingFluid::isFullHeight(const FluidState& state, IBlockReader& world, co
     return aboveFluid != nullptr && aboveFluid->getFluid().isEquivalentTo(*this);
 }
 
+i32 FlowingFluid::getTickDelay(IWorld& world, const BlockPos& pos,
+                               const FluidState& state,
+                               const FluidState& correctState) const {
+    (void)pos;
+    (void)state;
+    (void)correctState;
+    return Fluid::getTickDelay(world);
+}
+
 void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidState& state) {
     MC_TRACE_EVENT("fluid.tick", "FlowingFluid::flowAround",
         "position", pos.toString(),
@@ -369,26 +354,17 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
     }
 
     const BlockState* currentBlock = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockPos belowPos = pos.down();
+    const BlockState* belowBlock = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    FluidState belowFlowState = calculateCorrectFlowingState(world, belowPos, belowBlock);
 
-    // 1. 优先向下流动
-    BlockPos below = pos.down();
-    const BlockState* belowBlock = world.getBlockState(below.x, below.y, below.z);
-    const FluidState* belowFluid = world.getFluidState(below.x, below.y, below.z);
-    FluidState flowingDownState = calculateCorrectFlowingState(world, below, belowBlock);
-
-    // 检查是否可以向下流动
-    if (belowFluid != nullptr && canFlow(world, pos, currentBlock, Direction::Down, below, belowBlock, *belowFluid, flowingDownState.getFluid())) {
-        flowInto(world, below, belowBlock, Direction::Down, flowingDownState);
-
-        // 向下流动后检查是否需要水平流动
+    if (canFlow(world, pos, currentBlock, Direction::Down, belowPos, belowBlock,
+                *world.getFluidState(belowPos.x, belowPos.y, belowPos.z), belowFlowState.getFluid())) {
+        flowInto(world, belowPos, belowBlock, Direction::Down, belowFlowState);
         if (getHorizontalSourceCount(world, pos) >= 3) {
             spreadHorizontally(world, pos, state, currentBlock);
         }
-        return;
-    }
-
-    // 2. 不能向下流动时，只有源头或下方不能继续下沉才进行水平扩散
-    if (state.isSource() || !canFlowDown(world, flowingDownState.getFluid(), pos, currentBlock, below, belowBlock)) {
+    } else if (state.isSource() || !canFlowDown(world, belowFlowState.getFluid(), pos, currentBlock, belowPos, belowBlock)) {
         spreadHorizontally(world, pos, state, currentBlock);
     }
 }
@@ -402,24 +378,19 @@ void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
             flow(ctx);
     });
     
-    i32 newLevel = isSource(state) ? getSpreadDistance(world) : state.getLevel() - getLevelDecrease(world);
-
-    // 下落流体的level固定为7
-    if (state.isFalling()) {
-        newLevel = 7;
-    }
-
-    if (newLevel <= 0) {
+    i32 spreadLevel = state.isFalling() ? 7 : state.getLevel() - getLevelDecrease(world);
+    if (spreadLevel <= 0) {
         return;
     }
 
-    // 计算流向方向
     auto flowDirections = getFlowDirections(world, pos, blockState);
 
     for (const auto& [dir, fluidState] : flowDirections) {
         BlockPos targetPos = pos.offset(Directions::toBlockFace(dir));
         const BlockState* targetBlock = world.getBlockState(targetPos.x, targetPos.y, targetPos.z);
-        if (targetBlock != nullptr) {
+        if (targetBlock != nullptr &&
+            canFlow(world, pos, blockState, dir, targetPos, targetBlock,
+                    *world.getFluidState(targetPos.x, targetPos.y, targetPos.z), fluidState.getFluid())) {
             flowInto(world, targetPos, targetBlock, dir, fluidState);
         }
     }
@@ -454,7 +425,8 @@ void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState
     }
 
     // 设置流体方块
-    const BlockState* newBlockState = getBlockState(state);
+    // 必须使用传入状态自身的流体类型做方块映射，避免 source/fluid 实例错配。
+    const BlockState* newBlockState = state.getBlockState();
     if (newBlockState != nullptr) {
         world.setBlock(pos.x, pos.y, pos.z, newBlockState);
     }
@@ -463,59 +435,58 @@ void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState
 FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
                                                        const BlockPos& pos,
                                                        const BlockState* blockState) const {
+    if (blockState == nullptr) {
+        return *Fluid::getFluidState(FluidRegistry::EMPTY_ID);
+    }
+
     i32 maxLevel = 0;
     i32 sourceCount = 0;
 
-    // 检查四个水平方向
     for (Direction dir : Directions::horizontal()) {
         BlockPos neighborPos = pos.offset(Directions::toBlockFace(dir));
         const BlockState* neighborBlock = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
-        const FluidState* neighborFluid = world.getFluidState(neighborPos.x, neighborPos.y, neighborPos.z);
-
-        if (neighborFluid != nullptr &&
-            neighborFluid->getFluid().isEquivalentTo(*this) &&
-            doesSideHaveHoles(dir, world, pos, blockState, neighborPos, neighborBlock)) {
-
-            if (neighborFluid->isSource()) {
-                sourceCount++;
-            }
-            maxLevel = std::max(maxLevel, neighborFluid->getLevel());
+        if (neighborBlock == nullptr) {
+            continue;
         }
+
+        const FluidState* neighborFluid = neighborBlock->getFluidState();
+        if (neighborFluid == nullptr || !neighborFluid->getFluid().isEquivalentTo(*this) ||
+            !doesSideHaveHoles(dir, world, pos, blockState, neighborPos, neighborBlock)) {
+            continue;
+        }
+
+        if (neighborFluid->isSource()) {
+            ++sourceCount;
+        }
+
+        maxLevel = std::max(maxLevel, neighborFluid->getLevel());
     }
 
-    // 检查是否可以形成源头（水可以，岩浆不可以）
     if (sourceCount >= 2 && canSourcesMultiply()) {
-        BlockPos below = pos.down();
-        const BlockState* belowBlock = world.getBlockState(below.x, below.y, below.z);
-        const FluidState* belowFluid = world.getFluidState(below.x, below.y, below.z);
-
-        // 下方必须是固体或同种流体源头
-        if ((belowBlock != nullptr && belowBlock->isSolid()) ||
-            (belowFluid != nullptr && isSameSource(*belowFluid))) {
-            return getStillState(false);
+        BlockPos belowPos = pos.down();
+        const BlockState* belowBlock = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+        if (belowBlock != nullptr) {
+            const FluidState* belowFluid = belowBlock->getFluidState();
+            if (belowBlock->owner().material().isSolid() ||
+                (belowFluid != nullptr && isSameSource(*belowFluid))) {
+                return getStillState(false);
+            }
         }
     }
 
-    // 检查上方是否有下落流体
-    BlockPos above = pos.up();
-    const BlockState* aboveBlock = world.getBlockState(above.x, above.y, above.z);
-    const FluidState* aboveFluid = world.getFluidState(above.x, above.y, above.z);
-
-    if (aboveFluid != nullptr &&
-        !aboveFluid->isEmpty() &&
-        aboveFluid->getFluid().isEquivalentTo(*this) &&
-        doesSideHaveHoles(Direction::Up, world, pos, blockState, above, aboveBlock)) {
-        return getFlowingState(8, true);  // 下落流体
+    BlockPos abovePos = pos.up();
+    const BlockState* aboveBlock = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    if (aboveBlock != nullptr) {
+        const FluidState* aboveFluid = aboveBlock->getFluidState();
+        if (aboveFluid != nullptr && !aboveFluid->isEmpty() && aboveFluid->getFluid().isEquivalentTo(*this) &&
+            doesSideHaveHoles(Direction::Up, world, pos, blockState, abovePos, aboveBlock)) {
+            return getFlowingState(8, true);
+        }
     }
 
-    // 计算新等级
-    i32 newLevel = maxLevel - getLevelDecrease(world);
-    if (newLevel <= 0) {
-        // 返回空流体
-        return Fluid::getFluid(0)->defaultState();  // EmptyFluid
-    }
-
-    return getFlowingState(newLevel, false);
+    i32 nextLevel = maxLevel - getLevelDecrease(world);
+    return nextLevel <= 0 ? *Fluid::getFluidState(FluidRegistry::EMPTY_ID)
+                          : getFlowingState(nextLevel, false);
 }
 
 bool FlowingFluid::canFlow(IWorld& world, const BlockPos& fromPos,
@@ -669,9 +640,7 @@ i32 FlowingFluid::calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 dec
             neighborFluid = it->second.second;
         }
 
-        FluidState targetState = calculateCorrectFlowingState(world, neighborPos, neighborBlock);
-
-        if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid, targetState.getFluid())) {
+        if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid, *this)) {
             bool canFall = false;
             auto fallIt = fallCache.find(key);
             if (fallIt == fallCache.end()) {

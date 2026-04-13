@@ -67,7 +67,7 @@ classDiagram
         <<abstract>>
         +getTickDelay() i32 5
         +getLevelDecrease(IWorld) i32 1
-        +getSpreadDistance(IWorld) i32 8
+        +getSpreadDistance(IWorld) i32 4
         +canSourcesMultiply() bool true
         +getExplosionResistance() f32 100.0f
         #beforeReplacingBlock(IWorld, BlockPos, BlockState*) void
@@ -91,7 +91,7 @@ classDiagram
         <<abstract>>
         +getTickDelay() i32 30
         +getLevelDecrease(IWorld) i32 2
-        +getSpreadDistance(IWorld) i32 4
+        +getSpreadDistance(IWorld) i32 2
         +canSourcesMultiply() bool false
         +getExplosionResistance() f32 100.0f
         +randomTick(IWorld, BlockPos, FluidState, IRandom) void
@@ -154,7 +154,7 @@ classDiagram
 |------|-----|------|
 | Tick 延迟 | 5 tick | 流体更新间隔 |
 | 等级衰减 | 1 级/格 | 每流动一格降低 1 级 |
-| 最大距离 | 8 格 | 源头可流动的最远距离 |
+| 斜坡搜索距离 | 4 格 | 水平扩散路径搜索深度 |
 | 无限源 | ✅ 支持 | 2 个以上相邻源头可形成新源头 |
 | 爆炸抗性 | 100.0 | 可阻挡爆炸 |
 
@@ -181,7 +181,7 @@ classDiagram
 |------|-----|------|
 | Tick 延迟 | 30 tick | 主世界（下界为 10 tick）|
 | 等级衰减 | 2 级/格 | 主世界（下界为 1 级/格）|
-| 最大距离 | 4 格 | 主世界（下界为 6 格）|
+| 斜坡搜索距离 | 2 格 | 主世界（下界为 4 格）|
 | 无限源 | ❌ 不支持 | 无法形成无限源 |
 | 爆炸抗性 | 100.0 | 可阻挡爆炸 |
 | 随机 Tick | ✅ | 可能引燃周围可燃方块 |

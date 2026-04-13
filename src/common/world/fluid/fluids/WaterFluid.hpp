@@ -14,7 +14,7 @@ namespace fluid {
  * 特性：
  * - tick延迟: 5 tick
  * - 每格衰减: 1级
- * - 最大距离: 8格
+ * - 斜坡搜索距离: 4格
  * - 可以形成无限源（2+相邻源头）
  */
 class WaterFluid : public FlowingFluid {
@@ -34,7 +34,7 @@ public:
 
     [[nodiscard]] i32 getSpreadDistance(IWorld& world) const override {
         (void)world;
-        return 8;
+        return 4;
     }
 
     [[nodiscard]] bool canSourcesMultiply() const override { return true; }

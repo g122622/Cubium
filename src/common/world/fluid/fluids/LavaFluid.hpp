@@ -15,13 +15,17 @@ namespace fluid {
  * 特性：
  * - tick延迟: 主世界30tick，下界10tick
  * - 每格衰减: 主世界2级，下界1级
- * - 最大距离: 主世界4格，下界6格
+ * - 斜坡搜索距离: 主世界2格，下界4格
  * - 不能形成无限源
  * - 随机tick可能引燃周围方块
  */
 class LavaFluid : public FlowingFluid {
 public:
     [[nodiscard]] i32 getTickDelay(IWorld& world) const override;
+
+    [[nodiscard]] i32 getTickDelay(IWorld& world, const BlockPos& pos,
+                                   const FluidState& state,
+                                   const FluidState& correctState) const override;
 
     [[nodiscard]] i32 getTickDelay() const override {
         // TODO: 根据维度返回不同值

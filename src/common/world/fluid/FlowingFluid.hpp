@@ -27,6 +27,8 @@ class FlowingFluid : public Fluid {
 public:
     // ========== 属性 ==========
 
+    using Fluid::getTickDelay;
+
     /**
      * @brief 获取流动流体实例
      *
@@ -48,13 +50,14 @@ public:
      */
     [[nodiscard]] virtual i32 getLevelDecrease(IWorld& world) const = 0;
 
-    /**
-     * @brief 最大流动距离
-     *
-     * 水: 8格
-     * 岩浆(主世界): 4格
-     * 岩浆(下界): 6格
-     */
+     /**
+      * @brief 斜坡搜索距离（用于水平扩散路径搜索）
+      *
+      * 参考 MC 1.16.5 getSlopeFindDistance：
+      * 水: 4格
+      * 岩浆(主世界): 2格
+      * 岩浆(下界): 4格
+      */
     [[nodiscard]] virtual i32 getSpreadDistance(IWorld& world) const = 0;
 
     /**
@@ -85,6 +88,15 @@ public:
                                            const BlockPos& pos) const override;
 
 protected:
+    /**
+     * @brief 计算下一个流体 tick 的延迟
+     *
+     * 默认直接使用流体自身的基础 tick 延迟；岩浆会在此基础上做额外节流。
+     */
+    [[nodiscard]] virtual i32 getTickDelay(IWorld& world, const BlockPos& pos,
+                                           const FluidState& state,
+                                           const FluidState& correctState) const;
+
     /**
      * @brief 替换方块前的处理
      *

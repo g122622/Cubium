@@ -4,6 +4,7 @@
 #include "../../../util/property/FluidProperties.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../../util/math/random/IRandom.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/Material.hpp"
@@ -56,6 +57,27 @@ i32 LavaFluid::getTickDelay(IWorld& world) const {
     return world.isUltraWarm() ? 10 : 30;
 }
 
+i32 LavaFluid::getTickDelay(IWorld& world, const BlockPos& pos,
+                            const FluidState& state, const FluidState& correctState) const {
+    i32 tickDelay = getTickDelay(world);
+    if (!state.isEmpty() && !correctState.isEmpty() &&
+        !state.isFalling() && !correctState.isFalling() &&
+        correctState.getActualHeight(world, pos) > state.getActualHeight(world, pos)) {
+        u64 seed = world.seed();
+        seed ^= static_cast<u64>(pos.x) * 341873128712ULL;
+        seed ^= static_cast<u64>(pos.y) * 132897987541ULL;
+        seed ^= static_cast<u64>(pos.z) * 42317861ULL;
+        seed ^= world.currentTick();
+
+        math::Random random(seed);
+        if (random.nextInt(4) != 0) {
+            tickDelay *= 4;
+        }
+    }
+
+    return tickDelay;
+}
+
 bool LavaFluid::canDisplace(const FluidState& state, IWorld& world,
                             const BlockPos& pos, const Fluid& fluid,
                             Direction dir) const {
@@ -73,7 +95,10 @@ namespace {
 
 void LavaFluid::randomTick(IWorld& world, const BlockPos& pos,
                             const FluidState& state, math::IRandom& random) {
-    // TODO: 目前 IWorld 还没有 DO_FIRE_TICK 游戏规则接口，先保留原版的火焰检查骨架。
+    if (!world.doFireTick()) {
+        return;
+    }
+
     (void)state;
 
     if (VanillaBlocks::FIRE == nullptr) {
@@ -215,7 +240,7 @@ i32 LavaFluid::getLevelDecrease(IWorld& world) const {
 }
 
 i32 LavaFluid::getSpreadDistance(IWorld& world) const {
-    return world.isUltraWarm() ? 6 : 4;
+    return world.isUltraWarm() ? 4 : 2;
 }
 
 // ============================================================================

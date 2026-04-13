@@ -1,0 +1,280 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "shell": {
+            "executable": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command"
+            ]
+        }
+    },
+    "tasks": [
+        {
+            "label": "Configure",
+            "detail": "配置 CMake 项目（首次构建或更改 CMakeLists.txt 后需要）",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-G",
+                "\"Visual Studio 17 2022\"",
+                "-A",
+                "x64",
+                "-DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Configure with Tracing",
+            "detail": "配置 CMake 项目（启用 Perfetto 性能追踪）",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-G",
+                "\"Visual Studio 17 2022\"",
+                "-A",
+                "x64",
+                "-DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "-DMC_ENABLE_TRACING=ON"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build (Debug)",
+            "detail": "构建 Debug 版本（较慢，推荐使用 RelWithDebInfo）",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "Debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build (RelWithDebInfo)",
+            "detail": "构建 RelWithDebInfo 版本（推荐）",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "RelWithDebInfo"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Build (Release)",
+            "detail": "构建 Release 版本（无调试符号，性能最优）",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "Release"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build Client (RelWithDebInfo)",
+            "detail": "仅构建客户端",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "RelWithDebInfo",
+                "--target",
+                "minecraft-client"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build Server (RelWithDebInfo)",
+            "detail": "仅构建服务端",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "RelWithDebInfo",
+                "--target",
+                "minecraft-server"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build Tests (RelWithDebInfo)",
+            "detail": "构建测试可执行文件",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "RelWithDebInfo",
+                "--target",
+                "mc_tests"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Clean Build",
+            "detail": "清理并重新构建 RelWithDebInfo 版本",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "RelWithDebInfo",
+                "--clean-first"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Run Tests",
+            "detail": "运行所有单元测试（使用 gtest_brief=1 简化输出）",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/bin/RelWithDebInfo/mc_tests.exe",
+            "args": [
+                "--gtest_brief=1"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Build Tests (RelWithDebInfo)"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Run Tests with Filter",
+            "detail": "运行指定测试（需要手动修改 filter 参数）",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/bin/RelWithDebInfo/mc_tests.exe",
+            "args": [
+                "--gtest_filter=ChunkWorkerPoolTest.*",
+                "--gtest_brief=1"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Build Tests (RelWithDebInfo)"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Reconfigure and Build",
+            "detail": "重新配置并构建（完整流程）",
+            "type": "shell",
+            "dependsOn": [
+                "Configure",
+                "Build (RelWithDebInfo)"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        }
+    ]
+}

@@ -8,6 +8,7 @@
 #include "client/resource/ResourceManager.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/util/property/Properties.hpp"
 
 #include <unordered_map>
 
@@ -667,6 +668,24 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
     }
 
     EXPECT_TRUE(hasExpectedAlphaVertex);
+}
+
+TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight) {
+    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
+        .with(BlockStateProperties::LEVEL_0_15(), 7);
+    m_chunk->setBlock(8, 64, 8, &shallowWater);
+
+    MeshData solidMesh;
+    MeshData transparentMesh;
+    ChunkMesher::setGreedyMeshing(false);
+    ChunkMesher::setLightingEnabled(false);
+    ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr, nullptr);
+
+    ASSERT_FALSE(transparentMesh.empty());
+
+    const MeshBounds bounds = computeBounds(transparentMesh);
+    EXPECT_LT(bounds.maxY - bounds.minY, 0.5f);
+    EXPECT_GT(bounds.maxY - bounds.minY, 0.05f);
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube) {

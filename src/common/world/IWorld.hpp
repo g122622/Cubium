@@ -284,6 +284,15 @@ public:
     }
 
     /**
+     * @brief 是否允许火焰蔓延
+     *
+     * 当前默认开启，后续接入游戏规则后可由具体世界覆盖。
+     */
+    [[nodiscard]] virtual bool doFireTick() const {
+        return true;
+    }
+
+    /**
      * @brief 获取世界种子
      */
     [[nodiscard]] virtual u64 seed() const = 0;

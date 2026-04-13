@@ -57,21 +57,33 @@ void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
                              math::IRandom& random) {
     const fluid::FluidState* fluidState = getFluidState(state);
     if (fluidState != nullptr && !fluidState->isEmpty()) {
-        m_fluid.randomTick(world, pos, *fluidState, random);
+        fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+        fluidRef.randomTick(world, pos, *fluidState, random);
     }
 }
 
 void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    // 调度流体tick
-    // 使用m_fluid直接调度（非const引用）
-    world.scheduleFluidTick(pos, m_fluid, m_fluid.getTickDelay(world));
+    const fluid::FluidState* fluidState = getFluidState(state);
+    if (fluidState == nullptr || fluidState->isEmpty()) {
+        return;
+    }
+
+    fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+    world.scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
 }
 
 void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
                                    Block& neighborBlock, const BlockPos& neighborPos,
                                    bool isMoving) {
-    // 邻居变化时重新调度流体tick
-    world.scheduleFluidTick(pos, m_fluid, m_fluid.getTickDelay(world));
+    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    if (currentState != nullptr) {
+        const fluid::FluidState* fluidState = currentState->getFluidState();
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+            world.scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
+        }
+    }
+
     (void)neighborBlock;
     (void)neighborPos;
     (void)isMoving;
@@ -79,12 +91,13 @@ void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
 
 void LiquidBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     // 获取流体状态并调用流体的tick方法
-    // 使用m_fluid直接调用tick（非const引用）
+    // 按当前状态实际归属的流体类型执行tick。
     const fluid::FluidState* fluidState = getFluidState(state);
     if (fluidState != nullptr && !fluidState->isEmpty()) {
         // 创建可变副本进行tick
         fluid::FluidState mutableState = *fluidState;
-        m_fluid.tick(world, pos, mutableState);
+        fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+        fluidRef.tick(world, pos, mutableState);
     }
 }
 

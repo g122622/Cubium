@@ -1,0 +1,193 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Minecraft Client (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/Debug/minecraft-client.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "VULKAN_SDK",
+                    "value": "C:/VulkanSDK"
+                }
+            ],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Minecraft Client (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/minecraft-client.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "VULKAN_SDK",
+                    "value": "C:/VulkanSDK"
+                }
+            ],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Minecraft Server (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/Debug/minecraft-server.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Minecraft Server (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/minecraft-server.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Minecraft Server with args (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/minecraft-server.exe",
+            "args": [
+                "--help"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Unit Tests (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/Debug/mc_tests.exe",
+            "args": [
+                "--gtest_brief=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Unit Tests (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/mc_tests.exe",
+            "args": [
+                "--gtest_brief=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Unit Tests with Filter (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/mc_tests.exe",
+            "args": [
+                "--gtest_filter=*",
+                "--gtest_brief=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Resource Tests (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/Debug/mc_resource_tests.exe",
+            "args": [
+                "--gtest_brief=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Resource Tests (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/mc_resource_tests.exe",
+            "args": [
+                "--gtest_brief=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Trident Tests (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/Debug/mc_trident_tests.exe",
+            "args": [
+                "--gtest_brief=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "VULKAN_SDK",
+                    "value": "C:/VulkanSDK"
+                }
+            ],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Trident Tests (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/mc_trident_tests.exe",
+            "args": [
+                "--gtest_brief=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "VULKAN_SDK",
+                    "value": "C:/VulkanSDK"
+                }
+            ],
+            "console": "integratedTerminal",
+            "preLaunchTask": null
+        },
+        {
+            "name": "Attach to Process",
+            "type": "cppvsdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}/build/bin/RelWithDebInfo/minecraft-client.exe",
+            "processId": "${command:pickProcess}"
+        }
+    ]
+}

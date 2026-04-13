@@ -8,6 +8,7 @@
 #include "../../../../common/world/biome/BiomeRegistry.hpp"
 #include "../../../../common/world/biome/BiomeEffects.hpp"
 #include "../../../../common/world/block/VanillaBlocks.hpp"
+#include "../../../../common/world/fluid/Fluid.hpp"
 #include "../../../../common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
@@ -243,6 +244,259 @@ struct FaceLayerRenderData {
     }
 
     return {FaceLayerRenderData{*region, -1}};
+}
+
+[[nodiscard]] const BlockState* getMeshBlockStateAt(
+    const ChunkData& chunk,
+    i32 x,
+    i32 y,
+    i32 z,
+    const ChunkData* neighborChunks[6]
+) {
+    constexpr i32 SIZE = ChunkData::WIDTH;
+
+    if (y < 0 || y >= world::CHUNK_HEIGHT) {
+        return nullptr;
+    }
+
+    const ChunkData* sampleChunk = &chunk;
+    i32 localX = x;
+    i32 localZ = z;
+
+    if (localX < 0) {
+        localX += SIZE;
+        sampleChunk = neighborChunks ? neighborChunks[0] : nullptr;
+    } else if (localX >= SIZE) {
+        localX -= SIZE;
+        sampleChunk = neighborChunks ? neighborChunks[1] : nullptr;
+    }
+
+    if (localZ < 0) {
+        localZ += SIZE;
+        if (sampleChunk == &chunk || sampleChunk == nullptr) {
+            sampleChunk = neighborChunks ? neighborChunks[2] : nullptr;
+        }
+    } else if (localZ >= SIZE) {
+        localZ -= SIZE;
+        if (sampleChunk == &chunk || sampleChunk == nullptr) {
+            sampleChunk = neighborChunks ? neighborChunks[3] : nullptr;
+        }
+    }
+
+    if (sampleChunk == nullptr) {
+        return nullptr;
+    }
+
+    return sampleChunk->getBlock(localX, y, localZ);
+}
+
+[[nodiscard]] const fluid::FluidState* getMeshFluidStateAt(
+    const ChunkData& chunk,
+    i32 x,
+    i32 y,
+    i32 z,
+    const ChunkData* neighborChunks[6]
+) {
+    const BlockState* blockState = getMeshBlockStateAt(chunk, x, y, z, neighborChunks);
+    if (blockState == nullptr) {
+        return nullptr;
+    }
+
+    return blockState->getFluidState();
+}
+
+[[nodiscard]] f32 getLiquidActualHeightAt(
+    const ChunkData& chunk,
+    i32 x,
+    i32 y,
+    i32 z,
+    const fluid::Fluid& fluid,
+    const ChunkData* neighborChunks[6]
+) {
+    const fluid::FluidState* fluidState = getMeshFluidStateAt(chunk, x, y, z, neighborChunks);
+    if (fluidState == nullptr || !fluidState->getFluid().isEquivalentTo(fluid)) {
+        return 0.0f;
+    }
+
+    const fluid::FluidState* aboveFluid = getMeshFluidStateAt(chunk, x, y + 1, z, neighborChunks);
+    if (aboveFluid != nullptr && aboveFluid->getFluid().isEquivalentTo(fluid)) {
+        return 1.0f;
+    }
+
+    return fluidState->getHeight();
+}
+
+[[nodiscard]] f32 getLiquidCornerHeight(
+    const ChunkData& chunk,
+    i32 x,
+    i32 y,
+    i32 z,
+    const fluid::Fluid& fluid,
+    const ChunkData* neighborChunks[6]
+) {
+    i32 contributionCount = 0;
+    f32 heightSum = 0.0f;
+
+    for (i32 index = 0; index < 4; ++index) {
+        const i32 sampleX = x - (index & 1);
+        const i32 sampleZ = z - ((index >> 1) & 1);
+
+        const f32 fluidHeight = getLiquidActualHeightAt(chunk, sampleX, y, sampleZ, fluid, neighborChunks);
+        if (fluidHeight >= 0.8f) {
+            heightSum += fluidHeight * 10.0f;
+            contributionCount += 10;
+        } else if (fluidHeight > 0.0f) {
+            heightSum += fluidHeight;
+            ++contributionCount;
+        } else {
+            const BlockState* blockState = getMeshBlockStateAt(chunk, sampleX, y, sampleZ, neighborChunks);
+            if (blockState == nullptr || !blockState->owner().material().isSolid()) {
+                ++contributionCount;
+            }
+        }
+    }
+
+    if (contributionCount == 0) {
+        return 0.0f;
+    }
+
+    return heightSum / static_cast<f32>(contributionCount);
+}
+
+template <typename TintResolver>
+void emitLiquidFace(
+    MeshData& mesh,
+    Face face,
+    f64 x,
+    f64 y,
+    f64 z,
+    const ChunkData& chunk,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
+    u8 skyLight,
+    u8 blockLight,
+    const BlockState* block,
+    const std::vector<FaceLayerRenderData>& faceLayers,
+    const ChunkData* neighborChunks[6],
+    TintResolver&& resolveTintColor
+) {
+    if (block == nullptr || faceLayers.empty()) {
+        return;
+    }
+
+    const fluid::FluidState* fluidState = block->getFluidState();
+    if (fluidState == nullptr || fluidState->isEmpty()) {
+        return;
+    }
+
+    const fluid::Fluid& fluid = fluidState->getFluid();
+    const f32 southWestHeight = getLiquidCornerHeight(chunk, blockX, blockY, blockZ + 1, fluid, neighborChunks);
+    const f32 southEastHeight = getLiquidCornerHeight(chunk, blockX + 1, blockY, blockZ + 1, fluid, neighborChunks);
+    const f32 northEastHeight = getLiquidCornerHeight(chunk, blockX + 1, blockY, blockZ, fluid, neighborChunks);
+    const f32 northWestHeight = getLiquidCornerHeight(chunk, blockX, blockY, blockZ, fluid, neighborChunks);
+
+    std::array<const ChunkData*, 4> biomeNeighbors = {};
+    if (neighborChunks) {
+        biomeNeighbors[0] = neighborChunks[0];
+        biomeNeighbors[1] = neighborChunks[1];
+        biomeNeighbors[2] = neighborChunks[2];
+        biomeNeighbors[3] = neighborChunks[3];
+    }
+    client::ChunkBiomeAccessor biomeAccessor(
+        chunk,
+        biomeNeighbors,
+        chunk.x(),
+        chunk.z()
+    );
+
+    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
+    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+    const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
+    const auto faceNormal = BlockGeometry::getFaceNormal(face);
+    auto faceVertices = BlockGeometry::getFaceVertices(face);
+
+    const f32 topOffset = face == Face::Top ? -0.001f : 0.0f;
+    const f32 bottomOffset = face == Face::Bottom ? 0.001f : 0.0f;
+
+    auto applyCornerHeight = [&](size_t vertexIndex, f32 height) {
+        faceVertices[vertexIndex * 3 + 1] = static_cast<f64>(height);
+    };
+
+    switch (face) {
+        case Face::Top:
+            applyCornerHeight(0, southWestHeight + topOffset);
+            applyCornerHeight(1, southEastHeight + topOffset);
+            applyCornerHeight(2, northEastHeight + topOffset);
+            applyCornerHeight(3, northWestHeight + topOffset);
+            break;
+        case Face::Bottom:
+            applyCornerHeight(0, bottomOffset);
+            applyCornerHeight(1, bottomOffset);
+            applyCornerHeight(2, bottomOffset);
+            applyCornerHeight(3, bottomOffset);
+            break;
+        case Face::North:
+            applyCornerHeight(2, northWestHeight);
+            applyCornerHeight(3, northEastHeight);
+            break;
+        case Face::South:
+            applyCornerHeight(2, southEastHeight);
+            applyCornerHeight(3, southWestHeight);
+            break;
+        case Face::West:
+            applyCornerHeight(2, southWestHeight);
+            applyCornerHeight(3, northWestHeight);
+            break;
+        case Face::East:
+            applyCornerHeight(2, northEastHeight);
+            applyCornerHeight(3, southEastHeight);
+            break;
+        default:
+            break;
+    }
+
+    for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
+        const auto& layer = faceLayers[layerIndex];
+        const u32 tintColor = resolveTintColor(
+            biomeAccessor, worldX, blockY, worldZ, block, layer.tintIndex
+        );
+        const u32 shadedColor = applyBlockAlpha(
+            applyShadeToPackedColor(tintColor, getFaceShade(face)),
+            block
+        );
+
+        const f64 layerOffset = static_cast<f64>(layerIndex) * 0.001f;
+        f64 uvs[4][2] = {
+            { layer.texture.u0, layer.texture.v1 },
+            { layer.texture.u1, layer.texture.v1 },
+            { layer.texture.u1, layer.texture.v0 },
+            { layer.texture.u0, layer.texture.v0 }
+        };
+
+        std::array<Vertex, 4> faceVerts;
+        for (size_t i = 0; i < 4; ++i) {
+            faceVerts[i] = Vertex(
+                x + faceVertices[i * 3 + 0] + faceNormal[0] * layerOffset,
+                y + faceVertices[i * 3 + 1] + faceNormal[1] * layerOffset,
+                z + faceVertices[i * 3 + 2] + faceNormal[2] * layerOffset,
+                faceNormal[0], faceNormal[1], faceNormal[2],
+                uvs[i][0], uvs[i][1],
+                shadedColor,
+                packedLight
+            );
+        }
+
+        u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+        for (const auto& vertex : faceVerts) {
+            mesh.vertices.push_back(vertex);
+        }
+
+        const auto indices = BlockGeometry::getFaceIndices();
+        for (u32 index : indices) {
+            mesh.indices.push_back(baseIndex + index);
+        }
+    }
 }
 
 } // namespace
@@ -812,11 +1066,24 @@ void ChunkMesher::addFaceFromAppearance(
         default: return;
     }
 
-    auto faceLayers = collectFaceLayers(appearance, faceName);
+    auto faceLayers = block != nullptr && block->isLiquid()
+        ? collectLiquidFaceLayers(block, face)
+        : collectFaceLayers(appearance, faceName);
     if (faceLayers.empty()) {
-        faceLayers = collectLiquidFaceLayers(block, face);
+        return;
     }
-    if (faceLayers.empty()) {
+
+    if (block != nullptr && block->isLiquid()) {
+        auto resolveTintColor = [](const client::ChunkBiomeAccessor& biomeAccessor,
+                                   i32 worldX, i32 worldY, i32 worldZ,
+                                   const BlockState* blockState, i32 tintIndex) {
+            return ChunkMesher::resolveTintColorBlended(
+                biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex
+            );
+        };
+        emitLiquidFace(mesh, face, x, y, z, chunk, blockX, blockY, blockZ,
+                       skyLight, blockLight, block, faceLayers, neighborChunks,
+                       resolveTintColor);
         return;
     }
 
@@ -919,10 +1186,9 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
         default: return;
     }
 
-    auto faceLayers = collectFaceLayers(appearance, faceName);
-    if (faceLayers.empty()) {
-        faceLayers = collectLiquidFaceLayers(block, face);
-    }
+    auto faceLayers = block != nullptr && block->isLiquid()
+        ? collectLiquidFaceLayers(block, face)
+        : collectFaceLayers(appearance, faceName);
     if (faceLayers.empty()) {
         return;
     }
@@ -933,6 +1199,22 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     // 计算 AO
     client::renderer::AmbientOcclusionCalculator aoCalc;
     auto aoResult = aoCalc.calculate(chunk, blockX, blockY, blockZ, face, neighborChunks);
+
+    if (block != nullptr && block->isLiquid()) {
+        const u8 skyLight = sampleSkyLight(chunk, blockX, blockY, blockZ, neighborChunks);
+        const u8 blockLight = sampleBlockLight(chunk, blockX, blockY, blockZ, neighborChunks);
+        auto resolveTintColor = [](const client::ChunkBiomeAccessor& biomeAccessor,
+                                   i32 worldX, i32 worldY, i32 worldZ,
+                                   const BlockState* blockState, i32 tintIndex) {
+            return ChunkMesher::resolveTintColorBlended(
+                biomeAccessor, worldX, worldY, worldZ, blockState, tintIndex
+            );
+        };
+        emitLiquidFace(mesh, face, x, y, z, chunk, blockX, blockY, blockZ,
+                       skyLight, blockLight, block, faceLayers, neighborChunks,
+                       resolveTintColor);
+        return;
+    }
 
     // 创建生物群系访问器用于颜色混合
     std::array<const ChunkData*, 4> biomeNeighbors = {};

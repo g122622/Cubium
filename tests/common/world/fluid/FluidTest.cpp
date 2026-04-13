@@ -7,6 +7,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/util/property/Properties.hpp"
 
 #include <unordered_map>
 
@@ -105,6 +106,36 @@ TEST(FluidStateTest, FluidId) {
     const FluidState& state = emptyFluid.defaultState();
 
     EXPECT_EQ(state.fluidId(), emptyFluid.fluidId());
+}
+
+TEST(FluidStateTest, WaterBlockStateMapsToShallowFluidHeight) {
+    FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
+        .with(BlockStateProperties::LEVEL_0_15(), 7);
+    const FluidState* fluidState = shallowWater.getFluidState();
+
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_FALSE(fluidState->isSource());
+    EXPECT_EQ(fluidState->getLevel(), 1);
+    EXPECT_NEAR(fluidState->getHeight(), 1.0f / 9.0f, 1e-6f);
+}
+
+TEST(FluidStateTest, ActualHeightBecomesFullWhenSameFluidAbove) {
+    FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    FlowingFluidTestWorld world;
+    const BlockPos pos(0, 64, 0);
+    const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
+        .with(BlockStateProperties::LEVEL_0_15(), 7);
+    world.setBlock(pos.x, pos.y, pos.z, &shallowWater);
+    world.setBlock(pos.x, pos.y + 1, pos.z, &VanillaBlocks::WATER->defaultState());
+
+    const FluidState* fluidState = world.getFluidState(pos.x, pos.y, pos.z);
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_NEAR(fluidState->getActualHeight(world, pos), 1.0f, 1e-6f);
 }
 
 // ============================================================================
@@ -207,6 +238,36 @@ TEST(FluidFlowBehaviorTest, SourceWaterFlowsDownwardIntoAir) {
     const BlockState* belowState = world.getBlockState(sourcePos.x, sourcePos.y - 1, sourcePos.z);
     ASSERT_NE(belowState, nullptr);
     EXPECT_TRUE(belowState->is(VanillaBlocks::WATER));
+}
+
+TEST(FluidFlowBehaviorTest, SourceWaterSpreadsHorizontallyAsFlowingNotSource) {
+    FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    FlowingFluidTestWorld world;
+    const BlockPos sourcePos(0, 64, 0);
+    const BlockPos targetPos(1, 64, 0);
+
+    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z, &VanillaBlocks::WATER->defaultState());
+    world.setBlock(sourcePos.x, sourcePos.y - 1, sourcePos.z, &VanillaBlocks::STONE->defaultState());
+    world.setBlock(targetPos.x, targetPos.y - 1, targetPos.z, &VanillaBlocks::STONE->defaultState());
+    world.setBlock(sourcePos.x - 1, sourcePos.y, sourcePos.z, &VanillaBlocks::STONE->defaultState());
+    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z - 1, &VanillaBlocks::STONE->defaultState());
+    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z + 1, &VanillaBlocks::STONE->defaultState());
+
+    const FluidState* sourceStatePtr = world.getFluidState(sourcePos.x, sourcePos.y, sourcePos.z);
+    ASSERT_NE(sourceStatePtr, nullptr);
+    ASSERT_FALSE(sourceStatePtr->isEmpty());
+
+    FluidState sourceState = *sourceStatePtr;
+    Fluid& sourceFluid = const_cast<Fluid&>(sourceState.getFluid());
+    sourceFluid.tick(world, sourcePos, sourceState);
+
+    const FluidState* targetFluid = world.getFluidState(targetPos.x, targetPos.y, targetPos.z);
+    ASSERT_NE(targetFluid, nullptr);
+    EXPECT_FALSE(targetFluid->isEmpty());
+    EXPECT_FALSE(targetFluid->isSource());
+    EXPECT_EQ(targetFluid->getLevel(), 7);
 }
 
 // ============================================================================

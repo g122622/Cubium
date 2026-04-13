@@ -7,7 +7,7 @@ cmake-build-*/
 # IDE directories
 .idea/
 .vs/
-.vscode/
+# .vscode/
 *.code-workspace
 
 # Compiled files
