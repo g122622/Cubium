@@ -92,6 +92,16 @@ public:
     [[nodiscard]] bool isModified() const override { return m_modified; }
     void setModified(bool modified) override { m_modified = modified; }
 
+    // 光照状态
+    [[nodiscard]] bool isLightCorrect() const override {
+        return m_data ? m_data->isLightCorrect() : false;
+    }
+    void setLightCorrect(bool correct) override {
+        if (m_data) {
+            m_data->setLightCorrect(correct);
+        }
+    }
+
     // ============================================================================
     // 生成阶段管理
     // ============================================================================

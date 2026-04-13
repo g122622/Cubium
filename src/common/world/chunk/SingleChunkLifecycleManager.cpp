@@ -1,4 +1,5 @@
 #include "SingleChunkLifecycleManager.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <chrono>
 #include <algorithm>
 
@@ -42,6 +43,8 @@ void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
 bool SingleChunkLifecycleManager::upgradeGenTarget(const ChunkStatus& target)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
+
+    MC_ASSERT_RELEASE_MSG(m_requestTarget != nullptr, "Request target should be initialized");
 
     // 只有新目标更高时才升级
     if (target.ordinal() > m_requestTarget->ordinal()) {

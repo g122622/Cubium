@@ -1,5 +1,6 @@
 #include "common/world/chunk/ThreadedTicketLevelPropagator.hpp"
 #include "common/util/concurrent/ReentrantAreaLock.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cstring>
 
@@ -389,8 +390,9 @@ private:
 ThreadedTicketLevelPropagator::ThreadedTicketLevelPropagator() = default;
 
 void ThreadedTicketLevelPropagator::setSource(i32 x, i32 z, i32 level) {
+    // 无效的 source level 静默忽略（测试和调用者期望此行为）
     if (level < MIN_SOURCE_LEVEL || level > MAX_SOURCE_LEVEL) {
-        return;  // Invalid source level
+        return;
     }
 
     i32 sectionX = toSectionCoord(x);

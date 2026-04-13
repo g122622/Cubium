@@ -196,6 +196,8 @@ add_executable(mc_tests
     common/util/concurrent/ReentrantAreaLockTest.cpp
     # 票据级别传播器测试
     common/world/chunk/ThreadedTicketLevelPropagatorTest.cpp
+    # 区块任务调度器测试
+    server/world/chunk/ChunkTaskSchedulerTest.cpp
     # 调试区块生成器测试
     common/world/gen/DebugChunkGeneratorTest.cpp
     # 生物群系颜色测试
@@ -230,6 +232,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/chunk/ChunkTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/chunk/ChunkHolderManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/chunk/task/ChunkProgressionTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/chunk/task/ChunkUpgradeStatusTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/chunk/task/ChunkLightTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/chunk/task/ChunkFullTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp

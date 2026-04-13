@@ -815,8 +815,27 @@ void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& hold
                 // 同步路径：不检查邻居依赖，直接执行
                 m_generator->placeFeatures(region, *primer);
             } else if (s == ChunkStatuses::LIGHT) {
-                // LIGHT 阶段：区块生成系统中的占位阶段
-                // 真正的光照计算在区块加载后由 WorldLightManager::lightChunk() 完成
+                // 光照计算
+                auto* lightManager = m_world ? m_world->lightManager() : nullptr;
+                if (lightManager) {
+                    // 参考 Moonrise：区分已光照和未光照区块
+                    if (primer->isLightCorrect()) {
+                        // 已正确光照：只需重新加载光照数据并检查边缘
+                        std::vector<bool> emptySections;
+                        for (i32 i = 0; i < ChunkData::SECTIONS; ++i) {
+                            emptySections.push_back(!primer->hasSection(i) ||
+                                                   primer->getSection(i) == nullptr ||
+                                                   primer->getSection(i)->isEmpty());
+                        }
+                        lightManager->forceLoadInChunk(primer, emptySections);
+                        lightManager->checkChunkEdges(holder.x(), holder.z());
+                    } else {
+                        // 需要完整光照计算
+                        primer->setLightCorrect(false);
+                        lightManager->lightChunk(primer, true);
+                        primer->setLightCorrect(true);
+                    }
+                }
             } else if (s == ChunkStatuses::SPAWN) {
                 // SPAWN 阶段：计算生物生成点
                 MC_TRACE_EVENT("world.chunk_gen", "Spawn");
@@ -1068,7 +1087,11 @@ size_t ServerChunkManager::holderCount() const
 
 size_t ServerChunkManager::pendingTaskCount() const
 {
-    // TODO: 从任务调度器获取待处理任务数
+    if (m_taskScheduler) {
+        size_t count = m_taskScheduler->getMainThreadExecutor().size();
+        count += m_taskScheduler->getRadiusAwareScheduler().size();
+        return count;
+    }
     return 0;
 }
 

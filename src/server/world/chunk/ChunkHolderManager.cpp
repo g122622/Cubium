@@ -99,7 +99,8 @@ void ChunkHolderManager::forEachHolder(const std::function<void(const SingleChun
 // ============================================================================
 
 void ChunkHolderManager::addTicket(ChunkCoord x, ChunkCoord z, i32 level, const String& ticketType) {
-    MC_ASSERT(level >= 1 && level <= 62);
+    MC_ASSERT_RELEASE_MSG(level >= 1 && level <= 62, "Invalid ticket level");
+    MC_ASSERT_RELEASE_MSG(!ticketType.empty(), "Ticket type cannot be empty");
 
     // 设置票据源
     m_ticketPropagator.setSource(x, z, level);
@@ -117,7 +118,8 @@ void ChunkHolderManager::addTicket(ChunkCoord x, ChunkCoord z, i32 level, const 
 }
 
 void ChunkHolderManager::removeTicket(ChunkCoord x, ChunkCoord z, i32 level, const String& ticketType) {
-    MC_ASSERT(level >= 1 && level <= 62);
+    MC_ASSERT_RELEASE_MSG(level >= 1 && level <= 62, "Invalid ticket level");
+    MC_ASSERT_RELEASE_MSG(!ticketType.empty(), "Ticket type cannot be empty");
 
     // 移除票据源
     m_ticketPropagator.removeSource(x, z);

@@ -28,6 +28,9 @@ add_executable(minecraft-server
     world/chunk/ChunkTaskScheduler.cpp
     world/chunk/ChunkHolderManager.cpp
     world/chunk/task/ChunkProgressionTask.cpp
+    world/chunk/task/ChunkUpgradeStatusTask.cpp
+    world/chunk/task/ChunkLightTask.cpp
+    world/chunk/task/ChunkFullTask.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp

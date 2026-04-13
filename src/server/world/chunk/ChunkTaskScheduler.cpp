@@ -451,6 +451,12 @@ void ChunkTaskScheduler::shutdown() {
 
 void ChunkTaskScheduler::scheduleChunkTask(i32 x, i32 z, std::function<void()> task, Priority priority) {
     if (m_shutdown.load(std::memory_order_acquire)) {
+        // 调度器已关闭，静默返回
+        return;
+    }
+
+    if (!task) {
+        MC_ASSERT_RELEASE_MSG(false, "Cannot schedule null task");
         return;
     }
 
