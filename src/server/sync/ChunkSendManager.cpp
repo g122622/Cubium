@@ -1,6 +1,6 @@
 #include "ChunkSendManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "common/world/chunk/ChunkTrackingManager.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
@@ -9,9 +9,9 @@
 namespace mc::server::sync {
 
 ChunkSendManager::ChunkSendManager(ServerChunkManager& chunkManager,
-                                   world::ChunkLoadTicketManager& ticketManager)
+                                   world::ChunkTrackingManager& trackingManager)
     : m_chunkManager(chunkManager)
-    , m_ticketManager(ticketManager)
+    , m_trackingManager(trackingManager)
 {
 }
 
@@ -55,7 +55,7 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
 void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z) {
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::sendChunkToTrackingPlayers");
 
-    auto players = m_ticketManager.getTrackingPlayers(x, z);
+    auto players = m_trackingManager.getTrackingPlayers(x, z);
     sendChunkToPlayers(x, z, players, true);
 }
 
@@ -75,7 +75,7 @@ void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const 
 void ChunkSendManager::unloadChunkFromTrackingPlayers(ChunkCoord x, ChunkCoord z) {
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::unloadChunkFromTrackingPlayers");
 
-    auto players = m_ticketManager.getTrackingPlayers(x, z);
+    auto players = m_trackingManager.getTrackingPlayers(x, z);
     unloadChunkFromPlayers(x, z, players);
 }
 
@@ -107,7 +107,7 @@ void ChunkSendManager::onChunkPreUnload(ChunkCoord x, ChunkCoord z) {
 void ChunkSendManager::removePlayer(PlayerId playerId) {
     MC_TRACE_EVENT("server.lighting", "ChunkSendManager::removePlayer", "playerId", playerId);
 
-    // 追踪状态由 ChunkLoadTicketManager 管理。
+    // 追踪状态由 ChunkTrackingManager 管理。
     // 这里额外清理待发送队列里的目标玩家，避免断开后仍尝试发包。
     std::lock_guard<std::mutex> lock(m_readyChunksMutex);
 
@@ -159,7 +159,7 @@ void ChunkSendManager::processPendingSends() {
     for (const auto& chunk : chunks) {
         // 发送给每个玩家
         for (PlayerId playerId : chunk.players) {
-            if (chunk.validateTracking && !m_ticketManager.isPlayerTracking(playerId, chunk.x, chunk.z)) {
+            if (chunk.validateTracking && !m_trackingManager.isPlayerTracking(playerId, chunk.x, chunk.z)) {
                 continue;
             }
 

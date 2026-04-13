@@ -189,7 +189,7 @@ public:
     /**
      * @brief 检查区块是否应该加载
      *
-     * @note 级别 <= 33 的区块应该被加载（参考 ChunkLoadTicketManager::MAX_LOADED_LEVEL）
+     * @note 级别 <= 33 的区块应该被加载（参考 MAX_LOADED_LEVEL = 33）
      */
     [[nodiscard]] bool shouldLoad() const { return getLevel() <= 33; }
 

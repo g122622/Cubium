@@ -408,7 +408,7 @@ enum class Operation : u8 { ... };
 
 【重要】为了节省上下文，请你尽量阅读各级目录的 README.md 来获取你需要的信息，而不是直接查看代码文件。
 
-例如：当你修改想修改或查看`src\common\world\chunk\ChunkLoadTicketManager.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
+例如：当你修改想修改或查看`src\common\world\chunk\ThreadedTicketLevelPropagator.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
 
 - 项目根目录的 README.md
 - src\common\README.md

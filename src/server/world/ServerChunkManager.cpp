@@ -400,50 +400,44 @@ void ServerChunkManager::updatePlayerPosition(PlayerId player, f64 x, f64 z)
     const ChunkCoord chunkX = static_cast<ChunkCoord>(std::floor(x / world::CHUNK_WIDTH));
     const ChunkCoord chunkZ = static_cast<ChunkCoord>(std::floor(z / world::CHUNK_WIDTH));
 
-    std::lock_guard<std::mutex> lock(m_playerMutex);
-
-    // 获取旧位置
-    auto it = m_playerPositions.find(player);
+    // 获取旧位置用于票据更新
+    const world::PlayerChunkTracker* oldTracker = m_trackingManager.getPlayerTracker(player);
     ChunkCoord oldChunkX = 0;
     ChunkCoord oldChunkZ = 0;
     bool hadOldPos = false;
+    i32 oldViewDistance = m_viewDistance;
 
-    if (it != m_playerPositions.end()) {
-        oldChunkX = it->second >> 32;
-        oldChunkZ = it->second & 0xFFFFFFFF;
+    if (oldTracker && oldTracker->hasPosition()) {
+        oldChunkX = oldTracker->playerX();
+        oldChunkZ = oldTracker->playerZ();
+        oldViewDistance = oldTracker->viewDistance();
         hadOldPos = true;
-    }
 
-    // 更新位置
-    m_playerPositions[player] = (static_cast<u64>(static_cast<u32>(chunkX)) << 32) |
-                                 static_cast<u32>(chunkZ);
+        // 移除旧位置的票据
+        for (i32 dz = -oldViewDistance; dz <= oldViewDistance; ++dz) {
+            for (i32 dx = -oldViewDistance; dx <= oldViewDistance; ++dx) {
+                ChunkCoord cx = oldChunkX + dx;
+                ChunkCoord cz = oldChunkZ + dz;
 
-    // 更新区块玩家映射
-    if (hadOldPos) {
-        u64 oldKey = posToKey(oldChunkX, oldChunkZ);
-        auto chunkIt = m_playersByChunk.find(oldKey);
-        if (chunkIt != m_playersByChunk.end()) {
-            chunkIt->second.erase(player);
-            if (chunkIt->second.empty()) {
-                m_playersByChunk.erase(chunkIt);
-                // 移除票据
-                m_holderManager->removeTicket(oldChunkX, oldChunkZ, FORCED_TICKET_LEVEL, "player");
+                i32 dist = std::max(std::abs(dx), std::abs(dz));
+                i32 level = MAX_TICKET_LEVEL - (oldViewDistance - dist);
+
+                if (level > 0 && level < MAX_TICKET_LEVEL) {
+                    m_holderManager->removeTicket(cx, cz, level, "player_view");
+                }
             }
         }
     }
 
-    // 添加新位置的票据
-    u64 newKey = posToKey(chunkX, chunkZ);
-    m_playersByChunk[newKey].insert(player);
-    m_holderManager->addTicket(chunkX, chunkZ, FORCED_TICKET_LEVEL, "player");
+    // 更新追踪管理器（会触发追踪变化回调）
+    m_trackingManager.updatePlayerPosition(player, chunkX, chunkZ);
 
-    // 更新视距范围内的票据
+    // 添加新位置的票据
     for (i32 dz = -m_viewDistance; dz <= m_viewDistance; ++dz) {
         for (i32 dx = -m_viewDistance; dx <= m_viewDistance; ++dx) {
             ChunkCoord cx = chunkX + dx;
             ChunkCoord cz = chunkZ + dz;
 
-            // 计算距离
             i32 dist = std::max(std::abs(dx), std::abs(dz));
             i32 level = MAX_TICKET_LEVEL - (m_viewDistance - dist);
 
@@ -456,45 +450,31 @@ void ServerChunkManager::updatePlayerPosition(PlayerId player, f64 x, f64 z)
 
 void ServerChunkManager::removePlayer(PlayerId player)
 {
-    std::lock_guard<std::mutex> lock(m_playerMutex);
+    // 获取旧位置用于票据移除
+    const world::PlayerChunkTracker* tracker = m_trackingManager.getPlayerTracker(player);
+    if (tracker && tracker->hasPosition()) {
+        ChunkCoord chunkX = tracker->playerX();
+        ChunkCoord chunkZ = tracker->playerZ();
+        i32 viewDistance = tracker->viewDistance();
 
-    auto it = m_playerPositions.find(player);
-    if (it == m_playerPositions.end()) {
-        return;
-    }
+        // 移除视距范围内的票据
+        for (i32 dz = -viewDistance; dz <= viewDistance; ++dz) {
+            for (i32 dx = -viewDistance; dx <= viewDistance; ++dx) {
+                ChunkCoord cx = chunkX + dx;
+                ChunkCoord cz = chunkZ + dz;
 
-    ChunkCoord chunkX = it->second >> 32;
-    ChunkCoord chunkZ = it->second & 0xFFFFFFFF;
+                i32 dist = std::max(std::abs(dx), std::abs(dz));
+                i32 level = MAX_TICKET_LEVEL - (viewDistance - dist);
 
-    // 移除玩家位置
-    m_playerPositions.erase(it);
-
-    // 移除区块玩家映射
-    u64 key = posToKey(chunkX, chunkZ);
-    auto chunkIt = m_playersByChunk.find(key);
-    if (chunkIt != m_playersByChunk.end()) {
-        chunkIt->second.erase(player);
-        if (chunkIt->second.empty()) {
-            m_playersByChunk.erase(chunkIt);
-            // 移除票据
-            m_holderManager->removeTicket(chunkX, chunkZ, FORCED_TICKET_LEVEL, "player");
-        }
-    }
-
-    // 移除视距范围内的票据
-    for (i32 dz = -m_viewDistance; dz <= m_viewDistance; ++dz) {
-        for (i32 dx = -m_viewDistance; dx <= m_viewDistance; ++dx) {
-            ChunkCoord cx = chunkX + dx;
-            ChunkCoord cz = chunkZ + dz;
-
-            i32 dist = std::max(std::abs(dx), std::abs(dz));
-            i32 level = MAX_TICKET_LEVEL - (m_viewDistance - dist);
-
-            if (level > 0 && level < MAX_TICKET_LEVEL) {
-                m_holderManager->removeTicket(cx, cz, level, "player_view");
+                if (level > 0 && level < MAX_TICKET_LEVEL) {
+                    m_holderManager->removeTicket(cx, cz, level, "player_view");
+                }
             }
         }
     }
+
+    // 移除追踪管理器中的玩家
+    m_trackingManager.removePlayer(player);
 }
 
 void ServerChunkManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
@@ -519,6 +499,7 @@ void ServerChunkManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 void ServerChunkManager::setViewDistance(i32 distance)
 {
     m_viewDistance = distance;
+    m_trackingManager.setDefaultViewDistance(distance);
 }
 
 bool ServerChunkManager::shouldChunkLoad(ChunkCoord x, ChunkCoord z) const
@@ -1002,12 +983,8 @@ void ServerChunkManager::checkChunkUnloading()
 
             // 检查是否有玩家追踪
             u64 key = posToKey(holder.x(), holder.z());
-            {
-                std::lock_guard<std::mutex> lock(m_playerMutex);
-                auto it = m_playersByChunk.find(key);
-                if (it == m_playersByChunk.end() || it->second.empty()) {
-                    toUnload.push_back(key);
-                }
+            if (!m_trackingManager.hasTrackingPlayers(key)) {
+                toUnload.push_back(key);
             }
         }
     });

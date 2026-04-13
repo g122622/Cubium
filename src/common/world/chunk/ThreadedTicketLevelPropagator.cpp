@@ -78,7 +78,7 @@ public:
     i32 m_increaseQueueLen = 0;
     i32 m_decreaseQueueLen = 0;
 
-    std::unordered_map<u64, u8> m_updatedPositions;
+    std::unordered_map<u64, std::pair<u8, u8>> m_updatedPositions;  // key -> (oldLevel, newLevel)
 
     Propagator() {
         m_increaseQueue.resize(PROP_SECTION_SIZE * PROP_SECTION_SIZE * 2);
@@ -131,8 +131,16 @@ public:
                                     m_sectionIndexOffset];
         if (section != nullptr) {
             u16 localIndex = ThreadedTicketLevelPropagator::Section::getLocalIndex(posX, posZ);
+            u8 oldLevel = section->getLevel(localIndex);
             section->setLevel(localIndex, level);
-            m_updatedPositions[ThreadedTicketLevelPropagator::posToKey(posX, posZ)] = level;
+            u64 key = ThreadedTicketLevelPropagator::posToKey(posX, posZ);
+            // Only record if not already recorded (keep first oldLevel)
+            if (m_updatedPositions.find(key) == m_updatedPositions.end()) {
+                m_updatedPositions[key] = {oldLevel, level};
+            } else {
+                // Update newLevel only
+                m_updatedPositions[key].second = level;
+            }
         }
     }
 
@@ -238,9 +246,15 @@ public:
                     continue;  // Already at better or equal level
                 }
 
-                // Update level
+                // Update level and track old level for callback
+                u64 key = ThreadedTicketLevelPropagator::posToKey(offX, offZ);
+                // Only record oldLevel if not already recorded
+                if (m_updatedPositions.find(key) == m_updatedPositions.end()) {
+                    m_updatedPositions[key] = {static_cast<u8>(currentLevel), static_cast<u8>(toPropagate)};
+                } else {
+                    m_updatedPositions[key].second = static_cast<u8>(toPropagate);
+                }
                 section->levels[localIndex] = (currentStoredLevel & 0xFF00) | static_cast<u16>(toPropagate);
-                m_updatedPositions[ThreadedTicketLevelPropagator::posToKey(offX, offZ)] = static_cast<u8>(toPropagate);
 
                 // Queue next propagation
                 if (toPropagate < LEVEL_COUNT - 1) {
@@ -344,9 +358,15 @@ public:
                     continue;
                 }
 
-                // Update level to 0
+                // Update level to 0 (clear level, keep source)
+                u64 key = ThreadedTicketLevelPropagator::posToKey(offX, offZ);
+                // Only record oldLevel if not already recorded
+                if (m_updatedPositions.find(key) == m_updatedPositions.end()) {
+                    m_updatedPositions[key] = {static_cast<u8>(currentLevel), 0};
+                } else {
+                    m_updatedPositions[key].second = 0;
+                }
                 section->levels[localIndex] = currentStoredLevel & 0xFF00;  // Keep source, clear level
-                m_updatedPositions[ThreadedTicketLevelPropagator::posToKey(offX, offZ)] = 0;
 
                 if (sourceLevel != 0) {
                     // Re-propagate source
@@ -478,7 +498,8 @@ bool ThreadedTicketLevelPropagator::performUpdate(i32 sectionX, i32 sectionZ,
 
     u64 coordinate = sectionToKey(sectionX, sectionZ);
 
-    std::lock_guard<std::mutex> sectionsLock(m_sectionsMutex);
+    // Use unique_lock so we can explicitly release before invoking callbacks
+    std::unique_lock<std::mutex> sectionsLock(m_sectionsMutex);
 
     auto it = m_sections.find(coordinate);
     if (it == m_sections.end()) {
@@ -514,8 +535,10 @@ bool ThreadedTicketLevelPropagator::performUpdate(i32 sectionX, i32 sectionZ,
             section->levels[localIndex] = static_cast<u16>(currLevel | (newSource << 8));
         } else {
             // Set level and source to new value
+            // Record old level and new level for callback
+            u64 key = posToKey(posX, posZ);
+            propagator.m_updatedPositions[key] = {static_cast<u8>(currLevel), static_cast<u8>(newSource)};
             section->levels[localIndex] = static_cast<u16>(newSource | (newSource << 8));
-            propagator.m_updatedPositions[posToKey(posX, posZ)] = static_cast<u8>(newSource);
 
             if (newSource != 0) {
                 // Queue increase
@@ -608,21 +631,24 @@ bool ThreadedTicketLevelPropagator::performUpdate(i32 sectionX, i32 sectionZ,
 
     // Copy updated positions
     bool hasUpdates = !propagator.m_updatedPositions.empty();
+
+    // Collect callbacks to invoke after releasing the lock
+    std::vector<std::tuple<i32, i32, i32, i32>> callbacks;
+    if (hasUpdates && m_levelChangeCallback) {
+        callbacks.reserve(propagator.m_updatedPositions.size());
+        for (const auto& [key, levels] : propagator.m_updatedPositions) {
+            i32 posX, posZ;
+            keyToPos(key, posX, posZ);
+            callbacks.emplace_back(posX, posZ, static_cast<i32>(levels.first), static_cast<i32>(levels.second));
+        }
+    }
+
+    // Prepare output before releasing lock
     if (hasUpdates) {
         outUpdatedPositions.clear();
         outUpdatedPositions.reserve(propagator.m_updatedPositions.size());
-        for (const auto& [key, level] : propagator.m_updatedPositions) {
-            outUpdatedPositions.emplace_back(key, level);
-        }
-
-        // Invoke callback for each position
-        // TODO: Properly track old level by reading before propagation
-        if (m_levelChangeCallback) {
-            for (const auto& [key, newLevel] : outUpdatedPositions) {
-                i32 posX, posZ;
-                keyToPos(key, posX, posZ);
-                m_levelChangeCallback(posX, posZ, 0, static_cast<i32>(newLevel));
-            }
+        for (const auto& [key, levels] : propagator.m_updatedPositions) {
+            outUpdatedPositions.emplace_back(key, levels.second);
         }
     }
 
@@ -634,6 +660,15 @@ bool ThreadedTicketLevelPropagator::performUpdate(i32 sectionX, i32 sectionZ,
         if (queueIt != m_updateQueue.end()) {
             m_updateQueue.erase(queueIt);
         }
+    }
+
+    // Release the sections lock before invoking callbacks to prevent deadlock
+    // (callbacks may call getLevel() which needs the same lock)
+    sectionsLock.unlock();
+
+    // Now invoke callbacks without holding the lock
+    for (const auto& [x, z, oldLevel, newLevel] : callbacks) {
+        m_levelChangeCallback(x, z, oldLevel, newLevel);
     }
 
     return hasUpdates;

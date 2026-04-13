@@ -313,8 +313,10 @@ src/common/
     │   ├── ChunkPrimer.hpp
     │   ├── IChunk.hpp
     │   ├── ChunkLoadTicket.hpp
-    │   ├── ChunkLoadTicketManager.hpp
-    │   ├── ChunkDistanceGraph.hpp
+    │   ├── ChunkTrackingManager.hpp
+    │   ├── PlayerChunkTracker.hpp
+    │   ├── ThreadedTicketLevelPropagator.hpp
+    │   ├── ReentrantAreaLock.hpp
     │   └── SingleChunkLifecycleManager.hpp
     ├── dimension/            # 维度
     │   └── DimensionRenderSettings.hpp
@@ -513,7 +515,7 @@ src/common/
 - **time/**: 游戏时间 (昼夜循环)
 - **weather/**: 天气系统
 
-区块系统已经把“票据 → 生命周期 → 调度 → 取消”这条链路拆开：`ChunkLoadTicketManager` 负责汇聚不同来源的加载票据，`SingleChunkLifecycleManager` 负责每个区块的生命周期和请求代际，服务端再据此决定是否继续排队、生成或丢弃过期结果。
+区块系统已经把”票据 → 生命周期 → 调度 → 取消”这条链路拆开：`ThreadedTicketLevelPropagator` 负责 Section 分组的票据级别传播，`ChunkTrackingManager` 负责玩家区块追踪，`SingleChunkLifecycleManager` 负责每个区块的生命周期和请求代际，服务端再据此决定是否继续排队、生成或丢弃过期结果。
 
 ## 子目录之间的关系
 

@@ -27,11 +27,11 @@ src/server/sync/
 - 区块卸载前发送卸载通知
 - 异步区块序列化与主线程发送解耦
 
-#### 与 ChunkLoadTicketManager 协同工作
+#### 与 ChunkTrackingManager 协同工作
 
 ```
 玩家移动 → PlayerChunkTracker 计算新旧区块集合
-         → ChunkLoadTicketManager 触发追踪变化回调
+         → ChunkTrackingManager 触发追踪变化回调
          → ChunkSendManager.onPlayerTrackingChange()
              → 区块已加载：立即发送
              → 区块未加载：等待加载完成后发送
@@ -151,7 +151,7 @@ sync 模块是服务端数据同步的核心模块，负责将世界数据（区
 | 数据源 | 数据类型 | 说明 |
 |--------|----------|------|
 | ServerChunkManager | ChunkData | 区块数据 |
-| ChunkLoadTicketManager | 追踪玩家列表 | 区块→玩家映射 |
+| ChunkTrackingManager | 追踪玩家列表 | 区块→玩家映射 |
 | EntityManager | Entity 实体 | 实体数据 |
 | WorldLightManager | SWMRNibbleArray | 光照数据 |
 | 回调函数 | 网络发送 | 由 MinecraftServer 设置 |
@@ -176,7 +176,7 @@ sync/
 │   ├── world/
 │   │   ├── chunk/ChunkData.hpp
 │   │   ├── chunk/ChunkPos.hpp
-│   │   ├── chunk/ChunkLoadTicketManager.hpp
+│   │   ├── chunk/ChunkTrackingManager.hpp
 │   │   ├── lighting/LightType.hpp
 │   │   ├── lighting/manager/WorldLightManager.hpp
 │   │   ├── lighting/storage/SWMRNibbleArray.hpp
@@ -349,7 +349,7 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 │  │                         sync 模块                                    │   │
 │  │                                                                     │   │
 │  │  ┌───────────────────┐                                           │   │
-│  │  │ ChunkSendManager  │◄──── ChunkLoadTicketManager (追踪玩家)     │   │
+│  │  │ ChunkSendManager  │◄──── ChunkTrackingManager (追踪玩家)      │   │
 │  │  │                   │                                           │   │
 │  │  │ - sendChunk       │                                           │   │
 │  │  │ - unloadChunk     │                                           │   │
@@ -399,7 +399,7 @@ sync 模块的初始化有严格的顺序要求：
    └── 创建 WorldLightManager
 
 3. initializeChunkSyncManagers()
-   └── 创建 ChunkSendManager（依赖 ServerChunkManager + ChunkLoadTicketManager）
+   └── 创建 ChunkSendManager（依赖 ServerChunkManager + ChunkTrackingManager）
    └── 创建 LightSyncManager（依赖 WorldLightManager + ServerChunkManager）
 
 4. setupWorldCallbacks()
@@ -413,5 +413,5 @@ sync 模块的初始化有严格的顺序要求：
 
 1. **区块序列化**：在 Worker 线程异步执行，避免阻塞主线程
 2. **位置阈值检测**：只有超过阈值才发送更新，减少网络带宽
-3. **追踪玩家列表**：通过 ChunkLoadTicketManager 高效查询，避免遍历所有玩家
+3. **追踪玩家列表**：通过 ChunkTrackingManager 高效查询，避免遍历所有玩家
 4. **光照同步时机**：仅在光照变化时同步，避免每帧同步

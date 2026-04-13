@@ -121,7 +121,7 @@ server/
 
 | 类 | 职责 |
 |---|---|
-| `ChunkSendManager` | 区块发送、卸载通知，与 ChunkLoadTicketManager 协同 |
+| `ChunkSendManager` | 区块发送、卸载通知，与 ChunkTrackingManager 协同 |
 | `EntitySyncManager` | 实体位置同步、生成/销毁广播 |
 | `LightSyncManager` | 光照数据同步到 ChunkSection |
 
@@ -250,7 +250,7 @@ TCP 网络通信实现。
 
 3. **区块同步**：
    ```
-   玩家移动 → PositionTracker → ChunkLoadTicketManager
+   玩家移动 → PositionTracker → ChunkTrackingManager
    → ChunkSendManager → ChunkData 序列化 → 发送给客户端
    ```
 
@@ -342,12 +342,12 @@ if (result.success()) {
 
 ### 2. 区块同步顺序
 
-区块发送依赖 `ChunkLoadTicketManager` 的追踪回调：
+区块发送依赖 `ChunkTrackingManager` 的追踪回调：
 1. 玩家移动触发 `PlayerChunkTracker` 更新
 2. `TrackingChangeCallback` 通知 `ChunkSendManager`
 3. 区块加载完成后自动发送给追踪玩家
 
-**注意**：不要手动调用 `ChunkSendManager::sendChunkToPlayers()`，应使用票据系统。
+**注意**：不要手动调用 `ChunkSendManager::sendChunkToPlayers()`，应使用追踪系统。
 
 ### 3. 光照初始化
 

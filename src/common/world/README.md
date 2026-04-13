@@ -49,14 +49,16 @@ world/
 │   └── CraftingTableEntity.hpp/cpp
 ├── chunk/                      # Chunk management
 │   ├── ChunkData.hpp/cpp       # Chunk data storage
+│   ├── ChunkTrackingManager.hpp/cpp   # Player chunk tracking manager
+│   ├── PlayerChunkTracker.hpp/cpp     # Single player chunk tracker
+│   ├── ChunkLoadTicket.hpp/cpp  # Ticket types for chunk loading
 │   ├── ChunkPos.hpp            # Chunk position type
 │   ├── ChunkPrimer.hpp/cpp     # Intermediate chunk during generation
 │   ├── ChunkStatus.hpp/cpp     # Chunk generation stages
 │   ├── IChunk.hpp/cpp          # Chunk interface
-│   ├── ChunkDistanceGraph.hpp/cpp    # BFS distance calculation
-│   ├── ChunkLoadTicket.hpp     # Ticket types for chunk loading
-│   ├── ChunkLoadTicketManager.hpp/cpp # Multi-source ticket aggregation
-│   └── SingleChunkLifecycleManager.hpp/cpp # Per-chunk lifecycle and request generations
+│   ├── ThreadedTicketLevelPropagator.hpp/cpp  # Section-based ticket propagation
+│   ├── SingleChunkLifecycleManager.hpp/cpp # Per-chunk lifecycle
+│   └── ReentrantAreaLock.hpp/cpp # Reentrant area lock
 ├── dimension/                  # Dimension system
 │   └── DimensionRenderSettings.hpp
 ├── entity/                     # World entity management
@@ -204,15 +206,17 @@ The chunk system manages world data in 16x16x256 block sections:
 - **ChunkPrimer**: Intermediate chunk during generation
 - **ChunkStatus**: 13 generation stages (EMPTY to FULL)
 - **SingleChunkLifecycleManager**: Manages chunk loading state, request generations, and cancellation
-- **ChunkLoadTicketManager**: Aggregates ticket sources and computes load pressure
+- **ThreadedTicketLevelPropagator**: Section-based ticket level propagation (Moonrise-style)
+- **ChunkTrackingManager**: Manages player chunk tracking for sending
 
 ### Chunk Loading Flow
 
-1. Ticket sources update `ChunkLoadTicketManager`.
-2. `ChunkDistanceGraph` converts ticket pressure into chunk levels.
-3. `SingleChunkLifecycleManager` decides whether a chunk can queue, start, finish, or cancel generation.
-4. `ServerChunkManager` and the server-side worker pool execute the request.
-5. Late results are dropped when the request generation no longer matches.
+1. Player position updates trigger `ChunkTrackingManager::updatePlayerPosition()`.
+2. `ChunkHolderManager::addTicket()` adds PLAYER tickets to `ThreadedTicketLevelPropagator`.
+3. `ThreadedTicketLevelPropagator::performUpdate()` propagates ticket levels across sections.
+4. Level change callbacks trigger chunk load/unload decisions.
+5. `SingleChunkLifecycleManager` manages per-chunk lifecycle and generation requests.
+6. Late results are dropped when the request generation no longer matches.
 
 This design keeps player movement, forced tickets, portal tickets, teleport tickets, and other request sources on the same scheduling path.
 
@@ -459,11 +463,9 @@ i32 height = world.getHeight(x, z);  // Top solid block
 ### Chunk Loading with Tickets
 
 ```cpp
-ChunkLoadTicketManager ticketManager;
-ticketManager.setViewDistance(10);
-
-// Set callbacks
-ticketManager.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+// Ticket propagation (via ThreadedTicketLevelPropagator)
+ThreadedTicketLevelPropagator propagator;
+propagator.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
     if (newLevel <= 33 && oldLevel > 33) {
         loadChunk(x, z);
     } else if (newLevel > 33 && oldLevel <= 33) {
@@ -471,9 +473,20 @@ ticketManager.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel
     }
 });
 
-// Update player position (triggers chunk loading)
-ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
-ticketManager.processUpdates();
+// Add player ticket at chunk position with level
+propagator.setSource(ChunkPos(playerChunkX, playerChunkZ), ChunkLoadTicket(0, TicketTypes::PLAYER, playerChunkX, playerChunkZ));
+propagator.performUpdate();
+
+// Player tracking (via ChunkTrackingManager)
+ChunkTrackingManager trackingManager;
+trackingManager.setTrackingChangeCallback([](PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
+    if (isTracking) {
+        sendChunkToPlayer(player, x, z);
+    } else {
+        unloadChunkForPlayer(player, x, z);
+    }
+});
+trackingManager.updatePlayerPosition(playerId, chunkX, chunkZ);
 ```
 
 ## Common Pitfalls

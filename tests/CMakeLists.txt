@@ -16,7 +16,7 @@ add_executable(mc_tests
     common/test_entity.cpp
     common/test_chunksync.cpp
     common/test_localconnection.cpp
-    common/test_chunkloadticket.cpp
+    common/test_chunk_tracking.cpp
     # common/test_collision.cpp  # 暂时禁用 - 依赖旧的碰撞系统
     common/test_property.cpp
     common/test_block.cpp
@@ -282,8 +282,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/EntityPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkDistanceGraph.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkLoadTicketManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkLoadTicket.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/PlayerChunkTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkTrackingManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkStatus.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkPrimer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/IChunk.cpp

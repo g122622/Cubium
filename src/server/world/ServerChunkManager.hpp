@@ -3,7 +3,7 @@
 #include "../../common/world/chunk/ChunkData.hpp"
 #include "../../common/world/chunk/SingleChunkLifecycleManager.hpp"
 #include "../../common/world/chunk/ThreadedTicketLevelPropagator.hpp"
-#include "../../common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "../../common/world/chunk/ChunkTrackingManager.hpp"
 #include "../../common/world/gen/chunk/IChunkGenerator.hpp"
 #include "../../common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "../../common/util/concurrent/ReentrantAreaLock.hpp"
@@ -333,11 +333,10 @@ public:
     [[nodiscard]] const ChunkHolderManager& getHolderManager() const { return *m_holderManager; }
 
     /**
-     * @brief 获取票据管理器（向后兼容）
-     * @deprecated 使用 getHolderManager() 或 getTicketPropagator() 替代
+     * @brief 获取追踪管理器
      */
-    [[nodiscard]] world::ChunkLoadTicketManager& ticketManager() { return m_ticketManager; }
-    [[nodiscard]] const world::ChunkLoadTicketManager& ticketManager() const { return m_ticketManager; }
+    [[nodiscard]] world::ChunkTrackingManager& trackingManager() { return m_trackingManager; }
+    [[nodiscard]] const world::ChunkTrackingManager& trackingManager() const { return m_trackingManager; }
 
     /**
      * @brief 获取区块持有者数量（向后兼容）
@@ -526,8 +525,8 @@ private:
     // 票据传播器（Section 分组）
     world::ThreadedTicketLevelPropagator m_ticketPropagator;
 
-    // 票据管理器（向后兼容，用于玩家追踪等功能）
-    world::ChunkLoadTicketManager m_ticketManager;
+    // 区块追踪管理器（玩家追踪）
+    world::ChunkTrackingManager m_trackingManager;
 
     // 区块持有者管理器
     std::unique_ptr<ChunkHolderManager> m_holderManager;
@@ -535,10 +534,6 @@ private:
     // 任务调度器
     std::unique_ptr<ChunkTaskScheduler> m_taskScheduler;
 
-    // 玩家追踪
-    std::unordered_map<PlayerId, u64> m_playerPositions;  // PlayerId -> posToKey(x, z)
-    std::unordered_map<u64, std::unordered_set<PlayerId>> m_playersByChunk;  // posToKey -> players
-    mutable std::mutex m_playerMutex;
     i32 m_viewDistance = 10;
 
     // 强制加载区块

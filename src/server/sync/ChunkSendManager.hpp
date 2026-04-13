@@ -12,7 +12,7 @@ class ChunkData;
 }
 
 namespace mc::world {
-class ChunkLoadTicketManager;
+class ChunkTrackingManager;
 }
 
 namespace mc::server {
@@ -30,7 +30,7 @@ namespace sync {
  * - 玩家追踪变化时发送/卸载区块
  * - 区块卸载前发送卸载通知
  *
- * 与 ChunkLoadTicketManager 协同工作：
+ * 与 ChunkTrackingManager 协同工作：
  * - 通过 getTrackingPlayers() 获取追踪某区块的玩家
  * - 区块加载完成时自动发送
  * - 追踪变化回调触发发送/卸载
@@ -42,29 +42,29 @@ public:
     /**
      * @brief 构造函数
      * @param chunkManager 区块管理器引用
-     * @param ticketManager 票据管理器引用（用于查询追踪玩家）
+     * @param trackingManager 追踪管理器引用（用于查询追踪玩家）
      */
-    ChunkSendManager(ServerChunkManager& chunkManager, world::ChunkLoadTicketManager& ticketManager);
+    ChunkSendManager(ServerChunkManager& chunkManager, world::ChunkTrackingManager& trackingManager);
 
     /**
      * @brief 发送区块给指定玩家列表
      * @param x 区块X坐标
      * @param z 区块Z坐标
      * @param players 玩家ID列表
-    * @param validateTracking 发送前是否校验玩家仍在追踪该区块
+     * @param validateTracking 发送前是否校验玩家仍在追踪该区块
      *
      * 如果区块已加载，立即序列化并发送；
      * 如果区块未加载，触发异步加载，加载完成后发送。
      */
     void sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players,
-                       bool validateTracking = false);
+                            bool validateTracking = false);
 
     /**
      * @brief 发送区块给所有追踪该区块的玩家
      * @param x 区块X坐标
      * @param z 区块Z坐标
      *
-     * 从 ChunkLoadTicketManager 查询追踪该区块的玩家。
+     * 从 ChunkTrackingManager 查询追踪该区块的玩家。
      */
     void sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z);
 
@@ -90,7 +90,7 @@ public:
      * @param z 区块Z坐标
      * @param isTracking true=玩家开始追踪该区块，false=停止追踪
      *
-     * 由 ChunkLoadTicketManager 的追踪变化回调触发。
+     * 由 ChunkTrackingManager 的追踪变化回调触发。
      * 追踪进入：发送区块（如已加载）或等待加载
      * 追踪离开：发送卸载通知
      */
@@ -120,11 +120,11 @@ public:
      * @param z 区块Z坐标
      * @param data 序列化数据
      * @param players 目标玩家列表
-    * @param validateTracking 发送前是否校验玩家仍在追踪该区块
+     * @param validateTracking 发送前是否校验玩家仍在追踪该区块
      * @thread-safe
      */
     void submitChunkData(ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players,
-                    bool validateTracking = false);
+                         bool validateTracking = false);
 
     /**
      * @brief 主线程处理待发送队列
@@ -161,7 +161,7 @@ private:
     };
 
     ServerChunkManager& m_chunkManager;
-    world::ChunkLoadTicketManager& m_ticketManager;
+    world::ChunkTrackingManager& m_trackingManager;
 
     // 准备好的区块数据队列（包含目标玩家列表）
     std::vector<ReadyChunkData> m_readyChunks;

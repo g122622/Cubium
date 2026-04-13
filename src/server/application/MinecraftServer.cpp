@@ -223,7 +223,7 @@ void MinecraftServer::initializeChunkSyncManagers()
 
     m_chunkSendManager = std::make_unique<sync::ChunkSendManager>(
         *m_world->chunkManager(),
-        m_world->chunkManager()->ticketManager());
+        m_world->chunkManager()->trackingManager());
 
     m_lightSyncManager = std::make_unique<sync::LightSyncManager>(
         *m_world->lightManager(), *m_world->chunkManager());
@@ -307,7 +307,7 @@ void MinecraftServer::setupWorldCallbacks()
     });
 
     // 设置追踪变化回调 - 当玩家进入/离开区块视距时触发
-    m_world->chunkManager()->ticketManager().setTrackingChangeCallback(
+    m_world->chunkManager()->trackingManager().setTrackingChangeCallback(
         [this](PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
             if (m_chunkSendManager) {
                 m_chunkSendManager->onPlayerTrackingChange(player, x, z, isTracking);
@@ -759,7 +759,7 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     m_positionTracker->updatePosition(playerId, player->x, player->y, player->z, player->yaw, player->pitch, player->onGround);
 
     // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
-    // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
+    // 区块发送由 ChunkTrackingManager 的追踪变化回调自动处理
     if (m_world && m_world->chunkManager()) {
         m_world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
         m_world->chunkManager()->processTicketUpdates();
