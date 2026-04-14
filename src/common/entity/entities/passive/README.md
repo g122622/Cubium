@@ -91,12 +91,18 @@ MobEntity
 | 实体 | 说明 | 状态 |
 |------|------|------|
 | AbstractHorseEntity | 马类基类 | ✅ 已实现 |
-| HorseEntity | 马 | ❌ 未实现 |
-| DonkeyEntity | 驴 | ❌ 未实现 |
-| MuleEntity | 骡 | ❌ 未实现 |
-| SkeletonHorseEntity | 骷髅马 | ❌ 未实现 |
-| ZombieHorseEntity | 僵尸马 | ❌ 未实现 |
-| LlamaEntity | 羊驼 | ❌ 未实现 |
+| HorseEntity | 马 | ✅ 已实现 |
+| DonkeyEntity | 驴 | ✅ 已实现 |
+| MuleEntity | 骡 | ✅ 已实现 |
+| SkeletonHorseEntity | 骷髅马 | ✅ 已实现 |
+| ZombieHorseEntity | 僵尸马 | ✅ 已实现 |
+| LlamaEntity | 羊驼 | ✅ 已实现 |
+
+### 马类源码缺口
+
+1. 仍缺 `AbstractChestedHorseEntity`、`TraderLlamaEntity`、`ShoulderRidingEntity`、`CoatColors`、`CoatTypes` 这些 1.16.5 侧的支撑类型。
+2. 羊驼商队和箱子马类的语义需要补到和源码一致。
+3. 当前父目录 README 对马类状态的描述应以本节为准。
 
 ### fish/ - 鱼类
 | 实体 | 说明 |

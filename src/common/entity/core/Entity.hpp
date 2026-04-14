@@ -325,14 +325,12 @@ public:
     void addVelocity(const Vector3& delta) { addVelocity(delta.x, delta.y, delta.z); }
 
     void setOnGround(bool onGround) { m_onGround = onGround; }
-    void setPose(EntityPose pose) { m_pose = pose; }
-    void setFlags(EntityFlags flags) { m_flags = flags; }
+    void setPose(EntityPose pose);
+    void setFlags(EntityFlags flags);
 
     // 标志操作
-    void addFlag(EntityFlags flag) { m_flags = m_flags | flag; }
-    void removeFlag(EntityFlags flag) {
-        m_flags = static_cast<EntityFlags>(static_cast<u8>(m_flags) & ~static_cast<u8>(flag));
-    }
+    void addFlag(EntityFlags flag);
+    void removeFlag(EntityFlags flag);
     [[nodiscard]] bool hasFlag(EntityFlags flag) const {
         return mc::hasFlag(m_flags, flag);
     }
@@ -574,7 +572,7 @@ public:
     /**
      * @brief 设置空气值
      */
-    void setAir(i32 air) { m_air = air; }
+    void setAir(i32 air);
 
     /**
      * @brief 获取最大空气值
@@ -612,7 +610,7 @@ public:
     /**
      * @brief 设置自定义名称
      */
-    void setCustomName(const String& name) { m_customName = name; }
+    void setCustomName(const String& name);
 
     /**
      * @brief 检查自定义名称是否可见
@@ -622,7 +620,7 @@ public:
     /**
      * @brief 设置自定义名称可见性
      */
-    void setCustomNameVisible(bool visible) { m_customNameVisible = visible; }
+    void setCustomNameVisible(bool visible);
 
     // ========== 静音 ==========
 
@@ -634,7 +632,7 @@ public:
     /**
      * @brief 设置静音状态
      */
-    void setSilent(bool silent) { m_silent = silent; }
+    void setSilent(bool silent);
 
     // ========== 重力 ==========
 
@@ -646,7 +644,7 @@ public:
     /**
      * @brief 设置是否受重力影响
      */
-    void setNoGravity(bool noGravity) { m_noGravity = noGravity; }
+    void setNoGravity(bool noGravity);
 
     // ========== 摔落伤害 ==========
 
@@ -749,6 +747,13 @@ public:
      * @brief 更新环境状态（水中、岩浆中）
      */
     virtual void updateEnvironmentState();
+
+    /**
+     * @brief 将数据参数同步回实体字段
+     *
+     * 客户端接收元数据包后调用，用于把 DataManager 中的值写回实体成员。
+     */
+    virtual void syncMetadataFromDataManager();
 
 protected:
     EntityId m_id;

@@ -7,6 +7,8 @@
 #include "../damage/CombatTracker.hpp"
 #include "../effect/EffectManager.hpp"
 #include "../../item/core/ItemStack.hpp"
+#include "common/physics/PhysicsConstants.hpp"
+
 #include <array>
 #include <memory>
 
@@ -410,6 +412,11 @@ public:
     void tick() override;
 
     /**
+     * @brief 将数据参数同步回实体字段
+     */
+    void syncMetadataFromDataManager() override;
+
+    /**
      * @brief 生命值刻更新
      */
     virtual void tickHealth();
@@ -476,7 +483,7 @@ protected:
     // 跳跃
     bool m_isJumping = false;
     i32 m_jumpTicks = 0;                 // 跳跃冷却
-    f32 m_jumpUpwardsMotion = 0.42f;     // 跳跃初速度（MC默认值）
+    f32 m_jumpUpwardsMotion = physics::JUMP_VELOCITY;     // 跳跃初速度（MC默认值）
 
     // 移动
     f32 m_moveStrafing = 0.0f;           // 横向移动（左右）

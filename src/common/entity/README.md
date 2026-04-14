@@ -156,7 +156,8 @@ src/common/entity/
 │   └── player/                     # 玩家实体
 │       ├── Player.hpp/cpp          # 玩家实体
 │       ├── PlayerManager.hpp/cpp   # 玩家管理器
-│       └── GameModeUtils.hpp/cpp   # 游戏模式工具
+│       ├── GameModeUtils.hpp/cpp   # 游戏模式工具
+│       └── README.md               # 玩家模块说明
 │
 ├── interfaces/                     # 实体接口
 │   ├── IAngerable.hpp              # 愤怒接口

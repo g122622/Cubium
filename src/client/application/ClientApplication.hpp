@@ -6,6 +6,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/ResourcePackList.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "client/settings/ClientSettings.hpp"
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/SoundHandler.hpp"
@@ -263,6 +264,17 @@ private:
     i64 m_renderDayTime = 0;
     f32 m_renderTickAccumulator = 0.0f;
     bool m_hasServerTimeSync = false;
+
+    // 玩家水中状态跟踪（用于音效触发）
+    bool m_wasPlayerInWater = false;
+    bool m_wasPlayerInLava = false;
+
+    // 视野晃动状态
+    f32 m_bobAngle = 0.0f;           // 晃动角度累计
+    f32 m_bobPhase = 0.0f;           // 晃动相位
+
+    // 随机数生成器（用于音调变化等）
+    math::Random m_random;
 };
 
 } // namespace mc::client

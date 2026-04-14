@@ -10,7 +10,7 @@ entities/
 │   ├── basic/        # 普通动物 (Pig, Cow, Sheep, Chicken, Rabbit, Mooshroom)
 │   ├── tamable/      # 可驯服动物 (Wolf, Cat, Ocelot, Parrot + TameableEntity基类)
 │   ├── special/      # 特殊动物 (Fox, Panda, PolarBear, Turtle, Bee, Strider)
-│   ├── horse/        # 马类 (Horse, Donkey, Mule, SkeletonHorse, ZombieHorse, Llama)
+│   ├── horse/        # 马类 (Horse, Donkey, Mule, SkeletonHorse, ZombieHorse, Llama；TraderLlama/Chest 支撑待补)
 │   ├── fish/         # 鱼类 (Cod, Salmon, Pufferfish, TropicalFish + AbstractFishEntity基类)
 │   ├── water/        # 水生生物 (Squid, Dolphin + WaterMobEntity基类)
 │   ├── ambient/      # 环境生物 (Bat + AmbientEntity基类)
@@ -69,7 +69,8 @@ entities/
 └── player/           # 玩家实体
     ├── Player.hpp/cpp         # 玩家实体类
     ├── PlayerManager.hpp/cpp  # 玩家管理器
-    └── GameModeUtils.hpp/cpp  # 游戏模式工具函数
+    ├── GameModeUtils.hpp/cpp  # 游戏模式工具函数
+    └── README.md              # 玩家模块说明
 ```
 
 ## 实现状态
@@ -84,7 +85,7 @@ entities/
 | passive/water | 3 | WaterMobEntity + Squid, Dolphin |
 | passive/ambient | 2 | AmbientEntity + Bat |
 | passive/golem | 3 | GolemEntity + IronGolem, SnowGolem |
-| passive/horse | 7 | AbstractHorseEntity + Horse, Donkey, Mule, SkeletonHorse, ZombieHorse, Llama |
+| passive/horse | 基础完成 | Horse, Donkey, Mule, SkeletonHorse, ZombieHorse, Llama 已实现，仍缺 AbstractChestedHorseEntity、TraderLlamaEntity、ShoulderRidingEntity、CoatColors、CoatTypes |
 | monster/undead | 9 | Zombie系列 + Skeleton系列 + Phantom + ZombieVillager |
 | monster/arthropod | 4 | Spider, CaveSpider, Silverfish, Endermite |
 | monster/nether | 7 | Blaze, Ghast, MagmaCube, Piglin系列, Hoglin系列 |
@@ -224,3 +225,4 @@ EntityRegistry::instance().registerType(
 - [核心实体层](../core/README.md)
 - [实体接口](../interfaces/README.md)
 - [AI系统](../ai/README.md)
+- [玩家模块说明](player/README.md)

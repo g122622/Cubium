@@ -11,6 +11,7 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client {
 
@@ -442,7 +443,9 @@ void NetworkClient::processIncomingData() {
 }
 
 void NetworkClient::processPacket(const u8* data, size_t size) {
-    if (size < network::PACKET_HEADER_SIZE) return;
+    MC_TRACE_EVENT("client.network", "NetworkClient::processPacket", "size", size);
+
+    MC_ASSERT_RELEASE(size >= network::PACKET_HEADER_SIZE);
 
     network::PacketDeserializer headerDeser(data, size);
 
@@ -711,7 +714,7 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
         m_playerId = response.playerId();
         setState(ClientState::Playing);
 
-        spdlog::info("Login successful: playerId={}", m_playerId);
+        spdlog::info("[NetworkClient::handleLoginResponse] Login successful: playerId={}", m_playerId);
 
         if (m_callbacks.onLoginSuccess) {
             m_callbacks.onLoginSuccess(m_playerId, response.username());
@@ -730,7 +733,7 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
 void NetworkClient::handleTeleport(network::PacketDeserializer& deser) {
     auto result = network::TeleportPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize teleport packet");
+        spdlog::error("[NetworkClient::handleTeleport] Failed to deserialize teleport packet");
         return;
     }
 
@@ -752,12 +755,12 @@ void NetworkClient::handleTeleport(network::PacketDeserializer& deser) {
 void NetworkClient::handleChunkData(network::PacketDeserializer& deser) {
     auto result = network::ChunkDataPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize chunk data packet: {}", result.error().message());
+        spdlog::error("[NetworkClient::handleChunkData] Failed to deserialize chunk data packet: {}", result.error().message());
         return;
     }
 
     auto& packet = result.value();
-    spdlog::debug("Received chunk data: ({}, {}) dim={} size: {} bytes", packet.x(), packet.z(), packet.dimension(), packet.data().size());
+    spdlog::debug("[NetworkClient::handleChunkData] Received chunk data: ({}, {}) dim={} size: {} bytes", packet.x(), packet.z(), packet.dimension(), packet.data().size());
 
     if (m_callbacks.onChunkData) {
         m_callbacks.onChunkData(packet.x(), packet.z(), packet.dimension(), packet.data());
@@ -767,7 +770,7 @@ void NetworkClient::handleChunkData(network::PacketDeserializer& deser) {
 void NetworkClient::handleTimeUpdate(network::PacketDeserializer& deser) {
     auto result = network::TimeUpdatePacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize time update packet: {}", result.error().message());
+        spdlog::error("[NetworkClient::handleTimeUpdate] Failed to deserialize time update packet: {}", result.error().message());
         return;
     }
 
@@ -781,12 +784,12 @@ void NetworkClient::handleTimeUpdate(network::PacketDeserializer& deser) {
 void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser) {
     auto result = network::UnloadChunkPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize unload chunk packet");
+        spdlog::error("[NetworkClient::handleUnloadChunk] Failed to deserialize unload chunk packet");
         return;
     }
 
     auto& packet = result.value();
-    spdlog::debug("Received unload chunk: ({}, {}) dim={}", packet.x(), packet.z(), packet.dimension());
+    spdlog::debug("[NetworkClient::handleUnloadChunk] Received unload chunk: ({}, {}) dim={}", packet.x(), packet.z(), packet.dimension());
 
     if (m_callbacks.onChunkUnload) {
         m_callbacks.onChunkUnload(packet.x(), packet.z(), packet.dimension());
@@ -796,7 +799,7 @@ void NetworkClient::handleUnloadChunk(network::PacketDeserializer& deser) {
 void NetworkClient::handlePlayerSpawn(network::PacketDeserializer& deser) {
     auto result = network::PlayerSpawnPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize player spawn packet");
+        spdlog::error("[NetworkClient::handlePlayerSpawn] Failed to deserialize player spawn packet");
         return;
     }
 
@@ -813,7 +816,7 @@ void NetworkClient::handlePlayerSpawn(network::PacketDeserializer& deser) {
 void NetworkClient::handlePlayerDespawn(network::PacketDeserializer& deser) {
     auto result = network::PlayerDespawnPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize player despawn packet");
+        spdlog::error("[NetworkClient::handlePlayerDespawn] Failed to deserialize player despawn packet");
         return;
     }
 
@@ -827,7 +830,7 @@ void NetworkClient::handlePlayerDespawn(network::PacketDeserializer& deser) {
 void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser) {
     auto result = network::BlockUpdatePacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize block update packet");
+        spdlog::error("[NetworkClient::handleBlockUpdate] Failed to deserialize block update packet");
         return;
     }
 
@@ -855,7 +858,7 @@ void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser) {
 void NetworkClient::handleChatMessage(network::PacketDeserializer& deser) {
     auto result = network::ChatMessagePacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to deserialize chat message packet");
+        spdlog::error("[NetworkClient::handleChatMessage] Failed to deserialize chat message packet");
         return;
     }
 
@@ -943,7 +946,7 @@ void NetworkClient::handleSpawnEntity(network::PacketDeserializer& deser) {
         return;
     }
 
-    spdlog::debug("Received SpawnEntity: id={}, type={}, pos=({:.1f}, {:.1f}, {:.1f}){}",
+    spdlog::info("Received SpawnEntity: id={}, type={}, pos=({:.1f}, {:.1f}, {:.1f}){}",
                   packet.entityId(), packet.entityTypeId().c_str(),
                   packet.x(), packet.y(), packet.z(),
                   packet.hasItemStack() ? " (with ItemStack)" : "");
@@ -970,9 +973,9 @@ void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser) {
         return;
     }
 
-    spdlog::debug("Received SpawnMob: id={}, type={}, pos=({:.1f}, {:.1f}, {:.1f})",
-                  packet.entityId(), packet.entityTypeId().c_str(),
-                  packet.x(), packet.y(), packet.z());
+    spdlog::info("Received SpawnMob: id={}, type={}, pos=({:.1f}, {:.1f}, {:.1f}), metadata size: {}",
+                packet.entityId(), packet.entityTypeId().c_str(),
+                packet.x(), packet.y(), packet.z(), packet.metadata().size());
 
     if (m_callbacks.onSpawnMob) {
         m_callbacks.onSpawnMob(
@@ -981,6 +984,10 @@ void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser) {
             packet.x(), packet.y(), packet.z(),
             packet.yaw(), packet.pitch(), packet.headYaw()
         );
+    }
+
+    if (m_callbacks.onEntityMetadata) {
+        m_callbacks.onEntityMetadata(packet.entityId(), packet.metadata());
     }
 }
 
@@ -1211,7 +1218,7 @@ void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser) {
         return;
     }
 
-    spdlog::debug("PlayerAbilities: invulnerable={}, flying={}, canFly={}, creativeMode={}, flySpeed={}, walkSpeed={}",
+    spdlog::info("[NetworkClient::handlePlayerAbilities] PlayerAbilities: invulnerable={}, flying={}, canFly={}, creativeMode={}, flySpeed={}, walkSpeed={}",
                   packet.invulnerable(), packet.flying(), packet.canFly(),
                   packet.creativeMode(), packet.flySpeed(), packet.walkSpeed());
 

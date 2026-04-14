@@ -5,6 +5,7 @@
 #include "client/settings/ClientSettings.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -125,21 +126,23 @@ void SoundEngine::shutdown() {
 }
 
 SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
-    if (!m_loaded || !sound) {
+    MC_ASSERT_RELEASE(sound);
+    MC_TRACE_CLIENT_SOUND_EVENT("SoundEngine::play", "sound_event", sound->getSoundEventId().toString());
+    if (!m_loaded) {
         return 0;
     }
 
     // 获取声音事件定义
     const SoundEventDefinition* eventDef = m_handler.getRegistry().getSoundEvent(sound->getSoundEventId());
     if (!eventDef) {
-        spdlog::debug("[SoundEngine] Sound event not found: {}", sound->getSoundEventId().toString());
+        spdlog::warn("[SoundEngine] Sound event not found: {}", sound->getSoundEventId().toString());
         return 0;
     }
 
     // 选择随机声音（使用成员变量 m_rng 确保每次选择不同）
     const SoundDefinition* soundDef = eventDef->selectSound(m_rng);
     if (!soundDef) {
-        spdlog::debug("[SoundEngine] No sounds available for: {}", sound->getSoundEventId().toString());
+        spdlog::warn("[SoundEngine] No sounds available for: {}", sound->getSoundEventId().toString());
         return 0;
     }
 
@@ -150,7 +153,7 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     f32 eventVolume = 1.0f;
     f32 eventPitch = 1.0f;
     if (!resolveSoundDefinition(resolvedDef, 0, eventVolume, eventPitch)) {
-        spdlog::debug("[SoundEngine] Failed to resolve sound definition: {}", soundDef->location.toString());
+        spdlog::warn("[SoundEngine] Failed to resolve sound definition: {}", soundDef->location.toString());
         return 0;
     }
 
@@ -170,13 +173,13 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     // 检查是否在听者范围内（对于位置声音）
     if (!sound->isGlobal() && !isInRange(*sound, attenuationDistance)) {
         // 超出可听范围，不播放
-        spdlog::debug("[SoundEngine] Sound out of range: {} (distance: {})",
+        spdlog::info("[SoundEngine] Sound out of range: {} (distance: {})",
                       sound->getSoundEventId().toString(), attenuationDistance);
         return 0;
     }
 
     // 加载音频数据
-    spdlog::debug("[SoundEngine] Loading audio: {}", resolvedDef.location.toString());
+    // spdlog::debug("[SoundEngine] Loading audio: {}", resolvedDef.location.toString());
     auto loadResult = m_loader->load(resolvedDef.location);
     if (!loadResult.success()) {
         spdlog::warn("[SoundEngine] Failed to load sound: {} - {}",
@@ -185,8 +188,8 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     }
 
     AudioData& audioData = loadResult.value();
-    spdlog::debug("[SoundEngine] Audio loaded: {} Hz, {} ch, {:.2f}s",
-                  audioData.format.sampleRate, audioData.format.channels, audioData.duration);
+    // spdlog::debug("[SoundEngine] Audio loaded: {} Hz, {} ch, {:.2f}s",
+    //               audioData.format.sampleRate, audioData.format.channels, audioData.duration);
 
     // 创建音频缓冲区
     auto bufferResult = m_backend->createBuffer(audioData);
@@ -573,7 +576,7 @@ bool SoundEngine::resolveSoundDefinition(
     // 事件引用：查找被引用的声音事件
     const SoundEventDefinition* refEvent = m_handler.getRegistry().getSoundEvent(soundDef.location);
     if (!refEvent) {
-        spdlog::debug("[SoundEngine] Referenced sound event not found: {}",
+        spdlog::warn("[SoundEngine] Referenced sound event not found: {}",
                       soundDef.location.toString());
         return false;
     }

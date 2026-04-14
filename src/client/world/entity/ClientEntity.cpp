@@ -1,4 +1,5 @@
 #include "ClientEntity.hpp"
+#include "../../../common/network/packet/EntityMetadataSerializer.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -73,6 +74,14 @@ f32 ClientEntity::getInterpolatedHeadYaw(f32 partialTick) const {
 
 void ClientEntity::setVelocity(f32 x, f32 y, f32 z) {
     m_velocity = Vector3(x, y, z);
+}
+
+void ClientEntity::setMetadata(const std::vector<u8>& metadata) {
+    m_metadata = metadata;
+    if (!m_metadata.empty()) {
+        (void)network::EntityMetadataSerializer::deserialize(m_metadata, m_dataManager);
+        syncMetadataFromDataManager();
+    }
 }
 
 void ClientEntity::updateAnimation(f32 distanceMoved) {

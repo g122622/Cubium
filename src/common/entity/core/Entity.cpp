@@ -5,6 +5,9 @@
 #include "../../util/math/random/Random.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../world/block/Block.hpp"
+#include "../../world/fluid/Fluid.hpp"
+#include "spdlog/spdlog.h"
+
 #include <algorithm>
 #include <sstream>
 #include <chrono>
@@ -25,6 +28,28 @@ namespace {
     entity::DataParameter<bool> SILENT_PARAM{4};
     entity::DataParameter<bool> NO_GRAVITY_PARAM{5};
     entity::DataParameter<i8> POSE_PARAM{6};
+
+    [[nodiscard]] bool isWaterFluid(const fluid::FluidState* fluidState) {
+        if (fluidState == nullptr || fluidState->isEmpty()) {
+            return false;
+        }
+
+        const fluid::Fluid& fluid = fluidState->getFluid();
+        const auto& loc = fluid.fluidLocation();
+        return loc.namespace_() == "minecraft" &&
+               (loc.path() == "water" || loc.path() == "flowing_water");
+    }
+
+    [[nodiscard]] bool isLavaFluid(const fluid::FluidState* fluidState) {
+        if (fluidState == nullptr || fluidState->isEmpty()) {
+            return false;
+        }
+
+        const fluid::Fluid& fluid = fluidState->getFluid();
+        const auto& loc = fluid.fluidLocation();
+        return loc.namespace_() == "minecraft" &&
+               (loc.path() == "lava" || loc.path() == "flowing_lava");
+    }
 }
 
 // ============================================================================
@@ -60,6 +85,51 @@ void Entity::registerData() {
     m_dataManager.registerParam(SILENT_PARAM, false);
     m_dataManager.registerParam(NO_GRAVITY_PARAM, false);
     m_dataManager.registerParam(POSE_PARAM, static_cast<i8>(EntityPose::Standing));
+}
+
+void Entity::setPose(EntityPose pose) {
+    m_pose = pose;
+    m_dataManager.set(POSE_PARAM, static_cast<i8>(pose));
+}
+
+void Entity::setFlags(EntityFlags flags) {
+    m_flags = flags;
+    m_dataManager.set(FLAGS_PARAM, static_cast<i8>(static_cast<u8>(flags)));
+}
+
+void Entity::addFlag(EntityFlags flag) {
+    m_flags = m_flags | flag;
+    m_dataManager.set(FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+}
+
+void Entity::removeFlag(EntityFlags flag) {
+    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_flags) & ~static_cast<u8>(flag));
+    m_dataManager.set(FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+}
+
+void Entity::setAir(i32 air) {
+    m_air = air;
+    m_dataManager.set(AIR_PARAM, m_air);
+}
+
+void Entity::setCustomName(const String& name) {
+    m_customName = name;
+    m_dataManager.set(CUSTOM_NAME_PARAM, m_customName);
+}
+
+void Entity::setCustomNameVisible(bool visible) {
+    m_customNameVisible = visible;
+    m_dataManager.set(CUSTOM_NAME_VISIBLE_PARAM, m_customNameVisible);
+}
+
+void Entity::setSilent(bool silent) {
+    m_silent = silent;
+    m_dataManager.set(SILENT_PARAM, m_silent);
+}
+
+void Entity::setNoGravity(bool noGravity) {
+    m_noGravity = noGravity;
+    m_dataManager.set(NO_GRAVITY_PARAM, m_noGravity);
 }
 
 String Entity::getTypeId() const {
@@ -122,14 +192,14 @@ void Entity::baseTick() {
     // 处理空气值
     if (isInWater() || isInLava()) {
         if (!m_invulnerable) {
-            m_air--;
+            setAir(m_air - 1);
             if (m_air <= -20) {
-                m_air = 0;
+                setAir(0);
                 // TODO: 处理溺水伤害
             }
         }
     } else {
-        m_air = maxAir();
+        setAir(maxAir());
     }
 
     // 更新环境状态
@@ -144,25 +214,39 @@ bool Entity::tickPortal() {
 }
 
 void Entity::updateEnvironmentState() {
-    // 如果有世界引用，检测水中/岩浆中状态
+    const i32 blockX = static_cast<i32>(std::floor(m_position.x));
+    const i32 blockY = static_cast<i32>(std::floor(m_position.y + eyeHeight()));
+    const i32 blockZ = static_cast<i32>(std::floor(m_position.z));
+
     if (m_world) {
-        // 检测实体眼睛高度位置是否在液体中
-        // 参考 MC 1.16.5 Entity.updateFluidOnEyes()
-        const f32 eyeY = m_position.y + eyeHeight();
-
-        // 检测眼睛位置是否在水中或岩浆中
-        m_inWater = m_world->isWaterAt(
-            static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(eyeY)),
-            static_cast<i32>(std::floor(m_position.z))
-        );
-
-        m_inLava = m_world->isLavaAt(
-            static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(eyeY)),
-            static_cast<i32>(std::floor(m_position.z))
-        );
+        m_inWater = m_world->isWaterAt(blockX, blockY, blockZ);
+        m_inLava = m_world->isLavaAt(blockX, blockY, blockZ);
+        return;
     }
+
+    if (m_physicsEngine) {
+        const ICollisionWorld* collisionWorld = m_physicsEngine->getWorld();
+        if (collisionWorld) {
+            const BlockState* blockState = collisionWorld->getBlockState(blockX, blockY, blockZ);
+            const fluid::FluidState* fluidState = blockState != nullptr ? blockState->getFluidState() : nullptr;
+            m_inWater = isWaterFluid(fluidState);
+            m_inLava = isLavaFluid(fluidState);
+            return;
+        }
+    }
+
+    m_inWater = false;
+    m_inLava = false;
+}
+
+void Entity::syncMetadataFromDataManager() {
+    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(FLAGS_PARAM)));
+    m_air = m_dataManager.get<i32>(AIR_PARAM);
+    m_customName = m_dataManager.get<String>(CUSTOM_NAME_PARAM);
+    m_customNameVisible = m_dataManager.get<bool>(CUSTOM_NAME_VISIBLE_PARAM);
+    m_silent = m_dataManager.get<bool>(SILENT_PARAM);
+    m_noGravity = m_dataManager.get<bool>(NO_GRAVITY_PARAM);
+    m_pose = static_cast<EntityPose>(m_dataManager.get<i8>(POSE_PARAM));
 }
 
 void Entity::updateFallDistance() {

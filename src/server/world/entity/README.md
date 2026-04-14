@@ -18,7 +18,7 @@ src/server/world/entity/
 
 ### EntityTracker.hpp / EntityTracker.cpp
 
-**职责**: 管理实体的客户端可见性，确保玩家只看到其视野范围内的实体，并同步实体的位置、旋转等状态。
+**职责**: 管理实体的客户端可见性，确保玩家只看到其视野范围内的实体，并同步实体的位置、旋转、元数据等状态。
 
 #### 核心类
 
@@ -49,7 +49,7 @@ struct TrackedEntity {
 | `updatePlayerTracking(IServer&, PlayerId, const Vector3&)` | 更新玩家的追踪状态 |
 | `removePlayer(PlayerId)` | 移除玩家的所有追踪 |
 | `getPlayerTrackedEntities(PlayerId)` | 获取玩家正在追踪的实体列表 |
-| `tick(IServer&)` | 每tick更新，发送位置变化包 |
+| `tick(IServer&)` | 每tick更新，发送位置变化包和脏元数据包 |
 | `setTrackingDistance(i32 chunks)` | 设置实体追踪距离（区块数） |
 
 #### 追踪流程
@@ -83,6 +83,7 @@ flowchart TD
 |--------|----------|
 | `SpawnMobPacket` | 生成生物实体（LivingEntity） |
 | `SpawnEntityPacket` | 生成非生物实体（如 ItemEntity） |
+| `EntityMetadataPacket` | 发送实体脏元数据更新 |
 | `EntityDestroyPacket` | 销毁实体 |
 | `EntityTeleportPacket` | 实体传送/位置更新 |
 

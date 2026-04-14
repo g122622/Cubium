@@ -6,6 +6,9 @@
 #include "../../experience/ExperienceManager.hpp"
 #include "../../effect/EffectInstance.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "spdlog/spdlog.h"
+
 #include <array>
 #include <memory>
 
@@ -21,8 +24,9 @@ struct PlayerAbilities {
     bool canFly = false;            // 允许飞行
     bool creativeMode = false;      // 创造模式
     bool allowEdit = true;          // 允许编辑方块
-    f32 flySpeed = 0.05f;          // 飞行速度 (MC默认: 0.05F)
-    f32 walkSpeed = 0.1f;           // 行走速度
+    // src\common\entity\entities\player\GameModeUtils.cpp 才是真正设置这些速度的来源
+    f32 flySpeed = 0;          // 飞行速度 
+    f32 walkSpeed = 0;           // 行走速度
 
     void serialize(network::PacketSerializer& ser) const {
         u8 flags = 0;
@@ -54,6 +58,9 @@ struct PlayerAbilities {
         auto walkSpeedResult = deser.readF32();
         if (walkSpeedResult.failed()) return walkSpeedResult.error();
         abilities.walkSpeed = walkSpeedResult.value();
+        spdlog::info("[PlayerAbilities::deserialize] invulnerable={}, flying={}, canFly={}, creativeMode={}, flySpeed={}, walkSpeed={}",
+                     abilities.invulnerable, abilities.flying, abilities.canFly, abilities.creativeMode,
+                     abilities.flySpeed, abilities.walkSpeed);
 
         return abilities;
     }
@@ -173,6 +180,12 @@ public:
     // 维度
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }
     void setDimension(DimensionId dim) { m_dimension = dim; }
+
+    /**
+     * @brief 设置位置并重置步距采样
+     */
+    void setPosition(f32 x, f32 y, f32 z);
+    void setPosition(const Vector3& pos) { setPosition(pos.x, pos.y, pos.z); }
 
     // 生命值和饥饿
     [[nodiscard]] f32 health() const { return m_health; }
@@ -302,6 +315,123 @@ public:
     [[nodiscard]] f32 eyeHeight() const override;
     [[nodiscard]] f32 stepHeight() const override { return PLAYER_STEP_HEIGHT; }
 
+    // ========== 水中物理和游泳 ==========
+
+    /**
+     * @brief 检查是否正在游泳
+     *
+     * 游泳条件：在水中且不站在地面上且向前移动
+     */
+    [[nodiscard]] bool isActualSwimming() const;
+
+    /**
+     * @brief 更新游泳状态
+     *
+     * 检测游泳条件并更新姿态
+     */
+    void updateSwimming();
+
+    /**
+     * @brief 获取游泳动画进度
+     * @return 0.0-1.0 之间的插值
+     */
+    [[nodiscard]] f32 swimAnimation() const { return m_swimAnimation; }
+    [[nodiscard]] f32 prevSwimAnimation() const { return m_prevSwimAnimation; }
+
+    /**
+     * @brief 处理水中移动
+     *
+     * 参考MC LivingEntity.travel() 水中分支
+     *
+     * @param strafing 横向移动量
+     * @param vertical 垂直移动量
+     * @param forward 前进移动量
+     */
+    void travelInWater(f32 strafing, f32 vertical, f32 forward);
+
+    /**
+     * @brief 处理水中跳跃（向上游泳）
+     */
+    void swimUp();
+
+    /**
+     * @brief 更新空气供应和溺水
+     */
+    void updateAirSupply();
+
+    /**
+     * @brief 更新移动距离（用于视野晃动和脚步声）
+     */
+    void updateMoveDistance();
+
+    /**
+     * @brief 播放脚步声
+     *
+     * 在行走距离累计超过阈值时触发。
+     * 根据脚下方块类型选择不同的脚步声。
+     */
+    void playStepSound();
+
+    /**
+     * @brief 播放游泳声
+     *
+     * 在水中游泳时触发。
+     * @param volume 音量（0.0-1.0）
+     */
+    void playSwimSound(f32 volume);
+
+    /**
+     * @brief 检查是否应该播放脚步声
+     */
+    [[nodiscard]] bool shouldPlayStepSound() const { return m_shouldPlayStepSound; }
+
+    /**
+     * @brief 检查是否应该播放游泳声
+     */
+    [[nodiscard]] bool shouldPlaySwimSound() const { return m_shouldPlaySwimSound; }
+
+    /**
+     * @brief 获取游泳声音量
+     */
+    [[nodiscard]] f32 swimSoundVolume() const { return m_swimSoundVolume; }
+
+    /**
+     * @brief 获取脚步声位置
+     */
+    [[nodiscard]] BlockPos stepSoundPos() const { return m_stepSoundPos; }
+
+    /**
+     * @brief 获取空气供应量
+     */
+    [[nodiscard]] i32 airSupply() const { return m_airSupply; }
+
+    /**
+     * @brief 设置空气供应量
+     */
+    void setAirSupply(i32 air) { m_airSupply = air; }
+
+    // ========== 视野晃动 ==========
+
+    /**
+     * @brief 获取行走距离累计（用于视野晃动）
+     */
+    [[nodiscard]] f32 moveDistanceWalked() const { return m_moveDistanceWalked; }
+
+    /**
+     * @brief 获取游泳距离累计
+     */
+    [[nodiscard]] f32 moveDistanceSwam() const { return m_moveDistanceSwam; }
+
+    /**
+     * @brief 获取上一tick的行走距离
+     */
+    [[nodiscard]] f32 prevMoveDistanceWalked() const { return m_prevMoveDistanceWalked; }
+
+    /**
+     * @brief 获取上一tick的游泳距离
+     */
+    [[nodiscard]] f32 prevMoveDistanceSwam() const { return m_prevMoveDistanceSwam; }
+
     // ========== 更新 ==========
 
     void tick() override;
@@ -338,7 +468,6 @@ public:
      * @brief 执行跳跃
      *
      * 只有在地面上且跳跃冷却为0时才能跳跃。
-     * 跳跃速度为 JUMP_VELOCITY (0.42)。
      * 跳跃后设置冷却为 JUMP_COOLDOWN (10 ticks)。
      */
     void jump();
@@ -472,6 +601,18 @@ public:
 
 private:
     /**
+     * @brief 处理水中移动
+     *
+     * 参考MC LivingEntity.travel() 水中分支
+     */
+    void handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking);
+
+    /**
+     * @brief 处理岩浆中移动
+     */
+    void handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking);
+
+    /**
      * @brief 应用移动速度修正
      */
     void applyMovementSpeed(f32& speed, bool sneaking) const;
@@ -516,6 +657,32 @@ private:
 
     // 效果列表（Player 不继承 LivingEntity，独立管理效果）
     std::vector<entity::effect::EffectInstance> m_effects;
+
+    // 游泳动画
+    f32 m_swimAnimation = 0.0f;
+    f32 m_prevSwimAnimation = 0.0f;
+
+    // 空气供应和溺水
+    i32 m_airSupply = 300;              // 当前空气量（15秒）
+    i32 m_drownDamageTimer = 0;         // 溺水伤害计时器
+    bool m_wasInWater = false;          // 上一tick是否在水中（用于检测入水/出水）
+
+    // 视野晃动
+    Vector3 m_moveDistanceSamplePosition{0.0f, 0.0f, 0.0f}; // 上次步距采样位置
+    f32 m_moveDistanceWalked = 0.0f;    // 行走距离累计（用于视野晃动）
+    f32 m_prevMoveDistanceWalked = 0.0f; // 上一帧行走距离
+    f32 m_moveDistanceSwam = 0.0f;      // 游泳距离累计
+    f32 m_prevMoveDistanceSwam = 0.0f;  // 上一帧游泳距离
+
+    // 脚步声触发
+    f32 m_distanceWalkedOnStep = 0.0f;  // 用于触发脚步声的行走距离
+    f32 m_nextStepDistance = 1.0f;      // 下一次脚步声触发的距离阈值
+
+    // 脚步声/游泳声状态（供客户端读取）
+    bool m_shouldPlayStepSound = false;    // 是否应该播放脚步声
+    bool m_shouldPlaySwimSound = false;    // 是否应该播放游泳声
+    f32 m_swimSoundVolume = 0.0f;          // 游泳声音量
+    BlockPos m_stepSoundPos;               // 脚步声位置
 };
 
 } // namespace mc

@@ -77,6 +77,10 @@ void DebugScreenWidget::buildLeftDebugText() {
 
     std::ostringstream oss;
 
+    // F3 显示玩家真实坐标，不要把视角摇晃的相机偏移混进来。
+    const bool hasPlayer = m_player != nullptr;
+    const bool hasCamera = m_camera != nullptr;
+
     // 版本信息
     oss.str("");
     oss << m_version << " (" << m_version << "/" << m_rendererInfo << ")";
@@ -121,17 +125,39 @@ void DebugScreenWidget::buildLeftDebugText() {
     m_leftLines.push_back("");
 
     // 位置信息
-    if (m_camera != nullptr) {
-        const auto& pos = m_camera->position();
+    if (hasPlayer || hasCamera) {
+        f64 posX = 0.0;
+        f64 posY = 0.0;
+        f64 posZ = 0.0;
+        f32 yaw = 0.0f;
+        f32 pitch = 0.0f;
+
+        if (hasPlayer) {
+            const Vector3 playerPos = m_player->position();
+            posX = static_cast<f64>(playerPos.x);
+            posY = static_cast<f64>(playerPos.y);
+            posZ = static_cast<f64>(playerPos.z);
+            yaw = m_player->yaw();
+            pitch = m_player->pitch();
+        } else {
+            const auto& cameraPos = m_camera->position();
+            posX = cameraPos.x;
+            posY = cameraPos.y;
+            posZ = cameraPos.z;
+
+            const auto& cameraRot = m_camera->rotation();
+            yaw = static_cast<f32>(cameraRot.y);
+            pitch = static_cast<f32>(cameraRot.x);
+        }
 
         oss.str("");
         oss << "XYZ: " << std::fixed << std::setprecision(3)
-            << pos.x << " / " << pos.y << " / " << pos.z;
+            << posX << " / " << posY << " / " << posZ;
         m_leftLines.push_back(oss.str());
 
-        i32 blockX = static_cast<i32>(std::floor(pos.x));
-        i32 blockY = static_cast<i32>(std::floor(pos.y));
-        i32 blockZ = static_cast<i32>(std::floor(pos.z));
+        i32 blockX = static_cast<i32>(std::floor(posX));
+        i32 blockY = static_cast<i32>(std::floor(posY));
+        i32 blockZ = static_cast<i32>(std::floor(posZ));
         oss.str("");
         oss << "Block: " << blockX << " " << blockY << " " << blockZ;
         m_leftLines.push_back(oss.str());
@@ -147,12 +173,11 @@ void DebugScreenWidget::buildLeftDebugText() {
             << " in " << chunkX << " " << chunkY << " " << chunkZ;
         m_leftLines.push_back(oss.str());
 
-        const auto& rot = m_camera->rotation();
-        auto [dirName, dirDesc] = getFacingDirection(rot.y);
+        auto [dirName, dirDesc] = getFacingDirection(yaw);
         oss.str("");
         oss << "Facing: " << dirName << " (" << dirDesc << ")"
             << " (" << std::fixed << std::setprecision(1)
-            << rot.y << " / " << rot.x << ")";
+            << yaw << " / " << pitch << ")";
         m_leftLines.push_back(oss.str());
 
         // 光照信息

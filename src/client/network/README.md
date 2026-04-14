@@ -68,7 +68,7 @@ src/client/network/
 - `onCloseContainer(containerId)`: 关闭容器
 
 **实体事件**:
-- `onSpawnMob(entityId, typeId, x, y, z, yaw, pitch, headYaw)`: Mob 生成
+- `onSpawnMob(entityId, typeId, x, y, z, yaw, pitch, headYaw)`: Mob 生成，初始元数据会随后通过 `onEntityMetadata` 应用
 - `onSpawnEntity(entityId, typeId, x, y, z, yaw, pitch, itemStack)`: 实体生成
 - `onEntityMove(entityId, deltaX, deltaY, deltaZ)`: 实体相对移动
 - `onEntityVelocity(entityId, vx, vy, vz)`: 实体速度
@@ -89,7 +89,7 @@ src/client/network/
 - `onPlayerAbilities(...)`: 玩家能力同步
 - `onLightUpdate(...)`: 光照更新
 - `onBlockBreakAnim(breakerEntityId, x, y, z, stage)`: 方块破坏动画
-- `onEntityMetadata(entityId, metadata)`: 实体元数据
+- `onEntityMetadata(entityId, metadata)`: 实体元数据，既用于 spawn 后的初始状态，也用于后续脏数据增量更新
 
 #### 4. NetworkClient 类
 

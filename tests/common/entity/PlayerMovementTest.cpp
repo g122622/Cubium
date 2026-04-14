@@ -256,6 +256,34 @@ TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
 }
 
 // ============================================================================
+// 移动距离累计测试
+// ============================================================================
+
+TEST_F(PlayerMovementTest, UpdateMoveDistance_ResamplesCurrentPosition) {
+    m_player->setOnGround(true);
+
+    m_player->move(2.0f, 0.0f, 0.0f);
+    m_player->updateMoveDistance();
+
+    EXPECT_TRUE(m_player->shouldPlayStepSound());
+    EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 2.0f);
+    EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 0.0f);
+
+    m_player->updateMoveDistance();
+
+    EXPECT_FALSE(m_player->shouldPlayStepSound());
+    EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 2.0f);
+    EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 2.0f);
+
+    m_player->setPosition(10.0f, 64.0f, 10.0f);
+    m_player->updateMoveDistance();
+
+    EXPECT_FALSE(m_player->shouldPlayStepSound());
+    EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 0.0f);
+    EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 0.0f);
+}
+
+// ============================================================================
 // 跳跃测试
 // ============================================================================
 

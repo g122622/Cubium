@@ -128,6 +128,12 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("client.lighting")
         .SetDescription("客户端光照处理"),
 
+    // === 客户端细粒度分类 ===
+    perfetto::Category("client.entity")
+        .SetDescription("客户端实体更新"),
+    perfetto::Category("client.network")
+        .SetDescription("客户端网络"),
+
     // === 挖掘 ===
     perfetto::Category("client.input.mining")
         .SetDescription("挖掘输入事件处理"),

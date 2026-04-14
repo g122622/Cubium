@@ -361,6 +361,14 @@ enum class Operation : u8 { ... };
     - Force clear + decrease cascade first, and enqueue adjacent increase rechecks; otherwise side skylight can be lost under FIFO wavefront execution.
 - Do not switch `BaseLightEngine` queue processing back to LIFO (`--length` pop-back).
     - Starlight-style propagation depends on FIFO wavefront ordering; LIFO introduces unnecessary oscillation and delayed convergence under complex occlusion.
+- `ClientWorld::entityManager()` returns `ClientEntityManager`, not the shared `common::EntityManager`.
+    - 客户端本地 `Player` 不会在这条链路里跑 `Player::tick()`；客户端只会 tick 代理实体和本地物理。
+- Do not assume `m_player->isInWater()` is authoritative on the client.
+    - 这个值只会在 `Entity::baseTick()` / `updateEnvironmentState()` 或本地物理刷新路径里更新；它对本地玩家可用，但仍不是服务端权威结果。
+- `Player::updateMoveDistance()` now uses a dedicated sampling position, and `Player::setPosition()` resets movement/bobbing state.
+    - 不要再把 `prevPosition` 当成脚步声或视野晃动的采样基准；它是插值历史状态，多次物理更新会把同一段位移重复计数。
+- `EntityMetadataPacket` / `EntityMetadataSerializer` now feed both server tracking and client entity application.
+    - `EntityTracker` 负责 spawn 内联 metadata 和 dirty metadata packet，`ClientEntity::setMetadata()` 负责把原始数据写进本地数据管理器；新增字段时三处必须一起改。
 - Do not bootstrap `StarLightEngine::light(...)` from chunk-owned nibble arrays when running unlit initialization.
     - Mirror Moonrise: start with temporary NULL-state nibbles, run `handleEmptySectionChanges(..., isUnlit=true)`, then `lightChunk(...)`, and finally write the generated nibbles back to the chunk.
 - In unlit `light(...)` bootstrap, do not seed emptiness cache from stale default maps.
@@ -444,3 +452,14 @@ enum class Operation : u8 { ... };
 8. **容易踩的坑** - 常见问题和解决方案
 9. **测试用例** - 相关测试文件说明
 10. **Mermaid图表** - 架构图、流程图、类图等（使用简体中文和彩色样式）
+
+## 其他
+
+### 对于重构类任务的准则
+
+1.不做任何api兼容，直接一步到位新代码（因此主调者需要修改，这符合预期）
+2.我有强烈代码洁癖，不允许留任何旧代码旧文件。不允许通过注释等任何手段保留旧代码，不允许以兼容为理由保留旧代码，不允许未经允许的情况下乱加adapter或兼容层来保留旧代码。重构类任务的目标就是把旧代码完全替换掉，留下干净的新实现。
+
+### 对于所有任务的准则
+
+当你完成一个任务后，不要停下来，请继续做后面的任务，直到任务清空你才能停！你时间充足、上下文也充足

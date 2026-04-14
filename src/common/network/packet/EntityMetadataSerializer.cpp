@@ -168,7 +168,7 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
 // 反序列化
 // ============================================================================
 
-bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::EntityDataManager& /* manager */) {
+bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::EntityDataManager& manager) {
     size_t offset = 0;
 
     while (offset < data.size()) {
@@ -188,14 +188,15 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
         switch (static_cast<MetadataTypeId>(typeId)) {
             case MetadataTypeId::Byte: {
                 if (offset >= data.size()) return false;
-                (void)data[offset++];  // 读取字节值（当前实现跳过）
-                // 需要知道具体的 DataParameter 来设置值
-                // 这里先跳过，实际使用时需要更复杂的映射
+                const i8 value = static_cast<i8>(data[offset++]);
+                (void)manager.setRaw(index, entity::DataValue(value));
+                manager.clearDirty(index);
                 break;
             }
             case MetadataTypeId::VarInt: {
-                i32 val = readVarInt(data.data(), data.size(), offset);
-                (void)val;
+                i32 value = readVarInt(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(value));
+                manager.clearDirty(index);
                 break;
             }
             case MetadataTypeId::Float: {
@@ -203,25 +204,41 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 f32 val;
                 std::memcpy(&val, data.data() + offset, sizeof(f32));
                 offset += sizeof(f32);
-                (void)val;
+                (void)manager.setRaw(index, entity::DataValue(val));
+                manager.clearDirty(index);
                 break;
             }
             case MetadataTypeId::String: {
-                String val = readString(data.data(), data.size(), offset);
-                (void)val;
+                String value = readString(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(value));
+                manager.clearDirty(index);
                 break;
             }
             case MetadataTypeId::Boolean: {
                 if (offset >= data.size()) return false;
-                bool val = data[offset++] != 0;
-                (void)val;
+                bool value = data[offset++] != 0;
+                (void)manager.setRaw(index, entity::DataValue(value));
+                manager.clearDirty(index);
                 break;
             }
             case MetadataTypeId::Position: {
                 i32 x = readVarInt(data.data(), data.size(), offset);
                 i32 y = readVarInt(data.data(), data.size(), offset);
                 i32 z = readVarInt(data.data(), data.size(), offset);
-                (void)x; (void)y; (void)z;
+                (void)manager.setRaw(index, entity::DataValue(entity::Vector3i(x, y, z)));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataTypeId::Rotation: {
+                if (offset + sizeof(f32) * 2 > data.size()) return false;
+                f32 x;
+                f32 y;
+                std::memcpy(&x, data.data() + offset, sizeof(f32));
+                offset += sizeof(f32);
+                std::memcpy(&y, data.data() + offset, sizeof(f32));
+                offset += sizeof(f32);
+                (void)manager.setRaw(index, entity::DataValue(entity::Vector2f(x, y)));
+                manager.clearDirty(index);
                 break;
             }
             default:

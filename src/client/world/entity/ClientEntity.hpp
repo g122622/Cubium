@@ -1,10 +1,12 @@
 #pragma once
 
 #include "../../../common/core/Types.hpp"
+#include "../../../common/entity/core/EntityDataManager.hpp"
 #include "../../../common/util/math/Vector3.hpp"
 #include "../../../common/item/core/ItemStack.hpp"
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace mc::client {
 
@@ -190,6 +192,29 @@ public:
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
 
+    // ========== 元数据缓存 ==========
+
+    /**
+     * @brief 获取原始实体元数据
+     */
+    [[nodiscard]] const std::vector<u8>& metadata() const { return m_metadata; }
+
+    /**
+     * @brief 获取元数据管理器
+     */
+    [[nodiscard]] entity::EntityDataManager& dataManager() { return m_dataManager; }
+    [[nodiscard]] const entity::EntityDataManager& dataManager() const { return m_dataManager; }
+
+    /**
+     * @brief 设置原始实体元数据
+     */
+    void setMetadata(const std::vector<u8>& metadata);
+
+    /**
+     * @brief 触发元数据同步后的本地状态刷新
+     */
+    void syncMetadataFromDataManager() {}
+
     /**
      * @brief 更新实体（每tick调用）
      */
@@ -276,6 +301,12 @@ private:
 
     // ExperienceOrb 经验值数据
     i32 m_xpValue = 1;  // 默认值为1
+
+    // 原始元数据缓存
+    std::vector<u8> m_metadata;
+
+    // 解析后的元数据
+    entity::EntityDataManager m_dataManager;
 };
 
 } // namespace mc::client

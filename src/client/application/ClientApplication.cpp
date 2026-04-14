@@ -6,6 +6,8 @@
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/resource/VanillaResources.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/FolderResourcePack.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
@@ -34,6 +36,7 @@
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <spdlog/spdlog.h>
@@ -525,6 +528,18 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         MC_TRACE_EVENT("client.initialization", "InitializeSoundSystem");
 
         spdlog::info("Initializing sound system...");
+
+        // 添加内置资源包到 ResourcePackList（用于 sounds.json）
+        // 内置资源包具有最低优先级（-1），外部资源包可以覆盖
+        auto builtinPackResult = m_resourcePackList.addPack(
+            std::filesystem::path("resources/data/minecraft"), true, -1);
+        if (builtinPackResult.success() && builtinPackResult.value().initialized) {
+            spdlog::info("Added built-in resources pack to sound system");
+        } else {
+            spdlog::warn("Failed to add built-in resources pack: {}",
+                         builtinPackResult.success() ? builtinPackResult.value().error : builtinPackResult.error().toString());
+        }
+
         m_soundHandler = std::make_unique<sound::SoundHandler>(m_resourcePackList);
         m_soundEngine = std::make_unique<sound::SoundEngine>(*m_soundHandler, m_settings);
 
@@ -1249,10 +1264,101 @@ void ClientApplication::update(f32 deltaTime)
         // 应用物理（重力、碰撞检测）
         m_player->updatePhysics();
 
-        // 同步相机位置到玩家眼睛位置
+        // 处理脚步声和游泳声
+        // updateMoveDistance 在 Player::updatePhysics 中调用
+        // 这里检查是否需要播放声音
+        if (m_soundEngine && !m_player->isSilent()) {
+            // 处理游泳声
+            if (m_player->shouldPlaySwimSound()) {
+                auto swimSound = std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(
+                        ResourceLocation("minecraft:entity.player.swim"),
+                        sound::SoundCategory::Players,
+                        m_player->x(), m_player->y(), m_player->z(),
+                        m_player->swimSoundVolume() * 0.15f,  // MC 音量系数
+                        1.0f + (m_random.nextFloat() - m_random.nextFloat()) * 0.4f  // 随机音调变化
+                    )
+                );
+                m_soundEngine->play(std::move(swimSound));
+            }
+            // 处理脚步声
+            else if (m_player->shouldPlayStepSound()) {
+                // 获取脚下方块的 BlockState 来选择正确的声音
+                const auto* blockState = m_world.getBlockState(
+                    m_player->stepSoundPos().x,
+                    m_player->stepSoundPos().y,
+                    m_player->stepSoundPos().z
+                );
+
+                if (blockState) {
+                    const auto& soundType = blockState->getSoundType();
+                    const auto& stepSoundId = soundType.getStepSound();
+
+                    auto stepSound = std::make_unique<sound::SoundInstance>(
+                        sound::SoundInstance::createLocated(
+                            stepSoundId,
+                            sound::SoundCategory::Players,
+                            m_player->x(), m_player->y(), m_player->z(),
+                            soundType.getVolume() * 0.15f,  // MC 音量系数
+                            soundType.getPitch() * (0.8f + m_random.nextFloat() * 0.4f)  // 音调随机变化
+                        )
+                    );
+                    m_soundEngine->play(std::move(stepSound));
+                } else {
+                    // 默认使用石头脚步声
+                    auto stepSound = std::make_unique<sound::SoundInstance>(
+                        sound::SoundInstance::createLocated(
+                            ResourceLocation("minecraft:block.stone.step"),
+                            sound::SoundCategory::Players,
+                            m_player->x(), m_player->y(), m_player->z(),
+                            0.15f,
+                            1.0f + (m_random.nextFloat() - m_random.nextFloat()) * 0.4f
+                        )
+                    );
+                    m_soundEngine->play(std::move(stepSound));
+                }
+            }
+        }
+
+        // 计算视野晃动
+        // 参考 MC 1.16.5 GameRenderer.getCameraPosition()
+        f32 bobX = 0.0f;
+        f32 bobY = 0.0f;
+
+        if (m_settings.viewBobbing.get()) {
+            // 获取移动距离变化
+            f32 distanceWalked = m_player->moveDistanceWalked();
+            f32 prevDistanceWalked = m_player->prevMoveDistanceWalked();
+            f32 distanceSwam = m_player->moveDistanceSwam();
+            f32 prevDistanceSwam = m_player->prevMoveDistanceSwam();
+
+            // 计算距离差
+            f32 walkedDelta = distanceWalked - prevDistanceWalked;
+            f32 swamDelta = distanceSwam - prevDistanceSwam;
+
+            // 累计晃动角度
+            m_bobAngle += walkedDelta * 0.5f;
+            m_bobPhase += swamDelta * 0.5f;
+
+            // 计算 X 晃动（左右摆动）
+            bobX = std::sin(m_bobAngle) * 0.1f;
+
+            // 计算 Y 晃动（上下晃动）
+            // MC 使用 cos 的绝对值来产生上下晃动
+            bobY = std::abs(std::cos(m_bobAngle)) * 0.1f;
+
+            // 游泳时的额外晃动
+            if (m_player->isSwimming()) {
+                // 游泳时有额外的左右晃动
+                bobX += std::sin(m_bobPhase * 2.0f) * 0.05f;
+                bobY += std::abs(std::cos(m_bobPhase)) * 0.05f;
+            }
+        }
+
+        // 同步相机位置到玩家眼睛位置（带视野晃动偏移）
         m_camera.setPosition(
-            static_cast<f32>(m_player->x()),
-            static_cast<f32>(m_player->y() + m_player->eyeHeight()),
+            static_cast<f32>(m_player->x()) + bobX,
+            static_cast<f32>(m_player->y() + m_player->eyeHeight()) - bobY,
             static_cast<f32>(m_player->z())
         );
         m_camera.setYaw(m_player->yaw());
@@ -1409,7 +1515,7 @@ void ClientApplication::update(f32 deltaTime)
             m_world.weather().thunderStrength(m_renderTickAccumulator)
         );
 
-        // 更新液体状态（用于水下/岩浆雾效果）
+        // 更新液体状态
         if (m_player) {
             bool inWater = m_player->isInWater();
             bool inLava = m_player->isInLava();
@@ -1428,6 +1534,40 @@ void ClientApplication::update(f32 deltaTime)
             }
 
             m_renderer->updateLiquidState(inWater, inLava, waterFogColor);
+
+            // 入水/出水音效触发
+            if (inWater && !m_wasPlayerInWater) {
+                MC_TRACE_INSTANT("client.entity", "EnterWater");
+                // 入水音效
+                auto enterSound = std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createGlobal(
+                        ResourceLocation("minecraft:ambient.underwater.enter"),
+                        sound::SoundCategory::Ambient,
+                        1.0f,  // 音量
+                        1.0f   // 音调
+                    )
+                );
+                m_soundEngine->play(std::move(enterSound));
+            } else if (!inWater && m_wasPlayerInWater) {
+                // 出水音效
+                auto exitSound = std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createGlobal(
+                        ResourceLocation("minecraft:ambient.underwater.exit"),
+                        sound::SoundCategory::Ambient,
+                        1.0f,  // 音量
+                        1.0f   // 音调
+                    )
+                );
+                m_soundEngine->play(std::move(exitSound));
+            }
+
+            // 更新水下环境音效处理器
+            if (m_underwaterAmbientHandler) {
+                m_underwaterAmbientHandler->setUnderwater(inWater);
+            }
+
+            m_wasPlayerInWater = inWater;
+            m_wasPlayerInLava = inLava;
         }
     }
 
@@ -1744,6 +1884,9 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onLoginSuccess = [this](PlayerId playerId, const String& username) {
         spdlog::info("Login successful: playerId={}, username={}", playerId, username);
+        if (m_player) {
+            m_player->setPlayerId(playerId);
+        }
     };
 
     callbacks.onLoginFailed = [this](const String& reason) {
@@ -1771,6 +1914,8 @@ void ClientApplication::setupNetworkCallbacks()
             m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
             m_player->setRotation(yaw, pitch);
         }
+        m_bobAngle = 0.0f;
+        m_bobPhase = 0.0f;
         m_camera.setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
         m_camera.setYaw(yaw);
         m_camera.setPitch(pitch);
@@ -1877,6 +2022,13 @@ void ClientApplication::setupNetworkCallbacks()
             entity->setHeadRotation(headYaw);
             // spdlog::info("Client received SpawnMob: {} (ID: {}) at ({:.1f}, {:.1f}, {:.1f})",
             //               typeId, entityId, x, y, z);
+        }
+    };
+
+    callbacks.onEntityMetadata = [this](u32 entityId, const std::vector<u8>& metadata) {
+        auto* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        if (entity) {
+            entity->setMetadata(metadata);
         }
     };
 
@@ -2411,6 +2563,17 @@ Result<void> ClientApplication::initializeResources()
         spdlog::warn("Failed to initialize vanilla resource pack: {}", vanillaResult.error().toString());
     }
 
+    // 添加项目内置资源包（提供 sounds.json、音效文件等）
+    // 路径: resources/data/minecraft/ -> assets/minecraft/
+    auto builtinResourcesPack = std::make_shared<FolderResourcePack>("resources/data/minecraft");
+    auto builtinResult = builtinResourcesPack->initialize();
+    if (builtinResult.success()) {
+        (void)m_resourceManager->addResourcePack(std::move(builtinResourcesPack));
+        spdlog::info("Added built-in resources pack (sounds, etc.)");
+    } else {
+        spdlog::warn("Failed to initialize built-in resources pack: {}", builtinResult.error().toString());
+    }
+
     // 2. 扫描资源包目录
     String resourcePackDir = m_settings.resourcePackDir.get();
     if (resourcePackDir.empty()) {
@@ -2495,6 +2658,13 @@ void ClientApplication::reloadResources()
     auto vanillaResult = vanillaPack->initialize();
     if (vanillaResult.success()) {
         (void)m_resourceManager->addResourcePack(std::move(vanillaPack));
+    }
+
+    // 添加项目内置资源包（提供 sounds.json、音效文件等）
+    auto builtinResourcesPack = std::make_shared<FolderResourcePack>("resources/data/minecraft");
+    auto builtinResult = builtinResourcesPack->initialize();
+    if (builtinResult.success()) {
+        (void)m_resourceManager->addResourcePack(std::move(builtinResourcesPack));
     }
 
     // 重新添加启用的资源包

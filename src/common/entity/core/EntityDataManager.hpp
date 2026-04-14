@@ -164,6 +164,30 @@ public:
     }
 
     /**
+     * @brief 按原始参数ID设置值
+     * @param id 参数ID
+     * @param value 新值
+     * @return 如果值发生变化则返回 true
+     */
+    bool setRaw(u16 id, const DataValue& value) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_entries.find(id);
+        if (it == m_entries.end()) {
+            m_entries[id] = DataEntry{value, true};
+            return true;
+        }
+
+        DataEntry& entry = it->second;
+        if (entry.value != value) {
+            entry.value = value;
+            entry.dirty = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @brief 获取参数值
      * @param param 参数键
      * @return 参数值
@@ -176,6 +200,20 @@ public:
             return T{};
         }
         return it->second.value.template get<T>();
+    }
+
+    /**
+     * @brief 按原始参数ID获取值
+     * @param id 参数ID
+     * @return 数据值指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] const DataValue* getRaw(u16 id) const {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_entries.find(id);
+        if (it == m_entries.end()) {
+            return nullptr;
+        }
+        return &it->second.value;
     }
 
     /**

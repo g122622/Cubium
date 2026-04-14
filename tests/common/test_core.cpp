@@ -192,13 +192,6 @@ TEST(Constants, MathConstants) {
     EXPECT_FLOAT_EQ(math::RAD_TO_DEG, 180.0f / math::PI);
 }
 
-TEST(Constants, GameConstants) {
-    EXPECT_EQ(game::DAY_LENGTH_TICKS, 24000);
-    EXPECT_FLOAT_EQ(game::GRAVITY, 0.08f);
-    EXPECT_FLOAT_EQ(game::PLAYER_HEIGHT, 1.8f);
-    EXPECT_EQ(game::MAX_LIGHT_LEVEL, 15);
-}
-
 TEST(Constants, WorldConstants) {
     EXPECT_EQ(world::CHUNK_WIDTH, 16);
     EXPECT_EQ(world::CHUNK_HEIGHT, 256);

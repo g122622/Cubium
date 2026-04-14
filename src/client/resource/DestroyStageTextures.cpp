@@ -44,7 +44,7 @@ bool DestroyStageTextures::initialize(ResourceManager* resourceManager) {
         if (resourceManager) {
             loaded = loadTextureFromResourcePack(resourceManager, i, m_textures[i]);
             if (loaded) {
-                spdlog::info("DestroyStageTextures: Loaded texture for stage {} from resource pack", i);
+                // spdlog::info("DestroyStageTextures: Loaded texture for stage {} from resource pack", i);
             }
         } else {
             spdlog::warn("DestroyStageTextures: No ResourceManager provided, skipping resource pack loading for stage {}", i);
@@ -217,7 +217,7 @@ bool DestroyStageTextures::loadTextureFromResourcePack(ResourceManager* resource
     }
 
     if (rawData.empty()) {
-        spdlog::debug("DestroyStageTextures: Failed to load texture for stage {} from modern path, trying legacy path", stage);
+        // spdlog::debug("DestroyStageTextures: Failed to load texture for stage {} from modern path, trying legacy path", stage);
 
         // 尝试旧版路径
         ResourceLocation legacyLoc("minecraft", fmt::format("textures/blocks/destroy_stage_{}", stage));
@@ -313,12 +313,12 @@ bool DestroyStageTextures::loadTextureFromResourcePack(ResourceManager* resource
     // 计算平均值
     u32 pixelCount = TEXTURE_SIZE * TEXTURE_SIZE;
     u32 avgCrackIntensity = totalCrackIntensity / pixelCount;
-    spdlog::info("DestroyStageTextures: Stage {} loaded ({}x{}) - "
-                 "crackIntensity: avg={}, min={}, max={}",
-                 stage, srcWidth, srcHeight, avgCrackIntensity, minCrackIntensity, maxCrackIntensity);
+    // spdlog::info("DestroyStageTextures: Stage {} loaded ({}x{}) - "
+    //              "crackIntensity: avg={}, min={}, max={}",
+    //              stage, srcWidth, srcHeight, avgCrackIntensity, minCrackIntensity, maxCrackIntensity);
 
-    spdlog::info("DestroyStageTextures: Loaded and converted texture for stage {} ({}x{} -> 16x16)",
-                 stage, srcWidth, srcHeight);
+    // spdlog::info("DestroyStageTextures: Loaded and converted texture for stage {} ({}x{} -> 16x16)",
+                //  stage, srcWidth, srcHeight);
     return true;
 }
 

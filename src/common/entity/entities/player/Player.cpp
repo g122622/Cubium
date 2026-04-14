@@ -5,10 +5,14 @@
 #include "../../../physics/PhysicsEngine.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include "../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../item/core/ItemRegistry.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
+#include "../../../world/IWorld.hpp"
+#include "spdlog/spdlog.h"
+
 #include <algorithm>
 #include <cmath>
 #include <chrono>
@@ -30,6 +34,22 @@ Player::Player(EntityId id, const String& username)
 }
 
 Player::~Player() = default;
+
+void Player::setPosition(f32 x, f32 y, f32 z) {
+    Entity::setPosition(x, y, z);
+
+    // 外部改坐标时同步复位步距采样，避免沿用旧位移或旧脚步阈值
+    m_moveDistanceSamplePosition = m_position;
+    m_moveDistanceWalked = 0.0f;
+    m_prevMoveDistanceWalked = 0.0f;
+    m_moveDistanceSwam = 0.0f;
+    m_prevMoveDistanceSwam = 0.0f;
+    m_distanceWalkedOnStep = 0.0f;
+    m_nextStepDistance = 1.0f;
+    m_shouldPlayStepSound = false;
+    m_shouldPlaySwimSound = false;
+    m_swimSoundVolume = 0.0f;
+}
 
 void Player::setGameMode(GameMode mode) {
     m_gameMode = mode;
@@ -216,6 +236,15 @@ void Player::tick() {
             m_foodStats.addExhaustion(0.0f); // 触发消耗
         }
     }
+
+    // 更新游泳状态和动画
+    updateSwimming();
+
+    // 更新空气供应和溺水
+    updateAirSupply();
+
+    // 更新移动距离（用于视野晃动）
+    updateMoveDistance();
 }
 
 bool Player::tickPortal() {
@@ -262,6 +291,25 @@ void Player::update() {
  * 飞行上升/下降: ClientPlayerEntity.java:788-801 - 使用 flySpeed * 3.0F
  */
 void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+    // 更新跳跃状态（用于动画等）
+    m_isJumping = jumping;
+
+    // 先刷新环境状态，保证水中/岩浆中的输入分支基于当前世界状态。
+    updateEnvironmentState();
+
+    // 水中移动使用特殊物理
+    // 参考 MC LivingEntity.travel() 水中分支
+    if (isInWater() && !m_abilities.flying) {
+        handleWaterMovement(forward, strafe, jumping, sneaking);
+        return;
+    }
+
+    // 岩浆中移动
+    if (isInLava() && !m_abilities.flying) {
+        handleLavaMovement(forward, strafe, jumping, sneaking);
+        return;
+    }
+
     // 计算移动速度因子
     // 参考MC: LivingEntity.getRelevantMoveFactor() - 在空中时使用jumpMovementFactor
     // 参考MC: PlayerEntity.travel() line 1448 - 飞行时jumpMovementFactor = flySpeed * (sprinting ? 2 : 1)
@@ -309,9 +357,6 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
     // 注意：没有输入时不重置速度，让阻力系统自然减速
     // 这样更符合MC的行为（速度会逐渐衰减而不是立即停止）
 
-    // 更新跳跃状态（用于动画等）
-    m_isJumping = jumping;
-
     // 处理飞行上升/下降
     // 参考 MC ClientPlayerEntity.livingTick() lines 788-801:
     // if (this.abilities.isFlying && this.isCurrentViewEntity()) {
@@ -344,6 +389,133 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
             jump();
         }
     }
+}
+
+void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+    // 参考 MC 1.16.5 LivingEntity.travel() 水中分支
+    // 关键参数：
+    // - 基础游泳速度: 0.02F
+    // - 水中阻力: 0.8F (冲刺时 0.9F)
+    // - 水中向上速度: 0.04F
+    // - 水中重力: 减弱（浮力效果）
+
+    // 基础水中游泳速度
+    f32 swimSpeed = physics::SWIM_SPEED_BASE;
+
+    // 冲刺时增加速度
+    if (m_isSprinting) {
+        swimSpeed *= physics::SWIM_SPEED_SPRINT_MULTIPLIER;
+    }
+
+    // TODO: 深度守卫附魔加成
+    // i32 depthStriderLevel = EnchantmentHelper::getDepthStriderModifier(this);
+    // if (depthStriderLevel > 0) {
+    //     swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
+    // }
+
+    // TODO: 海豚的恩惠药水效果加成
+    // if (hasEffect(EffectType::DolphinsGrace)) {
+    //     swimSpeed *= physics::DOLPHINS_GRACE_SPEED_BONUS;
+    // }
+
+    // 水中阻力
+    f32 waterDrag = m_isSprinting ? physics::WATER_DRAG_SPRINT : physics::WATER_DRAG;
+
+    // 根据朝向计算水平移动方向
+    if (forward != 0.0f || strafe != 0.0f) {
+        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 sinYaw = std::sin(yawRad);
+        f32 cosYaw = std::cos(yawRad);
+
+        // MC的getAbsoluteMotion公式
+        f32 moveX = strafe * cosYaw - forward * sinYaw;
+        f32 moveZ = forward * cosYaw + strafe * sinYaw;
+
+        // 归一化
+        f32 length = std::sqrt(moveX * moveX + moveZ * moveZ);
+        if (length > 0.0f) {
+            moveX /= length;
+            moveZ /= length;
+        }
+
+        // 添加到速度
+        m_velocity.x += moveX * swimSpeed;
+        m_velocity.z += moveZ * swimSpeed;
+    }
+
+    // 垂直移动（跳跃向上，潜行向下）
+    if (jumping) {
+        // 向上游泳
+        m_velocity.y += physics::SWIM_UP_SPEED;
+    } else if (sneaking) {
+        // 向下潜
+        m_velocity.y -= physics::SWIM_DOWN_SPEED;
+    }
+
+    // 应用水中阻力
+    m_velocity.x *= waterDrag;
+    m_velocity.y *= waterDrag;
+    m_velocity.z *= waterDrag;
+
+    // 水中重力（减弱，模拟浮力）
+    // MC中重力是 0.08，水中应用 1/16 的重力
+    if (!m_abilities.flying) {
+        // 轻微上浮效果（如果不主动下沉）
+        if (m_velocity.y < 0.0f && !sneaking) {
+            m_velocity.y += physics::WATER_GRAVITY;
+        }
+    }
+
+    // 重置过小的速度
+    clampMotion();
+}
+
+void Player::handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+    // 参考 MC 1.16.5 LivingEntity.travel() 岩浆分支
+    // 岩浆中移动比水中更慢
+
+    // 岩浆中基础移动速度
+    f32 lavaSpeed = physics::LAVA_SWIM_SPEED;
+
+    // 根据朝向计算移动方向
+    if (forward != 0.0f || strafe != 0.0f) {
+        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 sinYaw = std::sin(yawRad);
+        f32 cosYaw = std::cos(yawRad);
+
+        f32 moveX = strafe * cosYaw - forward * sinYaw;
+        f32 moveZ = forward * cosYaw + strafe * sinYaw;
+
+        f32 length = std::sqrt(moveX * moveX + moveZ * moveZ);
+        if (length > 0.0f) {
+            moveX /= length;
+            moveZ /= length;
+        }
+
+        m_velocity.x += moveX * lavaSpeed;
+        m_velocity.z += moveZ * lavaSpeed;
+    }
+
+    // 垂直移动（岩浆中也能向上游，但更慢）
+    if (jumping) {
+        m_velocity.y += physics::SWIM_UP_SPEED * 0.5f;  // 岩浆中向上游更慢
+    } else if (sneaking) {
+        m_velocity.y -= physics::SWIM_DOWN_SPEED * 0.5f;
+    }
+
+    // 岩浆阻力（比水更大）
+    m_velocity.x *= physics::LAVA_DRAG;
+    m_velocity.y *= physics::LAVA_DRAG;
+    m_velocity.z *= physics::LAVA_DRAG;
+
+    // 岩浆中重力（减弱）
+    if (!m_abilities.flying) {
+        if (m_velocity.y < 0.0f && !sneaking) {
+            m_velocity.y += physics::LAVA_GRAVITY;
+        }
+    }
+
+    clampMotion();
 }
 
 void Player::jump() {
@@ -436,77 +608,98 @@ void Player::updatePhysics() {
     // 1. 重置过小的速度（MC: LivingEntity.aiStep）
     clampMotion();
 
-    // 2. 应用重力（飞行时不应用重力）
-    if (!m_abilities.flying) {
-        if (!m_onGround) {
-            m_velocity.y -= physics::GRAVITY;
+    // 刷新环境状态，确保后续判断使用当前位置。
+    updateEnvironmentState();
+
+    // 水中和岩浆中的物理在 handleWaterMovement/handleLavaMovement 中已处理
+    // 这里只处理地面和空中的物理
+    if ((isInWater() || isInLava()) && !m_abilities.flying) {
+        // 水中/岩浆中的移动和碰撞
+        Vector3 movement(m_velocity.x, m_velocity.y, m_velocity.z);
+        if (m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
+            moveWithCollision(movement.x, movement.y, movement.z);
         }
     }
 
-    // 3. 应用阻力
-    // 参考MC: LivingEntity.travel() 和 PlayerEntity.travel()
-    // 飞行时阻力处理不同：Y方向用0.6，水平方向用0.91
-    if (m_abilities.flying) {
-        // 飞行模式：参考 MC PlayerEntity.travel() line 1451
-        // this.setMotion(vector3d.x, d5 * 0.6D, vector3d.z);
-        // 其中 d5 是旅行前的Y速度
-        m_velocity.x *= physics::DRAG_GROUND;  // 0.91 (水平阻力)
-        m_velocity.y *= 0.6f;                    // 飞行Y阻力 (MC: 0.6D)
-        m_velocity.z *= physics::DRAG_GROUND;  // 0.91 (水平阻力)
-    } else {
-        // 非飞行模式：应用空气阻力
-        m_velocity.x *= physics::DRAG_AIR;     // 0.98
-        m_velocity.y *= physics::DRAG_AIR;     // 0.98
-        m_velocity.z *= physics::DRAG_AIR;     // 0.98
-    }
-
-    // 4. 如果在地面，停止Y方向速度（防止下落速度累积）
-    // 飞行模式下不处理
-    if (!m_abilities.flying && m_onGround && m_velocity.y < 0.0f) {
-        m_velocity.y = 0.0f;
-    }
-
-    // 5. 潜行边缘检测（飞行时不检测）
-    Vector3 movement(m_velocity.x, m_velocity.y, m_velocity.z);
-    if (m_isSneaking && !m_abilities.flying) {
-        movement = maybeBackOffFromEdge(movement);
-    }
-
-    // 6. 记录移动前的位置（用于自动跳跃检测）
-    Vector3 prevPos = m_position;
-
-    // 7. 使用碰撞检测移动
-    if (m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
-        Vector3 actualMovement = moveWithCollision(movement.x, movement.y, movement.z);
-
-        // 8. 碰撞后重置速度（参考MC: Entity.move）
-        // 飞行模式下碰撞时不重置水平速度（可以穿透方块边缘的感觉）
+    if (!(isInWater() || isInLava()) || m_abilities.flying) {
+        // 2. 应用重力（飞行时不应用重力）
         if (!m_abilities.flying) {
-            if (m_collidedHorizontally) {
-                m_velocity.x = 0.0f;
-                m_velocity.z = 0.0f;
+            if (!m_onGround) {
+                m_velocity.y -= physics::GRAVITY;
             }
         }
-        if (m_collidedVertically) {
+
+        // 3. 应用阻力
+        // 参考MC: LivingEntity.travel() 和 PlayerEntity.travel()
+        // 飞行时阻力处理不同：Y方向用0.6，水平方向用0.91
+        if (m_abilities.flying) {
+            // 飞行模式：参考 MC PlayerEntity.travel() line 1451
+            // this.setMotion(vector3d.x, d5 * 0.6D, vector3d.z);
+            // 其中 d5 是旅行前的Y速度
+            m_velocity.x *= physics::DRAG_GROUND;  // 0.91 (水平阻力)
+            m_velocity.y *= 0.6f;                    // 飞行Y阻力 (MC: 0.6D)
+            m_velocity.z *= physics::DRAG_GROUND;  // 0.91 (水平阻力)
+        } else {
+            // 非飞行模式：应用空气阻力
+            m_velocity.x *= physics::DRAG_AIR;     // 0.98
+            m_velocity.y *= physics::DRAG_AIR;     // 0.98
+            m_velocity.z *= physics::DRAG_AIR;     // 0.98
+        }
+
+        // 4. 如果在地面，停止Y方向速度（防止下落速度累积）
+        // 飞行模式下不处理
+        if (!m_abilities.flying && m_onGround && m_velocity.y < 0.0f) {
             m_velocity.y = 0.0f;
         }
-    }
 
-    // 9. 自动跳跃检测（在移动后）
-    // MC 源码在 ClientPlayerEntity.move() 方法末尾调用 updateAutoJump
-    if (m_autoJump.isEnabled() && !m_abilities.flying && m_onGround && !m_isSneaking) {
-        // 计算实际移动距离
-        Vector2 actualMovement(m_position.x - prevPos.x, m_position.z - prevPos.z);
-        f32 moveDistSq = actualMovement.x * actualMovement.x + actualMovement.y * actualMovement.y;
+        // 5. 潜行边缘检测（飞行时不检测）
+        Vector3 movement(m_velocity.x, m_velocity.y, m_velocity.z);
+        if (m_isSneaking && !m_abilities.flying) {
+            movement = maybeBackOffFromEdge(movement);
+        }
 
-        // 只有在确实移动了才检测
-        if (moveDistSq > 0.0001f && m_physicsEngine) {
-            auto result = m_autoJump.check(*this, *m_physicsEngine, actualMovement);
-            if (result.shouldJump) {
-                jump();
+        // 6. 记录移动前的位置（用于自动跳跃检测）
+        Vector3 prevPos = m_position;
+
+        // 7. 使用碰撞检测移动
+        if (m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
+            Vector3 actualMovement = moveWithCollision(movement.x, movement.y, movement.z);
+
+            // 8. 碰撞后重置速度（参考MC: Entity.move）
+            // 飞行模式下碰撞时不重置水平速度（可以穿透方块边缘的感觉）
+            if (!m_abilities.flying) {
+                if (m_collidedHorizontally) {
+                    m_velocity.x = 0.0f;
+                    m_velocity.z = 0.0f;
+                }
+            }
+            if (m_collidedVertically) {
+                m_velocity.y = 0.0f;
+            }
+        }
+
+        // 9. 自动跳跃检测（在移动后）
+        // MC 源码在 ClientPlayerEntity.move() 方法末尾调用 updateAutoJump
+        if (m_autoJump.isEnabled() && !m_abilities.flying && m_onGround && !m_isSneaking) {
+            // 计算实际移动距离
+            Vector2 actualMovement(m_position.x - prevPos.x, m_position.z - prevPos.z);
+            f32 moveDistSq = actualMovement.x * actualMovement.x + actualMovement.y * actualMovement.y;
+
+            // 只有在确实移动了才检测
+            if (moveDistSq > 0.0001f && m_physicsEngine) {
+                auto result = m_autoJump.check(*this, *m_physicsEngine, actualMovement);
+                if (result.shouldJump) {
+                    jump();
+                }
             }
         }
     }
+
+    // 更新本地渲染与环境状态缓存
+    updateEnvironmentState();
+    updateSwimming();
+    updateAirSupply();
+    updateMoveDistance();
 
     // 10. 再次重置过小的速度
     clampMotion();
@@ -765,6 +958,258 @@ const entity::effect::EffectInstance* Player::getEffect(entity::effect::EffectTy
         }
     }
     return nullptr;
+}
+
+// ============================================================================
+// 水中物理和游泳实现
+// ============================================================================
+
+bool Player::isActualSwimming() const {
+    // 游泳条件：在水中、不在地面上、且不在飞行模式
+    // 参考 MC 1.16.5 LivingEntity.isActualySwimming()
+    return isInWater() && !m_onGround && !m_abilities.flying;
+}
+
+void Player::updateSwimming() {
+    // 更新游泳动画
+    m_prevSwimAnimation = m_swimAnimation;
+
+    bool isSwimmingNow = isActualSwimming();
+
+    // 平滑过渡游泳动画
+    if (isSwimmingNow) {
+        m_swimAnimation = std::min(1.0f, m_swimAnimation + 0.09f);
+    } else {
+        m_swimAnimation = std::max(0.0f, m_swimAnimation - 0.09f);
+    }
+
+    // 更新游泳状态
+    setSwimming(isSwimmingNow);
+}
+
+void Player::travelInWater(f32 strafing, f32 vertical, f32 forward) {
+    // 参考 MC 1.16.5 LivingEntity.travel() 水中分支
+    // 关键逻辑：
+    // 1. 水中重力减弱（浮力）
+    // 2. 水中阻力
+    // 3. 深度守卫附魔增加速度
+    // 4. 海豚的恩惠增加速度
+    // 5. 水中移动
+
+    // 检查是否在水中
+    if (!isInWater()) {
+        return;
+    }
+
+    // 基础水中游泳速度
+    f32 swimSpeed = physics::SWIM_SPEED_BASE;
+
+    // 冲刺时增加速度
+    if (m_isSprinting) {
+        swimSpeed *= physics::SWIM_SPEED_SPRINT_MULTIPLIER;
+    }
+
+    // TODO: 深度守卫附魔加成
+    // i32 depthStriderLevel = EnchantmentHelper::getDepthStriderModifier(this);
+    // if (depthStriderLevel > 0) {
+    //     swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
+    //     swimSpeed = std::min(swimSpeed, 0.1f);  // 上限
+    // }
+
+    // TODO: 海豚的恩惠药水效果
+    // if (hasEffect(EffectType::DolphinsGrace)) {
+    //     swimSpeed *= physics::DOLPHINS_GRACE_SPEED_BONUS;
+    // }
+
+    // 水中阻力
+    f32 waterDrag = m_isSprinting ? physics::WATER_DRAG_SPRINT : physics::WATER_DRAG;
+
+    // 根据朝向计算移动方向
+    if (strafing != 0.0f || forward != 0.0f) {
+        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 sinYaw = std::sin(yawRad);
+        f32 cosYaw = std::cos(yawRad);
+
+        // MC的getAbsoluteMotion公式
+        f32 moveX = strafing * cosYaw - forward * sinYaw;
+        f32 moveZ = forward * cosYaw + strafing * sinYaw;
+
+        // 归一化
+        f32 length = std::sqrt(moveX * moveX + moveZ * moveZ);
+        if (length > 0.0f) {
+            moveX /= length;
+            moveZ /= length;
+        }
+
+        // 添加到速度
+        m_velocity.x += moveX * swimSpeed;
+        m_velocity.z += moveZ * swimSpeed;
+    }
+
+    // 垂直移动（跳跃向上，潜行向下）
+    if (m_isJumping) {
+        // 向上游泳
+        m_velocity.y += physics::SWIM_UP_SPEED;
+    } else if (m_isSneaking) {
+        // 向下潜
+        m_velocity.y -= physics::SWIM_DOWN_SPEED;
+    }
+
+    // 应用水中重力（减弱的重力，模拟浮力）
+    // MC: float f5 = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
+    // 然后在移动后应用浮力逻辑
+
+    // 移动（使用碰撞检测）
+    if (m_physicsEngine) {
+        Vector3 actualMovement = moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
+
+        // 碰撞到墙后尝试上跳（爬出水面的行为）
+        // MC: if (this.collidedHorizontally && this.isOffsetPositionInLiquid(...))
+        if (m_collidedHorizontally && !m_onGround) {
+            // 尝试向上跳
+            m_velocity.y = physics::WATER_WALL_JUMP_VELOCITY;
+        }
+    }
+
+    // 应用水中阻力
+    m_velocity.x *= waterDrag;
+    m_velocity.y *= waterDrag;
+    m_velocity.z *= waterDrag;
+
+    // 应用水中的"浮力"效果
+    // MC 使用 buoyancy 逻辑，简化为减弱的重力
+    // 如果Y速度向下，减慢下落
+    if (m_velocity.y < 0.0f && !m_isSneaking) {
+        // 轻微上浮效果
+        m_velocity.y += physics::WATER_GRAVITY * 0.5f;
+    }
+
+    // 重置过小的速度
+    clampMotion();
+}
+
+void Player::swimUp() {
+    // 水中向上游泳
+    if (isInWater() && !m_abilities.flying) {
+        m_velocity.y += physics::SWIM_UP_SPEED;
+    }
+}
+
+void Player::updateAirSupply() {
+    // 参考 MC 1.16.5 LivingEntity.baseTick() 空气处理
+    // 和 WaterMobEntity::updateAirSupply()
+
+    bool inWater = isInWater();
+    bool inLava = isInLava();
+
+    if (inWater || inLava) {
+        // 在水或岩浆中，消耗空气
+        if (!m_abilities.invulnerable) {
+            m_airSupply--;
+
+            // 空气耗尽时溺水
+            if (m_airSupply <= -20) {
+                m_airSupply = 0;
+
+                // 溺水伤害
+                m_drownDamageTimer++;
+                if (m_drownDamageTimer >= physics::DROWN_DAMAGE_INTERVAL) {
+                    m_drownDamageTimer = 0;
+                    // TODO: 造成溺水伤害
+                    // damage(DamageSource::DROWN, physics::DROWN_DAMAGE_AMOUNT);
+                    damage(physics::DROWN_DAMAGE_AMOUNT);
+                }
+
+                // TODO: 生成气泡粒子
+            }
+        }
+    } else {
+        // 不在水中，恢复空气
+        m_airSupply = physics::DEFAULT_MAX_AIR;
+        m_drownDamageTimer = 0;
+    }
+
+    // 检测入水/出水状态变化
+    if (inWater && !m_wasInWater) {
+        // 入水事件
+        // TODO: 触发入水音效
+        // TODO: 触发入水粒子效果
+    } else if (!inWater && m_wasInWater) {
+        // 出水事件
+        // TODO: 触发出水音效
+    }
+
+    m_wasInWater = inWater;
+}
+
+void Player::updateMoveDistance() {
+    // 保存上一帧的距离
+    m_prevMoveDistanceWalked = m_moveDistanceWalked;
+    m_prevMoveDistanceSwam = m_moveDistanceSwam;
+
+    // 只累计上次采样后的增量，避免 tick 和物理更新重复统计同一段位移
+    f32 dx = m_position.x - m_moveDistanceSamplePosition.x;
+    f32 dy = m_position.y - m_moveDistanceSamplePosition.y;
+    f32 dz = m_position.z - m_moveDistanceSamplePosition.z;
+    f32 distance = std::sqrt(dx * dx + dz * dz);  // 水平距离
+
+    // 重置声音触发标志
+    m_shouldPlayStepSound = false;
+    m_shouldPlaySwimSound = false;
+
+    // 根据 MC 的逻辑：
+    // distanceWalkedOnStepModified = 距离 * 0.6 用于脚步声触发
+    // 参考实体在地面且不在流体中时触发脚步声
+    f32 stepDistance;
+
+    if (isInWater()) {
+        // 游泳距离包括垂直移动
+        f32 swimDistance = std::sqrt(dx * dx + dy * dy + dz * dz);
+        m_moveDistanceSwam += swimDistance;
+
+        // 游泳声音触发
+        // MC: distanceWalkedOnStepModified += sqrt(motion.x^2 * 0.2 + motion.y^2 + motion.z^2 * 0.2) * 0.35
+        stepDistance = std::sqrt(dx * dx * 0.2f + dy * dy + dz * dz * 0.2f) * 0.35f;
+    } else {
+        m_moveDistanceWalked += distance;
+        // 脚步声距离乘以 0.6
+        stepDistance = distance * 0.6f;
+    }
+
+    m_distanceWalkedOnStep += stepDistance;
+
+    // 检查是否需要播放脚步声/游泳声
+    // 参考 MC: if (distanceWalkedOnStepModified > nextStepDistance && !blockState.isAir())
+    if (m_distanceWalkedOnStep > m_nextStepDistance && m_onGround) {
+        m_nextStepDistance = std::floor(m_distanceWalkedOnStep) + 1.0f;
+
+        if (isInWater()) {
+            // 游泳声音量基于速度
+            m_swimSoundVolume = std::min(1.0f, stepDistance / 0.35f);
+            m_shouldPlaySwimSound = true;
+        } else {
+            // 记录脚下方块位置（用于获取正确的声音类型）
+            m_stepSoundPos = BlockPos(
+                static_cast<i32>(std::floor(m_position.x)),
+                static_cast<i32>(std::floor(m_position.y - 0.2f)),  // 脚底位置
+                static_cast<i32>(std::floor(m_position.z))
+            );
+            m_shouldPlayStepSound = true;
+        }
+    }
+
+    m_moveDistanceSamplePosition = m_position;
+}
+
+void Player::playStepSound() {
+    // 由客户端调用，在正确的位置播放声音
+    // 此处仅标记需要播放，客户端负责实际播放
+}
+
+void Player::playSwimSound(f32 volume) {
+    // 由客户端调用
+    m_swimSoundVolume = volume;
+    m_shouldPlaySwimSound = true;
 }
 
 } // namespace mc

@@ -64,6 +64,7 @@ f32 LivingEntity::maxHealth() const {
 void LivingEntity::setHealth(f32 health) {
     f32 max = maxHealth();
     m_health = std::max(0.0f, std::min(health, max));
+    m_dataManager.set(HEALTH_PARAM, m_health);
 }
 
 void LivingEntity::heal(f32 amount) {
@@ -210,6 +211,12 @@ void LivingEntity::tick() {
     if (isDead()) {
         tickDeath();
     }
+}
+
+void LivingEntity::syncMetadataFromDataManager() {
+    Entity::syncMetadataFromDataManager();
+    m_health = m_dataManager.get<f32>(HEALTH_PARAM);
+    m_lastHealth = m_health;
 }
 
 void LivingEntity::updateAnimation() {

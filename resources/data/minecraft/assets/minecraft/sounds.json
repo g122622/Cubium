@@ -1,0 +1,377 @@
+{
+  "block.stone.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["dig/stone1", "dig/stone2", "dig/stone3", "dig/stone4"]
+  },
+  "block.stone.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["step/stone1", "step/stone2", "step/stone3", "step/stone4", "step/stone5", "step/stone6"]
+  },
+  "block.stone.place": {
+    "sounds": ["dig/stone1", "dig/stone2", "dig/stone3", "dig/stone4"]
+  },
+  "block.stone.hit": {
+    "sounds": ["step/stone1", "step/stone2", "step/stone3", "step/stone4", "step/stone5", "step/stone6"]
+  },
+  "block.stone.fall": {
+    "sounds": ["step/stone1", "step/stone2", "step/stone3", "step/stone4", "step/stone5", "step/stone6"]
+  },
+  "block.wood.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["dig/wood1", "dig/wood2", "dig/wood3", "dig/wood4"]
+  },
+  "block.wood.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["step/wood1", "step/wood2", "step/wood3", "step/wood4", "step/wood5", "step/wood6"]
+  },
+  "block.wood.place": {
+    "sounds": ["dig/wood1", "dig/wood2", "dig/wood3", "dig/wood4"]
+  },
+  "block.wood.hit": {
+    "sounds": ["step/wood1", "step/wood2", "step/wood3", "step/wood4", "step/wood5", "step/wood6"]
+  },
+  "block.wood.fall": {
+    "sounds": ["step/wood1", "step/wood2", "step/wood3", "step/wood4", "step/wood5", "step/wood6"]
+  },
+  "block.grass.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["dig/grass1", "dig/grass2", "dig/grass3", "dig/grass4"]
+  },
+  "block.grass.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["step/grass1", "step/grass2", "step/grass3", "step/grass4", "step/grass5", "step/grass6"]
+  },
+  "block.grass.place": {
+    "sounds": ["dig/grass1", "dig/grass2", "dig/grass3", "dig/grass4"]
+  },
+  "block.grass.hit": {
+    "sounds": ["step/grass1", "step/grass2", "step/grass3", "step/grass4", "step/grass5", "step/grass6"]
+  },
+  "block.grass.fall": {
+    "sounds": ["step/grass1", "step/grass2", "step/grass3", "step/grass4", "step/grass5", "step/grass6"]
+  },
+  "block.gravel.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["dig/gravel1", "dig/gravel2", "dig/gravel3", "dig/gravel4"]
+  },
+  "block.gravel.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["step/gravel1", "step/gravel2", "step/gravel3", "step/gravel4", "step/gravel5", "step/gravel6"]
+  },
+  "block.gravel.place": {
+    "sounds": ["dig/gravel1", "dig/gravel2", "dig/gravel3", "dig/gravel4"]
+  },
+  "block.gravel.hit": {
+    "sounds": ["step/gravel1", "step/gravel2", "step/gravel3", "step/gravel4", "step/gravel5", "step/gravel6"]
+  },
+  "block.gravel.fall": {
+    "sounds": ["step/gravel1", "step/gravel2", "step/gravel3", "step/gravel4", "step/gravel5", "step/gravel6"]
+  },
+  "block.sand.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["dig/sand1", "dig/sand2", "dig/sand3", "dig/sand4"]
+  },
+  "block.sand.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["step/sand1", "step/sand2", "step/sand3", "step/sand4", "step/sand5", "step/sand6"]
+  },
+  "block.sand.place": {
+    "sounds": ["dig/sand1", "dig/sand2", "dig/sand3", "dig/sand4"]
+  },
+  "block.sand.hit": {
+    "sounds": ["step/sand1", "step/sand2", "step/sand3", "step/sand4", "step/sand5", "step/sand6"]
+  },
+  "block.sand.fall": {
+    "sounds": ["step/sand1", "step/sand2", "step/sand3", "step/sand4", "step/sand5", "step/sand6"]
+  },
+  "block.snow.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["dig/snow1", "dig/snow2", "dig/snow3", "dig/snow4"]
+  },
+  "block.snow.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["step/snow1", "step/snow2", "step/snow3", "step/snow4"]
+  },
+  "block.snow.place": {
+    "sounds": ["dig/snow1", "dig/snow2", "dig/snow3", "dig/snow4"]
+  },
+  "block.snow.hit": {
+    "sounds": ["step/snow1", "step/snow2", "step/snow3", "step/snow4"]
+  },
+  "block.snow.fall": {
+    "sounds": ["step/snow1", "step/snow2", "step/snow3", "step/snow4"]
+  },
+  "block.wool.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["dig/cloth1", "dig/cloth2", "dig/cloth3", "dig/cloth4"]
+  },
+  "block.wool.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["step/cloth1", "step/cloth2", "step/cloth3", "step/cloth4"]
+  },
+  "block.wool.place": {
+    "sounds": ["dig/cloth1", "dig/cloth2", "dig/cloth3", "dig/cloth4"]
+  },
+  "block.wool.hit": {
+    "sounds": ["step/cloth1", "step/cloth2", "step/cloth3", "step/cloth4"]
+  },
+  "block.wool.fall": {
+    "sounds": ["step/cloth1", "step/cloth2", "step/cloth3", "step/cloth4"]
+  },
+  "ambient.underwater.enter": {
+    "subtitle": "subtitles.ambient.underwater.enter",
+    "sounds": ["liquid/splash", "liquid/splash2"]
+  },
+  "ambient.underwater.exit": {
+    "subtitle": "subtitles.ambient.underwater.exit",
+    "sounds": ["liquid/splash", "liquid/splash2"]
+  },
+  "ambient.underwater.loop": {
+    "subtitle": "subtitles.ambient.underwater.loop",
+    "sounds": ["liquid/water"]
+  },
+  "ambient.cave": {
+    "subtitle": "subtitles.ambient.cave",
+    "sounds": ["ambient/cave/cave1", "ambient/cave/cave2", "ambient/cave/cave3", "ambient/cave/cave4", "ambient/cave/cave5", "ambient/cave/cave6", "ambient/cave/cave7", "ambient/cave/cave8", "ambient/cave/cave9", "ambient/cave/cave10", "ambient/cave/cave11", "ambient/cave/cave12", "ambient/cave/cave13"]
+  },
+  "ambient.weather.rain": {
+    "subtitle": "subtitles.weather.rain",
+    "sounds": ["ambient/weather/rain1", "ambient/weather/rain2", "ambient/weather/rain3", "ambient/weather/rain4"]
+  },
+  "ambient.weather.thunder": {
+    "subtitle": "subtitles.weather.thunder",
+    "sounds": ["ambient/weather/thunder1", "ambient/weather/thunder2", "ambient/weather/thunder3"]
+  },
+  "entity.player.hurt": {
+    "subtitle": "subtitles.entity.player.hurt",
+    "sounds": ["damage/hit1", "damage/hit2", "damage/hit3"]
+  },
+  "entity.player.big_fall": {
+    "sounds": ["damage/fallbig"]
+  },
+  "entity.player.small_fall": {
+    "sounds": ["damage/fallsmall"]
+  },
+  "entity.generic.splash": {
+    "subtitle": "subtitles.entity.generic.splash",
+    "sounds": ["liquid/splash", "liquid/splash2"]
+  },
+  "entity.player.swim": {
+    "subtitle": "subtitles.entity.generic.swim",
+    "sounds": ["liquid/swim1", "liquid/swim2", "liquid/swim3", "liquid/swim4"]
+  },
+  "entity.player.splash": {
+    "subtitle": "subtitles.entity.generic.splash",
+    "sounds": ["liquid/splash", "liquid/splash2"]
+  },
+  "block.lava.ambient": {
+    "subtitle": "subtitles.block.lava.ambient",
+    "sounds": ["liquid/lava", "liquid/lavapop"]
+  },
+  "block.water.ambient": {
+    "subtitle": "subtitles.block.water.ambient",
+    "sounds": ["liquid/water"]
+  },
+  "block.fire.ambient": {
+    "subtitle": "subtitles.block.fire.ambient",
+    "sounds": ["fire/fire"]
+  },
+  "block.fire.extinguish": {
+    "subtitle": "subtitles.block.fire.extinguish",
+    "sounds": ["fire/ignite"]
+  },
+  "entity.firework_rocket.blast": {
+    "sounds": ["fireworks/blast1"]
+  },
+  "entity.firework_rocket.blast_far": {
+    "sounds": ["fireworks/blast_far1"]
+  },
+  "entity.firework_rocket.large_blast": {
+    "sounds": ["fireworks/largeBlast1"]
+  },
+  "entity.firework_rocket.large_blast_far": {
+    "sounds": ["fireworks/largeBlast_far1"]
+  },
+  "entity.firework_rocket.launch": {
+    "sounds": ["fireworks/launch1"]
+  },
+  "entity.firework_rocket.twinkle": {
+    "sounds": ["fireworks/twinkle1"]
+  },
+  "entity.firework_rocket.twinkle_far": {
+    "sounds": ["fireworks/twinkle_far1"]
+  },
+  "entity.minecart.inside": {
+    "subtitle": "subtitles.entity.minecart.inside",
+    "sounds": ["minecart/inside"]
+  },
+  "entity.minecart.riding": {
+    "subtitle": "subtitles.entity.minecart.riding",
+    "sounds": ["minecart/base"]
+  },
+  "block.portal.ambient": {
+    "subtitle": "subtitles.block.portal.ambient",
+    "sounds": ["portal/portal"]
+  },
+  "block.portal.travel": {
+    "sounds": ["portal/travel"]
+  },
+  "block.portal.trigger": {
+    "sounds": ["portal/trigger"]
+  },
+  "entity.item.pickup": {
+    "subtitle": "subtitles.entity.item.pickup",
+    "sounds": ["random/pop"]
+  },
+  "entity.generic.explode": {
+    "subtitle": "subtitles.entity.generic.explode",
+    "sounds": ["random/explode"]
+  },
+  "entity.arrow.shoot": {
+    "subtitle": "subtitles.entity.arrow.shoot",
+    "sounds": ["random/bow"]
+  },
+  "entity.arrow.hit": {
+    "subtitle": "subtitles.entity.arrow.hit",
+    "sounds": ["random/bowhit"]
+  },
+  "entity.experience_orb.pickup": {
+    "subtitle": "subtitles.entity.experience_orb.pickup",
+    "sounds": ["random/orb"]
+  },
+  "entity.player.levelup": {
+    "sounds": ["random/levelup"]
+  },
+  "entity.item.break": {
+    "sounds": ["random/break"]
+  },
+  "entity.generic.eat": {
+    "subtitle": "subtitles.entity.generic.eat",
+    "sounds": ["random/eat1", "random/eat2", "random/eat3"]
+  },
+  "entity.generic.drink": {
+    "subtitle": "subtitles.entity.generic.drink",
+    "sounds": ["random/drink"]
+  },
+  "entity.player.burp": {
+    "sounds": ["random/burp"]
+  },
+  "block.stone_button.click_on": {
+    "sounds": ["random/click"]
+  },
+  "block.stone_button.click_off": {
+    "sounds": ["random/click"]
+  },
+  "block.glass.break": {
+    "subtitle": "subtitles.block.generic.break",
+    "sounds": ["random/glass1", "random/glass2", "random/glass3"]
+  },
+  "block.anvil.destroy": {
+    "sounds": ["random/anvil_break"]
+  },
+  "block.anvil.land": {
+    "sounds": ["random/anvil_land"]
+  },
+  "block.anvil.use": {
+    "sounds": ["random/anvil_use"]
+  },
+  "block.chest.open": {
+    "sounds": ["random/chestopen"]
+  },
+  "block.chest.close": {
+    "sounds": ["random/chestclosed"]
+  },
+  "block.wooden_door.open": {
+    "sounds": ["random/door_open"]
+  },
+  "block.wooden_door.close": {
+    "sounds": ["random/door_close"]
+  },
+  "block.fire.fizz": {
+    "sounds": ["random/fizz"]
+  },
+  "entity.tnt.primed": {
+    "sounds": ["random/fuse"]
+  },
+  "entity.pig.ambient": {
+    "subtitle": "subtitles.entity.pig.ambient",
+    "sounds": ["mob/pig/say1", "mob/pig/say2", "mob/pig/say3"]
+  },
+  "entity.pig.death": {
+    "subtitle": "subtitles.entity.pig.death",
+    "sounds": ["mob/pig/death"]
+  },
+  "entity.pig.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["mob/pig/step1", "mob/pig/step2", "mob/pig/step3", "mob/pig/step4", "mob/pig/step5"]
+  },
+  "entity.cow.ambient": {
+    "subtitle": "subtitles.entity.cow.ambient",
+    "sounds": ["mob/cow/say1", "mob/cow/say2", "mob/cow/say3", "mob/cow/say4"]
+  },
+  "entity.cow.hurt": {
+    "subtitle": "subtitles.entity.cow.hurt",
+    "sounds": ["mob/cow/hurt1", "mob/cow/hurt2", "mob/cow/hurt3"]
+  },
+  "entity.cow.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["mob/cow/step1", "mob/cow/step2", "mob/cow/step3", "mob/cow/step4"]
+  },
+  "entity.sheep.ambient": {
+    "subtitle": "subtitles.entity.sheep.ambient",
+    "sounds": ["mob/sheep/say1", "mob/sheep/say2", "mob/sheep/say3"]
+  },
+  "entity.sheep.shear": {
+    "sounds": ["mob/sheep/shear"]
+  },
+  "entity.sheep.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["mob/sheep/step1", "mob/sheep/step2", "mob/sheep/step3", "mob/sheep/step4", "mob/sheep/step5"]
+  },
+  "entity.chicken.ambient": {
+    "subtitle": "subtitles.entity.chicken.ambient",
+    "sounds": ["mob/chicken/say1", "mob/chicken/say2", "mob/chicken/say3"]
+  },
+  "entity.chicken.hurt": {
+    "subtitle": "subtitles.entity.chicken.hurt",
+    "sounds": ["mob/chicken/hurt1", "mob/chicken/hurt2"]
+  },
+  "entity.chicken.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["mob/chicken/step1", "mob/chicken/step2"]
+  },
+  "entity.chicken.egg": {
+    "sounds": ["mob/chicken/plop"]
+  },
+  "entity.zombie.ambient": {
+    "subtitle": "subtitles.entity.zombie.ambient",
+    "sounds": ["mob/zombie/say1", "mob/zombie/say2", "mob/zombie/say3"]
+  },
+  "entity.zombie.death": {
+    "subtitle": "subtitles.entity.zombie.death",
+    "sounds": ["mob/zombie/death"]
+  },
+  "entity.zombie.hurt": {
+    "subtitle": "subtitles.entity.zombie.hurt",
+    "sounds": ["mob/zombie/hurt1", "mob/zombie/hurt2"]
+  },
+  "entity.zombie.step": {
+    "subtitle": "subtitles.block.generic.footsteps",
+    "sounds": ["mob/zombie/step1", "mob/zombie/step2", "mob/zombie/step3", "mob/zombie/step4", "mob/zombie/step5"]
+  },
+  "entity.zombie.infect": {
+    "sounds": ["mob/zombie/infect"]
+  },
+  "entity.zombie.cure": {
+    "sounds": ["mob/zombie/remedy"]
+  },
+  "entity.zombie.attack_wooden_door": {
+    "sounds": ["mob/zombie/wood1", "mob/zombie/wood2", "mob/zombie/wood3", "mob/zombie/wood4"]
+  },
+  "entity.zombie.break_wooden_door": {
+    "sounds": ["mob/zombie/woodbreak"]
+  },
+  "entity.zombie.attack_iron_door": {
+    "sounds": ["mob/zombie/metal1", "mob/zombie/metal2", "mob/zombie/metal3"]
+  }
+}

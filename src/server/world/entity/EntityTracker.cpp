@@ -3,6 +3,7 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -14,6 +15,8 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace mc::server {
@@ -199,6 +202,16 @@ void EntityTracker::tick(IServer& server) {
                 }
             }
 
+            if (entity->dataManager().hasDirtyData() && !tracked.trackingPlayers.empty()) {
+                std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
+                if (metadata.size() > 1) {
+                    for (PlayerId playerId : tracked.trackingPlayers) {
+                        sendMetadataPacket(server, playerId, entity, metadata);
+                    }
+                    entity->dataManager().clearDirty();
+                }
+            }
+
             tracked.lastPosition = currentPos;
             tracked.lastYaw = currentYaw;
             tracked.lastPitch = currentPitch;
@@ -254,6 +267,8 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
             static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f))
         );
 
+        packet.setMetadata(network::EntityMetadataSerializer::serialize(entity->dataManager(), false));
+
         auto result = packet.serialize();
         if (result.success()) {
             // 封装为完整数据包
@@ -266,6 +281,7 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
             fullPacket.writeBytes(result.value());
 
             player->send(fullPacket.data(), fullPacket.size());
+            entity->dataManager().clearDirty();
             // spdlog::info("Sent SpawnMob packet for entity {} (type: {}) to player {}",
             //               entity->id(), entity->getTypeId(), playerId);
         }
@@ -347,6 +363,30 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
                               entity->id(), entity->getTypeId(), playerId);
             }
         }
+    }
+}
+
+void EntityTracker::sendMetadataPacket(IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata) {
+    if (!entity || metadata.empty()) return;
+
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+    if (!player || !player->hasConnection()) return;
+
+    network::EntityMetadataPacket packet;
+    packet.setEntityId(static_cast<u32>(entity->id()));
+    packet.setMetadata(metadata);
+
+    auto result = packet.serialize();
+    if (result.success()) {
+        network::PacketSerializer fullPacket;
+        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityMetadata));
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeBytes(result.value());
+
+        player->send(fullPacket.data(), fullPacket.size());
     }
 }
 

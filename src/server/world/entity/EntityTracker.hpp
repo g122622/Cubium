@@ -157,6 +157,11 @@ private:
      */
     void sendMovePacket(IServer& server, PlayerId playerId, Entity* entity);
 
+    /**
+     * @brief 发送实体元数据包给玩家
+     */
+    void sendMetadataPacket(IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata);
+
 private:
     mutable std::mutex m_mutex;
 
