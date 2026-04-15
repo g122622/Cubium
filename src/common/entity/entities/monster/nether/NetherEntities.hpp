@@ -144,7 +144,14 @@ public:
     // ========== 交易相关 ==========
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    void setBaby(bool baby) { m_isBaby = baby; }
+    void setBaby(bool baby) {
+        if (m_isBaby == baby) {
+            return;
+        }
+
+        m_isBaby = baby;
+        refreshDimensions();
+    }
 
     // ========== IRangedAttackMob 接口 ==========
 
@@ -245,7 +252,14 @@ public:
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    void setBaby(bool baby) { m_isBaby = baby; }
+    void setBaby(bool baby) {
+        if (m_isBaby == baby) {
+            return;
+        }
+
+        m_isBaby = baby;
+        refreshDimensions();
+    }
 
     [[nodiscard]] bool isHuntable() const { return !m_isBaby; }
     [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
@@ -282,7 +296,14 @@ public:
     ~ZoglinEntity() override = default;
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
-    void setBaby(bool baby) { m_isBaby = baby; }
+    void setBaby(bool baby) {
+        if (m_isBaby == baby) {
+            return;
+        }
+
+        m_isBaby = baby;
+        refreshDimensions();
+    }
     [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
 
     void tick() override;

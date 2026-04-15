@@ -16,10 +16,10 @@ using mc::AxisAlignedBB;
 /**
  * @brief 实体尺寸类
  *
- * 存储实体的宽度和高度，用于计算碰撞箱。
+ * 存储实体的宽度、高度和眼睛高度，用于计算碰撞箱与视线位置。
  * 固定尺寸(fixed=true)的实体不会根据姿态变化调整尺寸。
  *
- * 参考 MC 1.16.5 EntitySize (EntityDimensions)
+ * 参考 MC 1.21 的 EntityDimensions，但保留了当前项目的 EntitySize 命名。
  */
 class EntitySize {
 public:
@@ -30,8 +30,20 @@ public:
      * @param fixed 是否为固定尺寸
      */
     constexpr EntitySize(f32 width, f32 height, bool fixed = false)
+        : EntitySize(width, height, defaultEyeHeight(height), fixed)
+    {}
+
+    /**
+     * @brief 构造实体尺寸
+     * @param width 宽度（方块单位）
+     * @param height 高度（方块单位）
+     * @param eyeHeight 眼睛高度（方块单位）
+     * @param fixed 是否为固定尺寸
+     */
+    constexpr EntitySize(f32 width, f32 height, f32 eyeHeight, bool fixed)
         : m_width(width)
         , m_height(height)
+        , m_eyeHeight(eyeHeight)
         , m_fixed(fixed)
     {}
 
@@ -44,6 +56,11 @@ public:
      * @brief 获取高度
      */
     [[nodiscard]] constexpr f32 height() const { return m_height; }
+
+    /**
+     * @brief 获取眼睛高度
+     */
+    [[nodiscard]] constexpr f32 eyeHeight() const { return m_eyeHeight; }
 
     /**
      * @brief 是否为固定尺寸
@@ -61,6 +78,15 @@ public:
      * @return AABB碰撞箱
      */
     [[nodiscard]] AxisAlignedBB createBoundingBox(f64 x, f64 y, f64 z) const {
+        return makeBoundingBox(x, y, z);
+    }
+
+    /**
+     * @brief 创建碰撞箱
+     * @param x, y, z 实体脚底位置
+     * @return 以脚底为基准的AABB碰撞箱
+     */
+    [[nodiscard]] AxisAlignedBB makeBoundingBox(f64 x, f64 y, f64 z) const {
         f32 halfWidth = m_width / 2.0f;
         return AxisAlignedBB(
             static_cast<f32>(x) - halfWidth, static_cast<f32>(y), static_cast<f32>(z) - halfWidth,
@@ -74,7 +100,7 @@ public:
      * @return AABB碰撞箱
      */
     [[nodiscard]] AxisAlignedBB createBoundingBox(const Vector3& pos) const {
-        return createBoundingBox(pos.x, pos.y, pos.z);
+        return makeBoundingBox(pos.x, pos.y, pos.z);
     }
 
     /**
@@ -83,7 +109,16 @@ public:
      * @return AABB碰撞箱
      */
     [[nodiscard]] AxisAlignedBB createBoundingBox(const Vector3d& pos) const {
-        return createBoundingBox(pos.x, pos.y, pos.z);
+        return makeBoundingBox(pos.x, pos.y, pos.z);
+    }
+
+    /**
+     * @brief 使用新的眼睛高度创建尺寸副本
+     * @param eyeHeight 新的眼睛高度
+     * @return 复制后的尺寸对象
+     */
+    [[nodiscard]] EntitySize withEyeHeight(f32 eyeHeight) const {
+        return EntitySize(m_width, m_height, eyeHeight, m_fixed);
     }
 
     /**
@@ -109,7 +144,12 @@ public:
         if (m_fixed || (widthFactor == 1.0f && heightFactor == 1.0f)) {
             return *this;
         }
-        return flexible(m_width * widthFactor, m_height * heightFactor);
+        return EntitySize(
+            m_width * widthFactor,
+            m_height * heightFactor,
+            m_eyeHeight * heightFactor,
+            false
+        );
     }
 
     /**
@@ -132,6 +172,7 @@ public:
     bool operator==(const EntitySize& other) const {
         return m_width == other.m_width &&
                m_height == other.m_height &&
+               m_eyeHeight == other.m_eyeHeight &&
                m_fixed == other.m_fixed;
     }
 
@@ -140,8 +181,13 @@ public:
     }
 
 private:
+    [[nodiscard]] static constexpr f32 defaultEyeHeight(f32 height) {
+        return height * 0.85f;
+    }
+
     f32 m_width;
     f32 m_height;
+    f32 m_eyeHeight;
     bool m_fixed;
 };
 

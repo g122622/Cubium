@@ -33,6 +33,7 @@ src/common/entity/entities/player/
 
 - 处理移动输入并写入速度
 - 执行物理更新、碰撞和跳跃
+- 在蹲下、游泳和睡眠姿态切换时，先检查目标碰撞箱能否容纳当前空间
 - 统计移动距离并生成步脚声/游泳声触发信号
 - 序列化和反序列化玩家状态
 
@@ -47,6 +48,7 @@ src/common/entity/entities/player/
 ## 模块关系
 
 - `Player` 继承自 `Entity`，复用通用的位置、旋转、碰撞和数据管理能力。
+- `Player` 在退出蹲伏、游泳和睡眠姿态时，会通过 `IWorld` 的碰撞查询判断当前空间是否允许切回站立。
 - `ClientApplication` 使用 `Player` 的移动距离累计值来驱动视野晃动，并读取步脚声/游泳声标志来播放本地音效。
 - `NetworkClient` 和玩家序列化逻辑负责把服务器传来的传送、位置和状态同步到本地玩家。
 - `PlayerManager` 负责在世界层管理玩家集合，服务端和单机集成都依赖它。
@@ -87,6 +89,7 @@ src/common/entity/entities/player/
 - `entity/core/Entity.hpp`
 - `physics/PhysicsEngine.hpp`
 - `physics/PhysicsConstants.hpp`
+- `world/IWorld.hpp`
 - `inventory/PlayerInventory.hpp`
 - `experience/ExperienceManager.hpp`
 - `movement/AutoJump.hpp`
@@ -123,11 +126,14 @@ if (player->shouldPlayStepSound()) {
 - 不要在外部直接修改玩家位置后继续沿用旧的步距计数，传送和出生都应该重置采样。
 - `updateMoveDistance()` 可以在同一帧里被多次调用，但每次都必须只统计“上次采样之后”的增量。
 - 视野晃动和脚步声共用同一套移动距离统计，统计语义错了会同时污染音效和镜头。
+- 从蹲下、游泳、睡眠切回站立时，不要直接强行改成 `Standing`；应保留 `Player::setSneaking()` / `Player::setSwimming()` / `Player::setSleeping()` 的碰撞检查结果，否则会在低顶方块下错误穿模。
 
 ## 测试用例
 
 - [tests/common/entity/PlayerMovementTest.cpp](../../../../../tests/common/entity/PlayerMovementTest.cpp)
 - `UpdateMoveDistance_ResamplesCurrentPosition` 覆盖重复采样和坐标重置的回归场景
+- [tests/entity/PlayerPoseCollisionTest.cpp](../../../../../tests/entity/PlayerPoseCollisionTest.cpp)
+- `SetSneakingFalseKeepsCrouchWhenCeilingBlocksStanding` 覆盖低顶空间下的姿态回退
 
 ## Mermaid 图表
 

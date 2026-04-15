@@ -334,6 +334,12 @@ public:
     // ========== 重写尺寸方法 ==========
 
     [[nodiscard]] f32 width() const override { return PLAYER_WIDTH; }
+    /**
+     * @brief 获取指定姿态下的玩家尺寸
+     * @param pose 目标姿态
+     * @return 对应姿态的尺寸信息
+     */
+    [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] f32 eyeHeight() const override;
     [[nodiscard]] f32 stepHeight() const override { return PLAYER_STEP_HEIGHT; }
@@ -645,6 +651,13 @@ private:
      * 参考MC: if (Math.abs(motion) < 0.003) motion = 0
      */
     void clampMotion();
+
+    /**
+     * @brief 检查玩家是否能以指定姿态容纳在当前位置
+     * @param pose 目标姿态
+     * @return 如果当前位置没有阻挡则返回 true
+     */
+    [[nodiscard]] bool canFitPose(EntityPose pose) const;
 
     String m_username;
     PlayerId m_playerId = 0;

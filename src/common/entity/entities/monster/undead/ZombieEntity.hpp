@@ -94,7 +94,14 @@ public:
     /**
      * @brief 设置婴儿状态
      */
-    void setBaby(bool baby) { m_isBaby = baby; }
+    void setBaby(bool baby) {
+        if (m_isBaby == baby) {
+            return;
+        }
+
+        m_isBaby = baby;
+        refreshDimensions();
+    }
 
     // ========== 属性 ==========
 

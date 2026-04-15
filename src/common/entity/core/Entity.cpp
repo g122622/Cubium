@@ -87,9 +87,34 @@ void Entity::registerData() {
     m_dataManager.registerParam(POSE_PARAM, static_cast<i8>(EntityPose::Standing));
 }
 
+entity::EntitySize Entity::getDimensions(EntityPose pose) const {
+    (void)pose;
+    return entity::EntitySize(width(), height(), eyeHeight(), false);
+}
+
+void Entity::refreshDimensions() {
+    m_dimensions = getDimensions(m_pose);
+    m_dimensionsInitialized = true;
+    reapplyPosition();
+}
+
+void Entity::reapplyPosition() {
+    if (!m_dimensionsInitialized) {
+        m_dimensions = getDimensions(m_pose);
+        m_dimensionsInitialized = true;
+    }
+
+    m_boundingBox = m_dimensions.makeBoundingBox(m_position.x, m_position.y, m_position.z);
+}
+
 void Entity::setPose(EntityPose pose) {
+    if (m_pose == pose) {
+        return;
+    }
+
     m_pose = pose;
     m_dataManager.set(POSE_PARAM, static_cast<i8>(pose));
+    refreshDimensions();
 }
 
 void Entity::setFlags(EntityFlags flags) {
@@ -144,6 +169,7 @@ String Entity::getTypeId() const {
 void Entity::setPosition(f32 x, f32 y, f32 z) {
     m_prevPosition = m_position;
     m_position = Vector3(x, y, z);
+    reapplyPosition();
 }
 
 void Entity::setRotation(f32 yaw, f32 pitch) {
@@ -247,6 +273,7 @@ void Entity::syncMetadataFromDataManager() {
     m_silent = m_dataManager.get<bool>(SILENT_PARAM);
     m_noGravity = m_dataManager.get<bool>(NO_GRAVITY_PARAM);
     m_pose = static_cast<EntityPose>(m_dataManager.get<i8>(POSE_PARAM));
+    refreshDimensions();
 }
 
 void Entity::updateFallDistance() {
@@ -276,6 +303,7 @@ void Entity::move(f32 dx, f32 dy, f32 dz) {
     m_position.x += dx;
     m_position.y += dy;
     m_position.z += dz;
+    reapplyPosition();
 }
 
 void Entity::rotate(f32 deltaYaw, f32 deltaPitch) {
@@ -333,6 +361,7 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz) {
         entityBox.minY,                             // 底部Y
         (entityBox.minZ + entityBox.maxZ) / 2.0f   // 中心Z
     );
+    reapplyPosition();
 
     // 更新碰撞状态（从物理引擎获取）
     m_collidedHorizontally = physics->collidedHorizontally();

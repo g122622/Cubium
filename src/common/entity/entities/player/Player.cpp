@@ -19,6 +19,42 @@
 
 namespace mc {
 
+namespace {
+
+[[nodiscard]] f32 getPlayerPoseHeight(EntityPose pose) {
+    switch (pose) {
+        case EntityPose::Sleeping:
+            return 0.2f;
+        case EntityPose::Swimming:
+        case EntityPose::FallFlying:
+        case EntityPose::SpinAttack:
+            return Player::PLAYER_SWIM_HEIGHT;
+        case EntityPose::Crouching:
+            return Player::PLAYER_CROUCH_HEIGHT;
+        default:
+            return Player::PLAYER_HEIGHT;
+    }
+}
+
+[[nodiscard]] f32 getPlayerPoseEyeHeight(EntityPose pose) {
+    switch (pose) {
+        case EntityPose::Sleeping:
+            return 0.2f;
+        case EntityPose::Swimming:
+        case EntityPose::FallFlying:
+        case EntityPose::SpinAttack:
+            return 0.4f;
+        case EntityPose::Crouching:
+            return 1.27f;
+        default:
+            return Player::PLAYER_EYE_HEIGHT;
+    }
+}
+
+constexpr f32 PLAYER_POSE_FIT_EPSILON = 1.0e-4f;
+
+} // namespace
+
 // ============================================================================
 // Player 实现
 // ============================================================================
@@ -138,14 +174,23 @@ void Player::setSprinting(bool sprinting) {
 }
 
 void Player::setSneaking(bool sneaking) {
-    m_isSneaking = sneaking;
     if (sneaking) {
+        m_isSneaking = true;
         addFlag(EntityFlags::Crouching);
         setPose(EntityPose::Crouching);
-    } else {
+        return;
+    }
+
+    if (canFitPose(EntityPose::Standing)) {
+        m_isSneaking = false;
         removeFlag(EntityFlags::Crouching);
         setPose(EntityPose::Standing);
+        return;
     }
+
+    m_isSneaking = true;
+    addFlag(EntityFlags::Crouching);
+    setPose(EntityPose::Crouching);
 }
 
 void Player::setSwimming(bool swimming) {
@@ -153,10 +198,19 @@ void Player::setSwimming(bool swimming) {
     if (swimming) {
         addFlag(EntityFlags::Swimming);
         setPose(EntityPose::Swimming);
-    } else {
-        removeFlag(EntityFlags::Swimming);
-        setPose(EntityPose::Standing);
+        return;
     }
+
+    removeFlag(EntityFlags::Swimming);
+
+    if (canFitPose(EntityPose::Standing)) {
+        m_isSneaking = false;
+        removeFlag(EntityFlags::Crouching);
+        setPose(EntityPose::Standing);
+        return;
+    }
+
+    setSneaking(true);
 }
 
 void Player::toggleFlying() {
@@ -170,39 +224,38 @@ void Player::setSleeping(bool sleeping) {
     m_isSleeping = sleeping;
     if (sleeping) {
         setPose(EntityPose::Sleeping);
-    } else {
-        setPose(EntityPose::Standing);
+        return;
     }
+
+    if (canFitPose(EntityPose::Standing)) {
+        m_isSneaking = false;
+        removeFlag(EntityFlags::Crouching);
+        setPose(EntityPose::Standing);
+        return;
+    }
+
+    setSneaking(true);
 }
 
 f32 Player::height() const {
-    switch (m_pose) {
-        case EntityPose::Sleeping:
-            return 0.2f;
-        case EntityPose::Swimming:
-        case EntityPose::FallFlying:
-        case EntityPose::SpinAttack:
-            return PLAYER_SWIM_HEIGHT;
-        case EntityPose::Crouching:
-            return PLAYER_CROUCH_HEIGHT;
-        default:
-            return PLAYER_HEIGHT;
-    }
+    return getPlayerPoseHeight(m_pose);
 }
 
 f32 Player::eyeHeight() const {
-    switch (m_pose) {
-        case EntityPose::Sleeping:
-            return 0.2f;
-        case EntityPose::Swimming:
-        case EntityPose::FallFlying:
-        case EntityPose::SpinAttack:
-            return 0.4f;
-        case EntityPose::Crouching:
-            return 1.27f;
-        default:
-            return PLAYER_EYE_HEIGHT;
+    return getPlayerPoseEyeHeight(m_pose);
+}
+
+entity::EntitySize Player::getDimensions(EntityPose pose) const {
+    return entity::EntitySize(PLAYER_WIDTH, getPlayerPoseHeight(pose), getPlayerPoseEyeHeight(pose), false);
+}
+
+bool Player::canFitPose(EntityPose pose) const {
+    if (pose == m_pose || m_world == nullptr) {
+        return true;
     }
+
+    AxisAlignedBB candidateBox = getDimensions(pose).makeBoundingBox(m_position.x, m_position.y, m_position.z).shrink(PLAYER_POSE_FIT_EPSILON);
+    return !m_world->hasBlockCollision(candidateBox) && !m_world->hasEntityCollision(candidateBox, this);
 }
 
 void Player::tick() {
@@ -866,7 +919,7 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
 
     auto sneakResult = deser.readBool();
     if (sneakResult.failed()) return sneakResult.error();
-    player->m_isSneaking = sneakResult.value();
+    player->setSneaking(sneakResult.value());
 
     // 饥饿
     auto foodResult = FoodStats::deserialize(deser);

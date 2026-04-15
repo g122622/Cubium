@@ -8,34 +8,43 @@ AgeableEntity::AgeableEntity(LegacyEntityType type, EntityId id)
 }
 
 void AgeableEntity::setGrowingAge(i32 age) {
+    const bool wasChild = isChild();
     m_growingAge = age;
-    // 尺寸缩放由 width() 和 height() 方法自动处理
+    if (wasChild != isChild()) {
+        refreshDimensions();
+    }
 }
 
 void AgeableEntity::setChild(bool child) {
-    if (child) {
-        setGrowingAge(BABY_AGE);
-    } else {
-        setGrowingAge(MAX_AGE);
-    }
+    setGrowingAge(child ? BABY_AGE : MAX_AGE);
 }
 
 void AgeableEntity::ageUp(i32 seconds) {
     i32 ticks = seconds * 20; // 秒转换为tick
+    const bool wasChild = isChild();
     m_growingAge += ticks;
 
     if (m_growingAge >= MAX_AGE) {
         m_growingAge = MAX_AGE;
         onGrowUp();
     }
+
+    if (wasChild != isChild()) {
+        refreshDimensions();
+    }
 }
 
 void AgeableEntity::addGrowingAge(i32 amount) {
+    const bool wasChild = isChild();
     m_growingAge += amount;
 
     if (m_growingAge >= MAX_AGE && amount > 0) {
         m_growingAge = MAX_AGE;
         onGrowUp();
+    }
+
+    if (wasChild != isChild()) {
+        refreshDimensions();
     }
 }
 
@@ -58,6 +67,8 @@ void AgeableEntity::tick() {
 }
 
 void AgeableEntity::updateAge() {
+    const bool wasChild = isChild();
+
     if (isChild()) {
         // 幼体成长
         i32 growth = static_cast<i32>(m_growthSpeed);
@@ -79,6 +90,10 @@ void AgeableEntity::updateAge() {
         if (m_growingAge > 0) {
             --m_growingAge;
         }
+    }
+
+    if (wasChild != isChild()) {
+        refreshDimensions();
     }
 }
 

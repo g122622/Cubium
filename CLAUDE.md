@@ -367,6 +367,10 @@ enum class Operation : u8 { ... };
     - 这个值只会在 `Entity::baseTick()` / `updateEnvironmentState()` 或本地物理刷新路径里更新；它对本地玩家可用，但仍不是服务端权威结果。
 - `Player::updateMoveDistance()` now uses a dedicated sampling position, and `Player::setPosition()` resets movement/bobbing state.
     - 不要再把 `prevPosition` 当成脚步声或视野晃动的采样基准；它是插值历史状态，多次物理更新会把同一段位移重复计数。
+- `Entity::refreshDimensions()` is now the canonical way to rebuild an entity's cached `EntitySize` and `AxisAlignedBB`.
+    - Any runtime size change must refresh the cache immediately, or movement and ground checks will keep using stale boxes.
+- Player stand-up transitions now check whether the target pose box fits before switching away from crouch/swim/sleep.
+    - Do not bypass `setSneaking()` / `setSwimming()` / `setSleeping()` with a raw standing pose change when you want vanilla-like low-ceiling behavior.
 - `EntityMetadataPacket` / `EntityMetadataSerializer` now feed both server tracking and client entity application.
     - `EntityTracker` 负责 spawn 内联 metadata 和 dirty metadata packet，`ClientEntity::setMetadata()` 负责把原始数据写进本地数据管理器；新增字段时三处必须一起改。
 - Do not bootstrap `StarLightEngine::light(...)` from chunk-owned nibble arrays when running unlit initialization.

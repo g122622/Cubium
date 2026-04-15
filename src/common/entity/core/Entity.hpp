@@ -5,6 +5,7 @@
 #include "../../util/math/Vector3.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "EntityPose.hpp"
+#include "EntitySize.hpp"
 #include "EntityDataManager.hpp"
 #include <string>
 #include <memory>
@@ -19,6 +20,7 @@ class IWorld;
 
 // ============================================================================
 // 旧实体类型枚举（兼容）
+// TODO 彻底移除这个旧枚举，改用 mc::entity::EntityType
 //
 // 注意：新代码应使用 mc::entity::EntityType 类
 // 此枚举保留用于向后兼容
@@ -357,6 +359,26 @@ public:
     [[nodiscard]] virtual f32 eyeHeight() const { return 1.62f; }
 
     /**
+     * @brief 获取指定姿态下的实体尺寸
+     * @param pose 目标姿态
+     * @return 对应姿态的尺寸信息
+     */
+    [[nodiscard]] virtual entity::EntitySize getDimensions(EntityPose pose) const;
+
+    /**
+     * @brief 获取当前缓存的实体尺寸
+     * @return 当前尺寸
+     */
+    [[nodiscard]] entity::EntitySize currentDimensions() const { return m_dimensions; }
+
+    /**
+     * @brief 刷新当前尺寸和碰撞箱
+     *
+     * 当姿态或其他会影响尺寸的状态变化时调用。
+     */
+    void refreshDimensions();
+
+    /**
      * @brief 获取步进高度
      * @return 实体可以自动步进的最大高度（玩家为0.6）
      */
@@ -369,7 +391,10 @@ public:
      * @return 基于当前位置的AABB碰撞箱
      */
     [[nodiscard]] AxisAlignedBB boundingBox() const {
-        return AxisAlignedBB::fromPosition(m_position, width(), height());
+        if (!m_dimensionsInitialized) {
+            const_cast<Entity*>(this)->refreshDimensions();
+        }
+        return m_boundingBox;
     }
 
     /**
@@ -783,6 +808,9 @@ protected:
     bool m_removed = false;
     EntityPose m_pose = EntityPose::Standing;
     EntityFlags m_flags = EntityFlags::None;
+    entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);
+    AxisAlignedBB m_boundingBox = AxisAlignedBB::fromPosition(Vector3(0.0f, 0.0f, 0.0f), 0.6f, 1.8f);
+    bool m_dimensionsInitialized = false;
 
     // 物理相关
     PhysicsEngine* m_physicsEngine = nullptr;
@@ -833,6 +861,11 @@ protected:
      * @brief 设置车辆（内部方法）
      */
     void setVehicle(EntityId vehicle) { m_vehicle = vehicle; }
+
+    /**
+     * @brief 重新应用当前位置到碰撞箱
+     */
+    void reapplyPosition();
 };
 
 } // namespace mc

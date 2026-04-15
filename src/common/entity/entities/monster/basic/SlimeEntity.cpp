@@ -25,8 +25,14 @@ std::unique_ptr<Entity> SlimeEntity::create(IWorld* /*world*/) {
 }
 
 void SlimeEntity::setSlimeSize(i32 size) {
-    m_size = std::clamp(size, 1, 4);
+    const i32 clampedSize = std::clamp(size, 1, 4);
+    if (m_size == clampedSize) {
+        return;
+    }
+
+    m_size = clampedSize;
     updateSizeAttributes();
+    refreshDimensions();
 }
 
 void SlimeEntity::split() {

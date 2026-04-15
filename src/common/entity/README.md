@@ -802,6 +802,12 @@ void asyncTask() {
 // entity::EntityFlags - 实体类型特性（免疫火焰等）
 ```
 
+### 8. 碰撞箱与姿态刷新
+
+- `Entity::refreshDimensions()` 现在是尺寸变化后的统一刷新入口，内部会同步 `EntitySize` 和 `AxisAlignedBB` 缓存。
+- 运行时会改变体型的实体子类，应在尺寸改变后立即调用刷新函数，避免旧碰撞箱继续参与移动和地面检测。
+- 玩家从蹲下、游泳、睡眠切回站立时，需要先做碰撞可容纳性检查，不能直接无条件切换到 `Standing`。
+
 ## 涉及的测试用例
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/` 目录：
@@ -818,6 +824,7 @@ void asyncTask() {
 | `LootConditionTest.cpp` | 掉落条件系统 |
 | `AutoJumpTest.cpp` | 自动跳跃检测 |
 | `PlayerMovementTest.cpp` | 玩家移动物理 |
+| `PlayerPoseCollisionTest.cpp` | 玩家姿态切换与碰撞箱可容纳性 |
 | `EntitySpawnPlacementRegistryTest.cpp` | 实体生成放置规则 |
 | `CraftingInventoryTest.cpp` | 合成背包功能 |
 | `AnimalModelTests.cpp` | 动物渲染模型 |

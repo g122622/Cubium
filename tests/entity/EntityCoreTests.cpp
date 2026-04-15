@@ -59,7 +59,18 @@ TEST(EntitySize, Construction) {
 
     EXPECT_FLOAT_EQ(size.width(), 0.6f);
     EXPECT_FLOAT_EQ(size.height(), 1.8f);
+    EXPECT_FLOAT_EQ(size.eyeHeight(), 1.8f * 0.85f);
     EXPECT_FALSE(size.isFixed());
+}
+
+TEST(EntitySize, CustomEyeHeight) {
+    EntitySize size(0.6f, 1.8f, 1.2f, false);
+
+    EXPECT_FLOAT_EQ(size.eyeHeight(), 1.2f);
+    EXPECT_FLOAT_EQ(size.withEyeHeight(1.4f).eyeHeight(), 1.4f);
+
+    EntitySize scaled = size.scale(2.0f);
+    EXPECT_FLOAT_EQ(scaled.eyeHeight(), 2.4f);
 }
 
 TEST(EntitySize, FixedSize) {
