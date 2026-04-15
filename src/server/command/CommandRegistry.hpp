@@ -3,6 +3,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "ServerCommandSource.hpp"
 #include <memory>
+#include <future>
 #include <functional>
 #include <vector>
 #include <unordered_set>
@@ -45,6 +46,14 @@ public:
      */
     [[nodiscard]] Result<i32> execute(const String& input, ServerCommandSource& source);
 
+    /**
+     * @brief 获取命令建议
+     * @param input 命令输入
+     * @param source 命令源
+     * @return 异步建议结果
+     */
+    [[nodiscard]] std::future<Suggestions> getSuggestions(const String& input, ServerCommandSource& source);
+
     // ========== 命令注册 ==========
 
     /**
@@ -84,8 +93,6 @@ public:
 
 private:
     Dispatcher m_dispatcher;
-    std::vector<String> m_commandNames;
-    std::unordered_set<String> m_commandNameSet;  // 用于快速查找
     bool m_defaultsRegistered = false;
 };
 

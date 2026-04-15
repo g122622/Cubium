@@ -23,6 +23,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     xpNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+    xpNode->setRedirect(experienceNode);
 
     // ========== add 子命令 ==========
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
@@ -123,11 +124,6 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     experienceNode->addChild(addNode);
     experienceNode->addChild(setNode);
     experienceNode->addChild(queryNode);
-
-    // xp 别名指向相同命令
-    xpNode->addChild(addNode);
-    xpNode->addChild(setNode);
-    xpNode->addChild(queryNode);
 
     dispatcher.registerCommand(experienceNode);
     dispatcher.registerCommand(xpNode);

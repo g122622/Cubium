@@ -1,6 +1,6 @@
 # Server Command 模块
 
-服务端命令系统，提供 Minecraft 风格的命令注册、解析和执行功能。
+服务端命令系统，提供 Minecraft 风格的命令注册、解析、执行和建议功能。
 
 ## 目录结构
 
@@ -18,6 +18,8 @@ src/server/command/
     ├── GameModeCommand.cpp
     ├── GiveCommand.hpp        # /give 命令
     ├── GiveCommand.cpp
+    ├── ExperienceCommand.hpp  # /experience / /xp 命令
+    ├── ExperienceCommand.cpp
     ├── HelpCommand.hpp        # /help 命令
     ├── HelpCommand.cpp
     ├── KillCommand.hpp        # /kill 命令
@@ -46,7 +48,8 @@ src/server/command/
 - 维护全局命令分发器实例
 - 注册所有默认命令
 - 提供命令执行入口
-- 提供命令查询接口
+- 提供命令查询和建议接口
+- 命令名称直接从命令树派生，别名与重定向节点会一并反映出来
 
 **主要接口：**
 ```cpp
@@ -57,6 +60,9 @@ public:
 
     // 执行命令
     Result<i32> execute(const String& input, ServerCommandSource& source);
+
+    // 获取建议
+    std::future<Suggestions> getSuggestions(const String& input, ServerCommandSource& source);
 
     // 注册默认命令
     void registerDefaults();
@@ -92,6 +98,7 @@ if (result.success()) {
 - 提供服务器、玩家、世界访问接口
 - 管理权限等级
 - 支持创建派生命令源
+- 支持静默输出和权限上限派生，便于实现更接近原版的命令上下文切换
 
 **主要接口：**
 ```cpp
@@ -136,7 +143,9 @@ public:
     ServerCommandSource withRotation(const Vector2f& rot) const;
     ServerCommandSource withWorld(server::ServerWorld* world) const;
     ServerCommandSource withFeedbackDisabled() const;
+    ServerCommandSource withSuppressedOutput() const;
     ServerCommandSource withPermissionLevel(i32 level) const;
+    ServerCommandSource withMaximumPermission(i32 level) const;
 
     // 静态工厂
     static ServerCommandSource forConsole(server::IServer* server);
@@ -228,6 +237,7 @@ public:
 - `/tp <x> <y> <z>` - 传送到坐标
 - `/tp <target> <destination>` - 将目标传送到目的地
 - `/tp <target> <x> <y> <z>` - 将目标传送到坐标
+- `/teleport` 是 `tp` 的重定向别名，避免重复维护同一棵子树
 
 **权限等级：** 2
 
@@ -237,6 +247,18 @@ public:
 
 **用法：**
 - `/give <player> <item> [count]` - 给予指定玩家物品
+
+**权限等级：** 2
+
+#### ExperienceCommand - /experience 命令
+
+管理玩家经验值。
+
+**用法：**
+- `/experience add <targets> <amount> [points|levels]` - 增加经验
+- `/experience set <targets> <amount> [points|levels]` - 设置经验
+- `/experience query <targets> [points|levels]` - 查询经验
+- `/xp` 是 `/experience` 的重定向别名，避免重复维护同一棵树
 
 **权限等级：** 2
 

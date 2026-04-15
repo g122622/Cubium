@@ -5,7 +5,12 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/CommandResult.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
 #include <memory>
+#include <future>
+#include <cctype>
+#include <functional>
+#include <set>
 #include <vector>
 #include <unordered_set>
 #include <utility>
@@ -110,6 +115,14 @@ public:
         ParseResults<S> parseResult = parse(input, source);
         return execute(parseResult);
     }
+
+    /**
+     * @brief 获取命令建议
+     * @param input 命令输入
+     * @param source 命令源
+     * @return 异步建议结果
+     */
+    [[nodiscard]] std::future<Suggestions> getSuggestions(StringView input, S& source) const;
 
     /**
      * @brief 执行已解析的命令
@@ -335,81 +348,102 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
     NodePtr node,
     std::unique_ptr<CommandContext<S>> context
 ) const {
-    reader.skipWhitespace();
-    context->setCurrentNode(node);
+    std::unordered_set<const CommandNode<S>*> redirectStack;
 
-    if (!reader.canRead()) {
-        return ParseResults<S>(std::move(context), reader.getRemaining());
-    }
+    std::function<ParseResults<S>(StringReader&, NodePtr, std::unique_ptr<CommandContext<S>>)> parseRecursive;
+    parseRecursive = [&](StringReader& currentReader, NodePtr currentNode, std::unique_ptr<CommandContext<S>> currentContext) -> ParseResults<S> {
+        currentReader.skipWhitespace();
+        currentContext->setCurrentNode(currentNode);
 
-    ParseResults<S> bestSuccess;
-    bool hasBestSuccess = false;
-    ParseResults<S> bestFailure;
-    bool hasBestFailure = false;
-
-    auto considerResult = [&](ParseResults<S>&& candidate) {
-        if (candidate.isSuccess()) {
-            if (!hasBestSuccess ||
-                candidate.getRemaining().size() < bestSuccess.getRemaining().size()) {
-                bestSuccess = std::move(candidate);
-                hasBestSuccess = true;
-            }
-            return;
+        if (!currentReader.canRead()) {
+            return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
         }
 
-        if (!hasBestFailure || candidate.getErrorCursor() > bestFailure.getErrorCursor()) {
-            bestFailure = std::move(candidate);
-            hasBestFailure = true;
-        }
-    };
+        ParseResults<S> bestSuccess;
+        bool hasBestSuccess = false;
+        ParseResults<S> bestFailure;
+        bool hasBestFailure = false;
 
-    auto tryChildren = [&](NodeType expectedType) {
-        for (const auto& [name, child] : node->getChildren()) {
-            (void)name;
-            if (child->getType() != expectedType || !child->canUse(context->getSource())) {
-                continue;
+        auto considerResult = [&](ParseResults<S>&& candidate) {
+            if (candidate.isSuccess()) {
+                if (!hasBestSuccess ||
+                    candidate.getRemaining().size() < bestSuccess.getRemaining().size()) {
+                    bestSuccess = std::move(candidate);
+                    hasBestSuccess = true;
+                }
+                return;
             }
 
-            StringReader childReader = reader;
+            if (!hasBestFailure || candidate.getErrorCursor() > bestFailure.getErrorCursor()) {
+                bestFailure = std::move(candidate);
+                hasBestFailure = true;
+            }
+        };
+
+        auto tryChild = [&](const String& childName) {
+            auto child = currentNode->getChild(childName);
+            if (!child || !child->canUse(currentContext->getSource())) {
+                return;
+            }
+
+            StringReader childReader = currentReader;
             auto childContext = std::make_unique<CommandContext<S>>(
-                context->copyFor(context->getRootNode())
+                currentContext->copyFor(currentContext->getRootNode())
             );
 
             try {
                 child->parse(childReader, *childContext);
                 childContext->setCurrentNode(child);
-                considerResult(parseNodes(childReader, child, std::move(childContext)));
+
+                if (child->hasRedirect()) {
+                    auto redirectTarget = child->getRedirect();
+                    if (redirectTarget && redirectStack.insert(redirectTarget.get()).second) {
+                        considerResult(parseRecursive(childReader, redirectTarget, std::move(childContext)));
+                        redirectStack.erase(redirectTarget.get());
+                    } else {
+                        considerResult(parseRecursive(childReader, child, std::move(childContext)));
+                    }
+                } else {
+                    considerResult(parseRecursive(childReader, child, std::move(childContext)));
+                }
             } catch (const CommandException& e) {
-                considerResult(ParseResults<S>(e.withInput(context->getInput()), e.cursor()));
+                considerResult(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()));
             }
+        };
+
+        for (const auto& childName : currentNode->getLiterals()) {
+            tryChild(childName);
         }
+
+        for (const auto& childName : currentNode->getArguments()) {
+            tryChild(childName);
+        }
+
+        if (hasBestSuccess) {
+            return std::move(bestSuccess);
+        }
+
+        if (currentNode->hasCommand()) {
+            return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
+        }
+
+        if (hasBestFailure) {
+            return std::move(bestFailure);
+        }
+
+        return ParseResults<S>(
+            CommandException(
+                currentNode->getType() == NodeType::Root
+                    ? CommandErrorType::DispatcherUnknownCommand
+                    : CommandErrorType::DispatcherUnknownArgument,
+                currentNode->getType() == NodeType::Root ? "Unknown command" : "Unknown argument",
+                currentReader.getCursor()
+            ).withInput(currentContext->getInput()),
+            currentReader.getCursor()
+        );
     };
 
-    tryChildren(NodeType::Literal);
-    tryChildren(NodeType::Argument);
-
-    if (hasBestSuccess) {
-        return std::move(bestSuccess);
-    }
-
-    if (node->hasCommand()) {
-        return ParseResults<S>(std::move(context), reader.getRemaining());
-    }
-
-    if (hasBestFailure) {
-        return std::move(bestFailure);
-    }
-
-    return ParseResults<S>(
-        CommandException(
-            node->getType() == NodeType::Root
-                ? CommandErrorType::DispatcherUnknownCommand
-                : CommandErrorType::DispatcherUnknownArgument,
-            node->getType() == NodeType::Root ? "Unknown command" : "Unknown argument",
-            reader.getCursor()
-        ).withInput(context->getInput()),
-        reader.getCursor()
-    );
+    return parseRecursive(reader, node, std::move(context));
 }
 
 template<typename S>
@@ -439,16 +473,292 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse) {
 }
 
 template<typename S>
-std::vector<String> CommandDispatcher<S>::getPath(NodePtr /*node*/) const {
-    // TODO: 实现路径查找
+std::future<Suggestions> CommandDispatcher<S>::getSuggestions(StringView input, S& source) const {
+    StringReader reader(input);
+    if (reader.canRead() && reader.peek() == '/') {
+        reader.skip();
+    }
+
+    auto context = std::make_unique<CommandContext<S>>(source, input, m_root);
+    NodePtr currentNode = m_root;
+
+    auto startsWithIgnoreCase = [](StringView text, StringView prefix) {
+        if (prefix.size() > text.size()) {
+            return false;
+        }
+
+        for (size_t index = 0; index < prefix.size(); ++index) {
+            const unsigned char left = static_cast<unsigned char>(text[index]);
+            const unsigned char right = static_cast<unsigned char>(prefix[index]);
+            if (std::tolower(left) != std::tolower(right)) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    auto collectSuggestions = [&](NodePtr suggestionNode, CommandContext<S>& suggestionContext, i32 start, i32 end) {
+        Suggestions merged = Suggestions::empty();
+
+        if (!suggestionNode) {
+            return merged;
+        }
+
+        if (suggestionNode->hasRedirect()) {
+            suggestionNode = suggestionNode->getRedirect();
+        }
+
+        SuggestionsBuilder literalBuilder(input, start, end);
+        literalBuilder.suggestAll(suggestionNode->getLiterals());
+        merged = Suggestions::merge(merged, literalBuilder.build());
+
+        for (const auto& argumentName : suggestionNode->getArguments()) {
+            auto child = suggestionNode->getChild(argumentName);
+            if (!child || !child->canUse(suggestionContext.getSource())) {
+                continue;
+            }
+
+            SuggestionsBuilder argumentBuilder(input, start, end);
+            if (const auto& provider = child->getCustomSuggestions(); provider) {
+                merged = Suggestions::merge(merged, provider->getSuggestions(suggestionContext, argumentBuilder).get());
+            } else {
+                argumentBuilder.suggestAll(child->getExamples());
+                merged = Suggestions::merge(merged, argumentBuilder.build());
+            }
+        }
+
+        return merged;
+    };
+
+    while (true) {
+        reader.skipWhitespace();
+        context->setCurrentNode(currentNode);
+
+        if (!reader.canRead()) {
+            std::promise<Suggestions> promise;
+            promise.set_value(collectSuggestions(currentNode, *context, reader.getCursor(), reader.getCursor()));
+            return promise.get_future();
+        }
+
+        const i32 tokenStart = reader.getCursor();
+        StringReader tokenReader = reader;
+        String token = tokenReader.readUnquotedString();
+        const i32 tokenEnd = tokenReader.getCursor();
+
+        NodePtr matchedNode;
+        StringReader matchedReader = reader;
+        std::unique_ptr<CommandContext<S>> matchedContext;
+        bool matched = false;
+        bool hasLiteralPrefix = false;
+
+        for (const auto& childName : currentNode->getLiterals()) {
+            auto child = currentNode->getChild(childName);
+            if (!child || !child->canUse(context->getSource())) {
+                continue;
+            }
+
+            if (startsWithIgnoreCase(childName, token)) {
+                hasLiteralPrefix = true;
+            }
+
+            if (childName != token) {
+                continue;
+            }
+
+            matchedReader = tokenReader;
+            matchedContext = std::make_unique<CommandContext<S>>(context->copyFor(context->getRootNode()));
+            matchedContext->setCurrentNode(child);
+            matchedNode = child->hasRedirect() ? child->getRedirect() : child;
+            matched = true;
+            break;
+        }
+
+        if (!matched && hasLiteralPrefix && !token.empty()) {
+            std::promise<Suggestions> promise;
+            promise.set_value(collectSuggestions(currentNode, *context, tokenStart, tokenEnd));
+            return promise.get_future();
+        }
+
+        if (!matched) {
+            for (const auto& childName : currentNode->getArguments()) {
+                auto child = currentNode->getChild(childName);
+                if (!child || !child->canUse(context->getSource())) {
+                    continue;
+                }
+
+                StringReader childReader = reader;
+                auto childContext = std::make_unique<CommandContext<S>>(context->copyFor(context->getRootNode()));
+
+                try {
+                    child->parse(childReader, *childContext);
+                    childContext->setCurrentNode(child);
+                    matchedReader = childReader;
+                    matchedContext = std::move(childContext);
+                    matchedNode = child->hasRedirect() ? child->getRedirect() : child;
+                    matched = true;
+                    break;
+                } catch (const CommandException&) {
+                }
+            }
+        }
+
+        if (!matched) {
+            std::promise<Suggestions> promise;
+            promise.set_value(collectSuggestions(currentNode, *context, tokenStart, tokenEnd));
+            return promise.get_future();
+        }
+
+        reader = matchedReader;
+        context = std::move(matchedContext);
+        if (matchedNode) {
+            currentNode = matchedNode;
+        }
+    }
+}
+
+template<typename S>
+std::vector<String> CommandDispatcher<S>::getPath(NodePtr node) const {
+    if (!node) {
+        return {};
+    }
+
+    if (node == m_root) {
+        return {};
+    }
+
+    std::vector<String> currentPath;
+    std::vector<String> result;
+
+    std::function<bool(NodePtr)> collectPath = [&](NodePtr current) -> bool {
+        if (!current) {
+            return false;
+        }
+
+        if (current == node) {
+            result = currentPath;
+            return true;
+        }
+
+        for (const auto& childName : current->getLiterals()) {
+            auto child = current->getChild(childName);
+            if (!child) {
+                continue;
+            }
+
+            currentPath.push_back(child->getName());
+            if (collectPath(child)) {
+                return true;
+            }
+            currentPath.pop_back();
+        }
+
+        for (const auto& childName : current->getArguments()) {
+            auto child = current->getChild(childName);
+            if (!child) {
+                continue;
+            }
+
+            currentPath.push_back(child->getName());
+            if (collectPath(child)) {
+                return true;
+            }
+            currentPath.pop_back();
+        }
+
+        return false;
+    };
+
+    if (collectPath(m_root)) {
+        return result;
+    }
+
     return {};
 }
 
 template<typename S>
 void CommandDispatcher<S>::findAmbiguities(
-    std::function<void(NodePtr, NodePtr, const std::set<String>&)> /*callback*/
+    std::function<void(NodePtr, NodePtr, const std::set<String>&)> callback
 ) const {
-    // TODO: 实现歧义检测
+    if (!callback) {
+        return;
+    }
+
+    auto toLower = [](const String& value) {
+        String result = value;
+        for (char& character : result) {
+            if (character >= 'A' && character <= 'Z') {
+                character = static_cast<char>(character - 'A' + 'a');
+            }
+        }
+        return result;
+    };
+
+    auto collectCandidates = [&](NodePtr child) {
+        std::set<String> candidates;
+        if (!child) {
+            return candidates;
+        }
+
+        if (child->getType() == NodeType::Literal) {
+            candidates.insert(toLower(child->getName()));
+            return candidates;
+        }
+
+        for (const auto& example : child->getExamples()) {
+            candidates.insert(toLower(example));
+        }
+
+        return candidates;
+    };
+
+    std::function<void(NodePtr)> visit;
+    visit = [&](NodePtr current) {
+        if (!current) {
+            return;
+        }
+
+        std::vector<NodePtr> children;
+        children.reserve(current->getLiterals().size() + current->getArguments().size());
+
+        for (const auto& childName : current->getLiterals()) {
+            auto child = current->getChild(childName);
+            if (child) {
+                children.push_back(child);
+            }
+        }
+
+        for (const auto& childName : current->getArguments()) {
+            auto child = current->getChild(childName);
+            if (child) {
+                children.push_back(child);
+            }
+        }
+
+        for (size_t leftIndex = 0; leftIndex < children.size(); ++leftIndex) {
+            for (size_t rightIndex = leftIndex + 1; rightIndex < children.size(); ++rightIndex) {
+                const auto leftCandidates = collectCandidates(children[leftIndex]);
+                const auto rightCandidates = collectCandidates(children[rightIndex]);
+
+                std::set<String> ambiguous;
+                for (const auto& candidate : leftCandidates) {
+                    if (rightCandidates.find(candidate) != rightCandidates.end()) {
+                        ambiguous.insert(candidate);
+                    }
+                }
+
+                if (!ambiguous.empty()) {
+                    callback(children[leftIndex], children[rightIndex], ambiguous);
+                }
+            }
+        }
+
+        for (const auto& child : children) {
+            visit(child);
+        }
+    };
+
+    visit(m_root);
 }
 
 } // namespace mc::command

@@ -399,6 +399,12 @@ enum class Operation : u8 { ... };
     - `ServerWorld::setOnBlockChanged()` now feeds `BlockUpdateSyncManager`; same-coordinate dedupe and tick-end flush must stay centralized.
 - When testing `ServerWorld::setBlock()`, initialize the world first.
     - Uninitialized worlds hit the light-update assert path (`MC_ASSERT_RELEASE(false)`) because `m_lightManager` is null.
+- Command aliases should use `CommandNode::setRedirect(...)` instead of duplicating child subtrees.
+    - `/teleport` and `/xp` now rely on redirects so the command tree, help output, and suggestions all stay in sync.
+- `CommandDispatcher::getSuggestions()` is the canonical tab-completion entry point.
+    - Attach dynamic completion data through `CommandNode::setCustomSuggestions(...)` instead of hardcoding tab lists in commands.
+- `CommandRegistry::getCommandNames()` is derived from the dispatcher tree.
+    - Help output automatically tracks aliases and future command registrations, so do not reintroduce a separate manual name list.
 - Do not link `spdlog::spdlog` or `GTest::gtest` directly into executables that already consume `mc_common` or `GTest::gtest_main`.
     - Apple ld will emit duplicate-library warnings when the same static library appears twice on the final link line.
 - On AppleClang, no-argument `MC_TRACE_EVENT(...)` or `MC_TRACE_*` calls can still trigger `-Wvariadic-macro-arguments-omitted`.

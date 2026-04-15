@@ -1,7 +1,6 @@
 #include "TeleportCommand.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include <sstream>
 
@@ -15,6 +14,12 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     tpNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+
+    auto teleportNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teleport");
+    teleportNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
+    teleportNode->setRedirect(tpNode);
 
     // /tp <target> - 传送到目标实体
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
@@ -48,6 +53,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     tpNode->addChild(xPosArg);
 
     dispatcher.registerCommand(tpNode);
+    dispatcher.registerCommand(teleportNode);
 }
 
 i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& context) {

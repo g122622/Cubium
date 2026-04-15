@@ -4,6 +4,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <algorithm>
 #include "common/command/StringReader.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandContext.hpp"
@@ -459,6 +460,57 @@ TEST_F(CommandDispatcherTest, ExecuteFailsOnUnknownExtraArgument) {
     auto result = dispatcher.execute("list extra", source);
 
     EXPECT_TRUE(result.failed());
+}
+
+TEST_F(CommandDispatcherTest, ExecuteRedirectAlias) {
+    CommandDispatcher<int> dispatcher;
+
+    auto target = std::make_shared<LiteralCommandNode<int>>("target");
+    target->setCommand([](CommandContext<int>&) {
+        return 42;
+    });
+
+    auto alias = std::make_shared<LiteralCommandNode<int>>("alias");
+    alias->setRedirect(target);
+
+    dispatcher.registerCommand(target);
+    dispatcher.registerCommand(alias);
+
+    int source = 0;
+    auto result = dispatcher.execute("alias", source);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().isSuccess());
+    EXPECT_EQ(result.value().result(), 42);
+}
+
+TEST_F(CommandDispatcherTest, SuggestionsFollowRedirectedNode) {
+    CommandDispatcher<int> dispatcher;
+
+    auto target = std::make_shared<LiteralCommandNode<int>>("experience");
+    auto amountArg = std::make_shared<ArgumentCommandNode<int, i32>>(
+        "mode",
+        IntegerArgumentType::integer()
+    );
+    target->addChild(amountArg);
+
+    auto alias = std::make_shared<LiteralCommandNode<int>>("xp");
+    alias->setRedirect(target);
+
+    dispatcher.registerCommand(target);
+    dispatcher.registerCommand(alias);
+
+    int source = 0;
+    auto suggestions = dispatcher.getSuggestions("xp ", source).get();
+
+    ASSERT_FALSE(suggestions.isEmpty());
+    const auto& list = suggestions.getList();
+    EXPECT_TRUE(std::any_of(list.begin(), list.end(), [](const Suggestion& suggestion) {
+        return suggestion.getText() == "0";
+    }));
+    EXPECT_TRUE(std::any_of(list.begin(), list.end(), [](const Suggestion& suggestion) {
+        return suggestion.getText() == "123";
+    }));
 }
 
 // ========== ICommandSource Tests ==========

@@ -13,7 +13,7 @@ src/common/command/suggestions/
 
 ### Suggestions.hpp
 
-**职责**：提供命令自动补全建议的完整基础设施，包括建议对象、构建器、提供者接口。
+**职责**：提供命令自动补全建议的完整基础设施，包括建议对象、构建器、提供者接口，并供命令分发器和参数节点直接使用。
 
 #### 核心类
 
@@ -49,6 +49,7 @@ classDiagram
         +suggest(start, text) SuggestionsBuilder&
         +suggestAll(candidates) SuggestionsBuilder&
         +build() Suggestions
+        +buildFuture() future~Suggestions~
         +getInput() StringView
         +getRemaining() StringView
         +getStart() i32
@@ -111,12 +112,15 @@ classDiagram
 | `m_start` | 建议起始位置 |
 | `m_remaining` | 剩余未解析部分 |
 
+`SuggestionsBuilder` 现在可以指定一个 token 范围来构建建议，因此像 `/tp 1 2 3` 这种带后续输入的场景不会把后面的内容误当作当前前缀。
+
 **核心方法**：
 
 - `suggest(text)` - 添加简单建议
 - `suggest(text, tooltip)` - 添加带工具提示的建议
 - `suggestAll(candidates)` - 添加候选词列表（自动过滤匹配前缀）
 - `createOffset(offset)` - 创建子构建器
+- `buildFuture()` - 返回一个已就绪的异步结果，便于和提供者接口衔接
 
 #### ISuggestionProvider 接口
 
@@ -137,6 +141,8 @@ public:
 #### CandidateSuggestionProvider 类
 
 基于预定义候选词列表的建议提供者实现。
+
+可以直接挂到命令节点上，然后由 `CommandDispatcher::getSuggestions()` 自动汇总。
 
 - 从候选词列表中过滤匹配当前输入前缀的词
 - 返回 `std::future<Suggestions>` 支持异步操作

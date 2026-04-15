@@ -11,6 +11,7 @@
 #include "commands/WeatherCommand.hpp"
 #include "commands/ExperienceCommand.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 namespace mc {
 namespace command {
@@ -27,6 +28,10 @@ Result<i32> CommandRegistry::execute(const String& input, ServerCommandSource& s
         return result.value().result();
     }
     return result.error();
+}
+
+std::future<Suggestions> CommandRegistry::getSuggestions(const String& input, ServerCommandSource& source) {
+    return m_dispatcher.getSuggestions(input, source);
 }
 
 void CommandRegistry::registerDefaults() {
@@ -46,24 +51,27 @@ void CommandRegistry::registerDefaults() {
     ClearCommand::registerTo(m_dispatcher);
     WeatherCommand::registerTo(m_dispatcher);
     ExperienceCommand::registerTo(m_dispatcher);
-
-    // 记录命令名称
-    m_commandNames = {
-        "gamemode", "time", "kill", "list", "help", "seed", "tp", "give", "clear", "weather",
-        "experience", "xp"
-    };
-    m_commandNameSet = std::unordered_set<String>(m_commandNames.begin(), m_commandNames.end());
     m_defaultsRegistered = true;
 
-    spdlog::info("[CommandRegistry] Registered {} default commands", m_commandNames.size());
+    spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());
 }
 
 std::vector<String> CommandRegistry::getCommandNames() const {
-    return m_commandNames;
+    std::vector<String> names;
+    const auto& children = m_dispatcher.getRoot()->getChildren();
+    names.reserve(children.size());
+
+    for (const auto& [name, child] : children) {
+        (void)child;
+        names.push_back(name);
+    }
+
+    std::sort(names.begin(), names.end());
+    return names;
 }
 
 bool CommandRegistry::hasCommand(const String& name) const {
-    return m_commandNameSet.find(name) != m_commandNameSet.end();
+    return m_dispatcher.getRoot()->getChild(name) != nullptr;
 }
 
 CommandRegistry& CommandRegistry::getGlobal() {

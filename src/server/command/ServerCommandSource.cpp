@@ -3,6 +3,7 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -109,9 +110,19 @@ ServerCommandSource ServerCommandSource::withFeedbackDisabled() const {
     return source;
 }
 
+ServerCommandSource ServerCommandSource::withSuppressedOutput() const {
+    return withFeedbackDisabled();
+}
+
 ServerCommandSource ServerCommandSource::withPermissionLevel(i32 level) const {
     ServerCommandSource source(*this);
     source.m_permissionLevel = level;
+    return source;
+}
+
+ServerCommandSource ServerCommandSource::withMaximumPermission(i32 level) const {
+    ServerCommandSource source(*this);
+    source.m_permissionLevel = std::max(source.m_permissionLevel, level);
     return source;
 }
 

@@ -2,7 +2,6 @@
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include <memory>
 
@@ -17,6 +16,7 @@ namespace command {
  * - /tp <x> <y> <z> - 传送到坐标
  * - /tp <target> <destination> - 将目标传送到目的地
  * - /tp <target> <x> <y> <z> - 将目标传送到坐标
+ * - /teleport ... - /tp 的重定向别名
  *
  * 权限等级：2
  *

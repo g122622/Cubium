@@ -1,13 +1,13 @@
 # Command System
 
-命令系统模块，提供 Minecraft 风格的命令解析和执行框架。
+命令系统模块，提供 Minecraft 风格的命令解析、执行、建议和重定向框架。
 
 ## 目录结构
 
 ```
 common/command/
-├── CommandDispatcher.hpp    # 命令分发器（核心引擎）
-├── CommandNode.hpp          # 命令节点（树结构）
+├── CommandDispatcher.hpp    # 命令分发器（解析、执行、建议、重定向）
+├── CommandNode.hpp          # 命令节点（树结构、重定向、自定义建议）
 ├── CommandContext.hpp       # 命令上下文
 ├── CommandResult.hpp        # 执行结果
 ├── CommandSource.hpp        # 命令源（玩家/控制台）
@@ -34,7 +34,9 @@ common/command/
 - 注册命令节点到命令树
 - 解析命令字符串（支持 `/` 前缀自动跳过）
 - 执行已解析的命令
-- 提供命令路径查询和歧义检测
+- 提供命令路径查询、歧义检测和建议生成
+- 优先遍历字面量节点，再遍历参数节点，保持解析顺序更接近原版 Brigadier
+- 支持节点重定向，可用于别名命令和未来的上下文切换命令
 
 ```cpp
 CommandDispatcher<CommandSource> dispatcher;
@@ -61,6 +63,8 @@ auto result = dispatcher.execute("gamemode", source);
 - 权限检查（`RequirementPredicate`）
 - 命令执行回调
 - 重定向支持
+- 自定义建议提供器
+- 节点示例值（用于帮助和补全）
 
 ```cpp
 auto literal = std::make_shared<LiteralCommandNode<Source>>("test");
@@ -182,6 +186,10 @@ class CommandException : public std::runtime_error {
 #### Suggestions.hpp
 **自动补全建议系统**
 
+- `SuggestionsBuilder` 支持按 token 范围构建建议，避免把后续输入误当作当前补全前缀
+- `CandidateSuggestionProvider` 之类的提供器可以挂到参数节点上
+- `CommandDispatcher::getSuggestions()` 会自动汇总当前节点下的字面量和参数建议
+
 ```cpp
 SuggestionsBuilder builder("gam", 0);
 builder.suggest("gamemode").suggest("give");
@@ -196,12 +204,14 @@ class CandidateSuggestionProvider : public ISuggestionProvider<S>;
 
 ```
 CommandDispatcher.hpp
+    ├── Suggestions.hpp
     ├── CommandNode.hpp
     ├── CommandContext.hpp
     ├── StringReader.hpp
     └── CommandResult.hpp
 
 CommandNode.hpp
+    ├── Suggestions.hpp
     ├── CommandExceptions.hpp
     ├── CommandResult.hpp
     ├── StringReader.hpp

@@ -5,6 +5,7 @@
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
 #include <string>
 #include <memory>
 #include <vector>
@@ -74,6 +75,8 @@ public:
 
     [[nodiscard]] virtual NodeType getType() const noexcept = 0;
     [[nodiscard]] virtual String getName() const noexcept = 0;
+    [[nodiscard]] virtual String getTypeName() const { return getName(); }
+    [[nodiscard]] virtual std::vector<String> getExamples() const { return {}; }
     virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
     [[nodiscard]] const String& getUsageText() const { return m_usageText; }
@@ -84,6 +87,27 @@ public:
     [[nodiscard]] bool hasCommand() const noexcept { return m_command != nullptr; }
     [[nodiscard]] const CommandCallback<S>& getCommand() const noexcept { return m_command; }
     void setCommand(CommandCallback<S> command) { m_command = std::move(command); }
+
+    /**
+     * @brief 检查是否携带自定义建议提供器
+     */
+    [[nodiscard]] bool hasCustomSuggestions() const noexcept {
+        return static_cast<bool>(m_customSuggestions);
+    }
+
+    /**
+     * @brief 获取自定义建议提供器
+     */
+    [[nodiscard]] const std::shared_ptr<ISuggestionProvider<S>>& getCustomSuggestions() const noexcept {
+        return m_customSuggestions;
+    }
+
+    /**
+     * @brief 设置自定义建议提供器
+     */
+    void setCustomSuggestions(std::shared_ptr<ISuggestionProvider<S>> provider) {
+        m_customSuggestions = std::move(provider);
+    }
 
     // ========== 权限 ==========
 
@@ -123,10 +147,20 @@ public:
     // ========== 重定向 ==========
 
     [[nodiscard]] std::shared_ptr<CommandNode<S>> getRedirect() const noexcept { return m_redirect; }
+    [[nodiscard]] bool hasRedirect() const noexcept { return static_cast<bool>(m_redirect); }
     [[nodiscard]] RedirectModifier getRedirectModifier() const noexcept { return m_redirectModifier; }
 
-    void setRedirect(std::shared_ptr<CommandNode<S>> target,
-                     RedirectModifier modifier = RedirectModifier::Single) {
+    /**
+     * @brief 设置重定向目标
+     */
+    void setRedirect(std::shared_ptr<CommandNode<S>> target) {
+        setRedirect(std::move(target), RedirectModifier::Single);
+    }
+
+    /**
+     * @brief 设置重定向目标和模式
+     */
+    void setRedirect(std::shared_ptr<CommandNode<S>> target, RedirectModifier modifier) {
         m_redirect = std::move(target);
         m_redirectModifier = modifier;
     }
@@ -155,6 +189,7 @@ protected:
 
     CommandCallback<S> m_command;
     RequirementPredicate<S> m_requirement = [](const S&) { return true; };
+    std::shared_ptr<ISuggestionProvider<S>> m_customSuggestions;
     std::unordered_map<String, std::shared_ptr<CommandNode<S>>> m_children;
     std::set<String> m_literals;
     std::set<String> m_arguments;
@@ -256,6 +291,13 @@ public:
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Argument; }
     [[nodiscard]] String getName() const noexcept override { return m_name; }
+    [[nodiscard]] String getTypeName() const override {
+        return m_argumentType ? m_argumentType->getTypeName() : "argument";
+    }
+
+    [[nodiscard]] std::vector<String> getExamples() const override {
+        return m_argumentType ? m_argumentType->getExamples() : std::vector<String>{};
+    }
 
     void parse(StringReader& reader, CommandContext<S>& context) const override {
         const i32 start = reader.getCursor();
@@ -281,14 +323,11 @@ public:
     }
 
     /**
-     * @brief 获取参数类型名称（用于帮助信息）
+     * @brief 获取底层参数类型
      */
-    [[nodiscard]] virtual String getTypeName() const { return "argument"; }
-
-    /**
-     * @brief 获取示例值列表
-     */
-    [[nodiscard]] virtual std::vector<String> getExamples() const { return {}; }
+    [[nodiscard]] std::shared_ptr<ArgumentType<T>> getArgumentType() const noexcept {
+        return m_argumentType;
+    }
 
     bool equals(const CommandNode<S>& other) const override {
         if (!CommandNode<S>::equals(other)) return false;

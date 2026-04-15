@@ -1,13 +1,17 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include <string>
-#include <vector>
-#include <functional>
-#include <future>
 #include <algorithm>
+#include <cctype>
+#include <future>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::command {
+
+template<typename S>
+class CommandContext;
 
 /**
  * @brief 建议文本
@@ -41,10 +45,6 @@ public:
             result += input.substr(0, static_cast<size_t>(m_start));
         }
         result += m_text;
-        size_t end = static_cast<size_t>(m_start + m_text.length());
-        if (end < input.length()) {
-            // 保留剩余部分（通常不需要）
-        }
         return result;
     }
 
@@ -111,9 +111,20 @@ private:
 class SuggestionsBuilder {
 public:
     explicit SuggestionsBuilder(StringView input, i32 start = 0)
+        : SuggestionsBuilder(input, start, static_cast<i32>(input.size())) {}
+
+    /**
+     * @brief 构建指定范围的建议构建器
+     * @param input 原始输入
+     * @param start 建议起始位置
+     * @param end 建议结束位置（开区间）
+     */
+    SuggestionsBuilder(StringView input, i32 start, i32 end)
         : m_input(input)
         , m_start(start)
-        , m_remaining(input.substr(static_cast<size_t>(start))) {}
+        , m_remaining(input.substr(
+              static_cast<size_t>(start),
+              static_cast<size_t>(std::max<i32>(0, end - start)))) {}
 
     /**
      * @brief 添加建议
@@ -159,6 +170,15 @@ public:
         return Suggestions(m_suggestions);
     }
 
+    /**
+     * @brief 构建一个已就绪的异步结果
+     */
+    [[nodiscard]] std::future<Suggestions> buildFuture() const {
+        std::promise<Suggestions> promise;
+        promise.set_value(build());
+        return promise.get_future();
+    }
+
     [[nodiscard]] StringView getInput() const noexcept { return m_input; }
     [[nodiscard]] StringView getRemaining() const noexcept { return m_remaining; }
     [[nodiscard]] i32 getStart() const noexcept { return m_start; }
@@ -174,7 +194,9 @@ private:
     static bool startsWith(StringView str, StringView prefix) {
         if (prefix.length() > str.length()) return false;
         for (size_t i = 0; i < prefix.length(); ++i) {
-            if (std::tolower(str[i]) != std::tolower(prefix[i])) {
+            const unsigned char left = static_cast<unsigned char>(str[i]);
+            const unsigned char right = static_cast<unsigned char>(prefix[i]);
+            if (std::tolower(left) != std::tolower(right)) {
                 return false;
             }
         }
@@ -222,15 +244,8 @@ public:
         CommandContext<S>& /*context*/,
         SuggestionsBuilder& builder
     ) override {
-        for (const auto& candidate : m_candidates) {
-            StringView remaining = builder.getRemaining();
-            if (candidate.rfind(String(remaining), 0) == 0) {
-                builder.suggest(candidate);
-            }
-        }
-        std::promise<Suggestions> promise;
-        promise.set_value(builder.build());
-        return promise.get_future();
+        builder.suggestAll(m_candidates);
+        return builder.buildFuture();
     }
 
 private:
