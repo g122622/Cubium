@@ -3,6 +3,7 @@
 #include "../../kagero/widget/ContainerWidget.hpp"
 #include "../../kagero/paint/PaintContext.hpp"
 #include "../../../chat/ChatHistory.hpp"
+#include "client/command/ClientCommandManager.hpp"
 #include <functional>
 #include <chrono>
 
@@ -56,6 +57,14 @@ public:
      * @brief 设置命令回调
      */
     void setCommandCallback(CommandCallback callback) { m_commandCallback = std::move(callback); }
+
+    /**
+     * @brief 设置命令补全管理器
+     */
+    void setCommandManager(mc::client::command::ClientCommandManager* commandManager) {
+        m_commandManager = commandManager;
+        updateCommandSuggestions();
+    }
 
     // ========== 状态 ==========
 
@@ -191,6 +200,31 @@ private:
     void updateCursorBlink(f32 dt);
 
     /**
+     * @brief 更新命令补全建议
+     */
+    void updateCommandSuggestions();
+
+    /**
+     * @brief 清空命令补全建议
+     */
+    void clearCommandSuggestions();
+
+    /**
+     * @brief 接受当前命令补全建议
+     */
+    void acceptCommandSuggestion();
+
+    /**
+     * @brief 渲染命令补全列表
+     */
+    void renderCommandSuggestions(kagero::widget::PaintContext& ctx);
+
+    /**
+     * @brief 判断当前输入是否为命令
+     */
+    [[nodiscard]] bool isCommandInput() const;
+
+    /**
      * @brief 渲染消息列表
      */
     void renderMessages(kagero::widget::PaintContext& ctx);
@@ -213,6 +247,10 @@ private:
 
     Font* m_font = nullptr;
     renderer::trident::gui::GuiRenderer* m_gui = nullptr;
+    mc::client::command::ClientCommandManager* m_commandManager = nullptr;
+
+    mc::command::Suggestions m_commandSuggestions;
+    size_t m_selectedCommandSuggestion = 0;
 
     // 光标闪烁
     f32 m_cursorBlinkTimer = 0.0f;

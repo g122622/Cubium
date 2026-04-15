@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandTreeSnapshot.hpp"
 #include "ServerCommandSource.hpp"
 #include <memory>
 #include <future>
@@ -53,6 +54,16 @@ public:
      * @return 异步建议结果
      */
     [[nodiscard]] std::future<Suggestions> getSuggestions(const String& input, ServerCommandSource& source);
+
+    /**
+     * @brief 获取命令树快照
+     */
+    [[nodiscard]] CommandTreeSnapshot getCommandTreeSnapshot() const;
+
+    /**
+     * @brief 获取命令树 JSON
+     */
+    [[nodiscard]] String getCommandTreeJson() const;
 
     // ========== 命令注册 ==========
 

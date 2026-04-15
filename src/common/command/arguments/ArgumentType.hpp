@@ -4,6 +4,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -45,6 +46,14 @@ public:
      */
     [[nodiscard]] virtual std::vector<String> getExamples() const {
         return {};
+    }
+
+    /**
+     * @brief 序列化参数类型元数据
+     * @return 用于命令树同步的类型元数据
+     */
+    [[nodiscard]] virtual nlohmann::json serializeMetadata() const {
+        return nlohmann::json::object();
     }
 };
 
@@ -104,6 +113,10 @@ public:
                 return {"word", "\"quoted phrase\"", "multiple words"};
         }
         return {};
+    }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override {
+        return nlohmann::json{{"mode", getTypeName()}};
     }
 
     // ========== 静态工厂方法 ==========
@@ -175,6 +188,10 @@ public:
         return {"0", "123", "-123"};
     }
 
+    [[nodiscard]] nlohmann::json serializeMetadata() const override {
+        return nlohmann::json{{"min", m_min}, {"max", m_max}};
+    }
+
     // ========== 静态工厂方法 ==========
 
     static std::shared_ptr<IntegerArgumentType> integer() {
@@ -243,6 +260,10 @@ public:
         return {"0", "1.5", "-2.5"};
     }
 
+    [[nodiscard]] nlohmann::json serializeMetadata() const override {
+        return nlohmann::json{{"min", m_min}, {"max", m_max}};
+    }
+
     // ========== 静态工厂方法 ==========
 
     static std::shared_ptr<FloatArgumentType> floatArg() {
@@ -283,6 +304,10 @@ public:
 
     [[nodiscard]] std::vector<String> getExamples() const override {
         return {"true", "false"};
+    }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override {
+        return nlohmann::json::object();
     }
 
     static std::shared_ptr<BoolArgumentType> boolArg() {
@@ -346,6 +371,10 @@ public:
 
     [[nodiscard]] std::vector<String> getExamples() const override {
         return m_names;
+    }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override {
+        return nlohmann::json{{"values", m_names}};
     }
 
     // ========== 静态方法 ==========

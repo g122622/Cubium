@@ -4,7 +4,7 @@
 
 ## 目录结构
 
-```
+```text
 src/client/network/
 ├── NetworkClient.hpp    # 网络客户端头文件
 └── NetworkClient.cpp    # 网络客户端实现
@@ -21,7 +21,7 @@ src/client/network/
 #### 1. 客户端状态枚举 (`ClientState`)
 
 | 状态 | 值 | 说明 |
-|------|---|------|
+| ------ | --- | ------ |
 | `Disconnected` | 0 | 已断开连接 |
 | `Connecting` | 1 | 正在连接中 |
 | `LoggingIn` | 2 | 正在登录 |
@@ -31,7 +31,7 @@ src/client/network/
 #### 2. 客户端配置结构 (`NetworkClientConfig`)
 
 | 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| ------ | ------ | ------ | ------ |
 | `serverAddress` | String | "127.0.0.1" | 服务器地址 |
 | `serverPort` | u16 | 25565 | 服务器端口 |
 | `username` | String | "Player" | 用户名 |
@@ -50,6 +50,7 @@ src/client/network/
 **登录事件**:
 - `onLoginSuccess(playerId, username)`: 登录成功
 - `onLoginFailed(reason)`: 登录失败
+- `onCommandTree(treeJson)`: 接收服务端命令树快照
 
 **游戏事件**:
 - `onTeleport(x, y, z, yaw, pitch, teleportId)`: 传送
@@ -233,6 +234,7 @@ processPacket(data, size)
 | `handlePlayerAbilities` | PlayerAbilities | 玩家能力 |
 | `handleLightUpdate` | LightUpdate | 光照更新 |
 | `handleBlockBreakAnim` | BlockBreakAnim | 方块破坏动画 |
+| `handleCommandTree` | CommandTree | 命令树同步 |
 
 ## 文件关系图
 
@@ -248,6 +250,7 @@ graph TB
         ProtocolPackets[ProtocolPackets.hpp<br/>协议数据包]
         EntityPackets[EntityPackets.hpp<br/>实体数据包]
         InventoryPackets[InventoryPackets.hpp<br/>背包包]
+        CommandTree[CommandTreePacket.hpp<br/>命令树包]
         LocalConnection[LocalConnection.hpp<br/>本地连接]
     end
 
@@ -265,6 +268,7 @@ graph TB
     NetworkClient --> ProtocolPackets
     NetworkClient --> EntityPackets
     NetworkClient --> InventoryPackets
+    NetworkClient --> CommandTree
     NetworkClient --> LocalConnection
 
     ClientApplication --> NetworkClient
@@ -306,6 +310,7 @@ flowchart LR
         C1[回调事件<br/>区块/实体/天气等]
         C2[发送数据包<br/>移动/交互/聊天]
         C3[统计信息<br/>延迟/流量]
+        C4[命令树 JSON]
     end
 
     A1 --> B1
@@ -315,6 +320,7 @@ flowchart LR
     B1 --> B3
     B3 --> B4
     B4 --> C1
+    B3 --> C4
 
     B2 --> C2
     B1 --> C3
@@ -579,6 +585,7 @@ m_callbacks.onEntityMove(
 |---------|---------|
 | `LocalServerConnectionTest.cpp` | 本地连接测试，验证 `LocalEndpoint` 和 `LocalConnectionPair` |
 | `EntityPacketsTest.cpp` | 实体数据包序列化/反序列化测试 |
+| `ClientCommandManagerTest.cpp` | 命令树包往返和本地补全测试 |
 
 **测试覆盖场景**:
 

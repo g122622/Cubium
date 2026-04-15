@@ -34,6 +34,14 @@ std::future<Suggestions> CommandRegistry::getSuggestions(const String& input, Se
     return m_dispatcher.getSuggestions(input, source);
 }
 
+CommandTreeSnapshot CommandRegistry::getCommandTreeSnapshot() const {
+    return buildCommandTreeSnapshot(m_dispatcher);
+}
+
+String CommandRegistry::getCommandTreeJson() const {
+    return getCommandTreeSnapshot().toJsonString();
+}
+
 void CommandRegistry::registerDefaults() {
     if (m_defaultsRegistered) {
         return;

@@ -1,6 +1,7 @@
 #include "NetworkClient.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
@@ -488,6 +489,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::CommandTree: {
+            handleCommandTree(data, size);
+            break;
+        }
+
         case network::PacketType::Teleport: {
             handleTeleport(bodyDeser);
             break;
@@ -727,6 +733,19 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
             m_callbacks.onLoginFailed(response.message());
         }
         disconnect(response.message());
+    }
+}
+
+void NetworkClient::handleCommandTree(const u8* data, size_t size) {
+    network::CommandTreePacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("[NetworkClient::handleCommandTree] Failed to deserialize command tree packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onCommandTree) {
+        m_callbacks.onCommandTree(packet.treeJson());
     }
 }
 

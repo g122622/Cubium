@@ -162,6 +162,8 @@ add_executable(mc_tests
     common/world/gen/test_vegetation_features.cpp
     # 世界生成确定性测试
     common/world/gen/WorldGenDeterminismTest.cpp
+    # 客户端命令树同步与补全测试
+    client/command/ClientCommandManagerTest.cpp
     # 光照系统测试
     lighting/LightingTest.cpp
     lighting/LightUpdateTest.cpp
@@ -515,6 +517,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/OpenALBackend.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/UnderwaterAmbientHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/command/ClientCommandManager.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，在测试中暂时排除
 )
 

@@ -52,6 +52,8 @@ src/client/application/
 | `m_kageroEngine` | `KageroEngine` | Kagero UI 引擎 |
 | `m_integratedServer` | `IntegratedServer` | 内置服务端（单机模式） |
 | `m_networkClient` | `NetworkClient` | 网络客户端 |
+| `m_commandManager` | `ClientCommandManager` | 本地命令树与补全管理 |
+| `m_knownPlayerNames` | `unordered_map` | 聊天补全候选缓存 |
 
 ### ClientApplication.cpp
 
@@ -101,11 +103,12 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 5. **窗口创建** - 创建 GLFW 窗口
 6. **渲染器初始化** - 初始化 Trident Vulkan 渲染引擎及所有子渲染器
 7. **内置服务端** - 启动 IntegratedServer（单机模式）
-8. **网络连接** - 连接到服务端
-9. **世界初始化** - 初始化 ClientWorld 和网格构建系统（`MeshBuildScheduler` + `MeshWorkerPool`）
-10. **物理引擎** - 创建 PhysicsEngine
-11. **玩家实体** - 创建 Player 实体
-12. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层
+8. **网络连接** - 连接到服务端并等待命令树同步
+9. **命令树同步** - 接收 `CommandTreePacket`，创建本地补全管理器
+10. **世界初始化** - 初始化 ClientWorld 和网格构建系统（`MeshBuildScheduler` + `MeshWorkerPool`）
+11. **物理引擎** - 创建 PhysicsEngine
+12. **玩家实体** - 创建 Player 实体
+13. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层
 
 #### 主循环详解
 
@@ -146,6 +149,7 @@ void ClientApplication::setupNetworkCallbacks()
 | `onLoginSuccess` | 登录成功 |
 | `onLoginFailed` | 登录失败 |
 | `onDisconnected` | 断开连接 |
+| `onCommandTree` | 接收服务端命令树快照 |
 | `onChunkData` | 接收区块数据 |
 | `onChunkUnload` | 卸载区块 |
 | `onTeleport` | 传送玩家 |
@@ -155,6 +159,8 @@ void ClientApplication::setupNetworkCallbacks()
 | `onOpenContainer` | 打开容器 |
 | `onContainerContent` | 容器内容同步 |
 | `onSpawnMob` | 生成生物 |
+| `onPlayerSpawn` | 玩家生成，刷新命令补全候选 |
+| `onPlayerDespawn` | 玩家消失，移除补全候选 |
 | `onSpawnEntity` | 生成实体 |
 | `onEntityMove` | 实体移动 |
 | `onEntityTeleport` | 实体传送 |
@@ -514,6 +520,7 @@ ClientApplication 模块目前没有直接的单元测试，但其依赖的子�
 | 资源管理 | `tests/client/resource/test_model_loader.cpp` | 模型加载器测试 |
 | 网格工作池 | `tests/client/test_mesh_worker_pool.cpp` | 网格执行线程池测试 |
 | 网格调度器 | `tests/client/test_mesh_build_scheduler.cpp` | 视锥/距离优先与取消策略测试 |
+| 命令补全 | `tests/client/command/ClientCommandManagerTest.cpp` | 命令树包往返和本地补全测试 |
 | UI 组件 | `tests/client/ui/kagero/widget/*.cpp` | Kagero UI 组件测试 |
 
 ### 集成测试建议

@@ -34,6 +34,7 @@ add_library(mc_common STATIC
     # Network - Packet
     network/packet/Packet.cpp
     network/packet/PacketSerializer.cpp
+    network/packet/CommandTreePacket.cpp
     network/packet/InventoryPackets.cpp
     network/packet/ContainerPacketHandler.cpp
     network/packet/EntityPackets.cpp
@@ -339,6 +340,9 @@ add_library(mc_common STATIC
 
     # Screen
     screen/ScreenType.cpp
+
+    # Command
+    command/CommandTreeSnapshot.cpp
 
     # World - Block System
     world/block/Material.cpp

@@ -35,6 +35,7 @@
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
+#include "client/command/ClientCommandManager.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "minecraft-reborn/version.h"
@@ -583,6 +584,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
         // 初始化网络客户端
         m_networkClient = std::make_unique<NetworkClient>();
+        m_commandManager = std::make_unique<command::ClientCommandManager>();
+        m_commandManager->setPlayerNameProvider([this]() {
+            return collectPlayerCompletionCandidates();
+        });
+        m_commandManager->setEntityNameProvider([this]() {
+            return collectEntityCompletionCandidates();
+        });
         setupNetworkCallbacks();
 
         NetworkClientConfig clientConfig;
@@ -893,6 +901,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 auto chatWidget = std::make_unique<ui::minecraft::widgets::ChatWidget>();
                 chatWidget->setFont(guiFont);
                 chatWidget->setGuiRenderer(&m_renderer->guiRenderer());
+                chatWidget->setCommandManager(m_commandManager.get());
                 chatWidget->setCommandCallback([this](const String& input) {
                     handleChatCommand(input);
                 });
@@ -1887,15 +1896,35 @@ void ClientApplication::setupNetworkCallbacks()
         if (m_player) {
             m_player->setPlayerId(playerId);
         }
+        m_knownPlayerNames[playerId] = username;
     };
 
     callbacks.onLoginFailed = [this](const String& reason) {
         spdlog::error("Login failed: {}", reason);
+        m_knownPlayerNames.clear();
+        if (m_commandManager) {
+            m_commandManager->clear();
+        }
         stop();
     };
 
     callbacks.onDisconnected = [this](const String& reason) {
         spdlog::warn("Disconnected: {}", reason);
+        m_knownPlayerNames.clear();
+        if (m_commandManager) {
+            m_commandManager->clear();
+        }
+    };
+
+    callbacks.onCommandTree = [this](const String& treeJson) {
+        if (!m_commandManager) {
+            return;
+        }
+
+        auto result = m_commandManager->applyCommandTreeJson(treeJson);
+        if (result.failed()) {
+            spdlog::warn("Failed to apply command tree: {}", result.error().toString());
+        }
     };
 
     callbacks.onChunkData = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension, const std::vector<u8>& data) {
@@ -2023,6 +2052,24 @@ void ClientApplication::setupNetworkCallbacks()
             // spdlog::info("Client received SpawnMob: {} (ID: {}) at ({:.1f}, {:.1f}, {:.1f})",
             //               typeId, entityId, x, y, z);
         }
+    };
+
+    callbacks.onPlayerSpawn = [this](PlayerId playerId, const String& username, f64 x, f64 y, f64 z) {
+        m_knownPlayerNames[playerId] = username;
+
+        auto* entity = m_world.entityManager().getEntity(static_cast<EntityId>(playerId));
+        if (entity == nullptr) {
+            entity = m_world.entityManager().spawnEntity(static_cast<EntityId>(playerId), "player");
+        }
+
+        if (entity != nullptr) {
+            entity->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        }
+    };
+
+    callbacks.onPlayerDespawn = [this](PlayerId playerId) {
+        m_knownPlayerNames.erase(playerId);
+        m_world.entityManager().removeEntity(static_cast<EntityId>(playerId));
     };
 
     callbacks.onEntityMetadata = [this](u32 entityId, const std::vector<u8>& metadata) {
@@ -2546,6 +2593,35 @@ void ClientApplication::sendPlayerPosition()
     m_lastSentZ = pos.z;
     m_lastSentYaw = m_player->yaw();
     m_lastSentPitch = m_player->pitch();
+}
+
+std::vector<String> ClientApplication::collectPlayerCompletionCandidates() const
+{
+    std::vector<String> candidates;
+    candidates.reserve(m_knownPlayerNames.size() + 1);
+
+    for (const auto& [playerId, playerName] : m_knownPlayerNames) {
+        MC_UNUSED(playerId);
+        if (!playerName.empty()) {
+            candidates.push_back(playerName);
+        }
+    }
+
+    if (m_player) {
+        const auto& username = m_player->username();
+        if (!username.empty()) {
+            candidates.push_back(username);
+        }
+    }
+
+    std::sort(candidates.begin(), candidates.end());
+    candidates.erase(std::unique(candidates.begin(), candidates.end()), candidates.end());
+    return candidates;
+}
+
+std::vector<String> ClientApplication::collectEntityCompletionCandidates() const
+{
+    return collectPlayerCompletionCandidates();
 }
 
 Result<void> ClientApplication::initializeResources()

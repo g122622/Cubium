@@ -27,6 +27,7 @@
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/sync/ChunkSync.hpp"
@@ -974,6 +975,19 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
     // 发送初始天气状态
     sendInitialWeatherStateToPlayer(playerId);
+}
+
+void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
+{
+    MC_ASSERT_RELEASE(m_commandRegistry != nullptr);
+
+    network::CommandTreePacket packet(m_commandRegistry->getCommandTreeJson());
+    auto serializeResult = packet.serialize();
+    MC_ASSERT_RELEASE(serializeResult.success());
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::CommandTree, serializeResult.value());
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
 void MinecraftServer::stopCore()

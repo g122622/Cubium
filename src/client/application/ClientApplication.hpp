@@ -30,6 +30,11 @@
 #include <memory>
 #include <atomic>
 #include <filesystem>
+#include <unordered_map>
+
+namespace mc::client::command {
+class ClientCommandManager;
+}
 
 namespace mc::client {
 
@@ -171,6 +176,16 @@ private:
     // 应用设置到系统
     void applySettings();
 
+    /**
+     * @brief 收集玩家补全候选项
+     */
+    [[nodiscard]] std::vector<String> collectPlayerCompletionCandidates() const;
+
+    /**
+     * @brief 收集实体补全候选项
+     */
+    [[nodiscard]] std::vector<String> collectEntityCompletionCandidates() const;
+
     // 初始化资源系统
     [[nodiscard]] Result<void> initializeResources();
 
@@ -242,7 +257,10 @@ private:
     // 内置服务端
     std::unique_ptr<server::IntegratedServer> m_integratedServer;
     std::unique_ptr<NetworkClient> m_networkClient;
+    std::unique_ptr<command::ClientCommandManager> m_commandManager;
     bool m_useIntegratedServer = true;
+
+    std::unordered_map<PlayerId, String> m_knownPlayerNames;
 
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_initialized{false};

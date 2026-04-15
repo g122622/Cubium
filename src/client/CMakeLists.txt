@@ -106,6 +106,8 @@ add_executable(minecraft-client
     world/color/blend/ChunkBiomeAccessor.cpp
     # 维度
     dimension/ClientDimensionManager.cpp
+    # 命令补全
+    command/ClientCommandManager.cpp
     network/NetworkClient.cpp
     # 聊天系统
     chat/ChatHistory.cpp

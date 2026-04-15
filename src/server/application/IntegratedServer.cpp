@@ -382,6 +382,9 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 发送登录成功响应
     sendLoginResponse(true, m_clientPlayerId, username, "Welcome to singleplayer world!");
 
+    // 同步命令树
+    sendCommandTreePacket(m_clientPlayerId);
+
     // 发送初始游戏状态
     sendInitialGameState(m_clientPlayerId, player->x, player->y, player->z, player->yaw, player->pitch);
     sendPlayerInventory();

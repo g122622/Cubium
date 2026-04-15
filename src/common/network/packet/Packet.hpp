@@ -60,6 +60,9 @@ enum class PacketType : u16 {
     DimensionInfo = 226,        // 维度信息 (S->C)
     ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
 
+    // 命令系统
+    CommandTree = 228,          // 命令树同步 (S->C)
+
     // 背包相关包 (双向)
     ContainerContent = 300,     // 容器内容同步 (S->C)
     ContainerSlot = 301,        // 单个槽位更新 (S->C)

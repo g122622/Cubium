@@ -316,6 +316,11 @@ protected:
      */
     virtual void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) = 0;
 
+    /**
+     * @brief 向指定玩家同步命令树
+     */
+    void sendCommandTreePacket(PlayerId playerId);
+
     // ========== 数据包处理方法 ==========
 
     /**

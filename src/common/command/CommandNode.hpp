@@ -6,6 +6,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
+#include <nlohmann/json.hpp>
 #include <string>
 #include <memory>
 #include <vector>
@@ -77,6 +78,7 @@ public:
     [[nodiscard]] virtual String getName() const noexcept = 0;
     [[nodiscard]] virtual String getTypeName() const { return getName(); }
     [[nodiscard]] virtual std::vector<String> getExamples() const { return {}; }
+    [[nodiscard]] virtual nlohmann::json getMetadata() const { return nlohmann::json::object(); }
     virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
     [[nodiscard]] const String& getUsageText() const { return m_usageText; }
@@ -293,6 +295,10 @@ public:
     [[nodiscard]] String getName() const noexcept override { return m_name; }
     [[nodiscard]] String getTypeName() const override {
         return m_argumentType ? m_argumentType->getTypeName() : "argument";
+    }
+
+    [[nodiscard]] nlohmann::json getMetadata() const override {
+        return m_argumentType ? m_argumentType->serializeMetadata() : nlohmann::json::object();
     }
 
     [[nodiscard]] std::vector<String> getExamples() const override {

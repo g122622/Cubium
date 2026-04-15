@@ -550,6 +550,9 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 发送登录成功响应
     sendLoginResponse(session.get(), true, playerId, username, "Welcome!");
 
+    // 同步命令树
+    sendCommandTreePacket(playerId);
+
     // 发送初始游戏状态
     sendInitialGameState(playerId, player->x, player->y, player->z, player->yaw, player->pitch);
 

@@ -25,7 +25,7 @@ minecraft/
 │   ├── HealthBarWidget.hpp/cpp    # 生命值条
 │   ├── HungerBarWidget.hpp/cpp    # 饥饿值条
 │   ├── ExperienceBar.hpp/cpp      # 经验条
-│   ├── ChatWidget.hpp/cpp         # 聊天框
+│   ├── ChatWidget.hpp/cpp         # 聊天框与命令补全
 │   ├── CrosshairWidget.hpp/cpp    # 准星
 │   ├── SlotWidget.hpp/cpp         # 物品槽基类
 │   ├── InventorySlot.hpp/cpp      # 物品栏槽位
@@ -223,6 +223,7 @@ hud.paint(ctx);
 ChatWidget chat;
 chat.setFont(&font);
 chat.setGuiRenderer(&gui);
+chat.setCommandManager(commandManager);
 chat.setCommandCallback([](const String& msg) {
     // 处理聊天消息
 });
@@ -237,6 +238,7 @@ chat.paint(ctx);    // 渲染消息和输入框
 - 文本输入和编辑
 - 光标和选区支持
 - 命令历史导航
+- 基于同步命令树的本地补全建议
 - 快捷键（Ctrl+A 全选、方向键移动等）
 
 #### CrosshairWidget
@@ -562,7 +564,7 @@ void onMouseEvent(int x, int y) {
 
 2. **Widget 测试**
    - 测试 HudWidget 数据绑定
-   - 测试 ChatWidget 输入处理
+    - 测试 ChatWidget 输入处理和命令补全
    - 测试 CrosshairWidget 尺寸设置
 
 3. **模板加载测试**
@@ -601,7 +603,7 @@ void onMouseEvent(int x, int y) {
 | `HealthBarWidget.hpp/cpp` | 生命值条 | 红色渐变条 |
 | `HungerBarWidget.hpp/cpp` | 饥饿值条 | 橙色渐变条 |
 | `ExperienceBar.hpp/cpp` | 经验条 | 绿色渐变条 |
-| `ChatWidget.hpp/cpp` | 聊天框 | 消息显示、输入处理、光标闪烁、命令历史 |
+| `ChatWidget.hpp/cpp` | 聊天框 | 消息显示、输入处理、光标闪烁、命令历史、命令补全 |
 | `CrosshairWidget.hpp/cpp` | 准星 | 屏幕中心十字线 |
 | `SlotWidget.hpp/cpp` | 物品槽基类 | 悬停高亮 |
 | `InventorySlot.hpp/cpp` | 物品栏槽位 | 槽位分组标识 |

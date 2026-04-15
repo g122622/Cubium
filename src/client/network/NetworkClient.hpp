@@ -60,6 +60,7 @@ struct NetworkClientCallbacks {
     // 登录事件
     std::function<void(PlayerId playerId, const String& username)> onLoginSuccess;
     std::function<void(const String& reason)> onLoginFailed;
+    std::function<void(const String& treeJson)> onCommandTree;
 
     // 游戏事件
     std::function<void(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)> onTeleport;
@@ -194,6 +195,7 @@ private:
     void setState(ClientState state);
     void handleKeepAlive(u64 id);
     void handleLoginResponse(network::PacketDeserializer& deser);
+    void handleCommandTree(const u8* data, size_t size);
     void handleTeleport(network::PacketDeserializer& deser);
     void handleChunkData(network::PacketDeserializer& deser);
     void handleUnloadChunk(network::PacketDeserializer& deser);

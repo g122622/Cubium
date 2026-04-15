@@ -10,6 +10,7 @@
 #include "Packet.hpp"
 #include "PacketSerializer.hpp"
 #include "ProtocolPackets.hpp"
+#include "CommandTreePacket.hpp"
 #include "EntityPackets.hpp"
 #include "InventoryPackets.hpp"
 #include "RecipePackets.hpp"

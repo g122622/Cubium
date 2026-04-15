@@ -1,6 +1,6 @@
 # Client Module
 
-Minecraft Reborn 客户端模块，负责游戏客户端的所有功能，包括渲染、UI、网络、输入处理和世界管理。
+Minecraft Reborn 客户端模块，负责游戏客户端的所有功能，包括渲染、UI、网络、输入处理、命令补全和世界管理。
 
 ## 目录结构
 
@@ -11,6 +11,8 @@ src/client/
 │   └── ClientLaunchParams         # 启动参数配置
 ├── chat/                   # 聊天系统
 │   └── ChatHistory.hpp/cpp # 聊天历史记录管理
+├── command/                # 客户端命令树与补全
+│   └── ClientCommandManager.hpp/cpp # 本地命令树快照和建议生成
 ├── input/                  # 输入管理
 │   └── InputManager.hpp/cpp # 键盘/鼠标输入处理
 ├── main.cpp               # 程序入口点

@@ -405,6 +405,8 @@ enum class Operation : u8 { ... };
     - Attach dynamic completion data through `CommandNode::setCustomSuggestions(...)` instead of hardcoding tab lists in commands.
 - `CommandRegistry::getCommandNames()` is derived from the dispatcher tree.
     - Help output automatically tracks aliases and future command registrations, so do not reintroduce a separate manual name list.
+- `CommandTreePacket` is the authoritative command snapshot for the client.
+    - Client-side completion must be rebuilt from `onCommandTree()` after login and cleared again on disconnect, otherwise chat suggestions will drift stale.
 - Do not link `spdlog::spdlog` or `GTest::gtest` directly into executables that already consume `mc_common` or `GTest::gtest_main`.
     - Apple ld will emit duplicate-library warnings when the same static library appears twice on the final link line.
 - On AppleClang, no-argument `MC_TRACE_EVENT(...)` or `MC_TRACE_*` calls can still trigger `-Wvariadic-macro-arguments-omitted`.
