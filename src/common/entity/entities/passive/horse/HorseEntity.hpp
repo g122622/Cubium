@@ -1,7 +1,9 @@
 #pragma once
 
 #include "AbstractHorseEntity.hpp"
-#include "../../../../core/Types.hpp"
+#include "CoatColors.hpp"
+#include "CoatTypes.hpp"
+
 #include <memory>
 
 namespace mc {
@@ -9,105 +11,73 @@ namespace mc {
 /**
  * @brief 马实体
  *
- * 最常见的马类实体，有多种颜色和花纹。
- *
- * 特性：
- * - 可骑乘：驯服后可骑乘
- * - 可装备：鞍和马铠
- * - 跳跃：可蓄力跳跃
- * - 加速：使用胡萝卜钓竿加速
- * - 繁殖：使用金苹果/金胡萝卜繁殖
- * - 变种：7种基础颜色 × 5种花纹 = 35种变体
- *
- * 参考 MC 1.16.5 HorseEntity
+ * 对齐 1.16.5 `HorseEntity` 的基础外观与骑乘语义。
+ * 花色与花纹由独立的 `CoatColors` / `CoatTypes` 支撑类型承载。
  */
 class HorseEntity : public AbstractHorseEntity {
 public:
     /**
-     * @brief 马的颜色
-     */
-    enum class HorseColor : u8 {
-        White = 0,      // 白色
-        Creamy = 1,     // 奶油色
-        Chestnut = 2,   // 栗色
-        Brown = 3,      // 棕色
-        Black = 4,      // 黑色
-        Gray = 5,       // 灰色
-        DarkBrown = 6   // 深棕色
-    };
-
-    /**
-     * @brief 马的花纹
-     */
-    enum class HorseMarking : u8 {
-        None = 0,           // 无花纹
-        White = 1,          // 白色斑点
-        WhiteField = 2,     // 白色区域
-        WhiteDots = 3,      // 白色点状
-        BlackDots = 4       // 黑色点状
-    };
-
-    /**
-     * @brief 构造函数
+     * @brief 构造马实体
      * @param type 实体类型
-     * @param id 实体ID
+     * @param id 实体 ID
      */
     HorseEntity(LegacyEntityType type, EntityId id);
     ~HorseEntity() override = default;
 
-    // 禁止拷贝
     HorseEntity(const HorseEntity&) = delete;
     HorseEntity& operator=(const HorseEntity&) = delete;
-
-    // 允许移动
     HorseEntity(HorseEntity&&) = default;
     HorseEntity& operator=(HorseEntity&&) = default;
 
     /**
      * @brief 创建马实体
-     * @param world 世界实例
-     * @return 新的马实体
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    // ========== 外观系统 ==========
+    /**
+     * @brief 获取马的毛色
+     */
+    [[nodiscard]] CoatColors getColor() const { return m_color; }
 
     /**
-     * @brief 获取马的颜色
+     * @brief 设置马的毛色
      */
-    [[nodiscard]] HorseColor getColor() const { return m_color; }
-
-    /**
-     * @brief 设置马的颜色
-     */
-    void setColor(HorseColor color) { m_color = color; }
+    void setColor(CoatColors color) { m_color = color; }
 
     /**
      * @brief 获取马的花纹
      */
-    [[nodiscard]] HorseMarking getMarking() const { return m_marking; }
+    [[nodiscard]] CoatTypes getMarking() const { return m_marking; }
 
     /**
      * @brief 设置马的花纹
      */
-    void setMarking(HorseMarking marking) { m_marking = marking; }
+    void setMarking(CoatTypes marking) { m_marking = marking; }
+
+    /**
+     * @brief 获取外观变种编码
+     *
+     * 低 8 位为 `CoatColors`，高 8 位为 `CoatTypes`。
+     */
+    [[nodiscard]] i32 getVariant() const;
+
+    /**
+     * @brief 通过变种编码设置外观
+     */
+    void setVariant(i32 variant);
 
     /**
      * @brief 随机设置外观
      */
     void randomizeAppearance();
 
-    // ========== 驯服系统 ==========
-
     /**
-     * @brief 检查物品是否可用于驯服
-     * 马不响应特定驯服物品，需要骑乘来驯服
+     * @brief 马不依赖专门驯服食物
      */
     [[nodiscard]] bool isTameItem(const ItemStack& itemStack) const override;
 
     /**
-     * @brief 检查物品是否可用于繁殖
-     * 使用金苹果或金胡萝卜
+     * @brief 马使用金苹果或金胡萝卜繁殖
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
@@ -116,11 +86,8 @@ public:
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
-    // ========== 属性 ==========
-
     /**
-     * @brief 获取装备栏大小
-     * 马有2个槽位：鞍和马铠
+     * @brief 马只有鞍槽和马铠槽
      */
     [[nodiscard]] i32 getInventorySize() const override { return 2; }
 
@@ -129,8 +96,6 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.53f; }
 
-    // ========== 生命周期 ==========
-
     void tick() override;
 
 protected:
@@ -138,13 +103,10 @@ protected:
     void registerAttributes() override;
 
 private:
-    // 外观
-    HorseColor m_color = HorseColor::White;
-    HorseMarking m_marking = HorseMarking::None;
-
-    // 驯服相关
-    i32 m_rearingCounter = 0;   // 前腿站立计数器
-    bool m_isRearing = false;   // 是否正在前腿站立
+    CoatColors m_color = CoatColors::White;
+    CoatTypes m_marking = CoatTypes::None;
+    i32 m_rearingCounter = 0;
+    bool m_isRearing = false;
 };
 
 } // namespace mc

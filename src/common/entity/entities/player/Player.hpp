@@ -6,6 +6,8 @@
 #include "../../experience/ExperienceManager.hpp"
 #include "../../effect/EffectInstance.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
+#include "ChatVisibility.hpp"
+#include "PlayerModelPart.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "spdlog/spdlog.h"
 
@@ -172,6 +174,27 @@ public:
     [[nodiscard]] const String& username() const { return m_username; }
     [[nodiscard]] PlayerId playerId() const { return m_playerId; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
+
+    [[nodiscard]] ChatVisibility chatVisibility() const { return m_chatVisibility; }
+    void setChatVisibility(ChatVisibility visibility) { m_chatVisibility = visibility; }
+
+    [[nodiscard]] u8 playerModelParts() const { return m_playerModelParts; }
+    void setPlayerModelParts(u8 modelPartsMask) { m_playerModelParts = modelPartsMask; }
+
+    [[nodiscard]] bool isWearing(PlayerModelPart part) const
+    {
+        return (m_playerModelParts & getPlayerModelPartMask(part)) != 0;
+    }
+
+    void setModelPartEnabled(PlayerModelPart part, bool enabled)
+    {
+        if (enabled) {
+            m_playerModelParts = static_cast<u8>(m_playerModelParts | getPlayerModelPartMask(part));
+            return;
+        }
+
+        m_playerModelParts = static_cast<u8>(m_playerModelParts & ~getPlayerModelPartMask(part));
+    }
 
     // 游戏模式
     [[nodiscard]] GameMode gameMode() const { return m_gameMode; }
@@ -626,6 +649,8 @@ private:
     String m_username;
     PlayerId m_playerId = 0;
     GameMode m_gameMode = GameMode::Survival;
+    ChatVisibility m_chatVisibility = ChatVisibility::Full;
+    u8 m_playerModelParts = PLAYER_MODEL_PARTS_ALL_MASK;
 
     f32 m_health = 20.0f;
     f32 m_maxHealth = 20.0f;

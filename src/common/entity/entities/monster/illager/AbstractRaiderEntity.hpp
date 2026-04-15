@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AbstractIllagerEntity.hpp"
+#include "PatrollerEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../entity/damage/DamageSource.hpp"
 #include <memory>
@@ -28,7 +28,7 @@ class Raid;
  *
  * 参考 MC 1.16.5 AbstractRaiderEntity
  */
-class AbstractRaiderEntity : public AbstractIllagerEntity {
+class AbstractRaiderEntity : public PatrollerEntity {
 public:
     /**
      * @brief 构造函数

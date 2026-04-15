@@ -228,3 +228,10 @@ Brain.hpp
 ## 参考
 
 - Minecraft 1.16.5 `net.minecraft.entity.ai.brain`
+ 
+## 近期补全
+
+- 已新增 `schedule/DutyTime.hpp`，并将 `Schedule` / `ScheduleDuties` 修正为 MC 1.16.5 的离散 duty 时间片语义，不再使用错误的连续插值语义。
+- 已新增 `memory/IPositionTarget.hpp`、`memory/BlockPosTarget.hpp`、`memory/WalkTarget.hpp`，用于承接 `LOOK_TARGET` / `WALK_TARGET` 的真实位置目标类型。
+- `MemoryModuleTypes::WALK_TARGET` 现为 `WalkTarget`，`MemoryModuleTypes::LOOK_TARGET` 现为 `std::shared_ptr<IPositionTarget>`，不再是 `void` 占位。
+- 回归测试位于 `tests/entity/BrainScheduleTests.cpp`，覆盖 schedule 边界、target 中心点和 typed memory 存取。

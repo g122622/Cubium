@@ -1,6 +1,7 @@
 #include "NetherEntities.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/LivingEntity.hpp"
 #include "../../../../world/IWorld.hpp"
 
 namespace mc {
@@ -195,6 +196,7 @@ HoglinEntity::HoglinEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
     setBurnsInDaylight(false);
+    registerAttributes();
 }
 
 void HoglinEntity::tick() {
@@ -203,6 +205,20 @@ void HoglinEntity::tick() {
     if (m_attackCooldown > 0) {
         m_attackCooldown--;
     }
+
+    if (m_attackAnimationTicks > 0) {
+        m_attackAnimationTicks--;
+    }
+}
+
+bool HoglinEntity::attackLivingTarget(LivingEntity& target) {
+    if (m_attackCooldown > 0) {
+        return false;
+    }
+
+    m_attackCooldown = 20;
+    m_attackAnimationTicks = 10;
+    return entity::IFlinging::attackWithFling(*this, target, m_isBaby);
 }
 
 void HoglinEntity::registerGoals() {
@@ -215,6 +231,8 @@ void HoglinEntity::registerAttributes() {
 
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0); // 成年伤害
 }
 
@@ -226,6 +244,20 @@ std::unique_ptr<Entity> ZoglinEntity::create(IWorld* world) {
 ZoglinEntity::ZoglinEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
+    registerAttributes();
+}
+
+void ZoglinEntity::tick() {
+    MonsterEntity::tick();
+
+    if (m_attackAnimationTicks > 0) {
+        m_attackAnimationTicks--;
+    }
+}
+
+bool ZoglinEntity::attackLivingTarget(LivingEntity& target) {
+    m_attackAnimationTicks = 10;
+    return entity::IFlinging::attackWithFling(*this, target, m_isBaby);
 }
 
 void ZoglinEntity::registerGoals() {
@@ -238,6 +270,8 @@ void ZoglinEntity::registerAttributes() {
 
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
 }
 

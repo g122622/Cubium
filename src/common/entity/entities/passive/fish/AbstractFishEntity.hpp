@@ -1,52 +1,42 @@
 #pragma once
 
 #include "../water/WaterMobEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include <memory>
 
 namespace mc {
 
 /**
  * @brief 鱼类实体基类
  *
- * 所有鱼类（鳕鱼、鲑鱼、河豚、热带鱼）的基类。
- *
- * 特性：
- * - 游泳：在水中游动
- * - 群游：多个个体会聚在一起
- * - 离水死亡：离开水会逐渐死亡
- * - 被捕捉：可以用桶捕捉
- * - 掉落：死后掉落物品
- *
- * 参考 MC 1.16.5 AbstractFishEntity / AbstractGroupFishEntity
+ * 对齐 1.16.5 的 AbstractFishEntity，只保留所有鱼共享的游泳、
+ * 离水扑腾与基础空气供应语义。群游逻辑由 AbstractGroupFishEntity 承载。
  */
 class AbstractFishEntity : public WaterMobEntity {
 public:
     /**
-     * @brief 构造函数
+     * @brief 构造鱼类实体
      * @param type 实体类型
-     * @param id 实体ID
+     * @param id 实体 ID
      */
     AbstractFishEntity(LegacyEntityType type, EntityId id);
     ~AbstractFishEntity() override = default;
 
-    // 禁止拷贝
     AbstractFishEntity(const AbstractFishEntity&) = delete;
     AbstractFishEntity& operator=(const AbstractFishEntity&) = delete;
-
-    // 允许移动
     AbstractFishEntity(AbstractFishEntity&&) = default;
     AbstractFishEntity& operator=(AbstractFishEntity&&) = default;
 
-    // ========== 游泳行为 ==========
-
     /**
-     * @brief 是否可以生成
+     * @brief 鱼默认只能在水中生成
      */
     [[nodiscard]] bool canSpawnInWater() const override { return true; }
 
     /**
-     * @brief 是否在游泳
+     * @brief 默认鱼类不具备群游语义
+     */
+    [[nodiscard]] virtual bool canSchool() const { return false; }
+
+    /**
+     * @brief 当前是否处于游泳状态
      */
     [[nodiscard]] bool isSwimming() const { return m_swimming; }
 
@@ -56,77 +46,48 @@ public:
     void setSwimming(bool swimming) { m_swimming = swimming; }
 
     /**
-     * @brief 获取游泳方向
+     * @brief 当前游泳朝向
      */
     [[nodiscard]] f32 getSwimAngle() const { return m_swimAngle; }
 
     /**
-     * @brief 设置游泳方向
+     * @brief 设置游泳朝向
      */
     void setSwimAngle(f32 angle) { m_swimAngle = angle; }
 
-    // ========== 群居行为 ==========
-
     /**
-     * @brief 是否会群游
-     */
-    [[nodiscard]] virtual bool canSchool() const { return false; }
-
-    /**
-     * @brief 获取群居范围
-     */
-    [[nodiscard]] f32 getSchoolingRange() const { return m_schoolingRange; }
-
-    /**
-     * @brief 设置群居范围
-     */
-    void setSchoolingRange(f32 range) { m_schoolingRange = range; }
-
-    /**
-     * @brief 获取群居成员数量
-     */
-    [[nodiscard]] i32 getMaxGroupSize() const { return m_maxGroupSize; }
-
-    // ========== 离水行为 ==========
-
-    /**
-     * @brief 是否在扑腾（离开水）
+     * @brief 当前是否处于离水扑腾状态
      */
     [[nodiscard]] bool isFlopping() const { return m_flopping; }
 
     /**
-     * @brief 设置扑腾状态
+     * @brief 设置离水扑腾状态
      */
     void setFlopping(bool flopping) { m_flopping = flopping; }
-
-    // ========== 生命周期 ==========
 
     void tick() override;
 
 protected:
-    // ========== AI 目标注册 ==========
     void registerGoals() override;
-
-    // ========== 属性注册 ==========
     void registerAttributes() override;
 
-    // ========== 行为更新 ==========
+    /**
+     * @brief 更新游泳状态
+     */
     void updateSwimming();
+
+    /**
+     * @brief 更新离水扑腾状态
+     */
     void updateFlopping();
 
 private:
-    // 游泳状态
     bool m_swimming = false;
     f32 m_swimAngle = 0.0f;
-
-    // 群居状态
-    f32 m_schoolingRange = 5.0f;
-    i32 m_maxGroupSize = 5;
-
-    // 扑腾状态
     bool m_flopping = false;
     i32 m_flopTimer = 0;
-    static constexpr i32 MAX_AIR_SUPPLY = 480; // 24秒
+
+    static constexpr i32 MAX_AIR_SUPPLY = 480;
 };
 
 } // namespace mc

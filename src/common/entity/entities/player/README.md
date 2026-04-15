@@ -154,3 +154,9 @@ flowchart TD
     style App fill:#e9c46a,stroke:#a16207,color:#111
     style Camera fill:#a8dadc,stroke:#0f766e,color:#111
 ```
+
+## 近期补全
+
+- 已新增 `ChatVisibility.hpp`，对齐 MC 1.16.5 `ChatVisibility` 的三档聊天可见性以及 ID 归一化规则。
+- 已新增 `PlayerModelPart.hpp`，对齐披风、夹克、袖子、裤腿、帽子七个皮肤部件及其位掩码。
+- `Player` 现已持有聊天可见性和皮肤部件位集，并提供 `isWearing()`、`setModelPartEnabled()` 等基础接口，供后续客户端设置同步、服务端设置包和渲染层复用。

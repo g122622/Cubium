@@ -1,123 +1,92 @@
 #include "LlamaEntity.hpp"
+
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include <memory>
+
+#include <algorithm>
 
 namespace mc {
 
 LlamaEntity::LlamaEntity(LegacyEntityType type, EntityId id)
-    : AbstractHorseEntity(type, id)
+    : AbstractChestedHorseEntity(type, id)
 {
-    // 随机设置外观和强度
     randomizeAppearance();
 }
 
-std::unique_ptr<Entity> LlamaEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> LlamaEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<LlamaEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void LlamaEntity::randomizeAppearance() {
-    math::Random rng(ticksExisted());
-
-    // 随机选择颜色
-    m_color = static_cast<LlamaColor>(rng.nextInt(4));
-
-    // 随机强度 (1-5)
-    m_strength = 1 + rng.nextInt(5);
+void LlamaEntity::randomizeAppearance()
+{
+    math::Random random(ticksExisted());
+    m_color = static_cast<LlamaColor>(random.nextInt(4));
+    setStrength(1 + random.nextInt(5));
 }
 
-bool LlamaEntity::canBeRiddenBy(Player* player) const {
-    // 羊驼可以骑乘但不能控制方向
+bool LlamaEntity::canBeRiddenBy(Player* player) const
+{
     if (m_rider != nullptr && m_rider != player) {
         return false;
     }
-    // 不需要驯服即可骑乘
+
     return true;
 }
 
-i32 LlamaEntity::getInventoryColumns() const {
-    // 根据强度决定背包大小：3 + 3 * strength
-    return 3 + 3 * m_strength;
+i32 LlamaEntity::getInventoryColumns() const
+{
+    return m_strength;
 }
 
-i32 LlamaEntity::getInventorySize() const {
-    // 1格装饰槽 + 背包格数（如果有箱子）
-    if (m_hasChest) {
-        return 1 + getInventoryColumns() * 3;
-    }
-    return 1;
+void LlamaEntity::setStrength(i32 strength)
+{
+    m_strength = std::clamp(strength, 1, 5);
 }
 
-bool LlamaEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是干草块
-    // return itemStack.getItem() == Items::HAY_BLOCK;
+bool LlamaEntity::isBreedingItem(const ItemStack& itemStack) const
+{
+    // TODO: 对齐 1.16.5 的小麦 / 干草块喂食与繁殖语义。
     (void)itemStack;
     return false;
 }
 
-bool LlamaEntity::isTameItem(const ItemStack& /*itemStack*/) const {
-    // 羊驼不响应特定驯服物品
+bool LlamaEntity::isTameItem(const ItemStack& /*itemStack*/) const
+{
     return false;
 }
 
-std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner) {
-    // TODO: 创建小羊驼
-    // auto baby = std::make_unique<LlamaEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    //
-    // // 遗传父母的属性
-    // LlamaEntity* llamaPartner = dynamic_cast<LlamaEntity*>(&partner);
-    // if (llamaPartner) {
-    //     math::Random rng(ticksExisted());
-    //     // 随机继承父母的一方颜色
-    //     if (rng.nextFloat() < 0.5f) {
-    //         baby->setColor(m_color);
-    //     } else {
-    //         baby->setColor(llamaPartner->getColor());
-    //     }
-    //     // 强度可能更高
-    //     i32 babyStrength = std::max(m_strength, llamaPartner->getStrength());
-    //     if (rng.nextFloat() < 0.2f) {
-    //         babyStrength = std::min(babyStrength + 1, 5);
-    //     }
-    //     baby->m_strength = babyStrength;
-    // }
-    //
-    // return baby;
+std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner)
+{
+    // TODO: 对齐 1.16.5 的羊驼后代颜色 / 强度遗传语义。
     (void)partner;
     return nullptr;
 }
 
-void LlamaEntity::tick() {
-    AbstractHorseEntity::tick();
+void LlamaEntity::tick()
+{
+    AbstractChestedHorseEntity::tick();
 
-    // 更新吐口水冷却
     if (m_spitCooldown > 0) {
-        m_spitCooldown--;
+        --m_spitCooldown;
     }
 
-    // 商队跟随逻辑
-    if (m_inCaravan && m_caravanLeader) {
-        // TODO: 跟随商队领袖
+    if (m_inCaravan && m_caravanLeader != nullptr) {
+        // TODO: 补齐商队跟随逻辑。
     }
 }
 
-void LlamaEntity::registerGoals() {
-    AbstractHorseEntity::registerGoals();
-
-    // TODO: 羊驼特有 AI 目标
-    // - LlamaAttackGoal (吐口水攻击)
-    // - LlamaFollowCaravanGoal (跟随商队)
+void LlamaEntity::registerGoals()
+{
+    AbstractChestedHorseEntity::registerGoals();
+    // TODO: 补齐羊驼的 FollowCaravan / RangedAttack 等 Goal。
 }
 
-void LlamaEntity::registerAttributes() {
-    AbstractHorseEntity::registerAttributes();
-
-    // 羊驼的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f + m_strength * 5.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.164f);
+void LlamaEntity::registerAttributes()
+{
+    AbstractChestedHorseEntity::registerAttributes();
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f + static_cast<f32>(m_strength) * 5.0f);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.175f);
 }
 
 } // namespace mc

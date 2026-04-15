@@ -3,6 +3,7 @@
 #include "../../core/Entity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../../util/math/Vector3.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -28,14 +29,14 @@ enum class RayTraceResultType : u8 {
 struct RayTraceResult {
     RayTraceResultType type = RayTraceResultType::Miss;
     Vector3 hitPosition;
-    BlockCoord blockPos;
+    BlockPos blockPos;
     mc::Entity* hitEntity = nullptr;
 
     static RayTraceResult miss() {
         return RayTraceResult{};
     }
 
-    static RayTraceResult block(const Vector3& pos, const BlockCoord& blockPos) {
+    static RayTraceResult block(const Vector3& pos, const BlockPos& blockPos) {
         RayTraceResult result;
         result.type = RayTraceResultType::Block;
         result.hitPosition = pos;

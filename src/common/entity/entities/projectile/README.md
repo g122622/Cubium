@@ -237,3 +237,8 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
 - MC 1.16.5 AbstractArrowEntity
 - MC 1.16.5 ThrowableEntity
 - MC 1.16.5 FireballEntity
+## 最新补充
+- 已补 `DamagingProjectileEntity.hpp/.cpp`，承接 1.16.5 火球类加速度投掷物公共层。
+- 已补 `ProjectileHelper.hpp/.cpp`，当前已接入朝向更新、移动搜索盒和最近实体命中检测。
+- `AbstractFireballEntity` 已改为继承 `DamagingProjectileEntity`。
+- `ProjectileEntity` 已接入方块/实体射线追踪、发射者过滤和基础碰撞边界语义。

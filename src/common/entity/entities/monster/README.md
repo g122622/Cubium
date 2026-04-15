@@ -154,3 +154,10 @@ public:
 ### 史莱姆
 - 死亡分裂成小史莱姆
 - 只在特定区块生成
+## 杩戞湡琛ュ叏缁洿
+
+- 宸叉柊澧?`undead/AbstractSkeletonEntity.hpp/.cpp`锛屾寮忚惤瀹?README 涓凡澹版槑浣嗕箣鍓嶇己澶辩殑楠烽珔绯讳腑闂村眰銆?
+- `SkeletonEntity`銆乀trayEntity`銆乄itherSkeletonEntity` 宸叉敼涓虹洿鎺ョ户鎵?`AbstractSkeletonEntity`锛岄泦涓壙杞借繙绋嬫敾鍑诲喎鍗淬€佹媺寮撶姸鎬佸拰鍏辩敤灞炴€ч€昏緫銆?
+## 最新补充
+- 已补 `AbstractSkeletonEntity` 支撑层，`SkeletonEntity` / `StrayEntity` / `WitherSkeletonEntity` 已统一继承。
+- 已补 `IFlinging` 接口层，`HoglinEntity` / `ZoglinEntity` 现已接入最小撞飞攻击语义。

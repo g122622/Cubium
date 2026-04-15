@@ -56,6 +56,6 @@ struct RaycastContext {
  */
 [[nodiscard]] BlockRaycastResult raycastBlocks(
     const RaycastContext& context,
-    const IBlockReader& world);
+    const IWorld& world);
 
 } // namespace mc

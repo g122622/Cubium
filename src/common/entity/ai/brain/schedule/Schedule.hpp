@@ -1,11 +1,12 @@
 #pragma once
 
 #include "Activity.hpp"
+#include "DutyTime.hpp"
 #include "../../../../core/Types.hpp"
-#include <map>
-#include <vector>
+#include <cstddef>
 #include <memory>
-#include <functional>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace entity {
@@ -67,6 +68,8 @@ public:
     static void initialize();
 
 protected:
+    friend class ScheduleBuilder;
+
     void createDutiesFor(const Activity& activity);
     ScheduleDuties* getDutiesFor(const Activity& activity);
     std::vector<ScheduleDuties*> getAllDutiesExcept(const Activity& activity);
@@ -83,10 +86,22 @@ public:
     explicit ScheduleBuilder(Schedule& schedule);
 
     ScheduleBuilder& add(i32 dayTime, const Activity& activity);
-    Schedule build();
+    Schedule& build();
 
 private:
+    struct ActivityEntry {
+        ActivityEntry(i32 dayTime, const Activity& activity)
+            : m_dayTime(dayTime)
+            , m_activity(activity)
+        {
+        }
+
+        i32 m_dayTime;
+        Activity m_activity;
+    };
+
     Schedule& m_schedule;
+    std::vector<ActivityEntry> m_entries;
 };
 
 /**
@@ -94,11 +109,14 @@ private:
  */
 class ScheduleDuties {
 public:
-    void addDutyTime(i32 dayTime, f32 weight = 1.0f);
+    ScheduleDuties& addDutyTime(i32 dayTime, f32 weight);
     [[nodiscard]] f32 getWeightAt(i32 dayTime) const;
 
 private:
-    std::map<i32, f32> m_dutyTimes;
+    void rebuildDutyTimes();
+
+    std::vector<DutyTime> m_dutyTimes;
+    mutable std::size_t m_lastIndex = 0;
 };
 
 } // namespace schedule

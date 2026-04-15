@@ -14,6 +14,10 @@ namespace entity::ai::controller {
     class JumpController;
 }
 
+namespace entity::ai {
+    class EntitySenses;
+}
+
 namespace entity::ai::pathfinding {
     class PathNavigator;
 }
@@ -130,6 +134,8 @@ public:
      */
     [[nodiscard]] entity::ai::pathfinding::PathNavigator* navigator();
     [[nodiscard]] const entity::ai::pathfinding::PathNavigator* navigator() const;
+    [[nodiscard]] entity::ai::EntitySenses* senses();
+    [[nodiscard]] const entity::ai::EntitySenses* senses() const;
 
     // ========== AI 便捷方法 ==========
 
@@ -195,6 +201,7 @@ protected:
     std::unique_ptr<entity::ai::controller::LookController> m_lookController;
     std::unique_ptr<entity::ai::controller::MovementController> m_moveController;
     std::unique_ptr<entity::ai::controller::JumpController> m_jumpController;
+    std::unique_ptr<entity::ai::EntitySenses> m_senses;
 
     // 寻路器
     std::unique_ptr<entity::ai::pathfinding::PathNavigator> m_navigator;

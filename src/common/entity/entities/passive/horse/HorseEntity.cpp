@@ -1,107 +1,98 @@
 #include "HorseEntity.hpp"
+
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include <memory>
 
 namespace mc {
+
+namespace {
+
+[[nodiscard]] constexpr i32 packHorseVariant(CoatColors color, CoatTypes type)
+{
+    return static_cast<i32>(getCoatColorId(color)) |
+           (static_cast<i32>(getCoatTypeId(type)) << 8);
+}
+
+} // namespace
 
 HorseEntity::HorseEntity(LegacyEntityType type, EntityId id)
     : AbstractHorseEntity(type, id)
 {
-    // 随机设置外观
     randomizeAppearance();
 }
 
-std::unique_ptr<Entity> HorseEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> HorseEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<HorseEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void HorseEntity::randomizeAppearance() {
-    math::Random rng(ticksExisted());
-
-    // 随机选择颜色和花纹
-    m_color = static_cast<HorseColor>(rng.nextInt(7));
-    m_marking = static_cast<HorseMarking>(rng.nextInt(5));
+i32 HorseEntity::getVariant() const
+{
+    return packHorseVariant(m_color, m_marking);
 }
 
-bool HorseEntity::isTameItem(const ItemStack& /*itemStack*/) const {
-    // 马不响应特定驯服物品
-    // 驯服是通过骑乘来完成的
+void HorseEntity::setVariant(i32 variant)
+{
+    m_color = getCoatColorById(variant & 0xFF);
+    m_marking = getCoatTypeById((variant >> 8) & 0xFF);
+}
+
+void HorseEntity::randomizeAppearance()
+{
+    math::Random random(ticksExisted());
+    m_color = getCoatColorById(random.nextInt(COAT_COLORS_COUNT));
+    m_marking = getCoatTypeById(random.nextInt(COAT_TYPES_COUNT));
+}
+
+bool HorseEntity::isTameItem(const ItemStack& /*itemStack*/) const
+{
     return false;
 }
 
-bool HorseEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是金苹果或金胡萝卜
-    // return itemStack.getItem() == Items::GOLDEN_APPLE ||
-    //        itemStack.getItem() == Items::GOLDEN_CARROT;
+bool HorseEntity::isBreedingItem(const ItemStack& itemStack) const
+{
+    // TODO: 对齐 1.16.5 的金苹果 / 金胡萝卜繁殖逻辑。
     (void)itemStack;
     return false;
 }
 
-std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner) {
-    // TODO: 创建小马
-    // auto baby = std::make_unique<HorseEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    //
-    // // 遗传父母的属性
-    // HorseEntity* horsePartner = dynamic_cast<HorseEntity*>(&partner);
-    // if (horsePartner) {
-    //     math::Random rng(ticksExisted());
-    //     // 随机继承父母的一方
-    //     if (rng.nextFloat() < 0.5f) {
-    //         baby->setColor(m_color);
-    //     } else {
-    //         baby->setColor(horsePartner->getColor());
-    //     }
-    //     if (rng.nextFloat() < 0.5f) {
-    //         baby->setMarking(m_marking);
-    //     } else {
-    //         baby->setMarking(horsePartner->getMarking());
-    //     }
-    // }
-    //
-    // return baby;
+std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
+{
+    // TODO: 对齐 1.16.5 的马 x 马 / 马 x 驴 后代外观与属性遗传逻辑。
     (void)partner;
     return nullptr;
 }
 
-void HorseEntity::tick() {
+void HorseEntity::tick()
+{
     AbstractHorseEntity::tick();
 
-    // 更新前腿站立状态
     if (m_isRearing) {
-        m_rearingCounter--;
+        --m_rearingCounter;
         if (m_rearingCounter <= 0) {
             m_isRearing = false;
         }
     }
 
-    // 未驯服时，被骑乘会前腿站立
     if (!isTame() && isBeingRidden() && !m_isRearing) {
-        math::Random rng(ticksExisted());
-        if (rng.nextFloat() < 0.02f) {
+        math::Random random(ticksExisted());
+        if (random.nextFloat() < 0.02f) {
             m_isRearing = true;
             m_rearingCounter = 20;
-            // TODO: 甩下骑乘者
+            // TODO: 对齐 1.16.5 的未驯服马上抬前腿和甩下骑手逻辑。
         }
     }
 }
 
-void HorseEntity::registerGoals() {
-    // 调用父类方法
+void HorseEntity::registerGoals()
+{
     AbstractHorseEntity::registerGoals();
-
-    // TODO: 马特有 AI 目标
-    // - RunAroundLikeCrazyGoal (未驯服时甩人)
+    // TODO: 补齐马的 RunAroundLikeCrazyGoal 等目标。
 }
 
-void HorseEntity::registerAttributes() {
+void HorseEntity::registerAttributes()
+{
     AbstractHorseEntity::registerAttributes();
-
-    // 马的基础属性已在父类初始化
-    // 这里可以覆盖特定值
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
 }

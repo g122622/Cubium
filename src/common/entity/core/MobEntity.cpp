@@ -1,4 +1,5 @@
 #include "MobEntity.hpp"
+#include "../ai/EntitySenses.hpp"
 #include "../ai/controller/LookController.hpp"
 #include "../ai/controller/MovementController.hpp"
 #include "../ai/controller/JumpController.hpp"
@@ -13,6 +14,7 @@ MobEntity::MobEntity(LegacyEntityType type, EntityId id)
     , m_lookController(std::make_unique<entity::ai::controller::LookController>(this))
     , m_moveController(std::make_unique<entity::ai::controller::MovementController>(this))
     , m_jumpController(std::make_unique<entity::ai::controller::JumpController>(this))
+    , m_senses(std::make_unique<entity::ai::EntitySenses>(this))
     , m_navigator(std::make_unique<entity::ai::pathfinding::PathNavigator>(this))
 {
     // 子类可在此初始化寻路器
@@ -50,6 +52,14 @@ entity::ai::pathfinding::PathNavigator* MobEntity::navigator() {
 
 const entity::ai::pathfinding::PathNavigator* MobEntity::navigator() const {
     return m_navigator.get();
+}
+
+entity::ai::EntitySenses* MobEntity::senses() {
+    return m_senses.get();
+}
+
+const entity::ai::EntitySenses* MobEntity::senses() const {
+    return m_senses.get();
 }
 
 math::Random MobEntity::getRandom() const {

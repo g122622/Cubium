@@ -5,7 +5,7 @@
 namespace mc {
 
 AbstractRaiderEntity::AbstractRaiderEntity(LegacyEntityType type, EntityId id)
-    : AbstractIllagerEntity(type, id)
+    : PatrollerEntity(type, id)
 {
 }
 
@@ -27,7 +27,7 @@ void AbstractRaiderEntity::startCelebrating() {
 }
 
 void AbstractRaiderEntity::tick() {
-    MonsterEntity::tick();
+    PatrollerEntity::tick();
 
     // 更新庆祝时间
     if (m_celebrationTime > 0) {
@@ -54,7 +54,7 @@ void AbstractRaiderEntity::die(DamageSource& cause) {
     }
 
     // 调用父类die方法
-    AbstractIllagerEntity::die(cause);
+    PatrollerEntity::die(cause);
 }
 
 } // namespace mc

@@ -2,6 +2,7 @@
 
 #include "../MonsterEntity.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
+#include "../../../interfaces/IFlinging.hpp"
 #include "../../../../core/Types.hpp"
 
 namespace mc {
@@ -230,7 +231,7 @@ private:
  *
  * 参考 MC 1.16.5 HoglinEntity
  */
-class HoglinEntity : public MonsterEntity {
+class HoglinEntity : public MonsterEntity, public entity::IFlinging {
 public:
     /**
      * @brief 工厂方法
@@ -247,8 +248,10 @@ public:
     void setBaby(bool baby) { m_isBaby = baby; }
 
     [[nodiscard]] bool isHuntable() const { return !m_isBaby; }
+    [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
 
     void tick() override;
+    bool attackLivingTarget(LivingEntity& target);
 
 protected:
     void registerGoals() override;
@@ -258,6 +261,7 @@ private:
     bool m_immuneToFire = true;
     bool m_isBaby = false;
     i32 m_attackCooldown = 0;
+    i32 m_attackAnimationTicks = 0;
 };
 
 /**
@@ -267,7 +271,7 @@ private:
  *
  * 参考 MC 1.16.5 ZoglinEntity
  */
-class ZoglinEntity : public MonsterEntity {
+class ZoglinEntity : public MonsterEntity, public entity::IFlinging {
 public:
     /**
      * @brief 工厂方法
@@ -279,6 +283,10 @@ public:
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
     void setBaby(bool baby) { m_isBaby = baby; }
+    [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
+
+    void tick() override;
+    bool attackLivingTarget(LivingEntity& target);
 
 protected:
     void registerGoals() override;
@@ -286,6 +294,7 @@ protected:
 
 private:
     bool m_isBaby = false;
+    i32 m_attackAnimationTicks = 0;
 };
 
 } // namespace mc

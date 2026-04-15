@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AbstractFishEntity.hpp"
-#include "../../../../core/Types.hpp"
+#include "AbstractGroupFishEntity.hpp"
+
 #include <memory>
 
 namespace mc {
@@ -9,47 +9,33 @@ namespace mc {
 /**
  * @brief 鲑鱼实体
  *
- * 常见的海洋和河流鱼类。
- *
- * 特性：
- * - 群居：会与其他鲑鱼聚在一起
- * - 掉落：生鲑鱼、骨头
- *
- * 参考 MC 1.16.5 SalmonEntity
+ * 对齐 1.16.5 SalmonEntity。鲑鱼属于群游鱼类，但最大群体大小
+ * 与鳕鱼不同，vanilla 固定为 5。
  */
-class SalmonEntity : public AbstractFishEntity {
+class SalmonEntity : public AbstractGroupFishEntity {
 public:
     /**
-     * @brief 构造函数
+     * @brief 构造鲑鱼实体
      * @param type 实体类型
-     * @param id 实体ID
+     * @param id 实体 ID
      */
     SalmonEntity(LegacyEntityType type, EntityId id);
     ~SalmonEntity() override = default;
 
-    // 禁止拷贝
     SalmonEntity(const SalmonEntity&) = delete;
     SalmonEntity& operator=(const SalmonEntity&) = delete;
-
-    // 允许移动
     SalmonEntity(SalmonEntity&&) = default;
     SalmonEntity& operator=(SalmonEntity&&) = default;
 
     /**
      * @brief 创建鲑鱼实体
-     * @param world 世界实例
-     * @return 新的鲑鱼实体
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    // ========== 群居 ==========
-
     /**
-     * @brief 鲑鱼会群游
+     * @brief vanilla 鲑鱼最大群体大小为 5
      */
-    [[nodiscard]] bool canSchool() const override { return true; }
-
-    // ========== 属性 ==========
+    [[nodiscard]] i32 getMaxGroupSize() const override { return 5; }
 
     /**
      * @brief 获取眼睛高度
@@ -57,7 +43,6 @@ public:
     [[nodiscard]] f32 eyeHeight() const override { return 0.1f; }
 
 protected:
-    // ========== 属性注册 ==========
     void registerAttributes() override;
 };
 

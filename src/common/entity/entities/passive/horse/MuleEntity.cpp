@@ -1,30 +1,29 @@
 #include "MuleEntity.hpp"
+
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include <memory>
 
 namespace mc {
 
 MuleEntity::MuleEntity(LegacyEntityType type, EntityId id)
-    : AbstractHorseEntity(type, id)
+    : AbstractChestedHorseEntity(type, id)
 {
-    // 骡的跳跃强度适中
     setJumpStrength(0.5f);
 }
 
-std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<MuleEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void MuleEntity::registerGoals() {
-    AbstractHorseEntity::registerGoals();
-    // TODO: 骡特有 AI 目标
+void MuleEntity::registerGoals()
+{
+    AbstractChestedHorseEntity::registerGoals();
+    // TODO: 补齐骡专属 AI 目标。
 }
 
-void MuleEntity::registerAttributes() {
-    AbstractHorseEntity::registerAttributes();
-
-    // 骡的属性介于马和驴之间
+void MuleEntity::registerAttributes()
+{
+    AbstractChestedHorseEntity::registerAttributes();
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth > 0 ? m_horseHealth : 20.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed > 0 ? m_speed : 0.175f);
 }

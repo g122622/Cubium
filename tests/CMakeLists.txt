@@ -59,9 +59,24 @@ add_executable(mc_tests
     common/world/block/blocks/HopperBlockTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
+    entity/EntitySensesTest.cpp
+    entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
     entity/LivingEntityTests.cpp
     entity/GoalTests.cpp
+    entity/BrainScheduleTests.cpp
+    entity/DamagingProjectileSupportTypesTest.cpp
+    entity/FishSupportTypesTest.cpp
+    entity/HorseAppearanceSupportTypesTest.cpp
+    entity/HorseSupportTypesTest.cpp
+    entity/PatrollerSupportTypesTest.cpp
+    entity/PlayerSupportTypesTest.cpp
+    entity/ProjectileHelperTest.cpp
+    entity/SkeletonSupportTypesTest.cpp
+    entity/SpellcastingIllagerSupportTypesTest.cpp
+    entity/SpawnLocationHelperTest.cpp
+    entity/ShoulderRidingSupportTypesTest.cpp
+    entity/TraderLlamaSupportTypesTest.cpp
     entity/PathfindingTests.cpp
     entity/RandomWalkingGoalTest.cpp
     common/SettingsTest.cpp

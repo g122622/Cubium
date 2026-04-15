@@ -116,9 +116,11 @@ add_library(mc_common STATIC
     entity/entities/passive/horse/ZombieHorseEntity.cpp
     entity/entities/passive/horse/LlamaEntity.cpp
     # Entity - Monster
+    entity/interfaces/IFlinging.cpp
     entity/entities/monster/MonsterEntity.cpp
     # Entity - Monster (undead)
     entity/entities/monster/undead/ZombieEntity.cpp
+    entity/entities/monster/undead/AbstractSkeletonEntity.cpp
     entity/entities/monster/undead/SkeletonEntity.cpp
     entity/entities/monster/undead/HuskEntity.cpp
     entity/entities/monster/undead/DrownedEntity.cpp
@@ -145,6 +147,8 @@ add_library(mc_common STATIC
     entity/entities/monster/ocean/ElderGuardianEntity.cpp
     # Entity - Monster (illager)
     entity/entities/monster/illager/AbstractIllagerEntity.cpp
+    entity/entities/monster/illager/SpellcastingIllagerEntity.cpp
+    entity/entities/monster/illager/PatrollerEntity.cpp
     entity/entities/monster/illager/AbstractRaiderEntity.cpp
     entity/entities/monster/illager/WitchEntity.cpp
     entity/entities/monster/illager/IllagerEntities.cpp
@@ -173,10 +177,12 @@ add_library(mc_common STATIC
     entity/entities/villager/AbstractVillagerEntity.cpp
     entity/entities/villager/VillagerEntity.cpp
     # Entity - Projectile (incomplete - needs more work)
-    # entity/entities/projectile/ProjectileEntity.cpp
+    entity/entities/projectile/ProjectileHelper.cpp
+    entity/entities/projectile/ProjectileEntity.cpp
+    entity/entities/projectile/DamagingProjectileEntity.cpp
     # entity/entities/projectile/ThrowableEntity.cpp
     # entity/entities/projectile/AbstractArrowEntity.cpp
-    # entity/entities/projectile/AbstractFireballEntity.cpp
+    entity/entities/projectile/AbstractFireballEntity.cpp
     # entity/entities/projectile/ProjectileItemEntity.cpp
     # entity/entities/projectile/TridentEntity.cpp
     # entity/entities/projectile/OtherProjectiles.cpp
@@ -193,6 +199,7 @@ add_library(mc_common STATIC
     entity/combat/PlayerAttackHelper.cpp
     entity/damage/CombatEntry.cpp
     entity/damage/CombatTracker.cpp
+    entity/ai/EntitySenses.cpp
     entity/ai/controller/LookController.cpp
     entity/ai/controller/MovementController.cpp
     entity/ai/controller/JumpController.cpp

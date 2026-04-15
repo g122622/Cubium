@@ -1,24 +1,22 @@
 #include "StrayEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
 
 namespace mc {
 
 StrayEntity::StrayEntity(LegacyEntityType type, EntityId id)
-    : SkeletonEntity(type, id)
+    : AbstractSkeletonEntity(type, id)
 {
-    // 注册属性
+    registerGoals();
     registerAttributes();
 }
 
-std::unique_ptr<Entity> StrayEntity::create(IWorld* /*world*/) {
+std::unique_ptr<Entity> StrayEntity::create(IWorld* /*world*/)
+{
     return std::make_unique<StrayEntity>(LegacyEntityType::Unknown, 0);
 }
 
-void StrayEntity::registerAttributes() {
-    // 调用父类方法
-    SkeletonEntity::registerAttributes();
-
-    // 流浪者的属性与骷髅相同
+void StrayEntity::registerAttributes()
+{
+    AbstractSkeletonEntity::registerAttributes();
 }
 
 } // namespace mc

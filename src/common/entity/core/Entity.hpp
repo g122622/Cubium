@@ -61,6 +61,7 @@ enum class LegacyEntityType : u32 {
     SkeletonHorse = 38,
     ZombieHorse = 39,
     Llama = 40,
+    TraderLlama = 41,
 
     // 敌对生物
     Zombie = 50,
@@ -370,6 +371,16 @@ public:
     [[nodiscard]] AxisAlignedBB boundingBox() const {
         return AxisAlignedBB::fromPosition(m_position, width(), height());
     }
+
+    /**
+     * @brief 实体是否可被碰撞或射线命中
+     */
+    [[nodiscard]] virtual bool canBeCollidedWith() const { return true; }
+
+    /**
+     * @brief 命中检测时额外扩张的碰撞边界
+     */
+    [[nodiscard]] virtual f32 getCollisionBorderSize() const { return 0.0f; }
 
     // ========== 更新 ==========
 

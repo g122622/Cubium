@@ -1,0 +1,126 @@
+# 鱼类实体模块
+
+## 目录结构
+
+```text
+fish/
+├── AbstractFishEntity.hpp/cpp         # 所有鱼共享的基础游泳/离水语义
+├── AbstractGroupFishEntity.hpp        # 1.16.5 群游鱼中间层
+├── CodEntity.hpp/cpp                  # 鳕鱼
+├── SalmonEntity.hpp/cpp               # 鲑鱼
+├── PufferfishEntity.hpp/cpp           # 河豚
+├── TropicalFishEntity.hpp/cpp         # 热带鱼
+└── README.md                          # 模块说明
+```
+
+## 文件介绍
+
+- `AbstractFishEntity`
+  - 对齐 1.16.5 `AbstractFishEntity` 的基础层。
+  - 负责空气供应、游泳状态、离水扑腾状态。
+  - 不再承载群游字段。
+- `AbstractGroupFishEntity`
+  - 对齐 1.16.5 `AbstractGroupFishEntity`。
+  - 负责群首引用、群体大小、跟随距离和 leader 失效后的状态清理。
+  - 当前先补最小可运行语义，后续再接 `FollowSchoolLeaderGoal` 和生成分组逻辑。
+- `CodEntity`
+  - 继承 `AbstractGroupFishEntity`。
+  - 沿用 vanilla 默认最大群体大小 8。
+- `SalmonEntity`
+  - 继承 `AbstractGroupFishEntity`。
+  - 对齐 vanilla，最大群体大小固定为 5。
+- `PufferfishEntity`
+  - 继续继承 `AbstractFishEntity`。
+  - 不进入群游层，保留河豚自己的膨胀/中毒语义。
+- `TropicalFishEntity`
+  - 继承 `AbstractGroupFishEntity`。
+  - 当前保留基础变种编码，桶数据和预定义花纹仍待补全。
+
+## 模块关系
+
+- `AbstractFishEntity` 继承自 `passive/water/WaterMobEntity`。
+- `AbstractGroupFishEntity` 继承自 `AbstractFishEntity`，只给会群游的鱼使用。
+- `CodEntity`、`SalmonEntity`、`TropicalFishEntity` 通过 `AbstractGroupFishEntity` 共享群游语义。
+- `PufferfishEntity` 直接停留在 `AbstractFishEntity`，避免把非群游鱼误塞进群游层。
+
+## 整体职责
+
+- 提供 1.16.5 鱼类实体的基础层次。
+- 统一鱼类共享的空气、游泳、离水扑腾行为。
+- 为后续鱼类 AI、生成分组、桶捕捉和同步逻辑提供正确继承结构。
+
+## 输入 / 输出
+
+### 输入
+
+- `Entity` / `WaterMobEntity` 提供的位置、存活状态和环境状态。
+- tick 驱动的生命周期更新。
+- 未来会接入的群游 AI 目标和生成分组逻辑。
+
+### 输出
+
+- 游泳状态与离水扑腾状态更新。
+- 群首引用、群体大小和跟随距离判定。
+- 供鱼类 AI 和生成系统消费的基础群游状态。
+
+## 依赖项
+
+### 内部依赖
+
+- `src/common/entity/core/Entity.hpp`
+- `src/common/entity/entities/passive/water/WaterMobEntity.hpp`
+- `src/common/entity/attribute/Attributes.hpp`
+
+### 外部依赖
+
+- 仅标准库
+
+## 使用方法
+
+```cpp
+mc::CodEntity leader(mc::LegacyEntityType::Cod, 1);
+mc::SalmonEntity follower(mc::LegacyEntityType::Salmon, 2);
+
+follower.joinGroup(leader);
+
+if (follower.hasGroupLeader() && follower.inRangeOfGroupLeader()) {
+    // 后续可在 Goal/Brain 中接入真正的群游跟随逻辑
+}
+```
+
+## 容易踩的坑
+
+- 不要再把群游字段塞回 `AbstractFishEntity`。
+  - 这会再次让 `PufferfishEntity` 落到错误层次。
+- 不要把 `SalmonEntity` 的最大群体大小写成默认值 8。
+  - vanilla 1.16.5 鲑鱼固定为 5。
+- 当前 `AbstractGroupFishEntity` 只补了最小状态语义。
+  - `FollowSchoolLeaderGoal`、初始生成分组和桶/NBT 同步还没有接入。
+
+## 测试用例
+
+- `tests/entity/FishSupportTypesTest.cpp`
+  - 覆盖群游层继承关系。
+  - 覆盖 follower 加入/离开 leader。
+  - 覆盖 leader 移除后的引用清理。
+  - 覆盖 vanilla 风格的 11 格跟随距离语义。
+
+## Mermaid 图表
+
+```mermaid
+flowchart TD
+    A[WaterMobEntity] --> B[AbstractFishEntity]
+    B --> C[AbstractGroupFishEntity]
+    B --> D[PufferfishEntity]
+    C --> E[CodEntity]
+    C --> F[SalmonEntity]
+    C --> G[TropicalFishEntity]
+
+    style A fill:#bde0fe,stroke:#2563eb,color:#111
+    style B fill:#cdeac0,stroke:#2f6f3e,color:#111
+    style C fill:#ffe29a,stroke:#b7791f,color:#111
+    style D fill:#f7cad0,stroke:#be123c,color:#111
+    style E fill:#a8dadc,stroke:#0f766e,color:#111
+    style F fill:#a8dadc,stroke:#0f766e,color:#111
+    style G fill:#a8dadc,stroke:#0f766e,color:#111
+```

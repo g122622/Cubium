@@ -1,4 +1,6 @@
 #include "MemoryModuleType.hpp"
+#include "IPositionTarget.hpp"
+#include "WalkTarget.hpp"
 #include "../../../../world/GlobalPos.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 
@@ -44,8 +46,8 @@ const MemoryModuleType<ItemEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_WANTED_I
 
 // 移动相关
 const MemoryModuleType<Path>* MemoryModuleTypes::PATH = nullptr;
-const MemoryModuleType<void>* MemoryModuleTypes::WALK_TARGET = nullptr;
-const MemoryModuleType<void>* MemoryModuleTypes::LOOK_TARGET = nullptr;
+const MemoryModuleType<WalkTarget>* MemoryModuleTypes::WALK_TARGET = nullptr;
+const MemoryModuleType<std::shared_ptr<IPositionTarget>>* MemoryModuleTypes::LOOK_TARGET = nullptr;
 
 // 战斗相关
 const MemoryModuleType<bool>* MemoryModuleTypes::ATTACK_COOLING_DOWN = nullptr;
@@ -211,11 +213,11 @@ void MemoryModuleTypes::initialize() {
     s_types["path"] = std::make_unique<MemoryModuleType<Path>>("path");
     PATH = static_cast<const MemoryModuleType<Path>*>(s_types["path"].get());
 
-    s_types["walk_target"] = std::make_unique<MemoryModuleType<void>>("walk_target");
-    WALK_TARGET = static_cast<const MemoryModuleType<void>*>(s_types["walk_target"].get());
+    s_types["walk_target"] = std::make_unique<MemoryModuleType<WalkTarget>>("walk_target");
+    WALK_TARGET = static_cast<const MemoryModuleType<WalkTarget>*>(s_types["walk_target"].get());
 
-    s_types["look_target"] = std::make_unique<MemoryModuleType<void>>("look_target");
-    LOOK_TARGET = static_cast<const MemoryModuleType<void>*>(s_types["look_target"].get());
+    s_types["look_target"] = std::make_unique<MemoryModuleType<std::shared_ptr<IPositionTarget>>>("look_target");
+    LOOK_TARGET = static_cast<const MemoryModuleType<std::shared_ptr<IPositionTarget>>*>(s_types["look_target"].get());
 
     // 战斗相关
     s_types["attack_cooling_down"] = std::make_unique<MemoryModuleType<bool>>("attack_cooling_down");

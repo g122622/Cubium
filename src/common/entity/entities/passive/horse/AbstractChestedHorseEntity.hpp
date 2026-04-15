@@ -1,0 +1,68 @@
+#pragma once
+
+#include "AbstractHorseEntity.hpp"
+
+namespace mc {
+
+/**
+ * @brief 可装备箱子的马类中间层
+ *
+ * 对齐 1.16.5 `AbstractChestedHorseEntity` 的层次职责，
+ * 负责承载驴、骡和羊驼共享的箱子状态与基础库存规模计算。
+ */
+class AbstractChestedHorseEntity : public AbstractHorseEntity {
+public:
+    /**
+     * @brief 构造可携带箱子的马类实体
+     * @param type 实体类型
+     * @param id 实体 ID
+     */
+    AbstractChestedHorseEntity(LegacyEntityType type, EntityId id)
+        : AbstractHorseEntity(type, id)
+    {
+    }
+
+    ~AbstractChestedHorseEntity() override = default;
+
+    AbstractChestedHorseEntity(const AbstractChestedHorseEntity&) = delete;
+    AbstractChestedHorseEntity& operator=(const AbstractChestedHorseEntity&) = delete;
+    AbstractChestedHorseEntity(AbstractChestedHorseEntity&&) = default;
+    AbstractChestedHorseEntity& operator=(AbstractChestedHorseEntity&&) = default;
+
+    /**
+     * @brief 当前是否装备了箱子
+     */
+    [[nodiscard]] bool hasChest() const { return m_hasChest; }
+
+    /**
+     * @brief 设置箱子状态
+     */
+    void setChest(bool chest) { m_hasChest = chest; }
+
+    /**
+     * @brief 返回箱子库存列数
+     *
+     * vanilla 驴和骡固定为 5 列，羊驼会覆写成 strength。
+     */
+    [[nodiscard]] virtual i32 getInventoryColumns() const { return 5; }
+
+    /**
+     * @brief 计算库存大小
+     *
+     * 对齐 vanilla：未装备箱子时回落到 `AbstractHorseEntity` 的基础槽位，
+     * 装备箱子后为 2 + 3 * 列数。
+     */
+    [[nodiscard]] i32 getInventorySize() const override
+    {
+        if (!m_hasChest) {
+            return AbstractHorseEntity::getInventorySize();
+        }
+
+        return 2 + 3 * getInventoryColumns();
+    }
+
+private:
+    bool m_hasChest = false;
+};
+
+} // namespace mc

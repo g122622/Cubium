@@ -124,8 +124,12 @@ void LivingEntity::die(DamageSource& /*cause*/) {
 
 void LivingEntity::registerAttributes() {
     m_attributes.registerAttribute(*entity::attribute::Attributes::maxHealth());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::followRange());
     m_attributes.registerAttribute(*entity::attribute::Attributes::knockbackResistance());
     m_attributes.registerAttribute(*entity::attribute::Attributes::movementSpeed());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
 }

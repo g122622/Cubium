@@ -158,7 +158,7 @@ struct RayAabbHit {
 
 BlockRaycastResult raycastBlocks(
     const RaycastContext& context,
-    const IBlockReader& world)
+    const IWorld& world)
 {
     const Vector3& start = context.ray.origin;
     const Vector3& dir = context.ray.direction;

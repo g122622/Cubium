@@ -2,6 +2,7 @@
 
 #include "../../core/CreatureEntity.hpp"
 #include "../../core/Entity.hpp"
+#include "../../interfaces/IMob.hpp"
 #include "../../../core/Types.hpp"
 
 namespace mc {
@@ -19,7 +20,7 @@ namespace mc {
  *
  * 参考 MC 1.16.5 MonsterEntity
  */
-class MonsterEntity : public CreatureEntity {
+class MonsterEntity : public CreatureEntity, public entity::IMob {
 public:
     /**
      * @brief 构造函数

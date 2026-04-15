@@ -111,3 +111,6 @@ IJumpingMount
 IEquipable
     └── 需要: ItemStack (前向声明)
 ```
+## 最新补充
+- 已补 `IFlinging.hpp/.cpp`，对齐 1.16.5 Hoglin / Zoglin 的撞飞型近战公共接口。
+- `IFlinging` 当前提供最小公共语义：攻击动画 tick 查询、成年个体的撞飞辅助、基于攻击伤害与击退属性的命中逻辑。
