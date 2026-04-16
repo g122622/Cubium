@@ -8,6 +8,97 @@
 
 namespace mc::client::ui::minecraft::widgets {
 
+namespace {
+
+using mc::String;
+using mc::f32;
+using mc::client::Font;
+using mc::client::renderer::trident::gui::GuiRenderer;
+
+[[nodiscard]] f32 measureTextWidth(Font* font,
+                                   GuiRenderer* gui,
+                                   const String& text)
+{
+    if (font != nullptr) {
+        return font->getStringWidthUTF8(text);
+    }
+
+    if (gui != nullptr) {
+        return static_cast<f32>(gui->getTextWidth(text));
+    }
+
+    return static_cast<f32>(text.size() * 6);
+}
+
+[[nodiscard]] size_t nextUtf8CodepointEnd(const String& text, size_t index)
+{
+    if (index >= text.size()) {
+        return text.size();
+    }
+
+    const unsigned char lead = static_cast<unsigned char>(text[index]);
+    size_t length = 1;
+    if ((lead & 0x80u) == 0u) {
+        length = 1;
+    } else if ((lead & 0xE0u) == 0xC0u) {
+        length = 2;
+    } else if ((lead & 0xF0u) == 0xE0u) {
+        length = 3;
+    } else if ((lead & 0xF8u) == 0xF0u) {
+        length = 4;
+    }
+
+    return std::min(index + length, text.size());
+}
+
+[[nodiscard]] size_t findCursorIndexFromClick(const String& text,
+                                              Font* font,
+                                              GuiRenderer* gui,
+                                              f32 clickX)
+{
+    if (text.empty() || clickX <= 0.0f) {
+        return 0;
+    }
+
+    const f32 totalWidth = measureTextWidth(font, gui, text);
+    if (clickX >= totalWidth) {
+        return text.size();
+    }
+
+    size_t index = 0;
+    f32 previousWidth = 0.0f;
+    while (index < text.size()) {
+        const size_t nextIndex = nextUtf8CodepointEnd(text, index);
+        const f32 nextWidth = measureTextWidth(font, gui, text.substr(0, nextIndex));
+
+        if (clickX <= nextWidth) {
+            if ((clickX - previousWidth) <= (nextWidth - clickX)) {
+                return index;
+            }
+            return nextIndex;
+        }
+
+        previousWidth = nextWidth;
+        index = nextIndex;
+    }
+
+    return text.size();
+}
+
+[[nodiscard]] String sanitizeClipboardText(String text)
+{
+    for (char& ch : text) {
+        const unsigned char value = static_cast<unsigned char>(ch);
+        if (value < 32u || value == 127u) {
+            ch = ' ';
+        }
+    }
+
+    return text;
+}
+
+} // namespace
+
 ChatWidget::ChatWidget()
     : ContainerWidget()
     , m_open(false)
@@ -145,14 +236,32 @@ bool ChatWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
 
         case GLFW_KEY_C:
             if (mods & GLFW_MOD_CONTROL && m_hasSelection) {
-                // 复制（TODO: 实现剪贴板）
+                GLFWwindow* window = glfwGetCurrentContext();
+                if (window != nullptr) {
+                    const size_t start = std::min(m_selectionStart, m_selectionEnd);
+                    const size_t end = std::max(m_selectionStart, m_selectionEnd);
+                    const String selectedText = m_input.substr(start, end - start);
+                    glfwSetClipboardString(window, selectedText.c_str());
+                }
                 return true;
             }
             break;
 
         case GLFW_KEY_V:
             if (mods & GLFW_MOD_CONTROL) {
-                // 粘贴（TODO: 实现剪贴板）
+                GLFWwindow* window = glfwGetCurrentContext();
+                if (window != nullptr) {
+                    const char* clipboardText = glfwGetClipboardString(window);
+                    if (clipboardText != nullptr && clipboardText[0] != '\0') {
+                        String pastedText = sanitizeClipboardText(String(clipboardText));
+                        if (!pastedText.empty()) {
+                            if (m_hasSelection) {
+                                deleteSelection();
+                            }
+                            insertText(pastedText);
+                        }
+                    }
+                }
                 return true;
             }
             break;
@@ -205,10 +314,28 @@ bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button) {
     if (!m_open) {
         return false;
     }
-    // TODO: 处理点击选择
-    (void)mouseX;
-    (void)mouseY;
-    (void)button;
+
+    if (button != GLFW_MOUSE_BUTTON_LEFT) {
+        return true;
+    }
+
+    const mc::f32 screenHeight = static_cast<mc::f32>(height());
+    const mc::f32 inputY = screenHeight - INPUT_BOX_HEIGHT - 10.0f;
+    const mc::f32 mouseYf = static_cast<mc::f32>(mouseY);
+    if (mouseYf < inputY || mouseYf > inputY + INPUT_BOX_HEIGHT) {
+        return true;
+    }
+
+    const mc::f32 textX = INPUT_BOX_PADDING + 4.0f;
+    const mc::f32 clickX = static_cast<mc::f32>(mouseX) - textX;
+
+    m_cursorPos = findCursorIndexFromClick(m_input, m_font, m_gui, clickX);
+    m_selectionStart = m_cursorPos;
+    m_selectionEnd = m_cursorPos;
+    m_hasSelection = false;
+    m_cursorVisible = true;
+    m_cursorBlinkTimer = 0.0f;
+    updateCommandSuggestions();
     return true;
 }
 
@@ -320,12 +447,8 @@ void ChatWidget::moveCursorToEdge(bool start, bool selecting) {
     updateCommandSuggestions();
 }
 
-f32 ChatWidget::getCursorPixelPosition() const {
-    // TODO: 使用字体测量
-    if (m_gui == nullptr || m_font == nullptr) {
-        return static_cast<f32>(m_cursorPos * 6);  // 估计宽度
-    }
-    return m_gui->getTextWidth(m_input.substr(0, m_cursorPos));
+mc::f32 ChatWidget::getCursorPixelPosition() const {
+    return measureTextWidth(m_font, m_gui, m_input.substr(0, m_cursorPos));
 }
 
 void ChatWidget::sendInput() {
@@ -502,7 +625,7 @@ void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx) {
             color = (color & 0x00FFFFFF) | (static_cast<u32>(a) << 24);
 
             // 渲染消息背景
-            f32 textWidth = m_gui->getTextWidth(it->text);
+            f32 textWidth = static_cast<f32>(m_gui->getTextWidth(it->text));
             ctx.drawFilledRect(
                 kagero::Rect(
                     static_cast<i32>(padding),

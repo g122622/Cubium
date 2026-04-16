@@ -1,11 +1,37 @@
 #include "Village.hpp"
 #include "../../util/nbt/Nbt.hpp"
 #include "../IWorld.hpp"
+
+#include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace mc {
 namespace world {
 namespace village {
+
+namespace {
+
+constexpr std::array<poi::PointOfInterestType, 16> ALL_BED_TYPES = {
+    poi::PointOfInterestType::BedRed,
+    poi::PointOfInterestType::BedBlack,
+    poi::PointOfInterestType::BedBlue,
+    poi::PointOfInterestType::BedBrown,
+    poi::PointOfInterestType::BedCyan,
+    poi::PointOfInterestType::BedGray,
+    poi::PointOfInterestType::BedGreen,
+    poi::PointOfInterestType::BedLightBlue,
+    poi::PointOfInterestType::BedLightGray,
+    poi::PointOfInterestType::BedLime,
+    poi::PointOfInterestType::BedMagenta,
+    poi::PointOfInterestType::BedOrange,
+    poi::PointOfInterestType::BedPink,
+    poi::PointOfInterestType::BedPurple,
+    poi::PointOfInterestType::BedWhite,
+    poi::PointOfInterestType::BedYellow,
+};
+
+} // namespace
 
 Village::Village(BlockPos center)
     : m_center(center)
@@ -33,10 +59,15 @@ void Village::recalculateBounds(const poi::PointOfInterestStorage& poiStorage) {
     // 基于床位和工作站重新计算村庄边界
     // 使用质心作为新中心
 
-    auto beds = poiStorage.findAllByType(poi::PointOfInterestType::BedRed);
-    // TODO: 收集所有颜色的床位
+    std::vector<const poi::PointOfInterest*> beds;
+    for (const auto bedType : ALL_BED_TYPES) {
+        auto foundBeds = poiStorage.findAllByType(bedType);
+        beds.insert(beds.end(), foundBeds.begin(), foundBeds.end());
+    }
 
     if (beds.empty()) {
+        m_bedCount = 0;
+        m_radius = VillageConfig::BASE_RADIUS;
         return;
     }
 

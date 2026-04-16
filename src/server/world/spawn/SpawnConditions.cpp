@@ -3,6 +3,9 @@
 #include "../../../common/world/block/Block.hpp"
 #include "../../../common/util/AxisAlignedBB.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 namespace mc::world::spawn {
 
 /**
@@ -67,10 +70,15 @@ bool SpawnConditions::hasCollisionSpace(IWorld& world, i32 x, i32 y, i32 z,
         return false;
     }
 
-    // 检查碰撞箱是否在有效范围内
-    // TODO 这里的范围不要硬编码
-    if (minX < -30000000.0f || maxX > 30000000.0f ||
-        minZ < -30000000.0f || maxZ > 30000000.0f) {
+    const i32 minBlockX = static_cast<i32>(std::floor(minX));
+    const i32 minBlockY = static_cast<i32>(std::floor(minY));
+    const i32 minBlockZ = static_cast<i32>(std::floor(minZ));
+    const i32 maxBlockX = static_cast<i32>(std::floor(maxX));
+    const i32 maxBlockY = static_cast<i32>(std::floor(maxY));
+    const i32 maxBlockZ = static_cast<i32>(std::floor(maxZ));
+
+    if (!world.isWithinWorldBounds(minBlockX, minBlockY, minBlockZ) ||
+        !world.isWithinWorldBounds(maxBlockX, maxBlockY, maxBlockZ)) {
         return false;
     }
 
@@ -109,25 +117,11 @@ i32 SpawnConditions::getGroundHeight(IWorld& world, i32 x, i32 z) {
 }
 
 bool SpawnConditions::isInWater(IWorld& world, i32 x, i32 y, i32 z) {
-    const BlockState* block = world.getBlockState(x, y, z);
-    if (!block) {
-        return false;
-    }
-
-    // 检查是否为水方块
-    // TODO: 使用更精确的水方块检测
-    return block->isLiquid() && !block->isSolid();
+    return world.isWaterAt(x, y, z);
 }
 
 bool SpawnConditions::isInLava(IWorld& world, i32 x, i32 y, i32 z) {
-    const BlockState* block = world.getBlockState(x, y, z);
-    if (!block) {
-        return false;
-    }
-
-    // TODO: 使用更精确的岩浆方块检测
-    // 当前使用简单的液体检测
-    return block->isLiquid() && block->lightLevel() > 0;
+    return world.isLavaAt(x, y, z);
 }
 
 } // namespace mc::world::spawn

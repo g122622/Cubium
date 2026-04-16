@@ -2,6 +2,7 @@
 #include "common/util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::sound {
 
@@ -196,8 +197,9 @@ Result<SoundEventDefinition> SoundEventDefinition::parse(
         if (result.success()) {
             def.sounds.push_back(std::move(result.value()));
         } else {
-            // 记录警告但继续解析其他声音
-            // TODO: 使用日志系统
+            spdlog::warn("Sound event '{}' skipped invalid sound entry: {}",
+                         String(eventId),
+                         result.error().message());
         }
     }
 
