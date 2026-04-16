@@ -1,5 +1,6 @@
 #include "Slot.hpp"
 #include "IInventory.hpp"
+#include "../../item/items/armor/ArmorItem.hpp"
 
 namespace mc {
 
@@ -67,10 +68,27 @@ ArmorSlot::ArmorSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y, ArmorTy
 }
 
 bool ArmorSlot::mayPlace(const ItemStack& stack) const {
-    // TODO: 检查物品是否是对应类型的护甲
-    // 目前简单实现：所有物品都可以放入
-    // 后续需要添加 ArmorItem 类并检查 armorType
-    return Slot::mayPlace(stack);
+    if (!Slot::mayPlace(stack)) {
+        return false;
+    }
+
+    const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(stack.getItem());
+    if (armorItem == nullptr) {
+        return false;
+    }
+
+    switch (m_armorType) {
+        case ArmorType::Head:
+            return armorItem->isHelmet();
+        case ArmorType::Chest:
+            return armorItem->isChestplate();
+        case ArmorType::Legs:
+            return armorItem->isLeggings();
+        case ArmorType::Feet:
+            return armorItem->isBoots();
+    }
+
+    return false;
 }
 
 // ============================================================================

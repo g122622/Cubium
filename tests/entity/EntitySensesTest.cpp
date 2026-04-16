@@ -1,10 +1,21 @@
 #include <gtest/gtest.h>
 
+#include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/EntitySenses.hpp"
 #include "common/entity/core/MobEntity.hpp"
 
 namespace mc {
 namespace {
+
+class NoResetLookController final : public entity::ai::controller::LookController {
+public:
+    using LookController::LookController;
+
+protected:
+    [[nodiscard]] bool shouldResetPitch() const override {
+        return false;
+    }
+};
 
 TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)
 {
@@ -51,6 +62,27 @@ TEST(EntitySensesTest, InvisibleEntityIsCachedWithinSameTick)
 
     target.setPosition(4.0f, 64.0f, 0.0f);
     EXPECT_FALSE(observer.senses()->canSee(target));
+}
+
+TEST(EntitySensesTest, LookControllerIdlePitchResetHonorsHook)
+{
+    MobEntity resetMob(LegacyEntityType::Zombie, 7);
+    resetMob.setRotation(45.0f, 15.0f);
+
+    entity::ai::controller::LookController resetController(&resetMob);
+    resetController.tick();
+
+    EXPECT_FLOAT_EQ(resetMob.yaw(), 45.0f);
+    EXPECT_FLOAT_EQ(resetMob.pitch(), 5.0f);
+
+    MobEntity lockedMob(LegacyEntityType::Zombie, 8);
+    lockedMob.setRotation(45.0f, 15.0f);
+
+    NoResetLookController lockedController(&lockedMob);
+    lockedController.tick();
+
+    EXPECT_FLOAT_EQ(lockedMob.yaw(), 45.0f);
+    EXPECT_FLOAT_EQ(lockedMob.pitch(), 15.0f);
 }
 
 } // namespace

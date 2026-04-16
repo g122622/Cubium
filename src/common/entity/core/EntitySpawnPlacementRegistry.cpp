@@ -1,4 +1,5 @@
 #include "EntitySpawnPlacementRegistry.hpp"
+#include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/Material.hpp"
 #include "../../util/math/random/Random.hpp"
@@ -130,14 +131,22 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
 
     // 检查脚下方块是否允许生成
     const Vector3i posBelow(pos.x, pos.y - 1, pos.z);
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(posBelow.x, posBelow.y, posBelow.z);
     if (!belowState) {
         return false;
     }
 
-    // 脚下方块必须是实心的
-    // TODO: 添加 Block::canCreatureSpawnOnSurface() 方法后改进
-    if (!belowState->isSolid()) {
+    bool hasSurfaceSupport = belowState->isSolid();
+
+    if (const IWorld* worldReader = dynamic_cast<const IWorld*>(&world)) {
+        hasSurfaceSupport = belowState->isSolidSide(
+            const_cast<IWorld&>(*worldReader),
+            belowPos,
+            Direction::Up);
+    }
+
+    if (!hasSurfaceSupport) {
         return false;
     }
 
@@ -263,12 +272,11 @@ bool EntitySpawnPlacementRegistry::blockPreventsSpawn(const BlockState* state)
         return false;
     }
 
-    // TODO: 添加更多阻止生成的方块检查
-    // 参考 MC BlockTags.PREVENT_MOB_SPAWNING_INSIDE
-    // 当前简化实现，仅检查实心方块
-    // 红石供电方块检查需要在 Block 类中添加 canProvidePower() 方法
+    if (state->isSolid()) {
+        return false;
+    }
 
-    return false;
+    return state->getShape().isFullBlock() || state->getCollisionShape().isFullBlock();
 }
 
 // ============================================================================

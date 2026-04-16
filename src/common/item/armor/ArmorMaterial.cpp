@@ -1,5 +1,6 @@
 #include "ArmorMaterial.hpp"
 #include "../crafting/Ingredient.hpp"
+#include "../Items.hpp"
 #include "../../sound/SoundEvent.hpp"
 
 namespace mc {
@@ -43,13 +44,11 @@ i32 LeatherArmorMaterial::getDefense(ArmorSlot slot) const {
 }
 
 sound::SoundEvent LeatherArmorMaterial::getEquipSound() const {
-    // TODO: 返回物品装备音效
-    return sound::SoundEvent();  // item.armor.equip_leather
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_leather"));
 }
 
 crafting::Ingredient LeatherArmorMaterial::getRepairMaterial() const {
-    // TODO: 返回皮革
-    return crafting::Ingredient();
+    return crafting::Ingredient::fromItem(Items::LEATHER);
 }
 
 // ============================================================================
@@ -72,12 +71,11 @@ i32 ChainArmorMaterial::getDefense(ArmorSlot slot) const {
 }
 
 sound::SoundEvent ChainArmorMaterial::getEquipSound() const {
-    return sound::SoundEvent();  // item.armor.equip_chain
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_chain"));
 }
 
 crafting::Ingredient ChainArmorMaterial::getRepairMaterial() const {
-    // 铁锭（原版如此）
-    return crafting::Ingredient();
+    return crafting::Ingredient::fromItem(Items::IRON_INGOT);
 }
 
 // ============================================================================
@@ -100,12 +98,11 @@ i32 IronArmorMaterial::getDefense(ArmorSlot slot) const {
 }
 
 sound::SoundEvent IronArmorMaterial::getEquipSound() const {
-    return sound::SoundEvent();  // item.armor.equip_iron
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_iron"));
 }
 
 crafting::Ingredient IronArmorMaterial::getRepairMaterial() const {
-    // 铁锭
-    return crafting::Ingredient();
+    return crafting::Ingredient::fromItem(Items::IRON_INGOT);
 }
 
 // ============================================================================
@@ -128,12 +125,11 @@ i32 GoldArmorMaterial::getDefense(ArmorSlot slot) const {
 }
 
 sound::SoundEvent GoldArmorMaterial::getEquipSound() const {
-    return sound::SoundEvent();  // item.armor.equip_gold
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_gold"));
 }
 
 crafting::Ingredient GoldArmorMaterial::getRepairMaterial() const {
-    // 金锭
-    return crafting::Ingredient();
+    return crafting::Ingredient::fromItem(Items::GOLD_INGOT);
 }
 
 // ============================================================================
@@ -156,12 +152,11 @@ i32 DiamondArmorMaterial::getDefense(ArmorSlot slot) const {
 }
 
 sound::SoundEvent DiamondArmorMaterial::getEquipSound() const {
-    return sound::SoundEvent();  // item.armor.equip_diamond
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_diamond"));
 }
 
 crafting::Ingredient DiamondArmorMaterial::getRepairMaterial() const {
-    // 钻石
-    return crafting::Ingredient();
+    return crafting::Ingredient::fromItem(Items::DIAMOND);
 }
 
 // ============================================================================
@@ -181,12 +176,11 @@ i32 TurtleArmorMaterial::getDefense(ArmorSlot slot) const {
 }
 
 sound::SoundEvent TurtleArmorMaterial::getEquipSound() const {
-    return sound::SoundEvent();  // item.armor.equip_turtle
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_turtle"));
 }
 
 crafting::Ingredient TurtleArmorMaterial::getRepairMaterial() const {
-    // 海龟壳（鳞甲）
-    return crafting::Ingredient();
+    return crafting::Ingredient::fromItem(Items::SCUTE);
 }
 
 // ============================================================================
@@ -209,12 +203,11 @@ i32 NetheriteArmorMaterial::getDefense(ArmorSlot slot) const {
 }
 
 sound::SoundEvent NetheriteArmorMaterial::getEquipSound() const {
-    return sound::SoundEvent();  // item.armor.equip_netherite
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_netherite"));
 }
 
 crafting::Ingredient NetheriteArmorMaterial::getRepairMaterial() const {
-    // 下界合金锭
-    return crafting::Ingredient();
+    return crafting::Ingredient::fromItem(Items::NETHERITE_INGOT);
 }
 
 // ============================================================================

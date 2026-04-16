@@ -1,11 +1,174 @@
 #include <gtest/gtest.h>
 #include "entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "world/spawn/MobSpawnInfo.hpp"
-#include "world/chunk/IChunk.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/special/SpecialBlocks.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/IWorld.hpp"
+
+#include <memory>
+#include <unordered_map>
 
 namespace mc {
 namespace test {
+
+namespace {
+
+class SpawnPlacementTestWorld final : public world::spawn::ISpawnWorldReader, public IWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return getAirState();
+    }
+
+    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+        m_blocks[BlockPos(x, y, z)] = state != nullptr ? state : getAirState();
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+        const BlockState* state = getBlockState(x, y, z);
+        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+    }
+
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override {
+        return nullptr;
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override {
+        return false;
+    }
+
+    [[nodiscard]] i32 getHeight(i32 x, i32 z) const override {
+        i32 highest = 0;
+        for (const auto& entry : m_blocks) {
+            if (entry.first.x == x && entry.first.z == z && entry.second != nullptr && !entry.second->isAir()) {
+                const i32 candidateHeight = entry.first.y + 1;
+                if (candidateHeight > highest) {
+                    highest = candidateHeight;
+                }
+            }
+        }
+        return highest;
+    }
+
+    [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override {
+        (void)type;
+        return getHeight(x, z);
+    }
+
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override {
+        (void)x;
+        (void)y;
+        (void)z;
+        return static_cast<BiomeId>(0);
+    }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override {
+        return 0;
+    }
+
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override {
+        return 15;
+    }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override {
+        return {};
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+        return y >= 0 && y < 256;
+    }
+
+    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override {
+        return isWithinWorldBounds(x, y, z);
+    }
+
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override {
+        return false;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+
+    [[nodiscard]] PhysicsEngine* physicsEngine() override {
+        return nullptr;
+    }
+
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override {
+        return nullptr;
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+        return {};
+    }
+
+    [[nodiscard]] DimensionId dimension() const override {
+        return static_cast<DimensionId>(0);
+    }
+
+    [[nodiscard]] u64 seed() const override {
+        return 0;
+    }
+
+    [[nodiscard]] u64 currentTick() const override {
+        return 0;
+    }
+
+    [[nodiscard]] i64 dayTime() const override {
+        return 0;
+    }
+
+    [[nodiscard]] bool isHardcore() const override {
+        return false;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override {
+        return Difficulty::Easy;
+    }
+
+private:
+    [[nodiscard]] const BlockState* getAirState() const {
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    std::unordered_map<BlockPos, const BlockState*> m_blocks;
+};
+
+class SupportBlock final : public Block {
+public:
+    explicit SupportBlock(const BlockProperties& properties)
+        : Block(properties) {
+    }
+
+    [[nodiscard]] bool isSolid(const BlockState& state) const override {
+        (void)state;
+        return false;
+    }
+
+    [[nodiscard]] bool isSolidSide(const BlockState& state, IWorld& world,
+                                   const BlockPos& pos, Direction side) const override {
+        (void)state;
+        (void)world;
+        (void)pos;
+        return side == Direction::Up;
+    }
+};
+
+} // namespace
 
 /**
  * @brief EntitySpawnPlacementRegistry 测试套件
@@ -16,6 +179,7 @@ class EntitySpawnPlacementRegistryTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // 初始化注册表
+        VanillaBlocks::initialize();
         world::spawn::EntitySpawnPlacementRegistry::initializeDefaults();
     }
 };
@@ -189,6 +353,36 @@ TEST_F(EntitySpawnPlacementRegistryTest, SpawnCostsInvalidValues) {
 
     world::spawn::SpawnCosts costs3(0.0, 0.0);
     EXPECT_FALSE(costs3.isValid());
+}
+
+TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnUsesSurfaceSupport)
+{
+    SpawnPlacementTestWorld world;
+    SupportBlock supportBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
+
+    world.setBlock(0, 63, 0, &supportBlock.defaultState());
+
+    EXPECT_TRUE(world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
+        world::spawn::PlacementType::OnGround,
+        world,
+        Vector3i(0, 64, 0),
+        "minecraft:pig"));
+}
+
+TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnRejectsBarrierLikeBlocks)
+{
+    SpawnPlacementTestWorld world;
+    SupportBlock supportBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
+    blocks::BarrierBlock barrierBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
+
+    world.setBlock(0, 63, 0, &supportBlock.defaultState());
+    world.setBlock(0, 64, 0, &barrierBlock.defaultState());
+
+    EXPECT_FALSE(world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
+        world::spawn::PlacementType::OnGround,
+        world,
+        Vector3i(0, 64, 0),
+        "minecraft:pig"));
 }
 
 } // namespace test

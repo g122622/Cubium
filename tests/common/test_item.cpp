@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
+#include <array>
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "item/armor/ArmorMaterial.hpp"
 #include "item/Items.hpp"
 
 using namespace mc;
@@ -141,6 +143,32 @@ TEST_F(ItemTest, RarityItems) {
     Item* netherStar = ItemRegistry::instance().getItem(ResourceLocation("minecraft:nether_star"));
     ASSERT_NE(netherStar, nullptr);
     EXPECT_EQ(netherStar->rarity(), ItemRarity::Uncommon);
+}
+
+TEST_F(ItemTest, ArmorMaterialsUseVanillaSoundsAndRepairItems) {
+    struct ArmorMaterialCase {
+        const item::armor::ArmorMaterial* material;
+        const char* equipSoundId;
+        const Item* repairItem;
+    };
+
+    const std::array<ArmorMaterialCase, 7> cases = {{
+        {&item::armor::ArmorMaterials::LEATHER, "minecraft:item.armor.equip_leather", Items::LEATHER},
+        {&item::armor::ArmorMaterials::CHAIN, "minecraft:item.armor.equip_chain", Items::IRON_INGOT},
+        {&item::armor::ArmorMaterials::IRON, "minecraft:item.armor.equip_iron", Items::IRON_INGOT},
+        {&item::armor::ArmorMaterials::GOLD, "minecraft:item.armor.equip_gold", Items::GOLD_INGOT},
+        {&item::armor::ArmorMaterials::DIAMOND, "minecraft:item.armor.equip_diamond", Items::DIAMOND},
+        {&item::armor::ArmorMaterials::TURTLE, "minecraft:item.armor.equip_turtle", Items::SCUTE},
+        {&item::armor::ArmorMaterials::NETHERITE, "minecraft:item.armor.equip_netherite", Items::NETHERITE_INGOT},
+    }};
+
+    for (const auto& testCase : cases) {
+        ASSERT_NE(testCase.material, nullptr);
+        ASSERT_NE(testCase.repairItem, nullptr);
+
+        EXPECT_EQ(testCase.material->getEquipSound().getId(), ResourceLocation(testCase.equipSoundId));
+        EXPECT_TRUE(testCase.material->getRepairMaterial().test(*testCase.repairItem));
+    }
 }
 
 TEST_F(ItemTest, NonExistentItem) {

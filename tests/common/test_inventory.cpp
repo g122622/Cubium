@@ -2,6 +2,8 @@
 #include "../src/common/entity/inventory/IInventory.hpp"
 #include "../src/common/entity/inventory/Slot.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
+#include "../src/common/item/armor/ArmorMaterial.hpp"
+#include "../src/common/item/items/armor/ArmorItem.hpp"
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
 
@@ -430,4 +432,40 @@ TEST_F(SlotTest, MayPlace) {
     Slot slot(m_inventory.get(), 0, 0, 0);
 
     EXPECT_TRUE(slot.mayPlace(ItemStack::EMPTY));
+}
+
+TEST_F(SlotTest, ArmorSlotOnlyAcceptsMatchingArmorType) {
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
+                            item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(
+            material,
+            slot,
+            ItemProperties().maxDamage(material.getDurability(slot)));
+    };
+
+    const auto helmet = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Head);
+    const auto chestplate = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Chest);
+    const auto leggings = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Legs);
+    const auto boots = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Feet);
+
+    ArmorSlot headSlot(m_inventory.get(), InventorySlots::ARMOR_HEAD, 0, 0, ArmorSlot::ArmorType::Head);
+    ArmorSlot chestSlot(m_inventory.get(), InventorySlots::ARMOR_CHEST, 0, 0, ArmorSlot::ArmorType::Chest);
+    ArmorSlot legsSlot(m_inventory.get(), InventorySlots::ARMOR_LEGS, 0, 0, ArmorSlot::ArmorType::Legs);
+    ArmorSlot feetSlot(m_inventory.get(), InventorySlots::ARMOR_FEET, 0, 0, ArmorSlot::ArmorType::Feet);
+
+    EXPECT_TRUE(headSlot.mayPlace(ItemStack(helmet)));
+    EXPECT_FALSE(headSlot.mayPlace(ItemStack(chestplate)));
+    EXPECT_FALSE(headSlot.mayPlace(ItemStack(*m_diamond)));
+
+    EXPECT_TRUE(chestSlot.mayPlace(ItemStack(chestplate)));
+    EXPECT_FALSE(chestSlot.mayPlace(ItemStack(leggings)));
+    EXPECT_FALSE(chestSlot.mayPlace(ItemStack(*m_diamond)));
+
+    EXPECT_TRUE(legsSlot.mayPlace(ItemStack(leggings)));
+    EXPECT_FALSE(legsSlot.mayPlace(ItemStack(boots)));
+    EXPECT_FALSE(legsSlot.mayPlace(ItemStack(*m_diamond)));
+
+    EXPECT_TRUE(feetSlot.mayPlace(ItemStack(boots)));
+    EXPECT_FALSE(feetSlot.mayPlace(ItemStack(helmet)));
+    EXPECT_FALSE(feetSlot.mayPlace(ItemStack(*m_diamond)));
 }

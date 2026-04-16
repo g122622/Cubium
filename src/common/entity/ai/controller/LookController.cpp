@@ -26,11 +26,6 @@ void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 delt
 void LookController::tick() {
     if (!m_mob) return;
 
-    // TODO: 重置俯仰角（如果需要）
-    // if (shouldResetPitch()) {
-    //     m_mob->setPitch(0.0f);
-    // }
-
     if (m_isLooking) {
         m_isLooking = false;
 
@@ -45,6 +40,15 @@ void LookController::tick() {
         f32 newPitch = clampedRotate(currentPitch, targetPitch, m_deltaLookPitch);
 
         m_mob->setRotation(newYaw, newPitch);
+    } else if (shouldResetPitch()) {
+        // 空闲时让俯仰角平滑回正，保留当前偏航角和已有的限速行为。
+        f32 currentYaw = m_mob->yaw();
+        f32 currentPitch = m_mob->pitch();
+        f32 resetPitch = clampedRotate(currentPitch, 0.0f, m_deltaLookPitch);
+
+        if (resetPitch != currentPitch) {
+            m_mob->setRotation(currentYaw, resetPitch);
+        }
     }
 }
 
