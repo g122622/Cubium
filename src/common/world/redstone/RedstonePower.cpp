@@ -14,7 +14,7 @@ namespace redstone {
 // ========== 强信号 ==========
 
 i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos, Direction side) {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         return MIN_POWER;
     }
@@ -44,7 +44,7 @@ i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos) {
 // ========== 弱信号 ==========
 
 i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos, Direction side) {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         return MIN_POWER;
     }
@@ -84,7 +84,7 @@ bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos) {
         BlockPos neighborPos = pos.offset(dir);
         Direction oppositeDir = Directions::opposite(dir);
 
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState && !neighborState->isAir()) {
             if (neighborState->getBlock().getStrongPower(*neighborState, world, neighborPos, oppositeDir) > 0) {
                 return true;
@@ -98,7 +98,7 @@ bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos) {
 bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction side) {
     BlockPos neighborPos = pos.offset(side);
 
-    const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    const BlockState* neighborState = world.getBlockState(neighborPos);
     if (!neighborState || neighborState->isAir()) {
         return false;
     }
@@ -126,7 +126,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
         BlockPos neighborPos = pos.offset(dir);
         Direction oppositeDir = Directions::opposite(dir);
 
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (!neighborState || neighborState->isAir()) {
             continue;
         }
@@ -146,7 +146,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
     if (maxPower < MAX_POWER) {
         for (Direction dir : Directions::horizontal()) {
             BlockPos neighborPos = pos.offset(dir);
-            const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+            const BlockState* neighborState = world.getBlockState(neighborPos);
 
             if (!neighborState) {
                 continue;
@@ -164,7 +164,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
             // 如果相邻是实体方块，检查其上方是否有红石线
             if (RedstoneHelper::isNormalCube(*neighborState)) {
                 BlockPos upPos = neighborPos.up();
-                const BlockState* upState = world.getBlockState(upPos.x, upPos.y, upPos.z);
+                const BlockState* upState = world.getBlockState(upPos);
                 if (upState && upState->is(VanillaBlocks::REDSTONE_WIRE)) {
                     i32 wirePower = blocks::RedstoneWireBlock::getPower(*upState) - 1;
                     if (wirePower > maxPower) {
@@ -174,7 +174,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos) {
             } else {
                 // 相邻不是实体方块，检查其下方是否有红石线
                 BlockPos downPos = neighborPos.down();
-                const BlockState* downState = world.getBlockState(downPos.x, downPos.y, downPos.z);
+                const BlockState* downState = world.getBlockState(downPos);
                 if (downState && downState->is(VanillaBlocks::REDSTONE_WIRE)) {
                     i32 wirePower = blocks::RedstoneWireBlock::getPower(*downState) - 1;
                     if (wirePower > maxPower) {
@@ -192,7 +192,7 @@ i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direct
     // 输入端在比较器的背面（朝向的反方向）
     BlockPos inputPos = pos.offset(Directions::opposite(facing));
 
-    const BlockState* inputState = world.getBlockState(inputPos.x, inputPos.y, inputPos.z);
+    const BlockState* inputState = world.getBlockState(inputPos);
     if (!inputState || inputState->isAir()) {
         return MIN_POWER;
     }
@@ -230,7 +230,7 @@ i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& 
         BlockPos neighborPos = pos.offset(dir);
         Direction oppositeDir = Directions::opposite(dir);
 
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (!neighborState || neighborState->isAir()) {
             continue;
         }

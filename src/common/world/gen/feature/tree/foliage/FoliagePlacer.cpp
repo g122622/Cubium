@@ -52,7 +52,7 @@ void FoliagePlacer::placeFoliage(
             state->is(VanillaBlocks::JUNGLE_LEAVES) ||
             state->is(VanillaBlocks::ACACIA_LEAVES) ||
             state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
-            world.setBlock(pos.x, pos.y, pos.z, foliageBlock);
+            world.setBlock(pos, foliageBlock);
         }
     }
 }
@@ -104,7 +104,7 @@ void FoliagePlacer::placeFoliageLayer(
 
             // 放置树叶
             if (foliageBlock != nullptr) {
-                world.setBlock(pos.x, pos.y, pos.z, foliageBlock);
+                world.setBlock(pos, foliageBlock);
                 foliageBlocks.insert(pos);
             }
         }

@@ -25,7 +25,7 @@ bool LilyPadBlock::isValidPosition(
 
     // 检查下方是否为水
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -38,7 +38,7 @@ bool LilyPadBlock::isValidPosition(
     }
 
     // 检查当前方块是否为空气或水
-    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentState = world.getBlockState(pos);
     if (currentState == nullptr || currentState->isAir()) {
         return true;
     }

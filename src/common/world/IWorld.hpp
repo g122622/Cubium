@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/Types.hpp"
+#include "block/BlockPos.hpp"
 #include "../util/math/Vector3.hpp"
 #include "../util/AxisAlignedBB.hpp"
 #include "tick/base/TickPriority.hpp"
@@ -50,12 +51,31 @@ public:
     [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const = 0;
 
     /**
+     * @brief 获取方块状态（使用 BlockPos）
+     * @param pos 方块位置
+     * @return 方块状态指针，如果超出范围返回空气
+     */
+    [[nodiscard]] virtual const BlockState* getBlockState(const BlockPos& pos) const {
+        return getBlockState(pos.x, pos.y, pos.z);
+    }
+
+    /**
      * @brief 设置方块状态
      * @param x, y, z 方块坐标
      * @param state 方块状态
      * @return 是否成功
      */
     virtual bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) = 0;
+
+    /**
+     * @brief 设置方块状态（使用 BlockPos）
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @return 是否成功
+     */
+    virtual bool setBlock(const BlockPos& pos, const BlockState* state) {
+        return setBlock(pos.x, pos.y, pos.z, state);
+    }
 
     /**
      * @brief 设置方块状态（带标志）
@@ -65,8 +85,20 @@ public:
      * @return 是否成功
      */
     virtual bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) {
+        // TODO: 处理标志（目前直接调用不带标志的 setBlock）
         (void)flags;
         return setBlock(x, y, z, state);
+    }
+
+    /**
+     * @brief 设置方块状态（使用 BlockPos）
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param flags 更新标志
+     * @return 是否成功
+     */
+    virtual bool setBlockState(const BlockPos& pos, const BlockState* state, i32 flags) {
+        return setBlockState(pos.x, pos.y, pos.z, state, flags);
     }
 
     /**
@@ -91,6 +123,7 @@ public:
     virtual void setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
         (void)pos;
         (void)entity;
+        // TODO : 存储方块实体
     }
 
     /**
@@ -98,6 +131,7 @@ public:
      * @param pos 方块位置
      */
     virtual void removeBlockEntity(const BlockPos& pos) {
+        // TODO : 移除方块实体
         (void)pos;
     }
 
@@ -111,9 +145,25 @@ public:
     [[nodiscard]] virtual const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const = 0;
 
     /**
+     * @brief 获取流体状态（使用 BlockPos）
+     * @param pos 方块位置
+     * @return 流体状态指针，如果无流体返回空流体状态
+     */
+    [[nodiscard]] virtual const fluid::FluidState* getFluidState(const BlockPos& pos) const {
+        return getFluidState(pos.x, pos.y, pos.z);
+    }
+
+    /**
      * @brief 检查位置是否有流体
      */
     [[nodiscard]] bool hasFluid(i32 x, i32 y, i32 z) const;
+
+    /**
+     * @brief 检查位置是否有流体（使用 BlockPos）
+     */
+    [[nodiscard]] virtual bool hasFluid(const BlockPos& pos) const {
+        return hasFluid(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 检查位置是否为水
@@ -121,9 +171,23 @@ public:
     [[nodiscard]] bool isWaterAt(i32 x, i32 y, i32 z) const;
 
     /**
+     * @brief 检查位置是否为水（使用 BlockPos）
+     */
+    [[nodiscard]] virtual bool isWaterAt(const BlockPos& pos) const {
+        return isWaterAt(pos.x, pos.y, pos.z);
+    }
+
+    /**
      * @brief 检查位置是否为岩浆
      */
     [[nodiscard]] bool isLavaAt(i32 x, i32 y, i32 z) const;
+
+    /**
+     * @brief 检查位置是否为岩浆（使用 BlockPos）
+     */
+    [[nodiscard]] virtual bool isLavaAt(const BlockPos& pos) const {
+        return isLavaAt(pos.x, pos.y, pos.z);
+    }
 
     // ========== 区块访问 ==========
 
@@ -158,11 +222,29 @@ public:
     [[nodiscard]] virtual u8 getBlockLight(i32 x, i32 y, i32 z) const = 0;
 
     /**
+     * @brief 获取方块光照（使用 BlockPos）
+     * @param pos 方块位置
+     * @return 光照等级 (0-15)
+     */
+    [[nodiscard]] virtual u8 getBlockLight(const BlockPos& pos) const {
+        return getBlockLight(pos.x, pos.y, pos.z);
+    }
+
+    /**
      * @brief 获取天空光照
      * @param x, y, z 方块坐标
      * @return 光照等级 (0-15)
      */
     [[nodiscard]] virtual u8 getSkyLight(i32 x, i32 y, i32 z) const = 0;
+
+    /**
+     * @brief 获取天空光照（使用 BlockPos）
+     * @param pos 方块位置
+     * @return 光照等级 (0-15)
+     */
+    [[nodiscard]] virtual u8 getSkyLight(const BlockPos& pos) const {
+        return getSkyLight(pos.x, pos.y, pos.z);
+    }
 
     // ========== 碰撞检测 ==========
 
@@ -188,6 +270,15 @@ public:
      * @return 是否在世界边界内
      */
     [[nodiscard]] virtual bool isWithinWorldBounds(i32 x, i32 y, i32 z) const = 0;
+
+    /**
+     * @brief 检查位置是否在世界边界内（使用 BlockPos）
+     * @param pos 方块位置
+     * @return 是否在世界边界内
+     */
+    [[nodiscard]] virtual bool isWithinWorldBounds(const BlockPos& pos) const {
+        return isWithinWorldBounds(pos.x, pos.y, pos.z);
+    }
 
     /**
      * @brief 检查碰撞箱是否与实体碰撞

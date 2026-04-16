@@ -49,7 +49,7 @@ void RedstoneDiodeBlock::neighborChanged(IWorld& world, const BlockPos& pos, Blo
     MC_UNUSED(isMoving);
 
     // 更新状态
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (state) {
         updateState(world, pos, *state);
     }
@@ -88,12 +88,12 @@ void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     if (shouldPower != isCurrentlyPowered) {
         // 改变状态
         BlockState newState = state.with(BlockStateProperties::POWERED(), shouldPower);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         // 通知输出端相邻方块更新
         Direction facing = getFacing(state);
         BlockPos outputPos = pos.offset(facing);
-        const BlockState* outputState = world.getBlockState(outputPos.x, outputPos.y, outputPos.z);
+        const BlockState* outputState = world.getBlockState(outputPos);
         if (outputState && !outputState->isAir()) {
             Block& outputBlock = const_cast<Block&>(outputState->getBlock());
             outputBlock.neighborChanged(world, outputPos, *this, pos, false);
@@ -134,7 +134,7 @@ i32 RedstoneDiodeBlock::getInputSignal(IWorld& world, const BlockPos& pos, const
     Direction inputDir = Directions::opposite(facing);
     BlockPos inputPos = pos.offset(inputDir);
 
-    const BlockState* inputState = world.getBlockState(inputPos.x, inputPos.y, inputPos.z);
+    const BlockState* inputState = world.getBlockState(inputPos);
     if (!inputState || inputState->isAir()) {
         return 0;
     }
@@ -165,7 +165,7 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
         }
 
         BlockPos sidePos = pos.offset(side);
-        const BlockState* sideState = world.getBlockState(sidePos.x, sidePos.y, sidePos.z);
+        const BlockState* sideState = world.getBlockState(sidePos);
 
         if (sideState && !sideState->isAir()) {
             const Block& sideBlock = sideState->getBlock();
@@ -240,7 +240,7 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
     Direction facing = getFacing(state);
     BlockPos outputPos = pos.offset(facing);
 
-    const BlockState* outputState = world.getBlockState(outputPos.x, outputPos.y, outputPos.z);
+    const BlockState* outputState = world.getBlockState(outputPos);
     if (!outputState) {
         return false;
     }

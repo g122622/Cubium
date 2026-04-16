@@ -37,7 +37,7 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
     // MC Java: 放置时通知六个方向的邻居
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState && !neighborState->isAir()) {
             Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
             neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
@@ -59,7 +59,7 @@ void RedstoneTorchBlock::neighborChanged(IWorld& world, const BlockPos& pos, Blo
     MC_UNUSED(isMoving);
 
     // 更新火把状态
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (state) {
         updateState(world, pos, *state);
     }
@@ -81,7 +81,7 @@ void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
 
         // 改变状态
         BlockState newState = state.with(BlockStateProperties::LIT(), shouldBeLit);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
 
         // 更新相邻方块
         world::redstone::RedstoneSystem::instance().updateNeighborsExcept(

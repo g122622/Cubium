@@ -54,7 +54,7 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state) {
     if (stage < 1) {
         // 生长到下一阶段
         auto nextState = withStage(stage + 1);
-        world.setBlockState(pos.x, pos.y, pos.z, &nextState, 2);
+        world.setBlockState(pos, &nextState, 2);
         return true;
     } else {
         // 已成熟，生成树
@@ -64,7 +64,7 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state) {
             m_treeGenerator(world, pos, rng);
 
             // 树生成后移除树苗
-            world.setBlockState(pos.x, pos.y, pos.z, nullptr, 2);
+            world.setBlockState(pos, nullptr, 2);
             return true;
         }
     }

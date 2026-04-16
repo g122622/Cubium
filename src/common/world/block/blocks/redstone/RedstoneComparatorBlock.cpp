@@ -186,7 +186,7 @@ i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPo
 
     Direction facing = getFacing(state);
     BlockPos inputPos = pos.offset(Directions::opposite(facing));
-    const BlockState* inputState = world.getBlockState(inputPos.x, inputPos.y, inputPos.z);
+    const BlockState* inputState = world.getBlockState(inputPos);
 
     if (!inputState || inputState->isAir()) {
         return input;
@@ -204,7 +204,7 @@ i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPo
     // 检查实体方块后面是否有容器或物品展示框
     if (input < 15 && world::redstone::RedstoneHelper::isNormalCube(*inputState)) {
         BlockPos behindPos = inputPos.offset(Directions::opposite(facing));
-        const BlockState* behindState = world.getBlockState(behindPos.x, behindPos.y, behindPos.z);
+        const BlockState* behindState = world.getBlockState(behindPos);
 
         if (behindState && !behindState->isAir()) {
             const Block& behindBlock = behindState->getBlock();

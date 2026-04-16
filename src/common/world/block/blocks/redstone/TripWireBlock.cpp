@@ -76,18 +76,18 @@ void TripWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
 
     // 检查支撑方块
     BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
     if (!belowState || !belowState->isSolid()) {
         // 没有支撑，掉落
         // TODO: 掉落线物品
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        world.setBlockState(pos, nullptr, 3);
     }
 }
 
@@ -138,7 +138,7 @@ i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world,
 }
 
 void TripWireBlock::updateState(IWorld& world, const BlockPos& pos) {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -150,7 +150,7 @@ void TripWireBlock::updateState(IWorld& world, const BlockPos& pos) {
     if (hasEntity != isCurrentlyPowered) {
         BlockState newState = *state;
         newState = newState.with(BlockStateProperties::POWERED(), hasEntity);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
 
         // 通知绊线钩
         notifyHooks(world, pos);
@@ -189,7 +189,7 @@ void TripWireBlock::notifyHooks(IWorld& world, const BlockPos& pos) {
     // 通知四个方向的绊线钩
     for (Direction dir : {Direction::North, Direction::East, Direction::South, Direction::West}) {
         BlockPos hookPos = pos.offset(dir);
-        const BlockState* hookState = world.getBlockState(hookPos.x, hookPos.y, hookPos.z);
+        const BlockState* hookState = world.getBlockState(hookPos);
         if (hookState) {
             Block* hookBlock = const_cast<Block*>(&hookState->getBlock());
             if (hookBlock) {

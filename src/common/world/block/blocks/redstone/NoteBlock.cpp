@@ -49,7 +49,7 @@ void NoteBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neigh
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -63,7 +63,7 @@ void NoteBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neigh
             triggerNote(world, pos, *state);
         }
         BlockState newState = state->with(BlockStateProperties::POWERED(), shouldPower);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
     }
 }
 
@@ -93,7 +93,7 @@ i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const {
     // 参考: net.minecraft.block.NoteBlock.getInstrument
 
     BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (!belowState) {
         return 0; // 默认: 钢琴 (harp)

@@ -225,7 +225,7 @@ village::Village* RaidManager::findNearbyVillage(BlockPos pos) const {
 
 bool RaidManager::canStartRaidAt(BlockPos pos) const {
     // 检查位置是否在世界边界内
-    if (!m_world.isWithinWorldBounds(pos.x, pos.y, pos.z)) {
+    if (!m_world.isWithinWorldBounds(pos)) {
         return false;
     }
 

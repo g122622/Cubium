@@ -58,7 +58,7 @@ int JukeboxBlock::getComparatorInputOverride(
 
 void JukeboxBlock::setRecord(IWorld& world, const BlockPos& pos, BlockState& state, bool hasRecord) {
     BlockState newState = state.with(BlockStateProperties::HAS_RECORD(), hasRecord);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+    world.setBlockState(pos, &newState, 3);
 
     // 更新方块实体
     BlockEntity* entity = world.getBlockEntity(pos);

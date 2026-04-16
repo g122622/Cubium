@@ -106,7 +106,7 @@ BlockState BellBlock::updatePostPlacement(
     if (!valid) {
         // 掉落
         // TODO: 掉落物品
-        return world.getBlockState(currentPos.x, currentPos.y, currentPos.z)->getBlock().defaultState();
+        return world.getBlockState(currentPos)->getBlock().defaultState();
     }
 
     return state;

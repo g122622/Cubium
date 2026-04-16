@@ -113,7 +113,7 @@ BlockState WallBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockState state = calculateState(world, pos, defaultState());
 
     // 检查是否含水
-    const BlockState* existingState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* existingState = world.getBlockState(pos);
     bool waterlogged = false;
     if (existingState != nullptr) {
         const fluid::FluidState* fluid = existingState->getFluidState();
@@ -240,10 +240,10 @@ BlockState WallBlock::calculateState(const IWorld& world, const BlockPos& pos, c
     BlockPos eastPos(pos.x + 1, pos.y, pos.z);
     BlockPos westPos(pos.x - 1, pos.y, pos.z);
 
-    const BlockState* northState = world.getBlockState(northPos.x, northPos.y, northPos.z);
-    const BlockState* southState = world.getBlockState(southPos.x, southPos.y, southPos.z);
-    const BlockState* eastState = world.getBlockState(eastPos.x, eastPos.y, eastPos.z);
-    const BlockState* westState = world.getBlockState(westPos.x, westPos.y, westPos.z);
+    const BlockState* northState = world.getBlockState(northPos);
+    const BlockState* southState = world.getBlockState(southPos);
+    const BlockState* eastState = world.getBlockState(eastPos);
+    const BlockState* westState = world.getBlockState(westPos);
 
     // 计算各方向的连接高度
     BlockStateProperties::WallHeight northHeight = northState ? getWallHeight(*northState, Direction::North) : BlockStateProperties::WallHeight::None;

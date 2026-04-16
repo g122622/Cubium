@@ -71,7 +71,7 @@ void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     i32 currentPower = getPower(state);
     if (currentPower > 0) {
         BlockState newState = withPower(state, 0);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
 
         // 通知相邻方块
         world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
@@ -103,7 +103,7 @@ void TargetBlock::onHitByArrow(IWorld& world, const BlockPos& pos, const BlockSt
 
     // 更新方块状态
     BlockState newState = withPower(state, power);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+    world.setBlockState(pos, &newState, 3);
 
     // 通知相邻方块
     world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);

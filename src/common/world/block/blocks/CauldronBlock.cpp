@@ -94,14 +94,14 @@ void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     // 雨天时填充水
     // 检查是否下雨且该位置可以接收雨水
     if (world.isRaining() && world.canRainAt(pos)) {
-        const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+        const BlockState* currentState = world.getBlockState(pos);
         if (currentState != nullptr) {
             i32 level = getLevel(*currentState);
             if (level < 3) {
                 // 约 1/20 概率在雨天填充（每个随机tick）
                 if (random.nextFloat() < 0.05f) {
                     BlockState newState = currentState->with(BlockStateProperties::LEVEL_0_3(), level + 1);
-                    world.setBlock(pos.x, pos.y, pos.z, &newState);
+                    world.setBlock(pos, &newState);
                 }
             }
         }
@@ -203,7 +203,7 @@ void CauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const BlockStat
     i32 currentLevel = getLevel(state);
     if (currentLevel != level) {
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_3(), level);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
     }
 }
 

@@ -86,7 +86,7 @@ i32 ConduitBlock::detectFrame(IWorld& world, const BlockPos& pos) const
 
 bool ConduitBlock::isFrameBlock(IWorld& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
     }

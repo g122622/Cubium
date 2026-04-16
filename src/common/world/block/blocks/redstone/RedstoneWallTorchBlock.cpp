@@ -47,7 +47,7 @@ bool RedstoneWallTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos, con
 bool RedstoneWallTorchBlock::canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const {
     // 检查附着面是否可以支撑火把
     BlockPos attachPos = pos.offset(Directions::opposite(facing));
-    const BlockState* attachState = world.getBlockState(attachPos.x, attachPos.y, attachPos.z);
+    const BlockState* attachState = world.getBlockState(attachPos);
     if (!attachState || attachState->isAir()) {
         return false;
     }
@@ -60,7 +60,7 @@ void RedstoneWallTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, co
     // MC Java: 放置时通知邻居
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState && !neighborState->isAir()) {
             Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
             neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
@@ -80,7 +80,7 @@ void RedstoneWallTorchBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -89,7 +89,7 @@ void RedstoneWallTorchBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     Direction facing = getFacing(*state);
     if (!canPlaceAt(world, pos, facing)) {
         // 支撑丢失，火把掉落
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 2);
+        world.setBlockState(pos, nullptr, 2);
         return;
     }
 
@@ -127,7 +127,7 @@ BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& con
         BlockPos pos = context.placementPos();
         BlockPos attachPos = pos.offset(hitFace);
         const IWorld& world = context.getWorld();
-        const BlockState* attachState = world.getBlockState(attachPos.x, attachPos.y, attachPos.z);
+        const BlockState* attachState = world.getBlockState(attachPos);
         if (attachState && attachState->getBlock().isSolidSide(*attachState, const_cast<IWorld&>(world), attachPos, Directions::opposite(hitFace))) {
             return defaultState()
                 .with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(hitFace))
@@ -140,7 +140,7 @@ BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& con
         BlockPos pos = context.placementPos();
         BlockPos attachPos = pos.offset(dir);
         const IWorld& world = context.getWorld();
-        const BlockState* attachState = world.getBlockState(attachPos.x, attachPos.y, attachPos.z);
+        const BlockState* attachState = world.getBlockState(attachPos);
         if (attachState && attachState->getBlock().isSolidSide(*attachState, const_cast<IWorld&>(world), attachPos, Directions::opposite(dir))) {
             return defaultState()
                 .with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(dir))

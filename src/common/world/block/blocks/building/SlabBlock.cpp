@@ -34,7 +34,7 @@ SlabBlock::SlabBlock(const BlockProperties& properties)
 
 BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
-    const BlockState* existingState = context.getWorld().getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* existingState = context.getWorld().getBlockState(pos);
 
     // 检查是否含水
     bool waterlogged = false;
@@ -58,7 +58,7 @@ BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos neighborPos(pos.x + Directions::xOffset(clickedFace),
                          pos.y + Directions::yOffset(clickedFace),
                          pos.z + Directions::zOffset(clickedFace));
-    const BlockState* neighborState = context.getWorld().getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    const BlockState* neighborState = context.getWorld().getBlockState(neighborPos);
 
     if (neighborState != nullptr && &neighborState->getBlock() == this) {
         BlockStateProperties::SlabType neighborType = neighborState->get(BlockStateProperties::SLAB_TYPE());

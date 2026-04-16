@@ -75,7 +75,7 @@ void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSt
 void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
                                    Block& neighborBlock, const BlockPos& neighborPos,
                                    bool isMoving) {
-    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentState = world.getBlockState(pos);
     if (currentState != nullptr) {
         const fluid::FluidState* fluidState = currentState->getFluidState();
         if (fluidState != nullptr && !fluidState->isEmpty()) {

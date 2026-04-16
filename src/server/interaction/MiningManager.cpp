@@ -152,7 +152,7 @@ f32 MiningManager::calculateMiningSpeed(ServerWorld& world,
                                          const BlockPos& pos,
                                          PlayerId playerId) const
 {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         return 1.0f;  // 方块不存在，快速完成
     }

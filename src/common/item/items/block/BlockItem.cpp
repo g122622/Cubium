@@ -48,12 +48,12 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& /
 
     // 检查放置位置是否可替换
     const BlockPos& pos = context.placementPos();
-    if (!context.world().isWithinWorldBounds(pos.x, pos.y, pos.z)) {
+    if (!context.world().isWithinWorldBounds(pos)) {
         return false;
     }
 
     // 获取当前方块
-    const BlockState* currentState = context.world().getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentState = context.world().getBlockState(pos);
     if (currentState != nullptr && !currentState->isAir()) {
         // 检查材质是否可替换
         const Material& material = currentState->owner().material();

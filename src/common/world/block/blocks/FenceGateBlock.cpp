@@ -95,7 +95,7 @@ void FenceGateBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* statePtr = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* statePtr = world.getBlockState(pos);
     if (statePtr == nullptr || &statePtr->getBlock() != this) {
         return;
     }
@@ -115,7 +115,7 @@ void FenceGateBlock::neighborChanged(IWorld& world, const BlockPos& pos,
             .with(BlockStateProperties::POWERED(), powered)
             .with(BlockStateProperties::OPEN(), powered);
 
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         // 如果开关状态改变，播放音效
         if (wasOpen != powered) {
@@ -167,7 +167,7 @@ ActionResultType FenceGateBlock::onBlockActivated(
 
     BlockState newState = state.with(BlockStateProperties::OPEN(), !wasOpen);
 
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 10);
+    world.setBlockState(pos, &newState, 10);
 
     // 播放音效
     playSound(world, pos, !wasOpen);
@@ -295,8 +295,8 @@ bool FenceGateBlock::isWall(const IWorld& world, const BlockPos& pos, Direction 
     BlockPos leftPos(pos.x + Directions::xOffset(leftDir), pos.y, pos.z + Directions::zOffset(leftDir));
     BlockPos rightPos(pos.x + Directions::xOffset(rightDir), pos.y, pos.z + Directions::zOffset(rightDir));
 
-    const BlockState* leftState = world.getBlockState(leftPos.x, leftPos.y, leftPos.z);
-    const BlockState* rightState = world.getBlockState(rightPos.x, rightPos.y, rightPos.z);
+    const BlockState* leftState = world.getBlockState(leftPos);
+    const BlockState* rightState = world.getBlockState(rightPos);
 
     // 检查是否为墙方块
     // TODO: 检查是否为实际的墙方块类型

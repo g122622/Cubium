@@ -89,7 +89,7 @@ BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos headPos(pos.x + Directions::xOffset(facing), pos.y, pos.z + Directions::zOffset(facing));
 
     // 检查头部位置是否可放置
-    const BlockState* headState = context.getWorld().getBlockState(headPos.x, headPos.y, headPos.z);
+    const BlockState* headState = context.getWorld().getBlockState(headPos);
     if (headState != nullptr && headState->isAir()) {
         return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
     }
@@ -115,7 +115,7 @@ BlockState BedBlock::updatePostPlacement(
     if (facing == otherDir) {
         // 另一半被移除
         if (facingState.isAir()) {
-            return world.getBlockState(currentPos.x, currentPos.y, currentPos.z)->getBlock().defaultState();
+            return world.getBlockState(currentPos)->getBlock().defaultState();
         }
         // 同步占用状态
         if (facingState.hasProperty(BlockStateProperties::OCCUPIED())) {
@@ -135,12 +135,12 @@ const CollisionShape& BedBlock::getShape(const BlockState& state) const {
 
 void BedBlock::setOccupied(IWorld& world, const BlockPos& pos, BlockState& state, bool occupied) {
     if (state.hasProperty(BlockStateProperties::OCCUPIED())) {
-        world.setBlockState(pos.x, pos.y, pos.z, &state.with(BlockStateProperties::OCCUPIED(), occupied), 2);
+        world.setBlockState(pos, &state.with(BlockStateProperties::OCCUPIED(), occupied), 2);
     }
 }
 
 bool BedBlock::isBed(IWorld& world, const BlockPos& pos) {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
     }

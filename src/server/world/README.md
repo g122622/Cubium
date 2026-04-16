@@ -38,6 +38,8 @@ src/server/world/
 - Tick 调度（方块、流体）
 - 天气状态管理
 
+`ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlock`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
+
 **关键成员**：
 ```cpp
 class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLightingProvider {

@@ -137,6 +137,8 @@ world.forEachDirtyMesh([](const ChunkId& id, ClientChunk& chunk) {
   - `ClientWorld::update()` 会用 `MeshBuildScheduler::isTaskTracked()` 回收失效 `activeMeshTaskId`，并对“视锥内且尚无 mesh 结果”的区块进行补提，避免区块长期不出网格。
 - 光照包不要直接当成“立即重建”事件处理。
   - `onLightUpdate()` 现在会先标记 `meshRebuildPending`，如果同一 chunk 的网格任务还在路上，就等当前任务结束后再补提，避免单个 chunk 被光照更新线性打爆。
+- `ClientWorld` 不是 `IWorld` 实现。
+  - 它只提供自己的 xyz 查询接口，调试屏幕和客户端工具代码不要假设这里存在 `BlockPos` overload；如果需要统一入口，必须另外补包装层。
 
 ## 9. 测试用例
 

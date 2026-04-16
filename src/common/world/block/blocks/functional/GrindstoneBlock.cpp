@@ -74,7 +74,7 @@ bool GrindstoneBlock::isValidPosition(
     // 检查后方是否有支撑
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockPos behindPos(pos.x + Directions::xOffset(facing), pos.y, pos.z + Directions::zOffset(facing));
-    const BlockState* behindState = world.getBlockState(behindPos.x, behindPos.y, behindPos.z);
+    const BlockState* behindState = world.getBlockState(behindPos);
 
     if (behindState == nullptr) {
         return false;
@@ -98,7 +98,7 @@ BlockState GrindstoneBlock::updatePostPlacement(
         if (!facingState.isSolid()) {
             // 墙被移除，掉落
             // TODO: 掉落物品
-            return world.getBlockState(currentPos.x, currentPos.y, currentPos.z)->getBlock().defaultState();
+            return world.getBlockState(currentPos)->getBlock().defaultState();
         }
     }
 

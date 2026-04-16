@@ -45,7 +45,7 @@ f32 FluidState::getHeight() const {
 f32 FluidState::getActualHeight(IWorld& world, const BlockPos& pos) const {
     // 检查上方是否有同种流体（满高度情况）
     BlockPos above = pos.up();
-    const FluidState* aboveFluid = world.getFluidState(above.x, above.y, above.z);
+    const FluidState* aboveFluid = world.getFluidState(above);
 
     if (aboveFluid != nullptr &&
         !aboveFluid->isEmpty() &&

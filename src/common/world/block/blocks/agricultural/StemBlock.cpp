@@ -63,7 +63,7 @@ bool StemBlock::isValidPosition(
 
     // 检查下方是否为耕地
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -79,22 +79,23 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
-    const i32 blockLight = static_cast<i32>(world.getBlockLight(pos.x, pos.y + 1, pos.z));
-    const i32 skyLight = static_cast<i32>(world.getSkyLight(pos.x, pos.y + 1, pos.z));
+    const BlockPos abovePos = pos.up();
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
     if (std::max(blockLight, skyLight) < 9) {
         return;
     }
 
     // 茎类作物成长速度与普通作物接近，使用基础随机概率。
     if (random.nextInt(25) == 0) {
-        world.setBlockState(pos.x, pos.y, pos.z, &withAge(getAge(state) + 1), 2);
+        world.setBlockState(pos, &withAge(getAge(state) + 1), 2);
     }
 }
 
 void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
     int newAge = std::min(getAge(state) + 2 + (rand() % 4), getMaxAge());
     const BlockState& newState = withAge(newAge);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+    world.setBlockState(pos, &newState, 2);
 
     // 如果达到最大年龄，尝试生成果实
     if (newAge == getMaxAge()) {
@@ -130,14 +131,14 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
     BlockPos fruitPos(pos.x + Directions::xOffset(dir), pos.y, pos.z + Directions::zOffset(dir));
 
     // 检查果实位置是否为空
-    const BlockState* fruitState = world.getBlockState(fruitPos.x, fruitPos.y, fruitPos.z);
+    const BlockState* fruitState = world.getBlockState(fruitPos);
     if (fruitState != nullptr && !fruitState->isAir()) {
         return false;
     }
 
     // 检查果实下方是否可以支撑
     BlockPos belowFruitPos(fruitPos.x, fruitPos.y - 1, fruitPos.z);
-    const BlockState* belowFruitState = world.getBlockState(belowFruitPos.x, belowFruitPos.y, belowFruitPos.z);
+    const BlockState* belowFruitState = world.getBlockState(belowFruitPos);
 
     if (belowFruitState == nullptr) {
         return false;
@@ -154,7 +155,7 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
     // 放置果实
     if (m_crop != nullptr) {
         const BlockState& cropDefaultState = m_crop->defaultState();
-        world.setBlockState(fruitPos.x, fruitPos.y, fruitPos.z, &cropDefaultState, 3);
+        world.setBlockState(fruitPos, &cropDefaultState, 3);
 
         // 将茎变为连接茎
         // TODO: 获取对应的 AttachedStemBlock 并设置朝向

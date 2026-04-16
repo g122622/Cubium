@@ -51,7 +51,7 @@ BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context) {
     // 检查四个水平方向
     for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
         BlockPos neighborPos = context.placementPos().offset(dir);
-        const BlockState* neighborStatePtr = context.getWorld().getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborStatePtr = context.getWorld().getBlockState(neighborPos);
 
         if (neighborStatePtr != nullptr && &neighborStatePtr->getBlock() == this) {
             const BlockState& neighborState = *neighborStatePtr;
@@ -211,7 +211,7 @@ Direction ChestBlock::getConnectedDirection(const BlockState& state) {
 bool ChestBlock::isBlocked(IWorld& world, const BlockPos& pos) {
     // 检查上方位置是否有不透明方块阻挡箱子打开
     BlockPos abovePos = pos.up();
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
     if (aboveState == nullptr) {
         return false;  // 上方为空气，不阻挡
     }
@@ -250,18 +250,18 @@ void ChestBlock::combineChests(
         newType = BlockStateProperties::ChestType::Left;
     }
 
-    world.setBlockState(pos.x, pos.y, pos.z, &state.with(BlockStateProperties::CHEST_TYPE(), newType), 3);
+    world.setBlockState(pos, &state.with(BlockStateProperties::CHEST_TYPE(), newType), 3);
 
     // 更新相邻箱子的类型
     BlockPos neighborPos = pos.offset(facing);
-    const BlockState* neighborStatePtr = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    const BlockState* neighborStatePtr = world.getBlockState(neighborPos);
     if (neighborStatePtr != nullptr && &neighborStatePtr->getBlock() == this) {
         BlockState neighborState = *neighborStatePtr;
         BlockStateProperties::ChestType neighborType =
             newType == BlockStateProperties::ChestType::Left
                 ? BlockStateProperties::ChestType::Right
                 : BlockStateProperties::ChestType::Left;
-        world.setBlockState(neighborPos.x, neighborPos.y, neighborPos.z,
+        world.setBlockState(neighborPos,
             &neighborState.with(BlockStateProperties::CHEST_TYPE(), neighborType), 3);
     }
 }
@@ -273,7 +273,7 @@ bool ChestBlock::canCombineWithChestAt(
     Direction expectedFacing
 ) const {
     BlockPos neighborPos = pos.offset(facing);
-    const BlockState* neighborStatePtr = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    const BlockState* neighborStatePtr = world.getBlockState(neighborPos);
 
     if (neighborStatePtr == nullptr || &neighborStatePtr->getBlock() != this) {
         return false;

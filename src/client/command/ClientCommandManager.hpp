@@ -31,7 +31,7 @@ public:
 
     /**
      * @brief 应用命令树 JSON
-     * @param jsonText 服务端同步的 JSON 文本
+     * @param jsonText 服务端同步的 JSON 文本。会在收到服务端相关数据包时被调用
      * @return 处理结果
      */
     [[nodiscard]] Result<void> applyCommandTreeJson(StringView jsonText);

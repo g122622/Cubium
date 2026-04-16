@@ -333,6 +333,10 @@ enum class Operation : u8 { ... };
 
 - `WorldGenRegion` is not an `IBlockReader`; do not pass it directly to `Block::isValidPosition`.
     - In worldgen features, use explicit local placement checks (`isWater`, support block checks) when running in `WorldGenRegion` context.
+- `IWorld` now exposes `BlockPos` overloads for block-position semantics.
+    - Prefer them whenever the caller already has a `BlockPos`, and keep `ServerWorld` style xyz implementations from hiding them by re-exporting the overload set with `using IWorld::...`.
+- `ISpawnWorldReader`, `ClientWorld`, and lighting/generation helpers are not part of that `IWorld` contract.
+    - Keep those surfaces on their native xyz signatures; do not force `BlockPos` overloads onto non-`IWorld` readers just to mirror `IWorld`.
 - Blue ice placement will always fail if there is no packed-ice neighbor around the sampled start position.
     - Tests must set up packed ice at the exact sampled neighborhood, not by replacing whole water layers in a way that shifts ocean-floor detection.
 - Avoid passing temporary `BlockState` copies to world write APIs.

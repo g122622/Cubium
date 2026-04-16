@@ -46,7 +46,7 @@ void IceBlock::onBlockRemoved(
     // 在非寒冷环境中，冰变成水
     // 检查下方是否有固体方块阻挡
     BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     // 获取水源方块状态
     fluid::Fluid* waterFluid = fluid::Fluid::getFluid(fluid::FluidRegistry::WATER_ID);
@@ -59,13 +59,13 @@ void IceBlock::onBlockRemoved(
     if (belowState == nullptr || !belowState->owner().isSolid(*belowState)) {
         // 如果下方不是固体，放置水源
         if (waterState != nullptr) {
-            world.setBlockState(pos.x, pos.y, pos.z, waterState, 3);
+            world.setBlockState(pos, waterState, 3);
         }
     } else {
         // 否则放置空气
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
-            world.setBlockState(pos.x, pos.y, pos.z, airState, 3);
+            world.setBlockState(pos, airState, 3);
         }
     }
 }
@@ -80,8 +80,8 @@ void IceBlock::randomTick(
 
     // 检查周围光照等级
     // 获取方块光照和天空光照的最大值
-    u8 blockLight = world.getBlockLight(pos.x, pos.y, pos.z);
-    u8 skyLight = world.getSkyLight(pos.x, pos.y, pos.z);
+    u8 blockLight = world.getBlockLight(pos);
+    u8 skyLight = world.getSkyLight(pos);
     i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
 
     // 光照等级 >= 11 时，冰可能融化
@@ -136,8 +136,8 @@ void FrostedIceBlock::randomTick(
     MC_UNUSED(state);
 
     // 霜冰在光源附近融化更快
-    u8 blockLight = world.getBlockLight(pos.x, pos.y, pos.z);
-    u8 skyLight = world.getSkyLight(pos.x, pos.y, pos.z);
+    u8 blockLight = world.getBlockLight(pos);
+    u8 skyLight = world.getSkyLight(pos);
     i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
 
     // 光照等级越高，融化概率越大
@@ -150,7 +150,7 @@ void FrostedIceBlock::randomTick(
             if (waterFluid != nullptr) {
                 const BlockState* waterState = waterFluid->getBlockState(waterFluid->defaultState());
                 if (waterState != nullptr) {
-                    world.setBlockState(pos.x, pos.y, pos.z, waterState, 3);
+                    world.setBlockState(pos, waterState, 3);
                 }
             }
         }

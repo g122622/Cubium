@@ -40,7 +40,7 @@ void TrunkPlacer::placeBlock(
     }
 
     // 设置方块
-    world.setBlock(pos.x, pos.y, pos.z, trunkBlock);
+    world.setBlock(pos, trunkBlock);
 
     // 记录树干方块位置
     trunkBlocks.insert(pos);

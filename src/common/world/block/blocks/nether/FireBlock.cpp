@@ -65,7 +65,7 @@ bool FireBlock::isValidPosition(
     // 检查周围是否有可支撑的方块
     for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
         BlockPos adjPos = pos.offset(dir);
-        const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+        const BlockState* adjState = world.getBlockState(adjPos);
 
         if (adjState != nullptr && adjState->isSolid()) {
             return true;
@@ -120,7 +120,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     // 更新火焰状态
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     if (!isValidPosition(state, blockReader, pos)) {
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        world.setBlockState(pos, nullptr, 3);
     }
 
     // 尝试点燃下界传送门
@@ -133,7 +133,7 @@ void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
     // 火焰可能熄灭
     if (age < 15 && random.nextInt(3) == 0) {
-        world.setBlockState(pos.x, pos.y, pos.z, &withAge(age + 1), 2);
+        world.setBlockState(pos, &withAge(age + 1), 2);
     }
 
     // 尝试蔓延
@@ -354,7 +354,7 @@ bool NetherWartBlock::isValidPosition(
 
     // 检查下方是否为灵魂沙
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -370,7 +370,7 @@ void NetherWartBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState&
     if (age < getMaxAge()) {
         // 随机生长
         if (random.nextInt(10) == 0) {
-            world.setBlockState(pos.x, pos.y, pos.z, &withAge(age + 1), 2);
+            world.setBlockState(pos, &withAge(age + 1), 2);
         }
     }
 }

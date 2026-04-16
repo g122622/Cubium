@@ -55,8 +55,8 @@ BlockState DoublePlantBlock::getStateForPlacement(BlockItemUseContext& context) 
     const IWorld& world = context.getWorld();
 
     // 检查是否有足够空间放置两格
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockPos abovePos = pos.up();
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState == nullptr || aboveState->isAir()) {
         return defaultState().with(BlockStateProperties::HALF(), DoubleBlockHalf::Lower);
@@ -75,8 +75,8 @@ bool DoublePlantBlock::isValidPosition(
 
     if (half == DoubleBlockHalf::Upper) {
         // 上半部分必须在下半部分之上
-        BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-        const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+        const BlockPos belowPos = pos.down();
+        const BlockState* belowState = world.getBlockState(belowPos);
         if (belowState == nullptr) {
             return false;
         }
@@ -132,14 +132,14 @@ const CollisionShape& DoublePlantBlock::getShape(const BlockState& state) const 
 
 bool DoublePlantBlock::placeAt(IWorld& world, const BlockPos& pos, const BlockState& state, i32 flags) {
     // 放置下半部分
-    if (!world.setBlockState(pos.x, pos.y, pos.z, &state, flags)) {
+    if (!world.setBlockState(pos, &state, flags)) {
         return false;
     }
 
     // 放置上半部分
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    BlockPos abovePos = pos.up();
     BlockState upperState = state.with(BlockStateProperties::HALF(), DoubleBlockHalf::Upper);
-    return world.setBlockState(abovePos.x, abovePos.y, abovePos.z, &upperState, flags);
+    return world.setBlockState(abovePos, &upperState, flags);
 }
 
 } // namespace blocks

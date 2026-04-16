@@ -121,25 +121,25 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos,
             checkPos.y + 1,
             checkPos.z + random.nextInt(3) - 1);
 
-        if (!world.isWithinWorldBounds(checkPos.x, checkPos.y, checkPos.z)) {
+        if (!world.isWithinWorldBounds(checkPos)) {
             return;
         }
 
-        const BlockState* blockState = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
+        const BlockState* blockState = world.getBlockState(checkPos);
         if (blockState == nullptr) {
             return;
         }
 
         if (blockState->isAir()) {
             if (isSurroundingBlockFlammable(world, checkPos)) {
-                world.setBlock(checkPos.x, checkPos.y, checkPos.z, &VanillaBlocks::FIRE->defaultState());
+                world.setBlock(checkPos, &VanillaBlocks::FIRE->defaultState());
                 return;
             }
         } else if (blockState->owner().material().blocksMovement()) {
             BlockPos above = checkPos.up();
-            const BlockState* aboveState = world.getBlockState(above.x, above.y, above.z);
+            const BlockState* aboveState = world.getBlockState(above);
             if (aboveState != nullptr && aboveState->isAir() && isBlockFlammable(world, checkPos)) {
-                world.setBlock(above.x, above.y, above.z, &VanillaBlocks::FIRE->defaultState());
+                world.setBlock(above, &VanillaBlocks::FIRE->defaultState());
                 return;
             }
         }
@@ -161,7 +161,7 @@ bool LavaFluid::isBlockFlammable(IWorld& world, const BlockPos& pos) const {
         return false;
     }
 
-    const BlockState* blockState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* blockState = world.getBlockState(pos);
     if (blockState == nullptr) {
         return false;
     }
@@ -178,7 +178,7 @@ void LavaFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
 bool LavaFluid::checkForMixing(IWorld& world, const BlockPos& pos, Direction direction) {
     // 检查岩浆是否遇到水
     BlockPos neighborPos = pos.offset(Directions::toBlockFace(direction));
-    const FluidState* neighborFluid = world.getFluidState(neighborPos.x, neighborPos.y, neighborPos.z);
+    const FluidState* neighborFluid = world.getFluidState(neighborPos);
 
     if (neighborFluid == nullptr || neighborFluid->isEmpty()) {
         return false;
@@ -190,7 +190,7 @@ bool LavaFluid::checkForMixing(IWorld& world, const BlockPos& pos, Direction dir
 
     if (direction == Direction::Down) {
         if (VanillaBlocks::STONE != nullptr) {
-            world.setBlock(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+            world.setBlock(pos, &VanillaBlocks::STONE->defaultState());
         }
         triggerEffects(world, pos);
         return true;
@@ -204,7 +204,7 @@ bool LavaFluid::checkForMixing(IWorld& world, const BlockPos& pos, Direction dir
         ? &VanillaBlocks::OBSIDIAN->defaultState()
         : &VanillaBlocks::COBBLESTONE->defaultState();
 
-    world.setBlock(pos.x, pos.y, pos.z, replacement);
+    world.setBlock(pos, replacement);
 
     triggerEffects(world, pos);
     return true;

@@ -135,18 +135,18 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world) {
     // 根据是否渲染活塞头决定最终方块
     if (m_shouldRenderHead) {
         // 活塞收回时，活塞头位置变为空气
-        world.setBlockState(m_pos.x, m_pos.y, m_pos.z, nullptr, 3);
+        world.setBlockState(m_pos, nullptr, 3);
     } else if (m_pistonState) {
         // 活塞完成移动后，放置被移动的方块
         // 使用标志 67 = 3 (通知邻居) | 64 (移动活塞标志)
-        world.setBlockState(m_pos.x, m_pos.y, m_pos.z, m_pistonState.get(), 67);
+        world.setBlockState(m_pos, m_pistonState.get(), 67);
 
         // 触发邻居更新
         Block& block = const_cast<Block&>(m_pistonState->getBlock());
         BlockPos neighborPos;
         for (Direction dir : Directions::all()) {
             neighborPos = m_pos.offset(dir);
-            const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+            const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState && !neighborState->isAir()) {
                 Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
                 neighborBlock.neighborChanged(world, neighborPos, block, m_pos, false);

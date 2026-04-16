@@ -38,7 +38,7 @@ void RedstoneLampBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
     if (shouldLit != isLit(state)) {
         if (shouldLit) {
             BlockState newState = withLit(state, true);
-            world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+            world.setBlockState(pos, &newState, 2);
         } else {
             world.scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
         }
@@ -51,7 +51,7 @@ void RedstoneLampBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -64,7 +64,7 @@ void RedstoneLampBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
         if (shouldLit) {
             // 被充能，立即点亮
             BlockState newState = withLit(*state, true);
-            world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+            world.setBlockState(pos, &newState, 2);
         } else {
             // 失去信号，调度熄灭
             world.scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
@@ -77,7 +77,7 @@ void RedstoneLampBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     bool shouldLit = world::redstone::RedstonePower::isPowered(world, pos);
     if (!shouldLit && isLit(state)) {
         BlockState newState = withLit(state, false);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
     }
 }
 

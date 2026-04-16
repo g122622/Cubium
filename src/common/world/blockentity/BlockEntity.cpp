@@ -7,7 +7,7 @@ const BlockState* BlockEntity::getBlockState() const {
     if (m_world == nullptr) {
         return nullptr;
     }
-    return m_world->getBlockState(m_pos.x, m_pos.y, m_pos.z);
+    return m_world->getBlockState(m_pos);
 }
 
 } // namespace mc

@@ -133,7 +133,7 @@ bool TurtleEggBlock::isValidPosition(
 
     // 海龟蛋需要放在沙子上
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -148,15 +148,15 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     i32 hatch = getHatch(state);
     if (hatch < 2 && random.nextInt(100) < 10) {
         // 孵化进度增加
-        world.setBlockState(pos.x, pos.y, pos.z, &withHatch(hatch + 1), 2);
+        world.setBlockState(pos, &withHatch(hatch + 1), 2);
     } else if (hatch >= 2) {
         // 孵化完成，生成海龟
         // TODO: 生成海龟
         i32 eggs = getEggs(state);
         if (eggs > 1) {
-            world.setBlockState(pos.x, pos.y, pos.z, &withEggs(eggs - 1).with(BlockStateProperties::HATCH_0_2(), 0), 2);
+            world.setBlockState(pos, &withEggs(eggs - 1).with(BlockStateProperties::HATCH_0_2(), 0), 2);
         } else {
-            world.setBlockState(pos.x, pos.y, pos.z, nullptr, 2);
+            world.setBlockState(pos, nullptr, 2);
         }
     }
 }

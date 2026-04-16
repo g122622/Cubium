@@ -51,7 +51,7 @@ void PistonBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& nei
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -127,20 +127,20 @@ bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& s
         // 从最远端开始移动
         for (auto it = blocksToPush.rbegin(); it != blocksToPush.rend(); ++it) {
             const BlockPos& blockPos = *it;
-            const BlockState* blockState = world.getBlockState(blockPos.x, blockPos.y, blockPos.z);
+            const BlockState* blockState = world.getBlockState(blockPos);
             if (!blockState) continue;
 
             BlockPos newPos = blockPos.offset(facing);
 
             // 移动方块
-            world.setBlockState(newPos.x, newPos.y, newPos.z, blockState, 2);
-            world.setBlockState(blockPos.x, blockPos.y, blockPos.z, nullptr, 2);
+            world.setBlockState(newPos, blockState, 2);
+            world.setBlockState(blockPos, nullptr, 2);
         }
     }
 
     // 更新活塞状态为伸出
     BlockState newState = withExtended(state, true);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+    world.setBlockState(pos, &newState, 2);
 
     // TODO: 创建活塞头方块和活塞实体
 
@@ -152,21 +152,21 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
 
     // 更新活塞状态为收回
     BlockState newState = withExtended(state, false);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+    world.setBlockState(pos, &newState, 2);
 
     if (m_sticky) {
         // 粘性活塞：尝试拉回方块
         BlockPos frontPos = pos.offset(facing);
         BlockPos pullPos = frontPos.offset(facing);  // 活塞头前面的方块
 
-        const BlockState* pullState = world.getBlockState(pullPos.x, pullPos.y, pullPos.z);
+        const BlockState* pullState = world.getBlockState(pullPos);
         if (pullState && !pullState->isAir()) {
             // 检查方块是否可以被拉回
             Material::PushReaction reaction = getBlockPushReaction(*pullState);
             if (reaction == Material::PushReaction::Normal) {
                 // 移动方块到活塞头位置
-                world.setBlockState(frontPos.x, frontPos.y, frontPos.z, pullState, 2);
-                world.setBlockState(pullPos.x, pullPos.y, pullPos.z, nullptr, 2);
+                world.setBlockState(frontPos, pullState, 2);
+                world.setBlockState(pullPos, nullptr, 2);
             }
         }
     }
@@ -185,7 +185,7 @@ bool PistonBlock::calculatePushChain(
     BlockPos currentPos = pos.offset(facing);  // 从活塞头位置开始
 
     for (i32 i = 0; i < MAX_PUSH_DISTANCE; ++i) {
-        const BlockState* state = world.getBlockState(currentPos.x, currentPos.y, currentPos.z);
+        const BlockState* state = world.getBlockState(currentPos);
 
         if (!state || state->isAir()) {
             // 空气，可以推动

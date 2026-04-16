@@ -64,7 +64,7 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
 
     // 检查上方是否有空间
-    const BlockState* upState = context.getWorld().getBlockState(pos.x, pos.y + 1, pos.z);
+        const BlockState* upState = context.getWorld().getBlockState(pos.up());
     if (pos.y >= 255 || upState == nullptr || !upState->isAir()) {
         // 检查是否可替换
         const Material* mat = upState ? &upState->getMaterial() : nullptr;
@@ -87,9 +87,9 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
 
 void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) {
     // 在上方放置上半部分
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    BlockPos abovePos = pos.up();
     BlockState upperState = state.with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
-    world.setBlockState(abovePos.x, abovePos.y, abovePos.z, &upperState, 3);
+        world.setBlockState(abovePos, &upperState, 3);
 }
 
 void DoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
@@ -99,7 +99,7 @@ void DoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* statePtr = world.getBlockState(pos.x, pos.y, pos.z);
+                                    const BlockState* statePtr = world.getBlockState(pos);
     if (statePtr == nullptr || &statePtr->getBlock() != this) {
         return;
     }
@@ -125,7 +125,7 @@ void DoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
             .with(BlockStateProperties::POWERED(), powered)
             .with(BlockStateProperties::OPEN(), powered);
 
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+                                        world.setBlockState(pos, &newState, 2);
 
         // 如果开关状态改变，播放音效
         if (wasOpen != powered) {
@@ -172,7 +172,7 @@ BlockState DoorBlock::updatePostPlacement(
     // 下半部分检查支撑
     if (half == BlockStateProperties::DoubleBlockHalf::Lower && facing == Direction::Down) {
         BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
-        const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
         if (belowState == nullptr || !belowState->isSolidSide(world, belowPos, Direction::Up)) {
             return VanillaBlocks::AIR->defaultState();
         }
@@ -192,11 +192,12 @@ bool DoorBlock::isValidPosition(
 
     if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
         // 下半部分需要下方有支撑
-        const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-        return belowState != nullptr && belowState->isSolidSide(world, BlockPos(pos.x, pos.y - 1, pos.z), Direction::Up);
+        const BlockPos belowPos = pos.down();
+        const BlockState* belowState = world.getBlockState(belowPos);
+        return belowState != nullptr && belowState->isSolidSide(world, belowPos, Direction::Up);
     } else {
         // 上半部分需要下方是同类型门的下半部分
-        const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
+        const BlockState* belowState = world.getBlockState(pos.down());
         return belowState != nullptr &&
                &belowState->getBlock() == this &&
                belowState->get(BlockStateProperties::HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
@@ -226,7 +227,7 @@ ActionResultType DoorBlock::onBlockActivated(
     bool wasOpen = state.get(BlockStateProperties::OPEN());
     BlockState newState = state.with(BlockStateProperties::OPEN(), !wasOpen);
 
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 10);
+                                    world.setBlockState(pos, &newState, 10);
 
     // 播放音效
     playSound(world, pos, !wasOpen);
@@ -235,14 +236,14 @@ ActionResultType DoorBlock::onBlockActivated(
 }
 
 void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open) {
-    const BlockState* statePtr = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* statePtr = world.getBlockState(pos);
     if (statePtr == nullptr || &statePtr->getBlock() != this) {
         return;
     }
 
     BlockState state = *statePtr;
     if (state.get(BlockStateProperties::OPEN()) != open) {
-        world.setBlockState(pos.x, pos.y, pos.z, &state.with(BlockStateProperties::OPEN(), open), 10);
+                                        world.setBlockState(pos, &state.with(BlockStateProperties::OPEN(), open), 10);
         playSound(world, pos, open);
     }
 }
@@ -320,10 +321,10 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
     BlockPos rightPos(pos.x + Directions::xOffset(rightDir), pos.y, pos.z + Directions::zOffset(rightDir));
     BlockPos rightUpPos(rightPos.x, rightPos.y + 1, rightPos.z);
 
-    const BlockState* leftState = reader.getBlockState(leftPos.x, leftPos.y, leftPos.z);
-    const BlockState* leftUpState = reader.getBlockState(leftUpPos.x, leftUpPos.y, leftUpPos.z);
-    const BlockState* rightState = reader.getBlockState(rightPos.x, rightPos.y, rightPos.z);
-    const BlockState* rightUpState = reader.getBlockState(rightUpPos.x, rightUpPos.y, rightUpPos.z);
+    const BlockState* leftState = reader.getBlockState(leftPos);
+    const BlockState* leftUpState = reader.getBlockState(leftUpPos);
+    const BlockState* rightState = reader.getBlockState(rightPos);
+    const BlockState* rightUpState = reader.getBlockState(rightUpPos);
 
     // 计算左右两侧的遮挡情况
     i32 score = 0;

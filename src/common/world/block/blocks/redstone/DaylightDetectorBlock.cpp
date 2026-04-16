@@ -49,7 +49,7 @@ void DaylightDetectorBlock::toggleMode(IWorld& world, const BlockPos& pos, const
     i32 power = calculateSignalStrength(world, pos, newInverted);
     newState = withPower(newState, power);
 
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+    world.setBlockState(pos, &newState, 2);
 
     // 通知相邻方块
     notifyNeighbors(world, pos);
@@ -104,7 +104,7 @@ i32 DaylightDetectorBlock::getStrongPower(
 
 i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted) {
     // 获取天空光照级别
-    u8 skyLight = world.getSkyLight(pos.x, pos.y + 1, pos.z);  // 检测上方一格
+    u8 skyLight = world.getSkyLight(pos.up());  // 检测上方一格
 
     // 转换为信号强度
     // 天空光照 0-15 直接对应信号强度
@@ -125,7 +125,7 @@ void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, cons
 
     if (oldPower != newPower) {
         BlockState newState = withPower(state, newPower);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         // 通知相邻方块更新
         notifyNeighbors(world, pos);
@@ -134,7 +134,7 @@ void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, cons
 
 void DaylightDetectorBlock::notifyNeighbors(IWorld& world, const BlockPos& pos) {
     // 获取当前方块用于通知
-    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentState = world.getBlockState(pos);
     if (!currentState) {
         return;
     }
@@ -143,7 +143,7 @@ void DaylightDetectorBlock::notifyNeighbors(IWorld& world, const BlockPos& pos) 
     // 通知六个方向的相邻方块
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (neighborState && !neighborState->isAir()) {
             Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());

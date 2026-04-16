@@ -576,7 +576,7 @@ void StandaloneServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
 
     const auto& packet = result.value();
     BlockPos pos(packet.x(), packet.y(), packet.z());
-    const BlockState* clickedState = m_world ? m_world->getBlockState(pos.x, pos.y, pos.z) : nullptr;
+    const BlockState* clickedState = m_world ? m_world->getBlockState(pos) : nullptr;
     const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
 
     const auto tryOpenCraftingContainer = [this, playerId, pos, clickedState]() {

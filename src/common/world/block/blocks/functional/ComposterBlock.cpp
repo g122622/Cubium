@@ -55,7 +55,7 @@ void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state)
     if (level == 7) {
         // 等级7时，经过20 tick后变成等级8（可以收获骨粉）
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 8);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
         // TODO: 播放声音
     }
 }
@@ -109,7 +109,7 @@ BlockState ComposterBlock::attemptCompost(
     if (random.nextFloat() < chance) {
         int newLevel = level + 1;
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), newLevel);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
 
         // 如果达到等级7，安排tick
         if (newLevel == 7) {
@@ -129,7 +129,7 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
 
     // 重置为等级0
     BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 0);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+    world.setBlockState(pos, &newState, 3);
 
     // TODO: 播放空声音
 

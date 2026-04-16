@@ -94,7 +94,7 @@ bool MagmaPatchFeature::isValidLocation(WorldGenRegion& world, const BlockPos& p
     }
 
     // 检查上方是否有空间
-    const BlockState* aboveState = world.getBlock(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlock(pos.up());
     return !aboveState || aboveState->isAir();
 }
 

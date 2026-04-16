@@ -82,10 +82,10 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
 
     // 计算初始连接状态
-    const BlockState* northState = world.getBlockState(pos.x, pos.y, pos.z - 1);
-    const BlockState* eastState = world.getBlockState(pos.x + 1, pos.y, pos.z);
-    const BlockState* southState = world.getBlockState(pos.x, pos.y, pos.z + 1);
-    const BlockState* westState = world.getBlockState(pos.x - 1, pos.y, pos.z);
+    const BlockState* northState = world.getBlockState(pos.north());
+    const BlockState* eastState = world.getBlockState(pos.east());
+    const BlockState* southState = world.getBlockState(pos.south());
+    const BlockState* westState = world.getBlockState(pos.west());
 
     bool connectNorth = northState && canConnect(*northState, northState->isSolid());
     bool connectEast = eastState && canConnect(*eastState, eastState->isSolid());
@@ -93,7 +93,7 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context) {
     bool connectWest = westState && canConnect(*westState, westState->isSolid());
 
     // 检查是否含水
-    const BlockState* existingState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* existingState = world.getBlockState(pos);
     bool waterlogged = false;
     if (existingState != nullptr) {
         const fluid::FluidState* fluid = existingState->getFluidState();

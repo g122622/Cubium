@@ -273,7 +273,7 @@ const CollisionShape& ChorusPlantBlock::getShape(const BlockState& state) const 
 
 bool ChorusPlantBlock::canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const {
     BlockPos adjPos = pos.offset(direction);
-    const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+    const BlockState* adjState = world.getBlockState(adjPos);
 
     if (adjState == nullptr) {
         return false;
@@ -326,7 +326,7 @@ bool ChorusFlowerBlock::isValidPosition(
 
     // 检查下方
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -343,7 +343,7 @@ void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockStat
     if (age < getMaxAge()) {
         // 随机生长
         if (random.nextInt(5) == 0) {
-            world.setBlockState(pos.x, pos.y, pos.z, &withAge(age + 1), 2);
+            world.setBlockState(pos, &withAge(age + 1), 2);
         }
     }
 }

@@ -55,12 +55,12 @@ void TripWireHookBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
     // 检查支撑方块
     Direction facing = getFacing(state);
     BlockPos attachPos = pos.offset(Directions::opposite(facing));
-    const BlockState* attachState = world.getBlockState(attachPos.x, attachPos.y, attachPos.z);
+    const BlockState* attachState = world.getBlockState(attachPos);
 
     if (!attachState || !attachState->isSolid()) {
         // 没有支撑，掉落
         // TODO: 掉落物品
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        world.setBlockState(pos, nullptr, 3);
     }
 }
 
@@ -70,7 +70,7 @@ void TripWireHookBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -79,12 +79,12 @@ void TripWireHookBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
 
     // 检查支撑方块
     BlockPos attachPos = pos.offset(Directions::opposite(facing));
-    const BlockState* attachState = world.getBlockState(attachPos.x, attachPos.y, attachPos.z);
+    const BlockState* attachState = world.getBlockState(attachPos);
 
     if (!attachState || !attachState->isSolid()) {
         // 没有支撑，掉落
         // TODO: 掉落物品
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        world.setBlockState(pos, nullptr, 3);
     } else {
         // 重新计算状态
         calculateState(world, pos, facing, *state, true);
@@ -176,7 +176,7 @@ bool TripWireHookBlock::calculateState(IWorld& world, const BlockPos& pos, Direc
         BlockState newState = currentState;
         newState = withPowered(newState, shouldPower);
         newState = withConnected(newState, foundChain);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
 
         // 通知相邻方块
         world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
@@ -193,7 +193,7 @@ bool TripWireHookBlock::checkForTripwire(IWorld& world, const BlockPos& pos,
 
     for (i32 i = 1; i <= MAX_DISTANCE; ++i) {
         BlockPos checkPos = pos.offset(facing, i);
-        const BlockState* state = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
+        const BlockState* state = world.getBlockState(checkPos);
 
         if (!state) {
             return false;

@@ -39,7 +39,7 @@ void ActivatorRailBlock::neighborChanged(
     MC_UNUSED(isMoving);
 
     // 检查是否应该更新激活状态
-    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentState = world.getBlockState(pos);
     if (!currentState) return;
 
     // TODO: 检查红石信号

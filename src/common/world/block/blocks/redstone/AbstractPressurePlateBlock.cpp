@@ -46,17 +46,17 @@ void AbstractPressurePlateBlock::neighborChanged(IWorld& world, const BlockPos& 
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
 
     // 检查下方支撑是否还在
     BlockPos supportPos = pos.down();
-    const BlockState* supportState = world.getBlockState(supportPos.x, supportPos.y, supportPos.z);
+    const BlockState* supportState = world.getBlockState(supportPos);
     if (!supportState || supportState->isAir()) {
         // 压力板掉落 - 设置为空气方块
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 2);
+        world.setBlockState(pos, nullptr, 2);
     }
 }
 
@@ -67,7 +67,7 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
     if (newPower != oldPower) {
         // 状态改变
         BlockState newState = withPower(state, newPower);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         // 播放音效
         playClickSound(world, pos, newPower > 0);
@@ -75,7 +75,7 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
         // 通知相邻方块更新
         for (Direction dir : Directions::all()) {
             BlockPos neighborPos = pos.offset(dir);
-            const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+            const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState && !neighborState->isAir()) {
                 Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
                 neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);

@@ -30,7 +30,7 @@ bool BushBlock::isValidPosition(
 
     // 检查下方方块是否可以支撑此植物
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -53,7 +53,7 @@ BlockState BushBlock::updatePostPlacement(
     // 下方方块更新时检查是否仍可支撑
     if (facing == Direction::Down) {
         BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
-        const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
 
         if (belowState == nullptr || !canSustain(*belowState, world, belowPos)) {
             // 无法支撑，破坏（返回空气）

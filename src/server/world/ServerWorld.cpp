@@ -443,8 +443,8 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
             }
 
             if (updatedState != nullptr && updatedState != neighborState) {
-                setBlock(neighborPos.x, neighborPos.y, neighborPos.z, updatedState);
-                neighborState = canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
+                setBlock(neighborPos, updatedState);
+                neighborState = canonicalizeState(getBlockState(neighborPos));
             }
 
             {
@@ -992,7 +992,7 @@ const IChunk* ServerWorld::getChunkForLight(ChunkCoord x, ChunkCoord z) const
 
 const BlockState* ServerWorld::getBlockStateForLight(const BlockPos& pos) const
 {
-    return getBlockState(pos.x, pos.y, pos.z);
+    return getBlockState(pos);
 }
 
 IWorld* ServerWorld::getWorld()

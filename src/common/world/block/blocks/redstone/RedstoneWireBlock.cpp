@@ -191,7 +191,7 @@ void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
         BlockState newState = withPower(state, newPower);
         newState = calculateConnections(world, pos, newState);
 
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         // 通知相邻红石线更新
         notifyWireNeighbors(world, pos);
@@ -259,7 +259,7 @@ i32 RedstoneWireBlock::getStrongPower(
 }
 
 bool RedstoneWireBlock::updatePower(IWorld& world, const BlockPos& pos) {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || !state->is(this)) {
         return false;
     }
@@ -270,7 +270,7 @@ bool RedstoneWireBlock::updatePower(IWorld& world, const BlockPos& pos) {
     if (oldPower != newPower) {
         BlockState newState = withPower(*state, newPower);
         newState = calculateConnections(world, pos, newState);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         // 通知相邻红石线更新
         notifyWireNeighbors(world, pos);
@@ -298,7 +298,7 @@ RedstoneSide RedstoneWireBlock::getConnection(IWorld& world,
                                                const BlockPos& pos,
                                                Direction direction) const {
     BlockPos neighborPos = pos.offset(direction);
-    const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    const BlockState* neighborState = world.getBlockState(neighborPos);
 
     if (!neighborState || neighborState->isAir()) {
         return RedstoneSide::None;
@@ -313,14 +313,14 @@ RedstoneSide RedstoneWireBlock::getConnection(IWorld& world,
     if (isNormalCube(*neighborState)) {
         // 相邻是实体方块，检查其上方是否有红石线
         BlockPos upPos = neighborPos.up();
-        const BlockState* upState = world.getBlockState(upPos.x, upPos.y, upPos.z);
+        const BlockState* upState = world.getBlockState(upPos);
         if (upState && upState->is(this)) {
             return RedstoneSide::Up;
         }
     } else {
         // 相邻不是实体方块，检查其下方是否有红石线
         BlockPos downPos = neighborPos.down();
-        const BlockState* downState = world.getBlockState(downPos.x, downPos.y, downPos.z);
+        const BlockState* downState = world.getBlockState(downPos);
         if (downState && downState->is(this)) {
             return RedstoneSide::Side;
         }
@@ -341,7 +341,7 @@ i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, c
     // 1. 从相邻方块获取强信号
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (!neighborState || neighborState->isAir()) {
             continue;
@@ -363,7 +363,7 @@ i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, c
     if (maxPower < 15) {
         for (Direction dir : Directions::horizontal()) {
             BlockPos neighborPos = pos.offset(dir);
-            const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+            const BlockState* neighborState = world.getBlockState(neighborPos);
 
             if (!neighborState) {
                 continue;
@@ -380,7 +380,7 @@ i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, c
             // 检查向上连接
             if (isNormalCube(*neighborState)) {
                 BlockPos upPos = neighborPos.up();
-                const BlockState* upState = world.getBlockState(upPos.x, upPos.y, upPos.z);
+                const BlockState* upState = world.getBlockState(upPos);
                 if (upState && upState->is(this)) {
                     i32 wirePower = getPower(*upState) - 1;
                     if (wirePower > maxPower) {
@@ -390,7 +390,7 @@ i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, c
             } else {
                 // 检查向下连接
                 BlockPos downPos = neighborPos.down();
-                const BlockState* downState = world.getBlockState(downPos.x, downPos.y, downPos.z);
+                const BlockState* downState = world.getBlockState(downPos);
                 if (downState && downState->is(this)) {
                     i32 wirePower = getPower(*downState) - 1;
                     if (wirePower > maxPower) {
@@ -406,7 +406,7 @@ i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, c
 }
 
 i32 RedstoneWireBlock::getWirePower(IWorld& world, const BlockPos& pos) const {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || !state->is(this)) {
         return 0;
     }
@@ -417,7 +417,7 @@ void RedstoneWireBlock::notifyWireNeighbors(IWorld& world, const BlockPos& pos) 
     // 通知六个方向的相邻方块
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (neighborState && !neighborState->isAir()) {
             Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());

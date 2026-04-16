@@ -406,7 +406,7 @@ void IntegratedServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
 
     const auto& packet = result.value();
     const BlockPos clickedPos(packet.x(), packet.y(), packet.z());
-    const BlockState* clickedState = m_world ? m_world->getBlockState(clickedPos.x, clickedPos.y, clickedPos.z) : nullptr;
+    const BlockState* clickedState = m_world ? m_world->getBlockState(clickedPos) : nullptr;
     const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
 
     const auto tryOpenCraftingMenu = [this, clickedState]() {

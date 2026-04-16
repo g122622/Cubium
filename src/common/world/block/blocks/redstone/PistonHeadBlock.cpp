@@ -78,7 +78,7 @@ BlockState PistonHeadBlock::updatePostPlacement(
     Direction pistonFacing = getFacing(state);
     BlockPos pistonPos = currentPos.offset(Directions::opposite(pistonFacing));
 
-    const BlockState* pistonState = world.getBlockState(pistonPos.x, pistonPos.y, pistonPos.z);
+    const BlockState* pistonState = world.getBlockState(pistonPos);
     if (!pistonState || pistonState->isAir()) {
         // 活塞主体不存在，活塞头应该消失
         // 返回空气状态（通过设置 null）

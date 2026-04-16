@@ -29,7 +29,7 @@ void RedstoneSystem::updateNeighborsInDirections(IWorld& world, const BlockPos& 
         Direction dir = directions[i];
         BlockPos neighborPos = pos.offset(dir);
 
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (!neighborState || neighborState->isAir()) {
             continue;
         }
@@ -72,7 +72,7 @@ void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
     for (Direction dir : Directions::horizontal()) {
         BlockPos neighborPos = pos.offset(dir);
 
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (!neighborState || neighborState->isAir()) {
             continue;
         }

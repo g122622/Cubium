@@ -56,7 +56,7 @@ bool CactusBlock::isValidPosition(
 
     // 检查下方方块
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -70,7 +70,7 @@ bool CactusBlock::isValidPosition(
         // 仙人掌周围不能有固体方块
         for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
             BlockPos adjPos = pos.offset(dir);
-            const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+            const BlockState* adjState = world.getBlockState(adjPos);
             if (adjState != nullptr && !adjState->isAir() && adjState->getMaterial().isSolid()) {
                 return false;
             }
@@ -121,7 +121,7 @@ BlockState CactusBlock::updatePostPlacement(
 void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState != nullptr && !aboveState->isAir()) {
         return;
@@ -131,7 +131,7 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     int height = 1;
     for (int i = 1; i < 3; ++i) {
         BlockPos checkPos(pos.x, pos.y - i, pos.z);
-        const BlockState* checkState = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
+        const BlockState* checkState = world.getBlockState(checkPos);
         if (checkState == nullptr || !checkState->is(this)) {
             break;
         }
@@ -148,14 +148,14 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
         if (age >= 15) {
             // 生长新的仙人掌
             auto newTopState = defaultState();
-            world.setBlockState(abovePos.x, abovePos.y, abovePos.z, &newTopState, 2);
+            world.setBlockState(abovePos, &newTopState, 2);
 
             auto resetState = withAge(0);
-            world.setBlockState(pos.x, pos.y, pos.z, &resetState, 2);
+            world.setBlockState(pos, &resetState, 2);
         } else {
             // 增加年龄
             auto agedState = withAge(age + 1);
-            world.setBlockState(pos.x, pos.y, pos.z, &agedState, 2);
+            world.setBlockState(pos, &agedState, 2);
         }
     }
 }

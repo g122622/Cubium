@@ -54,7 +54,7 @@ void LeverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neig
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -78,10 +78,10 @@ void LeverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neig
     }
 
     // 如果支撑方块被移除，拉杆掉落
-    const BlockState* supportState = world.getBlockState(supportPos.x, supportPos.y, supportPos.z);
+    const BlockState* supportState = world.getBlockState(supportPos);
     if (!supportState || supportState->isAir()) {
         // 拉杆掉落 - 设置为空气方块
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 2);
+        world.setBlockState(pos, nullptr, 2);
     }
 }
 
@@ -101,7 +101,7 @@ BlockState LeverBlock::updatePostPlacement(
 BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState& state) {
     bool newPowered = !isPowered(state);
     BlockState newState = withPowered(state, newPowered);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+    world.setBlockState(pos, &newState, 2);
 
     // 播放音效
     playClickSound(world, pos, newPowered);
@@ -208,14 +208,14 @@ void LeverBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const Block
 
     // 通知输出方向的方块
     BlockPos outputPos = pos.offset(outputDir);
-    const BlockState* outputState = world.getBlockState(outputPos.x, outputPos.y, outputPos.z);
+    const BlockState* outputState = world.getBlockState(outputPos);
     if (outputState && !outputState->isAir()) {
         Block& outputBlock = const_cast<Block&>(outputState->getBlock());
         outputBlock.neighborChanged(world, outputPos, const_cast<Block&>(thisBlock), pos, false);
     }
 
     // 通过支撑方块传递信号
-    const BlockState* supportState = world.getBlockState(supportPos.x, supportPos.y, supportPos.z);
+    const BlockState* supportState = world.getBlockState(supportPos);
     if (supportState && !supportState->isAir()) {
         Block& supportBlock = const_cast<Block&>(supportState->getBlock());
         supportBlock.neighborChanged(world, supportPos, const_cast<Block&>(thisBlock), pos, false);

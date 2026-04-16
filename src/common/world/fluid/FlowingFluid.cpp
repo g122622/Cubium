@@ -210,13 +210,13 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
     });
 
     if (!state.isSource()) {
-        const BlockState* currentBlock = world.getBlockState(pos.x, pos.y, pos.z);
+        const BlockState* currentBlock = world.getBlockState(pos);
         FluidState correctState = calculateCorrectFlowingState(world, pos, currentBlock);
         const i32 tickDelay = getTickDelay(world, pos, state, correctState);
 
         if (correctState.isEmpty()) {
             if (VanillaBlocks::AIR != nullptr) {
-                world.setBlock(pos.x, pos.y, pos.z, &VanillaBlocks::AIR->defaultState());
+                world.setBlock(pos, &VanillaBlocks::AIR->defaultState());
             }
             return;
         }
@@ -225,7 +225,7 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
             state = correctState;
             const BlockState* newBlockState = correctState.getBlockState();
             if (newBlockState != nullptr) {
-                world.setBlock(pos.x, pos.y, pos.z, newBlockState);
+                world.setBlock(pos, newBlockState);
             }
             world.scheduleFluidTick(pos, const_cast<Fluid&>(correctState.getFluid()), tickDelay);
         }
@@ -242,7 +242,7 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
 
     for (Direction dir : Directions::horizontal()) {
         samplePos = pos.offset(Directions::toBlockFace(dir));
-        const FluidState* neighborFluid = world.getFluidState(samplePos.x, samplePos.y, samplePos.z);
+        const FluidState* neighborFluid = world.getFluidState(samplePos);
         if (neighborFluid == nullptr || !isSameOrEmpty(*neighborFluid)) {
             continue;
         }
@@ -250,13 +250,13 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
         f32 heightDelta = 0.0f;
         f32 neighborHeight = neighborFluid->getHeight();
         if (neighborHeight == 0.0f) {
-            const BlockState* neighborBlock = world.getBlockState(samplePos.x, samplePos.y, samplePos.z);
+            const BlockState* neighborBlock = world.getBlockState(samplePos);
             if (neighborBlock != nullptr && neighborBlock->owner().material().blocksMovement()) {
                 continue;
             }
 
             BlockPos belowPos = samplePos.down();
-            const FluidState* belowFluid = world.getFluidState(belowPos.x, belowPos.y, belowPos.z);
+            const FluidState* belowFluid = world.getFluidState(belowPos);
             if (belowFluid != nullptr && isSameOrEmpty(*belowFluid)) {
                 neighborHeight = belowFluid->getHeight();
                 if (neighborHeight > 0.0f) {
@@ -289,8 +289,8 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos,
 }
 
 bool FlowingFluid::causesDownwardCurrent(IBlockReader& world, const BlockPos& pos, Direction side) const {
-    const BlockState* blockState = world.getBlockState(pos.x, pos.y, pos.z);
-    const FluidState* fluidState = world.getFluidState(pos.x, pos.y, pos.z);
+    const BlockState* blockState = world.getBlockState(pos);
+    const FluidState* fluidState = world.getFluidState(pos);
 
     if (fluidState != nullptr && fluidState->getFluid().isEquivalentTo(*this)) {
         return false;
@@ -328,7 +328,7 @@ CollisionShape FlowingFluid::getShape(const FluidState& state, IBlockReader& wor
 
 bool FlowingFluid::isFullHeight(const FluidState& state, IBlockReader& world, const BlockPos& pos) const {
     BlockPos above = pos.up();
-    const FluidState* aboveFluid = world.getFluidState(above.x, above.y, above.z);
+    const FluidState* aboveFluid = world.getFluidState(above);
     return aboveFluid != nullptr && aboveFluid->getFluid().isEquivalentTo(*this);
 }
 
@@ -353,13 +353,13 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
         return;
     }
 
-    const BlockState* currentBlock = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentBlock = world.getBlockState(pos);
     const BlockPos belowPos = pos.down();
-    const BlockState* belowBlock = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowBlock = world.getBlockState(belowPos);
     FluidState belowFlowState = calculateCorrectFlowingState(world, belowPos, belowBlock);
 
     if (canFlow(world, pos, currentBlock, Direction::Down, belowPos, belowBlock,
-                *world.getFluidState(belowPos.x, belowPos.y, belowPos.z), belowFlowState.getFluid())) {
+                *world.getFluidState(belowPos), belowFlowState.getFluid())) {
         flowInto(world, belowPos, belowBlock, Direction::Down, belowFlowState);
         if (getHorizontalSourceCount(world, pos) >= 3) {
             spreadHorizontally(world, pos, state, currentBlock);
@@ -387,10 +387,10 @@ void FlowingFluid::spreadHorizontally(IWorld& world, const BlockPos& pos,
 
     for (const auto& [dir, fluidState] : flowDirections) {
         BlockPos targetPos = pos.offset(Directions::toBlockFace(dir));
-        const BlockState* targetBlock = world.getBlockState(targetPos.x, targetPos.y, targetPos.z);
+        const BlockState* targetBlock = world.getBlockState(targetPos);
         if (targetBlock != nullptr &&
             canFlow(world, pos, blockState, dir, targetPos, targetBlock,
-                    *world.getFluidState(targetPos.x, targetPos.y, targetPos.z), fluidState.getFluid())) {
+                    *world.getFluidState(targetPos), fluidState.getFluid())) {
             flowInto(world, targetPos, targetBlock, dir, fluidState);
         }
     }
@@ -428,7 +428,7 @@ void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState
     // 必须使用传入状态自身的流体类型做方块映射，避免 source/fluid 实例错配。
     const BlockState* newBlockState = state.getBlockState();
     if (newBlockState != nullptr) {
-        world.setBlock(pos.x, pos.y, pos.z, newBlockState);
+        world.setBlock(pos, newBlockState);
     }
 }
 
@@ -444,7 +444,7 @@ FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
 
     for (Direction dir : Directions::horizontal()) {
         BlockPos neighborPos = pos.offset(Directions::toBlockFace(dir));
-        const BlockState* neighborBlock = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborBlock = world.getBlockState(neighborPos);
         if (neighborBlock == nullptr) {
             continue;
         }
@@ -464,7 +464,7 @@ FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
 
     if (sourceCount >= 2 && canSourcesMultiply()) {
         BlockPos belowPos = pos.down();
-        const BlockState* belowBlock = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+        const BlockState* belowBlock = world.getBlockState(belowPos);
         if (belowBlock != nullptr) {
             const FluidState* belowFluid = belowBlock->getFluidState();
             if (belowBlock->owner().material().isSolid() ||
@@ -475,7 +475,7 @@ FluidState FlowingFluid::calculateCorrectFlowingState(IWorld& world,
     }
 
     BlockPos abovePos = pos.up();
-    const BlockState* aboveBlock = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveBlock = world.getBlockState(abovePos);
     if (aboveBlock != nullptr) {
         const FluidState* aboveFluid = aboveBlock->getFluidState();
         if (aboveFluid != nullptr && !aboveFluid->isEmpty() && aboveFluid->getFluid().isEquivalentTo(*this) &&
@@ -537,7 +537,7 @@ bool FlowingFluid::canFormSource(IWorld& world, const BlockPos& pos) {
 
     // 检查下方
     BlockPos below = pos.down();
-    const BlockState* belowBlock = world.getBlockState(below.x, below.y, below.z);
+    const BlockState* belowBlock = world.getBlockState(below);
     if (belowBlock == nullptr) {
         return false;
     }
@@ -547,7 +547,7 @@ bool FlowingFluid::canFormSource(IWorld& world, const BlockPos& pos) {
         return true;
     }
 
-    const FluidState* belowFluid = world.getFluidState(below.x, below.y, below.z);
+    const FluidState* belowFluid = world.getFluidState(below);
     return belowFluid != nullptr && isSameSource(*belowFluid);
 }
 
@@ -556,7 +556,7 @@ i32 FlowingFluid::getHorizontalSourceCount(IWorld& world, const BlockPos& pos) c
 
     for (Direction dir : Directions::horizontal()) {
         BlockPos neighborPos = pos.offset(Directions::toBlockFace(dir));
-        const FluidState* neighborFluid = world.getFluidState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const FluidState* neighborFluid = world.getFluidState(neighborPos);
 
         if (neighborFluid != nullptr && isSameSource(*neighborFluid)) {
             count++;
@@ -626,11 +626,11 @@ i32 FlowingFluid::calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 dec
         const FluidState* neighborFluid;
 
         if (it == stateCache.end()) {
-            neighborBlock = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+            neighborBlock = world.getBlockState(neighborPos);
             if (neighborBlock == nullptr) {
                 continue;
             }
-            neighborFluid = world.getFluidState(neighborPos.x, neighborPos.y, neighborPos.z);
+            neighborFluid = world.getFluidState(neighborPos);
             if (neighborFluid == nullptr) {
                 continue;
             }
@@ -645,7 +645,7 @@ i32 FlowingFluid::calculateFlowDecay(IWorld& world, const BlockPos& pos, i32 dec
             auto fallIt = fallCache.find(key);
             if (fallIt == fallCache.end()) {
                 BlockPos below = neighborPos.down();
-                const BlockState* belowBlock = world.getBlockState(below.x, below.y, below.z);
+                const BlockState* belowBlock = world.getBlockState(below);
                 canFall = canFlowDown(world, *this, neighborPos, neighborBlock, below, belowBlock);
                 fallCache.emplace(key, canFall);
             } else {
@@ -677,7 +677,7 @@ bool FlowingFluid::canFlowDown(IWorld& world, const Fluid& fluid,
         return false;
     }
 
-    const FluidState* belowFluid = world.getFluidState(belowPos.x, belowPos.y, belowPos.z);
+    const FluidState* belowFluid = world.getFluidState(belowPos);
     if (belowFluid != nullptr && belowFluid->getFluid().isEquivalentTo(fluid)) {
         return true;
     }
@@ -713,11 +713,11 @@ std::unordered_map<Direction, FluidState> FlowingFluid::getFlowDirections(
         BlockPos neighborPos = pos.offset(Directions::toBlockFace(dir));
         i16 key = packRelativePos(pos, neighborPos);
 
-        const BlockState* neighborBlock = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborBlock = world.getBlockState(neighborPos);
         if (neighborBlock == nullptr) {
             continue;
         }
-        const FluidState* neighborFluid = world.getFluidState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const FluidState* neighborFluid = world.getFluidState(neighborPos);
         if (neighborFluid == nullptr) {
             continue;
         }
@@ -728,7 +728,7 @@ std::unordered_map<Direction, FluidState> FlowingFluid::getFlowDirections(
 
         if (canFlowInto(world, pos, blockState, dir, neighborPos, neighborBlock, *neighborFluid, targetState.getFluid())) {
             BlockPos below = neighborPos.down();
-            const BlockState* belowBlock = world.getBlockState(below.x, below.y, below.z);
+            const BlockState* belowBlock = world.getBlockState(below);
             bool canFall = canFlowDown(world, *this, neighborPos, neighborBlock, below, belowBlock);
             fallCache.emplace(key, canFall);
 

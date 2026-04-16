@@ -81,7 +81,7 @@ void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     if (state.get(BlockStateProperties::POWERED())) {
         // 关闭红石信号
         BlockState newState = state.with(BlockStateProperties::POWERED(), false);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
         // TODO: 通知邻居更新
     }
 }
@@ -156,7 +156,7 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& st
     BlockState newState = state
         .with(BlockStateProperties::HAS_BOOK(), hasBook)
         .with(BlockStateProperties::POWERED(), false);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+    world.setBlockState(pos, &newState, 3);
 
     // 通知邻居更新
     // TODO: world.notifyNeighborsOfStateChange(pos.down(), this);
@@ -165,7 +165,7 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& st
 void LecternBlock::pulse(IWorld& world, const BlockPos& pos, BlockState& state) {
     // 开启红石信号
     BlockState newState = state.with(BlockStateProperties::POWERED(), true);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+    world.setBlockState(pos, &newState, 3);
 
     // 安排tick来关闭信号
     // TODO: world.getPendingBlockTicks().scheduleTick(pos, this, 2);

@@ -39,7 +39,7 @@ BlockState FarmlandBlock::getStateForPlacement(BlockItemUseContext& context) {
 
     // 上方不能有固体方块
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState != nullptr && aboveState->isSolid()) {
         // 不能放置，返回泥土状态
@@ -61,7 +61,7 @@ bool FarmlandBlock::isValidPosition(
 
     // 上方不能有固体方块
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState != nullptr && aboveState->isSolid()) {
         // TODO: 检查是否为栅栏门或活塞等特殊情况
@@ -85,7 +85,7 @@ BlockState FarmlandBlock::updatePostPlacement(
     // 上方方块更新时检查有效性
     if (facing == Direction::Up) {
         BlockPos abovePos(currentPos.x, currentPos.y + 1, currentPos.z);
-        const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+        const BlockState* aboveState = world.getBlockState(abovePos);
         if (aboveState != nullptr && aboveState->isSolid()) {
             // 安排下一 tick 转变为泥土
             world.scheduleBlockTick(currentPos, *this, 1);
@@ -99,7 +99,7 @@ BlockState FarmlandBlock::updatePostPlacement(
 
 void FarmlandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
     if (aboveState != nullptr && aboveState->isSolid()) {
         turnToDirt(world, pos, state);
     }
@@ -118,14 +118,14 @@ void FarmlandBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     if (!nearWater /* && !raining */) {
         // 没有水且不下雨，湿润度降低
         if (moisture > 0) {
-            world.setBlockState(pos.x, pos.y, pos.z, &state.with(BlockStateProperties::MOISTURE_0_7(), moisture - 1), 2);
+            world.setBlockState(pos, &state.with(BlockStateProperties::MOISTURE_0_7(), moisture - 1), 2);
         } else if (!hasCrops(world, pos)) {
             // 没有作物且干燥，转变为泥土
             turnToDirt(world, pos, state);
         }
     } else if (moisture < 7) {
         // 有水或下雨，增加湿润度
-        world.setBlockState(pos.x, pos.y, pos.z, &state.with(BlockStateProperties::MOISTURE_0_7(), 7), 2);
+        world.setBlockState(pos, &state.with(BlockStateProperties::MOISTURE_0_7(), 7), 2);
     }
 }
 
@@ -148,7 +148,7 @@ const CollisionShape& FarmlandBlock::getCollisionShape(const BlockState& state) 
 void FarmlandBlock::turnToDirt(IWorld& world, const BlockPos& pos, const BlockState& state) {
     MC_UNUSED(state);
     if (VanillaBlocks::DIRT != nullptr) {
-        world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::DIRT->defaultState(), 3);
+        world.setBlockState(pos, &VanillaBlocks::DIRT->defaultState(), 3);
     }
 }
 
@@ -158,7 +158,7 @@ bool FarmlandBlock::hasWater(IWorld& world, const BlockPos& pos) {
         for (int dz = -4; dz <= 4; ++dz) {
             for (int dy = 0; dy <= 1; ++dy) {
                 BlockPos checkPos(pos.x + dx, pos.y + dy, pos.z + dz);
-                const BlockState* state = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
+                const BlockState* state = world.getBlockState(checkPos);
                 if (state != nullptr && state->getMaterial() == Material::WATER) {
                     return true;
                 }
@@ -171,7 +171,7 @@ bool FarmlandBlock::hasWater(IWorld& world, const BlockPos& pos) {
 bool FarmlandBlock::hasCrops(IWorld& world, const BlockPos& pos) {
     // 检查上方是否有作物
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState == nullptr) {
         return false;

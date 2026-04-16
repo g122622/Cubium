@@ -107,7 +107,7 @@ bool AbstractRailBlock::isValidPosition(
 
     // 检查下方是否有固体方块
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -203,7 +203,7 @@ RailShape AbstractRailBlock::calculateRailShape(IWorld& world, const BlockPos& p
 }
 
 bool AbstractRailBlock::isRailAt(IBlockReader& world, const BlockPos& pos) const {
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
     }
@@ -222,7 +222,7 @@ bool AbstractRailBlock::isRailAt(IBlockReader& world, const BlockPos& pos) const
 bool AbstractRailBlock::canAscendTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
     // 检查目标位置是否有铁轨
     BlockPos targetPos = pos.offset(direction);
-    const BlockState* targetState = world.getBlockState(targetPos.x, targetPos.y, targetPos.z);
+    const BlockState* targetState = world.getBlockState(targetPos);
 
     if (targetState == nullptr) {
         return false;
@@ -237,7 +237,7 @@ bool AbstractRailBlock::canAscendTo(IBlockReader& world, const BlockPos& pos, Di
 
     // 检查目标位置上方是否有空间（矿车需要通过）
     BlockPos abovePos(targetPos.x, targetPos.y + 1, targetPos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     // 上方需要是空气或非固体方块
     return aboveState == nullptr || !aboveState->isSolid();

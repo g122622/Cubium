@@ -58,7 +58,7 @@ bool CropBlock::isValidPosition(
 
     // 检查下方是否为耕地
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -79,8 +79,9 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
-    const i32 blockLight = static_cast<i32>(world.getBlockLight(pos.x, pos.y + 1, pos.z));
-    const i32 skyLight = static_cast<i32>(world.getSkyLight(pos.x, pos.y + 1, pos.z));
+    const BlockPos abovePos = pos.up();
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
     if (std::max(blockLight, skyLight) < 9) {
         return;
     }
@@ -88,7 +89,7 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     const f32 growthChance = std::max(1.0f, getGrowthChance(*this, static_cast<IBlockReader&>(world), pos));
     const i32 randomBound = std::max(1, static_cast<i32>(25.0f / growthChance) + 1);
     if (random.nextInt(randomBound) == 0) {
-        world.setBlockState(pos.x, pos.y, pos.z, &withAge(getAge(state) + 1), 2);
+        world.setBlockState(pos, &withAge(getAge(state) + 1), 2);
     }
 }
 
@@ -104,7 +105,7 @@ void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
         newAge = maxAge;
     }
 
-    world.setBlockState(pos.x, pos.y, pos.z, &withAge(newAge), 2);
+    world.setBlockState(pos, &withAge(newAge), 2);
 }
 
 int CropBlock::getBonemealAgeIncrease() const {
@@ -146,7 +147,7 @@ float CropBlock::getGrowthChance(
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
             const BlockPos groundPos(pos.x + dx, pos.y - 1, pos.z + dz);
-            const BlockState* groundState = world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+            const BlockState* groundState = world.getBlockState(groundPos);
             if (groundState == nullptr || VanillaBlocks::FARMLAND == nullptr ||
                 !groundState->is(VanillaBlocks::FARMLAND)) {
                 continue;

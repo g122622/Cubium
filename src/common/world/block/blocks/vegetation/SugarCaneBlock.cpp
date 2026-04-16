@@ -49,7 +49,7 @@ bool SugarCaneBlock::isValidPosition(
 
     // 检查下方方块
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -74,7 +74,7 @@ bool SugarCaneBlock::isNearWater(IBlockReader& world, const BlockPos& pos) const
     const i32 waterY = pos.y - 1;
     for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
         BlockPos adjPos(pos.x + Directions::xOffset(dir), waterY, pos.z + Directions::zOffset(dir));
-        const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+        const BlockState* adjState = world.getBlockState(adjPos);
 
         if (adjState != nullptr && adjState->getMaterial() == Material::WATER) {
             return true;
@@ -110,7 +110,7 @@ BlockState SugarCaneBlock::updatePostPlacement(
 void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState != nullptr && !aboveState->isAir()) {
         return;
@@ -120,7 +120,7 @@ void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     int height = 1;
     for (int i = 1; i < 3; ++i) {
         BlockPos checkPos(pos.x, pos.y - i, pos.z);
-        const BlockState* checkState = world.getBlockState(checkPos.x, checkPos.y, checkPos.z);
+        const BlockState* checkState = world.getBlockState(checkPos);
         if (checkState == nullptr || !checkState->is(this)) {
             break;
         }
@@ -136,11 +136,11 @@ void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         i32 age = getAge(state);
         if (age >= 15) {
             // 生长新的甘蔗
-            world.setBlockState(abovePos.x, abovePos.y, abovePos.z, &defaultState(), 2);
-            world.setBlockState(pos.x, pos.y, pos.z, &withAge(0), 2);
+            world.setBlockState(abovePos, &defaultState(), 2);
+            world.setBlockState(pos, &withAge(0), 2);
         } else {
             // 增加年龄
-            world.setBlockState(pos.x, pos.y, pos.z, &withAge(age + 1), 2);
+            world.setBlockState(pos, &withAge(age + 1), 2);
         }
     }
 }

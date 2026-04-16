@@ -45,7 +45,7 @@ bool ChestEntity::isDoubleChest(IWorld& world) const {
 
 ChestEntity* ChestEntity::getConnectedChest(IWorld& world) const {
     // 获取当前方块的方块状态
-    const BlockState* statePtr = world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
+    const BlockState* statePtr = world.getBlockState(m_pos);
     if (statePtr == nullptr) {
         return nullptr;
     }
@@ -86,7 +86,7 @@ ChestEntity* ChestEntity::getConnectedChest(IWorld& world) const {
     }
 
     // 验证相邻箱子确实是连接的
-    const BlockState* neighborStatePtr = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+    const BlockState* neighborStatePtr = world.getBlockState(neighborPos);
     if (neighborStatePtr == nullptr) {
         return nullptr;
     }
@@ -113,7 +113,7 @@ std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(IWorld& wo
 
     // 根据ChestType确定顺序
     // LEFT类型在左侧（上半部分），RIGHT类型在右侧（下半部分）
-    const BlockState* statePtr = world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
+    const BlockState* statePtr = world.getBlockState(m_pos);
     if (statePtr == nullptr) {
         return nullptr;
     }

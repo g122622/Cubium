@@ -49,7 +49,7 @@ void ObserverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
     MC_UNUSED(neighborBlock);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -88,12 +88,12 @@ void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) 
     if (isPowered(state)) {
         // 脉冲结束，停止输出
         BlockState newState = withPowered(state, false);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         // 通知输出端相邻方块更新
         Direction facing = getFacing(state);
         BlockPos outputPos = pos.offset(facing);
-        const BlockState* outputState = world.getBlockState(outputPos.x, outputPos.y, outputPos.z);
+        const BlockState* outputState = world.getBlockState(outputPos);
         if (outputState && !outputState->isAir()) {
             Block& outputBlock = const_cast<Block&>(outputState->getBlock());
             outputBlock.neighborChanged(world, outputPos, *this, pos, false);
@@ -136,7 +136,7 @@ void ObserverBlock::detect(IWorld& world, const BlockPos& pos, const BlockState&
 
     // 立即激活并调度脉冲
     BlockState newState = withPowered(state, true);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+    world.setBlockState(pos, &newState, 2);
 
     // 调度脉冲结束
     world.scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
@@ -144,7 +144,7 @@ void ObserverBlock::detect(IWorld& world, const BlockPos& pos, const BlockState&
     // 通知输出端相邻方块更新
     Direction facing = getFacing(state);
     BlockPos outputPos = pos.offset(facing);
-    const BlockState* outputState = world.getBlockState(outputPos.x, outputPos.y, outputPos.z);
+    const BlockState* outputState = world.getBlockState(outputPos);
     if (outputState && !outputState->isAir()) {
         Block& outputBlock = const_cast<Block&>(outputState->getBlock());
         outputBlock.neighborChanged(world, outputPos, *this, pos, false);

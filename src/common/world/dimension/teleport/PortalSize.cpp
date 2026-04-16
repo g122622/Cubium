@@ -101,7 +101,7 @@ bool PortalSize::lightNetherPortal(IWorld& world, const PortalSizeResult& portal
 
     // 在传送门内部放置传送门方块
     for (const BlockPos& pos : blocks) {
-        world.setBlockState(pos.x, pos.y, pos.z, netherPortalState, 2);
+        world.setBlockState(pos, netherPortalState, 2);
     }
 
     return true;
@@ -171,7 +171,7 @@ i32 PortalSize::checkHorizontalFrame(
     BlockPos pos = start;
 
     for (i32 i = 0; i < maxLen; ++i) {
-        const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+        const BlockState* state = world.getBlockState(pos);
         if (state == nullptr || state != frameBlock) {
             break;
         }
@@ -199,7 +199,7 @@ i32 PortalSize::checkVerticalFrame(
     BlockPos pos = start;
 
     for (i32 i = 0; i < maxLen; ++i) {
-        const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+        const BlockState* state = world.getBlockState(pos);
         if (state == nullptr || state != frameBlock) {
             break;
         }
@@ -237,7 +237,7 @@ bool PortalSize::checkInteriorEmpty(
                 pos.y += h;
             }
 
-            const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+            const BlockState* state = world.getBlockState(pos);
             if (state != nullptr && !state->isAir()) {
                 return false;
             }
@@ -277,7 +277,7 @@ std::optional<PortalSizeResult> PortalSize::tryFindPortalOnAxis(
             BlockPos corner1 = basePos.offset(widthDir, offset1);
 
             // 检查是否为黑曜石
-            const BlockState* state = world.getBlockState(corner1.x, corner1.y, corner1.z);
+            const BlockState* state = world.getBlockState(corner1);
             if (state != frameBlock) {
                 continue;
             }
@@ -305,7 +305,7 @@ std::optional<PortalSizeResult> PortalSize::detectFrameFromCorner(
 
     // 向宽度方向检测底部框架
     for (i32 w = 0; w <= MAX_WIDTH; ++w) {
-        const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+        const BlockState* state = world.getBlockState(pos);
         if (state != frameBlock) {
             break;
         }
@@ -325,7 +325,7 @@ std::optional<PortalSizeResult> PortalSize::detectFrameFromCorner(
     i32 leftHeight = 0;
     BlockPos leftPos = bottomLeft.offset(Direction::Up);
     for (i32 h = 0; h <= MAX_HEIGHT; ++h) {
-        const BlockState* state = world.getBlockState(leftPos.x, leftPos.y, leftPos.z);
+        const BlockState* state = world.getBlockState(leftPos);
         if (state != frameBlock) {
             break;
         }
@@ -345,7 +345,7 @@ std::optional<PortalSizeResult> PortalSize::detectFrameFromCorner(
     i32 rightHeight = 0;
     BlockPos rightPos = rightBottom.offset(Direction::Up);
     for (i32 h = 0; h <= MAX_HEIGHT; ++h) {
-        const BlockState* state = world.getBlockState(rightPos.x, rightPos.y, rightPos.z);
+        const BlockState* state = world.getBlockState(rightPos);
         if (state != frameBlock) {
             break;
         }
@@ -364,7 +364,7 @@ std::optional<PortalSizeResult> PortalSize::detectFrameFromCorner(
     // 验证顶部框架（从左上角向右检测）
     BlockPos topPos = topLeft.offset(widthDir);
     for (i32 w = 1; w < frameWidth - 1; ++w) {
-        const BlockState* state = world.getBlockState(topPos.x, topPos.y, topPos.z);
+        const BlockState* state = world.getBlockState(topPos);
         if (state != frameBlock) {
             return std::nullopt;
         }
@@ -373,7 +373,7 @@ std::optional<PortalSizeResult> PortalSize::detectFrameFromCorner(
 
     // 验证顶部右角
     BlockPos topRight = bottomLeft.offset(widthDir, frameWidth - 1).offset(Direction::Up, frameHeight - 1);
-    const BlockState* topRightState = world.getBlockState(topRight.x, topRight.y, topRight.z);
+    const BlockState* topRightState = world.getBlockState(topRight);
     if (topRightState != frameBlock) {
         return std::nullopt;
     }

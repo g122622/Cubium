@@ -89,7 +89,7 @@ bool VineBlock::isValidPosition(
 
     // 检查下方是否有藤蔓（可以向下延伸）
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
     return belowState != nullptr && belowState->is(this);
 }
 
@@ -227,7 +227,7 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
 bool VineBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
     BlockPos adjPos = pos.offset(direction);
-    const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+    const BlockState* adjState = world.getBlockState(adjPos);
 
     if (adjState == nullptr) {
         return false;

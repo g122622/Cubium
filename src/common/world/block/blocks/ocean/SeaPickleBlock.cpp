@@ -54,7 +54,7 @@ BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context) {
     bool waterlogged = false;  // TODO: 检查流体状态
 
     // 检查是否已有海泡菜（堆叠）
-    const BlockState* existingState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* existingState = world.getBlockState(pos);
     if (existingState != nullptr && existingState->is(this)) {
         // 增加数量
         i32 count = existingState->get(BlockStateProperties::PICKLES_1_4());
@@ -78,7 +78,7 @@ bool SeaPickleBlock::isValidPosition(
 
     // 检查下方是否有支撑
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -180,7 +180,7 @@ bool KelpBlock::isValidPosition(
 
     // 检查下方
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -226,7 +226,7 @@ BlockState KelpBlock::updatePostPlacement(
 void KelpBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState != nullptr && !aboveState->isAir()) {
         return;  // 上方被占用
@@ -241,8 +241,8 @@ void KelpBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     // 随机生长
     if (random.nextFloat() < 0.14f) {  // 约14%概率
         // 增加上方海带
-        world.setBlockState(abovePos.x, abovePos.y, abovePos.z, &defaultState(), 2);
-        world.setBlockState(pos.x, pos.y, pos.z, &withAge(age + 1), 2);
+        world.setBlockState(abovePos, &defaultState(), 2);
+        world.setBlockState(pos, &withAge(age + 1), 2);
     }
 }
 
@@ -280,7 +280,7 @@ bool SeagrassBlock::isValidPosition(
 
     // 检查下方支撑
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
@@ -337,7 +337,7 @@ BlockState TallSeagrassBlock::getStateForPlacement(BlockItemUseContext& context)
 
     // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState == nullptr || aboveState->isAir()) {
         return defaultState().with(BlockStateProperties::HALF(), DoubleBlockHalf::Lower);
@@ -356,13 +356,13 @@ bool TallSeagrassBlock::isValidPosition(
     if (half == DoubleBlockHalf::Upper) {
         // 上半部分需要在下半部分之上
         BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-        const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
         return belowState != nullptr && belowState->is(this) &&
                belowState->get(BlockStateProperties::HALF()) == DoubleBlockHalf::Lower;
     } else {
         // 下半部分需要支撑
         BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-        const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
         return belowState != nullptr && belowState->isSolid();
     }
 }
@@ -452,7 +452,7 @@ bool BubbleColumnBlock::isValidPosition(
     MC_UNUSED(state);
 
     // 气泡柱只能出现在水中（或已有气泡柱位置）
-    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentState = world.getBlockState(pos);
     const bool isWater = currentState != nullptr && VanillaBlocks::WATER != nullptr &&
         currentState->is(VanillaBlocks::WATER);
     const bool isBubbleColumn = currentState != nullptr && currentState->is(this);
@@ -462,7 +462,7 @@ bool BubbleColumnBlock::isValidPosition(
 
     // 检查下方是否是气泡源或另一段气泡柱
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
     if (belowState == nullptr) {
         return false;
     }
@@ -511,7 +511,7 @@ void BubbleColumnBlock::onEntityCollision(const BlockState& state, IWorld& world
 void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     // 更新上方气泡柱
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos.x, abovePos.y, abovePos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
 
     // TODO: 如果上方是水，替换为气泡柱
 }
@@ -530,7 +530,7 @@ const CollisionShape& BubbleColumnBlock::getCollisionShape(const BlockState& sta
 
 bool BubbleColumnBlock::checkSource(const IWorld& world, const BlockPos& pos) const {
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;

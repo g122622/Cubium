@@ -30,7 +30,7 @@ TickManager::TickManager(IWorld& world)
         // tick回调：执行方块tick
         [](IWorld& w, const BlockPos& pos, Block& block) {
             // 获取方块状态并执行tick
-            const BlockState* state = w.getBlockState(pos.x, pos.y, pos.z);
+            const BlockState* state = w.getBlockState(pos);
             if (state != nullptr && !block.isAir(*state)) {
                 BlockState* mutableState = const_cast<BlockState*>(state);
                 block.tick(w, pos, *mutableState);
@@ -56,7 +56,7 @@ TickManager::TickManager(IWorld& world)
         // tick回调：执行流体tick
         [](IWorld& w, const BlockPos& pos, fluid::Fluid& fluid) {
             // 获取流体状态并执行tick
-            const fluid::FluidState* state = w.getFluidState(pos.x, pos.y, pos.z);
+            const fluid::FluidState* state = w.getFluidState(pos);
             if (state != nullptr && !state->isEmpty()) {
                 // 流体tick需要修改状态
                 fluid::FluidState mutableState = *state;

@@ -53,7 +53,7 @@ void DispenserBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& 
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -69,7 +69,7 @@ void DispenserBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& 
         }
         // 更新触发状态
         BlockState newState = withTriggered(*state, shouldTrigger);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
     }
 }
 

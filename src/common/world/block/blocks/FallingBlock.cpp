@@ -31,13 +31,13 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
         return;
     }
 
-    const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* currentState = world.getBlockState(pos);
     if (currentState == nullptr || currentState->isAir() || !currentState->is(this)) {
         return;
     }
 
     const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
     if (!canFallThrough(belowState)) {
         return;
     }
@@ -47,7 +47,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
         return;
     }
 
-    if (!world.setBlockState(pos.x, pos.y, pos.z, airState, 3)) {
+    if (!world.setBlockState(pos, airState, 3)) {
         return;
     }
 
@@ -62,7 +62,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
 
     const EntityId entityId = world.spawnEntity(std::move(fallingEntity));
     if (entityId == 0) {
-        world.setBlockState(pos.x, pos.y, pos.z, currentState, 3);
+        world.setBlockState(pos, currentState, 3);
     }
 }
 

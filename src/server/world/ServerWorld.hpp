@@ -70,6 +70,13 @@ public:
     explicit ServerWorld(const ServerWorldConfig& config);
     ~ServerWorld() override;
 
+    using IWorld::setBlock;
+    using IWorld::getBlockState;
+    using IWorld::getFluidState;
+    using IWorld::getBlockLight;
+    using IWorld::getSkyLight;
+    using IWorld::isWithinWorldBounds;
+
     // 初始化
     [[nodiscard]] Result<void> initialize();
     void shutdown();

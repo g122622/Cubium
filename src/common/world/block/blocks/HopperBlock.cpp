@@ -61,7 +61,7 @@ void HopperBlock::neighborChanged(
     MC_UNUSED(isMoving);
 
     // 更新红石状态
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (state != nullptr) {
         updateState(world, pos, *state);
     }
@@ -229,7 +229,7 @@ void HopperBlock::updateState(IWorld& world, const BlockPos& pos, const BlockSta
 
     if (enabled != currentEnabled) {
         // 更新方块状态
-        const BlockState* newState = world.getBlockState(pos.x, pos.y, pos.z);
+        const BlockState* newState = world.getBlockState(pos);
         if (newState != nullptr) {
             // world.setBlockState(pos, state.with(BlockStateProperties::ENABLED(), enabled), 4);
         }

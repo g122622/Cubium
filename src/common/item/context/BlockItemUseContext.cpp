@@ -57,12 +57,12 @@ void BlockItemUseContext::initialize()
 bool BlockItemUseContext::canReplace(const BlockPos& pos) const
 {
     // 检查位置是否在世界边界内
-    if (!m_world.isWithinWorldBounds(pos.x, pos.y, pos.z)) {
+    if (!m_world.isWithinWorldBounds(pos)) {
         return false;
     }
 
     // 获取当前方块状态
-    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = m_world.getBlockState(pos);
 
     // 空气可以替换
     if (state == nullptr || state->isAir()) {
@@ -86,7 +86,7 @@ bool BlockItemUseContext::canReplace(const BlockPos& pos) const
 bool BlockItemUseContext::canPlace() const
 {
     // 检查放置位置是否在世界边界内
-    if (!m_world.isWithinWorldBounds(m_placementPos.x, m_placementPos.y, m_placementPos.z)) {
+    if (!m_world.isWithinWorldBounds(m_placementPos)) {
         return false;
     }
 
@@ -103,10 +103,10 @@ Direction BlockItemUseContext::placementDirection() const
 
 const BlockState* BlockItemUseContext::getBlockStateAtPlacementPos() const
 {
-    if (!m_world.isWithinWorldBounds(m_placementPos.x, m_placementPos.y, m_placementPos.z)) {
+    if (!m_world.isWithinWorldBounds(m_placementPos)) {
         return nullptr;
     }
-    return m_world.getBlockState(m_placementPos.x, m_placementPos.y, m_placementPos.z);
+    return m_world.getBlockState(m_placementPos);
 }
 
 } // namespace mc

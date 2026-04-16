@@ -64,7 +64,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
     }
 
     // 获取方块状态
-    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = m_world.getBlockState(pos);
     if (!state || state->isAir()) {
         return BlockInteractionResult{false, "No block to interact with"};
     }
@@ -88,7 +88,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
                 // 设置为空气
                 Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
                 if (airBlock) {
-                    m_world.setBlock(pos.x, pos.y, pos.z, &airBlock->defaultState());
+                    m_world.setBlock(pos, &airBlock->defaultState());
 
                     if (m_onBlockBreak) {
                         m_onBlockBreak(playerId, pos, *state);
@@ -172,7 +172,7 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     }
 
     // 设置方块
-    m_world.setBlock(placePos.x, placePos.y, placePos.z, newState);
+    m_world.setBlock(placePos, newState);
 
     // 消耗物品（非创造模式）
     bool itemConsumed = false;
@@ -226,7 +226,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         return Error(ErrorCode::InvalidArgument, "Block too far away");
     }
 
-    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = m_world.getBlockState(pos);
     if (!state || state->isAir()) {
         return BlockInteractionResult{false, "No block to use"};
     }
@@ -285,7 +285,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
     }
 
     // 获取方块状态
-    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = m_world.getBlockState(pos);
     if (!state || state->isAir()) {
         return BlockBreakResult{false, 0, "No block to break"};
     }
@@ -305,7 +305,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
     u32 newBlockStateId = airBlock ? airBlock->defaultState().stateId() : 0;
 
     if (airBlock) {
-        m_world.setBlock(pos.x, pos.y, pos.z, &airBlock->defaultState());
+        m_world.setBlock(pos, &airBlock->defaultState());
 
         if (m_onBlockBreak) {
             m_onBlockBreak(playerId, pos, oldState);

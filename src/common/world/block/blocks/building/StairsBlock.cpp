@@ -450,7 +450,7 @@ Optional<BlockStateProperties::StairsShape> StairsBlock::neighborIsStairs(
     const BlockPos& pos,
     Direction facing) const {
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return std::nullopt;
     }

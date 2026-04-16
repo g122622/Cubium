@@ -106,7 +106,7 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context) {
     }
 
     // 检查是否含水
-    const BlockState* existingState = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* existingState = world.getBlockState(pos);
     bool waterlogged = false;
     if (existingState != nullptr) {
         const fluid::FluidState* fluid = existingState->getFluidState();
@@ -133,7 +133,7 @@ bool TrapDoorBlock::isValidPosition(
 
     // 检查下方是否有支撑
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     // 简化检查：下方有固体方块即可
     // 实际MC中更复杂，需要检查方块是否提供支撑面
@@ -156,9 +156,9 @@ BlockState TrapDoorBlock::updatePostPlacement(
         BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
         if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
             // 下方支撑被破坏
-            const BlockState* belowState = world.getBlockState(currentPos.x, currentPos.y - 1, currentPos.z);
+            const BlockState* belowState = world.getBlockState(currentPos.down());
             if (belowState == nullptr || !belowState->isSolid()) {
-                return world.getBlockState(currentPos.x, currentPos.y, currentPos.z)->getBlock().defaultState();
+                return world.getBlockState(currentPos)->getBlock().defaultState();
             }
         }
     }
@@ -173,7 +173,7 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* statePtr = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* statePtr = world.getBlockState(pos);
     if (statePtr == nullptr || &statePtr->getBlock() != this) {
         return;
     }
@@ -191,7 +191,7 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
             .with(BlockStateProperties::POWERED(), isPowered)
             .with(BlockStateProperties::OPEN(), isPowered);
 
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 2);
+        world.setBlockState(pos, &newState, 2);
 
         if (wasOpen != isPowered) {
             playSound(world, pos, isPowered);
@@ -221,7 +221,7 @@ ActionResultType TrapDoorBlock::onBlockActivated(
     // 切换开关状态
     bool wasOpen = state.get(BlockStateProperties::OPEN());
     BlockState newState = state.with(BlockStateProperties::OPEN(), !wasOpen);
-    world.setBlockState(pos.x, pos.y, pos.z, &newState, 10);
+    world.setBlockState(pos, &newState, 10);
 
     playSound(world, pos, !wasOpen);
 
@@ -278,7 +278,7 @@ bool TrapDoorBlock::isOpen(const BlockState& state) {
 void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState& state, bool open) {
     if (state.get(BlockStateProperties::OPEN()) != open) {
         BlockState newState = state.with(BlockStateProperties::OPEN(), open);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 10);
+        world.setBlockState(pos, &newState, 10);
     }
 }
 

@@ -83,7 +83,7 @@ BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockS
     int charges = getCharges(state);
     if (charges < 4) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges + 1);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
         // TODO: 播放充能音效和粒子效果
         return newState;
     }
@@ -94,7 +94,7 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
     int charges = getCharges(state);
     if (charges > 0) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges - 1);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
     }
 }
 

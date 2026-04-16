@@ -67,7 +67,7 @@ bool CoralBlock::isWaterNearby(IWorld& world, const BlockPos& pos) const {
     // 检查六个方向是否有水
     for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
         BlockPos adjPos = pos.offset(dir);
-        const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+        const BlockState* adjState = world.getBlockState(adjPos);
 
         if (adjState != nullptr) {
             const Material& material = adjState->getMaterial();
@@ -152,7 +152,7 @@ BlockState CoralFanBlock::updatePostPlacement(
         bool waterNearby = false;
         for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
             BlockPos adjPos = currentPos.offset(dir);
-            const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+            const BlockState* adjState = world.getBlockState(adjPos);
             if (adjState != nullptr && adjState->getMaterial().isLiquid()) {
                 waterNearby = true;
                 break;
@@ -188,7 +188,7 @@ const CollisionShape& CoralFanBlock::getShape(const BlockState& state) const {
 
 bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
     BlockPos adjPos = pos.offset(direction);
-    const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+    const BlockState* adjState = world.getBlockState(adjPos);
 
     if (adjState == nullptr) {
         return false;
@@ -315,7 +315,7 @@ const CollisionShape& CoralWallFanBlock::getShape(const BlockState& state) const
 
 bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {
     BlockPos adjPos = pos.offset(direction);
-    const BlockState* adjState = world.getBlockState(adjPos.x, adjPos.y, adjPos.z);
+    const BlockState* adjState = world.getBlockState(adjPos);
 
     if (adjState == nullptr) {
         return false;

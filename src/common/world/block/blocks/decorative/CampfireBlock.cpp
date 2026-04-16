@@ -80,7 +80,7 @@ u8 CampfireBlock::getLightLevel(
 void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state) {
     if (!isLit(state) && !isWaterlogged(state)) {
         BlockState newState = state.with(BlockStateProperties::LIT(), true);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
         // TODO: 播放点燃音效和粒子效果
     }
 }
@@ -90,7 +90,7 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
         BlockState newState = state
             .with(BlockStateProperties::LIT(), false)
             .with(BlockStateProperties::AGE_0_4(), 0);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos, &newState, 3);
         // TODO: 播放熄灭音效和烟雾粒子效果
     }
 }

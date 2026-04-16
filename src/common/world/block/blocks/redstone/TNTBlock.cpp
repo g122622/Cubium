@@ -44,7 +44,7 @@ void TNTBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighb
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return;
     }
@@ -68,7 +68,7 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
     MC_UNUSED(state);
 
     // 移除TNT方块
-    world.setBlockState(pos.x, pos.y, pos.z, nullptr, 11);
+    world.setBlockState(pos, nullptr, 11);
 
     // 生成点燃的TNT实体
     // TODO: 生成 PrimedTntEntity
@@ -83,7 +83,7 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
 
 void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power) {
     // 移除TNT方块
-    world.setBlockState(pos.x, pos.y, pos.z, nullptr, 11);
+    world.setBlockState(pos, nullptr, 11);
 
     // 创建爆炸
     // TODO: 实现爆炸系统
@@ -99,7 +99,7 @@ bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const {
     for (Direction dir : {Direction::North, Direction::East, Direction::South,
                           Direction::West, Direction::Up, Direction::Down}) {
         BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos.x, neighborPos.y, neighborPos.z);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (neighborState) {
             // TODO: 检查是否是火焰或熔岩

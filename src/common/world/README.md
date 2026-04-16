@@ -197,6 +197,19 @@ public:
 };
 ```
 
+`IWorld` 现在还提供一组面向方块位置语义的 `BlockPos` 便捷重载，适合已经持有位置对象的调用点直接使用：
+
+- `getBlockState(const BlockPos&)`
+- `getFluidState(const BlockPos&)`
+- `hasFluid(const BlockPos&)`
+- `isWaterAt(const BlockPos&)`
+- `isLavaAt(const BlockPos&)`
+- `getBlockLight(const BlockPos&)`
+- `getSkyLight(const BlockPos&)`
+- `isWithinWorldBounds(const BlockPos&)`
+
+`ServerWorld` 会通过 `using IWorld::...` 重新暴露这些重载，避免自身的 xyz 成员把它们隐藏掉。像 `ISpawnWorldReader`、`ClientWorld`、`StarLightEngine` 这类非 `IWorld` surface 仍然保持原始 xyz 签名，不要强行把它们改成 `BlockPos` 风格。
+
 ### Chunk System
 
 The chunk system manages world data in 16x16x256 block sections:

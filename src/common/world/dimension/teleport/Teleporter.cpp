@@ -121,7 +121,7 @@ void Teleporter::placePortalBlocks(
                 pos.y += h;
             }
 
-            world.setBlock(pos.x, pos.y, pos.z, portalState);
+            world.setBlock(pos, portalState);
         }
     }
 }
@@ -290,14 +290,14 @@ void NetherTeleporter::placeObsidianFrame(
         } else {
             pos.z += w;
         }
-        world.setBlock(pos.x, pos.y, pos.z, obsidian);
+        world.setBlock(pos, obsidian);
     }
 
     // 左边框架
     for (i32 h = 1; h <= height; ++h) {
         BlockPos pos = corner;
         pos.y += h;
-        world.setBlock(pos.x, pos.y, pos.z, obsidian);
+        world.setBlock(pos, obsidian);
     }
 
     // 右边框架
@@ -310,7 +310,7 @@ void NetherTeleporter::placeObsidianFrame(
     for (i32 h = 1; h <= height; ++h) {
         BlockPos pos = rightBottom;
         pos.y += h;
-        world.setBlock(pos.x, pos.y, pos.z, obsidian);
+        world.setBlock(pos, obsidian);
     }
 
     // 顶部框架
@@ -323,7 +323,7 @@ void NetherTeleporter::placeObsidianFrame(
         } else {
             pos.z += w;
         }
-        world.setBlock(pos.x, pos.y, pos.z, obsidian);
+        world.setBlock(pos, obsidian);
     }
 }
 
@@ -394,7 +394,7 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
     for (i32 x = -2; x <= 2; ++x) {
         for (i32 z = -2; z <= 2; ++z) {
             BlockPos pos(100 + x, 49, 0 + z);
-            world.setBlock(pos.x, pos.y, pos.z, obsidian);
+            world.setBlock(pos, obsidian);
         }
     }
 
@@ -404,7 +404,7 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
         for (i32 z = -2; z <= 2; ++z) {
             for (i32 y = 50; y <= 53; ++y) {
                 BlockPos pos(100 + x, y, 0 + z);
-                world.setBlock(pos.x, pos.y, pos.z, nullptr);
+                world.setBlock(pos, nullptr);
             }
         }
     }

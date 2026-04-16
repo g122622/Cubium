@@ -50,10 +50,10 @@ BlockState PaneBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
     const IWorld& world = context.getWorld();
 
-    const BlockState* northState = world.getBlockState(pos.x, pos.y, pos.z - 1);
-    const BlockState* eastState = world.getBlockState(pos.x + 1, pos.y, pos.z);
-    const BlockState* southState = world.getBlockState(pos.x, pos.y, pos.z + 1);
-    const BlockState* westState = world.getBlockState(pos.x - 1, pos.y, pos.z);
+    const BlockState* northState = world.getBlockState(pos.north());
+    const BlockState* eastState = world.getBlockState(pos.east());
+    const BlockState* southState = world.getBlockState(pos.south());
+    const BlockState* westState = world.getBlockState(pos.west());
 
     bool north = northState && shouldConnectTo(const_cast<IWorld&>(world), pos, *northState, Direction::North);
     bool east = eastState && shouldConnectTo(const_cast<IWorld&>(world), pos, *eastState, Direction::East);
