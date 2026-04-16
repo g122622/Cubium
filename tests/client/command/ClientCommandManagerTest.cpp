@@ -7,6 +7,7 @@
 using namespace mc;
 using namespace mc::command;
 using namespace mc::client::command;
+using namespace mc::network;
 
 namespace {
 

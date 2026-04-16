@@ -1,10 +1,13 @@
 #include "WeatherCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/world/weather/WeatherState.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp"
-#include "common/world/weather/WeatherState.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -13,7 +16,6 @@ namespace command {
 void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     using namespace mc::command;
 
-    // /weather clear [duration]
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
     auto clearDurationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "duration",
@@ -23,14 +25,11 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         return setClear(ctx);
     });
     clearNode->addChild(clearDurationArg);
-    // 不带参数时使用默认值
     clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // 使用默认值 0（内部会使用 DEFAULT_COMMAND_DURATION）
         ctx.setArgument("duration", 0);
         return setClear(ctx);
     });
 
-    // /weather rain [duration]
     auto rainNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("rain");
     auto rainDurationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "duration",
@@ -45,7 +44,6 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         return setRain(ctx);
     });
 
-    // /weather thunder [duration]
     auto thunderNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("thunder");
     auto thunderDurationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "duration",
@@ -60,17 +58,21 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         return setThunder(ctx);
     });
 
-    // /weather query
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
     queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return query(ctx);
     });
 
-    // 创建 weather 字面量节点
     auto weatherNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("weather");
     weatherNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+    support::applyMetadata(
+        weatherNode,
+        support::makeMetadata(
+            "Change or query the weather.",
+            "/weather <clear|rain|thunder|query> [duration]",
+            2));
     weatherNode->addChild(clearNode);
     weatherNode->addChild(rainNode);
     weatherNode->addChild(thunderNode);
@@ -90,8 +92,7 @@ i32 WeatherCommand::setClear(CommandContext<ServerCommandSource>& context) {
     i32 duration = context.getArgument<i32>("duration");
     server->weatherManager().setClear(duration);
 
-    // 转换为秒显示（1秒 = 20 ticks）
-    i32 seconds = duration > 0 ? duration / 20 : 300; // 默认 5 分钟
+    i32 seconds = duration > 0 ? duration / 20 : 300;
     std::ostringstream ss;
     ss << "Changing weather to clear for " << seconds << " seconds";
     source.sendMessage(ss.str());
@@ -152,13 +153,13 @@ i32 WeatherCommand::query(CommandContext<ServerCommandSource>& context) {
 
     String typeStr;
     switch (type) {
-        case 1:  // Rain
+        case 1:
             typeStr = "rain";
             break;
-        case 2:  // Thunder
+        case 2:
             typeStr = "thunder";
             break;
-        default:  // Clear
+        default:
             typeStr = "clear";
             break;
     }

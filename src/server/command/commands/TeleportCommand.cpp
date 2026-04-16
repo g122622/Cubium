@@ -1,11 +1,98 @@
-#include "TeleportCommand.hpp"
+﻿#include "TeleportCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "server/application/MinecraftServer.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/PlayerResolver.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/core/TeleportManager.hpp"
+
 #include <sstream>
 
 namespace mc {
 namespace command {
+namespace {
+
+/**
+ * @brief 读取命令中的三维坐标参数。
+ *
+ * @param context 命令上下文。
+ * @return 解析出的坐标。
+ */
+[[nodiscard]] Vector3d readTargetPosition(CommandContext<ServerCommandSource>& context)
+{
+    return Vector3d(
+        static_cast<f64>(context.getArgument<f32>("x")),
+        static_cast<f64>(context.getArgument<f32>("y")),
+        static_cast<f64>(context.getArgument<f32>("z")));
+}
+
+/**
+ * @brief 读取目标玩家当前位置与朝向。
+ *
+ * @param source 命令源。
+ * @param selector 目标选择器。
+ * @return 是否读取成功。
+ *
+ * @note 该辅助函数只接受单个玩家结果，多结果由参数类型约束在解析阶段拦截。
+ */
+[[nodiscard]] bool tryResolveDestinationPlayer(
+    const ServerCommandSource& source,
+    const EntitySelector& selector,
+    const server::ServerPlayerData*& destinationPlayer)
+{
+    destinationPlayer = nullptr;
+    const PlayerId destinationPlayerId = support::resolveSinglePlayerId(source, selector);
+    if (destinationPlayerId == 0 || source.server() == nullptr) {
+        return false;
+    }
+
+    destinationPlayer = source.server()->playerManager().getPlayer(destinationPlayerId);
+    return destinationPlayer != nullptr;
+}
+
+/**
+ * @brief 统一执行一组玩家的传送请求。
+ *
+ * @param source 命令源。
+ * @param targetPlayerIds 目标玩家集合。
+ * @param position 目标坐标。
+ * @param rotation 目标朝向。
+ * @return 成功传送的玩家数量。
+ */
+[[nodiscard]] i32 teleportPlayers(
+    ServerCommandSource& source,
+    const std::vector<PlayerId>& targetPlayerIds,
+    const Vector3d& position,
+    const Vector2f& rotation)
+{
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
+
+    i32 teleportedCount = 0;
+    for (const PlayerId playerId : targetPlayerIds) {
+        if (playerId == 0) {
+            continue;
+        }
+
+        if (server->teleportManager().requestTeleport(
+                playerId,
+                position.x,
+                position.y,
+                position.z,
+                rotation.x,
+                rotation.y) != 0) {
+            ++teleportedCount;
+        }
+    }
+
+    return teleportedCount;
+}
+
+} // namespace
 
 void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     using namespace mc::command;
@@ -14,6 +101,14 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     tpNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+    support::applyMetadata(
+        tpNode,
+        support::makeMetadata(
+            "Teleport entities.",
+            "/tp <destination>|<x> <y> <z>|<targets> <destination>|<targets> <x> <y> <z>",
+            2,
+            {"teleport"},
+            true));
 
     auto teleportNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("teleport");
     teleportNode->setRequirement([](const ServerCommandSource& source) {
@@ -21,104 +116,203 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     });
     teleportNode->setRedirect(tpNode);
 
-    // /tp <target> - 传送到目标实体
-    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+    auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target",
-        EntityArgumentType::entity()
+        EntityArgumentType::player()
     );
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return teleportToEntity(ctx);
     });
 
-    // /tp <x> <y> <z> - 传送到坐标 (使用 Vec3ArgumentType 更合适，这里用坐标)
-    auto xPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+    auto selfXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "x",
         FloatArgumentType::floatArg()
     );
-    auto yPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+    auto selfYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "y",
         FloatArgumentType::floatArg()
     );
-    auto zPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+    auto selfZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "z",
         FloatArgumentType::floatArg()
     );
-    zPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return teleportToPosition(ctx);
     });
-    yPosArg->addChild(zPosArg);
-    xPosArg->addChild(yPosArg);
+    selfYArg->addChild(selfZArg);
+    selfXArg->addChild(selfYArg);
 
-    tpNode->addChild(targetArg);
-    tpNode->addChild(xPosArg);
+    auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "targets",
+        EntityArgumentType::players()
+    );
+
+    auto destinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "destination",
+        EntityArgumentType::player()
+    );
+    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return teleportTargetToEntity(ctx);
+    });
+
+    auto targetXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+        "x",
+        FloatArgumentType::floatArg()
+    );
+    auto targetYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+        "y",
+        FloatArgumentType::floatArg()
+    );
+    auto targetZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+        "z",
+        FloatArgumentType::floatArg()
+    );
+    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return teleportTargetToPosition(ctx);
+    });
+    targetYArg->addChild(targetZArg);
+    targetXArg->addChild(targetYArg);
+
+    targetsArg->addChild(destinationArg);
+    targetsArg->addChild(targetXArg);
+
+    tpNode->addChild(selfDestinationArg);
+    tpNode->addChild(selfXArg);
+    tpNode->addChild(targetsArg);
 
     dispatcher.registerCommand(tpNode);
     dispatcher.registerCommand(teleportNode);
 }
 
+/**
+ * @brief 将命令源玩家传送到目标玩家位置。
+ *
+ * @param context 命令上下文。
+ * @return 成功时返回 `1`，失败时返回 `0`。
+ */
 i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
 
-    // 必须是实体
     if (!source.isPlayer()) {
-        source.sendMessage("You must be an entity to use this command");
+        source.sendMessage("You must be a player to teleport yourself");
         return 0;
     }
 
-    // 获取目标
-    EntitySelector selector = context.getArgument<EntitySelector>("target");
+    const EntitySelector selector = context.getArgument<EntitySelector>("target");
+    const server::ServerPlayerData* destinationPlayer = nullptr;
+    if (!tryResolveDestinationPlayer(source, selector, destinationPlayer)) {
+        source.sendMessage("No matching destination player was found");
+        return 0;
+    }
 
-    // TODO: 解析选择器获取目标实体
-    // Entity* target = resolveSelector(selector, source);
+    const i32 teleportedCount = teleportPlayers(
+        source,
+        {source.playerId()},
+        Vector3d(destinationPlayer->x, destinationPlayer->y, destinationPlayer->z),
+        Vector2f(destinationPlayer->yaw, destinationPlayer->pitch));
+    if (teleportedCount == 0) {
+        source.sendMessage("Failed to teleport player");
+        return 0;
+    }
 
     std::ostringstream ss;
-    ss << "Teleported " << source.name() << " to target";
+    ss << "Teleported " << source.name() << " to " << destinationPlayer->username;
     source.sendMessage(ss.str());
-
     return 1;
 }
 
+/**
+ * @brief 将命令源玩家传送到指定坐标。
+ *
+ * @param context 命令上下文。
+ * @return 成功时返回 `1`，失败时返回 `0`。
+ */
 i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
 
-    // 必须是实体
     if (!source.isPlayer()) {
-        source.sendMessage("You must be an entity to use this command");
+        source.sendMessage("You must be a player to teleport yourself");
         return 0;
     }
 
-    // 获取坐标
-    f32 x = context.getArgument<f32>("x");
-    f32 y = context.getArgument<f32>("y");
-    f32 z = context.getArgument<f32>("z");
-
-    const PlayerId playerId = source.playerId();
-    auto* server = source.server();
-    if (playerId == 0 || !server || !server->teleportManager().requestTeleport(playerId, x, y, z, source.rotation().x, source.rotation().y)) {
+    const Vector3d position = readTargetPosition(context);
+    const i32 teleportedCount = teleportPlayers(source, {source.playerId()}, position, source.rotation());
+    if (teleportedCount == 0) {
         source.sendMessage("Failed to teleport player");
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Teleported " << source.name() << " to "
-       << x << ", " << y << ", " << z;
+       << position.x << ", " << position.y << ", " << position.z;
     source.sendMessage(ss.str());
-
     return 1;
 }
 
+/**
+ * @brief 将目标玩家集合传送到目标玩家位置。
+ *
+ * @param context 命令上下文。
+ * @return 成功传送的玩家数量。
+ */
 i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>& context) {
-    // TODO: 实现
     auto& source = context.getSource();
-    source.sendMessage("Teleport target to entity - not implemented");
-    return 0;
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
+
+    const EntitySelector targets = context.getArgument<EntitySelector>("targets");
+    const EntitySelector destination = context.getArgument<EntitySelector>("destination");
+    const auto targetPlayerIds = support::resolvePlayerIds(source, targets);
+
+    const server::ServerPlayerData* destinationPlayer = nullptr;
+    if (!tryResolveDestinationPlayer(source, destination, destinationPlayer)) {
+        source.sendMessage("No matching destination player was found");
+        return 0;
+    }
+
+    const i32 teleportedCount = teleportPlayers(
+        source,
+        targetPlayerIds,
+        Vector3d(destinationPlayer->x, destinationPlayer->y, destinationPlayer->z),
+        Vector2f(destinationPlayer->yaw, destinationPlayer->pitch));
+    if (teleportedCount == 0) {
+        source.sendMessage("No matching players were found");
+        return 0;
+    }
+
+    std::ostringstream ss;
+    ss << "Teleported " << teleportedCount << " player(s) to " << destinationPlayer->username;
+    source.sendMessage(ss.str());
+    return teleportedCount;
 }
 
+/**
+ * @brief 将目标玩家集合传送到指定坐标。
+ *
+ * @param context 命令上下文。
+ * @return 成功传送的玩家数量。
+ */
 i32 TeleportCommand::teleportTargetToPosition(CommandContext<ServerCommandSource>& context) {
-    // TODO: 实现
     auto& source = context.getSource();
-    source.sendMessage("Teleport target to position - not implemented");
-    return 0;
+    const EntitySelector targets = context.getArgument<EntitySelector>("targets");
+    const auto targetPlayerIds = support::resolvePlayerIds(source, targets);
+    const Vector3d position = readTargetPosition(context);
+
+    const i32 teleportedCount = teleportPlayers(source, targetPlayerIds, position, source.rotation());
+    if (teleportedCount == 0) {
+        source.sendMessage("No matching players were found");
+        return 0;
+    }
+
+    std::ostringstream ss;
+    ss << "Teleported " << teleportedCount << " player(s) to "
+       << position.x << ", " << position.y << ", " << position.z;
+    source.sendMessage(ss.str());
+    return teleportedCount;
 }
 
 } // namespace command

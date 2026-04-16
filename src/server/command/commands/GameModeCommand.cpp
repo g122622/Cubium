@@ -1,7 +1,12 @@
-#include "GameModeCommand.hpp"
+﻿#include "GameModeCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
-#include "server/application/MinecraftServer.hpp"
-#include "server/player/ServerPlayer.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/PlayerResolver.hpp"
+#include "server/core/GameModeManager.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -10,18 +15,15 @@ namespace command {
 void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     using namespace mc::command;
 
-    // /gamemode <mode> - 设置自己的游戏模式
     auto modeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>(
         "mode",
         GameModeArgumentType::gameMode()
     );
 
-    // 注册模式参数节点
     modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return setGameModeSelf(ctx);
     });
 
-    // /gamemode <mode> <target> - 设置指定玩家的游戏模式
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target",
         EntityArgumentType::players()
@@ -32,83 +34,110 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     modeArg->addChild(targetArg);
 
-    // 创建字面量节点
     auto literalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("gamemode");
     literalNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+    support::applyMetadata(
+        literalNode,
+        support::makeMetadata(
+            "Change a player's game mode.",
+            "/gamemode <survival|creative|adventure|spectator> [target]",
+            2,
+            {},
+            true));
     literalNode->addChild(modeArg);
 
     dispatcher.registerCommand(literalNode);
 }
 
+/**
+ * @brief 将命令源自身切换到指定游戏模式。
+ *
+ * @param context 命令上下文。
+ * @return 成功时返回 `1`，失败时返回 `0`。
+ */
 i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
 
     if (!source.isPlayer()) {
-        source.sendMessage("You must be an entity to use this command");
+        source.sendMessage("You must be a player to change your own game mode");
         return 0;
     }
 
-    GameMode mode = context.getArgument<GameMode>("mode");
-    auto* server = source.server();
-    if (!server || source.playerId() == 0 || !server->gameModeManager().setGameMode(source.playerId(), mode)) {
+    const GameMode mode = context.getArgument<GameMode>("mode");
+    const PlayerId playerId = source.playerId();
+    if (playerId == 0 || !server->gameModeManager().setGameMode(playerId, mode)) {
         source.sendMessage("Failed to change game mode");
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Set " << source.name() << "'s game mode to " << getGameModeName(mode) << " mode";
+    ss << "Set " << source.name() << "'s game mode to " << getGameModeName(mode);
     source.sendMessage(ss.str());
     return 1;
 }
 
+/**
+ * @brief 将目标玩家集合切换到指定游戏模式。
+ *
+ * @param context 命令上下文。
+ * @return 成功修改的玩家数量。
+ */
 i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
 
-    // 获取游戏模式
-    GameMode mode = context.getArgument<GameMode>("mode");
+    const GameMode mode = context.getArgument<GameMode>("mode");
+    const EntitySelector selector = context.getArgument<EntitySelector>("target");
+    const auto playerIds = support::resolvePlayerIds(source, selector);
 
-    // 获取目标玩家选择器
-    EntitySelector selector = context.getArgument<EntitySelector>("target");
+    i32 changedCount = 0;
+    for (const PlayerId playerId : playerIds) {
+        if (playerId == 0) {
+            continue;
+        }
 
-    // TODO: 解析选择器获取玩家列表
-    // 目前只支持单个玩家名称
-    // std::vector<ServerPlayer*> players = resolveSelector(selector, source);
+        if (server->gameModeManager().setGameMode(playerId, mode)) {
+            ++changedCount;
+        }
+    }
 
-    // 暂时返回成功
-    source.sendMessage("Set game mode to " + String(getGameModeName(mode)));
-    return 1;
-}
-
-i32 GameModeCommand::setGameMode(
-    ServerCommandSource& source,
-    ServerPlayer& player,
-    GameMode mode
-) {
-    // 设置玩家的游戏模式
-    // player.setGameMode(mode);
-
-    // 发送反馈
-    String playerName = player.username();
-    String modeName = getGameModeName(mode);
+    if (changedCount == 0) {
+        source.sendMessage("No matching players were found");
+        return 0;
+    }
 
     std::ostringstream ss;
-    ss << "Set " << playerName << "'s game mode to " << modeName << " mode";
+    ss << "Set game mode of " << changedCount << " player(s) to " << getGameModeName(mode);
     source.sendMessage(ss.str());
-
-    return 1;
+    return changedCount;
 }
 
+/**
+ * @brief 获取游戏模式的反馈名称。
+ *
+ * @param mode 游戏模式。
+ * @return 用于命令反馈的可读名称。
+ */
 const char* GameModeCommand::getGameModeName(GameMode mode) {
     switch (mode) {
-        case GameMode::Survival:   return "Survival";
-        case GameMode::Creative:   return "Creative";
-        case GameMode::Adventure:  return "Adventure";
-        case GameMode::Spectator:  return "Spectator";
-        case GameMode::NotSet:     return "Not Set";
-        default:                   return "Unknown";
+        case GameMode::Survival:
+            return "survival";
+        case GameMode::Creative:
+            return "creative";
+        case GameMode::Adventure:
+            return "adventure";
+        case GameMode::Spectator:
+            return "spectator";
+        case GameMode::NotSet:
+            return "not_set";
     }
+
+    return "unknown";
 }
 
 } // namespace command

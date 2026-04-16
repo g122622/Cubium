@@ -70,6 +70,17 @@ enum class RedirectModifier {
 template<typename S>
 class CommandNode {
 public:
+    /**
+     * @brief Metadata for command nodes.
+     */
+    struct Metadata {
+        String description;
+        String usage;
+        i32 permissionLevel = 0;
+        bool implemented = true;
+        std::vector<String> aliases;
+    };
+
     virtual ~CommandNode() = default;
 
     // ========== 节点属性 ==========
@@ -83,6 +94,23 @@ public:
 
     [[nodiscard]] const String& getUsageText() const { return m_usageText; }
     void setUsageText(const String& text) { m_usageText = text; }
+
+    /**
+     * @brief Get metadata for this node.
+     */
+    [[nodiscard]] const Metadata& getMetadataInfo() const noexcept {
+        return m_metadataInfo;
+    }
+
+    /**
+     * @brief Set metadata for this node.
+     */
+    void setMetadataInfo(const Metadata& metadata) {
+        m_metadataInfo = metadata;
+        if (!metadata.usage.empty()) {
+            m_usageText = metadata.usage;
+        }
+    }
 
     // ========== 命令 ==========
 
@@ -198,6 +226,7 @@ protected:
     std::shared_ptr<CommandNode<S>> m_redirect;
     RedirectModifier m_redirectModifier = RedirectModifier::None;
     String m_usageText;
+    Metadata m_metadataInfo;
 };
 
 /**

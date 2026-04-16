@@ -46,8 +46,12 @@ add_executable(minecraft-server
     # 命令系统
     command/ServerCommandSource.cpp
     command/CommandRegistry.cpp
+    command/support/PlayerResolver.cpp
     command/commands/GameModeCommand.cpp
+    command/commands/DifficultyCommand.cpp
+    command/commands/DefaultGameModeCommand.cpp
     command/commands/TimeCommand.cpp
+    command/commands/KickCommand.cpp
     command/commands/KillCommand.cpp
     command/commands/ListCommand.cpp
     command/commands/HelpCommand.cpp
@@ -57,6 +61,9 @@ add_executable(minecraft-server
     command/commands/ClearCommand.cpp
     command/commands/WeatherCommand.cpp
     command/commands/ExperienceCommand.cpp
+    command/commands/SayCommand.cpp
+    command/commands/StopCommand.cpp
+    command/commands/SetIdleTimeoutCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
 )

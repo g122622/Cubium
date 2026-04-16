@@ -1,9 +1,12 @@
 #include "GiveCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "server/player/ServerPlayer.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include "server/player/ServerPlayer.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -16,8 +19,15 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     giveNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+    support::applyMetadata(
+        giveNode,
+        support::makeMetadata(
+            "Give an item to players.",
+            "/give <player> <item> [count]",
+            2,
+            {},
+            false));
 
-    // /give <player> <item> [count]
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player",
         EntityArgumentType::player()
@@ -36,7 +46,6 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         return giveItem(ctx);
     });
 
-    // 没有count参数时默认给1个
     itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return giveItem(ctx);
     });
@@ -50,20 +59,16 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
 i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-
-    // 获取目标玩家
     EntitySelector selector = context.getArgument<EntitySelector>("player");
+    (void)selector;
 
-    // 获取物品
     ItemInput itemInput = context.getArgument<ItemInput>("item");
 
-    // 获取数量（可选，默认1）
     i32 count = 1;
     if (context.hasArgument("count")) {
         count = context.getArgument<i32>("count");
     }
 
-    // 验证物品
     if (!itemInput.isValid()) {
         source.sendMessage("Invalid item");
         return 0;
@@ -74,13 +79,6 @@ i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context) {
         source.sendMessage("Unknown item");
         return 0;
     }
-
-    // TODO: 解析选择器获取玩家
-    // ServerPlayer* player = resolvePlayerSelector(selector, source);
-
-    // TODO: 给予物品
-    // auto stack = itemInput.createStack(count);
-    // player->giveItem(stack);
 
     std::ostringstream ss;
     ss << "Gave " << count << " [" << item->getName() << "] to player";

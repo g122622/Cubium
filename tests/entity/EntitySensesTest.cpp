@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "common/entity/ai/EntitySenses.hpp"
 #include "common/entity/core/MobEntity.hpp"
 
 namespace mc {

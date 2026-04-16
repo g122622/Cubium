@@ -182,6 +182,14 @@ public:
     [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
     [[nodiscard]] u64 seed() const override { return m_config.seed; }
     [[nodiscard]] u64 currentTick() const override;
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    void setDifficulty(Difficulty difficulty) override;
+    [[nodiscard]] GameMode defaultGameMode() const override { return m_config.defaultGameMode; }
+    void setDefaultGameMode(GameMode mode) override;
+    [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_playerIdleTimeoutMinutes; }
+    void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override;
+    void broadcastServerMessage(StringView message) override;
+    void requestStop() override;
 
     // ========== 便捷方法 ==========
 
@@ -486,6 +494,8 @@ protected:
     ServerCoreConfig m_config;
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_initialized{false};
+    Difficulty m_difficulty = Difficulty::Normal;
+    i32 m_playerIdleTimeoutMinutes = 0;
 
     // 核心管理器
     std::unique_ptr<core::PlayerManager> m_playerManager;

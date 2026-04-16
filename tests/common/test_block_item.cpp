@@ -54,7 +54,7 @@ public:
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] i32 difficulty() const override { return 0; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
 
 private:
     static i64 key(i32 x, i32 y, i32 z) {

@@ -194,7 +194,10 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/TimeCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/KillCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/ListCommand.cpp
@@ -205,6 +208,10 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExperienceCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/KickCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/SayCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetIdleTimeoutCommand.cpp
     # 交互管理器
     ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp

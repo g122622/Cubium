@@ -319,7 +319,7 @@ public:
     /**
      * @brief 获取难度
      */
-    [[nodiscard]] virtual i32 difficulty() const = 0;
+    [[nodiscard]] virtual Difficulty difficulty() const = 0;
 
     // ========== 天气 ==========
 

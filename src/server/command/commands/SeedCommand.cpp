@@ -1,6 +1,9 @@
 #include "SeedCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -13,6 +16,12 @@ void SeedCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     seedNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+    support::applyMetadata(
+        seedNode,
+        support::makeMetadata(
+            "Show the world seed.",
+            "/seed",
+            2));
     seedNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return showSeed(ctx);
     });

@@ -144,7 +144,7 @@ public:
     [[nodiscard]] DimensionType getDimensionType() const;
     [[nodiscard]] u64 seed() const override { return m_config.seed; }
     [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] i32 difficulty() const override { return 1; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
 
     // ========== 类型转换 ==========
 

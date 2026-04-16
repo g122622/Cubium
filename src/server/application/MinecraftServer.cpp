@@ -43,7 +43,31 @@ MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
     , m_lootTableManager()
 {
 }
+void MinecraftServer::setDifficulty(Difficulty difficulty)
+{
+    m_difficulty = difficulty;
+}
 
+void MinecraftServer::setDefaultGameMode(GameMode mode)
+{
+    m_config.defaultGameMode = mode;
+}
+
+void MinecraftServer::setPlayerIdleTimeoutMinutes(i32 timeoutMinutes)
+{
+    m_playerIdleTimeoutMinutes = timeoutMinutes;
+}
+
+void MinecraftServer::broadcastServerMessage(StringView message)
+{
+    const String text(message);
+    spdlog::info("[System] {}", text);
+}
+
+void MinecraftServer::requestStop()
+{
+    shutdown();
+}
 MinecraftServer::~MinecraftServer()
 {
     if (m_running) {

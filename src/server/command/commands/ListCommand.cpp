@@ -1,7 +1,10 @@
 #include "ListCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
 #include "server/core/PlayerManager.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -12,8 +15,14 @@ void ListCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
     listNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(0);  // 所有人可用
+        return source.hasPermission(0);
     });
+    support::applyMetadata(
+        listNode,
+        support::makeMetadata(
+            "List online players.",
+            "/list",
+            0));
     listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return listPlayers(ctx);
     });
@@ -26,7 +35,6 @@ i32 ListCommand::listPlayers(CommandContext<ServerCommandSource>& context) {
     size_t playerCount = 0;
 
     if (auto* server = source.server()) {
-        // Use PlayerManager to count players
         server->playerManager().forEachPlayer([&playerCount](auto&) {
             ++playerCount;
             return true;

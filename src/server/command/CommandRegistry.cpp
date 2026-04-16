@@ -1,6 +1,9 @@
-#include "CommandRegistry.hpp"
+﻿#include "CommandRegistry.hpp"
 #include "commands/GameModeCommand.hpp"
+#include "commands/DifficultyCommand.hpp"
+#include "commands/DefaultGameModeCommand.hpp"
 #include "commands/TimeCommand.hpp"
+#include "commands/KickCommand.hpp"
 #include "commands/KillCommand.hpp"
 #include "commands/ListCommand.hpp"
 #include "commands/HelpCommand.hpp"
@@ -10,6 +13,9 @@
 #include "commands/ClearCommand.hpp"
 #include "commands/WeatherCommand.hpp"
 #include "commands/ExperienceCommand.hpp"
+#include "commands/SayCommand.hpp"
+#include "commands/StopCommand.hpp"
+#include "commands/SetIdleTimeoutCommand.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
@@ -47,9 +53,11 @@ void CommandRegistry::registerDefaults() {
         return;
     }
 
-    // 注册核心命令
     GameModeCommand::registerTo(m_dispatcher);
+    DifficultyCommand::registerTo(m_dispatcher);
+    DefaultGameModeCommand::registerTo(m_dispatcher);
     TimeCommand::registerTo(m_dispatcher);
+    KickCommand::registerTo(m_dispatcher);
     KillCommand::registerTo(m_dispatcher);
     ListCommand::registerTo(m_dispatcher);
     HelpCommand::registerTo(m_dispatcher);
@@ -59,6 +67,9 @@ void CommandRegistry::registerDefaults() {
     ClearCommand::registerTo(m_dispatcher);
     WeatherCommand::registerTo(m_dispatcher);
     ExperienceCommand::registerTo(m_dispatcher);
+    SayCommand::registerTo(m_dispatcher);
+    StopCommand::registerTo(m_dispatcher);
+    SetIdleTimeoutCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

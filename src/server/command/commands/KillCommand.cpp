@@ -1,7 +1,10 @@
 #include "KillCommand.hpp"
+
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "server/command/support/CommandMetadata.hpp"
 #include "server/player/ServerPlayer.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -10,16 +13,22 @@ namespace command {
 void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     using namespace mc::command;
 
-    // /kill - 杀死自己
     auto killNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("kill");
     killNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
+    support::applyMetadata(
+        killNode,
+        support::makeMetadata(
+            "Kill entities.",
+            "/kill [target]",
+            2,
+            {},
+            false));
     killNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return killSelf(ctx);
     });
 
-    // /kill <target> - 杀死指定实体
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target",
         EntityArgumentType::entities()
@@ -35,16 +44,12 @@ void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
 
-    // 必须是实体
     if (!source.isPlayer()) {
         source.sendMessage("You must be an entity to use this command");
         return 0;
     }
 
     ServerPlayer& player = source.assertPlayer();
-
-    // TODO: 杀死玩家
-    // player.kill();
 
     std::ostringstream ss;
     ss << "Killed " << player.username();
@@ -55,12 +60,8 @@ i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context) {
 
 i32 KillCommand::killTarget(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-
-    // 获取目标选择器
     EntitySelector selector = context.getArgument<EntitySelector>("target");
-
-    // TODO: 解析选择器获取实体列表
-    // std::vector<Entity*> entities = resolveSelector(selector, source);
+    (void)selector;
 
     source.sendMessage("Killed target entity");
     return 1;

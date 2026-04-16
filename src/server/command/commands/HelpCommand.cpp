@@ -1,88 +1,120 @@
-#include "HelpCommand.hpp"
+﻿#include "HelpCommand.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include <algorithm>
 #include <sstream>
 
 namespace mc {
 namespace command {
 
-// 命令帮助信息
-static const struct {
-    const char* name;
-    const char* description;
-    const char* usage;
-} s_commandHelp[] = {
-    {"gamemode", "Sets a player's game mode", "/gamemode <mode> [player]"},
-    {"time", "Changes or queries the world's game time", "/time set <value>\n/time add <value>\n/time query <day|daytime|gametime>"},
-    {"kill", "Kills entities (players, mobs, etc.)", "/kill [target]"},
-    {"list", "Lists players on the server", "/list"},
-    {"help", "Provides help for commands", "/help [command]"},
-    {"seed", "Displays the world seed", "/seed"},
-    {"tp", "Teleports entities", "/tp <target>\n/tp <x> <y> <z>"},
-    {"give", "Gives items to a player", "/give <player> <item> [count]"},
-    {"clear", "Clears items from player inventory", "/clear [player] [item] [maxCount]"},
-    {"weather", "Sets or queries weather", "/weather clear [duration]\n/weather rain [duration]\n/weather thunder [duration]\n/weather query"},
-    {"experience", "Modifies player experience", "/experience add <player> <amount> [points|levels]\n/experience set <player> <amount> [points|levels]\n/experience query <player> [points|levels]"},
-    {"xp", "Alias of /experience", "/xp add <player> <amount> [points|levels]\n/xp set <player> <amount> [points|levels]\n/xp query <player> [points|levels]"},
-};
+namespace {
+
+[[nodiscard]] std::vector<std::shared_ptr<LiteralCommandNode<ServerCommandSource>>> getVisibleRootCommands(
+    CommandDispatcher<ServerCommandSource>& dispatcher,
+    const ServerCommandSource& source
+) {
+    std::vector<std::shared_ptr<LiteralCommandNode<ServerCommandSource>>> commands;
+    for (const auto& [name, child] : dispatcher.getRoot()->getChildren()) {
+        (void)name;
+        if (!child || child->getType() != NodeType::Literal || !child->canUse(source)) {
+            continue;
+        }
+
+        commands.push_back(std::static_pointer_cast<LiteralCommandNode<ServerCommandSource>>(child));
+    }
+
+    std::sort(commands.begin(), commands.end(), [](const auto& left, const auto& right) {
+        return left->getName() < right->getName();
+    });
+    return commands;
+}
+
+} // namespace
 
 void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
-    using namespace mc::command;
-
     auto helpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("help");
     helpNode->setRequirement([](const ServerCommandSource& source) {
-        return source.hasPermission(0);  // 所有人可用
+        return source.hasPermission(0);
     });
-    helpNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return showHelp(ctx);
+    support::applyMetadata(
+        helpNode,
+        support::makeMetadata(
+            "Show command help.",
+            "/help [command]",
+            0));
+    helpNode->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
+        return showHelp(ctx, dispatcher);
     });
 
-    // /help <command>
     auto commandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
         "command",
-        StringArgumentType::word()
-    );
-    commandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return showCommandHelp(ctx);
+        StringArgumentType::word());
+    commandArg->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
+        return showCommandHelp(ctx, dispatcher);
     });
     helpNode->addChild(commandArg);
 
     dispatcher.registerCommand(helpNode);
 }
 
-i32 HelpCommand::showHelp(CommandContext<ServerCommandSource>& context) {
+i32 HelpCommand::showHelp(CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher) {
     auto& source = context.getSource();
+    const auto commands = getVisibleRootCommands(dispatcher, source);
 
     std::ostringstream ss;
     ss << "Available commands:\n";
-
-    for (const auto& cmd : s_commandHelp) {
-        ss << "  /" << cmd.name << " - " << cmd.description << "\n";
+    for (const auto& node : commands) {
+        const auto& metadata = node->getMetadataInfo();
+        ss << "  /" << node->getName();
+        if (!metadata.description.empty()) {
+            ss << " - " << metadata.description;
+        }
+        if (!metadata.implemented) {
+            ss << " [partial]";
+        }
+        ss << "\n";
     }
-
     ss << "\nUse /help <command> for more information";
     source.sendMessage(ss.str());
-
     return 1;
 }
 
-i32 HelpCommand::showCommandHelp(CommandContext<ServerCommandSource>& context) {
+i32 HelpCommand::showCommandHelp(CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher) {
     auto& source = context.getSource();
-    String commandName = context.getArgument<String>("command");
-
-    // 查找命令帮助
-    for (const auto& cmd : s_commandHelp) {
-        if (cmd.name == commandName) {
-            std::ostringstream ss;
-            ss << "/" << cmd.name << " - " << cmd.description << "\n";
-            ss << "Usage:\n" << cmd.usage;
-            source.sendMessage(ss.str());
-            return 1;
-        }
+    const String commandName = context.getArgument<String>("command");
+    auto node = dispatcher.getRoot()->getChild(commandName);
+    if (!node || node->getType() != NodeType::Literal || !node->canUse(source)) {
+        source.sendMessage("Unknown command: " + commandName);
+        return 0;
     }
 
-    source.sendMessage("Unknown command: " + commandName);
-    return 0;
+    const auto literalNode = std::static_pointer_cast<LiteralCommandNode<ServerCommandSource>>(node);
+    const auto& metadata = literalNode->getMetadataInfo();
+
+    std::ostringstream ss;
+    ss << "/" << literalNode->getName();
+    if (!metadata.description.empty()) {
+        ss << " - " << metadata.description;
+    }
+    if (!metadata.usage.empty()) {
+        ss << "\nUsage:\n" << metadata.usage;
+    }
+    if (!metadata.aliases.empty()) {
+        ss << "\nAliases: ";
+        for (size_t index = 0; index < metadata.aliases.size(); ++index) {
+            if (index > 0) {
+                ss << ", ";
+            }
+            ss << metadata.aliases[index];
+        }
+    }
+    if (!metadata.implemented) {
+        ss << "\nStatus: partially implemented";
+    }
+
+    source.sendMessage(ss.str());
+    return 1;
 }
 
 } // namespace command

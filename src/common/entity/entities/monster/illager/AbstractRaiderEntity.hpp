@@ -1,133 +1,126 @@
-#pragma once
+﻿#pragma once
 
 #include "PatrollerEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../entity/damage/DamageSource.hpp"
-#include <memory>
 
 namespace mc {
-
-// 前向声明
-namespace world {
-namespace village {
-namespace raid {
+namespace world::village::raid {
 class Raid;
-}
-}
 }
 
 /**
- * @brief 掠夺者抽象基类
+ * @brief 袭击者抽象基类。
  *
- * 参与掠夺事件的敌对生物的共同基类。
- *
- * 特性：
- * - 参与掠夺事件
- * - 有掠夺ID和波次信息
- * - 胜利时庆祝
- *
- * 参考 MC 1.16.5 AbstractRaiderEntity
+ * 为所有可参与村庄袭击的实体提供统一的 Raid 关联与庆祝状态管理。
  */
 class AbstractRaiderEntity : public PatrollerEntity {
 public:
     /**
-     * @brief 构造函数
-     * @param type 实体类型
-     * @param id 实体ID
+     * @brief 构造袭击者基类。
+     *
+     * @param type 实体类型。
+     * @param id 实体 ID。
      */
     AbstractRaiderEntity(LegacyEntityType type, EntityId id);
-    ~AbstractRaiderEntity() override = default;
 
-    // 禁止拷贝
+    ~AbstractRaiderEntity() override = default;
     AbstractRaiderEntity(const AbstractRaiderEntity&) = delete;
     AbstractRaiderEntity& operator=(const AbstractRaiderEntity&) = delete;
-
-    // 允许移动
     AbstractRaiderEntity(AbstractRaiderEntity&&) = default;
     AbstractRaiderEntity& operator=(AbstractRaiderEntity&&) = default;
 
-    // ========== 掠夺系统 ==========
-
     /**
-     * @brief 是否有掠夺首领奖励
+     * @brief 判断是否拥有袭击队长加成。
      */
     [[nodiscard]] bool hasRaidLeaderBonus() const { return m_hasLeaderBonus; }
 
     /**
-     * @brief 设置掠夺首领奖励
+     * @brief 设置袭击队长加成状态。
+     *
+     * @param bonus 是否拥有加成。
      */
     void setRaidLeaderBonus(bool bonus) { m_hasLeaderBonus = bonus; }
 
     /**
-     * @brief 是否可以加入掠夺
+     * @brief 判断是否允许加入袭击。
      */
     [[nodiscard]] bool canJoinRaid() const { return m_canJoinRaid; }
 
     /**
-     * @brief 设置是否可以加入掠夺
+     * @brief 设置是否允许加入袭击。
+     *
+     * @param canJoin 是否允许加入。
      */
     void setCanJoinRaid(bool canJoin) { m_canJoinRaid = canJoin; }
 
     /**
-     * @brief 获取当前参与的袭击
+     * @brief 获取当前所属袭击。
+     *
+     * @return 当前 Raid 指针；若未加入则返回 `nullptr`。
      */
     [[nodiscard]] world::village::raid::Raid* getCurrentRaid() const { return m_raid; }
 
     /**
-     * @brief 加入袭击
-     * @param raid 袭击指针
-     * @param wave 波次
+     * @brief 加入指定袭击。
+     *
+     * @param raid 目标袭击。
+     * @param wave 当前波次。
      */
     void joinRaid(world::village::raid::Raid* raid, i32 wave);
 
     /**
-     * @brief 离开袭击
+     * @brief 离开当前袭击。
      */
     void leaveRaid();
 
     /**
-     * @brief 获取当前波次
+     * @brief 获取当前所属波次。
      */
     [[nodiscard]] i32 getRaidWave() const { return m_wave; }
 
     /**
-     * @brief 设置当前波次
+     * @brief 设置当前所属波次。
+     *
+     * @param wave 波次编号。
      */
     void setRaidWave(i32 wave) { m_wave = wave; }
 
     /**
-     * @brief 获取庆祝时间
+     * @brief 获取庆祝剩余时间。
      */
     [[nodiscard]] i32 getCelebrationTime() const { return m_celebrationTime; }
 
     /**
-     * @brief 开始庆祝
+     * @brief 进入庆祝状态。
+     *
+     * @note 仅更新本地状态，不会自动广播动画或音效。
      */
     void startCelebrating();
 
-    // ========== 生命周期 ==========
-
+    /**
+     * @brief 执行实体 tick。
+     *
+     * @note 会在常规巡逻者逻辑后更新 Raid 关联状态。
+     */
     void tick() override;
 
     /**
-     * @brief 死亡时调用
-     * @param cause 死亡原因
+     * @brief 处理死亡。
      *
-     * 重写以通知Raid掠夺者死亡
+     * @param cause 伤害来源。
+     *
+     * @warning 调用顺序很重要，必须先通知 Raid，再交给父类完成死亡流程。
      */
     void die(DamageSource& cause) override;
 
 protected:
-    // 掠夺相关
     bool m_hasLeaderBonus = false;
     bool m_canJoinRaid = true;
     i32 m_celebrationTime = 0;
+    world::village::raid::Raid* m_raid = nullptr;
+    i32 m_wave = 0;
 
-    // 袭击关联
-    world::village::raid::Raid* m_raid = nullptr;  ///< 当前参与的袭击
-    i32 m_wave = 0;                                ///< 当前波次
-
-    // 常量
     static constexpr i32 CELEBRATION_DURATION = 200;
 };
 

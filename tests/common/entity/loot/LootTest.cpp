@@ -43,7 +43,7 @@ public:
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] i32 difficulty() const override { return 1; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
 };
 
 class LootTest : public ::testing::Test {

@@ -277,6 +277,16 @@ template<typename S>
         snapshotNode.name = node->getName();
         snapshotNode.typeName = node->getTypeName();
         snapshotNode.metadata = node->getMetadata();
+        const auto& metadataInfo = node->getMetadataInfo();
+        if (!metadataInfo.description.empty()) {
+            snapshotNode.metadata["description"] = metadataInfo.description;
+        }
+        if (!metadataInfo.usage.empty()) {
+            snapshotNode.metadata["usage"] = metadataInfo.usage;
+        }
+        snapshotNode.metadata["permissionLevel"] = metadataInfo.permissionLevel;
+        snapshotNode.metadata["implemented"] = metadataInfo.implemented;
+        snapshotNode.metadata["aliases"] = metadataInfo.aliases;
         snapshotNode.examples = node->getExamples();
         snapshotNode.executable = node->hasCommand();
         snapshotNode.redirectModifier = node->getRedirectModifier();

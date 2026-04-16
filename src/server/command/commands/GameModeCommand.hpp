@@ -1,59 +1,63 @@
-#pragma once
+﻿#pragma once
 
 #include "common/command/CommandDispatcher.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "server/command/ServerCommandSource.hpp"
+
 #include <memory>
 
 namespace mc {
 namespace command {
 
 /**
- * @brief /gamemode 命令
+ * @brief `/gamemode` 命令。
  *
- * 用法：
- * - /gamemode <mode> - 设置自己的游戏模式
- * - /gamemode <mode> <target> - 设置指定玩家的游戏模式
+ * 该命令负责修改命令源玩家或指定玩家集合的游戏模式。
+ * 当前实现直接依赖项目现有的 `GameModeManager` 与 `ServerPlayerData`，
+ * 避免把命令层耦合到尚未完成接入的 `ServerPlayer` 运行时层。
  *
- * 权限等级：2
+ * 已支持的形式：
+ * - `/gamemode <mode>`
+ * - `/gamemode <mode> <target>`
  *
- * 参考 MC 的 GameModeCommand
+ * @note `target` 当前仅解析玩家选择器语义。
  */
 class GameModeCommand {
 public:
     /**
-     * @brief 注册命令到分发器
-     * @param dispatcher 命令分发器
+     * @brief 将命令注册到分发器。
+     *
+     * @param dispatcher 命令分发器。
      */
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
     /**
-     * @brief 设置游戏模式（自己）
+     * @brief 将命令源玩家切换到指定游戏模式。
+     *
+     * @param context 命令上下文。
+     * @return 成功时返回 `1`，失败时返回 `0`。
+     *
+     * @warning 该分支要求命令源必须是玩家。
      */
     static i32 setGameModeSelf(CommandContext<ServerCommandSource>& context);
 
     /**
-     * @brief 设置游戏模式（指定玩家）
+     * @brief 将目标玩家集合切换到指定游戏模式。
+     *
+     * @param context 命令上下文。
+     * @return 成功修改的玩家数量。
+     *
+     * @note 选择器解析统一走 `support::resolvePlayerIds()`，避免命令各自复制解析逻辑。
      */
     static i32 setGameModeOthers(CommandContext<ServerCommandSource>& context);
 
     /**
-     * @brief 实际设置游戏模式的逻辑
-     * @param source 命令源
-     * @param player 目标玩家
-     * @param mode 游戏模式
-     * @return 结果码
-     */
-    static i32 setGameMode(
-        ServerCommandSource& source,
-        class ServerPlayer& player,
-        GameMode mode
-    );
-
-    /**
-     * @brief 获取游戏模式的显示名称
+     * @brief 获取命令反馈中使用的游戏模式名称。
+     *
+     * @param mode 游戏模式。
+     * @return 可读名称。
      */
     static const char* getGameModeName(GameMode mode);
 };

@@ -188,6 +188,46 @@ public:
     [[nodiscard]] virtual i32 maxPlayers() const = 0;
     [[nodiscard]] virtual u64 seed() const = 0;
     [[nodiscard]] virtual u64 currentTick() const = 0;
+
+    /**
+     * @brief 获取当前世界难度。
+     */
+    [[nodiscard]] virtual Difficulty difficulty() const = 0;
+
+    /**
+     * @brief 设置当前世界难度。
+     */
+    virtual void setDifficulty(Difficulty difficulty) = 0;
+
+    /**
+     * @brief 获取服务器默认游戏模式。
+     */
+    [[nodiscard]] virtual GameMode defaultGameMode() const = 0;
+
+    /**
+     * @brief 设置服务器默认游戏模式。
+     */
+    virtual void setDefaultGameMode(GameMode mode) = 0;
+
+    /**
+     * @brief 获取玩家挂机超时，单位为分钟。
+     */
+    [[nodiscard]] virtual i32 playerIdleTimeoutMinutes() const = 0;
+
+    /**
+     * @brief 设置玩家挂机超时，单位为分钟。
+     */
+    virtual void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) = 0;
+
+    /**
+     * @brief 向所有在线玩家广播服务器系统消息。
+     */
+    virtual void broadcastServerMessage(StringView message) = 0;
+
+    /**
+     * @brief 请求服务器优雅停机。
+     */
+    virtual void requestStop() = 0;
 };
 
 } // namespace mc::server
