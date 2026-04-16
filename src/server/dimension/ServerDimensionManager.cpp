@@ -13,6 +13,8 @@
 #include "common/world/biome/provider/end/EndBiomeProvider.hpp"
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -35,6 +37,8 @@ ServerDimensionManager::~ServerDimensionManager() = default;
 // ============================================================================
 
 Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance) {
+    MC_TRACE_EVENT("server.initialization", "ServerDimensionManager::initialize");
+
     if (m_initialized) {
         return {};
     }
