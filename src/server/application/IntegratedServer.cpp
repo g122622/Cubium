@@ -132,44 +132,48 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     }
 
     // 根据世界类型创建区块管理器
-    std::unique_ptr<IChunkGenerator> chunkGenerator;
-    switch (config.worldType) {
-        case WorldType::Debug:
-            spdlog::info("Using DebugChunkGenerator for debug world");
-            chunkGenerator = std::make_unique<DebugChunkGenerator>();
-            break;
-        case WorldType::Flat:
-            spdlog::info("Using flat world settings");
-            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                static_cast<u64>(config.seed), DimensionSettings::flat());
-            break;
-        case WorldType::LargeBiomes:
-            spdlog::info("Using large biomes world settings");
-            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                static_cast<u64>(config.seed),
-                DimensionSettings::overworld(),
-                std::make_unique<LayerBiomeProvider>(static_cast<u64>(config.seed), true));
-            break;
-        case WorldType::Amplified:
-            spdlog::info("Using amplified world settings");
-            {
-                DimensionSettings amplifiedSettings = DimensionSettings::overworld();
-                amplifiedSettings.noise = NoiseSettings::amplified();
+    {
+        MC_TRACE_EVENT("server.initialization", "IntegratedServer::initializeChunkManager");
+
+        std::unique_ptr<IChunkGenerator> chunkGenerator;
+        switch (config.worldType) {
+            case WorldType::Debug:
+                spdlog::info("Using DebugChunkGenerator for debug world");
+                chunkGenerator = std::make_unique<DebugChunkGenerator>();
+                break;
+            case WorldType::Flat:
+                spdlog::info("Using flat world settings");
                 chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                    static_cast<u64>(config.seed), std::move(amplifiedSettings));
-            }
-            break;
-        case WorldType::Default:
-        default:
-            spdlog::info("Using NoiseChunkGenerator for normal world");
-            chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                static_cast<u64>(config.seed), DimensionSettings::overworld());
-            break;
+                    static_cast<u64>(config.seed), DimensionSettings::flat());
+                break;
+            case WorldType::LargeBiomes:
+                spdlog::info("Using large biomes world settings");
+                chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                    static_cast<u64>(config.seed),
+                    DimensionSettings::overworld(),
+                    std::make_unique<LayerBiomeProvider>(static_cast<u64>(config.seed), true));
+                break;
+            case WorldType::Amplified:
+                spdlog::info("Using amplified world settings");
+                {
+                    DimensionSettings amplifiedSettings = DimensionSettings::overworld();
+                    amplifiedSettings.noise = NoiseSettings::amplified();
+                    chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                        static_cast<u64>(config.seed), std::move(amplifiedSettings));
+                }
+                break;
+            case WorldType::Default:
+            default:
+                spdlog::info("Using NoiseChunkGenerator for normal world");
+                chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                    static_cast<u64>(config.seed), DimensionSettings::overworld());
+                break;
+        }
+        auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
+        chunkManager->setViewDistance(config.viewDistance);
+        chunkManager->initialize();
+        m_world->setChunkManager(std::move(chunkManager));
     }
-    auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
-    chunkManager->setViewDistance(config.viewDistance);
-    chunkManager->initialize();
-    m_world->setChunkManager(std::move(chunkManager));
 
     // 创建光照管理器
     auto lightManager = std::make_unique<WorldLightManager>(m_world.get(), true, true);

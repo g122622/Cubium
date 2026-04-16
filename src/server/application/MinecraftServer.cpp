@@ -202,6 +202,8 @@ void MinecraftServer::initializeCoreManagers()
 
 Result<void> MinecraftServer::initializeWorld()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeWorld");
+
     // ServerWorld 在子类中创建
     if (!m_world) {
         return Error(ErrorCode::NotInitialized, "World not created");
