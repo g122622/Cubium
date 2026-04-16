@@ -36,8 +36,8 @@ TEST(TextureAtlasBuilderTest, AnimatedVerticalStripUsesFrameSizeForRegion) {
     ASSERT_NE(it, atlas.regions.end());
 
     const TextureRegion& region = it->second;
-    const f32 regionWidth = region.u1 - region.u0;
-    const f32 regionHeight = region.v1 - region.v0;
+    const f32 regionWidth = static_cast<f32>(region.u1 - region.u0);
+    const f32 regionHeight = static_cast<f32>(region.v1 - region.v0);
 
     EXPECT_NEAR(regionWidth, 16.0f / static_cast<f32>(atlas.width), 1e-6f);
     EXPECT_NEAR(regionHeight, 16.0f / static_cast<f32>(atlas.height), 1e-6f);
@@ -61,8 +61,8 @@ TEST(TextureAtlasBuilderTest, InvalidFrameSizeFallsBackToFullImage) {
     ASSERT_NE(it, atlas.regions.end());
 
     const TextureRegion& region = it->second;
-    const f32 regionWidth = region.u1 - region.u0;
-    const f32 regionHeight = region.v1 - region.v0;
+    const f32 regionWidth = static_cast<f32>(region.u1 - region.u0);
+    const f32 regionHeight = static_cast<f32>(region.v1 - region.v0);
 
     EXPECT_NEAR(regionWidth, 16.0f / static_cast<f32>(atlas.width), 1e-6f);
     EXPECT_NEAR(regionHeight, 64.0f / static_cast<f32>(atlas.height), 1e-6f);

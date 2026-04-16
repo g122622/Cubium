@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include "client/renderer/api/TridentApi.hpp"
 
+#undef EXPECT_FLOAT_EQ
+#define EXPECT_FLOAT_EQ EXPECT_DOUBLE_EQ
+
 using namespace mc;
 using namespace mc::client::renderer::api;
 

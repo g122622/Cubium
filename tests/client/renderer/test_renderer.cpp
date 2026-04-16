@@ -118,34 +118,34 @@ MeshBounds computeBounds(const MeshData& mesh) {
 
 TEST(BlockGeometry, FaceNormals) {
     auto bottom = BlockGeometry::getFaceNormal(Face::Bottom);
-    EXPECT_FLOAT_EQ(bottom[0], 0.0f);
-    EXPECT_FLOAT_EQ(bottom[1], -1.0f);
-    EXPECT_FLOAT_EQ(bottom[2], 0.0f);
+    EXPECT_DOUBLE_EQ(bottom[0], 0.0);
+    EXPECT_DOUBLE_EQ(bottom[1], -1.0);
+    EXPECT_DOUBLE_EQ(bottom[2], 0.0);
 
     auto top = BlockGeometry::getFaceNormal(Face::Top);
-    EXPECT_FLOAT_EQ(top[0], 0.0f);
-    EXPECT_FLOAT_EQ(top[1], 1.0f);
-    EXPECT_FLOAT_EQ(top[2], 0.0f);
+    EXPECT_DOUBLE_EQ(top[0], 0.0);
+    EXPECT_DOUBLE_EQ(top[1], 1.0);
+    EXPECT_DOUBLE_EQ(top[2], 0.0);
 
     auto north = BlockGeometry::getFaceNormal(Face::North);
-    EXPECT_FLOAT_EQ(north[0], 0.0f);
-    EXPECT_FLOAT_EQ(north[1], 0.0f);
-    EXPECT_FLOAT_EQ(north[2], -1.0f);
+    EXPECT_DOUBLE_EQ(north[0], 0.0);
+    EXPECT_DOUBLE_EQ(north[1], 0.0);
+    EXPECT_DOUBLE_EQ(north[2], -1.0);
 
     auto south = BlockGeometry::getFaceNormal(Face::South);
-    EXPECT_FLOAT_EQ(south[0], 0.0f);
-    EXPECT_FLOAT_EQ(south[1], 0.0f);
-    EXPECT_FLOAT_EQ(south[2], 1.0f);
+    EXPECT_DOUBLE_EQ(south[0], 0.0);
+    EXPECT_DOUBLE_EQ(south[1], 0.0);
+    EXPECT_DOUBLE_EQ(south[2], 1.0);
 
     auto west = BlockGeometry::getFaceNormal(Face::West);
-    EXPECT_FLOAT_EQ(west[0], -1.0f);
-    EXPECT_FLOAT_EQ(west[1], 0.0f);
-    EXPECT_FLOAT_EQ(west[2], 0.0f);
+    EXPECT_DOUBLE_EQ(west[0], -1.0);
+    EXPECT_DOUBLE_EQ(west[1], 0.0);
+    EXPECT_DOUBLE_EQ(west[2], 0.0);
 
     auto east = BlockGeometry::getFaceNormal(Face::East);
-    EXPECT_FLOAT_EQ(east[0], 1.0f);
-    EXPECT_FLOAT_EQ(east[1], 0.0f);
-    EXPECT_FLOAT_EQ(east[2], 0.0f);
+    EXPECT_DOUBLE_EQ(east[0], 1.0);
+    EXPECT_DOUBLE_EQ(east[1], 0.0);
+    EXPECT_DOUBLE_EQ(east[2], 0.0);
 }
 
 TEST(BlockGeometry, FaceVertices) {
@@ -155,13 +155,13 @@ TEST(BlockGeometry, FaceVertices) {
 
     // 顶部面Y坐标应该是1
     for (size_t i = 0; i < 4; ++i) {
-        EXPECT_FLOAT_EQ(topVerts[i * 3 + 1], 1.0f); // Y坐标
+        EXPECT_DOUBLE_EQ(topVerts[i * 3 + 1], 1.0); // Y坐标
     }
 
     // 底部面Y坐标应该是0
     auto bottomVerts = BlockGeometry::getFaceVertices(Face::Bottom);
     for (size_t i = 0; i < 4; ++i) {
-        EXPECT_FLOAT_EQ(bottomVerts[i * 3 + 1], 0.0f); // Y坐标
+        EXPECT_DOUBLE_EQ(bottomVerts[i * 3 + 1], 0.0); // Y坐标
     }
 }
 
@@ -231,24 +231,24 @@ TEST(TextureAtlas, GetRegionByCoords) {
 
     // 第一个图块 (0,0)
     auto r0 = atlas.getRegion(0, 0);
-    EXPECT_FLOAT_EQ(r0.u0, 0.0f);
-    EXPECT_FLOAT_EQ(r0.v0, 0.0f);
-    EXPECT_FLOAT_EQ(r0.u1, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(r0.v1, 1.0f / 16.0f);
+    EXPECT_DOUBLE_EQ(r0.u0, 0.0);
+    EXPECT_DOUBLE_EQ(r0.v0, 0.0);
+    EXPECT_DOUBLE_EQ(r0.u1, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(r0.v1, 1.0 / 16.0);
 
     // 第一个图块 (1,0) - 第二列
     auto r1 = atlas.getRegion(1, 0);
-    EXPECT_FLOAT_EQ(r1.u0, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(r1.v0, 0.0f);
-    EXPECT_FLOAT_EQ(r1.u1, 2.0f / 16.0f);
-    EXPECT_FLOAT_EQ(r1.v1, 1.0f / 16.0f);
+    EXPECT_DOUBLE_EQ(r1.u0, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(r1.v0, 0.0);
+    EXPECT_DOUBLE_EQ(r1.u1, 2.0 / 16.0);
+    EXPECT_DOUBLE_EQ(r1.v1, 1.0 / 16.0);
 
     // 第一行第二列 (0,1)
     auto r2 = atlas.getRegion(0, 1);
-    EXPECT_FLOAT_EQ(r2.u0, 0.0f);
-    EXPECT_FLOAT_EQ(r2.v0, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(r2.u1, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(r2.v1, 2.0f / 16.0f);
+    EXPECT_DOUBLE_EQ(r2.u0, 0.0);
+    EXPECT_DOUBLE_EQ(r2.v0, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(r2.u1, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(r2.v1, 2.0 / 16.0);
 }
 
 TEST(TextureAtlas, GetRegionByIndex) {
@@ -256,18 +256,18 @@ TEST(TextureAtlas, GetRegionByIndex) {
 
     // 线性索引 0
     auto r0 = atlas.getRegion(0);
-    EXPECT_FLOAT_EQ(r0.u0, 0.0f);
-    EXPECT_FLOAT_EQ(r0.v0, 0.0f);
+    EXPECT_DOUBLE_EQ(r0.u0, 0.0);
+    EXPECT_DOUBLE_EQ(r0.v0, 0.0);
 
     // 线性索引 1
     auto r1 = atlas.getRegion(1);
-    EXPECT_FLOAT_EQ(r1.u0, 1.0f / 16.0f);
-    EXPECT_FLOAT_EQ(r1.v0, 0.0f);
+    EXPECT_DOUBLE_EQ(r1.u0, 1.0 / 16.0);
+    EXPECT_DOUBLE_EQ(r1.v0, 0.0);
 
     // 线性索引 16 (第二行开始)
     auto r16 = atlas.getRegion(16);
-    EXPECT_FLOAT_EQ(r16.u0, 0.0f);
-    EXPECT_FLOAT_EQ(r16.v0, 1.0f / 16.0f);
+    EXPECT_DOUBLE_EQ(r16.u0, 0.0);
+    EXPECT_DOUBLE_EQ(r16.v0, 1.0 / 16.0);
 }
 
 // ============================================================================
@@ -304,22 +304,22 @@ TEST(MeshData, Clear) {
 
 TEST(Vertex, Construction) {
     Vertex v;
-    EXPECT_FLOAT_EQ(v.x, 0.0f);
-    EXPECT_FLOAT_EQ(v.y, 0.0f);
-    EXPECT_FLOAT_EQ(v.z, 0.0f);
+    EXPECT_DOUBLE_EQ(v.x, 0.0);
+    EXPECT_DOUBLE_EQ(v.y, 0.0);
+    EXPECT_DOUBLE_EQ(v.z, 0.0);
 }
 
 TEST(Vertex, ParameterizedConstruction) {
     Vertex v(1.0f, 2.0f, 3.0f, 0.0f, 1.0f, 0.0f, 0.5f, 0.5f, 0xFF0000FF, 10);
 
-    EXPECT_FLOAT_EQ(v.x, 1.0f);
-    EXPECT_FLOAT_EQ(v.y, 2.0f);
-    EXPECT_FLOAT_EQ(v.z, 3.0f);
-    EXPECT_FLOAT_EQ(v.nx, 0.0f);
-    EXPECT_FLOAT_EQ(v.ny, 1.0f);
-    EXPECT_FLOAT_EQ(v.nz, 0.0f);
-    EXPECT_FLOAT_EQ(v.u, 0.5f);
-    EXPECT_FLOAT_EQ(v.v, 0.5f);
+    EXPECT_DOUBLE_EQ(v.x, 1.0);
+    EXPECT_DOUBLE_EQ(v.y, 2.0);
+    EXPECT_DOUBLE_EQ(v.z, 3.0);
+    EXPECT_DOUBLE_EQ(v.nx, 0.0);
+    EXPECT_DOUBLE_EQ(v.ny, 1.0);
+    EXPECT_DOUBLE_EQ(v.nz, 0.0);
+    EXPECT_DOUBLE_EQ(v.u, 0.5);
+    EXPECT_DOUBLE_EQ(v.v, 0.5);
     EXPECT_EQ(v.color, 0xFF0000FFu);
     EXPECT_EQ(v.light, 10u);
 }
@@ -717,7 +717,8 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreN
         ASSERT_FALSE(mesh.empty());
 
         const MeshBounds bounds = computeBounds(mesh);
-        EXPECT_LT(bounds.maxY - bounds.minY, 1.0f);
+        const f32 repeaterHeight = static_cast<f32>(bounds.maxY - bounds.minY);
+        EXPECT_LT(repeaterHeight, 1.0f);
     }
 
     {
@@ -729,7 +730,8 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreN
         ASSERT_FALSE(mesh.empty());
 
         const MeshBounds bounds = computeBounds(mesh);
-        EXPECT_LT(bounds.maxY - bounds.minY, 1.0f);
+        const f32 pressurePlateHeight = static_cast<f32>(bounds.maxY - bounds.minY);
+        EXPECT_LT(pressurePlateHeight, 1.0f);
     }
 }
 

@@ -4,6 +4,14 @@
 using namespace mc;
 using namespace mc::physics;
 
+namespace {
+
+AxisAlignedBB makeBox(f32 minX, f32 minY, f32 minZ, f32 maxX, f32 maxY, f32 maxZ) {
+    return AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
+}
+
+} // namespace
+
 /**
  * @brief CollisionCache 单元测试
  *
@@ -30,8 +38,8 @@ protected:
 TEST_F(CollisionCacheTest, CacheAndRetrieve) {
     // 创建测试碰撞箱
     std::vector<AxisAlignedBB> boxes = {
-        AxisAlignedBB(0, 0, 0, 1, 1, 1),
-        AxisAlignedBB(5, 0, 5, 6, 1, 6)
+        makeBox(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f),
+        makeBox(5.0f, 0.0f, 5.0f, 6.0f, 1.0f, 6.0f)
     };
 
     // 缓存碰撞箱
@@ -41,13 +49,13 @@ TEST_F(CollisionCacheTest, CacheAndRetrieve) {
     const auto* cached = cache->getChunkCollisionBoxes(0, 0);
     ASSERT_NE(cached, nullptr);
     EXPECT_EQ(cached->size(), 2);
-    EXPECT_EQ((*cached)[0], AxisAlignedBB(0, 0, 0, 1, 1, 1));
-    EXPECT_EQ((*cached)[1], AxisAlignedBB(5, 0, 5, 6, 1, 6));
+    EXPECT_EQ((*cached)[0], makeBox(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f));
+    EXPECT_EQ((*cached)[1], makeBox(5.0f, 0.0f, 5.0f, 6.0f, 1.0f, 6.0f));
 }
 
 TEST_F(CollisionCacheTest, CacheCopy) {
     std::vector<AxisAlignedBB> boxes = {
-        AxisAlignedBB(0, 0, 0, 1, 1, 1)
+        makeBox(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f)
     };
 
     // 使用拷贝版本
@@ -75,7 +83,8 @@ TEST_F(CollisionCacheTest, MultipleChunks) {
     // 缓存多个区块
     for (int i = 0; i < 5; ++i) {
         std::vector<AxisAlignedBB> boxes = {
-            AxisAlignedBB(i * 16, 0, i * 16, i * 16 + 16, 256, i * 16 + 16)
+            AxisAlignedBB(static_cast<f32>(i * 16), 0.0f, static_cast<f32>(i * 16),
+                          static_cast<f32>(i * 16 + 16), 256.0f, static_cast<f32>(i * 16 + 16))
         };
         cache->cacheChunkCollisionBoxes(i, i, std::move(boxes));
     }
@@ -93,7 +102,7 @@ TEST_F(CollisionCacheTest, MultipleChunks) {
 // ========== 缓存失效测试 ==========
 
 TEST_F(CollisionCacheTest, InvalidateSingle) {
-    std::vector<AxisAlignedBB> boxes = { AxisAlignedBB(0, 0, 0, 1, 1, 1) };
+    std::vector<AxisAlignedBB> boxes = { makeBox(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f) };
     cache->cacheChunkCollisionBoxes(0, 0, std::move(boxes));
 
     EXPECT_EQ(cache->size(), 1);
@@ -117,7 +126,10 @@ TEST_F(CollisionCacheTest, InvalidateAndNeighbors) {
     // 缓存中心区块及其邻居
     for (int dx = -2; dx <= 2; ++dx) {
         for (int dz = -2; dz <= 2; ++dz) {
-            std::vector<AxisAlignedBB> boxes = { AxisAlignedBB(dx, 0, dz, dx + 1, 1, dz + 1) };
+            std::vector<AxisAlignedBB> boxes = {
+                makeBox(static_cast<f32>(dx), 0.0f, static_cast<f32>(dz),
+                        static_cast<f32>(dx + 1), 1.0f, static_cast<f32>(dz + 1))
+            };
             cache->cacheChunkCollisionBoxes(dx, dz, std::move(boxes));
         }
     }
@@ -146,7 +158,10 @@ TEST_F(CollisionCacheTest, InvalidateAndNeighbors) {
 
 TEST_F(CollisionCacheTest, ClearAll) {
     for (int i = 0; i < 10; ++i) {
-        std::vector<AxisAlignedBB> boxes = { AxisAlignedBB(i, 0, i, i + 1, 1, i + 1) };
+        std::vector<AxisAlignedBB> boxes = {
+            makeBox(static_cast<f32>(i), 0.0f, static_cast<f32>(i),
+                    static_cast<f32>(i + 1), 1.0f, static_cast<f32>(i + 1))
+        };
         cache->cacheChunkCollisionBoxes(i, i, std::move(boxes));
     }
 
@@ -161,7 +176,7 @@ TEST_F(CollisionCacheTest, ClearAll) {
 // ========== 统计测试 ==========
 
 TEST_F(CollisionCacheTest, HitMissStats) {
-    std::vector<AxisAlignedBB> boxes = { AxisAlignedBB(0, 0, 0, 1, 1, 1) };
+    std::vector<AxisAlignedBB> boxes = { makeBox(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f) };
     cache->cacheChunkCollisionBoxes(0, 0, std::move(boxes));
 
     // 命中
@@ -183,7 +198,7 @@ TEST_F(CollisionCacheTest, HitMissStats) {
 // ========== 版本号测试 ==========
 
 TEST_F(CollisionCacheTest, VersionNumber) {
-    std::vector<AxisAlignedBB> boxes = { AxisAlignedBB(0, 0, 0, 1, 1, 1) };
+    std::vector<AxisAlignedBB> boxes = { makeBox(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f) };
     cache->cacheChunkCollisionBoxes(0, 0, std::move(boxes), 42);
 
     const auto* cacheEntry = cache->getChunkCache(0, 0);
@@ -195,7 +210,9 @@ TEST_F(CollisionCacheTest, VersionNumber) {
 // ========== 负坐标测试 ==========
 
 TEST_F(CollisionCacheTest, NegativeCoordinates) {
-    std::vector<AxisAlignedBB> boxes = { AxisAlignedBB(-16, 0, -16, -15, 1, -15) };
+    std::vector<AxisAlignedBB> boxes = {
+        makeBox(-16.0f, 0.0f, -16.0f, -15.0f, 1.0f, -15.0f)
+    };
     cache->cacheChunkCollisionBoxes(-1, -1, std::move(boxes));
 
     const auto* cached = cache->getChunkCollisionBoxes(-1, -1);
@@ -220,8 +237,14 @@ TEST_F(CollisionCacheTest, LargeNumberOfBoxes) {
     // 创建大量碰撞箱
     std::vector<AxisAlignedBB> boxes;
     for (int i = 0; i < 1000; ++i) {
-        boxes.emplace_back(i % 16, i / 256, (i / 16) % 16,
-                           (i % 16) + 1, (i / 256) + 1, ((i / 16) % 16) + 1);
+        boxes.emplace_back(
+            static_cast<f32>(i % 16),
+            static_cast<f32>(i / 256),
+            static_cast<f32>((i / 16) % 16),
+            static_cast<f32>((i % 16) + 1),
+            static_cast<f32>((i / 256) + 1),
+            static_cast<f32>(((i / 16) % 16) + 1)
+        );
     }
 
     cache->cacheChunkCollisionBoxes(0, 0, std::move(boxes));
