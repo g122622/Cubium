@@ -1,11 +1,28 @@
 #include "WeatherUtils.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "../../world/chunk/ChunkData.hpp"
 #include "../../world/biome/Biome.hpp"
+#include "../../world/biome/BiomeRegistry.hpp"
 #include "../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::weather {
+
+namespace {
+
+[[nodiscard]] const mc::Biome* getBiomeAt(const mc::IWorld& world, const mc::BlockPos& pos)
+{
+    const mc::ChunkData* chunk = world.getChunk(pos.chunkX(), pos.chunkZ());
+    if (chunk == nullptr) {
+        return nullptr;
+    }
+
+    const mc::BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
+    return &mc::BiomeRegistry::instance().get(biomeId);
+}
+
+} // namespace
 
 bool WeatherUtils::canSeeSky(const mc::IWorld& world, const mc::BlockPos& pos) {
     // 检查该位置上方是否有非透明方块
@@ -15,37 +32,37 @@ bool WeatherUtils::canSeeSky(const mc::IWorld& world, const mc::BlockPos& pos) {
 }
 
 bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos) {
-    // 检查生物群系是否允许降雨
-    // 目前简化实现，后续需要获取生物群系信息
-    // 参考 MC: Biome.getPrecipitation() == RainType.RAIN
-
-    // 检查是否可以看到天空
-    if (!canSeeSky(world, pos)) {
+    if (world.isUltraWarm() || !canSeeSky(world, pos)) {
         return false;
     }
 
-    // TODO: 获取生物群系并检查降水类型
-    // const Biome* biome = world.getBiome(pos);
-    // if (!biome || biome->climate().precipitation != BiomeClimate::Precipitation::Rain) {
-    //     return false;
-    // }
+    const mc::Biome* biome = getBiomeAt(world, pos);
+    if (biome == nullptr) {
+        return false;
+    }
 
-    return true;
+    if (biome->climate().precipitation == mc::BiomeClimate::Precipitation::None) {
+        return false;
+    }
+
+    return getPrecipitationType(biome->temperature()) == 1;
 }
 
 bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos) {
-    // 检查是否可以看到天空
-    if (!canSeeSky(world, pos)) {
+    if (world.isUltraWarm() || !canSeeSky(world, pos)) {
         return false;
     }
 
-    // TODO: 获取生物群系并检查温度
-    // const Biome* biome = world.getBiome(pos);
-    // if (!biome || biome->temperature() > 0.15f) {
-    //     return false;
-    // }
+    const mc::Biome* biome = getBiomeAt(world, pos);
+    if (biome == nullptr) {
+        return false;
+    }
 
-    return true;
+    if (biome->climate().precipitation == mc::BiomeClimate::Precipitation::None) {
+        return false;
+    }
+
+    return getPrecipitationType(biome->temperature()) == 2;
 }
 
 i32 WeatherUtils::getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, i32 maxTime) {

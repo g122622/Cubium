@@ -29,10 +29,11 @@ namespace WeatherUtils {
 /**
  * @brief 根据生物群系温度判断降水类型
  *
- * 温度 <= 0.15 时降雪，否则降雨
+ * 温度 <= 0.15 时降雪，否则降雨。
+ * 无降水生物群系需要由调用者结合 BiomeClimate::Precipitation::None 额外过滤。
  *
  * @param temperature 生物群系温度
- * @return 0=无降水, 1=降雨, 2=降雪
+ * @return 1=降雨, 2=降雪
  */
 [[nodiscard]] inline i32 getPrecipitationType(f32 temperature) noexcept {
     if (temperature <= 0.15f) {

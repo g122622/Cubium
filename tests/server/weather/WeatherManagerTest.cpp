@@ -3,12 +3,106 @@
 #include "common/world/weather/WeatherState.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include "common/util/math/random/Random.hpp"
+
+#include <memory>
+#include <unordered_map>
 
 using namespace mc;
 using namespace mc::server;
 using namespace mc::weather;
+
+namespace {
+
+class WeatherUtilsTestWorld : public IWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
+    bool setBlock(i32, i32, i32, const BlockState*) override { return false; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override
+    {
+        const auto it = m_chunks.find(ChunkPos(x, z));
+        return it != m_chunks.end() ? it->second.get() : nullptr;
+    }
+    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override
+    {
+        return m_chunks.find(ChunkPos(x, z)) != m_chunks.end();
+    }
+    [[nodiscard]] i32 getHeight(i32 x, i32 z) const override
+    {
+        const auto it = m_heights.find(ChunkPos(x >> 4, z >> 4));
+        return it != m_heights.end() ? it->second : 0;
+    }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < ChunkData::HEIGHT; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] DimensionId dimension() const override { return m_ultraWarm ? 1 : 0; }
+    [[nodiscard]] bool isUltraWarm() const override { return m_ultraWarm; }
+    [[nodiscard]] u64 seed() const override { return 12345; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+    void setHeight(ChunkCoord chunkX, ChunkCoord chunkZ, i32 height)
+    {
+        m_heights[ChunkPos(chunkX, chunkZ)] = height;
+    }
+
+    void setBiome(ChunkCoord chunkX, ChunkCoord chunkZ, BiomeId biomeId)
+    {
+        ChunkData& chunk = ensureChunk(chunkX, chunkZ);
+        for (i32 x = 0; x < BiomeContainer::BIOME_WIDTH; ++x) {
+            for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
+                for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
+                    chunk.getBiomes().setBiome(x, y, z, biomeId);
+                }
+            }
+        }
+    }
+
+    void setUltraWarm(bool value)
+    {
+        m_ultraWarm = value;
+    }
+
+private:
+    ChunkData& ensureChunk(ChunkCoord x, ChunkCoord z)
+    {
+        const ChunkPos chunkPos(x, z);
+        auto it = m_chunks.find(chunkPos);
+        if (it == m_chunks.end()) {
+            it = m_chunks.emplace(chunkPos, std::make_unique<ChunkData>(x, z)).first;
+        }
+        return *it->second;
+    }
+
+    std::unordered_map<ChunkPos, std::unique_ptr<ChunkData>> m_chunks;
+    std::unordered_map<ChunkPos, i32> m_heights;
+    bool m_ultraWarm = false;
+};
+
+class WeatherUtilsTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        BiomeRegistry::instance().initialize();
+    }
+};
+
+} // namespace
 
 // ============================================================================
 // WeatherState 测试
@@ -371,7 +465,7 @@ TEST_F(WeatherManagerTest, TrySpawnLightningOnlyDuringThunder) {
 // WeatherUtils 测试
 // ============================================================================
 
-TEST(WeatherUtilsTest, GetPrecipitationTypeReturnsCorrectValue) {
+TEST_F(WeatherUtilsTest, GetPrecipitationTypeReturnsCorrectValue) {
     EXPECT_EQ(WeatherUtils::getPrecipitationType(0.0f), 2);  // 雪
     EXPECT_EQ(WeatherUtils::getPrecipitationType(0.15f), 2); // 边界值 - 雪
     EXPECT_EQ(WeatherUtils::getPrecipitationType(0.16f), 1); // 雨
@@ -379,7 +473,7 @@ TEST(WeatherUtilsTest, GetPrecipitationTypeReturnsCorrectValue) {
     EXPECT_EQ(WeatherUtils::getPrecipitationType(2.0f), 1);  // 雨
 }
 
-TEST(WeatherUtilsTest, CalculateSkyDarkenFactor) {
+TEST_F(WeatherUtilsTest, CalculateSkyDarkenFactor) {
     // 晴天
     EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(0.0f, 0.0f), 0.0f);
 
@@ -393,7 +487,7 @@ TEST(WeatherUtilsTest, CalculateSkyDarkenFactor) {
     EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(0.5f, 0.5f), 0.25f);
 }
 
-TEST(WeatherUtilsTest, CalculateCelestialVisibility) {
+TEST_F(WeatherUtilsTest, CalculateCelestialVisibility) {
     // 晴天
     EXPECT_FLOAT_EQ(WeatherUtils::calculateCelestialVisibility(0.0f), 1.0f);
 
@@ -404,7 +498,7 @@ TEST(WeatherUtilsTest, CalculateCelestialVisibility) {
     EXPECT_FLOAT_EQ(WeatherUtils::calculateCelestialVisibility(0.5f), 0.5f);
 }
 
-TEST(WeatherUtilsTest, CalculateStarBrightness) {
+TEST_F(WeatherUtilsTest, CalculateStarBrightness) {
     // 白天没有星星
     EXPECT_FLOAT_EQ(WeatherUtils::calculateStarBrightness(0.0f, 0), 0.0f);
     EXPECT_FLOAT_EQ(WeatherUtils::calculateStarBrightness(0.0f, 6000), 0.0f);
@@ -418,7 +512,7 @@ TEST(WeatherUtilsTest, CalculateStarBrightness) {
     EXPECT_FLOAT_EQ(rainBrightness, 0.0f);
 }
 
-TEST(WeatherUtilsTest, GetRandomWeatherDurationInValidRange) {
+TEST_F(WeatherUtilsTest, GetRandomWeatherDurationInValidRange) {
     mc::math::Random rng(12345);
 
     for (int i = 0; i < 100; ++i) {
@@ -434,6 +528,45 @@ TEST(WeatherUtilsTest, GetRandomWeatherDurationInValidRange) {
         EXPECT_GE(thunderDuration, WeatherConstants::MIN_THUNDER_TIME);
         EXPECT_LE(thunderDuration, WeatherConstants::MAX_THUNDER_TIME);
     }
+}
+
+TEST_F(WeatherUtilsTest, RainAndSnowChecksFollowBiomeTemperature)
+{
+    WeatherUtilsTestWorld world;
+    world.setHeight(0, 0, 64);
+
+    world.setBiome(0, 0, Biomes::Plains);
+    EXPECT_TRUE(WeatherUtils::canRainAt(world, BlockPos(1, 64, 1)));
+    EXPECT_FALSE(WeatherUtils::canSnowAt(world, BlockPos(1, 64, 1)));
+
+    world.setBiome(0, 0, Biomes::SnowyPlains);
+    EXPECT_FALSE(WeatherUtils::canRainAt(world, BlockPos(1, 64, 1)));
+    EXPECT_TRUE(WeatherUtils::canSnowAt(world, BlockPos(1, 64, 1)));
+
+    world.setBiome(0, 0, Biomes::Desert);
+    EXPECT_FALSE(WeatherUtils::canRainAt(world, BlockPos(1, 64, 1)));
+    EXPECT_FALSE(WeatherUtils::canSnowAt(world, BlockPos(1, 64, 1)));
+}
+
+TEST_F(WeatherUtilsTest, RainAndSnowChecksRequireSkyExposure)
+{
+    WeatherUtilsTestWorld world;
+    world.setHeight(0, 0, 65);
+    world.setBiome(0, 0, Biomes::Plains);
+
+    EXPECT_FALSE(WeatherUtils::canRainAt(world, BlockPos(1, 64, 1)));
+    EXPECT_FALSE(WeatherUtils::canSnowAt(world, BlockPos(1, 64, 1)));
+}
+
+TEST_F(WeatherUtilsTest, RainAndSnowChecksRejectUltraWarmDimensions)
+{
+    WeatherUtilsTestWorld world;
+    world.setHeight(0, 0, 64);
+    world.setBiome(0, 0, Biomes::Plains);
+    world.setUltraWarm(true);
+
+    EXPECT_FALSE(WeatherUtils::canRainAt(world, BlockPos(1, 64, 1)));
+    EXPECT_FALSE(WeatherUtils::canSnowAt(world, BlockPos(1, 64, 1)));
 }
 
 // ============================================================================

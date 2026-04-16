@@ -116,7 +116,7 @@ enum class WeatherType : u8 {
 
 | 函数 | 说明 |
 |------|------|
-| `getPrecipitationType(temperature)` | 根据生物群系温度判断降水类型（0=无, 1=雨, 2=雪） |
+| `getPrecipitationType(temperature)` | 根据生物群系温度判断雨/雪类型（无降水生物群系需由调用者额外过滤） |
 | `canSeeSky(world, pos)` | 判断位置是否可以看到天空 |
 | `canRainAt(world, pos)` | 判断位置是否可以降雨 |
 | `canSnowAt(world, pos)` | 判断位置是否可以降雪 |
@@ -131,7 +131,7 @@ enum class WeatherType : u8 {
 **计算公式**:
 - 天空暗化因子 = `rainStrength * 0.3125 + thunderStrength * 0.1875`
 - 天体可见度 = `1.0 - rainStrength`
-- 降水类型: `temperature <= 0.15f` → 雪，否则 → 雨
+- 降水类型: `temperature <= 0.15f` → 雪，否则 → 雨；`BiomeClimate::Precipitation::None` 需要单独判断
 
 ---
 
@@ -276,7 +276,7 @@ f32 starBrightness = mc::weather::WeatherUtils::calculateStarBrightness(
 
 // 根据温度判断降水类型
 i32 precipitationType = mc::weather::WeatherUtils::getPrecipitationType(biomeTemperature);
-// 0 = 无降水, 1 = 雨, 2 = 雪
+// 1 = 雨, 2 = 雪（无降水生物群系需要单独过滤）
 ```
 
 ---

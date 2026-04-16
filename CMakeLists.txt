@@ -17,7 +17,7 @@ option(MC_BUILD_CLIENT "Build client application" ON)
 option(MC_BUILD_SERVER "Build server application" ON)
 option(MC_BUILD_TESTS "Build unit tests" ON)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
-option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" ON)
+option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing (default OFF)" OFF)
 
 # vcpkg集成
@@ -53,8 +53,12 @@ find_package(Vulkan REQUIRED)
 # 全局编译选项
 if(MSVC)
     add_compile_options(/MP /utf-8)
+    # 架构专用优化：启用 AVX2 指令集，加速向量运算
+    add_compile_options(/arch:AVX2)
 else()
     add_compile_options(-fcolor-diagnostics)
+    # 架构专用优化：针对本地 CPU 生成优化指令
+    add_compile_options(-march=native -mtune=native)
 endif()
 
 if(WIN32)

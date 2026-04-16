@@ -220,6 +220,7 @@ Biome createDesert()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
     // 沙漠生物生成信息
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
@@ -401,6 +402,7 @@ Biome createBadlands()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::RED_SANDSTONE)); // RED_SAND substitute
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE)); // Terracotta substitute
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createBadlands());
     // 恶地特殊的黄褐色草和树叶
     biome.setEffects(BiomeEffects::Builder()
@@ -423,6 +425,7 @@ Biome createErodedBadlands()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     // 与恶地相同的颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -445,6 +448,7 @@ Biome createBadlandsPlateau()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     // 与恶地相同的颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -467,6 +471,7 @@ Biome createWoodedBadlandsPlateau()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     // 与恶地相同的颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -1072,6 +1077,7 @@ Biome createMushroomFields()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::MYCELIUM));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 0.9f, 0.0f, 1.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createEmpty()); // 蘑菇岛没有普通生物
     return biome;
@@ -1089,6 +1095,7 @@ Biome createMushroomFieldShore()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::MYCELIUM));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 0.9f, 0.0f, 1.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createEmpty());
     return biome;
@@ -1105,6 +1112,7 @@ Biome createDesertHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;
@@ -1189,6 +1197,7 @@ Biome createDesertLakes()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;
@@ -1340,6 +1349,7 @@ Biome createModifiedWoodedBadlandsPlateau()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;
@@ -1356,6 +1366,7 @@ Biome createModifiedBadlandsPlateau()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
+    biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;

@@ -421,6 +421,8 @@ enum class Operation : u8 { ... };
     - `LiquidBlock::ticksRandomly()` 和 `LiquidBlock::randomTick()` 是岩浆火焰扩散的入口，漏掉后会出现“方块看起来对了，但行为不触发”的假正确。
 - 岩浆时序是世界相关的。
     - `ServerWorld::setBlock()` 和流体 tick 调度要继续使用 `fluid.getTickDelay(*this)`，不要把主世界/下界差异重新硬编码回固定常量。
+- 天气降水判定不能只看温度。
+    - `WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `BiomeClimate::Precipitation::None` 以及温度阈值一起判断；沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式标记为 `None`。
 
 ## Self-Maintenance Rule
 

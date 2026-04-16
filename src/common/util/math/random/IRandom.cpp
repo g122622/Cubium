@@ -1,4 +1,5 @@
 #include "IRandom.hpp"
+#include "../../assert/AssertAll.hpp"
 #include <cmath>
 
 namespace mc::math {
@@ -16,10 +17,7 @@ i32 IRandom::nextInt() {
 }
 
 i32 IRandom::nextInt(i32 bound) {
-    // TODO 改为assert
-    if (bound <= 0) {
-        return 0;
-    }
+    MC_ASSERT_RELEASE(bound > 0);
 
     // MC 风格的无偏差随机数生成
     // 参考 MC Random.nextInt(int)
@@ -41,10 +39,7 @@ i32 IRandom::nextInt(i32 bound) {
 }
 
 i32 IRandom::nextInt(i32 min, i32 max) {
-    // TODO 改为assert
-    if (min >= max) {
-        return min;
-    }
+    MC_ASSERT_RELEASE(min <= max);
     return min + nextInt(max - min + 1);
 }
 
@@ -101,10 +96,7 @@ i64 IRandom::nextLong() {
 }
 
 i64 IRandom::nextLong(i64 bound) {
-    // TODO 改为assert
-    if (bound <= 0) {
-        return 0;
-    }
+    MC_ASSERT_RELEASE(bound > 0);
 
     u64 r = nextU64();
     u64 m = static_cast<u64>(bound);
