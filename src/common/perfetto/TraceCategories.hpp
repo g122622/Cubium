@@ -111,6 +111,8 @@ PERFETTO_DEFINE_CATEGORIES(
         .SetDescription("缓存操作"),
 
     // === 服务端细粒度分类 ===
+    perfetto::Category("server.initialization")
+        .SetDescription("服务端初始化"),
     perfetto::Category("server.tick")
         .SetDescription("服务端游戏刻处理"),
     perfetto::Category("server.network")

@@ -176,6 +176,8 @@ void MinecraftServer::tick()
 
 void MinecraftServer::initializeCoreManagers()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeCoreManagers");
+
     // 创建核心管理器
     m_playerManager = std::make_unique<core::PlayerManager>(m_config);
     m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
@@ -216,6 +218,8 @@ Result<void> MinecraftServer::initializeWorld()
 
 void MinecraftServer::initializeInteractionManagers()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeInteractionManagers");
+
     m_blockInteractionManager = std::make_unique<interaction::BlockInteractionManager>(
         *m_world, *m_playerManager, m_lootTableManager);
 
@@ -233,6 +237,8 @@ void MinecraftServer::initializeInteractionManagers()
 
 void MinecraftServer::initializeSyncManagers()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeSyncManagers");
+
     if (!m_world) {
         spdlog::error("Cannot initialize sync managers: world not created");
         return;
@@ -246,6 +252,8 @@ void MinecraftServer::initializeSyncManagers()
 
 void MinecraftServer::initializeChunkSyncManagers()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeChunkSyncManagers");
+
     if (!m_world || !m_world->chunkManager() || !m_world->lightManager()) {
         spdlog::warn("Cannot initialize chunk sync managers: world not ready");
         return;
@@ -273,6 +281,8 @@ void MinecraftServer::initializeChunkSyncManagers()
 
 void MinecraftServer::initializeRegistries(bool registerEntities)
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries");
+
     // 初始化方块注册表
     VanillaBlocks::initialize();
     spdlog::info("Vanilla blocks initialized");
@@ -851,7 +861,7 @@ void MinecraftServer::handleTeleportConfirmPacket(PlayerId playerId, const u8* d
     auto result = network::TeleportConfirmPacket::deserialize(deser);
 
     if (result.failed()) {
-        spdlog::debug("Failed to parse teleport confirm from player {}", playerId);
+        spdlog::error("Failed to parse teleport confirm from player {}", playerId);
         return;
     }
 
@@ -880,6 +890,8 @@ void MinecraftServer::handleKeepAlivePacket(PlayerId playerId, const u8* data, s
     if (result.success()) {
         u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
         m_keepAliveManager->handleKeepAliveResponse(playerId, packet.timestamp(), currentTimeMs);
+    } else {
+        spdlog::error("Failed to parse keep alive packet from player {}: {}", playerId, result.error().message());
     }
 }
 
@@ -894,6 +906,8 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
     auto result = network::ChatMessagePacket::deserialize(deser);
 
     if (result.failed()) {
+        spdlog::error("Failed to parse chat message packet from player {}: {}",
+                      playerId, result.error().message());
         return;
     }
 
@@ -1151,8 +1165,8 @@ void MinecraftServer::broadcastSound(const ResourceLocation& soundEventId,
                                     const Vector3& position,
                                     f32 volume,
                                     f32 pitch) {
-    spdlog::debug("[Sound] Broadcasting sound: {} at ({}, {}, {})",
-                  soundEventId.toString(), position.x, position.y, position.z);
+    // spdlog::debug("[Sound] Broadcasting sound: {} at ({}, {}, {})",
+    //               soundEventId.toString(), position.x, position.y, position.z);
 
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
@@ -1174,15 +1188,15 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
                                             f32 range,
                                             f32 volume,
                                             f32 pitch) {
-    spdlog::debug("[Sound] Broadcasting sound in range: {} at ({}, {}, {}) range={}",
-                  soundEventId.toString(), position.x, position.y, position.z, range);
+    // spdlog::debug("[Sound] Broadcasting sound in range: {} at ({}, {}, {}) range={}",
+    //               soundEventId.toString(), position.x, position.y, position.z, range);
 
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 
     auto result = packet.serialize();
     if (result.failed()) {
-        spdlog::warn("Failed to serialize PlaySoundPacket: {}", result.error().message());
+        spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
         return;
     }
 
@@ -1208,7 +1222,7 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
         }
     });
 
-    spdlog::debug("[Sound] Sound {} sent to {} players", soundEventId.toString(), playersNotified);
+    // spdlog::debug("[Sound] Sound {} sent to {} players", soundEventId.toString(), playersNotified);
 }
 
 void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
@@ -1217,14 +1231,14 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
                                         const Vector3& position,
                                         f32 volume,
                                         f32 pitch) {
-    spdlog::debug("[Sound] Sending sound {} to player {}", soundEventId.toString(), playerId);
+    // spdlog::debug("[Sound] Sending sound {} to player {}", soundEventId.toString(), playerId);
 
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 
     auto result = packet.serialize();
     if (result.failed()) {
-        spdlog::warn("Failed to serialize PlaySoundPacket: {}", result.error().message());
+        spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
         return;
     }
 

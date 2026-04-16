@@ -82,6 +82,8 @@ Result<void> IntegratedServer::initialize()
 
 Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
 {
+    MC_TRACE_EVENT("server.initialization", "IntegratedServer::initialize");
+
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "Server already initialized");
     }

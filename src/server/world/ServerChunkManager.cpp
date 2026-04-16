@@ -141,6 +141,8 @@ ServerChunkManager::~ServerChunkManager()
 
 Result<void> ServerChunkManager::initialize()
 {
+    MC_TRACE_EVENT("server.initialization", "ServerChunkManager::initialize");
+
     // 启动 Worker 线程池
     startWorkers();
 
