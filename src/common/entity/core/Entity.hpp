@@ -215,6 +215,13 @@ public:
      */
     [[nodiscard]] virtual String getTypeId() const;
 
+    /**
+     * @brief 设置实体类型标识符
+     *
+     * 当实体由注册表工厂创建时，调用方应传入注册名（如 minecraft:pig）。
+     */
+    void setTypeId(const String& typeId) { m_typeId = typeId; }
+
     // ========== 世界访问 ==========
 
     [[nodiscard]] IWorld* world() { return m_world; }
@@ -795,6 +802,7 @@ protected:
     EntityId m_id;
     LegacyEntityType m_legacyType;
     String m_uuid;              // UUID 字符串
+    String m_typeId;            // 资源标识符（如 minecraft:pig）
     Vector3 m_position;         // 当前位置
     Vector3 m_prevPosition;     // 上一帧位置
     Vector3 m_velocity;         // 速度

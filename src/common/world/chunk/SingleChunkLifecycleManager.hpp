@@ -165,6 +165,14 @@ public:
     [[nodiscard]] bool hasActiveRequest() const;
 
     /**
+     * @brief 获取当前请求目标状态
+     */
+    [[nodiscard]] const ChunkStatus* requestTargetStatus() const {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_requestTarget;
+    }
+
+    /**
      * @brief 创建或升级请求
      */
     ChunkRequestControl upsertRequest(const ChunkStatus& targetStatus, i32 priority);
@@ -183,6 +191,12 @@ public:
      * @brief 取消活动请求
      */
     void cancelActiveRequest();
+
+    /**
+        * @brief 尝试标记请求已提交给 worker
+        * @return true 表示本次成功抢占提交权
+     */
+        [[nodiscard]] bool tryMarkRequestSubmitted(u64 generation);
 
     /**
      * @brief 请求代际是否仍然有效
@@ -335,6 +349,8 @@ public:
      * @brief 设置级别变化回调
      */
     void setLevelChangeCallback(GenerationCallback callback) {
+        // 禁止重复设置回调
+        MC_ASSERT_RELEASE(!m_levelChangeCallback);
         m_levelChangeCallback = std::move(callback);
     }
 
@@ -342,6 +358,8 @@ public:
      * @brief 设置状态变化回调
      */
     void setStatusChangeCallback(GenerationCallback callback) {
+        // 禁止重复设置回调
+        MC_ASSERT_RELEASE(!m_statusChangeCallback);
         m_statusChangeCallback = std::move(callback);
     }
 
@@ -385,6 +403,7 @@ private:
     i32 m_requestPriority = 0;
     const ChunkStatus* m_requestTarget = &ChunkStatuses::EMPTY;
     std::shared_ptr<std::atomic<bool>> m_cancelToken;
+    bool m_requestSubmitted = false;
 
     // 正在生成的区块
     std::unique_ptr<ChunkPrimer> m_generatingChunk;

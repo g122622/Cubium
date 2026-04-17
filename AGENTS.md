@@ -349,7 +349,10 @@ namespace vk = vulkan;
 
 // ❌ 禁止：不允许使用 using namespace std！
 using namespace std;  // ❌
+
 ```
+
+对于只在单个 .cpp 文件中使用的类、函数、全局变量等，应放入匿名 namespace，避免污染，而不是使用static或全局命名空间。
 
 ---
 

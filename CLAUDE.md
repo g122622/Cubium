@@ -333,6 +333,8 @@ enum class Operation : u8 { ... };
 
 - `WorldGenRegion` is not an `IBlockReader`; do not pass it directly to `Block::isValidPosition`.
     - In worldgen features, use explicit local placement checks (`isWater`, support block checks) when running in `WorldGenRegion` context.
+- `WorldGenRegion` now uses stage-specific `ChunkStatus::taskRange()` windows, and `getTopBlockY()` asserts if a requested chunk is missing.
+    - Do not treat out-of-window height queries as "height 0"; fix the region radius or the call site instead.
 - `IWorld` now exposes `BlockPos` overloads for block-position semantics.
     - Prefer them whenever the caller already has a `BlockPos`, and keep `ServerWorld` style xyz implementations from hiding them by re-exporting the overload set with `using IWorld::...`.
 - `ISpawnWorldReader`, `ClientWorld`, and lighting/generation helpers are not part of that `IWorld` contract.
@@ -377,6 +379,8 @@ enum class Operation : u8 { ... };
     - Do not bypass `setSneaking()` / `setSwimming()` / `setSleeping()` with a raw standing pose change when you want vanilla-like low-ceiling behavior.
 - `EntityMetadataPacket` / `EntityMetadataSerializer` now feed both server tracking and client entity application.
     - `EntityTracker` 负责 spawn 内联 metadata 和 dirty metadata packet，`ClientEntity::setMetadata()` 负责把原始数据写进本地数据管理器；新增字段时三处必须一起改。
+- `Entity::getTypeId()` now prefers an explicit runtime `typeId` injected during `EntityType::create(...)`.
+    - 不要再依赖 `LegacyEntityType` 单独决定网络实体类型；很多工厂构造仍传 `LegacyEntityType::Unknown`，正确做法是保证实体通过注册表创建时注入注册名，繁殖等旁路也要显式继承父类型。
 - Do not bootstrap `StarLightEngine::light(...)` from chunk-owned nibble arrays when running unlit initialization.
     - Mirror Moonrise: start with temporary NULL-state nibbles, run `handleEmptySectionChanges(..., isUnlit=true)`, then `lightChunk(...)`, and finally write the generated nibbles back to the chunk.
 - In unlit `light(...)` bootstrap, do not seed emptiness cache from stale default maps.

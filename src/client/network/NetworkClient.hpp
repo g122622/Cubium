@@ -167,9 +167,6 @@ public:
     void sendContainerClick(const ContainerClickPacket& packet);
     void sendCloseContainer(ContainerId containerId);
 
-    // 心跳
-    void sendKeepAliveIfNeeded();
-
     // 主循环更新
     void poll();
 

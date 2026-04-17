@@ -1119,9 +1119,11 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 i32 NoiseChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& chunk,
                                           std::vector<SpawnedEntityData>& outEntities)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "SpawnInitialMobs", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_EVENT("world.chunk_gen", "NoiseChunkGenerator::spawnInitialMobs", "x", chunk.x(), "z", chunk.z());
+
     // 使用 WorldGenSpawner 放置被动动物
     if (!m_worldGenSpawner || !m_worldGenSpawner->isEnabled()) {
+        spdlog::warn("[NoiseChunkGenerator] WorldGenSpawner is not enabled. Skipping initial mob spawning.");
         return 0;
     }
 

@@ -54,7 +54,7 @@ gen/
 | `placeFeatures()` | 放置特征 |
 | `spawnInitialMobs()` | 生成初始生物 |
 
-`WorldGenRegion` 提供有限的世界视图，只能访问指定区块及其邻居。
+`WorldGenRegion` 提供有限的世界视图，访问范围由当前生成阶段的 `ChunkStatus::taskRange()` 决定；`FEATURES`、`NOISE` 等阶段会使用更大的动态方阵窗口，越界或缺失 chunk 会在热路径上断言失败。
 
 #### NoiseChunkGenerator.hpp - 噪声区块生成器
 
@@ -103,8 +103,9 @@ public:
 
 ```cpp
 ImprovedNoiseGenerator noise(seed);
-f32 value = noise.noise(x, y, z);
-```
+// 创建生成区域（按阶段半径准备动态窗口）
+std::vector<IChunk*> chunks = {...};
+WorldGenRegion region(chunkX, chunkZ, radius, std::move(chunks));
 
 #### OctavesNoiseGenerator.hpp - 多倍频噪声
 
@@ -625,21 +626,21 @@ enum class DecorationStage : u8 {
 
 ### 内部依赖
 
-```
+```text
 gen/
-├── depends on → biome/          # 生物群系定义
-├── depends on → block/          # 方块状态
-├── depends on → chunk/          # 区块数据结构
-├── depends on → entity/         # 实体类型（生物放置）
-├── depends on → util/math/      # 随机数、向量
-├── depends on → util/nbt/       # NBT 解析（模板加载）
-└── depends on → resource/       # 资源加载（结构模板）
+├── depends on → biome/   # 生物群系定义
+├── depends on → block/   # 方块状态
+├── depends on → chunk/   # 区块数据结构
+├── depends on → entity/  # 实体类型（生物放置）
+├── depends on → resource/# 资源加载（结构模板）
+└── depends on → util/    # 随机数、数学、断言等基础工具
 ```
 
 ### 外部依赖
 
 - `glm` - 数学运算
 - `spdlog` - 日志记录
+- `nlohmann-json` - 配置和数据解析
 
 ---
 
@@ -665,10 +666,11 @@ generator.setBiomeProvider(std::move(biomeProvider));
 ```cpp
 // 创建区块 primer
 ChunkPrimer primer(chunkX, chunkZ);
+const i32 radius = 8;
 
 // 创建生成区域（需要邻居区块）
-std::array<IChunk*, 9> chunks = {...}; // 中心 + 8 邻居
-WorldGenRegion region(chunkX, chunkZ, chunks);
+std::vector<IChunk*> chunks = {...};
+WorldGenRegion region(chunkX, chunkZ, radius, std::move(chunks));
 
 // 按阶段生成
 generator.generateBiomes(region, primer);

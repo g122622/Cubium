@@ -3,6 +3,7 @@
 #include "../../core/Types.hpp"
 #include "../../util/math/random/Random.hpp"
 #include <functional>
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 
@@ -242,6 +243,7 @@ public:
      * @param callback 回调函数
      */
     void setLevelChangeCallback(LevelChangeCallback callback) {
+        MC_ASSERT_RELEASE(!m_levelChangeCallback);
         m_levelChangeCallback = std::move(callback);
     }
 
@@ -258,6 +260,7 @@ public:
      * @param callback 回调函数
      */
     void setExperienceChangeCallback(ExperienceChangeCallback callback) {
+        MC_ASSERT_RELEASE(!m_experienceChangeCallback);
         m_experienceChangeCallback = std::move(callback);
     }
 

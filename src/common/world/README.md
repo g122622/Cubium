@@ -430,7 +430,9 @@ NoiseChunkGenerator generator(seed, std::move(settings), std::move(biomeProvider
 
 // Generate a chunk
 ChunkPrimer primer(chunkX, chunkZ);
-WorldGenRegion region(chunkX, chunkZ, neighbors);
+const i32 radius = 8;
+std::vector<IChunk*> neighbors = {...};
+WorldGenRegion region(chunkX, chunkZ, radius, std::move(neighbors));
 generator.generateBiomes(region, primer);
 generator.generateNoise(region, primer);
 generator.buildSurface(region, primer);

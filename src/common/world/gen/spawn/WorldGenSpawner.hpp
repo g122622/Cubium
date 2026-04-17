@@ -42,6 +42,7 @@ struct SpawnedEntityData {
     f32 z = 0.0f;
 
     /// 生成原因（区块生成）
+    // TODO 目前似乎只有这一个生成原因，需要拓展
     static constexpr i32 SPAWN_REASON_CHUNK_GENERATION = 1;
 
     /// 生成原因

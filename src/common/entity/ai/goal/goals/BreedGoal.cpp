@@ -104,6 +104,8 @@ void BreedGoal::spawnBaby() {
     // 生成幼体
     auto baby = m_animal->spawnBaby(*m_targetMate);
     if (baby) {
+        baby->setTypeId(m_animal->getTypeId());
+
         IWorld* world = m_animal->world();
         if (world) {
             // 设置幼体位置

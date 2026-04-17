@@ -73,6 +73,7 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
 - 多来源票据统一调度（玩家、强制、传送、门、光照等）
 - 请求代际保护，避免旧结果回写
 - 区块状态管理（EMPTY → FULL）
+- 按 `ChunkStatus::taskRange()` 为每个生成阶段构建对应的 `WorldGenRegion`，`FEATURES` / `NOISE` 会使用更大的邻域窗口，`getTopBlockY()` 遇到缺失 chunk 会直接断言
 
 **关键方法**：
 ```cpp

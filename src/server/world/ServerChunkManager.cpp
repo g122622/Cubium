@@ -58,16 +58,18 @@ public:
     }
 
     [[nodiscard]] const ChunkSection* const* getSections() const override {
-        return m_chunk ? m_chunk->getSections() : nullptr;
+        MC_ASSERT_RELEASE(m_chunk);
+        return m_chunk->getSections();
     }
 
     [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override {
-        return m_chunk ? m_chunk->getBiomeAtBlock(x, y, z) : Biomes::Plains;
+        MC_ASSERT_RELEASE(m_chunk);
+        return m_chunk->getBiomeAtBlock(x, y, z);
     }
 
     [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override {
-        (void)type;
-        return m_chunk ? m_chunk->getHighestBlock(x, z) : 0;
+        MC_ASSERT_RELEASE(m_chunk);
+        return m_chunk->getTopBlockY(type, x, z);
     }
 
     void updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override {
@@ -88,12 +90,15 @@ public:
     }
 
     [[nodiscard]] bool isModified() const override {
-        return m_chunk ? m_chunk->isDirty() : false;
+        MC_ASSERT_RELEASE(m_chunk);
+        return m_chunk->isDirty();
     }
 
     void setModified(bool modified) override {
         if (m_chunk) {
             m_chunk->setDirty(modified);
+        } else {
+            MC_ASSERT_RELEASE(false);
         }
     }
 
@@ -193,16 +198,6 @@ void ServerChunkManager::startWorkers()
 {
     // 设置生成器函数
     m_workerPool.setGenerator([this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        // 创建 WorldGenRegion（简化版）
-        std::array<IChunk*, 9> chunks{};
-        std::array<std::unique_ptr<IChunk>, 9> neighborAdapters{};
-        chunks[4] = &chunk;  // 中心区块
-
-        // 获取邻居区块（如果可用）
-        getNeighborChunks(chunk.x(), chunk.z(), chunks, neighborAdapters);
-
-        WorldGenRegion region(chunk.x(), chunk.z(), chunks);
-
         // 按阶段生成
         const auto& allStatuses = ChunkStatus::getAll();
         for (const auto& status : allStatuses) {
@@ -215,6 +210,15 @@ void ServerChunkManager::startWorkers()
             }
 
             if (!chunk.hasCompletedStatus(status)) {
+                const i32 regionRadius = std::max(0, status.taskRange());
+                std::vector<IChunk*> chunks;
+                std::vector<std::unique_ptr<IChunk>> neighborAdapters;
+                chunks.resize(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
+                neighborAdapters.resize(chunks.size());
+
+                getNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, chunks, neighborAdapters);
+                WorldGenRegion region(chunk.x(), chunk.z(), regionRadius, std::move(chunks));
+
                 // 执行生成
                 if (status == ChunkStatuses::STRUCTURE_STARTS) {
                     m_generator->generateStructureStarts(region, chunk);
@@ -246,7 +250,7 @@ void ServerChunkManager::startWorkers()
                 } else if (status == ChunkStatuses::SPAWN) {
                     // SPAWN 阶段：计算生物生成点
                     // 参考 MC 1.16.5: SPAWN 阶段计算初始生成位置
-                    // 目前简化实现
+                    // TODO 目前简化实现
                     MC_TRACE_EVENT("world.chunk_gen", "Spawn");
                 } else if (status == ChunkStatuses::HEIGHTMAPS) {
                     MC_TRACE_EVENT("world.chunk_gen", "Heightmaps");
@@ -261,19 +265,30 @@ void ServerChunkManager::startWorkers()
             return;
         }
 
-        // 在区块生成完成后调用 spawnInitialMobs
-        // 参考 MC 1.16.5 performWorldGenSpawning
-        // 注意：这里我们已经在 FEATURES 阶段之后，地形已经完整生成
-        if (chunk.hasCompletedStatus(ChunkStatuses::FEATURES)) {
+        // 在高度图阶段完成后调用 spawnInitialMobs。
+        // 生成点计算依赖 MotionBlockingNoLeaves 等高度图，必须等 HEIGHTMAPS 执行完。
+        if (chunk.hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
             if (cancelSignal.load(std::memory_order_acquire)) {
                 return;
             }
             MC_TRACE_EVENT("world.chunk_gen", "SpawnInitialMobs");
             std::vector<SpawnedEntityData> entities;
+            std::vector<IChunk*> chunks;
+            std::vector<std::unique_ptr<IChunk>> neighborAdapters;
+            constexpr i32 spawnRegionRadius = 1;
+            chunks.resize(static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
+            neighborAdapters.resize(chunks.size());
+
+            getNeighborChunks(chunk.x(), chunk.z(), spawnRegionRadius, &chunk, chunks, neighborAdapters);
+            WorldGenRegion region(chunk.x(), chunk.z(), spawnRegionRadius, std::move(chunks));
             m_generator->spawnInitialMobs(region, chunk, entities);
 
             // 将生成的实体数据存储到 ChunkPrimer 中
             for (auto& entityData : entities) {
+                spdlog::info("Chunk ({}, {}): Spawned entity {} at ({}, {}, {}) with reason {}",
+                             chunk.x(), chunk.z(),
+                             entityData.entityTypeId, entityData.x, entityData.y, entityData.z,
+                             entityData.spawnReason);
                 chunk.addSpawnedEntity(std::move(entityData));
             }
         }
@@ -457,6 +472,9 @@ SingleChunkLifecycleManager* ServerChunkManager::getOrCreateSingleChunkLifecycle
     }
 
     auto singleChunkLifecycleManager = std::make_unique<SingleChunkLifecycleManager>(x, z);
+    singleChunkLifecycleManager->setStatusChangeCallback([this](SingleChunkLifecycleManager& manager) {
+        onChunkStatusChanged(manager.x(), manager.z(), manager.getStatus());
+    });
 
     auto* ptr = singleChunkLifecycleManager.get();
     m_singleChunkLifecycleManagers[key] = std::move(singleChunkLifecycleManager);
@@ -548,6 +566,12 @@ void ServerChunkManager::scheduleGeneration(SingleChunkLifecycleManager& singleC
         return;
     }
 
+    if (const ChunkStatus* prerequisiteStatus = getNeighborPrerequisiteStatus(targetStatus)) {
+        if (!checkNeighborsReady(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), *prerequisiteStatus)) {
+            return;
+        }
+    }
+
     const i32 ticketLevel = m_ticketManager.getChunkLevel(singleChunkLifecycleManager.x(),
                                                            singleChunkLifecycleManager.z());
     const i32 priority = computeSchedulePriority(singleChunkLifecycleManager.x(),
@@ -561,6 +585,36 @@ void ServerChunkManager::scheduleGeneration(SingleChunkLifecycleManager& singleC
                            priority,
                            nullptr,
                            nullptr);
+}
+
+const ChunkStatus* ServerChunkManager::getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const
+{
+    const auto& allStatuses = ChunkStatus::getAll();
+    const ChunkStatus* prerequisiteStage = nullptr;
+    i32 prerequisiteRange = 0;
+
+    for (const auto& status : allStatuses) {
+        if (status.ordinal() > targetStatus.ordinal()) {
+            break;
+        }
+
+        const i32 statusRange = status.taskRange();
+        if (statusRange > prerequisiteRange ||
+            (statusRange == prerequisiteRange && prerequisiteStage && status.ordinal() > prerequisiteStage->ordinal())) {
+            prerequisiteRange = statusRange;
+            prerequisiteStage = &status;
+        }
+    }
+
+    if (prerequisiteRange <= 0) {
+        return nullptr;
+    }
+
+    // 这里返回“高邻域阶段的父阶段”作为调度前置，避免在初始阶段形成互相等待。
+    // 例如 FULL 的最大邻域阶段是 FEATURES（range=8），其父阶段是 LIQUID_CARVERS（range=0），
+    // 可先让任务进入 worker 推进流水线，再由状态回调驱动后续重试。
+    const ChunkStatus* prerequisiteStatus = prerequisiteStage ? prerequisiteStage->parent() : nullptr;
+    return prerequisiteStatus ? prerequisiteStatus : prerequisiteStage;
 }
 
 void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
@@ -621,7 +675,17 @@ void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
         }
     }
 
+    if (const ChunkStatus* prerequisiteStatus = getNeighborPrerequisiteStatus(targetStatus)) {
+        if (!checkNeighborsReady(x, z, *prerequisiteStatus)) {
+            return;
+        }
+    }
+
     if (!control.shouldEnqueue) {
+        return;
+    }
+
+    if (!singleChunkLifecycleManager->tryMarkRequestSubmitted(control.generation)) {
         return;
     }
 
@@ -758,16 +822,6 @@ void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& sing
         return;
     }
 
-    // 创建 WorldGenRegion（简化版）
-    std::array<IChunk*, 9> chunks{};
-    std::array<std::unique_ptr<IChunk>, 9> neighborAdapters{};
-    chunks[4] = primer;
-
-    // 获取邻居区块
-    getNeighborChunks(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), chunks, neighborAdapters);
-
-    WorldGenRegion region(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), chunks);
-
     // 按阶段生成
     const auto& allStatuses = ChunkStatus::getAll();
     for (const auto& s : allStatuses) {
@@ -776,6 +830,15 @@ void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& sing
         }
 
         if (!primer->hasCompletedStatus(s)) {
+            const i32 regionRadius = std::max(0, s.taskRange());
+            std::vector<IChunk*> chunks;
+            std::vector<std::unique_ptr<IChunk>> neighborAdapters;
+            chunks.resize(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
+            neighborAdapters.resize(chunks.size());
+
+            getNeighborChunks(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), regionRadius, primer, chunks, neighborAdapters);
+            WorldGenRegion region(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), regionRadius, std::move(chunks));
+
             // 执行生成
             if (s == ChunkStatuses::STRUCTURE_STARTS) {
                 m_generator->generateStructureStarts(region, *primer);
@@ -808,10 +871,18 @@ void ServerChunkManager::executeGenerationTask(SingleChunkLifecycleManager& sing
         }
     }
 
-    // 在区块生成完成后调用 spawnInitialMobs
-    // 参考 MC 1.16.5 performWorldGenSpawning
-    if (primer->hasCompletedStatus(ChunkStatuses::FEATURES)) {
+    // 在高度图阶段完成后调用 spawnInitialMobs。
+    // 生成点计算依赖 MotionBlockingNoLeaves 等高度图，必须等 HEIGHTMAPS 执行完。
+    if (primer->hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
         std::vector<SpawnedEntityData> entities;
+        std::vector<IChunk*> chunks;
+        std::vector<std::unique_ptr<IChunk>> neighborAdapters;
+        constexpr i32 spawnRegionRadius = 1;
+        chunks.resize(static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
+        neighborAdapters.resize(chunks.size());
+
+        getNeighborChunks(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), spawnRegionRadius, primer, chunks, neighborAdapters);
+        WorldGenRegion region(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z(), spawnRegionRadius, std::move(chunks));
         m_generator->spawnInitialMobs(region, *primer, entities);
 
         // 将生成的实体数据存储到 ChunkPrimer 中
@@ -854,7 +925,7 @@ bool ServerChunkManager::checkNeighborsReady(ChunkCoord x, ChunkCoord z, const C
         requiredStatus = &status;
     }
 
-    // 检查 8 个邻居
+    // 检查邻居区块
     const i32 range = status.taskRange();
     for (i32 dz = -range; dz <= range; ++dz) {
         for (i32 dx = -range; dx <= range; ++dx) {
@@ -870,38 +941,73 @@ bool ServerChunkManager::checkNeighborsReady(ChunkCoord x, ChunkCoord z, const C
     return true;
 }
 
+void ServerChunkManager::onChunkStatusChanged(ChunkCoord x, ChunkCoord z, const ChunkStatus& /*status*/)
+{
+    static constexpr i32 retryRadius = 8;
+
+    std::vector<SingleChunkLifecycleManager*> neighbors;
+    neighbors.reserve(static_cast<size_t>((retryRadius * 2 + 1) * (retryRadius * 2 + 1)));
+
+    {
+        std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
+        for (i32 dz = -retryRadius; dz <= retryRadius; ++dz) {
+            for (i32 dx = -retryRadius; dx <= retryRadius; ++dx) {
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
+
+                auto it = m_singleChunkLifecycleManagers.find(posToKey(x + dx, z + dz));
+                if (it != m_singleChunkLifecycleManagers.end()) {
+                    neighbors.push_back(it->second.get());
+                }
+            }
+        }
+    }
+
+    for (SingleChunkLifecycleManager* neighbor : neighbors) {
+        if (neighbor) {
+            scheduleGeneration(*neighbor, ChunkStatuses::FULL);
+        }
+    }
+}
+
 void ServerChunkManager::getNeighborChunks(
     ChunkCoord x,
     ChunkCoord z,
-    std::array<IChunk*, 9>& neighbors,
-    std::array<std::unique_ptr<IChunk>, 9>& neighborAdapters)
+    i32 radius,
+    IChunk* centerChunk,
+    std::vector<IChunk*>& neighbors,
+    std::vector<std::unique_ptr<IChunk>>& neighborAdapters)
 {
-    // 索引顺序：0=NW, 1=N, 2=NE, 3=W, 4=中心, 5=E, 6=SW, 7=S, 8=SE
-    // 偏移量（dx, dz）
-    static constexpr i32 offsets[9][2] = {
-        {-1, -1}, {0, -1}, {1, -1},  // NW, N, NE
-        {-1, 0},  {0, 0},  {1, 0},   // W, 中心, E
-        {-1, 1},  {0, 1},  {1, 1}    // SW, S, SE
-    };
+    const i32 diameter = radius * 2 + 1;
+    MC_ASSERT_RELEASE(centerChunk);
+    MC_ASSERT_RELEASE(static_cast<i32>(neighbors.size()) == diameter * diameter);
+    MC_ASSERT_RELEASE(static_cast<i32>(neighborAdapters.size()) == diameter * diameter);
 
-    for (size_t i = 0; i < 9; ++i) {
-        // 跳过中心位置（调用者已设置）
-        if (i == 4) {
-            continue;
-        }
+    for (i32 dz = -radius; dz <= radius; ++dz) {
+        for (i32 dx = -radius; dx <= radius; ++dx) {
+            const size_t index = static_cast<size_t>((dz + radius) * diameter + (dx + radius));
 
-        SingleChunkLifecycleManager* singleChunkLifecycleManager = getSingleChunkLifecycleManager(x + offsets[i][0], z + offsets[i][1]);
-        if (singleChunkLifecycleManager) {
-            if (auto data = getChunkShared(x + offsets[i][0], z + offsets[i][1])) {
-                neighborAdapters[i] = std::make_unique<ChunkDataChunkAdapter>(std::move(data));
-                neighbors[i] = neighborAdapters[i].get();
-            } else {
-                neighborAdapters[i].reset();
-                neighbors[i] = nullptr;
+            if (dx == 0 && dz == 0) {
+                neighbors[index] = centerChunk;
+                continue;
             }
-        } else {
-            neighborAdapters[i].reset();
-            neighbors[i] = nullptr;
+
+            SingleChunkLifecycleManager* singleChunkLifecycleManager = getSingleChunkLifecycleManager(x + dx, z + dz);
+            if (singleChunkLifecycleManager) {
+                if (auto data = getChunkShared(x + dx, z + dz)) {
+                    neighborAdapters[index] = std::make_unique<ChunkDataChunkAdapter>(std::move(data));
+                    neighbors[index] = neighborAdapters[index].get();
+                } else {
+                    // 邻居暂不可用时放入同坐标占位 ChunkPrimer，避免 WorldGenRegion 热路径出现空指针断言。
+                    neighborAdapters[index] = std::make_unique<ChunkPrimer>(x + dx, z + dz);
+                    neighbors[index] = neighborAdapters[index].get();
+                }
+            } else {
+                // 尚未创建生命周期管理器的邻居同样使用占位区块填充，保持窗口完整性。
+                neighborAdapters[index] = std::make_unique<ChunkPrimer>(x + dx, z + dz);
+                neighbors[index] = neighborAdapters[index].get();
+            }
         }
     }
 }

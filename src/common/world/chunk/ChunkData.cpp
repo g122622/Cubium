@@ -282,7 +282,7 @@ BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const {
 
 BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const {
     if (x < 0 || x >= WIDTH || z < 0 || z >= WIDTH) {
-        return -1;
+        MC_ASSERT_RELEASE(false);
     }
 
     // 检查是否有特定类型的高度图

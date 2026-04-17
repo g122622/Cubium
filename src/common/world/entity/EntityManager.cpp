@@ -15,7 +15,7 @@ EntityId EntityManager::addEntity(std::unique_ptr<Entity> entity) {
         return 0;
     }
 
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     EntityId id = entity->id();
 
@@ -31,7 +31,7 @@ EntityId EntityManager::addEntity(std::unique_ptr<Entity> entity) {
 }
 
 std::unique_ptr<Entity> EntityManager::removeEntity(EntityId id) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     auto it = m_entities.find(id);
     if (it == m_entities.end()) {
@@ -46,23 +46,23 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityId id) {
 }
 
 bool EntityManager::hasEntity(EntityId id) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_entities.find(id) != m_entities.end();
 }
 
 size_t EntityManager::entityCount() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_entities.size();
 }
 
 Entity* EntityManager::getEntity(EntityId id) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_entities.find(id);
     return it != m_entities.end() ? it->second.get() : nullptr;
 }
 
 const Entity* EntityManager::getEntity(EntityId id) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_entities.find(id);
     return it != m_entities.end() ? it->second.get() : nullptr;
 }
@@ -71,7 +71,7 @@ std::vector<Entity*> EntityManager::getEntitiesInAABB(
     const AxisAlignedBB& box,
     const Entity* except) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
     for (const auto& [id, entity] : m_entities) {
@@ -98,7 +98,7 @@ std::vector<Entity*> EntityManager::getEntitiesInRange(
     f32 range,
     const Entity* except) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
     f32 rangeSq = range * range;
@@ -128,7 +128,7 @@ std::vector<Entity*> EntityManager::getEntitiesInRange(
 }
 
 std::vector<Entity*> EntityManager::getEntitiesByType(LegacyEntityType type) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
     for (const auto& [id, entity] : m_entities) {
@@ -141,7 +141,7 @@ std::vector<Entity*> EntityManager::getEntitiesByType(LegacyEntityType type) con
 }
 
 void EntityManager::forEachEntity(const std::function<bool(Entity*)>& callback) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     for (auto& [id, entity] : m_entities) {
         if (!callback(entity.get())) {
             break;
@@ -150,7 +150,7 @@ void EntityManager::forEachEntity(const std::function<bool(Entity*)>& callback) 
 }
 
 void EntityManager::forEachEntity(const std::function<bool(const Entity*)>& callback) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     for (const auto& [id, entity] : m_entities) {
         if (!callback(entity.get())) {
             break;
@@ -159,7 +159,7 @@ void EntityManager::forEachEntity(const std::function<bool(const Entity*)>& call
 }
 
 void EntityManager::tick() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     // 更新所有实体
     for (auto& [id, entity] : m_entities) {
@@ -173,7 +173,7 @@ void EntityManager::tick() {
 }
 
 void EntityManager::removeDeadEntities() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     removeDeadEntitiesInternal();
 }
 

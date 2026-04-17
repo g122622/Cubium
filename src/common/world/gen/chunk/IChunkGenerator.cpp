@@ -4,6 +4,8 @@
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
+#include "../../../util/assert/AssertAll.hpp"
+
 #include <algorithm>
 
 namespace mc {
@@ -12,32 +14,35 @@ namespace mc {
 // WorldGenRegion 实现
 // ============================================================================
 
-WorldGenRegion::WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, std::array<IChunk*, 9> chunks)
+WorldGenRegion::WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks)
     : m_mainX(mainX)
     , m_mainZ(mainZ)
-    , m_chunks(chunks)
+    , m_chunkRadius(chunkRadius)
+    , m_chunkDiameter(chunkRadius * 2 + 1)
+    , m_chunks(std::move(chunks))
 {
+    MC_ASSERT_RELEASE(m_chunkRadius >= 0);
+    MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
 }
 
 IChunk* WorldGenRegion::getChunk(i32 relX, i32 relZ)
 {
     // 边界检查
-    if (relX < -1 || relX > 1 || relZ < -1 || relZ > 1) {
+    if (relX < -m_chunkRadius || relX > m_chunkRadius || relZ < -m_chunkRadius || relZ > m_chunkRadius) {
         return nullptr;
     }
 
-    // 转换为索引（中心是 4）
-    const i32 index = (relZ + 1) * 3 + (relX + 1);
+    const i32 index = (relZ + m_chunkRadius) * m_chunkDiameter + (relX + m_chunkRadius);
     return m_chunks[index];
 }
 
 const IChunk* WorldGenRegion::getChunk(i32 relX, i32 relZ) const
 {
-    if (relX < -1 || relX > 1 || relZ < -1 || relZ > 1) {
+    if (relX < -m_chunkRadius || relX > m_chunkRadius || relZ < -m_chunkRadius || relZ > m_chunkRadius) {
         return nullptr;
     }
 
-    const i32 index = (relZ + 1) * 3 + (relX + 1);
+    const i32 index = (relZ + m_chunkRadius) * m_chunkDiameter + (relX + m_chunkRadius);
     return m_chunks[index];
 }
 
@@ -113,9 +118,7 @@ i32 WorldGenRegion::getTopBlockY(i32 x, i32 z, HeightmapType type) const
     const i32 relZ = chunkZ - m_mainZ;
 
     const IChunk* chunk = getChunk(relX, relZ);
-    if (!chunk) {
-        return 0;
-    }
+    MC_ASSERT_RELEASE(chunk);
 
     const i32 localX = world::toLocalCoord(x);
     const i32 localZ = world::toLocalCoord(z);
@@ -129,11 +132,16 @@ i32 WorldGenRegion::worldToChunkIndex(i32 x, i32 z) const
     const i32 relX = chunkX - m_mainX;
     const i32 relZ = chunkZ - m_mainZ;
 
-    if (relX < -1 || relX > 1 || relZ < -1 || relZ > 1) {
+    if (relX < -m_chunkRadius || relX > m_chunkRadius || relZ < -m_chunkRadius || relZ > m_chunkRadius) {
         return -1;
     }
 
-    return (relZ + 1) * 3 + (relX + 1);
+    return (relZ + m_chunkRadius) * m_chunkDiameter + (relX + m_chunkRadius);
+}
+
+i32 WorldGenRegion::centerIndex() const
+{
+    return m_chunkRadius * m_chunkDiameter + m_chunkRadius;
 }
 
 void WorldGenRegion::worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ)

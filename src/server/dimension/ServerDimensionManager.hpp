@@ -167,6 +167,10 @@ public:
      * 当玩家成功切换维度后调用。
      */
     void setDimensionChangeCallback(DimensionChangeCallback callback) {
+        // 不允许多次注册
+        if (m_dimensionChangeCallback) {
+            throw std::invalid_argument("Dimension change callback already set");
+        }
         m_dimensionChangeCallback = std::move(callback);
     }
 

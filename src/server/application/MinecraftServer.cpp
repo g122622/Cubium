@@ -17,6 +17,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
@@ -103,6 +104,7 @@ void MinecraftServer::tick()
     // 清理断开连接的玩家
     if (m_tickCounter % CLEANUP_INTERVAL == 0) {
         MC_TRACE_EVENT("server.player", "CleanupDisconnected", "phase", "cleanup");
+
         std::vector<PlayerId> removedPlayers;
         m_connectionManager->cleanupDisconnectedPlayers(&removedPlayers);
         // 清理玩家相关的追踪和票据
@@ -111,22 +113,6 @@ void MinecraftServer::tick()
             if (m_world && m_world->chunkManager()) {
                 m_world->chunkManager()->removePlayer(playerId);
             }
-        }
-    }
-
-    // 检查心跳超时
-    if (m_tickCounter % KEEPALIVE_INTERVAL == 0) {
-        MC_TRACE_EVENT("server.network", "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
-        u64 currentTickMs = currentTick() * 50;  // 50ms per tick
-        auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTickMs);
-        for (PlayerId playerId : timedOutPlayers) {
-            spdlog::info("MinecraftServer: Player {} timed out", playerId);
-            // 清理玩家相关的追踪和票据
-            m_chunkSendManager->removePlayer(playerId);
-            if (m_world && m_world->chunkManager()) {
-                m_world->chunkManager()->removePlayer(playerId);
-            }
-            m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
         }
     }
 
@@ -151,6 +137,23 @@ void MinecraftServer::tick()
 
     if (!m_running.load()) {
         return;
+    }
+
+    // 检查心跳超时
+    if (m_tickCounter % KEEPALIVE_INTERVAL == 0) {
+        MC_TRACE_EVENT("server.network", "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
+
+        u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
+        auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTimeMs);
+        for (PlayerId playerId : timedOutPlayers) {
+            spdlog::warn("MinecraftServer: Player {} timed out", playerId);
+            // 清理玩家相关的追踪和票据
+            m_chunkSendManager->removePlayer(playerId);
+            if (m_world && m_world->chunkManager()) {
+                m_world->chunkManager()->removePlayer(playerId);
+            }
+            m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
+        }
     }
 
     // 处理区块发送队列
@@ -198,6 +201,23 @@ void MinecraftServer::initializeCoreManagers()
 
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
+    m_dimensionManager->setDimensionChangeCallback(
+        [this](PlayerId playerId, DimensionId, DimensionId, const Vector3d& position) {
+            auto* player = m_playerManager->getPlayer(playerId);
+            if (!player) {
+                return;
+            }
+
+            m_positionTracker->updatePosition(
+                playerId,
+                position.x,
+                position.y,
+                position.z,
+                player->yaw,
+                player->pitch,
+                player->onGround);
+            updateEntityTrackingForPlayer(playerId, position.x, position.y, position.z);
+        });
 }
 
 Result<void> MinecraftServer::initializeWorld()
@@ -829,6 +849,7 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     }
 
     m_positionTracker->updatePosition(playerId, player->x, player->y, player->z, player->yaw, player->pitch, player->onGround);
+    updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 
     // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
     // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
@@ -885,6 +906,8 @@ void MinecraftServer::handleTeleportConfirmPacket(PlayerId playerId, const u8* d
         if (!player) {
             return;
         }
+
+        updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 
         // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
         // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
@@ -945,6 +968,23 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
     }
 
     spdlog::info("[Chat] {}: {}", player->username, message);
+}
+
+void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
+{
+    if (!m_world) {
+        return;
+    }
+
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    m_world->entityTracker().updatePlayerTracking(
+        *this,
+        playerId,
+        Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)));
 }
 
 void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* data, size_t size)
@@ -1026,6 +1066,8 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
     // 发送初始天气状态
     sendInitialWeatherStateToPlayer(playerId);
+
+    updateEntityTrackingForPlayer(playerId, x, y, z);
 }
 
 void MinecraftServer::sendCommandTreePacket(PlayerId playerId)

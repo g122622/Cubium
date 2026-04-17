@@ -249,6 +249,48 @@ TEST(EntityType, EntityFlagsOperators) {
     EXPECT_FALSE(entity::hasEntityFlag(masked, entity::EntityFlags::ImmuneToLava));
 }
 
+TEST(EntityType, CreateInjectsRegisteredTypeId) {
+    EntityRegistry& registry = EntityRegistry::instance();
+    registry.clear();
+
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
+        return std::make_unique<Entity>(LegacyEntityType::Unknown, 0);
+    };
+
+    auto registerResult = registry.registerType(
+        "test:spawned_entity",
+        entity::EntityType::Builder(factory, EntityClassification::Misc).build());
+    ASSERT_TRUE(registerResult.success());
+
+    const entity::EntityType* type = registry.getType("test:spawned_entity");
+    ASSERT_NE(type, nullptr);
+
+    auto entity = type->create(nullptr);
+    ASSERT_NE(entity, nullptr);
+    EXPECT_EQ(entity->getTypeId(), "test:spawned_entity");
+
+    registry.clear();
+}
+
+TEST(Entity, LegacyTypeIdMapping) {
+    Entity pig(LegacyEntityType::Pig, 1);
+    Entity wolf(LegacyEntityType::Wolf, 2);
+    Entity zombie(LegacyEntityType::Zombie, 3);
+    Entity unknown(LegacyEntityType::Unknown, 4);
+
+    EXPECT_EQ(pig.getTypeId(), "minecraft:pig");
+    EXPECT_EQ(wolf.getTypeId(), "minecraft:wolf");
+    EXPECT_EQ(zombie.getTypeId(), "minecraft:zombie");
+    EXPECT_EQ(unknown.getTypeId(), "minecraft:unknown");
+}
+
+TEST(Entity, ExplicitTypeIdOverridesLegacyMapping) {
+    Entity entity(LegacyEntityType::Pig, 1);
+    entity.setTypeId("minecraft:custom_pig");
+
+    EXPECT_EQ(entity.getTypeId(), "minecraft:custom_pig");
+}
+
 // ============================================================================
 // EntityRegistry 测试
 // ============================================================================

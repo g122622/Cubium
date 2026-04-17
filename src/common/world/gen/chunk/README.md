@@ -48,15 +48,19 @@ chunk/
 
 提供有限的世界视图给生成器使用：
 
-- 只能访问 3x3 区块范围（中心区块 + 8 邻居）
+- 按 `ChunkStatus::taskRange()` 构建动态方阵区域，常见值包括 0、1、8
+- `FEATURES` / `NOISE` / `STRUCTURE_REFERENCES` 等阶段通常会扩展到 17x17
+- `getTopBlockY()` 对越界或缺失区块会触发 `MC_ASSERT_RELEASE`，不再静默返回 0
 - 实现了 `IWorldWriter` 接口，支持方块读写
 - 提供高度查询和生物群系查询功能
 
 ```cpp
-// WorldGenRegion 区块布局（索引 4 为中心区块）
+// WorldGenRegion 区块布局（按行优先存储，中心索引由半径决定）
+// radius = 1 时：
 // [0][1][2]
 // [3][4][5]
 // [6][7][8]
+// radius = 8 时：17x17 方阵
 ```
 
 #### `BaseChunkGenerator` 基类
@@ -83,7 +87,7 @@ chunk/
 // 世界坐标 -> 区块索引
 i32 WorldGenRegion::worldToChunkIndex(i32 x, i32 z) const {
     // 将世界坐标转换为相对区块坐标
-    // 然后映射到 0-8 的索引
+    // 然后映射到动态方阵中的行优先索引
 }
 
 // 方块访问
@@ -358,8 +362,10 @@ NoiseChunkGenerator generator(12345ULL, std::move(settings));
 ChunkPrimer primer(chunkX, chunkZ);
 
 // 4. 准备邻域区块（用于 WorldGenRegion）
-std::array<IChunk*, 9> chunks = {...};  // 中心 + 8 邻居
-WorldGenRegion region(chunkX, chunkZ, chunks);
+// radius = 8 时会构建 17x17 区域，radius = 1 时构建 3x3 区域
+const i32 radius = 8;
+std::vector<IChunk*> chunks = {...};
+WorldGenRegion region(chunkX, chunkZ, radius, std::move(chunks));
 
 // 5. 按阶段生成
 generator.generateStructureStarts(region, primer);
@@ -439,11 +445,11 @@ i32 localZ = worldZ & 15;
 
 ```cpp
 // WorldGenRegion 的区块索引布局
-// 索引 = (relZ + 1) * 3 + (relX + 1)
-// relX, relZ 范围: [-1, 0, 1]
+// 索引 = (relZ + radius) * (radius * 2 + 1) + (relX + radius)
+// relX, relZ 范围: [-radius, radius]
 
-// 中心区块索引为 4
-IChunk* mainChunk = m_chunks[4];  // relX=0, relZ=0
+// 中心区块索引 = radius * (radius * 2 + 1) + radius
+IChunk* mainChunk = m_chunks[centerIndex()];
 ```
 
 ### 5. 生成阶段顺序
@@ -640,16 +646,13 @@ flowchart TD
 
 ```
 坐标系统（方块只在奇数坐标放置）：
+        - `WorldGenRegion` 按任务半径提供邻域区块访问，缺失区块会触发断言，便于尽早暴露生成窗口错误。
     Z轴 →
     ┌───┬───┬───┬───┬───┬───┐
     │   │ 1 │   │ 2 │   │ 3 │  ...
 X   ├───┼───┼───┼───┼───┼───┤
-轴  │   │   │   │   │   │   │
-↓   ├───┼───┼───┼───┼───┼───┤
-    │   │ 4 │   │ 5 │   │ 6 │  ...
-    └───┴───┴───┴───┴───┴───┘
-
-索引计算：index = abs(x/2 * GRID_WIDTH + z/2)
+        // 先换算为区块坐标，再在动态窗口内定位
+        // 越界或缺失区块会在 getTopBlockY() 等热路径上直接断言
 Y=60: 屏障层（Barrier）
 Y=70: 方块状态网格
 ```

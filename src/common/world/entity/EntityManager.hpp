@@ -138,7 +138,8 @@ public:
     void releaseId(EntityId id);
 
 private:
-    mutable std::mutex m_mutex;
+    // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
+    mutable std::recursive_mutex m_mutex;
     std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
     EntityId m_nextId = 1;
     std::vector<EntityId> m_freeIds;  // 可重用的ID池

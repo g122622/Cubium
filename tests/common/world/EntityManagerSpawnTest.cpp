@@ -29,6 +29,33 @@ protected:
     EntityManager m_manager;
 };
 
+namespace {
+
+class ReentrantQueryEntity final : public Entity {
+public:
+    explicit ReentrantQueryEntity(EntityManager* manager)
+        : Entity(LegacyEntityType::Cow, 0, nullptr)
+        , m_manager(manager)
+    {
+    }
+
+    void tick() override {
+        Entity::tick();
+        auto entities = m_manager->getEntitiesInRange(position(), 16.0f, this);
+        m_lastQueryCount = entities.size();
+    }
+
+    [[nodiscard]] size_t lastQueryCount() const {
+        return m_lastQueryCount;
+    }
+
+private:
+    EntityManager* m_manager = nullptr;
+    size_t m_lastQueryCount = 0;
+};
+
+} // namespace
+
 // ============================================================================
 // 基础实体添加测试
 // ============================================================================
@@ -325,6 +352,45 @@ TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities) {
     }
 
     EXPECT_EQ(m_manager.entityCount(), 0u);
+}
+
+TEST_F(EntityManagerSpawnTest, TickAllowsReentrantRangeQuery) {
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    ASSERT_NE(pigType, nullptr);
+
+    auto queryEntity = std::make_unique<ReentrantQueryEntity>(&m_manager);
+    queryEntity->setPosition(0.0f, 64.0f, 0.0f);
+    EntityId queryEntityId = m_manager.addEntity(std::move(queryEntity));
+
+    auto pig = pigType->create(nullptr);
+    ASSERT_NE(pig, nullptr);
+    pig->setPosition(1.0f, 64.0f, 1.0f);
+    m_manager.addEntity(std::move(pig));
+
+    EXPECT_NO_FATAL_FAILURE(m_manager.tick());
+
+    auto* updatedEntity = dynamic_cast<ReentrantQueryEntity*>(m_manager.getEntity(queryEntityId));
+    ASSERT_NE(updatedEntity, nullptr);
+    EXPECT_EQ(updatedEntity->lastQueryCount(), 1u);
+}
+
+TEST_F(EntityManagerSpawnTest, ForEachAllowsReentrantQueries) {
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    ASSERT_NE(pigType, nullptr);
+
+    auto pig = pigType->create(nullptr);
+    ASSERT_NE(pig, nullptr);
+    EntityId id = m_manager.addEntity(std::move(pig));
+
+    bool callbackInvoked = false;
+    m_manager.forEachEntity([this, id, &callbackInvoked](Entity*) {
+        callbackInvoked = true;
+        EXPECT_TRUE(m_manager.hasEntity(id));
+        EXPECT_EQ(m_manager.getEntitiesInRange(Vector3(0.0f, 0.0f, 0.0f), 128.0f).size(), 1u);
+        return true;
+    });
+
+    EXPECT_TRUE(callbackInvoked);
 }
 
 

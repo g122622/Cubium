@@ -76,6 +76,8 @@ public:
     [[nodiscard]] size_t chunkCount() const { return m_chunks.size(); }
 
     void setChunkUnloadCallback(std::function<void(const ChunkId&)> callback) {
+        // 只允许注册一次
+        MC_ASSERT_RELEASE(!m_chunkUnloadCallback);
         m_chunkUnloadCallback = std::move(callback);
     }
 

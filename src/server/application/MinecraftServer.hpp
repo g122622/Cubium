@@ -329,6 +329,11 @@ protected:
      */
     void sendCommandTreePacket(PlayerId playerId);
 
+    /**
+     * @brief 刷新指定玩家的实体追踪范围
+     */
+    void updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z);
+
     // ========== 数据包处理方法 ==========
 
     /**

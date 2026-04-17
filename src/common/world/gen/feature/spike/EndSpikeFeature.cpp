@@ -16,10 +16,10 @@ namespace {
     i32 centerX,
     i32 centerZ)
 {
-    const i32 minX = (world.mainX() - 1) * 16;
-    const i32 maxX = (world.mainX() + 2) * 16 - 1;
-    const i32 minZ = (world.mainZ() - 1) * 16;
-    const i32 maxZ = (world.mainZ() + 2) * 16 - 1;
+    const i32 minX = world.minChunkX() * 16;
+    const i32 maxX = (world.maxChunkX() + 1) * 16 - 1;
+    const i32 minZ = world.minChunkZ() * 16;
+    const i32 maxZ = (world.maxChunkZ() + 1) * 16 - 1;
 
     if (centerX + spike.radius < minX || centerX - spike.radius > maxX) {
         return false;

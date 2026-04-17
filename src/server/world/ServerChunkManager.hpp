@@ -10,6 +10,7 @@
 #include <memory>
 #include <future>
 #include <functional>
+#include <vector>
 
 namespace mc::server {
 
@@ -381,15 +382,27 @@ private:
     [[nodiscard]] bool checkNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& status) const;
 
     /**
+     * @brief 根据目标任务计算需要先就绪的邻居阶段
+     */
+    [[nodiscard]] const ChunkStatus* getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const;
+
+    /**
+     * @brief 当某个区块状态推进后，重新尝试调度其邻域内的生成请求
+     */
+    void onChunkStatusChanged(ChunkCoord x, ChunkCoord z, const ChunkStatus& status);
+
+    /**
      * @brief 获取邻居区块
-     * @param neighbors 输出数组（中心 + 8 个邻居 = 9 个区块）
-     * 索引顺序：0=NW, 1=N, 2=NE, 3=W, 4=中心, 5=E, 6=SW, 7=S, 8=SE
+     * @param radius 区块半径
+     * @param neighbors 输出数组（按从左上到右下的行优先顺序存储）
      */
     void getNeighborChunks(
         ChunkCoord x,
         ChunkCoord z,
-        std::array<IChunk*, 9>& neighbors,
-        std::array<std::unique_ptr<IChunk>, 9>& neighborAdapters);
+        i32 radius,
+        IChunk* centerChunk,
+        std::vector<IChunk*>& neighbors,
+        std::vector<std::unique_ptr<IChunk>>& neighborAdapters);
 
     /**
      * @brief 获取缓存区块的共享所有权

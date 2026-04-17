@@ -23,6 +23,7 @@ SingleChunkLifecycleManager::SingleChunkLifecycleManager(ChunkCoord x, ChunkCoor
 
 void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
 {
+    GenerationCallback statusCallback;
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (m_status != &status) {
@@ -31,19 +32,25 @@ void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
             m_lifecycleState.store(ChunkLifecycleState::Ready, std::memory_order_release);
         }
 
-        // 回调
-        if (m_statusChangeCallback) {
-            m_statusChangeCallback(*this);
-        }
+        statusCallback = m_statusChangeCallback;
+    }
+
+    if (statusCallback) {
+        statusCallback(*this);
     }
 }
 
 void SingleChunkLifecycleManager::setLevel(i32 level)
 {
+    GenerationCallback levelCallback;
     const i32 oldLevel = m_level.exchange(level, std::memory_order_acq_rel);
 
-    if (oldLevel != level && m_levelChangeCallback) {
-        m_levelChangeCallback(*this);
+    if (oldLevel != level) {
+        levelCallback = m_levelChangeCallback;
+    }
+
+    if (levelCallback) {
+        levelCallback(*this);
     }
 }
 
@@ -61,6 +68,7 @@ ChunkRequestControl SingleChunkLifecycleManager::upsertRequest(const ChunkStatus
     const bool noActive = (state != ChunkLifecycleState::Queued && state != ChunkLifecycleState::Generating);
     const bool targetUpgrade = targetStatus.ordinal() > m_requestTarget->ordinal();
     const bool priorityUpgrade = noActive || priority < m_requestPriority;
+    const bool pendingButNotSubmitted = (state == ChunkLifecycleState::Queued && !m_requestSubmitted);
 
     ChunkRequestControl control;
 
@@ -69,7 +77,7 @@ ChunkRequestControl SingleChunkLifecycleManager::upsertRequest(const ChunkStatus
         control.priority = m_requestPriority;
         control.targetStatus = m_requestTarget;
         control.cancelToken = m_cancelToken;
-        control.shouldEnqueue = false;
+        control.shouldEnqueue = pendingButNotSubmitted;
         return control;
     }
 
@@ -81,6 +89,7 @@ ChunkRequestControl SingleChunkLifecycleManager::upsertRequest(const ChunkStatus
     m_requestPriority = priority;
     m_requestTarget = &targetStatus;
     m_cancelToken = std::make_shared<std::atomic<bool>>(false);
+    m_requestSubmitted = false;
     m_lifecycleState.store(ChunkLifecycleState::Queued, std::memory_order_release);
 
     control.generation = m_requestGeneration;
@@ -115,10 +124,12 @@ void SingleChunkLifecycleManager::finishRequest(u64 generation, bool success, bo
     }
 
     if (cancelled) {
+        m_requestSubmitted = false;
         m_lifecycleState.store(ChunkLifecycleState::Cancelled, std::memory_order_release);
         return;
     }
 
+    m_requestSubmitted = false;
     m_lifecycleState.store(success ? ChunkLifecycleState::Ready : ChunkLifecycleState::Failed,
                            std::memory_order_release);
 }
@@ -131,7 +142,19 @@ void SingleChunkLifecycleManager::cancelActiveRequest()
     }
 
     ++m_requestGeneration;
+    m_requestSubmitted = false;
     m_lifecycleState.store(ChunkLifecycleState::Cancelled, std::memory_order_release);
+}
+
+bool SingleChunkLifecycleManager::tryMarkRequestSubmitted(u64 generation)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (generation == m_requestGeneration && !m_requestSubmitted) {
+        m_requestSubmitted = true;
+        return true;
+    }
+
+    return false;
 }
 
 bool SingleChunkLifecycleManager::isGenerationCurrent(u64 generation) const

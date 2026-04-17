@@ -70,7 +70,7 @@ i32 WorldGenSpawner::spawnInitialMobs(
     std::vector<SpawnedEntityData>& outEntities)
 {
     if (!m_enabled) {
-        spdlog::debug("WorldGenSpawner: Disabled, skipping spawn");
+        spdlog::info("WorldGenSpawner: Disabled, skipping spawn");
         return 0;
     }
 
@@ -83,12 +83,12 @@ i32 WorldGenSpawner::spawnInitialMobs(
     // 怪物通过 NaturalSpawner 在夜间/黑暗环境生成
     const std::vector<world::spawn::SpawnEntry>& creatures = spawnInfo.getCreatureSpawns();
     if (creatures.empty()) {
-        spdlog::debug("WorldGenSpawner: No creature spawns for biome {}", biome.name());
+        // spdlog::info("WorldGenSpawner: No creature spawns for biome {}", biome.name());
         return 0;
     }
 
-    spdlog::debug("WorldGenSpawner: Biome {} has {} creature types, probability {:.4f}",
-                  biome.name(), creatures.size(), biome.creatureSpawnProbability());
+    // spdlog::info("WorldGenSpawner: Biome {} has {} creature types, probability {:.4f}",
+    //               biome.name(), creatures.size(), biome.creatureSpawnProbability());
 
     // 区块世界坐标起点（使用工具函数）
     const i32 startX = world::toWorldCoord(chunkX);
@@ -126,6 +126,7 @@ i32 WorldGenSpawner::spawnInitialMobs(
         }
 
         if (!selectedEntry) {
+            spdlog::warn("WorldGenSpawner: Failed to select spawn entry for biome {}", biome.name());
             continue;
         }
 
@@ -133,7 +134,7 @@ i32 WorldGenSpawner::spawnInitialMobs(
         entity::EntityRegistry& registry = entity::EntityRegistry::instance();
         const entity::EntityType* entityType = registry.getType(selectedEntry->entityTypeId);
         if (!entityType) {
-            spdlog::debug("WorldGenSpawner: Unknown entity type: {}", selectedEntry->entityTypeId);
+            spdlog::warn("WorldGenSpawner: Unknown entity type: {}", selectedEntry->entityTypeId);
             continue;
         }
 
@@ -172,6 +173,8 @@ i32 WorldGenSpawner::spawnInitialMobs(
                 count, random, outEntities);
 
             if (spawned > 0) {
+                spdlog::info("WorldGenSpawner: Spawned {} x {} at ({}, {}, {})",
+                              spawned, entityType->name(), groupX, spawnY, groupZ);
                 totalSpawned += spawned;
                 spawnedAny = true;
                 break;  // 成功生成一组后继续下一组
@@ -304,6 +307,8 @@ i32 WorldGenSpawner::getSpawnHeight(
             }
         }
         return -1;  // 没找到岩浆
+    } else {
+        MC_ASSERT_RELEASE_MSG(false, "Unsupported placement type");
     }
 
     return topY;
@@ -316,8 +321,6 @@ bool WorldGenSpawner::canSpawnAt(
     i32 y,
     i32 z) const
 {
-    // 参考 MC 1.16.5 EntitySpawnPlacementRegistry.canSpawnEntity
-
     // WorldGenSpawner 只处理 Creature 分类（被动动物）的区块生成
     // 怪物通过 NaturalSpawner 在夜间/黑暗环境生成
     // 水生生物和环境生物有单独的生成逻辑

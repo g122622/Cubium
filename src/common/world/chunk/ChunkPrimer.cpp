@@ -5,6 +5,27 @@
 
 namespace mc {
 
+namespace {
+
+constexpr std::array<HeightmapType, 7> ALL_HEIGHTMAP_TYPES = {
+    HeightmapType::WorldSurface,
+    HeightmapType::OceanFloor,
+    HeightmapType::MotionBlocking,
+    HeightmapType::MotionBlockingNoLeaves,
+    HeightmapType::WorldSurfaceWG,
+    HeightmapType::OceanFloorWG,
+    HeightmapType::LightBlocking,
+};
+
+void initializeAllHeightmaps(std::unordered_map<HeightmapType, Heightmap>& heightmaps)
+{
+    for (HeightmapType type : ALL_HEIGHTMAP_TYPES) {
+        heightmaps[type] = Heightmap(type);
+    }
+}
+
+} // namespace
+
 // ============================================================================
 // 构造函数
 // ============================================================================
@@ -16,6 +37,7 @@ ChunkPrimer::ChunkPrimer(ChunkCoord x, ChunkCoord z)
     , m_chunkStatus(&ChunkStatuses::EMPTY)
     , m_status(ChunkLoadStatus::Empty)
 {
+    initializeAllHeightmaps(m_heightmaps);
     initializeCarvingMasks();
 }
 
@@ -26,8 +48,10 @@ ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
     , m_chunkStatus(&ChunkStatuses::FULL)
     , m_status(ChunkLoadStatus::Loaded)
 {
+    initializeAllHeightmaps(m_heightmaps);
     if (m_data) {
         initializeCarvingMasks();
+        updateAllHeightmaps();
     }
 }
 
@@ -113,12 +137,12 @@ BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoor
     if (it != m_heightmaps.end()) {
         return it->second.getHeight(x, z);
     }
-    return 0;
+    MC_ASSERT_RELEASE(false);
 }
 
 void ChunkPrimer::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    auto& heightmap = m_heightmaps[type];
+    auto& heightmap = getHeightmap(type);
     heightmap.update(x, y, z, state);
 }
 
@@ -174,23 +198,38 @@ const Heightmap& ChunkPrimer::getHeightmap(HeightmapType type) const
 
 void ChunkPrimer::updateAllHeightmaps()
 {
-    if (!m_data) return;
+    if (!m_data) {
+        return;
+    }
 
-    // 更新 WORLD_SURFACE_WG 和 OCEAN_FLOOR_WG 高度图
-    auto& surfaceWg = getHeightmap(HeightmapType::WorldSurfaceWG);
-    auto& oceanFloorWg = getHeightmap(HeightmapType::OceanFloorWG);
+    // 每次重建前先重置所有高度图，避免雕刻/替换方块后残留旧高度。
+    initializeAllHeightmaps(m_heightmaps);
 
     for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
         for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+            std::array<bool, ALL_HEIGHTMAP_TYPES.size()> resolved{};
+            i32 unresolvedCount = static_cast<i32>(ALL_HEIGHTMAP_TYPES.size());
+
             for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
-                const BlockState* state = m_data->getBlock(x, y, z);
-                if (state && !state->isAir()) {
-                    surfaceWg.update(x, y, z, state);
-                    // 检查是否是固体方块
-                    if (state->isSolid()) {
-                        oceanFloorWg.update(x, y, z, state);
-                    }
+                if (unresolvedCount <= 0) {
                     break;
+                }
+
+                const BlockState* state = m_data->getBlock(x, y, z);
+                if (!state || state->isAir()) {
+                    continue;
+                }
+
+                for (size_t i = 0; i < ALL_HEIGHTMAP_TYPES.size(); ++i) {
+                    if (resolved[i]) {
+                        continue;
+                    }
+
+                    auto& heightmap = m_heightmaps[ALL_HEIGHTMAP_TYPES[i]];
+                    if (heightmap.update(x, y, z, state)) {
+                        resolved[i] = true;
+                        --unresolvedCount;
+                    }
                 }
             }
         }

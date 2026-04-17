@@ -337,16 +337,6 @@ void NetworkClient::sendCloseContainer(ContainerId containerId) {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendKeepAliveIfNeeded() {
-    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()
-    ).count();
-
-    if (now - m_lastKeepAliveSent >= m_config.keepAliveIntervalMs) {
-        sendKeepAlive(static_cast<u64>(now));
-    }
-}
-
 void NetworkClient::poll() {
     if (!m_running) return;
 
@@ -363,7 +353,6 @@ void NetworkClient::poll() {
             return;
         }
 
-        sendKeepAliveIfNeeded();
         return;
     }
 
@@ -371,8 +360,6 @@ void NetworkClient::poll() {
     // 处理接收到的数据包
     processIncomingData();
 
-    // 发送心跳
-    sendKeepAliveIfNeeded();
 }
 
 void NetworkClient::receiveLoop() {
@@ -697,19 +684,20 @@ void NetworkClient::setState(ClientState state) {
     m_state = state;
 }
 
+
 void NetworkClient::handleKeepAlive(u64 id) {
     m_lastKeepAliveReceived = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()
     ).count();
 
-    // 计算延迟
     if (m_lastKeepAliveSent > 0) {
         m_ping = static_cast<u32>(m_lastKeepAliveReceived - m_lastKeepAliveSent);
     }
 
-    // 回复心跳
     sendKeepAlive(id);
 }
+
+
 
 void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
     auto result = network::LoginResponsePacket::deserialize(deser);

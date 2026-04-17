@@ -4,6 +4,8 @@
 #include "../../kagero/paint/PaintContext.hpp"
 #include "../../../chat/ChatHistory.hpp"
 #include "client/command/ClientCommandManager.hpp"
+#include "common/util/assert/AssertAll.hpp"
+
 #include <functional>
 #include <chrono>
 
@@ -56,12 +58,16 @@ public:
     /**
      * @brief 设置命令回调
      */
-    void setCommandCallback(CommandCallback callback) { m_commandCallback = std::move(callback); }
+    void setCommandCallback(CommandCallback callback) {
+        MC_ASSERT_RELEASE(!m_commandCallback);
+        m_commandCallback = std::move(callback);
+    }
 
     /**
      * @brief 设置命令补全管理器
      */
     void setCommandManager(mc::client::command::ClientCommandManager* commandManager) {
+        MC_ASSERT_RELEASE(!m_commandManager);
         m_commandManager = commandManager;
         updateCommandSuggestions();
     }

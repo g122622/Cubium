@@ -1187,14 +1187,20 @@ VkImageView TridentEngine::depthImageView() const {
 // ============================================================================
 
 void TridentEngine::setGuiRenderCallback(GuiRenderCallback callback) {
+    // 只允许设置一次 GUI 渲染回调，以避免在渲染过程中被替换导致不一致行为
+    MC_ASSERT_RELEASE(!m_guiRenderCallback);
     m_guiRenderCallback = std::move(callback);
 }
 
 void TridentEngine::setEntityRenderCallback(EntityRenderCallback callback) {
+    // 只允许设置一次实体渲染回调，以避免在渲染过程中被替换导致不一致行为
+    MC_ASSERT_RELEASE(!m_entityRenderCallback);
     m_entityRenderCallback = std::move(callback);
 }
 
 void TridentEngine::setFirstPersonRenderCallback(FirstPersonRenderCallback callback) {
+    // 只允许设置一次第一人称渲染回调，以避免在渲染过程中被替换导致不一致行为
+    MC_ASSERT_RELEASE(!m_firstPersonRenderCallback);
     m_firstPersonRenderCallback = std::move(callback);
 }
 

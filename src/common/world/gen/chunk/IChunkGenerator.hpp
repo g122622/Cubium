@@ -150,7 +150,7 @@ public:
  * @brief 世界生成区域
  *
  * 参考 MC WorldGenRegion，提供有限的世界视图给生成器。
- * 只能访问指定区块及其邻居。
+ * 访问范围由生成阶段的 taskRange 决定，常见窗口包括 0、1、8。
  *
  * @note 参考 MC 1.16.5 WorldGenRegion
  */
@@ -162,22 +162,23 @@ public:
      * @brief 构造世界生成区域
      * @param mainX 主区块 X
      * @param mainZ 主区块 Z
-     * @param chunks 区块数组（按特定顺序排列）
+        * @param chunkRadius 区块半径（0 表示只有中心区块，8 表示 17x17 区域）
+        * @param chunks 区块数组（按从左上到右下的顺序排列）
      */
-    WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, std::array<IChunk*, 9> chunks);
+    WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks);
 
     // === 区块访问 ===
 
     /**
      * @brief 获取主区块
      */
-    [[nodiscard]] IChunk* getMainChunk() { return m_chunks[4]; }
-    [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[4]; }
+    [[nodiscard]] IChunk* getMainChunk() { return m_chunks[centerIndex()]; }
+    [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[centerIndex()]; }
 
     /**
      * @brief 获取指定相对位置的区块
-     * @param relX 相对 X（-1, 0, 1）
-     * @param relZ 相对 Z（-1, 0, 1）
+        * @param relX 相对 X（范围由 chunkRadius 决定）
+        * @param relZ 相对 Z（范围由 chunkRadius 决定）
      */
     [[nodiscard]] IChunk* getChunk(i32 relX, i32 relZ);
     [[nodiscard]] const IChunk* getChunk(i32 relX, i32 relZ) const;
@@ -187,6 +188,11 @@ public:
      */
     [[nodiscard]] ChunkCoord mainX() const { return m_mainX; }
     [[nodiscard]] ChunkCoord mainZ() const { return m_mainZ; }
+    [[nodiscard]] i32 chunkRadius() const { return m_chunkRadius; }
+    [[nodiscard]] ChunkCoord minChunkX() const { return m_mainX - m_chunkRadius; }
+    [[nodiscard]] ChunkCoord maxChunkX() const { return m_mainX + m_chunkRadius; }
+    [[nodiscard]] ChunkCoord minChunkZ() const { return m_mainZ - m_chunkRadius; }
+    [[nodiscard]] ChunkCoord maxChunkZ() const { return m_mainZ + m_chunkRadius; }
 
     // === 方块访问 ===
 
@@ -229,10 +235,14 @@ public:
 private:
     ChunkCoord m_mainX;
     ChunkCoord m_mainZ;
-    std::array<IChunk*, 9> m_chunks;  // 中心 + 8 邻居
+    i32 m_chunkRadius;
+    i32 m_chunkDiameter;
+    std::vector<IChunk*> m_chunks;  // 按行优先顺序存储的动态方阵
 
     // 将世界坐标转换为区块索引
     [[nodiscard]] i32 worldToChunkIndex(i32 x, i32 z) const;
+
+    [[nodiscard]] i32 centerIndex() const;
 
     // 将世界坐标转换为本地坐标
     static void worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ);

@@ -249,12 +249,7 @@ public:
      * @param world 世界实例
      * @return 实体实例，如果工厂无效则返回nullptr
      */
-    std::unique_ptr<Entity> create(IWorld* world) const {
-        if (m_factory) {
-            return m_factory(world);
-        }
-        return nullptr;
-    }
+    std::unique_ptr<Entity> create(IWorld* world) const;
 
     /**
      * @brief 获取实体分类

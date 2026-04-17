@@ -32,7 +32,7 @@ src/common/world/entity/
 | **ID分配** | `allocateId()` | 分配新实体ID（内部方法） |
 | | `releaseId()` | 释放实体ID供重用（内部方法） |
 
-**线程安全**: 所有公共方法都使用 `std::mutex` 保护，支持多线程访问。
+**线程安全**: 所有公共方法都使用 `std::recursive_mutex` 保护，支持多线程访问，并允许同线程在 `tick()`/`forEachEntity()` 回调内重入调用查询接口。
 
 ### EntityManager.cpp
 
@@ -300,6 +300,8 @@ manager.removeEntity(entity->id());
 | `MobEntityIsLivingEntity` | 验证 MobEntity 类型转换 |
 | `AnimalEntityIsMobEntity` | 验证 AnimalEntity 继承链 |
 | `RemoveMultipleEntities` | 逐个移除多个实体，验证计数正确 |
+| `TickAllowsReentrantRangeQuery` | 验证 `tick()` 内重入 `getEntitiesInRange()` 不会死锁 |
+| `ForEachAllowsReentrantQueries` | 验证 `forEachEntity()` 回调内重入查询不会死锁 |
 
 ### 性能考虑
 
