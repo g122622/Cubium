@@ -43,7 +43,7 @@ StandaloneServer::StandaloneServer()
 
 StandaloneServer::~StandaloneServer()
 {
-    if (m_running) {
+    if (m_initialized) {
         stop();
     }
 }
@@ -282,7 +282,7 @@ void StandaloneServer::shutdown()
 
 void StandaloneServer::stop()
 {
-    if (!m_running) {
+    if (!m_initialized) {
         return;
     }
 
@@ -312,6 +312,7 @@ void StandaloneServer::stop()
     mc::perfetto::PerfettoManager::instance().shutdown();
     spdlog::info("Perfetto tracing stopped");
 
+    m_initialized = false;
     spdlog::info("Server stopped.");
 }
 

@@ -1,9 +1,15 @@
 #include <gtest/gtest.h>
+#include "server/core/ConnectionManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
+#include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/core/PositionTracker.hpp"
 #include "server/core/ServerCoreConfig.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/core/TimeManager.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/network/connection/LocalConnection.hpp"
+#include "common/network/packet/Packet.hpp"
 
 using namespace mc::server::core;
 using namespace mc::network;
@@ -162,4 +168,49 @@ TEST_F(KeepAliveManagerTest, GetLastKeepAliveSentNonexistentPlayer) {
 
 TEST_F(KeepAliveManagerTest, GetLastKeepAliveReceivedNonexistentPlayer) {
     EXPECT_EQ(m_keepAliveManager->getLastKeepAliveReceived(999), 0u);
+}
+
+TEST(KeepAlivePacketHandler, HandleFullPacket) {
+    mc::server::ServerCoreConfig config;
+    config.viewDistance = 6;
+    config.keepAliveInterval = 1000;
+    config.keepAliveTimeout = 5000;
+
+    mc::server::core::PlayerManager playerManager;
+    mc::server::core::ConnectionManager connectionManager(playerManager);
+    mc::server::core::TimeManager timeManager(0, 0);
+    mc::server::core::TeleportManager teleportManager(playerManager);
+    mc::server::core::KeepAliveManager keepAliveManager(playerManager, config);
+    mc::server::core::PositionTracker positionTracker(playerManager, config);
+    mc::server::core::PacketHandler packetHandler(
+        playerManager,
+        connectionManager,
+        teleportManager,
+        keepAliveManager,
+        positionTracker,
+        timeManager,
+        config);
+
+    auto connectionPair = std::make_unique<mc::network::LocalConnectionPair>();
+    connectionPair->connect();
+    auto connection = std::make_shared<mc::network::LocalServerConnection>(&connectionPair->serverEndpoint());
+
+    auto* player = playerManager.addPlayer(1, "Steve", connection);
+    ASSERT_NE(player, nullptr);
+    playerManager.mapSessionToPlayer(1, 1);
+
+    const mc::u64 timestamp = 1000;
+    keepAliveManager.recordKeepAliveSent(1, timestamp, 20);
+
+    mc::network::KeepAlivePacket packet;
+    packet.setTimestamp(timestamp);
+    auto serializeResult = packet.serialize();
+    ASSERT_TRUE(serializeResult.success());
+
+    const auto& data = serializeResult.value();
+    auto result = packetHandler.handleKeepAlive(1, data.data(), data.size(), 1050);
+
+    EXPECT_EQ(result, mc::server::core::PacketHandleResult::Success);
+    EXPECT_EQ(keepAliveManager.getLastKeepAliveReceived(1), 1050u);
+    EXPECT_EQ(keepAliveManager.getPlayerPing(1), 50u);
 }

@@ -234,7 +234,7 @@ processPacket(data, size)
 | `handlePlayerAbilities` | PlayerAbilities | 玩家能力 |
 | `handleLightUpdate` | LightUpdate | 光照更新 |
 | `handleBlockBreakAnim` | BlockBreakAnim | 方块破坏动画 |
-| `handleCommandTree` | CommandTree | 命令树同步 |
+| `handleCommandTree` | CommandTree | 命令树同步（处理包体，外层网络头已在 `processPacket()` 中剥离） |
 
 ## 文件关系图
 

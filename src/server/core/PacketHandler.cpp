@@ -64,7 +64,7 @@ PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, si
 
         case network::PacketType::KeepAlive: {
             u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
-            return handleKeepAlive(sessionId, payload, payloadSize, currentTimeMs);
+            return handleKeepAlive(sessionId, data, size, currentTimeMs);
         }
 
         case network::PacketType::ChatMessage:
@@ -85,7 +85,7 @@ LoginResult PacketHandler::handleLoginRequest(u32 sessionId, network::Connection
     auto packetResult = network::LoginRequestPacket::deserialize(deser);
 
     if (packetResult.failed()) {
-        spdlog::warn("PacketHandler: Failed to parse login request from session {}", sessionId);
+        spdlog::error("PacketHandler: Failed to parse login request from session {}", sessionId);
         result.message = "Invalid login request";
         return result;
     }
@@ -149,7 +149,7 @@ PacketHandleResult PacketHandler::handlePlayerMove(u32 sessionId, const u8* data
     auto result = network::PlayerMovePacket::deserialize(deser);
 
     if (result.failed()) {
-        spdlog::debug("PacketHandler: Failed to parse player move from player {}", playerId);
+        spdlog::error("PacketHandler: Failed to parse player move from player {}", playerId);
         return PacketHandleResult::Error;
     }
 
@@ -173,14 +173,14 @@ PacketHandleResult PacketHandler::handleTeleportConfirm(u32 sessionId, const u8*
     auto result = network::TeleportConfirmPacket::deserialize(deser);
 
     if (result.failed()) {
-        spdlog::debug("PacketHandler: Failed to parse teleport confirm from player {}", playerId);
+        spdlog::error("PacketHandler: Failed to parse teleport confirm from player {}", playerId);
         return PacketHandleResult::Error;
     }
 
     auto& packet = result.value();
 
     if (!m_teleportManager.confirmTeleport(playerId, packet.teleportId())) {
-        spdlog::debug("PacketHandler: Teleport confirm failed for player {}", playerId);
+        spdlog::error("PacketHandler: Teleport confirm failed for player {}", playerId);
         return PacketHandleResult::Error;
     }
 
@@ -190,7 +190,7 @@ PacketHandleResult PacketHandler::handleTeleportConfirm(u32 sessionId, const u8*
 PacketHandleResult PacketHandler::handleKeepAlive(u32 sessionId, const u8* data, size_t size, u64 currentTimeMs) {
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: Keepalive from unknown session {}", sessionId);
+        spdlog::error("PacketHandler: Keepalive from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
@@ -198,13 +198,11 @@ PacketHandleResult PacketHandler::handleKeepAlive(u32 sessionId, const u8* data,
     auto result = packet.deserialize(data, size);
 
     if (result.failed()) {
-        spdlog::debug("PacketHandler: Failed to parse keepalive from player {}", playerId);
+        spdlog::error("PacketHandler: Failed to parse keepalive from player {}", playerId);
         return PacketHandleResult::Error;
     }
 
     m_keepAliveManager.handleKeepAliveResponse(playerId, packet.timestamp(), currentTimeMs);
-    spdlog::trace("PacketHandler: Keepalive from player {} with timestamp {}",
-                  playerId, packet.timestamp());
 
     return PacketHandleResult::Success;
 }
@@ -212,12 +210,13 @@ PacketHandleResult PacketHandler::handleKeepAlive(u32 sessionId, const u8* data,
 PacketHandleResult PacketHandler::handleChatMessage(u32 sessionId, const u8* data, size_t size) {
     PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
     if (playerId == 0) {
-        spdlog::trace("PacketHandler: Chat message from unknown session {}", sessionId);
+        spdlog::error("PacketHandler: Chat message from unknown session {}", sessionId);
         return PacketHandleResult::Ignore;
     }
 
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
+        spdlog::error("PacketHandler: Chat message from unknown player {}", playerId);
         return PacketHandleResult::Ignore;
     }
 
@@ -225,7 +224,7 @@ PacketHandleResult PacketHandler::handleChatMessage(u32 sessionId, const u8* dat
     auto result = network::ChatMessagePacket::deserialize(deser);
 
     if (result.failed()) {
-        spdlog::debug("PacketHandler: Failed to parse chat message from player {}", playerId);
+        spdlog::error("PacketHandler: Failed to parse chat message from player {}", playerId);
         return PacketHandleResult::Error;
     }
 

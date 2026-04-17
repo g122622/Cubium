@@ -137,8 +137,8 @@ public:
     /**
      * @brief 处理心跳响应
      * @param sessionId 会话ID
-     * @param data 数据包负载
-     * @param size 负载大小
+        * @param data 完整数据包（包含头部）
+        * @param size 数据包大小
      * @param currentTimeMs 当前时间戳（毫秒）
      * @return 处理结果
      */

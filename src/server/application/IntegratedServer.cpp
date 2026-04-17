@@ -70,7 +70,7 @@ IntegratedServer::IntegratedServer()
 
 IntegratedServer::~IntegratedServer()
 {
-    if (m_running) {
+    if (m_initialized) {
         stop();
     }
 }
@@ -244,17 +244,23 @@ void IntegratedServer::shutdown()
     stop();
 }
 
+void IntegratedServer::requestStop()
+{
+    MinecraftServer::requestStop();
+
+    if (m_connectionPair) {
+        m_connectionPair->disconnect();
+    }
+}
+
 void IntegratedServer::stop()
 {
-    if (!m_running) {
+    if (!m_initialized) {
         return;
     }
 
     spdlog::info("Stopping integrated server...");
     m_running = false;
-
-    // 停止核心组件
-    stopCore();
 
     // 断开连接
     if (m_connectionPair) {
@@ -267,6 +273,9 @@ void IntegratedServer::stop()
     }
     m_serverThread.reset();
 
+    // 停止核心组件
+    stopCore();
+
     // 释放客户端连接
     m_clientConnection.reset();
 
@@ -275,6 +284,7 @@ void IntegratedServer::stop()
         m_connectionPair.reset();
     }
     m_serverEndpoint = nullptr;
+    m_initialized = false;
 
     spdlog::info("Integrated server stopped");
 }
@@ -406,7 +416,7 @@ void IntegratedServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
     network::PacketDeserializer deser(data, size);
     auto result = network::PlayerTryUseItemOnBlockPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse block placement packet: {}", result.error().message());
+        spdlog::error("Failed to parse block placement packet: {}", result.error().message());
         return;
     }
 
@@ -486,7 +496,7 @@ void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
     network::PacketDeserializer deser(data, size);
     auto result = HotbarSelectPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse hotbar select packet: {}", result.error().message());
+        spdlog::error("Failed to parse hotbar select packet: {}", result.error().message());
         return;
     }
 
@@ -509,7 +519,7 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* d
     network::PacketDeserializer deser(data, size);
     auto result = ContainerClickPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse container click packet: {}", result.error().message());
+        spdlog::error("Failed to parse container click packet: {}", result.error().message());
         return;
     }
 
@@ -549,7 +559,7 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
     network::PacketDeserializer deser(data, size);
     auto result = CloseContainerPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse close container packet: {}", result.error().message());
+        spdlog::error("Failed to parse close container packet: {}", result.error().message());
         return;
     }
 

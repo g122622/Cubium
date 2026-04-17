@@ -1899,6 +1899,9 @@ void ClientApplication::setupNetworkCallbacks()
         if (m_commandManager) {
             m_commandManager->clear();
         }
+        if (m_useIntegratedServer) {
+            stop();
+        }
     };
 
     callbacks.onCommandTree = [this](const String& treeJson) {
@@ -1908,7 +1911,7 @@ void ClientApplication::setupNetworkCallbacks()
 
         auto result = m_commandManager->applyCommandTreeJson(treeJson);
         if (result.failed()) {
-            spdlog::warn("Failed to apply command tree: {}", result.error().toString());
+            spdlog::error("Failed to apply command tree: {}", result.error().toString());
         }
     };
 

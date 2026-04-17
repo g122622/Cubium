@@ -226,6 +226,8 @@ public:
 
     /**
      * @brief 请求服务器优雅停机。
+     *
+     * 只触发停机流程，不在调用线程里直接释放资源。
      */
     virtual void requestStop() = 0;
 };

@@ -110,6 +110,26 @@ TEST(IntegratedServerTest, TickCountIncreases) {
     server.stop();
 }
 
+TEST(IntegratedServerTest, RequestStopDisconnectsClientEndpoint) {
+    IntegratedServer server;
+    IntegratedServerConfig config;
+    config.tickRate = 100;
+
+    auto result = server.initialize(config);
+    ASSERT_TRUE(result.success());
+
+    auto* endpoint = server.getClientEndpoint();
+    ASSERT_NE(endpoint, nullptr);
+    EXPECT_TRUE(endpoint->isConnected());
+
+    server.requestStop();
+
+    EXPECT_FALSE(server.isRunning());
+    EXPECT_FALSE(endpoint->isConnected());
+
+    server.stop();
+}
+
 // ============================================================================
 // 本地连接通信测试
 // ============================================================================

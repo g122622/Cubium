@@ -357,6 +357,12 @@ void NetworkClient::poll() {
             processPacket(data.data(), data.size());
             m_packetsReceived++;
         }
+
+        if (!m_localEndpoint->isConnected()) {
+            disconnect("Server disconnected");
+            return;
+        }
+
         sendKeepAliveIfNeeded();
         return;
     }
@@ -490,7 +496,7 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
         }
 
         case network::PacketType::CommandTree: {
-            handleCommandTree(data, size);
+            handleCommandTree(bodyDeser.data(), bodyDeser.size());
             break;
         }
 

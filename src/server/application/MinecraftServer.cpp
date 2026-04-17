@@ -66,7 +66,7 @@ void MinecraftServer::broadcastServerMessage(StringView message)
 
 void MinecraftServer::requestStop()
 {
-    shutdown();
+    m_running = false;
 }
 MinecraftServer::~MinecraftServer()
 {
@@ -776,7 +776,7 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     auto result = network::PlayerMovePacket::deserialize(deser);
 
     if (result.failed()) {
-        spdlog::debug("Failed to parse player move from player {}", playerId);
+        spdlog::error("Failed to parse player move from player {}", playerId);
         return;
     }
 
@@ -941,7 +941,7 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
     network::PacketDeserializer deser(data, size);
     auto result = network::BlockInteractionPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::debug("Failed to parse block interaction packet: {}", result.error().message());
+        spdlog::error("Failed to parse block interaction packet: {}", result.error().message());
         return;
     }
 
@@ -1139,7 +1139,7 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         case network::PacketType::KeepAlive: {
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
-                handleKeepAlivePacket(playerId, payload, payloadSize);
+                handleKeepAlivePacket(playerId, data, size);
             }
             break;
         }

@@ -305,7 +305,7 @@ struct ServerCoreConfig {
 | `handleLoginRequest(sessionId, connection, data, size)` | 处理登录请求 |
 | `handlePlayerMove(sessionId, data, size)` | 处理玩家移动 |
 | `handleTeleportConfirm(sessionId, data, size)` | 处理传送确认 |
-| `handleKeepAlive(sessionId, data, size, currentTimeMs)` | 处理心跳响应 |
+| `handleKeepAlive(sessionId, data, size, currentTimeMs)` | 处理完整心跳响应（包含包头） |
 | `handleChatMessage(sessionId, data, size)` | 处理聊天消息 |
 
 **处理结果枚举：**

@@ -58,8 +58,9 @@ src/common/network/packet/
   - `deserialize()`: 反序列化接口
   - `expectedSize()`: 预期大小 (用于预分配)
 
-- `KeepAlivePacket`: 心跳包
+- `KeepAlivePacket`: 心跳包（按完整包处理，包含 12 字节包头和 8 字节时间戳）
 - `DisconnectPacket`: 断开连接包
+- 其余具体数据包（包括 `CommandTreePacket`）只负责包体序列化，外层 12 字节包头由 `ConnectionManager::encapsulatePacket()` 统一添加
 
 #### PacketSerializer.hpp / PacketSerializer.cpp
 

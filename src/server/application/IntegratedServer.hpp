@@ -42,6 +42,7 @@ public:
 
     [[nodiscard]] Result<void> initialize() override;
     void shutdown() override;
+    void requestStop() override;
 
 protected:
     void pollNetwork() override;

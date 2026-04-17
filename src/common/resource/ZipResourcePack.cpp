@@ -96,7 +96,7 @@ Result<void> ZipResourcePack::initialize()
             if (metadataResult.success()) {
                 m_metadata = std::move(metadataResult.value());
             } else {
-                spdlog::debug("Failed to parse pack.mcmeta for {}: {}",
+                spdlog::error("Failed to parse pack.mcmeta for {}: {}",
                              m_name, metadataResult.error().toString());
                 m_metadata = PackMetadata();
             }

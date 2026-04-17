@@ -401,6 +401,8 @@ enum class Operation : u8 { ... };
     - `ClientWorld` now uses `meshRebuildPending` to coalesce repeated `onLightUpdate()` calls for the same chunk while a task is still active.
 - Do not send `BlockUpdatePacket` directly from server application code.
     - `ServerWorld::setOnBlockChanged()` now feeds `BlockUpdateSyncManager`; same-coordinate dedupe and tick-end flush must stay centralized.
+- `KeepAlivePacket::deserialize()` expects the完整包（12 字节头 + 8 字节时间戳）。
+    - 服务端处理心跳响应时不要先剥掉头部，否则单人模式下会把正常的 KeepAlive 回复误报成 `Packet too small for keep alive`。
 - When testing `ServerWorld::setBlock()`, initialize the world first.
     - Uninitialized worlds hit the light-update assert path (`MC_ASSERT_RELEASE(false)`) because `m_lightManager` is null.
 - Command aliases should use `CommandNode::setRedirect(...)` instead of duplicating child subtrees.
@@ -411,6 +413,8 @@ enum class Operation : u8 { ... };
     - Help output automatically tracks aliases and future command registrations, so do not reintroduce a separate manual name list.
 - `CommandTreePacket` is the authoritative command snapshot for the client.
     - Client-side completion must be rebuilt from `onCommandTree()` after login and cleared again on disconnect, otherwise chat suggestions will drift stale.
+- `CommandTreePacket` only serializes the packet body.
+    - Server code must wrap it with `ConnectionManager::encapsulatePacket()` exactly once, and client code must strip the outer network header before calling `handleCommandTree()`; double encapsulation makes the inner header look like an empty JSON string.
 - Do not link `spdlog::spdlog` or `GTest::gtest` directly into executables that already consume `mc_common` or `GTest::gtest_main`.
     - Apple ld will emit duplicate-library warnings when the same static library appears twice on the final link line.
 - On AppleClang, no-argument `MC_TRACE_EVENT(...)` or `MC_TRACE_*` calls can still trigger `-Wvariadic-macro-arguments-omitted`.
