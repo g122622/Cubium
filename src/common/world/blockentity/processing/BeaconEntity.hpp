@@ -1,19 +1,16 @@
-#pragma once
+﻿#pragma once
 
 #include "world/blockentity/BlockEntity.hpp"
+#include "entity/effect/EffectType.hpp"
 #include "item/core/ItemStack.hpp"
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
 class IWorld;
 class Player;
-
-namespace effect {
-// 前向声明效果类型
-class MobEffect;
-}
 
 namespace blockentity {
 
@@ -38,7 +35,7 @@ public:
     static constexpr i32 MAX_LEVELS = 4;
 
     /// 效果类型
-    using EffectType = effect::MobEffect;
+    using EffectType = entity::effect::EffectType;
 
     // ========== 构造函数 ==========
 
@@ -71,13 +68,13 @@ public:
      * @brief 检查是否激活
      * @return 如果激活返回true
      */
-    [[nodiscard]] bool isActive() const { return m_level > 0 && m_primaryEffect != nullptr; }
+    [[nodiscard]] bool isActive() const { return m_level > 0 && m_primaryEffect.has_value(); }
 
     /**
      * @brief 获取主效果
      * @return 主效果类型
      */
-    [[nodiscard]] const EffectType* getPrimaryEffect() const { return m_primaryEffect; }
+    [[nodiscard]] const EffectType* getPrimaryEffect() const { return m_primaryEffect.has_value() ? &m_primaryEffect.value() : nullptr; }
 
     /**
      * @brief 设置主效果
@@ -89,7 +86,7 @@ public:
      * @brief 获取辅助效果
      * @return 辅助效果类型
      */
-    [[nodiscard]] const EffectType* getSecondaryEffect() const { return m_secondaryEffect; }
+    [[nodiscard]] const EffectType* getSecondaryEffect() const { return m_secondaryEffect.has_value() ? &m_secondaryEffect.value() : nullptr; }
 
     /**
      * @brief 设置辅助效果
@@ -162,8 +159,8 @@ private:
 
     i32 m_level = 0;                            ///< 金字塔等级 (0-4)
     i32 m_tickCount = 0;                        ///< tick计数器
-    const EffectType* m_primaryEffect = nullptr;   ///< 主效果
-    const EffectType* m_secondaryEffect = nullptr; ///< 辅助效果
+    Optional<EffectType> m_primaryEffect;   ///< 主效果
+    Optional<EffectType> m_secondaryEffect; ///< 辅助效果
     ItemStack m_paymentItem;                    ///< 支付物品槽位
     bool m_lastBeamState = false;               ///< 上一帧光束状态
 
@@ -173,3 +170,7 @@ private:
 
 } // namespace blockentity
 } // namespace mc
+
+
+
+

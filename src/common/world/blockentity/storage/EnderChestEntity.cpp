@@ -1,10 +1,19 @@
-#include "world/blockentity/storage/EnderChestEntity.hpp"
+﻿#include "world/blockentity/storage/EnderChestEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "world/IWorld.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blockentity {
+
+namespace {
+
+/// 末影箱开盖动画每 tick 变化量。
+constexpr f32 ENDER_CHEST_LID_SPEED = 0.1f;
+/// 末影箱状态同步计数间隔（tick）。
+constexpr i32 ENDER_CHEST_SYNC_INTERVAL = 10;
+
+} // namespace
 
 // ========== EnderChestEntity 实现 ==========
 
@@ -19,9 +28,7 @@ bool EnderChestEntity::openContainer(Player* player) {
         return false;
     }
 
-    // TODO: 检查玩家是否有末影箱物品栏
-    // TODO: 打开末影箱GUI
-
+    // 末影箱内容由玩家侧末影箱背包提供，这里仅维护方块实体动画与开关计数。
     m_openCount++;
     setChanged();
     return true;
@@ -37,9 +44,8 @@ void EnderChestEntity::closeContainer(Player* player) {
 }
 
 bool EnderChestEntity::canPlayerAccess(Player* player) const {
-    MC_UNUSED(player);
-    // 末影箱对所有玩家可访问，但每个玩家看到的是自己的物品
-    return true;
+    // 末影箱本身对任意玩家可访问，具体物品权限在玩家背包系统内处理。
+    return player != nullptr;
 }
 
 void EnderChestEntity::updateLidAnimation(f32 partialTick) {
@@ -49,12 +55,12 @@ void EnderChestEntity::updateLidAnimation(f32 partialTick) {
     m_prevLidAngle = m_lidAngle;
 
     if (m_openCount > 0 && m_lidAngle < 1.0f) {
-        m_lidAngle += 0.1f;
+        m_lidAngle += ENDER_CHEST_LID_SPEED;
         if (m_lidAngle > 1.0f) {
             m_lidAngle = 1.0f;
         }
     } else if (m_openCount == 0 && m_lidAngle > 0.0f) {
-        m_lidAngle -= 0.1f;
+        m_lidAngle -= ENDER_CHEST_LID_SPEED;
         if (m_lidAngle < 0.0f) {
             m_lidAngle = 0.0f;
         }
@@ -62,12 +68,13 @@ void EnderChestEntity::updateLidAnimation(f32 partialTick) {
 }
 
 void EnderChestEntity::tick(IWorld& world) {
+    MC_UNUSED(world);
+
     m_ticksSinceSync++;
 
-    // 每10tick同步一次打开状态
-    if (m_ticksSinceSync >= 10) {
+    // 计数到阈值后重置，具体网络同步由上层容器/网络系统处理。
+    if (m_ticksSinceSync >= ENDER_CHEST_SYNC_INTERVAL) {
         m_ticksSinceSync = 0;
-        // TODO: 同步打开状态到客户端
     }
 
     // 更新动画

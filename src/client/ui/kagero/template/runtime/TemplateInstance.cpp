@@ -1,4 +1,4 @@
-#include "TemplateInstance.hpp"
+﻿#include "TemplateInstance.hpp"
 #include "../bindings/BuiltinWidgets.hpp"
 #include "../bindings/BuiltinEvents.hpp"
 #include "../../widget/TextWidget.hpp"
@@ -237,51 +237,79 @@ void TemplateInstance::registerDefaultAttributeSetters() {
         }
     };
 
-    // margin属性（格式：margin="10,5" 或 margin="10"）
+    // margin属性（格式：margin="10" / "h,v" / "l,t,r,b"）
     m_attributeSetters["margin"] = [](widget::Widget* widget, const String& attrName,
                                        const binder::Value& value) {
         (void)attrName;
-        (void)widget;
-        // TODO: 需要Widget支持margin属性
-        // auto [top, right, bottom, left] = parseMargin(value.toString());
-        // widget->setMargin(top, right, bottom, left);
+        const String text = value.toString();
+        size_t firstComma = text.find(',');
+        if (firstComma == String::npos) {
+            const i32 all = bindings::widget_attrs::parseInt(text);
+            widget->setMargin(Margin(all));
+            return;
+        }
+        size_t secondComma = text.find(',', firstComma + 1);
+        if (secondComma == String::npos) {
+            const i32 horizontal = bindings::widget_attrs::parseInt(text.substr(0, firstComma));
+            const i32 vertical = bindings::widget_attrs::parseInt(text.substr(firstComma + 1));
+            widget->setMargin(Margin(horizontal, vertical));
+            return;
+        }
+        size_t thirdComma = text.find(',', secondComma + 1);
+        const i32 left = bindings::widget_attrs::parseInt(text.substr(0, firstComma));
+        const i32 top = bindings::widget_attrs::parseInt(text.substr(firstComma + 1, secondComma - firstComma - 1));
+        const i32 right = bindings::widget_attrs::parseInt(
+            thirdComma == String::npos ? text.substr(secondComma + 1) : text.substr(secondComma + 1, thirdComma - secondComma - 1));
+        const i32 bottom = thirdComma == String::npos ? right : bindings::widget_attrs::parseInt(text.substr(thirdComma + 1));
+        widget->setMargin(Margin(left, top, right, bottom));
     };
 
-    // padding属性（格式：padding="10,5" 或 padding="10"）
+    // padding属性（格式：padding="10" / "h,v" / "l,t,r,b"）
     m_attributeSetters["padding"] = [](widget::Widget* widget, const String& attrName,
                                         const binder::Value& value) {
         (void)attrName;
-        (void)widget;
-        // TODO: 需要Widget支持padding属性
-        // auto [top, right, bottom, left] = parsePadding(value.toString());
-        // widget->setPadding(top, right, bottom, left);
+        const String text = value.toString();
+        size_t firstComma = text.find(',');
+        if (firstComma == String::npos) {
+            const i32 all = bindings::widget_attrs::parseInt(text);
+            widget->setPadding(Padding(all));
+            return;
+        }
+        size_t secondComma = text.find(',', firstComma + 1);
+        if (secondComma == String::npos) {
+            const i32 horizontal = bindings::widget_attrs::parseInt(text.substr(0, firstComma));
+            const i32 vertical = bindings::widget_attrs::parseInt(text.substr(firstComma + 1));
+            widget->setPadding(Padding(horizontal, vertical));
+            return;
+        }
+        size_t thirdComma = text.find(',', secondComma + 1);
+        const i32 left = bindings::widget_attrs::parseInt(text.substr(0, firstComma));
+        const i32 top = bindings::widget_attrs::parseInt(text.substr(firstComma + 1, secondComma - firstComma - 1));
+        const i32 right = bindings::widget_attrs::parseInt(
+            thirdComma == String::npos ? text.substr(secondComma + 1) : text.substr(secondComma + 1, thirdComma - secondComma - 1));
+        const i32 bottom = thirdComma == String::npos ? right : bindings::widget_attrs::parseInt(text.substr(thirdComma + 1));
+        widget->setPadding(Padding(left, top, right, bottom));
     };
 
     // 背景色
     m_attributeSetters["background-color"] = [](widget::Widget* widget, const String& attrName,
                                                  const binder::Value& value) {
         (void)attrName;
-        (void)widget;
-        // TODO: 需要Widget支持backgroundColor属性
-        // widget->setBackgroundColor(bindings::widget_attrs::parseColor(value.toString()));
+        widget->setBackgroundColor(bindings::widget_attrs::parseColor(value.toString()));
     };
 
     // 边框色
     m_attributeSetters["border-color"] = [](widget::Widget* widget, const String& attrName,
                                              const binder::Value& value) {
         (void)attrName;
-        (void)widget;
-        // TODO: 需要Widget支持borderColor属性
-        // widget->setBorderColor(bindings::widget_attrs::parseColor(value.toString()));
+        widget->setBorderColor(bindings::widget_attrs::parseColor(value.toString()));
     };
 
     // 圆角
     m_attributeSetters["corner-radius"] = [](widget::Widget* widget, const String& attrName,
                                               const binder::Value& value) {
         (void)attrName;
-        (void)widget;
-        // TODO: 需要Widget支持cornerRadius属性
-        // widget->setCornerRadius(bindings::widget_attrs::parseInt(value.toString()));
+        widget->setCornerRadius(bindings::widget_attrs::parseInt(value.toString()));
     };
 
     // disabled属性
@@ -296,8 +324,7 @@ void TemplateInstance::registerDefaultAttributeSetters() {
                                         const binder::Value& value) {
         (void)attrName;
         if (auto* checkbox = dynamic_cast<widget::CheckboxWidget*>(widget)) {
-            // TODO: CheckboxWidget needs setChecked method
-            (void)checkbox;
+            checkbox->setChecked(value.asBool());
         }
     };
 
@@ -306,8 +333,7 @@ void TemplateInstance::registerDefaultAttributeSetters() {
                                       const binder::Value& value) {
         (void)attrName;
         if (auto* slider = dynamic_cast<widget::SliderWidget*>(widget)) {
-            // TODO: SliderWidget needs setValue method
-            (void)slider;
+            slider->setValue(static_cast<f64>(value.asFloat()));
         }
     };
 
@@ -315,16 +341,18 @@ void TemplateInstance::registerDefaultAttributeSetters() {
     m_attributeSetters["min"] = [](widget::Widget* widget, const String& attrName,
                                     const binder::Value& value) {
         (void)attrName;
-        (void)widget;
-        // TODO: SliderWidget needs setMin method
+        if (auto* slider = dynamic_cast<widget::SliderWidget*>(widget)) {
+            slider->setMinValue(static_cast<f64>(value.asFloat()));
+        }
     };
 
     // max属性（用于SliderWidget）
     m_attributeSetters["max"] = [](widget::Widget* widget, const String& attrName,
                                     const binder::Value& value) {
         (void)attrName;
-        (void)widget;
-        // TODO: SliderWidget needs setMax method
+        if (auto* slider = dynamic_cast<widget::SliderWidget*>(widget)) {
+            slider->setMaxValue(static_cast<f64>(value.asFloat()));
+        }
     };
 
     // placeholder属性（用于TextFieldWidget）
@@ -332,8 +360,7 @@ void TemplateInstance::registerDefaultAttributeSetters() {
                                             const binder::Value& value) {
         (void)attrName;
         if (auto* textField = dynamic_cast<widget::TextFieldWidget*>(widget)) {
-            // TODO: TextFieldWidget needs setPlaceholder method
-            (void)textField;
+            textField->setPlaceholder(value.toString());
         }
     };
 
@@ -342,8 +369,7 @@ void TemplateInstance::registerDefaultAttributeSetters() {
                                            const binder::Value& value) {
         (void)attrName;
         if (auto* textField = dynamic_cast<widget::TextFieldWidget*>(widget)) {
-            // TODO: TextFieldWidget needs setMaxLength method
-            (void)textField;
+            textField->setMaxLength(value.asInteger());
         }
     };
 
@@ -488,32 +514,44 @@ void TemplateInstance::registerDefaultEventBinders() {
     m_eventBinders["change"] = [](widget::Widget* widget, const String& eventName,
                                    const String& callbackName, binder::BindingContext& ctx) {
         (void)eventName;
-        // 为不同类型的Widget注册值变化回调
-        if (auto* checkbox = dynamic_cast<widget::CheckboxWidget*>(widget)) {
-            // CheckboxWidget需要实现setOnChange方法
-            (void)checkbox;
-        } else if (auto* slider = dynamic_cast<widget::SliderWidget*>(widget)) {
-            // SliderWidget需要实现setOnValueChange方法
-            (void)slider;
-        } else if (auto* textField = dynamic_cast<widget::TextFieldWidget*>(widget)) {
-            // TextFieldWidget需要实现setOnTextChange方法
-            (void)textField;
+        if (callbackName.empty()) {
+            return;
         }
-        // 存储回调名以便后续调用
-        (void)ctx;
-        (void)callbackName;
+
+        if (auto* checkbox = dynamic_cast<widget::CheckboxWidget*>(widget)) {
+            checkbox->setOnChanged([widget, &ctx, callbackName](bool oldOrNewChecked) {
+                (void)oldOrNewChecked;
+                ctx.invokeCallback(callbackName, widget, event::CheckboxChangeEvent(false, oldOrNewChecked));
+            });
+            return;
+        }
+
+        if (auto* slider = dynamic_cast<widget::SliderWidget*>(widget)) {
+            slider->setOnValueChanged([widget, &ctx, callbackName](f64 value) {
+                ctx.invokeCallback(callbackName, widget, event::SliderValueChangeEvent(value, value));
+            });
+            return;
+        }
+
+        if (auto* textField = dynamic_cast<widget::TextFieldWidget*>(widget)) {
+            textField->setTextChangedCallback([widget, &ctx, callbackName](const String& text) {
+                ctx.invokeCallback(callbackName, widget, event::TextChangeEvent(text, text));
+            });
+        }
     };
 
     // 输入事件
     m_eventBinders["input"] = [](widget::Widget* widget, const String& eventName,
                                   const String& callbackName, binder::BindingContext& ctx) {
         (void)eventName;
-        if (auto* textField = dynamic_cast<widget::TextFieldWidget*>(widget)) {
-            // TextFieldWidget需要实现setOnInput方法
-            (void)textField;
+        if (callbackName.empty()) {
+            return;
         }
-        (void)ctx;
-        (void)callbackName;
+        if (auto* textField = dynamic_cast<widget::TextFieldWidget*>(widget)) {
+            textField->setTextChangedCallback([widget, &ctx, callbackName](const String& text) {
+                ctx.invokeCallback(callbackName, widget, event::CharInputEvent(0));
+            });
+        }
     };
 }
 
@@ -938,3 +976,5 @@ bool TemplateInstance::evaluateCondition(const ast::ConditionInfo& condition) co
 }
 
 } // namespace mc::client::ui::kagero::tpl::runtime
+
+

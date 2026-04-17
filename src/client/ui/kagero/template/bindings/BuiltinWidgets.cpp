@@ -1,4 +1,4 @@
-#include "BuiltinWidgets.hpp"
+﻿#include "BuiltinWidgets.hpp"
 #include <sstream>
 #include <algorithm>
 #include <cctype>
@@ -224,13 +224,16 @@ void BuiltinWidgets::registerTextFieldWidget() {
         // 解析placeholder
         auto placeholderIt = attrs.find("placeholder");
         if (placeholderIt != attrs.end()) {
-            // TextFieldWidget需要实现setPlaceholder
+            textField->setPlaceholder(placeholderIt->second);
         }
 
-        // 解析maxLength
+        // 解析maxLength / max-length
         auto maxLengthIt = attrs.find("maxLength");
+        if (maxLengthIt == attrs.end()) {
+            maxLengthIt = attrs.find("max-length");
+        }
         if (maxLengthIt != attrs.end()) {
-            // TextFieldWidget需要实现setMaxLength
+            textField->setMaxLength(widget_attrs::parseInt(maxLengthIt->second, textField->maxLength()));
         }
 
         return textField;
@@ -254,13 +257,13 @@ void BuiltinWidgets::registerSliderWidget() {
         auto rangeIt = attrs.find("range");
         if (rangeIt != attrs.end()) {
             auto [min, max] = widget_attrs::parseRange(rangeIt->second);
-            // SliderWidget需要实现setRange
+            slider->setRange(min, max);
         }
 
         // 解析初始值
         auto valueIt = attrs.find("value");
         if (valueIt != attrs.end()) {
-            // SliderWidget需要实现setValue
+            slider->setValue(widget_attrs::parseFloat(valueIt->second, static_cast<f32>(slider->value())));
         }
 
         return slider;
@@ -284,7 +287,7 @@ void BuiltinWidgets::registerCheckboxWidget() {
         // 解析初始状态
         auto checkedIt = attrs.find("checked");
         if (checkedIt != attrs.end()) {
-            // CheckboxWidget需要实现setChecked
+            checkbox->setChecked(widget_attrs::parseBool(checkedIt->second));
         }
 
         return checkbox;
@@ -635,3 +638,4 @@ std::pair<f32, f32> parseRange(const String& value) {
 } // namespace widget_attrs
 
 } // namespace mc::client::ui::kagero::tpl::bindings
+

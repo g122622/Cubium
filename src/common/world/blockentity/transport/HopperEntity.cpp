@@ -1,14 +1,42 @@
-#include "world/blockentity/transport/HopperEntity.hpp"
+﻿#include "world/blockentity/transport/HopperEntity.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
 #include "world/IWorld.hpp"
 #include "entity/entities/item/ItemEntity.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "util/property/Properties.hpp"
 #include <algorithm>
 
 namespace mc {
 namespace blockentity {
+
+namespace {
+
+/**
+ * @brief 判断漏斗方块状态是否处于启用状态。
+ *
+ * @param world 世界接口。
+ * @param pos 漏斗方块位置。
+ * @return `true` 表示漏斗可工作；`false` 表示被红石禁用。
+ *
+ * @note 如果当前位置不存在方块状态，或状态不包含 `ENABLED` 属性，则按“启用”处理，
+ *       以保持和现有兼容逻辑一致，避免在非漏斗状态下误禁用传输。
+ */
+[[nodiscard]] bool isHopperEnabledAt(IWorld& world, const BlockPos& pos) {
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return true;
+    }
+
+    if (!state->hasProperty(BlockStateProperties::ENABLED())) {
+        return true;
+    }
+
+    return state->get(BlockStateProperties::ENABLED());
+}
+
+} // namespace
 
 // ========== 构造函数 ==========
 
@@ -43,13 +71,12 @@ void HopperEntity::tick(IWorld& world) {
         return;
     }
 
+    if (!isHopperEnabledAt(world, getPos())) {
+        return;
+    }
+
     // 重置冷却为0（允许传输）
     setTransferCooldown(0);
-
-    // 检查漏斗是否被红石禁用
-    // 这需要从方块状态获取 ENABLED 属性
-    // 暂时假设漏斗总是启用的
-    // TODO: 从 world 获取 BlockState 检查 ENABLED 属性
 
     // 更新漏斗状态
     updateHopper([&]() {
@@ -59,7 +86,14 @@ void HopperEntity::tick(IWorld& world) {
 
 std::unique_ptr<BlockEntity> HopperEntity::clone() const {
     auto cloned = std::make_unique<HopperEntity>(m_pos);
-    // TODO: 复制物品数据
+    cloned->m_transferCooldown = m_transferCooldown;
+    cloned->m_tickedGameTime = m_tickedGameTime;
+    for (i32 slot = 0; slot < HOPPER_SIZE; ++slot) {
+        const ItemStack stack = m_inventory.getItem(slot);
+        if (!stack.isEmpty()) {
+            cloned->m_inventory.setItem(slot, stack.copy());
+        }
+    }
     return cloned;
 }
 
@@ -76,7 +110,27 @@ bool HopperEntity::load(const nlohmann::json& data) {
     }
 
     // 加载背包内容
-    // TODO: 从 JSON 加载 ItemStack
+    if (data.contains("Items") && data["Items"].is_array()) {
+        m_inventory.clear();
+        const auto& items = data["Items"];
+        for (const auto& itemJson : items) {
+            if (!itemJson.is_object()) {
+                continue;
+            }
+
+            const i32 slot = itemJson.value("Slot", -1);
+            if (slot < 0 || slot >= HOPPER_SIZE) {
+                continue;
+            }
+
+            auto stackResult = ItemStack::fromJson(itemJson);
+            if (!stackResult.success()) {
+                continue;
+            }
+
+            m_inventory.setItem(slot, stackResult.value());
+        }
+    }
 
     return true;
 }
@@ -88,7 +142,18 @@ void HopperEntity::save(nlohmann::json& data) const {
     data["TransferCooldown"] = m_transferCooldown;
 
     // 保存背包内容
-    // TODO: 保存 ItemStack 到 JSON
+    nlohmann::json itemsJson = nlohmann::json::array();
+    for (i32 slot = 0; slot < HOPPER_SIZE; ++slot) {
+        const ItemStack& stack = m_inventory.getItem(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+
+        nlohmann::json itemJson = stack.toJson();
+        itemJson["Slot"] = slot;
+        itemsJson.push_back(std::move(itemJson));
+    }
+    data["Items"] = std::move(itemsJson);
 }
 
 // ========== 漏斗特定方法 ==========
@@ -176,8 +241,26 @@ IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& 
         }
     }
 
-    // TODO: 检查方块是否实现 ISidedInventoryProvider
-    // TODO: 检查该位置的实体是否有背包（如漏斗矿车）
+    // 兼容当前架构：若位置本身没有方块实体容器，则再尝试实体容器（如矿车容器）。
+    const AxisAlignedBB lookupBox(
+        static_cast<f32>(pos.x),
+        static_cast<f32>(pos.y),
+        static_cast<f32>(pos.z),
+        static_cast<f32>(pos.x + 1),
+        static_cast<f32>(pos.y + 1),
+        static_cast<f32>(pos.z + 1));
+
+    const std::vector<Entity*> entities = world->getEntitiesInAABB(lookupBox, nullptr);
+    for (Entity* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        IInventory* inventory = dynamic_cast<IInventory*>(entity);
+        if (inventory != nullptr) {
+            return inventory;
+        }
+    }
 
     return nullptr;
 }
@@ -249,8 +332,9 @@ bool HopperEntity::updateHopper(std::function<bool()> pullFunc) {
         return false;
     }
 
-    // TODO: 检查漏斗是否被红石禁用
-    // 需要从 BlockState 获取 ENABLED 属性
+    if (!isHopperEnabledAt(*m_world, getPos())) {
+        return false;
+    }
 
     bool transferred = false;
 
@@ -334,8 +418,7 @@ bool HopperEntity::isInventoryFull(const IInventory* inventory, Direction side) 
         return true;
     }
 
-    // TODO: 处理 ISidedInventory（侧面有不同槽位的容器）
-    // 目前假设所有槽位都可访问
+    MC_UNUSED(side);
 
     for (i32 slot = 0; slot < inventory->getContainerSize(); ++slot) {
         const ItemStack& stack = inventory->getItem(slot);
@@ -352,8 +435,7 @@ bool HopperEntity::isInventoryEmpty(const IInventory* inventory, Direction side)
         return true;
     }
 
-    // TODO: 处理 ISidedInventory
-    // 目前假设所有槽位都可访问
+    MC_UNUSED(side);
 
     for (i32 slot = 0; slot < inventory->getContainerSize(); ++slot) {
         if (!inventory->getItem(slot).isEmpty()) {
@@ -461,11 +543,10 @@ ItemStack HopperEntity::insertStack(
         // 漏斗链优化：如果目标是漏斗且为空
         // 减少冷却时间
         if (wasEmpty && source != nullptr) {
-            // TODO: 检查目标是否是漏斗
-            // HopperEntity* targetHopper = dynamic_cast<HopperEntity*>(destination);
-            // if (targetHopper != nullptr && !targetHopper->mayTransfer()) {
-            //     漏斗链优化
-            // }
+            HopperEntity* targetHopper = dynamic_cast<HopperEntity*>(destination);
+            if (targetHopper != nullptr && !targetHopper->mayTransfer()) {
+                targetHopper->setTransferCooldown(TRANSFER_COOLDOWN_CHAIN);
+            }
         }
 
         destination->setChanged();
@@ -489,8 +570,7 @@ bool HopperEntity::canInsertItemInSlot(
         return false;
     }
 
-    // TODO: 处理 ISidedInventory（侧面有不同槽位的容器）
-    // 目前假设所有槽位都可从任意方向插入
+    MC_UNUSED(direction);
 
     return true;
 }
@@ -505,8 +585,9 @@ bool HopperEntity::canExtractItemFromSlot(
         return false;
     }
 
-    // TODO: 处理 ISidedInventory（侧面有不同槽位的容器）
-    // 目前假设所有槽位都可从任意方向提取
+    MC_UNUSED(stack);
+    MC_UNUSED(slotIndex);
+    MC_UNUSED(direction);
 
     return true;
 }
@@ -540,3 +621,5 @@ void HopperEntity::onEntityCollision(IWorld& world, Entity* entity) {
 
 } // namespace blockentity
 } // namespace mc
+
+

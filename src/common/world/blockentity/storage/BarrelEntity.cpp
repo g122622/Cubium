@@ -1,7 +1,9 @@
-#include "world/blockentity/storage/BarrelEntity.hpp"
+﻿#include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "util/property/Properties.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -19,13 +21,21 @@ void BarrelEntity::openContainer() {
     LockableBlockEntity::openContainer();
     m_openCount++;
 
-    // 标记改变
+    if (m_world != nullptr) {
+        updateBlockState(*m_world, true);
+    }
+
     setChanged();
 }
 
 void BarrelEntity::closeContainer() {
     if (m_openCount > 0) {
         m_openCount--;
+
+        if (m_world != nullptr) {
+            updateBlockState(*m_world, m_openCount > 0);
+        }
+
         setChanged();
     }
 }
@@ -33,7 +43,6 @@ void BarrelEntity::closeContainer() {
 i32 BarrelEntity::getComparatorSignal(IWorld& world) const {
     MC_UNUSED(world);
 
-    // 计算填充比例
     i32 filledSlots = 0;
     i32 totalCount = 0;
 
@@ -49,30 +58,42 @@ i32 BarrelEntity::getComparatorSignal(IWorld& world) const {
         return 0;
     }
 
-    // 比较器信号计算公式
-    // signal = (filledSlots / totalSlots) * 14 + (totalCount > 0 ? 1 : 0)
-    f32 fillRatio = static_cast<f32>(filledSlots) / static_cast<f32>(BARREL_SIZE);
+    const f32 fillRatio = static_cast<f32>(filledSlots) / static_cast<f32>(BARREL_SIZE);
     return static_cast<i32>(fillRatio * 14.0f) + (totalCount > 0 ? 1 : 0);
 }
 
 void BarrelEntity::tick(IWorld& world) {
+    if (m_world == nullptr) {
+        m_world = &world;
+    }
+
     m_ticksSinceSync++;
 
-    // 定期同步打开状态
     if (m_ticksSinceSync >= 10) {
         m_ticksSinceSync = 0;
-        // TODO: 同步到客户端
+
+        // 通过 setBlockState 触发方块更新与客户端状态同步。
+        const BlockState* state = world.getBlockState(m_pos);
+        if (state != nullptr) {
+            world.setBlockState(m_pos, state, 3);
+        }
     }
+
+    MC_UNUSED(world);
 }
 
 void BarrelEntity::updateBlockState(IWorld& world, bool open) {
-    // TODO: 更新方块的 OPEN 属性
-    // BlockState state = world.getBlockState(m_pos);
-    // if (state.hasProperty(BlockStateProperties::OPEN())) {
-    //     world.setBlockState(m_pos, state.with(BlockStateProperties::OPEN(), open), 3);
-    // }
-    MC_UNUSED(world);
-    MC_UNUSED(open);
+    const BlockState* state = world.getBlockState(m_pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    if (!state->hasProperty(BlockStateProperties::OPEN())) {
+        return;
+    }
+
+    const BlockState& updated = state->with(BlockStateProperties::OPEN(), open);
+    world.setBlockState(m_pos, &updated, 3);
 }
 
 bool BarrelEntity::load(const nlohmann::json& data) {
@@ -80,7 +101,6 @@ bool BarrelEntity::load(const nlohmann::json& data) {
         return false;
     }
 
-    // 加载物品
     if (data.contains("items")) {
         m_inventory.load(data["items"]);
     }
@@ -95,20 +115,24 @@ bool BarrelEntity::load(const nlohmann::json& data) {
 void BarrelEntity::save(nlohmann::json& data) const {
     LockableBlockEntity::save(data);
 
-    // 保存物品
     nlohmann::json itemsJson;
     m_inventory.save(itemsJson);
     data["items"] = itemsJson;
-
     data["open_count"] = m_openCount;
 }
 
 std::unique_ptr<BlockEntity> BarrelEntity::clone() const {
     auto clone = std::make_unique<BarrelEntity>(m_pos);
     clone->m_openCount = m_openCount;
-    // TODO: 复制物品
+    for (i32 slot = 0; slot < BARREL_SIZE; ++slot) {
+        const ItemStack stack = m_inventory.getItem(slot);
+        if (!stack.isEmpty()) {
+            clone->m_inventory.setItem(slot, stack.copy());
+        }
+    }
     return clone;
 }
 
 } // namespace blockentity
 } // namespace mc
+

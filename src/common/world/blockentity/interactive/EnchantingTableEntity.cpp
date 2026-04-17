@@ -1,11 +1,54 @@
-#include "EnchantingTableEntity.hpp"
+﻿#include "EnchantingTableEntity.hpp"
 #include "../../IWorld.hpp"
 #include "../../block/VanillaBlocks.hpp"
+#include "../../../entity/core/Entity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc {
 namespace blockentity {
+
+namespace {
+
+/// 玩家触发附魔台翻书动画的水平半径（方块）。
+constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE = 3.0f;
+/// 翻书动画判定中使用的平方半径，避免每帧开方。
+constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE_SQ =
+    ENCHANTING_TABLE_PLAYER_RANGE * ENCHANTING_TABLE_PLAYER_RANGE;
+
+/**
+ * @brief 检测附魔台附近是否存在玩家。
+ *
+ * @param world 世界接口。
+ * @param tablePos 附魔台位置。
+ * @return true 表示半径内存在玩家，可驱动翻书动画展开。
+ */
+[[nodiscard]] bool hasNearbyPlayer(IWorld& world, const BlockPos& tablePos) {
+    const Vector3 center(
+        static_cast<f32>(tablePos.x) + 0.5f,
+        static_cast<f32>(tablePos.y) + 0.5f,
+        static_cast<f32>(tablePos.z) + 0.5f);
+
+    const std::vector<Entity*> nearbyEntities =
+        world.getEntitiesInRange(center, ENCHANTING_TABLE_PLAYER_RANGE, nullptr);
+
+    for (Entity* entity : nearbyEntities) {
+        if (dynamic_cast<Player*>(entity) != nullptr) {
+            const Vector3 playerPos = entity->position();
+            const f32 dx = playerPos.x - center.x;
+            const f32 dz = playerPos.z - center.z;
+            const f32 horizontalDistSq = dx * dx + dz * dz;
+            if (horizontalDistSq <= ENCHANTING_TABLE_PLAYER_RANGE_SQ) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+} // namespace
 
 // ========== 构造函数 ==========
 
@@ -18,7 +61,7 @@ EnchantingTableEntity::EnchantingTableEntity(const BlockPos& pos)
 
 void EnchantingTableEntity::tick(IWorld& world) {
     MC_UNUSED(world);
-    // 附魔台不需要tick更新
+    // 附魔台不需要 tick 更新
 }
 
 bool EnchantingTableEntity::load(const nlohmann::json& data) {
@@ -131,8 +174,6 @@ void EnchantingTableEntity::setCustomName(const String& name) {
 // ========== 动画 ==========
 
 void EnchantingTableEntity::updateAnimation(IWorld& world, f32 dt) {
-    MC_UNUSED(world);
-
     m_prevBookRotation = m_bookRotation;
     m_prevBookOpen = m_bookOpen;
     m_prevBookPageAngle = m_bookPageAngle;
@@ -141,11 +182,7 @@ void EnchantingTableEntity::updateAnimation(IWorld& world, f32 dt) {
 
     // 书本翻开动画
     // 玩家靠近时翻开，离开时合上
-    // 简化实现：总是微微打开
-    f32 targetOpen = 0.0f;
-
-    // TODO: 检测玩家是否靠近
-    // 如果有玩家在附近，设置 targetOpen = 1.0f
+    const f32 targetOpen = hasNearbyPlayer(world, m_pos) ? 1.0f : 0.0f;
 
     // 平滑过渡
     f32 openSpeed = 0.1f;

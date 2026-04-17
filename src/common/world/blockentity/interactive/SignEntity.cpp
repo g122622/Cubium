@@ -1,10 +1,23 @@
-#include "world/blockentity/interactive/SignEntity.hpp"
+﻿#include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/IWorld.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blockentity {
+
+namespace {
+
+/**
+ * @brief 判断字符是否为告示牌允许的控制字符。
+ *
+ * 当前仅允许换行和制表等常见空白控制符，拒绝其他不可见控制字符。
+ */
+[[nodiscard]] bool isAllowedControlCharacter(char c) {
+    return c == '\n' || c == '\r' || c == '\t';
+}
+
+} // namespace
 
 // ========== SignEntity 实现 ==========
 
@@ -42,6 +55,7 @@ bool SignEntity::setLine(i32 line, const String& text) {
 void SignEntity::setLines(const std::array<String, LINE_COUNT>& lines) {
     for (std::size_t i = 0; i < m_lines.size(); ++i) {
         m_lines[i] = truncateText(lines[i]);
+        MC_ASSERT_RELEASE(validateText(m_lines[i]));
     }
     setChanged();
 }
@@ -80,13 +94,17 @@ void SignEntity::setGlowing(bool glowing) {
 
 void SignEntity::tick(IWorld& world) {
     MC_UNUSED(world);
-    // 告示牌不需要tick更新
+    // 告示牌不需要 tick 更新
 }
 
 bool SignEntity::validateText(const String& text) {
-    // 检查是否包含非法字符
-    // TODO: 实现完整的文本验证
-    MC_UNUSED(text);
+    for (char c : text) {
+        const unsigned char uc = static_cast<unsigned char>(c);
+        if (uc < 0x20 && !isAllowedControlCharacter(c)) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -107,7 +125,11 @@ bool SignEntity::load(const nlohmann::json& data) {
         const auto& linesJson = data["lines"];
         if (linesJson.is_array()) {
             for (size_t i = 0; i < LINE_COUNT && i < linesJson.size(); ++i) {
-                m_lines[i] = linesJson[i].get<String>();
+                const String line = truncateText(linesJson[i].get<String>());
+                if (!validateText(line)) {
+                    return false;
+                }
+                m_lines[i] = line;
             }
         }
     }

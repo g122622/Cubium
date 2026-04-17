@@ -52,6 +52,7 @@ add_executable(mc_tests
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
     common/world/blockentity/HopperEntityTest.cpp
+    common/world/blockentity/BlockEntityTodoTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
     common/world/block/blocks/EnchantingTableBlockTest.cpp
@@ -403,6 +404,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/CraftingInventory.cpp
         # 鍚堟垚绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/Ingredient.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTag.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTags.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/ShapedRecipe.cpp

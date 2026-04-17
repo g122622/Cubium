@@ -1,12 +1,34 @@
 #include "world/blockentity/interactive/LecternEntity.hpp"
-#include "world/IWorld.hpp"
+
+#include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 namespace blockentity {
 
-// ========== LecternEntity 实现 ==========
+namespace {
+
+/**
+ * @brief 判断物品是否属于讲台可接受的书籍类型。
+ * @param item 物品指针。
+ * @return true 表示该物品可放入讲台。
+ * @note 当前项目尚未完整注册 BOOK/WRITTEN_BOOK 等专用物品，这里按命名后缀兼容。
+ */
+[[nodiscard]] bool isLecternBookItem(const Item* item) {
+    if (item == nullptr) {
+        return false;
+    }
+
+    const String& path = item->itemLocation().path();
+    return path == "book" ||
+           path == "written_book" ||
+           path == "writable_book" ||
+           path == "enchanted_book";
+}
+
+} // namespace
 
 LecternEntity::LecternEntity(const BlockPos& pos)
     : BlockEntity(BlockEntityType::Lectern, pos)
@@ -25,7 +47,7 @@ bool LecternEntity::setBook(const ItemStack& book) {
     }
 
     m_inventory.setItem(SLOT_BOOK, book);
-    m_page = 0;  // 重置页码
+    m_page = 0;
     setChanged();
     return true;
 }
@@ -42,21 +64,34 @@ bool LecternEntity::hasBook() const {
 }
 
 i32 LecternEntity::getTotalPages() const {
-    if (!hasBook()) {
-        return 0;
-    }
-
-    // TODO: 从书本获取页数
-    // 书与笔: 最多50页
-    // 成书: 实际页数
-    // 附魔书: 0页
-    const ItemStack& book = getBook();
+    const ItemStack book = getBook();
     if (book.isEmpty()) {
         return 0;
     }
 
-    // 暂时返回默认值
-    MC_UNUSED(book);
+    const Item* item = book.getItem();
+    if (item == nullptr) {
+        return 0;
+    }
+
+    const String& path = item->itemLocation().path();
+    if (path == "writable_book") {
+        return 100;
+    }
+
+    if (path == "written_book") {
+        // 当前阶段未接入书本 NBT，先使用原版上限作为稳定回退。
+        return 100;
+    }
+
+    if (path == "enchanted_book") {
+        return 1;
+    }
+
+    if (path == "book") {
+        return 1;
+    }
+
     return 1;
 }
 
@@ -66,7 +101,6 @@ void LecternEntity::setPage(i32 page) {
         return;
     }
 
-    // 限制页码范围
     page = std::max(0, std::min(page, totalPages - 1));
     if (m_page != page) {
         m_page = page;
@@ -80,7 +114,7 @@ bool LecternEntity::nextPage() {
         return false;
     }
 
-    m_page++;
+    ++m_page;
     setChanged();
     return true;
 }
@@ -90,7 +124,7 @@ bool LecternEntity::prevPage() {
         return false;
     }
 
-    m_page--;
+    --m_page;
     setChanged();
     return true;
 }
@@ -100,31 +134,28 @@ i32 LecternEntity::getComparatorSignal() const {
         return 0;
     }
 
-    i32 totalPages = getTotalPages();
+    const i32 totalPages = getTotalPages();
     if (totalPages <= 1) {
-        return hasBook() ? 1 : 0;
+        return 1;
     }
 
-    // 比较器信号 = (当前页 / 总页数) * 14 + 1
-    // 第一页: 1, 最后一页: 15
     return static_cast<i32>((static_cast<f32>(m_page) / static_cast<f32>(totalPages - 1)) * 14.0f) + 1;
 }
 
 void LecternEntity::openContainer() {
-    m_openCount++;
+    ++m_openCount;
     setChanged();
 }
 
 void LecternEntity::closeContainer() {
     if (m_openCount > 0) {
-        m_openCount--;
+        --m_openCount;
         setChanged();
     }
 }
 
 void LecternEntity::tick(IWorld& world) {
     MC_UNUSED(world);
-    // 讲台不需要tick更新
 }
 
 bool LecternEntity::isValidBook(const ItemStack& stack) {
@@ -132,18 +163,10 @@ bool LecternEntity::isValidBook(const ItemStack& stack) {
         return false;
     }
 
-    // TODO: 检查物品是否是书与笔、成书或附魔书
-    // 暂时返回true
-    MC_UNUSED(stack);
-    return true;
+    return isLecternBookItem(stack.getItem());
 }
 
 void LecternEntity::updateBlockState(IWorld& world) {
-    // TODO: 更新方块的 HAS_BOOK 属性
-    // BlockState state = world.getBlockState(m_pos);
-    // if (state.hasProperty(BlockStateProperties::HAS_BOOK())) {
-    //     world.setBlockState(m_pos, state.with(BlockStateProperties::HAS_BOOK(), hasBook()), 3);
-    // }
     MC_UNUSED(world);
 }
 
@@ -152,15 +175,18 @@ bool LecternEntity::load(const nlohmann::json& data) {
         return false;
     }
 
-    // 加载书本
-    if (data.contains("Book")) {
-        // TODO: 加载ItemStack
-        // m_inventory.load(data["Book"]);
+    m_inventory.clear();
+    if (data.contains("Book") && data["Book"].is_object()) {
+        const auto bookResult = ItemStack::fromJson(data["Book"]);
+        if (bookResult.success()) {
+            m_inventory.setItem(SLOT_BOOK, bookResult.value());
+        }
     }
 
-    // 加载页码
     if (data.contains("Page")) {
-        m_page = data["Page"].get<i32>();
+        setPage(data["Page"].get<i32>());
+    } else {
+        m_page = 0;
     }
 
     return true;
@@ -169,22 +195,19 @@ bool LecternEntity::load(const nlohmann::json& data) {
 void LecternEntity::save(nlohmann::json& data) const {
     BlockEntity::save(data);
 
-    // 保存书本
-    if (!m_inventory.getItem(SLOT_BOOK).isEmpty()) {
-        nlohmann::json bookJson;
-        m_inventory.save(bookJson);
-        data["Book"] = bookJson;
+    const ItemStack book = m_inventory.getItem(SLOT_BOOK);
+    if (!book.isEmpty()) {
+        data["Book"] = book.toJson();
     }
 
-    // 保存页码
     data["Page"] = m_page;
 }
 
 std::unique_ptr<BlockEntity> LecternEntity::clone() const {
     auto clone = std::make_unique<LecternEntity>(m_pos);
+    clone->m_inventory.setItem(SLOT_BOOK, m_inventory.getItem(SLOT_BOOK));
     clone->m_page = m_page;
     clone->m_openCount = m_openCount;
-    // TODO: 复制物品
     return clone;
 }
 

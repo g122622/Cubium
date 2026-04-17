@@ -3,19 +3,36 @@
 #include "world/blockentity/transport/IHopper.hpp"
 #include "world/block/BlockPos.hpp"
 #include "util/Direction.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemRegistry.hpp"
 
 using namespace mc;
 using namespace mc::blockentity;
+
+
+namespace {
+Item* ensureHopperTestItem(const char* path) {
+    auto& registry = ItemRegistry::instance();
+    const ResourceLocation id("minecraft", path);
+    if (Item* existing = registry.getItem(id); existing != nullptr) {
+        return existing;
+    }
+    return &registry.registerItem(id, ItemProperties().maxStackSize(64));
+}
+} // namespace
 
 // ========== HopperEntity 测试 ==========
 
 class HopperEntityTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        Items::initialize();
         hopper_ = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+        m_diamond = ensureHopperTestItem("diamond");
     }
 
     std::unique_ptr<HopperEntity> hopper_;
+    Item* m_diamond = nullptr;
 };
 
 TEST_F(HopperEntityTest, Create_HasCorrectType) {
@@ -307,4 +324,40 @@ TEST_F(DirectionTest, FromDelta_ReturnsNoneForInvalidDeltas) {
     EXPECT_EQ(Directions::fromDelta(0, 0, 0), Direction::None);
     EXPECT_EQ(Directions::fromDelta(1, 1, 0), Direction::None);  // 多个轴有变化
     EXPECT_EQ(Directions::fromDelta(2, 0, 0), Direction::None);  // 值不在 -1, 0, 1 范围
+}
+
+TEST_F(HopperEntityTest, SaveLoad_PreservesInventoryBySlot) {
+    IInventory* inventory = hopper_->getInventory();
+    ASSERT_NE(inventory, nullptr);
+    inventory->setItem(2, ItemStack(m_diamond, 6));
+
+    nlohmann::json data;
+    hopper_->save(data);
+
+    HopperEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.load(data));
+
+    const IInventory* loadedInventory = loaded.getInventory();
+    ASSERT_NE(loadedInventory, nullptr);
+    EXPECT_EQ(loadedInventory->getItem(2).getItem(), m_diamond);
+    EXPECT_EQ(loadedInventory->getItem(2).getCount(), 6);
+}
+
+TEST_F(HopperEntityTest, Clone_CopiesInventoryAndCooldownState) {
+    hopper_->setTransferCooldown(9);
+    IInventory* inventory = hopper_->getInventory();
+    ASSERT_NE(inventory, nullptr);
+    inventory->setItem(1, ItemStack(m_diamond, 4));
+
+    std::unique_ptr<BlockEntity> copy = hopper_->clone();
+    ASSERT_NE(copy, nullptr);
+
+    const auto* cloned = dynamic_cast<const HopperEntity*>(copy.get());
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_EQ(cloned->getTransferCooldown(), 9);
+
+    const IInventory* clonedInventory = cloned->getInventory();
+    ASSERT_NE(clonedInventory, nullptr);
+    EXPECT_EQ(clonedInventory->getItem(1).getItem(), m_diamond);
+    EXPECT_EQ(clonedInventory->getItem(1).getCount(), 4);
 }

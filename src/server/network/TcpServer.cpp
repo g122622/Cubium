@@ -1,5 +1,9 @@
-#include "TcpServer.hpp"
+﻿#include "TcpServer.hpp"
 #include <spdlog/spdlog.h>
+#include <array>
+#ifndef _WIN32
+#include <cerrno>
+#endif
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -53,6 +57,16 @@ private:
 
 // 全局Winsock初始化
 static WinsockInitializer s_winsock;
+#ifdef _WIN32
+static bool isWouldBlockError() {
+    const int err = WSAGetLastError();
+    return err == WSAEWOULDBLOCK;
+}
+#else
+static bool isWouldBlockError() {
+    return errno == EAGAIN || errno == EWOULDBLOCK;
+}
+#endif
 
 TcpServer::TcpServer() {
 #ifdef _WIN32
@@ -252,8 +266,7 @@ void TcpServer::acceptNewConnection() {
     session->setOnPacketCallback(m_onPacket);
     session->setOnDisconnectCallback(m_onDisconnect);
 
-    // 存储socket句柄 (临时存储，后续需要改进)
-    // 这里需要扩展TcpSession来存储socket
+    session->setSocket(clientSocket);
 
     // 添加到会话映射
     {
@@ -268,16 +281,92 @@ void TcpServer::acceptNewConnection() {
     }
 }
 
-void TcpServer::handleSessionData(TcpSession* /* session */) {
-    // TODO: 实现数据接收
-    // 这需要TcpSession存储socket句柄
-    // 当前是简化实现
+/**
+ * @brief 从 socket 拉取可读数据并交给会话进行分包重组。
+ * @param session 会话对象
+ * @note 非阻塞模式下，WSAEWOULDBLOCK/EAGAIN 视为正常状态。
+ */
+void TcpServer::handleSessionData(TcpSession* session) {
+    if (session == nullptr || session->state() == SessionState::Disconnected) {
+        return;
+    }
+
+    const auto socket = session->socket();
+    if (socket == static_cast<decltype(socket)>(-1)) {
+        return;
+    }
+
+    std::array<u8, 8192> buffer{};
+    while (true) {
+#ifdef _WIN32
+        const int received = recv(static_cast<SOCKET>(socket), reinterpret_cast<char*>(buffer.data()), static_cast<int>(buffer.size()), 0);
+#else
+        const int received = recv(socket, buffer.data(), buffer.size(), 0);
+#endif
+        if (received > 0) {
+            session->handleReceivedData(buffer.data(), static_cast<size_t>(received));
+            continue;
+        }
+
+        if (received == 0) {
+            session->disconnect("Remote closed");
+            return;
+        }
+
+        if (isWouldBlockError()) {
+            return;
+        }
+
+        spdlog::warn("Session {} recv failed, disconnecting", session->id());
+        session->disconnect("Receive error");
+        return;
+    }
 }
 
-void TcpServer::sendSessionData(TcpSession* /* session */) {
-    // TODO: 实现数据发送
-    // 这需要TcpSession存储socket句柄
-    // 当前是简化实现
+/**
+ * @brief 将会话发送队列中的数据写入 socket。
+ * @param session 会话对象
+ * @note 当前实现按“整包发送”处理，若遇到部分发送会将剩余部分回退到队首。
+ */
+void TcpServer::sendSessionData(TcpSession* session) {
+    if (session == nullptr || session->state() == SessionState::Disconnected) {
+        return;
+    }
+
+    const auto socket = session->socket();
+    if (socket == static_cast<decltype(socket)>(-1)) {
+        return;
+    }
+
+    while (true) {
+        auto payload = session->takeNextSendBuffer();
+        if (payload.empty()) {
+            return;
+        }
+
+        size_t sentTotal = 0;
+        while (sentTotal < payload.size()) {
+#ifdef _WIN32
+            const int sent = send(static_cast<SOCKET>(socket), reinterpret_cast<const char*>(payload.data() + sentTotal), static_cast<int>(payload.size() - sentTotal), 0);
+#else
+            const int sent = send(socket, payload.data() + sentTotal, payload.size() - sentTotal, 0);
+#endif
+            if (sent > 0) {
+                sentTotal += static_cast<size_t>(sent);
+                continue;
+            }
+
+            if (isWouldBlockError()) {
+                std::vector<u8> remain(payload.begin() + static_cast<std::ptrdiff_t>(sentTotal), payload.end());
+                session->send(remain.data(), remain.size());
+                return;
+            }
+
+            spdlog::warn("Session {} send failed, disconnecting", session->id());
+            session->disconnect("Send error");
+            return;
+        }
+    }
 }
 
 std::shared_ptr<TcpSession> TcpServer::getSession(SessionId id) {
@@ -328,3 +417,5 @@ void TcpServer::broadcastExcept(SessionId excludeId, const u8* data, size_t size
 }
 
 } // namespace mc::server
+
+

@@ -152,12 +152,11 @@ public:
             return false;
         }
 
-        // 清空当前状态
-        m_craftingGrid.clear();
+        // 从父类读取后直接根据网格状态重建结果槽
         m_result.clear();
         m_currentRecipe = nullptr;
 
-        // TODO: 从数据加载物品
+        updateCraftingResult();
 
         return true;
     }

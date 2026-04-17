@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file WidgetTest.cpp
  * @brief Widget基类单元测试
  */
@@ -421,6 +421,22 @@ TEST(PaddingTest, FourValues) {
 
 // ==================== Anchor测试 ====================
 
+
+TEST(WidgetTest, VisualStyleProperties) {
+    TestWidget widget;
+
+    EXPECT_EQ(mc::client::Colors::fromARGB(0, 0, 0, 0), widget.backgroundColor());
+    EXPECT_EQ(mc::client::Colors::fromARGB(0, 0, 0, 0), widget.borderColor());
+    EXPECT_EQ(0, widget.cornerRadius());
+
+    widget.setBackgroundColor(mc::client::Colors::RED);
+    widget.setBorderColor(mc::client::Colors::GREEN);
+    widget.setCornerRadius(6);
+
+    EXPECT_EQ(mc::client::Colors::RED, widget.backgroundColor());
+    EXPECT_EQ(mc::client::Colors::GREEN, widget.borderColor());
+    EXPECT_EQ(6, widget.cornerRadius());
+}
 TEST(AnchorTest, AllAnchors) {
     EXPECT_EQ(0, static_cast<u8>(Anchor::TopLeft));
     EXPECT_EQ(1, static_cast<u8>(Anchor::TopCenter));
@@ -432,3 +448,5 @@ TEST(AnchorTest, AllAnchors) {
     EXPECT_EQ(7, static_cast<u8>(Anchor::BottomCenter));
     EXPECT_EQ(8, static_cast<u8>(Anchor::BottomRight));
 }
+
+

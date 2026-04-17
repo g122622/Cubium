@@ -1,4 +1,4 @@
-#include "TcpSession.hpp"
+﻿#include "TcpSession.hpp"
 #include "TcpServer.hpp"
 #include "../../common/network/packet/PacketSerializer.hpp"
 #include <spdlog/spdlog.h>
@@ -19,6 +19,12 @@ TcpSession::~TcpSession() {
     }
 }
 
+/**
+ * @brief 将原始字节数据加入发送队列。
+ * @param data 数据指针（调用后会复制）
+ * @param size 数据大小
+ * @note 仅负责排队，真正发送由 TcpServer::sendSessionData 在网络线程执行。
+ */
 void TcpSession::send(const u8* data, size_t size) {
     {
         std::lock_guard<std::mutex> lock(m_sendMutex);
@@ -57,6 +63,12 @@ void TcpSession::disconnect(const String& reason) {
     }
 }
 
+/**
+ * @brief 处理接收缓冲并重组完整协议包。
+ * @param data 新接收的数据块
+ * @param size 数据块大小
+ * @note 支持非阻塞 socket 的分包/粘包场景。
+ */
 void TcpSession::handleReceivedData(const u8* data, size_t size) {
     // 追加到缓冲区
     m_receiveBuffer.insert(m_receiveBuffer.end(), data, data + size);
@@ -109,4 +121,21 @@ void TcpSession::processPacket(const u8* data, size_t size) {
     }
 }
 
+/**
+ * @brief 从发送队列取出下一包待发送数据。
+ * @return 若队列为空返回空 vector，否则返回并移除队首元素。
+ */
+std::vector<u8> TcpSession::takeNextSendBuffer() {
+    std::lock_guard<std::mutex> lock(m_sendMutex);
+    if (m_sendQueue.empty()) {
+        return {};
+    }
+
+    auto next = std::move(m_sendQueue.front());
+    m_sendQueue.pop_front();
+    return next;
+}
+
 } // namespace mc::server
+
+

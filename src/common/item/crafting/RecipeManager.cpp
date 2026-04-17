@@ -1,4 +1,5 @@
 #include "item/crafting/RecipeManager.hpp"
+#include "world/blockentity/processing/FurnaceInventory.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -18,27 +19,45 @@ bool RecipeManager::registerRecipe(std::unique_ptr<CraftingRecipe> recipe) {
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 检查是否已存在
-    if (m_recipesById.find(id) != m_recipesById.end()) {
-        return false; // ID冲突
+    if (m_recipesById.find(id) != m_recipesById.end() ||
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end()) {
+        return false;
     }
 
-    // 获取配方信息用于索引
     RecipeType type = recipe->getType();
     const Item* resultItem = recipe->getResultItem().getItem();
 
-    // 存储配方
     const CraftingRecipe* recipePtr = recipe.get();
     m_recipesById[id] = std::move(recipe);
 
-    // 更新类型索引
     m_recipesByType[type].push_back(recipePtr);
 
-    // 更新结果索引
-    if (resultItem) {
+    if (resultItem != nullptr) {
         m_recipesByResult[resultItem->itemId()].push_back(recipePtr);
     }
 
+    return true;
+}
+
+bool RecipeManager::registerSmeltingRecipe(std::unique_ptr<SmeltingRecipe> recipe) {
+    if (!recipe) {
+        return false;
+    }
+
+    ResourceLocation id = recipe->getId();
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
+        m_recipesById.find(id) != m_recipesById.end()) {
+        return false;
+    }
+
+    RecipeType type = recipe->getType();
+    const SmeltingRecipe* recipePtr = recipe.get();
+    m_smeltingRecipesById[id] = std::move(recipe);
+
+    m_smeltingRecipesByType[type].push_back(recipePtr);
     return true;
 }
 
@@ -54,7 +73,8 @@ const CraftingRecipe* RecipeManager::getRecipe(const ResourceLocation& id) const
 
 bool RecipeManager::hasRecipe(const ResourceLocation& id) const {
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_recipesById.find(id) != m_recipesById.end();
+    return m_recipesById.find(id) != m_recipesById.end() ||
+           m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end();
 }
 
 std::vector<const CraftingRecipe*> RecipeManager::getAllRecipes() const {
@@ -80,12 +100,45 @@ std::vector<const CraftingRecipe*> RecipeManager::getRecipesByType(RecipeType ty
     return {};
 }
 
+std::vector<const SmeltingRecipe*> RecipeManager::getSmeltingRecipesByType(RecipeType type) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto it = m_smeltingRecipesByType.find(type);
+    if (it != m_smeltingRecipesByType.end()) {
+        return it->second;
+    }
+    return {};
+}
+
+const SmeltingRecipe* RecipeManager::getSmeltingRecipe(const ItemStack& input, RecipeType type) const {
+    if (input.isEmpty()) {
+        return nullptr;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto it = m_smeltingRecipesByType.find(type);
+    if (it == m_smeltingRecipesByType.end()) {
+        return nullptr;
+    }
+
+    blockentity::FurnaceInventory inventory;
+    inventory.setInputItem(input);
+
+    for (const SmeltingRecipe* recipe : it->second) {
+        if (recipe != nullptr && recipe->matches(inventory)) {
+            return recipe;
+        }
+    }
+
+    return nullptr;
+}
+
 const CraftingRecipe* RecipeManager::findMatchingRecipe(
     const CraftingInventory& inventory) const {
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 首先检查有序合成配方（更严格的匹配）
     auto shapedIt = m_recipesByType.find(RecipeType::ShapedCrafting);
     if (shapedIt != m_recipesByType.end()) {
         for (const CraftingRecipe* recipe : shapedIt->second) {
@@ -95,7 +148,6 @@ const CraftingRecipe* RecipeManager::findMatchingRecipe(
         }
     }
 
-    // 然后检查无序合成配方
     auto shapelessIt = m_recipesByType.find(RecipeType::ShapelessCrafting);
     if (shapelessIt != m_recipesByType.end()) {
         for (const CraftingRecipe* recipe : shapelessIt->second) {
@@ -105,7 +157,6 @@ const CraftingRecipe* RecipeManager::findMatchingRecipe(
         }
     }
 
-    // 最后检查通用合成配方
     auto craftingIt = m_recipesByType.find(RecipeType::Crafting);
     if (craftingIt != m_recipesByType.end()) {
         for (const CraftingRecipe* recipe : craftingIt->second) {
@@ -156,13 +207,15 @@ std::vector<const CraftingRecipe*> RecipeManager::getRecipesForResult(
 
 size_t RecipeManager::getRecipeCount() const {
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_recipesById.size();
+    return m_recipesById.size() + m_smeltingRecipesById.size();
 }
 
 void RecipeManager::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_recipesById.clear();
+    m_smeltingRecipesById.clear();
     m_recipesByType.clear();
+    m_smeltingRecipesByType.clear();
     m_recipesByResult.clear();
 }
 

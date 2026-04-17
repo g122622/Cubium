@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../Types.hpp"
 #include <string>
@@ -456,6 +456,36 @@ public:
     void setAlpha(f32 alpha) { m_alpha = alpha; }
 
     /**
+     * @brief 获取背景色
+     */
+    [[nodiscard]] u32 backgroundColor() const { return m_backgroundColor; }
+
+    /**
+     * @brief 设置背景色
+     */
+    void setBackgroundColor(u32 color) { m_backgroundColor = color; }
+
+    /**
+     * @brief 获取边框色
+     */
+    [[nodiscard]] u32 borderColor() const { return m_borderColor; }
+
+    /**
+     * @brief 设置边框色
+     */
+    void setBorderColor(u32 color) { m_borderColor = color; }
+
+    /**
+     * @brief 获取圆角半径
+     */
+    [[nodiscard]] i32 cornerRadius() const { return m_cornerRadius; }
+
+    /**
+     * @brief 设置圆角半径
+     */
+    void setCornerRadius(i32 radius) { m_cornerRadius = radius; }
+
+    /**
      * @brief 更新悬停状态
      *
      * 由容器调用以更新悬停状态
@@ -504,7 +534,11 @@ protected:
     bool m_focused = false;         ///< 是否获得焦点
     i32 m_zIndex = 0;               ///< Z索引
     f32 m_alpha = 1.0f;             ///< 透明度
+    u32 m_backgroundColor = Colors::fromARGB(0, 0, 0, 0); ///< 背景色
+    u32 m_borderColor = Colors::fromARGB(0, 0, 0, 0);     ///< 边框色
+    i32 m_cornerRadius = 0;          ///< 圆角半径
     IWidgetContainer* m_parent = nullptr;  ///< 父容器
 };
 
 } // namespace mc::client::ui::kagero::widget
+

@@ -1,5 +1,8 @@
 #include "LecternBlock.hpp"
+
 #include "../../../IWorld.hpp"
+#include "../../../blockentity/interactive/LecternEntity.hpp"
+#include "../../../../item/core/Item.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -7,12 +10,30 @@
 namespace mc {
 namespace blocks {
 
-// ========== LecternBlock 实现 ==========
+namespace {
+
+/**
+ * @brief 判断物品是否可放入讲台。
+ * @param itemId 物品ID。
+ * @return true 表示支持放入。
+ */
+[[nodiscard]] bool isLecternBookItem(ItemId itemId) {
+    const Item* item = Item::getItem(itemId);
+    if (item == nullptr) {
+        return false;
+    }
+
+    const String& path = item->itemLocation().path();
+    return path == "book" ||
+           path == "written_book" ||
+           path == "writable_book" ||
+           path == "enchanted_book";
+}
+
+} // namespace
 
 LecternBlock::LecternBlock(const BlockProperties& properties)
     : Block(properties) {
-
-    // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HORIZONTAL_FACING())
         .add(BlockStateProperties::POWERED())
@@ -22,48 +43,40 @@ LecternBlock::LecternBlock(const BlockProperties& properties)
         });
     createBlockState(std::move(container));
 
-    // 设置默认状态
     setDefaultState(defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
         .with(BlockStateProperties::POWERED(), false)
         .with(BlockStateProperties::HAS_BOOK(), false));
 
-    // 创建讲台形状
-    // 底座 + 柱子 + 顶部平台 + 书架斜面
-    constexpr f32 P = 1.0f / 16.0f;
+    constexpr f32 p = 1.0f / 16.0f;
 
-    CollisionShape base = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * P, 2.0f * P, 16.0f * P);
-    CollisionShape post = CollisionShape::box(4.0f * P, 2.0f * P, 4.0f * P, 12.0f * P, 14.0f * P, 12.0f * P);
-    CollisionShape top = CollisionShape::box(0.0f, 15.0f * P, 0.0f, 16.0f * P, 15.0f * P, 16.0f * P);
+    const CollisionShape base = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * p, 2.0f * p, 16.0f * p);
+    const CollisionShape post = CollisionShape::box(4.0f * p, 2.0f * p, 4.0f * p, 12.0f * p, 14.0f * p, 12.0f * p);
+    const CollisionShape top = CollisionShape::box(0.0f, 15.0f * p, 0.0f, 16.0f * p, 15.0f * p, 16.0f * p);
 
     m_collisionShape = CollisionShape::combine(CollisionShape::combine(base, post), top);
 
-    // 各朝向的斜面形状（简化为矩形）
-    // 北朝向
-    CollisionShape slopeN = CollisionShape::box(1.0f * P, 10.0f * P, 0.0f, 14.0f * P, 18.0f * P, 16.0f * P);
+    const CollisionShape slopeN = CollisionShape::box(1.0f * p, 10.0f * p, 0.0f, 14.0f * p, 18.0f * p, 16.0f * p);
     m_shapesByFacing[static_cast<size_t>(Direction::North)] = CollisionShape::combine(m_collisionShape, slopeN);
 
-    // 南朝向
-    CollisionShape slopeS = CollisionShape::box(1.0f * P, 10.0f * P, 0.0f, 14.0f * P, 18.0f * P, 16.0f * P);
+    const CollisionShape slopeS = CollisionShape::box(1.0f * p, 10.0f * p, 0.0f, 14.0f * p, 18.0f * p, 16.0f * p);
     m_shapesByFacing[static_cast<size_t>(Direction::South)] = CollisionShape::combine(m_collisionShape, slopeS);
 
-    // 西朝向
-    CollisionShape slopeW = CollisionShape::box(0.0f, 10.0f * P, 1.0f * P, 16.0f * P, 18.0f * P, 14.0f * P);
+    const CollisionShape slopeW = CollisionShape::box(0.0f, 10.0f * p, 1.0f * p, 16.0f * p, 18.0f * p, 14.0f * p);
     m_shapesByFacing[static_cast<size_t>(Direction::West)] = CollisionShape::combine(m_collisionShape, slopeW);
 
-    // 东朝向
-    CollisionShape slopeE = CollisionShape::box(0.0f, 10.0f * P, 1.0f * P, 16.0f * P, 18.0f * P, 14.0f * P);
+    const CollisionShape slopeE = CollisionShape::box(0.0f, 10.0f * p, 1.0f * p, 16.0f * p, 18.0f * p, 14.0f * p);
     m_shapesByFacing[static_cast<size_t>(Direction::East)] = CollisionShape::combine(m_collisionShape, slopeE);
 }
 
 BlockState LecternBlock::getStateForPlacement(BlockItemUseContext& context) {
-    Direction facing = context.horizontalDirection();
+    const Direction facing = context.horizontalDirection();
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing));
 }
 
 const BlockState& LecternBlock::rotate(const BlockState& state, Rotation rotation) const {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction rotated = Directions::rotateDirection(facing, rotation);
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const Direction rotated = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
 }
 
@@ -72,23 +85,23 @@ const BlockState& LecternBlock::mirror(const BlockState& state, Mirror mirror) c
         return state;
     }
 
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Rotation rotation = Directions::mirrorToRotation(mirror, facing);
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     return rotate(state, rotation);
 }
 
 void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
-    if (state.get(BlockStateProperties::POWERED())) {
-        // 关闭红石信号
-        BlockState newState = state.with(BlockStateProperties::POWERED(), false);
-        world.setBlockState(pos, &newState, 3);
-        // TODO: 通知邻居更新
+    if (!state.get(BlockStateProperties::POWERED())) {
+        return;
     }
+
+    state = state.with(BlockStateProperties::POWERED(), false);
+    world.setBlockState(pos, &state, 3);
 }
 
 const CollisionShape& LecternBlock::getShape(const BlockState& state) const {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    size_t index = static_cast<size_t>(facing);
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const size_t index = static_cast<size_t>(facing);
     MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
 }
@@ -103,7 +116,6 @@ i32 LecternBlock::getWeakPower(
     IWorld& world,
     const BlockPos& pos,
     Direction side) const {
-
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
@@ -116,11 +128,9 @@ i32 LecternBlock::getStrongPower(
     IWorld& world,
     const BlockPos& pos,
     Direction side) const {
-
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // 只向下发出强信号
     if (side == Direction::Up && state.get(BlockStateProperties::POWERED())) {
         return 15;
     }
@@ -131,46 +141,47 @@ int LecternBlock::getComparatorInputOverride(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos) const {
-
     if (!state.get(BlockStateProperties::HAS_BOOK())) {
         return 0;
     }
 
-    // TODO: 从讲台方块实体获取页面信号
-    // 需要实现 LecternEntity
-    return 0;
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Lectern) {
+        return static_cast<blockentity::LecternEntity*>(blockEntity)->getComparatorSignal();
+    }
+
+    return 1;
 }
 
 bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, u32 itemId) {
     if (state.get(BlockStateProperties::HAS_BOOK())) {
-        return false;  // 已经有书了
+        return false;
     }
 
-    // TODO: 检查物品是否为书
+    if (!isLecternBookItem(static_cast<ItemId>(itemId))) {
+        return false;
+    }
 
     setHasBook(world, pos, state, true);
     return true;
 }
 
 void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& state, bool hasBook) {
-    BlockState newState = state
+    state = state
         .with(BlockStateProperties::HAS_BOOK(), hasBook)
         .with(BlockStateProperties::POWERED(), false);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &state, 3);
 
-    // 通知邻居更新
-    // TODO: world.notifyNeighborsOfStateChange(pos.down(), this);
+    if (BlockEntity* blockEntity = world.getBlockEntity(pos);
+        blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Lectern) {
+        static_cast<blockentity::LecternEntity*>(blockEntity)->setChanged();
+    }
 }
 
 void LecternBlock::pulse(IWorld& world, const BlockPos& pos, BlockState& state) {
-    // 开启红石信号
-    BlockState newState = state.with(BlockStateProperties::POWERED(), true);
-    world.setBlockState(pos, &newState, 3);
-
-    // 安排tick来关闭信号
-    // TODO: world.getPendingBlockTicks().scheduleTick(pos, this, 2);
-
-    // TODO: 播放声音
+    state = state.with(BlockStateProperties::POWERED(), true);
+    world.setBlockState(pos, &state, 3);
+    world.scheduleBlockTick(pos, const_cast<Block&>(state.getBlock()), 2, world::tick::TickPriority::High);
 }
 
 } // namespace blocks

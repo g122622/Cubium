@@ -91,11 +91,8 @@ public:
             for (i32 i = 0; i < inv->getContainerSize(); ++i) {
                 const ItemStack& stack = inv->getItem(i);
                 if (!stack.isEmpty()) {
-                    nlohmann::json itemJson;
-                    // TODO: 保存ItemStack数据
-                    // itemJson["slot"] = i;
-                    // itemJson["item"] = stack.getItem()->getId().toString();
-                    // itemJson["count"] = stack.getCount();
+                    nlohmann::json itemJson = stack.toJson();
+                    itemJson["Slot"] = i;
                     itemsJson.push_back(itemJson);
                 }
             }
@@ -124,7 +121,35 @@ public:
         }
 
         // 加载背包内容
-        // TODO: 实现ItemStack从JSON加载
+        IInventory* inv = getInventory();
+        if (inv != nullptr && data.contains("Items") && data["Items"].is_array()) {
+            inv->clear();
+
+            const auto& items = data["Items"];
+            for (std::size_t i = 0; i < items.size(); ++i) {
+                const auto& itemJson = items[i];
+                if (!itemJson.is_object() || itemJson.empty()) {
+                    continue;
+                }
+
+                i32 slot = itemJson.value("Slot", -1);
+                if (slot < 0 || slot >= inv->getContainerSize()) {
+                    // 兼容早期仅按数组下标存储的格式
+                    slot = static_cast<i32>(i);
+                }
+
+                if (slot < 0 || slot >= inv->getContainerSize()) {
+                    continue;
+                }
+
+                auto stackResult = ItemStack::fromJson(itemJson);
+                if (!stackResult.success()) {
+                    continue;
+                }
+
+                inv->setItem(slot, stackResult.value());
+            }
+        }
 
         return true;
     }

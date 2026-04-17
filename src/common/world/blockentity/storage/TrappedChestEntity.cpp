@@ -1,7 +1,9 @@
-#include "world/blockentity/storage/TrappedChestEntity.hpp"
+﻿#include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
+#include "world/redstone/RedstoneSystem.hpp"
+#include "util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -12,7 +14,12 @@ TrappedChestEntity::TrappedChestEntity(const BlockPos& pos)
 
 std::unique_ptr<BlockEntity> TrappedChestEntity::clone() const {
     auto cloned = std::make_unique<TrappedChestEntity>(getPos());
-    // TODO: 复制物品数据
+
+    nlohmann::json state;
+    save(state);
+    const bool loaded = cloned->load(state);
+    MC_ASSERT(loaded && "TrappedChestEntity clone load failed");
+
     return cloned;
 }
 
@@ -33,22 +40,30 @@ void TrappedChestEntity::openContainer() {
     // 先增加计数
     ChestEntity::openContainer();
 
-    // TODO: 需要访问 World 来通知邻居更新红石信号
-    // 目前暂时跳过，待 ContainerBlockEntity 添加 World 引用后实现
+    if (m_world != nullptr) {
+        notifyNeighbors(*m_world);
+    }
 }
 
 void TrappedChestEntity::closeContainer() {
     // 先减少计数
     ChestEntity::closeContainer();
 
-    // TODO: 需要访问 World 来通知邻居更新红石信号
-    // 目前暂时跳过，待 ContainerBlockEntity 添加 World 引用后实现
+    if (m_world != nullptr) {
+        notifyNeighbors(*m_world);
+    }
 }
 
 void TrappedChestEntity::notifyNeighbors(IWorld& world) {
-    // TODO: 实现邻居通知
-    // IWorld 接口目前没有 isRemote() 方法，需要扩展接口或通过其他方式判断
-    (void)world;
+    const BlockState* state = world.getBlockState(getPos());
+    if (state == nullptr) {
+        return;
+    }
+
+    const Block& block = state->getBlock();
+    world::redstone::RedstoneSystem::instance().updateNeighbors(
+        world, getPos(), const_cast<Block&>(block));
+    world::redstone::RedstoneSystem::instance().updateComparators(world, getPos());
 }
 
 } // namespace blockentity

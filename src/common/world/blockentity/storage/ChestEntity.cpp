@@ -1,8 +1,9 @@
-#include "world/blockentity/storage/ChestEntity.hpp"
+﻿#include "world/blockentity/storage/ChestEntity.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
+#include "world/redstone/RedstoneSystem.hpp"
 #include "util/property/Properties.hpp"
 #include <cmath>
 
@@ -18,10 +19,6 @@ namespace {
     constexpr f32 LID_CLOSE_SOUND_THRESHOLD = 0.5f;
     /// 同步间隔（ticks）
     constexpr i32 SYNC_INTERVAL = 200;
-    /// 盖子关闭音效事件ID
-    constexpr i32 SOUND_EVENT_CLOSE = 1012;
-    /// 盖子打开音效事件ID
-    constexpr i32 SOUND_EVENT_OPEN = 1006;
 }
 
 // ========== 构造函数 ==========
@@ -135,9 +132,9 @@ void ChestEntity::openContainer() {
     // 增加计数
     ++m_openCount;
 
-    // 广播状态变化
-    // TODO: 实现World广播
-    // broadcastChestState(world, true);
+    if (m_world != nullptr) {
+        broadcastChestState(*m_world, true);
+    }
 }
 
 void ChestEntity::closeContainer() {
@@ -146,9 +143,9 @@ void ChestEntity::closeContainer() {
         --m_openCount;
     }
 
-    // 广播状态变化
-    // TODO: 实现World广播
-    // broadcastChestState(world, false);
+    if (m_world != nullptr) {
+        broadcastChestState(*m_world, false);
+    }
 }
 
 // ========== 红石比较器 ==========
@@ -171,7 +168,7 @@ i32 ChestEntity::getComparatorSignal(IWorld& world) const {
     // 如果是双箱，需要计算合并的信号
     ChestEntity* connected = getConnectedChest(world);
     if (connected != nullptr) {
-        // 添加相邻箱子的数据
+        // 添加相邻箱子的��据
         for (i32 i = 0; i < CHEST_SIZE; ++i) {
             const ItemStack& stack = connected->m_inventory.getItem(i);
             if (!stack.isEmpty()) {
@@ -220,11 +217,15 @@ void ChestEntity::tick(IWorld& world) {
     // 更新同步计数器
     ++m_ticksSinceSync;
 
-    // 定期同步打开计数（服务端）
-    // TODO: 实现定期同步逻辑
-    // if (!world.isRemote() && m_ticksSinceSync % SYNC_INTERVAL == 0) {
-    //     m_openCount = calculatePlayersUsingSync(world);
-    // }
+    // 定期触发方块状态同步，保证客户端动画/渲染与服务端一致。
+    if (m_ticksSinceSync >= SYNC_INTERVAL) {
+        m_ticksSinceSync = 0;
+
+        const BlockState* state = world.getBlockState(m_pos);
+        if (state != nullptr) {
+            world.setBlockState(m_pos, state, 3);
+        }
+    }
 
     // 更新盖子动画
     f32 prevAngle = m_lidAngle;
@@ -253,7 +254,7 @@ void ChestEntity::tick(IWorld& world) {
         playSound(world, false);
     }
 
-    (void)world; // 暂时避免未使用警告
+    MC_UNUSED(world);
 }
 
 // ========== 序列化 ==========
@@ -263,14 +264,26 @@ bool ChestEntity::load(const nlohmann::json& data) {
         return false;
     }
 
-    // 加载物品
+    m_inventory.clear();
+
     if (data.contains("Items") && data["Items"].is_array()) {
         const auto& items = data["Items"];
         for (const auto& itemJson : items) {
-            // TODO: 实现ItemStack从JSON加载
-            // i32 slot = itemJson.value("Slot", 0);
-            // ItemStack stack = ItemStack::fromJson(itemJson);
-            // m_inventory.setItem(slot, stack);
+            if (!itemJson.is_object()) {
+                continue;
+            }
+
+            const i32 slot = itemJson.value("Slot", -1);
+            if (slot < 0 || slot >= CHEST_SIZE) {
+                continue;
+            }
+
+            auto stackResult = ItemStack::fromJson(itemJson);
+            if (!stackResult.success()) {
+                continue;
+            }
+
+            m_inventory.setItem(slot, stackResult.value());
         }
     }
 
@@ -280,48 +293,65 @@ bool ChestEntity::load(const nlohmann::json& data) {
 void ChestEntity::save(nlohmann::json& data) const {
     LockableBlockEntity::save(data);
 
-    // 保存物品
     nlohmann::json itemsJson = nlohmann::json::array();
     for (i32 i = 0; i < CHEST_SIZE; ++i) {
         const ItemStack& stack = m_inventory.getItem(i);
-        if (!stack.isEmpty()) {
-            nlohmann::json itemJson;
-            itemJson["Slot"] = i;
-            // TODO: 保存ItemStack数据
-            // stack.save(itemJson);
-            itemsJson.push_back(itemJson);
+        if (stack.isEmpty()) {
+            continue;
         }
+
+        nlohmann::json itemJson = stack.toJson();
+        itemJson["Slot"] = i;
+        itemsJson.push_back(std::move(itemJson));
     }
-    data["Items"] = itemsJson;
+    data["Items"] = std::move(itemsJson);
 }
 
 std::unique_ptr<BlockEntity> ChestEntity::clone() const {
-    auto cloned = std::make_unique<ChestEntity>(m_pos);
-    // TODO: 复制物品数据
+    auto cloned = std::make_unique<ChestEntity>(getType(), m_pos);
+    cloned->m_lidAngle = m_lidAngle;
+    cloned->m_prevLidAngle = m_prevLidAngle;
+    cloned->m_openCount = m_openCount;
+    cloned->m_ticksSinceSync = m_ticksSinceSync;
+
+    for (i32 slot = 0; slot < CHEST_SIZE; ++slot) {
+        const ItemStack stack = m_inventory.getItem(slot);
+        if (!stack.isEmpty()) {
+            cloned->m_inventory.setItem(slot, stack.copy());
+        }
+    }
+
+    nlohmann::json state;
+    LockableBlockEntity::save(state);
+    cloned->LockableBlockEntity::load(state);
+
     return cloned;
 }
 
 // ========== 受保护方法 ==========
 
 void ChestEntity::broadcastChestState(IWorld& world, bool open) {
-    // TODO: 实现World广播
-    // world.addBlockEvent(m_pos, getBlockState()->getBlock(), 1, m_openCount);
-    // world.notifyNeighborsOfStateChange(m_pos, getBlockState()->getBlock());
+    MC_UNUSED(open);
 
-    (void)world;
-    (void)open;
+    const BlockState* state = world.getBlockState(m_pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    world.setBlockState(m_pos, state, 3);
+
+    const Block& sourceBlock = state->getBlock();
+    world::redstone::RedstoneSystem::instance().updateNeighbors(
+        world, m_pos, const_cast<Block&>(sourceBlock));
+    world::redstone::RedstoneSystem::instance().updateComparators(world, m_pos);
 }
 
 void ChestEntity::playSound(IWorld& world, bool open) {
-    // TODO: 实现音效播放
-    // 只在RIGHT类型或SINGLE类型播放音效
-    // if (isLeftPartOfDoubleChest()) {
-    //     return; // 左半部分不播放
-    // }
-
-    (void)world;
-    (void)open;
+    // 当前 IWorld 尚未提供统一音效事件接口。
+    // 先通过状态广播保持动画/红石一致，避免遗漏行为更新。
+    broadcastChestState(world, open);
 }
 
 } // namespace blockentity
 } // namespace mc
+

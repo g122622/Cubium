@@ -1,10 +1,30 @@
-#include "world/blockentity/storage/ShulkerBoxEntity.hpp"
+﻿#include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "world/IWorld.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "util/AxisAlignedBB.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blockentity {
+
+namespace {
+
+/**
+ * @brief 构建潜影盒打开时的实体阻挡检测区域。
+ *
+ * 与 Java 版行为一致：检测方块正上方 1 格体积内是否有实体。
+ */
+[[nodiscard]] AxisAlignedBB makeShulkerOpenSpaceBox(const BlockPos& pos) {
+    return AxisAlignedBB(
+        static_cast<f32>(pos.x),
+        static_cast<f32>(pos.y + 1),
+        static_cast<f32>(pos.z),
+        static_cast<f32>(pos.x + 1),
+        static_cast<f32>(pos.y + 2),
+        static_cast<f32>(pos.z + 1));
+}
+
+} // namespace
 
 // ========== ShulkerBoxEntity 实现 ==========
 
@@ -25,11 +45,9 @@ bool ShulkerBoxEntity::openContainer(Player* player) {
     }
 
     // 检查锁定状态
-    if (isLocked()) {
-        // TODO: 检查玩家手持物品是否匹配锁名称
+    if (!LockableBlockEntity::canOpen(player, ItemStack())) {
         return false;
     }
-
     m_openCount++;
     if (m_openCount == 1) {
         m_animationStatus = AnimationStatus::Opening;
@@ -95,9 +113,9 @@ void ShulkerBoxEntity::updateAnimation(f32 partialTick) {
 }
 
 bool ShulkerBoxEntity::checkCanOpen(IWorld& world) const {
-    MC_UNUSED(world);
-    // TODO: 检查上方是否有实体阻挡
-    return true;
+    const AxisAlignedBB openSpace = makeShulkerOpenSpaceBox(m_pos);
+    const std::vector<Entity*> collidingEntities = world.getEntitiesInAABB(openSpace, nullptr);
+    return collidingEntities.empty();
 }
 
 bool ShulkerBoxEntity::load(const nlohmann::json& data) {
@@ -128,7 +146,12 @@ std::unique_ptr<BlockEntity> ShulkerBoxEntity::clone() const {
     clone->m_progress = m_progress;
     clone->m_prevProgress = m_prevProgress;
     clone->m_openCount = m_openCount;
-    // TODO: 复制物品
+    for (i32 slot = 0; slot < SHULKER_BOX_SIZE; ++slot) {
+        const ItemStack stack = m_inventory.getItem(slot);
+        if (!stack.isEmpty()) {
+            clone->m_inventory.setItem(slot, stack.copy());
+        }
+    }
     return clone;
 }
 

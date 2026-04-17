@@ -85,21 +85,19 @@ bool FurnaceInventory::canPlaceItem(i32 slot, const ItemStack& stack) const {
         return false;
     }
 
+    if (slot == SLOT_OUTPUT) {
+        return false;
+    }
+
     const ItemStack& existing = m_items[static_cast<std::size_t>(slot)];
-
-    // 输出槽只能接受熔炼产物，通常限制不能手动放入
-    // TODO: 根据具体实现调整逻辑
-
     if (existing.isEmpty()) {
         return true;
     }
 
-    // 检查是否可以堆叠
     if (!existing.canStackWith(stack)) {
         return false;
     }
 
-    // 检查堆叠数量限制
     const i32 maxCount = existing.getMaxStackSize();
     return existing.getCount() + stack.getCount() <= maxCount;
 }

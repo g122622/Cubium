@@ -226,11 +226,19 @@ void SimpleInventory::load(const nlohmann::json& data) {
         return;
     }
 
-    for (size_t i = 0; i < data.size() && i < m_items.size(); ++i) {
+    for (std::size_t i = 0; i < m_items.size(); ++i) {
+        m_items[i] = ItemStack();
+    }
+
+    for (std::size_t i = 0; i < data.size() && i < m_items.size(); ++i) {
         const auto& itemJson = data[i];
-        if (itemJson.is_object()) {
-            // TODO: 实现ItemStack从JSON加载
-            // m_items[i] = ItemStack::fromJson(itemJson).valueOr(ItemStack());
+        if (!itemJson.is_object() || itemJson.empty()) {
+            continue;
+        }
+
+        auto stackResult = ItemStack::fromJson(itemJson);
+        if (stackResult.success()) {
+            m_items[i] = stackResult.value();
         }
     }
 }

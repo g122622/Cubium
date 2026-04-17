@@ -2,6 +2,9 @@
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
+#include "world/blockentity/CraftingTableEntity.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemRegistry.hpp"
 
 using namespace mc;
 
@@ -26,6 +29,19 @@ public:
         return std::make_unique<TestContainerBlockEntity>(m_type, m_pos);
     }
 };
+
+
+namespace {
+Item* ensureBlockEntityTestItem(const char* path) {
+    auto& registry = ItemRegistry::instance();
+    const ResourceLocation id("minecraft", path);
+    if (Item* existing = registry.getItem(id); existing != nullptr) {
+        return existing;
+    }
+
+    return &registry.registerItem(id, ItemProperties().maxStackSize(64));
+}
+} // namespace
 
 class BlockEntityTest : public ::testing::Test {
 protected:
@@ -167,4 +183,50 @@ TEST_F(BlockEntityTest, Container_GetInventory_ReturnsNullByDefault) {
 TEST_F(BlockEntityTest, Container_IsEmpty_ReturnsTrueByDefault) {
     TestContainerBlockEntity container(BlockEntityType::Chest, BlockPos(0, 0, 0));
     EXPECT_TRUE(container.isEmpty());
+}
+
+TEST_F(BlockEntityTest, Container_SaveLoad_PreservesItemsAndCustomName) {
+    Items::initialize();
+    auto* apple = ensureBlockEntityTestItem("apple");
+    ASSERT_NE(apple, nullptr);
+
+    CraftingTableEntity table(BlockPos(4, 5, 6));
+    table.setCustomName("crafting.test");
+    IInventory* inventory = table.getInventory();
+    ASSERT_NE(inventory, nullptr);
+    inventory->setItem(0, ItemStack(apple, 3));
+
+    nlohmann::json data;
+    table.save(data);
+
+    CraftingTableEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.load(data));
+
+    const IInventory* loadedInventory = loaded.getInventory();
+    ASSERT_NE(loadedInventory, nullptr);
+    EXPECT_EQ(loadedInventory->getItem(0).getItem(), apple);
+    EXPECT_EQ(loadedInventory->getItem(0).getCount(), 3);
+    EXPECT_EQ(loaded.getCustomName(), "crafting.test");
+}
+
+TEST_F(BlockEntityTest, Container_Load_UsesArrayIndexFallbackWhenSlotMissing) {
+    Items::initialize();
+    auto* stick = ensureBlockEntityTestItem("stick");
+    ASSERT_NE(stick, nullptr);
+
+    nlohmann::json data;
+    data["id"] = "minecraft:crafting_table";
+    data["x"] = 1;
+    data["y"] = 2;
+    data["z"] = 3;
+    data["Items"] = nlohmann::json::array();
+    data["Items"].push_back(ItemStack(stick, 2).toJson());
+
+    CraftingTableEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.load(data));
+
+    const IInventory* loadedInventory = loaded.getInventory();
+    ASSERT_NE(loadedInventory, nullptr);
+    EXPECT_EQ(loadedInventory->getItem(0).getItem(), stick);
+    EXPECT_EQ(loadedInventory->getItem(0).getCount(), 2);
 }

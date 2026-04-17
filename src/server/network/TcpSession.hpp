@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../../common/core/Types.hpp"
 #include "../../common/core/Result.hpp"
@@ -6,11 +6,18 @@
 #include <memory>
 #include <functional>
 #include <deque>
+#include <vector>
 #include <mutex>
 
 namespace mc::server {
 
 class TcpServer;
+
+#ifdef _WIN32
+using NativeSocket = uintptr_t;
+#else
+using NativeSocket = int;
+#endif
 
 // 客户端会话ID
 using SessionId = u64;
@@ -69,9 +76,14 @@ public:
     void setState(SessionState state) { m_state = state; }
     void setOnPacketCallback(PacketCallback callback) { m_onPacket = std::move(callback); }
     void setOnDisconnectCallback(DisconnectCallback callback) { m_onDisconnect = std::move(callback); }
+    void setSocket(NativeSocket socket) { m_socket = socket; }
+    [[nodiscard]] NativeSocket socket() const { return m_socket; }
 
     // 处理接收到的数据
     void handleReceivedData(const u8* data, size_t size);
+
+    // 发送队列提取
+    [[nodiscard]] std::vector<u8> takeNextSendBuffer();
 
 private:
     SessionId m_id;
@@ -79,6 +91,7 @@ private:
     TcpServer* m_server;
     String m_address;
     u16 m_port = 0;
+    NativeSocket m_socket = static_cast<NativeSocket>(-1);
 
     SessionStats m_stats;
 
@@ -99,3 +112,5 @@ private:
 };
 
 } // namespace mc::server
+
+

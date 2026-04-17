@@ -12,10 +12,9 @@ bool LockableBlockEntity::canOpen(const Player* player, const ItemStack& heldIte
     }
 
     // 创造模式玩家：可以打开任何容器
-    // TODO: 实现创造模式检测
-    // if (player && player->isCreative()) {
-    //     return true;
-    // }
+    if (player != nullptr && player->gameMode() == GameMode::Creative) {
+        return true;
+    }
 
     // 检查手持物品是否是正确的钥匙
     if (!heldItem.isEmpty() && heldItem.hasCustomName()) {
