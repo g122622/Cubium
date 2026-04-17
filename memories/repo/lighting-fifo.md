@@ -1,6 +1,0 @@
-- BaseLightEngine FIFO wavefront propagation can regress skylight restoration if blocked-edge darkening only clears/decreases.
-- In decrease path (`currentLevel < targetLevel` with `target=darkest`), queue adjacent increase rechecks after force-darkening to preserve valid side skylight recovery.
-- Keep queue order FIFO (not pop-back LIFO); maintain decrease-before-increase tick order.
-- Validate with `SkyLightRegressionTest` plus `BaseLightEngineQueueTest` when touching queue behavior.
-- Do not blindly apply source-face occlusion to all block-light propagation steps.
-- Full-cube emissive sources (e.g. glowstone) must still propagate outward; restrict source-face blocking checks to conditional/non-full shapes.
