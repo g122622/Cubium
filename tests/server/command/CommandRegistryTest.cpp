@@ -13,6 +13,9 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
+#include "server/interaction/InventoryManager.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/Items.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 
 #include <stdexcept>
@@ -87,6 +90,11 @@ public:
         return m_disconnectReason;
     }
 
+    [[nodiscard]] size_t sentBytes() const noexcept
+    {
+        return m_sentData.size();
+    }
+
 private:
     bool m_connected = true;
     String m_disconnectReason;
@@ -97,6 +105,7 @@ class FakeServer final : public server::IServer {
 public:
     FakeServer()
         : m_playerManager(m_config)
+        , m_inventoryManager(m_playerManager)
         , m_connectionManager(m_playerManager)
         , m_timeManager(0, 1000)
         , m_teleportManager(m_playerManager)
@@ -113,6 +122,7 @@ public:
         , m_gameModeManager(m_playerManager, m_connectionManager)
         , m_commandRegistry()
     {
+        Items::initialize();
     }
 
     [[nodiscard]] Result<void> initialize() override { return Result<void>::ok(); }
@@ -161,8 +171,8 @@ public:
     [[nodiscard]] const server::interaction::MiningManager& miningManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::interaction::ContainerManager& containerManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::interaction::ContainerManager& containerManager() const override { throw std::logic_error("unused"); }
-    [[nodiscard]] server::interaction::InventoryManager& inventoryManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::interaction::InventoryManager& inventoryManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] server::interaction::InventoryManager& inventoryManager() override { return m_inventoryManager; }
+    [[nodiscard]] const server::interaction::InventoryManager& inventoryManager() const override { return m_inventoryManager; }
     [[nodiscard]] server::sync::EntitySyncManager& entitySyncManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::sync::EntitySyncManager& entitySyncManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::sync::ChunkSendManager& chunkSendManager() override { throw std::logic_error("unused"); }
@@ -201,6 +211,7 @@ public:
         auto* player = m_playerManager.addPlayer(playerId, username, connection);
         if (player != nullptr) {
             m_connections.push_back(connection);
+            m_inventoryManager.initializeInventory(playerId);
         }
         return player;
     }
@@ -228,6 +239,7 @@ private:
     String m_lastBroadcastMessage;
 
     server::core::PlayerManager m_playerManager;
+    server::interaction::InventoryManager m_inventoryManager;
     server::core::ConnectionManager m_connectionManager;
     server::core::TimeManager m_timeManager;
     server::core::TeleportManager m_teleportManager;
@@ -436,6 +448,93 @@ TEST_F(CommandRegistryServerTest, TimeCommandReturnsQueriedDaytime)
 
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value(), 13000);
+}
+
+TEST_F(CommandRegistryServerTest, ClearCommandClearsSelfInventory)
+{
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+
+    auto* inventory = m_server.inventoryManager().getInventory(1);
+    ASSERT_NE(inventory, nullptr);
+
+    inventory->setItem(0, ItemStack(*Items::STONE, 32));
+    inventory->setItem(10, ItemStack(*Items::IRON_INGOT, 7));
+    inventory->setItem(InventorySlots::ARMOR_HEAD, ItemStack(*Items::IRON_HELMET, 1));
+    inventory->setItem(InventorySlots::OFFHAND, ItemStack(*Items::COBBLESTONE, 4));
+
+    auto playerSource = makePlayerSource(1, "Steve");
+    const auto result = m_server.commandRegistry().execute("clear", playerSource);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 44);
+    EXPECT_TRUE(inventory->isEmpty());
+
+    const auto connection = m_server.lastConnection();
+    ASSERT_NE(connection, nullptr);
+    EXPECT_TRUE(connection->isConnected());
+    EXPECT_GT(connection->sentBytes(), 0u);
+}
+
+TEST_F(CommandRegistryServerTest, ClearCommandClearsNamedPlayerInventory)
+{
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    auto* alex = m_server.addTestPlayer(2, "Alex");
+    ASSERT_NE(steve, nullptr);
+    ASSERT_NE(alex, nullptr);
+
+    auto* inventory = m_server.inventoryManager().getInventory(2);
+    ASSERT_NE(inventory, nullptr);
+
+    inventory->setItem(0, ItemStack(*Items::STONE, 16));
+    inventory->setItem(1, ItemStack(*Items::IRON_INGOT, 8));
+    inventory->setItem(InventorySlots::OFFHAND, ItemStack(*Items::COBBLESTONE, 4));
+
+    const auto result = m_server.commandRegistry().execute("clear Alex", m_console);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 28);
+    EXPECT_TRUE(inventory->isEmpty());
+
+    const auto connection = m_server.lastConnection();
+    ASSERT_NE(connection, nullptr);
+    EXPECT_TRUE(connection->isConnected());
+    EXPECT_GT(connection->sentBytes(), 0u);
+}
+
+TEST_F(CommandRegistryServerTest, ClearCommandRespectsItemAndMaxCount)
+{
+    auto* alex = m_server.addTestPlayer(2, "Alex");
+    ASSERT_NE(alex, nullptr);
+
+    auto* inventory = m_server.inventoryManager().getInventory(2);
+    ASSERT_NE(inventory, nullptr);
+
+    inventory->setItem(0, ItemStack(*Items::STONE, 5));
+    inventory->setItem(1, ItemStack(*Items::STONE, 4));
+    inventory->setItem(2, ItemStack(*Items::IRON_INGOT, 2));
+
+    const auto result = m_server.commandRegistry().execute("clear Alex minecraft:stone 6", m_console);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 6);
+
+    EXPECT_TRUE(inventory->getItem(0).isEmpty());
+
+    const ItemStack slot1 = inventory->getItem(1);
+    ASSERT_FALSE(slot1.isEmpty());
+    EXPECT_EQ(slot1.getItem(), Items::STONE);
+    EXPECT_EQ(slot1.getCount(), 3);
+
+    const ItemStack slot2 = inventory->getItem(2);
+    ASSERT_FALSE(slot2.isEmpty());
+    EXPECT_EQ(slot2.getItem(), Items::IRON_INGOT);
+    EXPECT_EQ(slot2.getCount(), 2);
+
+    const auto connection = m_server.lastConnection();
+    ASSERT_NE(connection, nullptr);
+    EXPECT_TRUE(connection->isConnected());
+    EXPECT_GT(connection->sentBytes(), 0u);
 }
 TEST_F(CommandRegistryServerTest, CommandTreeSnapshotContainsMetadata)
 {

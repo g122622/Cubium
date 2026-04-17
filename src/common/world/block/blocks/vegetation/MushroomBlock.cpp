@@ -1,11 +1,36 @@
 #include "MushroomBlock.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
+#include <algorithm>
+
 namespace mc {
 namespace blocks {
+
+namespace {
+
+[[nodiscard]] bool canSustainMushroom(const BlockState& groundState, const IWorld& world, const BlockPos& mushroomPos) {
+    if (VanillaBlocks::MYCELIUM != nullptr && groundState.is(VanillaBlocks::MYCELIUM)) {
+        return true;
+    }
+
+    if (VanillaBlocks::PODZOL != nullptr && groundState.is(VanillaBlocks::PODZOL)) {
+        return true;
+    }
+
+    if (!groundState.isSolid()) {
+        return false;
+    }
+
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(mushroomPos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(mushroomPos));
+    return std::max(blockLight, skyLight) < 13;
+}
+
+} // namespace
 
 // ========== MushroomBlock ==========
 
@@ -27,7 +52,6 @@ bool MushroomBlock::isValidPosition(
 
     MC_UNUSED(state);
 
-    // 检查下方是否有支撑
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
@@ -35,24 +59,60 @@ bool MushroomBlock::isValidPosition(
         return false;
     }
 
-    // 蘑菇可以放置在固体方块上
-    // TODO: 检查是否为菌岩、草方块、泥土等
-    return belowState->isSolid();
+    return canSustainMushroom(*belowState, world, pos);
 }
 
 void MushroomBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     MC_UNUSED(state);
 
-    // 检查是否可以生长成巨型蘑菇
-    // TODO: 实现光照检查和生长逻辑
-    // 1. 检查周围空间是否足够
-    // 2. 检查光照等级
-    // 3. 随机决定是否生长
-
-    // 简化实现：低概率生长
-    if (random.nextFloat() < 0.01f) {
-        // TODO: 生成巨型蘑菇
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(pos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(pos));
+    if (std::max(blockLight, skyLight) >= 13) {
+        return;
     }
+
+    if (random.nextInt(25) != 0) {
+        return;
+    }
+
+    i32 nearbyMushrooms = 0;
+    for (i32 dx = -4; dx <= 4; ++dx) {
+        for (i32 dy = -1; dy <= 1; ++dy) {
+            for (i32 dz = -4; dz <= 4; ++dz) {
+                const BlockState* nearbyState = world.getBlockState(pos.x + dx, pos.y + dy, pos.z + dz);
+                if (nearbyState != nullptr && nearbyState->is(this)) {
+                    ++nearbyMushrooms;
+                    if (nearbyMushrooms >= 5) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    const BlockPos spreadPos(
+        pos.x + random.nextInt(3) - 1,
+        pos.y + random.nextInt(2) - 1,
+        pos.z + random.nextInt(3) - 1
+    );
+
+    const BlockState* targetState = world.getBlockState(spreadPos);
+    if (targetState != nullptr && !targetState->isAir()) {
+        return;
+    }
+
+    const BlockPos belowTarget = spreadPos.down();
+    const BlockState* belowState = world.getBlockState(belowTarget);
+    if (belowState == nullptr) {
+        return;
+    }
+
+    if (!canSustainMushroom(*belowState, world, spreadPos)) {
+        return;
+    }
+
+    const BlockState& mushroomState = defaultState();
+    world.setBlockState(spreadPos, &mushroomState, 2);
 }
 
 const CollisionShape& MushroomBlock::getShape(const BlockState& state) const {

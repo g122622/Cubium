@@ -1,6 +1,19 @@
 #include "TallGrassBlock.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../Material.hpp"
+
+namespace {
+
+[[nodiscard]] bool isVegetationGround(const mc::BlockState& groundState) {
+    return (mc::VanillaBlocks::GRASS_BLOCK != nullptr && groundState.is(mc::VanillaBlocks::GRASS_BLOCK)) ||
+           (mc::VanillaBlocks::DIRT != nullptr && groundState.is(mc::VanillaBlocks::DIRT)) ||
+           (mc::VanillaBlocks::COARSE_DIRT != nullptr && groundState.is(mc::VanillaBlocks::COARSE_DIRT)) ||
+           (mc::VanillaBlocks::PODZOL != nullptr && groundState.is(mc::VanillaBlocks::PODZOL)) ||
+           (mc::VanillaBlocks::FARMLAND != nullptr && groundState.is(mc::VanillaBlocks::FARMLAND));
+}
+
+} // namespace
 
 namespace mc {
 namespace blocks {
@@ -26,12 +39,7 @@ bool TallGrassBlock::canSustain(
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
-    // 高草可以放置在草方块、泥土、耕地等上
-    const Material& material = groundState.getMaterial();
-
-    // 检查是否为植物可生长的材质
-    // TODO: 使用更精确的方块检查（草方块、泥土、耕地等）
-    return material.isSolid();
+    return isVegetationGround(groundState);
 }
 
 // ========== FernBlock ==========

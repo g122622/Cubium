@@ -1,9 +1,14 @@
 #include "CactusBlock.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../../../entity/core/LivingEntity.hpp"
+#include "../../../../entity/damage/DamageSource.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+
+#include <algorithm>
 
 namespace mc {
 namespace blocks {
@@ -37,8 +42,8 @@ i32 CactusBlock::getAge(const BlockState& state) const {
     return state.get(BlockStateProperties::AGE_0_15());
 }
 
-BlockState CactusBlock::withAge(i32 age) const {
-    return defaultState().with(BlockStateProperties::AGE_0_15(), std::min(age, 15));
+const BlockState& CactusBlock::withAge(i32 age) const {
+    return defaultState().with(BlockStateProperties::AGE_0_15(), std::clamp(age, 0, 15));
 }
 
 // ========== 放置逻辑 ==========
@@ -62,23 +67,24 @@ bool CactusBlock::isValidPosition(
         return false;
     }
 
-    // 仙人掌可以放置在：仙人掌上、沙子上、红沙上
-    // TODO: 使用更精确的方块检查
-    const Material& material = belowState->getMaterial();
-    if (material.isSolid() || belowState->is(this)) {
-        // 检查周围是否有水或其他非空气方块
-        // 仙人掌周围不能有固体方块
-        for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
-            BlockPos adjPos = pos.offset(dir);
-            const BlockState* adjState = world.getBlockState(adjPos);
-            if (adjState != nullptr && !adjState->isAir() && adjState->getMaterial().isSolid()) {
-                return false;
-            }
-        }
-        return true;
+    const bool supported =
+        (VanillaBlocks::SAND != nullptr && belowState->is(VanillaBlocks::SAND)) ||
+        (VanillaBlocks::RED_SAND != nullptr && belowState->is(VanillaBlocks::RED_SAND)) ||
+        belowState->is(this);
+
+    if (!supported) {
+        return false;
     }
 
-    return false;
+    for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
+        const BlockPos adjPos = pos.offset(dir);
+        const BlockState* adjState = world.getBlockState(adjPos);
+        if (adjState != nullptr && !adjState->isAir() && adjState->getMaterial().isSolid()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 BlockState CactusBlock::updatePostPlacement(
@@ -147,14 +153,14 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
         i32 age = getAge(state);
         if (age >= 15) {
             // 生长新的仙人掌
-            auto newTopState = defaultState();
+            const BlockState& newTopState = defaultState();
             world.setBlockState(abovePos, &newTopState, 2);
 
-            auto resetState = withAge(0);
+            const BlockState& resetState = withAge(0);
             world.setBlockState(pos, &resetState, 2);
         } else {
             // 增加年龄
-            auto agedState = withAge(age + 1);
+            const BlockState& agedState = withAge(age + 1);
             world.setBlockState(pos, &agedState, 2);
         }
     }
@@ -177,10 +183,14 @@ void CactusBlock::onEntityCollision(const BlockState& state, IWorld& world, cons
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(entity);
 
-    // TODO: 对实体造成伤害
-    // entity.hurt(DamageSource::CACTUS, 1.0f);
+    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
+    if (livingEntity == nullptr) {
+        return;
+    }
+
+    auto damageSource = DamageSources::cactus();
+    livingEntity->hurt(damageSource, 1.0f);
 }
 
 } // namespace blocks

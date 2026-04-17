@@ -1,7 +1,9 @@
 #include "ServerCommandSource.hpp"
 #include "server/application/IServer.hpp"
+#include "server/core/ConnectionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -42,16 +44,28 @@ void ServerCommandSource::sendMessage(
     const String& message,
     const std::optional<Uuid>& /*senderUuid*/
 ) {
-    // 发送消息给命令源
     if (m_player) {
-        // 发送给玩家
         m_player->sendSystemMessage(message);
+        return;
     } else if (m_playerId != 0) {
+        if (m_server != nullptr) {
+            network::ChatMessagePacket chatPacket(message, 0);
+            network::PacketSerializer payload;
+            chatPacket.serialize(payload);
+
+            if (m_server->connectionManager().sendPacketToPlayer(
+                    m_playerId,
+                    network::PacketType::ChatBroadcast,
+                    payload.buffer())) {
+                return;
+            }
+        }
+
         spdlog::info("[System -> {}] {}", m_name, message);
-    } else {
-        // 发送给控制台
-        spdlog::info("{}", message);
+        return;
     }
+
+    spdlog::info("{}", message);
 }
 
 bool ServerCommandSource::shouldReceiveFeedback() const {

@@ -334,6 +334,16 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear) {
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
 }
 
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnFarmland) {
+    TreeFeature feature;
+    TreeFeatureConfig config = makeFixedOakConfig();
+    math::Random rng(12345);
+
+    setWorldBlock(8, 0, 8, &VanillaBlocks::FARMLAND->defaultState());
+
+    EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+}
+
 TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeFailsWhenCanopySideBlocked) {
     TreeFeature feature;
     TreeFeatureConfig config = makeFixedOakConfig();

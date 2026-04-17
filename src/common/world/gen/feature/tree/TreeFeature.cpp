@@ -163,11 +163,12 @@ bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos)
         return false;
     }
 
-    // 检查是否是泥土类方块
+        // 检查是否是泥土类方块或耕地
     return state->is(VanillaBlocks::DIRT) ||
            state->is(VanillaBlocks::GRASS_BLOCK) ||
            state->is(VanillaBlocks::COARSE_DIRT) ||
-           state->is(VanillaBlocks::PODZOL);
+            state->is(VanillaBlocks::PODZOL) ||
+            state->is(VanillaBlocks::FARMLAND);
 }
 
 bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos) {

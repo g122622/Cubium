@@ -58,6 +58,7 @@ add_executable(mc_tests
     common/world/block/blocks/EnchantingTableBlockTest.cpp
     common/world/block/blocks/ChestBlockTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
+    common/world/block/blocks/VegetationBlockTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntitySensesTest.cpp
@@ -733,6 +734,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp

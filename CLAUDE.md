@@ -415,6 +415,12 @@ enum class Operation : u8 { ... };
     - Client-side completion must be rebuilt from `onCommandTree()` after login and cleared again on disconnect, otherwise chat suggestions will drift stale.
 - `CommandTreePacket` only serializes the packet body.
     - Server code must wrap it with `ConnectionManager::encapsulatePacket()` exactly once, and client code must strip the outer network header before calling `handleCommandTree()`; double encapsulation makes the inner header look like an empty JSON string.
+- `SaplingBlock` and `TreeFeature` must agree on root support blocks.
+    - If you expand one side, expand the other in the same change or you will get the classic “can place but cannot grow” mismatch.
+- `MushroomBlock` natural tick is for low-light spreading, not giant mushroom construction.
+    - Keep giant mushroom generation in the feature layer so the block stays testable and local.
+- `CactusBlock` collision damage should target living entities only.
+    - Use `LivingEntity::hurt()` with `DamageSources::cactus()`; non-living collisions should stay no-op.
 - Do not link `spdlog::spdlog` or `GTest::gtest` directly into executables that already consume `mc_common` or `GTest::gtest_main`.
     - Apple ld will emit duplicate-library warnings when the same static library appears twice on the final link line.
 - On AppleClang, no-argument `MC_TRACE_EVENT(...)` or `MC_TRACE_*` calls can still trigger `-Wvariadic-macro-arguments-omitted`.
@@ -427,6 +433,12 @@ enum class Operation : u8 { ... };
     - `ServerWorld::setBlock()` 和流体 tick 调度要继续使用 `fluid.getTickDelay(*this)`，不要把主世界/下界差异重新硬编码回固定常量。
 - 天气降水判定不能只看温度。
     - `WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `BiomeClimate::Precipitation::None` 以及温度阈值一起判断；沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式标记为 `None`。
+- 玩家命令反馈不要默认依赖 `ServerPlayer*`。
+    - `ServerCommandSource::sendMessage()` 现在必须在只有 `playerId` 的情况下也能把消息发回在线连接，不能只写日志。
+- 玩家背包同步必须使用 `PlayerInventoryPacket`。
+    - `ContainerContentPacket` 只保留给真正打开的容器菜单；玩家物品栏刷新、拾取同步和 `/clear` 这类操作都应走玩家背包包。
+- `InventoryManager::setOnInventoryUpdate()` 在 `MinecraftServer::initializeInteractionManagers()` 里已经接好。
+    - 服务器侧背包变更如果走 `inventoryManager()`，就要依赖这条回调刷新客户端，不要再手写一套新的同步分支。
 
 ## Self-Maintenance Rule
 

@@ -48,7 +48,7 @@ public:
     /**
      * @brief 创建指定阶段的状态
      */
-    [[nodiscard]] BlockState withStage(i32 stage) const;
+    [[nodiscard]] const BlockState& withStage(i32 stage) const;
 
     // ========== 放置逻辑 ==========
 

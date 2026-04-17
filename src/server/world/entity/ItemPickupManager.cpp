@@ -263,25 +263,17 @@ void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player) {
     // 获取玩家背包
     PlayerInventory& inventory = player.inventory();
 
-    // 创建背包内容包
-    // 使用 ContainerContentPacket 发送完整背包
-    std::vector<ItemStack> items;
-    items.reserve(inventory::PLAYER_INVENTORY_SIZE);
-
-    for (i32 i = 0; i < inventory::PLAYER_INVENTORY_SIZE; ++i) {
-        items.push_back(inventory.getItem(i));
-    }
-
-    ContainerContentPacket contentPacket(inventory::PLAYER_CONTAINER_ID, std::move(items));
+    // 创建玩家背包包
+    PlayerInventoryPacket inventoryPacket(inventory);
 
     // 序列化数据包
     network::PacketSerializer payload;
-    contentPacket.serialize(payload);
+    inventoryPacket.serialize(payload);
 
     // 创建完整数据包（包含头部）
     network::PacketSerializer fullPacket;
     fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + payload.size()));
-    fullPacket.writeU16(static_cast<u16>(network::PacketType::ContainerContent));
+    fullPacket.writeU16(static_cast<u16>(network::PacketType::PlayerInventory));
     fullPacket.writeU16(0);  // flags
     fullPacket.writeU16(0);  // reserved
     fullPacket.writeU16(0);  // padding

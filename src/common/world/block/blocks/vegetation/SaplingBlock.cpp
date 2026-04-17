@@ -1,16 +1,41 @@
 #include "SaplingBlock.hpp"
+#include "../../BlockRegistry.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
+#include <algorithm>
+
 namespace mc {
 namespace blocks {
+
+namespace {
+
+[[nodiscard]] bool isSaplingGround(const BlockState& groundState) {
+    return (VanillaBlocks::GRASS_BLOCK != nullptr && groundState.is(VanillaBlocks::GRASS_BLOCK)) ||
+           (VanillaBlocks::DIRT != nullptr && groundState.is(VanillaBlocks::DIRT)) ||
+           (VanillaBlocks::COARSE_DIRT != nullptr && groundState.is(VanillaBlocks::COARSE_DIRT)) ||
+           (VanillaBlocks::PODZOL != nullptr && groundState.is(VanillaBlocks::PODZOL)) ||
+           (VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND));
+}
+
+} // namespace
 
 // ========== 构造函数 ==========
 
 SaplingBlock::SaplingBlock(TreeGenerator treeGenerator, const BlockProperties& properties)
     : BushBlock(properties)
     , m_treeGenerator(std::move(treeGenerator)) {
+
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::STAGE_0_1())
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+
+    setDefaultState(defaultState().with(BlockStateProperties::STAGE_0_1(), 0));
 
     // 树苗形状：小型植物
     m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.5f, 0.75f);
@@ -22,8 +47,8 @@ i32 SaplingBlock::getStage(const BlockState& state) const {
     return state.get(BlockStateProperties::STAGE_0_1());
 }
 
-BlockState SaplingBlock::withStage(i32 stage) const {
-    return defaultState().with(BlockStateProperties::STAGE_0_1(), std::min(stage, 1));
+const BlockState& SaplingBlock::withStage(i32 stage) const {
+    return defaultState().with(BlockStateProperties::STAGE_0_1(), std::clamp(stage, 0, 1));
 }
 
 // ========== 放置逻辑 ==========
@@ -36,37 +61,42 @@ BlockState SaplingBlock::getStateForPlacement(BlockItemUseContext& context) {
 // ========== 生长逻辑 ==========
 
 void SaplingBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    // 检查光照
-    // TODO: 实现光照检查
-    // if (world.getLightSubtracted(pos, 0) >= 9) {
-    //     grow(world, pos, state);
-    // }
-
-    // 简化实现：随机生长
-    if (random.nextFloat() < 0.1f) {
-        grow(world, pos, state);
+    const BlockPos lightPos = pos.up();
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(lightPos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(lightPos));
+    if (std::max(blockLight, skyLight) < 9) {
+        return;
     }
+
+    if (random.nextInt(7) != 0) {
+        return;
+    }
+
+    grow(world, pos, state);
 }
 
 bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state) {
     i32 stage = getStage(state);
 
     if (stage < 1) {
-        // 生长到下一阶段
-        auto nextState = withStage(stage + 1);
+        const BlockState& nextState = withStage(stage + 1);
         world.setBlockState(pos, &nextState, 2);
         return true;
-    } else {
-        // 已成熟，生成树
-        if (m_treeGenerator) {
-            // TODO: 使用世界随机数
-            math::Random rng(static_cast<u64>(pos.x * 3129871) ^ static_cast<u64>(pos.z * 116129781) ^ static_cast<u64>(pos.y));
-            m_treeGenerator(world, pos, rng);
+    }
 
-            // 树生成后移除树苗
-            world.setBlockState(pos, nullptr, 2);
-            return true;
-        }
+    if (m_treeGenerator) {
+        u64 seed = world.seed();
+        seed ^= static_cast<u64>(static_cast<i64>(pos.x)) * 3129871ULL;
+        seed ^= static_cast<u64>(static_cast<i64>(pos.y)) * 116129781ULL;
+        seed ^= static_cast<u64>(static_cast<i64>(pos.z)) * 42317861ULL;
+
+        math::Random rng(0);
+        rng.setSeedWithHash(static_cast<i64>(seed));
+
+        const BlockState* airState = BlockRegistry::instance().airState();
+        world.setBlockState(pos, airState, 2);
+        m_treeGenerator(world, pos, rng);
+        return true;
     }
 
     return false;
@@ -89,9 +119,7 @@ bool SaplingBlock::canSustain(
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
-    // 树苗可以放置在草方块、泥土、耕地等上
-    const Material& material = groundState.getMaterial();
-    return material.isSolid();
+    return isSaplingGround(groundState);
 }
 
 } // namespace blocks

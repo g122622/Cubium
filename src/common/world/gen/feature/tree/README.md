@@ -91,6 +91,8 @@ static bool isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos);
 static bool isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos);
 ```
 
+`isDirtOrFarmlandAt(...)` 允许草方块、泥土、灰化土、菌丝和耕地作为树木根部支撑，这样树苗和树生成检查保持一致，不会出现“能种下但长不出树”的分裂行为。
+
 #### `TreeFeatureConfig` 配置项
 
 | 字段 | 类型 | 说明 |
