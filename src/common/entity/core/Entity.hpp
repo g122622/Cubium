@@ -7,6 +7,8 @@
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
 #include "EntityDataManager.hpp"
+#include "../../resource/ResourceLocation.hpp"
+#include "../../sound/SoundCategory.hpp"
 #include <string>
 #include <memory>
 #include <array>
@@ -307,6 +309,22 @@ public:
     [[nodiscard]] bool isRemoved() const { return m_removed; }
     [[nodiscard]] EntityPose pose() const { return m_pose; }
     [[nodiscard]] EntityFlags flags() const { return m_flags; }
+    [[nodiscard]] virtual bool isChild() const { return false; }
+
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取声音类别
+     */
+    [[nodiscard]] virtual sound::SoundCategory getSoundCategory() const { return sound::SoundCategory::Neutral; }
+
+    /**
+     * @brief 播放实体声音
+     * @param soundEventId 声音事件ID
+     * @param volume 音量倍率
+     * @param pitch 音调倍率
+     */
+    void playSound(const ResourceLocation& soundEventId, f32 volume, f32 pitch) const;
 
     // ========== 设置属性 ==========
 
@@ -799,6 +817,13 @@ public:
     virtual void syncMetadataFromDataManager();
 
 protected:
+    /**
+     * @brief 根据实体类型和后缀构造声音事件ID
+     * @param suffix 声音后缀（例如 ambient、hurt、death）
+     * @return 声音事件ID，无效类型返回空
+     */
+    [[nodiscard]] Optional<ResourceLocation> makeSoundEventId(StringView suffix) const;
+
     EntityId m_id;
     LegacyEntityType m_legacyType;
     String m_uuid;              // UUID 字符串

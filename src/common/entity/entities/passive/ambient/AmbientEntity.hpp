@@ -2,6 +2,7 @@
 
 #include "../../../core/MobEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include <memory>
 
 namespace mc {
@@ -22,6 +23,8 @@ public:
      */
     AmbientEntity(LegacyEntityType type, EntityId id);
     ~AmbientEntity() override = default;
+
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Ambient; }
 
     // 禁止拷贝
     AmbientEntity(const AmbientEntity&) = delete;

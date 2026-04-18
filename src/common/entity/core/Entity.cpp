@@ -6,6 +6,7 @@
 #include "../../util/math/MathUtils.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/fluid/Fluid.hpp"
+#include "../../resource/ResourceLocation.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -244,6 +245,33 @@ String Entity::getTypeId() const {
     }
 
     return legacyTypeToTypeId(m_legacyType);
+}
+
+Optional<ResourceLocation> Entity::makeSoundEventId(StringView suffix) const {
+    const String typeId = getTypeId();
+    const size_t separatorPos = typeId.find(':');
+    if (separatorPos == String::npos || separatorPos + 1 >= typeId.size()) {
+        return std::nullopt;
+    }
+
+    const String typePath = typeId.substr(separatorPos + 1);
+    if (typePath.empty() || typePath == "unknown") {
+        return std::nullopt;
+    }
+
+    String soundId = "minecraft:entity.";
+    soundId += typePath;
+    soundId += '.';
+    soundId += String(suffix);
+    return ResourceLocation(soundId);
+}
+
+void Entity::playSound(const ResourceLocation& soundEventId, f32 volume, f32 pitch) const {
+    if (m_world == nullptr || isSilent()) {
+        return;
+    }
+
+    m_world->playSound(soundEventId, getSoundCategory(), m_position, volume, pitch);
 }
 
 void Entity::setPosition(f32 x, f32 y, f32 z) {

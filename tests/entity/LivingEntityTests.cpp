@@ -11,6 +11,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 using namespace mc;
 using namespace mc::entity::attribute;
@@ -20,6 +21,17 @@ namespace {
 class GroundSupportWorld final : public IWorld {
 public:
     void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
+
+    struct SoundRecord {
+        ResourceLocation soundEventId;
+        sound::SoundCategory category;
+        Vector3 position;
+        f32 volume;
+        f32 pitch;
+    };
+
+    [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
+    [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
         if (m_supportEnabled && x == 0 && y == 0 && z == 0) {
@@ -73,8 +85,25 @@ public:
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
 
+    void playSound(const ResourceLocation& soundEventId,
+                   sound::SoundCategory category,
+                   const Vector3& position,
+                   f32 volume,
+                   f32 pitch) override {
+        m_lastSound = SoundRecord{soundEventId, category, position, volume, pitch};
+    }
+
 private:
     bool m_supportEnabled = true;
+    Optional<SoundRecord> m_lastSound;
+};
+
+class TestMobEntity : public MobEntity {
+public:
+    TestMobEntity() : MobEntity(LegacyEntityType::Cow, 2) {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
 };
 
 } // namespace
@@ -141,6 +170,23 @@ TEST(LivingEntityTest, Hurt) {
     EXPECT_FLOAT_EQ(entity.health(), 15.0f);
 }
 
+TEST(LivingEntityTest, HurtPlaysSound) {
+    GroundSupportWorld world;
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+
+    entity.setHealth(20.0f);
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    EXPECT_TRUE(entity.hurt(damage, 5.0f));
+    ASSERT_TRUE(world.hasSoundRecord());
+    EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.player.hurt");
+    EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Neutral);
+    EXPECT_FLOAT_EQ(world.lastSound().volume, 1.0f);
+    EXPECT_GE(world.lastSound().pitch, 0.8f);
+    EXPECT_LE(world.lastSound().pitch, 1.2f);
+}
+
 TEST(LivingEntityTest, HurtInvulnerability) {
     TestLivingEntity entity;
 
@@ -167,6 +213,32 @@ TEST(LivingEntityTest, Death) {
     entity.tick();
     EXPECT_TRUE(entity.isDying());
     EXPECT_EQ(entity.deathTime(), 1);
+}
+
+TEST(LivingEntityTest, DeathPlaysSound) {
+    GroundSupportWorld world;
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+
+    entity.setHealth(5.0f);
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    entity.hurt(damage, 10.0f);
+    ASSERT_TRUE(world.hasSoundRecord());
+    EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.player.death");
+    EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Neutral);
+}
+
+TEST(MobEntityTest, PlayAmbientSound_ForwardsToWorld) {
+    GroundSupportWorld world;
+    TestMobEntity entity;
+    entity.setWorld(&world);
+
+    entity.playAmbientSound();
+
+    ASSERT_TRUE(world.hasSoundRecord());
+    EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.cow.ambient");
+    EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Neutral);
 }
 
 TEST(LivingEntityTest, IsDead) {

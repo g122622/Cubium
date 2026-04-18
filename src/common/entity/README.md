@@ -808,6 +808,12 @@ void asyncTask() {
 - 运行时会改变体型的实体子类，应在尺寸改变后立即调用刷新函数，避免旧碰撞箱继续参与移动和地面检测。
 - 玩家从蹲下、游泳、睡眠切回站立时，需要先做碰撞可容纳性检查，不能直接无条件切换到 `Standing`。
 
+### 9. 声音链路
+
+- `Entity::playSound(...)` 会把声音事件交给当前 `IWorld`，实体层不直接做广播。
+- `LivingEntity` 统一处理受伤和死亡声音，`MobEntity` 统一处理环境声，`Player` 也沿用同一条链路。
+- `ServerWorld` 再把这些事件挂到服务器广播回调上，最后由 `MinecraftServer` 发给附近玩家。
+
 ## 涉及的测试用例
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/` 目录：
@@ -815,7 +821,7 @@ void asyncTask() {
 | 测试文件 | 测试内容 |
 |---------|---------|
 | `EntityCoreTests.cpp` | Entity 基类核心功能 |
-| `LivingEntityTests.cpp` | LivingEntity 生命值、属性、装备 |
+| `LivingEntityTests.cpp` | LivingEntity 生命值、属性、装备、受伤、死亡、环境声发声链路 |
 | `AttributeTests.cpp` | 属性系统、修饰符计算 |
 | `GoalTests.cpp` | AI 目标选择器、优先级、互斥标志 |
 | `PathfindingTests.cpp` | A* 寻路算法、路径导航 |
@@ -823,11 +829,12 @@ void asyncTask() {
 | `LootTest.cpp` | 掉落表生成、条件判断 |
 | `LootConditionTest.cpp` | 掉落条件系统 |
 | `AutoJumpTest.cpp` | 自动跳跃检测 |
-| `PlayerMovementTest.cpp` | 玩家移动物理 |
+| `PlayerMovementTest.cpp` | 玩家移动物理、受伤和死亡声音事件 |
 | `PlayerPoseCollisionTest.cpp` | 玩家姿态切换与碰撞箱可容纳性 |
 | `EntitySpawnPlacementRegistryTest.cpp` | 实体生成放置规则 |
 | `CraftingInventoryTest.cpp` | 合成背包功能 |
 | `AnimalModelTests.cpp` | 动物渲染模型 |
+| `ServerWorldTest.cpp` | 服务端世界声音回调转发 |
 
 ## 参考
 

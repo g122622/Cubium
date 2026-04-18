@@ -204,6 +204,8 @@ public:
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }
     void setDimension(DimensionId dim) { m_dimension = dim; }
 
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Players; }
+
     /**
      * @brief 设置位置并重置步距采样
      */

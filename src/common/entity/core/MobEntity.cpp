@@ -77,6 +77,13 @@ void MobEntity::clearNavigation() {
     }
 }
 
+void MobEntity::playAmbientSound() {
+    auto soundEvent = getAmbientSound();
+    if (soundEvent.has_value()) {
+        playSound(*soundEvent, getSoundVolume(), getSoundPitch());
+    }
+}
+
 void MobEntity::lookAt(const Entity& target, f32 deltaYaw, f32 deltaPitch) {
     lookAt(target.x(), target.y() + target.eyeHeight(), target.z(), deltaYaw, deltaPitch);
 }
@@ -90,6 +97,14 @@ void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch) {
 void MobEntity::tick() {
     // 更新父类
     LivingEntity::tick();
+
+    if (isAlive()) {
+        math::Random random = getRandom();
+        if (random.nextInt(1000) < m_livingSoundTime++) {
+            m_livingSoundTime = -getTalkInterval();
+            playAmbientSound();
+        }
+    }
 
     // 每个 tick 清理一次感知缓存，确保同一帧内可以复用结果，但下一帧重新判定
     m_senses->tick();
@@ -123,6 +138,15 @@ void MobEntity::tick() {
     // 这会根据 m_moveForward 和 m_moveStrafing 执行实际移动
     // 参考 MC MobEntity.livingTick() 中的 aiStep() 调用
     aiStep();
+}
+
+Optional<ResourceLocation> MobEntity::getAmbientSound() const {
+    return makeSoundEventId("ambient");
+}
+
+void MobEntity::playHurtSound(DamageSource& source) {
+    m_livingSoundTime = -getTalkInterval();
+    LivingEntity::playHurtSound(source);
 }
 
 void MobEntity::dropExperience() {

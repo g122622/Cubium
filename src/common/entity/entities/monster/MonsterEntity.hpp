@@ -4,6 +4,7 @@
 #include "../../core/Entity.hpp"
 #include "../../interfaces/IMob.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 
@@ -30,6 +31,8 @@ public:
     MonsterEntity(LegacyEntityType type, EntityId id);
 
     ~MonsterEntity() override = default;
+
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Hostile; }
 
     // 禁止拷贝
     MonsterEntity(const MonsterEntity&) = delete;

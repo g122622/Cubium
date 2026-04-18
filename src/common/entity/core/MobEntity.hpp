@@ -70,6 +70,16 @@ public:
      */
     virtual void registerGoals() {}
 
+    /**
+     * @brief 获取环境声音间隔
+     */
+    [[nodiscard]] virtual i32 getTalkInterval() const { return 80; }
+
+    /**
+     * @brief 播放环境声音
+     */
+    void playAmbientSound();
+
     // ========== 控制器 ==========
 
     /**
@@ -193,6 +203,13 @@ public:
     void dropExperience() override;
 
 protected:
+    /**
+     * @brief 获取环境声音
+     */
+    [[nodiscard]] virtual Optional<ResourceLocation> getAmbientSound() const;
+
+    void playHurtSound(DamageSource& source) override;
+
     // AI 目标选择器
     entity::ai::GoalSelector m_goalSelector;
     entity::ai::GoalSelector m_targetSelector;
@@ -212,6 +229,7 @@ protected:
     // AI 状态
     bool m_aiEnabled = true;
     i32 m_idleTime = 0;  // 空闲时间（用于随机漫步等）
+    i32 m_livingSoundTime = 0;
 
     // 经验值（死亡时掉落）
     i32 m_experienceValue = 0;

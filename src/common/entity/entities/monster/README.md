@@ -154,6 +154,11 @@ public:
 ### 史莱姆
 - 死亡分裂成小史莱姆
 - 只在特定区块生成
+
+## 声音分类
+
+- `MonsterEntity` 统一使用 `SoundCategory::Hostile`，保证敌对生物发声时进入正确的音量混音通道。
+- 这条分类会被 `Entity::playSound(...)` 自动携带到世界层，不需要各个怪物再手工传递。
 ## 杩戞湡琛ュ叏缁洿
 
 - 宸叉柊澧?`undead/AbstractSkeletonEntity.hpp/.cpp`锛屾寮忚惤瀹?README 涓凡澹版槑浣嗕箣鍓嶇己澶辩殑楠烽珔绯讳腑闂村眰銆?

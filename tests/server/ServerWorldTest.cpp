@@ -4,6 +4,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <thread>
 #include <atomic>
 
@@ -339,4 +340,40 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess) {
 
     // 如果没有崩溃或死锁，测试通过
     EXPECT_GT(world->chunkCount(), 0);
+}
+
+TEST_F(ServerWorldTest, PlaySound_InvokesCallback) {
+    Optional<ResourceLocation> soundEventId;
+    Optional<sound::SoundCategory> category;
+    Optional<Vector3> position;
+    Optional<f32> volume;
+    Optional<f32> pitch;
+
+    world->setOnPlaySound([&](const ResourceLocation& eventId,
+                              sound::SoundCategory soundCategory,
+                              const Vector3& soundPosition,
+                              f32 soundVolume,
+                              f32 soundPitch) {
+        soundEventId = eventId;
+        category = soundCategory;
+        position = soundPosition;
+        volume = soundVolume;
+        pitch = soundPitch;
+    });
+
+    world->playSound(ResourceLocation("minecraft:test.sound"), sound::SoundCategory::Players, Vector3(1.0f, 2.0f, 3.0f), 0.75f, 1.25f);
+
+    ASSERT_TRUE(soundEventId.has_value());
+    ASSERT_TRUE(category.has_value());
+    ASSERT_TRUE(position.has_value());
+    ASSERT_TRUE(volume.has_value());
+    ASSERT_TRUE(pitch.has_value());
+
+    EXPECT_EQ(soundEventId->toString(), "minecraft:test.sound");
+    EXPECT_EQ(*category, sound::SoundCategory::Players);
+    EXPECT_FLOAT_EQ(position->x, 1.0f);
+    EXPECT_FLOAT_EQ(position->y, 2.0f);
+    EXPECT_FLOAT_EQ(position->z, 3.0f);
+    EXPECT_FLOAT_EQ(*volume, 0.75f);
+    EXPECT_FLOAT_EQ(*pitch, 1.25f);
 }

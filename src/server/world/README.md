@@ -34,11 +34,14 @@ src/server/world/
 - 光照计算与同步
 - 方块写入回调链（`onBlockAdded/onBlockRemoved`、`updatePostPlacement`、`neighborChanged`）
 - 方块变化回调（`setOnBlockChanged`，用于驱动方块更新同步）
+- 声音回调（`setOnPlaySound`，用于把实体声音转发到服务器广播层）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
 - 天气状态管理
 
 `ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlock`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
+
+`ServerWorld` 现在还会把实体声音统一挂到 `setOnPlaySound(...)`。`MinecraftServer` 在创建世界时会把这个回调接到广播逻辑上，因此 `LivingEntity`、`MobEntity` 和 `Player` 的声音事件都能走同一条路径。
 
 **关键成员**：
 ```cpp
@@ -528,6 +531,7 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 | `tests/server/world/spawn/NaturalSpawnerTest.cpp` | 密度追踪、密度管理、生成限制、生成常量、MobSpawnInfo 工厂 |
 | `tests/server/BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
 | `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
+| `tests/server/ServerWorldTest.cpp` | 服务端世界声音回调转发 |
 
 ### 测试覆盖范围
 

@@ -1,6 +1,7 @@
 #include "LivingEntity.hpp"
 #include "../../core/Constants.hpp"
 #include "../../util/math/MathUtils.hpp"
+#include "../../util/math/random/Random.hpp"
 #include "../../physics/PhysicsConstants.hpp"
 #include "../../physics/PhysicsEngine.hpp"
 #include <cmath>
@@ -98,7 +99,10 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount) {
         m_lastDamageSource = source.clone();
 
         if (m_health <= 0.0f) {
-            // 实际死亡将在 die() 中处理
+            playDeathSound();
+            die(source);
+        } else {
+            playHurtSound(source);
         }
 
         return true;
@@ -108,7 +112,7 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount) {
 }
 
 void LivingEntity::die(DamageSource& /*cause*/) {
-    if (isDead()) {
+    if (!isDead()) {
         return;  // 已经死亡，避免重复执行
     }
 
@@ -142,6 +146,12 @@ void LivingEntity::setAttributeBaseValue(const String& name, f64 value) {
     m_attributes.setBaseValue(name, value);
 }
 
+f32 LivingEntity::getSoundPitch() const {
+    math::Random random(static_cast<u64>(m_id) ^ (static_cast<u64>(m_ticksExisted) << 32));
+    const f32 basePitch = isChild() ? 1.5f : 1.0f;
+    return (random.nextFloat() - random.nextFloat()) * 0.2f + basePitch;
+}
+
 // ============================================================================
 // 装备
 // ============================================================================
@@ -168,6 +178,28 @@ void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack) {
 
 bool LivingEntity::isInvulnerableTo(DamageSource& /*source*/) const {
     return m_hurtTime > 0;
+}
+
+void LivingEntity::playHurtSound(DamageSource& source) {
+    auto soundEvent = getHurtSound(source);
+    if (soundEvent.has_value()) {
+        playSound(*soundEvent, getSoundVolume(), getSoundPitch());
+    }
+}
+
+void LivingEntity::playDeathSound() {
+    auto soundEvent = getDeathSound();
+    if (soundEvent.has_value()) {
+        playSound(*soundEvent, getSoundVolume(), getSoundPitch());
+    }
+}
+
+Optional<ResourceLocation> LivingEntity::getHurtSound(DamageSource& /*source*/) const {
+    return makeSoundEventId("hurt");
+}
+
+Optional<ResourceLocation> LivingEntity::getDeathSound() const {
+    return makeSoundEventId("death");
 }
 
 // ============================================================================

@@ -20,6 +20,8 @@
 #include "server/world/weather/WeatherManager.hpp"
 #include <memory>
 #include <functional>
+#include <stdexcept>
+#include <utility>
 
 namespace mc {
 
@@ -166,6 +168,22 @@ public:
     [[nodiscard]] f32 thunderStrength(f32 partialTick = 0.0f) const override;
     [[nodiscard]] bool canRainAt(const BlockPos& pos) const override;
 
+    // ========== 声音播放 ==========
+
+    void setOnPlaySound(std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> callback) {
+        if (m_onPlaySound) {
+            throw std::runtime_error("Sound callback already set");
+        }
+
+        m_onPlaySound = std::move(callback);
+    }
+
+    void playSound(const ResourceLocation& soundEventId,
+                   sound::SoundCategory category,
+                   const Vector3& position,
+                   f32 volume,
+                   f32 pitch) override;
+
     // ========== 物理引擎 ==========
 
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine.get(); }
@@ -302,6 +320,7 @@ private:
 
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;
+    std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
 };
 
 } // namespace server

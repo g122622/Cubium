@@ -7,6 +7,8 @@
 #include "../damage/CombatTracker.hpp"
 #include "../effect/EffectManager.hpp"
 #include "../../item/core/ItemStack.hpp"
+#include "../../resource/ResourceLocation.hpp"
+#include "../../sound/SoundCategory.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 
 #include <array>
@@ -106,6 +108,16 @@ public:
      * @param amount 治疗量
      */
     void heal(f32 amount);
+
+    /**
+     * @brief 获取声音音量
+     */
+    [[nodiscard]] virtual f32 getSoundVolume() const { return 1.0f; }
+
+    /**
+     * @brief 获取声音音调
+     */
+    [[nodiscard]] virtual f32 getSoundPitch() const;
 
     /**
      * @brief 受伤
@@ -440,6 +452,27 @@ protected:
      * @brief 更新动画参数
      */
     virtual void updateAnimation();
+
+    /**
+     * @brief 播放受伤声音
+     */
+    virtual void playHurtSound(DamageSource& source);
+
+    /**
+     * @brief 播放死亡声音
+     */
+    virtual void playDeathSound();
+
+    /**
+     * @brief 获取受伤声音
+     */
+    [[nodiscard]] virtual Optional<ResourceLocation> getHurtSound(DamageSource& source) const;
+
+    /**
+     * @brief 获取死亡声音
+     */
+    [[nodiscard]] virtual Optional<ResourceLocation> getDeathSound() const;
+
     // 生命值
     f32 m_health = 20.0f;
     f32 m_lastHealth = 20.0f;           // 上一tick的生命值

@@ -48,7 +48,7 @@ public:
     /**
      * @brief 是否为幼体
      */
-    [[nodiscard]] bool isChild() const { return m_growingAge < 0; }
+    [[nodiscard]] bool isChild() const override { return m_growingAge < 0; }
 
     /**
      * @brief 设置为幼体

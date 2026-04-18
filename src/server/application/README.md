@@ -42,6 +42,7 @@ src/server/application/
 - Holds all core managers as `unique_ptr` members
 - Implements `tick()` main loop framework
 - Provides packet dispatching and handling
+- Attaches the world sound callback after world creation so entity sounds can be broadcast through the server helpers
 
 **Protected Methods (for subclasses):**
 - `initializeCoreManagers()` - Creates PlayerManager, ConnectionManager, TimeManager, etc.
@@ -92,6 +93,7 @@ src/server/application/
 - Right-click crafting-table interaction is now wired in packet handling:
     - empty hand / non-block item opens `CraftingMenu`
 - Generic right-click block activation is routed to `BlockInteractionManager::handleBlockUse()` when placement path does not apply
+- The world sound callback is attached during initialization so local entity sounds reach the client through the same server broadcast path
 - World type routing:
     - `Default` -> `NoiseChunkGenerator + DimensionSettings::overworld()`
     - `Flat` -> `NoiseChunkGenerator + DimensionSettings::flat()`
@@ -135,6 +137,7 @@ struct IntegratedServerConfig {
 - Perfetto tracing integration
 - `ContainerManager` callbacks are forwarded to client protocol packets (`OpenContainer`, `CloseContainer`, `ContainerContent`)
 - Non-placement right-click interaction path now routes through `BlockInteractionManager::handleBlockUse()` for block activation
+- The world sound callback is attached during initialization so mob/player sounds are broadcast the same way as other server events
 
 **Configuration (`StandaloneServerParams`):**
 ```cpp
@@ -266,6 +269,14 @@ while (running) {
 // Shutdown
 server.stop();
 ```
+
+### 声音广播链路
+
+实体调用 `Entity::playSound(...)` 后，会先进入 `ServerWorld::playSound(...)`，再由 `MinecraftServer::broadcastSound(...)` 或其子类实现把数据包发给附近玩家。这个路径现在同时服务于 `LivingEntity` 的受伤/死亡声、`MobEntity` 的环境声，以及 `Player` 的受伤/死亡声。
+
+## 测试用例
+
+- [tests/server/ServerWorldTest.cpp](../../../tests/server/ServerWorldTest.cpp) 覆盖世界声音回调转发。
 
 ### Standalone Server (Multi-Player)
 

@@ -705,6 +705,15 @@ void MinecraftServer::sendKeepAliveToAll()
 void MinecraftServer::setWorld(std::unique_ptr<ServerWorld> world)
 {
     m_world = std::move(world);
+    if (m_world) {
+        m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
+                                       sound::SoundCategory category,
+                                       const Vector3& position,
+                                       f32 volume,
+                                       f32 pitch) {
+            broadcastSound(soundEventId, category, position, volume, pitch);
+        });
+    }
 }
 
 u64 MinecraftServer::currentTick() const

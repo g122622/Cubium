@@ -4,6 +4,8 @@
 #include "block/BlockPos.hpp"
 #include "../util/math/Vector3.hpp"
 #include "../util/AxisAlignedBB.hpp"
+#include "../resource/ResourceLocation.hpp"
+#include "../sound/SoundCategory.hpp"
 #include "tick/base/TickPriority.hpp"
 #include <vector>
 #include <memory>
@@ -202,6 +204,28 @@ public:
      * @brief 检查区块是否存在
      */
     [[nodiscard]] virtual bool hasChunk(ChunkCoord x, ChunkCoord z) const = 0;
+
+    // ========== 声音播放 ==========
+
+    /**
+     * @brief 播放声音
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param position 声音位置
+     * @param volume 音量倍率
+     * @param pitch 音调倍率
+     */
+    virtual void playSound(const ResourceLocation& soundEventId,
+                           sound::SoundCategory category,
+                           const Vector3& position,
+                           f32 volume,
+                           f32 pitch) {
+        (void)soundEventId;
+        (void)category;
+        (void)position;
+        (void)volume;
+        (void)pitch;
+    }
 
     // ========== 高度查询 ==========
 

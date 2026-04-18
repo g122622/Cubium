@@ -146,6 +146,17 @@ void ServerWorld::setConfig(const ServerWorldConfig& config)
     }
 }
 
+void ServerWorld::playSound(const ResourceLocation& soundEventId,
+                            sound::SoundCategory category,
+                            const Vector3& position,
+                            f32 volume,
+                            f32 pitch)
+{
+    if (m_onPlaySound) {
+        m_onPlaySound(soundEventId, category, position, volume, pitch);
+    }
+}
+
 void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)
 {
     m_chunkManager = std::move(manager);

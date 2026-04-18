@@ -7,6 +7,7 @@
 #include "world/chunk/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"
 #include <cmath>
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc {
 namespace {
@@ -40,6 +41,17 @@ protected:
 class GroundSupportWorld final : public IWorld {
 public:
     void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
+
+    struct SoundRecord {
+        ResourceLocation soundEventId;
+        sound::SoundCategory category;
+        Vector3 position;
+        f32 volume;
+        f32 pitch;
+    };
+
+    [[nodiscard]] bool hasSoundRecord() const { return m_lastSound.has_value(); }
+    [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
         if (m_supportEnabled && x == 0 && y == 0 && z == 0) {
@@ -89,8 +101,17 @@ public:
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
 
+    void playSound(const ResourceLocation& soundEventId,
+                   sound::SoundCategory category,
+                   const Vector3& position,
+                   f32 volume,
+                   f32 pitch) override {
+        m_lastSound = SoundRecord{soundEventId, category, position, volume, pitch};
+    }
+
 private:
     bool m_supportEnabled = true;
+    Optional<SoundRecord> m_lastSound;
 };
 
 // ============================================================================
@@ -116,6 +137,31 @@ TEST_F(PlayerMovementTest, SurvivalMode_NoFlyAbility) {
     m_player->setGameMode(GameMode::Survival);
     EXPECT_FALSE(m_player->abilities().canFly);
     EXPECT_FALSE(m_player->abilities().creativeMode);
+}
+
+TEST_F(PlayerMovementTest, DamagePlaysHurtSound) {
+    GroundSupportWorld world;
+    m_player->setWorld(&world);
+    m_player->setHealth(20.0f);
+
+    m_player->damage(5.0f);
+
+    ASSERT_TRUE(world.hasSoundRecord());
+    EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.player.hurt");
+    EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Players);
+    EXPECT_FLOAT_EQ(world.lastSound().volume, 1.0f);
+}
+
+TEST_F(PlayerMovementTest, LethalDamagePlaysDeathSound) {
+    GroundSupportWorld world;
+    m_player->setWorld(&world);
+    m_player->setHealth(5.0f);
+
+    m_player->damage(10.0f);
+
+    ASSERT_TRUE(world.hasSoundRecord());
+    EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.player.death");
+    EXPECT_EQ(world.lastSound().category, sound::SoundCategory::Players);
 }
 
 // ============================================================================

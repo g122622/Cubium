@@ -140,6 +140,13 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     worldConfig.seed = static_cast<u64>(std::stoll(m_settings.levelSeed.get()));
 
     m_world = std::make_unique<ServerWorld>(worldConfig);
+    m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
+                                   sound::SoundCategory category,
+                                   const Vector3& position,
+                                   f32 volume,
+                                   f32 pitch) {
+        broadcastSound(soundEventId, category, position, volume, pitch);
+    });
 
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());

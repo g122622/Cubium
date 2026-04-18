@@ -39,6 +39,15 @@
 - `Entity::getTypeId()` 优先返回显式注入的类型标识符；仅在未注入时才回退到 `LegacyEntityType` 映射。
 - 通过繁殖流程创建幼体时，`BreedGoal` 会继承父体的类型标识符，避免网络层出现 `minecraft:unknown`。
 
+## 声音事件链路
+
+- `IWorld::playSound(...)` 是世界级声音出口，实体不会直接碰网络层。
+- `Entity::playSound(...)` 负责把声音事件转发给当前世界，并自动附带实体位置和声音分类。
+- `LivingEntity` 统一提供受伤声、死亡声、音量和音高，减少各个生物重复实现。
+- `MobEntity` 统一提供环境声播放入口，`getTalkInterval()` 和 `playAmbientSound()` 负责控制闲置发声节奏。
+- `Player` 也走同一条声音链路，受伤和死亡会通过 `makeSoundEventId(...)` 发出对应事件。
+- `ServerWorld` 可以挂接声音回调，把事件继续交给 `MinecraftServer` 的广播接口。
+
 ## 继承层次
 
 ```
@@ -80,4 +89,10 @@ if (auto* mob = dynamic_cast<MobEntity*>(entity)) {
 - `core/Types.hpp` - 基础类型定义
 - `entity/attribute/` - 属性系统
 - `entity/damage/` - 伤害系统
+- `world/IWorld.hpp` - 世界级声音和位置查询入口
 - `entity/ai/` - AI系统
+
+## 测试用例
+
+- [tests/entity/LivingEntityTests.cpp](../../../../tests/entity/LivingEntityTests.cpp) 验证受伤、死亡和环境声发声链路。
+- [tests/common/entity/PlayerMovementTest.cpp](../../../../tests/common/entity/PlayerMovementTest.cpp) 验证玩家受伤和死亡时的声音事件。

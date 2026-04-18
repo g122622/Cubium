@@ -109,9 +109,15 @@ void Player::damage(f32 amount) {
 
     if (m_health <= 0.0f) {
         // 玩家死亡
+        if (auto soundEvent = makeSoundEventId("death")) {
+            playSound(*soundEvent, 1.0f, 1.0f);
+        }
         m_health = 0.0f;
         deathTime = 0;
     } else {
+        if (auto soundEvent = makeSoundEventId("hurt")) {
+            playSound(*soundEvent, 1.0f, 1.0f);
+        }
         hurtTime = 10;
     }
 }
@@ -944,7 +950,7 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
         totalResult.value()
     );
 
-    return player;
+    return std::move(player);
 }
 
 // ============================================================================

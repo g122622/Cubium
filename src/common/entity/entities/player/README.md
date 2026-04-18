@@ -35,6 +35,7 @@ src/common/entity/entities/player/
 - 执行物理更新、碰撞和跳跃
 - 在蹲下、游泳和睡眠姿态切换时，先检查目标碰撞箱能否容纳当前空间
 - 统计移动距离并生成步脚声/游泳声触发信号
+- 统一处理受伤和死亡声音，并通过 `Entity::playSound()` 走世界级声音出口
 - 序列化和反序列化玩家状态
 
 ### PlayerManager.hpp / PlayerManager.cpp
@@ -127,11 +128,13 @@ if (player->shouldPlayStepSound()) {
 - `updateMoveDistance()` 可以在同一帧里被多次调用，但每次都必须只统计“上次采样之后”的增量。
 - 视野晃动和脚步声共用同一套移动距离统计，统计语义错了会同时污染音效和镜头。
 - 从蹲下、游泳、睡眠切回站立时，不要直接强行改成 `Standing`；应保留 `Player::setSneaking()` / `Player::setSwimming()` / `Player::setSleeping()` 的碰撞检查结果，否则会在低顶方块下错误穿模。
+- 玩家受伤和死亡声音已经接入通用实体声音链路，不要再在服务器侧手写单独广播分支。
 
 ## 测试用例
 
 - [tests/common/entity/PlayerMovementTest.cpp](../../../../../tests/common/entity/PlayerMovementTest.cpp)
 - `UpdateMoveDistance_ResamplesCurrentPosition` 覆盖重复采样和坐标重置的回归场景
+- `DamagePlaysHurtSound` / `LethalDamagePlaysDeathSound` 覆盖玩家声音事件回调
 - [tests/entity/PlayerPoseCollisionTest.cpp](../../../../../tests/entity/PlayerPoseCollisionTest.cpp)
 - `SetSneakingFalseKeepsCrouchWhenCeilingBlocksStanding` 覆盖低顶空间下的姿态回退
 
