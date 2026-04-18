@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -21,6 +22,17 @@ namespace mc {
 // ============================================================================
 
 namespace {
+
+std::unique_ptr<bool[]> copyEmptinessMap(const std::vector<bool>& emptinessMap, size_t targetSize) {
+    auto rawMap = std::make_unique<bool[]>(targetSize);
+    std::fill_n(rawMap.get(), targetSize, false);
+
+    const size_t copySize = std::min(emptinessMap.size(), targetSize);
+    for (size_t i = 0; i < copySize; ++i) {
+        rawMap[i] = emptinessMap[i];
+    }
+    return rawMap;
+}
 
 /**
  * @brief 将 CollisionShape 转换为 VoxelShape
@@ -242,9 +254,8 @@ void StarLightEngine::blocksChangedInChunk(StarLightLightingProvider* lightAcces
         }
         std::vector<bool> result = handleEmptySectionChanges(lightAccess, chunk, emptinessChanges, false);
         if (!result.empty()) {
-            // 注意: std::vector<bool> 没有 data() 方法，需要转换
-            // 这里暂时使用空指针，子类应该管理自己的空映射存储
-            setEmptinessMap(chunk, nullptr);
+            auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+            setEmptinessMap(chunk, rawMap.get());
         }
     }
 
@@ -370,11 +381,7 @@ void StarLightEngine::forceHandleEmptySectionChanges(StarLightLightingProvider* 
     // 处理空段变化，但不使用 unlit 模式
     std::vector<bool> result = handleEmptySectionChanges(lightAccess, chunk, emptySections, false);
     if (!result.empty()) {
-        // 需要复制结果到持久化存储
-        auto rawMap = std::make_unique<bool[]>(result.size());
-        for (size_t i = 0; i < result.size(); ++i) {
-            rawMap[i] = result[i];
-        }
+        auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
         setEmptinessMap(chunk, rawMap.get());
     }
 
@@ -638,11 +645,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
 
         std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);
         if (!emptinessUpdate.empty()) {
-            std::vector<bool> copied = emptinessUpdate;
-            auto rawMap = std::make_unique<bool[]>(copied.size());
-            for (size_t i = 0; i < copied.size(); ++i) {
-                rawMap[i] = copied[i];
-            }
+            auto rawMap = copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
             setEmptinessMap(chunk, rawMap.get());
             setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
         }

@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
+#include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "common/world/lighting/IChunkLightProvider.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 
 #include <unordered_map>
 #include <vector>
@@ -74,6 +77,61 @@ protected:
 private:
     std::unordered_map<mc::i64, mc::i32> m_levels;
     std::vector<Visit> m_visits;
+};
+
+class TestChunkProvider final : public mc::StarLightLightingProvider {
+public:
+    void setChunk(mc::ChunkData* chunk) {
+        m_chunk = chunk;
+    }
+
+    mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) override {
+        if (m_chunk != nullptr && m_chunk->x() == x && m_chunk->z() == z) {
+            return m_chunk;
+        }
+        return nullptr;
+    }
+
+    const mc::IChunk* getChunkForLight(mc::ChunkCoord x, mc::ChunkCoord z) const override {
+        if (m_chunk != nullptr && m_chunk->x() == x && m_chunk->z() == z) {
+            return m_chunk;
+        }
+        return nullptr;
+    }
+
+    const mc::BlockState* getBlockStateForLight(const mc::BlockPos&) const override {
+        return nullptr;
+    }
+
+    mc::IWorld* getWorld() override {
+        return nullptr;
+    }
+
+    const mc::IWorld* getWorld() const override {
+        return nullptr;
+    }
+
+    void markLightChanged(mc::LightType, const mc::SectionPos&) override {
+    }
+
+    bool hasSkyLight() const override {
+        return false;
+    }
+
+    mc::i32 getMinBuildHeight() const override {
+        return 0;
+    }
+
+    mc::i32 getMaxBuildHeight() const override {
+        return 256;
+    }
+
+    mc::i32 getSectionCount() const override {
+        return mc::ChunkData::SECTIONS;
+    }
+
+private:
+    mc::ChunkData* m_chunk = nullptr;
 };
 
 /**
@@ -163,6 +221,31 @@ TEST(BaseLightEngineQueueTest, MixedQueuesWork) {
 
     EXPECT_EQ(graph.queuedUpdateSize(), 4);
     EXPECT_TRUE(graph.hasWork());
+}
+
+TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap) {
+    TestChunkProvider provider;
+    mc::ChunkData chunk(0, 0);
+    chunk.setStatus(mc::ChunkLoadStatus::Generated);
+    chunk.setBlockEmptinessMap(nullptr);
+    provider.setChunk(&chunk);
+
+    mc::BlockStarLightEngine engine(&provider);
+    const std::vector<mc::BlockPos> positions;
+    const std::vector<bool> changedSections(mc::ChunkData::SECTIONS, true);
+
+    engine.blocksChangedInChunk(&provider, 0, 0, positions, changedSections);
+
+    const bool* emptinessMap = chunk.getBlockEmptinessMap();
+    ASSERT_NE(emptinessMap, nullptr);
+
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::SECTIONS; ++sectionIndex) {
+        EXPECT_TRUE(emptinessMap[sectionIndex]);
+    }
+
+    for (mc::i32 sectionIndex = mc::ChunkData::SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+        EXPECT_FALSE(emptinessMap[sectionIndex]);
+    }
 }
 
 } // namespace

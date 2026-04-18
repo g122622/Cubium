@@ -343,6 +343,10 @@ enum class Operation : u8 { ... };
     - Tests must set up packed ice at the exact sampled neighborhood, not by replacing whole water layers in a way that shifts ocean-floor detection.
 - Avoid passing temporary `BlockState` copies to world write APIs.
     - Prefer canonical references returned by `state.with(...)` / `defaultState()`; `ServerWorld::setBlock` now canonicalizes by `stateId` as a safety net.
+- `ChunkData::setSkyEmptinessMap(const bool* map)` / `setBlockEmptinessMap(const bool* map)` 需要拿到完整的区块段空隙图。
+    - 不要再把 `std::vector<bool>` 的结果直接丢成 `nullptr`；如果上游拿到的是按段更新结果，必须先拷贝成连续的 `bool[]` 再写回区块。
+- `WorldLightManager::tick(...)` now relies on ordered budget consumption.
+    - Do not restore the previous half/half split unless the budget model is redesigned with matching tests.
 - `MatrixStack` call-order intuition can be misleading after PoseStack alignment.
     - In first-person rendering, apply transforms in vanilla order and rely on post-multiply semantics; avoid ad-hoc in-place row/column edits.
 - Do not share one first-person item mesh cache across both hands.

@@ -129,6 +129,35 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     EXPECT_GT(belowLight, static_cast<mc::u8>(0)) << "Light at (8, 69, 8) should be > 0";
 }
 
+TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing) {
+    ensureVanillaBlocksInitialized();
+
+    SkyLightChunkProvider provider(0, 256);
+    mc::ChunkData chunk(0, 0);
+    chunk.setStatus(mc::ChunkLoadStatus::Generated);
+    chunk.setSkyEmptinessMap(nullptr);
+    provider.setChunk(&chunk);
+
+    mc::SkyStarLightEngine engine(&provider);
+
+    const mc::SectionPos sectionPos(0, 4, 0);
+    engine.updateSectionStatus(sectionPos, false);
+    engine.setColumnEnabled(sectionPos.toColumnLong(), true);
+
+    engine.light(&provider, &chunk, false);
+
+    const bool* emptinessMap = chunk.getSkyEmptinessMap();
+    ASSERT_NE(emptinessMap, nullptr);
+
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::SECTIONS; ++sectionIndex) {
+        EXPECT_TRUE(emptinessMap[sectionIndex]);
+    }
+
+    for (mc::i32 sectionIndex = mc::ChunkData::SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+        EXPECT_FALSE(emptinessMap[sectionIndex]);
+    }
+}
+
 TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
     ensureVanillaBlocksInitialized();
 
