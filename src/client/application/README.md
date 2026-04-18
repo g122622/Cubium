@@ -54,6 +54,7 @@ src/client/application/
 | `m_networkClient` | `NetworkClient` | 网络客户端 |
 | `m_commandManager` | `ClientCommandManager` | 本地命令树与补全管理 |
 | `m_knownPlayerNames` | `unordered_map` | 聊天补全候选缓存 |
+| `m_targetInfoLayerId` | `size_t` | 准星目标信息覆盖层 |
 
 ### ClientApplication.cpp
 
@@ -108,7 +109,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 10. **世界初始化** - 初始化 ClientWorld 和网格构建系统（`MeshBuildScheduler` + `MeshWorkerPool`）
 11. **物理引擎** - 创建 PhysicsEngine
 12. **玩家实体** - 创建 Player 实体
-13. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层
+13. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层，包括准星目标信息覆盖层
 
 #### 主循环详解
 
@@ -130,6 +131,7 @@ sequenceDiagram
         Note over App: 玩家物理更新
         Note over App: 位置同步到服务端
         Note over App: 射线检测
+        Note over App: 准星目标信息解析
 
         App->>Renderer: render()
         Note over Renderer: 绘制天空、世界、实体、GUI
@@ -199,6 +201,9 @@ m_crosshairLayerId = m_kageroEngine->addLayer(std::move(crosshairWidget), 0);
 
 // 层 Z=10: HUD（生命值、饥饿值、快捷栏）
 m_hudLayerId = m_kageroEngine->addLayer(std::move(hudWidget), 10);
+
+// 层 Z=15: 准星目标信息覆盖层
+m_targetInfoLayerId = m_kageroEngine->addLayer(std::move(targetInfoWidget), 15);
 
 // 层 Z=20: 聊天框
 m_chatLayerId = m_kageroEngine->addLayer(std::move(chatWidget), 20);

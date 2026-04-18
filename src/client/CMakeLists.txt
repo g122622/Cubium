@@ -158,6 +158,9 @@ add_executable(minecraft-client
     ui/minecraft/widgets/ExperienceBar.cpp
     ui/minecraft/widgets/Viewport3DWidget.cpp
     ui/minecraft/widgets/HudWidget.cpp
+    ui/minecraft/targetinfo/TargetInfo.cpp
+    ui/minecraft/targetinfo/TargetInfoResolver.cpp
+    ui/minecraft/targetinfo/TargetInfoWidget.cpp
     ui/minecraft/widgets/ChatWidget.cpp
     ui/minecraft/widgets/ScreenStackWidget.cpp
     ui/minecraft/screens/Screen.cpp

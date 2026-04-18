@@ -285,10 +285,10 @@ void ServerChunkManager::startWorkers()
 
             // 将生成的实体数据存储到 ChunkPrimer 中
             for (auto& entityData : entities) {
-                spdlog::info("Chunk ({}, {}): Spawned entity {} at ({}, {}, {}) with reason {}",
-                             chunk.x(), chunk.z(),
-                             entityData.entityTypeId, entityData.x, entityData.y, entityData.z,
-                             entityData.spawnReason);
+                // spdlog::info("Chunk ({}, {}): Spawned entity {} at ({}, {}, {}) with reason {}",
+                //              chunk.x(), chunk.z(),
+                //              entityData.entityTypeId, entityData.x, entityData.y, entityData.z,
+                //              entityData.spawnReason);
                 chunk.addSpawnedEntity(std::move(entityData));
             }
         }

@@ -22,7 +22,7 @@ namespace {
 
 inline constexpr f64 MODEL_SCALE = 1.0f / 16.0f;
 inline constexpr f64 MODEL_MESH_SCALE = 1.0f;
-inline constexpr f64 MODEL_Y_OFFSET = 24.0f;
+inline constexpr f64 MODEL_Y_OFFSET = 1.5f; // 模型在实际渲染时的Y偏移量
 
 /**
  * @brief 规范化实体类型ID

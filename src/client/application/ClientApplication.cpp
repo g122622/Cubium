@@ -33,6 +33,8 @@
 #include "client/ui/screen/CraftingScreen.hpp"
 #include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
+#include "client/ui/minecraft/targetinfo/TargetInfoResolver.hpp"
+#include "client/ui/minecraft/targetinfo/TargetInfoWidget.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
@@ -884,6 +886,9 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 }
                 m_hudLayerId = m_kageroEngine->addLayer(std::move(hudWidget), 10);
 
+                auto targetInfoWidget = std::make_unique<ui::minecraft::targetinfo::TargetInfoWidget>();
+                m_targetInfoLayerId = m_kageroEngine->addLayer(std::move(targetInfoWidget), 15);
+
                 // 灞?Z=20: 鑱婂ぉ妗?
                 auto chatWidget = std::make_unique<ui::minecraft::widgets::ChatWidget>();
                 chatWidget->setFont(guiFont);
@@ -935,8 +940,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 }
                 m_debugScreenLayerId = m_kageroEngine->addLayer(std::move(debugWidget), 100);
 
-                spdlog::info("KageroEngine layers configured: crosshair={}, hud={}, chat={}, screenStack={}, debug={}",
-                             m_crosshairLayerId, m_hudLayerId, m_chatLayerId, m_screenStackLayerId, m_debugScreenLayerId);
+                spdlog::info("KageroEngine layers configured: crosshair={}, hud={}, targetInfo={}, chat={}, screenStack={}, debug={}",
+                             m_crosshairLayerId, m_hudLayerId, m_targetInfoLayerId, m_chatLayerId, m_screenStackLayerId, m_debugScreenLayerId);
             }
         }
 
@@ -1405,6 +1410,8 @@ void ClientApplication::update(f32 deltaTime)
     // 鏇存柊璋冭瘯灞忓箷鏁版嵁
     auto* debugWidget = m_kageroEngine ?
         static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId)) : nullptr;
+    auto* targetInfoWidget = m_kageroEngine ?
+        static_cast<ui::minecraft::targetinfo::TargetInfoWidget*>(m_kageroEngine->getLayer(m_targetInfoLayerId)) : nullptr;
 
     // 鎵ц灏勭嚎妫€娴?
     if (m_player && m_mouseCaptured) {
@@ -1424,6 +1431,24 @@ void ClientApplication::update(f32 deltaTime)
         ClientWorldBlockReader blockReader(m_world);
         m_raycastResult = mc::raycastBlocks(raycastContext, blockReader);
 
+        if (targetInfoWidget) {
+            targetInfoWidget->setTargetInfo(
+                ui::minecraft::targetinfo::TargetInfoResolver::resolve(
+                    origin,
+                    direction,
+                    m_world,
+                    m_world.entityManager(),
+                    m_raycastResult,
+                    5.0f,
+                    [this](EntityId entityId) -> String {
+                        const auto it = m_knownPlayerNames.find(static_cast<PlayerId>(entityId));
+                        if (it == m_knownPlayerNames.end()) {
+                            return {};
+                        }
+                        return it->second;
+                    }));
+        }
+
         // 鏇存柊璋冭瘯灞忓箷鐨勭洰鏍囨柟鍧?
         if (debugWidget) {
             debugWidget->setTargetBlock(&m_raycastResult);
@@ -1432,6 +1457,9 @@ void ClientApplication::update(f32 deltaTime)
         // 娌℃湁鐜╁鏃舵竻闄ょ洰鏍囨柟鍧?
         if (debugWidget) {
             debugWidget->setTargetBlock(nullptr);
+        }
+        if (targetInfoWidget) {
+            targetInfoWidget->setTargetInfo(ui::minecraft::targetinfo::TargetInfoSnapshot::none());
         }
     }
 

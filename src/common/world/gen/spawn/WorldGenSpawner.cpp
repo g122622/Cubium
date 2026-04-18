@@ -307,7 +307,12 @@ i32 WorldGenSpawner::getSpawnHeight(
             }
         }
         return -1;  // 没找到岩浆
+    }
+    // 无限制
+    else if (placementType == world::spawn::PlacementType::NoRestrictions) {
+        // do nothing 不拦截
     } else {
+        // 类型未知，报错
         MC_ASSERT_RELEASE_MSG(false, "Unsupported placement type");
     }
 

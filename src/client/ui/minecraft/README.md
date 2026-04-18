@@ -19,6 +19,11 @@ minecraft/
 │   ├── InventoryScreen.hpp/cpp    # 物品栏界面
 │   ├── ContainerScreen.hpp/cpp    # 容器界面
 │   └── DebugScreenWidget.hpp/cpp  # F3 调试屏幕
+├── targetinfo/                    # 准星目标信息覆盖层
+│   ├── TargetInfo.hpp/cpp          # 目标快照与格式化辅助
+│   ├── TargetInfoResolver.hpp/cpp  # 方块/实体目标解析
+│   ├── TargetInfoWidget.hpp/cpp    # HUD 覆盖层渲染
+│   └── README.md                   # 目标信息模块文档
 ├── widgets/                       # UI 控件
 │   ├── HudWidget.hpp/cpp          # HUD 主控件（生命值、饥饿值等）
 │   ├── HotbarWidget.hpp/cpp       # 快捷栏
@@ -69,6 +74,7 @@ graph TB
 
         subgraph "Widget 系统"
             HUD[HudWidget]
+            TINFO[TargetInfoWidget]
             HW[HotbarWidget]
             HBW[HealthBarWidget]
             HGW[HungerBarWidget]
@@ -88,6 +94,7 @@ graph TB
 
     KW --> Screen
     KW --> HUD
+    KW --> TINFO
     Screen --> MMS
     Screen --> OPS
     Screen --> PS
@@ -214,6 +221,16 @@ hud.paint(ctx);
 - 盔甲值图标
 - 饥饿值图标
 - 经验条和等级数字
+
+#### TargetInfoWidget
+
+准星目标提示覆盖层，负责显示当前指向的方块或实体信息。它本身不做射线检测，只负责把 `TargetInfoSnapshot` 画成 HUD 风格的 tooltip。
+
+典型职责：
+
+- 顶部居中绘制当前目标
+- 用高亮色条区分方块、实体、物品实体等不同目标
+- 保持渲染逻辑与目标解析逻辑分离
 
 #### ChatWidget
 
@@ -593,12 +610,14 @@ void onMouseEvent(int x, int y) {
 | `InventoryScreen.hpp/cpp` | 物品栏 | 带边框的深色背景 |
 | `ContainerScreen.hpp/cpp` | 容器界面 | 容器风格的背景 |
 | `DebugScreenWidget.hpp/cpp` | F3 调试屏幕 | 左右面板、FPS 统计、坐标显示、系统信息 |
+| `targetinfo/TargetInfo*.hpp/cpp` | 准星目标覆盖层 | 方块/实体目标解析、tooltip 渲染 |
 
 ### widgets/ 目录
 
 | 文件 | 职责 | 主要内容 |
 |------|------|----------|
 | `HudWidget.hpp/cpp` | HUD 主控件 | 整合快捷栏、生命值、饥饿值、经验条渲染 |
+| `TargetInfoWidget.hpp/cpp` | 目标信息覆盖层 | 顶部居中显示当前准星指向的方块或实体 |
 | `HotbarWidget.hpp/cpp` | 快捷栏 | 简单边框绘制（实际渲染在 HudWidget 中） |
 | `HealthBarWidget.hpp/cpp` | 生命值条 | 红色渐变条 |
 | `HungerBarWidget.hpp/cpp` | 饥饿值条 | 橙色渐变条 |

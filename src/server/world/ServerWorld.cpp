@@ -892,9 +892,12 @@ EntityId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     Entity* addedEntity = m_entityManager.getEntity(id);
     if (addedEntity) {
         m_entityTracker.trackEntity(addedEntity);
+    } else {
+        // 理论上不应该发生，addEntity 成功后应该能通过 getEntity 获取到实体。这里做个断言以便排查潜在问题。
+        MC_ASSERT_RELEASE(false);
     }
 
-    spdlog::debug("Spawned entity with ID {}", id);
+    // spdlog::debug("Spawned entity with ID {}", id);
     return id;
 }
 
@@ -902,7 +905,9 @@ std::unique_ptr<Entity> ServerWorld::removeEntity(EntityId id)
 {
     auto entity = m_entityManager.removeEntity(id);
     if (entity) {
-        spdlog::debug("Removed entity with ID {}", id);
+        // spdlog::debug("Removed entity with ID {}", id);
+    } else {
+        spdlog::error("Attempted to remove non-existent entity with ID {}", id);
     }
     return entity;
 }

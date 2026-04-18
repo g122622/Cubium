@@ -144,6 +144,10 @@ ui/
 │   │   ├── DebugScreenWidget.cpp
 │   │   ├── CraftingScreen.hpp        # 合成屏幕
 │   │   └── CraftingScreen.cpp
+│   ├── targetinfo/                   # 准星目标信息覆盖层
+│   │   ├── TargetInfo.hpp            # 目标快照和格式化辅助
+│   │   ├── TargetInfoResolver.hpp    # 方块/实体命中解析
+│   │   └── TargetInfoWidget.hpp      # HUD 目标提示 Widget
 │   ├── templates/                    # UI模板
 │   │   ├── main_menu.tpl             # 主菜单模板
 │   │   ├── pause_menu.tpl            # 暂停菜单模板

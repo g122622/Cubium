@@ -986,9 +986,9 @@ void NetworkClient::handleSpawnMob(network::PacketDeserializer& deser) {
         return;
     }
 
-    spdlog::info("Received SpawnMob: id={}, type={}, pos=({:.1f}, {:.1f}, {:.1f}), metadata size: {}",
-                packet.entityId(), packet.entityTypeId().c_str(),
-                packet.x(), packet.y(), packet.z(), packet.metadata().size());
+    // spdlog::info("Received SpawnMob: id={}, type={}, pos=({:.1f}, {:.1f}, {:.1f}), metadata size: {}",
+    //             packet.entityId(), packet.entityTypeId().c_str(),
+    //             packet.x(), packet.y(), packet.z(), packet.metadata().size());
 
     if (m_callbacks.onSpawnMob) {
         m_callbacks.onSpawnMob(
