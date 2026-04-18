@@ -74,6 +74,77 @@ std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/) {
     return baby;
 }
 
+void WolfEntity::tick() {
+    TameableEntity::tick();
+
+    if (!isAlive()) {
+        return;
+    }
+
+    const f32 dx = x() - prevX();
+    const f32 dz = z() - prevZ();
+    const f32 horizontalDistance = std::sqrt(dx * dx + dz * dz);
+
+    if (horizontalDistance > 0.0f) {
+        m_stepSoundDistance += horizontalDistance * 0.6f;
+        if (m_stepSoundDistance > m_nextStepSoundDistance && onGround() && !isInWater()) {
+            m_nextStepSoundDistance = std::floor(m_stepSoundDistance) + 1.0f;
+            playStepSound();
+        }
+    }
+
+    const bool inWater = isInWater();
+    if (m_wasInWater && !inWater && onGround()) {
+        playShakingSound();
+    }
+    m_wasInWater = inWater;
+}
+
+Optional<ResourceLocation> WolfEntity::getAmbientSound() const {
+    math::Random random = getRandom();
+
+    if (isAngry()) {
+        return makeSoundEventId("growl");
+    }
+
+    if (random.nextInt(3) == 0) {
+        if (isTamed() && health() < 10.0f) {
+            return makeSoundEventId("whine");
+        }
+
+        return makeSoundEventId("pant");
+    }
+
+    return makeSoundEventId("ambient");
+}
+
+Optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& /*source*/) const {
+    return makeSoundEventId("hurt");
+}
+
+Optional<ResourceLocation> WolfEntity::getDeathSound() const {
+    return makeSoundEventId("death");
+}
+
+void WolfEntity::playStepSound() {
+    auto soundEvent = makeSoundEventId("step");
+    if (!soundEvent.has_value()) {
+        return;
+    }
+
+    playSound(*soundEvent, 0.15f, 1.0f);
+}
+
+void WolfEntity::playShakingSound() {
+    auto soundEvent = makeSoundEventId("shake");
+    if (!soundEvent.has_value()) {
+        return;
+    }
+
+    math::Random random = getRandom();
+    playSound(*soundEvent, getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
+}
+
 f32 WolfEntity::getTailAngle() const {
     // 根据生命值计算尾巴角度
     // 参考 MC 1.16.5 WolfEntity.getTailAngle()

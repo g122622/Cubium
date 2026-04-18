@@ -67,6 +67,40 @@ std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& /*partner*/)
     return nullptr;
 }
 
+void RabbitEntity::setJumping(bool jumping) {
+    LivingEntity::setJumping(jumping);
+
+    if (!jumping) {
+        return;
+    }
+
+    auto soundEvent = makeSoundEventId("jump");
+    if (!soundEvent.has_value()) {
+        return;
+    }
+
+    math::Random random = getRandom();
+    playSound(*soundEvent, getSoundVolume(), ((random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f) * 0.8f);
+}
+
+sound::SoundCategory RabbitEntity::getSoundCategory() const {
+    return isKillerRabbit() ? sound::SoundCategory::Hostile : sound::SoundCategory::Neutral;
+}
+
+void RabbitEntity::playAttackSound(LivingEntity& /*target*/) {
+    if (!isKillerRabbit()) {
+        return;
+    }
+
+    auto soundEvent = makeSoundEventId("attack");
+    if (!soundEvent.has_value()) {
+        return;
+    }
+
+    math::Random random = getRandom();
+    playSound(*soundEvent, 1.0f, (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
+}
+
 void RabbitEntity::registerGoals() {
     // 调用父类方法注册基础动物 AI
     // AnimalEntity 已经注册了：SwimGoal(0), PanicGoal(1), BreedGoal(2),

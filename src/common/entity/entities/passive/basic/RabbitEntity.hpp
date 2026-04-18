@@ -99,6 +99,21 @@ public:
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
+    /**
+     * @brief 设置跳跃状态
+     */
+    void setJumping(bool jumping) override;
+
+    /**
+     * @brief 获取声音类别
+     */
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override;
+
+    /**
+     * @brief 播放攻击声音
+     */
+    void playAttackSound(LivingEntity& target) override;
+
     // ========== 移动 ==========
 
     /**

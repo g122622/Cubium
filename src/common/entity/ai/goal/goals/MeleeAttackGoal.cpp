@@ -115,6 +115,9 @@ void MeleeAttackGoal::attackTarget(LivingEntity* target) {
     // 应用伤害
     target->hurt(damageSource, damage);
 
+    // 触发攻击声音（由具体生物决定是否播放）
+    m_creature->playAttackSound(*target);
+
     // 应用击退
     f32 knockbackStrength = static_cast<f32>(
         m_creature->getAttributeValue(Attributes::ATTACK_KNOCKBACK, 1.0));

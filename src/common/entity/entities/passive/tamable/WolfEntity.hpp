@@ -81,6 +81,11 @@ public:
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
+    /**
+     * @brief 刻更新
+     */
+    void tick() override;
+
     // ========== 愤怒系统 ==========
 
     /**
@@ -149,6 +154,36 @@ protected:
     // ========== 驯服回调 ==========
     void onTamed(bool tamed) override;
 
+    /**
+     * @brief 获取环境声音
+     */
+    [[nodiscard]] Optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤声音
+     */
+    [[nodiscard]] Optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     */
+    [[nodiscard]] Optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 获取声音音量
+     */
+    [[nodiscard]] f32 getSoundVolume() const override { return 0.4f; }
+
+    /**
+     * @brief 播放脚步声音
+     */
+    void playStepSound();
+
+    /**
+     * @brief 播放甩水声音
+     */
+    void playShakingSound();
+
 private:
     // 兴趣状态（乞求食物）
     bool m_interested = false;
@@ -159,6 +194,11 @@ private:
     // 常量
     static constexpr f32 TAIL_ANGLE_HEALTHY = 0.698f;    // 健康时尾巴角度（弧度）
     static constexpr f32 TAIL_ANGLE_UNHEALTHY = -0.175f; // 不健康时尾巴角度（弧度）
+
+    // 声音状态
+    bool m_wasInWater = false;
+    f32 m_stepSoundDistance = 0.0f;
+    f32 m_nextStepSoundDistance = 1.0f;
 };
 
 } // namespace mc

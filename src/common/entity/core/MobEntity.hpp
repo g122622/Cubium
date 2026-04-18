@@ -80,6 +80,11 @@ public:
      */
     void playAmbientSound();
 
+    /**
+     * @brief 播放近战攻击声音
+     */
+    virtual void playAttackSound(LivingEntity& target);
+
     // ========== 控制器 ==========
 
     /**

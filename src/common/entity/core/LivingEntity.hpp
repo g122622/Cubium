@@ -281,7 +281,7 @@ public:
     /**
      * @brief 设置跳跃状态
      */
-    void setJumping(bool jumping) { m_isJumping = jumping; }
+    virtual void setJumping(bool jumping) { m_isJumping = jumping; }
 
     /**
      * @brief 执行跳跃

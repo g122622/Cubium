@@ -66,6 +66,7 @@ add_executable(mc_tests
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
     entity/LivingEntityTests.cpp
+    entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp
     entity/BrainScheduleTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp

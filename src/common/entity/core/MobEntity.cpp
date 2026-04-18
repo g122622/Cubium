@@ -84,6 +84,10 @@ void MobEntity::playAmbientSound() {
     }
 }
 
+void MobEntity::playAttackSound(LivingEntity& target) {
+    (void)target;
+}
+
 void MobEntity::lookAt(const Entity& target, f32 deltaYaw, f32 deltaPitch) {
     lookAt(target.x(), target.y() + target.eyeHeight(), target.z(), deltaYaw, deltaPitch);
 }
