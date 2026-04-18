@@ -310,6 +310,9 @@ void Entity::baseTick() {
 
     // 更新环境状态
     updateEnvironmentState();
+
+    // 重新探测地面状态，避免实体在脚下方块被移除后仍然沿用旧的 onGround 缓存。
+    checkOnGround();
 }
 
 bool Entity::tickPortal() {
@@ -480,17 +483,24 @@ const PhysicsEngine* Entity::physicsEngine() const {
 }
 
 void Entity::checkOnGround() {
-    if (!m_world) {
-        m_onGround = false;
+    const AxisAlignedBB box = boundingBox();
+
+    if (m_world) {
+        // 检测实体下方是否有方块
+        AxisAlignedBB groundProbe = box;
+        groundProbe.minY -= 0.1f;  // 向下延伸一点
+        groundProbe.maxY = groundProbe.minY + 0.1f;  // 扁平的检测区域
+
+        m_onGround = m_world->hasBlockCollision(groundProbe);
         return;
     }
 
-    // 检测实体下方是否有方块
-    AxisAlignedBB box = boundingBox();
-    box.minY -= 0.1f;  // 向下延伸一点
-    box.maxY = box.minY + 0.1f;  // 扁平的检测区域
+    if (m_physicsEngine) {
+        m_onGround = m_physicsEngine->isOnGround(box);
+        return;
+    }
 
-    m_onGround = m_world->hasBlockCollision(box);
+    m_onGround = false;
 }
 
 void Entity::applyPhysics(f32 deltaTime) {

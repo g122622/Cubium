@@ -26,6 +26,7 @@ void FallingBlockEntity::tick() {
 
     // 移动
     move(vel.x, vel.y, vel.z);
+    checkOnGround();
 
     // 减速
     vel.x *= 0.98f;
@@ -93,6 +94,7 @@ void TNTEntity::tick() {
 
     // 移动
     move(vel.x, vel.y, vel.z);
+    checkOnGround();
 
     // 减速
     vel.x *= 0.98f;

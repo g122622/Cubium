@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/player/GameModeUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include "physics/PhysicsEngine.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkData.hpp"
+#include "world/fluid/Fluid.hpp"
 #include <cmath>
 
 namespace mc {
@@ -33,6 +35,62 @@ protected:
     }
 
     std::unique_ptr<Player> m_player;
+};
+
+class GroundSupportWorld final : public IWorld {
+public:
+    void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        if (m_supportEnabled && x == 0 && y == 0 && z == 0) {
+            return &VanillaBlocks::STONE->defaultState();
+        }
+
+        return nullptr;
+    }
+
+    bool setBlock(i32, i32, i32, const BlockState*) override { return false; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return fluid::Fluid::getFluidState(0); }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
+        if (!m_supportEnabled) {
+            return false;
+        }
+
+        return box.maxX > 0.0f && box.minX < 1.0f &&
+               box.maxY > 0.0f && box.minY < 1.0f &&
+               box.maxZ > 0.0f && box.minZ < 1.0f;
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override {
+        if (!hasBlockCollision(box)) {
+            return {};
+        }
+
+        return {AxisAlignedBB(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f)};
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] DimensionId dimension() const override { return 0; }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+private:
+    bool m_supportEnabled = true;
 };
 
 // ============================================================================
@@ -321,6 +379,29 @@ TEST_F(PlayerMovementTest, Jump_WhileFlying_UsesFlyUpInstead) {
     // 飞行上升速度 = flySpeed * 3.0 = 0.15
     // 而不是普通跳跃速度 0.42
     EXPECT_NEAR(m_player->velocity().y, 0.15f, 0.001f);
+}
+
+TEST_F(PlayerMovementTest, FallingAfterSupportRemovalRefreshesGroundState) {
+    GroundSupportWorld world;
+    m_player->setWorld(&world);
+    m_player->setGameMode(GameMode::Survival);
+    m_player->setPosition(0.3f, 1.0f, 0.3f);
+    m_player->setVelocity(Vector3(0.0f, 0.0f, 0.0f));
+
+    world.setSupportEnabled(true);
+    m_player->updatePhysics();
+    ASSERT_TRUE(m_player->isOnGround());
+
+    f32 supportedY = m_player->y();
+
+    world.setSupportEnabled(false);
+    m_player->handleMovementInput(0.0f, 0.0f, true, false);
+    EXPECT_NEAR(m_player->velocity().y, 0.0f, 0.001f);
+
+    m_player->updatePhysics();
+
+    EXPECT_LT(m_player->y(), supportedY);
+    EXPECT_FALSE(m_player->isOnGround());
 }
 
 // ============================================================================

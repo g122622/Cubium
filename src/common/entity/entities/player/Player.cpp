@@ -349,6 +349,7 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
 
     // 先刷新环境状态，保证水中/岩浆中的输入分支基于当前世界状态。
     updateEnvironmentState();
+    checkOnGround();
 
     // 水中移动使用特殊物理
     // 参考 MC LivingEntity.travel() 水中分支
@@ -663,6 +664,7 @@ void Player::updatePhysics() {
 
     // 刷新环境状态，确保后续判断使用当前位置。
     updateEnvironmentState();
+    checkOnGround();
 
     // 水中和岩浆中的物理在 handleWaterMovement/handleLavaMovement 中已处理
     // 这里只处理地面和空中的物理
