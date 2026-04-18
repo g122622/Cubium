@@ -18,6 +18,7 @@
 #include "../resource/ResourceManager.hpp"
 #include "../resource/BlockModelCache.hpp"
 #include "../renderer/trident/core/TridentEngine.hpp"
+#include "../ui/GuiScale.hpp"
 #include "../renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "../renderer/trident/gui/GuiTextureManager.hpp"
 #include "../world/ClientWorld.hpp"
@@ -192,6 +193,11 @@ private:
     // 重新加载资源
     void reloadResources();
 
+    /**
+     * @brief 根据当前窗口尺寸和 GUI 缩放设置刷新逻辑 UI 尺寸
+     */
+    void applyGuiScale();
+
     ClientSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
     std::filesystem::path m_settingsPath;
@@ -235,6 +241,7 @@ private:
     // Kagero UI引擎
     std::unique_ptr<ui::kagero::KageroEngine> m_kageroEngine;
     std::unique_ptr<ui::TridentCanvas> m_canvas;
+    ui::GuiScaleState m_guiScaleState{1, 0, 0};
 
     // Kagero 层 ID
     size_t m_crosshairLayerId = 0;

@@ -786,7 +786,10 @@ Result<void> TridentEngine::render() {
 
     // 7. 渲染 GUI
     if (m_guiRendererInitialized && m_guiRendererPtr) {
-        m_guiRendererPtr->beginFrame(static_cast<f64>(m_windowWidth), static_cast<f64>(m_windowHeight));
+        const f64 guiScale = std::max(m_guiScaleFactor, 1.0);
+        m_guiRendererPtr->setFontScale(guiScale);
+        m_guiRendererPtr->beginFrame(static_cast<f64>(m_windowWidth) / guiScale,
+                                     static_cast<f64>(m_windowHeight) / guiScale);
         if (m_guiRenderCallback) {
             m_guiRenderCallback();
         }
@@ -822,6 +825,14 @@ Result<void> TridentEngine::onResize(u32 width, u32 height) {
     return recreateSwapchain();
 }
 
+void TridentEngine::setGuiScaleFactor(f64 scaleFactor) {
+    m_guiScaleFactor = std::max(scaleFactor, 1.0);
+
+    if (m_guiRendererInitialized && m_guiRendererPtr) {
+        m_guiRendererPtr->setFontScale(m_guiScaleFactor);
+    }
+}
+
 void TridentEngine::setCamera(const api::ICamera* camera) {
     m_frameContext.camera = camera;
 
@@ -850,7 +861,7 @@ Result<std::unique_ptr<api::IVertexBuffer>> TridentEngine::createVertexBuffer(u6
         return result.error();
     }
     std::unique_ptr<api::IVertexBuffer> vertexBuffer = std::move(buffer);
-    return vertexBuffer;
+    return std::move(vertexBuffer);
 }
 
 Result<std::unique_ptr<api::IIndexBuffer>> TridentEngine::createIndexBuffer(u64 size, api::IndexType type) {
@@ -860,7 +871,7 @@ Result<std::unique_ptr<api::IIndexBuffer>> TridentEngine::createIndexBuffer(u64 
         return result.error();
     }
     std::unique_ptr<api::IIndexBuffer> indexBuffer = std::move(buffer);
-    return indexBuffer;
+    return std::move(indexBuffer);
 }
 
 Result<std::unique_ptr<api::IUniformBuffer>> TridentEngine::createUniformBuffer(u64 size, u32 frameCount) {
@@ -870,7 +881,7 @@ Result<std::unique_ptr<api::IUniformBuffer>> TridentEngine::createUniformBuffer(
         return result.error();
     }
     std::unique_ptr<api::IUniformBuffer> uniformBuffer = std::move(buffer);
-    return uniformBuffer;
+    return std::move(uniformBuffer);
 }
 
 Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::TextureDesc& desc) {
@@ -880,7 +891,7 @@ Result<std::unique_ptr<api::ITexture>> TridentEngine::createTexture(const api::T
         return result.error();
     }
     std::unique_ptr<api::ITexture> apiTexture = std::move(texture);
-    return apiTexture;
+    return std::move(apiTexture);
 }
 
 Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u32 width, u32 height, u32 tileSize) {
@@ -890,7 +901,7 @@ Result<std::unique_ptr<api::ITextureAtlas>> TridentEngine::createTextureAtlas(u3
         return result.error();
     }
     std::unique_ptr<api::ITextureAtlas> apiAtlas = std::move(atlas);
-    return apiAtlas;
+    return std::move(apiAtlas);
 }
 
 // ============================================================================

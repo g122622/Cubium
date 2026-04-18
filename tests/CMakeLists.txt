@@ -198,6 +198,8 @@ add_executable(mc_tests
     client/ui/kagero/widget/ListWidgetTest.cpp
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
     client/ui/kagero/widget/SlotWidgetTest.cpp
+    ${CMAKE_SOURCE_DIR}/src/client/ui/GuiScale.cpp
+    client/ui/GuiScaleTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp
     # 鑷姩璺宠穬娴嬭瘯

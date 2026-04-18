@@ -574,6 +574,21 @@ public:
     [[nodiscard]] Result<void> updateTextureAtlas(const AtlasBuildResult& atlasResult);
 
     /**
+     * @brief 设置 GUI 缩放倍率
+     *
+     * GUI 渲染会使用该倍率把窗口尺寸换算为逻辑 GUI 尺寸。
+     * 这会影响 HUD、容器界面和所有基于 GUIRenderer 的文本测量。
+     *
+     * @param scaleFactor GUI 缩放倍率，必须大于 0
+     */
+    void setGuiScaleFactor(f64 scaleFactor);
+
+    /**
+     * @brief 获取 GUI 缩放倍率
+     */
+    [[nodiscard]] f64 guiScaleFactor() const { return m_guiScaleFactor; }
+
+    /**
      * @brief 获取纹理区域
      */
     [[nodiscard]] const TextureRegion* getTextureRegion(const ResourceLocation& location) const;
@@ -619,6 +634,7 @@ private:
     // 窗口尺寸
     u32 m_windowWidth = 0;
     u32 m_windowHeight = 0;
+    f64 m_guiScaleFactor = 1.0f;
 
     // 状态
     bool m_initialized = false;

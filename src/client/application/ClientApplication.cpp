@@ -28,6 +28,7 @@
 #include "client/resource/ResourceManager.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
 #include "client/ui/Font.hpp"
+#include "client/ui/GuiScale.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/ui/screen/CraftingScreen.hpp"
 #include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
@@ -347,15 +348,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             if (result.failed()) {
                 spdlog::error("Failed to handle resize: {}", result.error().toString());
             }
-            // 鏇存柊鐩告満瀹介珮姣?
             app->m_camera.setAspectRatio(static_cast<f32>(width) / static_cast<f32>(height));
-            // 鏇存柊 KageroEngine 灏哄
-            if (app->m_kageroEngine) {
-                app->m_kageroEngine->resize(width, height);
-            }
-            if (app->m_canvas) {
-                app->m_canvas->resize(width, height);
-            }
+            app->applyGuiScale();
         }
     }, this);
 
@@ -912,9 +906,11 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 // 灞?Z=100: 璋冭瘯灞忓箷
                 auto debugWidget = std::make_unique<ui::minecraft::DebugScreenWidget>();
                 debugWidget->setTextWidthCallback([this](const std::string& text) -> f32 {
-                    return static_cast<f32>(m_renderer->guiRenderer().getTextWidth(text));
+                    const f64 guiScale = static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1));
+                    return static_cast<f32>(m_renderer->guiRenderer().getTextWidth(text) / guiScale);
                 });
-                debugWidget->setLineHeight(static_cast<i32>(m_renderer->guiRenderer().getFontHeight()) + 2);
+                debugWidget->setLineHeight(
+                    static_cast<i32>(m_renderer->guiRenderer().getFontHeight() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1))) + 2);
                 debugWidget->setCamera(&m_camera);
                 debugWidget->setWorld(&m_world);
                 debugWidget->setEntityManager(&m_world.entityManager());
@@ -943,6 +939,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                              m_crosshairLayerId, m_hudLayerId, m_chatLayerId, m_screenStackLayerId, m_debugScreenLayerId);
             }
         }
+
+        applyGuiScale();
 
         // 璁剧疆瀛楃杈撳叆鍥炶皟 - 閫氳繃 KageroEngine 鍒嗗彂
         m_input.setCharCallback([this](u32 codepoint) {
@@ -1115,28 +1113,31 @@ void ClientApplication::handleEvents()
     auto* screenStack = m_kageroEngine ?
         static_cast<ui::minecraft::widgets::ScreenStackWidget*>(m_kageroEngine->getLayer(m_screenStackLayerId)) : nullptr;
     if (screenStack && screenStack->hasScreen()) {
+        const i32 guiMouseX = static_cast<i32>(m_input.mouseX() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)));
+        const i32 guiMouseY = static_cast<i32>(m_input.mouseY() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)));
+
         if (m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
             m_kageroEngine->handleClick(
-                static_cast<i32>(m_input.mouseX()),
-                static_cast<i32>(m_input.mouseY()),
+                guiMouseX,
+                guiMouseY,
                 GLFW_MOUSE_BUTTON_LEFT);
         }
         if (m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
             m_kageroEngine->handleClick(
-                static_cast<i32>(m_input.mouseX()),
-                static_cast<i32>(m_input.mouseY()),
+                guiMouseX,
+                guiMouseY,
                 GLFW_MOUSE_BUTTON_RIGHT);
         }
         if (m_input.isMouseButtonJustReleased(GLFW_MOUSE_BUTTON_LEFT)) {
             m_kageroEngine->handleRelease(
-                static_cast<i32>(m_input.mouseX()),
-                static_cast<i32>(m_input.mouseY()),
+                guiMouseX,
+                guiMouseY,
                 GLFW_MOUSE_BUTTON_LEFT);
         }
         if (m_input.isMouseButtonJustReleased(GLFW_MOUSE_BUTTON_RIGHT)) {
             m_kageroEngine->handleRelease(
-                static_cast<i32>(m_input.mouseX()),
-                static_cast<i32>(m_input.mouseY()),
+                guiMouseX,
+                guiMouseY,
                 GLFW_MOUSE_BUTTON_RIGHT);
         }
 
@@ -1189,7 +1190,7 @@ void ClientApplication::handleEvents()
                 &m_renderer->guiRenderer(),
                 m_guiTextureManager.get(),
                 m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
-            inventoryScreen->setScreenSize(static_cast<i32>(m_window.width()), static_cast<i32>(m_window.height()));
+            inventoryScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
         }
 
         ScreenManager::instance().openScreen(std::move(inventoryScreen));
@@ -1391,8 +1392,8 @@ void ClientApplication::update(f32 deltaTime)
     if (screenStack) {
         screenStack->setPartialTick(0.0f);  // TODO: 浣跨敤瀹為檯鐨?partialTick
         screenStack->setMousePosition(
-            static_cast<i32>(m_input.mouseX()),
-            static_cast<i32>(m_input.mouseY())
+            static_cast<i32>(m_input.mouseX() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1))),
+            static_cast<i32>(m_input.mouseY() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)))
         );
     }
 
@@ -1759,6 +1760,11 @@ void ClientApplication::setupSettingCallbacks()
         m_window.setFullscreen(value);
     });
 
+    m_settings.guiScale.onChange([this](i32 value) {
+        spdlog::info("GUI scale changed to: {}", value);
+        applyGuiScale();
+    });
+
     // VSync 鍙樻洿
     m_settings.vsync.onChange([this](bool value) {
         spdlog::info("VSync changed to: {}", value);
@@ -1868,6 +1874,26 @@ void ClientApplication::setupCamera()
     m_cameraController.setCamera(&m_camera);
 }
 
+    void ClientApplication::applyGuiScale()
+    {
+        m_guiScaleState = ui::calculateGuiScale(
+            m_settings.guiScale.get(),
+            static_cast<i32>(m_window.width()),
+            static_cast<i32>(m_window.height()));
+
+        if (m_renderer) {
+            m_renderer->setGuiScaleFactor(static_cast<f64>(m_guiScaleState.scaleFactor));
+        }
+
+        if (m_canvas) {
+            m_canvas->resize(m_guiScaleState.width, m_guiScaleState.height);
+        }
+
+        if (m_kageroEngine) {
+            m_kageroEngine->resize(m_guiScaleState.width, m_guiScaleState.height);
+        }
+    }
+
 void ClientApplication::setupNetworkCallbacks()
 {
     MC_TRACE_EVENT("client.initialization", "SetupNetworkCallbacks");
@@ -1886,6 +1912,7 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onLoginFailed = [this](const String& reason) {
         spdlog::error("Login failed: {}", reason);
+
         m_knownPlayerNames.clear();
         if (m_commandManager) {
             m_commandManager->clear();

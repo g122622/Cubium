@@ -116,6 +116,7 @@ add_executable(minecraft-client
     ui/Font.cpp
     ui/FontRenderer.cpp
     ui/DefaultAsciiFont.cpp
+    ui/GuiScale.cpp
     ui/TridentCanvas.cpp
     ui/screen/ScreenManager.cpp
     ui/screen/CraftingScreen.cpp
