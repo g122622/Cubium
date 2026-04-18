@@ -324,6 +324,22 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
+            "server.world", "ServerWorld::setBlock::WriteChunk",
+            "x", x,
+            "y", y,
+            "z", z,
+            "oldBlockId", oldState ? oldState->blockId() : 0,
+            "newBlockId", newState ? newState->blockId() : 0
+        );
+
+        const BlockState* storedState = newIsAir ? nullptr : newState;
+        chunk->setBlock(localX, y, localZ, storedState);
+        chunk->setDirty(true);
+        // 先写入区块，后续旧方块回调可能会在同一坐标上做二次替换。
+    }
+
+    {
+        MC_TRACE_EVENT(
             "server.world", "ServerWorld::setBlock::OldBlockCallbacks",
             "x", x,
             "y", y,
@@ -341,24 +357,9 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         }
     }
 
-    {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::WriteChunk",
-            "x", x,
-            "y", y,
-            "z", z,
-            "oldBlockId", oldState ? oldState->blockId() : 0,
-            "newBlockId", newState ? newState->blockId() : 0
-        );
-
-        const BlockState* storedState = newIsAir ? nullptr : newState;
-        chunk->setBlock(localX, y, localZ, storedState);
-        chunk->setDirty(true);
-
-        // 先入队，后续递归写入同一位置时会覆盖旧状态。
-        if (m_onBlockChanged) {
-            m_onBlockChanged(changedPos, storedState ? storedState->stateId() : 0u);
-        }
+    const BlockState* currentState = canonicalizeState(chunk->getBlock(localX, y, localZ));
+    if (currentState != newState) {
+        return true;
     }
 
     {
@@ -368,6 +369,10 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
             "y", y,
             "z", z
         );
+
+        if (m_onBlockChanged) {
+            m_onBlockChanged(changedPos, currentState ? currentState->stateId() : 0u);
+        }
 
         if (!newIsAir && blockTypeChanged) {
             Block& newBlock = const_cast<Block&>(newState->getBlock());

@@ -367,8 +367,6 @@ public:
 
     /**
      * @brief 是否为超热维度
-     *
-     * 目前用于岩浆的原版流速差异判断。
      */
     [[nodiscard]] virtual bool isUltraWarm() const {
         return dimension() == 1;

@@ -58,6 +58,7 @@ add_executable(mc_tests
     common/world/block/blocks/EnchantingTableBlockTest.cpp
     common/world/block/blocks/ChestBlockTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
+    common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
@@ -200,6 +201,10 @@ add_executable(mc_tests
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
     client/ui/kagero/widget/SlotWidgetTest.cpp
     ${CMAKE_SOURCE_DIR}/src/client/ui/GuiScale.cpp
+    ${CMAKE_SOURCE_DIR}/src/client/ui/Font.cpp
+    ${CMAKE_SOURCE_DIR}/src/client/ui/FontTextureAtlas.cpp
+    ${CMAKE_SOURCE_DIR}/src/client/ui/FontRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/client/ui/DefaultAsciiFont.cpp
     client/ui/GuiScaleTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp

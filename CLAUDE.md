@@ -443,6 +443,8 @@ enum class Operation : u8 { ... };
     - `ContainerContentPacket` 只保留给真正打开的容器菜单；玩家物品栏刷新、拾取同步和 `/clear` 这类操作都应走玩家背包包。
 - `InventoryManager::setOnInventoryUpdate()` 在 `MinecraftServer::initializeInteractionManagers()` 里已经接好。
     - 服务器侧背包变更如果走 `inventoryManager()`，就要依赖这条回调刷新客户端，不要再手写一套新的同步分支。
+- 冰块融化与破坏路径必须分开处理。
+    - `IceBlock::randomTick()` 只负责融化，`onBlockRemoved()` 只负责破坏后的替换；不要再让随机刻回调 `onBlockRemoved()`，也不要把同一坐标的写回放在旧方块回调之前。
 
 ## Self-Maintenance Rule
 

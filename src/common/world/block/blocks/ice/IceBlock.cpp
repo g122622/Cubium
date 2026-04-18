@@ -20,6 +20,60 @@ constexpr i32 MELT_LIGHT_LEVEL = 11;
 /// 冰融化的随机概率（基于randomTickSpeed）
 constexpr i32 MELT_PROBABILITY_DIVISOR = 40; // 约2.5%概率
 
+thread_local bool s_skipIceReplacementCallback = false;
+
+class IceReplacementGuard {
+public:
+    IceReplacementGuard() {
+        s_skipIceReplacementCallback = true;
+    }
+
+    ~IceReplacementGuard() {
+        s_skipIceReplacementCallback = false;
+    }
+};
+
+[[nodiscard]] const BlockState* getWaterState() {
+    fluid::Fluid* waterFluid = fluid::Fluid::getFluid(fluid::FluidRegistry::WATER_ID);
+    if (waterFluid != nullptr) {
+        return waterFluid->getBlockState(waterFluid->defaultState());
+    }
+    return nullptr;
+}
+
+[[nodiscard]] const BlockState* getAirState() {
+    return BlockRegistry::instance().airState();
+}
+
+void replaceIceState(IWorld& world, const BlockPos& pos, const BlockState* replacementState) {
+    if (replacementState == nullptr) {
+        return;
+    }
+
+    IceReplacementGuard guard;
+    world.setBlockState(pos, replacementState, 3);
+}
+
+void meltIce(IWorld& world, const BlockPos& pos) {
+    const BlockState* replacementState = world.isUltraWarm() ? getAirState() : getWaterState();
+    replaceIceState(world, pos, replacementState);
+}
+
+void handleIceBreak(IWorld& world, const BlockPos& pos) {
+    if (world.isUltraWarm()) {
+        replaceIceState(world, pos, getAirState());
+        return;
+    }
+
+    const BlockState* belowState = world.getBlockState(pos.down());
+    if (belowState != nullptr && (belowState->isSolid() || belowState->isLiquid())) {
+        replaceIceState(world, pos, getWaterState());
+        return;
+    }
+
+    replaceIceState(world, pos, getAirState());
+}
+
 } // namespace
 
 // ============================================================================
@@ -40,34 +94,11 @@ void IceBlock::onBlockRemoved(
 ) {
     MC_UNUSED(state);
 
-    // 检查是否在寒冷生物群系（不融化）
-    // TODO: 生物群系温度检查
-
-    // 在非寒冷环境中，冰变成水
-    // 检查下方是否有固体方块阻挡
-    BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos);
-
-    // 获取水源方块状态
-    fluid::Fluid* waterFluid = fluid::Fluid::getFluid(fluid::FluidRegistry::WATER_ID);
-    const BlockState* waterState = nullptr;
-    if (waterFluid != nullptr) {
-        waterState = waterFluid->getBlockState(waterFluid->defaultState());
+    if (s_skipIceReplacementCallback) {
+        return;
     }
 
-    // 如果下方不是固体，放置水源；否则放置空气
-    if (belowState == nullptr || !belowState->owner().isSolid(*belowState)) {
-        // 如果下方不是固体，放置水源
-        if (waterState != nullptr) {
-            world.setBlockState(pos, waterState, 3);
-        }
-    } else {
-        // 否则放置空气
-        const BlockState* airState = BlockRegistry::instance().airState();
-        if (airState != nullptr) {
-            world.setBlockState(pos, airState, 3);
-        }
-    }
+    handleIceBreak(world, pos);
 }
 
 void IceBlock::randomTick(
@@ -88,11 +119,7 @@ void IceBlock::randomTick(
     if (lightLevel >= MELT_LIGHT_LEVEL) {
         // 随机融化
         if (random.nextInt(MELT_PROBABILITY_DIVISOR) == 0) {
-            // 检查生物群系温度
-            // TODO: 生物群系温度检查
-
-            // 融化成水
-            onBlockRemoved(world, pos, state);
+            meltIce(world, pos);
         }
     }
 }
@@ -145,14 +172,7 @@ void FrostedIceBlock::randomTick(
         // 更高的光照 = 更快的融化
         i32 divisor = std::max(1, MELT_PROBABILITY_DIVISOR - (lightLevel - MELT_LIGHT_LEVEL) * 5);
         if (random.nextInt(divisor) == 0) {
-            // 融化成水
-            fluid::Fluid* waterFluid = fluid::Fluid::getFluid(fluid::FluidRegistry::WATER_ID);
-            if (waterFluid != nullptr) {
-                const BlockState* waterState = waterFluid->getBlockState(waterFluid->defaultState());
-                if (waterState != nullptr) {
-                    world.setBlockState(pos, waterState, 3);
-                }
-            }
+            meltIce(world, pos);
         }
     }
 }
