@@ -156,7 +156,7 @@ public:
     template<typename Container>
     SuggestionsBuilder& suggestAll(const Container& candidates) {
         for (const auto& candidate : candidates) {
-            if (startsWith(m_remaining, candidate)) {
+            if (startsWith(candidate, m_remaining)) {
                 suggest(String(candidate));
             }
         }

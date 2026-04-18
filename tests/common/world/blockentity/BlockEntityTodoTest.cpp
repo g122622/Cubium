@@ -413,6 +413,8 @@ TEST(BlockEntityTodoTest, HopperGetInventoryAtPositionEntityFallbackWithoutInven
 
 
 TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection) {
+    VanillaBlocks::initialize();
+
     blockentity::PistonBlockEntity piston(
         BlockPos(0, 64, 0),
         VanillaBlocks::getState(VanillaBlocks::STONE),
@@ -478,6 +480,8 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidAndSkyVisibility) {
             }
         }
     }
+
+    world.setBlock(beaconPos.x, beaconPos.y + 1, beaconPos.z, &VanillaBlocks::AIR->defaultState());
 
     for (int i = 0; i < 80; ++i) {
         beacon.tick(world);
