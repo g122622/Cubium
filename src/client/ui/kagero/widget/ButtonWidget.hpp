@@ -110,6 +110,7 @@ public:
             const u32 border = isHovered() ? m_style.hoverBorderColor : m_style.borderColor;
             ctx.drawBorder(bounds(), 1.0f, border);
         }
+        ctx.drawTextCentered(m_text, bounds(), getTextColor());
     }
 
     // ==================== 事件处理 ====================

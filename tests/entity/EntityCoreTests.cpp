@@ -9,6 +9,7 @@
 #include "entity/core/DataParameter.hpp"
 #include "entity/core/EntityDataManager.hpp"
 #include "entity/core/Entity.hpp"
+#include "entity/core/MobEntity.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -614,4 +615,24 @@ TEST(EntityDataManager, UniqueIds) {
     EXPECT_NE(param1.id(), param2.id());
     EXPECT_NE(param2.id(), param3.id());
     EXPECT_NE(param1.id(), param3.id());
+}
+
+class TestMobEntity : public MobEntity {
+public:
+    TestMobEntity()
+        : MobEntity(LegacyEntityType::Pig, 100)
+    {
+    }
+};
+
+TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState) {
+    TestMobEntity vehicle;
+    Entity rider(LegacyEntityType::Player, 101);
+
+    EXPECT_EQ(vehicle.isBeingRidden(), vehicle.hasPassengers());
+    EXPECT_FALSE(rider.isRiding());
+    EXPECT_TRUE(rider.startRiding(vehicle));
+    EXPECT_TRUE(vehicle.isBeingRidden());
+    EXPECT_TRUE(vehicle.hasPassengers());
+    EXPECT_TRUE(rider.isRiding());
 }

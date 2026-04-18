@@ -73,7 +73,7 @@ TNTEntity::TNTEntity()
 TNTEntity::TNTEntity(f64 x, f64 y, f64 z)
     : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
-    setPosition(x, y, z);
+    setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
 }
 
 void TNTEntity::tick() {

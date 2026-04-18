@@ -5,7 +5,6 @@
 
 namespace mc {
 
-// 前向声明
 namespace potion {
 class Potion;
 }
@@ -14,47 +13,28 @@ namespace item {
 
 /**
  * @brief 药水物品基类
- *
- * 可饮用的药水，饮用后应用效果。
- * 包括普通药水、喷溅药水、滞留药水。
- *
- * 参考: net.minecraft.item.PotionItem
  */
 class PotionItem : public Item {
 public:
     /**
-     * @brief 构造函数
-     * @param properties 物品属性
+     * @brief 构造药水物品
      */
     explicit PotionItem(const ItemProperties& properties);
 
-    // ========== 使用行为 ==========
-
     /**
-     * @brief 获取使用时间
-     * @param stack 物品堆
-     * @return 使用时间（tick），药水为32
+     * @brief 获取使用时长
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 
     /**
      * @brief 获取使用动作
-     * @param stack 物品堆
-     * @return 饮用动作
      */
     [[nodiscard]] UseAction getUseAction(const ItemStack& stack) const override;
 
     /**
-     * @brief 物品使用完成
-     *
-     * 当玩家完成饮用时调用，应用药水效果。
-     *
-     * @param stack 物品堆
-     * @param world 世界
-     * @param entity 使用实体
-     * @return 使用后的物品堆
+     * @brief 使用完成
      */
-    ItemStack onItemUseFinish(ItemStack& stack, IWorld& world, LivingEntity& entity) override;
+    ItemStack onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) override;
 
     /**
      * @brief 右键使用物品
@@ -62,27 +42,20 @@ public:
     ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     /**
-     * @brief 是否有附魔光效
-     * @param stack 物品堆
-     * @return 如果药水有效果则返回true
+     * @brief 是否有药水效果
      */
     [[nodiscard]] bool hasEffect(const ItemStack& stack) const;
 
     /**
      * @brief 获取翻译键
-     * @param stack 物品堆
-     * @return 带药水类型的翻译键
      */
     [[nodiscard]] String getTranslationKey(const ItemStack& stack) const override;
 
 private:
     /**
-     * @brief 应用药水效果到实体
-     * @param potion 药水类型
-     * @param entity 目标实体
-     * @param world 世界
+     * @brief 将药水效果应用到实体
      */
-    void applyEffects(const potion::Potion* potion, LivingEntity& entity, IWorld& world);
+    void applyEffects(const potion::Potion* potion, Entity& entity, IWorld& world);
 };
 
 } // namespace item

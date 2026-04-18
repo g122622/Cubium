@@ -6,6 +6,7 @@
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/ZipResourcePack.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <filesystem>
 #include <vector>
@@ -275,6 +276,7 @@ public:
      * @param callback 变更时调用的函数
      */
     void onChange(std::function<void()> callback) {
+        MC_ASSERT_RELEASE(!m_callback);
         m_callback = std::move(callback);
     }
 

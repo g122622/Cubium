@@ -567,9 +567,7 @@ public:
     [[nodiscard]] i32 getHeight() const override { return m_height; }
 
     void paintItem(PaintContext& ctx, i32 x, i32 y, i32 width, bool selected, bool hovered) override {
-        (void)width;
-
-        // 绘制背景
+        // 先画背景，再画文本，保证选中态和悬停态可见
         if (selected) {
             Rect bg{x, y, width, m_height};
             ctx.drawFilledRect(bg, m_selectedColor);
@@ -578,8 +576,8 @@ public:
             ctx.drawFilledRect(bg, m_hoveredColor);
         }
 
-        // TODO: 绘制文本
-        // ctx.drawText(m_text, x + 4, y + (m_height - 9) / 2, m_textColor);
+        const i32 textY = y + (m_height - static_cast<i32>(ctx.getFontHeight())) / 2;
+        ctx.drawText(m_text, x + 4, textY, m_textColor);
     }
 
     void setText(const String& text) { m_text = text; }

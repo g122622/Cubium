@@ -170,8 +170,8 @@ public:
      * 当没有 ServerWorld 时（如 IntegratedServer），通过此回调通知实体生成。
      */
     void setEntitySpawnCallback(EntitySpawnCallback callback) {
-        // 若已有实体生成回调，直接抛错
-        if (m_entitySpawnCallback) {
+        // 仅允许在已有回调为空时设置新的非空回调；空回调用于显式清空
+        if (callback && m_entitySpawnCallback) {
             throw std::logic_error("Entity spawn callback already set");
         }
         m_entitySpawnCallback = std::move(callback);

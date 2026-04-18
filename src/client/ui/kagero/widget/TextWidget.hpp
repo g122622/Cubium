@@ -2,8 +2,12 @@
 
 #include "Widget.hpp"
 #include "../paint/PaintContext.hpp"
+#include "../../Font.hpp"
 #include "../../Glyph.hpp"
+#include <algorithm>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::widget {
 
@@ -11,43 +15,22 @@ namespace mc::client::ui::kagero::widget {
  * @brief 文本对齐方式
  */
 enum class TextAlignment : u8 {
-    Left,       ///< 左对齐
-    Center,     ///< 居中
-    Right       ///< 右对齐
+    Left,
+    Center,
+    Right
 };
 
 /**
  * @brief 文本组件
  *
- * 显示文本的组件，支持：
- * - 单行和多行文本
- * - 文本对齐
- * - 文本阴影
- * - 文本颜色
- * - 文本换行
- *
- * 使用示例：
- * @code
- * auto text = std::make_unique<TextWidget>("lbl_title", 10, 10, 200, 20);
- * text->setText("Hello World!");
- * text->setColor(Colors::WHITE);
- * text->setShadow(true);
- * @endcode
+ * 负责显示静态文本，并提供宽度、行数和取行能力。
  */
 class TextWidget : public Widget {
 public:
-    /**
-     * @brief 默认构造函数
-     */
     TextWidget() = default;
 
     /**
      * @brief 构造函数
-     * @param id 组件ID
-     * @param x X坐标
-     * @param y Y坐标
-     * @param width 宽度
-     * @param height 高度
      */
     TextWidget(String id, i32 x, i32 y, i32 width, i32 height)
         : Widget(std::move(id)) {
@@ -56,12 +39,6 @@ public:
 
     /**
      * @brief 构造函数（带文本）
-     * @param id 组件ID
-     * @param x X坐标
-     * @param y Y坐标
-     * @param width 宽度
-     * @param height 高度
-     * @param text 文本内容
      */
     TextWidget(String id, i32 x, i32 y, i32 width, i32 height, String text)
         : Widget(std::move(id))
@@ -69,14 +46,10 @@ public:
         setBounds(Rect(x, y, width, height));
     }
 
-    // ==================== 生命周期 ====================
-
     void paint(PaintContext& ctx) override {
         if (!isVisible() || m_text.empty()) return;
         ctx.drawTextCentered(m_text, bounds(), m_color);
     }
-
-    // ==================== 文本属性 ====================
 
     /**
      * @brief 设置文本
@@ -84,7 +57,7 @@ public:
     void setText(const String& text) {
         if (m_text != text) {
             m_text = text;
-            m_lines.clear(); // 清除缓存的行
+            m_linesDirty = true;
         }
     }
 
@@ -142,11 +115,11 @@ public:
     [[nodiscard]] TextAlignment alignment() const { return m_alignment; }
 
     /**
-     * @brief 设置最大行数（0表示无限制）
+     * @brief 设置最大行数，0 表示不限
      */
     void setMaxLines(i32 maxLines) {
         m_maxLines = maxLines;
-        m_lines.clear();
+        m_linesDirty = true;
     }
 
     /**
@@ -159,7 +132,7 @@ public:
      */
     void setWordWrap(bool wrap) {
         m_wordWrap = wrap;
-        m_lines.clear();
+        m_linesDirty = true;
     }
 
     /**
@@ -180,74 +153,69 @@ public:
     [[nodiscard]] i32 lineHeight() const { return m_lineHeight; }
 
     /**
-     * @brief 设置文本缩放
+     * @brief 设置缩放
      */
     void setScale(f32 scale) {
         m_scale = scale;
+        m_linesDirty = true;
     }
 
     /**
-     * @brief 获取文本缩放
+     * @brief 获取缩放
      */
     [[nodiscard]] f32 scale() const { return m_scale; }
 
     /**
      * @brief 获取文本宽度
-     *
-     * 计算文本实际渲染宽度
      */
     [[nodiscard]] f32 getTextWidth() const {
-        // TODO: 实现字体宽度计算
-        // return m_font ? m_font->getStringWidthUTF8(m_text) * m_scale : m_text.size() * 8.0f * m_scale;
-        return static_cast<f32>(m_text.size()) * 8.0f * m_scale;
+        const auto& lines = ensureLines();
+        f32 maxWidth = 0.0f;
+        for (const auto& line : lines) {
+            maxWidth = std::max(maxWidth, measureLineWidth(line));
+        }
+        return maxWidth * m_scale;
     }
 
     /**
      * @brief 获取文本高度
      */
     [[nodiscard]] f32 getTextHeight() const {
-        i32 lines = m_maxLines > 0 ? std::min(getLineCount(), m_maxLines) : getLineCount();
-        return static_cast<f32>(lines * m_lineHeight) * m_scale;
+        const i32 lineCount = getLineCount();
+        if (lineCount <= 0) {
+            return 0.0f;
+        }
+
+        const i32 visibleLines = m_maxLines > 0 ? std::min(lineCount, m_maxLines) : lineCount;
+        return static_cast<f32>(visibleLines * m_lineHeight) * m_scale;
     }
 
     /**
      * @brief 获取行数
      */
     [[nodiscard]] i32 getLineCount() const {
-        if (m_text.empty()) return 0;
-        if (!m_wordWrap) {
-            return static_cast<i32>(std::count(m_text.begin(), m_text.end(), '\n') + 1);
-        }
-        // TODO: 实现自动换行的行数计算
-        return 1;
+        return static_cast<i32>(ensureLines().size());
     }
 
     /**
      * @brief 获取指定行的文本
      */
     [[nodiscard]] String getLine(i32 lineIndex) const {
-        if (!m_wordWrap) {
-            size_t start = 0;
-            size_t end = m_text.find('\n');
-
-            for (i32 i = 0; i < lineIndex; ++i) {
-                if (end == String::npos) return "";
-                start = end + 1;
-                end = m_text.find('\n', start);
-            }
-
-            if (start >= m_text.size()) return "";
-            return m_text.substr(start, end == String::npos ? String::npos : end - start);
+        const auto& lines = ensureLines();
+        if (lineIndex < 0 || static_cast<size_t>(lineIndex) >= lines.size()) {
+            return {};
         }
-        // TODO: 实现自动换行的行获取
-        return m_text;
+        return lines[static_cast<size_t>(lineIndex)];
     }
 
     /**
      * @brief 设置字体
      */
     void setFont(void* font) {
-        m_font = font;
+        if (m_font != font) {
+            m_font = font;
+            m_linesDirty = true;
+        }
     }
 
     /**
@@ -256,17 +224,150 @@ public:
     [[nodiscard]] void* font() const { return m_font; }
 
 protected:
-    String m_text;                      ///< 文本内容
-    u32 m_color = Colors::WHITE;        ///< 文本颜色
-    bool m_shadow = true;               ///< 是否有阴影
-    u32 m_shadowColor = Colors::MC_DARK_GRAY; ///< 阴影颜色
-    TextAlignment m_alignment = TextAlignment::Left; ///< 对齐方式
-    i32 m_maxLines = 0;                 ///< 最大行数（0=无限制）
-    bool m_wordWrap = false;            ///< 是否启用自动换行
-    i32 m_lineHeight = 9;               ///< 行高（MC默认字体高度为9）
-    f32 m_scale = 1.0f;                 ///< 文本缩放
-    void* m_font = nullptr;             ///< 字体（Font*）
-    mutable std::vector<String> m_lines; ///< 缓存的行
+    /**
+     * @brief 尺寸变化后使行缓存失效
+     */
+    void onSizeChanged() override {
+        m_linesDirty = true;
+    }
+
+    /**
+     * @brief 获取外部字体对象
+     */
+    [[nodiscard]] ::mc::client::Font* resolvedFont() const {
+        return static_cast<::mc::client::Font*>(m_font);
+    }
+
+    /**
+     * @brief 计算单个码点的宽度
+     */
+    [[nodiscard]] f32 measureGlyphAdvance(char32_t codePoint) const {
+        if (auto* font = resolvedFont()) {
+            if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
+                return glyph->advance;
+            }
+            return 4.0f;
+        }
+        return 8.0f;
+    }
+
+    /**
+     * @brief 计算单行文本宽度
+     */
+    [[nodiscard]] f32 measureLineWidth(const String& text) const {
+        f32 width = 0.0f;
+        for (char32_t codePoint : text) {
+            width += measureGlyphAdvance(codePoint);
+        }
+        return width;
+    }
+
+    /**
+     * @brief 追加一行到缓存
+     */
+    void appendLine(String line) const {
+        m_lines.emplace_back(std::move(line));
+    }
+
+    /**
+     * @brief 将当前文本按可用宽度构建成行缓存
+     */
+    [[nodiscard]] const std::vector<String>& ensureLines() const {
+        if (!m_linesDirty) {
+            return m_lines;
+        }
+
+        m_lines.clear();
+        m_linesDirty = false;
+
+        if (m_text.empty()) {
+            return m_lines;
+        }
+
+        if (!m_wordWrap) {
+            appendExplicitLines();
+            return m_lines;
+        }
+
+        const i32 wrapWidth = getWrapWidth();
+        if (wrapWidth <= 0) {
+            appendExplicitLines();
+            return m_lines;
+        }
+
+        String currentLine;
+        currentLine.reserve(m_text.size());
+        f32 currentWidth = 0.0f;
+
+        for (char32_t codePoint : m_text) {
+            if (codePoint == U'\n') {
+                appendLine(std::move(currentLine));
+                currentLine.clear();
+                currentWidth = 0.0f;
+                continue;
+            }
+
+            const f32 advance = measureGlyphAdvance(codePoint);
+            if (codePoint == U' ' && currentLine.empty()) {
+                continue;
+            }
+
+            if (currentWidth > 0.0f && currentWidth + advance > static_cast<f32>(wrapWidth)) {
+                appendLine(std::move(currentLine));
+                currentLine.clear();
+                currentWidth = 0.0f;
+                if (codePoint == U' ') {
+                    continue;
+                }
+            }
+
+            currentLine.push_back(codePoint);
+            currentWidth += advance;
+        }
+
+        appendLine(std::move(currentLine));
+        return m_lines;
+    }
+
+    /**
+     * @brief 将文本按显式换行符拆分
+     */
+    void appendExplicitLines() const {
+        size_t start = 0;
+        while (start <= m_text.size()) {
+            const size_t end = m_text.find(U'\n', start);
+            appendLine(m_text.substr(start, end == String::npos ? String::npos : end - start));
+            if (end == String::npos) {
+                break;
+            }
+
+            start = end + 1;
+            if (start == m_text.size()) {
+                appendLine({});
+                break;
+            }
+        }
+    }
+
+    /**
+     * @brief 获取当前可换行宽度
+     */
+    [[nodiscard]] i32 getWrapWidth() const {
+        return std::max(0, bounds().width - padding().horizontal());
+    }
+
+    String m_text;
+    u32 m_color = Colors::WHITE;
+    bool m_shadow = true;
+    u32 m_shadowColor = Colors::MC_DARK_GRAY;
+    TextAlignment m_alignment = TextAlignment::Left;
+    i32 m_maxLines = 0;
+    bool m_wordWrap = false;
+    i32 m_lineHeight = 9;
+    f32 m_scale = 1.0f;
+    void* m_font = nullptr;
+    mutable std::vector<String> m_lines;
+    mutable bool m_linesDirty = true;
 };
 
 } // namespace mc::client::ui::kagero::widget

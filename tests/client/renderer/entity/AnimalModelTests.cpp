@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cstddef>
 #include <algorithm>
 
 #include "client/renderer/trident/entity/model/AnimalModels.hpp"
@@ -53,6 +54,42 @@ Bounds buildDefaultPoseBounds(TModel& model) {
 }
 
 } // anonymous namespace
+
+TEST(AnimalModelPose, CowCopyAnglesToSynchronizesMatchingParts) {
+    CowModel sourceModel;
+    CowModel targetModel;
+
+    const auto& sourceParts = sourceModel.getParts();
+    const auto& targetParts = targetModel.getParts();
+
+    ASSERT_EQ(sourceParts.size(), targetParts.size());
+    ASSERT_GE(sourceParts.size(), 2u);
+
+    for (std::size_t index = 0; index < sourceParts.size(); ++index) {
+        const f64 seed = static_cast<f64>(index + 1);
+
+        sourceParts[index]->setRotateAngleX(seed * 0.11f);
+        sourceParts[index]->setRotateAngleY(-seed * 0.22f);
+        sourceParts[index]->setRotateAngleZ(seed * 0.33f);
+        sourceParts[index]->setRotationPoint(seed * 1.0f, seed * 2.0f, seed * 3.0f);
+
+        targetParts[index]->setRotateAngleX(-seed * 1.01f);
+        targetParts[index]->setRotateAngleY(seed * 1.02f);
+        targetParts[index]->setRotateAngleZ(-seed * 1.03f);
+        targetParts[index]->setRotationPoint(-seed * 4.0f, -seed * 5.0f, -seed * 6.0f);
+    }
+
+    sourceModel.copyAnglesTo(targetModel);
+
+    for (std::size_t index = 0; index < sourceParts.size(); ++index) {
+        EXPECT_DOUBLE_EQ(sourceParts[index]->rotateAngleX(), targetParts[index]->rotateAngleX());
+        EXPECT_DOUBLE_EQ(sourceParts[index]->rotateAngleY(), targetParts[index]->rotateAngleY());
+        EXPECT_DOUBLE_EQ(sourceParts[index]->rotateAngleZ(), targetParts[index]->rotateAngleZ());
+        EXPECT_DOUBLE_EQ(sourceParts[index]->rotationPointX(), targetParts[index]->rotationPointX());
+        EXPECT_DOUBLE_EQ(sourceParts[index]->rotationPointY(), targetParts[index]->rotationPointY());
+        EXPECT_DOUBLE_EQ(sourceParts[index]->rotationPointZ(), targetParts[index]->rotationPointZ());
+    }
+}
 
 TEST(AnimalModelMesh, PigReasonableBoundsAndHorizontalBody) {
     PigModel model;

@@ -114,7 +114,7 @@ TEST_F(StringReaderTest, ReadIntWithRange) {
 
     EXPECT_EQ(reader1.readInt(0, 100), 50);
 
-    EXPECT_THROW(reader2.readInt(0, 100), CommandException);
+    EXPECT_THROW((void)reader2.readInt(0, 100), CommandException);
 }
 
 TEST_F(StringReaderTest, ReadBool) {
@@ -239,10 +239,10 @@ TEST_F(ArgumentTypeTest, IntegerArgument) {
     EXPECT_EQ(intArg->parse(reader1), 50);
 
     StringReader reader2("150");
-    EXPECT_THROW(intArg->parse(reader2), CommandException);
+    EXPECT_THROW((void)intArg->parse(reader2), CommandException);
 
     StringReader reader3("-10");
-    EXPECT_THROW(intArg->parse(reader3), CommandException);
+    EXPECT_THROW((void)intArg->parse(reader3), CommandException);
 }
 
 TEST_F(ArgumentTypeTest, FloatArgument) {
@@ -252,7 +252,7 @@ TEST_F(ArgumentTypeTest, FloatArgument) {
     EXPECT_NEAR(floatArg->parse(reader1), 0.5f, 0.001f);
 
     StringReader reader2("1.5");
-    EXPECT_THROW(floatArg->parse(reader2), CommandException);
+    EXPECT_THROW((void)floatArg->parse(reader2), CommandException);
 }
 
 TEST_F(ArgumentTypeTest, BoolArgument) {
@@ -265,7 +265,7 @@ TEST_F(ArgumentTypeTest, BoolArgument) {
     EXPECT_FALSE(boolArg->parse(reader2));
 
     StringReader reader3("invalid");
-    EXPECT_THROW(boolArg->parse(reader3), CommandException);
+    EXPECT_THROW((void)boolArg->parse(reader3), CommandException);
 }
 
 TEST_F(ArgumentTypeTest, EnumArgument) {
@@ -283,7 +283,7 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
     EXPECT_EQ(enumArg->parse(reader2), TestEnum::B);
 
     StringReader reader3("invalid");
-    EXPECT_THROW(enumArg->parse(reader3), CommandException);
+    EXPECT_THROW((void)enumArg->parse(reader3), CommandException);
 }
 
 // ========== CommandResult Tests ==========
@@ -382,6 +382,35 @@ TEST_F(SuggestionsTest, SuggestionComparison) {
 
     EXPECT_TRUE(s1 < s2);
     EXPECT_TRUE(s1 == s3);
+}
+
+TEST_F(SuggestionsTest, RequiredArgumentBuilderSuggestsCustomProvider) {
+    CommandDispatcher<int> dispatcher;
+
+    auto destination = argument<int, String>(
+        "destination",
+        std::make_shared<ArgumentCommandNode<int, String>>(
+            "destination",
+            StringArgumentType::word()
+        )
+    ).suggests(std::make_shared<CandidateSuggestionProvider<int>>(
+        std::vector<String>{"spawn", "home", "mine"}
+    ));
+    auto root = std::static_pointer_cast<LiteralCommandNode<int>>(
+        literal<int>("warp").then(destination).build()
+    );
+    dispatcher.registerCommand(root);
+
+    int source = 0;
+    const auto suggestions = dispatcher.getSuggestions("warp ", source).get();
+
+    ASSERT_FALSE(suggestions.isEmpty());
+    ASSERT_EQ(suggestions.size(), 3u);
+
+    const auto& list = suggestions.getList();
+    EXPECT_EQ(list[0].getText(), "home");
+    EXPECT_EQ(list[1].getText(), "mine");
+    EXPECT_EQ(list[2].getText(), "spawn");
 }
 
 // ========== CommandDispatcher Basic Tests ==========
@@ -530,4 +559,3 @@ TEST_F(CommandSourceTest, SilentCommandSource) {
 
 // 注意：命令执行测试已移至 server 模块的集成测试中
 // 这些测试需要完整的 manager mock 实现
-

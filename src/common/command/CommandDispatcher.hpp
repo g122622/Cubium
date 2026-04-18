@@ -303,6 +303,7 @@ public:
             m_type->setCommand(m_command);
         }
         m_type->setRequirement(m_requirement);
+        m_type->setCustomSuggestions(m_customSuggestions);
 
         for (const auto& child : m_children) {
             m_type->addChild(child);
@@ -312,11 +313,12 @@ public:
     }
 
     /**
-     * @brief 设置建议提供器
+     * @brief 设置自定义建议提供器
+     * @param provider 建议提供器实例，通常由 `CandidateSuggestionProvider` 或自定义实现提供
+     * @return 当前构建器
      */
-    template<typename Provider>
-    RequiredArgumentBuilder& suggests(Provider /*provider*/) {
-        // TODO: 实现建议提供器
+    RequiredArgumentBuilder& suggests(std::shared_ptr<ISuggestionProvider<S>> provider) {
+        m_customSuggestions = std::move(provider);
         return *this;
     }
 
@@ -325,6 +327,7 @@ private:
     std::shared_ptr<ArgumentCommandNode<S, T>> m_type;
     CommandCallback<S> m_command;
     RequirementPredicate<S> m_requirement = [](const S&) { return true; };
+    std::shared_ptr<ISuggestionProvider<S>> m_customSuggestions;
     std::vector<NodePtr> m_children;
 };
 

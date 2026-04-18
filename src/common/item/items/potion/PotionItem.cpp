@@ -1,53 +1,66 @@
 #include "PotionItem.hpp"
+
 #include "../../potion/PotionUtils.hpp"
 #include "../../potion/Potions.hpp"
+#include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
 
 namespace mc {
 namespace item {
 
-// ========== PotionItem 实现 ==========
-
+/**
+ * @brief 构造药水物品
+ */
 PotionItem::PotionItem(const ItemProperties& properties)
     : Item(properties) {
 }
 
+/**
+ * @brief 获取使用时长
+ */
 i32 PotionItem::getUseDuration(const ItemStack& /*stack*/) const {
     return 32;
 }
 
+/**
+ * @brief 获取使用动作
+ */
 UseAction PotionItem::getUseAction(const ItemStack& /*stack*/) const {
     return UseAction::Drink;
 }
 
-ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, LivingEntity& entity) {
-    // 应用效果
+/**
+ * @brief 使用完成
+ */
+ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) {
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
     if (potion != nullptr) {
         applyEffects(potion, entity, world);
     }
 
-    // 减少物品数量
     stack.shrink(1);
-
     return stack;
 }
 
+/**
+ * @brief 右键使用物品
+ */
 ItemActionResult PotionItem::onItemRightClick(IWorld& /*world*/, Player& /*player*/, Hand /*hand*/) {
-    // TODO: 检查是否可以饮用
-    // if (player.canEat(false)) {
-    //     player.startUsingItem(hand);
-    //     return ItemActionResult(ActionResultType::Success, stack);
-    // }
-
     return ItemActionResult(ActionResultType::Pass, ItemStack());
 }
 
+/**
+ * @brief 是否有药水效果
+ */
 bool PotionItem::hasEffect(const ItemStack& stack) const {
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
     return potion != nullptr && potion->hasEffects();
 }
 
+/**
+ * @brief 获取翻译键
+ */
 String PotionItem::getTranslationKey(const ItemStack& stack) const {
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
     if (potion != nullptr && potion->hasEffects()) {
@@ -56,21 +69,36 @@ String PotionItem::getTranslationKey(const ItemStack& stack) const {
     return Item::getTranslationKey(stack);
 }
 
-void PotionItem::applyEffects(const potion::Potion* potion, LivingEntity& entity, IWorld& /*world*/) {
+/**
+ * @brief 将药水效果应用到实体
+ */
+void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWorld& /*world*/) {
     if (potion == nullptr) {
         return;
     }
 
-    const auto& effects = potion->effects();
-    for (const auto& effect : effects) {
-        // 瞬间效果立即应用
-        if (effect.type() == entity::effect::EffectType::InstantHealth ||
-            effect.type() == entity::effect::EffectType::InstantDamage) {
-            // TODO: 实现瞬间治疗效果
-        } else {
-            // 非瞬间效果添加到实体
+    if (auto* livingEntity = dynamic_cast<LivingEntity*>(&entity)) {
+        for (const auto& effect : potion->effects()) {
+            if (effect.type() == entity::effect::EffectType::InstantHealth ||
+                effect.type() == entity::effect::EffectType::InstantDamage) {
+                continue;
+            }
+
             entity::effect::EffectInstance newEffect(effect);
-            entity.addEffect(std::move(newEffect));
+            livingEntity->addEffect(std::move(newEffect));
+        }
+        return;
+    }
+
+    if (auto* player = dynamic_cast<Player*>(&entity)) {
+        for (const auto& effect : potion->effects()) {
+            if (effect.type() == entity::effect::EffectType::InstantHealth ||
+                effect.type() == entity::effect::EffectType::InstantDamage) {
+                continue;
+            }
+
+            entity::effect::EffectInstance newEffect(effect);
+            player->addEffect(std::move(newEffect));
         }
     }
 }

@@ -5,6 +5,7 @@
 #include "../../widget/Widget.hpp"
 #include "../../widget/IWidgetContainer.hpp"
 #include <optional>
+#include <memory>
 #include <vector>
 #include <functional>
 
@@ -265,6 +266,7 @@ private:
     widget::Widget* m_widget = nullptr;
     LayoutConstraints m_constraints;
     MeasureFunc m_measureFunc;
+    std::vector<std::unique_ptr<WidgetLayoutAdaptor>> m_childAdaptorsCache;
 
     Size m_lastMeasuredSize;
     MeasureSpec m_lastWidthSpec;

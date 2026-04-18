@@ -68,9 +68,7 @@ math::Random MobEntity::getRandom() const {
 }
 
 bool MobEntity::isBeingRidden() const {
-    // 目前没有乘客系统，返回 false
-    // TODO: 实现乘客系统后检查 getPassengers().empty()
-    return false;
+    return hasPassengers();
 }
 
 void MobEntity::clearNavigation() {
@@ -92,6 +90,9 @@ void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch) {
 void MobEntity::tick() {
     // 更新父类
     LivingEntity::tick();
+
+    // 每个 tick 清理一次感知缓存，确保同一帧内可以复用结果，但下一帧重新判定
+    m_senses->tick();
 
     // 更新空闲时间
     // 如果实体在移动，重置空闲时间；否则增加

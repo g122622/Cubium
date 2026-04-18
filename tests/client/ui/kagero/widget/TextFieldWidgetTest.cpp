@@ -6,12 +6,20 @@
 #include <gtest/gtest.h>
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
 using namespace mc::client::Colors;
 using namespace mc;
+
+class InspectableTextFieldWidget : public TextFieldWidget {
+public:
+    using TextFieldWidget::TextFieldWidget;
+
+    [[nodiscard]] i32 scrollOffset() const { return m_scrollOffset; }
+};
 
 // ==================== 构造函数测试 ====================
 
@@ -394,4 +402,28 @@ TEST(TextFieldWidgetTest, CanWrite) {
     // 可见、聚焦、启用才可写
     textField.setEnabled(true);
     EXPECT_TRUE(textField.canWrite());
+}
+
+TEST(TextFieldWidgetTest, OnClick_SetsCursorPositionByMouseX) {
+    TextFieldWidget textField("test", 0, 0, 100, 20);
+    textField.setText("ABCD");
+
+    // 点击到第二个字符边界，光标应落在索引 1。
+    EXPECT_TRUE(textField.onClick(9, 10, 0));
+    EXPECT_EQ(1, textField.cursorPosition());
+}
+
+TEST(TextFieldWidgetTest, WriteText_ReplacesSelectionAndRespectsMaxLength) {
+    TextFieldWidget textField("test", 0, 0, 100, 20);
+    textField.setText("ABCD");
+    textField.setCursorPosition(2);
+    textField.setSelectionPosition(4);
+    textField.setMaxLength(5);
+
+    textField.writeText("WXYZ");
+
+    EXPECT_EQ("ABWXY", textField.text());
+    EXPECT_EQ(5, static_cast<i32>(textField.text().size()));
+    EXPECT_EQ(5, textField.cursorPosition());
+    EXPECT_FALSE(textField.hasSelection());
 }

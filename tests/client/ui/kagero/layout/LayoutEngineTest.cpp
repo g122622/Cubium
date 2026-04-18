@@ -256,6 +256,9 @@ TEST_F(LayoutEngineTest, BuiltInAlgorithms) {
     EXPECT_TRUE(engine->hasAlgorithm("flex-row"));
     EXPECT_TRUE(engine->hasAlgorithm("flex-column"));
     EXPECT_TRUE(engine->hasAlgorithm("flex-center"));
+    EXPECT_TRUE(engine->hasAlgorithm("grid"));
+    EXPECT_TRUE(engine->hasAlgorithm("anchor"));
+    EXPECT_TRUE(engine->hasAlgorithm("stack"));
 }
 
 TEST_F(LayoutEngineTest, DebugVisualize) {

@@ -189,6 +189,7 @@ add_executable(mc_tests
     # Kagero UI Widget娴嬭瘯
     client/ui/kagero/widget/WidgetTest.cpp
     client/ui/kagero/widget/ButtonWidgetTest.cpp
+    client/ui/kagero/widget/ButtonWidgetPaintTest.cpp
     client/ui/kagero/widget/TextWidgetTest.cpp
     client/ui/kagero/widget/CheckboxWidgetTest.cpp
     client/ui/kagero/widget/SliderWidgetTest.cpp

@@ -6,6 +6,7 @@
 #include "../food/Food.hpp"
 #include "../tag/ItemTag.hpp"
 #include "../../world/block/Block.hpp"
+#include "../../entity/core/Entity.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../entity/core/LivingEntity.hpp"
 #include "../../entity/entities/player/Player.hpp"
@@ -154,7 +155,7 @@ bool Item::itemInteractionForEntity(ItemStack& stack, Player& player,
     return false;
 }
 
-ItemStack Item::onItemUseFinish(ItemStack& stack, IWorld& world, LivingEntity& entity) {
+ItemStack Item::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) {
     // 默认实现：返回原物品堆
     // 食物类物品会重写此方法来应用食物效果
     (void)world;

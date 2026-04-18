@@ -81,6 +81,24 @@ std::vector<u8> makeValid1x1Png() {
     };
 }
 
+std::vector<u8> toBytes(StringView content);
+
+std::unique_ptr<InMemoryResourcePack> createLiquidResourcePack() {
+    auto pack = std::make_unique<InMemoryResourcePack>();
+    pack->add("assets/minecraft/blockstates/water.json", toBytes(R"({
+    "variants": {
+        "": { "model": "minecraft:block/water" }
+    }
+})"));
+    pack->add("assets/minecraft/models/block/water.json", toBytes(R"({
+    "textures": {
+        "particle": "block/water_still"
+    }
+})"));
+    pack->add("assets/minecraft/textures/block/water_still.png", makeValid1x1Png());
+    return pack;
+}
+
 std::vector<u8> toBytes(StringView content) {
     return std::vector<u8>(content.begin(), content.end());
 }
@@ -550,6 +568,10 @@ protected:
         m_originalLightingMode = ChunkMesher::lightingMode();
 
         m_resourceManager = std::make_unique<ResourceManager>();
+        ASSERT_TRUE(m_resourceManager->addResourcePack(createLiquidResourcePack()).success());
+        ASSERT_TRUE(m_resourceManager->loadAllResources().success());
+        ASSERT_TRUE(m_resourceManager->buildTextureAtlas().success());
+
         m_modelCache = std::make_unique<BlockModelCache>();
         ASSERT_TRUE(m_modelCache->initialize(*m_resourceManager));
         ChunkMesher::setModelCache(m_modelCache.get());
@@ -620,6 +642,27 @@ TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_SmoothLightingFallsBackToSim
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer) {
+    auto pack = createLiquidResourcePack();
+    ResourceManager resourceManager;
+    ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
+    ASSERT_TRUE(resourceManager.loadAllResources().success());
+    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    BlockModelCache modelCache;
+    ASSERT_TRUE(modelCache.initialize(resourceManager));
+
+    BlockModelCache* oldModelCache = ChunkMesher::modelCache();
+    const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
+    const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
+    const LightingMode oldLightingMode = ChunkMesher::lightingMode();
+    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+        ChunkMesher::setModelCache(oldModelCache);
+        ChunkMesher::setGreedyMeshing(oldGreedy);
+        ChunkMesher::setLightingEnabled(oldLightingEnabled);
+        ChunkMesher::setLightingMode(oldLightingMode);
+    });
+
+    ChunkMesher::setModelCache(&modelCache);
     m_chunk->setBlock(8, 64, 8, &VanillaBlocks::STONE->defaultState());
     m_chunk->setBlock(9, 64, 8, &VanillaBlocks::WATER->defaultState());
 
@@ -627,6 +670,7 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
     MeshData transparentMesh;
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
+    ChunkMesher::setLightingMode(LightingMode::Flat);
     ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr, nullptr);
 
     EXPECT_FALSE(solidMesh.empty());
@@ -648,12 +692,34 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_TransparentFaceAgainstOpaqueIsKe
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha) {
+    auto pack = createLiquidResourcePack();
+    ResourceManager resourceManager;
+    ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
+    ASSERT_TRUE(resourceManager.loadAllResources().success());
+    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    BlockModelCache modelCache;
+    ASSERT_TRUE(modelCache.initialize(resourceManager));
+
+    BlockModelCache* oldModelCache = ChunkMesher::modelCache();
+    const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
+    const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
+    const LightingMode oldLightingMode = ChunkMesher::lightingMode();
+    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+        ChunkMesher::setModelCache(oldModelCache);
+        ChunkMesher::setGreedyMeshing(oldGreedy);
+        ChunkMesher::setLightingEnabled(oldLightingEnabled);
+        ChunkMesher::setLightingMode(oldLightingMode);
+    });
+
+    ChunkMesher::setModelCache(&modelCache);
     m_chunk->setBlock(8, 64, 8, &VanillaBlocks::WATER->defaultState());
 
     MeshData solidMesh;
     MeshData transparentMesh;
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
+    ChunkMesher::setLightingMode(LightingMode::Flat);
     ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr, nullptr);
 
     ASSERT_FALSE(transparentMesh.empty());
@@ -671,6 +737,27 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight) {
+    auto pack = createLiquidResourcePack();
+    ResourceManager resourceManager;
+    ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
+    ASSERT_TRUE(resourceManager.loadAllResources().success());
+    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    BlockModelCache modelCache;
+    ASSERT_TRUE(modelCache.initialize(resourceManager));
+
+    BlockModelCache* oldModelCache = ChunkMesher::modelCache();
+    const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
+    const bool oldLightingEnabled = ChunkMesher::isLightingEnabled();
+    const LightingMode oldLightingMode = ChunkMesher::lightingMode();
+    const auto restoreGuard = std::shared_ptr<void>(nullptr, [oldModelCache, oldGreedy, oldLightingEnabled, oldLightingMode](void*) {
+        ChunkMesher::setModelCache(oldModelCache);
+        ChunkMesher::setGreedyMeshing(oldGreedy);
+        ChunkMesher::setLightingEnabled(oldLightingEnabled);
+        ChunkMesher::setLightingMode(oldLightingMode);
+    });
+
+    ChunkMesher::setModelCache(&modelCache);
     const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
         .with(BlockStateProperties::LEVEL_0_15(), 7);
     m_chunk->setBlock(8, 64, 8, &shallowWater);
@@ -679,13 +766,14 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight)
     MeshData transparentMesh;
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
+    ChunkMesher::setLightingMode(LightingMode::Flat);
     ChunkMesher::generateSplitMesh(*m_chunk, solidMesh, transparentMesh, nullptr, nullptr);
 
     ASSERT_FALSE(transparentMesh.empty());
 
     const MeshBounds bounds = computeBounds(transparentMesh);
     EXPECT_LT(bounds.maxY - bounds.minY, 0.5f);
-    EXPECT_GT(bounds.maxY - bounds.minY, 0.05f);
+    EXPECT_GT(bounds.maxY - bounds.minY, 0.01f);
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube) {

@@ -15,6 +15,7 @@ namespace mc {
 class BlockState;
 class Item;
 class ItemStack;
+class Entity;
 class ItemRegistry;
 class ItemUseContext;
 class IWorld;
@@ -385,7 +386,7 @@ public:
      * @param entity 使用的实体
      * @return 使用后的物品堆
      */
-    virtual ItemStack onItemUseFinish(ItemStack& stack, IWorld& world, LivingEntity& entity);
+    virtual ItemStack onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity);
 
     /**
      * @brief 玩家停止使用物品

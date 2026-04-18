@@ -1,5 +1,7 @@
 #include "EntityModel.hpp"
 #include "../../../../../common/util/math/MathUtils.hpp"
+#include <cstddef>
+#include <cassert>
 #include <cmath>
 
 namespace mc::client::renderer {
@@ -20,8 +22,12 @@ void EntityModel::setAngles(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
     // 基类不实现动画
 }
 
-void EntityModel::copyAnglesTo(const EntityModel& /*target*/) const {
-    // TODO: 实现角度复制
+void EntityModel::copyAnglesTo(EntityModel& target) const {
+    assert(m_parts.size() == target.m_parts.size());
+
+    for (std::size_t index = 0; index < m_parts.size(); ++index) {
+        m_parts[index]->copyModelAngles(*target.m_parts[index]);
+    }
 }
 
 void EntityModel::generateMesh(std::vector<ModelVertex>& vertices,

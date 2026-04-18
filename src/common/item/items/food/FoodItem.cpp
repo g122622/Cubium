@@ -1,58 +1,68 @@
 #include "FoodItem.hpp"
-#include "../../core/ItemStack.hpp"
+
 #include "../../core/ActionResult.hpp"
+#include "../../core/ItemStack.hpp"
+#include "../../../entity/core/Entity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
 #include "../../../world/IWorld.hpp"
 
 namespace mc {
 namespace item::items {
 
+/**
+ * @brief 构造食物物品
+ */
 FoodItem::FoodItem(const food::Food* food, ItemProperties properties)
     : Item(std::move(properties))
     , m_food(food) {
 }
 
+/**
+ * @brief 获取使用时长
+ */
 i32 FoodItem::getUseDuration(const ItemStack& /*stack*/) const {
     if (m_food != nullptr && m_food->isFastEat()) {
-        return 16;  // 快速食用：16 ticks
+        return 16;
     }
-    return 32;  // 普通食用：32 ticks
+    return 32;
 }
 
+/**
+ * @brief 获取使用动作
+ */
 UseAction FoodItem::getUseAction(const ItemStack& /*stack*/) const {
     if (m_food != nullptr && m_food->isMeat()) {
         return UseAction::Eat;
     }
-    return UseAction::Drink;  // 非肉类使用饮用动作（如药水）
+    return UseAction::Drink;
 }
 
+/**
+ * @brief 右键使用物品
+ */
 ItemActionResult FoodItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
-    // 检查是否可以食用
-    ItemStack stack = player.getHeldItem(hand);
+    const ItemStack stack = player.getHeldItem(hand);
     if (canEat(stack, player)) {
-        // TODO: 设置玩家正在使用物品
-        // player.setActiveHand(hand);
-        (void)hand;
         return ItemActionResult::consume(stack);
     }
     return ItemActionResult::pass(stack);
 }
 
-ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, LivingEntity& entity) {
+/**
+ * @brief 使用完成
+ */
+ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity& entity) {
     if (m_food == nullptr) {
         return stack;
     }
 
-    // 如果是玩家，应用食物效果
-    // TODO: 实现 Player::getFoodStats() 和 FoodStats::eat()
-    // TODO: 实现 LivingEntity::isPlayer() 和类型转换
-    (void)entity;
+    if (auto* player = dynamic_cast<Player*>(&entity)) {
+        player->foodStats().addStats(m_food->getHunger(), m_food->getSaturation());
+        player->foodStats().foodTimer = 0;
+    }
 
-    // 减少物品数量
     stack.shrink(1);
 
-    // 返回容器物品（如碗、玻璃瓶）
     if (hasContainerItem()) {
         return ItemStack(containerItem(), 1);
     }
@@ -60,20 +70,19 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, LivingE
     return stack;
 }
 
-bool FoodItem::canEat(const ItemStack& /*stack*/, const Player& /*player*/) const {
+/**
+ * @brief 是否可以食用
+ */
+bool FoodItem::canEat(const ItemStack& /*stack*/, const Player& player) const {
     if (m_food == nullptr) {
         return false;
     }
 
-    // 如果总是可食用，直接返回true
     if (m_food->canAlwaysEat()) {
         return true;
     }
 
-    // 否则检查玩家是否饥饿
-    // TODO: 实现 Player::canEat()
-    // return player.getFoodStats().needFood();
-    return true;  // 临时返回true
+    return player.foodStats().needsFood();
 }
 
 } // namespace item::items

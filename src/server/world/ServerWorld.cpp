@@ -122,16 +122,18 @@ void ServerWorld::shutdown()
     // 再清理村庄管理器
     m_villageManager.reset();
 
+    // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
+    if (m_chunkManager) {
+        m_chunkManager->shutdown();
+    }
+
     m_weatherManager.reset();
     m_lightManager.reset();
     m_tickManager.reset();
     m_physicsEngine.reset();
     m_collisionCache.reset();
 
-    if (m_chunkManager) {
-        m_chunkManager->shutdown();
-        m_chunkManager.reset();
-    }
+    m_chunkManager.reset();
 
     spdlog::info("Server world shut down");
 }

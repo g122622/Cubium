@@ -53,9 +53,10 @@ public:
 
     /**
      * @brief 动画目标角度
-     * @param model 要复制的模型
+     * @param target 要写入的目标模型
+     * @note 仅复制各部件的旋转角和旋转点，不会改动材质、贴图或部件拓扑
      */
-    virtual void copyAnglesTo(const EntityModel& target) const;
+    virtual void copyAnglesTo(EntityModel& target) const;
 
     // ========== 模型部件访问 ==========
 

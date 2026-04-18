@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include "client/ui/kagero/widget/TextWidget.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
 
 using namespace mc::client::ui::kagero;
@@ -150,6 +151,15 @@ TEST(TextWidgetTest, GetTextWidth) {
     EXPECT_FLOAT_EQ(5.0f * 8.0f * 2.0f, width);
 }
 
+TEST(TextWidgetTest, GetTextWidthWithFont) {
+    mc::client::Font font;
+    TextWidget text("test", 0, 0, 100, 20);
+    text.setFont(&font);
+    text.setText("Hello");
+
+    EXPECT_FLOAT_EQ(5.0f * 4.0f, text.getTextWidth());
+}
+
 TEST(TextWidgetTest, GetTextHeight) {
     TextWidget text("test", 0, 0, 100, 20);
     text.setText("Hello");
@@ -218,4 +228,16 @@ TEST(TextAlignmentTest, EnumValues) {
     EXPECT_EQ(0, static_cast<u8>(TextAlignment::Left));
     EXPECT_EQ(1, static_cast<u8>(TextAlignment::Center));
     EXPECT_EQ(2, static_cast<u8>(TextAlignment::Right));
+}
+
+TEST(TextWidgetTest, GetLineCountWithWordWrap) {
+    mc::client::Font font;
+    TextWidget text("test", 0, 0, 8, 20);
+    text.setFont(&font);
+    text.setWordWrap(true);
+    text.setText("AB CD");
+
+    EXPECT_EQ(2, text.getLineCount());
+    EXPECT_EQ("AB", text.getLine(0));
+    EXPECT_EQ("CD", text.getLine(1));
 }

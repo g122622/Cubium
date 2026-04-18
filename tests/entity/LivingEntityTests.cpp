@@ -3,6 +3,9 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/AttackContext.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 
 using namespace mc;
 using namespace mc::entity::attribute;
@@ -288,4 +291,47 @@ TEST(DamageSourceTest, DamageSourcesFactory) {
     auto playerAttack = DamageSources::playerAttack(nullptr);
     EXPECT_EQ(playerAttack.type(), DamageType::PlayerAttack);
     EXPECT_TRUE(playerAttack.isPlayerSource());
+}
+
+TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness) {
+    TestLivingEntity attacker;
+    TestLivingEntity target;
+
+    attacker.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::Strength,
+        200,
+        0,
+        false,
+        true,
+        true
+    ));
+
+    attacker.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::Weakness,
+        200,
+        0,
+        false,
+        true,
+        true
+    ));
+
+    mc::entity::combat::AttackContext context(&attacker, &target);
+    context.setBaseDamage(5.0f);
+    context.setAttackType(mc::entity::combat::AttackType::Melee);
+
+    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 4.0f);
+}
+
+TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula) {
+    TestLivingEntity attacker;
+    TestLivingEntity target;
+
+    target.setAttributeBaseValue(Attributes::ARMOR, 20.0);
+    target.setAttributeBaseValue(Attributes::ARMOR_TOUGHNESS, 8.0);
+
+    mc::entity::combat::AttackContext context(&attacker, &target);
+    context.setBaseDamage(10.0f);
+    context.setAttackType(mc::entity::combat::AttackType::Melee);
+
+    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 3.0f);
 }

@@ -29,7 +29,7 @@ constexpr f32 DRAG_LAVA = 0.5f;
 // ============================================================================
 
 /// 标准跳跃初速度
-constexpr f32 JUMP_VELOCITY = 0.20f;
+constexpr f32 JUMP_VELOCITY = 0.42f;
 
 /// 玩家最大步进高度
 constexpr f32 STEP_HEIGHT = 0.6f;

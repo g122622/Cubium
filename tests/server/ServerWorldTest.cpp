@@ -75,7 +75,7 @@ protected:
 
 TEST_F(ServerWorldTest, DefaultConstructor) {
     ServerWorld defaultWorld;
-    EXPECT_EQ(world->chunkCount(), 0);
+    EXPECT_EQ(defaultWorld.chunkCount(), 0);
 }
 
 TEST_F(ServerWorldTest, ConfigConstructor) {
@@ -180,6 +180,8 @@ TEST_F(ServerWorldTest, MultipleChunks) {
 // ============================================================================
 
 TEST_F(ServerWorldTest, SetBlock_CreatesChunk) {
+    ASSERT_TRUE(world->initialize().success());
+
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     world->setBlock(0, 64, 0, stoneState);
 
@@ -187,6 +189,8 @@ TEST_F(ServerWorldTest, SetBlock_CreatesChunk) {
 }
 
 TEST_F(ServerWorldTest, SetBlock_GetBlock) {
+    ASSERT_TRUE(world->initialize().success());
+
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     world->setBlock(10, 50, 20, stoneState);
 
@@ -202,6 +206,8 @@ TEST_F(ServerWorldTest, GetBlock_NonExistentChunk) {
 }
 
 TEST_F(ServerWorldTest, SetBlock_NegativeCoordinates) {
+    ASSERT_TRUE(world->initialize().success());
+
     const BlockState* grassState = &VanillaBlocks::GRASS_BLOCK->defaultState();
     world->setBlock(-10, 64, -20, grassState);
 
@@ -211,6 +217,8 @@ TEST_F(ServerWorldTest, SetBlock_NegativeCoordinates) {
 }
 
 TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
+    ASSERT_TRUE(world->initialize().success());
+
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
     const BlockState* grassState = &VanillaBlocks::GRASS_BLOCK->defaultState();

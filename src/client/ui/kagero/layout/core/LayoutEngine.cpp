@@ -1,4 +1,5 @@
 #include "LayoutEngine.hpp"
+#include "LayoutEngineAdapters.hpp"
 #include <algorithm>
 #include <chrono>
 
@@ -23,6 +24,9 @@ LayoutEngine::LayoutEngine()
         return config;
     }()));
     registerAlgorithm("flex-center", std::make_unique<FlexLayoutAlgorithm>(centerRowFlexConfig()));
+    registerAlgorithm("grid", std::make_unique<detail::GridLayoutAlgorithm>());
+    registerAlgorithm("anchor", std::make_unique<detail::AnchorLayoutAlgorithm>());
+    registerAlgorithm("stack", std::make_unique<detail::StackLayoutAlgorithm>());
 }
 
 LayoutEngine& LayoutEngine::instance() {
