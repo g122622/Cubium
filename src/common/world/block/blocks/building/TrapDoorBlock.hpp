@@ -131,7 +131,7 @@ private:
      * @param pos 方块位置
      * @param isOpening 是否正在打开
      */
-    void playSound(IWorld& world, const BlockPos& pos, bool isOpening);
+    static void playSound(IWorld& world, const BlockPos& pos, bool isOpening);
 
     /**
      * @brief 获取形状索引

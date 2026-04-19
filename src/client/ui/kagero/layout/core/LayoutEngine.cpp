@@ -1,9 +1,31 @@
 #include "LayoutEngine.hpp"
 #include "LayoutEngineAdapters.hpp"
+
 #include <algorithm>
 #include <chrono>
 
 namespace mc::client::ui::kagero::layout {
+
+namespace {
+
+/**
+ * @brief 将算法计算结果应用到子 Widget
+ *
+ * 仅在结果有效时才写回目标 Widget，避免无效布局污染现有状态。
+ */
+void applyLayoutResults(
+    const std::vector<WidgetLayoutAdaptor*>& children,
+    const std::vector<LayoutResult>& results
+) {
+    const size_t count = std::min(children.size(), results.size());
+    for (size_t i = 0; i < count; ++i) {
+        if (children[i] != nullptr && results[i].isValid()) {
+            children[i]->applyLayout(results[i]);
+        }
+    }
+}
+
+} // namespace
 
 // ============================================================================
 // LayoutEngine 实现
@@ -11,14 +33,13 @@ namespace mc::client::ui::kagero::layout {
 
 LayoutEngine::LayoutEngine()
     : m_flexLayout(std::make_unique<FlexLayout>()) {
-    // 注册内置算法
     registerAlgorithm("flex", std::make_unique<FlexLayoutAlgorithm>());
-    registerAlgorithm("flex-row", std::make_unique<FlexLayoutAlgorithm>([](){
+    registerAlgorithm("flex-row", std::make_unique<FlexLayoutAlgorithm>([]() {
         FlexConfig config;
         config.direction = Direction::Row;
         return config;
     }()));
-    registerAlgorithm("flex-column", std::make_unique<FlexLayoutAlgorithm>([](){
+    registerAlgorithm("flex-column", std::make_unique<FlexLayoutAlgorithm>([]() {
         FlexConfig config;
         config.direction = Direction::Column;
         return config;
@@ -42,8 +63,8 @@ void LayoutEngine::registerAlgorithm(
 }
 
 ILayoutAlgorithm* LayoutEngine::getAlgorithm(const String& name) const {
-    auto it = m_algorithms.find(name);
-    return (it != m_algorithms.end()) ? it->second.get() : nullptr;
+    const auto it = m_algorithms.find(name);
+    return it != m_algorithms.end() ? it->second.get() : nullptr;
 }
 
 bool LayoutEngine::hasAlgorithm(const String& name) const {
@@ -51,58 +72,65 @@ bool LayoutEngine::hasAlgorithm(const String& name) const {
 }
 
 void LayoutEngine::layout(WidgetLayoutAdaptor* root, const Rect& availableSpace) {
-    if (!root || !root->isValid()) return;
-
-    auto startTime = std::chrono::high_resolution_clock::now();
+    if (root == nullptr || !root->isValid()) {
+        return;
+    }
 
     m_stats.reset();
+    const auto startTime = std::chrono::high_resolution_clock::now();
 
-    // 创建测量规格
-    MeasureSpec widthSpec = MeasureSpec::MakeExactly(availableSpace.width);
-    MeasureSpec heightSpec = MeasureSpec::MakeExactly(availableSpace.height);
+    const Rect rootBounds(
+        availableSpace.x,
+        availableSpace.y,
+        std::max(0, availableSpace.width),
+        std::max(0, availableSpace.height)
+    );
+    root->applyLayout(LayoutResult(rootBounds));
 
-    // 执行布局
+    const MeasureSpec widthSpec = MeasureSpec::MakeExactly(rootBounds.width);
+    const MeasureSpec heightSpec = MeasureSpec::MakeExactly(rootBounds.height);
     layoutNode(root, widthSpec, heightSpec, 0);
 
-    auto endTime = std::chrono::high_resolution_clock::now();
+    const auto endTime = std::chrono::high_resolution_clock::now();
     m_stats.totalTimeMs = std::chrono::duration<f64, std::milli>(endTime - startTime).count();
+    m_stats.layoutCount = 1;
 }
 
 void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root) {
-    if (!root || !root->isValid()) return;
-
-    auto startTime = std::chrono::high_resolution_clock::now();
-
-    // 收集dirty节点
-    std::vector<WidgetLayoutAdaptor*> dirtyNodes;
-    collectDirtyNodes(root, dirtyNodes);
-
-    if (dirtyNodes.empty()) {
-        return;  // 没有需要重新布局的节点
+    if (root == nullptr || !root->isValid()) {
+        return;
     }
 
-    // 按深度排序（浅层优先）
+    m_stats.reset();
+    const auto startTime = std::chrono::high_resolution_clock::now();
+
+    std::vector<WidgetLayoutAdaptor*> dirtyNodes;
+    collectDirtyNodes(root, dirtyNodes);
+    if (dirtyNodes.empty()) {
+        return;
+    }
+
     std::sort(dirtyNodes.begin(), dirtyNodes.end(),
-        [](WidgetLayoutAdaptor* a, WidgetLayoutAdaptor* b) {
-            return a->depth() < b->depth();
+        [](WidgetLayoutAdaptor* lhs, WidgetLayoutAdaptor* rhs) {
+            return lhs->depth() < rhs->depth();
         });
 
-    // 重新布局dirty节点
     m_stats.relayoutedWidgets = static_cast<i32>(dirtyNodes.size());
 
     for (auto* node : dirtyNodes) {
-        if (!node->isLayoutDirty()) continue;
+        if (node == nullptr || !node->isLayoutDirty()) {
+            continue;
+        }
 
-        // 获取父节点的约束（简化实现：使用节点的当前尺寸）
-        Rect bounds = node->currentBounds();
-        MeasureSpec widthSpec = MeasureSpec::MakeExactly(bounds.width);
-        MeasureSpec heightSpec = MeasureSpec::MakeExactly(bounds.height);
-
+        const Rect bounds = node->currentBounds();
+        const MeasureSpec widthSpec = MeasureSpec::MakeExactly(std::max(0, bounds.width));
+        const MeasureSpec heightSpec = MeasureSpec::MakeExactly(std::max(0, bounds.height));
         layoutNode(node, widthSpec, heightSpec, node->depth());
     }
 
-    auto endTime = std::chrono::high_resolution_clock::now();
+    const auto endTime = std::chrono::high_resolution_clock::now();
     m_stats.totalTimeMs = std::chrono::duration<f64, std::milli>(endTime - startTime).count();
+    m_stats.layoutCount = 1;
 }
 
 void LayoutEngine::layoutWith(
@@ -110,32 +138,26 @@ void LayoutEngine::layoutWith(
     WidgetLayoutAdaptor* container,
     const Rect& availableSpace
 ) {
-    ILayoutAlgorithm* algorithm = getAlgorithm(algorithmName);
-    if (!algorithm) {
-        // 默认使用flex布局
-        algorithm = getAlgorithm("flex");
+    if (container == nullptr || !container->isValid()) {
+        return;
     }
 
-    if (!algorithm || !container || !container->isValid()) return;
+    ILayoutAlgorithm* algorithm = selectAlgorithm(LayoutType::Flex, algorithmName);
+    if (algorithm == nullptr) {
+        return;
+    }
 
-    auto startTime = std::chrono::high_resolution_clock::now();
+    m_stats.reset();
+    const auto startTime = std::chrono::high_resolution_clock::now();
 
-    // 获取子元素
+    container->applyLayout(LayoutResult(availableSpace));
     auto children = container->getChildren();
+    const auto results = algorithm->compute(availableSpace, children, container->constraints());
+    applyLayoutResults(children, results);
 
-    // 执行布局计算
-    auto results = algorithm->compute(availableSpace, children, container->constraints());
-
-    // 应用结果
-    for (size_t i = 0; i < children.size() && i < results.size(); ++i) {
-        if (children[i] && results[i].isValid()) {
-            children[i]->applyLayout(results[i]);
-        }
-    }
-
-    auto endTime = std::chrono::high_resolution_clock::now();
-    m_stats.totalTimeMs += std::chrono::duration<f64, std::milli>(endTime - startTime).count();
-    m_stats.layoutCount++;
+    const auto endTime = std::chrono::high_resolution_clock::now();
+    m_stats.totalTimeMs = std::chrono::duration<f64, std::milli>(endTime - startTime).count();
+    m_stats.layoutCount = 1;
 }
 
 void LayoutEngine::layoutFlex(
@@ -143,28 +165,23 @@ void LayoutEngine::layoutFlex(
     const Rect& availableSpace,
     const FlexConfig& config
 ) {
-    if (!container || !container->isValid()) return;
-
-    auto startTime = std::chrono::high_resolution_clock::now();
-
-    m_flexLayout->setConfig(config);
-
-    // 获取子元素
-    auto children = container->getChildren();
-
-    // 执行布局计算
-    auto results = m_flexLayout->compute(availableSpace, children, container->constraints());
-
-    // 应用结果
-    for (size_t i = 0; i < children.size() && i < results.size(); ++i) {
-        if (children[i] && results[i].isValid()) {
-            children[i]->applyLayout(results[i]);
-        }
+    if (container == nullptr || !container->isValid()) {
+        return;
     }
 
-    auto endTime = std::chrono::high_resolution_clock::now();
-    m_stats.totalTimeMs += std::chrono::duration<f64, std::milli>(endTime - startTime).count();
-    m_stats.layoutCount++;
+    m_stats.reset();
+    const auto startTime = std::chrono::high_resolution_clock::now();
+
+    container->applyLayout(LayoutResult(availableSpace));
+    m_flexLayout->setConfig(config);
+
+    auto children = container->getChildren();
+    const auto results = m_flexLayout->compute(availableSpace, children, container->constraints());
+    applyLayoutResults(children, results);
+
+    const auto endTime = std::chrono::high_resolution_clock::now();
+    m_stats.totalTimeMs = std::chrono::duration<f64, std::milli>(endTime - startTime).count();
+    m_stats.layoutCount = 1;
 }
 
 LayoutResult LayoutEngine::layoutNode(
@@ -173,7 +190,7 @@ LayoutResult LayoutEngine::layoutNode(
     const MeasureSpec& heightSpec,
     i32 depth
 ) {
-    if (!node || !node->isValid()) {
+    if (node == nullptr || !node->isValid()) {
         return LayoutResult();
     }
 
@@ -181,59 +198,56 @@ LayoutResult LayoutEngine::layoutNode(
     m_stats.maxDepth = std::max(m_stats.maxDepth, depth);
     m_stats.measureCount++;
 
-    // 测量节点
-    Size measuredSize = node->measure(widthSpec, heightSpec);
-
-    // 解析最终尺寸
+    const Size measuredSize = node->measure(widthSpec, heightSpec);
     i32 finalWidth = widthSpec.resolve(measuredSize.width);
     i32 finalHeight = heightSpec.resolve(measuredSize.height);
 
-    // 应用约束
     const auto& constraints = node->constraints();
     finalWidth = constraints.clampWidth(finalWidth);
     finalHeight = constraints.clampHeight(finalHeight);
 
-    // 创建布局结果
     LayoutResult result(0, 0, finalWidth, finalHeight);
 
-    // 如果是容器，布局子元素
     if (node->isContainer()) {
         auto children = node->getChildren();
         m_stats.totalWidgets += static_cast<i32>(children.size());
 
         if (!children.empty()) {
-            // 默认使用flex布局
             m_flexLayout->setConfig(FlexConfig{});
 
-            Rect contentRect(
+            const i32 contentWidth = std::max(0, finalWidth - constraints.padding.horizontal());
+            const i32 contentHeight = std::max(0, finalHeight - constraints.padding.vertical());
+            const Rect contentRect(
                 constraints.padding.left,
                 constraints.padding.top,
-                finalWidth - constraints.padding.horizontal(),
-                finalHeight - constraints.padding.vertical()
+                contentWidth,
+                contentHeight
             );
 
-            auto childResults = m_flexLayout->compute(contentRect, children, constraints);
-
+            const auto childResults = m_flexLayout->compute(contentRect, children, constraints);
             for (size_t i = 0; i < children.size() && i < childResults.size(); ++i) {
-                if (children[i] && childResults[i].isValid()) {
-                    // 递归布局子元素
-                    MeasureSpec childWidthSpec = MeasureSpec::MakeExactly(childResults[i].bounds.width);
-                    MeasureSpec childHeightSpec = MeasureSpec::MakeExactly(childResults[i].bounds.height);
-
-                    layoutNode(children[i], childWidthSpec, childHeightSpec, depth + 1);
-
-                    // 应用位置
-                    childResults[i].bounds.x += result.bounds.x;
-                    childResults[i].bounds.y += result.bounds.y;
-                    children[i]->applyLayout(childResults[i]);
+                if (children[i] == nullptr || !childResults[i].isValid()) {
+                    continue;
                 }
+
+                const MeasureSpec childWidthSpec = MeasureSpec::MakeExactly(
+                    std::max(0, childResults[i].bounds.width)
+                );
+                const MeasureSpec childHeightSpec = MeasureSpec::MakeExactly(
+                    std::max(0, childResults[i].bounds.height)
+                );
+
+                layoutNode(children[i], childWidthSpec, childHeightSpec, depth + 1);
+
+                LayoutResult appliedResult = childResults[i];
+                appliedResult.bounds.x += result.bounds.x;
+                appliedResult.bounds.y += result.bounds.y;
+                children[i]->applyLayout(appliedResult);
             }
         }
     }
 
-    // 清除脏标记
     node->clearLayoutDirty();
-
     return result;
 }
 
@@ -241,16 +255,15 @@ void LayoutEngine::collectDirtyNodes(
     WidgetLayoutAdaptor* node,
     std::vector<WidgetLayoutAdaptor*>& out
 ) {
-    if (!node) return;
-
-    if (node->isLayoutDirty()) {
-        out.push_back(node);
-
-        // 如果父节点dirty，子节点会被父节点的布局自动更新，不需要单独处理
+    if (node == nullptr) {
         return;
     }
 
-    // 递归检查子节点
+    if (node->isLayoutDirty()) {
+        out.push_back(node);
+        return;
+    }
+
     auto children = node->getChildren();
     for (auto* child : children) {
         collectDirtyNodes(child, out);
@@ -258,25 +271,21 @@ void LayoutEngine::collectDirtyNodes(
 }
 
 ILayoutAlgorithm* LayoutEngine::selectAlgorithm(LayoutType type, const String& name) {
-    // 首先尝试按名称查找
     if (!name.empty()) {
-        ILayoutAlgorithm* algo = getAlgorithm(name);
-        if (algo) return algo;
+        if (auto* algorithm = getAlgorithm(name); algorithm != nullptr) {
+            return algorithm;
+        }
     }
 
-    // 按类型选择
     switch (type) {
         case LayoutType::Flex:
             return getAlgorithm("flex");
         case LayoutType::Grid:
-            // TODO: 实现Grid布局
-            return getAlgorithm("flex");  // 临时使用flex
+            return getAlgorithm("grid");
         case LayoutType::Anchor:
-            // TODO: 实现Anchor布局
-            return nullptr;
+            return getAlgorithm("anchor");
         case LayoutType::Stack:
-            // TODO: 实现Stack布局
-            return nullptr;
+            return getAlgorithm("stack");
         case LayoutType::None:
         default:
             return nullptr;

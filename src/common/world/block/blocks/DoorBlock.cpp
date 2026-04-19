@@ -1,5 +1,6 @@
 #include "DoorBlock.hpp"
 #include "../../IWorld.hpp"
+#include "../../redstone/RedstoneSystem.hpp"
 #include "../BlockRegistry.hpp"
 #include "../VanillaBlocks.hpp"
 #include "../../../entity/entities/player/Player.hpp"
@@ -10,13 +11,9 @@
 namespace mc {
 namespace blocks {
 
-// ========== 构造函数 ==========
-
 DoorBlock::DoorBlock(const BlockProperties& properties, bool isIron)
     : Block(properties)
     , m_isIron(isIron) {
-
-    // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HALF())
         .add(BlockStateProperties::HORIZONTAL_FACING())
@@ -28,7 +25,6 @@ DoorBlock::DoorBlock(const BlockProperties& properties, bool isIron)
         });
     createBlockState(std::move(container));
 
-    // 设置默认状态
     setDefaultState(defaultState()
         .with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
@@ -36,46 +32,30 @@ DoorBlock::DoorBlock(const BlockProperties& properties, bool isIron)
         .with(BlockStateProperties::HINGE(), BlockStateProperties::DoorHinge::Left)
         .with(BlockStateProperties::POWERED(), false));
 
-    // 预计算所有8种形状
-    // 关闭状态: 4个朝向
-    // EAST关闭: x=0-3
     m_shapes[0] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
-    // SOUTH关闭: z=0-3
     m_shapes[1] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f);
-    // WEST关闭: x=13-16
     m_shapes[2] = VoxelShapes::cube(13.0f, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
-    // NORTH关闭: z=13-16
     m_shapes[3] = VoxelShapes::cube(0.0f, 0.0f, 13.0f, 16.0f, 16.0f, 16.0f);
-
-    // 打开状态: 4个朝向（铰链在左）
-    // EAST打开+左铰链 -> 北向
     m_shapes[4] = VoxelShapes::cube(0.0f, 0.0f, 13.0f, 16.0f, 16.0f, 16.0f);
-    // SOUTH打开+左铰链 -> 西向
     m_shapes[5] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
-    // WEST打开+左铰链 -> 南向
     m_shapes[6] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f);
-    // NORTH打开+左铰链 -> 东向
     m_shapes[7] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
 }
 
-// ========== 放置和更新 ==========
-
 BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
+    IWorld& world = const_cast<IWorld&>(context.getWorld());
 
-    // 检查上方是否有空间
-        const BlockState* upState = context.getWorld().getBlockState(pos.up());
+    const BlockState* upState = world.getBlockState(pos.up());
     if (pos.y >= 255 || upState == nullptr || !upState->isAir()) {
-        // 检查是否可替换
         const Material* mat = upState ? &upState->getMaterial() : nullptr;
         if (mat == nullptr || !mat->isReplaceable()) {
             return defaultState();
         }
     }
 
-    // TODO: 实现红石信号检测
-    // bool powered = world.isBlockPowered(pos) || world.isBlockPowered(pos.up());
-    bool powered = false;
+    const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos) ||
+                         world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos.up());
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection())
@@ -86,51 +66,52 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
 }
 
 void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    // 在上方放置上半部分
     BlockPos abovePos = pos.up();
     BlockState upperState = state.with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
-        world.setBlockState(abovePos, &upperState, 3);
+    world.setBlockState(abovePos, &upperState, 3);
 }
 
 void DoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
-                                 Block& neighborBlock, const BlockPos& neighborPos,
-                                 bool isMoving) {
+                                Block& neighborBlock, const BlockPos& neighborPos,
+                                bool isMoving) {
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-                                    const BlockState* statePtr = world.getBlockState(pos);
+    const BlockState* statePtr = world.getBlockState(pos);
     if (statePtr == nullptr || &statePtr->getBlock() != this) {
         return;
     }
 
     BlockState state = *statePtr;
-
-    // 获取另一半的位置
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
+    BlockStateProperties::DoubleBlockHalf otherHalf = (half == BlockStateProperties::DoubleBlockHalf::Lower)
+        ? BlockStateProperties::DoubleBlockHalf::Upper
+        : BlockStateProperties::DoubleBlockHalf::Lower;
     BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower)
         ? BlockPos(pos.x, pos.y + 1, pos.z)
         : BlockPos(pos.x, pos.y - 1, pos.z);
 
-    // TODO: 实现红石信号检测
-    // bool powered = world.isBlockPowered(pos) || world.isBlockPowered(otherHalfPos);
-    bool powered = false;
+    const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos) ||
+                         world::redstone::RedstoneSystem::instance().isBlockPowered(world, otherHalfPos);
     bool wasPowered = state.get(BlockStateProperties::POWERED());
 
     if (powered != wasPowered) {
         bool wasOpen = state.get(BlockStateProperties::OPEN());
-
-        // 更新状态
         BlockState newState = state
             .with(BlockStateProperties::POWERED(), powered)
             .with(BlockStateProperties::OPEN(), powered);
+        world.setBlockState(pos, &newState, 2);
 
-                                        world.setBlockState(pos, &newState, 2);
-
-        // 如果开关状态改变，播放音效
+        const BlockState* otherStatePtr = world.getBlockState(otherHalfPos);
+        if (otherStatePtr != nullptr &&
+            &otherStatePtr->getBlock() == this &&
+            otherStatePtr->get(BlockStateProperties::HALF()) == otherHalf) {
+            BlockState otherState = newState.with(BlockStateProperties::HALF(), otherHalf);
+            world.setBlockState(otherHalfPos, &otherState, 2);
+        }
         if (wasOpen != powered) {
-            // playSound需要World引用，这里跳过音效
-            // 实际实现中应该通过事件系统播放
+            playSound(world, pos, powered);
         }
     }
 }
@@ -147,29 +128,23 @@ BlockState DoorBlock::updatePostPlacement(
 
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
 
-    // 检查是否是另一半方向上的更新
     if (Directions::getAxis(facing) == Axis::Y) {
         bool isLower = half == BlockStateProperties::DoubleBlockHalf::Lower;
         bool isUpDirection = facing == Direction::Up;
 
         if (isLower == isUpDirection) {
-            // 检查另一半是否是同类型门
             if (&facingState.getBlock() == this &&
                 facingState.get(BlockStateProperties::HALF()) != half) {
-                // 同步状态
                 return state
                     .with(BlockStateProperties::HORIZONTAL_FACING(), facingState.get(BlockStateProperties::HORIZONTAL_FACING()))
                     .with(BlockStateProperties::OPEN(), facingState.get(BlockStateProperties::OPEN()))
                     .with(BlockStateProperties::HINGE(), facingState.get(BlockStateProperties::HINGE()))
                     .with(BlockStateProperties::POWERED(), facingState.get(BlockStateProperties::POWERED()));
-            } else {
-                // 另一半不存在，变成空气
-                return VanillaBlocks::AIR->defaultState();
             }
+            return VanillaBlocks::AIR->defaultState();
         }
     }
 
-    // 下半部分检查支撑
     if (half == BlockStateProperties::DoubleBlockHalf::Lower && facing == Direction::Down) {
         BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
         const BlockState* belowState = world.getBlockState(belowPos);
@@ -181,30 +156,19 @@ BlockState DoorBlock::updatePostPlacement(
     return state;
 }
 
-bool DoorBlock::isValidPosition(
-    const BlockState& state,
-    IBlockReader& world,
-    const BlockPos& pos) const {
-
-    MC_UNUSED(state);
-
+bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const {
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
-
     if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
-        // 下半部分需要下方有支撑
         const BlockPos belowPos = pos.down();
         const BlockState* belowState = world.getBlockState(belowPos);
         return belowState != nullptr && belowState->isSolidSide(world, belowPos, Direction::Up);
-    } else {
-        // 上半部分需要下方是同类型门的下半部分
-        const BlockState* belowState = world.getBlockState(pos.down());
-        return belowState != nullptr &&
-               &belowState->getBlock() == this &&
-               belowState->get(BlockStateProperties::HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
     }
-}
 
-// ========== 交互 ==========
+    const BlockState* belowState = world.getBlockState(pos.down());
+    return belowState != nullptr &&
+           &belowState->getBlock() == this &&
+           belowState->get(BlockStateProperties::HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+}
 
 ActionResultType DoorBlock::onBlockActivated(
     const BlockState& state,
@@ -218,20 +182,11 @@ ActionResultType DoorBlock::onBlockActivated(
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 铁门不能手动开关
     if (m_isIron) {
         return ActionResultType::Pass;
     }
 
-    // 切换开关状态
-    bool wasOpen = state.get(BlockStateProperties::OPEN());
-    BlockState newState = state.with(BlockStateProperties::OPEN(), !wasOpen);
-
-                                    world.setBlockState(pos, &newState, 10);
-
-    // 播放音效
-    playSound(world, pos, !wasOpen);
-
+    toggleDoor(world, pos, !state.get(BlockStateProperties::OPEN()));
     return ActionResultType::Success;
 }
 
@@ -242,29 +197,35 @@ void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open) {
     }
 
     BlockState state = *statePtr;
-    if (state.get(BlockStateProperties::OPEN()) != open) {
-                                        world.setBlockState(pos, &state.with(BlockStateProperties::OPEN(), open), 10);
-        playSound(world, pos, open);
+    if (state.get(BlockStateProperties::OPEN()) == open) {
+        return;
     }
-}
 
-// ========== 形状 ==========
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
+    BlockStateProperties::DoubleBlockHalf otherHalf = (half == BlockStateProperties::DoubleBlockHalf::Lower)
+        ? BlockStateProperties::DoubleBlockHalf::Upper
+        : BlockStateProperties::DoubleBlockHalf::Lower;
+    BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower)
+        ? pos.up()
+        : pos.down();
+
+    BlockState newState = state.with(BlockStateProperties::OPEN(), open);
+    world.setBlockState(pos, &newState, 10);
+    BlockState otherState = newState.with(BlockStateProperties::HALF(), otherHalf);
+    world.setBlockState(otherHalfPos, &otherState, 10);
+    playSound(world, pos, open);
+}
 
 const CollisionShape& DoorBlock::getShape(const BlockState& state) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     bool open = state.get(BlockStateProperties::OPEN());
     bool hingeRight = state.get(BlockStateProperties::HINGE()) == BlockStateProperties::DoorHinge::Right;
-
-    size_t index = getShapeIndex(facing, open, hingeRight);
-    return m_shapes[index];
+    return m_shapes[getShapeIndex(facing, open, hingeRight)];
 }
 
 const CollisionShape& DoorBlock::getCollisionShape(const BlockState& state) const {
-    // 门的碰撞形状与渲染形状相同
     return getShape(state);
 }
-
-// ========== 旋转和镜像 ==========
 
 const BlockState& DoorBlock::rotate(const BlockState& state, Rotation rotation) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -277,20 +238,14 @@ const BlockState& DoorBlock::mirror(const BlockState& state, Mirror mirror) cons
         return state;
     }
 
-    // 先旋转
     Rotation rotation = Directions::mirrorToRotation(mirror, state.get(BlockStateProperties::HORIZONTAL_FACING()));
     const BlockState& rotated = rotate(state, rotation);
-
-    // 然后翻转铰链
     BlockStateProperties::DoorHinge hinge = rotated.get(BlockStateProperties::HINGE());
     BlockStateProperties::DoorHinge newHinge = (hinge == BlockStateProperties::DoorHinge::Left)
         ? BlockStateProperties::DoorHinge::Right
         : BlockStateProperties::DoorHinge::Left;
-
     return rotated.with(BlockStateProperties::HINGE(), newHinge);
 }
-
-// ========== 静态工具方法 ==========
 
 bool DoorBlock::isOpen(const BlockState& state) {
     return state.get(BlockStateProperties::OPEN());
@@ -305,14 +260,11 @@ bool DoorBlock::isWooden(const BlockState& state) {
     return false;
 }
 
-// ========== 私有方法 ==========
-
 BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContext& context) {
     const IWorld& reader = context.getWorld();
     BlockPos pos = context.placementPos();
     Direction facing = context.horizontalDirection();
 
-    // 获取左右方向
     Direction leftDir = Directions::rotateYCCW(facing);
     Direction rightDir = Directions::rotateY(facing);
 
@@ -326,14 +278,12 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
     const BlockState* rightState = reader.getBlockState(rightPos);
     const BlockState* rightUpState = reader.getBlockState(rightUpPos);
 
-    // 计算左右两侧的遮挡情况
     i32 score = 0;
     if (leftState != nullptr && leftState->hasOpaqueCollisionShape()) score--;
     if (leftUpState != nullptr && leftUpState->hasOpaqueCollisionShape()) score--;
     if (rightState != nullptr && rightState->hasOpaqueCollisionShape()) score++;
     if (rightUpState != nullptr && rightUpState->hasOpaqueCollisionShape()) score++;
 
-    // 检查相邻门的位置
     bool hasLeftDoor = leftState != nullptr &&
                        &leftState->getBlock() == this &&
                        leftState->get(BlockStateProperties::HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
@@ -343,7 +293,6 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
 
     if ((!hasLeftDoor || hasRightDoor) && score <= 0) {
         if ((!hasRightDoor || hasLeftDoor) && score >= 0) {
-            // 根据点击位置决定
             i32 dx = Directions::xOffset(facing);
             i32 dz = Directions::zOffset(facing);
             f32 hitX = context.getHitX() - static_cast<f32>(pos.x);
@@ -363,27 +312,20 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
 }
 
 void DoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
-    // TODO: 实现音效系统
-    // int soundId = isOpening ? getOpenSound() : getCloseSound();
-    // world.playEvent(nullptr, soundId, pos, 0);
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(isOpening);
 }
 
 i32 DoorBlock::getOpenSound() const {
-    // 1011 = 铁门打开, 1005 = 木门打开
     return m_isIron ? 1011 : 1005;
 }
 
 i32 DoorBlock::getCloseSound() const {
-    // 1012 = 铁门关闭, 1006 = 木门关闭
     return m_isIron ? 1012 : 1006;
 }
 
 size_t DoorBlock::getShapeIndex(Direction facing, bool open, bool hingeRight) {
-    // 关闭状态: 根据朝向选择形状 (索引 0-3)
-    // EAST=0, SOUTH=1, WEST=2, NORTH=3
     if (!open) {
         switch (facing) {
             case Direction::East:  return 0;
@@ -394,32 +336,20 @@ size_t DoorBlock::getShapeIndex(Direction facing, bool open, bool hingeRight) {
         }
     }
 
-    // 打开状态: 根据铰链位置计算实际朝向 (索引 4-7)
-    // 左铰链: 门向逆时针方向打开 (门扇在铰链的右边)
-    // 右铰链: 门向顺时针方向打开 (门扇在铰链的左边)
-    //
-    // 形状定义:
-    // m_shapes[4] = NORTH形状(z=13-16) - EAST门+左铰链打开
-    // m_shapes[5] = WEST形状(x=0-3) - SOUTH门+左铰链打开
-    // m_shapes[6] = SOUTH形状(z=0-3) - WEST门+左铰链打开
-    // m_shapes[7] = EAST形状(x=0-3) - NORTH门+左铰链打开
-
     if (hingeRight) {
-        // 右铰链: 门的开口方向与左铰链相反
         switch (facing) {
-            case Direction::East:  return 5;  // 门向右开，在西侧
-            case Direction::South: return 6;  // 门向右开，在南侧
-            case Direction::West:  return 7;  // 门向右开，在东侧
-            case Direction::North: return 4;  // 门向右开，在北侧
+            case Direction::East:  return 5;
+            case Direction::South: return 6;
+            case Direction::West:  return 7;
+            case Direction::North: return 4;
             default: return 4;
         }
     } else {
-        // 左铰链
         switch (facing) {
-            case Direction::East:  return 4;  // 门向左开，在北侧
-            case Direction::South: return 5;  // 门向左开，在西侧
-            case Direction::West:  return 6;  // 门向左开，在南侧
-            case Direction::North: return 7;  // 门向左开，在东侧
+            case Direction::East:  return 4;
+            case Direction::South: return 5;
+            case Direction::West:  return 6;
+            case Direction::North: return 7;
             default: return 4;
         }
     }

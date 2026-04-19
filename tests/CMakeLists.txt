@@ -179,6 +179,7 @@ add_executable(mc_tests
     client/ui/kagero/layout/LayoutConstraintsTest.cpp
     client/ui/kagero/layout/FlexLayoutTest.cpp
     client/ui/kagero/layout/LayoutEngineTest.cpp
+    client/ui/kagero/layout/LayoutEngineIntegrationTest.cpp
     client/ui/kagero/layout/FlexLayoutAlgorithmTest.cpp
     client/ui/kagero/layout/GridLayoutTest.cpp
     client/ui/kagero/layout/AnchorLayoutTest.cpp

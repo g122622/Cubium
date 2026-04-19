@@ -1,7 +1,11 @@
 #include "TrapDoorBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -9,13 +13,9 @@
 namespace mc {
 namespace blocks {
 
-// ========== 构造函数 ==========
-
 TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     : Block(properties)
     , m_isIron(isIron) {
-
-    // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HORIZONTAL_FACING())
         .add(BlockStateProperties::OPEN())
@@ -27,7 +27,6 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
         });
     createBlockState(std::move(container));
 
-    // 设置默认状态
     setDefaultState(defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
         .with(BlockStateProperties::OPEN(), false)
@@ -35,33 +34,20 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
         .with(BlockStateProperties::POWERED(), false)
         .with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 预计算碰撞形状
-    // 像素单位
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 关闭状态：完整薄板 (厚度3像素)
     CollisionShape closedBottom = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 3.0f * P, 16.0f);
     CollisionShape closedTop = CollisionShape::box(0.0f, 13.0f * P, 0.0f, 16.0f, 16.0f, 16.0f);
 
-    // 打开状态：侧面薄板
-    // NORTH: z=0-3
     CollisionShape openBottomNorth = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f * P);
     CollisionShape openTopNorth = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f * P);
-    // SOUTH: z=13-16
     CollisionShape openBottomSouth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 16.0f, 16.0f, 16.0f);
     CollisionShape openTopSouth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 16.0f, 16.0f, 16.0f);
-    // EAST: x=13-16
     CollisionShape openBottomEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
     CollisionShape openTopEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
-    // WEST: x=0-3
     CollisionShape openBottomWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 16.0f, 16.0f);
     CollisionShape openTopWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 16.0f, 16.0f);
 
-    // 初始化形状缓存
-    // 索引: facing * 4 + (open ? 2 : 0) + (half == Upper ? 1 : 0)
-    // facing: NORTH=0, SOUTH=1, EAST=2, WEST=3
-
-    // 关闭状态
     m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::DoubleBlockHalf::Lower)] = closedBottom;
     m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::DoubleBlockHalf::Upper)] = closedTop;
     m_shapes[getShapeIndex(Direction::South, false, BlockStateProperties::DoubleBlockHalf::Lower)] = closedBottom;
@@ -71,7 +57,6 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::DoubleBlockHalf::Lower)] = closedBottom;
     m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::DoubleBlockHalf::Upper)] = closedTop;
 
-    // 打开状态
     m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::DoubleBlockHalf::Lower)] = openBottomNorth;
     m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::DoubleBlockHalf::Upper)] = openTopNorth;
     m_shapes[getShapeIndex(Direction::South, true, BlockStateProperties::DoubleBlockHalf::Lower)] = openBottomSouth;
@@ -82,43 +67,32 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::DoubleBlockHalf::Upper)] = openTopWest;
 }
 
-// ========== 放置和更新 ==========
-
 BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context) {
-    BlockPos pos = context.placementPos();
-    Direction clickedFace = context.getClickedFace();
-    const IWorld& world = context.getWorld();
+    const BlockPos pos = context.placementPos();
+    const Direction clickedFace = context.getClickedFace();
+    IWorld& world = const_cast<IWorld&>(context.getWorld());
 
-    // 确定朝向（朝向玩家相反的方向）
-    Direction facing = Directions::opposite(context.horizontalDirection());
-
-    // 确定上半/下半
+    Direction facing;
     BlockStateProperties::DoubleBlockHalf half;
-    if (clickedFace == Direction::Up) {
-        half = BlockStateProperties::DoubleBlockHalf::Lower;
-    } else if (clickedFace == Direction::Down) {
-        half = BlockStateProperties::DoubleBlockHalf::Upper;
-    } else {
-        // 点击侧面，根据点击位置决定
-        half = (context.getHitY() > 0.5f)
+    if (!context.replacingClickedBlock() && Directions::isHorizontal(clickedFace)) {
+        facing = clickedFace;
+        half = context.getHitY() > 0.5f
             ? BlockStateProperties::DoubleBlockHalf::Upper
             : BlockStateProperties::DoubleBlockHalf::Lower;
+    } else {
+        facing = Directions::opposite(context.horizontalDirection());
+        half = clickedFace == Direction::Up
+            ? BlockStateProperties::DoubleBlockHalf::Lower
+            : BlockStateProperties::DoubleBlockHalf::Upper;
     }
 
-    // 检查是否含水
-    const BlockState* existingState = world.getBlockState(pos);
-    bool waterlogged = false;
-    if (existingState != nullptr) {
-        const fluid::FluidState* fluid = existingState->getFluidState();
-        waterlogged = fluid != nullptr && fluid->isSource();
-    }
-
-    // TODO: 检查红石信号
-    bool powered = false;
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+    bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos);
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-        .with(BlockStateProperties::OPEN(), false)
+        .with(BlockStateProperties::OPEN(), powered)
         .with(BlockStateProperties::HALF(), half)
         .with(BlockStateProperties::POWERED(), powered)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
@@ -131,12 +105,8 @@ bool TrapDoorBlock::isValidPosition(
 
     MC_UNUSED(state);
 
-    // 检查下方是否有支撑
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
-
-    // 简化检查：下方有固体方块即可
-    // 实际MC中更复杂，需要检查方块是否提供支撑面
     return belowState != nullptr && belowState->isSolid();
 }
 
@@ -151,14 +121,18 @@ BlockState TrapDoorBlock::updatePostPlacement(
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    // 检查支撑
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
     if (facing == Direction::Down) {
         BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
         if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
-            // 下方支撑被破坏
             const BlockState* belowState = world.getBlockState(currentPos.down());
             if (belowState == nullptr || !belowState->isSolid()) {
-                return world.getBlockState(currentPos)->getBlock().defaultState();
+                return VanillaBlocks::AIR->defaultState();
             }
         }
     }
@@ -180,26 +154,28 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
 
     BlockState state = *statePtr;
     bool wasPowered = state.get(BlockStateProperties::POWERED());
+    bool isPowered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos);
 
-    // TODO: 实现红石信号检测
-    bool isPowered = false; // world.isBlockPowered(pos);
+    if (isPowered == wasPowered) {
+        return;
+    }
 
-    if (isPowered != wasPowered) {
-        // 红石信号改变，切换开关状态
-        bool wasOpen = state.get(BlockStateProperties::OPEN());
-        BlockState newState = state
-            .with(BlockStateProperties::POWERED(), isPowered)
-            .with(BlockStateProperties::OPEN(), isPowered);
+    bool wasOpen = state.get(BlockStateProperties::OPEN());
+    BlockState newState = state
+        .with(BlockStateProperties::POWERED(), isPowered)
+        .with(BlockStateProperties::OPEN(), isPowered);
+    world.setBlockState(pos, &newState, 2);
 
-        world.setBlockState(pos, &newState, 2);
+    if (newState.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+    }
 
-        if (wasOpen != isPowered) {
-            playSound(world, pos, isPowered);
-        }
+    if (wasOpen != isPowered) {
+        playSound(world, pos, isPowered);
     }
 }
-
-// ========== 交互 ==========
 
 ActionResultType TrapDoorBlock::onBlockActivated(
     const BlockState& state,
@@ -213,22 +189,13 @@ ActionResultType TrapDoorBlock::onBlockActivated(
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 铁活板门不能手动开关
     if (m_isIron) {
         return ActionResultType::Pass;
     }
 
-    // 切换开关状态
-    bool wasOpen = state.get(BlockStateProperties::OPEN());
-    BlockState newState = state.with(BlockStateProperties::OPEN(), !wasOpen);
-    world.setBlockState(pos, &newState, 10);
-
-    playSound(world, pos, !wasOpen);
-
+    toggle(world, pos, state, !state.get(BlockStateProperties::OPEN()));
     return ActionResultType::Success;
 }
-
-// ========== 形状 ==========
 
 const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -241,15 +208,12 @@ const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const {
 }
 
 const CollisionShape& TrapDoorBlock::getCollisionShape(const BlockState& state) const {
-    // 打开时无碰撞
     if (state.get(BlockStateProperties::OPEN())) {
         static CollisionShape emptyShape = CollisionShape::empty();
         return emptyShape;
     }
     return getShape(state);
 }
-
-// ========== 旋转和镜像 ==========
 
 const BlockState& TrapDoorBlock::rotate(const BlockState& state, Rotation rotation) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -265,27 +229,32 @@ const BlockState& TrapDoorBlock::mirror(const BlockState& state, Mirror mirror) 
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     Direction mirrored = Directions::rotateDirection(facing, rotation);
-
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), mirrored);
 }
-
-// ========== 静态方法 ==========
 
 bool TrapDoorBlock::isOpen(const BlockState& state) {
     return state.get(BlockStateProperties::OPEN());
 }
 
 void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState& state, bool open) {
-    if (state.get(BlockStateProperties::OPEN()) != open) {
-        BlockState newState = state.with(BlockStateProperties::OPEN(), open);
-        world.setBlockState(pos, &newState, 10);
+    if (state.get(BlockStateProperties::OPEN()) == open) {
+        return;
     }
+
+    BlockState newState = state.with(BlockStateProperties::OPEN(), open);
+    world.setBlockState(pos, &newState, 10);
+
+    if (newState.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
+    playSound(world, pos, open);
 }
 
-// ========== 私有方法 ==========
-
 void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
-    // TODO: 实现音效系统
+    // TODO 播放声音
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(isOpening);
@@ -303,7 +272,6 @@ size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStatePrope
 
     size_t halfIdx = (half == BlockStateProperties::DoubleBlockHalf::Upper) ? 1 : 0;
     size_t openIdx = open ? 2 : 0;
-
     return facingIdx * 4 + openIdx + halfIdx;
 }
 

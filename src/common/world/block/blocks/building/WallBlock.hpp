@@ -17,10 +17,9 @@ namespace blocks {
 /**
  * @brief 墙方块
  *
- * 支持与相邻墙/栅栏连接，自动调整高度。
- *
+ * 支持与相邻墙/栅栏连接，并自动调整高度。
  * 状态属性：
- * - UP: 是否有顶部突起
+ * - UP: 是否有顶部突出
  * - NORTH/WEST/EAST/SOUTH: 各方向连接高度 (NONE, LOW, TALL)
  * - WATERLOGGED: 是否含水
  *
@@ -57,6 +56,13 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 判断方块是否为墙
+     * @param state 方块状态
+     * @return 如果是墙返回 true
+     */
+    [[nodiscard]] static bool isWall(const BlockState& state);
+
     // ========== 红石连接 ==========
 
     [[nodiscard]] bool canConnectRedstone(const BlockState& state, Direction side) const override;
@@ -88,16 +94,9 @@ private:
         Direction neighborSide) const;
 
     /**
-     * @brief 检查方块是否为墙
+     * @brief 判断方块是否为栅栏门
      * @param state 方块状态
-     * @return 如果是墙返回true
-     */
-    [[nodiscard]] static bool isWall(const BlockState& state);
-
-    /**
-     * @brief 检查方块是否为栅栏门
-     * @param state 方块状态
-     * @return 如果是栅栏门返回true
+     * @return 如果是栅栏门返回 true
      */
     [[nodiscard]] static bool isFenceGate(const BlockState& state);
 

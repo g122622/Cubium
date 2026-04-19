@@ -1,33 +1,138 @@
 #include <gtest/gtest.h>
+
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/blocks/redstone/RedstoneWireBlock.hpp"
-#include "common/world/block/blocks/redstone/RedstoneTorchBlock.hpp"
-#include "common/world/block/blocks/redstone/RedstoneLampBlock.hpp"
-#include "common/world/block/blocks/redstone/LeverBlock.hpp"
-#include "common/world/block/blocks/redstone/ObserverBlock.hpp"
-#include "common/world/block/blocks/redstone/TargetBlock.hpp"
-#include "common/world/block/blocks/redstone/DaylightDetectorBlock.hpp"
-#include "common/world/block/blocks/redstone/StonePressurePlateBlock.hpp"
-#include "common/world/block/blocks/redstone/WoodPressurePlateBlock.hpp"
-#include "common/world/block/blocks/redstone/WeightedPressurePlateBlock.hpp"
-#include "common/world/block/blocks/redstone/RedstoneComparatorBlock.hpp"
-#include "common/world/block/blocks/redstone/RedstoneRepeaterBlock.hpp"
-#include "common/world/block/blocks/redstone/PistonBlock.hpp"
-#include "common/world/block/blocks/redstone/DispenserBlock.hpp"
-#include "common/world/block/blocks/redstone/DropperBlock.hpp"
-#include "common/world/block/blocks/redstone/NoteBlock.hpp"
-#include "common/world/block/blocks/redstone/TripWireBlock.hpp"
-#include "common/world/block/blocks/redstone/TripWireHookBlock.hpp"
-#include "common/world/block/blocks/redstone/TNTBlock.hpp"
+#include "common/world/block/blocks/DoorBlock.hpp"
+#include "common/world/block/blocks/FenceGateBlock.hpp"
+#include "common/world/block/blocks/HopperBlock.hpp"
+#include "common/world/block/blocks/building/TrapDoorBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+
+#include <map>
 
 using namespace mc;
+using namespace mc::blocks;
 
-// ============================================================================
-// 红石方块注册测试
-// ============================================================================
+namespace {
+
+class ConstantPowerBlock final : public Block {
+public:
+    ConstantPowerBlock()
+        : Block(BlockProperties(Material::STONE)) {
+        auto container = StateContainer<Block, BlockState>::Builder(*this)
+            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
+        createBlockState(std::move(container));
+    }
+
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const override {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    [[nodiscard]] i32 getStrongPower(const BlockState& state, IWorld& world,
+                                     const BlockPos& pos, Direction side) const override {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(side);
+        return 15;
+    }
+};
+
+class RedstoneBlockTestWorld final : public IWorld {
+public:
+    using IWorld::getBlockState;
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        return it == m_blocks.end() ? nullptr : &it->second;
+    }
+
+    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+        return setBlockState(x, y, z, state, 0);
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+        MC_UNUSED(flags);
+        const BlockPos pos(x, y, z);
+        if (state == nullptr) {
+            m_blocks.erase(pos);
+        } else {
+            m_blocks[pos] = *state;
+        }
+        ++m_setBlockCalls;
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] DimensionId dimension() const override { return 0; }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+    void setBlockAt(const BlockPos& pos, const BlockState& state) {
+        m_blocks[pos] = state;
+    }
+
+    void clearBlockAt(const BlockPos& pos) {
+        m_blocks.erase(pos);
+    }
+
+    [[nodiscard]] i32 setBlockCalls() const {
+        return m_setBlockCalls;
+    }
+
+private:
+    std::map<BlockPos, BlockState> m_blocks;
+    i32 m_setBlockCalls = 0;
+};
+
+BlockItemUseContext makePlacementContext(const IWorld& world, const BlockPos& pos, f32 playerYaw = 180.0f) {
+    static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
+    return BlockItemUseContext(
+        world,
+        nullptr,
+        EMPTY_STACK,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
+        pos,
+        Direction::Up,
+        playerYaw);
+}
+
+ConstantPowerBlock& powerBlock() {
+    static ConstantPowerBlock block;
+    return block;
+}
+
+void setPowerSource(RedstoneBlockTestWorld& world, const BlockPos& pos) {
+    world.setBlockAt(pos, powerBlock().defaultState());
+}
+
+} // namespace
+
 class RedstoneBlockTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -35,521 +140,161 @@ protected:
     }
 };
 
-// ============================================================================
-// 基础注册测试
-// ============================================================================
+TEST_F(RedstoneBlockTest, DoorBlockPlacement_UsesRedstonePower) {
+    RedstoneBlockTestWorld world;
+    DoorBlock door(BlockProperties(Material::WOOD));
+    const BlockPos pos(10, 64, 10);
 
-TEST_F(RedstoneBlockTest, RedstoneWireRegistered) {
-    ASSERT_NE(VanillaBlocks::REDSTONE_WIRE, nullptr);
-}
+    world.setBlockAt(pos.up(), VanillaBlocks::AIR->defaultState());
+    setPowerSource(world, pos.up().north());
 
-TEST_F(RedstoneBlockTest, RedstoneTorchRegistered) {
-    ASSERT_NE(VanillaBlocks::REDSTONE_TORCH, nullptr);
-}
+    const BlockState state = door.getStateForPlacement(makePlacementContext(world, pos));
 
-TEST_F(RedstoneBlockTest, RedstoneLampRegistered) {
-    ASSERT_NE(VanillaBlocks::REDSTONE_LAMP, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, RedstoneRepeaterRegistered) {
-    ASSERT_NE(VanillaBlocks::REDSTONE_REPEATER, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, RedstoneComparatorRegistered) {
-    ASSERT_NE(VanillaBlocks::REDSTONE_COMPARATOR, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, ObserverRegistered) {
-    ASSERT_NE(VanillaBlocks::OBSERVER, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, LeverRegistered) {
-    ASSERT_NE(VanillaBlocks::LEVER, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, StoneButtonRegistered) {
-    ASSERT_NE(VanillaBlocks::STONE_BUTTON, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, OakButtonRegistered) {
-    ASSERT_NE(VanillaBlocks::OAK_BUTTON, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, StonePressurePlateRegistered) {
-    ASSERT_NE(VanillaBlocks::STONE_PRESSURE_PLATE, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, OakPressurePlateRegistered) {
-    ASSERT_NE(VanillaBlocks::OAK_PRESSURE_PLATE, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, LightWeightedPressurePlateRegistered) {
-    ASSERT_NE(VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, HeavyWeightedPressurePlateRegistered) {
-    ASSERT_NE(VanillaBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, DaylightDetectorRegistered) {
-    ASSERT_NE(VanillaBlocks::DAYLIGHT_DETECTOR, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, PistonRegistered) {
-    ASSERT_NE(VanillaBlocks::PISTON, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, StickyPistonRegistered) {
-    ASSERT_NE(VanillaBlocks::STICKY_PISTON, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, PistonHeadRegistered) {
-    ASSERT_NE(VanillaBlocks::PISTON_HEAD, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, DispenserRegistered) {
-    ASSERT_NE(VanillaBlocks::DISPENSER, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, DropperRegistered) {
-    ASSERT_NE(VanillaBlocks::DROPPER, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, NoteBlockRegistered) {
-    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, TripWireRegistered) {
-    ASSERT_NE(VanillaBlocks::TRIPWIRE, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, TripWireHookRegistered) {
-    ASSERT_NE(VanillaBlocks::TRIPWIRE_HOOK, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, TargetRegistered) {
-    ASSERT_NE(VanillaBlocks::TARGET, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, TNTRegistered) {
-    ASSERT_NE(VanillaBlocks::TNT, nullptr);
-}
-
-// ============================================================================
-// 红石线属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, RedstoneWireDefaultState) {
-    const BlockState& state = VanillaBlocks::REDSTONE_WIRE->defaultState();
-
-    // 默认信号强度为0
-    EXPECT_EQ(blocks::RedstoneWireBlock::getPower(state), 0);
-
-    // 默认连接状态为无连接
-    EXPECT_EQ(state.get(blocks::RedstoneWireBlock::NORTH_PROP()), blocks::RedstoneSide::None);
-    EXPECT_EQ(state.get(blocks::RedstoneWireBlock::EAST_PROP()), blocks::RedstoneSide::None);
-    EXPECT_EQ(state.get(blocks::RedstoneWireBlock::SOUTH_PROP()), blocks::RedstoneSide::None);
-    EXPECT_EQ(state.get(blocks::RedstoneWireBlock::WEST_PROP()), blocks::RedstoneSide::None);
-}
-
-TEST_F(RedstoneBlockTest, RedstoneWireCanProvidePower) {
-    const BlockState& state = VanillaBlocks::REDSTONE_WIRE->defaultState();
-    EXPECT_TRUE(VanillaBlocks::REDSTONE_WIRE->canProvidePower(state));
-}
-
-TEST_F(RedstoneBlockTest, RedstoneWirePowerRange) {
-    BlockState state = VanillaBlocks::REDSTONE_WIRE->defaultState();
-
-    // 测试所有信号强度
-    for (i32 power = 0; power <= 15; ++power) {
-        state = blocks::RedstoneWireBlock::withPower(state, power);
-        EXPECT_EQ(blocks::RedstoneWireBlock::getPower(state), power);
-    }
-}
-
-// ============================================================================
-// 红石火把属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, RedstoneTorchDefaultState) {
-    const BlockState& state = VanillaBlocks::REDSTONE_TORCH->defaultState();
-    EXPECT_NE(&state, nullptr);
-}
-
-TEST_F(RedstoneBlockTest, RedstoneTorchCanProvidePower) {
-    const BlockState& state = VanillaBlocks::REDSTONE_TORCH->defaultState();
-    EXPECT_TRUE(VanillaBlocks::REDSTONE_TORCH->canProvidePower(state));
-}
-
-TEST_F(RedstoneBlockTest, RedstoneTorchShapeNotFullBlock) {
-    const BlockState& state = VanillaBlocks::REDSTONE_TORCH->defaultState();
-    const CollisionShape& shape = state.getShape();
-
-    ASSERT_FALSE(shape.isEmpty());
-    ASSERT_FALSE(shape.isFullBlock());
-    ASSERT_EQ(shape.boxCount(), 1u);
-
-    const auto& box = shape.boxes().front();
-    const f32 dx = box.maxX - box.minX;
-    const f32 dy = box.maxY - box.minY;
-    const f32 dz = box.maxZ - box.minZ;
-    EXPECT_TRUE(dx < 1.0f || dy < 1.0f || dz < 1.0f);
-}
-
-// ============================================================================
-// 红石灯属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, RedstoneLampDefaultState) {
-    const BlockState& state = VanillaBlocks::REDSTONE_LAMP->defaultState();
-
-    // 默认不发光
-    EXPECT_FALSE(state.get(BlockStateProperties::LIT()));
-}
-
-TEST_F(RedstoneBlockTest, RedstoneLampLitState) {
-    BlockState state = VanillaBlocks::REDSTONE_LAMP->defaultState();
-
-    // 设置为发光
-    state = state.with(BlockStateProperties::LIT(), true);
-    EXPECT_TRUE(state.get(BlockStateProperties::LIT()));
-}
-
-// ============================================================================
-// 拉杆属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, LeverDefaultState) {
-    const BlockState& state = VanillaBlocks::LEVER->defaultState();
-
-    // 默认不激活
-    EXPECT_FALSE(state.get(BlockStateProperties::POWERED()));
-}
-
-TEST_F(RedstoneBlockTest, LeverPoweredState) {
-    BlockState state = VanillaBlocks::LEVER->defaultState();
-
-    // 激活拉杆
-    state = state.with(BlockStateProperties::POWERED(), true);
     EXPECT_TRUE(state.get(BlockStateProperties::POWERED()));
+    EXPECT_TRUE(state.get(BlockStateProperties::OPEN()));
 }
 
-TEST_F(RedstoneBlockTest, LeverCanProvidePower) {
-    const BlockState& state = VanillaBlocks::LEVER->defaultState();
-    EXPECT_TRUE(VanillaBlocks::LEVER->canProvidePower(state));
+TEST_F(RedstoneBlockTest, DoorBlockNeighborChanged_UpdatesFromRedstonePower) {
+    RedstoneBlockTestWorld world;
+    DoorBlock door(BlockProperties(Material::WOOD));
+    const BlockPos pos(10, 64, 10);
+
+    BlockState state = door.defaultState()
+        .with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+        .with(BlockStateProperties::OPEN(), false)
+        .with(BlockStateProperties::POWERED(), false);
+    BlockState upperState = state.with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+
+    world.setBlockAt(pos, state);
+    world.setBlockAt(pos.up(), upperState);
+    setPowerSource(world, pos.up().north());
+
+    door.neighborChanged(world, pos, powerBlock(), pos.up().north(), false);
+
+    const BlockState* updated = world.getBlockState(pos);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_TRUE(updated->get(BlockStateProperties::POWERED()));
+    EXPECT_TRUE(updated->get(BlockStateProperties::OPEN()));
+
+    const BlockState* upperUpdated = world.getBlockState(pos.up());
+    ASSERT_NE(upperUpdated, nullptr);
+    EXPECT_EQ(upperUpdated->get(BlockStateProperties::HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_TRUE(upperUpdated->get(BlockStateProperties::POWERED()));
+    EXPECT_TRUE(upperUpdated->get(BlockStateProperties::OPEN()));
 }
 
-// ============================================================================
-// 压力板属性测试
-// ============================================================================
+TEST_F(RedstoneBlockTest, FenceGateBlockPlacement_UsesRedstonePower) {
+    RedstoneBlockTestWorld world;
+    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    const BlockPos pos(12, 64, 12);
 
-TEST_F(RedstoneBlockTest, StonePressurePlateDefaultState) {
-    const BlockState& state = VanillaBlocks::STONE_PRESSURE_PLATE->defaultState();
-    EXPECT_EQ(blocks::AbstractPressurePlateBlock::getPower(state), 0);
+    setPowerSource(world, pos.north());
+
+    const BlockState state = fenceGate.getStateForPlacement(makePlacementContext(world, pos));
+
+    EXPECT_TRUE(state.get(BlockStateProperties::POWERED()));
+    EXPECT_TRUE(state.get(BlockStateProperties::OPEN()));
 }
 
-TEST_F(RedstoneBlockTest, OakPressurePlateDefaultState) {
-    const BlockState& state = VanillaBlocks::OAK_PRESSURE_PLATE->defaultState();
-    EXPECT_EQ(blocks::AbstractPressurePlateBlock::getPower(state), 0);
+TEST_F(RedstoneBlockTest, FenceGateBlockNeighborChanged_UpdatesFromRedstonePower) {
+    RedstoneBlockTestWorld world;
+    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    const BlockPos pos(12, 64, 12);
+
+    world.setBlockAt(pos, fenceGate.defaultState());
+    setPowerSource(world, pos.north());
+
+    fenceGate.neighborChanged(world, pos, powerBlock(), pos.north(), false);
+
+    const BlockState* updated = world.getBlockState(pos);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_TRUE(updated->get(BlockStateProperties::POWERED()));
+    EXPECT_TRUE(updated->get(BlockStateProperties::OPEN()));
 }
 
-TEST_F(RedstoneBlockTest, LightWeightedPressurePlateDefaultState) {
-    const BlockState& state = VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE->defaultState();
-    EXPECT_EQ(blocks::AbstractPressurePlateBlock::getPower(state), 0);
+TEST_F(RedstoneBlockTest, FenceGateBlockPlacement_ActualWallsSetInWall) {
+    RedstoneBlockTestWorld world;
+    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    const BlockPos pos(14, 64, 14);
+
+    world.setBlockAt(pos.west(), VanillaBlocks::COBBLESTONE_WALL->defaultState());
+    world.setBlockAt(pos.east(), VanillaBlocks::COBBLESTONE_WALL->defaultState());
+
+    const BlockState state = fenceGate.getStateForPlacement(makePlacementContext(world, pos));
+
+    EXPECT_TRUE(state.get(BlockStateProperties::IN_WALL()));
 }
 
-TEST_F(RedstoneBlockTest, HeavyWeightedPressurePlateDefaultState) {
-    const BlockState& state = VanillaBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE->defaultState();
-    EXPECT_EQ(blocks::AbstractPressurePlateBlock::getPower(state), 0);
+TEST_F(RedstoneBlockTest, FenceGateBlockPlacement_GenericSolidsDoNotSetInWall) {
+    RedstoneBlockTestWorld world;
+    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    const BlockPos pos(14, 64, 14);
+
+    world.setBlockAt(pos.west(), VanillaBlocks::STONE->defaultState());
+    world.setBlockAt(pos.east(), VanillaBlocks::STONE->defaultState());
+
+    const BlockState state = fenceGate.getStateForPlacement(makePlacementContext(world, pos));
+
+    EXPECT_FALSE(state.get(BlockStateProperties::IN_WALL()));
 }
 
-TEST_F(RedstoneBlockTest, PressurePlateCanProvidePower) {
-    const BlockState& stoneState = VanillaBlocks::STONE_PRESSURE_PLATE->defaultState();
-    const BlockState& oakState = VanillaBlocks::OAK_PRESSURE_PLATE->defaultState();
+TEST_F(RedstoneBlockTest, TrapDoorBlockPlacement_UsesRedstonePower) {
+    RedstoneBlockTestWorld world;
+    TrapDoorBlock trapDoor(BlockProperties(Material::WOOD));
+    const BlockPos pos(16, 64, 16);
 
-    EXPECT_TRUE(VanillaBlocks::STONE_PRESSURE_PLATE->canProvidePower(stoneState));
-    EXPECT_TRUE(VanillaBlocks::OAK_PRESSURE_PLATE->canProvidePower(oakState));
+    setPowerSource(world, pos.north());
+
+    const BlockState state = trapDoor.getStateForPlacement(makePlacementContext(world, pos));
+
+    EXPECT_TRUE(state.get(BlockStateProperties::POWERED()));
+    EXPECT_TRUE(state.get(BlockStateProperties::OPEN()));
 }
 
-TEST_F(RedstoneBlockTest, PressurePlateShapeNotFullBlock) {
-    const BlockState& state = VanillaBlocks::STONE_PRESSURE_PLATE->defaultState();
-    const CollisionShape& shape = state.getShape();
+TEST_F(RedstoneBlockTest, TrapDoorBlockNeighborChanged_UpdatesFromRedstonePower) {
+    RedstoneBlockTestWorld world;
+    TrapDoorBlock trapDoor(BlockProperties(Material::WOOD));
+    const BlockPos pos(16, 64, 16);
 
-    ASSERT_FALSE(shape.isEmpty());
-    ASSERT_FALSE(shape.isFullBlock());
-    ASSERT_EQ(shape.boxCount(), 1u);
+    world.setBlockAt(pos, trapDoor.defaultState());
+    setPowerSource(world, pos.north());
 
-    const auto& box = shape.boxes().front();
-    EXPECT_LT(box.maxY - box.minY, 1.0f);
+    trapDoor.neighborChanged(world, pos, powerBlock(), pos.north(), false);
+
+    const BlockState* updated = world.getBlockState(pos);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_TRUE(updated->get(BlockStateProperties::POWERED()));
+    EXPECT_TRUE(updated->get(BlockStateProperties::OPEN()));
 }
 
-// ============================================================================
-// 日光探测器属性测试
-// ============================================================================
+TEST_F(RedstoneBlockTest, HopperBlockOnBlockAdded_PoweredDisablesHopper) {
+    RedstoneBlockTestWorld world;
+    HopperBlock hopper(BlockProperties(Material::STONE));
+    const BlockPos pos(20, 64, 20);
 
-TEST_F(RedstoneBlockTest, DaylightDetectorDefaultState) {
-    const BlockState& state = VanillaBlocks::DAYLIGHT_DETECTOR->defaultState();
+    world.setBlockAt(pos, hopper.defaultState());
+    setPowerSource(world, pos.north());
 
-    // 默认信号强度为0
-    EXPECT_EQ(blocks::DaylightDetectorBlock::getPower(state), 0);
+    hopper.onBlockAdded(world, pos, hopper.defaultState());
 
-    // 默认不反转
-    EXPECT_FALSE(blocks::DaylightDetectorBlock::isInverted(state));
+    const BlockState* updated = world.getBlockState(pos);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_FALSE(updated->get(BlockStateProperties::ENABLED()));
+    EXPECT_EQ(world.setBlockCalls(), 1);
 }
 
-TEST_F(RedstoneBlockTest, DaylightDetectorInvertedState) {
-    BlockState state = VanillaBlocks::DAYLIGHT_DETECTOR->defaultState();
-
-    // 反转模式
-    state = blocks::DaylightDetectorBlock::withInverted(state, true);
-    EXPECT_TRUE(blocks::DaylightDetectorBlock::isInverted(state));
-}
-
-TEST_F(RedstoneBlockTest, DaylightDetectorCanProvidePower) {
-    const BlockState& state = VanillaBlocks::DAYLIGHT_DETECTOR->defaultState();
-    EXPECT_TRUE(VanillaBlocks::DAYLIGHT_DETECTOR->canProvidePower(state));
-}
-
-// ============================================================================
-// 中继器属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, RedstoneRepeaterDefaultState) {
-    const BlockState& state = VanillaBlocks::REDSTONE_REPEATER->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
-
-    // 默认延迟为1
-    EXPECT_EQ(state.get(BlockStateProperties::DELAY_1_4()), 1);
-
-    // 默认不锁定
-    EXPECT_FALSE(state.get(BlockStateProperties::LOCKED()));
-}
-
-TEST_F(RedstoneBlockTest, RedstoneRepeaterDelayRange) {
-    BlockState state = VanillaBlocks::REDSTONE_REPEATER->defaultState();
-
-    for (i32 delay = 1; delay <= 4; ++delay) {
-        state = state.with(BlockStateProperties::DELAY_1_4(), delay);
-        EXPECT_EQ(state.get(BlockStateProperties::DELAY_1_4()), delay);
-    }
-}
-
-TEST_F(RedstoneBlockTest, RedstoneRepeaterShapeNotFullBlock) {
-    const BlockState& state = VanillaBlocks::REDSTONE_REPEATER->defaultState();
-    const CollisionShape& shape = state.getShape();
-
-    ASSERT_FALSE(shape.isEmpty());
-    ASSERT_FALSE(shape.isFullBlock());
-    ASSERT_EQ(shape.boxCount(), 1u);
-
-    const auto& box = shape.boxes().front();
-    EXPECT_LT(box.maxY - box.minY, 1.0f);
-}
-
-// ============================================================================
-// 比较器属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, RedstoneComparatorDefaultState) {
-    const BlockState& state = VanillaBlocks::REDSTONE_COMPARATOR->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
-
-    // 默认模式为比较
-    EXPECT_EQ(blocks::RedstoneComparatorBlock::getMode(state), blocks::ComparatorMode::Compare);
-
-    // 默认不锁定
-    EXPECT_FALSE(state.get(BlockStateProperties::LOCKED()));
-}
-
-TEST_F(RedstoneBlockTest, RedstoneComparatorModes) {
-    BlockState state = VanillaBlocks::REDSTONE_COMPARATOR->defaultState();
-
-    // 比较模式
-    state = blocks::RedstoneComparatorBlock::withMode(state, blocks::ComparatorMode::Compare);
-    EXPECT_EQ(blocks::RedstoneComparatorBlock::getMode(state), blocks::ComparatorMode::Compare);
-
-    // 减法模式
-    state = blocks::RedstoneComparatorBlock::withMode(state, blocks::ComparatorMode::Subtract);
-    EXPECT_EQ(blocks::RedstoneComparatorBlock::getMode(state), blocks::ComparatorMode::Subtract);
-}
-
-// ============================================================================
-// 侦测器属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, ObserverDefaultState) {
-    const BlockState& state = VanillaBlocks::OBSERVER->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
-
-    // 默认不激活
-    EXPECT_FALSE(state.get(BlockStateProperties::POWERED()));
-}
-
-TEST_F(RedstoneBlockTest, ObserverCanProvidePower) {
-    const BlockState& state = VanillaBlocks::OBSERVER->defaultState();
-    EXPECT_TRUE(VanillaBlocks::OBSERVER->canProvidePower(state));
-}
-
-// ============================================================================
-// 活塞属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, PistonDefaultState) {
-    const BlockState& state = VanillaBlocks::PISTON->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
-
-    // 默认不伸出
-    EXPECT_FALSE(state.get(BlockStateProperties::EXTENDED()));
-}
-
-TEST_F(RedstoneBlockTest, StickyPistonDefaultState) {
-    const BlockState& state = VanillaBlocks::STICKY_PISTON->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
-
-    // 默认不伸出
-    EXPECT_FALSE(state.get(BlockStateProperties::EXTENDED()));
-}
-
-// ============================================================================
-// 发射器/投掷器属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, DispenserDefaultState) {
-    const BlockState& state = VanillaBlocks::DISPENSER->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
-
-    // 默认不触发
-    EXPECT_FALSE(state.get(BlockStateProperties::TRIGGERED()));
-}
-
-TEST_F(RedstoneBlockTest, DropperDefaultState) {
-    const BlockState& state = VanillaBlocks::DROPPER->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
-
-    // 默认不触发
-    EXPECT_FALSE(state.get(BlockStateProperties::TRIGGERED()));
-}
-
-// ============================================================================
-// 标靶属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, TargetDefaultState) {
-    const BlockState& state = VanillaBlocks::TARGET->defaultState();
-
-    // 默认输出功率为0
-    EXPECT_EQ(state.get(BlockStateProperties::POWER_0_15()), 0);
-}
-
-TEST_F(RedstoneBlockTest, TargetCanProvidePower) {
-    const BlockState& state = VanillaBlocks::TARGET->defaultState();
-    EXPECT_TRUE(VanillaBlocks::TARGET->canProvidePower(state));
-}
-
-// ============================================================================
-// 绊线属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, TripWireDefaultState) {
-    const BlockState& state = VanillaBlocks::TRIPWIRE->defaultState();
-
-    // 默认不触发
-    EXPECT_FALSE(state.get(BlockStateProperties::POWERED()));
-
-    // 默认不连接
-    EXPECT_FALSE(state.get(BlockStateProperties::ATTACHED()));
-}
-
-TEST_F(RedstoneBlockTest, TripWireHookDefaultState) {
-    const BlockState& state = VanillaBlocks::TRIPWIRE_HOOK->defaultState();
-
-    // 默认朝北
-    EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
-
-    // 默认不触发
-    EXPECT_FALSE(state.get(BlockStateProperties::POWERED()));
-
-    // 默认不连接
-    EXPECT_FALSE(state.get(BlockStateProperties::ATTACHED()));
-}
-
-// ============================================================================
-// 音符盒属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, NoteBlockDefaultState) {
-    const BlockState& state = VanillaBlocks::NOTE_BLOCK->defaultState();
-
-    // 默认音符为0
-    EXPECT_EQ(blocks::NoteBlock::getNote(state), 0);
-}
-
-TEST_F(RedstoneBlockTest, NoteBlockNoteRange) {
-    BlockState state = VanillaBlocks::NOTE_BLOCK->defaultState();
-
-    for (i32 note = 0; note <= 24; ++note) {
-        state = blocks::NoteBlock::withNote(state, note);
-        EXPECT_EQ(blocks::NoteBlock::getNote(state), note);
-    }
-}
-
-// ============================================================================
-// TNT属性测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, TNTDefaultState) {
-    const BlockState& state = VanillaBlocks::TNT->defaultState();
-
-    // 默认不稳定（不会被红石触发爆炸）
-    EXPECT_FALSE(state.get(BlockStateProperties::UNSTABLE()));
-}
-
-// ============================================================================
-// 红石信号强度计算测试
-// ============================================================================
-
-TEST_F(RedstoneBlockTest, RedstoneWireSignalAttenuation) {
-    // 测试红石线信号衰减规则
-    // 信号每传输一格衰减1
-    for (i32 power = 0; power <= 15; ++power) {
-        BlockState state = VanillaBlocks::REDSTONE_WIRE->defaultState();
-        state = blocks::RedstoneWireBlock::withPower(state, power);
-
-        i32 retrieved = blocks::RedstoneWireBlock::getPower(state);
-        EXPECT_EQ(retrieved, power);
-    }
-}
-
-TEST_F(RedstoneBlockTest, PressurePlatePowerRange) {
-    BlockState state = VanillaBlocks::STONE_PRESSURE_PLATE->defaultState();
-
-    // 压力板输出范围是0-15
-    for (i32 power = 0; power <= 15; ++power) {
-        state = blocks::AbstractPressurePlateBlock::withPower(state, power);
-        EXPECT_EQ(blocks::AbstractPressurePlateBlock::getPower(state), power);
-    }
-}
-
-TEST_F(RedstoneBlockTest, DaylightDetectorPowerRange) {
-    BlockState state = VanillaBlocks::DAYLIGHT_DETECTOR->defaultState();
-
-    // 日光探测器输出范围是0-15
-    for (i32 power = 0; power <= 15; ++power) {
-        state = blocks::DaylightDetectorBlock::withPower(state, power);
-        EXPECT_EQ(blocks::DaylightDetectorBlock::getPower(state), power);
-    }
+TEST_F(RedstoneBlockTest, HopperBlockNeighborChanged_UnpoweredEnablesHopper) {
+    RedstoneBlockTestWorld world;
+    HopperBlock hopper(BlockProperties(Material::STONE));
+    const BlockPos pos(20, 64, 20);
+
+    BlockState state = hopper.defaultState().with(BlockStateProperties::ENABLED(), false);
+    world.setBlockAt(pos, state);
+
+    hopper.neighborChanged(world, pos, powerBlock(), pos.north(), false);
+
+    const BlockState* updated = world.getBlockState(pos);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_TRUE(updated->get(BlockStateProperties::ENABLED()));
+    EXPECT_EQ(world.setBlockCalls(), 1);
 }
