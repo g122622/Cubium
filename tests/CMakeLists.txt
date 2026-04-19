@@ -40,10 +40,12 @@ add_executable(mc_tests
     common/item/crafting/ShapelessRecipeTest.cpp
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/tool/ToolTests.cpp
+    common/item/potion/GlassBottleItemTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
+    common/entity/entities/passive/basic/ChickenEntityTest.cpp
     # 缁忛獙绯荤粺娴嬭瘯
     common/entity/experience/ExperienceTest.cpp
     common/entity/experience/ExperienceManagerTest.cpp
@@ -90,6 +92,7 @@ add_executable(mc_tests
     server/test_integrated_server.cpp
     server/BlockDropHandlerTest.cpp
     server/BlockInteractionManagerTest.cpp
+    server/menu/CraftingMenuTest.cpp
     server/BlockUpdateSyncManagerTest.cpp
     server/test_chunk_worker_pool.cpp
     server/test_server_chunk_manager.cpp

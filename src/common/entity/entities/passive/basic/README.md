@@ -47,6 +47,7 @@ MobEntity
 - 生命值：4
 - 繁殖物品：种子
 - 每5-10分钟下蛋
+- 计时归零时会生成鸡蛋物品实体并重置计时器
 - 不会摔伤（滑翔）
 
 ## 繁殖系统
@@ -66,3 +67,9 @@ if (animal1->isInLove() && animal2->isInLove() && animal1->canMateWith(animal2))
     animal2->resetLove();
 }
 ```
+
+## 测试用例
+
+| 文件 | 说明 |
+|------|------|
+| `tests/common/entity/entities/passive/basic/ChickenEntityTest.cpp` | 验证鸡蛋生成与计时器重置 |

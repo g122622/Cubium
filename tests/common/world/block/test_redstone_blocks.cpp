@@ -23,7 +23,7 @@ namespace {
 class ConstantPowerBlock final : public Block {
 public:
     ConstantPowerBlock()
-        : Block(BlockProperties(Material::STONE)) {
+        : Block(makeProperties()) {
         auto container = StateContainer<Block, BlockState>::Builder(*this)
             .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
@@ -43,6 +43,16 @@ public:
         MC_UNUSED(pos);
         MC_UNUSED(side);
         return 15;
+    }
+
+private:
+    /**
+     * @brief 创建测试用红石方块属性
+     *
+     * 使用显式工厂函数，避免 MSVC 将内联临时对象误判为声明语句。
+     */
+    [[nodiscard]] static BlockProperties makeProperties() {
+        return BlockProperties(Material::ROCK);
     }
 };
 
@@ -65,7 +75,7 @@ public:
         if (state == nullptr) {
             m_blocks.erase(pos);
         } else {
-            m_blocks[pos] = *state;
+            m_blocks.insert_or_assign(pos, *state);
         }
         ++m_setBlockCalls;
         return true;
@@ -92,9 +102,20 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    void playSound(const ResourceLocation& soundEventId,
+                   sound::SoundCategory category,
+                   const Vector3& position,
+                   f32 volume,
+                   f32 pitch) override {
+        MC_UNUSED(category);
+        MC_UNUSED(position);
+        MC_UNUSED(volume);
+        MC_UNUSED(pitch);
+        m_playedSoundIds.push_back(soundEventId);
+    }
 
     void setBlockAt(const BlockPos& pos, const BlockState& state) {
-        m_blocks[pos] = state;
+        m_blocks.insert_or_assign(pos, state);
     }
 
     void clearBlockAt(const BlockPos& pos) {
@@ -105,12 +126,21 @@ public:
         return m_setBlockCalls;
     }
 
+    [[nodiscard]] const std::vector<ResourceLocation>& playedSoundIds() const {
+        return m_playedSoundIds;
+    }
+
+    void clearPlayedSounds() {
+        m_playedSoundIds.clear();
+    }
+
 private:
     std::map<BlockPos, BlockState> m_blocks;
+    std::vector<ResourceLocation> m_playedSoundIds;
     i32 m_setBlockCalls = 0;
 };
 
-BlockItemUseContext makePlacementContext(const IWorld& world, const BlockPos& pos, f32 playerYaw = 180.0f) {
+BlockItemUseContext makePlacementContext(const IWorld& world, const BlockPos& pos, f32 playerYaw) {
     static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
     return BlockItemUseContext(
         world,
@@ -142,13 +172,14 @@ protected:
 
 TEST_F(RedstoneBlockTest, DoorBlockPlacement_UsesRedstonePower) {
     RedstoneBlockTestWorld world;
-    DoorBlock door(BlockProperties(Material::WOOD));
+    auto& door = *VanillaBlocks::OAK_DOOR;
     const BlockPos pos(10, 64, 10);
 
     world.setBlockAt(pos.up(), VanillaBlocks::AIR->defaultState());
     setPowerSource(world, pos.up().north());
 
-    const BlockState state = door.getStateForPlacement(makePlacementContext(world, pos));
+    auto placementContext = makePlacementContext(world, pos, 180.0f);
+    auto state = door.getStateForPlacement(placementContext);
 
     EXPECT_TRUE(state.get(BlockStateProperties::POWERED()));
     EXPECT_TRUE(state.get(BlockStateProperties::OPEN()));
@@ -156,14 +187,14 @@ TEST_F(RedstoneBlockTest, DoorBlockPlacement_UsesRedstonePower) {
 
 TEST_F(RedstoneBlockTest, DoorBlockNeighborChanged_UpdatesFromRedstonePower) {
     RedstoneBlockTestWorld world;
-    DoorBlock door(BlockProperties(Material::WOOD));
+    auto& door = *VanillaBlocks::OAK_DOOR;
     const BlockPos pos(10, 64, 10);
 
-    BlockState state = door.defaultState()
+    auto state = door.defaultState()
         .with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
         .with(BlockStateProperties::OPEN(), false)
         .with(BlockStateProperties::POWERED(), false);
-    BlockState upperState = state.with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    auto upperState = state.with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
 
     world.setBlockAt(pos, state);
     world.setBlockAt(pos.up(), upperState);
@@ -185,12 +216,13 @@ TEST_F(RedstoneBlockTest, DoorBlockNeighborChanged_UpdatesFromRedstonePower) {
 
 TEST_F(RedstoneBlockTest, FenceGateBlockPlacement_UsesRedstonePower) {
     RedstoneBlockTestWorld world;
-    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    auto& fenceGate = *VanillaBlocks::OAK_FENCE_GATE;
     const BlockPos pos(12, 64, 12);
 
     setPowerSource(world, pos.north());
 
-    const BlockState state = fenceGate.getStateForPlacement(makePlacementContext(world, pos));
+    auto placementContext = makePlacementContext(world, pos, 180.0f);
+    auto state = fenceGate.getStateForPlacement(placementContext);
 
     EXPECT_TRUE(state.get(BlockStateProperties::POWERED()));
     EXPECT_TRUE(state.get(BlockStateProperties::OPEN()));
@@ -198,7 +230,7 @@ TEST_F(RedstoneBlockTest, FenceGateBlockPlacement_UsesRedstonePower) {
 
 TEST_F(RedstoneBlockTest, FenceGateBlockNeighborChanged_UpdatesFromRedstonePower) {
     RedstoneBlockTestWorld world;
-    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    auto& fenceGate = *VanillaBlocks::OAK_FENCE_GATE;
     const BlockPos pos(12, 64, 12);
 
     world.setBlockAt(pos, fenceGate.defaultState());
@@ -214,38 +246,41 @@ TEST_F(RedstoneBlockTest, FenceGateBlockNeighborChanged_UpdatesFromRedstonePower
 
 TEST_F(RedstoneBlockTest, FenceGateBlockPlacement_ActualWallsSetInWall) {
     RedstoneBlockTestWorld world;
-    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    auto& fenceGate = *VanillaBlocks::OAK_FENCE_GATE;
     const BlockPos pos(14, 64, 14);
 
     world.setBlockAt(pos.west(), VanillaBlocks::COBBLESTONE_WALL->defaultState());
     world.setBlockAt(pos.east(), VanillaBlocks::COBBLESTONE_WALL->defaultState());
 
-    const BlockState state = fenceGate.getStateForPlacement(makePlacementContext(world, pos));
+    auto placementContext = makePlacementContext(world, pos, 180.0f);
+    auto state = fenceGate.getStateForPlacement(placementContext);
 
     EXPECT_TRUE(state.get(BlockStateProperties::IN_WALL()));
 }
 
 TEST_F(RedstoneBlockTest, FenceGateBlockPlacement_GenericSolidsDoNotSetInWall) {
     RedstoneBlockTestWorld world;
-    FenceGateBlock fenceGate(BlockProperties(Material::WOOD));
+    auto& fenceGate = *VanillaBlocks::OAK_FENCE_GATE;
     const BlockPos pos(14, 64, 14);
 
     world.setBlockAt(pos.west(), VanillaBlocks::STONE->defaultState());
     world.setBlockAt(pos.east(), VanillaBlocks::STONE->defaultState());
 
-    const BlockState state = fenceGate.getStateForPlacement(makePlacementContext(world, pos));
+    auto placementContext = makePlacementContext(world, pos, 180.0f);
+    auto state = fenceGate.getStateForPlacement(placementContext);
 
     EXPECT_FALSE(state.get(BlockStateProperties::IN_WALL()));
 }
 
 TEST_F(RedstoneBlockTest, TrapDoorBlockPlacement_UsesRedstonePower) {
     RedstoneBlockTestWorld world;
-    TrapDoorBlock trapDoor(BlockProperties(Material::WOOD));
+    auto& trapDoor = *VanillaBlocks::OAK_TRAPDOOR;
     const BlockPos pos(16, 64, 16);
 
     setPowerSource(world, pos.north());
 
-    const BlockState state = trapDoor.getStateForPlacement(makePlacementContext(world, pos));
+    auto placementContext = makePlacementContext(world, pos, 180.0f);
+    auto state = trapDoor.getStateForPlacement(placementContext);
 
     EXPECT_TRUE(state.get(BlockStateProperties::POWERED()));
     EXPECT_TRUE(state.get(BlockStateProperties::OPEN()));
@@ -253,7 +288,7 @@ TEST_F(RedstoneBlockTest, TrapDoorBlockPlacement_UsesRedstonePower) {
 
 TEST_F(RedstoneBlockTest, TrapDoorBlockNeighborChanged_UpdatesFromRedstonePower) {
     RedstoneBlockTestWorld world;
-    TrapDoorBlock trapDoor(BlockProperties(Material::WOOD));
+    auto& trapDoor = *VanillaBlocks::OAK_TRAPDOOR;
     const BlockPos pos(16, 64, 16);
 
     world.setBlockAt(pos, trapDoor.defaultState());
@@ -267,9 +302,36 @@ TEST_F(RedstoneBlockTest, TrapDoorBlockNeighborChanged_UpdatesFromRedstonePower)
     EXPECT_TRUE(updated->get(BlockStateProperties::OPEN()));
 }
 
+TEST_F(RedstoneBlockTest, TrapDoorToggle_WoodenPlaysWoodenSound) {
+    RedstoneBlockTestWorld world;
+    auto& trapDoor = *VanillaBlocks::OAK_TRAPDOOR;
+    const BlockPos pos(17, 64, 17);
+    const BlockState& closedState = trapDoor.defaultState();
+
+    world.setBlockAt(pos, closedState);
+    TrapDoorBlock::toggle(world, pos, closedState, true);
+
+    ASSERT_FALSE(world.playedSoundIds().empty());
+    EXPECT_EQ(world.playedSoundIds().back(), ResourceLocation("minecraft:block.wooden_trapdoor.open"));
+}
+
+TEST_F(RedstoneBlockTest, TrapDoorToggle_IronPlaysIronSound) {
+    RedstoneBlockTestWorld world;
+    auto& trapDoor = *VanillaBlocks::IRON_TRAPDOOR;
+    const BlockPos pos(18, 64, 18);
+    const BlockState& openState = trapDoor.defaultState().with(BlockStateProperties::OPEN(), true);
+
+    world.setBlockAt(pos, openState);
+    TrapDoorBlock::toggle(world, pos, openState, false);
+
+    ASSERT_FALSE(world.playedSoundIds().empty());
+    EXPECT_EQ(world.playedSoundIds().back(), ResourceLocation("minecraft:block.iron_trapdoor.close"));
+}
+
 TEST_F(RedstoneBlockTest, HopperBlockOnBlockAdded_PoweredDisablesHopper) {
     RedstoneBlockTestWorld world;
-    HopperBlock hopper(BlockProperties(Material::STONE));
+    const BlockProperties hopperProperties(Material::ROCK);
+    HopperBlock hopper(hopperProperties);
     const BlockPos pos(20, 64, 20);
 
     world.setBlockAt(pos, hopper.defaultState());
@@ -285,10 +347,11 @@ TEST_F(RedstoneBlockTest, HopperBlockOnBlockAdded_PoweredDisablesHopper) {
 
 TEST_F(RedstoneBlockTest, HopperBlockNeighborChanged_UnpoweredEnablesHopper) {
     RedstoneBlockTestWorld world;
-    HopperBlock hopper(BlockProperties(Material::STONE));
+    const BlockProperties hopperProperties(Material::ROCK);
+    HopperBlock hopper(hopperProperties);
     const BlockPos pos(20, 64, 20);
 
-    BlockState state = hopper.defaultState().with(BlockStateProperties::ENABLED(), false);
+    auto state = hopper.defaultState().with(BlockStateProperties::ENABLED(), false);
     world.setBlockAt(pos, state);
 
     hopper.neighborChanged(world, pos, powerBlock(), pos.north(), false);

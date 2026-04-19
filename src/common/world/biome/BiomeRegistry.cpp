@@ -26,7 +26,7 @@ BiomeRegistry::BiomeRegistry()
 
 void BiomeRegistry::initialize()
 {
-    if (!m_biomes.empty()) {
+    if (!m_registered.empty()) {
         return;  // 已经初始化
     }
     registerDefaultBiomes();
@@ -37,13 +37,15 @@ void BiomeRegistry::registerBiome(const Biome& biome)
     const BiomeId id = biome.id();
     if (id >= m_biomes.size()) {
         m_biomes.resize(id + 1);
+        m_registered.resize(id + 1, false);
     }
     m_biomes[id] = biome;
+    m_registered[id] = true;
 }
 
 const Biome& BiomeRegistry::get(BiomeId id) const
 {
-    if (id < m_biomes.size()) {
+    if (id < m_biomes.size() && m_registered[id]) {
         return m_biomes[id];
     }
     return m_defaultBiome;
@@ -51,7 +53,7 @@ const Biome& BiomeRegistry::get(BiomeId id) const
 
 bool BiomeRegistry::hasBiome(BiomeId id) const
 {
-    return id < m_biomes.size();
+    return id < m_biomes.size() && m_registered[id];
 }
 
 void BiomeRegistry::registerDefaultBiomes()

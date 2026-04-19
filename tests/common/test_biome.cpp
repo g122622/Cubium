@@ -109,14 +109,20 @@ TEST_F(BiomeRegistryTest, HasBiome) {
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Plains));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Desert));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Ocean));
+    EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(55)));
     EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(9999)));
 }
 
-// TODO(WIP): 需要注册更多生物群系以达到 Biomes::Count (170)
-// 当前只注册了 28 个，最大 ID 为 165 (ErodedBadlands)
-TEST_F(BiomeRegistryTest, DISABLED_AllBiomesCount) {
+TEST_F(BiomeRegistryTest, GetUnregisteredBiomeReturnsDefault) {
+    const Biome& biome = BiomeRegistry::instance().get(static_cast<BiomeId>(55));
+
+    EXPECT_EQ(biome.id(), Biomes::Plains);
+    EXPECT_EQ(biome.name(), "plains");
+}
+
+TEST_F(BiomeRegistryTest, AllBiomesCountMatchesBiomeIdRange) {
     const auto& biomes = BiomeRegistry::instance().allBiomes();
-    EXPECT_GE(biomes.size(), Biomes::Count);
+    EXPECT_EQ(biomes.size(), Biomes::Count);
 }
 
 // ============================================================================

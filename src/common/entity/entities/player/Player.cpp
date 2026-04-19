@@ -737,6 +737,8 @@ void Player::updatePhysics() {
             if (m_collidedVertically) {
                 m_velocity.y = 0.0f;
             }
+        } else if (!m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
+            move(movement.x, movement.y, movement.z);
         }
 
         // 9. 自动跳跃检测（在移动后）

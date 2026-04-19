@@ -172,6 +172,34 @@ public:
     }
 
     /**
+     * @brief 计算堆叠布局
+     *
+     * Stack 作为垂直容器时，需要把子元素拉伸到容器交叉轴宽度，
+     * 这样才能符合“堆叠面板占满宽度”的常见 UI 语义。
+     */
+    [[nodiscard]] std::vector<LayoutResult> compute(
+        const Rect& containerBounds,
+        const std::vector<WidgetLayoutAdaptor*>& children,
+        const LayoutConstraints& containerConstraints
+    ) override
+    {
+        auto results = FlexLayoutAlgorithm::compute(containerBounds, children, containerConstraints);
+
+        const i32 availableCrossSize = std::max(0, containerBounds.width - containerConstraints.padding.horizontal());
+        for (size_t i = 0; i < results.size() && i < children.size(); ++i) {
+            auto* child = children[i];
+            if (child == nullptr || !results[i].isValid()) {
+                continue;
+            }
+
+            const i32 stretchedWidth = std::max(0, availableCrossSize - child->constraints().margin.horizontal());
+            results[i].bounds.width = child->constraints().clampWidth(stretchedWidth);
+        }
+
+        return results;
+    }
+
+    /**
      * @brief 获取算法名称
      */
     [[nodiscard]] String name() const override

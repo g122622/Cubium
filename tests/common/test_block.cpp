@@ -7,6 +7,7 @@
 #include "../src/common/world/block/VanillaBlocks.hpp"
 #include "../src/common/world/IWorld.hpp"
 #include "../src/common/world/block/blocks/FallingBlock.hpp"
+#include "../src/common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "../src/common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
@@ -141,8 +142,8 @@ public:
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_blockLight, x, y, z, 15); }
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return sampleLight(m_skyLight, x, y, z, 15); }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
@@ -159,11 +160,13 @@ public:
         return {};
     }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
+    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return m_canRainAt; }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
         (void)entity;
@@ -175,18 +178,68 @@ public:
         m_spawnEntityResult = result;
     }
 
+    void setSeed(u64 seed) {
+        m_seed = seed;
+    }
+
+    void setRaining(bool raining) {
+        m_isRaining = raining;
+    }
+
+    void setCanRainAt(bool canRainAt) {
+        m_canRainAt = canRainAt;
+    }
+
+    void setSkyLightAt(const BlockPos& pos, u8 light) {
+        m_skyLight[pos] = light;
+    }
+
+    void setBlockLightAt(const BlockPos& pos, u8 light) {
+        m_blockLight[pos] = light;
+    }
+
     [[nodiscard]] i32 spawnedEntityCount() const {
         return m_spawnedEntityCount;
     }
 
 private:
+    [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z, u8 fallback) {
+        const auto it = lights.find(BlockPos(x, y, z));
+        if (it != lights.end()) {
+            return it->second;
+        }
+        return fallback;
+    }
+
     static i64 packPos(i32 x, i32 y, i32 z) {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
     }
 
     std::unordered_map<i64, const BlockState*> m_blocks;
+    std::map<BlockPos, u8> m_blockLight;
+    std::map<BlockPos, u8> m_skyLight;
+    u64 m_seed = 0;
+    bool m_isRaining = false;
+    bool m_canRainAt = false;
     EntityId m_spawnEntityResult = 1;
     i32 m_spawnedEntityCount = 0;
+};
+
+class TestCropBlock final : public blocks::CropBlock {
+public:
+    explicit TestCropBlock(const BlockProperties& properties)
+        : CropBlock(properties) {
+        auto container = StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AGE_0_7())
+            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
+        createBlockState(std::move(container));
+        setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
+    }
+
+    [[nodiscard]] u32 getCropItem() const override { return 0; }
+    [[nodiscard]] u32 getSeedItem() const override { return 0; }
 };
 
 } // namespace
@@ -934,6 +987,68 @@ TEST(AgriculturalBehaviorTest, DryFarmlandWithoutCropsTurnsToDirt) {
     const BlockState* updated = world.getBlockState(farmlandPos.x, farmlandPos.y, farmlandPos.z);
     ASSERT_NE(updated, nullptr);
     EXPECT_TRUE(updated->is(VanillaBlocks::DIRT));
+}
+
+TEST(AgriculturalBehaviorTest, FarmlandRehydratesWhenRaining) {
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    auto* farmlandBlock = dynamic_cast<blocks::FarmlandBlock*>(VanillaBlocks::FARMLAND);
+    ASSERT_NE(farmlandBlock, nullptr);
+
+    BlockRulesTestWorld world;
+    world.setRaining(true);
+    world.setCanRainAt(true);
+
+    const BlockPos farmlandPos(2, 64, 2);
+    BlockState farmlandState = VanillaBlocks::FARMLAND->defaultState();
+    world.setBlock(farmlandPos.x, farmlandPos.y, farmlandPos.z, &farmlandState);
+
+    math::Random random(123456);
+    farmlandBlock->randomTick(world, farmlandPos, farmlandState, random);
+
+    const BlockState* updated = world.getBlockState(farmlandPos.x, farmlandPos.y, farmlandPos.z);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_EQ(updated->get(BlockStateProperties::MOISTURE_0_7()), 7);
+}
+
+TEST(AgriculturalBehaviorTest, CropRequiresLightToStayValid) {
+    TestCropBlock crop(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    BlockRulesTestWorld world;
+    const BlockPos cropPos(4, 65, 4);
+
+    world.setBlock(cropPos.x, cropPos.y - 1, cropPos.z, &VanillaBlocks::FARMLAND->defaultState());
+    world.setSkyLightAt(cropPos.up(), 8);
+    world.setBlockLightAt(cropPos.up(), 8);
+
+    EXPECT_FALSE(crop.isValidPosition(crop.defaultState(), world, cropPos));
+
+    world.setSkyLightAt(cropPos.up(), 9);
+    EXPECT_TRUE(crop.isValidPosition(crop.defaultState(), world, cropPos));
+}
+
+TEST(AgriculturalBehaviorTest, CropBonemealGrowthUsesWorldSeedAndPosition) {
+    TestCropBlock crop(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    BlockRulesTestWorld world;
+    const BlockPos cropPos(8, 65, 8);
+    const BlockState& cropState = crop.defaultState();
+
+    world.setSeed(123456789ULL);
+    world.setBlock(cropPos.x, cropPos.y, cropPos.z, &cropState);
+    crop.grow(world, cropPos, cropState);
+
+    const BlockState* firstResult = world.getBlockState(cropPos.x, cropPos.y, cropPos.z);
+    ASSERT_NE(firstResult, nullptr);
+    const i32 firstAge = crop.getAge(*firstResult);
+    EXPECT_GE(firstAge, 2);
+    EXPECT_LE(firstAge, 5);
+
+    world.setBlock(cropPos.x, cropPos.y, cropPos.z, &cropState);
+    crop.grow(world, cropPos, cropState);
+
+    const BlockState* secondResult = world.getBlockState(cropPos.x, cropPos.y, cropPos.z);
+    ASSERT_NE(secondResult, nullptr);
+    EXPECT_EQ(crop.getAge(*secondResult), firstAge);
 }
 
 TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {

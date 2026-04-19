@@ -88,8 +88,11 @@ public:
 
     /**
      * @brief 获取骨粉增加的年龄
+        *
+        * 增长值由世界种子和方块位置派生的确定性随机数生成，
+        * 不要使用全局 rand()，否则同一世界内的结果会不可复现。
      */
-    [[nodiscard]] virtual int getBonemealAgeIncrease() const;
+        [[nodiscard]] virtual int getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const;
 
     // ========== 形状 ==========
 

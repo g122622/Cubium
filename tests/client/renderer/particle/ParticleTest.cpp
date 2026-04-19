@@ -117,7 +117,7 @@ TEST(ParticleTest, PropertySetters) {
     EXPECT_DOUBLE_EQ(particle.gravity(), 0.5);
 
     particle.setSize(0.2f);
-    EXPECT_DOUBLE_EQ(particle.size(), 0.2);
+    EXPECT_NEAR(particle.size(), 0.2, 1.0e-6);
 
     particle.setMaxAge(100.0f);
     EXPECT_DOUBLE_EQ(particle.maxAge(), 100.0);

@@ -347,8 +347,16 @@ enum class Operation : u8 { ... };
     - 不要再把 `std::vector<bool>` 的结果直接丢成 `nullptr`；如果上游拿到的是按段更新结果，必须先拷贝成连续的 `bool[]` 再写回区块。
 - `WorldLightManager::tick(...)` now relies on ordered budget consumption.
     - Do not restore the previous half/half split unless the budget model is redesigned with matching tests.
+- `CraftingMenu::stillValid()` now uses the player's distance to the crafting table.
+    - Keep workbench accessibility tied to the block entity position so container validity matches the intended interaction range.
+- `ChickenEntity::tick()` spawns an egg item entity when the timer expires.
+    - Reset the timer immediately after spawning or chickens will emit eggs in bursts.
+- `GlassBottleItem` samples along the player's look ray before deciding whether a bottle can be filled.
+    - Liquid blocks here do not provide usable collision shapes, so pure hit tests are not enough for water-source detection.
 - `MatrixStack` call-order intuition can be misleading after PoseStack alignment.
     - In first-person rendering, apply transforms in vanilla order and rely on post-multiply semantics; avoid ad-hoc in-place row/column edits.
+- `StackLayoutAlgorithm` in Kagero should stretch children on the container cross-axis, not just the line content size.
+    - Stack/column tests that rely on full-width children need the adapter to honor the container width, otherwise inner bounds will stay at the intrinsic size.
 - Do not share one first-person item mesh cache across both hands.
     - Main hand and off hand can hold different items in the same frame, so a single cache will thrash and allocate GPU memory every render.
 - Retired first-person meshes must be reclaimed on a frame countdown, not only in `destroy()`.
@@ -377,6 +385,8 @@ enum class Operation : u8 { ... };
     - 这个值只会在 `Entity::baseTick()` / `updateEnvironmentState()` 或本地物理刷新路径里更新；它对本地玩家可用，但仍不是服务端权威结果。
 - `Player::updateMoveDistance()` now uses a dedicated sampling position, and `Player::setPosition()` resets movement/bobbing state.
     - 不要再把 `prevPosition` 当成脚步声或视野晃动的采样基准；它是插值历史状态，多次物理更新会把同一段位移重复计数。
+- `Player::updatePhysics()` can run in lightweight test worlds without a physics engine.
+    - In that case the code falls back to direct movement, so tests should verify state refresh and not assume a full collision solver is present.
 - `Entity::refreshDimensions()` is now the canonical way to rebuild an entity's cached `EntitySize` and `AxisAlignedBB`.
     - Any runtime size change must refresh the cache immediately, or movement and ground checks will keep using stale boxes.
 - Player stand-up transitions now check whether the target pose box fits before switching away from crouch/swim/sleep.
@@ -449,6 +459,8 @@ enum class Operation : u8 { ... };
     - 服务器侧背包变更如果走 `inventoryManager()`，就要依赖这条回调刷新客户端，不要再手写一套新的同步分支。
 - 冰块融化与破坏路径必须分开处理。
     - `IceBlock::randomTick()` 只负责融化，`onBlockRemoved()` 只负责破坏后的替换；不要再让随机刻回调 `onBlockRemoved()`，也不要把同一坐标的写回放在旧方块回调之前。
+    - `CropBlock` 的骨粉增长必须从世界种子和方块位置派生随机数，不能再回到全局 `rand()`。
+        - `FarmlandBlock` 的降雨补湿要同时看 `isRaining()` 和 `canRainAt(pos.up())`，否则测试世界里会出现伪阳性。
 
 ## Self-Maintenance Rule
 

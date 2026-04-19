@@ -173,7 +173,7 @@ public:
     [[nodiscard]] u32 fogColor() const { return m_effects.fogColor(); }
 
 private:
-    BiomeId m_id;
+    BiomeId m_id = 0;
     String m_name;
     Category m_category = Category::None;
 

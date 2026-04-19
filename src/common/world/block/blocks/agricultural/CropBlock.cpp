@@ -5,6 +5,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include <functional>
 #include <algorithm>
 
 namespace mc {
@@ -60,15 +61,14 @@ bool CropBlock::isValidPosition(
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
-    if (belowState == nullptr) {
+    if (belowState == nullptr || !canSustain(*belowState, world, belowPos)) {
         return false;
     }
 
-    // 检查光照等级
-    // TODO: 实现光照检查
-    // return (world.getLightSubtracted(pos, 0) >= 8 || world.canSeeSky(pos)) && belowState->is(Blocks::FARMLAND);
-
-    return canSustain(*belowState, world, belowPos);
+    const BlockPos abovePos = pos.up();
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
+    return std::max(blockLight, skyLight) >= 9;
 }
 
 // ========== 生长逻辑 ==========
@@ -98,7 +98,7 @@ bool CropBlock::ticksRandomly() const {
 }
 
 void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    int newAge = getAge(state) + getBonemealAgeIncrease();
+    int newAge = getAge(state) + getBonemealAgeIncrease(world, pos);
     int maxAge = getMaxAge();
 
     if (newAge > maxAge) {
@@ -108,10 +108,10 @@ void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
     world.setBlockState(pos, &withAge(newAge), 2);
 }
 
-int CropBlock::getBonemealAgeIncrease() const {
-    // 骨粉增加 2-5 年龄
-    // TODO: 使用世界随机数
-    return 2 + (rand() % 4);  // NOLINT(runtime/int)
+int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const {
+    const u64 seed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos));
+    math::Random random(seed);
+    return 2 + random.nextInt(4);
 }
 
 // ========== 形状 ==========

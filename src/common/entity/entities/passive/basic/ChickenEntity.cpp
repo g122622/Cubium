@@ -1,8 +1,11 @@
 #include "ChickenEntity.hpp"
+#include "../../item/ItemEntity.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
+
 #include <memory>
 
 namespace mc {
@@ -83,8 +86,13 @@ void ChickenEntity::tick() {
         --m_eggTimer;
 
         if (m_eggTimer <= 0) {
-            // 下蛋
-            // TODO: 生成蛋物品实体
+            auto egg = std::make_unique<ItemEntity>(
+                0,
+                ItemStack(Items::EGG, 1),
+                x(),
+                y() + 0.2f,
+                z());
+            world()->spawnEntity(std::move(egg));
             resetEggTimer();
         }
     }

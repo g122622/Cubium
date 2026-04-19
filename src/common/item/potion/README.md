@@ -95,6 +95,9 @@ ItemStack potionItem = PotionUtils::createPotionItem(Potions::NIGHT_VISION);
 u32 color = PotionUtils::getColor(potion);
 ```
 
+### GlassBottleItem
+玻璃瓶会沿玩家视线采样，并优先识别可装瓶的水源方块与已装水的炼药锅；命中后返回水瓶。
+
 ## 药水效果持续时间
 
 | 药水类型 | 普通 (tick) | 延长 (tick) | 加强 (tick) |
@@ -143,6 +146,7 @@ u32 color = PotionUtils::getColor(potion);
 ### 容器转换
 - 药水 + 火药 → 喷溅药水
 - 喷溅药水 + 龙息 → 滞留药水
+- 玻璃瓶 + 水源/装水炼药锅 → 水瓶
 
 ## 与外部系统的集成
 
@@ -164,3 +168,9 @@ u32 color = PotionUtils::getColor(potion);
 - net.minecraft.potion.Potions
 - net.minecraft.potion.PotionBrewing
 - net.minecraft.potion.PotionUtils
+
+## 测试用例
+
+| 文件 | 说明 |
+|------|------|
+| `tests/common/item/potion/GlassBottleItemTest.cpp` | 验证玻璃瓶对水源和炼药锅的装水逻辑 |

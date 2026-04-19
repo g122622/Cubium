@@ -53,6 +53,7 @@ public:
 private:
     BiomeRegistry();
     std::vector<Biome> m_biomes;
+    std::vector<bool> m_registered;
     Biome m_defaultBiome;
 
     void registerDefaultBiomes();

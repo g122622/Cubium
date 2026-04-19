@@ -41,7 +41,7 @@ BlockState FarmlandBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
 
-    if (aboveState != nullptr && aboveState->isSolid()) {
+    if (aboveState != nullptr && aboveState->hasOpaqueCollisionShape()) {
         // 不能放置，返回泥土状态
         if (VanillaBlocks::DIRT != nullptr) {
             return VanillaBlocks::DIRT->defaultState();
@@ -63,8 +63,7 @@ bool FarmlandBlock::isValidPosition(
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
 
-    if (aboveState != nullptr && aboveState->isSolid()) {
-        // TODO: 检查是否为栅栏门或活塞等特殊情况
+    if (aboveState != nullptr && aboveState->hasOpaqueCollisionShape()) {
         return false;
     }
 
@@ -86,7 +85,7 @@ BlockState FarmlandBlock::updatePostPlacement(
     if (facing == Direction::Up) {
         BlockPos abovePos(currentPos.x, currentPos.y + 1, currentPos.z);
         const BlockState* aboveState = world.getBlockState(abovePos);
-        if (aboveState != nullptr && aboveState->isSolid()) {
+        if (aboveState != nullptr && aboveState->hasOpaqueCollisionShape()) {
             // 安排下一 tick 转变为泥土
             world.scheduleBlockTick(currentPos, *this, 1);
         }
@@ -100,7 +99,7 @@ BlockState FarmlandBlock::updatePostPlacement(
 void FarmlandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
-    if (aboveState != nullptr && aboveState->isSolid()) {
+    if (aboveState != nullptr && aboveState->hasOpaqueCollisionShape()) {
         turnToDirt(world, pos, state);
     }
 }
@@ -112,10 +111,9 @@ void FarmlandBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
 
     // 检查附近是否有水
     bool nearWater = hasWater(world, pos);
-    // TODO: 检查是否下雨
-    // bool raining = world.isRainingAt(pos.up());
+    const bool raining = world.isRaining() && world.canRainAt(pos.up());
 
-    if (!nearWater /* && !raining */) {
+    if (!nearWater && !raining) {
         // 没有水且不下雨，湿润度降低
         if (moisture > 0) {
             world.setBlockState(pos, &state.with(BlockStateProperties::MOISTURE_0_7(), moisture - 1), 2);

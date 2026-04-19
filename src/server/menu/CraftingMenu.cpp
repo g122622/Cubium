@@ -126,11 +126,15 @@ ItemStack CraftingMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, 
 }
 
 bool CraftingMenu::stillValid(const Player& player) const {
-    // TODO: 检查玩家是否仍在工作台附近
-    // 需要检查玩家与方块的距离是否在范围内（通常是3格）
-    // 暂时返回true
-    (void)player;
-    return true;
+    if (m_blockEntity == nullptr) {
+        return true;
+    }
+
+    const BlockPos pos = m_blockEntity->getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;
 }
 
 ItemStack CraftingMenu::quickMoveStack(i32 slotIndex, Player& player) {

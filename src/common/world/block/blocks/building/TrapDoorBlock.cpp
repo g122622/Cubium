@@ -254,10 +254,18 @@ void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState&
 }
 
 void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
-    // TODO 播放声音
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(isOpening);
+    const BlockState* state = world.getBlockState(pos);
+    const auto* trapDoor = state != nullptr ? dynamic_cast<const TrapDoorBlock*>(&state->getBlock()) : nullptr;
+    const bool isIron = trapDoor != nullptr && trapDoor->isIronTrapdoor();
+
+    const char* soundId = nullptr;
+    if (isIron) {
+        soundId = isOpening ? "minecraft:block.iron_trapdoor.open" : "minecraft:block.iron_trapdoor.close";
+    } else {
+        soundId = isOpening ? "minecraft:block.wooden_trapdoor.open" : "minecraft:block.wooden_trapdoor.close";
+    }
+
+    world.playSound(ResourceLocation(soundId), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 
 size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStateProperties::DoubleBlockHalf half) {

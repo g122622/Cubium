@@ -48,7 +48,7 @@ building/
 - `WATERLOGGED`: 是否含水
 
 ### TrapDoorBlock.hpp/cpp
-活板门方块，支持红石控制。
+活板门方块，支持红石控制，并在开合时播放对应的木/铁活板门音效。
 
 **状态属性**：
 - `FACING`: 水平朝向
