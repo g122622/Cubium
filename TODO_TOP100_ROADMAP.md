@@ -19,7 +19,7 @@
 
 ## A. 测试与基础设施
 
-- `tests/common/test_biome.cpp:115`：补更多生物群系注册，当前只是测试数据不够。实现上优先补注册表样本，再把断言扩到 `Biomes::Count`。
+- ✅ 已完成 `tests/common/test_biome.cpp:115`：补充了代表性生物群系注册样本，并将断言扩展到更多已注册生物群系名称与存在性检查。
 
 ## B. 方块系统
 
@@ -73,14 +73,14 @@
 - `src/common/entity/entities/passive/special/StriderEntity.cpp:32,63`：补熔岩判定与诡异菌判定。
 - `src/common/entity/entities/passive/special/TurtleEntity.cpp:37,50`：补水中判定与幼龟生成。
 - `src/common/entity/ai/brain/sensor/Sensors.hpp:47,105,148,204,266,309,353,416`：补附近玩家、生物、实体、伤害来源、工作站点、床/钟、幼年/成年实体和避险实体检测。
-- `src/common/entity/ai/goal/goals/attack/RangedAttackGoals.cpp:158`：补是否持有弓的检查。
+- ✅ 已完成 `src/common/entity/ai/goal/goals/attack/RangedAttackGoals.cpp:158`：补是否持有弓的检查，并补了对应回归测试。
 - `src/common/entity/ai/goal/goals/BreedGoal.cpp:117,118,119`：补爱心粒子、繁殖音效和玩家经验值。
 - `src/common/entity/ai/goal/goals/interact/TameableGoals.cpp:39,116,164,210`：补主人玩家查找、传送逻辑、找最近拿食物的玩家和食物判定。
 - `src/common/entity/ai/goal/goals/MeleeAttackGoal.cpp:132`：补快速逆平方根近似，属于纯性能小修。
-- `src/common/entity/ai/goal/goals/movement/MovementGoals.cpp:119`：补世界接口检查方块。
-- `src/common/entity/ai/goal/goals/PanicGoal.cpp:120`：补水判定，逻辑短且局部。
+- ✅ 已完成 `src/common/entity/ai/goal/goals/movement/MovementGoals.cpp:119`：补世界接口检查方块，并接入水/岩浆世界查询。
+- ✅ 已完成 `src/common/entity/ai/goal/goals/PanicGoal.cpp:120`：补水判定，逻辑短且局部，并补了寻水回归测试。
 - `src/common/entity/ai/goal/goals/target/TargetGoals.cpp:65,102,149,173,210,249,295`：补团队关系、附近实体搜索、最近攻击者、通知盟友和主人相关判定。
-- `src/common/entity/ai/goal/goals/TemptGoal.cpp:139`：补玩家手持物品检查。
+- ✅ 已完成 `src/common/entity/ai/goal/goals/TemptGoal.cpp:139`：补玩家手持物品检查，并让继续执行逻辑重新验证手持物品状态。
 - `src/common/entity/entities/monster/end/EndermanEntity.cpp:42,54,69,75,81,105,111`：补瞬移、靠近目标瞬移、搬方块、受水伤害和随机搬放块。
 - `src/common/entity/entities/monster/end/ShulkerEntity.cpp:13,39,48,89`：补移动控制器禁用、瞬移、子弹生成和受伤后瞬移。
 - `src/common/entity/entities/monster/illager/EvokerEntity.cpp:49,54,77`：补尖牙施法、恼鬼召唤链和专用施法 goal。
@@ -178,3 +178,5 @@ enum class Operation : u8 {
 ```
 
 最后要运行 `cmake --build build --config RelWithDebInfo` 来构建项目，并确保所有的测试都通过。
+
+当你完成一个TODO后，不要停下来，请继续做后面的TODO，直到所有TODO清空你才能停！

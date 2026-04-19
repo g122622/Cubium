@@ -241,8 +241,10 @@ void KelpBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     // 随机生长
     if (random.nextFloat() < 0.14f) {  // 约14%概率
         // 增加上方海带
-        world.setBlockState(abovePos, &defaultState(), 2);
-        world.setBlockState(pos, &withAge(age + 1), 2);
+        const BlockState& kelpState = defaultState();
+        world.setBlockState(abovePos, &kelpState, 2);
+        const BlockState& agedState = withAge(age + 1);
+        world.setBlockState(pos, &agedState, 2);
     }
 }
 

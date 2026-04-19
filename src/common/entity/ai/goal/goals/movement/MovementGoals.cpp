@@ -116,11 +116,16 @@ bool WaterAvoidingRandomWalkingGoal::getRandomPosition() {
 }
 
 bool WaterAvoidingRandomWalkingGoal::isInWaterOrLava(f64 x, f64 y, f64 z) const {
-    // TODO: 使用世界接口检查方块
-    (void)x;
-    (void)y;
-    (void)z;
-    return false;
+    if (!m_creature || !m_creature->world()) {
+        return false;
+    }
+
+    IWorld* world = m_creature->world();
+    const i32 blockX = static_cast<i32>(std::floor(x));
+    const i32 blockY = static_cast<i32>(std::floor(y));
+    const i32 blockZ = static_cast<i32>(std::floor(z));
+    const BlockPos pos(blockX, blockY, blockZ);
+    return world->isWaterAt(pos) || world->isLavaAt(pos);
 }
 
 // ==================== LeapAtTargetGoal ====================

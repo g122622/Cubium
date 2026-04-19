@@ -1,13 +1,14 @@
 #include "TemptGoal.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../core/MobEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
+#include "../../../entities/player/Player.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../GoalConstants.hpp"
 #include "../../controller/LookController.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <cmath>
 
@@ -43,6 +44,16 @@ bool TemptGoal::shouldContinueExecuting() {
 
     // 检查玩家是否存活
     if (!m_temptingPlayer->isAlive()) return false;
+
+    const ItemStack& mainHand = m_temptingPlayer->getHeldItem(Hand::MainHand);
+    const ItemStack& offHand = m_temptingPlayer->getHeldItem(Hand::OffHand);
+    if (!isTempting(mainHand) && !isTempting(offHand)) {
+        return false;
+    }
+
+    if (m_creature->distanceSqTo(*m_temptingPlayer) > TEMPT_RANGE * TEMPT_RANGE) {
+        return false;
+    }
 
     // 检查是否被玩家移动吓跑
     if (m_scaredByMovement) {
@@ -86,6 +97,8 @@ void TemptGoal::startExecuting() {
     m_targetX = m_temptingPlayer->x();
     m_targetY = m_temptingPlayer->y();
     m_targetZ = m_temptingPlayer->z();
+    m_prevPitch = m_temptingPlayer->pitch();
+    m_prevYaw = m_temptingPlayer->yaw();
     m_isRunning = true;
 }
 
@@ -126,22 +139,19 @@ bool TemptGoal::isScaredByPlayerMovement() const {
     return m_scaredByMovement;
 }
 
-LivingEntity* TemptGoal::findTemptingPlayer() {
+Player* TemptGoal::findTemptingPlayer() {
     if (!m_creature || !m_creature->world()) return nullptr;
 
-    return EntityUtils::findClosestEntity<LivingEntity>(
+    return EntityUtils::findClosestEntity<Player>(
         m_creature->world(),
         m_creature->position(),
         TEMPT_RANGE,
-        m_creature
-    );
-
-    // TODO: 检查玩家手持物品
-    // const ItemStack& mainHand = player->getMainHandItem();
-    // const ItemStack& offHand = player->getOffHandItem();
-    // if (isTempting(mainHand) || isTempting(offHand)) {
-    //     ... 找到玩家
-    // }
+        m_creature,
+        [this](Player* playerEntity) {
+            const ItemStack& mainHand = playerEntity->getHeldItem(Hand::MainHand);
+            const ItemStack& offHand = playerEntity->getHeldItem(Hand::OffHand);
+            return isTempting(mainHand) || isTempting(offHand);
+        });
 }
 
 } // namespace mc::entity::ai::goal

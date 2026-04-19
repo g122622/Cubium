@@ -8,7 +8,7 @@ namespace mc {
 
 // 前向声明
 class CreatureEntity;
-class LivingEntity;
+class Player;
 class ItemStack;
 
 namespace entity::ai::goal {
@@ -66,13 +66,13 @@ protected:
      * @brief 寻找附近手持诱惑物品的玩家
      * @return 玩家实体，如果没有则返回 nullptr
      */
-    LivingEntity* findTemptingPlayer();
+    Player* findTemptingPlayer();
 
     CreatureEntity* m_creature;
     f64 m_speed;
     ItemPredicate m_itemPredicate;
     bool m_scaredByMovement;
-    LivingEntity* m_temptingPlayer = nullptr;
+    Player* m_temptingPlayer = nullptr;
     f32 m_targetX = 0.0f;
     f32 m_targetY = 0.0f;
     f32 m_targetZ = 0.0f;

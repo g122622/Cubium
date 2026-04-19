@@ -1,3 +1,5 @@
+#include <array>
+
 #include <gtest/gtest.h>
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -109,8 +111,60 @@ TEST_F(BiomeRegistryTest, HasBiome) {
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Plains));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Desert));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Ocean));
+    EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Forest));
+    EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::Beach));
+    EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::WarmOcean));
+    EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::DeepFrozenOcean));
+    EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::CrimsonForest));
+    EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::EndHighlands));
     EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(55)));
     EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(9999)));
+}
+
+TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames) {
+    struct ExpectedBiome {
+        BiomeId id;
+        const char* name;
+    };
+
+    const std::array<ExpectedBiome, 26> expectedBiomes = {{
+        {Biomes::Plains, "plains"},
+        {Biomes::Desert, "desert"},
+        {Biomes::Forest, "forest"},
+        {Biomes::Taiga, "taiga"},
+        {Biomes::Swamp, "swamp"},
+        {Biomes::River, "river"},
+        {Biomes::Beach, "beach"},
+        {Biomes::StoneShore, "stone_shore"},
+        {Biomes::SnowyPlains, "snowy_plains"},
+        {Biomes::MushroomFields, "mushroom_fields"},
+        {Biomes::GiantTreeTaiga, "giant_tree_taiga"},
+        {Biomes::Savanna, "savanna"},
+        {Biomes::Badlands, "badlands"},
+        {Biomes::WarmOcean, "warm_ocean"},
+        {Biomes::ColdOcean, "cold_ocean"},
+        {Biomes::DeepFrozenOcean, "deep_frozen_ocean"},
+        {Biomes::SunflowerPlains, "sunflower_plains"},
+        {Biomes::DesertLakes, "desert_lakes"},
+        {Biomes::SwampHills, "swamp_hills"},
+        {Biomes::GiantSpruceTaiga, "giant_spruce_taiga"},
+        {Biomes::NetherWastes, "nether_wastes"},
+        {Biomes::SoulSandValley, "soul_sand_valley"},
+        {Biomes::CrimsonForest, "crimson_forest"},
+        {Biomes::WarpedForest, "warped_forest"},
+        {Biomes::BasaltDeltas, "basalt_deltas"},
+        {Biomes::EndHighlands, "end_highlands"},
+    }};
+
+    for (const auto& expectedBiome : expectedBiomes) {
+        SCOPED_TRACE(expectedBiome.name);
+
+        EXPECT_TRUE(BiomeRegistry::instance().hasBiome(expectedBiome.id));
+
+        const Biome& biome = BiomeRegistry::instance().get(expectedBiome.id);
+        EXPECT_EQ(biome.id(), expectedBiome.id);
+        EXPECT_EQ(biome.name(), String(expectedBiome.name));
+    }
 }
 
 TEST_F(BiomeRegistryTest, GetUnregisteredBiomeReturnsDefault) {

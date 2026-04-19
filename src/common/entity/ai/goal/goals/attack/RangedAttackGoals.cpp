@@ -8,6 +8,10 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../../attribute/Attributes.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../item/core/Item.hpp"
+#include "../../../../../item/core/ItemStack.hpp"
+#include "../../../../../item/core/UseAction.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc::entity::ai::goal {
@@ -27,7 +31,6 @@ RangedAttackGoal::RangedAttackGoal(MobEntity* mob, f64 speed, i32 attackInterval
 bool RangedAttackGoal::shouldExecute() {
     if (!m_mob) return false;
 
-    // 获取攻击目标
     LivingEntity* target = m_mob->attackTarget();
     if (!target || !target->isAlive()) {
         return false;
@@ -155,9 +158,11 @@ RangedBowAttackGoal::RangedBowAttackGoal(MobEntity* mob, f64 speed, i32 attackIn
 bool RangedBowAttackGoal::shouldExecute() {
     if (!m_mob) return false;
 
-    // TODO: 检查是否持有弓
-    // ItemStack mainHand = m_mob->getMainHandItem();
-    // if (!mainHand.getItem().isBow()) return false;
+    const ItemStack& mainHand = m_mob->getMainHandItem();
+    const Item* item = mainHand.getItem();
+    if (item == nullptr || item->getUseAction(mainHand) != UseAction::Bow) {
+        return false;
+    }
 
     return RangedAttackGoal::shouldExecute();
 }

@@ -298,6 +298,8 @@ Managed via vcpkg:
 - `ChunkPrimer` and `ChunkData` now expose `getTopBlockY()` as the actual top block Y, while `Heightmap` still stores `y + 1` internally.
 - `OceanDecorationFeature` is now wired into the non-warm ocean biome generation settings, so its prop placement path is reachable at runtime instead of only existing as a registered feature.
 - Ocean feature registration now splits kelp into `kelp_cold` / `kelp_warm` and seagrass into the vanilla-style temperature matrix; `BiomeGenerationSettings` and the vegetation tests were updated to use the new ids.
+- `tests/common/test_biome.cpp` now includes representative registry coverage across overworld, ocean, nether, and end biomes, closing the corresponding roadmap item.
+- AI goal TODOs for tempt, panic, water-avoiding wandering, and ranged bow attacks are now wired to real player hand-item and world fluid queries, with regression coverage in `tests/entity/AiGoalRegressionTest.cpp`.
 
 ## Random Module
 
@@ -358,6 +360,8 @@ enum class Operation : u8 { ... };
     - 只有 `getTopBlockY()` 这一层才应该把它转换回块坐标，不要直接把原始高度图值当作方块位置。
 - `WorldLightManager::tick(...)` now relies on ordered budget consumption.
     - Do not restore the previous half/half split unless the budget model is redesigned with matching tests.
+- `TemptGoal` now filters real `Player` entities by their main/off-hand stacks, and `PanicGoal` / `WaterAvoidingRandomWalkingGoal` now consult `IWorld::isWaterAt(...)` / `isLavaAt(...)` directly.
+    - Keep tests aligned with the world-query surface; do not fake these goals by stubbing movement alone.
 - `KelpFeatureIds` and `SeagrassFeatureIds` now split by ocean temperature.
     - Keep `FeatureRegistry::initialize()` order, `BiomeGenerationSettings` mapping, and the ocean assertions in sync whenever new ocean variants are added.
 - `CraftingMenu::stillValid()` now uses the player's distance to the crafting table.

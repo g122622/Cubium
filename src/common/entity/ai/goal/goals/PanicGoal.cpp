@@ -116,8 +116,6 @@ Vector3 PanicGoal::getRandomWaterPosition(i32 range, i32 verticalRange) {
     math::Random rng = m_creature->getRandom();
 
     // 在范围内搜索水源
-    // 简化实现：返回一个随机位置
-    // TODO: 完整实现需要检查方块是否是水
     i32 cx = static_cast<i32>(m_creature->x());
     i32 cy = static_cast<i32>(m_creature->y());
     i32 cz = static_cast<i32>(m_creature->z());
@@ -128,10 +126,15 @@ Vector3 PanicGoal::getRandomWaterPosition(i32 range, i32 verticalRange) {
         i32 y = cy + rng.nextInt(-verticalRange, verticalRange);
         i32 z = cz + rng.nextInt(-range, range);
 
-        const BlockState* state = world->getBlockState(x, y, z);
-        if (state) {
-            // 暂时返回第一个非空方块上方的位置
-            return Vector3(static_cast<f32>(x), static_cast<f32>(y + 1), static_cast<f32>(z));
+        if (!world->isWithinWorldBounds(x, y, z)) {
+            continue;
+        }
+
+        const BlockPos waterPos(x, y, z);
+        if (world->isWaterAt(waterPos)) {
+            return Vector3(static_cast<f32>(x) + 0.5f,
+                           static_cast<f32>(y) + 0.5f,
+                           static_cast<f32>(z) + 0.5f);
         }
     }
 

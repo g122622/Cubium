@@ -87,6 +87,7 @@ add_executable(mc_tests
     entity/TraderLlamaSupportTypesTest.cpp
     entity/PathfindingTests.cpp
     entity/RandomWalkingGoalTest.cpp
+    entity/AiGoalRegressionTest.cpp
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp
