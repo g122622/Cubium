@@ -290,6 +290,15 @@ Managed via vcpkg:
 - Use `const&` for large object parameters
 - Use `string_view` for read-only string parameters
 
+## Current Status
+
+- `PaneBlock` now uses a 16-state cached shape table, normalized collision boxes, waterlogged fluid-state reporting, and neighbor connectivity that accepts solid faces, same panes, and walls.
+- Added `tests/common/world/block/blocks/decorative/PaneBlockTest.cpp` to cover placement, shape composition, and water tick scheduling.
+- Verified with `cmake --build build --config RelWithDebInfo` and `mc_tests.exe --gtest_brief=1`.
+- `ChunkPrimer` and `ChunkData` now expose `getTopBlockY()` as the actual top block Y, while `Heightmap` still stores `y + 1` internally.
+- `OceanDecorationFeature` is now wired into the non-warm ocean biome generation settings, so its prop placement path is reachable at runtime instead of only existing as a registered feature.
+- Ocean feature registration now splits kelp into `kelp_cold` / `kelp_warm` and seagrass into the vanilla-style temperature matrix; `BiomeGenerationSettings` and the vegetation tests were updated to use the new ids.
+
 ## Random Module
 
 ```cpp
@@ -345,14 +354,22 @@ enum class Operation : u8 { ... };
     - Prefer canonical references returned by `state.with(...)` / `defaultState()`; `ServerWorld::setBlock` now canonicalizes by `stateId` as a safety net.
 - `ChunkData::setSkyEmptinessMap(const bool* map)` / `setBlockEmptinessMap(const bool* map)` 需要拿到完整的区块段空隙图。
     - 不要再把 `std::vector<bool>` 的结果直接丢成 `nullptr`；如果上游拿到的是按段更新结果，必须先拷贝成连续的 `bool[]` 再写回区块。
+- `Heightmap` 内部存储的是 `y + 1`，不是实际方块 Y。
+    - 只有 `getTopBlockY()` 这一层才应该把它转换回块坐标，不要直接把原始高度图值当作方块位置。
 - `WorldLightManager::tick(...)` now relies on ordered budget consumption.
     - Do not restore the previous half/half split unless the budget model is redesigned with matching tests.
+- `KelpFeatureIds` and `SeagrassFeatureIds` now split by ocean temperature.
+    - Keep `FeatureRegistry::initialize()` order, `BiomeGenerationSettings` mapping, and the ocean assertions in sync whenever new ocean variants are added.
 - `CraftingMenu::stillValid()` now uses the player's distance to the crafting table.
     - Keep workbench accessibility tied to the block entity position so container validity matches the intended interaction range.
 - `ChickenEntity::tick()` spawns an egg item entity when the timer expires.
     - Reset the timer immediately after spawning or chickens will emit eggs in bursts.
 - `GlassBottleItem` samples along the player's look ray before deciding whether a bottle can be filled.
     - Liquid blocks here do not provide usable collision shapes, so pure hit tests are not enough for water-source detection.
+- `PaneBlock` connection shapes are cached per 4-bit mask and use normalized coordinates.
+    - Do not fall back to a single center-shape placeholder or reintroduce pixel-space box coordinates; that breaks collision and rendering tests.
+- Liquid face culling in `ChunkMesher` must treat empty-collision underwater plants like seagrass and kelp plant as face-hiding neighbors.
+    - Do not key liquid visibility off transparency alone or you will reintroduce stray water quads around aquatic vegetation.
 - `MatrixStack` call-order intuition can be misleading after PoseStack alignment.
     - In first-person rendering, apply transforms in vanilla order and rely on post-multiply semantics; avoid ad-hoc in-place row/column edits.
 - `StackLayoutAlgorithm` in Kagero should stretch children on the container cross-axis, not just the line content size.

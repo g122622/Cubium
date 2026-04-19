@@ -11,6 +11,7 @@ namespace mc {
 
 namespace {
 
+// 获取海底高度，如果无法找到则返回 -1。
 [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) {
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
     if (oceanFloorY > 0) {
@@ -18,6 +19,7 @@ namespace {
     }
 
     // 某些测试场景会直接写方块而不更新高度图，回退到显式扫描。
+    // 正常情况下不会走到下面的代码路径。
     for (i32 y = 255; y >= 1; --y) {
         const BlockState* state = world.getBlock(x, y, z);
         if (state == nullptr || state->isAir()) {
@@ -68,9 +70,10 @@ bool KelpFeature::place(
             continue;
         }
 
+        // 从海床平面开始向上生长海带，直到达到随机高度或无法继续生长。
         const i32 height = 1 + random.nextInt(maxHeight);
         for (i32 y = 0; y <= height; ++y) {
-            const BlockPos abovePos(currentPos.x, currentPos.y + 1, currentPos.z);
+            const BlockPos abovePos = currentPos.up();
             const bool canGrowHere = isWater(world, currentPos) && isWater(world, abovePos) && canPlaceAt(world, currentPos);
 
             if (canGrowHere) {
@@ -84,8 +87,8 @@ bool KelpFeature::place(
                     world.setBlock(currentPos, config.kelpState);
                 }
             } else if (y > 0) {
-                const BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
-                const BlockPos belowBelowPos(belowPos.x, belowPos.y - 1, belowPos.z);
+                const BlockPos belowPos = currentPos.down();
+                const BlockPos belowBelowPos = belowPos.down();
                 const BlockState* belowBelowState = world.getBlock(belowBelowPos);
 
                 const bool belowHasKelp =
@@ -101,7 +104,7 @@ bool KelpFeature::place(
                 break;
             }
 
-            currentPos = BlockPos(currentPos.x, currentPos.y + 1, currentPos.z);
+            currentPos = currentPos.up();
         }
     }
 
@@ -110,12 +113,9 @@ bool KelpFeature::place(
 
 bool KelpFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlock(belowPos);
+    const BlockState* belowState = world.getBlock(pos.down());
 
-    if (!belowState) {
-        return false;
-    }
+    MC_ASSERT_RELEASE(belowState);
 
     if (VanillaBlocks::KELP != nullptr && belowState->is(VanillaBlocks::KELP)) {
         return true;
@@ -175,7 +175,8 @@ std::vector<std::unique_ptr<ConfiguredKelpFeature>> KelpFeatures::s_features;
 void KelpFeatures::initialize()
 {
     s_features.clear();
-    s_features.push_back(createNormalKelp());
+    s_features.push_back(createColdKelp());
+    s_features.push_back(createWarmKelp());
 }
 
 const std::vector<std::unique_ptr<ConfiguredKelpFeature>>& KelpFeatures::getAllFeatures()
@@ -190,7 +191,7 @@ std::vector<std::unique_ptr<ConfiguredKelpFeature>> KelpFeatures::getAllFeatures
     return result;
 }
 
-std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createNormalKelp()
+std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createColdKelp()
 {
     auto config = std::make_unique<KelpFeatureConfig>();
     if (VanillaBlocks::KELP_PLANT != nullptr && VanillaBlocks::KELP != nullptr) {
@@ -198,10 +199,23 @@ std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createNormalKelp()
         config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
         config->kelpTopState = &VanillaBlocks::KELP->defaultState();
     }
+    config->tries = 120;
+    config->maxHeight = 10;
+
+    return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp_cold");
+}
+
+std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createWarmKelp()
+{
+    auto config = std::make_unique<KelpFeatureConfig>();
+    if (VanillaBlocks::KELP_PLANT != nullptr && VanillaBlocks::KELP != nullptr) {
+        config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
+        config->kelpTopState = &VanillaBlocks::KELP->defaultState();
+    }
     config->tries = 80;
     config->maxHeight = 10;
 
-    return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp");
+    return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp_warm");
 }
 
 } // namespace mc

@@ -690,8 +690,8 @@ i32 ServerWorld::getHeight(i32 x, i32 z) const
     const i32 localX = x - chunkX * 16;
     const i32 localZ = z - chunkZ * 16;
 
-    // 优先使用世界生成高度图（返回的是“顶部空气层 Y”）。
-    i32 height = chunk->getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ);
+    // 优先使用世界生成高度图；Chunk 侧公开的是最高方块 Y，这里要转换成空气层 Y。
+    i32 height = chunk->getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ) + 1;
     if (height <= world::MIN_BUILD_HEIGHT) {
         // 回退到基础高度图（m_heightMap 存储的是最高实心方块 Y，需要 +1 对齐语义）。
         const i32 highestSolidY = chunk->getHighestBlock(localX, localZ);

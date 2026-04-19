@@ -113,6 +113,7 @@ if (!cancelSignal.load(std::memory_order_acquire)) {
 - 邻居数组顺序固定：`-X, +X, -Z, +Z, -Y, +Y`。
 - 在没有 `BlockModelCache` 时，`ChunkMesher` 不会生成有效几何。
 - 贪婪网格在平滑 AO 路径会回退到逐面路径，这是预期行为。
+- 液体面剔除不能只看透明度；像海草、海带茎这类没有实体碰撞体积的水下植物也要吞掉相邻水面，否则会出现多余的水贴图边缘。
 
 ## 9. 测试用例
 

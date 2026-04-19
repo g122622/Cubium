@@ -255,8 +255,8 @@ i32 WorldGenSpawner::getSpawnHeight(
     HeightmapType heightmapType =
         world::spawn::EntitySpawnPlacementRegistry::getHeightmapType(entityType.name());
 
-    // 获取世界表面高度
-    const i32 topY = region.getTopBlockY(x, z, heightmapType);
+    // 获取实体脚下位置：Chunk 的 topBlockY 是顶层方块 Y，这里需要上移一格到空气层。
+    const i32 topY = region.getTopBlockY(x, z, heightmapType) + 1;
 
     if (topY <= 0) {
         return -1;

@@ -230,10 +230,10 @@ TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings) {
         if (id == BlueIceFeatureIds::Normal) {
             hasBlueIce = true;
         }
-        if (id == KelpFeatureIds::Normal) {
+        if (id == KelpFeatureIds::Cold) {
             hasKelp = true;
         }
-        if (id == SeagrassFeatureIds::Simple || id == SeagrassFeatureIds::Mixed) {
+        if (id == SeagrassFeatureIds::Cold) {
             hasSeagrass = true;
         }
         if (id == CoralFeatureIds::Tube ||

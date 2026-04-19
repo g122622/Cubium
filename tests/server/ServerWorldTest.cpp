@@ -2,6 +2,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -238,6 +239,22 @@ TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
     EXPECT_EQ(block0->blockId(), VanillaBlocks::STONE->blockId());
     EXPECT_EQ(block1->blockId(), VanillaBlocks::DIRT->blockId());
     EXPECT_EQ(block2->blockId(), VanillaBlocks::GRASS_BLOCK->blockId());
+}
+
+TEST_F(ServerWorldTest, GetHeight_ReturnsAirLayerAboveTopBlock) {
+    ASSERT_TRUE(world->initialize().success());
+
+    ChunkData* chunk = world->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    const i32 localX = 0;
+    const i32 localZ = 0;
+    const i32 topBlockY = chunk->getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ);
+    ASSERT_GE(topBlockY, 0);
+
+    const i32 worldX = localX;
+    const i32 worldZ = localZ;
+    EXPECT_EQ(world->getHeight(worldX, worldZ), topBlockY + 1);
 }
 
 // ============================================================================

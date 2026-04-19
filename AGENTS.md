@@ -481,13 +481,12 @@ Result<std::shared_ptr<Chunk>> loadChunk(ChunkPos pos, int priority);
 
 ### 5.2 行内注释
 
+推荐使用较多的简体中文行内注释解释逻辑、算法步骤、设计决策等。
+
 ```cpp
 // ✅ 推荐：解释"为什么"而不是"是什么"
 // 使用二次插值平滑相机移动，避免突变
 float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
-
-// ❌ 禁止：冗余注释
-i++;  // i加1 ❌
 
 // ✅ 必须：标记待办事项。所有没做完的工作、妥协、简化实现等都必须明确标记，避免遗忘。
 // TODO: 优化区块加载算法，当前O(n²)复杂度

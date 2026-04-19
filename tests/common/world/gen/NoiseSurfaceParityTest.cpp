@@ -79,21 +79,24 @@ TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer) {
 
     generator.buildSurface(*m_region, *centerChunk);
 
+    auto chunkData = centerChunk->toChunkData();
+    ASSERT_NE(chunkData, nullptr);
+
     i32 checkedColumns = 0;
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
-            const i32 topY = centerChunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
-            if (topY < 2) {
+            const i32 topY = chunkData->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
+            if (topY < 1) {
                 continue;
             }
 
-            const BlockState* topState = centerChunk->getBlock(x, topY - 1, z);
+            const BlockState* topState = chunkData->getBlock(x, topY, z);
             if (topState == nullptr || !topState->is(VanillaBlocks::GRASS_BLOCK)) {
                 continue;
             }
 
             ++checkedColumns;
-            const BlockState* belowTop = centerChunk->getBlock(x, topY - 2, z);
+            const BlockState* belowTop = chunkData->getBlock(x, topY - 1, z);
             ASSERT_NE(belowTop, nullptr);
             EXPECT_TRUE(belowTop->is(VanillaBlocks::DIRT));
         }

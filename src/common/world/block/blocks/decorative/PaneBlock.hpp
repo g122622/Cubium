@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "../../Block.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
@@ -58,6 +60,11 @@ public:
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     // ========== 属性访问 ==========
 
     /**
@@ -80,12 +87,17 @@ protected:
     [[nodiscard]] bool shouldConnectTo(IWorld& world, const BlockPos& pos,
                                         const BlockState& neighborState, Direction direction) const;
 
-    /// 碰撞形状
-    CollisionShape m_collisionShape;
+    /**
+     * @brief 计算形状索引
+     */
+    [[nodiscard]] static size_t getShapeIndex(bool north, bool east, bool south, bool west);
+
     /// 中心柱形状
     CollisionShape m_centerShape;
     /// 边缘形状
     CollisionShape m_sideShapes[6];
+    /// 组合形状缓存
+    std::array<CollisionShape, 16> m_shapes;
 };
 
 } // namespace blocks

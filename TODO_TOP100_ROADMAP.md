@@ -28,11 +28,12 @@
 - `src/common/world/block/blocks/EnchantingTableBlock.cpp:53,66`：补服务端判定和附魔台 GUI 打开，直接走统一菜单入口。
 - `src/common/world/block/blocks/FurnaceBlocks.cpp:23,42,60`：补普通炉/高炉/烟熏炉菜单打开，复用同一套容器注册。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/CropBlock.cpp:68,113`：补光照检查，并将骨粉增长改为基于世界种子和位置的确定性随机。
+- ✅ 已完成 `src/common/world/block/blocks/agricultural/StemBlock.cpp:102`：将骨粉增长与果实触发改为基于世界种子和位置的确定性随机，移除全局 `rand()`。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/FarmlandBlock.cpp:67,115`：补特殊支撑判定和下雨判定，直接接现有世界/天气接口。
 - ✅ 已完成 `src/common/world/block/blocks/building/TrapDoorBlock.cpp:257`：补开合音效，并根据当前方块实例区分木/铁活板门。
-- `src/common/world/block/blocks/coral/CoralBlock.cpp:34,54,115,162,227`：补流体状态、死珊瑚回退和 waterlogged 默认值，逻辑集中且适合单测。
+- ✅ 已完成 `src/common/world/block/blocks/coral/CoralBlock.cpp:34,54,115,162,227`：补水源判定、邻近水检测、缺水回退和流体 tick，珊瑚扇/墙扇同步完成同类逻辑。
 - `src/common/world/block/blocks/decorative/CampfireBlock.cpp:52,56,84,94`：补雨淋熄灭、烹饪逻辑、点燃/熄灭音效与粒子。
-- `src/common/world/block/blocks/decorative/PaneBlock.cpp:43,64,141`：补动态碰撞形状、水合状态和可连接方块类型。
+- ✅ 已完成 `src/common/world/block/blocks/decorative/PaneBlock.cpp:43,64,141`：补动态碰撞形状、水合状态和可连接方块类型。
 - `src/common/world/block/blocks/decorative/ScaffoldingBlock.cpp:37,39,60,72,94`：补距离计算、水合状态、底部状态更新和支撑过远判定。
 
 ## C. 资源 / UI / 菜单
@@ -101,7 +102,6 @@
 ## F. 跨系统 / 核心小修
 
 - `src/common/entity/loot/LootTable.cpp:94,99`：补 JSON 解析与序列化，适合先把掉落表读写接通。
-- `src/common/world/block/blocks/agricultural/StemBlock.cpp:102`：改用世界随机数，属于单点行为对齐。
 - `src/common/entity/entities/passive/horse/AbstractHorseEntity.cpp:20`：补马鞍标志设置，逻辑很局部。
 - `src/client/sound/backend/AudioBuffer.cpp:63`、`src/client/sound/handler/BiomeAmbientHandler.cpp:51`、`src/client/sound/MusicPlayer.cpp:306`：这三处都在收尾客户端音频链路，建议一起处理。
 - `src/client/ui/kagero/template/parser/Parser.cpp:526` 与 `src/client/ui/kagero/template/parser/Ast.hpp` 中的 `bind:xxx / on:xxx / for:xxx` 示例：前者是真 TODO，后者是语法示例，不要混淆。

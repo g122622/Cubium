@@ -3,6 +3,43 @@
 #include "../../BlockRegistry.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
+
+namespace {
+
+[[nodiscard]] bool isWaterFluidState(const mc::fluid::FluidState* fluidState) {
+    return fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER());
+}
+
+[[nodiscard]] bool isWaterSourceFluidState(const mc::fluid::FluidState* fluidState) {
+    return isWaterFluidState(fluidState) && fluidState->isSource();
+}
+
+void scheduleWaterTick(mc::IWorld& world, const mc::BlockPos& pos) {
+    mc::fluid::Fluid* waterFluid = mc::fluid::FluidRegistry::instance().getFluid(mc::fluid::FluidRegistry::WATER_ID);
+    MC_ASSERT(waterFluid != nullptr);
+    world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+}
+
+[[nodiscard]] const mc::BlockState* getDeadBlockState(mc::u32 deadBlockId) {
+    mc::Block* deadBlock = mc::BlockRegistry::instance().getBlock(deadBlockId);
+    return deadBlock != nullptr ? &deadBlock->defaultState() : nullptr;
+}
+
+[[nodiscard]] bool hasNearbyWater(mc::IWorld& world, const mc::BlockPos& pos) {
+    for (mc::Direction dir : {mc::Direction::North, mc::Direction::South, mc::Direction::East, mc::Direction::West, mc::Direction::Up, mc::Direction::Down}) {
+        const mc::fluid::FluidState* fluidState = world.getFluidState(pos.offset(dir));
+        if (isWaterFluidState(fluidState)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+} // namespace
 
 namespace mc {
 namespace blocks {
@@ -27,12 +64,10 @@ CoralBlock::CoralBlock(CoralColor color, u32 deadBlock, const BlockProperties& p
 }
 
 BlockState CoralBlock::getStateForPlacement(BlockItemUseContext& context) {
-    // 检查是否在水中
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    // TODO: 检查流体状态
-    bool waterlogged = false;
+    bool waterlogged = isWaterSourceFluidState(world.getFluidState(pos));
 
     return defaultState().with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
@@ -49,11 +84,14 @@ BlockState CoralBlock::updatePostPlacement(
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    // 如果不在水中，变成死珊瑚
-    if (!state.get(BlockStateProperties::WATERLOGGED()) && !isWaterNearby(world, currentPos)) {
-        // TODO: 返回死珊瑚方块状态
-        // Block* deadBlock = Block::getBlock(m_deadBlock);
-        // return deadBlock->defaultState();
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        scheduleWaterTick(world, currentPos);
+    }
+
+    if (!hasNearbyWater(world, currentPos)) {
+        if (const BlockState* deadState = getDeadBlockState(m_deadBlock); deadState != nullptr) {
+            return *deadState;
+        }
     }
 
     return state;
@@ -64,19 +102,7 @@ bool CoralBlock::isInWater(const BlockState& state) const {
 }
 
 bool CoralBlock::isWaterNearby(IWorld& world, const BlockPos& pos) const {
-    // 检查六个方向是否有水
-    for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
-        BlockPos adjPos = pos.offset(dir);
-        const BlockState* adjState = world.getBlockState(adjPos);
-
-        if (adjState != nullptr) {
-            const Material& material = adjState->getMaterial();
-            if (material.isLiquid()) {
-                return true;
-            }
-        }
-    }
-    return false;
+    return hasNearbyWater(world, pos);
 }
 
 const CollisionShape& CoralBlock::getShape(const BlockState& state) const {
@@ -112,7 +138,7 @@ BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context) {
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = false;  // TODO: 检查流体
+    bool waterlogged = isWaterSourceFluidState(world.getFluidState(pos));
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
@@ -136,7 +162,6 @@ BlockState CoralFanBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos) {
 
-    // 检查附着面是否仍然有效
     Direction attachDir = state.get(BlockStateProperties::HORIZONTAL_FACING());
     if (facing == attachDir) {
         IBlockReader& blockReader = static_cast<IBlockReader&>(world);
@@ -147,19 +172,13 @@ BlockState CoralFanBlock::updatePostPlacement(
         }
     }
 
-    // 检查是否需要变成死珊瑚
-    if (!state.get(BlockStateProperties::WATERLOGGED())) {
-        bool waterNearby = false;
-        for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
-            BlockPos adjPos = currentPos.offset(dir);
-            const BlockState* adjState = world.getBlockState(adjPos);
-            if (adjState != nullptr && adjState->getMaterial().isLiquid()) {
-                waterNearby = true;
-                break;
-            }
-        }
-        if (!waterNearby) {
-            // TODO: 返回死珊瑚扇状态
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        scheduleWaterTick(world, currentPos);
+    }
+
+    if (!hasNearbyWater(world, currentPos)) {
+        if (const BlockState* deadState = getDeadBlockState(m_deadBlock); deadState != nullptr) {
+            return *deadState;
         }
     }
 
@@ -194,7 +213,7 @@ bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direct
         return false;
     }
 
-    return adjState->isSolid();
+    return adjState->isSolidSide(world, adjPos, direction);
 }
 
 // ========== CoralWallFanBlock ==========
@@ -224,7 +243,7 @@ BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context)
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = false;  // TODO: 检查流体
+    bool waterlogged = isWaterSourceFluidState(world.getFluidState(pos));
 
     return defaultState()
         .with(BlockStateProperties::FACING(), facing)
@@ -237,11 +256,10 @@ bool CoralWallFanBlock::isValidPosition(
     const BlockPos& pos) const {
 
     Direction facing = state.get(BlockStateProperties::FACING());
-    // 只能附着在水平墙面
     if (facing == Direction::Up || facing == Direction::Down) {
         return false;
     }
-    return canAttachTo(world, pos, facing);
+    return canAttachTo(world, pos, Directions::opposite(facing));
 }
 
 BlockState CoralWallFanBlock::updatePostPlacement(
@@ -255,19 +273,25 @@ BlockState CoralWallFanBlock::updatePostPlacement(
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    // 检查附着面
     Direction attachDir = state.get(BlockStateProperties::FACING());
-    if (facing == attachDir) {
+    if (Directions::opposite(facing) == attachDir) {
         IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-        if (!canAttachTo(blockReader, currentPos, attachDir)) {
+        if (!canAttachTo(blockReader, currentPos, facing)) {
             if (auto* airState = BlockRegistry::instance().airState()) {
                 return *airState;
             }
         }
     }
 
-    // 检查是否需要变成死珊瑚
-    // ... (同 CoralFanBlock)
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        scheduleWaterTick(world, currentPos);
+    }
+
+    if (!hasNearbyWater(world, currentPos)) {
+        if (const BlockState* deadState = getDeadBlockState(m_deadBlock); deadState != nullptr) {
+            return *deadState;
+        }
+    }
 
     return state;
 }
@@ -321,7 +345,7 @@ bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Di
         return false;
     }
 
-    return adjState->isSolid();
+    return adjState->isSolidSide(world, adjPos, direction);
 }
 
 // ========== CoralBlockBlock ==========

@@ -650,12 +650,18 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     // 液体渲染规则：
     // - 邻居不存在或空气 → 渲染（外露面）
     // - 邻居是液体 → 剔除（液体之间不渲染内部面，包括同类型和不同类型）
+    // - 邻居没有实体体积 → 剔除（如海草、海带茎等水下植物）
     // - 邻居是透明方块（非液体） → 渲染（如水贴玻璃）
     // - 邻居是不透明方块 → 剔除（被遮挡）
     if (block->isLiquid()) {
         if (neighbor->isLiquid()) {
             return false;  // 液体之间不渲染面
         }
+
+        if (neighbor->getCollisionShape().isEmpty()) {
+            return false;  // 水下植物等无实体体积的块不应切出独立水面
+        }
+
         if (neighbor->isTransparent()) {
             return true;   // 液体贴透明方块时渲染面
         }

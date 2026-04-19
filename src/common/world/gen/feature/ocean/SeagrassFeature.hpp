@@ -146,6 +146,30 @@ struct SeagrassFeatures {
     /// 创建混合海草（普通+高海草）
     static std::unique_ptr<ConfiguredSeagrassFeature> createMixedSeagrass();
 
+    /// 创建冷水海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createColdSeagrass();
+
+    /// 创建深冷水海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createDeepColdSeagrass();
+
+    /// 创建常规海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createNormalSeagrass();
+
+    /// 创建河流海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createRiverSeagrass();
+
+    /// 创建深海海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createDeepSeagrass();
+
+    /// 创建沼泽海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createSwampSeagrass();
+
+    /// 创建暖水海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createWarmSeagrass();
+
+    /// 创建深暖水海草
+    static std::unique_ptr<ConfiguredSeagrassFeature> createDeepWarmSeagrass();
+
 private:
     static std::vector<std::unique_ptr<ConfiguredSeagrassFeature>> s_features;
 };

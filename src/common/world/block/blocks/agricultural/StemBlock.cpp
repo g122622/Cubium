@@ -6,6 +6,17 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include <algorithm>
+#include <functional>
+
+namespace {
+
+[[nodiscard]] mc::i32 getBonemealAgeIncrease(const mc::IWorld& world, const mc::BlockPos& pos) {
+    const mc::u64 seed = world.seed() ^ static_cast<mc::u64>(std::hash<mc::BlockPos>{}(pos));
+    mc::math::Random random(seed);
+    return 2 + random.nextInt(4);
+}
+
+} // namespace
 
 namespace mc {
 namespace blocks {
@@ -93,13 +104,14 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 }
 
 void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    int newAge = std::min(getAge(state) + 2 + (rand() % 4), getMaxAge());
+    const auto newAge = std::min(getAge(state) + static_cast<int>(getBonemealAgeIncrease(world, pos)), getMaxAge());
     const BlockState& newState = withAge(newAge);
     world.setBlockState(pos, &newState, 2);
 
     // 如果达到最大年龄，尝试生成果实
     if (newAge == getMaxAge()) {
-        math::Random random;  // TODO: 使用世界随机数
+        const mc::u64 seed = world.seed() ^ static_cast<mc::u64>(std::hash<BlockPos>{}(pos));
+        math::Random random(seed);
         tryGrowFruit(newState, world, pos, random);
     }
 }

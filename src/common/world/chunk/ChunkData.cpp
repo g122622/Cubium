@@ -288,7 +288,7 @@ BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord 
     // 检查是否有特定类型的高度图
     auto it = m_heightmaps.find(type);
     if (it != m_heightmaps.end()) {
-        return it->second.getHeight(x, z);
+        return it->second.getHeight(x, z) - 1;
     }
 
     // 默认使用基本高度图
@@ -309,8 +309,9 @@ void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, 
     heightmap.update(x, y, z, state);
 
     // 同时更新基本高度图（WorldSurface 类型）
-    if (type == HeightmapType::WorldSurface) {
-        m_heightMap[x * WIDTH + z] = heightmap.getHeight(x, z);
+    if (type == HeightmapType::WorldSurface || type == HeightmapType::WorldSurfaceWG) {
+        const BlockCoord height = heightmap.getHeight(x, z);
+        m_heightMap[x * WIDTH + z] = height > 0 ? height - 1 : 0;
     }
 }
 

@@ -6,6 +6,8 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 
 namespace mc {

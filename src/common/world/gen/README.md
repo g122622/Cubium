@@ -195,6 +195,7 @@ public:
 - `SeagrassFeature`：放置普通海草与高海草（上下半状态）。
 - `SeaPickleFeature`：在活珊瑚基底上放置 1-4 个海泡菜。
 - `CoralFeature`：随机生成树形/蘑菇形/爪形珊瑚结构并附带扇状装饰。
+- `OceanDecorationFeature`：补充潮涌核心、干海带块、海龟蛋、气泡柱、海晶石楼梯/台阶等海洋装饰，并已挂接到非暖水海洋 biome 的生成设置中。
 
 #### 树木生成 (`feature/tree/`)
 

@@ -29,6 +29,11 @@ decorative/
 - WATERLOGGED: bool
 ```
 
+**实现要点**:
+- 形状按 4 位连接掩码缓存为 16 种组合，避免每次重算
+- 连接判定接受同类 Pane、墙方块和有实体面的相邻方块
+- `WATERLOGGED` 会直接回传水流体状态，并在邻居更新时调度水 tick
+
 **衍生方块**:
 - GLASS_PANE（玻璃板）
 - WHITE_STAINED_GLASS_PANE ~ BLACK_STAINED_GLASS_PANE（染色玻璃板）

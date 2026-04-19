@@ -1,15 +1,31 @@
 #include "PaneBlock.hpp"
+#include "../building/WallBlock.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+
+namespace {
+
+[[nodiscard]] bool isWaterFluidState(const mc::fluid::FluidState* fluidState) {
+    return fluidState != nullptr && fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER());
+}
+
+void scheduleWaterTick(mc::IWorld& world, const mc::BlockPos& pos) {
+    mc::fluid::Fluid* waterFluid = mc::fluid::FluidRegistry::instance().getFluid(mc::fluid::FluidRegistry::WATER_ID);
+    MC_ASSERT(waterFluid != nullptr);
+    world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+}
+
+} // namespace
 
 namespace mc {
 namespace blocks {
 
 PaneBlock::PaneBlock(const BlockProperties& properties)
-    : Block(properties)
-    , m_collisionShape(CollisionShape::empty())
-{
+    : Block(properties) {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::NORTH())
@@ -30,38 +46,63 @@ PaneBlock::PaneBlock(const BlockProperties& properties)
         .with(BlockStateProperties::WEST(), false)
         .with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 创建形状
-    // 中心柱：2x16x2 (像素)
-    m_centerShape = CollisionShape::box(7.0f, 0.0f, 7.0f, 9.0f, 16.0f, 9.0f);
+    constexpr f32 P = 1.0f / 16.0f;
+
+    // 中心柱：2x16x2 像素
+    m_centerShape = CollisionShape::box(7.0f * P, 0.0f, 7.0f * P, 9.0f * P, 16.0f * P, 9.0f * P);
 
     // 边缘形状 (各方向连接面板)
-    m_sideShapes[static_cast<size_t>(Direction::North)] = CollisionShape::box(7.0f, 0.0f, 0.0f, 9.0f, 16.0f, 7.0f);
-    m_sideShapes[static_cast<size_t>(Direction::South)] = CollisionShape::box(7.0f, 0.0f, 9.0f, 9.0f, 16.0f, 16.0f);
-    m_sideShapes[static_cast<size_t>(Direction::West)] = CollisionShape::box(0.0f, 0.0f, 7.0f, 7.0f, 16.0f, 9.0f);
-    m_sideShapes[static_cast<size_t>(Direction::East)] = CollisionShape::box(9.0f, 0.0f, 7.0f, 16.0f, 16.0f, 9.0f);
+    m_sideShapes[static_cast<size_t>(Direction::North)] = CollisionShape::box(7.0f * P, 0.0f, 0.0f, 9.0f * P, 16.0f * P, 7.0f * P);
+    m_sideShapes[static_cast<size_t>(Direction::South)] = CollisionShape::box(7.0f * P, 0.0f, 9.0f * P, 9.0f * P, 16.0f * P, 16.0f * P);
+    m_sideShapes[static_cast<size_t>(Direction::West)] = CollisionShape::box(0.0f, 0.0f, 7.0f * P, 7.0f * P, 16.0f * P, 9.0f * P);
+    m_sideShapes[static_cast<size_t>(Direction::East)] = CollisionShape::box(9.0f * P, 0.0f, 7.0f * P, 16.0f * P, 16.0f * P, 9.0f * P);
 
-    // TODO: 碰撞形状应该根据连接状态动态组合
-    // 目前使用中心形状作为基础碰撞形状
-    m_collisionShape = m_centerShape;
+    for (size_t i = 0; i < m_shapes.size(); ++i) {
+        m_shapes[i] = CollisionShape::empty();
+    }
+
+    for (int north = 0; north <= 1; ++north) {
+        for (int east = 0; east <= 1; ++east) {
+            for (int south = 0; south <= 1; ++south) {
+                for (int west = 0; west <= 1; ++west) {
+                    const size_t index = getShapeIndex(north != 0, east != 0, south != 0, west != 0);
+
+                    CollisionShape shape = m_centerShape;
+                    if (north != 0) {
+                        shape = CollisionShape::combine(shape, m_sideShapes[static_cast<size_t>(Direction::North)]);
+                    }
+                    if (east != 0) {
+                        shape = CollisionShape::combine(shape, m_sideShapes[static_cast<size_t>(Direction::East)]);
+                    }
+                    if (south != 0) {
+                        shape = CollisionShape::combine(shape, m_sideShapes[static_cast<size_t>(Direction::South)]);
+                    }
+                    if (west != 0) {
+                        shape = CollisionShape::combine(shape, m_sideShapes[static_cast<size_t>(Direction::West)]);
+                    }
+
+                    m_shapes[index] = shape;
+                }
+            }
+        }
+    }
 }
 
 BlockState PaneBlock::getStateForPlacement(BlockItemUseContext& context) {
-    // 获取相邻方块状态
     BlockPos pos = context.placementPos();
     const IWorld& world = context.getWorld();
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
 
     const BlockState* northState = world.getBlockState(pos.north());
     const BlockState* eastState = world.getBlockState(pos.east());
     const BlockState* southState = world.getBlockState(pos.south());
     const BlockState* westState = world.getBlockState(pos.west());
 
-    bool north = northState && shouldConnectTo(const_cast<IWorld&>(world), pos, *northState, Direction::North);
-    bool east = eastState && shouldConnectTo(const_cast<IWorld&>(world), pos, *eastState, Direction::East);
-    bool south = southState && shouldConnectTo(const_cast<IWorld&>(world), pos, *southState, Direction::South);
-    bool west = westState && shouldConnectTo(const_cast<IWorld&>(world), pos, *westState, Direction::West);
-
-    // 检查水logged
-    bool waterlogged = false; // TODO: 检查流体状态
+    bool north = northState != nullptr && shouldConnectTo(const_cast<IWorld&>(world), pos.north(), *northState, Direction::North);
+    bool east = eastState != nullptr && shouldConnectTo(const_cast<IWorld&>(world), pos.east(), *eastState, Direction::East);
+    bool south = southState != nullptr && shouldConnectTo(const_cast<IWorld&>(world), pos.south(), *southState, Direction::South);
+    bool west = westState != nullptr && shouldConnectTo(const_cast<IWorld&>(world), pos.west(), *westState, Direction::West);
+    bool waterlogged = isWaterFluidState(fluidState);
 
     return defaultState()
         .with(BlockStateProperties::NORTH(), north)
@@ -79,31 +120,51 @@ BlockState PaneBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facingPos);
-
-    // 更新连接状态
-    if (facing == Direction::North) {
-        return state.with(BlockStateProperties::NORTH(), shouldConnectTo(world, currentPos, facingState, facing));
-    } else if (facing == Direction::South) {
-        return state.with(BlockStateProperties::SOUTH(), shouldConnectTo(world, currentPos, facingState, facing));
-    } else if (facing == Direction::West) {
-        return state.with(BlockStateProperties::WEST(), shouldConnectTo(world, currentPos, facingState, facing));
-    } else if (facing == Direction::East) {
-        return state.with(BlockStateProperties::EAST(), shouldConnectTo(world, currentPos, facingState, facing));
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        scheduleWaterTick(world, currentPos);
     }
-    return state;
+
+    if (!Directions::isHorizontal(facing)) {
+        MC_UNUSED(facingPos);
+        return state;
+    }
+
+    switch (facing) {
+        case Direction::North:
+            return state.with(BlockStateProperties::NORTH(), shouldConnectTo(world, facingPos, facingState, facing));
+        case Direction::East:
+            return state.with(BlockStateProperties::EAST(), shouldConnectTo(world, facingPos, facingState, facing));
+        case Direction::South:
+            return state.with(BlockStateProperties::SOUTH(), shouldConnectTo(world, facingPos, facingState, facing));
+        case Direction::West:
+            return state.with(BlockStateProperties::WEST(), shouldConnectTo(world, facingPos, facingState, facing));
+        default:
+            return state;
+    }
 }
 
 const CollisionShape& PaneBlock::getCollisionShape(const BlockState& state) const {
-    MC_UNUSED(state);
-    // 碰撞形状由各部分组合
-    return m_collisionShape;
+    const size_t index = getShapeIndex(
+        state.get(BlockStateProperties::NORTH()),
+        state.get(BlockStateProperties::EAST()),
+        state.get(BlockStateProperties::SOUTH()),
+        state.get(BlockStateProperties::WEST()));
+    MC_ASSERT(index < m_shapes.size());
+    return m_shapes[index];
 }
 
 const CollisionShape& PaneBlock::getShape(const BlockState& state) const {
-    MC_UNUSED(state);
-    // 返回中心形状（实际渲染需要组合形状）
-    return m_centerShape;
+    return getCollisionShape(state);
+}
+
+const fluid::FluidState* PaneBlock::getFluidState(const BlockState& state) const {
+    if (!state.get(BlockStateProperties::WATERLOGGED())) {
+        return Block::getFluidState(state);
+    }
+
+    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    MC_ASSERT(waterFluid != nullptr);
+    return &waterFluid->defaultState();
 }
 
 bool PaneBlock::connectsTo(const BlockState& state, Direction facing) {
@@ -121,26 +182,25 @@ bool PaneBlock::connectsTo(const BlockState& state, Direction facing) {
 
 bool PaneBlock::shouldConnectTo(IWorld& world, const BlockPos& pos,
                                  const BlockState& neighborState, Direction direction) const {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(direction);
-
-    // 检查邻居是否是固体方块或同样类型的方块
     const Block& neighborBlock = neighborState.getBlock();
+    const Direction oppositeDirection = Directions::opposite(direction);
 
-    // 连接到固体方块
-    if (neighborBlock.isSolid(neighborState)) {
-        return true;
-    }
-
-    // 连接到同类型的方块
     if (&neighborBlock == this) {
         return true;
     }
 
-    // TODO: 检查其他可连接的方块类型（如玻璃板、铁栏杆等）
+    if (WallBlock::isWall(neighborState)) {
+        return true;
+    }
 
-    return false;
+    return neighborBlock.isSolidSide(neighborState, world, pos, oppositeDirection);
+}
+
+size_t PaneBlock::getShapeIndex(bool north, bool east, bool south, bool west) {
+    return static_cast<size_t>(north)
+        | (static_cast<size_t>(east) << 1U)
+        | (static_cast<size_t>(south) << 2U)
+        | (static_cast<size_t>(west) << 3U);
 }
 
 } // namespace blocks

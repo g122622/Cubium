@@ -9,11 +9,16 @@
 #include "../src/common/world/block/blocks/FallingBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/FarmlandBlock.hpp"
+#include "../src/common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "../src/common/world/block/blocks/coral/CoralBlock.hpp"
 #include "../src/common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
+#include "../src/common/item/context/BlockItemUseContext.hpp"
+#include "../src/common/item/core/ItemStack.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
 #include "../src/common/world/fluid/FluidRegistry.hpp"
 #include "../src/common/entity/core/Entity.hpp"
 #include "../src/common/util/math/random/Random.hpp"
+#include "../src/common/util/math/Vector3.hpp"
 #include "../src/common/util/property/Properties.hpp"
 #include <atomic>
 #include <unordered_map>
@@ -225,6 +230,18 @@ private:
     i32 m_spawnedEntityCount = 0;
 };
 
+BlockItemUseContext makePlacementContext(const IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
+    static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
+    return BlockItemUseContext(
+        world,
+        nullptr,
+        EMPTY_STACK,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
+        pos,
+        face,
+        playerYaw);
+}
+
 class TestCropBlock final : public blocks::CropBlock {
 public:
     explicit TestCropBlock(const BlockProperties& properties)
@@ -239,6 +256,22 @@ public:
     }
 
     [[nodiscard]] u32 getCropItem() const override { return 0; }
+    [[nodiscard]] u32 getSeedItem() const override { return 0; }
+};
+
+class TestStemBlock final : public blocks::StemBlock {
+public:
+    explicit TestStemBlock(const BlockProperties& properties)
+        : StemBlock(nullptr, properties) {
+        auto container = StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::AGE_0_7())
+            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
+        createBlockState(std::move(container));
+        setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
+    }
+
     [[nodiscard]] u32 getSeedItem() const override { return 0; }
 };
 
@@ -1049,6 +1082,108 @@ TEST(AgriculturalBehaviorTest, CropBonemealGrowthUsesWorldSeedAndPosition) {
     const BlockState* secondResult = world.getBlockState(cropPos.x, cropPos.y, cropPos.z);
     ASSERT_NE(secondResult, nullptr);
     EXPECT_EQ(crop.getAge(*secondResult), firstAge);
+}
+
+TEST(AgriculturalBehaviorTest, StemBonemealGrowthUsesWorldSeedAndPosition) {
+    TestStemBlock stem(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    BlockRulesTestWorld world;
+    const BlockPos stemPos(10, 65, 10);
+    const BlockState& stemState = stem.defaultState();
+
+    world.setSeed(987654321ULL);
+    world.setBlock(stemPos.x, stemPos.y, stemPos.z, &stemState);
+    stem.grow(world, stemPos, stemState);
+
+    const BlockState* firstResult = world.getBlockState(stemPos.x, stemPos.y, stemPos.z);
+    ASSERT_NE(firstResult, nullptr);
+    const i32 firstAge = stem.getAge(*firstResult);
+    EXPECT_GE(firstAge, 2);
+    EXPECT_LE(firstAge, 5);
+
+    world.setBlock(stemPos.x, stemPos.y, stemPos.z, &stemState);
+    stem.grow(world, stemPos, stemState);
+
+    const BlockState* secondResult = world.getBlockState(stemPos.x, stemPos.y, stemPos.z);
+    ASSERT_NE(secondResult, nullptr);
+    EXPECT_EQ(stem.getAge(*secondResult), firstAge);
+}
+
+TEST(CoralBehaviorTest, CoralBlockUsesSourceWaterAndFallsBackToDeadBlock) {
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, nullptr);
+
+    blocks::CoralBlock coral(
+        blocks::CoralColor::Tube,
+        VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->blockId(),
+        BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f));
+
+    BlockRulesTestWorld wetWorld;
+    const BlockPos wetPos(12, 64, 12);
+    wetWorld.setBlock(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
+
+    auto wetContext = makePlacementContext(wetWorld, wetPos, Direction::North, 180.0f);
+    BlockState wetState = coral.getStateForPlacement(wetContext);
+    EXPECT_TRUE(wetState.get(BlockStateProperties::WATERLOGGED()));
+
+    BlockRulesTestWorld dryWorld;
+    const BlockPos dryPos(14, 64, 14);
+    const BlockState& dryState = coral.defaultState().with(BlockStateProperties::WATERLOGGED(), false);
+    BlockState dryUpdated = coral.updatePostPlacement(dryState, Direction::Up, dryState, dryWorld, dryPos, dryPos.up());
+    EXPECT_TRUE(dryUpdated.is(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK));
+}
+
+TEST(CoralBehaviorTest, CoralFanUsesSourceWaterAndFallsBackToDeadBlock) {
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, nullptr);
+
+    blocks::CoralFanBlock coralFan(
+        blocks::CoralColor::Tube,
+        VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->blockId(),
+        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid());
+
+    BlockRulesTestWorld wetWorld;
+    const BlockPos wetPos(16, 64, 16);
+    wetWorld.setBlock(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
+
+    auto wetContext = makePlacementContext(wetWorld, wetPos, Direction::North, 180.0f);
+    BlockState wetState = coralFan.getStateForPlacement(wetContext);
+    EXPECT_TRUE(wetState.get(BlockStateProperties::WATERLOGGED()));
+
+    BlockRulesTestWorld dryWorld;
+    const BlockPos dryPos(18, 64, 18);
+    const BlockState& dryState = coralFan.defaultState();
+    BlockState dryUpdated = coralFan.updatePostPlacement(dryState, Direction::Up, dryState, dryWorld, dryPos, dryPos.up());
+    EXPECT_TRUE(dryUpdated.is(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK));
+}
+
+TEST(CoralBehaviorTest, CoralWallFanUsesSourceWaterAndFallsBackToDeadBlock) {
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK, nullptr);
+
+    blocks::CoralWallFanBlock coralWallFan(
+        blocks::CoralColor::Tube,
+        VanillaBlocks::DEAD_TUBE_CORAL_BLOCK->blockId(),
+        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid());
+
+    BlockRulesTestWorld wetWorld;
+    const BlockPos wetPos(20, 64, 20);
+    wetWorld.setBlock(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
+
+    auto wetContext = makePlacementContext(wetWorld, wetPos, Direction::North, 180.0f);
+    BlockState wetState = coralWallFan.getStateForPlacement(wetContext);
+    EXPECT_TRUE(wetState.get(BlockStateProperties::WATERLOGGED()));
+
+    BlockRulesTestWorld dryWorld;
+    const BlockPos dryPos(22, 64, 22);
+    const BlockState& dryState = coralWallFan.defaultState();
+    BlockState dryUpdated = coralWallFan.updatePostPlacement(dryState, Direction::Up, dryState, dryWorld, dryPos, dryPos.up());
+    EXPECT_TRUE(dryUpdated.is(VanillaBlocks::DEAD_TUBE_CORAL_BLOCK));
 }
 
 TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {

@@ -187,16 +187,25 @@ namespace VegetationIds {
 namespace KelpFeatureIds {
     // 海带特征（紧跟陆地植被特征之后）
     constexpr u32 Offset = VegetationIds::TotalVegetalFeatures;
-    constexpr u32 Normal = Offset;  // 普通海带
-    constexpr u32 Count = 1;    // 海带特征总数
+    constexpr u32 Cold = 0 + Offset;  // 冷海带
+    constexpr u32 Warm = 1 + Offset;   // 暖海带
+    constexpr u32 Count = 2;          // 海带特征总数
 }
 
 namespace SeagrassFeatureIds {
     // 海草特征（海带之后）
     constexpr u32 Offset = KelpFeatureIds::Offset + KelpFeatureIds::Count;
-    constexpr u32 Simple = 0 + Offset;  // 普通海草
-    constexpr u32 Mixed = 1 + Offset;   // 混合海草（含高海草）
-    constexpr u32 Count = 2;             // 海草特征总数
+    constexpr u32 Simple = 0 + Offset;     // 简单海草
+    constexpr u32 Mixed = 1 + Offset;      // 混合海草（含高海草）
+    constexpr u32 Cold = 2 + Offset;       // 冷水海草
+    constexpr u32 DeepCold = 3 + Offset;   // 深冷水海草
+    constexpr u32 Normal = 4 + Offset;     // 常规海草
+    constexpr u32 River = 5 + Offset;      // 河流海草
+    constexpr u32 Deep = 6 + Offset;       // 深海草
+    constexpr u32 Swamp = 7 + Offset;      // 沼泽海草
+    constexpr u32 Warm = 8 + Offset;       // 暖水海草
+    constexpr u32 DeepWarm = 9 + Offset;   // 深暖水海草
+    constexpr u32 Count = 10;              // 海草特征总数
 }
 
 namespace SeaPickleFeatureIds {

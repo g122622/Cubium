@@ -310,7 +310,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createOcean() {
 
     addDefaultOverworldOres(settings);
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -321,7 +322,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepOcean() {
 
     addDefaultOverworldOres(settings);
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -343,7 +345,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarmOcean() {
     settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
 
     // 暖水海草
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Warm);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -354,8 +357,10 @@ BiomeGenerationSettings BiomeGenerationSettings::createLukewarmOcean() {
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Warm);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -366,8 +371,9 @@ BiomeGenerationSettings BiomeGenerationSettings::createColdOcean() {
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Cold);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -378,10 +384,11 @@ BiomeGenerationSettings BiomeGenerationSettings::createFrozenOcean() {
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Cold);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
 
     settings.addFeature(DecorationStage::VegetalDecoration, BlueIceFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -392,8 +399,14 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean() {
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Tube);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Brain);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Bubble);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Fire);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Horn);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::DeepWarm);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -404,8 +417,15 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean() {
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Tube);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Brain);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Bubble);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Fire);
+    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Horn);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Deep);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Warm);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -416,8 +436,9 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepColdOcean() {
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::DeepCold);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }
@@ -428,9 +449,10 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepFrozenOcean() {
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
-    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::DeepCold);
+    settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
     settings.addFeature(DecorationStage::VegetalDecoration, BlueIceFeatureIds::Normal);
+    settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
 }

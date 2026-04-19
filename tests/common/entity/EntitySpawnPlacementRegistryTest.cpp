@@ -362,10 +362,18 @@ TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnUsesSurfaceSupport)
 
     world.setBlock(0, 63, 0, &supportBlock.defaultState());
 
+    EXPECT_EQ(world.getHeight(0, 0), 64);
+
     EXPECT_TRUE(world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
         world::spawn::PlacementType::OnGround,
         world,
         Vector3i(0, 64, 0),
+        "minecraft:pig"));
+
+    EXPECT_FALSE(world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
+        world::spawn::PlacementType::OnGround,
+        world,
+        Vector3i(0, 63, 0),
         "minecraft:pig"));
 }
 

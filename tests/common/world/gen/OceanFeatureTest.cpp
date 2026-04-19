@@ -58,7 +58,7 @@ protected:
 };
 
 TEST_F(OceanFeatureWorldTest, KelpFeaturePlacesKelpInWater) {
-    auto configured = KelpFeatures::createNormalKelp();
+    auto configured = KelpFeatures::createColdKelp();
     ASSERT_NE(configured, nullptr);
 
     const KelpFeatureConfig& config = configured->getConfig();

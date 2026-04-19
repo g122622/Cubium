@@ -17,15 +17,15 @@ struct KelpFeatureConfig : public IFeatureConfig {
     /// 海带顶部方块状态（用于顶端海带）
     const BlockState* kelpTopState = nullptr;
 
-    /// 放置尝试次数（用于模拟原版放置器的高频尝试）
-    i32 tries = 80;
+    /// 放置尝试次数
+    i32 tries;
 
-    /// 单株最大高度（原版约为 10）
-    i32 maxHeight = 10;
+    /// 单株最大高度
+    i32 maxHeight;
 
     KelpFeatureConfig() = default;
 
-    explicit KelpFeatureConfig(const BlockState* kelp, const BlockState* kelpTop, i32 t = 80, i32 maxH = 10)
+    explicit KelpFeatureConfig(const BlockState* kelp, const BlockState* kelpTop, i32 t, i32 maxH)
         : kelpState(kelp)
         , kelpTopState(kelpTop)
         , tries(t)
@@ -110,8 +110,11 @@ struct KelpFeatures {
     /// 获取所有海带特征并清空（转移所有权）
     [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredKelpFeature>> getAllFeaturesAndClear();
 
-    /// 创建普通海带
-    static std::unique_ptr<ConfiguredKelpFeature> createNormalKelp();
+    /// 创建冷海带
+    static std::unique_ptr<ConfiguredKelpFeature> createColdKelp();
+
+    /// 创建暖海带
+    static std::unique_ptr<ConfiguredKelpFeature> createWarmKelp();
 
 private:
     static std::vector<std::unique_ptr<ConfiguredKelpFeature>> s_features;

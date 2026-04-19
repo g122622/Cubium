@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 
+#include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/SingleChunkLifecycleManager.hpp"
@@ -194,6 +195,33 @@ TEST_F(ChunkPrimerTest, SetStatus) {
     EXPECT_TRUE(primer.hasCompletedStatus(ChunkStatuses::BIOMES));
     EXPECT_TRUE(primer.hasCompletedStatus(ChunkStatuses::NOISE));
     EXPECT_TRUE(primer.hasCompletedStatus(ChunkStatuses::FULL));
+}
+
+TEST_F(ChunkPrimerTest, TopBlockYReturnsBlockCoordinate) {
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    ASSERT_NE(VanillaBlocks::WATER, nullptr);
+
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+
+    ChunkPrimer primer(0, 0);
+    ChunkData chunk(0, 0);
+
+    primer.updateHeightmap(HeightmapType::OceanFloorWG, 3, 12, 7, stone);
+    primer.updateHeightmap(HeightmapType::OceanFloorWG, 3, 13, 7, water);
+    chunk.updateHeightmap(HeightmapType::OceanFloorWG, 3, 12, 7, stone);
+    chunk.updateHeightmap(HeightmapType::OceanFloorWG, 3, 13, 7, water);
+
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::OceanFloorWG, 3, 7), 12);
+    EXPECT_EQ(chunk.getTopBlockY(HeightmapType::OceanFloorWG, 3, 7), 12);
+
+    primer.updateHeightmap(HeightmapType::WorldSurfaceWG, 4, 12, 4, stone);
+    primer.updateHeightmap(HeightmapType::WorldSurfaceWG, 4, 13, 4, water);
+    chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, 4, 12, 4, stone);
+    chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, 4, 13, 4, water);
+
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurfaceWG, 4, 4), 13);
+    EXPECT_EQ(chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, 4, 4), 13);
 }
 
 // ============================================================================
