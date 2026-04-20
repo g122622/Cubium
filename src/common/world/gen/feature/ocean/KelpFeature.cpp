@@ -199,7 +199,7 @@ std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createColdKelp()
         config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
         config->kelpTopState = &VanillaBlocks::KELP->defaultState();
     }
-    config->tries = 120;
+    config->tries = 20;
     config->maxHeight = 10;
 
     return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp_cold");
@@ -212,7 +212,7 @@ std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createWarmKelp()
         config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
         config->kelpTopState = &VanillaBlocks::KELP->defaultState();
     }
-    config->tries = 80;
+    config->tries = 10;
     config->maxHeight = 10;
 
     return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp_warm");

@@ -148,6 +148,52 @@ public:
      */
     void addEnchantment(const String& enchantmentId, i32 level);
 
+    // ========== 自定义数据 ==========
+
+    /**
+     * @brief 是否包含自定义标签
+     * @return 如果存在任意自定义数据则返回true
+     */
+    [[nodiscard]] bool hasTag() const;
+
+    /**
+     * @brief 获取根自定义标签
+     * @return 根标签指针，不存在时返回nullptr
+     */
+    [[nodiscard]] const nlohmann::json* getTag() const;
+
+    /**
+     * @brief 获取可修改的根自定义标签
+     * @return 根标签指针，不存在时返回nullptr
+     */
+    [[nodiscard]] nlohmann::json* getTag();
+
+    /**
+     * @brief 获取或创建根自定义标签
+     * @return 根标签引用
+     */
+    [[nodiscard]] nlohmann::json& getOrCreateTag();
+
+    /**
+     * @brief 获取子标签
+     * @param name 子标签名称
+     * @return 子标签指针，不存在或不是对象时返回nullptr
+     */
+    [[nodiscard]] const nlohmann::json* getChildTag(const String& name) const;
+
+    /**
+     * @brief 获取或创建子标签
+     * @param name 子标签名称
+     * @return 子标签引用
+     */
+    [[nodiscard]] nlohmann::json& getOrCreateChildTag(const String& name);
+
+    /**
+     * @brief 移除子标签
+     * @param name 子标签名称
+     */
+    void removeChildTag(const String& name);
+
     // ========== 耐久度 ==========
 
     /**
@@ -283,7 +329,7 @@ public:
      * 这是canMergeWith的别名，用于与MC源码命名保持一致。
      */
     [[nodiscard]] bool canStackWith(const ItemStack& other) const {
-        return isSameItem(other) && m_damage == other.m_damage;
+        return canMergeWith(other);
     }
 
     // ========== 序列化 ==========
@@ -332,6 +378,7 @@ private:
     String m_customName;    // 自定义名称（铁砧重命名）
     item::enchant::EnchantmentContainer m_enchantments;  // 附魔容器
     String m_potionId;      // 药水ID（用于药水物品）
+    nlohmann::json m_customData;  // 自定义数据（用于display等扩展标签）
 
     // 允许 PotionUtils 访问私有成员
     friend class potion::PotionUtils;

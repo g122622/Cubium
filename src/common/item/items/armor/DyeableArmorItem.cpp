@@ -9,31 +9,41 @@ DyeableArmorItem::DyeableArmorItem(const armor::ArmorMaterial& material, armor::
 }
 
 u32 DyeableArmorItem::getColor(const ItemStack& stack) const {
-    // TODO: 从NBT标签读取颜色
-    // 当前实现返回默认颜色
-    if (hasColor(stack)) {
-        // 从NBT读取: stack.getTag()->getCompound("display")->getInt("color")
-        return DEFAULT_COLOR;
+    const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
+    if (displayTag != nullptr) {
+        const auto colorIter = displayTag->find(TAG_COLOR);
+        if (colorIter != displayTag->end() && colorIter->is_number()) {
+            return colorIter->get<u32>() & 0x00FFFFFFu;
+        }
     }
+
     return DEFAULT_COLOR;
 }
 
 void DyeableArmorItem::setColor(ItemStack& stack, u32 color) {
-    // TODO: 设置NBT标签
-    // stack.getOrCreateTag()->getCompound("display")->putInt("color", color);
-    (void)stack;
-    (void)color;
+    stack.getOrCreateChildTag(TAG_DISPLAY)[TAG_COLOR] = static_cast<u32>(color & 0x00FFFFFFu);
 }
 
 void DyeableArmorItem::clearColor(ItemStack& stack) {
-    // TODO: 从NBT标签移除颜色
-    (void)stack;
+    auto* tag = stack.getTag();
+    if (tag == nullptr || !tag->is_object()) {
+        return;
+    }
+
+    auto displayIter = tag->find(TAG_DISPLAY);
+    if (displayIter == tag->end() || !displayIter->is_object()) {
+        return;
+    }
+
+    displayIter->erase(TAG_COLOR);
+    if (displayIter->empty()) {
+        stack.removeChildTag(TAG_DISPLAY);
+    }
 }
 
 bool DyeableArmorItem::hasColor(const ItemStack& stack) {
-    // TODO: 检查NBT标签
-    (void)stack;
-    return false;
+    const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
+    return displayTag != nullptr && displayTag->contains(TAG_COLOR) && (*displayTag)[TAG_COLOR].is_number();
 }
 
 } // namespace item::items

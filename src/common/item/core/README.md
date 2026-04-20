@@ -7,7 +7,7 @@
 | 文件 | 职责 |
 |------|------|
 | `Item.hpp/cpp` | 物品基类，所有物品类型的父类 |
-| `ItemStack.hpp/cpp` | 物品堆，表示游戏中的一个物品实例（包含物品类型、数量、耐久、附魔等） |
+| `ItemStack.hpp/cpp` | 物品堆，表示游戏中的一个物品实例（包含物品类型、数量、耐久、附魔和结构化自定义标签） |
 | `ItemRegistry.hpp/cpp` | 物品注册表，管理所有物品的注册和查找 |
 | `ItemProperties.hpp/cpp` | 物品属性构建器，流畅接口模式 |
 | `ItemGroup.hpp/cpp` | 创造模式物品组（标签页） |
@@ -46,4 +46,5 @@ if (!stack.isEmpty()) {
 
 - Item类是抽象基类，不应直接实例化
 - ItemStack是不可变值类型，修改操作返回新的ItemStack
+- ItemStack 现在支持结构化自定义标签，JSON 序列化会通过 `Tag` 字段保存这些数据，便于染色、药水和未来扩展
 - ItemRegistry是单例，在游戏初始化时注册所有物品

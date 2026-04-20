@@ -9,9 +9,9 @@ using namespace mc;
 namespace {
 
 /**
- * @brief °´×ÊÔ´Â·¾¶ÀÁ×¢²á²âÊÔÓÃÎïÆ·¡£
- * @param path ×ÊÔ´Â·¾¶¡£
- * @return ÒÑ×¢²áÎïÆ·Ö¸Õë¡£
+ * @brief ï¿½ï¿½ï¿½ï¿½Ô´Â·ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ·ï¿½ï¿½
+ * @param path ï¿½ï¿½Ô´Â·ï¿½ï¿½ï¿½ï¿½
+ * @return ï¿½ï¿½×¢ï¿½ï¿½ï¿½ï¿½Æ·Ö¸ï¿½ë¡£
  */
 Item* ensureTestItem(const char* path) {
     auto& registry = ItemRegistry::instance();
@@ -39,4 +39,26 @@ TEST(ItemStackJsonTest, RoundTrip_WithRegisteredItem_PreservesItemAndCount) {
     const ItemStack& result = parsed.value();
     EXPECT_EQ(result.getItem(), diamond);
     EXPECT_EQ(result.getCount(), 13);
+}
+
+TEST(ItemStackJsonTest, RoundTrip_PreservesNestedTagData) {
+    Items::initialize();
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+
+    ItemStack original(diamond, 1);
+    original.getOrCreateChildTag("display")["color"] = 0x123456;
+
+    nlohmann::json json = original.toJson();
+    ASSERT_TRUE(json.contains("Tag"));
+    ASSERT_TRUE(json["Tag"].contains("display"));
+
+    auto parsed = ItemStack::fromJson(json);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    const ItemStack& result = parsed.value();
+    ASSERT_TRUE(result.hasTag());
+    ASSERT_NE(result.getChildTag("display"), nullptr);
+    EXPECT_TRUE(result.getChildTag("display")->contains("color"));
+    EXPECT_EQ((*result.getChildTag("display"))["color"].get<int>(), 0x123456);
 }

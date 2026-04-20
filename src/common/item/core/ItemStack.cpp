@@ -150,6 +150,14 @@ bool ItemStack::canMergeWith(const ItemStack& other) const {
         return false;
     }
 
+    if (m_customName != other.m_customName || m_potionId != other.m_potionId) {
+        return false;
+    }
+
+    if (m_customData != other.m_customData) {
+        return false;
+    }
+
     // 如果有附魔，不能合并（附魔物品无法堆叠）
     if (hasEnchantments() || other.hasEnchantments()) {
         return false;
@@ -177,6 +185,10 @@ ItemStack ItemStack::split(i32 amount) {
     i32 splitCount = std::min(amount, m_count);
     ItemStack result(*m_item, splitCount);
     result.m_damage = m_damage;
+    result.m_customName = m_customName;
+    result.m_potionId = m_potionId;
+    result.m_customData = m_customData;
+    result.m_enchantments = m_enchantments;
 
     // 减少当前堆
     setCount(m_count - splitCount);
@@ -192,6 +204,7 @@ ItemStack ItemStack::copy() const {
     result.m_damage = m_damage;
     result.m_customName = m_customName;
     result.m_potionId = m_potionId;
+    result.m_customData = m_customData;
     // 复制附魔
     result.m_enchantments = m_enchantments;
     return result;
@@ -248,6 +261,24 @@ void ItemStack::serialize(network::PacketSerializer& ser) const {
 
     // 附魔
     m_enchantments.serialize(ser);
+
+    // 自定义名称
+    ser.writeBool(!m_customName.empty());
+    if (!m_customName.empty()) {
+        ser.writeString(m_customName);
+    }
+
+    // 药水ID
+    ser.writeBool(!m_potionId.empty());
+    if (!m_potionId.empty()) {
+        ser.writeString(m_potionId);
+    }
+
+    // 自定义数据
+    ser.writeBool(hasTag());
+    if (hasTag()) {
+        ser.writeString(m_customData.dump());
+    }
 }
 
 Result<ItemStack> ItemStack::deserialize(network::PacketDeserializer& deser) {
@@ -295,6 +326,48 @@ Result<ItemStack> ItemStack::deserialize(network::PacketDeserializer& deser) {
     }
     stack.m_enchantments = std::move(enchantmentsResult.value());
 
+    auto hasCustomNameResult = deser.readBool();
+    if (hasCustomNameResult.failed()) {
+        return hasCustomNameResult.error();
+    }
+    if (hasCustomNameResult.value()) {
+        auto customNameResult = deser.readString();
+        if (customNameResult.failed()) {
+            return customNameResult.error();
+        }
+        stack.m_customName = customNameResult.value();
+    }
+
+    auto hasPotionIdResult = deser.readBool();
+    if (hasPotionIdResult.failed()) {
+        return hasPotionIdResult.error();
+    }
+    if (hasPotionIdResult.value()) {
+        auto potionIdResult = deser.readString();
+        if (potionIdResult.failed()) {
+            return potionIdResult.error();
+        }
+        stack.m_potionId = potionIdResult.value();
+    }
+
+    auto hasCustomDataResult = deser.readBool();
+    if (hasCustomDataResult.failed()) {
+        return hasCustomDataResult.error();
+    }
+    if (hasCustomDataResult.value()) {
+        auto customDataResult = deser.readString();
+        if (customDataResult.failed()) {
+            return customDataResult.error();
+        }
+
+        const nlohmann::json parsed = nlohmann::json::parse(customDataResult.value(), nullptr, false);
+        if (parsed.is_discarded() || !parsed.is_object()) {
+            return Error(ErrorCode::InvalidData, "Invalid ItemStack custom data JSON");
+        }
+
+        stack.m_customData = parsed;
+    }
+
     return stack;
 }
 
@@ -325,6 +398,10 @@ nlohmann::json ItemStack::toJson() const {
 
     if (!m_potionId.empty()) {
         json["Potion"] = m_potionId;
+    }
+
+    if (hasTag()) {
+        json["Tag"] = m_customData;
     }
 
     return json;
@@ -372,6 +449,10 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
         stack.m_potionId = json["Potion"].get<String>();
     }
 
+    if (json.contains("Tag") && json["Tag"].is_object()) {
+        stack.m_customData = json["Tag"];
+    }
+
     return stack;
 }
 
@@ -390,7 +471,72 @@ bool ItemStack::operator==(const ItemStack& other) const {
     return m_item == other.m_item &&
            m_count == other.m_count &&
            m_damage == other.m_damage &&
+           m_customName == other.m_customName &&
+           m_potionId == other.m_potionId &&
+           m_customData == other.m_customData &&
            m_enchantments.getAll() == other.m_enchantments.getAll();
 }
 
+bool ItemStack::hasTag() const {
+    return m_customData.is_object() && !m_customData.empty();
+}
+
+const nlohmann::json* ItemStack::getTag() const {
+    if (!hasTag()) {
+        return nullptr;
+    }
+
+    return &m_customData;
+}
+
+nlohmann::json* ItemStack::getTag() {
+    if (!hasTag()) {
+        return nullptr;
+    }
+
+    return &m_customData;
+}
+
+ nlohmann::json& ItemStack::getOrCreateTag() {
+    if (!m_customData.is_object()) {
+        m_customData = nlohmann::json::object();
+    }
+
+    return m_customData;
+}
+
+const nlohmann::json* ItemStack::getChildTag(const String& name) const {
+    if (!m_customData.is_object()) {
+        return nullptr;
+    }
+
+    auto iter = m_customData.find(name);
+    if (iter == m_customData.end() || !iter->is_object()) {
+        return nullptr;
+    }
+
+    return &(*iter);
+}
+
+nlohmann::json& ItemStack::getOrCreateChildTag(const String& name) {
+    nlohmann::json& child = getOrCreateTag()[name];
+    if (!child.is_object()) {
+        child = nlohmann::json::object();
+    }
+
+    return child;
+}
+
+void ItemStack::removeChildTag(const String& name) {
+    if (!m_customData.is_object()) {
+        return;
+    }
+
+    m_customData.erase(name);
+    if (m_customData.empty()) {
+        m_customData = nlohmann::json();
+    }
+}
+    }
+} // namespace mc
 } // namespace mc

@@ -9,6 +9,25 @@
 namespace mc {
 namespace item::items {
 
+namespace {
+
+[[nodiscard]] const ItemStack& getArmorEquipment(const LivingEntity& entity, armor::ArmorSlot slot) {
+    switch (slot) {
+        case armor::ArmorSlot::Feet:
+            return entity.getEquipment(EquipmentSlot::Feet);
+        case armor::ArmorSlot::Legs:
+            return entity.getEquipment(EquipmentSlot::Legs);
+        case armor::ArmorSlot::Chest:
+            return entity.getEquipment(EquipmentSlot::Chest);
+        case armor::ArmorSlot::Head:
+            return entity.getEquipment(EquipmentSlot::Head);
+        default:
+            return entity.getEquipment(EquipmentSlot::Head);
+    }
+}
+
+} // namespace
+
 ArmorItem::ArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot,
                      ItemProperties properties)
     : Item(std::move(properties))
@@ -64,37 +83,45 @@ ItemActionResult ArmorItem::onItemRightClick(IWorld& world, Player& player, Hand
 i32 ArmorItem::getTotalArmorValue(const LivingEntity& entity) {
     i32 total = 0;
 
-    // TODO: 实现获取盔甲槽位的物品
-    // 遍历所有盔甲槽位
-    // for (i32 i = 0; i < 4; ++i) {
-    //     ItemStack stack = entity.getArmorStack(i);
-    //     ...
-    // }
-    (void)entity;
+    for (armor::ArmorSlot slot : {armor::ArmorSlot::Feet, armor::ArmorSlot::Legs,
+                                  armor::ArmorSlot::Chest, armor::ArmorSlot::Head}) {
+        const ItemStack& stack = getArmorEquipment(entity, slot);
+        const auto* armor = dynamic_cast<const ArmorItem*>(stack.getItem());
+        if (armor != nullptr) {
+            total += armor->getDefense();
+        }
+    }
+
     return total;
 }
 
 f32 ArmorItem::getTotalToughness(const LivingEntity& entity) {
     f32 total = 0.0f;
 
-    // TODO: 实现获取盔甲槽位的物品
-    // for (i32 i = 0; i < 4; ++i) {
-    //     ItemStack stack = entity.getArmorStack(i);
-    //     ...
-    // }
-    (void)entity;
+    for (armor::ArmorSlot slot : {armor::ArmorSlot::Feet, armor::ArmorSlot::Legs,
+                                  armor::ArmorSlot::Chest, armor::ArmorSlot::Head}) {
+        const ItemStack& stack = getArmorEquipment(entity, slot);
+        const auto* armor = dynamic_cast<const ArmorItem*>(stack.getItem());
+        if (armor != nullptr) {
+            total += armor->getToughness();
+        }
+    }
+
     return total;
 }
 
 f32 ArmorItem::getTotalKnockbackResistance(const LivingEntity& entity) {
     f32 total = 0.0f;
 
-    // TODO: 实现获取盔甲槽位的物品
-    // for (i32 i = 0; i < 4; ++i) {
-    //     ItemStack stack = entity.getArmorStack(i);
-    //     ...
-    // }
-    (void)entity;
+    for (armor::ArmorSlot slot : {armor::ArmorSlot::Feet, armor::ArmorSlot::Legs,
+                                  armor::ArmorSlot::Chest, armor::ArmorSlot::Head}) {
+        const ItemStack& stack = getArmorEquipment(entity, slot);
+        const auto* armor = dynamic_cast<const ArmorItem*>(stack.getItem());
+        if (armor != nullptr) {
+            total += armor->getKnockbackResistance();
+        }
+    }
+
     return std::min(total, 1.0f);  // 上限为1.0
 }
 

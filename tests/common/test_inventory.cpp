@@ -2,8 +2,10 @@
 #include "../src/common/entity/inventory/IInventory.hpp"
 #include "../src/common/entity/inventory/Slot.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
+#include "../src/common/entity/core/LivingEntity.hpp"
 #include "../src/common/item/armor/ArmorMaterial.hpp"
 #include "../src/common/item/items/armor/ArmorItem.hpp"
+#include "../src/common/item/items/armor/DyeableArmorItem.hpp"
 #include "../src/common/entity/entities/player/Player.hpp"
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
@@ -17,6 +19,15 @@
 using namespace mc;
 
 namespace {
+
+class TestLivingEntity final : public LivingEntity {
+public:
+    TestLivingEntity()
+        : LivingEntity(LegacyEntityType::Player, 1) {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+};
 
 class ArmorTestWorld final : public IWorld {
 public:
@@ -562,4 +573,56 @@ TEST_F(SlotTest, ArmorSlotOnlyAcceptsMatchingArmorType) {
     EXPECT_TRUE(feetSlot.mayPlace(ItemStack(boots)));
     EXPECT_FALSE(feetSlot.mayPlace(ItemStack(helmet)));
     EXPECT_FALSE(feetSlot.mayPlace(ItemStack(*m_diamond)));
+}
+
+TEST(ArmorItemTest, TotalArmorStatsSumAllEquippedPieces) {
+    TestLivingEntity entity;
+
+    const item::items::ArmorItem helmet(
+        item::armor::ArmorMaterials::NETHERITE,
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Head)));
+    const item::items::ArmorItem chestplate(
+        item::armor::ArmorMaterials::NETHERITE,
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Chest)));
+    const item::items::ArmorItem leggings(
+        item::armor::ArmorMaterials::NETHERITE,
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Legs)));
+    const item::items::ArmorItem boots(
+        item::armor::ArmorMaterials::NETHERITE,
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Feet)));
+
+    entity.setEquipment(EquipmentSlot::Head, ItemStack(helmet));
+    entity.setEquipment(EquipmentSlot::Chest, ItemStack(chestplate));
+    entity.setEquipment(EquipmentSlot::Legs, ItemStack(leggings));
+    entity.setEquipment(EquipmentSlot::Feet, ItemStack(boots));
+
+    EXPECT_EQ(item::items::ArmorItem::getTotalArmorValue(entity), 20);
+    EXPECT_FLOAT_EQ(item::items::ArmorItem::getTotalToughness(entity), 12.0f);
+    EXPECT_FLOAT_EQ(item::items::ArmorItem::getTotalKnockbackResistance(entity), 0.4f);
+}
+
+TEST(DyeableArmorItemTest, ColorRoundTripUsesDisplayTag) {
+    const item::items::DyeableArmorItem leatherBoots(
+        item::armor::ArmorMaterials::LEATHER,
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Feet)));
+
+    ItemStack stack(leatherBoots);
+    EXPECT_FALSE(item::items::DyeableArmorItem::hasColor(stack));
+    EXPECT_EQ(leatherBoots.getColor(stack), 0xA06540u);
+
+    item::items::DyeableArmorItem::setColor(stack, 0x123456u);
+    EXPECT_TRUE(item::items::DyeableArmorItem::hasColor(stack));
+    EXPECT_EQ(leatherBoots.getColor(stack), 0x123456u);
+    ASSERT_NE(stack.getChildTag("display"), nullptr);
+    EXPECT_EQ((*stack.getChildTag("display"))["color"].get<u32>(), 0x123456u);
+
+    item::items::DyeableArmorItem::clearColor(stack);
+    EXPECT_FALSE(item::items::DyeableArmorItem::hasColor(stack));
+    EXPECT_EQ(leatherBoots.getColor(stack), 0xA06540u);
+    EXPECT_FALSE(stack.hasTag());
 }

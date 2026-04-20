@@ -109,7 +109,7 @@ item/
 | DyeableArmorItem | items/armor/DyeableArmorItem.hpp | ✅ 完成 |
 | ElytraItem | items/armor/ElytraItem.hpp | ✅ 完成 |
 
-盔甲物品现在支持右键自动装备对应槽位；如果目标槽位已被占用，则保持原物品不变并返回透传结果。
+盔甲物品现在支持右键自动装备对应槽位；如果目标槽位已被占用，则保持原物品不变并返回透传结果。可染色盔甲通过 `ItemStack` 的结构化标签保存 `display.color`，因此序列化、复制和比较都会保留染色数据。
 
 ### 工具系统 (85%)
 

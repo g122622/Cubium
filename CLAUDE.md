@@ -290,23 +290,6 @@ Managed via vcpkg:
 - Use `const&` for large object parameters
 - Use `string_view` for read-only string parameters
 
-## Current Status
-
-- `PaneBlock` now uses a 16-state cached shape table, normalized collision boxes, waterlogged fluid-state reporting, and neighbor connectivity that accepts solid faces, same panes, and walls.
-- Added `tests/common/world/block/blocks/decorative/PaneBlockTest.cpp` to cover placement, shape composition, and water tick scheduling.
-- Verified with `cmake --build build --config RelWithDebInfo` and `mc_tests.exe --gtest_brief=1`.
-- `ChunkPrimer` and `ChunkData` now expose `getTopBlockY()` as the actual top block Y, while `Heightmap` still stores `y + 1` internally.
-- `OceanDecorationFeature` is now wired into the non-warm ocean biome generation settings, so its prop placement path is reachable at runtime instead of only existing as a registered feature.
-- Ocean feature registration now splits kelp into `kelp_cold` / `kelp_warm` and seagrass into the vanilla-style temperature matrix; `BiomeGenerationSettings` and the vegetation tests were updated to use the new ids.
-- `tests/common/test_biome.cpp` now includes representative registry coverage across overworld, ocean, nether, and end biomes, closing the corresponding roadmap item.
-- AI goal TODOs for tempt, panic, water-avoiding wandering, and ranged bow attacks are now wired to real player hand-item and world fluid queries, with regression coverage in `tests/entity/AiGoalRegressionTest.cpp`.
-- `tests/client/renderer/test_renderer.cpp` now registers empty `seagrass` / `kelp_plant` models inside `createLiquidResourcePack()`, which fixed the `ChunkMesherWithModelCacheTest` liquid regressions and restored a green `mc_tests.exe --gtest_brief=1` run.
-- `ChestBlock` now routes locked/open interaction through the shared container entrypoint, plays the chest locked sound, and keeps the cat/obstruction checks local to the block.
-- `ChestContainer` and `FurnaceContainer` now derive from `AbstractContainerMenu`, so the server menu factory can create chest/furnace menus through the same open-container path used by crafting.
-- Verified again with `cmake --build build --config RelWithDebInfo` and `mc_tests.exe --gtest_brief=1` after the chest lock-sound change; the suite still passes.
-- `ArmorItem` now equips the matching armor slot on right-click through `PlayerInventory`, and `tests/common/test_inventory.cpp` covers empty-slot equip plus occupied-slot pass-through.
-- The latest full `mc_tests.exe --gtest_brief=1` run still has one unrelated failure in `CelestialCalculationsTest.NoonCelestialAngleNearZero` from `tests/common/test_time.cpp`.
-- `MathUtils::fastInverseSqrt()` now backs `MeleeAttackGoal` knockback normalization, with regression coverage in `tests/common/test_math.cpp`.
 
 ## Random Module
 
@@ -419,6 +402,8 @@ enum class Operation : u8 { ... };
     - In that case the code falls back to direct movement, so tests should verify state refresh and not assume a full collision solver is present.
 - `Entity::refreshDimensions()` is now the canonical way to rebuild an entity's cached `EntitySize` and `AxisAlignedBB`.
     - Any runtime size change must refresh the cache immediately, or movement and ground checks will keep using stale boxes.
+- `DyeableArmorItem` stores color in `ItemStack`'s structured tag tree.
+    - Clearing color must also clear empty `display` tags, otherwise metadata equality will diverge and armor stacks will stop merging as expected.
 - Player stand-up transitions now check whether the target pose box fits before switching away from crouch/swim/sleep.
     - Do not bypass `setSneaking()` / `setSwimming()` / `setSleeping()` with a raw standing pose change when you want vanilla-like low-ceiling behavior.
 - `EntityMetadataPacket` / `EntityMetadataSerializer` now feed both server tracking and client entity application.
@@ -499,7 +484,6 @@ enum class Operation : u8 { ... };
 - Add new models/controllers/pages/routes to the relevant tables below
 - Update test count if new tests are added
 - Add any new gotchas or patterns to the "Gotchas & Pitfalls" section
-- Update the "Current Status" section if the status changes
 - Keep this file as the single source of truth for AI sessions working on this project
 
 ## 日志级别必须使用至少info，因为目前未开放debug级别的日志，debug级别日志看不到。
