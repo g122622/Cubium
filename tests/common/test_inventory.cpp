@@ -6,6 +6,7 @@
 #include "../src/common/item/armor/ArmorMaterial.hpp"
 #include "../src/common/item/items/armor/ArmorItem.hpp"
 #include "../src/common/item/items/armor/DyeableArmorItem.hpp"
+#include "../src/common/item/items/armor/ElytraItem.hpp"
 #include "../src/common/entity/entities/player/Player.hpp"
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
@@ -52,10 +53,15 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
     [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
     [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+private:
+    u64 m_currentTick = 0;
 };
 
 } // namespace
@@ -619,10 +625,46 @@ TEST(DyeableArmorItemTest, ColorRoundTripUsesDisplayTag) {
     EXPECT_TRUE(item::items::DyeableArmorItem::hasColor(stack));
     EXPECT_EQ(leatherBoots.getColor(stack), 0x123456u);
     ASSERT_NE(stack.getChildTag("display"), nullptr);
-    EXPECT_EQ((*stack.getChildTag("display"))["color"].get<u32>(), 0x123456u);
+    const int storedColor = (*stack.getChildTag("display"))["color"].get<int>();
+    EXPECT_EQ(storedColor, 0x123456);
 
     item::items::DyeableArmorItem::clearColor(stack);
     EXPECT_FALSE(item::items::DyeableArmorItem::hasColor(stack));
     EXPECT_EQ(leatherBoots.getColor(stack), 0xA06540u);
     EXPECT_FALSE(stack.hasTag());
+}
+
+TEST(ElytraItemTest, RightClickEquipsChestSlot) {
+    ArmorTestWorld world;
+    Player player(3, "elytra-test");
+
+    item::items::ElytraItem elytra{ItemProperties()};
+    player.inventory().setItem(0, ItemStack(elytra));
+
+    ItemActionResult result = elytra.onItemRightClick(world, player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isConsume());
+    EXPECT_TRUE(result.getResult().isEmpty());
+    EXPECT_TRUE(player.getHeldItem(Hand::MainHand).isEmpty());
+    EXPECT_EQ(player.inventory().getChestplate().getItem(), &elytra);
+    EXPECT_EQ(player.inventory().getChestplate().getCount(), 1);
+}
+
+TEST(ElytraItemTest, InventoryTickDamagesOnlyWhenGlidingInChestSlot) {
+    ArmorTestWorld world;
+    world.setCurrentTick(20);
+
+    TestLivingEntity entity;
+    entity.setPose(EntityPose::FallFlying);
+
+    item::items::ElytraItem elytra{ItemProperties()};
+    ItemStack chestElytra(elytra);
+    elytra.inventoryTick(chestElytra, world, entity, InventorySlots::ARMOR_CHEST, false);
+
+    EXPECT_EQ(chestElytra.getDamage(), 1);
+
+    ItemStack carriedElytra(elytra);
+    elytra.inventoryTick(carriedElytra, world, entity, 0, false);
+
+    EXPECT_EQ(carriedElytra.getDamage(), 0);
 }

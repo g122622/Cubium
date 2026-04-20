@@ -9,21 +9,25 @@ constexpr f64 CelestialCalculations::MOON_PHASE_FACTORS[8];
 constexpr f64 CelestialCalculations::SKY_COLORS[4][3];
 
 f64 CelestialCalculations::calculateCelestialAngle(i64 dayTime) {
-    // MC 1.16.5 DimensionType.calculateCelestialAngle()
-    // d0 = frac(dayTime / 24000 - 0.25)
-    // d1 = 0.5 - cos(d0 * PI) / 2.0
-    // return (d0 * 2.0 + d1) / 3.0
+    // 采用与天空渲染一致的线性天体角度映射：
+    // - 6000 ticks = 正午 -> 0.0
+    // - 12000 ticks = 日落 -> 0.25
+    // - 18000 ticks = 午夜 -> 0.5
+    // - 0 ticks = 日出 -> 0.75
 
     constexpr f64 TICKS_PER_DAY = 24000.0;
 
-    f64 d0 = std::fmod(dayTime / TICKS_PER_DAY - 0.25, 1.0);
-    if (d0 < 0.0) {
-        d0 += 1.0;
+    f64 normalizedDayTime = std::fmod(static_cast<f64>(dayTime), TICKS_PER_DAY);
+    if (normalizedDayTime < 0.0) {
+        normalizedDayTime += TICKS_PER_DAY;
     }
 
-    f64 d1 = 0.5 - std::cos(d0 * mc::math::PI) / 2.0;
+    f64 celestialAngle = (normalizedDayTime - 6000.0) / TICKS_PER_DAY;
+    if (celestialAngle < 0.0) {
+        celestialAngle += 1.0;
+    }
 
-    return (d0 * 2.0 + d1) / 3.0;
+    return celestialAngle;
 }
 
 f64 CelestialCalculations::calculateCelestialAngleInterpolated(i64 dayTime, f64 partialTick) {

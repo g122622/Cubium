@@ -497,7 +497,7 @@ nlohmann::json* ItemStack::getTag() {
     return &m_customData;
 }
 
- nlohmann::json& ItemStack::getOrCreateTag() {
+nlohmann::json& ItemStack::getOrCreateTag() {
     if (!m_customData.is_object()) {
         m_customData = nlohmann::json::object();
     }
@@ -537,6 +537,6 @@ void ItemStack::removeChildTag(const String& name) {
         m_customData = nlohmann::json();
     }
 }
-    }
+
 } // namespace mc
-} // namespace mc
+

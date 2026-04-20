@@ -54,7 +54,7 @@
 - `src/common/item/attribute/ItemAttributeModifiers.cpp:38`：补属性注册表查找，避免调用点传裸指针。
 - ✅ 已完成 `src/common/item/items/armor/ArmorItem.cpp:25`：补盔甲装备逻辑，直接接槽位系统即可。
 - ✅ 已完成 `src/common/item/items/armor/DyeableArmorItem.cpp:12,22,29,34`：补染色盔甲的 NBT 读取、写入、移除与存在性检查，逻辑很适合做成一组单测。
-- `src/common/item/items/armor/ElytraItem.cpp:18,32,54`：补鞘翅装备、耐久消耗和滑翔状态检查。
+- ✅ 已完成 `src/common/item/items/armor/ElytraItem.cpp:18,32,54`：补鞘翅装备、耐久消耗和滑翔状态检查。
 - `src/common/item/items/block/BlockItem.cpp:72`：补世界边界检查，防止非法放置位置。
 - ✅ 已完成 `src/common/item/items/potion/GlassBottleItem.cpp:13`：补水源/炼药锅取水，右键成功时返回水瓶。
 - `src/common/item/items/potion/LingeringPotionItem.cpp:15`：补滞留区域生成，先接实体创建，再接效果范围。
