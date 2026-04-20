@@ -20,6 +20,7 @@ src/server/application/
 **Responsibility:** Defines the unified interface for all server types.
 
 **Key Components:**
+
 - `IServer` - Pure abstract interface class that provides:
   - Lifecycle management: `initialize()`, `shutdown()`, `tick()`, `isRunning()`
   - Core managers access: `playerManager()`, `connectionManager()`, `timeManager()`, `teleportManager()`, `keepAliveManager()`, `positionTracker()`, `packetHandler()`, `gameModeManager()`
@@ -39,6 +40,7 @@ src/server/application/
 **Responsibility:** Abstract base class providing shared implementation for all server types.
 
 **Key Components:**
+
 - Inherits from `IServer`
 - Holds all core managers as `unique_ptr` members
 - Implements `tick()` main loop framework
@@ -46,6 +48,7 @@ src/server/application/
 - Attaches the world sound callback after world creation so entity sounds can be broadcast through the server helpers
 
 **Protected Methods (for subclasses):**
+
 - `initializeCoreManagers()` - Creates PlayerManager, ConnectionManager, TimeManager, etc.
 - `initializeWorld()` - Initializes world and command registry
 - `initializeInteractionManagers()` - Creates BlockInteractionManager, MiningManager, etc.
@@ -56,6 +59,7 @@ src/server/application/
 - `shutdownManagers()` - Cleanup in correct order
 
 **Pure Virtual Methods (must be implemented by subclasses):**
+
 - `pollNetwork()` - Network event polling (LocalConnection vs TCP)
 - `broadcastPacket()` - Broadcast to all players
 - `getPlayerIdForSession()` - Map session ID to player ID
@@ -68,6 +72,7 @@ src/server/application/
 - `broadcastLightUpdate()` - Light update broadcasting
 
 **Tick Phases:**
+
 1. `tickCore()` - Time update, weather update, cleanup disconnected players, keep-alive check
 2. `tickEntities()` - Entity tick, item pickup, entity tracking
 3. `entitySyncManager().tick()` - Sync entity positions
@@ -86,6 +91,7 @@ src/server/application/
 **Responsibility:** Single-player server implementation with dedicated thread and LocalConnection.
 
 **Key Features:**
+
 - Runs in a separate thread from the client
 - Uses `LocalConnectionPair` for intra-process communication
 - Single player only (`maxPlayers = 1`)
@@ -93,18 +99,19 @@ src/server/application/
 - `playerInventory()` overrides the shared interface so the local player resolves to `m_clientInventory`, while other ids still use the normal inventory manager
 - Container menu handling (`m_openMenu`)
 - Right-click crafting-table / chest / furnace-family interaction is routed through the shared menu factory:
-    - empty hand / non-block item opens `CraftingMenu`
-    - chest and furnace menus are created from the same `ContainerManager` / `AbstractContainerMenu` path as the client sync packets
+  - empty hand / non-block item opens `CraftingMenu`
+  - chest and furnace menus are created from the same `ContainerManager` / `AbstractContainerMenu` path as the client sync packets
 - Generic right-click block activation is routed to `BlockInteractionManager::handleBlockUse()` when placement path does not apply
 - The world sound callback is attached during initialization so local entity sounds reach the client through the same server broadcast path
 - World type routing:
-    - `Default` -> `NoiseChunkGenerator + DimensionSettings::overworld()`
-    - `Flat` -> `NoiseChunkGenerator + DimensionSettings::flat()`
-    - `LargeBiomes` -> `NoiseChunkGenerator + LayerBiomeProvider(seed, true)`
-    - `Amplified` -> `NoiseChunkGenerator + NoiseSettings::amplified()`
-    - `Debug` -> `DebugChunkGenerator`
+  - `Default` -> `NoiseChunkGenerator + DimensionSettings::overworld()`
+  - `Flat` -> `NoiseChunkGenerator + DimensionSettings::flat()`
+  - `LargeBiomes` -> `NoiseChunkGenerator + LayerBiomeProvider(seed, true)`
+  - `Amplified` -> `NoiseChunkGenerator + NoiseSettings::amplified()`
+  - `Debug` -> `DebugChunkGenerator`
 
 **Configuration (`IntegratedServerConfig`):**
+
 ```cpp
 struct IntegratedServerConfig {
     String worldName = "singleplayer";
@@ -116,6 +123,7 @@ struct IntegratedServerConfig {
 ```
 
 **Key Methods:**
+
 - `initialize(config)` - Start server thread with given config
 - `stop()` - Stop server thread gracefully
 - `getClientEndpoint()` - Get `LocalEndpoint` for client to connect
@@ -123,6 +131,7 @@ struct IntegratedServerConfig {
 - `playerInventory(playerId)` - Return the local inventory for the single-player client and fall back to shared inventory lookups for everyone else
 
 **Thread Model:**
+
 - Dedicated `m_serverThread` running `mainLoop()`
 - Mutex `m_clientDataMutex` for thread-safe inventory access
 - Tick timing: `1000 / tickRate` milliseconds per tick
@@ -134,6 +143,7 @@ struct IntegratedServerConfig {
 **Responsibility:** Multi-player server with TCP networking.
 
 **Key Features:**
+
 - TCP-based networking via `TcpServer`
 - Multiple players support
 - Settings file persistence (`ServerSettings`)
@@ -145,6 +155,7 @@ struct IntegratedServerConfig {
 - The world sound callback is attached during initialization so mob/player sounds are broadcast the same way as other server events
 
 **Configuration (`StandaloneServerParams`):**
+
 ```cpp
 struct StandaloneServerParams {
     Optional<u16> port;
@@ -157,12 +168,14 @@ struct StandaloneServerParams {
 ```
 
 **Key Methods:**
+
 - `initialize(params)` - Initialize with command-line parameters
 - `run()` - Block on main loop
 - `stop()` - Graceful shutdown
 - `settings()` - Access `ServerSettings` for runtime configuration
 
 **Network Events:**
+
 - `onClientConnect()` - New TCP session
 - `onClientDisconnect()` - Session closed
 - Packet routing via session ID
@@ -182,6 +195,7 @@ struct StandaloneServerParams {
 ```
 
 **Dependency Flow:**
+
 1. `IServer` defines the contract
 2. `MinecraftServer` implements shared logic, delegates network to subclasses
 3. `IntegratedServer` uses `LocalConnectionPair` for single-player
@@ -203,18 +217,19 @@ The `application` module serves as the **entry point and orchestrator** for the 
 
 ### Input and Output
 
-| Direction | Component | Description |
-|-----------|-----------|-------------|
-| **Input** | Network packets | Player movement, block interactions, chat, login |
-| **Input** | Configuration | `ServerCoreConfig` / `IntegratedServerConfig` / `StandaloneServerParams` |
-| **Input** | World data | Chunk requests, entity spawning |
-| **Output** | Network packets | Chunk data, entity updates, teleport, game state |
-| **Output** | World changes | Block modifications, entity spawning/removal |
-| **Output** | Player state | Position updates, inventory sync |
+| Direction  | Component       | Description                                                              |
+| ---------- | --------------- | ------------------------------------------------------------------------ |
+| **Input**  | Network packets | Player movement, block interactions, chat, login                         |
+| **Input**  | Configuration   | `ServerCoreConfig` / `IntegratedServerConfig` / `StandaloneServerParams` |
+| **Input**  | World data      | Chunk requests, entity spawning                                          |
+| **Output** | Network packets | Chunk data, entity updates, teleport, game state                         |
+| **Output** | World changes   | Block modifications, entity spawning/removal                             |
+| **Output** | Player state    | Position updates, inventory sync                                         |
 
 ### Dependencies
 
 **Internal Dependencies:**
+
 ```
 server/application/
 ├── server/core/           # PlayerManager, ConnectionManager, TimeManager, etc.
@@ -234,6 +249,7 @@ server/application/
 ```
 
 **External Dependencies:**
+
 - `spdlog` - Logging
 - `std::thread` - Threading
 - `std::atomic` - Thread-safe flags
@@ -364,6 +380,7 @@ std::lock_guard<std::mutex> lock(server.m_clientDataMutex);
 **Problem:** Managers must be initialized in correct order due to dependencies.
 
 **Correct Order:**
+
 1. `initializeRegistries()` - Blocks, items, recipes
 2. `initializeCoreManagers()` - PlayerManager, ConnectionManager, etc.
 3. Create World, ChunkManager, LightManager
@@ -425,11 +442,11 @@ if (result.failed() && result.error().code() == ErrorCode::AlreadyExists) {
 
 ## Test Coverage
 
-| Test File | Description |
-|-----------|-------------|
-| `tests/server/test_integrated_server.cpp` | IntegratedServer unit tests |
-| `tests/server/BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
-| `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
+| Test File                                             | Description                                     |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| `tests/server/test_integrated_server.cpp`             | IntegratedServer unit tests                     |
+| `tests/server/BlockUpdateSyncManagerTest.cpp`         | 方块更新 pending 去重、追踪玩家过滤、tick flush |
+| `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发                    |
 
 **Test Categories:**
 

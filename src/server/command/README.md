@@ -45,6 +45,7 @@ src/server/command/
 命令注册表，管理所有命令的注册和分发。
 
 **职责：**
+
 - 维护全局命令分发器实例
 - 注册所有默认命令
 - 提供命令执行入口
@@ -52,6 +53,7 @@ src/server/command/
 - 命令名称直接从命令树派生，别名与重定向节点会一并反映出来
 
 **主要接口：**
+
 ```cpp
 class CommandRegistry {
 public:
@@ -77,6 +79,7 @@ public:
 ```
 
 **使用示例：**
+
 ```cpp
 // 获取全局注册表
 auto& registry = CommandRegistry::getGlobal();
@@ -94,6 +97,7 @@ if (result.success()) {
 服务端命令源，扩展 `ICommandSource` 接口，提供服务端特有功能。
 
 **职责：**
+
 - 表示命令执行的来源（玩家或控制台）
 - 提供服务器、玩家、世界访问接口
 - 管理权限等级
@@ -101,6 +105,7 @@ if (result.success()) {
 - 支持静默输出和权限上限派生，便于实现更接近原版的命令上下文切换
 
 **主要接口：**
+
 ```cpp
 class ServerCommandSource : public ICommandSource {
 public:
@@ -168,10 +173,12 @@ public:
 设置玩家的游戏模式。
 
 **用法：**
+
 - `/gamemode <mode>` - 设置自己的游戏模式
 - `/gamemode <mode> <target>` - 设置指定玩家的游戏模式
 
 **模式：**
+
 - `survival` / `0` - 生存模式
 - `creative` / `1` - 创造模式
 - `adventure` / `2` - 冒险模式
@@ -184,6 +191,7 @@ public:
 控制游戏时间。
 
 **用法：**
+
 - `/time set <value>` - 设置时间（0-24000）
 - `/time add <value>` - 增加时间
 - `/time query <day|daytime|gametime>` - 查询时间
@@ -195,6 +203,7 @@ public:
 杀死实体。
 
 **用法：**
+
 - `/kill` - 杀死自己
 - `/kill <target>` - 杀死指定实体
 
@@ -205,6 +214,7 @@ public:
 列出在线玩家。
 
 **用法：**
+
 - `/list` - 显示当前服务器上的玩家数量
 
 **权限等级：** 0（所有玩家可用）
@@ -214,6 +224,7 @@ public:
 显示命令帮助。
 
 **用法：**
+
 - `/help` - 显示所有可用命令
 - `/help <command>` - 显示指定命令的详细帮助
 
@@ -224,6 +235,7 @@ public:
 显示世界种子。
 
 **用法：**
+
 - `/seed` - 显示当前世界的种子
 
 **权限等级：** 2
@@ -233,6 +245,7 @@ public:
 传送实体。
 
 **用法：**
+
 - `/tp <target>` - 传送到目标实体
 - `/tp <x> <y> <z>` - 传送到坐标
 - `/tp <target> <destination>` - 将目标传送到目的地
@@ -246,6 +259,7 @@ public:
 给予玩家物品。
 
 **用法：**
+
 - `/give <player> <item> [count]` - 给予指定玩家物品
 
 **权限等级：** 2
@@ -255,6 +269,7 @@ public:
 管理玩家经验值。
 
 **用法：**
+
 - `/experience add <targets> <amount> [points|levels]` - 增加经验
 - `/experience set <targets> <amount> [points|levels]` - 设置经验
 - `/experience query <targets> [points|levels]` - 查询经验
@@ -267,6 +282,7 @@ public:
 清空玩家背包。
 
 **用法：**
+
 - `/clear` - 清空自己的背包
 - `/clear <player>` - 清空指定玩家的背包
 - `/clear <player> <item>` - 清空指定玩家的指定物品
@@ -281,12 +297,14 @@ public:
 控制天气。
 
 **用法：**
+
 - `/weather clear [duration]` - 设置晴天
 - `/weather rain [duration]` - 设置降雨
 - `/weather thunder [duration]` - 设置雷暴
 - `/weather query` - 查询当前天气
 
 **参数：**
+
 - `duration` - 持续时间（ticks），1秒 = 20 ticks
 - 不指定 duration 时默认为 6000 ticks（5分钟）
 
@@ -307,16 +325,19 @@ public:
 ### 输入和输出
 
 **输入：**
+
 - 命令字符串（如 `/gamemode creative`）
 - `ServerCommandSource`（命令执行者信息）
 
 **输出：**
+
 - `Result<i32>` - 命令执行结果（成功返回结果码，失败返回错误）
 - 通过 `ServerCommandSource::sendMessage()` 发送给玩家的消息
 
 ### 依赖项
 
 **内部依赖：**
+
 ```
 server/command
 ├── common/command/           # 命令框架核心
@@ -354,6 +375,7 @@ server/command
 ### 使用方法
 
 **1. 获取命令注册表：**
+
 ```cpp
 auto& registry = mc::command::CommandRegistry::getGlobal();
 ```
@@ -361,6 +383,7 @@ auto& registry = mc::command::CommandRegistry::getGlobal();
 **2. 创建命令源：**
 
 玩家命令源：
+
 ```cpp
 mc::command::ServerCommandSource source(
     server,          // IServer 指针
@@ -375,11 +398,13 @@ mc::command::ServerCommandSource source(
 ```
 
 控制台命令源：
+
 ```cpp
 auto source = mc::command::ServerCommandSource::forConsole(server);
 ```
 
 **3. 执行命令：**
+
 ```cpp
 auto result = registry.execute("/gamemode creative", source);
 if (result.success()) {
@@ -390,6 +415,7 @@ if (result.success()) {
 ```
 
 **4. 注册自定义命令：**
+
 ```cpp
 class MyCommand {
 public:
@@ -445,6 +471,7 @@ MyCommand::registerTo(m_dispatcher);
 相关测试位于 `tests/common/command/test_command_dispatcher.cpp`：
 
 **测试覆盖：**
+
 - `StringReader` - 字符串解析（读取字符串、整数、浮点数、布尔值）
 - `CommandNode` - 节点创建、子节点管理、权限检查
 - `ArgumentType` - 各类型参数解析（字符串、整数、浮点、布尔、枚举）
@@ -454,6 +481,7 @@ MyCommand::registerTo(m_dispatcher);
 - `CommandDispatcher` - 命令注册、解析、执行
 
 **运行测试：**
+
 ```powershell
 ./build/bin/Release/mc_tests.exe --gtest_filter="Command*"
 ```
@@ -568,6 +596,7 @@ MyCommand::registerTo(m_dispatcher);
 ### 添加新命令
 
 1. 在 `commands/` 目录创建新的命令类：
+
 ```cpp
 // MyCommand.hpp
 #pragma once
@@ -590,6 +619,7 @@ private:
 ```
 
 2. 实现命令逻辑：
+
 ```cpp
 // MyCommand.cpp
 #include "MyCommand.hpp"
@@ -620,6 +650,7 @@ i32 MyCommand::execute(CommandContext<ServerCommandSource>& context) {
 ```
 
 3. 在 `CommandRegistry.cpp` 中注册：
+
 ```cpp
 #include "commands/MyCommand.hpp"
 
@@ -633,6 +664,7 @@ void CommandRegistry::registerDefaults() {
 ```
 
 4. 在 `HelpCommand.cpp` 的 `s_commandHelp` 数组中添加帮助信息：
+
 ```cpp
 {"mycommand", "Description of my command", "/mycommand [args]"},
 ```
