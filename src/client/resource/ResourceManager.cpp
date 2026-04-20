@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "common/perfetto/TraceEvents.hpp"
 #include <cctype>
 
 // stb_image 用于 PNG 加载（实现在 TextureAtlasBuilder.cpp 中）
@@ -22,6 +23,8 @@ namespace mc {
 namespace {
 
 String trimStateToken(StringView token) {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::trimStateToken");
+
     size_t start = 0;
     size_t end = token.size();
 
@@ -36,6 +39,8 @@ String trimStateToken(StringView token) {
 }
 
 String normalizeStateString(StringView stateStr) {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::normalizeStateString");
+
     String trimmed = trimStateToken(stateStr);
     if (trimmed.empty() || trimmed == "normal") {
         return "normal";
@@ -82,6 +87,8 @@ String normalizeStateString(StringView stateStr) {
 }
 
 std::vector<std::pair<String, String>> parseStateConditions(StringView stateStr) {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::parseStateConditions");
+
     std::vector<std::pair<String, String>> conditions;
 
     const String normalized = normalizeStateString(stateStr);
@@ -116,6 +123,8 @@ bool matchConditions(
     const std::vector<std::pair<String, String>>& conditions,
     const std::map<String, String>& properties)
 {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::matchConditions");
+
     for (const auto& [key, value] : conditions) {
         auto it = properties.find(key);
         if (it == properties.end() || it->second != value) {
@@ -132,6 +141,8 @@ bool matchConditions(
     u32& outFrameWidth,
     u32& outFrameHeight)
 {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::parseAnimatedFrameSizeFromMcmeta");
+
     if (imageWidth == 0 || imageHeight == 0 || mcmetaData.empty()) {
         return false;
     }
@@ -188,6 +199,8 @@ bool matchConditions(
 } // namespace
 
 Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack) {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::addResourcePack");
+
     if (!resourcePack) {
         return Error(ErrorCode::InvalidArgument, "Resource pack is null");
     }
@@ -204,6 +217,8 @@ Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack) {
 }
 
 Result<void> ResourceManager::loadAllResources() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::loadAllResources");
+
     // 设置模型加载器的资源包列表
     m_modelLoader.setResourcePackList(m_resourcePacks);
 
@@ -231,6 +246,8 @@ Result<void> ResourceManager::loadAllResources() {
 }
 
 Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::buildTextureAtlas");
+
     // 收集所需纹理
     auto textures = collectRequiredTextures();
 
@@ -356,6 +373,8 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
     const ResourceLocation& blockId,
     const std::map<String, String>& properties) const
 {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::getBlockAppearance");
+
     // 构建缓存键
     String cacheKey = blockId.toString();
     if (!properties.empty()) {
@@ -439,6 +458,8 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
 const TextureRegion* ResourceManager::getTextureRegion(
     const ResourceLocation& textureLocation) const
 {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::getTextureRegion");
+
     // 先尝试直接查找
     auto it = m_textureRegions.find(textureLocation);
     if (it != m_textureRegions.end()) {
@@ -463,6 +484,8 @@ const TextureRegion* ResourceManager::getTextureRegion(
 Result<DecodedTexture> ResourceManager::loadTextureRGBA(
     const ResourceLocation& textureLocation) const
 {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::loadTextureRGBA");
+
     if (m_resourcePacks.empty()) {
         return Error(ErrorCode::NotFound,
                      "No resource packs available for texture: " + textureLocation.toString());
@@ -522,6 +545,8 @@ Result<DecodedTexture> ResourceManager::loadTextureRGBA(
 const BakedBlockModel* ResourceManager::getBakedModel(
     const ResourceLocation& modelLocation)
 {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::getBakedModel");
+
     // 检查缓存
     auto it = m_bakedModels.find(modelLocation);
     if (it != m_bakedModels.end()) {
@@ -546,10 +571,14 @@ const BakedBlockModel* ResourceManager::getBakedModel(
 const BlockStateDefinition* ResourceManager::getBlockState(
     const ResourceLocation& blockId) const
 {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::getBlockState");
+
     return m_blockStateLoader.getBlockState(blockId);
 }
 
 void ResourceManager::clear() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::clear");
+
     m_resourcePacks.clear();
     m_modelLoader.clearCache();
     m_blockStateLoader.clearCache();
@@ -561,10 +590,14 @@ void ResourceManager::clear() {
 }
 
 void ResourceManager::clearResourcePacks() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::clearResourcePacks");
+
     m_resourcePacks.clear();
 }
 
 Result<void> ResourceManager::reload() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::reload");
+
     // 清除缓存但保留资源包列表
     m_modelLoader.clearCache();
     m_blockStateLoader.clearCache();
@@ -579,6 +612,8 @@ Result<void> ResourceManager::reload() {
 }
 
 Result<void> ResourceManager::bakeAllModels() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::bakeAllModels");
+
     // 获取所有方块状态
     auto blockStates = m_blockStateLoader.getLoadedBlockStates();
 
@@ -623,6 +658,8 @@ Result<void> ResourceManager::bakeAllModels() {
 }
 
 void ResourceManager::computeBlockAppearances() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::computeBlockAppearances");
+
     // 获取所有方块状态
     auto blockStates = m_blockStateLoader.getLoadedBlockStates();
 
@@ -710,6 +747,8 @@ void ResourceManager::computeBlockAppearances() {
 }
 
 const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& texLoc) const {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::findTextureRegion");
+
     // 1. 尝试原始路径
     auto it = m_textureRegions.find(texLoc);
     if (it != m_textureRegions.end()) {
@@ -732,6 +771,8 @@ const TextureRegion* ResourceManager::findTextureRegion(const ResourceLocation& 
 }
 
 std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::collectRequiredTextures");
+
     std::set<ResourceLocation> textures;
 
     // 从烘焙模型收集纹理
@@ -756,6 +797,8 @@ std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const {
 }
 
 ResourceLocation ResourceManager::texturePathToLocation(StringView path) {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::texturePathToLocation");
+
     // 处理纹理路径
     // 例如: "blocks/stone" -> "minecraft:textures/blocks/stone"
     String p(path);
@@ -774,6 +817,8 @@ ResourceLocation ResourceManager::texturePathToLocation(StringView path) {
 }
 
 IResourcePack* ResourceManager::getFirstResourcePack() {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::getFirstResourcePack");
+
     if (m_resourcePacks.empty()) {
         return nullptr;
     }
@@ -781,6 +826,8 @@ IResourcePack* ResourceManager::getFirstResourcePack() {
 }
 
 IResourcePack* ResourceManager::getResourcePack(size_t index) {
+    MC_TRACE_EVENT("client.resource", "ResourceManager::getResourcePack");
+
     if (index >= m_resourcePacks.size()) {
         return nullptr;
     }

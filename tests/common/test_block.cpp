@@ -1046,6 +1046,11 @@ TEST(AgriculturalBehaviorTest, FarmlandRehydratesWhenRaining) {
 }
 
 TEST(AgriculturalBehaviorTest, CropRequiresLightToStayValid) {
+    // 注意：该用例依赖 VanillaBlocks（FARMLAND）已注册，否则会出现空指针访问。
+    // 测试不能依赖其它用例的执行顺序，因此这里必须显式初始化。
+    fluid::FluidRegistry::instance().initialize();
+    VanillaBlocks::initialize();
+
     TestCropBlock crop(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
     BlockRulesTestWorld world;
     const BlockPos cropPos(4, 65, 4);

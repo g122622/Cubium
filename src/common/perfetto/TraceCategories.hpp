@@ -129,6 +129,8 @@ PERFETTO_DEFINE_CATEGORIES(
         .SetDescription("服务端光照处理"),
     perfetto::Category("client.lighting")
         .SetDescription("客户端光照处理"),
+    perfetto::Category("client.resource")
+        .SetDescription("客户端资源包"),
 
     // === 客户端细粒度分类 ===
     perfetto::Category("client.entity")

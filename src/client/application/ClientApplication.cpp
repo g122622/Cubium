@@ -41,6 +41,7 @@
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "client/command/ClientCommandManager.hpp"
+#include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "minecraft-reborn/version.h"
@@ -305,6 +306,36 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         spdlog::info("Block items initialized");
     }
 
+    // 鍒濆鍖栧０闊崇郴缁?
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeSoundSystem");
+
+        spdlog::info("Initializing sound system...");
+
+        // 娣诲姞鍐呯疆璧勬簮鍖呭埌 ResourcePackList锛堢敤浜?sounds.json锛?
+        // 鍐呯疆璧勬簮鍖呭叿鏈夋渶浣庝紭鍏堢骇锛?1锛夛紝澶栭儴璧勬簮鍖呭彲浠ヨ鐩?
+        auto builtinPackResult = m_resourcePackList.addPack(
+            std::filesystem::path("resources/data/minecraft"), true, -1);
+        if (builtinPackResult.success() && builtinPackResult.value().initialized) {
+            spdlog::info("Added built-in resources pack to sound system");
+        } else {
+            spdlog::warn("Failed to add built-in resources pack: {}",
+                         builtinPackResult.success() ? builtinPackResult.value().error : builtinPackResult.error().toString());
+        }
+
+        m_audioService = std::make_unique<sound::AudioService>(m_resourcePackList, m_settings);
+
+        auto soundInitResult = m_audioService->initialize();
+        if (soundInitResult.failed()) {
+            spdlog::warn("Failed to initialize sound engine: {}. Audio will be disabled.",
+                        soundInitResult.error().toString());
+            m_audioService.reset();
+        } else {
+            // 娣诲姞鐜闊虫晥澶勭悊鍣?
+            spdlog::info("Sound system initialized successfully");
+        }
+    }
+
     // 鍒濆鍖栬祫婧愮郴缁?
     {
         MC_TRACE_EVENT("client.initialization", "InitializeResources");
@@ -526,43 +557,6 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         auto firstPersonInitResult = m_renderer->initializeFirstPersonRenderer();
         if (firstPersonInitResult.failed()) {
             spdlog::warn("Failed to initialize first person renderer: {}", firstPersonInitResult.error().toString());
-        }
-    }
-
-    // 鍒濆鍖栧０闊崇郴缁?
-    {
-        MC_TRACE_EVENT("client.initialization", "InitializeSoundSystem");
-
-        spdlog::info("Initializing sound system...");
-
-        // 娣诲姞鍐呯疆璧勬簮鍖呭埌 ResourcePackList锛堢敤浜?sounds.json锛?        // 鍐呯疆璧勬簮鍖呭叿鏈夋渶浣庝紭鍏堢骇锛?1锛夛紝澶栭儴璧勬簮鍖呭彲浠ヨ鐩?
-        auto builtinPackResult = m_resourcePackList.addPack(
-            std::filesystem::path("resources/data/minecraft"), true, -1);
-        if (builtinPackResult.success() && builtinPackResult.value().initialized) {
-            spdlog::info("Added built-in resources pack to sound system");
-        } else {
-            spdlog::warn("Failed to add built-in resources pack: {}",
-                         builtinPackResult.success() ? builtinPackResult.value().error : builtinPackResult.error().toString());
-        }
-
-        m_soundHandler = std::make_unique<sound::SoundHandler>(m_resourcePackList);
-        m_soundEngine = std::make_unique<sound::SoundEngine>(*m_soundHandler, m_settings);
-
-        auto soundInitResult = m_soundEngine->initialize();
-        if (soundInitResult.failed()) {
-            spdlog::warn("Failed to initialize sound engine: {}. Audio will be disabled.",
-                        soundInitResult.error().toString());
-            m_soundEngine.reset();
-            m_soundHandler.reset();
-        } else {
-            // 娣诲姞鐜闊虫晥澶勭悊鍣?
-            m_biomeAmbientHandler = std::make_unique<sound::BiomeAmbientHandler>();
-            m_soundEngine->addAmbientHandler(std::move(m_biomeAmbientHandler));
-
-            m_underwaterAmbientHandler = std::make_unique<sound::UnderwaterAmbientHandler>();
-            m_soundEngine->addAmbientHandler(std::move(m_underwaterAmbientHandler));
-
-            spdlog::info("Sound system initialized successfully");
         }
     }
 
@@ -1283,7 +1277,7 @@ void ClientApplication::update(f32 deltaTime)
         m_player->updatePhysics();
 
         // 澶勭悊鑴氭澹板拰娓告吵澹?        // updateMoveDistance 鍦?Player::updatePhysics 涓皟鐢?        // 杩欓噷妫€鏌ユ槸鍚﹂渶瑕佹挱鏀惧０闊?
-        if (m_soundEngine && !m_player->isSilent()) {
+        if (m_audioService && !m_player->isSilent()) {
             // 澶勭悊娓告吵澹?
             if (m_player->shouldPlaySwimSound()) {
                 auto swimSound = std::make_unique<sound::SoundInstance>(
@@ -1295,7 +1289,7 @@ void ClientApplication::update(f32 deltaTime)
                         1.0f + (m_random.nextFloat() - m_random.nextFloat()) * 0.4f  // 闅忔満闊宠皟鍙樺寲
                     )
                 );
-                m_soundEngine->play(std::move(swimSound));
+                m_audioService->play(std::move(swimSound));
             }
             // 澶勭悊鑴氭澹?
             else if (m_player->shouldPlayStepSound()) {
@@ -1319,7 +1313,7 @@ void ClientApplication::update(f32 deltaTime)
                             soundType.getPitch() * (0.8f + m_random.nextFloat() * 0.4f)  // 闊宠皟闅忔満鍙樺寲
                         )
                     );
-                    m_soundEngine->play(std::move(stepSound));
+                    m_audioService->play(std::move(stepSound));
                 } else {
                     // 榛樿浣跨敤鐭冲ご鑴氭澹?
                     auto stepSound = std::make_unique<sound::SoundInstance>(
@@ -1331,7 +1325,7 @@ void ClientApplication::update(f32 deltaTime)
                             1.0f + (m_random.nextFloat() - m_random.nextFloat()) * 0.4f
                         )
                     );
-                    m_soundEngine->play(std::move(stepSound));
+                    m_audioService->play(std::move(stepSound));
                 }
             }
         }
@@ -1382,8 +1376,8 @@ void ClientApplication::update(f32 deltaTime)
         m_camera.update(deltaTime);
 
         // 鏇存柊澹伴煶绯荤粺鍚€呬綅缃?
-        if (m_soundEngine) {
-            m_soundEngine->updateListener(
+        if (m_audioService) {
+            m_audioService->updateListener(
                 m_camera.position(),
                 m_camera.forward(),
                 m_camera.up()
@@ -1494,10 +1488,10 @@ void ClientApplication::update(f32 deltaTime)
     m_world.entityManager().tick();
 
     // 鏇存柊澹伴煶绯荤粺
-    if (m_soundEngine) {
+    if (m_audioService) {
         // 妫€鏌ユ槸鍚︽殏鍋滐紙娓告垙鏆傚仠鏃朵笉鏇存柊澹伴煶锛?
         bool isPaused = !m_mouseCaptured;  // 榧犳爣鏈崟鑾锋椂璁や负娓告垙鏆傚仠
-        m_soundEngine->tick(isPaused);
+        m_audioService->setPaused(isPaused);
     }
 
     // 鏇存柊瀹炰綋鍔ㄧ敾鐘舵€侊紙鐢ㄤ簬娓叉煋鎻掑€硷級
@@ -1574,7 +1568,7 @@ void ClientApplication::update(f32 deltaTime)
             m_renderer->updateLiquidState(inWater, inLava, waterFogColor);
 
             // 鍏ユ按/鍑烘按闊虫晥瑙﹀彂
-            if (inWater && !m_wasPlayerInWater) {
+            if (m_audioService && inWater && !m_wasPlayerInWater) {
                 MC_TRACE_INSTANT("client.entity", "EnterWater");
                 // 鍏ユ按闊虫晥
                 auto enterSound = std::make_unique<sound::SoundInstance>(
@@ -1585,8 +1579,8 @@ void ClientApplication::update(f32 deltaTime)
                         1.0f   // 闊宠皟
                     )
                 );
-                m_soundEngine->play(std::move(enterSound));
-            } else if (!inWater && m_wasPlayerInWater) {
+                m_audioService->play(std::move(enterSound));
+            } else if (m_audioService && !inWater && m_wasPlayerInWater) {
                 // 鍑烘按闊虫晥
                 auto exitSound = std::make_unique<sound::SoundInstance>(
                     sound::SoundInstance::createGlobal(
@@ -1596,12 +1590,18 @@ void ClientApplication::update(f32 deltaTime)
                         1.0f   // 闊宠皟
                     )
                 );
-                m_soundEngine->play(std::move(exitSound));
+                m_audioService->play(std::move(exitSound));
             }
 
             // 鏇存柊姘翠笅鐜闊虫晥澶勭悊鍣?
-            if (m_underwaterAmbientHandler) {
-                m_underwaterAmbientHandler->setUnderwater(inWater);
+            if (m_audioService) {
+                const auto* biome = m_world.getBiomeAtBlock(
+                    static_cast<i32>(std::floor(m_player->x())),
+                    static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
+                    static_cast<i32>(std::floor(m_player->z()))
+                );
+                m_audioService->setBiomeId(biome ? static_cast<u32>(biome->id()) : 0u);
+                m_audioService->setUnderwater(inWater);
             }
 
             m_wasPlayerInWater = inWater;
@@ -1665,13 +1665,10 @@ void ClientApplication::shutdown()
     }
 
     // 鍏抽棴澹伴煶绯荤粺
-    if (m_soundEngine) {
-        m_soundEngine->shutdown();
-        m_soundEngine.reset();
+    if (m_audioService) {
+        m_audioService->shutdown();
+        m_audioService.reset();
     }
-    m_soundHandler.reset();
-    m_biomeAmbientHandler.reset();
-    m_underwaterAmbientHandler.reset();
 
     // 鏂紑缃戠粶杩炴帴
     if (m_networkClient) {
@@ -2325,8 +2322,8 @@ void ClientApplication::setupNetworkCallbacks()
                                    f32 z,
                                    f32 volume,
                                    f32 pitch) {
-        if (!m_soundEngine) {
-            spdlog::warn("Received sound event '{}' but sound engine is not initialized", soundEventId.toString());
+        if (!m_audioService) {
+            spdlog::warn("Received sound event '{}' but audio service is not initialized", soundEventId.toString());
             return;
         }
 
@@ -2339,28 +2336,28 @@ void ClientApplication::setupNetworkCallbacks()
             volume,
             pitch);
 
-        (void)m_soundEngine->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+        m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
         // MC_TRACE_CLIENT_SOUND_EVENT("OnPlaySound_Result", "soundId", id);
     };
 
     callbacks.onStopSound = [this](const Optional<ResourceLocation>& soundEventId,
                                    const Optional<mc::sound::SoundCategory>& category) {
-        if (!m_soundEngine) {
+        if (!m_audioService) {
             return;
         }
 
         if (!soundEventId.has_value() && !category.has_value()) {
-            m_soundEngine->stopAll();
+            m_audioService->stopAll();
             return;
         }
 
         if (soundEventId.has_value()) {
-            m_soundEngine->stop(*soundEventId);
+            m_audioService->stop(*soundEventId);
             return;
         }
 
         if (category.has_value()) {
-            m_soundEngine->stop(*category);
+            m_audioService->stop(*category);
         }
     };
 
@@ -2805,6 +2802,9 @@ Result<void> ClientApplication::initializeResources()
     m_resourcePackList.onChange([this]() {
         spdlog::info("Resource packs changed, reloading...");
         reloadResources();
+        if (m_audioService) {
+            m_audioService->reloadSoundDefinitions();
+        }
     });
 
     return Result<void>::ok();
@@ -2812,6 +2812,8 @@ Result<void> ClientApplication::initializeResources()
 
 void ClientApplication::reloadResources()
 {
+    MC_TRACE_EVENT("client.resource", "ReloadResources");
+
     if (!m_resourceManager) {
         return;
     }

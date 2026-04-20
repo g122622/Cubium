@@ -173,8 +173,8 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     // 检查是否在听者范围内（对于位置声音）
     if (!sound->isGlobal() && !isInRange(*sound, attenuationDistance)) {
         // 超出可听范围，不播放
-        spdlog::info("[SoundEngine] Sound out of range: {} (distance: {})",
-                      sound->getSoundEventId().toString(), attenuationDistance);
+        // spdlog::info("[SoundEngine] Sound out of range: {} (distance: {})",
+        //               sound->getSoundEventId().toString(), attenuationDistance);
         return 0;
     }
 
@@ -433,6 +433,8 @@ f32 SoundEngine::getVolume(SoundCategory category) const {
 }
 
 void SoundEngine::tick(bool isPaused) {
+    MC_TRACE_EVENT("client.sound", "SoundEngine::tick", "isPaused", isPaused);
+
     if (!m_loaded) {
         return;
     }

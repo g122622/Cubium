@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <unordered_map>
 #include <unordered_set>
+#include <shared_mutex>
 
 namespace mc {
 
@@ -60,6 +61,7 @@ private:
 
     /// 可变缓存（mutable 以支持 const 方法中的缓存）
     mutable std::unordered_map<String, std::vector<u8>> m_cache;
+    mutable std::shared_mutex m_cacheMutex;
 };
 
 } // namespace mc

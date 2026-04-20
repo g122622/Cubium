@@ -65,14 +65,15 @@ src/client/application/
 ```mermaid
 graph TB
     subgraph 初始化流程
-        A[initialize] --> B[loadSettings]
-        A --> C[initializeResources]
-        A --> D[创建窗口]
-        A --> E[初始化渲染器]
-        A --> F[启动内置服务端]
-        A --> G[初始化网络客户端]
-        A --> H[初始化世界]
-        A --> I[初始化 UI 引擎]
+        IA[initialize] --> IB[loadSettings]
+        IA --> IC[初始化音频系统]
+        IA --> ID[initializeResources]
+        IA --> IE[创建窗口]
+        IA --> IF[初始化渲染器]
+        IA --> IG[启动内置服务端]
+        IA --> IH[初始化网络客户端]
+        IA --> II[初始化世界]
+        IA --> IJ[初始化 UI 引擎]
     end
 
     subgraph 主循环
@@ -100,16 +101,24 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 1. **设置加载** - 从配置文件加载客户端设置
 2. **方块注册** - 初始化 VanillaBlocks 和 Items
 3. **实体注册** - 注册所有实体类型
-4. **资源系统** - 加载资源包、构建纹理图集
-5. **窗口创建** - 创建 GLFW 窗口
-6. **渲染器初始化** - 初始化 Trident Vulkan 渲染引擎及所有子渲染器
-7. **内置服务端** - 启动 IntegratedServer（单机模式）
-8. **网络连接** - 连接到服务端并等待命令树同步
-9. **命令树同步** - 接收 `CommandTreePacket`，创建本地补全管理器
-10. **世界初始化** - 初始化 ClientWorld 和网格构建系统（`MeshBuildScheduler` + `MeshWorkerPool`）
-11. **物理引擎** - 创建 PhysicsEngine
-12. **玩家实体** - 创建 Player 实体
-13. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层，包括准星目标信息覆盖层
+4. **音频系统** - 创建 `AudioService`，先把内置音频资源包加入共享 `ResourcePackList`
+5. **资源系统** - 只做一次资源加载与纹理图集构建，并在末尾注册资源包变更回调
+6. **窗口创建** - 创建 GLFW 窗口
+7. **渲染器初始化** - 初始化 Trident Vulkan 渲染引擎及所有子渲染器
+8. **内置服务端** - 启动 IntegratedServer（单机模式）
+9. **网络连接** - 连接到服务端并等待命令树同步
+10. **命令树同步** - 接收 `CommandTreePacket`，创建本地补全管理器
+11. **世界初始化** - 初始化 ClientWorld 和网格构建系统（`MeshBuildScheduler` + `MeshWorkerPool`）
+12. **物理引擎** - 创建 PhysicsEngine
+13. **玩家实体** - 创建 Player 实体
+14. **UI 系统** - 初始化 Kagero UI 引擎和所有 UI 层，包括准星目标信息覆盖层
+
+#### 音频线程协作
+
+- `ClientApplication` 只负责创建和销毁 `AudioService`。
+- `AudioService` 在线程内独占初始化 `SoundEngine`、`SoundHandler`、音乐播放器与环境音 handler。
+- `m_resourcePackList.onChange(...)` 在首次资源加载完成后注册，避免启动期 `addPack()` 触发重复 `reloadResources()`。
+- 网络回调和玩家状态更新只投递音频命令，不直接触碰 OpenAL。
 
 #### 主循环详解
 

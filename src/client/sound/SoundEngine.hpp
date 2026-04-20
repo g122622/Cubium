@@ -73,8 +73,9 @@ class SoundHandler;
  * @endcode
  *
  * 线程安全说明:
- * - 所有方法应在主线程调用
- * - 如需跨线程播放声音，使用线程安全队列
+ * - SoundEngine 本身不是线程安全的（内部含 OpenAL 上下文、可变状态、缓存等）。
+ * - 当前工程中应由 AudioService 在“音频引擎线程”独占调用 SoundEngine 的所有方法。
+ * - 主线程不得直接触碰 SoundEngine；需要播放/停止/更新 listener 等行为必须投递到 AudioService。
  */
 class SoundEngine {
 public:

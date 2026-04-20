@@ -18,6 +18,11 @@ src/client/
 ├── main.cpp               # 程序入口点
 ├── network/               # 网络通信
 │   └── NetworkClient.hpp/cpp # TCP/本地连接客户端
+├── sound/                 # 音频系统
+│   ├── AudioService.hpp/cpp  # 独立音频线程入口
+│   ├── SoundEngine.hpp/cpp   # 声音播放核心
+│   ├── SoundHandler.hpp/cpp  # sounds.json 解析与注册
+│   └── ...                   # 缓冲区、音乐、环境音、后端
 ├── renderer/              # 渲染系统
 │   ├── api/               # 平台无关渲染接口
 │   │   ├── IRenderEngine.hpp    # 渲染引擎接口
@@ -229,7 +234,25 @@ if (result.success()) {
 }
 ```
 
-### 2. renderer/ - 渲染系统
+### 2. sound/ - 音频系统
+
+**职责**: 通过 `AudioService` 管理独立音频线程，异步处理播放、停止、暂停、恢复、listener 更新、声音定义重载、音乐和环境音。
+
+**关键约束**:
+- `ClientApplication` 只持有 `AudioService`，不直接持有 `SoundEngine`
+- `SoundEngine` 的所有 OpenAL 调用必须在音频线程内执行
+- 音频资源直接共享 `common/resource/ResourcePackList`
+
+**使用方法**:
+```cpp
+auto audioService = std::make_unique<sound::AudioService>(resourcePackList, settings);
+auto initResult = audioService->initialize();
+if (initResult.success()) {
+    audioService->play(std::make_unique<sound::SoundInstance>(...));
+}
+```
+
+### 3. renderer/ - 渲染系统
 
 **职责**: 所有图形渲染功能，包括区块、实体、天空、GUI、粒子等。
 

@@ -1,11 +1,12 @@
 #include "ZipResourcePack.hpp"
 
-#include <spdlog/spdlog.h>
 #include <archive.h>
 #include <archive_entry.h>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <cstring>
+#include <shared_mutex>
 
 namespace mc {
 
@@ -28,13 +29,11 @@ ZipResourcePack::~ZipResourcePack() = default;
 Result<std::unique_ptr<ZipResourcePack>> ZipResourcePack::create(const std::filesystem::path& zipPath)
 {
     if (!std::filesystem::exists(zipPath)) {
-        return Error(ErrorCode::FileNotFound,
-                     "ZIP file not found: " + zipPath.string());
+        return Error(ErrorCode::FileNotFound, "ZIP file not found: " + zipPath.string());
     }
 
     if (!std::filesystem::is_regular_file(zipPath)) {
-        return Error(ErrorCode::FileNotFound,
-                     "Path is not a regular file: " + zipPath.string());
+        return Error(ErrorCode::FileNotFound, "Path is not a regular file: " + zipPath.string());
     }
 
     auto pack = std::unique_ptr<ZipResourcePack>(new ZipResourcePack(zipPath));
@@ -47,6 +46,12 @@ Result<std::unique_ptr<ZipResourcePack>> ZipResourcePack::create(const std::file
 
 Result<void> ZipResourcePack::initialize()
 {
+    // 初始化时先清空缓存，避免重载后残留旧条目
+    {
+        std::unique_lock lock(m_cacheMutex);
+        m_cache.clear();
+    }
+
     // 使用 libarchive 打开 ZIP 文件
     struct archive* a = archive_read_new();
     archive_read_support_format_zip(a);
@@ -63,7 +68,7 @@ Result<void> ZipResourcePack::initialize()
         archive_read_free(a);
         return Error(ErrorCode::FileOpenFailed,
                      "Failed to open ZIP file: " + m_zipPath.string() +
-                     " - " + String(archive_error_string(a)));
+                         " - " + String(archive_error_string(a)));
     }
 
     // 读取所有条目，构建索引
@@ -97,7 +102,8 @@ Result<void> ZipResourcePack::initialize()
                 m_metadata = std::move(metadataResult.value());
             } else {
                 spdlog::error("Failed to parse pack.mcmeta for {}: {}",
-                             m_name, metadataResult.error().toString());
+                              m_name,
+                              metadataResult.error().toString());
                 m_metadata = PackMetadata();
             }
         }
@@ -106,7 +112,9 @@ Result<void> ZipResourcePack::initialize()
     }
 
     spdlog::info("ZIP resource pack '{}' loaded: {} entries, format {}",
-                 m_name, m_entries.size(), m_metadata.packFormat());
+                 m_name,
+                 m_entries.size(),
+                 m_metadata.packFormat());
     return Result<void>::ok();
 }
 
@@ -120,16 +128,18 @@ Result<std::vector<u8>> ZipResourcePack::readResource(StringView resourcePath) c
 {
     String normalized = normalizePath(resourcePath);
 
-    // 检查缓存
-    auto cacheIt = m_cache.find(normalized);
-    if (cacheIt != m_cache.end()) {
-        return cacheIt->second;
+    // 先查缓存，避免并发读取时重复解压同一个条目
+    {
+        std::shared_lock lock(m_cacheMutex);
+        auto cacheIt = m_cache.find(normalized);
+        if (cacheIt != m_cache.end()) {
+            return cacheIt->second;
+        }
     }
 
     // 检查条目是否存在
     if (m_entries.find(normalized) == m_entries.end()) {
-        return Error(ErrorCode::ResourceNotFound,
-                     "Resource not found in ZIP: " + normalized);
+        return Error(ErrorCode::ResourceNotFound, "Resource not found in ZIP: " + normalized);
     }
 
     // 使用 libarchive 读取文件
@@ -145,8 +155,7 @@ Result<std::vector<u8>> ZipResourcePack::readResource(StringView resourcePath) c
 
     if (r != ARCHIVE_OK) {
         archive_read_free(a);
-        return Error(ErrorCode::FileOpenFailed,
-                     "Failed to open ZIP file: " + m_zipPath.string());
+        return Error(ErrorCode::FileOpenFailed, "Failed to open ZIP file: " + m_zipPath.string());
     }
 
     // 查找目标条目
@@ -162,10 +171,11 @@ Result<std::vector<u8>> ZipResourcePack::readResource(StringView resourcePath) c
                 data.resize(static_cast<size_t>(size));
                 la_ssize_t read = archive_read_data(a, data.data(), data.size());
                 if (read < 0) {
-                    spdlog::error("Failed to read ZIP entry {}: {}", normalized, archive_error_string(a));
+                    spdlog::error("Failed to read ZIP entry {}: {}",
+                                  normalized,
+                                  archive_error_string(a));
                     archive_read_free(a);
-                    return Error(ErrorCode::FileReadFailed,
-                                 "Failed to read ZIP entry: " + normalized);
+                    return Error(ErrorCode::FileReadFailed, "Failed to read ZIP entry: " + normalized);
                 }
                 data.resize(static_cast<size_t>(read));
             }
@@ -176,19 +186,16 @@ Result<std::vector<u8>> ZipResourcePack::readResource(StringView resourcePath) c
 
     archive_read_free(a);
 
-    if (data.empty() && m_entries.find(normalized) == m_entries.end()) {
-        return Error(ErrorCode::ResourceNotFound,
-                     "Resource not found in ZIP: " + normalized);
+    // 缓存结果（写锁），减少后续重复解压的开销
+    {
+        std::unique_lock lock(m_cacheMutex);
+        m_cache[normalized] = data;
     }
 
-    // 缓存结果
-    m_cache[normalized] = data;
     return data;
 }
 
-Result<std::vector<String>> ZipResourcePack::listResources(
-    StringView directory,
-    StringView extension) const
+Result<std::vector<String>> ZipResourcePack::listResources(StringView directory, StringView extension) const
 {
     std::vector<String> resources;
     String normalizedDir = normalizePath(directory);
@@ -200,24 +207,24 @@ Result<std::vector<String>> ZipResourcePack::listResources(
 
     for (const auto& path : m_entries) {
         // 检查是否在指定目录下
-        if (path.size() > normalizedDir.size() &&
-            path.substr(0, normalizedDir.size()) == normalizedDir) {
+        if (path.size() <= normalizedDir.size() ||
+            path.substr(0, normalizedDir.size()) != normalizedDir) {
+            continue;
+        }
 
-            // 检查扩展名
-            if (extension.empty()) {
-                resources.push_back(path);
-            } else {
-                if (path.size() >= extension.size() &&
-                    path.substr(path.size() - extension.size()) == extension) {
-                    resources.push_back(path);
-                }
-            }
+        // 检查扩展名
+        if (extension.empty()) {
+            resources.push_back(path);
+            continue;
+        }
+
+        if (path.size() >= extension.size() &&
+            path.substr(path.size() - extension.size()) == extension) {
+            resources.push_back(path);
         }
     }
 
-    // 排序
     std::sort(resources.begin(), resources.end());
-
     return resources;
 }
 
@@ -227,6 +234,7 @@ Result<std::vector<String>> ZipResourcePack::listResources(
 
 void ZipResourcePack::clearCache()
 {
+    std::unique_lock lock(m_cacheMutex);
     m_cache.clear();
 }
 
@@ -250,3 +258,4 @@ String ZipResourcePack::normalizePath(StringView path)
 }
 
 } // namespace mc
+

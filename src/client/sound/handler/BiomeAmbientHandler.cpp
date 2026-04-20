@@ -10,7 +10,8 @@ BiomeAmbientHandler::BiomeAmbientHandler()
 {
 }
 
-void BiomeAmbientHandler::tick(SoundEngine& engine) {
+void BiomeAmbientHandler::tick(SoundEngine& engine)
+{
     // 减少延迟计时器
     if (m_delayTimer > 0) {
         --m_delayTimer;
@@ -33,10 +34,9 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
         SoundInstance::createGlobal(
             soundLocation.value(),
             SoundCategory::Ambient,
-            0.5f,  // 较低音量
-            1.0f   // 正常音调
-        )
-    );
+            0.5f, // 较低音量
+            1.0f  // 正常音调
+        ));
 
     engine.play(std::move(sound));
 
@@ -47,7 +47,8 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
     m_lastPlayedBiomeId = m_currentBiomeId;
 }
 
-Optional<ResourceLocation> BiomeAmbientHandler::getBiomeAmbientSound(u32 biomeId) {
+Optional<ResourceLocation> BiomeAmbientHandler::getBiomeAmbientSound(u32 biomeId)
+{
     // TODO: 从群系注册表获取实际的环境音效
     // 当前返回一些示例环境音效
 
@@ -55,13 +56,13 @@ Optional<ResourceLocation> BiomeAmbientHandler::getBiomeAmbientSound(u32 biomeId
     // 注意：这些是占位符，实际应该从群系配置读取
     switch (biomeId) {
         // 沼泽群系
-        case 6:  // swamp
+        case 6: // swamp
             return ResourceLocation("minecraft:ambient.cave");
         // 沙漠群系
-        case 2:  // desert
+        case 2: // desert
             return ResourceLocation("minecraft:ambient.weather.rain");
         // 海洋群系
-        case 0:  // ocean
+        case 0: // ocean
             return ResourceLocation("minecraft:ambient.underwater.enter");
         // 下界群系
         default:
@@ -74,3 +75,4 @@ Optional<ResourceLocation> BiomeAmbientHandler::getBiomeAmbientSound(u32 biomeId
 }
 
 } // namespace mc::client::sound
+

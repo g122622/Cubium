@@ -12,6 +12,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <shared_mutex>
 
 namespace mc {
 
@@ -158,7 +159,7 @@ public:
      * @brief 获取所有资源包信息
      * @return 资源包信息列表
      */
-    [[nodiscard]] const std::vector<PackInfo>& getAllPacks() const { return m_packs; }
+    [[nodiscard]] std::vector<PackInfo> getAllPacks() const;
 
     /**
      * @brief 获取启用的资源包（按优先级排序）
@@ -177,23 +178,30 @@ public:
     [[nodiscard]] std::vector<PackInfo> getEnabledPackInfos() const;
 
     /**
-     * @brief 查找资源包信息（const 版本）
+     * @brief 查找资源包信息（返回拷贝）
+     *
+     * 为了支持主线程与音频线程并发访问，本接口返回 PackInfo 的拷贝，
+     * 避免暴露内部容器元素地址导致悬垂指针问题。
+     *
      * @param path 资源包路径
-     * @return 资源包信息指针，未找到返回 nullptr
+     * @return 找到则返回 PackInfo，否则返回空
      */
-    [[nodiscard]] const PackInfo* findPack(const String& path) const;
+    [[nodiscard]] Optional<PackInfo> getPackInfo(const String& path) const;
 
     /**
-     * @brief 查找资源包信息（非 const 版本）
+     * @brief 判断资源包是否存在
+     *
+     * 这是并发安全的只读查询，不会暴露内部容器元素地址。
+     *
      * @param path 资源包路径
-     * @return 资源包信息指针，未找到返回 nullptr
+     * @return 是否已存在
      */
-    [[nodiscard]] PackInfo* findPack(const String& path);
+    [[nodiscard]] bool containsPack(const String& path) const;
 
     /**
      * @brief 获取资源包数量
      */
-    [[nodiscard]] size_t packCount() const { return m_packs.size(); }
+    [[nodiscard]] size_t packCount() const;
 
     /**
      * @brief 获取启用的资源包数量
@@ -275,23 +283,17 @@ public:
      * @brief 设置变更回调
      * @param callback 变更时调用的函数
      */
-    void onChange(std::function<void()> callback) {
-        MC_ASSERT_RELEASE(!m_callback);
-        m_callback = std::move(callback);
-    }
+    void onChange(std::function<void()> callback);
 
 private:
     std::vector<PackInfo> m_packs;
     std::function<void()> m_callback;
+    mutable std::shared_mutex m_mutex;
 
     /**
      * @brief 通知变更
      */
-    void notifyChange() {
-        if (m_callback) {
-            m_callback();
-        }
-    }
+    void notifyChange();
 
     /**
      * @brief 规范化路径

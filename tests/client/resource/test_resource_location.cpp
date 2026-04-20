@@ -276,5 +276,5 @@ TEST(ResourcePackListTest, Clear) {
 
 TEST(ResourcePackListTest, FindPackEmpty) {
     ResourcePackList list;
-    EXPECT_EQ(list.findPack("test"), nullptr);
+    EXPECT_FALSE(list.getPackInfo("test").has_value());
 }
