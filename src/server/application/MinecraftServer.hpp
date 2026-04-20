@@ -33,6 +33,9 @@ namespace mc {
 class WorldLightManager;
 class PhysicsEngine;
 class EntityManager;
+class BlockPos;
+class Player;
+enum class ContainerType : u8;
 namespace server {
 class EntityTracker;
 class ItemPickupManager;
@@ -269,6 +272,11 @@ protected:
      */
     void shutdownManagers();
 
+
+    /**
+     * @brief 处理世界层的开容器请求
+     */
+    [[nodiscard]] virtual bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player);
     /**
      * @brief 执行实体 tick
      */

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "entity/inventory/Container.hpp"
+#include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include <memory>
 
@@ -22,7 +22,7 @@ namespace blockentity {
  *
  * 参考: net.minecraft.inventory.container.ChestContainer
  */
-class ChestContainer : public Container {
+class ChestContainer : public AbstractContainerMenu {
 public:
     /// 单箱行数
     static constexpr i32 SINGLE_CHEST_ROWS = 3;
@@ -43,6 +43,18 @@ public:
     ChestContainer(ContainerId id,
                    PlayerInventory* playerInventory,
                    IInventory* chestInventory,
+                   i32 rows);
+
+    /**
+     * @brief 构造拥有箱子背包的容器
+     * @param id 容器ID
+     * @param playerInventory 玩家背包
+     * @param chestInventoryOwner 箱子背包所有权
+     * @param rows 箱子行数（3或6）
+     */
+    ChestContainer(ContainerId id,
+                   PlayerInventory* playerInventory,
+                   std::shared_ptr<IInventory> chestInventoryOwner,
                    i32 rows);
 
     /**
@@ -84,12 +96,14 @@ public:
     /**
      * @brief 获取箱子槽位数量
      */
-    [[nodiscard]] i32 getChestSlotCount() const { return m_rows * SLOTS_PER_ROW; }
+    [[nodiscard]] i32 getChestSlotCount() const { return m_chestSlotCount; }
+
+    [[nodiscard]] bool stillValid(const Player& player) const override;
 
     // ========== 快速移动 ==========
 
 protected:
-    ItemStack doQuickMove(i32 slotIndex, ItemStack cursorItem) override;
+    ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
 private:
     /**
@@ -99,7 +113,9 @@ private:
     void initSlots(PlayerInventory* playerInventory);
 
     IInventory* m_chestInventory;  ///< 箱子背包
+    std::shared_ptr<IInventory> m_chestInventoryOwner;  ///< 箱子背包所有权（可选）
     i32 m_rows;                    ///< 箱子行数
+    i32 m_chestSlotCount;          ///< 箱子槽位数量
 };
 
 } // namespace blockentity

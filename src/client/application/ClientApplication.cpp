@@ -31,6 +31,8 @@
 #include "client/ui/GuiScale.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/ui/screen/CraftingScreen.hpp"
+#include "client/ui/screen/ChestScreen.hpp"
+#include "client/ui/screen/FurnaceScreen.hpp"
 #include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
 #include "client/ui/minecraft/targetinfo/TargetInfoResolver.hpp"
@@ -80,6 +82,16 @@ void applyContainerSlot(Menu* menu, i32 slotIndex, const ItemStack& item) {
     if (slot != nullptr) {
         slot->set(item);
     }
+}
+
+template <typename ScreenT>
+bool isMatchingContainerScreen(IScreen* screen, ContainerId containerId) {
+    auto* typedScreen = dynamic_cast<ScreenT*>(screen);
+    if (typedScreen == nullptr || typedScreen->getMenu() == nullptr) {
+        return false;
+    }
+
+    return typedScreen->getMenu()->getId() == containerId;
 }
 
 void releaseMouseForScreen(InputManager& input, bool& mouseCaptured) {
@@ -2025,11 +2037,6 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        if (static_cast<ContainerType>(packet.type()) != ContainerType::CraftingTable) {
-            spdlog::debug("Unhandled open container type {}", packet.type());
-            return;
-        }
-
         auto clickSender = [this](ContainerId containerId, i32 slotIndex, i32 button, ClickAction action,
                                   const ItemStack& cursorItem) {
             if (m_networkClient) {
@@ -2044,40 +2051,90 @@ void ClientApplication::setupNetworkCallbacks()
             }
         };
 
+        auto configureScreen = [this](auto& screen) {
+            if (m_renderer != nullptr && m_renderer->isGuiRendererInitialized()) {
+                screen.setRenderers(
+                    &m_renderer->guiRenderer(),
+                    m_guiTextureManager.get(),
+                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
+                screen.setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+            }
+        };
+
         releaseMouseForScreen(m_input, m_mouseCaptured);
-        ScreenManager::instance().openScreen(
-            std::make_unique<CraftingScreen>(
-                std::make_unique<CraftingMenu>(packet.containerId(), &m_player->inventory(), nullptr),
-                clickSender,
-                closeSender));
+
+        const ContainerType type = static_cast<ContainerType>(packet.type());
+        switch (type) {
+            case ContainerType::CraftingTable: {
+                auto screen = std::make_unique<CraftingScreen>(
+                    std::make_unique<CraftingMenu>(packet.containerId(), &m_player->inventory(), nullptr),
+                    clickSender,
+                    closeSender);
+                configureScreen(*screen);
+                ScreenManager::instance().openScreen(std::move(screen));
+                break;
+            }
+            case ContainerType::Chest: {
+                i32 rows = (packet.slotCount() == mc::blockentity::ChestContainer::DOUBLE_CHEST_ROWS * mc::blockentity::ChestContainer::SLOTS_PER_ROW)
+                    ? mc::blockentity::ChestContainer::DOUBLE_CHEST_ROWS
+                    : mc::blockentity::ChestContainer::SINGLE_CHEST_ROWS;
+
+                auto screen = std::make_unique<ChestScreen>(
+                    packet.containerId(),
+                    &m_player->inventory(),
+                    rows,
+                    clickSender,
+                    closeSender);
+                configureScreen(*screen);
+                ScreenManager::instance().openScreen(std::move(screen));
+                break;
+            }
+            case ContainerType::Furnace: {
+                auto screen = std::make_unique<FurnaceScreen>(
+                    packet.containerId(),
+                    &m_player->inventory(),
+                    clickSender,
+                    closeSender);
+                configureScreen(*screen);
+                ScreenManager::instance().openScreen(std::move(screen));
+                break;
+            }
+            default:
+                spdlog::info("Unhandled open container type {}", packet.type());
+                return;
+        }
     };
 
     callbacks.onContainerContent = [this](const ContainerContentPacket& packet) {
         IScreen* screen = ScreenManager::instance().getCurrentScreen();
-        if (auto* craftingScreen = dynamic_cast<CraftingScreen*>(screen)) {
-            if (craftingScreen->getMenu() != nullptr && craftingScreen->getMenu()->getId() == packet.containerId()) {
-                applyContainerContents(craftingScreen->getMenu(), packet.items());
-            }
+        if (isMatchingContainerScreen<CraftingScreen>(screen, packet.containerId())) {
+            applyContainerContents(dynamic_cast<CraftingScreen*>(screen)->getMenu(), packet.items());
+        } else if (isMatchingContainerScreen<ChestScreen>(screen, packet.containerId())) {
+            applyContainerContents(dynamic_cast<ChestScreen*>(screen)->getMenu(), packet.items());
+        } else if (isMatchingContainerScreen<FurnaceScreen>(screen, packet.containerId())) {
+            applyContainerContents(dynamic_cast<FurnaceScreen*>(screen)->getMenu(), packet.items());
         }
     };
 
     callbacks.onContainerSlot = [this](const ContainerSlotPacket& packet) {
         IScreen* screen = ScreenManager::instance().getCurrentScreen();
-        if (auto* craftingScreen = dynamic_cast<CraftingScreen*>(screen)) {
-            if (craftingScreen->getMenu() != nullptr && craftingScreen->getMenu()->getId() == packet.containerId()) {
-                applyContainerSlot(craftingScreen->getMenu(), packet.slotIndex(), packet.item());
-            }
+        if (isMatchingContainerScreen<CraftingScreen>(screen, packet.containerId())) {
+            applyContainerSlot(dynamic_cast<CraftingScreen*>(screen)->getMenu(), packet.slotIndex(), packet.item());
+        } else if (isMatchingContainerScreen<ChestScreen>(screen, packet.containerId())) {
+            applyContainerSlot(dynamic_cast<ChestScreen*>(screen)->getMenu(), packet.slotIndex(), packet.item());
+        } else if (isMatchingContainerScreen<FurnaceScreen>(screen, packet.containerId())) {
+            applyContainerSlot(dynamic_cast<FurnaceScreen*>(screen)->getMenu(), packet.slotIndex(), packet.item());
         }
     };
 
     callbacks.onCloseContainer = [this](ContainerId containerId) {
         IScreen* screen = ScreenManager::instance().getCurrentScreen();
-        if (auto* craftingScreen = dynamic_cast<CraftingScreen*>(screen)) {
-            if (craftingScreen->getMenu() != nullptr && craftingScreen->getMenu()->getId() == containerId) {
-                ScreenManager::instance().closeScreen();
-                if (!ScreenManager::instance().hasScreen()) {
-                    captureMouseAfterScreens(m_input, m_mouseCaptured);
-                }
+        if (isMatchingContainerScreen<CraftingScreen>(screen, containerId) ||
+            isMatchingContainerScreen<ChestScreen>(screen, containerId) ||
+            isMatchingContainerScreen<FurnaceScreen>(screen, containerId)) {
+            ScreenManager::instance().closeScreen();
+            if (!ScreenManager::instance().hasScreen()) {
+                captureMouseAfterScreens(m_input, m_mouseCaptured);
             }
         }
     };

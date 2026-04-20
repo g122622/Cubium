@@ -4,6 +4,7 @@
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
+#include <cmath>
 
 namespace mc {
 namespace blockentity {
@@ -14,8 +15,9 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
                                    PlayerInventory* playerInventory,
                                    IInventory* furnaceInventory,
                                    AbstractFurnaceEntity* furnaceEntity)
-    : Container(ContainerType::Furnace, id)
+    : AbstractContainerMenu(id, playerInventory)
     , m_furnaceInventory(furnaceInventory)
+    , m_furnaceInventoryOwner()
     , m_furnaceEntity(furnaceEntity) {
 
     MC_ASSERT(playerInventory != nullptr);
@@ -23,6 +25,22 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
     MC_ASSERT(furnaceInventory->getContainerSize() == FURNACE_SLOTS);
 
     // 初始化槽位布局
+    initSlots(playerInventory);
+}
+
+FurnaceContainer::FurnaceContainer(ContainerId id,
+                                   PlayerInventory* playerInventory,
+                                   std::shared_ptr<IInventory> furnaceInventoryOwner,
+                                   AbstractFurnaceEntity* furnaceEntity)
+    : AbstractContainerMenu(id, playerInventory)
+    , m_furnaceInventory(furnaceInventoryOwner.get())
+    , m_furnaceInventoryOwner(std::move(furnaceInventoryOwner))
+    , m_furnaceEntity(furnaceEntity) {
+
+    MC_ASSERT(playerInventory != nullptr);
+    MC_ASSERT(m_furnaceInventory != nullptr);
+    MC_ASSERT(m_furnaceInventory->getContainerSize() == FURNACE_SLOTS);
+
     initSlots(playerInventory);
 }
 
@@ -66,58 +84,44 @@ void FurnaceContainer::grantExperienceForOutput(i32 extractedCount) {
 
 // ========== 快速移动 ==========
 
-ItemStack FurnaceContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
-    // 获取槽位
+bool FurnaceContainer::stillValid(const Player& player) const {
+    (void)player;
+    return true;
+}
+
+ItemStack FurnaceContainer::quickMoveStack(i32 slotIndex, Player& player) {
+    (void)player;
+
     Slot* slot = getSlot(slotIndex);
     if (!slot || slot->isEmpty()) {
-        return cursorItem;
+        return ItemStack();
     }
 
     ItemStack slotStack = slot->getItem();
-    const i32 originalCount = slotStack.getCount();
+    ItemStack originalStack = slotStack.copy();
 
     if (slotIndex < FURNACE_SLOTS) {
-        // 从熔炉移到玩家背包
         if (slotIndex == SLOT_OUTPUT) {
-            // 输出槽：优先移到玩家背包，并发放经验
-            if (!mergeItem(slotStack, playerInventoryRange(), true)) {
-                return cursorItem;
+            if (!moveItemToRange(slotStack, FURNACE_SLOTS, getSlotCount() - 1, true)) {
+                return ItemStack();
             }
-            // 取出成功，发放经验
-            if (slotStack.getCount() < originalCount) {
-                grantExperienceForOutput(originalCount - slotStack.getCount());
-            }
+            grantExperienceForOutput(originalStack.getCount() - slotStack.getCount());
         } else {
-            // 输入槽/燃料槽：移到玩家背包
-            if (!mergeItem(slotStack, playerInventoryRange(), false)) {
-                return cursorItem;
+            if (!moveItemToRange(slotStack, FURNACE_SLOTS, getSlotCount() - 1, false)) {
+                return ItemStack();
             }
         }
     } else {
-        // 从玩家背包移到熔炉
-        // TODO: 检查是否可以作为燃料
-        // 移到输入槽
-        if (!mergeItem(slotStack, SlotRange(SLOT_INPUT, SLOT_INPUT + 1), false)) {
-            // 输入槽满了，尝试燃料槽
-            if (!mergeItem(slotStack, SlotRange(SLOT_FUEL, SLOT_FUEL + 1), false)) {
-                return cursorItem;
+        if (!moveItemToRange(slotStack, SLOT_INPUT, SLOT_INPUT, false)) {
+            if (!moveItemToRange(slotStack, SLOT_FUEL, SLOT_FUEL, false)) {
+                return ItemStack();
             }
         }
     }
 
-    // 更新槽位
-    if (slotStack.isEmpty()) {
-        slot->set(ItemStack());
-    } else {
-        slot->getInventory()->setChanged();
-    }
+    slot->set(slotStack.isEmpty() ? ItemStack() : slotStack);
 
-    // 如果数量没变，表示没有移动成功
-    if (slotStack.getCount() == originalCount) {
-        return cursorItem;
-    }
-
-    return cursorItem;
+    return originalStack;
 }
 
 // ========== 私有方法 ==========
@@ -133,9 +137,6 @@ void FurnaceContainer::initSlots(PlayerInventory* playerInventory) {
 
     // 输出槽（底部中央）
     addSlot(std::make_unique<Slot>(m_furnaceInventory, SLOT_OUTPUT, 116, 35));
-
-    // 记录熔炉槽位范围
-    setContainerInventoryRange(0, FURNACE_SLOTS);
 
     // ========== 玩家主背包（3行9列）==========
 
@@ -159,8 +160,6 @@ void FurnaceContainer::initSlots(PlayerInventory* playerInventory) {
         addSlot(std::make_unique<Slot>(playerInventory, slotIndex, x, y));
     }
 
-    // 记录玩家背包槽位范围
-    setPlayerInventoryRange(FURNACE_SLOTS, FURNACE_SLOTS + 36);  // 27主背包 + 9快捷栏
 }
 
 } // namespace blockentity

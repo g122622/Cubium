@@ -16,6 +16,10 @@
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/entity/inventory/container/ChestContainer.hpp"
+#include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "server/menu/CraftingMenu.hpp"
@@ -556,13 +560,6 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
         return;
     }
 
-    auto openMenu = std::move(m_openMenu);
-    m_openContainerType = mc::ContainerType::Player;
-
-    if (!openMenu) {
-        return;
-    }
-
     network::PacketDeserializer deser(data, size);
     auto result = CloseContainerPacket::deserialize(deser);
     if (result.failed()) {
@@ -570,12 +567,11 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
         return;
     }
 
-    if (result.value().containerId() != openMenu->getId()) {
+    if (!m_openMenu || result.value().containerId() != m_openMenu->getId()) {
         return;
     }
 
-    Player& menuPlayer = getMenuPlayer();
-    openMenu->removed(menuPlayer);
+    closeCurrentContainer(false);
     sendPlayerInventory();
 }
 
@@ -710,30 +706,132 @@ void IntegratedServer::sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 
     sendToClient(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::openCraftingTableMenu()
+bool IntegratedServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
+{
+    (void)player;
+    return openContainerMenu(type, pos);
+}
+
+bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos)
 {
     auto* player = getPlayerData();
-    if (!player) return;
-
-    if (m_openMenu) {
-        Player& menuPlayer = getMenuPlayer();
-        m_openMenu->removed(menuPlayer);
-        sendCloseContainer(m_openMenu->getId());
+    if (!player) {
+        return false;
     }
 
-    ContainerId containerId = m_nextContainerId++;
+    closeCurrentContainer(true);
 
-    auto menu = std::make_unique<CraftingMenu>(containerId, &m_clientInventory, nullptr);
-    menu->updateResult();
+    ContainerId containerId = m_nextContainerId++;
+    std::unique_ptr<AbstractContainerMenu> menu;
+
+    switch (type) {
+        case ContainerType::CraftingTable: {
+            auto craftingMenu = std::make_unique<CraftingMenu>(containerId, &m_clientInventory, nullptr);
+            craftingMenu->updateResult();
+            menu = std::move(craftingMenu);
+            break;
+        }
+        case ContainerType::Chest: {
+            if (m_world == nullptr) {
+                return false;
+            }
+
+            BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+            if (blockEntity == nullptr) {
+                return false;
+            }
+
+            if (blockEntity->getType() != BlockEntityType::Chest &&
+                blockEntity->getType() != BlockEntityType::TrappedChest) {
+                return false;
+            }
+
+            auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+            if (chest->isDoubleChest(*m_world)) {
+                auto doubleInventory = chest->getDoubleInventory(*m_world);
+                if (!doubleInventory) {
+                    return false;
+                }
+
+                m_openInventoryOwner = std::shared_ptr<IInventory>(std::move(doubleInventory));
+                menu = blockentity::ChestContainer::createDouble(containerId, &m_clientInventory, m_openInventoryOwner.get());
+            } else {
+                m_openInventoryOwner.reset();
+                menu = blockentity::ChestContainer::createSingle(containerId, &m_clientInventory, chest->getInventory());
+            }
+            break;
+        }
+        case ContainerType::Furnace: {
+            if (m_world == nullptr) {
+                return false;
+            }
+
+            BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+            if (blockEntity == nullptr) {
+                return false;
+            }
+
+            if (blockEntity->getType() != BlockEntityType::Furnace &&
+                blockEntity->getType() != BlockEntityType::BlastFurnace &&
+                blockEntity->getType() != BlockEntityType::Smoker) {
+                return false;
+            }
+
+            auto* furnace = static_cast<blockentity::AbstractFurnaceEntity*>(blockEntity);
+            m_openInventoryOwner.reset();
+            menu = std::make_unique<blockentity::FurnaceContainer>(containerId, &m_clientInventory, furnace->getInventory(), furnace);
+            break;
+        }
+        case ContainerType::Player:
+        default:
+            return false;
+    }
+
+    if (!menu) {
+        return false;
+    }
 
     sendOpenContainer(containerId,
-                      mc::ContainerType::CraftingTable,
-                      String(ContainerTypes::getDefaultTitle(mc::ContainerType::CraftingTable)),
+                      type,
+                      String(ContainerTypes::getDefaultTitle(type)),
                       menu->getSlotCount());
     sendContainerContent(*menu);
 
-    m_openContainerType = mc::ContainerType::CraftingTable;
+    m_openContainerType = type;
+    m_openContainerPos = pos;
     m_openMenu = std::move(menu);
+    return true;
+}
+
+void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
+{
+    if (!m_openMenu) {
+        return;
+    }
+
+    if (m_world && m_openContainerType == ContainerType::Chest) {
+        BlockEntity* blockEntity = m_world->getBlockEntity(m_openContainerPos);
+        if (blockEntity != nullptr &&
+            (blockEntity->getType() == BlockEntityType::Chest ||
+             blockEntity->getType() == BlockEntityType::TrappedChest)) {
+            static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer();
+        }
+    }
+
+    Player& menuPlayer = getMenuPlayer();
+    m_openMenu->removed(menuPlayer);
+    if (sendClosePacket) {
+        sendCloseContainer(m_openMenu->getId());
+    }
+    m_openMenu.reset();
+    m_openInventoryOwner.reset();
+    m_openContainerType = ContainerType::Player;
+    m_openContainerPos = BlockPos();
+}
+
+void IntegratedServer::openCraftingTableMenu()
+{
+    (void)openContainerMenu(ContainerType::CraftingTable, BlockPos());
 }
 
 void IntegratedServer::setupChunkSendCallback()

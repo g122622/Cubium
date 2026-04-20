@@ -184,6 +184,19 @@ public:
                    f32 volume,
                    f32 pitch) override;
 
+    // ========== 容器打开回调 ==========
+
+    using OpenContainerCallback = std::function<bool(ContainerType, const BlockPos&, Player&)>;
+
+    void setOnOpenContainer(OpenContainerCallback callback) {
+        if (m_onOpenContainer) {
+            throw std::runtime_error("Open container callback already set");
+        }
+
+        m_onOpenContainer = std::move(callback);
+    }
+    [[nodiscard]] bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override;
+
     // ========== 物理引擎 ==========
 
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine.get(); }
@@ -313,6 +326,8 @@ private:
     server::ItemPickupManager m_itemPickupManager;
     core::TimeManager* m_timeManager = nullptr;  // 外部引用，不拥有
     bool m_initialized = false;
+
+    OpenContainerCallback m_onOpenContainer;
 
     // 村庄和袭击系统
     std::unique_ptr<world::village::VillageManager> m_villageManager;

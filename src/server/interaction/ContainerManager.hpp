@@ -4,10 +4,12 @@
 #include "common/core/Result.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include <memory>
 #include <unordered_map>
+#include <functional>
 
 namespace mc::server {
 
@@ -23,6 +25,14 @@ struct ContainerClickResult {
     bool success = false;
     ItemStack cursorItem;
     String message;
+};
+
+/**
+ * @brief 容器菜单创建结果
+ */
+struct ContainerMenuCreateResult {
+    std::unique_ptr<AbstractContainerMenu> menu;
+    std::shared_ptr<IInventory> inventoryOwner;
 };
 
 namespace interaction {
@@ -48,6 +58,15 @@ public:
      * @brief 设置物品栏管理器（用于创建需要玩家背包的容器菜单）
      */
     void setInventoryManager(InventoryManager* inventoryManager);
+
+    /**
+     * @brief 设置菜单工厂
+     */
+    void setMenuFactory(std::function<ContainerMenuCreateResult(
+        mc::ContainerId,
+        mc::ContainerType,
+        const BlockPos&,
+        PlayerInventory*)> factory);
 
     /**
      * @brief 打开容器
@@ -113,7 +132,7 @@ public:
     /**
      * @brief 设置容器关闭回调
      */
-    void setOnContainerClose(std::function<void(PlayerId, mc::ContainerId)> callback);
+    void setOnContainerClose(std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> callback);
 
     /**
      * @brief 设置容器内容更新回调
@@ -126,6 +145,7 @@ private:
 
     struct OpenContainer {
         std::unique_ptr<AbstractContainerMenu> menu;
+        std::shared_ptr<IInventory> inventoryOwner;
         mc::ContainerType type = mc::ContainerType::Player;
         BlockPos position;
     };
@@ -133,8 +153,9 @@ private:
     std::unordered_map<PlayerId, OpenContainer> m_openContainers;
     std::unordered_map<PlayerId, mc::ContainerId> m_nextContainerIds;
 
+    std::function<ContainerMenuCreateResult(mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*)> m_menuFactory;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const String&, i32)> m_onContainerOpen;
-    std::function<void(PlayerId, mc::ContainerId)> m_onContainerClose;
+    std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> m_onContainerClose;
     std::function<void(PlayerId, const AbstractContainerMenu&)> m_onContainerUpdate;
 };
 

@@ -21,6 +21,8 @@ class PhysicsEngine;
 class Block;
 class IRandom;
 class BlockEntity;
+class Player;
+enum class ContainerType : u8;
 
 namespace server {
 class ServerWorld;  // 前向声明，用于asServerWorld()
@@ -115,6 +117,20 @@ public:
     [[nodiscard]] virtual const BlockEntity* getBlockEntity(const BlockPos& pos) const {
         (void)pos;
         return nullptr;
+    }
+
+    /**
+     * @brief 打开容器
+     * @param type 容器类型
+     * @param pos 方块位置
+     * @param player 发起交互的玩家
+     * @return 如果成功打开返回true
+     */
+    [[nodiscard]] virtual bool openContainer(ContainerType type, const BlockPos& pos, Player& player) {
+        (void)type;
+        (void)pos;
+        (void)player;
+        return false;
     }
 
     /**

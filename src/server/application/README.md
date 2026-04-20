@@ -90,8 +90,9 @@ src/server/application/
 - Single player only (`maxPlayers = 1`)
 - Direct inventory management (`m_clientInventory`)
 - Container menu handling (`m_openMenu`)
-- Right-click crafting-table interaction is now wired in packet handling:
+- Right-click crafting-table / chest / furnace-family interaction is routed through the shared menu factory:
     - empty hand / non-block item opens `CraftingMenu`
+    - chest and furnace menus are created from the same `ContainerManager` / `AbstractContainerMenu` path as the client sync packets
 - Generic right-click block activation is routed to `BlockInteractionManager::handleBlockUse()` when placement path does not apply
 - The world sound callback is attached during initialization so local entity sounds reach the client through the same server broadcast path
 - World type routing:
@@ -136,6 +137,7 @@ struct IntegratedServerConfig {
 - Command-line parameter overrides
 - Perfetto tracing integration
 - `ContainerManager` callbacks are forwarded to client protocol packets (`OpenContainer`, `CloseContainer`, `ContainerContent`)
+- Shared container menu creation covers crafting tables, chests, furnaces, blast furnaces, and smokers through the same open-container path
 - Non-placement right-click interaction path now routes through `BlockInteractionManager::handleBlockUse()` for block activation
 - The world sound callback is attached during initialization so mob/player sounds are broadcast the same way as other server events
 
@@ -219,6 +221,7 @@ server/application/
 ├── server/network/        # TcpServer, TcpSession
 ├── server/command/        # CommandRegistry
 ├── server/menu/           # CraftingMenu
+├── common/entity/inventory/container/  # Chest/Furnace/Hopper 菜单实现
 ├── common/network/        # Packets, LocalConnection
 ├── common/world/          # World, Chunk, Lighting, Generation
 ├── common/entity/         # Player, Inventory, Loot

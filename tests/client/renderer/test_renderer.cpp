@@ -120,6 +120,8 @@ std::unique_ptr<InMemoryResourcePack> createLiquidResourcePack() {
     }
 })"));
     pack->add("assets/minecraft/textures/block/water_still.png", makeValid1x1Png());
+    addEmptyPlantModel(*pack, "kelp_plant");
+    addEmptyPlantModel(*pack, "seagrass");
     return pack;
 }
 
@@ -691,8 +693,6 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
     m_chunk->setBlock(9, 64, 8, &VanillaBlocks::WATER->defaultState());
 
     MeshData solidMesh;
-        addEmptyPlantModel(*pack, "kelp_plant");
-        addEmptyPlantModel(*pack, "seagrass");
     MeshData transparentMesh;
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);

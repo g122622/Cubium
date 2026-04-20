@@ -157,6 +157,15 @@ void ServerWorld::playSound(const ResourceLocation& soundEventId,
     }
 }
 
+bool ServerWorld::openContainer(ContainerType type, const BlockPos& pos, Player& player)
+{
+    if (!m_onOpenContainer) {
+        return false;
+    }
+
+    return m_onOpenContainer(type, pos, player);
+}
+
 void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)
 {
     m_chunkManager = std::move(manager);

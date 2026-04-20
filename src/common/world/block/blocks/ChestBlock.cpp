@@ -3,9 +3,15 @@
 #include "../Block.hpp"
 #include "../../IWorld.hpp"
 #include "../../blockentity/storage/ChestEntity.hpp"
+#include "../../../entity/core/Entity.hpp"
+#include "../../../entity/entities/passive/tamable/CatEntity.hpp"
+#include "../../../entity/inventory/ContainerTypes.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../fluid/Fluid.hpp"
+#include "../../fluid/FluidRegistry.hpp"
+#include "../../fluid/FluidTags.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -19,6 +25,12 @@ namespace {
     constexpr f32 CHEST_HEIGHT = 14.0f;
     constexpr f32 CHEST_DEPTH = 14.0f;
     constexpr f32 CHEST_OFFSET = 1.0f;
+
+    void scheduleWaterTick(mc::IWorld& world, const mc::BlockPos& pos) {
+        mc::fluid::Fluid* waterFluid = mc::fluid::FluidRegistry::instance().getFluid(mc::fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+    }
 }
 
 // ========== 构造函数 ==========
@@ -92,7 +104,7 @@ BlockState ChestBlock::updatePostPlacement(
 ) {
     // 处理水logged状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        // TODO: 调度流体tick
+        scheduleWaterTick(world, pos);
     }
 
     // 检查是否与相邻箱子连接/断开
@@ -148,7 +160,7 @@ ActionResultType ChestBlock::onBlockActivated(
     const BlockRaycastResult& hit
 ) {
     // 检查是否被阻挡
-    if (isBlocked(world, pos)) {
+    if (isBlocked(world, pos) || isCatSittingOn(world, pos)) {
         return ActionResultType::Success;
     }
 
@@ -163,17 +175,17 @@ ActionResultType ChestBlock::onBlockActivated(
     // 检查是否可以打开
     if (!chest->canOpen(&player, player.getHeldItem(hand))) {
         // 播放锁定音效
-        // TODO: world.playSound(player, pos, SoundEvents.BLOCK_CHEST_LOCKED, SoundCategory::BLOCKS, 1.0f, 1.0f);
+        world.playSound(ResourceLocation("minecraft:block.chest.locked"), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
         return ActionResultType::Success;
     }
 
     // 打开箱子GUI
-    // TODO: player.openContainer(state.getContainer(world, pos));
+    if (world.openContainer(ContainerType::Chest, pos, player)) {
+        chest->openContainer();
+        return ActionResultType::Consume;
+    }
 
-    // 增加打开计数
-    chest->openContainer();
-
-    return ActionResultType::Consume;
+    return world.asServerWorld() == nullptr ? ActionResultType::Success : ActionResultType::Pass;
 }
 
 // ========== 红石 ==========
@@ -220,15 +232,21 @@ bool ChestBlock::isBlocked(IWorld& world, const BlockPos& pos) {
 }
 
 bool ChestBlock::isCatSittingOn(IWorld& world, const BlockPos& pos) {
-    // TODO: 检查是否有猫坐在箱子上
-    // List<CatEntity> cats = world.getEntitiesWithinAABB(CatEntity.class,
-    //     new AxisAlignedBB(pos.getX(), pos.getY() + 1, pos.getZ(),
-    //                       pos.getX() + 1, pos.getY() + 2, pos.getZ() + 1));
-    // for (CatEntity cat : cats) {
-    //     if (cat.isSitting()) return true;
-    // }
-    (void)world;
-    (void)pos;
+    const AxisAlignedBB catBox(
+        static_cast<f32>(pos.x),
+        static_cast<f32>(pos.y + 1),
+        static_cast<f32>(pos.z),
+        static_cast<f32>(pos.x + 1),
+        static_cast<f32>(pos.y + 2),
+        static_cast<f32>(pos.z + 1));
+
+    for (Entity* entity : world.getEntitiesInAABB(catBox)) {
+        auto* cat = dynamic_cast<CatEntity*>(entity);
+        if (cat != nullptr && cat->isSitting()) {
+            return true;
+        }
+    }
+
     return false;
 }
 

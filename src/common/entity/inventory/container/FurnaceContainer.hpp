@@ -1,6 +1,6 @@
 #pragma once
 
-#include "entity/inventory/Container.hpp"
+#include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include <memory>
 
@@ -26,7 +26,7 @@ class AbstractFurnaceEntity;
  *
  * 参考: net.minecraft.inventory.container.FurnaceContainer
  */
-class FurnaceContainer : public Container {
+class FurnaceContainer : public AbstractContainerMenu {
 public:
     /// 熔炉输入槽索引
     static constexpr i32 SLOT_INPUT = 0;
@@ -61,6 +61,18 @@ public:
                      AbstractFurnaceEntity* furnaceEntity = nullptr);
 
     /**
+     * @brief 构造拥有熔炉背包的容器
+     * @param id 容器ID
+     * @param playerInventory 玩家背包
+     * @param furnaceInventoryOwner 熔炉背包所有权
+     * @param furnaceEntity 熔炉实体（可选，用于经验发放）
+     */
+    FurnaceContainer(ContainerId id,
+                     PlayerInventory* playerInventory,
+                     std::shared_ptr<IInventory> furnaceInventoryOwner,
+                     AbstractFurnaceEntity* furnaceEntity = nullptr);
+
+    /**
      * @brief 析构函数
      */
     ~FurnaceContainer() override = default;
@@ -90,10 +102,17 @@ public:
      */
     f32 extractStoredExperience();
 
+    /**
+     * @brief 检查玩家是否仍可访问熔炉
+     * @param player 玩家
+     * @return 是否仍可访问
+     */
+    [[nodiscard]] bool stillValid(const Player& player) const override;
+
     // ========== 快速移动 ==========
 
 protected:
-    ItemStack doQuickMove(i32 slotIndex, ItemStack cursorItem) override;
+    ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
 private:
     /**
@@ -109,6 +128,7 @@ private:
     void grantExperienceForOutput(i32 extractedCount);
 
     IInventory* m_furnaceInventory;       ///< 熔炉背包
+    std::shared_ptr<IInventory> m_furnaceInventoryOwner; ///< 熔炉背包所有权（可选）
     AbstractFurnaceEntity* m_furnaceEntity; ///< 熔炉实体（用于经验发放）
     Player* m_player = nullptr;            ///< 玩家（用于经验发放）
 };

@@ -72,12 +72,22 @@ public:
     /**
      * @brief 获取容器ID
      */
+    [[nodiscard]] ContainerId getId() const { return m_id; }
+
+    /**
+     * @brief 获取容器ID
+     */
     [[nodiscard]] ContainerId id() const { return m_id; }
 
     /**
      * @brief 获取槽位数量
      */
     [[nodiscard]] i32 getSlotCount() const { return static_cast<i32>(m_slots.size()); }
+
+    /**
+     * @brief 获取鼠标持有的物品堆
+     */
+    [[nodiscard]] const ItemStack& getCarriedItem() const { return m_carriedItem; }
 
     /**
      * @brief 获取所有槽位
@@ -313,6 +323,7 @@ private:
     // 事件回调
     std::function<void()> m_onContentChanged;
     std::function<void(i32)> m_onSlotChanged;
+    ItemStack m_carriedItem;
 };
 
 /**

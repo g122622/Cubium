@@ -2,12 +2,14 @@
 
 提供GUI容器（Container/Menu）的实现，用于客户端-服务端同步玩家与方块实体的交互。
 
+当前这一层里，`ChestContainer` 和 `FurnaceContainer` 已迁移到 `AbstractContainerMenu` 菜单基类；`Container` 仍保留给旧式槽位容器和 `HopperContainer` 这类轻量实现使用。
+
 ## 目录结构
 
 ```
 container/
-├── ChestContainer.hpp/cpp   # 箱子容器（单箱27格/双箱54格）
-├── FurnaceContainer.hpp/cpp # 熔炉容器（输入/燃料/输出槽）
+├── ChestContainer.hpp/cpp   # 箱子菜单（单箱27格/双箱54格，基于 AbstractContainerMenu）
+├── FurnaceContainer.hpp/cpp # 熔炉菜单（输入/燃料/输出槽，基于 AbstractContainerMenu）
 ├── HopperContainer.hpp/cpp  # 漏斗容器（5格）
 └── README.md
 ```
@@ -16,7 +18,7 @@ container/
 
 ### ChestContainer.hpp/cpp
 
-**职责**：箱子GUI容器，处理玩家与箱子之间的物品交换。
+**职责**：箱子GUI菜单，处理玩家与箱子之间的物品交换，并与客户端/服务端菜单同步层对齐。
 
 **主要功能**：
 - 单箱模式：27格存储
@@ -45,7 +47,7 @@ container/
 
 ### FurnaceContainer.hpp/cpp
 
-**职责**：熔炉GUI容器，处理玩家与熔炉之间的物品交换。
+**职责**：熔炉GUI菜单，处理玩家与熔炉之间的物品交换，并与客户端/服务端菜单同步层对齐。
 
 **主要功能**：
 - 3槽熔炉背包（输入/燃料/输出）
@@ -84,7 +86,8 @@ container/
 ```mermaid
 graph TB
     IInventory[IInventory 背包接口]
-    Container[Container 容器基类]
+    AbstractContainerMenu[AbstractContainerMenu 菜单基类]
+    Container[Container 旧式容器基类]
     ChestContainer[ChestContainer]
     FurnaceContainer[FurnaceContainer]
     HopperContainer[HopperContainer]
@@ -93,9 +96,8 @@ graph TB
     HopperEntity[HopperEntity]
     PlayerInventory[PlayerInventory]
 
-    IInventory --> Container
-    Container --> ChestContainer
-    Container --> FurnaceContainer
+    AbstractContainerMenu --> ChestContainer
+    AbstractContainerMenu --> FurnaceContainer
     Container --> HopperContainer
     ChestContainer -.关联.-> ChestEntity
     FurnaceContainer -.关联.-> FurnaceEntity
@@ -124,16 +126,17 @@ graph TB
 
 ```cpp
 // 单箱
+mc::PlayerInventory playerInventory(nullptr);
 auto chestContainer = std::make_unique<ChestContainer>(
     containerId,
-    playerInventory,
+    &playerInventory,
     chestEntity->getInventory()
 );
 
 // 双箱
 auto doubleContainer = std::make_unique<ChestContainer>(
     containerId,
-    playerInventory,
+    &playerInventory,
     chestA->getInventory(),
     chestB->getInventory()
 );
@@ -144,7 +147,7 @@ auto doubleContainer = std::make_unique<ChestContainer>(
 ```cpp
 auto furnaceContainer = std::make_unique<FurnaceContainer>(
     containerId,
-    playerInventory,
+    &playerInventory,
     furnaceEntity->getFurnaceInventory()
 );
 ```
@@ -223,8 +226,8 @@ void onContainerClose(Player& player) {
 
 测试文件位于 `tests/common/entity/inventory/container/`：
 
-- `ChestContainerTest.cpp` - 箱子容器测试
-- `FurnaceContainerTest.cpp` - 熔炉容器测试
+- `ChestContainerTest.cpp` - 箱子菜单测试，覆盖槽位布局和快速移动
+- `FurnaceContainerTest.cpp` - 熔炉菜单测试，覆盖槽位布局和快速移动
 - `HopperContainerTest.cpp` - 漏斗容器测试
 
 ### 测试覆盖

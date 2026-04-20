@@ -47,7 +47,7 @@ protected:
     /**
      * @brief 与熔炉交互
      */
-    void interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
+    [[nodiscard]] bool interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
 };
 
 /**
@@ -91,7 +91,7 @@ protected:
     /**
      * @brief 与熔炉交互
      */
-    void interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
+    [[nodiscard]] bool interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
 };
 
 /**
@@ -135,7 +135,7 @@ protected:
     /**
      * @brief 与熔炉交互
      */
-    void interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
+    [[nodiscard]] bool interactWith(IWorld& world, const BlockPos& pos, Player& player) override;
 };
 
 } // namespace blocks

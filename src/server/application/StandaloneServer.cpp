@@ -8,6 +8,11 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include "common/entity/inventory/container/ChestContainer.hpp"
+#include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "server/menu/CraftingMenu.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -179,6 +184,71 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 初始化交互管理器
     initializeInteractionManagers();
 
+    containerManager().setMenuFactory([this](ContainerId containerId,
+                                             mc::ContainerType type,
+                                             const BlockPos& pos,
+                                             PlayerInventory* playerInventory) {
+        ContainerMenuCreateResult result;
+
+        if (m_world == nullptr || playerInventory == nullptr) {
+            return result;
+        }
+
+        switch (type) {
+            case mc::ContainerType::CraftingTable: {
+                auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory, nullptr);
+                menu->updateResult();
+                result.menu = std::move(menu);
+                return result;
+            }
+            case mc::ContainerType::Chest: {
+                BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+                if (blockEntity == nullptr) {
+                    return result;
+                }
+
+                if (blockEntity->getType() != BlockEntityType::Chest &&
+                    blockEntity->getType() != BlockEntityType::TrappedChest) {
+                    return result;
+                }
+
+                auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+                if (chest->isDoubleChest(*m_world)) {
+                    auto doubleInventory = chest->getDoubleInventory(*m_world);
+                    if (!doubleInventory) {
+                        return result;
+                    }
+
+                    result.inventoryOwner = std::shared_ptr<IInventory>(std::move(doubleInventory));
+                    result.menu = blockentity::ChestContainer::createDouble(containerId, playerInventory, result.inventoryOwner.get());
+                    return result;
+                }
+
+                result.menu = blockentity::ChestContainer::createSingle(containerId, playerInventory, chest->getInventory());
+                return result;
+            }
+            case mc::ContainerType::Furnace: {
+                BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+                if (blockEntity == nullptr) {
+                    return result;
+                }
+
+                if (blockEntity->getType() != BlockEntityType::Furnace &&
+                    blockEntity->getType() != BlockEntityType::BlastFurnace &&
+                    blockEntity->getType() != BlockEntityType::Smoker) {
+                    return result;
+                }
+
+                auto* furnace = static_cast<blockentity::AbstractFurnaceEntity*>(blockEntity);
+                result.menu = std::make_unique<blockentity::FurnaceContainer>(containerId, playerInventory, furnace->getInventory(), furnace);
+                return result;
+            }
+            case mc::ContainerType::Player:
+            default:
+                return result;
+        }
+    });
+
     // 容器网络回调：将 ContainerManager 事件转发为客户端协议包。
     containerManager().setOnContainerOpen([this](PlayerId playerId,
                                                  ContainerId containerId,
@@ -203,7 +273,19 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
     });
 
-    containerManager().setOnContainerClose([this](PlayerId playerId, ContainerId containerId) {
+    containerManager().setOnContainerClose([this](PlayerId playerId,
+                                                 ContainerId containerId,
+                                                 mc::ContainerType type,
+                                                 const BlockPos& pos) {
+        if (m_world && type == mc::ContainerType::Chest) {
+            BlockEntity* blockEntity = m_world->getBlockEntity(pos);
+            if (blockEntity != nullptr &&
+                (blockEntity->getType() == BlockEntityType::Chest ||
+                 blockEntity->getType() == BlockEntityType::TrappedChest)) {
+                static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer();
+            }
+        }
+
         network::PacketSerializer ser;
         CloseContainerPacket packet(containerId);
         packet.serialize(ser);

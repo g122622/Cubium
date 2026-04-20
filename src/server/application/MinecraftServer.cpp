@@ -17,6 +17,8 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -466,6 +468,10 @@ void MinecraftServer::setupWorldCallbacks()
         });
     });
 
+    m_world->setOnOpenContainer([this](ContainerType type, const BlockPos& pos, Player& player) {
+        return openContainerRequest(type, pos, player);
+    });
+
     // 设置方块变化回调：写入后记录到同步管理器，统一在 tick 末发送。
     m_world->setOnBlockChanged([this](const BlockPos& pos, u32 blockStateId) {
         MC_ASSERT_RELEASE(m_blockUpdateSyncManager != nullptr);
@@ -525,6 +531,11 @@ void MinecraftServer::setupWorldCallbacks()
                 soundType.getPitch()
             );
         });
+}
+
+bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
+{
+    return containerManager().openContainer(player.playerId(), type, pos).success();
 }
 
 void MinecraftServer::shutdownManagers()

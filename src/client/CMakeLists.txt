@@ -120,6 +120,8 @@ add_executable(minecraft-client
     ui/TridentCanvas.cpp
     ui/screen/ScreenManager.cpp
     ui/screen/CraftingScreen.cpp
+    ui/screen/ChestScreen.cpp
+    ui/screen/FurnaceScreen.cpp
     # UI Kagero模板系统
     ui/kagero/template/parser/Ast.cpp
     ui/kagero/template/parser/AstVisitor.cpp

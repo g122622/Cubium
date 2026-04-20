@@ -145,7 +145,7 @@ protected:
      * @param pos 方块位置
      * @param player 玩家
      */
-    virtual void interactWith(IWorld& world, const BlockPos& pos, Player& player) = 0;
+    [[nodiscard]] virtual bool interactWith(IWorld& world, const BlockPos& pos, Player& player) = 0;
 
     /**
      * @brief 获取方块实体类型

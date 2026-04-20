@@ -300,6 +300,10 @@ Managed via vcpkg:
 - Ocean feature registration now splits kelp into `kelp_cold` / `kelp_warm` and seagrass into the vanilla-style temperature matrix; `BiomeGenerationSettings` and the vegetation tests were updated to use the new ids.
 - `tests/common/test_biome.cpp` now includes representative registry coverage across overworld, ocean, nether, and end biomes, closing the corresponding roadmap item.
 - AI goal TODOs for tempt, panic, water-avoiding wandering, and ranged bow attacks are now wired to real player hand-item and world fluid queries, with regression coverage in `tests/entity/AiGoalRegressionTest.cpp`.
+- `tests/client/renderer/test_renderer.cpp` now registers empty `seagrass` / `kelp_plant` models inside `createLiquidResourcePack()`, which fixed the `ChunkMesherWithModelCacheTest` liquid regressions and restored a green `mc_tests.exe --gtest_brief=1` run.
+- `ChestBlock` now routes locked/open interaction through the shared container entrypoint, plays the chest locked sound, and keeps the cat/obstruction checks local to the block.
+- `ChestContainer` and `FurnaceContainer` now derive from `AbstractContainerMenu`, so the server menu factory can create chest/furnace menus through the same open-container path used by crafting.
+- Verified again with `cmake --build build --config RelWithDebInfo` and `mc_tests.exe --gtest_brief=1` after the chest lock-sound change; the suite still passes.
 
 ## Random Module
 
@@ -368,6 +372,8 @@ enum class Operation : u8 { ... };
     - Keep workbench accessibility tied to the block entity position so container validity matches the intended interaction range.
 - `ChickenEntity::tick()` spawns an egg item entity when the timer expires.
     - Reset the timer immediately after spawning or chickens will emit eggs in bursts.
+- `ChestContainer` and `FurnaceContainer` now require a real `PlayerInventory` and live under `AbstractContainerMenu`.
+    - Do not route chest/furnace GUI creation through the legacy `Container` path; use the shared menu factory / open-container hook instead.
 - `GlassBottleItem` samples along the player's look ray before deciding whether a bottle can be filled.
     - Liquid blocks here do not provide usable collision shapes, so pure hit tests are not enough for water-source detection.
 - `PaneBlock` connection shapes are cached per 4-bit mask and use normalized coordinates.

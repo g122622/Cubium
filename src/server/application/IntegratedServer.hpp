@@ -71,6 +71,7 @@ protected:
     void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
+    [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
 
 public:
 
@@ -126,6 +127,8 @@ private:
     void sendCloseContainer(ContainerId containerId);
     void sendToClient(const u8* data, size_t size);
     void sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage);
+    [[nodiscard]] bool openContainerMenu(ContainerType type, const BlockPos& pos);
+    void closeCurrentContainer(bool sendClosePacket);
     void openCraftingTableMenu();
 
     // 玩家数据便捷方法
@@ -151,7 +154,9 @@ private:
     // 客户端物品栏（单玩家特有）
     PlayerInventory m_clientInventory;
     std::unique_ptr<AbstractContainerMenu> m_openMenu;
+    std::shared_ptr<IInventory> m_openInventoryOwner;
     mc::ContainerType m_openContainerType = mc::ContainerType::Player;
+    BlockPos m_openContainerPos;
     ContainerId m_nextContainerId = 1;
     mutable std::mutex m_clientDataMutex;
 };

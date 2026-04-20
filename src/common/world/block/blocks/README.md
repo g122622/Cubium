@@ -340,6 +340,7 @@ auto waterBlock = std::make_unique<LiquidBlock>(
 - 拥有`HORIZONTAL_FACING`属性控制朝向
 - 创建`ChestEntity`方块实体
 - 支持红石比较器信号输出
+- 右键交互通过 `IWorld::openContainer(...)` 进入共享菜单工厂，锁箱音效和猫坐阻挡仍由方块/方块实体负责
 
 **状态数量**: 12个（4朝向 × 3类型）
 
@@ -371,7 +372,7 @@ auto waterBlock = std::make_unique<LiquidBlock>(
 - 拥有`FACING`属性控制朝向
 - 拥有`LIT`属性表示燃烧状态
 - 创建对应的`FurnaceEntity`/`BlastFurnaceEntity`/`SmokerEntity`
-- 支持交互打开GUI
+- 支持交互打开GUI，并通过 `IWorld::openContainer(...)` 进入统一菜单入口
 
 **状态数量**: 8个（4朝向 × 2燃烧状态）
 

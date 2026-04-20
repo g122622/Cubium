@@ -1,8 +1,12 @@
 #include "ContainerManager.hpp"
 #include "InventoryManager.hpp"
+#include "server/menu/CraftingMenu.hpp"
+#include "common/entity/inventory/container/ChestContainer.hpp"
+#include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/menu/CraftingMenu.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
 #include <spdlog/spdlog.h>
@@ -17,6 +21,12 @@ ContainerManager::ContainerManager(core::PlayerManager& playerManager)
 void ContainerManager::setInventoryManager(InventoryManager* inventoryManager)
 {
     m_inventoryManager = inventoryManager;
+}
+
+void ContainerManager::setMenuFactory(
+    std::function<ContainerMenuCreateResult(ContainerId, ContainerType, const BlockPos&, PlayerInventory*)> factory)
+{
+    m_menuFactory = std::move(factory);
 }
 
 Result<mc::ContainerId> ContainerManager::openContainer(
@@ -48,22 +58,28 @@ Result<mc::ContainerId> ContainerManager::openContainer(
     PlayerInventory* playerInventory =
         (m_inventoryManager != nullptr) ? m_inventoryManager->getInventory(playerId) : nullptr;
 
-    switch (type) {
-        case mc::ContainerType::CraftingTable:
-            if (playerInventory == nullptr) {
-                return Error(ErrorCode::InvalidState, "Player inventory not initialized");
-            }
-            {
-                auto menu = std::make_unique<CraftingMenu>(containerId, playerInventory, nullptr);
-                menu->updateResult();
-                openContainer.menu = std::move(menu);
-            }
-            break;
-        case mc::ContainerType::Player:
-        default:
-            // Player 容器是默认的，不需要特殊菜单
-            break;
+    ContainerMenuCreateResult createdMenu;
+
+    if (m_menuFactory) {
+        createdMenu = m_menuFactory(containerId, type, pos, playerInventory);
     }
+
+    if (!createdMenu.menu && type == mc::ContainerType::CraftingTable) {
+        if (playerInventory == nullptr) {
+            return Error(ErrorCode::InvalidState, "Player inventory not initialized");
+        }
+
+        auto menu = std::make_unique<CraftingMenu>(containerId, playerInventory, nullptr);
+        menu->updateResult();
+        createdMenu.menu = std::move(menu);
+    }
+
+    if (type != mc::ContainerType::Player && !createdMenu.menu) {
+        return Error(ErrorCode::InvalidState, "Unsupported container type");
+    }
+
+    openContainer.menu = std::move(createdMenu.menu);
+    openContainer.inventoryOwner = std::move(createdMenu.inventoryOwner);
 
     m_openContainers[playerId] = std::move(openContainer);
 
@@ -93,8 +109,12 @@ void ContainerManager::closeContainer(PlayerId playerId)
     }
 
     mc::ContainerId containerId = 0;
+    mc::ContainerType containerType = mc::ContainerType::Player;
+    BlockPos position;
     if (it->second.menu) {
         containerId = it->second.menu->getId();
+        containerType = it->second.type;
+        position = it->second.position;
 
         auto* playerData = m_playerManager.getPlayer(playerId);
         const String username = (playerData != nullptr) ? playerData->username : String("ContainerPlayer");
@@ -103,7 +123,7 @@ void ContainerManager::closeContainer(PlayerId playerId)
     }
 
     if (m_onContainerClose) {
-        m_onContainerClose(playerId, containerId);
+        m_onContainerClose(playerId, containerId, containerType, position);
     }
 
     m_openContainers.erase(it);
@@ -189,7 +209,7 @@ void ContainerManager::setOnContainerOpen(
 }
 
 void ContainerManager::setOnContainerClose(
-    std::function<void(PlayerId, ContainerId)> callback)
+    std::function<void(PlayerId, ContainerId, ContainerType, const BlockPos&)> callback)
 {
     m_onContainerClose = std::move(callback);
 }

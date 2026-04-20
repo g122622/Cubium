@@ -51,15 +51,11 @@ ActionResultType AbstractFurnaceBlock::onBlockActivated(
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 客户端直接返回成功
-    // TODO: 检查 world.isRemote()
-    // if (world.isRemote()) {
-    //     return ActionResultType::Success;
-    // }
+    if (interactWith(world, pos, player)) {
+        return ActionResultType::Consume;
+    }
 
-    // 打开熔炉GUI
-    interactWith(world, pos, player);
-    return ActionResultType::Consume;
+    return world.asServerWorld() == nullptr ? ActionResultType::Success : ActionResultType::Pass;
 }
 
 // ========== 红石 ==========

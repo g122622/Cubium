@@ -23,10 +23,10 @@
 
 ## B. 方块系统
 
-- `src/common/world/block/blocks/AbstractFurnaceBlock.cpp:55`：补客户端/服务端分流，只让服务端触发熔炼与容器逻辑。
-- `src/common/world/block/blocks/ChestBlock.cpp:95,166,171,223`：补流体 tick、锁箱音效、打开容器、猫坐箱子判定。都属于已有能力的接线，不需要重做箱子系统。
+- ✅ 已完成 `src/common/world/block/blocks/AbstractFurnaceBlock.cpp:55`：补客户端/服务端分流，只让服务端触发熔炼与统一菜单逻辑。
+- ✅ 已完成 `src/common/world/block/blocks/ChestBlock.cpp:95,166,171,223`：补流体 tick、锁箱音效、统一菜单打开、猫坐箱子判定。都属于已有能力的接线，不需要重做箱子系统。
 - `src/common/world/block/blocks/EnchantingTableBlock.cpp:53,66`：补服务端判定和附魔台 GUI 打开，直接走统一菜单入口。
-- `src/common/world/block/blocks/FurnaceBlocks.cpp:23,42,60`：补普通炉/高炉/烟熏炉菜单打开，复用同一套容器注册。
+- ✅ 已完成 `src/common/world/block/blocks/FurnaceBlocks.cpp:23,42,60`：补普通炉/高炉/烟熏炉菜单打开，复用同一套容器注册。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/CropBlock.cpp:68,113`：补光照检查，并将骨粉增长改为基于世界种子和位置的确定性随机。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/StemBlock.cpp:102`：将骨粉增长与果实触发改为基于世界种子和位置的确定性随机，移除全局 `rand()`。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/FarmlandBlock.cpp:67,115`：补特殊支撑判定和下雨判定，直接接现有世界/天气接口。
