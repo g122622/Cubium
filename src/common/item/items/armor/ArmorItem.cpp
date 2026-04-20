@@ -22,12 +22,43 @@ f32 ArmorItem::getDestroySpeed(const ItemStack& /*stack*/, const BlockState& /*s
 }
 
 ItemActionResult ArmorItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    // TODO: 实现盔甲装备逻辑
-    // 需要在 Player 类中添加 getArmorStack/setArmorStack 方法
     (void)world;
-    (void)player;
-    (void)hand;
-    return ItemActionResult::pass(player.getHeldItem(hand));
+
+    ItemStack& heldStack = player.getHeldItem(hand);
+    if (heldStack.isEmpty()) {
+        return ItemActionResult::pass(heldStack);
+    }
+
+    PlayerInventory& inventory = player.inventory();
+    switch (m_slot) {
+        case armor::ArmorSlot::Head:
+            if (!inventory.getHelmet().isEmpty()) {
+                return ItemActionResult::pass(heldStack);
+            }
+            inventory.setHelmet(heldStack);
+            break;
+        case armor::ArmorSlot::Chest:
+            if (!inventory.getChestplate().isEmpty()) {
+                return ItemActionResult::pass(heldStack);
+            }
+            inventory.setChestplate(heldStack);
+            break;
+        case armor::ArmorSlot::Legs:
+            if (!inventory.getLeggings().isEmpty()) {
+                return ItemActionResult::pass(heldStack);
+            }
+            inventory.setLeggings(heldStack);
+            break;
+        case armor::ArmorSlot::Feet:
+            if (!inventory.getBoots().isEmpty()) {
+                return ItemActionResult::pass(heldStack);
+            }
+            inventory.setBoots(heldStack);
+            break;
+    }
+
+    heldStack = ItemStack();
+    return ItemActionResult::consume(ItemStack());
 }
 
 i32 ArmorItem::getTotalArmorValue(const LivingEntity& entity) {

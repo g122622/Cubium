@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 #include <limits>
 
 namespace mc::math {
@@ -87,6 +88,25 @@ template<typename T>
 [[nodiscard]] inline bool approxEqual(f32 a, f32 b, f32 epsilon = EPSILON) noexcept
 {
     return std::abs(a - b) < epsilon;
+}
+
+/**
+ * @brief 快速逆平方根近似
+ * TODO 现在CPU有硬件指令rsqrtss，或直接使用1.0f / sqrtf(value)（现代编译器优化后已很快）。
+ *
+ * 适用于正数输入，返回 $1 / \sqrt{x}$ 的快速近似值。
+ */
+[[nodiscard]] inline f32 fastInverseSqrt(f32 value) noexcept
+{
+    // const f32 halfValue = value * 0.5f;
+    // u32 bits = 0;
+    // std::memcpy(&bits, &value, sizeof(f32));
+    // bits = 0x5f3759dfu - (bits >> 1);
+    // std::memcpy(&value, &bits, sizeof(f32));
+    // value = value * (1.5f - halfValue * value * value);
+    // return value;
+
+    return 1.0f / std::sqrt(value);
 }
 
 /**

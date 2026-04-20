@@ -55,6 +55,20 @@ if(MSVC)
     add_compile_options(/MP /utf-8)
     # 架构专用优化：启用 AVX2 指令集，加速向量运算
     add_compile_options(/arch:AVX2)
+    # 启用快速浮点数
+    add_compile_options(/fp:fast)
+    # 禁用浮点异常
+    add_compile_options(/fp:except-)
+    # 使用编译器内置的、更高效的函数版本替换某些标准库函数或操作
+    add_compile_options(/Oi)
+    # 链接器选项，移除所有未引用的函数和数据
+    add_link_options(/OPT:REF)
+    # 链接器选项，合并相同的常量折叠（COMDAT folding），进一步减小代码体积
+    add_link_options(/OPT:ICF)
+    # 全程序优化
+    add_link_options(/LTCG)
+    # 自动向量化 会与 GL 冲突
+    # add_compile_options(/Qvec-report:2)
 else()
     add_compile_options(-fcolor-diagnostics)
     # 架构专用优化：针对本地 CPU 生成优化指令

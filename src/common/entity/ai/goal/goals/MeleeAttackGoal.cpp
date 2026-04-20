@@ -8,8 +8,8 @@
 #include "../GoalConstants.hpp"
 #include "../../controller/LookController.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include <cmath>
 
 namespace mc::entity::ai::goal {
 
@@ -129,8 +129,7 @@ void MeleeAttackGoal::attackTarget(LivingEntity* target) {
         f32 distSq = dx * dx + dz * dz;
 
         if (distSq > 0.000001f) {
-            // TODO: 使用快速逆平方根近似
-            f32 invDist = 1.0f / std::sqrt(distSq);
+            f32 invDist = mc::math::fastInverseSqrt(distSq);
             dx *= invDist;
             dz *= invDist;
         }

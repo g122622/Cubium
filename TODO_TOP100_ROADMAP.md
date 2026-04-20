@@ -52,7 +52,7 @@
 ## D. 物品 / NBT
 
 - `src/common/item/attribute/ItemAttributeModifiers.cpp:38`：补属性注册表查找，避免调用点传裸指针。
-- `src/common/item/items/armor/ArmorItem.cpp:25`：补盔甲装备逻辑，直接接槽位系统即可。
+- ✅ 已完成 `src/common/item/items/armor/ArmorItem.cpp:25`：补盔甲装备逻辑，直接接槽位系统即可。
 - `src/common/item/items/armor/DyeableArmorItem.cpp:12,22,29,34`：补染色盔甲的 NBT 读取、写入、移除与存在性检查，逻辑很适合做成一组单测。
 - `src/common/item/items/armor/ElytraItem.cpp:18,32,54`：补鞘翅装备、耐久消耗和滑翔状态检查。
 - `src/common/item/items/block/BlockItem.cpp:72`：补世界边界检查，防止非法放置位置。
@@ -76,7 +76,7 @@
 - ✅ 已完成 `src/common/entity/ai/goal/goals/attack/RangedAttackGoals.cpp:158`：补是否持有弓的检查，并补了对应回归测试。
 - `src/common/entity/ai/goal/goals/BreedGoal.cpp:117,118,119`：补爱心粒子、繁殖音效和玩家经验值。
 - `src/common/entity/ai/goal/goals/interact/TameableGoals.cpp:39,116,164,210`：补主人玩家查找、传送逻辑、找最近拿食物的玩家和食物判定。
-- `src/common/entity/ai/goal/goals/MeleeAttackGoal.cpp:132`：补快速逆平方根近似，属于纯性能小修。
+- ✅ 已完成 `src/common/entity/ai/goal/goals/MeleeAttackGoal.cpp:132`：补快速逆平方根近似，属于纯性能小修。
 - ✅ 已完成 `src/common/entity/ai/goal/goals/movement/MovementGoals.cpp:119`：补世界接口检查方块，并接入水/岩浆世界查询。
 - ✅ 已完成 `src/common/entity/ai/goal/goals/PanicGoal.cpp:120`：补水判定，逻辑短且局部，并补了寻水回归测试。
 - `src/common/entity/ai/goal/goals/target/TargetGoals.cpp:65,102,149,173,210,249,295`：补团队关系、附近实体搜索、最近攻击者、通知盟友和主人相关判定。

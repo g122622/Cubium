@@ -51,6 +51,12 @@ TEST(MathUtils, ApproxEqual) {
     EXPECT_FALSE(approxEqual(1.0f, 1.01f));
 }
 
+TEST(MathUtils, FastInverseSqrt) {
+    EXPECT_NEAR(fastInverseSqrt(1.0f), 1.0f, 0.01f);
+    EXPECT_NEAR(fastInverseSqrt(4.0f), 0.5f, 0.01f);
+    EXPECT_NEAR(fastInverseSqrt(9.0f), 1.0f / 3.0f, 0.01f);
+}
+
 TEST(MathUtils, ChunkCoordConversion) {
     // 正坐标
     EXPECT_EQ(toChunkCoord(0), 0);

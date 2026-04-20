@@ -4,10 +4,50 @@
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
 #include "../src/common/item/armor/ArmorMaterial.hpp"
 #include "../src/common/item/items/armor/ArmorItem.hpp"
+#include "../src/common/entity/entities/player/Player.hpp"
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
+#include "../src/common/world/IWorld.hpp"
+#include "../src/common/world/chunk/ChunkData.hpp"
+#include "../src/common/world/fluid/Fluid.hpp"
+#include "../src/common/world/block/Block.hpp"
+
+#include <array>
 
 using namespace mc;
+
+namespace {
+
+class ArmorTestWorld final : public IWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
+    bool setBlock(i32, i32, i32, const BlockState*) override { return false; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
+        return fluid::Fluid::getFluidState(0);
+    }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+};
+
+} // namespace
 
 // ============================================================================
 // Slot 索引常量测试
@@ -286,6 +326,60 @@ TEST_F(PlayerInventoryTest, ArmorSlots) {
     EXPECT_EQ(m_inventory->getItem(InventorySlots::ARMOR_CHEST).getCount(), 1);
     EXPECT_EQ(m_inventory->getItem(InventorySlots::ARMOR_LEGS).getCount(), 1);
     EXPECT_EQ(m_inventory->getItem(InventorySlots::ARMOR_FEET).getCount(), 1);
+}
+
+TEST(ArmorItemTest, RightClickEquipsMatchingArmorSlot) {
+    ArmorTestWorld world;
+    Player player(1, "armor-test");
+
+    const std::array<std::pair<item::armor::ArmorSlot, i32>, 4> cases = {{
+        {item::armor::ArmorSlot::Head, InventorySlots::ARMOR_HEAD},
+        {item::armor::ArmorSlot::Chest, InventorySlots::ARMOR_CHEST},
+        {item::armor::ArmorSlot::Legs, InventorySlots::ARMOR_LEGS},
+        {item::armor::ArmorSlot::Feet, InventorySlots::ARMOR_FEET},
+    }};
+
+    for (const auto& [slot, inventorySlot] : cases) {
+        player.inventory().clear();
+        player.inventory().setSelectedSlot(0);
+
+        item::items::ArmorItem armorItem(
+            item::armor::ArmorMaterials::IRON,
+            slot,
+            ItemProperties().maxDamage(item::armor::ArmorMaterials::IRON.getDurability(slot)));
+        player.inventory().setItem(0, ItemStack(armorItem));
+
+        ItemActionResult result = armorItem.onItemRightClick(world, player, Hand::MainHand);
+
+        EXPECT_TRUE(result.isConsume());
+        EXPECT_TRUE(result.getResult().isEmpty());
+        EXPECT_TRUE(player.getHeldItem(Hand::MainHand).isEmpty());
+        EXPECT_EQ(player.inventory().getItem(inventorySlot).getItem(), &armorItem);
+        EXPECT_EQ(player.inventory().getItem(inventorySlot).getCount(), 1);
+    }
+}
+
+TEST(ArmorItemTest, RightClickPassesWhenArmorSlotOccupied) {
+    ArmorTestWorld world;
+    Player player(2, "armor-pass-test");
+
+    item::items::ArmorItem armorItem(
+        item::armor::ArmorMaterials::IRON,
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Head)));
+    player.inventory().setItem(0, ItemStack(armorItem));
+    item::items::ArmorItem equippedHelmet(
+        item::armor::ArmorMaterials::IRON,
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Head)));
+    player.inventory().setHelmet(ItemStack(equippedHelmet));
+
+    ItemActionResult result = armorItem.onItemRightClick(world, player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isPass());
+    EXPECT_FALSE(player.getHeldItem(Hand::MainHand).isEmpty());
+    EXPECT_EQ(player.inventory().getHelmet().getItem(), &equippedHelmet);
+    EXPECT_EQ(result.getResult().getItem(), &armorItem);
 }
 
 TEST_F(PlayerInventoryTest, OffhandSlot) {

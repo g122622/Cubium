@@ -48,6 +48,7 @@ src/common/util/math/
   - `smoothstep()` - 平滑插值
   - `square()` / `cube()` - 平方/立方
   - `isZero()` / `approxEqual()` - 浮点数近似比较
+  - `fastInverseSqrt()` - 快速逆平方根近似
   - `ceilTo()` / `floorTo()` / `roundTo()` - 取整函数
 
 - **区块相关计算**

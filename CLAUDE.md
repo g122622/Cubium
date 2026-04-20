@@ -304,6 +304,9 @@ Managed via vcpkg:
 - `ChestBlock` now routes locked/open interaction through the shared container entrypoint, plays the chest locked sound, and keeps the cat/obstruction checks local to the block.
 - `ChestContainer` and `FurnaceContainer` now derive from `AbstractContainerMenu`, so the server menu factory can create chest/furnace menus through the same open-container path used by crafting.
 - Verified again with `cmake --build build --config RelWithDebInfo` and `mc_tests.exe --gtest_brief=1` after the chest lock-sound change; the suite still passes.
+- `ArmorItem` now equips the matching armor slot on right-click through `PlayerInventory`, and `tests/common/test_inventory.cpp` covers empty-slot equip plus occupied-slot pass-through.
+- The latest full `mc_tests.exe --gtest_brief=1` run still has one unrelated failure in `CelestialCalculationsTest.NoonCelestialAngleNearZero` from `tests/common/test_time.cpp`.
+- `MathUtils::fastInverseSqrt()` now backs `MeleeAttackGoal` knockback normalization, with regression coverage in `tests/common/test_math.cpp`.
 
 ## Random Module
 

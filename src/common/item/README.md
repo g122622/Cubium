@@ -109,6 +109,8 @@ item/
 | DyeableArmorItem | items/armor/DyeableArmorItem.hpp | ✅ 完成 |
 | ElytraItem | items/armor/ElytraItem.hpp | ✅ 完成 |
 
+盔甲物品现在支持右键自动装备对应槽位；如果目标槽位已被占用，则保持原物品不变并返回透传结果。
+
 ### 工具系统 (85%)
 
 | 模块 | 文件 | 状态 |
