@@ -308,6 +308,24 @@ network::LocalEndpoint* IntegratedServer::getClientEndpoint()
     return nullptr;
 }
 
+PlayerInventory* IntegratedServer::playerInventory(PlayerId playerId)
+{
+    if (playerId == m_clientPlayerId) {
+        return &m_clientInventory;
+    }
+
+    return MinecraftServer::playerInventory(playerId);
+}
+
+const PlayerInventory* IntegratedServer::playerInventory(PlayerId playerId) const
+{
+    if (playerId == m_clientPlayerId) {
+        return &m_clientInventory;
+    }
+
+    return MinecraftServer::playerInventory(playerId);
+}
+
 void IntegratedServer::mainLoop()
 {
     using clock = std::chrono::steady_clock;

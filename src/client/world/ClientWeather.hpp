@@ -172,6 +172,7 @@ private:
     f32 m_thunderStrength = 0.0f;
     f32 m_prevThunderStrength = 0.0f;
 
+    // todo 直接使用mathutils中的lerp函数
     [[nodiscard]] static f32 lerp(f32 a, f32 b, f32 t) noexcept {
         return a + t * (b - a);
     }

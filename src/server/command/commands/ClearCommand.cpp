@@ -6,7 +6,6 @@
 #include "common/command/arguments/ItemArgument.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
-#include "server/application/IntegratedServer.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -42,12 +41,7 @@ namespace {
         return nullptr;
     }
 
-    if (auto* integratedServer = dynamic_cast<mc::server::IntegratedServer*>(server);
-        integratedServer != nullptr && integratedServer->clientPlayerId() == playerId) {
-        return &integratedServer->clientInventory();
-    }
-
-    return server->inventoryManager().getInventory(playerId);
+    return server->playerInventory(playerId);
 }
 
 void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const PlayerInventory& inventory)

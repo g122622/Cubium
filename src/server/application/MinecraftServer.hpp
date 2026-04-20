@@ -160,6 +160,9 @@ public:
     [[nodiscard]] interaction::InventoryManager& inventoryManager() override { return *m_inventoryManager; }
     [[nodiscard]] const interaction::InventoryManager& inventoryManager() const override { return *m_inventoryManager; }
 
+    [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override;
+    [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override;
+
     // ========== 同步管理器 ==========
 
     [[nodiscard]] sync::EntitySyncManager& entitySyncManager() override { return *m_entitySyncManager; }

@@ -70,9 +70,18 @@ if(MSVC)
     # 自动向量化 会与 GL 冲突
     # add_compile_options(/Qvec-report:2)
 else()
+    # O3
+    add_compile_options(-O3)
     add_compile_options(-fcolor-diagnostics)
     # 架构专用优化：针对本地 CPU 生成优化指令
     add_compile_options(-march=native -mtune=native)
+    # 启用快速浮点数
+    add_compile_options(-ffast-math)
+    # 禁用浮点异常
+    add_compile_options(-fno-trapping-math)
+    # 链接器选项，移除所有未引用的函数和数据
+    add_link_options(-Wl)
+    
 endif()
 
 if(WIN32)

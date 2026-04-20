@@ -25,6 +25,7 @@ src/server/application/
   - Core managers access: `playerManager()`, `connectionManager()`, `timeManager()`, `teleportManager()`, `keepAliveManager()`, `positionTracker()`, `packetHandler()`, `gameModeManager()`
   - World managers access: `world()`, `chunkManager()`, `lightManager()`, `entityManager()`, `entityTracker()`, `physicsEngine()`, `weatherManager()`, `itemPickupManager()`
   - Interaction managers access: `blockInteractionManager()`, `miningManager()`, `containerManager()`, `inventoryManager()`
+    - Player inventory access: `playerInventory(playerId)`
   - Sync managers access: `entitySyncManager()`, `chunkSendManager()`, `lightSyncManager()`
   - Command system access: `commandRegistry()`
   - Configuration access: `viewDistance()`, `maxPlayers()`, `seed()`, `currentTick()`
@@ -89,6 +90,7 @@ src/server/application/
 - Uses `LocalConnectionPair` for intra-process communication
 - Single player only (`maxPlayers = 1`)
 - Direct inventory management (`m_clientInventory`)
+- `playerInventory()` overrides the shared interface so the local player resolves to `m_clientInventory`, while other ids still use the normal inventory manager
 - Container menu handling (`m_openMenu`)
 - Right-click crafting-table / chest / furnace-family interaction is routed through the shared menu factory:
     - empty hand / non-block item opens `CraftingMenu`
@@ -118,6 +120,7 @@ struct IntegratedServerConfig {
 - `stop()` - Stop server thread gracefully
 - `getClientEndpoint()` - Get `LocalEndpoint` for client to connect
 - `clientInventory()` - Access the single player's inventory
+- `playerInventory(playerId)` - Return the local inventory for the single-player client and fall back to shared inventory lookups for everyone else
 
 **Thread Model:**
 - Dedicated `m_serverThread` running `mainLoop()`

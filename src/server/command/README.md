@@ -272,6 +272,8 @@ public:
 - `/clear <player> <item>` - 清空指定玩家的指定物品
 - `/clear <player> <item> <maxCount>` - 清空指定物品，限制数量
 
+清空逻辑现在通过 `IServer::playerInventory()` 统一获取单机/联机库存，命令层不再直接依赖 `IntegratedServer`。
+
 **权限等级：** 2
 
 #### WeatherCommand - /weather 命令

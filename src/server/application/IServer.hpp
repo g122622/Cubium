@@ -9,6 +9,7 @@ class AbstractContainerMenu;
 class WorldLightManager;
 class PhysicsEngine;
 class EntityManager;
+class PlayerInventory;
 class ServerDimensionManager;
 namespace time {
 class GameTime;
@@ -165,6 +166,12 @@ public:
 
     [[nodiscard]] virtual interaction::InventoryManager& inventoryManager() = 0;
     [[nodiscard]] virtual const interaction::InventoryManager& inventoryManager() const = 0;
+
+    /**
+     * @brief 获取指定玩家的物品栏。
+     */
+    [[nodiscard]] virtual PlayerInventory* playerInventory(PlayerId playerId) = 0;
+    [[nodiscard]] virtual const PlayerInventory* playerInventory(PlayerId playerId) const = 0;
 
     // ========== 同步管理器 ==========
 

@@ -110,6 +110,9 @@ public:
     [[nodiscard]] PlayerInventory& clientInventory() noexcept { return m_clientInventory; }
     [[nodiscard]] const PlayerInventory& clientInventory() const noexcept { return m_clientInventory; }
 
+    [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override;
+    [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override;
+
 private:
     void mainLoop();
 

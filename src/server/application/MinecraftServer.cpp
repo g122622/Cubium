@@ -71,6 +71,19 @@ void MinecraftServer::requestStop()
 {
     m_running = false;
 }
+
+PlayerInventory* MinecraftServer::playerInventory(PlayerId playerId)
+{
+    MC_ASSERT_RELEASE(m_inventoryManager != nullptr);
+    return m_inventoryManager->getInventory(playerId);
+}
+
+const PlayerInventory* MinecraftServer::playerInventory(PlayerId playerId) const
+{
+    MC_ASSERT_RELEASE(m_inventoryManager != nullptr);
+    return m_inventoryManager->getInventory(playerId);
+}
+
 MinecraftServer::~MinecraftServer()
 {
     if (m_running) {
