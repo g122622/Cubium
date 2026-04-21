@@ -1,0 +1,169 @@
+#include "../ClientApplication.hpp"
+
+#include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
+
+#include <filesystem>
+
+namespace mc::client {
+
+Result<void> ClientApplication::loadSettings(const String& path)
+{
+    MC_TRACE_EVENT("client.initialization", "LoadSettings", "path", path);
+
+    m_settingsPath = std::filesystem::path(path);
+
+    auto result = m_settings.loadSettings(path);
+    if (result.failed()) {
+        return result;
+    }
+
+    // 确保设置目录存在（使用当前实际设置路径，避免写到默认目录）
+    const auto settingsDir = m_settingsPath.parent_path();
+    if (!settingsDir.empty()) {
+        std::error_code ec;
+        std::filesystem::create_directories(settingsDir, ec);
+        if (ec) {
+            spdlog::warn("Failed to create settings directory: {}", settingsDir.string());
+        }
+    }
+
+    // 启用自动保存
+    m_settings.enableAutoSave(m_settingsPath);
+
+    spdlog::info("Client settings path: {}", m_settingsPath.string());
+
+    return Result<void>::ok();
+}
+
+void ClientApplication::applySettings()
+{
+    MC_TRACE_EVENT("client.initialization", "ApplySettings");
+
+    // 设置变更回调在 setupSettingCallbacks 中设置
+    // 这里应用初始设置值
+    // 同步渲染器运行时参数
+    if (m_renderer) {
+        m_renderer->setRenderDistanceChunks(m_settings.renderDistance.get());
+        m_renderer->setLandFogDensity(m_settings.fogDensity.get());
+        m_renderer->setCloudMode(static_cast<renderer::trident::cloud::CloudMode>(m_settings.clouds.get()));
+    }
+
+    // 应用光照模式（环境光遮蔽）
+    ChunkMesher::syncFromSettings(static_cast<client::AmbientOcclusionMode>(
+        m_settings.ambientOcclusion.get()));
+
+    // 应用生物群系颜色混合半径
+    ChunkMesher::setBiomeBlendRadius(m_settings.biomeBlendRadius.get());
+}
+
+void ClientApplication::setupSettingCallbacks()
+{
+    MC_TRACE_EVENT("client.initialization", "SetupSettingCallbacks");
+
+    // 渲染距离变更
+    m_settings.renderDistance.onChange([this](i32 value) {
+        spdlog::info("Render distance changed to: {}", value);
+        if (m_renderer) {
+            m_renderer->setRenderDistanceChunks(value);
+        }
+        auto* debugWidget = m_kageroEngine ?
+            static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId)) : nullptr;
+        if (debugWidget) {
+            debugWidget->setRenderDistance(value);
+        }
+        // 世界更新时会使用新值
+        });
+
+    // 全屏模式变更
+    m_settings.fullscreen.onChange([this](bool value) {
+        spdlog::info("Fullscreen changed to: {}", value);
+        m_window.setFullscreen(value);
+    });
+
+    m_settings.guiScale.onChange([this](i32 value) {
+        spdlog::info("GUI scale changed to: {}", value);
+        applyGuiScale();
+    });
+
+    // VSync 变更
+    m_settings.vsync.onChange([this](bool value) {
+        spdlog::info("VSync changed to: {}", value);
+        m_window.setVSync(value);
+        if (m_renderer) {
+            auto result = m_renderer->setVSyncEnabled(value);
+            if (result.failed()) {
+                spdlog::warn("Failed to apply VSync change: {}", result.error().toString());
+            }
+        }
+    });
+
+    // 云模式变更
+    m_settings.clouds.onChange([this](u8 value) {
+        spdlog::info("Cloud mode changed to: {}", static_cast<i32>(value));
+        if (m_renderer) {
+            m_renderer->setCloudMode(static_cast<renderer::trident::cloud::CloudMode>(value));
+        }
+    });
+
+    // 鼠标灵敏度变更
+    m_settings.mouseSensitivity.onChange([this](f32 value) {
+        spdlog::info("Mouse sensitivity changed to: {}", value);
+        // 鼠标灵敏度在 handleEvents 中应用
+        });
+
+    // FOV 变更
+    m_settings.fov.onChange([this](f32 value) {
+        spdlog::info("FOV changed to: {}", value);
+        m_camera.setFOV(value);
+    });
+
+    // 雾气密度变更
+    m_settings.fogDensity.onChange([this](f32 value) {
+        spdlog::info("Fog density changed to: {}", value);
+        if (m_renderer) {
+            m_renderer->setLandFogDensity(value);
+        }
+    });
+
+    // 光照模式（环境光遮蔽）变更
+    m_settings.ambientOcclusion.onChange([this](u8 value) {
+        auto mode = static_cast<client::AmbientOcclusionMode>(value);
+        spdlog::info("Ambient occlusion changed to: {}", static_cast<i32>(mode));
+        ChunkMesher::syncFromSettings(mode);
+    });
+
+    // 生物群系颜色混合半径变更
+    m_settings.biomeBlendRadius.onChange([this](i32 value) {
+        spdlog::info("Biome blend radius changed to: {} ({}x{} area)",
+                     value, value * 2 + 1, value * 2 + 1);
+        ChunkMesher::setBiomeBlendRadius(value);
+    });
+
+    m_settings.antiAliasing.onChange([](bool enabled) {
+        spdlog::info("Anti-aliasing changed to: {} (restart required)", enabled);
+    });
+}
+
+void ClientApplication::applyGuiScale()
+{
+    m_guiScaleState = ui::calculateGuiScale(
+        m_settings.guiScale.get(),
+        static_cast<i32>(m_window.width()),
+        static_cast<i32>(m_window.height()));
+
+    if (m_renderer) {
+        m_renderer->setGuiScaleFactor(static_cast<f64>(m_guiScaleState.scaleFactor));
+    }
+
+    if (m_canvas) {
+        m_canvas->resize(m_guiScaleState.width, m_guiScaleState.height);
+    }
+
+    if (m_kageroEngine) {
+        m_kageroEngine->resize(m_guiScaleState.width, m_guiScaleState.height);
+    }
+}
+
+} // namespace mc::client

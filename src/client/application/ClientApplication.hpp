@@ -37,6 +37,10 @@ namespace mc::client::sound {
 class AudioService;
 }
 
+namespace mc::client::ui::minecraft::widgets {
+class ChatWidget;
+}
+
 namespace mc::client {
 
 /**
@@ -141,13 +145,21 @@ private:
     void shutdown();
 
     // 初始化辅助函数
+    void initializeCoreRegistries();
+    [[nodiscard]] Result<void> initializeWindowAndInput();
+    [[nodiscard]] Result<void> initializeRenderer();
+    [[nodiscard]] Result<void> initializeGameplaySystems(const ClientLaunchParams& params);
+    void initializeUi();
     void setupInputBindings();
     void setupCamera();
     void setupNetworkCallbacks();
     void setupSettingCallbacks();
     void toggleMouseCapture();
-    void handleBlockInteractionInput(f32 deltaTime);
+    void handleBlockMiningInput(f32 deltaTime);
     void handleBlockPlacementInput(f32 deltaTime);
+    void cancelBreakingBlock();
+    void beginBreakingBlock(const BlockPos& currentTargetPos, Direction currentTargetFace, bool attackJustPressed);
+    void completeBreakingBlock(bool instantBreak);
     void openInventoryScreen();
     void openCreativeScreen();
     void closeInventoryScreenIfModeMismatch();
@@ -181,6 +193,45 @@ private:
 
     // 初始化资源系统
     [[nodiscard]] Result<void> initializeResources();
+
+    // 初始化音频系统
+    [[nodiscard]] Result<void> initializeAudio();
+
+    // 更新玩家音频
+    void updatePlayerAudio();
+
+    // 更新世界音频
+    void updateWorldAudio();
+
+    // 更新射线检测结果
+    void updateRaycastResult();
+
+    // 更新调试屏幕和准星目标信息
+    void updateTargetInfoUi();
+
+    // 更新音频暂停状态
+    void updateAudioPauseState();
+
+    // 关闭音频系统
+    void shutdownAudio();
+
+    // 更新客户端渲染时间与天气
+    void updateTimeAndWeather(f32 deltaTime);
+
+    // 更新每帧 UI 状态（ScreenStackWidget 参数、KageroEngine tick 等）
+    void updateUiFrameState(f32 deltaTime);
+
+    // 处理覆盖层输入（聊天框、屏幕栈）
+    [[nodiscard]] bool handleUiOverlayInput();
+
+    // 处理游戏输入（热键、鼠标视角、移动）
+    void handleGameplayInput();
+
+    // 处理游戏热键（聊天、背包、飞行切换等）
+    [[nodiscard]] bool handleGameplayShortcutInput(ui::minecraft::widgets::ChatWidget* chatWidget);
+
+    // 处理鼠标视角、移动和快捷栏选择
+    void handleMouseAndMovementInput();
 
     // 重新加载资源
     void reloadResources();

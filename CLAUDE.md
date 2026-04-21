@@ -486,6 +486,18 @@ enum class Operation : u8 { ... };
     - `IceBlock::randomTick()` 只负责融化，`onBlockRemoved()` 只负责破坏后的替换；不要再让随机刻回调 `onBlockRemoved()`，也不要把同一坐标的写回放在旧方块回调之前。
     - `CropBlock` 的骨粉增长必须从世界种子和方块位置派生随机数，不能再回到全局 `rand()`。
         - `FarmlandBlock` 的降雨补湿要同时看 `isRaining()` 和 `canRainAt(pos.up())`，否则测试世界里会出现伪阳性。
+        - `ClientApplication` 已按功能域拆到 `src/client/application/features/`，主文件只保留编排与生命周期。
+            - `setupInputBindings()` / `setupCamera()` 等逻辑已迁移，不要再往主文件补回重复实现。
+        - `ClientApplicationBootstrap.cpp` 负责客户端初始化骨架，`initialize()` 只做调度。
+            - 核心注册表、窗口/输入、渲染、游戏系统和 UI 初始化都应继续下沉到 bootstrap/helper 方法里。
+        - `ClientApplicationHelpers` 的公共辅助函数位于 `mc::client::application::features` 命名空间。
+            - 调用处必须显式限定或导入作用域，否则会出现“找不到标识符”的连锁编译错误。
+        - `TargetInfoWidget` 位于 `mc::client::ui::minecraft::targetinfo`，`DebugScreenWidget` 仍位于 `mc::client::ui::minecraft`。
+            - 不要把这两个命名空间混用到同一条类型解析路径里，`ClientApplication` 的目标信息刷新逻辑已经拆到 `features/`。
+        - `ClientApplication::handleEvents()` 现在只做输入轮询和分流。
+            - 覆盖层输入放在 `handleUiOverlayInput()`，游戏快捷键放在 `handleGameplayShortcutInput()`，玩家视角/移动放在 `handleMouseAndMovementInput()`，不要把新逻辑再塞回 `handleEvents()`。
+        - `ClientApplication::handleBlockMiningInput()` 和 `handleBlockPlacementInput()` 已分开。
+            - 挖掘的取消、开始、完成逻辑继续留在独立 helper 里，不要重新合并成一个大输入状态机。
 
 ## Self-Maintenance Rule
 

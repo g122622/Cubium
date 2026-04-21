@@ -8,6 +8,18 @@ find_package(OpenAL CONFIG REQUIRED)
 add_executable(minecraft-client
     main.cpp
     application/ClientApplication.cpp
+    application/features/ClientApplicationHelpers.cpp
+    application/features/ClientApplicationBootstrap.cpp
+    application/features/ClientApplicationAudio.cpp
+    application/features/ClientApplicationTimeWeather.cpp
+    application/features/ClientApplicationTargetInfo.cpp
+    application/features/ClientApplicationTargetInfoUi.cpp
+    application/features/ClientApplicationUiFrame.cpp
+    application/features/ClientApplicationInput.cpp
+    application/features/ClientApplicationNetwork.cpp
+    application/features/ClientApplicationResource.cpp
+    application/features/ClientApplicationUi.cpp
+    application/features/ClientApplicationSettings.cpp
     window/Window.cpp
     input/InputManager.cpp
     settings/ClientSettings.cpp
