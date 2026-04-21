@@ -360,6 +360,8 @@ enum class Operation : u8 { ... };
     - Reset the timer immediately after spawning or chickens will emit eggs in bursts.
 - `ChestContainer` and `FurnaceContainer` now require a real `PlayerInventory` and live under `AbstractContainerMenu`.
     - Do not route chest/furnace GUI creation through the legacy `Container` path; use the shared menu factory / open-container hook instead.
+- `ContainerPacketHandler::handleContainerClick()` now depends on the active menu pointer stored on the integrated-server menu player.
+    - Keep `getMenuPlayer().setOpenContainerMenu(...)` on open and `clearOpenContainerMenu()` on close, or client clicks will be dropped before they reach the menu.
 - `GlassBottleItem` samples along the player's look ray before deciding whether a bottle can be filled.
     - Liquid blocks here do not provide usable collision shapes, so pure hit tests are not enough for water-source detection.
 - `PaneBlock` connection shapes are cached per 4-bit mask and use normalized coordinates.
@@ -470,6 +472,10 @@ enum class Operation : u8 { ... };
     - `ServerCommandSource::sendMessage()` 现在必须在只有 `playerId` 的情况下也能把消息发回在线连接，不能只写日志。
 - 玩家背包同步必须使用 `PlayerInventoryPacket`。
     - `ContainerContentPacket` 只保留给真正打开的容器菜单；玩家物品栏刷新、拾取同步和 `/clear` 这类操作都应走玩家背包包。
+- 创造模式物品库写回必须使用 `CreativeInventoryActionPacket`。
+    - `CreativeScreen` 负责本地搜索、滚动和槽位编辑，真正落盘到服务端时必须走这个专用包，不要复用普通容器点击包。
+- `CreativeInventory` 相关测试和启动代码必须按 `VanillaBlocks::initialize()` -> `Items::initialize()` -> `BlockItemRegistry::instance().initializeVanillaBlockItems()` 的顺序初始化。
+    - 少了 `VanillaBlocks` 这一步时，创造物品库会出现空列表或缺失方块物品。
 - `InventoryManager::setOnInventoryUpdate()` 在 `MinecraftServer::initializeInteractionManagers()` 里已经接好。
     - 服务器侧背包变更如果走 `inventoryManager()`，就要依赖这条回调刷新客户端，不要再手写一套新的同步分支。
 - 冰块融化与破坏路径必须分开处理。

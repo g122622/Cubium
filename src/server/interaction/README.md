@@ -159,6 +159,7 @@ struct OpenContainer {
 **当前实现状态**：
 - `CraftingTable` 打开时会创建真实 `CraftingMenu`，并可处理 `handleClick()` 点击逻辑
 - 容器更新通过 `setOnContainerUpdate()` 回调推送到网络层
+- `handleClick()` 现在通过 `ContainerTypes::toClickType()` 统一翻译点击动作，避免客户端和服务端各自维护一套映射
 
 ---
 

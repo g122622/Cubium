@@ -22,6 +22,7 @@
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "common/entity/loot/LootTable.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
@@ -389,6 +390,11 @@ protected:
      * @brief 处理快捷栏选择数据包（子类实现特定逻辑）
      */
     virtual void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) = 0;
+
+    /**
+     * @brief 处理创造模式背包动作数据包（子类实现特定逻辑）
+     */
+    virtual void handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size) = 0;
 
     /**
      * @brief 处理容器点击数据包（子类实现特定逻辑）

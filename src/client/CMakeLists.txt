@@ -121,6 +121,7 @@ add_executable(minecraft-client
     ui/TridentCanvas.cpp
     ui/screen/ScreenManager.cpp
     ui/screen/CraftingScreen.cpp
+    ui/screen/CreativeScreen.cpp
     ui/screen/ChestScreen.cpp
     ui/screen/FurnaceScreen.cpp
     # UI Kagero模板系统

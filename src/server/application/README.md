@@ -68,6 +68,7 @@ src/server/application/
 - `handleBlockPlacementPacket()` - Block placement handling
 - `handleHotbarSelectPacket()` - Hotbar selection handling
 - `handleContainerClickPacket()` - Container interaction handling
+- `handleCreativeInventoryActionPacket()` - Creative inventory slot write-back handling
 - `handleCloseContainerPacket()` - Container close handling
 - `broadcastLightUpdate()` - Light update broadcasting
 
@@ -97,7 +98,9 @@ src/server/application/
 - Single player only (`maxPlayers = 1`)
 - Direct inventory management (`m_clientInventory`)
 - `playerInventory()` overrides the shared interface so the local player resolves to `m_clientInventory`, while other ids still use the normal inventory manager
-- Container menu handling (`m_openMenu`)
+- Container menu handling (`m_openMenu`, with the integrated-server menu player bound to the active menu for shared packet handling)
+- Creative mode login uses the shared creative inventory helper to populate the local player inventory before the screen opens
+- Creative inventory slot edits are handled through `CreativeInventoryActionPacket` and then mirrored back to the client inventory sync path
 - Right-click crafting-table / chest / furnace-family interaction is routed through the shared menu factory:
   - empty hand / non-block item opens `CraftingMenu`
   - chest and furnace menus are created from the same `ContainerManager` / `AbstractContainerMenu` path as the client sync packets
@@ -151,6 +154,7 @@ struct IntegratedServerConfig {
 - Perfetto tracing integration
 - `ContainerManager` callbacks are forwarded to client protocol packets (`OpenContainer`, `CloseContainer`, `ContainerContent`)
 - Shared container menu creation covers crafting tables, chests, furnaces, blast furnaces, and smokers through the same open-container path
+- Creative inventory login and slot writes use the same shared creative inventory helper and `CreativeInventoryActionPacket` path as the integrated server
 - Non-placement right-click interaction path now routes through `BlockInteractionManager::handleBlockUse()` for block activation
 - The world sound callback is attached during initialization so mob/player sounds are broadcast the same way as other server events
 

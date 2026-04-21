@@ -164,6 +164,7 @@ public:
     void sendTeleportConfirm(u32 teleportId);
     void sendKeepAlive(u64 id);
     void sendChatMessage(const String& message);
+    void sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet);
     void sendContainerClick(const ContainerClickPacket& packet);
     void sendCloseContainer(ContainerId containerId);
 

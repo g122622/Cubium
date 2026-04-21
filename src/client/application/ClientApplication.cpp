@@ -33,6 +33,7 @@
 #include "client/ui/screen/CraftingScreen.hpp"
 #include "client/ui/screen/ChestScreen.hpp"
 #include "client/ui/screen/FurnaceScreen.hpp"
+#include "client/ui/screen/CreativeScreen.hpp"
 #include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
 #include "client/ui/minecraft/targetinfo/TargetInfoResolver.hpp"
@@ -1101,6 +1102,94 @@ void ClientApplication::mainLoop()
     shutdown();
 }
 
+[[nodiscard]] bool ClientApplication::isCreativeModeActive() const
+{
+    if (!m_player) {
+        return false;
+    }
+
+    return m_player->gameMode() == GameMode::Creative || m_player->abilities().creativeMode;
+}
+
+void ClientApplication::openInventoryScreen()
+{
+    if (!m_player) {
+        return;
+    }
+
+    auto clickSender = [this](ContainerId containerId, i32 slotIndex, i32 button, ClickAction action,
+                              const ItemStack& cursorItem) {
+        if (m_networkClient) {
+            m_networkClient->sendContainerClick(
+                ContainerClickPacket(containerId, slotIndex, button, action, cursorItem));
+        }
+    };
+
+    auto closeSender = [this](ContainerId containerId) {
+        if (m_networkClient) {
+            m_networkClient->sendCloseContainer(containerId);
+        }
+    };
+
+    auto inventoryScreen = std::make_unique<InventoryCraftingScreen>(
+        std::make_unique<InventoryCraftingMenu>(inventory::PLAYER_CONTAINER_ID, &m_player->inventory()),
+        clickSender,
+        closeSender);
+
+    if (m_renderer && m_renderer->isGuiRendererInitialized()) {
+        inventoryScreen->setRenderers(
+            &m_renderer->guiRenderer(),
+            m_guiTextureManager.get(),
+            m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
+        inventoryScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+    }
+
+    ScreenManager::instance().openScreen(std::move(inventoryScreen));
+}
+
+void ClientApplication::openCreativeScreen()
+{
+    if (!m_player) {
+        return;
+    }
+
+    auto actionSender = [this](i32 slotIndex, const ItemStack& item) {
+        if (m_networkClient) {
+            m_networkClient->sendCreativeInventoryAction(CreativeInventoryActionPacket(slotIndex, item));
+        }
+    };
+
+    auto creativeScreen = std::make_unique<CreativeScreen>(m_player->inventory(), actionSender);
+    if (m_renderer && m_renderer->isGuiRendererInitialized()) {
+        creativeScreen->setRenderers(
+            &m_renderer->guiRenderer(),
+            m_guiTextureManager.get(),
+            m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
+        creativeScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+    }
+
+    ScreenManager::instance().openScreen(std::move(creativeScreen));
+}
+
+void ClientApplication::closeInventoryScreenIfModeMismatch()
+{
+    if (!ScreenManager::instance().hasScreen() || !m_player) {
+        return;
+    }
+
+    IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
+    const bool creativeMode = isCreativeModeActive();
+    const bool isInventoryScreen = dynamic_cast<InventoryCraftingScreen*>(currentScreen) != nullptr;
+    const bool isCreativeScreen = dynamic_cast<CreativeScreen*>(currentScreen) != nullptr;
+
+    if ((isCreativeScreen && !creativeMode) || (isInventoryScreen && creativeMode)) {
+        ScreenManager::instance().closeScreen();
+        if (!ScreenManager::instance().hasScreen()) {
+            captureMouseAfterScreens(m_input, m_mouseCaptured);
+        }
+    }
+}
+
 void ClientApplication::handleEvents()
 {
     m_window.pollEvents();
@@ -1152,6 +1241,11 @@ void ClientApplication::handleEvents()
                 GLFW_MOUSE_BUTTON_RIGHT);
         }
 
+        const f64 screenScrollDelta = m_input.scrollDeltaY();
+        if (screenScrollDelta != 0.0 && m_kageroEngine) {
+            m_kageroEngine->handleScroll(guiMouseX, guiMouseY, screenScrollDelta);
+        }
+
         if (!screenStack->hasScreen()) {
             captureMouseAfterScreens(m_input, m_mouseCaptured);
         }
@@ -1190,21 +1284,11 @@ void ClientApplication::handleEvents()
 
     if (m_input.isKeyJustPressed(GLFW_KEY_E) && m_player) {
         releaseMouseForScreen(m_input, m_mouseCaptured);
-
-        // 鍒涘缓鑳屽寘灞忓箷骞惰缃覆鏌撳櫒
-        auto inventoryScreen = std::make_unique<InventoryCraftingScreen>(
-            std::make_unique<InventoryCraftingMenu>(inventory::PLAYER_CONTAINER_ID, &m_player->inventory()));
-
-        // 璁剧疆娓叉煋鍣?
-        if (m_renderer && m_renderer->isGuiRendererInitialized()) {
-            inventoryScreen->setRenderers(
-                &m_renderer->guiRenderer(),
-                m_guiTextureManager.get(),
-                m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
-            inventoryScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+        if (isCreativeModeActive()) {
+            openCreativeScreen();
+        } else {
+            openInventoryScreen();
         }
-
-        ScreenManager::instance().openScreen(std::move(inventoryScreen));
         return;
     }
 
@@ -2270,6 +2354,8 @@ void ClientApplication::setupNetworkCallbacks()
         if (m_player) {
             m_player->setGameMode(mode);
         }
+
+        closeInventoryScreenIfModeMismatch();
     };
 
     // ========== 鐜╁鑳藉姏鍥炶皟 ==========
@@ -2286,6 +2372,8 @@ void ClientApplication::setupNetworkCallbacks()
             abilities.flySpeed = flySpeed;
             abilities.walkSpeed = walkSpeed;
         }
+
+        closeInventoryScreenIfModeMismatch();
     };
 
     // ========== 鍏夌収鏇存柊鍥炶皟 ==========

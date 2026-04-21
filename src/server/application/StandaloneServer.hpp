@@ -65,6 +65,7 @@ protected:
     void handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size) override;
     void handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) override;
+    void handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
 

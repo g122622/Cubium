@@ -16,6 +16,8 @@
 
 namespace mc {
 
+class AbstractContainerMenu;
+
 // ============================================================================
 // 玩家能力标志
 // ============================================================================
@@ -540,6 +542,24 @@ public:
     PlayerInventory& inventory() { return m_inventory; }
 
     /**
+     * @brief 获取当前打开的容器菜单
+     * @return 当前打开的菜单指针，如果没有打开容器则返回 nullptr
+     */
+    [[nodiscard]] AbstractContainerMenu* openContainerMenu() { return m_openContainerMenu; }
+    [[nodiscard]] const AbstractContainerMenu* openContainerMenu() const { return m_openContainerMenu; }
+
+    /**
+     * @brief 设置当前打开的容器菜单
+     * @param menu 容器菜单指针
+     */
+    void setOpenContainerMenu(AbstractContainerMenu* menu) { m_openContainerMenu = menu; }
+
+    /**
+     * @brief 清空当前打开的容器菜单
+     */
+    void clearOpenContainerMenu() { m_openContainerMenu = nullptr; }
+
+    /**
      * @brief 获取手持物品
      * @param hand 主手或副手
      * @return 物品堆引用
@@ -674,6 +694,7 @@ private:
     FoodStats m_foodStats;
     PlayerAbilities m_abilities;
     PlayerInventory m_inventory{this};  // 玩家背包
+    AbstractContainerMenu* m_openContainerMenu = nullptr;
 
     // 经验管理器（唯一数据源）
     std::unique_ptr<entity::experience::ExperienceManager> m_experienceManager;

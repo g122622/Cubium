@@ -12,69 +12,25 @@ namespace mc {
 // ============================================================================
 
 bool ContainerPacketHandler::handleContainerClick(Player& player, const ContainerClickPacket& packet) {
-    // 获取玩家当前打开的容器
-    // TODO: 从玩家获取当前打开的容器菜单
-    // AbstractContainerMenu* menu = player.getOpenContainer();
-    // if (menu == nullptr || menu->getId() != packet.containerId()) {
-    //     return false;
-    // }
-
-    // 转换点击类型 - ClickAction (ContainerTypes.hpp) 到 ClickType (AbstractContainerMenu.hpp)
-    mc::ClickType clickType = mc::ClickType::Pick;
-    i32 button = packet.button();
-
-    switch (packet.action()) {
-        case ClickAction::Pick:
-            clickType = mc::ClickType::Pick;
-            break;
-        case ClickAction::PickAll:
-            clickType = mc::ClickType::PickAll;
-            break;
-        case ClickAction::Throw:
-            clickType = (button == 0) ? mc::ClickType::Throw : mc::ClickType::ThrowAll;
-            break;
-        case ClickAction::ThrowAll:
-            clickType = mc::ClickType::ThrowAll;
-            break;
-        case ClickAction::Pickup:
-            clickType = mc::ClickType::PickSome;
-            break;
-        case ClickAction::QuickMove:
-            clickType = mc::ClickType::QuickMove;
-            break;
-        case ClickAction::Clone:
-            clickType = mc::ClickType::Clone;
-            break;
-        case ClickAction::Spread:
-            clickType = mc::ClickType::QuickCraft;
-            break;
-        case ClickAction::Swap:
-            // Swap 使用 HotbarSwap 或其他方式处理
-            clickType = mc::ClickType::Pick;
-            break;
+    auto* menu = player.openContainerMenu();
+    if (menu == nullptr || menu->getId() != packet.containerId()) {
+        return false;
     }
 
-    // 处理点击
-    // menu->clicked(packet.slotIndex(), button, clickType, player);
-
-    // 更新鼠标物品
-    // menu->setCarriedItem(packet.cursorItem());
-
-    (void)player;
-    (void)packet;
-    (void)clickType;
+    menu->setCarriedItem(packet.cursorItem());
+    const ClickType clickType = ContainerTypes::toClickType(packet.action(), packet.button());
+    menu->clicked(packet.slotIndex(), packet.button(), clickType, player);
     return true;
 }
 
 void ContainerPacketHandler::handleCloseContainer(Player& player, const CloseContainerPacket& packet) {
-    // 获取玩家当前打开的容器
-    // AbstractContainerMenu* menu = player.getOpenContainer();
-    // if (menu != nullptr && menu->getId() == packet.containerId()) {
-    //     player.closeContainer();
-    // }
+    auto* menu = player.openContainerMenu();
+    if (menu == nullptr || menu->getId() != packet.containerId()) {
+        return;
+    }
 
-    (void)player;
-    (void)packet;
+    menu->removed(player);
+    player.clearOpenContainerMenu();
 }
 
 void ContainerPacketHandler::handleHotbarSelect(Player& player, const HotbarSelectPacket& packet) {
@@ -198,6 +154,60 @@ const char* getDefaultTitle(ContainerType type) {
 
 u8 toNetworkType(ContainerType type) {
     return static_cast<u8>(type);
+}
+
+ClickType toClickType(ClickAction action, i32 button) {
+    switch (action) {
+        case ClickAction::Pick:
+            return (button == 0) ? ClickType::Pick : ClickType::PickSome;
+        case ClickAction::PickAll:
+            return ClickType::PickAll;
+        case ClickAction::Throw:
+            return (button == 0) ? ClickType::Throw : ClickType::ThrowAll;
+        case ClickAction::ThrowAll:
+            return ClickType::ThrowAll;
+        case ClickAction::Pickup:
+            return ClickType::Pickup;
+        case ClickAction::QuickMove:
+            return ClickType::QuickMove;
+        case ClickAction::Clone:
+            return ClickType::Clone;
+        case ClickAction::Spread:
+            return ClickType::QuickCraft;
+        case ClickAction::Swap:
+            return ClickType::Swap;
+        default:
+            return ClickType::Pick;
+    }
+}
+
+ClickAction toClickAction(ClickType clickType) {
+    switch (clickType) {
+        case ClickType::Pick:
+        case ClickType::Place:
+        case ClickType::PlaceSome:
+        case ClickType::PlaceAll:
+        case ClickType::PickSome:
+            return ClickAction::Pick;
+        case ClickType::PickAll:
+            return ClickAction::PickAll;
+        case ClickType::Throw:
+            return ClickAction::Throw;
+        case ClickType::ThrowAll:
+            return ClickAction::ThrowAll;
+        case ClickType::QuickMove:
+            return ClickAction::QuickMove;
+        case ClickType::QuickCraft:
+            return ClickAction::Spread;
+        case ClickType::Clone:
+            return ClickAction::Clone;
+        case ClickType::Pickup:
+            return ClickAction::Pickup;
+        case ClickType::Swap:
+            return ClickAction::Swap;
+        default:
+            return ClickAction::Pick;
+    }
 }
 
 } // namespace ContainerTypes

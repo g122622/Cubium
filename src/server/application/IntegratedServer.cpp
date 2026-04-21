@@ -2,6 +2,7 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -532,16 +533,40 @@ void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
     m_clientInventory.setSelectedSlot(result.value().slot());
 }
 
+void IntegratedServer::handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size)
+{
+    (void)playerId;
+    MC_TRACE_EVENT("server.network", "HandleCreativeInventoryAction");
+
+    auto* player = getPlayerData();
+    if (!player || !player->loggedIn || player->gameMode != GameMode::Creative) {
+        return;
+    }
+
+    network::PacketDeserializer deser(data, size);
+    auto result = CreativeInventoryActionPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to parse creative inventory action packet: {}", result.error().message());
+        return;
+    }
+
+    const auto& packet = result.value();
+    const i32 slotIndex = packet.slotIndex();
+    if (slotIndex < 0 || slotIndex >= PlayerInventory::TOTAL_SIZE) {
+        spdlog::warn("Ignoring creative inventory action with invalid slot {}", slotIndex);
+        return;
+    }
+
+    m_clientInventory.setItem(slotIndex, packet.item());
+    sendPlayerInventory();
+}
+
 void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size)
 {
     (void)playerId;
     MC_TRACE_EVENT("server.network", "HandleContainerClick");
     auto* player = getPlayerData();
     if (!player || !player->loggedIn) {
-        return;
-    }
-
-    if (!m_openMenu) {
         return;
     }
 
@@ -553,17 +578,10 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* d
     }
 
     const auto& packet = result.value();
-    if (packet.containerId() != m_openMenu->getId()) {
+    Player& menuPlayer = getMenuPlayer();
+    if (!ContainerPacketHandler::handleContainerClick(menuPlayer, packet)) {
         return;
     }
-
-    ClickType clickType = (packet.button() == 0) ? ClickType::Pick : ClickType::PickSome;
-    if (packet.action() == ClickAction::QuickMove) {
-        clickType = ClickType::QuickMove;
-    }
-
-    Player& menuPlayer = getMenuPlayer();
-    m_openMenu->clicked(packet.slotIndex(), packet.button(), clickType, menuPlayer);
 
     sendContainerContent(*m_openMenu);
     sendPlayerInventory();
@@ -818,6 +836,7 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
     m_openContainerType = type;
     m_openContainerPos = pos;
     m_openMenu = std::move(menu);
+    getMenuPlayer().setOpenContainerMenu(m_openMenu.get());
     return true;
 }
 
@@ -841,6 +860,7 @@ void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
     if (sendClosePacket) {
         sendCloseContainer(m_openMenu->getId());
     }
+    menuPlayer.clearOpenContainerMenu();
     m_openMenu.reset();
     m_openInventoryOwner.reset();
     m_openContainerType = ContainerType::Player;

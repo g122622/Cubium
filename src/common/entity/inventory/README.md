@@ -16,6 +16,8 @@ inventory/
 ├── PlayerInventory.cpp
 ├── CraftingInventory.hpp       # 合成网格背包
 ├── CraftingInventory.cpp
+├── CreativeInventory.hpp       # 创造模式物品库辅助
+├── CreativeInventory.cpp
 ├── AbstractContainerMenu.hpp   # 容器菜单基类
 └── AbstractContainerMenu.cpp
 ```
@@ -134,7 +136,21 @@ inventory/
 - `IInventory.hpp`
 - `network/packet/PacketSerializer.hpp`
 
-### 7. AbstractContainerMenu.hpp / AbstractContainerMenu.cpp
+### 7. CreativeInventory.hpp / CreativeInventory.cpp
+
+**职责**: 生成创造模式物品库条目，并为创造模式玩家填充初始背包。
+
+**主要内容**:
+- `CreativeInventoryEntry`：创造物品库条目，包含物品堆和搜索 key
+- `buildCreativePaletteEntries()`：遍历运行时注册表，生成可搜索的创造模式条目列表
+- `fillCreativeModeInventory(PlayerInventory&)`：把创造模式常用方块物品写入玩家背包
+
+**依赖项**:
+- `item/ItemRegistry.hpp` - 遍历已注册物品
+- `item/items/block/BlockItemRegistry.hpp` - 判断方块物品并排序
+- `entity/inventory/PlayerInventory.hpp` - 填充创造初始背包
+
+### 8. AbstractContainerMenu.hpp / AbstractContainerMenu.cpp
 
 **职责**: 容器菜单基类，管理槽位集合和物品交互逻辑。
 
@@ -166,6 +182,9 @@ inventory/
         │                │
         └────────┬───────┘
                  │
+            CreativeInventory
+                │
+                │
               Slot (引用 IInventory)
                  │
                  │
@@ -187,9 +206,11 @@ inventory/
 
 3. **玩家背包** (`PlayerInventory`): 实现玩家专属背包，包含快捷栏、主背包、护甲、副手
 
-4. **合成系统支持** (`CraftingInventory`, `CraftResultInventory`): 提供合成网格和结果槽位
+4. **创造模式物品库** (`CreativeInventory`): 生成创造模式条目并填充初始背包
 
-5. **容器菜单** (`AbstractContainerMenu`): 管理客户端-服务端的背包同步和交互逻辑
+5. **合成系统支持** (`CraftingInventory`, `CraftResultInventory`): 提供合成网格和结果槽位
+
+6. **容器菜单** (`AbstractContainerMenu`): 管理客户端-服务端的背包同步和交互逻辑
 
 ## 输入和输出
 
@@ -253,6 +274,17 @@ grid.setItemAt(1, 0, ItemStack(*planksItem, 1));
 
 // 清空网格
 grid.clear();
+```
+
+### 创建创造模式背包
+
+```cpp
+#include "entity/inventory/CreativeInventory.hpp"
+
+mc::PlayerInventory inventory;
+mc::fillCreativeModeInventory(inventory);
+
+auto paletteEntries = mc::buildCreativePaletteEntries();
 ```
 
 ### 创建容器
@@ -381,6 +413,18 @@ container.broadcastChanges();  // 广播到客户端
 - `posToSlot(x, y)` = `y * width + x`
 - `slotToPos(slot)` = `(slot % width, slot / width)`
 
+### 9. 创造库存初始化顺序
+
+`CreativeInventory` 依赖运行时注册表完整可用，测试或启动代码必须按下面顺序初始化：
+
+```cpp
+VanillaBlocks::initialize();
+Items::initialize();
+BlockItemRegistry::instance().initializeVanillaBlockItems();
+```
+
+如果少了第一步，`BlockItemRegistry` 可能只能看到空方块指针，创造物品库就会退化成空列表。
+
 ## 涉及的测试用例
 
 ### tests/common/test_inventory.cpp
@@ -410,6 +454,12 @@ container.broadcastChanges();  // 广播到客户端
 - `CraftResultInventoryTest`: 合成结果背包测试
   - 单槽位操作
   - 结果设置和获取
+
+### tests/common/test_container.cpp
+
+- `CreativeInventoryTest`: 创造模式物品库测试
+  - 创造条目生成
+  - 创造模式初始背包填充
 
 ## 参考
 

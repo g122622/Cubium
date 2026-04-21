@@ -148,6 +148,10 @@ private:
     void toggleMouseCapture();
     void handleBlockInteractionInput(f32 deltaTime);
     void handleBlockPlacementInput(f32 deltaTime);
+    void openInventoryScreen();
+    void openCreativeScreen();
+    void closeInventoryScreenIfModeMismatch();
+    [[nodiscard]] bool isCreativeModeActive() const;
     void sendBlockInteraction(network::BlockInteractionAction action,
                               const BlockPos& pos,
                               Direction face);

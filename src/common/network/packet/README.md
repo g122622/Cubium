@@ -16,7 +16,7 @@ src/common/network/packet/
 ├── EntityPackets.cpp              # 实体数据包实现
 ├── EntityMetadataSerializer.hpp   # 实体元数据序列化器
 ├── EntityMetadataSerializer.cpp   # 元数据序列化实现
-├── InventoryPackets.hpp           # 背包相关数据包
+├── InventoryPackets.hpp           # 背包/创造库存相关数据包
 ├── InventoryPackets.cpp           # 背包数据包实现
 ├── ContainerPacketHandler.hpp     # 容器网络处理器
 ├── ContainerPacketHandler.cpp     # 容器处理器实现
@@ -45,7 +45,7 @@ src/common/network/packet/
   - 客户端→服务端: LoginRequest, PlayerMove, TeleportConfirm, ChatMessage, BlockInteraction 等
   - 服务端→客户端: LoginResponse, PlayerSpawn, ChunkData, UnloadChunk, BlockUpdate 等
   - 实体同步包: SpawnEntity, SpawnMob, EntityMetadata, EntityVelocity 等
-  - 背包相关包: ContainerContent, ContainerSlot, ContainerClick 等
+  - 背包相关包: ContainerContent, ContainerSlot, ContainerClick, CreativeInventoryAction 等
 
 - `PacketHeader` 结构: 12字节固定头部
   - size: 数据包总大小
@@ -283,6 +283,9 @@ src/common/network/packet/
 - **玩家背包同步包** (`PlayerInventoryPacket`) [S→C]
   - 同步玩家完整背包内容
 
+- **创造库存动作包** (`CreativeInventoryActionPacket`) [C→S]
+  - 创造模式下客户端直接写回单个槽位的物品堆
+
 - **容器点击包** (`ContainerClickPacket`) [C→S]
   - 客户端发送点击操作
   - 包含: 容器ID、槽位索引、按钮、点击动作、鼠标物品
@@ -304,8 +307,8 @@ src/common/network/packet/
 **职责**: 容器网络包处理器
 
 **主要内容**:
-- `handleContainerClick()`: 处理容器点击包
-- `handleCloseContainer()`: 处理关闭容器包
+- `handleContainerClick()`: 处理容器点击包并驱动当前打开的菜单
+- `handleCloseContainer()`: 处理关闭容器包并清理当前菜单引用
 - `handleHotbarSelect()`: 处理快捷栏选择包
 - `createContentPacket()`: 创建容器内容同步包
 - `createSlotPacket()`: 创建槽位更新包
@@ -317,6 +320,7 @@ src/common/network/packet/
   - `getSlotCount()`: 获取容器类型的槽位数
   - `getDefaultTitle()`: 获取容器类型的默认标题
   - `toNetworkType()`: 转换为网络传输值
+  - `toClickType()` / `toClickAction()`: 统一容器点击动作与菜单点击类型的映射
 
 ### 配方数据包
 
@@ -568,6 +572,8 @@ auto f = deserializer.readF32();         // 3.14f
 |---------|---------|
 | `EntityPacketsTest.cpp` | 实体数据包序列化/反序列化测试 |
 | `LocalServerConnectionTest.cpp` | 本地连接测试 |
+
+`tests/common/test_container.cpp` 也包含 `CreativeInventoryActionPacket` 的序列化/反序列化测试，以及创造模式物品库辅助函数测试。
 
 **EntityPacketsTest.cpp 测试覆盖**:
 - `SpawnEntityPacket`: 序列化/反序列化、包类型验证

@@ -105,9 +105,11 @@ src/client/
 │   ├── Glyph.hpp          # 字形定义
 │   ├── TridentCanvas.hpp/cpp # Kagero UI 的 Vulkan 画布
 │   ├── screen/            # 屏幕管理
+│   │   ├── README.md
 │   │   ├── ScreenManager.hpp/cpp
 │   │   ├── AbstractContainerScreen.hpp
-│   │   └── CraftingScreen.hpp/cpp
+│   │   ├── CraftingScreen.hpp/cpp
+│   │   └── CreativeScreen.hpp/cpp
 │   ├── kagero/            # Kagero UI 框架
 │   │   ├── KageroEngine.hpp/cpp  # UI 引擎主类
 │   │   ├── Types.hpp              # 类型定义
@@ -418,6 +420,7 @@ engine.paint();
 - `MainMenuScreen`: 主菜单
 - `InventoryScreen`: 物品栏
 - `ContainerScreen`: 容器界面（箱子、熔炉等）
+- `CreativeScreen`: 创造模式物品库
 - `PauseScreen`: 暂停菜单
 - `OptionsScreen`: 设置界面
 - `DebugScreenWidget`: 调试屏幕

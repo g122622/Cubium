@@ -123,6 +123,7 @@ void sendTeleportConfirm(teleportId);       // 传送确认
 void sendKeepAlive(id);                     // 心跳响应
 void sendChatMessage(message);              // 聊天消息
 void sendContainerClick(packet);            // 容器点击
+void sendCreativeInventoryAction(slotIndex, itemStack); // 创造库存槽位写回
 void sendCloseContainer(containerId);       // 关闭容器
 ```
 

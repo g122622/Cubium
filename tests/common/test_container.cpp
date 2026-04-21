@@ -1,9 +1,15 @@
 #include <gtest/gtest.h>
 #include "../src/common/entity/inventory/Container.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
+#include "../src/common/entity/inventory/CreativeInventory.hpp"
+#include "../src/common/entity/entities/player/Player.hpp"
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
+#include "../src/common/item/items/block/BlockItemRegistry.hpp"
+#include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/network/packet/ContainerPacketHandler.hpp"
 #include "../src/common/network/packet/InventoryPackets.hpp"
+#include "../src/server/menu/CraftingMenu.hpp"
 
 using namespace mc;
 
@@ -417,6 +423,66 @@ TEST_F(ContainerPacketTest, ContainerClickPacket) {
     EXPECT_EQ(decoded.cursorItem().getCount(), 64);
 }
 
+TEST_F(ContainerPacketTest, ClickTypeMapping) {
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pick, 0), ClickType::Pick);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pick, 1), ClickType::PickSome);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::PickAll, 0), ClickType::PickAll);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Throw, 0), ClickType::Throw);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Throw, 1), ClickType::ThrowAll);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::ThrowAll, 0), ClickType::ThrowAll);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pickup, 0), ClickType::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::QuickMove, 0), ClickType::QuickMove);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Clone, 0), ClickType::Clone);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Spread, 0), ClickType::QuickCraft);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Swap, 4), ClickType::Swap);
+}
+
+TEST_F(ContainerPacketTest, ClickActionMapping) {
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pick), ClickAction::Pick);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PickSome), ClickAction::Pick);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PickAll), ClickAction::PickAll);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Place), ClickAction::Pick);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PlaceSome), ClickAction::Pick);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PlaceAll), ClickAction::Pick);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Throw), ClickAction::Throw);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::ThrowAll), ClickAction::ThrowAll);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::QuickMove), ClickAction::QuickMove);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::QuickCraft), ClickAction::Spread);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Clone), ClickAction::Clone);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pickup), ClickAction::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Swap), ClickAction::Swap);
+}
+
+TEST_F(ContainerPacketTest, HandleContainerClickUsesOpenMenu) {
+    ASSERT_NE(m_diamond, nullptr);
+
+    Player player(1, "TestPlayer");
+    PlayerInventory inventory;
+    inventory.setItem(9, ItemStack(*m_diamond, 4));
+
+    CraftingMenu menu(7, &inventory, nullptr);
+    player.setOpenContainerMenu(&menu);
+
+    ContainerClickPacket packet(7, 10, 0, ClickAction::Pick, ItemStack::EMPTY);
+    EXPECT_TRUE(ContainerPacketHandler::handleContainerClick(player, packet));
+    EXPECT_TRUE(menu.getSlot(10)->isEmpty());
+    EXPECT_FALSE(menu.getCarriedItem().isEmpty());
+    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 4);
+}
+
+TEST_F(ContainerPacketTest, HandleCloseContainerClearsOpenMenu) {
+    Player player(1, "TestPlayer");
+    PlayerInventory inventory;
+    CraftingMenu menu(7, &inventory, nullptr);
+    player.setOpenContainerMenu(&menu);
+
+    CloseContainerPacket packet(7);
+    ContainerPacketHandler::handleCloseContainer(player, packet);
+
+    EXPECT_EQ(player.openContainerMenu(), nullptr);
+}
+
 TEST_F(ContainerPacketTest, CloseContainerPacket) {
     CloseContainerPacket packet(5);
 
@@ -535,6 +601,62 @@ TEST_F(ContainerPacketTest, PlayerInventoryPacket) {
     EXPECT_EQ(decoded.items()[0].getCount(), 10);
     EXPECT_EQ(decoded.items()[20].getItem(), m_iron);
     EXPECT_EQ(decoded.items()[20].getCount(), 32);
+}
+
+TEST_F(ContainerPacketTest, CreativeInventoryActionPacket) {
+    ItemStack item(*m_diamond, 32);
+    CreativeInventoryActionPacket packet(12, item);
+
+    EXPECT_EQ(packet.slotIndex(), 12);
+    EXPECT_EQ(packet.item().getItem(), m_diamond);
+    EXPECT_EQ(packet.item().getCount(), 32);
+
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    network::PacketDeserializer deser(ser.data(), ser.size());
+    auto result = CreativeInventoryActionPacket::deserialize(deser);
+
+    ASSERT_TRUE(result.success()) << result.error().message();
+    CreativeInventoryActionPacket decoded = result.value();
+
+    EXPECT_EQ(decoded.slotIndex(), 12);
+    EXPECT_EQ(decoded.item().getItem(), m_diamond);
+    EXPECT_EQ(decoded.item().getCount(), 32);
+}
+
+class CreativeInventoryTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
+    }
+};
+
+TEST_F(CreativeInventoryTest, PaletteEntriesContainCraftingTable) {
+    const auto entries = buildCreativePaletteEntries();
+    ASSERT_FALSE(entries.empty());
+
+    bool foundCraftingTable = false;
+    for (const auto& entry : entries) {
+        const Item* item = entry.stack.getItem();
+        if (item != nullptr && item->itemLocation().toString() == "minecraft:crafting_table") {
+            foundCraftingTable = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(foundCraftingTable);
+}
+
+TEST_F(CreativeInventoryTest, FillCreativeModeInventoryPopulatesFirstSlot) {
+    PlayerInventory inventory;
+    fillCreativeModeInventory(inventory);
+
+    EXPECT_FALSE(inventory.getItem(0).isEmpty()) << "Expected creative inventory slot 0 to be populated";
+    EXPECT_EQ(inventory.getItem(0).getItem()->itemLocation().toString(), "minecraft:crafting_table");
+    EXPECT_EQ(inventory.getItem(0).getCount(), 64);
 }
 
 // ============================================================================

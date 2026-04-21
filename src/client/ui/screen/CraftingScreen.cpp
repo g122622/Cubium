@@ -160,10 +160,7 @@ void CraftingScreen::renderTooltip(i32 mouseX, i32 mouseY) {
         return;
     }
 
-    // TODO: 渲染物品提示（需要获取物品名称）
-    // 当前的简单实现：不渲染提示
-    (void)mouseX;
-    (void)mouseY;
+    renderItemTooltip(slot->getItem(), mouseX, mouseY);
 }
 
 bool CraftingScreen::onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button) {
@@ -376,9 +373,7 @@ void InventoryCraftingScreen::renderTooltip(i32 mouseX, i32 mouseY) {
         return;
     }
 
-    // TODO: 渲染物品提示（需要获取物品名称）
-    (void)mouseX;
-    (void)mouseY;
+    renderItemTooltip(slot->getItem(), mouseX, mouseY);
 }
 
 bool InventoryCraftingScreen::onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button) {
@@ -395,14 +390,6 @@ bool InventoryCraftingScreen::onSlotClick(mc::Slot& slot, i32 slotIndex, i32 but
         // ArmorSlot 的 mayPlace 方法会进行验证
     }
 
-    // 处理点击
-    if (m_menu != nullptr) {
-        Player fakePlayer(0, "InventoryClient");
-        const ClickType clickType = (button == 0) ? ClickType::Pick : ClickType::PlaceSome;
-        m_menu->clicked(slotIndex, button, clickType, fakePlayer);
-    }
-
-    // 普通槽位处理
     return AbstractContainerScreen::onSlotClick(slot, slotIndex, button);
 }
 

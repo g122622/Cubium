@@ -107,6 +107,8 @@ src/common/
 │   │   ├── ContainerTypes.hpp
 │   │   ├── CraftingInventory.hpp
 │   │   ├── PlayerInventory.hpp
+│   │   ├── CreativeInventory.hpp
+│   │   ├── CreativeInventory.cpp
 │   │   ├── IInventory.hpp
 │   │   ├── Slot.hpp
 │   │   └── AbstractContainerMenu.hpp
@@ -174,7 +176,7 @@ src/common/
 │   │   ├── Packet.hpp
 │   │   ├── PacketSerializer.hpp
 │   │   ├── EntityPackets.hpp
-│   │   ├── InventoryPackets.hpp
+│   │   ├── InventoryPackets.hpp # 背包/创造库存包
 │   │   ├── RecipePackets.hpp
 │   │   ├── ProtocolPackets.hpp
 │   │   ├── GameStateChangePacket.hpp

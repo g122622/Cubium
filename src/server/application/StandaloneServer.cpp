@@ -3,6 +3,8 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
+#include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -637,6 +639,12 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 初始化玩家物品栏
     inventoryManager().initializeInventory(playerId);
 
+    if (player->gameMode == GameMode::Creative) {
+        if (auto* inventory = inventoryManager().getInventory(playerId)) {
+            fillCreativeModeInventory(*inventory);
+        }
+    }
+
     // 发送登录成功响应
     sendLoginResponse(session.get(), true, playerId, username, "Welcome!");
 
@@ -739,6 +747,29 @@ void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
 
     // 使用 InventoryManager 设置选中槽位
     inventoryManager().setSelectedSlot(playerId, result.value().slot());
+}
+
+void StandaloneServer::handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size)
+{
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn || player->gameMode != GameMode::Creative) return;
+
+    network::PacketDeserializer deser(data, size);
+    auto result = CreativeInventoryActionPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to parse creative inventory action packet: {}", result.error().message());
+        return;
+    }
+
+    const auto& packet = result.value();
+    const i32 slotIndex = packet.slotIndex();
+    if (slotIndex < 0 || slotIndex >= PlayerInventory::TOTAL_SIZE) {
+        spdlog::warn("Ignoring creative inventory action with invalid slot {}", slotIndex);
+        return;
+    }
+
+    inventoryManager().setItem(playerId, slotIndex, packet.item());
+    inventoryManager().syncToClient(playerId);
 }
 
 void StandaloneServer::handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size)

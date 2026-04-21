@@ -154,10 +154,7 @@ Result<ContainerClickResult> ContainerManager::handleClick(
         return Error(ErrorCode::InvalidArgument, "Container ID mismatch");
     }
 
-    ClickType clickType = (button == 0) ? ClickType::Pick : ClickType::PickSome;
-    if (mode == static_cast<u8>(ClickAction::QuickMove)) {
-        clickType = ClickType::QuickMove;
-    }
+    const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(mode), button);
 
     Player menuPlayer(playerId, playerData->username);
     openContainer.menu->setCarriedItem(carriedItem);

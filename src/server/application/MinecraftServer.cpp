@@ -1198,6 +1198,14 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
             break;
         }
 
+        case network::PacketType::CreativeInventoryAction: {
+            PlayerId playerId = getPlayerIdForSession(sessionId);
+            if (playerId != 0) {
+                handleCreativeInventoryActionPacket(playerId, payload, payloadSize);
+            }
+            break;
+        }
+
         case network::PacketType::ContainerClick: {
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {

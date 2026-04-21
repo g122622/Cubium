@@ -213,6 +213,65 @@ private:
 };
 
 // ============================================================================
+// 创造模式背包动作包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 创造模式背包动作包
+ *
+ * 用于在创造模式下将客户端的槽位编辑同步到服务端。
+ * 仅承载“哪个槽位被改成了什么物品”，具体语义由服务端根据玩家模式判断。
+ */
+class CreativeInventoryActionPacket {
+public:
+    CreativeInventoryActionPacket() = default;
+
+    /**
+     * @brief 构造创造模式动作包
+     * @param slotIndex 槽位索引
+     * @param item 目标物品
+     */
+    CreativeInventoryActionPacket(i32 slotIndex, ItemStack item)
+        : m_slotIndex(slotIndex)
+        , m_item(std::move(item))
+    {
+    }
+
+    // Getters
+    [[nodiscard]] i32 slotIndex() const { return m_slotIndex; }
+    [[nodiscard]] const ItemStack& item() const { return m_item; }
+
+    // Setters
+    void setSlotIndex(i32 slotIndex) { m_slotIndex = slotIndex; }
+    void setItem(ItemStack item) { m_item = std::move(item); }
+
+    // 序列化
+    void serialize(network::PacketSerializer& ser) const {
+        ser.writeVarInt(m_slotIndex);
+        m_item.serialize(ser);
+    }
+
+    // 反序列化
+    [[nodiscard]] static Result<CreativeInventoryActionPacket> deserialize(network::PacketDeserializer& deser) {
+        CreativeInventoryActionPacket packet;
+
+        auto slotResult = deser.readVarInt();
+        if (slotResult.failed()) return slotResult.error();
+        packet.m_slotIndex = slotResult.value();
+
+        auto itemResult = ItemStack::deserialize(deser);
+        if (itemResult.failed()) return itemResult.error();
+        packet.m_item = itemResult.value();
+
+        return packet;
+    }
+
+private:
+    i32 m_slotIndex = 0;
+    ItemStack m_item;
+};
+
+// ============================================================================
 // 容器点击包 (客户端 -> 服务端)
 // ============================================================================
 

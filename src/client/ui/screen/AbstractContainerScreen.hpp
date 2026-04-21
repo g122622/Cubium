@@ -4,11 +4,14 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
 #include "entity/inventory/Slot.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
 #include "network/packet/InventoryPackets.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "core/Types.hpp"
+#include <algorithm>
 #include <memory>
 #include <functional>
+#include <vector>
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
@@ -432,10 +435,69 @@ protected:
      */
     virtual void renderTooltip(i32 mouseX, i32 mouseY) {
         mc::Slot* slot = getSlotAt(mouseX, mouseY);
-        if (slot != nullptr && !slot->getItem().isEmpty()) {
-            // TODO: 渲染物品提示
-            (void)mouseX;
-            (void)mouseY;
+        if (slot != nullptr) {
+            renderItemTooltip(slot->getItem(), mouseX, mouseY);
+        }
+    }
+
+    /**
+     * @brief 渲染物品提示框
+     * @param stack 物品堆
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     */
+    void renderItemTooltip(const mc::ItemStack& stack, i32 mouseX, i32 mouseY) {
+        if (m_gui == nullptr || m_gui->font() == nullptr || stack.isEmpty()) {
+            return;
+        }
+
+        std::vector<String> lines;
+        lines.emplace_back(stack.getDisplayName());
+
+        if (stack.getCount() > 1) {
+            lines.emplace_back("Count: " + std::to_string(stack.getCount()));
+        }
+
+        if (stack.isDamageable() && stack.getMaxDamage() > 0) {
+            const i32 remainingDurability = std::max(0, stack.getMaxDamage() - stack.getDamage());
+            lines.emplace_back("Durability: " + std::to_string(remainingDurability) +
+                               "/" + std::to_string(stack.getMaxDamage()));
+        }
+
+        f64 maxTextWidth = 0.0;
+        for (const auto& line : lines) {
+            maxTextWidth = std::max(maxTextWidth, m_gui->getTextWidth(line));
+        }
+
+        constexpr f64 PADDING = 4.0;
+        constexpr f64 MARGIN = 12.0;
+        const f64 fontHeight = static_cast<f64>(m_gui->getFontHeight());
+        const f64 tooltipWidth = maxTextWidth + PADDING * 2.0;
+        const f64 tooltipHeight = static_cast<f64>(lines.size()) * fontHeight + PADDING * 2.0;
+
+        f64 tooltipX = static_cast<f64>(mouseX) + MARGIN;
+        f64 tooltipY = static_cast<f64>(mouseY) + MARGIN;
+        const f64 screenWidth = static_cast<f64>(m_screenWidth);
+        const f64 screenHeight = static_cast<f64>(m_screenHeight);
+
+        if (tooltipX + tooltipWidth > screenWidth) {
+            tooltipX = static_cast<f64>(mouseX) - MARGIN - tooltipWidth;
+        }
+        if (tooltipY + tooltipHeight > screenHeight) {
+            tooltipY = static_cast<f64>(mouseY) - MARGIN - tooltipHeight;
+        }
+
+        tooltipX = std::max(4.0, tooltipX);
+        tooltipY = std::max(4.0, tooltipY);
+
+        m_gui->fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 0xF0100010);
+        m_gui->drawRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 0x505000FF);
+
+        const f64 textX = tooltipX + PADDING;
+        f64 textY = tooltipY + PADDING;
+        for (const auto& line : lines) {
+            m_gui->drawText(line, textX, textY, 0xFFFFFFFF, true);
+            textY += fontHeight;
         }
     }
 
@@ -478,12 +540,21 @@ protected:
             return false;
         }
 
-        if (m_clickSender && m_menu->getId() != mc::inventory::PLAYER_CONTAINER_ID) {
-            const ClickAction action = (button == 0) ? ClickAction::Pick : ClickAction::Pickup;
+        if (m_clickSender) {
+            const ClickAction action = ClickAction::Pick;
             m_clickSender(m_menu->getId(), slotIndex, button, action, m_menu->getCarriedItem());
+            (void)slot;
+            return true;
         }
 
-        (void)slot;
+        auto* playerInventory = m_menu->getPlayerInventory();
+        if (playerInventory == nullptr || playerInventory->getPlayer() == nullptr) {
+            (void)slot;
+            return false;
+        }
+
+        const ClickType clickType = (button == 0) ? ClickType::Pick : ClickType::PickSome;
+        m_menu->clicked(slotIndex, button, clickType, *playerInventory->getPlayer());
         return true;
     }
 

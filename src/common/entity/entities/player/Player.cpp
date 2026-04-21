@@ -6,9 +6,7 @@
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/MathUtils.hpp"
-#include "../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../item/core/ItemRegistry.hpp"
-#include "../../../resource/ResourceLocation.hpp"
+#include "../../inventory/CreativeInventory.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../../world/IWorld.hpp"
 #include "spdlog/spdlog.h"
@@ -802,32 +800,7 @@ i32 Player::armorValue() const {
 }
 
 void Player::setCreativeModeInventory() {
-    // 清空当前背包
-    m_inventory.clear();
-
-    i32 slot = 0;
-
-    // 首先放置工作台在第一格（slot 0）
-    Item* craftingTableItem = ItemRegistry::instance().getItem(
-        ResourceLocation("minecraft:crafting_table"));
-    BlockItem* craftingTableBlockItem = dynamic_cast<BlockItem*>(craftingTableItem);
-    if (craftingTableBlockItem != nullptr && slot < PlayerInventory::TOTAL_SIZE) {
-        m_inventory.setItem(slot, ItemStack(*craftingTableBlockItem, 64));
-        slot++;
-    }
-
-    // 然后遍历所有其他注册的方块物品，添加到背包
-    BlockItemRegistry::instance().forEachBlockItem([&](const BlockItem& item) {
-        // 跳过工作台（已经放在第一格了）
-        if (craftingTableBlockItem != nullptr && &item == craftingTableBlockItem) {
-            return;
-        }
-        if (slot < PlayerInventory::TOTAL_SIZE) {
-            // 创造模式下每个物品堆叠数量为64
-            m_inventory.setItem(slot, ItemStack(item, 64));
-            slot++;
-        }
-    });
+    fillCreativeModeInventory(m_inventory);
 }
 
 void Player::respawn() {

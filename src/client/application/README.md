@@ -224,6 +224,13 @@ m_screenStackLayerId = m_kageroEngine->addLayer(std::move(screenStackWidget), 30
 m_debugScreenLayerId = m_kageroEngine->addLayer(std::move(debugWidget), 100);
 ```
 
+#### 背包入口切换
+
+- `E` 键会按游戏模式分流：生存/冒险模式打开普通背包屏幕，创造模式打开 `CreativeScreen`。
+- `onGameModeChange` 和 `onPlayerAbilities` 会主动关闭不匹配的屏幕，避免模式切换后保留旧界面。
+- 鼠标滚轮在屏幕打开时会转发给屏幕层，创造模式物品库才能滚动。
+- 创造模式下的槽位写回会通过 `CreativeInventoryActionPacket` 发送到服务端。
+
 ## 模块职责
 
 ### 整体职责

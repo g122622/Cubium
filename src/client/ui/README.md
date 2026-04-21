@@ -125,6 +125,7 @@ ui/
 │   │   ├── ResourceProvider.hpp      # 资源提供者
 │   │   └── ResourceProvider.cpp
 │   ├── screens/                      # 游戏屏幕
+│   │   ├── README.md
 │   │   ├── Screen.hpp                # 屏幕基类
 │   │   ├── Screen.cpp
 │   │   ├── ScreenManager.hpp         # 屏幕管理器
@@ -143,7 +144,8 @@ ui/
 │   │   ├── DebugScreenWidget.hpp     # 调试屏幕组件
 │   │   ├── DebugScreenWidget.cpp
 │   │   ├── CraftingScreen.hpp        # 合成屏幕
-│   │   └── CraftingScreen.cpp
+│   │   ├── CraftingScreen.cpp
+│   │   └── CreativeScreen.hpp/cpp    # 创造模式物品库屏幕
 │   ├── targetinfo/                   # 准星目标信息覆盖层
 │   │   ├── TargetInfo.hpp            # 目标快照和格式化辅助
 │   │   ├── TargetInfoResolver.hpp    # 方块/实体命中解析
@@ -385,6 +387,7 @@ Minecraft 特定的UI实现。
 | `InventoryScreen` | 背包屏幕 |
 | `ContainerScreen` | 容器屏幕 |
 | `CraftingScreen` | 合成屏幕 |
+| `CreativeScreen` | 创造模式物品库屏幕 |
 | `DebugScreenWidget` | 调试信息（F3屏幕） |
 
 #### 3.3 HUD组件 (`widgets/`)
