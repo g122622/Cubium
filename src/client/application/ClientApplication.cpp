@@ -1525,7 +1525,7 @@ void ClientApplication::update(f32 deltaTime)
         // 执行射线检测（创造模式使用更远的距离）
         mc::RaycastContext context(ray, 5.0f);  // 生存模式5格
         ClientWorldBlockReader blockReader(m_world);
-        m_raycastResult = mc::raycastBlocks(raycastContext, blockReader);
+        m_raycastResult = mc::raycastBlocks(context, blockReader);
 
         if (targetInfoWidget) {
             targetInfoWidget->setTargetInfo(
@@ -1588,11 +1588,14 @@ void ClientApplication::update(f32 deltaTime)
     constexpr f32 partialTick = 0.0f;  // TODO: 从主循环获取实际的部分tick
     m_world.entityManager().updateAnimations(partialTick);
 
-    // 清理渲染器
+    m_world.processMeshBuildResults(16);
+
     // 同步时间到渲染器（驱动天空、太阳、月亮、星空变化）
     // 客户端每帧平滑推进时间，同时在收到服务端同步时纠正
     // 同步渲染器运行时参数
     if (m_renderer) {
+        MC_TRACE_EVENT("rendering.frame", "UpdateTime");
+
         constexpr i64 DAY_LENGTH_TICKS = 24000;
 
         // 每帧推进时间（无论是否有服务端同步）
@@ -1701,6 +1704,8 @@ void ClientApplication::update(f32 deltaTime)
 
     // 上传网格到 GPU（只处理已完成异步构建的网格）
     if (m_renderer->isChunkRendererInitialized()) {
+        MC_TRACE_EVENT("rendering.frame", "UploadMeshes");
+
         auto& chunkRenderer = m_renderer->chunkRenderer();
         m_world.forEachDirtyMesh([&chunkRenderer](const ChunkId& id, ClientChunk& chunk) {
             // 两层都为空时，清理 GPU 缓冲并结束本次更新。

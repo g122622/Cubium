@@ -378,8 +378,12 @@ enum class Operation : u8 { ... };
     - Otherwise repeated item changes will keep old Vulkan buffers alive for the whole session.
 - Do not put priority logic back into `MeshWorkerPool`.
     - Priority and cancellation policy belong to `MeshBuildScheduler`; `MeshWorkerPool` should stay execution-only.
+- `ChunkMesher` 的 `generateSplitMesh()` 预留策略必须按 pass 区分。
+    - 透明层的初始容量要明显小于实心层，否则双层网格会把峰值内存翻倍。
 - Always update `MeshSchedulerViewState` before calling `ClientWorld::update(...)` each frame.
     - If the view state is stale, frustum priority and behind-camera cancellation will lag behind camera movement.
+- `ClientApplication` 里给 `MeshBuildScheduler` 的并发预算要保持保守。
+    - 不要再把 `maxDispatchedTaskCount` 按视距线性放大到很大，完成队列里每个 chunk mesh 都可能是数 MB 级别。
 - Pending mesh tasks cancelled before dispatch do not produce worker results.
     - Keep `activeMeshTaskId` in sync with scheduler tracking (or chunks can get stuck with a stale task id and never be resubmitted).
 - When changing `ChunkMesher` mesh APIs, update both runtime and tests together.

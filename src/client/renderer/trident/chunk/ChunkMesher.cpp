@@ -100,6 +100,34 @@ private:
     );
 }
 
+[[nodiscard]] size_t estimateReservedFaceCount(const ChunkData& chunk, MeshPass pass) {
+    size_t nonAirBlockCount = 0;
+    for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk.getSection(sectionY);
+        if (section != nullptr && !section->isEmpty()) {
+            nonAirBlockCount += section->getBlockCount();
+        }
+    }
+
+    switch (pass) {
+        case MeshPass::TransparentOnly:
+            // 透明层通常比实心层稀疏得多，给更小的初始容量可以显著降低 split mesh 峰值。
+            return std::clamp(
+                nonAirBlockCount / 8,
+                static_cast<size_t>(256),
+                static_cast<size_t>(4096)
+            );
+        case MeshPass::SolidOnly:
+        case MeshPass::All:
+        default:
+            return std::clamp(
+                nonAirBlockCount * static_cast<size_t>(2),
+                static_cast<size_t>(1024),
+                static_cast<size_t>(16384)
+            );
+    }
+}
+
 [[nodiscard]] u32 applyShadeToPackedColor(u32 packedColor, float factor) {
     const float clamped = std::clamp(factor, 0.0f, 1.0f);
     const float r = static_cast<float>(packedColor & 0xFFu) / 255.0f;
@@ -529,23 +557,7 @@ void ChunkMesher::generateMesh(
         return;
     }
 
-    // 基于非空气方块数量进行预估，避免按最坏情况一次性分配过大内存。
-    // 经验值：每个非空气方块平均约 2 个可见面（地形场景）。
-    constexpr size_t MIN_ESTIMATED_FACES = 1024;
-    constexpr size_t MAX_ESTIMATED_FACES = 16384; // 65536 顶点 / 4
-    size_t nonAirBlockCount = 0;
-    for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {
-        const ChunkSection* section = chunk.getSection(sectionY);
-        if (section && !section->isEmpty()) {
-            nonAirBlockCount += section->getBlockCount();
-        }
-    }
-
-    const size_t estimatedFaces = std::clamp(
-        nonAirBlockCount * static_cast<size_t>(2),
-        MIN_ESTIMATED_FACES,
-        MAX_ESTIMATED_FACES
-    );
+    const size_t estimatedFaces = estimateReservedFaceCount(chunk, t_meshPass);
     outMesh.reserve(estimatedFaces * BlockGeometry::VERTICES_PER_FACE,
                     estimatedFaces * BlockGeometry::INDICES_PER_FACE);
 

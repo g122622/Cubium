@@ -619,6 +619,8 @@ void ClientWorld::shutdownMeshSystem()
 
 void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
 {
+    MC_TRACE_EVENT("rendering.chunk_mesh", "ClientWorld::processMeshBuildResults");
+
     if (!m_meshBuildScheduler || !m_meshWorkerPool || !m_meshWorkerPool->isRunning()) {
         return;
     }

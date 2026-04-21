@@ -1,5 +1,6 @@
 #include "ChunkRenderer.hpp"
 #include "../util/VulkanUtils.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 #include <cstring>
 #include <algorithm>
@@ -192,6 +193,13 @@ Result<void> ChunkRenderer::updateChunkLayer(
     const MeshData& meshData,
     ChunkRenderLayer layer)
 {
+    MC_TRACE_EVENT("rendering.frame",
+        "UpdateChunkLayer",
+        "layer", static_cast<int>(layer),
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunkId.x, chunkId.z).toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+    });
+
     const u64 id = makeBufferKey(chunkId, layer);
 
     if (meshData.empty()) {
