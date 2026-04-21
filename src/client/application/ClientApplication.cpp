@@ -129,8 +129,11 @@ void captureMouseAfterScreens(InputManager& input, bool& mouseCaptured) {
 }
 
 /**
- * @brief ClientWorld 鍒?IBlockReader 鐨勮交閲忛€傞厤鍣? *
- * 灏勭嚎妫€娴嬫帴鍙ｅ綋鍓嶈姹?IBlockReader锛? * 鑰?ClientWorld 瀹炵幇鐨勬槸 ICollisionWorld锛堟柟娉曠鍚嶅吋瀹癸級銆? */
+ * @brief ClientWorld 到 IBlockReader 的轻量适配器
+ *
+ * 射线检测接口当前要求 IBlockReader，
+ * 而 ClientWorld 实现的是 ICollisionWorld（方法签名兼容）。
+ */
 class ClientWorldBlockReader final : public mc::IBlockReader {
 public:
     explicit ClientWorldBlockReader(const ClientWorld& world)
@@ -148,7 +151,7 @@ public:
         return m_world.isWithinWorldBounds(x, y, z);
     }
 
-    // IWorld 鎺ュ彛瀹炵幇 - 濮旀墭鍒?ClientWorld
+    // IWorld 接口实现 - 委托到 ClientWorld
     bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override;
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override;
@@ -175,7 +178,7 @@ private:
     const ClientWorld& m_world;
 };
 
-// IWorld 鎺ュ彛瀹炵幇
+// IWorld 接口实现
 bool ClientWorldBlockReader::setBlock(i32, i32, i32, const BlockState*) { return false; }
 
 const fluid::FluidState* ClientWorldBlockReader::getFluidState(i32, i32, i32) const {
@@ -215,14 +218,14 @@ ClientApplication::~ClientApplication()
 
 Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 {
-    // 鍒濆鍖栨€ц兘杩借釜
+    // 初始化性能追踪
     mc::perfetto::TraceConfig traceConfig;
     traceConfig.outputPath = "client_trace.perfetto-trace";
     traceConfig.bufferSizeKb = 65536; // 64MB
     mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
     mc::perfetto::PerfettoManager::instance().startTracing();
 
-    // 璁剧疆杩涚▼鍜屼富绾跨▼鍚嶇О
+    // 设置进程和主线程名称
     mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftClient");
     mc::perfetto::PerfettoManager::instance().setThreadName("ClientMainThread");
     spdlog::info("Perfetto tracing initialized");
@@ -233,7 +236,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         return Error(ErrorCode::AlreadyExists, "Client already initialized");
     }
 
-    // 鍔犺浇璁剧疆
+    // 加载设置
     String settingsPath = params.settingsPath.value_or(
         ClientSettings::getSettingsPath("minecraft-reborn").string());
     auto settingsResult = loadSettings(settingsPath);
@@ -242,7 +245,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                      settingsPath, settingsResult.error().toString());
     }
 
-    // 搴旂敤鍛戒护琛岃鐩?
+    // 应用命令行覆盖
     if (params.fullscreen.has_value()) {
         m_settings.fullscreen.set(*params.fullscreen);
     }
@@ -256,10 +259,10 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         m_settings.username.set(*params.username);
     }
 
-    // 搴旂敤璁剧疆鍒扮郴缁?
+    // 应用设置到系统
     applySettings();
 
-    // 璁剧疆鏃ュ織绾у埆
+    // 设置日志级别
     const auto& logLevel = m_settings.logLevel.get();
     if (logLevel == "trace") {
         spdlog::set_level(spdlog::level::trace);
@@ -279,42 +282,42 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     spdlog::info("Version: {}.{}.{}", MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_PATCH);
     spdlog::info("Initializing client...");
 
-    // 鍒濆鍖栨柟鍧楁敞鍐岃〃
+    // 初始化方块注册表
     {
         MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlocks");
         VanillaBlocks::initialize();
         spdlog::info("Vanilla blocks initialized");
     }
 
-    // 鍒濆鍖栫墿鍝佹敞鍐岃〃
+    // 初始化物品注册表
     {
         MC_TRACE_EVENT("client.initialization", "InitializeVanillaItems");
         Items::initialize();
         spdlog::info("Vanilla items initialized");
     }
 
-    // 娉ㄥ唽瀹炰綋绫诲瀷
+    // 注册实体类型
     {
         MC_TRACE_EVENT("client.initialization", "RegisterVanillaEntities");
         entity::VanillaEntities::registerAll();
         spdlog::info("Entity types registered");
     }
 
-    // 鍒濆鍖栨柟鍧楃墿鍝佹敞鍐岃〃
+    // 初始化方块物品注册表
     {
         MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlockItems");
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         spdlog::info("Block items initialized");
     }
 
-    // 鍒濆鍖栧０闊崇郴缁?
+    // 初始化资源系统
     {
         MC_TRACE_EVENT("client.initialization", "InitializeSoundSystem");
 
         spdlog::info("Initializing sound system...");
 
-        // 娣诲姞鍐呯疆璧勬簮鍖呭埌 ResourcePackList锛堢敤浜?sounds.json锛?
-        // 鍐呯疆璧勬簮鍖呭叿鏈夋渶浣庝紭鍏堢骇锛?1锛夛紝澶栭儴璧勬簮鍖呭彲浠ヨ鐩?
+        // 添加内部资源包到 ResourcePackList（用于 sounds.json）
+        // 内部资源包具有最低优先级（-1），外部资源包可以覆盖
         auto builtinPackResult = m_resourcePackList.addPack(
             std::filesystem::path("resources/data/minecraft"), true, -1);
         if (builtinPackResult.success() && builtinPackResult.value().initialized) {
@@ -332,12 +335,12 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                         soundInitResult.error().toString());
             m_audioService.reset();
         } else {
-            // 娣诲姞鐜闊虫晥澶勭悊鍣?
+            // 添加环境音效处理器
             spdlog::info("Sound system initialized successfully");
         }
     }
 
-    // 鍒濆鍖栬祫婧愮郴缁?
+    // 初始化 Trident 子渲染器
     {
         MC_TRACE_EVENT("client.initialization", "InitializeResources");
         spdlog::info("Initializing resource system...");
@@ -348,11 +351,11 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         }
     }
 
-    // 鍒濆鍖栨寜閿粦瀹?
+    // 初始化按键绑定
     m_settings.initializeKeyBindings();
     spdlog::info("Key bindings initialized");
 
-    // 鍒涘缓绐楀彛
+    // 创建窗口
     WindowConfig windowConfig;
 
     {
@@ -376,16 +379,16 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         }
     }
 
-    // 鍒濆鍖栬緭鍏ョ鐞嗗櫒
+    // 初始化输入管理器
     m_input.initialize(m_window.handle());
 
-    // 璁剧疆鎸夐敭缁戝畾
+    // 设置按键绑定
     setupInputBindings();
 
-    // 璁剧疆璁剧疆鍙樻洿鍥炶皟
+    // 设置设置变更回调
     setupSettingCallbacks();
 
-    // 璁剧疆绐楀彛澶у皬鍙樺寲鍥炶皟
+    // 设置窗口大小变化回调
     m_window.setResizeCallback([](i32 width, i32 height, void* userData) {
         auto* app = static_cast<ClientApplication*>(userData);
         spdlog::info("Window resized: {}x{}", width, height);
@@ -399,13 +402,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         }
     }, this);
 
-    // 鍒濆鍖朤rident娓叉煋寮曟搸
+    // 初始化Trident渲染引擎
     spdlog::info("Initializing Trident renderer...");
     m_renderer = std::make_unique<renderer::trident::TridentEngine>();
 
     renderer::api::RenderEngineConfig rendererConfig;
     rendererConfig.appName = "Minecraft Reborn";
-    rendererConfig.enableValidation = true; // Debug妯″紡鍚敤楠岃瘉灞?
+    rendererConfig.enableValidation = true; // Debug模式启用验证层
     rendererConfig.enableVSync = m_settings.vsync.get();
     rendererConfig.enableAntiAliasing = m_settings.antiAliasing.get();
     rendererConfig.msaaSamples = static_cast<u32>(windowConfig.samples);
@@ -419,18 +422,18 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         return rendererResult.error();
     }
 
-    // 浠?settings 鍚屾杩愯鏃舵覆鏌撳弬鏁?
+    // 从 settings 同步运行时渲染参数
     m_renderer->setRenderDistanceChunks(m_settings.renderDistance.get());
     m_renderer->setLandFogDensity(m_settings.fogDensity.get());
     m_renderer->setCloudMode(static_cast<renderer::trident::cloud::CloudMode>(m_settings.clouds.get()));
 
-    // 璁剧疆鐩告満
+    // 设置相机
     setupCamera();
 
-    // 灏嗙浉鏈鸿缃粰娓叉煋鍣?
+    // 将相机设置给渲染器
     m_renderer->setCamera(&m_camera);
 
-    // 鏇存柊娓叉煋鍣ㄧ汗鐞嗗浘闆嗭紙浣跨敤 ResourceManager 鏋勫缓鐨勭汗鐞嗭級
+    // 更新渲染器纹理图集（使用 ResourceManager 构建的纹理）
     if (m_resourceManager) {
         MC_TRACE_EVENT("client.initialization", "UpdateRendererTextureAtlas");
 
@@ -457,7 +460,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         spdlog::warn("ResourceManager is null, skipping texture atlas update");
     }
 
-    // 鍒濆鍖?Trident 瀛愭覆鏌撳櫒
+    // 初始化声音系统
     {
         MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers");
 
@@ -471,7 +474,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             spdlog::warn("Failed to initialize GUI renderer: {}", guiInitResult.error().toString());
         }
 
-        // 鍒濆鍖?GUI 绾圭悊绠＄悊鍣紙鐢ㄤ簬鑳屽寘灞忓箷绛夊鍣℅UI锛?
+        // 初始化 GUI 纹理管理器（用于背包屏幕等容器GUI）
         if (m_renderer->isGuiRendererInitialized()) {
             spdlog::info("Initializing GUI texture manager...");
             m_guiTextureManager = std::make_unique<renderer::trident::gui::GuiTextureManager>();
@@ -483,13 +486,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 m_resourceManager.get());
 
             if (textureMgrInit.success()) {
-                // 鍔犺浇鑳屽寘绾圭悊
+                // 加载背包纹理
                 auto loadResult = m_guiTextureManager->loadInventoryTexture();
                 if (loadResult.failed()) {
                     spdlog::warn("Failed to load inventory texture: {}", loadResult.error().toString());
                 }
 
-                // 娉ㄥ唽鍒?GuiRenderer
+                // 注册到 GuiRenderer
                 auto registerResult = m_guiTextureManager->registerToRenderer(m_renderer->guiRenderer());
                 if (registerResult.success()) {
                     spdlog::info("GUI texture manager initialized with atlas slot {}", registerResult.value());
@@ -502,13 +505,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             }
         }
 
-        // 瀹炰綋娓叉煋鍣ㄥ繀椤诲厛鍒濆鍖栵紙鍒涘缓 EntityPipeline锛?
+        // 实体渲染器必须先初始化（创建 EntityPipeline）
         auto entityInitResult = m_renderer->initializeEntityRenderer();
         if (entityInitResult.failed()) {
             spdlog::warn("Failed to initialize entity renderer: {}", entityInitResult.error().toString());
         }
 
-        // 瀹炰綋绾圭悊鍥鹃泦鍦?EntityPipeline 鍒涘缓鍚庡垵濮嬪寲
+        // 实体纹理图集在 EntityPipeline 创建后初始化
         if (m_resourceManager) {
             spdlog::info("Initializing entity texture atlas...");
             auto entityAtlasResult = m_renderer->initializeEntityTextureAtlas(m_resourceManager.get());
@@ -524,44 +527,44 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             }
         }
 
-        // 鍒濆鍖栭浘鏁堟灉绠＄悊鍣?
+        // 初始化雾效果管理器
         auto fogInitResult = m_renderer->initializeFogManager();
         if (fogInitResult.failed()) {
             spdlog::warn("Failed to initialize fog manager: {}", fogInitResult.error().toString());
         }
 
-        // 鍒濆鍖栦簯娓叉煋鍣?
+        // 初始化云渲染器
         auto cloudInitResult = m_renderer->initializeCloudRenderer(m_resourceManager.get());
         if (cloudInitResult.failed()) {
             spdlog::warn("Failed to initialize cloud renderer: {}", cloudInitResult.error().toString());
         }
 
-        // 鍒濆鍖栫矑瀛愮鐞嗗櫒
+        // 初始化粒子管理器
         auto particleInitResult = m_renderer->initializeParticleManager();
         if (particleInitResult.failed()) {
             spdlog::warn("Failed to initialize particle manager: {}", particleInitResult.error().toString());
         }
 
-        // 鍒濆鍖栧ぉ姘旀覆鏌撳櫒
+        // 初始化天气渲染器
         auto weatherInitResult = m_renderer->initializeWeatherRenderer();
         if (weatherInitResult.failed()) {
             spdlog::warn("Failed to initialize weather renderer: {}", weatherInitResult.error().toString());
         }
 
-        // 鍒濆鍖栫牬鍧忚繘搴︽覆鏌撳櫒
+        // 初始化破坏进度渲染器
         auto breakProgressInitResult = m_renderer->initializeBreakProgressRenderer(m_resourceManager.get());
         if (breakProgressInitResult.failed()) {
             spdlog::warn("Failed to initialize break progress renderer: {}", breakProgressInitResult.error().toString());
         }
 
-        // 鍒濆鍖栫涓€浜虹О鎵嬮儴娓叉煋鍣?
+        // 初始化第一人称手部渲染器
         auto firstPersonInitResult = m_renderer->initializeFirstPersonRenderer();
         if (firstPersonInitResult.failed()) {
             spdlog::warn("Failed to initialize first person renderer: {}", firstPersonInitResult.error().toString());
         }
     }
 
-    // 鍚姩鍐呯疆鏈嶅姟绔?
+    // 启动内置服务端
     if (!params.skipIntegratedServer) {
         MC_TRACE_EVENT("client.initialization", "StartIntegratedServer");
 
@@ -581,7 +584,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             return serverResult.error();
         }
 
-        // 鍒濆鍖栫綉缁滃鎴风
+        // 初始化网络客户端
         m_networkClient = std::make_unique<NetworkClient>();
         m_commandManager = std::make_unique<command::ClientCommandManager>();
         m_commandManager->setPlayerNameProvider([this]() {
@@ -609,11 +612,11 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         m_useIntegratedServer = false;
     }
 
-    // 鍒濆鍖栦笘鐣?
+    // 初始化世界
     {
         MC_TRACE_EVENT("client.initialization", "InitializeWorld");
         spdlog::info("Initializing world...");
-        auto worldResult = m_world.initialize(12345); // 浣跨敤鍥哄畾绉嶅瓙
+        auto worldResult = m_world.initialize(12345); // 使用固定种子
         if (worldResult.failed()) {
             spdlog::error("Failed to initialize world: {}", worldResult.error().toString());
             if (m_integratedServer) {
@@ -625,7 +628,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         }
     }
 
-    // 鍒濆鍖栫綉鏍兼瀯寤虹郴缁燂紙鎵ц鍣?+ 鐙珛璋冨害鍣級
+    // 初始化网格构建系统（执行器 + 独立调度器）
     spdlog::info("Initializing mesh build system...");
     MeshSchedulerConfig schedulerConfig;
     schedulerConfig.maxDispatchedTaskCount = std::max(32, m_settings.renderDistance.get() * 12);
@@ -636,21 +639,21 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     schedulerConfig.behindCancelDistanceChunks = static_cast<f32>(std::max(6, m_settings.renderDistance.get() / 2));
     m_world.initializeMeshSystem(-1, schedulerConfig);
 
-    // 璁剧疆鍖哄潡鍗歌浇鍥炶皟锛岄€氱煡 ChunkRenderer 閲婃斁 GPU 缂撳啿鍖?
+    // 设置区块卸载回调，通知 ChunkRenderer 释放 GPU 缓冲区
     m_world.setChunkUnloadCallback([this](const ChunkId& chunkId) {
         if (m_renderer && m_renderer->isChunkRendererInitialized()) {
             m_renderer->chunkRenderer().removeChunk(chunkId);
         }
     });
 
-    // 璁剧疆瀹炰綋娓叉煋鍥炶皟
+    // 设置实体渲染回调
     m_renderer->setEntityRenderCallback([this](VkCommandBuffer cmd, f64 partialTick) {
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
             m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick);
         });
     });
 
-    // 璁剧疆绗竴浜虹О鎵嬮儴娓叉煋鍥炶皟
+    // 设置第一人称手部渲染回调
     m_renderer->setFirstPersonRenderCallback([this](VkCommandBuffer cmd, VkDescriptorSet cameraSet, f64 partialTick) {
         if (!m_renderer || !m_player || !m_renderer->isFirstPersonRendererInitialized()) {
             return;
@@ -663,17 +666,17 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         m_renderer->firstPersonRenderer().render(cmd, cameraSet, renderContext);
     });
 
-    // 鍒濆鍖栨柟鍧楃鎾炴敞鍐岃〃
+    // 初始化方块碰撞注册表
     spdlog::info("Initializing block collision registry...");
 
-    // 鍒涘缓鐗╃悊寮曟搸
+    // 创建物理引擎
     m_physicsEngine = std::make_unique<PhysicsEngine>(m_world);
 
-    // 鍒涘缓鐜╁瀹炰綋
+    // 创建玩家实体
     m_player = std::make_unique<Player>(static_cast<EntityId>(1), m_settings.username.get());
-    m_player->setPosition(8.0, 50.0, 8.0);  // 鍒濆浣嶇疆鍦ㄥ湴闈笂鏂?
+    m_player->setPosition(8.0, 50.0, 8.0);  // 初始位置在地面上方
     m_player->setPhysicsEngine(m_physicsEngine.get());
-    // 榛樿鍒涢€犳ā寮忓苟鍚敤椋炶
+    // 默认创造模式并启用飞行
     m_player->setGameMode(GameMode::Creative);
     m_player->setCreativeModeInventory();
     m_player->abilities().flying = true;
@@ -684,7 +687,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     spdlog::info("Controls: WASD to move, Space to jump/fly up, Shift to sneak/fly down, mouse to look");
     spdlog::info("Press F to toggle flying, F3 to toggle debug screen, ALT to toggle mouse capture");
 
-    // 鍒濆鍖?Kagero UI 寮曟搸
+    // 初始化 Kagero UI 引擎
     if (m_renderer->isGuiRendererInitialized()) {
         MC_TRACE_EVENT("client.initialization", "InitializeGuiRenderer");
 
@@ -694,8 +697,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         } else {
             MC_TRACE_EVENT("client.initialization", "CreateKageroEngine");
 
-            // 鍒濆鍖?GUI 绮剧伒鍥鹃泦锛堝弻鍥鹃泦鏋舵瀯锛?            // 閲嶈锛氱汗鐞嗗姞杞介『搴?- 鍏堝垵濮嬪寲鍥鹃泦锛屽啀鍔犺浇绾圭悊锛堣缃纭昂瀵革級锛屾渶鍚庢敞鍐岀簿鐏?
-            // icons.png: 蹇冨舰銆侀ゥ楗裤€佺洈鐢层€佺粡楠屾潯绛?
+            // icons.png: 心形、饥饿、盔甲、经验条等
             m_iconsAtlas = std::make_unique<renderer::trident::gui::GuiSpriteAtlas>();
             auto iconsAtlasResult = m_iconsAtlas->initialize(
                 m_renderer->context()->device(),
@@ -709,7 +711,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 m_iconsAtlas.reset();
             }
 
-            // widgets.png: 蹇嵎鏍忋€佹寜閽瓑
+            // widgets.png: 快捷栏、按钮等
             m_widgetsAtlas = std::make_unique<renderer::trident::gui::GuiSpriteAtlas>();
             auto widgetsAtlasResult = m_widgetsAtlas->initialize(
                 m_renderer->context()->device(),
@@ -723,16 +725,16 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 m_widgetsAtlas.reset();
             }
 
-            // 鍑嗗绾圭悊鍔犺浇鍣?
+            // 准备纹理加载器
             renderer::trident::gui::GuiTextureLoader textureLoader;
             bool hasTextureLoader = false;
 
-            // 浠庤祫婧愬寘鍔犺浇绾圭悊
+            // 从资源包加载纹理
             if (m_resourceManager && m_resourceManager->resourcePackCount() > 0) {
                 MC_TRACE_EVENT("client.initialization", "LoadGuiTexturesFromResourcePacks");
                 spdlog::info("[GUI] ResourceManager has {} resource packs", m_resourceManager->resourcePackCount());
 
-                // 娣诲姞鍚敤鐨勮祫婧愬寘鍒板姞杞藉櫒
+                // 添加启用的资源包到加载器
                 auto enabledPacks = m_resourcePackList.getEnabledPacks();
                 spdlog::info("[GUI] ResourcePackList has {} enabled packs", enabledPacks.size());
                 for (const auto& pack : enabledPacks) {
@@ -743,15 +745,15 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                     }
                 }
 
-                // 濡傛灉娌℃湁浠庤缃惎鐢ㄧ殑璧勬簮鍖咃紝浣跨敤璧勬簮绠＄悊鍣ㄤ腑鐨勮祫婧愬寘
+                // 如果没有从设置启用的资源包，使用资源管理器中的资源包
                 if (!hasTextureLoader) {
                     spdlog::info("[GUI] No enabled packs from settings, using ResourceManager packs");
-                    // 鑾峰彇璧勬簮绠＄悊鍣ㄤ腑鎵€鏈夎祫婧愬寘
+                    // 获取资源管理器中所有资源包
                     for (size_t i = 0; i < m_resourceManager->resourcePackCount(); ++i) {
                         auto* pack = m_resourceManager->getResourcePack(i);
                         if (pack) {
                             spdlog::info("[GUI] Adding ResourceManager pack [{}]: {}", i, pack->name());
-                            // 娉ㄦ剰锛氳繖閲屼娇鐢ㄧ┖鍒犻櫎鍣紝鍥犱负璧勬簮鍖呯敓鍛藉懆鏈熺敱ResourceManager绠＄悊
+                            // 注意：这里使用空删除器，因为资源包生命周期由ResourceManager管理
                             textureLoader.addResourcePack(
                                 std::shared_ptr<mc::IResourcePack>(pack, [](mc::IResourcePack*) {}));
                             hasTextureLoader = true;
@@ -762,12 +764,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 spdlog::info("[GUI] ResourceManager is null or has no resource packs");
             }
 
-            // 鍔犺浇绾圭悊骞舵敞鍐岀簿鐏?            // 鍏抽敭椤哄簭锛氬厛鍔犺浇绾圭悊锛堣缃纭殑鍥鹃泦灏哄锛夛紝鍐嶆敞鍐岀簿鐏碉紙璁＄畻姝ｇ‘鐨刄V锛?
+            // 加载纹理并注册精灵
+            // 关键顺序：先加载纹理（设置正确的图集尺寸），再注册精灵（计算正确的UV）
             if (hasTextureLoader) {
                 MC_TRACE_EVENT("client.initialization", "LoadGuiTextures");
                 spdlog::info("[GUI] TextureLoader has {} resource packs", textureLoader.resourcePackCount());
 
-                // 鍔犺浇 icons.png 鍒?iconsAtlas
+                // 加载 icons.png 到 iconsAtlas
                 if (m_iconsAtlas) {
                     spdlog::info("[GUI] Loading icons.png to iconsAtlas...");
                     auto loadResult = textureLoader.loadGuiTexture(*m_iconsAtlas, "minecraft:textures/gui/icons.png");
@@ -778,13 +781,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                         spdlog::info("[GUI] Loaded icons.png from resource pack ({}x{})",
                                     m_iconsAtlas->atlasWidth(), m_iconsAtlas->atlasHeight());
                     }
-                    // 绾圭悊鍔犺浇鍚庢敞鍐岀簿鐏碉紙浣跨敤姝ｇ‘鐨勫浘闆嗗昂瀵歌绠桿V锛?
+                    // 纹理加载后注册精灵（使用正确的图集尺寸计算UV）
                     renderer::trident::gui::GuiSpriteRegistry::registerIconsSprites(*m_iconsAtlas);
                     spdlog::info("[GUI] Icons atlas: {} sprites registered, texture={}",
                                 m_iconsAtlas->spriteCount(),
                                 m_iconsAtlas->hasTexture() ? "yes" : "no");
 
-                    // 娉ㄥ唽鍥鹃泦鍒?GuiRenderer 骞惰缃Ы浣?
+                    // 注册图集到 GuiRenderer 并设置槽位
                     auto iconsSlotResult = m_renderer->guiRenderer().registerAtlas(
                         "icons", m_iconsAtlas->imageView(), m_iconsAtlas->sampler());
                     if (iconsSlotResult.success()) {
@@ -795,7 +798,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                     }
                 }
 
-                // 鍔犺浇 widgets.png 鍒?widgetsAtlas
+                // 加载 widgets.png 到 widgetsAtlas
                 if (m_widgetsAtlas) {
                     MC_TRACE_EVENT("client.initialization", "LoadWidgetsTexture");
                     spdlog::info("[GUI] Loading widgets.png to widgetsAtlas...");
@@ -808,13 +811,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                         spdlog::info("[GUI] Loaded widgets.png from resource pack ({}x{})",
                                     m_widgetsAtlas->atlasWidth(), m_widgetsAtlas->atlasHeight());
                     }
-                    // 绾圭悊鍔犺浇鍚庢敞鍐岀簿鐏碉紙浣跨敤姝ｇ‘鐨勫浘闆嗗昂瀵歌绠桿V锛?
+                    // 纹理加载后注册精灵（使用正确的图集尺寸计算UV）
                     renderer::trident::gui::GuiSpriteRegistry::registerWidgetsSprites(*m_widgetsAtlas);
                     spdlog::info("[GUI] Widgets atlas: {} sprites registered, texture={}",
                                 m_widgetsAtlas->spriteCount(),
                                 m_widgetsAtlas->hasTexture() ? "yes" : "no");
 
-                    // 娉ㄥ唽鍥鹃泦鍒?GuiRenderer 骞惰缃Ы浣?
+                    // 注册图集到 GuiRenderer 并设置槽位
                     auto widgetsSlotResult = m_renderer->guiRenderer().registerAtlas(
                         "widgets", m_widgetsAtlas->imageView(), m_widgetsAtlas->sampler());
                     if (widgetsSlotResult.success()) {
@@ -825,14 +828,14 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                     }
                 }
             } else {
-                // 鏃犺祫婧愬寘锛屼娇鐢ㄩ粯璁ょ汗鐞?
+                // 无资源包，使用默认纹理
                 if (m_iconsAtlas) {
                     MC_TRACE_EVENT("client.initialization", "LoadDefaultIconsTexture");
 
                     (void)m_iconsAtlas->loadDefaultTextures();
-                    // 浣跨敤榛樿256x256灏哄娉ㄥ唽绮剧伒
+                    // 使用默认256x256尺寸注册精灵
                     renderer::trident::gui::GuiSpriteRegistry::registerIconsSprites(*m_iconsAtlas);
-                    // 娉ㄥ唽鍥鹃泦鍒?GuiRenderer
+                    // 注册图集到 GuiRenderer
                     auto iconsSlotResult = m_renderer->guiRenderer().registerAtlas(
                         "icons", m_iconsAtlas->imageView(), m_iconsAtlas->sampler());
                     if (iconsSlotResult.success()) {
@@ -843,9 +846,9 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                     MC_TRACE_EVENT("client.initialization", "LoadDefaultWidgetsTexture");
 
                     (void)m_widgetsAtlas->loadDefaultTextures();
-                    // 浣跨敤榛樿256x256灏哄娉ㄥ唽绮剧伒
+                    // 使用默认256x256尺寸注册精灵
                     renderer::trident::gui::GuiSpriteRegistry::registerWidgetsSprites(*m_widgetsAtlas);
-                    // 娉ㄥ唽鍥鹃泦鍒?GuiRenderer
+                    // 注册图集到 GuiRenderer
                     auto widgetsSlotResult = m_renderer->guiRenderer().registerAtlas(
                         "widgets", m_widgetsAtlas->imageView(), m_widgetsAtlas->sampler());
                     if (widgetsSlotResult.success()) {
@@ -854,14 +857,14 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 }
             }
 
-            // 鍒涘缓 TridentCanvas
+            // 创建 TridentCanvas
             m_canvas = std::make_unique<ui::TridentCanvas>(
                 m_renderer->guiRenderer(),
                 *guiFont
             );
             m_canvas->resize(m_window.width(), m_window.height());
 
-            // 鍒涘缓 KageroEngine
+            // 创建 KageroEngine
             m_kageroEngine = std::make_unique<ui::kagero::KageroEngine>();
             ui::kagero::KageroConfig kageroConfig;
             kageroConfig.screenWidth = m_window.width();
@@ -874,11 +877,11 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
                 spdlog::info("KageroEngine initialized");
 
-                // 灞?Z=0: 鍑嗘槦
+                // 层 Z=0: 准星
                 auto crosshairWidget = std::make_unique<ui::minecraft::widgets::CrosshairWidget>();
                 m_crosshairLayerId = m_kageroEngine->addLayer(std::move(crosshairWidget), 0);
 
-                // 灞?Z=10: HUD
+                // 层 Z=10: HUD
                 auto hudWidget = std::make_unique<ui::minecraft::widgets::HudWidget>();
                 hudWidget->setGuiRenderer(&m_renderer->guiRenderer());
                 hudWidget->setItemRenderer(&m_renderer->itemRenderer());
@@ -896,7 +899,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 auto targetInfoWidget = std::make_unique<ui::minecraft::targetinfo::TargetInfoWidget>();
                 m_targetInfoLayerId = m_kageroEngine->addLayer(std::move(targetInfoWidget), 15);
 
-                // 灞?Z=20: 鑱婂ぉ妗?
+                // 层 Z=20: 聊天框
                 auto chatWidget = std::make_unique<ui::minecraft::widgets::ChatWidget>();
                 chatWidget->setFont(guiFont);
                 chatWidget->setGuiRenderer(&m_renderer->guiRenderer());
@@ -906,16 +909,16 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 });
                 m_chatLayerId = m_kageroEngine->addLayer(std::move(chatWidget), 20);
 
-                // 灞?Z=30: Screen 鏍?
+                // 层 Z=30: Screen 栈
                 auto screenStackWidget = std::make_unique<ui::minecraft::widgets::ScreenStackWidget>();
                 screenStackWidget->setGuiRenderer(&m_renderer->guiRenderer());
 
-                // 璁剧疆 ScreenManager 鍚庣
+                // 设置 ScreenManager 后端
                 ScreenManager::instance().setScreenStackWidget(screenStackWidget.get());
 
                 m_screenStackLayerId = m_kageroEngine->addLayer(std::move(screenStackWidget), 30);
 
-                // 灞?Z=100: 璋冭瘯灞忓箷
+                // 层 Z=100: 调试屏幕
                 auto debugWidget = std::make_unique<ui::minecraft::DebugScreenWidget>();
                 debugWidget->setTextWidthCallback([this](const std::string& text) -> f32 {
                     const f64 guiScale = static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1));
@@ -932,7 +935,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                     debugWidget->setPlayer(m_player.get());
                 }
 
-                // 璁剧疆GPU淇℃伅
+                // 设置GPU信息
                 {
                     auto* context = m_renderer->context();
                     if (context != nullptr) {
@@ -954,16 +957,16 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
         applyGuiScale();
 
-        // 璁剧疆瀛楃杈撳叆鍥炶皟 - 閫氳繃 KageroEngine 鍒嗗彂
+        // 设置字符输入回调 - 通过 KageroEngine 分发
         m_input.setCharCallback([this](u32 codepoint) {
             if (m_kageroEngine && m_kageroEngine->handleChar(codepoint)) {
                 return;
             }
         });
 
-        // 璁剧疆閿洏浜嬩欢鍥炶皟 - 閫氳繃 KageroEngine 鍒嗗彂
+        // 设置键盘事件回调 - 通过 KageroEngine 分发
         m_input.setKeyEventCallback([this](i32 key, i32 action, i32 mods) {
-            // F3 鍒囨崲璋冭瘯灞忓箷
+            // F3 切换调试屏幕
             if (key == GLFW_KEY_F3 && action == GLFW_PRESS) {
                 m_debugScreenVisible = !m_debugScreenVisible;
                 if (m_kageroEngine) {
@@ -976,13 +979,13 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                 return;
             }
 
-            // 娓告垙杈撳叆澶勭悊
+            // 游戏输入处理
             if (action == GLFW_PRESS && !ScreenManager::instance().hasScreen()) {
                 captureMouseAfterScreens(m_input, m_mouseCaptured);
             }
         });
 
-        // 璁剧疆GUI娓叉煋鍥炶皟 - 瀹屽叏閫氳繃 KageroEngine
+        // 设置GUI渲染回调 - 完全通过 KageroEngine
         m_renderer->setGuiRenderCallback([this]() {
             if (m_kageroEngine) {
                 m_canvas->beginFrame();
@@ -1037,7 +1040,7 @@ void ClientApplication::mainLoop()
     spdlog::info("Client is now running!");
     spdlog::info("Press ESC to exit");
 
-    // 鍒濆鎹曡幏榧犳爣
+    // 初始捕获鼠标
     toggleMouseCapture();
 
     m_lastFrameTime = glfwGetTime();
@@ -1047,47 +1050,47 @@ void ClientApplication::mainLoop()
 
         const auto frameStart = clock::now();
 
-        // 璁＄畻甯ф椂闂?
+        // 计算帧时间
         const f64 currentTime = glfwGetTime();
         const f32 deltaTime = static_cast<f32>(currentTime - m_lastFrameTime);
         m_lastFrameTime = currentTime;
 
-        // 澶勭悊浜嬩欢
+        // 处理事件
         {
             MC_TRACE_EVENT("rendering.frame", "HandleEvents", "phase", "handle_events");
             handleEvents();
         }
 
-        // 鏇存柊
+        // 更新
         {
             MC_TRACE_EVENT("rendering.frame", "Update", "phase", "update");
             update(deltaTime);
         }
 
-        // 娓叉煋
+        // 渲染
         {
             MC_TRACE_EVENT("rendering.frame", "Render", "phase", "render");
             render();
         }
 
-        // 娓呯悊鏈抚鐨勭灛鏃惰緭鍏ョ姸鎬?
+        // 清理本帧的瞬时输入状态
         m_input.endFrame();
 
-        // 甯ц鏁?        ++m_frameCount;
+    // 处理异步网格构建结果
 
 #if MC_ENABLE_TRACING
-        // 杩借釜 FPS
+        // 追踪 FPS
         const f32 safeDeltaTime = std::max(deltaTime, 0.0001f);
         const i32 fps = static_cast<i32>(1.0f / safeDeltaTime);
-        if (fps < 1000) { // 杩囨护鎺夊紓甯稿€?
+        if (fps < 1000) { // 过滤掉异常值
         MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
         }
 
-        // 杩借釜鍐呭瓨淇℃伅
+        // 追踪内存信息
         MC_TRACE_COUNTER("memory", "ProcessMemory", static_cast<int64_t>(util::PlatformInfo::getProcessMemoryMB()));
 #endif
 
-        // 甯х巼闄愬埗锛?=涓嶉檺鍒讹級
+        // 帧率限制（0=不限制）
         const i32 fpsLimit = m_settings.framerateLimit.get();
         if (fpsLimit > 0) {
             const auto minFrameDuration = std::chrono::duration<f64>(1.0 / static_cast<f64>(fpsLimit));
@@ -1195,12 +1198,12 @@ void ClientApplication::handleEvents()
     m_window.pollEvents();
     m_input.update();
 
-    // 澶勭悊鑱婂ぉ妗嗛敭鐩樿緭鍏ワ紙浼樺厛浜庢父鎴忚緭鍏ワ級
-    // 妫€鏌ヨ亰澶╂鏄惁鎵撳紑
+    // 处理聊天框键盘输入（优先于游戏输入）
+    // 检查聊天框是否打开
     auto* chatWidget = m_kageroEngine ?
         static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId)) : nullptr;
     if (chatWidget && chatWidget->isOpen()) {
-        // 鑱婂ぉ妗嗘墦寮€鏃讹紝ESC 鍏抽棴鑱婂ぉ妗?
+        // 聊天框打开时，ESC 关闭聊天框
         if (m_input.isKeyJustPressed(GLFW_KEY_ESCAPE)) {
             chatWidget->close();
             m_input.setMouseLocked(true);
@@ -1209,7 +1212,7 @@ void ClientApplication::handleEvents()
         return;
     }
 
-    // 澶勭悊 Screen 鏍堜簨浠?
+    // 处理 Screen 栈事件
     auto* screenStack = m_kageroEngine ?
         static_cast<ui::minecraft::widgets::ScreenStackWidget*>(m_kageroEngine->getLayer(m_screenStackLayerId)) : nullptr;
     if (screenStack && screenStack->hasScreen()) {
@@ -1252,13 +1255,13 @@ void ClientApplication::handleEvents()
         return;
     }
 
-    // 妫€鏌LT閿垏鎹㈤紶鏍囨崟鑾?
+    // 检查ALT键切换鼠标捕获
     if (m_input.isKeyJustPressed(GLFW_KEY_LEFT_ALT) ||
         m_input.isKeyJustPressed(GLFW_KEY_RIGHT_ALT)) {
         toggleMouseCapture();
     }
 
-    // T 閿墦寮€鑱婂ぉ妗?
+    // T 键打开聊天框
     if (m_input.isKeyJustPressed(GLFW_KEY_T)) {
         if (chatWidget) {
             chatWidget->open(false);
@@ -1270,7 +1273,7 @@ void ClientApplication::handleEvents()
         return;
     }
 
-    // / 閿墦寮€鍛戒护妗?
+    // / 键打开命令框
     if (m_input.isKeyJustPressed(GLFW_KEY_SLASH)) {
         if (chatWidget) {
             chatWidget->open(true);
@@ -1292,22 +1295,23 @@ void ClientApplication::handleEvents()
         return;
     }
 
-    // 椋炶妯″紡鍒囨崲锛團閿級
+    // 飞行模式切换（F键）
     if (m_input.isKeyJustPressed(GLFW_KEY_F)) {
         if (m_player && m_player->abilities().canFly) {
             m_player->toggleFlying();
         }
     }
 
-    // 浼犻€掗敭鐩樿緭鍏ュ埌鐜╁鍜岄紶鏍囨帶鍒?
+    // 传递键盘输入到玩家和鼠标控制
     if (m_mouseCaptured && m_player) {
-        // 榧犳爣瑙嗚鎺у埗 - 鏇存柊鐜╁鏈濆悜锛堜娇鐢ㄨ缃腑鐨勭伒鏁忓害锛?        // InputManager 杩斿洖 f64 (GLFW)锛岃浆鎹负 f32 鐢ㄤ簬鍐呴儴璁＄畻
+        // 鼠标视角控制 - 更新玩家朝向（使用设置中的灵敏度）
+        // InputManager 返回 f64 (GLFW)，转换为 f32 用于内部计算
         f32 sensitivity = m_settings.mouseSensitivity.get() * 0.2f;
         f32 deltaYaw = static_cast<f32>(m_input.mouseDeltaX()) * sensitivity;
         f32 deltaPitch = static_cast<f32>(m_input.mouseDeltaY()) * sensitivity;
-        m_player->rotate(deltaYaw, -deltaPitch);  // pitch鏂瑰悜鐩稿弽
+        m_player->rotate(deltaYaw, -deltaPitch);  // pitch方向相反
 
-        // 鏀堕泦绉诲姩杈撳叆
+        // 收集移动输入
         f32 forward = 0.0f;
         f32 strafe = 0.0f;
         bool jumping = false;
@@ -1320,10 +1324,10 @@ void ClientApplication::handleEvents()
         if (m_input.isKeyPressed(GLFW_KEY_SPACE)) jumping = true;
         if (m_input.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) sneaking = true;
 
-        // 浼犻€掕緭鍏ョ粰鐜╁
+        // 传递输入给玩家
         m_player->handleMovementInput(forward, strafe, jumping, sneaking);
 
-        // 婊氳疆閫夋嫨鐗╁搧鏍忔Ы浣嶏紙scrollDeltaY 杩斿洖 f64锛?
+        // 滚轮选择物品栏槽位（scrollDeltaY 返回 f64）
         const f64 scrollDelta = m_input.scrollDeltaY();
         if (scrollDelta != 0.0) {
             i32 selectedSlot = m_player->inventory().getSelectedSlot();
@@ -1340,12 +1344,12 @@ void ClientApplication::handleEvents()
 
 void ClientApplication::update(f32 deltaTime)
 {
-    // 鏇存柊缃戠粶瀹㈡埛绔紙澶勭悊鏈嶅姟绔暟鎹寘锛?
+    // 更新网络客户端（处理服务端数据包）
     if (m_networkClient) {
         m_networkClient->poll();
     }
 
-    // 鏇存柊鐮村潖杩涘害绠＄悊鍣?
+    // 更新破坏进度管理器
     {
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().tick(deltaTime, static_cast<u64>(m_world.gameTime()));
@@ -1355,12 +1359,14 @@ void ClientApplication::update(f32 deltaTime)
         m_renderer->firstPersonRenderer().tick();
     }
 
-    // 鏇存柊鐜╁鐗╃悊
+    // 更新玩家物理
     if (m_player) {
-        // 搴旂敤鐗╃悊锛堥噸鍔涖€佺鎾炴娴嬶級
+        // 应用物理（重力、碰撞检测）
         m_player->updatePhysics();
 
-        // 澶勭悊鑴氭澹板拰娓告吵澹?        // updateMoveDistance 鍦?Player::updatePhysics 涓皟鐢?        // 杩欓噷妫€鏌ユ槸鍚﹂渶瑕佹挱鏀惧０闊?
+        // 处理脚步声和游泳声
+        // updateMoveDistance 在 Player::updatePhysics 中调用
+        // 这里检查是否需要播放音频
         if (m_audioService && !m_player->isSilent()) {
             // 澶勭悊娓告吵澹?
             if (m_player->shouldPlaySwimSound()) {
@@ -1369,15 +1375,15 @@ void ClientApplication::update(f32 deltaTime)
                         ResourceLocation("minecraft:entity.player.swim"),
                         sound::SoundCategory::Players,
                         m_player->x(), m_player->y(), m_player->z(),
-                        m_player->swimSoundVolume() * 0.15f,  // MC 闊抽噺绯绘暟
-                        1.0f + (m_random.nextFloat() - m_random.nextFloat()) * 0.4f  // 闅忔満闊宠皟鍙樺寲
+                        m_player->swimSoundVolume() * 0.15f,  // MC 音量系数
+                        1.0f + (m_random.nextFloat() - m_random.nextFloat()) * 0.4f  // 随机音调变化
                     )
                 );
                 m_audioService->play(std::move(swimSound));
             }
             // 澶勭悊鑴氭澹?
             else if (m_player->shouldPlayStepSound()) {
-                // 鑾峰彇鑴氫笅鏂瑰潡鐨?BlockState 鏉ラ€夋嫨姝ｇ‘鐨勫０闊?
+                // 获取脚下方块的 BlockState 来选择正确的声音
                 const auto* blockState = m_world.getBlockState(
                     m_player->stepSoundPos().x,
                     m_player->stepSoundPos().y,
@@ -1393,8 +1399,8 @@ void ClientApplication::update(f32 deltaTime)
                             stepSoundId,
                             sound::SoundCategory::Players,
                             m_player->x(), m_player->y(), m_player->z(),
-                            soundType.getVolume() * 0.15f,  // MC 闊抽噺绯绘暟
-                            soundType.getPitch() * (0.8f + m_random.nextFloat() * 0.4f)  // 闊宠皟闅忔満鍙樺寲
+                            soundType.getVolume() * 0.15f,  // MC 音量系数
+                            soundType.getPitch() * (0.8f + m_random.nextFloat() * 0.4f)  // 随机音调变化
                         )
                     );
                     m_audioService->play(std::move(stepSound));
@@ -1414,42 +1420,42 @@ void ClientApplication::update(f32 deltaTime)
             }
         }
 
-        // 璁＄畻瑙嗛噹鏅冨姩
-        // 鍙傝€?MC 1.16.5 GameRenderer.getCameraPosition()
+        // 计算视野晃动
+        // 参考 MC 1.16.5 GameRenderer.getCameraPosition()
         f32 bobX = 0.0f;
         f32 bobY = 0.0f;
 
         if (m_settings.viewBobbing.get()) {
-            // 鑾峰彇绉诲姩璺濈鍙樺寲
+            // 获取移动距离变化
             f32 distanceWalked = m_player->moveDistanceWalked();
             f32 prevDistanceWalked = m_player->prevMoveDistanceWalked();
             f32 distanceSwam = m_player->moveDistanceSwam();
             f32 prevDistanceSwam = m_player->prevMoveDistanceSwam();
 
-            // 璁＄畻璺濈宸?
+            // 计算距离差
             f32 walkedDelta = distanceWalked - prevDistanceWalked;
             f32 swamDelta = distanceSwam - prevDistanceSwam;
 
-            // 绱鏅冨姩瑙掑害
+            // 累计晃动角度
             m_bobAngle += walkedDelta * 0.5f;
             m_bobPhase += swamDelta * 0.5f;
 
-            // 璁＄畻 X 鏅冨姩锛堝乏鍙虫憜鍔級
+            // 计算 X 晃动（左右摆动）
             bobX = std::sin(m_bobAngle) * 0.1f;
 
-            // 璁＄畻 Y 鏅冨姩锛堜笂涓嬫檭鍔級
+            // 计算 Y 晃动（上下摆动）
             // MC 浣跨敤 cos 鐨勭粷瀵瑰€兼潵浜х敓涓婁笅鏅冨姩
             bobY = std::abs(std::cos(m_bobAngle)) * 0.1f;
 
             // 娓告吵鏃剁殑棰濆鏅冨姩
             if (m_player->isSwimming()) {
-                // 娓告吵鏃舵湁棰濆鐨勫乏鍙虫檭鍔?
+                // 游泳时有额外的左右晃动
                 bobX += std::sin(m_bobPhase * 2.0f) * 0.05f;
                 bobY += std::abs(std::cos(m_bobPhase)) * 0.05f;
             }
         }
 
-        // 鍚屾鐩告満浣嶇疆鍒扮帺瀹剁溂鐫涗綅缃紙甯﹁閲庢檭鍔ㄥ亸绉伙級
+        // 同步相机位置到玩家眼睛位置
         m_camera.setPosition(
             static_cast<f32>(m_player->x()) + bobX,
             static_cast<f32>(m_player->y() + m_player->eyeHeight()) - bobY,
@@ -1459,7 +1465,7 @@ void ClientApplication::update(f32 deltaTime)
         m_camera.setPitch(m_player->pitch());
         m_camera.update(deltaTime);
 
-        // 鏇存柊澹伴煶绯荤粺鍚€呬綅缃?
+        // 更新声音系统听者位置
         if (m_audioService) {
             m_audioService->updateListener(
                 m_camera.position(),
@@ -1468,11 +1474,11 @@ void ClientApplication::update(f32 deltaTime)
             );
         }
     } else {
-        // 鍚庡锛氭洿鏂扮浉鏈烘帶鍒跺櫒锛堣繖浼氳皟鐢?Camera::update 鏇存柊鐭╅樀锛?
+        // 后备：更新相机控制器（这会调用 Camera::update 更新矩阵）
         m_cameraController.update(deltaTime);
     }
 
-    // 鍙戦€佺帺瀹朵綅缃埌鏈嶅姟绔紙闄愬埗棰戠巼锛?
+    // 发送玩家位置到服务端（限制频率）
     if (m_networkClient && m_networkClient->isLoggedIn() && m_player) {
         m_positionSendAccumulator += deltaTime;
         if (m_positionSendAccumulator >= POSITION_SEND_INTERVAL) {
@@ -1481,43 +1487,43 @@ void ClientApplication::update(f32 deltaTime)
         }
     }
 
-    // 鏇存柊 ScreenStackWidget 鐨?partialTick 鍜岄紶鏍囦綅缃紙鐢ㄤ簬 IScreen::render锛?
+    // 更新 ScreenStackWidget 的 partialTick 和鼠标位置（用于 IScreen::render）
     auto* screenStack = m_kageroEngine ?
         static_cast<ui::minecraft::widgets::ScreenStackWidget*>(m_kageroEngine->getLayer(m_screenStackLayerId)) : nullptr;
     if (screenStack) {
-        screenStack->setPartialTick(0.0f);  // TODO: 浣跨敤瀹為檯鐨?partialTick
+        screenStack->setPartialTick(0.0f);  // TODO: 使用实际的 partialTick
         screenStack->setMousePosition(
             static_cast<i32>(m_input.mouseX() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1))),
             static_cast<i32>(m_input.mouseY() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)))
         );
     }
 
-    // 鏇存柊 KageroEngine
+    // 更新 KageroEngine
     if (m_kageroEngine) {
         m_kageroEngine->update(deltaTime);
     }
 
-    // 鏇存柊璋冭瘯灞忓箷鏁版嵁
+    // 更新调试屏幕数据
     auto* debugWidget = m_kageroEngine ?
         static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId)) : nullptr;
     auto* targetInfoWidget = m_kageroEngine ?
         static_cast<ui::minecraft::targetinfo::TargetInfoWidget*>(m_kageroEngine->getLayer(m_targetInfoLayerId)) : nullptr;
 
-    // 鎵ц灏勭嚎妫€娴?
+    // 执行射线检测
     if (m_player && m_mouseCaptured) {
-        // 鑾峰彇鐜╁鐪肩潧浣嶇疆
+        // 获取玩家眼睛位置
         glm::vec3 eyePos = m_camera.position();
 
-        // 鑾峰彇瑙嗙嚎鏂瑰悜
+        // 获取视线方向
         glm::vec3 forward = m_camera.forward();
 
-        // 鍒涘缓灏勭嚎
+        // 创建射线
         mc::Vector3 origin(eyePos.x, eyePos.y, eyePos.z);
         mc::Vector3 direction(forward.x, forward.y, forward.z);
         mc::Ray ray(origin, direction);
 
-        // 鎵ц灏勭嚎妫€娴嬶紙鍒涢€犳ā寮忎娇鐢ㄦ洿杩滅殑璺濈锛?
-        mc::RaycastContext raycastContext{ray, 5.0f};  // 鐢熷瓨妯″紡5鏍?
+        // 执行射线检测（创造模式使用更远的距离）
+        mc::RaycastContext context(ray, 5.0f);  // 生存模式5格
         ClientWorldBlockReader blockReader(m_world);
         m_raycastResult = mc::raycastBlocks(raycastContext, blockReader);
 
@@ -1539,12 +1545,12 @@ void ClientApplication::update(f32 deltaTime)
                     }));
         }
 
-        // 鏇存柊璋冭瘯灞忓箷鐨勭洰鏍囨柟鍧?
+        // 更新调试屏幕的目标方块
         if (debugWidget) {
             debugWidget->setTargetBlock(&m_raycastResult);
         }
     } else {
-        // 娌℃湁鐜╁鏃舵竻闄ょ洰鏍囨柟鍧?
+        // 没有玩家时清除目标方块
         if (debugWidget) {
             debugWidget->setTargetBlock(nullptr);
         }
@@ -1555,7 +1561,7 @@ void ClientApplication::update(f32 deltaTime)
 
     handleBlockInteractionInput(deltaTime);
 
-    // 澶勭悊鏂瑰潡鏀剧疆杈撳叆
+    // 处理方块放置输入
     handleBlockPlacementInput(deltaTime);
 
     MeshSchedulerViewState meshViewState;
@@ -1568,29 +1574,29 @@ void ClientApplication::update(f32 deltaTime)
 
     m_world.update(meshViewState);
 
-    // 鏇存柊瀹㈡埛绔疄浣擄紙姣弔ick璋冪敤锛?
+    // 更新客户端实体（每tick调用）
     m_world.entityManager().tick();
 
     // 鏇存柊澹伴煶绯荤粺
     if (m_audioService) {
-        // 妫€鏌ユ槸鍚︽殏鍋滐紙娓告垙鏆傚仠鏃朵笉鏇存柊澹伴煶锛?
-        bool isPaused = !m_mouseCaptured;  // 榧犳爣鏈崟鑾锋椂璁や负娓告垙鏆傚仠
+        // 检查是否暂停（游戏暂停时不更新声音）
+        bool isPaused = !m_mouseCaptured;  // 鼠标未捕获时认为游戏暂停
         m_audioService->setPaused(isPaused);
     }
 
-    // 鏇存柊瀹炰綋鍔ㄧ敾鐘舵€侊紙鐢ㄤ簬娓叉煋鎻掑€硷級
-    constexpr f32 partialTick = 0.0f;  // TODO: 浠庝富寰幆鑾峰彇瀹為檯鐨勯儴鍒唗ick
+    // 更新实体动画状态（用于渲染插值）
+    constexpr f32 partialTick = 0.0f;  // TODO: 从主循环获取实际的部分tick
     m_world.entityManager().updateAnimations(partialTick);
 
-    // 澶勭悊寮傛缃戞牸鏋勫缓缁撴灉
-    m_world.processMeshBuildResults(4);  // 姣忓抚鏈€澶氬鐞?4 涓綉鏍?
-    // 鍚屾鏃堕棿鍒版覆鏌撳櫒锛堥┍鍔ㄥぉ绌恒€佸お闃炽€佹湀浜€佹槦绌哄彉鍖栵級
-    // 瀹㈡埛绔瘡甯у钩婊戞帹杩涙椂闂达紝鍚屾椂鍦ㄦ敹鍒版湇鍔＄鍚屾鏃剁籂姝?
+    // 清理渲染器
+    // 同步时间到渲染器（驱动天空、太阳、月亮、星空变化）
+    // 客户端每帧平滑推进时间，同时在收到服务端同步时纠正
+    // 同步渲染器运行时参数
     if (m_renderer) {
         constexpr i64 DAY_LENGTH_TICKS = 24000;
 
-        // 姣忓抚鎺ㄨ繘鏃堕棿锛堟棤璁烘槸鍚︽湁鏈嶅姟绔悓姝ワ級
-        // 杩欑‘淇濆ぉ绌恒€佸お闃炽€佹湀浜湪姣忓抚骞虫粦鍙樺寲
+        // 每帧推进时间（无论是否有服务端同步）
+        // 这确保天空、太阳、月亮在每帧平滑变化
         m_renderTickAccumulator += deltaTime * 20.0f;
         while (m_renderTickAccumulator >= 1.0f) {
             m_renderTickAccumulator -= 1.0f;
@@ -1598,12 +1604,12 @@ void ClientApplication::update(f32 deltaTime)
             m_renderDayTime = (m_renderDayTime + 1) % DAY_LENGTH_TICKS;
         }
 
-        // 褰撴湁鏈嶅姟绔悓姝ユ椂锛岄€愭笎绾犳鍒版湇鍔＄鏃堕棿锛堥伩鍏嶈烦鍙橈級
+        // 当有服务端同步时，逐渐纠正到服务端时间（避免跳变）
         if (m_hasServerTimeSync) {
             const i64 serverDayTime = m_world.dayTime();
             const i64 serverGameTime = m_world.gameTime();
 
-            // 璁＄畻鏃堕棿宸紙澶勭悊 dayTime 寰幆锛?
+            // 计算时间差（处理 dayTime 循环）
             i64 dayTimeDiff = serverDayTime - m_renderDayTime;
             if (dayTimeDiff > DAY_LENGTH_TICKS / 2) {
                 dayTimeDiff -= DAY_LENGTH_TICKS;
@@ -1611,33 +1617,33 @@ void ClientApplication::update(f32 deltaTime)
                 dayTimeDiff += DAY_LENGTH_TICKS;
             }
 
-            // 骞虫粦绾犳锛氭瘡甯х籂姝ｅ樊鍊肩殑 1%锛岄伩鍏嶈烦鍙橈紙TODO:鏍规嵁鐢ㄦ埛璁惧畾鐨勫抚鐜囪皟鏁寸籂姝ｇ巼銆侰ORRECTION_RATE = 1 / 鐢ㄦ埛璁惧畾FPS锛?
+            // 平滑纠正：每帧纠正差值的 1%，避免跳变（TODO:根据用户设定的帧率调整纠正率。CORRECTION_RATE = 1 / 用户设定FPS）
             constexpr f32 CORRECTION_RATE = 0.01f;
             const i64 correction = static_cast<i64>(dayTimeDiff * CORRECTION_RATE);
             if (correction != 0) {
                 m_renderDayTime = (m_renderDayTime + correction + DAY_LENGTH_TICKS) % DAY_LENGTH_TICKS;
             }
 
-            // gameTime 鍚屾绾犳
+            // gameTime 同步纠正
             i64 gameTimeDiff = serverGameTime - m_renderGameTime;
             m_renderGameTime += static_cast<i64>(gameTimeDiff * CORRECTION_RATE);
         }
 
         m_renderer->updateTime(m_renderDayTime, m_renderGameTime, m_renderTickAccumulator);
 
-        // 鏇存柊澶╂皵鐘舵€佸埌娓叉煋鍣?
+        // 更新天气状态到渲染器
         m_renderer->updateWeather(
             m_world.weather().rainStrength(m_renderTickAccumulator),
             m_world.weather().thunderStrength(m_renderTickAccumulator)
         );
 
-        // 鏇存柊娑蹭綋鐘舵€?
+        // 更新液体状态（用于水下/岩浆雾效果）
         if (m_player) {
             bool inWater = m_player->isInWater();
             bool inLava = m_player->isInLava();
             u32 waterFogColor = world::biome::BiomeEffects::DEFAULT_WATER_FOG_COLOR;
 
-            // 鑾峰彇褰撳墠鐢熺墿缇ょ郴鐨勬按涓嬮浘棰滆壊
+            // 获取当前生物群系的水下雾颜色
             if (inWater) {
                 const auto* biome = m_world.getBiomeAtBlock(
                     static_cast<i32>(std::floor(m_player->x())),
@@ -1651,33 +1657,33 @@ void ClientApplication::update(f32 deltaTime)
 
             m_renderer->updateLiquidState(inWater, inLava, waterFogColor);
 
-            // 鍏ユ按/鍑烘按闊虫晥瑙﹀彂
+            // 入水/出水音效触发
             if (m_audioService && inWater && !m_wasPlayerInWater) {
                 MC_TRACE_INSTANT("client.entity", "EnterWater");
-                // 鍏ユ按闊虫晥
+                // 入水音效
                 auto enterSound = std::make_unique<sound::SoundInstance>(
                     sound::SoundInstance::createGlobal(
                         ResourceLocation("minecraft:ambient.underwater.enter"),
                         sound::SoundCategory::Ambient,
-                        1.0f,  // 闊抽噺
-                        1.0f   // 闊宠皟
+                        1.0f,  // 音量
+                        1.0f   // 音调
                     )
                 );
                 m_audioService->play(std::move(enterSound));
             } else if (m_audioService && !inWater && m_wasPlayerInWater) {
-                // 鍑烘按闊虫晥
+                // 出水音效
                 auto exitSound = std::make_unique<sound::SoundInstance>(
                     sound::SoundInstance::createGlobal(
                         ResourceLocation("minecraft:ambient.underwater.exit"),
                         sound::SoundCategory::Ambient,
-                        1.0f,  // 闊抽噺
-                        1.0f   // 闊宠皟
+                        1.0f,  // 音量
+                        1.0f   // 音调
                     )
                 );
                 m_audioService->play(std::move(exitSound));
             }
 
-            // 鏇存柊姘翠笅鐜闊虫晥澶勭悊鍣?
+            // 更新水下环境音效处理器
             if (m_audioService) {
                 const auto* biome = m_world.getBiomeAtBlock(
                     static_cast<i32>(std::floor(m_player->x())),
@@ -1693,23 +1699,23 @@ void ClientApplication::update(f32 deltaTime)
         }
     }
 
-    // 涓婁紶缃戞牸鍒?GPU锛堝彧澶勭悊宸插畬鎴愬紓姝ユ瀯寤虹殑缃戞牸锛?
+    // 上传网格到 GPU（只处理已完成异步构建的网格）
     if (m_renderer->isChunkRendererInitialized()) {
         auto& chunkRenderer = m_renderer->chunkRenderer();
         m_world.forEachDirtyMesh([&chunkRenderer](const ChunkId& id, ClientChunk& chunk) {
-            // 涓ゅ眰閮戒负绌烘椂锛屾竻鐞?GPU 缂撳啿骞剁粨鏉熸湰娆℃洿鏂般€?
+            // 两层都为空时，清理 GPU 缓冲并结束本次更新。
             if (chunk.solidMesh.empty() && chunk.transparentMesh.empty()) {
                 chunkRenderer.removeChunk(id);
                 chunk.needsMeshUpdate = false;
                 return;
             }
 
-            // 涓婁紶鍙屽眰缃戞牸鍒?GPU
+            // 上传双层网格到 GPU
             auto result = chunkRenderer.updateChunk(id, chunk.solidMesh, chunk.transparentMesh);
             if (result.success()) {
                 chunk.needsMeshUpdate = false;
 
-                // 涓婁紶鎴愬姛鍚庨噴鏀?CPU 渚х綉鏍肩紦瀛橈紝閬垮厤涓?GPU 鏁版嵁閲嶅鍗犵敤鍐呭瓨銆?
+                // 上传成功后释放 CPU 侧网格缓存，避免与 GPU 数据重复占用内存。
                 chunk.solidMesh.clear();
                 chunk.transparentMesh.clear();
                 std::vector<Vertex>().swap(chunk.solidMesh.vertices);
@@ -1739,7 +1745,7 @@ void ClientApplication::shutdown()
 {
     spdlog::info("Shutting down client...");
 
-    // 淇濆瓨璁剧疆
+    // 保存设置
     const auto savePath = m_settingsPath.empty()
         ? ClientSettings::getSettingsPath("minecraft-reborn")
         : m_settingsPath;
@@ -1748,25 +1754,25 @@ void ClientApplication::shutdown()
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
     }
 
-    // 鍏抽棴澹伴煶绯荤粺
+    // 关闭声音系统
     if (m_audioService) {
         m_audioService->shutdown();
         m_audioService.reset();
     }
 
-    // 鏂紑缃戠粶杩炴帴
+    // 断开网络连接
     if (m_networkClient) {
         m_networkClient->disconnect("Client shutdown");
         m_networkClient.reset();
     }
 
-    // 鍋滄鍐呯疆鏈嶅姟绔?
+    // 停止内置服务端
     if (m_integratedServer) {
         m_integratedServer->stop();
         m_integratedServer.reset();
     }
 
-    // 鍏堟竻鐞嗕緷璧栨覆鏌撹祫婧愮殑 UI/鍥鹃泦瀵硅薄锛岄伩鍏嶅湪娓叉煋鍣ㄩ攢姣佸悗鏋愭瀯璁块棶鏃犳晥璧勬簮
+    // 先清理依赖渲染资源的 UI/图集对象，避免在渲染器销毁后析构访问无效资源
     if (m_kageroEngine) {
         m_kageroEngine.reset();
     }
@@ -1789,16 +1795,16 @@ void ClientApplication::shutdown()
         m_renderer.reset();
     }
 
-    // 娓呯悊鐜╁
+    // 清理玩家
     m_player.reset();
     m_physicsEngine.reset();
 
-    // 娓呯悊涓栫晫锛堝寘鎷叧闂綉鏍兼瀯寤虹嚎绋嬫睜锛?
+    // 清理世界（包括关闭网格构建线程池）
     m_world.destroy();
 
     m_window.destroy();
 
-    // 鍏抽棴鎬ц兘杩借釜
+    // 关闭性能追踪
     mc::perfetto::PerfettoManager::instance().stopTracing();
     mc::perfetto::PerfettoManager::instance().shutdown();
     spdlog::info("Perfetto tracing stopped");
@@ -1806,7 +1812,7 @@ void ClientApplication::shutdown()
     spdlog::info("Client stopped.");
 }
 
-// 璁剧疆鐩稿叧鏂规硶
+// 设置相关方法
 
 Result<void> ClientApplication::loadSettings(const String& path)
 {
@@ -1819,7 +1825,7 @@ Result<void> ClientApplication::loadSettings(const String& path)
         return result;
     }
 
-    // 纭繚璁剧疆鐩綍瀛樺湪锛堜娇鐢ㄥ綋鍓嶅疄闄呰缃矾寰勶紝閬垮厤鍐欏埌榛樿鐩綍锛?
+    // 确保设置目录存在（使用当前实际设置路径，避免写到默认目录）
     const auto settingsDir = m_settingsPath.parent_path();
     if (!settingsDir.empty()) {
         std::error_code ec;
@@ -1829,7 +1835,7 @@ Result<void> ClientApplication::loadSettings(const String& path)
         }
     }
 
-    // 鍚敤鑷姩淇濆瓨
+    // 启用自动保存
     m_settings.enableAutoSave(m_settingsPath);
 
     spdlog::info("Client settings path: {}", m_settingsPath.string());
@@ -1841,19 +1847,20 @@ void ClientApplication::applySettings()
 {
     MC_TRACE_EVENT("client.initialization", "ApplySettings");
 
-    // 璁剧疆鍙樻洿鍥炶皟鍦?setupSettingCallbacks 涓缃?    // 杩欓噷搴旂敤鍒濆璁剧疆鍊?
-    // 鍚屾娓叉煋鍣ㄨ繍琛屾椂鍙傛暟
+    // 设置变更回调在 setupSettingCallbacks 中设置
+    // 这里应用初始设置值
+    // 同步渲染器运行时参数
     if (m_renderer) {
         m_renderer->setRenderDistanceChunks(m_settings.renderDistance.get());
         m_renderer->setLandFogDensity(m_settings.fogDensity.get());
         m_renderer->setCloudMode(static_cast<renderer::trident::cloud::CloudMode>(m_settings.clouds.get()));
     }
 
-    // 搴旂敤鍏夌収妯″紡锛堢幆澧冨厜閬斀锛?
+    // 应用光照模式（环境光遮蔽）
     ChunkMesher::syncFromSettings(static_cast<client::AmbientOcclusionMode>(
         m_settings.ambientOcclusion.get()));
 
-    // 搴旂敤鐢熺墿缇ょ郴棰滆壊娣峰悎鍗婂緞
+    // 应用生物群系颜色混合半径
     ChunkMesher::setBiomeBlendRadius(m_settings.biomeBlendRadius.get());
 }
 
@@ -1861,7 +1868,7 @@ void ClientApplication::setupSettingCallbacks()
 {
     MC_TRACE_EVENT("client.initialization", "SetupSettingCallbacks");
 
-    // 娓叉煋璺濈鍙樻洿
+    // 渲染距离变更
     m_settings.renderDistance.onChange([this](i32 value) {
         spdlog::info("Render distance changed to: {}", value);
         if (m_renderer) {
@@ -1872,10 +1879,10 @@ void ClientApplication::setupSettingCallbacks()
         if (debugWidget) {
             debugWidget->setRenderDistance(value);
         }
-        // 涓栫晫鏇存柊鏃朵細浣跨敤鏂板€?
+        // 世界更新时会使用新值
         });
 
-    // 鍏ㄥ睆妯″紡鍙樻洿
+    // 全屏模式变更
     m_settings.fullscreen.onChange([this](bool value) {
         spdlog::info("Fullscreen changed to: {}", value);
         m_window.setFullscreen(value);
@@ -1886,7 +1893,7 @@ void ClientApplication::setupSettingCallbacks()
         applyGuiScale();
     });
 
-    // VSync 鍙樻洿
+    // VSync 变更
     m_settings.vsync.onChange([this](bool value) {
         spdlog::info("VSync changed to: {}", value);
         m_window.setVSync(value);
@@ -1898,7 +1905,7 @@ void ClientApplication::setupSettingCallbacks()
         }
     });
 
-    // 浜戞ā寮忓彉鏇?
+    // 云模式变更
     m_settings.clouds.onChange([this](u8 value) {
         spdlog::info("Cloud mode changed to: {}", static_cast<i32>(value));
         if (m_renderer) {
@@ -1906,19 +1913,19 @@ void ClientApplication::setupSettingCallbacks()
         }
     });
 
-    // 榧犳爣鐏垫晱搴﹀彉鏇?
+    // 鼠标灵敏度变更
     m_settings.mouseSensitivity.onChange([this](f32 value) {
         spdlog::info("Mouse sensitivity changed to: {}", value);
-        // 榧犳爣鐏垫晱搴﹀湪 handleEvents 涓簲鐢?
+        // 鼠标灵敏度在 handleEvents 中应用
         });
 
-    // FOV 鍙樻洿
+    // FOV 变更
     m_settings.fov.onChange([this](f32 value) {
         spdlog::info("FOV changed to: {}", value);
         m_camera.setFOV(value);
     });
 
-    // 闆炬皵瀵嗗害鍙樻洿
+    // 雾气密度变更
     m_settings.fogDensity.onChange([this](f32 value) {
         spdlog::info("Fog density changed to: {}", value);
         if (m_renderer) {
@@ -1926,14 +1933,14 @@ void ClientApplication::setupSettingCallbacks()
         }
     });
 
-    // 鍏夌収妯″紡锛堢幆澧冨厜閬斀锛夊彉鏇?
+    // 光照模式（环境光遮蔽）变更
     m_settings.ambientOcclusion.onChange([this](u8 value) {
         auto mode = static_cast<client::AmbientOcclusionMode>(value);
         spdlog::info("Ambient occlusion changed to: {}", static_cast<i32>(mode));
         ChunkMesher::syncFromSettings(mode);
     });
 
-    // 鐢熺墿缇ょ郴棰滆壊娣峰悎鍗婂緞鍙樻洿
+    // 生物群系颜色混合半径变更
     m_settings.biomeBlendRadius.onChange([this](i32 value) {
         spdlog::info("Biome blend radius changed to: {} ({}x{} area)",
                      value, value * 2 + 1, value * 2 + 1);
@@ -1945,7 +1952,7 @@ void ClientApplication::setupSettingCallbacks()
     });
 }
 
-// 杈呭姪鍑芥暟瀹炵幇
+// 辅助函数实现
 
 void ClientApplication::setupInputBindings()
 {
@@ -1976,22 +1983,22 @@ void ClientApplication::setupCamera()
 {
     MC_TRACE_EVENT("client.initialization", "SetupCamera");
 
-    // 璁剧疆鐩告満閰嶇疆
+    // 设置相机配置
     CameraConfig cameraConfig;
     cameraConfig.fov = m_settings.fov.get();
     cameraConfig.aspectRatio = static_cast<f32>(m_window.width()) / static_cast<f32>(m_window.height());
     cameraConfig.nearPlane = 0.1f;
     cameraConfig.farPlane = 1000.0f;
-    cameraConfig.moveSpeed = 10.0f;      // 绉诲姩閫熷害
+    cameraConfig.moveSpeed = 10.0f;      // 移动速度
     cameraConfig.mouseSensitivity = m_settings.mouseSensitivity.get() * 0.2f; // 榧犳爣鐏垫晱搴?
     m_camera = Camera(cameraConfig);
 
-    // 璁剧疆鍒濆浣嶇疆锛堝湪娴嬭瘯鍖哄潡涓婃柟锛?
+    // 设置初始位置（在测试区块上方）
     m_camera.setPosition(8.0f, 50.0f, 8.0f);
     m_camera.setYaw(45.0f);
     m_camera.update(0.0f);
 
-    // 璁剧疆鐩告満鎺у埗鍣?
+    // 设置相机控制器
     m_cameraController.setCamera(&m_camera);
 }
 
@@ -2064,18 +2071,18 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onChunkData = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension, const std::vector<u8>& data) {
-        MC_UNUSED(dimension);  // TODO: 澶氱淮搴︽敮鎸?
+        MC_UNUSED(dimension);  // TODO: 多维度支持
         m_world.onChunkData(x, z, std::vector<u8>(data));
     };
 
     callbacks.onChunkUnload = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension) {
-        MC_UNUSED(dimension);  // TODO: 澶氱淮搴︽敮鎸?
+        MC_UNUSED(dimension);  // TODO: 多维度支持
         m_world.onChunkUnload(x, z);
     };
 
     callbacks.onTeleport = [this](f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 /*teleportId*/) {
         if (m_player) {
-            // 缃戠粶鍗忚浣跨敤 f64锛屽唴閮ㄤ娇鐢?f32
+            // 网络协议使用 f64，内部使用 f32
             m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
             m_player->setRotation(yaw, pitch);
         }
@@ -2084,8 +2091,8 @@ void ClientApplication::setupNetworkCallbacks()
         m_camera.setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
         m_camera.setYaw(yaw);
         m_camera.setPitch(pitch);
-        m_camera.update(0.0f);  // 绔嬪嵆鏇存柊鐩告満鐭╅樀
-        // 娉ㄦ剰锛歴endTeleportConfirm 宸插湪 NetworkClient::handleTeleport 涓皟鐢?
+        m_camera.update(0.0f);  // 立即更新相机矩阵
+        // 注意：sendTeleportConfirm 已在 NetworkClient::handleTeleport 中调用
         };
 
     callbacks.onBlockUpdate = [this](i32 bx, i32 by, i32 bz, u32 blockStateId) {
@@ -2220,7 +2227,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    // ========== 瀹炰綋浜嬩欢鍥炶皟 ==========
+    // ========== 实体事件回调 ==========
     callbacks.onSpawnMob = [this](u32 entityId, const String& typeId,
                                    f32 x, f32 y, f32 z,
                                    f32 yaw, f32 pitch, f32 headYaw) {
@@ -2230,7 +2237,8 @@ void ClientApplication::setupNetworkCallbacks()
             entity->setPosition(x, y, z);
             entity->setRotation(yaw, pitch);
             entity->setHeadRotation(headYaw);
-            // spdlog::info("Client received SpawnMob: {} (ID: {}) at ({:.1f}, {:.1f}, {:.1f})", typeId, entityId, x, y, z);
+            // spdlog::info("Client received SpawnMob: {} (ID: {}) at ({:.1f}, {:.1f}, {:.1f})",
+            //               typeId, entityId, x, y, z);
         }
     };
 
@@ -2269,7 +2277,7 @@ void ClientApplication::setupNetworkCallbacks()
             entity->setPosition(x, y, z);
             entity->setRotation(yaw, pitch);
 
-            // 濡傛灉鏄?ItemEntity锛岃缃墿鍝佹暟鎹?
+            // 如果是 ItemEntity，设置物品数据
             if (itemStack != nullptr && !itemStack->isEmpty()) {
                 entity->setItemStack(*itemStack);
                 spdlog::debug("Client received ItemEntity {} with item: {} x{}",
@@ -2307,7 +2315,7 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onEntityVelocity = [this](u32 entityId, i16 vx, i16 vy, i16 vz) {
         auto* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
         if (entity) {
-            // 閫熷害鍗曚綅杞崲: 1/8000 block/tick -> block/tick
+            // 速度单位转换: 1/8000 block/tick -> block/tick
             entity->setVelocity(
                 static_cast<f32>(vx) / 8000.0f,
                 static_cast<f32>(vy) / 8000.0f,
@@ -2323,14 +2331,16 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityAnimation = [this](u32 entityId, u8 /*animation*/) {
-        // TODO: 澶勭悊瀹炰綋鍔ㄧ敾锛堟尌鎵嬬瓑锛?        (void)entityId;
+        // TODO: 处理实体动画（挥手等）
+        (void)entityId;
     };
 
     callbacks.onEntityStatus = [this](u32 entityId, u8 /*status*/) {
-        // TODO: 澶勭悊瀹炰綋鐘舵€侊紙鍙椾激銆佹浜＄瓑锛?        (void)entityId;
+        // TODO: 处理实体状态（受伤、死亡等）
+        (void)entityId;
     };
 
-    // ========== 澶╂皵鍥炶皟 ==========
+    // ========== 天气回调 ==========
     callbacks.onRainStrengthChange = [this](f32 strength) {
         m_world.onRainStrengthChange(strength);
     };
@@ -2347,10 +2357,10 @@ void ClientApplication::setupNetworkCallbacks()
         m_world.onEndRaining();
     };
 
-    // ========== 娓告垙妯″紡鍥炶皟 ==========
+    // ========== 游戏模式回调 ==========
     callbacks.onGameModeChange = [this](GameMode mode) {
         spdlog::info("Game mode changed to {}", static_cast<int>(mode));
-        // 鏇存柊鏈湴鐜╁鐨勬父鎴忔ā寮?
+        // 更新本地玩家的游戏模式
         if (m_player) {
             m_player->setGameMode(mode);
         }
@@ -2358,11 +2368,11 @@ void ClientApplication::setupNetworkCallbacks()
         closeInventoryScreenIfModeMismatch();
     };
 
-    // ========== 鐜╁鑳藉姏鍥炶皟 ==========
+    // ========== 玩家能力回调 ==========
     callbacks.onPlayerAbilities = [this](bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed) {
         spdlog::debug("Player abilities updated: invulnerable={}, flying={}, canFly={}, creativeMode={}",
                       invulnerable, flying, canFly, creativeMode);
-        // 鏇存柊鏈湴鐜╁鑳藉姏
+        // 更新本地玩家能力
         if (m_player) {
             PlayerAbilities& abilities = m_player->abilities();
             abilities.invulnerable = invulnerable;
@@ -2376,7 +2386,7 @@ void ClientApplication::setupNetworkCallbacks()
         closeInventoryScreenIfModeMismatch();
     };
 
-    // ========== 鍏夌収鏇存柊鍥炶皟 ==========
+    // ========== 光照更新回调 ==========
     callbacks.onLightUpdate = [this](i32 chunkX, i32 chunkZ, i32 sectionY,
                                       const std::vector<u8>& skyLight,
                                       const std::vector<u8>& blockLight,
@@ -2384,25 +2394,25 @@ void ClientApplication::setupNetworkCallbacks()
         m_world.onLightUpdate(chunkX, chunkZ, sectionY, skyLight, blockLight, trustEdges);
     };
 
-    // ========== 鏂瑰潡鐮村潖鍔ㄧ敾鍥炶皟 ==========
+    // ========== 方块破坏动画回调 ==========
     callbacks.onBlockBreakAnim = [this](EntityId breakerEntityId, i32 x, i32 y, i32 z, i8 stage) {
-        // 浣跨敤 BreakProgressManager 鏇存柊杩滅▼鐜╁鐨勬寲鎺樿繘搴?
+        // 使用 BreakProgressManager 更新远程玩家的挖掘进度
         using namespace mc::client::renderer::trident::block;
         auto& manager = BreakProgressManager::instance();
 
         BlockPos pos(x, y, z);
-        u64 currentTick = static_cast<u64>(m_world.gameTime());  // 浣跨敤涓栫晫鏃堕棿
+        u64 currentTick = static_cast<u64>(m_world.gameTime());  // 使用世界时间
 
         if (stage < 0) {
-            // stage = -1 琛ㄧず绉婚櫎鐮村潖鏁堟灉
+            // stage = -1 表示移除破坏效果
             manager.removeRemoteProgress(breakerEntityId);
         } else {
-            // stage = 0-9 琛ㄧず鐮村潖闃舵
+            // stage = 0-9 表示破坏阶段
             manager.updateRemoteProgress(breakerEntityId, pos, stage, currentTick);
         }
     };
 
-    // ========== 澹伴煶鍥炶皟 ==========
+    // ========== 声音回调 ==========
     callbacks.onPlaySound = [this](const ResourceLocation& soundEventId,
                                    mc::sound::SoundCategory category,
                                    f32 x,
@@ -2491,7 +2501,7 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
                              m_breakingBlockPos,
                              m_breakingBlockFace);
 
-        // 娓呴櫎鏈湴鐮村潖杩涘害
+        // 清除本地破坏进度
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().stopBreaking();
 
@@ -2503,7 +2513,7 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
     };
 
     if (!m_mouseCaptured || !m_player) {
-        // 濡傛灉鐢ㄦ埛娌℃湁鎸栨帢鎿嶄綔锛岄偅涔堣繖涓矾寰勬瘡甯ч兘浼氳蛋
+        // 如果用户没有挖掘操作，那么这个路径每帧都会走
         setMiningState(MiningInputState::NoMouseOrPlayer, "mouse not captured or player missing");
         abortBreakingBlock();
         return;
@@ -2540,7 +2550,7 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
         m_breakingBlockActive = true;
         m_breakingBlockProgress = 0.0f;
 
-        // 寮€濮嬫寲鎺?- 鏇存柊 BreakProgressManager
+        // 开始挖掘 - 更新 BreakProgressManager
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().startBreaking(m_breakingBlockPos);
 
@@ -2575,7 +2585,7 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
             return;
         }
 
-        // 鍒涢€犳ā寮忕洿鎺ョ牬鍧?
+        // 创造模式直接破坏
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().stopBreaking();
 
@@ -2598,14 +2608,14 @@ void ClientApplication::handleBlockInteractionInput(f32 deltaTime)
     m_breakingBlockProgress += deltaTime * constants::TICK_RATE *
         calculateBlockBreakingDelta(*m_player, *targetState);
 
-    // 鏇存柊鏈湴鐮村潖杩涘害
+    // 更新本地破坏进度
     {
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().updateLocalProgress(m_breakingBlockPos, m_breakingBlockProgress);
     }
 
     if (m_breakingBlockProgress >= 1.0f) {
-        // 鏂瑰潡琚牬鍧?
+        // 方块被破坏
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().stopBreaking();
 
@@ -2654,20 +2664,20 @@ void ClientApplication::handleBlockPlacementInput(f32 deltaTime)
         return;
     }
 
-    // 妫€鏌ュ彸閿槸鍚﹀垰鍒氭寜涓?
+    // 检查右键是否刚刚按下
     const bool usePressed = m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT);
     if (!usePressed) {
         setPlaceState(PlaceInputState::NoUsePress, "right button not just pressed");
         return;
     }
 
-    // 妫€鏌ユ斁缃喎鍗?
+    // 检查放置冷却
     if (m_placeCooldown > 0.0f) {
         setPlaceState(PlaceInputState::Cooldown, "placement cooldown active");
         return;
     }
 
-    // 妫€鏌ュ皠绾挎槸鍚﹀嚮涓柟鍧?
+    // 检查射线是否击中方块
     if (m_raycastResult.isMiss()) {
         setPlaceState(PlaceInputState::RaycastMiss, "raycast miss on use");
         return;
@@ -2675,14 +2685,14 @@ void ClientApplication::handleBlockPlacementInput(f32 deltaTime)
 
     setPlaceState(PlaceInputState::Active, "right button pressed and target hit");
 
-    // 璁＄畻鍑讳腑鐐圭浉瀵瑰潗鏍?
+    // 计算击中点相对坐标
     BlockPos pos = m_raycastResult.blockPos();
     Direction face = m_raycastResult.face();
     Vector3 hitPos = m_raycastResult.hitPosition();
     Vector3 blockPosFloat(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
-    Vector3 relativeHit = hitPos - blockPosFloat;  // 杞崲涓烘柟鍧楀唴鐩稿鍧愭爣
+    Vector3 relativeHit = hitPos - blockPosFloat;  // 转换为方块内相对坐标
 
-    // 鍙戦€佹斁缃寘
+    // 发送放置包
     sendBlockPlacement(pos, face, relativeHit);
     m_placeCooldown = PLACE_COOLDOWN_TIME;
 }
@@ -2731,7 +2741,7 @@ void ClientApplication::sendPlayerPosition()
 
     const auto& pos = m_player->position();
 
-    // 妫€鏌ユ槸鍚﹂渶瑕佸彂閫侊紙浣嶇疆鎴栨棆杞彉鍖栵級
+    // 检查是否需要发送（位置或旋转变化）
     bool positionChanged =
         std::abs(pos.x - m_lastSentX) > 0.001f ||
         std::abs(pos.y - m_lastSentY) > 0.001f ||
@@ -2757,13 +2767,13 @@ void ClientApplication::sendPlayerPosition()
     } else if (rotationChanged) {
         type = network::PlayerMovePacket::MoveType::Rotation;
     } else {
-        // 鏃犲彉鍖栵紝鍙彂閫佸湴闈㈢姸鎬?
+        // 无变化，只发送地面状态
         type = network::PlayerMovePacket::MoveType::GroundOnly;
     }
 
     m_networkClient->sendPlayerMove(playerPos, type);
 
-    // 鏇存柊涓婃鍙戦€佺殑浣嶇疆
+    // 更新上次发送的位置
     m_lastSentX = pos.x;
     m_lastSentY = pos.y;
     m_lastSentZ = pos.z;
@@ -2802,10 +2812,10 @@ std::vector<String> ClientApplication::collectEntityCompletionCandidates() const
 
 Result<void> ClientApplication::initializeResources()
 {
-    // 1. 鍒涘缓 ResourceManager 骞堕鍏堟坊鍔犲唴缃祫婧愬寘锛堟渶浣庝紭鍏堢骇锛?
+    // 1. 创建 ResourceManager 并首先添加内置资源包（最低优先级）
     m_resourceManager = std::make_unique<ResourceManager>();
 
-    // 娣诲姞鍘熺増鍐呯疆璧勬簮鍖咃紙鎻愪緵鍩虹妯″瀷濡?cube_all, cube_column 绛夛級
+    // 添加原版内置资源包（提供基础模型如 cube_all, cube_column 等）
     auto vanillaPack = VanillaResources::createResourcePack();
     auto vanillaResult = vanillaPack->initialize();
     if (vanillaResult.success()) {
@@ -2815,7 +2825,8 @@ Result<void> ClientApplication::initializeResources()
         spdlog::warn("Failed to initialize vanilla resource pack: {}", vanillaResult.error().toString());
     }
 
-    // 娣诲姞椤圭洰鍐呯疆璧勬簮鍖咃紙鎻愪緵 sounds.json銆侀煶鏁堟枃浠剁瓑锛?    // 璺緞: resources/data/minecraft/ -> assets/minecraft/
+    // 添加项目内置资源包（提供 sounds.json、音效文件等）
+    // 路径: resources/data/minecraft/ -> assets/minecraft/
     auto builtinResourcesPack = std::make_shared<FolderResourcePack>("resources/data/minecraft");
     auto builtinResult = builtinResourcesPack->initialize();
     if (builtinResult.success()) {
@@ -2825,7 +2836,7 @@ Result<void> ClientApplication::initializeResources()
         spdlog::warn("Failed to initialize built-in resources pack: {}", builtinResult.error().toString());
     }
 
-    // 2. 鎵弿璧勬簮鍖呯洰褰?
+    // 2. 扫描资源包目录
     String resourcePackDir = m_settings.resourcePackDir.get();
     if (resourcePackDir.empty()) {
         resourcePackDir = "resourcepacks";
@@ -2839,10 +2850,10 @@ Result<void> ClientApplication::initializeResources()
         spdlog::warn("Failed to scan resource pack directory: {}", scanResult.error().toString());
     }
 
-    // 3. 浠庤缃姞杞借祫婧愬寘閰嶇疆
+    // 3. 从设置加载资源包配置
     m_resourcePackList.loadFromSettings(m_settings.resourcePacks);
 
-    // 4. 娣诲姞鍚敤鐨勮祫婧愬寘锛堝閮ㄨ祫婧愬寘浼樺厛绾ч珮浜庡唴缃級
+    // 4. 添加启用的资源包（外部资源包优先级高于内置）
     auto enabledPacks = m_resourcePackList.getEnabledPacks();
     for (const auto& pack : enabledPacks) {
         auto result = m_resourceManager->addResourcePack(pack);
@@ -2853,7 +2864,7 @@ Result<void> ClientApplication::initializeResources()
         }
     }
 
-    // 5. 鍔犺浇鎵€鏈夎祫婧愶紙濡傛灉鏈夎祫婧愬寘锛?
+    // 5. 加载所有资源（如果有资源包）
     if (m_resourceManager->resourcePackCount() > 0) {
         auto loadResult = m_resourceManager->loadAllResources();
         if (loadResult.failed()) {
@@ -2862,7 +2873,7 @@ Result<void> ClientApplication::initializeResources()
             spdlog::info("Loaded {} resource packs", m_resourceManager->resourcePackCount());
         }
 
-        // 6. 鏋勫缓绾圭悊鍥鹃泦
+        // 6. 构建纹理图集
         auto atlasResult = m_resourceManager->buildTextureAtlas();
         if (atlasResult.failed()) {
             spdlog::warn("Failed to build texture atlas: {}", atlasResult.error().toString());
@@ -2876,17 +2887,17 @@ Result<void> ClientApplication::initializeResources()
         spdlog::info("No resource packs found, using default resources (missing model)");
     }
 
-    // 7. 鍒濆鍖?BlockModelCache锛堝嵆浣挎病鏈夎祫婧愬寘涔熻鍒濆鍖栵紝浣跨敤缂哄け妯″瀷锛?
+    // 7. 初始化 BlockModelCache（即使没有资源包也要初始化，使用缺失模型）
     if (m_modelCache.initialize(*m_resourceManager)) {
         spdlog::info("Block model cache initialized with {} appearances",
                     m_modelCache.cachedAppearanceCount());
-        // 璁剧疆 ChunkMesher 浣跨敤 BlockModelCache
+        // 设置 ChunkMesher 使用 BlockModelCache
         ChunkMesher::setModelCache(&m_modelCache);
     } else {
         spdlog::warn("Failed to initialize block model cache");
     }
 
-    // 8. 璁剧疆璧勬簮鍖呭彉鏇村洖璋?
+    // 8. 设置资源包变更回调
     m_resourcePackList.onChange([this]() {
         spdlog::info("Resource packs changed, reloading...");
         reloadResources();
@@ -2906,24 +2917,25 @@ void ClientApplication::reloadResources()
         return;
     }
 
-    // 娓呴櫎璧勬簮绠＄悊鍣?
+    // 清除资源管理器
     m_resourceManager->clearResourcePacks();
 
-    // 棣栧厛娣诲姞鍐呯疆璧勬簮鍖?
+    // 首先添加内置资源包
     auto vanillaPack = VanillaResources::createResourcePack();
     auto vanillaResult = vanillaPack->initialize();
     if (vanillaResult.success()) {
         (void)m_resourceManager->addResourcePack(std::move(vanillaPack));
     }
 
-    // 娣诲姞椤圭洰鍐呯疆璧勬簮鍖咃紙鎻愪緵 sounds.json銆侀煶鏁堟枃浠剁瓑锛?
+    // 添加项目内置资源包（提供 sounds.json、音效文件等）
+    // 路径: resources/data/minecraft/ -> assets/minecraft/
     auto builtinResourcesPack = std::make_shared<FolderResourcePack>("resources/data/minecraft");
     auto builtinResult = builtinResourcesPack->initialize();
     if (builtinResult.success()) {
         (void)m_resourceManager->addResourcePack(std::move(builtinResourcesPack));
     }
 
-    // 閲嶆柊娣诲姞鍚敤鐨勮祫婧愬寘
+    // 重新添加启用的资源包
     auto enabledPacks = m_resourcePackList.getEnabledPacks();
     for (const auto& pack : enabledPacks) {
         auto result = m_resourceManager->addResourcePack(pack);
@@ -2932,7 +2944,7 @@ void ClientApplication::reloadResources()
         }
     }
 
-    // 閲嶆柊鍔犺浇璧勬簮
+    // 重新加载资源
     if (m_resourceManager->resourcePackCount() > 0) {
         auto loadResult = m_resourceManager->reload();
         if (loadResult.failed()) {
@@ -2940,14 +2952,14 @@ void ClientApplication::reloadResources()
             return;
         }
 
-        // 閲嶆柊鏋勫缓绾圭悊鍥鹃泦
+        // 重新构建纹理图集
         auto atlasResult = m_resourceManager->buildTextureAtlas();
         if (atlasResult.failed()) {
             spdlog::error("Failed to rebuild texture atlas: {}", atlasResult.error().toString());
             return;
         }
 
-        // 閲嶅缓妯″瀷缂撳瓨
+        // 重建模型缓存
         if (m_modelCache.rebuild(*m_resourceManager)) {
             spdlog::info("Reloaded resources: {} appearances cached",
                         m_modelCache.cachedAppearanceCount());
@@ -2980,36 +2992,36 @@ void ClientApplication::handleChatCommand(const String& input)
         return;
     }
 
-    // 鑾峰彇 ChatWidget
+    // 获取 ChatWidget
     auto* chatWidget = m_kageroEngine ?
         static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId)) : nullptr;
 
-    // 娣诲姞鍒拌亰澶╁巻鍙?
+    // 添加到聊天历史
     if (chatWidget) {
         chatWidget->addMessage(input, 0xFFFFFFFF);
     }
 
-    // 妫€鏌ユ槸鍚︿负鍛戒护锛堜互 / 寮€澶达級
+    // 检查是否为命令（以 / 开头）
     if (input[0] == '/') {
         String command = input.substr(1);
 
         spdlog::info("Chat command received: {}", std::string(command.begin(), command.end()));
 
-        // 鍙戦€佸埌鏈嶅姟绔?
+        // 发送到服务端
         if (m_networkClient && m_networkClient->isLoggedIn()) {
             m_networkClient->sendChatMessage(input);
         } else {
-            // 鏈湴鍥炴樉
+            // 本地回显
             if (chatWidget) {
                 chatWidget->addSystemMessage("Command executed locally (not connected to server)");
             }
         }
     } else {
-        // 鏅€氳亰澶╂秷鎭紝鍙戦€佸埌鏈嶅姟绔?
+        // 普通聊天消息，发送到服务端
         if (m_networkClient && m_networkClient->isLoggedIn()) {
             m_networkClient->sendChatMessage(input);
         } else {
-            // 鏈湴鍥炴樉
+            // 本地回显
             if (chatWidget) {
                 chatWidget->addSystemMessage("Message sent locally (not connected to server)");
             }
