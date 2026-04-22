@@ -10,6 +10,8 @@
 #include <type_traits>
 #include <stdexcept>
 
+#include "common/perfetto/TraceEvents.hpp"
+
 namespace mc {
 
 /**
@@ -56,6 +58,8 @@ public:
      */
     template<typename BlockType, typename... Args>
     BlockType& registerBlock(const ResourceLocation& id, Args&&... args) {
+        MC_TRACE_EVENT("client.initialization", "registerBlock", "id", id.toString());
+
         static_assert(std::is_base_of_v<Block, BlockType>,
                       "BlockType must inherit from Block");
 

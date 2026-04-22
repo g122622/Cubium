@@ -248,4 +248,36 @@ TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap) {
     }
 }
 
+TEST(BaseLightEngineQueueTest, ChunkDataEmptinessMapsRoundTripWithoutNullCrash) {
+    mc::ChunkData chunk(0, 0);
+
+    std::array<bool, mc::ChunkData::LIGHT_SECTIONS> skyMap{};
+    std::array<bool, mc::ChunkData::LIGHT_SECTIONS> blockMap{};
+
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+        skyMap[static_cast<size_t>(sectionIndex)] = (sectionIndex % 2) == 0;
+        blockMap[static_cast<size_t>(sectionIndex)] = (sectionIndex % 2) != 0;
+    }
+
+    chunk.setSkyEmptinessMap(skyMap.data());
+    chunk.setBlockEmptinessMap(blockMap.data());
+
+    const bool* skyResult = chunk.getSkyEmptinessMap();
+    const bool* blockResult = chunk.getBlockEmptinessMap();
+
+    ASSERT_NE(skyResult, nullptr);
+    ASSERT_NE(blockResult, nullptr);
+
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+        EXPECT_EQ(skyResult[sectionIndex], skyMap[static_cast<size_t>(sectionIndex)]);
+        EXPECT_EQ(blockResult[sectionIndex], blockMap[static_cast<size_t>(sectionIndex)]);
+    }
+
+    chunk.setSkyEmptinessMap(nullptr);
+    chunk.setBlockEmptinessMap(nullptr);
+
+    EXPECT_EQ(chunk.getSkyEmptinessMap(), nullptr);
+    EXPECT_EQ(chunk.getBlockEmptinessMap(), nullptr);
+}
+
 } // namespace

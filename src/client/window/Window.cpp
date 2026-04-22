@@ -82,6 +82,17 @@ Result<void> Window::create(const WindowConfig& config)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Vulkan
     glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
+
+    // TODO: MSAA支持
+    // 对于 Vulkan，这行代码**远远不够**。`glfwWindowHint(GLFW_SAMPLES, 4)` 仅在 OpenGL 下有效，对 Vulkan **无效**。
+    // 要在 Vulkan 中启用 MSAA，需要手动完成一整套配置：
+    // **1. 创建窗口前**：仍需设置 `glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)` 禁用 OpenGL 上下文。
+    // **2. 查询硬件支持**：从 `VkPhysicalDeviceProperties` 查询设备支持的最大采样数（颜色和深度附件的采样数交集）。
+    // **3. 创建多重采样资源**：创建 `VK_SAMPLE_COUNT_4_BIT` 的多重采样颜色和深度图像。
+    // **4. 配置渲染通道**：在 `VkAttachmentDescription` 中将颜色/深度附件的 `samples` 设置为 4，并添加一个 `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT` 的单采样解析附件。
+    // **5. 配置图形管线**：设置 `VkPipelineMultisampleStateCreateInfo` 的 `rasterizationSamples = VK_SAMPLE_COUNT_4_BIT`。
+    // **6. 创建帧缓冲**：使用多重采样图像视图和单采样解析图像视图创建 `VkFramebuffer`。
+    // > **补充说明**：GLFW 的 `GLFW_SAMPLES` 提示仅对 OpenGL 上下文有效，它提示 GLFW 创建一个多重采样的帧缓冲。而 Vulkan 不依赖 GLFW 管理帧缓冲，完全由开发者通过 Vulkan API 显式创建和控制，GLFW 仅负责窗口管理。
     glfwWindowHint(GLFW_SAMPLES, config.samples);
 
     // 创建窗口

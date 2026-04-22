@@ -53,7 +53,7 @@ void ClientApplication::updatePlayerAudio()
     // updateMoveDistance 在 Player::updatePhysics 中调用
     // 这里检查是否需要播放音频
     if (m_audioService && !m_player->isSilent()) {
-        // 澶勭悊娓告吵澹?
+        // 处理游泳声
         if (m_player->shouldPlaySwimSound()) {
             auto swimSound = std::make_unique<sound::SoundInstance>(
                 sound::SoundInstance::createLocated(
@@ -66,7 +66,7 @@ void ClientApplication::updatePlayerAudio()
             );
             m_audioService->play(std::move(swimSound));
         }
-        // 澶勭悊鑴氭澹?
+        // 处理脚步声
         else if (m_player->shouldPlayStepSound()) {
             // 获取脚下方块的 BlockState 来选择正确的声音
             const auto* blockState = m_world.getBlockState(
@@ -90,7 +90,7 @@ void ClientApplication::updatePlayerAudio()
                 );
                 m_audioService->play(std::move(stepSound));
             } else {
-                // 榛樿浣跨敤鐭冲ご鑴氭澹?
+                // 默认使用石头脚步声
                 auto stepSound = std::make_unique<sound::SoundInstance>(
                     sound::SoundInstance::createLocated(
                         ResourceLocation("minecraft:block.stone.step"),

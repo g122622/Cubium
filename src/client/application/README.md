@@ -4,11 +4,26 @@
 
 ## 目录结构
 
-```
+```text
 src/client/application/
-├── ClientApplication.hpp    # 客户端应用头文件
-├── ClientApplication.cpp    # 客户端应用实现
-└── README.md               # 本文档
+├── ClientApplication.hpp          # 客户端应用主接口
+├── ClientApplication.cpp          # 只保留生命周期编排、主循环和少量共享实现
+├── features/                      # 从 ClientApplication 拆分出来的功能实现
+│   ├── ClientApplicationAudio.cpp
+│   ├── ClientApplicationBootstrap.cpp
+│   ├── ClientApplicationHelpers.cpp
+│   ├── ClientApplicationHelpers.hpp
+│   ├── ClientApplicationInput.cpp
+│   ├── ClientApplicationNetwork.cpp
+│   ├── ClientApplicationResource.cpp
+│   ├── ClientApplicationSettings.cpp
+│   ├── ClientApplicationTargetInfo.cpp
+│   ├── ClientApplicationTargetInfoUi.cpp
+│   ├── ClientApplicationTimeWeather.cpp
+│   ├── ClientApplicationUi.cpp
+│   ├── ClientApplicationUiFrame.cpp
+│   └── README.md               # 功能拆分说明
+└── README.md                   # 本文档
 ```
 
 ## 文件详解
@@ -58,7 +73,11 @@ src/client/application/
 
 ### ClientApplication.cpp
 
-客户端应用的实现文件，包含约 2268 行代码。
+客户端应用的主协调文件，保留生命周期编排、主循环和跨功能共享逻辑，具体功能实现已经拆分到 `features/` 目录。
+
+### features/
+
+拆分后的功能实现目录，按职责划分为初始化骨架、输入、网络、音频、资源、UI、时间天气、目标信息、设置与通用辅助逻辑。详细说明见 [features/README.md](features/README.md)。
 
 #### 主要功能模块
 
@@ -165,21 +184,33 @@ void ClientApplication::setupNetworkCallbacks()
 | `onChunkUnload` | 卸载区块 |
 | `onTeleport` | 传送玩家 |
 | `onBlockUpdate` | 方块更新 |
+| `onPlayerMove` | 同步远程玩家位置 |
 | `onTimeUpdate` | 时间同步 |
 | `onPlayerInventory` | 玩家背包同步 |
 | `onOpenContainer` | 打开容器 |
 | `onContainerContent` | 容器内容同步 |
+| `onContainerSlot` | 容器单槽更新 |
+| `onCloseContainer` | 关闭容器 |
 | `onSpawnMob` | 生成生物 |
 | `onPlayerSpawn` | 玩家生成，刷新命令补全候选 |
 | `onPlayerDespawn` | 玩家消失，移除补全候选 |
 | `onSpawnEntity` | 生成实体 |
 | `onEntityMove` | 实体移动 |
 | `onEntityTeleport` | 实体传送 |
+| `onEntityVelocity` | 实体速度同步 |
+| `onEntityMetadata` | 实体元数据同步 |
+| `onEntityHeadLook` | 实体头部朝向 |
+| `onEntityStatus` | 实体状态 |
 | `onRainStrengthChange` | 雨强度变化 |
+| `onThunderStrengthChange` | 雷暴强度变化 |
+| `onBeginRaining` | 开始下雨 |
+| `onEndRaining` | 结束下雨 |
 | `onGameModeChange` | 游戏模式变化 |
 | `onPlayerAbilities` | 玩家能力更新 |
 | `onLightUpdate` | 光照更新 |
 | `onBlockBreakAnim` | 方块破坏动画 |
+| `onSetExperience` | 玩家经验同步 |
+| `onSpawnExperienceOrb` | 生成经验球 |
 
 #### 方块交互系统
 
@@ -396,7 +427,7 @@ app.stop();
 
 ClientApplication 的初始化有严格的顺序依赖：
 
-```
+```text
 资源系统 → 渲染器 → GUI 图集 → UI 引擎
 ```
 
@@ -574,7 +605,7 @@ MC_TRACE_COUNTER("rendering.frame", "FPS", static_cast<i64>(1.0 / deltaTime));
 MC_TRACE_INSTANT("client.input.mining", "startBreaking", ...);
 ```
 
-生成的追踪文件 `client_trace.perfetto-trace` 可用 https://ui.perfetto.dev 分析。
+生成的追踪文件 `client_trace.perfetto-trace` 可用 [Perfetto UI](https://ui.perfetto.dev) 分析。
 
 ## 构建命令
 

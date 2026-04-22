@@ -28,6 +28,7 @@
 #include <atomic>
 #include <filesystem>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::client::command {
 class ClientCommandManager;

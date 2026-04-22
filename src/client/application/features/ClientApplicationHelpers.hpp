@@ -17,6 +17,7 @@
 
 #include "client/input/InputManager.hpp"
 
+#include <algorithm>
 #include <vector>
 
 namespace mc::client::application::features {

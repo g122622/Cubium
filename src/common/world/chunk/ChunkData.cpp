@@ -161,7 +161,7 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
     std::vector<u8> blockLightData(data + offset, data + offset + NibbleArray::BYTE_SIZE);
     section->m_blockLight = NibbleArray(std::move(blockLightData));
 
-    return section;
+    return std::move(section);
 }
 
 void ChunkSection::fill(u32 stateId) {
@@ -528,7 +528,7 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
     }
 
     chunk->m_loaded = true;
-    return chunk;
+    return std::move(chunk);
 }
 
 void ChunkData::fill(BlockCoord minY, BlockCoord maxY, u32 stateId) {
@@ -656,16 +656,10 @@ ChunkDataRef& ChunkDataRef::operator=(ChunkDataRef&& other) noexcept {
 
 void ChunkData::initLightData() {
     // 初始化空映射（大小为 LIGHT_SECTIONS，包含上下缓冲区）
-    m_skyEmptinessMap.resize(LIGHT_SECTIONS, false);
-    m_blockEmptinessMap.resize(LIGHT_SECTIONS, false);
-
-    // 初始化原始指针数组
-    m_skyEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
-    m_blockEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
-    for (size_t i = 0; i < LIGHT_SECTIONS; ++i) {
-        m_skyEmptinessMapRaw[i] = false;
-        m_blockEmptinessMapRaw[i] = false;
-    }
+    m_skyEmptinessMap.fill(false);
+    m_blockEmptinessMap.fill(false);
+    m_hasSkyEmptinessMap = false;
+    m_hasBlockEmptinessMap = false;
 
     // 初始化 Nibble 数组（延迟初始化状态）
     for (size_t i = 0; i < LIGHT_SECTIONS; ++i) {
@@ -690,59 +684,39 @@ void ChunkData::ensureNibblePtrs() const {
 }
 
 const bool* ChunkData::getSkyEmptinessMap() const {
-    if (m_skyEmptinessMap.empty()) {
+    if (!m_hasSkyEmptinessMap) {
         return nullptr;
     }
-    // 注意：std::vector<bool> 特化不支持 data()，使用 m_skyEmptinessMapRaw 代替
-    return m_skyEmptinessMapRaw.get();
+    return m_skyEmptinessMap.data();
 }
 
 void ChunkData::setSkyEmptinessMap(const bool* map) {
     if (map == nullptr) {
-        m_skyEmptinessMap.clear();
-        m_skyEmptinessMapRaw.reset();
+        m_hasSkyEmptinessMap = false;
+        m_skyEmptinessMap.fill(false);
         return;
     }
 
-    if (m_skyEmptinessMap.size() != static_cast<size_t>(LIGHT_SECTIONS)) {
-        m_skyEmptinessMap.resize(LIGHT_SECTIONS);
-    }
-
-    std::copy(map, map + LIGHT_SECTIONS, m_skyEmptinessMap.begin());
-
-    // 同时更新原始数组
-    if (!m_skyEmptinessMapRaw) {
-        m_skyEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
-    }
-    std::copy(map, map + LIGHT_SECTIONS, m_skyEmptinessMapRaw.get());
+    std::copy_n(map, LIGHT_SECTIONS, m_skyEmptinessMap.begin());
+    m_hasSkyEmptinessMap = true;
 }
 
 const bool* ChunkData::getBlockEmptinessMap() const {
-    if (m_blockEmptinessMap.empty()) {
+    if (!m_hasBlockEmptinessMap) {
         return nullptr;
     }
-    // 注意：std::vector<bool> 特化不支持 data()，使用 m_blockEmptinessMapRaw 代替
-    return m_blockEmptinessMapRaw.get();
+    return m_blockEmptinessMap.data();
 }
 
 void ChunkData::setBlockEmptinessMap(const bool* map) {
     if (map == nullptr) {
-        m_blockEmptinessMap.clear();
-        m_blockEmptinessMapRaw.reset();
+        m_hasBlockEmptinessMap = false;
+        m_blockEmptinessMap.fill(false);
         return;
     }
 
-    if (m_blockEmptinessMap.size() != static_cast<size_t>(LIGHT_SECTIONS)) {
-        m_blockEmptinessMap.resize(LIGHT_SECTIONS);
-    }
-
-    std::copy(map, map + LIGHT_SECTIONS, m_blockEmptinessMap.begin());
-
-    // 同时更新原始数组
-    if (!m_blockEmptinessMapRaw) {
-        m_blockEmptinessMapRaw = std::make_unique<bool[]>(LIGHT_SECTIONS);
-    }
-    std::copy(map, map + LIGHT_SECTIONS, m_blockEmptinessMapRaw.get());
+    std::copy_n(map, LIGHT_SECTIONS, m_blockEmptinessMap.begin());
+    m_hasBlockEmptinessMap = true;
 }
 
 SWMRNibbleArray* const* ChunkData::getSkyNibbles() const {

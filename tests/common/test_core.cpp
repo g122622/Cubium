@@ -151,6 +151,18 @@ TEST(Result, MoveSemantics) {
     EXPECT_EQ(*ptr, 42);
 }
 
+TEST(Result, MoveOnlyValueConstructsAndMoves) {
+    Result<std::unique_ptr<i32>> result(std::make_unique<i32>(7));
+
+    EXPECT_TRUE(result.success());
+    EXPECT_NE(result.value(), nullptr);
+    EXPECT_EQ(*result.value(), 7);
+
+    auto moved = std::move(result.value());
+    EXPECT_NE(moved, nullptr);
+    EXPECT_EQ(*moved, 7);
+}
+
 // ============================================================================
 // Error类测试
 // ============================================================================

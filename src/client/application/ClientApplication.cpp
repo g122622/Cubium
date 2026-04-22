@@ -329,10 +329,10 @@ void ClientApplication::update(f32 deltaTime)
             bobX = std::sin(m_bobAngle) * 0.1f;
 
             // 计算 Y 晃动（上下摆动）
-            // MC 浣跨敤 cos 鐨勭粷瀵瑰€兼潵浜х敓涓婁笅鏅冨姩
+            // MC 使用 cos 的绝对值来产生上下晃动
             bobY = std::abs(std::cos(m_bobAngle)) * 0.1f;
 
-            // 娓告吵鏃剁殑棰濆鏅冨姩
+            // 游泳时的额外晃动
             if (m_player->isSwimming()) {
                 // 游泳时有额外的左右晃动
                 bobX += std::sin(m_bobPhase * 2.0f) * 0.05f;
@@ -497,7 +497,7 @@ void ClientApplication::shutdown()
         m_guiTextureManager.reset();
     }
 
-    // 娓呯悊娓叉煋鍣?
+    // 清理渲染器
     if (m_renderer) {
         m_renderer->destroy();
         m_renderer.reset();

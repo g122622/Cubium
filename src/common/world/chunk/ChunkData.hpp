@@ -320,12 +320,12 @@ private:
     std::array<SWMRNibbleArray, LIGHT_SECTIONS> m_blockNibbles;
 
     // 天空光照空映射 (每个区块段一个)
-    std::vector<bool> m_skyEmptinessMap;
-    std::unique_ptr<bool[]> m_skyEmptinessMapRaw;  // 用于返回原始指针
+    std::array<bool, LIGHT_SECTIONS> m_skyEmptinessMap{};
+    bool m_hasSkyEmptinessMap = false;
 
     // 方块光照空映射 (每个区块段一个)
-    std::vector<bool> m_blockEmptinessMap;
-    std::unique_ptr<bool[]> m_blockEmptinessMapRaw;  // 用于返回原始指针
+    std::array<bool, LIGHT_SECTIONS> m_blockEmptinessMap{};
+    bool m_hasBlockEmptinessMap = false;
 
     // Nibble 数组指针数组（用于 getSkyNibbles/getBlockNibbles 接口）
     mutable std::array<SWMRNibbleArray*, LIGHT_SECTIONS> m_skyNibblePtrs{};

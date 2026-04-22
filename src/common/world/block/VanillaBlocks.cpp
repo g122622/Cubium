@@ -61,6 +61,8 @@
 #include "../fluid/fluids/WaterFluid.hpp"
 #include "../fluid/fluids/LavaFluid.hpp"
 
+#include "common/perfetto/TraceEvents.hpp"
+
 namespace mc {
 
 // ============================================================================
@@ -505,31 +507,106 @@ void VanillaBlocks::initialize() {
         return;
     }
 
-    registerBaseBlocks();
-    registerOreBlocks();
-    registerLogBlocks();
-    registerStoneVariants();
-    registerDirtVariants();
-    registerSandstones();
-    registerMineralBlocks();
-    registerBuildingBlocks();
-    registerFunctionalBlocks();
-    registerRedstoneBlocks();
-    registerWoolBlocks();
-    registerPlanksVariants();
-    registerNetherBlocks();
-    registerTreeVariants();
-    registerVegetationBlocks();
-    registerColoredBlocks();
-    registerStoneBricks();
-    registerQuartzBlocks();
-    registerPrismarineBlocks();
-    registerPurpurBlocks();
-    registerEndBlocks();
-    registerBoneAndHayBlocks();
-    registerNetherExtensionBlocks();
-    registerNaturalBlocks();
-    registerStairsSlabsWalls();
+    {
+        MC_TRACE_EVENT("client.initialization", "registerBaseBlocks");
+        registerBaseBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerOreBlocks");
+        registerOreBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerLogBlocks");
+        registerLogBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerStoneVariants");
+        registerStoneVariants();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerDirtVariants");
+        registerDirtVariants();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerSandstones");
+        registerSandstones();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerMineralBlocks");
+        registerMineralBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerBuildingBlocks");
+        registerBuildingBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerFunctionalBlocks");
+        registerFunctionalBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerRedstoneBlocks");
+        registerRedstoneBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerWoolBlocks");
+        registerWoolBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerPlanksVariants");
+        registerPlanksVariants();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerNetherBlocks");
+        registerNetherBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerTreeVariants");
+        registerTreeVariants();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerVegetationBlocks");
+        registerVegetationBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerColoredBlocks");
+        registerColoredBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerStoneBricks");
+        registerStoneBricks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerQuartzBlocks");
+        registerQuartzBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerPrismarineBlocks");
+        registerPrismarineBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerPurpurBlocks");
+        registerPurpurBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerEndBlocks");
+        registerEndBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerBoneAndHayBlocks");
+        registerBoneAndHayBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerNetherExtensionBlocks");
+        registerNetherExtensionBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerNaturalBlocks");
+        registerNaturalBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerStairsSlabsWalls");
+        registerStairsSlabsWalls();
+    }
 
     s_initialized = true;
 }

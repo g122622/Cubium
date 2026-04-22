@@ -2,11 +2,12 @@
 
 #include "Types.hpp"
 
-#include <variant>
 #include <string>
 #include <optional>
 #include <stdexcept>
 #include <functional>
+#include <type_traits>
+#include <memory>
 
 namespace mc {
 
@@ -203,26 +204,32 @@ public:
     // 构造函数
     Result() = delete;
 
-    Result(T value) // NOLINT: 允许隐式转换
-        : m_data(std::move(value))
+    template<typename U,
+             typename = std::enable_if_t<std::is_constructible_v<T, U&&> &&
+                                         !std::is_same_v<std::decay_t<U>, Result> &&
+                                         !std::is_same_v<std::decay_t<U>, Error>>>
+    Result(U&& value) // NOLINT: 允许隐式转换
+        : m_value(std::in_place, std::forward<U>(value))
+        , m_success(true)
     {
     }
 
     Result(Error error) // NOLINT: 允许隐式转换
-        : m_data(std::move(error))
+        : m_success(false)
+        , m_error(std::move(error))
     {
     }
 
     // 拷贝和移动
-    Result(const Result&) = default;
+    Result(const Result&) = delete;
     Result(Result&&) noexcept = default;
-    Result& operator=(const Result&) = default;
+    Result& operator=(const Result&) = delete;
     Result& operator=(Result&&) noexcept = default;
 
     // 查询状态
     [[nodiscard]] bool success() const noexcept
     {
-        return std::holds_alternative<T>(m_data);
+        return m_success;
     }
 
     [[nodiscard]] bool failed() const noexcept
@@ -241,7 +248,7 @@ public:
         if (failed()) {
             throw std::runtime_error("Result contains error: " + error().toString());
         }
-        return std::get<T>(m_data);
+        return *m_value;
     }
 
     [[nodiscard]] const T& value() const&
@@ -249,7 +256,7 @@ public:
         if (failed()) {
             throw std::runtime_error("Result contains error: " + error().toString());
         }
-        return std::get<T>(m_data);
+        return *m_value;
     }
 
     [[nodiscard]] T&& value() &&
@@ -257,7 +264,7 @@ public:
         if (failed()) {
             throw std::runtime_error("Result contains error: " + error().toString());
         }
-        return std::get<T>(std::move(m_data));
+        return std::move(*m_value);
     }
 
     // 获取值或默认值
@@ -274,9 +281,7 @@ public:
     // 获取错误
     [[nodiscard]] const Error& error() const noexcept
     {
-        return std::holds_alternative<Error>(m_data)
-                   ? std::get<Error>(m_data)
-                   : m_successError;
+        return m_success ? m_successError : m_error;
     }
 
     // 转换操作
@@ -295,11 +300,13 @@ public:
         if (success()) {
             return f(std::move(value()));
         }
-        return std::get<Error>(std::move(m_data));
+        return error();
     }
 
 private:
-    std::variant<T, Error> m_data;
+    std::optional<T> m_value;
+    Error m_error;
+    bool m_success = false;
     static inline Error m_successError{ErrorCode::Success};
 };
 
@@ -341,6 +348,81 @@ public:
 private:
     bool m_success;
     Error m_error;
+};
+
+// ============================================================================
+// Result<std::unique_ptr<T>> 特化
+// ============================================================================
+
+template<typename T, typename Deleter>
+class Result<std::unique_ptr<T, Deleter>> {
+public:
+    Result() = delete;
+
+    Result(std::unique_ptr<T, Deleter>&& value) // NOLINT: 允许隐式转换
+        : m_value(value.release())
+        , m_deleter(std::move(value.get_deleter()))
+        , m_success(true)
+    {
+    }
+
+    Result(Error error) // NOLINT: 允许隐式转换
+        : m_success(false)
+        , m_error(std::move(error))
+    {
+    }
+
+    Result(const Result&) = delete;
+    Result(Result&&) noexcept = default;
+    Result& operator=(const Result&) = delete;
+    Result& operator=(Result&&) noexcept = default;
+
+    [[nodiscard]] bool success() const noexcept { return m_success; }
+    [[nodiscard]] bool failed() const noexcept { return !m_success; }
+    [[nodiscard]] explicit operator bool() const noexcept { return m_success; }
+
+    [[nodiscard]] std::unique_ptr<T, Deleter> value() &
+    {
+        if (failed()) {
+            throw std::runtime_error("Result contains error: " + error().toString());
+        }
+        return takeValue();
+    }
+
+    [[nodiscard]] std::unique_ptr<T, Deleter> value() const&
+    {
+        if (failed()) {
+            throw std::runtime_error("Result contains error: " + error().toString());
+        }
+        return const_cast<Result*>(this)->takeValue();
+    }
+
+    [[nodiscard]] std::unique_ptr<T, Deleter> value() &&
+    {
+        if (failed()) {
+            throw std::runtime_error("Result contains error: " + error().toString());
+        }
+        return takeValue();
+    }
+
+    [[nodiscard]] const Error& error() const noexcept
+    {
+        return m_success ? m_successError : m_error;
+    }
+
+private:
+    [[nodiscard]] std::unique_ptr<T, Deleter> takeValue()
+    {
+        T* value = m_value;
+        m_value = nullptr;
+        return std::unique_ptr<T, Deleter>(value, m_deleter);
+    }
+
+    T* m_value = nullptr;
+    Deleter m_deleter{};
+    Error m_error;
+    bool m_success = false;
+    static inline Error m_successError{ErrorCode::Success};
 };
 
 // ============================================================================

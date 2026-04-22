@@ -498,6 +498,8 @@ enum class Operation : u8 { ... };
             - 覆盖层输入放在 `handleUiOverlayInput()`，游戏快捷键放在 `handleGameplayShortcutInput()`，玩家视角/移动放在 `handleMouseAndMovementInput()`，不要把新逻辑再塞回 `handleEvents()`。
         - `ClientApplication::handleBlockMiningInput()` 和 `handleBlockPlacementInput()` 已分开。
             - 挖掘的取消、开始、完成逻辑继续留在独立 helper 里，不要重新合并成一个大输入状态机。
+        - `ClientApplicationNetwork.cpp` 里的网络回调必须同时维护世界、实体、容器和经验状态。
+            - 本地玩家、远程玩家、普通实体、经验球和当前打开的容器屏幕都要分别同步，不能把回调留成只接收不落地的空壳。
 
 ## Self-Maintenance Rule
 
