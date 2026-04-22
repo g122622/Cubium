@@ -83,7 +83,7 @@ public:
      * @param config 配置参数
      * @return 成功返回 true
      */
-    [[nodiscard]] bool initialize(const Config& config);
+    [[nodiscard]] bool initialize(const Config& config, VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 清理资源
@@ -138,7 +138,7 @@ private:
     /**
      * @brief 创建管线
      */
-    [[nodiscard]] bool createPipeline();
+    [[nodiscard]] bool createPipeline(VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 创建顶点/索引缓冲区

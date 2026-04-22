@@ -90,7 +90,8 @@ Result<void> EntityPipeline::initialize(
     VkRenderPass renderPass,
     VkDescriptorSetLayout cameraDescriptorLayout,
     VkDescriptorPool descriptorPool,
-    VkCommandPool commandPool) {
+       VkCommandPool commandPool,
+       VkSampleCountFlagBits sampleCount) {
     if (m_initialized) {
         return Result<void>::ok();
     }
@@ -124,8 +125,8 @@ Result<void> EntityPipeline::initialize(
         return result.error();
     }
 
-    // 创建图形管线
-    result = createGraphicsPipeline(renderPass, cameraDescriptorLayout);
+       // 创建图形管线
+       result = createGraphicsPipeline(renderPass, cameraDescriptorLayout, sampleCount);
     if (!result.success()) {
         destroy();
         return result.error();
@@ -490,7 +491,8 @@ Result<void> EntityPipeline::createDescriptorSets() {
 }
 
 Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
-                                                      VkDescriptorSetLayout cameraDescriptorLayout) {
+                                                      VkDescriptorSetLayout cameraDescriptorLayout,
+                                                      VkSampleCountFlagBits sampleCount) {
     // 着色器路径
     const auto vertPath = resolveShaderPath("entity.vert.spv");
     const auto fragPath = resolveShaderPath("entity.frag.spv");
@@ -568,7 +570,7 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   multisampling.rasterizationSamples = sampleCount;
 
     // 深度/模板
     VkPipelineDepthStencilStateCreateInfo depthStencil{};

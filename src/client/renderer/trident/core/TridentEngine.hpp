@@ -610,6 +610,7 @@ private:
     // 配置
     api::RenderEngineConfig m_config;
     TridentConfig m_tridentConfig;
+    VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     // 帧上下文
     api::FrameContext m_frameContext;

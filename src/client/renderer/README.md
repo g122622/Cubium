@@ -386,6 +386,7 @@ scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
 - 帧渲染循环管理
 - 资源创建代理
 - 渲染回调系统
+- 根据客户端抗锯齿开关和设备能力选择实际的 MSAA sample count，并同步给渲染通道和主通道管线
 
 ##### TridentSwapchain.hpp/cpp - 交换链
 
@@ -400,7 +401,7 @@ scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
 
 - **DescriptorManager**：描述符集布局、描述符池、描述符集分配
 - **FrameManager**：命令缓冲区、信号量、栅栏、帧生命周期
-- **RenderPassManager**：渲染通道、深度缓冲区、帧缓冲区
+- **RenderPassManager**：渲染通道、深度缓冲区、帧缓冲区；多重采样开启时会额外创建 multisampled color/depth attachment 和 resolve attachment
 - **UniformManager**：相机和光照 Uniform 缓冲区管理
 
 ##### buffer/TridentBuffer.hpp/cpp - 缓冲区实现
@@ -420,7 +421,7 @@ scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
 
 **主要内容**：
 - `TridentPipeline`：Vulkan 图形管线
-- `TridentPipelineConfig`：管线配置
+- `TridentPipelineConfig`：管线配置（主通道由 `TridentEngine` 填充实际 `rasterizationSamples`）
 - `TridentPipelineCache`：管线缓存
 
 ##### texture/TridentTexture.hpp/cpp - 纹理实现

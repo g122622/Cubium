@@ -116,7 +116,8 @@ Result<void> FirstPersonRenderer::initialize(
     VkDescriptorSetLayout cameraDescriptorLayout,
     VkDescriptorPool descriptorPool,
     EntityTextureAtlas* entityTextureAtlas,
-    u32 maxFramesInFlight)
+    u32 maxFramesInFlight,
+    VkSampleCountFlagBits sampleCount)
 {
     if (device == VK_NULL_HANDLE) {
         return Error(ErrorCode::NullPointer, "Device is null");
@@ -152,7 +153,8 @@ Result<void> FirstPersonRenderer::initialize(
         renderPass,
         cameraDescriptorLayout,
         descriptorPool,
-        commandPool
+        commandPool,
+        sampleCount
     );
 
     if (result.failed()) {
@@ -167,7 +169,8 @@ Result<void> FirstPersonRenderer::initialize(
         renderPass,
         cameraDescriptorLayout,
         descriptorPool,
-        commandPool
+        commandPool,
+        sampleCount
     );
 
     if (result.failed()) {

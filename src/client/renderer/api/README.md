@@ -165,7 +165,7 @@ void drawIndexedInstanced(u32 indexCount, u32 instanceCount, ...);
 ```
 
 **辅助类型**：
-- `RenderEngineConfig`：渲染引擎配置
+- `RenderEngineConfig`：渲染引擎配置（窗口尺寸、验证层、VSync 等；多重采样由具体后端内部选择并传播）
 - `FrameContext`：帧上下文（帧索引、相机矩阵等）
 - `RenderBackend`：渲染后端枚举（Vulkan, OpenGL, DirectX, Metal）
 

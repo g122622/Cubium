@@ -53,6 +53,38 @@ struct ChunkPushConstants {
 static_assert(sizeof(ChunkPushConstants) == 80, "ChunkPushConstants layout must match chunk.vert push-constant block");
 static_assert(offsetof(ChunkPushConstants, chunkRelativeOffset) == 64, "ChunkPushConstants offset mismatch");
 
+[[nodiscard]] u32 sampleCountToValue(VkSampleCountFlagBits sampleCount) {
+    switch (sampleCount) {
+        case VK_SAMPLE_COUNT_64_BIT: return 64;
+        case VK_SAMPLE_COUNT_32_BIT: return 32;
+        case VK_SAMPLE_COUNT_16_BIT: return 16;
+        case VK_SAMPLE_COUNT_8_BIT: return 8;
+        case VK_SAMPLE_COUNT_4_BIT: return 4;
+        case VK_SAMPLE_COUNT_2_BIT: return 2;
+        default: return 1;
+    }
+}
+
+[[nodiscard]] VkSampleCountFlagBits selectSampleCount(u32 requestedSamples, VkSampleCountFlagBits supportedSamples) {
+    const std::array<VkSampleCountFlagBits, 7> sampleOrder = {
+        VK_SAMPLE_COUNT_64_BIT,
+        VK_SAMPLE_COUNT_32_BIT,
+        VK_SAMPLE_COUNT_16_BIT,
+        VK_SAMPLE_COUNT_8_BIT,
+        VK_SAMPLE_COUNT_4_BIT,
+        VK_SAMPLE_COUNT_2_BIT,
+        VK_SAMPLE_COUNT_1_BIT
+    };
+
+    for (VkSampleCountFlagBits sampleCount : sampleOrder) {
+        if (requestedSamples >= sampleCountToValue(sampleCount) && (supportedSamples & sampleCount) == sampleCount) {
+            return sampleCount;
+        }
+    }
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
 /**
  * @brief 将 TridentTextureAtlas 适配为 ITextureAtlas 接口
  */
@@ -131,6 +163,16 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
         return contextResult.error();
     }
 
+    const VkSampleCountFlagBits supportedSampleCount = m_context->maxUsableSampleCount();
+    const u32 requestedSampleCount = config.enableAntiAliasing ? std::max<u32>(1u, config.msaaSamples) : 1u;
+    m_msaaSamples = selectSampleCount(requestedSampleCount, supportedSampleCount);
+    m_config.msaaSamples = sampleCountToValue(m_msaaSamples);
+
+    if (config.enableAntiAliasing && m_config.msaaSamples != requestedSampleCount) {
+        spdlog::warn("Requested MSAA x{} is not fully supported by the device, falling back to x{}",
+                     requestedSampleCount, m_config.msaaSamples);
+    }
+
     // 2. 创建交换链
     m_swapchain = std::make_unique<TridentSwapchain>();
     SwapChainConfig swapchainConfig{};
@@ -148,7 +190,7 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
 
     // 3. 创建渲染通道管理器
     m_renderPassManager = std::make_unique<RenderPassManager>();
-    auto renderPassResult = m_renderPassManager->initialize(m_context.get(), m_swapchain.get());
+    auto renderPassResult = m_renderPassManager->initialize(m_context.get(), m_swapchain.get(), m_msaaSamples);
     if (renderPassResult.failed()) {
         m_swapchain->destroy();
         m_context->destroy();
@@ -215,7 +257,7 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
 
     m_initialized = true;
     spdlog::info("Renderer AA config: enabled={}, samples={}",
-                 config.enableAntiAliasing, config.msaaSamples);
+                 config.enableAntiAliasing, m_config.msaaSamples);
     spdlog::info("TridentEngine initialized successfully");
     return {};
 }
@@ -1417,6 +1459,7 @@ Result<void> TridentEngine::initializeChunkRenderer() {
     pipelineConfig.vertexShaderPath = vertPath.string();
     pipelineConfig.fragmentShaderPath = fragPath.string();
     pipelineConfig.renderPass = renderPass();
+    pipelineConfig.rasterizationSamples = m_msaaSamples;
     pipelineConfig.cullMode = VK_CULL_MODE_NONE;
     pipelineConfig.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     pipelineConfig.depthTestEnable = VK_TRUE;
@@ -1504,7 +1547,8 @@ Result<void> TridentEngine::initializeSkyRenderer() {
         commandPool(),
         graphicsQueue(),
         renderPass(),
-        swapchainExtent()
+        swapchainExtent(),
+        m_msaaSamples
     );
 
     if (result.failed()) {
@@ -1532,7 +1576,8 @@ Result<void> TridentEngine::initializeGuiRenderer() {
         device(),
         physicalDevice(),
         commandPool(),
-        renderPass()
+        renderPass(),
+        m_msaaSamples
     );
 
     if (result.failed()) {
@@ -1661,7 +1706,8 @@ Result<void> TridentEngine::initializeEntityRenderer() {
         renderPass(),
         cameraDescriptorLayout(),
         descriptorPool(),
-        commandPool()
+        commandPool(),
+        m_msaaSamples
     );
 
     if (pipelineResult.failed()) {
@@ -1830,6 +1876,7 @@ Result<void> TridentEngine::initializeCloudRenderer(ResourceManager* resourceMan
         graphicsQueue(),
         renderPass(),
         swapchainExtent(),
+        m_msaaSamples,
         resourceManager
     );
 
@@ -1883,7 +1930,8 @@ Result<void> TridentEngine::initializeParticleManager() {
         commandPool(),
         graphicsQueue(),
         renderPass(),
-        swapchainExtent()
+        swapchainExtent(),
+        m_msaaSamples
     );
 
     if (result.failed()) {
@@ -1928,7 +1976,8 @@ Result<void> TridentEngine::initializeWeatherRenderer() {
         commandPool(),
         graphicsQueue(),
         renderPass(),
-        swapchainExtent()
+        swapchainExtent(),
+        m_msaaSamples
     );
 
     if (result.failed()) {
@@ -1974,7 +2023,7 @@ Result<void> TridentEngine::initializeBreakProgressRenderer(ResourceManager* res
     config.maxFramesInFlight = MAX_FRAMES_IN_FLIGHT;
     config.resourceManager = resourceManager;
 
-    if (!m_breakProgressRenderer->initialize(config)) {
+    if (!m_breakProgressRenderer->initialize(config, m_msaaSamples)) {
         m_breakProgressRenderer.reset();
         return Error(ErrorCode::InitializationFailed, "Failed to initialize break progress renderer");
     }
@@ -2015,7 +2064,8 @@ Result<void> TridentEngine::initializeFirstPersonRenderer() {
         cameraDescriptorLayout(),
         descriptorPool(),
         &m_entityTextureAtlas,
-        maxFramesInFlight()
+        maxFramesInFlight(),
+        m_msaaSamples
     );
 
     if (result.failed()) {

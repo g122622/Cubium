@@ -176,6 +176,11 @@ public:
     [[nodiscard]] Result<VkFormat> findDepthFormat() const;
 
     /**
+     * @brief 获取物理设备支持的最高多重采样等级
+     */
+    [[nodiscard]] VkSampleCountFlagBits maxUsableSampleCount() const;
+
+    /**
      * @brief 等待设备空闲
      */
     void waitIdle() const;

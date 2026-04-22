@@ -428,6 +428,8 @@ enum class Operation : u8 { ... };
     - Full-cube emissive sources still need outward propagation; source-face occlusion checks should target conditional shapes.
 - Do not route `BlockModelCache::getBlockAppearance(const BlockState*)` through `toModelKey()` in render hot paths.
     - The `stateId` cache is the intended fast path; rebuilding model keys there reintroduces avoidable string parsing.
+- `TridentEngine` now owns the actual MSAA sample-count selection.
+    - `WindowConfig` no longer carries samples; `TridentContext::maxUsableSampleCount()` clamps the request to hardware limits, `RenderPassManager` creates multisampled color/depth attachments plus a resolve attachment when needed, and every main-pass pipeline must receive the same `VkSampleCountFlagBits`.
 - Do not reintroduce default parameters into lighting APIs.
     - Where a call pattern needs a simplified form, add an overload instead of a default argument.
 - `WorldLightManager::tick(...)` now relies on ordered budget consumption.

@@ -73,7 +73,8 @@ public:
         VkRenderPass renderPass,
         VkDescriptorSetLayout cameraDescriptorLayout,
         VkDescriptorPool descriptorPool,
-        VkCommandPool commandPool);
+        VkCommandPool commandPool,
+        VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 销毁资源
@@ -191,7 +192,8 @@ private:
      * @brief 创建图形管线
      */
     [[nodiscard]] Result<void> createGraphicsPipeline(VkRenderPass renderPass,
-                                                       VkDescriptorSetLayout cameraDescriptorLayout);
+                                                       VkDescriptorSetLayout cameraDescriptorLayout,
+                                                       VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 创建缓冲区

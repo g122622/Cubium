@@ -229,6 +229,7 @@ Result<void> CloudRenderer::initialize(
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
     VkExtent2D extent,
+    VkSampleCountFlagBits sampleCount,
     const ResourceManager* resourceManager) {
     if (m_initialized) {
         return Result<void>::ok();
@@ -278,7 +279,7 @@ Result<void> CloudRenderer::initialize(
         return result6;
     }
 
-    auto result7 = createPipelines();
+    auto result7 = createPipelines(sampleCount);
     if (result7.failed()) {
         return result7;
     }
@@ -1376,7 +1377,7 @@ Result<void> CloudRenderer::createPipelineLayout() {
     return Result<void>::ok();
 }
 
-Result<void> CloudRenderer::createPipelines() {
+Result<void> CloudRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
     // 加载着色器
     const auto vertPath = resolveShaderPath("cloud.vert.spv");
     const auto fragPath = resolveShaderPath("cloud.frag.spv");
@@ -1472,7 +1473,7 @@ Result<void> CloudRenderer::createPipelines() {
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = sampleCount;
 
     // 深度模板
     // 云需要正确自遮挡以避免同一朵云内部出现接缝：

@@ -100,7 +100,8 @@ Result<void> SkyRenderer::initialize(
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
-    VkExtent2D extent) {
+    VkExtent2D extent,
+    VkSampleCountFlagBits sampleCount) {
     if (m_initialized) {
         return Result<void>::ok();
     }
@@ -151,7 +152,7 @@ Result<void> SkyRenderer::initialize(
         return result7;
     }
 
-    auto result8 = createPipelines();
+    auto result8 = createPipelines(sampleCount);
     if (result8.failed()) {
         return result8;
     }
@@ -739,7 +740,7 @@ Result<void> SkyRenderer::createPipelineLayout() {
     return Result<void>::ok();
 }
 
-Result<void> SkyRenderer::createPipelines() {
+Result<void> SkyRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
     const VkDevice device = m_device;
 
     const auto skyVertPath = resolveShaderPath("sky.vert.spv");
@@ -758,7 +759,7 @@ Result<void> SkyRenderer::createPipelines() {
         return Error(ErrorCode::FileNotFound, "Failed to resolve one or more sky shader binaries");
     }
 
-    auto createPipeline = [this, device](const std::filesystem::path& vertPath,
+    auto createPipeline = [this, device, sampleCount](const std::filesystem::path& vertPath,
                                          const std::filesystem::path& fragPath,
                                          VkPrimitiveTopology topology,
                                          VkBool32 blendEnable,
@@ -833,7 +834,7 @@ Result<void> SkyRenderer::createPipelines() {
 
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisampling.rasterizationSamples = sampleCount;
         multisampling.sampleShadingEnable = VK_FALSE;
 
         VkPipelineDepthStencilStateCreateInfo depthStencil{};

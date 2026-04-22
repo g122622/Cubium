@@ -61,7 +61,8 @@ public:
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
         VkRenderPass renderPass,
-        VkExtent2D extent);
+        VkExtent2D extent,
+        VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 销毁资源
@@ -172,7 +173,7 @@ private:
     /**
      * @brief 创建图形管线
      */
-    [[nodiscard]] Result<void> createPipelines();
+    [[nodiscard]] Result<void> createPipelines(VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 更新 Uniform 缓冲区

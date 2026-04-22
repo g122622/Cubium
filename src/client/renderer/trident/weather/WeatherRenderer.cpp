@@ -94,8 +94,8 @@ Result<void> WeatherRenderer::initialize(
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
-    VkExtent2D extent)
-{
+    VkExtent2D extent,
+    VkSampleCountFlagBits sampleCount) {
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "WeatherRenderer already initialized");
     }
@@ -143,7 +143,7 @@ Result<void> WeatherRenderer::initialize(
         return result.error();
     }
 
-    result = createPipelines();
+    result = createPipelines(sampleCount);
     if (!result.success()) {
         return result.error();
     }
@@ -664,7 +664,7 @@ Result<void> WeatherRenderer::createPipelineLayout() {
     return {};
 }
 
-Result<void> WeatherRenderer::createPipelines() {
+Result<void> WeatherRenderer::createPipelines(VkSampleCountFlagBits sampleCount) {
     // 加载 shader
     auto vertPath = resolveShaderPath("weather.vert.spv");
     auto fragPath = resolveShaderPath("weather.frag.spv");
@@ -780,7 +780,7 @@ Result<void> WeatherRenderer::createPipelines() {
     VkPipelineMultisampleStateCreateInfo multisampling = {};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = sampleCount;
 
     // 深度/模板
     VkPipelineDepthStencilStateCreateInfo depthStencil = {};

@@ -79,11 +79,6 @@ Result<void> ClientApplication::initializeWindowAndInput()
         windowConfig.title = "Minecraft Reborn";
         windowConfig.fullscreen = m_settings.fullscreen.get();
         windowConfig.vsync = m_settings.vsync.get();
-        windowConfig.samples = m_settings.antiAliasing.get() ? 4 : 1;
-
-        if (m_settings.antiAliasing.get()) {
-            spdlog::info("Anti-aliasing enabled (MSAA x{})", windowConfig.samples);
-        }
 
         auto windowResult = m_window.create(windowConfig);
         if (windowResult.failed()) {

@@ -35,9 +35,10 @@ public:
      * @brief 初始化渲染通道管理器
      * @param context Trident 上下文
      * @param swapchain 交换链
+        * @param sampleCount 主渲染通道使用的多重采样等级
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(TridentContext* context, TridentSwapchain* swapchain);
+        [[nodiscard]] Result<void> initialize(TridentContext* context, TridentSwapchain* swapchain, VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 销毁所有资源
@@ -57,17 +58,20 @@ public:
     [[nodiscard]] VkFramebuffer framebuffer(u32 index) const;
     [[nodiscard]] VkImageView depthImageView() const { return m_depthImageView; }
     [[nodiscard]] VkFormat depthFormat() const { return m_depthFormat; }
+    [[nodiscard]] VkSampleCountFlagBits sampleCount() const { return m_sampleCount; }
     [[nodiscard]] bool isValid() const { return m_renderPass != VK_NULL_HANDLE; }
     [[nodiscard]] u32 framebufferCount() const { return static_cast<u32>(m_framebuffers.size()); }
 
 private:
     // 创建方法
     [[nodiscard]] Result<void> createRenderPass();
+    [[nodiscard]] Result<void> createColorResources();
     [[nodiscard]] Result<void> createDepthResources();
     [[nodiscard]] Result<void> createFramebuffers();
 
     // 销毁方法
     void destroyRenderPass();
+    void destroyColorResources();
     void destroyDepthResources();
     void destroyFramebuffers();
 
@@ -79,11 +83,16 @@ private:
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     std::vector<VkFramebuffer> m_framebuffers;
 
+    VkImage m_colorImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_colorImageMemory = VK_NULL_HANDLE;
+    VkImageView m_colorImageView = VK_NULL_HANDLE;
+
     // 深度缓冲区
     VkImage m_depthImage = VK_NULL_HANDLE;
     VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
     VkImageView m_depthImageView = VK_NULL_HANDLE;
     VkFormat m_depthFormat = VK_FORMAT_UNDEFINED;
+    VkSampleCountFlagBits m_sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
     // 状态
     bool m_initialized = false;

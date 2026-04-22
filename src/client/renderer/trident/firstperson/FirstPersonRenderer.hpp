@@ -110,7 +110,8 @@ public:
         VkDescriptorSetLayout cameraDescriptorLayout,
         VkDescriptorPool descriptorPool,
         EntityTextureAtlas* entityTextureAtlas,
-        u32 maxFramesInFlight);
+        u32 maxFramesInFlight,
+        VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 销毁资源

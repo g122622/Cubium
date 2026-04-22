@@ -23,7 +23,6 @@ struct WindowConfig {
     bool resizable = true;
     bool decorated = true;
     i32 monitorIndex = 0;
-    i32 samples = 4; // MSAA samples
 };
 
 /**

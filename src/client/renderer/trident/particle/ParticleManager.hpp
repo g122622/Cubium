@@ -65,7 +65,8 @@ public:
         VkCommandPool commandPool,
         VkQueue graphicsQueue,
         VkRenderPass renderPass,
-        VkExtent2D extent);
+        VkExtent2D extent,
+        VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 销毁所有资源
@@ -163,7 +164,7 @@ private:
     [[nodiscard]] Result<void> createDescriptorPool();
     [[nodiscard]] Result<void> createDescriptorSets();
     [[nodiscard]] Result<void> createPipelineLayout();
-    [[nodiscard]] Result<void> createPipelines();
+    [[nodiscard]] Result<void> createPipelines(VkSampleCountFlagBits sampleCount);
     [[nodiscard]] Result<void> createTexture();
 
     void updateUniformBuffer(u32 frameIndex);

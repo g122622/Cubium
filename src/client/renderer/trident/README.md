@@ -18,7 +18,7 @@ trident/
 │   ├── render/              # 渲染管理
 │   │   ├── DescriptorManager.hpp/cpp # 描述符管理
 │   │   ├── FrameManager.hpp/cpp      # 帧同步管理
-│   │   ├── RenderPassManager.hpp/cpp # 渲染通道管理
+│   │   ├── RenderPassManager.hpp/cpp # 渲染通道管理（支持 MSAA + resolve）
 │   │   └── UniformManager.hpp/cpp    # Uniform 缓冲区管理
 │   └── texture/             # 纹理
 │       └── TridentTexture.hpp/cpp    # 纹理/纹理图集
@@ -102,6 +102,7 @@ auto result = context.initialize(window, config);
 - 协调帧渲染流程
 - 处理窗口大小变化
 - 提供渲染资源访问
+- 根据客户端抗锯齿设置和物理设备能力选择实际 sample count，并把它传给渲染通道和主通道渲染器
 
 #### TridentSwapchain
 
@@ -148,6 +149,17 @@ Uniform 缓冲区管理：
 - LightingUBO（光照参数）
 - FogUBO（雾参数）
 - 多帧数据同步
+
+#### render/RenderPassManager
+
+渲染通道管理器负责把主通道的采样模式真正落到 Vulkan 资源上：
+- 单采样时使用传统颜色附件 + 深度附件路径
+- 多采样时创建 multisampled color/depth attachment，并通过 resolve attachment 写回交换链图像
+- 由 `TridentEngine` 统一注入 sample count，避免窗口层和管线层各自做出不一致的判断
+
+#### pipeline/TridentPipeline
+
+管线封装保留 1x 作为通用默认值，但主通道管线会被 `TridentEngine` 覆盖成当前实际 sample count；新增主渲染器时必须沿用同一份采样配置。
 
 #### texture/TridentTexture
 

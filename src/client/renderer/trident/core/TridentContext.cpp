@@ -356,6 +356,20 @@ Result<VkFormat> TridentContext::findDepthFormat() const {
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
+VkSampleCountFlagBits TridentContext::maxUsableSampleCount() const {
+    const VkSampleCountFlags sampleCounts =
+        m_deviceProperties.limits.framebufferColorSampleCounts &
+        m_deviceProperties.limits.framebufferDepthSampleCounts;
+
+    if (sampleCounts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+    if (sampleCounts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+    if (sampleCounts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+    if (sampleCounts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+    if (sampleCounts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+    if (sampleCounts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
 void TridentContext::waitIdle() const {
     if (m_device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_device);

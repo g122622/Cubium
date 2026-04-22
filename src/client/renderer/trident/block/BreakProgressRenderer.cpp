@@ -43,7 +43,7 @@ BreakProgressRenderer::~BreakProgressRenderer() {
 // 初始化
 // ============================================================================
 
-bool BreakProgressRenderer::initialize(const Config& config) {
+bool BreakProgressRenderer::initialize(const Config& config, VkSampleCountFlagBits sampleCount) {
     if (m_initialized) {
         return true;
     }
@@ -58,7 +58,7 @@ bool BreakProgressRenderer::initialize(const Config& config) {
     }
 
     // 创建管线
-    if (!createPipeline()) {
+    if (!createPipeline(sampleCount)) {
         spdlog::error("BreakProgressRenderer: Failed to create pipeline");
         return false;
     }
@@ -296,7 +296,7 @@ void BreakProgressRenderer::render(VkCommandBuffer commandBuffer,
 // 私有方法 - 资源创建
 // ============================================================================
 
-bool BreakProgressRenderer::createPipeline() {
+bool BreakProgressRenderer::createPipeline(VkSampleCountFlagBits sampleCount) {
     // 加载着色器
     auto vertPath = resolveShaderPath("break_overlay.vert.spv");
     auto fragPath = resolveShaderPath("break_overlay.frag.spv");
@@ -434,7 +434,7 @@ bool BreakProgressRenderer::createPipeline() {
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = sampleCount;
 
     // 深度模板
     VkPipelineDepthStencilStateCreateInfo depthStencil{};

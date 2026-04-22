@@ -66,7 +66,8 @@ public:
         VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
-        VkRenderPass renderPass);
+        VkRenderPass renderPass,
+        VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 销毁资源
@@ -306,7 +307,7 @@ private:
     /**
      * @brief 创建图形管线
      */
-    [[nodiscard]] Result<void> createPipeline(VkRenderPass renderPass);
+    [[nodiscard]] Result<void> createPipeline(VkRenderPass renderPass, VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 创建描述符

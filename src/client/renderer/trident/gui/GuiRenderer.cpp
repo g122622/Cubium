@@ -56,7 +56,8 @@ Result<void> GuiRenderer::initialize(
     VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
-    VkRenderPass renderPass) {
+    VkRenderPass renderPass,
+    VkSampleCountFlagBits sampleCount) {
     if (device == VK_NULL_HANDLE) {
         return Error(ErrorCode::NullPointer, "VkDevice is null");
     }
@@ -77,7 +78,7 @@ Result<void> GuiRenderer::initialize(
         return result.error();
     }
 
-    result = createPipeline(renderPass);
+    result = createPipeline(renderPass, sampleCount);
     if (!result.success()) {
         return result.error();
     }
@@ -451,7 +452,7 @@ Result<void> GuiRenderer::createPipelineLayout() {
     return {};
 }
 
-Result<void> GuiRenderer::createPipeline(VkRenderPass renderPass) {
+Result<void> GuiRenderer::createPipeline(VkRenderPass renderPass, VkSampleCountFlagBits sampleCount) {
     VkDevice device = m_device;
 
     const auto vertPath = resolveShaderPath("gui.vert.spv");
@@ -571,7 +572,7 @@ Result<void> GuiRenderer::createPipeline(VkRenderPass renderPass) {
     VkPipelineMultisampleStateCreateInfo multisampling = {};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = sampleCount;
 
     // 深度测试（GUI禁用）
     VkPipelineDepthStencilStateCreateInfo depthStencil = {};

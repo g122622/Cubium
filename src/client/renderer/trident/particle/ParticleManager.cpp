@@ -114,8 +114,8 @@ Result<void> ParticleManager::initialize(
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
-    VkExtent2D extent)
-{
+    VkExtent2D extent,
+    VkSampleCountFlagBits sampleCount) {
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "ParticleManager already initialized");
     }
@@ -169,7 +169,7 @@ Result<void> ParticleManager::initialize(
         return result.error();
     }
 
-    result = createPipelines();
+    result = createPipelines(sampleCount);
     if (!result.success()) {
         return result.error();
     }
@@ -740,7 +740,7 @@ Result<void> ParticleManager::createPipelineLayout() {
     return {};
 }
 
-Result<void> ParticleManager::createPipelines() {
+Result<void> ParticleManager::createPipelines(VkSampleCountFlagBits sampleCount) {
     // 加载 shader
     auto vertPath = resolveShaderPath("particle.vert.spv");
     auto fragPath = resolveShaderPath("particle.frag.spv");
@@ -878,7 +878,7 @@ Result<void> ParticleManager::createPipelines() {
     VkPipelineMultisampleStateCreateInfo multisampling = {};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = sampleCount;
 
     // 深度/模板
     VkPipelineDepthStencilStateCreateInfo depthStencil = {};

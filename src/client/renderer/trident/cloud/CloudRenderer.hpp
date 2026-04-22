@@ -92,7 +92,8 @@ public:
         VkQueue graphicsQueue,
         VkRenderPass renderPass,
         VkExtent2D extent,
-        const ResourceManager* resourceManager = nullptr);
+        VkSampleCountFlagBits sampleCount,
+        const ResourceManager* resourceManager);
 
     /**
      * @brief 热更新云纹理资源
@@ -232,7 +233,7 @@ private:
      *
      * 创建 Fast 和 Fancy 两种模式的管线。
      */
-    [[nodiscard]] Result<void> createPipelines();
+    [[nodiscard]] Result<void> createPipelines(VkSampleCountFlagBits sampleCount);
 
     /**
      * @brief 更新 Uniform 缓冲区

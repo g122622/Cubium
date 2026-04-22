@@ -30,7 +30,6 @@ src/client/window/
 | `resizable` | `bool` | true | 窗口是否可调整大小 |
 | `decorated` | `bool` | true | 是否有窗口装饰（标题栏、边框） |
 | `monitorIndex` | `i32` | 0 | 全屏时使用的显示器索引 |
-| `samples` | `i32` | 4 | MSAA 采样数 |
 
 #### Window 类
 
@@ -127,13 +126,12 @@ if (s_glfwInitCount == 0) {
 
 #### Vulkan 兼容配置
 
-创建窗口时设置 GLFW 为 Vulkan 无 API 模式：
+创建窗口时设置 GLFW 为 Vulkan 无 API 模式，只负责窗口本身的尺寸、装饰和事件回调；多重采样不在窗口层配置，而是在渲染器的 Vulkan 渲染通路中按设备能力单独处理。
 
 ```cpp
 glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);  // Vulkan 不需要 OpenGL 上下文
 glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
 glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
-glfwWindowHint(GLFW_SAMPLES, config.samples);
 ```
 
 #### 回调转发机制
