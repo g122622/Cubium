@@ -727,12 +727,13 @@ void NetworkClient::handleLoginResponse(network::PacketDeserializer& deser) {
     auto& response = result.value();
     if (response.success()) {
         m_playerId = response.playerId();
+        EntityId entityId = response.entityId();
         setState(ClientState::Playing);
 
-        spdlog::info("[NetworkClient::handleLoginResponse] Login successful: playerId={}", m_playerId);
+        spdlog::info("[NetworkClient::handleLoginResponse] Login successful: playerId={}, entityId={}", m_playerId, entityId);
 
         if (m_callbacks.onLoginSuccess) {
-            m_callbacks.onLoginSuccess(m_playerId, response.username());
+            m_callbacks.onLoginSuccess(m_playerId, entityId, response.username());
         }
         if (m_callbacks.onConnected) {
             m_callbacks.onConnected();

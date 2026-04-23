@@ -6,6 +6,7 @@
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -595,7 +596,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     if (result.failed()) {
         spdlog::warn("Failed to parse login request from session {}", sessionId);
-        sendLoginResponse(session.get(), false, 0, "", "Invalid login request");
+        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
         session->disconnect("Invalid login request");
         return;
     }
@@ -608,7 +609,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     // 检查玩家数量限制
     if (m_playerManager->isFull()) {
-        sendLoginResponse(session.get(), false, 0, username, "Server is full");
+        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Server is full");
         session->disconnect("Server is full");
         return;
     }
@@ -616,43 +617,62 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 创建连接
     auto connection = std::make_shared<TcpConnection>(session);
 
-    // 分配玩家ID并添加
+    // 分配玩家ID
     PlayerId playerId = m_playerManager->nextPlayerId();
-    auto* player = m_playerManager->addPlayer(playerId, username, connection);
 
-    if (!player) {
-        sendLoginResponse(session.get(), false, 0, username, "Failed to add player");
+    // 添加玩家会话信息
+    auto* playerData = m_playerManager->addPlayer(playerId, username, connection);
+    if (!playerData) {
+        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
         session->disconnect("Failed to add player");
         return;
     }
 
     // 设置会话ID并建立映射
-    player->sessionId = sessionId;
+    playerData->sessionId = sessionId;
     m_playerManager->mapSessionToPlayer(sessionId, playerId);
 
     // 更新会话状态
     session->setState(SessionState::Playing);
 
     // 设置玩家初始状态
-    setupInitialPlayerState(player, m_config.defaultGameMode);
+    setupInitialPlayerState(playerData, m_config.defaultGameMode);
+
+    // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
+    Player* playerEntity = m_playerEntityManager.createPlayerEntity(
+        playerId, username, *m_world,
+        static_cast<f32>(playerData->x), static_cast<f32>(playerData->y), static_cast<f32>(playerData->z)
+    );
+
+    if (!playerEntity) {
+        spdlog::error("Failed to create player entity for {}", username);
+        m_playerManager->removePlayer(playerId);
+        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+        session->disconnect("Failed to create player entity");
+        return;
+    }
+
+    // 记录 entityId
+    EntityId entityId = playerEntity->id();
+    m_playerEntityIds[playerId] = entityId;
 
     // 初始化玩家物品栏
     inventoryManager().initializeInventory(playerId);
 
-    if (player->gameMode == GameMode::Creative) {
+    if (playerData->gameMode == GameMode::Creative) {
         if (auto* inventory = inventoryManager().getInventory(playerId)) {
             fillCreativeModeInventory(*inventory);
         }
     }
 
-    // 发送登录成功响应
-    sendLoginResponse(session.get(), true, playerId, username, "Welcome!");
+    // 发送登录成功响应（包含 playerId 和 entityId）
+    sendLoginResponse(session.get(), true, playerId, entityId, username, "Welcome!");
 
     // 同步命令树
     sendCommandTreePacket(playerId);
 
     // 发送初始游戏状态
-    sendInitialGameState(playerId, player->x, player->y, player->z, player->yaw, player->pitch);
+    sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
 
     // 同步物品栏到客户端
     inventoryManager().syncToClient(playerId);
@@ -824,10 +844,11 @@ void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 // ============================================================================
 
 void StandaloneServer::sendLoginResponse(TcpSession* session, bool success,
-                                          PlayerId playerId, const String& username,
-                                          const String& message)
+                                          PlayerId playerId, EntityId entityId,
+                                          const String& username, const String& message)
 {
-    network::LoginResponsePacket response(success, playerId, username, message);
+    bool isDebugWorld = m_world && m_world->isDebugWorld();
+    network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);
 

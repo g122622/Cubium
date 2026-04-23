@@ -163,6 +163,7 @@ void EntityManager::tick() {
 
     // 更新所有实体
     for (auto& [id, entity] : m_entities) {
+        // spdlog::info("Ticking entity: id={}, detail={}", id, entity->toString());
         if (!entity->isRemoved()) {
             entity->tick();
         }

@@ -285,6 +285,11 @@ void IntegratedServer::stop()
     }
     m_serverThread.reset();
 
+    // 清理玩家实体
+    if (m_world) {
+        m_playerEntityManager.clearAll(*m_world);
+    }
+
     // 停止核心组件
     stopCore();
 
@@ -296,6 +301,8 @@ void IntegratedServer::stop()
         m_connectionPair.reset();
     }
     m_serverEndpoint = nullptr;
+    m_clientPlayerId = 0;
+    m_clientEntityId = INVALID_ENTITY_ID;
     m_initialized = false;
 
     spdlog::info("Integrated server stopped");
@@ -383,7 +390,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     if (result.failed()) {
         spdlog::warn("Failed to parse login request");
-        sendLoginResponse(false, 0, "", "Invalid login request");
+        sendLoginResponse(false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
         return;
     }
 
@@ -395,23 +402,41 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 创建本地连接
     m_clientConnection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
 
-    // 添加玩家
+    // 分配玩家ID
     m_clientPlayerId = m_playerManager->nextPlayerId();
-    auto* player = m_playerManager->addPlayer(m_clientPlayerId, username, m_clientConnection);
 
-    if (!player) {
-        sendLoginResponse(false, 0, username, "Failed to add player");
+    // 添加玩家会话信息
+    auto* playerData = m_playerManager->addPlayer(m_clientPlayerId, username, m_clientConnection);
+    if (!playerData) {
+        sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
         return;
     }
 
     // 设置玩家初始状态
-    setupInitialPlayerState(player, m_config.defaultGameMode);
+    setupInitialPlayerState(playerData, m_config.defaultGameMode);
+
+    // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
+    MC_ASSERT(m_world != nullptr);
+    Player* playerEntity = m_playerEntityManager.createPlayerEntity(
+        m_clientPlayerId, username, *m_world,
+        static_cast<f32>(playerData->x), static_cast<f32>(playerData->y), static_cast<f32>(playerData->z)
+    );
+
+    if (!playerEntity) {
+        spdlog::error("Failed to create player entity for {}", username);
+        m_playerManager->removePlayer(m_clientPlayerId);
+        sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+        return;
+    }
+
+    // 记录实体ID
+    m_clientEntityId = playerEntity->id();
 
     // 初始化物品栏
     m_clientInventory.clear();
     m_clientInventory.setSelectedSlot(0);
 
-    if (player->gameMode == GameMode::Creative) {
+    if (playerData->gameMode == GameMode::Creative) {
         if (Items::DIAMOND_PICKAXE != nullptr) {
             m_clientInventory.setItem(0, ItemStack(*Items::DIAMOND_PICKAXE, 1));
         }
@@ -425,17 +450,18 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         });
     }
 
-    // 发送登录成功响应
-    sendLoginResponse(true, m_clientPlayerId, username, "Welcome to singleplayer world!");
+    // 发送登录成功响应（包含 playerId 和 entityId）
+    sendLoginResponse(true, m_clientPlayerId, m_clientEntityId, username, "Welcome to singleplayer world!");
 
     // 同步命令树
     sendCommandTreePacket(m_clientPlayerId);
 
     // 发送初始游戏状态
-    sendInitialGameState(m_clientPlayerId, player->x, player->y, player->z, player->yaw, player->pitch);
+    sendInitialGameState(m_clientPlayerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
     sendPlayerInventory();
 
-    spdlog::info("Player '{}' (ID: {}) joined the game", username, m_clientPlayerId);
+    spdlog::info("Player '{}' (PlayerId={}, EntityId={}) joined the game",
+                 username, m_clientPlayerId, m_clientEntityId);
 }
 
 void IntegratedServer::handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size)
@@ -615,11 +641,11 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 // 数据包发送
 // ============================================================================
 
-void IntegratedServer::sendLoginResponse(bool success, PlayerId playerId,
+void IntegratedServer::sendLoginResponse(bool success, PlayerId playerId, EntityId entityId,
                                           const String& username, const String& message)
 {
     bool isDebugWorld = m_world && m_world->isDebugWorld();
-    network::LoginResponsePacket response(success, playerId, username, message, isDebugWorld);
+    network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);
 

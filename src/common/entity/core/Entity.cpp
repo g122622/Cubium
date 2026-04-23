@@ -1,4 +1,5 @@
 #include "Entity.hpp"
+#include "../utils/EntityUtils.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../physics/PhysicsEngine.hpp"
 #include "../../physics/PhysicsConstants.hpp"
@@ -29,109 +30,6 @@ namespace {
     entity::DataParameter<bool> SILENT_PARAM{4};
     entity::DataParameter<bool> NO_GRAVITY_PARAM{5};
     entity::DataParameter<i8> POSE_PARAM{6};
-
-    [[nodiscard]] bool isWaterFluid(const fluid::FluidState* fluidState) {
-        if (fluidState == nullptr || fluidState->isEmpty()) {
-            return false;
-        }
-
-        const fluid::Fluid& fluid = fluidState->getFluid();
-        const auto& loc = fluid.fluidLocation();
-        return loc.namespace_() == "minecraft" &&
-               (loc.path() == "water" || loc.path() == "flowing_water");
-    }
-
-    [[nodiscard]] bool isLavaFluid(const fluid::FluidState* fluidState) {
-        if (fluidState == nullptr || fluidState->isEmpty()) {
-            return false;
-        }
-
-        const fluid::Fluid& fluid = fluidState->getFluid();
-        const auto& loc = fluid.fluidLocation();
-        return loc.namespace_() == "minecraft" &&
-               (loc.path() == "lava" || loc.path() == "flowing_lava");
-    }
-
-    [[nodiscard]] const char* legacyTypeToTypeId(LegacyEntityType type) {
-        switch (type) {
-            case LegacyEntityType::Player: return "minecraft:player";
-            case LegacyEntityType::Item: return "minecraft:item";
-            case LegacyEntityType::ExperienceOrb: return "minecraft:experience_orb";
-
-            case LegacyEntityType::Pig: return "minecraft:pig";
-            case LegacyEntityType::Cow: return "minecraft:cow";
-            case LegacyEntityType::Sheep: return "minecraft:sheep";
-            case LegacyEntityType::Chicken: return "minecraft:chicken";
-            case LegacyEntityType::Rabbit: return "minecraft:rabbit";
-            case LegacyEntityType::Mooshroom: return "minecraft:mooshroom";
-            case LegacyEntityType::Wolf: return "minecraft:wolf";
-            case LegacyEntityType::Cat: return "minecraft:cat";
-            case LegacyEntityType::Ocelot: return "minecraft:ocelot";
-            case LegacyEntityType::Parrot: return "minecraft:parrot";
-            case LegacyEntityType::Fox: return "minecraft:fox";
-            case LegacyEntityType::Panda: return "minecraft:panda";
-            case LegacyEntityType::PolarBear: return "minecraft:polar_bear";
-            case LegacyEntityType::Turtle: return "minecraft:turtle";
-            case LegacyEntityType::Bee: return "minecraft:bee";
-            case LegacyEntityType::Strider: return "minecraft:strider";
-            case LegacyEntityType::Squid: return "minecraft:squid";
-            case LegacyEntityType::Dolphin: return "minecraft:dolphin";
-            case LegacyEntityType::Cod: return "minecraft:cod";
-            case LegacyEntityType::Salmon: return "minecraft:salmon";
-            case LegacyEntityType::Pufferfish: return "minecraft:pufferfish";
-            case LegacyEntityType::TropicalFish: return "minecraft:tropical_fish";
-            case LegacyEntityType::Bat: return "minecraft:bat";
-            case LegacyEntityType::IronGolem: return "minecraft:iron_golem";
-            case LegacyEntityType::SnowGolem: return "minecraft:snow_golem";
-            case LegacyEntityType::Horse: return "minecraft:horse";
-            case LegacyEntityType::Donkey: return "minecraft:donkey";
-            case LegacyEntityType::Mule: return "minecraft:mule";
-            case LegacyEntityType::SkeletonHorse: return "minecraft:skeleton_horse";
-            case LegacyEntityType::ZombieHorse: return "minecraft:zombie_horse";
-            case LegacyEntityType::Llama: return "minecraft:llama";
-            case LegacyEntityType::TraderLlama: return "minecraft:trader_llama";
-
-            case LegacyEntityType::Zombie: return "minecraft:zombie";
-            case LegacyEntityType::Skeleton: return "minecraft:skeleton";
-            case LegacyEntityType::Husk: return "minecraft:husk";
-            case LegacyEntityType::Drowned: return "minecraft:drowned";
-            case LegacyEntityType::Stray: return "minecraft:stray";
-            case LegacyEntityType::WitherSkeleton: return "minecraft:wither_skeleton";
-            case LegacyEntityType::Phantom: return "minecraft:phantom";
-            case LegacyEntityType::Spider: return "minecraft:spider";
-            case LegacyEntityType::CaveSpider: return "minecraft:cave_spider";
-            case LegacyEntityType::Endermite: return "minecraft:endermite";
-            case LegacyEntityType::Silverfish: return "minecraft:silverfish";
-            case LegacyEntityType::Creeper: return "minecraft:creeper";
-            case LegacyEntityType::Slime: return "minecraft:slime";
-            case LegacyEntityType::Giant: return "minecraft:giant";
-            case LegacyEntityType::Enderman: return "minecraft:enderman";
-            case LegacyEntityType::Shulker: return "minecraft:shulker";
-            case LegacyEntityType::Ghast: return "minecraft:ghast";
-            case LegacyEntityType::MagmaCube: return "minecraft:magma_cube";
-            case LegacyEntityType::Piglin: return "minecraft:piglin";
-            case LegacyEntityType::PiglinBrute: return "minecraft:piglin_brute";
-            case LegacyEntityType::Hoglin: return "minecraft:hoglin";
-            case LegacyEntityType::Zoglin: return "minecraft:zoglin";
-            case LegacyEntityType::Vindicator: return "minecraft:vindicator";
-            case LegacyEntityType::Evoker: return "minecraft:evoker";
-            case LegacyEntityType::Illusioner: return "minecraft:illusioner";
-            case LegacyEntityType::Pillager: return "minecraft:pillager";
-            case LegacyEntityType::Guardian: return "minecraft:guardian";
-            case LegacyEntityType::ElderGuardian: return "minecraft:elder_guardian";
-            case LegacyEntityType::Witch: return "minecraft:witch";
-            case LegacyEntityType::Ravager: return "minecraft:ravager";
-            case LegacyEntityType::Blaze: return "minecraft:blaze";
-
-            case LegacyEntityType::Wither: return "minecraft:wither";
-            case LegacyEntityType::EnderDragon: return "minecraft:ender_dragon";
-
-            case LegacyEntityType::Villager: return "minecraft:villager";
-            case LegacyEntityType::Unknown:
-            default:
-                return "minecraft:unknown";
-        }
-    }
 }
 
 // ============================================================================
@@ -244,7 +142,7 @@ String Entity::getTypeId() const {
         return m_typeId;
     }
 
-    return legacyTypeToTypeId(m_legacyType);
+    return EntityUtils::legacyTypeToTypeId(m_legacyType);
 }
 
 Optional<ResourceLocation> Entity::makeSoundEventId(StringView suffix) const {
@@ -366,8 +264,16 @@ void Entity::updateEnvironmentState() {
         if (collisionWorld) {
             const BlockState* blockState = collisionWorld->getBlockState(blockX, blockY, blockZ);
             const fluid::FluidState* fluidState = blockState != nullptr ? blockState->getFluidState() : nullptr;
-            m_inWater = isWaterFluid(fluidState);
-            m_inLava = isLavaFluid(fluidState);
+            if (fluidState != nullptr && !fluidState->isEmpty()) {
+                const ResourceLocation& fluidId = fluidState->getFluid().fluidLocation();
+                m_inWater = fluidId.namespace_() == "minecraft" &&
+                            (fluidId.path() == "water" || fluidId.path() == "flowing_water");
+                m_inLava = fluidId.namespace_() == "minecraft" &&
+                           (fluidId.path() == "lava" || fluidId.path() == "flowing_lava");
+            } else {
+                m_inWater = false;
+                m_inLava = false;
+            }
             return;
         }
     }
@@ -652,5 +558,27 @@ bool Entity::canSee(const Entity& other) const {
 
     return true;
 }
+
+String Entity::toString() const {
+    std::stringstream ss;
+    ss << "Entity{id=" << m_id
+       << ", type=" << getTypeId()
+       << ", uuid=" << m_uuid
+       << ", position=(" << m_position.x << ", " << m_position.y << ", " << m_position.z << ")"
+       << ", velocity=(" << m_velocity.x << ", " << m_velocity.y << ", " << m_velocity.z << ")"
+       << ", onGround=" << m_onGround
+       << ", inWater=" << m_inWater
+       << ", inLava=" << m_inLava
+       << ", flags=" << static_cast<u32>(m_flags)
+       << ", air=" << m_air
+       << ", customName=\"" << m_customName << "\""
+       << ", customNameVisible=" << m_customNameVisible
+       << ", silent=" << m_silent
+       << ", noGravity=" << m_noGravity
+       << ", pose=" << static_cast<u32>(m_pose)
+       << "}";
+    return ss.str();
+}
+
 
 } // namespace mc

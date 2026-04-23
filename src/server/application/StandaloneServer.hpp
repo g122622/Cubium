@@ -3,9 +3,11 @@
 #include "MinecraftServer.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/network/TcpServer.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <thread>
 #include <atomic>
 #include <filesystem>
+#include <unordered_map>
 
 namespace mc::server {
 
@@ -115,13 +117,19 @@ private:
     void setupChunkSendCallback();
 
     // 数据包发送
-    void sendLoginResponse(TcpSession* session, bool success, PlayerId playerId,
+    void sendLoginResponse(TcpSession* session, bool success, PlayerId playerId, EntityId entityId,
                           const String& username, const String& message);
 
     ServerSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
     std::filesystem::path m_settingsPath;
     std::unique_ptr<TcpServer> m_tcpServer;
+
+    // 玩家实体管理器
+    ServerPlayerEntityManager m_playerEntityManager;
+
+    // PlayerId -> EntityId 映射（用于快速查找）
+    std::unordered_map<PlayerId, EntityId> m_playerEntityIds;
 };
 
 } // namespace mc::server

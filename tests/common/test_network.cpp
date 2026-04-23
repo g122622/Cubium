@@ -452,7 +452,7 @@ TEST(LoginRequestPacket, InvalidUsername) {
 }
 
 TEST(LoginResponsePacket, SerializeDeserialize) {
-    LoginResponsePacket original(true, 12345, "TestPlayer", "Welcome!");
+    LoginResponsePacket original(true, 12345, 100, "TestPlayer", "Welcome!");
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -463,6 +463,7 @@ TEST(LoginResponsePacket, SerializeDeserialize) {
     EXPECT_TRUE(result.success());
     EXPECT_TRUE(result.value().success());
     EXPECT_EQ(result.value().playerId(), 12345u);
+    EXPECT_EQ(result.value().entityId(), 100u);
     EXPECT_EQ(result.value().username(), "TestPlayer");
     EXPECT_EQ(result.value().message(), "Welcome!");
 }

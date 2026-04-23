@@ -20,10 +20,14 @@ src/common/entity/
 │   ├── EntityPose.hpp              # 实体姿态枚举
 │   ├── EntitySize.hpp              # 实体尺寸
 │   ├── EntitySpawnPlacementRegistry.hpp/cpp # 实体生成放置规则
-│   ├── EntityUtils.hpp             # 实体工具函数
+│   ├── EntityUtils.hpp             # 模板型实体工具函数（搜索、距离）
 │   ├── DataParameter.hpp           # 数据参数定义
 │   ├── MoverType.hpp               # 移动类型枚举
 │   └── VanillaEntities.hpp         # 原版实体注册
+│
+├── utils/                          # 非模板实体工具
+│   ├── EntityUtils.hpp/cpp         # LegacyEntityType -> typeId 映射
+│   └── README.md                   # 工具模块说明
 │
 ├── entities/                       # 具体实体实现
 │   ├── passive/                    # 被动/中立生物
@@ -155,7 +159,6 @@ src/common/entity/
 │   │
 │   └── player/                     # 玩家实体
 │       ├── Player.hpp/cpp          # 玩家实体
-│       ├── PlayerManager.hpp/cpp   # 玩家管理器
 │       ├── GameModeUtils.hpp/cpp   # 游戏模式工具
 │       └── README.md               # 玩家模块说明
 │

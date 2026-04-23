@@ -816,6 +816,9 @@ public:
      */
     virtual void syncMetadataFromDataManager();
 
+    // toString，用于调试，所有实体统一
+    [[nodiscard]] String toString() const;
+
 protected:
     /**
      * @brief 根据实体类型和后缀构造声音事件ID

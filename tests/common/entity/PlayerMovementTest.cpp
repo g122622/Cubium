@@ -114,6 +114,15 @@ private:
     Optional<SoundRecord> m_lastSound;
 };
 
+class EmptyCollisionWorld final : public ICollisionWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] i32 getMinBuildHeight() const override { return 0; }
+    [[nodiscard]] i32 getMaxBuildHeight() const override { return 256; }
+};
+
 // ============================================================================
 // 飞行速度测试
 // ============================================================================
@@ -427,6 +436,20 @@ TEST_F(PlayerMovementTest, Jump_WhileFlying_UsesFlyUpInstead) {
     // 飞行上升速度 = flySpeed * 3.0 = 0.15
     // 而不是普通跳跃速度 0.42
     EXPECT_NEAR(m_player->velocity().y, 0.15f, 0.001f);
+}
+
+TEST_F(PlayerMovementTest, HandleMovementInput_WithPhysicsWorldOnly_DoesNotCrash) {
+    EmptyCollisionWorld collisionWorld;
+    PhysicsEngine physicsEngine(collisionWorld);
+
+    m_player->setPhysicsEngine(&physicsEngine);
+    m_player->abilities().flying = true;
+    m_player->setPosition(0.0f, 64.0f, 0.0f);
+
+    m_player->handleMovementInput(0.0f, 0.0f, false, false);
+
+    EXPECT_FALSE(m_player->isInWater());
+    EXPECT_FALSE(m_player->isInLava());
 }
 
 TEST_F(PlayerMovementTest, FallingAfterSupportRemovalRefreshesGroundState) {

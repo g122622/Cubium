@@ -23,6 +23,7 @@
 | `EntitySize.hpp` | 实体尺寸定义 |
 | `EntityClassification.hpp` | 实体分类 |
 | `EntitySpawnPlacementRegistry.hpp` | 生成位置规则 |
+| `EntityUtils.hpp` | 模板型实体工具函数（搜索、距离） |
 | `DataParameter.hpp` | 数据参数定义 |
 | `MoverType.hpp` | 移动类型枚举 |
 
@@ -38,6 +39,7 @@
 - `EntityType::create(...)` 会在工厂创建实体后自动注入注册表名称到实体（例如 `minecraft:pig`）。
 - `Entity::getTypeId()` 优先返回显式注入的类型标识符；仅在未注入时才回退到 `LegacyEntityType` 映射。
 - 通过繁殖流程创建幼体时，`BreedGoal` 会继承父体的类型标识符，避免网络层出现 `minecraft:unknown`。
+- `LegacyEntityType -> typeId` 的具体映射表已经迁移到 `utils/EntityUtils.*`，`core/EntityUtils.hpp` 只保留模板型搜索和距离工具。
 
 ## 声音事件链路
 

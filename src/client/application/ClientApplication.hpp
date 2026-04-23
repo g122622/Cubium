@@ -18,6 +18,7 @@
 #include "../renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "../renderer/trident/gui/GuiTextureManager.hpp"
 #include "../world/ClientWorld.hpp"
+#include "../world/player/LocalPlayerIdentity.hpp"
 #include "../network/NetworkClient.hpp"
 #include "../ui/kagero/KageroEngine.hpp"
 #include "../ui/TridentCanvas.hpp"
@@ -277,6 +278,9 @@ private:
 
     // 玩家实体
     std::unique_ptr<Player> m_player;
+
+    // 本地玩家身份（playerId ↔ entityId 映射）
+    LocalPlayerIdentity m_localIdentity;
 
     // 调试屏幕可见性
     bool m_debugScreenVisible = true;

@@ -50,6 +50,7 @@ add_library(mc_common STATIC
 
     # Entity Core
     entity/core/Entity.cpp
+    entity/utils/EntityUtils.cpp
     entity/core/EntityType.cpp
     entity/core/EntityClassification.cpp
     entity/core/EntitySpawnPlacementRegistry.cpp
@@ -65,7 +66,6 @@ add_library(mc_common STATIC
     entity/effect/EffectAttributeModifiers.cpp
     # Entity - Player
     entity/entities/player/Player.cpp
-    entity/entities/player/PlayerManager.cpp
     entity/entities/player/GameModeUtils.cpp
     # Entity - Item
     entity/entities/item/ItemEntity.cpp

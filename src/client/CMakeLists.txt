@@ -113,6 +113,7 @@ add_executable(minecraft-client
     sound/handler/UnderwaterAmbientHandler.cpp
     # 世界
     world/ClientWorld.cpp
+    world/player/LocalPlayerIdentity.cpp
     world/color/BiomeColors.cpp
     world/color/blend/BiomeColorCache.cpp
     world/color/blend/BiomeColorBlender.cpp
@@ -190,6 +191,8 @@ add_executable(minecraft-client
     # 客户端实体管理
     world/entity/ClientEntity.cpp
     world/entity/ClientEntityManager.cpp
+    # 本地玩家身份
+    world/player/LocalPlayerIdentity.cpp
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
@@ -210,6 +213,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp

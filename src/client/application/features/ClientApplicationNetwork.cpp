@@ -74,11 +74,6 @@ bool applyContainerSlot(AbstractContainerScreen<Menu>* screen, ContainerId conta
     return true;
 }
 
-bool isLocalPlayerId(const Player& player, PlayerId playerId)
-{
-    return player.playerId() == playerId;
-}
-
 std::function<void(ContainerId, i32, i32, ClickAction, const ItemStack&)> makeContainerClickSender(NetworkClient* networkClient)
 {
     return [networkClient](ContainerId containerId, i32 slotIndex, i32 button, ClickAction action, const ItemStack& cursorItem) {
@@ -107,8 +102,19 @@ void ClientApplication::setupNetworkCallbacks()
 
     NetworkClientCallbacks callbacks;
 
-    callbacks.onLoginSuccess = [this](PlayerId playerId, const String& username) {
-        spdlog::info("Login successful: playerId={}, username={}", playerId, username);
+    callbacks.onLoginSuccess = [this](PlayerId playerId, EntityId entityId, const String& username) {
+        spdlog::info("Login successful: playerId={}, entityId={}, username={}", playerId, entityId, username);
+
+        // 设置本地玩家身份
+        m_localIdentity.setIdentity(playerId, entityId);
+
+        // 创建本地玩家实体
+        auto& entityManager = m_world.entityManager();
+        ClientEntity* playerEntity = entityManager.spawnLocalPlayer(entityId, playerId, username);
+        if (playerEntity) {
+            spdlog::info("Local player entity created: entityId={}", entityId);
+        }
+
         if (m_player) {
             m_player->setPlayerId(playerId);
         }
@@ -127,6 +133,13 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onDisconnected = [this](const String& reason) {
         spdlog::info("Disconnected from server: {}", reason);
+
+        // 清除本地玩家身份
+        m_localIdentity.clear();
+
+        // 清除本地玩家实体
+        m_world.entityManager().clearLocalPlayer();
+
         m_knownPlayerNames.clear();
         if (m_commandManager) {
             m_commandManager->clear();
@@ -184,12 +197,19 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onPlayerSpawn = [this](PlayerId playerId, const String& username, f64 x, f64 y, f64 z) {
         m_knownPlayerNames[playerId] = username;
 
-        if (m_player && isLocalPlayerId(*m_player, playerId)) {
-            m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家
+        if (m_localIdentity.isLocalPlayer(playerId)) {
+            // 本地玩家：设置位置
+            if (m_player) {
+                m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+            }
             return;
         }
 
+        // 远程玩家：创建或更新实体
         auto& entityManager = m_world.entityManager();
+
+        // 远程玩家使用 playerId 作为 entityId（服务端在 EntityTracker 中这样处理）
         const EntityId entityId = static_cast<EntityId>(playerId);
         ClientEntity* entity = entityManager.spawnEntity(entityId, mc::entity::EntityTypes::PLAYER);
         if (!entity) {
@@ -203,10 +223,13 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onPlayerDespawn = [this](PlayerId playerId) {
         m_knownPlayerNames.erase(playerId);
-        if (m_player && isLocalPlayerId(*m_player, playerId)) {
+
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家
+        if (m_localIdentity.isLocalPlayer(playerId)) {
             return;
         }
 
+        // 远程玩家：移除实体
         m_world.entityManager().removeEntity(static_cast<EntityId>(playerId));
     };
 
@@ -232,9 +255,12 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onPlayerMove = [this](PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
-        if (m_player && isLocalPlayerId(*m_player, playerId)) {
-            m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-            m_player->setRotation(yaw, pitch);
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家
+        if (m_localIdentity.isLocalPlayer(playerId)) {
+            if (m_player) {
+                m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+                m_player->setRotation(yaw, pitch);
+            }
             return;
         }
 
@@ -465,7 +491,8 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onEntityDestroy = [this](const std::vector<u32>& entityIds) {
         auto& entityManager = m_world.entityManager();
         for (u32 entityId : entityIds) {
-            if (m_player && isLocalPlayerId(*m_player, static_cast<PlayerId>(entityId))) {
+            // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
+            if (m_localIdentity.isLocalPlayerEntity(static_cast<EntityId>(entityId))) {
                 continue;
             }
             entityManager.removeEntity(static_cast<EntityId>(entityId));
@@ -473,13 +500,17 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityMove = [this](u32 entityId, f32 deltaX, f32 deltaY, f32 deltaZ) {
-        if (m_player && isLocalPlayerId(*m_player, static_cast<PlayerId>(entityId))) {
-            const Vector3 position = m_player->position();
-            m_player->setPosition(position.x + deltaX, position.y + deltaY, position.z + deltaZ);
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
+        const EntityId eid = static_cast<EntityId>(entityId);
+        if (m_localIdentity.isLocalPlayerEntity(eid)) {
+            if (m_player) {
+                const Vector3 position = m_player->position();
+                m_player->setPosition(position.x + deltaX, position.y + deltaY, position.z + deltaZ);
+            }
             return;
         }
 
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        ClientEntity* entity = m_world.entityManager().getEntity(eid);
         if (!entity) {
             return;
         }
@@ -489,13 +520,17 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityTeleport = [this](u32 entityId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch) {
-        if (m_player && isLocalPlayerId(*m_player, static_cast<PlayerId>(entityId))) {
-            m_player->setPosition(x, y, z);
-            m_player->setRotation(yaw, pitch);
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
+        const EntityId eid = static_cast<EntityId>(entityId);
+        if (m_localIdentity.isLocalPlayerEntity(eid)) {
+            if (m_player) {
+                m_player->setPosition(x, y, z);
+                m_player->setRotation(yaw, pitch);
+            }
             return;
         }
 
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        ClientEntity* entity = m_world.entityManager().getEntity(eid);
         if (!entity) {
             return;
         }
@@ -506,14 +541,18 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onEntityVelocity = [this](u32 entityId, i16 vx, i16 vy, i16 vz) {
         const f32 scale = 1.0f / 8000.0f;
-        if (m_player && isLocalPlayerId(*m_player, static_cast<PlayerId>(entityId))) {
-            m_player->setVelocity(static_cast<f32>(vx) * scale,
-                                  static_cast<f32>(vy) * scale,
-                                  static_cast<f32>(vz) * scale);
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
+        const EntityId eid = static_cast<EntityId>(entityId);
+        if (m_localIdentity.isLocalPlayerEntity(eid)) {
+            if (m_player) {
+                m_player->setVelocity(static_cast<f32>(vx) * scale,
+                                      static_cast<f32>(vy) * scale,
+                                      static_cast<f32>(vz) * scale);
+            }
             return;
         }
 
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        ClientEntity* entity = m_world.entityManager().getEntity(eid);
         if (!entity) {
             return;
         }
@@ -524,11 +563,13 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityMetadata = [this](u32 entityId, const std::vector<u8>& metadata) {
-        if (m_player && isLocalPlayerId(*m_player, static_cast<PlayerId>(entityId))) {
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
+        const EntityId eid = static_cast<EntityId>(entityId);
+        if (m_localIdentity.isLocalPlayerEntity(eid)) {
             return;
         }
 
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        ClientEntity* entity = m_world.entityManager().getEntity(eid);
         if (!entity) {
             return;
         }
@@ -542,11 +583,13 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityHeadLook = [this](u32 entityId, f32 headYaw) {
-        if (m_player && isLocalPlayerId(*m_player, static_cast<PlayerId>(entityId))) {
+        // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
+        const EntityId eid = static_cast<EntityId>(entityId);
+        if (m_localIdentity.isLocalPlayerEntity(eid)) {
             return;
         }
 
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        ClientEntity* entity = m_world.entityManager().getEntity(eid);
         if (!entity) {
             return;
         }

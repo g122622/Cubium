@@ -4,6 +4,7 @@
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <thread>
 #include <mutex>
 
@@ -121,7 +122,7 @@ private:
     void setupChunkSendCallback();
 
     // 发送数据包
-    void sendLoginResponse(bool success, PlayerId playerId, const String& username, const String& message);
+    void sendLoginResponse(bool success, PlayerId playerId, EntityId entityId, const String& username, const String& message);
     void sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
     void sendPlayerInventory();
     void sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
@@ -140,6 +141,12 @@ private:
         return m_playerManager ? m_playerManager->getPlayer(m_clientPlayerId) : nullptr;
     }
 
+    /**
+     * @brief 获取玩家实体管理器
+     */
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() { return m_playerEntityManager; }
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const { return m_playerEntityManager; }
+
     IntegratedServerConfig m_integratedConfig;
 
     // 服务端线程
@@ -151,6 +158,12 @@ private:
 
     // 客户端玩家ID
     PlayerId m_clientPlayerId = 0;
+
+    // 客户端玩家实体ID
+    EntityId m_clientEntityId = INVALID_ENTITY_ID;
+
+    // 玩家实体管理器
+    ServerPlayerEntityManager m_playerEntityManager;
 
     // 客户端连接（持有 shared_ptr 防止 weak_ptr 失效）
     network::ConnectionPtr m_clientConnection;

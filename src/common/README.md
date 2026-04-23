@@ -50,10 +50,12 @@ src/common/
 │   ├── EntityPose.hpp        # 实体姿态
 │   ├── EntitySize.hpp        # 实体尺寸
 │   ├── EntitySpawnPlacementRegistry.hpp # 生成位置规则
+│   ├── EntityUtils.hpp       # 旧实体类型映射
 │   ├── ItemEntity.hpp        # 物品实体
 │   ├── Player.hpp            # 玩家实体
 │   ├── PlayerManager.hpp     # 玩家管理器
 │   ├── VanillaEntities.hpp   # 原版实体定义
+│   ├── utils/                # 非模板实体工具
 │   ├── ai/                   # AI 系统
 │   │   ├── controller/       # 控制器
 │   │   │   ├── LookController.hpp

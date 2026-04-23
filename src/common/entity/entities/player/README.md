@@ -8,8 +8,6 @@
 src/common/entity/entities/player/
 ├── Player.hpp         # 玩家实体声明，包含状态、移动和网络同步接口
 ├── Player.cpp         # 玩家实体实现，包含物理、脚步声、游泳声和序列化
-├── PlayerManager.hpp  # 玩家管理器声明
-├── PlayerManager.cpp  # 玩家管理器实现
 ├── GameModeUtils.hpp  # 游戏模式能力映射工具
 ├── GameModeUtils.cpp  # 游戏模式能力映射实现
 └── README.md          # 本文档
@@ -38,10 +36,6 @@ src/common/entity/entities/player/
 - 统一处理受伤和死亡声音，并通过 `Entity::playSound()` 走世界级声音出口
 - 序列化和反序列化玩家状态
 
-### PlayerManager.hpp / PlayerManager.cpp
-
-管理玩家对象生命周期、查找和基础集合操作。服务端和客户端都会通过它拿到玩家实体。
-
 ### GameModeUtils.hpp / GameModeUtils.cpp
 
 把游戏模式映射成玩家能力配置，避免把创造、旁观、生存等模式逻辑散落在各处。
@@ -52,7 +46,8 @@ src/common/entity/entities/player/
 - `Player` 在退出蹲伏、游泳和睡眠姿态时，会通过 `IWorld` 的碰撞查询判断当前空间是否允许切回站立。
 - `ClientApplication` 使用 `Player` 的移动距离累计值来驱动视野晃动，并读取步脚声/游泳声标志来播放本地音效。
 - `NetworkClient` 和玩家序列化逻辑负责把服务器传来的传送、位置和状态同步到本地玩家。
-- `PlayerManager` 负责在世界层管理玩家集合，服务端和单机集成都依赖它。
+- 服务端玩家管理由 `server/world/player/ServerPlayerEntityManager` 负责。
+- 客户端本地玩家身份由 `client/world/player/LocalPlayerIdentity` 管理。
 - `GameModeUtils` 负责把游戏模式转换为玩家能力，避免重复实现。
 
 ## 整体职责

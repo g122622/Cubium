@@ -31,6 +31,7 @@ add_executable(minecraft-server
     world/spawn/SpawnConditions.cpp
     world/entity/EntityTracker.cpp
     world/entity/ItemPickupManager.cpp
+    world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp
     player/ServerPlayer.cpp
     # 交互管理器

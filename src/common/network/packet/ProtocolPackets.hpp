@@ -162,12 +162,25 @@ private:
 // 登录响应包 (服务端 -> 客户端)
 // ============================================================================
 
+/**
+ * @brief 登录响应包 (服务端 -> 客户端)
+ *
+ * 服务端响应客户端登录请求，包含：
+ * - 登录成功/失败状态
+ * - 玩家ID（网络会话标识）
+ * - 实体ID（世界实体标识）
+ * - 用户名
+ * - 初始维度
+ *
+ * 重要：playerId 和 entityId 是独立的标识符，不能互换。
+ */
 class LoginResponsePacket {
 public:
     LoginResponsePacket() = default;
-    LoginResponsePacket(bool success, PlayerId playerId, const String& username, const String& message = "", bool isDebugWorld = false, DimensionId dimension = 0)
+    LoginResponsePacket(bool success, PlayerId playerId, EntityId entityId, const String& username, const String& message = "", bool isDebugWorld = false, DimensionId dimension = 0)
         : m_success(success)
         , m_playerId(playerId)
+        , m_entityId(entityId)
         , m_username(username)
         , m_message(message)
         , m_isDebugWorld(isDebugWorld)
@@ -177,6 +190,7 @@ public:
     // Getters
     bool success() const { return m_success; }
     PlayerId playerId() const { return m_playerId; }
+    EntityId entityId() const { return m_entityId; }
     const String& username() const { return m_username; }
     const String& message() const { return m_message; }
     bool isDebugWorld() const { return m_isDebugWorld; }
@@ -185,6 +199,7 @@ public:
     // Setters
     void setSuccess(bool success) { m_success = success; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
+    void setEntityId(EntityId id) { m_entityId = id; }
     void setUsername(const String& username) { m_username = username; }
     void setMessage(const String& message) { m_message = message; }
     void setIsDebugWorld(bool isDebugWorld) { m_isDebugWorld = isDebugWorld; }
@@ -194,6 +209,7 @@ public:
     void serialize(PacketSerializer& ser) const {
         ser.writeBool(m_success);
         ser.writeU64(m_playerId);
+        ser.writeU64(m_entityId);
         ser.writeString(m_username);
         ser.writeString(m_message);
         ser.writeBool(m_isDebugWorld);
@@ -207,9 +223,13 @@ public:
         if (successResult.failed()) return successResult.error();
         packet.m_success = successResult.value();
 
-        auto idResult = deser.readU64();
-        if (idResult.failed()) return idResult.error();
-        packet.m_playerId = idResult.value();
+        auto playerIdResult = deser.readU64();
+        if (playerIdResult.failed()) return playerIdResult.error();
+        packet.m_playerId = playerIdResult.value();
+
+        auto entityIdResult = deser.readU64();
+        if (entityIdResult.failed()) return entityIdResult.error();
+        packet.m_entityId = entityIdResult.value();
 
         auto usernameResult = deser.readString();
         if (usernameResult.failed()) return usernameResult.error();
@@ -219,13 +239,11 @@ public:
         if (messageResult.failed()) return messageResult.error();
         packet.m_message = messageResult.value();
 
-        // 向后兼容：isDebugWorld 是可选字段
         auto debugResult = deser.readBool();
         if (debugResult.success()) {
             packet.m_isDebugWorld = debugResult.value();
         }
 
-        // 向后兼容：dimension 是可选字段
         auto dimResult = deser.readI32();
         if (dimResult.success()) {
             packet.m_dimension = dimResult.value();
@@ -237,10 +255,11 @@ public:
 private:
     bool m_success = false;
     PlayerId m_playerId = 0;
+    EntityId m_entityId = INVALID_ENTITY_ID;
     String m_username;
     String m_message;
-    bool m_isDebugWorld = false;  // 调试世界标志
-    DimensionId m_dimension = 0;  // 初始维度ID
+    bool m_isDebugWorld = false;
+    DimensionId m_dimension = 0;
 };
 
 // ============================================================================
