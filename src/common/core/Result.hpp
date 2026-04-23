@@ -95,8 +95,8 @@ public:
         , m_message(message)
         , m_source(source)
     {
-        auto str = toString();
-        spdlog::error("[Error] {}", str);
+        // auto str = toString();
+        // spdlog::error("[Error] {}", str);
     }
 
     Error(ErrorCode code, const char* message, const char* source = "")
@@ -104,8 +104,8 @@ public:
         , m_message(message)
         , m_source(source)
     {
-        auto str = toString();
-        spdlog::error("[Error] {}", str);
+        // auto str = toString();
+        // spdlog::error("[Error] {}", str);
     }
 
     Error(ErrorCode code, String message, String source = "")
@@ -113,8 +113,8 @@ public:
         , m_message(std::move(message))
         , m_source(std::move(source))
     {
-        auto str = toString();
-        spdlog::error("[Error] {}", str);
+        // auto str = toString();
+        // spdlog::error("[Error] {}", str);
     }
 
     [[nodiscard]] ErrorCode code() const noexcept { return m_code; }

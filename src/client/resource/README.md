@@ -325,20 +325,35 @@ static constexpr u32 TEXTURE_SIZE = 16;       // 16x16像素
 
 ### EntityTextureLoader.hpp/cpp
 
-**职责**：从资源包加载实体纹理并构建纹理图集。
+**职责**：从资源包加载实体纹理并构建纹理图集。自动从 EntityRegistry 获取需要纹理的实体列表。
 
-**支持的实体**：
+**自动发现机制**：
 
-- minecraft:pig
-- minecraft:cow
-- minecraft:sheep（包括羊毛纹理）
-- minecraft:chicken
+1. 遍历 `EntityRegistry::getAllTypes()` 获取所有注册实体
+2. 根据 `EntityClassification` 过滤需要纹理的实体类型：
+   - `Creature` - 动物（猪、牛、羊等）
+   - `WaterCreature` - 水生生物（鱿鱼、海豚等）
+   - `WaterAmbient` - 水生环境生物（鱼类）
+   - `Ambient` - 环境生物（蝙蝠）
+   - `Monster` - 怪物（僵尸、骷髅等）
+3. 根据实体名称推断纹理路径
 
 **纹理路径搜索顺序**：
 
-1. `textures/entity/<name>/<name>.png` (MC 1.13+)
-2. `textures/entity/<name>.png` (MC 1.12)
-3. 特殊处理：羊和鸡的额外路径
+1. 特殊路径映射表（如 `player` -> `entity/steve.png`, `entity/alex.png` 等）
+2. MC 1.13+ 格式：`textures/entity/<name>/<name>.png`
+3. MC 1.12 格式：`textures/entity/<name>.png`
+
+**主要功能**：
+
+- `loadAllEntityTextures()` - 从资源包列表加载所有实体纹理（推荐）
+- `loadDefaultTextures()` - 单资源包加载（向后兼容）
+- `needsTexture()` - 判断实体分类是否需要纹理
+- `getTexturePaths()` - 获取实体的纹理路径列表
+
+**附加纹理**：
+
+某些实体需要多个纹理文件（如羊需要 `sheep.png` 和 `sheep_fur.png`），通过 `ADDITIONAL_TEXTURES` 映射表处理。
 
 ---
 

@@ -1747,22 +1747,21 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
         return initResult.error();
     }
 
-    // 加载默认实体纹理 - 遍历所有资源包
-    u32 loadedCount = 0;
-    m_localPlayerSkinLocation = ResourceLocation("minecraft:textures/entity/steve.png");
-
+    // 构建资源包列表（按优先级从低到高）
+    std::vector<IResourcePack*> packs;
     for (size_t i = 0; i < resourceManager->resourcePackCount(); ++i) {
         auto* pack = resourceManager->getResourcePack(i);
-        if (!pack) continue;
-
-        spdlog::info("EntityTextureAtlas: Trying resource pack {} for entity textures", i);
-        EntityTextureLoader textureLoader;
-        auto loadResult = textureLoader.loadDefaultTextures(*pack, m_entityTextureAtlas);
-        if (loadResult.success() && loadResult.value() > 0) {
-            loadedCount += loadResult.value();
-            spdlog::info("Loaded {} entity textures from resource pack {}", loadResult.value(), i);
+        if (pack) {
+            packs.push_back(pack);
         }
     }
+
+    spdlog::info("EntityTextureAtlas: Loading textures from {} resource packs", packs.size());
+
+    // 使用新的自动发现方法加载所有实体纹理
+    EntityTextureLoader textureLoader;
+    auto loadResult = textureLoader.loadAllEntityTextures(packs, m_entityTextureAtlas);
+    u32 loadedCount = loadResult.success() ? loadResult.value() : 0;
 
     // 加载本地玩家皮肤（可选）
     // 优先级高于资源包中的默认 steve/alex 纹理。

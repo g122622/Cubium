@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 // 前向声明和手动实现测试（不依赖 Vulkan）
 
@@ -102,8 +103,60 @@ std::string parseEntityName(const std::string& entityTypeId) {
 }
 
 std::vector<std::string> getTexturePaths(const std::string& entityTypeId) {
-    std::vector<std::string> paths;
     std::string name = parseEntityName(entityTypeId);
+
+    static const std::unordered_map<std::string, std::vector<std::string>> specialPaths = {
+        {"chicken", {"minecraft:textures/entity/chicken.png"}},
+        {"rabbit", {"minecraft:textures/entity/rabbit/brown.png"}},
+        {"mooshroom", {"minecraft:textures/entity/cow/red_mooshroom.png"}},
+        {"cat", {"minecraft:textures/entity/cat/tabby.png"}},
+        {"ocelot", {"minecraft:textures/entity/cat/ocelot.png"}},
+        {"parrot", {"minecraft:textures/entity/parrot/parrot_red_blue.png"}},
+        {"polar_bear", {"minecraft:textures/entity/bear/polarbear.png"}},
+        {"turtle", {"minecraft:textures/entity/turtle/big_sea_turtle.png"}},
+        {"horse", {"minecraft:textures/entity/horse/horse_brown.png"}},
+        {"donkey", {"minecraft:textures/entity/horse/donkey.png"}},
+        {"mule", {"minecraft:textures/entity/horse/mule.png"}},
+        {"llama", {"minecraft:textures/entity/llama/creamy.png"}},
+        {"skeleton_horse", {"minecraft:textures/entity/horse/horse_skeleton.png"}},
+        {"zombie_horse", {"minecraft:textures/entity/horse/horse_zombie.png"}},
+        {"bat", {"minecraft:textures/entity/bat.png"}},
+        {"blaze", {"minecraft:textures/entity/blaze.png"}},
+        {"guardian", {"minecraft:textures/entity/guardian.png"}},
+        {"elder_guardian", {"minecraft:textures/entity/guardian_elder.png"}},
+        {"phantom", {"minecraft:textures/entity/phantom.png"}},
+        {"silverfish", {"minecraft:textures/entity/silverfish.png"}},
+        {"endermite", {"minecraft:textures/entity/endermite.png"}},
+        {"squid", {"minecraft:textures/entity/squid.png"}},
+        {"dolphin", {"minecraft:textures/entity/dolphin.png"}},
+        {"snow_golem", {"minecraft:textures/entity/snow_golem.png"}},
+        {"wandering_trader", {"minecraft:textures/entity/wandering_trader.png"}},
+        {"witch", {"minecraft:textures/entity/witch.png"}},
+        {"husk", {"minecraft:textures/entity/zombie/husk.png"}},
+        {"drowned", {"minecraft:textures/entity/zombie/drowned.png"}},
+        {"stray", {"minecraft:textures/entity/skeleton/stray.png"}},
+        {"wither_skeleton", {"minecraft:textures/entity/skeleton/wither_skeleton.png"}},
+        {"giant", {"minecraft:textures/entity/zombie/zombie.png"}},
+        {"zombified_piglin", {"minecraft:textures/entity/piglin/zombified_piglin.png"}},
+        {"piglin", {"minecraft:textures/entity/piglin/piglin.png"}},
+        {"piglin_brute", {"minecraft:textures/entity/piglin/piglin_brute.png"}},
+        {"hoglin", {"minecraft:textures/entity/hoglin/hoglin.png"}},
+        {"zoglin", {"minecraft:textures/entity/hoglin/zoglin.png"}},
+        {"vindicator", {"minecraft:textures/entity/illager/vindicator.png"}},
+        {"evoker", {"minecraft:textures/entity/illager/evoker.png"}},
+        {"illusioner", {"minecraft:textures/entity/illager/illusioner.png"}},
+        {"pillager", {"minecraft:textures/entity/illager/pillager.png"}},
+        {"ravager", {"minecraft:textures/entity/illager/ravager.png"}},
+        {"vex", {"minecraft:textures/entity/illager/vex.png"}},
+        {"ender_dragon", {"minecraft:textures/entity/enderdragon/dragon.png"}},
+    };
+
+    const auto specialIt = specialPaths.find(name);
+    if (specialIt != specialPaths.end()) {
+        return specialIt->second;
+    }
+
+    std::vector<std::string> paths;
 
     // MC 1.13+ 格式: textures/entity/<name>/<name>.png
     paths.push_back("minecraft:textures/entity/" + name + "/" + name + ".png");
@@ -179,9 +232,59 @@ TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSheep) {
 TEST_F(EntityTexturePathGenerationTest, GetTexturePathsChicken) {
     auto paths = getTexturePaths("minecraft:chicken");
 
-    ASSERT_EQ(paths.size(), 2u);
-    EXPECT_EQ(paths[0], "minecraft:textures/entity/chicken/chicken.png");
-    EXPECT_EQ(paths[1], "minecraft:textures/entity/chicken.png");
+    ASSERT_EQ(paths.size(), 1u);
+    EXPECT_EQ(paths[0], "minecraft:textures/entity/chicken.png");
+}
+
+TEST_F(EntityTexturePathGenerationTest, GetTexturePathsSpecialVanillaEntities) {
+    const std::vector<std::pair<std::string, std::string>> specialCases = {
+        {"minecraft:rabbit", "minecraft:textures/entity/rabbit/brown.png"},
+        {"minecraft:mooshroom", "minecraft:textures/entity/cow/red_mooshroom.png"},
+        {"minecraft:cat", "minecraft:textures/entity/cat/tabby.png"},
+        {"minecraft:ocelot", "minecraft:textures/entity/cat/ocelot.png"},
+        {"minecraft:parrot", "minecraft:textures/entity/parrot/parrot_red_blue.png"},
+        {"minecraft:polar_bear", "minecraft:textures/entity/bear/polarbear.png"},
+        {"minecraft:turtle", "minecraft:textures/entity/turtle/big_sea_turtle.png"},
+        {"minecraft:horse", "minecraft:textures/entity/horse/horse_brown.png"},
+        {"minecraft:donkey", "minecraft:textures/entity/horse/donkey.png"},
+        {"minecraft:mule", "minecraft:textures/entity/horse/mule.png"},
+        {"minecraft:llama", "minecraft:textures/entity/llama/creamy.png"},
+        {"minecraft:bat", "minecraft:textures/entity/bat.png"},
+        {"minecraft:blaze", "minecraft:textures/entity/blaze.png"},
+        {"minecraft:guardian", "minecraft:textures/entity/guardian.png"},
+        {"minecraft:elder_guardian", "minecraft:textures/entity/guardian_elder.png"},
+        {"minecraft:phantom", "minecraft:textures/entity/phantom.png"},
+        {"minecraft:silverfish", "minecraft:textures/entity/silverfish.png"},
+        {"minecraft:endermite", "minecraft:textures/entity/endermite.png"},
+        {"minecraft:squid", "minecraft:textures/entity/squid.png"},
+        {"minecraft:dolphin", "minecraft:textures/entity/dolphin.png"},
+        {"minecraft:snow_golem", "minecraft:textures/entity/snow_golem.png"},
+        {"minecraft:wandering_trader", "minecraft:textures/entity/wandering_trader.png"},
+        {"minecraft:witch", "minecraft:textures/entity/witch.png"},
+        {"minecraft:husk", "minecraft:textures/entity/zombie/husk.png"},
+        {"minecraft:drowned", "minecraft:textures/entity/zombie/drowned.png"},
+        {"minecraft:stray", "minecraft:textures/entity/skeleton/stray.png"},
+        {"minecraft:wither_skeleton", "minecraft:textures/entity/skeleton/wither_skeleton.png"},
+        {"minecraft:giant", "minecraft:textures/entity/zombie/zombie.png"},
+        {"minecraft:zombified_piglin", "minecraft:textures/entity/piglin/zombified_piglin.png"},
+        {"minecraft:piglin", "minecraft:textures/entity/piglin/piglin.png"},
+        {"minecraft:piglin_brute", "minecraft:textures/entity/piglin/piglin_brute.png"},
+        {"minecraft:hoglin", "minecraft:textures/entity/hoglin/hoglin.png"},
+        {"minecraft:zoglin", "minecraft:textures/entity/hoglin/zoglin.png"},
+        {"minecraft:vindicator", "minecraft:textures/entity/illager/vindicator.png"},
+        {"minecraft:evoker", "minecraft:textures/entity/illager/evoker.png"},
+        {"minecraft:illusioner", "minecraft:textures/entity/illager/illusioner.png"},
+        {"minecraft:pillager", "minecraft:textures/entity/illager/pillager.png"},
+        {"minecraft:ravager", "minecraft:textures/entity/illager/ravager.png"},
+        {"minecraft:vex", "minecraft:textures/entity/illager/vex.png"},
+        {"minecraft:ender_dragon", "minecraft:textures/entity/enderdragon/dragon.png"}
+    };
+
+    for (const auto& [entityTypeId, expectedPath] : specialCases) {
+        auto paths = getTexturePaths(entityTypeId);
+        ASSERT_FALSE(paths.empty()) << entityTypeId;
+        EXPECT_EQ(paths.front(), expectedPath) << entityTypeId;
+    }
 }
 
 TEST_F(EntityTexturePathGenerationTest, GetTexturePathsWithoutNamespace) {
@@ -243,7 +346,7 @@ TEST_F(DefaultEntityTypesTest, AllDefaultTypesHaveTexturePaths) {
 
     for (const auto& type : defaultTypes) {
         auto paths = getTexturePaths(type);
-        EXPECT_GE(paths.size(), 2u) << "Each entity type should have at least MC 1.12 and 1.13+ paths";
+        EXPECT_FALSE(paths.empty()) << "Each entity type should have at least one texture path";
     }
 }
 

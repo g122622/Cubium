@@ -556,20 +556,25 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
 void EntityRendererManager::remapUvToAtlasRegion(const String& normalizedTypeId,
                                                  std::vector<ModelVertex>& vertices) const {
     if (!m_textureAtlas || !m_textureAtlas->isBuilt() || vertices.empty()) {
+        spdlog::info("remapUvToAtlasRegion: early return for '{}' - atlas null: {}, built: {}, vertices empty: {}",
+                     normalizedTypeId, m_textureAtlas == nullptr, m_textureAtlas && m_textureAtlas->isBuilt(), vertices.empty());
         return;
     }
 
     const TextureRegion* region = nullptr;
     const auto texturePaths = EntityTextureLoader::getTexturePaths(normalizedTypeId);
+    spdlog::info("remapUvToAtlasRegion: trying {} paths for '{}'", texturePaths.size(), normalizedTypeId);
     for (const auto& path : texturePaths) {
+        spdlog::info("remapUvToAtlasRegion: checking path '{}'", path.toString());
         region = m_textureAtlas->getRegion(path);
         if (region) {
+            spdlog::info("remapUvToAtlasRegion: found region for '{}'", path.toString());
             break;
         }
     }
 
     if (!region) {
-        spdlog::debug("No atlas region found for entity type: {}", normalizedTypeId);
+        spdlog::warn("remapUvToAtlasRegion: No atlas region found for entity type: {}", normalizedTypeId);
         return;
     }
 

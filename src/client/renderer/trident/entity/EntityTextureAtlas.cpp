@@ -107,7 +107,7 @@ Result<void> EntityTextureAtlas::addTexture(mc::IResourcePack& pack, const Resou
     auto result = loadTextureWithFallback(pack, location, texData.pixels, texData.width, texData.height);
     if (!result.success()) {
         spdlog::warn("Failed to load entity texture: {} - {}", location.toString(), result.error().toString());
-        return {};  // 继续加载其他纹理
+        return result.error();
     }
 
     m_textures.push_back(std::move(texData));

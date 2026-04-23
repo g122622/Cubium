@@ -1,6 +1,7 @@
 #include "InMemoryResourcePack.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace mc {
 
@@ -73,8 +74,9 @@ Result<std::vector<u8>> InMemoryResourcePack::readResource(StringView resourcePa
         return it->second;
     }
 
-    return Error(ErrorCode::ResourceNotFound,
-                 "Resource not found in memory pack: " + normalized);
+    std::ostringstream oss;
+    oss << "Resource not found in memory pack: " << m_name << ", name: " << normalized;
+    return Error(ErrorCode::ResourceNotFound, oss.str());
 }
 
 Result<std::vector<String>> InMemoryResourcePack::listResources(

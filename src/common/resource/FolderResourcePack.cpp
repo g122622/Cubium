@@ -57,7 +57,7 @@ Result<std::vector<u8>> FolderResourcePack::readResource(StringView resourcePath
 
     if (!fs::exists(fullPath)) {
         return Error(ErrorCode::ResourceNotFound,
-                     String("Resource not found: ") + String(resourcePath));
+                     String("Resource not found in folder pack: ") + String(m_name) + ", name: " + String(resourcePath));
     }
 
     std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
@@ -89,7 +89,7 @@ Result<std::vector<String>> FolderResourcePack::listResources(
 
     if (!fs::exists(fullPath) || !fs::is_directory(fullPath)) {
         return Error(ErrorCode::NotFound,
-                     String("Directory not found: ") + fullPath);
+                     String("Directory not found in folder pack: ") + String(m_name) + ", path: " + fullPath);
     }
 
     std::vector<String> resources;
