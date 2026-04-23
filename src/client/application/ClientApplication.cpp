@@ -392,6 +392,9 @@ void ClientApplication::update(f32 deltaTime)
 
     // 音频暂停状态在 updateAudioPauseState() 中统一处理，避免重复投递命令。
 
+    // 更新实体平滑插值（每帧调用）
+    m_world.entityManager().updateInterpolation(deltaTime);
+
     // 更新实体动画状态（用于渲染插值）
     constexpr f32 partialTick = 0.0f;  // TODO: 从主循环获取实际的部分tick
     m_world.entityManager().updateAnimations(partialTick);

@@ -209,6 +209,15 @@ void ClientEntityManager::tick() {
     removeDeadEntities();
 }
 
+void ClientEntityManager::updateInterpolation(f32 deltaTime) {
+    // 每帧更新所有实体的平滑插值
+    for (auto& [id, entity] : m_entities) {
+        if (entity && entity->isAlive()) {
+            entity->updateInterpolation(deltaTime);
+        }
+    }
+}
+
 void ClientEntityManager::updateAnimations(f32 /*partialTick*/) {
     // 当前动画更新在tick()中完成
     // 如果需要更精确的插值，可以在这里进行

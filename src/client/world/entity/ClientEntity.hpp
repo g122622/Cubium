@@ -48,6 +48,25 @@ public:
     [[nodiscard]] const String& uuid() const { return m_uuid; }
     void setUuid(const String& uuid) { m_uuid = uuid; }
 
+    // ========== 位置插值配置 ==========
+
+    /**
+     * @brief 设置位置插值速度
+     * @param speed 插值速度 (0.0-1.0)，越大越快
+     */
+    void setInterpolationSpeed(f32 speed);
+
+    /**
+     * @brief 获取位置插值速度
+     */
+    [[nodiscard]] f32 interpolationSpeed() const { return m_interpolationSpeed; }
+
+    /**
+     * @brief 启用/禁用平滑插值
+     */
+    void setSmoothInterpolation(bool enabled) { m_smoothInterpolation = enabled; }
+    [[nodiscard]] bool smoothInterpolationEnabled() const { return m_smoothInterpolation; }
+
     // ========== 位置 ==========
 
     [[nodiscard]] Vector3 position() const { return m_position; }
@@ -76,7 +95,7 @@ public:
 
     /**
      * @brief 更新位置（每tick调用）
-     * 将目标位置变为当前位置，当前位置变为上一帧位置
+     * 对目标位置进行平滑插值
      */
     void tickPosition();
 
@@ -98,15 +117,30 @@ public:
     [[nodiscard]] f32 headYaw() const { return m_headYaw; }
     [[nodiscard]] f32 prevHeadYaw() const { return m_prevHeadYaw; }
 
+    // 目标旋转（用于平滑插值）
+    [[nodiscard]] f32 targetYaw() const { return m_targetYaw; }
+    [[nodiscard]] f32 targetPitch() const { return m_targetPitch; }
+    [[nodiscard]] f32 targetHeadYaw() const { return m_targetHeadYaw; }
+
     /**
      * @brief 设置旋转（立即设置）
      */
     void setRotation(f32 yaw, f32 pitch);
 
     /**
+     * @brief 设置目标旋转（用于插值）
+     */
+    void setTargetRotation(f32 yaw, f32 pitch);
+
+    /**
      * @brief 设置头部旋转
      */
     void setHeadRotation(f32 headYaw);
+
+    /**
+     * @brief 设置目标头部旋转（用于插值）
+     */
+    void setTargetHeadRotation(f32 headYaw);
 
     /**
      * @brief 更新旋转（每tick调用）
@@ -220,6 +254,12 @@ public:
      */
     void tick();
 
+    /**
+     * @brief 更新平滑插值（每帧调用）
+     * @param deltaTime 帧时间（秒）
+     */
+    void updateInterpolation(f32 deltaTime);
+
     // ========== ItemStack 支持（用于 ItemEntity 渲染） ==========
 
     /**
@@ -269,6 +309,10 @@ private:
     Vector3 m_prevPosition;
     Vector3 m_targetPosition;  // 从网络包接收的目标位置
 
+    // 平滑插值配置
+    f32 m_interpolationSpeed = 0.3f;   // 插值速度 (0.0-1.0)
+    bool m_smoothInterpolation = true;  // 是否启用平滑插值
+
     // 旋转
     f32 m_yaw = 0.0f;
     f32 m_pitch = 0.0f;
@@ -276,6 +320,9 @@ private:
     f32 m_prevPitch = 0.0f;
     f32 m_headYaw = 0.0f;      // 头部偏航角（动物特有）
     f32 m_prevHeadYaw = 0.0f;
+    f32 m_targetYaw = 0.0f;    // 目标旋转（用于平滑插值）
+    f32 m_targetPitch = 0.0f;
+    f32 m_targetHeadYaw = 0.0f;
 
     // 速度
     Vector3 m_velocity;

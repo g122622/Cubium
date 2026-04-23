@@ -10,6 +10,7 @@
 #include "client/ui/screen/CraftingScreen.hpp"
 #include "client/ui/screen/FurnaceScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "client/world/player/ClientPlayerPredictor.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -115,6 +116,9 @@ void ClientApplication::setupNetworkCallbacks()
             spdlog::info("Local player entity created: entityId={}", entityId);
         }
 
+        // 初始化玩家预测器
+        m_predictor = std::make_unique<ClientPlayerPredictor>();
+
         if (m_player) {
             m_player->setPlayerId(playerId);
         }
@@ -139,6 +143,9 @@ void ClientApplication::setupNetworkCallbacks()
 
         // 清除本地玩家实体
         m_world.entityManager().clearLocalPlayer();
+
+        // 清除预测器
+        m_predictor.reset();
 
         m_knownPlayerNames.clear();
         if (m_commandManager) {
@@ -173,6 +180,11 @@ void ClientApplication::setupNetworkCallbacks()
         MC_UNUSED(teleportId);
         if (!m_player) {
             return;
+        }
+
+        // 传送时重置预测器
+        if (m_predictor) {
+            m_predictor->reset(Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)), yaw, pitch);
         }
 
         m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
@@ -269,8 +281,9 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        entity->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-        entity->setRotation(yaw, pitch);
+        // 使用目标位置进行平滑插值
+        entity->setTargetPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        entity->setTargetRotation(yaw, pitch);
     };
 
     callbacks.onTimeUpdate = [this](i64 gameTime, i64 dayTime, bool daylightCycleEnabled) {
@@ -483,6 +496,7 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
+        // 出生时使用立即设置（不是插值）
         entity->setPosition(x, y, z);
         entity->setRotation(yaw, pitch);
         entity->setHeadRotation(headYaw);
@@ -524,8 +538,14 @@ void ClientApplication::setupNetworkCallbacks()
         const EntityId eid = static_cast<EntityId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
             if (m_player) {
-                m_player->setPosition(x, y, z);
-                m_player->setRotation(yaw, pitch);
+                // 本地玩家：交给预测器处理服务端确认
+                if (m_predictor) {
+                    m_predictor->receiveServerPosition(Vector3(x, y, z), yaw, pitch);
+                } else {
+                    // 如果预测器未初始化，直接设置位置
+                    m_player->setPosition(x, y, z);
+                    m_player->setRotation(yaw, pitch);
+                }
             }
             return;
         }
@@ -535,6 +555,7 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
+        // 传送使用立即设置（不是插值）
         entity->setPosition(x, y, z);
         entity->setRotation(yaw, pitch);
     };
@@ -594,7 +615,8 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        entity->setHeadRotation(headYaw);
+        // 使用目标头部旋转进行平滑插值
+        entity->setTargetHeadRotation(headYaw);
     };
 
     callbacks.onEntityStatus = [this](u32 entityId, u8 status) {

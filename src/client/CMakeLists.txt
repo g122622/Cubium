@@ -193,6 +193,8 @@ add_executable(minecraft-client
     world/entity/ClientEntityManager.cpp
     # 本地玩家身份
     world/player/LocalPlayerIdentity.cpp
+    # 客户端玩家预测器
+    world/player/ClientPlayerPredictor.cpp
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp

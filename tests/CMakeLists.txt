@@ -108,6 +108,8 @@ add_executable(mc_tests
     server/command/CommandRegistryTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
+    client/world/player/ClientPlayerPredictorTest.cpp
+    client/world/entity/ClientEntityTest.cpp
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
     client/world/ClientWorldLightUpdateTest.cpp
@@ -474,7 +476,9 @@ target_sources(mc_tests
         # 璁剧疆绯荤粺
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
         # 网格构建线程池
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildScheduler.cpp

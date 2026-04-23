@@ -174,6 +174,12 @@ public:
     void tick();
 
     /**
+     * @brief 更新所有实体的平滑插值（每帧调用）
+     * @param deltaTime 帧时间（秒）
+     */
+    void updateInterpolation(f32 deltaTime);
+
+    /**
      * @brief 更新所有实体的动画状态
      * 在渲染前调用，用于插值计算
      * @param partialTick 部分 tick (0.0-1.0)

@@ -46,7 +46,7 @@ IDispenseItemBehavior* DispenseItemBehaviorRegistry::getDefaultBehavior() {
 
 void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
     // TODO: 在物品系统完善后注册默认行为
-    // 当前框架已就绪，等待以下物品注册：
+    // TODO: 当前框架已就绪，等待以下物品注册：
     //
     // 投掷物:
     // - Arrow (箭矢)

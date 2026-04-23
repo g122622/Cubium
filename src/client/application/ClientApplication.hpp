@@ -19,6 +19,7 @@
 #include "../renderer/trident/gui/GuiTextureManager.hpp"
 #include "../world/ClientWorld.hpp"
 #include "../world/player/LocalPlayerIdentity.hpp"
+#include "../world/player/ClientPlayerPredictor.hpp"
 #include "../network/NetworkClient.hpp"
 #include "../ui/kagero/KageroEngine.hpp"
 #include "../ui/TridentCanvas.hpp"
@@ -281,6 +282,9 @@ private:
 
     // 本地玩家身份（playerId ↔ entityId 映射）
     LocalPlayerIdentity m_localIdentity;
+
+    // 客户端玩家预测器
+    std::unique_ptr<ClientPlayerPredictor> m_predictor;
 
     // 调试屏幕可见性
     bool m_debugScreenVisible = true;
