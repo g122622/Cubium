@@ -254,6 +254,8 @@ add_executable(minecraft-client
     world/player/LocalPlayerIdentity.cpp
     # 客户端玩家预测器
     world/player/ClientPlayerPredictor.cpp
+    # 客户端皮肤系统
+    skin/ClientSkinManager.cpp
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp

@@ -1,0 +1,219 @@
+#pragma once
+
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
+#include <array>
+#include <string>
+#include <vector>
+#include <optional>
+
+namespace mc::skin {
+
+/**
+ * @brief 玩家档案属性
+ *
+ * 用于存储皮肤、披风等纹理URL信息。
+ * 通常包含 "textures" 属性，值为 Base64 编码的 JSON。
+ *
+ * 参考 MC 1.16.5 Property 类
+ *
+ * 示例：
+ * - name: "textures"
+ * - value: Base64编码的JSON，包含皮肤URL等信息
+ * - signature: 可选的签名，用于验证属性真实性
+ */
+struct GameProfileProperty {
+    String name;                        // 属性名，如 "textures"
+    String value;                       // Base64 编码的值
+    std::optional<String> signature;    // 可选的签名（用于验证）
+
+    GameProfileProperty() = default;
+
+    /**
+     * @brief 构造属性
+     * @param n 属性名
+     * @param v 属性值（Base64编码）
+     * @param sig 可选的签名
+     */
+    GameProfileProperty(const String& n, const String& v,
+                        const std::optional<String>& sig = std::nullopt)
+        : name(n), value(v), signature(sig) {}
+
+    /**
+     * @brief 检查是否有签名
+     */
+    [[nodiscard]] bool hasSignature() const { return signature.has_value(); }
+
+    /**
+     * @brief 序列化到网络包
+     */
+    void serialize(network::PacketSerializer& ser) const;
+
+    /**
+     * @brief 从网络包反序列化
+     */
+    [[nodiscard]] static Result<GameProfileProperty> deserialize(network::PacketDeserializer& deser);
+};
+
+/**
+ * @brief 玩家游戏档案
+ *
+ * 存储玩家的唯一标识信息，用于：
+ * - 皮肤加载（通过UUID查找皮肤）
+ * - 网络同步（玩家列表、实体生成）
+ * - 离线/在线模式区分
+ *
+ * 参考 MC 1.16.5 GameProfile 类
+ *
+ * 示例：
+ * @code
+ * GameProfile profile;
+ * profile.setUUID(uuid);
+ * profile.setName("PlayerName");
+ * profile.addProperty({"textures", base64Data, signature});
+ *
+ * // 获取皮肤属性
+ * if (auto* textures = profile.getTexturesProperty()) {
+ *     // 解析 Base64 JSON 获取皮肤 URL
+ * }
+ * @endcode
+ */
+class GameProfile {
+public:
+    GameProfile() = default;
+
+    /**
+     * @brief 构造档案
+     * @param uuid 玩家UUID
+     * @param name 玩家名称
+     */
+    GameProfile(const std::array<u8, 16>& uuid, const String& name);
+
+    // ========== 基本信息 ==========
+
+    /**
+     * @brief 获取UUID
+     * @return 16字节UUID数组
+     */
+    [[nodiscard]] const std::array<u8, 16>& uuid() const { return m_uuid; }
+
+    /**
+     * @brief 设置UUID
+     */
+    void setUUID(const std::array<u8, 16>& uuid) { m_uuid = uuid; }
+
+    /**
+     * @brief 获取玩家名称
+     */
+    [[nodiscard]] const String& name() const { return m_name; }
+
+    /**
+     * @brief 设置玩家名称
+     */
+    void setName(const String& name) { m_name = name; }
+
+    // ========== 属性管理 ==========
+
+    /**
+     * @brief 获取所有属性
+     */
+    [[nodiscard]] const std::vector<GameProfileProperty>& properties() const
+        { return m_properties; }
+
+    /**
+     * @brief 添加属性
+     */
+    void addProperty(const GameProfileProperty& property);
+
+    /**
+     * @brief 添加属性（移动语义）
+     */
+    void addProperty(GameProfileProperty&& property);
+
+    /**
+     * @brief 获取指定名称的属性
+     * @param name 属性名
+     * @return 属性指针，不存在返回 nullptr
+     */
+    [[nodiscard]] const GameProfileProperty* getProperty(const String& name) const;
+
+    /**
+     * @brief 检查是否有 textures 属性
+     */
+    [[nodiscard]] bool hasTextures() const;
+
+    /**
+     * @brief 获取 textures 属性
+     * @return textures 属性指针，不存在返回 nullptr
+     */
+    [[nodiscard]] const GameProfileProperty* getTexturesProperty() const;
+
+    /**
+     * @brief 清除所有属性
+     */
+    void clearProperties() { m_properties.clear(); }
+
+    // ========== UUID 工具 ==========
+
+    /**
+     * @brief 获取 UUID 的字符串表示（带连字符）
+     * @return 如 "550e8400-e29b-41d4-a716-446655440000"
+     */
+    [[nodiscard]] String uuidToString() const;
+
+    /**
+     * @brief 获取 UUID 的无连字符字符串表示
+     * @return 如 "550e8400e29b41d4a716446655440000"
+     */
+    [[nodiscard]] String uuidToStringNoDashes() const;
+
+    /**
+     * @brief 从字符串解析 UUID
+     * @param str UUID字符串（带或不带连字符）
+     * @return UUID数组，解析失败返回全零
+     *
+     * 支持格式：
+     * - "550e8400-e29b-41d4-a716-446655440000" (带连字符)
+     * - "550e8400e29b41d4a716446655440000" (无连字符)
+     */
+    [[nodiscard]] static std::array<u8, 16> parseUUID(const String& str);
+
+    /**
+     * @brief 计算 UUID 哈希值（用于默认皮肤类型确定）
+     * @return 32位哈希值
+     */
+    [[nodiscard]] i32 uuidHashCode() const;
+
+    /**
+     * @brief 检查 UUID 是否有效（非全零）
+     */
+    [[nodiscard]] bool hasValidUUID() const;
+
+    // ========== 比较操作 ==========
+
+    /**
+     * @brief 相等比较（基于UUID）
+     */
+    bool operator==(const GameProfile& other) const { return m_uuid == other.m_uuid; }
+    bool operator!=(const GameProfile& other) const { return m_uuid != other.m_uuid; }
+
+    // ========== 序列化 ==========
+
+    /**
+     * @brief 序列化到网络包
+     */
+    void serialize(network::PacketSerializer& ser) const;
+
+    /**
+     * @brief 从网络包反序列化
+     */
+    [[nodiscard]] static Result<GameProfile> deserialize(network::PacketDeserializer& deser);
+
+private:
+    std::array<u8, 16> m_uuid = {};         // 玩家UUID（big-endian）
+    String m_name;                           // 玩家名称
+    std::vector<GameProfileProperty> m_properties;  // 属性列表
+};
+
+} // namespace mc::skin

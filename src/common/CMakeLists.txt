@@ -763,6 +763,24 @@ add_library(mc_common STATIC
 
     # Sound system - Network
     sound/network/SoundPackets.cpp
+
+    # Skin System - Core
+    skin/core/SkinTypes.cpp
+    skin/core/GameProfile.cpp
+    skin/core/SkinTextures.cpp
+    # Skin System - Manager
+    skin/manager/SkinCache.cpp
+    skin/manager/DefaultSkinProvider.cpp
+    skin/manager/SkinManager.cpp
+    # Skin System - Loader
+    skin/loader/SkinLoader.cpp
+    skin/loader/FileSkinLoader.cpp
+    skin/loader/HttpSkinLoader.cpp
+    # Skin System - Parser
+    skin/parser/SkinMetadataParser.cpp
+    # Skin System - Network
+    skin/network/PlayerSkinInfo.cpp
+    skin/network/SkinPackets.cpp
 )
 
 target_include_directories(mc_common

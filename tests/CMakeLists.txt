@@ -243,6 +243,9 @@ add_executable(mc_tests
     common/sound/SoundCategoryTest.cpp
     client/sound/SoundTest.cpp
     client/sound/SoundRegistryTest.cpp
+    # 皮肤系统测试
+    common/skin/test_skin_types.cpp
+    common/skin/test_skin_cache.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢
@@ -530,6 +533,20 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvent.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/network/SoundPackets.cpp
+        # Skin System
+        ${CMAKE_SOURCE_DIR}/src/common/skin/core/SkinTypes.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/core/GameProfile.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/core/SkinTextures.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/manager/SkinCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/manager/DefaultSkinProvider.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/manager/SkinManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/loader/SkinLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/loader/FileSkinLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/loader/HttpSkinLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/parser/SkinMetadataParser.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/network/PlayerSkinInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/skin/network/SkinPackets.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/skin/ClientSkinManager.cpp
         # 澹伴煶绯荤粺 - Client
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundDefinition.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundRegistry.cpp
