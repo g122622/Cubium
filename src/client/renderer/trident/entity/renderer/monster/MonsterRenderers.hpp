@@ -1,0 +1,117 @@
+#pragma once
+
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
+#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
+#include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
+#include "client/renderer/trident/entity/model/monster/CreeperModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
+#include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
+#include <memory>
+
+namespace mc {
+class LivingEntity;
+}
+
+namespace mc::client::renderer::entity::renderer::monster {
+
+using mc::LivingEntity;
+
+/**
+ * @brief 僵尸渲染器
+ *
+ * 参考 MC 1.16.5 ZombieRenderer
+ */
+class ZombieRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::ZombieModel> {
+public:
+    ZombieRenderer();
+    ~ZombieRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
+
+private:
+    void setupLayers();
+};
+
+/**
+ * @brief 骷髅渲染器
+ *
+ * 参考 MC 1.16.5 SkeletonRenderer
+ */
+class SkeletonRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SkeletonModel> {
+public:
+    SkeletonRenderer();
+    ~SkeletonRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
+
+private:
+    void setupLayers();
+};
+
+/**
+ * @brief 苦力怕渲染器
+ *
+ * 参考 MC 1.16.5 CreeperRenderer
+ */
+class CreeperRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::CreeperModel> {
+public:
+    CreeperRenderer();
+    ~CreeperRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
+
+private:
+    void setupLayers();
+};
+
+/**
+ * @brief 蜘蛛渲染器
+ *
+ * 参考 MC 1.16.5 SpiderRenderer
+ */
+class SpiderRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::SpiderModel> {
+public:
+    SpiderRenderer();
+    ~SpiderRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
+
+private:
+    void setupLayers();
+};
+
+/**
+ * @brief 末影人渲染器
+ *
+ * 参考 MC 1.16.5 EndermanRenderer
+ */
+class EndermanRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::EndermanModel> {
+public:
+    EndermanRenderer();
+    ~EndermanRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
+
+    void render(Entity& entity, f64 partialTicks) override;
+
+private:
+    void setupLayers();
+
+    // 末影人特有状态
+    void updateEndermanState(::mc::LivingEntity& entity);
+};
+
+/**
+ * @brief 注册所有怪物渲染器
+ *
+ * @param manager 实体渲染器管理器引用
+ */
+void registerMonsterRenderers(EntityRendererManager& manager);
+
+} // namespace mc::client::renderer::entity::renderer::monster

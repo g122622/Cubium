@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Types.hpp"
-#include "../../../../common/core/Result.hpp"
+#include "common/core/Result.hpp"
 
 namespace mc::client::renderer::api {
 

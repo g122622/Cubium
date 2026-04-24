@@ -558,6 +558,6 @@ flowchart LR
 
 ## 相关链接
 
-- [SettingsBase 基类](../../common/core/settings/SettingsBase.hpp)
-- [SettingsTypes 类型定义](../../common/core/settings/SettingsTypes.hpp)
+- [SettingsBase 基类](common/core/settings/SettingsBase.hpp)
+- [SettingsTypes 类型定义](common/core/settings/SettingsTypes.hpp)
 - [客户端设置](../../client/settings/ClientSettings.hpp)

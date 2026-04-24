@@ -2,9 +2,9 @@
 #include "../util/VulkanUtils.hpp"
 #include "../../util/ShaderPath.hpp"
 #include "../../../resource/ResourceManager.hpp"
-#include "../../../../common/util/math/MathUtils.hpp"
-#include "../../../../common/util/math/random/Random.hpp"
-#include "../../../../common/perfetto/TraceEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>

@@ -1,7 +1,7 @@
 #include "AmbientOcclusionCalculator.hpp"
-#include "../../../../common/world/chunk/ChunkData.hpp"
-#include "../../../../common/world/block/Block.hpp"
-#include "../../../../common/util/assert/AssertAll.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cmath>
 

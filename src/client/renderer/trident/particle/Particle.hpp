@@ -2,9 +2,9 @@
 
 #include "ParticleRenderType.hpp"
 #include "ParticleTypes.hpp"
-#include "../../../../common/core/Types.hpp"
-#include "../../../../common/core/Result.hpp"
-#include "../../../../common/resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>

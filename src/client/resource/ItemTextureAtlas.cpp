@@ -1,11 +1,11 @@
 #include "ItemTextureAtlas.hpp"
 #include "TextureAtlasBuilder.hpp"
 #include "../renderer/trident/util/VulkanUtils.hpp"
-#include "../../common/resource/IResourcePack.hpp"
-#include "../../common/resource/compat/TextureMapper.hpp"
-#include "../../common/item/core/Item.hpp"
-#include "../../common/item/core/ItemRegistry.hpp"
-#include "../../common/item/items/block/BlockItem.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/resource/compat/TextureMapper.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 

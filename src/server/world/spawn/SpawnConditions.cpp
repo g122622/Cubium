@@ -1,7 +1,7 @@
 #include "SpawnConditions.hpp"
-#include "../../../common/world/IWorld.hpp"
-#include "../../../common/world/block/Block.hpp"
-#include "../../../common/util/AxisAlignedBB.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 
 #include <algorithm>
 #include <cmath>

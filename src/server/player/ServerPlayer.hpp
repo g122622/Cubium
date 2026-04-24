@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../common/entity/entities/player/Player.hpp"
-#include "../../common/network/connection/IServerConnection.hpp"
-#include "../../common/network/packet/ExperiencePackets.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/network/connection/IServerConnection.hpp"
+#include "common/network/packet/ExperiencePackets.hpp"
 #include <memory>
 #include <utility>
 #include <vector>

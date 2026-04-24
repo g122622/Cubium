@@ -2,8 +2,8 @@
 
 #include "Glyph.hpp"
 #include "FontTextureAtlas.hpp"
-#include "../../common/core/Result.hpp"
-#include "../../common/resource/ResourceLocation.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <vector>
 #include <unordered_map>
 #include <memory>

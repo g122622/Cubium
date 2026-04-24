@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../common/core/Types.hpp"
-#include "../../common/core/Result.hpp"
-#include "../../common/resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "../renderer/MeshTypes.hpp"
 #include <vulkan/vulkan.h>
 #include <unordered_map>

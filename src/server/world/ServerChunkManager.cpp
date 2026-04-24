@@ -1,10 +1,10 @@
 #include "ServerChunkManager.hpp"
 #include "ServerWorld.hpp"
 #include "../sync/ChunkSendManager.hpp"
-#include "../../common/world/WorldConstants.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
-#include "../../common/perfetto/TraceEvents.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::server {

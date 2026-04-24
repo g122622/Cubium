@@ -67,15 +67,49 @@ add_executable(minecraft-client
     renderer/trident/gui/GuiSpriteRegistry.cpp
     renderer/trident/gui/GuiTextureLoader.cpp
     renderer/trident/item/ItemRenderer.cpp
-    renderer/trident/entity/EntityRenderer.cpp
-    renderer/trident/entity/EntityRendererManager.cpp
-    renderer/trident/entity/ItemEntityRenderer.cpp
-    renderer/trident/entity/ExperienceOrbRenderer.cpp
-    renderer/trident/entity/model/ModelRenderer.cpp
-    renderer/trident/entity/model/EntityModel.cpp
-    renderer/trident/entity/model/AnimalModels.cpp
-    renderer/trident/entity/EntityPipeline.cpp
-    renderer/trident/entity/EntityTextureAtlas.cpp
+    # 实体渲染系统
+    renderer/trident/entity/core/EntityRenderer.cpp
+    renderer/trident/entity/core/EntityRendererManager.cpp
+    renderer/trident/entity/pipeline/EntityPipeline.cpp
+    renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
+    renderer/trident/entity/util/ShadowRenderer.cpp
+    renderer/trident/entity/util/NameTagRenderer.cpp
+    # 实体模型
+    renderer/trident/entity/model/core/EntityModel.cpp
+    renderer/trident/entity/model/core/ModelRenderer.cpp
+    renderer/trident/entity/model/core/AgeableModel.cpp
+    renderer/trident/entity/model/core/SegmentedModel.cpp
+    renderer/trident/entity/model/base/BipedModel.cpp
+    renderer/trident/entity/model/base/QuadrupedModel.cpp
+    renderer/trident/entity/model/animal/AnimalModels.cpp
+    renderer/trident/entity/model/monster/ZombieModel.cpp
+    renderer/trident/entity/model/monster/SkeletonModel.cpp
+    renderer/trident/entity/model/monster/CreeperModel.cpp
+    renderer/trident/entity/model/monster/SpiderModel.cpp
+    renderer/trident/entity/model/monster/EndermanModel.cpp
+    renderer/trident/entity/model/player/PlayerModel.cpp
+    # 实体渲染器
+    renderer/trident/entity/renderer/projectile/ItemEntityRenderer.cpp
+    renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp
+    renderer/trident/entity/renderer/projectile/ProjectileRenderers.cpp
+    renderer/trident/entity/renderer/monster/MonsterRenderers.cpp
+    renderer/trident/entity/renderer/player/PlayerRenderer.cpp
+    renderer/trident/entity/renderer/vehicle/VehicleRenderers.cpp
+    # 层渲染器
+    renderer/trident/entity/layer/equipment/ArmorLayer.cpp
+    renderer/trident/entity/layer/equipment/HeldItemLayer.cpp
+    renderer/trident/entity/layer/equipment/HeadLayer.cpp
+    renderer/trident/entity/layer/cosmetic/CapeLayer.cpp
+    renderer/trident/entity/layer/cosmetic/ElytraLayer.cpp
+    renderer/trident/entity/layer/entity/SaddleLayer.cpp
+    renderer/trident/entity/layer/entity/SheepWoolLayer.cpp
+    renderer/trident/entity/layer/entity/ArrowLayer.cpp
+    renderer/trident/entity/layer/effect/EnergyGlintLayer.cpp
+    renderer/trident/entity/layer/effect/EyesLayer.cpp
+    # 实体特效
+    renderer/trident/entity/effect/glow/GlowEffect.cpp
+    renderer/trident/entity/effect/fire/FireEffect.cpp
+    renderer/trident/entity/effect/hurt/HurtFlashEffect.cpp
     # 第一人称手部渲染
     renderer/trident/firstperson/MatrixStack.cpp
     renderer/trident/firstperson/ItemCameraTransforms.cpp

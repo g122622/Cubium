@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BiomeColorBlender.hpp"
-#include "../../../../common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include <array>
 
 namespace mc::client {

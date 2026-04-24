@@ -4,9 +4,9 @@
 #include "ParticleRenderType.hpp"
 #include "Particle.hpp"
 #include "data/ParticleData.hpp"
-#include "../../../../common/core/Types.hpp"
-#include "../../../../common/core/Result.hpp"
-#include "../../../../common/resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <unordered_map>
 #include <vector>
 

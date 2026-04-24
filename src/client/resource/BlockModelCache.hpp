@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../common/core/Types.hpp"
+#include "common/core/Types.hpp"
 #include "../renderer/MeshTypes.hpp"
-#include "../common/world/block/Block.hpp"
+#include "common/world/block/Block.hpp"
 #include "ResourceManager.hpp"
 #include <unordered_map>
 #include <memory>

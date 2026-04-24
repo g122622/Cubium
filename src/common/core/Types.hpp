@@ -52,6 +52,7 @@ using PtrDiff = std::ptrdiff_t;
 // ============================================================================
 
 // 简单向量类型，用于命令系统等
+// TODO 全部移除，统一使用Z:\mc_dev\branch1\minecraft-reborn\src\common\util\math\Vector3.hpp中的Vector3<T>模板类
 struct Vector3i {
     i32 x, y, z;
     Vector3i() : x(0), y(0), z(0) {}

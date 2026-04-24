@@ -583,10 +583,10 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 
 ## 相关文档
 
-- [区块追踪系统](../../../common/world/chunk/README.md)
-- [光照系统](../../../common/world/lighting/README.md)
-- [实体系统](../../../common/entity/README.md)
-- [天气系统](../../../common/world/weather/README.md)
+- [区块追踪系统](common/world/chunk/README.md)
+- [光照系统](common/world/lighting/README.md)
+- [实体系统](common/entity/README.md)
+- [天气系统](common/world/weather/README.md)
 
 ## Mermaid 图
 

@@ -1,7 +1,7 @@
 #include "RainParticle.hpp"
-#include "../../../../../common/util/assert/AssertAll.hpp"
-#include "../../../../../common/util/math/random/Random.hpp"
-#include "../../../../../common/world/block/Block.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/Block.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle {

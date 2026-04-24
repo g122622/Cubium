@@ -1,5 +1,5 @@
 #include "BlockStateLoader.hpp"
-#include "../common/resource/IResourcePack.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 

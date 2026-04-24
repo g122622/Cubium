@@ -1,6 +1,6 @@
 #include "BiomeColorBlender.hpp"
 #include "../BiomeColors.hpp"
-#include "../../../../common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include <algorithm>
 #include <cmath>
 

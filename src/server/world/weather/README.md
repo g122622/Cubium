@@ -392,6 +392,6 @@ weatherManager.setThunder(6000);  // 同时启用降雨和雷暴
 
 ## 相关文档
 
-- [common/world/weather/README.md](../../../common/world/weather/README.md) - 通用天气模块
+- [common/world/weather/README.md](common/world/weather/README.md) - 通用天气模块
 - [ServerWorld](../README.md) - 服务端世界管理
 - [WeatherCommand](../../command/README.md) - 天气命令实现

@@ -1,11 +1,11 @@
 #include "ClientWorld.hpp"
 #include "../renderer/trident/chunk/ChunkMesher.hpp"
-#include "../../common/core/Constants.hpp"
-#include "../../common/network/sync/ChunkSync.hpp"
-#include "../../common/util/NibbleArray.hpp"
-#include "../../common/world/WorldConstants.hpp"
-#include "../../common/world/biome/BiomeRegistry.hpp"
-#include "../../common/perfetto/TraceEvents.hpp"
+#include "common/core/Constants.hpp"
+#include "common/network/sync/ChunkSync.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
 #include <glm/geometric.hpp>

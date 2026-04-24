@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../../common/core/Types.hpp"
-#include "../../../../common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Constants.hpp"
 #include <glm/glm.hpp>
 #include <cmath>
 

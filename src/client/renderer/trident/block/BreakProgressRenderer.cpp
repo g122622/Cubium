@@ -555,7 +555,7 @@ bool BreakProgressRenderer::createBuffers() {
     m_maxIndices = DEFAULT_MAX_CUBES * INDICES_PER_CUBE;
 
     // 使用 VulkanUtils 创建顶点缓冲区
-    auto vertexResult = VulkanUtils::createBuffer(
+    auto vertexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
         m_config.device,
         m_config.physicalDevice,
         m_maxVertices * sizeof(Vertex),
@@ -572,7 +572,7 @@ bool BreakProgressRenderer::createBuffers() {
     }
 
     // 使用 VulkanUtils 创建索引缓冲区
-    auto indexResult = VulkanUtils::createBuffer(
+    auto indexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
         m_config.device,
         m_config.physicalDevice,
         m_maxIndices * sizeof(u32),
@@ -649,7 +649,7 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     // 创建暂存缓冲区
     VkDeviceSize imageSize = width * height * 4;
 
-    auto stagingResult = VulkanUtils::createBuffer(
+    auto stagingResult = ::mc::client::renderer::VulkanUtils::createBuffer(
         m_config.device,
         m_config.physicalDevice,
         imageSize,
@@ -672,7 +672,7 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     vkUnmapMemory(m_config.device, m_stagingBufferMemory);
 
     // 创建图像
-    auto imageResult = VulkanUtils::createImage(
+    auto imageResult = ::mc::client::renderer::VulkanUtils::createImage(
         m_config.device,
         m_config.physicalDevice,
         width,
@@ -952,7 +952,7 @@ bool BreakProgressRenderer::recreateBuffers(size_t vertexCount, size_t indexCoun
     }
 
     // 使用 VulkanUtils 创建顶点缓冲区
-    auto vertexResult = VulkanUtils::createBuffer(
+    auto vertexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
         device,
         m_config.physicalDevice,
         vertexCount * sizeof(Vertex),
@@ -969,7 +969,7 @@ bool BreakProgressRenderer::recreateBuffers(size_t vertexCount, size_t indexCoun
     }
 
     // 使用 VulkanUtils 创建索引缓冲区
-    auto indexResult = VulkanUtils::createBuffer(
+    auto indexResult = ::mc::client::renderer::VulkanUtils::createBuffer(
         device,
         m_config.physicalDevice,
         indexCount * sizeof(u32),

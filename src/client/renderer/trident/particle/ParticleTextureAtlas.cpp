@@ -1,8 +1,8 @@
 #include "ParticleTextureAtlas.hpp"
 #include "../util/VulkanUtils.hpp"
 #include "../../../resource/TextureAtlasBuilder.hpp"
-#include "../../../../common/resource/IResourcePack.hpp"
-#include "../../../../common/util/assert/AssertAll.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
 #include <algorithm>

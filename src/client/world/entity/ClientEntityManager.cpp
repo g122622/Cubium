@@ -1,5 +1,5 @@
 #include "ClientEntityManager.hpp"
-#include "../../../common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include <algorithm>
 
 namespace mc::client {

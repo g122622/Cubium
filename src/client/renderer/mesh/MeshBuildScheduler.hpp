@@ -1,8 +1,8 @@
 #pragma once
 
 #include "MeshWorkerPool.hpp"
-#include "../../../common/core/Types.hpp"
-#include "../../../common/world/chunk/ChunkData.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <array>

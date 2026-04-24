@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../common/core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <unordered_map>
 #include <mutex>

@@ -1,7 +1,7 @@
 #include "EntityTextureLoader.hpp"
-#include "../../common/entity/core/EntityRegistry.hpp"
-#include "../../common/entity/core/EntityClassification.hpp"
-#include "../../common/resource/IResourcePack.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityClassification.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
 #include <unordered_map>
 

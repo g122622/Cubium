@@ -1,0 +1,81 @@
+#pragma once
+
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
+
+// Forward declaration
+namespace mc::client::renderer::entity {
+class EntityRendererManager;
+}
+
+namespace mc::client::renderer::entity::renderer::projectile {
+
+/**
+ * @brief 箭矢渲染器
+ *
+ * 渲染箭矢实体的专用渲染器。
+ *
+ * 参考 MC 1.16.5 ArrowRenderer
+ */
+class ArrowRenderer : public core::EntityRenderer {
+public:
+    ArrowRenderer();
+    ~ArrowRenderer() override = default;
+
+    void render(Entity& entity, f64 partialTicks) override;
+
+    /**
+     * @brief 获取箭矢纹理位置
+     */
+    [[nodiscard]] static ResourceLocation getArrowTexture();
+
+private:
+    void generateArrowMesh();
+
+    // 箭矢网格缓存
+    bool m_meshGenerated = false;
+};
+
+/**
+ * @brief 光灵箭渲染器
+ *
+ * 参考 MC 1.16.5 SpectralArrowRenderer
+ */
+class SpectralArrowRenderer : public core::EntityRenderer {
+public:
+    SpectralArrowRenderer();
+    ~SpectralArrowRenderer() override = default;
+
+    void render(Entity& entity, f64 partialTicks) override;
+
+    [[nodiscard]] static ResourceLocation getSpectralArrowTexture();
+};
+
+/**
+ * @brief 三叉戟渲染器
+ *
+ * 参考 MC 1.16.5 TridentRenderer
+ */
+class TridentRenderer : public core::EntityRenderer {
+public:
+    TridentRenderer();
+    ~TridentRenderer() override = default;
+
+    void render(Entity& entity, f64 partialTicks) override;
+
+    [[nodiscard]] static ResourceLocation getTridentTexture();
+
+private:
+    void generateTridentMesh();
+
+    bool m_meshGenerated = false;
+};
+
+/**
+ * @brief 注册投掷物渲染器
+ */
+void registerProjectileRenderers(::mc::client::renderer::entity::EntityRendererManager& manager);
+
+} // namespace mc::client::renderer::entity::renderer::projectile

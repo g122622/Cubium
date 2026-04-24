@@ -14,7 +14,7 @@
 #include "common/util/PlatformInfo.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
-#include "client/renderer/trident/entity/EntityRendererManager.hpp"
+#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"

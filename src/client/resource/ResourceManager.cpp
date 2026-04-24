@@ -1,7 +1,7 @@
 #include "ResourceManager.hpp"
-#include "../common/resource/FolderResourcePack.hpp"
-#include "../common/resource/compat/TextureMapper.hpp"
-#include "../common/resource/compat/ResourceMapper.hpp"
+#include "common/resource/FolderResourcePack.hpp"
+#include "common/resource/compat/TextureMapper.hpp"
+#include "common/resource/compat/ResourceMapper.hpp"
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 

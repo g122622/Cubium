@@ -2,7 +2,7 @@
 
 #include "BiomeColorCache.hpp"
 #include "../ColorResolver.hpp"
-#include "../../../../common/world/biome/Biome.hpp"
+#include "common/world/biome/Biome.hpp"
 #include <functional>
 #include <array>
 #include <atomic>

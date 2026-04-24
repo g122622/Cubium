@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ClientEntity.hpp"
-#include "../../../common/core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <unordered_map>
 #include <memory>
 #include <vector>

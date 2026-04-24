@@ -4,8 +4,8 @@
 #include "../buffer/IBuffer.hpp"
 #include "../texture/ITexture.hpp"
 #include "../texture/ITextureAtlas.hpp"
-#include "../../../../common/core/Result.hpp"
-#include "../../../../common/resource/ResourceLocation.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <vector>
 

@@ -2,7 +2,7 @@
 
 #include "Widget.hpp"
 #include "../paint/PaintContext.hpp"
-#include "../../../../common/item/core/ItemStack.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <functional>
 #include <string>
 

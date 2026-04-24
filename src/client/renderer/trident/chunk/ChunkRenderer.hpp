@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../../common/core/Types.hpp"
-#include "../../../../common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
 #include "../../MeshTypes.hpp"
 #include "ChunkMesher.hpp"
 #include <vulkan/vulkan.h>

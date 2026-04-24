@@ -13,8 +13,8 @@
 #include "pipeline/IPipeline.hpp"
 #include "camera/ICamera.hpp"
 #include "mesh/MeshData.hpp"
-#include "../../../common/core/Result.hpp"
-#include "../../../common/resource/ResourceLocation.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <functional>
 

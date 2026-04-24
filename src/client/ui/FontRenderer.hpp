@@ -2,7 +2,7 @@
 
 #include "Font.hpp"
 #include "Glyph.hpp"
-#include "../../common/core/Result.hpp"
+#include "common/core/Result.hpp"
 #include <vector>
 #include <string>
 

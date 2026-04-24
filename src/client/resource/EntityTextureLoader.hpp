@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../common/core/Types.hpp"
-#include "../../common/core/Result.hpp"
-#include "../../common/resource/ResourceLocation.hpp"
-#include "../renderer/trident/entity/EntityTextureAtlas.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include <memory>
 #include <vector>
 #include <string>
@@ -17,6 +17,9 @@ enum class EntityClassification : u8;
 }
 
 namespace mc::client {
+
+// 导入 EntityTextureAtlas 类型
+using renderer::entity::pipeline::EntityTextureAtlas;
 
 /**
  * @brief 实体纹理加载器

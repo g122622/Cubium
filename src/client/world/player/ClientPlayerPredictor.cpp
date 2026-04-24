@@ -1,5 +1,5 @@
 #include "ClientPlayerPredictor.hpp"
-#include "../../../common/util/assert/AssertAll.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cmath>
 

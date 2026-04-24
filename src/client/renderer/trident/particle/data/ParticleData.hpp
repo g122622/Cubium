@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../ParticleTypes.hpp"
-#include "../../../../../common/core/Types.hpp"
-#include "../../../../../common/core/Result.hpp"
-#include "../../../../../common/resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <string>
 

@@ -5,8 +5,8 @@
 #include "../../../resource/ItemTextureAtlas.hpp"
 #include "../../../resource/ResourceManager.hpp"
 #include "../../../resource/TextureAtlasBuilder.hpp"
-#include "../entity/EntityTextureAtlas.hpp"
-#include "../../../../common/resource/ResourceLocation.hpp"
+#include "../entity/pipeline/EntityTextureAtlas.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <vulkan/vulkan.h>
 #include <memory>
 #include <functional>
@@ -22,14 +22,22 @@ struct TextureRegion;
 namespace mc::client {
 class ChunkRenderer;
 class Font;
+}
+
+namespace mc::client::renderer::entity {
+class EntityRendererManager;
+
+namespace pipeline {
 class EntityPipeline;
 }
 
-namespace mc::client::renderer {
-class EntityRendererManager;
 }
 
 namespace mc::client::renderer::trident {
+
+// 导入实体纹理图集类型
+using entity::pipeline::EntityTextureAtlas;
+using entity::pipeline::EntityPipeline;
 
 // 前置声明
 class TridentSwapchain;
@@ -441,8 +449,8 @@ public:
     /**
      * @brief 获取实体渲染器管理器
      */
-    [[nodiscard]] renderer::EntityRendererManager& entityRendererManager();
-    [[nodiscard]] const renderer::EntityRendererManager& entityRendererManager() const;
+    [[nodiscard]] entity::EntityRendererManager& entityRendererManager();
+    [[nodiscard]] const entity::EntityRendererManager& entityRendererManager() const;
     [[nodiscard]] bool isEntityRendererInitialized() const { return m_entityRendererInitialized; }
 
     /**
@@ -652,7 +660,7 @@ private:
     std::unique_ptr<sky::SkyRenderer> m_skyRendererPtr;
     std::unique_ptr<gui::GuiRenderer> m_guiRendererPtr;
     std::unique_ptr<item::ItemRenderer> m_itemRendererPtr;
-    std::unique_ptr<renderer::EntityRendererManager> m_entityRendererManager;
+    std::unique_ptr<entity::EntityRendererManager> m_entityRendererManager;
     std::unique_ptr<fog::FogManager> m_fogManager;
     std::unique_ptr<cloud::CloudRenderer> m_cloudRenderer;
     std::unique_ptr<particle::ParticleManager> m_particleManager;

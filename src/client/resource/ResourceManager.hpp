@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../common/core/Types.hpp"
-#include "../common/core/Result.hpp"
-#include "../common/resource/ResourceLocation.hpp"
-#include "../common/resource/IResourcePack.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "../renderer/MeshTypes.hpp"
 #include "BlockModelLoader.hpp"
 #include "BlockStateLoader.hpp"

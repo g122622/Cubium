@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../common/core/Types.hpp"
-#include "../../common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "api/camera/ICamera.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>

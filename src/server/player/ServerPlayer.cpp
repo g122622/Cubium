@@ -1,6 +1,6 @@
 #include "ServerPlayer.hpp"
 
-#include "../../common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include "../core/ConnectionManager.hpp"
 #include <spdlog/spdlog.h>
 

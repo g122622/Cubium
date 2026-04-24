@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../common/core/Types.hpp"
-#include "../../../common/world/biome/Biome.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/biome/Biome.hpp"
 #include <array>
 #include <algorithm>
 #include <cmath>

@@ -24,9 +24,9 @@
 #include "../item/ItemRenderer.hpp"
 #include "../../../resource/ItemTextureAtlas.hpp"
 #include "../../../resource/EntityTextureLoader.hpp"
-#include "../entity/EntityRendererManager.hpp"
-#include "../entity/EntityTextureAtlas.hpp"
-#include "../entity/EntityPipeline.hpp"
+#include "../entity/core/EntityRendererManager.hpp"
+#include "../entity/pipeline/EntityTextureAtlas.hpp"
+#include "../entity/pipeline/EntityPipeline.hpp"
 #include "../block/BreakProgressRenderer.hpp"
 #include "../firstperson/FirstPersonRenderer.hpp"
 #include <GLFW/glfw3.h>
@@ -1382,14 +1382,14 @@ const ItemTextureAtlas& TridentEngine::itemTextureAtlas() const {
     return m_itemTextureAtlas;
 }
 
-renderer::EntityRendererManager& TridentEngine::entityRendererManager() {
+entity::EntityRendererManager& TridentEngine::entityRendererManager() {
     if (!m_entityRendererManager) {
-        m_entityRendererManager = std::make_unique<renderer::EntityRendererManager>();
+        m_entityRendererManager = std::make_unique<entity::EntityRendererManager>();
     }
     return *m_entityRendererManager;
 }
 
-const renderer::EntityRendererManager& TridentEngine::entityRendererManager() const {
+const entity::EntityRendererManager& TridentEngine::entityRendererManager() const {
     return *m_entityRendererManager;
 }
 
@@ -1683,17 +1683,15 @@ Result<void> TridentEngine::initializeEntityRenderer() {
 
     // 创建实体渲染器管理器
     if (!m_entityRendererManager) {
-        m_entityRendererManager = std::make_unique<renderer::EntityRendererManager>();
+        m_entityRendererManager = std::make_unique<entity::EntityRendererManager>();
     }
 
     // 初始化默认实体渲染器
     m_entityRendererManager->initializeDefaults();
 
-    // 设置物品纹理图集（用于 ItemEntity 渲染）
-    if (m_itemTextureAtlasInitialized && m_itemTextureAtlas.isValid()) {
-        m_entityRendererManager->setItemTextureAtlas(&m_itemTextureAtlas);
-    }
-
+    // 设置实体纹理图集（用于UV重映射）
+    // 注意：物品纹理图集是 ItemTextureAtlas 类型，而 EntityRendererManager 需要 EntityTextureAtlas 类型
+    // 物品实体渲染通过 initializeEntityTextureAtlas() 设置的 entity texture atlas 进行
     // 创建并初始化实体渲染管线
     if (!m_entityPipeline) {
         m_entityPipeline = std::make_unique<EntityPipeline>();

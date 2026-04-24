@@ -2,7 +2,7 @@
 
 #include "Particle.hpp"
 #include "ParticleTextureAtlas.hpp"
-#include "../../../../common/core/Result.hpp"
+#include "common/core/Result.hpp"
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>

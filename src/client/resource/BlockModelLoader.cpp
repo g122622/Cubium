@@ -1,6 +1,6 @@
 #include "BlockModelLoader.hpp"
-#include "../common/resource/IResourcePack.hpp"
-#include "../common/util/math/random/Random.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <nlohmann/json.hpp>
 #include <cctype>
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../Particle.hpp"
-#include "../../../../../../common/util/assert/AssertAll.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 

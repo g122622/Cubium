@@ -1,11 +1,15 @@
 #pragma once
 
-#include "../entity/model/EntityModel.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "ArmPose.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc::client::renderer {
+
+// 导入需要的类型
+using entity::model::BipedModel;
+using entity::model::ModelRenderer;
 
 /**
  * @brief 玩家模型

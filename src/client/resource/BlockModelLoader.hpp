@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../common/core/Types.hpp"
-#include "../common/core/Result.hpp"
-#include "../common/resource/ResourceLocation.hpp"
-#include "../common/util/Direction.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
 #include <string>

@@ -1,5 +1,5 @@
 #include "ClientEntity.hpp"
-#include "../../../common/network/packet/EntityMetadataSerializer.hpp"
+#include "common/network/packet/EntityMetadataSerializer.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 

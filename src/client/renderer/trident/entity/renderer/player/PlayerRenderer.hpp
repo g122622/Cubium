@@ -1,0 +1,105 @@
+#pragma once
+
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
+#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
+#include <memory>
+
+namespace mc {
+class Player;
+}
+
+namespace mc::client::renderer::entity::renderer::player {
+
+/**
+ * @brief 玩家渲染器
+ *
+ * 参考 MC 1.16.5 PlayerRenderer
+ * 支持标准手臂和纤细手臂两种模式。
+ *
+ * 注意：Player 类不继承 LivingEntity，因此这里直接继承 EntityRenderer。
+ */
+class PlayerRenderer : public core::EntityRenderer {
+public:
+    /**
+     * @brief 构造函数
+     * @param slimArms 是否使用纤细手臂
+     */
+    explicit PlayerRenderer(bool slimArms = false);
+    ~PlayerRenderer() override = default;
+
+    void render(Entity& entity, f64 partialTicks) override;
+
+    /**
+     * @brief 渲染右手臂（第一人称）
+     */
+    void renderRightArm(::mc::Player& player, f64 partialTicks);
+
+    /**
+     * @brief 渲染左手臂（第一人称）
+     */
+    void renderLeftArm(::mc::Player& player, f64 partialTicks);
+
+    /**
+     * @brief 获取是否使用纤细手臂
+     */
+    [[nodiscard]] bool hasSlimArms() const { return m_slimArms; }
+
+    /**
+     * @brief 获取模型
+     */
+    [[nodiscard]] model::player::PlayerModel& getModel() { return m_model; }
+    [[nodiscard]] const model::player::PlayerModel& getModel() const { return m_model; }
+
+protected:
+    /**
+     * @brief 设置模型可见性
+     *
+     * 根据玩家设置显示/隐藏各部件。
+     */
+    void setModelVisibilities(::mc::Player& player);
+
+    /**
+     * @brief 确定手臂姿态
+     */
+    model::player::ArmPose determineArmPose(::mc::Player& player, bool mainHand);
+
+    /**
+     * @brief 计算步态动画周期
+     */
+    [[nodiscard]] f64 getLimbSwing(::mc::Player& player, f64 partialTicks) const;
+
+    /**
+     * @brief 计算步态动画强度
+     */
+    [[nodiscard]] f64 getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const;
+
+    /**
+     * @brief 获取头部偏航角
+     */
+    [[nodiscard]] f64 getHeadYaw(::mc::Player& player, f64 partialTicks) const;
+
+    /**
+     * @brief 获取头部俯仰角
+     */
+    [[nodiscard]] f64 getHeadPitch(::mc::Player& player, f64 partialTicks) const;
+
+    /**
+     * @brief 获取年龄（tick）
+     */
+    [[nodiscard]] f64 getAgeInTicks(::mc::Player& player) const;
+
+private:
+    void setupLayers();
+
+    model::player::PlayerModel m_model;
+    bool m_slimArms;  // 是否使用纤细手臂
+};
+
+/**
+ * @brief 注册玩家渲染器
+ * @param manager 实体渲染器管理器引用
+ */
+void registerPlayerRenderers(EntityRendererManager& manager);
+
+} // namespace mc::client::renderer::entity::renderer::player

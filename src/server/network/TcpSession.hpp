@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "../../common/core/Types.hpp"
-#include "../../common/core/Result.hpp"
-#include "../../common/network/packet/Packet.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/network/packet/Packet.hpp"
 #include <memory>
 #include <functional>
 #include <deque>

@@ -1,6 +1,6 @@
 #include "BiomeColors.hpp"
-#include "../../../common/world/biome/Biome.hpp"
-#include "../../../common/world/biome/BiomeEffects.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeEffects.hpp"
 #include <cmath>
 
 namespace mc {

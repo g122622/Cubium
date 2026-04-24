@@ -1,7 +1,7 @@
 #include "ParticleManager.hpp"
 #include "../util/VulkanUtils.hpp"
 #include "../../util/ShaderPath.hpp"
-#include "../../../../common/util/math/MathUtils.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>

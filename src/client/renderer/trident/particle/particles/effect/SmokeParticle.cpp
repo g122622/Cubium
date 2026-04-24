@@ -1,5 +1,5 @@
 #include "SmokeParticle.hpp"
-#include "../../../../../../common/util/math/random/Random.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Font.hpp"
-#include "../../common/core/Result.hpp"
+#include "common/core/Result.hpp"
 #include <array>
 
 namespace mc::client {

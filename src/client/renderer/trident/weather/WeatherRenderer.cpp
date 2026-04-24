@@ -1,9 +1,9 @@
 #include "WeatherRenderer.hpp"
 #include "../util/VulkanUtils.hpp"
 #include "../../util/ShaderPath.hpp"
-#include "../../../../common/util/math/MathUtils.hpp"
-#include "../../../../common/util/math/random/Random.hpp"
-#include "../../../../common/perfetto/TraceEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
@@ -517,7 +517,7 @@ Result<void> WeatherRenderer::createVertexBuffer() {
     // 创建动态顶点缓冲区（足够大以容纳最大顶点数）
     m_vertexBufferSize = sizeof(WeatherVertex) * MAX_RAIN_VERTICES;
 
-    auto result = VulkanUtils::createBuffer(
+    auto result = ::mc::client::renderer::VulkanUtils::createBuffer(
         m_device, m_physicalDevice,
         m_vertexBufferSize,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -540,7 +540,7 @@ Result<void> WeatherRenderer::createUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(WeatherUBO);
 
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        auto result = VulkanUtils::createBuffer(
+        auto result = ::mc::client::renderer::VulkanUtils::createBuffer(
             m_device, m_physicalDevice,
             bufferSize,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -1021,7 +1021,7 @@ Result<void> WeatherRenderer::createTextureFromData(const std::vector<u8>& data,
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
-    auto result = VulkanUtils::createBuffer(
+    auto result = ::mc::client::renderer::VulkanUtils::createBuffer(
         m_device, m_physicalDevice,
         imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1037,7 +1037,7 @@ Result<void> WeatherRenderer::createTextureFromData(const std::vector<u8>& data,
     vkUnmapMemory(m_device, stagingBufferMemory);
 
     // 创建图像
-    result = VulkanUtils::createImage(
+    result = ::mc::client::renderer::VulkanUtils::createImage(
         m_device, m_physicalDevice,
         width, height,
         VK_FORMAT_R8G8B8A8_UNORM,
@@ -1052,7 +1052,7 @@ Result<void> WeatherRenderer::createTextureFromData(const std::vector<u8>& data,
     }
 
     // 转换图像布局并复制
-    VkCommandBuffer cmd = VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
+    VkCommandBuffer cmd = ::mc::client::renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
 
     VulkanUtils::transitionImageLayout(
         cmd, image,
@@ -1077,7 +1077,7 @@ Result<void> WeatherRenderer::createTextureFromData(const std::vector<u8>& data,
     vkFreeMemory(m_device, stagingBufferMemory, nullptr);
 
     // 创建图像视图
-    result = VulkanUtils::createImageView(
+    result = ::mc::client::renderer::VulkanUtils::createImageView(
         m_device, image,
         VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_ASPECT_COLOR_BIT,

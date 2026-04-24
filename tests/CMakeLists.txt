@@ -486,9 +486,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/ModelRenderer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/EntityModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/AnimalModels.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/ModelRenderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/EntityModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
         # 绗竴浜虹О鎵嬮儴娓叉煋
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/MatrixStack.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp

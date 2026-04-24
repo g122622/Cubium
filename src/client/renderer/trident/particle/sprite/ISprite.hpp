@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../../../common/core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <glm/glm.hpp>
 
 namespace mc::client::renderer::trident::particle {

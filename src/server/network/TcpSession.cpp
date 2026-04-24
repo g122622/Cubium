@@ -1,6 +1,6 @@
 ﻿#include "TcpSession.hpp"
 #include "TcpServer.hpp"
-#include "../../common/network/packet/PacketSerializer.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {

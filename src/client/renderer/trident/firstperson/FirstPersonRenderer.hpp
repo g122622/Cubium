@@ -4,8 +4,8 @@
 #include "PlayerModel.hpp"
 #include "ArmPose.hpp"
 #include "ItemCameraTransforms.hpp"
-#include "../entity/EntityPipeline.hpp"
-#include "../entity/EntityTextureAtlas.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -18,6 +18,7 @@
 // 前向声明
 namespace mc {
 class Player;
+class LivingEntity;
 }
 
 namespace mc::client {
@@ -25,6 +26,12 @@ class ItemTextureAtlas;
 }
 
 namespace mc::client::renderer::trident::firstperson {
+
+// 导入类型
+using entity::pipeline::EntityTextureAtlas;
+using entity::pipeline::EntityMesh;
+using entity::pipeline::EntityPipeline;
+using entity::model::ModelVertex;
 
 /**
  * @brief 第一人称手部渲染器

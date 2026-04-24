@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Glyph.hpp"
-#include "../../common/core/Result.hpp"
+#include "common/core/Result.hpp"
 #include <vector>
 #include <unordered_map>
 #include <memory>

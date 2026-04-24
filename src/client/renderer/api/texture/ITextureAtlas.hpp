@@ -2,7 +2,7 @@
 
 #include "ITexture.hpp"
 #include "TextureRegion.hpp"
-#include "../../../../common/resource/ResourceLocation.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <map>
 
 namespace mc::client::renderer::api {

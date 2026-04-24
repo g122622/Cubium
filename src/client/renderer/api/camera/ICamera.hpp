@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CameraConfig.hpp"
-#include "../../../../common/util/math/MathUtils.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 

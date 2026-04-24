@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ParticleData.hpp"
-#include "../../../../../common/world/block/Block.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc::client::renderer::trident::particle::data {
 

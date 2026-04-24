@@ -725,8 +725,8 @@ static constexpr f32 POSITION_SEND_INTERVAL = 1.0f / 20.0f;  // 20 TPS
 
 ## 相关文档
 
-- [common/network/packet/README.md](../../common/network/packet/README.md) - 数据包模块文档
-- [common/network/connection/LocalConnection.hpp](../../common/network/connection/LocalConnection.hpp) - 本地连接实现
+- [common/network/packet/README.md](common/network/packet/README.md) - 数据包模块文档
+- [common/network/connection/LocalConnection.hpp](common/network/connection/LocalConnection.hpp) - 本地连接实现
 - [server/application/IntegratedServer.hpp](../../server/application/IntegratedServer.hpp) - 内置服务器
 - [client/README.md](../README.md) - 客户端模块总览
 - [CLAUDE.md](../../../CLAUDE.md) - 项目总览

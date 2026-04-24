@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../../../common/core/Types.hpp"
-#include "../../../../common/world/chunk/ChunkData.hpp"
-#include "../../../../common/world/block/Block.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/block/Block.hpp"
 #include "../../MeshTypes.hpp"
 #include "../../../settings/ClientSettings.hpp"
 #include "../../../world/color/blend/blend.hpp"

@@ -1,5 +1,5 @@
 #include "CelestialCalculations.hpp"
-#include "../../../../common/util/assert/AssertAll.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <cmath>
 
 namespace mc::client {

@@ -1,6 +1,6 @@
 #include "BasicParticleData.hpp"
 #include "../ParticleRegistry.hpp"
-#include "../../../../../common/util/assert/AssertAll.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client::renderer::trident::particle::data {
 

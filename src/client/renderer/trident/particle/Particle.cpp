@@ -1,6 +1,6 @@
 #include "Particle.hpp"
 #include "ParticleTextureAtlas.hpp"
-#include "../../../../common/util/math/MathUtils.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 
 // 前置声明 - 避免包含 ClientWorld.hpp

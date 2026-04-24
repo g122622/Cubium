@@ -1,9 +1,9 @@
 #include "ServerPlayerEntityManager.hpp"
 #include "../../world/ServerWorld.hpp"
 #include "../../world/entity/EntityTracker.hpp"
-#include "../../../common/world/entity/EntityManager.hpp"
-#include "../../../common/entity/entities/player/Player.hpp"
-#include "../../../common/util/assert/AssertAll.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {

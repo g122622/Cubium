@@ -1,5 +1,5 @@
 #include "DiggingParticle.hpp"
-#include "../../../../../../common/util/math/random/Random.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
