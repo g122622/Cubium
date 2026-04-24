@@ -2,6 +2,9 @@
 
 #include "LivingRenderer.hpp"
 #include "../model/animal/AnimalModels.hpp"
+#include "../model/animal/RabbitModel.hpp"
+#include "../model/animal/BatModel.hpp"
+#include "../model/animal/SquidModel.hpp"
 #include <memory>
 
 namespace mc {
@@ -70,8 +73,6 @@ class SheepRenderer : public core::LivingRenderer<LivingEntity, model::animal::S
 public:
     SheepRenderer() {
         m_shadowSize = 0.7f;
-        // TODO: 当 LayerRenderer 支持无参构造后添加羊毛层
-        // setupLayers();
     }
     ~SheepRenderer() override = default;
 
@@ -83,6 +84,30 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/sheep/sheep.png");
+    }
+};
+
+/**
+ * @brief 哞菇渲染器
+ *
+ * 参考 MC 1.16.5 MooshroomRenderer
+ * 复用牛模型
+ */
+class MooshroomRenderer : public core::LivingRenderer<LivingEntity, model::animal::CowModel> {
+public:
+    MooshroomRenderer() {
+        m_shadowSize = 0.7f;
+    }
+    ~MooshroomRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/cow/mooshroom.png");
+    }
+
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/cow/mooshroom.png");
     }
 };
 
@@ -106,6 +131,75 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/chicken.png");
+    }
+};
+
+/**
+ * @brief 兔子渲染器
+ *
+ * 参考 MC 1.16.5 RabbitRenderer
+ */
+class RabbitRenderer : public core::LivingRenderer<LivingEntity, model::animal::RabbitModel> {
+public:
+    RabbitRenderer() {
+        m_shadowSize = 0.3f;
+    }
+    ~RabbitRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/rabbit/brown.png");
+    }
+
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/rabbit/brown.png");
+    }
+};
+
+/**
+ * @brief 蝙蝠渲染器
+ *
+ * 参考 MC 1.16.5 BatRenderer
+ */
+class BatRenderer : public core::LivingRenderer<LivingEntity, model::animal::BatModel> {
+public:
+    BatRenderer() {
+        m_shadowSize = 0.3f;
+    }
+    ~BatRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/bat.png");
+    }
+
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/bat.png");
+    }
+};
+
+/**
+ * @brief 鱿鱼渲染器
+ *
+ * 参考 MC 1.16.5 SquidRenderer
+ */
+class SquidRenderer : public core::LivingRenderer<LivingEntity, model::animal::SquidModel> {
+public:
+    SquidRenderer() {
+        m_shadowSize = 0.7f;
+    }
+    ~SquidRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/squid.png");
+    }
+
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/squid.png");
     }
 };
 

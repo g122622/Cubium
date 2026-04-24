@@ -13,6 +13,14 @@ namespace mc::client::renderer::entity::model {
 class BipedModel : public EntityModel {
 public:
     BipedModel();
+    /**
+     * @brief 带参数的构造函数
+     * @param scale 模型缩放
+     * @param yOffset Y轴偏移
+     * @param textureWidth 纹理宽度
+     * @param textureHeight 纹理高度
+     */
+    BipedModel(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight);
     ~BipedModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
@@ -30,6 +38,7 @@ protected:
     // 模型部件
     std::shared_ptr<ModelRenderer> m_head;
     std::shared_ptr<ModelRenderer> m_headwear;    // 帽子层
+    std::shared_ptr<ModelRenderer> m_headOverlay; // 别名，指向 m_headwear
     std::shared_ptr<ModelRenderer> m_body;
     std::shared_ptr<ModelRenderer> m_rightArm;
     std::shared_ptr<ModelRenderer> m_leftArm;

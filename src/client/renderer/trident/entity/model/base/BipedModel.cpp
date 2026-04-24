@@ -8,12 +8,40 @@ BipedModel::BipedModel() {
     // 创建部件
     m_head = std::make_shared<ModelRenderer>("head");
     m_headwear = std::make_shared<ModelRenderer>("headwear");
+    m_headOverlay = m_headwear; // 别名
     m_body = std::make_shared<ModelRenderer>("body");
     m_rightArm = std::make_shared<ModelRenderer>("rightArm");
     m_leftArm = std::make_shared<ModelRenderer>("leftArm");
     m_rightLeg = std::make_shared<ModelRenderer>("rightLeg");
     m_leftLeg = std::make_shared<ModelRenderer>("leftLeg");
 
+    setupParts();
+
+    // 添加到部件列表
+    m_parts.push_back(m_head);
+    m_parts.push_back(m_headwear);
+    m_parts.push_back(m_body);
+    m_parts.push_back(m_rightArm);
+    m_parts.push_back(m_leftArm);
+    m_parts.push_back(m_rightLeg);
+    m_parts.push_back(m_leftLeg);
+}
+
+BipedModel::BipedModel(f32 scale, f32 yOffset, i32 textureWidth, i32 textureHeight) {
+    setTextureSize(textureWidth, textureHeight);
+
+    // 创建部件
+    m_head = std::make_shared<ModelRenderer>("head");
+    m_headwear = std::make_shared<ModelRenderer>("headwear");
+    m_headOverlay = m_headwear; // 别名
+    m_body = std::make_shared<ModelRenderer>("body");
+    m_rightArm = std::make_shared<ModelRenderer>("rightArm");
+    m_leftArm = std::make_shared<ModelRenderer>("leftArm");
+    m_rightLeg = std::make_shared<ModelRenderer>("rightLeg");
+    m_leftLeg = std::make_shared<ModelRenderer>("leftLeg");
+
+    (void)scale;
+    (void)yOffset;
     setupParts();
 
     // 添加到部件列表

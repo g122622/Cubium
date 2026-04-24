@@ -5,6 +5,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <array>
 
 // Forward declarations
 namespace mc {
@@ -41,9 +42,20 @@ public:
     ~BoatModel() = default;
 
     void render(f64 scale = 1.0f / 16.0f);
+    void renderNoWater(f64 scale = 1.0f / 16.0f);
+
+    /**
+     * @brief 设置桨的角度
+     * @param paddleIndex 0=左桨, 1=右桨
+     * @param angle X轴旋转角度
+     */
+    void setPaddleAngle(i32 paddleIndex, f32 angle);
 
 private:
     void setupParts();
+
+    i32 m_textureWidth = 128;
+    i32 m_textureHeight = 64;
 
     // 船体部件
     std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bottom;
@@ -53,6 +65,7 @@ private:
     std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_right;
     std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_paddleLeft;
     std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_paddleRight;
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_noWater;
 };
 
 /**
@@ -91,11 +104,17 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f);
 
+    /**
+     * @brief 设置内部底板Y偏移
+     * 用于乘客乘坐时的动画
+     */
+    void setInsideOffset(f32 yOffset);
+
 private:
     void setupParts();
 
-    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_body;
-    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_wheels;
+    // 6个面：底部、左、右、后、前、内部底
+    std::array<std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer>, 6> m_sides;
 };
 
 /**

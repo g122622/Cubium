@@ -93,12 +93,24 @@ add_executable(minecraft-client
     renderer/trident/entity/model/monster/SpiderModel.cpp
     renderer/trident/entity/model/monster/EndermanModel.cpp
     renderer/trident/entity/model/monster/BlazeModel.cpp
+    renderer/trident/entity/model/monster/SpecialMonsterModels.cpp
+    renderer/trident/entity/model/monster/MoreMonsterModels.cpp
+    renderer/trident/entity/model/monster/MonsterVariantModels.cpp
+    renderer/trident/entity/model/nether/NetherModels.cpp
+    renderer/trident/entity/model/aquatic/AquaticModels.cpp
+    renderer/trident/entity/model/projectile/ProjectileModels.cpp
     renderer/trident/entity/model/player/PlayerModel.cpp
     # 实体渲染器
     renderer/trident/entity/renderer/projectile/ItemEntityRenderer.cpp
     renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp
     renderer/trident/entity/renderer/projectile/ProjectileRenderers.cpp
     renderer/trident/entity/renderer/monster/MonsterRenderers.cpp
+    renderer/trident/entity/renderer/monster/SpecialMonsterRenderers.cpp
+    # renderer/trident/entity/renderer/monster/MoreMonsterRenderers.cpp
+    renderer/trident/entity/renderer/monster/MonsterVariantRenderers.cpp
+    renderer/trident/entity/renderer/nether/NetherRenderers.cpp
+    renderer/trident/entity/renderer/aquatic/AquaticRenderers.cpp
+    renderer/trident/entity/renderer/special/SpecialEntityRenderers.cpp
     renderer/trident/entity/renderer/animal/WolfRenderer.cpp
     renderer/trident/entity/renderer/animal/OcelotRenderer.cpp
     renderer/trident/entity/renderer/animal/CatRenderer.cpp
@@ -116,6 +128,7 @@ add_executable(minecraft-client
     renderer/trident/entity/layer/entity/SheepWoolLayer.cpp
     renderer/trident/entity/layer/entity/WolfCollarLayer.cpp
     renderer/trident/entity/layer/entity/ArrowLayer.cpp
+    renderer/trident/entity/layer/entity/HeldBlockLayer.cpp
     renderer/trident/entity/layer/effect/EnergyGlintLayer.cpp
     renderer/trident/entity/layer/effect/EyesLayer.cpp
     # 实体特效

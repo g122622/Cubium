@@ -292,6 +292,11 @@ public:
     [[nodiscard]] f64 rotateAngleY() const { return m_rotateAngleY; }
     [[nodiscard]] f64 rotateAngleZ() const { return m_rotateAngleZ; }
 
+    // 兼容性别名
+    [[nodiscard]] f64 getRotateAngleX() const { return m_rotateAngleX; }
+    [[nodiscard]] f64 getRotateAngleY() const { return m_rotateAngleY; }
+    [[nodiscard]] f64 getRotateAngleZ() const { return m_rotateAngleZ; }
+
     void setRotateAngleX(f64 angle) { m_rotateAngleX = angle; }
     void setRotateAngleY(f64 angle) { m_rotateAngleY = angle; }
     void setRotateAngleZ(f64 angle) { m_rotateAngleZ = angle; }
@@ -301,6 +306,11 @@ public:
     [[nodiscard]] f64 rotationPointX() const { return m_rotationPointX; }
     [[nodiscard]] f64 rotationPointY() const { return m_rotationPointY; }
     [[nodiscard]] f64 rotationPointZ() const { return m_rotationPointZ; }
+
+    // 兼容性别名
+    [[nodiscard]] f64 getRotationPointX() const { return m_rotationPointX; }
+    [[nodiscard]] f64 getRotationPointY() const { return m_rotationPointY; }
+    [[nodiscard]] f64 getRotationPointZ() const { return m_rotationPointZ; }
 
     void setRotationPointX(f64 x) { m_rotationPointX = x; }
     void setRotationPointY(f64 y) { m_rotationPointY = y; }
