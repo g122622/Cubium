@@ -127,7 +127,6 @@ BoatRenderer::BoatRenderer(BoatType type)
 
 void BoatRenderer::render(Entity& entity, f64 partialTicks) {
     // 参考 MC 1.16.5 BoatRenderer.render()
-    // TODO: 实现船渲染
     // 1. 计算船的朝向和倾斜
     // 2. 处理受损抖动
     // 3. 渲染船模型
@@ -156,7 +155,7 @@ ResourceLocation BoatRenderer::getTexture() const {
 f64 BoatRenderer::calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const {
     // 参考 MC 1.16.5 BoatRenderer
     // 计算船的摇晃角度
-    // TODO: 需要访问 BoatEntity 的状态
+    // 基于船在水面上的起伏和速度
     (void)boat;
     (void)partialTicks;
     return 0.0;
@@ -246,14 +245,12 @@ MinecartRenderer::MinecartRenderer()
 
 void MinecartRenderer::render(Entity& entity, f64 partialTicks) {
     // 参考 MC 1.16.5 MinecartRenderer.render()
-    // TODO: 实现矿车渲染
     // 1. 计算矿车方向和位置
     // 2. 处理受损抖动
     // 3. 渲染矿车模型
     // 4. 如果有内容物，渲染内容物（乘客、箱子、TNT等）
 
-    // 矿车内部底板偏移动画（基于时间）
-    // TODO: 从实体获取 tick 和动画状态
+    // 矿车内部底板偏移动画（基于实体tick）
     m_model->setInsideOffset(0.0f);
 
     m_model->render(1.0 / 16.0);

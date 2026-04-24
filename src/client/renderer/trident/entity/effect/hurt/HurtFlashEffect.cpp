@@ -35,9 +35,7 @@ i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlas
     // - V = 0
     // - 道德影响时 U 固定为 3.0F
 
-    // TODO: 从实体获取 hurtTime
-    // i32 hurtTime = entity.hurtTime();
-    i32 hurtTime = 0;
+    i32 hurtTime = entity.hurtTime();
 
     f32 u = 0.0f;
     if (whiteFlash) {
@@ -64,11 +62,8 @@ f64 HurtFlashEffect::getHurtProgress(::mc::LivingEntity& entity) {
     // hurtTime 从 10 递减到 0
     // 进度 = 1.0 - (hurtTime / 10.0)
 
-    // TODO: 从实体获取 hurtTime 和 maxHurtTime
-    // i32 hurtTime = entity.hurtTime();
-    // i32 maxHurtTime = entity.maxHurtTime();
-    i32 hurtTime = 0;
-    i32 maxHurtTime = 10;
+    i32 hurtTime = entity.hurtTime();
+    constexpr i32 maxHurtTime = 10;
 
     if (hurtTime <= 0) {
         return 0.0;
@@ -80,12 +75,7 @@ f64 HurtFlashEffect::getHurtProgress(::mc::LivingEntity& entity) {
 bool HurtFlashEffect::isHurt(::mc::LivingEntity& entity) {
     // 参考 MC 1.16.5 LivingEntity.isHurt()
     // 检查 hurtTime > 0
-
-    // TODO: 从实体获取 hurtTime
-    // i32 hurtTime = entity.hurtTime();
-    i32 hurtTime = 0;
-
-    return hurtTime > 0;
+    return entity.hurtTime() > 0;
 }
 
 math::Vector4f HurtFlashEffect::applyHurtFlash(::mc::LivingEntity& entity, const math::Vector4f& baseColor) {

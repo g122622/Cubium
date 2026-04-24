@@ -6,13 +6,24 @@ namespace mc::client::renderer::entity::effect::fire {
 
 bool FireEffect::s_initialized = false;
 
+// 火焰纹理UV坐标（参考MC 1.16.5）
+static constexpr f64 FIRE_TEX_U_OFFSET = 0.0;
+static constexpr f64 FIRE_TEX_V_OFFSET = 0.0;
+static constexpr f64 FIRE_TEX_WIDTH = 16.0 / 256.0;
+static constexpr f64 FIRE_TEX_HEIGHT = 16.0 / 256.0;
+
 void FireEffect::initialize() {
     if (s_initialized) {
         return;
     }
 
-    // 初始化火焰纹理和着色器
-    // TODO: 加载火焰纹理资源
+    // 参考 MC 1.16.5 火焰纹理初始化
+    // 火焰纹理位于 textures/entity/fire_layer_X.png
+    // 需要加载两层火焰纹理用于动画
+    //
+    // 当前等待纹理系统支持：
+    // - 火焰纹理加载
+    // - 动画纹理支持
 
     s_initialized = true;
 }
@@ -23,7 +34,7 @@ void FireEffect::cleanup() {
     }
 
     // 清理火焰纹理和着色器资源
-    // TODO: 释放资源
+    // 当前无需清理，等待纹理系统支持后实现
 
     s_initialized = false;
 }
@@ -31,21 +42,63 @@ void FireEffect::cleanup() {
 bool FireEffect::isBurning(Entity& entity) {
     // 参考 MC 1.16.5 Entity.isBurning()
     // 检查实体是否有燃烧状态
+    // 燃烧状态来源：
+    // 1. 火焰效果 (StatusEffectType::FIRE)
+    // 2. 岩浆接触
+    // 3. 燃烧方块接触
+
     // TODO: 从实体获取燃烧状态
+    // 需要 Entity::isOnFire() 方法
     (void)entity;
     return false;
 }
 
 void FireEffect::renderFire(Entity& entity, f64 partialTicks) {
+    if (!isBurning(entity)) {
+        return;
+    }
+
     // 参考 MC 1.16.5 EntityRenderer.renderFire()
     // 火焰渲染步骤：
     // 1. 获取实体边界框
-    // 2. 在底部和两侧放置火焰四边形
-    // 3. 使用动画纹理
+    // 2. 在底部放置一层火焰
+    // 3. 在四周放置火焰（共5个火焰四边形）
+    // 4. 使用动画纹理（根据时间切换纹理帧）
+    // 5. 火焰向上飘动动画
 
-    // TODO: 实现火焰渲染
-    (void)entity;
+    // 获取实体尺寸
+    f64 width = static_cast<f64>(entity.width());
+    f64 height = static_cast<f64>(entity.height());
+    f64 x = entity.x();
+    f64 y = entity.y();
+    f64 z = entity.z();
+
+    // 计算火焰尺寸
+    f64 fireWidth = width * 1.4;
+    f64 fireHeight = height * 1.4;
+
+    // 火焰偏移（摇曳动画）
+    f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
+    f64 offsetX = computeFireOffset(time, x * 1000.0);
+    f64 offsetZ = computeFireOffset(time, z * 1000.0);
+
+    // 生成火焰四边形
+    std::vector<model::ModelVertex> vertices;
+    std::vector<u32> indices;
+
+    // 底部火焰
+    generateFireQuad(x + offsetX, y, z + offsetZ, fireWidth, fireHeight, vertices, indices);
+
+    // 当前等待渲染管线支持：
+    // - 火焰纹理绑定
+    // - 透明混合模式
+    // - 广告牌渲染（火焰面向相机）
+
     (void)partialTicks;
+    (void)fireWidth;
+    (void)fireHeight;
+    (void)vertices;
+    (void)indices;
 }
 
 void FireEffect::generateFireQuad(
@@ -96,7 +149,8 @@ void FireEffect::generateFireQuad(
 f64 FireEffect::computeFireOffset(f64 time, f64 seed) {
     // 计算火焰动画偏移
     // 使用正弦波创建火焰摇曳效果
-    return std::sin(time * 10.0 + seed) * 0.1;
+    // 参考 MC 1.16.5 使用简单噪声函数
+    return std::sin(time * 0.3 + seed) * 0.1;
 }
 
 } // namespace mc::client::renderer::entity::effect::fire

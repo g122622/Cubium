@@ -67,6 +67,7 @@ struct Vector3d {
     Vector3d(f64 x, f64 y, f64 z) : x(x), y(y), z(z) {}
     bool operator==(const Vector3d& other) const { return x == other.x && y == other.y && z == other.z; }
     bool operator!=(const Vector3d& other) const { return !(*this == other); }
+    Vector3d operator-(const Vector3d& other) const { return Vector3d(x - other.x, y - other.y, z - other.z); }
 };
 
 struct Vector3f {

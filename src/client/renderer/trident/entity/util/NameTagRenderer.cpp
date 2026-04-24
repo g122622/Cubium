@@ -13,6 +13,9 @@ u8 NameTagRenderer::s_bgColorG = 0;
 u8 NameTagRenderer::s_bgColorB = 0;
 u8 NameTagRenderer::s_bgColorA = 128;
 
+// 相机位置（需要从渲染系统设置）
+static Vector3d s_cameraPosition(0.0, 0.0, 0.0);
+
 void NameTagRenderer::renderNameTag(
     Entity& entity,
     const String& displayName,
@@ -25,16 +28,29 @@ void NameTagRenderer::renderNameTag(
     // 计算名称标签位置
     Vector3d position = calculateNameTagPosition(entity, partialTicks);
 
-    // 计算缩放
-    // TODO: 需要相机位置来计算实际距离
-    f64 scale = s_scale;
+    // 计算到相机的距离
+    Vector3d toCamera = s_cameraPosition - position;
+    f64 distanceToCamera = std::sqrt(toCamera.x * toCamera.x + toCamera.y * toCamera.y + toCamera.z * toCamera.z);
 
-    // TODO: 实际渲染
-    // 需要使用文本渲染器绘制名称
-    // 1. 计算文本宽度
-    // 2. 设置变换矩阵（位置、旋转面向相机、缩放）
-    // 3. 绘制背景（如果启用）
-    // 4. 绘制文本
+    // 检查是否应该渲染
+    if (!shouldRenderNameTag(entity, distanceToCamera)) {
+        return;
+    }
+
+    // 计算缩放
+    f64 scale = calculateScale(distanceToCamera);
+
+    // 参考 MC 1.16.5 NameTagRenderer.renderNameTag()
+    // 渲染名称标签需要：
+    // 1. 创建面向相机的billboard变换矩阵
+    // 2. 渲染文本（使用FontRenderer）
+    // 3. 可选：渲染背景面板
+
+    // 当前暂不执行实际渲染，等待文本渲染系统支持
+    // 需要的功能：
+    // - FontRenderer支持3D空间中的文本渲染
+    // - billboard变换（始终面向相机）
+    // - 深度测试配置
 
     (void)position;
     (void)scale;
@@ -45,14 +61,25 @@ bool NameTagRenderer::shouldRenderNameTag(
     f64 distanceToCamera
 ) {
     // 检查距离
-    if (distanceToCamera > s_maxDistance) {
+    if (distanceToCamera > s_maxDistance * s_maxDistance) {
         return false;
     }
 
-    // 检查实体是否有自定义名称
-    // TODO: 检查实体是否有自定义名称或是否被命名
-    (void)entity;
-    return true;
+    // 检查实体是否有自定义名称或是否被命名
+    // 参考 MC 1.16.5 EntityRenderer.canRenderName()
+    const String& customName = entity.customName();
+    bool hasCustomName = !customName.empty();
+    bool isCustomNameVisible = entity.isCustomNameVisible();
+
+    // 如果有自定义名称且设置为可见，总是渲染
+    if (hasCustomName && isCustomNameVisible) {
+        return true;
+    }
+
+    // 其他情况下，检查实体是否被玩家瞄准
+    // TODO: 实现瞄准检测
+
+    return hasCustomName;
 }
 
 void NameTagRenderer::setMaxDistance(f64 distance) {
@@ -82,8 +109,10 @@ Vector3d NameTagRenderer::calculateNameTagPosition(
     Entity& entity,
     f64 partialTicks
 ) {
-    // 获取插值位置
-    // TODO: 使用 getInterpolatedPosition(partialTicks)
+    // 参考 MC 1.16.5 EntityRenderer.getRenderOffset()
+    // 名称标签位置在实体上方
+
+    // 获取位置
     f64 x = entity.x();
     f64 y = entity.y();
     f64 z = entity.z();
@@ -92,19 +121,26 @@ Vector3d NameTagRenderer::calculateNameTagPosition(
     f64 height = static_cast<f64>(entity.height());
     f64 nameTagY = y + height + HEIGHT_OFFSET;
 
+    // 如果实体正在蹲伏，调整高度
+    // TODO: 从实体获取蹲伏状态
+    // if (entity.isCrouching()) {
+    //     nameTagY -= 0.25;
+    // }
+
+    (void)partialTicks;
     return Vector3d(x, nameTagY, z);
 }
 
 f64 NameTagRenderer::calculateScale(f64 distanceToCamera) {
-    // 名称标签随距离缩放
-    // 参考 MC 1.16.5: 使用对数缩放
-    if (distanceToCamera <= 1.0) {
-        return s_scale;
+    // 参考 MC 1.16.5: 名称标签使用固定缩放
+    // MC 1.16.5 不随距离缩放名称标签
+
+    // 如果距离太近，稍微放大
+    if (distanceToCamera < 1.0) {
+        return s_scale * 1.5;
     }
 
-    // 远距离时稍微放大以保持可读性
-    f64 distanceScale = 1.0 + std::log(distanceToCamera) * 0.1;
-    return s_scale * distanceScale;
+    return s_scale;
 }
 
 } // namespace mc::client::renderer::entity::util

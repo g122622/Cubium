@@ -3,6 +3,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <memory>
+#include <unordered_map>
+#include <functional>
 
 namespace mc {
 
@@ -88,13 +90,14 @@ protected:
  */
 class EntityRendererFactory {
 public:
+    using CreatorFunc = std::unique_ptr<EntityRenderer>(*)();
+
     /**
      * @brief 注册渲染器
      * @param typeId 实体类型ID
      * @param creator 创建函数
      */
-    static void registerRenderer(const String& typeId,
-                                  std::unique_ptr<EntityRenderer> (*creator)());
+    static void registerRenderer(const String& typeId, CreatorFunc creator);
 
     /**
      * @brief 创建渲染器
@@ -102,6 +105,9 @@ public:
      * @return 对应的渲染器，如果没有则返回nullptr
      */
     static std::unique_ptr<EntityRenderer> createRenderer(const String& typeId);
+
+private:
+    static std::unordered_map<String, CreatorFunc> s_creators;
 };
 
 } // namespace mc::client::renderer::entity::core
