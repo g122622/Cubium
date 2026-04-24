@@ -7,6 +7,7 @@
 #include "client/renderer/trident/entity/model/monster/CreeperModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
 #include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
+#include "client/renderer/trident/entity/model/monster/BlazeModel.hpp"
 #include <memory>
 
 namespace mc {
@@ -105,6 +106,23 @@ private:
 
     // 末影人特有状态
     void updateEndermanState(::mc::LivingEntity& entity);
+};
+
+/**
+ * @brief 烈焰人渲染器
+ *
+ * 参考 MC 1.16.5 BlazeRenderer
+ */
+class BlazeRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::BlazeModel> {
+public:
+    BlazeRenderer();
+    ~BlazeRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
+
+private:
+    void setupLayers();
 };
 
 /**

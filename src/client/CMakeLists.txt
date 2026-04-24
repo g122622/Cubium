@@ -82,17 +82,28 @@ add_executable(minecraft-client
     renderer/trident/entity/model/base/BipedModel.cpp
     renderer/trident/entity/model/base/QuadrupedModel.cpp
     renderer/trident/entity/model/animal/AnimalModels.cpp
+    renderer/trident/entity/model/animal/WolfModel.cpp
+    renderer/trident/entity/model/animal/OcelotModel.cpp
+    renderer/trident/entity/model/animal/CatModel.cpp
+    renderer/trident/entity/model/animal/HorseModel.cpp
+    renderer/trident/entity/model/animal/VillagerModel.cpp
     renderer/trident/entity/model/monster/ZombieModel.cpp
     renderer/trident/entity/model/monster/SkeletonModel.cpp
     renderer/trident/entity/model/monster/CreeperModel.cpp
     renderer/trident/entity/model/monster/SpiderModel.cpp
     renderer/trident/entity/model/monster/EndermanModel.cpp
+    renderer/trident/entity/model/monster/BlazeModel.cpp
     renderer/trident/entity/model/player/PlayerModel.cpp
     # 实体渲染器
     renderer/trident/entity/renderer/projectile/ItemEntityRenderer.cpp
     renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp
     renderer/trident/entity/renderer/projectile/ProjectileRenderers.cpp
     renderer/trident/entity/renderer/monster/MonsterRenderers.cpp
+    renderer/trident/entity/renderer/animal/WolfRenderer.cpp
+    renderer/trident/entity/renderer/animal/OcelotRenderer.cpp
+    renderer/trident/entity/renderer/animal/CatRenderer.cpp
+    renderer/trident/entity/renderer/animal/HorseRenderer.cpp
+    renderer/trident/entity/renderer/animal/VillagerRenderer.cpp
     renderer/trident/entity/renderer/player/PlayerRenderer.cpp
     renderer/trident/entity/renderer/vehicle/VehicleRenderers.cpp
     # 层渲染器
@@ -103,6 +114,7 @@ add_executable(minecraft-client
     renderer/trident/entity/layer/cosmetic/ElytraLayer.cpp
     renderer/trident/entity/layer/entity/SaddleLayer.cpp
     renderer/trident/entity/layer/entity/SheepWoolLayer.cpp
+    renderer/trident/entity/layer/entity/WolfCollarLayer.cpp
     renderer/trident/entity/layer/entity/ArrowLayer.cpp
     renderer/trident/entity/layer/effect/EnergyGlintLayer.cpp
     renderer/trident/entity/layer/effect/EyesLayer.cpp

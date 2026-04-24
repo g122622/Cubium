@@ -1,5 +1,24 @@
 #include "EntityRendererManager.hpp"
 #include "../renderer/animal/AnimalRenderers.hpp"
+#include "../renderer/animal/WolfRenderer.hpp"
+#include "../renderer/animal/OcelotRenderer.hpp"
+#include "../renderer/animal/CatRenderer.hpp"
+#include "../renderer/animal/HorseRenderer.hpp"
+#include "../renderer/animal/VillagerRenderer.hpp"
+#include "../renderer/monster/MonsterRenderers.hpp"
+#include "../renderer/vehicle/VehicleRenderers.hpp"
+#include "../renderer/projectile/ProjectileRenderers.hpp"
+#include "../model/animal/WolfModel.hpp"
+#include "../model/animal/OcelotModel.hpp"
+#include "../model/animal/CatModel.hpp"
+#include "../model/animal/HorseModel.hpp"
+#include "../model/animal/VillagerModel.hpp"
+#include "../model/monster/ZombieModel.hpp"
+#include "../model/monster/SkeletonModel.hpp"
+#include "../model/monster/CreeperModel.hpp"
+#include "../model/monster/SpiderModel.hpp"
+#include "../model/monster/EndermanModel.hpp"
+#include "../model/monster/BlazeModel.hpp"
 #include "../renderer/projectile/ItemEntityRenderer.hpp"
 #include "../renderer/projectile/ExperienceOrbRenderer.hpp"
 #include "../pipeline/EntityTextureAtlas.hpp"
@@ -341,8 +360,10 @@ void EntityRendererManager::initializeDefaults() {
     // 所有注册都使用规范化的命名空间格式
     namespace ET = entity::EntityTypes;
     using namespace renderer::animal;
+    using namespace renderer::monster;
     using namespace renderer::projectile;
 
+    // 动物渲染器
     registerRenderer(ET::PIG, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<PigRenderer>();
     });
@@ -355,6 +376,47 @@ void EntityRendererManager::initializeDefaults() {
     registerRenderer(ET::CHICKEN, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<ChickenRenderer>();
     });
+    registerRenderer(ET::WOLF, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<WolfRenderer>();
+    });
+    registerRenderer(ET::OCELOT, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<OcelotRenderer>();
+    });
+    registerRenderer(ET::CAT, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<CatRenderer>();
+    });
+    registerRenderer(ET::HORSE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<HorseRenderer>();
+    });
+    registerRenderer(ET::VILLAGER, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<VillagerRenderer>();
+    });
+
+    // 怪物渲染器
+    registerRenderer(ET::ZOMBIE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<ZombieRenderer>();
+    });
+    registerRenderer(ET::SKELETON, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<SkeletonRenderer>();
+    });
+    registerRenderer(ET::CREEPER, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<CreeperRenderer>();
+    });
+    registerRenderer(ET::SPIDER, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<SpiderRenderer>();
+    });
+    registerRenderer(ET::ENDERMAN, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<EndermanRenderer>();
+    });
+    registerRenderer(ET::BLAZE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<BlazeRenderer>();
+    });
+
+    // 载具渲染器
+    renderer::vehicle::registerVehicleRenderers(*this);
+
+    // 投掷物渲染器
+    renderer::projectile::registerProjectileRenderers(*this);
 
     // ItemEntity 渲染器
     registerRenderer(ET::ITEM, [this]() -> std::unique_ptr<EntityRenderer> {
@@ -370,8 +432,7 @@ void EntityRendererManager::initializeDefaults() {
         return std::make_unique<ExperienceOrbRenderer>();
     });
 
-    spdlog::debug("EntityRendererManager: Registered {} entity types including ItemEntity and ExperienceOrb",
-                  static_cast<size_t>(4) + 2);  // 4 animals + 1 item + 1 orb
+    spdlog::debug("EntityRendererManager: Registered entity types: 9 animals, 5 monsters, vehicles, projectiles");
 }
 
 EntityRenderer* EntityRendererManager::getOrCreateRenderer(const String& typeId) {
@@ -435,6 +496,87 @@ bool EntityRendererManager::generateModelMesh(const String& typeId,
         remapUvToAtlasRegion(normalizedId, vertices);
         return true;
     }
+    if (normalizedId == ET::WOLF) {
+        WolfModel model;
+        model.setAnimState(false, false, false, 0.0f, 0.0f, 0.0f);
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::OCELOT) {
+        OcelotModel model(0.0f);
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::CAT) {
+        CatModel model(0.0f);
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::HORSE) {
+        HorseModel model(0.0f);
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::VILLAGER) {
+        VillagerModel model(0.0f);
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+
+    // 怪物模型
+    if (normalizedId == ET::ZOMBIE) {
+        model::monster::ZombieModel model;
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::SKELETON) {
+        model::monster::SkeletonModel model;
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::CREEPER) {
+        model::monster::CreeperModel model;
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::SPIDER) {
+        model::monster::SpiderModel model;
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::ENDERMAN) {
+        model::monster::EndermanModel model;
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+    if (normalizedId == ET::BLAZE) {
+        model::monster::BlazeModel model;
+        model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, MODEL_MESH_SCALE);
+        model.generateMesh(vertices, indices, MODEL_MESH_SCALE);
+        remapUvToAtlasRegion(normalizedId, vertices);
+        return true;
+    }
+
     if (normalizedId == ET::ITEM) {
         // ItemEntity 使用简单的四边形网格
         // 物品图标会在渲染时根据 ItemStack 动态获取纹理

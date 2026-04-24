@@ -155,6 +155,29 @@ void EndermanRenderer::setupLayers() {
     addLayer<layer_effect::EyesLayer<LivingEntity>>();
 }
 
+// ==================== 烈焰人渲染器 ====================
+
+BlazeRenderer::BlazeRenderer() {
+    setShadowSize(0.5f);
+    setShadowAlpha(0.8f);
+    setupLayers();
+}
+
+ResourceLocation BlazeRenderer::getEntityTexture(LivingEntity& entity) {
+    (void)entity;
+    return ResourceLocation("minecraft", "textures/entity/blaze.png");
+}
+
+ResourceLocation BlazeRenderer::getEntityTexture(const LivingEntity& entity) const {
+    (void)entity;
+    return ResourceLocation("minecraft", "textures/entity/blaze.png");
+}
+
+void BlazeRenderer::setupLayers() {
+    // 参考 MC 1.16.5 BlazeRenderer 构造函数
+    // 烈焰人没有特殊的层渲染器
+}
+
 // ==================== 注册函数 ====================
 
 void registerMonsterRenderers(EntityRendererManager& manager) {
@@ -176,6 +199,10 @@ void registerMonsterRenderers(EntityRendererManager& manager) {
 
     manager.registerRenderer("minecraft:enderman", []() -> std::unique_ptr<core::EntityRenderer> {
         return std::make_unique<EndermanRenderer>();
+    });
+
+    manager.registerRenderer("minecraft:blaze", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<BlazeRenderer>();
     });
 }
 
