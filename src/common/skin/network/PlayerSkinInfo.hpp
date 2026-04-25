@@ -117,6 +117,11 @@ public:
     void setSkinLocation(const ResourceLocation& location);
 
     /**
+     * @brief 设置皮肤类型
+     */
+    void setSkinType(SkinType type) { m_textures.setSkinType(type); }
+
+    /**
      * @brief 设置披风位置
      */
     void setCapeLocation(const ResourceLocation& location);

@@ -70,7 +70,7 @@ public:
      * @param profile 玩家档案
      * @return 皮肤纹理 ResourceLocation
      */
-    Result<ResourceLocation> registerPlayerSkin(const skin::GameProfile& profile);
+    Result<ResourceLocation> registerPlayerSkin(const ::mc::skin::GameProfile& profile);
 
     /**
      * @brief 获取玩家皮肤纹理区域
@@ -98,12 +98,12 @@ public:
      * @param uuid 玩家UUID
      * @return 皮肤类型
      */
-    [[nodiscard]] skin::SkinType getSkinType(const std::array<u8, 16>& uuid) const;
+    [[nodiscard]] ::mc::skin::SkinType getSkinType(const std::array<u8, 16>& uuid) const;
 
     /**
      * @brief 获取玩家皮肤信息
      */
-    [[nodiscard]] std::shared_ptr<skin::PlayerSkinInfo> getPlayerInfo(const std::array<u8, 16>& uuid) const;
+    [[nodiscard]] std::shared_ptr<::mc::skin::PlayerSkinInfo> getPlayerInfo(const std::array<u8, 16>& uuid) const;
 
     // ========== 默认皮肤 ==========
 
@@ -140,8 +140,8 @@ public:
     /**
      * @brief 获取底层皮肤管理器
      */
-    [[nodiscard]] skin::SkinManager& skinManager() { return *m_skinManager; }
-    [[nodiscard]] const skin::SkinManager& skinManager() const { return *m_skinManager; }
+    [[nodiscard]] ::mc::skin::SkinManager& skinManager() { return *m_skinManager; }
+    [[nodiscard]] const ::mc::skin::SkinManager& skinManager() const { return *m_skinManager; }
 
     // ========== 资源包设置 ==========
 
@@ -169,7 +169,7 @@ private:
      */
     [[nodiscard]] static String uuidToKey(const std::array<u8, 16>& uuid);
 
-    std::unique_ptr<skin::SkinManager> m_skinManager;
+    std::unique_ptr<::mc::skin::SkinManager> m_skinManager;
     std::unique_ptr<renderer::entity::pipeline::EntityTextureAtlas> m_textureAtlas;
 
     // 默认皮肤区域

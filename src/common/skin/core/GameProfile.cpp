@@ -13,12 +13,12 @@ namespace mc::skin {
 // ============================================================================
 
 void GameProfileProperty::serialize(network::PacketSerializer& ser) const {
-    ser.writeString(name, 32767);
-    ser.writeString(value, 32767);
+    ser.writeString(name);
+    ser.writeString(value);
 
     if (signature.has_value()) {
         ser.writeBool(true);
-        ser.writeString(*signature, 32767);
+        ser.writeString(*signature);
     } else {
         ser.writeBool(false);
     }
@@ -27,13 +27,13 @@ void GameProfileProperty::serialize(network::PacketSerializer& ser) const {
 Result<GameProfileProperty> GameProfileProperty::deserialize(network::PacketDeserializer& deser) {
     GameProfileProperty prop;
 
-    auto nameResult = deser.readString(32767);
+    auto nameResult = deser.readString();
     if (nameResult.failed()) {
         return nameResult.error();
     }
     prop.name = nameResult.value();
 
-    auto valueResult = deser.readString(32767);
+    auto valueResult = deser.readString();
     if (valueResult.failed()) {
         return valueResult.error();
     }
@@ -45,7 +45,7 @@ Result<GameProfileProperty> GameProfileProperty::deserialize(network::PacketDese
     }
 
     if (hasSigResult.value()) {
-        auto sigResult = deser.readString(32767);
+        auto sigResult = deser.readString();
         if (sigResult.failed()) {
             return sigResult.error();
         }
@@ -215,7 +215,7 @@ void GameProfile::serialize(network::PacketSerializer& ser) const {
     }
 
     // 名称: VarInt长度前缀字符串
-    ser.writeString(m_name, 16);
+    ser.writeString(m_name);
 
     // 属性数量: VarInt
     ser.writeVarInt(static_cast<i32>(m_properties.size()));
@@ -239,7 +239,7 @@ Result<GameProfile> GameProfile::deserialize(network::PacketDeserializer& deser)
     }
 
     // 名称: VarInt长度前缀字符串
-    auto nameResult = deser.readString(16);
+    auto nameResult = deser.readString();
     if (nameResult.failed()) {
         return nameResult.error();
     }

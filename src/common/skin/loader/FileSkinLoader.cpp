@@ -56,7 +56,7 @@ void FileSkinLoader::loadAsync(const String& url,
     // 简单实现：同步加载后调用回调
     // 生产环境应该使用线程池
     auto result = load(url);
-    callback(result);
+    callback(std::move(result));
 }
 
 void FileSkinLoader::cancel(const String& url) {

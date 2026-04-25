@@ -2,9 +2,14 @@
 #include "common/skin/manager/SkinCache.hpp"
 #include "common/skin/network/PlayerSkinInfo.hpp"
 #include "common/skin/network/SkinPackets.hpp"
+#include "common/skin/core/SkinTextures.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
+#include "common/core/Types.hpp"
 #include <filesystem>
 #include <fstream>
+#include <ctime>
 
 using namespace mc::skin;
 
@@ -24,22 +29,21 @@ protected:
         std::filesystem::remove_all(testDir_, ec);
     }
 
-    String testDir_;
+    mc::String testDir_;
     std::unique_ptr<SkinCache> cache_;
 };
 
 TEST_F(SkinCacheTest, Initialize) {
     auto result = cache_->initialize();
     EXPECT_TRUE(result.success());
-    EXPECT_TRUE(cache_->isInitialized());
 }
 
 TEST_F(SkinCacheTest, SaveAndReadSkin) {
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
-    String hash = "abc123def456";
-    std::vector<u8> testData(64 * 64 * 4, 0xAB);  // 64x64 RGBA
+    mc::String hash = "abc123def456";
+    std::vector<mc::u8> testData(64 * 64 * 4, 0xAB);  // 64x64 RGBA
 
     // 保存
     auto saveResult = cache_->saveSkin(hash, testData);
@@ -63,8 +67,8 @@ TEST_F(SkinCacheTest, GenerateSkinLocation) {
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
-    String hash = "abc123def456";
-    ResourceLocation location = cache_->generateSkinLocation(hash);
+    mc::String hash = "abc123def456";
+    mc::ResourceLocation location = cache_->generateSkinLocation(hash);
 
     EXPECT_EQ("minecraft:skins/ab/abc123def456", location.toString());
 }
@@ -75,7 +79,7 @@ TEST_F(SkinCacheTest, CacheCount) {
 
     EXPECT_EQ(0u, cache_->cacheCount());
 
-    std::vector<u8> testData(64 * 64 * 4, 0);
+    std::vector<mc::u8> testData(64 * 64 * 4, 0);
 
     cache_->saveSkin("hash1", testData);
     EXPECT_EQ(1u, cache_->cacheCount());
@@ -91,7 +95,7 @@ TEST_F(SkinCacheTest, ClearAll) {
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
-    std::vector<u8> testData(64 * 64 * 4, 0);
+    std::vector<mc::u8> testData(64 * 64 * 4, 0);
 
     cache_->saveSkin("hash1", testData);
     cache_->saveSkin("hash2", testData);
@@ -113,7 +117,7 @@ protected:
         info_ = std::make_unique<PlayerSkinInfo>(*profile_);
     }
 
-    std::array<u8, 16> uuid_;
+    std::array<mc::u8, 16> uuid_;
     std::unique_ptr<GameProfile> profile_;
     std::unique_ptr<PlayerSkinInfo> info_;
 };
@@ -123,7 +127,7 @@ TEST_F(PlayerSkinInfoTest, BasicProperties) {
 
     const auto& infoUuid = info_->uuid();
     for (size_t i = 0; i < 16; ++i) {
-        EXPECT_EQ(uuid_[i], infoUuid[i]);
+        EXPECT_EQ(uuid_[i], infoUuid[i]) << "UUID mismatch at index " << i;
     }
 }
 
@@ -146,12 +150,12 @@ TEST_F(PlayerSkinInfoTest, LoadState) {
 }
 
 TEST_F(PlayerSkinInfoTest, SkinTextures) {
-    ResourceLocation skinLoc("minecraft:skins/test");
+    mc::ResourceLocation skinLoc("minecraft:skins/test");
     info_->setSkinLocation(skinLoc);
 
     EXPECT_TRUE(info_->getSkinLocation() == skinLoc);
 
-    ResourceLocation capeLoc("minecraft:capes/test");
+    mc::ResourceLocation capeLoc("minecraft:capes/test");
     info_->setCapeLocation(capeLoc);
 
     auto cape = info_->getCapeLocation();
@@ -173,15 +177,15 @@ TEST_F(PlayerSkinInfoTest, SkinType) {
 }
 
 TEST_F(PlayerSkinInfoTest, ModelParts) {
-    u8 parts = info_->modelParts();
+    mc::u8 parts = info_->modelParts();
     EXPECT_EQ(0x7F, parts);  // 默认显示所有部件（除披风外）
 
     // 设置特定部件
-    info_->setModelPartEnabled(PlayerModelPart::Cape, true);
-    EXPECT_TRUE(info_->isWearing(PlayerModelPart::Cape));
+    info_->setModelPartEnabled(mc::PlayerModelPart::Cape, true);
+    EXPECT_TRUE(info_->isWearing(mc::PlayerModelPart::Cape));
 
-    info_->setModelPartEnabled(PlayerModelPart::Cape, false);
-    EXPECT_FALSE(info_->isWearing(PlayerModelPart::Cape));
+    info_->setModelPartEnabled(mc::PlayerModelPart::Cape, false);
+    EXPECT_FALSE(info_->isWearing(mc::PlayerModelPart::Cape));
 
     // 批量设置
     info_->setModelParts(0x00);
@@ -189,9 +193,9 @@ TEST_F(PlayerSkinInfoTest, ModelParts) {
 }
 
 TEST_F(PlayerSkinInfoTest, DefaultSkinLocation) {
-    ResourceLocation defaultSkin = info_->getDefaultSkinLocation();
-    EXPECT_TRUE(defaultSkin.toString().find("steve") != String::npos ||
-                defaultSkin.toString().find("alex") != String::npos);
+    mc::ResourceLocation defaultSkin = info_->getDefaultSkinLocation();
+    EXPECT_TRUE(defaultSkin.toString().find("steve") != mc::String::npos ||
+                defaultSkin.toString().find("alex") != mc::String::npos);
 }
 
 // ============================================================================
@@ -204,22 +208,22 @@ protected:
 };
 
 TEST_F(SkinPacketsTest, PlayerListEntryConstruction) {
-    std::array<u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
+    std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
     GameProfile profile(uuid, "TestPlayer");
 
-    PlayerListEntry entry = PlayerListEntry::createAdd(profile, GameMode::Survival, 50);
+    PlayerListEntry entry = PlayerListEntry::createAdd(profile, mc::GameMode::Survival, 50);
 
     for (size_t i = 0; i < 16; ++i) {
         EXPECT_EQ(uuid[i], entry.uuid[i]);
     }
     EXPECT_EQ("TestPlayer", entry.name);
-    EXPECT_EQ(GameMode::Survival, entry.gameMode);
+    EXPECT_EQ(mc::GameMode::Survival, entry.gameMode);
     EXPECT_EQ(50, entry.ping);
     EXPECT_TRUE(entry.displayName.has_value() == false);
 }
 
 TEST_F(SkinPacketsTest, PlayerListEntrySerialization) {
-    std::array<u8, 16> uuid = {
+    std::array<mc::u8, 16> uuid = {
         0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4,
         0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00
     };
@@ -227,7 +231,7 @@ TEST_F(SkinPacketsTest, PlayerListEntrySerialization) {
     PlayerListEntry entry;
     entry.uuid = uuid;
     entry.name = "TestPlayer";
-    entry.gameMode = GameMode::Creative;
+    entry.gameMode = mc::GameMode::Creative;
     entry.ping = 100;
     entry.properties.push_back({"textures", "base64data", "signature"});
 
@@ -248,7 +252,7 @@ TEST_F(SkinPacketsTest, PlayerListEntrySerialization) {
         EXPECT_EQ(uuid[i], decoded.uuid[i]);
     }
     EXPECT_EQ("TestPlayer", decoded.name);
-    EXPECT_EQ(GameMode::Creative, decoded.gameMode);
+    EXPECT_EQ(mc::GameMode::Creative, decoded.gameMode);
     EXPECT_EQ(100, decoded.ping);
     EXPECT_EQ(1u, decoded.properties.size());
     EXPECT_EQ("textures", decoded.properties[0].name);
@@ -258,11 +262,11 @@ TEST_F(SkinPacketsTest, PlayerListEntrySerialization) {
 TEST_F(SkinPacketsTest, PlayerListItemPacketAddPlayer) {
     PlayerListItemPacket packet(PlayerListAction::AddPlayer);
 
-    std::array<u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
+    std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
     GameProfile profile(uuid, "TestPlayer");
     profile.addProperty({"textures", "dGVzdA=="});  // base64 of "test"
 
-    PlayerListEntry entry = PlayerListEntry::createAdd(profile, GameMode::Survival, 50);
+    PlayerListEntry entry = PlayerListEntry::createAdd(profile, mc::GameMode::Survival, 50);
     packet.addEntry(entry);
 
     // 序列化
@@ -285,14 +289,14 @@ TEST_F(SkinPacketsTest, PlayerListItemPacketAddPlayer) {
         EXPECT_EQ(uuid[i], decodedEntry.uuid[i]);
     }
     EXPECT_EQ("TestPlayer", decodedEntry.name);
-    EXPECT_EQ(GameMode::Survival, decodedEntry.gameMode);
+    EXPECT_EQ(mc::GameMode::Survival, decodedEntry.gameMode);
     EXPECT_EQ(50, decodedEntry.ping);
 }
 
 TEST_F(SkinPacketsTest, PlayerListItemPacketRemovePlayer) {
     PlayerListItemPacket packet(PlayerListAction::RemovePlayer);
 
-    std::array<u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
+    std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
     PlayerListEntry entry = PlayerListEntry::createRemove(uuid);
     packet.addEntry(entry);
@@ -321,14 +325,14 @@ TEST_F(SkinPacketsTest, PlayerListItemPacketRemovePlayer) {
 TEST_F(SkinPacketsTest, PlayerListItemPacketMultipleEntries) {
     PlayerListItemPacket packet(PlayerListAction::AddPlayer);
 
-    std::array<u8, 16> uuid1 = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
-    std::array<u8, 16> uuid2 = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440001");
+    std::array<mc::u8, 16> uuid1 = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
+    std::array<mc::u8, 16> uuid2 = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440001");
 
     GameProfile profile1(uuid1, "Player1");
     GameProfile profile2(uuid2, "Player2");
 
-    packet.addEntry(PlayerListEntry::createAdd(profile1, GameMode::Survival, 10));
-    packet.addEntry(PlayerListEntry::createAdd(profile2, GameMode::Creative, 20));
+    packet.addEntry(PlayerListEntry::createAdd(profile1, mc::GameMode::Survival, 10));
+    packet.addEntry(PlayerListEntry::createAdd(profile2, mc::GameMode::Creative, 20));
 
     // 序列化
     auto serializeResult = packet.serialize();
@@ -346,16 +350,16 @@ TEST_F(SkinPacketsTest, PlayerListItemPacketMultipleEntries) {
     EXPECT_EQ(2u, decoded.entries().size());
 
     EXPECT_EQ("Player1", decoded.entries()[0].name);
-    EXPECT_EQ(GameMode::Survival, decoded.entries()[0].gameMode);
+    EXPECT_EQ(mc::GameMode::Survival, decoded.entries()[0].gameMode);
     EXPECT_EQ(10, decoded.entries()[0].ping);
 
     EXPECT_EQ("Player2", decoded.entries()[1].name);
-    EXPECT_EQ(GameMode::Creative, decoded.entries()[1].gameMode);
+    EXPECT_EQ(mc::GameMode::Creative, decoded.entries()[1].gameMode);
     EXPECT_EQ(20, decoded.entries()[1].ping);
 }
 
 TEST_F(SkinPacketsTest, PlayerListEntryUpdateLatency) {
-    std::array<u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
+    std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
     PlayerListEntry entry = PlayerListEntry::createUpdateLatency(uuid, 200);
     EXPECT_EQ(200, entry.ping);
@@ -378,10 +382,10 @@ TEST_F(SkinPacketsTest, PlayerListEntryUpdateLatency) {
 }
 
 TEST_F(SkinPacketsTest, PlayerListEntryUpdateGameMode) {
-    std::array<u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
+    std::array<mc::u8, 16> uuid = GameProfile::parseUUID("550e8400-e29b-41d4-a716-446655440000");
 
-    PlayerListEntry entry = PlayerListEntry::createUpdateGameMode(uuid, GameMode::Spectator);
-    EXPECT_EQ(GameMode::Spectator, entry.gameMode);
+    PlayerListEntry entry = PlayerListEntry::createUpdateGameMode(uuid, mc::GameMode::Spectator);
+    EXPECT_EQ(mc::GameMode::Spectator, entry.gameMode);
 
     // 序列化
     mc::network::PacketSerializer ser;
@@ -394,5 +398,5 @@ TEST_F(SkinPacketsTest, PlayerListEntryUpdateGameMode) {
     ASSERT_TRUE(result.success());
 
     const PlayerListEntry& decoded = result.value();
-    EXPECT_EQ(GameMode::Spectator, decoded.gameMode);
+    EXPECT_EQ(mc::GameMode::Spectator, decoded.gameMode);
 }

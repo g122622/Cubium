@@ -48,7 +48,7 @@ void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction
     switch (action) {
         case PlayerListAction::AddPlayer: {
             // Name: String (max 16)
-            ser.writeString(name, 16);
+            ser.writeString(name);
 
             // Properties count: VarInt
             ser.writeVarInt(static_cast<i32>(properties.size()));
@@ -71,7 +71,7 @@ void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction
             if (displayName.has_value()) {
                 // TODO 简化处理：直接写入字符串作为 Chat 组件
                 // 真实格式应该是 JSON Chat 组件
-                ser.writeString(*displayName, 32767);
+                ser.writeString(*displayName);
             }
             break;
         }
@@ -94,7 +94,7 @@ void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction
 
             // DisplayName?: Chat (optional)
             if (displayName.has_value()) {
-                ser.writeString(*displayName, 32767);
+                ser.writeString(*displayName);
             }
             break;
         }
@@ -122,7 +122,7 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
     switch (action) {
         case PlayerListAction::AddPlayer: {
             // Name: String (max 16)
-            auto nameResult = deser.readString(16);
+            auto nameResult = deser.readString();
             if (nameResult.failed()) {
                 return nameResult.error();
             }
@@ -166,7 +166,7 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 
             if (hasNameResult.value()) {
                 // DisplayName: Chat
-                auto displayNameResult = deser.readString(32767);
+                auto displayNameResult = deser.readString();
                 if (displayNameResult.failed()) {
                     return displayNameResult.error();
                 }
@@ -204,7 +204,7 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 
             if (hasNameResult.value()) {
                 // DisplayName: Chat
-                auto displayNameResult = deser.readString(32767);
+                auto displayNameResult = deser.readString();
                 if (displayNameResult.failed()) {
                     return displayNameResult.error();
                 }
@@ -227,11 +227,11 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 // ============================================================================
 
 PlayerListItemPacket::PlayerListItemPacket()
-    : Packet(PacketType::PlayerListItem) {
+    : Packet(network::PacketType::PlayerListItem) {
 }
 
 PlayerListItemPacket::PlayerListItemPacket(PlayerListAction action)
-    : Packet(PacketType::PlayerListItem), m_action(action) {
+    : Packet(network::PacketType::PlayerListItem), m_action(action) {
 }
 
 Result<std::vector<u8>> PlayerListItemPacket::serialize() const {

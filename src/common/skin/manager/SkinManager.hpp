@@ -14,6 +14,10 @@
 #include <functional>
 #include <atomic>
 
+namespace mc {
+class IResourcePack;  // 前向声明
+}
+
 namespace mc::skin {
 
 /**

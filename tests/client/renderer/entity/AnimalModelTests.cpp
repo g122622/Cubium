@@ -2,7 +2,9 @@
 #include <cstddef>
 #include <algorithm>
 
-#include "client/renderer/trident/entity/model/AnimalModels.hpp"
+#include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
+
+using namespace mc::client::renderer::entity::model::animal;
 
 namespace mc::client::renderer {
 namespace {

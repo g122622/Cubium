@@ -1,9 +1,9 @@
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
-#include "common/world/GameMode.hpp"
 #include <vector>
 #include <optional>
 

@@ -1,5 +1,5 @@
 #include "DefaultSkinProvider.hpp"
-#include "SkinTypes.hpp"
+#include "../core/SkinTypes.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {

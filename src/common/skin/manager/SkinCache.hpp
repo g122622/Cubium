@@ -19,11 +19,11 @@ namespace mc::skin {
  * 存储单个皮肤文件的缓存信息。
  */
 struct CacheEntry {
-    ResourceLocation location;                              // 纹理资源位置
-    String hash;                                            // 文件哈希
-    std::chrono::system_clock::time_point lastAccess;       // 最后访问时间
-    std::chrono::system_clock::time_point lastModified;     // 最后修改时间
-    size_t fileSize = 0;                                    // 文件大小（字节）
+    ResourceLocation location;                                  // 纹理资源位置
+    String hash;                                                // 文件哈希
+    std::filesystem::file_time_type lastAccess;                 // 最后访问时间
+    std::filesystem::file_time_type lastModified;               // 最后修改时间
+    size_t fileSize = 0;                                        // 文件大小（字节）
 };
 
 /**
