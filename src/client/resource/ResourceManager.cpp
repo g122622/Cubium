@@ -2,6 +2,7 @@
 #include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/compat/TextureMapper.hpp"
 #include "common/resource/compat/ResourceMapper.hpp"
+#include "ItemModelCache.hpp"
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
@@ -237,6 +238,14 @@ Result<void> ResourceManager::loadAllResources() {
 
     // 注意：computeBlockAppearances 在 buildTextureAtlas 后调用
     // 因为需要纹理区域数据
+
+    // 初始化物品模型缓存
+    std::vector<IResourcePack*> packPtrs;
+    packPtrs.reserve(m_resourcePacks.size());
+    for (const auto& pack : m_resourcePacks) {
+        packPtrs.push_back(pack.get());
+    }
+    client::resource::ItemModelCache::instance().initialize(packPtrs);
 
     spdlog::info("ResourceManager: Loaded {} block states, {} models",
                 m_blockStateLoader.getLoadedBlockStates().size(),
@@ -587,6 +596,9 @@ void ResourceManager::clear() {
     m_textureRegions.clear();
     m_atlasResult = AtlasBuildResult();
     m_atlasBuilt = false;
+
+    // 清理物品模型缓存
+    client::resource::ItemModelCache::instance().cleanup();
 }
 
 void ResourceManager::clearResourcePacks() {

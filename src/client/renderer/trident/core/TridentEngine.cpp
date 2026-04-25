@@ -28,6 +28,7 @@
 #include "../entity/pipeline/EntityTextureAtlas.hpp"
 #include "../entity/pipeline/EntityPipeline.hpp"
 #include "../entity/util/WorldTextRenderer.hpp"
+#include "../entity/effect/fire/FireEffect.hpp"
 #include "../block/BreakProgressRenderer.hpp"
 #include "../firstperson/FirstPersonRenderer.hpp"
 #include <GLFW/glfw3.h>
@@ -332,6 +333,9 @@ void TridentEngine::destroy() {
 
     // 清理世界文本渲染器
     entity::util::WorldTextRenderer::cleanup();
+
+    // 清理火焰效果渲染器
+    entity::effect::fire::FireEffect::cleanup();
 
     m_entityRendererManager.reset();
     m_font.reset();
@@ -1739,6 +1743,22 @@ Result<void> TridentEngine::initializeEntityRenderer() {
             }
         } else {
             spdlog::warn("WorldTextRenderer not initialized: font not available");
+        }
+
+        // 初始化火焰效果渲染器
+        // 注意：需要资源包来加载火焰纹理，这里先初始化一个基本版本
+        // 完整的火焰纹理将在 initializeEntityTextureAtlas 中加载
+        bool fireEffectInit = entity::effect::fire::FireEffect::initialize(
+            device(),
+            physicalDevice(),
+            commandPool(),
+            graphicsQueue(),
+            {}  // 空资源包列表，使用程序化纹理
+        );
+        if (fireEffectInit) {
+            spdlog::info("FireEffect initialized");
+        } else {
+            spdlog::warn("Failed to initialize FireEffect");
         }
     }
 

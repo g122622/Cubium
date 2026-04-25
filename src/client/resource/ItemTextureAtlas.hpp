@@ -112,6 +112,18 @@ public:
     [[nodiscard]] const TextureRegion* getItemTexture(const ResourceLocation& location) const;
 
     /**
+     * @brief 获取物品的所有纹理层
+     *
+     * 用于多层纹理物品（如附魔光效）。
+     * 物品模型可以有多个纹理层：layer0, layer1, layer2...
+     *
+     * @param textureLocations 纹理资源位置列表（如从 BakedItemModel::textureLayers 获取）
+     * @return 纹理区域列表（跳过不存在的纹理）
+     */
+    [[nodiscard]] std::vector<TextureRegion> getItemTextureLayers(
+        const std::vector<ResourceLocation>& textureLocations) const;
+
+    /**
      * @brief 检查是否有该物品的纹理
      */
     [[nodiscard]] bool hasItemTexture(u32 itemId) const;

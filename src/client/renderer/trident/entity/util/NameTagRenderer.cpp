@@ -1,4 +1,5 @@
 #include "NameTagRenderer.hpp"
+#include "WorldTextRenderer.hpp"
 #include "../pipeline/EntityPipeline.hpp"
 #include "../model/core/ModelRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -29,17 +30,13 @@ bool NameTagRenderer::initialize(pipeline::EntityPipeline& pipeline) {
         return true;
     }
 
-    // TODO: 创建名称标签网格资源
-    // 当前作为占位符，实际实现需要：
-    // 1. 字体纹理图集
-    // 2. 字符网格缓存
-    // 3. 背景面板网格
-
+    // NameTagRenderer 是 WorldTextRenderer 的轻量级包装器
+    // 实际的字体资源和网格由 WorldTextRenderer 管理
     s_initialized = true;
     spdlog::info("NameTagRenderer: Initialized successfully");
-    return true;
 
-    (void)pipeline;  // 暂时不使用
+    (void)pipeline;
+    return true;
 }
 
 void NameTagRenderer::cleanup() {
@@ -102,6 +99,12 @@ void NameTagRenderer::renderNameTag(
         return;
     }
 
+    // 检查 WorldTextRenderer 是否已初始化
+    if (!WorldTextRenderer::isInitialized()) {
+        spdlog::trace("NameTagRenderer: WorldTextRenderer not initialized, skipping name tag");
+        return;
+    }
+
     // 计算名称标签位置
     Vector3d position = calculateNameTagPosition(entity, partialTicks);
 
@@ -114,26 +117,29 @@ void NameTagRenderer::renderNameTag(
         return;
     }
 
-    // 计算缩放
-    f64 scale = calculateScale(distanceToCamera);
+    // 转换为 float 类型位置
+    Vector3f entityPos(
+        static_cast<f32>(entity.prevX() + (entity.x() - entity.prevX()) * partialTicks),
+        static_cast<f32>(entity.prevY() + (entity.y() - entity.prevY()) * partialTicks),
+        static_cast<f32>(entity.prevZ() + (entity.z() - entity.prevZ()) * partialTicks)
+    );
+    f32 entityHeight = static_cast<f32>(entity.height());
 
-    // 计算 billboard 矩阵
-    std::array<f64, 16> billboardMatrix;
-    computeBillboardMatrix(position, billboardMatrix);
+    // 设置相机信息到 WorldTextRenderer
+    WorldTextRenderer::setCameraPosition(s_cameraPosition);
+    WorldTextRenderer::setViewMatrix(s_viewMatrix);
+    WorldTextRenderer::setShowBackground(s_showBackground);
+    WorldTextRenderer::setBackgroundColor(s_bgColorR, s_bgColorG, s_bgColorB, s_bgColorA);
+    WorldTextRenderer::setMaxDistance(static_cast<f32>(s_maxDistance));
 
-    // TODO: 实现实际的文本渲染
-    // 需要：
-    // 1. 字体纹理图集
-    // 2. 字符网格生成
-    // 3. 背景 panel 渲染
-
-    // 当前作为占位符
-    (void)cmd;
-    (void)scale;
-    (void)billboardMatrix;
-
-    spdlog::trace("NameTagRenderer: Would render '{}' at ({}, {}, {})",
-                  displayName, position.x, position.y, position.z);
+    // 调用 WorldTextRenderer 进行实际渲染
+    WorldTextRenderer::renderNameTag(
+        cmd,
+        displayName,
+        entityPos,
+        entityHeight,
+        pipeline
+    );
 }
 
 bool NameTagRenderer::shouldRenderNameTag(
@@ -194,10 +200,12 @@ Vector3d NameTagRenderer::calculateNameTagPosition(
     f64 height = static_cast<f64>(entity.height());
     f64 nameTagY = y + height + HEIGHT_OFFSET;
 
-    // 如果实体正在蹲伏，调整高度
-    // TODO: 从实体获取蹲伏状态
+    // 如果实体正在蹲伏，调整高度（蹲伏时玩家变矮）
+    if (entity.pose() == mc::EntityPose::Crouching) {
+        // 蹲伏时高度约为正常高度的 5/8
+        nameTagY = y + height * 0.625 + HEIGHT_OFFSET;
+    }
 
-    (void)partialTicks;
     return Vector3d(x, nameTagY, z);
 }
 

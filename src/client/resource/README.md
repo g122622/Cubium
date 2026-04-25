@@ -10,6 +10,8 @@ src/client/resource/
 ├── BlockModelLoader.hpp/cpp     # 方块模型加载器
 ├── BlockStateLoader.hpp/cpp     # 方块状态加载器
 ├── BlockModelCache.hpp/cpp      # 方块模型缓存
+├── ItemModelLoader.hpp/cpp      # 物品模型加载器
+├── ItemModelCache.hpp/cpp       # 物品模型缓存
 ├── TextureAtlasBuilder.hpp/cpp  # 纹理图集构建器
 ├── ItemTextureAtlas.hpp/cpp     # 物品纹理图集
 ├── DestroyStageTextures.hpp/cpp # 破坏阶段纹理

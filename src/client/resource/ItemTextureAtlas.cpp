@@ -654,6 +654,22 @@ const TextureRegion* ItemTextureAtlas::getItemTexture(const ResourceLocation& lo
     return it != m_regionsByLocation.end() ? &it->second : nullptr;
 }
 
+std::vector<TextureRegion> ItemTextureAtlas::getItemTextureLayers(
+    const std::vector<ResourceLocation>& textureLocations) const
+{
+    std::vector<TextureRegion> layers;
+    layers.reserve(textureLocations.size());
+
+    for (const auto& loc : textureLocations) {
+        const TextureRegion* region = getItemTexture(loc);
+        if (region != nullptr) {
+            layers.push_back(*region);
+        }
+    }
+
+    return layers;
+}
+
 bool ItemTextureAtlas::hasItemTexture(u32 itemId) const {
     return m_regionsByItemId.find(itemId) != m_regionsByItemId.end();
 }

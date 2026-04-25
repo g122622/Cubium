@@ -3,6 +3,8 @@
 #include "../entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "client/resource/BlockModelLoader.hpp"
+#include <glm/glm.hpp>
 #include <vector>
 #include <utility>
 #include <array>
@@ -14,6 +16,10 @@ class Item;
 
 namespace mc::client::renderer::api {
 struct TextureRegion;
+}
+
+namespace mc::client::resource {
+struct BakedItemModel;
 }
 
 namespace mc::client::renderer::entity::item {
@@ -153,6 +159,56 @@ private:
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices
+    );
+
+    /**
+     * @brief 构建平面图标网格（Generated/Handheld 类型）
+     */
+    static void buildGeneratedMesh(
+        const ::mc::client::resource::BakedItemModel& model,
+        const ::mc::Item& item,
+        ItemTransformType transformType,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices
+    );
+
+    /**
+     * @brief 构建方块物品网格
+     */
+    static void buildBlockItemMesh(
+        const ::mc::client::resource::BakedItemModel& model,
+        const ::mc::Item& item,
+        ItemTransformType transformType,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices
+    );
+
+    /**
+     * @brief 构建自定义 3D 模型网格
+     */
+    static void buildCustomMesh(
+        const ::mc::client::resource::BakedItemModel& model,
+        const ::mc::Item& item,
+        ItemTransformType transformType,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices
+    );
+
+    /**
+     * @brief 构建回退网格（简单立方体）
+     */
+    static void buildFallbackMesh(
+        const ::mc::Item& item,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices
+    );
+
+    /**
+     * @brief 应用矩阵到顶点
+     */
+    static void applyMatrixToVertices(
+        std::vector<model::ModelVertex>& vertices,
+        const glm::mat4& matrix
     );
 
     /**

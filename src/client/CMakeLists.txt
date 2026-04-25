@@ -157,6 +157,8 @@ add_executable(minecraft-client
     resource/ResourceManager.cpp
     resource/BlockModelCache.cpp
     resource/ItemTextureAtlas.cpp
+    resource/ItemModelLoader.cpp
+    resource/ItemModelCache.cpp
     resource/EntityTextureLoader.cpp
     resource/DestroyStageTextures.cpp
     # 声音系统

@@ -442,9 +442,40 @@ void WorldTextRenderer::renderText(
     if (showBackground) {
         f32 bgWidth = textWidth + BACKGROUND_PADDING * 2.0f * effectiveScale;
         f32 bgHeight = textHeight + BACKGROUND_PADDING * effectiveScale;
-        // TODO: 渲染背景面板
-        (void)bgWidth;
-        (void)bgHeight;
+
+        // 创建背景四边形顶点
+        f32 halfWidth = bgWidth * 0.5f;
+        f32 halfHeight = bgHeight * 0.5f;
+
+        // 背景位于文本基线下方一点
+        f32 bgY = -halfHeight * 0.5f;
+
+        std::vector<model::ModelVertex> bgVertices = {
+            // 第一个三角形
+            model::ModelVertex(-halfWidth, bgY, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+            model::ModelVertex(halfWidth, bgY, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+            model::ModelVertex(halfWidth, bgY + bgHeight, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+            // 第二个三角形
+            model::ModelVertex(-halfWidth, bgY, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+            model::ModelVertex(halfWidth, bgY + bgHeight, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+            model::ModelVertex(-halfWidth, bgY + bgHeight, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+        };
+        std::vector<u32> bgIndices = {0, 1, 2, 3, 4, 5};
+
+        auto bgMeshResult = pipeline.createMesh(bgVertices, bgIndices);
+        if (bgMeshResult.success()) {
+            auto& bgMesh = bgMeshResult.value();
+            Vector3f bgPos(0, 0, 0);
+            // 使用背景颜色渲染（半透明）
+            Vector4f bgColor(
+                static_cast<f32>(s_bgColorR) / 255.0f,
+                static_cast<f32>(s_bgColorG) / 255.0f,
+                static_cast<f32>(s_bgColorB) / 255.0f,
+                static_cast<f32>(s_bgColorA) / 255.0f
+            );
+            pipeline.drawMesh(cmd, bgMesh, billboardMatrix, bgPos, 1.0f, bgColor, 0.0f, 0.0f);
+            pipeline.destroyMesh(bgMesh);
+        }
     }
 
     // 渲染文本字符
@@ -533,13 +564,17 @@ void WorldTextRenderer::setBackgroundColor(u8 r, u8 g, u8 b, u8 a) {
     s_bgColorA = a;
 }
 
+void WorldTextRenderer::setShowBackground(bool show) {
+    s_showBackground = show;
+}
+
 void WorldTextRenderer::createBackgroundMesh(f32 width, f32 height) {
     // 创建背景四边形
     f32 halfWidth = width * 0.5f;
     f32 halfHeight = height * 0.5f;
 
-    // 背景使用统一的 UV
-    // TODO: 创建 GPU 网格
+    // 背景网格在渲染时动态创建，这里只存储尺寸
+    // 实际背景渲染在 renderText() 中完成
 
     (void)halfWidth;
     (void)halfHeight;

@@ -9,35 +9,54 @@
 
 namespace mc {
 class Entity;
+class IResourcePack;
 
 namespace client {
 class ClientEntity;
 }
-}
 
-namespace mc::client::renderer::entity::pipeline {
+namespace client::renderer::entity::pipeline {
 class EntityPipeline;  // 前向声明
+class EntityTextureAtlas;
 }
 
-namespace mc::client::renderer::entity::effect::fire {
+namespace client::renderer::entity::effect::fire {
 
 /**
  * @brief 着火效果渲染器
  *
  * 参考 MC 1.16.5 EntityRenderer.renderFire()
  * 用于渲染实体身上的火焰效果。
+ *
+ * 火焰纹理使用方块纹理 fire_0.png 和 fire_1.png（动画）。
  */
 class FireEffect {
 public:
     /**
      * @brief 初始化着火效果系统
+     * @param device Vulkan 设备
+     * @param physicalDevice 物理设备
+     * @param commandPool 命令池
+     * @param graphicsQueue 图形队列
+     * @param resourcePacks 资源包列表（用于加载火焰纹理）
+     * @return 成功或错误
      */
-    static void initialize();
+    static bool initialize(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        VkCommandPool commandPool,
+        VkQueue graphicsQueue,
+        const std::vector<IResourcePack*>& resourcePacks);
 
     /**
      * @brief 清理着火效果系统
      */
     static void cleanup();
+
+    /**
+     * @brief 检查是否已初始化
+     */
+    [[nodiscard]] static bool isInitialized();
 
     /**
      * @brief 检查实体是否在燃烧（Entity 版本）
@@ -75,33 +94,89 @@ public:
     );
 
     /**
-     * @brief 渲染火焰四边形
-     * @param x X 坐标
-     * @param y Y 坐标
-     * @param z Z 坐标
-     * @param width 宽度
-     * @param height 高度
-     * @param vertices 顶点输出缓冲区
-     * @param indices 索引输出缓冲区
+     * @brief 获取火焰纹理视图
      */
-    static void generateFireQuad(
-        f64 x, f64 y, f64 z,
-        f64 width, f64 height,
-        std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices
-    );
+    [[nodiscard]] static VkImageView fireTextureView() { return s_fireTextureView; }
+
+    /**
+     * @brief 获取火焰纹理采样器
+     */
+    [[nodiscard]] static VkSampler fireSampler() { return s_fireSampler; }
 
 private:
     FireEffect() = delete;
     ~FireEffect() = delete;
 
     /**
+     * @brief 加载火焰纹理
+     * @param resourcePacks 资源包列表
+     * @return 成功或错误
+     */
+    static bool loadFireTexture(const std::vector<IResourcePack*>& resourcePacks);
+
+    /**
+     * @brief 创建火焰纹理资源
+     * @param pixels 像素数据
+     * @param width 宽度
+     * @param height 高度
+     * @return 成功或错误
+     */
+    static bool createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height);
+
+    /**
+     * @brief 生成火焰四边形网格
+     * @param x X 坐标
+     * @param y Y 坐标
+     * @param z Z 坐标
+     * @param width 宽度
+     * @param height 高度
+     * @param u0 UV 左上角 U
+     * @param v0 UV 左上角 V
+     * @param u1 UV 右下角 U
+     * @param v1 UV 右下角 V
+     * @param vertices 顶点输出缓冲区
+     * @param indices 索引输出缓冲区
+     * @param transformIndex 变换索引（用于 billboard）
+     */
+    static void generateFireQuad(
+        f64 x, f64 y, f64 z,
+        f64 width, f64 height,
+        f32 u0, f32 v0, f32 u1, f32 v1,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices,
+        u32 transformIndex = 0
+    );
+
+    /**
      * @brief 计算火焰偏移（用于动画）
      */
     [[nodiscard]] static f64 computeFireOffset(f64 time, f64 seed);
 
+    /**
+     * @brief 计算 billboard 变换矩阵
+     */
+    static void computeBillboardMatrices(
+        const Vector3f& position,
+        std::array<std::array<f64, 16>, 2>& outMatrices
+    );
+
     static bool s_initialized;
-    static pipeline::EntityPipeline* s_pipeline;  // 当前使用的管线
+    static VkDevice s_device;
+    static VkPhysicalDevice s_physicalDevice;
+    static VkCommandPool s_commandPool;
+    static VkQueue s_graphicsQueue;
+
+    // 火焰纹理资源
+    static VkImage s_fireTexture;
+    static VkDeviceMemory s_fireTextureMemory;
+    static VkImageView s_fireTextureView;
+    static VkSampler s_fireSampler;
+    static u32 s_fireTextureWidth;
+    static u32 s_fireTextureHeight;
+
+    // 火焰动画帧数（MC 1.16.5 有 2 帧）
+    static constexpr u32 FIRE_FRAME_COUNT = 2;
 };
 
 } // namespace mc::client::renderer::entity::effect::fire
+} // namespace mc

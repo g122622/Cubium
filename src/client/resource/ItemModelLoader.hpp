@@ -1,0 +1,261 @@
+#pragma once
+
+#include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "client/resource/BlockModelLoader.hpp"
+#include <glm/glm.hpp>
+#include <nlohmann/json.hpp>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+
+namespace mc::client::resource {
+
+/**
+ * @brief 物品显示上下文类型
+ *
+ * 定义物品在不同场景下的显示变换
+ */
+enum class ItemDisplayContext : u8 {
+    ThirdPersonRightHand,  // 第三人称右手
+    ThirdPersonLeftHand,   // 第三人称左手
+    FirstPersonRightHand,  // 第一人称右手
+    FirstPersonLeftHand,   // 第一人称左手
+    Head,                  // 头部（头盔等）
+    Gui,                   // GUI 界面
+    Ground,                // 地面掉落物
+    Fixed,                 // 物品展示框
+    Count                  // 数量
+};
+
+/**
+ * @brief 从字符串解析显示上下文
+ */
+[[nodiscard]] ItemDisplayContext parseDisplayContext(StringView str);
+
+/**
+ * @brief 显示上下文转字符串
+ */
+[[nodiscard]] String displayContextToString(ItemDisplayContext ctx);
+
+/**
+ * @brief 物品变换数据
+ *
+ * 包含旋转、平移、缩放信息
+ */
+struct ItemTransform {
+    glm::vec3 rotation{0.0f, 0.0f, 0.0f};    // 欧拉角旋转（度）
+    glm::vec3 translation{0.0f, 0.0f, 0.0f}; // 平移（像素单位，需除以16转换为方块单位）
+    glm::vec3 scale{1.0f, 1.0f, 1.0f};       // 缩放
+
+    /**
+     * @brief 获取单位变换
+     */
+    [[nodiscard]] static ItemTransform identity();
+
+    /**
+     * @brief 从 JSON 解析变换
+     */
+    [[nodiscard]] static ItemTransform fromJson(const nlohmann::json& json);
+
+    /**
+     * @brief 转换为 4x4 变换矩阵
+     */
+    [[nodiscard]] glm::mat4 toMatrix() const;
+};
+
+/**
+ * @brief 物品模型覆盖条件
+ *
+ * 定义基于物品状态的模型替换规则
+ */
+struct ItemModelOverride {
+    std::map<String, f32> predicates;  // 条件谓词，如 {"damage": 0.25}
+    ResourceLocation model;             // 替换模型
+
+    /**
+     * @brief 从 JSON 解析覆盖条件
+     */
+    [[nodiscard]] static ItemModelOverride fromJson(const nlohmann::json& json);
+};
+
+/**
+ * @brief 物品模型类型
+ */
+enum class ItemModelType : u8 {
+    Generated,  // item/generated - 平面图标（大多数物品）
+    Handheld,   // item/handheld - 手持工具
+    Block,      // 方块物品（继承方块模型）
+    Custom      // 自定义 3D 模型（有 elements 字段）
+};
+
+/**
+ * @brief 未烘焙的物品模型
+ */
+struct UnbakedItemModel {
+    ResourceLocation location;                   // 模型位置
+    ResourceLocation parentLocation;             // 父模型位置
+    std::vector<ModelElement> elements;          // 3D 元素（可选）
+    std::map<String, String> textures;           // 纹理变量 -> 路径
+    std::map<ItemDisplayContext, ItemTransform> display;  // 显示变换
+    std::vector<ItemModelOverride> overrides;    // 模型覆盖条件
+    ItemModelType type = ItemModelType::Generated;
+    bool ambientOcclusion = true;
+    String name;                                 // 模型名称（调试用）
+
+    /**
+     * @brief 检查是否有父模型
+     */
+    [[nodiscard]] bool hasParent() const {
+        return !parentLocation.path().empty();
+    }
+};
+
+/**
+ * @brief 已烘焙的物品模型
+ *
+ * 所有纹理路径已解析，可直接用于渲染
+ */
+struct BakedItemModel {
+    ResourceLocation location;
+
+    // 模型类型
+    ItemModelType type = ItemModelType::Generated;
+
+    // 纹理层（Generated/Handheld 类型使用）
+    // layer0, layer1, ... 按顺序存储
+    std::vector<ResourceLocation> textureLayers;
+
+    // 3D 元素（Block/Custom 类型使用）
+    std::vector<ModelElement> elements;
+    std::map<String, ResourceLocation> textures;
+
+    // 显示变换
+    std::map<ItemDisplayContext, ItemTransform> display;
+
+    // 模型覆盖
+    std::vector<ItemModelOverride> overrides;
+
+    /**
+     * @brief 获取指定上下文的变换，如果不存在则返回单位变换
+     */
+    [[nodiscard]] const ItemTransform& getTransform(ItemDisplayContext ctx) const;
+
+    /**
+     * @brief 解析纹理变量引用
+     * 例如: "#layer0" -> "minecraft:item/diamond_sword"
+     */
+    [[nodiscard]] ResourceLocation resolveTexture(StringView textureRef) const;
+};
+
+/**
+ * @brief 物品模型加载器
+ *
+ * 从资源包加载 MC 1.16.5 格式的物品模型 JSON
+ */
+class ItemModelLoader {
+public:
+    /**
+     * @brief 构造函数
+     * @param resourcePacks 资源包列表（按优先级从高到低）
+     */
+    explicit ItemModelLoader(const std::vector<IResourcePack*>& resourcePacks);
+
+    /**
+     * @brief 加载所有物品模型
+     */
+    [[nodiscard]] Result<void> loadAllModels();
+
+    /**
+     * @brief 加载单个模型
+     */
+    [[nodiscard]] Result<UnbakedItemModel> loadModel(const ResourceLocation& location);
+
+    /**
+     * @brief 烘焙模型（解析父模型链和纹理引用）
+     */
+    [[nodiscard]] Result<BakedItemModel> bakeModel(const ResourceLocation& location);
+
+    /**
+     * @brief 获取已烘焙的模型
+     */
+    [[nodiscard]] const BakedItemModel* getModel(const ResourceLocation& location) const;
+
+    /**
+     * @brief 检查模型是否已加载
+     */
+    [[nodiscard]] bool hasModel(const ResourceLocation& location) const;
+
+    /**
+     * @brief 清除缓存
+     */
+    void clearCache();
+
+private:
+    const std::vector<IResourcePack*>& m_resourcePacks;
+    std::map<ResourceLocation, UnbakedItemModel> m_unbakedModels;
+    std::map<ResourceLocation, BakedItemModel> m_bakedModels;
+
+    /**
+     * @brief 从资源包读取模型文件
+     */
+    [[nodiscard]] Result<String> readModelFromResourcePacks(const String& filePath);
+
+    /**
+     * @brief 解析模型 JSON
+     */
+    [[nodiscard]] Result<UnbakedItemModel> parseModel(const ResourceLocation& location, StringView jsonContent);
+
+    /**
+     * @brief 解析 display 节点
+     */
+    void parseDisplay(UnbakedItemModel& model, const nlohmann::json& display);
+
+    /**
+     * @brief 解析 overrides 节点
+     */
+    void parseOverrides(UnbakedItemModel& model, const nlohmann::json& overrides);
+
+    /**
+     * @brief 解析单个 override 条件
+     */
+    void parseOverride(UnbakedItemModel& model, const nlohmann::json& override);
+
+    /**
+     * @brief 解析 elements 节点（复用 BlockModelLoader 的解析方法）
+     */
+    [[nodiscard]] Result<void> parseElements(UnbakedItemModel& model, const nlohmann::json& elements);
+
+    /**
+     * @brief 解析纹理变量
+     */
+    void parseTextures(UnbakedItemModel& model, const nlohmann::json& textures);
+
+    /**
+     * @brief 确定模型类型
+     */
+    [[nodiscard]] ItemModelType determineModelType(const ResourceLocation& parent, bool hasElements) const;
+
+    /**
+     * @brief 合并父模型属性
+     */
+    void mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent);
+
+    /**
+     * @brief 解析纹理引用链
+     */
+    void resolveTextureReferences(BakedItemModel& baked);
+
+    /**
+     * @brief 加载内置默认变换
+     */
+    void loadDefaultTransforms();
+
+    // 内置默认变换
+    std::map<ItemDisplayContext, ItemTransform> m_generatedDefaults;
+    std::map<ItemDisplayContext, ItemTransform> m_handheldDefaults;
+};
+
+} // namespace mc::client::resource

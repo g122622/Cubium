@@ -135,6 +135,11 @@ public:
     static void setBackgroundColor(u8 r, u8 g, u8 b, u8 a);
 
     /**
+     * @brief 设置是否显示背景
+     */
+    static void setShowBackground(bool show);
+
+    /**
      * @brief 获取字形网格（用于渲染）
      * @param codepoint Unicode码点
      * @return 字形网格指针，如果不存在返回nullptr
