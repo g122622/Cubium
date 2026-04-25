@@ -27,6 +27,7 @@
 #include "../entity/core/EntityRendererManager.hpp"
 #include "../entity/pipeline/EntityTextureAtlas.hpp"
 #include "../entity/pipeline/EntityPipeline.hpp"
+#include "../entity/util/WorldTextRenderer.hpp"
 #include "../block/BreakProgressRenderer.hpp"
 #include "../firstperson/FirstPersonRenderer.hpp"
 #include <GLFW/glfw3.h>
@@ -328,6 +329,10 @@ void TridentEngine::destroy() {
     }
 
     m_itemRendererPtr.reset();
+
+    // 清理世界文本渲染器
+    entity::util::WorldTextRenderer::cleanup();
+
     m_entityRendererManager.reset();
     m_font.reset();
 
@@ -1716,6 +1721,25 @@ Result<void> TridentEngine::initializeEntityRenderer() {
         spdlog::info("Entity pipeline initialized");
         // 设置管线到渲染器管理器
         m_entityRendererManager->setPipeline(m_entityPipeline.get());
+
+        // 初始化世界文本渲染器（用于名称标签等）
+        if (m_font && m_font->isValid()) {
+            bool textRendererInit = entity::util::WorldTextRenderer::initialize(
+                device(),
+                physicalDevice(),
+                commandPool(),
+                graphicsQueue(),
+                *m_entityPipeline,
+                m_font.get()
+            );
+            if (textRendererInit) {
+                spdlog::info("WorldTextRenderer initialized");
+            } else {
+                spdlog::warn("Failed to initialize WorldTextRenderer");
+            }
+        } else {
+            spdlog::warn("WorldTextRenderer not initialized: font not available");
+        }
     }
 
     m_entityRendererInitialized = true;

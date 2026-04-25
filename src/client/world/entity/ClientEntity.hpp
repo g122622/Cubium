@@ -270,6 +270,113 @@ public:
     [[nodiscard]] i32 deathTime() const { return m_deathTime; }
     void setDeathTime(i32 time) { m_deathTime = time; }
 
+    // ========== 行为状态 ==========
+
+    /**
+     * @brief 是否正在蹲伏
+     */
+    [[nodiscard]] bool isSneaking() const { return m_sneaking; }
+    void setSneaking(bool sneaking) { m_sneaking = sneaking; }
+
+    /**
+     * @brief 是否正在游泳
+     */
+    [[nodiscard]] bool isSwimming() const { return m_swimming; }
+    void setSwimming(bool swimming) { m_swimming = swimming; }
+
+    /**
+     * @brief 是否正在乘坐载具
+     */
+    [[nodiscard]] bool isRiding() const { return m_riding; }
+    void setRiding(bool riding) { m_riding = riding; }
+
+    /**
+     * @brief 是否正在坐下（用于动物）
+     */
+    [[nodiscard]] bool isSitting() const { return m_sitting; }
+    void setSitting(bool sitting) { m_sitting = sitting; }
+
+    /**
+     * @brief 是否正在燃烧
+     */
+    [[nodiscard]] bool isOnFire() const { return m_onFire; }
+    void setOnFire(bool onFire) { m_onFire = onFire; }
+
+    // ========== 攻击动画 ==========
+
+    /**
+     * @brief 获取攻击进度
+     * @return 攻击进度 (0.0-1.0)
+     */
+    [[nodiscard]] f32 swingProgress() const { return m_swingProgress; }
+    void setSwingProgress(f32 progress) { m_swingProgress = progress; }
+
+    /**
+     * @brief 获取上一帧攻击进度
+     */
+    [[nodiscard]] f32 prevSwingProgress() const { return m_prevSwingProgress; }
+
+    /**
+     * @brief 更新攻击进度
+     * @param partialTick 部分 tick
+     * @return 插值后的攻击进度
+     */
+    [[nodiscard]] f32 getInterpolatedSwingProgress(f32 partialTick) const {
+        return m_prevSwingProgress + (m_swingProgress - m_prevSwingProgress) * partialTick;
+    }
+
+    // ========== 装备（用于层渲染） ==========
+
+    /**
+     * @brief 获取主手物品
+     * @return 物品堆指针，如果没有返回 nullptr
+     */
+    [[nodiscard]] const ItemStack* getMainHandItem() const {
+        return m_mainHandItem ? &*m_mainHandItem : nullptr;
+    }
+    void setMainHandItem(const ItemStack& item) { m_mainHandItem = std::make_unique<ItemStack>(item); }
+
+    /**
+     * @brief 获取副手物品
+     * @return 物品堆指针，如果没有返回 nullptr
+     */
+    [[nodiscard]] const ItemStack* getOffHandItem() const {
+        return m_offHandItem ? &*m_offHandItem : nullptr;
+    }
+    void setOffHandItem(const ItemStack& item) { m_offHandItem = std::make_unique<ItemStack>(item); }
+
+    /**
+     * @brief 获取头部装备
+     */
+    [[nodiscard]] const ItemStack* getHeadArmor() const {
+        return m_headArmor ? &*m_headArmor : nullptr;
+    }
+    void setHeadArmor(const ItemStack& item) { m_headArmor = std::make_unique<ItemStack>(item); }
+
+    /**
+     * @brief 获取胸甲
+     */
+    [[nodiscard]] const ItemStack* getChestArmor() const {
+        return m_chestArmor ? &*m_chestArmor : nullptr;
+    }
+    void setChestArmor(const ItemStack& item) { m_chestArmor = std::make_unique<ItemStack>(item); }
+
+    /**
+     * @brief 获取护腿
+     */
+    [[nodiscard]] const ItemStack* getLegsArmor() const {
+        return m_legsArmor ? &*m_legsArmor : nullptr;
+    }
+    void setLegsArmor(const ItemStack& item) { m_legsArmor = std::make_unique<ItemStack>(item); }
+
+    /**
+     * @brief 获取靴子
+     */
+    [[nodiscard]] const ItemStack* getFeetArmor() const {
+        return m_feetArmor ? &*m_feetArmor : nullptr;
+    }
+    void setFeetArmor(const ItemStack& item) { m_feetArmor = std::make_unique<ItemStack>(item); }
+
     // ========== 存活时间 ==========
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
@@ -393,6 +500,25 @@ private:
     // 受伤和死亡状态
     i32 m_hurtTime = 0;    // 受伤时间 (0-10)
     i32 m_deathTime = 0;   // 死亡时间
+
+    // 行为状态
+    bool m_sneaking = false;
+    bool m_swimming = false;
+    bool m_riding = false;
+    bool m_sitting = false;
+    bool m_onFire = false;
+
+    // 攻击动画
+    f32 m_swingProgress = 0.0f;
+    f32 m_prevSwingProgress = 0.0f;
+
+    // 装备（用于层渲染）
+    std::unique_ptr<ItemStack> m_mainHandItem;
+    std::unique_ptr<ItemStack> m_offHandItem;
+    std::unique_ptr<ItemStack> m_headArmor;
+    std::unique_ptr<ItemStack> m_chestArmor;
+    std::unique_ptr<ItemStack> m_legsArmor;
+    std::unique_ptr<ItemStack> m_feetArmor;
 
     // 存活时间
     u32 m_ticksExisted = 0;

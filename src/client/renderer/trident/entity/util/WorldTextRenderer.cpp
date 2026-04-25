@@ -1,14 +1,16 @@
 #include "WorldTextRenderer.hpp"
 #include "../pipeline/EntityPipeline.hpp"
-#include "../model/core/ModelVertex.hpp"
-#include "common/util/math/Matrix4.hpp"
+#include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <cmath>
+#include <cstring>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::util {
 
 // 静态成员初始化
 bool WorldTextRenderer::s_initialized = false;
+Font* WorldTextRenderer::s_font = nullptr;
 f32 WorldTextRenderer::s_maxDistance = DEFAULT_MAX_DISTANCE;
 f32 WorldTextRenderer::s_scale = DEFAULT_SCALE;
 bool WorldTextRenderer::s_showBackground = true;
@@ -23,35 +25,337 @@ std::array<f64, 16> WorldTextRenderer::s_viewMatrix = {
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 };
-std::unordered_map<char, GlyphMesh> WorldTextRenderer::s_glyphCache;
+std::unordered_map<u32, WorldGlyphMesh> WorldTextRenderer::s_glyphMeshCache;
 pipeline::EntityMesh* WorldTextRenderer::s_backgroundMesh = nullptr;
 
-bool WorldTextRenderer::initialize(pipeline::EntityPipeline& pipeline) {
+// Vulkan 资源
+VkDevice WorldTextRenderer::s_device = VK_NULL_HANDLE;
+VkPhysicalDevice WorldTextRenderer::s_physicalDevice = VK_NULL_HANDLE;
+VkCommandPool WorldTextRenderer::s_commandPool = VK_NULL_HANDLE;
+VkQueue WorldTextRenderer::s_graphicsQueue = VK_NULL_HANDLE;
+VkImage WorldTextRenderer::s_fontTexture = VK_NULL_HANDLE;
+VkDeviceMemory WorldTextRenderer::s_fontTextureMemory = VK_NULL_HANDLE;
+VkImageView WorldTextRenderer::s_fontTextureView = VK_NULL_HANDLE;
+VkSampler WorldTextRenderer::s_fontSampler = VK_NULL_HANDLE;
+
+bool WorldTextRenderer::initialize(
+    VkDevice device,
+    VkPhysicalDevice physicalDevice,
+    VkCommandPool commandPool,
+    VkQueue graphicsQueue,
+    pipeline::EntityPipeline& pipeline,
+    Font* font)
+{
     if (s_initialized) {
         return true;
     }
 
-    // 创建简单的 ASCII 字形网格
-    // 实际实现需要字体纹理图集，这里创建简单的占位符
-    for (char c = ' '; c <= '~'; ++c) {
-        GlyphMesh mesh = createGlyphMesh(c, 1.0f);
-        s_glyphCache[c] = std::move(mesh);
+    if (font == nullptr) {
+        spdlog::error("WorldTextRenderer: Font is null");
+        return false;
+    }
+
+    if (device == VK_NULL_HANDLE || commandPool == VK_NULL_HANDLE || graphicsQueue == VK_NULL_HANDLE) {
+        spdlog::error("WorldTextRenderer: Invalid Vulkan resources");
+        return false;
+    }
+
+    s_font = font;
+    s_device = device;
+    s_physicalDevice = physicalDevice;
+    s_commandPool = commandPool;
+    s_graphicsQueue = graphicsQueue;
+
+    // 预缓存常用 ASCII 字符
+    // 从 FontTextureAtlas 获取字形并创建世界空间网格
+    for (u32 c = 32; c <= 126; ++c) {  // 可打印 ASCII 字符
+        const Glyph* glyph = font->getGlyph(c);
+        if (glyph != nullptr) {
+            WorldGlyphMesh mesh = createGlyphMeshFromGlyph(*glyph);
+            s_glyphMeshCache[c] = std::move(mesh);
+        }
+    }
+
+    // 创建字体纹理
+    if (!createFontTexture()) {
+        spdlog::error("WorldTextRenderer: Failed to create font texture");
+        return false;
     }
 
     // 创建背景网格
     createBackgroundMesh(1.0f, 1.0f);
 
     s_initialized = true;
-    spdlog::info("WorldTextRenderer: Initialized successfully with {} glyphs",
-                 s_glyphCache.size());
+    spdlog::info("WorldTextRenderer: Initialized successfully with {} cached glyphs and font texture",
+                 s_glyphMeshCache.size());
 
-    (void)pipeline;  // 暂时不使用
+    (void)pipeline;  // 管线用于后续绘制
+    return true;
+}
+
+WorldGlyphMesh WorldTextRenderer::createGlyphMeshFromGlyph(const Glyph& glyph) {
+    WorldGlyphMesh mesh;
+
+    // 创建字符四边形（billboard 格式，面向 +Z）
+    // 字形原点在左上角
+    f32 x0 = glyph.bearingX;
+    f32 y0 = -glyph.bearingY;  // 从基线向上
+    f32 x1 = x0 + glyph.width;
+    f32 y1 = y0 + glyph.height;
+
+    // UV 坐标从 Glyph 获取
+    f32 u0 = glyph.u0;
+    f32 v0 = glyph.v0;
+    f32 u1 = glyph.u1;
+    f32 v1 = glyph.v1;
+
+    // 创建顶点（位置 xyz, 纹理 uv, 法线 xyz）
+    // 使用 ModelVertex 格式
+    mesh.vertices = {
+        // 第一个三角形
+        model::ModelVertex(x0, y0, 0.0,  u0, v0,  0.0, 0.0, 1.0),
+        model::ModelVertex(x1, y0, 0.0,  u1, v0,  0.0, 0.0, 1.0),
+        model::ModelVertex(x1, y1, 0.0,  u1, v1,  0.0, 0.0, 1.0),
+        // 第二个三角形
+        model::ModelVertex(x0, y0, 0.0,  u0, v0,  0.0, 0.0, 1.0),
+        model::ModelVertex(x1, y1, 0.0,  u1, v1,  0.0, 0.0, 1.0),
+        model::ModelVertex(x0, y1, 0.0,  u0, v1,  0.0, 0.0, 1.0),
+    };
+
+    // 索引（两个三角形）
+    mesh.indices = {0, 1, 2, 3, 4, 5};
+
+    mesh.advanceX = glyph.advance;
+    mesh.width = glyph.width;
+    mesh.height = glyph.height;
+
+    return mesh;
+}
+
+bool WorldTextRenderer::createFontTexture() {
+    if (s_font == nullptr || !s_font->isValid()) {
+        spdlog::error("WorldTextRenderer: Font not valid");
+        return false;
+    }
+
+    const u8* pixels = s_font->atlasPixels();
+    u32 size = s_font->atlasSize();
+
+    if (pixels == nullptr || size == 0) {
+        spdlog::error("WorldTextRenderer: Font atlas has no pixel data");
+        return false;
+    }
+
+    VkDevice device = s_device;
+
+    // 创建图像
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width = size;
+    imageInfo.extent.height = size;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = VK_FORMAT_R8_UNORM;  // 字体图集是灰度图
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    if (vkCreateImage(device, &imageInfo, nullptr, &s_fontTexture) != VK_SUCCESS) {
+        spdlog::error("WorldTextRenderer: Failed to create font texture image");
+        return false;
+    }
+
+    // 分配内存
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(device, s_fontTexture, &memRequirements);
+
+    auto memTypeResult = VulkanUtils::findMemoryType(s_physicalDevice, memRequirements.memoryTypeBits,
+                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!memTypeResult.success()) {
+        vkDestroyImage(device, s_fontTexture, nullptr);
+        s_fontTexture = VK_NULL_HANDLE;
+        spdlog::error("WorldTextRenderer: Failed to find memory type");
+        return false;
+    }
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = memTypeResult.value();
+
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &s_fontTextureMemory) != VK_SUCCESS) {
+        vkDestroyImage(device, s_fontTexture, nullptr);
+        s_fontTexture = VK_NULL_HANDLE;
+        spdlog::error("WorldTextRenderer: Failed to allocate font texture memory");
+        return false;
+    }
+
+    vkBindImageMemory(device, s_fontTexture, s_fontTextureMemory, 0);
+
+    // 上传数据
+    VkDeviceSize imageSize = static_cast<VkDeviceSize>(size) * size;
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingMemory;
+
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = imageSize;
+    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer) != VK_SUCCESS) {
+        spdlog::error("WorldTextRenderer: Failed to create staging buffer");
+        return false;
+    }
+
+    vkGetBufferMemoryRequirements(device, stagingBuffer, &memRequirements);
+    memTypeResult = VulkanUtils::findMemoryType(s_physicalDevice, memRequirements.memoryTypeBits,
+                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!memTypeResult.success()) {
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        return false;
+    }
+
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = memTypeResult.value();
+
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &stagingMemory) != VK_SUCCESS) {
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        return false;
+    }
+
+    vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0);
+
+    void* data;
+    vkMapMemory(device, stagingMemory, 0, imageSize, 0, &data);
+    std::memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(device, stagingMemory);
+
+    // 转换布局并复制
+    VkCommandBuffer cmd = VulkanUtils::beginSingleTimeCommands(device, s_commandPool);
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = s_fontTexture;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {size, size, 1};
+
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, s_fontTexture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+    VulkanUtils::endSingleTimeCommands(device, s_commandPool, s_graphicsQueue, cmd);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingMemory, nullptr);
+
+    // 创建图像视图
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = s_fontTexture;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = VK_FORMAT_R8_UNORM;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    if (vkCreateImageView(device, &viewInfo, nullptr, &s_fontTextureView) != VK_SUCCESS) {
+        spdlog::error("WorldTextRenderer: Failed to create font texture view");
+        return false;
+    }
+
+    // 创建采样器
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_NEAREST;  // 像素风格字体
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &s_fontSampler) != VK_SUCCESS) {
+        spdlog::error("WorldTextRenderer: Failed to create font sampler");
+        return false;
+    }
+
+    spdlog::info("WorldTextRenderer: Font texture created ({}x{})", size, size);
     return true;
 }
 
 void WorldTextRenderer::cleanup() {
-    s_glyphCache.clear();
-    s_backgroundMesh = nullptr;  // 网格由 EntityPipeline 管理
+    s_glyphMeshCache.clear();
+
+    // 销毁背景网格
+    s_backgroundMesh = nullptr;  // 由 EntityPipeline 管理
+
+    // 销毁 Vulkan 资源
+    if (s_fontSampler != VK_NULL_HANDLE) {
+        vkDestroySampler(s_device, s_fontSampler, nullptr);
+        s_fontSampler = VK_NULL_HANDLE;
+    }
+
+    if (s_fontTextureView != VK_NULL_HANDLE) {
+        vkDestroyImageView(s_device, s_fontTextureView, nullptr);
+        s_fontTextureView = VK_NULL_HANDLE;
+    }
+
+    if (s_fontTexture != VK_NULL_HANDLE) {
+        vkDestroyImage(s_device, s_fontTexture, nullptr);
+        s_fontTexture = VK_NULL_HANDLE;
+    }
+
+    if (s_fontTextureMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(s_device, s_fontTextureMemory, nullptr);
+        s_fontTextureMemory = VK_NULL_HANDLE;
+    }
+
+    s_font = nullptr;
     s_initialized = false;
     spdlog::info("WorldTextRenderer: Cleaned up");
 }
@@ -68,6 +372,25 @@ void WorldTextRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
     s_viewMatrix = viewMatrix;
 }
 
+const WorldGlyphMesh* WorldTextRenderer::getGlyphMesh(u32 codepoint) {
+    auto it = s_glyphMeshCache.find(codepoint);
+    if (it != s_glyphMeshCache.end()) {
+        return &it->second;
+    }
+
+    // 如果字形不在缓存中，尝试从字体加载
+    if (s_font != nullptr) {
+        const Glyph* glyph = s_font->getGlyph(codepoint);
+        if (glyph != nullptr) {
+            WorldGlyphMesh mesh = createGlyphMeshFromGlyph(*glyph);
+            s_glyphMeshCache[codepoint] = std::move(mesh);
+            return &s_glyphMeshCache[codepoint];
+        }
+    }
+
+    return nullptr;
+}
+
 void WorldTextRenderer::renderText(
     VkCommandBuffer cmd,
     const String& text,
@@ -77,17 +400,17 @@ void WorldTextRenderer::renderText(
     bool showBackground,
     pipeline::EntityPipeline& pipeline)
 {
-    if (!s_initialized || text.empty()) {
+    if (!s_initialized || text.empty() || s_font == nullptr) {
         return;
     }
 
     // 计算到相机的距离
-    Vector3f cameraPosF(
+    Vector3 cameraPosF(
         static_cast<f32>(s_cameraPosition.x),
         static_cast<f32>(s_cameraPosition.y),
         static_cast<f32>(s_cameraPosition.z)
     );
-    Vector3f toCamera = cameraPosF - position;
+    Vector3 toCamera = cameraPosF - Vector3(position.x, position.y, position.z);
     f32 distance = toCamera.length();
 
     // 距离检查
@@ -100,8 +423,6 @@ void WorldTextRenderer::renderText(
     if (distance < 10.0f) {
         effectiveScale *= 10.0f / distance;
     }
-
-    // 应用用户指定的缩放
     effectiveScale *= scale;
 
     // 计算 billboard 矩阵
@@ -112,54 +433,65 @@ void WorldTextRenderer::renderText(
     f32 textWidth = calculateTextWidth(text, effectiveScale);
     f32 textHeight = CHAR_HEIGHT * effectiveScale;
 
+    // 绑定字体纹理
+    if (s_fontTextureView != VK_NULL_HANDLE) {
+        pipeline.setTextureAtlas(s_fontTextureView, s_fontSampler);
+    }
+
     // 渲染背景
     if (showBackground) {
         f32 bgWidth = textWidth + BACKGROUND_PADDING * 2.0f * effectiveScale;
         f32 bgHeight = textHeight + BACKGROUND_PADDING * effectiveScale;
-        Vector4f bgColor(
-            static_cast<f32>(s_bgColorR) / 255.0f,
-            static_cast<f32>(s_bgColorG) / 255.0f,
-            static_cast<f32>(s_bgColorB) / 255.0f,
-            static_cast<f32>(s_bgColorA) / 255.0f
-        );
         // TODO: 渲染背景面板
         (void)bgWidth;
         (void)bgHeight;
-        (void)bgColor;
     }
 
     // 渲染文本字符
     f32 cursorX = -textWidth * 0.5f;  // 居中起始位置
 
-    for (char c : text) {
-        auto it = s_glyphCache.find(c);
-        if (it == s_glyphCache.end()) {
-            // 未找到字形，跳过或使用空格
-            cursorX += CHAR_WIDTH * effectiveScale;
+    // 绑定管线
+    pipeline.bind(cmd);
+    pipeline.bindTextureDescriptor(cmd);
+
+    // UTF-8 解码
+    size_t pos = 0;
+    while (pos < text.size()) {
+        u32 codepoint = decodeCodepoint(text, pos);
+        if (codepoint == 0) break;
+
+        const WorldGlyphMesh* glyph = getGlyphMesh(codepoint);
+        if (glyph == nullptr) {
+            cursorX += CHAR_WIDTH * effectiveScale;  // 使用默认宽度
             continue;
         }
 
-        const GlyphMesh& glyph = it->second;
+        // 创建偏移后的顶点数据
+        std::vector<model::ModelVertex> vertices = glyph->vertices;
+        for (auto& vertex : vertices) {
+            // 应用光标偏移和缩放
+            vertex.position.x = (vertex.position.x * effectiveScale) + cursorX;
+            vertex.position.y *= effectiveScale;
+            vertex.position.z *= effectiveScale;
+        }
 
-        // 创建变换矩阵（应用 billboard + 字符位置偏移）
-        std::array<f64, 16> charMatrix = billboardMatrix;
+        // 创建临时网格并绘制
+        auto meshResult = pipeline.createMesh(vertices, glyph->indices);
+        if (meshResult.success()) {
+            auto& mesh = meshResult.value();
 
-        // 应用字符位置偏移
-        charMatrix[3] += static_cast<f64>(cursorX);
-        charMatrix[7] += static_cast<f64>(-textHeight * 0.5f);  // 垂直居中
+            // 使用 billboard 矩阵绘制
+            Vector3f meshPos(0, 0, 0);  // 位置已在矩阵中
+            pipeline.drawMesh(cmd, mesh, billboardMatrix, meshPos, 1.0, color, 0.0f, 0.0f);
 
-        // TODO: 实际绘制字符网格
-        // 当前作为占位符，需要字体纹理图集才能完整实现
+            // 销毁临时网格
+            pipeline.destroyMesh(mesh);
+        }
 
-        cursorX += glyph.advanceX * effectiveScale;
-
-        (void)cmd;
-        (void)pipeline;
-        (void)color;
-        (void)charMatrix;
+        cursorX += glyph->advanceX * effectiveScale;
     }
 
-    spdlog::trace("WorldTextRenderer: Would render '{}' at ({}, {}, {})",
+    spdlog::trace("WorldTextRenderer: Rendered '{}' at ({}, {}, {})",
                   text, position.x, position.y, position.z);
 }
 
@@ -201,61 +533,16 @@ void WorldTextRenderer::setBackgroundColor(u8 r, u8 g, u8 b, u8 a) {
     s_bgColorA = a;
 }
 
-GlyphMesh WorldTextRenderer::createGlyphMesh(char c, f32 size) {
-    GlyphMesh mesh;
-
-    // 创建简单的四边形表示字符
-    // 实际实现需要从字体纹理图集获取 UV 坐标
-    f32 halfSize = size * 0.5f;
-
-    // ASCII 字符的简单 UV 映射（16x8 网格）
-    i32 charIndex = static_cast<i32>(c);
-    f32 u0 = static_cast<f32>((charIndex % 16) / 16.0f);
-    f32 v0 = static_cast<f32>((charIndex / 16) / 8.0f);
-    f32 u1 = u0 + 1.0f / 16.0f;
-    f32 v1 = v0 + 1.0f / 8.0f;
-
-    // 四个顶点（正面）
-    mesh.vertices = {
-        // 位置 xyz, 纹理 uv, 法线 xyz, 颜色 rgba
-        -halfSize, -halfSize, 0.0f,  u0, v1,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
-         halfSize, -halfSize, 0.0f,  u1, v1,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
-         halfSize,  halfSize, 0.0f,  u1, v0,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
-        -halfSize,  halfSize, 0.0f,  u0, v0,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
-    };
-
-    mesh.indices = {
-        0, 1, 2,  0, 2, 3  // 两个三角形
-    };
-
-    mesh.advanceX = size * CHAR_WIDTH;
-    mesh.width = size;
-    mesh.height = size;
-
-    return mesh;
-}
-
 void WorldTextRenderer::createBackgroundMesh(f32 width, f32 height) {
     // 创建背景四边形
     f32 halfWidth = width * 0.5f;
     f32 halfHeight = height * 0.5f;
 
     // 背景使用统一的 UV
-    std::vector<f32> vertices = {
-        // 位置 xyz, 纹理 uv, 法线 xyz, 颜色 rgba
-        -halfWidth, -halfHeight, 0.0f,  0.0f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.5f,
-         halfWidth, -halfHeight, 0.0f,  1.0f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.5f,
-         halfWidth,  halfHeight, 0.0f,  1.0f, 1.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.5f,
-        -halfWidth,  halfHeight, 0.0f,  0.0f, 1.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.5f,
-    };
-
-    std::vector<u32> indices = {
-        0, 1, 2,  0, 2, 3
-    };
-
     // TODO: 创建 GPU 网格
-    (void)vertices;
-    (void)indices;
+
+    (void)halfWidth;
+    (void)halfHeight;
 }
 
 void WorldTextRenderer::computeBillboardMatrix(
@@ -296,11 +583,19 @@ void WorldTextRenderer::computeBillboardMatrix(
 }
 
 f32 WorldTextRenderer::calculateTextWidth(const String& text, f32 scale) {
+    if (s_font == nullptr) {
+        return static_cast<f32>(text.size()) * CHAR_WIDTH * scale;
+    }
+
     f32 width = 0.0f;
-    for (char c : text) {
-        auto it = s_glyphCache.find(c);
-        if (it != s_glyphCache.end()) {
-            width += it->second.advanceX * scale;
+    size_t pos = 0;
+    while (pos < text.size()) {
+        u32 codepoint = decodeCodepoint(text, pos);
+        if (codepoint == 0) break;
+
+        const WorldGlyphMesh* glyph = getGlyphMesh(codepoint);
+        if (glyph != nullptr) {
+            width += glyph->advanceX * scale;
         } else {
             width += CHAR_WIDTH * scale;
         }
@@ -323,6 +618,46 @@ bool WorldTextRenderer::shouldRenderText(
     // TODO: 背面剔除（如果玩家背对文本）
 
     return true;
+}
+
+u32 WorldTextRenderer::decodeCodepoint(const String& text, size_t& pos) {
+    if (pos >= text.size()) {
+        return 0;
+    }
+
+    u8 c = static_cast<u8>(text[pos]);
+    pos++;
+
+    // UTF-8 解码
+    if ((c & 0x80) == 0) {
+        // 单字节 ASCII
+        return c;
+    } else if ((c & 0xE0) == 0xC0) {
+        // 双字节
+        if (pos >= text.size()) return c;
+        u8 c2 = static_cast<u8>(text[pos++]);
+        return (static_cast<u32>(c & 0x1F) << 6) | static_cast<u32>(c2 & 0x3F);
+    } else if ((c & 0xF0) == 0xE0) {
+        // 三字节
+        if (pos + 1 >= text.size()) return c;
+        u8 c2 = static_cast<u8>(text[pos++]);
+        u8 c3 = static_cast<u8>(text[pos++]);
+        return (static_cast<u32>(c & 0x0F) << 12) |
+               (static_cast<u32>(c2 & 0x3F) << 6) |
+               static_cast<u32>(c3 & 0x3F);
+    } else if ((c & 0xF8) == 0xF0) {
+        // 四字节
+        if (pos + 2 >= text.size()) return c;
+        u8 c2 = static_cast<u8>(text[pos++]);
+        u8 c3 = static_cast<u8>(text[pos++]);
+        u8 c4 = static_cast<u8>(text[pos++]);
+        return (static_cast<u32>(c & 0x07) << 18) |
+               (static_cast<u32>(c2 & 0x3F) << 12) |
+               (static_cast<u32>(c3 & 0x3F) << 6) |
+               static_cast<u32>(c4 & 0x3F);
+    }
+
+    return c;
 }
 
 } // namespace mc::client::renderer::entity::util

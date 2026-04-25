@@ -2,6 +2,7 @@
 #include "../util/ShadowRenderer.hpp"
 #include "../util/NameTagRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 
 namespace mc::client::renderer::entity::core {
 
@@ -33,6 +34,35 @@ void EntityRenderer::renderNameTag(Entity& entity) {
 
     // 渲染名称标签
     util::NameTagRenderer::renderNameTag(entity, displayName, 0.0);
+}
+
+void EntityRenderer::renderLayersPipelineClient(
+    ::mc::client::ClientEntity& entity,
+    VkCommandBuffer cmd,
+    const AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    // 默认实现：空操作
+    // 子类（如 LivingRenderer 和 PlayerRenderer）应重写此方法
+    (void)entity;
+    (void)cmd;
+    (void)context;
+    (void)pipeline;
+}
+
+void EntityRenderer::renderShadowClient(
+    ::mc::client::ClientEntity& entity,
+    f64 partialTicks,
+    VkCommandBuffer cmd,
+    pipeline::EntityPipeline& pipeline)
+{
+    if (m_shadowSize <= 0.0 || m_shadowAlpha <= 0.0) {
+        return;
+    }
+
+    // 使用 ClientEntity 的属性渲染阴影
+    f64 shadowRadius = static_cast<f64>(entity.width()) * 0.5;
+    util::ShadowRenderer::renderShadow(cmd, entity, partialTicks, shadowRadius, m_shadowAlpha, pipeline);
 }
 
 bool EntityRenderer::shouldRenderShadow(Entity& entity) const {

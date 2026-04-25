@@ -24,6 +24,7 @@
 #include "../renderer/projectile/ExperienceOrbRenderer.hpp"
 #include "../pipeline/EntityTextureAtlas.hpp"
 #include "../util/ShadowRenderer.hpp"
+#include "../effect/fire/FireEffect.hpp"
 #include "client/resource/EntityTextureLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/world/entity/ClientEntity.hpp"
@@ -288,13 +289,14 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
                              Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
         // 渲染层（盔甲、手持物品等）
-        // 注意：层渲染器需要 Entity 引用，当前 ClientEntity 不继承 Entity
-        // 层渲染器将在 PlayerRenderer 等具体渲染器中直接调用
-        // 此处的 renderer->renderLayersPipeline 需要 Entity 对象
-        // TODO: 当 ClientEntity -> Entity 映射完成后启用此代码
-        // if (renderer && renderer->supportsLayers()) {
-        //     renderer->renderLayersPipeline(entity, cmd, context, *m_pipeline);
-        // }
+        if (renderer && renderer->supportsLayers()) {
+            renderer->renderLayersPipelineClient(entity, cmd, context, *m_pipeline);
+        }
+
+        // 渲染火焰效果（如果实体正在燃烧）
+        if (entity.isOnFire()) {
+            effect::fire::FireEffect::renderFire(cmd, entity, partialTicks, *m_pipeline);
+        }
 
         // 渲染阴影
         if (m_renderShadows && !isItemEntity && !isExperienceOrb) {
@@ -762,19 +764,19 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
 void EntityRendererManager::remapUvToAtlasRegion(const String& normalizedTypeId,
                                                  std::vector<ModelVertex>& vertices) const {
     if (!m_textureAtlas || !m_textureAtlas->isBuilt() || vertices.empty()) {
-        spdlog::info("remapUvToAtlasRegion: early return for '{}' - atlas null: {}, built: {}, vertices empty: {}",
-                     normalizedTypeId, m_textureAtlas == nullptr, m_textureAtlas && m_textureAtlas->isBuilt(), vertices.empty());
+        // spdlog::info("remapUvToAtlasRegion: early return for '{}' - atlas null: {}, built: {}, vertices empty: {}",
+        //              normalizedTypeId, m_textureAtlas == nullptr, m_textureAtlas && m_textureAtlas->isBuilt(), vertices.empty());
         return;
     }
 
     const TextureRegion* region = nullptr;
     const auto texturePaths = EntityTextureLoader::getTexturePaths(normalizedTypeId);
-    spdlog::info("remapUvToAtlasRegion: trying {} paths for '{}'", texturePaths.size(), normalizedTypeId);
+    // spdlog::info("remapUvToAtlasRegion: trying {} paths for '{}'", texturePaths.size(), normalizedTypeId);
     for (const auto& path : texturePaths) {
-        spdlog::info("remapUvToAtlasRegion: checking path '{}'", path.toString());
+        // spdlog::info("remapUvToAtlasRegion: checking path '{}'", path.toString());
         region = m_textureAtlas->getRegion(path);
         if (region) {
-            spdlog::info("remapUvToAtlasRegion: found region for '{}'", path.toString());
+            // spdlog::info("remapUvToAtlasRegion: found region for '{}'", path.toString());
             break;
         }
     }
@@ -838,11 +840,11 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
                       static_cast<f64>(entity.pitch() - entity.prevPitch()) * context.partialTicks;
     context.scale = entity.isChild() ? 0.5 * (1.0 / 16.0) : (1.0 / 16.0);
     context.isChild = entity.isChild();
-    context.isSitting = false;   // TODO: 从实体状态读取
-    context.isSneaking = false;  // TODO: 从实体状态读取
-    context.isSwimming = false;  // TODO: 从实体状态读取
-    context.isRiding = false;    // TODO: 从实体状态读取
-    context.swingProgress = 0.0f; // TODO: 从实体状态读取
+    context.isSitting = entity.isSitting();
+    context.isSneaking = entity.isSneaking();
+    context.isSwimming = entity.isSwimming();
+    context.isRiding = entity.isRiding();
+    context.swingProgress = entity.getInterpolatedSwingProgress(static_cast<f32>(context.partialTicks));
 
     // 计算哈希
     context.computeHash();

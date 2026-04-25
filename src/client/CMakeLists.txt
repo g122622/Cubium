@@ -77,6 +77,7 @@ add_executable(minecraft-client
     renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
     renderer/trident/entity/util/ShadowRenderer.cpp
     renderer/trident/entity/util/NameTagRenderer.cpp
+    renderer/trident/entity/util/WorldTextRenderer.cpp
     # 实体模型
     renderer/trident/entity/model/core/EntityModel.cpp
     renderer/trident/entity/model/core/ModelRenderer.cpp

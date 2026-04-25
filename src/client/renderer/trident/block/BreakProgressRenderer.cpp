@@ -668,7 +668,7 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     // 复制数据到暂存缓冲区
     void* data;
     vkMapMemory(m_config.device, m_stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, atlasData.data(), imageSize);
+    std::memcpy(data, atlasData.data(), imageSize);
     vkUnmapMemory(m_config.device, m_stagingBufferMemory);
 
     // 创建图像
@@ -891,7 +891,7 @@ void BreakProgressRenderer::updateVertexBuffer(const std::vector<Vertex>& vertic
     void* data;
     VkDeviceSize size = std::min(vertices.size(), m_maxVertices) * sizeof(Vertex);
     vkMapMemory(m_config.device, m_vertexBufferMemory, 0, size, 0, &data);
-    memcpy(data, vertices.data(), size);
+    std::memcpy(data, vertices.data(), size);
     vkUnmapMemory(m_config.device, m_vertexBufferMemory);
 }
 
@@ -903,7 +903,7 @@ void BreakProgressRenderer::updateIndexBuffer(const std::vector<u32>& indices) {
     void* data;
     VkDeviceSize size = std::min(indices.size(), m_maxIndices) * sizeof(u32);
     vkMapMemory(m_config.device, m_indexBufferMemory, 0, size, 0, &data);
-    memcpy(data, indices.data(), size);
+    std::memcpy(data, indices.data(), size);
     vkUnmapMemory(m_config.device, m_indexBufferMemory);
 }
 

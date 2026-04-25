@@ -3,6 +3,10 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
+#include "client/ui/Font.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include <vulkan/vulkan.h>
 #include <string>
 #include <unordered_map>
@@ -17,10 +21,10 @@ struct EntityMesh;
 namespace mc::client::renderer::entity::util {
 
 /**
- * @brief 字形网格数据
+ * @brief 字形网格数据（世界空间版本）
  */
-struct GlyphMesh {
-    std::vector<f32> vertices;  // 顶点数据 (position xyz, texcoord uv, normal xyz, color rgba)
+struct WorldGlyphMesh {
+    std::vector<model::ModelVertex> vertices;  // 顶点数据 (position xyz, texcoord uv, normal xyz)
     std::vector<u32> indices;
     f32 advanceX;  // 绘制此字符后光标前进的距离
     f32 width;     // 字符宽度
@@ -34,15 +38,28 @@ struct GlyphMesh {
  * 使用 billboard 技术使文本始终面向相机。
  *
  * 参考 MC 1.16.5 NameTagRenderer
+ *
+ * 集成现有 FontTextureAtlas 和 Font 系统。
  */
 class WorldTextRenderer {
 public:
     /**
      * @brief 初始化文本渲染器
+     * @param device Vulkan设备
+     * @param physicalDevice 物理设备
+     * @param commandPool 命令池
+     * @param graphicsQueue 图形队列
      * @param pipeline 实体渲染管线
+     * @param font 字体对象（用于获取字形UV）
      * @return 成功或错误
      */
-    static bool initialize(pipeline::EntityPipeline& pipeline);
+    static bool initialize(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        VkCommandPool commandPool,
+        VkQueue graphicsQueue,
+        pipeline::EntityPipeline& pipeline,
+        Font* font);
 
     /**
      * @brief 清理资源
@@ -117,11 +134,36 @@ public:
      */
     static void setBackgroundColor(u8 r, u8 g, u8 b, u8 a);
 
+    /**
+     * @brief 获取字形网格（用于渲染）
+     * @param codepoint Unicode码点
+     * @return 字形网格指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] static const WorldGlyphMesh* getGlyphMesh(u32 codepoint);
+
+    /**
+     * @brief 获取字体纹理视图（用于绑定到管线）
+     */
+    [[nodiscard]] static VkImageView fontTextureView() { return s_fontTextureView; }
+
+    /**
+     * @brief 获取字体采样器
+     */
+    [[nodiscard]] static VkSampler fontSampler() { return s_fontSampler; }
+
 private:
     /**
-     * @brief 创建字形网格
+     * @brief 创建字形网格（从Font获取字形数据）
+     * @param glyph 字形数据
+     * @return 字形网格
      */
-    static GlyphMesh createGlyphMesh(char c, f32 size);
+    static WorldGlyphMesh createGlyphMeshFromGlyph(const Glyph& glyph);
+
+    /**
+     * @brief 创建字体纹理（上传到GPU）
+     * @return 成功或错误
+     */
+    static bool createFontTexture();
 
     /**
      * @brief 创建背景网格
@@ -149,8 +191,14 @@ private:
         f32 distance
     );
 
+    /**
+     * @brief 从UTF-8字符串解码码点
+     */
+    [[nodiscard]] static u32 decodeCodepoint(const String& text, size_t& pos);
+
     // 静态成员
     static bool s_initialized;
+    static Font* s_font;                              // 字体引用
     static f32 s_maxDistance;
     static f32 s_scale;
     static bool s_showBackground;
@@ -161,8 +209,18 @@ private:
     static Vector3d s_cameraPosition;
     static std::array<f64, 16> s_viewMatrix;
 
-    // 字形缓存
-    static std::unordered_map<char, GlyphMesh> s_glyphCache;
+    // Vulkan 资源
+    static VkDevice s_device;
+    static VkPhysicalDevice s_physicalDevice;
+    static VkCommandPool s_commandPool;
+    static VkQueue s_graphicsQueue;
+    static VkImage s_fontTexture;
+    static VkDeviceMemory s_fontTextureMemory;
+    static VkImageView s_fontTextureView;
+    static VkSampler s_fontSampler;
+
+    // 字形网格缓存（从Font的Glyph创建）
+    static std::unordered_map<u32, WorldGlyphMesh> s_glyphMeshCache;
 
     // 背景网格
     static pipeline::EntityMesh* s_backgroundMesh;

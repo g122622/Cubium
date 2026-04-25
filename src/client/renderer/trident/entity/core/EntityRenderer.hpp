@@ -13,6 +13,10 @@ namespace mc {
 class Entity;
 class LivingEntity;
 
+namespace client {
+class ClientEntity;  // 前向声明
+}
+
 namespace client::renderer::entity::pipeline {
 class EntityPipeline;  // 前向声明
 }
@@ -57,6 +61,40 @@ public:
      * @param entity 要渲染名称标签的实体
      */
     virtual void renderNameTag(Entity& entity);
+
+    // ========== ClientEntity 版本的渲染方法 ==========
+
+    /**
+     * @brief 渲染层（GPU管线路径，ClientEntity 版本）
+     *
+     * 这是客户端渲染使用的主要方法，可以访问 ClientEntity 的扩展属性。
+     * 默认实现调用 Entity 版本，子类可以重写此方法以访问 ClientEntity 特有属性。
+     *
+     * @param entity 客户端实体
+     * @param cmd Vulkan 命令缓冲区
+     * @param context 动画上下文
+     * @param pipeline 实体渲染管线
+     */
+    virtual void renderLayersPipelineClient(
+        ::mc::client::ClientEntity& entity,
+        VkCommandBuffer cmd,
+        const AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    );
+
+    /**
+     * @brief 渲染阴影（ClientEntity 版本）
+     * @param entity 客户端实体
+     * @param partialTicks 部分tick
+     * @param cmd Vulkan 命令缓冲区
+     * @param pipeline 实体渲染管线
+     */
+    virtual void renderShadowClient(
+        ::mc::client::ClientEntity& entity,
+        f64 partialTicks,
+        VkCommandBuffer cmd,
+        pipeline::EntityPipeline& pipeline
+    );
 
     // ========== 动画支持 ==========
 
