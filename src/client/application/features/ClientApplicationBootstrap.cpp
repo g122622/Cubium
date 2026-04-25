@@ -10,6 +10,7 @@
 #include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"
 #include "client/renderer/trident/gui/GuiTextureLoader.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
+#include "client/skin/ClientSkinManager.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "client/ui/minecraft/targetinfo/TargetInfoWidget.hpp"
@@ -312,6 +313,21 @@ Result<void> ClientApplication::initializeGameplaySystems(const ClientLaunchPara
             return collectEntityCompletionCandidates();
         });
         setupNetworkCallbacks();
+
+        // 初始化皮肤管理器
+        m_skinManager = std::make_unique<skin::ClientSkinManager>();
+        auto skinResult = m_skinManager->initialize(
+            m_renderer->device(),
+            m_renderer->physicalDevice(),
+            m_renderer->commandPool(),
+            m_renderer->graphicsQueue()
+        );
+        if (skinResult.failed()) {
+            spdlog::warn("Failed to initialize skin manager: {}", skinResult.error().toString());
+            // 皮肤管理器初始化失败不是致命错误
+        } else {
+            spdlog::info("Skin manager initialized");
+        }
 
         NetworkClientConfig clientConfig;
         clientConfig.username = m_settings.username.get();

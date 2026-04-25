@@ -7,6 +7,7 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
+#include "common/skin/network/SkinPackets.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -125,6 +126,13 @@ struct NetworkClientCallbacks {
     // 经验事件
     std::function<void(f32 progress, i32 totalXp, i32 level)> onSetExperience;
     std::function<void(u32 entityId, f64 x, f64 y, f64 z, i16 xpValue)> onSpawnExperienceOrb;
+
+    // 玩家列表事件
+    std::function<void(const std::vector<skin::PlayerListEntry>& entries)> onPlayerListAdd;
+    std::function<void(const std::vector<std::array<u8, 16>>& uuids)> onPlayerListRemove;
+    std::function<void(const skin::PlayerListEntry& entry)> onPlayerListUpdateGameMode;
+    std::function<void(const std::array<u8, 16>& uuid, i32 ping)> onPlayerListUpdateLatency;
+    std::function<void(const std::array<u8, 16>& uuid, const Optional<String>& displayName)> onPlayerListUpdateDisplayName;
 };
 
 // ============================================================================
@@ -241,6 +249,9 @@ private:
     // 经验包处理
     void handleSetExperience(network::PacketDeserializer& deser);
     void handleSpawnExperienceOrb(network::PacketDeserializer& deser);
+
+    // 玩家列表包处理
+    void handlePlayerListItem(network::PacketDeserializer& deser);
 
     // ASIO 网络
     asio::io_context m_ioContext;

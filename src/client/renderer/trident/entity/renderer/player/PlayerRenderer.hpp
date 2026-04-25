@@ -3,6 +3,7 @@
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include <memory>
 
 namespace mc {
@@ -51,6 +52,39 @@ public:
     [[nodiscard]] model::player::PlayerModel& getModel() { return m_model; }
     [[nodiscard]] const model::player::PlayerModel& getModel() const { return m_model; }
 
+    /**
+     * @brief 设置皮肤纹理区域
+     * @param region 皮肤纹理区域（可为 nullptr 使用默认皮肤）
+     */
+    void setSkinTexture(const TextureRegion* region) { m_skinRegion = region; }
+
+    /**
+     * @brief 设置披风纹理区域
+     * @param region 披风纹理区域（可为 nullptr）
+     */
+    void setCapeTexture(const TextureRegion* region) { m_capeRegion = region; }
+
+    /**
+     * @brief 设置鞘翅纹理区域
+     * @param region 鞘翅纹理区域（可为 nullptr）
+     */
+    void setElytraTexture(const TextureRegion* region) { m_elytraRegion = region; }
+
+    /**
+     * @brief 获取皮肤纹理区域
+     */
+    [[nodiscard]] const TextureRegion* getSkinTexture() const { return m_skinRegion; }
+
+    /**
+     * @brief 获取披风纹理区域
+     */
+    [[nodiscard]] const TextureRegion* getCapeTexture() const { return m_capeRegion; }
+
+    /**
+     * @brief 获取鞘翅纹理区域
+     */
+    [[nodiscard]] const TextureRegion* getElytraTexture() const { return m_elytraRegion; }
+
 protected:
     /**
      * @brief 设置模型可见性
@@ -94,6 +128,11 @@ private:
 
     model::player::PlayerModel m_model;
     bool m_slimArms;  // 是否使用纤细手臂
+
+    // 皮肤纹理区域
+    const TextureRegion* m_skinRegion = nullptr;
+    const TextureRegion* m_capeRegion = nullptr;
+    const TextureRegion* m_elytraRegion = nullptr;
 };
 
 /**

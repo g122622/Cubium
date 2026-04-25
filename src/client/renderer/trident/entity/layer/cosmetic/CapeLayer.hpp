@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/LayerRenderer.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "common/core/Types.hpp"
 
 namespace mc {
@@ -34,6 +35,17 @@ public:
 
     [[nodiscard]] bool shouldRender(const ::mc::Player& entity) const override;
 
+    /**
+     * @brief 设置自定义斗篷纹理
+     * @param region 纹理区域（可为 nullptr）
+     */
+    void setCapeTexture(const TextureRegion* region) { m_customCapeRegion = region; }
+
+    /**
+     * @brief 获取当前斗篷纹理
+     */
+    [[nodiscard]] const TextureRegion* getCapeTexture() const { return m_customCapeRegion; }
+
 private:
     /**
      * @brief 计算斗篷摆动
@@ -42,6 +54,8 @@ private:
      * @return 斗篷旋转角度
      */
     [[nodiscard]] f32 calculateCapeSwing(::mc::Player& entity, f32 partialTicks) const;
+
+    const TextureRegion* m_customCapeRegion = nullptr;
 };
 
 } // namespace mc::client::renderer::entity::layer::cosmetic

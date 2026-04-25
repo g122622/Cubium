@@ -3,8 +3,10 @@
 #include <algorithm>
 
 #include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 
 using namespace mc::client::renderer::entity::model::animal;
+using mc::client::renderer::entity::model::ModelVertex;
 
 namespace mc::client::renderer {
 namespace {

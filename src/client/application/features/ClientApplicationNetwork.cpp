@@ -2,6 +2,9 @@
 
 #include "client/command/ClientCommandManager.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
+#include "client/skin/ClientSkinManager.hpp"
+#include "common/skin/core/GameProfile.hpp"
+#include "common/skin/network/SkinPackets.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
@@ -754,6 +757,49 @@ void ClientApplication::setupNetworkCallbacks()
 
         entity->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
         entity->setXpValue(static_cast<i32>(xpValue));
+    };
+
+    // 玩家列表回调 - 皮肤系统集成
+    callbacks.onPlayerListAdd = [this](const std::vector<::mc::skin::PlayerListEntry>& entries) {
+        if (!m_skinManager) {
+            return;
+        }
+
+        for (const auto& entry : entries) {
+            // 创建玩家档案并注册皮肤
+            ::mc::skin::GameProfile profile(entry.uuid, entry.name);
+            for (const auto& prop : entry.properties) {
+                profile.addProperty(prop);
+            }
+
+            m_skinManager->registerPlayerSkin(profile);
+            spdlog::debug("PlayerList: Registered skin for {} ({})", entry.name,
+                         profile.uuidToString());
+        }
+    };
+
+    callbacks.onPlayerListRemove = [this](const std::vector<std::array<u8, 16>>& uuids) {
+        for (const auto& uuid : uuids) {
+            m_skinManager->skinManager().removePlayerInfo(uuid);
+            spdlog::debug("PlayerList: Removed player skin");
+        }
+    };
+
+    callbacks.onPlayerListUpdateGameMode = [this](const ::mc::skin::PlayerListEntry& entry) {
+        MC_UNUSED(entry);
+        // 游戏模式更新 - 暂时不需要特殊处理
+    };
+
+    callbacks.onPlayerListUpdateLatency = [this](const std::array<u8, 16>& uuid, i32 ping) {
+        MC_UNUSED(uuid);
+        MC_UNUSED(ping);
+        // 延迟更新 - 暂时不需要特殊处理
+    };
+
+    callbacks.onPlayerListUpdateDisplayName = [this](const std::array<u8, 16>& uuid, const Optional<String>& displayName) {
+        MC_UNUSED(uuid);
+        MC_UNUSED(displayName);
+        // 显示名更新 - 暂时不需要特殊处理
     };
 
     m_networkClient->setCallbacks(callbacks);

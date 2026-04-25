@@ -21,6 +21,7 @@
 #include "../world/player/LocalPlayerIdentity.hpp"
 #include "../world/player/ClientPlayerPredictor.hpp"
 #include "../network/NetworkClient.hpp"
+#include "../skin/ClientSkinManager.hpp"
 #include "../ui/kagero/KageroEngine.hpp"
 #include "../ui/TridentCanvas.hpp"
 #include "server/application/IntegratedServer.hpp"
@@ -136,6 +137,12 @@ public:
      */
     [[nodiscard]] ClientWorld& world() noexcept { return m_world; }
     [[nodiscard]] const ClientWorld& world() const noexcept { return m_world; }
+
+    /**
+     * @brief 获取皮肤管理器
+     */
+    [[nodiscard]] skin::ClientSkinManager& skinManager() noexcept { return *m_skinManager; }
+    [[nodiscard]] const skin::ClientSkinManager& skinManager() const noexcept { return *m_skinManager; }
 
     // 友元声明，用于回调
     friend void onWindowResize(i32 width, i32 height, void* userData);
@@ -317,6 +324,7 @@ private:
     std::unique_ptr<server::IntegratedServer> m_integratedServer;
     std::unique_ptr<NetworkClient> m_networkClient;
     std::unique_ptr<command::ClientCommandManager> m_commandManager;
+    std::unique_ptr<skin::ClientSkinManager> m_skinManager;
     bool m_useIntegratedServer = true;
 
     std::unordered_map<PlayerId, String> m_knownPlayerNames;

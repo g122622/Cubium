@@ -6,12 +6,12 @@
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
+#include "common/skin/core/GameProfile.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
-#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client {
@@ -664,8 +664,13 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::PlayerListItem: {
+            handlePlayerListItem(bodyDeser);
+            break;
+        }
+
         default:
-            spdlog::debug("Unhandled packet type: {}", static_cast<int>(packetType));
+            spdlog::warn("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
     }
 }
@@ -1230,7 +1235,7 @@ void NetworkClient::handleGameStateChange(network::PacketDeserializer& deser) {
             break;
 
         default:
-            spdlog::debug("GameStateChange: unhandled reason={}, value={}",
+            spdlog::warn("GameStateChange: unhandled reason={}, value={}",
                           static_cast<u8>(reason), value);
             break;
     }
@@ -1416,6 +1421,66 @@ void NetworkClient::handleSpawnExperienceOrb(network::PacketDeserializer& deser)
             packet.z(),
             packet.xpValue()
         );
+    }
+}
+
+void NetworkClient::handlePlayerListItem(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    skin::PlayerListItemPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize PlayerListItem packet: {}", result.error().message());
+        return;
+    }
+
+    switch (packet.action()) {
+        case skin::PlayerListAction::AddPlayer: {
+            if (m_callbacks.onPlayerListAdd) {
+                m_callbacks.onPlayerListAdd(packet.entries());
+            }
+            break;
+        }
+
+        case skin::PlayerListAction::RemovePlayer: {
+            if (m_callbacks.onPlayerListRemove) {
+                std::vector<std::array<u8, 16>> uuids;
+                uuids.reserve(packet.entries().size());
+                for (const auto& entry : packet.entries()) {
+                    uuids.push_back(entry.uuid);
+                }
+                m_callbacks.onPlayerListRemove(uuids);
+            }
+            break;
+        }
+
+        case skin::PlayerListAction::UpdateGameMode: {
+            if (m_callbacks.onPlayerListUpdateGameMode) {
+                for (const auto& entry : packet.entries()) {
+                    m_callbacks.onPlayerListUpdateGameMode(entry);
+                }
+            }
+            break;
+        }
+
+        case skin::PlayerListAction::UpdateLatency: {
+            if (m_callbacks.onPlayerListUpdateLatency) {
+                for (const auto& entry : packet.entries()) {
+                    m_callbacks.onPlayerListUpdateLatency(entry.uuid, entry.ping);
+                }
+            }
+            break;
+        }
+
+        case skin::PlayerListAction::UpdateDisplayName: {
+            if (m_callbacks.onPlayerListUpdateDisplayName) {
+                for (const auto& entry : packet.entries()) {
+                    m_callbacks.onPlayerListUpdateDisplayName(entry.uuid, entry.displayName);
+                }
+            }
+            break;
+        }
     }
 }
 
