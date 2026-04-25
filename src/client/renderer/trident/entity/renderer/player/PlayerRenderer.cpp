@@ -127,19 +127,22 @@ model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bo
 }
 
 f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const {
-    // 步态动画周期
-    // Player 继承自 Entity，有类似的动画属性
-    // 目前返回默认值，等待动画系统集成
-    (void)player;
-    (void)partialTicks;
-    return 0.0;
+    // Player 继承自 Entity，没有 limbSwing
+    // 基于移动距离计算动画周期
+    f64 dx = static_cast<f64>(player.x() - player.prevX());
+    f64 dz = static_cast<f64>(player.z() - player.prevZ());
+    f64 distance = std::sqrt(dx * dx + dz * dz);
+    // 每移动 1 格增加 PI 弧度的动画周期
+    return static_cast<f64>(player.ticksExisted()) * distance * 3.14159 + partialTicks * distance * 3.14159;
 }
 
 f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const {
-    // 步态动画强度
-    (void)player;
+    // 基于移动速度计算动画强度
     (void)partialTicks;
-    return 0.0;
+    f64 dx = static_cast<f64>(player.x() - player.prevX());
+    f64 dz = static_cast<f64>(player.z() - player.prevZ());
+    f64 speed = std::sqrt(dx * dx + dz * dz) * 4.0; // 放大以获得可见的动画
+    return std::min(speed, 1.0); // 限制最大值
 }
 
 f64 PlayerRenderer::getHeadYaw(::mc::Player& player, f64 partialTicks) const {

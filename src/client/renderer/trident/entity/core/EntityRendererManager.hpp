@@ -1,6 +1,8 @@
 #pragma once
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/core/AnimatedMeshCache.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
@@ -61,11 +63,28 @@ public:
     // ========== 实体网格缓存 ==========
 
     /**
-     * @brief 获取或创建实体网格
+     * @brief 获取或创建实体网格（静态网格）
      * @param entity 客户端实体
      * @return 网格指针，如果实体类型无渲染器返回nullptr
      */
     [[nodiscard]] pipeline::EntityMesh* getOrCreateMesh(ClientEntity& entity);
+
+    /**
+     * @brief 获取或创建动画实体网格
+     *
+     * 使用动画缓存，根据动画状态决定是否需要重新生成网格。
+     * 这是主要的动画渲染路径。
+     *
+     * @param entity 客户端实体
+     * @param model 已设置动画角度的模型
+     * @param context 动画上下文
+     * @return 网格指针，如果实体类型无渲染器返回nullptr
+     */
+    [[nodiscard]] pipeline::EntityMesh* getOrCreateAnimatedMesh(
+        ClientEntity& entity,
+        model::EntityModel& model,
+        const core::AnimationContext& context
+    );
 
     /**
      * @brief 更新实体网格
@@ -86,6 +105,11 @@ public:
      * @brief 清除所有实体网格
      */
     void clearMeshes();
+
+    /**
+     * @brief 清除动画网格缓存
+     */
+    void clearAnimatedMeshes();
 
     // ========== 渲染 ==========
 
@@ -171,8 +195,11 @@ private:
     std::unordered_map<String, std::unique_ptr<core::EntityRenderer>> m_renderers;
     std::unordered_map<String, RendererCreator> m_creators;
 
-    // 实体网格缓存
+    // 静态实体网格缓存（用于非动画实体，如 ItemEntity、ExperienceOrb）
     std::unordered_map<EntityId, pipeline::EntityMesh> m_meshes;
+
+    // 动画实体网格缓存（用于动画实体）
+    std::unique_ptr<core::AnimatedMeshCache> m_animatedMeshCache;
 
     // 管线
     pipeline::EntityPipeline* m_pipeline = nullptr;
@@ -262,6 +289,29 @@ private:
      * @return Y 轴偏移
      */
     [[nodiscard]] f64 calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const;
+
+    /**
+     * @brief 判断实体是否使用动画网格
+     *
+     * ItemEntity 和 ExperienceOrb 使用静态网格，
+     * 其他实体使用动画网格。
+     */
+    [[nodiscard]] bool usesAnimatedMesh(const String& normalizedTypeId) const;
+
+    /**
+     * @brief 为实体创建模型并设置动画
+     *
+     * 根据实体类型创建模型，设置动画参数，返回模型引用。
+     * 调用者需要在使用后销毁模型。
+     *
+     * @param entity 客户端实体
+     * @param context 动画上下文（输出）
+     * @return 模型指针，如果实体类型无模型返回 nullptr
+     */
+    [[nodiscard]] std::unique_ptr<model::EntityModel> createModelForEntity(
+        ClientEntity& entity,
+        core::AnimationContext& context
+    );
 };
 
 } // namespace mc::client::renderer::entity

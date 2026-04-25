@@ -1,4 +1,5 @@
 #include "EntityRendererManager.hpp"
+#include "AnimatedMeshCache.hpp"
 #include "../renderer/animal/AnimalRenderers.hpp"
 #include "../renderer/animal/WolfRenderer.hpp"
 #include "../renderer/animal/OcelotRenderer.hpp"
@@ -34,6 +35,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 namespace mc::client::renderer::entity {
 
@@ -70,6 +72,7 @@ String normalizeEntityTypeId(const String& typeId) {
 } // anonymous namespace
 
 EntityRendererManager::EntityRendererManager()
+    : m_animatedMeshCache(std::make_unique<core::AnimatedMeshCache>())
 {
 }
 
@@ -129,6 +132,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     String normalizedType = normalizeEntityTypeId(entity.typeId());
     bool isItemEntity = (normalizedType == EntityTypes::ITEM);
     bool isExperienceOrb = (normalizedType == EntityTypes::EXPERIENCE_ORB);
+    bool useAnimatedMesh = usesAnimatedMesh(normalizedType);
 
     // 对于 ItemEntity，使用 ItemTextureAtlas
     if (isItemEntity && m_itemTextureAtlas && m_itemTextureAtlas->isBuilt()) {
@@ -136,8 +140,29 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         m_pipeline->setTextureAtlas(m_itemTextureAtlas->imageView(), m_itemTextureAtlas->sampler());
     }
 
+    // 获取渲染器
+    EntityRenderer* renderer = getOrCreateRenderer(entity.typeId());
+
     // 获取或创建网格
-    EntityMesh* mesh = getOrCreateMesh(entity);
+    EntityMesh* mesh = nullptr;
+
+    if (useAnimatedMesh && renderer && renderer->supportsAnimation()) {
+        // 动画实体路径：使用动画网格缓存
+        core::AnimationContext context;
+
+        // 设置 partialTicks（用于动画插值）
+        context.partialTicks = partialTicks;
+
+        // 创建带动画的模型
+        auto animModel = createModelForEntity(entity, context);
+        if (animModel) {
+            mesh = getOrCreateAnimatedMesh(entity, *animModel, context);
+        }
+    } else {
+        // 静态实体路径：使用静态网格缓存
+        mesh = getOrCreateMesh(entity);
+    }
+
     if (!mesh || mesh->indexCount == 0) {
         // 恢复实体纹理图集
         if (isItemEntity && m_textureAtlas && m_textureAtlas->isBuilt()) {
@@ -742,6 +767,165 @@ void EntityRendererManager::remapUvToAtlasRegion(const String& normalizedTypeId,
         vertex.texCoord.x = static_cast<f32>(remappedU);
         vertex.texCoord.y = static_cast<f32>(remappedV);
     }
+}
+
+void EntityRendererManager::clearAnimatedMeshes() {
+    if (m_animatedMeshCache) {
+        m_animatedMeshCache->clear();
+    }
+}
+
+bool EntityRendererManager::usesAnimatedMesh(const String& normalizedTypeId) const {
+    // ItemEntity 和 ExperienceOrb 使用静态网格
+    // 所有生物实体使用动画网格
+    return normalizedTypeId != entity::EntityTypes::ITEM &&
+           normalizedTypeId != entity::EntityTypes::EXPERIENCE_ORB;
+}
+
+std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
+    ClientEntity& entity,
+    core::AnimationContext& context
+) {
+    String normalizedId = normalizeEntityTypeId(entity.typeId());
+    namespace ET = entity::EntityTypes;
+    using namespace model::animal;
+    using namespace model::monster;
+
+    // 从 ClientEntity 读取动画状态
+    context.limbSwing = static_cast<f64>(entity.prevLimbSwing()) +
+                        static_cast<f64>(entity.limbSwing() - entity.prevLimbSwing()) * context.partialTicks;
+    context.limbSwingAmount = static_cast<f64>(entity.prevLimbSwingAmount()) +
+                             static_cast<f64>(entity.limbSwingAmount() - entity.prevLimbSwingAmount()) * context.partialTicks;
+    context.ageInTicks = static_cast<f64>(entity.ticksExisted());
+
+    // 计算头部偏航角（相对于身体）
+    f64 bodyYaw = static_cast<f64>(entity.prevRenderYawOffset()) +
+                  static_cast<f64>(entity.renderYawOffset() - entity.prevRenderYawOffset()) * context.partialTicks;
+    f64 headYaw = static_cast<f64>(entity.prevRotationYawHead()) +
+                  static_cast<f64>(entity.rotationYawHead() - entity.prevRotationYawHead()) * context.partialTicks;
+    context.netHeadYaw = headYaw - bodyYaw;
+    // 归一化到 -180 到 180
+    while (context.netHeadYaw < -180.0) context.netHeadYaw += 360.0;
+    while (context.netHeadYaw > 180.0) context.netHeadYaw -= 360.0;
+
+    context.headPitch = static_cast<f64>(entity.prevPitch()) +
+                      static_cast<f64>(entity.pitch() - entity.prevPitch()) * context.partialTicks;
+    context.scale = entity.isChild() ? 0.5 * (1.0 / 16.0) : (1.0 / 16.0);
+    context.isChild = entity.isChild();
+    context.isSitting = false;   // TODO: 从实体状态读取
+    context.isSneaking = false;  // TODO: 从实体状态读取
+    context.isSwimming = false;  // TODO: 从实体状态读取
+    context.isRiding = false;    // TODO: 从实体状态读取
+    context.swingProgress = 0.0f; // TODO: 从实体状态读取
+
+    // 计算哈希
+    context.computeHash();
+
+    // 根据实体类型创建模型
+    if (normalizedId == ET::PIG) {
+        auto model = std::make_unique<PigModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::COW) {
+        auto model = std::make_unique<CowModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::SHEEP) {
+        auto model = std::make_unique<SheepModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::CHICKEN) {
+        auto model = std::make_unique<ChickenModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::WOLF) {
+        auto model = std::make_unique<WolfModel>();
+        model->setAnimState(false, false, false, 0.0f, 0.0f, 0.0f);
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::OCELOT) {
+        auto model = std::make_unique<OcelotModel>(0.0f);
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::CAT) {
+        auto model = std::make_unique<CatModel>(0.0f);
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::HORSE) {
+        auto model = std::make_unique<HorseModel>(0.0f);
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::VILLAGER) {
+        auto model = std::make_unique<VillagerModel>(0.0f);
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::ZOMBIE) {
+        auto model = std::make_unique<ZombieModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::SKELETON) {
+        auto model = std::make_unique<SkeletonModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::CREEPER) {
+        auto model = std::make_unique<CreeperModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::SPIDER) {
+        auto model = std::make_unique<SpiderModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::ENDERMAN) {
+        auto model = std::make_unique<EndermanModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+    if (normalizedId == ET::BLAZE) {
+        auto model = std::make_unique<BlazeModel>();
+        model->setAngles(context.limbSwing, context.limbSwingAmount, context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0);
+        return model;
+    }
+
+    // 未知实体类型
+    return nullptr;
+}
+
+pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
+    ClientEntity& entity,
+    model::EntityModel& model,
+    const core::AnimationContext& context
+) {
+    if (!m_pipeline || !m_animatedMeshCache) {
+        return nullptr;
+    }
+
+    String normalizedId = normalizeEntityTypeId(entity.typeId());
+
+    // 设置 UV 重映射回调
+    m_animatedMeshCache->setUvRemapFunc([this, normalizedId](const String& typeId, std::vector<ModelVertex>& vertices) {
+        remapUvToAtlasRegion(typeId, vertices);
+    });
+
+    return m_animatedMeshCache->getOrUpdateMesh(
+        entity.id(),
+        model,
+        normalizedId,
+        context,
+        *m_pipeline
+    );
 }
 
 } // namespace mc::client::renderer::entity

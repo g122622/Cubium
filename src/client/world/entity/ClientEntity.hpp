@@ -170,10 +170,20 @@ public:
     // ========== 动画状态 ==========
 
     /**
+     * @brief 获取上一帧腿部摆动进度
+     */
+    [[nodiscard]] f32 prevLimbSwing() const { return m_prevLimbSwing; }
+
+    /**
      * @brief 获取腿部摆动进度
      * 用于行走动画，范围 0 到 2π
      */
     [[nodiscard]] f32 limbSwing() const { return m_limbSwing; }
+
+    /**
+     * @brief 获取上一帧腿部摆动强度
+     */
+    [[nodiscard]] f32 prevLimbSwingAmount() const { return m_prevLimbSwingAmount; }
 
     /**
      * @brief 获取腿部摆动强度
@@ -186,6 +196,28 @@ public:
      * @param distanceMoved 移动距离
      */
     void updateAnimation(f32 distanceMoved);
+
+    // ========== 身体朝向（用于渲染） ==========
+
+    /**
+     * @brief 获取渲染用的身体偏航角
+     */
+    [[nodiscard]] f32 renderYawOffset() const { return m_yaw; }
+
+    /**
+     * @brief 获取上一帧渲染用的身体偏航角
+     */
+    [[nodiscard]] f32 prevRenderYawOffset() const { return m_prevYaw; }
+
+    /**
+     * @brief 获取头部偏航角
+     */
+    [[nodiscard]] f32 rotationYawHead() const { return m_headYaw; }
+
+    /**
+     * @brief 获取上一帧头部偏航角
+     */
+    [[nodiscard]] f32 prevRotationYawHead() const { return m_prevHeadYaw; }
 
     // ========== 状态标志 ==========
 
@@ -328,8 +360,10 @@ private:
     Vector3 m_velocity;
 
     // 动画状态
-    f32 m_limbSwing = 0.0f;        // 腿部摆动进度
-    f32 m_limbSwingAmount = 0.0f;  // 腿部摆动强度
+    f32 m_prevLimbSwing = 0.0f;      // 上一帧腿部摆动进度
+    f32 m_limbSwing = 0.0f;          // 腿部摆动进度
+    f32 m_prevLimbSwingAmount = 0.0f;  // 上一帧腿部摆动强度
+    f32 m_limbSwingAmount = 0.0f;    // 腿部摆动强度
 
     // 状态
     bool m_onGround = false;

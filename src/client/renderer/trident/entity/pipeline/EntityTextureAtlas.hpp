@@ -88,6 +88,40 @@ public:
                                                   const ResourceLocation& location);
 
     /**
+     * @brief 从原始像素数据添加纹理
+     *
+     * 用于运行时皮肤上传等场景。
+     * 可以在图集构建后添加纹理，添加后需要调用 rebuild() 更新图集。
+     *
+     * @param pixels 像素数据（RGBA 格式）
+     * @param width 宽度
+     * @param height 高度
+     * @param location 图集中的资源位置键
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> addTextureFromPixels(const std::vector<u8>& pixels,
+                                                     u32 width,
+                                                     u32 height,
+                                                     const ResourceLocation& location);
+
+    /**
+     * @brief 是否需要重建
+     *
+     * 如果在构建后添加了新纹理，返回 true。
+     */
+    [[nodiscard]] bool needsRebuild() const { return m_needsRebuild; }
+
+    /**
+     * @brief 重建图集
+     *
+     * 在运行时添加新纹理后调用，重新生成图集。
+     * 注意：这是一个昂贵的操作，应批量添加纹理后一次性重建。
+     *
+     * @return 构建结果
+     */
+    [[nodiscard]] Result<EntityAtlasBuildResult> rebuild();
+
+    /**
      * @brief 构建图集
      *
      * 将所有添加的纹理合并到一张大纹理中。
@@ -159,11 +193,15 @@ private:
     };
     std::vector<TextureData> m_textures;
 
+    // 等待添加的纹理（构建后）
+    std::vector<TextureData> m_queuedTextures;
+
     // 纹理区域映射
     std::unordered_map<ResourceLocation, TextureRegion> m_regions;
 
     bool m_initialized = false;
     bool m_built = false;
+    bool m_needsRebuild = false;
 
     /**
      * @brief 尝试加载纹理（支持多种路径格式）

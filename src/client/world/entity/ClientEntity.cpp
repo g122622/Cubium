@@ -147,6 +147,10 @@ void ClientEntity::setMetadata(const std::vector<u8>& metadata) {
 }
 
 void ClientEntity::updateAnimation(f32 distanceMoved) {
+    // 保存上一帧状态（用于渲染插值）
+    m_prevLimbSwing = m_limbSwing;
+    m_prevLimbSwingAmount = m_limbSwingAmount;
+
     // 更新 limbSwingAmount（移动强度）
     m_limbSwingAmount = distanceMoved;
 

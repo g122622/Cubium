@@ -70,6 +70,8 @@ add_executable(minecraft-client
     # 实体渲染系统
     renderer/trident/entity/core/EntityRenderer.cpp
     renderer/trident/entity/core/EntityRendererManager.cpp
+    renderer/trident/entity/core/AnimationContext.cpp
+    renderer/trident/entity/core/AnimatedMeshCache.cpp
     renderer/trident/entity/pipeline/EntityPipeline.cpp
     renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
     renderer/trident/entity/util/ShadowRenderer.cpp

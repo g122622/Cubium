@@ -2,12 +2,18 @@
 
 #include "EntityRenderer.hpp"
 #include "IEntityRenderer.hpp"
+#include "AnimationContext.hpp"
 #include "../layer/core/LayerRenderer.hpp"
 #include "../model/core/EntityModel.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+
+namespace mc::client::renderer::entity::pipeline {
+class EntityPipeline;  // 前向声明
+}
 
 namespace mc::client::renderer::entity::core {
 
@@ -45,6 +51,25 @@ public:
 
     // 注：getEntityTexture 需要子类实现
 
+    // ========== EntityRenderer 接口实现 ==========
+
+    /**
+     * @brief LivingEntity 渲染器支持动画
+     */
+    [[nodiscard]] bool supportsAnimation() const override { return true; }
+
+    /**
+     * @brief 计算动画上下文并设置模型角度
+     *
+     * 此方法供管线路径使用，在渲染前调用以更新模型状态。
+     */
+    void computeAnimationContext(
+        Entity& entity,
+        f64 partialTicks,
+        AnimationContext& context,
+        std::unique_ptr<model::EntityModel>& model
+    ) override;
+
     // ========== 层渲染器管理 ==========
 
     /**
@@ -64,6 +89,89 @@ public:
      * @brief 获取层渲染器数量
      */
     [[nodiscard]] size_t getLayerCount() const { return m_layers.size(); }
+
+    // ========== 动画状态计算（管线路径使用） ==========
+
+    /**
+     * @brief 计算动画上下文
+     *
+     * 计算实体的动画参数，并设置模型的旋转角度。
+     * 此方法供管线路径使用，在渲染前调用以更新模型状态。
+     *
+     * @param entity 生物实体
+     * @param partialTicks 部分 tick
+     * @param context 输出的动画上下文
+     */
+    void computeAnimationContext(TEntity& entity, f64 partialTicks, AnimationContext& context) {
+        // 计算动画参数
+        context.partialTicks = partialTicks;
+        context.limbSwing = getLimbSwing(entity, partialTicks);
+        context.limbSwingAmount = getLimbSwingAmount(entity, partialTicks);
+        context.ageInTicks = getAgeInTicks(entity);
+        context.netHeadYaw = getHeadYaw(entity, partialTicks);
+        context.headPitch = getHeadPitch(entity, partialTicks);
+        context.scale = getScale(entity) * (1.0 / 16.0);
+
+        // 计算状态
+        context.isChild = false;
+        context.isSitting = false;
+        context.isSneaking = false;
+        context.isSwimming = false;
+        context.isRiding = false;
+        context.swingProgress = 0.0f;
+
+        // 检查是否为 AgeableEntity
+        if constexpr (std::is_base_of_v<::mc::AgeableEntity, TEntity>) {
+            context.isChild = entity.isChild();
+        }
+
+        // 计算哈希
+        context.computeHash();
+
+        // 设置模型角度
+        m_model.setAngles(
+            context.limbSwing,
+            context.limbSwingAmount,
+            context.ageInTicks,
+            context.netHeadYaw,
+            context.headPitch,
+            context.scale
+        );
+    }
+
+    /**
+     * @brief 渲染层（管线路径）
+     *
+     * 使用管线路径渲染所有层。此方法需要访问管线，
+     * 因此需要传入命令缓冲区和管线。
+     *
+     * @param entity 生物实体
+     * @param cmd Vulkan 命令缓冲区
+     * @param context 动画上下文
+     * @param modelMatrix 模型矩阵
+     * @param pipeline 实体管线
+     */
+    void renderLayersPipeline(
+        TEntity& entity,
+        VkCommandBuffer cmd,
+        const AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) {
+        for (auto& layer : m_layers) {
+            if (layer && layer->shouldRender(entity)) {
+                layer->render(
+                    entity,
+                    static_cast<f32>(context.limbSwing),
+                    static_cast<f32>(context.limbSwingAmount),
+                    static_cast<f32>(context.partialTicks),
+                    static_cast<f32>(context.ageInTicks),
+                    static_cast<f32>(context.netHeadYaw),
+                    static_cast<f32>(context.headPitch),
+                    static_cast<f32>(context.scale)
+                );
+            }
+        }
+    }
 
 protected:
     TModel m_model;
@@ -265,6 +373,59 @@ f64 LivingRenderer<TEntity, TModel>::getScale(TEntity& entity) const {
     }
 
     return 1.0f;
+}
+
+template<typename TEntity, typename TModel>
+void LivingRenderer<TEntity, TModel>::computeAnimationContext(
+    Entity& entity,
+    f64 partialTicks,
+    AnimationContext& context,
+    std::unique_ptr<model::EntityModel>& model
+) {
+    auto& living = static_cast<TEntity&>(entity);
+
+    // 计算动画参数
+    context.partialTicks = partialTicks;
+    context.limbSwing = getLimbSwing(living, partialTicks);
+    context.limbSwingAmount = getLimbSwingAmount(living, partialTicks);
+    context.ageInTicks = getAgeInTicks(living);
+    context.netHeadYaw = getHeadYaw(living, partialTicks);
+    context.headPitch = getHeadPitch(living, partialTicks);
+    context.scale = getScale(living) * (1.0 / 16.0);
+
+    // 计算状态
+    context.isChild = false;
+    context.isSitting = false;
+    context.isSneaking = false;
+    context.isSwimming = false;
+    context.isRiding = false;
+    context.swingProgress = 0.0f;
+
+    // 检查是否为 AgeableEntity
+    if constexpr (std::is_base_of_v<::mc::AgeableEntity, TEntity>) {
+        context.isChild = entity.isChild();
+    }
+
+    // 计算哈希
+    context.computeHash();
+
+    // 设置模型角度
+    m_model.setAngles(
+        context.limbSwing,
+        context.limbSwingAmount,
+        context.ageInTicks,
+        context.netHeadYaw,
+        context.headPitch,
+        context.scale
+    );
+
+    // 将模型指针传递出去（用于网格生成）
+    // 注意：这里我们使用裸指针转换，因为 m_model 是成员变量
+    // 调用者不应该持有这个 unique_ptr，只是用于类型擦除
+    model.reset();  // 清空输入的 unique_ptr
+    // 调用者需要知道 m_model 的生命周期由 LivingRenderer 管理
+    // 这里我们不创建新的 unique_ptr，因为 m_model 是成员变量
+    // 调用者应该使用返回的 AnimationContext 和直接访问 getModel()
 }
 
 } // namespace mc::client::renderer::entity::core

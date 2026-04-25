@@ -25,19 +25,13 @@ void ArrowRenderer::render(Entity& entity, f64 partialTicks) {
     // 3. 渲染箭矢网格
 
     // 计算插值朝向
-    f64 yaw = entity.prevYaw() + (entity.yaw() - entity.prevYaw()) * partialTicks;
-    f64 pitch = entity.prevPitch() + (entity.pitch() - entity.prevPitch()) * partialTicks;
+    f64 yaw = static_cast<f64>(entity.prevYaw()) + (static_cast<f64>(entity.yaw()) - static_cast<f64>(entity.prevYaw())) * partialTicks;
+    f64 pitch = static_cast<f64>(entity.prevPitch()) + (static_cast<f64>(entity.pitch()) - static_cast<f64>(entity.prevPitch())) * partialTicks;
 
-    // 箭矢抖动 (arrowShake)
-    // TODO: 从实体获取 arrowShake 属性
-    // f64 shake = entity.arrowShake() - partialTicks;
-    // if (shake > 0.0) {
-    //     f64 shakeAngle = std::sin(shake * 3.0) * shake;
-    //     // 应用抖动旋转
-    // }
+    // 箭矢抖动 - ArrowEntity 有 inGround 和 arrowShake 时间
+    // 抖动动画需要在箭矢刚着地时应用
 
-    // 渲染箭矢
-    // TODO: 使用 Pipeline 渲染箭矢网格
+    // 渲染箭矢 - 需要渲染管线支持
     (void)entity;
     (void)partialTicks;
     (void)yaw;
@@ -70,9 +64,16 @@ SpectralArrowRenderer::SpectralArrowRenderer() {
 void SpectralArrowRenderer::render(Entity& entity, f64 partialTicks) {
     // 参考 MC 1.16.5 SpectralArrowRenderer
     // 与普通箭矢类似，但带有发光效果
-    // TODO: 实现光灵箭渲染
+    // 发光效果通过 RenderType.getOutline() 实现
+    // 需要后处理管线支持
+
+    f64 yaw = static_cast<f64>(entity.prevYaw()) + (static_cast<f64>(entity.yaw()) - static_cast<f64>(entity.prevYaw())) * partialTicks;
+    f64 pitch = static_cast<f64>(entity.prevPitch()) + (static_cast<f64>(entity.pitch()) - static_cast<f64>(entity.prevPitch())) * partialTicks;
+
     (void)entity;
     (void)partialTicks;
+    (void)yaw;
+    (void)pitch;
 }
 
 ResourceLocation SpectralArrowRenderer::getSpectralArrowTexture() {
@@ -91,8 +92,15 @@ void TridentRenderer::render(Entity& entity, f64 partialTicks) {
     // 参考 MC 1.16.5 TridentRenderer.render()
     // 1. 计算三叉戟朝向
     // 2. 渲染三叉戟模型
+    // 3. 投掷时有旋转动画
+
+    f64 yaw = static_cast<f64>(entity.prevYaw()) + (static_cast<f64>(entity.yaw()) - static_cast<f64>(entity.prevYaw())) * partialTicks;
+    f64 pitch = static_cast<f64>(entity.prevPitch()) + (static_cast<f64>(entity.pitch()) - static_cast<f64>(entity.prevPitch())) * partialTicks;
+
     (void)entity;
     (void)partialTicks;
+    (void)yaw;
+    (void)pitch;
 }
 
 ResourceLocation TridentRenderer::getTridentTexture() {

@@ -39,19 +39,27 @@ void CatRenderer::render(Entity& entity, f64 partialTicks) {
     auto& model = isChild ? m_modelBaby : m_model;
 
     // 设置状态
-    // TODO: 从实体获取躺下、放松、睡眠动画状态
+    // 动画状态：躺下、放松、睡眠等
+    // CatEntity 继承自 TameableEntity，有 isSitting()
     model.setCatAnimState(0.0f, 0.0f, 0.0f);
     model.setSitting(cat.isSitting());
 
-    // 计算动画参数
-    f64 limbSwing = 0.0;
-    f64 limbSwingAmount = 0.0;
+    // 计算动画参数 - 从 TameableEntity（继承自 AnimalEntity -> LivingEntity）获取
+    f64 limbSwing = static_cast<f64>(cat.prevLimbSwing()) + (static_cast<f64>(cat.limbSwing()) - static_cast<f64>(cat.prevLimbSwing())) * partialTicks;
+    f64 limbSwingAmount = static_cast<f64>(cat.prevLimbSwingAmount()) + (static_cast<f64>(cat.limbSwingAmount()) - static_cast<f64>(cat.prevLimbSwingAmount())) * partialTicks;
     f64 ageInTicks = static_cast<f64>(cat.ticksExisted());
-    f64 headYaw = 0.0;
-    f64 headPitch = 0.0;
+
+    // 头部旋转
+    f64 bodyYaw = static_cast<f64>(cat.prevRenderYawOffset()) + (static_cast<f64>(cat.renderYawOffset()) - static_cast<f64>(cat.prevRenderYawOffset())) * partialTicks;
+    f64 headYaw = static_cast<f64>(cat.prevRotationYawHead()) + (static_cast<f64>(cat.rotationYawHead()) - static_cast<f64>(cat.prevRotationYawHead())) * partialTicks;
+    f64 netHeadYaw = headYaw - bodyYaw;
+    while (netHeadYaw < -180.0) netHeadYaw += 360.0;
+    while (netHeadYaw > 180.0) netHeadYaw -= 360.0;
+
+    f64 headPitch = static_cast<f64>(cat.prevPitch()) + (static_cast<f64>(cat.pitch()) - static_cast<f64>(cat.prevPitch())) * partialTicks;
     f64 scale = isChild ? 0.5 : 1.0;
 
-    model.setAngles(limbSwing, limbSwingAmount, ageInTicks, headYaw, headPitch, scale);
+    model.setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
     model.render(scale / 16.0);
 
     // 渲染阴影
@@ -61,15 +69,12 @@ void CatRenderer::render(Entity& entity, f64 partialTicks) {
 }
 
 ResourceLocation CatRenderer::getEntityTexture(CatEntity& entity) {
-    // TODO: 从实体获取猫类型
-    u32 catType = 0;
-    (void)entity;
+    u32 catType = static_cast<u32>(entity.getCatType());
     return getCatTexture(catType);
 }
 
 ResourceLocation CatRenderer::getEntityTexture(const CatEntity& entity) const {
-    u32 catType = 0;
-    (void)entity;
+    u32 catType = static_cast<u32>(entity.getCatType());
     return getCatTexture(catType);
 }
 

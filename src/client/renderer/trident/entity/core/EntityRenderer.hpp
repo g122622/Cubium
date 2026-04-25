@@ -12,7 +12,14 @@ namespace mc {
 class Entity;
 class LivingEntity;
 
+namespace client::renderer::entity::model {
+class EntityModel;
+}
+
 namespace client::renderer::entity::core {
+
+// 前向声明
+struct AnimationContext;
 
 /**
  * @brief 实体渲染器基类
@@ -45,6 +52,35 @@ public:
      * @param entity 要渲染名称标签的实体
      */
     virtual void renderNameTag(Entity& entity);
+
+    // ========== 动画支持 ==========
+
+    /**
+     * @brief 是否支持动画
+     *
+     * LivingEntity 渲染器返回 true，静态实体（如 ItemEntity）返回 false
+     */
+    [[nodiscard]] virtual bool supportsAnimation() const { return false; }
+
+    /**
+     * @brief 计算动画上下文并设置模型角度
+     *
+     * 只有 supportsAnimation() 返回 true 的渲染器需要实现此方法。
+     * 此方法会设置模型的旋转角度以匹配当前动画状态。
+     *
+     * @param entity 实体
+     * @param partialTicks 部分 tick
+     * @param context 输出的动画上下文
+     * @param model 输出的模型指针（用于网格生成）
+     */
+    virtual void computeAnimationContext(
+        Entity& entity,
+        f64 partialTicks,
+        AnimationContext& context,
+        std::unique_ptr<model::EntityModel>& model
+    ) {
+        // 默认空实现，不支持动画的渲染器不需要重写
+    }
 
     // ========== 渲染属性 ==========
 
