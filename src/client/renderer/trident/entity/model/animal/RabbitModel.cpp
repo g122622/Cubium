@@ -16,80 +16,126 @@ RabbitModel::RabbitModel()
 
 void RabbitModel::setupParts() {
     // 参考 MC 1.16.5 RabbitModel
+    // 所有部件都有初始旋转角度
 
-    // 身体
-    m_body = std::make_shared<ModelRenderer>("body");
+    // 左脚 - Java: tex (26, 24), mirror=true, setRotationOffset(0, 0, 0)
+    m_leftFoot = std::make_shared<ModelRenderer>("rabbitLeftFoot");
+    m_leftFoot->setTextureOffset(26, 24);
+    m_leftFoot->setMirror(true);
+    m_leftFoot->addBox(-1.0f, 5.5f, -3.7f, 2.0f, 1.0f, 7.0f);
+    m_leftFoot->setRotationPoint(3.0f, 17.5f, 3.7f);
+    m_leftFoot->setRotateAngleX(0.0f);
+    m_parts.push_back(m_leftFoot);
+
+    // 右脚 - Java: tex (8, 24), mirror=true
+    m_rightFoot = std::make_shared<ModelRenderer>("rabbitRightFoot");
+    m_rightFoot->setTextureOffset(8, 24);
+    m_rightFoot->setMirror(true);
+    m_rightFoot->addBox(-1.0f, 5.5f, -3.7f, 2.0f, 1.0f, 7.0f);
+    m_rightFoot->setRotationPoint(-3.0f, 17.5f, 3.7f);
+    m_rightFoot->setRotateAngleX(0.0f);
+    m_parts.push_back(m_rightFoot);
+
+    // 左大腿 - Java: tex (30, 15), mirror=true, rotateAngleX=-0.34906584
+    m_leftThigh = std::make_shared<ModelRenderer>("rabbitLeftThigh");
+    m_leftThigh->setTextureOffset(30, 15);
+    m_leftThigh->setMirror(true);
+    m_leftThigh->addBox(-1.0f, 0.0f, 0.0f, 2.0f, 4.0f, 5.0f);
+    m_leftThigh->setRotationPoint(3.0f, 17.5f, 3.7f);
+    m_leftThigh->setRotateAngleX(-0.34906584f);  // -PI * 0.111
+    m_parts.push_back(m_leftThigh);
+
+    // 右大腿 - Java: tex (16, 15), mirror=true, rotateAngleX=-0.34906584
+    m_rightThigh = std::make_shared<ModelRenderer>("rabbitRightThigh");
+    m_rightThigh->setTextureOffset(16, 15);
+    m_rightThigh->setMirror(true);
+    m_rightThigh->addBox(-1.0f, 0.0f, 0.0f, 2.0f, 4.0f, 5.0f);
+    m_rightThigh->setRotationPoint(-3.0f, 17.5f, 3.7f);
+    m_rightThigh->setRotateAngleX(-0.34906584f);
+    m_parts.push_back(m_rightThigh);
+
+    // 身体 - Java: tex (0, 0), mirror=true, rotateAngleX=-0.34906584
+    m_body = std::make_shared<ModelRenderer>("rabbitBody");
     m_body->setTextureOffset(0, 0);
-    m_body->addBox(-3.0f, -6.0f, -5.0f, 6.0f, 6.0f, 8.0f, 0.0f);
-    m_body->setRotationPoint(0.0f, 16.0f, 5.0f);
+    m_body->setMirror(true);
+    m_body->addBox(-3.0f, -2.0f, -10.0f, 6.0f, 5.0f, 10.0f);
+    m_body->setRotationPoint(0.0f, 19.0f, 8.0f);
+    m_body->setRotateAngleX(-0.34906584f);
     m_parts.push_back(m_body);
 
-    // 头部
-    m_head = std::make_shared<ModelRenderer>("head");
-    m_head->setTextureOffset(16, 0);
-    m_head->addBox(-2.5f, -5.0f, -3.0f, 5.0f, 5.0f, 3.0f, 0.0f);
-    m_head->setRotationPoint(0.0f, 15.0f, -1.0f);
+    // 左前腿 - Java: tex (8, 15), mirror=true, rotateAngleX=-0.17453292
+    m_leftArm = std::make_shared<ModelRenderer>("rabbitLeftArm");
+    m_leftArm->setTextureOffset(8, 15);
+    m_leftArm->setMirror(true);
+    m_leftArm->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 7.0f, 2.0f);
+    m_leftArm->setRotationPoint(3.0f, 17.0f, -1.0f);
+    m_leftArm->setRotateAngleX(-0.17453292f);  // -PI * 0.0556
+    m_parts.push_back(m_leftArm);
+
+    // 右前腿 - Java: tex (0, 15), mirror=true, rotateAngleX=-0.17453292
+    m_rightArm = std::make_shared<ModelRenderer>("rabbitRightArm");
+    m_rightArm->setTextureOffset(0, 15);
+    m_rightArm->setMirror(true);
+    m_rightArm->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 7.0f, 2.0f);
+    m_rightArm->setRotationPoint(-3.0f, 17.0f, -1.0f);
+    m_rightArm->setRotateAngleX(-0.17453292f);
+    m_parts.push_back(m_rightArm);
+
+    // 头部 - Java: tex (32, 0), mirror=true
+    m_head = std::make_shared<ModelRenderer>("rabbitHead");
+    m_head->setTextureOffset(32, 0);
+    m_head->setMirror(true);
+    m_head->addBox(-2.5f, -4.0f, -5.0f, 5.0f, 4.0f, 5.0f);
+    m_head->setRotationPoint(0.0f, 16.0f, -1.0f);
     m_parts.push_back(m_head);
 
-    // 右耳
-    m_rightEar = std::make_shared<ModelRenderer>("rightEar");
-    m_rightEar->setTextureOffset(0, 0);
-    m_rightEar->addBox(-1.0f, -5.0f, 0.0f, 2.0f, 4.0f, 1.0f, 0.0f);
-    m_rightEar->setRotationPoint(-1.5f, 10.0f, -2.0f);
+    // 右耳 - Java: tex (52, 0), mirror=true, rotateAngleY=-0.2617994
+    m_rightEar = std::make_shared<ModelRenderer>("rabbitRightEar");
+    m_rightEar->setTextureOffset(52, 0);
+    m_rightEar->setMirror(true);
+    m_rightEar->addBox(-2.5f, -9.0f, -1.0f, 2.0f, 5.0f, 1.0f);
+    m_rightEar->setRotationPoint(0.0f, 16.0f, -1.0f);
+    m_rightEar->setRotateAngleY(-0.2617994f);  // -PI * 0.0833
     m_parts.push_back(m_rightEar);
 
-    // 左耳
-    m_leftEar = std::make_shared<ModelRenderer>("leftEar");
-    m_leftEar->setTextureOffset(0, 0);
-    m_leftEar->addBox(-1.0f, -5.0f, 0.0f, 2.0f, 4.0f, 1.0f, 0.0f);
-    m_leftEar->setRotationPoint(1.5f, 10.0f, -2.0f);
+    // 左耳 - Java: tex (58, 0), mirror=true, rotateAngleY=0.2617994
+    m_leftEar = std::make_shared<ModelRenderer>("rabbitLeftEar");
+    m_leftEar->setTextureOffset(58, 0);
+    m_leftEar->setMirror(true);
+    m_leftEar->addBox(0.5f, -9.0f, -1.0f, 2.0f, 5.0f, 1.0f);
+    m_leftEar->setRotationPoint(0.0f, 16.0f, -1.0f);
+    m_leftEar->setRotateAngleY(0.2617994f);  // PI * 0.0833
     m_parts.push_back(m_leftEar);
 
-    // 鼻子
-    m_nose = std::make_shared<ModelRenderer>("nose");
-    m_nose->setTextureOffset(6, 15);
-    m_nose->addBox(-1.0f, -1.0f, -2.0f, 2.0f, 1.0f, 1.0f, 0.0f);
-    m_nose->setRotationPoint(0.0f, 13.0f, -3.0f);
-    m_parts.push_back(m_nose);
-
-    // 尾巴
-    m_tail = std::make_shared<ModelRenderer>("tail");
-    m_tail->setTextureOffset(28, 0);
-    m_tail->addBox(-1.0f, -1.0f, 0.0f, 2.0f, 2.0f, 2.0f, 0.0f);
-    m_tail->setRotationPoint(0.0f, 15.0f, 12.0f);
+    // 尾巴 - Java: tex (52, 6), mirror=true, rotateAngleX=-0.3490659
+    m_tail = std::make_shared<ModelRenderer>("rabbitTail");
+    m_tail->setTextureOffset(52, 6);
+    m_tail->setMirror(true);
+    m_tail->addBox(-1.5f, -1.5f, 0.0f, 3.0f, 3.0f, 2.0f);
+    m_tail->setRotationPoint(0.0f, 20.0f, 7.0f);
+    m_tail->setRotateAngleX(-0.3490659f);
     m_parts.push_back(m_tail);
 
-    // 右前腿
-    m_rightFrontLeg = std::make_shared<ModelRenderer>("rightFrontLeg");
-    m_rightFrontLeg->setTextureOffset(8, 15);
-    m_rightFrontLeg->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 4.0f, 2.0f, 0.0f);
-    m_rightFrontLeg->setRotationPoint(-2.0f, 20.0f, -2.0f);
-    m_parts.push_back(m_rightFrontLeg);
-
-    // 左前腿
-    m_leftFrontLeg = std::make_shared<ModelRenderer>("leftFrontLeg");
-    m_leftFrontLeg->setTextureOffset(8, 15);
-    m_leftFrontLeg->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 4.0f, 2.0f, 0.0f);
-    m_leftFrontLeg->setRotationPoint(2.0f, 20.0f, -2.0f);
-    m_parts.push_back(m_leftFrontLeg);
-
-    // 右后腿
-    m_rightBackLeg = std::make_shared<ModelRenderer>("rightBackLeg");
-    m_rightBackLeg->setTextureOffset(0, 15);
-    m_rightBackLeg->addBox(-1.5f, 0.0f, -1.5f, 3.0f, 6.0f, 3.0f, 0.0f);
-    m_rightBackLeg->setRotationPoint(-2.0f, 18.0f, 8.0f);
-    m_parts.push_back(m_rightBackLeg);
-
-    // 左后腿
-    m_leftBackLeg = std::make_shared<ModelRenderer>("leftBackLeg");
-    m_leftBackLeg->setTextureOffset(0, 15);
-    m_leftBackLeg->addBox(-1.5f, 0.0f, -1.5f, 3.0f, 6.0f, 3.0f, 0.0f);
-    m_leftBackLeg->setRotationPoint(2.0f, 18.0f, 8.0f);
-    m_parts.push_back(m_leftBackLeg);
+    // 鼻子 - Java: tex (32, 9), mirror=true
+    m_nose = std::make_shared<ModelRenderer>("rabbitNose");
+    m_nose->setTextureOffset(32, 9);
+    m_nose->setMirror(true);
+    m_nose->addBox(-0.5f, -2.5f, -5.5f, 1.0f, 1.0f, 1.0f);
+    m_nose->setRotationPoint(0.0f, 16.0f, -1.0f);
+    m_parts.push_back(m_nose);
 }
 
 void RabbitModel::render(f64 scale) {
-    EntityModel::render(scale);
+    // Java render 方法有特殊的幼体处理
+    // 幼体: 头部/耳朵/鼻子缩放 0.56666666，身体/腿/尾巴缩放 0.4
+    // 成年: 整体缩放 0.6
+    if (m_isChild) {
+        // TODO: 实现幼体渲染
+        // 需要 MatrixStack 支持
+    } else {
+        // 成年: scale(0.6) + translate(0, 1, 0)
+        EntityModel::render(scale * 0.6);
+    }
 }
 
 void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
@@ -97,40 +143,57 @@ void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                              f64 headPitch, f64 scale) {
     // 参考 MC 1.16.5 RabbitModel.setRotationAngles
 
-    // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    // 跳跃动画
+    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(f) * (float)Math.PI)
+    // 在 setLivingAnimations 中计算
 
-    // 鼻子跟随头部
-    m_nose->setRotateAngleY(m_head->rotateAngleY());
-    m_nose->setRotateAngleX(m_head->rotateAngleX());
+    // 头部、鼻子、耳朵跟随头部俯仰
+    f32 headPitchRad = static_cast<f32>(headPitch * PI / 180.0);
+    f32 headYawRad = static_cast<f32>(netHeadYaw * PI / 180.0);
 
-    // 耳朵动画
-    m_rightEar->setRotateAngleZ(static_cast<f32>(std::cos(ageInTicks * 0.1) * 0.1));
-    m_leftEar->setRotateAngleZ(static_cast<f32>(-std::cos(ageInTicks * 0.1) * 0.1));
+    m_nose->setRotateAngleX(headPitchRad);
+    m_head->setRotateAngleX(headPitchRad);
+    m_rightEar->setRotateAngleX(headPitchRad);
+    m_leftEar->setRotateAngleX(headPitchRad);
 
-    // 步态动画
-    f32 walkAngle = static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount);
+    m_nose->setRotateAngleY(headYawRad);
+    m_head->setRotateAngleY(headYawRad);
+    // 耳朵有额外的 Y 偏移
+    m_rightEar->setRotateAngleY(headYawRad - 0.2617994f);
+    m_leftEar->setRotateAngleY(headYawRad + 0.2617994f);
 
-    // 前腿
-    m_rightFrontLeg->setRotateAngleX(walkAngle);
-    m_leftFrontLeg->setRotateAngleX(-walkAngle);
+    // 跳跃动画
+    // Java:
+    // rabbitLeftThigh.rotateAngleX = (jumpRotation * 50.0F - 21.0F) * PI/180
+    // rabbitRightThigh.rotateAngleX = (jumpRotation * 50.0F - 21.0F) * PI/180
+    // rabbitLeftFoot.rotateAngleX = jumpRotation * 50.0F * PI/180
+    // rabbitRightFoot.rotateAngleX = jumpRotation * 50.0F * PI/180
+    // rabbitLeftArm.rotateAngleX = (jumpRotation * -40.0F - 11.0F) * PI/180
+    // rabbitRightArm.rotateAngleX = (jumpRotation * -40.0F - 11.0F) * PI/180
 
-    // 后腿（跳跃时有不同动画）
-    if (m_jumpProgress > 0.0f) {
-        // 跳跃动画
-        f32 jumpAngle = m_jumpProgress * PI / 2.0f;
-        m_rightBackLeg->setRotateAngleX(jumpAngle);
-        m_leftBackLeg->setRotateAngleX(jumpAngle);
-    } else {
-        m_rightBackLeg->setRotateAngleX(-walkAngle);
-        m_leftBackLeg->setRotateAngleX(walkAngle);
-    }
+    f32 thighAngle = (m_jumpRotation * 50.0f - 21.0f) * static_cast<f32>(PI / 180.0);
+    f32 footAngle = m_jumpRotation * 50.0f * static_cast<f32>(PI / 180.0);
+    f32 armAngle = (m_jumpRotation * -40.0f - 11.0f) * static_cast<f32>(PI / 180.0);
 
-    // 尾巴摆动
-    m_tail->setRotateAngleY(static_cast<f32>(std::sin(ageInTicks * 0.2) * 0.3));
+    // 保存基础旋转角度
+    f32 baseThighAngle = -0.34906584f;
+    f32 baseArmAngle = -0.17453292f;
 
+    m_leftThigh->setRotateAngleX(baseThighAngle + thighAngle);
+    m_rightThigh->setRotateAngleX(baseThighAngle + thighAngle);
+    m_leftFoot->setRotateAngleX(footAngle);
+    m_rightFoot->setRotateAngleX(footAngle);
+    m_leftArm->setRotateAngleX(baseArmAngle + armAngle);
+    m_rightArm->setRotateAngleX(baseArmAngle + armAngle);
+
+    (void)limbSwing;
+    (void)limbSwingAmount;
+    (void)ageInTicks;
     (void)scale;
+}
+
+void RabbitModel::setJumpRotation(f32 jumpRotation) {
+    m_jumpRotation = jumpRotation;
 }
 
 } // namespace mc::client::renderer::entity::model::animal

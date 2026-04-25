@@ -293,6 +293,8 @@ Managed via vcpkg:
 
 ## Random Module
 
+【重要】所有需要随机数的场景，必须使用下面这个已经封装好的随机数生成器，严禁自行使用mt19937！
+
 ```cpp
 #include "util/math/random/Random.hpp"
 

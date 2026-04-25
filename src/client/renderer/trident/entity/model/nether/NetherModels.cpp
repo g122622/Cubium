@@ -1,4 +1,5 @@
 #include "NetherModels.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::nether {
@@ -18,23 +19,35 @@ GhastModel::GhastModel()
 
 void GhastModel::setupParts() {
     // 参考 MC 1.16.5 GhastModel
+    // 身体尺寸: 16x16x16，中心在原点
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(0, 0);
-    m_body->addBox(-4.0f, -4.0f, -4.0f, 8.0f, 8.0f, 8.0f);
-    m_body->setRotationPoint(0.0f, 17.0f, 0.0f);
+    m_body->addBox(-8.0f, -8.0f, -8.0f, 16.0f, 16.0f, 16.0f);
+    m_body->setRotationPoint(0.0f, 17.6f, 0.0f);  // Java: rotationPointY = 17.6F
     m_parts.push_back(m_body);
 
     // 9 条触手
+    // Java 触手位置计算:
+    // float f = (((float)(i % 3) - (float)(i / 3 % 2) * 0.5F + 0.25F) / 2.0F * 2.0F - 1.0F) * 5.0F;
+    // float f1 = ((float)(i / 3) / 2.0F * 2.0F - 1.0F) * 5.0F;
+    // 触手长度: random.nextInt(7) + 8  -> 8 到 14
+
+    // 使用固定种子生成触手长度（与 Java 原版一致）
+    mc::math::Random rng(1660);
+
     for (i32 i = 0; i < 9; ++i) {
         m_tentacles[i] = std::make_shared<ModelRenderer>("tentacle" + std::to_string(i));
-        m_tentacles[i]->setTextureOffset(32, 0);
-        m_tentacles[i]->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 8.0f, 2.0f);
+        m_tentacles[i]->setTextureOffset(0, 0);
 
-        // 触手围绕身体底部排列
-        f64 angle = (i % 3 - 1) * PI / 4.0 + (i / 3 - 1) * PI / 4.0;
-        f32 x = static_cast<f32>(std::sin(angle) * 4.0);
-        f32 z = static_cast<f32>(std::cos(angle) * 4.0);
-        m_tentacles[i]->setRotationPoint(x, 20.0f, z);
+        // 随机长度 8-14（Java: random.nextInt(7) + 8）
+        i32 length = rng.nextInt(8, 14);
+
+        // Java 公式计算 X 和 Z 位置
+        f32 f = (((static_cast<f32>(i % 3) - static_cast<f32>(i / 3 % 2) * 0.5f + 0.25f) / 2.0f * 2.0f - 1.0f) * 5.0f);
+        f32 f1 = ((static_cast<f32>(i / 3) / 2.0f * 2.0f - 1.0f) * 5.0f);
+
+        m_tentacles[i]->addBox(-1.0f, 0.0f, -1.0f, 2.0f, static_cast<f32>(length), 2.0f);
+        m_tentacles[i]->setRotationPoint(f, 24.6f, f1);  // Java: rotationPointY = 24.6F
         m_parts.push_back(m_tentacles[i]);
     }
 }
@@ -46,14 +59,14 @@ void GhastModel::render(f64 scale) {
 void GhastModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                             f64 ageInTicks, f64 netHeadYaw,
                             f64 headPitch, f64 scale) {
+    // 身体跟随头部旋转
     m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
     m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
 
-    // 触手摆动
+    // Java 触手动画: rotateAngleX = 0.2F * MathHelper.sin(ageInTicks * 0.3F + (float)i) + 0.4F
     for (i32 i = 0; i < 9; ++i) {
-        f32 phase = static_cast<f32>(i * 0.3);
-        m_tentacles[i]->setRotateAngleX(static_cast<f32>(std::sin(ageInTicks * 0.2 + phase) * 0.3));
-        m_tentacles[i]->setRotateAngleZ(static_cast<f32>(std::cos(ageInTicks * 0.2 + phase) * 0.3));
+        f32 angle = static_cast<f32>(0.2 * std::sin(ageInTicks * 0.3 + static_cast<f64>(i)) + 0.4);
+        m_tentacles[i]->setRotateAngleX(angle);
     }
 
     (void)limbSwing;

@@ -504,6 +504,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/PlayerModel.cpp
         # 鍖哄潡妯″瀷缂撳瓨
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp
@@ -620,6 +622,8 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/ResourcePackList.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/ZipResourcePack.cpp
@@ -692,6 +696,8 @@ if(MC_BUILD_CLIENT)
             # 璧勬簮鍔犺浇
             ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
             ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
+            ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
+            ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
             ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp
             ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelLoader.cpp
             ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp

@@ -199,6 +199,20 @@ void EndermanModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_head->setRotationPointY(m_head->rotationPointY() - 5.0f);
     }
 
+    // 同步头部外层位置和角度
+    // MC: this.bipedHeadwear.rotationPointX = this.bipedHead.rotationPointX;
+    //     this.bipedHeadwear.rotationPointY = this.bipedHead.rotationPointY;
+    //     this.bipedHeadwear.rotationPointZ = this.bipedHead.rotationPointZ;
+    //     this.bipedHeadwear.rotateAngleX = this.bipedHead.rotateAngleX;
+    //     this.bipedHeadwear.rotateAngleY = this.bipedHead.rotateAngleY;
+    //     this.bipedHeadwear.rotateAngleZ = this.bipedHead.rotateAngleZ;
+    if (m_head && m_headwear) {
+        m_headwear->setRotationPoint(m_head->rotationPointX(), m_head->rotationPointY(), m_head->rotationPointZ());
+        m_headwear->setRotateAngleX(m_head->rotateAngleX());
+        m_headwear->setRotateAngleY(m_head->rotateAngleY());
+        m_headwear->setRotateAngleZ(m_head->rotateAngleZ());
+    }
+
     // 最终手臂位置
     // MC: this.bipedRightArm.setRotationPoint(-5.0F, -12.0F, 0.0F);
     //     this.bipedLeftArm.setRotationPoint(5.0F, -12.0F, 0.0F);

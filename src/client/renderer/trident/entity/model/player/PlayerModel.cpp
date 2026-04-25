@@ -213,71 +213,17 @@ void PlayerModel::copyAnglesToWear() {
 }
 
 void PlayerModel::animateArms(f64 limbSwing, f64 limbSwingAmount) {
-    // 参考 MC 1.16.5 PlayerModel 和 BipedModel
-    // 处理各种手臂姿态
+    // 参考 MC 1.16.5 BipedModel.func_241654_b_ 和 func_241655_c_
+    // 手臂姿态处理已在基类 BipedModel::setAngles 中完成
+    // 这里只需要处理玩家特有的动画
 
-    switch (m_rightArmPose) {
-        case ArmPose::BowAndArrow:
-            // 拉弓姿态
-            animateBow(limbSwing);
-            break;
-        case ArmPose::CrossbowCharge:
-            // 装填弩
-            animateCrossbowCharge();
-            break;
-        case ArmPose::CrossbowHold:
-            // 持有弩
-            animateCrossbowHold();
-            break;
-        case ArmPose::ThrowSpear:
-            // 投掷三叉戟
-            if (m_rightArm) {
-                m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() * 0.5f - static_cast<f32>(PI));
-            }
-            break;
-        case ArmPose::Block:
-            // 格挡姿态
-            if (m_rightArm) {
-                m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
-                m_rightArm->setRotateAngleZ(-0.2f);
-            }
-            break;
-        case ArmPose::Item:
-            // 持有物品
-            if (m_rightArm) {
-                m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 4.0));
-            }
-            break;
-        case ArmPose::Empty:
-        default:
-            // 空手，使用基础动画
-            break;
-    }
+    // 基类 BipedModel 已经处理了大部分手臂姿态
+    // PlayerModel 只需要额外处理弓箭、弩等需要头部关联的姿态
 
-    switch (m_leftArmPose) {
-        case ArmPose::BowAndArrow:
-            // 拉弓姿态（左手辅助）
-            if (m_leftArm && m_rightArmPose == ArmPose::BowAndArrow) {
-                // 弓姿态已由 animateBow 处理
-            }
-            break;
-        case ArmPose::Block:
-            // 格挡姿态
-            if (m_leftArm) {
-                m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
-                m_leftArm->setRotateAngleZ(0.2f);
-            }
-            break;
-        case ArmPose::Item:
-            // 持有物品
-            if (m_leftArm) {
-                m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 4.0));
-            }
-            break;
-        case ArmPose::Empty:
-        default:
-            break;
-    }
+    // 注意：BowAndArrow 姿态需要关联头部角度，这已在基类中处理
+
+    (void)limbSwing;
+    (void)limbSwingAmount;
 }
 
 void PlayerModel::animateBow(f64 limbSwing) {

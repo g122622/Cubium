@@ -112,50 +112,59 @@ ModelBox::ModelBox(i32 texOffX, i32 texOffY,
 
     // 创建6个面
     // 注意：面的顶点顺序需要符合逆时针约定（从外部看）
+    // 面索引必须与 Java 原版 ModelRenderer.ModelBox 一致：
+    // quads[0] = EAST, quads[1] = WEST, quads[2] = DOWN, quads[3] = UP, quads[4] = NORTH, quads[5] = SOUTH
 
-    // 东面 (X+) - indices: 0,1,2,3 -> v5,v1,v2,v6
+    // 东面 (X+) - quads[0]
+    // Java: quads[0] = TexturedQuad({v4, v0, v1, v5}, f6, f11, f8, f12, ...)
+    // v4=左下前, v0=左下后, v1=右下后, v5=右下前 -> 顶点顺序需要调整
     quads[0] = TexturedQuad(
-        {v5, v1, v2, v6},
+        {v5, v1, v2, v6},  // 右下前, 右下后, 右上后, 右上前
         f6, f11, f8, f12,
         texWidth, texHeight,
         normalEast, mirror
     );
 
-    // 西面 (X-) - indices: 4,5,6,7 -> v4,v0,v3,v7
+    // 西面 (X-) - quads[1]
+    // Java: quads[1] = TexturedQuad({v7, v3, v0, v4}, f4, f11, f5, f12, ...)
     quads[1] = TexturedQuad(
-        {v4, v0, v3, v7},
+        {v4, v0, v3, v7},  // 左下前, 左下后, 左上后, 左上前
         f4, f11, f5, f12,
         texWidth, texHeight,
         normalWest, mirror
     );
 
-    // 北面 (Z-) - indices: 8,9,10,11 -> v1,v0,v3,v2
+    // 下底面 (Y-) - quads[2]
+    // Java: quads[2] = TexturedQuad({v5, v4, v0, v1}, f5, f10, f6, f11, Direction.DOWN)
     quads[2] = TexturedQuad(
-        {v1, v0, v3, v2},
-        f5, f11, f6, f12,
-        texWidth, texHeight,
-        normalNorth, mirror
-    );
-
-    // 下底面 (Y-) - indices: 12,13,14,15 -> v5,v4,v0,v1
-    quads[3] = TexturedQuad(
-        {v5, v4, v0, v1},
+        {v5, v4, v0, v1},  // 右下前, 左下前, 左下后, 右下后
         f5, f10, f6, f11,
         texWidth, texHeight,
         normalDown, mirror
     );
 
-    // 上顶面 (Y+) - indices: 16,17,18,19 -> v2,v3,v7,v6
-    quads[4] = TexturedQuad(
-        {v2, v3, v7, v6},
+    // 上顶面 (Y+) - quads[3]
+    // Java: quads[3] = TexturedQuad({v2, v3, v7, v6}, f6, f11, f7, f10, Direction.UP)
+    quads[3] = TexturedQuad(
+        {v2, v3, v7, v6},  // 右上后, 左上后, 左上前, 右上前
         f6, f11, f7, f10,
         texWidth, texHeight,
         normalUp, mirror
     );
 
-    // 南面 (Z+) - indices: 20,21,22,23 -> v4,v5,v6,v7
+    // 北面 (Z-) - quads[4]
+    // Java: quads[4] = TexturedQuad({v1, v0, v3, v2}, f5, f11, f6, f12, Direction.NORTH)
+    quads[4] = TexturedQuad(
+        {v1, v0, v3, v2},  // 右下后, 左下后, 左上后, 右上后
+        f5, f11, f6, f12,
+        texWidth, texHeight,
+        normalNorth, mirror
+    );
+
+    // 南面 (Z+) - quads[5]
+    // Java: quads[5] = TexturedQuad({v4, v5, v6, v7}, f8, f11, f9, f12, Direction.SOUTH)
     quads[5] = TexturedQuad(
-        {v4, v5, v6, v7},
+        {v4, v5, v6, v7},  // 左下前, 右下前, 右上前, 左上前
         f8, f11, f9, f12,
         texWidth, texHeight,
         normalSouth, mirror

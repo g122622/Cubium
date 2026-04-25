@@ -118,68 +118,16 @@ HuskModel::HuskModel()
 // ==================== CaveSpiderModel ====================
 
 CaveSpiderModel::CaveSpiderModel()
-    : EntityModel()
+    : SpiderModel()  // 继承 SpiderModel，模型结构完全相同
 {
-    setTextureSize(64, 32);
-    setupParts();
-}
-
-void CaveSpiderModel::setupParts() {
-    // 参考 MC 1.16.5 SpiderModel
-    // 洞穴蜘蛛比普通蜘蛛小
-
-    m_head = std::make_shared<ModelRenderer>("head");
-    m_head->setTextureOffset(32, 4);
-    m_head->addBox(-4.0f, -4.0f, -8.0f, 8.0f, 8.0f, 8.0f);
-    m_head->setRotationPoint(0.0f, 15.0f, -3.0f);
-    m_parts.push_back(m_head);
-
-    m_neck = std::make_shared<ModelRenderer>("neck");
-    m_neck->setTextureOffset(0, 0);
-    m_neck->addBox(-3.0f, -3.0f, -3.0f, 6.0f, 6.0f, 6.0f);
-    m_neck->setRotationPoint(0.0f, 15.0f, 0.0f);
-    m_parts.push_back(m_neck);
-
-    m_body = std::make_shared<ModelRenderer>("body");
-    m_body->setTextureOffset(0, 12);
-    m_body->addBox(-5.0f, -4.0f, -6.0f, 10.0f, 8.0f, 12.0f);
-    m_body->setRotationPoint(0.0f, 15.0f, 9.0f);
-    m_parts.push_back(m_body);
-
-    // 8条腿
-    for (i32 i = 0; i < 8; ++i) {
-        m_legs[i] = std::make_shared<ModelRenderer>("leg" + std::to_string(i));
-        m_legs[i]->setTextureOffset(18, 0);
-        m_legs[i]->addBox(-15.0f, -1.0f, -1.0f, 15.0f, 2.0f, 2.0f);
-
-        f32 angle = static_cast<f32>(i * PI / 4.0);
-        f32 x = static_cast<f32>(std::cos(angle) * 5.0);
-        f32 z = static_cast<f32>(std::sin(angle) * 5.0);
-
-        m_legs[i]->setRotationPoint(x, 15.0f, z);
-        m_legs[i]->setRotateAngleY(angle);
-        m_parts.push_back(m_legs[i]);
-    }
+    // 洞穴蜘蛛模型与普通蜘蛛完全相同
+    // 区别在于渲染时缩放 0.7 倍（在 render() 中处理）
 }
 
 void CaveSpiderModel::render(f64 scale) {
-    EntityModel::render(scale);
-}
-
-void CaveSpiderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                                 f64 ageInTicks, f64 netHeadYaw,
-                                 f64 headPitch, f64 scale) {
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-
-    // 腿的动画
-    for (i32 i = 0; i < 8; ++i) {
-        f32 phase = static_cast<f32>(i * PI / 4.0);
-        f32 legSwing = static_cast<f32>(std::cos(limbSwing * 0.6662 + phase) * limbSwingAmount * 0.3);
-        m_legs[i]->setRotateAngleZ(legSwing);
-    }
-
-    (void)ageInTicks;
+    // 参考 MC 1.16.5 CaveSpiderRenderer.preRenderCallback()
+    // matrixStack.scale(0.7F, 0.7F, 0.7F);
+    SpiderModel::render(scale * 0.7);
 }
 
 // ==================== GiantModel ====================

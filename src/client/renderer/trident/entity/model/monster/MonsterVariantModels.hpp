@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../base/BipedModel.hpp"
+#include "SpiderModel.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 
@@ -71,25 +72,21 @@ public:
 /**
  * @brief 洞穴蜘蛛模型
  *
- * 参考 MC 1.16.5 SpiderModel (same structure, smaller scale)
+ * 参考 MC 1.16.5 - CaveSpiderRenderer 直接使用 SpiderModel 并缩放 0.7 倍
+ * Java 中没有独立的 CaveSpiderModel 类，而是复用 SpiderModel
  */
-class CaveSpiderModel : public EntityModel {
+class CaveSpiderModel : public SpiderModel {
 public:
     CaveSpiderModel();
     ~CaveSpiderModel() override = default;
 
     void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
 
-private:
-    void setupParts();
-
-    std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_neck;
-    std::shared_ptr<ModelRenderer> m_body;
-    std::array<std::shared_ptr<ModelRenderer>, 8> m_legs;
+    /**
+     * @brief 获取洞穴蜘蛛缩放因子
+     * @return 0.7f - 洞穴蜘蛛比普通蜘蛛小 0.7 倍
+     */
+    static constexpr f32 getScaleFactor() { return 0.7f; }
 };
 
 /**
