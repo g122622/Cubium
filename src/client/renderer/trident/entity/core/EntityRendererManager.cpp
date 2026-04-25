@@ -145,11 +145,10 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
     // 获取或创建网格
     EntityMesh* mesh = nullptr;
+    core::AnimationContext context;
 
     if (useAnimatedMesh && renderer && renderer->supportsAnimation()) {
         // 动画实体路径：使用动画网格缓存
-        core::AnimationContext context;
-
         // 设置 partialTicks（用于动画插值）
         context.partialTicks = partialTicks;
 
@@ -278,6 +277,12 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // 绘制网格
         m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE);
+
+        // TODO: 渲染层（盔甲、手持物品等）
+        // 需要 ClientEntity 到 Entity 的映射或修改层渲染接口
+        // if (renderer && renderer->supportsLayers()) {
+        //     renderer->renderLayersPipeline(entity, cmd, context, *m_pipeline);
+        // }
     }
 
     // 恢复实体纹理图集（如果为 ItemEntity）

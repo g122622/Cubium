@@ -2,9 +2,15 @@
 
 #include "../../model/core/EntityModel.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../../core/AnimationContext.hpp"
 #include "common/core/Types.hpp"
+#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+
+namespace mc::client::renderer::entity::pipeline {
+class EntityPipeline;  // 前向声明
+}
 
 namespace mc::client::renderer::entity::layer::core {
 
@@ -22,7 +28,9 @@ public:
     virtual ~LayerRenderer() = default;
 
     /**
-     * @brief 渲染层
+     * @brief 渲染层（CPU路径 - 已废弃）
+     *
+     * 此方法保留用于向后兼容，新代码应使用 renderPipeline()
      *
      * @param entity 实体
      * @param limbSwing 步态动画周期
@@ -42,7 +50,47 @@ public:
         f32 netHeadYaw,
         f32 headPitch,
         f32 scale
-    ) = 0;
+    ) {
+        // 默认空实现，子类可选择实现此方法或 renderPipeline()
+        (void)entity;
+        (void)limbSwing;
+        (void)limbSwingAmount;
+        (void)partialTicks;
+        (void)ageInTicks;
+        (void)netHeadYaw;
+        (void)headPitch;
+        (void)scale;
+    }
+
+    /**
+     * @brief 渲染层（GPU管线路径）
+     *
+     * 使用 Vulkan 管线进行渲染。这是主要的渲染方法。
+     *
+     * @param entity 实体
+     * @param cmd Vulkan 命令缓冲区
+     * @param context 动画上下文
+     * @param pipeline 实体渲染管线
+     */
+    virtual void renderPipeline(
+        TEntity& entity,
+        VkCommandBuffer cmd,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) {
+        // 默认实现：调用旧的 render 方法（如果子类实现了）
+        // 子类应该重写此方法以使用 GPU 渲染
+        (void)cmd;
+        (void)pipeline;
+        render(entity,
+               static_cast<f32>(context.limbSwing),
+               static_cast<f32>(context.limbSwingAmount),
+               static_cast<f32>(context.partialTicks),
+               static_cast<f32>(context.ageInTicks),
+               static_cast<f32>(context.netHeadYaw),
+               static_cast<f32>(context.headPitch),
+               static_cast<f32>(context.scale));
+    }
 
     /**
      * @brief 检查是否应该渲染此层

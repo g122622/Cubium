@@ -1,10 +1,14 @@
 #include "NameTagRenderer.hpp"
+#include "../pipeline/EntityPipeline.hpp"
+#include "../model/core/ModelRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::util {
 
 // 静态成员初始化
+bool NameTagRenderer::s_initialized = false;
 f64 NameTagRenderer::s_maxDistance = DEFAULT_MAX_DISTANCE;
 f64 NameTagRenderer::s_scale = DEFAULT_SCALE;
 bool NameTagRenderer::s_showBackground = true;
@@ -12,15 +16,88 @@ u8 NameTagRenderer::s_bgColorR = 0;
 u8 NameTagRenderer::s_bgColorG = 0;
 u8 NameTagRenderer::s_bgColorB = 0;
 u8 NameTagRenderer::s_bgColorA = 128;
+Vector3d NameTagRenderer::s_cameraPosition(0.0, 0.0, 0.0);
+std::array<f64, 16> NameTagRenderer::s_viewMatrix = {
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0
+};
 
-// 相机位置（需要从渲染系统设置）
-static Vector3d s_cameraPosition(0.0, 0.0, 0.0);
+bool NameTagRenderer::initialize(pipeline::EntityPipeline& pipeline) {
+    if (s_initialized) {
+        return true;
+    }
+
+    // TODO: 创建名称标签网格资源
+    // 当前作为占位符，实际实现需要：
+    // 1. 字体纹理图集
+    // 2. 字符网格缓存
+    // 3. 背景面板网格
+
+    s_initialized = true;
+    spdlog::info("NameTagRenderer: Initialized successfully");
+    return true;
+
+    (void)pipeline;  // 暂时不使用
+}
+
+void NameTagRenderer::cleanup() {
+    s_initialized = false;
+    spdlog::info("NameTagRenderer: Cleaned up");
+}
+
+bool NameTagRenderer::isInitialized() {
+    return s_initialized;
+}
+
+void NameTagRenderer::setCameraPosition(const Vector3d& position) {
+    s_cameraPosition = position;
+}
+
+void NameTagRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
+    s_viewMatrix = viewMatrix;
+}
 
 void NameTagRenderer::renderNameTag(
     Entity& entity,
     const String& displayName,
-    f64 partialTicks
-) {
+    f64 partialTicks)
+{
+    // CPU 路径 - 已废弃
+    if (displayName.empty()) {
+        return;
+    }
+
+    // 计算名称标签位置
+    Vector3d position = calculateNameTagPosition(entity, partialTicks);
+
+    // 计算到相机的距离
+    Vector3d toCamera = s_cameraPosition - position;
+    f64 distanceToCamera = std::sqrt(toCamera.x * toCamera.x + toCamera.y * toCamera.y + toCamera.z * toCamera.z);
+
+    // 检查是否应该渲染
+    if (!shouldRenderNameTag(entity, distanceToCamera)) {
+        return;
+    }
+
+    // CPU 路径无法执行实际渲染
+    (void)position;
+}
+
+void NameTagRenderer::renderNameTag(
+    VkCommandBuffer cmd,
+    Entity& entity,
+    const String& displayName,
+    f64 partialTicks,
+    pipeline::EntityPipeline& pipeline)
+{
+    if (!s_initialized) {
+        if (!initialize(pipeline)) {
+            return;
+        }
+    }
+
     if (displayName.empty()) {
         return;
     }
@@ -40,33 +117,35 @@ void NameTagRenderer::renderNameTag(
     // 计算缩放
     f64 scale = calculateScale(distanceToCamera);
 
-    // 参考 MC 1.16.5 NameTagRenderer.renderNameTag()
-    // 渲染名称标签需要：
-    // 1. 创建面向相机的billboard变换矩阵
-    // 2. 渲染文本（使用FontRenderer）
-    // 3. 可选：渲染背景面板
+    // 计算 billboard 矩阵
+    std::array<f64, 16> billboardMatrix;
+    computeBillboardMatrix(position, billboardMatrix);
 
-    // 当前暂不执行实际渲染，等待文本渲染系统支持
-    // 需要的功能：
-    // - FontRenderer支持3D空间中的文本渲染
-    // - billboard变换（始终面向相机）
-    // - 深度测试配置
+    // TODO: 实现实际的文本渲染
+    // 需要：
+    // 1. 字体纹理图集
+    // 2. 字符网格生成
+    // 3. 背景 panel 渲染
 
-    (void)position;
+    // 当前作为占位符
+    (void)cmd;
     (void)scale;
+    (void)billboardMatrix;
+
+    spdlog::trace("NameTagRenderer: Would render '{}' at ({}, {}, {})",
+                  displayName, position.x, position.y, position.z);
 }
 
 bool NameTagRenderer::shouldRenderNameTag(
     Entity& entity,
-    f64 distanceToCamera
-) {
+    f64 distanceToCamera)
+{
     // 检查距离
-    if (distanceToCamera > s_maxDistance * s_maxDistance) {
+    if (distanceToCamera > s_maxDistance) {
         return false;
     }
 
     // 检查实体是否有自定义名称或是否被命名
-    // 参考 MC 1.16.5 EntityRenderer.canRenderName()
     const String& customName = entity.customName();
     bool hasCustomName = !customName.empty();
     bool isCustomNameVisible = entity.isCustomNameVisible();
@@ -75,9 +154,6 @@ bool NameTagRenderer::shouldRenderNameTag(
     if (hasCustomName && isCustomNameVisible) {
         return true;
     }
-
-    // 其他情况下，检查实体是否被玩家瞄准
-    // TODO: 实现瞄准检测
 
     return hasCustomName;
 }
@@ -107,15 +183,12 @@ void NameTagRenderer::setShowBackground(bool show) {
 
 Vector3d NameTagRenderer::calculateNameTagPosition(
     Entity& entity,
-    f64 partialTicks
-) {
-    // 参考 MC 1.16.5 EntityRenderer.getRenderOffset()
-    // 名称标签位置在实体上方
-
-    // 获取位置
-    f64 x = entity.x();
-    f64 y = entity.y();
-    f64 z = entity.z();
+    f64 partialTicks)
+{
+    // 获取插值位置
+    f64 x = entity.prevX() + (entity.x() - entity.prevX()) * partialTicks;
+    f64 y = entity.prevY() + (entity.y() - entity.prevY()) * partialTicks;
+    f64 z = entity.prevZ() + (entity.z() - entity.prevZ()) * partialTicks;
 
     // 在实体高度之上
     f64 height = static_cast<f64>(entity.height());
@@ -123,9 +196,6 @@ Vector3d NameTagRenderer::calculateNameTagPosition(
 
     // 如果实体正在蹲伏，调整高度
     // TODO: 从实体获取蹲伏状态
-    // if (entity.isCrouching()) {
-    //     nameTagY -= 0.25;
-    // }
 
     (void)partialTicks;
     return Vector3d(x, nameTagY, z);
@@ -141,6 +211,64 @@ f64 NameTagRenderer::calculateScale(f64 distanceToCamera) {
     }
 
     return s_scale;
+}
+
+void NameTagRenderer::computeBillboardMatrix(
+    const Vector3d& position,
+    std::array<f64, 16>& outMatrix)
+{
+    // 参考 MC 1.16.5: 名称标签始终面向相机（billboard）
+    // 从视图矩阵中提取旋转部分，然后反转
+
+    // 提取视图矩阵的上方向和右方向
+    // 视图矩阵的前三行是相机的旋转矩阵
+    f64 view00 = s_viewMatrix[0];
+    f64 view01 = s_viewMatrix[1];
+    f64 view02 = s_viewMatrix[2];
+    f64 view10 = s_viewMatrix[4];
+    f64 view11 = s_viewMatrix[5];
+    f64 view12 = s_viewMatrix[6];
+    f64 view20 = s_viewMatrix[8];
+    f64 view21 = s_viewMatrix[9];
+    f64 view22 = s_viewMatrix[10];
+
+    // billboard 矩阵是视图矩阵旋转部分的转置（即逆）
+    // 加上位置
+    outMatrix[0] = view00;
+    outMatrix[1] = view10;
+    outMatrix[2] = view20;
+    outMatrix[3] = position.x;
+    outMatrix[4] = view01;
+    outMatrix[5] = view11;
+    outMatrix[6] = view21;
+    outMatrix[7] = position.y;
+    outMatrix[8] = view02;
+    outMatrix[9] = view12;
+    outMatrix[10] = view22;
+    outMatrix[11] = position.z;
+    outMatrix[12] = 0.0;
+    outMatrix[13] = 0.0;
+    outMatrix[14] = 0.0;
+    outMatrix[15] = 1.0;
+}
+
+void NameTagRenderer::renderBackground(
+    VkCommandBuffer cmd,
+    const Vector3d& position,
+    f64 width,
+    f64 height,
+    f64 scale,
+    pipeline::EntityPipeline& pipeline)
+{
+    // TODO: 渲染背景面板
+    // 需要创建一个简单的四边形网格
+
+    (void)cmd;
+    (void)position;
+    (void)width;
+    (void)height;
+    (void)scale;
+    (void)pipeline;
 }
 
 } // namespace mc::client::renderer::entity::util

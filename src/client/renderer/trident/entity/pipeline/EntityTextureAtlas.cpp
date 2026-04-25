@@ -81,8 +81,10 @@ void EntityTextureAtlas::destroy() {
     }
 
     m_textures.clear();
+    m_queuedTextures.clear();
     m_regions.clear();
     m_built = false;
+    m_needsRebuild = false;
     m_initialized = false;
 
     spdlog::info("EntityTextureAtlas destroyed");
@@ -367,8 +369,9 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build() {
     buildResult.height = m_height;
     buildResult.regions = m_regions;
 
-    // 清理临时数据
-    m_textures.clear();
+    // 注意：不清除 m_textures，保留用于后续重建
+    // 清理临时队列
+    m_queuedTextures.clear();
 
     return buildResult;  // 隐式转换
 }
@@ -380,7 +383,7 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::rebuild() {
     }
 
     if (m_queuedTextures.empty()) {
-        // 没有待添加的纹理
+        // 没有待添加的纹理，直接返回当前状态
         EntityAtlasBuildResult result;
         result.image = m_image;
         result.imageMemory = m_imageMemory;
@@ -391,24 +394,27 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::rebuild() {
         return result;
     }
 
-    spdlog::info("EntityTextureAtlas: Rebuilding atlas with {} new textures", m_queuedTextures.size());
+    spdlog::info("EntityTextureAtlas: Rebuilding atlas with {} new textures (existing: {})",
+                 m_queuedTextures.size(), m_textures.size());
 
     // 合并现有纹理和新纹理
-    // 注意：现有纹理的像素数据已被清除，但我们保留了 regions 映射
-    // 我们需要重建整个图集
-
-    // 保存现有的区域信息，稍后会重新计算位置
-    auto oldRegions = std::move(m_regions);
-    m_regions.clear();
-
-    // 计算总纹理数量
-    // 注意：由于之前的纹理数据已被清除，我们只能添加新纹理
-    // 这意味着重建后只有新添加的纹理可用
-    // 这是一个简化实现，完整实现需要保留所有纹理数据
-
-    // 创建新的纹理列表
-    m_textures = std::move(m_queuedTextures);
+    // 检查新纹理是否已存在
+    for (auto& newTex : m_queuedTextures) {
+        bool exists = false;
+        for (const auto& existingTex : m_textures) {
+            if (existingTex.location == newTex.location) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            m_textures.push_back(std::move(newTex));
+        }
+    }
     m_queuedTextures.clear();
+
+    // 清除旧的区域映射
+    m_regions.clear();
 
     // 销毁旧的图集资源
     if (m_imageView != VK_NULL_HANDLE) {
@@ -426,6 +432,7 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::rebuild() {
 
     // 重新构建图集
     m_built = false;
+    m_needsRebuild = false;
     auto result = build();
 
     if (result.success()) {

@@ -59,6 +59,26 @@ public:
     [[nodiscard]] bool supportsAnimation() const override { return true; }
 
     /**
+     * @brief LivingEntity 渲染器支持层渲染
+     */
+    [[nodiscard]] bool supportsLayers() const override { return true; }
+
+    /**
+     * @brief 渲染层（GPU管线路径）
+     *
+     * 实现 EntityRenderer 接口，调用所有注册的层渲染器。
+     */
+    void renderLayersPipeline(
+        Entity& entity,
+        VkCommandBuffer cmd,
+        const AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) override {
+        auto& living = static_cast<TEntity&>(entity);
+        renderLayersPipeline(living, cmd, context, pipeline);
+    }
+
+    /**
      * @brief 计算动画上下文并设置模型角度
      *
      * 此方法供管线路径使用，在渲染前调用以更新模型状态。
@@ -159,16 +179,7 @@ public:
     ) {
         for (auto& layer : m_layers) {
             if (layer && layer->shouldRender(entity)) {
-                layer->render(
-                    entity,
-                    static_cast<f32>(context.limbSwing),
-                    static_cast<f32>(context.limbSwingAmount),
-                    static_cast<f32>(context.partialTicks),
-                    static_cast<f32>(context.ageInTicks),
-                    static_cast<f32>(context.netHeadYaw),
-                    static_cast<f32>(context.headPitch),
-                    static_cast<f32>(context.scale)
-                );
+                layer->renderPipeline(entity, cmd, context, pipeline);
             }
         }
     }

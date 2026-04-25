@@ -2,15 +2,55 @@
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
+#include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/MeshTypes.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 class Player;
 }
 
+namespace mc::client::renderer::entity::pipeline {
+class EntityPipeline;  // 前向声明
+}
+
 namespace mc::client::renderer::entity::renderer::player {
+
+/**
+ * @brief 玩家层渲染器基类
+ *
+ * 简化版层渲染器，用于玩家实体。
+ */
+class PlayerLayerRenderer {
+public:
+    virtual ~PlayerLayerRenderer() = default;
+
+    /**
+     * @brief 渲染层（GPU管线路径）
+     */
+    virtual void renderPipeline(
+        ::mc::Player& player,
+        VkCommandBuffer cmd,
+        const core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) {
+        (void)player;
+        (void)cmd;
+        (void)context;
+        (void)pipeline;
+    }
+
+    /**
+     * @brief 检查是否应该渲染此层
+     */
+    [[nodiscard]] virtual bool shouldRender(const ::mc::Player& player) const {
+        (void)player;
+        return true;
+    }
+};
 
 /**
  * @brief 玩家渲染器
@@ -18,7 +58,8 @@ namespace mc::client::renderer::entity::renderer::player {
  * 参考 MC 1.16.5 PlayerRenderer
  * 支持标准手臂和纤细手臂两种模式。
  *
- * 注意：Player 类不继承 LivingEntity，因此这里直接继承 EntityRenderer。
+ * 注意：Player 类不继承 LivingEntity，因此这里直接继承 EntityRenderer，
+ * 但实现了层渲染器支持。
  */
 class PlayerRenderer : public core::EntityRenderer {
 public:
@@ -30,6 +71,26 @@ public:
     ~PlayerRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override;
+
+    /**
+     * @brief 玩家渲染器支持动画
+     */
+    [[nodiscard]] bool supportsAnimation() const override { return true; }
+
+    /**
+     * @brief 玩家渲染器支持层渲染
+     */
+    [[nodiscard]] bool supportsLayers() const override { return true; }
+
+    /**
+     * @brief 渲染层（GPU管线路径）
+     */
+    void renderLayersPipeline(
+        Entity& entity,
+        VkCommandBuffer cmd,
+        const core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) override;
 
     /**
      * @brief 渲染右手臂（第一人称）
@@ -85,6 +146,21 @@ public:
      */
     [[nodiscard]] const TextureRegion* getElytraTexture() const { return m_elytraRegion; }
 
+    // ========== 层渲染器管理 ==========
+
+    /**
+     * @brief 添加层渲染器
+     */
+    template<typename TLayer, typename... TArgs>
+    void addLayer(TArgs&&... args) {
+        m_layers.push_back(std::make_unique<TLayer>(std::forward<TArgs>(args)...));
+    }
+
+    /**
+     * @brief 获取层渲染器数量
+     */
+    [[nodiscard]] size_t getLayerCount() const { return m_layers.size(); }
+
 protected:
     /**
      * @brief 设置模型可见性
@@ -97,6 +173,11 @@ protected:
      * @brief 确定手臂姿态
      */
     model::player::ArmPose determineArmPose(::mc::Player& player, bool mainHand);
+
+    /**
+     * @brief 计算动画上下文
+     */
+    void computeAnimationContext(::mc::Player& player, f64 partialTicks, core::AnimationContext& context);
 
     /**
      * @brief 计算步态动画周期
@@ -128,6 +209,9 @@ private:
 
     model::player::PlayerModel m_model;
     bool m_slimArms;  // 是否使用纤细手臂
+
+    // 层渲染器
+    std::vector<std::unique_ptr<PlayerLayerRenderer>> m_layers;
 
     // 皮肤纹理区域
     const TextureRegion* m_skinRegion = nullptr;

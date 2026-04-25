@@ -2,11 +2,17 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <vulkan/vulkan.h>
 #include <string>
+#include <array>
 
 namespace mc {
 
 class Entity;
+
+namespace client::renderer::entity::pipeline {
+class EntityPipeline;  // 前向声明
+}
 
 namespace client::renderer::entity::util {
 
@@ -21,11 +27,43 @@ namespace client::renderer::entity::util {
 class NameTagRenderer {
 public:
     /**
-     * @brief 渲染实体名称标签
-     *
-     * @param entity 实体
-     * @param displayName 显示名称
-     * @param partialTicks 部分 tick
+     * @brief 初始化名称标签渲染器
+     */
+    static bool initialize(pipeline::EntityPipeline& pipeline);
+
+    /**
+     * @brief 清理资源
+     */
+    static void cleanup();
+
+    /**
+     * @brief 检查是否已初始化
+     */
+    [[nodiscard]] static bool isInitialized();
+
+    /**
+     * @brief 设置相机位置（用于计算距离和 billboard）
+     */
+    static void setCameraPosition(const Vector3d& position);
+
+    /**
+     * @brief 设置视图矩阵（用于 billboard 计算）
+     */
+    static void setViewMatrix(const std::array<f64, 16>& viewMatrix);
+
+    /**
+     * @brief 渲染实体名称标签（GPU管线路径）
+     */
+    static void renderNameTag(
+        VkCommandBuffer cmd,
+        Entity& entity,
+        const String& displayName,
+        f64 partialTicks,
+        pipeline::EntityPipeline& pipeline
+    );
+
+    /**
+     * @brief 渲染实体名称标签（CPU路径 - 已废弃）
      */
     static void renderNameTag(
         Entity& entity,
@@ -35,10 +73,6 @@ public:
 
     /**
      * @brief 检查是否应该渲染名称标签
-     *
-     * @param entity 实体
-     * @param distanceToCamera 到相机的距离
-     * @return 是否应该渲染
      */
     [[nodiscard]] static bool shouldRenderNameTag(
         Entity& entity,
@@ -47,7 +81,6 @@ public:
 
     /**
      * @brief 设置最大可见距离
-     * @param distance 最大距离
      */
     static void setMaxDistance(f64 distance);
 
@@ -58,61 +91,49 @@ public:
 
     // ========== 样式设置 ==========
 
-    /**
-     * @brief 设置名称标签缩放
-     * @param scale 缩放因子
-     */
     static void setScale(f64 scale);
-
-    /**
-     * @brief 设置背景颜色
-     * @param r 红色分量 (0-255)
-     * @param g 绿色分量 (0-255)
-     * @param b 蓝色分量 (0-255)
-     * @param a 透明度 (0-255)
-     */
     static void setBackgroundColor(u8 r, u8 g, u8 b, u8 a);
-
-    /**
-     * @brief 设置是否显示背景
-     * @param show 是否显示
-     */
     static void setShowBackground(bool show);
 
 private:
-    /**
-     * @brief 计算名称标签位置
-     *
-     * @param entity 实体
-     * @param partialTicks 部分 tick
-     * @return 标签位置（世界坐标）
-     */
     [[nodiscard]] static Vector3d calculateNameTagPosition(
         Entity& entity,
         f64 partialTicks
     );
 
-    /**
-     * @brief 计算名称标签缩放
-     *
-     * @param distanceToCamera 到相机的距离
-     * @return 缩放因子
-     */
     [[nodiscard]] static f64 calculateScale(f64 distanceToCamera);
 
-    static f64 s_maxDistance;       // 最大可见距离
-    static f64 s_scale;             // 缩放因子
-    static bool s_showBackground;   // 是否显示背景
-    static u8 s_bgColorR;           // 背景红色
-    static u8 s_bgColorG;           // 背景绿色
-    static u8 s_bgColorB;           // 背景蓝色
-    static u8 s_bgColorA;           // 背景透明度
+    static void computeBillboardMatrix(
+        const Vector3d& position,
+        std::array<f64, 16>& outMatrix
+    );
 
-    // 常量
+    static void renderBackground(
+        VkCommandBuffer cmd,
+        const Vector3d& position,
+        f64 width,
+        f64 height,
+        f64 scale,
+        pipeline::EntityPipeline& pipeline
+    );
+
+    static bool s_initialized;
+    static f64 s_maxDistance;
+    static f64 s_scale;
+    static bool s_showBackground;
+    static u8 s_bgColorR;
+    static u8 s_bgColorG;
+    static u8 s_bgColorB;
+    static u8 s_bgColorA;
+    static Vector3d s_cameraPosition;
+    static std::array<f64, 16> s_viewMatrix;
+
     static constexpr f64 DEFAULT_MAX_DISTANCE = 64.0;
     static constexpr f64 DEFAULT_SCALE = 0.025;
     static constexpr f64 BACKGROUND_PADDING = 0.25;
-    static constexpr f64 HEIGHT_OFFSET = 0.3;  // 实体高度之上的偏移
+    static constexpr f64 HEIGHT_OFFSET = 0.3;
+    static constexpr f64 CHAR_WIDTH = 0.5;
+    static constexpr f64 CHAR_HEIGHT = 1.0;
 };
 
 } // namespace mc::client::renderer::entity::util

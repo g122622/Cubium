@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <vulkan/vulkan.h>
 #include <memory>
 #include <unordered_map>
 #include <functional>
@@ -11,6 +12,10 @@ namespace mc {
 // 前向声明
 class Entity;
 class LivingEntity;
+
+namespace client::renderer::entity::pipeline {
+class EntityPipeline;  // 前向声明
+}
 
 namespace client::renderer::entity::model {
 class EntityModel;
@@ -81,6 +86,37 @@ public:
     ) {
         // 默认空实现，不支持动画的渲染器不需要重写
     }
+
+    /**
+     * @brief 渲染层（GPU管线路径）
+     *
+     * 只有 LivingEntity 渲染器需要实现此方法。
+     * 渲染实体上的附加层（盔甲、手持物品等）。
+     *
+     * @param entity 实体
+     * @param cmd Vulkan 命令缓冲区
+     * @param context 动画上下文
+     * @param pipeline 实体渲染管线
+     */
+    virtual void renderLayersPipeline(
+        Entity& entity,
+        VkCommandBuffer cmd,
+        const AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) {
+        // 默认空实现，不支持层的渲染器不需要重写
+        (void)entity;
+        (void)cmd;
+        (void)context;
+        (void)pipeline;
+    }
+
+    /**
+     * @brief 是否支持层渲染
+     *
+     * LivingEntity 渲染器返回 true。
+     */
+    [[nodiscard]] virtual bool supportsLayers() const { return false; }
 
     // ========== 渲染属性 ==========
 

@@ -1,6 +1,12 @@
 #include "ClientSkinManager.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include <spdlog/spdlog.h>
+#include <cstring>  // for std::memcpy
+#include <fstream>
+#include <filesystem>
+
+// stb_image is already implemented elsewhere (TextureAtlasBuilder.cpp)
+#include <stb_image.h>
 
 namespace mc::client::skin {
 
@@ -103,7 +109,10 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         std::lock_guard<std::mutex> lock(m_regionMutex);
         auto it = m_skinRegions.find(key);
         if (it != m_skinRegions.end() && it->second) {
-            return info->getSkinLocation();
+            // 已有纹理区域，检查图集是否有效
+            if (m_textureAtlas->getRegion(info->getSkinLocation())) {
+                return info->getSkinLocation();
+            }
         }
     }
 
@@ -122,13 +131,51 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         }
     }
 
-    // TODO: 实现从缓存或下载加载皮肤并上传到 GPU
-    // 当前简化实现：返回位置但不实际上传
+    // 尝试从缓存加载皮肤 PNG 数据并上传到图集
+    const auto& textures = info->textures();
+    if (textures.hasSkin() && textures.skinHash().has_value()) {
+        const String& hash = *textures.skinHash();
 
-    spdlog::debug("ClientSkinManager: Registered skin for {} at {}",
-                  profile.name(), location.toString());
+        // 检查缓存中是否有皮肤文件
+        if (m_skinManager->cache().hasSkin(hash)) {
+            // 读取缓存的皮肤文件
+            auto cachePathOpt = m_skinManager->cache().getSkinPath(hash);
+            if (cachePathOpt.has_value() && std::filesystem::exists(*cachePathOpt)) {
+                // 从文件加载 PNG 数据
+                std::ifstream file(*cachePathOpt, std::ios::binary);
+                if (file.is_open()) {
+                    std::vector<u8> pngData((std::istreambuf_iterator<char>(file)),
+                                            std::istreambuf_iterator<char>());
+                    file.close();
 
-    return location;
+                    // 上传到图集
+                    auto uploadResult = uploadSkinToAtlas(pngData, location);
+                    if (uploadResult.success()) {
+                        // 标记需要重建图集
+                        // 注意：调用者应在合适时机调用 rebuildAtlas()
+
+                        // 更新纹理区域映射
+                        {
+                            std::lock_guard<std::mutex> lock(m_regionMutex);
+                            m_skinRegions[key] = nullptr;  // 将在重建后更新
+                        }
+
+                        spdlog::info("ClientSkinManager: Uploaded cached skin for {} to atlas",
+                                     profile.name());
+                        return location;
+                    } else {
+                        spdlog::warn("ClientSkinManager: Failed to upload skin for {}: {}",
+                                     profile.name(), uploadResult.error().toString());
+                    }
+                }
+            }
+        }
+    }
+
+    // 如果无法从缓存加载，返回默认皮肤
+    spdlog::debug("ClientSkinManager: Skin not in cache for {}, using default", profile.name());
+    return m_steveRegion ? ResourceLocation("minecraft:textures/entity/steve.png")
+                         : ResourceLocation("minecraft:textures/entity/steve.png");
 }
 
 const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& uuid) const {
@@ -184,50 +231,108 @@ Result<void> ClientSkinManager::rebuildAtlas() {
         return Error(ErrorCode::NotInitialized, "ClientSkinManager not initialized");
     }
 
-    // 重新构建纹理图集
-    // 注意：这会销毁现有的图集并重新构建
+    // 检查是否需要重建
+    if (!m_textureAtlas->needsRebuild()) {
+        spdlog::debug("ClientSkinManager: Atlas does not need rebuild");
+        return {};
+    }
 
-    auto buildResult = m_textureAtlas->build();
+    // 重建纹理图集
+    auto buildResult = m_textureAtlas->rebuild();
     if (!buildResult.success()) {
         return buildResult.error();
     }
 
-    // 更新纹理区域引用
-    // TODO: 重新获取所有玩家的纹理区域
+    // 更新默认皮肤纹理区域引用
+    m_steveRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/steve.png"));
+    m_alexRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/alex.png"));
 
-    spdlog::info("ClientSkinManager: Rebuilt texture atlas");
+    // 更新所有已注册玩家的纹理区域引用
+    {
+        std::lock_guard<std::mutex> lock(m_regionMutex);
+        for (auto& [uuidKey, region] : m_skinRegions) {
+            // 尝试获取更新后的区域
+            auto uuid = ::mc::skin::GameProfile::parseUUID(uuidKey);
+            auto info = m_skinManager->getPlayerInfo(uuid);
+            if (info && info->isLoaded()) {
+                const auto* newRegion = m_textureAtlas->getRegion(info->getSkinLocation());
+                if (newRegion) {
+                    region = newRegion;
+                }
+            }
+        }
+
+        // 更新披风和鞘翅区域
+        for (auto& [uuidKey, region] : m_capeRegions) {
+            auto uuid = ::mc::skin::GameProfile::parseUUID(uuidKey);
+            auto info = m_skinManager->getPlayerInfo(uuid);
+            if (info) {
+                auto capeLoc = info->getCapeLocation();
+                if (capeLoc) {
+                    const auto* newRegion = m_textureAtlas->getRegion(*capeLoc);
+                    if (newRegion) {
+                        region = newRegion;
+                    }
+                }
+            }
+        }
+
+        for (auto& [uuidKey, region] : m_elytraRegions) {
+            auto uuid = ::mc::skin::GameProfile::parseUUID(uuidKey);
+            auto info = m_skinManager->getPlayerInfo(uuid);
+            if (info) {
+                auto elytraLoc = info->getElytraLocation();
+                if (elytraLoc) {
+                    const auto* newRegion = m_textureAtlas->getRegion(*elytraLoc);
+                    if (newRegion) {
+                        region = newRegion;
+                    }
+                }
+            }
+        }
+    }
+
+    spdlog::info("ClientSkinManager: Rebuilt texture atlas successfully");
     return {};
 }
 
 Result<void> ClientSkinManager::loadDefaultSkins() {
-    // 加载 Steve 皮肤
-    ResourceLocation steveLocation("minecraft:textures/entity/steve.png");
-
-    // 从默认皮肤提供者获取数据
+    // 使用默认皮肤提供者的内置数据
     const auto& steveData = m_skinManager->defaultSkinProvider().getSteveSkinData();
+    const auto& alexData = m_skinManager->defaultSkinProvider().getAlexSkinData();
+
+    // 添加 Steve 皮肤
     if (!steveData.empty()) {
-        auto result = m_textureAtlas->addTextureFromFile(
-            "resources/assets/minecraft/textures/entity/steve.png",
-            steveLocation
-        );
+        ResourceLocation steveLocation("minecraft:textures/entity/steve.png");
+        auto result = m_textureAtlas->addTextureFromPixels(
+            steveData,
+            64,  // Steve 皮肤是 64x64
+            64,
+            steveLocation);
         if (result.success()) {
-            // 稍后在 build() 后获取区域
             spdlog::debug("ClientSkinManager: Added Steve skin to atlas");
+        } else {
+            spdlog::warn("ClientSkinManager: Failed to add Steve skin: {}", result.error().toString());
         }
+    } else {
+        spdlog::warn("ClientSkinManager: No Steve skin data available");
     }
 
-    // 加载 Alex 皮肤
-    ResourceLocation alexLocation("minecraft:textures/entity/alex.png");
-
-    const auto& alexData = m_skinManager->defaultSkinProvider().getAlexSkinData();
+    // 添加 Alex 皮肤
     if (!alexData.empty()) {
-        auto result = m_textureAtlas->addTextureFromFile(
-            "resources/assets/minecraft/textures/entity/alex.png",
-            alexLocation
-        );
+        ResourceLocation alexLocation("minecraft:textures/entity/alex.png");
+        auto result = m_textureAtlas->addTextureFromPixels(
+            alexData,
+            64,  // Alex 皮肤是 64x64
+            64,
+            alexLocation);
         if (result.success()) {
             spdlog::debug("ClientSkinManager: Added Alex skin to atlas");
+        } else {
+            spdlog::warn("ClientSkinManager: Failed to add Alex skin: {}", result.error().toString());
         }
+    } else {
+        spdlog::warn("ClientSkinManager: No Alex skin data available");
     }
 
     return {};
@@ -241,12 +346,79 @@ Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
         return Error(ErrorCode::NotInitialized, "ClientSkinManager not initialized");
     }
 
-    // 添加纹理到图集
-    // 注意：当前 EntityTextureAtlas 需要从文件加载
-    // 这里需要扩展 API 支持从内存加载
+    if (pngData.empty()) {
+        return Error(ErrorCode::InvalidData, "Empty PNG data");
+    }
 
-    // TODO: 扩展 EntityTextureAtlas 支持从内存数据添加纹理
-    spdlog::warn("ClientSkinManager: uploadSkinToAtlas not fully implemented");
+    // 解析 PNG 数据获取尺寸和像素
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    u8* pixels = stbi_load_from_memory(
+        pngData.data(),
+        static_cast<int>(pngData.size()),
+        &width,
+        &height,
+        &channels,
+        4);  // 强制 RGBA
+
+    if (pixels == nullptr) {
+        return Error(ErrorCode::InvalidData, "Failed to decode PNG data");
+    }
+
+    // 确保是有效的皮肤尺寸 (64x64 或 64x32)
+    std::vector<u8> processedPixels;
+    u32 finalWidth = 0;
+    u32 finalHeight = 0;
+
+    if (width == 64 && height == 32) {
+        // 旧版 Java 皮肤格式，需要扩展到 64x64
+        finalWidth = 64;
+        finalHeight = 64;
+        processedPixels.assign(static_cast<size_t>(64 * 64 * 4), 0);
+
+        // 复制上半部分
+        for (int y = 0; y < 32; ++y) {
+            const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
+            const size_t dstOffset = static_cast<size_t>(y * 64 * 4);
+            std::memcpy(processedPixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
+        }
+
+        // 复制下半部分作为兼容层（旧皮肤的外层）
+        for (int y = 0; y < 32; ++y) {
+            const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
+            const size_t dstOffset = static_cast<size_t>((y + 32) * 64 * 4);
+            std::memcpy(processedPixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
+        }
+
+        spdlog::debug("ClientSkinManager: Expanded legacy 64x32 skin to 64x64");
+    } else if (width == 64 && height == 64) {
+        // 标准皮肤格式
+        finalWidth = 64;
+        finalHeight = 64;
+        processedPixels.resize(static_cast<size_t>(width * height * 4));
+        std::memcpy(processedPixels.data(), pixels, processedPixels.size());
+    } else {
+        stbi_image_free(pixels);
+        return Error(ErrorCode::InvalidData,
+                     "Invalid skin dimensions: " + std::to_string(width) + "x" + std::to_string(height));
+    }
+
+    stbi_image_free(pixels);
+
+    // 添加到纹理图集
+    auto result = m_textureAtlas->addTextureFromPixels(
+        processedPixels,
+        finalWidth,
+        finalHeight,
+        preferredLocation);
+
+    if (!result.success()) {
+        return result.error();
+    }
+
+    spdlog::info("ClientSkinManager: Uploaded skin to atlas: {} ({}x{})",
+                 preferredLocation.toString(), finalWidth, finalHeight);
 
     return preferredLocation;
 }

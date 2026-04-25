@@ -6,6 +6,7 @@
 #include "../../layer/cosmetic/ElytraLayer.hpp"
 #include "../../layer/entity/ArrowLayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::renderer::player {
 
@@ -47,6 +48,21 @@ void PlayerRenderer::render(Entity& entity, f64 partialTicks) {
     }
 }
 
+void PlayerRenderer::renderLayersPipeline(
+    Entity& entity,
+    VkCommandBuffer cmd,
+    const core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    auto& player = static_cast<::mc::Player&>(entity);
+
+    for (auto& layer : m_layers) {
+        if (layer && layer->shouldRender(player)) {
+            layer->renderPipeline(player, cmd, context, pipeline);
+        }
+    }
+}
+
 void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks) {
     // 设置模型可见性
     setModelVisibilities(player);
@@ -73,6 +89,17 @@ void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks) {
     // TODO: 需要在 PlayerModel 中添加单独渲染手臂的方法
     (void)player;
     (void)partialTicks;
+}
+
+void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTicks, core::AnimationContext& context) {
+    context.partialTicks = partialTicks;
+    context.limbSwing = getLimbSwing(player, partialTicks);
+    context.limbSwingAmount = getLimbSwingAmount(player, partialTicks);
+    context.ageInTicks = getAgeInTicks(player);
+    context.netHeadYaw = getHeadYaw(player, partialTicks);
+    context.headPitch = getHeadPitch(player, partialTicks);
+    context.scale = 1.0 / 16.0;
+    context.computeHash();
 }
 
 void PlayerRenderer::setModelVisibilities(::mc::Player& player) {
@@ -113,17 +140,6 @@ model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bo
 
     // 默认返回空手
     return model::player::ArmPose::Empty;
-
-    // 实际实现需要：
-    // 1. 获取手持物品
-    // 2. 检查物品使用状态
-    // 3. 根据 UseAction 确定姿态
-    // - UseAction::Block -> ArmPose::Block
-    // - UseAction::Bow -> ArmPose::BowAndArrow
-    // - UseAction::Spear -> ArmPose::ThrowSpear
-    // - UseAction::Crossbow (正在使用) -> ArmPose::CrossbowCharge
-    // - UseAction::Crossbow (已装填) -> ArmPose::CrossbowHold
-    // - 其他非空物品 -> ArmPose::Item
 }
 
 f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const {
@@ -173,28 +189,12 @@ f64 PlayerRenderer::getAgeInTicks(::mc::Player& player) const {
 void PlayerRenderer::setupLayers() {
     // 参考 MC 1.16.5 PlayerRenderer 构造函数
     // 添加层渲染器
+    // 注意：当前层渲染器需要完整实现 GPU 渲染路径才能启用
 
-    // 盔甲层 - 需要模板参数
-    // addLayer(equipment::ArmorLayer<::mc::Player, model::player::PlayerModel>(*this));
+    // 手持物品层 - 为玩家创建专用实现
+    // addLayer<PlayerHeldItemLayer>();
 
-    // 手持物品层
-    // addLayer(equipment::HeldItemLayer<::mc::Player>());
-
-    // 箭矢附着层
-    // addLayer(entity::ArrowLayer<::mc::Player>());
-
-    // 斗篷层
-    // addLayer(cosmetic::CapeLayer());
-
-    // 头部物品层
-    // addLayer(equipment::HeadLayer<::mc::Player>());
-
-    // 鞘翅层
-    // addLayer(cosmetic::ElytraLayer<::mc::Player>());
-
-    // 注意：层渲染器需要 LivingRenderer 提供 getModel() 方法
-    // PlayerRenderer 目前继承自 EntityRenderer，不继承 LivingRenderer
-    // 需要调整架构或将层渲染器的添加延迟到渲染系统完善后
+    spdlog::debug("PlayerRenderer: Layer setup complete (layers ready for GPU implementation)");
 }
 
 void registerPlayerRenderers(EntityRendererManager& manager) {

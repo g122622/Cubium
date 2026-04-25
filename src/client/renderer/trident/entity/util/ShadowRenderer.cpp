@@ -1,6 +1,11 @@
 #include "ShadowRenderer.hpp"
+#include "../pipeline/EntityPipeline.hpp"
+#include "../model/core/ModelRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::util {
 
@@ -9,26 +14,41 @@ bool ShadowRenderer::s_initialized = false;
 u32 ShadowRenderer::s_segments = 16;
 std::vector<f32> ShadowRenderer::s_shadowVertices;
 std::vector<u32> ShadowRenderer::s_shadowIndices;
+pipeline::EntityMesh* ShadowRenderer::s_shadowMesh = nullptr;
 
-// 阴影纹理UV坐标（参考MC 1.16.5）
+// 阴影常量（参考 MC 1.16.5）
+static constexpr f64 MAX_SHADOW_DISTANCE = 16.0;
 static constexpr f64 SHADOW_TEX_U = 0.0;
 static constexpr f64 SHADOW_TEX_V = 0.0;
-static constexpr f64 SHADOW_TEX_SIZE = 32.0 / 256.0;  // 阴影纹理在图集中的大小
+static constexpr f64 SHADOW_TEX_SIZE = 32.0 / 256.0;
 
-void ShadowRenderer::initialize(u32 segments) {
+bool ShadowRenderer::initialize(pipeline::EntityPipeline& pipeline) {
     if (s_initialized) {
-        return;
+        return true;
     }
 
-    s_segments = segments;
-    getShadowVertices(1.0, s_segments, s_shadowVertices, s_shadowIndices);
+    s_segments = 16;
+
+    // 创建阴影网格
+    if (!createShadowMesh(pipeline)) {
+        spdlog::error("ShadowRenderer: Failed to create shadow mesh");
+        return false;
+    }
+
     s_initialized = true;
+    spdlog::info("ShadowRenderer: Initialized successfully");
+    return true;
 }
 
 void ShadowRenderer::cleanup() {
     s_shadowVertices.clear();
     s_shadowIndices.clear();
+
+    // 网格由 EntityPipeline 管理，不需要手动删除
+    s_shadowMesh = nullptr;
+
     s_initialized = false;
+    spdlog::info("ShadowRenderer: Cleaned up");
 }
 
 bool ShadowRenderer::isInitialized() {
@@ -39,10 +59,43 @@ void ShadowRenderer::renderShadow(
     Entity& entity,
     f64 partialTicks,
     f64 shadowRadius,
-    f64 shadowAlpha
-) {
+    f64 shadowAlpha)
+{
+    // CPU 路径 - 已废弃，仅保持向后兼容
     if (!s_initialized) {
-        initialize();
+        // 没有管线时无法初始化
+        return;
+    }
+
+    // 计算透明度
+    f64 alpha = computeShadowAlpha(entity, partialTicks, shadowRadius, shadowAlpha);
+    if (alpha <= 0.0) {
+        return;
+    }
+
+    // CPU 路径无法执行实际渲染
+    // 需要使用 GPU 路径
+    (void)partialTicks;
+    (void)shadowRadius;
+    (void)shadowAlpha;
+}
+
+void ShadowRenderer::renderShadow(
+    VkCommandBuffer cmd,
+    Entity& entity,
+    f64 partialTicks,
+    f64 shadowRadius,
+    f64 shadowAlpha,
+    pipeline::EntityPipeline& pipeline)
+{
+    if (!s_initialized) {
+        if (!initialize(pipeline)) {
+            return;
+        }
+    }
+
+    if (!s_shadowMesh || s_shadowMesh->indexCount == 0) {
+        return;
     }
 
     // 计算透明度
@@ -56,64 +109,175 @@ void ShadowRenderer::renderShadow(
     f64 y = entity.y();
     f64 z = entity.z();
 
-    // 参考 MC 1.16.5 EntityRenderer.renderShadow()
-    // 阴影需要渲染在地面上
-    // TODO: 使用射线检测获取实际地面高度
-    // 当前简化实现：假设实体在地面上
-    f64 groundY = y;
+    // 获取插值位置
+    f64 prevX = entity.prevX();
+    f64 prevY = entity.prevY();
+    f64 prevZ = entity.prevZ();
+    f64 interpX = prevX + (x - prevX) * partialTicks;
+    f64 interpY = prevY + (y - prevY) * partialTicks;
+    f64 interpZ = prevZ + (z - prevZ) * partialTicks;
 
-    // 参考 MC 1.16.5：阴影渲染需要：
-    // 1. 绑定阴影纹理（在实体纹理图集中）
-    // 2. 设置变换矩阵（位置、缩放）
-    // 3. 绘制圆盘网格
-    // 4. 应用透明度混合
+    // 尝试获取地面高度
+    f64 groundY = interpY;  // 默认假设在地面上
 
-    // 当前暂不执行实际渲染，等待渲染管线支持
-    // 需要的渲染管线功能：
-    // - 实体渲染管线支持透明材质
-    // - 阴影纹理绑定
-    // - 实例化渲染支持
+    // 如果实体有世界引用，尝试获取实际地面高度
+    auto* world = entity.world();
+    if (world) {
+        // 简化：假设地面就是实体所在高度的下方
+        // TODO: 实际射线检测获取精确地面高度
+        // 这里使用一个简化的方法：向下扫描几个方块
+        for (int dy = 0; dy <= static_cast<int>(MAX_SHADOW_DISTANCE); ++dy) {
+            i32 checkY = static_cast<i32>(interpY) - dy;
+            auto blockState = world->getBlockState(
+                static_cast<i32>(std::floor(interpX)),
+                checkY,
+                static_cast<i32>(std::floor(interpZ))
+            );
+            if (blockState && !blockState->isAir()) {
+                groundY = static_cast<f64>(checkY + 1);  // 地面高度是方块上方
+                break;
+            }
+        }
+    }
 
-    (void)x;
-    (void)groundY;
-    (void)z;
-    (void)shadowRadius;
-    (void)alpha;
+    // 计算阴影高度差（用于透明度衰减）
+    f64 heightAboveGround = interpY - groundY;
+    if (heightAboveGround > MAX_SHADOW_DISTANCE) {
+        return;  // 太高，不渲染阴影
+    }
+
+    // 计算缩放因子（距离越远阴影越大但越淡）
+    f64 scale = shadowRadius;
+
+    // 模型矩阵：单位矩阵，稍后在绘制时应用位置和缩放
+    std::array<f64, 16> modelMatrix = {
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    };
+
+    // 位置：阴影在地面上
+    Vector3f position(
+        static_cast<f32>(interpX),
+        static_cast<f32>(groundY + 0.01),  // 略高于地面避免 z-fighting
+        static_cast<f32>(interpZ)
+    );
+
+    // 绘制阴影网格
+    // 注意：需要透明混合模式，这需要 EntityPipeline 支持
+    // 当前实现：使用与实体相同的绘制方法，透明度通过 alpha 参数传递
+    // TODO: 添加专门的透明渲染通道
+
+    // 绘制阴影（使用缩放后的网格）
+    pipeline.drawMesh(cmd, *s_shadowMesh, modelMatrix, position, static_cast<f32>(scale));
+
+    (void)alpha;  // TODO: 将 alpha 传递给着色器
+}
+
+bool ShadowRenderer::createShadowMesh(pipeline::EntityPipeline& pipeline) {
+    // 生成阴影圆盘顶点
+    std::vector<model::ModelVertex> vertices;
+    std::vector<u32> indices;
+
+    const f64 radius = 1.0;
+
+    // 中心点
+    model::ModelVertex centerVertex;
+    centerVertex.position = Vector3f(0.0f, 0.0f, 0.0f);
+    centerVertex.texCoord = Vector2f(0.5f, 0.5f);
+    centerVertex.normal = Vector3f(0.0f, 1.0f, 0.0f);
+    vertices.push_back(centerVertex);
+
+    // 圆周顶点
+    for (u32 i = 0; i <= s_segments; ++i) {
+        f64 angle = static_cast<f64>(i) / static_cast<f64>(s_segments) * 2.0 * 3.14159265359;
+        f64 x = std::cos(angle) * radius;
+        f64 z = std::sin(angle) * radius;
+
+        model::ModelVertex vertex;
+        vertex.position = Vector3f(
+            static_cast<f32>(x),
+            0.0f,
+            static_cast<f32>(z)
+        );
+        vertex.texCoord = Vector2f(
+            static_cast<f32>(0.5 + 0.5 * std::cos(angle)),
+            static_cast<f32>(0.5 + 0.5 * std::sin(angle))
+        );
+        vertex.normal = Vector3f(0.0f, 1.0f, 0.0f);
+        vertices.push_back(vertex);
+    }
+
+    // 创建三角形索引（扇形）
+    for (u32 i = 1; i <= s_segments; ++i) {
+        indices.push_back(0);      // 中心点
+        indices.push_back(i);      // 当前圆周点
+        indices.push_back(i + 1);  // 下一个圆周点
+    }
+
+    // 创建网格
+    auto result = pipeline.createMesh(vertices, indices);
+    if (!result.success()) {
+        spdlog::error("ShadowRenderer: Failed to create shadow mesh");
+        return false;
+    }
+
+    // 存储网格（注意：这里需要管理内存）
+    // TODO: 使用适当的网格管理
+    static pipeline::EntityMesh shadowMeshStorage = result.value();
+    s_shadowMesh = &shadowMeshStorage;
+
+    spdlog::debug("ShadowRenderer: Created shadow mesh with {} vertices, {} indices",
+                  vertices.size(), indices.size());
+    return true;
 }
 
 f64 ShadowRenderer::computeShadowAlpha(
     Entity& entity,
     f64 partialTicks,
     f64 shadowRadius,
-    f64 baseAlpha
-) {
+    f64 baseAlpha)
+{
     (void)partialTicks;
 
-    // 参考 MC 1.16.5 EntityRenderer.getShadowOpacity()
-    // 阴影透明度随高度衰减
-    // 基础透明度 * (1 - height / maxDistance)
-
     // 获取实体到地面的距离
-    // TODO: 实际射线检测
-    // 当前使用简化计算
-    f64 entityHeight = static_cast<f64>(entity.height());
+    f64 entityY = entity.y();
+    f64 groundY = entityY;  // 默认假设在地面上
 
-    // 最大阴影距离（MC 1.16.5 默认值）
-    static constexpr f64 MAX_SHADOW_DISTANCE = 16.0;
+    // 如果实体有世界引用，尝试获取实际地面高度
+    auto* world = entity.world();
+    if (world) {
+        // 简化：向下扫描获取地面高度
+        for (int dy = 0; dy <= static_cast<int>(MAX_SHADOW_DISTANCE); ++dy) {
+            i32 checkY = static_cast<i32>(entityY) - dy;
+            auto blockState = world->getBlockState(
+                static_cast<i32>(std::floor(entity.x())),
+                checkY,
+                static_cast<i32>(std::floor(entity.z()))
+            );
+            if (blockState && !blockState->isAir()) {
+                groundY = static_cast<f64>(checkY + 1);
+                break;
+            }
+        }
+    }
+
+    f64 heightAboveGround = entityY - groundY;
 
     // 如果实体太高，不渲染阴影
-    if (entityHeight > MAX_SHADOW_DISTANCE) {
+    if (heightAboveGround > MAX_SHADOW_DISTANCE) {
         return 0.0;
     }
 
     // 计算透明度衰减
-    f64 heightFactor = 1.0 - (entityHeight / MAX_SHADOW_DISTANCE);
+    // 参考 MC 1.16.5 EntityRenderer.getShadowOpacity()
+    f64 heightFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
     if (heightFactor < 0.0) {
         heightFactor = 0.0;
     }
 
     // 考虑阴影半径的影响
-    // MC 1.16.5: 更大的阴影半径会有更平滑的边缘
     f64 radiusFactor = shadowRadius > 0.0 ? std::min(shadowRadius / 0.5, 1.0) : 1.0;
 
     return baseAlpha * heightFactor * radiusFactor;
@@ -123,22 +287,19 @@ void ShadowRenderer::getShadowVertices(
     f64 radius,
     u32 segments,
     std::vector<f32>& vertices,
-    std::vector<u32>& indices
-) {
+    std::vector<u32>& indices)
+{
     vertices.clear();
     indices.clear();
-
-    // 参考 MC 1.16.5: 阴影是一个水平圆盘
-    // 顶点格式：位置(3) + 纹理坐标(2) + 法线(3)
 
     // 中心点
     vertices.push_back(0.0f);  // x
     vertices.push_back(0.0f);  // y
     vertices.push_back(0.0f);  // z
-    vertices.push_back(0.5f);  // u（纹理中心）
+    vertices.push_back(0.5f);  // u
     vertices.push_back(0.5f);  // v
     vertices.push_back(0.0f);  // nx
-    vertices.push_back(1.0f);  // ny（向上）
+    vertices.push_back(1.0f);  // ny
     vertices.push_back(0.0f);  // nz
 
     // 圆周顶点
@@ -150,7 +311,6 @@ void ShadowRenderer::getShadowVertices(
         vertices.push_back(static_cast<f32>(x));   // x
         vertices.push_back(0.0f);                    // y
         vertices.push_back(static_cast<f32>(z));   // z
-        // UV坐标映射到阴影纹理
         vertices.push_back(static_cast<f32>(0.5 + 0.5 * std::cos(angle)));  // u
         vertices.push_back(static_cast<f32>(0.5 + 0.5 * std::sin(angle)));  // v
         vertices.push_back(0.0f);  // nx
@@ -158,7 +318,7 @@ void ShadowRenderer::getShadowVertices(
         vertices.push_back(0.0f);  // nz
     }
 
-    // 创建三角形索引（扇形）
+    // 创建三角形索引
     for (u32 i = 1; i <= segments; ++i) {
         indices.push_back(0);      // 中心点
         indices.push_back(i);      // 当前圆周点

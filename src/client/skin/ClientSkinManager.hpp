@@ -126,6 +126,17 @@ public:
         { return *m_textureAtlas; }
 
     /**
+     * @brief 获取可修改的纹理图集引用
+     */
+    renderer::entity::pipeline::EntityTextureAtlas& textureAtlas()
+        { return *m_textureAtlas; }
+
+    /**
+     * @brief 检查纹理图集是否需要重建
+     */
+    [[nodiscard]] bool needsAtlasRebuild() const { return m_textureAtlas->needsRebuild(); }
+
+    /**
      * @brief 重建纹理图集
      *
      * 在新皮肤添加后调用，重新打包所有皮肤纹理。

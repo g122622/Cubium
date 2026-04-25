@@ -2,6 +2,7 @@
 
 #include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
+#include <vulkan/vulkan.h>
 #include <memory>
 
 namespace mc {
@@ -39,7 +40,17 @@ public:
     ~HeldItemLayer() override = default;
 
     /**
-     * @brief 渲染手持物品层
+     * @brief 渲染手持物品层（GPU管线路径）
+     */
+    void renderPipeline(
+        TEntity& entity,
+        VkCommandBuffer cmd,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) override;
+
+    /**
+     * @brief 渲染手持物品层（CPU路径 - 已废弃）
      */
     void render(
         TEntity& entity,
@@ -59,13 +70,18 @@ public:
 
 protected:
     /**
-     * @brief 渲染特定手的物品
-     * @param entity 实体
-     * @param hand 手部类型
-     * @param limbSwing 步态动画周期
-     * @param limbSwingAmount 步态动画强度
-     * @param partialTicks 部分 tick
-     * @param scale 缩放因子
+     * @brief 渲染特定手的物品（GPU管线路径）
+     */
+    virtual void renderHandItemPipeline(
+        TEntity& entity,
+        HandSide hand,
+        VkCommandBuffer cmd,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    );
+
+    /**
+     * @brief 渲染特定手的物品（CPU路径 - 已废弃）
      */
     virtual void renderHandItem(
         TEntity& entity,
@@ -78,9 +94,6 @@ protected:
 
     /**
      * @brief 获取手持物品
-     * @param entity 实体
-     * @param hand 手部类型
-     * @return 物品堆，如果没有则返回 nullptr
      */
     [[nodiscard]] virtual const ItemStack* getHeldItem(
         const TEntity& entity,
@@ -88,15 +101,14 @@ protected:
     ) const;
 
     /**
-     * @brief 应用物品变换
-     * @param hand 手部类型
-     * @param limbSwing 步态动画周期
-     * @param limbSwingAmount 步态动画强度
+     * @brief 计算手持物品变换矩阵
      */
-    virtual void applyItemTransform(
+    virtual void computeItemTransform(
         HandSide hand,
         f32 limbSwing,
-        f32 limbSwingAmount
+        f32 limbSwingAmount,
+        f32 swingProgress,
+        std::array<f64, 16>& outMatrix
     );
 };
 

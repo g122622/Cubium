@@ -2,11 +2,17 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <vulkan/vulkan.h>
 #include <vector>
 
 namespace mc {
 
 class Entity;
+
+namespace client::renderer::entity::pipeline {
+class EntityPipeline;  // 前向声明
+struct EntityMesh;     // 前向声明
+}
 
 namespace client::renderer::entity::util {
 
@@ -21,31 +27,15 @@ namespace client::renderer::entity::util {
 class ShadowRenderer {
 public:
     /**
-     * @brief 渲染实体阴影
+     * @brief 初始化阴影渲染器
      *
-     * @param entity 实体
-     * @param partialTicks 部分 tick
-     * @param shadowRadius 阴影半径
-     * @param shadowAlpha 阴影透明度
+     * @param pipeline 实体渲染管线
+     * @return 成功或错误
      */
-    static void renderShadow(
-        Entity& entity,
-        f64 partialTicks,
-        f64 shadowRadius,
-        f64 shadowAlpha
-    );
+    static bool initialize(pipeline::EntityPipeline& pipeline);
 
     /**
-     * @brief 设置阴影网格
-     *
-     * 初始化阴影圆盘网格数据。
-     *
-     * @param segments 圆盘分段数（默认 16）
-     */
-    static void initialize(u32 segments = 16);
-
-    /**
-     * @brief 清理阴影网格资源
+     * @brief 清理阴影渲染器资源
      */
     static void cleanup();
 
@@ -54,17 +44,45 @@ public:
      */
     [[nodiscard]] static bool isInitialized();
 
-private:
     /**
-     * @brief 计算阴影透明度
+     * @brief 渲染实体阴影（GPU管线路径）
      *
-     * 根据实体高度和阴影半径计算透明度衰减。
-     *
+     * @param cmd Vulkan 命令缓冲区
      * @param entity 实体
      * @param partialTicks 部分 tick
      * @param shadowRadius 阴影半径
-     * @param baseAlpha 基础透明度
-     * @return 调整后的透明度
+     * @param shadowAlpha 阴影透明度
+     * @param pipeline 实体渲染管线
+     */
+    static void renderShadow(
+        VkCommandBuffer cmd,
+        Entity& entity,
+        f64 partialTicks,
+        f64 shadowRadius,
+        f64 shadowAlpha,
+        pipeline::EntityPipeline& pipeline
+    );
+
+    /**
+     * @brief 渲染实体阴影（CPU路径 - 已废弃）
+     *
+     * @deprecated 使用 renderShadow(cmd, entity, ...) 代替
+     */
+    static void renderShadow(
+        Entity& entity,
+        f64 partialTicks,
+        f64 shadowRadius,
+        f64 shadowAlpha
+    );
+
+private:
+    /**
+     * @brief 创建阴影网格
+     */
+    static bool createShadowMesh(pipeline::EntityPipeline& pipeline);
+
+    /**
+     * @brief 计算阴影透明度
      */
     [[nodiscard]] static f64 computeShadowAlpha(
         Entity& entity,
@@ -75,11 +93,6 @@ private:
 
     /**
      * @brief 获取阴影圆盘顶点
-     *
-     * @param radius 半径
-     * @param segments 分段数
-     * @param vertices 输出顶点
-     * @param indices 输出索引
      */
     static void getShadowVertices(
         f64 radius,
@@ -92,6 +105,7 @@ private:
     static u32 s_segments;
     static std::vector<f32> s_shadowVertices;
     static std::vector<u32> s_shadowIndices;
+    static pipeline::EntityMesh* s_shadowMesh;
 };
 
 } // namespace mc::client::renderer::entity::util

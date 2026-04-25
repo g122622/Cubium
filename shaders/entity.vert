@@ -12,12 +12,18 @@ layout(location = 0) out vec3 fragNormal;
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec4 fragColor;
 layout(location = 3) out float fragLight;
+layout(location = 4) out vec2 fragOverlayUV;
 
 // 推送常量 - 模型矩阵
 layout(push_constant) uniform PushConstants {
     mat4 model;
     vec3 entityPos;      // 实体世界位置
     float scale;         // 缩放因子
+    vec4 overlayColor;   // 覆盖层颜色 (受伤闪烁/道德效果)
+    float hurtTime;      // 受伤时间 (0-10)
+    float deathTime;     // 死亡时间
+    float _padding0;
+    float _padding1;
 } pc;
 
 // 描述符集 0 - 相机UBO
@@ -69,4 +75,9 @@ void main() {
     float skyVisibility = clamp(lighting.sunIntensity + lighting.moonIntensity * 0.35, 0.0, 1.0);
     float ambient = 0.18 + 0.12 * skyVisibility;
     fragLight = clamp(ambient + sunDiffuse + moonDiffuse, 0.0, 1.0);
+
+    // 计算覆盖层 UV（受伤闪烁/道德效果）
+    // MC 1.16.5: U = hurtTime / 10.0 * 16.0, V = 0
+    // 道德效果时 U 固定为 3.0
+    fragOverlayUV = vec2(pc.hurtTime / 10.0 * 16.0, 0.0);
 }

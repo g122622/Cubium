@@ -184,7 +184,7 @@ private:
     u32 m_width = 0;
     u32 m_height = 0;
 
-    // 纹理数据（构建前）
+    // 纹理数据（持久化存储，用于重建）
     struct TextureData {
         std::vector<u8> pixels;
         u32 width = 0;
@@ -193,7 +193,7 @@ private:
     };
     std::vector<TextureData> m_textures;
 
-    // 等待添加的纹理（构建后）
+    // 等待添加的纹理（构建后添加）
     std::vector<TextureData> m_queuedTextures;
 
     // 纹理区域映射
