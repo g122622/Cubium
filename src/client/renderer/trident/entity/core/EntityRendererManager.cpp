@@ -23,6 +23,7 @@
 #include "../renderer/projectile/ItemEntityRenderer.hpp"
 #include "../renderer/projectile/ExperienceOrbRenderer.hpp"
 #include "../pipeline/EntityTextureAtlas.hpp"
+#include "../util/ShadowRenderer.hpp"
 #include "client/resource/EntityTextureLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/world/entity/ClientEntity.hpp"
@@ -34,6 +35,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector4.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
 
@@ -224,7 +226,8 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
             static_cast<f32>(posInterp.z));
 
         // 绘制网格（使用更大的缩放）
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f);
+        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE * 16.0f,
+                             Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
     } else if (isExperienceOrb) {
         // ExperienceOrb 特殊渲染：应用浮动动画和动态大小
         f64 bobOffset = calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
@@ -248,7 +251,8 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
             static_cast<f32>(posInterp.z));
 
         // 绘制网格
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale);
+        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale,
+                             Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
     } else {
         // 普通实体渲染
         // MC 实体模型局部坐标系的 Y 轴方向与世界坐标相反，先做一次 Y 翻转
@@ -275,14 +279,31 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
             static_cast<f32>(posInterp.y),
             static_cast<f32>(posInterp.z));
 
-        // 绘制网格
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE);
+        // 获取受伤和死亡时间（用于着色器效果）
+        f32 hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;  // 归一化到 0-1
+        f32 deathTime = static_cast<f32>(entity.deathTime());
 
-        // TODO: 渲染层（盔甲、手持物品等）
-        // 需要 ClientEntity 到 Entity 的映射或修改层渲染接口
+        // 绘制网格
+        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, MODEL_SCALE,
+                             Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+
+        // 渲染层（盔甲、手持物品等）
+        // 注意：层渲染器需要 Entity 引用，当前 ClientEntity 不继承 Entity
+        // 层渲染器将在 PlayerRenderer 等具体渲染器中直接调用
+        // 此处的 renderer->renderLayersPipeline 需要 Entity 对象
+        // TODO: 当 ClientEntity -> Entity 映射完成后启用此代码
         // if (renderer && renderer->supportsLayers()) {
         //     renderer->renderLayersPipeline(entity, cmd, context, *m_pipeline);
         // }
+
+        // 渲染阴影
+        if (m_renderShadows && !isItemEntity && !isExperienceOrb) {
+            // 获取阴影半径（基于实体宽度）
+            f64 shadowRadius = static_cast<f64>(entity.width()) * 0.5;
+            f64 shadowAlpha = 0.3;  // 基础阴影透明度
+
+            util::ShadowRenderer::renderShadow(cmd, entity, partialTicks, shadowRadius, shadowAlpha, *m_pipeline);
+        }
     }
 
     // 恢复实体纹理图集（如果为 ItemEntity）

@@ -20,39 +20,6 @@ class EntityPipeline;  // 前向声明
 namespace mc::client::renderer::entity::renderer::player {
 
 /**
- * @brief 玩家层渲染器基类
- *
- * 简化版层渲染器，用于玩家实体。
- */
-class PlayerLayerRenderer {
-public:
-    virtual ~PlayerLayerRenderer() = default;
-
-    /**
-     * @brief 渲染层（GPU管线路径）
-     */
-    virtual void renderPipeline(
-        ::mc::Player& player,
-        VkCommandBuffer cmd,
-        const core::AnimationContext& context,
-        pipeline::EntityPipeline& pipeline
-    ) {
-        (void)player;
-        (void)cmd;
-        (void)context;
-        (void)pipeline;
-    }
-
-    /**
-     * @brief 检查是否应该渲染此层
-     */
-    [[nodiscard]] virtual bool shouldRender(const ::mc::Player& player) const {
-        (void)player;
-        return true;
-    }
-};
-
-/**
  * @brief 玩家渲染器
  *
  * 参考 MC 1.16.5 PlayerRenderer
@@ -149,7 +116,7 @@ public:
     // ========== 层渲染器管理 ==========
 
     /**
-     * @brief 添加层渲染器
+     * @brief 添加层渲染器（使用 LayerRenderer<Player> 模板）
      */
     template<typename TLayer, typename... TArgs>
     void addLayer(TArgs&&... args) {
@@ -210,8 +177,8 @@ private:
     model::player::PlayerModel m_model;
     bool m_slimArms;  // 是否使用纤细手臂
 
-    // 层渲染器
-    std::vector<std::unique_ptr<PlayerLayerRenderer>> m_layers;
+    // 层渲染器 - 使用 LayerRenderer<Player> 模板类型
+    std::vector<std::unique_ptr<layer::core::LayerRenderer<::mc::Player>>> m_layers;
 
     // 皮肤纹理区域
     const TextureRegion* m_skinRegion = nullptr;

@@ -1,9 +1,11 @@
 #include "ShadowRenderer.hpp"
 #include "../pipeline/EntityPipeline.hpp"
 #include "../model/core/ModelRenderer.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -78,6 +80,74 @@ void ShadowRenderer::renderShadow(
     (void)partialTicks;
     (void)shadowRadius;
     (void)shadowAlpha;
+}
+
+void ShadowRenderer::renderShadow(
+    VkCommandBuffer cmd,
+    ClientEntity& entity,
+    f64 partialTicks,
+    f64 shadowRadius,
+    f64 shadowAlpha,
+    pipeline::EntityPipeline& pipeline)
+{
+    if (!s_initialized) {
+        if (!initialize(pipeline)) {
+            return;
+        }
+    }
+
+    if (!s_shadowMesh || s_shadowMesh->indexCount == 0) {
+        return;
+    }
+
+    // 计算透明度
+    f64 alpha = computeShadowAlpha(entity, partialTicks, shadowRadius, shadowAlpha);
+    if (alpha <= 0.0) {
+        return;
+    }
+
+    // 获取插值位置
+    Vector3 posInterp = entity.getInterpolatedPosition(static_cast<f32>(partialTicks));
+    f64 interpX = posInterp.x;
+    f64 interpY = posInterp.y;
+    f64 interpZ = posInterp.z;
+
+    // 默认地面高度为实体当前位置下方
+    f64 groundY = interpY - entity.height();
+
+    // 简化：使用实体高度作为地面检测
+    // TODO: 实际射线检测获取精确地面高度
+    // 当前假设实体站在地面上
+
+    // 计算阴影高度差（用于透明度衰减）
+    f64 heightAboveGround = interpY - groundY;
+    if (heightAboveGround > MAX_SHADOW_DISTANCE) {
+        return;  // 太高，不渲染阴影
+    }
+
+    // 计算缩放因子
+    f64 scale = shadowRadius;
+
+    // 模型矩阵：单位矩阵
+    std::array<f64, 16> modelMatrix = {
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    };
+
+    // 位置：阴影在地面上
+    Vector3f position(
+        static_cast<f32>(interpX),
+        static_cast<f32>(groundY + 0.01),  // 略高于地面避免 z-fighting
+        static_cast<f32>(interpZ)
+    );
+
+    // 绘制阴影（使用透明度）
+    // 阴影颜色为半透明黑色
+    Vector4f overlayColor(0.0f, 0.0f, 0.0f, static_cast<f32>(alpha));
+    pipeline.drawMesh(cmd, *s_shadowMesh, modelMatrix, position, static_cast<f32>(scale),
+                      overlayColor, 0.0f, 0.0f);
 }
 
 void ShadowRenderer::renderShadow(
@@ -164,15 +234,11 @@ void ShadowRenderer::renderShadow(
         static_cast<f32>(interpZ)
     );
 
-    // 绘制阴影网格
-    // 注意：需要透明混合模式，这需要 EntityPipeline 支持
-    // 当前实现：使用与实体相同的绘制方法，透明度通过 alpha 参数传递
-    // TODO: 添加专门的透明渲染通道
-
-    // 绘制阴影（使用缩放后的网格）
-    pipeline.drawMesh(cmd, *s_shadowMesh, modelMatrix, position, static_cast<f32>(scale));
-
-    (void)alpha;  // TODO: 将 alpha 传递给着色器
+    // 绘制阴影（使用透明度）
+    // 阴影颜色为半透明黑色
+    Vector4f overlayColor(0.0f, 0.0f, 0.0f, static_cast<f32>(alpha));
+    pipeline.drawMesh(cmd, *s_shadowMesh, modelMatrix, position, static_cast<f32>(scale),
+                      overlayColor, 0.0f, 0.0f);
 }
 
 bool ShadowRenderer::createShadowMesh(pipeline::EntityPipeline& pipeline) {
@@ -264,6 +330,36 @@ f64 ShadowRenderer::computeShadowAlpha(
     }
 
     f64 heightAboveGround = entityY - groundY;
+
+    // 如果实体太高，不渲染阴影
+    if (heightAboveGround > MAX_SHADOW_DISTANCE) {
+        return 0.0;
+    }
+
+    // 计算透明度衰减
+    // 参考 MC 1.16.5 EntityRenderer.getShadowOpacity()
+    f64 heightFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
+    if (heightFactor < 0.0) {
+        heightFactor = 0.0;
+    }
+
+    // 考虑阴影半径的影响
+    f64 radiusFactor = shadowRadius > 0.0 ? std::min(shadowRadius / 0.5, 1.0) : 1.0;
+
+    return baseAlpha * heightFactor * radiusFactor;
+}
+
+f64 ShadowRenderer::computeShadowAlpha(
+    ClientEntity& entity,
+    f64 partialTicks,
+    f64 shadowRadius,
+    f64 baseAlpha)
+{
+    (void)partialTicks;
+
+    // 获取实体高度（假设站在地面上）
+    f64 entityHeight = static_cast<f64>(entity.height());
+    f64 heightAboveGround = entityHeight;  // 假设实体站在地面上
 
     // 如果实体太高，不渲染阴影
     if (heightAboveGround > MAX_SHADOW_DISTANCE) {

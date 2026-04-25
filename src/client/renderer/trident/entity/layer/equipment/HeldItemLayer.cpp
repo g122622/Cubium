@@ -1,13 +1,22 @@
 #include "HeldItemLayer.hpp"
 #include "../../core/AnimationContext.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
+#include "../../../item/ItemMeshBuilder.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/util/math/Vector4.hpp"
+#include "client/resource/ItemTextureAtlas.hpp"
 #include <cmath>
+#include <unordered_map>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::equipment {
+
+// 静态网格缓存（用于手持物品）
+static std::unordered_map<u32, pipeline::EntityMesh> s_heldItemMeshCache;
+static bool s_cacheInitialized = false;
 
 template<typename TEntity>
 void HeldItemLayer<TEntity>::renderPipeline(
@@ -80,16 +89,65 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(
         itemTransform
     );
 
-    // TODO: 实现 3D 物品渲染
-    // 需要 ItemMeshBuilder 来生成物品网格
-    // 当前作为占位符，仅记录日志
-    spdlog::trace("HeldItemLayer: Rendering item '{}' in {} hand (GPU pipeline)",
+    // 获取物品ID用于缓存
+    u32 itemId = static_cast<u32>(item->getItem()->itemId());
+
+    // 获取或创建物品网格
+    auto it = s_heldItemMeshCache.find(itemId);
+    if (it == s_heldItemMeshCache.end()) {
+        // 构建物品网格
+        auto transformType = (hand == HandSide::MainHand)
+            ? item::ItemTransformType::ThirdPersonRightHand
+            : item::ItemTransformType::ThirdPersonLeftHand;
+
+        auto [vertices, indices] = item::ItemMeshBuilder::buildHeldItemMesh(*item, transformType);
+
+        if (vertices.empty() || indices.empty()) {
+            return;
+        }
+
+        // 创建 GPU 网格
+        auto result = pipeline.createMesh(vertices, indices);
+        if (!result.success()) {
+            spdlog::warn("HeldItemLayer: Failed to create mesh for item {}",
+                         item->getItem()->itemLocation().toString());
+            return;
+        }
+
+        s_heldItemMeshCache[itemId] = std::move(result.value());
+        it = s_heldItemMeshCache.find(itemId);
+    }
+
+    if (it == s_heldItemMeshCache.end() || it->second.indexCount == 0) {
+        return;
+    }
+
+    // 获取实体的世界位置
+    Vector3f entityPos(
+        static_cast<f32>(entity.x()),
+        static_cast<f32>(entity.y()),
+        static_cast<f32>(entity.z())
+    );
+
+    // 结合实体位置和物品变换
+    // 物品变换是相对于实体身体坐标系的
+    std::array<f64, 16> worldTransform = itemTransform;
+
+    // 绘制物品网格
+    // 使用实体的 hurtTime 和 deathTime 来传递受伤效果
+    f32 hurtTime = 0.0f;
+    f32 deathTime = 0.0f;
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
+        deathTime = static_cast<f32>(entity.deathTime());
+    }
+
+    pipeline.drawMesh(cmd, it->second, worldTransform, entityPos, 1.0,
+                      Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+
+    spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand",
                   item->getItem()->itemLocation().toString(),
                   hand == HandSide::MainHand ? "main" : "off");
-
-    (void)cmd;
-    (void)pipeline;
-    (void)itemTransform;
 }
 
 template<typename TEntity>
@@ -182,5 +240,6 @@ void HeldItemLayer<TEntity>::computeItemTransform(
 
 // 显式实例化常用类型
 template class HeldItemLayer<::mc::LivingEntity>;
+template class HeldItemLayer<::mc::Player>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

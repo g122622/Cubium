@@ -443,6 +443,18 @@ public:
      */
     void setAirSupply(i32 air) { m_airSupply = air; }
 
+    // ========== 受伤/死亡 ==========
+
+    /**
+     * @brief 获取受伤时间（无敌帧）
+     */
+    [[nodiscard]] i32 hurtTime() const { return m_hurtTime; }
+
+    /**
+     * @brief 获取死亡时间
+     */
+    [[nodiscard]] i32 deathTime() const { return m_deathTime; }
+
     // ========== 视野晃动 ==========
 
     /**
@@ -710,8 +722,8 @@ private:
 
     i32 m_jumpTicks = 0;             // 跳跃冷却
     i32 sleepTimer = 0;
-    i32 hurtTime = 0;
-    i32 deathTime = 0;
+    i32 m_hurtTime = 0;
+    i32 m_deathTime = 0;
 
     // 自动跳跃系统
     entity::movement::AutoJump m_autoJump;

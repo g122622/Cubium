@@ -67,6 +67,7 @@ add_executable(minecraft-client
     renderer/trident/gui/GuiSpriteRegistry.cpp
     renderer/trident/gui/GuiTextureLoader.cpp
     renderer/trident/item/ItemRenderer.cpp
+    renderer/trident/item/ItemMeshBuilder.cpp
     # 实体渲染系统
     renderer/trident/entity/core/EntityRenderer.cpp
     renderer/trident/entity/core/EntityRendererManager.cpp

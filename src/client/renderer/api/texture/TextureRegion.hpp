@@ -4,6 +4,9 @@
 
 namespace mc::client::renderer::api {
 
+// Forward declaration
+class ITexture;
+
 /**
  * @brief 纹理区域 (UV坐标)
  *

@@ -1,7 +1,7 @@
 #include "ItemMeshBuilder.hpp"
-#include "common/item/ItemStack.hpp"
-#include "common/item/Item.hpp"
-#include "client/renderer/MeshTypes.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/Item.hpp"
+#include "client/renderer/api/texture/TextureRegion.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -134,7 +134,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
 }
 
 std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::buildIconMesh(
-    const ::mc::TextureRegion& region,
+    const ::mc::client::renderer::api::TextureRegion& region,
     f64 size)
 {
     std::vector<model::ModelVertex> vertices;
@@ -292,7 +292,7 @@ std::array<f64, 16> ItemMeshBuilder::getItemTransform(
 }
 
 void ItemMeshBuilder::buildItemQuad(
-    const ::mc::TextureRegion& region,
+    const ::mc::client::renderer::api::TextureRegion& region,
     f64 size,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
@@ -306,37 +306,11 @@ void ItemMeshBuilder::buildItemQuad(
     f32 u1 = static_cast<f32>(region.u1);
     f32 v1 = static_cast<f32>(region.v1);
 
-    // 四个顶点
-    model::ModelVertex v0, v1, v2, v3;
-
-    // 左上
-    v0.position = Vector3f(static_cast<f32>(-halfSize), static_cast<f32>(-halfSize), 0.0f);
-    v0.texCoord = Vector2f(u0, v0);
-    v0.normal = Vector3f(0.0f, 0.0f, 1.0f);
-    v0.color = Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-
-    // 右上
-    v1.position = Vector3f(static_cast<f32>(halfSize), static_cast<f32>(-halfSize), 0.0f);
-    v1.texCoord = Vector2f(u1, v0);
-    v1.normal = Vector3f(0.0f, 0.0f, 1.0f);
-    v1.color = Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-
-    // 右下
-    v2.position = Vector3f(static_cast<f32>(halfSize), static_cast<f32>(halfSize), 0.0f);
-    v2.texCoord = Vector2f(u1, v1);
-    v2.normal = Vector3f(0.0f, 0.0f, 1.0f);
-    v2.color = Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-
-    // 左下
-    v3.position = Vector3f(static_cast<f32>(-halfSize), static_cast<f32>(halfSize), 0.0f);
-    v3.texCoord = Vector2f(u0, v1);
-    v3.normal = Vector3f(0.0f, 0.0f, 1.0f);
-    v3.color = Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-
-    vertices.push_back(v0);
-    vertices.push_back(v1);
-    vertices.push_back(v2);
-    vertices.push_back(v3);
+    // 四个顶点 - ModelVertex(x, y, z, u, v, nx, ny, nz)
+    vertices.push_back(model::ModelVertex(-halfSize, -halfSize, 0.0, u0, v0, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(halfSize, -halfSize, 0.0, u1, v0, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(halfSize, halfSize, 0.0, u1, v1, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(-halfSize, halfSize, 0.0, u0, v1, 0.0, 0.0, 1.0));
 
     // 两个三角形
     indices.push_back(0);
@@ -369,34 +343,19 @@ void ItemMeshBuilder::build3DItemMesh(
     // UV 坐标（占位符）
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
-    // 立方体顶点
-    model::ModelVertex cubeVertices[24];  // 6 面 * 4 顶点
+    // 立方体顶点 - ModelVertex(x, y, z, u, v, nx, ny, nz)
 
     // 前面 (Z+)
-    cubeVertices[0] = {Vector3f(static_cast<f32>(-halfSize), static_cast<f32>(-halfSize), static_cast<f32>(halfSize)),
-                       Vector2f(u0, v1), Vector3f(0.0f, 0.0f, 1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
-    cubeVertices[1] = {Vector3f(static_cast<f32>(halfSize), static_cast<f32>(-halfSize), static_cast<f32>(halfSize)),
-                       Vector2f(u1, v1), Vector3f(0.0f, 0.0f, 1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
-    cubeVertices[2] = {Vector3f(static_cast<f32>(halfSize), static_cast<f32>(halfSize), static_cast<f32>(halfSize)),
-                       Vector2f(u1, v0), Vector3f(0.0f, 0.0f, 1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
-    cubeVertices[3] = {Vector3f(static_cast<f32>(-halfSize), static_cast<f32>(halfSize), static_cast<f32>(halfSize)),
-                       Vector2f(u0, v0), Vector3f(0.0f, 0.0f, 1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
+    vertices.push_back(model::ModelVertex(-halfSize, -halfSize, halfSize, u0, v1, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(halfSize, -halfSize, halfSize, u1, v1, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(halfSize, halfSize, halfSize, u1, v0, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(-halfSize, halfSize, halfSize, u0, v0, 0.0, 0.0, 1.0));
 
     // 后面 (Z-)
-    cubeVertices[4] = {Vector3f(static_cast<f32>(halfSize), static_cast<f32>(-halfSize), static_cast<f32>(-halfSize)),
-                       Vector2f(u0, v1), Vector3f(0.0f, 0.0f, -1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
-    cubeVertices[5] = {Vector3f(static_cast<f32>(-halfSize), static_cast<f32>(-halfSize), static_cast<f32>(-halfSize)),
-                       Vector2f(u1, v1), Vector3f(0.0f, 0.0f, -1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
-    cubeVertices[6] = {Vector3f(static_cast<f32>(-halfSize), static_cast<f32>(halfSize), static_cast<f32>(-halfSize)),
-                       Vector2f(u1, v0), Vector3f(0.0f, 0.0f, -1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
-    cubeVertices[7] = {Vector3f(static_cast<f32>(halfSize), static_cast<f32>(halfSize), static_cast<f32>(-halfSize)),
-                       Vector2f(u0, v0), Vector3f(0.0f, 0.0f, -1.0f), Vector4f(1.0f, 1.0f, 1.0f, 1.0f)};
-
-    // 上下面、左右面
-    // 简化：只添加前后面
-    for (int i = 0; i < 8; ++i) {
-        vertices.push_back(cubeVertices[i]);
-    }
+    vertices.push_back(model::ModelVertex(halfSize, -halfSize, -halfSize, u0, v1, 0.0, 0.0, -1.0));
+    vertices.push_back(model::ModelVertex(-halfSize, -halfSize, -halfSize, u1, v1, 0.0, 0.0, -1.0));
+    vertices.push_back(model::ModelVertex(-halfSize, halfSize, -halfSize, u1, v0, 0.0, 0.0, -1.0));
+    vertices.push_back(model::ModelVertex(halfSize, halfSize, -halfSize, u0, v0, 0.0, 0.0, -1.0));
 
     // 前面三角形
     indices.push_back(0); indices.push_back(1); indices.push_back(2);

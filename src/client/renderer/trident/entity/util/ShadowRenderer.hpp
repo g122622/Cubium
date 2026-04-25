@@ -9,6 +9,10 @@ namespace mc {
 
 class Entity;
 
+namespace client {
+class ClientEntity;
+}
+
 namespace client::renderer::entity::pipeline {
 class EntityPipeline;  // 前向声明
 struct EntityMesh;     // 前向声明
@@ -45,7 +49,26 @@ public:
     [[nodiscard]] static bool isInitialized();
 
     /**
-     * @brief 渲染实体阴影（GPU管线路径）
+     * @brief 渲染实体阴影（GPU管线路径 - ClientEntity 版本）
+     *
+     * @param cmd Vulkan 命令缓冲区
+     * @param entity 客户端实体
+     * @param partialTicks 部分 tick
+     * @param shadowRadius 阴影半径
+     * @param shadowAlpha 阴影透明度
+     * @param pipeline 实体渲染管线
+     */
+    static void renderShadow(
+        VkCommandBuffer cmd,
+        ClientEntity& entity,
+        f64 partialTicks,
+        f64 shadowRadius,
+        f64 shadowAlpha,
+        pipeline::EntityPipeline& pipeline
+    );
+
+    /**
+     * @brief 渲染实体阴影（GPU管线路径 - Entity 版本）
      *
      * @param cmd Vulkan 命令缓冲区
      * @param entity 实体
@@ -82,10 +105,20 @@ private:
     static bool createShadowMesh(pipeline::EntityPipeline& pipeline);
 
     /**
-     * @brief 计算阴影透明度
+     * @brief 计算阴影透明度（Entity 版本）
      */
     [[nodiscard]] static f64 computeShadowAlpha(
         Entity& entity,
+        f64 partialTicks,
+        f64 shadowRadius,
+        f64 baseAlpha
+    );
+
+    /**
+     * @brief 计算阴影透明度（ClientEntity 版本）
+     */
+    [[nodiscard]] static f64 computeShadowAlpha(
+        ClientEntity& entity,
         f64 partialTicks,
         f64 shadowRadius,
         f64 baseAlpha

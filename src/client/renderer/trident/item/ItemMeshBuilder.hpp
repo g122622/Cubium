@@ -1,15 +1,18 @@
 #pragma once
 
-#include "client/renderer/trident/entity/model/core/ModelVertex.hpp"
+#include "../entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/util/math/Matrix4.hpp"
 #include <vector>
 #include <utility>
+#include <array>
 
 namespace mc {
 class ItemStack;
 class Item;
+}
+
+namespace mc::client::renderer::api {
 struct TextureRegion;
 }
 
@@ -109,7 +112,7 @@ public:
      * @return 顶点和索引对
      */
     static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildIconMesh(
-        const ::mc::TextureRegion& region,
+        const ::mc::client::renderer::api::TextureRegion& region,
         f64 size
     );
 
@@ -136,7 +139,7 @@ private:
      * @brief 构建简单的物品图标四边形
      */
     static void buildItemQuad(
-        const ::mc::TextureRegion& region,
+        const ::mc::client::renderer::api::TextureRegion& region,
         f64 size,
         std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices

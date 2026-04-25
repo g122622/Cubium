@@ -1,6 +1,7 @@
 #include "EntityPipeline.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "common/util/math/Vector4.hpp"
 #include <spdlog/spdlog.h>
 #include <cstring>
 #include <array>
@@ -340,7 +341,10 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
                                const EntityMesh& mesh,
                                const std::array<f64, 16>& modelMatrix,
                                const Vector3f& position,
-                               f64 scale) {
+                               f64 scale,
+                               const Vector4f& overlayColor,
+                               f32 hurtTime,
+                               f32 deathTime) {
     if (mesh.vertexCount == 0 || mesh.indexCount == 0) {
         return;
     }
@@ -353,13 +357,31 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
     // 绑定索引缓冲区
     vkCmdBindIndexBuffer(cmd, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-    // 推送常量
+    // 推送常量 - 与着色器保持一致
+    // struct PushConstants {
+    //     mat4 model;           // 64 bytes (16 floats)
+    //     vec3 entityPos;       // 12 bytes (3 floats)
+    //     float scale;          // 4 bytes (1 float)
+    //     vec4 overlayColor;    // 16 bytes (4 floats)
+    //     float hurtTime;       // 4 bytes (1 float)
+    //     float deathTime;      // 4 bytes (1 float)
+    //     float _padding0;      // 4 bytes (1 float)
+    //     float _padding1;      // 4 bytes (1 float)
+    // };                        // Total: 112 bytes (28 floats)
     struct PushConstants {
         std::array<f32, 16> model;
         f32 posX;
         f32 posY;
         f32 posZ;
         f32 scale;
+        f32 overlayR;
+        f32 overlayG;
+        f32 overlayB;
+        f32 overlayA;
+        f32 hurtTime;
+        f32 deathTime;
+        f32 _padding0;
+        f32 _padding1;
     } pc{};
 
     // CPU 侧矩阵使用行主序存储，GLSL mat4 默认按列主序读取，
@@ -375,8 +397,16 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
     pc.posY = position.y;
     pc.posZ = position.z;
     pc.scale = static_cast<f32>(scale);
+    pc.overlayR = overlayColor.x;
+    pc.overlayG = overlayColor.y;
+    pc.overlayB = overlayColor.z;
+    pc.overlayA = overlayColor.w;
+    pc.hurtTime = hurtTime;
+    pc.deathTime = deathTime;
+    pc._padding0 = 0.0f;
+    pc._padding1 = 0.0f;
 
-    vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+    vkCmdPushConstants(cmd, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                        0, sizeof(PushConstants), &pc);
 
     // 绘制
@@ -620,9 +650,9 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
     };
 
     VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f32) * 20;  // mat4 + vec3 + float (std430 对齐后 80 字节)
+    pushConstantRange.size = sizeof(f32) * 28;  // mat4(16) + vec3(3) + float(1) + vec4(4) + float(4) = 28 floats = 112 bytes
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

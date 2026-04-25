@@ -2,11 +2,19 @@
 
 #include "../core/LayerRenderer.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector4.hpp"
+#include <vulkan/vulkan.h>
 #include <memory>
 
 namespace mc {
 class ItemStack;
 class LivingEntity;
+class Player;
+}
+
+namespace mc::client::renderer::entity::pipeline {
+class EntityPipeline;
+struct EntityMesh;
 }
 
 namespace mc::client::renderer::entity::layer::equipment {
@@ -14,7 +22,7 @@ namespace mc::client::renderer::entity::layer::equipment {
 /**
  * @brief 头部物品层渲染器
  *
- * 渲染实体头部装备的物品（如南瓜、玩家头颅等）。
+ * 渲染实体头部装备的物品（如南瓜、玩家头颅、头盔等）。
  *
  * 参考 MC 1.16.5 HeadLayer
  *
@@ -26,6 +34,19 @@ public:
     HeadLayer() = default;
     ~HeadLayer() override = default;
 
+    /**
+     * @brief 渲染头部物品层（GPU管线路径）
+     */
+    void renderPipeline(
+        TEntity& entity,
+        VkCommandBuffer cmd,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) override;
+
+    /**
+     * @brief 渲染头部物品层（CPU路径 - 已废弃）
+     */
     void render(
         TEntity& entity,
         f32 limbSwing,
@@ -37,16 +58,24 @@ public:
         f32 scale
     ) override;
 
+    /**
+     * @brief 检查是否应该渲染头部物品层
+     */
     [[nodiscard]] bool shouldRender(const TEntity& entity) const override;
 
 protected:
     /**
-     * @brief 渲染头部物品
-     * @param entity 实体
-     * @param itemStack 物品堆
-     * @param headYaw 头部偏航角
-     * @param headPitch 头部俯仰角
-     * @param scale 缩放因子
+     * @brief 渲染头部物品（GPU管线路径）
+     */
+    virtual void renderHeadItemPipeline(
+        TEntity& entity,
+        VkCommandBuffer cmd,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    );
+
+    /**
+     * @brief 渲染头部物品（CPU路径 - 已废弃）
      */
     virtual void renderHeadItem(
         TEntity& entity,
@@ -55,6 +84,24 @@ protected:
         f32 headPitch,
         f32 scale
     );
+
+    /**
+     * @brief 获取头部装备物品
+     */
+    [[nodiscard]] virtual const ItemStack* getHeadItem(const TEntity& entity) const;
+
+    /**
+     * @brief 计算头部物品变换矩阵
+     */
+    virtual void computeHeadTransform(
+        f32 headYaw,
+        f32 headPitch,
+        std::array<f64, 16>& outMatrix
+    );
+
+private:
+    // 头部物品网格缓存
+    static std::unordered_map<u32, pipeline::EntityMesh> s_headItemMeshCache;
 };
 
 } // namespace mc::client::renderer::entity::layer::equipment

@@ -3,6 +3,7 @@
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/Vector4.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include <vulkan/vulkan.h>
 #include <memory>
@@ -120,12 +121,18 @@ public:
      * @param modelMatrix 模型矩阵
      * @param position 实体位置
      * @param scale 缩放因子
+     * @param overlayColor 覆盖层颜色 (受伤闪烁/道德效果)
+     * @param hurtTime 受伤时间 (0-10)
+     * @param deathTime 死亡时间
      */
     void drawMesh(VkCommandBuffer cmd,
                   const EntityMesh& mesh,
                   const std::array<f64, 16>& modelMatrix,
                   const Vector3f& position,
-                  f64 scale = 1.0f);
+                  f64 scale = 1.0f,
+                  const Vector4f& overlayColor = Vector4f(0.0f, 0.0f, 0.0f, 0.0f),
+                  f32 hurtTime = 0.0f,
+                  f32 deathTime = 0.0f);
 
     /**
      * @brief 绑定纹理描述符集

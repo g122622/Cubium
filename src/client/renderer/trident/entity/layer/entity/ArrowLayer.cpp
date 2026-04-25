@@ -1,6 +1,61 @@
 #include "ArrowLayer.hpp"
+#include "../../core/AnimationContext.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
+#include "../../model/core/ModelRenderer.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::entity {
+
+// 静态成员定义
+template<typename TEntity>
+std::unique_ptr<pipeline::EntityMesh> ArrowLayer<TEntity>::s_arrowMesh = nullptr;
+
+template<typename TEntity>
+void ArrowLayer<TEntity>::renderPipeline(
+    TEntity& entity,
+    VkCommandBuffer cmd,
+    const mc::client::renderer::entity::core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    // 获取箭矢数量
+    // 完整实现需要从实体获取 arrowsInEntity 字段
+    i32 arrowCount = 0;
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        // TODO: 获取实体上的箭矢数量
+        // arrowCount = entity.getArrowCount();
+        (void)entity;
+    }
+
+    if (arrowCount <= 0) {
+        return;
+    }
+
+    // 参考 MC 1.16.5 ArrowLayer:
+    // 使用 ArrowEntity 实际渲染，而不是手动构建网格
+    // 这里简化为获取或创建箭矢网格
+
+    pipeline::EntityMesh* mesh = getOrCreateArrowMesh(pipeline);
+    if (!mesh || mesh->indexCount == 0) {
+        return;
+    }
+
+    // 渲染多支箭矢，随机分布在实体身上
+    for (i32 i = 0; i < arrowCount && i < 10; ++i) {
+        // 随机位置和角度（基于实体 ID 和箭矢索引）
+        u32 seed = static_cast<u32>(entity.id() * 31 + i);
+        f32 randX = static_cast<f32>((seed * 16807) % 1000) / 1000.0f - 0.5f;
+        f32 randY = static_cast<f32>(((seed * 16807) + 12345) % 1000) / 1000.0f;
+        f32 randZ = static_cast<f32>(((seed * 16807) + 67890) % 1000) / 1000.0f - 0.5f;
+        f32 randYaw = static_cast<f32>(((seed * 16807) + 11111) % 1000) / 1000.0f * 360.0f;
+        f32 randPitch = static_cast<f32>(((seed * 16807) + 22222) % 1000) / 1000.0f * 180.0f - 90.0f;
+
+        renderArrowPipeline(entity, randX, randY, randZ, randYaw, randPitch, cmd, context, pipeline);
+    }
+
+    spdlog::trace("ArrowLayer: Rendered {} arrows on entity", arrowCount);
+}
 
 template<typename TEntity>
 void ArrowLayer<TEntity>::render(
@@ -13,9 +68,7 @@ void ArrowLayer<TEntity>::render(
     f32 headPitch,
     f32 scale)
 {
-    // TODO: 渲染箭矢
-    // 参考 MC 1.16.5 ArrowLayer.render()
-    // 遍历实体身上附着的箭矢并渲染
+    // CPU 路径已废弃
     (void)entity;
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -28,19 +81,141 @@ void ArrowLayer<TEntity>::render(
 
 template<typename TEntity>
 bool ArrowLayer<TEntity>::shouldRender(const TEntity& entity) const {
-    // TODO: 检查实体是否有箭矢附着
-    (void)entity;
+    // 检查实体是否被箭射中
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        // TODO: 检查 arrowsInEntity 字段
+        // return entity.getArrowCount() > 0;
+        (void)entity;
+    }
     return false;
 }
 
 template<typename TEntity>
-void ArrowLayer<TEntity>::renderArrow(f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 scale) {
-    (void)x;
-    (void)y;
-    (void)z;
-    (void)yaw;
-    (void)pitch;
-    (void)scale;
+void ArrowLayer<TEntity>::buildArrowMesh(
+    std::vector<model::ModelVertex>& vertices,
+    std::vector<u32>& indices)
+{
+    // 参考 MC 1.16.5 箭矢模型
+    // 简化的箭矢网格
+
+    constexpr f32 ARROW_LENGTH = 0.5f;
+    constexpr f32 ARROW_RADIUS = 0.025f;
+    constexpr f32 HEAD_LENGTH = 0.1f;
+    constexpr f32 HEAD_RADIUS = 0.05f;
+
+    vertices.clear();
+    indices.clear();
+
+    f32 halfLength = ARROW_LENGTH / 2.0f;
+
+    // 箭杆正面 - ModelVertex(x, y, z, u, v, nx, ny, nz)
+    vertices.push_back(model::ModelVertex(-ARROW_RADIUS, -halfLength, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex( ARROW_RADIUS, -halfLength, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex( ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex(-ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f));
+
+    // 箭杆背面
+    vertices.push_back(model::ModelVertex(-ARROW_RADIUS, -halfLength, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex( ARROW_RADIUS, -halfLength, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex( ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, -1.0f));
+    vertices.push_back(model::ModelVertex(-ARROW_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, -1.0f));
+
+    // 箭头
+    vertices.push_back(model::ModelVertex(-HEAD_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex( HEAD_RADIUS, halfLength - HEAD_LENGTH, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, 1.0f));
+    vertices.push_back(model::ModelVertex( 0.0f, halfLength, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f));
+
+    // 索引
+    indices.insert(indices.end(), {0, 1, 2, 0, 2, 3});  // 箭杆正面
+    indices.insert(indices.end(), {4, 6, 5, 4, 7, 6});  // 箭杆背面
+    indices.insert(indices.end(), {8, 9, 10});         // 箭头
+}
+
+template<typename TEntity>
+void ArrowLayer<TEntity>::renderArrowPipeline(
+    TEntity& entity,
+    f32 x, f32 y, f32 z,
+    f32 yaw, f32 pitch,
+    VkCommandBuffer cmd,
+    const mc::client::renderer::entity::core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    pipeline::EntityMesh* mesh = getOrCreateArrowMesh(pipeline);
+    if (!mesh || mesh->indexCount == 0) {
+        return;
+    }
+
+    // 计算箭矢变换矩阵
+    f32 yawRad = yaw * 3.14159265f / 180.0f;
+    f32 pitchRad = pitch * 3.14159265f / 180.0f;
+
+    f32 cosYaw = std::cos(yawRad);
+    f32 sinYaw = std::sin(yawRad);
+    f32 cosPitch = std::cos(pitchRad);
+    f32 sinPitch = std::sin(pitchRad);
+
+    std::array<f64, 16> arrowTransform;
+    arrowTransform[0] = cosYaw;
+    arrowTransform[1] = sinYaw * sinPitch;
+    arrowTransform[2] = -sinYaw * cosPitch;
+    arrowTransform[3] = static_cast<f64>(x);
+
+    arrowTransform[4] = 0.0;
+    arrowTransform[5] = cosPitch;
+    arrowTransform[6] = sinPitch;
+    arrowTransform[7] = static_cast<f64>(y + 0.8);
+
+    arrowTransform[8] = sinYaw;
+    arrowTransform[9] = -cosYaw * sinPitch;
+    arrowTransform[10] = cosYaw * cosPitch;
+    arrowTransform[11] = static_cast<f64>(z);
+
+    arrowTransform[12] = 0.0;
+    arrowTransform[13] = 0.0;
+    arrowTransform[14] = 0.0;
+    arrowTransform[15] = 1.0;
+
+    Vector3f entityPos(
+        static_cast<f32>(entity.x()),
+        static_cast<f32>(entity.y()),
+        static_cast<f32>(entity.z())
+    );
+
+    f32 hurtTime = 0.0f;
+    f32 deathTime = 0.0f;
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
+        deathTime = static_cast<f32>(entity.deathTime());
+    }
+
+    pipeline.drawMesh(cmd, *mesh, arrowTransform, entityPos, 1.0,
+                      Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+
+    (void)context;
+}
+
+template<typename TEntity>
+pipeline::EntityMesh* ArrowLayer<TEntity>::getOrCreateArrowMesh(pipeline::EntityPipeline& pipeline) {
+    if (s_arrowMesh && s_arrowMesh->indexCount > 0) {
+        return s_arrowMesh.get();
+    }
+
+    std::vector<model::ModelVertex> vertices;
+    std::vector<u32> indices;
+    buildArrowMesh(vertices, indices);
+
+    if (vertices.empty() || indices.empty()) {
+        return nullptr;
+    }
+
+    auto result = pipeline.createMesh(vertices, indices);
+    if (!result.success()) {
+        spdlog::warn("ArrowLayer: Failed to create arrow mesh");
+        return nullptr;
+    }
+
+    s_arrowMesh = std::make_unique<pipeline::EntityMesh>(std::move(result.value()));
+    return s_arrowMesh.get();
 }
 
 // 显式实例化

@@ -111,12 +111,12 @@ void Player::damage(f32 amount) {
             playSound(*soundEvent, 1.0f, 1.0f);
         }
         m_health = 0.0f;
-        deathTime = 0;
+        m_deathTime = 0;
     } else {
         if (auto soundEvent = makeSoundEventId("hurt")) {
             playSound(*soundEvent, 1.0f, 1.0f);
         }
-        hurtTime = 10;
+        m_hurtTime = 10;
     }
 }
 
@@ -271,12 +271,12 @@ void Player::tick() {
     }
 
     // 更新受伤/死亡计时器
-    if (hurtTime > 0) {
-        hurtTime--;
+    if (m_hurtTime > 0) {
+        m_hurtTime--;
     }
 
     if (isDead()) {
-        deathTime++;
+        m_deathTime++;
     }
 
     // 睡眠计时器
@@ -808,8 +808,8 @@ void Player::respawn() {
     m_foodStats.foodLevel = 20;
     m_foodStats.saturationLevel = 5.0f;
     m_foodStats.exhaustionLevel = 0.0f;
-    deathTime = 0;
-    hurtTime = 0;
+    m_deathTime = 0;
+    m_hurtTime = 0;
     m_isSleeping = false;
     m_jumpTicks = 0;
     sleepTimer = 0;

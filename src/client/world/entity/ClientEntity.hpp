@@ -254,6 +254,22 @@ public:
     [[nodiscard]] bool isChild() const { return m_child; }
     void setChild(bool child) { m_child = child; }
 
+    // ========== 受伤和死亡状态 ==========
+
+    /**
+     * @brief 获取受伤时间
+     * 用于渲染受伤闪烁效果，范围 0-10
+     */
+    [[nodiscard]] i32 hurtTime() const { return m_hurtTime; }
+    void setHurtTime(i32 time) { m_hurtTime = time; }
+
+    /**
+     * @brief 获取死亡时间
+     * 用于渲染死亡淡出效果
+     */
+    [[nodiscard]] i32 deathTime() const { return m_deathTime; }
+    void setDeathTime(i32 time) { m_deathTime = time; }
+
     // ========== 存活时间 ==========
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
@@ -373,6 +389,10 @@ private:
     // 尺寸
     f32 m_width = 0.6f;
     f32 m_height = 1.8f;
+
+    // 受伤和死亡状态
+    i32 m_hurtTime = 0;    // 受伤时间 (0-10)
+    i32 m_deathTime = 0;   // 死亡时间
 
     // 存活时间
     u32 m_ticksExisted = 0;

@@ -1,13 +1,22 @@
 #pragma once
 
 #include "../core/LayerRenderer.hpp"
+#include "../../model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector4.hpp"
+#include <vulkan/vulkan.h>
 #include <memory>
+#include <vector>
 
 namespace mc {
 class LivingEntity;
 class BlockState;
+}
+
+namespace mc::client::renderer::entity::pipeline {
+class EntityPipeline;
+struct EntityMesh;
 }
 
 namespace mc::client::renderer::entity::layer::entity {
@@ -24,9 +33,22 @@ namespace mc::client::renderer::entity::layer::entity {
 template<typename TEntity>
 class HeldBlockLayer : public core::LayerRenderer<TEntity> {
 public:
-    HeldBlockLayer();
+    HeldBlockLayer() = default;
     ~HeldBlockLayer() override = default;
 
+    /**
+     * @brief 渲染方块持有层（GPU管线路径）
+     */
+    void renderPipeline(
+        TEntity& entity,
+        VkCommandBuffer cmd,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
+    ) override;
+
+    /**
+     * @brief 渲染方块持有层（CPU路径 - 已废弃）
+     */
     void render(
         TEntity& entity,
         f32 limbSwing,
@@ -38,22 +60,40 @@ public:
         f32 scale
     ) override;
 
+    /**
+     * @brief 检查是否应该渲染持有的方块
+     */
     [[nodiscard]] bool shouldRender(const TEntity& entity) const override;
 
 private:
     /**
-     * @brief 渲染持有的方块
-     * @param blockState 方块状态
-     * @param x X偏移
-     * @param y Y偏移
-     * @param z Z偏移
-     * @param scale 缩放因子
+     * @brief 获取实体持有的方块状态
      */
-    void renderBlock(
-        const mc::BlockState& blockState,
+    [[nodiscard]] const ::mc::BlockState* getHeldBlock(const TEntity& entity) const;
+
+    /**
+     * @brief 渲染持有的方块（GPU管线路径）
+     */
+    void renderBlockPipeline(
+        const ::mc::BlockState& blockState,
         f32 x, f32 y, f32 z,
-        f32 scale
+        VkCommandBuffer cmd,
+        const mc::client::renderer::entity::core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline
     );
+
+    /**
+     * @brief 构建简单方块网格
+     */
+    void buildBlockMesh(
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices
+    );
+
+    /**
+     * @brief 获取或创建方块网格
+     */
+    [[nodiscard]] pipeline::EntityMesh* getOrCreateBlockMesh(pipeline::EntityPipeline& pipeline);
 };
 
 } // namespace mc::client::renderer::entity::layer::entity

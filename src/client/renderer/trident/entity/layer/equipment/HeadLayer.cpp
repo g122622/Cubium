@@ -1,6 +1,31 @@
 #include "HeadLayer.hpp"
+#include "../../core/AnimationContext.hpp"
+#include "../../pipeline/EntityPipeline.hpp"
+#include "../../../item/ItemMeshBuilder.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/util/math/Vector4.hpp"
+#include <unordered_map>
+#include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::equipment {
+
+// 静态成员定义
+template<typename TEntity>
+std::unordered_map<u32, pipeline::EntityMesh> HeadLayer<TEntity>::s_headItemMeshCache;
+
+template<typename TEntity>
+void HeadLayer<TEntity>::renderPipeline(
+    TEntity& entity,
+    VkCommandBuffer cmd,
+    const mc::client::renderer::entity::core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    renderHeadItemPipeline(entity, cmd, context, pipeline);
+}
 
 template<typename TEntity>
 void HeadLayer<TEntity>::render(
@@ -13,8 +38,7 @@ void HeadLayer<TEntity>::render(
     f32 headPitch,
     f32 scale)
 {
-    // TODO: 获取头部装备槽的物品并渲染
-    // 参考 MC 1.16.5 HeadLayer.render()
+    // CPU 路径已废弃
     (void)entity;
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -27,9 +51,80 @@ void HeadLayer<TEntity>::render(
 
 template<typename TEntity>
 bool HeadLayer<TEntity>::shouldRender(const TEntity& entity) const {
-    // TODO: 检查头部装备槽是否有物品
-    (void)entity;
-    return false;
+    const ItemStack* headItem = getHeadItem(entity);
+    return headItem && !headItem->isEmpty();
+}
+
+template<typename TEntity>
+void HeadLayer<TEntity>::renderHeadItemPipeline(
+    TEntity& entity,
+    VkCommandBuffer cmd,
+    const mc::client::renderer::entity::core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    const ItemStack* item = getHeadItem(entity);
+    if (!item || item->isEmpty()) {
+        return;
+    }
+
+    // 计算头部变换矩阵
+    std::array<f64, 16> headTransform;
+    computeHeadTransform(
+        static_cast<f32>(context.netHeadYaw),
+        static_cast<f32>(context.headPitch),
+        headTransform
+    );
+
+    // 获取物品ID用于缓存
+    u32 itemId = static_cast<u32>(item->getItem()->itemId());
+
+    // 获取或创建头部物品网格
+    auto it = s_headItemMeshCache.find(itemId);
+    if (it == s_headItemMeshCache.end()) {
+        // 构建头部物品网格
+        auto [vertices, indices] = item::ItemMeshBuilder::buildHeadMesh(*item);
+
+        if (vertices.empty() || indices.empty()) {
+            return;
+        }
+
+        // 创建 GPU 网格
+        auto result = pipeline.createMesh(vertices, indices);
+        if (!result.success()) {
+            spdlog::warn("HeadLayer: Failed to create mesh for item {}",
+                         item->getItem()->itemLocation().toString());
+            return;
+        }
+
+        s_headItemMeshCache[itemId] = std::move(result.value());
+        it = s_headItemMeshCache.find(itemId);
+    }
+
+    if (it == s_headItemMeshCache.end() || it->second.indexCount == 0) {
+        return;
+    }
+
+    // 获取实体的世界位置
+    Vector3f entityPos(
+        static_cast<f32>(entity.x()),
+        static_cast<f32>(entity.y()),
+        static_cast<f32>(entity.z())
+    );
+
+    // 绘制头部物品网格
+    // 使用实体的 hurtTime 和 deathTime 来传递受伤效果
+    f32 hurtTime = 0.0f;
+    f32 deathTime = 0.0f;
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
+        deathTime = static_cast<f32>(entity.deathTime());
+    }
+
+    pipeline.drawMesh(cmd, it->second, headTransform, entityPos, 1.0,
+                      Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+
+    spdlog::trace("HeadLayer: Rendered head item '{}'",
+                  item->getItem()->itemLocation().toString());
 }
 
 template<typename TEntity>
@@ -40,6 +135,7 @@ void HeadLayer<TEntity>::renderHeadItem(
     f32 headPitch,
     f32 scale)
 {
+    // CPU 路径已废弃
     (void)entity;
     (void)itemStack;
     (void)headYaw;
@@ -47,7 +143,63 @@ void HeadLayer<TEntity>::renderHeadItem(
     (void)scale;
 }
 
+template<typename TEntity>
+const ItemStack* HeadLayer<TEntity>::getHeadItem(const TEntity& entity) const {
+    // 从实体获取头部装备
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        return &entity.getEquipment(::mc::EquipmentSlot::Head);
+    }
+    return nullptr;
+}
+
+template<typename TEntity>
+void HeadLayer<TEntity>::computeHeadTransform(
+    f32 headYaw,
+    f32 headPitch,
+    std::array<f64, 16>& outMatrix)
+{
+    // 初始化为单位矩阵
+    outMatrix = {
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    };
+
+    // 参考 MC 1.16.5 HeadLayer
+    // 头部物品跟随头部旋转
+    f64 yawRad = static_cast<f64>(headYaw) * 3.14159265 / 180.0;
+    f64 pitchRad = static_cast<f64>(headPitch) * 3.14159265 / 180.0;
+
+    f64 cosYaw = std::cos(yawRad);
+    f64 sinYaw = std::sin(yawRad);
+    f64 cosPitch = std::cos(pitchRad);
+    f64 sinPitch = std::sin(pitchRad);
+
+    // 先绕 Y 轴旋转（偏航），然后绕 X 轴旋转（俯仰）
+    outMatrix[0] = cosYaw;
+    outMatrix[2] = -sinYaw;
+    outMatrix[5] = cosPitch;
+    outMatrix[6] = sinPitch * sinYaw;
+    outMatrix[8] = sinYaw;
+    outMatrix[9] = -sinPitch;
+    outMatrix[10] = cosPitch * cosYaw;
+
+    // 头部位置偏移（相对于实体原点）
+    // 玩家模型的头部在 y=1.5 左右
+    outMatrix[3] = 0.0;
+    outMatrix[7] = 1.5;  // 头部高度
+    outMatrix[11] = 0.0;
+
+    // 头部物品缩放
+    const f64 headScale = 1.0;
+    outMatrix[0] *= headScale;
+    outMatrix[5] *= headScale;
+    outMatrix[10] *= headScale;
+}
+
 // 显式实例化常用类型
 template class HeadLayer<::mc::LivingEntity>;
+template class HeadLayer<::mc::Player>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

@@ -1,12 +1,10 @@
 #include "PlayerRenderer.hpp"
-#include "../../layer/equipment/ArmorLayer.hpp"
 #include "../../layer/equipment/HeldItemLayer.hpp"
-#include "../../layer/equipment/HeadLayer.hpp"
-#include "../../layer/cosmetic/CapeLayer.hpp"
-#include "../../layer/cosmetic/ElytraLayer.hpp"
-#include "../../layer/entity/ArrowLayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <spdlog/spdlog.h>
+
+// 使用命名空间简化代码
+using namespace mc::client::renderer::entity::layer;
 
 namespace mc::client::renderer::entity::renderer::player {
 
@@ -189,12 +187,20 @@ f64 PlayerRenderer::getAgeInTicks(::mc::Player& player) const {
 void PlayerRenderer::setupLayers() {
     // 参考 MC 1.16.5 PlayerRenderer 构造函数
     // 添加层渲染器
-    // 注意：当前层渲染器需要完整实现 GPU 渲染路径才能启用
 
-    // 手持物品层 - 为玩家创建专用实现
-    // addLayer<PlayerHeldItemLayer>();
+    // 创建手持物品层渲染器（主手和副手）
+    m_layers.push_back(std::make_unique<equipment::HeldItemLayer<::mc::Player>>());
 
-    spdlog::debug("PlayerRenderer: Layer setup complete (layers ready for GPU implementation)");
+    // 头部物品层（头盔等）- TODO 暂时注释，等待完整实现
+    // m_layers.push_back(std::make_unique<equipment::HeadLayer<::mc::Player>>());
+
+    // 披风层 - TODO 暂时注释，等待完整实现
+    // m_layers.push_back(std::make_unique<cosmetic::CapeLayer<::mc::Player>>());
+
+    // 鞘翅层 - TODO 暂时注释，等待完整实现
+    // m_layers.push_back(std::make_unique<cosmetic::ElytraLayer<::mc::Player>>());
+
+    spdlog::debug("PlayerRenderer: Layer setup complete ({} layers registered)", m_layers.size());
 }
 
 void registerPlayerRenderers(EntityRendererManager& manager) {
