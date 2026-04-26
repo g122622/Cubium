@@ -378,6 +378,8 @@ enum class Operation : u8 { ... };
     - Main hand and off hand can hold different items in the same frame, so a single cache will thrash and allocate GPU memory every render.
 - Retired first-person meshes must be reclaimed on a frame countdown, not only in `destroy()`.
     - Otherwise repeated item changes will keep old Vulkan buffers alive for the whole session.
+- `EntityPipeline::updateMesh(...)` must keep GPU buffers and only grow capacity when needed.
+    - Do not switch animated mesh updates back to destroy+create per frame; keep reusable staging buffers and in-place uploads or `vkAllocateMemory` will return to the render hot path.
 - Do not put priority logic back into `MeshWorkerPool`.
     - Priority and cancellation policy belong to `MeshBuildScheduler`; `MeshWorkerPool` should stay execution-only.
 - `ChunkMesher` 的 `generateSplitMesh()` 预留策略必须按 pass 区分。

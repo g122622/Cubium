@@ -30,6 +30,8 @@ struct EntityMesh {
     VkDeviceMemory indexMemory = VK_NULL_HANDLE;
     u32 indexCount = 0;
     u32 vertexCount = 0;
+    u32 vertexCapacity = 0;
+    u32 indexCapacity = 0;
 
     // 实体位置（用于更新）
     f64 posX = 0.0f;
@@ -212,6 +214,27 @@ private:
                                             VkDeviceMemory& memory);
 
     /**
+     * @brief 确保复用暂存缓冲区容量满足需求
+     */
+    [[nodiscard]] Result<void> ensureReusableStagingBuffer(VkDeviceSize requiredSize,
+                                                           VkBuffer& buffer,
+                                                           VkDeviceMemory& memory,
+                                                           VkDeviceSize& capacity);
+
+    /**
+     * @brief 通过复用暂存缓冲区上传数据到设备本地缓冲区
+     */
+    [[nodiscard]] Result<void> uploadToDeviceBuffer(const void* sourceData,
+                                                    VkDeviceSize size,
+                                                    VkBuffer destinationBuffer,
+                                                    bool useVertexStagingBuffer);
+
+    /**
+     * @brief 销毁复用暂存缓冲区
+     */
+    void destroyReusableStagingBuffers();
+
+    /**
      * @brief 复制缓冲区
      */
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
@@ -228,6 +251,15 @@ private:
 
     // 单次命令所需的资源
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
+
+    // 复用暂存缓冲区，避免每次网格更新都重新分配 staging memory
+    VkBuffer m_vertexStagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_vertexStagingMemory = VK_NULL_HANDLE;
+    VkDeviceSize m_vertexStagingCapacity = 0;
+
+    VkBuffer m_indexStagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_indexStagingMemory = VK_NULL_HANDLE;
+    VkDeviceSize m_indexStagingCapacity = 0;
 };
 
 } // namespace mc::client::renderer::entity::pipeline

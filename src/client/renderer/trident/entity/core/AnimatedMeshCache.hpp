@@ -103,9 +103,10 @@ private:
     UvRemapFunc m_uvRemapFunc;
 
     /// 动画更新策略参数
-    static constexpr u32 MIN_UPDATE_INTERVAL = 1;      ///< 最小更新间隔（帧），1 = 每帧更新
-    static constexpr f64 STATE_CHANGE_THRESHOLD = 0.01; ///< 角度变化阈值（度）
-    static constexpr u32 DISTANT_UPDATE_INTERVAL = 3;   ///< 远距离实体的更新间隔
+    static constexpr u32 ACTIVE_UPDATE_INTERVAL = 2;     ///< 活跃动画更新间隔（帧）
+    static constexpr u32 IDLE_UPDATE_INTERVAL = 6;       ///< 非活跃动画更新间隔（帧）
+    static constexpr u32 FORCE_UPDATE_INTERVAL = 12;     ///< 强制刷新间隔，防止长期漂移
+    static constexpr f64 STATE_CHANGE_THRESHOLD = 0.08;  ///< 动画参数变化阈值
 
     /// 缓存大小限制
     static constexpr size_t MAX_CACHE_SIZE = 1024;

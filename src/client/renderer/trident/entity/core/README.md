@@ -10,6 +10,7 @@
 | `EntityRenderer.hpp/cpp` | 实体渲染器基类，定义渲染接口 |
 | `LivingRenderer.hpp` | 生物渲染器模板类，支持层渲染器系统 |
 | `EntityRendererManager.hpp/cpp` | 渲染器管理器，管理所有实体渲染器 |
+| `AnimatedMeshCache.hpp/cpp` | 动画网格缓存，按状态变化节流更新 GPU 网格 |
 | `AgeableModel.hpp/cpp` | 可成长模型基类，支持幼体/成年状态 |
 
 ## 类图
@@ -112,6 +113,12 @@ public:
     void updateMesh(ClientEntity& entity);
     void removeMesh(EntityId entityId);
 };
+
+// 动画实体通过 AnimatedMeshCache 管理网格更新：
+// 1. 姿态切换（坐下/蹲伏/游泳/骑乘/幼体）立即更新
+// 2. 活跃动画按 2 帧节流更新
+// 3. 非活跃动画按 6 帧节流更新
+// 4. 最多 12 帧强制刷新一次，防止状态漂移
 ```
 
 ## AgeableModel

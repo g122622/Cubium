@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include <cstring>
 #include <array>
+#include <algorithm>
 #include <fstream>
 
 namespace mc::client::renderer::entity::pipeline {
@@ -43,6 +44,19 @@ static Result<VkShaderModule> createShaderModule(VkDevice device, const std::vec
     }
 
     return shaderModule;
+}
+
+static u32 growCapacity(u32 currentCapacity, u32 requiredCapacity) {
+    if (currentCapacity >= requiredCapacity) {
+        return currentCapacity;
+    }
+
+    if (currentCapacity == 0) {
+        return requiredCapacity;
+    }
+
+    const u32 grownCapacity = currentCapacity + currentCapacity / 2;
+    return std::max(grownCapacity, requiredCapacity);
 }
 
 // ============================================================================
@@ -146,7 +160,9 @@ void EntityPipeline::destroy() {
         m_pipeline != VK_NULL_HANDLE ||
         m_pipelineLayout != VK_NULL_HANDLE ||
         m_textureSampler != VK_NULL_HANDLE ||
-        m_textureDescriptorLayout != VK_NULL_HANDLE;
+        m_textureDescriptorLayout != VK_NULL_HANDLE ||
+        m_vertexStagingBuffer != VK_NULL_HANDLE ||
+        m_indexStagingBuffer != VK_NULL_HANDLE;
 
     // 销毁管线
     if (m_pipeline != VK_NULL_HANDLE) {
@@ -172,6 +188,8 @@ void EntityPipeline::destroy() {
         m_textureDescriptorLayout = VK_NULL_HANDLE;
     }
 
+    destroyReusableStagingBuffers();
+
     m_initialized = false;
 
     if (hadResources) {
@@ -188,6 +206,8 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
     EntityMesh mesh;
     mesh.vertexCount = static_cast<u32>(vertices.size());
     mesh.indexCount = static_cast<u32>(indices.size());
+    mesh.vertexCapacity = mesh.vertexCount;
+    mesh.indexCapacity = mesh.indexCount;
 
     if (vertices.empty() || indices.empty()) {
         return mesh;  // 隐式转换为Result<EntityMesh>
@@ -203,85 +223,40 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
         }
     }
 
-    VkDevice device = m_device;
-
-    // 创建顶点缓冲区
-    VkDeviceSize vertexBufferSize = sizeof(ModelVertex) * vertices.size();
-    VkBuffer vertexStagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexStagingMemory = VK_NULL_HANDLE;
-
-    // 创建暂存缓冲区
+    // 创建设备本地顶点缓冲区
+    const VkDeviceSize vertexBufferSize = sizeof(ModelVertex) * vertices.size();
     auto result = createBuffer(vertexBufferSize,
-                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               vertexStagingBuffer, vertexStagingMemory);
+                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                               mesh.vertexBuffer,
+                               mesh.vertexMemory);
     if (!result.success()) {
         return result.error();
     }
 
-    // 填充暂存缓冲区
-    void* data;
-    vkMapMemory(device, vertexStagingMemory, 0, vertexBufferSize, 0, &data);
-    std::memcpy(data, vertices.data(), vertexBufferSize);
-    vkUnmapMemory(device, vertexStagingMemory);
-
-    // 创建设备本地缓冲区
-    result = createBuffer(vertexBufferSize,
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                          mesh.vertexBuffer, mesh.vertexMemory);
+    result = uploadToDeviceBuffer(vertices.data(), vertexBufferSize, mesh.vertexBuffer, true);
     if (!result.success()) {
-        vkDestroyBuffer(device, vertexStagingBuffer, nullptr);
-        vkFreeMemory(device, vertexStagingMemory, nullptr);
+        destroyMesh(mesh);
         return result.error();
     }
 
-    // 复制到设备本地缓冲区
-    copyBuffer(vertexStagingBuffer, mesh.vertexBuffer, vertexBufferSize);
-
-    // 清理暂存缓冲区
-    vkDestroyBuffer(device, vertexStagingBuffer, nullptr);
-    vkFreeMemory(device, vertexStagingMemory, nullptr);
-
-    // 创建索引缓冲区
-    VkDeviceSize indexBufferSize = sizeof(u32) * indices.size();
-    VkBuffer indexStagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory indexStagingMemory = VK_NULL_HANDLE;
-
-    result = createBuffer(indexBufferSize,
-                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                          indexStagingBuffer, indexStagingMemory);
-    if (!result.success()) {
-        vkDestroyBuffer(device, mesh.vertexBuffer, nullptr);
-        vkFreeMemory(device, mesh.vertexMemory, nullptr);
-        return result.error();
-    }
-
-    // 填充暂存缓冲区
-    vkMapMemory(device, indexStagingMemory, 0, indexBufferSize, 0, &data);
-    std::memcpy(data, indices.data(), indexBufferSize);
-    vkUnmapMemory(device, indexStagingMemory);
-
-    // 创建设备本地缓冲区
+    // 创建设备本地索引缓冲区
+    const VkDeviceSize indexBufferSize = sizeof(u32) * indices.size();
     result = createBuffer(indexBufferSize,
                           VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                          mesh.indexBuffer, mesh.indexMemory);
+                          mesh.indexBuffer,
+                          mesh.indexMemory);
     if (!result.success()) {
-        vkDestroyBuffer(device, indexStagingBuffer, nullptr);
-        vkFreeMemory(device, indexStagingMemory, nullptr);
-        vkDestroyBuffer(device, mesh.vertexBuffer, nullptr);
-        vkFreeMemory(device, mesh.vertexMemory, nullptr);
+        destroyMesh(mesh);
         return result.error();
     }
 
-    // 复制到设备本地缓冲区
-    copyBuffer(indexStagingBuffer, mesh.indexBuffer, indexBufferSize);
-
-    // 清理暂存缓冲区
-    vkDestroyBuffer(device, indexStagingBuffer, nullptr);
-    vkFreeMemory(device, indexStagingMemory, nullptr);
+    result = uploadToDeviceBuffer(indices.data(), indexBufferSize, mesh.indexBuffer, false);
+    if (!result.success()) {
+        destroyMesh(mesh);
+        return result.error();
+    }
 
     return mesh;  // 隐式转换为Result<EntityMesh>
 }
@@ -289,23 +264,115 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
 Result<void> EntityPipeline::updateMesh(EntityMesh& mesh,
                                         const std::vector<ModelVertex>& vertices,
                                         const std::vector<u32>& indices) {
-    // 销毁旧的缓冲区
-    destroyMesh(mesh);
+    if (vertices.empty() || indices.empty()) {
+        destroyMesh(mesh);
+        return Result<void>::ok();
+    }
 
-    // 创建新的缓冲区
-    auto result = createMesh(vertices, indices);
+    for (u32 index : indices) {
+        if (index >= vertices.size()) {
+            return Error(
+                ErrorCode::InvalidData,
+                "Entity mesh index out of range during update: index=" + std::to_string(index) +
+                ", vertexCount=" + std::to_string(vertices.size())
+            );
+        }
+    }
+
+    const u32 requiredVertexCount = static_cast<u32>(vertices.size());
+    const u32 requiredIndexCount = static_cast<u32>(indices.size());
+
+    const bool needsVertexRecreate =
+        mesh.vertexBuffer == VK_NULL_HANDLE ||
+        mesh.vertexMemory == VK_NULL_HANDLE ||
+        mesh.vertexCapacity < requiredVertexCount;
+    const bool needsIndexRecreate =
+        mesh.indexBuffer == VK_NULL_HANDLE ||
+        mesh.indexMemory == VK_NULL_HANDLE ||
+        mesh.indexCapacity < requiredIndexCount;
+
+    VkBuffer replacementVertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory replacementVertexMemory = VK_NULL_HANDLE;
+    u32 replacementVertexCapacity = mesh.vertexCapacity;
+
+    VkBuffer replacementIndexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory replacementIndexMemory = VK_NULL_HANDLE;
+    u32 replacementIndexCapacity = mesh.indexCapacity;
+
+    if (needsVertexRecreate) {
+        replacementVertexCapacity = growCapacity(mesh.vertexCapacity, requiredVertexCount);
+        const VkDeviceSize replacementVertexSize =
+            sizeof(ModelVertex) * static_cast<VkDeviceSize>(replacementVertexCapacity);
+        auto result = createBuffer(replacementVertexSize,
+                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                   replacementVertexBuffer,
+                                   replacementVertexMemory);
+        if (!result.success()) {
+            return result.error();
+        }
+    }
+
+    if (needsIndexRecreate) {
+        replacementIndexCapacity = growCapacity(mesh.indexCapacity, requiredIndexCount);
+        const VkDeviceSize replacementIndexSize =
+            sizeof(u32) * static_cast<VkDeviceSize>(replacementIndexCapacity);
+        auto result = createBuffer(replacementIndexSize,
+                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                   replacementIndexBuffer,
+                                   replacementIndexMemory);
+        if (!result.success()) {
+            if (replacementVertexBuffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device, replacementVertexBuffer, nullptr);
+            }
+            if (replacementVertexMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device, replacementVertexMemory, nullptr);
+            }
+            return result.error();
+        }
+    }
+
+    if (needsVertexRecreate) {
+        if (mesh.vertexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device, mesh.vertexBuffer, nullptr);
+        }
+        if (mesh.vertexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device, mesh.vertexMemory, nullptr);
+        }
+        mesh.vertexBuffer = replacementVertexBuffer;
+        mesh.vertexMemory = replacementVertexMemory;
+        mesh.vertexCapacity = replacementVertexCapacity;
+    }
+
+    if (needsIndexRecreate) {
+        if (mesh.indexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device, mesh.indexBuffer, nullptr);
+        }
+        if (mesh.indexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device, mesh.indexMemory, nullptr);
+        }
+        mesh.indexBuffer = replacementIndexBuffer;
+        mesh.indexMemory = replacementIndexMemory;
+        mesh.indexCapacity = replacementIndexCapacity;
+    }
+
+    const VkDeviceSize vertexUploadSize = sizeof(ModelVertex) * vertices.size();
+    auto result = uploadToDeviceBuffer(vertices.data(), vertexUploadSize, mesh.vertexBuffer, true);
     if (!result.success()) {
+        destroyMesh(mesh);
         return result.error();
     }
 
-    // 复制新数据
-    EntityMesh newMesh = std::move(result.value());
-    mesh.vertexBuffer = newMesh.vertexBuffer;
-    mesh.vertexMemory = newMesh.vertexMemory;
-    mesh.indexBuffer = newMesh.indexBuffer;
-    mesh.indexMemory = newMesh.indexMemory;
-    mesh.vertexCount = newMesh.vertexCount;
-    mesh.indexCount = newMesh.indexCount;
+    const VkDeviceSize indexUploadSize = sizeof(u32) * indices.size();
+    result = uploadToDeviceBuffer(indices.data(), indexUploadSize, mesh.indexBuffer, false);
+    if (!result.success()) {
+        destroyMesh(mesh);
+        return result.error();
+    }
+
+    mesh.vertexCount = requiredVertexCount;
+    mesh.indexCount = requiredIndexCount;
 
     return Result<void>::ok();
 }
@@ -335,6 +402,8 @@ void EntityPipeline::destroyMesh(EntityMesh& mesh) {
 
     mesh.vertexCount = 0;
     mesh.indexCount = 0;
+    mesh.vertexCapacity = 0;
+    mesh.indexCapacity = 0;
 }
 
 void EntityPipeline::drawMesh(VkCommandBuffer cmd,
@@ -706,6 +775,93 @@ Result<void> EntityPipeline::createBuffer(VkDeviceSize size,
                                            VkBuffer& buffer,
                                            VkDeviceMemory& memory) {
     return ::mc::client::renderer::VulkanUtils::createBuffer(m_device, m_physicalDevice, size, usage, properties, buffer, memory);
+}
+
+Result<void> EntityPipeline::ensureReusableStagingBuffer(VkDeviceSize requiredSize,
+                                                         VkBuffer& buffer,
+                                                         VkDeviceMemory& memory,
+                                                         VkDeviceSize& capacity) {
+    if (requiredSize == 0) {
+        return Result<void>::ok();
+    }
+
+    if (buffer != VK_NULL_HANDLE && capacity >= requiredSize) {
+        return Result<void>::ok();
+    }
+
+    if (buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(m_device, buffer, nullptr);
+        buffer = VK_NULL_HANDLE;
+    }
+    if (memory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_device, memory, nullptr);
+        memory = VK_NULL_HANDLE;
+    }
+    capacity = 0;
+
+    auto result = createBuffer(requiredSize,
+                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                               buffer,
+                               memory);
+    if (!result.success()) {
+        return result.error();
+    }
+
+    capacity = requiredSize;
+    return Result<void>::ok();
+}
+
+Result<void> EntityPipeline::uploadToDeviceBuffer(const void* sourceData,
+                                                  VkDeviceSize size,
+                                                  VkBuffer destinationBuffer,
+                                                  bool useVertexStagingBuffer) {
+    if (sourceData == nullptr || destinationBuffer == VK_NULL_HANDLE || size == 0) {
+        return Error(ErrorCode::InvalidArgument, "Invalid upload arguments for EntityPipeline::uploadToDeviceBuffer");
+    }
+
+    VkBuffer& stagingBuffer = useVertexStagingBuffer ? m_vertexStagingBuffer : m_indexStagingBuffer;
+    VkDeviceMemory& stagingMemory = useVertexStagingBuffer ? m_vertexStagingMemory : m_indexStagingMemory;
+    VkDeviceSize& stagingCapacity = useVertexStagingBuffer ? m_vertexStagingCapacity : m_indexStagingCapacity;
+
+    auto result = ensureReusableStagingBuffer(size, stagingBuffer, stagingMemory, stagingCapacity);
+    if (!result.success()) {
+        return result.error();
+    }
+
+    void* mappedData = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, stagingMemory, 0, size, 0, &mappedData);
+    if (mapResult != VK_SUCCESS) {
+        return Error(ErrorCode::OperationFailed, "Failed to map reusable staging buffer memory");
+    }
+
+    std::memcpy(mappedData, sourceData, static_cast<size_t>(size));
+    vkUnmapMemory(m_device, stagingMemory);
+
+    copyBuffer(stagingBuffer, destinationBuffer, size);
+    return Result<void>::ok();
+}
+
+void EntityPipeline::destroyReusableStagingBuffers() {
+    if (m_vertexStagingBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(m_device, m_vertexStagingBuffer, nullptr);
+        m_vertexStagingBuffer = VK_NULL_HANDLE;
+    }
+    if (m_vertexStagingMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_device, m_vertexStagingMemory, nullptr);
+        m_vertexStagingMemory = VK_NULL_HANDLE;
+    }
+    m_vertexStagingCapacity = 0;
+
+    if (m_indexStagingBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(m_device, m_indexStagingBuffer, nullptr);
+        m_indexStagingBuffer = VK_NULL_HANDLE;
+    }
+    if (m_indexStagingMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_device, m_indexStagingMemory, nullptr);
+        m_indexStagingMemory = VK_NULL_HANDLE;
+    }
+    m_indexStagingCapacity = 0;
 }
 
 void EntityPipeline::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {

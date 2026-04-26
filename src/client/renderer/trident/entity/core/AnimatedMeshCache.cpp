@@ -1,6 +1,7 @@
 #include "AnimatedMeshCache.hpp"
 #include "../model/core/ModelRenderer.hpp"
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 namespace mc::client::renderer::entity::core {
 
@@ -44,19 +45,32 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
 
     // 检查是否需要更新网格
     bool needsUpdate = false;
+    const bool postureChanged =
+        state.isSitting != entry.lastState.isSitting ||
+        state.isChild != entry.lastState.isChild ||
+        state.isSneaking != entry.lastState.isSneaking ||
+        state.isSwimming != entry.lastState.isSwimming ||
+        state.isRiding != entry.lastState.isRiding;
+    const bool hasActiveAnimation =
+        state.limbSwingAmount > 0.01 ||
+        std::abs(state.netHeadYaw) > 1.0 ||
+        std::abs(state.headPitch) > 1.0 ||
+        state.swingProgress > 0.001f;
+    const u32 updateInterval = hasActiveAnimation ? ACTIVE_UPDATE_INTERVAL : IDLE_UPDATE_INTERVAL;
 
     if (!entry.created) {
         // 首次创建
         needsUpdate = true;
-    } else if (state.hasSignificantChange(entry.lastState, STATE_CHANGE_THRESHOLD)) {
-        // 动画状态显著变化
+    } else if (postureChanged) {
+        // 姿态状态变化需要立即更新，避免模型状态滞后
         needsUpdate = true;
-    } else if (entry.framesSinceUpdate >= MIN_UPDATE_INTERVAL) {
-        // 到达更新间隔（确保至少每 N 帧更新一次）
-        // 对于持续动画（如行走），这确保动画流畅
-        if (state.limbSwingAmount > 0.01 || std::abs(state.netHeadYaw) > 1.0 || std::abs(state.headPitch) > 1.0) {
-            needsUpdate = true;
-        }
+    } else if (entry.framesSinceUpdate >= updateInterval &&
+               state.hasSignificantChange(entry.lastState, STATE_CHANGE_THRESHOLD)) {
+        // 动画有明显变化且达到更新间隔
+        needsUpdate = true;
+    } else if (hasActiveAnimation && entry.framesSinceUpdate >= FORCE_UPDATE_INTERVAL) {
+        // 长时间未刷新时强制更新，避免动画累计误差
+        needsUpdate = true;
     }
 
     if (needsUpdate) {

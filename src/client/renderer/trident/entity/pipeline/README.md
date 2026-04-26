@@ -103,6 +103,8 @@ struct EntityMesh {
     VkDeviceMemory indexMemory;
     u32 indexCount;
     u32 vertexCount;
+    u32 vertexCapacity;
+    u32 indexCapacity;
     f64 posX, posY, posZ;
 };
 ```
@@ -118,9 +120,10 @@ struct TextureRegion {
 
 ## 性能优化
 
-1. **顶点缓冲区复用**：使用设备本地内存
-2. **纹理图集**：减少纹理绑定次数
-3. **描述符集缓存**：避免频繁分配
+1. **网格缓冲区容量复用**：`updateMesh()` 在容量足够时仅上传新数据，不再销毁重建 GPU 缓冲区
+2. **可复用 staging buffer**：顶点/索引上传共享长期存在的暂存缓冲区，避免每次更新都 `vkAllocateMemory`
+3. **纹理图集**：减少纹理绑定次数
+4. **描述符集缓存**：避免频繁分配
 
 ## 命名空间
 
