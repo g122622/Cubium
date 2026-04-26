@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "../../../core/Constants.hpp"
 #include "LightEngineUtils.hpp"
 #include "../storage/SWMRNibbleArray.hpp"
 #include "../../block/Block.hpp"
@@ -501,11 +502,13 @@ protected:
     bool m_isSkyLight = false;
     bool m_isClientSide = false;
 
-    // 世界高度范围
-    i32 m_minSection = 0;
-    i32 m_maxSection = 15;
-    i32 m_minLightSection = -1;
-    i32 m_maxLightSection = 16;
+    // 世界高度范围（从世界高度常量计算）
+    // 区块段索引：Y >> 4，所以 MIN_BUILD_HEIGHT=0 -> section 0，MAX_BUILD_HEIGHT=256 -> section 15（包含Y=240-255）
+    i32 m_minSection = world::MIN_BUILD_HEIGHT >> 4;
+    i32 m_maxSection = (world::MAX_BUILD_HEIGHT - 1) >> 4;
+    // 光照段需要额外缓冲段（上方和下方各一个）
+    i32 m_minLightSection = m_minSection - 1;
+    i32 m_maxLightSection = m_maxSection + 1;
 
     // 编码偏移（用于坐标压缩）
     i32 m_encodeOffsetX = 0;

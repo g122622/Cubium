@@ -53,11 +53,8 @@ VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape) {
 BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
     : StarLightEngine(false) {  // false = 不是天空光照
 
-    // 设置世界高度范围
-    m_minSection = 0;
-    m_maxSection = 15;
-    m_minLightSection = -1;
-    m_maxLightSection = 16;
+    // 世界高度范围由基类从世界高度常量自动计算
+    // m_minSection, m_maxSection, m_minLightSection, m_maxLightSection
 
     i32 totalLightSections = m_maxLightSection - m_minLightSection + 1;
 

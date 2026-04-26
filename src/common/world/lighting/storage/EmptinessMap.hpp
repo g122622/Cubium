@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "../../../core/Constants.hpp"
 #include <vector>
 #include <cstring>
 
@@ -112,9 +113,10 @@ public:
     [[nodiscard]] i32 getSectionCount() const { return m_sectionCount; }
 
 private:
-    i32 m_minSection = 0;
-    i32 m_maxSection = 15;
-    i32 m_sectionCount = 16;
+    // 世界高度范围（从世界高度常量计算）
+    i32 m_minSection = world::MIN_BUILD_HEIGHT >> 4;
+    i32 m_maxSection = (world::MAX_BUILD_HEIGHT - 1) >> 4;
+    i32 m_sectionCount = ((world::MAX_BUILD_HEIGHT - 1) >> 4) - (world::MIN_BUILD_HEIGHT >> 4) + 1;
     std::vector<u8> m_sectionEmpty;  // 0 = 有方块，1 = 空（使用 u8 代替 bool 以支持 data()）
 
     /**
