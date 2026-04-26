@@ -90,20 +90,6 @@ All types are in namespace `mc` (client types in `mc::client`, server types in `
 
 ## Performance Tracing (Perfetto)
 
-### Configuration
-
-```cpp
-// Compile-time switches
-MC_ENABLE_TRACING      // Master switch
-MC_TRACE_RENDERING     // Rendering subsystem
-MC_TRACE_GAME_TICK     // Game tick
-MC_TRACE_CHUNK_GENERATION
-MC_TRACE_CHUNK_LOAD
-MC_TRACE_NETWORK
-MC_TRACE_IO
-MC_TRACE_MEMORY
-```
-
 ### Trace Categories
 
 - `rendering.*` - Frame, Vulkan, chunk mesh, entity, GUI, sky, etc.
@@ -111,6 +97,7 @@ MC_TRACE_MEMORY
 - `world.*` - Chunk, biome, generation stages
 - `network.*` - Packet, sync, connection
 - `server.*` - Server tick, player, world, entity
+- for more Categories，see `src\common\perfetto\TraceCategories.hpp`
 
 ### Usage
 
@@ -118,21 +105,22 @@ MC_TRACE_MEMORY
 #include "perfetto/TraceEvents.hpp"
 
 // Initialize
-mc::perfetto::TraceConfig config;
-config.outputPath = "trace.perfetto-trace";
-mc::perfetto::PerfettoManager::instance().initialize(config);
-mc::perfetto::PerfettoManager::instance().startTracing();
-
 // Scoped event
 MC_TRACE_EVENT("rendering.frame", "RenderFrame");
 
+MC_TRACE_EVENT("server.world",
+        "MinecraftServer::handleBlockInteractionPacket",
+        "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        "playerId", playerId,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
+            flow(ctx);
+});
+
 // Counter
 MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
-
-// Cleanup
-mc::perfetto::PerfettoManager::instance().stopTracing();
-mc::perfetto::PerfettoManager::instance().shutdown();
 ```
+
+你必须保证MC_TRACE_EVENT/MC_TRACE_COUNTER等的第一个参数在`src\common\perfetto\TraceCategories.hpp`中已经被注册，否则会导致编译错误。
 
 ## Error Handling Pattern
 
@@ -178,94 +166,16 @@ The project provides a comprehensive assertion library for runtime checks.
 ```cpp
 #include "common/util/assert/AssertAll.hpp"
 
-// Basic assertions (Debug mode only)
-MC_ASSERT(ptr != nullptr);
-MC_ASSERT_MSG(size > 0, "Size must be positive");
+// 虽然AssertAll提供了大量断言工具，但目前只允许使用下面的断言宏：
 
 // Release mode assertions (always enabled)
 MC_ASSERT_RELEASE(index < capacity);
 
-// Fatal assertions (always enabled, for critical errors)
-MC_ASSERT_FATAL(state == State::Ready);
-
-// Comparison assertions with value output
-MC_ASSERT_EQ(expected, actual);  // Shows both values on failure
-MC_ASSERT_NE(ptr, nullptr);
-MC_ASSERT_LT(value, max);
-MC_ASSERT_LE(value, max);
-MC_ASSERT_GT(value, min);
-MC_ASSERT_GE(value, min);
-
-// Pointer assertions
-MC_ASSERT_NOT_NULL(obj);
-MC_ASSERT_NULL(optional);
-
-// Range assertions
-MC_ASSERT_RANGE(index, 0, size - 1);
-MC_ASSERT_INDEX(row, height);
-MC_ASSERT_INDEX_U(index, size);  // Unsigned index
-
-// Special assertions
-MC_ASSERT_UNREACHABLE();           // Marks unreachable code
-MC_ASSERT_FAIL("Critical error");  // Always fails
-MC_ASSERT_NOT_IMPLEMENTED();       // Marks unimplemented code
-
-// Precondition/postcondition assertions
-MC_PRECONDITION(size > 0);
-MC_POSTCONDITION(result != nullptr);
-MC_INVARIANT(m_count >= 0);
-
-// Debug-only code
-MC_DEBUG_ONLY(debugLog("Checking..."));
+MC_ASSERT_RELEASE_MSG(index < capacity, "XXXXX");
 
 // Unused variable marker
 MC_UNUSED(unusedParam);
 ```
-
-### Assert Levels
-
-| Level | Description |
-|-------|-------------|
-| Debug | Only active in Debug builds |
-| Release | Always active |
-| Fatal | Always active, for critical errors |
-
-### Custom Handlers
-
-```cpp
-// Set custom handler
-mc::assert::AssertConfig config;
-config.handler = [](const mc::assert::AssertFailure& failure) {
-    // Custom handling (log, throw, etc.)
-    throw mc::assert::AssertException(failure);
-};
-config.captureStackTrace = true;  // Enable stack traces
-config.breakOnFailure = true;     // Trigger debugger breakpoint
-mc::assert::AssertManager::instance().setConfig(config);
-```
-
-### Built-in Handlers
-
-- `defaultAssertHandler()` - Output to stderr and abort
-- `logAssertHandler()` - Log using spdlog and abort
-- `throwAssertHandler()` - Throw `AssertException`
-
-## Naming Conventions
-
-- **Namespaces**: lowercase (`mc`, `mc::client`, `mc::server`)
-- **Classes/Structs**: PascalCase (`ChunkManager`, `Vector3`)
-- **Functions**: camelCase (`loadChunk`, `getPlayerName`)
-- **Member variables**: `m_` prefix + camelCase (`m_health`, `m_position`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_PLAYERS`, `CHUNK_WIDTH`)
-- **Enum values**: PascalCase (`BlockType::Stone`, `ErrorCode::NotFound`)
-- **Files**: PascalCase (`ChunkManager.hpp`, `ChunkManager.cpp`)
-
-## Include Order
-
-1. Corresponding header file (for .cpp files)
-2. Project internal headers
-3. Third-party library headers
-4. Standard library headers
 
 ## Dependencies
 
@@ -280,16 +190,6 @@ Managed via vcpkg:
 - **GTest** - Testing framework
 - **stb** - Image loading
 - **perfetto** - Performance tracing
-
-## Code Style
-
-- C++17 standard
-- `#pragma once` for header guards
-- `[[nodiscard]]` for functions returning values that must be checked
-- Use smart pointers (`std::unique_ptr`, `std::shared_ptr`) rather than raw pointers
-- Use `const&` for large object parameters
-- Use `string_view` for read-only string parameters
-
 
 ## Random Module
 

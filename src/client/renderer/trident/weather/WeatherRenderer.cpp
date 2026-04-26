@@ -362,11 +362,10 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
                               const glm::vec3& cameraPos,
                               u32 frameIndex,
                               const mc::math::frustum::Frustum& frustum) {
-    // WeatherRenderer 目前使用距离淡出而非严格视锥剔除
-    // 雨滴/雪花的渲染范围由 m_renderRadius 控制
-    // 保留此重载以保持 API 一致性，未来可以添加更精细的剔除
-    (void)frustum;  // 暂时未使用
+    // 存储视锥体用于几何生成时的剔除
+    m_frustum = &frustum;
     render(cmd, projection, view, cameraPos, frameIndex);
+    m_frustum = nullptr;
 }
 
 void WeatherRenderer::generateWeatherGeometry() {
@@ -398,6 +397,23 @@ void WeatherRenderer::generateWeatherGeometry() {
 
             f64 offsetX = m_rainOffsetX[idx];
             f64 offsetZ = m_rainOffsetZ[idx];
+
+            // 视锥剔除：使用球体测试检查位置是否可见
+            if (m_frustum && m_frustum->isValid()) {
+                // 创建天气效果的包围球
+                // 球心在 (x, cameraY, z)，半径覆盖渲染范围
+                glm::vec3 center(
+                    static_cast<f32>(x) + 0.5f,
+                    static_cast<f32>(m_cameraPos.y),
+                    static_cast<f32>(z) + 0.5f
+                );
+                // 使用一个合理的球体半径（覆盖整个雨柱高度）
+                f32 sphereRadius = 25.0f;  // 雨柱高度约 20 格
+
+                if (!m_frustum->isSphereVisible(center, sphereRadius)) {
+                    continue;  // 跳过视锥外的位置
+                }
+            }
 
             // TODO: 检查生物群系温度决定雨/雪
             // 暂时假设全是雨

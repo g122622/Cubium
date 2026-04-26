@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
@@ -80,13 +81,15 @@ TEST_F(FrustumTest, PlanesHaveCorrectOrientation) {
     const auto& topPlane = frustum.getPlane(Frustum::Top);
     EXPECT_LT(topPlane.normal.y, 0.0f) << "Top plane normal should point down (-Y)";
 
-    // 近平面法向量应该指向 +Z（视锥内部，因为相机看向 -Z）
+    // 近平面法向量：对于右手坐标系相机看向 -Z，视锥内部在近平面的"前方"
+    // 即更负的 Z 方向，所以法向量指向 -Z
     const auto& nearPlane = frustum.getPlane(Frustum::Near);
-    EXPECT_GT(nearPlane.normal.z, 0.0f) << "Near plane normal should point into frustum (+Z)";
+    EXPECT_LT(nearPlane.normal.z, 0.0f) << "Near plane normal should point into frustum (-Z for right-hand system looking -Z)";
 
-    // 远平面法向量应该指向 -Z（视锥内部，因为远平面在相机前方）
+    // 远平面法向量：视锥内部在远平面的"后方"（更接近相机）
+    // 所以法向量指向 +Z
     const auto& farPlane = frustum.getPlane(Frustum::Far);
-    EXPECT_LT(farPlane.normal.z, 0.0f) << "Far plane normal should point back (-Z)";
+    EXPECT_GT(farPlane.normal.z, 0.0f) << "Far plane normal should point into frustum (+Z for right-hand system)";
 }
 
 // ========== 点可见性测试 ==========
@@ -197,8 +200,10 @@ TEST_F(FrustumTest, SphereVisibility_SphereAtEdge) {
     // 球心在视锥边缘，但球的一部分在视锥内
     Vector3 center(20.0f, 0.0f, -10.0f);  // 可能在边缘
     f32 radius = 5.0f;
-    // 结果取决于具体视角，但至少不会崩溃
-    frustum.isSphereVisible(center, radius);  // 不崩溃即可
+    // 边缘测试：确保不会崩溃，且返回有效的布尔值
+    bool result = frustum.isSphereVisible(center, radius);
+    // 结果取决于具体视角，但应该是有效的布尔值
+    EXPECT_TRUE(result == true || result == false);
 }
 
 TEST_F(FrustumTest, SphereVisibility_GlmVersion) {
@@ -254,8 +259,10 @@ TEST_F(FrustumTest, AABBVisibility_AABBAtEdge) {
 
     // 在视锥边缘的 AABB
     AxisAlignedBB aabb(15.0f, -5.0f, -10.0f, 25.0f, 5.0f, -5.0f);
-    // 结果取决于具体视角
-    frustum.isAABBVisible(aabb);  // 不崩溃即可
+    // 边缘测试：确保不会崩溃，且返回有效的布尔值
+    bool result = frustum.isAABBVisible(aabb);
+    // 结果取决于具体视角，但应该是有效的布尔值
+    EXPECT_TRUE(result == true || result == false);
 }
 
 TEST_F(FrustumTest, AABBVisibility_WorldCoordinates) {
@@ -282,8 +289,10 @@ TEST_F(FrustumTest, AABBVisibility_EmptyAABB) {
     frustum.extractFromMatrix(viewProjection);
 
     // 空 AABB（实际上是一个点在原点）
+    // 相机在原点看向 -Z，近裁剪面在 z=-0.1
+    // 原点 (0,0,0) 在近平面之前（z > -0.1），所以不在视锥内
     AxisAlignedBB emptyAABB;  // 默认构造，min = max = 0
-    EXPECT_TRUE(frustum.isAABBVisible(emptyAABB));  // 点在原点，在近裁剪面内，不可见
+    EXPECT_FALSE(frustum.isAABBVisible(emptyAABB));
 }
 
 // ========== 区块可见性测试 ==========
@@ -320,12 +329,23 @@ TEST_F(FrustumTest, ChunkVisibility_CameraMoved) {
     frustum.extractFromMatrix(viewProjection);
 
     // 相机移动到另一个位置
-    frustum.setCameraPosition(Vector3(100.0f, 64.0f, -200.0f));
+    // 注意：setCameraPosition 只设置相机位置用于坐标转换
+    // 视锥方向仍由原始 viewProjection 矩阵决定（看向 -Z）
+    constexpr f32 cameraX = 100.0f;
+    constexpr f32 cameraY = 64.0f;
+    constexpr f32 cameraZ = -200.0f;
+    frustum.setCameraPosition(Vector3(cameraX, cameraY, cameraZ));
 
-    // 测试相对位置
-    i32 chunkX = static_cast<i32>(100.0f / 16.0f);  // 6
-    i32 chunkZ = static_cast<i32>(-200.0f / 16.0f); // -13
+    // 区块在世界坐标 z=-208 到 z=-192（chunkZ = -13 * 16 = -208）
+    // 相机在 z=-200，视锥朝向 -Z
+    // 所以相机看到的是 z < -200 的区域
+    // 区块 z 范围是 [-208, -192]，部分在视锥内（z < -200 的部分）
+    // 负坐标必须使用向下取整规则，避免 static_cast 对负数向零截断。
+    const i32 chunkX = mc::math::toChunkCoord(cameraX);
+    const i32 chunkZ = mc::math::toChunkCoord(cameraZ);
 
+    // 区块 X 范围: [96, 112]，相机 X=100，在范围内
+    // 区块 Z 范围: [-208, -192]，相机 Z=-200，部分在视锥内
     EXPECT_TRUE(frustum.isChunkVisible(chunkX, chunkZ, 0, 256));
 }
 

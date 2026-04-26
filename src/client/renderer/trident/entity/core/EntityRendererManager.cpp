@@ -338,6 +338,25 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 }
 
+bool EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks,
+                                                const mc::math::frustum::Frustum& frustum) {
+    // 使用 FrustumUtils 创建实体包围盒
+    // 使用插值位置以获得平滑的剔除效果
+    const f32 partialTickF32 = static_cast<f32>(partialTicks);
+    Vector3 pos = entity.getInterpolatedPosition(partialTickF32);
+    AxisAlignedBB aabb = mc::math::frustum::FrustumUtils::createEntityAABB(
+        pos, entity.width(), entity.height());
+
+    // 使用世界坐标 AABB 进行视锥剔除
+    if (!frustum.isAABBVisibleWorld(aabb)) {
+        return false;  // 实体不在视锥内，跳过渲染
+    }
+
+    // 实体在视锥内，正常渲染
+    renderWithPipeline(cmd, entity, partialTicks);
+    return true;
+}
+
 f64 EntityRendererManager::calculateItemBobOffset(u32 ticksExisted, f64 partialTick) const {
     // 参考 MC 1.16.5 ItemEntityRenderer
     // 浮动动画：sin(ticks * 0.1) * 0.1

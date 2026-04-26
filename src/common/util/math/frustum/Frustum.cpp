@@ -10,53 +10,55 @@ using mc::world::CHUNK_SECTION_HEIGHT;
 
 void Frustum::extractFromMatrix(const glm::mat4& m) {
     // Gribb-Hartmann 方法：从组合的 view-projection 矩阵提取视锥平面
-    // 矩阵 m 是列主序的，所以 m[i][j] 表示第 j 列第 i 行
+    // GLM 矩阵是列主序的，m[col][row] 表示第 col 列第 row 行
     //
-    // 平面提取公式：
-    // Left   = m[3] + m[0]  (第 3 列 + 第 0 列)
-    // Right  = m[3] - m[0]  (第 3 列 - 第 0 列)
-    // Bottom = m[3] + m[1]  (第 3 列 + 第 1 列)
-    // Top    = m[3] - m[1]  (第 3 列 - 第 1 列)
-    // Near   = m[3] + m[2]  (第 3 列 + 第 2 列)
-    // Far    = m[3] - m[2]  (第 3 列 - 第 2 列)
+    // 平面提取公式（行向量形式）：
+    // Left   = row3 + row0  (第 3 行 + 第 0 行)
+    // Right  = row3 - row0  (第 3 行 - 第 0 行)
+    // Bottom = row3 + row1  (第 3 行 + 第 1 行)
+    // Top    = row3 - row1  (第 3 行 - 第 1 行)
+    // Near   = row3 + row2  (第 3 行 + 第 2 行)
+    // Far    = row3 - row2  (第 3 行 - 第 2 行)
+    //
+    // 结果是一个 vec4(A, B, C, D)，表示平面方程 Ax + By + Cz + D = 0
 
-    // 左平面
+    // 左平面: row3 + row0
     m_planes[Left].normal.x = m[0][3] + m[0][0];
     m_planes[Left].normal.y = m[1][3] + m[1][0];
     m_planes[Left].normal.z = m[2][3] + m[2][0];
     m_planes[Left].distance = m[3][3] + m[3][0];
 
-    // 右平面
+    // 右平面: row3 - row0
     m_planes[Right].normal.x = m[0][3] - m[0][0];
     m_planes[Right].normal.y = m[1][3] - m[1][0];
     m_planes[Right].normal.z = m[2][3] - m[2][0];
     m_planes[Right].distance = m[3][3] - m[3][0];
 
-    // 底平面
+    // 底平面: row3 + row1
     m_planes[Bottom].normal.x = m[0][3] + m[0][1];
     m_planes[Bottom].normal.y = m[1][3] + m[1][1];
     m_planes[Bottom].normal.z = m[2][3] + m[2][1];
     m_planes[Bottom].distance = m[3][3] + m[3][1];
 
-    // 顶平面
+    // 顶平面: row3 - row1
     m_planes[Top].normal.x = m[0][3] - m[0][1];
     m_planes[Top].normal.y = m[1][3] - m[1][1];
     m_planes[Top].normal.z = m[2][3] - m[2][1];
     m_planes[Top].distance = m[3][3] - m[3][1];
 
-    // 近平面
+    // 近平面: row3 + row2
     m_planes[Near].normal.x = m[0][3] + m[0][2];
     m_planes[Near].normal.y = m[1][3] + m[1][2];
     m_planes[Near].normal.z = m[2][3] + m[2][2];
     m_planes[Near].distance = m[3][3] + m[3][2];
 
-    // 远平面
+    // 远平面: row3 - row2
     m_planes[Far].normal.x = m[0][3] - m[0][2];
     m_planes[Far].normal.y = m[1][3] - m[1][2];
     m_planes[Far].normal.z = m[2][3] - m[2][2];
     m_planes[Far].distance = m[3][3] - m[3][2];
 
-    // 归一化所有平面，使距离ToPoint() 返回真正的距离
+    // 归一化所有平面，使 distanceToPoint() 返回真正的距离
     for (auto& plane : m_planes) {
         plane.normalize();
     }

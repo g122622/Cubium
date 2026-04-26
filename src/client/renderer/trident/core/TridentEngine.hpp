@@ -7,6 +7,7 @@
 #include "../../../resource/TextureAtlasBuilder.hpp"
 #include "../entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include <vulkan/vulkan.h>
 #include <memory>
 #include <functional>
@@ -501,6 +502,13 @@ public:
     [[nodiscard]] const firstperson::FirstPersonRenderer& firstPersonRenderer() const;
     [[nodiscard]] bool isFirstPersonRendererInitialized() const { return m_firstPersonRendererInitialized; }
 
+    /**
+     * @brief 获取视锥体（用于视锥剔除）
+     *
+     * 视锥体在每帧 beginFrame 时根据相机状态更新。
+     */
+    [[nodiscard]] const mc::math::frustum::Frustum& frustum() const { return m_frustum; }
+
     // ========================================================================
     // 子渲染器初始化
     // ========================================================================
@@ -699,6 +707,9 @@ private:
     bool m_inWater = false;
     bool m_inLava = false;
     u32 m_waterFogColor = 0x050533;  // 默认水下雾颜色
+
+    // 视锥体（用于视锥剔除）
+    mc::math::frustum::Frustum m_frustum;
 
     // 内部方法
     [[nodiscard]] Result<void> recreateSwapchain();

@@ -7,6 +7,7 @@
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include <unordered_map>
 #include <memory>
 #include <functional>
@@ -128,6 +129,20 @@ public:
      * @param partialTicks 部分tick
      */
     void renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks);
+
+    /**
+     * @brief 使用管线渲染实体（带视锥剔除）
+     *
+     * 首先检查实体的包围盒是否在视锥内，如果不在则跳过渲染。
+     *
+     * @param cmd 命令缓冲区
+     * @param entity 客户端实体
+     * @param partialTicks 部分tick
+     * @param frustum 视锥体（用于剔除）
+     * @return true 如果实体被渲染，false 如果被剔除
+     */
+    bool renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks,
+                            const mc::math::frustum::Frustum& frustum);
 
     // ========== 管线 ==========
 

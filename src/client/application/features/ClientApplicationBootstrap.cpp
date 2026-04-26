@@ -394,8 +394,11 @@ Result<void> ClientApplication::initializeGameplaySystems(const ClientLaunchPara
 
     // 设置实体渲染回调
     m_renderer->setEntityRenderCallback([this](VkCommandBuffer cmd, f64 partialTick) {
+        // 获取视锥体用于剔除
+        const auto& frustum = m_renderer->frustum();
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
-            m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick);
+            // 使用带视锥剔除的渲染方法
+            m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick, frustum);
         });
     });
 

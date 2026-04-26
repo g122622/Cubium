@@ -279,6 +279,9 @@ private:
     static constexpr i32 RAIN_SIZE = 32;
     f64 m_rainOffsetX[RAIN_SIZE * RAIN_SIZE] = {};
     f64 m_rainOffsetZ[RAIN_SIZE * RAIN_SIZE] = {};
+
+    // 视锥体（用于剔除）
+    const mc::math::frustum::Frustum* m_frustum = nullptr;
 };
 
 } // namespace mc::client::renderer::trident::weather

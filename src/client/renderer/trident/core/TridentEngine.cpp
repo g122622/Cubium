@@ -808,7 +808,8 @@ Result<void> TridentEngine::render() {
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
             glm::vec3(cameraPos),
-            m_frameContext.frameIndex
+            m_frameContext.frameIndex,
+            m_frustum
         );
     }
 
@@ -825,7 +826,8 @@ Result<void> TridentEngine::render() {
             m_frameContext.projectionMatrix,
             m_frameContext.viewMatrix,
             glm::vec3(cameraPos),
-            m_frameContext.frameIndex
+            m_frameContext.frameIndex,
+            m_frustum
         );
     }
 
@@ -891,6 +893,10 @@ void TridentEngine::setCamera(const api::ICamera* camera) {
         m_frameContext.viewMatrix = camera->viewMatrix();
         m_frameContext.projectionMatrix = camera->projectionMatrix();
         m_frameContext.viewProjectionMatrix = m_frameContext.projectionMatrix * m_frameContext.viewMatrix;
+
+        // 更新视锥体
+        m_frustum.extractFromMatrix(m_frameContext.viewProjectionMatrix);
+        m_frustum.setCameraPosition(camera->position());
 
         // 更新 Uniform 缓冲区
         m_uniformManager->updateCamera(

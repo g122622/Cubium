@@ -151,6 +151,8 @@ add_executable(mc_tests
     # 绾㈢煶鏂瑰潡娴嬭瘯
     common/world/block/test_redstone_blocks.cpp
     # 灏勭嚎妫€娴嬫祴璇?    common/math/RaycastTest.cpp
+    # 视锥剔除测试
+    common/util/math/FrustumTest.cpp
     # 瀹炰綋鐢熸垚鍥炶皟娴嬭瘯
     server/ServerChunkManagerCallbackTest.cpp
     common/world/EntityManagerSpawnTest.cpp
