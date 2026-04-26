@@ -17,7 +17,10 @@ void MovementController::setMoveTo(f64 x, f64 y, f64 z, f64 speed) {
     m_posY = y;
     m_posZ = z;
     m_speed = speed;
-    m_action = MoveAction::MoveTo;
+    // MC 1.16.5: 跳跃中不应覆盖为MOVE_TO
+    if (m_action != MoveAction::Jumping) {
+        m_action = MoveAction::MoveTo;
+    }
 }
 
 void MovementController::strafe(f32 forward, f32 strafe) {
@@ -31,7 +34,7 @@ void MovementController::tick() {
     if (!m_mob) return;
 
     if (m_action == MoveAction::Strafe) {
-        // MC 的 STRAFE 模式实现
+        // MC 1.16.5 STRAFE 模式实现
         // 计算移动速度
         f32 baseSpeed = static_cast<f32>(m_mob->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
         f32 moveSpeed = static_cast<f32>(m_speed) * baseSpeed;
@@ -43,15 +46,26 @@ void MovementController::tick() {
         if (length < 1.0f) {
             length = 1.0f;
         }
-        f32 scaledForward = (forward / length) * moveSpeed;
-        f32 scaledStrafe = (strafe / length) * moveSpeed;
+        f32 f4 = moveSpeed / length;
+        forward = forward * f4;
+        strafe = strafe * f4;
+
+        // MC 1.16.5: 基于实体偏航角进行向量旋转变换
+        f32 yaw = m_mob->yaw() * math::DEG_TO_RAD;
+        f32 sinYaw = std::sin(yaw);
+        f32 cosYaw = std::cos(yaw);
+
+        // 计算世界坐标系的移动向量
+        f32 moveX = forward * cosYaw - strafe * sinYaw;
+        f32 moveZ = strafe * cosYaw + forward * sinYaw;
 
         // TODO: 检查目标位置是否可行走 (func_234024_b_)
         // 当前简化实现：直接设置移动
+        // 如果检查失败，MC会设置 forward=1.0, strafe=0.0
 
         m_mob->setAIMoveSpeed(moveSpeed);
-        m_mob->setMoveForward(forward);
-        m_mob->setMoveStrafing(strafe);
+        m_mob->setMoveForward(m_moveForward);
+        m_mob->setMoveStrafing(m_moveStrafe);
         m_action = MoveAction::Wait;
     }
     else if (m_action == MoveAction::MoveTo) {
@@ -74,9 +88,9 @@ void MovementController::tick() {
         // 计算目标偏航角
         f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 
-        // 限制旋转速度（MC默认30度/tick）
+        // MC 1.16.5: 限制旋转速度为90度/tick
         f32 currentYaw = m_mob->yaw();
-        f32 newYaw = math::clampedRotate(currentYaw, targetYaw, 30.0f);
+        f32 newYaw = math::clampedRotate(currentYaw, targetYaw, 90.0f);
 
         m_mob->setRotation(newYaw, m_mob->pitch());
 
@@ -85,12 +99,14 @@ void MovementController::tick() {
         m_mob->setAIMoveSpeed(moveSpeed);
         m_mob->setMoveForward(1.0f);  // 向前移动
 
-        // 检查是否需要跳跃（目标位置比当前位置高，且水平距离小于实体宽度）
+        // 检查是否需要跳跃
+        // MC 1.16.5: 条件1 - 目标位置更高且水平距离近
+        // MC 1.16.5: 条件2 - OR 方块碰撞形状检查（门、栅栏等）
+        // 当前实现条件1，条件2需要Region/World支持
         f64 horizontalDistSq = dx * dx + dz * dz;
         f32 entityWidth = m_mob->width();
         f32 maxDist = std::max(1.0f, entityWidth);
         if (dy > m_mob->stepHeight() && horizontalDistSq < static_cast<f64>(maxDist * maxDist)) {
-            // TODO: 检查脚下方块碰撞
             if (auto* jumpCtrl = m_mob->jumpController()) {
                 jumpCtrl->setJumping();
             }

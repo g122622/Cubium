@@ -39,15 +39,14 @@ bool PanicGoal::shouldExecute() {
             static_cast<i32>(PANIC_WATER_SEARCH_VERTICAL)
         );
         if (waterPos.x != 0 || waterPos.y != 0 || waterPos.z != 0) {
-            m_targetX = static_cast<f32>(waterPos.x) + 0.5f;
-            m_targetY = static_cast<f32>(waterPos.y) + 0.5f;
-            m_targetZ = static_cast<f32>(waterPos.z) + 0.5f;
+            m_targetX = static_cast<f64>(waterPos.x) + 0.5;
+            m_targetY = static_cast<f64>(waterPos.y) + 0.5;
+            m_targetZ = static_cast<f64>(waterPos.z) + 0.5;
             return true;
         }
     }
 
     // MC 1.16.5: 否则使用 RandomPositionGenerator.findRandomTarget(creature, 5, 4)
-    // 当前实现：随机逃跑方向
     return findRandomPosition();
 }
 
@@ -65,19 +64,22 @@ bool PanicGoal::shouldContinueExecuting() {
 
 void PanicGoal::startExecuting() {
     if (m_creature) {
-        m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+        // MC 1.16.5: 使用 navigator.tryMoveToXYZ
+        if (auto* nav = m_creature->navigator()) {
+            nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+        }
         m_running = true;
     }
 }
 
 void PanicGoal::resetTask() {
     m_running = false;
-    // MC 1.16.5: 不需要清除路径，让其他目标接管
+    // MC 1.16.5: 不清除导航路径，让其他目标接管
 }
 
 void PanicGoal::tick() {
     // MC 1.16.5: PanicGoal 的 tick 是空的
-    // 路径在 startExecuting 中设置，不需要每tick更新
+    // 路径在 startExecuting 中设置，不需要每 tick 更新
 }
 
 bool PanicGoal::findRandomPosition() {
@@ -89,13 +91,12 @@ bool PanicGoal::findRandomPosition() {
 
     // MC 1.16.5: 在 5 格水平范围、4 格垂直范围内寻找
     f32 angle = rng.nextFloat() * math::TWO_PI;
-    f32 distance = rng.nextFloat() * PANIC_ESCAPE_MAX_DISTANCE;
+    f32 horizontalDist = rng.nextFloat() * PANIC_ESCAPE_MAX_DISTANCE;  // 5-10 格
+    f32 verticalDist = (rng.nextFloat() * 2.0f - 1.0f) * PANIC_WATER_SEARCH_VERTICAL;  // ±4 格
 
-    m_targetX = m_creature->x() + std::cos(angle) * distance;
-    m_targetZ = m_creature->z() + std::sin(angle) * distance;
-
-    // Y坐标保持当前位置或稍低
-    m_targetY = m_creature->y();
+    m_targetX = m_creature->x() + std::cos(angle) * horizontalDist;
+    m_targetZ = m_creature->z() + std::sin(angle) * horizontalDist;
+    m_targetY = m_creature->y() + verticalDist;
 
     return true;
 }
@@ -112,6 +113,7 @@ BlockPos PanicGoal::getRandomWaterPosition(i32 horizontalRange, i32 verticalRang
     i32 cy = static_cast<i32>(m_creature->y());
     i32 cz = static_cast<i32>(m_creature->z());
 
+    // MC 1.16.5: 初始最远距离为 horizontalRange^2 * verticalRange * 2
     f32 closestDistSq = static_cast<f32>(horizontalRange * horizontalRange * verticalRange * 2);
     BlockPos closestWater(0, 0, 0);
 
@@ -124,6 +126,7 @@ BlockPos PanicGoal::getRandomWaterPosition(i32 horizontalRange, i32 verticalRang
                 }
 
                 BlockPos pos(x, y, z);
+                // MC 1.16.5: 使用 FluidTags.WATER 检查水
                 if (world->isWaterAt(pos)) {
                     f32 distSq = static_cast<f32>((x - cx) * (x - cx) + (y - cy) * (y - cy) + (z - cz) * (z - cz));
                     if (distSq < closestDistSq) {

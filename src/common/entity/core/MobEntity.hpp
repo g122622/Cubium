@@ -158,23 +158,26 @@ public:
      * @brief 获取水平面部旋转速度
      *
      * 参考 MC 1.16.5 MobEntity.getHorizontalFaceSpeed()
-     * 用于LookController的默认旋转速度。
+     * 用于LookController限制导航路径时的头部旋转。
+     * MC 1.16.5 默认值: 75
      */
-    [[nodiscard]] virtual f32 getHorizontalFaceSpeed() const { return 10.0f; }
+    [[nodiscard]] virtual f32 getHorizontalFaceSpeed() const { return 75.0f; }
 
     /**
      * @brief 获取垂直面部旋转速度
      *
      * 参考 MC 1.16.5 MobEntity.getVerticalFaceSpeed()
-     * 用于LookController的默认旋转速度。
+     * 用于LookController限制俯仰角旋转速度。
+     * MC 1.16.5 默认值: 40
      */
-    [[nodiscard]] virtual f32 getVerticalFaceSpeed() const { return 10.0f; }
+    [[nodiscard]] virtual f32 getVerticalFaceSpeed() const { return 40.0f; }
 
     /**
      * @brief 获取面部旋转速度
      *
      * 参考 MC 1.16.5 MobEntity.getFaceRotSpeed()
      * 用于LookController的默认偏航角旋转速度。
+     * MC 1.16.5 默认值: 10
      */
     [[nodiscard]] virtual f32 getFaceRotSpeed() const { return 10.0f; }
 

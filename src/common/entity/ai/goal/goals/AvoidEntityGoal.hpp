@@ -64,6 +64,7 @@ protected:
 
     /**
      * @brief 寻找远离实体的位置
+     * MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockAwayFrom
      * @return 是否找到有效位置
      */
     [[nodiscard]] bool findEscapePosition();
@@ -74,12 +75,13 @@ protected:
     f64 m_nearSpeed;
     EntityPredicate m_predicate;
     LivingEntity* m_avoidTarget = nullptr;
-    f32 m_escapeX = 0.0f;
-    f32 m_escapeY = 0.0f;
-    f32 m_escapeZ = 0.0f;
+    f64 m_escapeX = 0.0;
+    f64 m_escapeY = 0.0;
+    f64 m_escapeZ = 0.0;
 
-    static constexpr i32 ESCAPE_RANGE = 16; // 逃跑搜索范围
-    static constexpr i32 ESCAPE_VERTICAL = 7; // 垂直搜索范围
+    // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlockAwayFrom 的参数
+    static constexpr i32 ESCAPE_HORIZONTAL_RANGE = 16;  // 水平搜索范围
+    static constexpr i32 ESCAPE_VERTICAL_RANGE = 7;     // 垂直搜索范围
 };
 
 } // namespace entity::ai::goal

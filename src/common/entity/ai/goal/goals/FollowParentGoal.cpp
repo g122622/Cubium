@@ -5,7 +5,9 @@
 #include "../../../core/Entity.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../GoalConstants.hpp"
+#include "../../pathfinding/PathNavigator.hpp"
 #include "../../../../world/IWorld.hpp"
+#include <cmath>
 
 namespace mc::entity::ai::goal {
 
@@ -21,36 +23,39 @@ FollowParentGoal::FollowParentGoal(AnimalEntity* animal, f64 speed)
 bool FollowParentGoal::shouldExecute() {
     if (!m_childAnimal) return false;
 
-    // 检查是否是幼体
+    // MC 1.16.5: 检查是否是幼体 (getGrowingAge() < 0)
     if (m_childAnimal->getGrowingAge() >= 0) {
         return false; // 已成年，不需要跟随父母
     }
 
-    // 寻找成年动物
+    // MC 1.16.5: 在 8x4x8 范围内寻找成年动物
+    // 使用 getEntitiesWithinAABB(class, boundingBox.grow(8.0D, 4.0D, 8.0D))
     m_parentAnimal = findParent();
-    return m_parentAnimal != nullptr;
+    if (!m_parentAnimal) {
+        return false;
+    }
+
+    // MC 1.16.5: 只有距离 >= 9.0D 时才开始跟随
+    f64 distSq = m_childAnimal->distanceSqTo(*m_parentAnimal);
+    return distSq >= FOLLOW_PARENT_MIN_DISTANCE_SQ;
 }
 
 bool FollowParentGoal::shouldContinueExecuting() {
     if (!m_childAnimal || !m_parentAnimal) return false;
 
-    // 检查是否成年
+    // MC 1.16.5: 检查是否成年
     if (m_childAnimal->getGrowingAge() >= 0) {
         return false;
     }
 
-    // 检查父/母是否存活
+    // MC 1.16.5: 检查父/母是否存活
     if (!m_parentAnimal->isAlive()) {
         return false;
     }
 
-    // 检查距离 - 只有超出最大距离才停止
-    f32 distSq = m_childAnimal->distanceSqTo(*m_parentAnimal);
-    if (distSq > FOLLOW_PARENT_MAX_DISTANCE_SQ) {
-        return false;
-    }
-
-    return true;
+    // MC 1.16.5: 检查距离 - 只有在 [9.0D, 256.0D] 范围内才继续
+    f64 distSq = m_childAnimal->distanceSqTo(*m_parentAnimal);
+    return distSq >= FOLLOW_PARENT_MIN_DISTANCE_SQ && distSq <= FOLLOW_PARENT_MAX_DISTANCE_SQ;
 }
 
 void FollowParentGoal::startExecuting() {
@@ -67,41 +72,30 @@ void FollowParentGoal::resetTask() {
 void FollowParentGoal::tick() {
     if (!m_childAnimal || !m_parentAnimal) return;
 
-    // 看向父/母
-    m_childAnimal->lookAt(*m_parentAnimal);
-
-    // 检查距离 - 太近时只暂停移动，不停止目标
-    f32 distSq = m_childAnimal->distanceSqTo(*m_parentAnimal);
-    if (distSq < FOLLOW_PARENT_MIN_DISTANCE_SQ) {
-        // 距离足够近，暂停移动
-        m_childAnimal->clearNavigation();
-        return;
-    }
-
-    // 定期更新路径
+    // MC 1.16.5: tick 方法只有路径更新逻辑，没有 lookAt
+    // 等待延迟计数器
     if (--m_delayCounter <= 0) {
-        m_delayCounter = FOLLOW_DELAY_INTERVAL;
+        m_delayCounter = FOLLOW_DELAY_INTERVAL;  // 10 tick
 
-        // 移动到父/母
-        m_childAnimal->tryMoveTo(
-            m_parentAnimal->x(),
-            m_parentAnimal->y(),
-            m_parentAnimal->z(),
-            m_speed
-        );
+        // MC 1.16.5: 使用 navigator.tryMoveToEntityLiving(parentAnimal, speed)
+        if (auto* nav = m_childAnimal->navigator()) {
+            nav->moveTo(*m_parentAnimal, m_speed);
+        }
     }
 }
 
 AnimalEntity* FollowParentGoal::findParent() {
     if (!m_childAnimal || !m_childAnimal->world()) return nullptr;
 
+    // MC 1.16.5: 在 8x4x8 范围内搜索
+    // 找最近的成年同类
     return EntityUtils::findClosestEntity<AnimalEntity>(
         m_childAnimal->world(),
         m_childAnimal->position(),
-        FOLLOW_PARENT_SEARCH_RANGE,
+        FOLLOW_PARENT_SEARCH_RANGE,  // 8.0f
         m_childAnimal,
         [](AnimalEntity* animal) {
-            // 必须是成年动物
+            // MC 1.16.5: 必须是成年动物 (getGrowingAge() >= 0)
             return animal->getGrowingAge() >= 0;
         }
     );

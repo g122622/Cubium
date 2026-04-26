@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../memory/MemoryModuleType.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include <unordered_set>
-#include <random>
 
 namespace mc {
 
@@ -37,7 +37,7 @@ public:
      * @param interval 更新间隔(ticks)
      */
     explicit Sensor(i32 interval = 20)
-        : m_interval(interval), m_counter(static_cast<i32>(randomInt(interval))) {}
+        : m_interval(interval), m_counter(0) {}
 
     virtual ~Sensor() = default;
 
@@ -50,6 +50,17 @@ public:
         if (--m_counter <= 0) {
             m_counter = m_interval;
             update(world, entity);
+        }
+    }
+
+    /**
+     * @brief 初始化counter（在首次tick时调用）
+     * MC 1.16.5: 使用实体随机数生成器初始化counter
+     * @param random 实体的随机数生成器
+     */
+    void initCounter(math::Random& random) {
+        if (m_counter < 0) {
+            m_counter = random.nextInt(m_interval);
         }
     }
 
@@ -67,15 +78,7 @@ protected:
     virtual void update(ServerWorld* world, E* entity) = 0;
 
     i32 m_interval;
-    i32 m_counter;
-
-private:
-    static i32 randomInt(i32 bound) {
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_int_distribution<i32> dist(0, bound - 1);
-        return dist(gen);
-    }
+    i32 m_counter = -1;  // MC 1.16.5: -1表示未初始化，初始化时随机设置
 };
 
 } // namespace sensor

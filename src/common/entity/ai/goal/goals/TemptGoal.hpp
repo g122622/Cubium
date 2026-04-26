@@ -73,11 +73,11 @@ protected:
     ItemPredicate m_itemPredicate;
     bool m_scaredByMovement;
     Player* m_temptingPlayer = nullptr;
-    f32 m_targetX = 0.0f;
-    f32 m_targetY = 0.0f;
-    f32 m_targetZ = 0.0f;
-    f32 m_prevPitch = 0.0f;
-    f32 m_prevYaw = 0.0f;
+    f64 m_targetX = 0.0;
+    f64 m_targetY = 0.0;
+    f64 m_targetZ = 0.0;
+    f64 m_prevPitch = 0.0;
+    f64 m_prevYaw = 0.0;
     i32 m_delayTemptCounter = 0;
     bool m_isRunning = false;
 

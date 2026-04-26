@@ -317,6 +317,38 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 }
 
 /**
+ * @brief MC 1.16.5 approachTargetAngle (MathHelper.func_219800_b)
+ *
+ * 将角度从当前值向目标值接近，限制最大变化量。
+ * 与 clampedRotate 不同，此函数的结果更接近目标值。
+ *
+ * 参考 MC 1.16.5: float approachTargetAngle(float from, float to, float max)
+ * 用于 LookController 在有导航路径时限制头部角度。
+ *
+ * @param sourceAngle 当前角度（度）
+ * @param targetAngle 目标角度（度）
+ * @param maximumChange 最大角度变化（度）
+ * @return 调整后的角度
+ */
+[[nodiscard]] inline f32 approachTargetAngle(f32 sourceAngle, f32 targetAngle, f32 maximumChange) noexcept
+{
+    f32 diff = wrapDegrees(targetAngle - sourceAngle);
+    if (diff > maximumChange) {
+        diff = maximumChange;
+    } else if (diff < -maximumChange) {
+        diff = -maximumChange;
+    }
+    // 包装到 [0, 360)
+    f32 result = targetAngle - diff;
+    if (result < 0.0f) {
+        result += 360.0f;
+    } else if (result >= 360.0f) {
+        result -= 360.0f;
+    }
+    return result;
+}
+
+/**
  * @brief 计算两点之间的水平距离平方
  *
  * @param x1 第一个点的X坐标

@@ -22,9 +22,11 @@ SwimGoal::SwimGoal(MobEntity* mob)
 bool SwimGoal::shouldExecute() {
     if (!m_mob) return false;
 
-    // MC 1.16.5: 检查是否在水中且水位超过眼睛高度，或者在岩浆中
+    // MC 1.16.5: isInWater() && getFluidHeight(FluidTags.WATER) > getEyeHeight()
+    // 或 isInLava()
     if (m_mob->isInWater()) {
-        // 需要水位超过眼睛高度才游泳
+        // MC 1.16.5: func_233571_b_ 获取流体高度，func_233579_cu_ 获取眼睛高度
+        // 需要检查水位是否超过眼睛高度
         f32 fluidHeight = m_mob->getFluidHeight();  // 水位高度
         f32 eyeHeight = m_mob->eyeHeight();         // 眼睛高度
         return fluidHeight > eyeHeight;
@@ -33,16 +35,15 @@ bool SwimGoal::shouldExecute() {
 }
 
 bool SwimGoal::shouldContinueExecuting() {
-    if (!m_mob) return false;
-
-    // MC 1.16.5: 继续执行直到不在流体中
-    return m_mob->isInWater() || m_mob->isInLava();
+    // MC 1.16.5: SwimGoal 没有重写 shouldContinueExecuting
+    // 默认返回 shouldExecute()，但这里实现持续游泳逻辑
+    return shouldExecute();
 }
 
 void SwimGoal::tick() {
     if (!m_mob) return;
 
-    // MC 1.16.5: 在水中或岩浆中时以80%概率跳跃
+    // MC 1.16.5: 以 80% 概率跳跃
     math::Random rng = m_mob->getRandom();
     if (rng.nextFloat() < 0.8f) {
         // 触发跳跃

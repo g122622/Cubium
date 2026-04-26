@@ -31,7 +31,7 @@ public:
      * @brief 构造函数（带执行概率）
      * @param creature 拥有此目标的生物
      * @param speed 移动速度倍率
-     * @param chance 执行概率（1/chance 的概率执行）
+     * @param chance 执行概率倒数（1/chance 的概率执行）
      */
     RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 chance);
 
@@ -39,7 +39,7 @@ public:
      * @brief 构造函数（带执行概率和空闲时间检查）
      * @param creature 拥有此目标的生物
      * @param speed 移动速度倍率
-     * @param chance 执行概率（1/chance 的概率执行）
+     * @param chance 执行概率倒数（1/chance 的概率执行）
      * @param checkIdleTime 是否检查空闲时间（如果空闲时间>=100则不执行）
      */
     RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 chance, bool checkIdleTime);
@@ -52,11 +52,12 @@ public:
 
     /**
      * @brief 强制下次执行
+     * MC 1.16.5: makeUpdate()
      */
     void makeUpdate() { m_forceUpdate = true; }
 
     /**
-     * @brief 设置执行概率
+     * @brief 设置执行概率倒数
      */
     void setExecutionChance(i32 chance) { m_executionChance = chance; }
 
@@ -65,19 +66,20 @@ public:
 protected:
     /**
      * @brief 获取随机目标位置
-     * @return 目标位置，如果没有有效位置则返回空
+     * MC 1.16.5: RandomPositionGenerator.findRandomTarget(creature, 10, 7)
+     * @param outPos 输出位置
+     * @return 是否找到有效位置
      */
     [[nodiscard]] virtual bool getRandomPosition(Vector3& outPos);
 
     CreatureEntity* m_creature;
     f64 m_speed;
-    f32 m_targetX = 0.0f;
-    f32 m_targetY = 0.0f;
-    f32 m_targetZ = 0.0f;
+    f64 m_targetX = 0.0;
+    f64 m_targetY = 0.0;
+    f64 m_targetZ = 0.0;
     i32 m_executionChance;
-    i32 m_timeoutCounter = 0;
     bool m_forceUpdate = false;
-    bool m_checkIdleTime = true;  // MC 1.16.5: 默认检查空闲时间
+    bool m_checkIdleTime;  // MC 1.16.5: 是否检查空闲时间
 };
 
 } // namespace entity::ai::goal

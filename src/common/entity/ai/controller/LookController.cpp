@@ -76,7 +76,8 @@ void LookController::tick() {
         f32 currentYaw = m_mob->rotationYawHead();
         f32 bodyYaw = m_mob->renderYawOffset();
         f32 maxRotate = m_mob->getHorizontalFaceSpeed();
-        f32 newYaw = math::clampedRotate(currentYaw, bodyYaw, maxRotate);
+        // MC 1.16.5: 使用 func_219800_b (approachTargetAngle)，结果包装到 [0, 360)
+        f32 newYaw = math::approachTargetAngle(currentYaw, bodyYaw, maxRotate);
         m_mob->setRotationYawHead(newYaw);
     }
 }

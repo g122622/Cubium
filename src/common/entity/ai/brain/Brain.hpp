@@ -309,10 +309,17 @@ public:
 
     /**
      * @brief 停止所有任务
+     * MC 1.16.5: 直接遍历避免临时vector分配
      */
     void stopAllTasks(ServerWorld* world, E* owner, i64 gameTime) {
-        for (auto& runningTask : getRunningTasks()) {
-            runningTask->stop(world, owner, gameTime);
+        for (auto& [priority, activityMap] : m_tasks) {
+            for (auto& [activity, taskSet] : activityMap) {
+                for (auto& task : taskSet) {
+                    if (task->getStatus() == task::TaskStatus::RUNNING) {
+                        task->stop(world, owner, gameTime);
+                    }
+                }
+            }
         }
     }
 
@@ -328,22 +335,20 @@ public:
 private:
     /**
      * @brief 更新记忆TTL
+     * MC 1.16.5: 使用原地删除避免临时vector分配
      */
     void tickMemories() {
-        std::vector<const memory::MemoryModuleTypeBase*> toRemove;
-
-        for (auto& [type, ttl] : m_memoryTTL) {
-            if (ttl != std::numeric_limits<i64>::max()) {
-                ttl--;
-                if (ttl <= 0) {
-                    toRemove.push_back(type);
+        auto it = m_memoryTTL.begin();
+        while (it != m_memoryTTL.end()) {
+            if (it->second != std::numeric_limits<i64>::max()) {
+                it->second--;
+                if (it->second <= 0) {
+                    m_memories[it->first] = std::nullopt;
+                    it = m_memoryTTL.erase(it);
+                    continue;
                 }
             }
-        }
-
-        for (auto* type : toRemove) {
-            m_memories[type] = std::nullopt;
-            m_memoryTTL.erase(type);
+            ++it;
         }
     }
 
@@ -433,10 +438,17 @@ private:
 
     /**
      * @brief 更新任务
+     * MC 1.16.5: 直接遍历避免临时vector分配
      */
     void tickTasks(ServerWorld* world, E* entity, i64 gameTime) {
-        for (auto& task : getRunningTasks()) {
-            task->tick(world, entity, gameTime);
+        for (auto& [priority, activityMap] : m_tasks) {
+            for (auto& [activity, taskSet] : activityMap) {
+                for (auto& task : taskSet) {
+                    if (task->getStatus() == task::TaskStatus::RUNNING) {
+                        task->tick(world, entity, gameTime);
+                    }
+                }
+            }
         }
     }
 

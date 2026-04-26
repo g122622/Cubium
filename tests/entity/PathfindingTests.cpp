@@ -49,7 +49,8 @@ TEST(PathPointTest, Construction) {
     EXPECT_EQ(point.x(), 10);
     EXPECT_EQ(point.y(), 64);
     EXPECT_EQ(point.z(), -5);
-    EXPECT_EQ(point.nodeType(), PathNodeType::Walkable);
+    // MC 1.16.5: 默认节点类型是BLOCKED，由NodeProcessor设置实际类型
+    EXPECT_EQ(point.nodeType(), PathNodeType::Blocked);
     EXPECT_EQ(point.heapIndex(), -1);
     EXPECT_FALSE(point.isVisited());
 }

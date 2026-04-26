@@ -38,40 +38,34 @@ public:
     /**
      * @brief 添加AI目标
      *
-     * MC 1.16.5: 目标按优先级排序插入，优先级小的在前
+     * MC 1.16.5: 目标按优先级插入，使用 LinkedHashSet 保持插入顺序
      * @param priority 优先级（数值越小优先级越高）
      * @param goal AI目标
      */
     void addGoal(int priority, std::unique_ptr<Goal> goal) {
-        // 按优先级插入到正确位置（保持有序）
-        auto it = std::lower_bound(m_goals.begin(), m_goals.end(), priority,
-            [](const PrioritizedGoal& pg, int prio) { return pg.getPriority() < prio; });
-        m_goals.emplace(it, priority, std::move(goal));
+        m_goals.emplace_back(priority, std::move(goal));
     }
 
     /**
      * @brief 添加AI目标（原始指针版本）
      *
-     * MC 1.16.5: 目标按优先级排序插入
+     * MC 1.16.5: 目标按优先级插入
      * @param priority 优先级
      * @param goal AI目标（获取所有权）
      */
     void addGoal(int priority, Goal* goal) {
-        // 按优先级插入到正确位置（保持有序）
-        auto it = std::lower_bound(m_goals.begin(), m_goals.end(), priority,
-            [](const PrioritizedGoal& pg, int prio) { return pg.getPriority() < prio; });
-        m_goals.emplace(it, priority, goal);
+        m_goals.emplace_back(priority, goal);
     }
 
     /**
      * @brief 移除AI目标
      *
-     * 移除所有匹配的目标实例（同一个Goal可能被多次添加）。
+     * MC 1.16.5: 先停止所有运行中的匹配目标，再移除
      *
      * @param goal 要移除的目标指针
      */
     void removeGoal(Goal* goal) {
-        // 先停止所有运行中的匹配目标
+        // MC 1.16.5: 先停止所有运行中的匹配目标
         for (auto& pg : m_goals) {
             if (pg.getGoal() == goal && pg.isRunning()) {
                 pg.resetTask();
@@ -100,20 +94,28 @@ public:
     /**
      * @brief 刻更新
      *
-     * 每tick调用，负责选择和执行AI目标。
+     * MC 1.16.5 的执行流程：
+     * 1. goalCleanup: 停止不应继续的目标
+     * 2. goalUpdate: 启动新的目标
+     * 3. goalTick: 更新所有运行中的目标
      */
     void tick() {
-        // 1. 清理已停止的目标（只调用resetTask，不清除flagGames）
+        // ========== Phase 1: goalCleanup ==========
+        // MC 1.16.5: 停止不应继续运行的目标
         for (auto& goal : m_goals) {
             if (goal.isRunning()) {
-                if (!goal.shouldContinueExecuting() ||
-                    hasDisabledFlag(goal.getMutexFlags())) {
+                // 检查是否应该继续执行
+                bool shouldContinue = goal.shouldContinueExecuting();
+                // 检查是否有禁用的标志
+                bool hasDisabledFlagResult = checkDisabledFlags(goal.getMutexFlags());
+
+                if (!shouldContinue || hasDisabledFlagResult) {
                     goal.resetTask();
                 }
             }
         }
 
-        // 清理 flagGoals 中已停止的目标
+        // MC 1.16.5: 清理 flagGoals 中已停止的目标
         for (auto it = m_flagGoals.begin(); it != m_flagGoals.end(); ) {
             if (!it->second->isRunning()) {
                 it = m_flagGoals.erase(it);
@@ -122,16 +124,20 @@ public:
             }
         }
 
-        // 2. 选择新的目标
+        // ========== Phase 2: goalUpdate ==========
+        // MC 1.16.5: 启动新目标
         for (auto& goal : m_goals) {
-            if (!goal.isRunning() &&
-                canStartGoal(goal)) {
-                // 抢占共享相同标志的低优先级目标
-                startGoal(goal);
+            if (!goal.isRunning()) {
+                // 检查是否可以启动
+                if (canStartGoal(goal)) {
+                    // 抢占共享相同标志的低优先级目标
+                    startGoal(goal);
+                }
             }
         }
 
-        // 3. 更新正在运行的目标
+        // ========== Phase 3: goalTick ==========
+        // MC 1.16.5: 更新所有运行中的目标
         for (auto& goal : m_goals) {
             if (goal.isRunning()) {
                 goal.tick();
@@ -195,6 +201,7 @@ public:
     /**
      * @brief 获取所有正在运行的目标
      *
+     * MC 1.16.5: 返回 Stream<PrioritizedGoal>
      * @tparam Func 可调用类型
      * @param func 对每个目标调用的函数
      */
@@ -231,32 +238,38 @@ public:
 private:
     /**
      * @brief 检查目标是否可以启动
+     *
+     * MC 1.16.5: 检查禁用标志、互斥标志抢占、shouldExecute
      */
     [[nodiscard]] bool canStartGoal(PrioritizedGoal& goal) const {
         // 检查是否有禁用的标志
-        if (hasDisabledFlag(goal.getMutexFlags())) {
+        if (checkDisabledFlags(goal.getMutexFlags())) {
             return false;
         }
 
-        // 检查是否可以抢占正在运行的共享标志的目标
+        // MC 1.16.5: 检查是否可以抢占正在运行的共享标志的目标
         const auto& flags = goal.getMutexFlags();
-        bool canStart = flags.empty(); // 无标志的目标总是可以启动
-
         if (!flags.empty()) {
-            canStart = true;
+            bool canStart = true;
             flags.forEach([this, &goal, &canStart](GoalFlag flag) {
                 auto it = m_flagGoals.find(flag);
+                // MC 1.16.5: 使用 DUMMY 作为默认值（isRunning() 返回 false）
                 if (it != m_flagGoals.end() && !it->second->isPreemptedBy(goal)) {
                     canStart = false;
                 }
             });
+            if (!canStart) {
+                return false;
+            }
         }
 
-        return canStart && goal.shouldExecute();
+        return goal.shouldExecute();
     }
 
     /**
      * @brief 启动目标
+     *
+     * MC 1.16.5: 停止共享相同标志的目标，更新 flagGoals，调用 startExecuting
      */
     void startGoal(PrioritizedGoal& goal) {
         // 停止共享相同标志的正在运行的目标
@@ -268,7 +281,7 @@ private:
             }
         });
 
-        // 更新 flagGoals
+        // MC 1.16.5: 更新 flagGoals
         flags.forEach([this, &goal](GoalFlag flag) {
             m_flagGoals[flag] = &goal;
         });
@@ -277,18 +290,9 @@ private:
     }
 
     /**
-     * @brief 清除指定标志的映射
-     */
-    void clearFlagGoals(const EnumSet<GoalFlag>& flags) {
-        flags.forEach([this](GoalFlag flag) {
-            m_flagGoals.erase(flag);
-        });
-    }
-
-    /**
      * @brief 检查是否有禁用的标志
      */
-    [[nodiscard]] bool hasDisabledFlag(const EnumSet<GoalFlag>& flags) const {
+    [[nodiscard]] bool checkDisabledFlags(const EnumSet<GoalFlag>& flags) const {
         bool hasDisabled = false;
         flags.forEach([this, &hasDisabled](GoalFlag flag) {
             if (m_disabledFlags.test(flag)) {
@@ -298,10 +302,10 @@ private:
         return hasDisabled;
     }
 
-    std::vector<PrioritizedGoal> m_goals;                    // 所有目标
+    std::vector<PrioritizedGoal> m_goals;                        // 所有目标
     std::unordered_map<GoalFlag, PrioritizedGoal*> m_flagGoals;  // 标志到正在运行的目标的映射
-    EnumSet<GoalFlag> m_disabledFlags;                       // 禁用的标志
-    int m_tickRate;                                           // 更新间隔
+    EnumSet<GoalFlag> m_disabledFlags;                           // 禁用的标志
+    int m_tickRate;                                               // 更新间隔
 };
 
 } // namespace mc::entity::ai

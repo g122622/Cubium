@@ -45,19 +45,22 @@ protected:
     [[nodiscard]] bool canAttack(LivingEntity* target) const;
 
     /**
+     * @brief 检查并执行攻击
+     * MC 1.16.5: 检查距离和冷却后执行攻击
+     * @param target 目标实体
+     * @param distToEnemySqr 到敌人的距离平方
+     */
+    void checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr);
+
+    /**
      * @brief 执行攻击
      * @param target 目标实体
      */
     void attackTarget(LivingEntity* target);
 
     /**
-     * @brief 检查并更新路径
-     */
-    void checkPath();
-
-    /**
-     * @brief 计算攻击距离
-     * 参考 MC 1.16.5: this.attacker.getWidth() * 2.0F * this.attacker.getWidth() * 2.0F + target.getWidth()
+     * @brief 计算攻击距离平方
+     * 参考 MC 1.16.5: (this.attacker.getWidth() * 2.0F) * (this.attacker.getWidth() * 2.0F) + target.getWidth()
      */
     [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const;
 
@@ -67,9 +70,13 @@ protected:
     LivingEntity* m_attackTarget = nullptr;
     i32 m_attackCooldown = 0;
     i32 m_pathRecalculateTimer = 0;
+    f64 m_targetX = 0.0;
+    f64 m_targetY = 0.0;
+    f64 m_targetZ = 0.0;
+    i32 m_failedPathFindingPenalty = 0;
+    bool m_canPenalize = false;  // MC 1.16.5: 路径失败惩罚开关
 
     static constexpr i32 ATTACK_COOLDOWN_TICKS = 20; // 攻击冷却（ticks）
-    static constexpr i32 PATH_RECALCULATE_INTERVAL = 5; // 路径重算间隔（ticks）
     static constexpr f32 STOP_ATTACK_DISTANCE = 32.0f; // 停止追踪距离
 };
 

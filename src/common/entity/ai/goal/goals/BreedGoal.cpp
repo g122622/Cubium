@@ -75,7 +75,7 @@ void BreedGoal::tick() {
     m_spawnBabyDelay++;
 
     // MC 1.16.5: spawnBabyDelay >= 60 && distanceSq < 9.0D
-    f32 distSq = m_animal->distanceSqTo(*m_targetMate);
+    f64 distSq = m_animal->distanceSqTo(*m_targetMate);
     if (m_spawnBabyDelay >= SPAWN_BABY_DELAY && distSq < BREED_DISTANCE_SQ) {
         spawnBaby();
     }
@@ -84,7 +84,8 @@ void BreedGoal::tick() {
 AnimalEntity* BreedGoal::findNearbyMate() {
     if (!m_animal || !m_animal->world()) return nullptr;
 
-    // MC 1.16.5: 在8格范围内寻找配偶
+    // MC 1.16.5: 在 8 格范围内寻找配偶，使用 EntityPredicate
+    // EntityPredicate.setDistance(8.0D).allowInvulnerable().allowFriendlyFire().setLineOfSiteRequired()
     return EntityUtils::findClosestEntity<AnimalEntity>(
         m_animal->world(),
         m_animal->position(),

@@ -73,7 +73,8 @@ TEST(EntitySensesTest, LookControllerIdlePitchResetHonorsHook)
     resetController.tick();
 
     EXPECT_FLOAT_EQ(resetMob.yaw(), 45.0f);
-    EXPECT_FLOAT_EQ(resetMob.pitch(), 5.0f);
+    // MC 1.16.5: 俯仰角重置为0.0f（当shouldResetPitch返回true时）
+    EXPECT_FLOAT_EQ(resetMob.pitch(), 0.0f);
 
     MobEntity lockedMob(LegacyEntityType::Zombie, 8);
     lockedMob.setRotation(45.0f, 15.0f);
@@ -82,6 +83,7 @@ TEST(EntitySensesTest, LookControllerIdlePitchResetHonorsHook)
     lockedController.tick();
 
     EXPECT_FLOAT_EQ(lockedMob.yaw(), 45.0f);
+    // NoResetLookController不重置俯仰角，保持原值
     EXPECT_FLOAT_EQ(lockedMob.pitch(), 15.0f);
 }
 

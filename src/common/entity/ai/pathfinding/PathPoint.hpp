@@ -161,7 +161,7 @@ private:
     f32 m_totalCost = 0.0f;        // 总代价（f值 = g + h）
     f32 m_walkedDistance = 0.0f;   // MC field_222861_j: 行走距离
     f32 m_distanceToNext = 0.0f;   // 到下一个路径点的距离
-    PathNodeType m_nodeType = PathNodeType::Walkable;
+    PathNodeType m_nodeType = PathNodeType::Blocked;  // MC 1.16.5: 默认BLOCKED
     bool m_visited = false;        // 是否已访问（在闭合列表中）
     const PathPoint* m_parent = nullptr; // 父节点（用于重建路径）
     i32 m_heapIndex = -1;          // 在堆中的索引（用于优先队列）
