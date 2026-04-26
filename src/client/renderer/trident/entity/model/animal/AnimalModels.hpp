@@ -53,13 +53,32 @@ public:
                    f64 headPitch, f64 scale) override;
 
     /**
+     * @brief 设置生物动画状态（每帧调用）
+     *
+     * 参考 MC 1.16.5 SheepModel.setLivingAnimations
+     */
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
+
+    /**
      * @brief 设置羊毛状态
      * @param hasWool 是否有羊毛
      */
     void setWool(bool hasWool) { m_hasWool = hasWool; }
 
+    /**
+     * @brief 设置吃草动画状态
+     * @param isEating 是否正在吃草
+     * @param eatingTimer 吃草计时器 (0-40)
+     */
+    void setEatingGrass(bool isEating, i32 eatingTimer) {
+        m_isEating = isEating;
+        m_eatingTimer = eatingTimer;
+    }
+
 private:
     bool m_hasWool = true;
+    bool m_isEating = false;
+    i32 m_eatingTimer = 0;
 };
 
 /**

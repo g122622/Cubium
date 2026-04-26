@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/EntityModel.hpp"
+#include "../core/AgeableModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {
 
@@ -19,8 +19,14 @@ namespace mc::client::renderer::entity::model::animal {
  * - rabbitRightEar/rabbitLeftEar: 耳朵
  * - rabbitTail: 尾巴
  * - rabbitNose: 鼻子
+ *
+ * 幼体参数（参考 Java）:
+ * - 头部缩放: 0.56666666 (17/30)
+ * - 身体缩放: 0.4 (2/5)
+ * - 头部偏移: Y + 5, Z + 2
+ * - 身体偏移: Y + 24
  */
-class RabbitModel : public EntityModel {
+class RabbitModel : public AgeableModel {
 public:
     RabbitModel();
     ~RabbitModel() override = default;
@@ -44,10 +50,16 @@ public:
      */
     void setJumpRotation(f32 jumpRotation);
 
+protected:
     /**
-     * @brief 设置是否为幼体
+     * @brief 获取头部部件（用于幼体渲染）
      */
-    void setChild(bool isChild) { m_isChild = isChild; }
+    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
+
+    /**
+     * @brief 获取身体部件（用于幼体渲染）
+     */
+    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
 
 private:
     void setupParts();
@@ -74,7 +86,6 @@ private:
     std::shared_ptr<ModelRenderer> m_nose;
 
     f32 m_jumpRotation = 0.0f;
-    bool m_isChild = false;
 };
 
 } // namespace mc::client::renderer::entity::model::animal

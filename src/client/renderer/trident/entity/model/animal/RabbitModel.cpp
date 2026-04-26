@@ -8,7 +8,20 @@ namespace {
 }
 
 RabbitModel::RabbitModel()
-    : EntityModel()
+    : AgeableModel(
+        // 参考 MC 1.16.5 RabbitModel
+        // 幼体头部缩放: 0.56666666 = 17/30 (Java 使用 1.5F / (17F / 30F) = 45/17 ≈ 2.647)
+        // 但实际渲染时使用 matrixStack.scale(17F / 30F, 17F / 30F, 17F / 30F) 头部
+        // 身体使用 matrixStack.scale(0.4F, 0.4F, 0.4F)
+        // childHeadScale = 17F / 30F ≈ 0.56666666
+        // 所以 AgeableModel 的 1.5f / childHeadScale = 1.5 / 0.56666666 ≈ 2.647
+        true,    // isChildHeadScaled
+        5.0f,    // childHeadOffsetY
+        2.0f,    // childHeadOffsetZ
+        17.0f / 30.0f,  // childHeadScale = 0.56666666
+        2.5f,    // childBodyScale = 1/0.4 = 2.5
+        24.0f    // childBodyOffsetY
+    )
 {
     setTextureSize(64, 32);
     setupParts();
@@ -126,16 +139,52 @@ void RabbitModel::setupParts() {
 }
 
 void RabbitModel::render(f64 scale) {
-    // Java render 方法有特殊的幼体处理
-    // 幼体: 头部/耳朵/鼻子缩放 0.56666666，身体/腿/尾巴缩放 0.4
-    // 成年: 整体缩放 0.6
+    // 参考 MC 1.16.5 RabbitModel.render()
+    // 成年兔子: scale(0.6) + translate(0, 1, 0)
+    // 幼体兔子由 AgeableModel::render() 处理头部和身体分开缩放
+    // 头部缩放: 0.56666666 (17/30)
+    // 身体缩放: 0.4
+
     if (m_isChild) {
-        // TODO: 实现幼体渲染
-        // 需要 MatrixStack 支持
+        // 幼体渲染由 AgeableModel 处理
+        AgeableModel::render(scale);
     } else {
-        // 成年: scale(0.6) + translate(0, 1, 0)
-        EntityModel::render(scale * 0.6);
+        // 成年: 整体缩放 0.6，并向上移动
+        // Java: GlStateManager.translatef(0.0F, 1.0F / 16.0F, 0.0F);
+        // Java: GlStateManager.scalef(0.6F, 0.6F, 0.6F);
+        for (auto& part : m_parts) {
+            if (part) {
+                // 保存原始旋转点
+                f64 origY = part->rotationPointY();
+                // 向上移动 1/16 = 0.0625
+                part->setRotationPointY(origY + 1.0f);
+                part->render(scale * 0.6);
+                part->setRotationPointY(origY);
+            }
+        }
     }
+}
+
+std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getHeadParts() const {
+    std::vector<std::shared_ptr<ModelRenderer>> parts;
+    parts.push_back(m_head);
+    parts.push_back(m_rightEar);
+    parts.push_back(m_leftEar);
+    parts.push_back(m_nose);
+    return parts;
+}
+
+std::vector<std::shared_ptr<ModelRenderer>> RabbitModel::getBodyParts() const {
+    std::vector<std::shared_ptr<ModelRenderer>> parts;
+    parts.push_back(m_body);
+    parts.push_back(m_leftFoot);
+    parts.push_back(m_rightFoot);
+    parts.push_back(m_leftThigh);
+    parts.push_back(m_rightThigh);
+    parts.push_back(m_leftArm);
+    parts.push_back(m_rightArm);
+    parts.push_back(m_tail);
+    return parts;
 }
 
 void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,

@@ -92,7 +92,7 @@ void OcelotModel::render(f64 scale) {
 }
 
 void OcelotModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
-                            f64 /*ageInTicks*/, f64 netHeadYaw,
+                            f64 ageInTicks, f64 netHeadYaw,
                             f64 headPitch, f64 /*scale*/) {
     // 头部旋转
     m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
@@ -116,6 +116,8 @@ void OcelotModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
             m_frontLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * limbSwingAmount));
             m_frontRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount));
 
+            // 参考 MC 1.16.5 OcelotModel.setRotationAngles
+            // state==1 时尾巴角度使用 PI/4，其他情况（state==0 或默认）使用 0.47123894
             if (m_state == 1) {
                 m_tail2->setRotateAngleX(static_cast<f32>(1.7278761 + (PI / 4.0) * std::cos(limbSwing) * limbSwingAmount));
             } else {

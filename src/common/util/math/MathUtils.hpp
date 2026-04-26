@@ -321,4 +321,28 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     return dx * dx + dy * dy + dz * dz;
 }
 
+/**
+ * @brief 角度插值（处理角度环绕）
+ *
+ * 参考 MC 1.16.5 ModelUtils.func_228283_a_
+ * 用于平滑过渡两个角度值，考虑角度环绕问题。
+ *
+ * @param current 当前角度（弧度）
+ * @param target 目标角度（弧度）
+ * @param factor 插值因子（0-1，值越大越接近目标）
+ * @return 插值后的角度
+ */
+[[nodiscard]] inline f32 lerpAngleRadians(f32 current, f32 target, f32 factor) noexcept
+{
+    f32 diff = target - current;
+    // 规范化到 [-PI, PI)
+    while (diff < -static_cast<f32>(PI)) {
+        diff += static_cast<f32>(PI * 2.0);
+    }
+    while (diff >= static_cast<f32>(PI)) {
+        diff -= static_cast<f32>(PI * 2.0);
+    }
+    return current + factor * diff;
+}
+
 } // namespace mc::math

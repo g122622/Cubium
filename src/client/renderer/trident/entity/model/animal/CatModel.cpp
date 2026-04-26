@@ -1,4 +1,5 @@
 #include "CatModel.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
@@ -21,11 +22,17 @@ void CatModel::setCatAnimState(f32 lieDownAmount, f32 relaxStateAmount, f32 slee
 void CatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                           f64 ageInTicks, f64 netHeadYaw,
                           f64 headPitch, f64 scale) {
+    // 参考 MC 1.16.5 CatModel.setRotationAngles
+    // 使用角度插值函数处理躺下动画
+
     // 如果躺下动画 > 0，执行躺下动画
     if (m_lieDownAmount > 0.0f) {
-        // 头部倾斜
-        m_head->setRotateAngleZ(static_cast<f32>(-1.2707963 * m_lieDownAmount));
-        m_head->setRotateAngleY(static_cast<f32>(1.2707963 * m_lieDownAmount));
+        // 头部倾斜 - 使用角度插值
+        // Java: this.ocelotHead.rotateAngleZ = ModelUtils.func_228283_a_(this.ocelotHead.rotateAngleZ, -1.2707963F, this.field_217155_m);
+        f32 currentHeadZ = m_head->rotateAngleZ();
+        f32 currentHeadY = m_head->rotateAngleY();
+        m_head->setRotateAngleZ(math::lerpAngleRadians(currentHeadZ, -1.2707963f, m_lieDownAmount));
+        m_head->setRotateAngleY(math::lerpAngleRadians(currentHeadY, 1.2707963f, m_lieDownAmount));
 
         // 前腿姿势
         m_frontLeftLeg->setRotateAngleX(-1.2707963f);
@@ -40,9 +47,12 @@ void CatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_backRightLeg->setRotationPointX(-0.3f);
         m_backRightLeg->setRotationPointY(20.0f);
 
-        // 尾巴动画
-        m_tail->setRotateAngleX(static_cast<f32>(0.8 * m_relaxStateAmount + 0.9 * (1.0 - m_relaxStateAmount)));
-        m_tail2->setRotateAngleX(static_cast<f32>(-0.4 * m_relaxStateAmount + 1.7278761 * (1.0 - m_relaxStateAmount)));
+        // 尾巴动画 - 使用角度插值
+        // Java: this.ocelotTail.rotateAngleX = ModelUtils.func_228283_a_(this.ocelotTail.rotateAngleX, 0.8F, this.field_217156_n);
+        f32 currentTailX = m_tail->rotateAngleX();
+        f32 currentTail2X = m_tail2->rotateAngleX();
+        m_tail->setRotateAngleX(math::lerpAngleRadians(currentTailX, 0.8f, m_relaxStateAmount));
+        m_tail2->setRotateAngleX(math::lerpAngleRadians(currentTail2X, -0.4f, m_relaxStateAmount));
     } else {
         // 重置为默认姿势
         m_head->setRotateAngleZ(0.0f);
@@ -53,9 +63,11 @@ void CatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_backRightLeg->setRotationPointY(18.0f);
     }
 
-    // 睡眠姿势
+    // 睡眠姿势 - 使用角度插值
     if (m_sleepPoseAmount > 0.0f) {
-        m_head->setRotateAngleX(static_cast<f32>(-0.58177644 * m_sleepPoseAmount + headPitch * PI / 180.0 * (1.0 - m_sleepPoseAmount)));
+        // Java: this.ocelotHead.rotateAngleX = ModelUtils.func_228283_a_(this.ocelotHead.rotateAngleX, -0.58177644F, this.field_217157_o);
+        f32 currentHeadX = m_head->rotateAngleX();
+        m_head->setRotateAngleX(math::lerpAngleRadians(currentHeadX, -0.58177644f, m_sleepPoseAmount));
     }
 
     // 坐下状态

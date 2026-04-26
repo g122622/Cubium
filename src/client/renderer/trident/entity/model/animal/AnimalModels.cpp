@@ -133,6 +133,21 @@ void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     (void)ageInTicks;
 }
 
+void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/) {
+    // 参考 MC 1.16.5 SheepModel.setLivingAnimations
+    // Java: if (entity.getEatCounter() > 0) {
+    //     this.head.setRotationPointY(6.0F + MathHelper.sin((float)entity.getEatCounter() * 0.31415927F) * 3.0F);
+    // }
+    if (m_isEating && m_eatingTimer > 0) {
+        // 头部上下移动
+        f32 offset = static_cast<f32>(std::sin(m_eatingTimer * 0.31415927) * 3.0);
+        m_head->setRotationPointY(6.0f + offset);
+    } else {
+        // 恢复默认位置
+        m_head->setRotationPointY(6.0f);
+    }
+}
+
 // ==================== ChickenModel ====================
 
 ChickenModel::ChickenModel()
