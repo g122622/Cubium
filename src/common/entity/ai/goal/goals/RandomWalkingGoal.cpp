@@ -12,14 +12,20 @@ namespace mc::entity::ai::goal {
 using namespace constants;
 
 RandomWalkingGoal::RandomWalkingGoal(CreatureEntity* creature, f64 speed)
-    : RandomWalkingGoal(creature, speed, 120)
+    : RandomWalkingGoal(creature, speed, 120, true)
 {
 }
 
 RandomWalkingGoal::RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 chance)
+    : RandomWalkingGoal(creature, speed, chance, true)
+{
+}
+
+RandomWalkingGoal::RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 chance, bool checkIdleTime)
     : m_creature(creature)
     , m_speed(speed)
     , m_executionChance(chance)
+    , m_checkIdleTime(checkIdleTime)
 {
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
@@ -32,8 +38,8 @@ bool RandomWalkingGoal::shouldExecute() {
 
     // 如果不需要强制更新，检查概率
     if (!m_forceUpdate) {
-        // 检查空闲时间
-        if (m_creature->idleTime() >= 100) return false;
+        // MC 1.16.5: 检查空闲时间（如果 m_checkIdleTime 为 true 且空闲时间 >= 100 则不执行）
+        if (m_checkIdleTime && m_creature->idleTime() >= 100) return false;
 
         // 检查执行概率
         math::Random rng = m_creature->getRandom();

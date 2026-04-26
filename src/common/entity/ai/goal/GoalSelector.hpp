@@ -38,38 +38,50 @@ public:
     /**
      * @brief 添加AI目标
      *
+     * MC 1.16.5: 目标按优先级排序插入，优先级小的在前
      * @param priority 优先级（数值越小优先级越高）
      * @param goal AI目标
      */
     void addGoal(int priority, std::unique_ptr<Goal> goal) {
-        m_goals.emplace_back(priority, std::move(goal));
+        // 按优先级插入到正确位置（保持有序）
+        auto it = std::lower_bound(m_goals.begin(), m_goals.end(), priority,
+            [](const PrioritizedGoal& pg, int prio) { return pg.getPriority() < prio; });
+        m_goals.emplace(it, priority, std::move(goal));
     }
 
     /**
      * @brief 添加AI目标（原始指针版本）
      *
+     * MC 1.16.5: 目标按优先级排序插入
      * @param priority 优先级
      * @param goal AI目标（获取所有权）
      */
     void addGoal(int priority, Goal* goal) {
-        m_goals.emplace_back(priority, goal);
+        // 按优先级插入到正确位置（保持有序）
+        auto it = std::lower_bound(m_goals.begin(), m_goals.end(), priority,
+            [](const PrioritizedGoal& pg, int prio) { return pg.getPriority() < prio; });
+        m_goals.emplace(it, priority, goal);
     }
 
     /**
      * @brief 移除AI目标
      *
+     * 移除所有匹配的目标实例（同一个Goal可能被多次添加）。
+     *
      * @param goal 要移除的目标指针
      */
     void removeGoal(Goal* goal) {
-        for (auto it = m_goals.begin(); it != m_goals.end(); ++it) {
-            if (it->getGoal() == goal) {
-                if (it->isRunning()) {
-                    it->resetTask();
-                }
-                m_goals.erase(it);
-                break;
+        // 先停止所有运行中的匹配目标
+        for (auto& pg : m_goals) {
+            if (pg.getGoal() == goal && pg.isRunning()) {
+                pg.resetTask();
             }
         }
+        // 再移除所有匹配目标
+        m_goals.erase(
+            std::remove_if(m_goals.begin(), m_goals.end(),
+                [goal](const PrioritizedGoal& pg) { return pg.getGoal() == goal; }),
+            m_goals.end());
     }
 
     /**
@@ -91,13 +103,12 @@ public:
      * 每tick调用，负责选择和执行AI目标。
      */
     void tick() {
-        // 1. 清理已停止的目标
+        // 1. 清理已停止的目标（只调用resetTask，不清除flagGames）
         for (auto& goal : m_goals) {
             if (goal.isRunning()) {
                 if (!goal.shouldContinueExecuting() ||
                     hasDisabledFlag(goal.getMutexFlags())) {
                     goal.resetTask();
-                    clearFlagGoals(goal.getMutexFlags());
                 }
             }
         }

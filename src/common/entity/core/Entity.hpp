@@ -599,6 +599,18 @@ public:
     [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
 
     /**
+     * @brief 获取实体浸入水的高度
+     * MC 1.16.5: func_233571_b_(FluidTags.WATER)
+     * @return 流体高度（方块单位），如果不在水中返回0
+     */
+    [[nodiscard]] virtual f32 getFluidHeight() const { return m_fluidHeight; }
+
+    /**
+     * @brief 设置流体高度
+     */
+    void setFluidHeight(f32 height) { m_fluidHeight = height; }
+
+    /**
      * @brief 检查是否能看见另一个实体
      *
      * 通过射线检测判断视线是否被方块阻挡。
@@ -871,6 +883,7 @@ protected:
     // 环境状态
     bool m_inWater = false;
     bool m_inLava = false;
+    f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位）
     i32 m_fire = 0;             // 着火时间（tick）
 
     // 空气值

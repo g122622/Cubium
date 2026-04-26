@@ -273,11 +273,28 @@ public:
     [[nodiscard]] f32 prevRenderYawOffset() const { return m_prevRenderYawOffset; }
 
     /**
+     * @brief 设置身体旋转偏移
+     */
+    void setRenderYawOffset(f32 yaw) { m_renderYawOffset = yaw; }
+
+    /**
      * @brief 获取头部旋转
      * 头部的实际朝向
      */
     [[nodiscard]] f32 rotationYawHead() const { return m_rotationYawHead; }
     [[nodiscard]] f32 prevRotationYawHead() const { return m_prevRotationYawHead; }
+
+    /**
+     * @brief 设置头部偏航角
+     * 参考 MC 1.16.5 LivingEntity.setRotationYawHead()
+     */
+    void setRotationYawHead(f32 yaw) { m_rotationYawHead = yaw; }
+
+    /**
+     * @brief 设置头部俯仰角
+     * 参考 MC 1.16.5 LivingEntity.setRotationPitch()
+     */
+    void setRotationPitch(f32 pitch) { m_pitch = pitch; }
 
     /**
      * @brief 是否正在挥动手臂

@@ -3,6 +3,7 @@
 #include "../memory/MemoryModuleStatus.hpp"
 #include "../memory/MemoryModuleType.hpp"
 #include "../schedule/Activity.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include <unordered_map>
 #include <string>
 
@@ -69,17 +70,19 @@ public:
      * @param world 世界
      * @param owner 实体
      * @param gameTime 游戏时间
+     * @param random 随机数生成器（MC 1.16.5使用world.getRandom()）
      * @return 是否成功启动
      */
-    bool start(ServerWorld* world, E* owner, i64 gameTime) {
+    bool start(ServerWorld* world, E* owner, i64 gameTime, math::Random& random) {
         if (hasRequiredMemories(owner) && shouldExecute(world, owner)) {
             m_status = TaskStatus::RUNNING;
 
-            // 计算随机持续时间
+            // MC 1.16.5: 使用随机数生成持续时间
+            // int i = this.durationMin + worldIn.getRandom().nextInt(this.durationMax + 1 - this.durationMin);
             i32 duration = m_durationMin;
             if (m_durationMax > m_durationMin) {
                 i32 range = m_durationMax - m_durationMin + 1;
-                duration = m_durationMin + (static_cast<i32>(gameTime) % range);
+                duration = m_durationMin + random.nextInt(range);
             }
             m_stopTime = gameTime + duration;
 

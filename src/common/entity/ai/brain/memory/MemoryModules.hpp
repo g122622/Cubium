@@ -33,7 +33,7 @@ namespace memory {
  */
 namespace MemoryModules {
 
-// ========== 位置相关 ==========
+// ========== 位置相关 (MC 1.16.5) ==========
 
 /// 家的位置（床位）- 使用 GlobalPos 支持跨维度
 constexpr auto& HOME = MemoryModuleTypes::HOME;
@@ -59,7 +59,10 @@ constexpr auto& LOOK_TARGET = MemoryModuleTypes::LOOK_TARGET;
 /// 隐藏位置
 constexpr auto& HIDING_PLACE = MemoryModuleTypes::HIDING_PLACE;
 
-// ========== 实体相关 ==========
+/// 次要工作站点
+constexpr auto& SECONDARY_JOB_SITE = MemoryModuleTypes::SECONDARY_JOB_SITE;
+
+// ========== 实体相关 (MC 1.16.5) ==========
 
 /// 可见的生物列表
 constexpr auto& VISIBLE_MOBS = MemoryModuleTypes::VISIBLE_MOBS;
@@ -100,12 +103,20 @@ constexpr auto& NEAREST_VISIBLE_ADULT = MemoryModuleTypes::NEAREST_VISIBLE_ADULT
 /// 最近可见的物品
 constexpr auto& NEAREST_VISIBLE_WANTED_ITEM = MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM;
 
-// ========== 移动相关 ==========
+// ========== 移动相关 (MC 1.16.5) ==========
 
 /// 路径
 constexpr auto& PATH = MemoryModuleTypes::PATH;
 
-// ========== 战斗相关 ==========
+// ========== 门相关 (MC 1.16.5) ==========
+
+/// 可交互的门列表
+constexpr auto& INTERACTABLE_DOORS = MemoryModuleTypes::INTERACTABLE_DOORS;
+
+/// 打开的门集合
+constexpr auto& OPENED_DOORS = MemoryModuleTypes::OPENED_DOORS;
+
+// ========== 战斗相关 (MC 1.16.5) ==========
 
 /// 攻击冷却中
 constexpr auto& ATTACK_COOLING_DOWN = MemoryModuleTypes::ATTACK_COOLING_DOWN;
@@ -113,7 +124,7 @@ constexpr auto& ATTACK_COOLING_DOWN = MemoryModuleTypes::ATTACK_COOLING_DOWN;
 /// 被攻击来源
 constexpr auto& HURT_BY = MemoryModuleTypes::HURT_BY;
 
-// ========== 时间相关 ==========
+// ========== 时间相关 (MC 1.16.5) ==========
 
 /// 听到铃声时间
 constexpr auto& HEARD_BELL_TIME = MemoryModuleTypes::HEARD_BELL_TIME;
@@ -130,7 +141,7 @@ constexpr auto& LAST_WOKEN = MemoryModuleTypes::LAST_WOKEN;
 /// 最后一次在工作站点工作的时间
 constexpr auto& LAST_WORKED = MemoryModuleTypes::LAST_WORKED_AT_POI;
 
-// ========== 状态相关 ==========
+// ========== 状态相关 (MC 1.16.5) ==========
 
 /// 正在欣赏物品
 constexpr auto& ADMIRING_ITEM = MemoryModuleTypes::ADMIRING_ITEM;
@@ -150,58 +161,60 @@ constexpr auto& ATE_RECENTLY = MemoryModuleTypes::ATE_RECENTLY;
 /// 被安抚
 constexpr auto& PACIFIED = MemoryModuleTypes::PACIFIED;
 
-/// 在水中
-constexpr auto& IS_IN_WATER = MemoryModuleTypes::IS_IN_WATER;
-
-/// 怀孕
-constexpr auto& IS_PREGNANT = MemoryModuleTypes::IS_PREGNANT;
-
-/// 最近检测到铁傀儡
+/// 最近检测到铁傀儡 (MC: field_242309_E)
 constexpr auto& GOLEM_DETECTED_RECENTLY = MemoryModuleTypes::GOLEM_DETECTED_RECENTLY;
-
-/// 激进状态
-constexpr auto& AGGRESSIVE = MemoryModuleTypes::AGGRESSIVE;
 
 /// 通用愤怒
 constexpr auto& UNIVERSAL_ANGER = MemoryModuleTypes::UNIVERSAL_ANGER;
 
-/// 装死
-constexpr auto& PLAY_DEAD = MemoryModuleTypes::PLAY_DEAD;
-
-/// 禁用走到欣赏物品
-constexpr auto& DISABLE_WALK_TO_ADMIRE_ITEM = MemoryModuleTypes::DISABLE_WALK_TO_ADMIRE_ITEM;
-
-// ========== 冷却/计时相关 ==========
-
-/// 诱惑冷却
-constexpr auto& TEMPTATION_COOLDOWN_TICKS = MemoryModuleTypes::TEMPTATION_COOLDOWN_TICKS;
-
-/// 物品拾取冷却
-constexpr auto& ITEM_PICKUP_COOLDOWN = MemoryModuleTypes::ITEM_PICKUP_COOLDOWN;
-
-/// 跳跃冷却
-constexpr auto& JUMP_COOLDOWN = MemoryModuleTypes::JUMP_COOLDOWN;
-
-/// 求爱冷却
-constexpr auto& LOVING_COOLDOWN = MemoryModuleTypes::LOVING_COOLDOWN;
-
-// ========== 玩家相关 ==========
+// ========== 玩家相关 (MC 1.16.5) ==========
 
 /// 诱惑玩家
 constexpr auto& TEMPTING_PLAYER = MemoryModuleTypes::TEMPTING_PLAYER;
 
-// ========== 门相关 ==========
+/// 持有想要物品的最近玩家
+constexpr auto& NEAREST_PLAYER_HOLDING_WANTED_ITEM = MemoryModuleTypes::NEAREST_PLAYER_HOLDING_WANTED_ITEM;
 
-/// 打开的门列表
-constexpr auto& OPENED_DOORS = MemoryModuleTypes::OPENED_DOORS;
+// ========== 猪灵相关 (MC 1.16.5) ==========
 
-/// 需要关闭的门
+/// 最近可见的可狩猎猪灵兽
+constexpr auto& NEAREST_VISIBLE_HUNTABLE_HOGLIN = MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN;
+
+/// 最近可见的幼年猪灵兽
+constexpr auto& NEAREST_VISIBLE_BABY_HOGLIN = MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN;
+
+/// 最近未穿金装备的可攻击玩家
+constexpr auto& NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD;
+
+/// 附近的成年猪灵列表
+constexpr auto& NEAREST_ADULT_PIGLINS = MemoryModuleTypes::NEAREST_ADULT_PIGLINS;
+
+/// 最近可见的成年猪灵列表
+constexpr auto& NEAREST_VISIBLE_ADULT_PIGLINS = MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLINS;
+
+/// 最近可见的成年猪灵兽列表
+constexpr auto& NEAREST_VISIBLE_ADULT_HOGLINS = MemoryModuleTypes::NEAREST_VISIBLE_ADULT_HOGLINS;
+
+/// 最近可见的成年猪灵
+constexpr auto& NEAREST_VISIBLE_ADULT_PIGLIN = MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLIN;
+
+/// 可见成年猪兽数量
+constexpr auto& VISIBLE_ADULT_PIGLIN_COUNT = MemoryModuleTypes::VISIBLE_ADULT_PIGLIN_COUNT;
+
+/// 可见成年猪灵兽数量
+constexpr auto& VISIBLE_ADULT_HOGLIN_COUNT = MemoryModuleTypes::VISIBLE_ADULT_HOGLIN_COUNT;
+
+// ========== 扩展类型 (非 MC 1.16.5) ==========
+
+constexpr auto& IS_IN_WATER = MemoryModuleTypes::IS_IN_WATER;
+constexpr auto& IS_PREGNANT = MemoryModuleTypes::IS_PREGNANT;
+constexpr auto& PLAY_DEAD = MemoryModuleTypes::PLAY_DEAD;
+constexpr auto& AGGRESSIVE = MemoryModuleTypes::AGGRESSIVE;
+constexpr auto& TEMPTATION_COOLDOWN_TICKS = MemoryModuleTypes::TEMPTATION_COOLDOWN_TICKS;
+constexpr auto& ITEM_PICKUP_COOLDOWN = MemoryModuleTypes::ITEM_PICKUP_COOLDOWN;
+constexpr auto& JUMP_COOLDOWN = MemoryModuleTypes::JUMP_COOLDOWN;
+constexpr auto& LOVING_COOLDOWN = MemoryModuleTypes::LOVING_COOLDOWN;
 constexpr auto& DOORS_TO_CLOSE = MemoryModuleTypes::DOORS_TO_CLOSE;
-
-// ========== 其他 ==========
-
-/// 次要工作站点
-constexpr auto& SECONDARY_JOB_SITE = MemoryModuleTypes::SECONDARY_JOB_SITE;
 
 /**
  * @brief 初始化所有记忆模块类型

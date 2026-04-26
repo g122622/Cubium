@@ -72,6 +72,12 @@ public:
     // ========== 爱心状态 ==========
 
     /**
+     * @brief 检查是否处于爱心状态
+     * MC 1.16.5: isInLove()
+     */
+    [[nodiscard]] bool isInLove() const { return m_inLoveTimer > 0; }
+
+    /**
      * @brief 获取爱心计时器
      */
     [[nodiscard]] i32 getInLove() const { return m_inLoveTimer; }

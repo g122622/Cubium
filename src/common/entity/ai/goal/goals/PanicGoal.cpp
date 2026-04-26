@@ -24,7 +24,7 @@ PanicGoal::PanicGoal(CreatureEntity* creature, f64 speed)
 bool PanicGoal::shouldExecute() {
     if (!m_creature) return false;
 
-    // 检查是否受到攻击或着火
+    // MC 1.16.5: 检查是否有复仇目标或着火
     LivingEntity* revengeTarget = m_creature->attackTarget();
     bool isBurning = m_creature->isOnFire();
 
@@ -32,28 +32,29 @@ bool PanicGoal::shouldExecute() {
         return false;
     }
 
-    // 如果着火，尝试找水
+    // MC 1.16.5: 如果着火，尝试找水
     if (isBurning) {
-        Vector3 waterPos = getRandomWaterPosition(
+        BlockPos waterPos = getRandomWaterPosition(
             static_cast<i32>(PANIC_WATER_SEARCH_RANGE),
             static_cast<i32>(PANIC_WATER_SEARCH_VERTICAL)
         );
-        if (waterPos.x != 0.0f || waterPos.y != 0.0f || waterPos.z != 0.0f) {
-            m_targetX = waterPos.x;
-            m_targetY = waterPos.y;
-            m_targetZ = waterPos.z;
+        if (waterPos.x != 0 || waterPos.y != 0 || waterPos.z != 0) {
+            m_targetX = static_cast<f32>(waterPos.x) + 0.5f;
+            m_targetY = static_cast<f32>(waterPos.y) + 0.5f;
+            m_targetZ = static_cast<f32>(waterPos.z) + 0.5f;
             return true;
         }
     }
 
-    // 否则随机逃跑
+    // MC 1.16.5: 否则使用 RandomPositionGenerator.findRandomTarget(creature, 5, 4)
+    // 当前实现：随机逃跑方向
     return findRandomPosition();
 }
 
 bool PanicGoal::shouldContinueExecuting() {
     if (!m_creature) return false;
 
-    // 继续执行直到路径完成
+    // MC 1.16.5: 继续执行直到路径完成
     auto* nav = m_creature->navigator();
     if (nav && nav->noPath()) {
         return false;
@@ -71,32 +72,24 @@ void PanicGoal::startExecuting() {
 
 void PanicGoal::resetTask() {
     m_running = false;
-    if (m_creature) {
-        m_creature->clearNavigation();
-    }
+    // MC 1.16.5: 不需要清除路径，让其他目标接管
 }
 
 void PanicGoal::tick() {
-    // 持续移动到目标位置
-    if (m_creature) {
-        // 如果距离目标较远，重新设置路径
-        f32 distSq = m_creature->distanceSqTo(m_targetX, m_targetY, m_targetZ);
-
-        if (distSq > PANIC_STOP_DISTANCE_SQ) {
-            m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
-        }
-    }
+    // MC 1.16.5: PanicGoal 的 tick 是空的
+    // 路径在 startExecuting 中设置，不需要每tick更新
 }
 
 bool PanicGoal::findRandomPosition() {
     if (!m_creature) return false;
 
-    // 使用简单的随机位置生成
+    // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTarget(creature, 5, 4)
+    // 当前简化实现：生成随机逃跑位置
     math::Random rng = m_creature->getRandom();
 
-    // 生成远离当前位置的随机方向
+    // MC 1.16.5: 在 5 格水平范围、4 格垂直范围内寻找
     f32 angle = rng.nextFloat() * math::TWO_PI;
-    f32 distance = PANIC_ESCAPE_MIN_DISTANCE + rng.nextFloat() * (PANIC_ESCAPE_MAX_DISTANCE - PANIC_ESCAPE_MIN_DISTANCE);
+    f32 distance = rng.nextFloat() * PANIC_ESCAPE_MAX_DISTANCE;
 
     m_targetX = m_creature->x() + std::cos(angle) * distance;
     m_targetZ = m_creature->z() + std::sin(angle) * distance;
@@ -107,38 +100,42 @@ bool PanicGoal::findRandomPosition() {
     return true;
 }
 
-Vector3 PanicGoal::getRandomWaterPosition(i32 range, i32 verticalRange) {
+BlockPos PanicGoal::getRandomWaterPosition(i32 horizontalRange, i32 verticalRange) {
     if (!m_creature || !m_creature->world()) {
-        return Vector3(0.0f, 0.0f, 0.0f);
+        return BlockPos(0, 0, 0);
     }
 
     IWorld* world = m_creature->world();
-    math::Random rng = m_creature->getRandom();
 
-    // 在范围内搜索水源
+    // MC 1.16.5: 在立方体区域内搜索水源，找最近的水方块
     i32 cx = static_cast<i32>(m_creature->x());
     i32 cy = static_cast<i32>(m_creature->y());
     i32 cz = static_cast<i32>(m_creature->z());
 
-    // 随机采样几个位置
-    for (i32 i = 0; i < 10; ++i) {
-        i32 x = cx + rng.nextInt(-range, range);
-        i32 y = cy + rng.nextInt(-verticalRange, verticalRange);
-        i32 z = cz + rng.nextInt(-range, range);
+    f32 closestDistSq = static_cast<f32>(horizontalRange * horizontalRange * verticalRange * 2);
+    BlockPos closestWater(0, 0, 0);
 
-        if (!world->isWithinWorldBounds(x, y, z)) {
-            continue;
-        }
+    // MC 1.16.5: 遍历立方体区域
+    for (i32 x = cx - horizontalRange; x <= cx + horizontalRange; ++x) {
+        for (i32 y = cy - verticalRange; y <= cy + verticalRange; ++y) {
+            for (i32 z = cz - horizontalRange; z <= cz + horizontalRange; ++z) {
+                if (!world->isWithinWorldBounds(x, y, z)) {
+                    continue;
+                }
 
-        const BlockPos waterPos(x, y, z);
-        if (world->isWaterAt(waterPos)) {
-            return Vector3(static_cast<f32>(x) + 0.5f,
-                           static_cast<f32>(y) + 0.5f,
-                           static_cast<f32>(z) + 0.5f);
+                BlockPos pos(x, y, z);
+                if (world->isWaterAt(pos)) {
+                    f32 distSq = static_cast<f32>((x - cx) * (x - cx) + (y - cy) * (y - cy) + (z - cz) * (z - cz));
+                    if (distSq < closestDistSq) {
+                        closestDistSq = distSq;
+                        closestWater = pos;
+                    }
+                }
+            }
         }
     }
 
-    return Vector3(0.0f, 0.0f, 0.0f);
+    return closestWater;
 }
 
 } // namespace mc::entity::ai::goal

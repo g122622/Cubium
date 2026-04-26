@@ -6,6 +6,7 @@
 namespace mc {
 
 // 前向声明
+class Entity;
 class MobEntity;
 
 namespace entity::ai::controller {
@@ -52,6 +53,16 @@ public:
      * @param deltaPitch 俯仰角最大变化速度
      */
     void setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch);
+
+    /**
+     * @brief 设置看向实体
+     *
+     * 参考 MC 1.16.5 LookController.setLookPositionWithEntity()
+     * @param entity 目标实体
+     * @param deltaYaw 偏航角最大变化速度
+     * @param deltaPitch 俯仰角最大变化速度
+     */
+    void setLookPositionWithEntity(const Entity& entity, f32 deltaYaw, f32 deltaPitch);
 
     /**
      * @brief 是否正在看向某处

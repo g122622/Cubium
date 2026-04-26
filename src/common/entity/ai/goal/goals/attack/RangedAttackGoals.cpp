@@ -8,6 +8,7 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../../attribute/Attributes.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../item/core/Item.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../item/core/UseAction.hpp"
@@ -24,6 +25,7 @@ RangedAttackGoal::RangedAttackGoal(MobEntity* mob, f64 speed, i32 attackInterval
     , m_attackIntervalMin(attackIntervalMin)
     , m_attackIntervalMax(attackIntervalMax)
     , m_attackRadius(attackRadius)
+    , m_maxAttackDistanceSq(attackRadius * attackRadius)
 {
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
@@ -41,37 +43,18 @@ bool RangedAttackGoal::shouldExecute() {
 }
 
 bool RangedAttackGoal::shouldContinueExecuting() {
-    if (!m_mob || !m_target) return false;
-
-    // 检查目标是否存活
-    if (!m_target->isAlive()) {
-        return false;
-    }
-
-    // 检查距离
-    f64 distSq = m_mob->distanceSqTo(*m_target);
-    f64 maxDistSq = (m_attackRadius * 2.0) * (m_attackRadius * 2.0);
-
-    if (distSq > maxDistSq) {
-        return false;
-    }
-
-    // 检查是否还能看到目标
-    if (m_seenTime > MAX_SEEN_TIME) {
-        return false;
-    }
-
-    return true;
+    // MC 1.16.5: shouldExecute() || !noPath()
+    return shouldExecute() || (m_mob && !m_mob->navigator()->noPath());
 }
 
 void RangedAttackGoal::startExecuting() {
-    m_attackTime = 0;
-    m_seenTime = 0;
+    // MC 1.16.5: 初始值在构造函数中不需要设置
 }
 
 void RangedAttackGoal::resetTask() {
     m_target = nullptr;
     m_seenTime = 0;
+    m_attackTime = -1;  // MC 1.16.5: 重置为 -1
     if (m_mob) {
         m_mob->clearNavigation();
     }
@@ -80,61 +63,55 @@ void RangedAttackGoal::resetTask() {
 void RangedAttackGoal::tick() {
     if (!m_mob || !m_target) return;
 
-    // 更新攻击冷却
-    if (m_attackTime > 0) {
-        m_attackTime--;
-    }
+    // MC 1.16.5: 计算到目标的距离平方
+    f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
+    f32 dist = std::sqrt(static_cast<f32>(distSq));
 
-    // 计算到目标的距离
-    f64 distSq = m_mob->distanceSqTo(*m_target);
-    f64 dist = std::sqrt(distSq);
-
-    // 看向目标
-    m_mob->lookAt(*m_target);
-
-    // 检查视线
+    // MC 1.16.5: 检查视线并更新 seenTime
     bool canSee = m_mob->canSee(*m_target);
     if (canSee) {
-        m_seenTime = 0;
-    } else {
         m_seenTime++;
+    } else {
+        m_seenTime = 0;
     }
 
-    // 判断是否在攻击范围内
-    if (isWithinAttackDistance(dist)) {
-        // 在攻击范围内，停止移动并攻击
+    // MC 1.16.5: 距离判定和 seenTime 判定
+    // 如果在攻击距离内 且 能看到目标 >= 5 ticks，停止移动
+    if (distSq <= static_cast<f64>(m_maxAttackDistanceSq) && m_seenTime >= MIN_SEEN_TIME) {
         m_mob->clearNavigation();
-
-        // 攻击
-        if (m_attackTime <= 0 && canSee) {
-            // 计算蓄力程度（距离越远蓄力越满）
-            f32 charge = static_cast<f32>(dist / m_attackRadius);
-            charge = std::clamp(charge, 0.1f, 1.0f);
-
-            performAttack(m_target, charge);
-
-            // 设置攻击间隔
-            math::Random rng = m_mob->getRandom();
-            m_attackTime = m_attackIntervalMin + rng.nextInt(m_attackIntervalMax - m_attackIntervalMin);
-        }
     } else {
-        // 不在攻击范围内，向目标移动
-        // 尝试转换为CreatureEntity以使用tryMoveTo
+        // 否则向目标移动
         CreatureEntity* creature = dynamic_cast<CreatureEntity*>(m_mob);
         if (creature) {
             creature->tryMoveTo(m_target->x(), m_target->y(), m_target->z(), m_speed);
         }
+    }
 
-        // 随机移动（环绕）以避免站桩
-        if (dist < m_attackRadius * 0.5) {
-            // 太近，后退
-            if (!m_strafingBackwards) {
-                m_strafingBackwards = true;
-                m_strafingClockwise = m_mob->getRandom().nextBoolean();
-            }
-        } else {
-            m_strafingBackwards = false;
+    // MC 1.16.5: 使用 LookController 看向目标，deltaYaw=30, deltaPitch=30
+    if (auto* lookCtrl = m_mob->lookController()) {
+        lookCtrl->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+    }
+
+    // MC 1.16.5: 攻击计时逻辑
+    if (--m_attackTime == 0) {
+        // 攻击时间到了，检查是否能看见目标
+        if (!canSee) {
+            return;
         }
+
+        // MC 1.16.5: 计算蓄力程度 = sqrt(distSq) / attackRadius
+        f32 charge = dist / m_attackRadius;
+        charge = std::clamp(charge, 0.1f, 1.0f);
+
+        performAttack(m_target, charge);
+
+        // MC 1.16.5: 计算下一次攻击时间
+        // floor(charge * (max - min) + min)
+        m_attackTime = static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) + static_cast<f32>(m_attackIntervalMin)));
+    } else if (m_attackTime < 0) {
+        // MC 1.16.5: 初始化攻击时间
+        f32 charge = dist / m_attackRadius;
+        m_attackTime = static_cast<i32>(std::floor(charge * static_cast<f32>(m_attackIntervalMax - m_attackIntervalMin) + static_cast<f32>(m_attackIntervalMin)));
     }
 }
 
@@ -171,14 +148,16 @@ void RangedBowAttackGoal::tick() {
     if (!m_mob || !m_target) return;
 
     // 计算到目标的距离
-    f64 distSq = m_mob->distanceSqTo(*m_target);
-    f64 dist = std::sqrt(distSq);
+    f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
+    f32 dist = std::sqrt(static_cast<f32>(distSq));
 
     // 看向目标
-    m_mob->lookAt(*m_target);
+    if (auto* lookCtrl = m_mob->lookController()) {
+        lookCtrl->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+    }
 
     // 检查是否在攻击范围内
-    if (isWithinAttackDistance(dist)) {
+    if (dist <= m_attackRadius && dist >= m_attackRadius * 0.5f) {
         // 在攻击范围内
         if (m_isBowCharging) {
             // 正在蓄力
@@ -223,7 +202,7 @@ void RangedBowAttackGoal::performAttack(LivingEntity* target, f32 charge) {
 
     // 设置攻击冷却
     math::Random rng = m_mob->getRandom();
-    m_attackTime = m_attackIntervalMin + rng.nextInt(m_attackIntervalMax - m_attackIntervalMin);
+    m_attackTime = m_attackIntervalMin + rng.nextInt(m_attackIntervalMax - m_attackIntervalMin + 1);
 }
 
 } // namespace mc::entity::ai::goal

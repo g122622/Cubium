@@ -20,8 +20,8 @@ TEST(WalkTargetTest, BlockPosConstructorUsesBlockCenter)
     EXPECT_FLOAT_EQ(walkTarget.getTarget()->getPosition().x, 3.5f);
     EXPECT_FLOAT_EQ(walkTarget.getTarget()->getPosition().y, 70.5f);
     EXPECT_FLOAT_EQ(walkTarget.getTarget()->getPosition().z, -4.5f);
-    EXPECT_FLOAT_EQ(walkTarget.getSpeedModifier(), 0.85f);
-    EXPECT_EQ(walkTarget.getCloseEnoughDist(), 2);
+    EXPECT_FLOAT_EQ(walkTarget.getSpeed(), 0.85f);
+    EXPECT_EQ(walkTarget.getDistance(), 2);
 }
 
 TEST(MemoryModuleTypesTest, WalkAndLookTargetsUseRealTypes)

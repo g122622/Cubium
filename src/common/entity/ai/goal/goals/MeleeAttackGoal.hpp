@@ -55,13 +55,18 @@ protected:
      */
     void checkPath();
 
+    /**
+     * @brief 计算攻击距离
+     * 参考 MC 1.16.5: this.attacker.getWidth() * 2.0F * this.attacker.getWidth() * 2.0F + target.getWidth()
+     */
+    [[nodiscard]] f32 getAttackReachSqr(LivingEntity* target) const;
+
     CreatureEntity* m_creature;
     f64 m_speed;
     bool m_useLongMemory;
     LivingEntity* m_attackTarget = nullptr;
     i32 m_attackCooldown = 0;
     i32 m_pathRecalculateTimer = 0;
-    f32 m_reachDistance = 2.0f;
 
     static constexpr i32 ATTACK_COOLDOWN_TICKS = 20; // 攻击冷却（ticks）
     static constexpr i32 PATH_RECALCULATE_INTERVAL = 5; // 路径重算间隔（ticks）

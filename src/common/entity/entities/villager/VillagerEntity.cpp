@@ -45,9 +45,10 @@ void VillagerEntity::tick() {
         i64 gameTime = m_world->currentTick();
         i32 dayTime = static_cast<i32>(m_world->dayTime());
 
-        // Brain tick需要ServerWorld
+        // Brain tick需要ServerWorld和Random
         if (auto* serverWorld = m_world->asServerWorld()) {
-            m_brain->tick(serverWorld, this, gameTime, dayTime);
+            math::Random random(ticksExisted());
+            m_brain->tick(serverWorld, this, gameTime, dayTime, random);
         }
     }
 

@@ -12,8 +12,6 @@
 
 namespace mc::entity::ai::goal {
 
-using namespace constants;
-
 // ==================== LookAtGoal ====================
 
 LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance)
@@ -32,13 +30,19 @@ LookAtGoal::LookAtGoal(MobEntity* mob, f32 maxDistance, f32 chance)
 bool LookAtGoal::shouldExecute() {
     if (!m_mob) return false;
 
-    // 检查概率
+    // MC 1.16.5: 检查概率
     math::Random rng = m_mob->getRandom();
     if (rng.nextFloat() >= m_chance) {
         return false;
     }
 
-    // 寻找目标
+    // MC 1.16.5: 首先检查攻击目标
+    if (m_mob->attackTarget() != nullptr) {
+        m_lookTarget = m_mob->attackTarget();
+        return true;
+    }
+
+    // 寻找最近的实体
     m_lookTarget = findTarget();
     return m_lookTarget != nullptr;
 }
@@ -49,7 +53,7 @@ bool LookAtGoal::shouldContinueExecuting() {
     // 检查目标是否存活
     if (!m_lookTarget->isAlive()) return false;
 
-    // 检查距离（水平距离）
+    // MC 1.16.5: 使用距离平方比较（水平距离）
     f32 distSq = m_mob->distanceHorizontalSqTo(m_lookTarget->x(), m_lookTarget->z());
     f32 maxDistSq = m_maxDistance * m_maxDistance;
 
@@ -74,8 +78,11 @@ void LookAtGoal::resetTask() {
 void LookAtGoal::tick() {
     if (!m_mob || !m_lookTarget) return;
 
-    // 使用视线控制器看向目标
-    m_mob->lookAt(*m_lookTarget);
+    // MC 1.16.5: 使用 LookController 看向目标眼睛位置
+    if (auto* lookCtrl = m_mob->lookController()) {
+        f64 eyeY = m_lookTarget->y() + m_lookTarget->eyeHeight();
+        lookCtrl->setLookPosition(m_lookTarget->x(), eyeY, m_lookTarget->z());
+    }
 
     m_lookTime--;
 }
@@ -134,7 +141,7 @@ void LookRandomlyGoal::resetTask() {
 void LookRandomlyGoal::tick() {
     if (!m_mob) return;
 
-    // 使用视线控制器看向往方向
+    // MC 1.16.5: 使用视线控制器看向往方向
     if (auto* lookCtrl = m_mob->lookController()) {
         // 计算目标位置（使用当前坐标加方向向量）
         f32 yawRad = m_targetYaw * math::DEG_TO_RAD;

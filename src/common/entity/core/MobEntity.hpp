@@ -155,6 +155,30 @@ public:
     // ========== AI 便捷方法 ==========
 
     /**
+     * @brief 获取水平面部旋转速度
+     *
+     * 参考 MC 1.16.5 MobEntity.getHorizontalFaceSpeed()
+     * 用于LookController的默认旋转速度。
+     */
+    [[nodiscard]] virtual f32 getHorizontalFaceSpeed() const { return 10.0f; }
+
+    /**
+     * @brief 获取垂直面部旋转速度
+     *
+     * 参考 MC 1.16.5 MobEntity.getVerticalFaceSpeed()
+     * 用于LookController的默认旋转速度。
+     */
+    [[nodiscard]] virtual f32 getVerticalFaceSpeed() const { return 10.0f; }
+
+    /**
+     * @brief 获取面部旋转速度
+     *
+     * 参考 MC 1.16.5 MobEntity.getFaceRotSpeed()
+     * 用于LookController的默认偏航角旋转速度。
+     */
+    [[nodiscard]] virtual f32 getFaceRotSpeed() const { return 10.0f; }
+
+    /**
      * @brief 清除导航路径
      *
      * 安全地清除导航器的路径，内部处理空指针检查。

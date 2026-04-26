@@ -25,8 +25,8 @@ BreedGoal::BreedGoal(AnimalEntity* animal, f64 speed)
 bool BreedGoal::shouldExecute() {
     if (!m_animal) return false;
 
-    // 检查是否处于爱心状态
-    if (m_animal->getInLove() <= 0) {
+    // MC 1.16.5: 检查是否处于爱心状态
+    if (!m_animal->isInLove()) {
         return false;
     }
 
@@ -38,11 +38,11 @@ bool BreedGoal::shouldExecute() {
 bool BreedGoal::shouldContinueExecuting() {
     if (!m_targetMate) return false;
 
-    // 检查配偶是否存活且仍处于爱心状态
+    // MC 1.16.5: 检查配偶是否存活且仍处于爱心状态，且未超时
     if (!m_targetMate->isAlive()) return false;
-    if (m_targetMate->getInLove() <= 0) return false;
+    if (!m_targetMate->isInLove()) return false;
 
-    // 检查是否超时
+    // MC 1.16.5: spawnBabyDelay < 60
     return m_spawnBabyDelay < SPAWN_BABY_DELAY;
 }
 
@@ -61,15 +61,20 @@ void BreedGoal::resetTask() {
 void BreedGoal::tick() {
     if (!m_animal || !m_targetMate) return;
 
-    // 看向配偶
-    m_animal->lookAt(*m_targetMate);
+    // MC 1.16.5: 使用 LookController 看向配偶
+    // setLookPositionWithEntity(targetMate, 10.0F, getVerticalFaceSpeed())
+    if (auto* lookCtrl = m_animal->lookController()) {
+        lookCtrl->setLookPositionWithEntity(*m_targetMate, 10.0f, m_animal->getVerticalFaceSpeed());
+    }
 
-    // 移动向配偶
-    m_animal->tryMoveTo(m_targetMate->x(), m_targetMate->y(), m_targetMate->z(), m_speed);
+    // MC 1.16.5: 使用 navigator.tryMoveToEntityLiving(targetMate, moveSpeed)
+    if (auto* nav = m_animal->navigator()) {
+        nav->moveTo(*m_targetMate, m_speed);
+    }
 
     m_spawnBabyDelay++;
 
-    // 检查是否足够接近以繁殖
+    // MC 1.16.5: spawnBabyDelay >= 60 && distanceSq < 9.0D
     f32 distSq = m_animal->distanceSqTo(*m_targetMate);
     if (m_spawnBabyDelay >= SPAWN_BABY_DELAY && distSq < BREED_DISTANCE_SQ) {
         spawnBaby();
@@ -79,10 +84,11 @@ void BreedGoal::tick() {
 AnimalEntity* BreedGoal::findNearbyMate() {
     if (!m_animal || !m_animal->world()) return nullptr;
 
+    // MC 1.16.5: 在8格范围内寻找配偶
     return EntityUtils::findClosestEntity<AnimalEntity>(
         m_animal->world(),
         m_animal->position(),
-        MATE_SEARCH_RANGE,
+        BREED_DETECTION_RANGE,
         m_animal,
         [this](AnimalEntity* animal) {
             return m_animal->canMateWith(*animal);

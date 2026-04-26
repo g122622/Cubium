@@ -2,6 +2,7 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include <memory>
 
 namespace mc {
@@ -49,8 +50,14 @@ void CowEntity::registerGoals() {
     AnimalEntity::registerGoals();
 
     // 牛特有目标：食物诱惑（小麦）
-    // m_goalSelector.addGoal(3, std::make_shared<entity::ai::goal::TemptGoal>(
-    //     this, 1.0, [](const ItemStack& stack) { return stack.getItem() == Items::WHEAT; }));
+    // MC 1.16.5: 优先级3，速度1.0
+    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+        this, 1.0,
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            return item != nullptr && item == Items::WHEAT;
+        },
+        false));  // scaredByMovement
 }
 
 void CowEntity::registerAttributes() {

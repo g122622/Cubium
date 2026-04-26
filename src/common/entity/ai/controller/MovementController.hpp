@@ -88,7 +88,6 @@ public:
      */
     void tick();
 
-protected:
     MobEntity* m_mob;
     f64 m_posX = 0.0;
     f64 m_posY = 0.0;

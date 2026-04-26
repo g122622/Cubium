@@ -298,6 +298,25 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 }
 
 /**
+ * @brief MC 1.16.5 clampedRotate - 限制角度旋转速度
+ *
+ * 与 clampAngle 不同，此函数不包装结果到 [0, 360)，
+ * 而是直接返回 sourceAngle + clamped(diff)。
+ * 这是 MC 1.16.5 中 LookController 和 MovementController 使用的方法。
+ *
+ * @param from 当前角度（度）
+ * @param to 目标角度（度）
+ * @param maxDelta 最大角度变化（度）
+ * @return 限制后的角度
+ */
+[[nodiscard]] inline f32 clampedRotate(f32 from, f32 to, f32 maxDelta) noexcept
+{
+    f32 diff = wrapDegrees(to - from);
+    f32 clamped = std::clamp(diff, -maxDelta, maxDelta);
+    return from + clamped;
+}
+
+/**
  * @brief 计算两点之间的水平距离平方
  *
  * @param x1 第一个点的X坐标

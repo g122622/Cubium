@@ -35,6 +35,15 @@ public:
      */
     RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 chance);
 
+    /**
+     * @brief 构造函数（带执行概率和空闲时间检查）
+     * @param creature 拥有此目标的生物
+     * @param speed 移动速度倍率
+     * @param chance 执行概率（1/chance 的概率执行）
+     * @param checkIdleTime 是否检查空闲时间（如果空闲时间>=100则不执行）
+     */
+    RandomWalkingGoal(CreatureEntity* creature, f64 speed, i32 chance, bool checkIdleTime);
+
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
@@ -68,6 +77,7 @@ protected:
     i32 m_executionChance;
     i32 m_timeoutCounter = 0;
     bool m_forceUpdate = false;
+    bool m_checkIdleTime = true;  // MC 1.16.5: 默认检查空闲时间
 };
 
 } // namespace entity::ai::goal

@@ -76,7 +76,7 @@ void AvoidEntityGoal::resetTask() {
 void AvoidEntityGoal::tick() {
     if (!m_creature || !m_avoidTarget) return;
 
-    // 根据距离调整速度
+    // MC 1.16.5: 根据距离调整速度，阈值是 49.0D (7*7)
     f32 distSq = m_creature->distanceSqTo(*m_avoidTarget);
 
     f64 speed;
@@ -86,8 +86,11 @@ void AvoidEntityGoal::tick() {
         speed = m_farSpeed;
     }
 
-    // 继续移动到逃跑位置
-    m_creature->tryMoveTo(m_escapeX, m_escapeY, m_escapeZ, speed);
+    // MC 1.16.5: 直接调用 navigator.setSpeed() 而不是重新计算路径
+    auto* nav = m_creature->navigator();
+    if (nav) {
+        nav->setSpeed(speed);
+    }
 }
 
 LivingEntity* AvoidEntityGoal::findEntityToAvoid() {

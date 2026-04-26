@@ -161,6 +161,12 @@ public:
      */
     void setEntity(LivingEntity* entity) { m_entity = entity; }
 
+    /**
+     * @brief 设置移动速度
+     * MC 1.16.5: 设置导航器当前使用的速度
+     */
+    void setSpeed(f64 speed) { m_speed = speed; }
+
     // ========== 调试 ==========
 
     /**

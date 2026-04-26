@@ -12,17 +12,22 @@ using namespace mc::entity::ai::pathfinding;
 // ==================== PathNodeType Tests ====================
 
 TEST(PathNodeTypeTest, GetCostPenalty) {
-    // 阻塞类型代价为0（不应通行）
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::Blocked), 0.0f);
+    // 阻塞类型代价为-1（不可通行）- MC 1.16.5: BLOCKED priority = -1.0F
+    EXPECT_EQ(getPathCostPenalty(PathNodeType::Blocked), -1.0f);
 
-    // 可行走类型无惩罚
+    // 可行走类型无惩罚 - MC 1.16.5: WALKABLE priority = 0.0F
     EXPECT_EQ(getPathCostPenalty(PathNodeType::Walkable), 0.0f);
     EXPECT_EQ(getPathCostPenalty(PathNodeType::WalkableDoor), 0.0f);
 
-    // 危险类型有负惩罚
+    // 危险区域有高代价（但不禁止通行） - MC 1.16.5: DANGER_* priority = 8.0F
+    EXPECT_EQ(getPathCostPenalty(PathNodeType::DangerFire), 8.0f);
+    EXPECT_EQ(getPathCostPenalty(PathNodeType::DangerCactus), 8.0f);
+
+    // 岩浆完全禁止 - MC 1.16.5: LAVA priority = -1.0F
     EXPECT_EQ(getPathCostPenalty(PathNodeType::Lava), -1.0f);
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::DangerFire), -1.0f);
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::DangerCactus), -1.0f);
+
+    // 伤害类型完全禁止 - MC 1.16.5: DAMAGE_CACTUS priority = -1.0F
+    EXPECT_EQ(getPathCostPenalty(PathNodeType::DamageCactus), -1.0f);
 }
 
 TEST(PathNodeTypeTest, IsWalkable) {

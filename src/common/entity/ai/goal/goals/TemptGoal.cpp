@@ -57,10 +57,11 @@ bool TemptGoal::shouldContinueExecuting() {
 
     // 检查是否被玩家移动吓跑
     if (m_scaredByMovement) {
+        // MC 1.16.5: 使用36.0D（6*6）作为惊吓距离检测
         f32 distSq = m_creature->distanceSqTo(*m_temptingPlayer);
 
         if (distSq < TEMPT_SCARE_DISTANCE_SQ) {
-            // 检查玩家是否移动
+            // 检查玩家是否移动（使用0.01阈值）
             f32 playerDx = m_temptingPlayer->x() - m_targetX;
             f32 playerDy = m_temptingPlayer->y() - m_targetY;
             f32 playerDz = m_temptingPlayer->z() - m_targetZ;
@@ -70,7 +71,7 @@ bool TemptGoal::shouldContinueExecuting() {
                 return false; // 玩家移动了，停止
             }
 
-            // 检查玩家视角变化
+            // 检查玩家视角变化（使用5度阈值）
             f32 pitchDiff = std::abs(m_temptingPlayer->pitch() - m_prevPitch);
             f32 yawDiff = std::abs(m_temptingPlayer->yaw() - m_prevYaw);
 
@@ -116,14 +117,20 @@ void TemptGoal::resetTask() {
 void TemptGoal::tick() {
     if (!m_creature || !m_temptingPlayer) return;
 
-    // 看向玩家
-    m_creature->lookAt(*m_temptingPlayer);
+    // MC 1.16.5: 使用 getHorizontalFaceSpeed() + 20 和 getVerticalFaceSpeed()
+    f32 deltaYaw = m_creature->getHorizontalFaceSpeed() + 20.0f;
+    f32 deltaPitch = m_creature->getVerticalFaceSpeed();
 
-    // 计算与玩家的距离
+    // 看向玩家（使用 LookController）
+    if (auto* lookCtrl = m_creature->lookController()) {
+        lookCtrl->setLookPositionWithEntity(*m_temptingPlayer, deltaYaw, deltaPitch);
+    }
+
+    // MC 1.16.5: 使用 6.25D（2.5*2.5）作为近距离阈值
     f32 distSq = m_creature->distanceSqTo(*m_temptingPlayer);
 
-    // 如果距离太近，停止移动
     if (distSq < TEMPT_CLOSE_DISTANCE_SQ) {
+        // 距离太近，停止移动
         m_creature->clearNavigation();
     } else {
         // 跟随玩家

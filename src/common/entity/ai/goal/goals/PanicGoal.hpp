@@ -2,7 +2,7 @@
 
 #include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
-#include "../../../../util/math/Vector3.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -48,12 +48,13 @@ protected:
     [[nodiscard]] bool findRandomPosition();
 
     /**
-     * @brief 获取随机水源位置（着火时）
-     * @param range 水平范围
-     * @param verticalRange 垂直范围
-     * @return 水源位置，如果没有则返回空
+     * @brief 获取最近的水源位置（着火时）
+     * MC 1.16.5: 遍历立方体区域找最近的水方块
+     * @param horizontalRange 水平搜索范围
+     * @param verticalRange 垂直搜索范围
+     * @return 水源方块位置，如果没有则返回 (0, 0, 0)
      */
-    [[nodiscard]] Vector3 getRandomWaterPosition(i32 range, i32 verticalRange);
+    [[nodiscard]] BlockPos getRandomWaterPosition(i32 horizontalRange, i32 verticalRange);
 
     CreatureEntity* m_creature;
     f64 m_speed;

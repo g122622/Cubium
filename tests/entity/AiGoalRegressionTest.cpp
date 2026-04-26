@@ -214,10 +214,10 @@ TEST(AiGoalRegressionTest, PanicGoal_FindsNearbyWaterWhenBurning) {
     ExposedPanicGoal goal(&creature, 1.0);
 
     EXPECT_TRUE(goal.shouldExecute());
-    const Vector3 waterPos = goal.getRandomWaterPosition(8, 4);
-    EXPECT_NE(waterPos.x, 0.0f);
-    EXPECT_NE(waterPos.y, 0.0f);
-    EXPECT_NE(waterPos.z, 0.0f);
+    const BlockPos waterPos = goal.getRandomWaterPosition(8, 4);
+    EXPECT_NE(waterPos.x, 0);
+    EXPECT_NE(waterPos.y, 0);
+    EXPECT_NE(waterPos.z, 0);
 }
 
 TEST(AiGoalRegressionTest, WaterAvoidingRandomWalkingGoal_DetectsWaterAndLava) {

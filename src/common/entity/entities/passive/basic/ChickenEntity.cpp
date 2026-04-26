@@ -3,6 +3,7 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
@@ -64,8 +65,19 @@ void ChickenEntity::registerGoals() {
     AnimalEntity::registerGoals();
 
     // 鸡特有目标：食物诱惑（种子）
-    // m_goalSelector.addGoal(3, std::make_shared<entity::ai::goal::TemptGoal>(
-    //     this, 1.0, [](const ItemStack& stack) { return stack.getItem()->isIn(ItemTags::SEEDS); }));
+    // MC 1.16.5: 优先级3，速度1.0
+    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+        this, 1.0,
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            return item != nullptr && (
+                item == Items::WHEAT_SEEDS ||
+                item == Items::PUMPKIN_SEEDS ||
+                item == Items::MELON_SEEDS ||
+                item == Items::BEETROOT_SEEDS
+            );
+        },
+        false));  // scaredByMovement
 }
 
 void ChickenEntity::registerAttributes() {

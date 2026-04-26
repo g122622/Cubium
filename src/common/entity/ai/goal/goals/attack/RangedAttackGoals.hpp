@@ -47,27 +47,17 @@ protected:
      */
     virtual void performAttack(LivingEntity* target, f32 charge);
 
-    /**
-     * @brief 检查是否在攻击距离内
-     * @param distance 到目标的距离
-     * @return 如果在攻击距离内返回true
-     */
-    [[nodiscard]] bool isWithinAttackDistance(f64 distance) const {
-        return distance <= m_attackRadius && distance >= m_attackRadius * 0.5;
-    }
-
     MobEntity* m_mob;
     LivingEntity* m_target = nullptr;
     f64 m_speed;
     i32 m_attackIntervalMin;
     i32 m_attackIntervalMax;
     f32 m_attackRadius;
-    i32 m_attackTime = 0;
-    i32 m_seenTime = 0;
-    bool m_strafingClockwise = false;
-    bool m_strafingBackwards = false;
+    f32 m_maxAttackDistanceSq;  // MC 1.16.5: 缓存的平方距离
+    i32 m_attackTime = -1;      // MC 1.16.5: 初始值为 -1
+    i32 m_seenTime = 0;         // MC 1.16.5: 能看到目标的时间
 
-    static constexpr i32 MAX_SEEN_TIME = 60; // 看不到目标后保持攻击的时间
+    static constexpr i32 MIN_SEEN_TIME = 5;  // MC 1.16.5: 停止移动前需要看到的tick数
 };
 
 /**

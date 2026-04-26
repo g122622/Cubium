@@ -25,16 +25,16 @@ constexpr f32 BREED_DISTANCE_SQ = BREED_DISTANCE * BREED_DISTANCE;
 /// 诱惑相关距离
 constexpr f32 TEMPT_RANGE = 10.0f;                   // 诱惑检测范围
 constexpr f32 TEMPT_RANGE_SQ = TEMPT_RANGE * TEMPT_RANGE;
-constexpr f32 TEMPT_SCARE_DISTANCE = 6.0f;           // 被吓跑的距离
-constexpr f32 TEMPT_SCARE_DISTANCE_SQ = TEMPT_SCARE_DISTANCE * TEMPT_SCARE_DISTANCE;
-constexpr f32 TEMPT_CLOSE_DISTANCE = 2.5f;           // 停止移动的近距离
-constexpr f32 TEMPT_CLOSE_DISTANCE_SQ = TEMPT_CLOSE_DISTANCE * TEMPT_CLOSE_DISTANCE;
+constexpr f32 TEMPT_SCARE_DISTANCE = 6.0f;           // MC 1.16.5: 被吓跑的距离
+constexpr f32 TEMPT_SCARE_DISTANCE_SQ = 36.0f;       // 6*6 = 36
+constexpr f32 TEMPT_CLOSE_DISTANCE = 2.5f;           // MC 1.16.5: 停止移动的近距离
+constexpr f32 TEMPT_CLOSE_DISTANCE_SQ = 6.25f;       // 2.5*2.5 = 6.25
 
 /// 避开实体相关距离
 constexpr f32 AVOID_DETECTION_RANGE = 16.0f;         // 检测威胁的距离
 constexpr f32 AVOID_ESCAPE_RANGE = 16.0f;            // 逃跑距离
-constexpr f32 AVOID_NEAR_DISTANCE = 7.0f;            // 近距离逃跑阈值
-constexpr f32 AVOID_NEAR_DISTANCE_SQ = AVOID_NEAR_DISTANCE * AVOID_NEAR_DISTANCE;
+constexpr f32 AVOID_NEAR_DISTANCE = 7.0f;            // MC 1.16.5: 近距离逃跑阈值
+constexpr f32 AVOID_NEAR_DISTANCE_SQ = 49.0f;        // 7*7 = 49
 
 /// 跟随父母相关距离
 constexpr f32 FOLLOW_PARENT_SEARCH_RANGE = 8.0f;     // 搜索父母的距离

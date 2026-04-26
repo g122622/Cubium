@@ -10,6 +10,7 @@
 #include "task/Task.hpp"
 #include <unordered_map>
 #include <unordered_set>
+#include <map>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -66,7 +67,8 @@ public:
     using SensorMap = std::unordered_map<std::string, std::unique_ptr<sensor::Sensor<E>>>;
     using TaskSet = std::unordered_set<std::unique_ptr<task::Task<E>>>;
     using ActivityTaskMap = std::unordered_map<schedule::Activity, TaskSet>;
-    using PriorityTaskMap = std::unordered_map<i32, ActivityTaskMap>;
+    // MC 1.16.5 使用 TreeMap 保证优先级顺序（数值小的先执行）
+    using PriorityTaskMap = std::map<i32, ActivityTaskMap>;
     using MemoryRequirement = std::pair<const memory::MemoryModuleTypeBase*, memory::MemoryModuleStatus>;
     using ActivityRequirementMap = std::unordered_map<schedule::Activity, std::unordered_set<MemoryRequirement>>;
     using ForgettingMap = std::unordered_map<schedule::Activity, std::unordered_set<const memory::MemoryModuleTypeBase*>>;
@@ -282,8 +284,13 @@ public:
 
     /**
      * @brief 每tick更新
+     * @param world 世界
+     * @param entity 实体
+     * @param gameTime 游戏时间
+     * @param dayTime 日内时间
+     * @param random 随机数生成器（用于任务持续时间）
      */
-    void tick(ServerWorld* world, E* entity, i64 gameTime, i32 dayTime) {
+    void tick(ServerWorld* world, E* entity, i64 gameTime, i32 dayTime, math::Random& random) {
         // 更新记忆TTL
         tickMemories();
 
@@ -294,7 +301,7 @@ public:
         updateActivity(dayTime, gameTime);
 
         // 启动符合条件的任务
-        startTasks(world, entity, gameTime);
+        startTasks(world, entity, gameTime, random);
 
         // 更新运行中的任务
         tickTasks(world, entity, gameTime);
@@ -364,11 +371,14 @@ private:
 
     /**
      * @brief 检查是否有活动所需的记忆
+     *
+     * MC 1.16.5: 如果活动没有配置记忆要求，返回 false
      */
     [[nodiscard]] bool hasRequiredMemories(const schedule::Activity& activity) const {
         auto it = m_requiredMemoryStates.find(activity);
         if (it == m_requiredMemoryStates.end()) {
-            return true;
+            // MC 1.16.5: 活动没有记忆要求配置时返回 false
+            return false;
         }
 
         for (const auto& [memType, status] : it->second) {
@@ -407,13 +417,13 @@ private:
     /**
      * @brief 启动任务
      */
-    void startTasks(ServerWorld* world, E* entity, i64 gameTime) {
+    void startTasks(ServerWorld* world, E* entity, i64 gameTime, math::Random& random) {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
                 if (hasActivity(activity)) {
                     for (auto& task : taskSet) {
                         if (task->getStatus() == task::TaskStatus::STOPPED) {
-                            task->start(world, entity, gameTime);
+                            task->start(world, entity, gameTime, random);
                         }
                     }
                 }

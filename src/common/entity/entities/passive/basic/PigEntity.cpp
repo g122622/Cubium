@@ -3,6 +3,7 @@
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <memory>
 
@@ -108,8 +109,14 @@ void PigEntity::registerGoals() {
     AnimalEntity::registerGoals();
 
     // 猪特有目标：食物诱惑（胡萝卜）
-    // m_goalSelector.addGoal(3, std::make_shared<entity::ai::goal::TemptGoal>(
-    //     this, 1.2, [](const ItemStack& stack) { return stack.getItem() == Items::CARROT; }));
+    // MC 1.16.5: 优先级3，速度1.2
+    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+        this, 1.2,
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            return item != nullptr && item == Items::CARROT;
+        },
+        false));  // scaredByMovement
 }
 
 void PigEntity::registerAttributes() {

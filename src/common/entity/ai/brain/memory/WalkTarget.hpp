@@ -41,12 +41,12 @@ public:
         return m_target;
     }
 
-    [[nodiscard]] f32 getSpeedModifier() const
+    [[nodiscard]] f32 getSpeed() const
     {
         return m_speedModifier;
     }
 
-    [[nodiscard]] i32 getCloseEnoughDist() const
+    [[nodiscard]] i32 getDistance() const
     {
         return m_closeEnoughDist;
     }

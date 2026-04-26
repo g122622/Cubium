@@ -43,6 +43,20 @@ public:
     [[nodiscard]] f32 totalCost() const { return m_totalCost; }
     void updateTotalCost() { m_totalCost = m_costFromStart + m_costToTarget; }
 
+    /**
+     * @brief 获取行走距离（MC field_222861_j）
+     * MC 1.16.5: 用于追踪实际行走的距离
+     */
+    [[nodiscard]] f32 walkedDistance() const { return m_walkedDistance; }
+    void setWalkedDistance(f32 distance) { m_walkedDistance = distance; }
+
+    /**
+     * @brief 获取到下一个路径点的距离
+     * MC 1.16.5: distanceToNext
+     */
+    [[nodiscard]] f32 distanceToNext() const { return m_distanceToNext; }
+    void setDistanceToNext(f32 distance) { m_distanceToNext = distance; }
+
     [[nodiscard]] PathNodeType nodeType() const { return m_nodeType; }
     void setNodeType(PathNodeType type) { m_nodeType = type; }
 
@@ -50,6 +64,12 @@ public:
 
     [[nodiscard]] bool isVisited() const { return m_visited; }
     void setVisited(bool visited) { m_visited = visited; }
+
+    /**
+     * @brief 检查是否已被分配到堆中
+     * MC 1.16.5: isAssigned() - index >= 0
+     */
+    [[nodiscard]] bool isAssigned() const { return m_heapIndex >= 0; }
 
     // ========== 父节点 ==========
 
@@ -81,7 +101,8 @@ public:
     }
 
     /**
-     * @brief 计算到另一个点的直线距离
+     * @brief 计算到另一个点的直线距离（欧几里得距离）
+     * MC 1.16.5 使用此方法作为启发式函数
      */
     [[nodiscard]] f32 distanceToLinear(const PathPoint& other) const {
         return std::sqrt(distanceToSq(other));
@@ -96,6 +117,7 @@ public:
 
     /**
      * @brief 克隆此节点（不复制寻路状态）
+     * MC 1.16.5 clone()
      */
     [[nodiscard]] PathPoint clone() const {
         PathPoint copy(m_x, m_y, m_z);
@@ -105,13 +127,28 @@ public:
     }
 
     /**
-     * @brief 创建一个哈希值用于缓存
+     * @brief 创建移动克隆（MC 1.16.5 cloneMove）
+     * 创建一个新位置的克隆，但保留代价信息
      */
-    [[nodiscard]] u64 hash() const {
-        // Y 在高16位，X 和 Z 各占低32位
-         return (static_cast<u64>(static_cast<u16>(m_y)) << 48) |
-             (static_cast<u64>(static_cast<u32>(m_x)) << 16) |
-             static_cast<u64>(static_cast<u32>(m_z));
+    [[nodiscard]] PathPoint cloneMove(i32 newX, i32 newY, i32 newZ) const {
+        PathPoint copy(newX, newY, newZ);
+        copy.m_nodeType = m_nodeType;
+        copy.m_costMalus = m_costMalus;
+        return copy;
+    }
+
+    /**
+     * @brief 创建一个哈希值用于缓存
+     * MC 1.16.5 hash: y & 255 | (x & 32767) << 8 | (z & 32767) << 24 | sign bits
+     */
+    [[nodiscard]] u32 hash() const {
+        u32 hash = (m_y & 255);
+        hash |= (m_x & 32767) << 8;
+        hash |= (m_z & 32767) << 24;
+        // 处理负数的符号位
+        if (m_x < 0) hash |= 0x80000000;
+        if (m_z < 0) hash |= 0x00008000;
+        return hash;
     }
 
 private:
@@ -122,6 +159,8 @@ private:
     f32 m_costFromStart = 0.0f;    // 从起点的代价（g值）
     f32 m_costToTarget = 0.0f;     // 到目标的估算代价（h值）
     f32 m_totalCost = 0.0f;        // 总代价（f值 = g + h）
+    f32 m_walkedDistance = 0.0f;   // MC field_222861_j: 行走距离
+    f32 m_distanceToNext = 0.0f;   // 到下一个路径点的距离
     PathNodeType m_nodeType = PathNodeType::Walkable;
     bool m_visited = false;        // 是否已访问（在闭合列表中）
     const PathPoint* m_parent = nullptr; // 父节点（用于重建路径）

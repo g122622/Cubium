@@ -1,5 +1,8 @@
 #include "LookController.hpp"
 #include "../../core/MobEntity.hpp"
+#include "../../core/LivingEntity.hpp"
+#include "../../core/Entity.hpp"
+#include "../pathfinding/PathNavigator.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include <cmath>
 
@@ -10,8 +13,12 @@ LookController::LookController(MobEntity* mob)
 {}
 
 void LookController::setLookPosition(f64 x, f64 y, f64 z) {
-    // 默认旋转速度
-    setLookPosition(x, y, z, 10.0f, 10.0f);
+    // 从实体获取默认旋转速度
+    if (m_mob) {
+        setLookPosition(x, y, z, m_mob->getHorizontalFaceSpeed(), m_mob->getVerticalFaceSpeed());
+    } else {
+        setLookPosition(x, y, z, 10.0f, 10.0f);
+    }
 }
 
 void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch) {
@@ -23,9 +30,21 @@ void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 delt
     m_isLooking = true;
 }
 
+void LookController::setLookPositionWithEntity(const Entity& entity, f32 deltaYaw, f32 deltaPitch) {
+    // MC 的 getEyePosition 实现：LivingEntity 使用 getPosYEye()，其他实体使用碰撞盒中心
+    f64 eyeY = entity.y() + entity.eyeHeight();
+    setLookPosition(entity.x(), eyeY, entity.z(), deltaYaw, deltaPitch);
+}
+
 void LookController::tick() {
     if (!m_mob) return;
 
+    // 1. 首先处理俯仰角重置（MC在tick开头处理）
+    if (shouldResetPitch()) {
+        m_mob->setRotationPitch(0.0f);
+    }
+
+    // 2. 处理观看逻辑
     if (m_isLooking) {
         m_isLooking = false;
 
@@ -33,22 +52,32 @@ void LookController::tick() {
         f32 targetYaw = getTargetYaw();
         f32 targetPitch = getTargetPitch();
 
-        f32 currentYaw = m_mob->yaw();
+        // MC 使用 rotationYawHead 而非 yaw
+        f32 currentYaw = m_mob->rotationYawHead();
         f32 currentPitch = m_mob->pitch();
 
-        f32 newYaw = clampedRotate(currentYaw, targetYaw, m_deltaLookYaw);
-        f32 newPitch = clampedRotate(currentPitch, targetPitch, m_deltaLookPitch);
+        f32 newYaw = math::clampedRotate(currentYaw, targetYaw, m_deltaLookYaw);
+        f32 newPitch = math::clampedRotate(currentPitch, targetPitch, m_deltaLookPitch);
 
-        m_mob->setRotation(newYaw, newPitch);
-    } else if (shouldResetPitch()) {
-        // 空闲时让俯仰角平滑回正，保留当前偏航角和已有的限速行为。
-        f32 currentYaw = m_mob->yaw();
-        f32 currentPitch = m_mob->pitch();
-        f32 resetPitch = clampedRotate(currentPitch, 0.0f, m_deltaLookPitch);
+        // MC 分别设置头部旋转和俯仰角
+        m_mob->setRotationYawHead(newYaw);
+        m_mob->setRotationPitch(newPitch);
+    } else {
+        // 3. 空闲时让头部朝向身体朝向
+        f32 currentYaw = m_mob->rotationYawHead();
+        f32 bodyYaw = m_mob->renderYawOffset();
+        f32 newYaw = math::clampedRotate(currentYaw, bodyYaw, 10.0f);
+        m_mob->setRotationYawHead(newYaw);
+    }
 
-        if (resetPitch != currentPitch) {
-            m_mob->setRotation(currentYaw, resetPitch);
-        }
+    // 4. MC 1.16.5: 如果有导航路径，限制头部与身体的角度差
+    auto* navigator = m_mob->navigator();
+    if (navigator && !navigator->noPath()) {
+        f32 currentYaw = m_mob->rotationYawHead();
+        f32 bodyYaw = m_mob->renderYawOffset();
+        f32 maxRotate = m_mob->getHorizontalFaceSpeed();
+        f32 newYaw = math::clampedRotate(currentYaw, bodyYaw, maxRotate);
+        m_mob->setRotationYawHead(newYaw);
     }
 }
 
@@ -78,10 +107,6 @@ f32 LookController::getTargetPitch() const {
     f32 pitch = static_cast<f32>(-(std::atan2(dy, horizontalDist) * math::RAD_TO_DEG));
 
     return pitch;
-}
-
-f32 LookController::clampedRotate(f32 from, f32 to, f32 maxDelta) {
-    return math::clampAngle(from, to, maxDelta);
 }
 
 } // namespace mc::entity::ai::controller

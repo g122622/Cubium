@@ -2,6 +2,7 @@
 
 #include "../Goal.hpp"
 #include "../../../../core/Types.hpp"
+#include <functional>
 
 namespace mc {
 
@@ -21,9 +22,13 @@ namespace entity::ai::goal {
 class LookAtGoal : public Goal {
 public:
     /**
+     * @brief 实体过滤函数类型
+     */
+    using EntityFilter = std::function<bool(const LivingEntity*)>;
+
+    /**
      * @brief 构造函数
      * @param mob 拥有此目标的生物
-     * @param watchTargetClass 要看向的实体类型（目前未使用）
      * @param maxDistance 最大观看距离
      */
     LookAtGoal(MobEntity* mob, f32 maxDistance);
@@ -31,7 +36,6 @@ public:
     /**
      * @brief 构造函数（带概率）
      * @param mob 拥有此目标的生物
-     * @param watchTargetClass 要看向的实体类型（目前未使用）
      * @param maxDistance 最大观看距离
      * @param chance 每tick执行的概率（0-1）
      */
@@ -46,6 +50,12 @@ public:
     [[nodiscard]] String getTypeName() const override { return "LookAtGoal"; }
 
 protected:
+    /**
+     * @brief 寻找要看的实体
+     * @return 找到的实体，如果没有返回nullptr
+     */
+    [[nodiscard]] virtual LivingEntity* findTarget();
+
     MobEntity* m_mob;
     LivingEntity* m_lookTarget = nullptr;
     f32 m_maxDistance;
@@ -53,11 +63,9 @@ protected:
     i32 m_lookTime = 0;
     bool m_isLooking = false;
 
-    /**
-     * @brief 寻找要看的实体
-     * @return 找到的实体，如果没有返回nullptr
-     */
-    [[nodiscard]] virtual LivingEntity* findTarget();
+    static constexpr i32 LOOK_AT_MIN_TIME = 40;  // 2秒
+    static constexpr i32 LOOK_AT_MAX_TIME = 80;  // 4秒
+    static constexpr f32 DEFAULT_LOOK_CHANCE = 0.02f;  // 2%
 };
 
 /**
@@ -88,6 +96,10 @@ private:
     f32 m_targetYaw = 0.0f;
     f32 m_targetPitch = 0.0f;
     i32 m_lookTime = 0;
+
+    static constexpr f32 RANDOM_LOOK_CHANCE = 0.02f;  // 2%
+    static constexpr i32 RANDOM_LOOK_MIN_TIME = 20;   // 1秒
+    static constexpr i32 RANDOM_LOOK_MAX_TIME = 40;   // 2秒
 };
 
 } // namespace entity::ai::goal
