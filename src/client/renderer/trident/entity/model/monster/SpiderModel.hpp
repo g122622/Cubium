@@ -22,6 +22,11 @@ public:
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
 
+    /**
+     * @brief 获取头部模型
+     */
+    std::shared_ptr<model::ModelRenderer> getModelHead() { return m_head; }
+
 private:
     void setupParts();
 

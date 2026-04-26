@@ -70,6 +70,13 @@ public:
      */
     virtual void copyAnglesTo(EntityModel& target) const;
 
+    /**
+     * @brief 从源模型复制动画角度
+     * @param source 源模型
+     * @note 仅复制各部件的旋转角和旋转点，不会改动材质、贴图或部件拓扑
+     */
+    virtual void copyAnglesFrom(const EntityModel& source);
+
     // ========== 模型部件访问 ==========
 
     /**

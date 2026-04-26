@@ -473,4 +473,22 @@ void ModelRenderer::interpolateRotation(const Vector3f& target, f64 speed) {
     m_rotateAngleZ += (target.z - m_rotateAngleZ) * speed;
 }
 
+void ModelRenderer::getTransformMatrix(std::array<f64, 16>& outMatrix) const {
+    // 构建变换矩阵，参考 MC 1.16.5 ModelRenderer.translateRotate()
+    // 使用 1/16 作为默认缩放（MC 单位到世界单位）
+
+    // 1. 平移到旋转点
+    auto translation = translationMatrix(m_rotationPointX, m_rotationPointY, m_rotationPointZ);
+
+    // 2. 应用旋转 (顺序: Z -> Y -> X)
+    auto rotZ = rotationZMatrix(m_rotateAngleZ);
+    auto rotY = rotationYMatrix(m_rotateAngleY);
+    auto rotX = rotationXMatrix(m_rotateAngleX);
+
+    // 组合变换: translation * rotZ * rotY * rotX
+    outMatrix = multiplyMatrices(translation, rotZ);
+    outMatrix = multiplyMatrices(outMatrix, rotY);
+    outMatrix = multiplyMatrices(outMatrix, rotX);
+}
+
 } // namespace mc::client::renderer::entity::model

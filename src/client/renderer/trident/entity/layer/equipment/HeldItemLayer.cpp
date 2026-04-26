@@ -25,9 +25,28 @@ void HeldItemLayer<TEntity>::renderPipeline(
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
 {
-    // 渲染主手和副手物品
-    renderHandItemPipeline(entity, HandSide::MainHand, cmd, context, pipeline);
-    renderHandItemPipeline(entity, HandSide::OffHand, cmd, context, pipeline);
+    // MC 1.16.5 HeldItemLayer:24-26
+    // 首先根据主手判断哪只手渲染哪个物品
+    // boolean flag = entity.getPrimaryHand() == HandSide.RIGHT;
+    // ItemStack offhand = flag ? entity.getHeldItemOffhand() : entity.getHeldItemMainhand();
+    // ItemStack mainhand = flag ? entity.getHeldItemMainhand() : entity.getHeldItemOffhand();
+
+    bool isRightHanded = true;  // 默认右手为主手
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        isRightHanded = entity.isRightHanded();
+    }
+
+    // MC 1.16.5 逻辑：
+    // 如果右手为主手：右手渲染主手物品，左手渲染副手物品
+    // 如果左手为主手：右手渲染副手物品，左手渲染主手物品
+    mc::Hand rightHandSlot = isRightHanded ? mc::Hand::MainHand : mc::Hand::OffHand;
+    mc::Hand leftHandSlot = isRightHanded ? mc::Hand::OffHand : mc::Hand::MainHand;
+
+    // 渲染右手物品（使用 ThirdPersonRightHand 变换）
+    renderHandItemPipeline(entity, rightHandSlot, mc::HandSide::Right, cmd, context, pipeline);
+
+    // 渲染左手物品（使用 ThirdPersonLeftHand 变换）
+    renderHandItemPipeline(entity, leftHandSlot, mc::HandSide::Left, cmd, context, pipeline);
 }
 
 template<typename TEntity>
@@ -57,8 +76,8 @@ void HeldItemLayer<TEntity>::render(
 template<typename TEntity>
 bool HeldItemLayer<TEntity>::shouldRender(const TEntity& entity) const {
     // 检查是否有手持物品
-    const ItemStack* mainHand = getHeldItem(entity, HandSide::MainHand);
-    const ItemStack* offHand = getHeldItem(entity, HandSide::OffHand);
+    const ItemStack* mainHand = getHeldItem(entity, mc::Hand::MainHand);
+    const ItemStack* offHand = getHeldItem(entity, mc::Hand::OffHand);
 
     if (mainHand && !mainHand->isEmpty()) return true;
     if (offHand && !offHand->isEmpty()) return true;
@@ -69,7 +88,8 @@ bool HeldItemLayer<TEntity>::shouldRender(const TEntity& entity) const {
 template<typename TEntity>
 void HeldItemLayer<TEntity>::renderHandItemPipeline(
     TEntity& entity,
-    HandSide hand,
+    mc::Hand hand,
+    mc::HandSide handSide,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -82,7 +102,7 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(
     // 计算手持物品的变换矩阵
     std::array<f64, 16> itemTransform;
     computeItemTransform(
-        hand,
+        handSide,
         static_cast<f32>(context.limbSwing),
         static_cast<f32>(context.limbSwingAmount),
         static_cast<f32>(context.swingProgress),
@@ -96,7 +116,7 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(
     auto it = s_heldItemMeshCache.find(itemId);
     if (it == s_heldItemMeshCache.end()) {
         // 构建物品网格
-        auto transformType = (hand == HandSide::MainHand)
+        auto transformType = (handSide == mc::HandSide::Right)
             ? item::ItemTransformType::ThirdPersonRightHand
             : item::ItemTransformType::ThirdPersonLeftHand;
 
@@ -145,15 +165,17 @@ void HeldItemLayer<TEntity>::renderHandItemPipeline(
     pipeline.drawMesh(cmd, it->second, worldTransform, entityPos, 1.0,
                       Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
 
-    spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand",
+    spdlog::trace("HeldItemLayer: Rendered item '{}' in {} hand (handSlot={})",
                   item->getItem()->itemLocation().toString(),
-                  hand == HandSide::MainHand ? "main" : "off");
+                  handSide == mc::HandSide::Right ? "right" : "left",
+                  hand == mc::Hand::MainHand ? "main" : "off");
 }
 
 template<typename TEntity>
 void HeldItemLayer<TEntity>::renderHandItem(
     TEntity& entity,
-    HandSide hand,
+    mc::Hand hand,
+    mc::HandSide handSide,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 partialTicks,
@@ -166,6 +188,7 @@ void HeldItemLayer<TEntity>::renderHandItem(
     }
 
     // 仅作为占位符
+    (void)handSide;
     (void)limbSwing;
     (void)limbSwingAmount;
     (void)partialTicks;
@@ -175,13 +198,13 @@ void HeldItemLayer<TEntity>::renderHandItem(
 template<typename TEntity>
 const ItemStack* HeldItemLayer<TEntity>::getHeldItem(
     const TEntity& entity,
-    HandSide hand) const
+    mc::Hand hand) const
 {
     // 从实体获取手持物品
     // LivingEntity 有 getEquipment 方法
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         using EquipmentSlot = ::mc::EquipmentSlot;
-        auto slot = (hand == HandSide::MainHand) ? EquipmentSlot::MainHand : EquipmentSlot::OffHand;
+        auto slot = (hand == mc::Hand::MainHand) ? EquipmentSlot::MainHand : EquipmentSlot::OffHand;
         return &entity.getEquipment(slot);
     }
     return nullptr;
@@ -189,7 +212,7 @@ const ItemStack* HeldItemLayer<TEntity>::getHeldItem(
 
 template<typename TEntity>
 void HeldItemLayer<TEntity>::computeItemTransform(
-    HandSide hand,
+    mc::HandSide handSide,
     f32 limbSwing,
     f32 limbSwingAmount,
     f32 swingProgress,
@@ -238,9 +261,9 @@ void HeldItemLayer<TEntity>::computeItemTransform(
     outMatrix[10] = 0.0;
 
     // MC 1.16.5: translate((float)(flag ? -1 : 1) / 16.0F, 0.125D, -0.625D)
-    // flag = (hand == HandSide::OffHand) in MC terms (LEFT)
-    // 所以 MainHand 时 x = +1/16, OffHand 时 x = -1/16
-    bool isLeftHand = (hand == HandSide::OffHand);
+    // flag = (handSide == HandSide.LEFT) in MC terms
+    // 所以 Right 时 x = +1/16, Left 时 x = -1/16
+    bool isLeftHand = (handSide == mc::HandSide::Left);
     f64 xOffset = isLeftHand ? -1.0 / 16.0 : 1.0 / 16.0;
     f64 yOffset = 0.125;
     f64 zOffset = -0.625;
@@ -274,6 +297,12 @@ void HeldItemLayer<TEntity>::computeItemTransform(
         outMatrix[7] += sinSwing * 0.1;  // Y 方向偏移
         outMatrix[11] += cosSwing * 0.1; // Z 方向偏移
     }
+
+    // 避免未使用变量警告
+    (void)cosX;
+    (void)sinX;
+    (void)cosY;
+    (void)sinY;
 }
 
 // 显式实例化常用类型

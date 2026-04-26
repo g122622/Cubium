@@ -2,6 +2,7 @@
 #include "../../core/AnimationContext.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
+#include "../../model/base/BipedModel.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -9,11 +10,11 @@
 namespace mc::client::renderer::entity::layer::entity {
 
 // 静态成员定义
-template<typename TEntity>
-std::unique_ptr<pipeline::EntityMesh> SaddleLayer<TEntity>::s_saddleMesh = nullptr;
+template<typename TEntity, typename TModel>
+std::unique_ptr<pipeline::EntityMesh> SaddleLayer<TEntity, TModel>::s_saddleMesh = nullptr;
 
-template<typename TEntity>
-void SaddleLayer<TEntity>::renderPipeline(
+template<typename TEntity, typename TModel>
+void SaddleLayer<TEntity, TModel>::renderPipeline(
     TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
@@ -21,6 +22,15 @@ void SaddleLayer<TEntity>::renderPipeline(
 {
     if (!shouldRender(entity)) {
         return;
+    }
+
+    // 获取父模型并复制动画状态到鞍模型
+    TModel* parentModel = getParentModel();
+    TModel* saddleModel = getSaddleModel();
+
+    // 如果有鞍模型和父模型，复制动画状态
+    if (saddleModel && parentModel) {
+        saddleModel->copyAnglesFrom(*parentModel);
     }
 
     // 获取或创建鞍网格
@@ -78,8 +88,8 @@ void SaddleLayer<TEntity>::renderPipeline(
     (void)context;
 }
 
-template<typename TEntity>
-void SaddleLayer<TEntity>::render(
+template<typename TEntity, typename TModel>
+void SaddleLayer<TEntity, TModel>::render(
     TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
@@ -100,21 +110,25 @@ void SaddleLayer<TEntity>::render(
     (void)scale;
 }
 
-template<typename TEntity>
-bool SaddleLayer<TEntity>::shouldRender(const TEntity& entity) const {
+template<typename TEntity, typename TModel>
+bool SaddleLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
     // 检查实体是否装备了鞍
-    // 完整实现需要检查实体的 isSaddled() 方法
-    // 例如马、猪等可骑乘实体
+    // MC 1.16.5: AbstractHorseEntity.isSaddled()
+    // 或者检查胸部槽位是否有鞍物品
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // TODO: 检查实体是否有 isSaddled() 方法
-        // 目前暂时返回 false，待实体类实现鞍装备后再完善
-        (void)entity;
+        // 检查胸部槽位是否有鞍物品
+        const auto& chestItem = entity.getEquipment(::mc::EquipmentSlot::Chest);
+        if (!chestItem.isEmpty()) {
+            // TODO: 检查物品是否为鞍 (Items.SADDLE)
+            // 目前简化实现：只要胸部槽位有物品就渲染
+            return true;
+        }
     }
     return false;
 }
 
-template<typename TEntity>
-void SaddleLayer<TEntity>::buildSaddleMesh(
+template<typename TEntity, typename TModel>
+void SaddleLayer<TEntity, TModel>::buildSaddleMesh(
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
 {
@@ -185,8 +199,8 @@ void SaddleLayer<TEntity>::buildSaddleMesh(
     }
 }
 
-template<typename TEntity>
-pipeline::EntityMesh* SaddleLayer<TEntity>::getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline) {
+template<typename TEntity, typename TModel>
+pipeline::EntityMesh* SaddleLayer<TEntity, TModel>::getOrCreateSaddleMesh(pipeline::EntityPipeline& pipeline) {
     if (s_saddleMesh && s_saddleMesh->indexCount > 0) {
         return s_saddleMesh.get();
     }
@@ -211,6 +225,6 @@ pipeline::EntityMesh* SaddleLayer<TEntity>::getOrCreateSaddleMesh(pipeline::Enti
 }
 
 // 显式实例化
-template class SaddleLayer<::mc::LivingEntity>;
+template class SaddleLayer< ::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
 
 } // namespace mc::client::renderer::entity::layer::entity

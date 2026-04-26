@@ -291,6 +291,14 @@ public:
     [[nodiscard]] bool isVisible() const { return m_visible; }
     void setVisible(bool visible) { m_visible = visible; }
 
+    // ========== 变换矩阵 ==========
+
+    /**
+     * @brief 获取变换矩阵
+     * @param outMatrix 输出矩阵（4x4，行主序）
+     */
+    void getTransformMatrix(std::array<f64, 16>& outMatrix) const;
+
     // ========== 旋转访问器 ==========
 
     [[nodiscard]] f64 rotateAngleX() const { return m_rotateAngleX; }

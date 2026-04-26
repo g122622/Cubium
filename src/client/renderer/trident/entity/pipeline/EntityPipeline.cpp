@@ -158,6 +158,7 @@ Result<void> EntityPipeline::initialize(
 void EntityPipeline::destroy() {
     const bool hadResources = m_initialized ||
         m_pipeline != VK_NULL_HANDLE ||
+        m_additiveBlendPipeline != VK_NULL_HANDLE ||
         m_pipelineLayout != VK_NULL_HANDLE ||
         m_textureSampler != VK_NULL_HANDLE ||
         m_textureDescriptorLayout != VK_NULL_HANDLE ||
@@ -168,6 +169,12 @@ void EntityPipeline::destroy() {
     if (m_pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(m_device, m_pipeline, nullptr);
         m_pipeline = VK_NULL_HANDLE;
+    }
+
+    // 销毁叠加混合管线
+    if (m_additiveBlendPipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_device, m_additiveBlendPipeline, nullptr);
+        m_additiveBlendPipeline = VK_NULL_HANDLE;
     }
 
     // 销毁管线布局
@@ -197,8 +204,21 @@ void EntityPipeline::destroy() {
     }
 }
 
-void EntityPipeline::bind(VkCommandBuffer cmd) {
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+void EntityPipeline::bind(VkCommandBuffer cmd, BlendMode blendMode) {
+    // 根据混合模式选择管线
+    VkPipeline pipelineToBind = m_pipeline;
+    switch (blendMode) {
+        case BlendMode::Additive:
+            pipelineToBind = m_additiveBlendPipeline;
+            break;
+        case BlendMode::Alpha:
+        case BlendMode::None:
+        case BlendMode::Multiply:
+        default:
+            pipelineToBind = m_pipeline;
+            break;
+    }
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineToBind);
 }
 
 Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& vertices,
@@ -764,6 +784,34 @@ Result<void> EntityPipeline::createGraphicsPipeline(VkRenderPass renderPass,
         vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
         m_pipelineLayout = VK_NULL_HANDLE;
         return Error(ErrorCode::InitializationFailed, "Failed to create graphics pipeline");
+    }
+
+    // 创建叠加混合管线（用于眼睛发光等效果）
+    // 参考 MC 1.16.5 EyesLayer: GlintResourceManager.RenderTypes.entityGlintDirect()
+    VkPipelineColorBlendAttachmentState additiveBlendAttachment{};
+    additiveBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    additiveBlendAttachment.blendEnable = VK_TRUE;
+    // 叠加混合: src * srcAlpha + dst * 1
+    additiveBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    additiveBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    additiveBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    additiveBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    additiveBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    additiveBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    VkPipelineColorBlendStateCreateInfo additiveColorBlending{};
+    additiveColorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    additiveColorBlending.logicOpEnable = VK_FALSE;
+    additiveColorBlending.attachmentCount = 1;
+    additiveColorBlending.pAttachments = &additiveBlendAttachment;
+
+    pipelineInfo.pColorBlendState = &additiveColorBlending;
+
+    result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_additiveBlendPipeline);
+    if (result != VK_SUCCESS) {
+        spdlog::warn("EntityPipeline: Failed to create additive blend pipeline, falling back to alpha blend only");
+        m_additiveBlendPipeline = VK_NULL_HANDLE;
     }
 
     return Result<void>::ok();

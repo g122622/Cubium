@@ -113,7 +113,7 @@ void SpiderRenderer::setupLayers() {
     // 蜘蛛有以下层渲染器：
     // - EyesLayer（发光眼睛）
     // - SaddleLayer（鞍，如果是洞穴蜘蛛骑乘时）
-    addLayer<layer_effect::EyesLayer<LivingEntity>>();
+    addLayer<layer_effect::EyesLayer<LivingEntity, model::monster::SpiderModel>>(*this);
 }
 
 // ==================== 末影人渲染器 ====================
@@ -152,7 +152,7 @@ void EndermanRenderer::setupLayers() {
     // - HeldItemLayer（手持方块）
     // - EyesLayer（发光眼睛）
     addLayer<layer_equipment::HeldItemLayer<LivingEntity>>();
-    addLayer<layer_effect::EyesLayer<LivingEntity>>();
+    addLayer<layer_effect::EyesLayer<LivingEntity, model::monster::EndermanModel>>(*this);
 }
 
 // ==================== 烈焰人渲染器 ====================

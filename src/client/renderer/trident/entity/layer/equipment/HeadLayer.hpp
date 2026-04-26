@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../core/LayerRenderer.hpp"
+#include "../../model/core/EntityModel.hpp"
+#include "../../core/IEntityRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <vulkan/vulkan.h>
@@ -27,11 +29,23 @@ namespace mc::client::renderer::entity::layer::equipment {
  * 参考 MC 1.16.5 HeadLayer
  *
  * @tparam TEntity 实体类型
+ * @tparam TModel 模型类型
  */
-template<typename TEntity>
+template<typename TEntity, typename TModel = model::EntityModel>
 class HeadLayer : public core::LayerRenderer<TEntity> {
 public:
+    /**
+     * @brief 默认构造函数
+     */
     HeadLayer() = default;
+
+    /**
+     * @brief 构造函数
+     * @param renderer 关联的渲染器
+     */
+    explicit HeadLayer(entity::core::IEntityRenderer<TEntity, TModel>& renderer)
+        : m_renderer(&renderer) {}
+
     ~HeadLayer() override = default;
 
     /**
@@ -99,7 +113,23 @@ protected:
         std::array<f64, 16>& outMatrix
     );
 
+    /**
+     * @brief 获取关联的渲染器
+     */
+    [[nodiscard]] entity::core::IEntityRenderer<TEntity, TModel>* getRenderer() {
+        return m_renderer;
+    }
+
+    /**
+     * @brief 获取父模型
+     */
+    [[nodiscard]] TModel* getParentModel() {
+        return m_renderer ? &m_renderer->getModel() : nullptr;
+    }
+
 private:
+    entity::core::IEntityRenderer<TEntity, TModel>* m_renderer = nullptr;
+
     // 头部物品网格缓存
     static std::unordered_map<u32, pipeline::EntityMesh> s_headItemMeshCache;
 };

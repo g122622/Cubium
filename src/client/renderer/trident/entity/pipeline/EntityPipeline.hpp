@@ -19,6 +19,18 @@ class UniformBuffer;
 using FindMemoryTypeCallback = Result<u32> (*)(VkPhysicalDevice physicalDevice, u32 typeFilter, VkMemoryPropertyFlags properties);
 
 /**
+ * @brief 混合模式枚举
+ *
+ * 用于不同渲染效果的混合模式
+ */
+enum class BlendMode : u8 {
+    None,       // 无混合
+    Alpha,      // Alpha 混合（默认）
+    Additive,   // 叠加混合（用于眼睛发光、能量光效等）
+    Multiply    // 乘法混合
+};
+
+/**
  * @brief 实体网格数据
  *
  * 存储单个实体的GPU缓冲区
@@ -87,8 +99,9 @@ public:
     /**
      * @brief 绑定管线
      * @param cmd 命令缓冲区
+     * @param blendMode 混合模式（默认 Alpha）
      */
-    void bind(VkCommandBuffer cmd);
+    void bind(VkCommandBuffer cmd, BlendMode blendMode = BlendMode::Alpha);
 
     /**
      * @brief 创建实体网格
@@ -163,7 +176,8 @@ private:
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-    VkPipeline m_pipeline = VK_NULL_HANDLE;
+    VkPipeline m_pipeline = VK_NULL_HANDLE;                   // Alpha 混合管线
+    VkPipeline m_additiveBlendPipeline = VK_NULL_HANDLE;      // 叠加混合管线
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_textureDescriptorLayout = VK_NULL_HANDLE;

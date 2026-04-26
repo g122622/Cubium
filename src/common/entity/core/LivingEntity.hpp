@@ -202,6 +202,24 @@ public:
      */
     void setOffHandItem(const ItemStack& stack) { setEquipment(EquipmentSlot::OffHand, stack); }
 
+    // ========== 主手偏好 ==========
+
+    /**
+     * @brief 获取主手侧边
+     * @return 左手或右手
+     */
+    [[nodiscard]] HandSide getPrimaryHand() const { return m_primaryHand; }
+
+    /**
+     * @brief 是否右撇子（右手为主手）
+     */
+    [[nodiscard]] bool isRightHanded() const { return m_primaryHand == HandSide::Right; }
+
+    /**
+     * @brief 设置主手侧边
+     */
+    void setPrimaryHand(HandSide hand) { m_primaryHand = hand; }
+
     // ========== 受伤无敌帧 ==========
 
     /**
@@ -483,6 +501,9 @@ protected:
 
     // 装备
     std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_equipment;
+
+    // 主手偏好
+    HandSide m_primaryHand = HandSide::Right;  // 默认右手为主手
 
     // 受伤无敌帧
     i32 m_hurtTime = 0;                  // 受伤无敌时间

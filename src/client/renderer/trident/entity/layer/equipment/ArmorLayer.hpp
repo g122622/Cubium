@@ -2,6 +2,7 @@
 
 #include "../core/LayerRenderer.hpp"
 #include "../../model/core/EntityModel.hpp"
+#include "../../model/base/BipedModel.hpp"
 #include "../../core/IEntityRenderer.hpp"
 #include "../../../item/ItemMeshBuilder.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
@@ -11,6 +12,14 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
 #include <memory>
+
+namespace mc {
+class LivingEntity;
+}
+
+namespace mc::item::items {
+class DyeableArmorItem;
+}
 
 namespace mc::client::renderer::entity::layer::equipment {
 
@@ -25,7 +34,7 @@ namespace mc::client::renderer::entity::layer::equipment {
  *
  * 支持皮革染色的盔甲。
  *
- * 参考 MC 1.16.5 ArmorLayer
+ * 参考 MC 1.16.5 BipedArmorLayer
  *
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
@@ -138,6 +147,17 @@ protected:
             return;
         }
 
+        // 获取父模型并复制动画状态到盔甲模型
+        TModel* parentModel = getParentModel();
+        TModel& armorModel = getArmorModel(slot);
+        if (parentModel) {
+            // MC 1.16.5: copyModelProperties
+            armorModel.copyAnglesTo(parentModel);
+        }
+
+        // 设置模型可见性（MC 1.16.5 BipedArmorLayer.setModelSlotVisible）
+        setModelSlotVisible(armorModel, slot);
+
         // 获取身体部件变换矩阵
         std::array<f64, 16> bodyPartTransform;
         getBodyPartTransform(slot, context, bodyPartTransform);
@@ -167,7 +187,13 @@ protected:
             static_cast<f32>(entity.z())
         );
 
-        // 绘制盔甲
+        // 获取盔甲颜色（染色盔甲）
+        Vector4f overlayColor(0.0f, 0.0f, 0.0f, 0.0f);
+        if (isDyeableArmor(*armorItem)) {
+            Vector3f dyeColor = getDyeColor(*armorItem);
+            overlayColor = Vector4f(dyeColor.x, dyeColor.y, dyeColor.z, 1.0f);
+        }
+
         // 使用实体的 hurtTime 和 deathTime
         f32 hurtTime = 0.0f;
         f32 deathTime = 0.0f;
@@ -177,7 +203,7 @@ protected:
         }
 
         pipeline.drawMesh(cmd, result.value(), bodyPartTransform, entityPos, 1.0,
-                          Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+                          overlayColor, hurtTime, deathTime);
 
         spdlog::trace("ArmorLayer: Rendered armor in slot {}", static_cast<int>(slot));
     }
@@ -268,6 +294,74 @@ protected:
         }
 
         (void)context;
+    }
+
+    /**
+     * @brief 设置模型部件可见性
+     *
+     * 参考 MC 1.16.5 BipedArmorLayer.setModelSlotVisible
+     * 根据盔甲槽位设置哪些模型部件应该可见
+     */
+    virtual void setModelSlotVisible(TModel& model, ArmorSlot slot) {
+        // 默认隐藏所有部件
+        model.setAllVisible(false);
+
+        // 根据槽位显示对应部件
+        // 参考 MC 1.16.5 BipedArmorLayer:67-88
+        switch (slot) {
+            case ArmorSlot::Head:
+                // 头盔：显示头部
+                if (auto head = model.getModelHead()) {
+                    head->setVisible(true);
+                }
+                break;
+            case ArmorSlot::Chest:
+                // 胸甲：显示身体和手臂
+                model.setVisible(true);  // 显示身体
+                // TODO: 设置手臂可见性
+                break;
+            case ArmorSlot::Legs:
+                // 护腿：显示身体和腿部
+                model.setVisible(true);  // 显示身体
+                // TODO: 设置腿部可见性
+                break;
+            case ArmorSlot::Feet:
+                // 靴子：显示腿部
+                model.setVisible(true);  // 显示腿部
+                break;
+        }
+    }
+
+    /**
+     * @brief 检查物品是否为可染色盔甲
+     */
+    [[nodiscard]] bool isDyeableArmor(const ::mc::ItemStack& stack) const {
+        const ::mc::Item* item = stack.getItem();
+        if (!item) {
+            return false;
+        }
+        // 检查是否为 DyeableArmorItem 实例
+        // 皮革盔甲是可染色的
+        return dynamic_cast<const ::mc::item::items::DyeableArmorItem*>(item) != nullptr;
+    }
+
+    /**
+     * @brief 获取染色盔甲的颜色
+     * @param stack 盔甲物品堆
+     * @return RGB 颜色值（归一化到 [0, 1]）
+     */
+    [[nodiscard]] Vector3f getDyeColor(const ::mc::ItemStack& stack) const {
+        const ::mc::Item* item = stack.getItem();
+        const auto* dyeableItem = dynamic_cast<const ::mc::item::items::DyeableArmorItem*>(item);
+        if (dyeableItem) {
+            u32 color = dyeableItem->getColor(stack);
+            // 从 ARGB 提取 RGB 并归一化
+            f32 r = static_cast<f32>((color >> 16) & 0xFF) / 255.0f;
+            f32 g = static_cast<f32>((color >> 8) & 0xFF) / 255.0f;
+            f32 b = static_cast<f32>(color & 0xFF) / 255.0f;
+            return Vector3f(r, g, b);
+        }
+        return Vector3f(1.0f, 1.0f, 1.0f);  // 默认白色
     }
 
     /**

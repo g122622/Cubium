@@ -1,6 +1,7 @@
 #include "HeadLayer.hpp"
 #include "../../core/AnimationContext.hpp"
 #include "../../pipeline/EntityPipeline.hpp"
+#include "../../model/base/BipedModel.hpp"
 #include "../../../item/ItemMeshBuilder.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -14,11 +15,11 @@
 namespace mc::client::renderer::entity::layer::equipment {
 
 // 静态成员定义
-template<typename TEntity>
-std::unordered_map<u32, pipeline::EntityMesh> HeadLayer<TEntity>::s_headItemMeshCache;
+template<typename TEntity, typename TModel>
+std::unordered_map<u32, pipeline::EntityMesh> HeadLayer<TEntity, TModel>::s_headItemMeshCache;
 
-template<typename TEntity>
-void HeadLayer<TEntity>::renderPipeline(
+template<typename TEntity, typename TModel>
+void HeadLayer<TEntity, TModel>::renderPipeline(
     TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
@@ -27,8 +28,8 @@ void HeadLayer<TEntity>::renderPipeline(
     renderHeadItemPipeline(entity, cmd, context, pipeline);
 }
 
-template<typename TEntity>
-void HeadLayer<TEntity>::render(
+template<typename TEntity, typename TModel>
+void HeadLayer<TEntity, TModel>::render(
     TEntity& entity,
     f32 limbSwing,
     f32 limbSwingAmount,
@@ -49,14 +50,14 @@ void HeadLayer<TEntity>::render(
     (void)scale;
 }
 
-template<typename TEntity>
-bool HeadLayer<TEntity>::shouldRender(const TEntity& entity) const {
+template<typename TEntity, typename TModel>
+bool HeadLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
     const ItemStack* headItem = getHeadItem(entity);
     return headItem && !headItem->isEmpty();
 }
 
-template<typename TEntity>
-void HeadLayer<TEntity>::renderHeadItemPipeline(
+template<typename TEntity, typename TModel>
+void HeadLayer<TEntity, TModel>::renderHeadItemPipeline(
     TEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
@@ -67,13 +68,33 @@ void HeadLayer<TEntity>::renderHeadItemPipeline(
         return;
     }
 
-    // 计算头部变换矩阵
+    // 获取父模型并使用头部部件定位
+    // 参考 MC 1.16.5 HeadLayer:63
+    // this.getEntityModel().getModelHead().translateRotate(matrixStack);
     std::array<f64, 16> headTransform;
-    computeHeadTransform(
-        static_cast<f32>(context.netHeadYaw),
-        static_cast<f32>(context.headPitch),
-        headTransform
-    );
+
+    TModel* parentModel = getParentModel();
+    if (parentModel) {
+        // 获取头部部件变换
+        auto headPart = parentModel->getModelHead();
+        if (headPart) {
+            headPart->getTransformMatrix(headTransform);
+        } else {
+            // 回退到硬编码变换
+            computeHeadTransform(
+                static_cast<f32>(context.netHeadYaw),
+                static_cast<f32>(context.headPitch),
+                headTransform
+            );
+        }
+    } else {
+        // 无父模型时使用硬编码变换
+        computeHeadTransform(
+            static_cast<f32>(context.netHeadYaw),
+            static_cast<f32>(context.headPitch),
+            headTransform
+        );
+    }
 
     // 获取物品ID用于缓存
     u32 itemId = static_cast<u32>(item->getItem()->itemId());
@@ -127,8 +148,8 @@ void HeadLayer<TEntity>::renderHeadItemPipeline(
                   item->getItem()->itemLocation().toString());
 }
 
-template<typename TEntity>
-void HeadLayer<TEntity>::renderHeadItem(
+template<typename TEntity, typename TModel>
+void HeadLayer<TEntity, TModel>::renderHeadItem(
     TEntity& entity,
     const ItemStack& itemStack,
     f32 headYaw,
@@ -143,8 +164,8 @@ void HeadLayer<TEntity>::renderHeadItem(
     (void)scale;
 }
 
-template<typename TEntity>
-const ItemStack* HeadLayer<TEntity>::getHeadItem(const TEntity& entity) const {
+template<typename TEntity, typename TModel>
+const ItemStack* HeadLayer<TEntity, TModel>::getHeadItem(const TEntity& entity) const {
     // 从实体获取头部装备
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         return &entity.getEquipment(::mc::EquipmentSlot::Head);
@@ -152,8 +173,8 @@ const ItemStack* HeadLayer<TEntity>::getHeadItem(const TEntity& entity) const {
     return nullptr;
 }
 
-template<typename TEntity>
-void HeadLayer<TEntity>::computeHeadTransform(
+template<typename TEntity, typename TModel>
+void HeadLayer<TEntity, TModel>::computeHeadTransform(
     f32 headYaw,
     f32 headPitch,
     std::array<f64, 16>& outMatrix)
@@ -199,7 +220,7 @@ void HeadLayer<TEntity>::computeHeadTransform(
 }
 
 // 显式实例化常用类型
-template class HeadLayer<::mc::LivingEntity>;
-template class HeadLayer<::mc::Player>;
+template class HeadLayer< ::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
+template class HeadLayer< ::mc::Player, ::mc::client::renderer::entity::model::BipedModel>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

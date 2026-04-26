@@ -25,14 +25,6 @@ template<typename TEntity>
 class HeldItemLayer : public core::LayerRenderer<TEntity> {
 public:
     /**
-     * @brief 手部类型
-     */
-    enum class HandSide : u8 {
-        MainHand,  // 主手
-        OffHand    // 副手
-    };
-
-    /**
      * @brief 构造函数
      */
     HeldItemLayer() = default;
@@ -71,10 +63,17 @@ public:
 protected:
     /**
      * @brief 渲染特定手的物品（GPU管线路径）
+     * @param entity 实体
+     * @param hand 手槽（主手或副手）
+     * @param handSide 手侧（左手或右手，用于变换）
+     * @param cmd 命令缓冲区
+     * @param context 动画上下文
+     * @param pipeline 渲染管线
      */
     virtual void renderHandItemPipeline(
         TEntity& entity,
-        HandSide hand,
+        mc::Hand hand,
+        mc::HandSide handSide,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline
@@ -85,7 +84,8 @@ protected:
      */
     virtual void renderHandItem(
         TEntity& entity,
-        HandSide hand,
+        mc::Hand hand,
+        mc::HandSide handSide,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 partialTicks,
@@ -94,17 +94,25 @@ protected:
 
     /**
      * @brief 获取手持物品
+     * @param entity 实体
+     * @param hand 手槽（主手或副手）
+     * @return 物品堆指针，如果无物品返回 nullptr
      */
     [[nodiscard]] virtual const ItemStack* getHeldItem(
         const TEntity& entity,
-        HandSide hand
+        mc::Hand hand
     ) const;
 
     /**
      * @brief 计算手持物品变换矩阵
+     * @param handSide 手侧（左手或右手）
+     * @param limbSwing 步态周期
+     * @param limbSwingAmount 步态速度
+     * @param swingProgress 挥动进度
+     * @param outMatrix 输出变换矩阵
      */
     virtual void computeItemTransform(
-        HandSide hand,
+        mc::HandSide handSide,
         f32 limbSwing,
         f32 limbSwingAmount,
         f32 swingProgress,

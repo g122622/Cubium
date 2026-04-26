@@ -33,6 +33,14 @@ void EntityModel::copyAnglesTo(EntityModel& target) const {
     }
 }
 
+void EntityModel::copyAnglesFrom(const EntityModel& source) {
+    assert(source.m_parts.size() == m_parts.size());
+
+    for (std::size_t index = 0; index < source.m_parts.size(); ++index) {
+        source.m_parts[index]->copyModelAngles(*m_parts[index]);
+    }
+}
+
 void EntityModel::generateMesh(std::vector<ModelVertex>& vertices,
                                 std::vector<u32>& indices,
                                 f64 scale) const {

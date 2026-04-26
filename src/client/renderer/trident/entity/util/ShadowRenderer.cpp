@@ -5,8 +5,11 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::util {
@@ -307,17 +310,14 @@ f64 ShadowRenderer::computeShadowAlpha(
     f64 baseAlpha)
 {
     (void)partialTicks;
-
-    // 获取相机距离用于距离衰减
-    // 参考 MC 1.16.5 EntityRendererManager.java:260
-    // float f = (float)((1.0D - d1 / 256.0D) * (double)entityrenderer.shadowOpaque);
+    (void)shadowRadius;
 
     // 获取实体到地面的距离
     f64 entityY = entity.y();
     f64 groundY = entityY;  // 默认假设在地面上
+    IWorld* world = entity.world();
 
     // 如果实体有世界引用，尝试获取实际地面高度
-    auto* world = entity.world();
     if (world) {
         // 简化：向下扫描获取地面高度
         for (int dy = 0; dy <= static_cast<int>(MAX_SHADOW_DISTANCE); ++dy) {
@@ -345,22 +345,40 @@ f64 ShadowRenderer::computeShadowAlpha(
     // 参考 MC 1.16.5 EntityRendererManager.java:260
     // (1.0 - distance / 256.0) * shadowOpaque
     f64 distanceFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
-    if (distanceFactor < 0.0) {
-        distanceFactor = 0.0;
-    }
+    distanceFactor = std::max(0.0, distanceFactor);
 
     // 幼体阴影减半
     // 参考 MC 1.16.5 EntityRendererManager.java:366-371
-    // 注意：Entity 基类有 isChild() 方法，MobEntity 可以转换为检查
     f64 sizeMultiplier = 1.0;
     if (entity.isChild()) {
         sizeMultiplier = 0.5;
     }
 
-    // 世界亮度因子（ TODO 简化：使用固定值，实际应查询方块光照）
-    // 参考 MC 1.16.5 EntityRendererManager.java:398
-    // float f = (float)(((double)weightIn - (yIn - (double)blockPosIn.getY()) / 2.0D) * 0.5D * (double)worldIn.getBrightness(blockPosIn));
-    f64 brightness = 1.0;  // TODO: 实际查询世界亮度
+    // 世界亮度查询（MC 1.16.5 EntityRendererManager:398）
+    f64 brightness = 1.0;
+    if (world) {
+        BlockPos blockPos(
+            static_cast<i32>(std::floor(entity.x())),
+            static_cast<i32>(groundY),
+            static_cast<i32>(std::floor(entity.z()))
+        );
+
+        // 获取光照值
+        u8 blockLight = world->getBlockLight(blockPos);
+        u8 skyLight = world->getSkyLight(blockPos);
+
+        // 计算天空减暗（需要时间和天气信息）
+        // IWorld 接口提供 dayTime(), isRaining(), isThundering()
+        i32 skyDarkening = 0;
+        i64 dayTime = static_cast<i64>(world->dayTime());
+        bool isRaining = world->isRaining();
+        bool isThundering = world->isThundering();
+        skyDarkening = InternalLightUtils::calculateSkyDarkening(dayTime, isRaining, isThundering);
+
+        // 使用 InternalLightUtils 计算实际亮度
+        i32 rawBrightness = InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
+        brightness = static_cast<f64>(rawBrightness) / 15.0;  // 归一化到 [0, 1]
+    }
 
     return baseAlpha * distanceFactor * sizeMultiplier * brightness;
 }
