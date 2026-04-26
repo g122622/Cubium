@@ -196,8 +196,8 @@ void PlayerModel::setArmPose(ArmPose leftArmPose, ArmPose rightArmPose) {
     m_rightArmPose = rightArmPose;
 }
 
-void PlayerModel::setAllVisible(bool visible) {
-    BipedModel::setAllVisible(visible);
+void PlayerModel::setVisible(bool visible) {
+    BipedModel::setVisible(visible);
 
     if (m_leftArmwear) m_leftArmwear->setVisible(visible);
     if (m_rightArmwear) m_rightArmwear->setVisible(visible);
@@ -206,6 +206,31 @@ void PlayerModel::setAllVisible(bool visible) {
     if (m_bodywear) m_bodywear->setVisible(visible);
     if (m_cape) m_cape->setVisible(visible);
     if (m_ears) m_ears->setVisible(visible);
+}
+
+void PlayerModel::translateHand(i32 side) {
+    // 参考 MC 1.16.5 PlayerModel.translateHand
+    // 纤细手臂模式下需要偏移手臂位置
+    ModelRenderer* arm = nullptr;
+    f32 offset = 0.0f;
+
+    if (side == static_cast<i32>(HandSide::Right)) {
+        arm = m_rightArm.get();
+        if (m_slimArms) {
+            offset = -0.5f;  // 纤细右手向左偏移
+        }
+    } else {
+        arm = m_leftArm.get();
+        if (m_slimArms) {
+            offset = 0.5f;  // 纤细左手向右偏移
+        }
+    }
+
+    if (arm) {
+        // 应用偏移
+        arm->setRotationPointX(arm->rotationPointX() + offset);
+        // 调用渲染后需要恢复偏移（调用者负责）
+    }
 }
 
 void PlayerModel::copyAnglesToWear() {

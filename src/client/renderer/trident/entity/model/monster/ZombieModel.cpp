@@ -49,15 +49,14 @@ void ZombieModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_leftArm->setRotateAngleY(-(0.1f - f * 0.6f));
         m_rightArm->setRotateAngleY(0.1f - f * 0.6f);
 
-        // X 轴旋转基值（根据攻击状态）
-        // isAggressive = false 时使用 2.25，true 时使用 1.5
-        f32 f2 = static_cast<f32>(-PI / (m_isAggressive ? 1.5 : 2.25));
-        m_leftArm->setRotateAngleX(f2);
-        m_rightArm->setRotateAngleX(f2);
+        // X 轴旋转基值 - 参考 MC 1.16.5 AbstractZombieModel
+        // 基础角度始终为 -PI/2，然后根据攻击动画调整
+        m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
 
-        // 添加攻击动画
-        m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() + f * 1.2f - f1 * 0.4f);
-        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() + f * 1.2f - f1 * 0.4f);
+        // 添加攻击动画 (f * 1.2F - f1 * 0.4F)
+        m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
+        m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
 
         // 手臂抖动效果 (ModelHelper.func_239101_a_)
         m_leftArm->setRotateAngleZ(m_leftArm->rotateAngleZ() +

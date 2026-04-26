@@ -40,11 +40,22 @@ public:
      */
     void setLeftArmPose(ArmPose pose) { m_leftArmPose = pose; }
 
+    /**
+     * @brief 设置是否处于攻击状态
+     */
+    void setAggressive(bool aggressive) { m_isAggressive = aggressive; }
+
+    /**
+     * @brief 是否处于攻击状态
+     */
+    [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
+
 protected:
     void setupParts();
 
     ArmPose m_rightArmPose = ArmPose::Empty;
     ArmPose m_leftArmPose = ArmPose::Empty;
+    bool m_isAggressive = false;  // 是否处于攻击状态（影响手臂动画）
 };
 
 } // namespace mc::client::renderer::entity::model::monster

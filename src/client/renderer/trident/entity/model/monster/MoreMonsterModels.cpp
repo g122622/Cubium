@@ -93,6 +93,7 @@ void IllagerModel::render(f64 scale) {
 void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
+    // 参考 MC 1.16.5 IllagerModel.setRotationAngles
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
 
@@ -100,13 +101,128 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_arms->setRotationPointZ(-1.0f);
     m_arms->setRotateAngleX(-0.75f);
 
+    // 基础腿部动画
     f32 legSwing = static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount);
-    m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 2.0 * limbSwingAmount * 0.5));
-    m_leftArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 2.0 * limbSwingAmount * 0.5));
-    m_rightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount * 0.5));
-    m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount * 0.5));
 
-    (void)ageInTicks;
+    if (m_isSitting) {
+        // 坐姿
+        m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 5.0));
+        m_rightArm->setRotateAngleY(0.0f);
+        m_rightArm->setRotateAngleZ(0.0f);
+        m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 5.0));
+        m_leftArm->setRotateAngleY(0.0f);
+        m_leftArm->setRotateAngleZ(0.0f);
+        m_rightLeg->setRotateAngleX(-1.4137167f);
+        m_rightLeg->setRotateAngleY(static_cast<f32>(PI / 10.0));
+        m_rightLeg->setRotateAngleZ(0.07853982f);
+        m_leftLeg->setRotateAngleX(-1.4137167f);
+        m_leftLeg->setRotateAngleY(static_cast<f32>(-PI / 10.0));
+        m_leftLeg->setRotateAngleZ(-0.07853982f);
+    } else {
+        // 行走动画
+        m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 2.0 * limbSwingAmount * 0.5));
+        m_rightArm->setRotateAngleY(0.0f);
+        m_rightArm->setRotateAngleZ(0.0f);
+        m_leftArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 2.0 * limbSwingAmount * 0.5));
+        m_leftArm->setRotateAngleY(0.0f);
+        m_leftArm->setRotateAngleZ(0.0f);
+        m_rightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount * 0.5));
+        m_rightLeg->setRotateAngleY(0.0f);
+        m_rightLeg->setRotateAngleZ(0.0f);
+        m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount * 0.5));
+        m_leftLeg->setRotateAngleY(0.0f);
+        m_leftLeg->setRotateAngleZ(0.0f);
+    }
+
+    // 手臂姿态处理
+    switch (m_armPose) {
+        case IllagerArmPose::Attacking:
+            if (m_mainHandEmpty) {
+                // ModelHelper.func_239105_a_ - 空手攻击动画
+                f32 swingProgress = m_swingProgress;
+                f32 f = static_cast<f32>(std::sin(swingProgress * PI));
+                f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * PI));
+                m_leftArm->setRotateAngleZ(0.0f);
+                m_rightArm->setRotateAngleZ(0.0f);
+                m_leftArm->setRotateAngleY(-(0.1f - f * 0.6f));
+                m_rightArm->setRotateAngleY(0.1f - f * 0.6f);
+                m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+                m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+                m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
+                m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
+                // 手臂抖动
+                m_leftArm->setRotateAngleZ(m_leftArm->rotateAngleZ() +
+                    static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+                m_rightArm->setRotateAngleZ(m_rightArm->rotateAngleZ() -
+                    static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
+            }
+            break;
+
+        case IllagerArmPose::Spellcasting:
+            // 施法姿态
+            m_rightArm->setRotationPointZ(0.0f);
+            m_rightArm->setRotationPointX(-5.0f);
+            m_leftArm->setRotationPointZ(0.0f);
+            m_leftArm->setRotationPointX(5.0f);
+            m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(ageInTicks * 0.6662) * 0.25));
+            m_leftArm->setRotateAngleX(static_cast<f32>(std::cos(ageInTicks * 0.6662) * 0.25));
+            m_rightArm->setRotateAngleZ(2.3561945f);  // PI * 0.75
+            m_leftArm->setRotateAngleZ(-2.3561945f);
+            m_rightArm->setRotateAngleY(0.0f);
+            m_leftArm->setRotateAngleY(0.0f);
+            break;
+
+        case IllagerArmPose::BowAndArrow:
+            // 拉弓姿态
+            m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
+            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * PI / 180.0));
+            m_leftArm->setRotateAngleX(-0.9424779f + static_cast<f32>(headPitch * PI / 180.0));
+            m_leftArm->setRotateAngleY(m_head->rotateAngleY() - 0.4f);
+            m_leftArm->setRotateAngleZ(static_cast<f32>(PI / 2.0));
+            break;
+
+        case IllagerArmPose::CrossbowHold:
+            // 持有弩姿态 - ModelHelper.func_239104_a_
+            m_rightArm->setRotateAngleY(-0.3f);
+            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_leftArm->setRotateAngleY(0.6f);
+            m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            break;
+
+        case IllagerArmPose::CrossbowCharge:
+            // 装填弩姿态 - ModelHelper.func_239102_a_
+            m_rightArm->setRotateAngleY(-0.8f);
+            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_leftArm->setRotateAngleY(0.8f);
+            m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            break;
+
+        case IllagerArmPose::Celebrating:
+            // 庆祝姿态
+            m_rightArm->setRotationPointZ(0.0f);
+            m_rightArm->setRotationPointX(-5.0f);
+            m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(ageInTicks * 0.6662) * 0.05));
+            m_rightArm->setRotateAngleZ(2.670354f);
+            m_rightArm->setRotateAngleY(0.0f);
+            m_leftArm->setRotationPointZ(0.0f);
+            m_leftArm->setRotationPointX(5.0f);
+            m_leftArm->setRotateAngleX(static_cast<f32>(std::cos(ageInTicks * 0.6662) * 0.05));
+            m_leftArm->setRotateAngleZ(-2.3561945f);
+            m_leftArm->setRotateAngleY(0.0f);
+            break;
+
+        case IllagerArmPose::Crossed:
+        default:
+            // 交叉手臂 - 显示手臂模型，隐藏独立手臂
+            break;
+    }
+
+    // 根据 Crossed 姿态设置可见性
+    bool showArms = (m_armPose == IllagerArmPose::Crossed);
+    m_arms->setVisible(showArms);
+    m_leftArm->setVisible(!showArms);
+    m_rightArm->setVisible(!showArms);
+
     (void)scale;
 }
 
@@ -145,9 +261,19 @@ void VexModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                           f64 headPitch, f64 scale) {
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 恼鬼有漂浮的手臂
-    m_rightArm->setRotateAngleX(static_cast<f32>(PI * 1.5));
-    m_leftArm->setRotateAngleX(static_cast<f32>(PI * 1.5));
+    // 参考 MC 1.16.5 VexModel.setRotationAngles 第 40-48 行
+    // 只有在充电状态下才调整手臂角度
+    if (m_charging) {
+        if (m_mainHandEmpty) {
+            // 空手时双臂向前伸
+            m_rightArm->setRotateAngleX(static_cast<f32>(PI * 1.5));
+            m_leftArm->setRotateAngleX(static_cast<f32>(PI * 1.5));
+        } else {
+            // 持有物品时，根据主手设置手臂角度
+            // 3.7699115F = PI * 1.2
+            m_rightArm->setRotateAngleX(3.7699115f);
+        }
+    }
 
     m_rightLeg->setRotateAngleX(static_cast<f32>(m_rightLeg->rotateAngleX() + PI / 5.0));
 

@@ -75,10 +75,22 @@ public:
         m_eatingTimer = eatingTimer;
     }
 
+    /**
+     * @brief 设置头部旋转角度（用于吃草动画）
+     * @param headRotationPointY 头部 Y 旋转点偏移 (来自实体)
+     * @param headRotationAngleX 头部 X 旋转角度 (来自实体)
+     */
+    void setHeadRotation(f32 headRotationPointY, f32 headRotationAngleX) {
+        m_headRotationPointY = headRotationPointY;
+        m_headRotationAngleX = headRotationAngleX;
+    }
+
 private:
     bool m_hasWool = true;
     bool m_isEating = false;
     i32 m_eatingTimer = 0;
+    f32 m_headRotationPointY = 0.0f;   // 来自实体的头部 Y 偏移
+    f32 m_headRotationAngleX = 0.0f;   // 来自实体的头部 X 旋转角度
 };
 
 /**

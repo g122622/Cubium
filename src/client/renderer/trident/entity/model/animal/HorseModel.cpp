@@ -306,11 +306,13 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
     m_frontRightLegBaby->setVisible(isChild);
     m_frontLeftLegBaby->setVisible(isChild);
 
-    // 幼体身体偏移
+    // 参考 MC 1.16.5 HorseModel.setLivingAnimations 第 223 行
+    // this.body.rotationPointY = flag1 ? 10.8F : 0.0F;
+    // 幼体时 Y=10.8F，成年体时 Y=0.0F
     if (isChild) {
         m_body->setRotationPointY(10.8f);
     } else {
-        m_body->setRotationPointY(11.0f);
+        m_body->setRotationPointY(0.0f);
     }
 }
 
@@ -333,9 +335,7 @@ void HorseModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
             part->setVisible(m_ridden && m_saddled);
         }
     }
-
-    // 身体位置
-    m_body->setRotationPointY(11.0f);
+    // 注意：body.rotationPointY 在 setLivingAnimations 中根据是否幼体设置
 }
 
 } // namespace mc::client::renderer::entity::model::animal

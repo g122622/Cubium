@@ -269,19 +269,32 @@ void GuardianModel::render(f64 scale) {
 void GuardianModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                f64 ageInTicks, f64 netHeadYaw,
                                f64 headPitch, f64 scale) {
+    // 参考 MC 1.16.5 GuardianModel.setRotationAngles
     m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
     m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
 
-    updateSpines(ageInTicks, 0.0f);
+    // 使用成员变量中的动画值
+    f32 spikeAnim = 1.0f - m_spikeAnimation;
+    f32 spineScale = spikeAnim * 0.55f;
+    updateSpines(ageInTicks, spineScale);
 
     m_eye->setRotationPointZ(-8.25f);
 
-    // 尾巴摆动
-    f32 tailAnim = static_cast<f32>(std::sin(ageInTicks * 0.5) * PI * 0.05);
-    m_tail[0]->setRotateAngleY(tailAnim);
-    m_tail[1]->setRotateAngleY(static_cast<f32>(std::sin(ageInTicks * 0.5) * PI * 0.1));
+    // 眼睛追踪目标实体
+    // 参考 Java 代码第 79-94 行
+    if (m_targetEyeY > 0.0f) {
+        m_eye->setRotationPointY(0.0f);
+    } else {
+        m_eye->setRotationPointY(1.0f);
+    }
+    m_eye->setRotationPointX(m_targetEyeOffset);
+
+    // 尾巴动画
+    f32 tailAnim = m_tailAnimation;
+    m_tail[0]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * PI * 0.05));
+    m_tail[1]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * PI * 0.1));
     m_tail[1]->setRotationPoint(-1.5f, 0.5f, 14.0f);
-    m_tail[2]->setRotateAngleY(static_cast<f32>(std::sin(ageInTicks * 0.5) * PI * 0.15));
+    m_tail[2]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * PI * 0.15));
     m_tail[2]->setRotationPoint(0.5f, 0.5f, 6.0f);
 
     (void)limbSwing;
@@ -335,8 +348,9 @@ void ShulkerModel::render(f64 scale) {
 void ShulkerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
-    // 计算 peek 动画 (0.0 到 1.0)
-    f32 peekAmount = 0.0f; // 实际应从实体获取
+    // 参考 MC 1.16.5 ShulkerModel.setRotationAngles 第 34 行
+    // float f1 = (0.5F + entityIn.getClientPeekAmount(f)) * (float)Math.PI;
+    f32 peekAmount = m_peekAmount;  // 从成员变量获取
     f32 peekAngle = static_cast<f32>((0.5 + peekAmount) * PI);
     f32 f2 = -1.0f + static_cast<f32>(std::sin(peekAngle));
     f32 f3 = 0.0f;
@@ -354,7 +368,7 @@ void ShulkerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     }
 
     m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    // head Y rotation would use entity's rotationYawHead
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
 
     (void)limbSwing;
     (void)limbSwingAmount;

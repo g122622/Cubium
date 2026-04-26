@@ -6,6 +6,15 @@
 namespace mc::client::renderer::entity::model::player {
 
 /**
+ * @brief 手部侧边
+ * 参考 MC 1.16.5 HandSide
+ */
+enum class HandSide {
+    Right = 0,  // 右手
+    Left = 1    // 左手
+};
+
+/**
  * @brief 手臂姿态
  *
  * 参考 MC 1.16.5 BipedModel.ArmPose
@@ -95,13 +104,23 @@ public:
 
     /**
      * @brief 设置所有部件可见性
+     *  参考 MC 1.16.5 PlayerModel.setVisible
      */
-    void setAllVisible(bool visible) override;
+    void setVisible(bool visible);
 
     /**
      * @brief 复制主部件角度到外观层
      */
     void copyAnglesToWear();
+
+    /**
+     * @brief 平移手部用于第一人称渲染
+     * 参考 MC 1.16.5 PlayerModel.translateHand
+     * 纤细手臂模式下需要偏移手臂位置
+     * @param side 手部侧边（0=右，1=左）
+     * @param matrixStack 矩阵栈（用于变换）
+     */
+    void translateHand(i32 side);
 
 private:
     void setupSlimArms();
