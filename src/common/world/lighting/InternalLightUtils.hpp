@@ -16,7 +16,7 @@ class BlockPos;
  *
  * 参考: net.minecraft.world.World (getLight, getLightSubtracted等方法)
  */
-namespace InternalLight {
+namespace InternalLightUtils {
 
 /**
  * @brief 计算天空减暗因子
@@ -155,6 +155,6 @@ namespace InternalLight {
  */
 [[nodiscard]] f32 getMoonBrightness(i32 moonPhase);
 
-} // namespace InternalLight
+} // namespace InternalLightUtils
 
 } // namespace mc

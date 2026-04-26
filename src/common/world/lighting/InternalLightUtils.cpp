@@ -1,9 +1,9 @@
-#include "InternalLight.hpp"
+#include "InternalLightUtils.hpp"
 #include <cmath>
 #include <algorithm>
 
 namespace mc {
-namespace InternalLight {
+namespace InternalLightUtils {
 
 // ============================================================================
 // 天空减暗计算
@@ -159,5 +159,5 @@ f32 getMoonBrightness(i32 moonPhase) {
     return PHASE_BRIGHTNESS[moonPhase % 8];
 }
 
-} // namespace InternalLight
+} // namespace InternalLightUtils
 } // namespace mc

@@ -673,7 +673,7 @@ add_library(mc_common STATIC
     world/redstone/RedstoneHelper.cpp
 
     # World - Lighting System
-    world/lighting/InternalLight.cpp
+    world/lighting/InternalLightUtils.cpp
     world/lighting/engine/BaseLightEngine.cpp
     world/lighting/engine/BlockLightEngine.cpp
     world/lighting/engine/SkyLightEngine.cpp

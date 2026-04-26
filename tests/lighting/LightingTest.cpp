@@ -3,7 +3,7 @@
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
-#include "common/world/lighting/InternalLight.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
 #include <climits>
 
@@ -249,77 +249,77 @@ protected:
 
 TEST_F(InternalLightTest, GetCelestialAngle) {
     // 日出 (dayTime = 0) -> celestialAngle = 0.0
-    EXPECT_NEAR(mc::InternalLight::getCelestialAngle(0), 0.0f, 0.01f);
+    EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(0), 0.0f, 0.01f);
 
     // 正午 (dayTime = 6000) -> celestialAngle = 0.25
-    EXPECT_NEAR(mc::InternalLight::getCelestialAngle(6000), 0.25f, 0.01f);
+    EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(6000), 0.25f, 0.01f);
 
     // 日落 (dayTime = 12000) -> celestialAngle = 0.5
-    EXPECT_NEAR(mc::InternalLight::getCelestialAngle(12000), 0.5f, 0.01f);
+    EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(12000), 0.5f, 0.01f);
 
     // 午夜 (dayTime = 18000) -> celestialAngle = 0.75
-    EXPECT_NEAR(mc::InternalLight::getCelestialAngle(18000), 0.75f, 0.01f);
+    EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(18000), 0.75f, 0.01f);
 }
 
 TEST_F(InternalLightTest, CalculateSkyDarkening) {
     // 正午 (dayTime = 6000) - 最亮，减暗为0
-    mc::i32 noonDarkening = mc::InternalLight::calculateSkyDarkening(6000, false, false);
+    mc::i32 noonDarkening = mc::InternalLightUtils::calculateSkyDarkening(6000, false, false);
     EXPECT_EQ(noonDarkening, 0);
 
     // 午夜 (dayTime = 18000) - 最暗，减暗约11
-    mc::i32 midnightDarkening = mc::InternalLight::calculateSkyDarkening(18000, false, false);
+    mc::i32 midnightDarkening = mc::InternalLightUtils::calculateSkyDarkening(18000, false, false);
     EXPECT_GT(midnightDarkening, 5);
     EXPECT_LE(midnightDarkening, 11);
 
     // 日出/日落 - 中等亮度
-    mc::i32 sunriseDarkening = mc::InternalLight::calculateSkyDarkening(0, false, false);
-    mc::i32 sunsetDarkening = mc::InternalLight::calculateSkyDarkening(12000, false, false);
+    mc::i32 sunriseDarkening = mc::InternalLightUtils::calculateSkyDarkening(0, false, false);
+    mc::i32 sunsetDarkening = mc::InternalLightUtils::calculateSkyDarkening(12000, false, false);
     EXPECT_GT(sunriseDarkening, noonDarkening);
     EXPECT_GT(sunsetDarkening, noonDarkening);
 
     // 下雨 - 天空变暗
-    mc::i32 rainDarkening = mc::InternalLight::calculateSkyDarkening(6000, true, false);
+    mc::i32 rainDarkening = mc::InternalLightUtils::calculateSkyDarkening(6000, true, false);
     EXPECT_GT(rainDarkening, noonDarkening);
 
     // 雷暴 - 天空更暗
-    mc::i32 thunderDarkening = mc::InternalLight::calculateSkyDarkening(6000, false, true);
+    mc::i32 thunderDarkening = mc::InternalLightUtils::calculateSkyDarkening(6000, false, true);
     EXPECT_GT(thunderDarkening, rainDarkening);
 }
 
 TEST_F(InternalLightTest, CalculateRawBrightness) {
-    EXPECT_EQ(mc::InternalLight::calculateRawBrightness(15, 0, 0), 15);
-    EXPECT_EQ(mc::InternalLight::calculateRawBrightness(0, 15, 0), 15);
-    EXPECT_EQ(mc::InternalLight::calculateRawBrightness(0, 15, 10), 5);
-    EXPECT_EQ(mc::InternalLight::calculateRawBrightness(10, 15, 10), 10);
-    EXPECT_EQ(mc::InternalLight::calculateRawBrightness(5, 15, 20), 5);
+    EXPECT_EQ(mc::InternalLightUtils::calculateRawBrightness(15, 0, 0), 15);
+    EXPECT_EQ(mc::InternalLightUtils::calculateRawBrightness(0, 15, 0), 15);
+    EXPECT_EQ(mc::InternalLightUtils::calculateRawBrightness(0, 15, 10), 5);
+    EXPECT_EQ(mc::InternalLightUtils::calculateRawBrightness(10, 15, 10), 10);
+    EXPECT_EQ(mc::InternalLightUtils::calculateRawBrightness(5, 15, 20), 5);
 }
 
 TEST_F(InternalLightTest, IsDarkEnoughForSpawning) {
-    EXPECT_TRUE(mc::InternalLight::isDarkEnoughForSpawning(0));
-    EXPECT_TRUE(mc::InternalLight::isDarkEnoughForSpawning(7));
-    EXPECT_FALSE(mc::InternalLight::isDarkEnoughForSpawning(8));
-    EXPECT_FALSE(mc::InternalLight::isDarkEnoughForSpawning(15));
+    EXPECT_TRUE(mc::InternalLightUtils::isDarkEnoughForSpawning(0));
+    EXPECT_TRUE(mc::InternalLightUtils::isDarkEnoughForSpawning(7));
+    EXPECT_FALSE(mc::InternalLightUtils::isDarkEnoughForSpawning(8));
+    EXPECT_FALSE(mc::InternalLightUtils::isDarkEnoughForSpawning(15));
 }
 
 TEST_F(InternalLightTest, DaytimeNighttime) {
-    EXPECT_TRUE(mc::InternalLight::isDaytime(0));
-    EXPECT_TRUE(mc::InternalLight::isDaytime(6000));
-    EXPECT_TRUE(mc::InternalLight::isDaytime(11999));
-    EXPECT_FALSE(mc::InternalLight::isDaytime(12000));
+    EXPECT_TRUE(mc::InternalLightUtils::isDaytime(0));
+    EXPECT_TRUE(mc::InternalLightUtils::isDaytime(6000));
+    EXPECT_TRUE(mc::InternalLightUtils::isDaytime(11999));
+    EXPECT_FALSE(mc::InternalLightUtils::isDaytime(12000));
 
-    EXPECT_TRUE(mc::InternalLight::isNighttime(12000));
-    EXPECT_TRUE(mc::InternalLight::isNighttime(18000));
-    EXPECT_TRUE(mc::InternalLight::isNighttime(23999));
-    EXPECT_FALSE(mc::InternalLight::isNighttime(0));
-    EXPECT_FALSE(mc::InternalLight::isNighttime(6000));
+    EXPECT_TRUE(mc::InternalLightUtils::isNighttime(12000));
+    EXPECT_TRUE(mc::InternalLightUtils::isNighttime(18000));
+    EXPECT_TRUE(mc::InternalLightUtils::isNighttime(23999));
+    EXPECT_FALSE(mc::InternalLightUtils::isNighttime(0));
+    EXPECT_FALSE(mc::InternalLightUtils::isNighttime(6000));
 }
 
 TEST_F(InternalLightTest, MoonPhase) {
-    EXPECT_EQ(mc::InternalLight::getMoonPhase(0), 0);
-    EXPECT_EQ(mc::InternalLight::getMoonPhase(24000), 1);
-    EXPECT_EQ(mc::InternalLight::getMoonPhase(48000), 2);
-    EXPECT_EQ(mc::InternalLight::getMoonPhase(168000), 7);
-    EXPECT_EQ(mc::InternalLight::getMoonPhase(192000), 0);
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(0), 0);
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(24000), 1);
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(48000), 2);
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(168000), 7);
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(192000), 0);
 }
 
 // ============================================================================
