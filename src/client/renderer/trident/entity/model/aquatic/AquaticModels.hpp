@@ -88,21 +88,30 @@ public:
                    f64 headPitch, f64 scale) override;
 
     /**
-     * @brief 设置是否在水中
+     * @brief 设置是否在水中（已废弃，使用setMotionMagnitude）
+     * @deprecated 使用 setMotionMagnitude 替代
      */
     void setInWater(bool inWater) { m_isInWater = inWater; }
+
+    /**
+     * @brief 设置运动向量模长的平方
+     * Java 原版使用 Entity.horizontalMag(getMotion()) > 1.0E-7D 判断是否在移动
+     */
+    void setMotionMagnitude(f64 magnitude) { m_motionMagnitude = magnitude; }
 
 private:
     void setupParts();
     std::shared_ptr<ModelRenderer> m_body;        // 身体
     std::shared_ptr<ModelRenderer> m_tail;        // 尾巴
     std::shared_ptr<ModelRenderer> m_tailFin;     // 尾鳍
+    std::shared_ptr<ModelRenderer> m_dorsalFin;   // 背鳍（新增）
     std::shared_ptr<ModelRenderer> m_finRight;    // 右鳍
     std::shared_ptr<ModelRenderer> m_finLeft;     // 左鳍
     std::shared_ptr<ModelRenderer> m_head;        // 头部（子部件）
     std::shared_ptr<ModelRenderer> m_nose;        // 鼻子（子部件）
 
     bool m_isInWater = true;
+    f64 m_motionMagnitude = 0.0;  // horizontalMag(motion)
 };
 
 /**
@@ -142,6 +151,11 @@ public:
      */
     void setHasEgg(bool hasEgg) { m_hasEgg = hasEgg; }
 
+    /**
+     * @brief 设置是否为幼体
+     */
+    void setChild(bool isChild) { m_isChild = isChild; }
+
 private:
     void setupParts(f32 scale);
 
@@ -157,6 +171,105 @@ private:
     bool m_isOnGround = false;
     bool m_isDigging = false;
     bool m_hasEgg = false;
+    bool m_isChild = false;
+};
+
+/**
+ * @brief 热带鱼模型抽象基类
+ *
+ * 参考 MC 1.16.5 AbstractTropicalFishModel
+ * 提供颜色乘数设置功能
+ */
+class AbstractTropicalFishModel : public EntityModel {
+public:
+    AbstractTropicalFishModel() = default;
+    ~AbstractTropicalFishModel() override = default;
+
+    /**
+     * @brief 设置颜色乘数
+     * @param r 红色乘数
+     * @param g 绿色乘数
+     * @param b 蓝色乘数
+     */
+    void setColorMultipliers(f32 r, f32 g, f32 b) {
+        m_colorR = r;
+        m_colorG = g;
+        m_colorB = b;
+    }
+
+    void render(f64 scale = 1.0f / 16.0f) override;
+
+protected:
+    f32 m_colorR = 1.0f;
+    f32 m_colorG = 1.0f;
+    f32 m_colorB = 1.0f;
+};
+
+/**
+ * @brief 热带鱼A型模型（小体型）
+ *
+ * 参考 MC 1.16.5 TropicalFishAModel
+ * 纹理尺寸: 32x32
+ * 结构: 身体 + 尾巴 + 右鳍 + 左鳍 + 背鳍
+ */
+class TropicalFishAModel : public AbstractTropicalFishModel {
+public:
+    explicit TropicalFishAModel(f32 scale = 0.0f);
+    ~TropicalFishAModel() override = default;
+
+    void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                   f64 ageInTicks, f64 netHeadYaw,
+                   f64 headPitch, f64 scale) override;
+
+    /**
+     * @brief 设置是否在水中
+     */
+    void setInWater(bool inWater) { m_isInWater = inWater; }
+
+private:
+    void setupParts(f32 scale);
+
+    std::shared_ptr<ModelRenderer> m_body;
+    std::shared_ptr<ModelRenderer> m_tail;
+    std::shared_ptr<ModelRenderer> m_finRight;
+    std::shared_ptr<ModelRenderer> m_finLeft;
+    std::shared_ptr<ModelRenderer> m_finTop;
+
+    bool m_isInWater = true;
+};
+
+/**
+ * @brief 热带鱼B型模型（大体型）
+ *
+ * 参考 MC 1.16.5 TropicalFishBModel
+ * 纹理尺寸: 32x32
+ * 结构: 身体 + 尾巴 + 右鳍 + 左鳍 + 背鳍 + 腹鳍
+ */
+class TropicalFishBModel : public AbstractTropicalFishModel {
+public:
+    explicit TropicalFishBModel(f32 scale = 0.0f);
+    ~TropicalFishBModel() override = default;
+
+    void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                   f64 ageInTicks, f64 netHeadYaw,
+                   f64 headPitch, f64 scale) override;
+
+    /**
+     * @brief 设置是否在水中
+     */
+    void setInWater(bool inWater) { m_isInWater = inWater; }
+
+private:
+    void setupParts(f32 scale);
+
+    std::shared_ptr<ModelRenderer> m_body;
+    std::shared_ptr<ModelRenderer> m_tail;
+    std::shared_ptr<ModelRenderer> m_finRight;
+    std::shared_ptr<ModelRenderer> m_finLeft;
+    std::shared_ptr<ModelRenderer> m_finTop;
+    std::shared_ptr<ModelRenderer> m_finBottom;
+
+    bool m_isInWater = true;
 };
 
 } // namespace mc::client::renderer::entity::model::aquatic

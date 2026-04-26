@@ -52,6 +52,14 @@ void PlayerModel::setupStandardArms() {
         m_rightArm->addBox(-3.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, 0.0f);
         m_rightArm->setRotationPoint(-5.0f, 2.0f, 0.0f);
     }
+
+    // 左腿：Java 原版 PlayerModel 重新创建左腿，纹理 (16, 48)
+    // 基类 BipedModel 使用的是 (0, 16)，需要修正
+    if (m_leftLeg) {
+        m_leftLeg->setTextureSize(64, 64);
+        m_leftLeg->setTextureOffset(16, 48);
+        // 盒子和旋转点与基类相同，无需重新设置
+    }
 }
 
 void PlayerModel::setupSlimArms() {
@@ -70,6 +78,14 @@ void PlayerModel::setupSlimArms() {
         m_rightArm->setTextureOffset(40, 16);
         m_rightArm->addBox(-2.0f, -2.0f, -2.0f, 3.0f, 12.0f, 4.0f, 0.0f);
         m_rightArm->setRotationPoint(-5.0f, 2.5f, 0.0f);
+    }
+
+    // 左腿：Java 原版 PlayerModel 重新创建左腿，纹理 (16, 48)
+    // 基类 BipedModel 使用的是 (0, 16)，需要修正
+    if (m_leftLeg) {
+        m_leftLeg->setTextureSize(64, 64);
+        m_leftLeg->setTextureOffset(16, 48);
+        // 盒子和旋转点与基类相同，无需重新设置
     }
 }
 

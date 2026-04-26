@@ -84,10 +84,50 @@ OcelotModel::OcelotModel(f32 scale)
 }
 
 void OcelotModel::render(f64 scale) {
-    for (auto& part : m_parts) {
-        if (part) {
-            part->render(scale);
-        }
+    AgeableModel::render(scale);
+}
+
+void OcelotModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/) {
+    // 参考 MC 1.16.5 OcelotModel.setLivingAnimations
+    // 重置所有部件到默认位置
+    m_body->setRotationPointY(12.0f);
+    m_body->setRotationPointZ(-10.0f);
+    m_head->setRotationPointY(15.0f);
+    m_head->setRotationPointZ(-9.0f);
+    m_tail->setRotationPointY(15.0f);
+    m_tail->setRotationPointZ(8.0f);
+    m_tail2->setRotationPointY(20.0f);
+    m_tail2->setRotationPointZ(14.0f);
+    m_frontLeftLeg->setRotationPointY(14.1f);
+    m_frontLeftLeg->setRotationPointZ(-5.0f);
+    m_frontRightLeg->setRotationPointY(14.1f);
+    m_frontRightLeg->setRotationPointZ(-5.0f);
+    m_backLeftLeg->setRotationPointY(18.0f);
+    m_backLeftLeg->setRotationPointZ(5.0f);
+    m_backRightLeg->setRotationPointY(18.0f);
+    m_backRightLeg->setRotationPointZ(5.0f);
+    m_tail->setRotateAngleX(0.9f);
+
+    if (m_isCrouching) {
+        // 蹲伏状态
+        m_body->setRotationPointY(m_body->rotationPointY() + 1.0f);
+        m_head->setRotationPointY(m_head->rotationPointY() + 2.0f);
+        m_tail->setRotationPointY(m_tail->rotationPointY() + 1.0f);
+        m_tail2->setRotationPointY(m_tail2->rotationPointY() - 4.0f);
+        m_tail2->setRotationPointZ(m_tail2->rotationPointZ() + 2.0f);
+        m_tail->setRotateAngleX(static_cast<f32>(PI / 2.0));
+        m_tail2->setRotateAngleX(static_cast<f32>(PI / 2.0));
+        m_state = 0;
+    } else if (m_isSprinting) {
+        // 奔跑状态
+        m_tail2->setRotationPointY(m_tail->rotationPointY());
+        m_tail2->setRotationPointZ(m_tail2->rotationPointZ() + 2.0f);
+        m_tail->setRotateAngleX(static_cast<f32>(PI / 2.0));
+        m_tail2->setRotateAngleX(static_cast<f32>(PI / 2.0));
+        m_state = 2;
+    } else {
+        // 站立状态
+        m_state = 1;
     }
 }
 

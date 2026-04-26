@@ -43,10 +43,11 @@ void AgeableModel::render(f64 scale) {
     // Java 使用 matrixStack.translate(0, childHeadOffsetY/16.0, childHeadOffsetZ/16.0)
 
     if (m_isChild) {
+        // 幼体渲染
         // 渲染头部部件
         auto headParts = getHeadParts();
         if (!headParts.empty()) {
-            // 头部缩放
+            // 头部缩放：只有当 isChildHeadScaled 为 true 时才缩放
             f32 headScale = m_isChildHeadScaled ? (1.5f / m_childHeadScale) : 1.0f;
             // Java: matrixStack.translate(0.0D, (double)(this.childHeadOffsetY / 16.0F), (double)(this.childHeadOffsetZ / 16.0F));
             f64 headOffsetY = static_cast<f64>(m_childHeadOffsetY) / 16.0;
@@ -99,8 +100,21 @@ void AgeableModel::render(f64 scale) {
             }
         }
     } else {
-        // 成年体：正常渲染
-        EntityModel::render(scale);
+        // 成年体渲染：分别渲染头部和身体部件
+        // Java 原版也是分别调用 getHeadParts() 和 getBodyParts() 的 render
+        auto headParts = getHeadParts();
+        for (auto& part : headParts) {
+            if (part) {
+                part->render(scale);
+            }
+        }
+
+        auto bodyParts = getBodyParts();
+        for (auto& part : bodyParts) {
+            if (part) {
+                part->render(scale);
+            }
+        }
     }
 }
 

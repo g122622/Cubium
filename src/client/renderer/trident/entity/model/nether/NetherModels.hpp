@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/EntityModel.hpp"
+#include "../base/BipedModel.hpp"
 #include "../core/AgeableModel.hpp"
 
 namespace mc::client::renderer::entity::model::nether {
@@ -63,10 +63,11 @@ private:
  * @brief 猪灵模型
  *
  * 参考 MC 1.16.5 PiglinModel
- * 继承自 PlayerModel/BipedModel，添加耳朵、鼻子等部件
+ * 继承自 BipedModel，添加耳朵等部件
+ * 猪灵使用标准手臂（宽度4），不是纤细手臂
  * 支持跳舞、弩持有、欣赏物品等动画
  */
-class PiglinModel : public EntityModel {
+class PiglinModel : public ::mc::client::renderer::entity::model::BipedModel {
 public:
     PiglinModel();
     explicit PiglinModel(f32 scale, i32 textureWidth = 64, i32 textureHeight = 64);
@@ -87,6 +88,11 @@ public:
      */
     void setLeftHanded(bool leftHanded) { m_leftHanded = leftHanded; }
 
+    /**
+     * @brief 复制角度到外层部件
+     */
+    void copyAnglesToWear();
+
     // 动作枚举
     enum class Action {
         DEFAULT = 0,
@@ -97,24 +103,24 @@ public:
         ADMIRING_ITEM = 5
     };
 
+protected:
+    void handleRightArmPose() override;
+    void handleLeftArmPose() override;
+
 private:
-    void setupParts(f32 scale);
+    void setupPiglinParts(f32 scale);
 
-    // 基础部件（继承自 BipedModel 风格）
-    std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_headwear;
-    std::shared_ptr<ModelRenderer> m_body;
-    std::shared_ptr<ModelRenderer> m_rightArm;
-    std::shared_ptr<ModelRenderer> m_leftArm;
-    std::shared_ptr<ModelRenderer> m_rightLeg;
-    std::shared_ptr<ModelRenderer> m_leftLeg;
+    // 猪灵特有部件（耳朵）
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_leftEar;   // 左耳
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_rightEar;  // 右耳
 
-    // 猪灵特有部件
-    std::shared_ptr<ModelRenderer> m_leftEar;   // 左耳
-    std::shared_ptr<ModelRenderer> m_rightEar;  // 右耳
-    std::shared_ptr<ModelRenderer> m_nose;      // 鼻子
-    std::shared_ptr<ModelRenderer> m_leftEye;   // 左眼
-    std::shared_ptr<ModelRenderer> m_rightEye;  // 右眼
+    // 外观层部件引用（从 PlayerModel 风格）
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bipedLeftArmwear;
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bipedRightArmwear;
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bipedLeftLegwear;
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bipedRightLegwear;
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bipedBodyWear;
+    std::shared_ptr<::mc::client::renderer::entity::model::ModelRenderer> m_bipedHeadwearPiglin;
 
     i32 m_action = 0;
     bool m_leftHanded = false;
@@ -175,6 +181,12 @@ public:
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
 
+    /**
+     * @brief 设置是否有乘客
+     * Java 原版：有乘客时身体不旋转
+     */
+    void setHasPassengers(bool hasPassengers) { m_hasPassengers = hasPassengers; }
+
 private:
     void setupParts();
 
@@ -189,6 +201,8 @@ private:
     std::shared_ptr<ModelRenderer> m_flapRightBottom;  // 右下皮瓣
     std::shared_ptr<ModelRenderer> m_flapRightMiddle;  // 右中皮瓣
     std::shared_ptr<ModelRenderer> m_flapRightTop;     // 右上皮瓣
+
+    bool m_hasPassengers = false;  // 是否有乘客
 };
 
 } // namespace mc::client::renderer::entity::model::nether

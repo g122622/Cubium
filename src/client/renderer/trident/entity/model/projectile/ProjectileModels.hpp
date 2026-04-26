@@ -5,6 +5,33 @@
 namespace mc::client::renderer::entity::model::projectile {
 
 /**
+ * @brief 三叉戟模型
+ *
+ * 参考 MC 1.16.5 TridentModel
+ * 纹理尺寸: 32x32
+ * 结构: 主杆 + 横杆 + 左叉尖 + 中叉尖 + 右叉尖
+ */
+class TridentModel : public EntityModel {
+public:
+    TridentModel();
+    ~TridentModel() override = default;
+
+    void render(f64 scale = 1.0f / 16.0f) override;
+    void setAngles(f64 limbSwing, f64 limbSwingAmount,
+                   f64 ageInTicks, f64 netHeadYaw,
+                   f64 headPitch, f64 scale) override;
+
+private:
+    void setupParts();
+
+    std::shared_ptr<ModelRenderer> m_shaft;      // 主杆
+    std::shared_ptr<ModelRenderer> m_crossbar;   // 横杆
+    std::shared_ptr<ModelRenderer> m_leftProng;  // 左叉尖
+    std::shared_ptr<ModelRenderer> m_middleProng; // 中叉尖
+    std::shared_ptr<ModelRenderer> m_rightProng; // 右叉尖 (镜像)
+};
+
+/**
  * @brief 潜影贝子弹模型
  *
  * 参考 MC 1.16.5 ShulkerBulletModel

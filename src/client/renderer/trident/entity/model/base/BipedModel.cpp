@@ -439,18 +439,20 @@ void BipedModel::setVisible(bool visible) {
 }
 
 void BipedModel::copyModelAttributesTo(BipedModel& target) const {
-    // 复制 AgeableModel 属性
-    target.m_isChild = m_isChild;
+    // 参考 MC 1.16.5 BipedModel.setModelAttributes()
+    // super.copyModelAttributesTo(modelIn) - 复制 EntityModel 的属性
+    target.setSwingProgress(m_swingProgress);
+    target.setSitting(m_isSitting);
+    target.setChild(m_isChild);
 
     // 复制 BipedModel 特有属性
     target.m_leftArmPose = m_leftArmPose;
     target.m_rightArmPose = m_rightArmPose;
     target.m_isSneaking = m_isSneaking;
     target.m_swimAnimation = m_swimAnimation;
-    target.m_swingProgress = m_swingProgress;
     target.m_mainHand = m_mainHand;
 
-    // 复制部件角度
+    // 复制部件角度 - Java: modelIn.bipedHead.copyModelAngles(this.bipedHead) 等
     target.m_bipedHead->copyModelAngles(*m_bipedHead);
     target.m_bipedHeadwear->copyModelAngles(*m_bipedHeadwear);
     target.m_bipedBody->copyModelAngles(*m_bipedBody);

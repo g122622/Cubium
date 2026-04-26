@@ -7,6 +7,74 @@ namespace {
     constexpr f64 PI = 3.14159265359;
 }
 
+// ==================== TridentModel ====================
+
+TridentModel::TridentModel()
+    : EntityModel()
+{
+    setTextureSize(32, 32);
+    setupParts();
+}
+
+void TridentModel::setupParts() {
+    // 参考 MC 1.16.5 TridentModel
+    // 纹理尺寸 32x32
+
+    // 主杆: 纹理 (0, 6), 尺寸 1x25x1
+    // addBox(-0.5F, 2.0F, -0.5F, 1.0F, 25.0F, 1.0F, 0.0F)
+    m_shaft = std::make_shared<ModelRenderer>("shaft");
+    m_shaft->setTextureOffset(0, 6);
+    m_shaft->addBox(-0.5f, 2.0f, -0.5f, 1.0f, 25.0f, 1.0f);
+    m_shaft->setRotationPoint(0.0f, 0.0f, 0.0f);
+    m_parts.push_back(m_shaft);
+
+    // 横杆: 纹理 (4, 0), 尺寸 3x2x1
+    // addBox(-1.5F, 0.0F, -0.5F, 3.0F, 2.0F, 1.0F)
+    m_crossbar = std::make_shared<ModelRenderer>("crossbar");
+    m_crossbar->setTextureOffset(4, 0);
+    m_crossbar->addBox(-1.5f, 0.0f, -0.5f, 3.0f, 2.0f, 1.0f);
+    m_shaft->addChild(m_crossbar);
+
+    // 左叉尖: 纹理 (4, 3), 尺寸 1x4x1
+    // addBox(-2.5F, -3.0F, -0.5F, 1.0F, 4.0F, 1.0F)
+    m_leftProng = std::make_shared<ModelRenderer>("leftProng");
+    m_leftProng->setTextureOffset(4, 3);
+    m_leftProng->addBox(-2.5f, -3.0f, -0.5f, 1.0f, 4.0f, 1.0f);
+    m_shaft->addChild(m_leftProng);
+
+    // 中叉尖: 纹理 (0, 0), 尺寸 1x4x1
+    // addBox(-0.5F, -4.0F, -0.5F, 1.0F, 4.0F, 1.0F, 0.0F)
+    m_middleProng = std::make_shared<ModelRenderer>("middleProng");
+    m_middleProng->setTextureOffset(0, 0);
+    m_middleProng->addBox(-0.5f, -4.0f, -0.5f, 1.0f, 4.0f, 1.0f);
+    m_shaft->addChild(m_middleProng);
+
+    // 右叉尖: 纹理 (4, 3), 镜像, 尺寸 1x4x1
+    // addBox(1.5F, -3.0F, -0.5F, 1.0F, 4.0F, 1.0F)
+    // mirror = true
+    m_rightProng = std::make_shared<ModelRenderer>("rightProng");
+    m_rightProng->setMirror(true);
+    m_rightProng->setTextureOffset(4, 3);
+    m_rightProng->addBox(1.5f, -3.0f, -0.5f, 1.0f, 4.0f, 1.0f);
+    m_shaft->addChild(m_rightProng);
+}
+
+void TridentModel::render(f64 scale) {
+    EntityModel::render(scale);
+}
+
+void TridentModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
+                              f64 ageInTicks, f64 netHeadYaw,
+                              f64 headPitch, f64 scale) {
+    // 三叉戟没有动画角度设置
+    (void)limbSwing;
+    (void)limbSwingAmount;
+    (void)ageInTicks;
+    (void)netHeadYaw;
+    (void)headPitch;
+    (void)scale;
+}
+
 // ==================== ShulkerBulletModel ====================
 
 ShulkerBulletModel::ShulkerBulletModel()

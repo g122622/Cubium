@@ -25,10 +25,27 @@ public:
                    f64 headPitch, f64 scale) override;
 
     /**
-     * @brief 设置动画状态
-     * @param state 状态 (1=站立, 2=奔跑, 3=坐下/睡觉)
+     * @brief 设置生物动画状态（每帧调用）
+     *
+     * 参考 MC 1.16.5 OcelotModel.setLivingAnimations
+     * 用于处理蹲伏和奔跑状态
      */
-    void setState(int state) { m_state = state; }
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
+
+    /**
+     * @brief 设置蹲伏状态
+     */
+    void setCrouching(bool crouching) { m_isCrouching = crouching; }
+
+    /**
+     * @brief 设置奔跑状态
+     */
+    void setSprinting(bool sprinting) { m_isSprinting = sprinting; }
+
+    /**
+     * @brief 获取当前状态
+     */
+    [[nodiscard]] int getState() const { return m_state; }
 
 protected:
     // 模型部件
@@ -41,7 +58,9 @@ protected:
     std::shared_ptr<ModelRenderer> m_frontLeftLeg;  // 前左腿
     std::shared_ptr<ModelRenderer> m_frontRightLeg; // 前右腿
 
-    int m_state = 1; // 1=站立, 2=奔跑, 3=坐下
+    int m_state = 1; // 0=蹲伏, 1=站立, 2=奔跑, 3=坐下
+    bool m_isCrouching = false;
+    bool m_isSprinting = false;
 };
 
 } // namespace mc::client::renderer::entity::model::animal

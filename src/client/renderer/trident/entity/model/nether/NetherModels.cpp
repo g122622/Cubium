@@ -171,114 +171,192 @@ PiglinModel::PiglinModel()
 }
 
 PiglinModel::PiglinModel(f32 scale, i32 textureWidth, i32 textureHeight)
-    : EntityModel()
+    : BipedModel(scale, 0.0f, textureWidth, textureHeight)
 {
-    setTextureSize(textureWidth, textureHeight);
-    setupParts(scale);
-}
-
-void PiglinModel::setupParts(f32 scale) {
     // 参考 MC 1.16.5 PiglinModel
-    // PiglinModel 继承自 PlayerModel，但有不同的头部和耳朵
+    // PiglinModel 继承自 PlayerModel，使用标准手臂（false = 非纤细）
+    // 重新设置猪灵特有的头部（包含鼻子、眼睛）
+    // 注意：BipedModel 构造函数已经创建了基础部件，需要重新配置头部
 
-    // 头部: textureOffset(0, 0), addBox(-5, -8, -4, 10, 8, 8)
-    // 然后添加鼻子、眼睛等子部件
-    m_head = std::make_shared<ModelRenderer>("head");
-    m_head->setTextureOffset(0, 0);
-    m_head->addBox(-5.0f, -8.0f, -4.0f, 10.0f, 8.0f, 8.0f, scale);
+    // 清除基类创建的头部部件，重新创建猪灵头部
+    m_bipedHead = std::make_shared<ModelRenderer>("head");
+    // 头部主体: textureOffset(0, 0), addBox(-5, -8, -4, 10, 8, 8)
+    m_bipedHead->setTextureSize(textureWidth, textureHeight);
+    m_bipedHead->setTextureOffset(0, 0);
+    m_bipedHead->addBox(-5.0f, -8.0f, -4.0f, 10.0f, 8.0f, 8.0f, static_cast<f64>(scale));
     // 鼻子: textureOffset(31, 1), addBox(-2, -4, -5, 4, 4, 1)
-    m_head->setTextureOffset(31, 1);
-    m_head->addBox(-2.0f, -4.0f, -5.0f, 4.0f, 4.0f, 1.0f, scale);
+    m_bipedHead->setTextureOffset(31, 1);
+    m_bipedHead->addBox(-2.0f, -4.0f, -5.0f, 4.0f, 4.0f, 1.0f, static_cast<f64>(scale));
     // 右眼: textureOffset(2, 4), addBox(2, -2, -5, 1, 2, 1)
-    m_head->setTextureOffset(2, 4);
-    m_head->addBox(2.0f, -2.0f, -5.0f, 1.0f, 2.0f, 1.0f, scale);
+    m_bipedHead->setTextureOffset(2, 4);
+    m_bipedHead->addBox(2.0f, -2.0f, -5.0f, 1.0f, 2.0f, 1.0f, static_cast<f64>(scale));
     // 左眼: textureOffset(2, 0), addBox(-3, -2, -5, 1, 2, 1)
-    m_head->setTextureOffset(2, 0);
-    m_head->addBox(-3.0f, -2.0f, -5.0f, 1.0f, 2.0f, 1.0f, scale);
-    m_head->setRotationPoint(0.0f, 0.0f, 0.0f);
-    m_parts.push_back(m_head);
+    m_bipedHead->setTextureOffset(2, 0);
+    m_bipedHead->addBox(-3.0f, -2.0f, -5.0f, 1.0f, 2.0f, 1.0f, static_cast<f64>(scale));
+    m_bipedHead->setRotationPoint(0.0f, 0.0f, 0.0f);
 
     // 右耳: textureOffset(51, 6), addBox(0, 0, -2, 1, 5, 4), rotationPoint(4.5, -6, 0)
     m_rightEar = std::make_shared<ModelRenderer>("rightEar");
+    m_rightEar->setTextureSize(textureWidth, textureHeight);
     m_rightEar->setTextureOffset(51, 6);
-    m_rightEar->addBox(0.0f, 0.0f, -2.0f, 1.0f, 5.0f, 4.0f, scale);
+    m_rightEar->addBox(0.0f, 0.0f, -2.0f, 1.0f, 5.0f, 4.0f, static_cast<f64>(scale));
     m_rightEar->setRotationPoint(4.5f, -6.0f, 0.0f);
-    m_head->addChild(m_rightEar);
+    m_bipedHead->addChild(m_rightEar);
 
     // 左耳: textureOffset(39, 6), addBox(-1, 0, -2, 1, 5, 4), rotationPoint(-4.5, -6, 0)
     m_leftEar = std::make_shared<ModelRenderer>("leftEar");
+    m_leftEar->setTextureSize(textureWidth, textureHeight);
     m_leftEar->setTextureOffset(39, 6);
-    m_leftEar->addBox(-1.0f, 0.0f, -2.0f, 1.0f, 5.0f, 4.0f, scale);
+    m_leftEar->addBox(-1.0f, 0.0f, -2.0f, 1.0f, 5.0f, 4.0f, static_cast<f64>(scale));
     m_leftEar->setRotationPoint(-4.5f, -6.0f, 0.0f);
-    m_head->addChild(m_leftEar);
+    m_bipedHead->addChild(m_leftEar);
 
-    // 头部盔甲层
-    m_headwear = std::make_shared<ModelRenderer>("headwear");
-    m_headwear->setTextureOffset(0, 0);
-    m_headwear->addBox(-5.0f, -8.0f, -4.0f, 10.0f, 8.0f, 8.0f, scale + 0.5f);
-    m_headwear->setRotationPoint(0.0f, 0.0f, 0.0f);
-    m_parts.push_back(m_headwear);
+    // 头部盔甲层: textureOffset(0, 0), addBox(-5, -8, -4, 10, 8, 8, scale + 0.5)
+    m_bipedHeadwearPiglin = std::make_shared<ModelRenderer>("headwear");
+    m_bipedHeadwearPiglin->setTextureSize(textureWidth, textureHeight);
+    m_bipedHeadwearPiglin->setTextureOffset(0, 0);
+    m_bipedHeadwearPiglin->addBox(-5.0f, -8.0f, -4.0f, 10.0f, 8.0f, 8.0f, static_cast<f64>(scale) + 0.5);
+    m_bipedHeadwearPiglin->setRotationPoint(0.0f, 0.0f, 0.0f);
 
-    // 身体: textureOffset(16, 16), addBox(-4, 0, -2, 8, 12, 4)
-    m_body = std::make_shared<ModelRenderer>("body");
-    m_body->setTextureOffset(16, 16);
-    m_body->addBox(-4.0f, 0.0f, -2.0f, 8.0f, 12.0f, 4.0f, scale);
-    m_body->setRotationPoint(0.0f, 0.0f, 0.0f);
-    m_parts.push_back(m_body);
+    // 重新设置身体（Java: bipedBody = new ModelRenderer(this, 16, 16)）
+    // 注意：BipedModel 已创建身体，但猪灵需要重新设置纹理偏移
+    m_bipedBody->setTextureSize(textureWidth, textureHeight);
+    m_bipedBody->setTextureOffset(16, 16);
+    // 身体已在 BipedModel 中创建，尺寸 8x12x4 正确
 
-    // 右臂: textureOffset(32, 48), addBox(-2, -2, -1, 3, 10, 2) (细手臂)
-    m_rightArm = std::make_shared<ModelRenderer>("rightArm");
-    m_rightArm->setTextureOffset(32, 48);
-    m_rightArm->addBox(-2.0f, -2.0f, -1.0f, 3.0f, 10.0f, 2.0f, scale);
-    m_rightArm->setRotationPoint(-5.0f, 2.0f, 0.0f);
-    m_parts.push_back(m_rightArm);
+    // 重新设置手臂尺寸 - 猪灵使用标准手臂（宽度4），不是纤细手臂（宽度3）
+    // Java 原版 PiglinModel 调用 super(p_i232336_1_, false) - false = 非纤细手臂
+    // 右臂: textureOffset(40, 16), addBox(-3, -2, -2, 4, 12, 4) 标准手臂
+    m_bipedRightArm = std::make_shared<ModelRenderer>("rightArm");
+    m_bipedRightArm->setTextureSize(textureWidth, textureHeight);
+    m_bipedRightArm->setTextureOffset(40, 16);
+    m_bipedRightArm->addBox(-3.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale));
+    m_bipedRightArm->setRotationPoint(-5.0f, 2.0f, 0.0f);
 
-    // 左臂: textureOffset(32, 48), mirror, addBox(-1, -2, -1, 3, 10, 2)
-    m_leftArm = std::make_shared<ModelRenderer>("leftArm");
-    m_leftArm->setTextureOffset(32, 48);
-    m_leftArm->setMirror(true);
-    m_leftArm->addBox(-1.0f, -2.0f, -1.0f, 3.0f, 10.0f, 2.0f, scale);
-    m_leftArm->setRotationPoint(5.0f, 2.0f, 0.0f);
-    m_parts.push_back(m_leftArm);
+    // 左臂: textureOffset(32, 48), mirror, addBox(-1, -2, -2, 4, 12, 4) 标准手臂
+    m_bipedLeftArm = std::make_shared<ModelRenderer>("leftArm");
+    m_bipedLeftArm->setTextureSize(textureWidth, textureHeight);
+    m_bipedLeftArm->setTextureOffset(32, 48);
+    m_bipedLeftArm->setMirror(true);
+    m_bipedLeftArm->addBox(-1.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale));
+    m_bipedLeftArm->setRotationPoint(5.0f, 2.0f, 0.0f);
 
-    // 右腿: textureOffset(0, 16), addBox(-1.9, 0, -1, 3, 12, 3)
-    m_rightLeg = std::make_shared<ModelRenderer>("rightLeg");
-    m_rightLeg->setTextureOffset(0, 16);
-    m_rightLeg->addBox(-1.9f, 0.0f, -1.0f, 3.0f, 12.0f, 3.0f, scale);
-    m_rightLeg->setRotationPoint(-2.0f, 12.0f, 0.0f);
-    m_parts.push_back(m_rightLeg);
+    // 外观层部件
+    // 右臂外层: textureOffset(40, 32), addBox(-3, -2, -2, 4, 12, 4, scale + 0.25)
+    m_bipedRightArmwear = std::make_shared<ModelRenderer>("rightArmwear");
+    m_bipedRightArmwear->setTextureSize(textureWidth, textureHeight);
+    m_bipedRightArmwear->setTextureOffset(40, 32);
+    m_bipedRightArmwear->addBox(-3.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale) + 0.25);
+    m_bipedRightArmwear->setRotationPoint(-5.0f, 2.0f, 10.0f);
 
-    // 左腿: textureOffset(0, 16), mirror, addBox(-1.1, 0, -1, 3, 12, 3)
-    m_leftLeg = std::make_shared<ModelRenderer>("leftLeg");
-    m_leftLeg->setTextureOffset(0, 16);
-    m_leftLeg->setMirror(true);
-    m_leftLeg->addBox(-1.1f, 0.0f, -1.0f, 3.0f, 12.0f, 3.0f, scale);
-    m_leftLeg->setRotationPoint(2.0f, 12.0f, 0.0f);
-    m_parts.push_back(m_leftLeg);
+    // 左臂外层: textureOffset(48, 48), addBox(-1, -2, -2, 4, 12, 4, scale + 0.25)
+    m_bipedLeftArmwear = std::make_shared<ModelRenderer>("leftArmwear");
+    m_bipedLeftArmwear->setTextureSize(textureWidth, textureHeight);
+    m_bipedLeftArmwear->setTextureOffset(48, 48);
+    m_bipedLeftArmwear->addBox(-1.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale) + 0.25);
+    m_bipedLeftArmwear->setRotationPoint(5.0f, 2.0f, 0.0f);
+
+    // 右腿外层: textureOffset(0, 32), addBox(-2, 0, -2, 4, 12, 4, scale + 0.25)
+    m_bipedRightLegwear = std::make_shared<ModelRenderer>("rightLegwear");
+    m_bipedRightLegwear->setTextureSize(textureWidth, textureHeight);
+    m_bipedRightLegwear->setTextureOffset(0, 32);
+    m_bipedRightLegwear->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale) + 0.25);
+    m_bipedRightLegwear->setRotationPoint(-1.9f, 12.0f, 0.0f);
+
+    // 左腿外层: textureOffset(0, 48), addBox(-2, 0, -2, 4, 12, 4, scale + 0.25)
+    m_bipedLeftLegwear = std::make_shared<ModelRenderer>("leftLegwear");
+    m_bipedLeftLegwear->setTextureSize(textureWidth, textureHeight);
+    m_bipedLeftLegwear->setTextureOffset(0, 48);
+    m_bipedLeftLegwear->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale) + 0.25);
+    m_bipedLeftLegwear->setRotationPoint(1.9f, 12.0f, 0.0f);
+
+    // 身体外层: textureOffset(16, 32), addBox(-4, 0, -2, 8, 12, 4, scale + 0.25)
+    m_bipedBodyWear = std::make_shared<ModelRenderer>("bodyWear");
+    m_bipedBodyWear->setTextureSize(textureWidth, textureHeight);
+    m_bipedBodyWear->setTextureOffset(16, 32);
+    m_bipedBodyWear->addBox(-4.0f, 0.0f, -2.0f, 8.0f, 12.0f, 4.0f, static_cast<f64>(scale) + 0.25);
+    m_bipedBodyWear->setRotationPoint(0.0f, 0.0f, 0.0f);
+
+    // 更新部件列表
+    m_parts.clear();
+    m_parts.push_back(m_bipedHead);
+    m_parts.push_back(m_bipedHeadwearPiglin);
+    m_parts.push_back(m_bipedBody);
+    m_parts.push_back(m_bipedBodyWear);
+    m_parts.push_back(m_bipedRightArm);
+    m_parts.push_back(m_bipedLeftArm);
+    m_parts.push_back(m_bipedRightArmwear);
+    m_parts.push_back(m_bipedLeftArmwear);
+    m_parts.push_back(m_bipedRightLeg);
+    m_parts.push_back(m_bipedLeftLeg);
+    m_parts.push_back(m_bipedRightLegwear);
+    m_parts.push_back(m_bipedLeftLegwear);
+}
+
+void PiglinModel::copyAnglesToWear() {
+    // 参考 MC 1.16.5 PiglinModel.setRotationAngles 末尾的 copyModelAngles 调用
+    if (m_bipedLeftLeg && m_bipedLeftLegwear) {
+        m_bipedLeftLegwear->copyModelAngles(*m_bipedLeftLeg);
+    }
+    if (m_bipedRightLeg && m_bipedRightLegwear) {
+        m_bipedRightLegwear->copyModelAngles(*m_bipedRightLeg);
+    }
+    if (m_bipedLeftArm && m_bipedLeftArmwear) {
+        m_bipedLeftArmwear->copyModelAngles(*m_bipedLeftArm);
+    }
+    if (m_bipedRightArm && m_bipedRightArmwear) {
+        m_bipedRightArmwear->copyModelAngles(*m_bipedRightArm);
+    }
+    if (m_bipedBody && m_bipedBodyWear) {
+        m_bipedBodyWear->copyModelAngles(*m_bipedBody);
+    }
+    if (m_bipedHead && m_bipedHeadwearPiglin) {
+        m_bipedHeadwearPiglin->copyModelAngles(*m_bipedHead);
+    }
+}
+
+void PiglinModel::handleRightArmPose() {
+    // 猪灵特有手臂姿态处理
+    // 如果是特定动作，跳过基类处理
+    if (m_action == static_cast<i32>(Action::ATTACKING_WITH_MELEE_WEAPON) && m_swingProgress == 0.0f) {
+        if (!m_leftHanded) {
+            m_bipedRightArm->setRotateAngleX(-1.8f);
+        }
+        return;
+    }
+    // 否则调用基类处理
+    BipedModel::handleRightArmPose();
+}
+
+void PiglinModel::handleLeftArmPose() {
+    // 猪灵特有手臂姿态处理
+    if (m_action == static_cast<i32>(Action::ATTACKING_WITH_MELEE_WEAPON) && m_swingProgress == 0.0f) {
+        if (m_leftHanded) {
+            m_bipedLeftArm->setRotateAngleX(-1.8f);
+        }
+        return;
+    }
+    // 否则调用基类处理
+    BipedModel::handleLeftArmPose();
 }
 
 void PiglinModel::render(f64 scale) {
-    EntityModel::render(scale);
+    BipedModel::render(scale);
 }
 
 void PiglinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                              f64 ageInTicks, f64 netHeadYaw,
                              f64 headPitch, f64 scale) {
     // 参考 MC 1.16.5 PiglinModel.setRotationAngles
-    // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_headwear->setRotateAngleY(m_head->rotateAngleY());
-    m_headwear->setRotateAngleX(m_head->rotateAngleX());
+    // 注意：Java 原版先复制身体、头部、手臂角度到外层，然后调用 super
 
-    // 基础步态动画
-    f32 legSwing = static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount);
-    m_rightLeg->setRotateAngleX(legSwing);
-    m_leftLeg->setRotateAngleX(-legSwing);
-    m_rightArm->setRotateAngleX(-legSwing * 0.5f);
-    m_leftArm->setRotateAngleX(legSwing * 0.5f);
+    // 复制角度到外层部件
+    copyAnglesToWear();
 
-    // 耳朵动画
+    // 调用基类设置基础动画
+    BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
+
+    // 耳朵动画 - Java: PI/6 = 0.52359877559...
     f32 f1 = static_cast<f32>(ageInTicks * 0.1 + limbSwing * 0.5);
     f32 f2 = 0.08f + static_cast<f32>(limbSwingAmount * 0.4);
     m_rightEar->setRotateAngleZ(static_cast<f32>(-PI / 6.0 - std::cos(f1 * 1.2) * f2));
@@ -290,30 +368,58 @@ void PiglinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         f32 f3 = static_cast<f32>(ageInTicks / 60.0);
         m_leftEar->setRotateAngleZ(static_cast<f32>(PI / 6.0 + PI / 180.0 * std::sin(f3 * 30.0) * 10.0));
         m_rightEar->setRotateAngleZ(static_cast<f32>(-PI / 6.0 - PI / 180.0 * std::cos(f3 * 30.0) * 10.0));
-        m_head->setRotationPointX(static_cast<f32>(std::sin(f3 * 10.0)));
-        m_head->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) + 0.4));
-        m_rightArm->setRotateAngleZ(static_cast<f32>(PI / 180.0 * (70.0 + std::cos(f3 * 40.0) * 10.0)));
-        m_leftArm->setRotateAngleZ(-m_rightArm->rotateAngleZ());
-        m_rightArm->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) * 0.5 + 1.5));
-        m_leftArm->setRotationPointY(m_rightArm->rotationPointY());
-        m_body->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) * 0.35));
+        m_bipedHead->setRotationPointX(static_cast<f32>(std::sin(f3 * 10.0)));
+        m_bipedHead->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) + 0.4));
+        m_bipedRightArm->setRotateAngleZ(static_cast<f32>(PI / 180.0 * (70.0 + std::cos(f3 * 40.0) * 10.0)));
+        m_bipedLeftArm->setRotateAngleZ(-m_bipedRightArm->rotateAngleZ());
+        m_bipedRightArm->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) * 0.5 + 1.5));
+        m_bipedLeftArm->setRotationPointY(m_bipedRightArm->rotationPointY());
+        m_bipedBody->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) * 0.35));
     } else if (m_action == static_cast<i32>(Action::ATTACKING_WITH_MELEE_WEAPON) && m_swingProgress == 0.0f) {
         // 近战攻击姿态
         if (m_leftHanded) {
-            m_leftArm->setRotateAngleX(-1.8f);
+            m_bipedLeftArm->setRotateAngleX(-1.8f);
         } else {
-            m_rightArm->setRotateAngleX(-1.8f);
+            m_bipedRightArm->setRotateAngleX(-1.8f);
+        }
+    } else if (m_action == static_cast<i32>(Action::CROSSBOW_HOLD)) {
+        // 弩持有姿态 - 参考 ModelHelper.func_239104_a_
+        if (!m_leftHanded) {
+            // 右手持弩
+            m_bipedRightArm->setRotateAngleY(-0.3f);
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedLeftArm->setRotateAngleY(0.6f);
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        } else {
+            // 左手持弩
+            m_bipedLeftArm->setRotateAngleY(0.3f);
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedRightArm->setRotateAngleY(-0.6f);
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        }
+    } else if (m_action == static_cast<i32>(Action::CROSSBOW_CHARGE)) {
+        // 弩装填姿态 - 参考 ModelHelper.func_239102_a_
+        if (!m_leftHanded) {
+            m_bipedRightArm->setRotateAngleY(-0.8f);
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedLeftArm->setRotateAngleY(0.8f);
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        } else {
+            m_bipedLeftArm->setRotateAngleY(0.8f);
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedRightArm->setRotateAngleY(-0.8f);
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
         }
     } else if (m_action == static_cast<i32>(Action::ADMIRING_ITEM)) {
         // 欣赏物品
-        m_head->setRotateAngleX(0.5f);
-        m_head->setRotateAngleY(0.0f);
+        m_bipedHead->setRotateAngleX(0.5f);
+        m_bipedHead->setRotateAngleY(0.0f);
         if (m_leftHanded) {
-            m_rightArm->setRotateAngleY(-0.5f);
-            m_rightArm->setRotateAngleX(-0.9f);
+            m_bipedRightArm->setRotateAngleY(-0.5f);
+            m_bipedRightArm->setRotateAngleX(-0.9f);
         } else {
-            m_leftArm->setRotateAngleY(0.5f);
-            m_leftArm->setRotateAngleX(-0.9f);
+            m_bipedLeftArm->setRotateAngleY(0.5f);
+            m_bipedLeftArm->setRotateAngleX(-0.9f);
         }
     }
 
@@ -493,31 +599,35 @@ void StriderModel::setupParts() {
     m_parts.push_back(m_rightLeg);
 
     // 6 个毛发/皮瓣部件（作为身体子部件）
-    // 左下皮瓣: textureOffset(16, 65), rotationPoint(-8, 4, -8), addBox(-12, 0, 0, 12, 0, 16), rotateAngleZ = -1.2217305F
+    // Java 原版中左侧三个皮瓣都设置了 mirror=true
+    // 左下皮瓣: textureOffset(16, 65), mirror=true, addBox(-12, 0, 0, 12, 0, 16)
     m_flapLeftBottom = std::make_shared<ModelRenderer>("flapLeftBottom");
+    m_flapLeftBottom->setMirror(true);  // Java: mirror=true
     m_flapLeftBottom->setTextureOffset(16, 65);
     m_flapLeftBottom->addBox(-12.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
     m_flapLeftBottom->setRotationPoint(-8.0f, 4.0f, -8.0f);
     m_flapLeftBottom->setRotateAngleZ(-1.2217305f);
     m_body->addChild(m_flapLeftBottom);
 
-    // 左中皮瓣: textureOffset(16, 49), rotationPoint(-8, -1, -8), rotateAngleZ = -1.134464F
+    // 左中皮瓣: textureOffset(16, 49), mirror=true, addBox(-12, 0, 0, 12, 0, 16)
     m_flapLeftMiddle = std::make_shared<ModelRenderer>("flapLeftMiddle");
+    m_flapLeftMiddle->setMirror(true);  // Java: mirror=true
     m_flapLeftMiddle->setTextureOffset(16, 49);
     m_flapLeftMiddle->addBox(-12.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
     m_flapLeftMiddle->setRotationPoint(-8.0f, -1.0f, -8.0f);
     m_flapLeftMiddle->setRotateAngleZ(-1.134464f);
     m_body->addChild(m_flapLeftMiddle);
 
-    // 左上皮瓣: textureOffset(16, 33), rotationPoint(-8, -5, -8), rotateAngleZ = -0.87266463F
+    // 左上皮瓣: textureOffset(16, 33), mirror=true, addBox(-12, 0, 0, 12, 0, 16)
     m_flapLeftTop = std::make_shared<ModelRenderer>("flapLeftTop");
+    m_flapLeftTop->setMirror(true);  // Java: mirror=true
     m_flapLeftTop->setTextureOffset(16, 33);
     m_flapLeftTop->addBox(-12.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
     m_flapLeftTop->setRotationPoint(-8.0f, -5.0f, -8.0f);
     m_flapLeftTop->setRotateAngleZ(-0.87266463f);
     m_body->addChild(m_flapLeftTop);
 
-    // 右上皮瓣: textureOffset(16, 33), rotationPoint(8, -6, -8), rotateAngleZ = 0.87266463F
+    // 右上皮瓣: textureOffset(16, 33), addBox(0, 0, 0, 12, 0, 16), rotationPoint(8, -6, -8)
     m_flapRightTop = std::make_shared<ModelRenderer>("flapRightTop");
     m_flapRightTop->setTextureOffset(16, 33);
     m_flapRightTop->addBox(0.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
@@ -525,7 +635,7 @@ void StriderModel::setupParts() {
     m_flapRightTop->setRotateAngleZ(0.87266463f);
     m_body->addChild(m_flapRightTop);
 
-    // 右中皮瓣: textureOffset(16, 49), rotationPoint(8, -2, -8), rotateAngleZ = 1.134464F
+    // 右中皮瓣: textureOffset(16, 49), addBox(0, 0, 0, 12, 0, 16), rotationPoint(8, -2, -8)
     m_flapRightMiddle = std::make_shared<ModelRenderer>("flapRightMiddle");
     m_flapRightMiddle->setTextureOffset(16, 49);
     m_flapRightMiddle->addBox(0.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
@@ -533,7 +643,7 @@ void StriderModel::setupParts() {
     m_flapRightMiddle->setRotateAngleZ(1.134464f);
     m_body->addChild(m_flapRightMiddle);
 
-    // 右下皮瓣: textureOffset(16, 65), rotationPoint(8, 3, -8), rotateAngleZ = 1.2217305F
+    // 右下皮瓣: textureOffset(16, 65), addBox(0, 0, 0, 12, 0, 16), rotationPoint(8, 3, -8)
     m_flapRightBottom = std::make_shared<ModelRenderer>("flapRightBottom");
     m_flapRightBottom->setTextureOffset(16, 65);
     m_flapRightBottom->addBox(0.0f, 0.0f, 0.0f, 12.0f, 0.0f, 16.0f);
@@ -553,9 +663,21 @@ void StriderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 限制 limbSwingAmount 最大为 0.25
     f32 swingAmount = static_cast<f32>(std::min(limbSwingAmount, 0.25));
 
-    // 身体旋转
-    m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    // 身体旋转 - Java 原版：有乘客时不旋转身体
+    // if (entityIn.getPassengers().size() <= 0) {
+    //     this.field_239120_f_.rotateAngleX = headPitch * PI/180;
+    //     this.field_239120_f_.rotateAngleY = netHeadYaw * PI/180;
+    // } else {
+    //     this.field_239120_f_.rotateAngleX = 0.0F;
+    //     this.field_239120_f_.rotateAngleY = 0.0F;
+    // }
+    if (!m_hasPassengers) {
+        m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+        m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    } else {
+        m_body->setRotateAngleX(0.0f);
+        m_body->setRotateAngleY(0.0f);
+    }
 
     // 身体 Z 轴摇摆: rotateAngleZ = 0.1F * sin(limbSwing * 1.5F) * 4.0F * limbSwingAmount
     m_body->setRotateAngleZ(0.1f * static_cast<f32>(std::sin(limbSwing * 1.5) * 4.0 * swingAmount));

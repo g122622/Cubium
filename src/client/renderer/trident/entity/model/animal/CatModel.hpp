@@ -22,6 +22,13 @@ public:
                    f64 headPitch, f64 scale) override;
 
     /**
+     * @brief 设置生物动画状态（每帧调用）
+     *
+     * 参考 MC 1.16.5 CatModel.setLivingAnimations
+     */
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
+
+    /**
      * @brief 设置猫特有动画状态
      * @param lieDownAmount 躺下动画进度 (0-1)
      * @param relaxStateAmount 放松状态动画进度 (0-1)

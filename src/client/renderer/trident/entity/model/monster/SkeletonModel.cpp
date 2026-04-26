@@ -56,30 +56,39 @@ void SkeletonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 骷髅手臂姿态处理
     // 参考 MC 1.16.5 SkeletonModel.setRotationAngles
+    // 骷髅攻击动画在 setLivingAnimations 和 setRotationAngles 中处理
+    // 这里只处理弓箭姿态
+    // 注意：原版 Java 在不攻击时不修改手臂角度，保持 BipedModel 的默认行为
 
     switch (m_rightArmPose) {
         case ArmPose::BowAndArrow:
             // 拉弓姿态 - 参考 MC 1.16.5 SkeletonModel.setRotationAngles
             // 使用头部的Y旋转角度，而不是netHeadYaw（度数）
-            m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
-            m_leftArm->setRotateAngleY(0.1f + m_head->rotateAngleY() + 0.4f);
-            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
-            m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
+            if (m_rightArm && m_leftArm && m_head) {
+                m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
+                m_leftArm->setRotateAngleY(0.1f + m_head->rotateAngleY() + 0.4f);
+                m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
+                m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
+            }
             break;
         case ArmPose::ThrowSpear:
             // 投掷三叉戟姿态
-            m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() * 0.5f - static_cast<f32>(PI));
+            if (m_rightArm) {
+                m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() * 0.5f - static_cast<f32>(PI));
+            }
+            break;
+        case ArmPose::CrossbowCharge:
+        case ArmPose::CrossbowHold:
+            // 弩姿态需要额外实现
             break;
         default:
-            // 空手或持有物品时，手臂向前伸
-            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
-            m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            // 空手时不修改手臂角度，保持 BipedModel 的默认行为
+            // 原版 Java 不在此处设置手臂角度
             break;
     }
 
-    (void)ageInTicks;  // 暂时未使用
+    (void)ageInTicks;  // 攻击动画需要 swingProgress，在此不使用
 }
 
 } // namespace mc::client::renderer::entity::model::monster

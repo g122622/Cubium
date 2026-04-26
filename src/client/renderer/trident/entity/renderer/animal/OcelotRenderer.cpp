@@ -19,9 +19,9 @@ void OcelotRenderer::render(Entity& entity, f64 partialTicks) {
     bool isChild = ocelot.isChild();
     auto& model = isChild ? m_modelBaby : m_model;
 
-    // 设置状态（站立/奔跑）
-    int state = ocelot.isFleeing() ? 2 : 1;
-    model.setState(state);
+    // 设置状态（蹲伏/奔跑/站立）
+    model.setCrouching(ocelot.isFleeing());
+    model.setSprinting(ocelot.isFleeing());
 
     // 计算动画参数
     f64 limbSwing = 0.0;

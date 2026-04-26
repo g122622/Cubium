@@ -24,23 +24,27 @@ public:
                    f64 headPitch, f64 scale) override;
 
     /**
-     * @brief 设置攻击动画
-     * @param swingProgress 攻击进度 (0-1)
-     * @param ageInTicks 年龄刻度（用于手臂抖动）
-     * @param isAggressive 是否处于攻击状态
-     */
-    void setAttackAnimation(f64 swingProgress, f64 ageInTicks, bool isAggressive);
-
-    /**
      * @brief 设置纹理尺寸
      * @param useSlimTexture true使用64x32纹理，false使用64x64纹理
      */
     void setTextureDimensions(bool useSlimTexture);
 
+    /**
+     * @brief 设置攻击状态
+     * @param aggressive 是否处于攻击状态
+     */
+    void setAggressive(bool aggressive) { m_isAggressive = aggressive; }
+
+    /**
+     * @brief 获取攻击状态
+     */
+    [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
+
 private:
     void setupParts();
 
-    bool m_slim = false;  // 是否使用细长纹理
+    bool m_slim = false;        // 是否使用细长纹理
+    bool m_isAggressive = false; // 是否处于攻击状态（影响手臂动画）
 };
 
 } // namespace mc::client::renderer::entity::model::monster
