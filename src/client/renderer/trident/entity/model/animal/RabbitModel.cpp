@@ -192,6 +192,13 @@ void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     (void)scale;
 }
 
+void RabbitModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 partialTick) {
+    // 参考 MC 1.16.5 RabbitModel.setLivingAnimations
+    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(partialTick) * (float)Math.PI);
+    // 注意：jumpRotation 需要从实体获取，这里设置一个默认值
+    // 实际使用时应该调用 setJumpRotation() 从外部设置
+}
+
 void RabbitModel::setJumpRotation(f32 jumpRotation) {
     m_jumpRotation = jumpRotation;
 }

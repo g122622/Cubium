@@ -136,7 +136,7 @@ void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 // ==================== ChickenModel ====================
 
 ChickenModel::ChickenModel()
-    : EntityModel()
+    : AgeableModel()  // 使用 AgeableModel 默认构造函数
 {
     // 参考 MC 1.16.5 ChickenModel
     m_head = std::make_shared<ModelRenderer>("head");
@@ -188,10 +188,7 @@ ChickenModel::ChickenModel()
     m_leftLeg->addBox(-1.0f, 0.0f, -3.0f, 3.0f, 5.0f, 3.0f);
     m_leftLeg->setRotationPoint(1.0f, 19.0f, 1.0f);
 
-    // 添加到部件列表
-    m_parts.push_back(m_head);
-    m_parts.push_back(m_beak);
-    m_parts.push_back(m_wattle);
+    // 添加到部件列表 - 注意：AgeableModel 会通过 getHeadParts/getBodyParts 处理
     m_parts.push_back(m_body);
     m_parts.push_back(m_rightWing);
     m_parts.push_back(m_leftWing);
@@ -200,6 +197,27 @@ ChickenModel::ChickenModel()
 
     m_textureWidth = 64;
     m_textureHeight = 32;
+}
+
+std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getHeadParts() const {
+    std::vector<std::shared_ptr<ModelRenderer>> parts;
+    parts.push_back(m_head);
+    parts.push_back(m_beak);
+    parts.push_back(m_wattle);
+    if (m_comb) {
+        parts.push_back(m_comb);
+    }
+    return parts;
+}
+
+std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getBodyParts() const {
+    std::vector<std::shared_ptr<ModelRenderer>> parts;
+    parts.push_back(m_body);
+    parts.push_back(m_rightWing);
+    parts.push_back(m_leftWing);
+    parts.push_back(m_rightLeg);
+    parts.push_back(m_leftLeg);
+    return parts;
 }
 
 void ChickenModel::render(f64 scale) {

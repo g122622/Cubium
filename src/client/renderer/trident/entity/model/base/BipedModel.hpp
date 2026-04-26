@@ -1,8 +1,25 @@
 #pragma once
 
-#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <functional>
 
 namespace mc::client::renderer::entity::model {
+
+// 前向声明
+namespace entity {
+    class LivingEntity;
+}
+
+/**
+ * @brief 手的边（左/右）
+ *
+ * 参考 MC 1.16.5 HandSide
+ */
+enum class HandSide {
+    Left,
+    Right
+};
 
 /**
  * @brief 手臂姿态枚举
@@ -23,9 +40,9 @@ enum class ArmPose {
  * @brief 双足动物模型基类
  *
  * 用于玩家、僵尸、骷髅等双足生物的模型基类。
- * 参考 MC 1.16.5 BipedModel
+ * 参考 MC 1.16.5 BipedModel - 继承自 AgeableModel
  */
-class BipedModel : public EntityModel {
+class BipedModel : public AgeableModel {
 public:
     BipedModel();
     /**
@@ -43,6 +60,14 @@ public:
     void setAngles(f64 limbSwing, f64 limbSwingAmount,
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
+
+    /**
+     * @brief 设置生物动画状态（每帧调用）
+     *
+     * 参考 MC 1.16.5 BipedModel.setLivingAnimations
+     * 用于设置游泳动画等状态
+     */
+    virtual void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick);
 
     /**
      * @brief 设置是否蹲伏
@@ -74,11 +99,61 @@ public:
      */
     void setRightArmPose(ArmPose pose) { m_rightArmPose = pose; }
 
+    /**
+     * @brief 设置主手
+     */
+    void setMainHand(HandSide hand) { m_mainHand = hand; }
+
+    /**
+     * @brief 设置挥动的手
+     */
+    void setSwingingHand(HandSide hand) { m_swingingHand = hand; }
+
+    /**
+     * @brief 设置鞘翅飞行时间
+     */
+    void setElytraFlyingTicks(i32 ticks) { m_elytraFlyingTicks = ticks; }
+
+    /**
+     * @brief 设置是否真正游泳
+     */
+    void setActuallySwimming(bool swimming) { m_isActuallySwimming = swimming; }
+
+    /**
+     * @brief 设置所有部件可见性
+     */
+    void setVisible(bool visible);
+
+    /**
+     * @brief 复制模型属性到另一个模型
+     */
+    void copyModelAttributesTo(BipedModel& target) const;
+
+    /**
+     * @brief 获取指定边的手臂
+     */
+    std::shared_ptr<ModelRenderer> getArmForSide(HandSide side);
+
+    /**
+     * @brief 获取头部模型
+     */
+    std::shared_ptr<ModelRenderer> getModelHead() { return m_bipedHead; }
+
 protected:
     /**
      * @brief 设置模型部件
      */
     virtual void setupParts();
+
+    /**
+     * @brief 获取头部部件（AgeableModel 接口）
+     */
+    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
+
+    /**
+     * @brief 获取身体部件（AgeableModel 接口）
+     */
+    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
 
     /**
      * @brief 处理右手姿态
@@ -97,9 +172,24 @@ protected:
     virtual void handleSwingAnimation(f64 ageInTicks);
 
     /**
+     * @brief 处理游泳动画
+     */
+    virtual void handleSwimAnimation(f64 limbSwing);
+
+    /**
      * @brief 角度插值（弧度）
      */
     static f32 rotLerpRad(f32 angle, f32 maxAngle, f32 target);
+
+    /**
+     * @brief 获取手臂角度平方
+     */
+    static f32 getArmAngleSq(f32 limbSwing);
+
+    /**
+     * @brief 获取主手
+     */
+    HandSide getMainHand() const;
 
     // 模型部件
     std::shared_ptr<ModelRenderer> m_bipedHead;
@@ -130,6 +220,10 @@ protected:
     f32 m_swingProgress = 0.0f;
     ArmPose m_leftArmPose = ArmPose::Empty;
     ArmPose m_rightArmPose = ArmPose::Empty;
+    HandSide m_mainHand = HandSide::Right;
+    HandSide m_swingingHand = HandSide::Right;
+    i32 m_elytraFlyingTicks = 0;
+    bool m_isActuallySwimming = false;
 };
 
 } // namespace mc::client::renderer::entity::model

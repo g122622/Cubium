@@ -19,12 +19,22 @@ public:
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
 
+    /**
+     * @brief 设置是否在水中
+     */
+    void setInWater(bool inWater) { m_isInWater = inWater; }
+
 private:
     void setupParts();
     std::shared_ptr<ModelRenderer> m_body;
+    std::shared_ptr<ModelRenderer> m_finTop;      // 背鳍
     std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_nose;
+    std::shared_ptr<ModelRenderer> m_headFront;   // 头部前端
+    std::shared_ptr<ModelRenderer> m_finRight;    // 右鳍
+    std::shared_ptr<ModelRenderer> m_finLeft;     // 左鳍
     std::shared_ptr<ModelRenderer> m_tail;
+
+    bool m_isInWater = true;
 };
 
 /**
@@ -42,10 +52,23 @@ public:
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
 
+    /**
+     * @brief 设置是否在水中
+     */
+    void setInWater(bool inWater) { m_isInWater = inWater; }
+
 private:
     void setupParts();
-    std::shared_ptr<ModelRenderer> m_body;
-    std::shared_ptr<ModelRenderer> m_tail;
+    std::shared_ptr<ModelRenderer> m_bodyFront;   // 身体前部
+    std::shared_ptr<ModelRenderer> m_bodyRear;    // 身体后部
+    std::shared_ptr<ModelRenderer> m_head;
+    std::shared_ptr<ModelRenderer> m_finRight;    // 右鳍
+    std::shared_ptr<ModelRenderer> m_finLeft;     // 左鳍
+    std::shared_ptr<ModelRenderer> m_tail;        // 尾巴（子部件）
+    std::shared_ptr<ModelRenderer> m_dorsalFin;   // 背鳍（子部件）
+    std::shared_ptr<ModelRenderer> m_ventralFin;  // 腹鳍（子部件）
+
+    bool m_isInWater = true;
 };
 
 /**

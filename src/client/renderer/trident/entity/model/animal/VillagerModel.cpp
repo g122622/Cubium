@@ -62,7 +62,9 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_arms = std::make_shared<ModelRenderer>("arms");
     m_arms->setTextureOffset(44, 22);
     m_arms->addBox(-8.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, static_cast<f64>(scale));  // 左臂
-    m_arms->addBox(4.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, static_cast<f64>(scale));   // 右臂
+    // 右臂需要mirror=true - 参考 MC 1.16.5 VillagerModel 第55行
+    m_arms->setTextureOffset(44, 22);
+    m_arms->addBox(4.0f, -2.0f, -2.0f, 4.0f, 8.0f, 4.0f, true, static_cast<f64>(scale));  // 右臂，mirror=true
     m_arms->setTextureOffset(40, 38);
     m_arms->addBox(-4.0f, 2.0f, -2.0f, 8.0f, 4.0f, 4.0f, static_cast<f64>(scale)); // 连接部分
     m_arms->setRotationPoint(0.0f, 2.0f, 0.0f);
@@ -73,9 +75,10 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_rightLeg->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale));
     m_rightLeg->setRotationPoint(-2.0f, 12.0f, 0.0f);
 
-    // 左腿
+    // 左腿 - 需要 mirror=true，参考 MC 1.16.5 VillagerModel 第61行
     m_leftLeg = std::make_shared<ModelRenderer>("leftLeg");
     m_leftLeg->setTextureOffset(0, 22);
+    m_leftLeg->setMirror(true);
     m_leftLeg->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 12.0f, 4.0f, static_cast<f64>(scale));
     m_leftLeg->setRotationPoint(2.0f, 12.0f, 0.0f);
 

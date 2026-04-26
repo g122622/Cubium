@@ -227,16 +227,25 @@ void IronGolemModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
 
-    // 使用三角波函数而不是正弦
-    f32 legSwing = static_cast<f32>(1.5 * std::abs(2.0 * std::fmod(limbSwing, 13.0) / 13.0 - 1.0) * limbSwingAmount);
-    m_leftLeg->setRotateAngleX(-legSwing);
-    m_rightLeg->setRotateAngleX(legSwing);
+    // 参考 MC 1.16.5 IronGolemModel.setRotationAngles
+    // MathHelper.func_233021_e_ 是三角波函数，返回 [-1, 1] 范围的值
+    // 公式: triangleWave(x, period) = (abs(x % period - period/2) - period/4) / (period/4)
+    // 简化: triangleWave(x, period) 返回 -1 到 1 之间的值，周期为 period
+    auto triangleWave = [](f64 x, f64 period) -> f64 {
+        f64 halfPeriod = period / 2.0;
+        f64 quarterPeriod = period / 4.0;
+        return (std::abs(std::fmod(x, period) - halfPeriod) - quarterPeriod) / quarterPeriod;
+    };
+
+    f32 legSwing = static_cast<f32>(triangleWave(limbSwing, 13.0));
+    m_leftLeg->setRotateAngleX(-1.5f * legSwing * static_cast<f32>(limbSwingAmount));
+    m_rightLeg->setRotateAngleX(1.5f * legSwing * static_cast<f32>(limbSwingAmount));
     m_leftLeg->setRotateAngleY(0.0f);
     m_rightLeg->setRotateAngleY(0.0f);
 
     // 手臂动画
-    m_rightArm->setRotateAngleX(static_cast<f32>((-0.2 + 1.5 * std::abs(2.0 * std::fmod(limbSwing, 13.0) / 13.0 - 1.0)) * limbSwingAmount));
-    m_leftArm->setRotateAngleX(static_cast<f32>((-0.2 - 1.5 * std::abs(2.0 * std::fmod(limbSwing, 13.0) / 13.0 - 1.0)) * limbSwingAmount));
+    m_rightArm->setRotateAngleX(static_cast<f32>((-0.2 + 1.5 * triangleWave(limbSwing, 13.0)) * limbSwingAmount));
+    m_leftArm->setRotateAngleX(static_cast<f32>((-0.2 - 1.5 * triangleWave(limbSwing, 13.0)) * limbSwingAmount));
 
     (void)ageInTicks;
 }

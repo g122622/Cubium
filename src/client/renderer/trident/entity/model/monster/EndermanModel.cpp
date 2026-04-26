@@ -26,15 +26,28 @@ void EndermanModel::setupParts() {
     // super(0.0F, -14.0F, 64, 32)
     // 末影人有独特的身体比例：手臂和腿非常长
 
+    // 清除基类添加的盒子，重新设置末影人特有的尺寸
+    // 注意：Java 代码是创建新的 ModelRenderer，这里清除现有部件的盒子
+
+    // 头部内层 - 末影人使用标准头部
+    if (m_head) {
+        m_head->clearBoxes();
+        m_head->setTextureSize(64, 32);
+        m_head->setTextureOffset(0, 0);
+        m_head->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, 0.0f);
+        m_head->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
+    }
+
     // 头部外层（头套）：8x8x8，纹理位置 (0, 16)
     // MC: this.bipedHeadwear = new ModelRenderer(this, 0, 16);
     //     this.bipedHeadwear.addBox(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F, scale - 0.5F);
     //     this.bipedHeadwear.setRotationPoint(0.0F, -14.0F, 0.0F);
-    if (m_head) {
-        m_head->setTextureSize(64, 32);
-        m_head->setTextureOffset(0, 0);
-        // 头部内层尺寸保持标准
-        m_head->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
+    if (m_headwear) {
+        m_headwear->clearBoxes();
+        m_headwear->setTextureSize(64, 32);
+        m_headwear->setTextureOffset(0, 16);
+        m_headwear->addBox(-4.0f, -8.0f, -4.0f, 8.0f, 8.0f, 8.0f, -0.5f);
+        m_headwear->setRotationPoint(0.0f, ENDERMAN_Y_OFFSET, 0.0f);
     }
 
     // 身体：8x12x4，纹理位置 (32, 16)
@@ -42,6 +55,7 @@ void EndermanModel::setupParts() {
     //     this.bipedBody.addBox(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F, scale);
     //     this.bipedBody.setRotationPoint(0.0F, -14.0F, 0.0F);
     if (m_body) {
+        m_body->clearBoxes();
         m_body->setTextureSize(64, 32);
         m_body->setTextureOffset(32, 16);
         m_body->addBox(-4.0f, 0.0f, -2.0f, 8.0f, 12.0f, 4.0f, 0.0f);
@@ -51,8 +65,9 @@ void EndermanModel::setupParts() {
     // 右臂：2x30x2，纹理位置 (56, 0)
     // MC: this.bipedRightArm = new ModelRenderer(this, 56, 0);
     //     this.bipedRightArm.addBox(-1.0F, -2.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
-    //     this.bipedRightArm.setRotationPoint(-3.0F, -12.0F, 0.0F);
+    //     this.bipedRightArm.setRotationPoint(-3.0F, -12.0F, 0.0F);  // 注意：Java 是 -3.0F
     if (m_rightArm) {
+        m_rightArm->clearBoxes();
         m_rightArm->setTextureSize(64, 32);
         m_rightArm->setTextureOffset(56, 0);
         m_rightArm->addBox(-1.0f, -2.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
@@ -65,6 +80,7 @@ void EndermanModel::setupParts() {
     //     this.bipedLeftArm.addBox(-1.0F, -2.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
     //     this.bipedLeftArm.setRotationPoint(5.0F, -12.0F, 0.0F);
     if (m_leftArm) {
+        m_leftArm->clearBoxes();
         m_leftArm->setTextureSize(64, 32);
         m_leftArm->setTextureOffset(56, 0);
         m_leftArm->setMirror(true);
@@ -77,6 +93,7 @@ void EndermanModel::setupParts() {
     //     this.bipedRightLeg.addBox(-1.0F, 0.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
     //     this.bipedRightLeg.setRotationPoint(-2.0F, -2.0F, 0.0F);
     if (m_rightLeg) {
+        m_rightLeg->clearBoxes();
         m_rightLeg->setTextureSize(64, 32);
         m_rightLeg->setTextureOffset(56, 0);
         m_rightLeg->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 30.0f, 2.0f, 0.0f);
@@ -89,6 +106,7 @@ void EndermanModel::setupParts() {
     //     this.bipedLeftLeg.addBox(-1.0F, 0.0F, -1.0F, 2.0F, 30.0F, 2.0F, scale);
     //     this.bipedLeftLeg.setRotationPoint(2.0F, -2.0F, 0.0F);
     if (m_leftLeg) {
+        m_leftLeg->clearBoxes();
         m_leftLeg->setTextureSize(64, 32);
         m_leftLeg->setTextureOffset(56, 0);
         m_leftLeg->setMirror(true);
@@ -216,6 +234,7 @@ void EndermanModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 最终手臂位置
     // MC: this.bipedRightArm.setRotationPoint(-5.0F, -12.0F, 0.0F);
     //     this.bipedLeftArm.setRotationPoint(5.0F, -12.0F, 0.0F);
+    // 注意：Java代码在setRotationAngles末尾设置的是-5.0F
     if (m_rightArm) {
         m_rightArm->setRotationPoint(-5.0f, -12.0f, 0.0f);
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/EntityModel.hpp"
+#include "../core/AgeableModel.hpp"
 #include "../base/QuadrupedModel.hpp"
 
 namespace mc::client::renderer::entity::model::animal {
@@ -65,8 +66,9 @@ private:
  * @brief 鸡模型
  *
  * 参考 MC 1.16.5 ChickenModel
+ * 继承 AgeableModel 以支持幼体渲染
  */
-class ChickenModel : public EntityModel {
+class ChickenModel : public AgeableModel {
 public:
     ChickenModel();
     ~ChickenModel() override = default;
@@ -76,6 +78,10 @@ public:
     void setAngles(f64 limbSwing, f64 limbSwingAmount,
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
+
+protected:
+    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
+    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
 
 private:
     std::shared_ptr<ModelRenderer> m_head;

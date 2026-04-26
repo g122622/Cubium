@@ -20,6 +20,11 @@ void EntityModel::setAngles(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
     // 基类不实现动画
 }
 
+void EntityModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/) {
+    // 基类不实现动画状态设置
+    // 子类可以重写此方法来设置模型状态
+}
+
 void EntityModel::copyAnglesTo(EntityModel& target) const {
     assert(m_parts.size() == target.m_parts.size());
 

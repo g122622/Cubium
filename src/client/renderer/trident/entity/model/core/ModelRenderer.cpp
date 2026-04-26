@@ -126,9 +126,11 @@ ModelBox::ModelBox(i32 texOffX, i32 texOffY,
     );
 
     // 西面 (X-) - quads[1]
-    // Java: quads[1] = TexturedQuad({v7, v3, v0, v4}, f4, f11, f5, f12, ...)
+    // Java: quads[1] = TexturedQuad({vertex7, vertex3, vertex6, vertex2}, ...)
+    // vertex7=v0(左下后), vertex3=v4(左下前), vertex6=v7(左上前), vertex2=v3(左上后)
+    // 正确顺序: 左下后 -> 左下前 -> 左上前 -> 左上后
     quads[1] = TexturedQuad(
-        {v4, v0, v3, v7},  // 左下前, 左下后, 左上后, 左上前
+        {v0, v4, v7, v3},  // 左下后, 左下前, 左上前, 左上后
         f4, f11, f5, f12,
         texWidth, texHeight,
         normalWest, mirror

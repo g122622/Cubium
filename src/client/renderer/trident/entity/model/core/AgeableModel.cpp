@@ -106,4 +106,9 @@ void AgeableModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     EntityModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 }
 
+void AgeableModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/) {
+    // 默认实现为空，子类可以重写
+    // 参考 MC 1.16.5 EntityModel.setLivingAnimations
+}
+
 } // namespace mc::client::renderer::entity::model

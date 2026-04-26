@@ -61,9 +61,10 @@ void SkeletonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     switch (m_rightArmPose) {
         case ArmPose::BowAndArrow:
-            // 拉弓姿态
-            m_rightArm->setRotateAngleY(-0.1f + static_cast<f32>(netHeadYaw * DEG_TO_RAD));
-            m_leftArm->setRotateAngleY(0.1f + static_cast<f32>(netHeadYaw * DEG_TO_RAD) + 0.4f);
+            // 拉弓姿态 - 参考 MC 1.16.5 SkeletonModel.setRotationAngles
+            // 使用头部的Y旋转角度，而不是netHeadYaw（度数）
+            m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
+            m_leftArm->setRotateAngleY(0.1f + m_head->rotateAngleY() + 0.4f);
             m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
             m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
             break;

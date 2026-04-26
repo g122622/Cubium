@@ -49,6 +49,14 @@ public:
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
 
+    /**
+     * @brief 设置生物动画状态（每帧调用）
+     *
+     * 参考 MC 1.16.5 EntityModel.setLivingAnimations
+     * 用于在每帧设置模型状态（位置、状态变量）
+     */
+    virtual void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick);
+
     // ========== 幼体状态 ==========
 
     /**

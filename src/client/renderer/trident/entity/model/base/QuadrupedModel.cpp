@@ -4,7 +4,38 @@
 
 namespace mc::client::renderer::entity::model {
 
-QuadrupedModel::QuadrupedModel() {
+QuadrupedModel::QuadrupedModel()
+    : AgeableModel()  // 使用 AgeableModel 默认构造函数
+    , m_legHeight(6)
+    , m_scale(0.0f)
+{
+    // 创建部件
+    m_head = std::make_shared<ModelRenderer>("head");
+    m_body = std::make_shared<ModelRenderer>("body");
+    m_legFrontRight = std::make_shared<ModelRenderer>("legFrontRight");
+    m_legFrontLeft = std::make_shared<ModelRenderer>("legFrontLeft");
+    m_legBackRight = std::make_shared<ModelRenderer>("legBackRight");
+    m_legBackLeft = std::make_shared<ModelRenderer>("legBackLeft");
+
+    setupParts();
+
+    // 添加到部件列表
+    m_parts.push_back(m_head);
+    m_parts.push_back(m_body);
+    m_parts.push_back(m_legFrontRight);
+    m_parts.push_back(m_legFrontLeft);
+    m_parts.push_back(m_legBackRight);
+    m_parts.push_back(m_legBackLeft);
+}
+
+QuadrupedModel::QuadrupedModel(i32 legHeight, f32 scale, bool isChildHeadScaled,
+                               f32 childHeadOffsetY, f32 childHeadOffsetZ,
+                               f32 childHeadScale, f32 childBodyScale, f32 childBodyOffsetY)
+    : AgeableModel(isChildHeadScaled, childHeadOffsetY, childHeadOffsetZ,
+                   childHeadScale, childBodyScale, childBodyOffsetY)
+    , m_legHeight(legHeight)
+    , m_scale(scale)
+{
     // 创建部件
     m_head = std::make_shared<ModelRenderer>("head");
     m_body = std::make_shared<ModelRenderer>("body");
@@ -25,55 +56,86 @@ QuadrupedModel::QuadrupedModel() {
 }
 
 void QuadrupedModel::setupParts() {
-    // 默认四足动物（接近 PigModel 基础参数）
-    // 参考 MC 1.16.5 QuadrupedModel(legHeight=6)
+    // 参考 MC 1.16.5 QuadrupedModel 构造函数
+    // Java 参数:
+    // p_i225948_1_ = legHeight (腿高)
+    // p_i225948_2_ = scale (膨胀值)
+    // p_i225948_3_ = isChildHeadScaled
+    // p_i225948_4_ = childHeadOffsetY
+    // p_i225948_5_ = childHeadOffsetZ
+    // p_i225948_6_ = childHeadScale
+    // p_i225948_7_ = childBodyScale
+    // p_i225948_8_ = childBodyOffsetY
 
-    // 头部（基础头壳）
-    m_head->addBox(-4.0f, -4.0f, -8.0f, 8.0f, 8.0f, 8.0f);
-    m_head->setRotationPoint(0.0f, 12.0f, -6.0f);
+    // 头部 - Java: this.headModel.addBox(-4.0F, -4.0F, -8.0F, 8.0F, 8.0F, 8.0F, scale);
+    // 旋转点 Y = 18 - legHeight
+    m_head->setTextureOffset(0, 0);
+    m_head->addBox(-4.0f, -4.0f, -8.0f, 8.0f, 8.0f, 8.0f, m_scale);
+    m_head->setRotationPoint(0.0f, static_cast<f32>(18 - m_legHeight), -6.0f);
 
-    // 身体（在 setAngles 中旋转到水平）
-    m_body->addBox(-5.0f, -10.0f, -7.0f, 10.0f, 16.0f, 8.0f);
-    m_body->setRotationPoint(0.0f, 11.0f, 2.0f);
+    // 身体 - Java: this.body.addBox(-5.0F, -10.0F, -7.0F, 10.0F, 16.0F, 8.0F, scale);
+    // 旋转点 Y = 17 - legHeight
+    m_body->setTextureOffset(28, 8);
+    m_body->addBox(-5.0f, -10.0f, -7.0f, 10.0f, 16.0f, 8.0f, m_scale);
+    m_body->setRotationPoint(0.0f, static_cast<f32>(17 - m_legHeight), 2.0f);
 
-    // 前右腿
-    m_legFrontRight->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 6.0f, 4.0f);
-    m_legFrontRight->setRotationPoint(-3.0f, 18.0f, -5.0f);
-
-    // 前左腿
-    m_legFrontLeft->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 6.0f, 4.0f);
-    m_legFrontLeft->setRotationPoint(3.0f, 18.0f, -5.0f);
-
-    // 后右腿
-    m_legBackRight->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 6.0f, 4.0f);
-    m_legBackRight->setRotationPoint(-3.0f, 18.0f, 7.0f);
+    // 后右腿 - Java: this.legBackRight.addBox(-2.0F, 0.0F, -2.0F, 4.0F, legHeight, 4.0F, scale);
+    // 旋转点 Y = 24 - legHeight
+    m_legBackRight->setTextureOffset(0, 16);
+    m_legBackRight->addBox(-2.0f, 0.0f, -2.0f, 4.0f, static_cast<f32>(m_legHeight), 4.0f, m_scale);
+    m_legBackRight->setRotationPoint(-3.0f, static_cast<f32>(24 - m_legHeight), 7.0f);
 
     // 后左腿
-    m_legBackLeft->addBox(-2.0f, 0.0f, -2.0f, 4.0f, 6.0f, 4.0f);
-    m_legBackLeft->setRotationPoint(3.0f, 18.0f, 7.0f);
+    m_legBackLeft->setTextureOffset(0, 16);
+    m_legBackLeft->addBox(-2.0f, 0.0f, -2.0f, 4.0f, static_cast<f32>(m_legHeight), 4.0f, m_scale);
+    m_legBackLeft->setRotationPoint(3.0f, static_cast<f32>(24 - m_legHeight), 7.0f);
+
+    // 前右腿 - Java: rotationPointZ = -5.0F
+    m_legFrontRight->setTextureOffset(0, 16);
+    m_legFrontRight->addBox(-2.0f, 0.0f, -2.0f, 4.0f, static_cast<f32>(m_legHeight), 4.0f, m_scale);
+    m_legFrontRight->setRotationPoint(-3.0f, static_cast<f32>(24 - m_legHeight), -5.0f);
+
+    // 前左腿
+    m_legFrontLeft->setTextureOffset(0, 16);
+    m_legFrontLeft->addBox(-2.0f, 0.0f, -2.0f, 4.0f, static_cast<f32>(m_legHeight), 4.0f, m_scale);
+    m_legFrontLeft->setRotationPoint(3.0f, static_cast<f32>(24 - m_legHeight), -5.0f);
+}
+
+std::vector<std::shared_ptr<ModelRenderer>> QuadrupedModel::getHeadParts() const {
+    return { m_head };
+}
+
+std::vector<std::shared_ptr<ModelRenderer>> QuadrupedModel::getBodyParts() const {
+    return { m_body, m_legBackRight, m_legBackLeft, m_legFrontRight, m_legFrontLeft };
 }
 
 void QuadrupedModel::render(f64 scale) {
-    EntityModel::render(scale);
+    AgeableModel::render(scale);
 }
 
 void QuadrupedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                 f64 /*ageInTicks*/, f64 netHeadYaw,
                                 f64 headPitch, f64 /*scale*/) {
-    // 头部旋转
+    // 参考 MC 1.16.5 QuadrupedModel.setRotationAngles
+
+    // 头部旋转 - Java: headPitch * ((float)Math.PI / 180F)
     m_head->setRotateAngleX(math::toRadians(headPitch));
     m_head->setRotateAngleY(math::toRadians(netHeadYaw));
 
-    // 身体默认姿态（与 Java 版一致）
-    m_body->setRotateAngleX(math::PI * 0.5f);
+    // 身体默认姿态 - Java: ((float)Math.PI / 2F)
+    m_body->setRotateAngleX(static_cast<f32>(math::PI / 2.0));
 
-    // 步态动画（与 MC 1.16.5 一致）
-    const f64 walkAngle = limbSwing * 0.6662f;
-    const f64 walkAmount = limbSwingAmount * 1.4f;
+    // 步态动画 - Java 完全一致
+    const f64 walkAngle = limbSwing * 0.6662;
+    const f64 walkAmount = limbSwingAmount * 1.4;
 
+    // Java: MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount
     m_legBackRight->setRotateAngleX(std::cos(walkAngle) * walkAmount);
+    // Java: MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount
     m_legBackLeft->setRotateAngleX(std::cos(walkAngle + math::PI) * walkAmount);
+    // Java: MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount
     m_legFrontRight->setRotateAngleX(std::cos(walkAngle + math::PI) * walkAmount);
+    // Java: MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount
     m_legFrontLeft->setRotateAngleX(std::cos(walkAngle) * walkAmount);
 }
 

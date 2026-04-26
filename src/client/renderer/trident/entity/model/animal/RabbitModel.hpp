@@ -32,6 +32,13 @@ public:
                    f64 headPitch, f64 scale) override;
 
     /**
+     * @brief 设置生物动画状态（每帧调用）
+     *
+     * 参考 MC 1.16.5 RabbitModel.setLivingAnimations
+     */
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
+
+    /**
      * @brief 设置跳跃旋转值
      * @param jumpRotation 跳跃旋转值 (0.0 - 1.0，通过 sin(jumpCompletion * PI) 计算)
      */

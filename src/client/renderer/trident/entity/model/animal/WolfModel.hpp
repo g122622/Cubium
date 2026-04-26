@@ -10,7 +10,7 @@ namespace mc::client::renderer::entity::model::animal {
 /**
  * @brief 狼模型
  *
- * 参考 MC 1.16.5 WolfModel
+ * 参考 MC 1.16.5 WolfModel（继承自 TintedAgeableModel）
  * 狼有特殊的姿态：站立、坐下、睡觉、摇尾巴等。
  */
 class WolfModel : public AgeableModel {
@@ -25,16 +25,22 @@ public:
                    f64 headPitch, f64 scale) override;
 
     /**
+     * @brief 设置生物动画状态（每帧调用）
+     *
+     * 参考 MC 1.16.5 WolfModel.setLivingAnimations
+     */
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
+
+    /**
      * @brief 设置动画状态
      * @param isSitting 是否坐下
-     * @param isAngry 是否愤怒
-     * @param isWet 是否湿了
-     * @param tailRotation 尾巴旋转角度
+     * @param isAngry 是否愤怒（func_233678_J__）
+     * @param isWet 是否湿润（用于动画，非着色）
+     * @param tailRotation 尾巴旋转角度（对应 ageInTicks）
      * @param shakeAngle 摇晃角度
      * @param interestedAngle 感兴趣角度
      */
-    void setAnimState(bool isSitting, bool isAngry, bool isWet,
-                      f32 tailRotation, f32 shakeAngle, f32 interestedAngle);
+    void setAnimState(bool isSitting, bool isAngry, bool isWet, f32 tailRotation, f32 shakeAngle, f32 interestedAngle);
 
     /**
      * @brief 设置着色颜色（湿状态）
@@ -43,13 +49,21 @@ public:
         m_tintR = r; m_tintG = g; m_tintB = b;
     }
 
+protected:
+    /**
+     * @brief 获取头部部件
+     */
+    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
+
+    /**
+     * @brief 获取身体部件
+     */
+    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
+
 private:
     // 头部部件
     std::shared_ptr<ModelRenderer> m_head;        // 头部旋转点
     std::shared_ptr<ModelRenderer> m_headChild;   // 头部实际盒子
-    std::shared_ptr<ModelRenderer> m_nose;        // 鼻子
-    std::shared_ptr<ModelRenderer> m_earLeft;     // 左耳
-    std::shared_ptr<ModelRenderer> m_earRight;    // 右耳
 
     // 身体部件
     std::shared_ptr<ModelRenderer> m_body;        // 身体

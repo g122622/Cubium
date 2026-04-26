@@ -198,6 +198,11 @@ public:
                           f64 width, f64 height, f64 depth,
                           bool mirror, f64 delta = 0.0f);
 
+    /**
+     * @brief 清除所有盒子
+     */
+    void clearBoxes() { m_boxes.clear(); }
+
     // ========== 镜像 ==========
 
     /**

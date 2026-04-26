@@ -18,11 +18,11 @@ BlazeModel::BlazeModel() {
 
 void BlazeModel::setupParts() {
     // 参考 MC 1.16.5 BlazeModel
-    // 头部（主体）
+    // 头部（主体）- Java原版没有调用setRotationPoint，默认是(0,0,0)
     m_head = std::make_shared<model::ModelRenderer>("head");
     m_head->setTextureOffset(0, 0);
     m_head->addBox(-4.0f, -4.0f, -4.0f, 8.0f, 8.0f, 8.0f, 0.0);
-    m_head->setRotationPoint(0.0f, 16.0f, 0.0f);
+    // Java原版不设置rotationPoint，默认为(0,0,0)
     m_parts.push_back(m_head);
 
     // 烟雾棒（12根）
