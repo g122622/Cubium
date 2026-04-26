@@ -10,18 +10,5 @@
       "Bash(./build/bin/Debug/mc_tests.exe:*)",
       "Bash(D:/MiscProjects/minecraft-reborn/build/bin/Debug/mc_tests.exe:*)"
     ]
-  },
-  "prefersReducedMotion": true,
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"decision\": \"block\", \"reason\": \"⚠️ 会话即将结束。请先检查任务列表(TaskList)、上下文、计划文件等，确认所有任务是否已完成。如果有未完成的任务，请继续完成它们，你的时间和上下文都没有限制，必须不计代价完成；如果所有任务已完成，请忽略这条消息。（如果你上下文没有计划文件，可以在C:\\Users\\Administrator\\.claude\\plans下按照时间排序，查找最新的一两个计划文件，看看其内容是否和你上下文符合，若基本符合，则说明是该计划文件被不小心从你上下文移除了）\"}'"
-          }
-        ]
-      }
-    ]
   }
 }
