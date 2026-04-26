@@ -7,6 +7,7 @@
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../core/Constants.hpp"
 
 namespace mc {
 namespace blocks {
@@ -47,7 +48,7 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context) {
     IWorld& world = const_cast<IWorld&>(context.getWorld());
 
     const BlockState* upState = world.getBlockState(pos.up());
-    if (pos.y >= 255 || upState == nullptr || !upState->isAir()) {
+    if (pos.y >= world::MAX_BUILD_HEIGHT - 1 || upState == nullptr || !upState->isAir()) {
         const Material* mat = upState ? &upState->getMaterial() : nullptr;
         if (mat == nullptr || !mat->isReplaceable()) {
             return defaultState();

@@ -5,6 +5,7 @@
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/core/Constants.hpp"
 
 namespace {
 
@@ -94,7 +95,7 @@ private:
 TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors) {
     ensureVanillaBlocksInitialized();
 
-    BlockLightChunkProvider provider(0, 256);
+    BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     provider.setChunk(&chunk);
@@ -128,7 +129,7 @@ TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors) {
 TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
     ensureVanillaBlocksInitialized();
 
-    BlockLightChunkProvider provider(0, 256);
+    BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     provider.setChunk(&chunk);
@@ -167,7 +168,7 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
 TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
     ensureVanillaBlocksInitialized();
 
-    BlockLightChunkProvider provider(0, 256);
+    BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     provider.setChunk(&chunk);
@@ -203,7 +204,7 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
 TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
     ensureVanillaBlocksInitialized();
 
-    BlockLightChunkProvider provider(0, 256);
+    BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     provider.setChunk(&chunk);
@@ -240,7 +241,7 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
 TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation) {
     ensureVanillaBlocksInitialized();
 
-    BlockLightChunkProvider provider(0, 256);
+    BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     provider.setChunk(&chunk);
@@ -267,7 +268,7 @@ TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation) {
 TEST(BlockLightRegressionTest, CheckBlockMatchesCheckBlock) {
     ensureVanillaBlocksInitialized();
 
-    BlockLightChunkProvider provider(0, 256);
+    BlockLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     provider.setChunk(&chunk);

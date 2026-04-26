@@ -131,14 +131,14 @@ void CanyonCarver::generateCanyon(
     math::Random rng(static_cast<u64>(seed));
 
     // 重新初始化高度阈值（MC 每次生成时都重新计算）
-    std::vector<f32> heightThresholds(256);
+    std::vector<f32> heightThresholds(world::MAX_BUILD_HEIGHT);
     f32 currentThreshold = 1.0f;
-    for (size_t i = 0; i < 256; ++i) {
+    for (i32 i = 0; i < world::MAX_BUILD_HEIGHT; ++i) {
         if (i == 0 || rng.nextInt(3) == 0) {
             currentThreshold = 1.0f + rng.nextFloat() * rng.nextFloat();
             currentThreshold = currentThreshold * currentThreshold;
         }
-        heightThresholds[i] = currentThreshold;
+        heightThresholds[static_cast<size_t>(i)] = currentThreshold;
     }
 
     f32 yawModifier = 0.0f;

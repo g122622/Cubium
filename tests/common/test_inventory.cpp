@@ -13,6 +13,7 @@
 #include "../src/common/world/IWorld.hpp"
 #include "../src/common/world/chunk/ChunkData.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
+#include "../src/common/core/Constants.hpp"
 #include "../src/common/world/block/Block.hpp"
 
 #include <array>
@@ -37,7 +38,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
         return fluid::Fluid::getFluidState(0);
     }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }

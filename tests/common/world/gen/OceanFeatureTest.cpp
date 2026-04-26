@@ -9,6 +9,7 @@
 #include "world/gen/feature/ocean/OceanDecorationFeature.hpp"
 #include "world/gen/feature/ocean/SeaPickleFeature.hpp"
 #include "world/gen/feature/ocean/SeagrassFeature.hpp"
+#include "core/Constants.hpp"
 
 #include <array>
 #include <memory>
@@ -280,7 +281,7 @@ TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater) {
 
     i32 oceanFloorY = m_region->getTopBlockY(startX, startZ, HeightmapType::OceanFloorWG);
     if (oceanFloorY <= 0) {
-        for (i32 y = 255; y >= 1; --y) {
+        for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT + 1; --y) {
             const BlockState* state = getWorldBlock(startX, y, startZ);
             if (state == nullptr || state->isAir()) {
                 continue;

@@ -6,6 +6,7 @@
 #include "world/block/blocks/special/SpecialBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/IWorld.hpp"
+#include "core/Constants.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -85,7 +86,7 @@ public:
     }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= 0 && y < 256;
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
     [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override {

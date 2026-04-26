@@ -1,4 +1,5 @@
 #include "DimensionType.hpp"
+#include "../../core/Constants.hpp"
 
 namespace mc {
 
@@ -23,9 +24,9 @@ DimensionType DimensionType::overworld() {
     type.m_piglinSafe = false;
 
     // 高度
-    type.m_minHeight = 0;
-    type.m_maxHeight = 256;
-    type.m_logicalHeight = 256;
+    type.m_minHeight = world::MIN_BUILD_HEIGHT;
+    type.m_maxHeight = world::MAX_BUILD_HEIGHT;
+    type.m_logicalHeight = world::MAX_BUILD_HEIGHT;
 
     // 坐标转换
     type.m_coordinateScale = 1.0f;
@@ -99,9 +100,9 @@ DimensionType DimensionType::theEnd() {
     type.m_piglinSafe = false;
 
     // 高度
-    type.m_minHeight = 0;
-    type.m_maxHeight = 256;
-    type.m_logicalHeight = 256;
+    type.m_minHeight = world::MIN_BUILD_HEIGHT;
+    type.m_maxHeight = world::MAX_BUILD_HEIGHT;
+    type.m_logicalHeight = world::MAX_BUILD_HEIGHT;
 
     // 坐标转换
     type.m_coordinateScale = 1.0f;  // 与主世界 1:1

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WorldCarver.hpp"
+#include "../../../core/Constants.hpp"
 
 namespace mc {
 
@@ -30,7 +31,7 @@ public:
      * @brief 构造洞穴雕刻器
      * @param maxHeight 最大雕刻高度
      */
-    explicit CaveCarver(i32 maxHeight = 256);
+    explicit CaveCarver(i32 maxHeight = world::MAX_BUILD_HEIGHT);
 
     ~CaveCarver() override = default;
 

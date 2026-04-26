@@ -1,6 +1,7 @@
 #include "Particle.hpp"
 #include "ParticleTextureAtlas.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/core/Constants.hpp"
 #include <algorithm>
 
 // 前置声明 - 避免包含 ClientWorld.hpp
@@ -195,8 +196,8 @@ void Particle::move(ClientWorld* world, const glm::vec3& delta) {
     if (world != nullptr) {
         // TODO: 从世界获取方块高度
         // 当前简单检测：如果 Y 低于某个值，认为在地面
-        if (static_cast<f64>(m_position.y) + delta.y < 0.0) {
-            actualDelta.y = -static_cast<f64>(m_position.y);
+        if (static_cast<f64>(m_position.y) + delta.y < static_cast<f64>(mc::world::MIN_BUILD_HEIGHT)) {
+            actualDelta.y = static_cast<f64>(mc::world::MIN_BUILD_HEIGHT) - static_cast<f64>(m_position.y);
             m_onGround = true;
             m_velocity.y = 0.0f;
         } else {

@@ -2,6 +2,7 @@
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/core/Constants.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
@@ -303,7 +304,7 @@ TEST_F(FrustumTest, ChunkVisibility_ChunkInFront) {
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
 
     // 相机前方的区块
-    EXPECT_TRUE(frustum.isChunkVisible(0, -1, 0, 256));
+    EXPECT_TRUE(frustum.isChunkVisible(0, -1, 0, mc::world::MAX_BUILD_HEIGHT));
 }
 
 TEST_F(FrustumTest, ChunkVisibility_ChunkBehind) {
@@ -312,7 +313,7 @@ TEST_F(FrustumTest, ChunkVisibility_ChunkBehind) {
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
 
     // 相机后方的区块
-    EXPECT_FALSE(frustum.isChunkVisible(0, 1, 0, 256));
+    EXPECT_FALSE(frustum.isChunkVisible(0, 1, 0, mc::world::MAX_BUILD_HEIGHT));
 }
 
 TEST_F(FrustumTest, ChunkVisibility_ChunkAtCameraPosition) {
@@ -321,7 +322,7 @@ TEST_F(FrustumTest, ChunkVisibility_ChunkAtCameraPosition) {
     frustum.setCameraPosition(Vector3(8.0f, 64.0f, 8.0f));
 
     // 相机所在区块
-    EXPECT_TRUE(frustum.isChunkVisible(0, 0, 0, 256));
+    EXPECT_TRUE(frustum.isChunkVisible(0, 0, 0, mc::world::MAX_BUILD_HEIGHT));
 }
 
 TEST_F(FrustumTest, ChunkVisibility_CameraMoved) {
@@ -346,7 +347,7 @@ TEST_F(FrustumTest, ChunkVisibility_CameraMoved) {
 
     // 区块 X 范围: [96, 112]，相机 X=100，在范围内
     // 区块 Z 范围: [-208, -192]，相机 Z=-200，部分在视锥内
-    EXPECT_TRUE(frustum.isChunkVisible(chunkX, chunkZ, 0, 256));
+    EXPECT_TRUE(frustum.isChunkVisible(chunkX, chunkZ, 0, mc::world::MAX_BUILD_HEIGHT));
 }
 
 // ========== 区块段可见性测试 ==========
@@ -405,13 +406,13 @@ TEST_F(FrustumTest, CameraPosition_GlmVersion) {
 // ========== 工具函数测试 ==========
 
 TEST_F(FrustumTest, Utils_CreateChunkAABB) {
-    auto aabb = FrustumUtils::createChunkAABB(0, 0, 0, 256);
+    auto aabb = FrustumUtils::createChunkAABB(0, 0, 0, mc::world::MAX_BUILD_HEIGHT);
 
     EXPECT_FLOAT_EQ(aabb.minX, 0.0f);
-    EXPECT_FLOAT_EQ(aabb.minY, 0.0f);
+    EXPECT_FLOAT_EQ(aabb.minY, static_cast<f32>(mc::world::MIN_BUILD_HEIGHT));
     EXPECT_FLOAT_EQ(aabb.minZ, 0.0f);
     EXPECT_FLOAT_EQ(aabb.maxX, 16.0f);
-    EXPECT_FLOAT_EQ(aabb.maxY, 256.0f);
+    EXPECT_FLOAT_EQ(aabb.maxY, static_cast<f32>(mc::world::MAX_BUILD_HEIGHT));
     EXPECT_FLOAT_EQ(aabb.maxZ, 16.0f);
 }
 
@@ -567,5 +568,5 @@ TEST_F(FrustumTest, ExtremeCoordinates) {
     i32 farChunkZ = 62500;
 
     // 不崩溃即可
-    frustum.isChunkVisible(farChunkX, farChunkZ, 0, 256);
+    frustum.isChunkVisible(farChunkX, farChunkZ, 0, mc::world::MAX_BUILD_HEIGHT);
 }

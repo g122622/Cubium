@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "../../../core/Constants.hpp"
 #include "../../block/Block.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -99,7 +100,7 @@ public:
      * @brief 构造雕刻器
      * @param maxHeight 最大雕刻高度
      */
-    explicit WorldCarver(i32 maxHeight = 256)
+    explicit WorldCarver(i32 maxHeight = world::MAX_BUILD_HEIGHT)
         : m_maxHeight(maxHeight) {}
 
     virtual ~WorldCarver() = default;

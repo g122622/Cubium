@@ -5,6 +5,7 @@
 #include "../../../util/property/Properties.hpp"
 #include "../../../util/math/random/IRandom.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../core/Constants.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/Material.hpp"
@@ -157,7 +158,7 @@ bool LavaFluid::isSurroundingBlockFlammable(IWorld& world, const BlockPos& pos) 
 }
 
 bool LavaFluid::isBlockFlammable(IWorld& world, const BlockPos& pos) const {
-    if (pos.y < 0 || pos.y >= 256) {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 

@@ -4,6 +4,7 @@
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../core/Constants.hpp"
 
 namespace mc {
 
@@ -89,7 +90,7 @@ bool BigMushroomFeature::canPlaceAt(
 
     // 检查Y坐标范围
     i32 baseY = pos.y;
-    if (baseY < 1 || baseY + height + 1 >= 256) {
+    if (baseY < world::MIN_BUILD_HEIGHT + 1 || baseY + height + 1 >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 

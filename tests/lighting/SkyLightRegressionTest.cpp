@@ -6,6 +6,7 @@
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
+#include "common/core/Constants.hpp"
 
 namespace {
 
@@ -94,7 +95,7 @@ private:
 TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     ensureVanillaBlocksInitialized();
 
-    SkyLightChunkProvider provider(0, 256);
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态，使光照引擎可以使用它
     provider.setChunk(&chunk);
@@ -132,7 +133,7 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
 TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing) {
     ensureVanillaBlocksInitialized();
 
-    SkyLightChunkProvider provider(0, 256);
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     chunk.setSkyEmptinessMap(nullptr);
@@ -161,7 +162,7 @@ TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing) {
 TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
     ensureVanillaBlocksInitialized();
 
-    SkyLightChunkProvider provider(0, 256);
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
     provider.setChunk(&chunk);
@@ -200,7 +201,7 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
 TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
     ensureVanillaBlocksInitialized();
 
-    SkyLightChunkProvider provider(0, 256);
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
     provider.setChunk(&chunk);
@@ -244,7 +245,7 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
 TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock) {
     ensureVanillaBlocksInitialized();
 
-    SkyLightChunkProvider provider(0, 256);
+    SkyLightChunkProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);  // 设置区块状态
     provider.setChunk(&chunk);

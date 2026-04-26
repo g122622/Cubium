@@ -1,6 +1,7 @@
 #include "CreatureEntity.hpp"
 #include "../ai/controller/MovementController.hpp"
 #include "../ai/pathfinding/PathNavigator.hpp"
+#include "../../core/Constants.hpp"
 
 namespace mc {
 
@@ -36,7 +37,7 @@ f32 CreatureEntity::getPathWeight(f32 /*x*/, f32 /*y*/, f32 /*z*/) const {
 bool CreatureEntity::canSpawnAt(f32 /*x*/, f32 y, f32 /*z*/) const {
     // 默认实现：检查是否在有效位置
     // 子类应该重写此方法
-    return y >= 0.0f;
+    return y >= static_cast<f32>(world::MIN_BUILD_HEIGHT);
 }
 
 } // namespace mc

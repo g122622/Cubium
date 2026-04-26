@@ -18,6 +18,7 @@
 #include "common/util/Direction.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/core/CoordConverter.hpp"
+#include "common/core/Constants.hpp"
 #include <algorithm>
 #include <array>
 #include <spdlog/spdlog.h>
@@ -767,8 +768,8 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
             const ChunkData* chunk = getChunk(cx, cz);
             if (!chunk) continue;
 
-            i32 minY = std::max(0, static_cast<i32>(std::floor(box.minY)));
-            i32 maxY = std::min(255, static_cast<i32>(std::ceil(box.maxY)));
+            i32 minY = std::max(world::MIN_BUILD_HEIGHT, static_cast<i32>(std::floor(box.minY)));
+            i32 maxY = std::min(world::MAX_BUILD_HEIGHT - 1, static_cast<i32>(std::ceil(box.maxY)));
 
             for (i32 y = minY; y <= maxY; ++y) {
                 for (i32 z = 0; z < 16; ++z) {
@@ -813,8 +814,8 @@ std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& 
             const ChunkData* chunk = getChunk(cx, cz);
             if (!chunk) continue;
 
-            i32 minY = std::max(0, static_cast<i32>(std::floor(box.minY)));
-            i32 maxY = std::min(255, static_cast<i32>(std::ceil(box.maxY)));
+            i32 minY = std::max(world::MIN_BUILD_HEIGHT, static_cast<i32>(std::floor(box.minY)));
+            i32 maxY = std::min(world::MAX_BUILD_HEIGHT - 1, static_cast<i32>(std::ceil(box.maxY)));
 
             for (i32 y = minY; y <= maxY; ++y) {
                 for (i32 z = 0; z < 16; ++z) {

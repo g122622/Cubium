@@ -283,7 +283,7 @@ struct FaceLayerRenderData {
 ) {
     constexpr i32 SIZE = ChunkData::WIDTH;
 
-    if (y < 0 || y >= world::CHUNK_HEIGHT) {
+    if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return nullptr;
     }
 

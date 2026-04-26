@@ -13,6 +13,7 @@
 #include "world/block/Block.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
+#include "core/Constants.hpp"
 #include "util/math/random/Random.hpp"
 
 using namespace mc;
@@ -26,7 +27,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
         return fluid::Fluid::getFluidState(0);
     }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < 256; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }

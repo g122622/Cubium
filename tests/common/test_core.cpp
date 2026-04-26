@@ -4,6 +4,8 @@
 #include "common/core/Result.hpp"
 #include "common/core/Constants.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 using namespace mc;
 

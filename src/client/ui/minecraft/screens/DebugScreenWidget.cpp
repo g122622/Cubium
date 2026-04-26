@@ -7,6 +7,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/core/Constants.hpp"
 #include "client/network/NetworkClient.hpp"
 #include "client/renderer/Camera.hpp"
 #include "client/world/ClientWorld.hpp"
@@ -199,7 +200,7 @@ void DebugScreenWidget::buildLeftDebugText() {
             }
 
             // 生物群系
-            if (blockLoaded && blockY >= 0 && blockY < 256) {
+            if (blockLoaded && blockY >= world::MIN_BUILD_HEIGHT && blockY < world::MAX_BUILD_HEIGHT) {
                 if (const Biome* biome = m_world->getBiomeAtBlock(blockX, blockY, blockZ)) {
                     oss.str("");
                     oss << "Biome: minecraft:" << biome->name();

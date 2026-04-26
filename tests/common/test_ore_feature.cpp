@@ -6,6 +6,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/core/Constants.hpp"
 
 using namespace mc;
 
@@ -101,13 +102,13 @@ TEST_F(PlacementTest, CountPlacement) {
 }
 
 TEST_F(PlacementTest, HeightRangePlacementConfig) {
-    HeightRangePlacementConfig config(0, 128, 256);
+    HeightRangePlacementConfig config(world::MIN_BUILD_HEIGHT, 128, world::MAX_BUILD_HEIGHT);
 
     math::Random random(12345);
     for (int i = 0; i < 100; ++i) {
         i32 y = config.getRandomY(random);
-        EXPECT_GE(y, 0);
-        EXPECT_LT(y, 256);
+        EXPECT_GE(y, world::MIN_BUILD_HEIGHT);
+        EXPECT_LT(y, world::MAX_BUILD_HEIGHT);
     }
 }
 

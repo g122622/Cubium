@@ -2,6 +2,7 @@
 #include "../BlockRegistry.hpp"
 #include "../../IWorld.hpp"
 #include "../../../entity/entities/misc/MiscEntities.hpp"
+#include "../../../core/Constants.hpp"
 
 namespace mc {
 namespace blocks {
@@ -27,7 +28,7 @@ void FallingBlock::neighborChanged(IWorld& world, const BlockPos& pos,
 void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
     MC_UNUSED(state);
 
-    if (pos.y <= 0) {
+    if (pos.y <= world::MIN_BUILD_HEIGHT) {
         return;
     }
 

@@ -5,6 +5,7 @@
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/core/Constants.hpp"
 
 #include <array>
 #include <memory>
@@ -45,7 +46,7 @@ protected:
                 for (i32 y = 0; y <= 63; ++y) {
                     chunk.setBlock(x, y, z, stone);
                 }
-                for (i32 y = 64; y < 256; ++y) {
+                for (i32 y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
                     chunk.setBlock(x, y, z, air);
                 }
             }

@@ -7,6 +7,7 @@
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "common/core/Constants.hpp"
 #include <vector>
 
 namespace mc::server {
@@ -188,7 +189,7 @@ TEST_F(LightSyncTest, WorldLightManagerCreation) {
         void markLightChanged(LightType, const SectionPos&) override {}
         bool hasSkyLight() const override { return true; }
         i32 getMinBuildHeight() const override { return 0; }
-        i32 getMaxBuildHeight() const override { return 256; }
+        i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
         i32 getSectionCount() const override { return 16; }
     };
 
@@ -222,7 +223,7 @@ TEST_F(LightSyncTest, WorldLightManagerDataAccess) {
         void markLightChanged(LightType, const SectionPos&) override {}
         bool hasSkyLight() const override { return true; }
         i32 getMinBuildHeight() const override { return 0; }
-        i32 getMaxBuildHeight() const override { return 256; }
+        i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
         i32 getSectionCount() const override { return 16; }
     };
 

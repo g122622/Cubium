@@ -7,6 +7,7 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/Properties.hpp"
+#include "../../../core/Constants.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../IWorld.hpp"
 #include "../../chunk/ChunkData.hpp"
@@ -65,7 +66,7 @@ std::vector<BlockPos> Teleporter::searchPortalBlocks(
             }
 
             // 遍历区块内的方块
-            for (i32 y = 0; y < 256; ++y) {
+            for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
                 for (i32 z = 0; z < 16; ++z) {
                     for (i32 x = 0; x < 16; ++x) {
                         const BlockState* state = chunk->getBlock(x, y, z);

@@ -3,6 +3,7 @@
 #include "../chunk/IChunkGenerator.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../../IWorld.hpp"
+#include "../../../core/Constants.hpp"
 #include <cmath>
 #include <memory>
 
@@ -148,8 +149,8 @@ std::vector<BlockPos> TopSolidPlacement::getPositions(
     (void)random;
 
     // 找到最高固体方块
-    i32 topY = 255;
-    for (i32 y = 255; y >= 0; --y) {
+    i32 topY = world::MAX_BUILD_HEIGHT - 1;
+    for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = region.getBlock(basePos.x, y, basePos.z);
         if (state && state->isSolid()) {
             topY = y;

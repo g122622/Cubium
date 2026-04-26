@@ -6,6 +6,7 @@
 #include "item/Items.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
+#include "core/Constants.hpp"
 
 #include <unordered_map>
 
@@ -23,7 +24,7 @@ public:
     [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override {
         (void)x;
         (void)z;
-        return y >= 0 && y < 256;
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
     // IWorld 接口实现 - 同时作为测试辅助方法

@@ -2,6 +2,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/core/Constants.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -30,7 +31,7 @@ bool SpawnConditions::checkLightLevel(i32 skyLight, i32 blockLight, bool isMonst
 bool SpawnConditions::canSpawnAtPosition(IWorld& world, i32 x, i32 y, i32 z,
                                           f32 entityWidth, f32 entityHeight) {
     // 边界检查
-    if (y < 0 || y >= 256) {
+    if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -66,7 +67,7 @@ bool SpawnConditions::hasCollisionSpace(IWorld& world, i32 x, i32 y, i32 z,
     f32 maxZ = static_cast<f32>(z) + 0.5f + halfWidth;
 
     // 边界检查
-    if (minY < 0 || maxY > 256) {
+    if (minY < world::MIN_BUILD_HEIGHT || maxY > world::MAX_BUILD_HEIGHT) {
         return false;
     }
 

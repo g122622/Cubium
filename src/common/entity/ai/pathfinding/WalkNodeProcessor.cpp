@@ -1,4 +1,5 @@
 #include "WalkNodeProcessor.hpp"
+#include "../../../core/Constants.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
@@ -226,13 +227,13 @@ i32 WalkNodeProcessor::getGroundHeight(i32 x, i32 y, i32 z) const {
     if (!m_region) return y;
 
     // 从指定位置向下搜索地面
-    for (i32 checkY = y; checkY >= 0; --checkY) {
+    for (i32 checkY = y; checkY >= world::MIN_BUILD_HEIGHT; --checkY) {
         if (m_region->isWalkable(x, checkY, z)) {
             return checkY;
         }
     }
 
-    return 0;
+    return world::MIN_BUILD_HEIGHT;
 }
 
 bool WalkNodeProcessor::isPassable(i32 x, i32 y, i32 z) const {

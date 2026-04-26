@@ -2,6 +2,7 @@
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../core/Constants.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -14,12 +15,12 @@ namespace mc {
 CarvingMask::CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ)
     : m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
-    , m_mask(16 * 16 * 256, false)  // 65536 bits = 8KB
+    , m_mask(16 * 16 * world::MAX_BUILD_HEIGHT, false)  // 16x16 x height
 {
 }
 
 bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const {
-    if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < 0 || y >= 256) {
+    if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
     i32 index = getIndex(x, y, z);
@@ -27,7 +28,7 @@ bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const {
 }
 
 void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z) {
-    if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < 0 || y >= 256) {
+    if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return;
     }
     i32 index = getIndex(x, y, z);
@@ -293,7 +294,7 @@ bool WorldCarver<Config>::checkAreaForFluid(
     for (i32 lx = minX; lx < maxX; ++lx) {
         for (i32 lz = minZ; lz < maxZ; ++lz) {
             for (i32 y = minY - 1; y <= maxY + 1; ++y) {
-                if (y < 0 || y >= 256) {
+                if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
                     continue;
                 }
 

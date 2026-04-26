@@ -7,6 +7,7 @@
 #include "../../../world/chunk/ChunkData.hpp"
 #include "../../../world/chunk/ChunkPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
+#include "../../../core/Constants.hpp"
 
 #include <optional>
 
@@ -67,7 +68,7 @@ public:
             return std::nullopt;
         }
 
-        for (i32 y = motionBlockingY + 1; y >= 0; --y) {
+        for (i32 y = motionBlockingY + 1; y >= world::MIN_BUILD_HEIGHT; --y) {
             const fluid::FluidState* fluidState = world.getFluidState(x, y, z);
             if (fluidState != nullptr && !fluidState->isEmpty()) {
                 break;

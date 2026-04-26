@@ -242,11 +242,11 @@ void NoiseChunkGenerator::initBiomeWeights()
 void NoiseChunkGenerator::initCarvers()
 {
     // 洞穴概率参考 MC: 1/7 ≈ 0.14285715
-    m_caveCarver = std::make_unique<CaveCarver>(256);
+    m_caveCarver = std::make_unique<CaveCarver>(world::MAX_BUILD_HEIGHT);
     m_caveConfig = ProbabilityConfig(0.14285715f);
 
     // 峡谷概率更低
-    m_canyonCarver = std::make_unique<CanyonCarver>(256);
+    m_canyonCarver = std::make_unique<CanyonCarver>(world::MAX_BUILD_HEIGHT);
     m_canyonConfig = ProbabilityConfig(0.02f);
 
     // 水下雕刻器与普通雕刻阶段共用概率配置

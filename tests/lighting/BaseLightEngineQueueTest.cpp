@@ -5,6 +5,7 @@
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/core/Constants.hpp"
 
 #include <unordered_map>
 #include <vector>
@@ -123,7 +124,7 @@ public:
     }
 
     mc::i32 getMaxBuildHeight() const override {
-        return 256;
+        return mc::world::MAX_BUILD_HEIGHT;
     }
 
     mc::i32 getSectionCount() const override {

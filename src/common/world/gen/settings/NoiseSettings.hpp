@@ -3,6 +3,7 @@
 #include "ScalingSettings.hpp"
 #include "SlideSettings.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../core/Constants.hpp"
 
 namespace mc {
 
@@ -21,7 +22,7 @@ namespace mc {
  */
 struct NoiseSettings {
     // === 基本尺寸 ===
-    i32 height = 256;                       ///< 噪声高度
+    i32 height = world::MAX_BUILD_HEIGHT;  ///< 噪声高度
     i32 sizeHorizontal = 1;                 ///< 水平大小
     i32 sizeVertical = 2;                   ///< 垂直大小
 
@@ -69,7 +70,7 @@ struct NoiseSettings {
      */
     static NoiseSettings overworld() {
         NoiseSettings settings;
-        settings.height = 256;
+        settings.height = world::MAX_BUILD_HEIGHT;
         settings.sizeHorizontal = 1;
         settings.sizeVertical = 2;
         settings.densityFactor = 1.0f;

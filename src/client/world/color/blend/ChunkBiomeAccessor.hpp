@@ -2,6 +2,7 @@
 
 #include "BiomeColorBlender.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/core/Constants.hpp"
 #include <array>
 
 namespace mc::client {
@@ -36,8 +37,8 @@ public:
         const std::array<const ChunkData*, 4>& neighbors,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
-        i32 minBuildHeight = 0,
-        i32 maxBuildHeight = 256
+        i32 minBuildHeight = world::MIN_BUILD_HEIGHT,
+        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT
     );
 
     /**
@@ -49,8 +50,8 @@ public:
         const ChunkData& chunk,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
-        i32 minBuildHeight = 0,
-        i32 maxBuildHeight = 256
+        i32 minBuildHeight = world::MIN_BUILD_HEIGHT,
+        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT
     );
 
     // ========================================================================

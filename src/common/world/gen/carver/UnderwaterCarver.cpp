@@ -2,6 +2,7 @@
 #include "../../block/VanillaBlocks.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../core/Constants.hpp"
 #include <unordered_set>
 
 namespace mc::world::gen::carver {
@@ -63,7 +64,7 @@ static const std::unordered_set<u32>& getUnderwaterCarvableBlocks()
 // ============================================================================
 
 UnderwaterCaveCarver::UnderwaterCaveCarver()
-    : CaveCarver(256)
+    : CaveCarver(world::MAX_BUILD_HEIGHT)
 {
 }
 
@@ -92,7 +93,7 @@ bool UnderwaterCaveCarver::isUnderwaterCarvable(const BlockState& state)
 // ============================================================================
 
 UnderwaterCanyonCarver::UnderwaterCanyonCarver()
-    : CanyonCarver(256)
+    : CanyonCarver(world::MAX_BUILD_HEIGHT)
 {
 }
 

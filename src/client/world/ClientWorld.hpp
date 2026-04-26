@@ -150,8 +150,8 @@ private:
 
     glm::vec3 m_cameraPosition{0.0f, 0.0f, 0.0f};
 
-    i32 m_minBuildHeight = 0;
-    i32 m_maxBuildHeight = 256;
+    i32 m_minBuildHeight = world::MIN_BUILD_HEIGHT;
+    i32 m_maxBuildHeight = world::MAX_BUILD_HEIGHT;
 
     u32 m_chunksLoaded = 0;
     u32 m_chunksUnloaded = 0;

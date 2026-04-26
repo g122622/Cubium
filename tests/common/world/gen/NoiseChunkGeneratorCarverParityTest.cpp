@@ -5,6 +5,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/core/Constants.hpp"
 
 #include <array>
 #include <memory>
@@ -41,7 +42,7 @@ protected:
 
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
-                for (i32 y = 0; y < 256; ++y) {
+                for (i32 y = 0; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
                     chunk.setBlock(x, y, z, stone);
                 }
             }
@@ -84,7 +85,7 @@ protected:
 
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
-                for (i32 y = 0; y < 256; ++y) {
+                for (i32 y = 0; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
                     const BlockState* state = chunk.getBlock(x, y, z);
                     if (state != stone) {
                         ++count;
@@ -113,7 +114,7 @@ protected:
     static void expectChunkBlocksEqual(const ChunkPrimer& lhs, const ChunkPrimer& rhs) {
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
-                for (i32 y = 0; y < 256; ++y) {
+                for (i32 y = 0; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
                     const BlockState* l = lhs.getBlock(x, y, z);
                     const BlockState* r = rhs.getBlock(x, y, z);
                     EXPECT_EQ(l, r) << "Block mismatch at (" << x << ", " << y << ", " << z << ")";

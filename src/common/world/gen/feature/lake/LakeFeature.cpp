@@ -3,6 +3,7 @@
 #include "../../../IWorldWriter.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../core/Constants.hpp"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -82,7 +83,7 @@ bool LakeFeature::canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const {
     // 水湖限制: Y >= 8
     // 熔岩湖限制: Y >= 8，在较低高度更常见
 
-    if (y < 8 || y > 256) {
+    if (y < 8 || y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 

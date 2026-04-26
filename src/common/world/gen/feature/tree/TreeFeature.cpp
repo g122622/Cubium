@@ -46,7 +46,7 @@ bool TreeFeature::place(
     }
 
     // 检查起始位置是否在有效范围内
-    if (startPos.y < 1 || startPos.y + trunkHeight + 1 >= 256) {
+    if (startPos.y < world::MIN_BUILD_HEIGHT + 1 || startPos.y + trunkHeight + 1 >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -88,7 +88,7 @@ bool TreeFeature::place(
 }
 
 bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos) {
-    if (pos.y < 0 || pos.y >= 256) {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -131,7 +131,7 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos) {
 }
 
 bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos) {
-    if (pos.y < 0 || pos.y >= 256) {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -154,7 +154,7 @@ bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos) {
 }
 
 bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos) {
-    if (pos.y < 0 || pos.y >= 256) {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -172,7 +172,7 @@ bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos)
 }
 
 bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos) {
-    if (pos.y < 0 || pos.y >= 256) {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -339,7 +339,7 @@ bool ConfiguredTreeFeature::place(
 
     for (const BlockPos& placePos : positions) {
         // 跳过无效位置
-        if (placePos.y < 1 || placePos.y >= 255) {
+        if (placePos.y < world::MIN_BUILD_HEIGHT + 1 || placePos.y >= world::MAX_BUILD_HEIGHT - 1) {
             continue;
         }
 

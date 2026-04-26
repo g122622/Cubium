@@ -3,6 +3,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/core/Constants.hpp"
 
 using namespace mc;
 using namespace mc::server;
@@ -83,7 +84,7 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithGround) {
     bool foundGround = false;
     i32 groundY = 0;
 
-    for (i32 y = 255; y >= 0; --y) {
+    for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = chunk->getBlock(8, y, 8);
         if (state && !state->isAir()) {
             groundY = y;
@@ -195,7 +196,7 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround) {
     bool foundGround = false;
     i32 groundY = 0;
 
-    for (i32 y = 255; y >= 0; --y) {
+    for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = chunk->getBlock(8, y, 8);
         if (state && !state->isAir()) {
             groundY = y;
@@ -245,13 +246,13 @@ TEST_F(ServerWorldCollisionTest, ICollisionWorldGetBlockState) {
 
 TEST_F(ServerWorldCollisionTest, ICollisionWorldIsWithinWorldBounds) {
     // 测试世界边界
-    EXPECT_TRUE(world->isWithinWorldBounds(0, 0, 0));
+    EXPECT_TRUE(world->isWithinWorldBounds(0, mc::world::MIN_BUILD_HEIGHT, 0));
     EXPECT_TRUE(world->isWithinWorldBounds(100, 100, 100));
-    EXPECT_TRUE(world->isWithinWorldBounds(100, 255, 100));
+    EXPECT_TRUE(world->isWithinWorldBounds(100, mc::world::MAX_BUILD_HEIGHT - 1, 100));
 
     // 超出边界
-    EXPECT_FALSE(world->isWithinWorldBounds(0, -1, 0));
-    EXPECT_FALSE(world->isWithinWorldBounds(0, 256, 0));
+    EXPECT_FALSE(world->isWithinWorldBounds(0, mc::world::MIN_BUILD_HEIGHT - 1, 0));
+    EXPECT_FALSE(world->isWithinWorldBounds(0, mc::world::MAX_BUILD_HEIGHT, 0));
 }
 
 TEST_F(ServerWorldCollisionTest, ICollisionWorldGetChunkAt) {

@@ -10,6 +10,7 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../core/Constants.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
@@ -23,8 +24,8 @@ namespace mc {
 // ============================================================================
 
 // 末地高度范围
-constexpr i32 END_HEIGHT = 256;
-constexpr i32 END_MIN_Y = 0;
+constexpr i32 END_HEIGHT = world::MAX_BUILD_HEIGHT;
+constexpr i32 END_MIN_Y = world::MIN_BUILD_HEIGHT;
 
 // 主岛参数（参考 MC 1.16.5）
 constexpr i32 MAIN_ISLAND_RADIUS = 96;

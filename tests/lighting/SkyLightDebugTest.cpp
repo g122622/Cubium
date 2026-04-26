@@ -3,6 +3,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
+#include "common/core/Constants.hpp"
 
 namespace {
 
@@ -49,7 +50,7 @@ private:
 TEST(SkyLightDebugTest, FloatingStoneSections) {
     ensureVanillaBlocksInitialized();
     
-    TestProvider provider(0, 256);
+    TestProvider provider(mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
     mc::ChunkData chunk(0, 0);
     chunk.setStatus(mc::ChunkLoadStatus::Generated);
     provider.setChunk(&chunk);

@@ -8,6 +8,7 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "util/Direction.hpp"
+#include "core/Constants.hpp"
 
 using namespace mc;
 
@@ -32,7 +33,7 @@ public:
     }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= 0 && y < 256;
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
     // IWorld 接口存根实现

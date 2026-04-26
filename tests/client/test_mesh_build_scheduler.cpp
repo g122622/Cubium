@@ -2,6 +2,7 @@
 #include "client/renderer/mesh/MeshBuildScheduler.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/core/Constants.hpp"
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -62,8 +63,8 @@ MeshSchedulerViewState createViewState(i32 renderDistanceChunks)
 
     viewState.viewProjectionMatrix = projection * view;
     viewState.renderDistanceChunks = renderDistanceChunks;
-    viewState.minBuildHeight = 0;
-    viewState.maxBuildHeight = 256;
+    viewState.minBuildHeight = mc::world::MIN_BUILD_HEIGHT;
+    viewState.maxBuildHeight = mc::world::MAX_BUILD_HEIGHT;
     return viewState;
 }
 

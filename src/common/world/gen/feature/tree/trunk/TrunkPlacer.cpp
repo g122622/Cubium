@@ -3,6 +3,7 @@
 #include "../../../../block/BlockRegistry.hpp"
 #include "../../../../block/VanillaBlocks.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../../../../core/Constants.hpp"
 
 namespace mc {
 
@@ -31,7 +32,7 @@ void TrunkPlacer::placeBlock(
     const BlockState* trunkBlock
 ) {
     // 检查是否在有效范围内
-    if (pos.y < 0 || pos.y >= 256) {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return;
     }
 
@@ -48,7 +49,7 @@ void TrunkPlacer::placeBlock(
 
 bool TrunkPlacer::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) {
     // 检查位置是否在有效范围内
-    if (pos.y < 0 || pos.y >= 256) {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 

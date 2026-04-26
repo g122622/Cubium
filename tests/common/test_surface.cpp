@@ -7,6 +7,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/core/Constants.hpp"
 
 using namespace mc;
 
@@ -192,7 +193,7 @@ TEST_F(DefaultSurfaceBuilderTest, BuildSurfaceBasic) {
 
     // 填充空气（地表以上）
     const BlockState* air = &VanillaBlocks::AIR->defaultState();
-    for (int y = 64; y < 256; ++y) {
+    for (int y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
         for (int x = 0; x < 16; ++x) {
             for (int z = 0; z < 16; ++z) {
                 chunk->setBlock(x, y, z, air);
@@ -290,7 +291,7 @@ TEST_F(DesertSurfaceBuilderTest, BuildSurface) {
     }
 
     const BlockState* air = &VanillaBlocks::AIR->defaultState();
-    for (int y = 64; y < 256; ++y) {
+    for (int y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
         chunk->setBlock(8, y, 8, air);
     }
 
@@ -388,7 +389,7 @@ TEST_F(BadlandsSurfaceBuilderTest, BuildSurfaceUsesRedSandAndTerracotta) {
         chunk.setBlock(8, y, 8, stone);
     }
 
-    for (int y = 64; y < 256; ++y) {
+    for (int y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
         chunk.setBlock(8, y, 8, air);
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../core/Constants.hpp"
 #include <string>
 #include <optional>
 
@@ -243,9 +244,9 @@ private:
     bool m_piglinSafe = false;
 
     // 高度
-    i32 m_minHeight = 0;
-    i32 m_maxHeight = 256;
-    i32 m_logicalHeight = 256;
+    i32 m_minHeight = world::MIN_BUILD_HEIGHT;
+    i32 m_maxHeight = world::MAX_BUILD_HEIGHT;
+    i32 m_logicalHeight = world::MAX_BUILD_HEIGHT;
 
     // 坐标转换
     f32 m_coordinateScale = 1.0f;

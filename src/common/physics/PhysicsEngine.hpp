@@ -4,6 +4,7 @@
 #include "../util/math/Vector3.hpp"
 #include "../world/block/Block.hpp"
 #include "../world/chunk/ChunkData.hpp"
+#include "../core/Constants.hpp"
 #include "PhysicsConstants.hpp"
 #include <vector>
 
@@ -45,12 +46,12 @@ public:
     /**
      * @brief 获取世界最小Y坐标
      */
-    [[nodiscard]] virtual i32 getMinBuildHeight() const { return 0; }
+    [[nodiscard]] virtual i32 getMinBuildHeight() const { return world::MIN_BUILD_HEIGHT; }
 
     /**
      * @brief 获取世界最大Y坐标
      */
-    [[nodiscard]] virtual i32 getMaxBuildHeight() const { return 256; }
+    [[nodiscard]] virtual i32 getMaxBuildHeight() const { return world::MAX_BUILD_HEIGHT; }
 };
 
 /**
