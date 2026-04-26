@@ -39,10 +39,6 @@ using char32 = char32_t;
 using String = std::string;
 using StringView = std::string_view;
 
-// Optional 类型
-template<typename T>
-using Optional = std::optional<T>;
-
 // 尺寸类型
 using Size = std::size_t;
 using PtrDiff = std::ptrdiff_t;

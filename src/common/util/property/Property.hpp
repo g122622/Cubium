@@ -74,7 +74,7 @@ public:
      * @param value 要查找的值
      * @return 索引，如果不存在返回nullopt
      */
-    [[nodiscard]] Optional<size_t> indexOf(const T& value) const {
+    [[nodiscard]] std::optional<size_t> indexOf(const T& value) const {
         auto it = m_valueToIndex.find(value);
         if (it != m_valueToIndex.end()) {
             return it->second;
@@ -114,12 +114,12 @@ public:
      * @param str 字符串
      * @return 解析后的值，失败返回nullopt
      */
-    [[nodiscard]] virtual Optional<T> parse(StringView str) const = 0;
+    [[nodiscard]] virtual std::optional<T> parse(StringView str) const = 0;
 
     /**
      * @brief 解析字符串为值索引（实现IProperty接口）
      */
-    [[nodiscard]] Optional<size_t> parseValue(StringView str) const override {
+    [[nodiscard]] std::optional<size_t> parseValue(StringView str) const override {
         auto value = parse(str);
         if (value) {
             return indexOf(*value);

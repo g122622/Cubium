@@ -24,7 +24,7 @@ enum class ComparatorMode : u8 {
 template<>
 struct EnumProperty<blocks::ComparatorMode>::Traits {
     static String toString(const blocks::ComparatorMode& value);
-    static Optional<blocks::ComparatorMode> fromName(StringView name);
+    static std::optional<blocks::ComparatorMode> fromName(StringView name);
 };
 
 namespace blocks {

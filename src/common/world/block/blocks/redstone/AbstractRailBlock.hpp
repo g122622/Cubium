@@ -172,6 +172,6 @@ namespace mc {
 template<>
 struct EnumProperty<blocks::RailShape>::Traits {
     static String toString(const blocks::RailShape& value);
-    static Optional<blocks::RailShape> fromName(StringView name);
+    static std::optional<blocks::RailShape> fromName(StringView name);
 };
 } // namespace mc

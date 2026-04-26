@@ -117,8 +117,8 @@ struct NetworkClientCallbacks {
                        f32 x, f32 y, f32 z,
                        f32 volume,
                        f32 pitch)> onPlaySound;
-    std::function<void(const Optional<ResourceLocation>& soundEventId,
-                       const Optional<mc::sound::SoundCategory>& category)> onStopSound;
+    std::function<void(const std::optional<ResourceLocation>& soundEventId,
+                       const std::optional<mc::sound::SoundCategory>& category)> onStopSound;
 
     // 实体元数据事件
     std::function<void(u32 entityId, const std::vector<u8>& metadata)> onEntityMetadata;
@@ -132,7 +132,7 @@ struct NetworkClientCallbacks {
     std::function<void(const std::vector<std::array<u8, 16>>& uuids)> onPlayerListRemove;
     std::function<void(const skin::PlayerListEntry& entry)> onPlayerListUpdateGameMode;
     std::function<void(const std::array<u8, 16>& uuid, i32 ping)> onPlayerListUpdateLatency;
-    std::function<void(const std::array<u8, 16>& uuid, const Optional<String>& displayName)> onPlayerListUpdateDisplayName;
+    std::function<void(const std::array<u8, 16>& uuid, const std::optional<String>& displayName)> onPlayerListUpdateDisplayName;
 };
 
 // ============================================================================

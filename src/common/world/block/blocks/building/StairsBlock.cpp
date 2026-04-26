@@ -403,8 +403,8 @@ BlockStateProperties::StairsShape StairsBlock::calculateShape(
     BlockPos leftPos(pos.x + Directions::xOffset(leftDir), pos.y, pos.z + Directions::zOffset(leftDir));
     BlockPos rightPos(pos.x + Directions::xOffset(rightDir), pos.y, pos.z + Directions::zOffset(rightDir));
 
-    Optional<BlockStateProperties::StairsShape> leftStairs = neighborIsStairs(world, leftPos, leftDir);
-    Optional<BlockStateProperties::StairsShape> rightStairs = neighborIsStairs(world, rightPos, rightDir);
+    std::optional<BlockStateProperties::StairsShape> leftStairs = neighborIsStairs(world, leftPos, leftDir);
+    std::optional<BlockStateProperties::StairsShape> rightStairs = neighborIsStairs(world, rightPos, rightDir);
 
     // 判断是否为内角或外角
     if (leftStairs.has_value() && rightStairs.has_value()) {
@@ -445,7 +445,7 @@ BlockStateProperties::StairsShape StairsBlock::calculateShape(
     return BlockStateProperties::StairsShape::Straight;
 }
 
-Optional<BlockStateProperties::StairsShape> StairsBlock::neighborIsStairs(
+std::optional<BlockStateProperties::StairsShape> StairsBlock::neighborIsStairs(
     IWorld& world,
     const BlockPos& pos,
     Direction facing) const {

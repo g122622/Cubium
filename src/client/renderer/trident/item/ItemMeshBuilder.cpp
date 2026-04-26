@@ -6,6 +6,7 @@
 #include "client/resource/ItemModelCache.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/resource/ItemModelLoader.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
@@ -170,7 +171,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
 
     // 应用旋转
     if (!vertices.empty() && rotation != 0.0) {
-        f64 rotRad = rotation * 3.14159265359 / 180.0;
+        f64 rotRad = rotation * mc::math::PI_DOUBLE / 180.0;
         f64 cosR = std::cos(rotRad);
         f64 sinR = std::sin(rotRad);
 
@@ -221,7 +222,7 @@ std::array<f64, 16> ItemMeshBuilder::getItemTransform(
             transform[7] = -0.52;
             transform[11] = -0.72;
 
-            f64 rotRad = 45.0 * 3.14159265359 / 180.0;
+            f64 rotRad = 45.0 * mc::math::PI_DOUBLE / 180.0;
             f64 cosR = std::cos(rotRad);
             f64 sinR = std::sin(rotRad);
             transform[0] = static_cast<f64>(0.4 * cosR);
@@ -239,7 +240,7 @@ std::array<f64, 16> ItemMeshBuilder::getItemTransform(
             transform[7] = -0.52;
             transform[11] = -0.72;
 
-            f64 rotRad = -45.0 * 3.14159265359 / 180.0;
+            f64 rotRad = -45.0 * mc::math::PI_DOUBLE / 180.0;
             f64 cosR = std::cos(rotRad);
             f64 sinR = std::sin(rotRad);
             transform[0] = static_cast<f64>(-0.4 * cosR);
@@ -257,7 +258,7 @@ std::array<f64, 16> ItemMeshBuilder::getItemTransform(
 
             if (swingProgress > 0.0f) {
                 f64 swingAngle = static_cast<f64>(swingProgress) * ARM_SWING_ANGLE;
-                f64 rotRad = swingAngle * 3.14159265359 / 180.0;
+                f64 rotRad = swingAngle * mc::math::PI_DOUBLE / 180.0;
                 f64 cosR = std::cos(rotRad);
                 f64 sinR = std::sin(rotRad);
 

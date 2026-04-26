@@ -8,6 +8,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/util/math/Vector4.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <unordered_map>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -189,8 +190,8 @@ void HeadLayer<TEntity, TModel>::computeHeadTransform(
 
     // 参考 MC 1.16.5 HeadLayer
     // 头部物品跟随头部旋转
-    f64 yawRad = static_cast<f64>(headYaw) * 3.14159265 / 180.0;
-    f64 pitchRad = static_cast<f64>(headPitch) * 3.14159265 / 180.0;
+    f64 yawRad = static_cast<f64>(headYaw) * mc::math::PI_DOUBLE / 180.0;
+    f64 pitchRad = static_cast<f64>(headPitch) * mc::math::PI_DOUBLE / 180.0;
 
     f64 cosYaw = std::cos(yawRad);
     f64 sinYaw = std::sin(yawRad);

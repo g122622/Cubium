@@ -484,12 +484,12 @@ protected:
     /**
      * @brief 获取受伤声音
      */
-    [[nodiscard]] virtual Optional<ResourceLocation> getHurtSound(DamageSource& source) const;
+    [[nodiscard]] virtual std::optional<ResourceLocation> getHurtSound(DamageSource& source) const;
 
     /**
      * @brief 获取死亡声音
      */
-    [[nodiscard]] virtual Optional<ResourceLocation> getDeathSound() const;
+    [[nodiscard]] virtual std::optional<ResourceLocation> getDeathSound() const;
 
     // 生命值
     f32 m_health = 20.0f;

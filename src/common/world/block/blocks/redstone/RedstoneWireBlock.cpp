@@ -19,7 +19,7 @@ String EnumProperty<blocks::RedstoneSide>::Traits::toString(const blocks::Redsto
     }
 }
 
-Optional<blocks::RedstoneSide> EnumProperty<blocks::RedstoneSide>::Traits::fromName(StringView name) {
+std::optional<blocks::RedstoneSide> EnumProperty<blocks::RedstoneSide>::Traits::fromName(StringView name) {
     if (name == "none") return blocks::RedstoneSide::None;
     if (name == "side") return blocks::RedstoneSide::Side;
     if (name == "up") return blocks::RedstoneSide::Up;

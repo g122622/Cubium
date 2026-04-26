@@ -1,11 +1,8 @@
 #include "WolfModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 WolfModel::WolfModel()
     : AgeableModel()  // WolfModel 使用 AgeableModel 默认构造函数
@@ -128,12 +125,12 @@ void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*pa
         m_mane->setRotateAngleX(1.2566371f);  // 约 72 度
         m_mane->setRotateAngleY(0.0f);
         m_body->setRotationPoint(0.0f, 18.0f, 0.0f);
-        m_body->setRotateAngleX(static_cast<f32>(PI / 4.0));  // 45 度
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));  // 45 度
         m_tail->setRotationPoint(-1.0f, 21.0f, 6.0f);
         m_legBackRight->setRotationPoint(-2.5f, 22.7f, 2.0f);
-        m_legBackRight->setRotateAngleX(static_cast<f32>(PI * 1.5));  // 270 度
+        m_legBackRight->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * 1.5));  // 270 度
         m_legBackLeft->setRotationPoint(0.5f, 22.7f, 2.0f);
-        m_legBackLeft->setRotateAngleX(static_cast<f32>(PI * 1.5));
+        m_legBackLeft->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * 1.5));
         m_legFrontRight->setRotateAngleX(5.811947f);  // 约 333 度
         m_legFrontRight->setRotationPoint(-2.49f, 17.0f, -4.0f);
         m_legFrontLeft->setRotateAngleX(5.811947f);
@@ -141,7 +138,7 @@ void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*pa
     } else {
         // 正常站立姿态
         m_body->setRotationPoint(0.0f, 14.0f, 2.0f);
-        m_body->setRotateAngleX(static_cast<f32>(PI / 2.0));  // 90 度
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));  // 90 度
         m_mane->setRotationPoint(-1.0f, 14.0f, -3.0f);
         m_mane->setRotateAngleX(m_body->rotateAngleX());
         m_tail->setRotationPoint(-1.0f, 12.0f, 8.0f);
@@ -154,8 +151,8 @@ void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*pa
         f32 limbSwingFloat = static_cast<f32>(limbSwing);
         f32 limbSwingAmountFloat = static_cast<f32>(limbSwingAmount);
         m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662) * 1.4 * limbSwingAmountFloat));
-        m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + PI) * 1.4 * limbSwingAmountFloat));
-        m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + PI) * 1.4 * limbSwingAmountFloat));
+        m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat));
+        m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmountFloat));
         m_legFrontLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwingFloat * 0.6662) * 1.4 * limbSwingAmountFloat));
     }
 
@@ -174,8 +171,8 @@ void WolfModel::setAngles(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
     // 注意：大部分动画在 setLivingAnimations 中处理
 
     // 头部旋转
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
 
     // 尾巴角度（ageInTicks 用于尾巴上下摆动）
     m_tail->setRotateAngleX(static_cast<f32>(ageInTicks));

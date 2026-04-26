@@ -3,6 +3,7 @@
 #include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -10,7 +11,6 @@
 namespace mc::client::renderer::entity::layer::cosmetic {
 
 namespace {
-    constexpr f64 PI = 3.14159265358979323846;
     constexpr f32 CAPE_WIDTH = 10.0f / 16.0f;   // 斗篷宽度（世界单位）
     constexpr f32 CAPE_HEIGHT = 16.0f / 16.0f;  // 斗篷高度
     constexpr i32 SWING_ANGLE_BUCKETS = 36;     // 摆动角度分桶数（每10度一个桶）
@@ -139,8 +139,8 @@ f32 CapeLayer::calculateCapeSwing(::mc::Player& entity, const mc::client::render
     // d3 = MathHelper.sin(f * PI/180)
     // d4 = -MathHelper.cos(f * PI/180)
     f64 f = interpRenderYawOffset + (interpRenderYawOffset - prevRenderYawOffset);  // body rotation
-    f64 d3 = std::sin(f * PI / 180.0);
-    f64 d4 = -std::cos(f * PI / 180.0);
+    f64 d3 = std::sin(f * mc::math::PI_DOUBLE / 180.0);
+    f64 d4 = -std::cos(f * mc::math::PI_DOUBLE / 180.0);
 
     // 计算 Y 轴摆动角度 (MC 1.16.5: f1)
     // f1 = (float)d1 * 10.0F;
@@ -197,7 +197,7 @@ void CapeLayer::buildCapeMesh(
     f32 halfHeight = CAPE_HEIGHT / 2.0f;
 
     // 将摆动角度转换为弧度
-    f32 swingRad = swingAngle * PI / 180.0f;
+    f32 swingRad = swingAngle * static_cast<f32>(mc::math::PI_DOUBLE) / 180.0f;
     f32 cosSwing = std::cos(swingRad);
     f32 sinSwing = std::sin(swingRad);
 

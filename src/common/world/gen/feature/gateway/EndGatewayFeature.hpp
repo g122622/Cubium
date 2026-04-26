@@ -16,11 +16,11 @@ struct EndGatewayFeatureConfig : public IFeatureConfig {
     bool isExit = false;
 
     /// 传送到外岛的精确位置（如果为空则使用默认位置）
-    Optional<BlockPos> exactPosition;
+    std::optional<BlockPos> exactPosition;
 
     EndGatewayFeatureConfig() = default;
 
-    explicit EndGatewayFeatureConfig(bool exit, const Optional<BlockPos>& pos = {})
+    explicit EndGatewayFeatureConfig(bool exit, const std::optional<BlockPos>& pos = {})
         : isExit(exit)
         , exactPosition(pos)
     {}

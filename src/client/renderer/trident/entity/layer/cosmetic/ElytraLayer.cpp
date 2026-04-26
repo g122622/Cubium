@@ -3,6 +3,7 @@
 #include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -10,7 +11,6 @@
 namespace mc::client::renderer::entity::layer::cosmetic {
 
 namespace {
-    constexpr f64 PI = 3.14159265358979323846;
     constexpr f32 ELYTRA_WIDTH = 10.0f / 16.0f;   // 单边鞘翅宽度
     constexpr f32 ELYTRA_HEIGHT = 20.0f / 16.0f;  // 鞘翅高度
     constexpr i32 SPREAD_ANGLE_BUCKETS = 18;      // 展开角度分桶数
@@ -197,7 +197,7 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
     // 将角度转换为展开度数（用于网格生成）
     // X 角度控制前后倾斜，Z 角度控制左右展开
     // 这里返回 Z 角度的绝对值作为展开角度
-    return std::abs(angleZ) * 180.0f / static_cast<f32>(PI);
+    return std::abs(angleZ) * 180.0f / static_cast<f32>(mc::math::PI_DOUBLE);
 }
 
 template<typename TEntity>
@@ -216,7 +216,7 @@ void ElytraLayer<TEntity>::buildElytraMesh(
     f32 halfHeight = ELYTRA_HEIGHT / 2.0f;
 
     // 将展开角度转换为弧度
-    f32 spreadRad = spreadAngle * PI / 180.0f;
+    f32 spreadRad = spreadAngle * static_cast<f32>(mc::math::PI_DOUBLE) / 180.0f;
     f32 cosSpread = std::cos(spreadRad);
     f32 sinSpread = std::sin(spreadRad);
 

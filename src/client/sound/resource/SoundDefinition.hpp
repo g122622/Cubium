@@ -152,7 +152,7 @@ struct SoundEventDefinition {
     bool replace = false;
 
     /// 字幕键（可选，用于显示声音字幕）
-    Optional<String> subtitle;
+    std::optional<String> subtitle;
 
     /**
      * @brief 默认构造函数

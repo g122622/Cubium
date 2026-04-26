@@ -40,15 +40,15 @@ enum class DataSerializerType : u8 {
     Rotation = 8,   // Vector3f (旋转)
     BlockPos = 9,   // Vector3i (方块位置)
     Direction = 10, // BlockFace
-    OptionalInt = 11,   // Optional<i32>
+    OptionalInt = 11,   // std::optional<i32>
     ParticleData = 12,  // 粒子数据
     VillagerData = 13,  // 村民数据
-    OptionalBlockPos = 14,  // Optional<Vector3i>
+    OptionalBlockPos = 14,  // std::optional<Vector3i>
     CompoundTag = 15,  // NBT数据
     Vector3f = 16,    // Vector3f
     Quaternion = 17,  // 四元数
     UUID = 18,        // UUID
-    OptionalVector3f = 19, // Optional<Vector3f>
+    OptionalVector3f = 19, // std::optional<Vector3f>
 };
 
 /**

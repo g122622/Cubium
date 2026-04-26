@@ -76,7 +76,7 @@ std::unique_ptr<Particle> ParticleRegistry::createParticle(
     return createParticle(id.value(), pos, velocity, world);
 }
 
-Optional<ParticleTypeId> ParticleRegistry::getTypeId(const String& name) const {
+std::optional<ParticleTypeId> ParticleRegistry::getTypeId(const String& name) const {
     auto it = m_nameToId.find(name);
     if (it != m_nameToId.end()) {
         return it->second;
@@ -84,7 +84,7 @@ Optional<ParticleTypeId> ParticleRegistry::getTypeId(const String& name) const {
     return std::nullopt;
 }
 
-Optional<ParticleTypeId> ParticleRegistry::getTypeId(const ResourceLocation& location) const {
+std::optional<ParticleTypeId> ParticleRegistry::getTypeId(const ResourceLocation& location) const {
     return getTypeId(location.toString());
 }
 

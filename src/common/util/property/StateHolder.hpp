@@ -56,7 +56,7 @@ public:
      * @note 对于 bool 类型返回值而非引用
      */
     template<typename T>
-    [[nodiscard]] Optional<T> getOptional(const Property<T>& prop) const {
+    [[nodiscard]] std::optional<T> getOptional(const Property<T>& prop) const {
         auto it = m_values.find(&prop);
         if (it == m_values.end()) {
             return std::nullopt;

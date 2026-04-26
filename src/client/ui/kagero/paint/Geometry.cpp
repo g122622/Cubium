@@ -1,13 +1,13 @@
 #include "Geometry.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::ui::kagero::paint {
 
 namespace {
-constexpr f32 PI = 3.14159265358979323846f;
 
 f32 radians(f32 degrees) {
-    return degrees * PI / 180.0f;
+    return degrees * mc::math::PI / 180.0f;
 }
 } // namespace
 

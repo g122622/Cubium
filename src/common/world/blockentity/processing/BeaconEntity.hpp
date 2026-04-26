@@ -159,8 +159,8 @@ private:
 
     i32 m_level = 0;                            ///< 金字塔等级 (0-4)
     i32 m_tickCount = 0;                        ///< tick计数器
-    Optional<EffectType> m_primaryEffect;   ///< 主效果
-    Optional<EffectType> m_secondaryEffect; ///< 辅助效果
+    std::optional<EffectType> m_primaryEffect;   ///< 主效果
+    std::optional<EffectType> m_secondaryEffect; ///< 辅助效果
     ItemStack m_paymentItem;                    ///< 支付物品槽位
     bool m_lastBeamState = false;               ///< 上一帧光束状态
 

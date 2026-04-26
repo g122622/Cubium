@@ -6,6 +6,7 @@
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -232,12 +233,12 @@ void SheepWoolLayer<TEntity, TModel>::buildWoolMesh(
 
     // 生成椭球顶点
     for (i32 ring = 0; ring <= RINGS; ++ring) {
-        f32 theta = static_cast<f32>(ring) / static_cast<f32>(RINGS) * 3.14159265f;
+        f32 theta = static_cast<f32>(ring) / static_cast<f32>(RINGS) * mc::math::PI;
         f32 sinTheta = std::sin(theta);
         f32 cosTheta = std::cos(theta);
 
         for (i32 seg = 0; seg <= SEGMENTS; ++seg) {
-            f32 phi = static_cast<f32>(seg) / static_cast<f32>(SEGMENTS) * 2.0f * 3.14159265f;
+            f32 phi = static_cast<f32>(seg) / static_cast<f32>(SEGMENTS) * mc::math::TWO_PI;
             f32 sinPhi = std::sin(phi);
             f32 cosPhi = std::cos(phi);
 

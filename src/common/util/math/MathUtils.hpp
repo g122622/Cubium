@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "MathConstants.hpp"
 #include "../../core/Constants.hpp"
 
 #include <cmath>
@@ -9,6 +10,16 @@
 #include <limits>
 
 namespace mc::math {
+
+// ============================================================================
+// 度数/弧度转换常量
+// ============================================================================
+
+/// 度转弧度乘数
+constexpr f32 DEG_TO_RAD = PI / 180.0f;
+
+/// 弧度转度乘数
+constexpr f32 RAD_TO_DEG = 180.0f / PI;
 
 // ============================================================================
 // 基本数学函数
@@ -336,11 +347,11 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 {
     f32 diff = target - current;
     // 规范化到 [-PI, PI)
-    while (diff < -static_cast<f32>(PI)) {
-        diff += static_cast<f32>(PI * 2.0);
+    while (diff < -PI) {
+        diff += TWO_PI;
     }
-    while (diff >= static_cast<f32>(PI)) {
-        diff -= static_cast<f32>(PI * 2.0);
+    while (diff >= PI) {
+        diff -= TWO_PI;
     }
     return current + factor * diff;
 }

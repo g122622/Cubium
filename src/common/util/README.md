@@ -356,7 +356,7 @@ i32 dz = Directions::zOffset(dir);  // -1
 Axis axis = Directions::getAxis(dir);  // Axis::Z
 
 // 从名称解析
-Optional<Direction> d = Directions::fromName("north");
+std::optional<Direction> d = Directions::fromName("north");
 
 // 向量转换
 Direction dir = Directions::fromVector(dx, dy, dz);

@@ -268,7 +268,7 @@ String EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape
     return names[static_cast<size_t>(value)];
 }
 
-Optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(StringView name) {
+std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(StringView name) {
     static const std::unordered_map<String, blocks::RailShape> map = {
         {"north_south", blocks::RailShape::NorthSouth},
         {"east_west", blocks::RailShape::EastWest},
@@ -282,7 +282,7 @@ Optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(St
         {"north_east", blocks::RailShape::NorthEast}
     };
     auto it = map.find(String(name));
-    return it != map.end() ? Optional<blocks::RailShape>(it->second) : std::nullopt;
+    return it != map.end() ? std::optional<blocks::RailShape>(it->second) : std::nullopt;
 }
 
 } // namespace mc

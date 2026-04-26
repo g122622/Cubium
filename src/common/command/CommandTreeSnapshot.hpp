@@ -35,7 +35,7 @@ struct CommandTreeNodeSnapshot {
     nlohmann::json metadata = nlohmann::json::object();
     std::vector<String> examples;
     std::vector<u32> children;
-    Optional<u32> redirect;
+    std::optional<u32> redirect;
     RedirectModifier redirectModifier = RedirectModifier::None;
     bool executable = false;
     CommandTreeSuggestionKind suggestionKind = CommandTreeSuggestionKind::None;

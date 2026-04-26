@@ -28,7 +28,7 @@ public:
      */
     struct Traits {
         static String toString(const E& value);
-        static Optional<E> fromName(StringView name);
+        static std::optional<E> fromName(StringView name);
     };
 
     /**
@@ -51,7 +51,7 @@ public:
     /**
      * @brief 解析字符串为枚举值
      */
-    [[nodiscard]] Optional<E> parse(StringView str) const override {
+    [[nodiscard]] std::optional<E> parse(StringView str) const override {
         auto value = Traits::fromName(str);
         if (value && this->indexOf(*value)) {
             return value;
@@ -93,7 +93,7 @@ struct EnumProperty<Direction>::Traits {
     static String toString(const Direction& value) {
         return Directions::toString(value);
     }
-    static Optional<Direction> fromName(StringView name) {
+    static std::optional<Direction> fromName(StringView name) {
         return Directions::fromName(name);
     }
 };
@@ -107,7 +107,7 @@ struct EnumProperty<Axis>::Traits {
     static String toString(const Axis& value) {
         return Axes::toString(value);
     }
-    static Optional<Axis> fromName(StringView name) {
+    static std::optional<Axis> fromName(StringView name) {
         return Axes::fromName(name);
     }
 };

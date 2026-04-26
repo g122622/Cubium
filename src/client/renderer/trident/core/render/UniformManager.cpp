@@ -1,6 +1,7 @@
 #include "UniformManager.hpp"
 #include "DescriptorManager.hpp"
 #include "../TridentContext.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <cmath>
@@ -143,7 +144,7 @@ void UniformManager::updateLighting(i64 dayTime, i64 gameTime, f64 partialTick) 
     // dayTime: 0=日出, 6000=正午, 12000=日落, 18000=午夜
     // 因此太阳高度应采用 sin 映射：
     // sin(0)=0, sin(pi/2)=1, sin(pi)≈0, sin(3pi/2)=-1
-    const f64 sunAngle = static_cast<f64>(dayTime % 24000LL) / 24000.0 * 2.0 * 3.14159265358979323846;
+    const f64 sunAngle = static_cast<f64>(dayTime % 24000LL) / 24000.0 * 2.0 * mc::math::PI_DOUBLE;
     const f64 sunHeight = std::sin(sunAngle);
     const f64 sunHoriz = std::cos(sunAngle);
 

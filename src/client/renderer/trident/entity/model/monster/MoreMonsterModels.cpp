@@ -1,11 +1,8 @@
 #include "MoreMonsterModels.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 // ==================== IllagerModel ====================
 
@@ -94,8 +91,8 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
     // 参考 MC 1.16.5 IllagerModel.setRotationAngles
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
 
     m_arms->setRotationPointY(3.0f);
     m_arms->setRotationPointZ(-1.0f);
@@ -106,21 +103,21 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     if (m_isSitting) {
         // 坐姿
-        m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 5.0));
+        m_rightArm->setRotateAngleX(static_cast<f32>(-math::PI / 5.0));
         m_rightArm->setRotateAngleY(0.0f);
         m_rightArm->setRotateAngleZ(0.0f);
-        m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 5.0));
+        m_leftArm->setRotateAngleX(static_cast<f32>(-math::PI / 5.0));
         m_leftArm->setRotateAngleY(0.0f);
         m_leftArm->setRotateAngleZ(0.0f);
         m_rightLeg->setRotateAngleX(-1.4137167f);
-        m_rightLeg->setRotateAngleY(static_cast<f32>(PI / 10.0));
+        m_rightLeg->setRotateAngleY(static_cast<f32>(math::PI / 10.0));
         m_rightLeg->setRotateAngleZ(0.07853982f);
         m_leftLeg->setRotateAngleX(-1.4137167f);
-        m_leftLeg->setRotateAngleY(static_cast<f32>(-PI / 10.0));
+        m_leftLeg->setRotateAngleY(static_cast<f32>(-math::PI / 10.0));
         m_leftLeg->setRotateAngleZ(-0.07853982f);
     } else {
         // 行走动画
-        m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 2.0 * limbSwingAmount * 0.5));
+        m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 2.0 * limbSwingAmount * 0.5));
         m_rightArm->setRotateAngleY(0.0f);
         m_rightArm->setRotateAngleZ(0.0f);
         m_leftArm->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 2.0 * limbSwingAmount * 0.5));
@@ -129,7 +126,7 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         m_rightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount * 0.5));
         m_rightLeg->setRotateAngleY(0.0f);
         m_rightLeg->setRotateAngleZ(0.0f);
-        m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount * 0.5));
+        m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 1.4 * limbSwingAmount * 0.5));
         m_leftLeg->setRotateAngleY(0.0f);
         m_leftLeg->setRotateAngleZ(0.0f);
     }
@@ -140,14 +137,14 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
             if (m_mainHandEmpty) {
                 // ModelHelper.func_239105_a_ - 空手攻击动画
                 f32 swingProgress = m_swingProgress;
-                f32 f = static_cast<f32>(std::sin(swingProgress * PI));
-                f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * PI));
+                f32 f = static_cast<f32>(std::sin(swingProgress * math::PI));
+                f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * math::PI));
                 m_leftArm->setRotateAngleZ(0.0f);
                 m_rightArm->setRotateAngleZ(0.0f);
                 m_leftArm->setRotateAngleY(-(0.1f - f * 0.6f));
                 m_rightArm->setRotateAngleY(0.1f - f * 0.6f);
-                m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
-                m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+                m_leftArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
+                m_rightArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
                 m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
                 m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
                 // 手臂抖动
@@ -166,8 +163,8 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
             m_leftArm->setRotationPointX(5.0f);
             m_rightArm->setRotateAngleX(static_cast<f32>(std::cos(ageInTicks * 0.6662) * 0.25));
             m_leftArm->setRotateAngleX(static_cast<f32>(std::cos(ageInTicks * 0.6662) * 0.25));
-            m_rightArm->setRotateAngleZ(2.3561945f);  // PI * 0.75
-            m_leftArm->setRotateAngleZ(-2.3561945f);
+            m_rightArm->setRotateAngleZ(math::PI * 0.75);
+            m_leftArm->setRotateAngleZ(-math::PI * 0.75);
             m_rightArm->setRotateAngleY(0.0f);
             m_leftArm->setRotateAngleY(0.0f);
             break;
@@ -175,26 +172,26 @@ void IllagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         case IllagerArmPose::BowAndArrow:
             // 拉弓姿态
             m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
-            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * PI / 180.0));
-            m_leftArm->setRotateAngleX(-0.9424779f + static_cast<f32>(headPitch * PI / 180.0));
+            m_rightArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0 + headPitch * math::PI / 180.0));
+            m_leftArm->setRotateAngleX(-0.9424779f + static_cast<f32>(headPitch * math::PI / 180.0));
             m_leftArm->setRotateAngleY(m_head->rotateAngleY() - 0.4f);
-            m_leftArm->setRotateAngleZ(static_cast<f32>(PI / 2.0));
+            m_leftArm->setRotateAngleZ(static_cast<f32>(math::PI / 2.0));
             break;
 
         case IllagerArmPose::CrossbowHold:
             // 持有弩姿态 - ModelHelper.func_239104_a_
             m_rightArm->setRotateAngleY(-0.3f);
-            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_rightArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
             m_leftArm->setRotateAngleY(0.6f);
-            m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_leftArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
             break;
 
         case IllagerArmPose::CrossbowCharge:
             // 装填弩姿态 - ModelHelper.func_239102_a_
             m_rightArm->setRotateAngleY(-0.8f);
-            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_rightArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
             m_leftArm->setRotateAngleY(0.8f);
-            m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_leftArm->setRotateAngleX(static_cast<f32>(-math::PI / 2.0));
             break;
 
         case IllagerArmPose::Celebrating:
@@ -266,22 +263,22 @@ void VexModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     if (m_charging) {
         if (m_mainHandEmpty) {
             // 空手时双臂向前伸
-            m_rightArm->setRotateAngleX(static_cast<f32>(PI * 1.5));
-            m_leftArm->setRotateAngleX(static_cast<f32>(PI * 1.5));
+            m_rightArm->setRotateAngleX(static_cast<f32>(math::PI * 1.5));
+            m_leftArm->setRotateAngleX(static_cast<f32>(math::PI * 1.5));
         } else {
             // 持有物品时，根据主手设置手臂角度
-            // 3.7699115F = PI * 1.2
+            // 3.7699115F = math::PI * 1.2
             m_rightArm->setRotateAngleX(3.7699115f);
         }
     }
 
-    m_rightLeg->setRotateAngleX(static_cast<f32>(m_rightLeg->rotateAngleX() + PI / 5.0));
+    m_rightLeg->setRotateAngleX(static_cast<f32>(m_rightLeg->rotateAngleX() + math::PI / 5.0));
 
     m_rightWing->setRotationPointZ(2.0f);
     m_leftWing->setRotationPointZ(2.0f);
     m_rightWing->setRotationPointY(1.0f);
     m_leftWing->setRotationPointY(1.0f);
-    m_rightWing->setRotateAngleY(static_cast<f32>(0.47123894 + std::cos(ageInTicks * 0.8) * PI * 0.05));
+    m_rightWing->setRotateAngleY(static_cast<f32>(0.47123894 + std::cos(ageInTicks * 0.8) * math::PI * 0.05));
     m_leftWing->setRotateAngleY(-m_rightWing->rotateAngleY());
     m_leftWing->setRotateAngleZ(-0.47123894f);
     m_leftWing->setRotateAngleX(0.47123894f);
@@ -350,8 +347,8 @@ void IronGolemModel::render(f64 scale) {
 void IronGolemModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                 f64 ageInTicks, f64 netHeadYaw,
                                 f64 headPitch, f64 scale) {
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
 
     // 参考 MC 1.16.5 IronGolemModel.setRotationAngles
     // MathHelper.func_233021_e_ 是三角波函数，返回 [-1, 1] 范围的值
@@ -426,10 +423,10 @@ void SnowGolemModel::render(f64 scale) {
 void SnowGolemModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                 f64 ageInTicks, f64 netHeadYaw,
                                 f64 headPitch, f64 scale) {
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
 
-    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0 * 0.25));
+    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0 * 0.25));
 
     f32 sinY = static_cast<f32>(std::sin(m_body->rotateAngleY()));
     f32 cosY = static_cast<f32>(std::cos(m_body->rotateAngleY()));
@@ -437,7 +434,7 @@ void SnowGolemModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_rightHand->setRotateAngleZ(1.0f);
     m_leftHand->setRotateAngleZ(-1.0f);
     m_rightHand->setRotateAngleY(m_body->rotateAngleY());
-    m_leftHand->setRotateAngleY(static_cast<f32>(PI + m_body->rotateAngleY()));
+    m_leftHand->setRotateAngleY(static_cast<f32>(math::PI + m_body->rotateAngleY()));
     m_rightHand->setRotationPointX(cosY * 5.0f);
     m_rightHand->setRotationPointZ(-sinY * 5.0f);
     m_leftHand->setRotationPointX(-cosY * 5.0f);
@@ -529,13 +526,13 @@ void BeeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                           f64 ageInTicks, f64 netHeadYaw,
                           f64 headPitch, f64 scale) {
     // 翅膀扇动
-    f32 wingAngle = static_cast<f32>(std::cos(ageInTicks * 2.1) * PI * 0.15);
+    f32 wingAngle = static_cast<f32>(std::cos(ageInTicks * 2.1) * math::PI * 0.15);
     m_rightWing->setRotateAngleZ(wingAngle);
     m_leftWing->setRotateAngleZ(-wingAngle);
 
-    m_frontLegs->setRotateAngleX(static_cast<f32>(PI / 4.0));
-    m_middleLegs->setRotateAngleX(static_cast<f32>(PI / 4.0));
-    m_backLegs->setRotateAngleX(static_cast<f32>(PI / 4.0));
+    m_frontLegs->setRotateAngleX(static_cast<f32>(math::PI / 4.0));
+    m_middleLegs->setRotateAngleX(static_cast<f32>(math::PI / 4.0));
+    m_backLegs->setRotateAngleX(static_cast<f32>(math::PI / 4.0));
 
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -620,16 +617,16 @@ void FoxModel::render(f64 scale) {
 void FoxModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                           f64 ageInTicks, f64 netHeadYaw,
                           f64 headPitch, f64 scale) {
-    m_body->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_body->setRotateAngleX(static_cast<f32>(math::PI / 2.0));
     m_tail->setRotateAngleX(-0.05235988f);
 
     m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount));
-    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount));
-    m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount));
+    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 1.4 * limbSwingAmount));
+    m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 1.4 * limbSwingAmount));
     m_legFrontLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount));
 
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
 
     (void)ageInTicks;
 }
@@ -705,8 +702,8 @@ void PandaModel::render(f64 scale) {
 void PandaModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                             f64 ageInTicks, f64 netHeadYaw,
                             f64 headPitch, f64 scale) {
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
 
     f32 legSwing = static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount);
     m_legFrontRight->setRotateAngleX(-legSwing);
@@ -803,17 +800,17 @@ void ParrotModel::render(f64 scale) {
 void ParrotModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                              f64 ageInTicks, f64 netHeadYaw,
                              f64 headPitch, f64 scale) {
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
 
     m_body->setRotateAngleX(0.4937f);
     m_wingLeft->setRotateAngleX(-0.6981f);
-    m_wingLeft->setRotateAngleY(static_cast<f32>(-PI));
+    m_wingLeft->setRotateAngleY(static_cast<f32>(-math::PI));
     m_wingRight->setRotateAngleX(-0.6981f);
-    m_wingRight->setRotateAngleY(static_cast<f32>(-PI));
+    m_wingRight->setRotateAngleY(static_cast<f32>(-math::PI));
 
     m_legLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount));
-    m_legRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount));
+    m_legRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * 1.4 * limbSwingAmount));
 
     m_feather->setRotateAngleX(-0.2214f);
 
@@ -898,15 +895,15 @@ void PhantomModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
     f32 f = static_cast<f32>(ageInTicks * 0.13);
-    f32 wingAngle = static_cast<f32>(std::cos(f) * 16.0 * PI / 180.0);
+    f32 wingAngle = static_cast<f32>(std::cos(f) * 16.0 * math::PI / 180.0);
 
     m_leftWingBody->setRotateAngleZ(wingAngle);
     m_leftWing->setRotateAngleZ(wingAngle);
     m_rightWingBody->setRotateAngleZ(-wingAngle);
     m_rightWing->setRotateAngleZ(-wingAngle);
 
-    m_tail1->setRotateAngleX(static_cast<f32>(-(5.0 + std::cos(f * 2.0) * 5.0) * PI / 180.0));
-    m_tail2->setRotateAngleX(static_cast<f32>(-(5.0 + std::cos(f * 2.0) * 5.0) * PI / 180.0));
+    m_tail1->setRotateAngleX(static_cast<f32>(-(5.0 + std::cos(f * 2.0) * 5.0) * math::PI / 180.0));
+    m_tail2->setRotateAngleX(static_cast<f32>(-(5.0 + std::cos(f * 2.0) * 5.0) * math::PI / 180.0));
 
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -968,7 +965,7 @@ void RavagerModel::setupParts() {
     m_body->setTextureOffset(0, 91);
     m_body->addBox(-6.0f, 6.0f, -7.0f, 12.0f, 13.0f, 18.0f, 0.5f);
     m_body->setRotationPoint(0.0f, 1.0f, 2.0f);
-    m_body->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_body->setRotateAngleX(static_cast<f32>(math::PI / 2.0));
     m_parts.push_back(m_body);
 
     m_legBackRight = std::make_shared<ModelRenderer>("legBackRight");
@@ -1005,13 +1002,13 @@ void RavagerModel::render(f64 scale) {
 void RavagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
 
     f32 f = 0.4f * static_cast<f32>(limbSwingAmount);
     m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * f));
-    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * f));
-    m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * f));
+    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * f));
+    m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + math::PI) * f));
     m_legFrontLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * f));
 
     (void)ageInTicks;

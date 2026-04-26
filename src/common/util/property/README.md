@@ -35,7 +35,7 @@ class IProperty {
     virtual const String& name() const = 0;           // 属性名称
     virtual size_t valueCount() const = 0;            // 允许值的数量
     virtual String valueToString(size_t index) const; // 值索引转字符串
-    virtual Optional<size_t> parseValue(StringView);  // 字符串解析为索引
+    virtual std::optional<size_t> parseValue(StringView);  // 字符串解析为索引
     virtual size_t hashCode() const = 0;              // 哈希值
     virtual bool equals(const IProperty&) const = 0;  // 相等比较
     virtual const char* typeName() const = 0;         // 类型名称
@@ -58,10 +58,10 @@ class IProperty {
 template<typename T>
 class Property : public IProperty {
     const std::vector<T>& allowedValues() const;  // 获取所有允许值
-    Optional<size_t> indexOf(const T& value) const; // 查找值索引
+    std::optional<size_t> indexOf(const T& value) const; // 查找值索引
     ValueReturnType valueAt(size_t index) const;   // 获取索引处的值
     virtual String valueToString(const T&) const;  // 值转字符串
-    virtual Optional<T> parse(StringView) const;   // 字符串解析为值
+    virtual std::optional<T> parse(StringView) const;   // 字符串解析为值
 };
 ```
 
@@ -127,7 +127,7 @@ const BlockState& newState = state.with(*power, 10);
 template<>
 struct EnumProperty<MyEnum>::Traits {
     static String toString(const MyEnum& value) { ... }
-    static Optional<MyEnum> fromName(StringView name) { ... }
+    static std::optional<MyEnum> fromName(StringView name) { ... }
 };
 
 auto prop = EnumProperty<MyEnum>::create("my_enum", {MyEnum::A, MyEnum::B});
@@ -210,7 +210,7 @@ class StateHolder {
 
     // 尝试获取属性值
     template<typename T>
-    Optional<T> getOptional(const Property<T>& prop) const;
+    std::optional<T> getOptional(const Property<T>& prop) const;
 
     // 设置属性值（返回新状态引用）
     template<typename T>

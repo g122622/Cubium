@@ -186,7 +186,7 @@ public:
      * 下界固定为 18000（午夜），末地固定为 6000（正午）。
      * @return 固定时间值（tick），如果没有固定时间则返回空
      */
-    [[nodiscard]] Optional<i64> fixedTimeValue() const { return m_fixedTime; }
+    [[nodiscard]] std::optional<i64> fixedTimeValue() const { return m_fixedTime; }
 
     // ========== 方块标签 ==========
 
@@ -252,7 +252,7 @@ private:
 
     // 光照和时间
     f32 m_ambientLight = 0.0f;
-    Optional<i64> m_fixedTime;
+    std::optional<i64> m_fixedTime;
 
     // 方块标签
     String m_infiniburn;

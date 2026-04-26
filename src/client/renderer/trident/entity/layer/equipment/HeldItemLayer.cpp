@@ -7,6 +7,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/util/math/Vector4.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include <cmath>
 #include <unordered_map>
@@ -234,12 +235,12 @@ void HeldItemLayer<TEntity>::computeItemTransform(
 
     // 首先应用 X 轴 -90° 旋转
     // rotateX(-90°) 后 Y 轴变为 -Z 轴
-    f64 cosX = std::cos(-3.14159265359 * 0.5);  // cos(-90°)
-    f64 sinX = std::sin(-3.14159265359 * 0.5);  // sin(-90°)
+    f64 cosX = std::cos(-mc::math::PI_DOUBLE * 0.5);  // cos(-90°)
+    f64 sinX = std::sin(-mc::math::PI_DOUBLE * 0.5);  // sin(-90°)
 
     // 然后应用 Y 轴 180° 旋转
-    f64 cosY = std::cos(3.14159265359);  // cos(180°)
-    f64 sinY = std::sin(3.14159265359);  // sin(180°)
+    f64 cosY = std::cos(mc::math::PI_DOUBLE);  // cos(180°)
+    f64 sinY = std::sin(mc::math::PI_DOUBLE);  // sin(180°)
 
     // 组合旋转矩阵：先 X 旋转再 Y 旋转
     // R = Ry(180°) * Rx(-90°)
@@ -284,7 +285,7 @@ void HeldItemLayer<TEntity>::computeItemTransform(
     // 挥动手臂动画
     if (swingProgress > 0.0f) {
         // 攻击动画：物品向外挥动
-        f64 swingAngle = static_cast<f64>(swingProgress) * 3.14159265359;  // 0 到 π
+        f64 swingAngle = static_cast<f64>(swingProgress) * mc::math::PI_DOUBLE;  // 0 到 π
         f64 swingFactor = std::sin(swingAngle);
 
         // 在原有旋转基础上添加挥动效果

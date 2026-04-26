@@ -7,33 +7,6 @@
 namespace mc {
 
 // ============================================================================
-// 数学常量
-// ============================================================================
-
-namespace math {
-
-constexpr f32 PI = 3.14159265358979323846f;
-constexpr f64 PI_DOUBLE = 3.14159265358979323846;
-constexpr f32 TWO_PI = 2.0f * PI;
-constexpr f32 TAU = TWO_PI;           // 2π
-constexpr f32 TAU_F = TAU;            // 2π (f32 alias)
-constexpr f32 HALF_PI = PI / 2.0f;
-constexpr f32 QUARTER_PI = PI / 4.0f;
-
-constexpr f32 DEG_TO_RAD = PI / 180.0f;
-constexpr f32 RAD_TO_DEG = 180.0f / PI;
-
-constexpr f32 E = 2.71828182845904523536f;
-
-constexpr f32 EPSILON = 1e-6f;
-constexpr f32 LARGE_EPSILON = 1e-4f;
-
-constexpr f32 FLOAT_MAX = std::numeric_limits<f32>::max();
-constexpr f32 FLOAT_MIN = std::numeric_limits<f32>::lowest();
-
-} // namespace math
-
-// ============================================================================
 // 游戏常量
 // ============================================================================
 

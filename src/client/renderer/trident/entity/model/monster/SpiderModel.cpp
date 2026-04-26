@@ -1,11 +1,8 @@
 #include "SpiderModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 SpiderModel::SpiderModel()
     : EntityModel()
@@ -120,41 +117,41 @@ void SpiderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 参考 MC 1.16.5 SpiderModel.setRotationAngles
 
     // 头部旋转
-    m_head->setRotateAngleY(netHeadYaw * PI / 180.0);
-    m_head->setRotateAngleX(headPitch * PI / 180.0);
+    m_head->setRotateAngleY(netHeadYaw * mc::math::PI_DOUBLE / 180.0);
+    m_head->setRotateAngleX(headPitch * mc::math::PI_DOUBLE / 180.0);
 
     // 腿部基础角度
     // Z 轴旋转（向外张开）
-    m_legs[0]->setRotateAngleZ(static_cast<f32>(-PI / 4.0));  // 腿1
-    m_legs[1]->setRotateAngleZ(static_cast<f32>(PI / 4.0));    // 腿2
+    m_legs[0]->setRotateAngleZ(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));  // 腿1
+    m_legs[1]->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));    // 腿2
     m_legs[2]->setRotateAngleZ(-0.58119464f);                   // 腿3
     m_legs[3]->setRotateAngleZ(0.58119464f);                    // 腿4
     m_legs[4]->setRotateAngleZ(-0.58119464f);                   // 腿5
     m_legs[5]->setRotateAngleZ(0.58119464f);                    // 腿6
-    m_legs[6]->setRotateAngleZ(static_cast<f32>(-PI / 4.0));   // 腿7
-    m_legs[7]->setRotateAngleZ(static_cast<f32>(PI / 4.0));    // 腿8
+    m_legs[6]->setRotateAngleZ(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));   // 腿7
+    m_legs[7]->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));    // 腿8
 
     // Y 轴旋转（前后摆动基础）
-    m_legs[0]->setRotateAngleY(static_cast<f32>(PI / 4.0));    // 腿1
-    m_legs[1]->setRotateAngleY(static_cast<f32>(-PI / 4.0));   // 腿2
-    m_legs[2]->setRotateAngleY(static_cast<f32>(PI / 8.0));    // 腿3
-    m_legs[3]->setRotateAngleY(static_cast<f32>(-PI / 8.0));   // 腿4
-    m_legs[4]->setRotateAngleY(static_cast<f32>(-PI / 8.0));   // 腿5
-    m_legs[5]->setRotateAngleY(static_cast<f32>(PI / 8.0));    // 腿6
-    m_legs[6]->setRotateAngleY(static_cast<f32>(-PI / 4.0));   // 腿7
-    m_legs[7]->setRotateAngleY(static_cast<f32>(PI / 4.0));    // 腿8
+    m_legs[0]->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));    // 腿1
+    m_legs[1]->setRotateAngleY(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));   // 腿2
+    m_legs[2]->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 8.0));    // 腿3
+    m_legs[3]->setRotateAngleY(static_cast<f32>(-mc::math::PI_DOUBLE / 8.0));   // 腿4
+    m_legs[4]->setRotateAngleY(static_cast<f32>(-mc::math::PI_DOUBLE / 8.0));   // 腿5
+    m_legs[5]->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 8.0));    // 腿6
+    m_legs[6]->setRotateAngleY(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));   // 腿7
+    m_legs[7]->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));    // 腿8
 
     // 腿部摆动动画
     // 参考 MC 1.16.5: 使用 cos 函数计算摆动
     f32 f1 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + 0.0) * 0.4) * static_cast<f32>(limbSwingAmount);
-    f32 f2 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + PI) * 0.4) * static_cast<f32>(limbSwingAmount);
-    f32 f3 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + PI / 2.0) * 0.4) * static_cast<f32>(limbSwingAmount);
-    f32 f4 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + PI * 1.5) * 0.4) * static_cast<f32>(limbSwingAmount);
+    f32 f2 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + mc::math::PI_DOUBLE) * 0.4) * static_cast<f32>(limbSwingAmount);
+    f32 f3 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + mc::math::PI_DOUBLE / 2.0) * 0.4) * static_cast<f32>(limbSwingAmount);
+    f32 f4 = -static_cast<f32>(std::cos(limbSwing * 0.6662 * 2.0 + mc::math::PI_DOUBLE * 1.5) * 0.4) * static_cast<f32>(limbSwingAmount);
 
     f32 f5 = static_cast<f32>(std::abs(std::sin(limbSwing * 0.6662 + 0.0) * 0.4)) * static_cast<f32>(limbSwingAmount);
-    f32 f6 = static_cast<f32>(std::abs(std::sin(limbSwing * 0.6662 + PI) * 0.4)) * static_cast<f32>(limbSwingAmount);
-    f32 f7 = static_cast<f32>(std::abs(std::sin(limbSwing * 0.6662 + PI / 2.0) * 0.4)) * static_cast<f32>(limbSwingAmount);
-    f32 f8 = static_cast<f32>(std::abs(std::sin(limbSwing * 0.6662 + PI * 1.5) * 0.4)) * static_cast<f32>(limbSwingAmount);
+    f32 f6 = static_cast<f32>(std::abs(std::sin(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * 0.4)) * static_cast<f32>(limbSwingAmount);
+    f32 f7 = static_cast<f32>(std::abs(std::sin(limbSwing * 0.6662 + mc::math::PI_DOUBLE / 2.0) * 0.4)) * static_cast<f32>(limbSwingAmount);
+    f32 f8 = static_cast<f32>(std::abs(std::sin(limbSwing * 0.6662 + mc::math::PI_DOUBLE * 1.5) * 0.4)) * static_cast<f32>(limbSwingAmount);
 
     // Y 轴摆动
     m_legs[0]->setRotateAngleY(m_legs[0]->rotateAngleY() + f1);

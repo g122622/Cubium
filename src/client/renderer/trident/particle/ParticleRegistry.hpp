@@ -153,7 +153,7 @@ public:
      * @param name 粒子类型名称
      * @return 粒子类型 ID，如果不存在返回 nullopt
      */
-    [[nodiscard]] Optional<ParticleTypeId> getTypeId(const String& name) const;
+    [[nodiscard]] std::optional<ParticleTypeId> getTypeId(const String& name) const;
 
     /**
      * @brief 通过资源位置获取粒子类型 ID
@@ -161,7 +161,7 @@ public:
      * @param location 资源位置
      * @return 粒子类型 ID，如果不存在返回 nullopt
      */
-    [[nodiscard]] Optional<ParticleTypeId> getTypeId(const ResourceLocation& location) const;
+    [[nodiscard]] std::optional<ParticleTypeId> getTypeId(const ResourceLocation& location) const;
 
     /**
      * @brief 获取粒子类型名称

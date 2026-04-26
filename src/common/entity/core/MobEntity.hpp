@@ -211,7 +211,7 @@ protected:
     /**
      * @brief 获取环境声音
      */
-    [[nodiscard]] virtual Optional<ResourceLocation> getAmbientSound() const;
+    [[nodiscard]] virtual std::optional<ResourceLocation> getAmbientSound() const;
 
     void playHurtSound(DamageSource& source) override;
 

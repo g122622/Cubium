@@ -145,7 +145,7 @@ String Entity::getTypeId() const {
     return EntityUtils::legacyTypeToTypeId(m_legacyType);
 }
 
-Optional<ResourceLocation> Entity::makeSoundEventId(StringView suffix) const {
+std::optional<ResourceLocation> Entity::makeSoundEventId(StringView suffix) const {
     const String typeId = getTypeId();
     const size_t separatorPos = typeId.find(':');
     if (separatorPos == String::npos || separatorPos + 1 >= typeId.size()) {

@@ -40,8 +40,6 @@ using f64 = double;
 
 using String     = std::string;
 using StringView = std::string_view;
-template<typename T> using Optional = std::optional<T>;
-using Size = std::size_t;
 ```
 
 **Simple Vector Types (for command system):**
@@ -155,17 +153,6 @@ MC_TRY_ASSIGN(value, someOperation());
 ### Constants.hpp
 
 Game constants organized by namespace.
-
-**Math Constants:**
-```cpp
-namespace math {
-    constexpr f32 PI = 3.14159265f;
-    constexpr f32 TWO_PI = 2.0f * PI;
-    constexpr f32 DEG_TO_RAD = PI / 180.0f;
-    constexpr f32 RAD_TO_DEG = 180.0f / PI;
-    constexpr f32 EPSILON = 1e-6f;
-}
-```
 
 **Game Constants:**
 ```cpp

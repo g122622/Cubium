@@ -4,8 +4,6 @@
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    constexpr f64 PI = 3.14159265359;
-    constexpr f64 DEG_TO_RAD = PI / 180.0;
     // 末影人 Y 偏移：-14（比普通生物高）
     constexpr f32 ENDERMAN_Y_OFFSET = -14.0f;
     // 手臂/腿角度限制：±0.4 弧度

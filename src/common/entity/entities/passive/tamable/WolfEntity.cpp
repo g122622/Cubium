@@ -100,7 +100,7 @@ void WolfEntity::tick() {
     m_wasInWater = inWater;
 }
 
-Optional<ResourceLocation> WolfEntity::getAmbientSound() const {
+std::optional<ResourceLocation> WolfEntity::getAmbientSound() const {
     math::Random random = getRandom();
 
     if (isAngry()) {
@@ -118,11 +118,11 @@ Optional<ResourceLocation> WolfEntity::getAmbientSound() const {
     return makeSoundEventId("ambient");
 }
 
-Optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& /*source*/) const {
     return makeSoundEventId("hurt");
 }
 
-Optional<ResourceLocation> WolfEntity::getDeathSound() const {
+std::optional<ResourceLocation> WolfEntity::getDeathSound() const {
     return makeSoundEventId("death");
 }
 

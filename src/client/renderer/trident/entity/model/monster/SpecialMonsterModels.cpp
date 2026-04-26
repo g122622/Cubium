@@ -1,11 +1,10 @@
 #include "SpecialMonsterModels.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    constexpr f64 PI = 3.14159265359;
-
     // Guard spine positions from MC 1.16.5
     constexpr f32 SPINE_ROT_X[] = {1.75f, 0.25f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.5f, 1.25f, 0.75f, 0.0f, 0.0f};
     constexpr f32 SPINE_ROT_Y[] = {0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 1.75f, 1.25f, 0.75f, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -103,13 +102,13 @@ void WitherModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                              f64 headPitch, f64 scale) {
     f32 f = static_cast<f32>(std::cos(ageInTicks * 0.1));
 
-    m_upperBodyParts[1]->setRotateAngleX(static_cast<f32>((0.065 + 0.05 * f) * PI));
+    m_upperBodyParts[1]->setRotateAngleX(static_cast<f32>((0.065 + 0.05 * f) * mc::math::PI_DOUBLE));
     m_upperBodyParts[2]->setRotationPoint(-2.0f, static_cast<f32>(6.9 + std::cos(m_upperBodyParts[1]->rotateAngleX()) * 10.0),
                                            static_cast<f32>(-0.5 + std::sin(m_upperBodyParts[1]->rotateAngleX()) * 10.0));
-    m_upperBodyParts[2]->setRotateAngleX(static_cast<f32>((0.265 + 0.1 * f) * PI));
+    m_upperBodyParts[2]->setRotateAngleX(static_cast<f32>((0.265 + 0.1 * f) * mc::math::PI_DOUBLE));
 
-    m_heads[0]->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_heads[0]->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_heads[0]->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_heads[0]->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     // Side heads would need entity data for head rotation
     // For now, just copy main head rotation
@@ -254,9 +253,9 @@ void GuardianModel::setupParts() {
 
 void GuardianModel::updateSpines(f64 ageInTicks, f64 spikeAnimation) {
     for (i32 i = 0; i < 12; ++i) {
-        m_spines[i]->setRotateAngleX(static_cast<f32>(PI * SPINE_ROT_X[i]));
-        m_spines[i]->setRotateAngleY(static_cast<f32>(PI * SPINE_ROT_Y[i]));
-        m_spines[i]->setRotateAngleZ(static_cast<f32>(PI * SPINE_ROT_Z[i]));
+        m_spines[i]->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE * SPINE_ROT_X[i]));
+        m_spines[i]->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE * SPINE_ROT_Y[i]));
+        m_spines[i]->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE * SPINE_ROT_Z[i]));
         f32 scale = static_cast<f32>(1.0 + std::cos(ageInTicks * 1.5 + i) * 0.01 - spikeAnimation);
         m_spines[i]->setRotationPoint(SPINE_POS_X[i] * scale, 16.0f + SPINE_POS_Y[i] * scale, SPINE_POS_Z[i] * scale);
     }
@@ -270,8 +269,8 @@ void GuardianModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                f64 ageInTicks, f64 netHeadYaw,
                                f64 headPitch, f64 scale) {
     // 参考 MC 1.16.5 GuardianModel.setRotationAngles
-    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_body->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     // 使用成员变量中的动画值
     f32 spikeAnim = 1.0f - m_spikeAnimation;
@@ -291,10 +290,10 @@ void GuardianModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 尾巴动画
     f32 tailAnim = m_tailAnimation;
-    m_tail[0]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * PI * 0.05));
-    m_tail[1]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * PI * 0.1));
+    m_tail[0]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * mc::math::PI_DOUBLE * 0.05));
+    m_tail[1]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * mc::math::PI_DOUBLE * 0.1));
     m_tail[1]->setRotationPoint(-1.5f, 0.5f, 14.0f);
-    m_tail[2]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * PI * 0.15));
+    m_tail[2]->setRotateAngleY(static_cast<f32>(std::sin(tailAnim) * mc::math::PI_DOUBLE * 0.15));
     m_tail[2]->setRotationPoint(0.5f, 0.5f, 6.0f);
 
     (void)limbSwing;
@@ -351,24 +350,24 @@ void ShulkerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 参考 MC 1.16.5 ShulkerModel.setRotationAngles 第 34 行
     // float f1 = (0.5F + entityIn.getClientPeekAmount(f)) * (float)Math.PI;
     f32 peekAmount = m_peekAmount;  // 从成员变量获取
-    f32 peekAngle = static_cast<f32>((0.5 + peekAmount) * PI);
+    f32 peekAngle = static_cast<f32>((0.5 + peekAmount) * mc::math::PI_DOUBLE);
     f32 f2 = -1.0f + static_cast<f32>(std::sin(peekAngle));
     f32 f3 = 0.0f;
 
-    if (peekAngle > static_cast<f32>(PI)) {
+    if (peekAngle > static_cast<f32>(mc::math::PI_DOUBLE)) {
         f3 = static_cast<f32>(std::sin(ageInTicks * 0.1) * 0.7);
     }
 
     m_lid->setRotationPoint(0.0f, static_cast<f32>(16.0 + std::sin(peekAngle) * 8.0 + f3), 0.0f);
 
     if (peekAmount > 0.3f) {
-        m_lid->setRotateAngleY(f2 * f2 * f2 * f2 * static_cast<f32>(PI * 0.125));
+        m_lid->setRotateAngleY(f2 * f2 * f2 * f2 * static_cast<f32>(mc::math::PI_DOUBLE * 0.125));
     } else {
         m_lid->setRotateAngleY(0.0f);
     }
 
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
 
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -435,8 +434,8 @@ void SilverfishModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                  f64 ageInTicks, f64 netHeadYaw,
                                  f64 headPitch, f64 scale) {
     for (i32 i = 0; i < 7; ++i) {
-        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * PI) * PI * 0.05 * (1 + std::abs(i - 2))));
-        m_bodyParts[i]->setRotationPointX(static_cast<f32>(std::sin(ageInTicks * 0.9 + i * 0.15 * PI) * PI * 0.2 * std::abs(i - 2)));
+        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.05 * (1 + std::abs(i - 2))));
+        m_bodyParts[i]->setRotationPointX(static_cast<f32>(std::sin(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.2 * std::abs(i - 2)));
     }
 
     m_wings[0]->setRotateAngleY(static_cast<f32>(m_bodyParts[2]->rotateAngleY()));
@@ -492,8 +491,8 @@ void EndermiteModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                 f64 ageInTicks, f64 netHeadYaw,
                                 f64 headPitch, f64 scale) {
     for (i32 i = 0; i < 4; ++i) {
-        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * PI) * PI * 0.01 * (1 + std::abs(i - 2))));
-        m_bodyParts[i]->setRotationPointX(static_cast<f32>(std::sin(ageInTicks * 0.9 + i * 0.15 * PI) * PI * 0.1 * std::abs(i - 2)));
+        m_bodyParts[i]->setRotateAngleY(static_cast<f32>(std::cos(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.01 * (1 + std::abs(i - 2))));
+        m_bodyParts[i]->setRotationPointX(static_cast<f32>(std::sin(ageInTicks * 0.9 + i * 0.15 * mc::math::PI_DOUBLE) * mc::math::PI_DOUBLE * 0.1 * std::abs(i - 2)));
     }
 
     (void)limbSwing;

@@ -1,11 +1,8 @@
 #include "VillagerModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 VillagerModel::VillagerModel(f32 scale)
     : VillagerModel(scale, 64, 64)
@@ -35,7 +32,7 @@ VillagerModel::VillagerModel(f32 scale, i32 textureWidth, i32 textureHeight)
     m_hatBrim->setTextureOffset(30, 47);
     m_hatBrim->addBox(-8.0f, -8.0f, -6.0f, 16.0f, 16.0f, 1.0f, static_cast<f64>(scale));
     m_hatBrim->setRotationPoint(0.0f, 0.0f, 0.0f);
-    m_hatBrim->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+    m_hatBrim->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     m_hat->addChild(m_hatBrim);
 
     // 鼻子
@@ -102,8 +99,8 @@ void VillagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                f64 ageInTicks, f64 netHeadYaw,
                                f64 headPitch, f64 /*scale*/) {
     // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     // 摇头动画（交易不满意时）
     if (m_shakingHead) {
@@ -120,7 +117,7 @@ void VillagerModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 腿部动画
     m_rightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount * 0.5));
-    m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount * 0.5));
+    m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmount * 0.5));
     m_rightLeg->setRotateAngleY(0.0f);
     m_leftLeg->setRotateAngleY(0.0f);
 }

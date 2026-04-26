@@ -4,6 +4,7 @@
 #include "../../../controller/MovementController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include <cmath>
 
@@ -94,7 +95,7 @@ bool WaterAvoidingRandomWalkingGoal::getRandomPosition() {
     // 尝试多次找到合适的位置
     for (i32 attempt = 0; attempt < 10; ++attempt) {
         // 随机方向
-        f32 angle = rng.nextFloat() * 2.0f * 3.14159265f;
+        f32 angle = rng.nextFloat() * mc::math::TWO_PI;
         f32 distance = 10.0f + rng.nextFloat() * 10.0f;
 
         f64 x = m_creature->x() + std::cos(angle) * distance;

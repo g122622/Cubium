@@ -1,6 +1,7 @@
 #include "ClientWorld.hpp"
 #include "../renderer/trident/chunk/ChunkMesher.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/math/frustum/Frustum.hpp"

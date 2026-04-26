@@ -162,12 +162,12 @@ struct IntegratedServerConfig {
 
 ```cpp
 struct StandaloneServerParams {
-    Optional<u16> port;
-    Optional<String> bindAddress;
-    Optional<u32> maxPlayers;
-    Optional<String> worldName;
-    Optional<i64> seed;
-    Optional<String> settingsPath;
+    std::optional<u16> port;
+    std::optional<String> bindAddress;
+    std::optional<u32> maxPlayers;
+    std::optional<String> worldName;
+    std::optional<i64> seed;
+    std::optional<String> settingsPath;
 };
 ```
 

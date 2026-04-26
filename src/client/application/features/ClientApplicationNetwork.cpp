@@ -715,8 +715,8 @@ void ClientApplication::setupNetworkCallbacks()
         m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
     };
 
-    callbacks.onStopSound = [this](const Optional<ResourceLocation>& soundEventId,
-                                   const Optional<mc::sound::SoundCategory>& category) {
+    callbacks.onStopSound = [this](const std::optional<ResourceLocation>& soundEventId,
+                                   const std::optional<mc::sound::SoundCategory>& category) {
         if (!m_audioService) {
             return;
         }
@@ -796,7 +796,7 @@ void ClientApplication::setupNetworkCallbacks()
         // 延迟更新 - 暂时不需要特殊处理
     };
 
-    callbacks.onPlayerListUpdateDisplayName = [this](const std::array<u8, 16>& uuid, const Optional<String>& displayName) {
+    callbacks.onPlayerListUpdateDisplayName = [this](const std::array<u8, 16>& uuid, const std::optional<String>& displayName) {
         MC_UNUSED(uuid);
         MC_UNUSED(displayName);
         // 显示名更新 - 暂时不需要特殊处理

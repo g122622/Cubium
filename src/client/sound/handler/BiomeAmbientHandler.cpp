@@ -47,7 +47,7 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
     m_lastPlayedBiomeId = m_currentBiomeId;
 }
 
-Optional<ResourceLocation> BiomeAmbientHandler::getBiomeAmbientSound(u32 biomeId)
+std::optional<ResourceLocation> BiomeAmbientHandler::getBiomeAmbientSound(u32 biomeId)
 {
     // TODO: 从群系注册表获取实际的环境音效
     // 当前返回一些示例环境音效

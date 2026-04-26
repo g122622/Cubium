@@ -417,7 +417,7 @@ std::vector<ResourcePackList::PackInfo> ResourcePackList::getEnabledPackInfos() 
     return result;
 }
 
-Optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const String& path) const
+std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const String& path) const
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::getPackInfo", "path", path);
 

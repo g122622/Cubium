@@ -1,4 +1,5 @@
 #include "InternalLightUtils.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -39,7 +40,7 @@ i32 calculateSkyDarkeningFromAngle(f32 celestialAngle) {
     // 使用 sin 而不是 cos：
     // - 正午 (0.25): sin(π/2) = 1 (太阳最高)
     // - 午夜 (0.75): sin(3π/2) = -1 (太阳最低)
-    f32 sunAngle = celestialAngle * 2.0f * 3.14159265f;
+    f32 sunAngle = celestialAngle * mc::math::TWO_PI;
     f32 sunHeight = std::sin(sunAngle);  // [-1, 1]
 
     // 将太阳高度映射到亮度因子 [0, 1]
@@ -117,7 +118,7 @@ f32 getSunAngle(f32 celestialAngle) {
     // 太阳高度角
     // 0 = 地平线，正值 = 白天，负值 = 夜晚
 
-    f32 angle = celestialAngle * 2.0f * 3.14159265f;
+    f32 angle = celestialAngle * mc::math::TWO_PI;
     return std::sin(angle);
 }
 

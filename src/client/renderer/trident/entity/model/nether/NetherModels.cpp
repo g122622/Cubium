@@ -1,12 +1,9 @@
 #include "NetherModels.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::nether {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 // ==================== GhastModel ====================
 
@@ -60,8 +57,8 @@ void GhastModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                             f64 ageInTicks, f64 netHeadYaw,
                             f64 headPitch, f64 scale) {
     // 身体跟随头部旋转
-    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_body->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     // Java 触手动画: rotateAngleX = 0.2F * MathHelper.sin(ageInTicks * 0.3F + (float)i) + 0.4F
     for (i32 i = 0; i < 9; ++i) {
@@ -356,21 +353,21 @@ void PiglinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 调用基类设置基础动画
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 耳朵动画 - Java: PI/6 = 0.52359877559...
+    // 耳朵动画 - Java: mc::math::PI_DOUBLE/6 = 0.52359877559...
     f32 f1 = static_cast<f32>(ageInTicks * 0.1 + limbSwing * 0.5);
     f32 f2 = 0.08f + static_cast<f32>(limbSwingAmount * 0.4);
-    m_rightEar->setRotateAngleZ(static_cast<f32>(-PI / 6.0 - std::cos(f1 * 1.2) * f2));
-    m_leftEar->setRotateAngleZ(static_cast<f32>(PI / 6.0 + std::cos(f1) * f2));
+    m_rightEar->setRotateAngleZ(static_cast<f32>(-mc::math::PI_DOUBLE / 6.0 - std::cos(f1 * 1.2) * f2));
+    m_leftEar->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 6.0 + std::cos(f1) * f2));
 
     // 根据动作状态设置动画
     if (m_action == static_cast<i32>(Action::DANCING)) {
         // 跳舞动画
         f32 f3 = static_cast<f32>(ageInTicks / 60.0);
-        m_leftEar->setRotateAngleZ(static_cast<f32>(PI / 6.0 + PI / 180.0 * std::sin(f3 * 30.0) * 10.0));
-        m_rightEar->setRotateAngleZ(static_cast<f32>(-PI / 6.0 - PI / 180.0 * std::cos(f3 * 30.0) * 10.0));
+        m_leftEar->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 6.0 + mc::math::PI_DOUBLE / 180.0 * std::sin(f3 * 30.0) * 10.0));
+        m_rightEar->setRotateAngleZ(static_cast<f32>(-mc::math::PI_DOUBLE / 6.0 - mc::math::PI_DOUBLE / 180.0 * std::cos(f3 * 30.0) * 10.0));
         m_bipedHead->setRotationPointX(static_cast<f32>(std::sin(f3 * 10.0)));
         m_bipedHead->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) + 0.4));
-        m_bipedRightArm->setRotateAngleZ(static_cast<f32>(PI / 180.0 * (70.0 + std::cos(f3 * 40.0) * 10.0)));
+        m_bipedRightArm->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 180.0 * (70.0 + std::cos(f3 * 40.0) * 10.0)));
         m_bipedLeftArm->setRotateAngleZ(-m_bipedRightArm->rotateAngleZ());
         m_bipedRightArm->setRotationPointY(static_cast<f32>(std::sin(f3 * 40.0) * 0.5 + 1.5));
         m_bipedLeftArm->setRotationPointY(m_bipedRightArm->rotationPointY());
@@ -387,28 +384,28 @@ void PiglinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         if (!m_leftHanded) {
             // 右手持弩
             m_bipedRightArm->setRotateAngleY(-0.3f);
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             m_bipedLeftArm->setRotateAngleY(0.6f);
-            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
         } else {
             // 左手持弩
             m_bipedLeftArm->setRotateAngleY(0.3f);
-            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             m_bipedRightArm->setRotateAngleY(-0.6f);
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
         }
     } else if (m_action == static_cast<i32>(Action::CROSSBOW_CHARGE)) {
         // 弩装填姿态 - 参考 ModelHelper.func_239102_a_
         if (!m_leftHanded) {
             m_bipedRightArm->setRotateAngleY(-0.8f);
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             m_bipedLeftArm->setRotateAngleY(0.8f);
-            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
         } else {
             m_bipedLeftArm->setRotateAngleY(0.8f);
-            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             m_bipedRightArm->setRotateAngleY(-0.8f);
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
         }
     } else if (m_action == static_cast<i32>(Action::ADMIRING_ITEM)) {
         // 欣赏物品
@@ -550,7 +547,7 @@ void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_rightTusk->setRotateAngleZ(0.6981317f + tuskSwing);
 
     // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     // 头部 X 旋转: lerp(f, 0.87266463F, -0.34906584F) 基于 func_230290_eL_()
     // 简化版本：保持基础角度
     m_head->setRotateAngleX(0.87266463f);
@@ -558,7 +555,7 @@ void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 腿部动画
     f32 legSwing = static_cast<f32>(std::cos(limbSwing) * 1.2 * limbSwingAmount);
     m_rightFrontLeg->setRotateAngleX(legSwing);
-    m_leftFrontLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing + PI) * 1.2 * limbSwingAmount));
+    m_leftFrontLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing + mc::math::PI_DOUBLE) * 1.2 * limbSwingAmount));
     m_rightBackLeg->setRotateAngleX(m_leftFrontLeg->rotateAngleX());
     m_leftBackLeg->setRotateAngleX(m_rightFrontLeg->rotateAngleX());
 
@@ -665,15 +662,15 @@ void StriderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 身体旋转 - Java 原版：有乘客时不旋转身体
     // if (entityIn.getPassengers().size() <= 0) {
-    //     this.field_239120_f_.rotateAngleX = headPitch * PI/180;
-    //     this.field_239120_f_.rotateAngleY = netHeadYaw * PI/180;
+    //     this.field_239120_f_.rotateAngleX = headPitch * mc::math::PI_DOUBLE/180;
+    //     this.field_239120_f_.rotateAngleY = netHeadYaw * mc::math::PI_DOUBLE/180;
     // } else {
     //     this.field_239120_f_.rotateAngleX = 0.0F;
     //     this.field_239120_f_.rotateAngleY = 0.0F;
     // }
     if (!m_hasPassengers) {
-        m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-        m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+        m_body->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+        m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     } else {
         m_body->setRotateAngleX(0.0f);
         m_body->setRotateAngleY(0.0f);
@@ -687,14 +684,14 @@ void StriderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 腿部动画
     m_rightLeg->setRotateAngleX(static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5) * 2.0 * swingAmount));
-    m_leftLeg->setRotateAngleX(static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + PI) * 2.0 * swingAmount));
+    m_leftLeg->setRotateAngleX(static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * 2.0 * swingAmount));
 
     // 腿部 Z 轴旋转
     m_rightLeg->setRotateAngleZ(0.17453292f * static_cast<f32>(std::cos(limbSwing * 1.5 * 0.5) * swingAmount));
-    m_leftLeg->setRotateAngleZ(0.17453292f * static_cast<f32>(std::cos(limbSwing * 1.5 * 0.5 + PI) * swingAmount));
+    m_leftLeg->setRotateAngleZ(0.17453292f * static_cast<f32>(std::cos(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * swingAmount));
 
     // 腿部 Y 位置动画
-    m_rightLeg->setRotationPointY(8.0f + 2.0f * static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + PI) * 2.0 * swingAmount));
+    m_rightLeg->setRotationPointY(8.0f + 2.0f * static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5 + mc::math::PI_DOUBLE) * 2.0 * swingAmount));
     m_leftLeg->setRotationPointY(8.0f + 2.0f * static_cast<f32>(std::sin(limbSwing * 1.5 * 0.5) * 2.0 * swingAmount));
 
     // 皮瓣基础角度
@@ -706,7 +703,7 @@ void StriderModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_flapRightBottom->setRotateAngleZ(1.2217305f);
 
     // 皮瓣动画叠加
-    f32 f1 = static_cast<f32>(std::cos(limbSwing * 1.5 + PI) * swingAmount);
+    f32 f1 = static_cast<f32>(std::cos(limbSwing * 1.5 + mc::math::PI_DOUBLE) * swingAmount);
     m_flapLeftBottom->setRotateAngleZ(-1.2217305f + f1 * 1.3f);
     m_flapLeftMiddle->setRotateAngleZ(-1.134464f + f1 * 1.2f);
     m_flapLeftTop->setRotateAngleZ(-0.87266463f + f1 * 0.6f);

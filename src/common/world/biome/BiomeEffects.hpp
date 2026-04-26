@@ -32,7 +32,7 @@ enum class GrassColorModifier : u8 {
  */
 class BiomeEffects {
 public:
-    using OptionalColor = Optional<u32>;
+    using OptionalColor = std::optional<u32>;
 
     BiomeEffects() = default;
 

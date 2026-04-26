@@ -54,17 +54,17 @@ namespace mc::client {
  */
 struct ClientLaunchParams {
     // 窗口配置覆盖（可选）
-    Optional<i32> windowWidth;
-    Optional<i32> windowHeight;
-    Optional<bool> fullscreen;
+    std::optional<i32> windowWidth;
+    std::optional<i32> windowHeight;
+    std::optional<bool> fullscreen;
 
     // 服务器配置覆盖（可选）
-    Optional<String> serverAddress;
-    Optional<u16> serverPort;
-    Optional<String> username;
+    std::optional<String> serverAddress;
+    std::optional<u16> serverPort;
+    std::optional<String> username;
 
     // 其他启动参数
-    Optional<String> settingsPath;  // 自定义设置文件路径
+    std::optional<String> settingsPath;  // 自定义设置文件路径
     bool skipIntegratedServer = false;  // 跳过内置服务器
 };
 

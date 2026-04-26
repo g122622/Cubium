@@ -60,7 +60,7 @@ private:
      * @param biomeId 群系ID
      * @return 环境音效资源位置，无则返回空
      */
-    [[nodiscard]] static Optional<ResourceLocation> getBiomeAmbientSound(u32 biomeId);
+    [[nodiscard]] static std::optional<ResourceLocation> getBiomeAmbientSound(u32 biomeId);
 
     /// 当前群系ID
     u32 m_currentBiomeId = 0;

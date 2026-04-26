@@ -39,7 +39,7 @@ StringView getSoundCategoryName(SoundCategory category) noexcept {
     return s_categoryNames[index];
 }
 
-Optional<SoundCategory> parseSoundCategory(StringView name) noexcept {
+std::optional<SoundCategory> parseSoundCategory(StringView name) noexcept {
     if (name.empty()) {
         return std::nullopt;
     }

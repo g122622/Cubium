@@ -1,11 +1,8 @@
 #include "MonsterVariantModels.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 // ==================== ZombieVillagerModel ====================
 
@@ -37,7 +34,7 @@ void ZombieVillagerModel::setupParts(f32 scale, bool slim) {
         m_villagerNose = std::make_shared<ModelRenderer>("villagerNose");
         m_villagerNose->setTextureOffset(30, 47);
         m_villagerNose->addBox(-8.0f, -8.0f, -6.0f, 16.0f, 16.0f, 1.0f, scale);
-        m_villagerNose->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_villagerNose->setRotateAngleX(static_cast<f32>(-mc::math::PI / 2.0));
 
         m_body->setTextureOffset(16, 20);
         m_body->addBox(-4.0f, 0.0f, -3.0f, 8.0f, 12.0f, 6.0f, scale);

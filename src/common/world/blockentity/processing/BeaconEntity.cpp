@@ -113,7 +113,7 @@ void BeaconEntity::setLevel(i32 level) {
 }
 
 void BeaconEntity::setPrimaryEffect(const EffectType* effect) {
-    const Optional<EffectType> nextEffect = effect != nullptr ? Optional<EffectType>(*effect) : std::nullopt;
+    const std::optional<EffectType> nextEffect = effect != nullptr ? std::optional<EffectType>(*effect) : std::nullopt;
     if (m_primaryEffect != nextEffect) {
         m_primaryEffect = nextEffect;
         setChanged();
@@ -121,7 +121,7 @@ void BeaconEntity::setPrimaryEffect(const EffectType* effect) {
 }
 
 void BeaconEntity::setSecondaryEffect(const EffectType* effect) {
-    const Optional<EffectType> nextEffect = effect != nullptr ? Optional<EffectType>(*effect) : std::nullopt;
+    const std::optional<EffectType> nextEffect = effect != nullptr ? std::optional<EffectType>(*effect) : std::nullopt;
     if (m_secondaryEffect != nextEffect) {
         m_secondaryEffect = nextEffect;
         setChanged();

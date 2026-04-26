@@ -4,6 +4,7 @@
 #include "../../../WorldConstants.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc {
@@ -35,7 +36,7 @@ BlockPos EndGatewayFeature::calculateTeleportTarget(const BlockPos& currentPos, 
     math::Random rng(seed);
 
     // 随机角度
-    f64 angle = rng.nextDouble() * 2.0 * 3.14159265358979323846;
+    f64 angle = rng.nextDouble() * 2.0 * mc::math::PI_DOUBLE;
 
     // 距离范围：1024-1280格
     f64 distance = 1024.0 + rng.nextDouble() * 256.0;

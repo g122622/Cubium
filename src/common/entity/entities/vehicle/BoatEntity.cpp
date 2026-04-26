@@ -1,6 +1,7 @@
 #include "BoatEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../player/Player.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc {
@@ -90,13 +91,13 @@ void BoatEntity::controlBoat() {
     m_speed = std::max(-MAX_SPEED, std::min(MAX_SPEED, m_speed));
 
     // 应用速度
-    f32 yawRad = m_yaw * 3.14159265f / 180.0f;
+    f32 yawRad = mc::math::toRadians(m_yaw);
     f32 vx = -std::sin(yawRad) * m_speed;
     f32 vz = std::cos(yawRad) * m_speed;
     setVelocity(vx, velocityY(), vz);
 
     // 应用旋转
-    m_yaw += m_rotationVelocity * 57.295776f; // 转换为角度
+    m_yaw += mc::math::toDegrees(m_rotationVelocity);
 }
 
 } // namespace entity

@@ -1,11 +1,8 @@
 #include "OcelotModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 OcelotModel::OcelotModel(f32 scale)
     : AgeableModel()
@@ -115,15 +112,15 @@ void OcelotModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/
         m_tail->setRotationPointY(m_tail->rotationPointY() + 1.0f);
         m_tail2->setRotationPointY(m_tail2->rotationPointY() - 4.0f);
         m_tail2->setRotationPointZ(m_tail2->rotationPointZ() + 2.0f);
-        m_tail->setRotateAngleX(static_cast<f32>(PI / 2.0));
-        m_tail2->setRotateAngleX(static_cast<f32>(PI / 2.0));
+        m_tail->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
+        m_tail2->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
         m_state = 0;
     } else if (m_isSprinting) {
         // 奔跑状态
         m_tail2->setRotationPointY(m_tail->rotationPointY());
         m_tail2->setRotationPointZ(m_tail2->rotationPointZ() + 2.0f);
-        m_tail->setRotateAngleX(static_cast<f32>(PI / 2.0));
-        m_tail2->setRotateAngleX(static_cast<f32>(PI / 2.0));
+        m_tail->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
+        m_tail2->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
         m_state = 2;
     } else {
         // 站立状态
@@ -135,31 +132,31 @@ void OcelotModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                             f64 ageInTicks, f64 netHeadYaw,
                             f64 headPitch, f64 /*scale*/) {
     // 头部旋转
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
 
     if (m_state != 3) {
         // 身体水平
-        m_body->setRotateAngleX(static_cast<f32>(PI / 2.0));
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
 
         if (m_state == 2) {
             // 奔跑动画
             m_backLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount));
             m_backRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + 0.3) * limbSwingAmount));
-            m_frontLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI + 0.3) * limbSwingAmount));
-            m_frontRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * limbSwingAmount));
-            m_tail2->setRotateAngleX(static_cast<f32>(1.7278761 + (PI / 10.0) * std::cos(limbSwing) * limbSwingAmount));
+            m_frontLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE + 0.3) * limbSwingAmount));
+            m_frontRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * limbSwingAmount));
+            m_tail2->setRotateAngleX(static_cast<f32>(1.7278761 + (mc::math::PI_DOUBLE / 10.0) * std::cos(limbSwing) * limbSwingAmount));
         } else {
             // 行走动画
             m_backLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount));
-            m_backRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * limbSwingAmount));
-            m_frontLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * limbSwingAmount));
+            m_backRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * limbSwingAmount));
+            m_frontLeftLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * limbSwingAmount));
             m_frontRightLeg->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662) * limbSwingAmount));
 
             // 参考 MC 1.16.5 OcelotModel.setRotationAngles
-            // state==1 时尾巴角度使用 PI/4，其他情况（state==0 或默认）使用 0.47123894
+            // state==1 时尾巴角度使用 mc::math::PI_DOUBLE/4，其他情况（state==0 或默认）使用 0.47123894
             if (m_state == 1) {
-                m_tail2->setRotateAngleX(static_cast<f32>(1.7278761 + (PI / 4.0) * std::cos(limbSwing) * limbSwingAmount));
+                m_tail2->setRotateAngleX(static_cast<f32>(1.7278761 + (mc::math::PI_DOUBLE / 4.0) * std::cos(limbSwing) * limbSwingAmount));
             } else {
                 m_tail2->setRotateAngleX(static_cast<f32>(1.7278761 + 0.47123894 * std::cos(limbSwing) * limbSwingAmount));
             }

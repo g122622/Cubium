@@ -15,7 +15,6 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 - `u8`, `u16`, `u32`, `u64` - 无符号整数
 - `f32`, `f64` - 浮点数（性能优先使用 f32）
 - `String`, `StringView` - 字符串类型
-- `Optional<T>` - 可选值
 
 ### 游戏类型
 - `ChunkCoord`, `BlockCoord`, `WorldHeight` - 坐标类型
@@ -99,8 +98,15 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 - `Vector3` - 3D 向量，用于位置/速度，支持 `Position`/`Velocity` 别名
 - `Vector4<T>` - 4D 向量模板，用于颜色(RGBA)、齐次坐标、四元数
 
-**数学常量** (`src/common/core/Constants.hpp`)
-- `mc::math::PI`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`, `EPSILON`
+**数学常量** (`src/common/util/math/MathConstants.hpp`)
+- `mc::math::PI`, `PI_DOUBLE`, `TWO_PI`, `TAU`, `HALF_PI`, `QUARTER_PI`, `E`
+- `mc::math::EPSILON`, `LARGE_EPSILON`, `FLOAT_MAX`, `FLOAT_MIN`
+
+**度数/弧度转换** (`src/common/util/math/MathUtils.hpp`)
+- `mc::math::DEG_TO_RAD`, `RAD_TO_DEG` - 度/弧度转换常量
+- `toRadians()`, `toDegrees()` - 度/弧度转换函数
+
+**游戏常量** (`src/common/core/Constants.hpp`)
 - `mc::game::GRAVITY`, `PLAYER_HEIGHT`, `PLAYER_WIDTH`, `DAY_LENGTH_TICKS`
 - `mc::world::CHUNK_WIDTH`, `CHUNK_HEIGHT`, `SEA_LEVEL`
 

@@ -1,12 +1,12 @@
 #include "BlazeModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    constexpr f64 PI = 3.14159265359;
     // 烟雾棒的旋转偏移（每根棒间隔30度）
-    constexpr f64 ROD_ANGLE_OFFSET = PI / 6.0;
+    constexpr f64 ROD_ANGLE_OFFSET = mc::math::PI_DOUBLE / 6.0;
     // 棒的浮动偏移角度增量
     constexpr f64 ROD_FLOAT_SPEED = 0.5;
 }
@@ -65,8 +65,8 @@ void BlazeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 参考 MC 1.16.5 BlazeModel.setRotationAngles
     // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     // 烟雾棒动画 - 分三层，每层有不同的半径和Y偏移
     // 参考 MC 1.16.5:
@@ -75,7 +75,7 @@ void BlazeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 第3层 (8-11): 半径5，Y=11 + cos((i*1.5 + ageInTicks) * 0.5)
 
     // 第一层：棒 0-3
-    f64 f = ageInTicks * PI * -0.1;
+    f64 f = ageInTicks * mc::math::PI_DOUBLE * -0.1;
     for (i32 i = 0; i < 4; ++i) {
         auto& rod = m_smokeRods[i];
         if (!rod) continue;
@@ -94,7 +94,7 @@ void BlazeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     }
 
     // 第二层：棒 4-7
-    f = PI / 4.0 + ageInTicks * PI * 0.03;
+    f = mc::math::PI_DOUBLE / 4.0 + ageInTicks * mc::math::PI_DOUBLE * 0.03;
     for (i32 i = 4; i < 8; ++i) {
         auto& rod = m_smokeRods[i];
         if (!rod) continue;
@@ -113,7 +113,7 @@ void BlazeModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     }
 
     // 第三层：棒 8-11
-    f = 0.47123894 + ageInTicks * PI * -0.05;
+    f = 0.47123894 + ageInTicks * mc::math::PI_DOUBLE * -0.05;
     for (i32 i = 8; i < 12; ++i) {
         auto& rod = m_smokeRods[i];
         if (!rod) continue;

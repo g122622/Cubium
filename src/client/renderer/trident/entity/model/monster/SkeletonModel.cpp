@@ -1,11 +1,11 @@
 #include "SkeletonModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
 
 namespace {
-    constexpr f64 PI = 3.14159265359;
-    constexpr f64 DEG_TO_RAD = PI / 180.0;
+    constexpr f64 DEG_TO_RAD = mc::math::PI_DOUBLE / 180.0;
 }
 
 SkeletonModel::SkeletonModel()
@@ -63,16 +63,16 @@ void SkeletonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     if (m_isAggressive && m_rightArmPose != ArmPose::BowAndArrow) {
         f32 swingProgress = m_swingProgress;
-        f32 f = static_cast<f32>(std::sin(swingProgress * PI));
-        f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * PI));
+        f32 f = static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE));
+        f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * mc::math::PI_DOUBLE));
 
         if (m_rightArm && m_leftArm) {
             m_rightArm->setRotateAngleZ(0.0f);
             m_leftArm->setRotateAngleZ(0.0f);
             m_rightArm->setRotateAngleY(-(0.1f - f * 0.6f));
             m_leftArm->setRotateAngleY(0.1f - f * 0.6f);
-            m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
-            m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+            m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
+            m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
             m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
             m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
 
@@ -96,14 +96,14 @@ void SkeletonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
             if (m_rightArm && m_leftArm && m_head) {
                 m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
                 m_leftArm->setRotateAngleY(0.1f + m_head->rotateAngleY() + 0.4f);
-                m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
-                m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0 + headPitch * DEG_TO_RAD));
+                m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * DEG_TO_RAD));
+                m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * DEG_TO_RAD));
             }
             break;
         case ArmPose::ThrowSpear:
             // 投掷三叉戟姿态
             if (m_rightArm) {
-                m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() * 0.5f - static_cast<f32>(PI));
+                m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
             }
             break;
         case ArmPose::CrossbowCharge:

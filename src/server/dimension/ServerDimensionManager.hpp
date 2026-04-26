@@ -159,7 +159,7 @@ public:
      */
     [[nodiscard]] bool transferPlayerToDimension(PlayerId playerId,
                                                   DimensionId targetDim,
-                                                  const Optional<Vector3d>& position = std::nullopt);
+                                                  const std::optional<Vector3d>& position = std::nullopt);
 
     /**
      * @brief 设置维度切换回调

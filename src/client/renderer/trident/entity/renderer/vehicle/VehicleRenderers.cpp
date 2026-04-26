@@ -1,12 +1,13 @@
 #include "VehicleRenderers.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::renderer::vehicle {
 
 namespace {
-    constexpr f64 PI = 3.14159265359;
+    using mc::math::PI_DOUBLE;
 }
 
 // ==================== 船模型 ====================
@@ -25,7 +26,7 @@ void BoatModel::setupParts() {
     // 创建5个船体面（底部、右、左、前、后）
     // MC: amodelrenderer[0].addBox(-14.0F, -9.0F, -3.0F, 28.0F, 16.0F, 3.0F, 0.0F);
     //     amodelrenderer[0].setRotationPoint(0.0F, 3.0F, 1.0F);
-    //     amodelrenderer[0].rotateAngleX = PI/2
+    //     amodelrenderer[0].rotateAngleX = PI_DOUBLE/2
 
     // 底部面 (amodelrenderer[0])
     m_bottom = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatBottom");
@@ -33,31 +34,31 @@ void BoatModel::setupParts() {
     m_bottom->setTextureOffset(0, 0);
     m_bottom->addBox(-14.0f, -9.0f, -3.0f, 28.0f, 16.0f, 3.0f, 0.0f);
     m_bottom->setRotationPoint(0.0f, 3.0f, 1.0f);
-    m_bottom->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_bottom->setRotateAngleX(static_cast<f32>(PI_DOUBLE / 2.0));
 
-    // 右侧面 (amodelrenderer[1]) - 旋转 PI*1.5
+    // 右侧面 (amodelrenderer[1]) - 旋转 PI_DOUBLE*1.5
     m_right = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatRight");
     m_right->setTextureSize(128, 64);
     m_right->setTextureOffset(0, 19);
     m_right->addBox(-13.0f, -7.0f, -1.0f, 18.0f, 6.0f, 2.0f, 0.0f);
     m_right->setRotationPoint(-15.0f, 4.0f, 4.0f);
-    m_right->setRotateAngleY(static_cast<f32>(PI * 1.5));
+    m_right->setRotateAngleY(static_cast<f32>(PI_DOUBLE * 1.5));
 
-    // 左侧面 (amodelrenderer[2]) - 旋转 PI/2
+    // 左侧面 (amodelrenderer[2]) - 旋转 PI_DOUBLE/2
     m_left = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatLeft");
     m_left->setTextureSize(128, 64);
     m_left->setTextureOffset(0, 19);
     m_left->addBox(-8.0f, -7.0f, -1.0f, 16.0f, 6.0f, 2.0f, 0.0f);
     m_left->setRotationPoint(15.0f, 4.0f, 0.0f);
-    m_left->setRotateAngleY(static_cast<f32>(PI / 2.0));
+    m_left->setRotateAngleY(static_cast<f32>(PI_DOUBLE / 2.0));
 
-    // 前面 (amodelrenderer[3]) - 旋转 PI
+    // 前面 (amodelrenderer[3]) - 旋转 PI_DOUBLE
     m_front = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatFront");
     m_front->setTextureSize(128, 64);
     m_front->setTextureOffset(0, 19);
     m_front->addBox(-14.0f, -7.0f, -1.0f, 28.0f, 6.0f, 2.0f, 0.0f);
     m_front->setRotationPoint(0.0f, 4.0f, -9.0f);
-    m_front->setRotateAngleY(static_cast<f32>(PI));
+    m_front->setRotateAngleY(static_cast<f32>(PI_DOUBLE));
 
     // 后面 (amodelrenderer[4])
     m_back = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatBack");
@@ -81,7 +82,7 @@ void BoatModel::setupParts() {
     m_paddleRight->addBox(-1.0f, 0.0f, -5.0f, 2.0f, 2.0f, 18.0f, 0.0f);
     m_paddleRight->addBox(0.001f, -3.0f, 8.0f, 1.0f, 6.0f, 7.0f, 0.0f);
     m_paddleRight->setRotationPoint(3.0f, -5.0f, -9.0f);
-    m_paddleRight->setRotateAngleY(static_cast<f32>(PI));
+    m_paddleRight->setRotateAngleY(static_cast<f32>(PI_DOUBLE));
     m_paddleRight->setRotateAngleZ(0.19634955f);
 
     // 水面以下不可见的底部
@@ -90,7 +91,7 @@ void BoatModel::setupParts() {
     m_noWater->setTextureOffset(0, 0);
     m_noWater->addBox(-14.0f, -9.0f, -3.0f, 28.0f, 16.0f, 3.0f, 0.0f);
     m_noWater->setRotationPoint(0.0f, -3.0f, 1.0f);
-    m_noWater->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_noWater->setRotateAngleX(static_cast<f32>(PI_DOUBLE / 2.0));
 }
 
 void BoatModel::render(f64 scale) {
@@ -173,37 +174,37 @@ void MinecartModel::setupParts() {
     // 纹理尺寸：64x32
     // 6个面：底部、左侧、右侧、前面、后面、内部底
 
-    // sideModels[0] - 底部，旋转 PI/2
+    // sideModels[0] - 底部，旋转 PI_DOUBLE/2
     m_sides[0] = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("minecartBottom");
     m_sides[0]->setTextureSize(64, 32);
     m_sides[0]->setTextureOffset(0, 10);
     m_sides[0]->addBox(-10.0f, -8.0f, -1.0f, 20.0f, 16.0f, 2.0f, 0.0f);
     m_sides[0]->setRotationPoint(0.0f, 4.0f, 0.0f);
-    m_sides[0]->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_sides[0]->setRotateAngleX(static_cast<f32>(PI_DOUBLE / 2.0));
 
-    // sideModels[1] - 左侧，旋转 PI*1.5
+    // sideModels[1] - 左侧，旋转 PI_DOUBLE*1.5
     m_sides[1] = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("minecartLeft");
     m_sides[1]->setTextureSize(64, 32);
     m_sides[1]->setTextureOffset(0, 0);
     m_sides[1]->addBox(-8.0f, -9.0f, -1.0f, 16.0f, 8.0f, 2.0f, 0.0f);
     m_sides[1]->setRotationPoint(-9.0f, 4.0f, 0.0f);
-    m_sides[1]->setRotateAngleY(static_cast<f32>(PI * 1.5));
+    m_sides[1]->setRotateAngleY(static_cast<f32>(PI_DOUBLE * 1.5));
 
-    // sideModels[2] - 右侧，旋转 PI/2
+    // sideModels[2] - 右侧，旋转 PI_DOUBLE/2
     m_sides[2] = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("minecartRight");
     m_sides[2]->setTextureSize(64, 32);
     m_sides[2]->setTextureOffset(0, 0);
     m_sides[2]->addBox(-8.0f, -9.0f, -1.0f, 16.0f, 8.0f, 2.0f, 0.0f);
     m_sides[2]->setRotationPoint(9.0f, 4.0f, 0.0f);
-    m_sides[2]->setRotateAngleY(static_cast<f32>(PI / 2.0));
+    m_sides[2]->setRotateAngleY(static_cast<f32>(PI_DOUBLE / 2.0));
 
-    // sideModels[3] - 后面，旋转 PI
+    // sideModels[3] - 后面，旋转 PI_DOUBLE
     m_sides[3] = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("minecartBack");
     m_sides[3]->setTextureSize(64, 32);
     m_sides[3]->setTextureOffset(0, 0);
     m_sides[3]->addBox(-8.0f, -9.0f, -1.0f, 16.0f, 8.0f, 2.0f, 0.0f);
     m_sides[3]->setRotationPoint(0.0f, 4.0f, -7.0f);
-    m_sides[3]->setRotateAngleY(static_cast<f32>(PI));
+    m_sides[3]->setRotateAngleY(static_cast<f32>(PI_DOUBLE));
 
     // sideModels[4] - 前面
     m_sides[4] = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("minecartFront");
@@ -212,13 +213,13 @@ void MinecartModel::setupParts() {
     m_sides[4]->addBox(-8.0f, -9.0f, -1.0f, 16.0f, 8.0f, 2.0f, 0.0f);
     m_sides[4]->setRotationPoint(0.0f, 4.0f, 7.0f);
 
-    // sideModels[5] - 内部底，旋转 -PI/2
+    // sideModels[5] - 内部底，旋转 -PI_DOUBLE/2
     m_sides[5] = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("minecartInside");
     m_sides[5]->setTextureSize(64, 32);
     m_sides[5]->setTextureOffset(44, 10);
     m_sides[5]->addBox(-9.0f, -7.0f, -1.0f, 18.0f, 14.0f, 1.0f, 0.0f);
     m_sides[5]->setRotationPoint(0.0f, 4.0f, 0.0f);
-    m_sides[5]->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+    m_sides[5]->setRotateAngleX(static_cast<f32>(-PI_DOUBLE / 2.0));
 }
 
 void MinecartModel::render(f64 scale) {

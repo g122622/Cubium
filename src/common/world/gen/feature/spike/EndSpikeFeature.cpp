@@ -3,6 +3,7 @@
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -48,7 +49,7 @@ std::vector<EndSpike> EndSpikeFeatureConfig::generateSpikes(u64 worldSeed) {
     math::Random rng(worldSeed);
 
     // 生成随机偏移角度
-    f64 angleOffset = rng.nextDouble() * 3.14159265358979323846 * 2.0;
+    f64 angleOffset = rng.nextDouble() * mc::math::PI_DOUBLE * 2.0;
 
     // 高度和半径数据（MC原版数据）
     static const i32 heights[] = {76, 79, 82, 85, 88, 91, 94, 97, 100, 103};
@@ -64,7 +65,7 @@ std::vector<EndSpike> EndSpikeFeatureConfig::generateSpikes(u64 worldSeed) {
 
     // 生成10根柱子
     for (i32 i = 0; i < 10; ++i) {
-        f64 angle = angleOffset + (i * 2.0 * 3.14159265358979323846 / 10.0);
+        f64 angle = angleOffset + (i * 2.0 * mc::math::PI_DOUBLE / 10.0);
 
         // 半径43的圆上分布
         i32 x = static_cast<i32>(std::cos(angle) * 43.0);

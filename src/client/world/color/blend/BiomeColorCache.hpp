@@ -32,7 +32,7 @@ public:
      * @param resolverId 解析器ID (用于区分草/树叶/水)
      * @return 缓存的颜色，如果未缓存返回 nullopt
      */
-    [[nodiscard]] Optional<u32> getColor(i32 localX, i32 localZ, size_t resolverId) const;
+    [[nodiscard]] std::optional<u32> getColor(i32 localX, i32 localZ, size_t resolverId) const;
 
     /**
      * @brief 设置缓存的颜色

@@ -194,11 +194,11 @@ void LivingEntity::playDeathSound() {
     }
 }
 
-Optional<ResourceLocation> LivingEntity::getHurtSound(DamageSource& /*source*/) const {
+std::optional<ResourceLocation> LivingEntity::getHurtSound(DamageSource& /*source*/) const {
     return makeSoundEventId("hurt");
 }
 
-Optional<ResourceLocation> LivingEntity::getDeathSound() const {
+std::optional<ResourceLocation> LivingEntity::getDeathSound() const {
     return makeSoundEventId("death");
 }
 

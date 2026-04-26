@@ -38,13 +38,13 @@ src/client/application/
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `windowWidth` | `Optional<i32>` | 窗口宽度覆盖 |
-| `windowHeight` | `Optional<i32>` | 窗口高度覆盖 |
-| `fullscreen` | `Optional<bool>` | 全屏模式覆盖 |
-| `serverAddress` | `Optional<String>` | 服务器地址覆盖 |
-| `serverPort` | `Optional<u16>` | 服务器端口覆盖 |
-| `username` | `Optional<String>` | 用户名覆盖 |
-| `settingsPath` | `Optional<String>` | 自定义设置文件路径 |
+| `windowWidth` | `std::optional<i32>` | 窗口宽度覆盖 |
+| `windowHeight` | `std::optional<i32>` | 窗口高度覆盖 |
+| `fullscreen` | `std::optional<bool>` | 全屏模式覆盖 |
+| `serverAddress` | `std::optional<String>` | 服务器地址覆盖 |
+| `serverPort` | `std::optional<u16>` | 服务器端口覆盖 |
+| `username` | `std::optional<String>` | 用户名覆盖 |
+| `settingsPath` | `std::optional<String>` | 自定义设置文件路径 |
 | `skipIntegratedServer` | `bool` | 是否跳过内置服务端 |
 
 #### ClientApplication 类

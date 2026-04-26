@@ -19,7 +19,7 @@ String EnumProperty<BlockStateProperties::DoorHinge>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::DoorHinge> EnumProperty<BlockStateProperties::DoorHinge>::Traits::fromName(
+std::optional<BlockStateProperties::DoorHinge> EnumProperty<BlockStateProperties::DoorHinge>::Traits::fromName(
     StringView name) {
     if (name == "left") {
         return BlockStateProperties::DoorHinge::Left;
@@ -45,7 +45,7 @@ String EnumProperty<BlockStateProperties::DoubleBlockHalf>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::DoubleBlockHalf> EnumProperty<BlockStateProperties::DoubleBlockHalf>::Traits::fromName(
+std::optional<BlockStateProperties::DoubleBlockHalf> EnumProperty<BlockStateProperties::DoubleBlockHalf>::Traits::fromName(
     StringView name) {
     if (name == "upper") {
         return BlockStateProperties::DoubleBlockHalf::Upper;
@@ -73,7 +73,7 @@ String EnumProperty<BlockStateProperties::ChestType>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::ChestType> EnumProperty<BlockStateProperties::ChestType>::Traits::fromName(
+std::optional<BlockStateProperties::ChestType> EnumProperty<BlockStateProperties::ChestType>::Traits::fromName(
     StringView name) {
     if (name == "single") {
         return BlockStateProperties::ChestType::Single;
@@ -103,7 +103,7 @@ String EnumProperty<BlockStateProperties::AttachFace>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::AttachFace> EnumProperty<BlockStateProperties::AttachFace>::Traits::fromName(
+std::optional<BlockStateProperties::AttachFace> EnumProperty<BlockStateProperties::AttachFace>::Traits::fromName(
     StringView name) {
     if (name == "floor") {
         return BlockStateProperties::AttachFace::Floor;
@@ -137,7 +137,7 @@ String EnumProperty<BlockStateProperties::StairsShape>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::StairsShape> EnumProperty<BlockStateProperties::StairsShape>::Traits::fromName(
+std::optional<BlockStateProperties::StairsShape> EnumProperty<BlockStateProperties::StairsShape>::Traits::fromName(
     StringView name) {
     if (name == "straight") {
         return BlockStateProperties::StairsShape::Straight;
@@ -171,7 +171,7 @@ String EnumProperty<BlockStateProperties::SlabType>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::SlabType> EnumProperty<BlockStateProperties::SlabType>::Traits::fromName(
+std::optional<BlockStateProperties::SlabType> EnumProperty<BlockStateProperties::SlabType>::Traits::fromName(
     StringView name) {
     if (name == "bottom") {
         return BlockStateProperties::SlabType::Bottom;
@@ -201,7 +201,7 @@ String EnumProperty<BlockStateProperties::WallHeight>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::WallHeight> EnumProperty<BlockStateProperties::WallHeight>::Traits::fromName(
+std::optional<BlockStateProperties::WallHeight> EnumProperty<BlockStateProperties::WallHeight>::Traits::fromName(
     StringView name) {
     if (name == "none") {
         return BlockStateProperties::WallHeight::None;
@@ -229,7 +229,7 @@ String EnumProperty<BlockStateProperties::BedPart>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::BedPart> EnumProperty<BlockStateProperties::BedPart>::Traits::fromName(
+std::optional<BlockStateProperties::BedPart> EnumProperty<BlockStateProperties::BedPart>::Traits::fromName(
     StringView name) {
     if (name == "head") {
         return BlockStateProperties::BedPart::Head;
@@ -259,7 +259,7 @@ String EnumProperty<BlockStateProperties::BellAttachment>::Traits::toString(
     }
 }
 
-Optional<BlockStateProperties::BellAttachment> EnumProperty<BlockStateProperties::BellAttachment>::Traits::fromName(
+std::optional<BlockStateProperties::BellAttachment> EnumProperty<BlockStateProperties::BellAttachment>::Traits::fromName(
     StringView name) {
     if (name == "floor") {
         return BlockStateProperties::BellAttachment::Floor;

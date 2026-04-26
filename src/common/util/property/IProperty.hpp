@@ -43,7 +43,7 @@ public:
      * @param str 字符串表示
      * @return 值索引，如果解析失败返回nullopt
      */
-    [[nodiscard]] virtual Optional<size_t> parseValue(StringView str) const = 0;
+    [[nodiscard]] virtual std::optional<size_t> parseValue(StringView str) const = 0;
 
     /**
      * @brief 计算哈希值

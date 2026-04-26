@@ -144,7 +144,7 @@ void MobEntity::tick() {
     aiStep();
 }
 
-Optional<ResourceLocation> MobEntity::getAmbientSound() const {
+std::optional<ResourceLocation> MobEntity::getAmbientSound() const {
     return makeSoundEventId("ambient");
 }
 

@@ -161,7 +161,7 @@ public:
      * @param radius 搜索半径
      * @return 最近的传送门位置，如果没有则返回空
      */
-    [[nodiscard]] Optional<BlockPos> findNearestPortal(const BlockPos& pos, i32 radius) const;
+    [[nodiscard]] std::optional<BlockPos> findNearestPortal(const BlockPos& pos, i32 radius) const;
 
     // ========== 配置 ==========
 

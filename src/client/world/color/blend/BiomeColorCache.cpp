@@ -6,7 +6,7 @@ namespace mc::client {
 // BiomeColorCacheEntry 实现
 // ============================================================================
 
-Optional<u32> BiomeColorCacheEntry::getColor(
+std::optional<u32> BiomeColorCacheEntry::getColor(
     i32 localX,
     i32 localZ,
     size_t resolverId

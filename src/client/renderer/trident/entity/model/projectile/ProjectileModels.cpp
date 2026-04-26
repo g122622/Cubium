@@ -1,11 +1,8 @@
 #include "ProjectileModels.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::projectile {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 // ==================== TridentModel ====================
 
@@ -104,8 +101,8 @@ void ShulkerBulletModel::render(f64 scale) {
 void ShulkerBulletModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                     f64 ageInTicks, f64 netHeadYaw,
                                     f64 headPitch, f64 scale) {
-    m_bullet->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_bullet->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_bullet->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_bullet->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -284,8 +281,8 @@ void WitherSkullModel::render(f64 scale) {
 void WitherSkullModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                                    f64 ageInTicks, f64 netHeadYaw,
                                    f64 headPitch, f64 scale) {
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     (void)limbSwing;
     (void)limbSwingAmount;
@@ -381,11 +378,11 @@ void EvokerFangsModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     if (f > 1.0f) f = 1.0f;
     f = 1.0f - f * f * f;
 
-    // 上颚 Z 轴旋转: PI - f * 0.35 * PI
-    m_upperJaw->setRotateAngleZ(static_cast<f32>(PI - f * 0.35 * PI));
-    // 下颚 Z 轴旋转: PI + f * 0.35 * PI，Y 轴旋转: PI
-    m_lowerJaw->setRotateAngleZ(static_cast<f32>(PI + f * 0.35 * PI));
-    m_lowerJaw->setRotateAngleY(static_cast<f32>(PI));
+    // 上颚 Z 轴旋转: mc::math::PI_DOUBLE - f * 0.35 * mc::math::PI_DOUBLE
+    m_upperJaw->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE - f * 0.35 * mc::math::PI_DOUBLE));
+    // 下颚 Z 轴旋转: mc::math::PI_DOUBLE + f * 0.35 * mc::math::PI_DOUBLE，Y 轴旋转: mc::math::PI_DOUBLE
+    m_lowerJaw->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE + f * 0.35 * mc::math::PI_DOUBLE));
+    m_lowerJaw->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE));
 
     // Y 位置动画
     f32 f1 = static_cast<f32>((limbSwing + std::sin(limbSwing * 2.7)) * 0.6 * 12.0);

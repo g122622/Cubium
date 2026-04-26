@@ -825,7 +825,7 @@ protected:
      * @param suffix 声音后缀（例如 ambient、hurt、death）
      * @return 声音事件ID，无效类型返回空
      */
-    [[nodiscard]] Optional<ResourceLocation> makeSoundEventId(StringView suffix) const;
+    [[nodiscard]] std::optional<ResourceLocation> makeSoundEventId(StringView suffix) const;
 
     EntityId m_id;
     LegacyEntityType m_legacyType;

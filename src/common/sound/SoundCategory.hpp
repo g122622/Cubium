@@ -85,7 +85,7 @@ enum class SoundCategory : u8 {
  * - "ambient", "AMBIENT" -> SoundCategory::Ambient
  * - "voice", "VOICE" -> SoundCategory::Voice
  */
-[[nodiscard]] Optional<SoundCategory> parseSoundCategory(StringView name) noexcept;
+[[nodiscard]] std::optional<SoundCategory> parseSoundCategory(StringView name) noexcept;
 
 /**
  * @brief 检查声音类别是否有效（非 Count）

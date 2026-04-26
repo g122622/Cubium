@@ -157,17 +157,17 @@ protected:
     /**
      * @brief 获取环境声音
      */
-    [[nodiscard]] Optional<ResourceLocation> getAmbientSound() const override;
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
      */
-    [[nodiscard]] Optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
      */
-    [[nodiscard]] Optional<ResourceLocation> getDeathSound() const override;
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取声音音量

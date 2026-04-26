@@ -18,7 +18,7 @@ String EnumProperty<blocks::ComparatorMode>::Traits::toString(const blocks::Comp
     }
 }
 
-Optional<blocks::ComparatorMode> EnumProperty<blocks::ComparatorMode>::Traits::fromName(StringView name) {
+std::optional<blocks::ComparatorMode> EnumProperty<blocks::ComparatorMode>::Traits::fromName(StringView name) {
     if (name == "compare") return blocks::ComparatorMode::Compare;
     if (name == "subtract") return blocks::ComparatorMode::Subtract;
     return std::nullopt;

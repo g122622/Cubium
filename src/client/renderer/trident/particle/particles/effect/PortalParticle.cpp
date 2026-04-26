@@ -1,4 +1,5 @@
 #include "PortalParticle.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 
@@ -48,9 +49,9 @@ void PortalParticle::tick(ClientWorld* world) {
     f64 ageRatio = m_age / m_maxAge;
 
     // 水平摆动
-    f64 swing = std::sin(ageRatio * 3.14159f * 4.0f) * 0.05f;
+    f64 swing = std::sin(ageRatio * mc::math::PI * 4.0f) * 0.05f;
     m_position.x = m_startX + swing;
-    m_position.z = m_startZ + std::cos(ageRatio * 3.14159f * 4.0f) * 0.05f;
+    m_position.z = m_startZ + std::cos(ageRatio * mc::math::PI * 4.0f) * 0.05f;
 
     // 向下移动
     m_position.y += m_velocity.y;

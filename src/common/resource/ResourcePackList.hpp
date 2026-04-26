@@ -186,7 +186,7 @@ public:
      * @param path 资源包路径
      * @return 找到则返回 PackInfo，否则返回空
      */
-    [[nodiscard]] Optional<PackInfo> getPackInfo(const String& path) const;
+    [[nodiscard]] std::optional<PackInfo> getPackInfo(const String& path) const;
 
     /**
      * @brief 判断资源包是否存在

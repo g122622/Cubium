@@ -15,7 +15,7 @@ String EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const block
 }
 
 template<>
-Optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(StringView name) {
+std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(StringView name) {
     if (name == "normal") return blocks::PistonHeadBlock::Type::Normal;
     if (name == "sticky") return blocks::PistonHeadBlock::Type::Sticky;
     return std::nullopt;

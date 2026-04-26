@@ -95,7 +95,7 @@ public:
 
 private:
     bool m_supportEnabled = true;
-    Optional<SoundRecord> m_lastSound;
+    std::optional<SoundRecord> m_lastSound;
 };
 
 class TestMobEntity : public MobEntity {

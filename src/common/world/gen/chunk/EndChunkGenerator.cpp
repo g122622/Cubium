@@ -1,4 +1,3 @@
-#define _USE_MATH_DEFINES
 #include "EndChunkGenerator.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/StructureManager.hpp"
@@ -9,16 +8,13 @@
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
 #include <spdlog/spdlog.h>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 namespace mc {
 
@@ -289,8 +285,8 @@ i32 EndChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
             const f32 distance = static_cast<f32>(std::sqrt(pillarDistSq));
             if (std::abs(distance - PILLAR_RADIUS) < 5.0f) {
                 const f32 angle = std::atan2(static_cast<f32>(z), static_cast<f32>(x));
-                const i32 pillarIndex = static_cast<i32>((angle + static_cast<f32>(M_PI)) /
-                    (2.0f * static_cast<f32>(M_PI)) * static_cast<f32>(PILLAR_COUNT)) % PILLAR_COUNT;
+                const i32 pillarIndex = static_cast<i32>((angle + static_cast<f32>(mc::math::PI_DOUBLE)) /
+                    (2.0f * static_cast<f32>(mc::math::PI_DOUBLE)) * static_cast<f32>(PILLAR_COUNT)) % PILLAR_COUNT;
                 const i32 pillarHeight = MIN_PILLAR_HEIGHT +
                     (pillarIndex * (MAX_PILLAR_HEIGHT - MIN_PILLAR_HEIGHT)) / PILLAR_COUNT;
                 const i32 pillarRadius = MIN_PILLAR_RADIUS + (pillarIndex % 3);
@@ -532,7 +528,7 @@ void EndChunkGenerator::generateObsidianPillars(ChunkPrimer& chunk) {
             if (std::abs(distance - PILLAR_RADIUS) < 5.0f) {
                 // 计算角度，确定是哪根柱子
                 const f32 angle = std::atan2(static_cast<f32>(worldZ), static_cast<f32>(worldX));
-                const i32 pillarIndex = static_cast<i32>((angle + M_PI) / (2.0f * M_PI) * PILLAR_COUNT) % PILLAR_COUNT;
+                const i32 pillarIndex = static_cast<i32>((angle + static_cast<f32>(mc::math::PI_DOUBLE)) / (2.0f * static_cast<f32>(mc::math::PI_DOUBLE)) * PILLAR_COUNT) % PILLAR_COUNT;
 
                 // 柱子高度和半径
                 const i32 pillarHeight = MIN_PILLAR_HEIGHT + (pillarIndex * (MAX_PILLAR_HEIGHT - MIN_PILLAR_HEIGHT)) / PILLAR_COUNT;

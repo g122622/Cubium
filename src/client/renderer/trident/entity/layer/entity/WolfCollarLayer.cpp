@@ -3,6 +3,7 @@
 #include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -69,7 +70,7 @@ void WolfCollarLayer::renderPipeline(
 
     // 应用头部旋转（项圈跟随头部）
     f32 headYaw = static_cast<f32>(context.netHeadYaw);
-    f32 yawRad = headYaw * 3.14159265f / 180.0f;
+    f32 yawRad = mc::math::toRadians(headYaw);
     f32 cosYaw = std::cos(yawRad);
     f32 sinYaw = std::sin(yawRad);
 
@@ -158,7 +159,7 @@ void WolfCollarLayer::buildCollarMesh(
 
     // 生成环形顶点
     for (i32 seg = 0; seg <= SEGMENTS; ++seg) {
-        f32 angle = static_cast<f32>(seg) / static_cast<f32>(SEGMENTS) * 2.0f * 3.14159265f;
+        f32 angle = static_cast<f32>(seg) / static_cast<f32>(SEGMENTS) * mc::math::TWO_PI;
         f32 cosAngle = std::cos(angle);
         f32 sinAngle = std::sin(angle);
 

@@ -41,7 +41,7 @@ dimension/
 | `m_maxHeight` | `i32` | 最高建筑高度 |
 | `m_logicalHeight` | `i32` | 逻辑高度上限 |
 | `m_ambientLight` | `f32` | 环境光照强度 |
-| `m_fixedTime` | `Optional<i64>` | 固定时间值 |
+| `m_fixedTime` | `std::optional<i64>` | 固定时间值 |
 
 **静态工厂方法**:
 - `overworld()` - 主世界类型

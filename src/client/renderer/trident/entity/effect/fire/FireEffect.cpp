@@ -3,6 +3,7 @@
 #include "common/resource/IResourcePack.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -196,7 +197,7 @@ void FireEffect::renderFireLayers(
 
     // 计算 billboard 矩阵（面向相机）
     // MC 1.16.5: matrixStack.rotate(Vector3f.YP.rotationDegrees(-this.info.getYaw()));
-    f32 yawRad = -cameraYaw * 3.14159265f / 180.0f;
+    f32 yawRad = -mc::math::toRadians(cameraYaw);
     f32 cosYaw = std::cos(yawRad);
     f32 sinYaw = std::sin(yawRad);
 

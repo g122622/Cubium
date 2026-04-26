@@ -218,7 +218,7 @@ namespace Directions {
     /**
      * @brief 从名称获取方向
      */
-    inline Optional<Direction> fromName(StringView name) {
+    inline std::optional<Direction> fromName(StringView name) {
         static const std::unordered_map<String, Direction> nameMap = {
             {"down", Direction::Down},
             {"up", Direction::Up},
@@ -228,7 +228,7 @@ namespace Directions {
             {"east", Direction::East}
         };
         auto it = nameMap.find(String(name));
-        return it != nameMap.end() ? Optional<Direction>(it->second) : std::nullopt;
+        return it != nameMap.end() ? std::optional<Direction>(it->second) : std::nullopt;
     }
 
     /**
@@ -410,7 +410,7 @@ namespace Axes {
         return {Axis::X, Axis::Y, Axis::Z};
     }
 
-    inline Optional<Axis> fromName(StringView name) {
+    inline std::optional<Axis> fromName(StringView name) {
         if (name == "x") return Axis::X;
         if (name == "y") return Axis::Y;
         if (name == "z") return Axis::Z;

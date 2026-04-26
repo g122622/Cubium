@@ -459,8 +459,8 @@ TEST(SoundPacketsTest, PlaySoundPacketRoundTrip) {
 }
 
 TEST(SoundPacketsTest, StopSoundPacketRoundTripWithBothFilters) {
-    const Optional<ResourceLocation> id(ResourceLocation("minecraft:block.grass.break"));
-    const Optional<SoundCategory> category(SoundCategory::Blocks);
+    const std::optional<ResourceLocation> id(ResourceLocation("minecraft:block.grass.break"));
+    const std::optional<SoundCategory> category(SoundCategory::Blocks);
 
     sound::StopSoundPacket packet(id, category);
     auto serialized = packet.serialize();

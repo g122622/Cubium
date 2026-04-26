@@ -1,12 +1,11 @@
 #include "HorseModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
 
 namespace {
-    constexpr f64 PI = 3.14159265359;
-
     // Java: MathHelper.rotLerp
     f32 rotLerp(f32 angle, f32 maxAngle, f32 target) {
         f32 f = target - maxAngle;
@@ -39,7 +38,7 @@ HorseModel::HorseModel(f32 scale)
     m_head = std::make_shared<ModelRenderer>("head");
     m_head->setTextureOffset(0, 35);
     m_head->addBox(-2.05f, -6.0f, -2.0f, 4.0f, 12.0f, 7.0f, static_cast<f64>(scale));
-    m_head->setRotateAngleX(static_cast<f32>(PI / 6.0));  // Java: rotateAngleX = PI / 6F
+    m_head->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 6.0));  // Java: rotateAngleX = mc::math::PI_DOUBLE / 6F
 
     // 头部子部件 - 马鬃上部 - Java: modelrenderer.addBox(-3.0F, -11.0F, -2.0F, 6.0F, 5.0F, 7.0F, scale);
     auto headTop = m_head->createChild("headTop");
@@ -120,7 +119,7 @@ HorseModel::HorseModel(f32 scale)
     m_tail->setTextureOffset(42, 36);
     m_tail->addBox(-1.5f, 0.0f, 0.0f, 3.0f, 14.0f, 4.0f, static_cast<f64>(scale));
     m_tail->setRotationPoint(0.0f, -5.0f, 2.0f);
-    m_tail->setRotateAngleX(static_cast<f32>(PI / 6.0));  // Java: rotateAngleX = PI / 6F
+    m_tail->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 6.0));  // Java: rotateAngleX = mc::math::PI_DOUBLE / 6F
     m_body->addChild(m_tail);
 
     // 鞍部件 - Java: modelrenderer3 (身体上的鞍)
@@ -158,14 +157,14 @@ HorseModel::HorseModel(f32 scale)
     auto reinRight = m_head->createChild("reinRight");
     reinRight->setTextureOffset(32, 2);
     reinRight->addBox(3.1f, -6.0f, -8.0f, 0.0f, 3.0f, 16.0f, static_cast<f64>(scale));
-    reinRight->setRotateAngleX(static_cast<f32>(-PI / 6.0));
+    reinRight->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 6.0));
     m_ridingParts.push_back(reinRight);
 
     // 左缰绳 - Java: modelrenderer7
     auto reinLeft = m_head->createChild("reinLeft");
     reinLeft->setTextureOffset(32, 2);
     reinLeft->addBox(-3.1f, -6.0f, -8.0f, 0.0f, 3.0f, 16.0f, static_cast<f64>(scale));
-    reinLeft->setRotateAngleX(static_cast<f32>(-PI / 6.0));
+    reinLeft->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 6.0));
     m_ridingParts.push_back(reinLeft);
 
     // 初始隐藏幼体腿部
@@ -209,7 +208,7 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
     f32 f1 = rotLerp(static_cast<f32>(partialTick), m_prevRotationYawHead, m_rotationYawHead);
     f32 f2 = lerp(static_cast<f32>(partialTick), m_prevRotationPitch, m_rotationPitch);
     f32 f3 = f1 - f;
-    f32 f4 = f2 * static_cast<f32>(PI / 180.0);
+    f32 f4 = f2 * static_cast<f32>(mc::math::PI_DOUBLE / 180.0);
 
     if (f3 > 20.0f) {
         f3 = 20.0f;
@@ -236,22 +235,22 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
     m_head->setRotationPointY(4.0f);
     m_head->setRotationPointZ(-12.0f);
     m_body->setRotateAngleX(0.0f);
-    m_head->setRotateAngleX(static_cast<f32>(PI / 6.0) + f4);
-    m_head->setRotateAngleY(f3 * static_cast<f32>(PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 6.0) + f4);
+    m_head->setRotateAngleY(f3 * static_cast<f32>(mc::math::PI_DOUBLE / 180.0));
 
     f32 f10 = m_inWater ? 0.2f : 1.0f;
-    f32 f11 = static_cast<f32>(std::cos(f10 * limbSwingFloat * 0.6662f + static_cast<f64>(PI)));
+    f32 f11 = static_cast<f32>(std::cos(f10 * limbSwingFloat * 0.6662f + static_cast<f64>(mc::math::PI_DOUBLE)));
     f32 f12 = f11 * 0.8f * limbSwingAmountFloat;
-    f32 f13 = (1.0f - std::max(f6, f5)) * (static_cast<f32>(PI / 6.0) + f4 + f8 * static_cast<f32>(std::sin(f9)) * 0.05f);
+    f32 f13 = (1.0f - std::max(f6, f5)) * (static_cast<f32>(mc::math::PI_DOUBLE / 6.0) + f4 + f8 * static_cast<f32>(std::sin(f9)) * 0.05f);
 
     m_head->setRotateAngleX(f6 * (0.2617994f + f4) + f5 * (2.1816616f + static_cast<f32>(std::sin(f9)) * 0.05f) + f13);
-    m_head->setRotateAngleY(f6 * f3 * static_cast<f32>(PI / 180.0) + (1.0f - std::max(f6, f5)) * m_head->rotateAngleY());
+    m_head->setRotateAngleY(f6 * f3 * static_cast<f32>(mc::math::PI_DOUBLE / 180.0) + (1.0f - std::max(f6, f5)) * m_head->rotateAngleY());
     m_head->setRotationPointY(f6 * -4.0f + f5 * 11.0f + (1.0f - std::max(f6, f5)) * m_head->rotationPointY());
     m_head->setRotationPointZ(f6 * -4.0f + f5 * -12.0f + (1.0f - std::max(f6, f5)) * m_head->rotationPointZ());
-    m_body->setRotateAngleX(f6 * static_cast<f32>(-PI / 4.0) + f7 * m_body->rotateAngleX());
+    m_body->setRotateAngleX(f6 * static_cast<f32>(-mc::math::PI_DOUBLE / 4.0) + f7 * m_body->rotateAngleX());
 
     f32 f14 = 0.2617994f * f6;
-    f32 f15 = static_cast<f32>(std::cos(f9 * 0.6f + static_cast<f64>(PI)));
+    f32 f15 = static_cast<f32>(std::cos(f9 * 0.6f + static_cast<f64>(mc::math::PI_DOUBLE)));
 
     // 前腿动画
     m_frontRightLeg->setRotationPointY(2.0f * f6 + 14.0f * f7);
@@ -259,8 +258,8 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
     m_frontLeftLeg->setRotationPointY(m_frontRightLeg->rotationPointY());
     m_frontLeftLeg->setRotationPointZ(m_frontRightLeg->rotationPointZ());
 
-    f32 f16 = (static_cast<f32>(-PI / 3.0) + f15) * f6 + f12 * f7;
-    f32 f17 = (static_cast<f32>(-PI / 3.0) - f15) * f6 - f12 * f7;
+    f32 f16 = (static_cast<f32>(-mc::math::PI_DOUBLE / 3.0) + f15) * f6 + f12 * f7;
+    f32 f17 = (static_cast<f32>(-mc::math::PI_DOUBLE / 3.0) - f15) * f6 - f12 * f7;
 
     // 后腿动画
     m_backRightLeg->setRotateAngleX(f14 - f11 * 0.5f * limbSwingAmountFloat * f7);
@@ -269,7 +268,7 @@ void HorseModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 par
     m_frontLeftLeg->setRotateAngleX(f17);
 
     // 尾巴动画
-    m_tail->setRotateAngleX(static_cast<f32>(PI / 6.0) + limbSwingAmountFloat * 0.75f);
+    m_tail->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 6.0) + limbSwingAmountFloat * 0.75f);
     m_tail->setRotationPointY(-5.0f + limbSwingAmountFloat);
     m_tail->setRotationPointZ(2.0f + limbSwingAmountFloat * 2.0f);
     if (flag) {

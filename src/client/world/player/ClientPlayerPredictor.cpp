@@ -1,5 +1,6 @@
 #include "ClientPlayerPredictor.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -37,7 +38,7 @@ void ClientPlayerPredictor::handleMovementInput(f32 forward, f32 strafe, bool ju
         f32 normalizedStrafe = strafe / length;
 
         // 根据偏航角计算移动方向
-        f32 yawRad = m_predictedYaw * 3.14159265f / 180.0f;
+        f32 yawRad = mc::math::toRadians(m_predictedYaw);
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
@@ -203,7 +204,7 @@ void ClientPlayerPredictor::updatePrediction(f32 deltaTime) {
         f32 normalizedStrafe = m_inputStrafe / length;
 
         // 根据偏航角计算移动方向
-        f32 yawRad = m_predictedYaw * 3.14159265f / 180.0f;
+        f32 yawRad = mc::math::toRadians(m_predictedYaw);
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 

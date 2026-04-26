@@ -1,11 +1,8 @@
 #include "AquaticModels.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::aquatic {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 // ==================== CodModel ====================
 // 参考 MC 1.16.5 CodModel
@@ -42,14 +39,14 @@ void CodModel::setupParts() {
     m_finRight->setTextureOffset(22, 1);
     m_finRight->addBox(-2.0f, 0.0f, -1.0f, 2.0f, 0.0f, 2.0f);
     m_finRight->setRotationPoint(-1.0f, 23.0f, 0.0f);
-    m_finRight->setRotateAngleZ(static_cast<f32>(-PI / 4.0));
+    m_finRight->setRotateAngleZ(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));
 
     // finLeft: 纹理 (22, 4), (0, 0, -1) 到 (2, 0, 1), 旋转点 (1, 23, 0)
     m_finLeft = std::make_shared<ModelRenderer>("finLeft");
     m_finLeft->setTextureOffset(22, 4);
     m_finLeft->addBox(0.0f, 0.0f, -1.0f, 2.0f, 0.0f, 2.0f);
     m_finLeft->setRotationPoint(1.0f, 23.0f, 0.0f);
-    m_finLeft->setRotateAngleZ(static_cast<f32>(PI / 4.0));
+    m_finLeft->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));
 
     // tail: 纹理 (22, 3), (0, -2, 0) 到 (0, 2, 4), 旋转点 (0, 22, 7)
     m_tail = std::make_shared<ModelRenderer>("tail");
@@ -149,14 +146,14 @@ void SalmonModel::setupParts() {
     m_finRight->setTextureOffset(-4, 0);
     m_finRight->addBox(-2.0f, 0.0f, 0.0f, 2.0f, 0.0f, 2.0f);
     m_finRight->setRotationPoint(-1.5f, 21.5f, 0.0f);
-    m_finRight->setRotateAngleZ(static_cast<f32>(-PI / 4.0));
+    m_finRight->setRotateAngleZ(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));
 
     // finLeft: 纹理 (0, 0), (0, 0, 0) 到 (2, 0, 2), 旋转点 (1.5, 21.5, 0)
     m_finLeft = std::make_shared<ModelRenderer>("finLeft");
     m_finLeft->setTextureOffset(0, 0);
     m_finLeft->addBox(0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 2.0f);
     m_finLeft->setRotationPoint(1.5f, 21.5f, 0.0f);
-    m_finLeft->setRotateAngleZ(static_cast<f32>(PI / 4.0));
+    m_finLeft->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));
 
     // 添加到部件列表（子部件会跟随父部件渲染，不需要单独添加）
     m_parts.push_back(m_bodyFront);
@@ -206,12 +203,12 @@ void DolphinModel::setupParts() {
     m_body->addBox(-4.0f, -7.0f, 0.0f, 8.0f, 7.0f, 13.0f);
     m_body->setRotationPoint(0.0f, 22.0f, -5.0f);
 
-    // 背鳍: textureOffset(51, 0), addBox(-0.5, 0, 8, 1, 4, 5), rotateAngleX = PI/3
+    // 背鳍: textureOffset(51, 0), addBox(-0.5, 0, 8, 1, 4, 5), rotateAngleX = mc::math::PI_DOUBLE/3
     // 这是原版遗漏的重要部件！
     m_dorsalFin = std::make_shared<ModelRenderer>("dorsalFin");
     m_dorsalFin->setTextureOffset(51, 0);
     m_dorsalFin->addBox(-0.5f, 0.0f, 8.0f, 1.0f, 4.0f, 5.0f);
-    m_dorsalFin->setRotateAngleX(static_cast<f32>(PI / 3.0));
+    m_dorsalFin->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 3.0));
     m_body->addChild(m_dorsalFin);
 
     // tail: textureOffset(0, 19), addBox(-2, -2.5, 0, 4, 5, 11), rotationPoint(0, -2.5, 11) 作为 body 子部件
@@ -231,23 +228,23 @@ void DolphinModel::setupParts() {
     m_tail->addChild(m_tailFin);
 
     // 右鳍: textureOffset(48, 20), mirror=true, addBox(-0.5, -4, 0, 1, 4, 7), rotationPoint(2, -2, 4)
-    // rotateAngleX = PI/3, rotateAngleZ = 2.0943952F
+    // rotateAngleX = mc::math::PI_DOUBLE/3, rotateAngleZ = 2.0943952F
     m_finRight = std::make_shared<ModelRenderer>("finRight");
     m_finRight->setTextureOffset(48, 20);
     m_finRight->setMirror(true);
     m_finRight->addBox(-0.5f, -4.0f, 0.0f, 1.0f, 4.0f, 7.0f);
     m_finRight->setRotationPoint(2.0f, -2.0f, 4.0f);
-    m_finRight->setRotateAngleX(static_cast<f32>(PI / 3.0));
+    m_finRight->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 3.0));
     m_finRight->setRotateAngleZ(2.0943952f);
     m_body->addChild(m_finRight);
 
     // 左鳍: textureOffset(48, 20), addBox(-0.5, -4, 0, 1, 4, 7), rotationPoint(-2, -2, 4)
-    // rotateAngleX = PI/3, rotateAngleZ = -2.0943952F
+    // rotateAngleX = mc::math::PI_DOUBLE/3, rotateAngleZ = -2.0943952F
     m_finLeft = std::make_shared<ModelRenderer>("finLeft");
     m_finLeft->setTextureOffset(48, 20);
     m_finLeft->addBox(-0.5f, -4.0f, 0.0f, 1.0f, 4.0f, 7.0f);
     m_finLeft->setRotationPoint(-2.0f, -2.0f, 4.0f);
-    m_finLeft->setRotateAngleX(static_cast<f32>(PI / 3.0));
+    m_finLeft->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 3.0));
     m_finLeft->setRotateAngleZ(-2.0943952f);
     m_body->addChild(m_finLeft);
 
@@ -276,10 +273,10 @@ void DolphinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
     // 参考 MC 1.16.5 DolphinModel.setRotationAngles
-    // body.rotateAngleX = headPitch * PI/180
-    // body.rotateAngleY = netHeadYaw * PI/180
-    m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+    // body.rotateAngleX = headPitch * mc::math::PI_DOUBLE/180
+    // body.rotateAngleY = netHeadYaw * mc::math::PI_DOUBLE/180
+    m_body->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
 
     // 修复：Java 原版使用 Entity.horizontalMag(getMotion()) > 1.0E-7D 判断是否在移动
     // 而不是 isInWater！
@@ -350,7 +347,7 @@ void TurtleModel::setupParts(f32 scale) {
     m_pregnant->setTextureOffset(70, 33);
     m_pregnant->addBox(-4.5f, 3.0f, -14.0f, 9.0f, 18.0f, 1.0f, scale);
     m_pregnant->setRotationPoint(0.0f, 11.0f, -10.0f);
-    m_pregnant->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_pregnant->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
     m_pregnant->setVisible(false);  // 默认隐藏
     m_parts.push_back(m_pregnant);
 
@@ -395,10 +392,10 @@ void TurtleModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 参考 MC 1.16.5 TurtleModel.setRotationAngles
     // 后腿 X 轴旋转
     m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6) * 0.5 * limbSwingAmount));
-    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + PI) * 0.5 * limbSwingAmount));
+    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + mc::math::PI_DOUBLE) * 0.5 * limbSwingAmount));
 
     // 前腿 Z 轴旋转（与后腿相反）
-    m_legFrontRight->setRotateAngleZ(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + PI) * 0.5 * limbSwingAmount));
+    m_legFrontRight->setRotateAngleZ(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + mc::math::PI_DOUBLE) * 0.5 * limbSwingAmount));
     m_legFrontLeft->setRotateAngleZ(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6) * 0.5 * limbSwingAmount));
 
     // 前腿 X 和 Y 轴旋转归零
@@ -410,7 +407,7 @@ void TurtleModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     m_legBackLeft->setRotateAngleY(0.0f);
 
     // 怀孕腹部 X 轴旋转
-    m_pregnant->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_pregnant->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 2.0));
 
     // 如果不在水中且在地面，执行爬行动画
     if (!m_isInWater && m_isOnGround) {
@@ -418,21 +415,21 @@ void TurtleModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
         f32 f1 = m_isDigging ? 2.0f : 1.0f;
 
         // 前腿 Y 轴旋转
-        m_legFrontRight->setRotateAngleY(static_cast<f32>(std::cos(f * limbSwing * 5.0 + PI) * 8.0 * limbSwingAmount * f1));
+        m_legFrontRight->setRotateAngleY(static_cast<f32>(std::cos(f * limbSwing * 5.0 + mc::math::PI_DOUBLE) * 8.0 * limbSwingAmount * f1));
         m_legFrontLeft->setRotateAngleY(static_cast<f32>(std::cos(f * limbSwing * 5.0) * 8.0 * limbSwingAmount * f1));
         m_legFrontRight->setRotateAngleZ(0.0f);
         m_legFrontLeft->setRotateAngleZ(0.0f);
 
         // 后腿 Y 轴旋转
-        m_legBackRight->setRotateAngleY(static_cast<f32>(std::cos(limbSwing * 5.0 + PI) * 3.0 * limbSwingAmount));
+        m_legBackRight->setRotateAngleY(static_cast<f32>(std::cos(limbSwing * 5.0 + mc::math::PI_DOUBLE) * 3.0 * limbSwingAmount));
         m_legBackLeft->setRotateAngleY(static_cast<f32>(std::cos(limbSwing * 5.0) * 3.0 * limbSwingAmount));
         m_legBackRight->setRotateAngleX(0.0f);
         m_legBackLeft->setRotateAngleX(0.0f);
     }
 
     // 头部旋转
-    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
-    m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
     (void)ageInTicks;
     (void)scale;
@@ -474,20 +471,20 @@ void TropicalFishAModel::setupParts(f32 scale) {
     m_tail->setRotationPoint(0.0f, 22.0f, 3.0f);
 
     // finRight: textureOffset(2, 16), addBox(-2, -1, 0, 2, 2, 0, scale), rotationPoint(-1, 22.5, 0)
-    // rotateAngleY = PI/4
+    // rotateAngleY = mc::math::PI_DOUBLE/4
     m_finRight = std::make_shared<ModelRenderer>("finRight");
     m_finRight->setTextureOffset(2, 16);
     m_finRight->addBox(-2.0f, -1.0f, 0.0f, 2.0f, 2.0f, 0.0f, scale);
     m_finRight->setRotationPoint(-1.0f, 22.5f, 0.0f);
-    m_finRight->setRotateAngleY(static_cast<f32>(PI / 4.0));
+    m_finRight->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));
 
     // finLeft: textureOffset(2, 12), addBox(0, -1, 0, 2, 2, 0, scale), rotationPoint(1, 22.5, 0)
-    // rotateAngleY = -PI/4
+    // rotateAngleY = -mc::math::PI_DOUBLE/4
     m_finLeft = std::make_shared<ModelRenderer>("finLeft");
     m_finLeft->setTextureOffset(2, 12);
     m_finLeft->addBox(0.0f, -1.0f, 0.0f, 2.0f, 2.0f, 0.0f, scale);
     m_finLeft->setRotationPoint(1.0f, 22.5f, 0.0f);
-    m_finLeft->setRotateAngleY(static_cast<f32>(-PI / 4.0));
+    m_finLeft->setRotateAngleY(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));
 
     // finTop: textureOffset(10, -5), addBox(0, -3, 0, 0, 3, 6, scale), rotationPoint(0, 20.5, -3)
     m_finTop = std::make_shared<ModelRenderer>("finTop");
@@ -542,20 +539,20 @@ void TropicalFishBModel::setupParts(f32 scale) {
     m_tail->setRotationPoint(0.0f, 19.0f, 3.0f);
 
     // finRight: textureOffset(2, 16), addBox(-2, 0, 0, 2, 2, 0, scale), rotationPoint(-1, 20, 0)
-    // rotateAngleY = PI/4
+    // rotateAngleY = mc::math::PI_DOUBLE/4
     m_finRight = std::make_shared<ModelRenderer>("finRight");
     m_finRight->setTextureOffset(2, 16);
     m_finRight->addBox(-2.0f, 0.0f, 0.0f, 2.0f, 2.0f, 0.0f, scale);
     m_finRight->setRotationPoint(-1.0f, 20.0f, 0.0f);
-    m_finRight->setRotateAngleY(static_cast<f32>(PI / 4.0));
+    m_finRight->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));
 
     // finLeft: textureOffset(2, 12), addBox(0, 0, 0, 2, 2, 0, scale), rotationPoint(1, 20, 0)
-    // rotateAngleY = -PI/4
+    // rotateAngleY = -mc::math::PI_DOUBLE/4
     m_finLeft = std::make_shared<ModelRenderer>("finLeft");
     m_finLeft->setTextureOffset(2, 12);
     m_finLeft->addBox(0.0f, 0.0f, 0.0f, 2.0f, 2.0f, 0.0f, scale);
     m_finLeft->setRotationPoint(1.0f, 20.0f, 0.0f);
-    m_finLeft->setRotateAngleY(static_cast<f32>(-PI / 4.0));
+    m_finLeft->setRotateAngleY(static_cast<f32>(-mc::math::PI_DOUBLE / 4.0));
 
     // finTop: textureOffset(20, 11), addBox(0, -4, 0, 0, 4, 6, scale), rotationPoint(0, 16, -3)
     m_finTop = std::make_shared<ModelRenderer>("finTop");

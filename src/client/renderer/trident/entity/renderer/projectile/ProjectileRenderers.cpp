@@ -2,13 +2,10 @@
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::renderer::projectile {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 // ==================== 箭矢渲染器 ====================
 

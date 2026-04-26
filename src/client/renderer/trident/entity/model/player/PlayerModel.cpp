@@ -1,4 +1,5 @@
 #include "PlayerModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::player {
@@ -7,8 +8,7 @@ namespace mc::client::renderer::entity::model::player {
 using mc::client::renderer::entity::model::ModelRenderer;
 
 namespace {
-    constexpr f64 PI = 3.14159265359;
-    constexpr f64 DEG_TO_RAD = PI / 180.0;
+    constexpr f64 DEG_TO_RAD = mc::math::PI_DOUBLE / 180.0;
 }
 
 PlayerModel::PlayerModel(f64 scale, bool slimArms)
@@ -272,11 +272,11 @@ void PlayerModel::animateBow(f64 limbSwing) {
     // 右手持弓，左手拉弦
     if (m_rightArm) {
         m_rightArm->setRotateAngleY(-0.1f);
-        m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     }
     if (m_leftArm) {
         m_leftArm->setRotateAngleY(0.1f + 0.4f);
-        m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     }
     (void)limbSwing;  // 弓姿态不依赖 limbSwing
 }
@@ -285,11 +285,11 @@ void PlayerModel::animateCrossbowCharge() {
     // 参考 MC 1.16.5 BipedModel 弩装填姿态
     if (m_rightArm) {
         m_rightArm->setRotateAngleY(-0.8f);
-        m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     }
     if (m_leftArm) {
         m_leftArm->setRotateAngleY(0.8f);
-        m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     }
 }
 
@@ -297,11 +297,11 @@ void PlayerModel::animateCrossbowHold() {
     // 参考 MC 1.16.5 BipedModel 弩持有姿态
     if (m_rightArm) {
         m_rightArm->setRotateAngleY(-0.3f);
-        m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     }
     if (m_leftArm) {
         m_leftArm->setRotateAngleY(0.6f);
-        m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
     }
 }
 

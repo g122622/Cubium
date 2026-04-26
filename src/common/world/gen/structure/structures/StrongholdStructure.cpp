@@ -3,6 +3,7 @@
 #include "../../jigsaw/JigsawPattern.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/math/MathConstants.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../IWorldWriter.hpp"
@@ -222,7 +223,7 @@ std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 w
     rng.nextInt();
 
     // 计算该要塞的角度
-    f64 angleStep = 2.0 * 3.14159265358979323846 / count;
+    f64 angleStep = 2.0 * mc::math::PI_DOUBLE / count;
     f64 angle = angleStep * ringIndex;
 
     // 添加随机偏移

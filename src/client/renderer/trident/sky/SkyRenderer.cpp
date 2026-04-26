@@ -3,6 +3,7 @@
 #include "../util/VulkanUtils.hpp"
 #include "../../util/ShaderPath.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"

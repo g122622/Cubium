@@ -7,6 +7,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <algorithm>
@@ -261,7 +262,7 @@ bool ShadowRenderer::createShadowMesh(pipeline::EntityPipeline& pipeline) {
 
     // 圆周顶点
     for (u32 i = 0; i <= s_segments; ++i) {
-        f64 angle = static_cast<f64>(i) / static_cast<f64>(s_segments) * 2.0 * 3.14159265359;
+        f64 angle = static_cast<f64>(i) / static_cast<f64>(s_segments) * 2.0 * mc::math::PI_DOUBLE;
         f64 x = std::cos(angle) * radius;
         f64 z = std::sin(angle) * radius;
 
@@ -444,7 +445,7 @@ void ShadowRenderer::getShadowVertices(
 
     // 圆周顶点
     for (u32 i = 0; i <= segments; ++i) {
-        f64 angle = static_cast<f64>(i) / static_cast<f64>(segments) * 2.0 * 3.14159265359;
+        f64 angle = static_cast<f64>(i) / static_cast<f64>(segments) * 2.0 * mc::math::PI_DOUBLE;
         f64 x = std::cos(angle) * radius;
         f64 z = std::sin(angle) * radius;
 

@@ -1,11 +1,8 @@
 #include "BatModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 BatModel::BatModel()
     : EntityModel()
@@ -95,38 +92,38 @@ void BatModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     if (m_isHanging) {
         // 悬挂状态
-        m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-        m_head->setRotateAngleY(static_cast<f32>(PI - netHeadYaw * PI / 180.0));
-        m_head->setRotateAngleZ(static_cast<f32>(PI));
+        m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+        m_head->setRotateAngleY(static_cast<f32>(mc::math::PI_DOUBLE - netHeadYaw * mc::math::PI_DOUBLE / 180.0));
+        m_head->setRotateAngleZ(static_cast<f32>(mc::math::PI_DOUBLE));
         m_head->setRotationPoint(0.0f, -2.0f, 0.0f);
 
         m_rightWing->setRotationPoint(-3.0f, 0.0f, 3.0f);
         m_leftWing->setRotationPoint(3.0f, 0.0f, 3.0f);
 
-        m_body->setRotateAngleX(static_cast<f32>(PI));
-        m_rightWing->setRotateAngleX(-0.15707964f);  // -PI / 20
-        m_rightWing->setRotateAngleY(-1.2566371f);   // -PI * 0.4
-        m_outerRightWing->setRotateAngleY(-1.7278761f);  // -PI * 0.55
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE));
+        m_rightWing->setRotateAngleX(-0.15707964f);  // -mc::math::PI_DOUBLE / 20
+        m_rightWing->setRotateAngleY(-1.2566371f);   // -mc::math::PI_DOUBLE * 0.4
+        m_outerRightWing->setRotateAngleY(-1.7278761f);  // -mc::math::PI_DOUBLE * 0.55
 
         m_leftWing->setRotateAngleX(-0.15707964f);
         m_leftWing->setRotateAngleY(1.2566371f);
         m_outerLeftWing->setRotateAngleY(1.7278761f);
     } else {
         // 飞行状态
-        m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
-        m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
+        m_head->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
+        m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
         m_head->setRotateAngleZ(0.0f);
         m_head->setRotationPoint(0.0f, 0.0f, 0.0f);
 
         m_rightWing->setRotationPoint(0.0f, 0.0f, 0.0f);
         m_leftWing->setRotationPoint(0.0f, 0.0f, 0.0f);
 
-        // Java: batBody.rotateAngleX = ((float)Math.PI / 4F) + MathHelper.cos(ageInTicks * 0.1F) * 0.15F
-        m_body->setRotateAngleX(static_cast<f32>(PI / 4.0 + std::cos(ageInTicks * 0.1) * 0.15));
+        // Java: batBody.rotateAngleX = ((float)Math.mc::math::PI_DOUBLE / 4F) + MathHelper.cos(ageInTicks * 0.1F) * 0.15F
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 4.0 + std::cos(ageInTicks * 0.1) * 0.15));
         m_body->setRotateAngleY(0.0f);
 
-        // Java: batRightWing.rotateAngleY = MathHelper.cos(ageInTicks * 1.3F) * (float)Math.PI * 0.25F
-        f32 wingAngle = static_cast<f32>(std::cos(ageInTicks * 1.3) * PI * 0.25);
+        // Java: batRightWing.rotateAngleY = MathHelper.cos(ageInTicks * 1.3F) * (float)Math.mc::math::PI_DOUBLE * 0.25F
+        f32 wingAngle = static_cast<f32>(std::cos(ageInTicks * 1.3) * mc::math::PI_DOUBLE * 0.25);
         m_rightWing->setRotateAngleY(wingAngle);
         m_leftWing->setRotateAngleY(-wingAngle);
 

@@ -131,8 +131,8 @@ StopSoundPacket::StopSoundPacket()
 {
 }
 
-StopSoundPacket::StopSoundPacket(const Optional<ResourceLocation>& soundEventId,
-                                  const Optional<SoundCategory>& category)
+StopSoundPacket::StopSoundPacket(const std::optional<ResourceLocation>& soundEventId,
+                                  const std::optional<SoundCategory>& category)
     : network::Packet(network::PacketType::StopSound)
     , m_soundEventId(soundEventId)
     , m_category(category)

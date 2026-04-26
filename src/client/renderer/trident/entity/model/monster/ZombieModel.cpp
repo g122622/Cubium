@@ -1,12 +1,8 @@
 #include "ZombieModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-    constexpr f64 DEG_TO_RAD = PI / 180.0;
-}
 
 ZombieModel::ZombieModel(bool slim)
     : BipedModel()
@@ -37,8 +33,8 @@ void ZombieModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     f32 swingProgress = m_swingProgress;
 
     // 计算 f 和 f1 用于攻击动画
-    f32 f = static_cast<f32>(std::sin(swingProgress * PI));
-    f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * PI));
+    f32 f = static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE));
+    f32 f1 = static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * mc::math::PI_DOUBLE));
 
     if (m_leftArm && m_rightArm) {
         // 重置 Z 轴旋转
@@ -51,8 +47,8 @@ void ZombieModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
         // X 轴旋转基值 - 参考 MC 1.16.5 AbstractZombieModel
         // 基础角度始终为 -PI/2，然后根据攻击动画调整
-        m_leftArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
-        m_rightArm->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
+        m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
 
         // 添加攻击动画 (f * 1.2F - f1 * 0.4F)
         m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));

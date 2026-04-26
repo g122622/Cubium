@@ -73,7 +73,7 @@ public:
     /**
      * @brief 解析字符串为整数值
      */
-    [[nodiscard]] Optional<i32> parse(StringView str) const override {
+    [[nodiscard]] std::optional<i32> parse(StringView str) const override {
         try {
             size_t pos = 0;
             i32 value = std::stoi(String(str), &pos);

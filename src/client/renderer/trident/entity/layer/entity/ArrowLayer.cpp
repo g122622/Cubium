@@ -3,6 +3,7 @@
 #include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -146,8 +147,8 @@ void ArrowLayer<TEntity>::renderArrowPipeline(
     }
 
     // 计算箭矢变换矩阵
-    f32 yawRad = yaw * 3.14159265f / 180.0f;
-    f32 pitchRad = pitch * 3.14159265f / 180.0f;
+    f32 yawRad = mc::math::toRadians(yaw);
+    f32 pitchRad = mc::math::toRadians(pitch);
 
     f32 cosYaw = std::cos(yawRad);
     f32 sinYaw = std::sin(yawRad);

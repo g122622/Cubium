@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 /**
  * @file BlockStateProperties.hpp
  * @brief 预定义的方块状态属性
@@ -876,53 +878,53 @@ private:
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::DoorHinge>::Traits {
     static mc::String toString(const mc::BlockStateProperties::DoorHinge& value);
-    static mc::Optional<mc::BlockStateProperties::DoorHinge> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::DoorHinge> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::DoubleBlockHalf>::Traits {
     static mc::String toString(const mc::BlockStateProperties::DoubleBlockHalf& value);
-    static mc::Optional<mc::BlockStateProperties::DoubleBlockHalf> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::DoubleBlockHalf> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::ChestType>::Traits {
     static mc::String toString(const mc::BlockStateProperties::ChestType& value);
-    static mc::Optional<mc::BlockStateProperties::ChestType> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::ChestType> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::AttachFace>::Traits {
     static mc::String toString(const mc::BlockStateProperties::AttachFace& value);
-    static mc::Optional<mc::BlockStateProperties::AttachFace> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::AttachFace> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::StairsShape>::Traits {
     static mc::String toString(const mc::BlockStateProperties::StairsShape& value);
-    static mc::Optional<mc::BlockStateProperties::StairsShape> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::StairsShape> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::SlabType>::Traits {
     static mc::String toString(const mc::BlockStateProperties::SlabType& value);
-    static mc::Optional<mc::BlockStateProperties::SlabType> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::SlabType> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::WallHeight>::Traits {
     static mc::String toString(const mc::BlockStateProperties::WallHeight& value);
-    static mc::Optional<mc::BlockStateProperties::WallHeight> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::WallHeight> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::BedPart>::Traits {
     static mc::String toString(const mc::BlockStateProperties::BedPart& value);
-    static mc::Optional<mc::BlockStateProperties::BedPart> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::BedPart> fromName(mc::StringView name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::BellAttachment>::Traits {
     static mc::String toString(const mc::BlockStateProperties::BellAttachment& value);
-    static mc::Optional<mc::BlockStateProperties::BellAttachment> fromName(mc::StringView name);
+    static std::optional<mc::BlockStateProperties::BellAttachment> fromName(mc::StringView name);
 };

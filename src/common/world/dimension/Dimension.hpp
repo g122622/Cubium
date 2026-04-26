@@ -172,7 +172,7 @@ public:
     /**
      * @brief 获取固定时间值（如果有）
      */
-    [[nodiscard]] Optional<i64> fixedTime() const { return m_type.fixedTimeValue(); }
+    [[nodiscard]] std::optional<i64> fixedTime() const { return m_type.fixedTimeValue(); }
 
     // ========== 更新 ==========
 

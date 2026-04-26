@@ -190,7 +190,7 @@ bool ServerDimensionManager::isPlayerInDimension(PlayerId playerId, DimensionId 
 
 bool ServerDimensionManager::transferPlayerToDimension(PlayerId playerId,
                                                         DimensionId targetDim,
-                                                        const Optional<Vector3d>& position) {
+                                                        const std::optional<Vector3d>& position) {
     // 获取目标维度
     auto* targetDimension = getDimension(targetDim);
     if (!targetDimension) {

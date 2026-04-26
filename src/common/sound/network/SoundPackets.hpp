@@ -165,8 +165,8 @@ public:
      *
      * @note 如果两者都为 nullopt，则停止所有声音
      */
-    StopSoundPacket(const Optional<ResourceLocation>& soundEventId,
-                    const Optional<SoundCategory>& category);
+    StopSoundPacket(const std::optional<ResourceLocation>& soundEventId,
+                    const std::optional<SoundCategory>& category);
 
     /**
      * @brief 构造停止特定声音事件的包
@@ -195,14 +195,14 @@ public:
      *
      * @return 声音事件ID，如果为 nullopt 表示不限声音事件
      */
-    [[nodiscard]] const Optional<ResourceLocation>& getSoundEventId() const noexcept { return m_soundEventId; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getSoundEventId() const noexcept { return m_soundEventId; }
 
     /**
      * @brief 获取声音类别
      *
      * @return 声音类别，如果为 nullopt 表示不限类别
      */
-    [[nodiscard]] const Optional<SoundCategory>& getCategory() const noexcept { return m_category; }
+    [[nodiscard]] const std::optional<SoundCategory>& getCategory() const noexcept { return m_category; }
 
     /**
      * @brief 检查是否停止所有声音
@@ -212,8 +212,8 @@ public:
     }
 
 private:
-    Optional<ResourceLocation> m_soundEventId;
-    Optional<SoundCategory> m_category;
+    std::optional<ResourceLocation> m_soundEventId;
+    std::optional<SoundCategory> m_category;
 };
 
 /**

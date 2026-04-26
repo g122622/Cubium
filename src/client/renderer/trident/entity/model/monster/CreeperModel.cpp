@@ -1,11 +1,8 @@
 #include "CreeperModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 CreeperModel::CreeperModel()
     : EntityModel()
@@ -100,8 +97,8 @@ void CreeperModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 参考 MC 1.16.5 CreeperModel.setRotationAngles
 
     // 头部旋转
-    m_head->setRotateAngleY(netHeadYaw * PI / 180.0);
-    m_head->setRotateAngleX(headPitch * PI / 180.0);
+    m_head->setRotateAngleY(netHeadYaw * mc::math::PI_DOUBLE / 180.0);
+    m_head->setRotateAngleX(headPitch * mc::math::PI_DOUBLE / 180.0);
 
     // 同步盔甲层旋转
     if (m_armorHead) {
@@ -112,11 +109,11 @@ void CreeperModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 腿部动画
     // MC 1.16.5:
     // leg1.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;
-    // leg2.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount;
-    // leg3.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount;
+    // leg2.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F + mc::math::PI_DOUBLE) * 1.4F * limbSwingAmount;
+    // leg3.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F + mc::math::PI_DOUBLE) * 1.4F * limbSwingAmount;
     // leg4.rotateAngleX = MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;
     f32 legSwing1 = static_cast<f32>(std::cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount);
-    f32 legSwing2 = static_cast<f32>(std::cos(limbSwing * 0.6662 + PI) * 1.4 * limbSwingAmount);
+    f32 legSwing2 = static_cast<f32>(std::cos(limbSwing * 0.6662 + mc::math::PI_DOUBLE) * 1.4 * limbSwingAmount);
 
     m_legFrontRight->setRotateAngleX(legSwing1);  // leg1
     m_legFrontLeft->setRotateAngleX(legSwing2);   // leg2

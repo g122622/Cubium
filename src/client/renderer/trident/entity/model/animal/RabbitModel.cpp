@@ -1,11 +1,8 @@
 #include "RabbitModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 RabbitModel::RabbitModel()
     : AgeableModel(
@@ -55,7 +52,7 @@ void RabbitModel::setupParts() {
     m_leftThigh->setMirror(true);
     m_leftThigh->addBox(-1.0f, 0.0f, 0.0f, 2.0f, 4.0f, 5.0f);
     m_leftThigh->setRotationPoint(3.0f, 17.5f, 3.7f);
-    m_leftThigh->setRotateAngleX(-0.34906584f);  // -PI * 0.111
+    m_leftThigh->setRotateAngleX(-0.34906584f);  // -mc::math::PI_DOUBLE * 0.111
     m_parts.push_back(m_leftThigh);
 
     // 右大腿 - Java: tex (16, 15), mirror=true, rotateAngleX=-0.34906584
@@ -82,7 +79,7 @@ void RabbitModel::setupParts() {
     m_leftArm->setMirror(true);
     m_leftArm->addBox(-1.0f, 0.0f, -1.0f, 2.0f, 7.0f, 2.0f);
     m_leftArm->setRotationPoint(3.0f, 17.0f, -1.0f);
-    m_leftArm->setRotateAngleX(-0.17453292f);  // -PI * 0.0556
+    m_leftArm->setRotateAngleX(-0.17453292f);  // -mc::math::PI_DOUBLE * 0.0556
     m_parts.push_back(m_leftArm);
 
     // 右前腿 - Java: tex (0, 15), mirror=true, rotateAngleX=-0.17453292
@@ -108,7 +105,7 @@ void RabbitModel::setupParts() {
     m_rightEar->setMirror(true);
     m_rightEar->addBox(-2.5f, -9.0f, -1.0f, 2.0f, 5.0f, 1.0f);
     m_rightEar->setRotationPoint(0.0f, 16.0f, -1.0f);
-    m_rightEar->setRotateAngleY(-0.2617994f);  // -PI * 0.0833
+    m_rightEar->setRotateAngleY(-0.2617994f);  // -mc::math::PI_DOUBLE * 0.0833
     m_parts.push_back(m_rightEar);
 
     // 左耳 - Java: tex (58, 0), mirror=true, rotateAngleY=0.2617994
@@ -117,7 +114,7 @@ void RabbitModel::setupParts() {
     m_leftEar->setMirror(true);
     m_leftEar->addBox(0.5f, -9.0f, -1.0f, 2.0f, 5.0f, 1.0f);
     m_leftEar->setRotationPoint(0.0f, 16.0f, -1.0f);
-    m_leftEar->setRotateAngleY(0.2617994f);  // PI * 0.0833
+    m_leftEar->setRotateAngleY(0.2617994f);  // mc::math::PI_DOUBLE * 0.0833
     m_parts.push_back(m_leftEar);
 
     // 尾巴 - Java: tex (52, 6), mirror=true, rotateAngleX=-0.3490659
@@ -193,12 +190,12 @@ void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 参考 MC 1.16.5 RabbitModel.setRotationAngles
 
     // 跳跃动画
-    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(f) * (float)Math.PI)
+    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(f) * (float)Math.mc::math::PI_DOUBLE)
     // 在 setLivingAnimations 中计算
 
     // 头部、鼻子、耳朵跟随头部俯仰
-    f32 headPitchRad = static_cast<f32>(headPitch * PI / 180.0);
-    f32 headYawRad = static_cast<f32>(netHeadYaw * PI / 180.0);
+    f32 headPitchRad = static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0);
+    f32 headYawRad = static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0);
 
     m_nose->setRotateAngleX(headPitchRad);
     m_head->setRotateAngleX(headPitchRad);
@@ -213,16 +210,16 @@ void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
     // 跳跃动画
     // Java:
-    // rabbitLeftThigh.rotateAngleX = (jumpRotation * 50.0F - 21.0F) * PI/180
-    // rabbitRightThigh.rotateAngleX = (jumpRotation * 50.0F - 21.0F) * PI/180
-    // rabbitLeftFoot.rotateAngleX = jumpRotation * 50.0F * PI/180
-    // rabbitRightFoot.rotateAngleX = jumpRotation * 50.0F * PI/180
-    // rabbitLeftArm.rotateAngleX = (jumpRotation * -40.0F - 11.0F) * PI/180
-    // rabbitRightArm.rotateAngleX = (jumpRotation * -40.0F - 11.0F) * PI/180
+    // rabbitLeftThigh.rotateAngleX = (jumpRotation * 50.0F - 21.0F) * mc::math::PI_DOUBLE/180
+    // rabbitRightThigh.rotateAngleX = (jumpRotation * 50.0F - 21.0F) * mc::math::PI_DOUBLE/180
+    // rabbitLeftFoot.rotateAngleX = jumpRotation * 50.0F * mc::math::PI_DOUBLE/180
+    // rabbitRightFoot.rotateAngleX = jumpRotation * 50.0F * mc::math::PI_DOUBLE/180
+    // rabbitLeftArm.rotateAngleX = (jumpRotation * -40.0F - 11.0F) * mc::math::PI_DOUBLE/180
+    // rabbitRightArm.rotateAngleX = (jumpRotation * -40.0F - 11.0F) * mc::math::PI_DOUBLE/180
 
-    f32 thighAngle = (m_jumpRotation * 50.0f - 21.0f) * static_cast<f32>(PI / 180.0);
-    f32 footAngle = m_jumpRotation * 50.0f * static_cast<f32>(PI / 180.0);
-    f32 armAngle = (m_jumpRotation * -40.0f - 11.0f) * static_cast<f32>(PI / 180.0);
+    f32 thighAngle = (m_jumpRotation * 50.0f - 21.0f) * static_cast<f32>(mc::math::PI_DOUBLE / 180.0);
+    f32 footAngle = m_jumpRotation * 50.0f * static_cast<f32>(mc::math::PI_DOUBLE / 180.0);
+    f32 armAngle = (m_jumpRotation * -40.0f - 11.0f) * static_cast<f32>(mc::math::PI_DOUBLE / 180.0);
 
     // 保存基础旋转角度
     f32 baseThighAngle = -0.34906584f;
@@ -243,7 +240,7 @@ void RabbitModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 
 void RabbitModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 partialTick) {
     // 参考 MC 1.16.5 RabbitModel.setLivingAnimations
-    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(partialTick) * (float)Math.PI);
+    // Java: this.jumpRotation = MathHelper.sin(entityIn.getJumpCompletion(partialTick) * (float)Math.mc::math::PI_DOUBLE);
     // 注意：jumpRotation 需要从实体获取，这里设置一个默认值
     // 实际使用时应该调用 setJumpRotation() 从外部设置
 }

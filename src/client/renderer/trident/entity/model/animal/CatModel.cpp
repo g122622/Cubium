@@ -1,12 +1,9 @@
 #include "CatModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
-
-namespace {
-    constexpr f64 PI = 3.14159265359;
-}
 
 CatModel::CatModel(f32 scale)
     : OcelotModel(scale)
@@ -46,7 +43,7 @@ void CatModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 parti
     // 坐下状态的处理（Java: if (entityIn.func_233684_eK_())）
     if (m_isSitting) {
         // 调整身体位置
-        m_body->setRotateAngleX(static_cast<f32>(PI / 4.0));
+        m_body->setRotateAngleX(static_cast<f32>(mc::math::PI_DOUBLE / 4.0));
         m_body->setRotationPointY(8.0f);  // 12 - 4
         m_body->setRotationPointZ(-5.0f); // -10 + 5
         // 调整头部位置
@@ -67,10 +64,10 @@ void CatModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 parti
         m_frontRightLeg->setRotationPointY(16.1f);
         m_frontRightLeg->setRotationPointZ(-7.0f);
         // 调整后腿
-        m_backLeftLeg->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_backLeftLeg->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
         m_backLeftLeg->setRotationPointY(21.0f);
         m_backLeftLeg->setRotationPointZ(1.0f);
-        m_backRightLeg->setRotateAngleX(static_cast<f32>(-PI / 2.0));
+        m_backRightLeg->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
         m_backRightLeg->setRotationPointY(21.0f);
         m_backRightLeg->setRotationPointZ(1.0f);
         // 设置状态为坐下

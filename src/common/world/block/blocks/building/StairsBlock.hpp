@@ -101,7 +101,7 @@ private:
      * @param facing 检查方向
      * @return 如果是楼梯返回其形状，否则返回nullopt
      */
-    [[nodiscard]] Optional<BlockStateProperties::StairsShape> neighborIsStairs(
+    [[nodiscard]] std::optional<BlockStateProperties::StairsShape> neighborIsStairs(
         IWorld& world,
         const BlockPos& pos,
         Direction facing) const;

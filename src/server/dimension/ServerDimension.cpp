@@ -113,7 +113,7 @@ bool ServerDimension::hasPortalAt(const BlockPos& pos) const {
     return m_portalPositions.find(hashBlockPos(pos)) != m_portalPositions.end();
 }
 
-Optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, i32 radius) const {
+std::optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, i32 radius) const {
     BlockPos nearestPos;
     i64 nearestDistSq = std::numeric_limits<i64>::max();
     bool found = false;

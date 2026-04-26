@@ -54,7 +54,7 @@ public:
     /**
      * @brief 解析字符串为布尔值
      */
-    [[nodiscard]] Optional<bool> parse(StringView str) const override {
+    [[nodiscard]] std::optional<bool> parse(StringView str) const override {
         if (str == "true") return true;
         if (str == "false") return false;
         return std::nullopt;

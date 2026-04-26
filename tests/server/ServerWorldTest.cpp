@@ -360,11 +360,11 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess) {
 }
 
 TEST_F(ServerWorldTest, PlaySound_InvokesCallback) {
-    Optional<ResourceLocation> soundEventId;
-    Optional<sound::SoundCategory> category;
-    Optional<Vector3> position;
-    Optional<f32> volume;
-    Optional<f32> pitch;
+    std::optional<ResourceLocation> soundEventId;
+    std::optional<sound::SoundCategory> category;
+    std::optional<Vector3> position;
+    std::optional<f32> volume;
+    std::optional<f32> pitch;
 
     world->setOnPlaySound([&](const ResourceLocation& eventId,
                               sound::SoundCategory soundCategory,
