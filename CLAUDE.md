@@ -107,8 +107,40 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 - `toRadians()`, `toDegrees()` - 度/弧度转换函数
 
 **游戏常量** (`src/common/core/Constants.hpp`)
-- `mc::game::GRAVITY`, `PLAYER_HEIGHT`, `PLAYER_WIDTH`, `DAY_LENGTH_TICKS`
-- `mc::world::CHUNK_WIDTH`, `CHUNK_HEIGHT`, `SEA_LEVEL`
+
+`mc::game` 命名空间：
+- `GRAVITY` - 重力加速度 (blocks/tick²)
+- `PLAYER_HEIGHT`, `PLAYER_EYE_HEIGHT`, `PLAYER_WIDTH`, `PLAYER_SNEAK_HEIGHT` - 玩家尺寸
+- `PLAYER_MAX_HEALTH`, `PLAYER_MAX_AIR` - 玩家生命值/氧气
+- `MAX_LIGHT_LEVEL`, `MIN_LIGHT_LEVEL` - 光照等级范围
+- `DAY_LENGTH_TICKS`, `DAY_LENGTH_SECONDS` - 游戏日长度
+
+`mc::network` 命名空间：
+- `PROTOCOL_VERSION` - 协议版本
+- `DEFAULT_PORT`, `DEFAULT_RCON_PORT` - 默认端口
+- `MAX_PACKET_SIZE`, `MAX_UNCOMPRESSED_SIZE`, `MIN_COMPRESSION_THRESHOLD` - 数据包限制
+- `CONNECT_TIMEOUT_MS`, `READ_TIMEOUT_MS`, `WRITE_TIMEOUT_MS` - 超时设置
+- `KEEP_ALIVE_INTERVAL_MS`, `KEEP_ALIVE_TIMEOUT_MS` - 心跳设置
+- `MAX_PACKETS_PER_SECOND`, `MAX_LOGIN_ATTEMPTS` - 速率限制
+
+`mc::world` 命名空间：
+- `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS`, `CHUNK_VOLUME` - 区块尺寸
+- `CHUNK_SHIFT`, `SECTION_SHIFT`, `CHUNK_MASK` - 区块位运算常量
+- `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制
+- `CHUNK_LOAD_RADIUS`, `CHUNK_UNLOAD_RADIUS`, `MAX_CHUNKS_LOADED` - 区块加载
+- `WORLD_SEED_DEFAULT`, `SPAWN_CHUNK_RADIUS` - 世界生成
+- `BLOCK_UPDATE_RADIUS` - 方块更新范围
+
+`mc::entity` 命名空间：
+- `MAX_ENTITIES_PER_CHUNK`, `MAX_PLAYERS`, `MAX_ENTITIES` - 实体数量限制
+- `LegacyEntityTypeId` - 实体类型ID枚举（旧版，用于网络同步）
+- `EntityStatus` - 实体状态枚举
+- `ENTITY_TRACKING_RANGE`, `PLAYER_TRACKING_RANGE` - 追踪距离
+
+`mc::capacity` 命名空间：
+- `DEFAULT_BUFFER_SIZE`, `PACKET_BUFFER_SIZE` - 缓冲区大小
+- `ENTITY_LIST_INITIAL`, `CHUNK_MAP_INITIAL`, `PLAYER_LIST_INITIAL` - 容器初始容量
+- `MAX_PLAYER_NAME_LENGTH`, `MAX_CHAT_MESSAGE_LENGTH`, `MAX_COMMAND_LENGTH`, `MAX_PATH_LENGTH` - 字符串限制
 
 **数学函数** (`src/common/util/math/MathUtils.hpp`)
 - `toRadians()`, `toDegrees()`, `clamp()`, `lerp()`, `smoothstep()`
