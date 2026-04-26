@@ -9,9 +9,9 @@ namespace mc::client::renderer::entity::renderer::projectile {
 
 ItemEntityRenderer::ItemEntityRenderer()
 {
-    // ItemEntity 通常没有阴影
-    m_shadowSize = 0.0f;
-    m_shadowAlpha = 0.0f;
+    // MC 1.16.5: ItemEntity 阴影大小为 0.15
+    m_shadowSize = 0.15f;
+    m_shadowAlpha = 0.8f;
 }
 
 void ItemEntityRenderer::render(Entity& entity, f64 partialTicks) {
@@ -22,9 +22,8 @@ void ItemEntityRenderer::render(Entity& entity, f64 partialTicks) {
 }
 
 void ItemEntityRenderer::renderShadow(Entity& entity, f64 partialTicks) {
-    // ItemEntity 没有阴影
-    (void)entity;
-    (void)partialTicks;
+    // MC 1.16.5: ItemEntity 有阴影
+    core::EntityRenderer::renderShadow(entity, partialTicks);
 }
 
 f64 ItemEntityRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick) const {

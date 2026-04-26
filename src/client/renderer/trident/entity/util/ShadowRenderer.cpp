@@ -18,8 +18,9 @@ std::vector<f32> ShadowRenderer::s_shadowVertices;
 std::vector<u32> ShadowRenderer::s_shadowIndices;
 pipeline::EntityMesh* ShadowRenderer::s_shadowMesh = nullptr;
 
-// 阴影常量（参考 MC 1.16.5）
-static constexpr f64 MAX_SHADOW_DISTANCE = 16.0;
+// 阴影常量（参考 MC 1.16.5 EntityRendererManager.java:260）
+// 阴影透明度在距离 256 格时衰减为 0
+static constexpr f64 MAX_SHADOW_DISTANCE = 256.0;
 static constexpr f64 SHADOW_TEX_U = 0.0;
 static constexpr f64 SHADOW_TEX_V = 0.0;
 static constexpr f64 SHADOW_TEX_SIZE = 32.0 / 256.0;
@@ -307,6 +308,10 @@ f64 ShadowRenderer::computeShadowAlpha(
 {
     (void)partialTicks;
 
+    // 获取相机距离用于距离衰减
+    // 参考 MC 1.16.5 EntityRendererManager.java:260
+    // float f = (float)((1.0D - d1 / 256.0D) * (double)entityrenderer.shadowOpaque);
+
     // 获取实体到地面的距离
     f64 entityY = entity.y();
     f64 groundY = entityY;  // 默认假设在地面上
@@ -337,16 +342,27 @@ f64 ShadowRenderer::computeShadowAlpha(
     }
 
     // 计算透明度衰减
-    // 参考 MC 1.16.5 EntityRenderer.getShadowOpacity()
-    f64 heightFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
-    if (heightFactor < 0.0) {
-        heightFactor = 0.0;
+    // 参考 MC 1.16.5 EntityRendererManager.java:260
+    // (1.0 - distance / 256.0) * shadowOpaque
+    f64 distanceFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
+    if (distanceFactor < 0.0) {
+        distanceFactor = 0.0;
     }
 
-    // 考虑阴影半径的影响
-    f64 radiusFactor = shadowRadius > 0.0 ? std::min(shadowRadius / 0.5, 1.0) : 1.0;
+    // 幼体阴影减半
+    // 参考 MC 1.16.5 EntityRendererManager.java:366-371
+    // 注意：Entity 基类有 isChild() 方法，MobEntity 可以转换为检查
+    f64 sizeMultiplier = 1.0;
+    if (entity.isChild()) {
+        sizeMultiplier = 0.5;
+    }
 
-    return baseAlpha * heightFactor * radiusFactor;
+    // 世界亮度因子（ TODO 简化：使用固定值，实际应查询方块光照）
+    // 参考 MC 1.16.5 EntityRendererManager.java:398
+    // float f = (float)(((double)weightIn - (yIn - (double)blockPosIn.getY()) / 2.0D) * 0.5D * (double)worldIn.getBrightness(blockPosIn));
+    f64 brightness = 1.0;  // TODO: 实际查询世界亮度
+
+    return baseAlpha * distanceFactor * sizeMultiplier * brightness;
 }
 
 f64 ShadowRenderer::computeShadowAlpha(
@@ -356,6 +372,10 @@ f64 ShadowRenderer::computeShadowAlpha(
     f64 baseAlpha)
 {
     (void)partialTicks;
+    (void)shadowRadius;
+
+    // 获取相机距离用于距离衰减
+    // 参考 MC 1.16.5 EntityRendererManager.java:260
 
     // 获取实体高度（假设站在地面上）
     f64 entityHeight = static_cast<f64>(entity.height());
@@ -367,16 +387,22 @@ f64 ShadowRenderer::computeShadowAlpha(
     }
 
     // 计算透明度衰减
-    // 参考 MC 1.16.5 EntityRenderer.getShadowOpacity()
-    f64 heightFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
-    if (heightFactor < 0.0) {
-        heightFactor = 0.0;
+    // 参考 MC 1.16.5 EntityRendererManager.java:260
+    f64 distanceFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
+    if (distanceFactor < 0.0) {
+        distanceFactor = 0.0;
     }
 
-    // 考虑阴影半径的影响
-    f64 radiusFactor = shadowRadius > 0.0 ? std::min(shadowRadius / 0.5, 1.0) : 1.0;
+    // 幼体阴影减半
+    f64 sizeMultiplier = 1.0;
+    if (entity.isChild()) {
+        sizeMultiplier = 0.5;
+    }
 
-    return baseAlpha * heightFactor * radiusFactor;
+    // 世界亮度因子（简化）
+    f64 brightness = 1.0;
+
+    return baseAlpha * distanceFactor * sizeMultiplier * brightness;
 }
 
 void ShadowRenderer::getShadowVertices(

@@ -302,6 +302,12 @@ public:
     [[nodiscard]] bool isOnFire() const { return m_onFire; }
     void setOnFire(bool onFire) { m_onFire = onFire; }
 
+    /**
+     * @brief 是否不可见（隐身效果）
+     */
+    [[nodiscard]] bool isInvisible() const { return m_invisible; }
+    void setInvisible(bool invisible) { m_invisible = invisible; }
+
     // ========== 攻击动画 ==========
 
     /**
@@ -507,6 +513,7 @@ private:
     bool m_riding = false;
     bool m_sitting = false;
     bool m_onFire = false;
+    bool m_invisible = false;
 
     // 攻击动画
     f32 m_swingProgress = 0.0f;

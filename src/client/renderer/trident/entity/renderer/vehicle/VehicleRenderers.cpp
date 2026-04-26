@@ -121,8 +121,9 @@ BoatRenderer::BoatRenderer(BoatType type)
     : m_type(type)
     , m_model(std::make_unique<BoatModel>())
 {
-    m_shadowSize = 0.0f;
-    m_shadowAlpha = 0.0f;
+    // MC 1.16.5: 船的阴影大小为 0.8
+    m_shadowSize = 0.8f;
+    m_shadowAlpha = 0.8f;
 }
 
 void BoatRenderer::render(Entity& entity, f64 partialTicks) {
@@ -239,8 +240,9 @@ void MinecartModel::setInsideOffset(f32 yOffset) {
 MinecartRenderer::MinecartRenderer()
     : m_model(std::make_unique<MinecartModel>())
 {
-    m_shadowSize = 0.0f;
-    m_shadowAlpha = 0.0f;
+    // MC 1.16.5: 矿车阴影大小为 0.5
+    m_shadowSize = 0.5f;
+    m_shadowAlpha = 0.8f;
 }
 
 void MinecartRenderer::render(Entity& entity, f64 partialTicks) {

@@ -327,18 +327,37 @@ void LivingRenderer<TEntity, TModel>::setModelAngles(TEntity& entity, f64 partia
 
 template<typename TEntity, typename TModel>
 f64 LivingRenderer<TEntity, TModel>::getLimbSwing(TEntity& entity, f64 partialTicks) const {
-    // 步态动画周期
-    f64 prevLimbSwing = entity.prevLimbSwing();
-    f64 limbSwing = entity.limbSwing();
-    return prevLimbSwing + (limbSwing - prevLimbSwing) * partialTicks;
+    // MC 1.16.5 公式 (LivingRenderer.java:100):
+    // f5 = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks);
+    f64 limbSwingAmount = entity.limbSwingAmount();
+    f64 result = entity.limbSwing() - limbSwingAmount * (1.0 - partialTicks);
+
+    // 幼体动画速度加倍 (LivingRenderer.java:101-103)
+    // if (entityIn.isChild()) { f5 *= 3.0F; }
+    if constexpr (std::is_base_of_v<::mc::AgeableEntity, TEntity>) {
+        if (entity.isChild()) {
+            result *= 3.0;
+        }
+    }
+
+    return result;
 }
 
 template<typename TEntity, typename TModel>
 f64 LivingRenderer<TEntity, TModel>::getLimbSwingAmount(TEntity& entity, f64 partialTicks) const {
-    // 步态动画强度
+    // MC 1.16.5 公式 (LivingRenderer.java:99):
+    // f8 = MathHelper.lerp(partialTicks, entity.prevLimbSwingAmount, entity.limbSwingAmount);
     f64 prevAmount = entity.prevLimbSwingAmount();
     f64 amount = entity.limbSwingAmount();
-    return prevAmount + (amount - prevAmount) * partialTicks;
+    f64 result = prevAmount + (amount - prevAmount) * partialTicks;
+
+    // 限制最大值 (LivingRenderer.java:105-107)
+    // if (f8 > 1.0F) { f8 = 1.0F; }
+    if (result > 1.0) {
+        result = 1.0;
+    }
+
+    return result;
 }
 
 template<typename TEntity, typename TModel>

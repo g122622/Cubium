@@ -192,8 +192,8 @@ void FireEffect::renderFire(
 
     auto& mesh = meshResult.value();
 
-    // 绘制火焰（半透明橙红色）
-    Vector4f fireColor(1.0f, 0.6f, 0.1f, 0.9f);
+    // 绘制火焰（MC 1.16.5: 使用白色，火焰纹理自带颜色）
+    Vector4f fireColor(1.0f, 1.0f, 1.0f, 1.0f);
     Vector3f meshPos(0, 0, 0);
 
     // 绘制第一个 billboard

@@ -29,6 +29,11 @@ namespace mc::client::renderer::entity::layer::effect {
  *
  * 参考 MC 1.16.5 AbstractEyesLayer
  *
+ * 关键点:
+ * 1. 使用固定光照值 15728640 (0xF00000) = 全亮
+ * 2. 使用叠加混合模式 (additive blending)
+ * 3. 颜色为半透明白色 (0.5, 0.5, 0.5, 1.0)
+ *
  * @tparam TEntity 实体类型
  */
 template<typename TEntity>
@@ -78,9 +83,11 @@ protected:
 
     /**
      * @brief 获取发光颜色
+     * 参考 MC 1.16.5 AbstractEyesLayer: 颜色为 (1.0F, 1.0F, 1.0F, 1.0F)
      */
     [[nodiscard]] virtual Vector3f getEyesColor(const TEntity& entity) const {
         (void)entity;
+        // MC 1.16.5: 眼睛使用纯白色，通过叠加混合实现发光效果
         return Vector3f(1.0f, 1.0f, 1.0f);
     }
 
@@ -91,6 +98,10 @@ protected:
         std::vector<model::ModelVertex>& vertices,
         std::vector<u32>& indices
     );
+
+    // MC 1.16.5 固定光照值: 15728640 = 0xF00000 = 全亮
+    // 用于眼睛层始终显示为发光状态
+    static constexpr i32 FULL_LIGHT = 15728640;
 };
 
 } // namespace mc::client::renderer::entity::layer::effect

@@ -8,9 +8,9 @@ namespace mc::client::renderer::entity::renderer::projectile {
 
 ExperienceOrbRenderer::ExperienceOrbRenderer()
 {
-    // 经验球没有阴影
-    m_shadowSize = 0.0f;
-    m_shadowAlpha = 0.0f;
+    // MC 1.16.5: 经验球阴影大小为 0.15
+    m_shadowSize = 0.15f;
+    m_shadowAlpha = 0.8f;
 }
 
 void ExperienceOrbRenderer::render(Entity& entity, f64 partialTicks) {
@@ -21,9 +21,8 @@ void ExperienceOrbRenderer::render(Entity& entity, f64 partialTicks) {
 }
 
 void ExperienceOrbRenderer::renderShadow(Entity& entity, f64 partialTicks) {
-    // 经验球没有阴影
-    (void)entity;
-    (void)partialTicks;
+    // MC 1.16.5: 经验球有阴影
+    core::EntityRenderer::renderShadow(entity, partialTicks);
 }
 
 f64 ExperienceOrbRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick) const {

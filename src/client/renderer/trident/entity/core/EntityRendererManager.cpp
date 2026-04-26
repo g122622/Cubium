@@ -53,9 +53,14 @@ namespace EntityTypes = ::mc::entity::EntityTypes;
 
 namespace {
 
-inline constexpr f64 MODEL_SCALE = 1.0f / 16.0f;
-inline constexpr f64 MODEL_MESH_SCALE = 1.0f;
-inline constexpr f64 MODEL_Y_OFFSET = 1.5f; // 模型在实际渲染时的Y偏移量
+// MC 1.16.5 标准常量
+// 参考 LivingRenderer.java:95 - translate(0.0D, -1.501D, 0.0D)
+inline constexpr f64 MODEL_Y_OFFSET = 1.501;
+inline constexpr f64 MODEL_SCALE = 1.0 / 16.0;
+inline constexpr f64 MODEL_MESH_SCALE = 1.0;
+
+// 阴影最大距离 - 参考 EntityRendererManager.java:260
+inline constexpr f64 SHADOW_MAX_DISTANCE = 256.0;
 
 /**
  * @brief 规范化实体类型ID
@@ -256,12 +261,12 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
                              Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
     } else {
         // 普通实体渲染
-        // MC 实体模型局部坐标系的 Y 轴方向与世界坐标相反，先做一次 Y 翻转
-        modelMatrix[5] = -1.0f;
-        // Y 翻转后，模型会相对地面下沉，需要补偿一个模型高度
-        modelMatrix[7] = MODEL_Y_OFFSET;
+        // MC 1.16.5 变换顺序 (LivingRenderer.java:93-95):
+        // 1. scale(-1.0F, -1.0F, 1.0F) - X和Y都取反
+        // 2. preRenderCallback()
+        // 3. translate(0.0D, -1.501D, 0.0D) - 向下偏移
 
-        // 应用实体旋转（yaw）
+        // 应用 Y 轴旋转（yaw）- 在翻转之前应用
         f64 yaw = static_cast<f64>(entity.getInterpolatedYaw(partialTickF32));
         f64 yawRad = yaw * static_cast<f64>(math::DEG_TO_RAD);
         f64 cosYaw = std::cos(yawRad);
@@ -272,6 +277,16 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         modelMatrix[2] = sinYaw;
         modelMatrix[8] = -sinYaw;
         modelMatrix[10] = cosYaw;
+
+        // MC 1.16.5: scale(-1, -1, 1) - X和Y都取反
+        // 在旋转后应用翻转
+        for (int i = 0; i < 4; ++i) {
+            modelMatrix[i * 4] *= -1.0;     // X列取反
+            modelMatrix[i * 4 + 1] *= -1.0; // Y列取反
+        }
+
+        // Y偏移 - 原版是向下偏移 1.501
+        modelMatrix[13] = MODEL_Y_OFFSET;
 
         // 获取插值位置
         Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
@@ -299,12 +314,21 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         }
 
         // 渲染阴影
+        // 参考 MC 1.16.5 EntityRendererManager.java:258-264
+        // if (this.options.entityShadows && this.renderShadow && entityrenderer.shadowSize > 0.0F && !entityIn.isInvisible())
         if (m_renderShadows && !isItemEntity && !isExperienceOrb) {
-            // 获取阴影半径（基于实体宽度）
-            f64 shadowRadius = static_cast<f64>(entity.width()) * 0.5;
-            f64 shadowAlpha = 0.3;  // 基础阴影透明度
+            // 使用渲染器的 shadowSize 而非 width * 0.5
+            f64 shadowRadius = renderer ? renderer->shadowSize() : static_cast<f64>(entity.width()) * 0.5;
+            f64 shadowOpaque = renderer ? renderer->shadowAlpha() : 0.8;
 
-            util::ShadowRenderer::renderShadow(cmd, entity, partialTicks, shadowRadius, shadowAlpha, *m_pipeline);
+            // 检查阴影大小和透明度
+            if (shadowRadius > 0.0 && shadowOpaque > 0.0 && !entity.isInvisible()) {
+                // 计算到相机的距离衰减
+                // 参考 MC 1.16.5 EntityRendererManager.java:260
+                // float f = (float)((1.0D - d1 / 256.0D) * (double)entityrenderer.shadowOpaque);
+                // 注意：这里需要相机位置，暂时使用简化版本
+                util::ShadowRenderer::renderShadow(cmd, entity, partialTicks, shadowRadius, shadowOpaque, *m_pipeline);
+            }
         }
     }
 
@@ -820,10 +844,25 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
     using namespace model::monster;
 
     // 从 ClientEntity 读取动画状态
-    context.limbSwing = static_cast<f64>(entity.prevLimbSwing()) +
-                        static_cast<f64>(entity.limbSwing() - entity.prevLimbSwing()) * context.partialTicks;
+    // MC 1.16.5 公式 (LivingRenderer.java:100):
+    // limbSwing = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks)
+    f64 limbSwingAmount = static_cast<f64>(entity.limbSwingAmount());
+    context.limbSwing = static_cast<f64>(entity.limbSwing()) - limbSwingAmount * (1.0 - context.partialTicks);
+
+    // 幼体动画速度加倍 (LivingRenderer.java:101-103)
+    if (entity.isChild()) {
+        context.limbSwing *= 3.0;
+    }
+
+    // limbSwingAmount 使用插值 (LivingRenderer.java:99)
     context.limbSwingAmount = static_cast<f64>(entity.prevLimbSwingAmount()) +
                              static_cast<f64>(entity.limbSwingAmount() - entity.prevLimbSwingAmount()) * context.partialTicks;
+
+    // 限制最大值 (LivingRenderer.java:105-107)
+    if (context.limbSwingAmount > 1.0) {
+        context.limbSwingAmount = 1.0;
+    }
+
     context.ageInTicks = static_cast<f64>(entity.ticksExisted());
 
     // 计算头部偏航角（相对于身体）

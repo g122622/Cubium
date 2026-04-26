@@ -141,22 +141,41 @@ model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bo
 }
 
 f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const {
-    // Player 继承自 Entity，没有 limbSwing
-    // 基于移动距离计算动画周期
+    // MC 1.16.5 LivingRenderer.java:100
+    // f5 = entity.limbSwing - entity.limbSwingAmount * (1.0F - partialTicks);
+    // 注意：Player 继承自 Entity，没有 limbSwing 字段
+    // 需要从移动距离计算
     f64 dx = static_cast<f64>(player.x() - player.prevX());
     f64 dz = static_cast<f64>(player.z() - player.prevZ());
     f64 distance = std::sqrt(dx * dx + dz * dz);
-    // 每移动 1 格增加 PI 弧度的动画周期
-    return static_cast<f64>(player.ticksExisted()) * distance * 3.14159 + partialTicks * distance * 3.14159;
+
+    // 计算动画周期
+    f64 limbSwing = static_cast<f64>(player.ticksExisted()) * distance;
+    f64 limbSwingAmount = std::min(distance * 4.0, 1.0);
+
+    // MC 1.16.5 公式
+    return limbSwing - limbSwingAmount * (1.0 - partialTicks);
 }
 
 f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const {
-    // 基于移动速度计算动画强度
-    (void)partialTicks;
+    // MC 1.16.5 LivingRenderer.java:99
+    // f8 = MathHelper.lerp(partialTicks, prevLimbSwingAmount, limbSwingAmount);
+    // 限制最大值为 1.0
     f64 dx = static_cast<f64>(player.x() - player.prevX());
     f64 dz = static_cast<f64>(player.z() - player.prevZ());
-    f64 speed = std::sqrt(dx * dx + dz * dz) * 4.0; // 放大以获得可见的动画
-    return std::min(speed, 1.0); // 限制最大值
+    f64 speed = std::sqrt(dx * dx + dz * dz) * 4.0;
+
+    // 插值计算
+    f64 prevAmount = speed * 0.7;  // 近似前一帧的值
+    f64 amount = speed;
+    f64 result = prevAmount + (amount - prevAmount) * partialTicks;
+
+    // MC 1.16.5 LivingRenderer.java:105-107
+    if (result > 1.0) {
+        result = 1.0;
+    }
+
+    return result;
 }
 
 f64 PlayerRenderer::getHeadYaw(::mc::Player& player, f64 partialTicks) const {

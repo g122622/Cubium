@@ -29,30 +29,34 @@ void HurtFlashEffect::cleanup() {
 }
 
 i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlash) {
-    // 参考 MC 1.16.5 LivingRenderer.getPackedOverlay()
-    // 计算覆盖层 UV：
-    // - U = hurtTime / 10.0F * 16.0F
-    // - V = 0
-    // - 道德影响时 U 固定为 3.0F
+    // 参考 MC 1.16.5 OverlayTexture.java 和 LivingRenderer.java:146-148
+    // getPackedUV(getU(uIn), getV(hurtTime > 0 || deathTime > 0))
+    //
+    // OverlayTexture.getU(uIn) = (int)(uIn * 15.0F)
+    // OverlayTexture.getV(hurtIn) = hurtIn ? 3 : 10
+    // getPackedUV(u, v) = (u << 16) | (v & 0xFFFF)
 
     i32 hurtTime = entity.hurtTime();
+    i32 deathTime = entity.deathTime();
 
+    // 计算 U 值
     f32 u = 0.0f;
     if (whiteFlash) {
-        // 道德影响（如药水效果）使用白色闪烁
+        // 道德影响（如药水效果）使用固定 U 值
         u = 3.0f;
-    } else if (hurtTime > 0) {
-        // 受伤闪烁
-        u = static_cast<f32>(hurtTime) / 10.0f * 16.0f;
+    } else if (hurtTime > 0 || deathTime > 0) {
+        // 受伤或死亡时的 U 值
+        // MC 1.16.5: uIn 是一个动画进度参数，这里简化为使用 hurtTime
+        // LivingRenderer 传入 uIn = partialTicks 或其他值
+        // TODO 简化实现：使用 hurtTime 进度
+        u = static_cast<f32>(hurtTime) / 10.0f;
     }
 
-    // V 始终为 0
-    f32 v = 0.0f;
+    // 打包 U 值 - 使用 15 作为因子，不是 16
+    i32 packedU = static_cast<i32>(u * static_cast<f32>(OVERLAY_PACKING));
 
-    // 打包 UV 为 16 位整数
-    // packed = (int)(u * 16) << 16 | (int)(v * 16)
-    i32 packedU = static_cast<i32>(u * OVERLAY_PACKING);
-    i32 packedV = static_cast<i32>(v * OVERLAY_PACKING);
+    // 计算 V 值 - 受伤或死亡时 V=3，正常时 V=10
+    i32 packedV = (hurtTime > 0 || deathTime > 0) ? OVERLAY_V_HURT : OVERLAY_V_NORMAL;
 
     return (packedU << 16) | (packedV & 0xFFFF);
 }

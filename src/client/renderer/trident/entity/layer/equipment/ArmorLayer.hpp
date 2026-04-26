@@ -59,6 +59,12 @@ public:
 
     /**
      * @brief 渲染盔甲层（GPU管线路径）
+     *
+     * 参考 MC 1.16.5 BipedArmorLayer 渲染顺序:
+     * 1. Chest (胸甲) - layer_1
+     * 2. Legs (护腿) - layer_2
+     * 3. Feet (靴子) - layer_1
+     * 4. Head (头盔) - layer_1
      */
     void renderPipeline(
         TEntity& entity,
@@ -66,11 +72,11 @@ public:
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline
     ) override {
-        // 渲染所有盔甲部位
-        renderArmorPartPipeline(entity, ArmorSlot::Head, cmd, context, pipeline);
+        // MC 1.16.5 渲染顺序: Chest -> Legs -> Feet -> Head
         renderArmorPartPipeline(entity, ArmorSlot::Chest, cmd, context, pipeline);
         renderArmorPartPipeline(entity, ArmorSlot::Legs, cmd, context, pipeline);
         renderArmorPartPipeline(entity, ArmorSlot::Feet, cmd, context, pipeline);
+        renderArmorPartPipeline(entity, ArmorSlot::Head, cmd, context, pipeline);
     }
 
     /**

@@ -203,39 +203,77 @@ void HeldItemLayer<TEntity>::computeItemTransform(
         0.0, 0.0, 0.0, 1.0
     };
 
-    // 参考 MC 1.16.5 HeldItemLayer.applyItemTransform
-    // 手持物品变换需要根据手臂位置和物品类型调整
+    // 参考 MC 1.16.5 HeldItemLayer.java:45-48
+    // matrixStackIn.rotate(Vector3f.XP.rotationDegrees(-90.0F));
+    // matrixStackIn.rotate(Vector3f.YP.rotationDegrees(180.0F));
+    // boolean flag = p_229135_4_ == HandSide.LEFT;
+    // matrixStackIn.translate((double)((float)(flag ? -1 : 1) / 16.0F), 0.125D, -0.625D);
 
-    // 基础位置偏移（相对于手臂）
-    f64 xOffset = (hand == HandSide::MainHand) ? 0.5625 : -0.5625;
-    f64 yOffset = -0.25;  // 略低于手臂中心
-    f64 zOffset = -0.1875;
+    // 首先应用 X 轴 -90° 旋转
+    // rotateX(-90°) 后 Y 轴变为 -Z 轴
+    f64 cosX = std::cos(-3.14159265359 * 0.5);  // cos(-90°)
+    f64 sinX = std::sin(-3.14159265359 * 0.5);  // sin(-90°)
 
-    // 步态动画影响
-    f64 armSwing = std::sin(static_cast<f64>(limbSwing) * 0.5) * static_cast<f64>(limbSwingAmount) * 0.5;
-    yOffset += armSwing * 0.2;
+    // 然后应用 Y 轴 180° 旋转
+    f64 cosY = std::cos(3.14159265359);  // cos(180°)
+    f64 sinY = std::sin(3.14159265359);  // sin(180°)
 
-    // 挥动手臂动画
-    if (swingProgress > 0.0f) {
-        // 攻击动画
-        f64 swingAngle = 1.0 - static_cast<f64>(swingProgress);
-        swingAngle = 1.0 - swingAngle * swingAngle * swingAngle;  // 缓动
-        outMatrix[0] = std::cos(swingAngle * 3.14159 * 0.5);
-        outMatrix[2] = std::sin(swingAngle * 3.14159 * 0.5);
-        outMatrix[8] = -std::sin(swingAngle * 3.14159 * 0.5);
-        outMatrix[10] = std::cos(swingAngle * 3.14159 * 0.5);
-    }
+    // 组合旋转矩阵：先 X 旋转再 Y 旋转
+    // R = Ry(180°) * Rx(-90°)
+    // 简化后：
+    // cosY=-1, sinY=0, cosX=0, sinX=-1
+    // 结果矩阵：
+    // [0, 0, 1, 0]
+    // [0, -1, 0, 0]
+    // [1, 0, 0, 0]
+    // [0, 0, 0, 1]
+    outMatrix[0] = 0.0;
+    outMatrix[1] = 0.0;
+    outMatrix[2] = 1.0;
+    outMatrix[4] = 0.0;
+    outMatrix[5] = -1.0;
+    outMatrix[6] = 0.0;
+    outMatrix[8] = 1.0;
+    outMatrix[9] = 0.0;
+    outMatrix[10] = 0.0;
 
-    // 应用位置偏移
+    // MC 1.16.5: translate((float)(flag ? -1 : 1) / 16.0F, 0.125D, -0.625D)
+    // flag = (hand == HandSide::OffHand) in MC terms (LEFT)
+    // 所以 MainHand 时 x = +1/16, OffHand 时 x = -1/16
+    bool isLeftHand = (hand == HandSide::OffHand);
+    f64 xOffset = isLeftHand ? -1.0 / 16.0 : 1.0 / 16.0;
+    f64 yOffset = 0.125;
+    f64 zOffset = -0.625;
+
+    // 应用位置偏移（在旋转后的坐标系中）
     outMatrix[3] = xOffset;
     outMatrix[7] = yOffset;
     outMatrix[11] = zOffset;
 
-    // 缩放因子（物品显示大小）
-    const f64 itemScale = 0.4;
-    outMatrix[0] *= itemScale;
-    outMatrix[5] = -itemScale;  // Y 翻转
-    outMatrix[10] *= itemScale;
+    // 步态动画影响
+    if (limbSwingAmount > 0.001f) {
+        f64 armSwing = std::sin(static_cast<f64>(limbSwing) * 0.5) * static_cast<f64>(limbSwingAmount) * 0.5;
+        // 手臂摆动时物品跟随移动
+        // 这里简化处理，实际应该根据手臂骨骼位置计算
+        (void)armSwing;  // TODO: 应用摆动动画
+    }
+
+    // 挥动手臂动画
+    if (swingProgress > 0.0f) {
+        // 攻击动画：物品向外挥动
+        f64 swingAngle = static_cast<f64>(swingProgress) * 3.14159265359;  // 0 到 π
+        f64 swingFactor = std::sin(swingAngle);
+
+        // 在原有旋转基础上添加挥动效果
+        // 挥动时物品沿 Z 轴旋转
+        f64 cosSwing = std::cos(swingFactor * 0.5);
+        f64 sinSwing = std::sin(swingFactor * 0.5);
+
+        // 修改旋转矩阵以包含挥动效果
+        // 简化：直接调整位置
+        outMatrix[7] += sinSwing * 0.1;  // Y 方向偏移
+        outMatrix[11] += cosSwing * 0.1; // Z 方向偏移
+    }
 }
 
 // 显式实例化常用类型
