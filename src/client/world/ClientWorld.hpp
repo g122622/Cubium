@@ -4,6 +4,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/chunk/ChunkData.hpp"
@@ -163,6 +164,9 @@ private:
 
     ClientEntityManager m_entityManager;
     ClientWeather m_weather;
+
+    /// 视锥体，用于视锥剔除
+    mc::math::frustum::Frustum m_frustum;
 
     bool m_destroyed = false;
 };

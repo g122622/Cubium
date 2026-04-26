@@ -2,6 +2,7 @@
 #include "../util/VulkanUtils.hpp"
 #include "../../util/ShaderPath.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -333,6 +334,66 @@ void ParticleManager::render(VkCommandBuffer cmd,
         if (particle && particle->isAlive()) {
             particle->buildVertices(cameraPos, m_partialTick, m_textureAtlas, m_vertexData);
         }
+    }
+
+    if (m_vertexData.empty()) {
+        return;
+    }
+
+    // 更新顶点缓冲区
+    updateVertexBuffer();
+
+    // 绑定管线
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+    // 绑定描述符集
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                           m_pipelineLayout, 0, 1,
+                           &m_descriptorSets[frameIndex], 0, nullptr);
+
+    // 绑定顶点缓冲区
+    VkBuffer vertexBuffers[] = { m_vertexBuffer };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
+
+    // 绘制
+    vkCmdDraw(cmd, static_cast<u32>(m_vertexData.size()), 1, 0, 0);
+}
+
+void ParticleManager::render(VkCommandBuffer cmd,
+                             const glm::mat4& projection,
+                             const glm::mat4& view,
+                             const glm::vec3& cameraPos,
+                             u32 frameIndex,
+                             const mc::math::frustum::Frustum& frustum) {
+    if (m_particles.empty()) {
+        return;
+    }
+
+    m_projection = projection;
+    m_view = view;
+    m_cameraPos = cameraPos;
+
+    // 更新 Uniform 缓冲区
+    updateUniformBuffer(frameIndex);
+
+    // 收集粒子顶点数据（带视锥剔除）
+    m_vertexData.clear();
+    for (const auto& particle : m_particles) {
+        if (!particle || !particle->isAlive()) {
+            continue;
+        }
+
+        // 使用球体测试进行视锥剔除
+        const glm::vec3& particlePos = particle->position();
+        mc::Vector3 frustumPos(particlePos.x, particlePos.y, particlePos.z);
+        f32 particleRadius = static_cast<f32>(particle->size() * 0.5);
+
+        if (!frustum.isSphereVisible(frustumPos, particleRadius)) {
+            continue;
+        }
+
+        particle->buildVertices(cameraPos, m_partialTick, m_textureAtlas, m_vertexData);
     }
 
     if (m_vertexData.empty()) {

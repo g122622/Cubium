@@ -1,6 +1,6 @@
 # Math 模块
 
-本目录包含 Minecraft Reborn 项目的数学工具模块，提供向量运算、随机数生成、射线检测等核心数学功能。
+本目录包含 Minecraft Reborn 项目的数学工具模块，提供向量运算、随机数生成、射线检测、视锥剔除等核心数学功能。
 
 ## 目录结构
 
@@ -10,6 +10,11 @@ src/common/util/math/
 ├── MathUtils.cpp          # 占位文件（函数已在头文件内联）
 ├── Vector2.hpp            # 2D 向量类
 ├── Vector3.hpp            # 3D 向量类
+├── Vector4.hpp            # 4D 向量模板类
+├── frustum/               # 视锥剔除子系统
+│   ├── Frustum.hpp        # 视锥类定义
+│   ├── Frustum.cpp        # 视锥类实现
+│   └── README.md          # 视锥模块文档
 ├── random/                # 随机数生成子系统
 │   ├── IRandom.hpp        # 随机数生成器接口
 │   ├── IRandom.cpp        # 接口默认实现

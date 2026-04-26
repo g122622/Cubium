@@ -3,6 +3,7 @@
 #include "common/core/Constants.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/NibbleArray.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -10,7 +11,6 @@
 #include <cmath>
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
-#include <glm/vec4.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client {
@@ -18,8 +18,6 @@ namespace mc::client {
 using namespace mc::world;
 
 namespace {
-
-constexpr f32 VIEW_FRUSTUM_MARGIN = 1.2f;
 
 f32 chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId& chunkId)
 {
@@ -30,24 +28,6 @@ f32 chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId
     const glm::vec2 delta(centerX - viewState.cameraPosition.x, centerZ - viewState.cameraPosition.z);
     const f32 distanceBlocks = glm::length(delta);
     return distanceBlocks / static_cast<f32>(ChunkData::WIDTH);
-}
-
-bool chunkInFrustum(const MeshSchedulerViewState& viewState, const ChunkId& chunkId)
-{
-    const f32 chunkCenterOffset = static_cast<f32>(ChunkData::WIDTH) * 0.5f;
-    const f32 centerX = static_cast<f32>(chunkId.x * ChunkData::WIDTH) + chunkCenterOffset;
-    const f32 centerY = static_cast<f32>(viewState.minBuildHeight + viewState.maxBuildHeight) * 0.5f;
-    const f32 centerZ = static_cast<f32>(chunkId.z * ChunkData::WIDTH) + chunkCenterOffset;
-
-    const glm::vec4 clip = viewState.viewProjectionMatrix * glm::vec4(centerX, centerY, centerZ, 1.0f);
-    if (clip.w <= 0.0f) {
-        return false;
-    }
-
-    const f32 clipLimit = clip.w * VIEW_FRUSTUM_MARGIN;
-    return clip.x >= -clipLimit && clip.x <= clipLimit &&
-           clip.y >= -clipLimit && clip.y <= clipLimit &&
-           clip.z >= -clipLimit && clip.z <= clipLimit;
 }
 
 } // namespace
@@ -86,6 +66,10 @@ void ClientWorld::update(const MeshSchedulerViewState& viewState)
     m_renderDistance = viewState.renderDistanceChunks;
     m_minBuildHeight = viewState.minBuildHeight;
     m_maxBuildHeight = viewState.maxBuildHeight;
+
+    // 更新视锥体
+    m_frustum.extractFromMatrix(viewState.viewProjectionMatrix);
+    m_frustum.setCameraPosition(viewState.cameraPosition);
 
     if (m_meshBuildScheduler && m_meshWorkerPool && m_meshWorkerPool->isRunning()) {
         m_meshBuildScheduler->setViewState(viewState);
@@ -431,7 +415,8 @@ void ClientWorld::scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState&
             continue;
         }
 
-        if (!chunkInFrustum(viewState, chunkId)) {
+        // 使用 Frustum 类进行视锥剔除
+        if (!m_frustum.isChunkVisible(chunkId.x, chunkId.z, viewState.minBuildHeight, viewState.maxBuildHeight)) {
             continue;
         }
 

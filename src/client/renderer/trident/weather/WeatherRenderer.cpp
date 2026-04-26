@@ -356,6 +356,19 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     MC_TRACE_EVENT_END("rendering.weather");
 }
 
+void WeatherRenderer::render(VkCommandBuffer cmd,
+                              const glm::mat4& projection,
+                              const glm::mat4& view,
+                              const glm::vec3& cameraPos,
+                              u32 frameIndex,
+                              const mc::math::frustum::Frustum& frustum) {
+    // WeatherRenderer 目前使用距离淡出而非严格视锥剔除
+    // 雨滴/雪花的渲染范围由 m_renderRadius 控制
+    // 保留此重载以保持 API 一致性，未来可以添加更精细的剔除
+    (void)frustum;  // 暂时未使用
+    render(cmd, projection, view, cameraPos, frameIndex);
+}
+
 void WeatherRenderer::generateWeatherGeometry() {
     m_rainVertices.clear();
     m_snowVertices.clear();

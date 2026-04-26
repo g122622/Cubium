@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>
@@ -112,6 +113,25 @@ public:
                 const glm::mat4& view,
                 const glm::vec3& cameraPos,
                 u32 frameIndex);
+
+    /**
+     * @brief 渲染天气效果（带视锥剔除）
+     *
+     * 使用视锥剔除优化天气渲染，只渲染视锥内的雨滴/雪花。
+     *
+     * @param cmd 命令缓冲区
+     * @param projection 相机投影矩阵
+     * @param view 相机视图矩阵
+     * @param cameraPos 相机位置
+     * @param frameIndex 当前帧索引
+     * @param frustum 视锥体（用于剔除）
+     */
+    void render(VkCommandBuffer cmd,
+                const glm::mat4& projection,
+                const glm::mat4& view,
+                const glm::vec3& cameraPos,
+                u32 frameIndex,
+                const mc::math::frustum::Frustum& frustum);
 
     // ========================================================================
     // 状态查询

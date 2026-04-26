@@ -3,6 +3,7 @@
 #include "Particle.hpp"
 #include "ParticleTextureAtlas.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>
@@ -131,6 +132,25 @@ public:
                 const glm::mat4& view,
                 const glm::vec3& cameraPos,
                 u32 frameIndex);
+
+    /**
+     * @brief 渲染粒子（带视锥剔除）
+     *
+     * 只渲染在视锥内的粒子。使用球体测试进行剔除。
+     *
+     * @param cmd 命令缓冲区
+     * @param projection 投影矩阵
+     * @param view 视图矩阵
+     * @param cameraPos 相机位置
+     * @param frameIndex 当前帧索引
+     * @param frustum 视锥体（用于剔除）
+     */
+    void render(VkCommandBuffer cmd,
+                const glm::mat4& projection,
+                const glm::mat4& view,
+                const glm::vec3& cameraPos,
+                u32 frameIndex,
+                const mc::math::frustum::Frustum& frustum);
 
     // ========================================================================
     // 纹理图集

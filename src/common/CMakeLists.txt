@@ -17,6 +17,7 @@ add_library(mc_common STATIC
     # Math
     util/math/MathUtils.cpp
     util/math/ray/Raycast.cpp
+    util/math/frustum/Frustum.cpp
 
     # Math - Random
     util/math/random/IRandom.cpp

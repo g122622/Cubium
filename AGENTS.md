@@ -252,9 +252,8 @@ class Buffer;
 using ChunkPos = Vector3;
 using EntityList = std::vector<Entity*>;
 
-// ❌ 禁止：在类型名中添加前缀
-class CChunkManager;  // 不要加C前缀
-class IEntityManager; // 不要加I前缀（除非是纯接口）
+// ✅ 必须：接口类以I开头
+class IEntityManager;
 ```
 
 ### 3.3 变量命名
@@ -294,14 +293,6 @@ enum class BlockType {
     Dirt,
     Grass
 };
-
-// ❌ 禁止：单字母变量（循环计数器除外）
-int x;  // ❌
-int i;  // ✅ (循环计数器)
-
-// ❌ 禁止：匈牙利命名法
-int nCount;    // ❌
-std::string strName;  // ❌
 ```
 
 ### 3.4 函数命名
@@ -309,8 +300,6 @@ std::string strName;  // ❌
 ```cpp
 // ✅ 函数：camelCase
 void updatePlayer();
-float calculateDistance();
-std::string getPlayerName();
 
 // ✅ 访问器：get/set前缀
 int getHealth() const;
@@ -328,10 +317,6 @@ std::shared_ptr<Texture> makeTexture();
 // ✅ 事件处理：on前缀
 void onChunkLoaded();
 void onPlayerJoin();
-
-// ❌ 禁止：动词名词混用
-void update_player();    // ❌ (应使用camelCase)
-void UpdatePlayer();     // ❌ (应使用camelCase)
 ```
 
 ### 3.5 命名空间规范
@@ -343,104 +328,12 @@ namespace client {
 namespace renderer {
 }}}
 
-// ❌ 禁止：命名空间别名
-namespace fs = std::filesystem;
-namespace vk = vulkan;
-
 // ❌ 禁止：不允许使用 using namespace std！
 using namespace std;  // ❌
 
 ```
 
-对于只在单个 .cpp 文件中使用的类、函数、全局变量等，应放入匿名 namespace，避免污染，而不是使用static或全局命名空间。
-
----
-
-## 4. 文件组织规范
-
-### 4.1 头文件结构
-
-```cpp
-// ChunkManager.hpp
-#pragma once  // ✅ 推荐：使用pragma once
-
-// 1. 所属模块的完整头文件
-#include "world/Chunk.hpp"
-
-// 2. 标准库头文件（按字母顺序）
-#include <memory>
-#include <vector>
-#include <unordered_map>
-
-// 3. 第三方库头文件
-#include <glm/vec3.hpp>
-#include <entt/entt.hpp>
-
-// 4. 前置声明（减少编译依赖）
-class World;
-struct ChunkPos;
-
-namespace mc::world {
-
-/**
- * @brief 区块管理器
- * 
- * 负责区块的加载、卸载、缓存和管理
- */
-class ChunkManager {
-public:
-    // 公共接口
-};
-
-} // namespace mc::world
-```
-
-### 4.2 源文件结构
-
-```cpp
-// ChunkManager.cpp
-
-// 1. 对应的头文件（必须是第一个）
-#include "world/ChunkManager.hpp"
-
-// 2. 其他项目头文件
-#include "world/Chunk.hpp"
-#include "world/World.hpp"
-
-// 3. 标准库
-#include <algorithm>
-#include <fstream>
-
-// 4. 第三方库
-#include <spdlog/spdlog.h>
-
-namespace mc::world {
-
-// 实现代码...
-
-} // namespace mc::world
-```
-
-### 4.3 包含顺序规则
-
-```
-1. 对应的头文件
-2. 项目内部头文件
-3. 第三方库头文件
-4. 标准库头文件
-```
-
-### 4.4 头文件自包含
-
-```cpp
-// ✅ 推荐：头文件必须自包含
-// ChunkManager.hpp
-#pragma once
-#include "ChunkManager.hpp"  // 自身必须能编译
-
-// ❌ 禁止：依赖包含顺序
-// 用户必须按特定顺序包含头文件才能编译
-```
+【重要】对于只在单个 .cpp 文件中使用的类、函数、全局变量等，应放入匿名 namespace，避免污染，而不是使用static或全局命名空间。
 
 ---
 
@@ -488,10 +381,10 @@ Result<std::shared_ptr<Chunk>> loadChunk(ChunkPos pos, int priority);
 // 使用二次插值平滑相机移动，避免突变
 float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
 
-// ✅ 必须：标记待办事项。所有没做完的工作、妥协、简化实现等都必须明确标记，避免遗忘。
+// ✅ 【重要】必须：标记待办事项。所有没做完的工作、妥协、简化实现等都必须明确标记，避免遗忘：
 // TODO: 优化区块加载算法，当前O(n²)复杂度
 // FIXME: 内存泄漏问题，需要在析构函数中释放
-// HACK: 临时解决方案，等待Vulkan驱动更新
+// TODO: 临时解决方案，等待其他模块完成后重构
 // NOTE: 此处性能关键，不要随意修改
 ```
 
@@ -530,21 +423,8 @@ auto ptr = std::make_unique<Type>(args...);
 auto ptr = std::make_shared<Type>(args...);
 
 // ❌ 禁止：裸new/delete
-Type* ptr = new Type();  // ❌
+Type* ptr = new Type();  // ❌ 尽可能不要使用裸指针
 delete ptr;              // ❌
-
-// ❌ 禁止：shared_ptr循环引用
-class A {
-    std::shared_ptr<B> b;  // 可能导致循环引用
-};
-class B {
-    std::shared_ptr<A> a;  // ❌
-};
-
-// ✅ 推荐：使用weak_ptr打破循环
-class B {
-    std::weak_ptr<A> a;  // ✅
-};
 ```
 
 ### 6.2 容器使用
@@ -561,49 +441,11 @@ vec.push_back(Type(args...)); // ❌ 可能产生临时对象
 // ✅ 推荐：使用string_view避免拷贝
 void processString(std::string_view str);
 
-// ✅ 推荐：使用span传递连续内存
-void processArray(std::span<const float> data);
-
-// ❌ 禁止：在循环中频繁扩容
-for (int i = 0; i < 1000; i++) {
-    vec.push_back(i);  // ❌ 可能多次重新分配
-}
-
 // ✅ 推荐：预先分配
 vec.reserve(1000);
 for (int i = 0; i < 1000; i++) {
     vec.push_back(i);  // ✅
 }
-```
-
-### 6.3 资源管理(RAII)
-
-```cpp
-// ✅ 推荐：使用RAII管理资源
-class VulkanBuffer {
-public:
-    VulkanBuffer(Device& device, size_t size);
-    ~VulkanBuffer();  // 自动释放资源
-    
-    // 禁止拷贝
-    VulkanBuffer(const VulkanBuffer&) = delete;
-    VulkanBuffer& operator=(const VulkanBuffer&) = delete;
-    
-    // 允许移动
-    VulkanBuffer(VulkanBuffer&&) noexcept;
-    VulkanBuffer& operator=(VulkanBuffer&&) noexcept;
-    
-private:
-    Device& m_device;
-    VkBuffer m_buffer;
-    VkDeviceMemory m_memory;
-};
-
-// 使用
-{
-    VulkanBuffer buffer(device, size);
-    // 使用buffer
-}  // 自动释放
 ```
 
 ---
@@ -627,15 +469,6 @@ Result<void> initialize() {
     
     return Result<void>::ok();
 }
-
-// ✅ 推荐：使用TRY宏简化代码
-#define TRY(expr) \
-    do { \
-        auto _result = (expr); \
-        if (!_result.success()) { \
-            return _result; \
-        } \
-    } while(0)
 
 Result<void> initialize() {
     TRY(createWindow());
@@ -670,149 +503,6 @@ Result<Chunk*> loadChunk(ChunkPos pos) {
     }
     // ...
 }
-```
-
-### 7.3 断言使用
-
-```cpp
-// ✅ 推荐：调试时检查前置条件
-assert(ptr != nullptr);
-assert(index < size);
-
-// ✅ 推荐：使用静态断言检查编译期条件
-static_assert(sizeof(Block) == 16, "Block size must be 16 bytes");
-
-// ❌ 禁止：断言用于验证用户输入
-assert(userInput > 0);  // ❌ 应该用if检查
-
-// ✅ 推荐：断言用于检查内部不变量
-assert(m_health >= 0 && m_health <= 100);
-
-// ✅ 推荐：发布版本禁用断言
-#ifdef NDEBUG
-    #define DEBUG_ASSERT(expr) ((void)0)
-#else
-    #define DEBUG_ASSERT(expr) assert(expr)
-#endif
-```
-
----
-
-## 8. 并发编程规范
-
-### 8.1 线程安全
-
-```cpp
-// ✅ 推荐：明确标注线程安全级别
-/**
- * @brief 线程安全级别：
- * - 线程不安全：需要外部同步
- * - 线程安全：可安全并发访问
- * - 只读线程安全：并发读安全，写需要同步
- */
-class ChunkManager {
-    // 线程不安全 - 需要外部同步
-};
-
-// ✅ 推荐：使用互斥锁保护共享数据
-class PlayerManager {
-public:
-    void addPlayer(std::shared_ptr<Player> player) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_players.push_back(player);
-    }
-    
-private:
-    std::mutex m_mutex;
-    std::vector<std::shared_ptr<Player>> m_players;
-};
-
-// ✅ 推荐：使用原子操作
-class Counter {
-public:
-    void increment() {
-        m_count.fetch_add(1, std::memory_order_relaxed);
-    }
-    
-    int get() const {
-        return m_count.load(std::memory_order_relaxed);
-    }
-    
-private:
-    std::atomic<int> m_count{0};
-};
-
-// ❌ 禁止：数据竞争
-int sharedCounter = 0;  // ❌ 多个线程访问
-
-// ✅ 推荐：使用atomic
-std::atomic<int> sharedCounter{0};  // ✅
-```
-
-### 8.2 锁的使用
-
-```cpp
-// ✅ 推荐：使用lock_guard或unique_lock
-void criticalSection() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    // 临界区代码
-}  // 自动释放
-
-// ✅ 推荐：避免死锁（固定锁顺序）
-// 总是先锁mutex1，再锁mutex2
-void transfer(Account& from, Account& to) {
-    std::lock(from.mutex(), to.mutex());
-    std::lock_guard<std::mutex> lock1(from.mutex(), std::adopt_lock);
-    std::lock_guard<std::mutex> lock2(to.mutex(), std::adopt_lock);
-    // 转账操作
-}
-
-// ❌ 禁止：在持有锁时执行耗时操作
-void process() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    doHeavyWork();  // ❌ 应该在锁外执行
-}
-
-// ✅ 推荐：缩小临界区范围
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    data = copyData();
-}
-doHeavyWork(data);  // ✅ 锁外执行
-```
-
-### 8.3 无锁编程
-
-```cpp
-// ✅ 推荐：使用无锁队列进行线程间通信
-moodycamel::ConcurrentQueue<PacketPtr> m_packetQueue;
-
-// 生产者
-m_packetQueue.enqueue(packet);
-
-// 消费者
-PacketPtr packet;
-if (m_packetQueue.try_dequeue(packet)) {
-    process(packet);
-}
-
-// ✅ 推荐：使用读写锁（读多写少场景）
-class ConfigManager {
-public:
-    std::string getConfig(const std::string& key) {
-        std::shared_lock<std::shared_mutex> lock(m_mutex);
-        return m_config.at(key);
-    }
-    
-    void setConfig(const std::string& key, const std::string& value) {
-        std::unique_lock<std::shared_mutex> lock(m_mutex);
-        m_config[key] = value;
-    }
-    
-private:
-    mutable std::shared_mutex m_mutex;
-    std::unordered_map<std::string, std::string> m_config;
-};
 ```
 
 ---
@@ -878,60 +568,5 @@ void processMessage(const std::string& message) {
         return Error::invalidArgument("Message too long");
     }
     // ...
-}
-```
-
----
-
-## 12. 测试规范
-
-### 12.1 测试命名
-
-```cpp
-// ✅ 推荐：测试名称格式
-TEST(ChunkTest, CreateEmptyChunk)           // 类测试
-TEST_F(PlayerTest, TakeDamage_ReduceHealth) // 带fixture的测试
-TEST_P(NetworkTest, PacketSerialization)    // 参数化测试
-
-// ✅ 推荐：测试名称描述行为
-TEST(PlayerTest, TakeDamage_WhenHealthZero_Dies)
-TEST(PlayerTest, TakeDamage_WithInvulnerability_IgnoresDamage)
-```
-
-### 12.2 测试结构
-
-```cpp
-// ✅ 推荐：AAA模式（Arrange-Act-Assert）
-TEST(ChunkTest, SetAndGetBlock) {
-    // Arrange - 准备
-    Chunk chunk(0, 0, 0);
-    BlockPos pos(5, 100, 5);
-    
-    // Act - 执行
-    chunk.setBlock(pos, BlockType::Stone);
-    auto block = chunk.getBlock(pos);
-    
-    // Assert - 断言
-    EXPECT_EQ(block.type, BlockType::Stone);
-}
-
-// ✅ 推荐：测试夹具
-class PlayerTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        m_player = std::make_unique<Player>();
-        m_player->setHealth(100);
-    }
-    
-    void TearDown() override {
-        m_player.reset();
-    }
-    
-    std::unique_ptr<Player> m_player;
-};
-
-TEST_F(PlayerTest, TakeDamage_ReduceHealth) {
-    m_player->takeDamage(20);
-    EXPECT_EQ(m_player->getHealth(), 80);
 }
 ```

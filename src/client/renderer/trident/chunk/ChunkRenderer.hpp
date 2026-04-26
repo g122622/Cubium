@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include "../../MeshTypes.hpp"
 #include "ChunkMesher.hpp"
 #include <vulkan/vulkan.h>

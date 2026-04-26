@@ -2,6 +2,7 @@
 
 #include "MeshWorkerPool.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -114,7 +115,6 @@ private:
 
     [[nodiscard]] static f32 chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
     [[nodiscard]] static f32 chunkForwardDot(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
-    [[nodiscard]] static bool chunkInFrustum(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
 
     MeshWorkerPool& m_workerPool;
     MeshSchedulerConfig m_config;
@@ -125,6 +125,10 @@ private:
 
     MeshSchedulerViewState m_viewState{};
     MeshSchedulerViewState m_lastReprioritizedViewState{};
+
+    /// 视锥体，用于视锥剔除
+    mc::math::frustum::Frustum m_frustum;
+
     bool m_hasViewState = false;
     bool m_hasLastReprioritizedView = false;
     bool m_pendingOrderDirty = false;

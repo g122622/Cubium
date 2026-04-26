@@ -1,14 +1,12 @@
 #include "MeshBuildScheduler.hpp"
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
-#include <glm/vec4.hpp>
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
 namespace mc::client {
 
 namespace {
-constexpr f32 FRUSTUM_MARGIN = 1.2f;
 constexpr f32 EPSILON = 1e-5f;
 } // namespace
 
@@ -48,6 +46,10 @@ void MeshBuildScheduler::setViewState(const MeshSchedulerViewState& viewState)
     std::lock_guard<std::mutex> lock(m_mutex);
     m_viewState = viewState;
     m_hasViewState = true;
+
+    // 更新视锥体
+    m_frustum.extractFromMatrix(viewState.viewProjectionMatrix);
+    m_frustum.setCameraPosition(viewState.cameraPosition);
 }
 
 u64 MeshBuildScheduler::submit(MeshBuildRequest request)
@@ -531,7 +533,14 @@ void MeshBuildScheduler::updateTaskScore(ScheduledTask& task)
 
     task.distanceChunks = chunkDistanceInChunks(m_viewState, task.chunkId);
     task.forwardDot = chunkForwardDot(m_viewState, task.chunkId);
-    task.inFrustum = chunkInFrustum(m_viewState, task.chunkId);
+
+    // 使用 Frustum 类进行视锥剔除
+    task.inFrustum = m_frustum.isChunkVisible(
+        task.chunkId.x,
+        task.chunkId.z,
+        m_viewState.minBuildHeight,
+        m_viewState.maxBuildHeight
+    );
 
     f32 score = task.distanceChunks;
 
@@ -586,27 +595,6 @@ f32 MeshBuildScheduler::chunkForwardDot(
     toChunk /= toChunkLen;
 
     return glm::dot(cameraForward, toChunk);
-}
-
-bool MeshBuildScheduler::chunkInFrustum(
-    const MeshSchedulerViewState& viewState,
-    const ChunkId& chunkId
-)
-{
-    const f32 chunkCenterOffset = static_cast<f32>(ChunkData::WIDTH) * 0.5f;
-    const f32 centerX = static_cast<f32>(chunkId.x * ChunkData::WIDTH) + chunkCenterOffset;
-    const f32 centerY = static_cast<f32>(viewState.minBuildHeight + viewState.maxBuildHeight) * 0.5f;
-    const f32 centerZ = static_cast<f32>(chunkId.z * ChunkData::WIDTH) + chunkCenterOffset;
-
-    const glm::vec4 clip = viewState.viewProjectionMatrix * glm::vec4(centerX, centerY, centerZ, 1.0f);
-    if (clip.w <= 0.0f) {
-        return false;
-    }
-
-    const f32 clipLimit = clip.w * FRUSTUM_MARGIN;
-    return clip.x >= -clipLimit && clip.x <= clipLimit &&
-           clip.y >= -clipLimit && clip.y <= clipLimit &&
-           clip.z >= -clipLimit && clip.z <= clipLimit;
 }
 
 } // namespace mc::client
