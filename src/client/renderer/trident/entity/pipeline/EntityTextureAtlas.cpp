@@ -83,6 +83,14 @@ void EntityTextureAtlas::destroy() {
     m_textures.clear();
     m_queuedTextures.clear();
     m_regions.clear();
+    m_width = 0;
+    m_height = 0;
+
+    m_device = VK_NULL_HANDLE;
+    m_physicalDevice = VK_NULL_HANDLE;
+    m_commandPool = VK_NULL_HANDLE;
+    m_graphicsQueue = VK_NULL_HANDLE;
+
     m_built = false;
     m_needsRebuild = false;
     m_initialized = false;

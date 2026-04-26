@@ -298,7 +298,11 @@ Result<void> ClientApplication::initializeGameplaySystems(const ClientLaunchPara
         auto serverResult = m_integratedServer->initialize(serverConfig);
         if (serverResult.failed()) {
             spdlog::error("Failed to initialize integrated server: {}", serverResult.error().toString());
-            m_renderer->destroy();
+            releaseRendererDependentResources();
+            if (m_renderer) {
+                m_renderer->destroy();
+                m_renderer.reset();
+            }
             m_window.destroy();
             return serverResult.error();
         }
@@ -335,7 +339,11 @@ Result<void> ClientApplication::initializeGameplaySystems(const ClientLaunchPara
         if (clientResult.failed()) {
             spdlog::error("Failed to connect to integrated server: {}", clientResult.error().toString());
             m_integratedServer->stop();
-            m_renderer->destroy();
+            releaseRendererDependentResources();
+            if (m_renderer) {
+                m_renderer->destroy();
+                m_renderer.reset();
+            }
             m_window.destroy();
             return clientResult.error();
         }
@@ -356,7 +364,11 @@ Result<void> ClientApplication::initializeGameplaySystems(const ClientLaunchPara
             if (m_integratedServer) {
                 m_integratedServer->stop();
             }
-            m_renderer->destroy();
+            releaseRendererDependentResources();
+            if (m_renderer) {
+                m_renderer->destroy();
+                m_renderer.reset();
+            }
             m_window.destroy();
             return worldResult.error();
         }

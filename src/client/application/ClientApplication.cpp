@@ -465,6 +465,31 @@ void ClientApplication::render()
     }
 }
 
+void ClientApplication::releaseRendererDependentResources()
+{
+    // 这些对象内部持有 Vulkan 句柄，必须在渲染器销毁前释放。
+    if (m_skinManager) {
+        m_skinManager->shutdown();
+        m_skinManager.reset();
+    }
+
+    if (m_kageroEngine) {
+        m_kageroEngine.reset();
+    }
+    if (m_canvas) {
+        m_canvas.reset();
+    }
+    if (m_iconsAtlas) {
+        m_iconsAtlas.reset();
+    }
+    if (m_widgetsAtlas) {
+        m_widgetsAtlas.reset();
+    }
+    if (m_guiTextureManager) {
+        m_guiTextureManager.reset();
+    }
+}
+
 void ClientApplication::shutdown()
 {
     spdlog::info("Shutting down client...");
@@ -493,22 +518,8 @@ void ClientApplication::shutdown()
         m_integratedServer.reset();
     }
 
-    // 先清理依赖渲染资源的 UI/图集对象，避免在渲染器销毁后析构访问无效资源
-    if (m_kageroEngine) {
-        m_kageroEngine.reset();
-    }
-    if (m_canvas) {
-        m_canvas.reset();
-    }
-    if (m_iconsAtlas) {
-        m_iconsAtlas.reset();
-    }
-    if (m_widgetsAtlas) {
-        m_widgetsAtlas.reset();
-    }
-    if (m_guiTextureManager) {
-        m_guiTextureManager.reset();
-    }
+    // 先清理所有依赖渲染器设备的对象，避免析构时访问失效 VkDevice。
+    releaseRendererDependentResources();
 
     // 清理渲染器
     if (m_renderer) {

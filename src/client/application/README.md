@@ -534,11 +534,14 @@ m_world.forEachChunk([](const ChunkId&, ClientChunk& chunk) {
 关闭时需要按依赖关系的逆序释放资源：
 
 ```cpp
-// 1. UI 和图集（依赖渲染器）
+// 1. 外部渲染依赖对象（依赖渲染器）
+m_skinManager->shutdown();
+m_skinManager.reset();
 m_kageroEngine.reset();
 m_canvas.reset();
 m_iconsAtlas.reset();
 m_widgetsAtlas.reset();
+m_guiTextureManager.reset();
 
 // 2. 渲染器
 m_renderer->destroy();
@@ -555,7 +558,7 @@ m_world.destroy();
 m_window.destroy();
 ```
 
-**常见问题**：在渲染器销毁后访问 GUI 纹理会导致崩溃。
+**常见问题**：在渲染器销毁后再析构皮肤图集或 GUI 图集，会触发 Vulkan 资源销毁崩溃。
 
 ## 涉及的测试用例
 

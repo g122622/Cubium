@@ -153,6 +153,7 @@ private:
     void update(f32 deltaTime);
     void render();
     void shutdown();
+    void releaseRendererDependentResources();
 
     // 初始化辅助函数
     void initializeCoreRegistries();

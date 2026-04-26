@@ -97,3 +97,8 @@ const TextureRegion* alexRegion = skinManager.getAlexSkinRegion();
 - `common/skin` - 皮肤核心功能
 - `client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp` - 实体纹理图集
 - Vulkan - GPU资源
+
+## 容易踩的坑
+
+- `ClientSkinManager` 必须在 `TridentEngine` 销毁前调用 `shutdown()` 或直接 `reset()`，否则 `EntityTextureAtlas` 可能在失效设备上执行 Vulkan 销毁。
+- 初始化流程中即便皮肤管理器返回失败，也可能留下部分已创建的 GPU 资源，回滚路径要按同样顺序先释放皮肤管理器再销毁渲染器。

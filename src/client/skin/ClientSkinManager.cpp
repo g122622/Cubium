@@ -67,11 +67,11 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
 }
 
 void ClientSkinManager::shutdown() {
-    if (!m_initialized) {
-        return;
-    }
+    const bool wasInitialized = m_initialized;
 
-    m_textureAtlas->destroy();
+    if (m_textureAtlas) {
+        m_textureAtlas->destroy();
+    }
 
     {
         std::lock_guard<std::mutex> lock(m_regionMutex);
@@ -85,10 +85,18 @@ void ClientSkinManager::shutdown() {
         m_pendingSkins.clear();
     }
 
-    m_skinManager->shutdown();
+    if (m_skinManager) {
+        m_skinManager->shutdown();
+    }
 
+    m_steveRegion = nullptr;
+    m_alexRegion = nullptr;
+    m_device = VK_NULL_HANDLE;
     m_initialized = false;
-    spdlog::info("ClientSkinManager shutdown");
+
+    if (wasInitialized) {
+        spdlog::info("ClientSkinManager shutdown");
+    }
 }
 
 Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin::GameProfile& profile) {
