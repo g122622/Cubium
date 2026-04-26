@@ -74,7 +74,14 @@ private:
 /**
  * @brief 光灵箭模型
  *
- * 参考 MC 1.16.5 SpectralArrowModel (same as ArrowModel)
+ * 参考 MC 1.16.5 ArrowRenderer
+ *
+ * 注意：Java原版使用直接顶点绘制而非ModelRenderer。
+ * 当前实现是一个简化的box模型近似。
+ * 正确实现应该在渲染器中使用顶点缓冲区绘制：
+ * - 缩放因子: 0.05625F
+ * - 箭头尖端: 4个顶点绘制箭杆
+ * - 箭杆: 4次90度旋转绘制4面
  */
 class SpectralArrowModel : public EntityModel {
 public:
@@ -113,6 +120,14 @@ private:
 
 /**
  * @brief 龙火球模型
+ *
+ * 参考 MC 1.16.5 DragonFireballRenderer
+ *
+ * 注意：Java原版使用直接顶点绘制而非ModelRenderer。
+ * 当前实现是一个简化的box模型近似。
+ * 正确实现应该在渲染器中使用顶点缓冲区绘制：
+ * - 缩放因子: 2.0F
+ * - 4个顶点绘制一个面向相机的四边形
  */
 class DragonFireballModel : public EntityModel {
 public:
@@ -133,6 +148,9 @@ private:
 
 /**
  * @brief 唤魔者尖牙模型
+ *
+ * 参考 MC 1.16.5 EvokerFangsModel
+ * 由 base、upperJaw、lowerJaw 三部分组成
  */
 class EvokerFangsModel : public EntityModel {
 public:
@@ -147,7 +165,9 @@ public:
 private:
     void setupParts();
 
-    std::shared_ptr<ModelRenderer> m_fangs[4];
+    std::shared_ptr<ModelRenderer> m_base;       // 底座
+    std::shared_ptr<ModelRenderer> m_upperJaw;   // 上颚
+    std::shared_ptr<ModelRenderer> m_lowerJaw;   // 下颚
 };
 
 } // namespace mc::client::renderer::entity::model::projectile

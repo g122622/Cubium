@@ -194,42 +194,70 @@ void SalmonModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
 DolphinModel::DolphinModel()
     : EntityModel()
 {
-    setTextureSize(64, 32);
+    setTextureSize(64, 64);  // Java: textureWidth = 64, textureHeight = 64
     setupParts();
 }
 
 void DolphinModel::setupParts() {
-    // 简化版本 - 基本结构保留
-    // 参考 MC 1.16.5 DolphinModel
+    // 参考 MC 1.16.5 DolphinModel 构造函数
+    // body: textureOffset(22, 0), addBox(-4, -7, 0, 8, 7, 13), rotationPoint(0, 22, -5)
     m_body = std::make_shared<ModelRenderer>("body");
-    m_body->setTextureOffset(0, 0);
-    m_body->addBox(-1.0f, -2.0f, -5.0f, 2.0f, 4.0f, 10.0f);
-    m_body->setRotationPoint(0.0f, 18.0f, 0.0f);
-    m_parts.push_back(m_body);
+    m_body->setTextureOffset(22, 0);
+    m_body->addBox(-4.0f, -7.0f, 0.0f, 8.0f, 7.0f, 13.0f);
+    m_body->setRotationPoint(0.0f, 22.0f, -5.0f);
 
+    // tail: textureOffset(0, 19), addBox(-2, -2.5, 0, 4, 5, 11), rotationPoint(0, -2.5, 11) 作为 body 子部件
+    // rotateAngleX = -0.10471976F
     m_tail = std::make_shared<ModelRenderer>("tail");
-    m_tail->setTextureOffset(24, 0);
-    m_tail->addBox(-1.0f, -1.0f, 0.0f, 2.0f, 2.0f, 4.0f);
-    m_tail->setRotationPoint(0.0f, 18.0f, 5.0f);
-    m_parts.push_back(m_tail);
+    m_tail->setTextureOffset(0, 19);
+    m_tail->addBox(-2.0f, -2.5f, 0.0f, 4.0f, 5.0f, 11.0f);
+    m_tail->setRotationPoint(0.0f, -2.5f, 11.0f);
+    m_tail->setRotateAngleX(-0.10471976f);
+    m_body->addChild(m_tail);
 
+    // tailFin: textureOffset(19, 20), addBox(-5, -0.5, 0, 10, 1, 6), rotationPoint(0, 0, 9) 作为 tail 子部件
+    m_tailFin = std::make_shared<ModelRenderer>("tailFin");
+    m_tailFin->setTextureOffset(19, 20);
+    m_tailFin->addBox(-5.0f, -0.5f, 0.0f, 10.0f, 1.0f, 6.0f);
+    m_tailFin->setRotationPoint(0.0f, 0.0f, 9.0f);
+    m_tail->addChild(m_tailFin);
+
+    // 右鳍: textureOffset(48, 20), mirror=true, addBox(-0.5, -4, 0, 1, 4, 7), rotationPoint(2, -2, 4)
+    // rotateAngleX = PI/3, rotateAngleZ = 2.0943952F
     m_finRight = std::make_shared<ModelRenderer>("finRight");
-    m_finRight->setTextureOffset(36, 0);
-    m_finRight->addBox(-2.0f, 0.0f, 0.0f, 2.0f, 1.0f, 2.0f);
-    m_finRight->setRotationPoint(-1.0f, 16.0f, -2.0f);
-    m_parts.push_back(m_finRight);
+    m_finRight->setTextureOffset(48, 20);
+    m_finRight->setMirror(true);
+    m_finRight->addBox(-0.5f, -4.0f, 0.0f, 1.0f, 4.0f, 7.0f);
+    m_finRight->setRotationPoint(2.0f, -2.0f, 4.0f);
+    m_finRight->setRotateAngleX(static_cast<f32>(PI / 3.0));
+    m_finRight->setRotateAngleZ(2.0943952f);
+    m_body->addChild(m_finRight);
 
+    // 左鳍: textureOffset(48, 20), addBox(-0.5, -4, 0, 1, 4, 7), rotationPoint(-2, -2, 4)
+    // rotateAngleX = PI/3, rotateAngleZ = -2.0943952F
     m_finLeft = std::make_shared<ModelRenderer>("finLeft");
-    m_finLeft->setTextureOffset(36, 0);
-    m_finLeft->addBox(0.0f, 0.0f, 0.0f, 2.0f, 1.0f, 2.0f);
-    m_finLeft->setRotationPoint(1.0f, 16.0f, -2.0f);
-    m_parts.push_back(m_finLeft);
+    m_finLeft->setTextureOffset(48, 20);
+    m_finLeft->addBox(-0.5f, -4.0f, 0.0f, 1.0f, 4.0f, 7.0f);
+    m_finLeft->setRotationPoint(-2.0f, -2.0f, 4.0f);
+    m_finLeft->setRotateAngleX(static_cast<f32>(PI / 3.0));
+    m_finLeft->setRotateAngleZ(-2.0943952f);
+    m_body->addChild(m_finLeft);
 
-    m_finBack = std::make_shared<ModelRenderer>("finBack");
-    m_finBack->setTextureOffset(44, 0);
-    m_finBack->addBox(0.0f, -2.0f, 0.0f, 0.0f, 2.0f, 2.0f);
-    m_finBack->setRotationPoint(0.0f, 16.0f, 0.0f);
-    m_parts.push_back(m_finBack);
+    // head: textureOffset(0, 0), addBox(-4, -3, -3, 8, 7, 6), rotationPoint(0, -4, -3) 作为 body 子部件
+    m_head = std::make_shared<ModelRenderer>("head");
+    m_head->setTextureOffset(0, 0);
+    m_head->addBox(-4.0f, -3.0f, -3.0f, 8.0f, 7.0f, 6.0f);
+    m_head->setRotationPoint(0.0f, -4.0f, -3.0f);
+    m_body->addChild(m_head);
+
+    // nose: textureOffset(0, 13), addBox(-1, 2, -7, 2, 2, 4) 作为 head 子部件
+    m_nose = std::make_shared<ModelRenderer>("nose");
+    m_nose->setTextureOffset(0, 13);
+    m_nose->addBox(-1.0f, 2.0f, -7.0f, 2.0f, 2.0f, 4.0f);
+    m_head->addChild(m_nose);
+
+    // 只有 body 需要添加到 m_parts（其他都是子部件）
+    m_parts.push_back(m_body);
 }
 
 void DolphinModel::render(f64 scale) {
@@ -239,11 +267,27 @@ void DolphinModel::render(f64 scale) {
 void DolphinModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
-    m_tail->setRotateAngleY(static_cast<f32>(std::sin(limbSwing * 0.5) * limbSwingAmount * 0.5));
+    // 参考 MC 1.16.5 DolphinModel.setRotationAngles
+    // body.rotateAngleX = headPitch * PI/180
+    // body.rotateAngleY = netHeadYaw * PI/180
     m_body->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
+    m_body->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
 
-    (void)ageInTicks;
-    (void)netHeadYaw;
+    // 如果在水中移动，添加波动动画
+    // if (Entity.horizontalMag(entityIn.getMotion()) > 1.0E-7D) {
+    //     body.rotateAngleX += -0.05F + -0.05F * cos(ageInTicks * 0.3F);
+    //     tail.rotateAngleX = -0.1F * cos(ageInTicks * 0.3F);
+    //     tailFin.rotateAngleX = -0.2F * cos(ageInTicks * 0.3F);
+    // }
+    if (m_isInWater) {
+        f32 wave = static_cast<f32>(std::cos(ageInTicks * 0.3));
+        m_body->setRotateAngleX(m_body->rotateAngleX() + (-0.05f - 0.05f * wave));
+        m_tail->setRotateAngleX(-0.10471976f + (-0.1f * wave));
+        m_tailFin->setRotateAngleX(-0.2f * wave);
+    }
+
+    (void)limbSwing;
+    (void)limbSwingAmount;
     (void)scale;
 }
 
@@ -254,61 +298,128 @@ TurtleModel::TurtleModel()
     : EntityModel()
 {
     setTextureSize(128, 64);
-    setupParts();
+    setupParts(0.0f);
 }
 
-void TurtleModel::setupParts() {
-    // 简化版本 - 基本结构保留
-    m_body = std::make_shared<ModelRenderer>("body");
-    m_body->setTextureOffset(0, 0);
-    m_body->addBox(-5.0f, -4.0f, -6.0f, 10.0f, 4.0f, 12.0f);
-    m_body->setRotationPoint(0.0f, 20.0f, 0.0f);
-    m_parts.push_back(m_body);
+TurtleModel::TurtleModel(f32 scale)
+    : EntityModel()
+{
+    setTextureSize(128, 64);
+    setupParts(scale);
+}
 
+void TurtleModel::setupParts(f32 scale) {
+    // 参考 MC 1.16.5 TurtleModel 构造函数
+    // 构造函数参数: QuadrupedModel(12, scale, true, 120.0F, 0.0F, 9.0F, 6.0F, 120)
+    // 但我们直接在这里设置所有部件
+
+    // 头部: textureOffset(3, 0), addBox(-3, -1, -3, 6, 5, 6), rotationPoint(0, 19, -10)
     m_head = std::make_shared<ModelRenderer>("head");
-    m_head->setTextureOffset(44, 0);
-    m_head->addBox(-2.0f, -2.0f, -2.0f, 4.0f, 3.0f, 3.0f);
-    m_head->setRotationPoint(0.0f, 19.0f, -6.0f);
+    m_head->setTextureOffset(3, 0);
+    m_head->addBox(-3.0f, -1.0f, -3.0f, 6.0f, 5.0f, 6.0f, scale);
+    m_head->setRotationPoint(0.0f, 19.0f, -10.0f);
     m_parts.push_back(m_head);
 
-    m_legFrontRight = std::make_shared<ModelRenderer>("legFrontRight");
-    m_legFrontRight->setTextureOffset(0, 16);
-    m_legFrontRight->addBox(-1.0f, 0.0f, -1.0f, 3.0f, 2.0f, 3.0f);
-    m_legFrontRight->setRotationPoint(-4.0f, 20.0f, -4.0f);
-    m_parts.push_back(m_legFrontRight);
+    // 身体: 两个 addBox 组成
+    m_body = std::make_shared<ModelRenderer>("body");
+    // textureOffset(7, 37), addBox(-9.5, 3, -10, 19, 20, 6)
+    m_body->setTextureOffset(7, 37);
+    m_body->addBox(-9.5f, 3.0f, -10.0f, 19.0f, 20.0f, 6.0f, scale);
+    // textureOffset(31, 1), addBox(-5.5, 3, -13, 11, 18, 3)
+    m_body->setTextureOffset(31, 1);
+    m_body->addBox(-5.5f, 3.0f, -13.0f, 11.0f, 18.0f, 3.0f, scale);
+    m_body->setRotationPoint(0.0f, 11.0f, -10.0f);
+    m_parts.push_back(m_body);
 
-    m_legFrontLeft = std::make_shared<ModelRenderer>("legFrontLeft");
-    m_legFrontLeft->setTextureOffset(0, 16);
-    m_legFrontLeft->addBox(-2.0f, 0.0f, -1.0f, 3.0f, 2.0f, 3.0f);
-    m_legFrontLeft->setRotationPoint(4.0f, 20.0f, -4.0f);
-    m_parts.push_back(m_legFrontLeft);
+    // 怀孕腹部: textureOffset(70, 33), addBox(-4.5, 3, -14, 9, 18, 1), rotationPoint(0, 11, -10)
+    m_pregnant = std::make_shared<ModelRenderer>("pregnant");
+    m_pregnant->setTextureOffset(70, 33);
+    m_pregnant->addBox(-4.5f, 3.0f, -14.0f, 9.0f, 18.0f, 1.0f, scale);
+    m_pregnant->setRotationPoint(0.0f, 11.0f, -10.0f);
+    m_pregnant->setRotateAngleX(static_cast<f32>(PI / 2.0));
+    m_pregnant->setVisible(false);  // 默认隐藏
+    m_parts.push_back(m_pregnant);
 
+    // 右后腿: textureOffset(1, 23), addBox(-2, 0, 0, 4, 1, 10), rotationPoint(-3.5, 22, 11)
     m_legBackRight = std::make_shared<ModelRenderer>("legBackRight");
-    m_legBackRight->setTextureOffset(0, 16);
-    m_legBackRight->addBox(-1.0f, 0.0f, -2.0f, 3.0f, 2.0f, 3.0f);
-    m_legBackRight->setRotationPoint(-4.0f, 20.0f, 5.0f);
+    m_legBackRight->setTextureOffset(1, 23);
+    m_legBackRight->addBox(-2.0f, 0.0f, 0.0f, 4.0f, 1.0f, 10.0f, scale);
+    m_legBackRight->setRotationPoint(-3.5f, 22.0f, 11.0f);
     m_parts.push_back(m_legBackRight);
 
+    // 左后腿: textureOffset(1, 12), addBox(-2, 0, 0, 4, 1, 10), rotationPoint(3.5, 22, 11)
     m_legBackLeft = std::make_shared<ModelRenderer>("legBackLeft");
-    m_legBackLeft->setTextureOffset(0, 16);
-    m_legBackLeft->addBox(-2.0f, 0.0f, -2.0f, 3.0f, 2.0f, 3.0f);
-    m_legBackLeft->setRotationPoint(4.0f, 20.0f, 5.0f);
+    m_legBackLeft->setTextureOffset(1, 12);
+    m_legBackLeft->addBox(-2.0f, 0.0f, 0.0f, 4.0f, 1.0f, 10.0f, scale);
+    m_legBackLeft->setRotationPoint(3.5f, 22.0f, 11.0f);
     m_parts.push_back(m_legBackLeft);
+
+    // 右前腿: textureOffset(27, 30), addBox(-13, 0, -2, 13, 1, 5), rotationPoint(-5, 21, -4)
+    m_legFrontRight = std::make_shared<ModelRenderer>("legFrontRight");
+    m_legFrontRight->setTextureOffset(27, 30);
+    m_legFrontRight->addBox(-13.0f, 0.0f, -2.0f, 13.0f, 1.0f, 5.0f, scale);
+    m_legFrontRight->setRotationPoint(-5.0f, 21.0f, -4.0f);
+    m_parts.push_back(m_legFrontRight);
+
+    // 左前腿: textureOffset(27, 24), addBox(0, 0, -2, 13, 1, 5), rotationPoint(5, 21, -4)
+    m_legFrontLeft = std::make_shared<ModelRenderer>("legFrontLeft");
+    m_legFrontLeft->setTextureOffset(27, 24);
+    m_legFrontLeft->addBox(0.0f, 0.0f, -2.0f, 13.0f, 1.0f, 5.0f, scale);
+    m_legFrontLeft->setRotationPoint(5.0f, 21.0f, -4.0f);
+    m_parts.push_back(m_legFrontLeft);
 }
 
 void TurtleModel::render(f64 scale) {
+    // 如果有蛋，渲染怀孕腹部前先下移
+    if (m_hasEgg) {
+        // 需要在渲染时处理位移，这里简化处理
+    }
+    m_pregnant->setVisible(m_hasEgg);
     EntityModel::render(scale);
 }
 
 void TurtleModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                              f64 ageInTicks, f64 netHeadYaw,
                              f64 headPitch, f64 scale) {
-    f32 swimAngle = static_cast<f32>(std::cos(limbSwing * 0.4) * limbSwingAmount * 0.5);
-    m_legFrontRight->setRotateAngleX(swimAngle);
-    m_legFrontLeft->setRotateAngleX(-swimAngle);
-    m_legBackRight->setRotateAngleX(-swimAngle);
-    m_legBackLeft->setRotateAngleX(swimAngle);
+    // 参考 MC 1.16.5 TurtleModel.setRotationAngles
+    // 后腿 X 轴旋转
+    m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6) * 0.5 * limbSwingAmount));
+    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + PI) * 0.5 * limbSwingAmount));
 
+    // 前腿 Z 轴旋转（与后腿相反）
+    m_legFrontRight->setRotateAngleZ(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6 + PI) * 0.5 * limbSwingAmount));
+    m_legFrontLeft->setRotateAngleZ(static_cast<f32>(std::cos(limbSwing * 0.6662 * 0.6) * 0.5 * limbSwingAmount));
+
+    // 前腿 X 和 Y 轴旋转归零
+    m_legFrontRight->setRotateAngleX(0.0f);
+    m_legFrontLeft->setRotateAngleX(0.0f);
+    m_legFrontRight->setRotateAngleY(0.0f);
+    m_legFrontLeft->setRotateAngleY(0.0f);
+    m_legBackRight->setRotateAngleY(0.0f);
+    m_legBackLeft->setRotateAngleY(0.0f);
+
+    // 怀孕腹部 X 轴旋转
+    m_pregnant->setRotateAngleX(static_cast<f32>(PI / 2.0));
+
+    // 如果不在水中且在地面，执行爬行动画
+    if (!m_isInWater && m_isOnGround) {
+        f32 f = m_isDigging ? 4.0f : 1.0f;
+        f32 f1 = m_isDigging ? 2.0f : 1.0f;
+
+        // 前腿 Y 轴旋转
+        m_legFrontRight->setRotateAngleY(static_cast<f32>(std::cos(f * limbSwing * 5.0 + PI) * 8.0 * limbSwingAmount * f1));
+        m_legFrontLeft->setRotateAngleY(static_cast<f32>(std::cos(f * limbSwing * 5.0) * 8.0 * limbSwingAmount * f1));
+        m_legFrontRight->setRotateAngleZ(0.0f);
+        m_legFrontLeft->setRotateAngleZ(0.0f);
+
+        // 后腿 Y 轴旋转
+        m_legBackRight->setRotateAngleY(static_cast<f32>(std::cos(limbSwing * 5.0 + PI) * 3.0 * limbSwingAmount));
+        m_legBackLeft->setRotateAngleY(static_cast<f32>(std::cos(limbSwing * 5.0) * 3.0 * limbSwingAmount));
+        m_legBackRight->setRotateAngleX(0.0f);
+        m_legBackLeft->setRotateAngleX(0.0f);
+    }
+
+    // 头部旋转
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * PI / 180.0));
     m_head->setRotateAngleX(static_cast<f32>(headPitch * PI / 180.0));
 

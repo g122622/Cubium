@@ -100,10 +100,47 @@ public:
         }
     }
 
+    // ========== 状态字段（参考 MC 1.16.5 EntityModel）==========
+
+    /**
+     * @brief 获取挥动进度
+     */
+    [[nodiscard]] f32 swingProgress() const { return m_swingProgress; }
+
+    /**
+     * @brief 设置挥动进度
+     */
+    void setSwingProgress(f32 value) { m_swingProgress = value; }
+
+    /**
+     * @brief 是否在坐下
+     */
+    [[nodiscard]] bool isSitting() const { return m_isSitting; }
+
+    /**
+     * @brief 设置坐下状态
+     */
+    void setSitting(bool value) { m_isSitting = value; }
+
+    /**
+     * @brief 是否为幼体
+     */
+    [[nodiscard]] bool isChild() const { return m_isChild; }
+
+    /**
+     * @brief 设置幼体状态
+     */
+    void setChild(bool value) { m_isChild = value; }
+
 protected:
     i32 m_textureWidth = 64;
     i32 m_textureHeight = 32;
     std::vector<std::shared_ptr<ModelRenderer>> m_parts;
+
+    // 状态字段（参考 MC 1.16.5 EntityModel）
+    f32 m_swingProgress = 0.0f;   // 挥动进度
+    bool m_isSitting = false;      // 是否坐下
+    bool m_isChild = true;         // 是否为幼体（默认为 true）
 };
 
 } // namespace mc::client::renderer::entity::model
