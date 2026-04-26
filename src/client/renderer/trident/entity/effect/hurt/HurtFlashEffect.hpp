@@ -18,7 +18,7 @@ namespace mc::client::renderer::entity::effect::hurt {
  * MC 1.16.5 OverlayTexture 格式:
  * - U = getU(uIn) = (int)(uIn * 15.0F) - hurtTime/10.0 决定 U 值
  * - V = getV(hurtIn) = hurtIn ? 3 : 10 - 受伤时 V=3，正常时 V=10
- * - packedUV = (u << 16) | (v & 0xFFFF)
+ * - packedUV = u | (v << 16) - U 在低 16 位，V 在高 16 位
  */
 class HurtFlashEffect {
 public:

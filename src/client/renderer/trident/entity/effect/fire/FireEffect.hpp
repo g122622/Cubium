@@ -103,9 +103,34 @@ public:
      */
     [[nodiscard]] static VkSampler fireSampler() { return s_fireSampler; }
 
+    /**
+     * @brief 获取固定光照值（MC 1.16.5 使用 0xF00000 = 15728640）
+     */
+    [[nodiscard]] static constexpr i32 getFullLight() { return FULL_LIGHT; }
+
 private:
     FireEffect() = delete;
     ~FireEffect() = delete;
+
+    /**
+     * @brief 渲染多层火焰
+     *
+     * 参考 MC 1.16.5 EntityRendererManager.renderFire()
+     * 使用循环绘制多层火焰，每层递减尺寸
+     *
+     * @param cmd 命令缓冲区
+     * @param entity 实体
+     * @param partialTicks 部分tick
+     * @param pipeline 渲染管线
+     * @param cameraYaw 相机偏航角（用于 billboard 朝向）
+     */
+    static void renderFireLayers(
+        VkCommandBuffer cmd,
+        ::mc::client::ClientEntity& entity,
+        f64 partialTicks,
+        pipeline::EntityPipeline& pipeline,
+        f32 cameraYaw
+    );
 
     /**
      * @brief 加载火焰纹理
@@ -176,6 +201,10 @@ private:
 
     // 火焰动画帧数（MC 1.16.5 有 2 帧）
     static constexpr u32 FIRE_FRAME_COUNT = 2;
+
+    // 固定全亮光照值（MC 1.16.5 EntityRendererManager.renderFire）
+    // lightmap(240) = 0xF00000 = 15728640
+    static constexpr i32 FULL_LIGHT = 15728640;
 };
 
 } // namespace mc::client::renderer::entity::effect::fire

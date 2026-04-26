@@ -163,6 +163,21 @@ void ClientEntity::updateAnimation(f32 distanceMoved) {
     if (m_limbSwing > 6.283185307f * 100.0f) {
         m_limbSwing -= 6.283185307f * 100.0f;
     }
+
+    // 更新相机偏航角（参考 MC 1.16.5 PlayerEntity）
+    // cameraYaw 用于披风摆动强度计算
+    // MC 1.16.5: this.cameraYaw += (f - this.cameraYaw) * 0.4F;
+    // 其中 f 是移动强度
+    m_cameraYaw += (distanceMoved - m_cameraYaw) * 0.4f;
+}
+
+void ClientEntity::updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ) {
+    // 参考 MC 1.16.5 AbstractClientPlayerEntity.rotateElytraX/Y/Z
+    // 使用平滑插值更新鞘翅角度
+    constexpr f32 ELYTRA_INTERPOLATION = 0.1f;
+    m_rotateElytraX += (targetX - m_rotateElytraX) * ELYTRA_INTERPOLATION;
+    m_rotateElytraY += (targetY - m_rotateElytraY) * ELYTRA_INTERPOLATION;
+    m_rotateElytraZ += (targetZ - m_rotateElytraZ) * ELYTRA_INTERPOLATION;
 }
 
 void ClientEntity::tick() {
@@ -171,6 +186,25 @@ void ClientEntity::tick() {
     // 更新位置和旋转的上一帧状态（用于渲染插值）
     tickPosition();
     tickRotation();
+
+    // 更新追踪位置系统（参考 MC 1.16.5 PlayerEntity.tick()）
+    // 用于披风摆动计算
+    m_prevChasingPosX = m_chasingPosX;
+    m_prevChasingPosY = m_chasingPosY;
+    m_prevChasingPosZ = m_chasingPosZ;
+
+    // 平滑追踪实际位置（MC 1.16.5: this.chasingPosX += (this.getPosX() - this.chasingPosX) * 0.25D）
+    f64 dx = static_cast<f64>(m_position.x) - m_chasingPosX;
+    f64 dy = static_cast<f64>(m_position.y) - m_chasingPosY;
+    f64 dz = static_cast<f64>(m_position.z) - m_chasingPosZ;
+    m_chasingPosX += dx * 0.25;
+    m_chasingPosY += dy * 0.25;
+    m_chasingPosZ += dz * 0.25;
+
+    // 更新相机偏航角（参考 MC 1.16.5 PlayerEntity）
+    // 用于披风摆动强度计算
+    m_prevCameraYaw = m_cameraYaw;
+    // cameraYaw 基于移动距离，在 updateAnimation 中更新
 }
 
 } // namespace mc::client

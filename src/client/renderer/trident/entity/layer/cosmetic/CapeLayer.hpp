@@ -76,10 +76,11 @@ private:
     /**
      * @brief 计算斗篷摆动角度
      * @param entity 玩家实体
+     * @param context 动画上下文
      * @param partialTicks 部分 tick
      * @return 斗篷旋转角度（度）
      */
-    [[nodiscard]] f32 calculateCapeSwing(::mc::Player& entity, f32 partialTicks) const;
+    [[nodiscard]] f32 calculateCapeSwing(::mc::Player& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const;
 
     /**
      * @brief 构建斗篷网格

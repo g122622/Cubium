@@ -219,6 +219,90 @@ public:
      */
     [[nodiscard]] f32 prevRotationYawHead() const { return m_prevHeadYaw; }
 
+    // ========== 追踪位置系统（用于披风摆动，参考 MC 1.16.5 PlayerEntity） ==========
+
+    /**
+     * @brief 获取追踪位置 X
+     * 用于计算披风摆动角度
+     */
+    [[nodiscard]] f64 chasingPosX() const { return m_chasingPosX; }
+
+    /**
+     * @brief 获取追踪位置 Y
+     */
+    [[nodiscard]] f64 chasingPosY() const { return m_chasingPosY; }
+
+    /**
+     * @brief 获取追踪位置 Z
+     */
+    [[nodiscard]] f64 chasingPosZ() const { return m_chasingPosZ; }
+
+    /**
+     * @brief 获取上一帧追踪位置 X
+     */
+    [[nodiscard]] f64 prevChasingPosX() const { return m_prevChasingPosX; }
+
+    /**
+     * @brief 获取上一帧追踪位置 Y
+     */
+    [[nodiscard]] f64 prevChasingPosY() const { return m_prevChasingPosY; }
+
+    /**
+     * @brief 获取上一帧追踪位置 Z
+     */
+    [[nodiscard]] f64 prevChasingPosZ() const { return m_prevChasingPosZ; }
+
+    // ========== 相机偏航角系统（用于披风摆动，参考 MC 1.16.5 PlayerEntity） ==========
+
+    /**
+     * @brief 获取相机偏航角
+     * 用于计算披风摆动强度
+     */
+    [[nodiscard]] f32 cameraYaw() const { return m_cameraYaw; }
+
+    /**
+     * @brief 获取上一帧相机偏航角
+     */
+    [[nodiscard]] f32 prevCameraYaw() const { return m_prevCameraYaw; }
+
+    // ========== 鞘翅角度系统（用于鞘翅展开动画，参考 MC 1.16.5 AbstractClientPlayerEntity） ==========
+
+    /**
+     * @brief 获取鞘翅 X 轴旋转角度
+     */
+    [[nodiscard]] f32 rotateElytraX() const { return m_rotateElytraX; }
+
+    /**
+     * @brief 获取鞘翅 Y 轴旋转角度
+     */
+    [[nodiscard]] f32 rotateElytraY() const { return m_rotateElytraY; }
+
+    /**
+     * @brief 获取鞘翅 Z 轴旋转角度
+     */
+    [[nodiscard]] f32 rotateElytraZ() const { return m_rotateElytraZ; }
+
+    /**
+     * @brief 更新鞘翅角度（每tick调用）
+     * @param targetX 目标 X 轴角度
+     * @param targetY 目标 Y 轴角度
+     * @param targetZ 目标 Z 轴角度
+     */
+    void updateElytraAngles(f32 targetX, f32 targetY, f32 targetZ);
+
+    // ========== 悬浮起始偏移（用于 ItemEntity，参考 MC 1.16.5 ItemEntity） ==========
+
+    /**
+     * @brief 获取悬浮起始偏移
+     * 用于物品实体的浮动动画随机化
+     */
+    [[nodiscard]] f32 hoverStart() const { return m_hoverStart; }
+
+    /**
+     * @brief 设置悬浮起始偏移
+     */
+    void setHoverStart(f32 hoverStart) { m_hoverStart = hoverStart; }
+
     // ========== 状态标志 ==========
 
     [[nodiscard]] bool onGround() const { return m_onGround; }
@@ -535,6 +619,29 @@ private:
 
     // ExperienceOrb 经验值数据
     i32 m_xpValue = 1;  // 默认值为1
+
+    // 追踪位置系统（用于披风摆动）
+    // 参考 MC 1.16.5 PlayerEntity: chasingPosX/Y/Z 和 prevChasingPosX/Y/Z
+    f64 m_chasingPosX = 0.0;
+    f64 m_chasingPosY = 0.0;
+    f64 m_chasingPosZ = 0.0;
+    f64 m_prevChasingPosX = 0.0;
+    f64 m_prevChasingPosY = 0.0;
+    f64 m_prevChasingPosZ = 0.0;
+
+    // 相机偏航角系统（用于披风摆动）
+    // 参考 MC 1.16.5 PlayerEntity: cameraYaw 和 prevCameraYaw
+    f32 m_cameraYaw = 0.0f;
+    f32 m_prevCameraYaw = 0.0f;
+
+    // 鞘翅角度系统（用于鞘翅展开动画）
+    // 参考 MC 1.16.5 AbstractClientPlayerEntity: rotateElytraX/Y/Z
+    f32 m_rotateElytraX = 0.0f;
+    f32 m_rotateElytraY = 0.0f;
+    f32 m_rotateElytraZ = 0.0f;
+
+    // 悬浮起始偏移（用于 ItemEntity 浮动动画随机化）
+    f32 m_hoverStart = 0.0f;
 
     // 原始元数据缓存
     std::vector<u8> m_metadata;

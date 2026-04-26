@@ -132,32 +132,45 @@ void FireEffect::renderFire(
         return;
     }
 
-    // 参考 MC 1.16.5 EntityRenderer.renderFire()
+    // 参考 MC 1.16.5 EntityRendererManager.renderFire()
     // 获取实体尺寸
     f64 width = static_cast<f64>(entity.width());
     f64 height = static_cast<f64>(entity.height());
     Vector3 pos = entity.getInterpolatedPosition(static_cast<f32>(partialTicks));
-    f64 x = pos.x;
-    f64 y = pos.y;
-    f64 z = pos.z;
 
-    // 计算火焰尺寸（参考 MC 1.16.5）
-    f64 fireWidth = width * 1.4;
-    f64 fireHeight = height * 1.4;
+    // 获取相机偏航角（简化：假设从实体朝向获取）
+    f32 cameraYaw = static_cast<f32>(entity.yaw());
 
-    // 火焰动画帧（基于时间）
-    f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
-    u32 frameIndex = static_cast<u32>(time / 4.0) % FIRE_FRAME_COUNT;  // 每 4 tick 切换一帧
+    // 调用多层火焰渲染
+    renderFireLayers(cmd, entity, partialTicks, pipeline, cameraYaw);
+}
 
-    // UV 坐标（根据帧索引）
-    f32 u0 = 0.0f;
-    f32 u1 = 1.0f;
-    f32 v0 = static_cast<f32>(frameIndex) / static_cast<f32>(FIRE_FRAME_COUNT);
-    f32 v1 = static_cast<f32>(frameIndex + 1) / static_cast<f32>(FIRE_FRAME_COUNT);
+void FireEffect::renderFireLayers(
+    VkCommandBuffer cmd,
+    ::mc::client::ClientEntity& entity,
+    f64 partialTicks,
+    pipeline::EntityPipeline& pipeline,
+    f32 cameraYaw)
+{
+    // 参考 MC 1.16.5 EntityRendererManager.renderFire():654-696
+    // 核心逻辑：
+    // 1. 计算火焰尺寸 = width * 1.4
+    // 2. 计算高度迭代次数 = height / fireSize
+    // 3. 循环绘制多层火焰，每层：
+    //    - 交替使用 fire_0 和 fire_1 纹理
+    //    - 每两层翻转 UV
+    //    - 尺寸递减 (f1 *= 0.9)
+    //    - 高度递减 (f3 -= 0.45)
+    //    - Z 偏移递增 (f5 += 0.03)
 
-    // 火焰偏移（摇曳动画）
-    f64 offsetX = computeFireOffset(time, x * 1000.0);
-    f64 offsetZ = computeFireOffset(time, z * 1000.0);
+    f64 fireSize = static_cast<f64>(entity.width()) * 1.4;
+    f64 height = static_cast<f64>(entity.height());
+
+    // 初始参数（参考 MC 1.16.5）
+    f64 f1 = 0.5;           // 火焰半宽
+    f64 f3 = height / fireSize;  // 高度迭代次数
+    f64 f4 = 0.0;           // Y 偏移累计
+    f64 f5 = 0.0;           // Z 偏移
 
     // 绑定火焰纹理
     if (s_fireTextureView != VK_NULL_HANDLE && s_fireSampler != VK_NULL_HANDLE) {
@@ -168,44 +181,105 @@ void FireEffect::renderFire(
     pipeline.bind(cmd);
     pipeline.bindTextureDescriptor(cmd);
 
-    // 计算 billboard 矩阵（两个朝向）
-    Vector3f entityPos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    std::array<std::array<f64, 16>, 2> billboardMatrices;
-    computeBillboardMatrices(entityPos, billboardMatrices);
+    // 计算实体位置
+    Vector3 pos = entity.getInterpolatedPosition(static_cast<f32>(partialTicks));
+    f64 x = pos.x;
+    f64 y = pos.y;
+    f64 z = pos.z;
 
-    // 生成火焰四边形（两个 billboard，互相垂直）
-    std::vector<model::ModelVertex> vertices;
-    std::vector<u32> indices;
+    // 计算动画帧
+    f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
 
-    // 第一个 billboard（面向相机）
-    generateFireQuad(0, 0, 0, fireWidth, fireHeight, u0, v0, u1, v1, vertices, indices, 0);
-
-    // 第二个 billboard（与第一个垂直）
-    generateFireQuad(0, 0, 0, fireWidth, fireHeight, u0, v0, u1, v1, vertices, indices, 1);
-
-    // 创建网格
-    auto meshResult = pipeline.createMesh(vertices, indices);
-    if (!meshResult.success()) {
-        spdlog::trace("FireEffect: Failed to create fire mesh");
-        return;
-    }
-
-    auto& mesh = meshResult.value();
-
-    // 绘制火焰（MC 1.16.5: 使用白色，火焰纹理自带颜色）
+    // 火焰颜色（MC 1.16.5: 使用白色，火焰纹理自带颜色）
     Vector4f fireColor(1.0f, 1.0f, 1.0f, 1.0f);
     Vector3f meshPos(0, 0, 0);
 
-    // 绘制第一个 billboard
-    pipeline.drawMesh(cmd, mesh, billboardMatrices[0], meshPos, 1.0f, fireColor, 0.0f, 0.0f);
+    // 计算 billboard 矩阵（面向相机）
+    // MC 1.16.5: matrixStack.rotate(Vector3f.YP.rotationDegrees(-this.info.getYaw()));
+    f32 yawRad = -cameraYaw * 3.14159265f / 180.0f;
+    f32 cosYaw = std::cos(yawRad);
+    f32 sinYaw = std::sin(yawRad);
 
-    // 绘制第二个 billboard
-    pipeline.drawMesh(cmd, mesh, billboardMatrices[1], meshPos, 1.0f, fireColor, 0.0f, 0.0f);
+    // 初始 Z 偏移（MC 1.16.5: -0.3F + (int)f3 * 0.02F）
+    f64 zOffset = -0.3 + static_cast<f64>(static_cast<i32>(f3)) * 0.02;
 
-    // 销毁临时网格
-    pipeline.destroyMesh(mesh);
+    // 循环绘制多层火焰（MC 1.16.5: for(int i = 0; f3 > 0.0F; ++i)）
+    for (i32 layer = 0; f3 > 0.0; ++layer) {
+        // 交替使用 fire_0 和 fire_1 纹理
+        u32 frameIndex = layer % 2;
 
-    spdlog::trace("FireEffect: Rendered fire at ({}, {}, {})", x, y, z);
+        // UV 坐标
+        f32 u0 = 0.0f;
+        f32 u1 = 1.0f;
+        f32 v0 = static_cast<f32>(frameIndex) * 0.5f;
+        f32 v1 = static_cast<f32>(frameIndex + 1) * 0.5f;
+
+        // 每两层翻转 UV（MC 1.16.5: if (i / 2 % 2 == 0) { float f10 = f8; f8 = f6; f6 = f10; }）
+        if ((layer / 2) % 2 == 0) {
+            std::swap(v0, v1);
+        }
+
+        // 当前层的高度
+        f64 layerHeight = 1.4 - f4;
+
+        // 生成火焰四边形（两个 billboard，互相垂直）
+        std::vector<model::ModelVertex> vertices;
+        std::vector<u32> indices;
+
+        // 火焰宽度（MC 1.16.5: f1 是半宽）
+        f64 currentHalfWidth = f1;
+
+        // 第一个 billboard（面向相机）
+        generateFireQuad(0, 0, 0, currentHalfWidth * 2.0, layerHeight, u0, v0, u1, v1, vertices, indices, 0);
+
+        // 第二个 billboard（与第一个垂直，旋转 90 度）
+        generateFireQuad(0, 0, 0, currentHalfWidth * 2.0, layerHeight, u0, v0, u1, v1, vertices, indices, 1);
+
+        // 创建网格
+        auto meshResult = pipeline.createMesh(vertices, indices);
+        if (!meshResult.success()) {
+            spdlog::trace("FireEffect: Failed to create fire mesh for layer {}", layer);
+            continue;
+        }
+
+        auto& mesh = meshResult.value();
+
+        // 计算变换矩阵
+        // MC 1.16.5:
+        // matrixStack.translate(0.0D, 0.0D, (double)(-0.3F + (float)((int)f3) * 0.02F));
+        // 然后每层在 Y 方向有 f4 偏移
+
+        // Billboard 矩阵（面向相机）
+        std::array<f64, 16> billboardMatrix1 = {
+            static_cast<f64>(cosYaw), 0.0, static_cast<f64>(-sinYaw), x,
+            0.0, 1.0, 0.0, y - f4,  // Y 偏移累计
+            static_cast<f64>(sinYaw), 0.0, static_cast<f64>(cosYaw), z + zOffset,
+            0.0, 0.0, 0.0, 1.0
+        };
+
+        // 第二个 billboard（旋转 90 度）
+        std::array<f64, 16> billboardMatrix2 = {
+            static_cast<f64>(-sinYaw), 0.0, static_cast<f64>(-cosYaw), x,
+            0.0, 1.0, 0.0, y - f4,
+            static_cast<f64>(cosYaw), 0.0, static_cast<f64>(-sinYaw), z + zOffset,
+            0.0, 0.0, 0.0, 1.0
+        };
+
+        // 绘制两个 billboard
+        pipeline.drawMesh(cmd, mesh, billboardMatrix1, meshPos, static_cast<f32>(fireSize), fireColor, 0.0f, 0.0f);
+        pipeline.drawMesh(cmd, mesh, billboardMatrix2, meshPos, static_cast<f32>(fireSize), fireColor, 0.0f, 0.0f);
+
+        // 销毁临时网格
+        pipeline.destroyMesh(mesh);
+
+        // 递减参数（MC 1.16.5）
+        f3 -= 0.45;
+        f4 += 0.45;
+        f1 *= 0.9;
+        f5 += 0.03;
+    }
+
+    spdlog::trace("FireEffect: Rendered fire at ({}, {}, {}) with {} layers", x, y, z, static_cast<i32>(height / fireSize / 0.45));
 }
 
 bool FireEffect::loadFireTexture(const std::vector<IResourcePack*>& resourcePacks) {

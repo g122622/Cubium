@@ -34,7 +34,7 @@ i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlas
     //
     // OverlayTexture.getU(uIn) = (int)(uIn * 15.0F)
     // OverlayTexture.getV(hurtIn) = hurtIn ? 3 : 10
-    // getPackedUV(u, v) = (u << 16) | (v & 0xFFFF)
+    // getPackedUV(u, v) = u | (v << 16)  // 注意：U 在低位，V 在高位
 
     i32 hurtTime = entity.hurtTime();
     i32 deathTime = entity.deathTime();
@@ -48,7 +48,6 @@ i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlas
         // 受伤或死亡时的 U 值
         // MC 1.16.5: uIn 是一个动画进度参数，这里简化为使用 hurtTime
         // LivingRenderer 传入 uIn = partialTicks 或其他值
-        // TODO 简化实现：使用 hurtTime 进度
         u = static_cast<f32>(hurtTime) / 10.0f;
     }
 
@@ -58,7 +57,9 @@ i32 HurtFlashEffect::getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlas
     // 计算 V 值 - 受伤或死亡时 V=3，正常时 V=10
     i32 packedV = (hurtTime > 0 || deathTime > 0) ? OVERLAY_V_HURT : OVERLAY_V_NORMAL;
 
-    return (packedU << 16) | (packedV & 0xFFFF);
+    // MC 1.16.5: packedUV = u | (v << 16)
+    // U 在低 16 位，V 在高 16 位
+    return packedU | (packedV << 16);
 }
 
 f64 HurtFlashEffect::getHurtProgress(::mc::LivingEntity& entity) {

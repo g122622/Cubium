@@ -2,6 +2,7 @@
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector4.hpp"
 #include <memory>
 
 namespace mc {
@@ -20,9 +21,15 @@ namespace client::renderer::entity::renderer::projectile {
  * - 11 种大小等级（对应不同经验值）
  * - 绿色主色调颜色动画
  * - 上下浮动动画
- * - 无阴影
+ * - 固定光照 (blockLight = 15, skyLight = 15)
  *
  * 参考 MC 1.16.5 ExperienceOrbRenderer
+ *
+ * 关键实现细节：
+ * - 浮动偏移: sin((age + partialTick) / 20.0) * 0.1 + 0.3
+ * - 颜色: 绿色渐变动画
+ * - Billboard: 始终面向摄像机
+ * - 光照: getBlockLight() = world.getBlockLight(pos) + 7
  */
 class ExperienceOrbRenderer : public core::EntityRenderer {
 public:
@@ -41,15 +48,40 @@ public:
     void render(Entity& entity, f64 partialTicks) override;
 
     /**
-     * @brief 渲染阴影（经验球没有阴影）
+     * @brief 渲染阴影（经验球有阴影）
      * @param entity 实体
      * @param partialTicks 部分 tick
      */
     void renderShadow(Entity& entity, f64 partialTicks) override;
 
+    /**
+     * @brief 计算经验球大小
+     *
+     * MC 1.16.5 ExperienceOrbEntity.sizeByValue:
+     * - 0-2: size 0 (最小)
+     * - 3-6: size 1
+     * - 7-16: size 2
+     * - 17-36: size 3
+     * - 37-72: size 4
+     * - 73-148: size 5
+     * - 149-306: size 6
+     * - 307-616: size 7
+     * - 617-1236: size 8
+     * - 1237-2476: size 9
+     * - 2477+: size 10 (最大)
+     *
+     * @param xpValue 经验值
+     * @return 大小等级 (0-10)
+     */
+    [[nodiscard]] static i32 getSizeByValue(i32 xpValue);
+
 private:
     /**
      * @brief 计算浮动偏移
+     *
+     * MC 1.16.5 ExperienceOrbRenderer:
+     * 经验球在 Y 轴上下浮动
+     *
      * @param ticksExisted 实体存活时间
      * @param partialTick 部分 tick
      * @return Y 轴偏移
@@ -64,12 +96,25 @@ private:
      */
     [[nodiscard]] f64 calculateColorPhase(u32 ticksExisted, f64 partialTick) const;
 
+    /**
+     * @brief 计算经验球颜色
+     *
+     * MC 1.16.5 ExperienceOrbRenderer 使用绿色系颜色
+     * 颜色基于时间变化
+     *
+     * @param phase 颜色相位
+     * @return RGBA 颜色向量
+     */
+    [[nodiscard]] math::Vector4f calculateColor(f64 phase) const;
+
     // 动画常量（参考 MC 1.16.5）
-    static constexpr f64 BOB_AMPLITUDE = 0.1f;       // 浮动高度
-    static constexpr f64 BOB_FREQUENCY = 0.05f;      // 浮动速度（弧度/tick）
-    static constexpr f64 COLOR_SPEED = 0.1f;         // 颜色变化速度
-    static constexpr f64 BASE_SIZE = 0.25f;          // 基础大小
-    static constexpr f64 SIZE_INCREMENT = 0.015f;    // 每级大小增量
+    static constexpr f64 BOB_AMPLITUDE = 0.1;       // 浮动高度幅度
+    static constexpr f64 BOB_FREQUENCY = 0.05;      // 浮动速度（1/20 弧度/tick）
+    static constexpr f64 BOB_BASE = 0.3;            // 基础高度偏移（MC 1.16.5: + 0.3）
+    static constexpr f64 COLOR_SPEED = 0.1;         // 颜色变化速度
+    static constexpr f64 BASE_SIZE = 0.25;          // 基础大小
+    static constexpr f64 SIZE_INCREMENT = 0.015;    // 每级大小增量
+    static constexpr i32 FULL_LIGHT = 15728640;     // 固定全亮光照 (0xF00000)
 };
 
 } // namespace mc::client::renderer::entity::renderer::projectile

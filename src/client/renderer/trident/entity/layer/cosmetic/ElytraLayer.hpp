@@ -90,7 +90,7 @@ private:
     /**
      * @brief 计算鞘翅展开角度
      */
-    [[nodiscard]] f32 calculateElytraAngle(TEntity& entity, f32 partialTicks) const;
+    [[nodiscard]] f32 calculateElytraAngle(TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const;
 
     /**
      * @brief 构建鞘翅网格

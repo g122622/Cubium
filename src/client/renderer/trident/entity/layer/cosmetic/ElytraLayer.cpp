@@ -10,10 +10,18 @@
 namespace mc::client::renderer::entity::layer::cosmetic {
 
 namespace {
-    constexpr f32 PI = 3.14159265f;
+    constexpr f64 PI = 3.14159265358979323846;
     constexpr f32 ELYTRA_WIDTH = 10.0f / 16.0f;   // 单边鞘翅宽度
     constexpr f32 ELYTRA_HEIGHT = 20.0f / 16.0f;  // 鞘翅高度
     constexpr i32 SPREAD_ANGLE_BUCKETS = 18;      // 展开角度分桶数
+
+    // MC 1.16.5 ElytraModel 默认角度
+    constexpr f32 DEFAULT_X_ANGLE = 0.2617994f;   // ~15度
+    constexpr f32 DEFAULT_Z_ANGLE = -0.2617994f;  // ~-15度
+    constexpr f32 GLIDING_X_ANGLE = 0.34906584f;  // ~20度
+    constexpr f32 GLIDING_Z_ANGLE = -1.5707963f;  // ~-90度
+    constexpr f32 CROUCHING_X_ANGLE = 0.6981317f; // ~40度
+    constexpr f32 CROUCHING_Z_ANGLE = -0.7853982f; // ~-45度
 }
 
 template<typename TEntity>
@@ -29,7 +37,7 @@ void ElytraLayer<TEntity>::renderPipeline(
     }
 
     // 计算鞘翅展开角度
-    f32 spreadAngle = calculateElytraAngle(entity, static_cast<f32>(context.partialTicks));
+    f32 spreadAngle = calculateElytraAngle(entity, context, static_cast<f32>(context.partialTicks));
 
     // 获取或创建鞘翅网格
     pipeline::EntityMesh* mesh = getOrCreateElytraMesh(spreadAngle, pipeline);
@@ -47,9 +55,10 @@ void ElytraLayer<TEntity>::renderPipeline(
     };
 
     // 鞘翅附着在背部
+    // MC 1.16.5: matrixStack.translate(0.0D, 0.0D, 0.125D);
     elytraTransform[3] = 0.0;                             // X
     elytraTransform[7] = 1.0 - ELYTRA_HEIGHT * 0.3;       // Y - 上部附着点
-    elytraTransform[11] = 0.1;                            // Z - 略微向后
+    elytraTransform[11] = 0.125;                          // Z - MC 1.16.5: 0.125D
 
     // 获取实体的世界位置
     Vector3f entityPos(
@@ -96,55 +105,99 @@ void ElytraLayer<TEntity>::render(
 
 template<typename TEntity>
 bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const {
-    // 检查实体是否正在滑翔（装备了鞘翅且在飞行）
-    // 完整实现需要检查：
-    // 1. 胸甲槽是否装备了鞘翅物品
-    // 2. 实体是否处于滑翔状态
-    // 3. 是否有鞘翅或披风纹理
+    // 参考 MC 1.16.5 ElytraLayer.shouldRender()
+    // 检查：
+    // 1. 胸甲槽装备了鞘翅物品（Items.ELYTRA）
+    // 2. 有鞘翅或披风纹理
 
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // 检查是否装备鞘翅
+        // 检查胸甲槽
         const auto& chest = entity.getEquipment(::mc::EquipmentSlot::Chest);
-        // TODO: 检查物品是否为鞘翅
-        if (!chest.isEmpty()) {
-            return m_customElytraRegion != nullptr || m_capeRegion != nullptr;
+        if (chest.isEmpty()) {
+            return false;
         }
+
+        // TODO: 检查物品是否为鞘翅 (Items.ELYTRA)
+        // 当前简化实现：只要胸甲槽非空且有纹理就渲染
+        return m_customElytraRegion != nullptr || m_capeRegion != nullptr;
     }
 
     return m_customElytraRegion != nullptr || m_capeRegion != nullptr;
 }
 
 template<typename TEntity>
-f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, f32 partialTicks) const {
-    // 参考 MC 1.16.5 ElytraLayer
-    // 鞘翅展开角度取决于：
-    // 1. 是否在滑翔
-    // 2. 滑翔时间和速度
+f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const {
+    // 参考 MC 1.16.5 ElytraModel.setRotationAngles()
+    // 鞘翅角度取决于：
+    // 1. isElytraFlying() - 是否在滑翔
+    // 2. isCrouching() - 是否蹲伏
+    // 3. 速度向量 - 滑翔时的俯仰角
 
-    // 检查实体是否正在滑翔
+    // 默认角度
+    f32 angleX = DEFAULT_X_ANGLE;   // ~15度
+    f32 angleZ = DEFAULT_Z_ANGLE;   // ~-15度
+
     bool isGliding = false;
+    bool isCrouching = false;
+
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // TODO: 检查 isGliding() 状态
-        // 暂时根据 fall distance 估算
-        isGliding = entity.fallDistance() > 1.0f;
+        // 检查是否在滑翔（MC 1.16.5: isElytraFlying() = getFlag(7)）
+        // 当前简化实现：检查 fallDistance 或其他状态
+        // TODO: 添加 isElytraFlying() 到 LivingEntity
+        isGliding = entity.fallDistance() > 0.0f && !entity.onGround();
+
+        // 检查是否蹲伏（使用 context 中的状态）
+        isCrouching = context.isSneaking;
+
+        // MC 1.16.5: 滑翔时基于速度向量计算角度
+        if (isGliding) {
+            // 获取速度向量
+            auto velocity = entity.velocity();
+            f64 motionY = static_cast<f64>(velocity.y);
+
+            // MC 1.16.5 ElytraModel.setRotationAngles():
+            // if (entityIn.isElytraFlying()) {
+            //     float f4 = 1.0F;
+            //     Vector3d vector3d = entityIn.getMotion();
+            //     if (vector3d.y < 0.0D) {
+            //         Vector3d vector3d1 = vector3d.normalize();
+            //         f4 = 1.0F - (float)Math.pow(-vector3d1.y, 1.5D);
+            //     }
+            //     f = f4 * 0.34906584F + (1.0F - f4) * f;  // X角度
+            //     f1 = f4 * (-(float)Math.PI / 2F) + (1.0F - f4) * f1;  // Z角度
+            // }
+
+            f32 f4 = 1.0f;
+            if (motionY < 0.0) {
+                // 计算速度向量长度
+                f64 speed = std::sqrt(
+                    static_cast<f64>(velocity.x) * static_cast<f64>(velocity.x) +
+                    static_cast<f64>(velocity.y) * static_cast<f64>(velocity.y) +
+                    static_cast<f64>(velocity.z) * static_cast<f64>(velocity.z)
+                );
+                if (speed > 0.0) {
+                    f64 normalizedY = motionY / speed;
+                    f4 = static_cast<f32>(1.0 - std::pow(-normalizedY, 1.5));
+                }
+            }
+
+            // 插值角度
+            angleX = f4 * GLIDING_X_ANGLE + (1.0f - f4) * DEFAULT_X_ANGLE;
+            angleZ = f4 * GLIDING_Z_ANGLE + (1.0f - f4) * DEFAULT_Z_ANGLE;
+        } else if (isCrouching) {
+            // MC 1.16.5: 蹲伏时的角度
+            angleX = CROUCHING_X_ANGLE;
+            angleZ = CROUCHING_Z_ANGLE;
+        }
+
+        // TODO: 对于 Player，使用平滑角度插值 (rotateElytraX/Y/Z)
+        // 这需要 ClientEntity 或 Player 有 rotateElytraX/Y/Z 字段
     }
 
-    if (!isGliding) {
-        // 未滑翔时鞘翅收起在背上
-        return 0.0f;
-    }
-
-    // 滑翔时鞘翅展开
-    // 展开角度基于滑翔时间或速度
-    f32 time = static_cast<f32>(entity.ticksExisted()) + partialTicks;
-
-    // 基础展开角度约 60 度
-    f32 baseSpread = 60.0f;
-
-    // 添加轻微的摆动
-    f32 wobble = std::sin(time * 0.5f) * 5.0f;
-
-    return baseSpread + wobble;
+    // 将角度转换为展开度数（用于网格生成）
+    // X 角度控制前后倾斜，Z 角度控制左右展开
+    // 这里返回 Z 角度的绝对值作为展开角度
+    return std::abs(angleZ) * 180.0f / static_cast<f32>(PI);
 }
 
 template<typename TEntity>

@@ -10,7 +10,7 @@
 namespace mc::client::renderer::entity::layer::cosmetic {
 
 namespace {
-    constexpr f32 PI = 3.14159265f;
+    constexpr f64 PI = 3.14159265358979323846;
     constexpr f32 CAPE_WIDTH = 10.0f / 16.0f;   // 斗篷宽度（世界单位）
     constexpr f32 CAPE_HEIGHT = 16.0f / 16.0f;  // 斗篷高度
     constexpr i32 SWING_ANGLE_BUCKETS = 36;     // 摆动角度分桶数（每10度一个桶）
@@ -28,7 +28,7 @@ void CapeLayer::renderPipeline(
     }
 
     // 计算斗篷摆动角度
-    f32 swingAngle = calculateCapeSwing(entity, static_cast<f32>(context.partialTicks));
+    f32 swingAngle = calculateCapeSwing(entity, context, static_cast<f32>(context.partialTicks));
 
     // 获取或创建斗篷网格
     pipeline::EntityMesh* mesh = getOrCreateCapeMesh(swingAngle, pipeline);
@@ -98,43 +98,87 @@ bool CapeLayer::shouldRender(const ::mc::Player& entity) const {
     return m_customCapeRegion != nullptr;
 }
 
-f32 CapeLayer::calculateCapeSwing(::mc::Player& entity, f32 partialTicks) const {
-    // 参考 MC 1.16.5 CapeLayer 中的摆动计算
-    // 基于玩家移动和视角旋转计算斗篷摆动
+f32 CapeLayer::calculateCapeSwing(::mc::Player& entity, const mc::client::renderer::entity::core::AnimationContext& context, f32 partialTicks) const {
+    // 参考 MC 1.16.5 CapeLayer.render() 中的摆动计算
+    // 核心逻辑：
+    // 1. 使用 chasingPos 系统计算平滑移动向量
+    // 2. 使用 renderYawOffset 计算身体朝向
+    // 3. 使用 cameraYaw 计算行走摆动
+    // 4. 蹲伏时额外增加角度
 
-    f64 prevX = static_cast<f64>(entity.prevX());
-    f64 prevZ = static_cast<f64>(entity.prevZ());
-    f64 x = static_cast<f64>(entity.x());
-    f64 z = static_cast<f64>(entity.z());
+    // 获取追踪位置（MC 1.16.5: MathHelper.lerp(partialTicks, prevChasingPosX, chasingPosX)）
+    // 注意：Player 需要有这些字段，这里使用简化实现
+    f64 prevChasingX = static_cast<f64>(entity.prevX());
+    f64 prevChasingY = static_cast<f64>(entity.prevY());
+    f64 prevChasingZ = static_cast<f64>(entity.prevZ());
+    f64 chasingX = static_cast<f64>(entity.x());
+    f64 chasingY = static_cast<f64>(entity.y());
+    f64 chasingZ = static_cast<f64>(entity.z());
 
-    // 计算移动向量
-    f32 moveX = static_cast<f32>(x - prevX);
-    f32 moveZ = static_cast<f32>(z - prevZ);
+    // 插值追踪位置
+    f64 interpChasingX = prevChasingX + (chasingX - prevChasingX) * partialTicks;
+    f64 interpChasingY = prevChasingY + (chasingY - prevChasingY) * partialTicks;
+    f64 interpChasingZ = prevChasingZ + (chasingZ - prevChasingZ) * partialTicks;
 
-    // 计算移动距离平方
-    f32 moveSq = moveX * moveX + moveZ * moveZ;
+    // 插值实际位置
+    f64 interpX = static_cast<f64>(entity.prevX()) + (static_cast<f64>(entity.x()) - static_cast<f64>(entity.prevX())) * partialTicks;
+    f64 interpY = static_cast<f64>(entity.prevY()) + (static_cast<f64>(entity.y()) - static_cast<f64>(entity.prevY())) * partialTicks;
+    f64 interpZ = static_cast<f64>(entity.prevZ()) + (static_cast<f64>(entity.z()) - static_cast<f64>(entity.prevZ())) * partialTicks;
 
-    // 基于时间和移动计算摆动
-    f32 time = static_cast<f32>(entity.ticksExisted()) + partialTicks;
-    f32 baseSwing = std::sin(time * 0.067f) * 0.5f;  // 基础摆动
+    // 计算移动向量 (MC 1.16.5: d0, d1, d2)
+    f64 d0 = interpChasingX - interpX;
+    f64 d1 = interpChasingY - interpY;
+    f64 d2 = interpChasingZ - interpZ;
 
-    // 移动时增加摆动幅度
-    f32 moveSwing = std::sqrt(moveSq) * 0.3f;
+    // 获取身体朝向 (renderYawOffset)
+    f64 renderYawOffset = static_cast<f64>(entity.yaw());
+    f64 prevRenderYawOffset = static_cast<f64>(entity.prevYaw());
+    f64 interpRenderYawOffset = prevRenderYawOffset + (renderYawOffset - prevRenderYawOffset) * partialTicks;
 
-    // 限制最大摆动角度
-    f32 totalSwing = baseSwing + moveSwing;
-    totalSwing = std::min(totalSwing, 25.0f);  // 最大 25 度
+    // 计算方向向量 (MC 1.16.5: d3, d4)
+    // d3 = MathHelper.sin(f * PI/180)
+    // d4 = -MathHelper.cos(f * PI/180)
+    f64 f = interpRenderYawOffset + (interpRenderYawOffset - prevRenderYawOffset);  // body rotation
+    f64 d3 = std::sin(f * PI / 180.0);
+    f64 d4 = -std::cos(f * PI / 180.0);
 
-    // 考虑玩家朝向
-    f32 yaw = static_cast<f32>(entity.yaw());
-    f32 prevYaw = static_cast<f32>(entity.prevYaw());
-    f32 yawDiff = yaw - prevYaw;
+    // 计算 Y 轴摆动角度 (MC 1.16.5: f1)
+    // f1 = (float)d1 * 10.0F;
+    // f1 = MathHelper.clamp(f1, -6.0F, 32.0F);
+    f32 f1 = static_cast<f32>(d1 * 10.0);
+    f1 = std::max(-6.0f, std::min(32.0f, f1));
 
-    // 转向时斗篷会甩动
-    f32 turnSwing = yawDiff * 0.5f;
-    totalSwing += std::abs(turnSwing);
+    // 计算 X 轴摆动角度 (MC 1.16.5: f2)
+    // f2 = (float)(d0 * d3 + d2 * d4) * 100.0F;
+    // f2 = MathHelper.clamp(f2, 0.0F, 150.0F);
+    f32 f2 = static_cast<f32>((d0 * d3 + d2 * d4) * 100.0);
+    f2 = std::max(0.0f, std::min(150.0f, f2));
 
-    return totalSwing;
+    // 计算 Z 轴摆动角度 (MC 1.16.5: f3)
+    // f3 = (float)(d0 * d4 - d2 * d3) * 100.0F;
+    // f3 = MathHelper.clamp(f3, -20.0F, 20.0F);
+    f32 f3 = static_cast<f32>((d0 * d4 - d2 * d3) * 100.0);
+    f3 = std::max(-20.0f, std::min(20.0f, f3));
+
+    // 获取相机偏航角 (MC 1.16.5: f4)
+    // f4 = MathHelper.lerp(partialTicks, prevCameraYaw, cameraYaw);
+    // 使用 context 中的 limbSwingAmount 作为行走强度
+    f32 f4 = static_cast<f32>(context.limbSwingAmount);
+
+    // 行走时增加摆动 (MC 1.16.5: f1 += MathHelper.sin(limbSwing * 6.0F) * 32.0F * f4)
+    f32 limbSwing = static_cast<f32>(context.limbSwing);
+    f1 += std::sin(limbSwing * 6.0f) * 32.0f * f4;
+
+    // 蹲伏时增加角度 (MC 1.16.5: if (entity.isCrouching()) { f1 += 25.0F; })
+    if (entity.isSneaking()) {
+        f1 += 25.0f;
+    }
+
+    // 返回综合摆动角度
+    // MC 1.16.5 中使用三轴旋转，这里返回 X 轴角度作为简化
+    // 实际上需要返回三个角度，但当前架构只支持一个
+    // 我们使用 f1 作为主要摆动角度
+    return f1;
 }
 
 void CapeLayer::buildCapeMesh(
