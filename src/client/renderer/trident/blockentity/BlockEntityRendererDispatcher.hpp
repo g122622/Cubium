@@ -1,0 +1,150 @@
+#pragma once
+
+#include "IBlockEntityRenderer.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <unordered_map>
+#include <memory>
+#include <functional>
+
+namespace mc {
+
+class IWorld;
+class BlockEntity;
+class MatrixStack;
+
+namespace client::renderer::trident {
+
+class TridentContext;
+class TridentTextureAtlas;
+
+namespace blockentity {
+
+/**
+ * @brief 方块实体渲染器调度器
+ *
+ * 管理所有方块实体渲染器，根据方块实体类型分派渲染。
+ * 参考 MC 1.16.5 TileEntityRendererDispatcher
+ *
+ * 使用方式：
+ * 1. 在客户端初始化时注册渲染器
+ * 2. 在渲染循环中调用 render() 渲染方块实体
+ */
+class BlockEntityRendererDispatcher {
+public:
+    using RendererFactory = std::function<std::unique_ptr<IBlockEntityRendererBase>()>;
+
+    BlockEntityRendererDispatcher();
+    ~BlockEntityRendererDispatcher();
+
+    // 禁止拷贝
+    BlockEntityRendererDispatcher(const BlockEntityRendererDispatcher&) = delete;
+    BlockEntityRendererDispatcher& operator=(const BlockEntityRendererDispatcher&) = delete;
+
+    // 允许移动
+    BlockEntityRendererDispatcher(BlockEntityRendererDispatcher&&) noexcept;
+    BlockEntityRendererDispatcher& operator=(BlockEntityRendererDispatcher&&) noexcept;
+
+    // ========== 渲染器注册 ==========
+
+    /**
+     * @brief 注册方块实体渲染器
+     *
+     * @tparam TEntity 方块实体类型
+     * @tparam TRenderer 渲染器类型
+     */
+    template<typename TEntity, typename TRenderer>
+    void registerRenderer() {
+        static_assert(std::is_base_of_v<IBlockEntityRenderer<TEntity>, TRenderer>,
+            "TRenderer must implement IBlockEntityRenderer<TEntity>");
+
+        auto renderer = std::make_unique<TRenderer>();
+        m_renderers[TEntity::getType()] = std::move(renderer);
+    }
+
+    /**
+     * @brief 注册方块实体渲染器工厂
+     *
+     * @param type 方块实体类型
+     * @param factory 渲染器工厂函数
+     */
+    void registerRenderer(BlockEntityType type, RendererFactory factory);
+
+    // ========== 渲染 ==========
+
+    /**
+     * @brief 渲染方块实体
+     *
+     * @param entity 方块实体引用
+     * @param partialTick 部分tick（用于插值）
+     * @param light 组合光照
+     * @return 是否成功渲染
+     */
+    bool render(BlockEntity& entity, f32 partialTick, u32 light);
+
+    /**
+     * @brief 渲染所有全局方块实体
+     *
+     * 全局方块实体（如信标光束）可以在远距离看到。
+     *
+     * @param world 世界引用
+     * @param partialTick 部分tick
+     */
+    void renderGlobalBlockEntities(IWorld& world, f32 partialTick);
+
+    // ========== 资源设置 ==========
+
+    /**
+     * @brief 设置Trident上下文
+     */
+    void setContext(TridentContext* context) { m_context = context; }
+
+    /**
+     * @brief 设置纹理图集
+     */
+    void setTextureAtlas(TridentTextureAtlas* atlas) { m_textureAtlas = atlas; }
+
+    /**
+     * @brief 设置模型缓存
+     */
+    void setModelCache(resource::BlockModelCache* cache) { m_modelCache = cache; }
+
+    // ========== 初始化 ==========
+
+    /**
+     * @brief 初始化默认渲染器
+     *
+     * 注册所有原版方块实体渲染器。
+     */
+    void initializeDefaults();
+
+    // ========== 查询 ==========
+
+    /**
+     * @brief 获取渲染器
+     * @param type 方块实体类型
+     * @return 渲染器指针，如果未注册返回nullptr
+     */
+    [[nodiscard]] IBlockEntityRendererBase* getRenderer(BlockEntityType type);
+
+    /**
+     * @brief 检查是否有渲染器
+     */
+    [[nodiscard]] bool hasRenderer(BlockEntityType type) const;
+
+    /**
+     * @brief 清除所有渲染器
+     */
+    void clear();
+
+private:
+    std::unordered_map<BlockEntityType, std::unique_ptr<IBlockEntityRendererBase>> m_renderers;
+
+    TridentContext* m_context = nullptr;
+    TridentTextureAtlas* m_textureAtlas = nullptr;
+    resource::BlockModelCache* m_modelCache = nullptr;
+};
+
+} // namespace blockentity
+} // namespace mc::client::renderer::trident
+} // namespace mc

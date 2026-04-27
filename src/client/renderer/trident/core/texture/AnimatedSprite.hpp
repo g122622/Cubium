@@ -1,0 +1,211 @@
+#pragma once
+
+#include "common/core/Types.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
+#include "client/renderer/api/texture/TextureRegion.hpp"
+#include <vector>
+#include <memory>
+
+namespace mc::client::renderer::trident {
+
+class TridentContext;
+class TridentTextureAtlas;
+
+/**
+ * @brief 动画精灵
+ *
+ * 管理动画纹理的帧数据和播放状态。
+ * 参考 MC 1.16.5 TextureAtlasSprite
+ *
+ * 动画精灵存储多帧纹理数据，并根据mcmeta配置进行帧切换。
+ * 每个游戏tick调用tick()方法更新动画状态。
+ * 在渲染时调用uploadCurrentFrame()将当前帧上传到纹理图集。
+ *
+ * @note 此类不是线程安全的。tick()应在主线程调用，
+ *       uploadCurrentFrame()应在渲染线程调用。
+ */
+class AnimatedSprite {
+public:
+    /**
+     * @brief 单帧图像数据
+     */
+    struct FrameData {
+        std::vector<u8> pixels;  ///< RGBA像素数据
+        u32 width = 0;           ///< 帧宽度
+        u32 height = 0;          ///< 帧高度
+    };
+
+    /**
+     * @brief 默认构造函数
+     */
+    AnimatedSprite() = default;
+
+    /**
+     * @brief 从动画元数据和帧数据构造
+     * @param metadata 动画元数据
+     * @param frames 帧数据数组
+     * @param atlasX 在图集中的X位置（像素）
+     * @param atlasY 在图集中的Y位置（像素）
+     */
+    AnimatedSprite(
+        const resource::metadata::AnimationMetadata& metadata,
+        std::vector<FrameData>&& frames,
+        u32 atlasX,
+        u32 atlasY);
+
+    // 禁止拷贝
+    AnimatedSprite(const AnimatedSprite&) = delete;
+    AnimatedSprite& operator=(const AnimatedSprite&) = delete;
+
+    // 允许移动
+    AnimatedSprite(AnimatedSprite&& other) noexcept = default;
+    AnimatedSprite& operator=(AnimatedSprite&& other) noexcept = default;
+
+    /**
+     * @brief 每游戏tick更新动画状态
+     *
+     * 更新帧计数器，检查是否需要切换帧。
+     * 此方法应在客户端主循环中每tick调用一次。
+     */
+    void tick();
+
+    /**
+     * @brief 上传当前帧到纹理图集
+     * @param context Trident上下文
+     * @param atlas 纹理图集
+     * @return 成功或错误
+     *
+     * 将当前帧的像素数据上传到纹理图集中的精灵位置。
+     * 如果启用了插值且处于帧切换过程中，会上传插值后的帧。
+     */
+    [[nodiscard]] Result<void> uploadCurrentFrame(
+        TridentContext* context,
+        TridentTextureAtlas& atlas);
+
+    /**
+     * @brief 获取插值帧进度
+     * @param partialTick 部分tick（0.0-1.0）
+     * @return 插值后的帧索引（用于UV偏移计算）
+     *
+     * 如果禁用插值，返回当前帧索引。
+     * 如果启用插值，返回当前帧和下一帧之间的插值位置。
+     */
+    [[nodiscard]] f32 getInterpolatedFrame(f32 partialTick) const;
+
+    // ========== 状态查询 ==========
+
+    /**
+     * @brief 检查是否为有效动画
+     * @return 如果有多个帧返回true
+     */
+    [[nodiscard]] bool isAnimated() const noexcept {
+        return m_frames.size() > 1;
+    }
+
+    /**
+     * @brief 获取当前帧索引
+     */
+    [[nodiscard]] i32 currentFrameIndex() const noexcept {
+        if (m_metadata.frames.empty()) {
+            return m_frameCounter;
+        }
+        return m_metadata.frames[m_frameCounter].index;
+    }
+
+    /**
+     * @brief 获取下一帧索引
+     */
+    [[nodiscard]] i32 nextFrameIndex() const noexcept;
+
+    /**
+     * @brief 获取当前帧进度（0.0-1.0）
+     *
+     * 表示当前帧已播放的时间比例。
+     */
+    [[nodiscard]] f32 frameProgress() const noexcept {
+        if (m_currentFrameTime <= 0) {
+            return 0.0f;
+        }
+        return static_cast<f32>(m_tickCounter) / static_cast<f32>(m_currentFrameTime);
+    }
+
+    /**
+     * @brief 获取帧宽度
+     */
+    [[nodiscard]] u32 frameWidth() const noexcept {
+        return m_frameWidth;
+    }
+
+    /**
+     * @brief 获取帧高度
+     */
+    [[nodiscard]] u32 frameHeight() const noexcept {
+        return m_frameHeight;
+    }
+
+    /**
+     * @brief 获取图集X位置
+     */
+    [[nodiscard]] u32 atlasX() const noexcept {
+        return m_atlasX;
+    }
+
+    /**
+     * @brief 获取图集Y位置
+     */
+    [[nodiscard]] u32 atlasY() const noexcept {
+        return m_atlasY;
+    }
+
+    /**
+     * @brief 获取总帧数
+     */
+    [[nodiscard]] usize frameCount() const noexcept {
+        return m_frames.size();
+    }
+
+    /**
+     * @brief 获取动画元数据
+     */
+    [[nodiscard]] const resource::metadata::AnimationMetadata& metadata() const noexcept {
+        return m_metadata;
+    }
+
+private:
+    /**
+     * @brief 生成插值帧数据
+     * @param progress 进度（0.0-1.0）
+     * @return 插值后的帧数据
+     */
+    [[nodiscard]] FrameData generateInterpolatedFrame(f32 progress) const;
+
+    /**
+     * @brief 上传帧数据到图集
+     * @param context Trident上下文
+     * @param atlas 纹理图集
+     * @param frame 帧数据
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> uploadFrame(
+        TridentContext* context,
+        TridentTextureAtlas& atlas,
+        const FrameData& frame);
+
+    // ========== 成员变量 ==========
+
+    resource::metadata::AnimationMetadata m_metadata;  ///< 动画元数据
+    std::vector<FrameData> m_frames;                    ///< 帧数据数组
+
+    u32 m_atlasX = 0;           ///< 图集X位置
+    u32 m_atlasY = 0;           ///< 图集Y位置
+    u32 m_frameWidth = 0;       ///< 帧宽度
+    u32 m_frameHeight = 0;      ///< 帧高度
+
+    usize m_frameCounter = 0;   ///< 当前帧计数器（在frames数组中的位置）
+    i32 m_tickCounter = 0;      ///< 当前帧内tick计数
+    i32 m_currentFrameTime = 1; ///< 当前帧持续时间
+
+    bool m_needsUpload = true;  ///< 是否需要上传帧数据
+};
+
+} // namespace mc::client::renderer::trident

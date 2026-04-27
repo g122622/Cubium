@@ -14,6 +14,8 @@ src/common/resource/
 ├── PackMetadata.hpp/cpp            # pack.mcmeta 解析
 ├── ResourcePackList.hpp/cpp        # 资源包列表与优先级管理
 ├── VanillaResources.hpp/cpp        # 原版基础资源
+├── metadata/                       # 资源元数据
+│   └── AnimationMetadata.hpp/cpp   # 动画纹理元数据（.mcmeta）
 ├── compat/                         # 版本兼容层
 │   ├── PackFormat.hpp/cpp
 │   ├── ResourceMapper.hpp/cpp

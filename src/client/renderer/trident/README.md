@@ -21,7 +21,9 @@ trident/
 │   │   ├── RenderPassManager.hpp/cpp # 渲染通道管理（支持 MSAA + resolve）
 │   │   └── UniformManager.hpp/cpp    # Uniform 缓冲区管理
 │   └── texture/             # 纹理
-│       └── TridentTexture.hpp/cpp    # 纹理/纹理图集
+│       ├── TridentTexture.hpp/cpp    # 纹理/纹理图集
+│       ├── AnimatedSprite.hpp/cpp    # 动画精灵（帧动画）
+│       └── TextureAtlasTicker.hpp/cpp # 图集动画tick管理
 ├── chunk/                   # 区块渲染
 │   ├── AmbientOcclusionCalculator.hpp/cpp # 环境光遮蔽计算
 │   ├── ChunkMesher.hpp/cpp  # 区块网格生成
@@ -69,9 +71,17 @@ trident/
 │   └── VulkanUtils.hpp      # Vulkan 辅助函数
 ├── weather/                 # 天气渲染
 │   └── WeatherRenderer.hpp/cpp # 雨雪渲染器
-└── block/                   # 方块渲染
-    ├── BreakProgressManager.hpp/cpp # 破坏进度管理
-    └── BreakProgressRenderer.hpp/cpp # 破坏进度渲染
+├── block/                   # 方块渲染
+│   ├── BreakProgressManager.hpp/cpp # 破坏进度管理
+│   └── BreakProgressRenderer.hpp/cpp # 破坏进度渲染
+└── blockentity/             # 方块实体渲染器
+    ├── IBlockEntityRenderer.hpp    # 渲染器接口模板
+    ├── BlockEntityRenderer.hpp/cpp # 渲染器基类
+    ├── BlockEntityRendererDispatcher.hpp/cpp # 渲染器调度器
+    ├── README.md                   # 模块文档
+    ├── model/                      # 方块实体模型
+    └── renderers/                  # 具体渲染器
+        └── PistonRenderer.hpp/cpp  # 活塞渲染器
 ```
 
 ## 核心组件详解
@@ -168,6 +178,21 @@ Uniform 缓冲区管理：
 - Mipmap 生成
 - 纹理采样器配置
 - 纹理图集（用于区块/实体/GUI）
+
+#### texture/AnimatedSprite
+
+动画精灵：
+- 存储多帧纹理数据
+- tick 驱动帧切换
+- 支持帧间颜色插值
+- GPU 纹理子区域更新
+
+#### texture/TextureAtlasTicker
+
+纹理图集动画管理器：
+- 管理所有动画精灵
+- 每游戏 tick 更新动画状态
+- 渲染前上传待更新帧
 
 ### 2. chunk/ - 区块渲染
 

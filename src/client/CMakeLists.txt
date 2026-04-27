@@ -31,6 +31,8 @@ add_executable(minecraft-client
     renderer/trident/core/TridentEngine.cpp
     renderer/trident/core/buffer/TridentBuffer.cpp
     renderer/trident/core/texture/TridentTexture.cpp
+    renderer/trident/core/texture/AnimatedSprite.cpp
+    renderer/trident/core/texture/TextureAtlasTicker.cpp
     renderer/trident/core/pipeline/TridentPipeline.cpp
     renderer/trident/core/render/RenderPassManager.cpp
     renderer/trident/core/render/FrameManager.cpp
@@ -85,6 +87,10 @@ add_executable(minecraft-client
     # 方块破坏效果
     renderer/trident/block/BreakProgressManager.cpp
     renderer/trident/block/BreakProgressRenderer.cpp
+    # 方块实体渲染器
+    renderer/trident/blockentity/BlockEntityRenderer.cpp
+    renderer/trident/blockentity/BlockEntityRendererDispatcher.cpp
+    renderer/trident/blockentity/renderers/PistonRenderer.cpp
     # 子渲染器
     renderer/trident/chunk/ChunkRenderer.cpp
     renderer/trident/chunk/ChunkMesher.cpp

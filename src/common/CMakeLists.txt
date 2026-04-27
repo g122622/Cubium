@@ -731,6 +731,9 @@ add_library(mc_common STATIC
     resource/InMemoryResourcePack.cpp
     resource/VanillaResources.cpp
 
+    # Resource - Metadata
+    resource/metadata/AnimationMetadata.cpp
+
     # Resource - Compatibility Layer
     resource/compat/PackFormat.cpp
     resource/compat/ResourceMapper.cpp
