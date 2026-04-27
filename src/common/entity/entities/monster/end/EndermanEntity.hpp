@@ -3,12 +3,15 @@
 #include "../MonsterEntity.hpp"
 #include "../../../interfaces/IAngerable.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 
 // Forward declarations
-using BlockId = u32;  // 方块ID类型
+class BlockState;
+class DamageSource;
 
 /**
  * @brief 末影人实体
@@ -20,6 +23,7 @@ using BlockId = u32;  // 方块ID类型
  * - 搬方块：可以搬起和放置方块
  * - 中立：通常中立，被激怒后攻击
  * - 怕水：接触水会瞬移并受到伤害
+ * - 怕雨：在雨中会瞬移并受到伤害
  *
  * 参考 MC 1.16.5 EndermanEntity
  */
@@ -47,6 +51,38 @@ public:
      * @return 新的末影人实体
      */
     static std::unique_ptr<Entity> create(IWorld* world);
+
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取环境音效
+     * MC 1.16.5: entity.enderman.ambient (愤怒时), entity.enderman.scream (被注视时)
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤声音
+     * MC 1.16.5: entity.enderman.hurt
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     * MC 1.16.5: entity.enderman.death
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 获取 stare sound（被注视时的声音）
+     * MC 1.16.5: entity.enderman.stare
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getStareSound() const;
+
+    /**
+     * @brief 获取瞬移声音
+     * MC 1.16.5: entity.enderman.teleport
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getTeleportSound() const;
 
     // ========== IAngerable接口实现 ==========
 
@@ -85,29 +121,31 @@ public:
      */
     void setAngerTime(i32 time) override { m_angerTime = time; }
 
-    // ========== 激怒系统 ==========
+    // ========== 被注视检测 ==========
 
     /**
-     * @brief 是否被激怒
+     * @brief 是否正在被玩家注视
+     * MC 1.16.5: isScreaming()
      */
-    [[nodiscard]] bool isProvoked() const { return m_provoked; }
+    [[nodiscard]] bool isScreaming() const { return m_screaming; }
 
     /**
-     * @brief 设置激怒状态
+     * @brief 设置注视状态
      */
-    void setProvoked(bool provoked) { m_provoked = provoked; }
+    void setScreaming(bool screaming) { m_screaming = screaming; }
 
     // ========== 瞬移系统 ==========
 
     /**
-     * @brief 尝试瞬移
-     * @param reason 瞬移原因
+     * @brief 尝试随机瞬移
+     * MC 1.16.5: teleport()
      * @return 是否成功瞬移
      */
     bool teleport();
 
     /**
      * @brief 尝试瞬移到目标附近
+     * MC 1.16.5: teleportTowards(Entity)
      */
     bool teleportToTarget();
 
@@ -120,21 +158,24 @@ public:
 
     /**
      * @brief 是否拿着方块
+     * MC 1.16.5: hasBlock()
      */
     [[nodiscard]] bool isHoldingBlock() const { return m_holdingBlock; }
 
     /**
-     * @brief 获取拿着的方块
+     * @brief 获取拿着的方块状态
+     * MC 1.16.5: getHeldBlockState()
      */
-    [[nodiscard]] BlockId getHeldBlock() const { return m_heldBlock; }
+    [[nodiscard]] const BlockState* getHeldBlockState() const { return m_heldBlockState; }
 
     /**
-     * @brief 设置拿着的方块
+     * @brief 设置拿着的方块状态
+     * MC 1.16.5: setHeldBlockState()
      */
-    void setHeldBlock(BlockId block) { m_heldBlock = block; m_holdingBlock = true; }
+    void setHeldBlockState(const BlockState* state);
 
     /**
-     * @brief 放下方块
+     * @brief 放下拿着的方块
      */
     void placeHeldBlock();
 
@@ -150,17 +191,11 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
-    // ========== 水伤害 ==========
-
-    /**
-     * @brief 是否在水中
-     */
-    [[nodiscard]] bool isInWater() const override;
-
     // ========== 属性 ==========
 
     /**
      * @brief 获取眼睛高度
+     * MC 1.16.5: 2.55f * scale
      */
     [[nodiscard]] f32 eyeHeight() const override { return 2.55f; }
 
@@ -178,6 +213,12 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 受到伤害时的处理
+     * MC 1.16.5: 攻击后瞬移
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -191,21 +232,27 @@ private:
 
     // 愤怒状态
     bool m_angry = false;
-    bool m_provoked = false;
+    bool m_screaming = false;  // 被注视状态
     i32 m_angerTime = 0;
 
     // 搬方块
     bool m_holdingBlock = false;
-    BlockId m_heldBlock = 0;
+    const BlockState* m_heldBlockState = nullptr;
 
     // 瞬移冷却
     i32 m_teleportCooldown = 0;
 
-    // 常量
-    static constexpr i32 TELEPORT_COOLDOWN = 50;    // 瞬移冷却
-    static constexpr i32 ANGER_DURATION = 600;      // 愤怒持续时间
-    static constexpr f32 WATER_DAMAGE = 1.0f;       // 水伤害
-    static constexpr i32 WATER_DAMAGE_INTERVAL = 10; // 水伤害间隔
+    // MC 1.16.5 常量
+    static constexpr i32 TELEPORT_COOLDOWN = 50;      // 瞬移冷却 (ticks)
+    static constexpr i32 ANGER_DURATION = 600;        // 愤怒持续时间 (ticks)
+    static constexpr f32 TELEPORT_RANGE = 64.0f;      // 瞬移范围
+    static constexpr f32 WATER_DAMAGE = 1.0f;         // 水伤害
+    static constexpr i32 WATER_DAMAGE_INTERVAL = 10;  // 水伤害间隔
+
+    /**
+     * @brief 检查是否在水中或雨中
+     */
+    [[nodiscard]] bool isInWaterOrRain() const;
 };
 
 } // namespace mc

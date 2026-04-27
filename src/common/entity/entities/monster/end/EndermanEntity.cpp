@@ -1,12 +1,20 @@
 #include "EndermanEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../damage/DamageSource.hpp"
+#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include <cmath>
 
 namespace mc {
 
 EndermanEntity::EndermanEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
+    // MC 1.16.5: 末影人不在阳光下燃烧
+    setBurnsInDaylight(false);
+
     // 注册 AI 目标
     registerGoals();
 
@@ -16,6 +24,34 @@ EndermanEntity::EndermanEntity(LegacyEntityType type, EntityId id)
 
 std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/) {
     return std::make_unique<EndermanEntity>(LegacyEntityType::Unknown, 0);
+}
+
+std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const {
+    // MC 1.16.5: 愤怒时返回 ambient，被注视时返回 scream
+    if (m_screaming) {
+        return makeSoundEventId("scream");
+    }
+    return makeSoundEventId("ambient");
+}
+
+std::optional<ResourceLocation> EndermanEntity::getHurtSound(DamageSource& /*source*/) const {
+    // MC 1.16.5: entity.enderman.hurt
+    return makeSoundEventId("hurt");
+}
+
+std::optional<ResourceLocation> EndermanEntity::getDeathSound() const {
+    // MC 1.16.5: entity.enderman.death
+    return makeSoundEventId("death");
+}
+
+std::optional<ResourceLocation> EndermanEntity::getStareSound() const {
+    // MC 1.16.5: entity.enderman.stare
+    return makeSoundEventId("stare");
+}
+
+std::optional<ResourceLocation> EndermanEntity::getTeleportSound() const {
+    // MC 1.16.5: entity.enderman.teleport
+    return makeSoundEventId("teleport");
 }
 
 void EndermanEntity::setRevengeTarget(LivingEntity* target) {
@@ -31,59 +67,88 @@ void EndermanEntity::setAngry(bool angry) {
     if (!angry) {
         m_angerTime = 0;
         m_attackTarget = nullptr;
+        m_screaming = false;
     }
 }
 
+void EndermanEntity::setHeldBlockState(const BlockState* state) {
+    m_heldBlockState = state;
+    m_holdingBlock = (state != nullptr);
+}
+
 bool EndermanEntity::teleport() {
+    // MC 1.16.5 EndermanEntity.teleport()
     if (m_teleportCooldown > 0) {
         return false;
     }
 
-    // TODO: 执行瞬移
-    // 随机选择一个位置并瞬移
+    // TODO: 实现瞬移逻辑
+    // 1. 随机选择一个位置（32格范围内）
+    // 2. 检查目标位置是否有效
+    // 3. 瞬移到目标位置
+    // 4. 播放瞬移音效
 
     m_teleportCooldown = TELEPORT_COOLDOWN;
+
+    // 播放瞬移音效
+    auto teleportSound = getTeleportSound();
+    if (teleportSound) {
+        playSound(*teleportSound, 1.0f, 1.0f);
+    }
+
     return true;
 }
 
 bool EndermanEntity::teleportToTarget() {
-    if (m_teleportCooldown > 0) {
+    // MC 1.16.5 EndermanEntity.teleportTowards()
+    if (m_attackTarget == nullptr || m_teleportCooldown > 0) {
         return false;
     }
 
-    // TODO: 瞬移到目标附近
+    // TODO: 实现瞬移到目标附近的逻辑
+    // 1. 选择目标附近的位置
+    // 2. 瞬移
 
     m_teleportCooldown = TELEPORT_COOLDOWN;
     return true;
 }
 
 bool EndermanEntity::teleportAwayFromWater() {
+    // MC 1.16.5: 瞬移避开水
     return teleport();
 }
 
 void EndermanEntity::placeHeldBlock() {
-    if (!m_holdingBlock) {
+    // MC 1.16.5 EndermanEntity.placeBlock()
+    if (!m_holdingBlock || m_heldBlockState == nullptr) {
         return;
     }
 
     // TODO: 放置方块
+    // 1. 找到合适的放置位置
+    // 2. 检查是否可以放置
+    // 3. 放置方块
+
     m_holdingBlock = false;
-    m_heldBlock = 0;
+    m_heldBlockState = nullptr;
 }
 
 void EndermanEntity::pickUpBlock() {
+    // MC 1.16.5 EndermanEntity.takeBlock()
     // TODO: 拾取方块
-    // m_heldBlock = ...;
-    // m_holdingBlock = true;
+    // 1. 找到可拾取的方块
+    // 2. 检查方块是否在可拾取列表中
+    // 3. 移除方块并设置 heldBlockState
 }
 
-bool EndermanEntity::isInWater() const {
-    // TODO: 检查是否在水中
-    // return world()->containsLiquid(getBoundingBox());
-    return false;
+bool EndermanEntity::isInWaterOrRain() const {
+    // MC 1.16.5: 检查是否在水中或雨中
+    // TODO: 实现
+    return isInWater();
 }
 
 void EndermanEntity::tick() {
+    // MC 1.16.5 EndermanEntity.tick()
     MonsterEntity::tick();
 
     // 更新瞬移冷却
@@ -96,38 +161,72 @@ void EndermanEntity::tick() {
         m_angerTime--;
         if (m_angerTime <= 0) {
             m_angry = false;
-            m_provoked = false;
+            m_screaming = false;
         }
     }
 
-    // 检查水伤害
-    if (isInWater()) {
-        // TODO: 受到水伤害
-        // damage(DamageSource::DROWN, WATER_DAMAGE);
+    // 检查水/雨伤害
+    if (isInWaterOrRain()) {
+        // MC 1.16.5: 在水中受到伤害并瞬移
+        // TODO: damage(DamageSource::DROWN, WATER_DAMAGE);
         teleportAwayFromWater();
     }
 
-    // 搬方块行为
-    // TODO: 随机搬起/放下方块
+    // 被注视时更新状态
+    // TODO: 检查玩家是否正在看末影人的眼睛
+}
+
+bool EndermanEntity::hurt(DamageSource& source, f32 amount) {
+    // MC 1.16.5 EndermanEntity.attackEntityFrom()
+    if (!MonsterEntity::hurt(source, amount)) {
+        return false;
+    }
+
+    // 受伤后有概率瞬移
+    // TODO: 如果伤害来自投射物，瞬移避让
+    // TODO: 否则 50% 概率瞬移
+
+    return true;
 }
 
 void EndermanEntity::registerGoals() {
     // 调用父类方法
     MonsterEntity::registerGoals();
 
-    // TODO: 末影人 AI 目标
-    // - EndermanAttackGoal: 攻击目标
-    // - EndermanTeleportGoal: 瞬移
-    // - EndermanPlaceBlockGoal: 放置方块
-    // - EndermanPickupBlockGoal: 拾取方块
+    // MC 1.16.5 EndermanEntity.registerGoals()
+    // 优先级顺序：
+    // 0: SwimGoal (父类已注册)
+    // 1: PanicGoal (不注册 - 末影人不会惊慌)
+    // 2: MeleeAttackGoal (攻击目标)
+    // 5: WaterAvoidingRandomWalkingGoal (避水随机行走)
+    // 7: LookAtGoal (看向玩家，但会激怒末影人)
+    // 8: LookRandomlyGoal (随机看向)
+    //
+    // 目标选择器：
+    // 1: HurtByTargetGoal (被攻击反击)
+    // 2: NearestAttackableTargetGoal<Player> (攻击注视玩家，有特殊条件)
+    // 3: NearestAttackableTargetGoal<EndermiteEntity> (攻击末影螨)
+
+    // 优先级 2: 近战攻击
+    m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
+
+    // 优先级 7: 看向玩家（会激怒末影人）
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
+        [](const LivingEntity* /*entity*/) -> bool {
+            // 只看向玩家
+            // TODO: 检查是否是玩家
+            return true;
+        }));
+
+    // 优先级 8: 随机看向
+    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
 void EndermanEntity::registerAttributes() {
     // 调用父类方法
     MonsterEntity::registerAttributes();
 
-    // 末影人的属性
-    // 参考 MC 1.16.5 末影人属性
+    // MC 1.16.5 EndermanEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
