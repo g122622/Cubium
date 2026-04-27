@@ -103,8 +103,9 @@ void MovementController::tick() {
         f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 
         // MC 1.16.5: 限制旋转速度为90度/tick
+        // MC 1.16.5 limitAngle 结果必须包装到 [0, 360)
         f32 currentYaw = m_mob->yaw();
-        f32 newYaw = math::clampedRotate(currentYaw, targetYaw, 90.0f);
+        f32 newYaw = math::wrapDegreesPositive(math::clampedRotate(currentYaw, targetYaw, 90.0f));
 
         m_mob->setRotation(newYaw, m_mob->pitch());
 
@@ -125,14 +126,14 @@ void MovementController::tick() {
             shouldJump = true;
         }
 
-        // MC 1.16.5 条件2: 检查前方方块碰撞形状（门、栅栏等特殊情况）
-        // 检查实体前方方块是否有碰撞，且不是门或栅栏
+        // MC 1.16.5 条件2: 检查实体所在位置方块的碰撞形状（门、栅栏等特殊情况）
+        // MC 1.16.5: 检查的是实体当前位置的方块，而不是前方方块
+        // 参考: MovementController.tick() 中的跳跃检测逻辑
         if (!shouldJump && m_mob->world()) {
-            // 计算前方方块位置
-            f32 yawRad = m_mob->yaw() * math::DEG_TO_RAD;
-            i32 blockX = static_cast<i32>(std::floor(m_mob->x() + std::sin(yawRad)));
+            // MC 1.16.5: 使用实体当前位置
+            i32 blockX = static_cast<i32>(std::floor(m_mob->x()));
             i32 blockY = static_cast<i32>(std::floor(m_mob->y()));
-            i32 blockZ = static_cast<i32>(std::floor(m_mob->z() - std::cos(yawRad)));
+            i32 blockZ = static_cast<i32>(std::floor(m_mob->z()));
 
             if (const BlockState* state = m_mob->world()->getBlockState(blockX, blockY, blockZ)) {
                 const Block& block = state->getBlock();
@@ -152,7 +153,8 @@ void MovementController::tick() {
                     f64 shapeTopY = static_cast<f64>(blockY) + shapeMaxY;
 
                     if (entityY < shapeTopY) {
-                        // MC 1.16.5: 检查是否是门或栅栏（这些可以打开或跳过）
+                        // MC 1.16.5: 只检查 DOORS 和 FENCES 标签，不检查 WALLS
+                        // 参考代码: !block.isIn(BlockTags.DOORS) && !block.isIn(BlockTags.FENCES)
                         // 使用 RTTI 检查方块类型
                         bool isDoorOrFence = false;
 
@@ -168,10 +170,7 @@ void MovementController::tick() {
                         else if (dynamic_cast<const FenceBlock*>(&block) != nullptr) {
                             isDoorOrFence = true;
                         }
-                        // 检查墙（与栅栏类似）
-                        else if (dynamic_cast<const WallBlock*>(&block) != nullptr) {
-                            isDoorOrFence = true;
-                        }
+                        // MC 1.16.5: 不检查墙(WallBlock)，墙会触发跳跃
 
                         if (!isDoorOrFence) {
                             shouldJump = true;

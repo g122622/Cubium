@@ -8,7 +8,10 @@ namespace mc::entity::ai::pathfinding {
  * @brief 路径节点类型
  *
  * 定义不同地形节点的可通行性和代价惩罚。
- * 参考 MC 1.16.5 PathNodeType
+ * 参考 MC 1.16.5 PathNodeType（共23种类型）
+ *
+ * 注意：CLIMBABLE、DANGER_FALL、TRAPDOOR_DOWN、FENCE_GATE、DANGER_BERRY
+ * 是MC后续版本添加的，MC 1.16.5中不存在这些类型。
  */
 enum class PathNodeType : u8 {
     /// 完全阻塞，无法通行 (priority = -1.0F)
@@ -83,19 +86,21 @@ enum class PathNodeType : u8 {
     /// 可可果 (priority = 0.0F)
     Cocoa = 23,
 
-    /// 甜浆果丛危险区域 (priority = 8.0F)
+    // MC 1.16.5共23种类型，以下是扩展类型（供后续版本使用）
+
+    /// 甜浆果丛危险区域 (MC 1.15+)
     DangerBerry = 24,
 
-    /// 攀爬（梯子、藤蔓等） (priority = 0.0F)
+    /// 攀爬（梯子、藤蔓等）(MC 1.16.5后添加)
     Climbable = 25,
 
-    /// 跌落危险 (priority = -1.0F)
+    /// 跌落危险 (MC 1.16.5后添加)
     DangerFall = 26,
 
-    /// 栅栏门 (priority = 0.0F)
+    /// 栅栏门 (MC 1.16.5后添加)
     FenceGate = 27,
 
-    /// 活板门（可下落） (priority = 0.0F)
+    /// 活板门（可下落）(MC 1.16.5后添加)
     TrapdoorDown = 28,
 
     /// 其他

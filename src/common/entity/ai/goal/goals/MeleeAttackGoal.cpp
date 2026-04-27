@@ -92,6 +92,9 @@ void MeleeAttackGoal::startExecuting() {
     m_targetZ = 0.0;
 
     if (m_creature) {
+        // MC 1.16.5: 设置激怒状态
+        m_creature->setAggroed(true);
+
         if (auto* nav = m_creature->navigator()) {
             if (m_attackTarget) {
                 nav->moveTo(*m_attackTarget, m_speed);
@@ -198,6 +201,9 @@ void MeleeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnem
 
 void MeleeAttackGoal::attackTarget(LivingEntity* target) {
     if (!m_creature || !target) return;
+
+    // MC 1.16.5: 挥动手臂动画
+    m_creature->swingArm();
 
     // MC 1.16.5: 调用实体本身的攻击方法
     // 使用伤害属性

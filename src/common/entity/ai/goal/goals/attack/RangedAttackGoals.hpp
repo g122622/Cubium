@@ -82,6 +82,8 @@ public:
     ~RangedBowAttackGoal() override = default;
 
     [[nodiscard]] bool shouldExecute() override;
+    void startExecuting() override;
+    void resetTask() override;
     void tick() override;
 
 protected:
@@ -91,7 +93,13 @@ private:
     bool m_isBowCharging = false;
     i32 m_chargeTime = 0;
 
-    static constexpr i32 BOW_CHARGE_TIME = 20; // 弓满蓄力时间
+    // MC 1.16.5: 走位相关字段
+    bool m_strafingClockwise = false;    // 是否顺时针走位
+    bool m_strafingBackwards = false;    // 是否向后走位
+    i32 m_strafingTime = -1;              // 走位时间计数器
+
+    static constexpr i32 BOW_CHARGE_TIME = 20;      // 弓满蓄力时间
+    static constexpr i32 STRAFE_THRESHOLD = 20;     // 走位方向变化阈值（MC 1.16.5）
 };
 
 } // namespace entity::ai::goal

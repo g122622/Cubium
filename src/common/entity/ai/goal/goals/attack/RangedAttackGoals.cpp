@@ -129,6 +129,9 @@ RangedBowAttackGoal::RangedBowAttackGoal(MobEntity* mob, f64 speed, i32 attackIn
     : RangedAttackGoal(mob, speed, attackIntervalMin, attackIntervalMax, 15.0f)
     , m_isBowCharging(false)
     , m_chargeTime(0)
+    , m_strafingClockwise(false)
+    , m_strafingBackwards(false)
+    , m_strafingTime(-1)
 {
 }
 
@@ -144,6 +147,24 @@ bool RangedBowAttackGoal::shouldExecute() {
     return RangedAttackGoal::shouldExecute();
 }
 
+void RangedBowAttackGoal::startExecuting() {
+    RangedAttackGoal::startExecuting();
+    m_isBowCharging = false;
+    m_chargeTime = 0;
+    m_strafingClockwise = false;
+    m_strafingBackwards = false;
+    m_strafingTime = -1;
+}
+
+void RangedBowAttackGoal::resetTask() {
+    RangedAttackGoal::resetTask();
+    m_isBowCharging = false;
+    m_chargeTime = 0;
+    m_strafingClockwise = false;
+    m_strafingBackwards = false;
+    m_strafingTime = -1;
+}
+
 void RangedBowAttackGoal::tick() {
     if (!m_mob || !m_target) return;
 
@@ -156,11 +177,39 @@ void RangedBowAttackGoal::tick() {
         lookCtrl->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
     }
 
+    // MC 1.16.5: 走位逻辑
+    // 走位时间计数器递增
+    m_strafingTime++;
+
+    // MC 1.16.5: 每隔 STRAFE_THRESHOLD(20) tick 有概率改变走位方向
+    if (m_strafingTime >= STRAFE_THRESHOLD) {
+        math::Random rng = m_mob->getRandom();
+        // 30% 概率改变顺时针/逆时针
+        if (rng.nextFloat() < 0.3f) {
+            m_strafingClockwise = !m_strafingClockwise;
+        }
+        // 30% 概率改变前进/后退
+        if (rng.nextFloat() < 0.3f) {
+            m_strafingBackwards = !m_strafingBackwards;
+        }
+        m_strafingTime = 0;
+    }
+
     // 检查是否在攻击范围内
     if (dist <= m_attackRadius && dist >= m_attackRadius * 0.5f) {
-        // 在攻击范围内
+        // 在攻击范围内 - 走位模式
+        if (m_strafingTime > -1) {
+            // MC 1.16.5: 使用 MovementController 的 strafe 方法
+            f32 forward = m_strafingBackwards ? -0.5f : 0.5f;
+            f32 strafe = m_strafingClockwise ? 0.5f : -0.5f;
+
+            if (auto* moveCtrl = m_mob->moveController()) {
+                moveCtrl->strafe(forward, strafe);
+            }
+        }
+
+        // 蓄力和发射逻辑
         if (m_isBowCharging) {
-            // 正在蓄力
             m_chargeTime++;
 
             if (m_chargeTime >= BOW_CHARGE_TIME) {
@@ -173,17 +222,14 @@ void RangedBowAttackGoal::tick() {
             // 开始蓄力
             m_isBowCharging = true;
             m_chargeTime = 0;
-
-            // 停止移动
-            m_mob->clearNavigation();
         }
     } else {
-        // 不在攻击范围内，向目标移动
+        // 不在攻击范围内，取消蓄力和走位，向目标移动
         if (m_isBowCharging) {
-            // 取消蓄力
             m_isBowCharging = false;
             m_chargeTime = 0;
         }
+        m_strafingTime = -1;
 
         // 尝试转换为CreatureEntity以使用tryMoveTo
         CreatureEntity* creature = dynamic_cast<CreatureEntity*>(m_mob);

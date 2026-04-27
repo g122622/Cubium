@@ -1,11 +1,18 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "../../../util/math/Vector3.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include "PathPoint.hpp"
 #include <vector>
 #include <optional>
 
-namespace mc::entity::ai::pathfinding {
+namespace mc {
+
+// 前向声明
+class Entity;
+
+namespace entity::ai::pathfinding {
 
 /**
  * @brief 路径对象
@@ -24,6 +31,19 @@ public:
      */
     explicit Path(std::vector<PathPoint>&& points)
         : m_points(std::move(points))
+    {
+    }
+
+    /**
+     * @brief 完整构造函数
+     * @param points 路径点数组
+     * @param target 目标位置
+     * @param reachesTarget 是否到达目标
+     */
+    Path(std::vector<PathPoint>&& points, const BlockPos& target, bool reachesTarget)
+        : m_points(std::move(points))
+        , m_target(target)
+        , m_reachesTarget(reachesTarget)
     {
     }
 
@@ -54,6 +74,39 @@ public:
     [[nodiscard]] const PathPoint* getStart() const {
         return m_points.empty() ? nullptr : &m_points.front();
     }
+
+    /**
+     * @brief 获取目标位置
+     * MC 1.16.5: getTarget()
+     */
+    [[nodiscard]] const BlockPos& getTarget() const { return m_target; }
+
+    /**
+     * @brief 设置目标位置
+     */
+    void setTarget(const BlockPos& target) { m_target = target; }
+
+    /**
+     * @brief 检查是否到达目标
+     * MC 1.16.5: reachesTarget()
+     */
+    [[nodiscard]] bool reachesTarget() const { return m_reachesTarget; }
+
+    /**
+     * @brief 设置是否到达目标
+     */
+    void setReachesTarget(bool reaches) { m_reachesTarget = reaches; }
+
+    /**
+     * @brief 获取到目标的距离
+     * MC 1.16.5: field_224773_g
+     */
+    [[nodiscard]] f32 getDistToTarget() const { return m_distToTarget; }
+
+    /**
+     * @brief 设置到目标的距离
+     */
+    void setDistToTarget(f32 dist) { m_distToTarget = dist; }
 
     // ========== 路径点访问 ==========
 
@@ -122,6 +175,17 @@ public:
      */
     void setCurrentIndex(i32 index) {
         m_currentIndex = std::max(0, std::min(index, static_cast<i32>(m_points.size()) - 1));
+    }
+
+    /**
+     * @brief 设置路径长度（裁剪）
+     * MC 1.16.5: setCurrentPathLength()
+     * @param length 新的路径长度
+     */
+    void setCurrentPathLength(i32 length) {
+        if (length >= 0 && length < static_cast<i32>(m_points.size())) {
+            m_points.resize(static_cast<size_t>(length));
+        }
     }
 
     // ========== 路径操作 ==========
@@ -197,9 +261,47 @@ public:
         return (dx * dx + dy * dy + dz * dz) <= tolerance * tolerance;
     }
 
+    /**
+     * @brief 获取路径点位置的向量（考虑实体宽度）
+     * MC 1.16.5: getVectorFromIndex()
+     * @param entity 实体
+     * @param index 路径点索引
+     * @return 位置向量
+     */
+    [[nodiscard]] Vector3d getVectorFromIndex(const Entity* entity, i32 index) const;
+
+    /**
+     * @brief 获取当前位置向量
+     * MC 1.16.5: getPosition()
+     * @param entity 实体
+     * @return 当前目标位置向量
+     */
+    [[nodiscard]] Vector3d getPosition(const Entity* entity) const;
+
+    /**
+     * @brief 检查两个路径是否相同
+     * MC 1.16.5: isSamePath()
+     * @param other 另一个路径
+     */
+    [[nodiscard]] bool isSamePath(const Path& other) const {
+        if (m_points.size() != other.m_points.size()) {
+            return false;
+        }
+        for (size_t i = 0; i < m_points.size(); ++i) {
+            if (!m_points[i].equals(other.m_points[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 private:
     std::vector<PathPoint> m_points;
-    i32 m_currentIndex = 0;
+    BlockPos m_target;                     // 目标位置
+    f32 m_distToTarget = 0.0f;            // 到目标的距离
+    bool m_reachesTarget = false;          // 是否到达目标
+    i32 m_currentIndex = 0;                // 当前路径点索引
 };
 
-} // namespace mc::entity::ai::pathfinding
+} // namespace entity::ai::pathfinding
+} // namespace mc

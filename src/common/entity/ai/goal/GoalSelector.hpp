@@ -253,8 +253,8 @@ private:
             bool canStart = true;
             flags.forEach([this, &goal, &canStart](GoalFlag flag) {
                 auto it = m_flagGoals.find(flag);
-                // MC 1.16.5: 使用 DUMMY 作为默认值（isRunning() 返回 false）
-                if (it != m_flagGoals.end() && !it->second->isPreemptedBy(goal)) {
+                // MC 1.16.5: 如果没有正在运行的目标，或者当前目标可被新目标抢占
+                if (it != m_flagGoals.end() && it->second && !it->second->isPreemptedBy(goal)) {
                     canStart = false;
                 }
             });

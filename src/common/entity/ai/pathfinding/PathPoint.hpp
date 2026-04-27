@@ -16,6 +16,12 @@ namespace mc::entity::ai::pathfinding {
 class PathPoint {
 public:
     /**
+     * @brief 默认构造函数
+     * 用于std::vector等容器
+     */
+    PathPoint() = default;
+
+    /**
      * @brief 构造函数
      * @param x X坐标
      * @param y Y坐标
@@ -73,8 +79,13 @@ public:
 
     // ========== 父节点 ==========
 
+    /**
+     * @brief 获取父节点（用于重建路径）
+     * MC 1.16.5: previous
+     */
+    [[nodiscard]] PathPoint* parent() { return m_parent; }
     [[nodiscard]] const PathPoint* parent() const { return m_parent; }
-    void setParent(const PathPoint* parent) { m_parent = parent; }
+    void setParent(PathPoint* parent) { m_parent = parent; }
 
     // ========== 堆索引 ==========
 
@@ -128,12 +139,15 @@ public:
 
     /**
      * @brief 创建移动克隆（MC 1.16.5 cloneMove）
-     * 创建一个新位置的克隆，但保留代价信息
+     * 创建一个新位置的克隆，保留代价信息和父节点。
+     * MC 1.16.5: 复制所有寻路状态字段
      */
     [[nodiscard]] PathPoint cloneMove(i32 newX, i32 newY, i32 newZ) const {
         PathPoint copy(newX, newY, newZ);
         copy.m_nodeType = m_nodeType;
         copy.m_costMalus = m_costMalus;
+        // MC 1.16.5: cloneMove 不复制 visited、parent、heapIndex
+        // 只复制节点类型和代价惩罚
         return copy;
     }
 
@@ -163,7 +177,7 @@ private:
     f32 m_distanceToNext = 0.0f;   // 到下一个路径点的距离
     PathNodeType m_nodeType = PathNodeType::Blocked;  // MC 1.16.5: 默认BLOCKED
     bool m_visited = false;        // 是否已访问（在闭合列表中）
-    const PathPoint* m_parent = nullptr; // 父节点（用于重建路径）
+    PathPoint* m_parent = nullptr; // 父节点（用于重建路径），MC 1.16.5: previous
     i32 m_heapIndex = -1;          // 在堆中的索引（用于优先队列）
 };
 

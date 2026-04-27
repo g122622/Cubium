@@ -118,6 +118,18 @@ public:
      */
     void setAttackTarget(LivingEntity* target) { m_attackTarget = target; }
 
+    /**
+     * @brief 检查是否处于激怒状态
+     * MC 1.16.5: 激怒状态会触发特定的渲染效果
+     */
+    [[nodiscard]] bool isAggroed() const { return m_aggroed; }
+
+    /**
+     * @brief 设置激怒状态
+     * MC 1.16.5: 在攻击目标时设置
+     */
+    void setAggroed(bool aggroed) { m_aggroed = aggroed; }
+
     // ========== 刻更新 ==========
 
     void tick() override;
@@ -282,6 +294,7 @@ protected:
 
     // AI 状态
     bool m_aiEnabled = true;
+    bool m_aggroed = false;  // MC 1.16.5: 激怒状态
     i32 m_idleTime = 0;  // 空闲时间（用于随机漫步等）
     i32 m_livingSoundTime = 0;
 

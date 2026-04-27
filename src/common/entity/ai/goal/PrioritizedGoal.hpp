@@ -2,6 +2,7 @@
 
 #include "Goal.hpp"
 #include <memory>
+#include <limits>
 
 namespace mc::entity::ai {
 
@@ -38,56 +39,80 @@ public:
     {}
 
     /**
+     * @brief 默认构造函数（创建DUMMY对象）
+     * MC 1.16.5: 用于GoalSelector中flagGoals的默认值
+     */
+    PrioritizedGoal()
+        : m_priority(std::numeric_limits<int>::max())
+        , m_inner(nullptr)
+        , m_running(false)
+    {}
+
+    /**
      * @brief 是否可以被另一个目标抢占
      * @param other 要比较的目标
      * @return true 如果当前目标可以被抢占
      */
     [[nodiscard]] bool isPreemptedBy(const PrioritizedGoal& other) const {
-        return isPreemptible() && other.m_priority < m_priority;
+        // MC 1.16.5: DUMMY（空目标）总是返回true
+        if (!m_inner) {
+            return true;
+        }
+        // MC 1.16.5: 如果不可抢占，返回false
+        if (!isPreemptible()) {
+            return false;
+        }
+        // MC 1.16.5: 如果other优先级更高（数值更小），则可被抢占
+        return other.m_priority < m_priority;
     }
 
     // ========== Goal 接口实现 ==========
 
     [[nodiscard]] bool shouldExecute() override {
-        return m_inner->shouldExecute();
+        return m_inner && m_inner->shouldExecute();
     }
 
     [[nodiscard]] bool shouldContinueExecuting() override {
-        return m_inner->shouldContinueExecuting();
+        return m_inner && m_inner->shouldContinueExecuting();
     }
 
     [[nodiscard]] bool isPreemptible() const override {
-        return m_inner->isPreemptible();
+        return !m_inner || m_inner->isPreemptible();
     }
 
     void startExecuting() override {
-        if (!m_running) {
+        if (m_inner && !m_running) {
             m_running = true;
             m_inner->startExecuting();
         }
     }
 
     void resetTask() override {
-        if (m_running) {
+        if (m_inner && m_running) {
             m_running = false;
             m_inner->resetTask();
         }
     }
 
     void tick() override {
-        m_inner->tick();
+        if (m_inner) {
+            m_inner->tick();
+        }
     }
 
     void setMutexFlags(const EnumSet<GoalFlag>& flags) {
-        m_inner->setMutexFlags(flags);
+        if (m_inner) {
+            m_inner->setMutexFlags(flags);
+        }
     }
 
     [[nodiscard]] const EnumSet<GoalFlag>& getMutexFlags() const {
-        return m_inner->getMutexFlags();
+        static EnumSet<GoalFlag> emptyFlags;
+        return m_inner ? m_inner->getMutexFlags() : emptyFlags;
     }
 
     [[nodiscard]] String getTypeName() const override {
-        return m_inner->getTypeName();
+        return m_inner ? m_inner->getTypeName() : "DUMMY";
     }
 
     // ========== PrioritizedGoal 特有方法 ==========
@@ -121,9 +146,26 @@ public:
     }
 
     /**
+     * @brief 检查是否为空（DUMMY对象）
+     */
+    [[nodiscard]] bool isNull() const {
+        return m_inner == nullptr;
+    }
+
+    /**
      * @brief 相等比较
+     * MC 1.16.5: 比较内部Goal是否相同（指针比较）
      */
     [[nodiscard]] bool operator==(const PrioritizedGoal& other) const {
+        // MC 1.16.5: 两个null比较返回false
+        if (!m_inner && !other.m_inner) {
+            return false;
+        }
+        // 一个null一个非null返回false
+        if (!m_inner || !other.m_inner) {
+            return false;
+        }
+        // 比较内部Goal指针
         return m_inner.get() == other.m_inner.get();
     }
 

@@ -12,9 +12,10 @@ void JumpController::setJumping() {
 }
 
 void JumpController::tick() {
-    // 将跳跃状态应用到实体
-    if (m_mob && m_isJumping) {
-        m_mob->setJumping(true);
+    // MC 1.16.5: 总是调用 setJumping(isJumping)，即使 isJumping 为 false
+    // 这确保实体的跳跃状态被正确重置
+    if (m_mob) {
+        m_mob->setJumping(m_isJumping);
     }
     m_isJumping = false;
 }

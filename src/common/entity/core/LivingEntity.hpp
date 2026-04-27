@@ -358,6 +358,21 @@ public:
      */
     [[nodiscard]] i32 swingProgressInt() const { return m_swingProgressInt; }
 
+    /**
+     * @brief 挥动手臂（攻击动画）
+     *
+     * MC 1.16.5: LivingEntity.swingArm()
+     * 触发攻击动画，持续6 tick。
+     */
+    void swingArm() {
+        if (!m_swingInProgress) {
+            m_swingInProgress = true;
+            m_swingProgressInt = 0;
+            m_swingProgress = 0.0f;
+            m_prevSwingProgress = 0.0f;
+        }
+    }
+
     // ========== 跳跃 ==========
 
     /**
