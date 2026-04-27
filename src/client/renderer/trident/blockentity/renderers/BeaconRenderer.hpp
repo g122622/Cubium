@@ -1,0 +1,100 @@
+#pragma once
+
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
+
+namespace mc {
+
+namespace blockentity {
+class BeaconEntity;
+}
+
+namespace client::renderer::trident::blockentity {
+
+/**
+ * @brief 信标方块实体渲染器
+ *
+ * 渲染信标光束效果。
+ * 参考 MC 1.16.5 BeaconTileEntityRenderer
+ *
+ * 信标光束特点：
+ * - 全局渲染器（可见距离256格）
+ * - 光束使用 gameTime 驱动旋转
+ * - 光束颜色由金字塔顶部的玻璃决定
+ * - 激活时有垂直光束，未激活时无光束
+ */
+class BeaconRenderer : public BlockEntityRenderer<mc::blockentity::BeaconEntity> {
+public:
+    BeaconRenderer();
+    ~BeaconRenderer() override = default;
+
+    // 禁止拷贝
+    BeaconRenderer(const BeaconRenderer&) = delete;
+    BeaconRenderer& operator=(const BeaconRenderer&) = delete;
+
+    // 允许移动
+    BeaconRenderer(BeaconRenderer&&) noexcept = default;
+    BeaconRenderer& operator=(BeaconRenderer&&) noexcept = default;
+
+    /**
+     * @brief 渲染信标方块实体
+     *
+     * @param entity 信标方块实体
+     * @param partialTick 部分tick（0.0-1.0）
+     * @param light 组合光照值
+     */
+    void render(const mc::blockentity::BeaconEntity& entity, f32 partialTick, u32 light) override;
+
+    /**
+     * @brief 信标是全局渲染器
+     *
+     * 光束需要远距离可见。
+     */
+    [[nodiscard]] bool isGlobalRenderer() const override { return true; }
+
+    /**
+     * @brief 信标最大渲染距离
+     *
+     * 光束可以在256格（16个区块）外看到。
+     */
+    [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 65536.0; }
+
+private:
+    BlockEntityRendererHelper m_helper;  ///< 渲染辅助工具
+
+    /**
+     * @brief 渲染信标基座
+     *
+     * @param pos 方块位置
+     * @param light 组合光照
+     */
+    void renderBeaconBase(const BlockPos& pos, u32 light);
+
+    /**
+     * @brief 渲染光束
+     *
+     * @param pos 方块位置
+     * @param level 金字塔等级
+     * @param gameTime 游戏时间
+     * @param partialTick 部分tick
+     * @param light 组合光照
+     */
+    void renderBeam(
+        const BlockPos& pos,
+        i32 level,
+        i64 gameTime,
+        f32 partialTick,
+        u32 light);
+
+    /**
+     * @brief 计算光束旋转角度
+     *
+     * @param gameTime 游戏时间
+     * @param partialTick 部分tick
+     * @return 旋转角度（弧度）
+     */
+    [[nodiscard]] f32 calculateBeamRotation(i64 gameTime, f32 partialTick) const;
+};
+
+} // namespace mc::client::renderer::trident::blockentity
+} // namespace mc

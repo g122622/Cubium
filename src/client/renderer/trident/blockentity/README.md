@@ -25,10 +25,10 @@ blockentity/
 │   ├── BeaconModel.hpp/cpp            # 信标模型
 │   └── BellModel.hpp/cpp              # 钟模型
 └── renderers/                         # 具体渲染器实现
-    ├── PistonRenderer.hpp/cpp         # 活塞渲染器
-    ├── ChestRenderer.hpp/cpp          # 箱子渲染器
-    ├── BeaconRenderer.hpp/cpp         # 信标渲染器
-    └── ...                            # 其他渲染器
+    ├── PistonRenderer.hpp/cpp         # 活塞渲染器 ✓
+    ├── ChestRenderer.hpp/cpp          # 箱子渲染器 ✓
+    ├── BeaconRenderer.hpp/cpp         # 信标渲染器 ✓
+    └── ...                            # 其他渲染器（待实现）
 ```
 
 ## 渲染流程

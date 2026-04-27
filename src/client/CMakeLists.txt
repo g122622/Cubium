@@ -91,6 +91,8 @@ add_executable(minecraft-client
     renderer/trident/blockentity/BlockEntityRenderer.cpp
     renderer/trident/blockentity/BlockEntityRendererDispatcher.cpp
     renderer/trident/blockentity/renderers/PistonRenderer.cpp
+    renderer/trident/blockentity/renderers/ChestRenderer.cpp
+    renderer/trident/blockentity/renderers/BeaconRenderer.cpp
     # 子渲染器
     renderer/trident/chunk/ChunkRenderer.cpp
     renderer/trident/chunk/ChunkMesher.cpp
