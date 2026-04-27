@@ -3,8 +3,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/core/Constants.hpp"
 #include "common/physics/PhysicsConstants.hpp"
-#include "common/world/IWorld.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/world/IWorld.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include <algorithm>
@@ -196,7 +196,9 @@ f64 Particle::getScale(f64 /*partialTick*/) const {
 }
 
 void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta) {
-    // 参考 MC 1.16.5 Entity.move() 和 Particle.move()
+    // 参考 MC 1.16.5 Particle.move() 和 Entity.move()
+    // 完整的 AABB 碰撞检测实现
+
     if (world == nullptr) {
         // 无世界引用，只移动不检测碰撞
         m_position += delta;
@@ -210,39 +212,43 @@ void Particle::move(mc::client::ClientWorld* world, const glm::vec3& delta) {
         return;
     }
 
-    // TODO: 实现完整的碰撞检测
-    // 目前使用简化版本：直接移动，只检测地面碰撞
-    glm::vec3 actualDelta(delta.x, delta.y, delta.z);
+    // 重置碰撞状态
+    m_collisionContext.reset();
 
-    // 应用重力后直接移动
-    m_position += actualDelta;
-
-    // 简化的地面检测：检查下方是否有方块
+    // 获取当前碰撞盒
     AxisAlignedBB bbox = getBoundingBox();
-    i32 checkY = mc::math::floorTo<i32>(bbox.minY - 0.01f);
-    const BlockState* state = world->getBlockState(
-        mc::math::floorTo<i32>((bbox.minX + bbox.maxX) * 0.5f),
-        checkY,
-        mc::math::floorTo<i32>((bbox.minZ + bbox.maxZ) * 0.5f)
+
+    // 使用 PhysicsEngine 进行碰撞检测
+    PhysicsEngine physics(*world);
+
+    // 粒子不需要步进（stepHeight = 0）
+    Vector3 actualDelta = physics.moveEntity(
+        bbox,
+        Vector3(delta.x, delta.y, delta.z),
+        0.0f  // stepHeight
     );
 
-    if (state != nullptr && !state->isAir()) {
-        const CollisionShape& shape = state->getCollisionShape();
-        if (!shape.isEmpty()) {
-            // 简化：假设方块是完整立方体
-            f32 blockTop = static_cast<f32>(checkY + 1);
-            if (m_position.y < blockTop) {
-                m_position.y = blockTop;
-                m_velocity.y = 0.0f;
-                m_collisionContext.onGround = true;
-                m_collisionContext.collidedY = true;
-            }
-        }
-    }
+    // 更新位置（从碰撞盒中心重算）
+    m_position.x = (bbox.minX + bbox.maxX) * 0.5f;
+    m_position.y = bbox.minY;
+    m_position.z = (bbox.minZ + bbox.maxZ) * 0.5f;
+
+    // 更新碰撞状态
+    m_collisionContext.collidedX = physics.collidedHorizontally() &&
+        (std::abs(actualDelta.x - delta.x) > physics::PARTICLE_MIN_MOVEMENT);
+    m_collisionContext.collidedY = physics.collidedVertically();
+    m_collisionContext.collidedZ = physics.collidedHorizontally() &&
+        (std::abs(actualDelta.z - delta.z) > physics::PARTICLE_MIN_MOVEMENT);
+
+    // 地面判定：Y 方向被阻挡且原移动向下
+    m_collisionContext.onGround = physics.collidedVertically() && delta.y < 0.0f;
 
     // 碰撞后速度归零
     if (m_collisionContext.collidedX) {
         m_velocity.x = 0.0f;
+    }
+    if (m_collisionContext.collidedY) {
+        m_velocity.y = 0.0f;
     }
     if (m_collisionContext.collidedZ) {
         m_velocity.z = 0.0f;

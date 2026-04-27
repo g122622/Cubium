@@ -11,12 +11,13 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 水滴粒子
  *
- * 参考 MC 1.16.5 DripWaterParticle
+ * 参考 MC 1.16.5 DripParticle.DrippingWater / FallingWater / LandingWater
  *
  * 特性：
  * - 从含水方块下方滴落
  * - 悬挂积累后下落
- * - 落地后可能产生水花
+ * - 落地后可能产生水花（SplashParticle）
+ * - 进入水中后消失
  */
 class DripWaterParticle : public DripParticle {
 public:
@@ -38,12 +39,27 @@ public:
         const glm::vec3& velocity,
         mc::client::ClientWorld* world);
 
+    /**
+     * @brief 工厂方法：创建落地水滴粒子
+     */
+    static std::unique_ptr<Particle> createLanding(
+        const glm::vec3& pos,
+        const glm::vec3& velocity,
+        mc::client::ClientWorld* world);
+
     [[nodiscard]] ParticleRenderType getRenderType() const override {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override {
-        return ResourceLocation("minecraft:particle/drip_hang");
+        // 根据状态返回不同纹理
+        if (m_dripState == DripState::Landed) {
+            return ResourceLocation("minecraft:particle/splash");
+        } else if (m_dripState == DripState::Falling) {
+            return ResourceLocation("minecraft:particle/drip_fall");
+        } else {
+            return ResourceLocation("minecraft:particle/drip_hang");
+        }
     }
 
     [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override;

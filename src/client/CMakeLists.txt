@@ -72,6 +72,7 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/effect/DragonBreathParticle.cpp
     renderer/trident/particle/particles/effect/SoulParticle.cpp
     renderer/trident/particle/particles/effect/RedstoneParticle.cpp
+    renderer/trident/particle/particles/effect/CampfireParticle.cpp
     # 粒子实现 - 生物
     renderer/trident/particle/particles/mob/HeartParticle.cpp
     renderer/trident/particle/particles/mob/VillagerParticle.cpp

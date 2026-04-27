@@ -74,7 +74,13 @@ private:
  * @brief 大型爆炸粒子
  *
  * 参考 MC 1.16.5 LargeExplosionParticle
- * 更大的爆炸效果，持续时间稍长。
+ *
+ * 特性：
+ * - 生命周期 6-9 tick
+ * - 发光粒子（最大亮度 15728880）
+ * - 根据年龄选择纹理帧（动画）
+ * - 无运动
+ * - 缩放随 xSpeed 参数变化
  */
 class LargeExplosionParticle : public Particle {
 public:
@@ -91,20 +97,17 @@ public:
         return ParticleRenderType::PARTICLE_SHEET_LIT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
-        return ResourceLocation("minecraft:particle/explosion_emitter");
-    }
+    [[nodiscard]] ResourceLocation getTextureLocation() const override;
 
     [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
         MC_UNUSED(world);
-        return 0xF0;
+        // MC 1.16.5: 固定高亮度 15728880 (blockLight=15, skyLight=15)
+        return 15728880;
     }
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_LIFETIME = 10.0;
-
     f64 m_initialSize;
 };
 

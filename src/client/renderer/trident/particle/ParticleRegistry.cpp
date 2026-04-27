@@ -209,6 +209,17 @@ void ParticleRegistry::registerBuiltinTypes() {
     registerSimpleType(ParticleTypeId::Vibration, "minecraft:vibration", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::GlowSquidInk, "minecraft:glow_squid_ink", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(ParticleTypeId::Glow, "minecraft:glow", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+
+    // 营火烟雾粒子
+    registerSimpleType(ParticleTypeId::CampfireCozy, "minecraft:campfire_cozy_smoke", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::CampfireSignal, "minecraft:campfire_signal_smoke", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 爆炸粒子
+    registerSimpleType(ParticleTypeId::LargeExplosion, "minecraft:explosion_emitter", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::HugeExplosion, "minecraft:explosion_huge", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 横扫攻击粒子
+    registerSimpleType(ParticleTypeId::SweepAttack, "minecraft:sweep_attack", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
 }
 
 } // namespace mc::client::renderer::trident::particle

@@ -28,18 +28,38 @@ particle/
     ├── RainParticle.hpp/cpp      # 雨滴粒子
     ├── SnowParticle.hpp/cpp      # 雪花粒子
     │
-    ├── ambient/                  # 环境粒子（待实现）
-    ├── block/                    # 方块粒子（待实现）
+    ├── ambient/                  # 环境粒子
+    │   ├── BubbleParticle.hpp/cpp    # 水下气泡粒子
+    │   ├── UnderwaterParticle.hpp/cpp # 水下悬浮粒子
+    │   └── CloudParticle.hpp/cpp     # 云朵粒子
+    │
+    ├── block/                    # 方块粒子
+    │   └── DiggingParticle.hpp/cpp   # 挖掘粒子
+    │
     ├── effect/                   # 特效粒子
-    │   ├── FlameParticle.hpp/cpp # 火焰粒子
-    │   ├── SmokeParticle.hpp/cpp # 烟雾粒子
-    │   ├── LavaParticle.hpp/cpp  # 熔岩滴粒子
-    │   └── PortalParticle.hpp/cpp# 传送门粒子
+    │   ├── FlameParticle.hpp/cpp     # 火焰粒子
+    │   ├── SmokeParticle.hpp/cpp     # 烟雾粒子
+    │   ├── LavaParticle.hpp/cpp      # 熔岩滴粒子
+    │   ├── PortalParticle.hpp/cpp    # 传送门粒子
+    │   ├── CritParticle.hpp/cpp      # 暴击粒子
+    │   ├── ExplosionParticle.hpp/cpp # 爆炸粒子（含 LargeExplosion）
+    │   ├── PoofParticle.hpp/cpp      # 消散粒子
+    │   ├── SpellParticle.hpp/cpp     # 药水效果粒子
+    │   ├── DragonBreathParticle.hpp/cpp # 龙息粒子（含 EndRod, SweepAttack）
+    │   ├── SoulParticle.hpp/cpp      # 灵魂粒子
+    │   ├── RedstoneParticle.hpp/cpp  # 红石粉尘粒子
+    │   └── CampfireParticle.hpp/cpp  # 营火烟雾粒子
+    │
     ├── liquid/                   # 液体粒子
-    │   └── DripParticle.hpp/cpp  # 液体滴落粒子基类
+    │   ├── DripParticle.hpp/cpp      # 液体滴落粒子基类
+    │   └── DripWaterParticle.hpp/cpp # 水滴粒子
+    │
     ├── mob/                      # 生物粒子
-    │   └── HeartParticle.hpp/cpp # 爱心粒子
-    └── weather/                  # 天气粒子（待实现）
+    │   ├── HeartParticle.hpp/cpp     # 爱心粒子
+    │   └── VillagerParticle.hpp/cpp  # 村民粒子
+    │
+    └── weather/                  # 天气粒子
+        └── SplashParticle.hpp/cpp    # 水溅粒子
 ```
 
 ## 核心类
@@ -127,16 +147,73 @@ auto particle = ParticleRegistry::instance().createParticle(
 | CUSTOM | 自定义渲染 | - | - |
 | NO_RENDER | 不渲染 | - | - |
 
-## 粒子类型
+## 已实现的粒子类型
 
-参考 MC 1.16.5 ParticleTypes，支持以下分类：
+### 环境粒子（ambient/）
+- **BubbleParticle**: 水下气泡，向上漂浮，离开水面消失
+- **UnderwaterParticle**: 水下悬浮粒子
+- **CloudParticle**: 云朵粒子
 
-- **环境类**：气泡、水下悬浮、传送门等
-- **方块/物品类**：破坏粒子、挖掘粒子、下落灰尘等
-- **效果类**：火焰、烟雾、熔岩、爆炸、暴击、药水效果等
-- **液体滴落类**：水滴、熔岩滴、蜂蜜滴等
-- **天气类**：雨滴、雪花、溅射等
-- **生物相关**：爱心、愤怒村民、开心村民等
+### 方块粒子（block/）
+- **DiggingParticle**: 挖掘方块产生的粒子
+
+### 效果粒子（effect/）
+- **FlameParticle**: 火焰粒子，向上漂浮并缩小
+- **SmokeParticle**: 烟雾粒子，向上漂浮
+- **LargeSmokeParticle**: 大烟雾粒子
+- **LavaParticle**: 熔岩滴粒子
+- **PortalParticle**: 传送门粒子
+- **CritParticle**: 暴击粒子
+- **ExplosionParticle**: 爆炸粒子
+- **LargeExplosionParticle**: 大型爆炸粒子，发光，动画纹理
+- **PoofParticle**: 消散粒子
+- **SpellParticle**: 药水效果粒子
+- **DragonBreathParticle**: 龙息粒子
+- **EndRodParticle**: 末地烛粒子
+- **SweepAttackParticle**: 横扫攻击粒子，发光，动画纹理
+- **SoulParticle**: 灵魂粒子
+- **RedstoneParticle**: 红石粉尘粒子
+- **CampfireParticle**: 营火烟雾粒子（Cozy/Signal 两种类型）
+
+### 液体粒子（liquid/）
+- **DripParticle**: 液体滴落粒子基类
+  - 状态机：Hanging → Falling → Landed
+  - 支持 Water/Lava/Honey/ObsidianTear 类型
+- **DripWaterParticle**: 水滴粒子
+
+### 天气粒子（weather/）
+- **RainParticle**: 雨滴粒子
+- **SnowParticle**: 雪花粒子
+- **SplashParticle**: 水溅粒子
+
+### 生物粒子（mob/）
+- **HeartParticle**: 爱心粒子
+- **VillagerParticle**: 村民粒子
+
+## 与 MC 1.16.5 的对齐
+
+### 物理参数
+- 重力乘数：0.04（`PARTICLE_GRAVITY_MULTIPLIER`）
+- 空气摩擦：0.98
+- 地面摩擦：0.7
+
+### DripParticle 状态机
+```
+Hanging (悬挂) → Falling (下落) → Landed (落地)
+```
+- Hanging: 重力 0.02，缓慢积累进度
+- Falling: 重力根据类型（水 0.06，蜂蜜 0.01）
+- Landed: 存在 16 tick
+
+### 发光粒子
+以下粒子返回固定高亮度 15728880：
+- FlameParticle
+- LavaParticle
+- LargeExplosionParticle
+- SweepAttackParticle
+- SoulFireFlame
+- EndRodParticle
+- RedstoneParticle
 
 ## 创建自定义粒子
 
@@ -220,3 +297,5 @@ textures/particle/my_particle.png
 3. **碰撞检测**：粒子碰撞检测需要 `ClientWorld` 参数，传 `nullptr` 则跳过碰撞
 4. **生命周期**：`tick()` 方法中需要手动增加 `m_age`，父类不会自动增加
 5. **线程安全**：`ParticleRegistry` 是单例，粒子工厂函数不能阻塞
+6. **流体检测**：使用 `FluidTags::WATER()` 和 `FluidTags::LAVA()` 而非 `isWaterAt()`
+7. **发光粒子亮度**：MC 1.16.5 使用 15728880（blockLight=15, skyLight=15）

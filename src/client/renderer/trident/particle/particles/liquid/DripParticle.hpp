@@ -16,11 +16,10 @@ namespace mc::client::renderer::trident::particle::particles {
  *
  * 用于实现水滴、熔岩滴、蜂蜜滴等液体滴落效果。
  *
- * 特性：
- * - 从方块下方悬挂
- * - 缓慢积累变大
- * - 积累满后下落
- * - 落地后消失或变化
+ * 状态机：
+ * 1. Hanging（悬挂）：在方块下方缓慢积累变大
+ * 2. Falling（下落）：积累满后下落，受重力影响
+ * 3. Landed（落地）：触地后短暂存在
  */
 class DripParticle : public Particle {
 public:
@@ -33,7 +32,17 @@ public:
         Landed      ///< 已落地
     };
 
-    DripParticle(const glm::vec3& pos, const glm::vec3& velocity);
+    /**
+     * @brief 滴落类型
+     */
+    enum class DripType {
+        Water,      ///< 水
+        Lava,       ///< 熔岩
+        Honey,      ///< 蜂蜜
+        ObsidianTear ///< 哭泣黑曜石眼泪
+    };
+
+    DripParticle(const glm::vec3& pos, const glm::vec3& velocity, DripType type);
 
     /**
      * @brief 工厂方法：创建熔岩滴落粒子（悬挂状态）
@@ -86,12 +95,14 @@ public:
     void tick(mc::client::ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
+        // 熔岩滴是发光粒子
+        return m_type == DripType::Lava ? ParticleRenderType::PARTICLE_SHEET_LIT
+                                        : ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
-        return ResourceLocation("minecraft:particle/drip_hang");
-    }
+    [[nodiscard]] ResourceLocation getTextureLocation() const override;
+
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override;
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
@@ -102,25 +113,26 @@ protected:
     /**
      * @brief 悬挂更新逻辑
      *
-     * 子类可重写以自定义悬挂行为
+     * MC 1.16.5: 缓慢积累，积累满后转 Falling
      */
     virtual void tickHanging(mc::client::ClientWorld* world);
 
     /**
      * @brief 下落更新逻辑
      *
-     * 子类可重写以自定义下落行为
+     * MC 1.16.5: 应用重力，检测与方块碰撞
      */
     virtual void tickFalling(mc::client::ClientWorld* world);
 
     /**
      * @brief 落地处理
      *
-     * 子类可重写以自定义落地效果
+     * MC 1.16.5: 根据类型生成不同效果
      */
     virtual void onLand(mc::client::ClientWorld* world);
 
     DripState m_dripState = DripState::Hanging;
+    DripType m_type;
     f64 m_dripProgress = 0.0f;    ///< 悬挂积累进度 (0-1)
     glm::vec3 m_hangPosition;     ///< 悬挂位置
 };

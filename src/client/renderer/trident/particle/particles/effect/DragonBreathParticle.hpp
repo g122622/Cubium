@@ -94,9 +94,11 @@ private:
  * 参考 MC 1.16.5 SweepAttackParticle
  *
  * 特性：
- * - 扇形攻击效果
- * - 快速扩大
- * - 快速淡出
+ * - 固定生命周期 4 tick
+ * - 发光粒子（最大亮度 15728880）
+ * - 根据年龄选择纹理帧（4帧动画）
+ * - 无运动
+ * - 缩放随 xSpeed 参数变化
  */
 class SweepAttackParticle : public Particle {
 public:
@@ -110,23 +112,21 @@ public:
     void tick(mc::client::ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+        return ParticleRenderType::PARTICLE_SHEET_LIT;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override {
-        return ResourceLocation("minecraft:particle/sweep");
-    }
+    [[nodiscard]] ResourceLocation getTextureLocation() const override;
 
     [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override {
         MC_UNUSED(world);
-        return 0xF0;
+        // MC 1.16.5: 固定高亮度 15728880 (blockLight=15, skyLight=15)
+        return 15728880;
     }
 
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_LIFETIME = 4.0;
-    f64 m_initialSize;
+    f64 m_scaleMultiplier;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles
