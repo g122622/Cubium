@@ -81,7 +81,7 @@ public:
     /**
      * @brief 获取动画精灵数量
      */
-    [[nodiscard]] usize spriteCount() const noexcept {
+    [[nodiscard]] Size spriteCount() const noexcept {
         return m_sprites.size();
     }
 

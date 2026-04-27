@@ -1,6 +1,6 @@
 #include "PistonRenderer.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/util/Direction.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include <spdlog/spdlog.h>
@@ -17,10 +17,8 @@ void PistonRenderer::render(
     f32 partialTick,
     u32 light)
 {
-    // 获取插值后的进度
-    const f32 progress = entity.getProgress(partialTick);
-
-    // 如果动画完成，不渲染
+    // MC 1.16.5: 如果动画完成，不渲染移动中的活塞方块
+    // 注意：完成后的方块状态已经由世界设置，不需要渲染器处理
     if (entity.isComplete()) {
         return;
     }
@@ -31,16 +29,18 @@ void PistonRenderer::render(
         return;
     }
 
-    // 获取偏移量
+    // MC 1.16.5: 直接使用 partialTick 计算偏移
+    // getOffsetX/Y/Z 内部会调用 getProgress(partialTick)
     const f32 offsetX = entity.getOffsetX(partialTick);
     const f32 offsetY = entity.getOffsetY(partialTick);
     const f32 offsetZ = entity.getOffsetZ(partialTick);
 
     // 渲染被移动的方块
-    renderMovingBlock(entity, progress, light);
+    renderMovingBlock(entity, offsetX, offsetY, offsetZ, light);
 
     // 如果需要渲染活塞头
     if (entity.shouldRenderPistonHead()) {
+        const f32 progress = entity.getProgress(partialTick);
         renderPistonHead(entity, progress, light);
     }
 }
@@ -51,8 +51,9 @@ void PistonRenderer::renderPistonHead(
     u32 light)
 {
     // TODO: 实现活塞臂渲染
-    // 需要渲染活塞臂模型（Piston Head）
-    // 活塞臂的位置根据进度和方向计算
+    // MC 1.16.5 PistonTileEntityRenderer:
+    // 当收回时（!isExtending），需要渲染活塞头
+    // 活塞头状态需要设置 SHORT 属性（progress <= 0.5F 时为 true）
 
     const Direction facing = entity.getFacing();
     const BlockPos& pos = entity.getPos();
@@ -77,7 +78,9 @@ void PistonRenderer::renderPistonHead(
 
 void PistonRenderer::renderMovingBlock(
     const mc::blockentity::PistonBlockEntity& entity,
-    f32 progress,
+    f32 offsetX,
+    f32 offsetY,
+    f32 offsetZ,
     u32 light)
 {
     const BlockState* pistonState = entity.getPistonState();
@@ -87,12 +90,7 @@ void PistonRenderer::renderMovingBlock(
 
     const BlockPos& pos = entity.getPos();
 
-    // 计算移动偏移
-    const f32 offsetX = entity.getOffsetX(progress);
-    const f32 offsetY = entity.getOffsetY(progress);
-    const f32 offsetZ = entity.getOffsetZ(progress);
-
-    // 渲染被移动的方块
+    // MC 1.16.5: 渲染被移动的方块，应用偏移
     if (!m_helper.renderBlockWithOffset(*pistonState, pos, offsetX, offsetY, offsetZ, light)) {
         spdlog::trace("PistonRenderer: Failed to render moving block at ({}, {}, {})",
                       pos.x, pos.y, pos.z);

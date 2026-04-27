@@ -23,11 +23,10 @@ class TridentTextureAtlas;
 namespace blockentity {
 
 /**
- * @brief 方块实体渲染器辅助基类
+ * @brief 方块实体渲染器辅助类
  *
  * 提供方块实体渲染的通用功能，如方块模型渲染、光照获取等。
  * 具体渲染器应继承 BlockEntityRenderer<TEntity> 并使用此类的辅助方法。
- *
  * 参考 MC 1.16.5 TileEntityRenderer
  */
 class BlockEntityRendererHelper {

@@ -160,7 +160,7 @@ public:
     /**
      * @brief 获取总帧数
      */
-    [[nodiscard]] usize frameCount() const noexcept {
+    [[nodiscard]] Size frameCount() const noexcept {
         return m_frames.size();
     }
 
@@ -201,7 +201,7 @@ private:
     u32 m_frameWidth = 0;       ///< 帧宽度
     u32 m_frameHeight = 0;      ///< 帧高度
 
-    usize m_frameCounter = 0;   ///< 当前帧计数器（在frames数组中的位置）
+    Size m_frameCounter = 0;   ///< 当前帧计数器（在frames数组中的位置）
     i32 m_tickCounter = 0;      ///< 当前帧内tick计数
     i32 m_currentFrameTime = 1; ///< 当前帧持续时间
 

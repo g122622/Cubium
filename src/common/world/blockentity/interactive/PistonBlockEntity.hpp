@@ -89,13 +89,14 @@ public:
     [[nodiscard]] bool isComplete() const { return m_progress >= 1.0f; }
     [[nodiscard]] i64 getLastTicked() const { return m_lastTicked; }
 
-private:
     /**
-     * @brief 计算扩展进度。
+     * @brief 计算扩展进度
      * @param progress 原始进度
      * @return 伸出时为 progress - 1.0，收回时为 1.0 - progress
      */
     [[nodiscard]] float getExtendedProgress(float progress) const;
+
+private:
 
     /**
      * @brief 推动本 tick 与活塞运动体积相交的实体。

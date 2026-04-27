@@ -61,7 +61,7 @@ void BlockEntityRendererDispatcher::initializeDefaults() {
     // 等等...
 }
 
-IBlockEntityRendererBase* BlockEntityRendererDispatcher::getRenderer(BlockEntityType type) {
+BlockEntityRendererBase* BlockEntityRendererDispatcher::getRenderer(BlockEntityType type) {
     auto it = m_renderers.find(type);
     return it != m_renderers.end() ? it->second.get() : nullptr;
 }

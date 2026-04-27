@@ -1,6 +1,6 @@
 #include "AnimatedSprite.hpp"
 #include "TridentTexture.hpp"
-#include "TridentContext.hpp"
+#include "../TridentContext.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 
@@ -39,10 +39,13 @@ void AnimatedSprite::tick() {
 
     // 检查是否需要切换帧
     if (m_tickCounter >= m_currentFrameTime) {
+        // MC 1.16.5: 保存旧帧索引，用于检查是否需要上传
+        const i32 oldFrameIndex = currentFrameIndex();
+
         m_tickCounter = 0;
 
         // 切换到下一帧
-        const usize frameCount = m_metadata.frames.empty()
+        const Size frameCount = m_metadata.frames.empty()
             ? m_frames.size()
             : m_metadata.frames.size();
 
@@ -53,6 +56,13 @@ void AnimatedSprite::tick() {
             m_currentFrameTime = m_metadata.getFrameTime(m_frameCounter);
         }
 
+        // MC 1.16.5: 只有帧索引变化时才标记需要上传
+        const i32 newFrameIndex = currentFrameIndex();
+        if (oldFrameIndex != newFrameIndex) {
+            m_needsUpload = true;
+        }
+    } else if (m_metadata.interpolate) {
+        // MC 1.16.5: 插值期间需要持续上传
         m_needsUpload = true;
     }
 }
@@ -142,9 +152,9 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
     result.pixels.resize(currentFrame.pixels.size());
 
     // 逐像素插值
-    const usize pixelCount = currentFrame.pixels.size() / 4;
-    for (usize i = 0; i < pixelCount; ++i) {
-        const usize offset = i * 4;
+    const Size pixelCount = currentFrame.pixels.size() / 4;
+    for (Size i = 0; i < pixelCount; ++i) {
+        const Size offset = i * 4;
 
         // R通道
         result.pixels[offset] = static_cast<u8>(

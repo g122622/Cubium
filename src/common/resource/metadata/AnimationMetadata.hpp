@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <nlohmann/json.hpp>
 #include <vector>
 
 namespace mc::resource::metadata {
@@ -130,7 +131,7 @@ struct AnimationMetadata {
      * @brief 获取总帧数
      * @return 如果有自定义帧序列返回序列长度，否则返回0表示需要从图像计算
      */
-    [[nodiscard]] usize getFrameCount() const noexcept {
+    [[nodiscard]] Size getFrameCount() const noexcept {
         return frames.size();
     }
 
@@ -139,7 +140,7 @@ struct AnimationMetadata {
      * @param position 动画播放位置（0, 1, 2, ...）
      * @return 帧索引
      */
-    [[nodiscard]] i32 getFrameIndex(usize position) const noexcept {
+    [[nodiscard]] i32 getFrameIndex(Size position) const noexcept {
         if (frames.empty()) {
             return static_cast<i32>(position);
         }
@@ -151,7 +152,7 @@ struct AnimationMetadata {
      * @param position 动画播放位置（0, 1, 2, ...）
      * @return 帧时间（tick），如果帧未指定时间则返回默认frametime
      */
-    [[nodiscard]] i32 getFrameTime(usize position) const noexcept {
+    [[nodiscard]] i32 getFrameTime(Size position) const noexcept {
         if (frames.empty()) {
             return frametime;
         }

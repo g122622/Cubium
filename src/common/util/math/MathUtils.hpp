@@ -384,6 +384,55 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 }
 
 /**
+ * @brief 地板模运算 (MC MathHelper.floorMod)
+ *
+ * 与 C++ 的 % 运算符不同，结果总是与除数同号。
+ * 例如: floorMod(-1, 40) = 39 (而 -1 % 40 = -1)
+ *
+ * 参考 MC 1.16.5: MathHelper.floorMod(int, int)
+ *
+ * @param value 被除数
+ * @param divisor 除数（必须为正数）
+ * @return 地板模结果 [0, divisor)
+ */
+[[nodiscard]] inline i64 floorMod(i64 value, i64 divisor) noexcept
+{
+    // MC 1.16.5: Math.floorMod(int, int) 实现
+    // 结果与 divisor 同号
+    const i64 result = value % divisor;
+    return (result < 0) ? (result + divisor) : result;
+}
+
+/**
+ * @brief 地板模运算 (32位版本)
+ *
+ * @param value 被除数
+ * @param divisor 除数（必须为正数）
+ * @return 地板模结果 [0, divisor)
+ */
+[[nodiscard]] inline i32 floorMod(i32 value, i32 divisor) noexcept
+{
+    const i32 result = value % divisor;
+    return (result < 0) ? (result + divisor) : result;
+}
+
+/**
+ * @brief 地板模运算 (浮点版本)
+ *
+ * 参考 MC 1.16.5: MathHelper.func_226168_f_(double, double)
+ * 用于计算周期性动画时间
+ *
+ * @param value 被除数
+ * @param divisor 除数（必须为正数）
+ * @return 地板模结果 [0, divisor)
+ */
+[[nodiscard]] inline f32 floorMod(f32 value, f32 divisor) noexcept
+{
+    f32 result = std::fmod(value, divisor);
+    return (result < 0.0f) ? (result + divisor) : result;
+}
+
+/**
  * @brief 角度插值（处理角度环绕）
  *
  * 参考 MC 1.16.5 ModelUtils.func_228283_a_

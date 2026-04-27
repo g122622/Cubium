@@ -1,6 +1,6 @@
 #include "BeaconRenderer.hpp"
 #include "common/world/blockentity/processing/BeaconEntity.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::blockentity {
@@ -70,10 +70,16 @@ void BeaconRenderer::renderBeam(
 
 f32 BeaconRenderer::calculateBeamRotation(i64 gameTime, f32 partialTick) const
 {
-    // MC中光束每秒旋转约45度（-2.25度/tick）
-    // rotation = (gameTime + partialTick) * -2.25f
-    const f32 totalTick = static_cast<f32>(gameTime) + partialTick;
-    return totalTick * -2.25f * (math::PI / 180.0f);
+    // MC 1.16.5 BeaconTileEntityRenderer:
+    // float f = (float)Math.floorMod(totalWorldTime, 40L) + partialTicks;
+    // matrixStackIn.rotate(Vector3f.YP.rotationDegrees(f * 2.25F - 45.0F));
+    //
+    // 光束每秒旋转 45 度（每 tick 2.25 度），周期 40 ticks
+    // 角度范围：-45 度 到 +45 度
+
+    const f32 f = static_cast<f32>(math::floorMod(gameTime, 40LL)) + partialTick;
+    const f32 degrees = f * 2.25f - 45.0f;
+    return math::toRadians(degrees);
 }
 
 } // namespace mc::client::renderer::trident::blockentity

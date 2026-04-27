@@ -80,12 +80,16 @@ private:
      * @brief 渲染被移动的方块
      *
      * @param entity 活塞方块实体
-     * @param progress 插值后的进度
+     * @param offsetX X方向偏移
+     * @param offsetY Y方向偏移
+     * @param offsetZ Z方向偏移
      * @param light 组合光照
      */
     void renderMovingBlock(
         const mc::blockentity::PistonBlockEntity& entity,
-        f32 progress,
+        f32 offsetX,
+        f32 offsetY,
+        f32 offsetZ,
         u32 light);
 };
 

@@ -129,7 +129,14 @@ std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(IWorld& wo
 // ========== 打开计数 ==========
 
 void ChestEntity::openContainer() {
-    // 增加计数
+    // MC 1.16.5: 观察者模式的玩家不计入打开数
+    // 注：当前项目尚未实现观察者模式检查，待Player类添加isSpectator()后补充
+
+    // MC 1.16.5: 负数保护
+    if (m_openCount < 0) {
+        m_openCount = 0;
+    }
+
     ++m_openCount;
 
     if (m_world != nullptr) {
@@ -138,10 +145,10 @@ void ChestEntity::openContainer() {
 }
 
 void ChestEntity::closeContainer() {
-    // 减少计数（不低于0）
-    if (m_openCount > 0) {
-        --m_openCount;
-    }
+    // MC 1.16.5: 观察者模式的玩家不计入打开数
+    // 注：当前项目尚未实现观察者模式检查，待Player类添加isSpectator()后补充
+
+    --m_openCount;
 
     if (m_world != nullptr) {
         broadcastChestState(*m_world, false);
@@ -191,33 +198,17 @@ i32 ChestEntity::getComparatorSignal(IWorld& world) const {
     return std::min(signal, 15);
 }
 
-// ========== 动画 ==========
-
-void ChestEntity::updateLidAnimation(f32 partialTick) {
-    m_prevLidAngle = m_lidAngle;
-
-    if (m_openCount > 0 && m_lidAngle < 1.0f) {
-        // 打开动画
-        m_lidAngle += LID_OPEN_SPEED;
-        if (m_lidAngle > 1.0f) {
-            m_lidAngle = 1.0f;
-        }
-    } else if (m_openCount == 0 && m_lidAngle > 0.0f) {
-        // 关闭动画
-        m_lidAngle -= LID_OPEN_SPEED;
-        if (m_lidAngle < 0.0f) {
-            m_lidAngle = 0.0f;
-        }
-    }
-}
-
 // ========== Tick 更新 ==========
 
 void ChestEntity::tick(IWorld& world) {
+    // MC 1.16.5: 在tick开头更新prevLidAngle，确保每帧都能正确插值
+    m_prevLidAngle = m_lidAngle;
+
     // 更新同步计数器
     ++m_ticksSinceSync;
 
-    // 定期触发方块状态同步，保证客户端动画/渲染与服务端一致。
+    // 定期重新统计附近打开箱子的玩家数（MC每200ticks）
+    // 注：原版calculatePlayersUsingSync在服务端执行，此处简化为方块状态同步
     if (m_ticksSinceSync >= SYNC_INTERVAL) {
         m_ticksSinceSync = 0;
 
@@ -227,31 +218,37 @@ void ChestEntity::tick(IWorld& world) {
         }
     }
 
-    // 更新盖子动画
-    f32 prevAngle = m_lidAngle;
+    // MC 1.16.5: 只有在需要动画时才更新
+    // 条件：(openCount == 0 && lidAngle > 0) || (openCount > 0 && lidAngle < 1)
+    const bool needsAnimation = (m_openCount == 0 && m_lidAngle > 0.0f) ||
+                                 (m_openCount > 0 && m_lidAngle < 1.0f);
 
-    // 打开时播放音效
-    if (m_openCount > 0 && m_lidAngle == 0.0f) {
-        playSound(world, true);
-    }
+    if (needsAnimation) {
+        const f32 prevAngle = m_lidAngle;
 
-    // 更新动画
-    if (m_openCount > 0) {
-        m_lidAngle += LID_OPEN_SPEED;
-    } else {
-        m_lidAngle -= LID_OPEN_SPEED;
-    }
+        if (m_openCount > 0) {
+            // 打开动画
+            m_lidAngle += LID_OPEN_SPEED;
+            if (m_lidAngle > 1.0f) {
+                m_lidAngle = 1.0f;
+            }
+        } else {
+            // 关闭动画
+            m_lidAngle -= LID_OPEN_SPEED;
+            if (m_lidAngle < 0.0f) {
+                m_lidAngle = 0.0f;
+            }
+        }
 
-    // 限制范围
-    if (m_lidAngle > 1.0f) {
-        m_lidAngle = 1.0f;
-    } else if (m_lidAngle < 0.0f) {
-        m_lidAngle = 0.0f;
-    }
+        // 打开音效：lidAngle从0变为正值时
+        if (prevAngle == 0.0f && m_lidAngle > 0.0f) {
+            playSound(world, true);
+        }
 
-    // 关闭到一半时播放音效
-    if (m_lidAngle < LID_CLOSE_SOUND_THRESHOLD && prevAngle >= LID_CLOSE_SOUND_THRESHOLD) {
-        playSound(world, false);
+        // 关闭音效：lidAngle从>=0.5变为<0.5时
+        if (prevAngle >= LID_CLOSE_SOUND_THRESHOLD && m_lidAngle < LID_CLOSE_SOUND_THRESHOLD) {
+            playSound(world, false);
+        }
     }
 
     MC_UNUSED(world);

@@ -1,7 +1,6 @@
 #include "BlockEntityRenderer.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/renderer/trident/core/texture/TridentTexture.hpp"
-#include "common/world/WorldConsts.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 

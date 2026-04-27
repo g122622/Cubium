@@ -124,10 +124,13 @@ public:
     [[nodiscard]] f32 getPrevLidAngle() const { return m_prevLidAngle; }
 
     /**
-     * @brief 更新盖子动画
+     * @brief 计算插值后的盖子角度
      * @param partialTick 部分tick时间
+     * @return 插值后的角度
      */
-    void updateLidAnimation(f32 partialTick);
+    [[nodiscard]] f32 getInterpolatedLidAngle(f32 partialTick) const {
+        return m_prevLidAngle + (m_lidAngle - m_prevLidAngle) * partialTick;
+    }
 
     // ========== Tick 更新 ==========
 

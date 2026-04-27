@@ -1,4 +1,6 @@
 #include "TextureAtlasTicker.hpp"
+#include "../TridentContext.hpp"
+#include "TridentTexture.hpp"
 #include <algorithm>
 
 namespace mc::client::renderer::trident {

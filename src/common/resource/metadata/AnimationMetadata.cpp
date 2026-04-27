@@ -11,12 +11,14 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json) {
     }
 
     // 解析frametime（默认1）
+    // MC 1.16.5: 如果显式指定，必须 >= 1
     metadata.frametime = json.value("frametime", 1);
-    if (metadata.frametime <= 0) {
+    if (metadata.frametime < 1) {
         metadata.frametime = 1;
     }
 
     // 解析width和height（-1表示自动检测）
+    // MC 1.16.5: 如果显式指定，必须 >= 1
     metadata.width = json.value("width", -1);
     metadata.height = json.value("height", -1);
 
@@ -28,14 +30,36 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json) {
         const auto& framesArray = json["frames"];
         metadata.frames.reserve(framesArray.size());
 
-        for (const auto& frame : framesArray) {
+        for (size_t i = 0; i < framesArray.size(); ++i) {
+            const auto& frame = framesArray[i];
             if (frame.is_number_integer()) {
                 // 简单形式：直接是帧索引数字
-                metadata.frames.emplace_back(frame.get<i32>(), -1);
+                const i32 index = frame.get<i32>();
+                // MC 1.16.5: 帧索引必须 >= 0
+                if (index < 0) {
+                    continue;  // 跳过无效帧
+                }
+                metadata.frames.emplace_back(index, -1);
             } else if (frame.is_object()) {
                 // 对象形式：{ "index": N, "time": M }
-                i32 index = frame.value("index", 0);
-                i32 time = frame.value("time", -1);
+                // MC 1.16.5: index是必需字段
+                if (!frame.contains("index")) {
+                    continue;  // 跳过无效帧
+                }
+                const i32 index = frame["index"].get<i32>();
+                // MC 1.16.5: 帧索引必须 >= 0
+                if (index < 0) {
+                    continue;  // 跳过无效帧
+                }
+
+                i32 time = -1;
+                if (frame.contains("time")) {
+                    time = frame["time"].get<i32>();
+                    // MC 1.16.5: 如果显式指定time，必须 >= 1
+                    if (time < 1) {
+                        time = -1;  // 使用默认值
+                    }
+                }
                 metadata.frames.emplace_back(index, time);
             }
         }
@@ -63,11 +87,12 @@ AnimationMetadata AnimationMetadata::fromMcmeta(
 
         AnimationMetadata metadata = fromJson(json["animation"]);
 
-        // 自动检测帧尺寸
+        // MC 1.16.5: 自动检测帧尺寸
+        // 当width和height都未指定时，使用min(imageWidth, imageHeight)
         if (metadata.width <= 0 && metadata.height <= 0) {
-            // 默认使用方形帧（宽度等于图像宽度）
-            metadata.width = static_cast<i32>(imageWidth);
-            metadata.height = static_cast<i32>(imageWidth);
+            const u32 minDim = std::min(imageWidth, imageHeight);
+            metadata.width = static_cast<i32>(minDim);
+            metadata.height = static_cast<i32>(minDim);
         } else if (metadata.width <= 0) {
             metadata.width = metadata.height;
         } else if (metadata.height <= 0) {

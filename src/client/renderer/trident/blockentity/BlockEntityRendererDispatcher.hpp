@@ -18,6 +18,10 @@ namespace client::renderer::trident {
 class TridentContext;
 class TridentTextureAtlas;
 
+namespace resource {
+class BlockModelCache;
+}
+
 namespace blockentity {
 
 /**
@@ -32,7 +36,7 @@ namespace blockentity {
  */
 class BlockEntityRendererDispatcher {
 public:
-    using RendererFactory = std::function<std::unique_ptr<IBlockEntityRendererBase>()>;
+    using RendererFactory = std::function<std::unique_ptr<BlockEntityRendererBase>()>;
 
     BlockEntityRendererDispatcher();
     ~BlockEntityRendererDispatcher();
@@ -55,8 +59,8 @@ public:
      */
     template<typename TEntity, typename TRenderer>
     void registerRenderer() {
-        static_assert(std::is_base_of_v<IBlockEntityRenderer<TEntity>, TRenderer>,
-            "TRenderer must implement IBlockEntityRenderer<TEntity>");
+        static_assert(std::is_base_of_v<BlockEntityRenderer<TEntity>, TRenderer>,
+            "TRenderer must inherit from BlockEntityRenderer<TEntity>");
 
         auto renderer = std::make_unique<TRenderer>();
         m_renderers[TEntity::getType()] = std::move(renderer);
@@ -125,7 +129,7 @@ public:
      * @param type 方块实体类型
      * @return 渲染器指针，如果未注册返回nullptr
      */
-    [[nodiscard]] IBlockEntityRendererBase* getRenderer(BlockEntityType type);
+    [[nodiscard]] BlockEntityRendererBase* getRenderer(BlockEntityType type);
 
     /**
      * @brief 检查是否有渲染器
@@ -138,7 +142,7 @@ public:
     void clear();
 
 private:
-    std::unordered_map<BlockEntityType, std::unique_ptr<IBlockEntityRendererBase>> m_renderers;
+    std::unordered_map<BlockEntityType, std::unique_ptr<BlockEntityRendererBase>> m_renderers;
 
     TridentContext* m_context = nullptr;
     TridentTextureAtlas* m_textureAtlas = nullptr;

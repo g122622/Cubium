@@ -37,9 +37,8 @@ f32 ChestRenderer::getInterpolatedLidAngle(
     const mc::blockentity::ChestEntity& entity,
     f32 partialTick) const
 {
-    const f32 prevAngle = entity.getPrevLidAngle();
-    const f32 angle = entity.getLidAngle();
-    return math::lerp(prevAngle, angle, partialTick);
+    // 使用 ChestEntity 提供的插值方法
+    return entity.getInterpolatedLidAngle(partialTick);
 }
 
 f32 ChestRenderer::applyLidEasing(f32 angle) const
