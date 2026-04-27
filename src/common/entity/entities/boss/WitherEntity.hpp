@@ -2,10 +2,18 @@
 
 #include "../../core/MobEntity.hpp"
 #include "../../interfaces/IRangedAttackMob.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include <memory>
 #include <vector>
+#include <optional>
 
 namespace mc {
+
+// 前向声明
+class IWorld;
+class DamageSource;
+class LivingEntity;
+
 namespace entity {
 
 /**
@@ -13,19 +21,17 @@ namespace entity {
  *
  * 地狱Boss，具有三个头和多种攻击模式。
  *
+ * 特性：
+ * - 三头：主头和两个侧头独立追踪目标
+ * - 无敌阶段：生成后220 ticks无敌
+ * - 充能阶段：生命值低于一半时充能发射蓝色凋灵之首
+ * - 方块破坏：能够破坏周围方块
+ * - Boss条：显示Boss生命值
+ *
  * 参考 MC 1.16.5 WitherEntity
  */
 class WitherEntity : public MobEntity, public IRangedAttackMob {
 public:
-    /**
-     * @brief 凋灵阶段
-     */
-    enum class Phase : u8 {
-        Invulnerable,   // 无敌阶段（生成中）
-        Charging,       // 充能阶段（准备发射凋灵之首）
-        Attacking       // 攻击阶段
-    };
-
     /**
      * @brief 工厂方法
      */
@@ -49,128 +55,187 @@ public:
     // ========== LivingEntity 接口重写 ==========
 
     /**
-     * @brief 凋灵免疫火焰和溺水
+     * @brief 获取环境音效
+     * MC 1.16.5: entity.wither.ambient
      */
-    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const;
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤声音
+     * MC 1.16.5: entity.wither.hurt
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     * MC 1.16.5: entity.wither.death
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 凋灵免疫火焰、溺水、凋零伤害
+     * MC 1.16.5: attackEntityFrom()
+     */
+    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
+
+    /**
+     * @brief 是否为亡灵生物
+     * MC 1.16.5: getCreatureAttribute() -> UNDEAD
+     */
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+
+    /**
+     * @brief 凋灵不能被骑乘
+     * MC 1.16.5: canBeRidden() -> false
+     */
+    [[nodiscard]] bool canBeRidden() const override { return false; }
+
+    /**
+     * @brief 是否为Boss
+     * MC 1.16.5: isNonBoss() -> false
+     */
+    [[nodiscard]] bool isNonBoss() const override { return false; }
+
+    /**
+     * @brief 凋灵不受摔落伤害
+     * MC 1.16.5: onLivingFall() -> false
+     */
+    [[nodiscard]] bool canTakeFallDamage() const override { return false; }
 
     // ========== IRangedAttackMob 接口实现 ==========
 
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
     [[nodiscard]] i32 getAttackInterval() const override { return 40; }
-    [[nodiscard]] bool canRangedAttack() const override { return m_phase == Phase::Attacking; }
+    [[nodiscard]] bool canRangedAttack() const override;
 
     // ========== Boss 功能 ==========
 
     /**
      * @brief 获取Boss名称
      */
-    [[nodiscard]] String getBossName() const { return "Wither"; }
+    [[nodiscard]] String getBossName() const;
 
     /**
      * @brief 是否显示生命条
      */
     [[nodiscard]] bool shouldDisplayHealthBar() const { return true; }
 
-    /**
-     * @brief 获取生命条颜色
-     */
-    [[nodiscard]] u32 getHealthBarColor() const { return 0x1A1A1A; }  // 深灰色
-
     // ========== 凋灵特有 ==========
 
     /**
-     * @brief 获取当前阶段
+     * @brief 获取无敌时间
+     * MC 1.16.5: getInvulTime()
      */
-    [[nodiscard]] Phase phase() const { return m_phase; }
+    [[nodiscard]] i32 getInvulTime() const { return m_invulTime; }
 
     /**
-     * @brief 是否在充能
+     * @brief 设置无敌时间
+     * MC 1.16.5: setInvulTime()
      */
-    [[nodiscard]] bool isCharging() const { return m_phase == Phase::Charging; }
+    void setInvulTime(i32 time) { m_invulTime = time; }
 
     /**
-     * @brief 是否无敌
+     * @brief 是否处于无敌阶段
      */
-    [[nodiscard]] bool isInvulnerablePhase() const { return m_phase == Phase::Invulnerable; }
+    [[nodiscard]] bool isInvulnerablePhase() const { return m_invulTime > 0; }
 
     /**
-     * @brief 获取充能时间
+     * @brief 是否充能（生命值低于一半）
+     * MC 1.16.5: isCharged()
      */
-    [[nodiscard]] i32 chargeTime() const { return m_chargeTime; }
+    [[nodiscard]] bool isCharged() const { return health() <= maxHealth() / 2.0f; }
 
     /**
-     * @brief 获取主头目标
+     * @brief 获取指定头的目标实体ID
+     * MC 1.16.5: getWatchedTargetId()
+     * @param head 头索引 (0=主头, 1=左头, 2=右头)
      */
-    [[nodiscard]] LivingEntity* getHeadTarget() const { return m_headTarget; }
+    [[nodiscard]] i32 getWatchedTargetId(i32 head) const;
 
     /**
-     * @brief 设置主头目标
+     * @brief 更新指定头的目标
+     * MC 1.16.5: updateWatchedTargetId()
+     * @param head 头索引
+     * @param targetId 目标实体ID
      */
-    void setHeadTarget(LivingEntity* target) { m_headTarget = target; }
-
-    /**
-     * @brief 获取左侧头目标
-     */
-    [[nodiscard]] LivingEntity* getLeftHeadTarget() const { return m_leftHeadTarget; }
-
-    /**
-     * @brief 获取右侧头目标
-     */
-    [[nodiscard]] LivingEntity* getRightHeadTarget() const { return m_rightHeadTarget; }
+    void updateWatchedTargetId(i32 head, i32 targetId);
 
     /**
      * @brief 发射凋灵之首
+     * @param head 头索引 (0=主头, 1=左头, 2=右头)
      * @param target 目标实体
-     * @param isBlue 是否为蓝色凋灵之首（更强）
      */
-    void shootWitherSkull(LivingEntity* target, bool isBlue = false);
+    void launchWitherSkullToEntity(i32 head, LivingEntity* target);
 
     /**
-     * @brief 爆炸（生成时）
+     * @brief 开始生成序列
+     * MC 1.16.5: ignite()
      */
-    void explodeOnSpawn();
+    void ignite();
 
 protected:
     void registerGoals() override;
     void registerAttributes() override;
 
-    /**
-     * @brief 更新无敌阶段
-     */
-    void updateInvulnerablePhase();
+private:
+    // 无敌时间（MC 1.16.5: invulTime）
+    i32 m_invulTime = 0;
+
+    // 头部旋转角度（用于渲染）
+    f32 m_headXRot[2] = {0.0f, 0.0f};      // 侧头俯仰角
+    f32 m_headYRot[2] = {0.0f, 0.0f};      // 侧头偏航角
+    f32 m_prevHeadXRot[2] = {0.0f, 0.0f};  // 上一帧俯仰角
+    f32 m_prevHeadYRot[2] = {0.0f, 0.0f};  // 上一帧偏航角
+
+    // 头部攻击相关
+    i32 m_nextHeadUpdate[2] = {0, 0};      // 下次攻击更新tick
+    i32 m_idleHeadUpdates[2] = {0, 0};     // 空闲头部更新计数
+    i32 m_blockBreakCounter = 0;           // 方块破坏计数器
+
+    // MC 1.16.5 常量
+    static constexpr i32 INVULNERABILITY_TIME = 220;  // 生成无敌时间 (11秒)
+    static constexpr i32 BLOCK_BREAK_COOLDOWN = 20;   // 方块破坏冷却
+    static constexpr f32 HEAD_TRACK_RANGE = 20.0f;    // 头部追踪范围
+    static constexpr i32 ATTACK_COOLDOWN = 40;        // 攻击冷却 (2秒)
 
     /**
-     * @brief 更新充能阶段
+     * @brief 更新AI任务
+     * MC 1.16.5: updateAITasks()
      */
-    void updateChargingPhase();
+    void updateAITasks();
 
     /**
-     * @brief 更新攻击阶段
-     */
-    void updateAttackingPhase();
-
-    /**
-     * @brief 更新头部目标
+     * @brief 更新头部目标追踪
      */
     void updateHeadTargets();
 
-private:
-    Phase m_phase = Phase::Invulnerable;
-    i32 m_chargeTime = 0;         // 充能时间
-    i32 m_invulnerableTime = 0;   // 无敌时间
+    /**
+     * @brief 获取头的X坐标
+     * MC 1.16.5: getHeadX()
+     */
+    [[nodiscard]] f32 getHeadX(i32 head) const;
 
-    // 三个头的目标
-    LivingEntity* m_headTarget = nullptr;
-    LivingEntity* m_leftHeadTarget = nullptr;
-    LivingEntity* m_rightHeadTarget = nullptr;
+    /**
+     * @brief 获取头的Y坐标
+     * MC 1.16.5: getHeadY()
+     */
+    [[nodiscard]] f32 getHeadY(i32 head) const;
 
-    // 攻击冷却
-    i32 m_mainHeadCooldown = 0;
-    i32 m_leftHeadCooldown = 0;
-    i32 m_rightHeadCooldown = 0;
+    /**
+     * @brief 获取头的Z坐标
+     * MC 1.16.5: getHeadZ()
+     */
+    [[nodiscard]] f32 getHeadZ(i32 head) const;
 
-    // 生成的凋灵之首数量（用于成就）
-    i32 m_skullsSpawned = 0;
+    /**
+     * @brief 破坏周围方块
+     */
+    void breakNearbyBlocks();
+
+    /**
+     * @brief 在生成时创建爆炸
+     */
+    void explodeOnSpawn();
 };
 
 } // namespace entity
