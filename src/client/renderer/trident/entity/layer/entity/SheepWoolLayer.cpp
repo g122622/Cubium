@@ -156,7 +156,7 @@ bool SheepWoolLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const 
 
     // 检查是否被剪切
     if constexpr (std::is_base_of_v<::mc::SheepEntity, TEntity>) {
-        if (!entity.hasWool()) {
+        if (entity.isSheared()) {
             return false;
         }
     }
@@ -181,7 +181,7 @@ Vector3f SheepWoolLayer<TEntity, TModel>::getWoolColor(const TEntity& entity, u3
     // 尝试将 entity 转换为 SheepEntity 以获取颜色
     // 如果不是 SheepEntity，返回默认白色
     if constexpr (std::is_base_of_v<::mc::SheepEntity, TEntity>) {
-        u8 colorIndex = entity.getWoolColor();
+        u8 colorIndex = static_cast<u8>(entity.getFleeceColor());
         if (colorIndex < 16) {
             return WOOL_COLORS[colorIndex];
         }

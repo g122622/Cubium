@@ -2,9 +2,15 @@
 
 #include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
+
+// 前向声明
+class IWorld;
+class DamageSource;
 
 /**
  * @brief 苦力怕实体
@@ -16,6 +22,7 @@ namespace mc {
  * - 闪烁：爆炸前会闪烁
  * - 害怕猫：会被猫吓跑
  * - 雷击：被雷击中变成高压苦力怕
+ * - 打火石：可用打火石点燃
  *
  * 参考 MC 1.16.5 CreeperEntity
  */
@@ -44,48 +51,74 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取受伤声音
+     * 参考 MC 1.16.5 CreeperEntity.getHurtSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     * 参考 MC 1.16.5 CreeperEntity.getDeathSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
     // ========== 爆炸系统 ==========
 
     /**
-     * @brief 获取爆炸状态
-     * 0 = 安全, 1 = 膨胀中
+     * @brief 获取苦力怕状态
+     * MC 1.16.5: -1 = idle, 1 = igniting/fusing
+     */
+    [[nodiscard]] i32 getCreeperState() const;
+
+    /**
+     * @brief 设置苦力怕状态
+     * MC 1.16.5: -1 = idle, 1 = igniting/fusing
+     */
+    void setCreeperState(i32 state);
+
+    /**
+     * @brief 获取点燃时间（已点燃的持续时间）
+     * MC 1.16.5: timeSinceIgnited
+     */
+    [[nodiscard]] i32 getTimeSinceIgnited() const { return m_timeSinceIgnited; }
+
+    /**
+     * @brief 获取上一次点燃时间（用于渲染插值）
+     * MC 1.16.5: lastActiveTime
+     */
+    [[nodiscard]] i32 getLastActiveTime() const { return m_lastActiveTime; }
+
+    /**
+     * @brief 获取点燃时间配置
+     * MC 1.16.5: fuseTime (默认30 ticks)
      */
     [[nodiscard]] i32 getFuseTime() const { return m_fuseTime; }
 
     /**
-     * @brief 设置爆炸状态
+     * @brief 设置点燃时间配置
      */
     void setFuseTime(i32 time) { m_fuseTime = time; }
 
     /**
-     * @brief 是否点燃
+     * @brief 是否已被点燃
+     * MC 1.16.5: hasIgnited()
      */
-    [[nodiscard]] bool isIgnited() const { return m_ignited; }
+    [[nodiscard]] bool hasIgnited() const { return m_ignited; }
 
     /**
-     * @brief 设置点燃状态
+     * @brief 点燃苦力怕
+     * MC 1.16.5: ignite()
      */
-    void setIgnited(bool ignited) { m_ignited = ignited; }
-
-    /**
-     * @brief 是否正在膨胀
-     */
-    [[nodiscard]] bool isSwell() const { return m_swell > 0; }
-
-    /**
-     * @brief 获取膨胀值
-     */
-    [[nodiscard]] i32 getSwell() const { return m_swell; }
-
-    /**
-     * @brief 设置膨胀值
-     */
-    void setSwell(i32 swell) { m_swell = swell; }
+    void ignite();
 
     // ========== 高压 ==========
 
     /**
      * @brief 是否是高压苦力怕
+     * MC 1.16.5: isCharged()
      */
     [[nodiscard]] bool isPowered() const { return m_powered; }
 
@@ -98,13 +131,41 @@ public:
 
     /**
      * @brief 引爆炸药
+     * MC 1.16.5: explode()
      */
     void explode();
 
     /**
      * @brief 获取爆炸威力
      */
-    [[nodiscard]] f32 getExplosionPower() const { return m_powered ? POWERED_EXPLOSION_POWER : NORMAL_EXPLOSION_POWER; }
+    [[nodiscard]] f32 getExplosionPower() const {
+        return m_powered ? POWERED_EXPLOSION_POWER : NORMAL_EXPLOSION_POWER;
+    }
+
+    /**
+     * @brief 获取爆炸半径
+     * MC 1.16.5: explosionRadius (默认3，高压翻倍)
+     */
+    [[nodiscard]] i32 getExplosionRadius() const { return m_explosionRadius; }
+
+    /**
+     * @brief 设置爆炸半径
+     */
+    void setExplosionRadius(i32 radius) { m_explosionRadius = radius; }
+
+    // ========== 头颅掉落 ==========
+
+    /**
+     * @brief 是否能够导致头颅掉落
+     * MC 1.16.5: ableToCauseSkullDrop()
+     */
+    [[nodiscard]] bool ableToCauseSkullDrop() const;
+
+    /**
+     * @brief 增加已掉落的头颅数量
+     * MC 1.16.5: incrementDroppedSkulls()
+     */
+    void incrementDroppedSkulls() { ++m_droppedSkulls; }
 
     // ========== 阳光燃烧 ==========
 
@@ -117,6 +178,7 @@ public:
 
     /**
      * @brief 获取眼睛高度
+     * MC 1.16.5: 1.54f * scale (成年)
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.54f; }
 
@@ -142,19 +204,27 @@ protected:
     void registerAttributes() override;
 
 private:
-    // 爆炸状态
-    i32 m_fuseTime = 0;
-    i32 m_swell = 0;
-    i32 m_oldSwell = 0;
-    bool m_ignited = false;
-    bool m_powered = false;
+    // MC 1.16.5 状态变量
+    i32 m_fuseTime = DEFAULT_FUSE_TIME;      // 点燃时间配置（可修改）
+    i32 m_explosionRadius = DEFAULT_EXPLOSION_RADIUS;  // 爆炸半径（可修改）
+    i32 m_timeSinceIgnited = 0;              // 已点燃时间
+    i32 m_lastActiveTime = 0;                // 上一次点燃时间（渲染插值）
+    bool m_ignited = false;                  // 是否被点燃
+    bool m_powered = false;                  // 是否是高压苦力怕
+    i32 m_droppedSkulls = 0;                 // 已掉落的头颅数量
 
-    // 常量
-    static constexpr i32 FUSE_DURATION = 30;        // 1.5秒点燃时间
-    static constexpr i32 MAX_SWELL = 30;            // 最大膨胀值
-    static constexpr f32 NORMAL_EXPLOSION_POWER = 3.0f;
-    static constexpr f32 POWERED_EXPLOSION_POWER = 6.0f;
-    static constexpr f32 DETONATE_DISTANCE = 3.0f;  // 触发爆炸距离
+    // MC 1.16.5 常量
+    static constexpr i32 DEFAULT_FUSE_TIME = 30;           // 默认点燃时间 (1.5秒)
+    static constexpr i32 DEFAULT_EXPLOSION_RADIUS = 3;     // 默认爆炸半径
+    static constexpr f32 NORMAL_EXPLOSION_POWER = 3.0f;    // 普通爆炸威力
+    static constexpr f32 POWERED_EXPLOSION_POWER = 6.0f;   // 高压爆炸威力
+    static constexpr f32 DETONATE_DISTANCE = 3.0f;         // 触发爆炸距离
+
+    /**
+     * @brief 生成滞留药水云（如果有效果）
+     * MC 1.16.5: spawnLingeringCloud()
+     */
+    void spawnLingeringCloud();
 };
 
 } // namespace mc

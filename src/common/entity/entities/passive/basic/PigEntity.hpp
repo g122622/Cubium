@@ -2,12 +2,16 @@
 
 #include "AnimalEntity.hpp"
 #include "common/entity/interfaces/IRideable.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include <optional>
 
 namespace mc {
 
 // 前向声明
 class IWorld;
 class Player;
+class DamageSource;
 
 /**
  * @brief 猪实体
@@ -31,6 +35,26 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取环境音效
+     * 参考 MC 1.16.5 PigEntity.getAmbientSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤声音
+     * 参考 MC 1.16.5 PigEntity.getHurtSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     * 参考 MC 1.16.5 PigEntity.getDeathSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
     // ========== 繁殖 ==========
 
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
@@ -49,6 +73,11 @@ public:
 
     void onPlayerStopRiding(Player* player) override;
 
+    /**
+     * @brief 获取骑乘速度
+     * 参考 MC 1.16.5 PigEntity.getMountedSpeed()
+     * @return 基础速度 * 0.225F
+     */
     [[nodiscard]] f32 getSteeringSpeed() const override;
 
     bool boost() override;
@@ -68,14 +97,22 @@ protected:
     [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
     [[nodiscard]] f32 getBaseHeight() const override { return 0.9f; }
 
+    /**
+     * @brief 获取眼睛高度
+     * 参考 MC 1.16.5 PigEntity.getStandingEyeHeight()
+     */
+    [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
+
 private:
     bool m_hasSaddle = false;
     i32 m_boostTime = 0;
     f32 m_boostSpeed = 0.0f;
 
-    static constexpr f32 PIG_SPEED = 0.2f;
-    static constexpr f32 BOOST_SPEED = 0.3f;
-    static constexpr i32 MAX_BOOST_TIME = 140; // 7秒
+    // MC 1.16.5 常量
+    static constexpr f32 PIG_SPEED = 0.25f;       // 基础移动速度
+    static constexpr f32 MOUNTED_SPEED_MULT = 0.225f;  // 骑乘速度乘数
+    static constexpr f32 BOOST_SPEED = 0.3f;      // 加速额外速度
+    static constexpr i32 MAX_BOOST_TIME = 140;    // 最大加速时间 (7秒)
 };
 
 } // namespace mc

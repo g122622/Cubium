@@ -2,16 +2,15 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "common/entity/entities/player/Player.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
 
 std::unique_ptr<Entity> PigEntity::create(IWorld* /*world*/) {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
     return std::make_unique<PigEntity>(LegacyEntityType::Unknown, 0);
 }
 
@@ -22,27 +21,45 @@ PigEntity::PigEntity(LegacyEntityType type, EntityId id)
     registerGoals();
 }
 
+std::optional<ResourceLocation> PigEntity::getAmbientSound() const {
+    // MC 1.16.5: entity.pig.ambient
+    return makeSoundEventId("ambient");
+}
+
+std::optional<ResourceLocation> PigEntity::getHurtSound(DamageSource& /*source*/) const {
+    // MC 1.16.5: entity.pig.hurt
+    return makeSoundEventId("hurt");
+}
+
+std::optional<ResourceLocation> PigEntity::getDeathSound() const {
+    // MC 1.16.5: entity.pig.death
+    return makeSoundEventId("death");
+}
+
 bool PigEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // 猪用胡萝卜繁殖
+    // MC 1.16.5: 猪用胡萝卜、马铃薯、甜菜根繁殖
+    // PigEntity.TEMPTATION_ITEMS = Ingredient.fromItems(Items.CARROT, Items.POTATO, Items.BEETROOT)
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
-    return item == Items::CARROT;
+    return item == Items::CARROT
+        || item == Items::POTATO
+        || item == Items::BEETROOT;
 }
 
 bool PigEntity::canMateWith(const AnimalEntity& other) const {
-    // 检查是否是猪
-    // TODO: 类型检查
-    return AnimalEntity::canMateWith(other);
+    // MC 1.16.5: 检查是否是猪
+    return dynamic_cast<const PigEntity*>(&other) != nullptr
+        && AnimalEntity::canMateWith(other);
 }
 
 std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // 创建小猪
+    // MC 1.16.5: 创建小猪
     auto baby = std::make_unique<PigEntity>(LegacyEntityType::Unknown, 0);
 
     // 设置为幼体
     baby->setChild(true);
 
-    // 设置位置（在父体位置附近）
+    // 设置位置
     baby->setPosition(x(), y(), z());
 
     return baby;
@@ -51,28 +68,26 @@ std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/) {
 // ========== IRideable 接口实现 ==========
 
 void PigEntity::onPlayerStartRiding(Player* /*player*/) {
-    // 当玩家开始骑乘时
+    // MC 1.16.5: 当玩家开始骑乘时
     // 可以添加骑乘音效或动画触发
 }
 
 void PigEntity::onPlayerStopRiding(Player* /*player*/) {
-    // 当玩家停止骑乘时
+    // MC 1.16.5: 当玩家停止骑乘时
     // 重置加速状态
     m_boostTime = 0;
     m_boostSpeed = 0.0f;
 }
 
 f32 PigEntity::getSteeringSpeed() const {
-    // 基础速度 + 加速加成
+    // MC 1.16.5 PigEntity.getMountedSpeed():
+    // return (float)this.getAttributeValue(Attributes.MOVEMENT_SPEED) * 0.225F;
     f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
-    if (m_boostTime > 0) {
-        return baseSpeed + m_boostSpeed;
-    }
-    return baseSpeed;
+    return baseSpeed * MOUNTED_SPEED_MULT;
 }
 
 bool PigEntity::boost() {
-    // 只有装备了鞍才能加速
+    // MC 1.16.5: 只有装备了鞍才能加速
     if (!m_hasSaddle) {
         return false;
     }
@@ -108,25 +123,49 @@ void PigEntity::registerGoals() {
     // 调用父类方法注册基础动物 AI
     AnimalEntity::registerGoals();
 
-    // 猪特有目标：食物诱惑（胡萝卜）
-    // MC 1.16.5: 优先级3，速度1.2
-    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+    // MC 1.16.5 PigEntity.registerGoals()
+    // 优先级顺序：
+    // 0: SwimGoal (父类已注册)
+    // 1: PanicGoal (父类已注册)
+    // 2: BreedGoal (父类已注册)
+    // 4: TemptGoal (胡萝卜、马铃薯、甜菜根) - 注意：优先级4，不是3
+    // 5: FollowParentGoal (父类已注册)
+    // 6: WaterAvoidingRandomWalkingGoal (父类使用 RandomWalkingGoal)
+    // 7: LookAtGoal (玩家)
+    // 8: LookRandomlyGoal
+
+    // 优先级 4: 食物诱惑
+    // MC 1.16.5: TemptGoal 使用 TEMPTATION_ITEMS (胡萝卜、马铃薯、甜菜根)，速度 1.2
+    m_goalSelector.addGoal(4, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
         this, 1.2,
         [](const ItemStack& stack) -> bool {
             const Item* item = stack.getItem();
-            return item != nullptr && item == Items::CARROT;
+            return item != nullptr
+                && (item == Items::CARROT
+                    || item == Items::POTATO
+                    || item == Items::BEETROOT);
         },
-        false));  // scaredByMovement
+        false));  // scaredByMovement = false
+
+    // 优先级 7: 看向玩家
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
+        [](const LivingEntity* /*entity*/) -> bool {
+            // 只看向玩家
+            // TODO: 检查是否是玩家
+            return true;
+        }));
+
+    // 优先级 8: 随机看向
+    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
 void PigEntity::registerAttributes() {
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // 猪的属性
-    // 参考 MC 1.16.5 PigEntity 属性
+    // MC 1.16.5 PigEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
 }
 
 } // namespace mc

@@ -3,13 +3,41 @@
 #include "AnimalEntity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include <vector>
+#include <optional>
 
 namespace mc {
 
 // 前向声明
 class ItemStack;
 class Player;
+class DamageSource;
+
+/**
+ * @brief 羊毛颜色枚举
+ *
+ * 对应 MC 1.16.5 DyeColor
+ */
+enum class DyeColor : u8 {
+    White = 0,
+    Orange = 1,
+    Magenta = 2,
+    LightBlue = 3,
+    Yellow = 4,
+    Lime = 5,
+    Pink = 6,
+    Gray = 7,
+    LightGray = 8,
+    Cyan = 9,
+    Purple = 10,
+    Blue = 11,
+    Brown = 12,
+    Green = 13,
+    Red = 14,
+    Black = 15,
+    Count = 16
+};
 
 /**
  * @brief 羊实体
@@ -33,33 +61,64 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取环境音效
+     * 参考 MC 1.16.5 SheepEntity.getAmbientSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤声音
+     * 参考 MC 1.16.5 SheepEntity.getHurtSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     * 参考 MC 1.16.5 SheepEntity.getDeathSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
     // ========== 羊毛颜色 ==========
 
     /**
      * @brief 获取羊毛颜色
-     * @return 羊毛颜色ID（0=白色，其他见 DyeColor）
+     * @return 羊毛颜色
      */
-    [[nodiscard]] u8 getWoolColor() const { return m_woolColor; }
+    [[nodiscard]] DyeColor getFleeceColor() const { return m_fleeceColor; }
 
     /**
      * @brief 设置羊毛颜色
+     * 参考 MC 1.16.5 SheepEntity.setFleeceColor()
      */
-    void setWoolColor(u8 color) { m_woolColor = color; }
+    void setFleeceColor(DyeColor color) { m_fleeceColor = color; }
 
     /**
-     * @brief 是否有羊毛
+     * @brief 是否被剪过（没有羊毛）
+     * 参考 MC 1.16.5 SheepEntity.getSheared()
      */
-    [[nodiscard]] bool hasWool() const { return m_hasWool; }
+    [[nodiscard]] bool isSheared() const { return m_sheared; }
 
     /**
-     * @brief 设置羊毛状态
+     * @brief 设置剪毛状态
+     * 参考 MC 1.16.5 SheepEntity.setSheared()
      */
-    void setWool(bool hasWool) { m_hasWool = hasWool; }
+    void setSheared(bool sheared) { m_sheared = sheared; }
 
     // ========== IShearable 接口实现 ==========
 
-    [[nodiscard]] bool isShearable() const override { return m_hasWool; }
+    /**
+     * @brief 是否可以被剪毛
+     * 参考 MC 1.16.5 SheepEntity.isShearable()
+     */
+    [[nodiscard]] bool isShearable() const override;
 
+    /**
+     * @brief 剪毛
+     * 参考 MC 1.16.5 SheepEntity.shear()
+     */
     std::vector<ItemStack> shear(Player* player = nullptr) override;
 
     [[nodiscard]] i32 getShearCooldown() const override { return m_shearCooldown; }
@@ -75,9 +134,42 @@ public:
     // ========== 吃草 ==========
 
     /**
+     * @brief 吃草奖励
+     * 参考 MC 1.16.5 SheepEntity.eatGrassBonus()
+     *
+     * 当羊吃草时调用：
+     * - 如果被剪过，重新长出羊毛
+     * - 如果是幼羊，加速成长60 ticks
+     */
+    void eatGrassBonus();
+
+    /**
      * @brief 吃草动画计时器
      */
     [[nodiscard]] i32 getEatAnimationTimer() const { return m_eatAnimationTimer; }
+
+    /**
+     * @brief 设置吃草动画计时器
+     */
+    void setEatAnimationTimer(i32 timer) { m_eatAnimationTimer = timer; }
+
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 获取随机羊毛颜色
+     * 参考 MC 1.16.5 SheepEntity.getRandomSheepColor()
+     *
+     * 概率分布：
+     * - 5% 黑色
+     * - 5% 灰色
+     * - 5% 浅灰色
+     * - 3% 棕色
+     * - 0.2% 粉色
+     * - 81.8% 白色
+     */
+    [[nodiscard]] static DyeColor getRandomSheepColor(math::Random& random);
+
+    // ========== 生命周期 ==========
 
     void tick() override;
 
@@ -90,13 +182,19 @@ protected:
     [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
     [[nodiscard]] f32 getBaseHeight() const override { return 1.3f; }
 
-private:
-    u8 m_woolColor = 0;         // 羊毛颜色（默认白色）
-    bool m_hasWool = true;       // 是否有羊毛
-    i32 m_eatAnimationTimer = 0; // 吃草动画计时器
-    i32 m_shearCooldown = 0;     // 剪毛冷却（ticks）
+    /**
+     * @brief 获取站立时眼睛高度
+     * 参考 MC 1.16.5 SheepEntity.getStandingEyeHeight()
+     */
+    [[nodiscard]] f32 eyeHeight() const override { return 0.95f * height(); }
 
-    static constexpr i32 WOOL_REGROW_TIME = 2400; // 羊毛重新生长时间（2分钟 = 2400 ticks）
+private:
+    DyeColor m_fleeceColor = DyeColor::White;  // 羊毛颜色
+    bool m_sheared = false;                     // 是否被剪过
+    i32 m_eatAnimationTimer = 0;                // 吃草动画计时器
+    i32 m_shearCooldown = 0;                    // 剪毛冷却（ticks）
+
+    static constexpr i32 EAT_GRASS_TIMER_MAX = 40;  // 吃草动画持续时间
 };
 
 } // namespace mc
