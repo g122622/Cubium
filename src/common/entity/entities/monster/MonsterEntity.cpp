@@ -2,6 +2,7 @@
 #include "../../core/MobEntity.hpp"
 #include "../../ai/goal/GoalSelector.hpp"
 #include "../../ai/goal/goals/SwimGoal.hpp"
+#include "../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../attribute/Attributes.hpp"
 
 namespace mc {
@@ -32,13 +33,19 @@ void MonsterEntity::tick() {
 }
 
 void MonsterEntity::registerGoals() {
+    // 调用父类方法
+    CreatureEntity::registerGoals();
+
     // 敌对生物基础 AI
     // 优先级 0: 游泳（最高优先级）
     m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
 
-    // TODO: 添加敌对目标选择
-    // m_targetSelector.addGoal(1, new HurtByTargetGoal(this));
-    // m_targetSelector.addGoal(2, new NearestAttackableTargetGoal(this, Player.class, true));
+    // 目标选择器
+    // 优先级 1: 被攻击后反击
+    m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, false));
+
+    // 注意: 具体的攻击目标选择需要子类添加
+    // 例如僵尸会添加 NearestAttackableTargetGoal<Player>
 }
 
 void MonsterEntity::handleDaylightBurning() {

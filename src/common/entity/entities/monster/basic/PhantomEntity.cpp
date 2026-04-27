@@ -12,12 +12,18 @@ std::unique_ptr<Entity> PhantomEntity::create(IWorld* world) {
 PhantomEntity::PhantomEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
-    // 幻翼不燃烧在阳光下
-    setBurnsInDaylight(false);
+    // MC 1.16.5: 幻翼在阳光下燃烧
+    // 默认 burnsInDaylight = true
+    setExperienceValue(5);
 }
 
 void PhantomEntity::tick() {
     MonsterEntity::tick();
+
+    // MC 1.16.5: 在阳光下着火8秒
+    // if (isAlive() && isInDaylight()) {
+    //     setFire(8);
+    // }
 
     // 更新攻击冷却
     if (m_attackCooldown > 0) {

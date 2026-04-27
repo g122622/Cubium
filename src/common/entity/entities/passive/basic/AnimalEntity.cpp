@@ -7,6 +7,11 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../core/EntityDataManager.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -15,42 +20,66 @@ AnimalEntity::AnimalEntity(LegacyEntityType type, EntityId id)
 {
     // 注册属性
     registerAttributes();
+
+    // MC 1.16.5: 设置路径优先级
+    // setPathPriority(PathNodeType.DANGER_FIRE, 16.0F);
+    // setPathPriority(PathNodeType.DAMAGE_FIRE, -1.0F);
 }
 
-bool AnimalEntity::isBreedingItem(const ItemStack& /*itemStack*/) const {
-    // 默认实现：没有繁殖物品
-    // 子类应该重写此方法
-    return false;
+bool AnimalEntity::isBreedingItem(const ItemStack& itemStack) const {
+    // MC 1.16.5: 默认检查是否为小麦
+    // 子类应该重写此方法来定义特定的繁殖物品
+    return !itemStack.isEmpty() && itemStack.getItem() == Items::WHEAT;
 }
 
 bool AnimalEntity::canMateWith(const AnimalEntity& other) const {
-    // 基本条件：
-    // 1. 两个都是成体
-    // 2. 两个都处于爱心状态
-    // 3. 不是同一个实体
-    // 4. 是同一种动物（子类可以重写来放宽此条件）
-
+    // MC 1.16.5: 检查双方都是成体、都处于爱心状态、是同类
     if (this == &other) {
         return false;
     }
 
-    if (isChild() || other.isChild()) {
-        return false;
-    }
-
-    if (!isInLove() || !other.isInLove()) {
-        return false;
-    }
-
     // 检查是否是同一种动物
-    // TODO: 比较 EntityType
-    return true;
+    // MC 使用 getClass() 比较
+    if (typeid(*this) != typeid(other)) {
+        return false;
+    }
+
+    // 检查双方都是成体且都处于爱心状态
+    return isInLove() && other.isInLove();
+}
+
+bool AnimalEntity::canBreed() const {
+    // MC 1.16.5: 年龄为0且不处于爱心状态
+    return getGrowingAge() == 0 && !isInLove();
+}
+
+void AnimalEntity::setInLove(u64 playerUuid) {
+    // MC 1.16.5: 设置爱心状态持续 600 ticks（30秒）
+    m_inLoveTimer = IN_LOVE_DURATION;
+    m_loveCause = playerUuid;
+
+    // 广播状态更新（用于客户端粒子效果）
+    // world->setEntityState(this, static_cast<u8>(18));
+}
+
+void AnimalEntity::resetInLove() {
+    m_inLoveTimer = 0;
+    m_loveCause = 0;
+}
+
+i32 AnimalEntity::getExperiencePoints() const {
+    // MC 1.16.5: 返回 1-3 经验
+    math::Random rng = getRandom();
+    return 1 + rng.nextInt(3);
 }
 
 void AnimalEntity::tick() {
     AgeableEntity::tick();
 
     updateInLove();
+
+    // MC 1.16.5: 成体时清空爱心状态
+    // updateAITasks() 中会检查年龄并清空爱心
 }
 
 void AnimalEntity::registerGoals() {
@@ -72,7 +101,7 @@ void AnimalEntity::registerGoals() {
     // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, foodPredicate));
 
     // 优先级 4: 跟随父母（幼体行为）
-    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.0));
+    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
     // 优先级 5: 随机漫步
     m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
@@ -84,21 +113,6 @@ void AnimalEntity::registerGoals() {
     m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
-void AnimalEntity::updateInLove() {
-    if (m_inLoveTimer > 0) {
-        --m_inLoveTimer;
-
-        if (m_inLoveTimer == 0) {
-            resetInLove();
-        }
-    }
-}
-
-void AnimalEntity::resetInLove() {
-    m_inLoveTimer = 0;
-    m_loveCause = 0;
-}
-
 void AnimalEntity::registerAttributes() {
     // 调用父类方法
     AgeableEntity::registerAttributes();
@@ -107,6 +121,35 @@ void AnimalEntity::registerAttributes() {
     // 参考 MC 1.16.5 AnimalEntity 默认属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+}
+
+void AnimalEntity::updateInLove() {
+    // MC 1.16.5: 成体时如果有年龄（繁殖冷却），清空爱心状态
+    if (getGrowingAge() != 0) {
+        m_inLoveTimer = 0;
+    }
+
+    if (m_inLoveTimer > 0) {
+        --m_inLoveTimer;
+
+        if (m_inLoveTimer == 0) {
+            resetInLove();
+        } else {
+            // 每 10 tick 生成心形粒子
+            if (m_inLoveTimer % 10 == 0) {
+                spawnHeartParticles();
+            }
+        }
+    }
+}
+
+void AnimalEntity::spawnHeartParticles() {
+    // MC 1.16.5: 生成心形粒子
+    // 在实体周围随机位置生成粒子
+    // world->addParticle(ParticleTypes.HEART,
+    //     getPosXRandom(1.0), getPosYRandom() + 0.5, getPosZRandom(1.0),
+    //     rand.nextGaussian() * 0.02, rand.nextGaussian() * 0.02, rand.nextGaussian() * 0.02);
+    // 目前粒子系统未完全实现，留空
 }
 
 } // namespace mc

@@ -41,6 +41,7 @@ public:
      * @param itemStack 物品堆
      * @return 是否可以用于繁殖
      *
+     * MC 1.16.5: 默认检查是否为小麦
      * 子类应该重写此方法来定义特定的繁殖物品
      */
     [[nodiscard]] virtual bool isBreedingItem(const ItemStack& itemStack) const;
@@ -49,8 +50,17 @@ public:
      * @brief 检查是否可以与另一动物交配
      * @param other 另一个动物
      * @return 是否可以交配
+     *
+     * MC 1.16.5: 检查双方都是成体、都处于爱心状态、是同类
      */
     [[nodiscard]] virtual bool canMateWith(const AnimalEntity& other) const;
+
+    /**
+     * @brief 检查是否可以繁殖
+     *
+     * MC 1.16.5: 年龄为0且不处于爱心状态
+     */
+    [[nodiscard]] bool canBreed() const;
 
     /**
      * @brief 生成幼体
@@ -60,14 +70,6 @@ public:
      * 子类必须重写此方法来创建特定类型的幼体
      */
     virtual std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) = 0;
-
-    /**
-     * @brief 玩家交互
-     * @param player 玩家
-     * @param hand 手（主手/副手）
-     * @return 是否成功交互
-     */
-    // TODO: bool interact(PlayerEntity& player, Hand hand);
 
     // ========== 爱心状态 ==========
 
@@ -85,17 +87,47 @@ public:
     /**
      * @brief 设置爱心计时器
      */
-    void setInLove(i32 timer) { m_inLoveTimer = timer; }
+    void setInLoveTimer(i32 timer) { m_inLoveTimer = timer; }
 
     /**
-     * @brief 获取喂食玩家的ID
+     * @brief 获取喂食玩家的UUID
      */
     [[nodiscard]] u64 getLoveCause() const { return m_loveCause; }
 
     /**
      * @brief 设置喂食玩家
+     *
+     * MC 1.16.5: 设置爱心状态并记录玩家UUID
      */
-    void setLoveCause(u64 playerId) { m_loveCause = playerId; }
+    void setInLove(u64 playerUuid = 0);
+
+    /**
+     * @brief 重置爱心状态
+     */
+    void resetInLove();
+
+    // ========== 生成和经验 ==========
+
+    /**
+     * @brief 获取环境音间隔
+     *
+     * MC 1.16.5: 返回 120 ticks
+     */
+    [[nodiscard]] i32 getTalkInterval() const { return 120; }
+
+    /**
+     * @brief 是否可以消失
+     *
+     * MC 1.16.5: 动物不会消失
+     */
+    [[nodiscard]] bool canDespawn() const { return false; }
+
+    /**
+     * @brief 获取经验值
+     *
+     * MC 1.16.5: 返回 1-3 经验
+     */
+    [[nodiscard]] i32 getExperiencePoints() const;
 
     // ========== 生命周期 ==========
 
@@ -133,13 +165,15 @@ protected:
     void updateInLove();
 
     /**
-     * @brief 重置爱心状态
+     * @brief 生成爱心粒子
+     *
+     * MC 1.16.5: 每10tick生成心形粒子
      */
-    void resetInLove();
+    void spawnHeartParticles();
 
 private:
     i32 m_inLoveTimer = 0;    // 爱心动画计时器
-    u64 m_loveCause = 0;       // 使其进入爱心状态的玩家ID
+    u64 m_loveCause = 0;       // 使其进入爱心状态的玩家UUID
 
     static constexpr i32 IN_LOVE_DURATION = 600; // 爱心状态持续时间（30秒）
 };
