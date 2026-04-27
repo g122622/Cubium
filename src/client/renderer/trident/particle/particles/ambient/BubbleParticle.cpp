@@ -22,13 +22,13 @@ BubbleParticle::BubbleParticle(const glm::vec3& pos, const glm::vec3& velocity)
 std::unique_ptr<Particle> BubbleParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<BubbleParticle>(pos, velocity);
 }
 
-void BubbleParticle::tick(ClientWorld* world) {
+void BubbleParticle::tick(mc::client::ClientWorld* world) {
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

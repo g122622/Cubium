@@ -21,7 +21,7 @@ DiggingParticle::DiggingParticle(const glm::vec3& pos, const glm::vec3& velocity
 std::unique_ptr<Particle> DiggingParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     // 默认使用石头方块
@@ -37,7 +37,7 @@ std::unique_ptr<Particle> DiggingParticle::createWithBlock(
     return std::make_unique<DiggingParticle>(pos, velocity, blockState);
 }
 
-void DiggingParticle::tick(ClientWorld* world) {
+void DiggingParticle::tick(mc::client::ClientWorld* world) {
     m_prevPosition = m_position;
 
     m_age += 1.0f;
@@ -60,7 +60,7 @@ void DiggingParticle::tick(ClientWorld* world) {
     m_velocity.z *= m_friction;
 
     // 地面摩擦
-    if (m_onGround) {
+    if (onGround()) {
         m_velocity.x *= 0.7f;
         m_velocity.z *= 0.7f;
     }

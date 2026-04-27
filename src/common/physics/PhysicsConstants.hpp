@@ -75,6 +75,24 @@ constexpr f32 RAIN_GRAVITY = 0.06f;
 /// 雪花重力
 constexpr f32 SNOW_GRAVITY = 0.02f;
 
+/// 粒子重力乘数 (MC 标准)
+constexpr f32 PARTICLE_GRAVITY_MULTIPLIER = 0.04f;
+
+/// 粒子地面摩擦
+constexpr f32 PARTICLE_GROUND_FRICTION = 0.7f;
+
+/// 粒子默认碰撞盒宽度
+constexpr f32 PARTICLE_DEFAULT_BBOX_WIDTH = 0.2f;
+
+/// 粒子默认碰撞盒高度
+constexpr f32 PARTICLE_DEFAULT_BBOX_HEIGHT = 0.2f;
+
+/// 粒子最大打包光照值 (skyLight << 4 | blockLight)
+constexpr u32 PARTICLE_MAX_PACKED_LIGHT = 0xF0;
+
+/// 粒子最小移动阈值
+constexpr f64 PARTICLE_MIN_MOVEMENT = 1.0e-5;
+
 // ============================================================================
 // 实体运动限制
 // ============================================================================

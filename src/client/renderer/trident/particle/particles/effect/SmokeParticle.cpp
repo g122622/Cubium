@@ -26,13 +26,13 @@ SmokeParticle::SmokeParticle(const glm::vec3& pos, const glm::vec3& velocity)
 std::unique_ptr<Particle> SmokeParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SmokeParticle>(pos, velocity);
 }
 
-void SmokeParticle::tick(ClientWorld* world) {
+void SmokeParticle::tick(mc::client::ClientWorld* world) {
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

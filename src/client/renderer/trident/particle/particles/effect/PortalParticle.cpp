@@ -27,13 +27,13 @@ PortalParticle::PortalParticle(const glm::vec3& pos, const glm::vec3& velocity)
 std::unique_ptr<Particle> PortalParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<PortalParticle>(pos, velocity);
 }
 
-void PortalParticle::tick(ClientWorld* world) {
+void PortalParticle::tick(mc::client::ClientWorld* world) {
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

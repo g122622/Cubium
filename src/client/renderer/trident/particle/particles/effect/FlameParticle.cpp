@@ -27,13 +27,13 @@ FlameParticle::FlameParticle(const glm::vec3& pos, const glm::vec3& velocity)
 std::unique_ptr<Particle> FlameParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<FlameParticle>(pos, velocity);
 }
 
-void FlameParticle::tick(ClientWorld* world) {
+void FlameParticle::tick(mc::client::ClientWorld* world) {
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

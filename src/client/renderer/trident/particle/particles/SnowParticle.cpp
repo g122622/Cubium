@@ -1,5 +1,7 @@
 #include "SnowParticle.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <cmath>
 
@@ -18,7 +20,7 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
     m_swingAmplitude = SWING_AMPLITUDE * (0.5f + rng.nextFloat());
 
     // 雪花参数
-    setGravity(DEFAULT_GRAVITY);
+    setGravity(physics::SNOW_GRAVITY);
     setSize(0.05f + rng.nextFloat() * 0.05f);  // 0.05 - 0.1
     setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.9f));  // 白色几乎不透明
     setFriction(0.95f);
@@ -33,13 +35,13 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
 std::unique_ptr<Particle> SnowParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SnowParticle>(pos, velocity);
 }
 
-void SnowParticle::tick(ClientWorld* world) {
+void SnowParticle::tick(mc::client::ClientWorld* world) {
     // 保存上一帧位置
     m_prevPosition = m_position;
 
@@ -51,24 +53,24 @@ void SnowParticle::tick(ClientWorld* world) {
     }
 
     // 应用重力
-    m_velocity.y -= m_gravity * 0.04f;
+    m_velocity.y -= static_cast<f32>(m_gravity * physics::PARTICLE_GRAVITY_MULTIPLIER);
 
     // 雪花摇摆效果
     m_swingPhase += SWING_FREQUENCY;
     f64 swing = std::sin(m_swingPhase) * m_swingAmplitude;
-    m_velocity.x += swing * 0.01f;
+    m_velocity.x += static_cast<f32>(swing * 0.01);
 
     // 应用速度
     m_position += m_velocity;
 
     // 应用阻力
-    m_velocity.x *= m_friction;
-    m_velocity.z *= m_friction;
+    m_velocity.x *= static_cast<f32>(m_friction);
+    m_velocity.z *= static_cast<f32>(m_friction);
 
     // 根据年龄淡出
     if (m_age > m_maxAge * 0.8f) {
         f64 fadeProgress = (m_age - m_maxAge * 0.8f) / (m_maxAge * 0.2f);
-        m_color.a = 0.9f * (1.0f - fadeProgress);
+        m_color.a = static_cast<f32>(0.9f * (1.0f - fadeProgress));
     }
 
     MC_UNUSED(world);

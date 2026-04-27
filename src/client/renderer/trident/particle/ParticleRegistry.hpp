@@ -10,10 +10,11 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mc::client::renderer::trident::particle {
-
-// 前置声明
+namespace mc::client {
 class ClientWorld;
+}
+
+namespace mc::client::renderer::trident::particle {
 
 /**
  * @brief 粒子类型信息
@@ -126,7 +127,7 @@ public:
         ParticleTypeId id,
         const glm::vec3& pos,
         const glm::vec3& velocity,
-        ClientWorld* world = nullptr) const;
+        mc::client::ClientWorld* world = nullptr) const;
 
     /**
      * @brief 通过名称创建粒子实例
@@ -141,7 +142,7 @@ public:
         const String& name,
         const glm::vec3& pos,
         const glm::vec3& velocity,
-        ClientWorld* world = nullptr) const;
+        mc::client::ClientWorld* world = nullptr) const;
 
     // ========================================================================
     // 查询

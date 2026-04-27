@@ -5,16 +5,25 @@
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
 #include <functional>
 
+namespace mc {
+class IWorld;
+class PhysicsEngine;
+}
+
+namespace mc::client {
+class ClientWorld;
+}
+
 namespace mc::client::renderer::trident::particle {
 
 // 前置声明
-class ClientWorld;
 class ParticleTextureAtlas;
 struct SpriteInfo;
 
@@ -27,8 +36,28 @@ struct ParticleVertex {
     glm::vec3 position;     ///< 粒子位置
     glm::vec2 texCoord;     ///< 纹理坐标
     glm::vec4 color;        ///< RGBA 颜色（含透明度）
-    f64 size;               ///< 粒子大小
-    f64 alpha;              ///< 额外的 alpha 值（用于淡出）
+    f32 size;               ///< 粒子大小
+    f32 alpha;              ///< 额外的 alpha 值（用于淡出）
+};
+
+/**
+ * @brief 粒子碰撞上下文
+ *
+ * 用于缓存碰撞检测结果，避免重复计算。
+ * 参考 MC 1.16.5 Entity.move() 中的碰撞处理逻辑。
+ */
+struct ParticleCollisionContext {
+    bool collidedX = false;     ///< X 轴是否发生碰撞
+    bool collidedY = false;     ///< Y 轴是否发生碰撞
+    bool collidedZ = false;     ///< Z 轴是否发生碰撞
+    bool onGround = false;      ///< 是否在地面
+
+    void reset() {
+        collidedX = false;
+        collidedY = false;
+        collidedZ = false;
+        onGround = false;
+    }
 };
 
 /**
@@ -101,7 +130,7 @@ public:
      *
      * @param world 客户端世界（可选，用于碰撞检测和光照采样）
      */
-    virtual void tick(ClientWorld* world = nullptr);
+    virtual void tick(mc::client::ClientWorld* world = nullptr);
 
     /**
      * @brief 粒子是否存活
@@ -167,7 +196,7 @@ public:
      * @param world 客户端世界
      * @return 组合光照值（skyLight << 4 | blockLight），范围 0-255
      */
-    [[nodiscard]] virtual u32 getLightColor(ClientWorld* world) const;
+    [[nodiscard]] virtual u32 getLightColor(mc::client::ClientWorld* world) const;
 
     /**
      * @brief 获取粒子缩放比例
@@ -192,7 +221,7 @@ public:
      * @param world 客户端世界
      * @param delta 移动增量
      */
-    void move(ClientWorld* world, const glm::vec3& delta);
+    void move(mc::client::ClientWorld* world, const glm::vec3& delta);
 
     /**
      * @brief 设置碰撞盒尺寸
@@ -201,6 +230,13 @@ public:
      * @param height 高度（Y 轴）
      */
     void setBoundingBox(f64 width, f64 height);
+
+    /**
+     * @brief 获取碰撞盒
+     *
+     * @return 当前碰撞盒
+     */
+    [[nodiscard]] AxisAlignedBB getBoundingBox() const;
 
     // ========================================================================
     // 属性访问器
@@ -215,11 +251,14 @@ public:
     [[nodiscard]] f64 friction() const { return m_friction; }
     [[nodiscard]] f64 size() const { return m_size; }
     [[nodiscard]] const glm::vec4& color() const { return m_color; }
-    [[nodiscard]] bool onGround() const { return m_onGround; }
+    [[nodiscard]] bool onGround() const { return m_collisionContext.onGround; }
     [[nodiscard]] bool hasPhysics() const { return m_hasPhysics; }
     [[nodiscard]] f64 roll() const { return m_roll; }
+    [[nodiscard]] bool collidedX() const { return m_collisionContext.collidedX; }
+    [[nodiscard]] bool collidedY() const { return m_collisionContext.collidedY; }
+    [[nodiscard]] bool collidedZ() const { return m_collisionContext.collidedZ; }
 
-    void setPosition(const glm::vec3& pos) { m_position = pos; }
+    void setPosition(const glm::vec3& pos);
     void setVelocity(const glm::vec3& vel) { m_velocity = vel; }
     void setGravity(f64 g) { m_gravity = g; }
     void setFriction(f64 f) { m_friction = f; }
@@ -261,17 +300,15 @@ protected:
 
     f64 m_gravity = 0.0f;       ///< 重力加速度（方块/tick²）
     f64 m_friction = 0.98f;     ///< 空气阻力系数
-    bool m_onGround = false;    ///< 是否在地面
     bool m_hasPhysics = true;   ///< 是否进行碰撞检测
 
     // ========================================================================
-    // 碰撞盒
+    // 碰撞盒和碰撞状态
     // ========================================================================
 
-    glm::vec3 m_bboxMin;        ///< 碰撞盒最小点
-    glm::vec3 m_bboxMax;        ///< 碰撞盒最大点
     f64 m_bboxWidth = 0.0f;     ///< 碰撞盒宽度
     f64 m_bboxHeight = 0.0f;    ///< 碰撞盒高度
+    ParticleCollisionContext m_collisionContext;  ///< 碰撞上下文
 };
 
 /**
@@ -287,6 +324,6 @@ protected:
 using ParticleFactory = std::function<std::unique_ptr<Particle>(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)>;
+    mc::client::ClientWorld* world)>;
 
 } // namespace mc::client::renderer::trident::particle

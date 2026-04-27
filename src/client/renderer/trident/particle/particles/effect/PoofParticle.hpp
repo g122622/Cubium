@@ -10,18 +10,18 @@ class ClientWorld;
 namespace mc::client::renderer::trident::particle::particles {
 
 /**
- * @brief 水下悬浮粒子
+ * @brief 消散粒子
  *
- * 参考 MC 1.16.5 UnderwaterParticle
+ * 参考 MC 1.16.5 PoofParticle
  *
  * 特性：
- * - 水下环境效果
- * - 缓慢漂浮
- * - 半透明淡蓝色
+ * - 轻微向上飘动
+ * - 随机运动
+ * - 随年龄缩小并淡出
  */
-class UnderwaterParticle : public Particle {
+class PoofParticle : public Particle {
 public:
-    UnderwaterParticle(const glm::vec3& pos, const glm::vec3& velocity);
+    PoofParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
         const glm::vec3& pos,
@@ -31,19 +31,19 @@ public:
     void tick(mc::client::ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
-        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+        return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override {
-        return ResourceLocation("minecraft:particle/underwater");
+        return ResourceLocation("minecraft:particle/poof");
     }
 
-private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.0f;
-    static constexpr f64 DEFAULT_SIZE = 0.03f;
-    static constexpr f64 DEFAULT_LIFETIME = 60.0f;
+    [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
-    f64 m_initialAlpha;
+private:
+    static constexpr f64 DEFAULT_LIFETIME = 18.0;
+
+    f64 m_initialSize;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

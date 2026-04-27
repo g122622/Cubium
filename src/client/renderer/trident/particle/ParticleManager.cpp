@@ -297,7 +297,7 @@ size_t ParticleManager::aliveParticleCount() const {
         [](const std::unique_ptr<Particle>& p) { return p && p->isAlive(); }));
 }
 
-void ParticleManager::tick(ClientWorld* world) {
+void ParticleManager::tick(mc::client::ClientWorld* world) {
     // 更新所有粒子
     for (auto& particle : m_particles) {
         if (particle && particle->isAlive()) {

@@ -25,13 +25,13 @@ HeartParticle::HeartParticle(const glm::vec3& pos, const glm::vec3& velocity)
 std::unique_ptr<Particle> HeartParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<HeartParticle>(pos, velocity);
 }
 
-void HeartParticle::tick(ClientWorld* world) {
+void HeartParticle::tick(mc::client::ClientWorld* world) {
     MC_UNUSED(world);
 
     m_prevPosition = m_position;

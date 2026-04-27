@@ -46,8 +46,40 @@ add_executable(minecraft-client
     renderer/trident/particle/Particle.cpp
     renderer/trident/particle/ParticleManager.cpp
     renderer/trident/particle/ParticleTextureAtlas.cpp
+    renderer/trident/particle/ParticleRegistry.cpp
+    renderer/trident/particle/ParticleFactories.cpp
+    renderer/trident/particle/data/BasicParticleData.cpp
+    renderer/trident/particle/data/BlockParticleData.cpp
+    renderer/trident/particle/data/ItemParticleData.cpp
+    renderer/trident/particle/data/RedstoneParticleData.cpp
+    # 粒子实现 - 天气
     renderer/trident/particle/particles/RainParticle.cpp
     renderer/trident/particle/particles/SnowParticle.cpp
+    renderer/trident/particle/particles/weather/SplashParticle.cpp
+    # 粒子实现 - 环境
+    renderer/trident/particle/particles/ambient/BubbleParticle.cpp
+    renderer/trident/particle/particles/ambient/UnderwaterParticle.cpp
+    renderer/trident/particle/particles/ambient/CloudParticle.cpp
+    # 粒子实现 - 效果
+    renderer/trident/particle/particles/effect/FlameParticle.cpp
+    renderer/trident/particle/particles/effect/SmokeParticle.cpp
+    renderer/trident/particle/particles/effect/LavaParticle.cpp
+    renderer/trident/particle/particles/effect/PortalParticle.cpp
+    renderer/trident/particle/particles/effect/CritParticle.cpp
+    renderer/trident/particle/particles/effect/ExplosionParticle.cpp
+    renderer/trident/particle/particles/effect/PoofParticle.cpp
+    renderer/trident/particle/particles/effect/SpellParticle.cpp
+    renderer/trident/particle/particles/effect/DragonBreathParticle.cpp
+    renderer/trident/particle/particles/effect/SoulParticle.cpp
+    renderer/trident/particle/particles/effect/RedstoneParticle.cpp
+    # 粒子实现 - 生物
+    renderer/trident/particle/particles/mob/HeartParticle.cpp
+    renderer/trident/particle/particles/mob/VillagerParticle.cpp
+    # 粒子实现 - 方块
+    renderer/trident/particle/particles/block/DiggingParticle.cpp
+    # 粒子实现 - 液体
+    renderer/trident/particle/particles/liquid/DripParticle.cpp
+    renderer/trident/particle/particles/liquid/DripWaterParticle.cpp
     # 方块破坏效果
     renderer/trident/block/BreakProgressManager.cpp
     renderer/trident/block/BreakProgressRenderer.cpp

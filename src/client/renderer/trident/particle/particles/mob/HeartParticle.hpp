@@ -3,6 +3,10 @@
 #include "../../Particle.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
+namespace mc::client {
+class ClientWorld;
+}
+
 namespace mc::client::renderer::trident::particle::particles {
 
 /**
@@ -22,9 +26,9 @@ public:
     static std::unique_ptr<Particle> create(
         const glm::vec3& pos,
         const glm::vec3& velocity,
-        ClientWorld* world);
+        mc::client::ClientWorld* world);
 
-    void tick(ClientWorld* world) override;
+    void tick(mc::client::ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;

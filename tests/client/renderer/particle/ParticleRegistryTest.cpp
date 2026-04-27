@@ -7,6 +7,11 @@
 #include "common/util/assert/AssertAll.hpp"
 #include <glm/glm.hpp>
 
+// 前置声明 ClientWorld
+namespace mc::client {
+class ClientWorld;
+}
+
 using namespace mc::client::renderer::trident::particle;
 using namespace mc;
 
@@ -159,7 +164,7 @@ TEST(ParticleRegistryTest, RegisterCustomType) {
     ParticleFactory customFactory = [](
         const glm::vec3& pos,
         const glm::vec3& vel,
-        ClientWorld* world) -> std::unique_ptr<Particle> {
+        mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
         MC_UNUSED(world);
         return std::make_unique<Particle>(pos, vel);
     };
@@ -203,7 +208,7 @@ TEST(ParticleRegistryTest, CreateParticle) {
     ParticleFactory testFactory = [](
         const glm::vec3& pos,
         const glm::vec3& vel,
-        ClientWorld* world) -> std::unique_ptr<Particle> {
+        mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
         MC_UNUSED(world);
         auto particle = std::make_unique<Particle>(pos, vel);
         particle->setMaxAge(50.0f);
@@ -238,7 +243,7 @@ TEST(ParticleRegistryTest, CreateParticleByName) {
     ParticleFactory testFactory = [](
         const glm::vec3& pos,
         const glm::vec3& vel,
-        ClientWorld* world) -> std::unique_ptr<Particle> {
+        mc::client::ClientWorld* world) -> std::unique_ptr<Particle> {
         MC_UNUSED(world);
         return std::make_unique<Particle>(pos, vel);
     };

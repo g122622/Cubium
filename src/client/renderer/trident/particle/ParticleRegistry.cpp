@@ -52,7 +52,7 @@ std::unique_ptr<Particle> ParticleRegistry::createParticle(
     ParticleTypeId id,
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world) const {
+    mc::client::ClientWorld* world) const {
 
     auto it = m_types.find(id);
     if (it == m_types.end() || !it->second.factory) {
@@ -66,7 +66,7 @@ std::unique_ptr<Particle> ParticleRegistry::createParticle(
     const String& name,
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world) const {
+    mc::client::ClientWorld* world) const {
 
     auto id = getTypeId(name);
     if (!id.has_value()) {

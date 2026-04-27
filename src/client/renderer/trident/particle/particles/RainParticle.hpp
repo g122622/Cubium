@@ -2,6 +2,10 @@
 
 #include "../Particle.hpp"
 
+namespace mc::client {
+class ClientWorld;
+}
+
 namespace mc::client::renderer::trident::particle::particles {
 
 /**
@@ -44,9 +48,9 @@ public:
     static std::unique_ptr<Particle> create(
         const glm::vec3& pos,
         const glm::vec3& velocity,
-        ClientWorld* world);
+        mc::client::ClientWorld* world);
 
-    void tick(ClientWorld* world) override;
+    void tick(mc::client::ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
@@ -57,7 +61,6 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.06f;   ///< 雨滴重力
     static constexpr f64 DEFAULT_SIZE = 0.01f;      ///< 雨滴大小
     static constexpr f64 TERMINAL_VELOCITY = -3.0f; ///< 终端速度
 };

@@ -1,6 +1,10 @@
 #pragma once
 
-#include "../liquid/DripParticle.hpp"
+#include "DripParticle.hpp"
+
+namespace mc::client {
+class ClientWorld;
+}
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -18,10 +22,21 @@ class DripWaterParticle : public DripParticle {
 public:
     DripWaterParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
-    static std::unique_ptr<Particle> create(
+    /**
+     * @brief 工厂方法：创建水滴粒子（悬挂状态）
+     */
+    static std::unique_ptr<Particle> createDripping(
         const glm::vec3& pos,
         const glm::vec3& velocity,
-        ClientWorld* world);
+        mc::client::ClientWorld* world);
+
+    /**
+     * @brief 工厂方法：创建下落水滴粒子
+     */
+    static std::unique_ptr<Particle> createFalling(
+        const glm::vec3& pos,
+        const glm::vec3& velocity,
+        mc::client::ClientWorld* world);
 
     [[nodiscard]] ParticleRenderType getRenderType() const override {
         return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
@@ -31,10 +46,10 @@ public:
         return ResourceLocation("minecraft:particle/drip_hang");
     }
 
-    [[nodiscard]] u32 getLightColor(ClientWorld* world) const override;
+    [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override;
 
 protected:
-    void onLand(ClientWorld* world) override;
+    void onLand(mc::client::ClientWorld* world) override;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

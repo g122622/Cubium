@@ -11,6 +11,10 @@
 #include <array>
 #include <unordered_map>
 
+namespace mc::client {
+class ClientWorld;
+}
+
 namespace mc::client::renderer::trident::particle {
 
 /**
@@ -116,7 +120,7 @@ public:
      *
      * @param world 客户端世界（用于碰撞检测和光照采样）
      */
-    void tick(ClientWorld* world = nullptr);
+    void tick(mc::client::ClientWorld* world = nullptr);
 
     /**
      * @brief 渲染所有粒子

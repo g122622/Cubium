@@ -2,6 +2,10 @@
 
 #include "../Particle.hpp"
 
+namespace mc::client {
+class ClientWorld;
+}
+
 namespace mc::client::renderer::trident::particle::particles {
 
 /**
@@ -44,9 +48,9 @@ public:
     static std::unique_ptr<Particle> create(
         const glm::vec3& pos,
         const glm::vec3& velocity,
-        ClientWorld* world);
+        mc::client::ClientWorld* world);
 
-    void tick(ClientWorld* world) override;
+    void tick(mc::client::ClientWorld* world) override;
 
     void buildVertices(
         const glm::vec3& cameraPos,
@@ -63,7 +67,6 @@ public:
     }
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.02f;   ///< 雪花重力（比雨滴小）
     static constexpr f64 SWING_AMPLITUDE = 0.1f;    ///< 摇摆振幅
     static constexpr f64 SWING_FREQUENCY = 0.05f;   ///< 摇摆频率
 

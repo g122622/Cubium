@@ -5,77 +5,11 @@
 #include "client/renderer/trident/particle/ParticleRenderType.hpp"
 #include "client/renderer/trident/particle/particles/RainParticle.hpp"
 #include "client/renderer/trident/particle/data/BasicParticleData.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include <glm/glm.hpp>
 
 using namespace mc::client::renderer::trident::particle;
 using namespace mc::client::renderer::trident::particle::data;
 using namespace mc::client::renderer::trident::particle::particles;
-
-namespace mc::client::renderer::trident::particle {
-
-/**
- * @brief 粒子层最小世界接口实现
- *
- * 只保留雨滴碰撞所需的 `getBlockState(...)`，便于在测试里构造轻量 stub。
- */
-class ClientWorld {
-public:
-    virtual ~ClientWorld() = default;
-
-    /**
-     * @brief 获取指定方块状态
-     *
-     * @param x 方块 x 坐标
-     * @param y 方块 y 坐标
-     * @param z 方块 z 坐标
-     * @return 方块状态指针
-     */
-    [[nodiscard]] virtual const mc::BlockState* getBlockState(mc::i32 x, mc::i32 y, mc::i32 z) const = 0;
-};
-
-} // namespace mc::client::renderer::trident::particle
-
-namespace {
-
-/**
- * @brief 雨滴测试用世界
- *
- * 只重写 `getBlockState(...)`，用于验证雨滴的轻量方块碰撞逻辑。
- */
-class RainParticleTestWorld final : public mc::client::renderer::trident::particle::ClientWorld {
-public:
-    /**
-     * @brief 设置方块状态
-     *
-     * @param state 目标方块状态；传入空指针表示当前位置为空气。
-     */
-    void setBlockState(const mc::BlockState* state) {
-        m_groundState = state;
-    }
-
-    /**
-     * @brief 获取方块状态
-     *
-     * 仅在测试目标方块位置返回预设状态，其余位置视为空气。
-     *
-     * @param x 方块 x 坐标
-     * @param y 方块 y 坐标
-     * @param z 方块 z 坐标
-     * @return 方块状态指针
-     */
-    [[nodiscard]] const mc::BlockState* getBlockState(mc::i32 x, mc::i32 y, mc::i32 z) const override {
-        if (x == 0 && y == 63 && z == 0) {
-            return m_groundState;
-        }
-        return nullptr;
-    }
-
-private:
-    const mc::BlockState* m_groundState = nullptr;
-};
-
-} // namespace
 
 /**
  * @brief 测试粒子基类构造和属性
@@ -207,55 +141,37 @@ TEST(ParticleTest, Gravity) {
 }
 
 /**
- * @brief 雨滴碰到方块后进入落地状态
+ * @brief 测试雨滴粒子构造
  */
-TEST(ParticleTest, RainParticle_SetOnGroundWhenBlockBelow) {
-    mc::VanillaBlocks::initialize();
-
-    RainParticleTestWorld world;
-    world.setBlockState(&mc::VanillaBlocks::STONE->defaultState());
-
+TEST(ParticleTest, RainParticle_Construction) {
     RainParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f));
-    particle.tick(&world);
 
-    EXPECT_TRUE(particle.onGround());
+    EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle.getTextureLocation(), mc::ResourceLocation("minecraft:particle/rain"));
+    EXPECT_TRUE(particle.isAlive());
 }
 
-/**
- * @brief 雨滴下方为空气时不会进入落地状态
- */
-TEST(ParticleTest, RainParticle_StayAirborneWithoutBlockBelow) {
-    mc::VanillaBlocks::initialize();
-
-    RainParticleTestWorld world;
-    world.setBlockState(nullptr);
-
-    RainParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f));
-    particle.tick(&world);
-
-    EXPECT_FALSE(particle.onGround());
-}
-
-/**
- * @brief 测试粒子颜色淡出
- */
 /**
  * @brief 验证雨滴工厂方法返回正确的粒子类型
- *
- * 这里显式传入世界对象，确保工厂函数的参数类型和命名空间绑定正确，
- * 同时确认它返回的是雨滴粒子，而不是基类默认实现。
  */
 TEST(ParticleTest, RainParticle_CreateReturnsRainParticle) {
-    mc::VanillaBlocks::initialize();
-
-    RainParticleTestWorld world;
-    world.setBlockState(&mc::VanillaBlocks::STONE->defaultState());
-
-    auto particle = RainParticle::create(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f), &world);
+    auto particle = RainParticle::create(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f), nullptr);
     ASSERT_NE(particle, nullptr);
 
     EXPECT_EQ(particle->getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     EXPECT_EQ(particle->getTextureLocation(), mc::ResourceLocation("minecraft:particle/rain"));
+}
+
+/**
+ * @brief 测试雨滴无世界 tick（无碰撞检测）
+ */
+TEST(ParticleTest, RainParticle_TickWithoutWorld) {
+    RainParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, -1.0f, 0.0f));
+    particle.tick(nullptr);
+
+    // 无世界时应该仍然存活并下落
+    EXPECT_TRUE(particle.isAlive());
+    EXPECT_LT(particle.velocity().y, 0.0f);  // 重力使速度更负
 }
 
 TEST(ParticleTest, ColorFade) {

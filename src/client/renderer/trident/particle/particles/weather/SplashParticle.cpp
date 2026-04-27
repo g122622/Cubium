@@ -20,13 +20,13 @@ SplashParticle::SplashParticle(const glm::vec3& pos, const glm::vec3& velocity)
 std::unique_ptr<Particle> SplashParticle::create(
     const glm::vec3& pos,
     const glm::vec3& velocity,
-    ClientWorld* world)
+    mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
     return std::make_unique<SplashParticle>(pos, velocity);
 }
 
-void SplashParticle::tick(ClientWorld* world) {
+void SplashParticle::tick(mc::client::ClientWorld* world) {
     MC_UNUSED(world);
 
     m_prevPosition = m_position;
