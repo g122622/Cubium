@@ -240,13 +240,10 @@ void RangedBowAttackGoal::tick() {
 }
 
 void RangedBowAttackGoal::performAttack(LivingEntity* target, f32 charge) {
-    // 检查实体是否实现远程攻击接口
-    IRangedAttackMob* rangedAttacker = dynamic_cast<IRangedAttackMob*>(m_mob);
-    if (rangedAttacker) {
-        rangedAttacker->attackEntityWithRangedAttack(target, charge);
-    }
+    // 调用基类实现攻击
+    RangedAttackGoal::performAttack(target, charge);
 
-    // 设置攻击冷却
+    // 设置攻击冷却（弓箭专用逻辑）
     math::Random rng = m_mob->getRandom();
     m_attackTime = m_attackIntervalMin + rng.nextInt(m_attackIntervalMax - m_attackIntervalMin + 1);
 }

@@ -41,10 +41,10 @@ public:
     void setCostMalus(f32 malus) { m_costMalus = malus; }
 
     [[nodiscard]] f32 costFromStart() const { return m_costFromStart; }
-    void setCostFromStart(f32 cost) { m_costFromStart = cost; }
+    void setCostFromStart(f32 cost) { m_costFromStart = cost; m_totalCost = m_costFromStart + m_costToTarget; }
 
     [[nodiscard]] f32 costToTarget() const { return m_costToTarget; }
-    void setCostToTarget(f32 cost) { m_costToTarget = cost; }
+    void setCostToTarget(f32 cost) { m_costToTarget = cost; m_totalCost = m_costFromStart + m_costToTarget; }
 
     [[nodiscard]] f32 totalCost() const { return m_totalCost; }
     void updateTotalCost() { m_totalCost = m_costFromStart + m_costToTarget; }

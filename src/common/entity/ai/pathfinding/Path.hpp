@@ -210,10 +210,19 @@ public:
      * @return 构建的路径
      */
     static Path buildFromEnd(const PathPoint* end) {
+        // 先计算路径长度以预留空间
+        size_t count = 0;
+        const PathPoint* current = end;
+        while (current != nullptr) {
+            ++count;
+            current = current->parent();
+        }
+
         std::vector<PathPoint> points;
+        points.reserve(count);
 
         // 回溯父节点
-        const PathPoint* current = end;
+        current = end;
         while (current != nullptr) {
             points.push_back(current->clone());
             current = current->parent();
