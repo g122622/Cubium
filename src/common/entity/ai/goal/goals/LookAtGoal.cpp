@@ -102,20 +102,19 @@ void LookAtGoal::tick() {
 LivingEntity* LookAtGoal::findTarget() {
     if (!m_mob || !m_mob->world()) return nullptr;
 
-    IWorld* world = m_mob->world();
-
     // MC 1.16.5: 查找最近的 LivingEntity
     // 使用 boundingBox.grow(maxDistance, 3.0D, maxDistance) 扩展范围
-    auto entities = EntityUtils::findEntities<LivingEntity>(
-        world,
+    // 直接使用 findClosestEntity 单次遍历
+    f64 maxDistSq = static_cast<f64>(m_maxDistance) * static_cast<f64>(m_maxDistance);
+
+    return EntityUtils::findClosestEntity<LivingEntity>(
+        m_mob->world(),
         m_mob->position(),
         m_maxDistance + 3.0f,  // MC 1.16.5: boundingBox.grow(maxDistance, 3.0D, maxDistance)
         m_mob,
-        [this](const LivingEntity* entity) {
+        [this, maxDistSq](LivingEntity* entity) {
             // 检查是否在最大距离内
-            f64 distSq = m_mob->distanceSqTo(*entity);
-            f64 maxDistSq = static_cast<f64>(m_maxDistance) * static_cast<f64>(m_maxDistance);
-            if (distSq > maxDistSq) return false;
+            if (m_mob->distanceSqTo(*entity) > maxDistSq) return false;
 
             // 执行自定义过滤条件
             if (m_filter && !m_filter(entity)) return false;
@@ -123,20 +122,6 @@ LivingEntity* LookAtGoal::findTarget() {
             return true;
         }
     );
-
-    // 找最近的
-    LivingEntity* closest = nullptr;
-    f32 closestDistSq = m_maxDistance * m_maxDistance * 4.0f;  // 扩大搜索范围
-
-    for (auto* entity : entities) {
-        f32 distSq = static_cast<f32>(m_mob->distanceSqTo(*entity));
-        if (distSq < closestDistSq) {
-            closestDistSq = distSq;
-            closest = entity;
-        }
-    }
-
-    return closest;
 }
 
 // ==================== LookRandomlyGoal ====================

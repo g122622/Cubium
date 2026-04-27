@@ -87,34 +87,6 @@ public:
         // 但通常在 A* 中代价只会减小，所以这里简化处理
     }
 
-    /**
-     * @brief 改变路径点代价并更新堆位置
-     *
-     * MC 1.16.5: changeDistance(Point point, float distance)
-     * 同时处理上浮和下沉两种情况。
-     *
-     * @param point 要更新的路径点
-     * @param newTotalCost 新的总代价（f值）
-     */
-    void changeDistance(PathPoint* point, f32 newTotalCost) {
-        f32 oldDistance = point->totalCost();
-        // 设置新的总代价
-        // 注意：这里直接设置 totalCost 会影响 f值，但通常 A* 只需要更新堆位置
-        // 因为代价改变后，g值或h值应该通过各自的 setter 更新
-
-        i32 index = point->heapIndex();
-        if (index < 0 || index >= static_cast<i32>(m_heap.size())) {
-            return;
-        }
-
-        if (newTotalCost < oldDistance) {
-            // 代价减小，上浮
-            siftUp(static_cast<size_t>(index));
-        } else {
-            // 代价增大，下沉
-            siftDown(static_cast<size_t>(index));
-        }
-    }
 
     /**
      * @brief 检查堆是否为空

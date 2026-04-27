@@ -162,17 +162,36 @@ private:
     // ========== 内部方法 ==========
 
     /**
+     * @brief MC 1.16.5 启发式乘数
+     * MC 1.16.5 PathFinder.func_224776_a_ 计算启发式后会乘以 1.5
+     * 存储在 distanceToNext 字段中
+     */
+    static constexpr f32 HEURISTIC_MULTIPLIER = 1.5f;
+
+    /**
      * @brief 启发式函数：估算从当前点到目标的代价
      * MC 1.16.5: 使用直线距离（欧几里得距离），PathPoint.distanceTo()
      *
-     * 注意：MC 1.16.5 的 PathFinder.func_224776_a_ 计算启发式后会乘以 1.5
-     * 存储在 distanceToNext 字段中，然后 distanceToTarget 存储的是 f值（totalCost）
+     * 注意：此函数直接计算距离，避免创建临时对象
      */
     [[nodiscard]] static f32 heuristic(const PathPoint& point,
                                          i32 targetX, i32 targetY, i32 targetZ) {
-        // MC 1.16.5: 使用直线距离
-        PathPoint target(targetX, targetY, targetZ);
-        return point.distanceTo(target);
+        // MC 1.16.5: 使用直线距离（欧几里得距离）
+        f32 dx = static_cast<f32>(point.x() - targetX);
+        f32 dy = static_cast<f32>(point.y() - targetY);
+        f32 dz = static_cast<f32>(point.z() - targetZ);
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    /**
+     * @brief 计算到目标的平方距离（用于比较，避免sqrt）
+     */
+    [[nodiscard]] static f32 heuristicSq(const PathPoint& point,
+                                          i32 targetX, i32 targetY, i32 targetZ) {
+        f32 dx = static_cast<f32>(point.x() - targetX);
+        f32 dy = static_cast<f32>(point.y() - targetY);
+        f32 dz = static_cast<f32>(point.z() - targetZ);
+        return dx * dx + dy * dy + dz * dz;
     }
 
     /**
