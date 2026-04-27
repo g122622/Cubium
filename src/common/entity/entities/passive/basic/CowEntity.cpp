@@ -64,8 +64,7 @@ void CowEntity::registerAttributes() {
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // 牛的属性
-    // 参考 MC 1.16.5 CowEntity 属性
+    // MC 1.16.5 牛的属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }

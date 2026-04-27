@@ -2,7 +2,9 @@
 
 #include "ProjectileEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../../world/block/BlockState.hpp"
 #include <memory>
+#include <unordered_set>
 
 namespace mc {
 namespace entity {
@@ -102,11 +104,21 @@ public:
      */
     void setShotFromCrossbow(bool fromCrossbow) { m_shotFromCrossbow = fromCrossbow; }
 
+    /**
+     * @brief 是否已造成伤害（用于三叉戟返回逻辑）
+     */
+    [[nodiscard]] bool hasDealtDamage() const { return m_dealtDamage; }
+
+    /**
+     * @brief 获取在方块中的时间
+     */
+    [[nodiscard]] i32 timeInGround() const { return m_timeInGround; }
+
     // ========== 物理 ==========
 
     [[nodiscard]] f32 getGravity() const override { return 0.05f; }
     [[nodiscard]] f32 getAirDrag() const override { return 0.99f; }
-    [[nodiscard]] f32 getWaterDrag() const override { return 0.6f; }
+    [[nodiscard]] virtual f32 getWaterDrag() const { return 0.6f; }
 
     // ========== 箭矢特有方法 ==========
 
@@ -159,19 +171,54 @@ protected:
      */
     bool shouldDespawn();
 
+    /**
+     * @brief 清除穿透和命中记录
+     */
+    void clearPiercedEntities();
+
+    /**
+     * @brief 检查方块变更导致箭矢脱落
+     * @return 如果箭矢应该脱落返回true
+     *
+     * 参考 MC 1.16.5 AbstractArrowEntity.func_234593_u_()
+     */
+    bool checkInBlockEmpty();
+
+    /**
+     * @brief 箭矢脱落时的弹射处理
+     *
+     * 参考 MC 1.16.5 AbstractArrowEntity.func_234594_z_()
+     */
+    void detachFromBlock();
+
+    /**
+     * @brief 射线追踪实体（考虑穿透）
+     */
+    RayTraceResult rayTraceEntities(const Vector3& start, const Vector3& end) override;
+
+    /**
+     * @brief 检查是否可以命中指定实体（考虑穿透）
+     */
+    [[nodiscard]] bool canHitEntityWithPierce(const mc::Entity& target) const;
+
     // 属性
     f32 m_damage = 2.0f;            // 基础伤害
     i32 m_knockbackStrength = 0;    // 击退强度
     bool m_critical = false;        // 是否暴击
     u8 m_pierceLevel = 0;           // 穿透等级
     bool m_inGround = false;        // 是否插在方块中
-    i32 m_ticksInGround = 0;        // 插在方块中的时间
+    i32 m_ticksInGround = 0;        // 插在方块中的总时间（用于超时移除）
+    i32 m_timeInGround = 0;         // 当前连续插在方块中的时间（用于三叉戟返回）
     i32 m_arrowShake = 0;           // 箭矢抖动时间
     PickupStatus m_pickupStatus = PickupStatus::Disallowed;
     bool m_shotFromCrossbow = false;
+    bool m_dealtDamage = false;     // 是否已造成伤害（三叉戟用）
 
-    // 穿透追踪
-    std::vector<EntityId> m_piercedEntities;  // 已穿透的实体ID
+    // 穿透追踪（使用 unordered_set 实现 O(1) 查找，对齐 MC 1.16.5 IntOpenHashSet）
+    std::unordered_set<EntityId> m_piercedEntities;
+
+    // 命中的方块状态
+    BlockState m_inBlockState;
 };
 
 /**

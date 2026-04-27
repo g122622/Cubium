@@ -7,6 +7,7 @@ namespace mc {
 
 // 前向声明
 class ItemStack;
+class DamageSource;
 
 /**
  * @brief 动物实体基类
@@ -76,18 +77,10 @@ public:
     /**
      * @brief 检查是否处于爱心状态
      * MC 1.16.5: isInLove()
+     *
+     * 注意：继承自 AgeableEntity::isInLove()
      */
-    [[nodiscard]] bool isInLove() const { return m_inLoveTimer > 0; }
-
-    /**
-     * @brief 获取爱心计时器值
-     */
-    [[nodiscard]] i32 getInLoveTimer() const { return m_inLoveTimer; }
-
-    /**
-     * @brief 设置爱心计时器
-     */
-    void setInLoveTimer(i32 timer) { m_inLoveTimer = timer; }
+    // 使用 AgeableEntity::isInLove()
 
     /**
      * @brief 获取喂食玩家的UUID
@@ -103,6 +96,8 @@ public:
 
     /**
      * @brief 重置爱心状态
+     *
+     * 注意：AgeableEntity::resetLove() 清空爱心计时器
      */
     void resetInLove();
 
@@ -129,9 +124,25 @@ public:
      */
     [[nodiscard]] i32 getExperiencePoints() const;
 
+    /**
+     * @brief 生成爱心粒子
+     *
+     * MC 1.16.5: 每10tick生成心形粒子
+     */
+    void spawnHeartParticles();
+
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    // ========== 受伤处理 ==========
+
+    /**
+     * @brief 受伤处理
+     *
+     * MC 1.16.5: 动物受伤时清空爱心状态
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
 
 protected:
     /**
@@ -164,18 +175,8 @@ protected:
      */
     void updateInLove();
 
-    /**
-     * @brief 生成爱心粒子
-     *
-     * MC 1.16.5: 每10tick生成心形粒子
-     */
-    void spawnHeartParticles();
-
 private:
-    i32 m_inLoveTimer = 0;    // 爱心动画计时器
     u64 m_loveCause = 0;       // 使其进入爱心状态的玩家UUID
-
-    static constexpr i32 IN_LOVE_DURATION = 600; // 爱心状态持续时间（30秒）
 };
 
 } // namespace mc

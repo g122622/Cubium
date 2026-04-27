@@ -4,11 +4,23 @@
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/Blocks.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
+
+namespace {
+
+// 辅助函数：基于实体ID和tick创建随机数生成器
+math::Random createRandomFromEntity(const Entity& entity) {
+    u64 seed = static_cast<u64>(entity.id()) << 32 | static_cast<u64>(entity.ticksExisted());
+    return math::Random(seed);
+}
+
+} // anonymous namespace
 
 // ============================================================================
 // AbstractArrowEntity
@@ -21,6 +33,11 @@ AbstractArrowEntity::AbstractArrowEntity(LegacyEntityType type, EntityId id)
 }
 
 void AbstractArrowEntity::tick() {
+    // 检查是否已离开发射者
+    if (!m_leftShooter) {
+        m_leftShooter = checkLeftShooter();
+    }
+
     // 如果插在方块中，执行不同的tick逻辑
     if (m_inGround) {
         tickInGround();
@@ -37,12 +54,28 @@ void AbstractArrowEntity::tick() {
         setFire(0);
     }
 
-    // 调用父类tick
+    // ========== MC 1.16.5: 检查是否在方块内 ==========
+    // 参考 AbstractArrowEntity.tick() 第146-160行
+    BlockPos currentPos = BlockPos(static_cast<BlockCoord>(std::floor(m_position.x)),
+                                    static_cast<BlockCoord>(std::floor(m_position.y)),
+                                    static_cast<BlockCoord>(std::floor(m_position.z)));
+    if (m_world) {
+        BlockState blockState = m_world->getBlockState(currentPos.x, currentPos.y, currentPos.z);
+        // 检查是否在非空气方块的碰撞箱内
+        // TODO: 需要实现 VoxelShape 检查
+        // 当前简化处理：如果方块不透明且不在水中，认为在方块内
+        if (!blockState.isAir() && blockState.isSolid()) {
+            m_inGround = true;
+            m_inBlockState = blockState;
+        }
+    }
+
+    // 调用父类tick进行射线追踪和移动
     ProjectileEntity::tick();
 
     // MC 1.16.5: 暴击粒子效果
     if (m_critical && !m_inGround && m_world) {
-        mc::math::Random rng = getRandom();
+        math::Random rng = createRandomFromEntity(*this);
         // 每tick有概率生成暴击粒子
         if (rng.nextInt(3) == 0) {
             f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.3f;
@@ -61,26 +94,99 @@ void AbstractArrowEntity::tick() {
 }
 
 void AbstractArrowEntity::tickInGround() {
-    // 检查是否应该脱落
-    if (shouldDespawn()) {
-        m_inGround = false;
-        m_ticksInGround = 0;
-        // 随机弹射
-        // setMotion(rand.nextFloat() * 0.2, rand.nextFloat() * 0.2, rand.nextFloat() * 0.2);
+    // 检查方块是否仍然存在
+    if (m_world) {
+        BlockState currentBlock = m_world->getBlockState(
+            static_cast<BlockCoord>(std::floor(m_position.x)),
+            static_cast<BlockCoord>(std::floor(m_position.y)),
+            static_cast<BlockCoord>(std::floor(m_position.z)));
+
+        // 参考 MC 1.16.5: 检查方块变更导致箭矢脱落
+        if (currentBlock != m_inBlockState && checkInBlockEmpty()) {
+            detachFromBlock();
+            return;
+        }
     }
 
     ++m_ticksInGround;
+    ++m_timeInGround;
 
-    // 超时移除
-    if (m_ticksInGround >= 1200) {  // 60秒
+    // 超时移除（MC 1.16.5: 1200 ticks = 60秒）
+    if (m_ticksInGround >= 1200) {
         remove();
     }
 }
 
+bool AbstractArrowEntity::checkInBlockEmpty() {
+    // 参考 MC 1.16.5 AbstractArrowEntity.func_234593_u_()
+    // 检查箭矢周围是否有碰撞箱
+    // 创建一个很小的检测盒（0.06）
+    AxisAlignedBB testBox(
+        m_position.x - 0.06, m_position.y - 0.06, m_position.z - 0.06,
+        m_position.x + 0.06, m_position.y + 0.06, m_position.z + 0.06);
+
+    if (m_world) {
+        return m_world->hasNoCollisions(testBox);
+    }
+    return true;
+}
+
+void AbstractArrowEntity::detachFromBlock() {
+    // 参考 MC 1.16.5 AbstractArrowEntity.func_234594_z_()
+    m_inGround = false;
+
+    // 随机弹射
+    math::Random rng = createRandomFromEntity(*this);
+    f32 randX = rng.nextFloat() * 0.2f;
+    f32 randY = rng.nextFloat() * 0.2f;
+    f32 randZ = rng.nextFloat() * 0.2f;
+    m_velocity = Vector3(randX, randY, randZ);
+
+    m_ticksInGround = 0;
+    m_timeInGround = 0;
+}
+
 bool AbstractArrowEntity::shouldDespawn() {
-    // TODO: 检查箭矢周围的方块是否还在
-    // 如果方块被移除，箭矢应该脱落
+    // 由 tickInGround 处理
     return false;
+}
+
+void AbstractArrowEntity::clearPiercedEntities() {
+    m_piercedEntities.clear();
+}
+
+RayTraceResult AbstractArrowEntity::rayTraceEntities(const Vector3& start, const Vector3& end) {
+    // 使用父类实现，但使用穿透过滤
+    if (m_world == nullptr) {
+        return RayTraceResult::miss();
+    }
+
+    const AxisAlignedBB searchBox =
+        ProjectileHelper::createMovementSearchBox(*this, end - start, 1.0f);
+
+    return ProjectileHelper::rayTraceEntities(
+        *m_world,
+        *this,
+        start,
+        end,
+        searchBox,
+        [this](const Entity& candidate) {
+            return canHitEntityWithPierce(candidate);
+        });
+}
+
+bool AbstractArrowEntity::canHitEntityWithPierce(const mc::Entity& target) const {
+    // 基础检查
+    if (!canHitEntity(target)) {
+        return false;
+    }
+
+    // 检查是否已穿透过此实体
+    if (m_pierceLevel > 0 && m_piercedEntities.count(target.id()) > 0) {
+        return false;
+    }
+
+    return true;
 }
 
 void AbstractArrowEntity::onEntityHit(const RayTraceResult& result) {
@@ -90,25 +196,27 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result) {
 
     mc::Entity* target = result.hitEntity;
 
-    // 计算伤害
+    // 计算伤害 - 参考 MC 1.16.5 AbstractArrowEntity.onEntityHit() 第303-304行
     f32 speed = std::sqrt(m_velocity.x * m_velocity.x +
                           m_velocity.y * m_velocity.y +
                           m_velocity.z * m_velocity.z);
-    i32 damage = static_cast<i32>(speed * m_damage);
+    i32 damage = static_cast<i32>(std::clamp(speed * m_damage, 0.0, 2147483647.0));
 
-    // 暴击伤害加成
+    // 暴击伤害加成 - MC 1.16.5: i += rand.nextInt(i / 2 + 2)
     if (m_critical) {
-        damage += damage / 2;
+        mc::math::Random rng = getRandom();
+        i32 bonus = rng.nextInt(damage / 2 + 2);
+        damage = static_cast<i32>(std::min(static_cast<i64>(damage) + bonus, 2147483647LL));
     }
 
-    // 穿透检查
+    // 穿透检查 - 参考 MC 1.16.5 第305-320行
     if (m_pierceLevel > 0) {
-        if (m_piercedEntities.size() >= m_pierceLevel) {
+        if (static_cast<i32>(m_piercedEntities.size()) >= m_pierceLevel + 1) {
             // 达到穿透上限，移除箭矢
             remove();
             return;
         }
-        m_piercedEntities.push_back(target->id());
+        m_piercedEntities.insert(target->id());
     }
 
     // 获取发射者
@@ -125,14 +233,24 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result) {
     }
 
     // 应用伤害
-    // TODO: 实现实体受伤
-    // bool hurt = target->attackEntityFrom(*damageSource, static_cast<f32>(damage));
+    // TODO: 接入 LivingEntity::hurt
+    // LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+    // bool hurt = false;
+    // if (livingTarget) {
+    //     hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
+    //     if (hurt && m_pierceLevel <= 0) {
+    //         livingTarget->setArrowCountInEntity(livingTarget->getArrowCountInEntity() + 1);
+    //     }
+    // }
+    (void)damage;
 
-    // 击退效果
+    // 击退效果 - 参考 MC 1.16.5 第355-360行
     if (m_knockbackStrength > 0) {
-        f32 ratio = 0.6f * m_knockbackStrength;
-        Vector3 knockback(m_velocity.x * ratio, 0.1f, m_velocity.z * ratio);
-        if (knockback.length() > 0.0f) {
+        f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
+        Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
+        if (horizontalVel.lengthSquared() > 0.0f) {
+            horizontalVel = horizontalVel.normalized();
+            Vector3 knockback(horizontalVel.x * ratio, 0.1f, horizontalVel.z * ratio);
             target->addVelocity(knockback);
         }
     }
@@ -152,41 +270,59 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result) {
 }
 
 void AbstractArrowEntity::onBlockHit(const RayTraceResult& result) {
+    // 参考 MC 1.16.5 AbstractArrowEntity.func_230299_a_() 第406-421行
     m_inGround = true;
+
+    // 保存命中的方块状态
+    if (m_world && result.type == RayTraceResultType::Block) {
+        m_inBlockState = m_world->getBlockState(
+            result.blockPos.x, result.blockPos.y, result.blockPos.z);
+    }
+
+    // 计算并设置箭矢位置（回退一点使其嵌入方块）
+    Vector3 hitVec = result.hitPosition;
+    Vector3 hitOffset = hitVec - m_position;
+    m_velocity = hitOffset;
+    Vector3 normalizedOffset = hitOffset.normalized() * 0.05f;
+    m_position = m_position - normalizedOffset;
+
     m_arrowShake = 7;
 
     // 清除暴击和穿透状态
     m_critical = false;
     m_pierceLevel = 0;
-    m_piercedEntities.clear();
+    clearPiercedEntities();
 
     // 播放命中音效
     // playSound(SoundEvents.ENTITY_ARROW_HIT_GROUND, 1.0F, 1.2F / (rand.nextFloat() * 0.2F + 0.9F));
 }
 
 void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity) {
-    // TODO: 从发射者获取附魔效果
-    // int power = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.POWER, shooter);
-    // int punch = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.PUNCH, shooter);
-    // int flame = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.FLAME, shooter);
+    // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity() 第596-612行
 
-    // 设置伤害
-    m_damage = baseVelocity * 2.0f;
+    // 设置基础伤害
+    math::Random rng = createRandomFromEntity(*this);
+    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 +
+               static_cast<f64>(m_world ? m_world->getDifficulty().getId() * 0.11 : 0.0));
 
     // 力量附魔增加伤害
+    // i32 power = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:power");
     // if (power > 0) {
-    //     m_damage += power * 0.5f + 0.5f;
+    //     m_damage += power * 0.5 + 0.5;
     // }
 
     // 冲击附魔增加击退
+    // i32 punch = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:punch");
     // if (punch > 0) {
     //     m_knockbackStrength = punch;
     // }
 
     // 火焰附魔
-    // if (flame > 0) {
+    // if (EnchantmentHelper::hasEnchantment(shooter.getMainHandItem(), "minecraft:flame")) {
     //     setFire(100);
     // }
+
+    (void)shooter; // 暂时未使用
 }
 
 bool AbstractArrowEntity::onPlayerPickup(Player& player) {

@@ -30,11 +30,12 @@ ChickenEntity::ChickenEntity(LegacyEntityType type, EntityId id)
 
 void ChickenEntity::resetEggTimer() {
     math::Random rng(ticksExisted());
+    // MC 1.16.5: 6000-12000 ticks = 5-10 分钟
     m_eggTimer = EGG_TIME_MIN + rng.nextInt(EGG_TIME_MAX - EGG_TIME_MIN);
 }
 
 bool ChickenEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // 鸡用种子繁殖
+    // MC 1.16.5: 鸡用种子繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::WHEAT_SEEDS
@@ -84,26 +85,41 @@ void ChickenEntity::registerAttributes() {
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // 鸡的属性
-    // 参考 MC 1.16.5 ChickenEntity 属性
+    // MC 1.16.5 鸡的属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 4.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 void ChickenEntity::tick() {
+    // 保存上一帧翅膀角度
+    m_prevWingRotation = m_wingRotation;
+
     AnimalEntity::tick();
 
-    // 下蛋计时
-    if (m_eggTimer > 0) {
+    // 翅膀动画
+    // MC 1.16.5: 翅膀拍打动画
+    constexpr f32 WING_FLAP_SPEED = 1.0f;
+    constexpr f32 WING_DAMPING = 0.9f;
+    m_wingRotDelta += WING_FLAP_SPEED;
+    m_wingRotation += m_wingRotDelta;
+    m_wingRotDelta *= WING_DAMPING;
+
+    // 下蛋逻辑（仅服务端、仅成体、非鸡骑士）
+    if (!isChild() && !m_chickenJockey && m_eggTimer > 0) {
         --m_eggTimer;
 
-        if (m_eggTimer <= 0) {
+        if (m_eggTimer <= 0 && world() != nullptr) {
+            // MC 1.16.5: 下蛋
             auto egg = std::make_unique<ItemEntity>(
                 0,
                 ItemStack(Items::EGG, 1),
                 x(),
                 y() + 0.2f,
                 z());
+
+            // 播放下蛋音效
+            playSound(*makeSoundEventId("egg"), 1.0f, (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f + 1.0f);
+
             world()->spawnEntity(std::move(egg));
             resetEggTimer();
         }

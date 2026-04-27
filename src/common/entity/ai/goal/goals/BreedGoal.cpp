@@ -1,5 +1,7 @@
 #include "BreedGoal.hpp"
 #include "../../../entities/passive/basic/AnimalEntity.hpp"
+#include "../../../entities/orb/ExperienceOrbEntity.hpp"
+#include "../../../core/AgeableEntity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/Entity.hpp"
@@ -100,13 +102,13 @@ AnimalEntity* BreedGoal::findNearbyMate() {
 void BreedGoal::spawnBaby() {
     if (!m_animal || !m_targetMate) return;
 
-    // 重置爱心状态
-    m_animal->setInLove(0);
-    m_targetMate->setInLove(0);
+    // MC 1.16.5: 重置爱心状态
+    m_animal->resetInLove();
+    m_targetMate->resetInLove();
 
-    // 重置繁殖冷却
-    m_animal->setGrowingAge(6000);   // 5分钟冷却
-    m_targetMate->setGrowingAge(6000);
+    // MC 1.16.5: 设置繁殖冷却 (6000 ticks = 5分钟)
+    m_animal->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
+    m_targetMate->setGrowingAge(AgeableEntity::BREEDING_COOLDOWN);
 
     // 生成幼体
     auto baby = m_animal->spawnBaby(*m_targetMate);
@@ -115,17 +117,35 @@ void BreedGoal::spawnBaby() {
 
         IWorld* world = m_animal->world();
         if (world) {
-            // 设置幼体位置
-            baby->setPosition(m_animal->x(), m_animal->y(), m_animal->z());
+            // 设置幼体位置（在父母之间随机偏移）
+            mc::math::Random rng = m_animal->getRandom();
+            f32 babyX = static_cast<f32>(m_animal->x() + (rng.nextDouble() - 0.5) * 2.0);
+            f32 babyY = static_cast<f32>(m_animal->y());
+            f32 babyZ = static_cast<f32>(m_animal->z() + (rng.nextDouble() - 0.5) * 2.0);
+            baby->setPosition(babyX, babyY, babyZ);
+
+            // 设置幼体年龄
+            baby->setGrowingAge(AgeableEntity::BABY_AGE);
 
             // 生成到世界中
-            EntityId babyId = world->spawnEntity(std::move(baby));
+            world->spawnEntity(std::move(baby));
 
-            // TODO: 生成爱心粒子效果
-            // TODO: 播放繁殖音效
-            // TODO: 给玩家经验值
+            // MC 1.16.5: 生成爱心粒子效果
+            m_animal->spawnHeartParticles();
+            m_targetMate->spawnHeartParticles();
 
-            (void)babyId; // 避免未使用警告
+            // MC 1.16.5: 生成 1-7 个经验球
+            i32 xpCount = 1 + rng.nextInt(7);
+            for (i32 i = 0; i < xpCount; ++i) {
+                auto xpOrb = std::make_unique<ExperienceOrbEntity>(
+                    world, m_animal->x(), m_animal->y(), m_animal->z(), 1);
+                // 添加随机速度
+                f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
+                f32 vy = rng.nextFloat() * 0.2f;
+                f32 vz = (rng.nextFloat() - 0.5f) * 0.2f;
+                xpOrb->setVelocity(vx, vy, vz);
+                world->spawnEntity(std::move(xpOrb));
+            }
         }
     }
 }

@@ -103,6 +103,14 @@ public:
      */
     [[nodiscard]] bool isInLove() const { return m_loveTimer > 0; }
 
+    // ========== 常量 ==========
+
+    static constexpr i32 BABY_AGE = -24000;     // 幼体起始年龄（20分钟）
+    static constexpr i32 MAX_AGE = 0;           // 成体年龄
+    static constexpr i32 BREEDING_COOLDOWN = 6000; // 繁殖冷却（5分钟）
+    static constexpr i32 LOVE_TIMER_MAX = 600;  // 爱心状态持续时间（30秒）
+    static constexpr f32 BABY_SCALE = 0.5f;     // 幼体缩放比例
+
     /**
      * @brief 设置爱心状态
      * @param playerInLove 使其进入爱心状态的玩家ID（暂未使用）
@@ -172,12 +180,6 @@ private:
     f32 m_growthSpeed = 1.0f;  // 成长速度倍率
     i32 m_forcedAge = 0;       // 强制成长值（用于加速）
     i32 m_forcedAgeTimer = 0;  // 强制成长计时器
-
-    // 常量
-    static constexpr i32 BABY_AGE = -24000;     // 幼体起始年龄
-    static constexpr i32 MAX_AGE = 0;           // 成体年龄
-    static constexpr i32 LOVE_TIMER_MAX = 600;  // 爱心状态持续时间（30秒）
-    static constexpr f32 BABY_SCALE = 0.5f;     // 幼体缩放比例
 };
 
 } // namespace mc

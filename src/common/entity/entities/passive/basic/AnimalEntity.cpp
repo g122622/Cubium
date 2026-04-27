@@ -10,6 +10,7 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../core/EntityDataManager.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
@@ -55,15 +56,19 @@ bool AnimalEntity::canBreed() const {
 
 void AnimalEntity::setInLove(u64 playerUuid) {
     // MC 1.16.5: 设置爱心状态持续 600 ticks（30秒）
-    m_inLoveTimer = IN_LOVE_DURATION;
+    // 调用 AgeableEntity::setInLove() 设置计时器
+    AgeableEntity::setInLove(playerUuid);
+
+    // 记录喂食玩家的 UUID
     m_loveCause = playerUuid;
 
-    // 广播状态更新（用于客户端粒子效果）
+    // MC 1.16.5: 广播状态更新（用于客户端粒子效果）
     // world->setEntityState(this, static_cast<u8>(18));
 }
 
 void AnimalEntity::resetInLove() {
-    m_inLoveTimer = 0;
+    // 清空爱心计时器
+    resetLove();
     m_loveCause = 0;
 }
 
@@ -124,21 +129,24 @@ void AnimalEntity::registerAttributes() {
 }
 
 void AnimalEntity::updateInLove() {
-    // 快速路径：大多数情况下不在爱心状态
-    if (m_inLoveTimer <= 0) {
+    // 快速路径：使用 AgeableEntity 的爱心计时器
+    // AgeableEntity::updateLove() 已经处理了爱心计时器递减
+    // 这里只需要处理粒子效果
+
+    i32 loveTimer = getLoveTimer();
+    if (loveTimer <= 0) {
         return;
     }
 
     // MC 1.16.5: 成体时如果有年龄（繁殖冷却），清空爱心状态
     if (getGrowingAge() != 0) {
-        m_inLoveTimer = 0;
+        resetLove();
+        m_loveCause = 0;
         return;
     }
 
-    --m_inLoveTimer;
-    if (m_inLoveTimer == 0) {
-        resetInLove();
-    } else if ((m_inLoveTimer % 10) == 0) {
+    // 每10tick生成爱心粒子
+    if ((loveTimer % 10) == 0) {
         spawnHeartParticles();
     }
 }
@@ -160,6 +168,13 @@ void AnimalEntity::spawnHeartParticles() {
     m_world->addParticle(
         client::renderer::trident::particle::ParticleTypeId::Heart,
         pos, vel);
+}
+
+bool AnimalEntity::hurt(DamageSource& source, f32 amount) {
+    // MC 1.16.5: 受伤时清空爱心状态（不重置繁殖冷却）
+    resetInLove();
+
+    return AgeableEntity::hurt(source, amount);
 }
 
 } // namespace mc

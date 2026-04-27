@@ -8,6 +8,7 @@ namespace mc {
 // 前向声明
 class IWorld;
 class ItemStack;
+class DamageSource;
 
 /**
  * @brief 牛实体
@@ -38,6 +39,14 @@ public:
 
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取声音音量
+     * MC 1.16.5: 牛的音量为 0.4
+     */
+    [[nodiscard]] f32 getSoundVolume() const override { return 0.4f; }
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
@@ -47,7 +56,8 @@ protected:
     [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
     [[nodiscard]] f32 getBaseHeight() const override { return 1.4f; }
 
-    // TODO: 挤奶逻辑
+private:
+    // TODO: 挤奶逻辑（需要物品交互系统）
 };
 
 } // namespace mc
