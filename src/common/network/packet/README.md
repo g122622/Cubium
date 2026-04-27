@@ -382,6 +382,23 @@ src/common/network/packet/
 - 飞行速度、行走速度
 - 工厂方法: `fromPlayer()`, `fromGameMode()`
 
+### 粒子数据包
+
+#### ParticlePacket.hpp / ParticlePacket.cpp
+
+**职责**: 粒子生成数据包 (S->C)
+
+**主要内容**:
+- 粒子类型ID (ParticleTypeId 枚举)
+- 位置 (f64 x, y, z)
+- 速度 (f32 vx, vy, vz)
+- 偏移范围 (f32 offsetX, offsetY, offsetZ)
+- 粒子数量 (VarInt count)
+- 可选数据 (方块状态ID/物品堆/红石颜色)
+
+- 工厂方法: `create()`, `createSingle()`
+- 用于服务端向客户端广播粒子效果
+
 ## 文件关系图
 
 ```
@@ -426,6 +443,10 @@ PacketModule.hpp (统一入口)
     └── PlayerAbilitiesPacket.hpp (玩家能力包)
             ├── PlayerAbilitiesPacket.cpp
             └── 依赖 Packet.hpp, Player.hpp
+
+    └── ParticlePacket.hpp (粒子包)
+            ├── ParticlePacket.cpp
+            └── 依赖 Packet.hpp, ParticleTypes.hpp, Vector3.hpp
 ```
 
 ## 模块整体职责

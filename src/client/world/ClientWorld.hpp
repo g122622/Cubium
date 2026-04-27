@@ -20,6 +20,12 @@
 
 namespace mc::client {
 
+// 前向声明
+namespace renderer::trident::particle {
+class ParticleManager;
+enum class ParticleTypeId : u16;
+}
+
 /**
  * @brief 客户端区块数据
  */
@@ -113,6 +119,71 @@ public:
     [[nodiscard]] ClientWeather& weather() { return m_weather; }
     [[nodiscard]] const ClientWeather& weather() const { return m_weather; }
 
+    // ========== 粒子管理 ==========
+
+    /**
+     * @brief 设置粒子管理器引用
+     *
+     * @param manager 粒子管理器指针（由 ClientApplication 管理）
+     */
+    void setParticleManager(renderer::trident::particle::ParticleManager* manager) {
+        m_particleManager = manager;
+    }
+
+    [[nodiscard]] renderer::trident::particle::ParticleManager* particleManager() {
+        return m_particleManager;
+    }
+    [[nodiscard]] const renderer::trident::particle::ParticleManager* particleManager() const {
+        return m_particleManager;
+    }
+
+    // ========== 粒子生成接口 ==========
+
+    /**
+     * @brief 生成粒子
+     *
+     * 在客户端本地生成粒子效果。
+     *
+     * @param type 粒子类型
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     */
+    void addParticle(
+        renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity);
+
+    /**
+     * @brief 生成粒子（带数量和偏移）
+     *
+     * 在指定位置附近随机生成多个粒子。
+     *
+     * @param type 粒子类型
+     * @param pos 粒子中心位置
+     * @param velocity 粒子基础速度
+     * @param offset 随机偏移范围
+     * @param count 粒子数量
+     */
+    void addParticle(
+        renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count);
+
+    /**
+     * @brief 检查是否应在指定位置生成粒子
+     *
+     * 用于距离裁剪，避免在玩家视野外生成粒子。
+     *
+     * @param pos 粒子位置
+     * @param maxDistance 最大距离（默认 256 格）
+     * @return 是否应生成粒子
+     */
+    [[nodiscard]] bool shouldSpawnParticleAt(
+        const Vector3& pos,
+        f32 maxDistance = 256.0f) const;
+
     void onRainStrengthChange(f32 strength);
     void onThunderStrengthChange(f32 strength);
     void onBeginRaining();
@@ -164,6 +235,9 @@ private:
 
     ClientEntityManager m_entityManager;
     ClientWeather m_weather;
+
+    /// 粒子管理器（外部引用，不拥有）
+    renderer::trident::particle::ParticleManager* m_particleManager = nullptr;
 
     /// 视锥体，用于视锥剔除
     mc::math::frustum::Frustum m_frustum;

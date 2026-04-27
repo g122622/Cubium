@@ -28,6 +28,19 @@ struct ParticleUBO {
 };
 
 /**
+ * @brief 待处理粒子数据
+ *
+ * 用于延迟生成粒子，避免在 tick 中途修改粒子列表。
+ * 参考 MC 1.16.5 ParticleManager.pendingEffects
+ */
+struct PendingParticle {
+    ParticleTypeId type;       ///< 粒子类型
+    glm::vec3 position;        ///< 位置
+    glm::vec3 velocity;        ///< 速度
+    ClientWorld* world;        ///< 世界指针（可为空）
+};
+
+/**
  * @brief 粒子管理器
  *
  * 管理所有粒子的生命周期、更新和渲染。
@@ -95,14 +108,56 @@ public:
     void addParticle(std::unique_ptr<Particle> particle);
 
     /**
+     * @brief 添加粒子到待处理队列
+     *
+     * 粒子将在下一帧开始时处理，避免在 tick 中途修改粒子列表。
+     * 参考 MC 1.16.5 ParticleManager.addParticle()
+     *
+     * @param type 粒子类型
+     * @param pos 位置
+     * @param velocity 速度
+     * @param world 世界指针（可为空）
+     */
+    void addPendingParticle(ParticleTypeId type,
+                           const glm::vec3& pos,
+                           const glm::vec3& velocity,
+                           ClientWorld* world = nullptr);
+
+    /**
+     * @brief 设置相机位置（用于距离裁剪）
+     *
+     * @param pos 相机位置
+     */
+    void setCameraPosition(const glm::vec3& pos) { m_cameraPosition = pos; }
+
+    /**
+     * @brief 设置最大粒子距离
+     *
+     * @param distance 最大距离（MC 1.16.5 默认 256 格）
+     */
+    void setMaxParticleDistance(f32 distance) { m_maxParticleDistance = distance; }
+
+    /**
      * @brief 清除所有粒子
      */
     void clear();
 
     /**
+     * @brief 清除所有待处理粒子
+     *
+     * 清除 pending 队列中的粒子。
+     */
+    void clearPending();
+
+    /**
      * @brief 获取粒子数量
      */
     [[nodiscard]] size_t particleCount() const { return m_particles.size(); }
+
+    /**
+     * @brief 获取待处理粒子数量
+     */
+    [[nodiscard]] size_t pendingParticleCount() const { return m_pendingParticles.size(); }
 
     /**
      * @brief 获取存活的粒子数量
@@ -117,10 +172,24 @@ public:
      * @brief 更新所有粒子
      *
      * 更新粒子位置、生命周期等。
+     * 首先处理待处理粒子队列，然后更新所有粒子。
+     * 对于发射器粒子，会处理其发射的新粒子。
      *
      * @param world 客户端世界（用于碰撞检测和光照采样）
      */
     void tick(mc::client::ClientWorld* world = nullptr);
+
+    /**
+     * @brief 处理待处理粒子队列
+     *
+     * 将 pending 队列中的粒子创建并添加到主粒子列表。
+     * 参考 MC 1.16.5 ParticleManager.tick() 中的 pending 处理
+     */
+    void processPendingParticles();
+
+    // ========================================================================
+    // 渲染
+    // ========================================================================
 
     /**
      * @brief 渲染所有粒子
@@ -219,8 +288,13 @@ private:
 
     // 粒子数据
     std::vector<std::unique_ptr<Particle>> m_particles;
+    std::vector<PendingParticle> m_pendingParticles;  ///< 待处理粒子队列
     std::vector<ParticleVertex> m_vertexData;
     static constexpr size_t MAX_PARTICLES = 16384;  ///< 最大粒子数量
+
+    // 距离裁剪
+    glm::vec3 m_cameraPosition = glm::vec3(0.0f);    ///< 相机位置（用于距离裁剪）
+    f32 m_maxParticleDistance = 256.0f;              ///< 最大粒子距离（MC 1.16.5 默认 256 格）
 
     // 纹理图集
     ParticleTextureAtlas m_textureAtlas;

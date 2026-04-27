@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <functional>
 
 namespace mc {
 class IWorld;
@@ -26,6 +27,17 @@ namespace mc::client::renderer::trident::particle {
 // 前置声明
 class ParticleTextureAtlas;
 struct SpriteInfo;
+
+/**
+ * @brief 粒子发射回调类型
+ *
+ * 用于发射器粒子发射新粒子时调用。
+ * 参考 MC 1.16.5 EmitterParticle
+ */
+using ParticleEmitCallback = std::function<void(
+    ParticleTypeId type,
+    const glm::vec3& pos,
+    const glm::vec3& velocity)>;
 
 /**
  * @brief 粒子顶点数据
@@ -268,6 +280,25 @@ public:
     void setHasPhysics(bool physics) { m_hasPhysics = physics; }
     void setRoll(f64 roll) { m_roll = roll; }
 
+    /**
+     * @brief 设置发射回调
+     *
+     * 用于发射器粒子发射新粒子时调用。
+     * ParticleManager 会在 tick 前设置此回调。
+     *
+     * @param callback 发射回调函数
+     */
+    void setEmitCallback(ParticleEmitCallback callback) {
+        m_emitCallback = std::move(callback);
+    }
+
+    /**
+     * @brief 获取发射回调
+     */
+    [[nodiscard]] const ParticleEmitCallback& emitCallback() const {
+        return m_emitCallback;
+    }
+
 protected:
     // ========================================================================
     // 位置和运动
@@ -309,6 +340,12 @@ protected:
     f64 m_bboxWidth = 0.0f;     ///< 碰撞盒宽度
     f64 m_bboxHeight = 0.0f;    ///< 碰撞盒高度
     ParticleCollisionContext m_collisionContext;  ///< 碰撞上下文
+
+    // ========================================================================
+    // 发射回调
+    // ========================================================================
+
+    ParticleEmitCallback m_emitCallback;  ///< 发射回调（用于发射器粒子）
 };
 
 /**

@@ -33,6 +33,10 @@ class Fluid;
 class FluidState;
 }
 
+namespace client::renderer::trident::particle {
+enum class ParticleTypeId : u16;
+}
+
 /**
  * @brief 世界访问接口
  *
@@ -503,6 +507,68 @@ public:
     [[nodiscard]] virtual bool canRainAt(const BlockPos& pos) const {
         (void)pos;
         return false;
+    }
+
+    // ========== 粒子生成 ==========
+
+    /**
+     * @brief 生成粒子
+     *
+     * 服务端：广播给附近玩家
+     * 客户端：本地生成粒子
+     *
+     * @param type 粒子类型
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     */
+    virtual void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity) {
+        (void)type;
+        (void)pos;
+        (void)velocity;
+    }
+
+    /**
+     * @brief 生成粒子（带数量和偏移）
+     *
+     * 在指定位置附近随机生成多个粒子。
+     *
+     * @param type 粒子类型
+     * @param pos 粒子中心位置
+     * @param velocity 粒子基础速度
+     * @param offset 随机偏移范围
+     * @param count 粒子数量
+     */
+    virtual void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count) {
+        (void)type;
+        (void)pos;
+        (void)velocity;
+        (void)offset;
+        (void)count;
+    }
+
+    /**
+     * @brief 检查是否应在指定位置生成粒子
+     *
+     * 用于距离裁剪，避免在玩家视野外生成粒子。
+     *
+     * @param pos 粒子位置
+     * @param maxDistance 最大距离（默认 256 格）
+     * @return 是否应生成粒子
+     */
+    [[nodiscard]] virtual bool shouldSpawnParticleAt(
+        const Vector3& pos,
+        f32 maxDistance = 256.0f) const {
+        (void)pos;
+        (void)maxDistance;
+        return true;
     }
 
     // ========== Tick调度 ==========

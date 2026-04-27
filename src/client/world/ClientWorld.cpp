@@ -1,5 +1,8 @@
 #include "ClientWorld.hpp"
 #include "../renderer/trident/chunk/ChunkMesher.hpp"
+#include "../renderer/trident/particle/ParticleManager.hpp"
+#include "../renderer/trident/particle/ParticleTypes.hpp"
+#include "../renderer/trident/particle/ParticleRegistry.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/network/sync/ChunkSync.hpp"
@@ -8,6 +11,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cmath>
 #include <glm/geometric.hpp>
@@ -712,6 +716,74 @@ void ClientWorld::onLightUpdate(
     }
 
     requestChunkMeshRebuild(id);
+}
+
+// ========== 粒子接口实现 ==========
+
+void ClientWorld::addParticle(
+    renderer::trident::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity)
+{
+    if (!m_particleManager) {
+        return;
+    }
+
+    auto particle = renderer::trident::particle::ParticleRegistry::instance().createParticle(
+        type,
+        glm::vec3(pos.x, pos.y, pos.z),
+        glm::vec3(velocity.x, velocity.y, velocity.z),
+        this);
+
+    if (particle) {
+        m_particleManager->addParticle(std::move(particle));
+    }
+}
+
+void ClientWorld::addParticle(
+    renderer::trident::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count)
+{
+    if (!m_particleManager) {
+        return;
+    }
+
+    math::Random rng;
+    for (u32 i = 0; i < count; ++i) {
+        glm::vec3 particlePos(
+            pos.x + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.x : 0.0f),
+            pos.y + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.y : 0.0f),
+            pos.z + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.z : 0.0f)
+        );
+        glm::vec3 particleVel(
+            velocity.x + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f,
+            velocity.y + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f,
+            velocity.z + (rng.nextFloat() * 2.0f - 1.0f) * 0.01f
+        );
+
+        auto particle = renderer::trident::particle::ParticleRegistry::instance().createParticle(
+            type, particlePos, particleVel, this);
+
+        if (particle) {
+            m_particleManager->addParticle(std::move(particle));
+        }
+    }
+}
+
+bool ClientWorld::shouldSpawnParticleAt(
+    const Vector3& pos,
+    f32 maxDistance) const
+{
+    // 检查粒子位置到相机的距离
+    const f32 dx = pos.x - m_cameraPosition.x;
+    const f32 dy = pos.y - m_cameraPosition.y;
+    const f32 dz = pos.z - m_cameraPosition.z;
+    const f32 distSq = dx * dx + dy * dy + dz * dz;
+    const f32 maxDistSq = maxDistance * maxDistance;
+    return distSq <= maxDistSq;
 }
 
 } // namespace mc::client

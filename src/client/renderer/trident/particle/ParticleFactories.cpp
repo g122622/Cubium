@@ -8,6 +8,7 @@
 #include "particles/effect/PortalParticle.hpp"
 #include "particles/effect/CritParticle.hpp"
 #include "particles/effect/ExplosionParticle.hpp"
+#include "particles/effect/EmitterParticle.hpp"
 #include "particles/effect/PoofParticle.hpp"
 #include "particles/effect/SpellParticle.hpp"
 #include "particles/effect/DragonBreathParticle.hpp"
@@ -349,6 +350,14 @@ void registerBuiltinParticleFactories() {
         CloudParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         20.0f, false, false);
+
+    // 发射器粒子（不渲染，只发射其他粒子）
+    registry.registerType(
+        ParticleTypeId::HugeExplosion,
+        "minecraft:explosion_emitter",
+        HugeExplosionEmitterParticle::create,
+        ParticleRenderType::NO_RENDER,
+        8.0f, false, false);
 }
 
 } // namespace mc::client::renderer::trident::particle

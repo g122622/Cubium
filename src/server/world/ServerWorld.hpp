@@ -28,6 +28,10 @@ namespace mc {
 // 前向声明
 struct SpawnedEntityData;
 
+namespace client::renderer::trident::particle {
+enum class ParticleTypeId : u16;
+}
+
 namespace server::core {
 class TimeManager;  // 前向声明
 }
@@ -197,6 +201,43 @@ public:
     }
     [[nodiscard]] bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override;
 
+    // ========== 粒子广播回调 ==========
+
+    /**
+     * @brief 粒子广播回调类型
+     *
+     * 当服务端需要广播粒子给玩家时调用。
+     * 参数：粒子类型、位置、速度、偏移、数量
+     */
+    using ParticleBroadcastCallback = std::function<void(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count)>;
+
+    void setOnBroadcastParticle(ParticleBroadcastCallback callback) {
+        m_onBroadcastParticle = std::move(callback);
+    }
+
+    // ========== IWorld 粒子接口实现 ==========
+
+    void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity) override;
+
+    void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count) override;
+
+    [[nodiscard]] bool shouldSpawnParticleAt(
+        const Vector3& pos,
+        f32 maxDistance = 256.0f) const override;
+
     // ========== 物理引擎 ==========
 
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine.get(); }
@@ -336,6 +377,7 @@ private:
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
+    ParticleBroadcastCallback m_onBroadcastParticle;
 };
 
 } // namespace server

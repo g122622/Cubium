@@ -17,3 +17,4 @@
 #include "ContainerPacketHandler.hpp"
 #include "EntityMetadataSerializer.hpp"
 #include "GameStateChangePacket.hpp"
+#include "ParticlePacket.hpp"

@@ -1,10 +1,16 @@
 #include "ParticleManager.hpp"
+#include "ParticleRegistry.hpp"
 #include "../util/VulkanUtils.hpp"
 #include "../../util/ShaderPath.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <spdlog/spdlog.h>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/norm.hpp>
+
 #include <array>
 #include <algorithm>
 #include <filesystem>
@@ -272,6 +278,7 @@ void ParticleManager::destroy() {
 
     // 清空粒子
     m_particles.clear();
+    m_pendingParticles.clear();
     m_vertexData.clear();
 
     m_initialized = false;
@@ -288,8 +295,23 @@ void ParticleManager::addParticle(std::unique_ptr<Particle> particle) {
     }
 }
 
+void ParticleManager::addPendingParticle(ParticleTypeId type,
+                                         const glm::vec3& pos,
+                                         const glm::vec3& velocity,
+                                         ClientWorld* world) {
+    // 参考 MC 1.16.5 ParticleManager.addParticle()
+    // 粒子将在下一帧 tick 时处理，避免在 tick 中途修改粒子列表
+    if (m_pendingParticles.size() < MAX_PARTICLES) {
+        m_pendingParticles.push_back({type, pos, velocity, world});
+    }
+}
+
 void ParticleManager::clear() {
     m_particles.clear();
+}
+
+void ParticleManager::clearPending() {
+    m_pendingParticles.clear();
 }
 
 size_t ParticleManager::aliveParticleCount() const {
@@ -298,9 +320,22 @@ size_t ParticleManager::aliveParticleCount() const {
 }
 
 void ParticleManager::tick(mc::client::ClientWorld* world) {
+    // 首先处理待处理粒子队列
+    // 参考 MC 1.16.5 ParticleManager.tick() 中的 pending 处理
+    processPendingParticles();
+
+    // 创建发射回调，允许发射器粒子发射新粒子
+    auto emitCallback = [this](ParticleTypeId type,
+                               const glm::vec3& pos,
+                               const glm::vec3& velocity) {
+        addPendingParticle(type, pos, velocity, nullptr);
+    };
+
     // 更新所有粒子
     for (auto& particle : m_particles) {
         if (particle && particle->isAlive()) {
+            // 设置发射回调（用于发射器粒子）
+            particle->setEmitCallback(emitCallback);
             particle->tick(world);
         }
     }
@@ -310,6 +345,41 @@ void ParticleManager::tick(mc::client::ClientWorld* world) {
         std::remove_if(m_particles.begin(), m_particles.end(),
             [](const std::unique_ptr<Particle>& p) { return !p || !p->isAlive(); }),
         m_particles.end());
+
+    // 处理发射器粒子发射的新粒子
+    processPendingParticles();
+}
+
+void ParticleManager::processPendingParticles() {
+    // 参考 MC 1.16.5 ParticleManager.tick() 中的 pending 处理
+    // 清空 pending 队列，创建粒子并添加到主列表
+
+    // 交换到临时队列避免迭代时修改
+    std::vector<PendingParticle> pending;
+    pending.swap(m_pendingParticles);
+
+    for (const auto& pendingParticle : pending) {
+        // 距离裁剪检查
+        // 参考 MC 1.16.5 ParticleManager.addParticle() 中的距离检查
+        if (m_maxParticleDistance > 0.0f) {
+            f32 distSq = glm::distance2(pendingParticle.position, m_cameraPosition);
+            f32 maxDistSq = m_maxParticleDistance * m_maxParticleDistance;
+            if (distSq > maxDistSq) {
+                continue;  // 跳过超出距离的粒子
+            }
+        }
+
+        // 通过 ParticleRegistry 创建粒子
+        auto particle = ParticleRegistry::instance().createParticle(
+            pendingParticle.type,
+            pendingParticle.position,
+            pendingParticle.velocity,
+            pendingParticle.world);
+
+        if (particle && m_particles.size() < MAX_PARTICLES) {
+            m_particles.push_back(std::move(particle));
+        }
+    }
 }
 
 void ParticleManager::render(VkCommandBuffer cmd,
@@ -328,12 +398,24 @@ void ParticleManager::render(VkCommandBuffer cmd,
     // 更新 Uniform 缓冲区
     updateUniformBuffer(frameIndex);
 
-    // 收集粒子顶点数据
+    // 收集粒子顶点数据（带距离裁剪）
     m_vertexData.clear();
+    const f32 maxDistSq = m_maxParticleDistance * m_maxParticleDistance;
+
     for (const auto& particle : m_particles) {
-        if (particle && particle->isAlive()) {
-            particle->buildVertices(cameraPos, m_partialTick, m_textureAtlas, m_vertexData);
+        if (!particle || !particle->isAlive()) {
+            continue;
         }
+
+        // 距离裁剪
+        if (m_maxParticleDistance > 0.0f) {
+            f32 distSq = glm::distance2(particle->position(), cameraPos);
+            if (distSq > maxDistSq) {
+                continue;
+            }
+        }
+
+        particle->buildVertices(cameraPos, m_partialTick, m_textureAtlas, m_vertexData);
     }
 
     if (m_vertexData.empty()) {
@@ -377,15 +459,26 @@ void ParticleManager::render(VkCommandBuffer cmd,
     // 更新 Uniform 缓冲区
     updateUniformBuffer(frameIndex);
 
-    // 收集粒子顶点数据（带视锥剔除）
+    // 收集粒子顶点数据（带视锥剔除和距离裁剪）
     m_vertexData.clear();
+    const f32 maxDistSq = m_maxParticleDistance * m_maxParticleDistance;
+
     for (const auto& particle : m_particles) {
         if (!particle || !particle->isAlive()) {
             continue;
         }
 
-        // 使用球体测试进行视锥剔除
         const glm::vec3& particlePos = particle->position();
+
+        // 距离裁剪
+        if (m_maxParticleDistance > 0.0f) {
+            f32 distSq = glm::distance2(particlePos, cameraPos);
+            if (distSq > maxDistSq) {
+                continue;
+            }
+        }
+
+        // 使用球体测试进行视锥剔除
         mc::Vector3 frustumPos(particlePos.x, particlePos.y, particlePos.z);
         f32 particleRadius = static_cast<f32>(particle->size() * 0.5);
 

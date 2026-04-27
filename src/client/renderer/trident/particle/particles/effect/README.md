@@ -12,6 +12,15 @@
 | SmokeParticle.hpp/cpp | 烟雾粒子 - 灰色、向上飘动、变大淡出 |
 | LavaParticle.hpp/cpp | 熔岩滴粒子 - 发光、橙红色、下落 |
 | PortalParticle.hpp/cpp | 传送门粒子 - 紫色、向下飘落、水平摆动 |
+| CritParticle.hpp/cpp | 暴击粒子 - 发光、快速下落 |
+| ExplosionParticle.hpp/cpp | 爆炸粒子 - 大型爆炸效果 |
+| PoofParticle.hpp/cpp | 消散粒子 - 云雾消散效果 |
+| SpellParticle.hpp/cpp | 药水效果粒子 - 魔法效果 |
+| DragonBreathParticle.hpp/cpp | 龙息粒子 - 末影龙吐息效果 |
+| SoulParticle.hpp/cpp | 灵魂粒子 - 灵魂火效果 |
+| RedstoneParticle.hpp/cpp | 红石粉尘粒子 - 发光、颜色可变 |
+| CampfireParticle.hpp/cpp | 营火烟雾粒子 - 营火烟雾效果 |
+| **EmitterParticle.hpp/cpp** | **发射器粒子基类及实现** |
 
 ## 特性
 

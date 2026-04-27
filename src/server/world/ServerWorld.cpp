@@ -2,6 +2,7 @@
 #include "ServerChunkManager.hpp"
 #include "weather/WeatherManager.hpp"
 #include "server/core/TimeManager.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -1127,6 +1128,42 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
         ? section->skyLightNibble()
         : section->blockLightNibble();
     targetArray.data() = std::move(data);
+}
+
+// ============================================================================
+// 粒子接口实现
+// ============================================================================
+
+void ServerWorld::addParticle(
+    client::renderer::trident::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity)
+{
+    // 服务端不生成粒子，而是广播给附近玩家
+    if (m_onBroadcastParticle) {
+        m_onBroadcastParticle(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1);
+    }
+}
+
+void ServerWorld::addParticle(
+    client::renderer::trident::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count)
+{
+    // 服务端不生成粒子，而是广播给附近玩家
+    if (m_onBroadcastParticle) {
+        m_onBroadcastParticle(type, pos, velocity, offset, count);
+    }
+}
+
+bool ServerWorld::shouldSpawnParticleAt(
+    const Vector3& pos,
+    f32 maxDistance) const
+{
+    // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送
+    return true;
 }
 
 } // namespace mc::server

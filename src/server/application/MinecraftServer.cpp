@@ -737,6 +737,14 @@ void MinecraftServer::setWorld(std::unique_ptr<ServerWorld> world)
                                        f32 pitch) {
             broadcastSound(soundEventId, category, position, volume, pitch);
         });
+        m_world->setOnBroadcastParticle([this](
+            client::renderer::trident::particle::ParticleTypeId type,
+            const Vector3& pos,
+            const Vector3& velocity,
+            const Vector3& offset,
+            u32 count) {
+            broadcastParticleInRange(type, pos, velocity, offset, count);
+        });
     }
 }
 
@@ -1340,6 +1348,71 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(
         network::PacketType::PlaySound, result.value());
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
+// ============================================================================
+// 粒子广播
+// ============================================================================
+
+void MinecraftServer::broadcastParticleInRange(
+    client::renderer::trident::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count,
+    f32 range) {
+    network::ParticlePacket packet(type, pos, velocity, offset, count);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize ParticlePacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::Particle, result.value());
+
+    // 只发送给范围内的玩家
+    u32 playersNotified = 0;
+    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket, &playersNotified](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 dx = player.x - pos.x;
+        f32 dy = player.y - pos.y;
+        f32 dz = player.z - pos.z;
+        f32 distSq = dx * dx + dy * dy + dz * dz;
+        f32 rangeSq = range * range;
+
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            playersNotified++;
+        }
+    });
+
+    // spdlog::debug("[Particle] Particle type {} sent to {} players",
+    //               static_cast<u16>(type), playersNotified);
+}
+
+void MinecraftServer::sendParticleToPlayer(
+    PlayerId playerId,
+    client::renderer::trident::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count) {
+    network::ParticlePacket packet(type, pos, velocity, offset, count);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize ParticlePacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::Particle, result.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 

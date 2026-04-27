@@ -7,6 +7,7 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
+#include "common/network/packet/ParticlePacket.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -133,6 +134,13 @@ struct NetworkClientCallbacks {
     std::function<void(const skin::PlayerListEntry& entry)> onPlayerListUpdateGameMode;
     std::function<void(const std::array<u8, 16>& uuid, i32 ping)> onPlayerListUpdateLatency;
     std::function<void(const std::array<u8, 16>& uuid, const std::optional<String>& displayName)> onPlayerListUpdateDisplayName;
+
+    // 粒子事件
+    std::function<void(client::renderer::trident::particle::ParticleTypeId type,
+                       f64 x, f64 y, f64 z,
+                       f32 vx, f32 vy, f32 vz,
+                       f32 ox, f32 oy, f32 oz,
+                       u32 count)> onParticle;
 };
 
 // ============================================================================
@@ -252,6 +260,9 @@ private:
 
     // 玩家列表包处理
     void handlePlayerListItem(network::PacketDeserializer& deser);
+
+    // 粒子包处理
+    void handleParticle(network::PacketDeserializer& deser);
 
     // ASIO 网络
     asio::io_context m_ioContext;

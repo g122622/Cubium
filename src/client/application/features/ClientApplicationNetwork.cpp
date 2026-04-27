@@ -2,6 +2,9 @@
 
 #include "client/command/ClientCommandManager.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
+#include "client/renderer/trident/particle/ParticleManager.hpp"
+#include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/skin/ClientSkinManager.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
@@ -22,6 +25,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -757,6 +761,36 @@ void ClientApplication::setupNetworkCallbacks()
 
         entity->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
         entity->setXpValue(static_cast<i32>(xpValue));
+    };
+
+    // 粒子回调
+    callbacks.onParticle = [this](client::renderer::trident::particle::ParticleTypeId type,
+                                   f64 x, f64 y, f64 z,
+                                   f32 vx, f32 vy, f32 vz,
+                                   f32 ox, f32 oy, f32 oz,
+                                   u32 count) {
+        if (!m_world.particleManager()) {
+            return;
+        }
+
+        // 在指定位置生成粒子
+        mc::math::Random rng;
+        for (u32 i = 0; i < count; ++i) {
+            // 计算随机偏移位置
+            f32 px = static_cast<f32>(x) + (count > 1 ? (rng.nextFloat() * 2.0f - 1.0f) * ox : 0.0f);
+            f32 py = static_cast<f32>(y) + (count > 1 ? (rng.nextFloat() * 2.0f - 1.0f) * oy : 0.0f);
+            f32 pz = static_cast<f32>(z) + (count > 1 ? (rng.nextFloat() * 2.0f - 1.0f) * oz : 0.0f);
+
+            glm::vec3 pos(px, py, pz);
+            glm::vec3 vel(vx, vy, vz);
+
+            auto particle = client::renderer::trident::particle::ParticleRegistry::instance().createParticle(
+                type, pos, vel, &m_world);
+
+            if (particle) {
+                m_world.particleManager()->addParticle(std::move(particle));
+            }
+        }
     };
 
     // 玩家列表回调 - 皮肤系统集成

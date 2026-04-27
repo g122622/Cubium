@@ -299,3 +299,116 @@ textures/particle/my_particle.png
 5. **线程安全**：`ParticleRegistry` 是单例，粒子工厂函数不能阻塞
 6. **流体检测**：使用 `FluidTags::WATER()` 和 `FluidTags::LAVA()` 而非 `isWaterAt()`
 7. **发光粒子亮度**：MC 1.16.5 使用 15728880（blockLight=15, skyLight=15）
+
+## 发射器粒子（Emitter Particles）
+
+发射器粒子是一类特殊的元粒子，它们不直接渲染，而是在生命周期内生成其他粒子。
+
+### EmitterParticle 基类
+
+```cpp
+class EmitterParticle : public Particle {
+public:
+    EmitterParticle(const glm::vec3& pos, const glm::vec3& velocity, f64 lifetime);
+    EmitterParticle(const glm::vec3& pos, const glm::vec3& velocity, f64 lifetime, u32 emitCount);
+
+    void tick(ClientWorld* world) override;
+    ParticleRenderType getRenderType() const override { return ParticleRenderType::NO_RENDER; }
+
+    void emit(ClientWorld* world, ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity);
+    void emitWithOffset(...);
+    bool shouldEmit() const;
+
+protected:
+    u32 m_emitCount = 0;          // 剩余发射次数（0 = 无限）
+    u32 m_emitInterval = 1;       // 发射间隔（ticks）
+    u32 m_ticksSinceLastEmit = 0; // 上次发射后的 tick 数
+};
+```
+
+### 已实现的发射器粒子
+
+- **HugeExplosionEmitterParticle**: 在短暂延迟后生成大型爆炸粒子
+- **FlameEmitterParticle**: 持续发射火焰粒子
+- **SmokeEmitterParticle**: 持续发射烟雾粒子
+
+### 发射回调机制
+
+粒子通过 `ParticleEmitCallback` 回调发射新粒子：
+
+```cpp
+using ParticleEmitCallback = std::function<void(ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity)>;
+
+// ParticleManager 在 tick 时设置回调
+particle->setEmitCallback([this](ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity) {
+    addPendingParticle(type, pos, velocity, nullptr);
+});
+```
+
+## 粒子同步系统
+
+粒子系统支持客户端-服务端同步，实现多人游戏中的粒子效果同步。
+
+### 网络数据包
+
+`ParticlePacket` 用于服务端向客户端广播粒子生成事件：
+
+```cpp
+// 服务端广播粒子
+MinecraftServer::broadcastParticleInRange(
+    ParticleTypeId::Flame,
+    Vector3(100, 64, 200),  // 位置
+    Vector3(0, 0.02f, 0),   // 速度
+    Vector3(0.5f, 0.5f, 0.5f), // 偏移范围
+    10,                     // 数量
+    256.0f                  // 广播范围
+);
+
+// 客户端回调处理
+callbacks.onParticle = [](ParticleTypeId type, f64 x, f64 y, f64 z,
+                          f32 vx, f32 vy, f32 vz,
+                          f32 ox, f32 oy, f32 oz, u32 count) {
+    // 生成粒子
+};
+```
+
+### 待处理粒子队列
+
+`ParticleManager` 使用待处理队列延迟生成粒子，避免在 tick 中途修改粒子列表：
+
+```cpp
+// 添加到待处理队列（线程安全）
+void addPendingParticle(ParticleTypeId type,
+                       const glm::vec3& pos,
+                       const glm::vec3& velocity,
+                       ClientWorld* world = nullptr);
+
+// 在 tick 开始时处理待处理队列
+void processPendingParticles();
+```
+
+### 距离裁剪
+
+粒子支持基于相机位置的距离裁剪，默认最大距离 256 格（与 MC 1.16.5 一致）：
+
+```cpp
+// 设置相机位置
+particleManager.setCameraPosition(cameraPos);
+
+// 设置最大粒子距离
+particleManager.setMaxParticleDistance(256.0f);
+```
+
+## 测试覆盖
+
+粒子系统包含完整的单元测试和集成测试：
+
+- `ParticleTest`: 粒子基类测试
+- `ParticleRenderTypeTest`: 渲染类型测试
+- `ParticleTypesTest`: 粒子类型验证测试
+- `ParticleRegistryTest`: 注册表测试
+- `ParticleManagerPendingTest`: 待处理队列测试
+- `ParticleManagerDistanceCullingTest`: 距离裁剪测试
+- `ParticleManagerAliveCountTest`: 存活计数测试
+- `ParticlePacketTest`: 粒子数据包测试
+- `ParticleSyncIntegrationTest`: 粒子同步集成测试

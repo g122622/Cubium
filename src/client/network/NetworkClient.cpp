@@ -669,6 +669,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::Particle: {
+            handleParticle(bodyDeser);
+            break;
+        }
+
         default:
             spdlog::warn("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
@@ -1481,6 +1486,27 @@ void NetworkClient::handlePlayerListItem(network::PacketDeserializer& deser) {
             }
             break;
         }
+    }
+}
+
+void NetworkClient::handleParticle(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::ParticlePacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize ParticlePacket: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onParticle) {
+        m_callbacks.onParticle(
+            packet.particleType(),
+            packet.x(), packet.y(), packet.z(),
+            packet.velocityX(), packet.velocityY(), packet.velocityZ(),
+            packet.offsetX(), packet.offsetY(), packet.offsetZ(),
+            packet.count());
     }
 }
 

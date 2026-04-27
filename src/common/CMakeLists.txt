@@ -45,6 +45,7 @@ add_library(mc_common STATIC
     network/packet/BlockBreakAnimPacket.cpp
     network/packet/DimensionPackets.cpp
     network/packet/ExperiencePackets.cpp
+    network/packet/ParticlePacket.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp

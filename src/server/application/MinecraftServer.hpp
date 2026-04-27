@@ -24,6 +24,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
+#include "common/network/packet/ParticlePacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include <memory>
@@ -503,6 +504,44 @@ protected:
                           const Vector3& position,
                           f32 volume = 1.0f,
                           f32 pitch = 1.0f);
+
+    // ========== 粒子广播方法 ==========
+
+    /**
+     * @brief 广播粒子给指定范围内的玩家
+     *
+     * @param type 粒子类型
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param offset 随机偏移范围
+     * @param count 粒子数量
+     * @param range 广播范围（格），默认 256 格
+     */
+    void broadcastParticleInRange(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count,
+        f32 range = 256.0f);
+
+    /**
+     * @brief 发送粒子给指定玩家
+     *
+     * @param playerId 玩家ID
+     * @param type 粒子类型
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param offset 随机偏移范围
+     * @param count 粒子数量
+     */
+    void sendParticleToPlayer(
+        PlayerId playerId,
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count);
 
     /**
      * @brief 停止核心组件

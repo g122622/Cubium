@@ -67,6 +67,7 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/effect/PortalParticle.cpp
     renderer/trident/particle/particles/effect/CritParticle.cpp
     renderer/trident/particle/particles/effect/ExplosionParticle.cpp
+    renderer/trident/particle/particles/effect/EmitterParticle.cpp
     renderer/trident/particle/particles/effect/PoofParticle.cpp
     renderer/trident/particle/particles/effect/SpellParticle.cpp
     renderer/trident/particle/particles/effect/DragonBreathParticle.cpp

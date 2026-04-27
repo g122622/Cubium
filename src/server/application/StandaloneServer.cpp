@@ -155,6 +155,14 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                                    f32 pitch) {
         broadcastSound(soundEventId, category, position, volume, pitch);
     });
+    m_world->setOnBroadcastParticle([this](
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count) {
+        broadcastParticleInRange(type, pos, velocity, offset, count);
+    });
 
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());

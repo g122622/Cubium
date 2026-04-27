@@ -12,6 +12,7 @@
 #include "../../../core/EntityDataManager.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
 
@@ -144,11 +145,21 @@ void AnimalEntity::updateInLove() {
 
 void AnimalEntity::spawnHeartParticles() {
     // MC 1.16.5: 生成心形粒子
-    // 在实体周围随机位置生成粒子
-    // world->addParticle(ParticleTypes.HEART,
-    //     getPosXRandom(1.0), getPosYRandom() + 0.5, getPosZRandom(1.0),
-    //     rand.nextGaussian() * 0.02, rand.nextGaussian() * 0.02, rand.nextGaussian() * 0.02);
-    // 目前粒子系统未完全实现，留空
+    if (!m_world) {
+        return;
+    }
+
+    mc::math::Random rng = getRandom();
+    f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * width();
+    f32 oy = height() + 0.5f + rng.nextFloat() * 0.5f;
+    f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * width();
+
+    Vector3 pos(x() + ox, y() + oy, z() + oz);
+    Vector3 vel(0.0f, 0.0f, 0.0f);
+
+    m_world->addParticle(
+        client::renderer::trident::particle::ParticleTypeId::Heart,
+        pos, vel);
 }
 
 } // namespace mc

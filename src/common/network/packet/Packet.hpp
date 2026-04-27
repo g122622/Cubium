@@ -86,6 +86,9 @@ enum class PacketType : u16 {
     // 玩家经验包 (S->C)
     SetExperience = 500,        // 同步玩家经验
     SpawnExperienceOrb = 501,   // 生成经验球
+
+    // 粒子包 (S->C)
+    Particle = 510,             // 粒子生成
 };
 
 // 数据包头

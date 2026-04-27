@@ -3,6 +3,8 @@
 #include "../../entities/player/Player.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -38,12 +40,23 @@ void AbstractArrowEntity::tick() {
     // 调用父类tick
     ProjectileEntity::tick();
 
-    // 暴击粒子效果
-    if (m_critical && !m_inGround) {
-        // TODO: 生成暴击粒子
-        // for (int i = 0; i < 4; ++i) {
-        //     world->addParticle(ParticleTypes::CRIT, ...);
-        // }
+    // MC 1.16.5: 暴击粒子效果
+    if (m_critical && !m_inGround && m_world) {
+        mc::math::Random rng = getRandom();
+        // 每tick有概率生成暴击粒子
+        if (rng.nextInt(3) == 0) {
+            f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.3f;
+            f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.3f;
+            f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.3f;
+
+            Vector3 pos(x() + ox, y() + oy, z() + oz);
+            // 粒子速度与箭矢速度相反
+            Vector3 vel(-velocityX() * 0.01f, -velocityY() * 0.01f, -velocityZ() * 0.01f);
+
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Crit,
+                pos, vel);
+        }
     }
 }
 
