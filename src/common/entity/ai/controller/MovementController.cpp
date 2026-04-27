@@ -4,7 +4,21 @@
 #include "../../core/LivingEntity.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockPos.hpp"
+#include "../../../world/block/blocks/DoorBlock.hpp"
+#include "../../../world/block/blocks/FenceGateBlock.hpp"
+#include "../../../world/block/blocks/building/FenceBlock.hpp"
+#include "../../../world/block/blocks/building/WallBlock.hpp"
+#include "../../../physics/collision/CollisionShape.hpp"
 #include <cmath>
+
+// 使用命名空间简化代码
+using mc::blocks::DoorBlock;
+using mc::blocks::FenceGateBlock;
+using mc::blocks::FenceBlock;
+using mc::blocks::WallBlock;
 
 namespace mc::entity::ai::controller {
 
@@ -100,15 +114,74 @@ void MovementController::tick() {
         m_mob->setMoveForward(1.0f);  // 向前移动
 
         // 检查是否需要跳跃
-        // MC 1.16.5 条件1: 目标位置更高且水平距离近
-        // MC 1.16.5 条件2: 方块碰撞形状检查（门、栅栏等）- 需要 VoxelShape 支持
-        // MC 1.16.5 条件完整逻辑:
-        //   if (dy > stepHeight && horizontalDistSq < maxDistSq) OR
-        //   (!voxelshape.isEmpty() && posY < voxelshape.endY + blockY && !block.isIn(DOORS) && !block.isIn(FENCES))
+        // MC 1.16.5: 跳跃有两个条件，满足其一即可
         f64 horizontalDistSq = dx * dx + dz * dz;
         f32 entityWidth = m_mob->width();
         f32 maxDist = std::max(1.0f, entityWidth);
+        bool shouldJump = false;
+
+        // MC 1.16.5 条件1: 目标位置更高且水平距离近
         if (dy > m_mob->stepHeight() && horizontalDistSq < static_cast<f64>(maxDist * maxDist)) {
+            shouldJump = true;
+        }
+
+        // MC 1.16.5 条件2: 检查前方方块碰撞形状（门、栅栏等特殊情况）
+        // 检查实体前方方块是否有碰撞，且不是门或栅栏
+        if (!shouldJump && m_mob->world()) {
+            // 计算前方方块位置
+            f32 yawRad = m_mob->yaw() * math::DEG_TO_RAD;
+            i32 blockX = static_cast<i32>(std::floor(m_mob->x() + std::sin(yawRad)));
+            i32 blockY = static_cast<i32>(std::floor(m_mob->y()));
+            i32 blockZ = static_cast<i32>(std::floor(m_mob->z() - std::cos(yawRad)));
+
+            if (const BlockState* state = m_mob->world()->getBlockState(blockX, blockY, blockZ)) {
+                const Block& block = state->getBlock();
+                const CollisionShape& shape = state->getCollisionShape();
+
+                // 检查碰撞形状是否非空
+                if (!shape.isEmpty()) {
+                    // 获取碰撞形状的最大Y值
+                    f64 shapeMaxY = 0.0;
+                    for (const auto& box : shape.boxes()) {
+                        shapeMaxY = std::max(shapeMaxY, static_cast<f64>(box.maxY));
+                    }
+
+                    // MC 1.16.5: 检查实体是否在碰撞形状上方
+                    // 如果实体位置低于碰撞形状顶部，需要跳跃
+                    f64 entityY = m_mob->y();
+                    f64 shapeTopY = static_cast<f64>(blockY) + shapeMaxY;
+
+                    if (entityY < shapeTopY) {
+                        // MC 1.16.5: 检查是否是门或栅栏（这些可以打开或跳过）
+                        // 使用 RTTI 检查方块类型
+                        bool isDoorOrFence = false;
+
+                        // 检查门
+                        if (dynamic_cast<const DoorBlock*>(&block) != nullptr) {
+                            isDoorOrFence = true;
+                        }
+                        // 检查栅栏门
+                        else if (dynamic_cast<const FenceGateBlock*>(&block) != nullptr) {
+                            isDoorOrFence = true;
+                        }
+                        // 检查栅栏
+                        else if (dynamic_cast<const FenceBlock*>(&block) != nullptr) {
+                            isDoorOrFence = true;
+                        }
+                        // 检查墙（与栅栏类似）
+                        else if (dynamic_cast<const WallBlock*>(&block) != nullptr) {
+                            isDoorOrFence = true;
+                        }
+
+                        if (!isDoorOrFence) {
+                            shouldJump = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (shouldJump) {
             if (auto* jumpCtrl = m_mob->jumpController()) {
                 jumpCtrl->setJumping();
             }
