@@ -26,7 +26,6 @@ public:
     explicit SwimGoal(MobEntity* mob);
 
     [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] bool shouldContinueExecuting() override;
     void tick() override;
 
     [[nodiscard]] String getTypeName() const override { return "SwimGoal"; }

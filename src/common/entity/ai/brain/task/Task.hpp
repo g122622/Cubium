@@ -3,6 +3,7 @@
 #include "../memory/MemoryModuleStatus.hpp"
 #include "../memory/MemoryModuleType.hpp"
 #include "../schedule/Activity.hpp"
+#include "../Brain.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <unordered_map>
 #include <string>
@@ -166,8 +167,22 @@ protected:
 private:
     /**
      * @brief 检查实体是否有所需的记忆状态
+     * MC 1.16.5: Task.hasRequiredMemories()
      */
-    bool hasRequiredMemories(E* owner);
+    bool hasRequiredMemories(E* owner) {
+        if (!owner) {
+            return false;
+        }
+
+        // MC 1.16.5: 遍历所有需要的记忆状态
+        // 注意：实体类需要提供 brain() 方法返回 Brain<E>&
+        for (const auto& [memType, status] : m_requiredMemoryState) {
+            if (!owner->brain().hasMemory(memType, status)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     TaskStatus m_status;
     i64 m_stopTime;

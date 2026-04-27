@@ -30,9 +30,14 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ,
         return path;
     }
 
-    // 设置起始节点的代价值
+    // MC 1.16.5: 设置起始节点的代价值
+    // totalPathDistance = 0
+    // distanceToNext = heuristic * 1.5 (MC 1.16.5 PathFinder.func_224776_a_)
+    // distanceToTarget = totalPathDistance + distanceToNext (即 f = g + h*1.5)
     startNode->setCostFromStart(0.0f);
-    startNode->setCostToTarget(heuristic(startX, startY, startZ, targetX, targetY, targetZ));
+    f32 h = heuristic(*startNode, targetX, targetY, targetZ);
+    startNode->setDistanceToNext(h * 1.5f);  // MC 1.16.5 乘以 1.5
+    startNode->setHeuristic(h);
     startNode->updateTotalCost();
 
     // 将起点加入开放列表
@@ -60,8 +65,7 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ,
         }
 
         // 记录最近的节点（如果找不到精确路径）
-        f32 currentDist = heuristic(current->x(), current->y(), current->z(),
-                                     targetX, targetY, targetZ);
+        f32 currentDist = heuristic(*current, targetX, targetY, targetZ);
         if (currentDist < bestDistance) {
             bestDistance = currentDist;
             bestNode = current;
@@ -89,8 +93,10 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ,
             if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
                 neighbor->setParent(current);
                 neighbor->setCostFromStart(newCostFromStart);
-                neighbor->setCostToTarget(heuristic(neighbor->x(), neighbor->y(), neighbor->z(),
-                                                     targetX, targetY, targetZ));
+                // MC 1.16.5: distanceToNext = heuristic * 1.5
+                f32 neighborH = heuristic(*neighbor, targetX, targetY, targetZ);
+                neighbor->setDistanceToNext(neighborH * 1.5f);
+                neighbor->setHeuristic(neighborH);
                 neighbor->updateTotalCost();
 
                 if (neighbor->heapIndex() == -1) {
@@ -140,8 +146,11 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ,
         return path;
     }
 
+    // MC 1.16.5: 设置起始节点代价
     startNode->setCostFromStart(0.0f);
-    startNode->setCostToTarget(heuristic(startX, startY, startZ, targetX, targetY, targetZ));
+    f32 h = heuristic(*startNode, targetX, targetY, targetZ);
+    startNode->setDistanceToNext(h * 1.5f);
+    startNode->setHeuristic(h);
     startNode->updateTotalCost();
 
     m_openSet.insert(startNode);
@@ -181,8 +190,9 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ,
             if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
                 neighbor->setParent(current);
                 neighbor->setCostFromStart(newCostFromStart);
-                neighbor->setCostToTarget(heuristic(neighbor->x(), neighbor->y(), neighbor->z(),
-                                                     targetX, targetY, targetZ));
+                f32 neighborH = heuristic(*neighbor, targetX, targetY, targetZ);
+                neighbor->setDistanceToNext(neighborH * 1.5f);
+                neighbor->setHeuristic(neighborH);
                 neighbor->updateTotalCost();
 
                 if (neighbor->heapIndex() == -1) {
@@ -234,17 +244,18 @@ Path PathFinder::findPathToClosest(i32 startX, i32 startY, i32 startZ,
         }
     }
 
-    // 计算到最近目标的启发式
+    // MC 1.16.5: 计算到最近目标的启发式，并乘以 1.5
     f32 bestHeuristic = std::numeric_limits<f32>::max();
     for (const auto& target : targets) {
-        f32 h = heuristic(startX, startY, startZ, target.x, target.y, target.z);
+        f32 h = heuristic(*startNode, target.x, target.y, target.z);
         if (h < bestHeuristic) {
             bestHeuristic = h;
         }
     }
 
     startNode->setCostFromStart(0.0f);
-    startNode->setCostToTarget(bestHeuristic);
+    startNode->setDistanceToNext(bestHeuristic * 1.5f);  // MC 1.16.5: 乘以 1.5
+    startNode->setHeuristic(bestHeuristic);
     startNode->updateTotalCost();
 
     m_openSet.insert(startNode);
@@ -268,8 +279,7 @@ Path PathFinder::findPathToClosest(i32 startX, i32 startY, i32 startZ,
                 m_lastSearchedNodes = searchedNodes;
                 return Path::buildFromEnd(current);
             }
-            f32 currentDist = heuristic(current->x(), current->y(), current->z(),
-                                        target.x, target.y, target.z);
+            f32 currentDist = heuristic(*current, target.x, target.y, target.z);
             if (currentDist < bestDistance) {
                 bestDistance = currentDist;
                 bestNode = current;
@@ -293,11 +303,10 @@ Path PathFinder::findPathToClosest(i32 startX, i32 startY, i32 startZ,
                                    getMovementCost(*current, *neighbor) +
                                    neighbor->costMalus();
 
-            // 计算到最近目标的启发式
+            // MC 1.16.5: 计算到最近目标的启发式
             f32 bestNeighborHeuristic = std::numeric_limits<f32>::max();
             for (const auto& target : targets) {
-                f32 h = heuristic(neighbor->x(), neighbor->y(), neighbor->z(),
-                                  target.x, target.y, target.z);
+                f32 h = heuristic(*neighbor, target.x, target.y, target.z);
                 if (h < bestNeighborHeuristic) {
                     bestNeighborHeuristic = h;
                 }
@@ -306,7 +315,9 @@ Path PathFinder::findPathToClosest(i32 startX, i32 startY, i32 startZ,
             if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
                 neighbor->setParent(current);
                 neighbor->setCostFromStart(newCostFromStart);
-                neighbor->setCostToTarget(bestNeighborHeuristic);
+                // MC 1.16.5: distanceToNext = heuristic * 1.5
+                neighbor->setDistanceToNext(bestNeighborHeuristic * 1.5f);
+                neighbor->setHeuristic(bestNeighborHeuristic);
                 neighbor->updateTotalCost();
 
                 if (neighbor->heapIndex() == -1) {

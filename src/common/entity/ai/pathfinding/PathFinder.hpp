@@ -163,19 +163,16 @@ private:
 
     /**
      * @brief 启发式函数：估算从当前点到目标的代价
-     * MC 1.16.5: 使用 octile 距离（允许对角线移动的启发式）
+     * MC 1.16.5: 使用直线距离（欧几里得距离），PathPoint.distanceTo()
+     *
+     * 注意：MC 1.16.5 的 PathFinder.func_224776_a_ 计算启发式后会乘以 1.5
+     * 存储在 distanceToNext 字段中，然后 distanceToTarget 存储的是 f值（totalCost）
      */
-    [[nodiscard]] static f32 heuristic(i32 x, i32 y, i32 z,
+    [[nodiscard]] static f32 heuristic(const PathPoint& point,
                                          i32 targetX, i32 targetY, i32 targetZ) {
-        i32 dx = std::abs(x - targetX);
-        i32 dy = std::abs(y - targetY);
-        i32 dz = std::abs(z - targetZ);
-
-        // Octile 距离: 对角线移动代价更准确
-        // 公式: max(dx, dz) - min(dx, dz) + sqrt(2) * min(dx, dz) + dy
-        i32 horizMax = std::max(dx, dz);
-        i32 horizMin = std::min(dx, dz);
-        return static_cast<f32>(horizMax - horizMin) + math::SQRT2 * static_cast<f32>(horizMin) + static_cast<f32>(dy);
+        // MC 1.16.5: 使用直线距离
+        PathPoint target(targetX, targetY, targetZ);
+        return point.distanceTo(target);
     }
 
     /**

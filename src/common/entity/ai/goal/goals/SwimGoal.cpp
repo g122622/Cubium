@@ -34,12 +34,6 @@ bool SwimGoal::shouldExecute() {
     return m_mob->isInLava();
 }
 
-bool SwimGoal::shouldContinueExecuting() {
-    // MC 1.16.5: SwimGoal 没有重写 shouldContinueExecuting
-    // 默认返回 shouldExecute()，但这里实现持续游泳逻辑
-    return shouldExecute();
-}
-
 void SwimGoal::tick() {
     if (!m_mob) return;
 

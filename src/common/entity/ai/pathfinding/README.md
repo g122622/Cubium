@@ -62,9 +62,10 @@ enum class PathNodeType : u8 {
 |------|------|------|
 | `m_x, m_y, m_z` | `i32` | 方块坐标 |
 | `m_costMalus` | `f32` | 代价惩罚（来自节点类型） |
-| `m_costFromStart` | `f32` | 从起点的实际代价（g值） |
-| `m_costToTarget` | `f32` | 到目标的启发式代价（h值） |
-| `m_totalCost` | `f32` | 总代价（f值 = g + h） |
+| `m_costFromStart` | `f32` | 从起点的实际代价（g值），MC: totalPathDistance |
+| `m_heuristic` | `f32` | 到目标的启发式代价（h值） |
+| `m_totalCost` | `f32` | 总代价（f值 = g + h），MC: distanceToTarget |
+| `m_distanceToNext` | `f32` | 到下一个路径点的距离，MC: distanceToNext 存储 h*1.5 |
 | `m_nodeType` | `PathNodeType` | 节点类型 |
 | `m_visited` | `bool` | 是否已访问（在闭合列表中） |
 | `m_parent` | `PathPoint*` | 父节点（用于重建路径） |
@@ -560,7 +561,7 @@ TEST(PathHeapTest, HeapProperty) {
 
     for (int i = 0; i < 20; ++i) {
         points.push_back(std::make_unique<PathPoint>(i, 0, 0));
-        points.back()->setCostToTarget(static_cast<f32>(i * 10));
+        points.back()->setHeuristic(static_cast<f32>(i * 10));
         points.back()->updateTotalCost();
         heap.insert(points.back().get());
     }

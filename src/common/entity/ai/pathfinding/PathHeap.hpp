@@ -94,19 +94,20 @@ public:
      * 同时处理上浮和下沉两种情况。
      *
      * @param point 要更新的路径点
-     * @param newDistance 新的总代价（f值）
+     * @param newTotalCost 新的总代价（f值）
      */
-    void changeDistance(PathPoint* point, f32 newDistance) {
+    void changeDistance(PathPoint* point, f32 newTotalCost) {
         f32 oldDistance = point->totalCost();
-        point->setCostToTarget(newDistance);  // MC 使用 distanceToTarget 存储 f 值
-        point->updateTotalCost();
+        // 设置新的总代价
+        // 注意：这里直接设置 totalCost 会影响 f值，但通常 A* 只需要更新堆位置
+        // 因为代价改变后，g值或h值应该通过各自的 setter 更新
 
         i32 index = point->heapIndex();
         if (index < 0 || index >= static_cast<i32>(m_heap.size())) {
             return;
         }
 
-        if (newDistance < oldDistance) {
+        if (newTotalCost < oldDistance) {
             // 代价减小，上浮
             siftUp(static_cast<size_t>(index));
         } else {

@@ -40,21 +40,26 @@ public:
     [[nodiscard]] f32 costMalus() const { return m_costMalus; }
     void setCostMalus(f32 malus) { m_costMalus = malus; }
 
+    /**
+     * @brief 获取从起点到当前节点的代价（g值）
+     * MC 1.16.5: totalPathDistance
+     */
     [[nodiscard]] f32 costFromStart() const { return m_costFromStart; }
-    void setCostFromStart(f32 cost) { m_costFromStart = cost; m_totalCost = m_costFromStart + m_costToTarget; }
-
-    [[nodiscard]] f32 costToTarget() const { return m_costToTarget; }
-    void setCostToTarget(f32 cost) { m_costToTarget = cost; m_totalCost = m_costFromStart + m_costToTarget; }
-
-    [[nodiscard]] f32 totalCost() const { return m_totalCost; }
-    void updateTotalCost() { m_totalCost = m_costFromStart + m_costToTarget; }
+    void setCostFromStart(f32 cost) { m_costFromStart = cost; updateTotalCost(); }
 
     /**
-     * @brief 获取行走距离（MC field_222861_j）
-     * MC 1.16.5: 用于追踪实际行走的距离
+     * @brief 获取启发式代价（h值，到目标的估算代价）
+     * MC 1.16.5: distanceToTarget 实际上是 f值，但内部计算使用 h值
      */
-    [[nodiscard]] f32 walkedDistance() const { return m_walkedDistance; }
-    void setWalkedDistance(f32 distance) { m_walkedDistance = distance; }
+    [[nodiscard]] f32 heuristic() const { return m_heuristic; }
+    void setHeuristic(f32 h) { m_heuristic = h; updateTotalCost(); }
+
+    /**
+     * @brief 获取总代价（f值 = g + h）
+     * MC 1.16.5: distanceToTarget 是 f值
+     */
+    [[nodiscard]] f32 totalCost() const { return m_totalCost; }
+    void updateTotalCost() { m_totalCost = m_costFromStart + m_heuristic; }
 
     /**
      * @brief 获取到下一个路径点的距离
@@ -62,6 +67,13 @@ public:
      */
     [[nodiscard]] f32 distanceToNext() const { return m_distanceToNext; }
     void setDistanceToNext(f32 distance) { m_distanceToNext = distance; }
+
+    /**
+     * @brief 获取行走距离（MC field_222861_j）
+     * MC 1.16.5: 用于追踪实际行走的距离
+     */
+    [[nodiscard]] f32 walkedDistance() const { return m_walkedDistance; }
+    void setWalkedDistance(f32 distance) { m_walkedDistance = distance; }
 
     [[nodiscard]] PathNodeType nodeType() const { return m_nodeType; }
     void setNodeType(PathNodeType type) { m_nodeType = type; }
@@ -95,9 +107,21 @@ public:
     // ========== 工具方法 ==========
 
     /**
-     * @brief 计算到另一个点的曼哈顿距离
+     * @brief 计算到另一个点的直线距离（欧几里得距离）
+     * MC 1.16.5: distanceTo() 使用直线距离作为启发式函数
      */
-    [[nodiscard]] i32 distanceTo(const PathPoint& other) const {
+    [[nodiscard]] f32 distanceTo(const PathPoint& other) const {
+        f32 dx = static_cast<f32>(m_x - other.m_x);
+        f32 dy = static_cast<f32>(m_y - other.m_y);
+        f32 dz = static_cast<f32>(m_z - other.m_z);
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    /**
+     * @brief 计算到另一个点的曼哈顿距离
+     * MC 1.16.5: func_224757_c() 使用曼哈顿距离
+     */
+    [[nodiscard]] i32 distanceManhattan(const PathPoint& other) const {
         return std::abs(m_x - other.m_x) + std::abs(m_y - other.m_y) + std::abs(m_z - other.m_z);
     }
 
@@ -109,14 +133,6 @@ public:
         f32 dy = static_cast<f32>(m_y - other.m_y);
         f32 dz = static_cast<f32>(m_z - other.m_z);
         return dx * dx + dy * dy + dz * dz;
-    }
-
-    /**
-     * @brief 计算到另一个点的直线距离（欧几里得距离）
-     * MC 1.16.5 使用此方法作为启发式函数
-     */
-    [[nodiscard]] f32 distanceToLinear(const PathPoint& other) const {
-        return std::sqrt(distanceToSq(other));
     }
 
     /**
@@ -170,9 +186,9 @@ private:
     i32 m_y;
     i32 m_z;
     f32 m_costMalus = 0.0f;        // 代价惩罚（来自节点类型）
-    f32 m_costFromStart = 0.0f;    // 从起点的代价（g值）
-    f32 m_costToTarget = 0.0f;     // 到目标的估算代价（h值）
-    f32 m_totalCost = 0.0f;        // 总代价（f值 = g + h）
+    f32 m_costFromStart = 0.0f;    // 从起点的代价（g值），MC: totalPathDistance
+    f32 m_heuristic = 0.0f;        // 启发式代价（h值），MC: distanceToNext 存储启发式*1.5
+    f32 m_totalCost = 0.0f;        // 总代价（f值 = g + h），MC: distanceToTarget
     f32 m_walkedDistance = 0.0f;   // MC field_222861_j: 行走距离
     f32 m_distanceToNext = 0.0f;   // 到下一个路径点的距离
     PathNodeType m_nodeType = PathNodeType::Blocked;  // MC 1.16.5: 默认BLOCKED

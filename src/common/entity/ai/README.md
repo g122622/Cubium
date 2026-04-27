@@ -200,14 +200,16 @@ virtual void tick();                         // 每帧更新
 
 **属性**:
 - 位置坐标 (x, y, z)
-- 代价信息: `costFromStart` (g), `costToTarget` (h), `totalCost` (f)
+- 代价信息: `costFromStart` (g), `heuristic` (h), `totalCost` (f)
+- `distanceToNext` - 到下一个路径点的距离（MC: 存储 h*1.5）
 - `costMalus` - 节点类型代价惩罚
 - `nodeType` - 节点类型
 - `parent` - 父节点（用于重建路径）
 - `heapIndex` - 在堆中的索引
 
 **方法**:
-- `distanceTo(other)` - 曼哈顿距离
+- `distanceTo(other)` - 直线距离（MC: distanceTo）
+- `distanceManhattan(other)` - 曼哈顿距离（MC: func_224757_c）
 - `distanceToSq(other)` - 直线距离平方
 - `clone()` - 克隆节点（不复制寻路状态）
 

@@ -73,9 +73,11 @@ void MovementController::tick() {
         f32 moveX = forward * cosYaw - strafe * sinYaw;
         f32 moveZ = strafe * cosYaw + forward * sinYaw;
 
-        // TODO: 检查目标位置是否可行走 (func_234024_b_)
+        // MC 1.16.5: 检查目标位置是否可行走 (func_234024_b_)
+        // 需要使用 NodeProcessor.getPathNodeType 检查目标位置
         // 当前简化实现：直接设置移动
         // 如果检查失败，MC会设置 forward=1.0, strafe=0.0
+        // TODO: 实现 canWalkAt() 方法检查目标位置可行走性
 
         m_mob->setAIMoveSpeed(moveSpeed);
         m_mob->setMoveForward(m_moveForward);

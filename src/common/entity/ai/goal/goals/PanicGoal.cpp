@@ -25,8 +25,9 @@ PanicGoal::PanicGoal(CreatureEntity* creature, f64 speed)
 bool PanicGoal::shouldExecute() {
     if (!m_creature) return false;
 
-    // MC 1.16.5: 检查是否有复仇目标或着火
-    LivingEntity* revengeTarget = m_creature->attackTarget();
+    // MC 1.16.5: 检查是否有复仇目标(getRevengeTarget)或着火(isBurning)
+    // getRevengeTarget() 对应 getLastHurtBy()
+    LivingEntity* revengeTarget = m_creature->getLastHurtBy();
     bool isBurning = m_creature->isOnFire();
 
     if (revengeTarget == nullptr && !isBurning) {

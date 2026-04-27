@@ -59,14 +59,14 @@ TEST(PathPointTest, DistanceCalculation) {
     PathPoint p1(0, 0, 0);
     PathPoint p2(3, 4, 0);
 
-    // 曼哈顿距离
-    EXPECT_EQ(p1.distanceTo(p2), 7);
+    // 直线距离 (MC 1.16.5: distanceTo)
+    EXPECT_FLOAT_EQ(p1.distanceTo(p2), 5.0f);
 
     // 直线距离平方
     EXPECT_FLOAT_EQ(p1.distanceToSq(p2), 25.0f);
 
-    // 直线距离
-    EXPECT_FLOAT_EQ(p1.distanceToLinear(p2), 5.0f);
+    // 曼哈顿距离 (MC 1.16.5: func_224757_c)
+    EXPECT_EQ(p1.distanceManhattan(p2), 7);
 }
 
 TEST(PathPointTest, EqualityAndHash) {
@@ -104,9 +104,10 @@ TEST(PathPointTest, CostCalculation) {
     PathPoint point(0, 0, 0);
 
     point.setCostFromStart(10.0f);
-    point.setCostToTarget(5.0f);
+    point.setHeuristic(5.0f);
     point.updateTotalCost();
 
+    // f = g + h
     EXPECT_FLOAT_EQ(point.totalCost(), 15.0f);
 }
 
@@ -127,15 +128,15 @@ TEST(PathHeapTest, InsertAndPop) {
     PathPoint p3(0, 0, 0);
 
     p1.setCostFromStart(0.0f);
-    p1.setCostToTarget(10.0f);
+    p1.setHeuristic(10.0f);
     p1.updateTotalCost();
 
     p2.setCostFromStart(0.0f);
-    p2.setCostToTarget(5.0f);
+    p2.setHeuristic(5.0f);
     p2.updateTotalCost();
 
     p3.setCostFromStart(0.0f);
-    p3.setCostToTarget(15.0f);
+    p3.setHeuristic(15.0f);
     p3.updateTotalCost();
 
     heap.insert(&p1);
@@ -157,18 +158,18 @@ TEST(PathHeapTest, Update) {
     PathPoint p2(0, 0, 0);
 
     p1.setCostFromStart(0.0f);
-    p1.setCostToTarget(10.0f);
+    p1.setHeuristic(10.0f);
     p1.updateTotalCost();
 
     p2.setCostFromStart(0.0f);
-    p2.setCostToTarget(5.0f);
+    p2.setHeuristic(5.0f);
     p2.updateTotalCost();
 
     heap.insert(&p1);
     heap.insert(&p2);
 
     // 更新p1的代价使其变为最小
-    p1.setCostToTarget(2.0f);
+    p1.setHeuristic(2.0f);
     p1.updateTotalCost();
     heap.update(&p1);
 
@@ -186,7 +187,7 @@ TEST(PathHeapTest, HeapProperty) {
     for (int i = 0; i < 20; ++i) {
         points.push_back(std::make_unique<PathPoint>(i, 0, 0));
         points.back()->setCostFromStart(0.0f);
-        points.back()->setCostToTarget(static_cast<f32>(i * 10));
+        points.back()->setHeuristic(static_cast<f32>(i * 10));
         points.back()->updateTotalCost();
         heap.insert(points.back().get());
     }
