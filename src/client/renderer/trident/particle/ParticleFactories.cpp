@@ -13,6 +13,7 @@
 #include "particles/effect/DragonBreathParticle.hpp"
 #include "particles/effect/SoulParticle.hpp"
 #include "particles/effect/RedstoneParticle.hpp"
+#include "particles/effect/CampfireParticle.hpp"
 #include "particles/ambient/BubbleParticle.hpp"
 #include "particles/ambient/UnderwaterParticle.hpp"
 #include "particles/ambient/CloudParticle.hpp"
@@ -188,6 +189,21 @@ void registerBuiltinParticleFactories() {
         EndRodParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         60.0f, false, false);
+
+    // 营火烟雾粒子
+    registry.registerType(
+        ParticleTypeId::CampfireCozy,
+        "minecraft:campfire_cozy_smoke",
+        CampfireParticle::createCozy,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        80.0f, false, false);
+
+    registry.registerType(
+        ParticleTypeId::CampfireSignal,
+        "minecraft:campfire_signal_smoke",
+        CampfireParticle::createSignal,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        280.0f, false, false);
 
     // 天气类粒子
     registry.registerType(

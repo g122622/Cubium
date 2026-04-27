@@ -60,8 +60,7 @@ u32 DripWaterParticle::getLightColor(mc::client::ClientWorld* world) const {
 
 void DripWaterParticle::onLand(mc::client::ClientWorld* world) {
     // MC 1.16.5: 水滴落地时产生水花效果
-    // TODO: 生成 SplashParticle
-    // world->spawnParticle(ParticleTypeId::Splash, m_position, glm::vec3(0.0f));
+    // 需要在 ParticleManager 支持粒子生成时实现 SplashParticle 生成
 
     DripParticle::onLand(world);
 }

@@ -80,7 +80,7 @@ void BubbleParticle::tick(mc::client::ClientWorld* world) {
             if (fluidState == nullptr || fluidState->isEmpty() ||
                 !fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER())) {
                 // 离开水面，气泡破裂
-                // TODO: 生成 BubblePop 粒子
+                // 需要在 ParticleManager 支持粒子生成时实现 BubblePop 粒子生成
                 setExpired();
                 return;
             }

@@ -262,8 +262,9 @@ void DripParticle::onLand(mc::client::ClientWorld* world) {
     m_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     setMaxAge(m_age + 16.0f);  // 落地后存在 16 tick
 
-    // MC 1.16.5: 水滴落地时生成 SplashParticle
-    // TODO: 根据 m_type 生成对应的落地粒子
+    // MC 1.16.5: 根据 m_type 生成对应的落地粒子
+    // Water -> SplashParticle, Lava -> LandingLava, Honey -> LandingHoney
+    // 需要在 ParticleManager 支持粒子生成时实现
 }
 
 f64 DripParticle::getScale(f64 partialTick) const {
