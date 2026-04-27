@@ -78,6 +78,9 @@ namespace EntityUtils {
 		case LegacyEntityType::Wither: return "minecraft:wither";
 		case LegacyEntityType::EnderDragon: return "minecraft:ender_dragon";
 
+		case LegacyEntityType::Boat: return "minecraft:boat";
+		case LegacyEntityType::Minecart: return "minecraft:minecart";
+
 		case LegacyEntityType::Villager: return "minecraft:villager";
 		case LegacyEntityType::Unknown:
 		default:

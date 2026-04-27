@@ -575,6 +575,18 @@ protected:
      */
     [[nodiscard]] virtual std::optional<ResourceLocation> getDeathSound() const;
 
+    /**
+     * @brief 获取生物属性类型
+     *
+     * 用于附魔（如亡灵杀手、节肢杀手）对特定生物类型造成额外伤害。
+     * 默认返回 Undefined。
+     *
+     * 参考 MC 1.16.5 LivingEntity.getCreatureAttribute()
+     */
+    [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const {
+        return CreatureAttribute::Undefined;
+    }
+
     // 生命值
     f32 m_health = 20.0f;
     f32 m_lastHealth = 20.0f;           // 上一tick的生命值

@@ -104,6 +104,10 @@ enum class LegacyEntityType : u32 {
     Wither = 90,
     EnderDragon = 91,
 
+    // 载具
+    Boat = 110,
+    Minecart = 111,
+
     // 其他
     Villager = 100,
     // 后续添加更多
