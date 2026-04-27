@@ -4,6 +4,7 @@
 #include "../GoalConstants.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../../controller/MovementController.hpp"
+#include "../../util/RandomPositionGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <cmath>
 
@@ -102,22 +103,13 @@ bool RandomWalkingGoal::getRandomPosition(Vector3& outPos) {
     if (!m_creature) return false;
 
     // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTarget(creature, 10, 7)
-    // 当前简化实现：生成随机位置
-    math::Random rng = m_creature->getRandom();
-
-    // MC 1.16.5: 在 10 格水平范围、7 格垂直范围内寻找
-    // 简化实现：直接生成随机偏移
-    f32 dx = (rng.nextFloat() * 2.0f - 1.0f) * RANDOM_WALK_RANGE;
-    f32 dz = (rng.nextFloat() * 2.0f - 1.0f) * RANDOM_WALK_RANGE;
-    f32 dy = (rng.nextFloat() * 2.0f - 1.0f) * 7.0f;  // 垂直范围 7
-
-    outPos = Vector3(
-        m_creature->x() + dx,
-        m_creature->y() + dy,
-        m_creature->z() + dz
+    // xzRange=10, yRange=7 是默认参数
+    return util::RandomPositionGenerator::findRandomTarget(
+        m_creature,
+        RANDOM_WALK_RANGE,  // 10
+        7,                   // 垂直范围
+        outPos
     );
-
-    return true;
 }
 
 } // namespace mc::entity::ai::goal

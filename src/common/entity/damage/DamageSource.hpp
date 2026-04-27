@@ -90,6 +90,15 @@ public:
     [[nodiscard]] virtual Entity* getEntity() const { return source(); }
 
     /**
+     * @brief 获取真正的伤害来源
+     *
+     * MC 1.16.5: DamageSource.getTrueSource()
+     * 返回造成伤害的实体。这是 Target Goals (如 HurtByTargetGoal) 使用的接口。
+     * 默认实现返回 getEntity()。
+     */
+    [[nodiscard]] virtual Entity* getTrueSource() const { return getEntity(); }
+
+    /**
      * @brief 是否可以绕过护甲
      */
     [[nodiscard]] virtual bool bypassesArmor() const { return false; }

@@ -107,7 +107,9 @@ LivingEntity* LookAtGoal::findTarget() {
 LookRandomlyGoal::LookRandomlyGoal(MobEntity* mob)
     : m_mob(mob)
 {
-    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Look});
+    // MC 1.16.5: LookRandomlyGoal 使用 MOVE 和 LOOK 标志
+    // 原版: EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK)
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
 bool LookRandomlyGoal::shouldExecute() {

@@ -1,7 +1,10 @@
 #include "TameableEntity.hpp"
 #include "../../../core/Entity.hpp"
+#include "../../../core/EntityUtils.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../entities/player/Player.hpp"
+#include "../../../../world/IWorld.hpp"
 
 namespace mc {
 
@@ -83,6 +86,37 @@ void TameableEntity::registerAttributes() {
     // 驯服动物的基础属性（子类可以覆盖）
     // 参考 MC 1.16.5 TameableEntity
     // 大多数驯服动物的属性由子类设置
+}
+
+Player* TameableEntity::getOwner() const {
+    // MC 1.16.5: TameableEntity.getOwner()
+    // 通过主人ID在世界中查找玩家实体
+    if (!m_ownerId.has_value()) {
+        return nullptr;
+    }
+
+    IWorld* worldPtr = const_cast<IWorld*>(this->world());
+    if (!worldPtr) {
+        return nullptr;
+    }
+
+    // 搜索附近的玩家，匹配ownerId
+    // 注意：PlayerId在当前实现中是u64类型，与EntityId不同
+    // 这里我们需要通过legacyType和id来匹配
+    auto entities = worldPtr->getEntitiesInRange(position(), 64.0f, nullptr);
+    for (Entity* entity : entities) {
+        if (entity->legacyType() == LegacyEntityType::Player) {
+            Player* player = dynamic_cast<Player*>(entity);
+            // TODO: 需要Player类提供getPlayerId()或类似方法来匹配ownerId
+            // 当前先返回nullptr，等待Player类实现相关接口
+            MC_UNUSED(player);
+            // if (player && player->getPlayerId() == m_ownerId.value()) {
+            //     return player;
+            // }
+        }
+    }
+
+    return nullptr;
 }
 
 } // namespace mc

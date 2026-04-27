@@ -1,11 +1,16 @@
 #include "TargetGoals.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
+#include "../../../../core/EntityUtils.hpp"
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
+#include "../../../../../util/AxisAlignedBB.hpp"
 #include <cmath>
+#include <limits>
+#include <type_traits>
 
 namespace mc::entity::ai::goal {
 
@@ -61,7 +66,12 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const {
         return false;
     }
 
-    // 检查目标是否可以被攻击
+    // MC 1.16.5: 检查目标是否可以被攻击
+    // 不能攻击自己
+    if (target == m_mob) {
+        return false;
+    }
+
     // TODO: 检查团队关系、游戏规则等
 
     return true;
@@ -75,8 +85,9 @@ bool TargetGoal::checkSight() const {
 // ==================== NearestAttackableTargetGoal ====================
 
 // 显式实例化模板类
+// 注意：T必须是LivingEntity的子类，Player继承自Entity而不是LivingEntity
+// 因此不能使用NearestAttackableTargetGoal<Player>
 template class NearestAttackableTargetGoal<LivingEntity>;
-template class NearestAttackableTargetGoal<class Player>;
 template class NearestAttackableTargetGoal<MobEntity>;
 
 template<typename T>
@@ -84,13 +95,15 @@ NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool
     : TargetGoal(mob, checkSight)
     , m_chance(chance)
 {
+    static_assert(std::is_base_of<LivingEntity, T>::value,
+        "NearestAttackableTargetGoal<T> requires T to be derived from LivingEntity");
 }
 
 template<typename T>
 bool NearestAttackableTargetGoal<T>::shouldExecute() {
     if (!m_mob) return false;
 
-    // 概率检查
+    // MC 1.16.5: 概率检查
     if (m_chance > 0) {
         math::Random rng = m_mob->getRandom();
         if (rng.nextInt(m_chance) != 0) {
@@ -98,33 +111,41 @@ bool NearestAttackableTargetGoal<T>::shouldExecute() {
         }
     }
 
-    // 寻找最近的目标
-    // TODO: 使用世界接口搜索附近实体
-    // IWorld* world = m_mob->world();
-    // if (!world) return false;
-    //
-    // AABB searchBox = m_mob->getBoundingBox().grow(16.0, 16.0, 16.0);
-    // std::vector<T*> targets = world->getEntitiesWithinAABB<T>(searchBox);
-    //
-    // T* nearestTarget = nullptr;
-    // f64 nearestDistSq = std::numeric_limits<f64>::max();
-    //
-    // for (T* target : targets) {
-    //     if (!isSuitableTarget(target)) continue;
-    //     if (m_checkSight && !m_mob->canSee(*target)) continue;
-    //
-    //     f64 distSq = m_mob->distanceSqTo(*target);
-    //     if (distSq < nearestDistSq) {
-    //         nearestDistSq = distSq;
-    //         nearestTarget = target;
-    //     }
-    // }
-    //
-    // if (nearestTarget) {
-    //     m_targetEntity = nearestTarget;
-    //     m_target = nearestTarget;
-    //     return true;
-    // }
+    IWorld* world = m_mob->world();
+    if (!world) return false;
+
+    // MC 1.16.5: 使用跟踪范围作为搜索范围
+    // 参考 Entity.getAttributeValue(Attributes.FOLLOW_RANGE)
+    f64 followRange = m_mob->getAttributeValue(
+        entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    f32 searchRange = static_cast<f32>(followRange);
+
+    // 使用EntityUtils查找最近的目标
+    T* nearestTarget = EntityUtils::findClosestEntity<T>(
+        world,
+        m_mob->position(),
+        searchRange,
+        m_mob,  // 排除自己
+        [this](T* candidate) {
+            // 转换为LivingEntity进行目标检查
+            LivingEntity* livingTarget = static_cast<LivingEntity*>(candidate);
+            // 检查是否适合作为目标
+            if (!isSuitableTarget(livingTarget)) {
+                return false;
+            }
+            // 检查视线（如果需要）
+            if (m_checkSight && !m_mob->canSee(*candidate)) {
+                return false;
+            }
+            return true;
+        }
+    );
+
+    if (nearestTarget) {
+        m_targetEntity = nearestTarget;
+        m_target = static_cast<LivingEntity*>(nearestTarget);
+        return true;
+    }
 
     return false;
 }
@@ -145,42 +166,55 @@ HurtByTargetGoal::HurtByTargetGoal(MobEntity* mob, bool alertAllies)
 bool HurtByTargetGoal::shouldExecute() {
     if (!m_mob) return false;
 
-    // 检查是否有最近受伤来源
-    // TODO: 从LivingEntity获取最近攻击者
-    // LivingEntity* attacker = m_mob->getLastHurtBy();
-    // if (!attacker || !attacker->isAlive()) {
-    //     return false;
-    // }
-    //
-    // // 检查时间戳，避免重复设置
-    // i32 timestamp = m_mob->getLastHurtByTimestamp();
-    // if (timestamp == m_timestamp) {
-    //     return false;
-    // }
-    //
-    // m_target = attacker;
-    // m_timestamp = timestamp;
-    // return isSuitableTarget(attacker);
+    // MC 1.16.5: 从LivingEntity获取最近攻击者
+    LivingEntity* attacker = m_mob->getLastHurtBy();
+    if (!attacker || !attacker->isAlive()) {
+        return false;
+    }
 
-    return false;
+    // 检查时间戳，避免重复设置
+    i32 timestamp = m_mob->lastHurtByTimestamp();
+    if (timestamp == m_timestamp) {
+        return false;
+    }
+
+    // 检查是否适合作为目标
+    if (!isSuitableTarget(attacker)) {
+        return false;
+    }
+
+    m_target = attacker;
+    m_timestamp = timestamp;
+    return true;
 }
 
 void HurtByTargetGoal::startExecuting() {
     TargetGoal::startExecuting();
 
-    // 警醒盟友
-    if (m_alertAllies) {
-        // TODO: 通知附近的盟友
-        // IWorld* world = m_mob->world();
-        // if (world) {
-        //     AABB alertBox = m_mob->getBoundingBox().grow(16.0, 4.0, 16.0);
-        //     std::vector<MobEntity*> allies = world->getEntitiesWithinAABB<MobEntity>(alertBox);
-        //     for (MobEntity* ally : allies) {
-        //         if (ally != m_mob && ally->isAlliedWith(m_mob)) {
-        //             ally->setAttackTarget(m_target);
-        //         }
-        //     }
-        // }
+    // MC 1.16.5: 警醒盟友
+    if (m_alertAllies && m_mob && m_target) {
+        IWorld* world = m_mob->world();
+        if (!world) return;
+
+        // 获取实体的碰撞箱并扩展
+        AxisAlignedBB alertBox = m_mob->boundingBox().expand(16.0, 4.0, 16.0);
+
+        // 查找附近的同类型实体
+        auto nearbyEntities = world->getEntitiesInAABB(alertBox, m_mob);
+        for (Entity* entity : nearbyEntities) {
+            // 只警醒同类型的生物
+            MobEntity* ally = dynamic_cast<MobEntity*>(entity);
+            if (!ally) continue;
+
+            // 不能警醒目标本身
+            if (ally == m_target) continue;
+
+            // MC 1.16.5: 检查是否是同类型
+            // 使用 legacyType 比较
+            if (ally->legacyType() == m_mob->legacyType()) {
+                ally->setAttackTarget(m_target);
+            }
+        }
     }
 }
 
@@ -207,20 +241,20 @@ bool OwnerHurtByTargetGoal::shouldExecute() {
     if (!tameable->isTamed()) return false;
 
     // 获取主人
-    // TODO: 从TameableEntity获取主人
-    // Player* owner = tameable->getOwner();
-    // if (!owner) return false;
-    //
-    // // 检查主人是否有攻击者
+    Player* owner = tameable->getOwner();
+    if (!owner) return false;
+
+    // MC 1.16.5: 检查主人是否有攻击者
+    // 注意：Player类需要实现getLastHurtBy()方法
+    // 当前暂时返回false，等待Player类扩展
     // LivingEntity* attacker = owner->getLastHurtBy();
     // if (!attacker || !attacker->isAlive()) return false;
-    //
-    // // 不能攻击主人自己
     // if (attacker == owner) return false;
-    //
+    // if (!isSuitableTarget(attacker)) return false;
     // m_target = attacker;
-    // return isSuitableTarget(attacker);
+    // return true;
 
+    MC_UNUSED(owner);
     return false;
 }
 
@@ -246,20 +280,20 @@ bool OwnerHurtTargetGoal::shouldExecute() {
     if (!tameable->isTamed()) return false;
 
     // 获取主人
-    // TODO: 从TameableEntity获取主人
-    // Player* owner = tameable->getOwner();
-    // if (!owner) return false;
-    //
-    // // 检查主人正在攻击的目标
+    Player* owner = tameable->getOwner();
+    if (!owner) return false;
+
+    // MC 1.16.5: 检查主人正在攻击的目标
+    // 注意：Player类需要实现getLastHurtTarget()方法
+    // 当前暂时返回false，等待Player类扩展
     // LivingEntity* target = owner->getLastHurtTarget();
     // if (!target || !target->isAlive()) return false;
-    //
-    // // 不能攻击主人自己
     // if (target == owner) return false;
-    //
+    // if (!isSuitableTarget(target)) return false;
     // m_target = target;
-    // return isSuitableTarget(target);
+    // return true;
 
+    MC_UNUSED(owner);
     return false;
 }
 
@@ -270,14 +304,16 @@ void OwnerHurtTargetGoal::startExecuting() {
 // ==================== NonTamedTargetGoal ====================
 
 // 显式实例化模板类
+// 注意：T必须是LivingEntity的子类
 template class NonTamedTargetGoal<LivingEntity>;
-template class NonTamedTargetGoal<Player>;
 template class NonTamedTargetGoal<MobEntity>;
 
 template<typename T>
 NonTamedTargetGoal<T>::NonTamedTargetGoal(MobEntity* mob, bool checkSight)
     : TargetGoal(mob, checkSight)
 {
+    static_assert(std::is_base_of<LivingEntity, T>::value,
+        "NonTamedTargetGoal<T> requires T to be derived from LivingEntity");
 }
 
 template<typename T>
@@ -291,33 +327,40 @@ bool NonTamedTargetGoal<T>::shouldExecute() {
     // 已驯服的动物不执行此目标
     if (tameable->isTamed()) return false;
 
-    // 寻找最近的目标
-    // TODO: 使用世界接口搜索附近实体
-    // IWorld* world = m_mob->world();
-    // if (!world) return false;
-    //
-    // AABB searchBox = m_mob->getBoundingBox().grow(16.0, 16.0, 16.0);
-    // std::vector<T*> targets = world->getEntitiesWithinAABB<T>(searchBox);
-    //
-    // T* nearestTarget = nullptr;
-    // f64 nearestDistSq = std::numeric_limits<f64>::max();
-    //
-    // for (T* target : targets) {
-    //     if (!isSuitableTarget(target)) continue;
-    //     if (m_checkSight && !m_mob->canSee(*target)) continue;
-    //
-    //     f64 distSq = m_mob->distanceSqTo(*target);
-    //     if (distSq < nearestDistSq) {
-    //         nearestDistSq = distSq;
-    //         nearestTarget = target;
-    //     }
-    // }
-    //
-    // if (nearestTarget) {
-    //     m_targetEntity = nearestTarget;
-    //     m_target = nearestTarget;
-    //     return true;
-    // }
+    IWorld* world = m_mob->world();
+    if (!world) return false;
+
+    // MC 1.16.5: 使用跟踪范围作为搜索范围
+    f64 followRange = m_mob->getAttributeValue(
+        entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    f32 searchRange = static_cast<f32>(followRange);
+
+    // 使用EntityUtils查找最近的目标
+    T* nearestTarget = EntityUtils::findClosestEntity<T>(
+        world,
+        m_mob->position(),
+        searchRange,
+        m_mob,  // 排除自己
+        [this](T* candidate) {
+            // 转换为LivingEntity进行目标检查
+            LivingEntity* livingTarget = static_cast<LivingEntity*>(candidate);
+            // 检查是否适合作为目标
+            if (!isSuitableTarget(livingTarget)) {
+                return false;
+            }
+            // 检查视线（如果需要）
+            if (m_checkSight && !m_mob->canSee(*candidate)) {
+                return false;
+            }
+            return true;
+        }
+    );
+
+    if (nearestTarget) {
+        m_targetEntity = nearestTarget;
+        m_target = static_cast<LivingEntity*>(nearestTarget);
+        return true;
+    }
 
     return false;
 }

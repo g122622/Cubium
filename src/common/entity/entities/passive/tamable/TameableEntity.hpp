@@ -86,6 +86,15 @@ public:
         return m_ownerId.has_value() && m_ownerId.value() == playerId;
     }
 
+    /**
+     * @brief 获取主人实体
+     *
+     * MC 1.16.5: TameableEntity.getOwner()
+     * 通过主人ID在世界中查找玩家实体。
+     * @return 主人实体指针，如果未找到或无主人返回nullptr
+     */
+    [[nodiscard]] Player* getOwner() const;
+
     // ========== 坐下/站起 ==========
 
     /**

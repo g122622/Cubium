@@ -242,6 +242,58 @@ public:
      */
     [[nodiscard]] DamageSource* lastDamageSource() const { return m_lastDamageSource.get(); }
 
+    // ========== 受伤追踪（Target Goals 使用）==========
+
+    /**
+     * @brief 获取最近攻击该实体的实体
+     *
+     * 参考 MC 1.16.5 LivingEntity.getLastHurtBy()
+     * @return 最近攻击者，无则返回nullptr
+     */
+    [[nodiscard]] LivingEntity* getLastHurtBy() { return m_lastHurtBy; }
+    [[nodiscard]] const LivingEntity* getLastHurtBy() const { return m_lastHurtBy; }
+
+    /**
+     * @brief 获取最近被攻击的时间戳（tick）
+     *
+     * 参考 MC 1.16.5 LivingEntity.getLastHurtByTimestamp()
+     * @return tick 时间戳
+     */
+    [[nodiscard]] i32 lastHurtByTimestamp() const { return m_lastHurtByTimestamp; }
+
+    /**
+     * @brief 设置最近攻击者
+     *
+     * 参考 MC 1.16.5 LivingEntity.setLastHurtBy()
+     * @param attacker 攻击者
+     */
+    void setLastHurtBy(LivingEntity* attacker);
+
+    /**
+     * @brief 获取该实体最近攻击的目标
+     *
+     * 参考 MC 1.16.5 LivingEntity.getLastHurtTarget()
+     * @return 最近攻击的目标，无则返回nullptr
+     */
+    [[nodiscard]] LivingEntity* getLastHurtTarget() { return m_lastHurtTarget; }
+    [[nodiscard]] const LivingEntity* getLastHurtTarget() const { return m_lastHurtTarget; }
+
+    /**
+     * @brief 获取最近攻击目标的时间戳（tick）
+     *
+     * 参考 MC 1.16.5 LivingEntity.getLastHurtTargetTimestamp()
+     * @return tick 时间戳
+     */
+    [[nodiscard]] i32 lastHurtTargetTimestamp() const { return m_lastHurtTargetTimestamp; }
+
+    /**
+     * @brief 设置最近攻击的目标
+     *
+     * 参考 MC 1.16.5 LivingEntity.setLastHurtTarget()
+     * @param target 攻击目标
+     */
+    void setLastHurtTarget(LivingEntity* target);
+
     // ========== 渲染属性（用于客户端插值）==========
 
     /**
@@ -568,6 +620,12 @@ protected:
 
     // 受伤动画
     f32 m_attackedAtYaw = 0.0f;          // 受伤时的偏航角
+
+    // 最近攻击追踪（Target Goals 使用）
+    LivingEntity* m_lastHurtBy = nullptr;           // 最近攻击该实体的实体
+    i32 m_lastHurtByTimestamp = 0;                   // 被攻击时间戳
+    LivingEntity* m_lastHurtTarget = nullptr;        // 该实体最近攻击的目标
+    i32 m_lastHurtTargetTimestamp = 0;               // 攻击目标时间戳
 
     // 最近攻击
     i32 m_ticksSinceLastSwing = 0;       // 上次攻击后的 tick

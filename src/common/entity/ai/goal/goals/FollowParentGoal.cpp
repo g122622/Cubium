@@ -17,7 +17,9 @@ FollowParentGoal::FollowParentGoal(AnimalEntity* animal, f64 speed)
     : m_childAnimal(animal)
     , m_speed(speed)
 {
-    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
+    // MC 1.16.5: FollowParentGoal 不设置任何 mutex flags
+    // 原版: this.setMutexFlags(EnumSet.noneOf(Goal.Flag.class));
+    // 这意味着它可以与其他 Move goals 同时运行
 }
 
 bool FollowParentGoal::shouldExecute() {

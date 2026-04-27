@@ -5,6 +5,7 @@
 #include "../../../core/Entity.hpp"
 #include "../GoalConstants.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
+#include "../../util/RandomPositionGenerator.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathUtils.hpp"
@@ -86,19 +87,19 @@ bool PanicGoal::findRandomPosition() {
     if (!m_creature) return false;
 
     // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTarget(creature, 5, 4)
-    // 当前简化实现：生成随机逃跑位置
-    math::Random rng = m_creature->getRandom();
+    Vector3 targetPos;
+    if (util::RandomPositionGenerator::findRandomTarget(
+            m_creature,
+            PANIC_ESCAPE_MIN_DISTANCE,  // 5 水平范围
+            PANIC_WATER_SEARCH_VERTICAL,  // 4 垂直范围
+            targetPos)) {
+        m_targetX = targetPos.x;
+        m_targetY = targetPos.y;
+        m_targetZ = targetPos.z;
+        return true;
+    }
 
-    // MC 1.16.5: 在 5 格水平范围、4 格垂直范围内寻找
-    f32 angle = rng.nextFloat() * math::TWO_PI;
-    f32 horizontalDist = rng.nextFloat() * PANIC_ESCAPE_MAX_DISTANCE;  // 5-10 格
-    f32 verticalDist = (rng.nextFloat() * 2.0f - 1.0f) * PANIC_WATER_SEARCH_VERTICAL;  // ±4 格
-
-    m_targetX = m_creature->x() + std::cos(angle) * horizontalDist;
-    m_targetZ = m_creature->z() + std::sin(angle) * horizontalDist;
-    m_targetY = m_creature->y() + verticalDist;
-
-    return true;
+    return false;
 }
 
 BlockPos PanicGoal::getRandomWaterPosition(i32 horizontalRange, i32 verticalRange) {

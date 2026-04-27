@@ -13,9 +13,9 @@ LookController::LookController(MobEntity* mob)
 {}
 
 void LookController::setLookPosition(f64 x, f64 y, f64 z) {
-    // 从实体获取默认旋转速度
+    // MC 1.16.5: 使用 getFaceRotSpeed() (默认10) 而非 getHorizontalFaceSpeed() (默认75)
     if (m_mob) {
-        setLookPosition(x, y, z, m_mob->getHorizontalFaceSpeed(), m_mob->getVerticalFaceSpeed());
+        setLookPosition(x, y, z, m_mob->getFaceRotSpeed(), m_mob->getVerticalFaceSpeed());
     } else {
         setLookPosition(x, y, z, 10.0f, 10.0f);
     }

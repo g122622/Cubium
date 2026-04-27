@@ -98,6 +98,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount) {
         // 保存伤害来源（用于死亡消息）
         m_lastDamageSource = source.clone();
 
+        // MC 1.16.5: 如果伤害来源是 LivingEntity，记录到 m_lastHurtBy
+        // 参考 LivingEntity.damageEntity()
+        Entity* trueSource = source.getTrueSource();
+        if (trueSource != nullptr && trueSource != this) {
+            // 尝试转换为 LivingEntity
+            LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
+            if (attacker != nullptr) {
+                setLastHurtBy(attacker);
+            }
+        }
+
         if (m_health <= 0.0f) {
             playDeathSound();
             die(source);
@@ -472,6 +483,22 @@ const entity::effect::EffectInstance* LivingEntity::getEffect(entity::effect::Ef
 
 i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const {
     return m_effectManager.getEffectLevel(type);
+}
+
+// ============================================================================
+// 受伤追踪（Target Goals 使用）
+// ============================================================================
+
+void LivingEntity::setLastHurtBy(LivingEntity* attacker) {
+    // MC 1.16.5: LivingEntity.setLastHurtBy()
+    m_lastHurtBy = attacker;
+    m_lastHurtByTimestamp = ticksExisted();
+}
+
+void LivingEntity::setLastHurtTarget(LivingEntity* target) {
+    // MC 1.16.5: LivingEntity.setLastHurtTarget()
+    m_lastHurtTarget = target;
+    m_lastHurtTargetTimestamp = ticksExisted();
 }
 
 } // namespace mc
