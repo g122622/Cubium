@@ -38,9 +38,8 @@ bool AnimalEntity::canMateWith(const AnimalEntity& other) const {
         return false;
     }
 
-    // 检查是否是同一种动物
-    // MC 使用 getClass() 比较
-    if (typeid(*this) != typeid(other)) {
+    // 使用实体类型比较（避免 RTTI 开销）
+    if (legacyType() != other.legacyType()) {
         return false;
     }
 
@@ -124,22 +123,22 @@ void AnimalEntity::registerAttributes() {
 }
 
 void AnimalEntity::updateInLove() {
+    // 快速路径：大多数情况下不在爱心状态
+    if (m_inLoveTimer <= 0) {
+        return;
+    }
+
     // MC 1.16.5: 成体时如果有年龄（繁殖冷却），清空爱心状态
     if (getGrowingAge() != 0) {
         m_inLoveTimer = 0;
+        return;
     }
 
-    if (m_inLoveTimer > 0) {
-        --m_inLoveTimer;
-
-        if (m_inLoveTimer == 0) {
-            resetInLove();
-        } else {
-            // 每 10 tick 生成心形粒子
-            if (m_inLoveTimer % 10 == 0) {
-                spawnHeartParticles();
-            }
-        }
+    --m_inLoveTimer;
+    if (m_inLoveTimer == 0) {
+        resetInLove();
+    } else if ((m_inLoveTimer % 10) == 0) {
+        spawnHeartParticles();
     }
 }
 

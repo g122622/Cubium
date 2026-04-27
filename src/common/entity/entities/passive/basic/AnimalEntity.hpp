@@ -80,9 +80,9 @@ public:
     [[nodiscard]] bool isInLove() const { return m_inLoveTimer > 0; }
 
     /**
-     * @brief 获取爱心计时器
+     * @brief 获取爱心计时器值
      */
-    [[nodiscard]] i32 getInLove() const { return m_inLoveTimer; }
+    [[nodiscard]] i32 getInLoveTimer() const { return m_inLoveTimer; }
 
     /**
      * @brief 设置爱心计时器
