@@ -1,119 +1,232 @@
 #include "SlimeEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../damage/DamageSource.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include <cmath>
 
 namespace mc {
 
 SlimeEntity::SlimeEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+	: MonsterEntity(type, id)
 {
-    // 注册 AI 目标
-    registerGoals();
+	// MC 1.16.5: 史莱姆不在阳光下燃烧
+	setBurnsInDaylight(false);
 
-    // 注册属性
-    registerAttributes();
+	// 注册 AI 目标
+	registerGoals();
 
-    // 随机设置尺寸
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<i32> dist(1, 4);
-    setSlimeSize(dist(gen));
+	// 注册属性
+	registerAttributes();
 }
 
 std::unique_ptr<Entity> SlimeEntity::create(IWorld* /*world*/) {
-    return std::make_unique<SlimeEntity>(LegacyEntityType::Unknown, 0);
+	return std::make_unique<SlimeEntity>(LegacyEntityType::Slime, EntityId(0));
 }
 
-void SlimeEntity::setSlimeSize(i32 size) {
-    const i32 clampedSize = std::clamp(size, 1, 4);
-    if (m_size == clampedSize) {
-        return;
-    }
+void SlimeEntity::setSlimeSize(i32 size, bool resetHealth) {
+	i32 clampedSize = std::clamp(size, 1, 4);
+	if (m_size == clampedSize) {
+		return;
+	}
 
-    m_size = clampedSize;
-    updateSizeAttributes();
-    refreshDimensions();
+	m_size = clampedSize;
+	updateSizeAttributes();
+	refreshDimensions();
+
+	// MC 1.16.5: 重置生命值
+	if (resetHealth) {
+		setHealth(maxHealth());
+	}
+
+	// MC 1.16.5: 经验值等于尺寸
+	setExperienceValue(m_size);
+}
+
+std::optional<ResourceLocation> SlimeEntity::getHurtSound(DamageSource& /*source*/) const {
+	// MC 1.16.5: 小史莱姆用 hurt_small
+	if (isSmallSlime()) {
+		return makeSoundEventId("hurt_small");
+	}
+	return makeSoundEventId("hurt");
+}
+
+std::optional<ResourceLocation> SlimeEntity::getDeathSound() const {
+	// MC 1.16.5: 小史莱姆用 death_small
+	if (isSmallSlime()) {
+		return makeSoundEventId("death_small");
+	}
+	return makeSoundEventId("death");
+}
+
+std::optional<ResourceLocation> SlimeEntity::getSquishSound() const {
+	// MC 1.16.5: 小史莱姆用 squish_small
+	if (isSmallSlime()) {
+		return makeSoundEventId("squish_small");
+	}
+	return makeSoundEventId("squish");
+}
+
+std::optional<ResourceLocation> SlimeEntity::getJumpSound() const {
+	// MC 1.16.5: 小史莱姆用 jump_small
+	if (isSmallSlime()) {
+		return makeSoundEventId("jump_small");
+	}
+	return makeSoundEventId("jump");
+}
+
+bool SlimeEntity::canDamagePlayer() const {
+	// MC 1.16.5: !isSmallSlime() && isServerWorld()
+	return !isSmallSlime();
+}
+
+i32 SlimeEntity::getJumpDelay() const {
+	// MC 1.16.5: rand.nextInt(20) + 10
+	math::Random rng(ticksExisted());
+	return rng.nextInt(10, 30);
 }
 
 void SlimeEntity::split() {
-    if (!canSplit()) {
-        return;
-    }
+	// MC 1.16.5: 在 remove() 中分裂
+	if (!canSplit()) {
+		return;
+	}
 
-    // TODO: 生成 2-4 个小史莱姆
-    // i32 smallSize = m_size / 2;
-    // for (int i = 0; i < 2 + rand() % 3; i++) {
-    //     auto smallSlime = std::make_unique<SlimeEntity>(LegacyEntityType::Unknown, 0);
-    //     smallSlime->setSlimeSize(smallSize);
-    //     // 在附近生成
-    // }
+	// TODO: 生成 2-4 个小史莱姆
+	// i32 smallSize = m_size / 2;
+	// for (int i = 0; i < 2 + rand() % 3; i++) {
+	//     auto smallSlime = std::make_unique<SlimeEntity>(LegacyEntityType::Slime, EntityId(0));
+	//     smallSlime->setSlimeSize(smallSize, true);
+	//     // 在附近生成
+	//     world->spawnEntity(std::move(smallSlime));
+	// }
+}
+
+void SlimeEntity::dealDamage(LivingEntity& target) {
+	// MC 1.16.5: dealDamage()
+	if (!isAlive()) {
+		return;
+	}
+
+	i32 size = getSlimeSize();
+	f32 distanceSq = distanceSqTo(target);
+
+	// MC 1.16.5: 距离检查 < 0.6 * size * 0.6 * size
+	f32 maxDistance = 0.6f * static_cast<f32>(size);
+	if (distanceSq < maxDistance * maxDistance && canSee(target)) {
+		// TODO: 造成伤害
+		// f32 damage = static_cast<f32>(getAttributeValue(Attributes::ATTACK_DAMAGE));
+		// target.hurt(DamageSource::mobAttack(this), damage);
+		// playSound("attack", 1.0f, ...);
+
+		// TODO: 应用附魔效果
+		// applyEnchantments(this, target);
+	}
+}
+
+void SlimeEntity::onCollideWithPlayer(LivingEntity& player) {
+	// MC 1.16.5: onCollideWithPlayer()
+	if (canDamagePlayer()) {
+		dealDamage(player);
+	}
 }
 
 f32 SlimeEntity::eyeHeight() const {
-    // 根据尺寸计算眼睛高度
-    return static_cast<f32>(m_size) * 0.5f + 0.1f;
+	// MC 1.16.5: 0.625F * height
+	return EYE_HEIGHT_FACTOR * height();
+}
+
+entity::EntitySize SlimeEntity::getDimensions(EntityPose /*pose*/) const {
+	// MC 1.16.5: scale by 0.255F * size
+	f32 scaleFactor = SIZE_SCALE * static_cast<f32>(m_size);
+	return entity::EntitySize::flexible(0.6f * scaleFactor, 0.6f * scaleFactor);
+}
+
+void SlimeEntity::dropExperience() {
+	// MC 1.16.5: 经验值等于尺寸
+	MonsterEntity::dropExperience();
 }
 
 void SlimeEntity::tick() {
-    MonsterEntity::tick();
+	// MC 1.16.5 SlimeEntity.tick()
 
-    // 更新弹跳冷却
-    if (m_jumpCooldown > 0) {
-        m_jumpCooldown--;
-    }
+	// 更新挤压动画
+	m_squishFactor += (m_squishAmount - m_squishFactor) * 0.5f;
+	m_prevSquishFactor = m_squishFactor;
 
-    // 更新攻击冷却
-    if (m_attackCooldown > 0) {
-        m_attackCooldown--;
-    }
+	MonsterEntity::tick();
 
-    // 弹跳行为
-    if (!m_jumping && m_jumpCooldown <= 0 && onGround()) {
-        // 随机弹跳
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_int_distribution<i32> dist(1, 100);
-        if (dist(gen) == 1) {
-            m_jumping = true;
-            m_jumpTimer = 0;
-            m_jumpCooldown = JUMP_COOLDOWN_MIN + (rand() % (JUMP_COOLDOWN_MAX - JUMP_COOLDOWN_MIN));
-        }
-    }
+	// 着地时的挤压效果
+	if (onGround() && !m_wasOnGround) {
+		// MC 1.16.5: 着地时播放挤压音效和粒子
+		auto squishSound = getSquishSound();
+		if (squishSound) {
+			playSound(*squishSound, getSoundVolume(), 1.0f);
+		}
 
-    // 更新弹跳计时器
-    if (m_jumping) {
-        m_jumpTimer++;
-        if (m_jumpTimer >= 10) {
-            m_jumping = false;
-        }
-    }
+		// 挤压量设为负值
+		m_squishAmount = -0.5f;
+
+		// TODO: 生成粒子效果
+		// for (int j = 0; j < size * 8; ++j) {
+		//     world->addParticle(ParticleTypes::ITEM_SLIME, ...);
+		// }
+	} else if (!onGround() && m_wasOnGround) {
+		// MC 1.16.5: 离地时的挤压量
+		m_squishAmount = 1.0f;
+	}
+
+	m_wasOnGround = onGround();
+	alterSquishAmount();
 }
 
 void SlimeEntity::registerGoals() {
-    // 调用父类方法
-    MonsterEntity::registerGoals();
+	MonsterEntity::registerGoals();
 
-    // TODO: 史莱姆 AI 目标
-    // - SlimeAttackGoal: 攻击目标
-    // - SlimeJumpGoal: 弹跳
-    // - SlimeFaceRandomGoal: 随机转向
+	// MC 1.16.5 SlimeEntity.registerGoals()
+	// 优先级 1: FloatGoal（游泳）
+	// 优先级 2: AttackGoal（攻击）
+	// 优先级 3: FaceRandomGoal（随机转向）
+	// 优先级 5: HopGoal（跳跃）
+	//
+	// 目标选择器：
+	// 优先级 1: NearestAttackableTargetGoal<Player>（攻击玩家，高度差<=4）
+	// 优先级 3: NearestAttackableTargetGoal<IronGolem>（攻击铁傀儡）
+
+	// TODO: 实现史莱姆特有的AI目标
+	// m_goalSelector.addGoal(1, new SlimeFloatGoal(this));
+	// m_goalSelector.addGoal(2, new SlimeAttackGoal(this));
+	// m_goalSelector.addGoal(3, new SlimeFaceRandomGoal(this));
+	// m_goalSelector.addGoal(5, new SlimeHopGoal(this));
+	// m_targetSelector.addGoal(1, new NearestAttackableTargetGoal<Player>(this));
+	// m_targetSelector.addGoal(3, new NearestAttackableTargetGoal<IronGolem>(this));
 }
 
 void SlimeEntity::registerAttributes() {
-    // 调用父类方法
-    MonsterEntity::registerAttributes();
+	MonsterEntity::registerAttributes();
 
-    // 更新尺寸属性
-    updateSizeAttributes();
+	// MC 1.16.5: 默认尺寸为1
+	m_size = 1;
+	updateSizeAttributes();
 }
 
 void SlimeEntity::updateSizeAttributes() {
-    // 根据尺寸更新属性
-    // 尺寸 1: 1 HP, 尺寸 4: 16 HP
-    f32 health = static_cast<f32>(m_size * m_size);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2f + 0.1f / m_size);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, static_cast<f32>(m_size));
+	// MC 1.16.5: 根据尺寸更新属性
+	// HP = size * size
+	// Speed = 0.2 + 0.1 * size
+	// AttackDamage = size
+	f32 health = static_cast<f32>(m_size * m_size);
+	f32 speed = 0.2f + 0.1f * static_cast<f32>(m_size);
+	f32 damage = static_cast<f32>(m_size);
+
+	m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health);
+	m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed);
+	m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, damage);
+}
+
+void SlimeEntity::alterSquishAmount() {
+	// MC 1.16.5: 挤压量衰减
+	m_squishAmount *= 0.6f;
 }
 
 } // namespace mc
