@@ -6,6 +6,8 @@
 
 namespace mc::entity::ai::pathfinding {
 
+using namespace goal::constants;
+
 PathNavigator::PathNavigator(std::unique_ptr<PathFinder> finder)
     : m_pathFinder(std::move(finder))
 {
@@ -26,6 +28,14 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed) {
 
     if (!m_pathFinder || !m_entity) {
         return false;
+    }
+
+    // MC 1.16.5: 重置卡住检测
+    m_stuckTimer = 0;
+    if (m_entity) {
+        m_lastPosX = m_entity->x();
+        m_lastPosY = m_entity->y();
+        m_lastPosZ = m_entity->z();
     }
 
     // 计算路径
@@ -97,6 +107,29 @@ void PathNavigator::tick() {
     if (m_retryTimer > 0) {
         --m_retryTimer;
     }
+
+    // MC 1.16.5: 卡住检测 - 检查是否移动
+    f64 dx = m_entity->x() - m_lastPosX;
+    f64 dy = m_entity->y() - m_lastPosY;
+    f64 dz = m_entity->z() - m_lastPosZ;
+    f64 distSq = dx * dx + dy * dy + dz * dz;
+
+    if (distSq < PATH_STUCK_DISTANCE_THRESHOLD) {
+        ++m_stuckTimer;
+        if (m_stuckTimer >= PATH_STUCK_THRESHOLD) {
+            // MC 1.16.5: 卡住超过阈值，清除路径
+            clearPath();
+            m_stuckTimer = 0;
+            return;
+        }
+    } else {
+        m_stuckTimer = 0;
+    }
+
+    // 更新上次位置
+    m_lastPosX = m_entity->x();
+    m_lastPosY = m_entity->y();
+    m_lastPosZ = m_entity->z();
 
     // 沿路径移动
     followPath();

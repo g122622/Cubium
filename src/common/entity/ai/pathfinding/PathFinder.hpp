@@ -6,6 +6,7 @@
 #include "NodeProcessor.hpp"
 #include "Region.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../util/math/MathConstants.hpp"
 #include <memory>
 
 namespace mc::entity::ai::pathfinding {
@@ -112,6 +113,32 @@ public:
                                         i32 targetX, i32 targetY, i32 targetZ,
                                         i32 range);
 
+    // ========== MC 1.16.5 多目标寻路 ==========
+
+    /**
+     * @brief 目标点结构（用于多目标寻路）
+     */
+    struct TargetPoint {
+        i32 x, y, z;
+
+        TargetPoint(i32 x_, i32 y_, i32 z_)
+            : x(x_), y(y_), z(z_) {}
+    };
+
+    /**
+     * @brief 寻找到多个目标中最近一个的路径
+     * MC 1.16.5: 寻找到多个潜在目标中最近可达的一个
+     * @param startX 起点X
+     * @param startY 起点Y
+     * @param startZ 起点Z
+     * @param targets 目标点列表
+     * @param maxDistance 最大搜索距离
+     * @return 找到的路径
+     */
+    [[nodiscard]] Path findPathToClosest(i32 startX, i32 startY, i32 startZ,
+                                          const std::vector<TargetPoint>& targets,
+                                          i32 maxDistance);
+
     // ========== 调试 ==========
 
     /**
@@ -136,33 +163,42 @@ private:
 
     /**
      * @brief 启发式函数：估算从当前点到目标的代价
+     * MC 1.16.5: 使用 octile 距离（允许对角线移动的启发式）
      */
     [[nodiscard]] static f32 heuristic(i32 x, i32 y, i32 z,
                                          i32 targetX, i32 targetY, i32 targetZ) {
-        // 使用曼哈顿距离作为启发式
         i32 dx = std::abs(x - targetX);
         i32 dy = std::abs(y - targetY);
         i32 dz = std::abs(z - targetZ);
-        return static_cast<f32>(dx + dy + dz);
+
+        // Octile 距离: 对角线移动代价更准确
+        // 公式: max(dx, dz) - min(dx, dz) + sqrt(2) * min(dx, dz) + dy
+        i32 horizMax = std::max(dx, dz);
+        i32 horizMin = std::min(dx, dz);
+        return static_cast<f32>(horizMax - horizMin) + math::SQRT2 * static_cast<f32>(horizMin) + static_cast<f32>(dy);
     }
 
     /**
      * @brief 计算两点间的移动代价
+     * MC 1.16.5: 考虑对角线移动和垂直移动的实际代价
      */
     [[nodiscard]] static f32 getMovementCost(const PathPoint& from, const PathPoint& to) {
-        // 水平移动代价为1，对角线为1.414，垂直移动为1
         i32 dx = std::abs(to.x() - from.x());
         i32 dy = std::abs(to.y() - from.y());
         i32 dz = std::abs(to.z() - from.z());
 
-        f32 horizontalDist = static_cast<f32>(dx + dz);
-        f32 verticalDist = static_cast<f32>(dy);
+        // MC 1.16.5: 移动代价
+        // 水平直线 = 1.0, 水平对角线 = sqrt(2), 垂直移动 = 1.0
+        constexpr f32 VERTICAL_COST = 1.0f;
 
-        // 对角线移动（水平方向同时移动）
-        bool isDiagonal = (dx > 0 && dz > 0);
+        i32 horizMoves = dx + dz;
+        i32 diagonalMoves = std::min(dx, dz);
+        i32 straightMoves = horizMoves - 2 * diagonalMoves;
 
-        f32 baseCost = isDiagonal ? horizontalDist * 0.707f : horizontalDist;
-        return baseCost + verticalDist;
+        f32 horizCost = static_cast<f32>(straightMoves) + math::SQRT2 * static_cast<f32>(diagonalMoves);
+        f32 vertCost = static_cast<f32>(dy) * VERTICAL_COST;
+
+        return horizCost + vertCost;
     }
 
     /**

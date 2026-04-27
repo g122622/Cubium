@@ -100,9 +100,11 @@ void MovementController::tick() {
         m_mob->setMoveForward(1.0f);  // 向前移动
 
         // 检查是否需要跳跃
-        // MC 1.16.5: 条件1 - 目标位置更高且水平距离近
-        // MC 1.16.5: 条件2 - OR 方块碰撞形状检查（门、栅栏等）
-        // 当前实现条件1，条件2需要Region/World支持
+        // MC 1.16.5 条件1: 目标位置更高且水平距离近
+        // MC 1.16.5 条件2: 方块碰撞形状检查（门、栅栏等）- 需要 VoxelShape 支持
+        // MC 1.16.5 条件完整逻辑:
+        //   if (dy > stepHeight && horizontalDistSq < maxDistSq) OR
+        //   (!voxelshape.isEmpty() && posY < voxelshape.endY + blockY && !block.isIn(DOORS) && !block.isIn(FENCES))
         f64 horizontalDistSq = dx * dx + dz * dz;
         f32 entityWidth = m_mob->width();
         f32 maxDist = std::max(1.0f, entityWidth);

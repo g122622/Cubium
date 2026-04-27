@@ -102,6 +102,10 @@ void MobEntity::tick() {
     // 更新父类
     LivingEntity::tick();
 
+    // MC 1.16.5: 空闲时间在 tick 开头递增
+    ++m_idleTime;
+
+    // 环境声音检查
     if (isAlive()) {
         math::Random random = getRandom();
         if (random.nextInt(1000) < m_livingSoundTime++) {
@@ -110,38 +114,55 @@ void MobEntity::tick() {
         }
     }
 
-    // 每个 tick 清理一次感知缓存，确保同一帧内可以复用结果，但下一帧重新判定
-    m_senses->tick();
-
-    // 更新空闲时间
-    // 如果实体在移动，重置空闲时间；否则增加
-    if (m_velocity.x != 0.0f || m_velocity.z != 0.0f) {
-        m_idleTime = 0;
-    } else {
-        m_idleTime++;
+    // MC 1.16.5 updateEntityActionState() 顺序:
+    // 1. 感知更新
+    if (m_senses) {
+        m_senses->tick();
     }
 
-    // 更新 AI 目标
+    // 2. 目标选择器 (先于 goalSelector)
+    // 3. 行为目标选择器
     if (m_aiEnabled) {
-        m_goalSelector.tick();
         m_targetSelector.tick();
+        m_goalSelector.tick();
+
+        // 4. 导航器更新
+        if (m_navigator) {
+            m_navigator->tick();
+        }
+
+        // 5. AI 任务更新 (子类可重写)
+        updateAITasks();
+
+        // MC 1.16.5: 每 5 tick 更新移动目标标志
+        if (m_ticksExisted % 5 == 0) {
+            updateMovementGoalFlags();
+        }
     }
 
-    // 更新控制器
-    if (m_lookController) {
-        m_lookController->tick();
-    }
+    // 6. 控制器更新 (顺序: move -> look -> jump)
     if (m_moveController) {
         m_moveController->tick();
+    }
+    if (m_lookController) {
+        m_lookController->tick();
     }
     if (m_jumpController) {
         m_jumpController->tick();
     }
 
     // 执行AI移动物理更新
-    // 这会根据 m_moveForward 和 m_moveStrafing 执行实际移动
-    // 参考 MC MobEntity.livingTick() 中的 aiStep() 调用
     aiStep();
+}
+
+void MobEntity::updateMovementGoalFlags() {
+    // MC 1.16.5: 根据骑乘状态更新目标标志
+    // 如果被骑乘，禁用 MOVE/JUMP/LOOK 标志
+    bool canMove = !isBeingRidden();
+
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Move, canMove);
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Jump, canMove);
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Look, canMove);
 }
 
 std::optional<ResourceLocation> MobEntity::getAmbientSound() const {

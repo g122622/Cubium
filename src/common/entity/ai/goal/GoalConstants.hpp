@@ -181,6 +181,18 @@ constexpr f64 DISTANCE_MEDIUM_THRESHOLD = 256.0; // 16^2
 constexpr i32 PATH_RECALC_FAR_BONUS = 10;
 constexpr i32 PATH_RECALC_MEDIUM_BONUS = 5;
 
+// ============================================================================
+// 路径导航常量
+// ============================================================================
+
+/// 路径导航卡住检测阈值（tick）
+/// MC 1.16.5: 100 ticks无移动视为卡住
+constexpr i32 PATH_STUCK_THRESHOLD = 100;
+
+/// 路径导航卡住检测距离阈值
+/// MC 1.16.5: 移动距离小于此值视为无移动
+constexpr f64 PATH_STUCK_DISTANCE_THRESHOLD = 0.0025;
+
 } // namespace constants
 } // namespace goal
 } // namespace ai

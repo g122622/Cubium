@@ -198,4 +198,134 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ,
     return Path();
 }
 
+Path PathFinder::findPathToClosest(i32 startX, i32 startY, i32 startZ,
+                                    const std::vector<TargetPoint>& targets,
+                                    i32 maxDistance) {
+    // MC 1.16.5: 多目标寻路 - 使用 FlaggedPathPoint 模式
+    // 对每个目标点设置标志，搜索时只需到达任意一个目标
+
+    if (targets.empty()) {
+        return Path();
+    }
+
+    // 清除上次搜索的缓存
+    if (m_nodeProcessor) {
+        m_nodeProcessor->clear();
+    }
+    m_openSet.clear();
+    m_lastSearchedNodes = 0;
+
+    if (!m_nodeProcessor) {
+        return Path();
+    }
+
+    // 获取起始节点
+    PathPoint* startNode = m_nodeProcessor->getStartNode(startX, startY, startZ);
+    if (!startNode) {
+        return Path();
+    }
+
+    // 检查起点是否就是某个目标
+    for (const auto& target : targets) {
+        if (isTargetReached(*startNode, target.x, target.y, target.z)) {
+            Path path;
+            path.addPoint(startNode->clone());
+            return path;
+        }
+    }
+
+    // 计算到最近目标的启发式
+    f32 bestHeuristic = std::numeric_limits<f32>::max();
+    for (const auto& target : targets) {
+        f32 h = heuristic(startX, startY, startZ, target.x, target.y, target.z);
+        if (h < bestHeuristic) {
+            bestHeuristic = h;
+        }
+    }
+
+    startNode->setCostFromStart(0.0f);
+    startNode->setCostToTarget(bestHeuristic);
+    startNode->updateTotalCost();
+
+    m_openSet.insert(startNode);
+
+    i32 searchedNodes = 0;
+    const PathPoint* bestNode = nullptr;
+    f32 bestDistance = std::numeric_limits<f32>::max();
+
+    while (!m_openSet.empty() && searchedNodes < m_maxNodes) {
+        PathPoint* current = m_openSet.pop();
+        if (!current) {
+            break;
+        }
+
+        ++searchedNodes;
+        current->setVisited(true);
+
+        // 检查是否到达任意目标，同时记录最近距离（单次遍历）
+        for (const auto& target : targets) {
+            if (isTargetReached(*current, target.x, target.y, target.z)) {
+                m_lastSearchedNodes = searchedNodes;
+                return Path::buildFromEnd(current);
+            }
+            f32 currentDist = heuristic(current->x(), current->y(), current->z(),
+                                        target.x, target.y, target.z);
+            if (currentDist < bestDistance) {
+                bestDistance = currentDist;
+                bestNode = current;
+            }
+        }
+
+        // 检查是否超出搜索距离
+        if (current->costFromStart() > static_cast<f32>(maxDistance)) {
+            continue;
+        }
+
+        // 扩展相邻节点
+        std::vector<PathPoint*> neighbors = m_nodeProcessor->getNeighbors(current);
+
+        for (PathPoint* neighbor : neighbors) {
+            if (neighbor->isVisited()) {
+                continue;
+            }
+
+            f32 newCostFromStart = current->costFromStart() +
+                                   getMovementCost(*current, *neighbor) +
+                                   neighbor->costMalus();
+
+            // 计算到最近目标的启发式
+            f32 bestNeighborHeuristic = std::numeric_limits<f32>::max();
+            for (const auto& target : targets) {
+                f32 h = heuristic(neighbor->x(), neighbor->y(), neighbor->z(),
+                                  target.x, target.y, target.z);
+                if (h < bestNeighborHeuristic) {
+                    bestNeighborHeuristic = h;
+                }
+            }
+
+            if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
+                neighbor->setParent(current);
+                neighbor->setCostFromStart(newCostFromStart);
+                neighbor->setCostToTarget(bestNeighborHeuristic);
+                neighbor->updateTotalCost();
+
+                if (neighbor->heapIndex() == -1) {
+                    m_openSet.insert(neighbor);
+                } else {
+                    m_openSet.update(neighbor);
+                }
+            }
+        }
+    }
+
+    // 没有找到精确路径，返回到最近节点的路径
+    m_lastSearchedNodes = searchedNodes;
+
+    if (bestNode && bestDistance < static_cast<f32>(maxDistance)) {
+        return Path::buildFromEnd(bestNode);
+    }
+
+    return Path();
+}
+
 } // namespace mc::entity::ai::pathfinding

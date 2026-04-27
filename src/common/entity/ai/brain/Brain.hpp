@@ -199,12 +199,15 @@ public:
 
     /**
      * @brief 检查记忆状态
+     *
+     * MC 1.16.5: 未注册的记忆任何状态都返回false
      */
     [[nodiscard]] bool hasMemory(const memory::MemoryModuleTypeBase* type,
                                   memory::MemoryModuleStatus status) const {
         auto it = m_memories.find(type);
         if (it == m_memories.end()) {
-            return status == memory::MemoryModuleStatus::REGISTERED;
+            // MC 1.16.5: 未注册的记忆返回false，即使状态是REGISTERED
+            return false;
         }
 
         const auto& memoryOpt = it->second;

@@ -4,7 +4,12 @@
 #include "PathNodeType.hpp"
 #include "../../../core/Types.hpp"
 
-namespace mc::entity::ai::pathfinding {
+namespace mc {
+
+// 前向声明
+class LivingEntity;
+
+namespace entity::ai::pathfinding {
 
 /**
  * @brief 行走节点处理器
@@ -25,6 +30,19 @@ public:
     [[nodiscard]] PathNodeType getNodeTypeWithEntity(i32 x, i32 y, i32 z) override;
     [[nodiscard]] PathPoint* getStartNode(i32 x, i32 y, i32 z) override;
     [[nodiscard]] std::vector<PathPoint*> getNeighbors(PathPoint* current) override;
+
+    // ========== MC 1.16.5 实体引用 ==========
+
+    /**
+     * @brief 设置关联实体
+     * MC 1.16.5: 用于获取 stepHeight 和 pathPriority
+     */
+    void setEntity(LivingEntity* entity) { m_entity = entity; }
+
+    /**
+     * @brief 获取关联实体
+     */
+    [[nodiscard]] LivingEntity* getEntity() const { return m_entity; }
 
     // ========== 配置 ==========
 
@@ -67,6 +85,7 @@ protected:
     [[nodiscard]] std::unique_ptr<PathPoint> createNode(i32 x, i32 y, i32 z) override;
 
 private:
+    LivingEntity* m_entity = nullptr;  // MC 1.16.5: 实体引用
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
     bool m_canEnterDoors = false;
@@ -118,4 +137,5 @@ private:
     void addFallNeighbor(std::vector<PathPoint*>& neighbors, i32 x, i32 startY, i32 z);
 };
 
-} // namespace mc::entity::ai::pathfinding
+} // namespace entity::ai::pathfinding
+} // namespace mc

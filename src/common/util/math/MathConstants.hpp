@@ -34,6 +34,12 @@ constexpr f32 QUARTER_PI = PI / 4.0f;
 /// 自然常数 e (f32)
 constexpr f32 E = 2.71828182845904523536f;
 
+/// √2 (f32) - 用于对角线移动计算
+constexpr f32 SQRT2 = 1.41421356237309504880f;
+
+/// 1/√2 (f32) - 用于对角线计算
+constexpr f32 INV_SQRT2 = 0.70710678118654752440f;
+
 /// 小 epsilon，用于浮点比较
 constexpr f32 EPSILON = 1e-6f;
 

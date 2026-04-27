@@ -122,6 +122,28 @@ public:
 
     void tick() override;
 
+    // ========== AI 更新 ==========
+
+    /**
+     * @brief 更新 AI 任务
+     *
+     * 子类可重写此方法来添加额外的 AI 逻辑。
+     * 在 goalSelector.tick() 和控制器更新之间调用。
+     *
+     * 参考 MC 1.16.5 MobEntity.updateAITasks()
+     */
+    virtual void updateAITasks() {}
+
+    /**
+     * @brief 更新移动目标标志
+     *
+     * 根据骑乘状态更新 GoalSelector 的 MOVE/JUMP/LOOK 标志。
+     * MC 1.16.5 每 5 tick 调用一次。
+     *
+     * 参考 MC 1.16.5 MobEntity.updateMovementGoalFlags()
+     */
+    void updateMovementGoalFlags();
+
     // ========== AI 辅助方法 ==========
 
     /**

@@ -2,6 +2,7 @@
 
 #include "Path.hpp"
 #include "PathFinder.hpp"
+#include "../goal/GoalConstants.hpp"
 #include "../../../core/Types.hpp"
 #include <memory>
 
@@ -192,6 +193,13 @@ protected:
     i32 m_retryInterval = 20;
     i32 m_retryTimer = 0;
     i32 m_ticksSinceLastPath = 0;
+
+    // MC 1.16.5: 卡住检测相关字段
+    f64 m_lastPosX = 0.0;
+    f64 m_lastPosY = 0.0;
+    f64 m_lastPosZ = 0.0;
+    i32 m_stuckTimer = 0;
+    // 使用 GoalConstants.hpp 中的常量: PATH_STUCK_THRESHOLD, PATH_STUCK_DISTANCE_THRESHOLD
 
     bool m_canSwim = false;
     bool m_canOpenDoors = false;

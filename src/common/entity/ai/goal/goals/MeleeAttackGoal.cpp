@@ -26,6 +26,13 @@ MeleeAttackGoal::MeleeAttackGoal(CreatureEntity* creature, f64 speed, bool useLo
 bool MeleeAttackGoal::shouldExecute() {
     if (!m_creature) return false;
 
+    // MC 1.16.5: 游戏时间节流 - 每20 tick检查一次
+    u32 ticksExisted = m_creature->ticksExisted();
+    if (ticksExisted - m_lastCheckTime < constants::TARGET_CHECK_COOLDOWN) {
+        return false;
+    }
+    m_lastCheckTime = ticksExisted;
+
     // 获取攻击目标
     LivingEntity* target = m_creature->attackTarget();
     if (!target || !target->isAlive()) {
