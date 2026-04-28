@@ -238,6 +238,15 @@ public:
         const Vector3& pos,
         f32 maxDistance = 256.0f) const override;
 
+    // ========== 爆炸 ==========
+
+    void createExplosion(
+        const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy,
+        bool causesFire = false,
+        Entity* source = nullptr) override;
+
     // ========== 物理引擎 ==========
 
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine.get(); }

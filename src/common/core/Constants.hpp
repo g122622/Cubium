@@ -142,10 +142,50 @@ constexpr i32 PLAYER_TRACKING_RANGE = 128;
 
 } // namespace entity
 
+} // namespace mc
+
 // ============================================================================
-// 容量常量
+// 爆炸常量
 // ============================================================================
 
+namespace mc::game::explosion {
+
+// 射线追踪参数
+constexpr i32 RAY_GRID_SIZE = 16;
+constexpr f32 RAY_STEP_SIZE = 0.3f;
+
+// 强度衰减公式系数
+constexpr f32 RESISTANCE_COEFFICIENT = 0.3f;
+constexpr f32 INITIAL_STRENGTH_MIN = 0.7f;
+constexpr f32 INITIAL_STRENGTH_RANGE = 0.6f;
+
+// 实体影响范围系数
+constexpr f32 ENTITY_RANGE_MULTIPLIER = 2.0f;
+
+// 伤害公式系数
+constexpr f32 DAMAGE_MULTIPLIER = 7.0f;
+
+// 火焰生成概率
+constexpr f32 FIRE_SPAWN_CHANCE = 0.333f;
+
+// 爆炸音量和音调
+constexpr f32 EXPLOSION_VOLUME = 4.0f;
+constexpr f32 EXPLOSION_PITCH_BASE = 0.7f;
+constexpr f32 EXPLOSION_PITCH_RANGE = 0.2f;
+
+// 默认爆炸半径
+constexpr f32 TNT_RADIUS = 4.0f;
+constexpr f32 CREEPER_RADIUS = 3.0f;
+constexpr f32 CHARGED_CREEPER_RADIUS_MULTIPLIER = 2.0f;
+constexpr f32 GHAST_FIREBALL_RADIUS = 1.0f;
+constexpr f32 WITHER_SKULL_RADIUS = 1.0f;
+constexpr f32 WITHER_SPAWN_RADIUS = 7.0f;
+constexpr f32 END_CRYSTAL_RADIUS = 6.0f;
+constexpr f32 BED_RADIUS = 5.0f;
+
+} // namespace mc::game::explosion
+
+namespace mc {
 namespace capacity {
 
 // 缓冲区

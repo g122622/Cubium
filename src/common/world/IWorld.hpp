@@ -7,6 +7,7 @@
 #include "../resource/ResourceLocation.hpp"
 #include "../sound/SoundCategory.hpp"
 #include "tick/base/TickPriority.hpp"
+#include "explosion/ExplosionMode.hpp"
 #include <vector>
 #include <memory>
 
@@ -23,6 +24,10 @@ class IRandom;
 class BlockEntity;
 class Player;
 enum class ContainerType : u8;
+
+namespace world::explosion {
+class Explosion;  // 前向声明
+}
 
 namespace server {
 class ServerWorld;  // 前向声明，用于asServerWorld()
@@ -611,6 +616,33 @@ public:
         (void)fluid;
         (void)delay;
         (void)priority;
+    }
+
+    // ========== 爆炸 ==========
+
+    /**
+     * @brief 创建爆炸
+     *
+     * 在指定位置创建爆炸，破坏方块、造成伤害和击退。
+     *
+     * @param position 爆炸中心位置
+     * @param radius 爆炸半径
+     * @param mode 爆炸模式（默认 Destroy）
+     * @param causesFire 是否生成火焰（默认 false）
+     * @param source 爆炸源实体（可选）
+     */
+    virtual void createExplosion(
+        const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy,
+        bool causesFire = false,
+        Entity* source = nullptr) {
+        // 默认空操作，ServerWorld 会重写以实际执行爆炸
+        (void)position;
+        (void)radius;
+        (void)mode;
+        (void)causesFire;
+        (void)source;
     }
 
     // ========== 类型转换 ==========

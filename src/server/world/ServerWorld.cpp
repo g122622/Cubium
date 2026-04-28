@@ -15,6 +15,7 @@
 #include "common/world/weather/WeatherUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/explosion/Explosion.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/Direction.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -1164,6 +1165,35 @@ bool ServerWorld::shouldSpawnParticleAt(
 {
     // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送
     return true;
+}
+
+// ============================================================================
+// 爆炸
+// ============================================================================
+
+void ServerWorld::createExplosion(
+    const Vector3& position,
+    f32 radius,
+    world::explosion::ExplosionMode mode,
+    bool causesFire,
+    Entity* source)
+{
+    // 创建爆炸对象
+    auto explosion = std::make_unique<world::explosion::Explosion>(
+        *this,
+        position,
+        radius,
+        mode,
+        causesFire,
+        source,
+        nullptr  // 使用默认伤害来源
+    );
+
+    // 执行爆炸
+    explosion->explode();
+
+    // TODO: 广播爆炸包给客户端
+    // broadcastExplosion(position, radius, explosion->affectedBlocks());
 }
 
 } // namespace mc::server

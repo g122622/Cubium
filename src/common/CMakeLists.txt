@@ -695,6 +695,10 @@ add_library(mc_common STATIC
     world/fluid/fluids/WaterFluid.cpp
     world/fluid/fluids/LavaFluid.cpp
 
+    # World - Explosion System
+    world/explosion/ExplosionContext.cpp
+    world/explosion/Explosion.cpp
+
     # World - Village System
     world/village/Village.cpp
     world/village/VillageManager.cpp

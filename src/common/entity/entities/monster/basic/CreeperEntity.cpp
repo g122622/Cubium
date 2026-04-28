@@ -4,6 +4,7 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/explosion/ExplosionMode.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <memory>
 
@@ -64,9 +65,11 @@ bool CreeperEntity::ableToCauseSkullDrop() const {
 void CreeperEntity::explode() {
     // MC 1.16.5 CreeperEntity.explode()
     // 只在服务端爆炸
-    // TODO: 检查是否是服务端
+    if (isDead()) return;
+
     IWorld* worldPtr = world();
     if (!worldPtr) {
+        remove();
         return;
     }
 
@@ -76,9 +79,18 @@ void CreeperEntity::explode() {
         radius *= 2.0f;
     }
 
-    // TODO: 创建爆炸
-    // Explosion.Mode mode = ForgeEventFactory.getMobGriefingEvent(world, this) ? DESTROY : NONE;
-    // world->createExplosion(this, x(), y(), z(), radius, mode);
+    // 苦力怕爆炸模式：DESTROY（破坏方块并掉落物品）
+    // TODO: 检查游戏规则 mobGriefing，如果为 false 则使用 NONE
+    world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy;
+
+    // 创建爆炸
+    worldPtr->createExplosion(
+        position(),
+        radius,
+        mode,
+        false,  // 不生成火焰
+        this    // 爆炸源实体
+    );
 
     // 移除实体
     remove();

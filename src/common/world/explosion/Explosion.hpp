@@ -1,0 +1,221 @@
+#pragma once
+
+#include "ExplosionMode.hpp"
+#include "ExplosionContext.hpp"
+#include "../../core/Types.hpp"
+#include "../../util/math/Vector3.hpp"
+#include "../../util/math/random/Random.hpp"
+#include "../../entity/damage/DamageSource.hpp"
+#include "../block/BlockPos.hpp"
+#include <vector>
+#include <unordered_map>
+#include <memory>
+#include <unordered_set>
+
+namespace mc {
+
+// 前向声明
+class IWorld;
+class Entity;
+class Player;
+class BlockState;
+class AxisAlignedBB;
+
+namespace world::explosion {
+
+/**
+ * @brief 爆炸类
+ *
+ * 实现完整的爆炸行为，包括：
+ * - 方块破坏（射线追踪算法）
+ * - 实体伤害和击退
+ * - 物品掉落
+ * - 粒子和音效
+ *
+ * 参考 Minecraft 1.16.5 的 Explosion 类。
+ *
+ * 使用方法：
+ * @code
+ * Explosion explosion(world, position, 4.0f, ExplosionMode::Break, false, tntEntity);
+ * explosion.explode();
+ * @endcode
+ */
+class Explosion {
+public:
+    /**
+     * @brief 构造爆炸对象
+     *
+     * @param world 世界引用
+     * @param position 爆炸中心位置
+     * @param radius 爆炸半径
+     * @param mode 爆炸模式
+     * @param causesFire 是否生成火焰
+     * @param source 爆炸源实体（可能为空）
+     * @param damageSource 自定义伤害来源（可能为空，默认使用爆炸伤害）
+     */
+    Explosion(IWorld& world,
+              const Vector3& position,
+              f32 radius,
+              ExplosionMode mode = ExplosionMode::Destroy,
+              bool causesFire = false,
+              Entity* source = nullptr,
+              std::unique_ptr<DamageSource> damageSource = nullptr);
+
+    /**
+     * @brief 执行爆炸
+     *
+     * 执行完整的爆炸流程：
+     * 1. 计算受影响的方块
+     * 2. 计算受影响的实体（伤害和击退）
+     * 3. 破坏方块并生成掉落物
+     * 4. 应用击退
+     * 5. 生成粒子和音效
+     */
+    void explode();
+
+    // ========== 结果查询 ==========
+
+    /**
+     * @brief 获取受影响的方块位置列表
+     * @return 受影响方块的坐标列表
+     */
+    [[nodiscard]] const std::vector<BlockPos>& affectedBlocks() const {
+        return m_affectedBlocks;
+    }
+
+    /**
+     * @brief 获取玩家击退映射
+     * @return 玩家ID到击退向量的映射
+     */
+    [[nodiscard]] const std::unordered_map<u64, Vector3>& playerKnockback() const {
+        return m_playerKnockback;
+    }
+
+    /**
+     * @brief 获取爆炸半径
+     */
+    [[nodiscard]] f32 radius() const { return m_radius; }
+
+    /**
+     * @brief 获取爆炸中心位置
+     */
+    [[nodiscard]] const Vector3& position() const { return m_position; }
+
+    /**
+     * @brief 获取爆炸模式
+     */
+    [[nodiscard]] ExplosionMode mode() const { return m_mode; }
+
+    /**
+     * @brief 是否生成火焰
+     */
+    [[nodiscard]] bool causesFire() const { return m_causesFire; }
+
+    /**
+     * @brief 获取爆炸源实体
+     */
+    [[nodiscard]] Entity* source() const { return m_source; }
+
+private:
+    // ========== 第一阶段：计算 ==========
+
+    /**
+     * @brief 计算受影响的方块
+     *
+     * 使用射线追踪算法：
+     * - 从爆炸中心发射 16x16x16 立方体表面的射线（1352条）
+     * - 每条射线步进 0.3 格
+     * - 根据方块爆炸抗性消耗射线强度
+     */
+    void calculateAffectedBlocks();
+
+    /**
+     * @brief 计算受影响的实体
+     *
+     * - 获取半径 * 2 范围内的所有实体
+     * - 计算每个实体的伤害和击退
+     */
+    void calculateAffectedEntities();
+
+    // ========== 第二阶段：执行 ==========
+
+    /**
+     * @brief 破坏方块
+     *
+     * 根据 ExplosionMode：
+     * - None: 不破坏方块
+     * - Break: 破坏方块但不掉落
+     * - Destroy: 破坏方块并掉落物品
+     */
+    void destroyBlocks();
+
+    /**
+     * @brief 应用击退效果
+     */
+    void applyKnockback();
+
+    /**
+     * @brief 生成粒子效果
+     */
+    void spawnParticles();
+
+    /**
+     * @brief 播放爆炸音效
+     */
+    void playSound();
+
+    // ========== 辅助方法 ==========
+
+    /**
+     * @brief 计算方块密度（视线检测）
+     *
+     * 用于计算实体的遮挡系数。
+     *
+     * @param entityBox 实体碰撞箱
+     * @return 阻挡密度 (0.0 - 1.0)，1.0 表示完全无遮挡
+     */
+    [[nodiscard]] f32 getBlockDensity(const AxisAlignedBB& entityBox);
+
+    /**
+     * @brief 获取指定位置的爆炸抗性
+     *
+     * @param pos 方块位置
+     * @return 爆炸抗性值，如果为空气返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<f32> getExplosionResistance(const BlockPos& pos);
+
+    /**
+     * @brief 计算实体伤害
+     *
+     * @param entity 实体
+     * @param distance 距离爆炸中心的距离
+     * @param density 阻挡密度
+     * @return 伤害值
+     */
+    [[nodiscard]] f32 calculateDamage(Entity& entity, f32 distance, f32 density);
+
+    /**
+     * @brief 生成火焰
+     *
+     * 在被破坏的方块位置随机生成火焰（如果 causesFire 为 true）。
+     */
+    void spawnFire();
+
+private:
+    IWorld& m_world;
+    Vector3 m_position;
+    f32 m_radius;
+    ExplosionMode m_mode;
+    bool m_causesFire;
+
+    Entity* m_source;
+    std::unique_ptr<DamageSource> m_damageSource;
+    std::unique_ptr<ExplosionContext> m_context;
+
+    std::vector<BlockPos> m_affectedBlocks;
+    std::unordered_map<u64, Vector3> m_playerKnockback;
+    math::Random m_random;
+};
+
+} // namespace world::explosion
+} // namespace mc
