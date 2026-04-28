@@ -10,6 +10,7 @@
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
+#include "world/block/blocks/vegetation/BambooBlock.hpp"
 #include "core/Constants.hpp"
 
 #include <map>
@@ -379,4 +380,193 @@ TEST_F(VegetationBlockTest, CactusOnEntityCollisionDamagesLivingEntities) {
     cactus.onEntityCollision(cactus.defaultState(), world, pos, entity);
 
     EXPECT_FLOAT_EQ(entity.health(), 9.0f);
+}
+
+// ============================================================================
+// BambooBlock Tests
+// ============================================================================
+
+TEST_F(VegetationBlockTest, BambooCanSustainOnBambooPlantableBlocks) {
+    BambooBlock bamboo(BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid());
+
+    VegetationTestWorld world;
+    const BlockPos pos(10, 5, 10);
+
+    // 可以放在草方块上
+    world.setBlockAt(pos.down(), &VanillaBlocks::GRASS_BLOCK->defaultState());
+    EXPECT_TRUE(bamboo.isValidPosition(bamboo.defaultState(), world, pos));
+
+    // 可以放在泥土上
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_TRUE(bamboo.isValidPosition(bamboo.defaultState(), world, pos));
+
+    // 可以放在沙子上
+    world.setBlockAt(pos.down(), &VanillaBlocks::SAND->defaultState());
+    EXPECT_TRUE(bamboo.isValidPosition(bamboo.defaultState(), world, pos));
+
+    // 可以放在沙砾上
+    world.setBlockAt(pos.down(), &VanillaBlocks::GRAVEL->defaultState());
+    EXPECT_TRUE(bamboo.isValidPosition(bamboo.defaultState(), world, pos));
+
+    // 可以放在竹子上
+    world.setBlockAt(pos.down(), &VanillaBlocks::BAMBOO->defaultState());
+    EXPECT_TRUE(bamboo.isValidPosition(bamboo.defaultState(), world, pos));
+
+    // 不可以放在石头上
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(bamboo.isValidPosition(bamboo.defaultState(), world, pos));
+}
+
+TEST_F(VegetationBlockTest, BambooGrowthLimitedTo16Blocks) {
+    // 使用 VanillaBlocks 中注册的竹子
+    ASSERT_NE(VanillaBlocks::BAMBOO, nullptr);
+    BambooBlock* bamboo = dynamic_cast<BambooBlock*>(VanillaBlocks::BAMBOO);
+    ASSERT_NE(bamboo, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos basePos(5, 20, 5);
+
+    // 设置基座
+    world.setBlockAt(basePos.down(), &VanillaBlocks::DIRT->defaultState());
+
+    // 设置连续16格竹子（从 basePos 向下15格 + basePos 本身 = 16格）
+    for (i32 i = 0; i < 16; ++i) {
+        world.setBlockAt(basePos.down(i), &VanillaBlocks::BAMBOO->defaultState());
+    }
+
+    // 检查竹子已放置
+    const BlockState* checkState = world.getBlockState(basePos);
+    ASSERT_NE(checkState, nullptr);
+    EXPECT_TRUE(checkState->is(VanillaBlocks::BAMBOO));
+
+    // 竹子高度已达16格，不应该再生长
+    SequenceRandom random({0});  // nextInt(3) == 0 触发生长
+    BlockState state = checkState->with(BlockStateProperties::STAGE_0_1(), 0);
+    bamboo->randomTick(world, basePos, state, random);
+
+    // 上方应该没有新竹子（因为已达最大高度）
+    const BlockState* above = world.getBlockState(basePos.up());
+    EXPECT_TRUE(above == nullptr || above->isAir());
+}
+
+TEST_F(VegetationBlockTest, BambooRandomTickCanGrow) {
+    // 使用 VanillaBlocks 中注册的竹子
+    ASSERT_NE(VanillaBlocks::BAMBOO, nullptr);
+    BambooBlock* bamboo = dynamic_cast<BambooBlock*>(VanillaBlocks::BAMBOO);
+    ASSERT_NE(bamboo, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(7, 20, 7);
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    const BlockState& bambooState = VanillaBlocks::BAMBOO->defaultState();
+    world.setBlockAt(pos, &bambooState);
+
+    // 验证方块已设置
+    const BlockState* checkState = world.getBlockState(pos);
+    ASSERT_NE(checkState, nullptr);
+
+    // 使用随机数触发生长 (nextInt(3) == 0, nextInt(3) for leaves)
+    SequenceRandom random({0, 1});  // 0 -> 触发生长, 1 -> 小叶子
+    BlockState state = bambooState;
+    bamboo->randomTick(world, pos, state, random);
+
+    // 上方应该有新竹子
+    const BlockState* above = world.getBlockState(pos.up());
+    ASSERT_NE(above, nullptr) << "No block was placed above the bamboo";
+    EXPECT_TRUE(above->is(VanillaBlocks::BAMBOO)) << "Block above is not bamboo";
+}
+
+TEST_F(VegetationBlockTest, BambooBoneMealGrowsMultipleBlocks) {
+    BambooBlock bamboo(BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid());
+
+    VegetationTestWorld world;
+    const BlockPos pos(8, 30, 8);
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    const BlockState& bambooState = VanillaBlocks::BAMBOO->defaultState();
+    world.setBlockAt(pos, &bambooState);
+
+    // 使用随机数让 canUseBonemeal 返回 true 并生长
+    SequenceRandom random({0, 1, 0, 0});  // float < 0.45, nextInt(2) == 1
+    EXPECT_TRUE(bamboo.canUseBonemeal(world, random, pos, bambooState));
+
+    bamboo.grow(world, random, pos, bambooState);
+
+    // 检查是否生长了多格
+    int growthCount = 0;
+    for (int i = 1; i <= 3; ++i) {
+        const BlockState* above = world.getBlockState(pos.up(i));
+        if (above != nullptr && above->is(VanillaBlocks::BAMBOO)) {
+            growthCount++;
+        }
+    }
+    EXPECT_GE(growthCount, 1);
+}
+
+// ============================================================================
+// BambooSaplingBlock Tests
+// ============================================================================
+
+TEST_F(VegetationBlockTest, BambooSaplingCanSustainOnBambooPlantableBlocks) {
+    BambooSaplingBlock sapling(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    VegetationTestWorld world;
+    const BlockPos pos(12, 5, 12);
+
+    // 可以放在草方块上
+    world.setBlockAt(pos.down(), &VanillaBlocks::GRASS_BLOCK->defaultState());
+    EXPECT_TRUE(sapling.isValidPosition(sapling.defaultState(), world, pos));
+
+    // 可以放在泥土上
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_TRUE(sapling.isValidPosition(sapling.defaultState(), world, pos));
+
+    // 不可以放在竹子上
+    world.setBlockAt(pos.down(), &VanillaBlocks::BAMBOO->defaultState());
+    EXPECT_FALSE(sapling.isValidPosition(sapling.defaultState(), world, pos));
+
+    // 不可以放在石头上
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(sapling.isValidPosition(sapling.defaultState(), world, pos));
+}
+
+TEST_F(VegetationBlockTest, BambooSaplingRandomTickCanGrow) {
+    BambooSaplingBlock sapling(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    VegetationTestWorld world;
+    const BlockPos pos(15, 40, 15);
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    const BlockState& saplingState = VanillaBlocks::BAMBOO_SAPLING->defaultState();
+    world.setBlockAt(pos, &saplingState);
+
+    // 使用随机数触发生长 (nextInt(8) == 0)
+    SequenceRandom random({0});
+    BlockState state = saplingState;
+    sapling.randomTick(world, pos, state, random);
+
+    // 幼苗应该变成竹子
+    const BlockState* newState = world.getBlockState(pos);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_TRUE(newState->is(VanillaBlocks::BAMBOO));
+}
+
+TEST_F(VegetationBlockTest, BambooSaplingGrowMethodReplacesWithBamboo) {
+    BambooSaplingBlock sapling(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    VegetationTestWorld world;
+    const BlockPos pos(20, 50, 20);
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    const BlockState& saplingState = VanillaBlocks::BAMBOO_SAPLING->defaultState();
+    world.setBlockAt(pos, &saplingState);
+
+    SequenceRandom random({0});
+    sapling.grow(world, random, pos, saplingState);
+
+    // 幼苗应该变成竹子
+    const BlockState* newState = world.getBlockState(pos);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_TRUE(newState->is(VanillaBlocks::BAMBOO));
 }

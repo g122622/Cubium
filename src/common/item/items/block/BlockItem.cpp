@@ -1,6 +1,7 @@
 #include "BlockItem.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../world/block/Material.hpp"
+#include "../../../world/IWorld.hpp"
 
 namespace mc {
 
@@ -39,21 +40,22 @@ const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& /* 
     return &m_block->defaultState();
 }
 
-bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& /* state */) const
+bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& state) const
 {
     // 检查位置是否有效
     if (!checkPositionValid(context)) {
         return false;
     }
 
-    // 检查放置位置是否可替换
     const BlockPos& pos = context.placementPos();
-    if (!context.world().isWithinWorldBounds(pos)) {
+
+    // 检查放置位置是否在世界边界内
+    if (!context.getWorld().isWithinWorldBounds(pos)) {
         return false;
     }
 
     // 获取当前方块
-    const BlockState* currentState = context.world().getBlockState(pos);
+    const BlockState* currentState = context.getBlockStateAtPlacementPos();
     if (currentState != nullptr && !currentState->isAir()) {
         // 检查材质是否可替换
         const Material& material = currentState->owner().material();
@@ -61,6 +63,19 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& /
             return false;
         }
     }
+
+    // 关键：调用方块的 isValidPosition 检查植物放置条件等
+    // 参考 MC 1.16.5: BlockItem.canPlace
+    // 注意：IWorld 继承关系允许我们将 const IWorld& 转换为 IBlockReader&
+    // 因为 isValidPosition 是只读操作，这里使用 const_cast 是安全的
+    IBlockReader& blockReader = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(context.getWorld()));
+    if (!m_block->isValidPosition(state, blockReader, pos)) {
+        return false;
+    }
+
+    // TODO: 实体碰撞检查
+    // 参考 MC 1.16.5: world.func_226663_a_(state, pos, ISelectionContext.dummy())
+    // 这需要 ISelectionContext 实现
 
     return true;
 }

@@ -2,7 +2,7 @@
 
 ## 概述
 
-本模块实现 Minecraft 中的农业相关方块，包括农作物、耕地和茎类作物。
+本模块实现 Minecraft 中的农业相关方块，包括农作物、耕地、茎类作物和可可豆。
 
 ## 目录结构
 
@@ -11,7 +11,8 @@ agricultural/
 ├── BushBlock.hpp/cpp       # 灌木/植物基类
 ├── CropBlock.hpp/cpp       # 农作物基类（小麦、胡萝卜、马铃薯）
 ├── FarmlandBlock.hpp/cpp   # 耕地方块
-├── StemBlock.hpp/cpp       # 茎类作物（西瓜、南瓜）
+├── StemBlock.hpp/cpp       # 茎类作物（西瓜茎、南瓜茎）
+├── CocoaBlock.hpp/cpp      # 可可豆方块（丛林原木附着）
 └── README.md               # 本文档
 ```
 
@@ -23,6 +24,8 @@ Block
 │   ├── CropBlock          # 农作物（小麦、胡萝卜、马铃薯）
 │   ├── StemBlock          # 茎类作物（西瓜茎、南瓜茎）
 │   └── AttachedStemBlock  # 连接茎（西瓜连接茎、南瓜连接茎）
+├── HorizontalBlock        # 水平方向方块基类
+│   └── CocoaBlock         # 可可豆（附着丛林原木）
 ├── FarmlandBlock          # 耕地
 └── StemGrownBlock         # 茎类果实（西瓜、南瓜）
 ```
@@ -40,6 +43,10 @@ Block
 
 ### AttachedStemBlock（连接茎）
 - `HORIZONTAL_FACING`: 朝向（指向果实方向）
+
+### CocoaBlock（可可豆）
+- `HORIZONTAL_FACING`: 朝向（指向丛林原木方向）
+- `AGE_0_2`: 生长阶段（0-2，共3个阶段）
 
 ## 核心机制
 
@@ -63,6 +70,15 @@ Block
 2. **果实生成**: 成熟时在相邻空位生成西瓜/南瓜
 3. **茎变形**: 果实生成后茎变为连接茎
 4. **连接茎**: 指向果实方向，不再生长
+
+### 可可豆（CocoaBlock）
+
+1. **附着检测**: 只能附着在丛林原木（JUNGLE_LOGS 标签）的侧面
+2. **放置逻辑**: 尝试玩家朝向的各个水平方向，找到第一个有效附着面
+3. **生长阶段**: 0-2 共3个阶段，每个阶段形状逐渐变大
+4. **随机生长**: 光照 >= 9 时，每次随机 tick 有 1/5 概率增长
+5. **骨粉催熟**: 骨粉使可可豆增长一个阶段（如果未成熟）
+6. **形状变化**: AGE 0 为小可可豆（4x5x4像素），AGE 2 为大可可豆（8x9x8像素）
 
 ## 使用示例
 
@@ -93,11 +109,12 @@ auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 
 ## 待实现
 
-- [ ] 小麦作物（WheatBlock）
-- [ ] 胡萝卜作物（CarrotBlock）
-- [ ] 马铃薯作物（PotatoBlock）
-- [ ] 甜菜根作物（BeetrootBlock）
-- [ ] 西瓜/南瓜果实块
+- [x] 小麦作物（WheatBlock）- 已创建 CropBlocks.hpp/cpp
+- [x] 胡萝卜作物（CarrotBlock）
+- [x] 马铃薯作物（PotatoBlock）
+- [x] 甜菜根作物（BeetrootBlock）
+- [x] 可可豆（CocoaBlock）
+- [x] 西瓜/南瓜果实块（MelonBlock, PumpkinBlock, CarvedPumpkinBlock, JackOLanternBlock）
 - [ ] 甘蔗（SugarCaneBlock）
 - [ ] 仙人掌（CactusBlock）
 - [ ] 竹子（BambooBlock）

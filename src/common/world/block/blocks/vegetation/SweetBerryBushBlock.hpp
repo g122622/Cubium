@@ -1,0 +1,153 @@
+#pragma once
+
+#include "../agricultural/BushBlock.hpp"
+#include "../../IGrowable.hpp"
+#include <array>
+
+namespace mc {
+
+class IWorld;
+class IBlockReader;
+class BlockItemUseContext;
+class Entity;
+class Player;
+class BlockRaycastResult;
+
+namespace blocks {
+
+/**
+ * @brief 甜浆果丛方块
+ *
+ * 生长在草地、泥土等上的灌木，有4个生长阶段（AGE 0-3）。
+ * 玩家穿过时会造成伤害和减速，右键可采摘浆果。
+ *
+ * 状态属性：
+ * - AGE_0_3: 生长阶段（0-3）
+ *
+ * 参考: net.minecraft.block.SweetBerryBushBlock
+ */
+class SweetBerryBushBlock : public BushBlock, public IGrowable {
+public:
+    /**
+     * @brief 构造函数
+     * @param properties 方块属性
+     */
+    explicit SweetBerryBushBlock(const BlockProperties& properties);
+
+    ~SweetBerryBushBlock() override = default;
+
+    // ========== 状态属性 ==========
+
+    /**
+     * @brief 获取 AGE 属性
+     */
+    static const IntegerProperty& AGE() {
+        return BlockStateProperties::AGE_0_3();
+    }
+
+    /**
+     * @brief 获取最大年龄
+     */
+    [[nodiscard]] static constexpr int getMaxAge() { return 3; }
+
+    /**
+     * @brief 获取当前年龄
+     */
+    [[nodiscard]] int getAge(const BlockState& state) const;
+
+    /**
+     * @brief 创建指定年龄的状态
+     */
+    [[nodiscard]] const BlockState& withAge(const BlockState& state, int age) const;
+
+    /**
+     * @brief 是否为最大年龄
+     */
+    [[nodiscard]] bool isMaxAge(const BlockState& state) const;
+
+    // ========== 放置逻辑 ==========
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    // ========== 生长逻辑 ==========
+
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    [[nodiscard]] bool ticksRandomly() const override { return true; }
+
+    // ========== IGrowable 接口 ==========
+
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        bool isClient) const override;
+
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) const override;
+
+    void grow(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) override;
+
+    // ========== 形状 ==========
+
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    // ========== 实体碰撞 ==========
+
+    /**
+     * @brief 实体碰撞处理
+     *
+     * 减速效果和伤害（AGE > 0 时）。
+     */
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 右键交互
+     *
+     * AGE > 1 时可以采摘浆果。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+protected:
+    /**
+     * @brief 检查下方是否可支撑
+     *
+     * 甜浆果丛可以种在草地、泥土、砂土、灰化土、耕地上。
+     */
+    [[nodiscard]] bool canSustain(
+        const BlockState& groundState,
+        IWorld& world,
+        const BlockPos& groundPos) const override;
+
+private:
+    /// 各年龄阶段的形状缓存
+    std::array<CollisionShape, 4> m_shapesByAge;
+
+    /// 各年龄阶段的碰撞形状缓存
+    std::array<CollisionShape, 4> m_collisionShapesByAge;
+
+    /**
+     * @brief 初始化形状缓存
+     */
+    void initShapes();
+};
+
+} // namespace blocks
+} // namespace mc

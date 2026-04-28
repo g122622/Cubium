@@ -860,6 +860,31 @@ public:
         return *prop;
     }
 
+    // ========================================================================
+    // 竹子属性
+    // ========================================================================
+
+    /**
+     * @brief 竹子叶子类型枚举
+     */
+    enum class BambooLeaves : u8 {
+        None = 0,   ///< 无叶子
+        Small = 1,  ///< 小叶子
+        Large = 2   ///< 大叶子
+    };
+
+    /**
+     * @brief 竹子叶子属性
+     */
+    static const EnumProperty<BambooLeaves>& BAMBOO_LEAVES_PROP() {
+        static auto prop = EnumProperty<BambooLeaves>::create("leaves", {
+            BambooLeaves::None,
+            BambooLeaves::Small,
+            BambooLeaves::Large
+        });
+        return *prop;
+    }
+
 private:
     // 禁止实例化
     BlockStateProperties() = delete;
@@ -927,4 +952,10 @@ template<>
 struct mc::EnumProperty<mc::BlockStateProperties::BellAttachment>::Traits {
     static mc::String toString(const mc::BlockStateProperties::BellAttachment& value);
     static std::optional<mc::BlockStateProperties::BellAttachment> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::BambooLeaves>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::BambooLeaves& value);
+    static std::optional<mc::BlockStateProperties::BambooLeaves> fromName(mc::StringView name);
 };

@@ -44,6 +44,7 @@ class BlockItemUseContext;
 class Player;
 class BlockEntity;
 class Entity;
+class IPlantable;  // 前向声明植物接口
 
 namespace math {
 class IRandom;
@@ -1147,6 +1148,29 @@ public:
     [[nodiscard]] virtual bool isReplaceable(
         const BlockState& state,
         BlockItemUseContext& context) const;
+
+    /**
+     * @brief 检查方块是否可以支撑植物
+     *
+     * 用于检查土壤方块是否支持种植特定类型的植物。
+     * 默认实现返回 false（不支持任何植物）。
+     * 子类（如草方块、泥土、耕地等）应重写此方法。
+     *
+     * 参考: net.minecraft.block.Block#canSustainPlant
+     *
+     * @param state 当前方块状态
+     * @param world 世界读取器
+     * @param pos 方块位置
+     * @param facing 植物朝向（通常是 Direction::UP）
+     * @param plant 植物接口（可获取植物类型和状态）
+     * @return 如果可以支撑植物返回true
+     */
+    [[nodiscard]] virtual bool canSustainPlant(
+        const BlockState& state,
+        IBlockReader& world,
+        const BlockPos& pos,
+        Direction facing,
+        const IPlantable& plant) const;
 
     // ========================================================================
     // 交互

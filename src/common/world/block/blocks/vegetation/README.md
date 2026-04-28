@@ -15,7 +15,9 @@ vegetation/
 ├── CactusBlock.hpp/cpp       # 仙人掌
 ├── SugarCaneBlock.hpp/cpp    # 甘蔗
 ├── VineBlock.hpp/cpp         # 藤蔓
-└── LilyPadBlock.hpp/cpp      # 睡莲
+├── LilyPadBlock.hpp/cpp      # 睡莲
+├── SweetBerryBushBlock.hpp/cpp # 甜浆果丛
+└── BambooBlock.hpp/cpp       # 竹子/竹子幼苗
 ```
 
 ## 类层次结构
@@ -37,7 +39,10 @@ Block
 ├── HugeMushroomBlock      # 巨型蘑菇
 ├── CactusBlock            # 仙人掌
 ├── SugarCaneBlock         # 甘蔗
-└── VineBlock              # 藤蔓
+├── VineBlock              # 藤蔓
+├── SweetBerryBushBlock    # 甜浆果丛
+├── BambooBlock            # 竹子（实现 IGrowable）
+└── BambooSaplingBlock     # 竹子幼苗（实现 IGrowable）
 ```
 
 ## 方块状态属性
@@ -68,6 +73,18 @@ Block
 ### VineBlock（藤蔓）
 - `UP`: 是否向上延伸
 - `NORTH/SOUTH/EAST/WEST`: 各方向是否附着
+
+### BambooBlock（竹子）
+- `AGE_0_1`: 年龄 (0-1)
+- `STAGE_0_1`: 阶段 (0-1)，阶段1时骨粉必定生效
+- `BAMBOO_LEAVES`: 叶子类型 (None, Small, Large)
+- 最高可生长至 16 格
+- 可放置在草、泥土、沙子、沙砾、竹子等上
+
+### BambooSaplingBlock（竹子幼苗）
+- 无状态属性
+- 只能放置在竹子可种植的方块上（不包括竹子本身）
+- 随机 tick 有 1/8 概率生长成竹子
 
 ## 核心机制
 
@@ -111,6 +128,15 @@ Block
 2. 可以向下延伸
 3. 可以攀爬
 4. 随机蔓延
+
+### 竹子生长
+1. 可放置在草方块、泥土、砂土、灰化土、耕地、沙子、红沙、沙砾上
+2. 也可以放置在其他竹子上
+3. 最高可生长至 16 格
+4. 随机 tick 时有 1/3 概率尝试生长（阶段0）
+5. 阶段1时（骨粉后）必定生长
+6. 生长时会更新叶子类型（无 -> 小/大）
+7. 幼苗随机 tick 有 1/8 概率变成竹子
 
 ## 使用方法
 

@@ -110,6 +110,19 @@ public:
      */
     [[nodiscard]] const IWorld& getWorld() const { return m_world; }
 
+    /**
+     * @brief 获取玩家视线方向的优先级列表
+     *
+     * 返回按玩家视线方向排序的方向列表。
+     * 第一个方向是玩家面向的方向，后面是其他方向。
+     * 用于需要找到可附着面的方块（如可可豆）。
+     *
+     * 参考: net.minecraft.item.BlockItemUseContext#getNearestLookingDirections
+     *
+     * @return 方向列表（从最优先到最低优）
+     */
+    [[nodiscard]] std::vector<Direction> getNearestLookingDirections() const;
+
 private:
     /**
      * @brief 初始化放置上下文

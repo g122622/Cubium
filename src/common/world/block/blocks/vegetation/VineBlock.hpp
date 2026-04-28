@@ -93,6 +93,37 @@ private:
      */
     [[nodiscard]] i32 getConnectionCount(const BlockState& state) const;
 
+    /**
+     * @brief 检查周围藤蔓密度是否允许蔓延
+     *
+     * 在 9x3x9 范围内藤蔓数量不能超过 5 个。
+     *
+     * @param world 世界读取器
+     * @param pos 当前位置
+     * @return 如果有空间蔓延返回 true
+     */
+    [[nodiscard]] bool hasRoomToSpread(IBlockReader& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 检查状态是否有水平连接
+     */
+    [[nodiscard]] bool hasHorizontalConnection(const BlockState& state) const;
+
+    /**
+     * @brief 随机复制水平连接
+     *
+     * 从源状态随机复制水平连接到目标状态。
+     */
+    [[nodiscard]] BlockState copyRandomHorizontalConnections(
+        const BlockState& source,
+        const BlockState& target,
+        math::IRandom& random) const;
+
+    /**
+     * @brief 获取方向对应的属性
+     */
+    [[nodiscard]] const BooleanProperty* getPropertyFor(Direction direction) const;
+
     /// 各方向的形状
     CollisionShape m_northShape;
     CollisionShape m_southShape;

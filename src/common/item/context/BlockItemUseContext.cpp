@@ -109,4 +109,32 @@ const BlockState* BlockItemUseContext::getBlockStateAtPlacementPos() const
     return m_world.getBlockState(m_placementPos);
 }
 
+std::vector<Direction> BlockItemUseContext::getNearestLookingDirections() const
+{
+    // 参考 MC 1.16.5: BlockItemUseContext#getNearestLookingDirections
+    // 返回按玩家视线方向排序的方向列表
+
+    // 首先添加玩家面向的方向（反方向）
+    Direction oppositeDir = Directions::opposite(m_horizontalDirection);
+
+    std::vector<Direction> directions;
+
+    // 添加水平方向（按优先级）
+    // 第一优先：玩家面向的反方向
+    directions.push_back(oppositeDir);
+
+    // 添加其他水平方向
+    for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
+        if (dir != oppositeDir) {
+            directions.push_back(dir);
+        }
+    }
+
+    // 最后添加上和下
+    directions.push_back(Direction::Down);
+    directions.push_back(Direction::Up);
+
+    return directions;
+}
+
 } // namespace mc

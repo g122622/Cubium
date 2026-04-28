@@ -3,6 +3,7 @@
 #include "BlockSoundType.hpp"
 #include "Material.hpp"
 #include "BlockPos.hpp"
+#include "PlantType.hpp"
 #include "../IWorld.hpp"
 #include "../fluid/Fluid.hpp"
 #include "../fluid/FluidRegistry.hpp"
@@ -626,6 +627,22 @@ bool Block::isReplaceable(
     // 默认实现：使用 BlockProperties 的 isReplaceable 值
     (void)context;
     return m_isReplaceable;
+}
+
+bool Block::canSustainPlant(
+    const BlockState& state,
+    IBlockReader& world,
+    const BlockPos& pos,
+    Direction facing,
+    const IPlantable& plant) const {
+    // 默认实现：不支持任何植物
+    // 子类（如草方块、泥土、耕地等）应重写此方法
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)facing;
+    (void)plant;
+    return false;
 }
 
 ActionResultType Block::onBlockActivated(

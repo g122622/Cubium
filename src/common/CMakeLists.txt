@@ -309,6 +309,9 @@ add_library(mc_common STATIC
     item/items/potion/LingeringPotionItem.cpp
     item/items/potion/GlassBottleItem.cpp
 
+    # Item - Special Items
+    item/items/special/BoneMealItem.cpp
+
     # Item - Crafting
     item/crafting/Ingredient.cpp
     item/crafting/RecipeType.cpp
@@ -360,11 +363,14 @@ add_library(mc_common STATIC
     world/block/Block.cpp
     world/block/BlockRegistry.cpp
     world/block/BlockSoundType.cpp
+    world/block/BlockTags.cpp
     world/block/VanillaBlocks.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
     world/block/blocks/FallingBlock.cpp
     world/block/blocks/RotatedPillarBlock.cpp
+    world/block/blocks/DirectionalBlock.cpp
+    world/block/blocks/HorizontalBlock.cpp
     world/block/blocks/LiquidBlock.cpp
     world/block/blocks/CauldronBlock.cpp
     world/block/blocks/EnchantingTableBlock.cpp
@@ -385,8 +391,11 @@ add_library(mc_common STATIC
 
     # World - Block - Agricultural
     world/block/blocks/agricultural/BushBlock.cpp
+    world/block/blocks/agricultural/CocoaBlock.cpp
     world/block/blocks/agricultural/CropBlock.cpp
+    world/block/blocks/agricultural/CropBlocks.cpp
     world/block/blocks/agricultural/FarmlandBlock.cpp
+    world/block/blocks/agricultural/MelonPumpkinBlocks.cpp
     world/block/blocks/agricultural/StemBlock.cpp
 
     # World - Block - Functional
@@ -429,6 +438,8 @@ add_library(mc_common STATIC
     world/block/blocks/vegetation/SugarCaneBlock.cpp
     world/block/blocks/vegetation/VineBlock.cpp
     world/block/blocks/vegetation/LilyPadBlock.cpp
+    world/block/blocks/vegetation/SweetBerryBushBlock.cpp
+    world/block/blocks/vegetation/BambooBlock.cpp
 
     # World - Block - Coral
     world/block/blocks/coral/CoralBlock.cpp

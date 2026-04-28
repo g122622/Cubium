@@ -484,6 +484,8 @@ public:
     static Block* TALL_SEAGRASS;      // 高海草
     static Block* BUBBLE_COLUMN;      // 气泡柱
     static Block* TURTLE_EGG;         // 海龟蛋
+    static Block* BAMBOO;             // 竹子
+    static Block* BAMBOO_SAPLING;     // 竹子幼苗
 
     // ========================================================================
     // 珊瑚方块

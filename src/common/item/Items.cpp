@@ -10,6 +10,7 @@
 #include "items/tool/ShovelItem.hpp"
 #include "items/tool/HoeItem.hpp"
 #include "items/tool/SwordItem.hpp"
+#include "items/special/BoneMealItem.hpp"
 #include "food/Foods.hpp"
 #include "../world/block/VanillaBlocks.hpp"
 
@@ -987,7 +988,7 @@ void Items::registerMisc() {
         ItemProperties().maxStackSize(64)
     );
 
-    BONE_MEAL = &registry.registerItem(
+    BONE_MEAL = &registry.registerItem<item::items::BoneMealItem>(
         ResourceLocation("minecraft:bone_meal"),
         ItemProperties().maxStackSize(64)
     );

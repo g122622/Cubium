@@ -2,6 +2,7 @@
 
 #include "BushBlock.hpp"
 #include <array>
+#include <unordered_map>
 
 namespace mc {
 
@@ -143,6 +144,11 @@ public:
     ~StemGrownBlock() override = default;
 
     /**
+     * @brief 获取对应的普通茎方块
+     */
+    [[nodiscard]] virtual const Block* getStem() const = 0;
+
+    /**
      * @brief 获取对应的连接茎方块
      */
     [[nodiscard]] virtual const Block* getAttachedStem() const = 0;
@@ -176,11 +182,43 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    // ========== 邻居更新 ==========
+
+    /**
+     * @brief 邻居方块更新处理
+     *
+     * 当果实被破坏时，将连接茎变回普通茎（AGE=7）。
+     *
+     * @param state 当前方块状态
+     * @param facing 更新的方向
+     * @param facingState 邻居状态
+     * @param world 世界
+     * @param currentPos 当前方块位置
+     * @param facingPos 邻居位置
+     * @return 更新后的状态
+     */
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
     // ========== 旋转 ==========
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
 
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    // ========== 形状 ==========
+
+    /**
+     * @brief 获取形状
+     *
+     * 形状根据朝向不同而不同，茎从中心延伸到果实方向。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     // ========== 物品 ==========
 
@@ -197,6 +235,9 @@ public:
 protected:
     /// 对应的果实方块
     const StemGrownBlock* m_crop;
+
+    /// 各方向的形状缓存（使用 unordered_map 存储）
+    std::unordered_map<Direction, CollisionShape> m_shapesByDirection;
 };
 
 } // namespace blocks

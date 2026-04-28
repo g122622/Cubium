@@ -216,13 +216,210 @@ const CollisionShape& VineBlock::getCollisionShape(const BlockState& state) cons
 }
 
 void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    // TODO: 实现藤蔓生长逻辑
-    // 1. 向下延伸
-    // 2. 向侧面蔓延
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(random);
+    // 参考: net.minecraft.block.VineBlock#randomTick
+    // 25% 概率生长
+    if (random.nextInt(4) != 0) {
+        return;
+    }
+
+    // 选择随机方向
+    Direction direction = Directions::fromIndex(random.nextInt(6));
+
+    if (Directions::isHorizontal(direction)) {
+        // 水平方向蔓延
+        const BooleanProperty* prop = getPropertyFor(direction);
+        if (prop == nullptr || state.get(*prop)) {
+            return;
+        }
+
+        // 检查周围藤蔓密度（最多允许5个藤蔓在9x3x9范围内）
+        if (!hasRoomToSpread(static_cast<IBlockReader&>(world), pos)) {
+            return;
+        }
+
+        BlockPos adjPos = pos.offset(direction);
+        const BlockState* adjState = world.getBlockState(adjPos);
+
+        if (adjState != nullptr && adjState->isAir()) {
+            // 目标位置是空气，尝试蔓延
+            Direction cwDir = Directions::rotateY(direction);   // 顺时针
+            Direction ccwDir = Directions::rotateYCCW(direction); // 逆时针
+            const BooleanProperty* cwProp = getPropertyFor(cwDir);
+            const BooleanProperty* ccwProp = getPropertyFor(ccwDir);
+
+            bool hasCW = (cwProp != nullptr && state.get(*cwProp));
+            bool hasCCW = (ccwProp != nullptr && state.get(*ccwProp));
+
+            BlockPos cwAdjPos = adjPos.offset(cwDir);
+            BlockPos ccwAdjPos = adjPos.offset(ccwDir);
+
+            if (hasCW && canAttachTo(static_cast<IBlockReader&>(world), cwAdjPos, cwDir)) {
+                // 从顺时针方向蔓延
+                const BlockState& newState = defaultState().with(*cwProp, true);
+                world.setBlockState(adjPos, &newState, 2);
+            } else if (hasCCW && canAttachTo(static_cast<IBlockReader&>(world), ccwAdjPos, ccwDir)) {
+                // 从逆时针方向蔓延
+                const BlockState& newState = defaultState().with(*ccwProp, true);
+                world.setBlockState(adjPos, &newState, 2);
+            } else {
+                // 尝试向对面蔓延
+                Direction oppositeDir = Directions::opposite(direction);
+                BlockPos cwSourcePos = pos.offset(cwDir);
+                BlockPos ccwSourcePos = pos.offset(ccwDir);
+
+                if (hasCW && adjState->isAir() &&
+                    canAttachTo(static_cast<IBlockReader&>(world), cwSourcePos, oppositeDir)) {
+                    const BooleanProperty* oppositeProp = getPropertyFor(oppositeDir);
+                    if (oppositeProp != nullptr) {
+                        const BlockState& newState = defaultState().with(*oppositeProp, true);
+                        world.setBlockState(cwAdjPos, &newState, 2);
+                    }
+                } else if (hasCCW && adjState->isAir() &&
+                           canAttachTo(static_cast<IBlockReader&>(world), ccwSourcePos, oppositeDir)) {
+                    const BooleanProperty* oppositeProp = getPropertyFor(oppositeDir);
+                    if (oppositeProp != nullptr) {
+                        const BlockState& newState = defaultState().with(*oppositeProp, true);
+                        world.setBlockState(ccwAdjPos, &newState, 2);
+                    }
+                } else if (random.nextFloat() < 0.05f) {
+                    // 小概率向上附着
+                    BlockPos aboveAdjPos = adjPos.up();
+                    if (canAttachTo(static_cast<IBlockReader&>(world), aboveAdjPos, Direction::Up)) {
+                        const BlockState& newState = defaultState().with(BlockStateProperties::UP(), true);
+                        world.setBlockState(adjPos, &newState, 2);
+                    }
+                }
+            }
+        } else if (canAttachTo(static_cast<IBlockReader&>(world), adjPos, direction)) {
+            // 目标位置是可附着的固体方块
+            world.setBlockState(pos, &state.with(*prop, true), 2);
+        }
+    } else if (direction == Direction::Up && pos.y < 255) {
+        // 向上蔓延
+        if (canAttachTo(static_cast<IBlockReader&>(world), pos, Direction::Up)) {
+            world.setBlockState(pos, &state.with(BlockStateProperties::UP(), true), 2);
+            return;
+        }
+
+        BlockPos abovePos = pos.up();
+        const BlockState* aboveState = world.getBlockState(abovePos);
+
+        if (aboveState != nullptr && aboveState->isAir()) {
+            // 检查周围藤蔓密度
+            if (!hasRoomToSpread(static_cast<IBlockReader&>(world), pos)) {
+                return;
+            }
+
+            // 向下延伸到空气
+            BlockState newState = state;
+
+            // 随机移除一些水平连接
+            for (Direction horizDir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
+                const BooleanProperty* horizProp = getPropertyFor(horizDir);
+                if (horizProp != nullptr && random.nextBoolean()) {
+                    if (!canAttachTo(static_cast<IBlockReader&>(world), abovePos.offset(horizDir), Direction::Up)) {
+                        newState = newState.with(*horizProp, false);
+                    }
+                }
+            }
+
+            // 检查是否至少有一个水平连接
+            if (hasHorizontalConnection(newState)) {
+                world.setBlockState(abovePos, &newState, 2);
+            }
+        }
+    } else if (direction == Direction::Down && pos.y > 0) {
+        // 向下延伸
+        BlockPos belowPos = pos.down();
+        const BlockState* belowState = world.getBlockState(belowPos);
+
+        if (belowState != nullptr && (belowState->isAir() || belowState->is(this))) {
+            BlockState belowNewState = belowState->isAir() ? defaultState() : *belowState;
+
+            // 随机复制水平连接
+            belowNewState = copyRandomHorizontalConnections(state, belowNewState, random);
+
+            // 检查是否至少有一个水平连接
+            if (hasHorizontalConnection(belowNewState)) {
+                world.setBlockState(belowPos, &belowNewState, 2);
+            }
+        }
+    }
+}
+
+bool VineBlock::hasRoomToSpread(IBlockReader& world, const BlockPos& pos) const {
+    // 参考: net.minecraft.block.VineBlock#func_196539_a
+    // 检查9x3x9范围内的藤蔓数量，最多允许5个
+    i32 vineCount = 5;  // 从5开始倒数
+
+    for (i32 dx = -4; dx <= 4; ++dx) {
+        for (i32 dy = -1; dy <= 1; ++dy) {
+            for (i32 dz = -4; dz <= 4; ++dz) {
+                BlockPos checkPos(pos.x + dx, pos.y + dy, pos.z + dz);
+                const BlockState* checkState = world.getBlockState(checkPos);
+                if (checkState != nullptr && checkState->is(this)) {
+                    --vineCount;
+                    if (vineCount <= 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool VineBlock::hasHorizontalConnection(const BlockState& state) const {
+    return state.get(BlockStateProperties::NORTH()) ||
+           state.get(BlockStateProperties::SOUTH()) ||
+           state.get(BlockStateProperties::EAST()) ||
+           state.get(BlockStateProperties::WEST());
+}
+
+BlockState VineBlock::copyRandomHorizontalConnections(
+    const BlockState& source,
+    const BlockState& target,
+    math::IRandom& random) const {
+
+    BlockState result = target;
+
+    const BooleanProperty* northProp = getPropertyFor(Direction::North);
+    const BooleanProperty* southProp = getPropertyFor(Direction::South);
+    const BooleanProperty* eastProp = getPropertyFor(Direction::East);
+    const BooleanProperty* westProp = getPropertyFor(Direction::West);
+
+    if (northProp != nullptr && random.nextBoolean() && source.get(*northProp)) {
+        result = result.with(*northProp, true);
+    }
+    if (southProp != nullptr && random.nextBoolean() && source.get(*southProp)) {
+        result = result.with(*southProp, true);
+    }
+    if (eastProp != nullptr && random.nextBoolean() && source.get(*eastProp)) {
+        result = result.with(*eastProp, true);
+    }
+    if (westProp != nullptr && random.nextBoolean() && source.get(*westProp)) {
+        result = result.with(*westProp, true);
+    }
+
+    return result;
+}
+
+const BooleanProperty* VineBlock::getPropertyFor(Direction direction) const {
+    switch (direction) {
+        case Direction::Up:
+            return &BlockStateProperties::UP();
+        case Direction::North:
+            return &BlockStateProperties::NORTH();
+        case Direction::South:
+            return &BlockStateProperties::SOUTH();
+        case Direction::East:
+            return &BlockStateProperties::EAST();
+        case Direction::West:
+            return &BlockStateProperties::WEST();
+        default:
+            return nullptr;
+    }
 }
 
 bool VineBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const {

@@ -1,4 +1,5 @@
 #include "VanillaBlocks.hpp"
+#include "BlockTags.hpp"
 #include "HarvestTool.hpp"
 #include "blocks/LiquidBlock.hpp"
 #include "blocks/DoorBlock.hpp"
@@ -18,6 +19,7 @@
 #include "blocks/vegetation/FlowerBlock.hpp"
 #include "blocks/vegetation/SugarCaneBlock.hpp"
 #include "blocks/vegetation/TallGrassBlock.hpp"
+#include "blocks/vegetation/BambooBlock.hpp"
 #include "blocks/agricultural/FarmlandBlock.hpp"
 #include "blocks/mob/MobBlocks.hpp"
 #include "blocks/coral/CoralBlock.hpp"
@@ -347,6 +349,8 @@ Block* VanillaBlocks::SEAGRASS = nullptr;
 Block* VanillaBlocks::TALL_SEAGRASS = nullptr;
 Block* VanillaBlocks::BUBBLE_COLUMN = nullptr;
 Block* VanillaBlocks::TURTLE_EGG = nullptr;
+Block* VanillaBlocks::BAMBOO = nullptr;
+Block* VanillaBlocks::BAMBOO_SAPLING = nullptr;
 Block* VanillaBlocks::DEAD_TUBE_CORAL_BLOCK = nullptr;
 Block* VanillaBlocks::DEAD_BRAIN_CORAL_BLOCK = nullptr;
 Block* VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK = nullptr;
@@ -607,6 +611,9 @@ void VanillaBlocks::initialize() {
         MC_TRACE_EVENT("client.initialization", "registerStairsSlabsWalls");
         registerStairsSlabsWalls();
     }
+
+    // 初始化方块标签（必须在所有方块注册后）
+    BlockTags::initialize();
 
     s_initialized = true;
 }
@@ -1492,6 +1499,22 @@ void VanillaBlocks::registerVegetationBlocks() {
         ResourceLocation("minecraft:acacia_sapling"), saplingProps);
     DARK_OAK_SAPLING = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:dark_oak_sapling"), saplingProps);
+
+    // 竹子属性
+    // 参考: net.minecraft.block.BambooBlock
+    // 竹子有碰撞箱但较细，可以跳跃穿过
+    BlockProperties bambooProps = BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid();
+
+    // 竹子 - ID
+    BAMBOO = &registry.registerBlock<blocks::BambooBlock>(
+        ResourceLocation("minecraft:bamboo"), bambooProps);
+
+    // 竹子幼苗属性
+    BlockProperties bambooSaplingProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
+
+    // 竹子幼苗 - ID
+    BAMBOO_SAPLING = &registry.registerBlock<blocks::BambooSaplingBlock>(
+        ResourceLocation("minecraft:bamboo_sapling"), bambooSaplingProps);
 }
 
 // ============================================================================

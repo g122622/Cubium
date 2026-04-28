@@ -1,0 +1,358 @@
+#include "BlockTags.hpp"
+#include "Block.hpp"
+#include "BlockRegistry.hpp"
+
+namespace mc {
+
+// ============================================================================
+// BlockTag Implementation
+// ============================================================================
+
+BlockTag::BlockTag(ResourceLocation id)
+    : m_id(std::move(id)) {
+}
+
+void BlockTag::add(const ResourceLocation& blockId) {
+    m_blockIds.insert(blockId);
+}
+
+void BlockTag::addAll(const std::vector<ResourceLocation>& blockIds) {
+    for (const auto& id : blockIds) {
+        m_blockIds.insert(id);
+    }
+}
+
+bool BlockTag::contains(const ResourceLocation& blockId) const {
+    return m_blockIds.find(blockId) != m_blockIds.end();
+}
+
+bool BlockTag::contains(const Block* block) const {
+    if (block == nullptr) {
+        return false;
+    }
+    return contains(block->blockLocation());
+}
+
+bool BlockTag::contains(const BlockState& state) const {
+    return contains(state.blockLocation());
+}
+
+// ============================================================================
+// BlockTags Implementation
+// ============================================================================
+
+bool BlockTags::s_initialized = false;
+
+std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& BlockTags::getTags() {
+    static std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>> tags;
+    return tags;
+}
+
+BlockTag& BlockTags::LOGS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::JUNGLE_LOGS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "jungle_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::OAK_LOGS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "oak_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SPRUCE_LOGS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "spruce_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BIRCH_LOGS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "birch_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::ACACIA_LOGS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "acacia_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::DARK_OAK_LOGS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dark_oak_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::CRIMSON_STEMS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "crimson_stems"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::WARPED_STEMS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "warped_stems"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::LEAVES() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "leaves"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::PLANKS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "planks"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::DIRT() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dirt"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SAND() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "sand"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::STONE() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "stone"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FIRE() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "fire"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BAMBOO_PLANTABLE_ON() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bamboo_plantable_on"));
+    }
+    return *tag;
+}
+
+void BlockTags::initialize() {
+    if (s_initialized) {
+        return;
+    }
+
+    auto& tags = getTags();
+
+    // 创建 LOGS 标签
+    auto logs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "logs"));
+    tags[logs->getId()] = std::move(logs);
+
+    // 创建 JUNGLE_LOGS 标签
+    auto jungleLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "jungle_logs"));
+    jungleLogs->addAll({
+        ResourceLocation("minecraft", "jungle_log"),
+        ResourceLocation("minecraft", "jungle_wood"),
+        ResourceLocation("minecraft", "stripped_jungle_log"),
+        ResourceLocation("minecraft", "stripped_jungle_wood")
+    });
+    tags[jungleLogs->getId()] = std::move(jungleLogs);
+
+    // 创建 OAK_LOGS 标签
+    auto oakLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "oak_logs"));
+    oakLogs->addAll({
+        ResourceLocation("minecraft", "oak_log"),
+        ResourceLocation("minecraft", "oak_wood"),
+        ResourceLocation("minecraft", "stripped_oak_log"),
+        ResourceLocation("minecraft", "stripped_oak_wood")
+    });
+    tags[oakLogs->getId()] = std::move(oakLogs);
+
+    // 创建 SPRUCE_LOGS 标签
+    auto spruceLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "spruce_logs"));
+    spruceLogs->addAll({
+        ResourceLocation("minecraft", "spruce_log"),
+        ResourceLocation("minecraft", "spruce_wood"),
+        ResourceLocation("minecraft", "stripped_spruce_log"),
+        ResourceLocation("minecraft", "stripped_spruce_wood")
+    });
+    tags[spruceLogs->getId()] = std::move(spruceLogs);
+
+    // 创建 BIRCH_LOGS 标签
+    auto birchLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "birch_logs"));
+    birchLogs->addAll({
+        ResourceLocation("minecraft", "birch_log"),
+        ResourceLocation("minecraft", "birch_wood"),
+        ResourceLocation("minecraft", "stripped_birch_log"),
+        ResourceLocation("minecraft", "stripped_birch_wood")
+    });
+    tags[birchLogs->getId()] = std::move(birchLogs);
+
+    // 创建 ACACIA_LOGS 标签
+    auto acaciaLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "acacia_logs"));
+    acaciaLogs->addAll({
+        ResourceLocation("minecraft", "acacia_log"),
+        ResourceLocation("minecraft", "acacia_wood"),
+        ResourceLocation("minecraft", "stripped_acacia_log"),
+        ResourceLocation("minecraft", "stripped_acacia_wood")
+    });
+    tags[acaciaLogs->getId()] = std::move(acaciaLogs);
+
+    // 创建 DARK_OAK_LOGS 标签
+    auto darkOakLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dark_oak_logs"));
+    darkOakLogs->addAll({
+        ResourceLocation("minecraft", "dark_oak_log"),
+        ResourceLocation("minecraft", "dark_oak_wood"),
+        ResourceLocation("minecraft", "stripped_dark_oak_log"),
+        ResourceLocation("minecraft", "stripped_dark_oak_wood")
+    });
+    tags[darkOakLogs->getId()] = std::move(darkOakLogs);
+
+    // 创建 CRIMSON_STEMS 标签
+    auto crimsonStems = std::make_unique<BlockTag>(ResourceLocation("minecraft", "crimson_stems"));
+    crimsonStems->addAll({
+        ResourceLocation("minecraft", "crimson_stem"),
+        ResourceLocation("minecraft", "stripped_crimson_stem")
+    });
+    tags[crimsonStems->getId()] = std::move(crimsonStems);
+
+    // 创建 WARPED_STEMS 标签
+    auto warpedStems = std::make_unique<BlockTag>(ResourceLocation("minecraft", "warped_stems"));
+    warpedStems->addAll({
+        ResourceLocation("minecraft", "warped_stem"),
+        ResourceLocation("minecraft", "stripped_warped_stem")
+    });
+    tags[warpedStems->getId()] = std::move(warpedStems);
+
+    // 创建 LEAVES 标签
+    auto leaves = std::make_unique<BlockTag>(ResourceLocation("minecraft", "leaves"));
+    tags[leaves->getId()] = std::move(leaves);
+
+    // 创建 PLANKS 标签
+    auto planks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "planks"));
+    tags[planks->getId()] = std::move(planks);
+
+    // 创建 DIRT 标签
+    auto dirt = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dirt"));
+    tags[dirt->getId()] = std::move(dirt);
+
+    // 创建 SAND 标签
+    auto sand = std::make_unique<BlockTag>(ResourceLocation("minecraft", "sand"));
+    tags[sand->getId()] = std::move(sand);
+
+    // 创建 STONE 标签
+    auto stone = std::make_unique<BlockTag>(ResourceLocation("minecraft", "stone"));
+    tags[stone->getId()] = std::move(stone);
+
+    // 创建 FIRE 标签
+    auto fire = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fire"));
+    tags[fire->getId()] = std::move(fire);
+
+    // 创建 BAMBOO_PLANTABLE_ON 标签
+    auto bambooPlantableOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bamboo_plantable_on"));
+    bambooPlantableOn->addAll({
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "farmland"),
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "red_sand"),
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "bamboo"),
+        ResourceLocation("minecraft", "bamboo_sapling")
+    });
+    tags[bambooPlantableOn->getId()] = std::move(bambooPlantableOn);
+
+    // 将所有原木类型添加到 LOGS 标签
+    BlockTag& logsTag = *tags.at(ResourceLocation("minecraft", "logs"));
+    logsTag.addAll({
+        ResourceLocation("minecraft", "jungle_log"),
+        ResourceLocation("minecraft", "jungle_wood"),
+        ResourceLocation("minecraft", "stripped_jungle_log"),
+        ResourceLocation("minecraft", "stripped_jungle_wood"),
+        ResourceLocation("minecraft", "oak_log"),
+        ResourceLocation("minecraft", "oak_wood"),
+        ResourceLocation("minecraft", "stripped_oak_log"),
+        ResourceLocation("minecraft", "stripped_oak_wood"),
+        ResourceLocation("minecraft", "spruce_log"),
+        ResourceLocation("minecraft", "spruce_wood"),
+        ResourceLocation("minecraft", "stripped_spruce_log"),
+        ResourceLocation("minecraft", "stripped_spruce_wood"),
+        ResourceLocation("minecraft", "birch_log"),
+        ResourceLocation("minecraft", "birch_wood"),
+        ResourceLocation("minecraft", "stripped_birch_log"),
+        ResourceLocation("minecraft", "stripped_birch_wood"),
+        ResourceLocation("minecraft", "acacia_log"),
+        ResourceLocation("minecraft", "acacia_wood"),
+        ResourceLocation("minecraft", "stripped_acacia_log"),
+        ResourceLocation("minecraft", "stripped_acacia_wood"),
+        ResourceLocation("minecraft", "dark_oak_log"),
+        ResourceLocation("minecraft", "dark_oak_wood"),
+        ResourceLocation("minecraft", "stripped_dark_oak_log"),
+        ResourceLocation("minecraft", "stripped_dark_oak_wood"),
+        ResourceLocation("minecraft", "crimson_stem"),
+        ResourceLocation("minecraft", "stripped_crimson_stem"),
+        ResourceLocation("minecraft", "warped_stem"),
+        ResourceLocation("minecraft", "stripped_warped_stem")
+    });
+
+    s_initialized = true;
+}
+
+BlockTag* BlockTags::getTag(const ResourceLocation& id) {
+    auto& tags = getTags();
+    auto it = tags.find(id);
+    if (it != tags.end()) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+void BlockTags::forEachTag(std::function<void(BlockTag&)> callback) {
+    auto& tags = getTags();
+    for (auto& [id, tag] : tags) {
+        callback(*tag);
+    }
+}
+
+} // namespace mc

@@ -1,0 +1,171 @@
+#pragma once
+
+#include "../../core/Types.hpp"
+#include "../../resource/ResourceLocation.hpp"
+#include <functional>
+#include <memory>
+#include <unordered_set>
+#include <unordered_map>
+
+namespace mc {
+
+class Block;
+class BlockState;
+
+/**
+ * @brief 方块标签
+ *
+ * 用于将方块分组以便功能判断。
+ * 参考: net.minecraft.tags.BlockTags
+ *
+ * 用法示例:
+ * @code
+ * // 检查方块状态是否在标签中
+ * if (BlockTags::JUNGLE_LOGS.contains(state)) {
+ *     // 方块是丛林原木
+ * }
+ * @endcode
+ */
+class BlockTag {
+public:
+    /**
+     * @brief 构造方块标签
+     * @param id 标签资源位置
+     */
+    explicit BlockTag(ResourceLocation id);
+
+    /**
+     * @brief 获取标签ID
+     */
+    [[nodiscard]] const ResourceLocation& getId() const { return m_id; }
+
+    /**
+     * @brief 添加方块到标签
+     * @param blockId 方块资源位置
+     */
+    void add(const ResourceLocation& blockId);
+
+    /**
+     * @brief 批量添加方块
+     * @param blockIds 方块资源位置列表
+     */
+    void addAll(const std::vector<ResourceLocation>& blockIds);
+
+    /**
+     * @brief 检查方块是否在标签中
+     * @param blockId 方块资源位置
+     * @return 是否在标签中
+     */
+    [[nodiscard]] bool contains(const ResourceLocation& blockId) const;
+
+    /**
+     * @brief 检查方块是否在标签中
+     * @param block 方块指针
+     * @return 是否在标签中
+     */
+    [[nodiscard]] bool contains(const Block* block) const;
+
+    /**
+     * @brief 检查方块状态是否在标签中
+     * @param state 方块状态引用
+     * @return 是否在标签中
+     */
+    [[nodiscard]] bool contains(const BlockState& state) const;
+
+    /**
+     * @brief 获取标签中的所有方块ID
+     */
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& getBlockIds() const { return m_blockIds; }
+
+private:
+    ResourceLocation m_id;
+    std::unordered_set<ResourceLocation> m_blockIds;
+};
+
+/**
+ * @brief 内置方块标签集合
+ *
+ * 参考 MC 1.16.5 BlockTags
+ */
+class BlockTags {
+public:
+    // ========== 原木标签 ==========
+
+    /// 原木标签（所有原木）
+    static BlockTag& LOGS();
+
+    /// 丛林原木标签（丛林原木、丛林木、去皮丛林原木、去皮丛林木）
+    static BlockTag& JUNGLE_LOGS();
+
+    /// 橡木原木标签
+    static BlockTag& OAK_LOGS();
+
+    /// 云杉原木标签
+    static BlockTag& SPRUCE_LOGS();
+
+    /// 白桦原木标签
+    static BlockTag& BIRCH_LOGS();
+
+    /// 金合欢原木标签
+    static BlockTag& ACACIA_LOGS();
+
+    /// 深色橡木原木标签
+    static BlockTag& DARK_OAK_LOGS();
+
+    /// 绯红原木标签
+    static BlockTag& CRIMSON_STEMS();
+
+    /// 诡异原木标签
+    static BlockTag& WARPED_STEMS();
+
+    // ========== 其他常用标签 ==========
+
+    /// 叶子标签
+    static BlockTag& LEAVES();
+
+    /// 木板标签
+    static BlockTag& PLANKS();
+
+    /// 土壤标签（可以种植的土地）
+    static BlockTag& DIRT();
+
+    /// 沙子标签
+    static BlockTag& SAND();
+
+    /// 石头标签
+    static BlockTag& STONE();
+
+    /// 火标签
+    static BlockTag& FIRE();
+
+    /// 竹子可种植标签（草、泥土、沙子、沙砾、竹林土）
+    static BlockTag& BAMBOO_PLANTABLE_ON();
+
+    /**
+     * @brief 初始化所有内置标签
+     *
+     * 在 BlockRegistry::initialize() 之后调用
+     */
+    static void initialize();
+
+    /**
+     * @brief 根据ID获取标签
+     *
+     * @param id 标签资源位置
+     * @return 标签指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] static BlockTag* getTag(const ResourceLocation& id);
+
+    /**
+     * @brief 遍历所有标签
+     */
+    static void forEachTag(std::function<void(BlockTag&)> callback);
+
+private:
+    BlockTags() = delete;
+
+    static std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& getTags();
+    static bool s_initialized;
+};
+
+} // namespace mc

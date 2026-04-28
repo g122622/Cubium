@@ -273,4 +273,34 @@ std::optional<BlockStateProperties::BellAttachment> EnumProperty<BlockStatePrope
     return std::nullopt;
 }
 
+// ============================================================================
+// BambooLeaves Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::BambooLeaves>::Traits::toString(
+    const BlockStateProperties::BambooLeaves& value) {
+    switch (value) {
+        case BlockStateProperties::BambooLeaves::None:
+            return "none";
+        case BlockStateProperties::BambooLeaves::Small:
+            return "small";
+        case BlockStateProperties::BambooLeaves::Large:
+            return "large";
+        default:
+            return "none";
+    }
+}
+
+std::optional<BlockStateProperties::BambooLeaves> EnumProperty<BlockStateProperties::BambooLeaves>::Traits::fromName(
+    StringView name) {
+    if (name == "none") {
+        return BlockStateProperties::BambooLeaves::None;
+    } else if (name == "small") {
+        return BlockStateProperties::BambooLeaves::Small;
+    } else if (name == "large") {
+        return BlockStateProperties::BambooLeaves::Large;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc

@@ -169,14 +169,13 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
         const BlockState& cropDefaultState = m_crop->defaultState();
         world.setBlockState(fruitPos, &cropDefaultState, 3);
 
-        // 将茎变为连接茎
-        // TODO: 获取对应的 AttachedStemBlock 并设置朝向
-        // const Block* attachedStem = m_crop->getAttachedStem();
-        // if (attachedStem != nullptr) {
-        //     BlockState stemState = attachedStem->defaultState()
-        //         .with(BlockStateProperties::HORIZONTAL_FACING(), dir);
-        //     world.setBlockState(pos.x, pos.y, pos.z, &stemState, 3);
-        // }
+        // 将茎变为连接茎，朝向果实方向
+        const Block* attachedStem = m_crop->getAttachedStem();
+        if (attachedStem != nullptr) {
+            const BlockState& stemState = attachedStem->defaultState()
+                .with(BlockStateProperties::HORIZONTAL_FACING(), dir);
+            world.setBlockState(pos, &stemState, 3);
+        }
 
         return true;
     }
@@ -201,13 +200,71 @@ AttachedStemBlock::AttachedStemBlock(const StemGrownBlock* crop, const BlockProp
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
-    // 连接茎形状（细长横杆）
+    // 预计算各方向的形状
+    // 形状从中心 (6, 0, 6) 延伸到对应方向的边缘，高度 10 像素
+    // 参考 MC 源码中的 SHAPES 映射
     constexpr f32 P = 1.0f / 16.0f;
-    m_shape = CollisionShape::box(7.0f * P, 0.0f, 7.0f * P, 9.0f * P, 16.0f * P, 9.0f * P);
+
+    // North: (6, 0, 0) -> (10, 10, 10)
+    m_shapesByDirection[Direction::North] =
+        CollisionShape::box(6.0f * P, 0.0f, 0.0f, 10.0f * P, 10.0f * P, 10.0f * P);
+
+    // South: (6, 0, 6) -> (10, 10, 16)
+    m_shapesByDirection[Direction::South] =
+        CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 10.0f * P, 10.0f * P, 16.0f * P);
+
+    // West: (0, 0, 6) -> (10, 10, 10)
+    m_shapesByDirection[Direction::West] =
+        CollisionShape::box(0.0f * P, 0.0f, 6.0f * P, 10.0f * P, 10.0f * P, 10.0f * P);
+
+    // East: (6, 0, 6) -> (16, 10, 10)
+    m_shapesByDirection[Direction::East] =
+        CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 16.0f * P, 10.0f * P, 10.0f * P);
 }
 
 BlockState AttachedStemBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection());
+}
+
+BlockState AttachedStemBlock::updatePostPlacement(
+    const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos) {
+
+    MC_UNUSED(world);
+    MC_UNUSED(currentPos);
+    MC_UNUSED(facingPos);
+
+    // 获取茎指向的方向
+    Direction stemFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+
+    // 如果更新方向是茎指向的方向，检查该方向是否还是果实
+    if (facing == stemFacing) {
+        // 检查邻居是否是对应的果实方块
+        if (m_crop != nullptr && !facingState.is(m_crop)) {
+            // 果实不存在了，变回普通茎（AGE=7）
+            const Block* stem = m_crop->getStem();
+            if (stem != nullptr) {
+                return stem->defaultState().with(BlockStateProperties::AGE_0_7(), 7);
+            }
+        }
+    }
+
+    // 其他情况调用父类处理（下方支撑检查等）
+    return BushBlock::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
+}
+
+const CollisionShape& AttachedStemBlock::getShape(const BlockState& state) const {
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    auto it = m_shapesByDirection.find(facing);
+    if (it != m_shapesByDirection.end()) {
+        return it->second;
+    }
+    // 默认返回北方向的形状
+    return m_shapesByDirection.at(Direction::North);
 }
 
 const BlockState& AttachedStemBlock::rotate(const BlockState& state, Rotation rotation) const {
