@@ -16,7 +16,7 @@ namespace command {
  *
  * 权限等级：2
  *
- * 参考 MC 的 KillCommand
+ * 参考 MC 1.16.5 的 KillCommand
  */
 class KillCommand {
 public:
@@ -24,7 +24,7 @@ public:
 
 private:
     static i32 killSelf(CommandContext<ServerCommandSource>& context);
-    static i32 killTarget(CommandContext<ServerCommandSource>& context);
+    static i32 killEntities(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command
