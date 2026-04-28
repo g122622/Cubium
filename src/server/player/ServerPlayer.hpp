@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/player/SleepResult.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include <memory>
@@ -9,7 +10,9 @@
 
 namespace mc {
 
-class ServerWorld;
+namespace server {
+class ServerWorld;  // 前向声明，位于 mc::server 命名空间
+}
 
 /**
  * @brief 服务端玩家实体。
@@ -85,13 +88,13 @@ public:
      * @brief 设置所在世界。
      * @param world 世界指针。
      */
-    void setWorld(ServerWorld* world) { m_world = world; }
+    void setWorld(server::ServerWorld* world) { m_world = world; }
 
     /**
      * @brief 获取所在世界。
      * @return 当前所在世界指针。
      */
-    [[nodiscard]] ServerWorld* getWorld() const { return m_world; }
+    [[nodiscard]] server::ServerWorld* getWorld() const { return m_world; }
 
     // ========== 连接状态 ==========
 
@@ -107,7 +110,61 @@ public:
      */
     void setOnline(bool online) { m_online = online; }
 
+    // ========== 睡眠系统 ==========
+
+    /**
+     * @brief 尝试在指定位置睡眠
+     *
+     * 执行完整的睡眠检查流程：
+     * 1. 检查是否已经在睡眠
+     * 2. 检查维度是否允许睡眠
+     * 3. 检查距离床是否太远
+     * 4. 检查床是否被阻挡
+     * 5. 设置重生点
+     * 6. 检查时间是否允许睡眠
+     * 7. 非创造模式检查周围怪物
+     *
+     * @param bedPos 床头位置
+     * @return 睡眠结果
+     */
+    entity::SleepResult trySleep(const BlockPos& bedPos);
+
+    /**
+     * @brief 停止睡眠
+     *
+     * @param resetTimer 是否重置睡眠计时器（true=立即重置为0，false=设置为100继续渐变）
+     * @param updateSleepingFlag 是否更新世界睡眠标志
+     */
+    void stopSleepInBed(bool resetTimer, bool updateSleepingFlag);
+
+    /**
+     * @brief 唤醒玩家（完全唤醒）
+     *
+     * 相当于 stopSleepInBed(true, true)
+     */
+    void wakeUp();
+
+    /**
+     * @brief 检查玩家是否完全入睡
+     *
+     * 玩家需要睡眠 100 ticks (5秒) 才算完全入睡。
+     *
+     * @return true 如果睡眠计时器 >= 100
+     */
+    [[nodiscard]] bool isPlayerFullyAsleep() const;
+
 private:
+    /**
+     * @brief 发送睡眠包给客户端
+     * @param bedPos 床位位置
+     */
+    void sendSleepPacket(const BlockPos& bedPos);
+
+    /**
+     * @brief 发送唤醒包给客户端
+     */
+    void sendWakeUpPacket();
+
     /**
      * @brief 发送完整封包到当前玩家连接。
      * @param packet 已包含协议头的完整封包字节流。
@@ -118,7 +175,7 @@ private:
 
 private:
     network::ConnectionPtr m_connection;
-    ServerWorld* m_world = nullptr;
+    server::ServerWorld* m_world = nullptr;
     bool m_online = true;
 };
 

@@ -241,6 +241,40 @@ void Player::setSleeping(bool sleeping) {
     setSneaking(true);
 }
 
+void Player::startSleeping(const BlockPos& pos) {
+    // 设置睡眠位置
+    m_sleepingPosition = pos;
+
+    // 设置睡眠状态（这会切换姿态）
+    setSleeping(true);
+
+    // 重置睡眠计时器
+    sleepTimer = 0;
+
+    // 清除速度
+    setVelocity(Vector3(0.0f, 0.0f, 0.0f));
+}
+
+void Player::stopSleeping() {
+    if (!m_isSleeping) {
+        return;
+    }
+
+    // 清除睡眠位置
+    m_sleepingPosition = std::nullopt;
+
+    // 设置睡眠状态为 false（这会尝试切换到站立姿态）
+    setSleeping(false);
+
+    // 注意：睡眠计时器在 tick() 中会处理唤醒后的渐变
+    // 唤醒后 sleepTimer 会继续增加到 110 然后重置
+}
+
+void Player::setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forced) {
+    m_spawnPoint = GlobalPos(dimension, pos);
+    m_spawnForced = forced;
+}
+
 f32 Player::height() const {
     return getPlayerPoseHeight(m_pose);
 }
@@ -279,11 +313,20 @@ void Player::tick() {
         m_deathTime++;
     }
 
-    // 睡眠计时器
+    // 睡眠计时器逻辑
+    // 参考 MC 1.16.5 PlayerEntity.tick()
+    // 睡眠时：每 tick 递增，上限 100
+    // 唤醒后：计时器继续增加到 110 后才重置为 0（用于唤醒动画）
     if (m_isSleeping) {
         sleepTimer++;
-    } else {
-        sleepTimer = 0;
+        if (sleepTimer > 100) {
+            sleepTimer = 100;
+        }
+    } else if (sleepTimer > 0) {
+        sleepTimer++;
+        if (sleepTimer >= 110) {
+            sleepTimer = 0;
+        }
     }
 
     // 饥饿系统

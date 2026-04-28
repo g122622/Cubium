@@ -6,6 +6,7 @@
 #include "../../experience/ExperienceManager.hpp"
 #include "../../effect/EffectInstance.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
+#include "../../../world/GlobalPos.hpp"
 #include "ChatVisibility.hpp"
 #include "PlayerModelPart.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -13,6 +14,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 
 namespace mc {
 
@@ -326,6 +328,91 @@ public:
     void setSneaking(bool sneaking);
     void setSwimming(bool swimming);
     void setSleeping(bool sleeping);
+
+    // ========== 睡眠系统 ==========
+
+    /**
+     * @brief 获取当前睡眠位置
+     * @return 床位位置，如果不在睡眠则返回空
+     */
+    [[nodiscard]] std::optional<BlockPos> getSleepingPosition() const { return m_sleepingPosition; }
+
+    /**
+     * @brief 设置睡眠位置
+     * @param pos 床位位置
+     */
+    void setSleepingPosition(const BlockPos& pos) { m_sleepingPosition = pos; }
+
+    /**
+     * @brief 清除睡眠位置
+     */
+    void clearSleepingPosition() { m_sleepingPosition = std::nullopt; }
+
+    /**
+     * @brief 检查玩家是否完全入睡
+     *
+     * 玩家需要睡眠 100 ticks (5秒) 才算完全入睡。
+     * 只有完全入睡的玩家才计入夜间跳过计数。
+     *
+     * @return true 如果睡眠计时器 >= 100
+     */
+    [[nodiscard]] bool isPlayerFullyAsleep() const { return m_isSleeping && sleepTimer >= 100; }
+
+    /**
+     * @brief 获取睡眠计时器
+     * @return 睡眠计时器值 (0-100 完全入睡后保持)
+     */
+    [[nodiscard]] i32 getSleepTimer() const { return sleepTimer; }
+
+    /**
+     * @brief 设置睡眠计时器
+     * @param value 计时器值
+     */
+    void setSleepTimer(i32 value) { sleepTimer = value; }
+
+    /**
+     * @brief 开始睡眠
+     *
+     * 设置睡眠状态和位置，切换到睡眠姿态。
+     *
+     * @param pos 床位位置
+     */
+    void startSleeping(const BlockPos& pos);
+
+    /**
+     * @brief 停止睡眠
+     *
+     * 清除睡眠状态和位置，切换到站立姿态。
+     */
+    void stopSleeping();
+
+    // ========== 重生点系统 ==========
+
+    /**
+     * @brief 获取重生点
+     * @return 重生点位置（维度+方块位置），如果未设置返回空
+     */
+    [[nodiscard]] std::optional<GlobalPos> getSpawnPoint() const { return m_spawnPoint; }
+
+    /**
+     * @brief 设置重生点
+     *
+     * @param dimension 维度ID
+     * @param pos 重生点位置
+     * @param forced 是否强制重生点（指南针指向该点）
+     */
+    void setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forced = false);
+
+    /**
+     * @brief 清除重生点
+     */
+    void clearSpawnPoint() { m_spawnPoint = std::nullopt; }
+
+    /**
+     * @brief 检查重生点是否强制
+     * @return true 如果重生点被强制设置
+     */
+    [[nodiscard]] bool isSpawnForced() const { return m_spawnForced; }
 
     /**
      * @brief 切换飞行状态
@@ -724,6 +811,13 @@ private:
     i32 sleepTimer = 0;
     i32 m_hurtTime = 0;
     i32 m_deathTime = 0;
+
+    // 睡眠位置（当前睡眠的床位）
+    std::optional<BlockPos> m_sleepingPosition;
+
+    // 重生点（床或重生锚设置的位置）
+    std::optional<GlobalPos> m_spawnPoint;
+    bool m_spawnForced = false;      // 是否强制重生点
 
     // 自动跳跃系统
     entity::movement::AutoJump m_autoJump;

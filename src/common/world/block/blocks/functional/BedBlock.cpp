@@ -6,6 +6,8 @@
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../entity/player/SleepManager.hpp"
+#include "../../../../entity/player/SleepResult.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -166,7 +168,9 @@ ActionResultType BedBlock::onBlockActivated(
 
     // MC Java: 床的交互逻辑
     // 1. 检查维度 - 在下界和末地床会爆炸
-    // 2. 在主世界检查时间 - 只能在夜间睡眠
+    // 2. 在主世界检查时间 - 只能在夜间或雷暴时睡眠
+    // 3. 检查床是否被占用
+    // 4. 让玩家尝试睡眠
 
     // 获取维度信息
     DimensionType dimType = DimensionType::fromId(world.dimension());
@@ -204,25 +208,71 @@ ActionResultType BedBlock::onBlockActivated(
         return ActionResultType::Success;
     }
 
-    // 在主世界检查是否被占用
-    if (state.get(BlockStateProperties::OCCUPIED())) {
-        // 床已被占用
+    // 获取床头位置（如果是脚部，则计算头部位置）
+    BlockPos bedHeadPos = pos;
+    Direction bedFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
+    if (part == BlockStateProperties::BedPart::Foot) {
+        bedHeadPos = pos.offset(bedFacing);
+    }
+
+    // 获取床头状态
+    const BlockState* headState = world.getBlockState(bedHeadPos);
+    if (headState == nullptr || !headState->hasProperty(BlockStateProperties::OCCUPIED())) {
+        // 床头不存在或不是有效的床
         return ActionResultType::Pass;
     }
 
-    // 检查时间 - 只能在夜间睡眠
-    // MC Java: 夜间范围是 12541-23458
-    i64 currentTime = world.dayTime();
-    bool isNight = (currentTime >= 12541 && currentTime <= 23458);
+    // 检查床是否被占用
+    if (headState->get(BlockStateProperties::OCCUPIED())) {
+        // 床已被占用，显示消息
+        // TODO: 发送消息给玩家 "block.minecraft.bed.occupied"
+        return ActionResultType::Success;
+    }
 
-    // TODO: 还需要检查是否有怪物在床附近
-    // if (!isNight && !player.isCreative()) {
-    //     // 显示消息：你只能在夜间或雷暴时睡眠
-    //     return ActionResultType::Pass;
-    // }
+    // 检查玩家是否已经在睡眠
+    if (player.isSleeping()) {
+        return ActionResultType::Pass;
+    }
+
+    // 检查玩家是否死亡
+    if (player.isDead()) {
+        return ActionResultType::Pass;
+    }
+
+    // 检查玩家距离床是否太远（水平 3 格，垂直 2 格）
+    Vector3 playerPos(player.position().x, player.position().y, player.position().z);
+    if (!entity::SleepManager::isPlayerNearBed(playerPos, bedHeadPos)) {
+        // TODO: 发送消息给玩家 "block.minecraft.bed.too_far_away"
+        return ActionResultType::Success;
+    }
+
+    // 检查床是否被阻挡
+    if (entity::SleepManager::isBedObstructed(world, bedHeadPos, bedFacing)) {
+        // TODO: 发送消息给玩家 "block.minecraft.bed.obstructed"
+        return ActionResultType::Success;
+    }
+
+    // 检查时间是否允许睡眠
+    bool isThundering = world.isThundering();
+    bool isRaining = world.isRaining();
+    i64 currentTime = world.dayTime();
+
+    if (!entity::SleepManager::canSleepAtTime(currentTime, isThundering, isRaining)) {
+        // TODO: 发送消息给玩家 "block.minecraft.bed.no_sleep"
+        return ActionResultType::Success;
+    }
+
+    // 非创造模式检查周围怪物
+    if (!player.abilities().creativeMode) {
+        if (entity::SleepManager::isBedSurroundedByMonsters(world, bedHeadPos, player)) {
+            // TODO: 发送消息给玩家 "block.minecraft.bed.not_safe"
+            return ActionResultType::Success;
+        }
+    }
 
     // 设置玩家的重生点
-    // TODO: player.setSpawnPoint(pos, true, dimId);
+    player.setSpawnPoint(world.dimension(), bedHeadPos, false);
 
     // 播放睡眠音效
     world.playSound(
@@ -234,23 +284,20 @@ ActionResultType BedBlock::onBlockActivated(
     );
 
     // 标记床为占用状态
-    BlockState newState = state.with(BlockStateProperties::OCCUPIED(), true);
-    world.setBlockState(pos, &newState, 2);
+    BlockState newHeadState = headState->with(BlockStateProperties::OCCUPIED(), true);
+    world.setBlockState(bedHeadPos, &newHeadState, 2);
 
-    // 如果是脚部，也要标记头部
-    BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
+    // 如果交互的是脚部，也标记脚部
     if (part == BlockStateProperties::BedPart::Foot) {
-        Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-        BlockPos headPos = pos.offset(facing);
-        const BlockState* headState = world.getBlockState(headPos);
-        if (headState && headState->hasProperty(BlockStateProperties::BED_PART())) {
-            BlockState newHeadState = headState->with(BlockStateProperties::OCCUPIED(), true);
-            world.setBlockState(headPos, &newHeadState, 2);
-        }
+        BlockState newFootState = state.with(BlockStateProperties::OCCUPIED(), true);
+        world.setBlockState(pos, &newFootState, 2);
     }
 
-    // TODO: 让玩家进入睡眠状态
-    // player.sleep(pos);
+    // 让玩家进入睡眠状态
+    player.startSleeping(bedHeadPos);
+
+    // TODO: 更新世界睡眠标志（需要 ServerWorld 的 updateAllPlayersSleepingFlag）
+    // 这需要在更高层实现
 
     return ActionResultType::Success;
 }

@@ -7,6 +7,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/chunk/IChunk.hpp"
@@ -624,6 +625,11 @@ void ServerWorld::tick()
         m_weatherManager->tick();
     }
 
+    // 检查全员睡眠状态
+    if (m_allPlayersSleeping) {
+        checkSleepStatus();
+    }
+
     // 更新村庄系统（流言衰减、边界重算等）
     if (m_villageManager) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::VillageTick");
@@ -1194,6 +1200,112 @@ void ServerWorld::createExplosion(
 
     // TODO: 广播爆炸包给客户端
     // broadcastExplosion(position, radius, explosion->affectedBlocks());
+}
+
+// ============================================================================
+// 睡眠管理
+// ============================================================================
+
+void ServerWorld::skipToMorning() {
+    if (m_timeManager == nullptr) {
+        return;
+    }
+
+    // 计算下一个早晨的时间
+    // dayTime 范围是 0-23999，0 表示早晨 6:00
+    i64 currentTime = m_timeManager->dayTime();
+    i64 newTime = ((currentTime / 24000) + 1) * 24000;
+
+    m_timeManager->setDayTime(newTime);
+
+    spdlog::debug("ServerWorld: skipped to morning (dayTime {} -> {})", currentTime, newTime);
+}
+
+bool ServerWorld::canSkipNight() const {
+    // 检查日光周期是否启用
+    return m_timeManager && m_timeManager->daylightCycleEnabled();
+}
+
+bool ServerWorld::canClearWeather() const {
+    // 检查天气周期是否启用
+    return m_weatherManager && m_weatherManager->weatherCycleEnabled();
+}
+
+void ServerWorld::updateAllPlayersSleepingFlag() {
+    // 检查是否有玩家在睡眠
+    bool anySleeping = false;
+    bool allSleeping = true;
+
+    // 获取所有玩家实体
+    auto players = m_entityManager.getEntitiesByType(LegacyEntityType::Player);
+    if (players.empty()) {
+        m_allPlayersSleeping = false;
+        return;
+    }
+
+    for (Entity* entity : players) {
+        Player* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 跳过观察者模式的玩家
+        // TODO: 当实现观察者模式时添加检查
+        // if (player->isSpectator()) continue;
+
+        if (player->isSleeping()) {
+            anySleeping = true;
+            // 检查是否完全入睡
+            if (!player->isPlayerFullyAsleep()) {
+                allSleeping = false;
+            }
+        } else {
+            allSleeping = false;
+        }
+    }
+
+    m_allPlayersSleeping = anySleeping && allSleeping;
+}
+
+void ServerWorld::checkSleepStatus() {
+    if (!m_allPlayersSleeping) {
+        return;
+    }
+
+    // 重新检查所有玩家是否完全入睡
+    updateAllPlayersSleepingFlag();
+
+    if (!m_allPlayersSleeping) {
+        return;
+    }
+
+    // 所有玩家都完全入睡，跳过夜晚
+    if (canSkipNight()) {
+        skipToMorning();
+    }
+
+    // 唤醒所有玩家
+    wakeUpAllPlayers();
+
+    // 清除天气
+    if (canClearWeather() && m_weatherManager) {
+        m_weatherManager->resetWeather();
+    }
+}
+
+void ServerWorld::wakeUpAllPlayers() {
+    // 获取所有玩家实体并唤醒
+    auto players = m_entityManager.getEntitiesByType(LegacyEntityType::Player);
+    for (Entity* entity : players) {
+        Player* player = dynamic_cast<Player*>(entity);
+        if (player != nullptr && player->isSleeping()) {
+            // 直接停止睡眠状态，不需要发送网络包（玩家客户端会被跳过夜晚的逻辑通知）
+            player->stopSleeping();
+            player->setSleepTimer(0);
+        }
+    }
+
+    m_allPlayersSleeping = false;
 }
 
 } // namespace mc::server
