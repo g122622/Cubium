@@ -63,7 +63,7 @@ i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& contex
     MC_ASSERT_RELEASE(server != nullptr);
 
     if (!source.isPlayer()) {
-        source.sendMessage("You must be a player to change your own game mode");
+        source.sendError("You must be a player to change your own game mode");
         return 0;
     }
 
@@ -107,7 +107,7 @@ i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& cont
     }
 
     if (changedCount == 0) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 

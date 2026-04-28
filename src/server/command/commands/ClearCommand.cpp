@@ -140,7 +140,7 @@ void sendClearMessage(
     i32 removedCount)
 {
     if (removedCount <= 0) {
-        source.sendMessage("No matching items were found");
+        source.sendError("No matching items were found");
         return;
     }
 
@@ -218,7 +218,7 @@ i32 ClearCommand::clearSelf(CommandContext<ServerCommandSource>& context) {
 
     const PlayerId playerId = resolveSourcePlayerId(source);
     if (playerId == 0) {
-        source.sendMessage("You must be a player to use this command");
+        source.sendError("You must be a player to use this command");
         return 0;
     }
 
@@ -234,7 +234,7 @@ i32 ClearCommand::clearPlayer(CommandContext<ServerCommandSource>& context) {
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -249,20 +249,20 @@ i32 ClearCommand::clearPlayerItem(CommandContext<ServerCommandSource>& context) 
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
     ItemInput itemInput = context.getArgument<ItemInput>("item");
 
     if (!itemInput.isValid()) {
-        source.sendMessage("Invalid item");
+        source.sendError("Invalid item");
         return 0;
     }
 
     const Item* item = itemInput.getItem();
     if (!item) {
-        source.sendMessage("Unknown item");
+        source.sendError("Unknown item");
         return 0;
     }
 
@@ -277,7 +277,7 @@ i32 ClearCommand::clearPlayerItemCount(CommandContext<ServerCommandSource>& cont
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -285,13 +285,13 @@ i32 ClearCommand::clearPlayerItemCount(CommandContext<ServerCommandSource>& cont
     i32 maxCount = context.getArgument<i32>("maxCount");
 
     if (!itemInput.isValid()) {
-        source.sendMessage("Invalid item");
+        source.sendError("Invalid item");
         return 0;
     }
 
     const Item* item = itemInput.getItem();
     if (!item) {
-        source.sendMessage("Unknown item");
+        source.sendError("Unknown item");
         return 0;
     }
 

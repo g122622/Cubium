@@ -362,6 +362,212 @@ public:
 
 **权限等级：** 2
 
+### P3 命令（高级功能）
+
+以下命令实现了骨架框架，带有 TODO 标记的功能需要后续集成：
+
+#### AdvancementCommand - /advancement 命令
+
+管理玩家进度。
+
+**用法：**
+
+- `/advancement grant <targets> everything` - 授予所有进度
+- `/advancement grant <targets> only <advancement>` - 授予特定进度
+- `/advancement revoke <targets> everything` - 撤销所有进度
+- `/advancement revoke <targets> only <advancement>` - 撤销特定进度
+- `/advancement test <targets> <advancement>` - 测试进度完成状态
+
+**权限等级：** 2
+
+#### BossBarCommand - /bossbar 命令
+
+创建和管理 Boss 生命条。
+
+**用法：**
+
+- `/bossbar add <id> <name>` - 创建新的 Boss 条
+- `/bossbar remove <id>` - 移除 Boss 条
+- `/bossbar list` - 列出所有 Boss 条
+- `/bossbar set <id> <property> <value>` - 设置属性
+- `/bossbar get <id> <property>` - 获取属性值
+
+**权限等级：** 2
+
+#### DataPackCommand - /datapack 命令
+
+管理数据包。
+
+**用法：**
+
+- `/datapack list` - 列出已加载的数据包
+- `/datapack enable <name>` - 启用数据包
+- `/datapack disable <name>` - 禁用数据包
+
+**权限等级：** 2
+
+#### ForceLoadCommand - /forceload 命令
+
+强制加载区块。
+
+**用法：**
+
+- `/forceload add <pos>` - 添加强制加载区块
+- `/forceload remove <pos>` - 移除强制加载区块
+- `/forceload query` - 查询强制加载区块
+
+**权限等级：** 2
+
+#### LootCommand - /loot 命令
+
+从战利品表生成物品。
+
+**用法：**
+
+- `/loot give <targets> <loot_table>` - 给予玩家战利品
+- `/loot spawn <pos> <loot_table>` - 在位置生成战利品
+- `/loot insert <pos> <loot_table>` - 插入战利品到容器
+- `/loot replace <entity|block> <target> <slot> <loot_table>` - 替换物品
+
+**权限等级：** 2
+
+#### PublishCommand - /publish 命令
+
+将单人世界开放到局域网。
+
+**用法：**
+
+- `/publish [port] [allowCheats]` - 开放到局域网
+
+**权限等级：** 4
+
+#### RecipeCommand - /recipe 命令
+
+管理玩家配方解锁。
+
+**用法：**
+
+- `/recipe give <targets> <recipe|*>` - 授予配方
+- `/recipe take <targets> <recipe|*>` - 移除配方
+
+**权限等级：** 2
+
+#### ReloadCommand - /reload 命令
+
+重新加载数据包和资源。
+
+**用法：**
+
+- `/reload` - 重新加载所有数据
+
+**权限等级：** 2
+
+#### ReplaceItemCommand - /replaceitem 命令
+
+替换实体或容器的物品。
+
+**用法：**
+
+- `/replaceitem entity <targets> <slot> <item> [count]` - 替换实体物品
+- `/replaceitem block <pos> <slot> <item> [count]` - 替换方块容器物品
+
+**权限等级：** 2
+
+#### ScheduleCommand - /schedule 命令
+
+延迟执行函数。
+
+**用法：**
+
+- `/schedule function <function> <time> [append|replace]` - 调度函数
+- `/schedule clear <function>` - 清除调度
+
+**权限等级：** 2
+
+#### ScoreboardCommand - /scoreboard 命令
+
+管理计分板。
+
+**用法：**
+
+- `/scoreboard objectives <add|remove|list|setdisplay> ...` - 管理目标
+- `/scoreboard players <add|remove|set|reset|get|list> ...` - 管理分数
+
+**权限等级：** 2
+
+#### SpectateCommand - /spectate 命令
+
+让玩家以旁观者模式观看其他实体。
+
+**用法：**
+
+- `/spectate <target> [player]` - 开始旁观
+- `/spectate stop [player]` - 停止旁观
+
+**权限等级：** 2
+
+#### SpreadPlayersCommand - /spreadplayers 命令
+
+将玩家随机分散到区域内。
+
+**用法：**
+
+- `/spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>` - 分散玩家
+
+**权限等级：** 2
+
+#### TagCommand - /tag 命令
+
+管理实体标签。
+
+**用法：**
+
+- `/tag <targets> add <tag>` - 添加标签
+- `/tag <targets> remove <tag>` - 移除标签
+- `/tag <targets> list` - 列出标签
+
+**权限等级：** 2
+
+#### TeamCommand - /team 命令
+
+管理队伍。
+
+**用法：**
+
+- `/team add <team> [displayName]` - 创建队伍
+- `/team remove <team>` - 移除队伍
+- `/team list [team]` - 列出队伍
+- `/team join <team> <members>` - 加入队伍
+- `/team leave <members>` - 离开队伍
+- `/team modify <team> <property> <value>` - 修改属性
+
+**权限等级：** 2
+
+#### TriggerCommand - /trigger 命令
+
+修改触发器计分板目标。
+
+**用法：**
+
+- `/trigger <objective>` - 触发目标
+- `/trigger <objective> add <value>` - 增加值
+- `/trigger <objective> set <value>` - 设置值
+
+**权限等级：** 0（所有玩家可用）
+
+#### WorldBorderCommand - /worldborder 命令
+
+管理世界边界。
+
+**用法：**
+
+- `/worldborder set <size> [time]` - 设置边界大小
+- `/worldborder center <pos>` - 设置边界中心
+- `/worldborder add <size> [time]` - 增加边界大小
+- `/worldborder get` - 获取边界大小
+
+**权限等级：** 2
+
 ## 模块整体分析
 
 ### 整体职责

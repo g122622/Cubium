@@ -58,7 +58,7 @@ i32 SpawnPointCommand::setSelfSpawnPoint(CommandContext<ServerCommandSource>& co
     auto& source = context.getSource();
 
     if (!source.isPlayer()) {
-        source.sendMessage("You must be a player to use this command");
+        source.sendError("You must be a player to use this command");
         return 0;
     }
 
@@ -87,7 +87,7 @@ i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& 
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -122,7 +122,7 @@ i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerComman
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 

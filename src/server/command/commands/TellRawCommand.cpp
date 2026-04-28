@@ -52,7 +52,7 @@ i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 

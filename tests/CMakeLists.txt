@@ -332,6 +332,32 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
+        # P3 命令
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataPackCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ForceLoadCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LootCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PublishCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/RecipeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReloadCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReplaceItemCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScheduleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpectateCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpreadPlayersCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/CloneCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FunctionCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
@@ -885,6 +911,32 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
+        # P3 命令
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataPackCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ForceLoadCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LootCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PublishCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/RecipeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReloadCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReplaceItemCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScheduleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpectateCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpreadPlayersCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/CloneCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FunctionCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
 )
 
 target_link_libraries(mc_command_tests

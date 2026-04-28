@@ -47,7 +47,7 @@ i32 DeOpCommand::deopPlayer(CommandContext<ServerCommandSource>& context) {
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendMessage("commands.deop.failed.noPlayer");
+        source.sendError("commands.deop.failed.noPlayer");
         return 0;
     }
 
@@ -57,13 +57,13 @@ i32 DeOpCommand::deopPlayer(CommandContext<ServerCommandSource>& context) {
     // 获取玩家数据
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("commands.deop.failed.noServer");
+        source.sendError("commands.deop.failed.noServer");
         return 0;
     }
 
     auto* playerData = server->playerManager().getPlayer(targetId);
     if (playerData == nullptr) {
-        source.sendMessage("commands.deop.failed.playerNotFound");
+        source.sendError("commands.deop.failed.playerNotFound");
         return 0;
     }
 

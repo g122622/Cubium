@@ -46,7 +46,7 @@ i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>
     auto& source = context.getSource();
 
     if (!source.isPlayer()) {
-        source.sendMessage("You must be a player to use this command");
+        source.sendError("You must be a player to use this command");
         return 0;
     }
 
@@ -55,7 +55,7 @@ i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>
     auto* dimension = server->dimensionManager().getDimension(dimensionId);
 
     if (!dimension) {
-        source.sendMessage("Dimension not found");
+        source.sendError("Dimension not found");
         return 0;
     }
 
@@ -82,7 +82,7 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
     auto* dimension = server->dimensionManager().getDimension(dimensionId);
 
     if (!dimension) {
-        source.sendMessage("Dimension not found");
+        source.sendError("Dimension not found");
         return 0;
     }
 

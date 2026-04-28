@@ -89,7 +89,7 @@ i32 KickCommand::kickPlayers(CommandContext<ServerCommandSource>& context)
     }
 
     if (kickedCount == 0) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 

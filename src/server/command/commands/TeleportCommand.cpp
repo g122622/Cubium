@@ -196,14 +196,14 @@ i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& conte
     MC_ASSERT_RELEASE(server != nullptr);
 
     if (!source.isPlayer()) {
-        source.sendMessage("You must be a player to teleport yourself");
+        source.sendError("You must be a player to teleport yourself");
         return 0;
     }
 
     const EntitySelector selector = context.getArgument<EntitySelector>("target");
     const server::ServerPlayerData* destinationPlayer = nullptr;
     if (!tryResolveDestinationPlayer(source, selector, destinationPlayer)) {
-        source.sendMessage("No matching destination player was found");
+        source.sendError("No matching destination player was found");
         return 0;
     }
 
@@ -235,7 +235,7 @@ i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& con
     MC_ASSERT_RELEASE(server != nullptr);
 
     if (!source.isPlayer()) {
-        source.sendMessage("You must be a player to teleport yourself");
+        source.sendError("You must be a player to teleport yourself");
         return 0;
     }
 
@@ -270,7 +270,7 @@ i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>&
 
     const server::ServerPlayerData* destinationPlayer = nullptr;
     if (!tryResolveDestinationPlayer(source, destination, destinationPlayer)) {
-        source.sendMessage("No matching destination player was found");
+        source.sendError("No matching destination player was found");
         return 0;
     }
 
@@ -280,7 +280,7 @@ i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>&
         Vector3d(destinationPlayer->x, destinationPlayer->y, destinationPlayer->z),
         Vector2f(destinationPlayer->yaw, destinationPlayer->pitch));
     if (teleportedCount == 0) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -304,7 +304,7 @@ i32 TeleportCommand::teleportTargetToPosition(CommandContext<ServerCommandSource
 
     const i32 teleportedCount = teleportPlayers(source, targetPlayerIds, position, source.rotation());
     if (teleportedCount == 0) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 

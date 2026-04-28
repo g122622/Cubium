@@ -73,7 +73,7 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendMessage("commands.setblock.failed.noWorld");
+        source.sendError("commands.setblock.failed.noWorld");
         return 0;
     }
 
@@ -90,7 +90,7 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     if (onlyIfAir) {
         const BlockState* existingBlock = world->getBlockState(position.x, position.y, position.z);
         if (existingBlock != nullptr && !existingBlock->isAir()) {
-            source.sendMessage("commands.setblock.failed.alreadyExists");
+            source.sendError("commands.setblock.failed.alreadyExists");
             return 0;
         }
     }
@@ -100,7 +100,7 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     // 放置方块
     bool success = world->setBlock(position.x, position.y, position.z, state);
     if (!success) {
-        source.sendMessage("commands.setblock.failed");
+        source.sendError("commands.setblock.failed");
         return 0;
     }
 

@@ -208,20 +208,20 @@ i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context) {
     std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
 
     if (targetPlayerIds.empty()) {
-        source.sendMessage("commands.give.failed.noPlayer");
+        source.sendError("commands.give.failed.noPlayer");
         return 0;
     }
 
     // 获取物品
     ItemInput itemInput = context.getArgument<ItemInput>("item");
     if (!itemInput.isValid()) {
-        source.sendMessage("commands.give.failed.invalidItem");
+        source.sendError("commands.give.failed.invalidItem");
         return 0;
     }
 
     const Item* item = itemInput.getItem();
     if (item == nullptr) {
-        source.sendMessage("commands.give.failed.invalidItem");
+        source.sendError("commands.give.failed.invalidItem");
         return 0;
     }
 
@@ -235,7 +235,7 @@ i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context) {
     const i32 successCount = giveItemToPlayers(source, targetPlayerIds, item, count);
 
     if (successCount <= 0) {
-        source.sendMessage("commands.give.failed.noSpace");
+        source.sendError("commands.give.failed.noSpace");
         return 0;
     }
 

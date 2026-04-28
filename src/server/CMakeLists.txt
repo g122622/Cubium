@@ -95,6 +95,26 @@ add_executable(minecraft-server
     command/commands/LocateCommand.cpp
     command/commands/LocateBiomeCommand.cpp
     command/commands/AttributeCommand.cpp
+    command/commands/CloneCommand.cpp
+    command/commands/DataCommand.cpp
+    command/commands/FunctionCommand.cpp
+    command/commands/ScheduleCommand.cpp
+    command/commands/SpreadPlayersCommand.cpp
+    command/commands/WorldBorderCommand.cpp
+    command/commands/ScoreboardCommand.cpp
+    command/commands/BossBarCommand.cpp
+    command/commands/TagCommand.cpp
+    command/commands/TeamCommand.cpp
+    command/commands/AdvancementCommand.cpp
+    command/commands/DataPackCommand.cpp
+    command/commands/ForceLoadCommand.cpp
+    command/commands/LootCommand.cpp
+    command/commands/PublishCommand.cpp
+    command/commands/RecipeCommand.cpp
+    command/commands/ReloadCommand.cpp
+    command/commands/ReplaceItemCommand.cpp
+    command/commands/SpectateCommand.cpp
+    command/commands/TriggerCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
 )

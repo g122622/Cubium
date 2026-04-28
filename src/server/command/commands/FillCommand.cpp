@@ -90,14 +90,14 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendMessage("commands.fill.failed.noWorld");
+        source.sendError("commands.fill.failed.noWorld");
         return 0;
     }
 
     // 检查方块数量限制
     i32 blockCount = calculateBlockCount(from, to);
     if (blockCount > 32768) {
-        source.sendMessage("commands.fill.failed.tooManyBlocks");
+        source.sendError("commands.fill.failed.tooManyBlocks");
         return 0;
     }
 
@@ -292,13 +292,13 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
         server::ServerWorld* world = source.world();
         if (world == nullptr) {
-            source.sendMessage("commands.fill.failed.noWorld");
+            source.sendError("commands.fill.failed.noWorld");
             return 0;
         }
 
         i32 blockCount = calculateBlockCount(from, to);
         if (blockCount > 32768) {
-            source.sendMessage("commands.fill.failed.tooManyBlocks");
+            source.sendError("commands.fill.failed.tooManyBlocks");
             return 0;
         }
 

@@ -1,0 +1,112 @@
+#include "ScheduleCommand.hpp"
+
+#include "common/command/CommandContext.hpp"
+#include "common/command/arguments/ArgumentType.hpp"
+#include "server/application/IServer.hpp"
+#include "server/command/support/CommandMetadata.hpp"
+#include <sstream>
+
+namespace mc {
+namespace command {
+
+void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
+    auto scheduleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("schedule");
+    scheduleNode->setRequirement([](const ServerCommandSource& source) {
+        return source.hasPermission(2);
+    });
+    support::applyMetadata(
+        scheduleNode,
+        support::makeMetadata(
+            "Schedules a function to run at a later time.",
+            "/schedule function <function> <time> [append|replace]",
+            2,
+            {},
+            true));
+
+    // /schedule function <function> <time> [append|replace]
+    auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+        "function",
+        StringArgumentType::string());
+    auto timeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
+        "time",
+        IntegerArgumentType::integer(1));
+
+    // append 模式
+    auto appendNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("append");
+    appendNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return scheduleFunction(ctx, true);
+    });
+    timeArg->addChild(appendNode);
+
+    // replace 模式
+    auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return scheduleFunction(ctx, false);
+    });
+    timeArg->addChild(replaceNode);
+
+    // 默认为 replace
+    timeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return scheduleFunction(ctx, false);
+    });
+
+    nameArg->addChild(timeArg);
+    functionNode->addChild(nameArg);
+    scheduleNode->addChild(functionNode);
+
+    // /schedule clear <function>
+    auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
+    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+        "function",
+        StringArgumentType::string());
+    clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return clearSchedule(ctx);
+    });
+    clearNode->addChild(clearNameArg);
+    scheduleNode->addChild(clearNode);
+
+    dispatcher.registerCommand(scheduleNode);
+}
+
+i32 ScheduleCommand::scheduleFunction(CommandContext<ServerCommandSource>& context, bool append)
+{
+    auto& source = context.getSource();
+    const String functionName = context.getArgument<String>("function");
+    const i32 time = context.getArgument<i32>("time");
+
+    std::ostringstream ss;
+    ss << "Scheduled function '" << functionName << "' to run in " << time << " ticks";
+    if (append) {
+        ss << " (append mode)";
+    } else {
+        ss << " (replace mode)";
+    }
+    source.sendMessage(ss.str());
+
+    // TODO: 实现函数调度系统
+    // 1. 将函数添加到调度队列
+    // 2. 设置执行时间
+    // 3. 在 tick 系统中检查和执行到期的函数
+
+    return 1;
+}
+
+i32 ScheduleCommand::clearSchedule(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const String functionName = context.getArgument<String>("function");
+
+    std::ostringstream ss;
+    ss << "Cleared scheduled function '" << functionName << "'";
+    source.sendMessage(ss.str());
+
+    // TODO: 实现调度清除
+    // 从调度队列中移除指定函数的所有待执行实例
+
+    return 1;
+}
+
+} // namespace command
+} // namespace mc

@@ -65,7 +65,7 @@ i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context) {
     if (playerIds.empty()) {
         // 尝试通过用户名查找
         // TODO: 需要从用户名查找玩家（即使不在线）
-        source.sendMessage("commands.ban.failed.noPlayer");
+        source.sendError("commands.ban.failed.noPlayer");
         return 0;
     }
 
@@ -74,13 +74,13 @@ i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context) {
     // 获取玩家数据
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("commands.ban.failed.noServer");
+        source.sendError("commands.ban.failed.noServer");
         return 0;
     }
 
     auto* playerData = server->playerManager().getPlayer(targetId);
     if (playerData == nullptr) {
-        source.sendMessage("commands.ban.failed.playerNotFound");
+        source.sendError("commands.ban.failed.playerNotFound");
         return 0;
     }
 

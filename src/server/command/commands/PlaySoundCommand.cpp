@@ -85,7 +85,7 @@ i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& cont
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -115,7 +115,7 @@ i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& c
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -136,7 +136,7 @@ i32 PlaySoundCommand::playSoundWithParams(CommandContext<ServerCommandSource>& c
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 

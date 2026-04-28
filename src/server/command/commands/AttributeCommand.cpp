@@ -76,7 +76,7 @@ i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
     const EntitySelector& selector = context.getArgument<EntitySelector>("target");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendMessage("No matching entities were found");
+        source.sendError("No matching entities were found");
         return 0;
     }
 
@@ -128,7 +128,7 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
     const EntitySelector& selector = context.getArgument<EntitySelector>("target");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendMessage("No matching entities were found");
+        source.sendError("No matching entities were found");
         return 0;
     }
 
@@ -150,7 +150,7 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
 
     // 验证属性范围
     if (!isKnownAttribute(normalizedAttrName)) {
-        source.sendMessage("Unknown attribute: " + attrName);
+        source.sendError("Unknown attribute: " + attrName);
         return 0;
     }
 

@@ -61,7 +61,7 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
     // 解析粒子类型
     auto particleType = parseParticleType(name);
     if (!particleType.has_value()) {
-        source.sendMessage("Unknown particle type: " + name);
+        source.sendError("Unknown particle type: " + name);
         return 0;
     }
 

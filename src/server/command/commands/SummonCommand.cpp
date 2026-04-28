@@ -63,7 +63,7 @@ i32 SummonCommand::summonEntity(CommandContext<ServerCommandSource>& context) {
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendMessage("commands.summon.failed.noWorld");
+        source.sendError("commands.summon.failed.noWorld");
         return 0;
     }
 
@@ -88,7 +88,7 @@ i32 SummonCommand::summonEntity(CommandContext<ServerCommandSource>& context) {
     // 创建实体
     std::unique_ptr<Entity> entity = entityType->create(world);
     if (entity == nullptr) {
-        source.sendMessage("commands.summon.failed.createFailed");
+        source.sendError("commands.summon.failed.createFailed");
         return 0;
     }
 
@@ -102,7 +102,7 @@ i32 SummonCommand::summonEntity(CommandContext<ServerCommandSource>& context) {
     // 生成实体
     EntityId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
-        source.sendMessage("commands.summon.failed.spawnFailed");
+        source.sendError("commands.summon.failed.spawnFailed");
         return 0;
     }
 
@@ -122,7 +122,7 @@ i32 SummonCommand::summonEntityAtPosition(CommandContext<ServerCommandSource>& c
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendMessage("commands.summon.failed.noWorld");
+        source.sendError("commands.summon.failed.noWorld");
         return 0;
     }
 
@@ -147,7 +147,7 @@ i32 SummonCommand::summonEntityAtPosition(CommandContext<ServerCommandSource>& c
     // 创建实体
     std::unique_ptr<Entity> entity = entityType->create(world);
     if (entity == nullptr) {
-        source.sendMessage("commands.summon.failed.createFailed");
+        source.sendError("commands.summon.failed.createFailed");
         return 0;
     }
 
@@ -161,7 +161,7 @@ i32 SummonCommand::summonEntityAtPosition(CommandContext<ServerCommandSource>& c
     // 生成实体
     EntityId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
-        source.sendMessage("commands.summon.failed.spawnFailed");
+        source.sendError("commands.summon.failed.spawnFailed");
         return 0;
     }
 

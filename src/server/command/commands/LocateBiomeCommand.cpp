@@ -51,8 +51,8 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     // 解析生物群系
     auto biomeId = parseBiomeId(biomeName);
     if (!biomeId.has_value()) {
-        source.sendMessage("Unknown biome: " + biomeName);
-        source.sendMessage("Use /locatebiome with a valid biome ID (e.g., plains, desert, forest)");
+        source.sendError("Unknown biome: " + biomeName);
+        source.sendError("Use /locatebiome with a valid biome ID (e.g., plains, desert, forest)");
         return 0;
     }
 
@@ -70,7 +70,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     // TODO: 实现真正的生物群系搜索
     // 需要访问世界的 BiomeProvider，向外螺旋搜索直到找到目标生物群系
 
-    source.sendMessage("Biome location search is not yet fully implemented.");
+    source.sendError("Biome location search is not yet fully implemented.");
     source.sendMessage("Biome ID: " + std::to_string(static_cast<i32>(biomeId.value())));
 
     return 1;

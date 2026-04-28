@@ -62,7 +62,7 @@ i32 PardonCommand::pardonPlayer(CommandContext<ServerCommandSource>& context) {
         if (selector.hasUsername()) {
             playerName = selector.username();
         } else {
-            source.sendMessage("commands.pardon.failed.noPlayer");
+            source.sendError("commands.pardon.failed.noPlayer");
             return 0;
         }
     }

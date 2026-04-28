@@ -44,6 +44,26 @@
 #include "commands/LocateCommand.hpp"
 #include "commands/LocateBiomeCommand.hpp"
 #include "commands/AttributeCommand.hpp"
+#include "commands/CloneCommand.hpp"
+#include "commands/DataCommand.hpp"
+#include "commands/FunctionCommand.hpp"
+#include "commands/ScheduleCommand.hpp"
+#include "commands/SpreadPlayersCommand.hpp"
+#include "commands/WorldBorderCommand.hpp"
+#include "commands/ScoreboardCommand.hpp"
+#include "commands/BossBarCommand.hpp"
+#include "commands/TagCommand.hpp"
+#include "commands/TeamCommand.hpp"
+#include "commands/AdvancementCommand.hpp"
+#include "commands/DataPackCommand.hpp"
+#include "commands/ForceLoadCommand.hpp"
+#include "commands/LootCommand.hpp"
+#include "commands/PublishCommand.hpp"
+#include "commands/RecipeCommand.hpp"
+#include "commands/ReloadCommand.hpp"
+#include "commands/ReplaceItemCommand.hpp"
+#include "commands/SpectateCommand.hpp"
+#include "commands/TriggerCommand.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
@@ -126,6 +146,26 @@ void CommandRegistry::registerDefaults() {
     LocateCommand::registerTo(m_dispatcher);
     LocateBiomeCommand::registerTo(m_dispatcher);
     AttributeCommand::registerTo(m_dispatcher);
+    CloneCommand::registerTo(m_dispatcher);
+    DataCommand::registerTo(m_dispatcher);
+    FunctionCommand::registerTo(m_dispatcher);
+    ScheduleCommand::registerTo(m_dispatcher);
+    SpreadPlayersCommand::registerTo(m_dispatcher);
+    WorldBorderCommand::registerTo(m_dispatcher);
+    ScoreboardCommand::registerTo(m_dispatcher);
+    BossBarCommand::registerTo(m_dispatcher);
+    TagCommand::registerTo(m_dispatcher);
+    TeamCommand::registerTo(m_dispatcher);
+    AdvancementCommand::registerTo(m_dispatcher);
+    DataPackCommand::registerTo(m_dispatcher);
+    ForceLoadCommand::registerTo(m_dispatcher);
+    LootCommand::registerTo(m_dispatcher);
+    PublishCommand::registerTo(m_dispatcher);
+    RecipeCommand::registerTo(m_dispatcher);
+    ReloadCommand::registerTo(m_dispatcher);
+    ReplaceItemCommand::registerTo(m_dispatcher);
+    SpectateCommand::registerTo(m_dispatcher);
+    TriggerCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

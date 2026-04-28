@@ -55,6 +55,14 @@ public:
     void sendMessage(const String& message,
                     const std::optional<Uuid>& senderUuid = std::nullopt) override;
 
+    /**
+     * @brief 发送错误消息
+     * @param message 错误消息内容
+     *
+     * 错误消息会以红色显示（对于支持的客户端）
+     */
+    void sendError(const String& message);
+
     bool shouldReceiveFeedback() const override;
     bool shouldReceiveErrors() const override;
     bool allowLogging() const override;

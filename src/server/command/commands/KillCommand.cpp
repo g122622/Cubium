@@ -53,13 +53,13 @@ i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context) {
 
     // 检查命令源是否是实体（玩家）
     if (!source.isPlayer()) {
-        source.sendMessage("commands.kill.failed.notEntity");
+        source.sendError("commands.kill.failed.notEntity");
         return 0;
     }
 
     ServerPlayer* player = source.player();
     if (player == nullptr) {
-        source.sendMessage("commands.kill.failed.notEntity");
+        source.sendError("commands.kill.failed.notEntity");
         return 0;
     }
 
@@ -82,7 +82,7 @@ i32 KillCommand::killEntities(CommandContext<ServerCommandSource>& context) {
     std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
 
     if (targetPlayerIds.empty()) {
-        source.sendMessage("commands.kill.failed.noEntity");
+        source.sendError("commands.kill.failed.noEntity");
         return 0;
     }
 

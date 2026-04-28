@@ -85,7 +85,7 @@ i32 HelpCommand::showCommandHelp(CommandContext<ServerCommandSource>& context, C
     const String commandName = context.getArgument<String>("command");
     auto node = dispatcher.getRoot()->getChild(commandName);
     if (!node || node->getType() != NodeType::Literal || !node->canUse(source)) {
-        source.sendMessage("Unknown command: " + commandName);
+        source.sendError("Unknown command: " + commandName);
         return 0;
     }
 

@@ -162,7 +162,7 @@ i32 ExecuteCommand::executeAs(CommandContext<ServerCommandSource>& context) {
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendMessage("commands.execute.failed.noEntity");
+        source.sendError("commands.execute.failed.noEntity");
         return 0;
     }
 
@@ -200,7 +200,7 @@ i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context) {
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendMessage("commands.execute.failed.noEntity");
+        source.sendError("commands.execute.failed.noEntity");
         return 0;
     }
 
@@ -261,7 +261,7 @@ i32 ExecuteCommand::executeIfBlock(CommandContext<ServerCommandSource>& context)
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendMessage("commands.execute.failed.noWorld");
+        source.sendError("commands.execute.failed.noWorld");
         return 0;
     }
 
@@ -298,7 +298,7 @@ i32 ExecuteCommand::executeUnlessBlock(CommandContext<ServerCommandSource>& cont
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendMessage("commands.execute.failed.noWorld");
+        source.sendError("commands.execute.failed.noWorld");
         return 0;
     }
 

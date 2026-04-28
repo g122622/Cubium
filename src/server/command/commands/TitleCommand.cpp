@@ -115,7 +115,7 @@ i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context) {
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -129,7 +129,7 @@ i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context) {
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -143,7 +143,7 @@ i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -158,7 +158,7 @@ i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -173,7 +173,7 @@ i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -188,7 +188,7 @@ i32 TitleCommand::setTimes(CommandContext<ServerCommandSource>& context) {
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 

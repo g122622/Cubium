@@ -134,7 +134,7 @@ i32 WhitelistCommand::whitelistAdd(CommandContext<ServerCommandSource>& context)
     }
 
     if (playerName.empty()) {
-        source.sendMessage("commands.whitelist.add.failed");
+        source.sendError("commands.whitelist.add.failed");
         return 0;
     }
 
@@ -168,7 +168,7 @@ i32 WhitelistCommand::whitelistRemove(CommandContext<ServerCommandSource>& conte
     }
 
     if (playerName.empty()) {
-        source.sendMessage("commands.whitelist.remove.failed");
+        source.sendError("commands.whitelist.remove.failed");
         return 0;
     }
 

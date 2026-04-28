@@ -527,7 +527,7 @@ protected:
         const Vector3& velocity,
         const Vector3& offset,
         u32 count,
-        f32 range = 256.0f) override;
+        f32 range = 256.0f);
 
     /**
      * @brief 发送粒子给指定玩家

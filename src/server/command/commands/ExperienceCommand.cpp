@@ -178,14 +178,14 @@ i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context) {
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendMessage("commands.experience.add.failed.noPlayer");
+        source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
 
     // 获取 ServerPlayer 实例
     ServerPlayer* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendMessage("commands.experience.add.failed.noPlayer");
+        source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
 
@@ -207,14 +207,14 @@ i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context) {
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendMessage("commands.experience.add.failed.noPlayer");
+        source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
 
     // 获取 ServerPlayer 实例
     ServerPlayer* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendMessage("commands.experience.add.failed.noPlayer");
+        source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
 
@@ -236,14 +236,14 @@ i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context) {
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendMessage("commands.experience.set.failed.noPlayer");
+        source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
 
     // 获取 ServerPlayer 实例
     ServerPlayer* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendMessage("commands.experience.set.failed.noPlayer");
+        source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
 
@@ -266,14 +266,14 @@ i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context) {
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendMessage("commands.experience.set.failed.noPlayer");
+        source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
 
     // 获取 ServerPlayer 实例
     ServerPlayer* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendMessage("commands.experience.set.failed.noPlayer");
+        source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
 
@@ -294,14 +294,14 @@ i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendMessage("commands.experience.query.failed.noPlayer");
+        source.sendError("commands.experience.query.failed.noPlayer");
         return 0;
     }
 
     // 获取 ServerPlayer 实例
     ServerPlayer* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendMessage("commands.experience.query.failed.noPlayer");
+        source.sendError("commands.experience.query.failed.noPlayer");
         return 0;
     }
 
@@ -322,14 +322,14 @@ i32 ExperienceCommand::queryLevels(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendMessage("commands.experience.query.failed.noPlayer");
+        source.sendError("commands.experience.query.failed.noPlayer");
         return 0;
     }
 
     // 获取 ServerPlayer 实例
     ServerPlayer* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendMessage("commands.experience.query.failed.noPlayer");
+        source.sendError("commands.experience.query.failed.noPlayer");
         return 0;
     }
 

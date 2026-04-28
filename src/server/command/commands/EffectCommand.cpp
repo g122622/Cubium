@@ -113,7 +113,7 @@ i32 EffectCommand::giveEffect(CommandContext<ServerCommandSource>& context) {
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -121,7 +121,7 @@ i32 EffectCommand::giveEffect(CommandContext<ServerCommandSource>& context) {
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {
-        source.sendMessage("Unknown effect: " + effectName);
+        source.sendError("Unknown effect: " + effectName);
         return 0;
     }
     entity::effect::EffectType effectType = effectTypeOpt.value();
@@ -175,7 +175,7 @@ i32 EffectCommand::clearAllEffects(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -205,7 +205,7 @@ i32 EffectCommand::clearSpecificEffect(CommandContext<ServerCommandSource>& cont
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendMessage("No matching players were found");
+        source.sendError("No matching players were found");
         return 0;
     }
 
@@ -213,7 +213,7 @@ i32 EffectCommand::clearSpecificEffect(CommandContext<ServerCommandSource>& cont
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {
-        source.sendMessage("Unknown effect: " + effectName);
+        source.sendError("Unknown effect: " + effectName);
         return 0;
     }
     entity::effect::EffectType effectType = effectTypeOpt.value();

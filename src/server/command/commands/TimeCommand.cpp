@@ -200,7 +200,7 @@ i32 TimeCommand::queryTime(CommandContext<ServerCommandSource>& context) {
     } else if (type == "gametime") {
         value = static_cast<i32>(timeManager.gameTime() % INT32_MAX);
     } else {
-        source.sendMessage("Unknown query type: " + type);
+        source.sendError("Unknown query type: " + type);
         return 0;
     }
 

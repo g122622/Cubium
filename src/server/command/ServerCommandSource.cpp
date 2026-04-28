@@ -68,6 +68,12 @@ void ServerCommandSource::sendMessage(
     spdlog::info("{}", message);
 }
 
+void ServerCommandSource::sendError(const String& message) {
+    // 错误消息使用红色格式（对于支持的客户端）
+    String formattedMessage = "§c" + message;
+    sendMessage(formattedMessage);
+}
+
 bool ServerCommandSource::shouldReceiveFeedback() const {
     return !m_feedbackDisabled;
 }
