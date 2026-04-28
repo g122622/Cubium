@@ -65,20 +65,26 @@ bool CropBlock::isValidPosition(
         return false;
     }
 
+    // 参考: net.minecraft.block.CropsBlock#isValidPosition
+    // 检查光照：使用 getLightSubtracted(pos, 0) >= 8 或 canSeeSky(pos)
+    // 当前简化实现检查上方位置的光照
     const BlockPos abovePos = pos.up();
     const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
-    return std::max(blockLight, skyLight) >= 9;
+    // 光照 >= 8 或能看见天空
+    return std::max(blockLight, skyLight) >= 8;
 }
 
 // ========== 生长逻辑 ==========
 
 void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    // 参考: net.minecraft.block.CropsBlock#randomTick
     // 如果已经成熟，不需要生长
     if (isMaxAge(state)) {
         return;
     }
 
+    // 光照检查
     const BlockPos abovePos = pos.up();
     const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
@@ -86,15 +92,12 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
+    // 计算生长概率
     const f32 growthChance = std::max(1.0f, getGrowthChance(*this, static_cast<IBlockReader&>(world), pos));
-    const i32 randomBound = std::max(1, static_cast<i32>(25.0f / growthChance) + 1);
+    const i32 randomBound = static_cast<i32>(25.0f / growthChance) + 1;
     if (random.nextInt(randomBound) == 0) {
         world.setBlockState(pos, &withAge(getAge(state) + 1), 2);
     }
-}
-
-bool CropBlock::ticksRandomly() const {
-    return true;  // 农作物总是需要随机 tick
 }
 
 void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
@@ -109,8 +112,12 @@ void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
 }
 
 int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const {
+    // 参考: net.minecraft.block.CropsBlock#getBonemealAgeIncrease
+    // 使用世界种子和方块位置派生确定性随机数
+    // 这确保同一位置多次使用骨粉结果一致
     const u64 seed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos));
     math::Random random(seed);
+    // 返回 2-5 的随机数（骨粉增加 2-5 个生长阶段）
     return 2 + random.nextInt(4);
 }
 
@@ -141,6 +148,7 @@ float CropBlock::getGrowthChance(
     IBlockReader& world,
     const BlockPos& pos) {
 
+    // 参考: net.minecraft.block.CropsBlock#getGrowthChance
     float growthChance = 1.0f;
 
     const auto& moistureProp = BlockStateProperties::MOISTURE_0_7();
@@ -153,11 +161,13 @@ float CropBlock::getGrowthChance(
                 continue;
             }
 
+            // 湿润耕地增加 3 倍生长速度
             f32 bonus = 1.0f;
             if (groundState->hasProperty(moistureProp) && groundState->get(moistureProp) > 0) {
                 bonus = 3.0f;
             }
 
+            // 周围耕地减半贡献
             if (dx != 0 || dz != 0) {
                 bonus *= 0.25f;
             }
@@ -166,6 +176,7 @@ float CropBlock::getGrowthChance(
         }
     }
 
+    // 检查周围是否有同类作物（降低生长速度）
     const auto isSameCrop = [&](i32 x, i32 z) {
         const BlockState* check = world.getBlockState(x, pos.y, z);
         return check != nullptr && check->is(&block);

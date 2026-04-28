@@ -509,7 +509,7 @@ bool AbstractMinecartEntity::isActivatorRail(const BlockPos& pos) const {
 
 bool AbstractMinecartEntity::isRailPowered(const BlockPos& pos) const {
     // 检查铁轨是否接收红石信号
-    const IWorld* worldPtr = world();
+    IWorld* worldPtr = const_cast<IWorld*>(Entity::world());
     if (!worldPtr) {
         return false;
     }

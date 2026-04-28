@@ -5,7 +5,6 @@
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/FluidTags.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -103,11 +102,13 @@ bool TrapDoorBlock::isValidPosition(
     IBlockReader& world,
     const BlockPos& pos) const {
 
+    // 参考: net.minecraft.block.TrapDoorBlock
+    // 活板门没有特殊的放置位置检查
+    // 如果支撑丢失，由 updatePostPlacement 处理移除
     MC_UNUSED(state);
-
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos);
-    return belowState != nullptr && belowState->isSolid();
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return true;
 }
 
 BlockState TrapDoorBlock::updatePostPlacement(
@@ -118,26 +119,16 @@ BlockState TrapDoorBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos) {
 
-    MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
-
+    // 参考: net.minecraft.block.TrapDoorBlock#updatePostPlacement
+    // 处理含水状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         MC_ASSERT(waterFluid != nullptr);
         world.scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
     }
 
-    if (facing == Direction::Down) {
-        BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
-        if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
-            const BlockState* belowState = world.getBlockState(currentPos.down());
-            if (belowState == nullptr || !belowState->isSolid()) {
-                return VanillaBlocks::AIR->defaultState();
-            }
-        }
-    }
-
-    return state;
+    // 调用父类处理
+    return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
 }
 
 void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,

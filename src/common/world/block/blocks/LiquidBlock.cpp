@@ -1,9 +1,15 @@
 #include "LiquidBlock.hpp"
 #include "../Block.hpp"
+#include "../VanillaBlocks.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../../util/property/FluidProperties.hpp"
 #include "../../IWorld.hpp"
 #include "../BlockPos.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../fluid/FluidTags.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include <functional>
 
 namespace mc {
 namespace block {
@@ -99,6 +105,148 @@ void LiquidBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
         fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
         fluidRef.tick(world, pos, mutableState);
     }
+}
+
+BlockState LiquidBlock::updatePostPlacement(
+    const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos) {
+    // 参考: net.minecraft.block.LiquidBlock#updatePostPlacement
+    // 当邻居更新时，检查是否需要触发流体混合反应
+    // 如果反应发生，不继续调度流体 tick
+
+    (void)facing;
+    (void)facingState;
+    (void)facingPos;
+
+    // 检查岩浆水反应
+    if (reactWithNeighbors(world, currentPos, state)) {
+        // 反应没有发生，继续正常处理
+        // 调度流体 tick
+        const fluid::FluidState* fluidState = getFluidState(state);
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+            world.scheduleFluidTick(currentPos, fluidRef, fluidRef.getTickDelay(world));
+        }
+    }
+
+    return state;
+}
+
+bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // 参考: net.minecraft.block.LiquidBlock#reactWithNeighbors
+    // 只处理岩浆方块
+
+    const fluid::FluidState* fluidState = getFluidState(state);
+    if (fluidState == nullptr || fluidState->isEmpty()) {
+        return true;
+    }
+
+    // 检查是否是岩浆
+    if (!fluidState->getFluid().isIn(fluid::FluidTags::LAVA())) {
+        return true;
+    }
+
+    // 检查下方是否有灵魂土（用于玄武岩生成）
+    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    bool hasSoulSoilBelow = (belowState != nullptr &&
+        VanillaBlocks::SOUL_SOIL != nullptr &&
+        belowState->is(VanillaBlocks::SOUL_SOIL));
+
+    // 检查所有方向（除了下方）
+    for (i32 i = 0; i < 6; ++i) {
+        Direction dir = static_cast<Direction>(i);
+        if (dir == Direction::Down) {
+            continue;
+        }
+
+        BlockPos neighborPos = pos.offset(dir);
+        const fluid::FluidState* neighborFluid = world.getFluidState(neighborPos);
+
+        // 检查是否是水
+        if (neighborFluid != nullptr && !neighborFluid->isEmpty() &&
+            neighborFluid->getFluid().isIn(fluid::FluidTags::WATER())) {
+            // 岩浆 + 水 -> 生成方块
+            Block* resultBlock = nullptr;
+
+            if (fluidState->isSource()) {
+                // 源头岩浆 + 水 -> 黑曜石
+                resultBlock = VanillaBlocks::OBSIDIAN;
+            } else {
+                // 流动岩浆 + 水 -> 圆石
+                resultBlock = VanillaBlocks::COBBLESTONE;
+            }
+
+            if (resultBlock != nullptr) {
+                world.setBlockState(pos, &resultBlock->defaultState(), 3);
+                triggerMixEffects(world, pos);
+                return false;
+            }
+        }
+
+        // 检查蓝冰 + 灵魂土 -> 玄武岩
+        if (hasSoulSoilBelow) {
+            const BlockState* neighborBlock = world.getBlockState(neighborPos);
+            if (neighborBlock != nullptr &&
+                VanillaBlocks::BLUE_ICE != nullptr &&
+                neighborBlock->is(VanillaBlocks::BLUE_ICE)) {
+                // 岩浆 + 蓝冰 + 灵魂土 -> 玄武岩
+                if (VanillaBlocks::BASALT != nullptr) {
+                    world.setBlockState(pos, &VanillaBlocks::BASALT->defaultState(), 3);
+                    triggerMixEffects(world, pos);
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos) {
+    // 参考: net.minecraft.block.LiquidBlock#triggerMixEffects
+    // 播放嘶嘶声和烟雾粒子效果
+
+    // 播放嘶嘶声
+    world.playSound(
+        ResourceLocation("minecraft:block.lava.extinguish"),
+        sound::SoundCategory::Blocks,
+        Vector3(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f),
+        0.5f,  // 音量
+        1.0f   // 音调
+    );
+
+    // 生成烟雾粒子 - 使用位置和索引派生确定性随机数
+    for (i32 i = 0; i < 8; ++i) {
+        u64 particleSeed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos)) ^ static_cast<u64>(i);
+        math::Random random(particleSeed);
+        f32 offsetX = random.nextFloat() * 0.6f - 0.3f;
+        f32 offsetZ = random.nextFloat() * 0.6f - 0.3f;
+        world.addParticle(
+            client::renderer::trident::particle::ParticleTypeId::Smoke,
+            Vector3(pos.x + 0.5f + offsetX, pos.y + 1.0f, pos.z + 0.5f + offsetZ),
+            Vector3(0.0f, 0.1f, 0.0f)
+        );
+    }
+}
+
+fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // 参考: net.minecraft.block.LiquidBlock#pickupFluid
+    // 只有源头方块可以被舀起
+
+    i32 blockLevel = state.get(LEVEL_0_15());
+    if (blockLevel == 0) {  // 源头
+        // 移除流体方块
+        if (VanillaBlocks::AIR != nullptr) {
+            world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 11);
+        }
+        return &m_fluid.getStill();
+    }
+
+    return nullptr;  // 非源头，无法舀起
 }
 
 i32 LiquidBlock::blockLevelToFluidLevel(i32 blockLevel) {

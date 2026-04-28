@@ -1,8 +1,12 @@
 #include "SlabBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/core/Item.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/Direction.hpp"
 
 namespace mc {
 namespace blocks {
@@ -99,6 +103,54 @@ bool SlabBlock::isValidPosition(
 
     // 台阶可以放置在任何位置（除非需要特殊支撑）
     return true;
+}
+
+bool SlabBlock::isReplaceable(
+    const BlockState& state,
+    BlockItemUseContext& context) const {
+
+    // 参考: net.minecraft.block.SlabBlock#isReplaceable
+    // 只有单层台阶可以被替换为双层台阶
+    BlockStateProperties::SlabType slabType = state.get(BlockStateProperties::SLAB_TYPE());
+    if (slabType == BlockStateProperties::SlabType::Double) {
+        // 双层台阶不可替换
+        return false;
+    }
+
+    // 获取玩家手中的物品
+    const ItemStack& stack = context.itemStack();
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+
+    // 检查物品是否为同类型台阶对应的物品
+    const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*this);
+    if (blockItem == nullptr || item != blockItem) {
+        // 不是同类型台阶
+        return false;
+    }
+
+    // 玩家点击的是这个方块
+    if (context.replacingClickedBlock()) {
+        // 根据点击位置和台阶类型决定是否可以替换
+        // hitY 是相对于方块底部的 Y 坐标（0-1范围）
+        f32 hitY = context.getHitY();
+        Direction clickedFace = context.getClickedFace();
+
+        if (slabType == BlockStateProperties::SlabType::Bottom) {
+            // 底部台阶：可以从上方点击，或从侧面点击上半部分
+            return clickedFace == Direction::Up ||
+                   (clickedFace != Direction::Up && clickedFace != Direction::Down && hitY > 0.5f);
+        } else {
+            // 顶部台阶：可以从下方点击，或从侧面点击下半部分
+            return clickedFace == Direction::Down ||
+                   (clickedFace != Direction::Up && clickedFace != Direction::Down && hitY <= 0.5f);
+        }
+    } else {
+        // 不是替换点击的方块（可能是相邻放置），允许替换
+        return true;
+    }
 }
 
 BlockState SlabBlock::updatePostPlacement(

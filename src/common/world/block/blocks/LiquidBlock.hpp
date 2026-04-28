@@ -167,6 +167,82 @@ public:
         return blockLevel >= 8;
     }
 
+    /**
+     * @brief 获取放置时的方块状态
+     *
+     * 流体方块通常不能直接放置，但水源可以通过桶放置。
+     * 默认返回默认状态（源头）。
+     *
+     * @param context 放置上下文
+     * @return 方块状态
+     */
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override {
+        (void)context;
+        return defaultState();
+    }
+
+    /**
+     * @brief 方块更新后处理
+     *
+     * 当邻居方块更新时检查是否需要触发流体混合反应。
+     *
+     * @param state 当前方块状态
+     * @param facing 更新的方向
+     * @param facingState 邻居状态
+     * @param world 世界
+     * @param currentPos 当前方块位置
+     * @param facingPos 邻居位置
+     * @return 更新后的状态
+     */
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    // ========== 岩浆水反应 ==========
+
+    /**
+     * @brief 检查并触发岩浆水反应
+     *
+     * 当岩浆接触到水时：
+     * - 源头岩浆 + 水 -> 黑曜石
+     * - 流动岩浆 + 水 -> 圆石
+     * - 岩浆 + 蓝冰 + 灵魂土 -> 玄武岩
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return 如果反应发生返回 false（阻止后续 tick）
+     */
+    bool reactWithNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 触发流体混合效果
+     *
+     * 播放烟雾粒子效果和嘶嘶声。
+     *
+     * @param world 世界
+     * @param pos 位置
+     */
+    void triggerMixEffects(IWorld& world, const BlockPos& pos);
+
+    // ========== 桶装流体 ==========
+
+    /**
+     * @brief 用桶舀起流体
+     *
+     * 如果是源头方块，移除流体并返回对应的流体。
+     *
+     * @param world 世界
+     * @param pos 位置
+     * @param state 方块状态
+     * @return 如果成功舀起返回流体指针，否则返回 nullptr
+     */
+    [[nodiscard]] fluid::Fluid* pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state);
+
 private:
     fluid::FlowingFluid& m_fluid;
 
