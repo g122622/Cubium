@@ -133,6 +133,26 @@ public:
 
 ## 测试用例
 
-- `test_block_entity_renderer.cpp` - 渲染器注册/调度测试
-- `test_chest_renderer.cpp` - 箱子渲染器测试
-- `test_piston_renderer.cpp` - 活塞渲染器测试
+方块实体逻辑测试位于 `tests/common/world/blockentity/`:
+- `ChestEntityTest.cpp` - 箱子实体测试（开合计数、盖子动画、序列化）
+- `TrappedChestEntityTest.cpp` - 陷阱箱测试
+- `BlockEntityTodoTest.cpp` - 方块实体综合测试（活塞、信标、末影箱等）
+
+## 实现状态
+
+| 组件 | 状态 | 说明 |
+|------|------|------|
+| `IBlockEntityRenderer` | ✅ 完成 | 渲染器接口模板 |
+| `BlockEntityRenderer` | ✅ 完成 | 渲染器基类 |
+| `BlockEntityRendererDispatcher` | ⚠️ 部分 | 需要实现类型安全的渲染分派 |
+| `PistonRenderer` | ⚠️ 部分 | 核心逻辑完成，渲染待实现 |
+| `ChestRenderer` | ⚠️ 部分 | 插值算法完成，渲染待实现 |
+| `BeaconRenderer` | ⚠️ 部分 | 光束旋转公式完成，渲染待实现 |
+
+## MC 1.16.5 对齐要点
+
+1. **活塞插值**：`getProgress(partialTick)` 使用 `lerp(lastProgress, progress, partialTick)`
+2. **活塞偏移**：`getExtendedProgress(progress)` 返回 `extending ? progress - 1.0 : 1.0 - progress`
+3. **信标光束旋转**：`floorMod(gameTime, 40) + partialTick) * 2.25 - 45` 度
+4. **箱子盖缓动**：`angle = 1.0 - angle; angle = 1.0 - angle * angle * angle`
+5. **动画精灵帧切换**：帧索引变化时才上传，插值模式持续上传
