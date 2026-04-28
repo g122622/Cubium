@@ -20,6 +20,14 @@
 #include "commands/SetBlockCommand.hpp"
 #include "commands/FillCommand.hpp"
 #include "commands/ExecuteCommand.hpp"
+#include "commands/OpCommand.hpp"
+#include "commands/DeOpCommand.hpp"
+#include "commands/BanCommand.hpp"
+#include "commands/BanIpCommand.hpp"
+#include "commands/PardonCommand.hpp"
+#include "commands/PardonIpCommand.hpp"
+#include "commands/WhitelistCommand.hpp"
+#include "commands/SaveAllCommand.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
@@ -78,6 +86,14 @@ void CommandRegistry::registerDefaults() {
     SetBlockCommand::registerTo(m_dispatcher);
     FillCommand::registerTo(m_dispatcher);
     ExecuteCommand::registerTo(m_dispatcher);
+    OpCommand::registerTo(m_dispatcher);
+    DeOpCommand::registerTo(m_dispatcher);
+    BanCommand::registerTo(m_dispatcher);
+    BanIpCommand::registerTo(m_dispatcher);
+    PardonCommand::registerTo(m_dispatcher);
+    PardonIpCommand::registerTo(m_dispatcher);
+    WhitelistCommand::registerTo(m_dispatcher);
+    SaveAllCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

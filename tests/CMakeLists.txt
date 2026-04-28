@@ -312,6 +312,14 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetBlockCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/FillCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExecuteCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/OpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DeOpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanIpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonIpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WhitelistCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveAllCommand.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
@@ -845,6 +853,14 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetBlockCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/FillCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExecuteCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/OpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DeOpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanIpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonIpCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WhitelistCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveAllCommand.cpp
 )
 
 target_link_libraries(mc_command_tests
