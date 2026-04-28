@@ -1,10 +1,12 @@
 #include "../ClientApplication.hpp"
 
+#include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/screen/ScreenManager.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -174,6 +176,35 @@ void ClientApplication::updateWorldAudio()
         );
         m_audioService->setBiomeId(biome ? static_cast<u32>(biome->id()) : 0u);
         m_audioService->setUnderwater(inWater);
+
+        // 更新群系环境音效处理器的光照等级和玩家位置
+        // 用于心境音效的触发计算
+        const u8 skyLight = m_world.getSkyLight(
+            static_cast<i32>(std::floor(m_player->x())),
+            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
+            static_cast<i32>(std::floor(m_player->z()))
+        );
+        const u8 blockLight = m_world.getBlockLight(
+            static_cast<i32>(std::floor(m_player->x())),
+            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
+            static_cast<i32>(std::floor(m_player->z()))
+        );
+        m_audioService->setAmbientLightLevel(skyLight, blockLight);
+        m_audioService->setAmbientPlayerPosition(
+            m_player->x(),
+            m_player->y() + m_player->eyeHeight(),
+            m_player->z()
+        );
+
+        // 更新音乐状态
+        // 维度: 0=主世界, -1=下界, 1=末地
+        const i32 dimension = static_cast<i32>(m_player->dimension());
+        // 创造模式检查
+        const bool inCreative = entity::GameModeUtils::isCreative(m_player->gameMode());
+        // Boss战检查（当前未实现Boss战检测系统）
+        const bool inBossFight = false;
+
+        m_audioService->updateMusicState(dimension, inCreative, inBossFight);
     }
 
     m_wasPlayerInWater = inWater;
@@ -189,6 +220,10 @@ void ClientApplication::updateAudioPauseState()
     // 检查是否暂停（游戏暂停时不更新声音）
     bool isPaused = !m_mouseCaptured;  // 鼠标未捕获时认为游戏暂停
     m_audioService->setPaused(isPaused);
+
+    // 检查是否在菜单界面（ScreenManager 有屏幕打开）
+    bool inMenu = ScreenManager::instance().hasScreen();
+    m_audioService->setInMenu(inMenu);
 }
 
 void ClientApplication::shutdownAudio()

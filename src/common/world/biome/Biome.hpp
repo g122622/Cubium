@@ -3,6 +3,7 @@
 #include "../../core/Types.hpp"
 #include "../block/Block.hpp"
 #include "BiomeEffects.hpp"
+#include "BiomeAmbientSounds.hpp"
 #include "BiomeGenerationSettings.hpp"
 #include "../spawn/MobSpawnInfo.hpp"
 #include <string>
@@ -172,6 +173,21 @@ public:
      */
     [[nodiscard]] u32 fogColor() const { return m_effects.fogColor(); }
 
+    // === 环境音效 ===
+
+    /**
+     * @brief 获取环境音效配置
+     * @return BiomeAmbientSounds 常量引用
+     */
+    [[nodiscard]] const world::biome::BiomeAmbientSounds& ambientSounds() const { return m_ambientSounds; }
+    [[nodiscard]] world::biome::BiomeAmbientSounds& ambientSounds() { return m_ambientSounds; }
+
+    /**
+     * @brief 设置环境音效配置
+     * @param sounds 环境音效配置
+     */
+    void setAmbientSounds(const world::biome::BiomeAmbientSounds& sounds) { m_ambientSounds = sounds; }
+
 private:
     BiomeId m_id = 0;
     String m_name;
@@ -202,6 +218,9 @@ private:
 
     // 视觉效果
     world::biome::BiomeEffects m_effects;  ///< 生物群系视觉效果（水体颜色、雾颜色等）
+
+    // 环境音效
+    world::biome::BiomeAmbientSounds m_ambientSounds;  ///< 生物群系环境音效配置
 };
 
 // ============================================================================

@@ -206,8 +206,13 @@ Biome createPlains()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createPlains());
-    // 设置生物生成信息
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -224,8 +229,13 @@ Biome createDesert()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setClimate(BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
-    // 沙漠生物生成信息
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -242,6 +252,12 @@ Biome createMountains()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -257,8 +273,13 @@ Biome createForest()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createForest());
-    // 森林生物生成信息
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -308,6 +329,12 @@ Biome createTaiga()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -341,6 +368,12 @@ Biome createJungle()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -357,6 +390,12 @@ Biome createSavanna()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavanna());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -550,6 +589,12 @@ Biome createSwamp()
         .fogColor(BiomeEffects::SWAMP_FOG_COLOR)
         .grassColorModifier(GrassColorModifier::Swamp)
         .build());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -620,6 +665,12 @@ Biome createDarkForest()
         .grassColor(BiomeEffects::DARK_FOREST_GRASS_COLOR)
         .grassColorModifier(GrassColorModifier::DarkForest)
         .build());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -637,6 +688,12 @@ Biome createSnowyPlains()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -653,6 +710,12 @@ Biome createGiantTreeTaiga()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
+
+    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -1434,6 +1497,22 @@ Biome createNetherWastes()
 
     biome.setGenerationSettings(BiomeGenerationSettings::createNether());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createNetherWastes());
+
+    // 下界荒地环境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setLoopSound(ResourceLocation("minecraft:ambient.nether_wastes.loop"));
+    sounds.setMoodSound(world::biome::MoodSoundAmbience(
+        ResourceLocation("minecraft:ambient.nether_wastes.mood"),
+        6000,  // tick_delay
+        8,     // block_search_extent
+        2.0    // offset
+    ));
+    sounds.setAdditionsSound(world::biome::SoundAdditionsAmbience(
+        ResourceLocation("minecraft:ambient.nether_wastes.additions"),
+        0.0111  // tick_chance
+    ));
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -1460,6 +1539,22 @@ Biome createSoulSandValley()
 
     biome.setGenerationSettings(BiomeGenerationSettings::createSoulSandValley());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSoulSandValley());
+
+    // 灵魂沙谷环境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setLoopSound(ResourceLocation("minecraft:ambient.soul_sand_valley.loop"));
+    sounds.setMoodSound(world::biome::MoodSoundAmbience(
+        ResourceLocation("minecraft:ambient.soul_sand_valley.mood"),
+        6000,  // tick_delay
+        8,     // block_search_extent
+        2.0    // offset
+    ));
+    sounds.setAdditionsSound(world::biome::SoundAdditionsAmbience(
+        ResourceLocation("minecraft:ambient.soul_sand_valley.additions"),
+        0.0111  // tick_chance
+    ));
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -1486,6 +1581,22 @@ Biome createCrimsonForest()
 
     biome.setGenerationSettings(BiomeGenerationSettings::createCrimsonForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createCrimsonForest());
+
+    // 绯红森林环境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setLoopSound(ResourceLocation("minecraft:ambient.crimson_forest.loop"));
+    sounds.setMoodSound(world::biome::MoodSoundAmbience(
+        ResourceLocation("minecraft:ambient.crimson_forest.mood"),
+        6000,  // tick_delay
+        8,     // block_search_extent
+        2.0    // offset
+    ));
+    sounds.setAdditionsSound(world::biome::SoundAdditionsAmbience(
+        ResourceLocation("minecraft:ambient.crimson_forest.additions"),
+        0.0111  // tick_chance
+    ));
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -1512,6 +1623,22 @@ Biome createWarpedForest()
 
     biome.setGenerationSettings(BiomeGenerationSettings::createWarpedForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarpedForest());
+
+    // 诡异森林环境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setLoopSound(ResourceLocation("minecraft:ambient.warped_forest.loop"));
+    sounds.setMoodSound(world::biome::MoodSoundAmbience(
+        ResourceLocation("minecraft:ambient.warped_forest.mood"),
+        6000,  // tick_delay
+        8,     // block_search_extent
+        2.0    // offset
+    ));
+    sounds.setAdditionsSound(world::biome::SoundAdditionsAmbience(
+        ResourceLocation("minecraft:ambient.warped_forest.additions"),
+        0.0111  // tick_chance
+    ));
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 
@@ -1538,6 +1665,22 @@ Biome createBasaltDeltas()
 
     biome.setGenerationSettings(BiomeGenerationSettings::createBasaltDeltas());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBasaltDeltas());
+
+    // 玄武岩三角洲环境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setLoopSound(ResourceLocation("minecraft:ambient.basalt_deltas.loop"));
+    sounds.setMoodSound(world::biome::MoodSoundAmbience(
+        ResourceLocation("minecraft:ambient.basalt_deltas.mood"),
+        6000,  // tick_delay
+        8,     // block_search_extent
+        2.0    // offset
+    ));
+    sounds.setAdditionsSound(world::biome::SoundAdditionsAmbience(
+        ResourceLocation("minecraft:ambient.basalt_deltas.additions"),
+        0.0111  // tick_chance
+    ));
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 

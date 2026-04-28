@@ -3,6 +3,7 @@
 #include "client/settings/ClientSettings.hpp"
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/SoundHandler.hpp"
+#include "client/sound/MusicPlayer.hpp"
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 
@@ -260,6 +261,59 @@ void AudioService::setUnderwater(bool underwater)
     enqueue(std::move(command));
 }
 
+void AudioService::updateMusicState(i32 dimension, bool inCreative, bool inBossFight)
+{
+    if (!m_loaded.load()) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::UpdateMusicState;
+    command.dimension = dimension;
+    command.inCreative = inCreative;
+    command.inBossFight = inBossFight;
+    enqueue(std::move(command));
+}
+
+void AudioService::setAmbientLightLevel(u8 skyLight, u8 blockLight)
+{
+    if (!m_loaded.load()) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::SetAmbientLightLevel;
+    command.skyLight = skyLight;
+    command.blockLight = blockLight;
+    enqueue(std::move(command));
+}
+
+void AudioService::setAmbientPlayerPosition(f64 x, f64 y, f64 z)
+{
+    if (!m_loaded.load()) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::SetAmbientPlayerPosition;
+    command.playerX = x;
+    command.playerY = y;
+    command.playerZ = z;
+    enqueue(std::move(command));
+}
+
+void AudioService::setInMenu(bool inMenu)
+{
+    if (!m_loaded.load()) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::SetInMenu;
+    command.inMenu = inMenu;
+    enqueue(std::move(command));
+}
+
 void AudioService::enqueue(Command command)
 {
     {
@@ -302,6 +356,9 @@ void AudioService::runWorker()
         m_underwaterAmbientHandler = underwaterAmbientHandler.get();
         m_soundEngine->addAmbientHandler(std::move(underwaterAmbientHandler));
 
+        // 创建音乐播放器
+        m_musicPlayer = std::make_unique<MusicPlayer>(*m_soundEngine);
+
         m_loaded.store(true);
         m_running.store(true);
         m_initResult = Result<void>::ok();
@@ -342,6 +399,14 @@ void AudioService::runWorker()
                     m_soundEngine->tick(m_paused.load());
                 }
 
+                // 更新音乐播放器
+                // 注意：inWater 状态通过 setUnderwater 传递
+                // dimension/inCreative/inBossFight/inMenu 通过相应命令更新
+                if (m_musicPlayer) {
+                    m_musicPlayer->tick(m_paused.load(), m_savedInMenu.load(), m_savedDimension, m_savedUnderwater,
+                                        m_savedCreative, m_savedBossFight);
+                }
+
                 nextTickTime = now + AUDIO_TICK_INTERVAL;
             }
         }
@@ -352,6 +417,7 @@ void AudioService::runWorker()
 
         m_soundEngine.reset();
         m_soundHandler.reset();
+        m_musicPlayer.reset();
         m_biomeAmbientHandler = nullptr;
         m_underwaterAmbientHandler = nullptr;
         m_loaded.store(false);
@@ -432,9 +498,32 @@ void AudioService::processCommand(Command& command)
             break;
 
         case CommandType::SetUnderwater:
+            m_savedUnderwater.store(command.underwater);
             if (m_underwaterAmbientHandler) {
                 m_underwaterAmbientHandler->setUnderwater(command.underwater);
             }
+            break;
+
+        case CommandType::UpdateMusicState:
+            m_savedDimension.store(command.dimension);
+            m_savedCreative.store(command.inCreative);
+            m_savedBossFight.store(command.inBossFight);
+            break;
+
+        case CommandType::SetAmbientLightLevel:
+            if (m_biomeAmbientHandler) {
+                m_biomeAmbientHandler->setLightLevel(command.skyLight, command.blockLight);
+            }
+            break;
+
+        case CommandType::SetAmbientPlayerPosition:
+            if (m_biomeAmbientHandler) {
+                m_biomeAmbientHandler->setPlayerPosition(command.playerX, command.playerY, command.playerZ);
+            }
+            break;
+
+        case CommandType::SetInMenu:
+            m_savedInMenu.store(command.inMenu);
             break;
     }
 }

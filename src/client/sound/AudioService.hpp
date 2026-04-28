@@ -21,6 +21,7 @@ class ClientSettings;
 namespace sound {
 
 class BiomeAmbientHandler;
+class MusicPlayer;
 class SoundEngine;
 class SoundHandler;
 class UnderwaterAmbientHandler;
@@ -64,6 +65,43 @@ public:
     void setBiomeId(u32 biomeId);
     void setUnderwater(bool underwater);
 
+    /**
+     * @brief 更新环境音效处理器的光照等级
+     *
+     * 用于心境音效的触发计算。
+     *
+     * @param skyLight 天空光照等级 (0-15)
+     * @param blockLight 方块光照等级 (0-15)
+     */
+    void setAmbientLightLevel(u8 skyLight, u8 blockLight);
+
+    /**
+     * @brief 更新环境音效处理器的玩家位置
+     *
+     * 用于心境音效的位置计算。
+     *
+     * @param x 玩家X坐标
+     * @param y 玩家Y坐标（眼睛高度）
+     * @param z 玩家Z坐标
+     */
+    void setAmbientPlayerPosition(f64 x, f64 y, f64 z);
+
+    /**
+     * @brief 更新音乐播放器
+     *
+     * @param dimension 当前维度ID (0=主世界, -1=下界, 1=末地)
+     * @param inCreative 是否在创造模式
+     * @param inBossFight 是否在Boss战斗中
+     */
+    void updateMusicState(i32 dimension, bool inCreative, bool inBossFight);
+
+    /**
+     * @brief 设置菜单状态
+     *
+     * @param inMenu 是否在菜单界面
+     */
+    void setInMenu(bool inMenu);
+
 private:
     enum class CommandType : u8 {
         Play,
@@ -79,6 +117,10 @@ private:
         ReloadSounds,
         SetBiomeId,
         SetUnderwater,
+        UpdateMusicState,
+        SetAmbientLightLevel,
+        SetAmbientPlayerPosition,
+        SetInMenu,
     };
 
     struct Command {
@@ -96,6 +138,18 @@ private:
         u32 biomeId = 0;
         bool underwater = false;
         bool paused = false;
+        // 音乐状态
+        i32 dimension = 0;
+        bool inCreative = false;
+        bool inBossFight = false;
+        bool inMenu = false;
+        // 环境音效光照等级
+        u8 skyLight = 15;
+        u8 blockLight = 15;
+        // 环境音效玩家位置
+        f64 playerX = 0.0;
+        f64 playerY = 0.0;
+        f64 playerZ = 0.0;
     };
 
     void enqueue(Command command);
@@ -112,8 +166,16 @@ private:
 
     std::unique_ptr<SoundHandler> m_soundHandler;
     std::unique_ptr<SoundEngine> m_soundEngine;
+    std::unique_ptr<MusicPlayer> m_musicPlayer;
     BiomeAmbientHandler* m_biomeAmbientHandler = nullptr;
     UnderwaterAmbientHandler* m_underwaterAmbientHandler = nullptr;
+
+    // 音乐状态（跨线程共享）
+    std::atomic<i32> m_savedDimension{0};
+    std::atomic<bool> m_savedUnderwater{false};
+    std::atomic<bool> m_savedCreative{false};
+    std::atomic<bool> m_savedBossFight{false};
+    std::atomic<bool> m_savedInMenu{false};
 
     std::mutex m_initMutex;
     std::condition_variable m_initConditionVariable;

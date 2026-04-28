@@ -102,7 +102,8 @@ MusicPlayer::~MusicPlayer() {
 // 生命周期
 // ============================================================================
 
-void MusicPlayer::tick(bool isPaused, bool inMenu) {
+void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
+                        bool inCreative, bool inBossFight) {
     if (!m_enabled) {
         return;
     }
@@ -125,8 +126,33 @@ void MusicPlayer::tick(bool isPaused, bool inMenu) {
         return;
     }
 
-    // 根据状态选择音乐类型
-    MusicType desiredType = inMenu ? MusicType::Menu : MusicType::Game;
+    // 根据 MC 1.16.5 MusicTicker.func_238178_U_() 选择音乐类型
+    MusicType desiredType = MusicType::None;
+
+    if (inMenu) {
+        // 主菜单界面
+        desiredType = MusicType::Menu;
+    } else {
+        // 游戏中
+        if (dimension == 1) {
+            // 末地维度
+            desiredType = inBossFight ? MusicType::Dragon : MusicType::End;
+        } else if (dimension == -1) {
+            // 下界维度
+            desiredType = MusicType::Nether;
+        } else if (inWater) {
+            // 水下 - 检查是否在海洋或河流群系中
+            // 注意：水下音乐需要在海洋或河流群系中才能播放
+            // 当前简化实现：水下就播放水下音乐
+            desiredType = MusicType::Underwater;
+        } else if (inCreative) {
+            // 创造模式
+            desiredType = MusicType::Creative;
+        } else {
+            // 主世界普通游戏
+            desiredType = MusicType::Game;
+        }
+    }
 
     // 如果当前没有音乐且延迟已过，开始新音乐
     if (m_currentSoundId == 0 && m_delayCounter == 0) {

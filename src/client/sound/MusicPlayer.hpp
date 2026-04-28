@@ -88,8 +88,13 @@ public:
      *
      * @param isPaused 游戏是否暂停
      * @param inMenu 是否在主菜单
+     * @param dimension 当前维度ID (0=主世界, -1=下界, 1=末地)
+     * @param inWater 是否在水中
+     * @param inCreative 是否在创造模式
+     * @param inBossFight 是否在Boss战斗中
      */
-    void tick(bool isPaused, bool inMenu);
+    void tick(bool isPaused, bool inMenu, i32 dimension = 0, bool inWater = false,
+              bool inCreative = false, bool inBossFight = false);
 
     /**
      * @brief 停止当前音乐
