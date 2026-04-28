@@ -4,6 +4,7 @@
 #include "../../util/math/Vector3.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../entity/core/Entity.hpp"
+#include "../../entity/core/EntityClassification.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -101,6 +102,25 @@ public:
      * @return 实体列表
      */
     [[nodiscard]] std::vector<Entity*> getEntitiesByType(LegacyEntityType type) const;
+
+    /**
+     * @brief 按分类统计实体数量
+     * @return 各分类的实体数量映射
+     */
+    [[nodiscard]] std::unordered_map<entity::EntityClassification, i32> countEntitiesByClassification() const;
+
+    /**
+     * @brief 获取指定分类的实体数量
+     * @param classification 实体分类
+     * @return 该分类的实体数量
+     */
+    [[nodiscard]] i32 getCountByClassification(entity::EntityClassification classification) const;
+
+    /**
+     * @brief 获取所有玩家实体
+     * @return 玩家实体列表
+     */
+    [[nodiscard]] std::vector<Entity*> getPlayers() const;
 
     /**
      * @brief 遍历所有实体

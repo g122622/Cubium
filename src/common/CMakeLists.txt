@@ -46,6 +46,7 @@ add_library(mc_common STATIC
     network/packet/DimensionPackets.cpp
     network/packet/ExperiencePackets.cpp
     network/packet/ParticlePacket.cpp
+    network/packet/SleepPacket.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp
@@ -69,6 +70,7 @@ add_library(mc_common STATIC
     # Entity - Player
     entity/entities/player/Player.cpp
     entity/entities/player/GameModeUtils.cpp
+    entity/player/SleepManager.cpp
     # Entity - Item
     entity/entities/item/ItemEntity.cpp
     # Entity - Passive Animals (basic)
@@ -694,6 +696,10 @@ add_library(mc_common STATIC
     world/fluid/fluids/EmptyFluid.cpp
     world/fluid/fluids/WaterFluid.cpp
     world/fluid/fluids/LavaFluid.cpp
+
+    # World - Explosion System
+    world/explosion/ExplosionContext.cpp
+    world/explosion/Explosion.cpp
 
     # World - Village System
     world/village/Village.cpp

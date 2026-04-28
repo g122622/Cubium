@@ -1,8 +1,14 @@
 #include "RespawnAnchorBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../dimension/DimensionType.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../block/VanillaBlocks.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
@@ -96,6 +102,97 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges - 1);
         world.setBlockState(pos, &newState, 3);
     }
+}
+
+ActionResultType RespawnAnchorBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(hit);
+
+    // 获取维度信息
+    DimensionType dimType = DimensionType::fromId(world.dimension());
+
+    // 获取手持物品
+    ItemStack& heldItem = player.getHeldItem(hand);
+
+    // 检查是否用萤石充能
+    // MC Java: 检查物品是否对应 GLOWSTONE 方块
+    bool hasGlowstone = false;
+    if (!heldItem.isEmpty()) {
+        const Item* item = heldItem.getItem();
+        if (item != nullptr) {
+            const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+            hasGlowstone = (block == VanillaBlocks::GLOWSTONE);
+        }
+    }
+
+    if (hasGlowstone && getCharges(state) < 4) {
+        // 充能
+        BlockState newState = charge(world, pos, const_cast<BlockState&>(state));
+
+        // 播放充能音效
+        world.playSound(
+            ResourceLocation("minecraft:block.respawn_anchor.charge"),
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            1.0f
+        );
+
+        // 消耗萤石
+        heldItem.shrink(1);
+
+        return ActionResultType::Success;
+    }
+
+    // 检查重生锚是否在此维度可用
+    if (!dimType.respawnAnchorWorks()) {
+        // 在非下界使用重生锚会爆炸
+        // 移除重生锚
+        world.setBlockState(pos, nullptr, 11);
+
+        // TODO: 创建爆炸
+        // world.createExplosion(pos, 5.0f, true, Explosion::Mode::DESTROY);
+
+        // 播放爆炸音效
+        world.playSound(
+            ResourceLocation("minecraft:entity.generic.explode"),
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            4.0f,
+            1.0f
+        );
+
+        return ActionResultType::Success;
+    }
+
+    // 在下界使用重生锚设置重生点
+    if (getCharges(state) > 0) {
+        // 消耗一次充能
+        BlockState mutableState = state;
+        discharge(world, pos, mutableState);
+
+        // 设置玩家的重生点
+        // TODO: player.setSpawnPoint(pos, true, dimId);
+
+        // 播放设置重生点音效
+        world.playSound(
+            ResourceLocation("minecraft:block.respawn_anchor.set_spawn"),
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            1.0f
+        );
+
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace blocks

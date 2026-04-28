@@ -78,8 +78,16 @@ public:
 
     /**
      * @brief 是否需要随机 tick
+     *
+     * 农作物总是需要随机 tick 以便生长检查。
+     * 在 randomTick() 中会检查是否成熟并提前返回。
+     *
+     * 注意：Block::ticksRandomly() 是无状态方法，无法检查作物是否成熟。
+     * 成熟检查在 randomTick() 中进行。
      */
-    [[nodiscard]] bool ticksRandomly() const override;
+    [[nodiscard]] bool ticksRandomly() const override {
+        return true;
+    }
 
     /**
      * @brief 生长（使用骨粉）

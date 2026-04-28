@@ -100,6 +100,7 @@ block/
     - `neighborChanged()`：邻居更新
     - `onBlockAdded()`：放置处理
     - `onBlockRemoved()`：移除处理
+    - `isReplaceable()`：方块是否可被替换（支持双层台阶等）
 
 ### BlockPos.hpp
 

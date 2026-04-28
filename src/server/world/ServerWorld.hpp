@@ -238,6 +238,15 @@ public:
         const Vector3& pos,
         f32 maxDistance = 256.0f) const override;
 
+    // ========== 爆炸 ==========
+
+    void createExplosion(
+        const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy,
+        bool causesFire = false,
+        Entity* source = nullptr) override;
+
     // ========== 物理引擎 ==========
 
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine.get(); }
@@ -343,13 +352,69 @@ public:
 
     // ========== 村庄管理 ==========
 
-    [[nodiscard]] world::village::VillageManager* villageManager() { return m_villageManager.get(); }
-    [[nodiscard]] const world::village::VillageManager* villageManager() const { return m_villageManager.get(); }
+    [[nodiscard]] ::mc::world::village::VillageManager* villageManager() { return m_villageManager.get(); }
+    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const { return m_villageManager.get(); }
 
     // ========== 袭击管理 ==========
 
-    [[nodiscard]] world::village::raid::RaidManager* raidManager() { return m_raidManager.get(); }
-    [[nodiscard]] const world::village::raid::RaidManager* raidManager() const { return m_raidManager.get(); }
+    [[nodiscard]] ::mc::world::village::raid::RaidManager* raidManager() { return m_raidManager.get(); }
+    [[nodiscard]] const ::mc::world::village::raid::RaidManager* raidManager() const { return m_raidManager.get(); }
+
+    // ========== 睡眠管理 ==========
+
+    /**
+     * @brief 跳到早晨
+     *
+     * 将当前时间设置为下一个早晨（dayTime = 0）。
+     * 当所有玩家都入睡时调用。
+     */
+    void skipToMorning();
+
+    /**
+     * @brief 检查是否可以跳过夜晚
+     *
+     * 检查日光周期是否启用。
+     *
+     * @return true 如果可以跳过夜晚
+     */
+    [[nodiscard]] bool canSkipNight() const;
+
+    /**
+     * @brief 检查是否可以清除天气
+     *
+     * 检查天气周期是否启用。
+     *
+     * @return true 如果可以清除天气
+     */
+    [[nodiscard]] bool canClearWeather() const;
+
+    /**
+     * @brief 检查是否所有玩家都在睡眠
+     * @return true 如果所有非观察者玩家都在睡眠
+     */
+    [[nodiscard]] bool allPlayersSleeping() const { return m_allPlayersSleeping; }
+
+    /**
+     * @brief 更新全员睡眠标志
+     *
+     * 当玩家开始或停止睡眠时调用。
+     */
+    void updateAllPlayersSleepingFlag();
+
+    /**
+     * @brief 检查并处理全员睡眠
+     *
+     * 在 tick() 中调用，检查是否所有玩家都完全入睡，
+     * 如果是则跳过夜晚并唤醒所有玩家。
+     */
+    void checkSleepStatus();
+
+    /**
+     * @brief 唤醒所有玩家
+     *
+     * 当夜晚跳过后调用。
+     */
+    void wakeUpAllPlayers();
 
 private:
     void syncLightDataToChunk(LightType type, const SectionPos& pos);
@@ -367,12 +432,13 @@ private:
     server::ItemPickupManager m_itemPickupManager;
     core::TimeManager* m_timeManager = nullptr;  // 外部引用，不拥有
     bool m_initialized = false;
+    bool m_allPlayersSleeping = false;  // 全员睡眠标志
 
     OpenContainerCallback m_onOpenContainer;
 
     // 村庄和袭击系统
-    std::unique_ptr<world::village::VillageManager> m_villageManager;
-    std::unique_ptr<world::village::raid::RaidManager> m_raidManager;
+    std::unique_ptr<::mc::world::village::VillageManager> m_villageManager;
+    std::unique_ptr<::mc::world::village::raid::RaidManager> m_raidManager;
 
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;

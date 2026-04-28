@@ -1,5 +1,7 @@
 #include "MiscEntities.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/explosion/Explosion.hpp"
+#include "../../../world/explosion/ExplosionMode.hpp"
 #include "../player/Player.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../../core/Types.hpp"
@@ -110,7 +112,20 @@ void TNTEntity::ignite() {
 void TNTEntity::explode() {
     if (m_exploded) return;
     m_exploded = true;
-    // TODO: 创建爆炸
+
+    IWorld* worldPtr = world();
+    if (worldPtr) {
+        // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）
+        // 爆炸位置在 TNT 底部（Y 偏移 0.0625）
+        worldPtr->createExplosion(
+            Vector3(x(), y() + 0.0625f, z()),
+            m_explosionRadius,
+            world::explosion::ExplosionMode::Break,
+            false,  // 不生成火焰
+            this    // 爆炸源实体
+        );
+    }
+
     remove();
 }
 

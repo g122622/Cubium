@@ -151,6 +151,8 @@ add_executable(mc_tests
     common/world/redstone/RedstonePowerTest.cpp
     # 绾㈢煶鏂瑰潡娴嬭瘯
     common/world/block/test_redstone_blocks.cpp
+    # Explosion system tests
+    common/world/explosion/test_explosion.cpp
     # 灏勭嚎妫€娴嬫祴璇?    common/math/RaycastTest.cpp
     # 视锥剔除测试
     common/util/math/FrustumTest.cpp
@@ -228,6 +230,7 @@ add_executable(mc_tests
     common/item/enchantment/EnchantmentTest.cpp
     # 鑷姩璺宠穬娴嬭瘯
     common/entity/movement/AutoJumpTest.cpp
+    common/entity/player/SleepManagerTest.cpp
     # 鐜╁绉诲姩娴嬭瘯
     common/entity/PlayerMovementTest.cpp
     # Assert搴撴祴璇?    common/util/assert/AssertTest.cpp
@@ -272,6 +275,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
@@ -410,6 +414,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfo.cpp
         # ${CMAKE_SOURCE_DIR}/src/common/world/BlockID.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/player/Player.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/player/SleepManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp

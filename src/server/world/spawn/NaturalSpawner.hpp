@@ -6,10 +6,12 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <unordered_set>
 
 namespace mc {
 
@@ -245,23 +247,24 @@ private:
     /// 密度追踪器
     MobDensityTracker m_densityTracker;
 
+    /// 上次动物生成检查时间（游戏刻）
+    u64 m_lastCreatureSpawnTime = 0;
+
+    /// 动物生成间隔（游戏刻）- MC 默认 400 tick
+    static constexpr u64 CREATURE_SPAWN_INTERVAL = 400;
+
     // ========== 内部方法 ==========
 
     /**
-     * @brief 为指定分类执行生成
-     *
-     * @param classification 实体分类
-     * @param world 世界
-     * @param chunk 区块
-     * @param densityCheck 密度检查回调
-     * @param onSpawnDensityAdd 生成后密度更新回调
+     * @brief 在指定区块中为指定分类执行生成
      */
-    void spawnForClassification(
+    void spawnForClassificationInChunk(
         entity::EntityClassification classification,
         mc::server::ServerWorld& world,
         const ChunkData* chunk,
-        const std::function<bool(const SpawnEntry&, const Vector3i&, const ChunkData*)>& densityCheck,
-        const std::function<void(const String&, const Vector3&)>& onSpawnDensityAdd);
+        const Vector3& playerPos,
+        EntityDensityManager& densityManager,
+        math::Random& random);
 
     /**
      * @brief 在指定位置尝试生成实体
@@ -329,6 +332,34 @@ private:
      * @brief 创建实体密度管理器
      */
     EntityDensityManager createDensityManager(mc::server::ServerWorld& world);
+
+    /**
+     * @brief 获取可生成区块列表
+     *
+     * 从玩家视距内的区块中随机选择可生成区块。
+     *
+     * @param world 世界
+     * @param maxChunks 最大区块数量
+     * @param random 随机数生成器
+     * @return 可生成区块的坐标列表
+     */
+    [[nodiscard]] std::vector<ChunkPos> getSpawnableChunks(
+        mc::server::ServerWorld& world,
+        i32 maxChunks,
+        math::Random& random) const;
+
+    /**
+     * @brief 检查实体类型是否应该在当前条件下生成
+     *
+     * 参考 MC 1.16.5 NaturalSpawner.isSpawnCategoryReady
+     *
+     * @param classification 实体分类
+     * @param worldTime 世界时间（游戏刻）
+     * @return 是否可以生成该分类
+     */
+    [[nodiscard]] bool isSpawnCategoryReady(
+        entity::EntityClassification classification,
+        u64 worldTime) const;
 };
 
 } // namespace world::spawn

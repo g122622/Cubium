@@ -43,6 +43,10 @@ class EntityTracker;
 class ItemPickupManager;
 class WeatherManager;
 }
+namespace world::spawn {
+class NaturalSpawner;
+class DespawnManager;
+}
 namespace command {
 class CommandRegistry;
 }
@@ -591,6 +595,10 @@ protected:
 
     // 掉落表
     mc::loot::LootTableManager m_lootTableManager;
+
+    // 刷怪系统
+    std::unique_ptr<::mc::world::spawn::NaturalSpawner> m_naturalSpawner;
+    std::unique_ptr<::mc::world::spawn::DespawnManager> m_despawnManager;
 
     // Tick 计数器
     u64 m_tickCounter = 0;

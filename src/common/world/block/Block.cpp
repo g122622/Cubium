@@ -10,6 +10,7 @@
 #include "../../entity/entities/player/Player.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/context/ItemUseContext.hpp"
+#include "../../item/context/BlockItemUseContext.hpp"
 #include "../blockentity/BlockEntity.hpp"
 #include "../../util/math/random/IRandom.hpp"
 #include "../../util/Direction.hpp"
@@ -371,6 +372,7 @@ Block::Block(BlockProperties properties)
     , m_isFlammable(properties.m_isFlammable)
     , m_propagatesSkylightDown(properties.m_propagatesSkylightDown)
     , m_requiresTool(properties.m_requiresTool)
+    , m_isReplaceable(properties.m_isReplaceable)
     , m_harvestTool(properties.m_harvestTool)
     , m_harvestLevel(properties.m_harvestLevel)
     , m_lootTableId(properties.m_lootTableId)
@@ -616,6 +618,14 @@ bool Block::isValidPosition(
     (void)world;
     (void)pos;
     return true;
+}
+
+bool Block::isReplaceable(
+    const BlockState& state,
+    BlockItemUseContext& context) const {
+    // 默认实现：使用 BlockProperties 的 isReplaceable 值
+    (void)context;
+    return m_isReplaceable;
 }
 
 ActionResultType Block::onBlockActivated(

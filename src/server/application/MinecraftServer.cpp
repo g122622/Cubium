@@ -4,6 +4,8 @@
 #include "server/world/weather/WeatherManager.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/spawn/NaturalSpawner.hpp"
+#include "server/world/spawn/DespawnManager.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
@@ -114,6 +116,16 @@ void MinecraftServer::tick()
     // world tick
     if (m_world) {
         m_world->tick();
+    }
+
+    // 自然刷怪（在世界 tick 后、实体 tick 前执行）
+    if (m_naturalSpawner && m_world) {
+        m_naturalSpawner->tick(*m_world, true, true);
+    }
+
+    // 生物消失检查（在刷怪后执行）
+    if (m_despawnManager && m_world) {
+        m_despawnManager->tick(*m_world);
     }
 
     // 清理断开连接的玩家
@@ -249,6 +261,10 @@ Result<void> MinecraftServer::initializeWorld()
 
     // 初始化命令注册表
     m_commandRegistry = std::make_unique<command::CommandRegistry>();
+
+    // 初始化刷怪系统
+    m_naturalSpawner = std::make_unique<::mc::world::spawn::NaturalSpawner>();
+    m_despawnManager = std::make_unique<::mc::world::spawn::DespawnManager>();
 
     return Result<void>::ok();
 }

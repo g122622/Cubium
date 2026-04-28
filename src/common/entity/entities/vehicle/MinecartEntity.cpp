@@ -511,7 +511,7 @@ bool AbstractMinecartEntity::isRailPowered(const BlockPos& pos) const {
     // 检查铁轨是否接收红石信号
     // 注意：RedstonePower::isPowered 需要非 const 世界引用
     // 由于此方法是 const，我们需要使用 const_cast
-    IWorld* worldPtr = const_cast<IWorld*>(world());
+    IWorld* worldPtr = const_cast<IWorld*>(Entity::world());
     if (!worldPtr) {
         return false;
     }

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "RedstoneDiodeBlock.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../item/core/ActionResult.hpp"
 
 namespace mc {
 namespace blocks {
@@ -89,6 +92,19 @@ public:
      * @return BlockState 更新后的状态
      */
     [[nodiscard]] static BlockState withLocked(BlockState state, bool locked);
+
+    /**
+     * @brief 右键交互 - 调整延迟档位
+     *
+     * MC Java: 右键点击中继器可以在 1-4 档延迟之间循环切换。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 private:
     /// 最小延迟档位

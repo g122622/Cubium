@@ -5,6 +5,8 @@
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/redstone/ComparatorEntity.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -222,6 +224,45 @@ i32 RedstoneComparatorBlock::calculateInputStrength(IWorld& world, const BlockPo
     }
 
     return input;
+}
+
+ActionResultType RedstoneComparatorBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(player);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // MC Java: 右键点击比较器可以在比较模式和减法模式之间切换
+    ComparatorMode currentMode = getMode(state);
+    ComparatorMode newMode = (currentMode == ComparatorMode::Compare)
+        ? ComparatorMode::Subtract
+        : ComparatorMode::Compare;
+
+    // 设置新模式
+    BlockState newState = withMode(state, newMode);
+    world.setBlockState(pos, &newState, 3);
+
+    // 播放点击音效
+    f32 pitch = (newMode == ComparatorMode::Subtract) ? 0.55f : 0.5f;
+    world.playSound(
+        ResourceLocation("minecraft:block.comparator.click"),
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.3f,
+        pitch
+    );
+
+    // 比较器模式改变后需要更新输出
+    // 立即触发状态检查
+    updateState(world, pos, newState);
+
+    return ActionResultType::Success;
 }
 
 } // namespace blocks

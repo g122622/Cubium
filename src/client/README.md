@@ -677,7 +677,7 @@ input.endFrame();
 
 ```powershell
 # Release 构建
-cmake --build build --config Release
+cmake --build build --config RelWithDebInfo
 ./build/bin/Release/minecraft-client.exe
 
 # 带参数启动
@@ -830,7 +830,7 @@ cmake -B build -G "Visual Studio 17 2022" -A x64 `
     -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
 
 # 构建
-cmake --build build --config Release
+cmake --build build --config RelWithDebInfo
 
 # 启用 Vulkan 验证层 (调试用)
 cmake -B build -DMC_ENABLE_VULKAN_VALIDATION=ON

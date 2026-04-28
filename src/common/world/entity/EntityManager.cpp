@@ -1,5 +1,6 @@
 #include "EntityManager.hpp"
 #include "../../entity/core/Entity.hpp"
+#include "../../entity/core/EntityRegistry.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -206,6 +207,66 @@ void EntityManager::releaseId(EntityId id) {
     if (id > 0 && id < m_nextId) {
         m_freeIds.push_back(id);
     }
+}
+
+std::unordered_map<entity::EntityClassification, i32> EntityManager::countEntitiesByClassification() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::unordered_map<entity::EntityClassification, i32> counts;
+
+    // 初始化所有分类为 0
+    counts[entity::EntityClassification::Monster] = 0;
+    counts[entity::EntityClassification::Creature] = 0;
+    counts[entity::EntityClassification::Ambient] = 0;
+    counts[entity::EntityClassification::WaterCreature] = 0;
+    counts[entity::EntityClassification::WaterAmbient] = 0;
+    counts[entity::EntityClassification::Misc] = 0;
+
+    // 遍历所有实体，统计各分类数量
+    auto& registry = entity::EntityRegistry::instance();
+    for (const auto& [id, entity] : m_entities) {
+        if (entity && !entity->isRemoved()) {
+            // 通过实体类型ID获取分类
+            const String& typeId = entity->getTypeId();
+            const entity::EntityType* type = registry.getType(typeId);
+            if (type) {
+                entity::EntityClassification classification = type->classification();
+                counts[classification]++;
+            }
+        }
+    }
+
+    return counts;
+}
+
+i32 EntityManager::getCountByClassification(entity::EntityClassification classification) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    i32 count = 0;
+
+    auto& registry = entity::EntityRegistry::instance();
+    for (const auto& [id, entity] : m_entities) {
+        if (entity && !entity->isRemoved()) {
+            const String& typeId = entity->getTypeId();
+            const entity::EntityType* type = registry.getType(typeId);
+            if (type && type->classification() == classification) {
+                count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+std::vector<Entity*> EntityManager::getPlayers() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::vector<Entity*> result;
+
+    for (const auto& [id, entity] : m_entities) {
+        if (entity && !entity->isRemoved() && entity->legacyType() == LegacyEntityType::Player) {
+            result.push_back(entity.get());
+        }
+    }
+
+    return result;
 }
 
 } // namespace mc

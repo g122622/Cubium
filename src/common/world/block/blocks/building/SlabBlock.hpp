@@ -46,6 +46,18 @@ public:
         IBlockReader& world,
         const BlockPos& pos) const override;
 
+    /**
+     * @brief 检查方块是否可被替换
+     *
+     * 单层台阶可被同类型台阶替换以形成双层台阶。
+     * 双层台阶不可被替换。
+     *
+     * 参考: net.minecraft.block.SlabBlock#isReplaceable
+     */
+    [[nodiscard]] bool isReplaceable(
+        const BlockState& state,
+        BlockItemUseContext& context) const override;
+
     [[nodiscard]] BlockState updatePostPlacement(
         const BlockState& state,
         Direction facing,

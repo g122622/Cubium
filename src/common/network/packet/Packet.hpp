@@ -66,6 +66,9 @@ enum class PacketType : u16 {
     // 玩家列表
     PlayerListItem = 229,       // 玩家列表更新 (S->C)
 
+    // 睡眠系统
+    Sleep = 230,                // 睡眠状态同步 (S->C)
+
     // 背包相关包 (双向)
     ContainerContent = 300,     // 容器内容同步 (S->C)
     ContainerSlot = 301,        // 单个槽位更新 (S->C)

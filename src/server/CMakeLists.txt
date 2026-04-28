@@ -29,6 +29,7 @@ add_executable(minecraft-server
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp
+    world/spawn/DespawnManager.cpp
     world/entity/EntityTracker.cpp
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp

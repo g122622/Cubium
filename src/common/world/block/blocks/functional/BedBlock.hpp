@@ -4,6 +4,9 @@
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../item/core/ActionResult.hpp"
 #include <array>
 
 namespace mc {
@@ -84,6 +87,19 @@ public:
      * @brief 检查床是否可用
      */
     [[nodiscard]] static bool isBed(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 右键交互 - 睡眠或爆炸
+     *
+     * MC Java: 在主世界可以睡眠设置重生点，在下界和末地会爆炸。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /// 床颜色 (0-15, 对应16种染料颜色)

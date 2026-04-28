@@ -607,7 +607,7 @@ if (playerId == 0) {
 
 ```powershell
 # 构建项目
-cmake --build build --config Release
+cmake --build build --config RelWithDebInfo
 
 # 运行所有测试
 ./build/bin/Release/mc_tests.exe

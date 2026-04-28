@@ -22,6 +22,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/cmake-hint.ps1"
+          }
+        ]
+      }
     ]
   }
 }

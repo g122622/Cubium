@@ -969,6 +969,59 @@ public:
      */
     virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state);
 
+    // ========================================================================
+    // 爆炸相关
+    // ========================================================================
+
+    /**
+     * @brief 获取方块的爆炸抗性
+     *
+     * 返回方块抵抗爆炸的能力。值越大越难被破坏。
+     * 默认实现返回方块的 resistance 值。
+     *
+     * @param state 方块状态
+     * @return 爆炸抗性值
+     *
+     * 参考: net.minecraft.block.Block.getExplosionResistance
+     */
+    [[nodiscard]] virtual f32 getExplosionResistance(const BlockState& state) const {
+        return state.resistance();
+    }
+
+    /**
+     * @brief 判断方块是否可以在爆炸中掉落物品
+     *
+     * 返回 true 表示爆炸破坏时可以掉落物品。
+     * 某些方块（如叶子、玻璃）在爆炸时不会掉落物品。
+     *
+     * @param state 方块状态
+     * @return 是否可以掉落物品
+     *
+     * 参考: net.minecraft.block.Block.canDropFromExplosion
+     */
+    [[nodiscard]] virtual bool canDropFromExplosion(const BlockState& state) const {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
+     * @brief 方块被爆炸破坏时的处理
+     *
+     * 当方块被爆炸破坏时调用。默认实现为空。
+     * 特殊方块（如 TNT）可以重写此方法实现特殊行为。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     *
+     * 参考: net.minecraft.block.Block.onBlockExploded
+     */
+    virtual void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+    }
+
     /**
      * @brief 实体与方块碰撞时调用
      *
@@ -1078,6 +1131,22 @@ public:
         const BlockState& state,
         IBlockReader& world,
         const BlockPos& pos) const;
+
+    /**
+     * @brief 检查方块是否可被替换
+     *
+     * 当玩家使用物品点击方块时调用，判断是否可以替换该方块。
+     * 默认实现返回 BlockProperties::isReplaceable() 的值。
+     *
+     * 子类可重写此方法实现特殊替换逻辑，如台阶可被同类型台阶替换形成双层台阶。
+     *
+     * @param state 当前方块状态
+     * @param context 物品使用上下文
+     * @return 如果方块可被替换返回true
+     */
+    [[nodiscard]] virtual bool isReplaceable(
+        const BlockState& state,
+        BlockItemUseContext& context) const;
 
     // ========================================================================
     // 交互
@@ -1300,6 +1369,7 @@ protected:
     bool m_isFlammable = false;
     bool m_propagatesSkylightDown = false;
     bool m_requiresTool = false;
+    bool m_isReplaceable = false;  // 是否可被替换
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
 
