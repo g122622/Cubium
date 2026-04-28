@@ -68,6 +68,8 @@ add_library(mc_common STATIC
     entity/effect/EffectInstance.cpp
     entity/effect/EffectManager.cpp
     entity/effect/EffectAttributeModifiers.cpp
+    # Entity - Food
+    entity/food/FoodStats.cpp
     # Entity - Player
     entity/entities/player/Player.cpp
     entity/entities/player/GameModeUtils.cpp
@@ -774,6 +776,7 @@ add_library(mc_common STATIC
     # Sound system - Core
     sound/SoundCategory.cpp
     sound/SoundEvent.cpp
+    sound/SoundEvents.cpp
 
     # Sound system - Network
     sound/network/SoundPackets.cpp

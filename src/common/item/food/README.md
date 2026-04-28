@@ -98,13 +98,13 @@ PUFFERFISH, TROPICAL_FISH
 
 ## 注意事项
 
-1. **食物效果应用**：需要在 `onItemUseFinish()` 中调用 `Player::getFoodStats().eat()`
-2. **容器物品**：蘑菇汤等返回碗，蜂蜜瓶返回玻璃瓶
-3. **药水效果**：需要实现 PotionEffect 系统
-4. **玩家饥饿系统**：需要实现 FoodStats 类
+1. **食物效果应用**：在 `FoodItem::onItemUseFinish()` 中调用 `player.foodStats().addStats()`
+2. **容器物品**：蘑菇汤等返回碗，蜂蜜瓶返回玻璃瓶（需实现 `hasContainerItem()`）
+3. **药水效果**：已实现，通过 `Food::addEffect()` 添加效果
+4. **玩家饥饿系统**：已实现 `FoodStats` 类（`src/common/entity/food/FoodStats.hpp`）
+5. **声音效果**：已实现进食和打嗝音效（`SoundEvents::ENTITY_GENERIC_EAT`, `ENTITY_PLAYER_BURP`）
 
 ## 测试用例
 
 相关测试文件：
-- `tests/common/item/FoodTest.cpp`
-- `tests/common/item/FoodItemTest.cpp`
+- `tests/common/test_entity.cpp` - 包含 FoodStats 基础测试

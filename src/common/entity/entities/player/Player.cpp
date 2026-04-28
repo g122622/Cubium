@@ -329,12 +329,14 @@ void Player::tick() {
         }
     }
 
-    // 饥饿系统
-    if (m_gameMode == GameMode::Survival && !isDead()) {
-        // 简化的饥饿消耗
-        if (m_foodStats.exhaustionLevel >= 4.0f) {
-            m_foodStats.addExhaustion(0.0f); // 触发消耗
-        }
+    // 饥饿系统 tick
+    // 只有生存模式和冒险模式才处理饥饿
+    if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
+        // TODO: 从世界获取游戏规则 naturalRegeneration
+        bool naturalRegeneration = true;  // 默认启用自然恢复
+        // TODO: 从世界获取难度
+        Difficulty difficulty = Difficulty::Normal;  // 默认普通难度
+        m_foodStats.tick(*this, difficulty, naturalRegeneration);
     }
 
     // 更新游泳状态和动画
@@ -624,6 +626,14 @@ void Player::jump() {
         m_velocity.y = physics::JUMP_VELOCITY;
         m_onGround = false;
         m_jumpTicks = JUMP_COOLDOWN; // 设置跳跃冷却
+
+        // 跳跃消耗饥饿值
+        // 参考 MC 1.16.5: PlayerEntity.jump() 调用 addExhaustion
+        if (m_isSprinting) {
+            addExhaustion(EXHAUSTION_SPRINT_JUMP);
+        } else {
+            addExhaustion(EXHAUSTION_JUMP);
+        }
     }
 }
 
@@ -848,9 +858,9 @@ void Player::setCreativeModeInventory() {
 
 void Player::respawn() {
     m_health = m_maxHealth;
-    m_foodStats.foodLevel = 20;
-    m_foodStats.saturationLevel = 5.0f;
-    m_foodStats.exhaustionLevel = 0.0f;
+    m_foodStats.setFoodLevel(20);
+    m_foodStats.setSaturationLevel(5.0f);
+    m_foodStats.setFoodTimer(0);
     m_deathTime = 0;
     m_hurtTime = 0;
     m_isSleeping = false;
@@ -1278,6 +1288,24 @@ void Player::updateMoveDistance() {
     }
 
     m_moveDistanceSamplePosition = m_position;
+
+    // 饥饿消耗（基于移动距离）
+    // 只有生存模式和冒险模式才消耗饥饿
+    if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
+        if (isInWater()) {
+            // 游泳消耗：每米 0.01
+            f32 swimDistance = std::sqrt(dx * dx + dy * dy + dz * dz);
+            if (swimDistance > 0.0f) {
+                addExhaustion(EXHAUSTION_SWIM_PER_METER * swimDistance);
+            }
+        } else if (m_isSprinting && m_onGround) {
+            // 疾跑消耗：每米 0.1
+            if (distance > 0.0f) {
+                addExhaustion(EXHAUSTION_SPRINT_PER_METER * distance);
+            }
+        }
+        // 潜行、普通行走、攀爬不消耗饥饿
+    }
 }
 
 void Player::playStepSound() {
@@ -1289,6 +1317,13 @@ void Player::playSwimSound(f32 volume) {
     // 由客户端调用
     m_swimSoundVolume = volume;
     m_shouldPlaySwimSound = true;
+}
+
+void Player::addExhaustion(f32 exhaustion) {
+    // 只有生存模式和冒险模式才消耗饥饿
+    if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
+        m_foodStats.addExhaustion(exhaustion);
+    }
 }
 
 } // namespace mc

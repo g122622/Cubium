@@ -10,6 +10,7 @@
 #include "items/tool/ShovelItem.hpp"
 #include "items/tool/HoeItem.hpp"
 #include "items/tool/SwordItem.hpp"
+#include "food/Foods.hpp"
 #include "../world/block/VanillaBlocks.hpp"
 
 namespace {
@@ -173,6 +174,28 @@ Item* Items::MUTTON = nullptr;
 Item* Items::RABBIT = nullptr;
 Item* Items::COD = nullptr;
 Item* Items::SALMON = nullptr;
+// 缺失的食物
+Item* Items::BAKED_POTATO = nullptr;
+Item* Items::BEETROOT = nullptr;
+Item* Items::BEETROOT_SOUP = nullptr;
+Item* Items::CARROT = nullptr;
+Item* Items::CHORUS_FRUIT = nullptr;
+Item* Items::COOKIE = nullptr;
+Item* Items::DRIED_KELP = nullptr;
+Item* Items::GOLDEN_CARROT = nullptr;
+Item* Items::HONEY_BOTTLE = nullptr;
+Item* Items::MELON_SLICE = nullptr;
+Item* Items::MUSHROOM_STEW = nullptr;
+Item* Items::POISONOUS_POTATO = nullptr;
+Item* Items::POTATO = nullptr;
+Item* Items::PUFFERFISH = nullptr;
+Item* Items::PUMPKIN_PIE = nullptr;
+Item* Items::RABBIT_STEW = nullptr;
+Item* Items::ROTTEN_FLESH = nullptr;
+Item* Items::SPIDER_EYE = nullptr;
+Item* Items::SUSPICIOUS_STEW = nullptr;
+Item* Items::SWEET_BERRIES = nullptr;
+Item* Items::TROPICAL_FISH = nullptr;
 
 // 木棍和骨头
 Item* Items::STICK = nullptr;
@@ -190,7 +213,7 @@ Item* Items::SLIME_BALL = nullptr;
 Item* Items::EGG = nullptr;
 Item* Items::COMPASS = nullptr;
 Item* Items::CLOCK = nullptr;
-Item* Items::SPIDER_EYE = nullptr;
+// SPIDER_EYE 已在食物部分声明
 Item* Items::FERMENTED_SPIDER_EYE = nullptr;
 Item* Items::BLAZE_ROD = nullptr;
 Item* Items::BLAZE_POWDER = nullptr;
@@ -229,10 +252,10 @@ Item* Items::BEETROOT_SEEDS = nullptr;
 Item* Items::WHEAT = nullptr;
 Item* Items::PUMPKIN = nullptr;
 Item* Items::MELON = nullptr;
-Item* Items::MELON_SLICE = nullptr;
-Item* Items::CARROT = nullptr;
-Item* Items::POTATO = nullptr;
-Item* Items::BEETROOT = nullptr;
+// MELON_SLICE 已在食物部分声明
+// CARROT 已在食物部分声明
+// POTATO 已在食物部分声明
+// BEETROOT 已在食物部分声明
 Item* Items::SUGAR_CANE = nullptr;
 Item* Items::SUGAR = nullptr;
 
@@ -241,18 +264,18 @@ Item* Items::SCUTE = nullptr;
 Item* Items::HEART_OF_THE_SEA = nullptr;
 Item* Items::NAUTILUS_SHELL = nullptr;
 Item* Items::PHANTOM_MEMBRANE = nullptr;
-Item* Items::DRIED_KELP = nullptr;
+// DRIED_KELP 已在食物部分声明
 
 // ============================================================================
 // 酿造材料
 // ============================================================================
 Item* Items::NETHER_WART = nullptr;
-Item* Items::GOLDEN_CARROT = nullptr;
+// GOLDEN_CARROT 已在食物部分声明
 Item* Items::GHAST_TEAR = nullptr;
 Item* Items::RABBIT_FOOT = nullptr;
 Item* Items::MAGMA_CREAM = nullptr;
 Item* Items::DRAGON_BREATH = nullptr;
-Item* Items::PUFFERFISH = nullptr;
+// PUFFERFISH 已在食物部分声明
 Item* Items::TURTLE_HELMET = nullptr;
 Item* Items::GLISTERING_MELON_SLICE = nullptr;
 
@@ -272,6 +295,9 @@ void Items::initialize() {
     if (s_initialized) {
         return;
     }
+
+    // 初始化食物属性（必须在注册食物物品前）
+    item::food::Foods::initialize();
 
     auto& registry = ItemRegistry::instance();
 
@@ -725,97 +751,205 @@ void Items::registerArmor() {
 
 void Items::registerFood() {
     auto& registry = ItemRegistry::instance();
+    using namespace item::food;
 
+    // 基础食物
     APPLE = &registry.registerItem(
         ResourceLocation("minecraft:apple"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::APPLE)
     );
 
     GOLDEN_APPLE = &registry.registerItem(
         ResourceLocation("minecraft:golden_apple"),
-        ItemProperties().maxStackSize(64).rarity(ItemRarity::Rare)
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Rare).food(&Foods::GOLDEN_APPLE)
     );
 
     ENCHANTED_GOLDEN_APPLE = &registry.registerItem(
         ResourceLocation("minecraft:enchanted_golden_apple"),
-        ItemProperties().maxStackSize(64).rarity(ItemRarity::Epic)
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Epic).food(&Foods::ENCHANTED_GOLDEN_APPLE)
     );
 
     BREAD = &registry.registerItem(
         ResourceLocation("minecraft:bread"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::BREAD)
     );
 
     // 熟食
     COOKED_BEEF = &registry.registerItem(
         ResourceLocation("minecraft:cooked_beef"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COOKED_BEEF)
     );
 
     COOKED_PORKCHOP = &registry.registerItem(
         ResourceLocation("minecraft:cooked_porkchop"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COOKED_PORKCHOP)
     );
 
     COOKED_CHICKEN = &registry.registerItem(
         ResourceLocation("minecraft:cooked_chicken"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COOKED_CHICKEN)
     );
 
     COOKED_MUTTON = &registry.registerItem(
         ResourceLocation("minecraft:cooked_mutton"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COOKED_MUTTON)
     );
 
     COOKED_RABBIT = &registry.registerItem(
         ResourceLocation("minecraft:cooked_rabbit"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COOKED_RABBIT)
     );
 
     COOKED_COD = &registry.registerItem(
         ResourceLocation("minecraft:cooked_cod"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COOKED_COD)
     );
 
     COOKED_SALMON = &registry.registerItem(
         ResourceLocation("minecraft:cooked_salmon"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COOKED_SALMON)
     );
 
     // 生食
     BEEF = &registry.registerItem(
         ResourceLocation("minecraft:beef"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::BEEF)
     );
 
     PORKCHOP = &registry.registerItem(
         ResourceLocation("minecraft:porkchop"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::PORKCHOP)
     );
 
     CHICKEN = &registry.registerItem(
         ResourceLocation("minecraft:chicken"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::CHICKEN)
     );
 
     MUTTON = &registry.registerItem(
         ResourceLocation("minecraft:mutton"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::MUTTON)
     );
 
     RABBIT = &registry.registerItem(
         ResourceLocation("minecraft:rabbit"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::RABBIT)
     );
 
     COD = &registry.registerItem(
         ResourceLocation("minecraft:cod"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::COD)
     );
 
     SALMON = &registry.registerItem(
         ResourceLocation("minecraft:salmon"),
-        ItemProperties().maxStackSize(64)
+        ItemProperties().maxStackSize(64).food(&Foods::SALMON)
+    );
+
+    // 缺失的食物
+    BAKED_POTATO = &registry.registerItem(
+        ResourceLocation("minecraft:baked_potato"),
+        ItemProperties().maxStackSize(64).food(&Foods::BAKED_POTATO)
+    );
+
+    BEETROOT = &registry.registerItem(
+        ResourceLocation("minecraft:beetroot"),
+        ItemProperties().maxStackSize(64).food(&Foods::BEETROOT)
+    );
+
+    BEETROOT_SOUP = &registry.registerItem(
+        ResourceLocation("minecraft:beetroot_soup"),
+        ItemProperties().maxStackSize(1).food(&Foods::BEETROOT_SOUP)
+    );
+
+    CARROT = &registry.registerItem(
+        ResourceLocation("minecraft:carrot"),
+        ItemProperties().maxStackSize(64).food(&Foods::CARROT)
+    );
+
+    CHORUS_FRUIT = &registry.registerItem(
+        ResourceLocation("minecraft:chorus_fruit"),
+        ItemProperties().maxStackSize(64).food(&Foods::CHORUS_FRUIT)
+    );
+
+    COOKIE = &registry.registerItem(
+        ResourceLocation("minecraft:cookie"),
+        ItemProperties().maxStackSize(64).food(&Foods::COOKIE)
+    );
+
+    DRIED_KELP = &registry.registerItem(
+        ResourceLocation("minecraft:dried_kelp"),
+        ItemProperties().maxStackSize(64).food(&Foods::DRIED_KELP)
+    );
+
+    GOLDEN_CARROT = &registry.registerItem(
+        ResourceLocation("minecraft:golden_carrot"),
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Rare).food(&Foods::GOLDEN_CARROT)
+    );
+
+    HONEY_BOTTLE = &registry.registerItem(
+        ResourceLocation("minecraft:honey_bottle"),
+        ItemProperties().maxStackSize(16).food(&Foods::HONEY_BOTTLE)
+    );
+
+    MELON_SLICE = &registry.registerItem(
+        ResourceLocation("minecraft:melon_slice"),
+        ItemProperties().maxStackSize(64).food(&Foods::MELON_SLICE)
+    );
+
+    MUSHROOM_STEW = &registry.registerItem(
+        ResourceLocation("minecraft:mushroom_stew"),
+        ItemProperties().maxStackSize(1).food(&Foods::MUSHROOM_STEW)
+    );
+
+    POISONOUS_POTATO = &registry.registerItem(
+        ResourceLocation("minecraft:poisonous_potato"),
+        ItemProperties().maxStackSize(64).food(&Foods::POISONOUS_POTATO)
+    );
+
+    POTATO = &registry.registerItem(
+        ResourceLocation("minecraft:potato"),
+        ItemProperties().maxStackSize(64).food(&Foods::POTATO)
+    );
+
+    PUFFERFISH = &registry.registerItem(
+        ResourceLocation("minecraft:pufferfish"),
+        ItemProperties().maxStackSize(64).food(&Foods::PUFFERFISH)
+    );
+
+    PUMPKIN_PIE = &registry.registerItem(
+        ResourceLocation("minecraft:pumpkin_pie"),
+        ItemProperties().maxStackSize(64).food(&Foods::PUMPKIN_PIE)
+    );
+
+    RABBIT_STEW = &registry.registerItem(
+        ResourceLocation("minecraft:rabbit_stew"),
+        ItemProperties().maxStackSize(1).food(&Foods::RABBIT_STEW)
+    );
+
+    ROTTEN_FLESH = &registry.registerItem(
+        ResourceLocation("minecraft:rotten_flesh"),
+        ItemProperties().maxStackSize(64).food(&Foods::ROTTEN_FLESH)
+    );
+
+    SPIDER_EYE = &registry.registerItem(
+        ResourceLocation("minecraft:spider_eye"),
+        ItemProperties().maxStackSize(64).food(&Foods::SPIDER_EYE)
+    );
+
+    SUSPICIOUS_STEW = &registry.registerItem(
+        ResourceLocation("minecraft:suspicious_stew"),
+        ItemProperties().maxStackSize(1).food(&Foods::SUSPICIOUS_STEW)
+    );
+
+    SWEET_BERRIES = &registry.registerItem(
+        ResourceLocation("minecraft:sweet_berries"),
+        ItemProperties().maxStackSize(64).food(&Foods::SWEET_BERRIES)
+    );
+
+    TROPICAL_FISH = &registry.registerItem(
+        ResourceLocation("minecraft:tropical_fish"),
+        ItemProperties().maxStackSize(64).food(&Foods::TROPICAL_FISH)
     );
 }
 
@@ -908,10 +1042,7 @@ void Items::registerMisc() {
         ItemProperties().maxStackSize(64)
     );
 
-    SPIDER_EYE = &registry.registerItem(
-        ResourceLocation("minecraft:spider_eye"),
-        ItemProperties().maxStackSize(64)
-    );
+    // SPIDER_EYE 已在 registerFood() 中注册
 
     FERMENTED_SPIDER_EYE = &registry.registerItem(
         ResourceLocation("minecraft:fermented_spider_eye"),

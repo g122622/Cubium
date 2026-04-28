@@ -15,6 +15,7 @@ namespace item::items {
  * @brief 食物物品基类
  *
  * 负责处理可食用物品的基础行为。
+ * 参考 MC 1.16.5: net.minecraft.item.FoodItem
  */
 class FoodItem : public Item {
 public:
@@ -37,11 +38,17 @@ public:
 
     /**
      * @brief 获取使用时长
+     *
+     * 快速食用：16 ticks (0.8秒)
+     * 普通食用：32 ticks (1.6秒)
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 
     /**
      * @brief 获取使用动作
+     *
+     * MC 1.16.5 中所有食物都返回 Eat 动作，
+     * isMeat() 标记仅用于狼是否能食用。
      */
     [[nodiscard]] UseAction getUseAction(const ItemStack& stack) const override;
 
@@ -51,14 +58,25 @@ public:
     ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     /**
-     * @brief 使用完成
+     * @brief 使用完成（食用完成）
      *
-     * 玩家会在这里恢复饥饿值；其他实体保持无副作用。
+     * 处理逻辑：
+     * 1. 恢复饥饿值和饱和度
+     * 2. 应用药水效果（带概率）
+     * 3. 播放进食音效
+     * 4. 播放打嗝音效（玩家专用）
+     * 5. 减少物品数量（创造模式不减）
+     * 6. 返回容器物品
      */
     ItemStack onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity) override;
 
     /**
      * @brief 是否可以食用
+     *
+     * 检查条件：
+     * - 创造模式可以吃任何食物
+     * - 金苹果等特殊食物可以在饱食时食用
+     * - 其他食物需要饥饿值 < 20
      */
     [[nodiscard]] bool canEat(const ItemStack& stack, const Player& player) const override;
 

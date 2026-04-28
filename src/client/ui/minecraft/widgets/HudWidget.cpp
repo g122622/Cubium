@@ -198,7 +198,7 @@ void HudWidget::renderHunger(kagero::widget::PaintContext& ctx) {
     f32 hungerY = screenHeight - HOTBAR_HEIGHT - HEALTH_OFFSET_Y - HUNGER_SIZE;
 
     // 获取饥饿值
-    i32 food = m_player->foodStats().foodLevel;
+    i32 food = m_player->foodStats().foodLevel();
 
     // 绘制饥饿图标（从右到左）
     for (i32 i = 0; i < 10; ++i) {

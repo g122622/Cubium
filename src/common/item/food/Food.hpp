@@ -1,13 +1,15 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../entity/effect/EffectType.hpp"
 #include <vector>
+#include <memory>
 
 namespace mc {
 
-// Forward declarations for potion effects
+// Forward declarations
 namespace entity::effect {
-    class PotionEffect;
+    class EffectInstance;
 }
 
 namespace item::food {
@@ -18,8 +20,10 @@ namespace item::food {
  * 描述食物可能给予的药水效果。
  */
 struct FoodEffect {
-    const entity::effect::PotionEffect* effect = nullptr;  ///< 药水效果
-    f32 probability = 1.0f;                                 ///< 触发概率 (0.0 - 1.0)
+    entity::effect::EffectType type;    ///< 效果类型
+    i32 duration = 0;                    ///< 持续时间（ticks）
+    i32 amplifier = 0;                   ///< 效果等级（0 = I, 1 = II, 等）
+    f32 probability = 1.0f;              ///< 触发概率 (0.0 - 1.0)
 };
 
 /**
@@ -30,19 +34,22 @@ struct FoodEffect {
  *
  * 用法示例:
  * @code
- * Food apple(4, 0.3f);  // 恢复4点饥饿值，0.3饱和度
+ * Food apple(4, 0.3f);  // 恢复4点饥饿值，0.3饱和度修正
  * Food goldenApple(4, 1.2f).setAlwaysEdible(true);
- * Food pufferfish(1, 0.1f).addEffect(potionEffect, 1.0f);
+ * Food pufferfish(1, 0.1f).addEffect(EffectType::Poison, 1200, 3, 1.0f);
  * @endcode
+ *
+ * 饱和度计算公式：saturation = food * saturationModifier * 2.0
+ * 例如苹果 (4, 0.3F)：saturation = 4 * 0.3 * 2.0 = 2.4
  */
 class Food {
 public:
     /**
      * @brief 构造食物属性
      * @param hunger 恢复的饥饿值 (0-20)
-     * @param saturation 恢复的饱和度 (0.0-1.0+)
+     * @param saturationModifier 饱和度修正值（不是直接饱和度）
      */
-    Food(i32 hunger, f32 saturation);
+    Food(i32 hunger, f32 saturationModifier);
 
     // ========== 构建器方法 ==========
 
@@ -78,13 +85,25 @@ public:
 
     /**
      * @brief 添加药水效果
-     * @param effect 药水效果
+     * @param type 效果类型
+     * @param duration 持续时间（ticks）
+     * @param amplifier 效果等级（0 = I, 1 = II, 等）
      * @param probability 触发概率 (0.0 - 1.0)
-     * @note 可以添加多个效果，如迷之炖菜
+     * @note 可以添加多个效果
      */
-    Food& addEffect(const entity::effect::PotionEffect* effect, f32 probability) {
-        m_effects.push_back({effect, probability});
+    Food& addEffect(entity::effect::EffectType type, i32 duration, i32 amplifier, f32 probability) {
+        m_effects.push_back({type, duration, amplifier, probability});
         return *this;
+    }
+
+    /**
+     * @brief 添加必定触发的药水效果
+     * @param type 效果类型
+     * @param duration 持续时间（ticks）
+     * @param amplifier 效果等级（0 = I, 1 = II, 等）
+     */
+    Food& addEffect(entity::effect::EffectType type, i32 duration, i32 amplifier) {
+        return addEffect(type, duration, amplifier, 1.0f);
     }
 
     // ========== 获取属性 ==========
@@ -95,9 +114,10 @@ public:
     [[nodiscard]] i32 getHunger() const { return m_hunger; }
 
     /**
-     * @brief 获取恢复的饱和度
+     * @brief 获取饱和度修正值
+     * @note 实际饱和度 = food * saturationModifier * 2.0
      */
-    [[nodiscard]] f32 getSaturation() const { return m_saturation; }
+    [[nodiscard]] f32 getSaturationModifier() const { return m_saturationModifier; }
 
     /**
      * @brief 是否为肉类
@@ -126,7 +146,7 @@ public:
 
 private:
     i32 m_hunger;                              ///< 恢复的饥饿值
-    f32 m_saturation;                          ///< 恢复的饱和度
+    f32 m_saturationModifier;                  ///< 饱和度修正值
     bool m_isMeat = false;                     ///< 是否为肉类
     bool m_fastEat = false;                    ///< 是否快速食用
     bool m_alwaysEdible = false;               ///< 是否总是可食用

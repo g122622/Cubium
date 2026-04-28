@@ -171,6 +171,28 @@ public:
     static Item* RABBIT;
     static Item* COD;
     static Item* SALMON;
+    // 缺失的食物
+    static Item* BAKED_POTATO;
+    static Item* BEETROOT;
+    static Item* BEETROOT_SOUP;
+    static Item* CARROT;
+    static Item* CHORUS_FRUIT;
+    static Item* COOKIE;
+    static Item* DRIED_KELP;
+    static Item* GOLDEN_CARROT;
+    static Item* HONEY_BOTTLE;
+    static Item* MELON_SLICE;
+    static Item* MUSHROOM_STEW;
+    static Item* POISONOUS_POTATO;
+    static Item* POTATO;
+    static Item* PUFFERFISH;
+    static Item* PUMPKIN_PIE;
+    static Item* RABBIT_STEW;
+    static Item* ROTTEN_FLESH;
+    static Item* SPIDER_EYE;
+    static Item* SUSPICIOUS_STEW;
+    static Item* SWEET_BERRIES;
+    static Item* TROPICAL_FISH;
 
     // ========================================================================
     // 木头和木板（合成基础材料）
@@ -216,7 +238,6 @@ public:
     static Item* EGG;
     static Item* COMPASS;
     static Item* CLOCK;
-    static Item* SPIDER_EYE;
     static Item* FERMENTED_SPIDER_EYE;
     static Item* BLAZE_ROD;
     static Item* BLAZE_POWDER;
@@ -261,10 +282,10 @@ public:
     static Item* WHEAT;
     static Item* PUMPKIN;
     static Item* MELON;
-    static Item* MELON_SLICE;
-    static Item* CARROT;
-    static Item* POTATO;
-    static Item* BEETROOT;
+    // MELON_SLICE 在食物部分声明
+    // CARROT 在食物部分声明
+    // POTATO 在食物部分声明
+    // BEETROOT 在食物部分声明
     static Item* SUGAR_CANE;
     static Item* SUGAR;
 
@@ -275,18 +296,18 @@ public:
     static Item* HEART_OF_THE_SEA;       // 海洋之心 - 宝藏物品
     static Item* NAUTILUS_SHELL;         // 鹦鹉螺壳 - 溺尸掉落/钓鱼
     static Item* PHANTOM_MEMBRANE;       // 幻翼膜 - 幻翼掉落
-    static Item* DRIED_KELP;             // 干海带 - 食物
+    // DRIED_KELP 在食物部分声明
 
     // ========================================================================
     // 酿造材料
     // ========================================================================
     static Item* NETHER_WART;            // 地狱疣 - 酿造基础材料
-    static Item* GOLDEN_CARROT;          // 金胡萝卜 - 夜视药水
+    // GOLDEN_CARROT 在食物部分声明
     static Item* GHAST_TEAR;             // 恶魂之泪 - 生命恢复药水
     static Item* RABBIT_FOOT;            // 兔子脚 - 跳跃药水
     static Item* MAGMA_CREAM;            // 岩浆膏 - 防火药水
     static Item* DRAGON_BREATH;          // 龙息 - 滞留药水
-    static Item* PUFFERFISH;             // 河豚 - 水下呼吸药水
+    // PUFFERFISH 在食物部分声明
     static Item* TURTLE_HELMET;          // 海龟壳 - 海龟大师药水
     static Item* GLISTERING_MELON_SLICE; // 闪烁的西瓜片 - 瞬间治疗药水
 

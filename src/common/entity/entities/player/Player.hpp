@@ -5,6 +5,7 @@
 #include "../../inventory/PlayerInventory.hpp"
 #include "../../experience/ExperienceManager.hpp"
 #include "../../effect/EffectInstance.hpp"
+#include "../../food/FoodStats.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include "../../../world/GlobalPos.hpp"
 #include "ChatVisibility.hpp"
@@ -72,61 +73,7 @@ struct PlayerAbilities {
     }
 };
 
-// ============================================================================
-// 饥饿系统
-// ============================================================================
-
-struct FoodStats {
-    i32 foodLevel = 20;             // 饥饿值 (0-20)
-    f32 saturationLevel = 5.0f;     // 饱和度
-    f32 exhaustionLevel = 0.0f;     // 消耗累积值
-    i32 foodTimer = 0;              // 计时器
-
-    void addExhaustion(f32 amount) {
-        exhaustionLevel += amount;
-        while (exhaustionLevel >= 4.0f) {
-            exhaustionLevel -= 4.0f;
-            if (saturationLevel > 0.0f) {
-                saturationLevel = std::max(0.0f, saturationLevel - 1.0f);
-            } else if (foodLevel > 0) {
-                foodLevel--;
-            }
-        }
-    }
-
-    void addStats(i32 food, f32 saturation) {
-        foodLevel = std::min(20, foodLevel + food);
-        saturationLevel = std::min(20.0f, saturationLevel + saturation);
-    }
-
-    bool needsFood() const {
-        return foodLevel < 20;
-    }
-
-    void serialize(network::PacketSerializer& ser) const {
-        ser.writeI32(foodLevel);
-        ser.writeF32(saturationLevel);
-        ser.writeF32(exhaustionLevel);
-    }
-
-    [[nodiscard]] static Result<FoodStats> deserialize(network::PacketDeserializer& deser) {
-        FoodStats stats;
-
-        auto foodResult = deser.readI32();
-        if (foodResult.failed()) return foodResult.error();
-        stats.foodLevel = foodResult.value();
-
-        auto satResult = deser.readF32();
-        if (satResult.failed()) return satResult.error();
-        stats.saturationLevel = satResult.value();
-
-        auto exhResult = deser.readF32();
-        if (exhResult.failed()) return exhResult.error();
-        stats.exhaustionLevel = exhResult.value();
-
-        return stats;
-    }
-};
+// FoodStats 类已移至 food/FoodStats.hpp
 
 // ============================================================================
 // 玩家类
@@ -225,6 +172,38 @@ public:
 
     [[nodiscard]] const FoodStats& foodStats() const { return m_foodStats; }
     FoodStats& foodStats() { return m_foodStats; }
+
+    // ========== 饥饿消耗 ==========
+
+    /**
+     * @brief 饥饿消耗常量
+     * 参考 MC 1.16.5 PlayerEntity 和 FoodStats
+     */
+    /// 疾跑每米消耗
+    static constexpr f32 EXHAUSTION_SPRINT_PER_METER = 0.1f;
+    /// 普通跳跃消耗
+    static constexpr f32 EXHAUSTION_JUMP = 0.05f;
+    /// 疾跑跳跃消耗
+    static constexpr f32 EXHAUSTION_SPRINT_JUMP = 0.2f;
+    /// 游泳每米消耗
+    static constexpr f32 EXHAUSTION_SWIM_PER_METER = 0.01f;
+    /// 水下行走每米消耗
+    static constexpr f32 EXHAUSTION_UNDERWATER_WALK_PER_METER = 0.01f;
+    /// 水面行走每米消耗
+    static constexpr f32 EXHAUSTION_WATER_WALK_PER_METER = 0.01f;
+    /// 攻击实体消耗
+    static constexpr f32 EXHAUSTION_ATTACK = 0.1f;
+    /// 受到伤害消耗（基础值，根据伤害源可能不同）
+    static constexpr f32 EXHAUSTION_DAMAGE = 0.1f;
+    /// 挖掘方块消耗（每 tick）
+    static constexpr f32 EXHAUSTION_MINE_PER_TICK = 0.005f;
+
+    /**
+     * @brief 添加饥饿消耗值
+     * @param exhaustion 消耗值
+     * @note 只有生存模式和冒险模式才会消耗
+     */
+    void addExhaustion(f32 exhaustion);
 
     // ========== 经验系统 ==========
 
