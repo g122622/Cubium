@@ -556,6 +556,8 @@ enum class Operation : u8 { ... };
             - 挖掘的取消、开始、完成逻辑继续留在独立 helper 里，不要重新合并成一个大输入状态机。
         - `ClientApplicationNetwork.cpp` 里的网络回调必须同时维护世界、实体、容器和经验状态。
             - 本地玩家、远程玩家、普通实体、经验球和当前打开的容器屏幕都要分别同步，不能把回调留成只接收不落地的空壳。
+        - `NaturalSpawner::createDensityManager()` 必须把 `EntityManager::countEntitiesByClassification()` 的结果按值持有。
+            - `EntityDensityManager` 不能再保存临时分类计数表的引用；`MobDensityTracker` 的密度衰减是 64 格线性衰减，零距离按完整成本计入，超出范围后不再贡献密度。
 
 ## 自维护规则
 

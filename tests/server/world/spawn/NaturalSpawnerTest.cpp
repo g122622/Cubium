@@ -3,6 +3,30 @@
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <array>
+#include <utility>
+
+namespace {
+
+mc::world::spawn::EntityDensityManager createTemporaryDensityManager(
+    mc::world::spawn::MobDensityTracker& densityTracker) {
+    std::unordered_map<mc::entity::EntityClassification, mc::i32> entityCounts;
+    entityCounts[mc::entity::EntityClassification::Monster] = 200;
+    entityCounts[mc::entity::EntityClassification::Creature] = 5;
+    return mc::world::spawn::EntityDensityManager(10, std::move(entityCounts), densityTracker);
+}
+
+void clobberStack() {
+    std::array<mc::u8, 4096> scratch{};
+    for (std::size_t i = 0; i < scratch.size(); ++i) {
+        scratch[i] = static_cast<mc::u8>(i);
+    }
+
+    volatile mc::u8 sink = scratch[0];
+    (void)sink;
+}
+
+} // namespace
 
 namespace mc {
 namespace test {
@@ -118,12 +142,12 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithLimit) {
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
-    // 设置怪物数量已达到上限
-    entityCounts[entity::EntityClassification::Monster] = 70;
+    // 视距为 10 时，怪物上限会按区块数量缩放到 106
+    entityCounts[entity::EntityClassification::Monster] = 107;
 
     world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
 
-    // 怪物不应该可以生成
+    // 超过缩放后的上限时不应该可以生成
     EXPECT_FALSE(manager.canSpawn(entity::EntityClassification::Monster));
 
     // 动物仍然可以生成
@@ -169,8 +193,20 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensityExceeded) {
 
     // 在相同位置，如果能量预算为 1.0 且已有 2.0 的密度，应该不允许生成
     world::spawn::SpawnCosts costs(1.0, 0.5);
-    // 注意：实际行为取决于 MobDensityTracker 的衰减计算
-    // 当前简化实现可能不会精确反映这个行为
+    EXPECT_FALSE(manager.canSpawnWithDensity("minecraft:zombie", Vector3(0, 0, 0), costs));
+}
+
+TEST_F(NaturalSpawnerTest, EntityDensityManager_CountSnapshotSurvivesTemporarySource) {
+    world::spawn::MobDensityTracker densityTracker;
+    auto manager = createTemporaryDensityManager(densityTracker);
+
+    clobberStack();
+
+    EXPECT_EQ(manager.getCount(entity::EntityClassification::Monster), 200);
+    EXPECT_EQ(manager.getCount(entity::EntityClassification::Creature), 5);
+    EXPECT_EQ(manager.getCount(entity::EntityClassification::Ambient), 0);
+    EXPECT_FALSE(manager.canSpawn(entity::EntityClassification::Monster));
+    EXPECT_TRUE(manager.canSpawn(entity::EntityClassification::Creature));
 }
 
 TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawn) {

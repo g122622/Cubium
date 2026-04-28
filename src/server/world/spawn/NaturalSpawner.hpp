@@ -77,11 +77,11 @@ public:
     /**
      * @brief 构造密度管理器
      * @param viewDistance 视距（区块）
-     * @param entityCounts 各分类的实体数量
+     * @param entityCounts 各分类实体数量快照
      * @param densityTracker 密度追踪器
      */
     EntityDensityManager(i32 viewDistance,
-                         const std::unordered_map<entity::EntityClassification, i32>& entityCounts,
+                         std::unordered_map<entity::EntityClassification, i32> entityCounts,
                          MobDensityTracker& densityTracker);
 
     /**
@@ -124,7 +124,7 @@ public:
 
 private:
     i32 m_viewDistance;
-    const std::unordered_map<entity::EntityClassification, i32>& m_entityCounts;
+    std::unordered_map<entity::EntityClassification, i32> m_entityCounts;
     MobDensityTracker& m_densityTracker;
 };
 

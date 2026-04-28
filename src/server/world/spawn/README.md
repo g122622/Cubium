@@ -42,6 +42,7 @@ public:
 - 使用欧几里得距离计算衰减
 - 有效范围：64 格（4096 平方距离）
 - 衰减公式：`falloff = 1.0 - (distance / 64.0)`
+- 同位置按完整成本计入，超过 64 格后不再贡献密度
 
 #### 2. EntityDensityManager（实体密度管理器）
 
@@ -51,7 +52,7 @@ public:
 class EntityDensityManager {
 public:
     EntityDensityManager(i32 viewDistance,
-                         const std::unordered_map<entity::EntityClassification, i32>& entityCounts,
+                         std::unordered_map<entity::EntityClassification, i32> entityCounts,
                          MobDensityTracker& densityTracker);
 
     [[nodiscard]] bool canSpawn(entity::EntityClassification classification) const;
@@ -72,6 +73,8 @@ public:
 | Ambient（环境生物） | 15 |
 | WaterCreature（水生生物） | 5 |
 | WaterAmbient（水生环境生物） | 20 |
+
+`EntityDensityManager` 会在构造时持有一份分类数量快照，不再借用外部临时 map，因此它可以安全地跨出计数函数的作用域使用。
 
 #### 3. NaturalSpawner（自然生成器）
 

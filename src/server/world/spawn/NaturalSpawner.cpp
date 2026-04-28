@@ -21,6 +21,7 @@
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <algorithm>
+#include <utility>
 
 namespace mc::world::spawn {
 
@@ -56,14 +57,20 @@ f64 MobDensityTracker::getTotalCharge(const Vector3& pos) const {
         f64 dz = entry.position.z - pos.z;
         f64 distSq = dx * dx + dy * dy + dz * dz;
 
-        // 距离为 0 时返回无穷大
+        // 距离为 0 时认为没有衰减，直接累加完整成本
         if (distSq < 0.0001) {
-            return std::numeric_limits<f64>::infinity();
+            totalCharge += entry.charge;
+            continue;
         }
 
         f64 distance = std::sqrt(distSq);
-        // MC 原版公式: charge / sqrt(distance)
-        totalCharge += entry.charge / distance;
+        // 64 格内按线性方式衰减，超出范围后不再贡献密度
+        f64 falloff = 1.0 - (distance / 64.0);
+        if (falloff <= 0.0) {
+            continue;
+        }
+
+        totalCharge += entry.charge * falloff;
     }
 
     return totalCharge;
@@ -75,10 +82,10 @@ f64 MobDensityTracker::getTotalCharge(const Vector3& pos) const {
 
 EntityDensityManager::EntityDensityManager(
     i32 viewDistance,
-    const std::unordered_map<entity::EntityClassification, i32>& entityCounts,
+    std::unordered_map<entity::EntityClassification, i32> entityCounts,
     MobDensityTracker& densityTracker)
     : m_viewDistance(viewDistance)
-    , m_entityCounts(entityCounts)
+    , m_entityCounts(std::move(entityCounts))
     , m_densityTracker(densityTracker)
 {
 }
@@ -759,7 +766,7 @@ const SpawnEntry* NaturalSpawner::getRandomSpawnEntry(
 }
 
 EntityDensityManager NaturalSpawner::createDensityManager(mc::server::ServerWorld& world) {
-    // 统计当前实体数量
+    // 统计当前实体数量快照
     std::unordered_map<entity::EntityClassification, i32> entityCounts =
         world.entityManager().countEntitiesByClassification();
 
@@ -770,7 +777,7 @@ EntityDensityManager NaturalSpawner::createDensityManager(mc::server::ServerWorl
         viewDistance = chunkManager->viewDistance();
     }
 
-    return EntityDensityManager(viewDistance, entityCounts, m_densityTracker);
+    return EntityDensityManager(viewDistance, std::move(entityCounts), m_densityTracker);
 }
 
 std::vector<ChunkPos> NaturalSpawner::getSpawnableChunks(
