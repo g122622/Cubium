@@ -16,6 +16,10 @@
 #include "commands/SayCommand.hpp"
 #include "commands/StopCommand.hpp"
 #include "commands/SetIdleTimeoutCommand.hpp"
+#include "commands/SummonCommand.hpp"
+#include "commands/SetBlockCommand.hpp"
+#include "commands/FillCommand.hpp"
+#include "commands/ExecuteCommand.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
@@ -70,6 +74,10 @@ void CommandRegistry::registerDefaults() {
     SayCommand::registerTo(m_dispatcher);
     StopCommand::registerTo(m_dispatcher);
     SetIdleTimeoutCommand::registerTo(m_dispatcher);
+    SummonCommand::registerTo(m_dispatcher);
+    SetBlockCommand::registerTo(m_dispatcher);
+    FillCommand::registerTo(m_dispatcher);
+    ExecuteCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

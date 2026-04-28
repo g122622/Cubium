@@ -308,6 +308,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SayCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetIdleTimeoutCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SummonCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetBlockCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FillCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExecuteCommand.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
@@ -814,6 +818,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
@@ -836,6 +841,10 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SayCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetIdleTimeoutCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SummonCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetBlockCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FillCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExecuteCommand.cpp
 )
 
 target_link_libraries(mc_command_tests

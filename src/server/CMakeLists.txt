@@ -66,6 +66,10 @@ add_executable(minecraft-server
     command/commands/SayCommand.cpp
     command/commands/StopCommand.cpp
     command/commands/SetIdleTimeoutCommand.cpp
+    command/commands/SummonCommand.cpp
+    command/commands/SetBlockCommand.cpp
+    command/commands/FillCommand.cpp
+    command/commands/ExecuteCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
 )
