@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <optional>
 
 namespace mc {
 class Entity;
@@ -29,9 +30,85 @@ enum class EntitySelectorType {
 };
 
 /**
+ * @brief 实体选择器排序方式。
+ */
+enum class EntitySelectorSort {
+    Nearest,    // 按距离近到远
+    Furthest,   // 按距离远到近
+    Random,     // 随机排序
+    Arbitrary   // 原始顺序
+};
+
+/**
+ * @brief 浮点数范围边界。
+ *
+ * 用于 distance 参数。
+ */
+class FloatRange {
+public:
+    FloatRange() : m_min(std::nullopt), m_max(std::nullopt) {}
+
+    void setMin(f32 min) { m_min = min; }
+    void setMax(f32 max) { m_max = max; }
+
+    [[nodiscard]] bool hasMin() const { return m_min.has_value(); }
+    [[nodiscard]] bool hasMax() const { return m_max.has_value(); }
+    [[nodiscard]] f32 getMin() const { return m_min.value_or(0.0f); }
+    [[nodiscard]] f32 getMax() const { return m_max.value_or(std::numeric_limits<f32>::max()); }
+
+    [[nodiscard]] bool isUnbounded() const { return !m_min.has_value() && !m_max.has_value(); }
+
+    [[nodiscard]] bool test(f32 value) const {
+        if (m_min.has_value() && value < m_min.value()) return false;
+        if (m_max.has_value() && value > m_max.value()) return false;
+        return true;
+    }
+
+    [[nodiscard]] bool testSquared(f32 valueSq) const {
+        if (m_min.has_value() && valueSq < m_min.value() * m_min.value()) return false;
+        if (m_max.has_value() && valueSq > m_max.value() * m_max.value()) return false;
+        return true;
+    }
+
+private:
+    std::optional<f32> m_min;
+    std::optional<f32> m_max;
+};
+
+/**
+ * @brief 整数范围边界。
+ *
+ * 用于 level 参数。
+ */
+class IntRange {
+public:
+    IntRange() : m_min(std::nullopt), m_max(std::nullopt) {}
+
+    void setMin(i32 min) { m_min = min; }
+    void setMax(i32 max) { m_max = max; }
+
+    [[nodiscard]] bool hasMin() const { return m_min.has_value(); }
+    [[nodiscard]] bool hasMax() const { return m_max.has_value(); }
+    [[nodiscard]] i32 getMin() const { return m_min.value_or(0); }
+    [[nodiscard]] i32 getMax() const { return m_max.value_or(std::numeric_limits<i32>::max()); }
+
+    [[nodiscard]] bool isUnbounded() const { return !m_min.has_value() && !m_max.has_value(); }
+
+    [[nodiscard]] bool test(i32 value) const {
+        if (m_min.has_value() && value < m_min.value()) return false;
+        if (m_max.has_value() && value > m_max.value()) return false;
+        return true;
+    }
+
+private:
+    std::optional<i32> m_min;
+    std::optional<i32> m_max;
+};
+
+/**
  * @brief 实体选择器。
  *
- * 封装命令层需要的最小选择结果描述，当前主要服务于玩家选择。
+ * 封装命令层需要的实体选择条件，参考 MC 1.16.5 EntitySelector。
  */
 class EntitySelector {
 public:
@@ -40,71 +117,101 @@ public:
     explicit EntitySelector(EntitySelectorType type)
         : m_type(type) {}
 
-    /**
-     * @brief 获取选择器类型。
-     */
+    // ========== 基础属性 ==========
+
     [[nodiscard]] EntitySelectorType type() const noexcept { return m_type; }
+    void setType(EntitySelectorType type) { m_type = type; }
 
-    /**
-     * @brief 获取结果数量上限。
-     */
     [[nodiscard]] i32 limit() const noexcept { return m_limit; }
-
-    /**
-     * @brief 判断选择器是否明确表示自己。
-     */
-    [[nodiscard]] bool isSelf() const noexcept { return m_isSelf; }
-
-    /**
-     * @brief 判断是否允许选择非玩家实体。
-     */
-    [[nodiscard]] bool includesNonPlayers() const noexcept { return m_includesNonPlayers; }
-
-    /**
-     * @brief 判断选择器是否应当只解析出单个结果。
-     */
-    [[nodiscard]] bool isSingle() const noexcept { return m_single; }
-
-    /**
-     * @brief 获取显式指定的用户名。
-     *
-     * @return 用户名；若为空则表示并未按用户名指定。
-     */
-    [[nodiscard]] const String& username() const noexcept { return m_username; }
-
-    /**
-     * @brief 判断是否按用户名精确选择。
-     */
-    [[nodiscard]] bool hasUsername() const noexcept { return !m_username.empty(); }
-
-    /**
-     * @brief 设置数量上限。
-     */
     void setLimit(i32 limit) { m_limit = limit; }
 
-    /**
-     * @brief 设置是否为自身选择器。
-     */
+    [[nodiscard]] bool isSelf() const noexcept { return m_isSelf; }
     void setSelf(bool self) { m_isSelf = self; }
 
-    /**
-     * @brief 设置是否包含非玩家实体。
-     */
+    [[nodiscard]] bool includesNonPlayers() const noexcept { return m_includesNonPlayers; }
     void setIncludesNonPlayers(bool includes) { m_includesNonPlayers = includes; }
 
-    /**
-     * @brief 设置是否只允许单结果。
-     */
+    [[nodiscard]] bool isSingle() const noexcept { return m_single; }
     void setSingle(bool single) { m_single = single; }
 
-    /**
-     * @brief 设置按用户名选择。
-     */
+    [[nodiscard]] const String& username() const noexcept { return m_username; }
+    [[nodiscard]] bool hasUsername() const noexcept { return !m_username.empty(); }
     void setUsername(const String& username) { m_username = username; }
 
-    /**
-     * @brief 创建 @s 选择器。
-     */
+    // ========== 新增参数 ==========
+
+    [[nodiscard]] const String& usernameNegated() const noexcept { return m_usernameNegated; }
+    [[nodiscard]] bool hasUsernameNegated() const noexcept { return !m_usernameNegated.empty(); }
+    void setUsernameNegated(const String& name) { m_usernameNegated = name; }
+
+    [[nodiscard]] const FloatRange& distance() const noexcept { return m_distance; }
+    FloatRange& distance() { return m_distance; }
+
+    [[nodiscard]] const IntRange& level() const noexcept { return m_level; }
+    IntRange& level() { return m_level; }
+
+    [[nodiscard]] bool hasX() const noexcept { return m_x.has_value(); }
+    [[nodiscard]] bool hasY() const noexcept { return m_y.has_value(); }
+    [[nodiscard]] bool hasZ() const noexcept { return m_z.has_value(); }
+    [[nodiscard]] f32 getX() const { return m_x.value_or(0.0f); }
+    [[nodiscard]] f32 getY() const { return m_y.value_or(0.0f); }
+    [[nodiscard]] f32 getZ() const { return m_z.value_or(0.0f); }
+    void setX(f32 x) { m_x = x; }
+    void setY(f32 y) { m_y = y; }
+    void setZ(f32 z) { m_z = z; }
+
+    [[nodiscard]] bool hasDx() const noexcept { return m_dx.has_value(); }
+    [[nodiscard]] bool hasDy() const noexcept { return m_dy.has_value(); }
+    [[nodiscard]] bool hasDz() const noexcept { return m_dz.has_value(); }
+    [[nodiscard]] f32 getDx() const { return m_dx.value_or(0.0f); }
+    [[nodiscard]] f32 getDy() const { return m_dy.value_or(0.0f); }
+    [[nodiscard]] f32 getDz() const { return m_dz.value_or(0.0f); }
+    void setDx(f32 dx) { m_dx = dx; }
+    void setDy(f32 dy) { m_dy = dy; }
+    void setDz(f32 dz) { m_dz = dz; }
+
+    [[nodiscard]] EntitySelectorSort sort() const noexcept { return m_sort; }
+    void setSort(EntitySelectorSort sort) { m_sort = sort; }
+
+    [[nodiscard]] const String& entityType() const noexcept { return m_entityType; }
+    [[nodiscard]] bool hasEntityType() const noexcept { return !m_entityType.empty(); }
+    [[nodiscard]] bool entityTypeNegated() const noexcept { return m_entityTypeNegated; }
+    void setEntityType(const String& type, bool negated = false) {
+        m_entityType = type;
+        m_entityTypeNegated = negated;
+    }
+
+    [[nodiscard]] const std::vector<String>& tags() const noexcept { return m_tags; }
+    [[nodiscard]] const std::vector<String>& tagsNegated() const noexcept { return m_tagsNegated; }
+    void addTag(const String& tag, bool negated = false) {
+        if (negated) {
+            m_tagsNegated.push_back(tag);
+        } else {
+            m_tags.push_back(tag);
+        }
+    }
+
+    [[nodiscard]] const String& gameMode() const noexcept { return m_gameMode; }
+    [[nodiscard]] bool hasGameMode() const noexcept { return !m_gameMode.empty(); }
+    [[nodiscard]] bool gameModeNegated() const noexcept { return m_gameModeNegated; }
+    void setGameMode(const String& mode, bool negated = false) {
+        m_gameMode = mode;
+        m_gameModeNegated = negated;
+    }
+
+    [[nodiscard]] const String& team() const noexcept { return m_team; }
+    [[nodiscard]] bool hasTeam() const noexcept { return !m_team.empty(); }
+    [[nodiscard]] bool teamNegated() const noexcept { return m_teamNegated; }
+    void setTeam(const String& team, bool negated = false) {
+        m_team = team;
+        m_teamNegated = negated;
+    }
+
+    [[nodiscard]] bool currentWorldOnly() const noexcept { return m_currentWorldOnly; }
+    void setCurrentWorldOnly(bool currentWorldOnly) { m_currentWorldOnly = currentWorldOnly; }
+
+    // ========== 静态工厂方法 ==========
+
     [[nodiscard]] static EntitySelector self() {
         EntitySelector selector(EntitySelectorType::Self);
         selector.m_isSelf = true;
@@ -112,28 +219,20 @@ public:
         return selector;
     }
 
-    /**
-     * @brief 创建 @p 选择器。
-     */
     [[nodiscard]] static EntitySelector nearestPlayer() {
         EntitySelector selector(EntitySelectorType::SinglePlayer);
         selector.m_single = true;
         selector.m_limit = 1;
+        selector.m_sort = EntitySelectorSort::Nearest;
         return selector;
     }
 
-    /**
-     * @brief 创建 @a 选择器。
-     */
     [[nodiscard]] static EntitySelector allPlayers() {
         EntitySelector selector(EntitySelectorType::AllPlayers);
         selector.m_single = false;
         return selector;
     }
 
-    /**
-     * @brief 创建 @e 选择器。
-     */
     [[nodiscard]] static EntitySelector allEntities() {
         EntitySelector selector(EntitySelectorType::AllEntities);
         selector.m_single = false;
@@ -141,19 +240,14 @@ public:
         return selector;
     }
 
-    /**
-     * @brief 创建 @r 选择器。
-     */
     [[nodiscard]] static EntitySelector randomPlayer() {
         EntitySelector selector(EntitySelectorType::RandomPlayer);
         selector.m_single = true;
         selector.m_limit = 1;
+        selector.m_sort = EntitySelectorSort::Random;
         return selector;
     }
 
-    /**
-     * @brief 创建按用户名精确匹配的选择器。
-     */
     [[nodiscard]] static EntitySelector byUsername(const String& username) {
         EntitySelector selector(EntitySelectorType::SinglePlayer);
         selector.m_username = username;
@@ -168,19 +262,33 @@ private:
     bool m_isSelf = false;
     bool m_includesNonPlayers = false;
     bool m_single = true;
+    bool m_currentWorldOnly = false;
     String m_username;
+    String m_usernameNegated;  // name=!xxx
+
+    // 新增参数
+    FloatRange m_distance;
+    IntRange m_level;
+    std::optional<f32> m_x, m_y, m_z;      // 坐标偏移
+    std::optional<f32> m_dx, m_dy, m_dz;    // 体积尺寸
+    EntitySelectorSort m_sort = EntitySelectorSort::Arbitrary;
+    String m_entityType;
+    bool m_entityTypeNegated = false;
+    std::vector<String> m_tags;
+    std::vector<String> m_tagsNegated;
+    String m_gameMode;
+    bool m_gameModeNegated = false;
+    String m_team;
+    bool m_teamNegated = false;
 };
 
 /**
  * @brief 实体参数类型。
  *
- * 当前支持玩家名和基础选择器语法，后续再逐步扩展完整的 Java 版 selector 能力。
+ * 参考 MC 1.16.5 EntityArgumentType，支持完整的选择器语法。
  */
 class EntityArgumentType : public ArgumentType<EntitySelector> {
 public:
-    /**
-     * @brief 参数模式。
-     */
     enum class Mode {
         SingleEntity,
         MultipleEntities,
@@ -191,26 +299,8 @@ public:
     explicit EntityArgumentType(Mode mode = Mode::SinglePlayer)
         : m_mode(mode) {}
 
-    /**
-     * @brief 解析实体选择器。
-     *
-     * @param reader 命令读取器。
-     * @return 解析出的选择器。
-     */
-    [[nodiscard]] EntitySelector parse(StringReader& reader) override {
-        const i32 start = reader.getCursor();
+    [[nodiscard]] EntitySelector parse(StringReader& reader) override;
 
-        if (reader.canRead() && reader.peek() == '@') {
-            return parseSelector(reader, start);
-        }
-
-        const String name = reader.readString();
-        return EntitySelector::byUsername(name);
-    }
-
-    /**
-     * @brief 获取参数类型名。
-     */
     [[nodiscard]] String getTypeName() const override {
         switch (m_mode) {
             case Mode::SingleEntity:
@@ -222,226 +312,50 @@ public:
             case Mode::MultiplePlayers:
                 return "players";
         }
-
         return "entity";
     }
 
-    /**
-     * @brief 获取示例输入。
-     */
     [[nodiscard]] std::vector<String> getExamples() const override {
-        return {"Player", "0123", "@p", "@a", "@s"};
+        return {"Player", "0123", "@p", "@a", "@e", "@r", "@s"};
     }
 
-    /**
-     * @brief 创建单实体参数类型。
-     */
     [[nodiscard]] static std::shared_ptr<EntityArgumentType> entity() {
         return std::make_shared<EntityArgumentType>(Mode::SingleEntity);
     }
 
-    /**
-     * @brief 创建多实体参数类型。
-     */
     [[nodiscard]] static std::shared_ptr<EntityArgumentType> entities() {
         return std::make_shared<EntityArgumentType>(Mode::MultipleEntities);
     }
 
-    /**
-     * @brief 创建单玩家参数类型。
-     */
     [[nodiscard]] static std::shared_ptr<EntityArgumentType> player() {
         return std::make_shared<EntityArgumentType>(Mode::SinglePlayer);
     }
 
-    /**
-     * @brief 创建多玩家参数类型。
-     */
     [[nodiscard]] static std::shared_ptr<EntityArgumentType> players() {
         return std::make_shared<EntityArgumentType>(Mode::MultiplePlayers);
     }
 
-    /**
-     * @brief 判断该参数类型是否只允许单结果。
-     */
     [[nodiscard]] bool isSingle() const noexcept {
         return m_mode == Mode::SingleEntity || m_mode == Mode::SinglePlayer;
     }
 
-    /**
-     * @brief 判断该参数类型是否只允许玩家。
-     */
     [[nodiscard]] bool isPlayersOnly() const noexcept {
         return m_mode == Mode::SinglePlayer || m_mode == Mode::MultiplePlayers;
     }
 
-    /**
-     * @brief 获取参数模式。
-     */
     [[nodiscard]] Mode mode() const noexcept { return m_mode; }
 
 private:
-    /**
-     * @brief 解析选择器语法。
-     */
-    [[nodiscard]] EntitySelector parseSelector(StringReader& reader, i32 start) {
-        reader.skip();
+    [[nodiscard]] EntitySelector parseSelector(StringReader& reader, i32 start);
+    void parseSelectorArguments(StringReader& reader, EntitySelector& selector);
+    void applySelectorArgument(EntitySelector& selector, const String& name, const String& value, i32 cursor);
+    void validateSelector(const EntitySelector& selector, i32 start);
 
-        if (!reader.canRead()) {
-            throw CommandException(CommandErrorType::EntitySelectorInvalid, "Missing selector type", start);
-        }
+    [[nodiscard]] static String readSelectorArgumentToken(StringReader& reader);
+    [[nodiscard]] static bool shouldInvertValue(StringReader& reader);
+    [[nodiscard]] FloatRange parseFloatRange(StringReader& reader);
+    [[nodiscard]] IntRange parseIntRange(StringReader& reader);
 
-        const char typeChar = reader.read();
-        EntitySelector selector;
-
-        switch (typeChar) {
-            case 'p':
-            case 'P':
-                selector = EntitySelector::nearestPlayer();
-                break;
-            case 'a':
-            case 'A':
-                selector = EntitySelector::allPlayers();
-                break;
-            case 'e':
-            case 'E':
-                selector = EntitySelector::allEntities();
-                break;
-            case 'r':
-            case 'R':
-                selector = EntitySelector::randomPlayer();
-                break;
-            case 's':
-            case 'S':
-                selector = EntitySelector::self();
-                break;
-            default:
-                reader.setCursor(start);
-                throw CommandException(
-                    CommandErrorType::EntitySelectorInvalid,
-                    "Unknown selector type: @" + String(1, typeChar),
-                    start);
-        }
-
-        if (reader.canRead() && reader.peek() == '[') {
-            parseSelectorArguments(reader, selector);
-        }
-
-        validateSelector(selector, start);
-        return selector;
-    }
-
-    /**
-     * @brief 解析选择器参数列表。
-     */
-    void parseSelectorArguments(StringReader& reader, EntitySelector& selector) {
-        reader.skip();
-
-        while (reader.canRead() && reader.peek() != ']') {
-            reader.skipWhitespace();
-            if (!reader.canRead()) {
-                break;
-            }
-
-            const String paramName = readSelectorArgumentToken(reader);
-            reader.skipWhitespace();
-            if (!reader.canRead() || reader.peek() != '=') {
-                throw CommandException(
-                    CommandErrorType::EntitySelectorInvalid,
-                    "Expected '=' after selector argument name",
-                    reader.getCursor());
-            }
-
-            reader.skip();
-            reader.skipWhitespace();
-            const String paramValue =
-                reader.canRead() && reader.peek() == StringReader::SYNTAX_QUOTE
-                    ? reader.readString()
-                    : readSelectorArgumentToken(reader);
-
-            applySelectorArgument(selector, paramName, paramValue);
-            reader.skipWhitespace();
-            if (reader.canRead() && reader.peek() == ',') {
-                reader.skip();
-            }
-        }
-
-        if (!reader.canRead() || reader.peek() != ']') {
-            throw CommandException(
-                CommandErrorType::EntitySelectorInvalid,
-                "Expected ']' to close selector arguments",
-                reader.getCursor());
-        }
-
-        reader.skip();
-    }
-
-    /**
-     * @brief 应用单个选择器参数。
-     *
-     * @note 当前只支持 `limit` 和 `name`，后续可继续扩展。
-     */
-    void applySelectorArgument(EntitySelector& selector, const String& name, const String& value) {
-        if (name == "limit" || name == "c") {
-            const i32 limit = std::stoi(value);
-            selector.setLimit(limit);
-            selector.setSingle(limit == 1);
-            return;
-        }
-
-        if (name == "name") {
-            selector.setUsername(value);
-            selector.setSingle(true);
-        }
-    }
-
-    /**
-     * @brief 校验解析结果是否与参数模式兼容。
-     */
-    void validateSelector(const EntitySelector& selector, i32 start) {
-        if (isPlayersOnly() && selector.includesNonPlayers() && !selector.isSelf()) {
-            throw CommandException(
-                CommandErrorType::EntitySelectorNotAllowed,
-                "Only players can be selected here",
-                start);
-        }
-
-        if (isSingle() && !selector.isSingle() && selector.limit() > 1) {
-            throw CommandException(
-                isPlayersOnly() ? CommandErrorType::PlayerTooMany : CommandErrorType::EntityTooMany,
-                isPlayersOnly()
-                    ? "Only one player is allowed, but provided multiple"
-                    : "Only one entity is allowed, but provided multiple",
-                start);
-        }
-    }
-
-    /**
-     * @brief 读取选择器参数 token。
-     */
-    [[nodiscard]] static String readSelectorArgumentToken(StringReader& reader) {
-        const i32 start = reader.getCursor();
-        while (reader.canRead()) {
-            const char ch = reader.peek();
-            if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == ']') {
-                break;
-            }
-            reader.skip();
-        }
-
-        if (reader.getCursor() == start) {
-            throw CommandException(
-                CommandErrorType::EntitySelectorInvalid,
-                "Expected selector argument token",
-                start);
-        }
-
-        const size_t startIndex = static_cast<size_t>(start);
-        const size_t endIndex = static_cast<size_t>(reader.getCursor());
-        return String(reader.getString().substr(startIndex, endIndex - startIndex));
-    }
-
-private:
     Mode m_mode;
 };
 

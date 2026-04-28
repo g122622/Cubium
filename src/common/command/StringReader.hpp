@@ -282,6 +282,13 @@ public:
     }
 
     /**
+     * @brief 读取浮点数（单精度）
+     */
+    [[nodiscard]] f32 readFloat() {
+        return static_cast<f32>(readDouble());
+    }
+
+    /**
      * @brief 读取带范围检查的浮点数
      */
     [[nodiscard]] f64 readDouble(f64 min, f64 max) {

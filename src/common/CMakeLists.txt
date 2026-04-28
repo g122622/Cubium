@@ -350,6 +350,7 @@ add_library(mc_common STATIC
 
     # Command
     command/CommandTreeSnapshot.cpp
+    command/arguments/EntityArgument.cpp
 
     # World - Block System
     world/block/Material.cpp

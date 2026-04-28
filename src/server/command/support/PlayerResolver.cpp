@@ -5,6 +5,8 @@
 #include "server/core/ServerPlayerData.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <random>
 
 namespace mc::command::support {
 
@@ -49,6 +51,196 @@ namespace {
     return resolvedPlayerId;
 }
 
+/**
+ * @brief 检查玩家是否符合选择器的过滤条件。
+ *
+ * @param playerData 玩家数据。
+ * @param selector 选择器。
+ * @return 是否符合条件。
+ */
+[[nodiscard]] bool matchesFilter(const server::ServerPlayerData& playerData, const EntitySelector& selector)
+{
+    // 检查等级范围
+    if (!selector.level().isUnbounded()) {
+        // TODO: 需要 ServerPlayer 实例获取经验等级
+        // 目前跳过等级检查
+    }
+
+    // 检查游戏模式
+    if (selector.hasGameMode()) {
+        const String& mode = selector.gameMode();
+        bool matches = false;
+        switch (playerData.gameMode) {
+            case GameMode::Survival:
+                matches = (mode == "survival" || mode == "0");
+                break;
+            case GameMode::Creative:
+                matches = (mode == "creative" || mode == "1");
+                break;
+            case GameMode::Adventure:
+                matches = (mode == "adventure" || mode == "2");
+                break;
+            case GameMode::Spectator:
+                matches = (mode == "spectator" || mode == "3");
+                break;
+            default:
+                break;
+        }
+        if (selector.gameModeNegated()) {
+            matches = !matches;
+        }
+        if (!matches) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * @brief 计算玩家到参考点的距离平方。
+ *
+ * @param playerData 玩家数据。
+ * @param refX 参考点 X。
+ * @param refY 参考点 Y。
+ * @param refZ 参考点 Z。
+ * @return 距离平方。
+ */
+[[nodiscard]] f32 distanceSquared(const server::ServerPlayerData& playerData, f32 refX, f32 refY, f32 refZ)
+{
+    const f32 dx = playerData.x - refX;
+    const f32 dy = playerData.y - refY;
+    const f32 dz = playerData.z - refZ;
+    return dx * dx + dy * dy + dz * dz;
+}
+
+/**
+ * @brief 对玩家列表进行排序。
+ *
+ * @param playerIds 玩家 ID 列表。
+ * @param source 命令源。
+ * @param selector 选择器。
+ * @param refX 参考点 X。
+ * @param refY 参考点 Y。
+ * @param refZ 参考点 Z。
+ */
+void sortPlayerIds(
+    std::vector<PlayerId>& playerIds,
+    const ServerCommandSource& source,
+    const EntitySelector& selector,
+    f32 refX, f32 refY, f32 refZ)
+{
+    auto* server = source.server();
+    if (server == nullptr) {
+        return;
+    }
+
+    switch (selector.sort()) {
+        case EntitySelectorSort::Nearest: {
+            // 按距离近到远排序
+            std::sort(playerIds.begin(), playerIds.end(),
+                [&](PlayerId a, PlayerId b) {
+                    auto* dataA = server->playerManager().getPlayer(a);
+                    auto* dataB = server->playerManager().getPlayer(b);
+                    if (dataA == nullptr) return false;
+                    if (dataB == nullptr) return true;
+                    return distanceSquared(*dataA, refX, refY, refZ) < distanceSquared(*dataB, refX, refY, refZ);
+                });
+            break;
+        }
+        case EntitySelectorSort::Furthest: {
+            // 按距离远到近排序
+            std::sort(playerIds.begin(), playerIds.end(),
+                [&](PlayerId a, PlayerId b) {
+                    auto* dataA = server->playerManager().getPlayer(a);
+                    auto* dataB = server->playerManager().getPlayer(b);
+                    if (dataA == nullptr) return false;
+                    if (dataB == nullptr) return true;
+                    return distanceSquared(*dataA, refX, refY, refZ) > distanceSquared(*dataB, refX, refY, refZ);
+                });
+            break;
+        }
+        case EntitySelectorSort::Random: {
+            // 随机排序
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(playerIds.begin(), playerIds.end(), g);
+            break;
+        }
+        case EntitySelectorSort::Arbitrary:
+        default:
+            // 保持原始顺序
+            break;
+    }
+}
+
+/**
+ * @brief 应用选择器过滤条件。
+ *
+ * @param playerIds 玩家 ID 列表。
+ * @param source 命令源。
+ * @param selector 选择器。
+ * @param refX 参考点 X。
+ * @param refY 参考点 Y。
+ * @param refZ 参考点 Z。
+ */
+void applyFilters(
+    std::vector<PlayerId>& playerIds,
+    const ServerCommandSource& source,
+    const EntitySelector& selector,
+    f32 refX, f32 refY, f32 refZ)
+{
+    auto* server = source.server();
+    if (server == nullptr) {
+        return;
+    }
+
+    // 距离过滤
+    if (!selector.distance().isUnbounded()) {
+        playerIds.erase(
+            std::remove_if(playerIds.begin(), playerIds.end(),
+                [&](PlayerId id) {
+                    auto* data = server->playerManager().getPlayer(id);
+                    if (data == nullptr) return true;
+                    const f32 distSq = distanceSquared(*data, refX, refY, refZ);
+                    return !selector.distance().testSquared(distSq);
+                }),
+            playerIds.end());
+    }
+
+    // 名称过滤
+    if (selector.hasUsername()) {
+        playerIds.erase(
+            std::remove_if(playerIds.begin(), playerIds.end(),
+                [&](PlayerId id) {
+                    auto* data = server->playerManager().getPlayer(id);
+                    if (data == nullptr) return true;
+                    return data->username != selector.username();
+                }),
+            playerIds.end());
+    }
+    if (selector.hasUsernameNegated()) {
+        playerIds.erase(
+            std::remove_if(playerIds.begin(), playerIds.end(),
+                [&](PlayerId id) {
+                    auto* data = server->playerManager().getPlayer(id);
+                    if (data == nullptr) return true;
+                    return data->username == selector.usernameNegated();
+                }),
+            playerIds.end());
+    }
+
+    // 通用过滤
+    playerIds.erase(
+        std::remove_if(playerIds.begin(), playerIds.end(),
+            [&](PlayerId id) {
+                auto* data = server->playerManager().getPlayer(id);
+                if (data == nullptr) return true;
+                return !matchesFilter(*data, selector);
+            }),
+        playerIds.end());
+}
+
 } // namespace
 
 /**
@@ -77,11 +269,22 @@ std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const 
         return {};
     }
 
+    // 按用户名精确匹配
     if (selector.hasUsername()) {
         const PlayerId playerId = findPlayerIdByUsername(source, selector.username());
         return playerId == 0 ? std::vector<PlayerId>{} : std::vector<PlayerId>{playerId};
     }
 
+    // 计算参考点坐标
+    f32 refX = static_cast<f32>(source.position().x);
+    f32 refY = static_cast<f32>(source.position().y);
+    f32 refZ = static_cast<f32>(source.position().z);
+
+    if (selector.hasX()) refX = selector.getX();
+    if (selector.hasY()) refY = selector.getY();
+    if (selector.hasZ()) refZ = selector.getZ();
+
+    // 获取基础玩家列表
     auto playerIds = getSortedPlayerIds(source);
     std::vector<PlayerId> resolved;
 
@@ -92,21 +295,49 @@ std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const 
             }
             break;
         case EntitySelectorType::SinglePlayer:
-        case EntitySelectorType::RandomPlayer:
+            // @p: 需要按距离排序后取最近的
             if (!playerIds.empty()) {
-                resolved.push_back(playerIds.front());
+                resolved = playerIds;
+                sortPlayerIds(resolved, source, selector, refX, refY, refZ);
+                applyFilters(resolved, source, selector, refX, refY, refZ);
+                if (!resolved.empty()) {
+                    resolved.resize(1);
+                }
+            }
+            break;
+        case EntitySelectorType::RandomPlayer:
+            // @r: 随机选择
+            if (!playerIds.empty()) {
+                resolved = playerIds;
+                applyFilters(resolved, source, selector, refX, refY, refZ);
+                if (!resolved.empty()) {
+                    std::random_device rd;
+                    std::mt19937 g(rd());
+                    std::uniform_int_distribution<size_t> dist(0, resolved.size() - 1);
+                    PlayerId randomId = resolved[dist(g)];
+                    resolved.clear();
+                    resolved.push_back(randomId);
+                }
             }
             break;
         case EntitySelectorType::AllPlayers:
         case EntitySelectorType::AllEntities:
-            resolved = std::move(playerIds);
+            resolved = playerIds;
+            applyFilters(resolved, source, selector, refX, refY, refZ);
+            sortPlayerIds(resolved, source, selector, refX, refY, refZ);
             break;
     }
 
+    // 如果没有结果但选择器允许回退到执行者
     if (resolved.empty() && source.playerId() != 0) {
-        resolved.push_back(source.playerId());
+        // 检查是否应该自动回退（仅对某些选择器类型）
+        // MC 行为：@p 如果没有其他玩家会返回自己
+        if (selector.type() == EntitySelectorType::SinglePlayer) {
+            resolved.push_back(source.playerId());
+        }
     }
 
+    // 应用数量限制
     if (selector.limit() > 0 && resolved.size() > static_cast<size_t>(selector.limit())) {
         resolved.resize(static_cast<size_t>(selector.limit()));
     }
