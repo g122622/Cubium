@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "client/renderer/api/texture/TextureRegion.hpp"
 #include <vector>
@@ -48,7 +49,7 @@ public:
      * @param atlasY 在图集中的Y位置（像素）
      */
     AnimatedSprite(
-        const resource::metadata::AnimationMetadata& metadata,
+        const mc::resource::metadata::AnimationMetadata& metadata,
         std::vector<FrameData>&& frames,
         u32 atlasX,
         u32 atlasY);
@@ -78,7 +79,7 @@ public:
      * 将当前帧的像素数据上传到纹理图集中的精灵位置。
      * 如果启用了插值且处于帧切换过程中，会上传插值后的帧。
      */
-    [[nodiscard]] Result<void> uploadCurrentFrame(
+    [[nodiscard]] mc::Result<void> uploadCurrentFrame(
         TridentContext* context,
         TridentTextureAtlas& atlas);
 
@@ -107,7 +108,7 @@ public:
      */
     [[nodiscard]] i32 currentFrameIndex() const noexcept {
         if (m_metadata.frames.empty()) {
-            return m_frameCounter;
+            return static_cast<i32>(m_frameCounter);
         }
         return m_metadata.frames[m_frameCounter].index;
     }
@@ -160,14 +161,14 @@ public:
     /**
      * @brief 获取总帧数
      */
-    [[nodiscard]] Size frameCount() const noexcept {
+    [[nodiscard]] mc::Size frameCount() const noexcept {
         return m_frames.size();
     }
 
     /**
      * @brief 获取动画元数据
      */
-    [[nodiscard]] const resource::metadata::AnimationMetadata& metadata() const noexcept {
+    [[nodiscard]] const mc::resource::metadata::AnimationMetadata& metadata() const noexcept {
         return m_metadata;
     }
 
@@ -186,14 +187,14 @@ private:
      * @param frame 帧数据
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> uploadFrame(
+    [[nodiscard]] mc::Result<void> uploadFrame(
         TridentContext* context,
         TridentTextureAtlas& atlas,
         const FrameData& frame);
 
     // ========== 成员变量 ==========
 
-    resource::metadata::AnimationMetadata m_metadata;  ///< 动画元数据
+    mc::resource::metadata::AnimationMetadata m_metadata;  ///< 动画元数据
     std::vector<FrameData> m_frames;                    ///< 帧数据数组
 
     u32 m_atlasX = 0;           ///< 图集X位置
@@ -201,7 +202,7 @@ private:
     u32 m_frameWidth = 0;       ///< 帧宽度
     u32 m_frameHeight = 0;      ///< 帧高度
 
-    Size m_frameCounter = 0;   ///< 当前帧计数器（在frames数组中的位置）
+    mc::Size m_frameCounter = 0;   ///< 当前帧计数器（在frames数组中的位置）
     i32 m_tickCounter = 0;      ///< 当前帧内tick计数
     i32 m_currentFrameTime = 1; ///< 当前帧持续时间
 

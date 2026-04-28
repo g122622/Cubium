@@ -11,10 +11,7 @@ class BlockState;
 class IWorld;
 class MatrixStack;
 class VertexBuffer;
-
-namespace client::resource {
 class BlockModelCache;
-}
 
 namespace client::renderer::trident {
 
@@ -88,7 +85,7 @@ public:
     /**
      * @brief 获取方块外观缓存
      */
-    [[nodiscard]] resource::BlockModelCache* modelCache() const { return m_modelCache; }
+    [[nodiscard]] BlockModelCache* modelCache() const { return m_modelCache; }
 
     /**
      * @brief 获取纹理图集
@@ -98,7 +95,7 @@ public:
     /**
      * @brief 设置模型缓存
      */
-    void setModelCache(resource::BlockModelCache* cache) { m_modelCache = cache; }
+    void setModelCache(BlockModelCache* cache) { m_modelCache = cache; }
 
     /**
      * @brief 设置纹理图集
@@ -106,7 +103,7 @@ public:
     void setTextureAtlas(TridentTextureAtlas* atlas) { m_textureAtlas = atlas; }
 
 private:
-    resource::BlockModelCache* m_modelCache = nullptr;
+    BlockModelCache* m_modelCache = nullptr;
     TridentTextureAtlas* m_textureAtlas = nullptr;
 };
 

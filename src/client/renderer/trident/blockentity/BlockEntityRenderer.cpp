@@ -35,6 +35,12 @@ bool BlockEntityRendererHelper::renderBlockWithOffset(
         return false;
     }
 
+    MC_UNUSED(pos);
+    MC_UNUSED(offsetX);
+    MC_UNUSED(offsetY);
+    MC_UNUSED(offsetZ);
+    MC_UNUSED(light);
+
     // TODO: 实现方块模型渲染
     // 这需要：
     // 1. 创建变换矩阵（位置 + 偏移）

@@ -40,7 +40,7 @@ void TextureAtlasTicker::tick() {
     }
 }
 
-Result<void> TextureAtlasTicker::uploadPendingFrames(
+mc::Result<void> TextureAtlasTicker::uploadPendingFrames(
     TridentContext* context,
     TridentTextureAtlas& atlas)
 {

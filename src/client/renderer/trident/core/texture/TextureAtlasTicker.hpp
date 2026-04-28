@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AnimatedSprite.hpp"
+#include "common/core/Result.hpp"
 #include <vector>
 #include <memory>
 
@@ -69,7 +70,7 @@ public:
      * 将所有需要更新的帧上传到GPU纹理。
      * 此方法应在渲染前调用。
      */
-    [[nodiscard]] Result<void> uploadPendingFrames(
+    mc::Result<void> uploadPendingFrames(
         TridentContext* context,
         TridentTextureAtlas& atlas);
 
@@ -81,14 +82,14 @@ public:
     /**
      * @brief 获取动画精灵数量
      */
-    [[nodiscard]] Size spriteCount() const noexcept {
+    mc::Size spriteCount() const noexcept {
         return m_sprites.size();
     }
 
     /**
      * @brief 检查是否有动画精灵
      */
-    [[nodiscard]] bool empty() const noexcept {
+    bool empty() const noexcept {
         return m_sprites.empty();
     }
 

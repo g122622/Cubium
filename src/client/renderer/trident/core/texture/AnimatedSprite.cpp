@@ -7,7 +7,7 @@
 namespace mc::client::renderer::trident {
 
 AnimatedSprite::AnimatedSprite(
-    const resource::metadata::AnimationMetadata& metadata,
+    const mc::resource::metadata::AnimationMetadata& metadata,
     std::vector<FrameData>&& frames,
     u32 atlasX,
     u32 atlasY)
@@ -45,7 +45,7 @@ void AnimatedSprite::tick() {
         m_tickCounter = 0;
 
         // 切换到下一帧
-        const Size frameCount = m_metadata.frames.empty()
+        const mc::Size frameCount = m_metadata.frames.empty()
             ? m_frames.size()
             : m_metadata.frames.size();
 
@@ -67,12 +67,12 @@ void AnimatedSprite::tick() {
     }
 }
 
-Result<void> AnimatedSprite::uploadCurrentFrame(
+mc::Result<void> AnimatedSprite::uploadCurrentFrame(
     TridentContext* context,
     TridentTextureAtlas& atlas)
 {
     if (m_frames.empty()) {
-        return Error(ErrorCode::InvalidState, "AnimatedSprite has no frames");
+        return mc::Error(mc::ErrorCode::InvalidState, "AnimatedSprite has no frames");
     }
 
     // 如果不需要上传且未启用插值，跳过
@@ -89,8 +89,8 @@ Result<void> AnimatedSprite::uploadCurrentFrame(
     } else {
         // 使用当前帧
         const i32 frameIdx = currentFrameIndex();
-        if (frameIdx < 0 || static_cast<usize>(frameIdx) >= m_frames.size()) {
-            return Error(ErrorCode::OutOfRange, "Invalid frame index");
+        if (frameIdx < 0 || static_cast<mc::Size>(frameIdx) >= m_frames.size()) {
+            return mc::Error(mc::ErrorCode::OutOfRange, "Invalid frame index");
         }
         frameToUpload = m_frames[frameIdx];
     }
@@ -121,7 +121,7 @@ i32 AnimatedSprite::nextFrameIndex() const noexcept {
         return next >= static_cast<i32>(m_frames.size()) ? 0 : next;
     }
 
-    const usize nextPos = (m_frameCounter + 1) % m_metadata.frames.size();
+    const mc::Size nextPos = (m_frameCounter + 1) % m_metadata.frames.size();
     return m_metadata.frames[nextPos].index;
 }
 
@@ -133,8 +133,8 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
     const i32 currentIdx = currentFrameIndex();
     const i32 nextIdx = nextFrameIndex();
 
-    if (currentIdx < 0 || static_cast<usize>(currentIdx) >= m_frames.size() ||
-        nextIdx < 0 || static_cast<usize>(nextIdx) >= m_frames.size()) {
+    if (currentIdx < 0 || static_cast<mc::Size>(currentIdx) >= m_frames.size() ||
+        nextIdx < 0 || static_cast<mc::Size>(nextIdx) >= m_frames.size()) {
         return {};
     }
 
@@ -152,27 +152,27 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
     result.pixels.resize(currentFrame.pixels.size());
 
     // 逐像素插值
-    const Size pixelCount = currentFrame.pixels.size() / 4;
-    for (Size i = 0; i < pixelCount; ++i) {
-        const Size offset = i * 4;
+    const mc::Size pixelCount = currentFrame.pixels.size() / 4;
+    for (mc::Size i = 0; i < pixelCount; ++i) {
+        const mc::Size offset = i * 4;
 
         // R通道
         result.pixels[offset] = static_cast<u8>(
-            math::lerp(
+            mc::math::lerp(
                 static_cast<f32>(currentFrame.pixels[offset]),
                 static_cast<f32>(nextFrame.pixels[offset]),
                 progress));
 
         // G通道
         result.pixels[offset + 1] = static_cast<u8>(
-            math::lerp(
+            mc::math::lerp(
                 static_cast<f32>(currentFrame.pixels[offset + 1]),
                 static_cast<f32>(nextFrame.pixels[offset + 1]),
                 progress));
 
         // B通道
         result.pixels[offset + 2] = static_cast<u8>(
-            math::lerp(
+            mc::math::lerp(
                 static_cast<f32>(currentFrame.pixels[offset + 2]),
                 static_cast<f32>(nextFrame.pixels[offset + 2]),
                 progress));
@@ -184,13 +184,13 @@ AnimatedSprite::FrameData AnimatedSprite::generateInterpolatedFrame(f32 progress
     return result;
 }
 
-Result<void> AnimatedSprite::uploadFrame(
+mc::Result<void> AnimatedSprite::uploadFrame(
     TridentContext* context,
     TridentTextureAtlas& atlas,
     const FrameData& frame)
 {
     if (frame.pixels.empty()) {
-        return Error(ErrorCode::InvalidData, "Frame has no pixel data");
+        return mc::Error(mc::ErrorCode::InvalidData, "Frame has no pixel data");
     }
 
     // 计算上传区域
@@ -198,7 +198,7 @@ Result<void> AnimatedSprite::uploadFrame(
     const u32 atlasHeight = atlas.height();
 
     if (m_atlasX + m_frameWidth > atlasWidth || m_atlasY + m_frameHeight > atlasHeight) {
-        return Error(ErrorCode::OutOfRange, "Frame position out of atlas bounds");
+        return mc::Error(mc::ErrorCode::OutOfRange, "Frame position out of atlas bounds");
     }
 
     // 通过TridentTexture上传纹理区域

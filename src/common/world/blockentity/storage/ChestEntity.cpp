@@ -148,7 +148,11 @@ void ChestEntity::closeContainer() {
     // MC 1.16.5: 观察者模式的玩家不计入打开数
     // 注：当前项目尚未实现观察者模式检查，待Player类添加isSpectator()后补充
 
-    --m_openCount;
+    // MC 1.16.5: openContainer会修复负数，但为了保持不变量，
+    // 我们在closeContainer中也添加保护
+    if (m_openCount > 0) {
+        --m_openCount;
+    }
 
     if (m_world != nullptr) {
         broadcastChestState(*m_world, false);
