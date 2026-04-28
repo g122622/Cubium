@@ -1,8 +1,12 @@
 #include "BedBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../dimension/DimensionType.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../sound/SoundCategory.hpp"
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -147,6 +151,111 @@ bool BedBlock::isBed(IWorld& world, const BlockPos& pos) {
     // 检查是否为床方块
     // TODO: 添加方块类型检查
     return state->hasProperty(BlockStateProperties::BED_PART());
+}
+
+ActionResultType BedBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // MC Java: 床的交互逻辑
+    // 1. 检查维度 - 在下界和末地床会爆炸
+    // 2. 在主世界检查时间 - 只能在夜间睡眠
+
+    // 获取维度信息
+    DimensionId dimId = world.dimension();
+    DimensionType dimType = (dimId == 0) ? DimensionType::overworld() :
+                            (dimId == 1) ? DimensionType::nether() :
+                            DimensionType::theEnd();
+
+    // 检查床是否可用（主世界可用，下界和末地会爆炸）
+    if (!dimType.bedWorks()) {
+        // 在下界或末地使用床会爆炸
+        // 移除床方块
+        world.setBlockState(pos, nullptr, 11);
+
+        // 检查是否为床的头部，如果是脚部则同时移除头部
+        BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
+        if (part == BlockStateProperties::BedPart::Foot) {
+            Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+            BlockPos headPos = pos.offset(facing);
+            const BlockState* headState = world.getBlockState(headPos);
+            if (headState && headState->hasProperty(BlockStateProperties::BED_PART()) &&
+                headState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Head) {
+                world.setBlockState(headPos, nullptr, 11);
+            }
+        }
+
+        // TODO: 创建爆炸
+        // world.createExplosion(pos, 5.0f, true, Explosion::Mode::DESTROY);
+
+        // 播放爆炸音效
+        world.playSound(
+            ResourceLocation("minecraft:entity.generic.explode"),
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            4.0f,
+            1.0f
+        );
+
+        return ActionResultType::Success;
+    }
+
+    // 在主世界检查是否被占用
+    if (state.get(BlockStateProperties::OCCUPIED())) {
+        // 床已被占用
+        return ActionResultType::Pass;
+    }
+
+    // 检查时间 - 只能在夜间睡眠
+    // MC Java: 夜间范围是 12541-23458
+    i64 currentTime = world.dayTime();
+    bool isNight = (currentTime >= 12541 && currentTime <= 23458);
+
+    // TODO: 还需要检查是否有怪物在床附近
+    // if (!isNight && !player.isCreative()) {
+    //     // 显示消息：你只能在夜间或雷暴时睡眠
+    //     return ActionResultType::Pass;
+    // }
+
+    // 设置玩家的重生点
+    // TODO: player.setSpawnPoint(pos, true, dimId);
+
+    // 播放睡眠音效
+    world.playSound(
+        ResourceLocation("minecraft:block.bed.use"),
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        1.0f,
+        1.0f
+    );
+
+    // 标记床为占用状态
+    BlockState newState = state.with(BlockStateProperties::OCCUPIED(), true);
+    world.setBlockState(pos, &newState, 2);
+
+    // 如果是脚部，也要标记头部
+    BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
+    if (part == BlockStateProperties::BedPart::Foot) {
+        Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+        BlockPos headPos = pos.offset(facing);
+        const BlockState* headState = world.getBlockState(headPos);
+        if (headState && headState->hasProperty(BlockStateProperties::BED_PART())) {
+            BlockState newHeadState = headState->with(BlockStateProperties::OCCUPIED(), true);
+            world.setBlockState(headPos, &newHeadState, 2);
+        }
+    }
+
+    // TODO: 让玩家进入睡眠状态
+    // player.sleep(pos);
+
+    return ActionResultType::Success;
 }
 
 } // namespace blocks

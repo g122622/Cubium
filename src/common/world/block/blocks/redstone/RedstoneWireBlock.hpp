@@ -4,6 +4,9 @@
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../item/core/ActionResult.hpp"
 #include <vector>
 
 namespace mc {
@@ -167,6 +170,22 @@ public:
     [[nodiscard]] static const EnumProperty<RedstoneSide>& EAST_PROP();
     [[nodiscard]] static const EnumProperty<RedstoneSide>& SOUTH_PROP();
     [[nodiscard]] static const EnumProperty<RedstoneSide>& WEST_PROP();
+
+    // ========== Block 接口实现 ==========
+
+    /**
+     * @brief 右键交互 - 切换十字/点状连接
+     *
+     * MC Java: 右键点击红石线可以在十字和点状连接之间切换。
+     * 这个功能用于控制红石信号的传播方向。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 private:
     /**

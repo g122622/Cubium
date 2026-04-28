@@ -429,5 +429,22 @@ void RedstoneWireBlock::notifyWireNeighbors(IWorld& world, const BlockPos& pos) 
     updatePower(world, pos);
 }
 
+ActionResultType RedstoneWireBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(player);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // MC Java: 右键点击红石线不执行任何操作，让物品（如方块）处理交互
+    // 红石线的连接状态由邻居方块决定，不能手动切换
+    return ActionResultType::Pass;
+}
+
 } // namespace blocks
 } // namespace mc

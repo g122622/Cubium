@@ -2,6 +2,9 @@
 
 #include "RedstoneDiodeBlock.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../item/core/ActionResult.hpp"
 #include <memory>
 
 namespace mc {
@@ -131,6 +134,19 @@ public:
      * @param signal 信号强度 0-15
      */
     void storeOutputSignal(IWorld& world, const BlockPos& pos, i32 signal) const;
+
+    /**
+     * @brief 右键交互 - 切换比较/减法模式
+     *
+     * MC Java: 右键点击比较器可以在比较模式和减法模式之间切换。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /**

@@ -61,7 +61,10 @@ void ObserverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
 
     // 只有侦测面的变化才触发
     if (neighborPos == observePos) {
-        detect(world, pos, *state);
+        // MC 1.16.5: 如果当前未激活，调度1 tick延迟后激活
+        if (!isPowered(*state)) {
+            world.scheduleBlockTick(pos, *this, DETECT_DELAY, world::tick::TickPriority::High);
+        }
     }
 }
 
@@ -69,6 +72,7 @@ BlockState ObserverBlock::updatePostPlacement(
     const BlockState& state, Direction facing,
     const BlockState& facingState, IWorld& world,
     const BlockPos& currentPos, const BlockPos& facingPos) {
+
     MC_UNUSED(facingState);
     MC_UNUSED(world);
     MC_UNUSED(currentPos);
@@ -77,18 +81,39 @@ BlockState ObserverBlock::updatePostPlacement(
     // 当侦测面放置/移除方块时触发
     Direction observeDir = Directions::opposite(getFacing(state));
     if (facing == observeDir) {
-        // 调度检测
-        detect(world, currentPos, state);
+        // MC 1.16.5: 如果当前未激活，调度1 tick延迟后激活
+        if (!isPowered(state)) {
+            world.scheduleBlockTick(currentPos, *this, DETECT_DELAY, world::tick::TickPriority::High);
+        }
     }
 
     return state;
 }
 
 void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+    // MC 1.16.5 逻辑：
+    // 1. 如果未激活 -> 激活并调度 2 tick 后熄灭
+    // 2. 如果已激活 -> 熄灭
     if (isPowered(state)) {
         // 脉冲结束，停止输出
         BlockState newState = withPowered(state, false);
         world.setBlockState(pos, &newState, 2);
+
+        // 通知输出端相邻方块更新
+        Direction facing = getFacing(state);
+        BlockPos outputPos = pos.offset(facing);
+        const BlockState* outputState = world.getBlockState(outputPos);
+        if (outputState && !outputState->isAir()) {
+            Block& outputBlock = const_cast<Block&>(outputState->getBlock());
+            outputBlock.neighborChanged(world, outputPos, *this, pos, false);
+        }
+    } else {
+        // 激活并调度熄灭
+        BlockState newState = withPowered(state, true);
+        world.setBlockState(pos, &newState, 2);
+
+        // 调度脉冲结束
+        world.scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
 
         // 通知输出端相邻方块更新
         Direction facing = getFacing(state);
@@ -128,27 +153,13 @@ i32 ObserverBlock::getStrongPower(
     return getWeakPower(state, world, pos, side);
 }
 
-void ObserverBlock::detect(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    // 如果已经在输出，不重复触发
-    if (isPowered(state)) {
-        return;
-    }
-
-    // 立即激活并调度脉冲
-    BlockState newState = withPowered(state, true);
-    world.setBlockState(pos, &newState, 2);
-
-    // 调度脉冲结束
-    world.scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
-
-    // 通知输出端相邻方块更新
-    Direction facing = getFacing(state);
-    BlockPos outputPos = pos.offset(facing);
-    const BlockState* outputState = world.getBlockState(outputPos);
-    if (outputState && !outputState->isAir()) {
-        Block& outputBlock = const_cast<Block&>(outputState->getBlock());
-        outputBlock.neighborChanged(world, outputPos, *this, pos, false);
-    }
+void ObserverBlock::detect(IWorld& world, const BlockPos& pos, const BlockState& state, bool extending) {
+    // MC 1.16.5: detect 方法现在通过 tick 实现
+    // 这个方法保留作为备用接口，但主逻辑已移到 tick() 中
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(extending);
 }
 
 } // namespace blocks

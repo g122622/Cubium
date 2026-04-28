@@ -99,15 +99,20 @@ private:
      * @brief 检测并触发
      *
      * 当检测到变化时，调度脉冲输出。
+     * MC 1.16.5: 先调度1个tick的延迟再激活，然后激活持续2个tick。
      *
      * @param world 世界引用
      * @param pos 方块位置
      * @param state 当前方块状态
+     * @param extending true表示正在激活，false表示正在熄灭
      */
-    void detect(IWorld& world, const BlockPos& pos, const BlockState& state);
+    void detect(IWorld& world, const BlockPos& pos, const BlockState& state, bool extending);
 
     /// 脉冲持续时间（tick）
     static constexpr i32 PULSE_DURATION = 2;
+
+    /// 检测延迟（tick）- MC 1.16.5: 观察->输出需要1 tick延迟
+    static constexpr i32 DETECT_DELAY = 1;
 };
 
 } // namespace blocks

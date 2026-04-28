@@ -4,6 +4,9 @@
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../item/core/ActionResult.hpp"
 #include <array>
 
 namespace mc {
@@ -120,6 +123,22 @@ public:
         const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr) const override;
+
+    /**
+     * @brief 右键交互 - 充能或设置重生点
+     *
+     * MC Java:
+     * - 使用萤石充能（需要物品检查）
+     * - 在非下界维度使用会爆炸
+     * - 充能后在非下界设置重生点
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /// 重生锚形状

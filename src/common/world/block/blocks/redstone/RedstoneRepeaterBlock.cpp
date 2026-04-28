@@ -1,5 +1,7 @@
 #include "RedstoneRepeaterBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -83,6 +85,44 @@ bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos,
                                      const BlockState& state) const {
     // 检查侧面是否有来自其他二极管的信号
     return getPowerOnSides(world, pos, state) > 0;
+}
+
+ActionResultType RedstoneRepeaterBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(player);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // MC Java: 右键点击中继器可以在 1-4 档延迟之间循环切换
+    // 只有未被锁定的中继器才能调整延迟
+    if (isLockedState(state)) {
+        return ActionResultType::Pass;
+    }
+
+    // 获取当前延迟档位并循环切换
+    i32 currentDelay = getDelaySetting(state);
+    i32 newDelay = (currentDelay % MAX_DELAY) + 1;  // 1 -> 2 -> 3 -> 4 -> 1
+
+    // 设置新的延迟档位
+    BlockState newState = withDelay(state, newDelay);
+    world.setBlockState(pos, &newState, 3);
+
+    // 播放点击音效
+    world.playSound(
+        ResourceLocation("minecraft:block.comparator.click"),
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.3f,
+        0.5f
+    );
+
+    return ActionResultType::Success;
 }
 
 } // namespace blocks
