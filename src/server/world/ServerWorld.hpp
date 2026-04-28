@@ -352,13 +352,13 @@ public:
 
     // ========== 村庄管理 ==========
 
-    [[nodiscard]] world::village::VillageManager* villageManager() { return m_villageManager.get(); }
-    [[nodiscard]] const world::village::VillageManager* villageManager() const { return m_villageManager.get(); }
+    [[nodiscard]] ::mc::world::village::VillageManager* villageManager() { return m_villageManager.get(); }
+    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const { return m_villageManager.get(); }
 
     // ========== 袭击管理 ==========
 
-    [[nodiscard]] world::village::raid::RaidManager* raidManager() { return m_raidManager.get(); }
-    [[nodiscard]] const world::village::raid::RaidManager* raidManager() const { return m_raidManager.get(); }
+    [[nodiscard]] ::mc::world::village::raid::RaidManager* raidManager() { return m_raidManager.get(); }
+    [[nodiscard]] const ::mc::world::village::raid::RaidManager* raidManager() const { return m_raidManager.get(); }
 
     // ========== 睡眠管理 ==========
 
@@ -437,8 +437,8 @@ private:
     OpenContainerCallback m_onOpenContainer;
 
     // 村庄和袭击系统
-    std::unique_ptr<world::village::VillageManager> m_villageManager;
-    std::unique_ptr<world::village::raid::RaidManager> m_raidManager;
+    std::unique_ptr<::mc::world::village::VillageManager> m_villageManager;
+    std::unique_ptr<::mc::world::village::raid::RaidManager> m_raidManager;
 
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;

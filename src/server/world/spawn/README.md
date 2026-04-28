@@ -6,6 +6,8 @@
 spawn/
 ├── NaturalSpawner.hpp      # 自然生成器头文件
 ├── NaturalSpawner.cpp      # 自然生成器实现
+├── DespawnManager.hpp      # 生物消失管理器头文件
+├── DespawnManager.cpp      # 生物消失管理器实现
 ├── SpawnConditions.hpp     # 生成条件检查工具
 └── SpawnConditions.cpp     # 生成条件检查实现
 ```
@@ -104,6 +106,60 @@ public:
 | 动物 | 光照 > 7 | 24-128 格 | 每 400 tick 尝试一次 |
 | 环境生物 | 光照 ≤ 7 | 24-128 格 | 随机概率 |
 | 水生生物 | 在水中 | 24-128 格 | 需要水域 |
+
+### DespawnManager.hpp / DespawnManager.cpp
+
+**职责**: 管理生物的自然消失机制，防止实体无限累积。
+
+**主要类**:
+
+```cpp
+class DespawnManager {
+public:
+    DespawnManager() = default;
+    
+    // 每 tick 调用，检查实体的消失条件
+    void tick(ServerWorld& world);
+    
+    // 配置
+    void setEnabled(bool enabled);
+    [[nodiscard]] bool isEnabled() const;
+    
+    // 常量
+    static constexpr f64 INSTANT_DESPAWN_DISTANCE_SQ = 128.0 * 128.0;  // 立即消失距离
+    static constexpr f64 RANDOM_DESPAWN_DISTANCE_SQ = 32.0 * 32.0;     // 随机消失距离
+    static constexpr i32 MIN_IDLE_TIME = 600;                           // 最小空闲时间
+    static constexpr i32 DESPAWN_CHANCE_DENOMINATOR = 800;              // 消失概率分母
+};
+```
+
+**消失规则**（参考 MC 1.16.5）:
+
+| 条件 | 消失行为 |
+|------|---------|
+| 距离玩家 > 128 格 | 立即消失 |
+| 距离玩家 > 32 格 且 空闲 > 600 tick | 1/800 概率消失 |
+| 和平难度下的怪物 | 立即消失 |
+| 命名牌命名 | 永不消失（TODO） |
+
+**使用示例**:
+
+```cpp
+#include "server/world/spawn/DespawnManager.hpp"
+
+// 在服务器 tick 循环中调用
+mc::world::spawn::DespawnManager despawnManager;
+
+void onTick() {
+    // 在刷怪后执行消失检查
+    if (m_naturalSpawner) {
+        m_naturalSpawner->tick(*m_world, true, true);
+    }
+    if (m_despawnManager) {
+        m_despawnManager->tick(*m_world);
+    }
+}
+```
 
 ### SpawnConditions.hpp / SpawnConditions.cpp
 
