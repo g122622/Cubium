@@ -14,9 +14,8 @@ namespace crafting {
  *
  * 匹配算法：
  * 1. 检查原料数量是否匹配
- * 2. 对每个原料，在网格中查找匹配的物品
- * 3. 使用过的物品不能再次使用
- * 4. 所有原料都找到匹配则成功
+ * 2. 对于简单原料（不包含可损坏物品）：使用贪心匹配
+ * 3. 对于复杂原料：使用回溯算法确保正确匹配
  *
  * JSON 格式示例：
  * @code
@@ -101,11 +100,33 @@ public:
      */
     [[nodiscard]] bool canFitIn(i32 width, i32 height) const override;
 
+    /**
+     * @brief 检查配方是否为简单配方
+     * @return 如果所有原料都不包含可损坏物品返回true
+     *
+     * 简单配方可以使用更高效的贪心匹配算法。
+     */
+    [[nodiscard]] bool isSimple() const { return m_isSimple; }
+
 private:
+    /**
+     * @brief 使用回溯算法匹配原料
+     * @param inventory 合成网格
+     * @param used 已使用的槽位标记
+     * @param ingredientIndex 当前要匹配的原料索引
+     * @return 如果所有原料都能匹配返回true
+     *
+     * 回溯算法确保在贪心算法可能失败的情况下也能找到正确的匹配。
+     */
+    bool matchWithBacktracking(const CraftingInventory& inventory,
+                                std::vector<bool>& used,
+                                i32 ingredientIndex) const;
+
     ResourceLocation m_id;
     std::vector<Ingredient> m_ingredients;
     ItemStack m_result;
     String m_group;
+    bool m_isSimple = true;  ///< 是否为简单配方（所有原料都不包含可损坏物品）
 };
 
 } // namespace crafting

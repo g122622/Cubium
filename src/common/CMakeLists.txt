@@ -321,6 +321,8 @@ add_library(mc_common STATIC
     item/crafting/RecipeSerializers.cpp
     item/crafting/RecipeLoader.cpp
     item/crafting/SmeltingRecipe.cpp
+    item/crafting/StonecuttingRecipe.cpp
+    item/crafting/SmithingRecipe.cpp
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp

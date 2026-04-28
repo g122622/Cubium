@@ -124,28 +124,18 @@ private:
      * @param inventory 合成网格
      * @param offsetX X偏移
      * @param offsetY Y偏移
-     * @param mirrored 是否镜像
+     * @param mirrored 是否镜像（true=水平翻转）
      * @return 如果匹配返回true
+     *
+     * MC 原版算法：
+     * - 遍历整个网格（而不是只遍历配方区域）
+     * - 对于配方外的位置，使用 Ingredient.EMPTY 进行测试
+     * - Ingredient.EMPTY.test(stack) 只对空物品堆返回 true
      */
     bool checkMatch(const CraftingInventory& inventory,
                     i32 offsetX,
                     i32 offsetY,
                     bool mirrored) const;
-
-    /**
-     * @brief 计算合成网格中内容的边界框
-     * @param inventory 合成网格
-     * @param outMinX 输出最小X
-     * @param outMinY 输出最小Y
-     * @param outMaxX 输出最大X
-     * @param outMaxY 输出最大Y
-     * @return 如果有内容返回true
-     */
-    static bool getContentBounds(const CraftingInventory& inventory,
-                                  i32& outMinX,
-                                  i32& outMinY,
-                                  i32& outMaxX,
-                                  i32& outMaxY);
 
     ResourceLocation m_id;
     i32 m_width;

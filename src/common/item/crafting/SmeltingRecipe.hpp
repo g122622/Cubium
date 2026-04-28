@@ -2,20 +2,23 @@
 
 #include "IRecipe.hpp"
 #include "../core/ItemStack.hpp"
-#include "../../world/blockentity/processing/FurnaceInventory.hpp"
 #include <memory>
 
 namespace mc {
+namespace blockentity {
+class FurnaceInventory;
+}
+
 namespace crafting {
 
-// Forward declaration
-class FurnaceInventory;
-
 /**
- * @brief 熔炼配方
+ * @brief 熔炼配方基类
  *
- * 用于熔炉、高炉、烟熏炉等熔炼类配方的基类。
+ * 用于熔炉、高炉、烟熏炉、营火等熔炼类配方的基类。
  * 参考: net.minecraft.item.cooking.AbstractCookingRecipe
+ *
+ * 熔炼配方只有一个输入原料，产生一个输出结果。
+ * 熔炼过程会产生经验值，并有固定的熔炼时间。
  */
 class SmeltingRecipe : public IRecipe<class mc::blockentity::FurnaceInventory> {
 public:
@@ -49,6 +52,15 @@ public:
     [[nodiscard]] ResourceLocation getId() const override { return m_id; }
     [[nodiscard]] RecipeType getType() const override { return RecipeType::Smelting; }
 
+    /**
+     * @brief 熔炼类配方可以适应任何尺寸（始终返回 true）
+     */
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override {
+        (void)width;
+        (void)height;
+        return true;
+    }
+
     // ========== 熔炼特有方法 ==========
 
     /**
@@ -62,6 +74,12 @@ public:
      * @return 熔炼时间（tick）
      */
     [[nodiscard]] i32 getCookTime() const { return m_cookTime; }
+
+    /**
+     * @brief 获取输入原料
+     * @return 输入原料
+     */
+    [[nodiscard]] const Ingredient& getIngredient() const { return m_ingredient; }
 
 protected:
     ResourceLocation m_id;
@@ -78,6 +96,7 @@ protected:
  *
  * 与普通熔炼配方类似，但熔炼时间减半（100 tick vs 200 tick）
  * 仅适用于矿石和金属物品。
+ * 参考: net.minecraft.item.cooking.BlastingRecipe
  */
 class BlastingRecipe : public SmeltingRecipe {
 public:
@@ -91,6 +110,7 @@ public:
  *
  * 与普通熔炼配方类似，但熔炼时间减半（100 tick vs 200 tick）
  * 仅适用于食物。
+ * 参考: net.minecraft.item.cooking.SmokingRecipe
  */
 class SmokingRecipe : public SmeltingRecipe {
 public:
@@ -103,6 +123,7 @@ public:
  * @brief 营火烹饪配方
  *
  * 在营火上烹饪食物的配方。
+ * 参考: net.minecraft.item.cooking.CampfireCookingRecipe
  */
 class CampfireCookingRecipe : public SmeltingRecipe {
 public:

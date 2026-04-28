@@ -428,12 +428,20 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
 
 ## 未来扩展
 
-当前系统预留了以下扩展点：
+当前系统已实现的配方类型：
 
-1. **熔炼配方** (`SmeltingRecipe`) - 待实现
-2. **高炉配方** (`BlastingRecipe`) - 待实现
-3. **烟熏炉配方** (`SmokingRecipe`) - 待实现
-4. **营火烹饪配方** (`CampfireCookingRecipe`) - 待实现
-5. **切石机配方** (`StonecuttingRecipe`) - 待实现
-6. **锻造台配方** (`SmithingRecipe`) - 待实现
-7. **物品标签系统** - 待实现，用于 `Ingredient::fromTag()`
+1. **有序合成** (`ShapedRecipe`) - ✅ 完成
+2. **无序合成** (`ShapelessRecipe`) - ✅ 完成
+3. **熔炉配方** (`SmeltingRecipe`) - ✅ 完成
+4. **高炉配方** (`BlastingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
+5. **烟熏炉配方** (`SmokingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
+6. **营火烹饪配方** (`CampfireCookingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
+7. **切石机配方** (`StonecuttingRecipe`) - ✅ 完成
+8. **锻造台配方** (`SmithingRecipe`) - ✅ 完成
+
+待实现功能：
+
+1. **特殊配方** (`SpecialRecipe`) - 动态配方（染色、书复制、地图扩展等）
+2. **配方书系统** - 配方解锁和配方书 UI
+3. **剩余物品系统** - `getRemainingItems()` 方法（水桶→空桶）
+4. **网络同步** - 配方数据包序列化/反序列化

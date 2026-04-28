@@ -17,7 +17,7 @@ namespace crafting {
  * 支持三种匹配方式：
  * 1. 单个物品：fromItem()
  * 2. 多个物品：fromItems()
- * 3. 物品标签：fromTag()（未来实现）
+ * 3. 物品标签：fromTag()
  *
  * 使用示例：
  * @code
@@ -38,16 +38,25 @@ namespace crafting {
  * @endcode
  *
  * 注意事项：
- * - 空Ingredient匹配任何空物品
- * - Ingredient是不可变的，创建后不应修改
- * - getMatchingStacks()返回的是所有可能匹配的物品堆
+ * - 空 Ingredient（isEmpty() 返回 true）只匹配空物品堆
+ * - Ingredient 是不可变的，创建后不应修改
+ * - getMatchingStacks() 返回的是所有可能匹配的物品堆
  */
 class Ingredient {
 public:
     /**
-     * @brief 默认构造函数，创建空Ingredient
+     * @brief 空 Ingredient 常量
      *
-     * 空Ingredient不匹配任何物品（isEmpty()返回true）
+     * 空 Ingredient 的行为：test() 只对空物品堆返回 true。
+     * 这与 MC 原版的 Ingredient.EMPTY 行为一致。
+     */
+    static const Ingredient EMPTY;
+
+    /**
+     * @brief 默认构造函数，创建空 Ingredient
+     *
+     * 空 Ingredient 只匹配空物品堆（isEmpty() 返回 true）。
+     * 与 MC 原版行为一致：空原料用于配方中"该位置必须为空"的判断。
      */
     Ingredient() = default;
 
@@ -97,10 +106,10 @@ public:
      * @param stack 要检查的物品堆
      * @return 如果匹配返回true
      *
-     * 匹配规则：
-     * - 空Ingredient不匹配任何物品（包括空堆）
-     * - 空物品堆不匹配任何非空Ingredient
-     * - 检查物品类型是否在匹配列表中
+     * 匹配规则（与 MC 原版一致）：
+     * - 空 Ingredient（isEmpty() == true）只匹配空物品堆
+     * - 非空 Ingredient 不匹配空物品堆
+     * - 检查物品类型是否在匹配列表中（不检查 NBT）
      */
     [[nodiscard]] bool test(const ItemStack& stack) const;
 
@@ -121,6 +130,15 @@ public:
     [[nodiscard]] const std::vector<ItemStack>& getMatchingStacks() const {
         return m_matchingStacks;
     }
+
+    /**
+     * @brief 检查是否为简单原料
+     * @return 如果不包含可损坏物品返回true
+     *
+     * 简单原料可以用于 RecipeItemHelper 优化匹配。
+     * 如果原料包含可损坏物品（如工具），则需要更复杂的匹配逻辑。
+     */
+    [[nodiscard]] bool isSimple() const;
 
     /**
      * @brief 检查是否为空Ingredient
@@ -147,6 +165,13 @@ public:
     }
 
     /**
+     * @brief 合并多个原料为一个
+     * @param parts 要合并的原料列表
+     * @return 合并后的原料，匹配任一原料的物品
+     */
+    static Ingredient merge(const std::vector<Ingredient>& parts);
+
+    /**
      * @brief 比较两个Ingredient是否相等
      * @param other 要比较的Ingredient
      * @return 如果匹配相同的物品返回true
@@ -166,14 +191,36 @@ public:
      */
     size_t hash() const;
 
+    /**
+     * @brief 判断原料是否没有匹配物品
+     * @return 如果没有匹配物品返回true
+     *
+     * 此方法名与 MC 原版 hasNoMatchingItems() 对应。
+     * 注意：空标签也视为没有匹配物品。
+     */
+    [[nodiscard]] bool hasNoMatchingItems() const;
+
 private:
     std::vector<ItemStack> m_matchingStacks;
     String m_tag;
     bool m_hasTag = false;
+    bool m_isSimple = true;  ///< 是否为简单原料（不包含可损坏物品）
 
     // 用于缓存解析后的标签物品
     mutable bool m_tagResolved = false;
     mutable std::vector<const Item*> m_tagItems;
+
+    /**
+     * @brief 更新 isSimple 标志
+     * 在构造后调用，检查是否包含可损坏物品
+     */
+    void updateSimple();
+
+    /**
+     * @brief 延迟解析标签
+     * 在首次需要时解析标签中的物品列表
+     */
+    void resolveTagIfNeeded() const;
 };
 
 } // namespace crafting

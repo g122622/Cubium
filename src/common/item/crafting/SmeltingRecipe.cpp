@@ -1,4 +1,5 @@
 #include "SmeltingRecipe.hpp"
+#include "world/blockentity/processing/FurnaceInventory.hpp"
 
 namespace mc {
 namespace crafting {
@@ -21,8 +22,8 @@ SmeltingRecipe::SmeltingRecipe(
 }
 
 bool SmeltingRecipe::matches(const blockentity::FurnaceInventory& inventory) const {
-    ItemStack input = inventory.getInputItem();
-    return m_ingredient.test(input);
+    // MC 原版：检查输入槽（槽位0）是否匹配原料
+    return m_ingredient.test(inventory.getItem(0));
 }
 
 ItemStack SmeltingRecipe::assemble(const blockentity::FurnaceInventory& inventory) const {

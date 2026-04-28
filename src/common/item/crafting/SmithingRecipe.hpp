@@ -1,0 +1,94 @@
+#pragma once
+
+#include "IRecipe.hpp"
+#include "entity/inventory/IInventory.hpp"
+#include <memory>
+
+namespace mc {
+namespace crafting {
+
+/**
+ * @brief 锻造台配方
+ *
+ * 锻造台配方将基础装备和添加物组合成升级装备。
+ * 主要用于下界合金升级。
+ * 参考: net.minecraft.item.crafting.SmithingRecipe
+ *
+ * JSON 格式示例：
+ * @code
+ * {
+ *   "type": "minecraft:smithing",
+ *   "base": { "item": "minecraft:diamond_sword" },
+ *   "addition": { "item": "minecraft:netherite_ingot" },
+ *   "result": { "item": "minecraft:netherite_sword" }
+ * }
+ * @endcode
+ */
+class SmithingRecipe : public IRecipe<IInventory> {
+public:
+    /// 基础物品槽位索引
+    static constexpr i32 SLOT_BASE = 0;
+    /// 添加物槽位索引
+    static constexpr i32 SLOT_ADDITION = 1;
+    /// 结果槽位索引
+    static constexpr i32 SLOT_RESULT = 2;
+
+    /**
+     * @brief 构造函数
+     * @param id 配方ID
+     * @param base 基础物品原料
+     * @param addition 添加物原料
+     * @param result 结果物品
+     */
+    SmithingRecipe(
+        const ResourceLocation& id,
+        const Ingredient& base,
+        const Ingredient& addition,
+        const ItemStack& result
+    );
+
+    ~SmithingRecipe() override = default;
+
+    // ========== IRecipe 接口实现 ==========
+
+    [[nodiscard]] bool matches(const IInventory& inventory) const override;
+    [[nodiscard]] ItemStack assemble(const IInventory& inventory) const override;
+    [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
+    [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override;
+    [[nodiscard]] const String& getGroup() const override { return EMPTY_GROUP; }
+    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
+    [[nodiscard]] RecipeType getType() const override { return RecipeType::Smithing; }
+
+    /**
+     * @brief 锻造台配方需要2个输入槽位
+     */
+    [[nodiscard]] bool canFitIn(i32 width, i32 height) const override {
+        return width * height >= 2;
+    }
+
+    // ========== 锻造台特有方法 ==========
+
+    /**
+     * @brief 获取基础物品原料
+     * @return 基础物品原料
+     */
+    [[nodiscard]] const Ingredient& getBase() const { return m_base; }
+
+    /**
+     * @brief 获取添加物原料
+     * @return 添加物原料
+     */
+    [[nodiscard]] const Ingredient& getAddition() const { return m_addition; }
+
+private:
+    static const String EMPTY_GROUP;
+
+    ResourceLocation m_id;
+    Ingredient m_base;
+    Ingredient m_addition;
+    ItemStack m_result;
+    mutable std::vector<Ingredient> m_ingredients;  ///< 缓存的原料列表
+};
+
+} // namespace crafting
+} // namespace mc

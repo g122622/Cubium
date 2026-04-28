@@ -12,6 +12,14 @@ ShapelessRecipe::ShapelessRecipe(const ResourceLocation& id,
     , m_ingredients(std::move(ingredients))
     , m_result(std::move(result))
     , m_group(group) {
+    // 计算是否为简单配方
+    m_isSimple = true;
+    for (const Ingredient& ingredient : m_ingredients) {
+        if (!ingredient.isSimple()) {
+            m_isSimple = false;
+            break;
+        }
+    }
 }
 
 bool ShapelessRecipe::matches(const CraftingInventory& inventory) const {
@@ -31,22 +39,39 @@ bool ShapelessRecipe::matches(const CraftingInventory& inventory) const {
     // 跟踪已使用的槽位
     std::vector<bool> used(inventory.getContainerSize(), false);
 
-    // 对每个原料，在网格中查找匹配的物品
-    for (const Ingredient& ingredient : m_ingredients) {
-        bool found = false;
-        for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
-            if (!used[i] && ingredient.test(inventory.getItem(i))) {
-                used[i] = true;
-                found = true;
-                break;
+    // 使用回溯算法进行匹配
+    // MC 原版对于简单配方使用 RecipeItemHelper 优化，复杂配方使用回溯
+    // 这里统一使用回溯算法以确保正确性
+    return matchWithBacktracking(inventory, used, 0);
+}
+
+bool ShapelessRecipe::matchWithBacktracking(const CraftingInventory& inventory,
+                                             std::vector<bool>& used,
+                                             i32 ingredientIndex) const {
+    // 所有原料都已匹配
+    if (ingredientIndex >= static_cast<i32>(m_ingredients.size())) {
+        return true;
+    }
+
+    const Ingredient& ingredient = m_ingredients[ingredientIndex];
+
+    // 尝试为当前原料找一个匹配的槽位
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        if (!used[i] && ingredient.test(inventory.getItem(i))) {
+            used[i] = true;
+
+            // 递归匹配下一个原料
+            if (matchWithBacktracking(inventory, used, ingredientIndex + 1)) {
+                return true;
             }
-        }
-        if (!found) {
-            return false;
+
+            // 回溯，尝试其他槽位
+            used[i] = false;
         }
     }
 
-    return true;
+    // 没有找到匹配
+    return false;
 }
 
 ItemStack ShapelessRecipe::assemble(const CraftingInventory& inventory) const {

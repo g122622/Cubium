@@ -19,42 +19,19 @@ ShapedRecipe::ShapedRecipe(const ResourceLocation& id,
 }
 
 bool ShapedRecipe::matches(const CraftingInventory& inventory) const {
-    // 计算输入网格中内容的边界框
-    i32 minInputX, minInputY, maxInputX, maxInputY;
-    if (!getContentBounds(inventory, minInputX, minInputY, maxInputX, maxInputY)) {
-        // 空网格只能匹配空配方
-        return m_ingredients.empty();
-    }
-
-    i32 inputWidth = maxInputX - minInputX + 1;
-    i32 inputHeight = maxInputY - minInputY + 1;
-
-    // 检查尺寸是否匹配
-    if (inputWidth != m_width || inputHeight != m_height) {
-        return false;
-    }
-
-    // 尝试所有可能的偏移位置（通常只需要一个，因为尺寸已匹配）
-    // 但为了正确性，我们检查从边界开始的匹配
+    // MC 原版算法：遍历所有可能的偏移位置
+    // 注意：原版先检查镜像，再检查正向
     for (i32 offsetY = 0; offsetY <= inventory.getHeight() - m_height; ++offsetY) {
         for (i32 offsetX = 0; offsetX <= inventory.getWidth() - m_width; ++offsetX) {
-            // 跳过不可能的位置
-            if (offsetX > minInputX || offsetY > minInputY) {
-                continue;
-            }
-
-            // 检查正向匹配
-            if (checkMatch(inventory, offsetX, offsetY, false)) {
+            // MC 原版：先检查镜像，再检查正向
+            if (checkMatch(inventory, offsetX, offsetY, true)) {
                 return true;
             }
-
-            // 检查镜像匹配（水平翻转）
-            if (checkMatch(inventory, offsetX, offsetY, true)) {
+            if (checkMatch(inventory, offsetX, offsetY, false)) {
                 return true;
             }
         }
     }
-
     return false;
 }
 
@@ -71,75 +48,38 @@ bool ShapedRecipe::checkMatch(const CraftingInventory& inventory,
                                i32 offsetX,
                                i32 offsetY,
                                bool mirrored) const {
-    for (i32 y = 0; y < m_height; ++y) {
-        for (i32 x = 0; x < m_width; ++x) {
-            // 计算原料索引
-            i32 ingredientIndex = y * m_width + (mirrored ? m_width - 1 - x : x);
-            const Ingredient& ingredient = m_ingredients[ingredientIndex];
+    // MC 原版算法：遍历整个网格，而不是只遍历配方区域
+    // 对于网格外的位置，使用 Ingredient.EMPTY 进行测试
+    for (i32 y = 0; y < inventory.getHeight(); ++y) {
+        for (i32 x = 0; x < inventory.getWidth(); ++x) {
+            // 计算相对于配方左上角的坐标
+            i32 relX = x - offsetX;
+            i32 relY = y - offsetY;
 
-            // 计算网格位置
-            i32 slotX = offsetX + x;
-            i32 slotY = offsetY + y;
-            i32 slot = inventory.posToSlot(slotX, slotY);
+            // 获取该位置对应的原料
+            const Ingredient* ingredient = &Ingredient::EMPTY;
 
-            if (slot < 0) {
-                // 超出网格范围
-                return false;
+            if (relX >= 0 && relY >= 0 && relX < m_width && relY < m_height) {
+                // 位置在配方范围内
+                if (mirrored) {
+                    // 镜像：水平翻转 X 坐标
+                    ingredient = &m_ingredients[m_width - relX - 1 + relY * m_width];
+                } else {
+                    // 正向
+                    ingredient = &m_ingredients[relX + relY * m_width];
+                }
             }
 
+            // 测试网格中的物品
+            i32 slot = y * inventory.getWidth() + x;
             ItemStack stack = inventory.getItem(slot);
 
-            if (!ingredient.test(stack)) {
+            if (!ingredient->test(stack)) {
                 return false;
             }
         }
     }
-
-    // 检查网格其他位置是否为空
-    for (i32 y = 0; y < inventory.getHeight(); ++y) {
-        for (i32 x = 0; x < inventory.getWidth(); ++x) {
-            // 跳过配方区域
-            if (x >= offsetX && x < offsetX + m_width &&
-                y >= offsetY && y < offsetY + m_height) {
-                continue;
-            }
-
-            // 其他位置必须为空
-            i32 slot = inventory.posToSlot(x, y);
-            if (slot >= 0 && !inventory.getItem(slot).isEmpty()) {
-                return false;
-            }
-        }
-    }
-
     return true;
-}
-
-bool ShapedRecipe::getContentBounds(const CraftingInventory& inventory,
-                                     i32& outMinX,
-                                     i32& outMinY,
-                                     i32& outMaxX,
-                                     i32& outMaxY) {
-    bool hasContent = false;
-    outMinX = inventory.getWidth();
-    outMinY = inventory.getHeight();
-    outMaxX = -1;
-    outMaxY = -1;
-
-    for (i32 y = 0; y < inventory.getHeight(); ++y) {
-        for (i32 x = 0; x < inventory.getWidth(); ++x) {
-            i32 slot = inventory.posToSlot(x, y);
-            if (slot >= 0 && !inventory.getItem(slot).isEmpty()) {
-                hasContent = true;
-                outMinX = std::min(outMinX, x);
-                outMinY = std::min(outMinY, y);
-                outMaxX = std::max(outMaxX, x);
-                outMaxY = std::max(outMaxY, y);
-            }
-        }
-    }
-
-    return hasContent;
 }
 
 } // namespace crafting
