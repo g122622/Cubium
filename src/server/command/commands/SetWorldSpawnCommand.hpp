@@ -3,8 +3,13 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandSource.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
+namespace server {
+class IServer;
+}
+
 namespace command {
 
 /**
@@ -39,6 +44,13 @@ private:
      * @return 命令结果
      */
     static i32 setPosition(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 广播新的世界出生点到所有玩家
+     * @param server 服务器实例
+     * @param pos 新的出生点位置
+     */
+    static void broadcastSpawnPosition(server::IServer* server, const Vector3d& pos);
 };
 
 } // namespace command

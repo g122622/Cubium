@@ -205,6 +205,42 @@ bool ServerPlayer::isPlayerFullyAsleep() const {
     return isSleeping() && getSleepTimer() >= 100;
 }
 
+// ========== 重生系统实现 ==========
+
+Vector3d ServerPlayer::determineRespawnPosition() const {
+    // 1. 检查玩家个人重生点
+    auto spawnPoint = getSpawnPoint();
+    if (spawnPoint.has_value()) {
+        // TODO: 验证床/重生锚是否仍存在且有效
+        // 当前实现：直接使用存储的重生点位置
+        const BlockPos& pos = spawnPoint->getPos();
+        return Vector3d(
+            pos.x + 0.5,
+            pos.y + 0.1,
+            pos.z + 0.5
+        );
+    }
+
+    // 2. 使用世界出生点
+    if (m_world != nullptr) {
+        return m_world->worldSpawnPoint();
+    }
+
+    // 3. 默认位置
+    return Vector3d(0.0, 64.0, 0.0);
+}
+
+DimensionId ServerPlayer::determineRespawnDimension() const {
+    // 1. 检查玩家个人重生点的维度
+    auto spawnPoint = getSpawnPoint();
+    if (spawnPoint.has_value()) {
+        return spawnPoint->getDimensionId();
+    }
+
+    // 2. 默认返回主世界
+    return DimensionId(0);
+}
+
 void ServerPlayer::sendSleepPacket(const BlockPos& bedPos) {
     if (!hasConnection()) {
         return;

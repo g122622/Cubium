@@ -59,12 +59,13 @@ enum class PacketType : u16 {
     Respawn = 225,              // 重生 (S->C)
     DimensionInfo = 226,        // 维度信息 (S->C)
     ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
+    SpawnPosition = 228,        // 世界出生点 (S->C)
 
     // 命令系统
-    CommandTree = 228,          // 命令树同步 (S->C)
+    CommandTree = 229,          // 命令树同步 (S->C)
 
     // 玩家列表
-    PlayerListItem = 229,       // 玩家列表更新 (S->C)
+    PlayerListItem = 231,       // 玩家列表更新 (S->C)
 
     // 睡眠系统
     Sleep = 230,                // 睡眠状态同步 (S->C)

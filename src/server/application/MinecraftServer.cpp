@@ -35,6 +35,7 @@
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -1092,10 +1093,16 @@ void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode
 {
     if (!player) return;
 
+    // 获取世界出生点
+    Vector3d spawnPoint(0.0, 64.0, 0.0);  // 默认值
+    if (m_world) {
+        spawnPoint = m_world->worldSpawnPoint();
+    }
+
     // 设置初始位置
-    player->x = 0.0f;
-    player->y = 90.0f;
-    player->z = 0.0f;
+    player->x = static_cast<f32>(spawnPoint.x);
+    player->y = static_cast<f32>(spawnPoint.y);
+    player->z = static_cast<f32>(spawnPoint.z);
 
     // 设置游戏状态
     player->loggedIn = true;
@@ -1120,6 +1127,19 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     auto fullTimePacket = core::ConnectionManager::encapsulatePacket(
         network::PacketType::TimeUpdate, timeSer.buffer());
     sendPacketToPlayer(playerId, fullTimePacket.data(), fullTimePacket.size());
+
+    // 发送世界出生点（指南针指向位置）
+    Vector3d worldSpawn = m_world->worldSpawnPoint();
+    network::SpawnPositionPacket spawnPosPacket(
+        BlockPos(static_cast<BlockCoord>(worldSpawn.x),
+                 static_cast<BlockCoord>(worldSpawn.y),
+                 static_cast<BlockCoord>(worldSpawn.z)));
+    auto spawnPosResult = spawnPosPacket.serialize();
+    if (spawnPosResult.success()) {
+        auto fullSpawnPacket = core::ConnectionManager::encapsulatePacket(
+            network::PacketType::SpawnPosition, spawnPosResult.value());
+        sendPacketToPlayer(playerId, fullSpawnPacket.data(), fullSpawnPacket.size());
+    }
 
     // 发送初始天气状态
     sendInitialWeatherStateToPlayer(playerId);

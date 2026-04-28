@@ -28,7 +28,10 @@ src/common/network/packet/
 ├── PlayerAbilitiesPacket.hpp      # 玩家能力同步包
 ├── PlayerAbilitiesPacket.cpp      # 玩家能力包实现
 ├── DimensionPackets.hpp           # 维度切换数据包
-└── DimensionPackets.cpp           # 维度数据包实现
+├── DimensionPackets.cpp           # 维度数据包实现
+├── SpawnPositionPacket.hpp        # 世界出生点数据包
+├── SpawnPositionPacket.cpp        # 世界出生点包实现
+└── SleepPacket.hpp                # 睡眠状态同步包
 ```
 
 ## 文件详细说明
@@ -197,6 +200,37 @@ src/common/network/packet/
 - **确认维度切换包** (`ConfirmDimensionChangePacket`) [C→S]
   - 客户端完成维度切换后发送
   - 通知服务端可以发送新区块数据
+
+### 世界出生点数据包
+
+#### SpawnPositionPacket.hpp / SpawnPositionPacket.cpp
+
+**职责**: 同步世界出生点到客户端 (S→C)
+
+**主要内容**:
+- 告诉客户端世界出生点的位置
+- 客户端使用此位置确定指南针指向
+- 发送时机:
+  - 玩家登录时
+  - 执行 `/setworldspawn` 命令后
+
+**协议格式** (MC 1.16.5 SSpawnPositionPacket):
+- posX (i32): 世界出生点 X 坐标
+- posY (i32): 世界出生点 Y 坐标
+- posZ (i32): 世界出生点 Z 坐标
+
+**使用示例**:
+```cpp
+// 服务端发送世界出生点
+mc::network::SpawnPositionPacket packet(
+    mc::BlockPos(100, 64, -200));
+auto result = packet.serialize();
+if (result.success()) {
+    auto fullPacket = mc::server::core::ConnectionManager::encapsulatePacket(
+        mc::network::PacketType::SpawnPosition, result.value());
+    sendToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+```
 
 ### 实体数据包
 
@@ -592,6 +626,7 @@ auto f = deserializer.readF32();         // 3.14f
 | 测试文件 | 测试内容 |
 |---------|---------|
 | `EntityPacketsTest.cpp` | 实体数据包序列化/反序列化测试 |
+| `SpawnPositionPacketTest.cpp` | 世界出生点数据包序列化/反序列化测试 |
 | `LocalServerConnectionTest.cpp` | 本地连接测试 |
 
 `tests/common/test_container.cpp` 也包含 `CreativeInventoryActionPacket` 的序列化/反序列化测试，以及创造模式物品库辅助函数测试。

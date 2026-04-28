@@ -47,6 +47,7 @@ add_library(mc_common STATIC
     network/packet/ExperiencePackets.cpp
     network/packet/ParticlePacket.cpp
     network/packet/SleepPacket.cpp
+    network/packet/SpawnPositionPacket.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp

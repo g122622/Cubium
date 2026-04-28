@@ -8,6 +8,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/player/SpawnLocationHelper.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/chunk/IChunk.hpp"
@@ -176,6 +177,43 @@ void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)
     if (m_chunkManager) {
         // 替换区块管理器时同步当前世界视距，避免回落到默认值。
         m_chunkManager->setViewDistance(m_config.viewDistance);
+    }
+}
+
+// ============================================================================
+// 出生点管理
+// ============================================================================
+
+void ServerWorld::initializeWorldSpawn()
+{
+    spdlog::info("ServerWorld: Initializing world spawn point...");
+
+    // 确保出生点区块已加载
+    ChunkPos spawnChunk(0, 0);
+    ChunkData* chunk = m_chunkManager->getChunkSync(spawnChunk.x, spawnChunk.z);
+
+    if (chunk == nullptr) {
+        spdlog::warn("ServerWorld: Failed to load spawn chunk, using default spawn point (0, 64, 0)");
+        m_worldSpawnPoint = Vector3d(0.0, 64.0, 0.0);
+        return;
+    }
+
+    // 使用 SpawnLocationHelper 在出生区块查找有效位置
+    auto spawnPos = SpawnLocationHelper::findSpawnLocationInChunk(*this, spawnChunk, true);
+
+    if (spawnPos.has_value()) {
+        // 找到有效位置，设置到世界出生点
+        m_worldSpawnPoint = Vector3d(
+            spawnPos->x + 0.5,
+            spawnPos->y + 1.0,  // 站在方块上面
+            spawnPos->z + 0.5
+        );
+        spdlog::info("ServerWorld: World spawn initialized at ({}, {}, {})",
+                     spawnPos->x, spawnPos->y + 1, spawnPos->z);
+    } else {
+        // 使用默认位置
+        m_worldSpawnPoint = Vector3d(0.0, 64.0, 0.0);
+        spdlog::warn("ServerWorld: No valid spawn found in spawn chunk, using default (0, 64, 0)");
     }
 }
 

@@ -336,6 +336,30 @@ public:
         m_onBlockChanged = std::move(callback);
     }
 
+    // ========== 出生点管理 ==========
+
+    /**
+     * @brief 初始化世界出生点
+     *
+     * 在世界初始化后调用，在 (0, 0) 区块查找合适的出生位置。
+     * 如果找不到有效位置，使用默认值 (0, 64, 0)。
+     */
+    void initializeWorldSpawn();
+
+    /**
+     * @brief 获取世界出生点
+     *
+     * @return 世界出生点坐标
+     */
+    [[nodiscard]] Vector3d worldSpawnPoint() const { return m_worldSpawnPoint; }
+
+    /**
+     * @brief 设置世界出生点
+     *
+     * @param pos 新的出生点位置
+     */
+    void setWorldSpawnPoint(const Vector3d& pos) { m_worldSpawnPoint = pos; }
+
     // ========== 调试模式 ==========
 
     /**
@@ -433,6 +457,7 @@ private:
     core::TimeManager* m_timeManager = nullptr;  // 外部引用，不拥有
     bool m_initialized = false;
     bool m_allPlayersSleeping = false;  // 全员睡眠标志
+    Vector3d m_worldSpawnPoint{0.0, 64.0, 0.0};  // 世界出生点
 
     OpenContainerCallback m_onOpenContainer;
 

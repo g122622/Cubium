@@ -5,6 +5,10 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/application/IServer.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include <spdlog/spdlog.h>
 #include <sstream>
 
 namespace mc {
@@ -62,6 +66,12 @@ i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>
     const Vector3d& pos = source.position();
     dimension->setSpawnPoint(pos);
 
+    // 同步更新 ServerWorld 的世界出生点
+    server->world().setWorldSpawnPoint(pos);
+
+    // 广播新的出生点到所有玩家
+    broadcastSpawnPosition(server, pos);
+
     std::ostringstream ss;
     ss << "Set world spawn point to "
        << static_cast<BlockCoord>(pos.x) << ", "
@@ -88,6 +98,12 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
 
     dimension->setSpawnPoint(pos);
 
+    // 同步更新 ServerWorld 的世界出生点
+    server->world().setWorldSpawnPoint(pos);
+
+    // 广播新的出生点到所有玩家
+    broadcastSpawnPosition(server, pos);
+
     std::ostringstream ss;
     ss << "Set world spawn point to "
        << static_cast<BlockCoord>(pos.x) << ", "
@@ -96,6 +112,24 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
     source.sendMessage(ss.str());
 
     return 1;
+}
+
+void SetWorldSpawnCommand::broadcastSpawnPosition(server::IServer* server, const Vector3d& pos) {
+    // 创建出生点数据包
+    network::SpawnPositionPacket spawnPosPacket(
+        BlockPos(static_cast<BlockCoord>(pos.x),
+                 static_cast<BlockCoord>(pos.y),
+                 static_cast<BlockCoord>(pos.z)));
+
+    auto spawnPosResult = spawnPosPacket.serialize();
+    if (spawnPosResult.failed()) {
+        spdlog::warn("SetWorldSpawnCommand: Failed to serialize SpawnPositionPacket");
+        return;
+    }
+
+    // 通过 ConnectionManager 广播给所有玩家
+    server->connectionManager().broadcastPacket(
+        network::PacketType::SpawnPosition, spawnPosResult.value());
 }
 
 } // namespace command

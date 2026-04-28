@@ -185,6 +185,9 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     auto lightManager = std::make_unique<WorldLightManager>(m_world.get(), true, true);
     m_world->setLightManager(std::move(lightManager));
 
+    // 初始化世界出生点
+    m_world->initializeWorldSpawn();
+
     // 初始化世界
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {

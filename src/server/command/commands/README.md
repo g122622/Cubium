@@ -19,6 +19,8 @@ src/server/command/commands/
 ├── SayCommand.hpp / SayCommand.cpp
 ├── SeedCommand.hpp / SeedCommand.cpp
 ├── SetIdleTimeoutCommand.hpp / SetIdleTimeoutCommand.cpp
+├── SetWorldSpawnCommand.hpp / SetWorldSpawnCommand.cpp
+├── SpawnPointCommand.hpp / SpawnPointCommand.cpp
 ├── StopCommand.hpp / StopCommand.cpp
 ├── TeleportCommand.hpp / TeleportCommand.cpp
 ├── TimeCommand.hpp / TimeCommand.cpp
@@ -40,6 +42,10 @@ src/server/command/commands/
 - `SayCommand.*`：广播聊天消息。
 - `SeedCommand.*`：显示当前世界种子。
 - `SetIdleTimeoutCommand.*`：设置玩家挂机超时。
+- `SetWorldSpawnCommand.*`：设置世界出生点（指南针指向位置）。
+  - 设置 Dimension 和 ServerWorld 的出生点
+  - 广播 SpawnPositionPacket 给所有在线玩家
+- `SpawnPointCommand.*`：设置玩家个人重生点。
 - `StopCommand.*`：请求服务器停机。
 - `TeleportCommand.*`：处理 `/tp` 与 `/teleport` 的传送逻辑。
 - `TimeCommand.*`：修改或查询游戏时间。

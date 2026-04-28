@@ -153,6 +153,27 @@ public:
      */
     [[nodiscard]] bool isPlayerFullyAsleep() const;
 
+    // ========== 重生系统 ==========
+
+    /**
+     * @brief 确定重生位置
+     *
+     * 按以下顺序确定：
+     * 1. 玩家个人重生点（床/重生锚设置）
+     * 2. 世界出生点
+     * 3. 默认位置 (0, 64, 0)
+     *
+     * @return 重生位置（世界坐标）
+     */
+    [[nodiscard]] Vector3d determineRespawnPosition() const;
+
+    /**
+     * @brief 确定重生维度
+     *
+     * @return 重生维度ID
+     */
+    [[nodiscard]] DimensionId determineRespawnDimension() const;
+
 private:
     /**
      * @brief 发送睡眠包给客户端
