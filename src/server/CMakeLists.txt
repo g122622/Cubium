@@ -49,6 +49,7 @@ add_executable(minecraft-server
     command/ServerCommandSource.cpp
     command/CommandRegistry.cpp
     command/support/PlayerResolver.cpp
+    command/support/EffectResolver.cpp
     command/commands/GameModeCommand.cpp
     command/commands/DifficultyCommand.cpp
     command/commands/DefaultGameModeCommand.cpp
@@ -78,6 +79,17 @@ add_executable(minecraft-server
     command/commands/PardonIpCommand.cpp
     command/commands/WhitelistCommand.cpp
     command/commands/SaveAllCommand.cpp
+    command/commands/SaveOnCommand.cpp
+    command/commands/SaveOffCommand.cpp
+    command/commands/SpawnPointCommand.cpp
+    command/commands/SetWorldSpawnCommand.cpp
+    command/commands/MessageCommand.cpp
+    command/commands/TellRawCommand.cpp
+    command/commands/TitleCommand.cpp
+    command/commands/PlaySoundCommand.cpp
+    command/commands/StopSoundCommand.cpp
+    command/commands/EffectCommand.cpp
+    command/commands/EnchantCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
 )

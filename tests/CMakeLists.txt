@@ -291,6 +291,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
@@ -320,6 +321,17 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonIpCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WhitelistCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveAllCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOnCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOffCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpawnPointCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetWorldSpawnCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
@@ -832,6 +844,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
@@ -861,6 +874,17 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonIpCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WhitelistCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveAllCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOnCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOffCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpawnPointCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetWorldSpawnCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
 )
 
 target_link_libraries(mc_command_tests

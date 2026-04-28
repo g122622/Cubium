@@ -28,6 +28,17 @@
 #include "commands/PardonIpCommand.hpp"
 #include "commands/WhitelistCommand.hpp"
 #include "commands/SaveAllCommand.hpp"
+#include "commands/SaveOnCommand.hpp"
+#include "commands/SaveOffCommand.hpp"
+#include "commands/SpawnPointCommand.hpp"
+#include "commands/SetWorldSpawnCommand.hpp"
+#include "commands/MessageCommand.hpp"
+#include "commands/TellRawCommand.hpp"
+#include "commands/TitleCommand.hpp"
+#include "commands/PlaySoundCommand.hpp"
+#include "commands/StopSoundCommand.hpp"
+#include "commands/EffectCommand.hpp"
+#include "commands/EnchantCommand.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
@@ -94,6 +105,17 @@ void CommandRegistry::registerDefaults() {
     PardonIpCommand::registerTo(m_dispatcher);
     WhitelistCommand::registerTo(m_dispatcher);
     SaveAllCommand::registerTo(m_dispatcher);
+    SaveOnCommand::registerTo(m_dispatcher);
+    SaveOffCommand::registerTo(m_dispatcher);
+    SpawnPointCommand::registerTo(m_dispatcher);
+    SetWorldSpawnCommand::registerTo(m_dispatcher);
+    MessageCommand::registerTo(m_dispatcher);
+    TellRawCommand::registerTo(m_dispatcher);
+    TitleCommand::registerTo(m_dispatcher);
+    PlaySoundCommand::registerTo(m_dispatcher);
+    StopSoundCommand::registerTo(m_dispatcher);
+    EffectCommand::registerTo(m_dispatcher);
+    EnchantCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());
