@@ -39,6 +39,11 @@
 #include "commands/StopSoundCommand.hpp"
 #include "commands/EffectCommand.hpp"
 #include "commands/EnchantCommand.hpp"
+#include "commands/MeCommand.hpp"
+#include "commands/ParticleCommand.hpp"
+#include "commands/LocateCommand.hpp"
+#include "commands/LocateBiomeCommand.hpp"
+#include "commands/AttributeCommand.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
@@ -116,6 +121,11 @@ void CommandRegistry::registerDefaults() {
     StopSoundCommand::registerTo(m_dispatcher);
     EffectCommand::registerTo(m_dispatcher);
     EnchantCommand::registerTo(m_dispatcher);
+    MeCommand::registerTo(m_dispatcher);
+    ParticleCommand::registerTo(m_dispatcher);
+    LocateCommand::registerTo(m_dispatcher);
+    LocateBiomeCommand::registerTo(m_dispatcher);
+    AttributeCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

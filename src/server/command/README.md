@@ -310,6 +310,58 @@ public:
 
 **权限等级：** 2
 
+#### MeCommand - /me 命令
+
+显示玩家动作消息。
+
+**用法：**
+
+- `/me <action>` - 在聊天中显示动作消息
+
+**权限等级：** 0（所有玩家可用）
+
+#### ParticleCommand - /particle 命令
+
+显示粒子效果。
+
+**用法：**
+
+- `/particle <name>` - 在当前位置显示粒子
+- `/particle <name> <pos>` - 在指定位置显示粒子
+
+**权限等级：** 2
+
+#### LocateCommand - /locate 命令
+
+定位最近的建筑结构。
+
+**用法：**
+
+- `/locate <structure>` - 定位指定类型的建筑结构
+
+**权限等级：** 0（所有玩家可用）
+
+#### LocateBiomeCommand - /locatebiome 命令
+
+定位最近的生物群系。
+
+**用法：**
+
+- `/locatebiome <biome>` - 定位指定类型的生物群系
+
+**权限等级：** 0（所有玩家可用）
+
+#### AttributeCommand - /attribute 命令
+
+查询或修改实体属性。
+
+**用法：**
+
+- `/attribute <target> <attribute> get` - 获取属性值
+- `/attribute <target> <attribute> set <value>` - 设置属性基础值
+
+**权限等级：** 2
+
 ## 模块整体分析
 
 ### 整体职责

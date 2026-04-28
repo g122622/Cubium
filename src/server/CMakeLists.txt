@@ -90,6 +90,11 @@ add_executable(minecraft-server
     command/commands/StopSoundCommand.cpp
     command/commands/EffectCommand.cpp
     command/commands/EnchantCommand.cpp
+    command/commands/MeCommand.cpp
+    command/commands/ParticleCommand.cpp
+    command/commands/LocateCommand.cpp
+    command/commands/LocateBiomeCommand.cpp
+    command/commands/AttributeCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
 )
