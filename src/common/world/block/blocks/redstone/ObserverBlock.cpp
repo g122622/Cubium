@@ -111,8 +111,6 @@ void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) 
         // 激活并调度熄灭
         BlockState newState = withPowered(state, true);
         world.setBlockState(pos, &newState, 2);
-
-        // 调度脉冲结束
         world.scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
 
         // 通知输出端相邻方块更新
@@ -151,15 +149,6 @@ i32 ObserverBlock::getStrongPower(
 ) const {
     // 侦测器只输出弱信号
     return getWeakPower(state, world, pos, side);
-}
-
-void ObserverBlock::detect(IWorld& world, const BlockPos& pos, const BlockState& state, bool extending) {
-    // MC 1.16.5: detect 方法现在通过 tick 实现
-    // 这个方法保留作为备用接口，但主逻辑已移到 tick() 中
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(extending);
 }
 
 } // namespace blocks

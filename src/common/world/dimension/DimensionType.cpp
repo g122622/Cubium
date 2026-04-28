@@ -117,6 +117,15 @@ DimensionType DimensionType::theEnd() {
     return type;
 }
 
+DimensionType DimensionType::fromId(DimensionId id) {
+    switch (id) {
+        case 0: return overworld();
+        case 1: return nether();
+        case 2: return theEnd();
+        default: return overworld();  // 默认返回主世界
+    }
+}
+
 // ============================================================================
 // 坐标转换
 // ============================================================================

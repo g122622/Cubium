@@ -41,6 +41,14 @@ public:
      */
     static DimensionType theEnd();
 
+    /**
+     * @brief 根据维度ID获取维度类型
+     *
+     * @param id 维度ID (0=主世界, 1=下界, 2=末地)
+     * @return 对应的维度类型
+     */
+    [[nodiscard]] static DimensionType fromId(DimensionId id);
+
     // ========== 标识 ==========
 
     /**

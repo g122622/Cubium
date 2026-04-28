@@ -169,10 +169,7 @@ ActionResultType BedBlock::onBlockActivated(
     // 2. 在主世界检查时间 - 只能在夜间睡眠
 
     // 获取维度信息
-    DimensionId dimId = world.dimension();
-    DimensionType dimType = (dimId == 0) ? DimensionType::overworld() :
-                            (dimId == 1) ? DimensionType::nether() :
-                            DimensionType::theEnd();
+    DimensionType dimType = DimensionType::fromId(world.dimension());
 
     // 检查床是否可用（主世界可用，下界和末地会爆炸）
     if (!dimType.bedWorks()) {

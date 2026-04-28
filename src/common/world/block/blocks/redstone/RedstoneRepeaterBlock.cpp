@@ -115,7 +115,7 @@ ActionResultType RedstoneRepeaterBlock::onBlockActivated(
 
     // 播放点击音效
     world.playSound(
-        ResourceLocation("minecraft:block.comparator.click"),
+        ResourceLocation("minecraft:block.repeater.click"),
         sound::SoundCategory::Blocks,
         pos.center(),
         0.3f,

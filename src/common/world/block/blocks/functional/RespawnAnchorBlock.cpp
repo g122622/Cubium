@@ -3,6 +3,8 @@
 #include "../../../dimension/DimensionType.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../block/VanillaBlocks.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
@@ -113,18 +115,21 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(
     MC_UNUSED(hit);
 
     // 获取维度信息
-    DimensionId dimId = world.dimension();
-    DimensionType dimType = (dimId == 0) ? DimensionType::overworld() :
-                            (dimId == 1) ? DimensionType::nether() :
-                            DimensionType::theEnd();
+    DimensionType dimType = DimensionType::fromId(world.dimension());
 
     // 获取手持物品
     ItemStack& heldItem = player.getHeldItem(hand);
 
     // 检查是否用萤石充能
-    // TODO: 检查物品是否为萤石 (Items::GLOWSTONE)
-    // 目前先假设空手时尝试使用/设置重生点
-    bool hasGlowstone = false;  // TODO: heldItem.getItem() == Items::GLOWSTONE
+    // MC Java: 检查物品是否对应 GLOWSTONE 方块
+    bool hasGlowstone = false;
+    if (!heldItem.isEmpty()) {
+        const Item* item = heldItem.getItem();
+        if (item != nullptr) {
+            const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+            hasGlowstone = (block == VanillaBlocks::GLOWSTONE);
+        }
+    }
 
     if (hasGlowstone && getCharges(state) < 4) {
         // 充能
@@ -139,8 +144,8 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(
             1.0f
         );
 
-        // TODO: 消耗萤石
-        // heldItem.shrink(1);
+        // 消耗萤石
+        heldItem.shrink(1);
 
         return ActionResultType::Success;
     }
