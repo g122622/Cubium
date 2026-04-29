@@ -54,6 +54,10 @@ public:
         return m_result;
     }
 
+    std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override {
+        return RecipeUtils::getDefaultRemainingItems(inventory);
+    }
+
     const std::vector<Ingredient>& getIngredients() const override {
         return m_ingredients;
     }

@@ -86,7 +86,7 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
     auto& source = context.getSource();
     auto* server = source.server();
 
-    auto& pos = context.getArgument<Vector3d>("pos");
+    const auto& pos = context.getArgument<Vector3d>("pos");
 
     DimensionId dimensionId = DimensionId(0); // 默认主世界
     auto* dimension = server->dimensionManager().getDimension(dimensionId);

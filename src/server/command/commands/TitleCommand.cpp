@@ -111,7 +111,7 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
 i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -125,7 +125,7 @@ i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context) {
 
 i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -139,7 +139,7 @@ i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context) {
 
 i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -154,7 +154,7 @@ i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
 
 i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -169,7 +169,7 @@ i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
 
 i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -184,7 +184,7 @@ i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
 
 i32 TitleCommand::setTimes(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {

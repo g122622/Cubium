@@ -109,7 +109,7 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 i32 EffectCommand::giveEffect(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
 
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -171,7 +171,7 @@ i32 EffectCommand::giveEffect(CommandContext<ServerCommandSource>& context) {
 i32 EffectCommand::clearAllEffects(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
 
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -201,7 +201,7 @@ i32 EffectCommand::clearAllEffects(CommandContext<ServerCommandSource>& context)
 i32 EffectCommand::clearSpecificEffect(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
 
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {

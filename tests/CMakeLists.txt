@@ -869,8 +869,22 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
@@ -941,6 +955,8 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
 )
 
 target_link_libraries(mc_command_tests

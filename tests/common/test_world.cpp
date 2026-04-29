@@ -111,7 +111,7 @@ TEST_F(ChunkTest, ChunkSection_Serialization) {
     auto result = ChunkSection::deserialize(data.data(), data.size());
     EXPECT_TRUE(result.success());
 
-    auto& restored = result.value();
+    auto restored = result.value();
     const BlockState* block0 = restored->getBlock(0, 0, 0);
     const BlockState* block7 = restored->getBlock(7, 7, 7);
     ASSERT_NE(block0, nullptr);
@@ -223,7 +223,7 @@ TEST_F(ChunkTest, ChunkData_Serialization) {
     auto result = ChunkData::deserialize(data.data(), data.size());
     EXPECT_TRUE(result.success());
 
-    auto& restored = result.value();
+    auto restored = result.value();
     EXPECT_EQ(restored->x(), 5);
     EXPECT_EQ(restored->z(), 10);
     EXPECT_TRUE(restored->isFullyGenerated());

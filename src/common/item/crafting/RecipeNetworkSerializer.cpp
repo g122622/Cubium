@@ -60,14 +60,14 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeNetworkSerializer::deserialize(net
             if (recipeResult.failed()) {
                 return recipeResult.error();
             }
-            return std::move(recipeResult.value());
+            return std::unique_ptr<CraftingRecipe>(std::move(recipeResult.value()));
         }
         case RecipeType::ShapelessCrafting: {
             auto recipeResult = deserializeShapeless(deser, id, group);
             if (recipeResult.failed()) {
                 return recipeResult.error();
             }
-            return std::move(recipeResult.value());
+            return std::unique_ptr<CraftingRecipe>(std::move(recipeResult.value()));
         }
         case RecipeType::Special:
             // 特殊配方需要从注册表获取

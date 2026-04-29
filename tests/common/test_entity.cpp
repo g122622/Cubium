@@ -559,7 +559,7 @@ TEST(Player, SerializeDeserialize) {
 
     EXPECT_TRUE(result.success());
 
-    auto& restored = result.value();
+    auto restored = result.value();
     EXPECT_EQ(restored->playerId(), 12345u);
     EXPECT_EQ(restored->username(), "TestPlayer");
     EXPECT_FLOAT_EQ(static_cast<float>(restored->x()), 100.5f);

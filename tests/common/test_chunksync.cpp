@@ -365,7 +365,7 @@ TEST_F(ChunkSerializerTest, DeserializeChunk) {
     auto deserializeResult = ChunkSerializer::deserializeChunk(100, -200, serializeResult.value());
     ASSERT_TRUE(deserializeResult.success());
 
-    auto& restored = deserializeResult.value();
+    auto restored = deserializeResult.value();
     EXPECT_EQ(restored->x(), 100);
     EXPECT_EQ(restored->z(), -200);
     EXPECT_TRUE(restored->isFullyGenerated());
@@ -1058,7 +1058,7 @@ TEST_F(ChunkSerializerExtendedTest, SerializeDeserializeConsistency) {
     auto deserializeResult = ChunkSerializer::deserializeChunk(42, -100, serializeResult.value());
     ASSERT_TRUE(deserializeResult.success());
 
-    auto& restored = deserializeResult.value();
+    auto restored = deserializeResult.value();
     EXPECT_EQ(restored->x(), 42);
     EXPECT_EQ(restored->z(), -100);
 
@@ -1187,7 +1187,7 @@ TEST_F(ChunkSerializerLightTest, SerializeDeserializeLightData) {
     auto deserializeResult = ChunkSerializer::deserializeChunk(0, 0, serializeResult.value());
     ASSERT_TRUE(deserializeResult.success());
 
-    auto& restored = deserializeResult.value();
+    auto restored = deserializeResult.value();
     ASSERT_TRUE(restored->hasSection(4));
 
     const ChunkSection* restoredSection = restored->getSection(4);
@@ -1227,7 +1227,7 @@ TEST_F(ChunkSerializerLightTest, LightDataNibbleArrayFormat) {
     auto deserializeResult = ChunkSerializer::deserializeChunk(0, 0, serializeResult.value());
     ASSERT_TRUE(deserializeResult.success());
 
-    auto& restored = deserializeResult.value();
+    auto restored = deserializeResult.value();
     const ChunkSection* restoredSection = restored->getSection(0);
     ASSERT_NE(restoredSection, nullptr);
 
@@ -1264,7 +1264,7 @@ TEST_F(ChunkSerializerLightTest, MultipleSectionsLightData) {
     auto deserializeResult = ChunkSerializer::deserializeChunk(0, 0, serializeResult.value());
     ASSERT_TRUE(deserializeResult.success());
 
-    auto& restored = deserializeResult.value();
+    auto restored = deserializeResult.value();
 
     // 验证每个段的光照数据
     for (int sectionY = 0; sectionY < 16; ++sectionY) {

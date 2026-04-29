@@ -1,10 +1,10 @@
 #pragma once
 
-#include "LivingRenderer.hpp"
-#include "../model/animal/AnimalModels.hpp"
-#include "../model/animal/RabbitModel.hpp"
-#include "../model/animal/BatModel.hpp"
-#include "../model/animal/SquidModel.hpp"
+#include "../../core/LivingRenderer.hpp"
+#include "../../model/animal/AnimalModels.hpp"
+#include "../../model/animal/RabbitModel.hpp"
+#include "../../model/animal/BatModel.hpp"
+#include "../../model/animal/SquidModel.hpp"
 #include <memory>
 
 namespace mc {

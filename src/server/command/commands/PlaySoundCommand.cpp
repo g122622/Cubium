@@ -81,7 +81,7 @@ i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -110,7 +110,7 @@ i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& c
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
@@ -128,7 +128,7 @@ i32 PlaySoundCommand::playSoundWithParams(CommandContext<ServerCommandSource>& c
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
     f32 volume = context.getArgument<f32>("volume");
     f32 pitch = context.getArgument<f32>("pitch");

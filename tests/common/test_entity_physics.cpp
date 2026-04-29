@@ -3,6 +3,7 @@
 
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/attribute/AttributeMap.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "physics/PhysicsConstants.hpp"
@@ -32,12 +33,12 @@ public:
 };
 
 /**
- * @brief 测试用的滑度方块
+ * @brief 测试用方块
  */
-class SlipperyTestBlock : public Block {
+class TestBlock : public Block {
 public:
-    SlipperyTestBlock(f32 slipperiness = 0.98f)
-        : Block(BlockProperties(Material::ROCK).slipperiness(slipperiness)) {
+    explicit TestBlock(BlockProperties properties)
+        : Block(std::move(properties)) {
         auto container = StateContainer<Block, BlockState>::Builder(*this)
             .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
                 return std::make_unique<BlockState>(block, std::move(values), id);
@@ -161,7 +162,7 @@ TEST(EntityPhysics, VelocityResetAfterCollision) {
 // ============================================================================
 
 TEST(BlockSlipperiness, DefaultSlipperiness) {
-    Block block(BlockProperties(Material::ROCK));
+    TestBlock block{BlockProperties(Material::ROCK)};
 
     // 默认滑度应为 0.6f
     EXPECT_FLOAT_EQ(block.getSlipperiness(block.defaultState()), 0.6f);
@@ -169,14 +170,14 @@ TEST(BlockSlipperiness, DefaultSlipperiness) {
 
 TEST(BlockSlipperiness, CustomSlipperiness) {
     // 创建一个滑度 0.98 的方块（类似冰）
-    SlipperyTestBlock slipperyBlock(0.98f);
+    TestBlock slipperyBlock{BlockProperties(Material::ROCK).slipperiness(0.98f)};
 
     EXPECT_FLOAT_EQ(slipperyBlock.getSlipperiness(slipperyBlock.defaultState()), 0.98f);
 }
 
 TEST(BlockSlipperiness, HoneyBlockSlipperiness) {
     // 蜂蜜块滑度为 0.5
-    Block honeyBlock(BlockProperties(Material::ROCK).slipperiness(0.5f));
+    TestBlock honeyBlock{BlockProperties(Material::ROCK).slipperiness(0.5f)};
 
     EXPECT_FLOAT_EQ(honeyBlock.getSlipperiness(honeyBlock.defaultState()), 0.5f);
 }
@@ -186,14 +187,14 @@ TEST(BlockSlipperiness, HoneyBlockSlipperiness) {
 // ============================================================================
 
 TEST(BlockSpeedFactor, DefaultSpeedFactor) {
-    Block block(BlockProperties(Material::ROCK));
+    TestBlock block{BlockProperties(Material::ROCK)};
 
     // 默认速度因子应为 1.0f
     EXPECT_FLOAT_EQ(block.getSpeedFactor(block.defaultState()), 1.0f);
 }
 
 TEST(BlockSpeedFactor, CustomSpeedFactor) {
-    Block slowBlock(BlockProperties(Material::ROCK).speedFactor(0.5f));
+    TestBlock slowBlock{BlockProperties(Material::ROCK).speedFactor(0.5f)};
 
     EXPECT_FLOAT_EQ(slowBlock.getSpeedFactor(slowBlock.defaultState()), 0.5f);
 }
@@ -203,7 +204,7 @@ TEST(BlockSpeedFactor, CustomSpeedFactor) {
 // ============================================================================
 
 TEST(BlockJumpFactor, DefaultJumpFactor) {
-    Block block(BlockProperties(Material::ROCK));
+    TestBlock block{BlockProperties(Material::ROCK)};
 
     // 默认跳跃因子应为 1.0f
     EXPECT_FLOAT_EQ(block.getJumpFactor(block.defaultState()), 1.0f);
@@ -239,7 +240,8 @@ TEST(KnockbackCalculation, GroundKnockbackFormula) {
 
 TEST(PlayerPoseWidth, SleepingWidth) {
     // Sleeping姿态宽度应为 0.2
-    EXPECT_FLOAT_EQ(getPlayerPoseWidth(EntityPose::Sleeping), 0.2f);
+    Player player(1, "TestPlayer");
+    EXPECT_FLOAT_EQ(player.getDimensions(EntityPose::Sleeping).width(), 0.2f);
 }
 
 // ============================================================================
@@ -250,7 +252,7 @@ TEST(EntityAttributes, KnockbackResistanceAttribute) {
     // 确认击退抗性属性已定义
     auto attr = entity::attribute::Attributes::knockbackResistance();
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->name(), "generic.knockback_resistance");
+    EXPECT_EQ(attr->registryName(), "generic.knockback_resistance");
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 0.0f);
 }
 
@@ -258,14 +260,14 @@ TEST(EntityAttributes, MovementSpeedAttribute) {
     // 确认移动速度属性已定义
     auto attr = entity::attribute::Attributes::movementSpeed();
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->name(), "generic.movement_speed");
+    EXPECT_EQ(attr->registryName(), "generic.movement_speed");
 }
 
 TEST(EntityAttributes, EntityGravityAttribute) {
     // 确认重力属性已定义
     auto attr = entity::attribute::Attributes::entityGravity();
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->name(), "generic.gravity");
+    EXPECT_EQ(attr->registryName(), "generic.gravity");
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 0.08f);
 }
 
@@ -273,6 +275,6 @@ TEST(EntityAttributes, SwimSpeedAttribute) {
     // 确认游泳速度属性已定义
     auto attr = entity::attribute::Attributes::swimSpeed();
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->name(), "generic.swim_speed");
+    EXPECT_EQ(attr->registryName(), "generic.swim_speed");
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 1.0f);
 }

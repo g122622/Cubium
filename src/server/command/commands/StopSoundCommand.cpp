@@ -71,7 +71,7 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
 i32 StopSoundCommand::stopAllSounds(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -85,7 +85,7 @@ i32 StopSoundCommand::stopAllSounds(CommandContext<ServerCommandSource>& context
 
 i32 StopSoundCommand::stopSourceSounds(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -99,7 +99,7 @@ i32 StopSoundCommand::stopSourceSounds(CommandContext<ServerCommandSource>& cont
 
 i32 StopSoundCommand::stopSpecificSound(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
     auto playerIds = support::resolvePlayerIds(source, selector);
 

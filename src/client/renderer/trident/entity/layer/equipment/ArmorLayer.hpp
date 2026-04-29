@@ -11,6 +11,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/items/armor/DyeableArmorItem.hpp"
 #include <memory>
 
 namespace mc {

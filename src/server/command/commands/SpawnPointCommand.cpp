@@ -95,7 +95,7 @@ i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& 
 
     ServerPlayer* executor = source.player();
 
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -142,7 +142,7 @@ i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerComman
 
     ServerPlayer* executor = source.player();
 
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -150,7 +150,7 @@ i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerComman
         return 0;
     }
 
-    auto& pos = context.getArgument<Vector3d>("pos");
+    const auto& pos = context.getArgument<Vector3d>("pos");
     BlockPos spawnPos(
         static_cast<BlockCoord>(std::floor(pos.x)),
         static_cast<BlockCoord>(std::floor(pos.y)),

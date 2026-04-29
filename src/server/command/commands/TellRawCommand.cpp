@@ -48,7 +48,7 @@ void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
 
-    auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {

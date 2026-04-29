@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core/LayerRenderer.hpp"
-#include "../../model/core/ModelRenderer.hpp"
+#include "../../model/base/BipedModel.hpp"
 #include "../../core/IEntityRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -32,7 +32,7 @@ namespace mc::client::renderer::entity::layer::entity {
  * @tparam TEntity 实体类型
  * @tparam TModel 模型类型
  */
-template<typename TEntity = ::mc::LivingEntity, typename TModel = model::BipedModel<TEntity>>
+template<typename TEntity = ::mc::LivingEntity, typename TModel = ::mc::client::renderer::entity::model::BipedModel>
 class SheepWoolLayer : public layer::core::LayerRenderer<TEntity> {
 public:
     /**
