@@ -58,6 +58,19 @@ protected:
      * 高炉只能熔炼矿石和金属物品。
      */
     [[nodiscard]] bool canSmelt(IWorld& world) const override;
+
+    /**
+     * @brief 获取燃料燃烧时间（重写）
+     *
+     * MC 1.16.5: 高炉燃烧燃料的速度是普通熔炉的2倍，
+     * 即同样燃料只能燃烧一半的时间。
+     *
+     * @param stack 物品堆
+     * @return 燃烧时间（tick），如果不是燃料返回0
+     */
+    [[nodiscard]] i32 getBurnTimeForFuel(const ItemStack& stack) const override {
+        return getBurnTime(stack) / 2;
+    }
 };
 
 } // namespace blockentity

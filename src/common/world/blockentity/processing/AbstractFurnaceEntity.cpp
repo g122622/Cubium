@@ -100,7 +100,7 @@ void AbstractFurnaceEntity::tick(IWorld& world) {
 
     if (isBurning() || (!fuelItem.isEmpty() && canSmeltNow)) {
         if (!isBurning() && canSmeltNow) {
-            m_burnTimeTotal = getBurnTime(fuelItem);
+            m_burnTimeTotal = getBurnTimeForFuel(fuelItem);
             m_burnTime = m_burnTimeTotal;
 
             if (isBurning()) {
@@ -151,7 +151,7 @@ bool AbstractFurnaceEntity::load(const nlohmann::json& data) {
         m_storedExperience = data["StoredExperience"].get<f32>();
     }
 
-    m_burnTimeTotal = getBurnTime(m_inventory.getFuelItem());
+    m_burnTimeTotal = getBurnTimeForFuel(m_inventory.getFuelItem());
 
     if (data.contains("Items") && data["Items"].is_array()) {
         m_inventory.clear();
@@ -173,7 +173,7 @@ bool AbstractFurnaceEntity::load(const nlohmann::json& data) {
             m_inventory.setItem(slot, stackResult.value());
         }
 
-        m_burnTimeTotal = getBurnTime(m_inventory.getFuelItem());
+        m_burnTimeTotal = getBurnTimeForFuel(m_inventory.getFuelItem());
     }
 
     return true;

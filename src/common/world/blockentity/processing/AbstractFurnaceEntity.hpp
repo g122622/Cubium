@@ -139,11 +139,24 @@ public:
     [[nodiscard]] static bool isFuel(const ItemStack& stack);
 
     /**
-     * @brief 获取物品的燃烧时间
+     * @brief 获取物品的燃烧时间（静态方法，基础值）
      * @param stack 物品堆
      * @return 燃烧时间（tick），如果不是燃料返回0
      */
     [[nodiscard]] static i32 getBurnTime(const ItemStack& stack);
+
+    /**
+     * @brief 获取燃料燃烧时间（实例方法，考虑倍率）
+     *
+     * 子类可重写此方法调整燃烧速度。
+     * 高炉和烟熏炉重写此方法返回一半的时间。
+     *
+     * @param stack 物品堆
+     * @return 燃烧时间（tick），如果不是燃料返回0
+     */
+    [[nodiscard]] virtual i32 getBurnTimeForFuel(const ItemStack& stack) const {
+        return getBurnTime(stack);
+    }
 
     /**
      * @brief 获取背包

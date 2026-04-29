@@ -1,4 +1,5 @@
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
+#include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -20,7 +21,19 @@ std::unique_ptr<BlockEntity> BlastFurnaceEntity::clone() const {
 }
 
 bool BlastFurnaceEntity::canSmelt(IWorld& world) const {
-    return AbstractFurnaceEntity::canSmelt(world);
+    // MC 1.16.5: 高炉只能熔炼矿石和金属物品
+    // 通过配方类型过滤：只有 Blasting 类型的配方才能使用
+    const crafting::SmeltingRecipe* recipe = getRecipe(world);
+    if (recipe == nullptr) {
+        return false;
+    }
+
+    // 检查配方类型是否为高炉配方
+    if (recipe->getType() != crafting::RecipeType::Blasting) {
+        return false;
+    }
+
+    return canSmeltWithRecipe(recipe);
 }
 
 } // namespace blockentity
