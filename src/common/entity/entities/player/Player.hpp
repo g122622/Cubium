@@ -9,6 +9,7 @@
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include "../../../world/GlobalPos.hpp"
 #include "ChatVisibility.hpp"
+#include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "spdlog/spdlog.h"
@@ -150,6 +151,34 @@ public:
     // 游戏模式
     [[nodiscard]] GameMode gameMode() const { return m_gameMode; }
     void setGameMode(GameMode mode);
+
+    /**
+     * @brief 检查是否是创造模式
+     */
+    [[nodiscard]] bool isCreative() const {
+        return entity::GameModeUtils::isCreative(m_gameMode);
+    }
+
+    /**
+     * @brief 检查是否是观察者模式
+     */
+    [[nodiscard]] bool isSpectator() const {
+        return entity::GameModeUtils::isSpectator(m_gameMode);
+    }
+
+    /**
+     * @brief 检查是否是生存模式
+     */
+    [[nodiscard]] bool isSurvival() const {
+        return m_gameMode == GameMode::Survival;
+    }
+
+    /**
+     * @brief 检查是否是冒险模式
+     */
+    [[nodiscard]] bool isAdventure() const {
+        return m_gameMode == GameMode::Adventure;
+    }
 
     // 维度
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }

@@ -1,6 +1,6 @@
 # Combat 模块
 
-战斗系统模块，提供攻击上下文管理、玩家攻击辅助和难度相关计算功能。
+战斗系统模块，提供攻击上下文管理、玩家攻击辅助、伤害计算规则和难度相关计算功能。
 
 ## 目录结构
 
@@ -8,6 +8,8 @@
 src/common/entity/combat/
 ├── AttackContext.hpp      # 攻击上下文头文件
 ├── AttackContext.cpp      # 攻击上下文实现
+├── CombatRules.hpp        # 战斗规则工具类头文件
+├── CombatRules.cpp        # 战斗规则工具类实现
 ├── PlayerAttackHelper.hpp # 玩家攻击辅助类头文件
 ├── PlayerAttackHelper.cpp # 玩家攻击辅助类实现
 ├── DifficultyHelper.hpp   # 难度工具类头文件
@@ -78,6 +80,85 @@ std::unique_ptr<DamageSource> createDamageSource() const;
 - `Magic` → `EnvironmentalDamage` (Magic)
 - `Explosion` → `EnvironmentalDamage` (Explosion)
 - `Thorns` → `EnvironmentalDamage` (Thorns)
+
+---
+
+### CombatRules.hpp / CombatRules.cpp
+
+**职责**：提供伤害计算相关的公式和工具方法，实现 MC 1.16.5 CombatRules 的精确计算逻辑。
+
+**常量定义**：
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `ARMOR_MAX_EFFECTIVE` | 20.0f | 有效护甲上限 |
+| `ARMOR_MIN_RATIO` | 0.2f | 护甲最小比例（20%） |
+| `ARMOR_DIVISOR` | 25.0f | 护甲减伤除数 |
+| `TOUGHNESS_FACTOR` | 4.0f | 韧性因子 |
+| `TOUGHNESS_BASE` | 2.0f | 韧性基数 |
+| `EPF_MAX` | 20.0f | EPF 上限（80% 减伤） |
+| `RESISTANCE_FACTOR` | 0.2f | 抗性因子（每级 20% 减伤） |
+| `RESISTANCE_MAX_LEVEL` | 5 | 抗性最大等级 |
+
+**静态方法**：
+
+#### 护甲减伤计算
+
+```cpp
+static f32 getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness);
+```
+
+MC 1.16.5 公式：
+```
+f = 2 + toughness / 4
+g = clamp(armor - damage / f, armor * 0.2, 20)
+final = damage * (1 - g / 25)
+```
+
+护甲减伤上限为 80%（当 effectiveArmor = 20 时）。
+
+#### 附魔保护减伤计算
+
+```cpp
+static f32 getDamageAfterMagicAbsorb(f32 damage, f32 enchantmentProtectionFactor);
+```
+
+MC 1.16.5 公式：
+```
+f = clamp(epf, 0, 20)
+final = damage * (1 - f / 25)
+```
+
+附魔保护减伤上限为 80%（当 EPF = 20 时）。
+
+#### 抗性药水减伤计算
+
+```cpp
+static f32 getDamageAfterResistance(f32 damage, i32 resistanceLevel);
+```
+
+MC 1.16.5 公式：
+```
+final = damage * max(0, 1 - level * 0.2)
+```
+
+抗性药水减伤上限为 80%（抗性 V）。
+
+#### 吸收值消耗计算
+
+```cpp
+static std::pair<f32, f32> applyAbsorption(f32 damage, f32 absorption);
+```
+
+返回 `<消耗的吸收值, 剩余伤害>`。
+
+**伤害计算顺序**（MC 1.16.5）：
+1. 盾牌格挡
+2. 无敌帧检查
+3. 护甲减伤 → `getDamageAfterAbsorb()`
+4. 药水/附魔减伤 → `getDamageAfterResistance()` + `getDamageAfterMagicAbsorb()`
+5. 吸收值消耗 → `applyAbsorption()`
+6. 实际扣血
 
 ---
 

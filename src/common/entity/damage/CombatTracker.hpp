@@ -23,6 +23,16 @@ class Entity;
  *
  * 记录实体受到的所有伤害事件，用于生成死亡消息和统计战斗数据。
  * 每个LivingEntity都有一个CombatTracker实例。
+ *
+ * MC 1.16.5 字段：
+ * - fighter: 拥有此追踪器的生物
+ * - combatEntries: 战斗记录列表
+ * - lastDamageTime: 最后受伤时间
+ * - combatStartTime: 战斗开始时间
+ * - combatEndTime: 战斗结束时间
+ * - inCombat: 是否在战斗中
+ * - takingDamage: 是否正在受到伤害
+ * - fallSuffix: 当前摔落后缀
  */
 class CombatTracker {
 public:
@@ -34,16 +44,20 @@ public:
 
     /**
      * @brief 记录伤害事件
+     *
+     * 参考 MC 1.16.5 CombatTracker.trackDamage()
+     *
      * @param source 伤害来源
+     * @param health 受伤前生命值
      * @param damage 伤害值
-     * @param timestamp 当前时间（tick）
      */
-    void recordDamage(std::unique_ptr<DamageSource> source, f32 damage, u32 timestamp);
+    void trackDamage(DamageSource& source, f32 health, f32 damage);
 
     /**
      * @brief 重置追踪器
      *
      * 清除所有记录的战斗数据，通常在重生时调用。
+     * 参考 MC 1.16.5 CombatTracker.reset()
      */
     void reset();
 
@@ -67,9 +81,21 @@ public:
 
     /**
      * @brief 获取最佳伤害者实体（造成最多伤害的实体）
+     *
+     * 优先返回玩家，然后返回造成最多伤害的生物。
+     *
      * @return 造成最多伤害的实体，没有则返回nullptr
      */
     [[nodiscard]] Entity* getBestAttacker() const;
+
+    /**
+     * @brief 获取最佳攻击者实体（用于 Target Goals）
+     *
+     * 参考 MC 1.16.5 LivingEntity.getAttackingEntity()
+     *
+     * @return 最佳攻击者
+     */
+    [[nodiscard]] LivingEntity* getBestAttackerLiving() const;
 
     /**
      * @brief 生成死亡消息
@@ -91,7 +117,7 @@ public:
      * @brief 获取战斗时长（从第一条记录到最后一条）
      * @return 战斗时长（tick）
      */
-    [[nodiscard]] u32 getCombatDuration() const;
+    [[nodiscard]] i32 getCombatDuration() const;
 
     /**
      * @brief 获取战斗条目数量
@@ -100,32 +126,62 @@ public:
 
     /**
      * @brief 检查是否在战斗中
-     *
-     * 如果最近一段时间内受到伤害，则认为在战斗中。
-     * @param currentTime 当前时间（tick）
-     * @param threshold 阈值时间（tick），默认100（5秒）
      */
-    [[nodiscard]] bool isInCombat(u32 currentTime, u32 threshold = 100) const;
+    [[nodiscard]] bool inCombat() const { return m_inCombat; }
+
+    /**
+     * @brief 获取战斗开始时间
+     */
+    [[nodiscard]] i32 combatStartTime() const { return m_combatStartTime; }
+
+    /**
+     * @brief 获取战斗结束时间
+     */
+    [[nodiscard]] i32 combatEndTime() const { return m_combatEndTime; }
 
     // 静态常量
-    static constexpr u32 COMBAT_TIMEOUT = 100;  // 战斗超时时间（5秒）
+    static constexpr i32 COMBAT_TIMEOUT = 100;  // 战斗超时时间（5秒 = 100 tick）
 
 private:
+    /**
+     * @brief 计算摔落后缀
+     *
+     * 根据方块类型确定摔落后缀（如梯子、藤蔓等）。
+     * 参考 MC 1.16.5 CombatTracker.calculateFallSuffix()
+     */
+    void calculateFallSuffix();
+
     /**
      * @brief 清理过期的战斗条目
      * @param currentTime 当前时间
      */
-    void cleanupOldEntries(u32 currentTime);
+    void cleanupOldEntries(i32 currentTime);
 
     /**
      * @brief 更新最佳伤害记录
      */
     void updateBestEntry();
 
+    /**
+     * @brief 获取最佳战斗条目（复杂逻辑）
+     *
+     * 参考 MC 1.16.5 CombatTracker.getBestCombatEntry()
+     * 优先选择玩家造成的伤害，然后选择最大的伤害。
+     */
+    [[nodiscard]] CombatEntry* getBestCombatEntry();
+
     LivingEntity* m_owner;                  // 拥有者
-    std::vector<CombatEntry> m_entries;      // 战斗记录
+    std::vector<CombatEntry> m_entries;     // 战斗记录
     f32 m_totalDamage = 0.0f;               // 总承受伤害
     size_t m_bestEntryIndex = 0;            // 最佳伤害记录索引
+
+    // MC 1.16.5 新增字段
+    i32 m_lastDamageTime = 0;               // 最后受伤时间
+    i32 m_combatStartTime = 0;              // 战斗开始时间
+    i32 m_combatEndTime = 0;                // 战斗结束时间
+    bool m_inCombat = false;                // 是否在战斗中
+    bool m_takingDamage = false;            // 是否正在受到伤害
+    String m_fallSuffix;                    // 当前摔落后缀
 };
 
 } // namespace mc

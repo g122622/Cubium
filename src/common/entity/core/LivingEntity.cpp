@@ -7,7 +7,10 @@
 #include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "../combat/CombatRules.hpp"
+// #include "../../item/enchantment/EnchantmentHelper.hpp"  // TODO: 实现 getTotalArmorProtection 后启用
 #include <cmath>
+#include <algorithm>
 
 namespace mc {
 
@@ -78,51 +81,174 @@ void LivingEntity::heal(f32 amount) {
 }
 
 bool LivingEntity::hurt(DamageSource& source, f32 amount) {
-    if (m_hurtTime > 0) {
-        return false;  // 无敌帧期间
+    // MC 1.16.5: LivingEntity.attackEntityFrom()
+    // 1. 检查是否对伤害类型免疫
+    if (isInvulnerableTo(source)) {
+        return false;
     }
 
-    // 吸收值优先
+    // 2. 无敌帧逻辑
+    // MC 1.16.5: 如果 hurtResistantTime > 10，允许累积伤害
+    if (m_hurtResistantTime > 10) {
+        // 已经在无敌帧内，只承受差额伤害
+        if (amount <= m_lastDamage) {
+            return false;  // 伤害不足
+        }
+        // 承受差额伤害
+        actuallyHurt(source, amount - m_lastDamage);
+        m_lastDamage = amount;
+    } else {
+        // 新的伤害，重置无敌帧
+        m_lastDamage = amount;
+        m_hurtResistantTime = MAX_HURT_RESISTANT_TIME;
+        m_hurtTime = m_maxHurtTime;
+        actuallyHurt(source, amount);
+    }
+
+    // 3. 战斗追踪器记录（需要在 actuallyHurt 中完成，因为那时才知道实际伤害）
+
+    return true;
+}
+
+void LivingEntity::actuallyHurt(DamageSource& source, f32 amount) {
+    // MC 1.16.5: LivingEntity.damageEntity()
+    if (amount <= 0.0f) {
+        return;
+    }
+
+    // 记录受伤前的生命值
+    const f32 healthBefore = m_health;
+
+    // 1. 盾牌格挡检查（子类可重写）
+    if (canBlockDamageSource(source)) {
+        damageShield(amount);
+        return;  // 格挡成功，不造成伤害
+    }
+
+    // 2. 护甲减伤（如果伤害不绕过护甲）
+    if (!source.bypassesArmor()) {
+        amount = applyArmorCalculations(source, amount);
+        damageArmor(source, amount);
+    }
+
+    // 3. 药水效果和附魔保护减伤
+    amount = applyPotionDamageCalculations(source, amount);
+
+    // 4. 吸收值处理（金苹果额外生命）
     if (m_absorption > 0.0f) {
-        f32 absorbed = std::min(m_absorption, amount);
+        const f32 absorbed = std::min(m_absorption, amount);
         m_absorption -= absorbed;
         amount -= absorbed;
     }
 
-    if (amount > 0.0f) {
-        m_health -= amount;
-        m_lastHealth = m_health;
-        m_hurtTime = m_maxHurtTime;
-        m_lastDamage = amount;
-
-        // 记录伤害到战斗追踪器
-        m_combatTracker.recordDamage(source.clone(), amount, ticksExisted());
-
-        // 保存伤害来源（用于死亡消息）
-        m_lastDamageSource = source.clone();
-
-        // MC 1.16.5: 如果伤害来源是 LivingEntity，记录到 m_lastHurtBy
-        // 参考 LivingEntity.damageEntity()
-        Entity* trueSource = source.getTrueSource();
-        if (trueSource != nullptr && trueSource != this) {
-            // 尝试转换为 LivingEntity
-            LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
-            if (attacker != nullptr) {
-                setLastHurtBy(attacker);
-            }
-        }
-
-        if (m_health <= 0.0f) {
-            playDeathSound();
-            die(source);
-        } else {
-            playHurtSound(source);
-        }
-
-        return true;
+    if (amount <= 0.0f) {
+        return;  // 伤害被完全吸收
     }
 
+    // 5. 实际扣血
+    m_health -= amount;
+    m_lastHealth = m_health;
+
+    // 6. 记录到战斗追踪器
+    m_combatTracker.trackDamage(source, m_lastHealth, amount);
+
+    // 7. 记录伤害来源
+    m_lastDamageSource = source.clone();
+
+    // 8. 更新最近攻击者
+    Entity* trueSource = source.getTrueSource();
+    if (trueSource != nullptr && trueSource != this) {
+        LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
+        if (attacker != nullptr) {
+            setLastHurtBy(attacker);
+        }
+    }
+
+    // 9. 更新战斗状态
+    if (!m_inCombat) {
+        m_inCombat = true;
+        m_lastDamageTimestamp = ticksExisted();
+        sendEnterCombat();
+    }
+
+    // 10. 死亡检查
+    if (m_health <= 0.0f) {
+        playDeathSound();
+        die(source);
+    } else {
+        playHurtSound(source);
+    }
+}
+
+bool LivingEntity::canBlockDamageSource(DamageSource& /*source*/) const {
+    // MC 1.16.5: LivingEntity.canBlockDamageSource()
+    // 默认返回 false，由 Player 子类重写实现盾牌格挡
     return false;
+}
+
+void LivingEntity::damageArmor(DamageSource& /*source*/, f32 /*amount*/) {
+    // MC 1.16.5: LivingEntity.damageArmor()
+    // 默认空实现，由 Player 子类重写
+}
+
+void LivingEntity::damageShield(f32 /*amount*/) {
+    // MC 1.16.5: PlayerEntity.damageShield()
+    // 默认空实现，由 Player 子类重写
+}
+
+f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage) {
+    // MC 1.16.5: LivingEntity.applyArmorCalculations()
+    if (source.bypassesArmor()) {
+        return damage;
+    }
+
+    const f32 armor = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::ARMOR, 0.0));
+    const f32 toughness = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
+
+    return entity::combat::CombatRules::getDamageAfterAbsorb(damage, armor, toughness);
+}
+
+f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage) {
+    // MC 1.16.5: LivingEntity.applyPotionDamageCalculations()
+    if (damage <= 0.0f) {
+        return damage;
+    }
+
+    // 1. 抗性药水减伤
+    // 注意：虚空伤害和特定伤害类型不受抗性药水影响
+    if (!source.bypassesInvulnerability()) {
+        const i32 resistanceLevel = getEffectLevel(entity::effect::EffectType::Resistance);
+        if (resistanceLevel > 0) {
+            damage = entity::combat::CombatRules::getDamageAfterResistance(damage, resistanceLevel);
+        }
+    }
+
+    // 2. 附魔保护减伤
+    // TODO: 实现 EnchantmentHelper::getTotalArmorProtection()
+    // 这需要遍历所有护甲槽位，计算保护附魔的 EPF 总和
+    // i32 protectionEPF = EnchantmentHelper::getTotalArmorProtection(m_equipment, source);
+    // if (protectionEPF > 0) {
+    //     damage = entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(protectionEPF));
+    // }
+
+    return damage;
+}
+
+f32 LivingEntity::computeFinalDamage(DamageSource& source, f32 damage) {
+    // 计算所有减伤后的最终伤害
+    if (damage <= 0.0f || source.bypassesInvulnerability()) {
+        return damage;
+    }
+
+    // 护甲减伤
+    if (!source.bypassesArmor()) {
+        damage = applyArmorCalculations(source, damage);
+    }
+
+    // 药水和附魔减伤
+    damage = applyPotionDamageCalculations(source, damage);
+
+    return damage;
 }
 
 void LivingEntity::die(DamageSource& /*cause*/) {
@@ -190,8 +316,23 @@ void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack) {
 // 受伤无敌帧
 // ============================================================================
 
-bool LivingEntity::isInvulnerableTo(DamageSource& /*source*/) const {
-    return m_hurtTime > 0;
+bool LivingEntity::isInvulnerableTo(DamageSource& source) const {
+    // MC 1.16.5: Entity.isInvulnerableTo() + LivingEntity 检查
+
+    // 1. 检查实体是否处于无敌状态
+    if (Entity::isInvulnerable()) {
+        // 虚空伤害可以绕过无敌
+        return !source.bypassesInvulnerability();
+    }
+
+    // 2. 检查无敌帧
+    // MC 1.16.5: 当 hurtResistantTime > 0 时，大部分伤害被阻挡
+    // 但虚空伤害可以绕过
+    if (m_hurtResistantTime > 0 && !source.bypassesInvulnerability()) {
+        return true;
+    }
+
+    return false;
 }
 
 void LivingEntity::playHurtSound(DamageSource& source) {
@@ -233,7 +374,13 @@ void LivingEntity::tick() {
     // 更新效果
     m_effectManager.tick(*this);
 
-    // 更新受伤无敌帧
+    // 更新无敌帧计时器
+    // MC 1.16.5: hurtResistantTime 在每 tick 递减
+    if (m_hurtResistantTime > 0) {
+        m_hurtResistantTime--;
+    }
+
+    // 更新受伤动画计时器
     if (m_hurtTime > 0) {
         m_hurtTime--;
     }
@@ -264,6 +411,12 @@ void LivingEntity::tick() {
     // 更新死亡
     if (isDead()) {
         tickDeath();
+    }
+
+    // 重置战斗状态
+    if (m_inCombat && ticksExisted() - m_lastDamageTimestamp > CombatTracker::COMBAT_TIMEOUT) {
+        m_inCombat = false;
+        sendEndCombat();
     }
 }
 

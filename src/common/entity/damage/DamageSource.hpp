@@ -13,7 +13,8 @@ class LivingEntity;
 /**
  * @brief 伤害类型枚举
  *
- * 定义不同类型的伤害来源
+ * 定义不同类型的伤害来源。
+ * 参考 MC 1.16.5 DamageSource。
  */
 enum class DamageType : u8 {
     // 环境伤害
@@ -35,6 +36,13 @@ enum class DamageType : u8 {
     DragonBreath,   // 龙息
     Fireworks,      // 烟花
 
+    // 新增环境伤害类型（MC 1.16.5）
+    InWall,         // 窒息（在方块内）
+    Cramming,       // 拥挤伤害（实体过多）
+    Dryout,         // 干涸伤害（鱼离开水）
+    LightningBolt,  // 闪电
+    SweetBerryBush, // 甜浆果丛
+
     // 实体伤害
     MobAttack,      // 生物攻击
     PlayerAttack,   // 玩家攻击
@@ -44,7 +52,10 @@ enum class DamageType : u8 {
     Fireball,       // 火球
     Thorns,         // 荆棘
     Explosion,      // 爆炸
-    ExplosionPlayer // 玩家爆炸
+    ExplosionPlayer, // 玩家爆炸
+
+    // 新增实体伤害类型（MC 1.16.5）
+    Sting,          // 蜜蜂蛰刺
 };
 
 /**
@@ -251,6 +262,11 @@ public:
             case DamageType::FallingBlock: return "death.attack.fallingBlock";
             case DamageType::DragonBreath: return "death.attack.dragonBreath";
             case DamageType::Fireworks: return "death.attack.fireworks";
+            case DamageType::InWall: return "death.attack.inWall";
+            case DamageType::Cramming: return "death.attack.cramming";
+            case DamageType::Dryout: return "death.attack.dryout";
+            case DamageType::LightningBolt: return "death.attack.lightningBolt";
+            case DamageType::SweetBerryBush: return "death.attack.sweetBerryBush";
             default: return "death.attack.generic";
         }
     }
@@ -454,6 +470,55 @@ inline EntityDamageSource thorns(Entity* owner) {
 /** 创建爆炸伤害 */
 inline EntityDamageSource explosion(Entity* source) {
     return EntityDamageSource(DamageType::Explosion, source);
+}
+
+/** 创建窒息伤害（在方块内） */
+inline EnvironmentalDamage inWall() { return EnvironmentalDamage(DamageType::InWall); }
+
+/** 创建拥挤伤害 */
+inline EnvironmentalDamage cramming() { return EnvironmentalDamage(DamageType::Cramming); }
+
+/** 创建干涸伤害 */
+inline EnvironmentalDamage dryout() { return EnvironmentalDamage(DamageType::Dryout); }
+
+/** 创建闪电伤害 */
+inline EntityDamageSource lightningBolt(Entity* lightning) {
+    return EntityDamageSource(DamageType::LightningBolt, lightning);
+}
+
+/** 创建甜浆果丛伤害 */
+inline EnvironmentalDamage sweetBerryBush() { return EnvironmentalDamage(DamageType::SweetBerryBush); }
+
+/** 创建蜜蜂蛰刺伤害 */
+inline EntityDamageSource sting(Entity* bee) {
+    return EntityDamageSource(DamageType::Sting, bee);
+}
+
+/** 创建铁砧伤害 */
+inline EnvironmentalDamage anvil() { return EnvironmentalDamage(DamageType::Anvil); }
+
+/** 创建坠落方块伤害 */
+inline EnvironmentalDamage fallingBlock() { return EnvironmentalDamage(DamageType::FallingBlock); }
+
+/** 创建龙息伤害 */
+inline EnvironmentalDamage dragonBreath() { return EnvironmentalDamage(DamageType::DragonBreath); }
+
+/** 创建烟花伤害 */
+inline EnvironmentalDamage fireworks() { return EnvironmentalDamage(DamageType::Fireworks); }
+
+/** 创建玩家爆炸伤害 */
+inline EntityDamageSource explosionPlayer(Entity* player) {
+    return EntityDamageSource(DamageType::ExplosionPlayer, player);
+}
+
+/** 创建投射物伤害 */
+inline IndirectEntityDamageSource mobProjectile(Entity* projectile, Entity* shooter) {
+    return IndirectEntityDamageSource(DamageType::MobProjectile, shooter, projectile);
+}
+
+/** 创建火球伤害 */
+inline IndirectEntityDamageSource fireball(Entity* fireball, Entity* shooter, bool isPlayer = false) {
+    return IndirectEntityDamageSource(DamageType::Fireball, shooter, fireball, isPlayer);
 }
 
 } // namespace DamageSources

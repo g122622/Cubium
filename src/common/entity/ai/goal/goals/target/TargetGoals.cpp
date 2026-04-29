@@ -72,7 +72,20 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const {
         return false;
     }
 
-    // TODO: 检查团队关系、游戏规则等
+    // MC 1.16.5: 如果目标是玩家，检查游戏模式
+    // 创造模式和观察者模式的玩家不能被作为目标
+    Player* targetPlayer = dynamic_cast<Player*>(target);
+    if (targetPlayer != nullptr) {
+        if (targetPlayer->isCreative() || targetPlayer->isSpectator()) {
+            return false;
+        }
+    }
+
+    // MC 1.16.5: 检查团队关系
+    // TODO: 实现团队系统后，检查是否同一团队
+    // if (m_mob->isOnSameTeam(target)) {
+    //     return false;
+    // }
 
     return true;
 }

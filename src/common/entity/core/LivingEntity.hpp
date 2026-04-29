@@ -121,11 +121,37 @@ public:
 
     /**
      * @brief 受伤
+     *
+     * 参考 MC 1.16.5 LivingEntity.attackEntityFrom()
+     * 伤害处理流程：
+     * 1. 检查无敌状态
+     * 2. 检查无敌帧（允许累积伤害）
+     * 3. 调用 actuallyHurt() 进行实际伤害计算
+     * 4. 击退处理
+     * 5. 战斗追踪器记录
+     * 6. 死亡检查
+     *
      * @param source 伤害来源
      * @param amount 伤害量
      * @return 是否成功造成伤害
      */
     virtual bool hurt(DamageSource& source, f32 amount);
+
+    /**
+     * @brief 实际受伤处理
+     *
+     * 参考 MC 1.16.5 LivingEntity.damageEntity()
+     * 在无敌检查通过后调用，进行实际的伤害计算：
+     * 1. 护甲减伤
+     * 2. 药水效果减伤
+     * 3. 附魔保护减伤
+     * 4. 吸收值处理
+     * 5. 扣血
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     */
+    virtual void actuallyHurt(DamageSource& source, f32 amount);
 
     /**
      * @brief 是否死亡
@@ -137,6 +163,37 @@ public:
      * @param cause 死亡原因
      */
     virtual void die(DamageSource& cause);
+
+    /**
+     * @brief 检查是否可以格挡伤害来源
+     *
+     * 参考 MC 1.16.5 LivingEntity.canBlockDamageSource()
+     * 检查实体是否正在使用盾牌格挡，以及伤害来源是否可以被格挡。
+     *
+     * @param source 伤害来源
+     * @return 是否可以格挡
+     */
+    [[nodiscard]] virtual bool canBlockDamageSource(DamageSource& source) const;
+
+    /**
+     * @brief 受伤时损坏护甲
+     *
+     * 参考 MC 1.16.5 LivingEntity.damageArmor()
+     * 默认空实现，由 Player 子类重写。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     */
+    virtual void damageArmor(DamageSource& source, f32 amount);
+
+    /**
+     * @brief 受伤时损坏盾牌
+     *
+     * 参考 MC 1.16.5 PlayerEntity.damageShield()
+     *
+     * @param amount 伤害量
+     */
+    virtual void damageShield(f32 amount);
 
     /**
      * @brief 掉落经验
@@ -627,6 +684,54 @@ protected:
         return CreatureAttribute::Undefined;
     }
 
+    /**
+     * @brief 计算护甲减伤后的伤害
+     *
+     * 参考 MC 1.16.5 LivingEntity.applyArmorCalculations()
+     *
+     * @param source 伤害来源
+     * @param damage 原始伤害
+     * @return 减伤后的伤害
+     */
+    [[nodiscard]] virtual f32 applyArmorCalculations(DamageSource& source, f32 damage);
+
+    /**
+     * @brief 计算药水效果减伤后的伤害
+     *
+     * 参考 MC 1.16.5 LivingEntity.applyPotionDamageCalculations()
+     * 包括抗性药水和附魔保护。
+     *
+     * @param source 伤害来源
+     * @param damage 原始伤害
+     * @return 减伤后的伤害
+     */
+    [[nodiscard]] virtual f32 applyPotionDamageCalculations(DamageSource& source, f32 damage);
+
+    /**
+     * @brief 计算最终伤害
+     *
+     * 结合护甲、药水、附魔、吸收值等所有减伤效果。
+     *
+     * @param source 伤害来源
+     * @param damage 原始伤害
+     * @return 最终伤害
+     */
+    [[nodiscard]] f32 computeFinalDamage(DamageSource& source, f32 damage);
+
+    /**
+     * @brief 进入战斗状态
+     *
+     * 子类可重写以发送数据包通知客户端。
+     */
+    virtual void sendEnterCombat() {}
+
+    /**
+     * @brief 结束战斗状态
+     *
+     * 子类可重写以发送数据包通知客户端。
+     */
+    virtual void sendEndCombat() {}
+
     // 生命值
     f32 m_health = 20.0f;
     f32 m_lastHealth = 20.0f;           // 上一tick的生命值
@@ -644,9 +749,14 @@ protected:
     // 受伤无敌帧
     i32 m_hurtTime = 0;                  // 受伤无敌时间
     i32 m_maxHurtTime = 10;              // 最大受伤无敌时间
-    static constexpr i32 MAX_HURT_RESISTANT_TIME = 20;  // 最大无敌帧
-    f32 m_lastDamage = 0.0f;             // 最近伤害量
+    static constexpr i32 MAX_HURT_RESISTANT_TIME = 20;  // 最大无敌帧（MC 1.16.5：20 tick = 1秒）
+    f32 m_lastDamage = 0.0f;             // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
+    i32 m_hurtResistantTime = 0;         // 无敌帧计时器（MC 1.16.5：hurtResistantTime）
+
+    // 战斗状态
+    bool m_inCombat = false;             // 是否在战斗中
+    i32 m_lastDamageTimestamp = 0;       // 最后受伤时间戳
 
     // 死亡
     i32 m_deathTime = 0;                 // 死亡时间

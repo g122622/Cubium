@@ -38,13 +38,26 @@ public:
 
     /**
      * @brief 获取缓慢效果的持续时间（tick）
+     *
+     * MC 1.16.5 公式: duration = 20 + random(0, 10*level - 1)
+     * - 基础时间: 20 tick (1秒)
+     * - 额外随机: 0 到 (10*level - 1) tick
+     *
      * @param level 附魔等级
      * @return 持续时间（tick）
      */
     [[nodiscard]] static i32 getSlownessDuration(i32 level) {
-        // 1-1.5秒随机，但等级不影响持续时间
-        (void)level;
-        return 10 + (rand() % 10);  // 10-20 tick
+        // 20 + random(0, 10*level - 1)
+        // Level I: 20-29 tick, Level V: 20-69 tick
+        return 20 + (rand() % (10 * level));
+    }
+
+    /**
+     * @brief 获取缓慢效果等级（固定为 IV）
+     * @return 缓慢效果等级 (3 = Slowness IV)
+     */
+    [[nodiscard]] static constexpr i32 getSlownessAmplifier() {
+        return 3;  // Slowness IV
     }
 };
 

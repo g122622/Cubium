@@ -9,18 +9,45 @@ ProtectionEnchantment::ProtectionEnchantment(Type protectionType)
 }
 
 i32 ProtectionEnchantment::getMinCost(i32 level) const {
-    // 参考 MC 1.16.5 保护类附魔成本
-    // 全保护: 1 + (level - 1) * 11
-    // 其他保护: 5 + (level - 1) * 8
-    if (m_protectionType == Type::All) {
-        return 1 + (level - 1) * 11;
-    } else {
-        return 5 + (level - 1) * 8;
+    // 参考 MC 1.16.5 ProtectionEnchantment.Type 枚举值
+    // ALL("all", 1, 11)       - minEnchantability=1,  levelCost=11
+    // FIRE("fire", 10, 8)     - minEnchantability=10, levelCost=8
+    // FALL("fall", 5, 6)      - minEnchantability=5,  levelCost=6
+    // EXPLOSION("explosion", 5, 8)   - minEnchantability=5,  levelCost=8
+    // PROJECTILE("projectile", 3, 6) - minEnchantability=3,  levelCost=6
+    switch (m_protectionType) {
+        case Type::All:
+            return 1 + (level - 1) * 11;
+        case Type::Fire:
+            return 10 + (level - 1) * 8;
+        case Type::Fall:
+            return 5 + (level - 1) * 6;
+        case Type::Explosion:
+            return 5 + (level - 1) * 8;
+        case Type::Projectile:
+            return 3 + (level - 1) * 6;
+        default:
+            return 1 + (level - 1) * 11;
     }
 }
 
 i32 ProtectionEnchantment::getMaxCost(i32 level) const {
-    return getMinCost(level) + (m_protectionType == Type::All ? 11 : 8);
+    // 参考 MC 1.16.5 ProtectionEnchantment.Type 枚举值
+    // getMaxEnchantability = getMinEnchantability + levelCost
+    switch (m_protectionType) {
+        case Type::All:
+            return getMinCost(level) + 11;
+        case Type::Fire:
+            return getMinCost(level) + 8;
+        case Type::Fall:
+            return getMinCost(level) + 6;
+        case Type::Explosion:
+            return getMinCost(level) + 8;
+        case Type::Projectile:
+            return getMinCost(level) + 6;
+        default:
+            return getMinCost(level) + 11;
+    }
 }
 
 i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const {

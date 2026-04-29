@@ -57,54 +57,80 @@ src/common/entity/damage/
 **主要成员**:
 - `m_source` - 伤害来源（`std::unique_ptr<DamageSource>`）
 - `m_damage` - 伤害值（`f32`）
-- `m_timestamp` - 发生时间，以 tick 为单位（`u32`）
+- `m_timestamp` - 发生时间，以 tick 为单位（`i32`）
+- `m_health` - 受伤前生命值（`f32`）
+- `m_fallSuffix` - 摔落后缀（如 "fall", "ladder"）
+- `m_fallDistance` - 摔落距离（`f32`）
 
 **主要方法**:
 - `source()` - 获取伤害来源
 - `damage()` - 获取伤害值
 - `timestamp()` - 获取发生时间
+- `health()` - 获取受伤前生命值
+- `fallSuffix()` - 获取摔落后缀
+- `fallDistance()` - 获取摔落距离
 - `isLivingSource()` - 是否来自生物
 - `isPlayerSource()` - 是否来自玩家
+- `getDamageAmount()` - 获取伤害量（虚空伤害返回最大值）
 
 **设计说明**:
 - 使用 `std::unique_ptr<DamageSource>` 存储多态伤害来源
 - 不可变对象，创建后不可修改
 - 作为 `CombatTracker` 的条目存储
+- 支持 MC 1.16.5 的摔落后缀系统（用于生成"试图逃离 xxx"死亡消息）
 
 ### CombatTracker.hpp / CombatTracker.cpp
 
 **职责**: 战斗追踪器，记录实体的战斗历史，生成死亡消息。
+
+**MC 1.16.5 对齐状态**: ✅ 完整实现战斗状态管理、伤害记录、死亡消息生成
 
 **主要成员**:
 - `m_owner` - 拥有此追踪器的生物（`LivingEntity*`）
 - `m_entries` - 战斗记录列表（`std::vector<CombatEntry>`）
 - `m_totalDamage` - 总承受伤害（`f32`）
 - `m_bestEntryIndex` - 最佳伤害记录索引（`size_t`）
+- `m_lastDamageTime` - 最后受伤时间（`i32`）
+- `m_combatStartTime` - 战斗开始时间（`i32`）
+- `m_combatEndTime` - 战斗结束时间（`i32`）
+- `m_inCombat` - 是否在战斗中（`bool`）
+- `m_takingDamage` - 是否正在受到伤害（`bool`）
+- `m_fallSuffix` - 当前摔落后缀（`String`）
 
 **主要方法**:
-- `recordDamage(source, damage, timestamp)` - 记录伤害事件
+- `trackDamage(source, health, damage)` - 记录伤害事件
 - `reset()` - 重置追踪器（通常在重生时调用）
 - `getLastEntry()` - 获取最近的伤害记录
 - `getBestEntry()` - 获取造成最多伤害的记录
 - `getLastAttacker()` - 获取最近的攻击者
 - `getBestAttacker()` - 获取造成最多伤害的攻击者
+- `getBestAttackerLiving()` - 获取最佳攻击者（LivingEntity 类型）
 - `getDeathMessage()` - 生成死亡消息
 - `hasCombat()` - 是否有战斗记录
 - `getTotalDamage()` - 获取总承受伤害
 - `getCombatDuration()` - 获取战斗时长
-- `isInCombat(currentTime, threshold)` - 检查是否在战斗中
+- `inCombat()` - 检查是否在战斗中
+- `combatStartTime()` / `combatEndTime()` - 战斗时间查询
 
 **关键常量**:
 - `COMBAT_TIMEOUT = 100` - 战斗超时时间（100 tick = 5 秒）
 
-**清理机制**:
-- `cleanupOldEntries()` - 自动清理超过 100 tick 的条目
-- 清理时重新计算 `m_totalDamage` 和 `m_bestEntryIndex`
+**战斗状态管理**（MC 1.16.5）:
+- 进入战斗：受到实体伤害且当前不在战斗中
+- 战斗超时：战斗中 300 tick 无新伤害，非战斗中 100 tick
+- 战斗结束：实体死亡或超时
+- 自动发送 `sendEnterCombat()` 和 `sendEndCombat()` 通知
 
 **死亡消息生成**:
+- 支持摔落+攻击组合消息（"xxx fell from a high place whilst trying to escape yyy"）
 - 根据伤害类型生成不同的死亡消息
 - 支持环境伤害消息（燃烧、溺水、摔落等）
 - 支持实体伤害消息（被击杀）
+
+**清理机制**:
+- `cleanupOldEntries()` - 清理超过战斗超时时间的条目
+- `updateBestEntry()` - 重新计算最佳伤害记录
+- `getBestCombatEntry()` - 优先选择玩家造成的伤害
 
 ## 模块关系图
 
