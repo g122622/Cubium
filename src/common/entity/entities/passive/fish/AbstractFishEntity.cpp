@@ -23,7 +23,8 @@ void AbstractFishEntity::tick()
 
 void AbstractFishEntity::registerGoals()
 {
-    // TODO: 对齐 1.16.5 的 PanicGoal、AvoidEntityGoal 和 RandomSwimmingGoal。
+    // TODO: 对齐 1.16.5 的 PanicGoal、AvoidEntityGoal 和 RandomSwimmingGoal
+    // 依赖: AI Goal 系统完善
 }
 
 void AbstractFishEntity::registerAttributes()
@@ -55,7 +56,9 @@ void AbstractFishEntity::updateFlopping()
 
     ++m_flopTimer;
     if (m_flopTimer >= 100) {
-        // TODO: 对齐 1.16.5 的离水跳动逻辑和声音触发。
+        // MC 1.16.5: 离水扑腾逻辑
+        // 鱼会随机跳跃并播放 flop 声音
+        // TODO: 实现跳跃和声音 (依赖: 完善的 motion 系统和 sound event)
         m_flopTimer = 0;
     }
 }

@@ -10,6 +10,8 @@
 #include "../../inventory/CreativeInventory.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -527,8 +529,7 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
 
     // 深度守卫附魔加成
     // MC 1.16.5: float f7 = (float)EnchantmentHelper.getDepthStriderModifier(this);
-    // TODO: 实现附魔系统后获取深度守卫等级
-    i32 depthStriderLevel = 0;  // EnchantmentHelper::getDepthStriderModifier(this);
+    i32 depthStriderLevel = getDepthStriderLevel();
     if (depthStriderLevel > 0) {
         // 深度守卫效果：
         // 1. 增加游泳速度
@@ -1196,6 +1197,17 @@ void Player::updatePose() {
     setPose(targetPose);
 }
 
+i32 Player::getDepthStriderLevel() const {
+    // MC 1.16.5: EnchantmentHelper.getDepthStriderModifier(this)
+    // 检查靴子上的深度守卫附魔等级
+    using namespace item::enchant;
+    const ItemStack& boots = m_inventory.getBoots();
+    if (boots.isEmpty()) {
+        return 0;
+    }
+    return EnchantmentHelper::getEnchantmentLevel(boots, &AllEnchantments::DEPTH_STRIDER);
+}
+
 void Player::swimUp() {
     // 水中向上游泳
     if (isInWater() && !m_abilities.flying) {
@@ -1228,8 +1240,9 @@ void Player::updateAirSupply() {
         if (!invulnerableToDrowning) {
             // 空气消耗
             // MC 1.16.5: decreaseAirSupply() 会考虑水下呼吸附魔
-            // 有水下呼吸附魔时，有概率不消耗空气
-            // TODO: 实现水下呼吸附魔（Respiration enchantment）
+            // 水下呼吸附魔(Respiration): 每级有 1/(level+1) 的概率不消耗空气
+            // 例如: I级=50%, II级=33%, III级=25% 概率不消耗
+            // TODO: 实现水下呼吸附魔的空气节约概率 (需: RespirationEnchantment等级获取)
             m_airSupply--;
 
             // 空气耗尽到 -20 时触发溺水
@@ -1246,7 +1259,8 @@ void Player::updateAirSupply() {
                     damage(physics::DROWN_DAMAGE_AMOUNT);
                 }
 
-                // TODO: 生成气泡粒子
+                // 溺水时生成气泡粒子
+                // TODO: 生成气泡粒子 (依赖: ParticleSystem 实现)
                 // MC 1.16.5: for (int i = 0; i < 8; ++i) {
                 //     world.addParticle(ParticleTypes.BUBBLE, ...);
                 // }

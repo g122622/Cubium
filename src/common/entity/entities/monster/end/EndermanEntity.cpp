@@ -166,9 +166,11 @@ void EndermanEntity::tick() {
     }
 
     // 检查水/雨伤害
+    // MC 1.16.5: 在水中或雨中受到伤害并瞬移
     if (isInWaterOrRain()) {
-        // MC 1.16.5: 在水中受到伤害并瞬移
-        // TODO: damage(DamageSource::DROWN, WATER_DAMAGE);
+        // MC 1.16.5: 每tick在水中受到1.0伤害
+        auto damageSource = DamageSources::drown();
+        hurt(damageSource, WATER_DAMAGE);
         teleportAwayFromWater();
     }
 

@@ -459,6 +459,15 @@ public:
     void swimUp();
 
     /**
+     * @brief 获取深度守卫附魔等级
+     * @return 深度守卫等级 (0-3)
+     *
+     * 检查玩家靴子上的深度守卫附魔等级。
+     * 参考 MC 1.16.5 EnchantmentHelper.getDepthStriderModifier()
+     */
+    [[nodiscard]] i32 getDepthStriderLevel() const;
+
+    /**
      * @brief 更新空气供应和溺水
      */
     void updateAirSupply();

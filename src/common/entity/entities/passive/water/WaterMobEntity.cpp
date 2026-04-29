@@ -20,8 +20,7 @@ bool WaterMobEntity::isInWater() const {
 
 bool WaterMobEntity::isInWaterOrBubble() const {
     // 检查是否在水中或气泡柱中
-    // 气泡柱目前未实现，暂时只检查水中状态
-    // TODO: 添加气泡柱检测 (Blocks::BUBBLE_COLUMN)
+    // TODO: 添加气泡柱检测 (依赖: Blocks::BUBBLE_COLUMN 实现)
     return isInWater();
 }
 
