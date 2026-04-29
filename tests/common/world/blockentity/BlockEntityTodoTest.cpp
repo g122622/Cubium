@@ -458,7 +458,7 @@ TEST(BlockEntityTodoTest, BeaconPaymentRoundTripAndClonePreservePaymentItem) {
     EXPECT_EQ(clonedBeacon->getPaymentItem().getItem(), Items::IRON_INGOT);
 }
 
-TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidAndSkyVisibility) {
+TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidWithoutSkyCheck) {
     VanillaBlocks::initialize();
 
     DummyWorld world;
@@ -472,6 +472,7 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidAndSkyVisibility) {
     const BlockState* baseState = VanillaBlocks::getState(VanillaBlocks::IRON_BLOCK);
     ASSERT_NE(baseState, nullptr);
 
+    // Build a 3-level pyramid
     for (int level = 1; level <= 3; ++level) {
         const int y = beaconPos.y - level;
         for (int dx = -level; dx <= level; ++dx) {
@@ -488,6 +489,8 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidAndSkyVisibility) {
     }
     EXPECT_EQ(beacon.getLevel(), 3);
 
+    // MC 1.16.5: Beacon pyramid detection does NOT check sky visibility
+    // Placing a block above the beacon should NOT affect pyramid level
     const BlockState* blocking = VanillaBlocks::getState(VanillaBlocks::STONE);
     ASSERT_NE(blocking, nullptr);
     world.setBlock(beaconPos.x, beaconPos.y + 1, beaconPos.z, blocking);
@@ -495,6 +498,7 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidAndSkyVisibility) {
     for (int i = 0; i < 80; ++i) {
         beacon.tick(world);
     }
-    EXPECT_EQ(beacon.getLevel(), 0);
+    // Beacon level should still be 3 (sky visibility is not checked in MC 1.16.5)
+    EXPECT_EQ(beacon.getLevel(), 3);
 }
 

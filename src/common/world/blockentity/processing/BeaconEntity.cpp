@@ -55,6 +55,9 @@ constexpr const char* PAYMENT_ITEM_KEY = "payment_item";
 
 /**
  * @brief 检查信标基座方块是否属于可用矿物方块。
+ *
+ * MC 1.16.5 参考: BlockTags.BEACON_BASE_BLOCKS
+ * 包含: 铁块、金块、钻石块、绿宝石块、下界合金块
  */
 [[nodiscard]] bool isValidBeaconBaseBlock(const BlockState* state) {
     if (state == nullptr || state->isAir()) {
@@ -66,6 +69,7 @@ constexpr const char* PAYMENT_ITEM_KEY = "payment_item";
            block == VanillaBlocks::GOLD_BLOCK ||
            block == VanillaBlocks::DIAMOND_BLOCK ||
            block == VanillaBlocks::EMERALD_BLOCK;
+           // TODO: 添加 VanillaBlocks::NETHERITE_BLOCK 当方块注册后
 }
 
 /**
@@ -195,6 +199,8 @@ void BeaconEntity::tick(IWorld& world) {
 }
 
 void BeaconEntity::updateLevels(IWorld& world) {
+    // MC 1.16.5: 金字塔检测不需要检查天空可见性
+    // 参考: BeaconTileEntity.checkBeaconLevel()
     i32 newLevel = 0;
 
     for (i32 level = 1; level <= MAX_LEVELS; ++level) {
@@ -215,10 +221,6 @@ void BeaconEntity::updateLevels(IWorld& world) {
             break;
         }
         newLevel = level;
-    }
-
-    if (newLevel > 0 && !canSeeSky(world)) {
-        newLevel = 0;
     }
 
     setLevel(newLevel);
