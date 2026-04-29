@@ -2,6 +2,7 @@
 #include "entity/inventory/Slot.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/entities/player/GameModeUtils.hpp"
 
 namespace mc {
 
@@ -303,8 +304,9 @@ ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const Ite
 
 ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player) {
     // 创造模式中键复制 - 只在创造模式下可用
-    // TODO: 检查玩家是否为创造模式
-    (void)player;
+    if (!entity::GameModeUtils::isCreative(player.gameMode())) {
+        return m_carried;
+    }
 
     if (!slotStack.isEmpty() && m_carried.isEmpty()) {
         // 复制整组物品
@@ -312,6 +314,7 @@ ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const It
         m_carried.setCount(slotStack.getMaxStackSize());
     }
 
+    (void)slotIndex;
     return m_carried;
 }
 
@@ -487,10 +490,15 @@ i32 AbstractContainerMenu::extractDragMode(i32 button) {
 
 bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const {
     if (m_playerInventory == nullptr) return false;
+
+    const Player* player = m_playerInventory->getPlayer();
+    if (player == nullptr) return false;
+
     // 模式 2 (全部分发) 只在创造模式下有效
-    // MC 1.16.5: 检查玩家是否为创造模式
-    // TODO: 添加创造模式检查
-    (void)dragMode;
+    if (dragMode == 2 && !entity::GameModeUtils::isCreative(player->gameMode())) {
+        return false;
+    }
+
     return true;
 }
 
