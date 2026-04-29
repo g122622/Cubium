@@ -24,12 +24,20 @@ physics/
 **内容**：
 - **重力和阻力**：`GRAVITY`（0.08 blocks/tick²，MC 1.16.5 标准）、`DRAG_AIR`（0.98）、`DRAG_GROUND`（0.546，滑度*0.91）、`DRAG_WATER`、`DRAG_LAVA`
 - **运动参数**：`JUMP_VELOCITY`（0.42，MC 1.16.5 标准）、`STEP_HEIGHT`（0.6）、`MOTION_THRESHOLD`（0.003）
-- **滑度系数**：`SLIPPERINESS_DEFAULT`（0.6）、`SLIPPERINESS_ICE`（0.98）、`SLIPPERINESS_SLIME`（0.5）
-- **物品物理**：`ITEM_GRAVITY`、`ITEM_DRAG`
+- **滑度系数**：`SLIPPERINESS_DEFAULT`（0.6）、`SLIPPERINESS_ICE`（0.98）、`SLIPPERINESS_SLIME`（0.8）、`SLIPPERINESS_BLUE_ICE`（0.989）
+- **物品物理**：`ITEM_GRAVITY`（0.04）、`ITEM_DRAG`（0.98）、`ITEM_WATER_BOUNCE_FACTOR`（0.5）
 - **粒子物理**：`RAIN_GRAVITY`、`SNOW_GRAVITY`
 - **实体限制**：`MAX_MOVEMENT_SPEED`、`MAX_FALL_SPEED`
-- **游泳潜水**：`SWIM_JUMP_VELOCITY`、`WATER_GRAVITY`
-- **爆炸**：`EXPLOSION_RADIUS_SCALE`
+- **游泳潜水**：`SWIM_JUMP_VELOCITY`、`WATER_GRAVITY`、`SWIM_SPEED_BASE`、`WATER_DRAG`、`DOLPHINS_GRACE_WATER_DRAG`
+- **飞行**：`FLY_SPEED`（0.05）、`WALK_SPEED`（0.1）、`SPRINT_FLY_MULTIPLIER`（2.0）
+- **梯子**：`LADDER_SPEED_MAX`、`LADDER_CLIMB_SPEED`、`LADDER_SLIDE_SPEED`
+- **鞘翅**：`ELYTRA_DRAG_HORIZONTAL`、`ELYTRA_DRAG_VERTICAL`、`ELYTRA_MIN_SPEED`、`ELYTRA_LIFT_COEFFICIENT`
+- **缓降**：`SLOW_FALLING_GRAVITY`（0.01）
+- **特殊方块**：
+  - 蜘蛛网：`COBWEB_SLOWDOWN_XZ`（0.25）、`COBWEB_SLOWDOWN_Y`（0.05）
+  - 蜂蜜块：`HONEY_BLOCK_MAX_SLIDE_VELOCITY`、`HONEY_BLOCK_SLIDE_THRESHOLD`、`HONEY_BLOCK_JUMP_FACTOR`（0.5）
+  - 史莱姆块：`SLIME_BLOCK_BOUNCE_FACTOR_LIVING`（1.0）、`SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING`（0.8）
+  - 甜浆果丛：`SWEET_BERRY_BUSH_SLOWDOWN_XZ`（0.8）、`SWEET_BERRY_BUSH_SLOWDOWN_Y`（0.75）
 
 **重要对齐说明**：
 - 重力值 `GRAVITY = 0.08` 已与 MC 1.16.5 对齐（原错误值 0.01）
@@ -104,6 +112,8 @@ if (!shape.isEmpty() && shape.intersects(entityBox, blockX, blockY, blockZ)) {
 2. **自动步进（Auto-Step）**：
    - 当水平方向移动受阻时尝试抬起
    - 抬起高度为 `stepHeight`（玩家 0.6）
+   - 使用双策略竞争：策略A（整体抬起）和策略B（先抬起后移动）
+   - 选择水平移动距离最远的策略
    - 向上移动 → 水平移动 → 向下落回
 
 3. **初始重叠解决**：
@@ -415,6 +425,30 @@ if (const auto* boxes = cache.getChunkCollisionBoxes(x, z)) {
 ```
 
 ## 涉及的测试用例
+
+### PhysicsEngineTests.cpp
+
+| 测试名称 | 描述 |
+|---------|------|
+| `PhysicsConstantsTest.GravityValue_Correct` | 重力值验证 |
+| `PhysicsConstantsTest.JumpVelocity_Correct` | 跳跃速度验证 |
+| `PhysicsConstantsTest.StepHeight_Correct` | 步进高度验证 |
+| `PhysicsConstantsTest.DragValues_Correct` | 阻力值验证 |
+| `PhysicsConstantsTest.SlipperinessValues_Correct` | 滑度值验证 |
+| `PhysicsConstantsTest.GroundMoveFactor_Correct` | 地面移动因子验证 |
+| `PhysicsConstantsTest.SpecialBlockConstants_Correct` | 特殊方块常量验证 |
+| `PhysicsConstantsTest.SwimConstants_Correct` | 游泳常量验证 |
+| `PhysicsConstantsTest.FlyConstants_Correct` | 飞行常量验证 |
+| `PhysicsConstantsTest.ItemConstants_Correct` | 物品常量验证 |
+| `PhysicsConstantsTest.LadderConstants_Correct` | 梯子常量验证 |
+| `PhysicsConstantsTest.ElytraConstants_Correct` | 鞘翅常量验证 |
+| `PhysicsConstantsTest.SlowFallingGravity_Correct` | 缓降重力验证 |
+| `CollisionCacheThreadSafeTest.CacheAndRetrieve` | 线程安全缓存和检索 |
+| `CollisionCacheThreadSafeTest.CacheMiss` | 线程安全缓存未命中 |
+| `CollisionCacheThreadSafeTest.InvalidateChunk` | 线程安全区块失效 |
+| `CollisionCacheThreadSafeTest.InvalidateChunkAndNeighbors` | 线程安全邻居失效 |
+| `CollisionCacheThreadSafeTest.HitMissStats` | 线程安全命中统计 |
+| `CollisionCacheThreadSafeTest.ThreadSafeHitMissStats` | 多线程统计原子性 |
 
 ### CollisionCacheTests.cpp
 

@@ -163,16 +163,17 @@ private:
      * @brief 尝试步进（MC的auto-step）
      *
      * 当水平方向移动受阻时，尝试抬起实体继续移动。
-     * 算法：
-     * 1. 向上移动stepHeight
-     * 2. 尝试水平移动
-     * 3. 向下移动直到碰到地面
-     * 4. 比较水平移动距离，选择更优的结果
+     * 使用三种策略竞争最优结果：
+     * 1. 策略A：整体抬起stepHeight后水平移动
+     * 2. 策略B：先抬起，然后水平移动
+     *
+     * 最后选择水平移动距离最远的结果。
      *
      * @param entityBox 实体碰撞箱（会被修改）
      * @param originalBox 移动前的原始碰撞箱
      * @param movement 期望移动向量
      * @param stepHeight 步进高度
+     * @param fallbackResult 直接碰撞结果（作为备选）
      * @return 实际移动向量
      */
     Vector3 attemptStepUp(AxisAlignedBB& entityBox,
@@ -180,6 +181,29 @@ private:
                           const Vector3& movement,
                           f32 stepHeight,
                           const Vector3& fallbackResult);
+
+    /**
+     * @brief 策略A：整体抬起 + 水平移动
+     *
+     * 将抬起和水平移动作为一个整体处理。
+     */
+    Vector3 tryStepStrategyA(AxisAlignedBB& entityBox,
+                             const Vector3& movement,
+                             f32 stepHeight);
+
+    /**
+     * @brief 策略B：先抬起后水平移动
+     *
+     * MC的标准步进逻辑。
+     */
+    Vector3 tryStepStrategyB(AxisAlignedBB& entityBox,
+                             const Vector3& movement,
+                             f32 stepHeight);
+
+    /**
+     * @brief 应用下落直到碰到地面
+     */
+    Vector3 applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement);
 
     /**
      * @brief 获取方块碰撞箱

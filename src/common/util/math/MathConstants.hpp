@@ -46,6 +46,15 @@ constexpr f32 EPSILON = 1e-6f;
 /// 大 epsilon，用于更宽松的浮点比较
 constexpr f32 LARGE_EPSILON = 1e-4f;
 
+/// 精确 epsilon (f64)，用于射线投射、碰撞计算等高精度场景
+constexpr f64 EPSILON_PRECISE = 1.0e-7;
+
+/// 地面探测精度，用于检测实体是否在地面
+constexpr f32 EPSILON_GROUND_PROBE = 0.01f;
+
+/// 碰撞计算精度，用于碰撞偏移计算
+constexpr f32 EPSILON_COLLISION = 1.0e-7f;
+
 /// f32 最大值
 constexpr f32 FLOAT_MAX = std::numeric_limits<f32>::max();
 

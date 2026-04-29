@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <optional>
+#include <atomic>
 
 namespace mc::physics {
 
@@ -150,9 +151,9 @@ private:
     mutable std::unordered_map<u64, ChunkCache> m_cache;
     mutable std::shared_mutex m_mutex;
 
-    // 统计
-    mutable u64 m_hitCount = 0;
-    mutable u64 m_missCount = 0;
+    // 统计（使用原子变量保证线程安全）
+    mutable std::atomic<u64> m_hitCount{0};
+    mutable std::atomic<u64> m_missCount{0};
 };
 
 } // namespace mc::physics

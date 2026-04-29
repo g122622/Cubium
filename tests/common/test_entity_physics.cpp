@@ -316,9 +316,13 @@ TEST(PhysicsConstants, LadderConstants) {
 
 TEST(PhysicsConstants, SpecialBlockConstants) {
     // MC 1.16.5 特殊方块
-    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR, 0.9f);
+    // 史莱姆块弹跳系数：活体实体 1.0，非活体实体 0.8
+    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR_LIVING, 1.0f);
+    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING, 0.8f);
     EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_JUMP_FACTOR, 0.5f);
-    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN, 0.025f);
+    // 蜘蛛网减速：XZ 平面 0.25，Y 轴 0.05
+    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN_XZ, 0.25f);
+    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN_Y, 0.05f);
 }
 
 TEST(PhysicsConstants, ElytraAndSlowFalling) {

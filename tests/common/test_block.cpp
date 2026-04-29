@@ -1232,8 +1232,9 @@ TEST(SpecialBlocksSlipperiness, BlueIceSlipperiness) {
 }
 
 TEST(SpecialBlocksPhysics, SlimeBlockBounceFactor) {
-    // MC 1.16.5: 史莱姆块弹跳系数为 0.9
-    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR, 0.9f);
+    // MC 1.16.5: 史莱姆块弹跳系数：活体实体 1.0，非活体实体 0.8
+    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR_LIVING, 1.0f);
+    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING, 0.8f);
 }
 
 TEST(SpecialBlocksPhysics, HoneyBlockFactors) {
@@ -1243,8 +1244,9 @@ TEST(SpecialBlocksPhysics, HoneyBlockFactors) {
 }
 
 TEST(SpecialBlocksPhysics, CobwebSlowdown) {
-    // MC 1.16.5: 蜘蛛网减速因子为 0.025
-    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN, 0.025f);
+    // MC 1.16.5: 蜘蛛网减速：XZ 平面 0.25，Y 轴 0.05
+    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN_XZ, 0.25f);
+    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN_Y, 0.05f);
 }
 
 TEST(SpecialBlocksSlimeBlock, OnLandedBouncesDownwardVelocity) {

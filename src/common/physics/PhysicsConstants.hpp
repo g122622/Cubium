@@ -151,8 +151,17 @@ constexpr f32 SWIM_UP_SPEED = 0.04f;
 /// 水中潜行下沉速度
 constexpr f32 SWIM_DOWN_SPEED = 0.04f;
 
+/// 水中向上游泳速度 - 向下看时 (MC PlayerEntity.java:1438)
+constexpr f32 SWIM_UP_SPEED_DOWN = 0.085f;
+
+/// 水中向上游泳速度 - 向上看时 (MC PlayerEntity.java:1438)
+constexpr f32 SWIM_UP_SPEED_UP = 0.06f;
+
 /// 深度守卫附魔游泳速度加成（每级）
 constexpr f32 DEPTH_STRIDER_SPEED_BONUS = 0.0333333f;
+
+/// 深度守卫最大阻力值 (MC LivingEntity.java:2063)
+constexpr f32 DEPTH_STRIDER_MAX_DRAG = 0.54600006f;
 
 /// 深度守卫最大等级
 constexpr i32 DEPTH_STRIDER_MAX_LEVEL = 3;
@@ -263,26 +272,50 @@ constexpr f32 ITEM_LAVA_DRAG = 0.95f;
 // 特殊方块物理
 // ============================================================================
 
-/// 蜘蛛网减速系数 (MC WebBlock)
-constexpr f32 COBWEB_SLOWDOWN = 0.025f;
+/// 蜘蛛网水平减速系数 (MC 1.16.5 WebBlock: Vector3d(0.25D, 0.05F, 0.25D))
+constexpr f32 COBWEB_SLOWDOWN_XZ = 0.25f;
 
-/// 蜂蜜块滑动减速
-constexpr f32 HONEY_BLOCK_SLIDE_FACTOR = 0.5f;
+/// 蜘蛛网垂直减速系数
+constexpr f32 COBWEB_SLOWDOWN_Y = 0.05f;
 
-/// 蜂蜜块跳跃因子
+/// @deprecated 使用 COBWEB_SLOWDOWN_XZ 代替
+constexpr f32 COBWEB_SLOWDOWN = 0.25f;
+
+/// 蜂蜜块滑动最大下落速度 (MC 1.16.5 HoneyBlock: -0.05D)
+constexpr f32 HONEY_BLOCK_MAX_SLIDE_VELOCITY = 0.05f;
+
+/// 蜂蜜块滑动触发阈值 (MC: velocity.y >= -0.08D 时开始滑动)
+constexpr f32 HONEY_BLOCK_SLIDE_THRESHOLD = 0.08f;
+
+/// 蜂蜜块跳跃因子 (MC: jumpFactor = 0.5F)
 constexpr f32 HONEY_BLOCK_JUMP_FACTOR = 0.5f;
 
-/// 灵魂沙/灵魂土速度因子
-constexpr f32 SOUL_BLOCK_SPEED_FACTOR = 0.5f;
+/// @deprecated 使用 HONEY_BLOCK_MAX_SLIDE_VELOCITY 和 HONEY_BLOCK_SLIDE_THRESHOLD
+constexpr f32 HONEY_BLOCK_SLIDE_FACTOR = 0.5f;
 
-/// 史莱姆块弹跳系数
-constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR = 0.9f;
+/// 灵魂沙/灵魂土速度因子 (MC: speedFactor = 0.4F)
+constexpr f32 SOUL_BLOCK_SPEED_FACTOR = 0.4f;
 
-/// 甜浆果丛减速系数
-constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN = 0.35f;
+/// 史莱姆块弹跳系数 - 生物实体 (MC 1.16.5: LivingEntity 使用 1.0)
+constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR_LIVING = 1.0f;
 
-/// 粉雪行走速度因子
-constexpr f32 POWDER_SNOW_SPEED_FACTOR = 0.8f;
+/// 史莱姆块弹跳系数 - 非生物实体 (MC 1.16.5: 其他实体使用 0.8)
+constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING = 0.8f;
+
+/// @deprecated 使用 SLIME_BLOCK_BOUNCE_FACTOR_LIVING 或 SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING
+constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR = 0.8f;
+
+/// 甜浆果丛水平减速系数 (MC 1.16.5 SweetBerryBushBlock: Vector3d(0.8F, 0.75D, 0.8F))
+constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN_XZ = 0.8f;
+
+/// 甜浆果丛垂直减速系数
+constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN_Y = 0.75f;
+
+/// @deprecated 使用 SWEET_BERRY_BUSH_SLOWDOWN_XZ 代替
+constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN = 0.8f;
+
+/// 物品水面弹跳速度乘数 (MC ItemEntity: 0.5F)
+constexpr f32 ITEM_WATER_BOUNCE_FACTOR = 0.5f;
 
 // ============================================================================
 // 爆炸

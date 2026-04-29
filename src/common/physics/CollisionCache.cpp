@@ -15,11 +15,11 @@ const std::vector<AxisAlignedBB>* CollisionCache::getChunkCollisionBoxes(
 
     auto it = m_cache.find(key);
     if (it != m_cache.end()) {
-        ++m_hitCount;
+        m_hitCount.fetch_add(1, std::memory_order_relaxed);
         return &it->second.boxes;
     }
 
-    ++m_missCount;
+    m_missCount.fetch_add(1, std::memory_order_relaxed);
     return nullptr;
 }
 
@@ -33,11 +33,11 @@ const CollisionCache::ChunkCache* CollisionCache::getChunkCache(
 
     auto it = m_cache.find(key);
     if (it != m_cache.end()) {
-        ++m_hitCount;
+        m_hitCount.fetch_add(1, std::memory_order_relaxed);
         return &it->second;
     }
 
-    ++m_missCount;
+    m_missCount.fetch_add(1, std::memory_order_relaxed);
     return nullptr;
 }
 
@@ -139,9 +139,9 @@ bool CollisionCache::empty() const {
 }
 
 void CollisionCache::resetStats() {
-    std::unique_lock<std::shared_mutex> lock(m_mutex);
-    m_hitCount = 0;
-    m_missCount = 0;
+    // 原子操作，不需要锁
+    m_hitCount.store(0, std::memory_order_relaxed);
+    m_missCount.store(0, std::memory_order_relaxed);
 }
 
 // ========== 私有方法实现 ==========

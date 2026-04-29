@@ -165,6 +165,8 @@ add_executable(mc_tests
     common/world/EntityManagerSpawnTest.cpp
     # 纰版挒缂撳瓨娴嬭瘯
     physics/CollisionCacheTests.cpp
+    # 物理引擎测试
+    physics/PhysicsEngineTests.cpp
     # ServerWorld 纰版挒妫€娴嬫祴璇?    server/ServerWorldCollisionTests.cpp
     # 瀹炰綋杩借釜鍣ㄦ祴璇?    server/world/EntityTrackerTest.cpp
     # 鐗╁搧鎷惧彇绠＄悊鍣ㄦ祴璇?    server/world/ItemPickupManagerTest.cpp
