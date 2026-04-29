@@ -19,16 +19,19 @@ bool IceSpikeFeature::place(
     const IceSpikeFeatureConfig& config)
 {
     // 寻找雪块表面
+    // 参考 MC IceSpikeFeature.java 第23行：应检查SNOW_BLOCK
+    // TODO: 需要添加SNOW_BLOCK方块定义，目前暂时使用SNOW代替
     BlockPos basePos = pos;
-    bool foundSnow = false;
+    bool foundSnowBlock = false;
 
-    for (i32 y = pos.y; y >= 1 && !foundSnow; --y) {
+    for (i32 y = pos.y; y >= 1 && !foundSnowBlock; --y) {
         BlockPos checkPos(pos.x, y, pos.z);
         const BlockState* state = world.getBlock(checkPos);
 
-        if (state && state->blockId() == VanillaBlocks::SNOW->blockId()) {
+        // MC第23行检查SNOW_BLOCK，当前项目暂用SNOW
+        if (state && state->is(VanillaBlocks::SNOW)) {
             basePos = BlockPos(pos.x, y + 1, pos.z);
-            foundSnow = true;
+            foundSnowBlock = true;
             break;
         }
 
@@ -37,7 +40,7 @@ bool IceSpikeFeature::place(
         }
     }
 
-    if (!foundSnow) {
+    if (!foundSnowBlock) {
         return false;
     }
 
@@ -73,10 +76,12 @@ bool IceSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) con
     }
 
     // 检查下方是否为雪块
+    // 参考 MC IceSpikeFeature.java 第23行：SNOW_BLOCK
+    // TODO: 需要添加SNOW_BLOCK方块定义，目前暂时使用SNOW代替
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlock(belowPos);
 
-    return belowState && belowState->blockId() == VanillaBlocks::SNOW->blockId();
+    return belowState && belowState->is(VanillaBlocks::SNOW);
 }
 
 void IceSpikeFeature::generateSpike(

@@ -51,26 +51,27 @@ namespace {
 
 [[nodiscard]] SurfaceBuilder* selectSpecialSurfaceBuilder(const Biome& biome, BiomeId biomeId) {
     static MountainSurfaceBuilder mountainBuilder;
-    static DesertSurfaceBuilder desertBuilder;
+    static GravellyMountainSurfaceBuilder gravellyMountainBuilder;
     static SwampSurfaceBuilder swampBuilder;
     static FrozenOceanSurfaceBuilder frozenOceanBuilder;
     static BadlandsSurfaceBuilder badlandsBuilder;
-    static BeachSurfaceBuilder beachBuilder;
+    static ErodedBadlandsSurfaceBuilder erodedBadlandsBuilder;
+    static WoodedBadlandsSurfaceBuilder woodedBadlandsBuilder;
     static GiantTreeTaigaSurfaceBuilder giantTaigaBuilder;
     static ShatteredSavannaSurfaceBuilder shatteredSavannaBuilder;
-    static BambooJungleSurfaceBuilder bambooJungleBuilder;
+    static NetherSurfaceBuilder netherBuilder;
+    static NetherForestsSurfaceBuilder netherForestsBuilder;
+    static SoulSandValleySurfaceBuilder soulSandValleyBuilder;
+    static BasaltDeltasSurfaceBuilder basaltDeltasBuilder;
+    static DefaultSurfaceBuilder defaultBuilder;
 
     switch (biome.category()) {
         case Biome::Category::ExtremeHills:
             return &mountainBuilder;
-        case Biome::Category::Desert:
-            return &desertBuilder;
         case Biome::Category::Swamp:
             return &swampBuilder;
         case Biome::Category::Mesa:
             return &badlandsBuilder;
-        case Biome::Category::Beach:
-            return &beachBuilder;
         default:
             break;
     }
@@ -80,36 +81,31 @@ namespace {
         case Biomes::SnowyMountains:
         case Biomes::MountainEdge:
         case Biomes::WoodedMountains:
-        case Biomes::GravellyMountains:
-        case Biomes::ModifiedGravellyMountains:
             return &mountainBuilder;
 
-        case Biomes::Desert:
-        case Biomes::DesertHills:
-        case Biomes::DesertLakes:
-            return &desertBuilder;
+        case Biomes::GravellyMountains:
+        case Biomes::ModifiedGravellyMountains:
+            return &gravellyMountainBuilder;
 
         case Biomes::Swamp:
         case Biomes::SwampHills:
             return &swampBuilder;
-
-        case Biomes::Beach:
-        case Biomes::StoneShore:
-        case Biomes::SnowyBeach:
-        case Biomes::MushroomFieldShore:
-            return &beachBuilder;
 
         case Biomes::FrozenOcean:
         case Biomes::DeepFrozenOcean:
             return &frozenOceanBuilder;
 
         case Biomes::Badlands:
-        case Biomes::WoodedBadlandsPlateau:
         case Biomes::BadlandsPlateau:
-        case Biomes::ErodedBadlands:
-        case Biomes::ModifiedWoodedBadlandsPlateau:
         case Biomes::ModifiedBadlandsPlateau:
             return &badlandsBuilder;
+
+        case Biomes::ErodedBadlands:
+            return &erodedBadlandsBuilder;
+
+        case Biomes::WoodedBadlandsPlateau:
+        case Biomes::ModifiedWoodedBadlandsPlateau:
+            return &woodedBadlandsBuilder;
 
         case Biomes::GiantTreeTaiga:
         case Biomes::GiantTreeTaigaHills:
@@ -121,9 +117,19 @@ namespace {
         case Biomes::ShatteredSavannaPlateau:
             return &shatteredSavannaBuilder;
 
-        case Biomes::BambooJungle:
-        case Biomes::BambooJungleHills:
-            return &bambooJungleBuilder;
+        // 下界生物群系
+        case Biomes::NetherWastes:
+            return &netherBuilder;
+
+        case Biomes::CrimsonForest:
+        case Biomes::WarpedForest:
+            return &netherForestsBuilder;
+
+        case Biomes::SoulSandValley:
+            return &soulSandValleyBuilder;
+
+        case Biomes::BasaltDeltas:
+            return &basaltDeltasBuilder;
 
         default:
             return nullptr;
@@ -798,10 +804,11 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
             x,
             z,
             startHeight,
-            surfaceNoise,
+            static_cast<f64>(surfaceNoise),  // f32 -> f64
             m_settings.defaultBlock,
             m_settings.defaultFluid,
             m_settings.seaLevel,
+            m_seed,  // worldSeed
             config);
         return;
     }

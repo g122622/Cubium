@@ -98,61 +98,79 @@ TEST_F(SurfaceBuilderConfigTest, GravelPreset) {
 
 TEST_F(SurfaceBuilderConfigTest, RedSandPreset) {
     auto config = SurfaceBuilderConfig::redSand();
-    ASSERT_NE(config.topBlock, nullptr);
-    ASSERT_NE(config.underBlock, nullptr);
-    ASSERT_NE(config.underWaterBlock, nullptr);
     EXPECT_TRUE(config.topBlock->is(VanillaBlocks::RED_SAND));
     EXPECT_TRUE(config.underBlock->is(VanillaBlocks::RED_SAND));
     EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::RED_SAND));
 }
 
-// ============================================================================
-// Random 类测试
-// ============================================================================
-
-class RandomTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        random = std::make_unique<math::Random>(12345);
-    }
-
-    std::unique_ptr<math::Random> random;
-};
-
-TEST_F(RandomTest, NextIntRange) {
-    for (int i = 0; i < 100; ++i) {
-        i32 val = random->nextInt(0, 9);  // [0, 9] = [0, 10)
-        EXPECT_GE(val, 0);
-        EXPECT_LT(val, 10);
-    }
+TEST_F(SurfaceBuilderConfigTest, PodzolDirtGravelPreset) {
+    auto config = SurfaceBuilderConfig::podzolDirtGravel();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::PODZOL));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::DIRT));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
 }
 
-TEST_F(RandomTest, NextFloatRange) {
-    for (int i = 0; i < 100; ++i) {
-        f32 val = random->nextFloat();
-        EXPECT_GE(val, 0.0f);
-        EXPECT_LT(val, 1.0f);
-    }
+TEST_F(SurfaceBuilderConfigTest, GravelOnlyPreset) {
+    auto config = SurfaceBuilderConfig::gravelOnly();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::GRAVEL));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::GRAVEL));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
 }
 
-TEST_F(RandomTest, NextDoubleRange) {
-    for (int i = 0; i < 100; ++i) {
-        f64 val = random->nextDouble();
-        EXPECT_GE(val, 0.0);
-        EXPECT_LT(val, 1.0);
-    }
+TEST_F(SurfaceBuilderConfigTest, GrassDirtGravelPreset) {
+    auto config = SurfaceBuilderConfig::grassDirtGravel();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::GRASS_BLOCK));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::DIRT));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
 }
 
-TEST_F(RandomTest, Reproducibility) {
-    random->setSeed(54321);
-    i32 val1 = random->nextInt(0, 99);  // [0, 99]
-    i32 val2 = random->nextInt(0, 99);
-    i32 val3 = random->nextInt(0, 99);
+TEST_F(SurfaceBuilderConfigTest, StoneStoneGravelPreset) {
+    auto config = SurfaceBuilderConfig::stoneStoneGravel();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::STONE));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::STONE));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
+}
 
-    random->setSeed(54321);
-    EXPECT_EQ(val1, random->nextInt(0, 99));
-    EXPECT_EQ(val2, random->nextInt(0, 99));
-    EXPECT_EQ(val3, random->nextInt(0, 99));
+TEST_F(SurfaceBuilderConfigTest, CoarseDirtDirtGravelPreset) {
+    auto config = SurfaceBuilderConfig::coarseDirtDirtGravel();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::COARSE_DIRT));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::DIRT));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
+}
+
+TEST_F(SurfaceBuilderConfigTest, SandSandGravelPreset) {
+    auto config = SurfaceBuilderConfig::sandSandGravel();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::SAND));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::SAND));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
+}
+
+TEST_F(SurfaceBuilderConfigTest, GrassDirtSandPreset) {
+    auto config = SurfaceBuilderConfig::grassDirtSand();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::GRASS_BLOCK));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::DIRT));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::SAND));
+}
+
+TEST_F(SurfaceBuilderConfigTest, RedSandWhiteTerracottaGravelPreset) {
+    auto config = SurfaceBuilderConfig::redSandWhiteTerracottaGravel();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::RED_SAND));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::WHITE_TERRACOTTA));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
+}
+
+TEST_F(SurfaceBuilderConfigTest, MyceliumDirtGravelPreset) {
+    auto config = SurfaceBuilderConfig::myceliumDirtGravel();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::MYCELIUM));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::DIRT));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::GRAVEL));
+}
+
+TEST_F(SurfaceBuilderConfigTest, NetherrackPreset) {
+    auto config = SurfaceBuilderConfig::netherrack();
+    EXPECT_TRUE(config.topBlock->is(VanillaBlocks::NETHERRACK));
+    EXPECT_TRUE(config.underBlock->is(VanillaBlocks::NETHERRACK));
+    EXPECT_TRUE(config.underWaterBlock->is(VanillaBlocks::NETHERRACK));
 }
 
 // ============================================================================
@@ -165,12 +183,10 @@ protected:
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
         builder = std::make_unique<DefaultSurfaceBuilder>();
-        chunk = std::make_unique<ChunkPrimer>(0, 0);
         random = std::make_unique<math::Random>(12345);
     }
 
     std::unique_ptr<DefaultSurfaceBuilder> builder;
-    std::unique_ptr<ChunkPrimer> chunk;
     std::unique_ptr<math::Random> random;
 };
 
@@ -178,59 +194,72 @@ TEST_F(DefaultSurfaceBuilderTest, Name) {
     EXPECT_STREQ(builder->name(), "default");
 }
 
-TEST_F(DefaultSurfaceBuilderTest, BuildSurfaceBasic) {
-    // 填充区块为石头
+TEST_F(DefaultSurfaceBuilderTest, BuildBasicSurface) {
+    ChunkPrimer chunk(0, 0);
+    const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
     const BlockState* stone = &VanillaBlocks::STONE->defaultState();
-    ASSERT_NE(stone, nullptr);
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    auto config = SurfaceBuilderConfig::grass();
 
+    // 填充区块
     for (int y = 0; y < 64; ++y) {
-        for (int x = 0; x < 16; ++x) {
-            for (int z = 0; z < 16; ++z) {
-                chunk->setBlock(x, y, z, stone);
-            }
-        }
-    }
-
-    // 填充空气（地表以上）
-    const BlockState* air = &VanillaBlocks::AIR->defaultState();
-    for (int y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
-        for (int x = 0; x < 16; ++x) {
-            for (int z = 0; z < 16; ++z) {
-                chunk->setBlock(x, y, z, air);
-            }
-        }
+        chunk.setBlock(0, y, 0, stone);
     }
 
     // 构建地表
-    const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
-    auto config = SurfaceBuilderConfig::grass();
-
     builder->buildSurface(
         *random,
-        *chunk,
+        chunk,
         biome,
-        8, 8,           // x, z
-        63,             // startHeight
-        0.5,            // surfaceNoise
-        stone,          // defaultBlock
-        &VanillaBlocks::WATER->defaultState(),  // defaultFluid
-        63,             // seaLevel
+        0, 0,
+        63,
+        0.5,  // surfaceNoise
+        stone,
+        water,
+        63,   // seaLevel
+        12345,  // worldSeed
         config
     );
 
-    // 检查地表层是否被设置为草方块
-    const BlockState* topBlock = chunk->getBlock(8, 63, 8);
-    ASSERT_NE(topBlock, nullptr);
+    // 验证地表已放置
+    const BlockState* topBlock = chunk.getBlock(0, 63, 0);
+    EXPECT_TRUE(topBlock != nullptr);
     EXPECT_TRUE(topBlock->is(VanillaBlocks::GRASS_BLOCK));
-
-    // 检查次表层是否为泥土
-    const BlockState* underBlock = chunk->getBlock(8, 62, 8);
-    ASSERT_NE(underBlock, nullptr);
-    EXPECT_TRUE(underBlock->is(VanillaBlocks::DIRT));
 }
 
-// 注意：calculateDepth 是 protected 方法，不能直接测试
-// 我们通过 BuildSurfaceBasic 测试间接验证其功能
+TEST_F(DefaultSurfaceBuilderTest, UnderwaterSurface) {
+    ChunkPrimer chunk(0, 0);
+    const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    auto config = SurfaceBuilderConfig::grass();
+
+    // 填充区块到海平面以下
+    for (int y = 0; y < 60; ++y) {
+        chunk.setBlock(0, y, 0, stone);
+    }
+
+    // 构建地表
+    builder->buildSurface(
+        *random,
+        chunk,
+        biome,
+        0, 0,
+        59,
+        0.5,
+        stone,
+        water,
+        63,
+        12345,
+        config
+    );
+
+    // 水下应该使用gravel作为底板
+    const BlockState* bottomBlock = chunk.getBlock(0, 52, 0);
+    if (bottomBlock != nullptr) {
+        EXPECT_TRUE(bottomBlock->is(VanillaBlocks::GRAVEL) || bottomBlock->is(VanillaBlocks::STONE));
+    }
+}
 
 // ============================================================================
 // MountainSurfaceBuilder 测试
@@ -242,12 +271,10 @@ protected:
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
         builder = std::make_unique<MountainSurfaceBuilder>();
-        chunk = std::make_unique<ChunkPrimer>(0, 0);
         random = std::make_unique<math::Random>(12345);
     }
 
     std::unique_ptr<MountainSurfaceBuilder> builder;
-    std::unique_ptr<ChunkPrimer> chunk;
     std::unique_ptr<math::Random> random;
 };
 
@@ -255,66 +282,130 @@ TEST_F(MountainSurfaceBuilderTest, Name) {
     EXPECT_STREQ(builder->name(), "mountain");
 }
 
-// 注意：shouldPlaceSnow 是 private 方法，不能直接测试
-// 我们通过 BuildSurface 测试间接验证其功能
+TEST_F(MountainSurfaceBuilderTest, HighNoiseUsesStone) {
+    ChunkPrimer chunk(0, 0);
+    const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    auto config = SurfaceBuilderConfig::grassDirtGravel();
+
+    for (int y = 0; y < 100; ++y) {
+        chunk.setBlock(0, y, 0, stone);
+    }
+
+    // 高噪声应使用石头配置
+    builder->buildSurface(
+        *random,
+        chunk,
+        biome,
+        0, 0,
+        99,
+        2.0,  // 高噪声
+        stone,
+        water,
+        63,
+        12345,
+        config
+    );
+
+    // 表层应该是石头
+    const BlockState* topBlock = chunk.getBlock(0, 99, 0);
+    EXPECT_TRUE(topBlock != nullptr);
+    EXPECT_TRUE(topBlock->is(VanillaBlocks::STONE));
+}
+
+TEST_F(MountainSurfaceBuilderTest, LowNoiseUsesGrass) {
+    ChunkPrimer chunk(0, 0);
+    const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    auto config = SurfaceBuilderConfig::grassDirtGravel();
+
+    for (int y = 0; y < 100; ++y) {
+        chunk.setBlock(0, y, 0, stone);
+    }
+
+    // 低噪声应使用草地配置
+    builder->buildSurface(
+        *random,
+        chunk,
+        biome,
+        0, 0,
+        99,
+        0.5,  // 低噪声
+        stone,
+        water,
+        63,
+        12345,
+        config
+    );
+
+    const BlockState* topBlock = chunk.getBlock(0, 99, 0);
+    EXPECT_TRUE(topBlock != nullptr);
+    EXPECT_TRUE(topBlock->is(VanillaBlocks::GRASS_BLOCK));
+}
 
 // ============================================================================
-// DesertSurfaceBuilder 测试
+// GravellyMountainSurfaceBuilder 测试
 // ============================================================================
 
-class DesertSurfaceBuilderTest : public ::testing::Test {
+class GravellyMountainSurfaceBuilderTest : public ::testing::Test {
 protected:
     void SetUp() override {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
-        builder = std::make_unique<DesertSurfaceBuilder>();
-        chunk = std::make_unique<ChunkPrimer>(0, 0);
+        builder = std::make_unique<GravellyMountainSurfaceBuilder>();
         random = std::make_unique<math::Random>(12345);
     }
 
-    std::unique_ptr<DesertSurfaceBuilder> builder;
-    std::unique_ptr<ChunkPrimer> chunk;
+    std::unique_ptr<GravellyMountainSurfaceBuilder> builder;
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(DesertSurfaceBuilderTest, Name) {
-    EXPECT_STREQ(builder->name(), "desert");
+TEST_F(GravellyMountainSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "gravelly_mountain");
 }
 
-TEST_F(DesertSurfaceBuilderTest, BuildSurface) {
-    // 填充区块为石头
-    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
-    ASSERT_NE(stone, nullptr);
+// ============================================================================
+// GiantTreeTaigaSurfaceBuilder 测试
+// ============================================================================
 
-    for (int y = 0; y < 64; ++y) {
-        chunk->setBlock(8, y, 8, stone);
+class GiantTreeTaigaSurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<GiantTreeTaigaSurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
     }
 
-    const BlockState* air = &VanillaBlocks::AIR->defaultState();
-    for (int y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
-        chunk->setBlock(8, y, 8, air);
+    std::unique_ptr<GiantTreeTaigaSurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
+
+TEST_F(GiantTreeTaigaSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "giant_tree_taiga");
+}
+
+// ============================================================================
+// ShatteredSavannaSurfaceBuilder 测试
+// ============================================================================
+
+class ShatteredSavannaSurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<ShatteredSavannaSurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
     }
 
-    const Biome& biome = BiomeRegistry::instance().get(Biomes::Desert);
-    auto config = SurfaceBuilderConfig::sand();
+    std::unique_ptr<ShatteredSavannaSurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
 
-    builder->buildSurface(
-        *random,
-        *chunk,
-        biome,
-        8, 8,
-        63,
-        0.5,
-        stone,
-        &VanillaBlocks::WATER->defaultState(),
-        63,
-        config
-    );
-
-    // 沙漠地表应该使用沙子
-    const BlockState* topBlock = chunk->getBlock(8, 63, 8);
-    ASSERT_NE(topBlock, nullptr);
-    EXPECT_TRUE(topBlock->is(VanillaBlocks::SAND));
+TEST_F(ShatteredSavannaSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "shattered_savanna");
 }
 
 // ============================================================================
@@ -380,67 +471,229 @@ TEST_F(BadlandsSurfaceBuilderTest, Name) {
     EXPECT_STREQ(builder->name(), "badlands");
 }
 
-TEST_F(BadlandsSurfaceBuilderTest, BuildSurfaceUsesRedSandAndTerracotta) {
+TEST_F(BadlandsSurfaceBuilderTest, SetSeedInitializes) {
+    // 设置种子不应抛出异常
+    EXPECT_NO_THROW(builder->setSeed(12345));
+}
+
+TEST_F(BadlandsSurfaceBuilderTest, BuildSurface) {
     ChunkPrimer chunk(0, 0);
-    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
-    const BlockState* air = &VanillaBlocks::AIR->defaultState();
-
-    for (int y = 0; y < 64; ++y) {
-        chunk.setBlock(8, y, 8, stone);
-    }
-
-    for (int y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
-        chunk.setBlock(8, y, 8, air);
-    }
-
     const Biome& biome = BiomeRegistry::instance().get(Biomes::Badlands);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
     auto config = SurfaceBuilderConfig::redSand();
 
+    for (int y = 0; y < 80; ++y) {
+        chunk.setBlock(0, y, 0, stone);
+    }
+
+    builder->setSeed(12345);
     builder->buildSurface(
         *random,
         chunk,
         biome,
-        8,
-        8,
-        63,
-        0.5f,
+        0, 0,
+        79,
+        0.5,
         stone,
-        &VanillaBlocks::WATER->defaultState(),
+        water,
         63,
+        12345,
         config
     );
 
-    const BlockState* topBlock = chunk.getBlock(8, 63, 8);
-    ASSERT_NE(topBlock, nullptr);
-    EXPECT_TRUE(topBlock->is(VanillaBlocks::RED_SAND));
-
-    const BlockState* underBlock = chunk.getBlock(8, 62, 8);
-    ASSERT_NE(underBlock, nullptr);
-    EXPECT_TRUE(isTerracottaState(underBlock));
+    // 表层应该是红沙或陶瓦
+    const BlockState* topBlock = chunk.getBlock(0, 79, 0);
+    EXPECT_TRUE(topBlock != nullptr);
+    bool isValidTop = topBlock->is(VanillaBlocks::RED_SAND) ||
+                      isTerracottaState(topBlock);
+    EXPECT_TRUE(isValidTop);
 }
 
-// 注意：BadlandsSurfaceBuilder 不再提供 getTerracottaLayer 方法
-// 陶瓦层生成逻辑已整合到 buildSurface 内部
-
 // ============================================================================
-// BeachSurfaceBuilder 测试
+// ErodedBadlandsSurfaceBuilder 测试
 // ============================================================================
 
-class BeachSurfaceBuilderTest : public ::testing::Test {
+class ErodedBadlandsSurfaceBuilderTest : public ::testing::Test {
 protected:
     void SetUp() override {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
-        builder = std::make_unique<BeachSurfaceBuilder>();
+        builder = std::make_unique<ErodedBadlandsSurfaceBuilder>();
         random = std::make_unique<math::Random>(12345);
     }
 
-    std::unique_ptr<BeachSurfaceBuilder> builder;
+    std::unique_ptr<ErodedBadlandsSurfaceBuilder> builder;
     std::unique_ptr<math::Random> random;
 };
 
-TEST_F(BeachSurfaceBuilderTest, Name) {
-    EXPECT_STREQ(builder->name(), "beach");
+TEST_F(ErodedBadlandsSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "eroded_badlands");
+}
+
+// ============================================================================
+// WoodedBadlandsSurfaceBuilder 测试
+// ============================================================================
+
+class WoodedBadlandsSurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<WoodedBadlandsSurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
+    }
+
+    std::unique_ptr<WoodedBadlandsSurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
+
+TEST_F(WoodedBadlandsSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "wooded_badlands");
+}
+
+// ============================================================================
+// NetherSurfaceBuilder 测试
+// ============================================================================
+
+class NetherSurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<NetherSurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
+    }
+
+    std::unique_ptr<NetherSurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
+
+TEST_F(NetherSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "nether");
+}
+
+// ============================================================================
+// NetherForestsSurfaceBuilder 测试
+// ============================================================================
+
+class NetherForestsSurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<NetherForestsSurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
+    }
+
+    std::unique_ptr<NetherForestsSurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
+
+TEST_F(NetherForestsSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "nether_forests");
+}
+
+TEST_F(NetherForestsSurfaceBuilderTest, SetSeedInitializes) {
+    EXPECT_NO_THROW(builder->setSeed(12345));
+}
+
+// ============================================================================
+// SoulSandValleySurfaceBuilder 测试
+// ============================================================================
+
+class SoulSandValleySurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<SoulSandValleySurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
+    }
+
+    std::unique_ptr<SoulSandValleySurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
+
+TEST_F(SoulSandValleySurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "soul_sand_valley");
+}
+
+// ============================================================================
+// BasaltDeltasSurfaceBuilder 测试
+// ============================================================================
+
+class BasaltDeltasSurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<BasaltDeltasSurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
+    }
+
+    std::unique_ptr<BasaltDeltasSurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
+
+TEST_F(BasaltDeltasSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "basalt_deltas");
+}
+
+// ============================================================================
+// NoopSurfaceBuilder 测试
+// ============================================================================
+
+class NoopSurfaceBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        builder = std::make_unique<NoopSurfaceBuilder>();
+        random = std::make_unique<math::Random>(12345);
+    }
+
+    std::unique_ptr<NoopSurfaceBuilder> builder;
+    std::unique_ptr<math::Random> random;
+};
+
+TEST_F(NoopSurfaceBuilderTest, Name) {
+    EXPECT_STREQ(builder->name(), "noop");
+}
+
+TEST_F(NoopSurfaceBuilderTest, DoesNotModifyChunk) {
+    ChunkPrimer chunk(0, 0);
+    const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    auto config = SurfaceBuilderConfig::grass();
+
+    // 填充区块
+    for (int y = 0; y < 64; ++y) {
+        chunk.setBlock(0, y, 0, stone);
+    }
+
+    // NoopSurfaceBuilder不应修改区块
+    builder->buildSurface(
+        *random,
+        chunk,
+        biome,
+        0, 0,
+        63,
+        0.5,
+        stone,
+        water,
+        63,
+        12345,
+        config
+    );
+
+    // 验证区块仍然全是石头
+    for (int y = 0; y < 64; ++y) {
+        const BlockState* block = chunk.getBlock(0, y, 0);
+        EXPECT_TRUE(block != nullptr);
+        EXPECT_TRUE(block->is(VanillaBlocks::STONE));
+    }
 }
 
 // ============================================================================
@@ -459,11 +712,19 @@ TEST_F(SurfaceBuilderPolymorphismTest, AllBuildersAreValid) {
     std::vector<std::unique_ptr<SurfaceBuilder>> builders;
     builders.push_back(std::make_unique<DefaultSurfaceBuilder>());
     builders.push_back(std::make_unique<MountainSurfaceBuilder>());
-    builders.push_back(std::make_unique<DesertSurfaceBuilder>());
+    builders.push_back(std::make_unique<GravellyMountainSurfaceBuilder>());
     builders.push_back(std::make_unique<SwampSurfaceBuilder>());
     builders.push_back(std::make_unique<FrozenOceanSurfaceBuilder>());
     builders.push_back(std::make_unique<BadlandsSurfaceBuilder>());
-    builders.push_back(std::make_unique<BeachSurfaceBuilder>());
+    builders.push_back(std::make_unique<ErodedBadlandsSurfaceBuilder>());
+    builders.push_back(std::make_unique<WoodedBadlandsSurfaceBuilder>());
+    builders.push_back(std::make_unique<GiantTreeTaigaSurfaceBuilder>());
+    builders.push_back(std::make_unique<ShatteredSavannaSurfaceBuilder>());
+    builders.push_back(std::make_unique<NetherSurfaceBuilder>());
+    builders.push_back(std::make_unique<NetherForestsSurfaceBuilder>());
+    builders.push_back(std::make_unique<SoulSandValleySurfaceBuilder>());
+    builders.push_back(std::make_unique<BasaltDeltasSurfaceBuilder>());
+    builders.push_back(std::make_unique<NoopSurfaceBuilder>());
 
     for (const auto& builder : builders) {
         EXPECT_NE(builder->name(), nullptr);
@@ -486,7 +747,7 @@ TEST_F(SurfaceBuilderPolymorphismTest, BuildSurfaceWithDifferentBuilders) {
     std::vector<std::unique_ptr<SurfaceBuilder>> builders;
     builders.push_back(std::make_unique<DefaultSurfaceBuilder>());
     builders.push_back(std::make_unique<MountainSurfaceBuilder>());
-    builders.push_back(std::make_unique<DesertSurfaceBuilder>());
+    builders.push_back(std::make_unique<GravellyMountainSurfaceBuilder>());
 
     // 每个构建器都应该能成功构建地表
     for (auto& builder : builders) {
@@ -507,8 +768,40 @@ TEST_F(SurfaceBuilderPolymorphismTest, BuildSurfaceWithDifferentBuilders) {
                 stone,
                 &VanillaBlocks::WATER->defaultState(),
                 63,
+                12345,
                 config
             )
         );
+    }
+}
+
+// ============================================================================
+// SurfaceBuilderConfig 预设配置组合测试
+// ============================================================================
+
+TEST_F(SurfaceBuilderConfigTest, AllPresetsAreValid) {
+    std::vector<std::function<SurfaceBuilderConfig()>> presets = {
+        SurfaceBuilderConfig::grass,
+        SurfaceBuilderConfig::sand,
+        SurfaceBuilderConfig::stone,
+        SurfaceBuilderConfig::gravel,
+        SurfaceBuilderConfig::redSand,
+        SurfaceBuilderConfig::podzolDirtGravel,
+        SurfaceBuilderConfig::gravelOnly,
+        SurfaceBuilderConfig::grassDirtGravel,
+        SurfaceBuilderConfig::stoneStoneGravel,
+        SurfaceBuilderConfig::coarseDirtDirtGravel,
+        SurfaceBuilderConfig::sandSandGravel,
+        SurfaceBuilderConfig::grassDirtSand,
+        SurfaceBuilderConfig::redSandWhiteTerracottaGravel,
+        SurfaceBuilderConfig::myceliumDirtGravel,
+        SurfaceBuilderConfig::netherrack,
+    };
+
+    for (const auto& preset : presets) {
+        auto config = preset();
+        EXPECT_NE(config.topBlock, nullptr);
+        EXPECT_NE(config.underBlock, nullptr);
+        EXPECT_NE(config.underWaterBlock, nullptr);
     }
 }

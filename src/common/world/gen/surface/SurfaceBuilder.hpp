@@ -57,6 +57,68 @@ struct SurfaceBuilderConfig {
      * @brief 创建红沙配置
      */
     static SurfaceBuilderConfig redSand();
+
+    // ========== MC原版预设配置 ==========
+
+    /**
+     * @brief 灰化土配置（巨型针叶林）
+     * PODZOL_DIRT_GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig podzolDirtGravel();
+
+    /**
+     * @brief 沙砾配置
+     * GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig gravelOnly();
+
+    /**
+     * @brief 草地沙砾配置
+     * GRASS_DIRT_GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig grassDirtGravel();
+
+    /**
+     * @brief 石头配置（山地）
+     * STONE_STONE_GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig stoneStoneGravel();
+
+    /**
+     * @brief 砂土配置
+     * CORASE_DIRT_DIRT_GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig coarseDirtDirtGravel();
+
+    /**
+     * @brief 沙子沙砾配置
+     * SAND_SAND_GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig sandSandGravel();
+
+    /**
+     * @brief 草地沙子配置
+     * GRASS_DIRT_SAND_CONFIG
+     */
+    static SurfaceBuilderConfig grassDirtSand();
+
+    /**
+     * @brief 红沙白陶瓦沙砾配置（恶地）
+     * RED_SAND_WHITE_TERRACOTTA_GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig redSandWhiteTerracottaGravel();
+
+    /**
+     * @brief 菌丝体配置（蘑菇岛）
+     * MYCELIUM_DIRT_GRAVEL_CONFIG
+     */
+    static SurfaceBuilderConfig myceliumDirtGravel();
+
+    /**
+     * @brief 下界岩配置
+     * NETHERRACK_CONFIG
+     */
+    static SurfaceBuilderConfig netherrack();
 };
 
 /**
@@ -82,6 +144,7 @@ public:
      * @param defaultBlock 默认方块（石头）
      * @param defaultFluid 默认流体（水）
      * @param seaLevel 海平面高度
+     * @param worldSeed 世界种子（用于初始化噪声生成器）
      * @param config 地表配置
      */
     virtual void buildSurface(
@@ -90,16 +153,53 @@ public:
         const Biome& biome,
         i32 x, i32 z,
         i32 startHeight,
-        f32 surfaceNoise,
+        f64 surfaceNoise,
         const BlockState* defaultBlock,
         const BlockState* defaultFluid,
         i32 seaLevel,
+        u64 worldSeed,
         const SurfaceBuilderConfig& config) = 0;
+
+    /**
+     * @brief 设置世界种子
+     *
+     * 某些地表构建器（如Badlands、FrozenOcean）需要基于种子初始化噪声生成器。
+     * 默认实现为空，子类可以覆盖以初始化噪声生成器。
+     *
+     * @param seed 世界种子
+     */
+    virtual void setSeed(u64 seed) {
+        (void)seed;
+    }
 
     /**
      * @brief 获取地表构建器名称
      */
     [[nodiscard]] virtual const char* name() const = 0;
+
+protected:
+    /**
+     * @brief 默认地表构建实现
+     *
+     * 参考 MC DefaultSurfaceBuilder，提供标准的地表构建逻辑。
+     * 其他构建器可以委托调用此方法。
+     */
+    static void buildDefaultSurface(
+        math::Random& random,
+        ChunkPrimer& chunk,
+        const Biome& biome,
+        i32 x, i32 z,
+        i32 startHeight,
+        f64 surfaceNoise,
+        const BlockState* defaultBlock,
+        const BlockState* defaultFluid,
+        i32 seaLevel,
+        const BlockState* top,
+        const BlockState* middle,
+        const BlockState* bottom);
+
+    /// 世界种子（用于需要噪声的子类）
+    u64 m_seed = 0;
 };
 
 } // namespace mc

@@ -208,19 +208,25 @@ void placeCoralDecorations(
         return;
     }
 
+    // 参考 MC CoralFeature.java 第28-37行
     const BlockPos topPos(pos.x, pos.y + 1, pos.z);
-    if (isWaterAt(world, topPos) && random.nextFloat() < 0.25f) {
-        if (VanillaBlocks::SEA_PICKLE != nullptr && random.nextFloat() < 0.15f) {
-            const i32 pickleCount = random.nextInt(4) + 1;
-            const BlockState* pickleState = &VanillaBlocks::SEA_PICKLE->defaultState().with(
-                BlockStateProperties::PICKLES_1_4(),
-                pickleCount);
-            world.setBlock(topPos, pickleState);
-        } else if (const BlockState* fanState = getCoralFanState(color, isDead); fanState != nullptr) {
-            world.setBlock(topPos, fanState);
+    if (isWaterAt(world, topPos)) {
+        // MC第33行：25%概率放珊瑚扇
+        if (random.nextFloat() < 0.25f) {
+            // MC第35行：在珊瑚扇基础上，5%概率放海泡菜而不是珊瑚扇
+            if (VanillaBlocks::SEA_PICKLE != nullptr && random.nextFloat() < 0.05f) {
+                const i32 pickleCount = random.nextInt(4) + 1;
+                const BlockState* pickleState = &VanillaBlocks::SEA_PICKLE->defaultState().with(
+                    BlockStateProperties::PICKLES_1_4(),
+                    pickleCount);
+                world.setBlock(topPos, pickleState);
+            } else if (const BlockState* fanState = getCoralFanState(color, isDead); fanState != nullptr) {
+                world.setBlock(topPos, fanState);
+            }
         }
     }
 
+    // MC第39-46行：水平方向20%概率放墙珊瑚扇
     const auto horizontalDirections = Directions::horizontal();
     for (Direction horizontal : horizontalDirections) {
         if (random.nextFloat() >= 0.20f) {
@@ -232,8 +238,8 @@ void placeCoralDecorations(
             continue;
         }
 
-        const Direction supportDirection = Directions::opposite(horizontal);
-        if (const BlockState* wallFanState = getCoralWallFanState(color, supportDirection, isDead);
+        // 参考 MC CoralFeature.java 第43行：FACING应为direction而非opposite
+        if (const BlockState* wallFanState = getCoralWallFanState(color, horizontal, isDead);
             wallFanState != nullptr) {
             world.setBlock(sidePos, wallFanState);
         }
@@ -389,6 +395,7 @@ bool CoralTreeFeature::place(
     const BlockPos& pos,
     const CoralFeatureConfig& config)
 {
+    // 参考 MC CoralTreeFeature.java 第18-52行
     const i32 trunkHeight = random.nextInt(3) + 1;
 
     BlockPos topPos = pos;
@@ -412,10 +419,12 @@ bool CoralTreeFeature::place(
         return false;
     }
 
+    // MC第31行：nextInt(3) + 2，即2-4个分支
     const auto horizontalDirections = Directions::horizontal();
     const i32 branchCount = random.nextInt(3) + 2;
     for (i32 i = 0; i < branchCount; ++i) {
         const Direction direction = horizontalDirections[static_cast<size_t>(random.nextInt(4))];
+        // MC第38行：分支长度nextInt(5) + 2，即2-6
         generateBranch(
             world,
             random,
@@ -423,7 +432,7 @@ bool CoralTreeFeature::place(
             config.color,
             config.isDead,
             direction,
-            random.nextInt(3) + 2,
+            random.nextInt(5) + 2,  // 修正：应为2-6而非2-4
             config.includeWallFan);
     }
 
@@ -500,16 +509,30 @@ void CoralMushroomFeature::generateCap(
     i32 radius,
     bool includeDecorations)
 {
-    for (i32 dx = -radius; dx <= radius; ++dx) {
-        for (i32 dz = -radius; dz <= radius; ++dz) {
-            for (i32 dy = 0; dy <= 1; ++dy) {
-                const bool isEdge = std::abs(dx) == radius || std::abs(dz) == radius || dy == 1;
-                if (!isEdge || random.nextFloat() < 0.30f) {
-                    continue;
-                }
+    // 参考 MC CoralMushroomFeature.java 第27行
+    // MC使用复杂的边界检测逻辑来生成蘑菇形状
+    const i32 i = radius + 1;  // X范围
+    const i32 j = radius;      // Y范围
+    const i32 k = radius + 1;  // Z范围
+    const i32 l = 0;           // 向下偏移
 
-                const BlockPos capPos(pos.x + dx, pos.y + dy, pos.z + dz);
-                placeCoralWithDecorations(world, random, capPos, color, isDead, includeDecorations);
+    for (i32 i1 = 0; i1 <= i; ++i1) {
+        for (i32 j1 = 0; j1 <= j; ++j1) {
+            for (i32 k1 = 0; k1 <= k; ++k1) {
+                BlockPos capPos(pos.x + i1, pos.y + j1 - l, pos.z + k1);
+
+                // MC第27行的复杂条件
+                const bool cond1 = (i1 != 0 && i1 != i) || (j1 != 0 && j1 != j);
+                const bool cond2 = (k1 != 0 && k1 != k) || (j1 != 0 && j1 != j);
+                const bool cond3 = (i1 != 0 && i1 != i) || (k1 != 0 && k1 != k);
+                const bool cond4 = (i1 == 0 || i1 == i || j1 == 0 || j1 == j || k1 == 0 || k1 == k);
+
+                if (cond1 && cond2 && cond3 && cond4) {
+                    if (random.nextFloat() < 0.1f) {
+                        continue;  // 10%概率跳过
+                    }
+                    placeCoralWithDecorations(world, random, capPos, color, isDead, includeDecorations);
+                }
             }
         }
     }
