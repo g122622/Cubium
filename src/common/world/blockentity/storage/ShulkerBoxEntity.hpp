@@ -2,6 +2,7 @@
 
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
+#include "entity/inventory/ISidedInventory.hpp"
 #include <memory>
 
 namespace mc {
@@ -19,10 +20,11 @@ namespace blockentity {
  * - 被破坏时保留物品（不掉落）
  * - 可以被锁定（需要正确名称的物品打开）
  * - 打开时有动画效果
+ * - 实现 ISidedInventory（漏斗可以从任意方向访问所有槽位）
  *
  * 参考: net.minecraft.tileentity.ShulkerBoxTileEntity
  */
-class ShulkerBoxEntity : public LockableBlockEntity {
+class ShulkerBoxEntity : public LockableBlockEntity, public ISidedInventory {
 public:
     /// 潜影盒容量（27格）
     static constexpr i32 SHULKER_BOX_SIZE = 27;
@@ -56,6 +58,55 @@ public:
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
     [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
     [[nodiscard]] i32 getContainerSize() const override { return SHULKER_BOX_SIZE; }
+
+    // ========== IInventory 委托方法 ==========
+
+    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
+    [[nodiscard]] i32 getMaxStackSize() const override { return m_inventory.getMaxStackSize(); }
+    [[nodiscard]] ItemStack getItem(i32 slot) const override { return m_inventory.getItem(slot); }
+    void setItem(i32 slot, const ItemStack& stack) override { m_inventory.setItem(slot, stack); }
+    ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
+    ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
+    void clear() override { m_inventory.clear(); }
+    void setChanged() override { LockableBlockEntity::setChanged(); }
+    [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override { return m_inventory.canPlaceItem(slot, stack); }
+    void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
+
+    // ========== ISidedInventory 接口实现 ==========
+
+    /**
+     * @brief 获取指定面可以访问的槽位
+     *
+     * 潜影盒可以从任意方向访问所有槽位。
+     *
+     * @param side 访问方向
+     * @return 所有槽位索引数组（0-26）
+     */
+    [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override;
+
+    /**
+     * @brief 检查是否可以从指定方向向指定槽位插入物品
+     *
+     * 注意：潜影盒不能插入另一个潜影盒（防止递归）。
+     *
+     * @param slot 槽位索引
+     * @param stack 要插入的物品
+     * @param direction 插入方向
+     * @return 如果可以插入返回 true
+     */
+    [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override;
+
+    /**
+     * @brief 检查是否可以从指定方向从指定槽位提取物品
+     *
+     * 潜影盒可以从任意方向提取任意物品。
+     *
+     * @param slot 槽位索引
+     * @param stack 要提取的物品
+     * @param direction 提取方向
+     * @return 总是返回 true
+     */
+    [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
 
     // ========== 潜影盒特有接口 ==========
 

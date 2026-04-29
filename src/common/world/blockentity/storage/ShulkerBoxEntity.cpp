@@ -1,6 +1,7 @@
 ﻿#include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "item/Items.hpp"
 #include "util/property/Properties.hpp"
 #include "util/Direction.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -115,7 +116,7 @@ void ShulkerBoxEntity::openContainer(Player* player) {
     if (m_openCount == 1) {
         m_animationStatus = AnimationStatus::Opening;
     }
-    setChanged();
+    LockableBlockEntity::setChanged();
 }
 
 void ShulkerBoxEntity::closeContainer(Player* player) {
@@ -125,7 +126,7 @@ void ShulkerBoxEntity::closeContainer(Player* player) {
     if (m_openCount == 0) {
         m_animationStatus = AnimationStatus::Closing;
     }
-    setChanged();
+    LockableBlockEntity::setChanged();
 }
 
 bool ShulkerBoxEntity::canOpen(IWorld& world) const {
@@ -298,6 +299,48 @@ std::unique_ptr<BlockEntity> ShulkerBoxEntity::clone() const {
         }
     }
     return clone;
+}
+
+// ========== ISidedInventory 接口实现 ==========
+
+std::vector<i32> ShulkerBoxEntity::getSlotsForFace(Direction side) const {
+    MC_UNUSED(side);
+    // MC 1.16.5: 潜影盒可以从任意方向访问所有槽位
+    // SLOTS = IntStream.range(0, 27).toArray()
+    std::vector<i32> slots;
+    slots.reserve(SHULKER_BOX_SIZE);
+    for (i32 i = 0; i < SHULKER_BOX_SIZE; ++i) {
+        slots.push_back(i);
+    }
+    return slots;
+}
+
+bool ShulkerBoxEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
+    MC_UNUSED(slot);
+    MC_UNUSED(direction);
+
+    // MC 1.16.5: 潜影盒不能插入另一个潜影盒（防止递归）
+    // return !(Block.getBlockFromItem(itemStackIn.getItem()) instanceof ShulkerBoxBlock);
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+
+    // 检查物品是否代表一个方块
+    // 如果物品的 blockId > 0，说明它是一个方块物品
+    // 暂时简化检查：如果物品有对应的方块，我们需要检查是否为潜影盒
+    // 由于 ShulkerBoxBlock 尚未实现，暂时总是返回 true
+    // TODO: 当 ShulkerBoxBlock 实现后，添加完整的检查逻辑
+    MC_UNUSED(item);
+    return true;
+}
+
+bool ShulkerBoxEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const {
+    MC_UNUSED(slot);
+    MC_UNUSED(stack);
+    MC_UNUSED(direction);
+    // MC 1.16.5: 潜影盒可以从任意方向提取任意物品
+    return true;
 }
 
 } // namespace blockentity

@@ -2,6 +2,7 @@
 
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
+#include "entity/inventory/ISidedInventory.hpp"
 #include <memory>
 
 namespace mc {
@@ -15,13 +16,18 @@ namespace blockentity {
  * @brief 酿造台方块实体
  *
  * 酿造台用于酿造药水，拥有：
- * - 3个药水瓶槽位
- * - 1个材料槽位
- * - 1个燃料槽位（烈焰粉）
+ * - 3个药水瓶槽位（槽位 0-2）
+ * - 1个材料槽位（槽位 3）
+ * - 1个燃料槽位（槽位 4，烈焰粉）
+ *
+ * 实现 ISidedInventory 接口：
+ * - 上方：材料槽（槽位 3）
+ * - 下方：药水瓶槽 + 材料槽（槽位 0, 1, 2, 3）
+ * - 侧面：药水瓶槽 + 燃料槽（槽位 0, 1, 2, 4）
  *
  * 参考: net.minecraft.tileentity.BrewingStandTileEntity
  */
-class BrewingStandEntity : public ContainerBlockEntity {
+class BrewingStandEntity : public ContainerBlockEntity, public ISidedInventory {
 public:
     /// 药水瓶槽位数量
     static constexpr i32 BOTTLE_SLOTS = 3;
@@ -52,6 +58,56 @@ public:
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
     [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
     [[nodiscard]] i32 getContainerSize() const override { return TOTAL_SLOTS; }
+
+    // ========== IInventory 委托方法 ==========
+
+    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
+    [[nodiscard]] i32 getMaxStackSize() const override { return m_inventory.getMaxStackSize(); }
+    [[nodiscard]] ItemStack getItem(i32 slot) const override { return m_inventory.getItem(slot); }
+    void setItem(i32 slot, const ItemStack& stack) override { m_inventory.setItem(slot, stack); }
+    ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
+    ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
+    void clear() override { m_inventory.clear(); }
+    void setChanged() override { ContainerBlockEntity::setChanged(); }
+    [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override;
+    void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
+
+    // ========== ISidedInventory 接口实现 ==========
+
+    /**
+     * @brief 获取指定面可以访问的槽位
+     *
+     * 酿造台槽位访问规则：
+     * - 上方 (Direction::Up)：材料槽（槽位 3）
+     * - 下方 (Direction::Down)：药水瓶槽 + 材料槽（槽位 0, 1, 2, 3）
+     * - 侧面：药水瓶槽 + 燃料槽（槽位 0, 1, 2, 4）
+     *
+     * @param side 访问方向
+     * @return 可访问的槽位索引数组
+     */
+    [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override;
+
+    /**
+     * @brief 检查是否可以从指定方向向指定槽位插入物品
+     *
+     * @param slot 槽位索引
+     * @param stack 要插入的物品
+     * @param direction 插入方向
+     * @return 如果可以插入返回 true
+     */
+    [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override;
+
+    /**
+     * @brief 检查是否可以从指定方向从指定槽位提取物品
+     *
+     * 特殊规则：材料槽（槽位 3）只能提取玻璃瓶。
+     *
+     * @param slot 槽位索引
+     * @param stack 要提取的物品
+     * @param direction 提取方向
+     * @return 如果可以提取返回 true
+     */
+    [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
 
     // ========== 酿造逻辑 ==========
 

@@ -59,6 +59,13 @@ public:
 - 向下方容器输出物品
 - 收集上方物品实体
 - 红石信号禁用
+- **ISidedInventory 接口支持**（正确处理熔炉等方向性容器）
+
+**MC 1.16.5 对齐**：
+- 使用 ISidedInventory.getSlotsForFace() 获取可访问槽位
+- 使用 ISidedInventory.canInsertItem() 检查是否可插入
+- 使用 ISidedInventory.canExtractItem() 检查是否可提取
+- 非方向性容器回退到全槽位访问
 
 **关键常量**：
 ```cpp

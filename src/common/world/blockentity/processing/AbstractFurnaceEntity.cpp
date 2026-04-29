@@ -83,7 +83,7 @@ namespace {
 
 AbstractFurnaceEntity::AbstractFurnaceEntity(BlockEntityType type, const BlockPos& pos)
     : LockableBlockEntity(type, pos)
-    , m_inventory([this]() { this->setChanged(); }) {
+    , m_inventory([this]() { this->BlockEntity::setChanged(); }) {
 }
 
 void AbstractFurnaceEntity::tick(IWorld& world) {
@@ -115,7 +115,7 @@ void AbstractFurnaceEntity::tick(IWorld& world) {
                 m_cookTime = 0;
                 m_cookTimeTotal = getCookTimeFromRecipe(cachedRecipe);
                 smeltWithRecipe(cachedRecipe);
-                setChanged();
+                BlockEntity::setChanged();
             }
         } else if (!canSmeltNow) {
             m_cookTime = std::max(0, m_cookTime - 2);
@@ -337,6 +337,94 @@ const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(IWorld& world) 
     }
 
     return crafting::RecipeManager::instance().getSmeltingRecipe(input, getRecipeType());
+}
+
+// ========== ISidedInventory 接口 ==========
+
+std::vector<i32> AbstractFurnaceEntity::getSlotsForFace(Direction side) const {
+    // 参考 MC 1.16.5 AbstractFurnaceTileEntity:
+    // SLOTS_UP = new int[]{0}          - 上方只能访问输入槽
+    // SLOTS_DOWN = new int[]{2, 1}     - 下方可以访问输出槽和燃料槽
+    // SLOTS_HORIZONTAL = new int[]{1}  - 侧面只能访问燃料槽
+
+    switch (side) {
+        case Direction::Up:
+            // 上方：输入槽
+            return {SLOT_INPUT};
+        case Direction::Down:
+            // 下方：输出槽、燃料槽
+            return {SLOT_OUTPUT, SLOT_FUEL};
+        default:
+            // 侧面（北、南、东、西）：燃料槽
+            return {SLOT_FUEL};
+    }
+}
+
+bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
+    // 首先检查槽位是否接受该物品
+    if (!canPlaceItem(slot, stack)) {
+        return false;
+    }
+
+    // 检查方向是否允许访问该槽位
+    const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
+    bool slotAccessible = false;
+    for (i32 accessibleSlot : accessibleSlots) {
+        if (accessibleSlot == slot) {
+            slotAccessible = true;
+            break;
+        }
+    }
+    if (!slotAccessible) {
+        return false;
+    }
+
+    // 根据槽位类型检查物品是否有效
+    switch (slot) {
+        case SLOT_INPUT:
+            // 输入槽：接受任何物品（熔炼配方检查在 tick 中进行）
+            return true;
+        case SLOT_FUEL:
+            // 燃料槽：只接受燃料
+            return isFuel(stack);
+        case SLOT_OUTPUT:
+            // 输出槽：不允许插入（只能提取）
+            return false;
+        default:
+            return false;
+    }
+}
+
+bool AbstractFurnaceEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const {
+    MC_UNUSED(stack);
+
+    // 检查方向是否允许访问该槽位
+    const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
+    bool slotAccessible = false;
+    for (i32 accessibleSlot : accessibleSlots) {
+        if (accessibleSlot == slot) {
+            slotAccessible = true;
+            break;
+        }
+    }
+    if (!slotAccessible) {
+        return false;
+    }
+
+    // 根据槽位类型检查是否可以提取
+    switch (slot) {
+        case SLOT_INPUT:
+            // 输入槽：可以从任何方向提取
+            return true;
+        case SLOT_FUEL:
+            // 燃料槽：只能从下方提取
+            return direction == Direction::Down;
+        case SLOT_OUTPUT:
+            // 输出槽：只能从下方提取
+            return direction == Direction::Down;
+        default:
+            return false;
+    }
 }
 
 } // namespace blockentity

@@ -25,6 +25,12 @@ processing/
 - 熔炼进度（熔炼时间、配方匹配）
 - 红石比较器信号
 - 锁定功能（继承自LockableBlockEntity）
+- **ISidedInventory 接口支持**
+
+**槽位访问规则（ISidedInventory）**：
+- 上方 (Direction::Up)：输入槽（槽位 0）
+- 下方 (Direction::Down)：输出槽（槽位 2）、燃料槽（槽位 1）
+- 侧面：燃料槽（槽位 1）
 
 **熔炼状态机** (参考 MC 1.16.5)：
 ```

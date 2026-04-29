@@ -2,6 +2,7 @@
 
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/processing/FurnaceInventory.hpp"
+#include "entity/inventory/ISidedInventory.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
 #include <memory>
 
@@ -20,6 +21,7 @@ namespace blockentity {
  * - 熔炼进度（熔炼时间、配方匹配）
  * - 红石比较器信号
  * - 锁定功能
+ * - ISidedInventory 接口（漏斗交互）
  *
  * 参考: net.minecraft.tileentity.AbstractFurnaceTileEntity
  *
@@ -27,8 +29,13 @@ namespace blockentity {
  * - FurnaceEntity（普通熔炉，200tick熔炼）
  * - BlastFurnaceEntity（高炉，100tick熔炼，仅矿石/金属）
  * - SmokerEntity（烟熏炉，100tick熔炼，仅食物）
+ *
+ * 槽位访问规则：
+ * - 上方：输入槽（槽位 0）
+ * - 下方：输出槽（槽位 2）、燃料槽（槽位 1）
+ * - 侧面：燃料槽（槽位 1）
  */
-class AbstractFurnaceEntity : public LockableBlockEntity {
+class AbstractFurnaceEntity : public LockableBlockEntity, public ISidedInventory {
 public:
     // ========== 常量 ==========
 
@@ -58,11 +65,57 @@ public:
     void tick(IWorld& world) override;
     [[nodiscard]] bool needsTick() const override { return true; }
 
-    // ========== IInventory 接口 ==========
+    // ========== IInventory 接口（委托给 FurnaceInventory） ==========
+
+    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
+    [[nodiscard]] i32 getMaxStackSize() const override { return m_inventory.getMaxStackSize(); }
+    [[nodiscard]] ItemStack getItem(i32 slot) const override { return m_inventory.getItem(slot); }
+    void setItem(i32 slot, const ItemStack& stack) override { m_inventory.setItem(slot, stack); }
+    ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
+    ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
+    void clear() override { m_inventory.clear(); }
+    void setChanged() override { LockableBlockEntity::setChanged(); }
+    [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override { return m_inventory.canPlaceItem(slot, stack); }
+    void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
 
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
     [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
     [[nodiscard]] i32 getContainerSize() const override { return 3; }
+
+    // ========== ISidedInventory 接口 ==========
+
+    /**
+     * @brief 获取指定面可以访问的槽位
+     *
+     * 熔炉槽位访问规则：
+     * - 上方 (Direction::Up)：输入槽（槽位 0）
+     * - 下方 (Direction::Down)：输出槽（槽位 2）、燃料槽（槽位 1）
+     * - 侧面：燃料槽（槽位 1）
+     *
+     * @param side 访问方向
+     * @return 可访问的槽位索引数组
+     */
+    [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override;
+
+    /**
+     * @brief 检查是否可以从指定方向向指定槽位插入物品
+     *
+     * @param slot 槽位索引
+     * @param stack 要插入的物品
+     * @param direction 插入方向
+     * @return 如果可以插入返回 true
+     */
+    [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override;
+
+    /**
+     * @brief 检查是否可以从指定方向从指定槽位提取物品
+     *
+     * @param slot 槽位索引
+     * @param stack 要提取的物品
+     * @param direction 提取方向
+     * @return 如果可以提取返回 true
+     */
+    [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
 
     // ========== 序列化 ==========
 

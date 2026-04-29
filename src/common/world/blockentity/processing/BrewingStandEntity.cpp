@@ -219,5 +219,68 @@ std::unique_ptr<BlockEntity> BrewingStandEntity::clone() const {
     return clone;
 }
 
+// ========== ISidedInventory 接口实现 ==========
+
+std::vector<i32> BrewingStandEntity::getSlotsForFace(Direction side) const {
+    // 参考 MC 1.16.5 BrewingStandTileEntity:
+    // SLOTS_FOR_UP = new int[]{3}           - 上方只能访问材料槽
+    // SLOTS_FOR_DOWN = new int[]{0, 1, 2, 3} - 下方可以访问药水瓶槽和材料槽
+    // OUTPUT_SLOTS = new int[]{0, 1, 2, 4}   - 侧面可以访问药水瓶槽和燃料槽
+
+    switch (side) {
+        case Direction::Up:
+            // 上方：材料槽
+            return {INGREDIENT_SLOT};
+        case Direction::Down:
+            // 下方：药水瓶槽 + 材料槽
+            return {0, 1, 2, INGREDIENT_SLOT};
+        default:
+            // 侧面：药水瓶槽 + 燃料槽
+            return {0, 1, 2, FUEL_SLOT};
+    }
+}
+
+bool BrewingStandEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
+    MC_UNUSED(direction);
+
+    // MC 1.16.5: return this.isItemValidForSlot(index, itemStackIn);
+    return canPlaceItem(slot, stack);
+}
+
+bool BrewingStandEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const {
+    MC_UNUSED(direction);
+
+    // MC 1.16.5: 材料槽（槽位 3）只能提取玻璃瓶
+    if (slot == INGREDIENT_SLOT) {
+        return stack.getItem() == Items::GLASS_BOTTLE;
+    }
+
+    return true;
+}
+
+bool BrewingStandEntity::canPlaceItem(i32 slot, const ItemStack& stack) const {
+    if (stack.isEmpty()) {
+        return false;
+    }
+
+    // MC 1.16.5 BrewingStandTileEntity.isItemValidForSlot
+    switch (slot) {
+        case 0:
+        case 1:
+        case 2:
+            // 药水瓶槽：接受药水或水瓶
+            return potion::PotionBrewing::isPotionItem(stack) ||
+                   stack.getItem() == Items::GLASS_BOTTLE;
+        case INGREDIENT_SLOT:
+            // 材料槽：接受酿造材料
+            return potion::PotionBrewing::isReagent(stack);
+        case FUEL_SLOT:
+            // 燃料槽：只接受烈焰粉
+            return stack.getItem() == Items::BLAZE_POWDER;
+        default:
+            return false;
+    }
+}
+
 } // namespace blockentity
 } // namespace mc

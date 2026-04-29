@@ -2,6 +2,7 @@
 #include "world/blockentity/transport/IHopper.hpp"
 #include "world/IWorld.hpp"
 #include "entity/entities/item/ItemEntity.hpp"
+#include "entity/inventory/ISidedInventory.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "util/assert/AssertAll.hpp"
@@ -181,7 +182,23 @@ bool HopperEntity::pullItems(IHopper& hopper) {
             return false;
         }
 
-        // 遍历源容器的槽位，尝试拉取物品
+        // 检查是否为 ISidedInventory
+        ISidedInventory* sidedInventory = dynamic_cast<ISidedInventory*>(sourceInventory);
+        if (sidedInventory != nullptr) {
+            // 使用 ISidedInventory 的槽位访问
+            const std::vector<i32> slots = sidedInventory->getSlotsForFace(direction);
+            for (i32 slot : slots) {
+                const ItemStack& stack = sourceInventory->getItem(slot);
+                if (!stack.isEmpty()) {
+                    if (pullItemFromSlot(hopper, sourceInventory, slot, direction)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 非 ISidedInventory：遍历所有槽位
         for (i32 slot = 0; slot < sourceInventory->getContainerSize(); ++slot) {
             const ItemStack& stack = sourceInventory->getItem(slot);
             if (!stack.isEmpty()) {
@@ -312,9 +329,22 @@ ItemStack HopperEntity::putStackInInventoryAllSlots(
 
     ItemStack remaining = stack;
 
-    // 遍历目标容器的所有槽位，尝试插入
-    for (i32 slot = 0; slot < destination->getContainerSize() && !remaining.isEmpty(); ++slot) {
-        remaining = insertStack(source, destination, remaining, slot, direction);
+    // 检查是否为 ISidedInventory
+    ISidedInventory* sidedInventory = dynamic_cast<ISidedInventory*>(destination);
+    if (sidedInventory != nullptr && direction != Direction::None) {
+        // 使用 ISidedInventory 的槽位访问
+        const std::vector<i32> slots = sidedInventory->getSlotsForFace(direction);
+        for (i32 slot : slots) {
+            if (remaining.isEmpty()) {
+                break;
+            }
+            remaining = insertStack(source, destination, remaining, slot, direction);
+        }
+    } else {
+        // 非 ISidedInventory：遍历所有槽位
+        for (i32 slot = 0; slot < destination->getContainerSize() && !remaining.isEmpty(); ++slot) {
+            remaining = insertStack(source, destination, remaining, slot, direction);
+        }
     }
 
     return remaining;
@@ -418,8 +448,21 @@ bool HopperEntity::isInventoryFull(const IInventory* inventory, Direction side) 
         return true;
     }
 
-    MC_UNUSED(side);
+    // 检查是否为 ISidedInventory
+    const ISidedInventory* sidedInventory = dynamic_cast<const ISidedInventory*>(inventory);
+    if (sidedInventory != nullptr) {
+        // 使用 ISidedInventory 的槽位访问
+        const std::vector<i32> slots = sidedInventory->getSlotsForFace(side);
+        for (i32 slot : slots) {
+            const ItemStack& stack = inventory->getItem(slot);
+            if (stack.isEmpty() || stack.getCount() < stack.getMaxStackSize()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
+    // 非 ISidedInventory：检查所有槽位
     for (i32 slot = 0; slot < inventory->getContainerSize(); ++slot) {
         const ItemStack& stack = inventory->getItem(slot);
         if (stack.isEmpty() || stack.getCount() < stack.getMaxStackSize()) {
@@ -435,8 +478,20 @@ bool HopperEntity::isInventoryEmpty(const IInventory* inventory, Direction side)
         return true;
     }
 
-    MC_UNUSED(side);
+    // 检查是否为 ISidedInventory
+    const ISidedInventory* sidedInventory = dynamic_cast<const ISidedInventory*>(inventory);
+    if (sidedInventory != nullptr) {
+        // 使用 ISidedInventory 的槽位访问
+        const std::vector<i32> slots = sidedInventory->getSlotsForFace(side);
+        for (i32 slot : slots) {
+            if (!inventory->getItem(slot).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
+    // 非 ISidedInventory：检查所有槽位
     for (i32 slot = 0; slot < inventory->getContainerSize(); ++slot) {
         if (!inventory->getItem(slot).isEmpty()) {
             return false;
@@ -570,7 +625,11 @@ bool HopperEntity::canInsertItemInSlot(
         return false;
     }
 
-    MC_UNUSED(direction);
+    // 检查是否为 ISidedInventory
+    const ISidedInventory* sidedInventory = dynamic_cast<const ISidedInventory*>(inventory);
+    if (sidedInventory != nullptr && direction != Direction::None) {
+        return sidedInventory->canInsertItem(slotIndex, stack, direction);
+    }
 
     return true;
 }
@@ -587,7 +646,12 @@ bool HopperEntity::canExtractItemFromSlot(
 
     MC_UNUSED(stack);
     MC_UNUSED(slotIndex);
-    MC_UNUSED(direction);
+
+    // 检查是否为 ISidedInventory
+    const ISidedInventory* sidedInventory = dynamic_cast<const ISidedInventory*>(inventory);
+    if (sidedInventory != nullptr) {
+        return sidedInventory->canExtractItem(slotIndex, stack, direction);
+    }
 
     return true;
 }
