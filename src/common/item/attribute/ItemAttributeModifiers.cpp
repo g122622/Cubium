@@ -1,8 +1,19 @@
 #include "ItemAttributeModifiers.hpp"
+#include "../../entity/attribute/Attributes.hpp"
 #include <algorithm>
+#include <sstream>
 
 namespace mc {
 namespace item {
+
+namespace {
+    // 将 u64 转换为 String UUID
+    String uuidToString(u64 uuid) {
+        std::stringstream ss;
+        ss << std::hex << uuid;
+        return ss.str();
+    }
+}
 
 void ItemAttributeModifiers::add(const entity::attribute::Attribute* attribute,
                                    const entity::attribute::AttributeModifier& modifier,
@@ -34,40 +45,81 @@ u64 ItemAttributeModifiers::generateModifierUUID(u32 itemId, const String& attri
 // ============================================================================
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackDamage(f64 amount, i32 equipmentSlot) {
-    // 使用预定义的属性名称创建修饰符
-    // TODO: 需要属性注册表来获取属性指针
-    (void)amount;
-    (void)equipmentSlot;
+    // 创建攻击伤害修饰符（加法操作）
+    auto attr = entity::attribute::Attributes::attackDamage();
+    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::ATTACK_DAMAGE);
+    auto modifier = entity::attribute::AttributeModifier(
+        uuidToString(uuid),
+        "Attack damage modifier",
+        amount,
+        entity::attribute::Operation::Addition
+    );
+    m_modifiers.add(attr.get(), modifier, equipmentSlot);
     return *this;
 }
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackSpeed(f64 amount, i32 equipmentSlot) {
-    (void)amount;
-    (void)equipmentSlot;
+    auto attr = entity::attribute::Attributes::attackSpeed();
+    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::ATTACK_SPEED);
+    auto modifier = entity::attribute::AttributeModifier(
+        uuidToString(uuid),
+        "Attack speed modifier",
+        amount,
+        entity::attribute::Operation::Addition
+    );
+    m_modifiers.add(attr.get(), modifier, equipmentSlot);
     return *this;
 }
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::armor(f64 amount, i32 equipmentSlot) {
-    (void)amount;
-    (void)equipmentSlot;
+    auto attr = entity::attribute::Attributes::armor();
+    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::ARMOR);
+    auto modifier = entity::attribute::AttributeModifier(
+        uuidToString(uuid),
+        "Armor modifier",
+        amount,
+        entity::attribute::Operation::Addition
+    );
+    m_modifiers.add(attr.get(), modifier, equipmentSlot);
     return *this;
 }
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::armorToughness(f64 amount, i32 equipmentSlot) {
-    (void)amount;
-    (void)equipmentSlot;
+    auto attr = entity::attribute::Attributes::armorToughness();
+    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::ARMOR_TOUGHNESS);
+    auto modifier = entity::attribute::AttributeModifier(
+        uuidToString(uuid),
+        "Armor toughness modifier",
+        amount,
+        entity::attribute::Operation::Addition
+    );
+    m_modifiers.add(attr.get(), modifier, equipmentSlot);
     return *this;
 }
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::knockbackResistance(f64 amount, i32 equipmentSlot) {
-    (void)amount;
-    (void)equipmentSlot;
+    auto attr = entity::attribute::Attributes::knockbackResistance();
+    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::KNOCKBACK_RESISTANCE);
+    auto modifier = entity::attribute::AttributeModifier(
+        uuidToString(uuid),
+        "Knockback resistance modifier",
+        amount,
+        entity::attribute::Operation::Addition
+    );
+    m_modifiers.add(attr.get(), modifier, equipmentSlot);
     return *this;
 }
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::movementSpeed(f64 amount, i32 equipmentSlot) {
-    (void)amount;
-    (void)equipmentSlot;
+    auto attr = entity::attribute::Attributes::movementSpeed();
+    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::MOVEMENT_SPEED);
+    auto modifier = entity::attribute::AttributeModifier(
+        uuidToString(uuid),
+        "Movement speed modifier",
+        amount,
+        entity::attribute::Operation::MultiplyTotal
+    );
+    m_modifiers.add(attr.get(), modifier, equipmentSlot);
     return *this;
 }
 
