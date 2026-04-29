@@ -50,6 +50,8 @@ add_executable(mc_tests
     common/entity/experience/ExperienceTest.cpp
     common/entity/experience/ExperienceManagerTest.cpp
     common/entity/experience/ExperienceOrbEntityTest.cpp
+    # 难度系统测试
+    common/entity/combat/DifficultyHelperTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp

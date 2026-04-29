@@ -27,6 +27,8 @@ src/common/network/packet/
 ├── GameStateChangePacket.cpp      # 状态变化包实现
 ├── PlayerAbilitiesPacket.hpp      # 玩家能力同步包
 ├── PlayerAbilitiesPacket.cpp      # 玩家能力包实现
+├── ServerDifficultyPacket.hpp     # 难度同步包
+├── ServerDifficultyPacket.cpp     # 难度同步包实现
 ├── DimensionPackets.hpp           # 维度切换数据包
 ├── DimensionPackets.cpp           # 维度数据包实现
 ├── SpawnPositionPacket.hpp        # 世界出生点数据包
@@ -402,6 +404,42 @@ if (result.success()) {
 
 - 工厂方法: `endRain()`, `beginRain()`, `rainStrength()`, `thunderStrength()`, `gameModeChange()`
 
+#### ServerDifficultyPacket.hpp / ServerDifficultyPacket.cpp
+
+**职责**: 难度同步包 (S→C)
+
+**主要内容**:
+- 服务端向客户端同步世界难度
+- 在以下情况发送:
+  - 玩家登录时（初始难度）
+  - 难度变更时（/difficulty 命令）
+  - 难度锁定状态变更时
+
+**协议格式** (MC 1.16.5 SServerDifficultyPacket):
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| difficulty | u8 | 难度等级 (0=Peaceful, 1=Easy, 2=Normal, 3=Hard) |
+| locked | bool | 难度是否锁定（锁定后无法更改） |
+
+**使用示例**:
+```cpp
+// 服务端发送难度变更
+mc::network::ServerDifficultyPacket packet(
+    mc::Difficulty::Hard, false);
+auto result = packet.serialize();
+if (result.success()) {
+    auto fullPacket = mc::server::core::ConnectionManager::encapsulatePacket(
+        mc::network::PacketType::ServerDifficulty, result.value());
+    broadcastPacket(fullPacket.data(), fullPacket.size());
+}
+
+// 客户端处理
+void onDifficultyChange(mc::Difficulty difficulty, bool locked) {
+    m_currentDifficulty = difficulty;
+    m_difficultyLocked = locked;
+}
+```
+
 #### PlayerAbilitiesPacket.hpp / PlayerAbilitiesPacket.cpp
 
 **职责**: 玩家能力同步
@@ -477,6 +515,10 @@ PacketModule.hpp (统一入口)
     └── PlayerAbilitiesPacket.hpp (玩家能力包)
             ├── PlayerAbilitiesPacket.cpp
             └── 依赖 Packet.hpp, Player.hpp
+
+    └── ServerDifficultyPacket.hpp (难度同步包)
+            ├── ServerDifficultyPacket.cpp
+            └── 依赖 Packet.hpp, Types.hpp
 
     └── ParticlePacket.hpp (粒子包)
             ├── ParticlePacket.cpp

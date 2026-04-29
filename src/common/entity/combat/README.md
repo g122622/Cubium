@@ -1,6 +1,6 @@
 # Combat 模块
 
-战斗系统模块，提供攻击上下文管理和玩家攻击辅助功能。
+战斗系统模块，提供攻击上下文管理、玩家攻击辅助和难度相关计算功能。
 
 ## 目录结构
 
@@ -9,7 +9,9 @@ src/common/entity/combat/
 ├── AttackContext.hpp      # 攻击上下文头文件
 ├── AttackContext.cpp      # 攻击上下文实现
 ├── PlayerAttackHelper.hpp # 玩家攻击辅助类头文件
-└── PlayerAttackHelper.cpp # 玩家攻击辅助类实现
+├── PlayerAttackHelper.cpp # 玩家攻击辅助类实现
+├── DifficultyHelper.hpp   # 难度工具类头文件
+└── DifficultyHelper.cpp   # 难度工具类实现
 ```
 
 ## 文件详解
@@ -169,6 +171,91 @@ static AttackContext createContext(PlayerEntity& player,
 - 暴击判定
 - （TODO）基础伤害（从武器）
 - （TODO）火焰附加
+
+---
+
+### DifficultyHelper.hpp / DifficultyHelper.cpp
+
+**职责**: 提供难度相关的游戏机制计算，实现 MC 1.16.5 难度系统。
+
+**常量定义**:
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `EASY_PLAYER_DAMAGE_MULT` | 0.5f | 简单模式玩家受伤倍率 |
+| `NORMAL_PLAYER_DAMAGE_MULT` | 1.0f | 普通模式玩家受伤倍率 |
+| `HARD_PLAYER_DAMAGE_MULT` | 1.5f | 困难模式玩家受伤倍率 |
+| `EASY_MOB_DAMAGE_ADJ` | -2.0f | 简单模式怪物伤害调整 |
+| `NORMAL_MOB_DAMAGE_ADJ` | 0.0f | 普通模式怪物伤害调整 |
+| `HARD_MOB_DAMAGE_ADJ` | 2.0f | 困难模式怪物伤害调整 |
+| `EASY_STARVATION_MIN` | 10.0f | 简单模式饥饿最小生命值 |
+| `NORMAL_STARVATION_MIN` | 1.0f | 普通模式饥饿最小生命值 |
+| `HARD_STARVATION_MIN` | 0.0f | 困难模式饥饿最小生命值 |
+
+**静态方法**:
+
+#### 玩家伤害倍率
+
+```cpp
+static f32 getPlayerDamageMultiplier(Difficulty difficulty);
+```
+
+返回玩家受到怪物伤害的倍率：
+- Peaceful: 0.0（和平模式玩家不受怪物伤害）
+- Easy: 0.5（伤害减半）
+- Normal: 1.0（无调整）
+- Hard: 1.5（伤害增加 50%）
+
+#### 怪物伤害调整
+
+```cpp
+static f32 getMobDamageAdjustment(Difficulty difficulty);
+static f32 getMobDamageAdjustment(i32 difficultyId);
+```
+
+返回怪物攻击伤害的调整值：
+- Peaceful: 0.0（和平模式怪物不攻击）
+- Easy: -2.0（伤害减少 2）
+- Normal: 0.0（无调整）
+- Hard: +2.0（伤害增加 2）
+
+#### 饥饿最小生命值
+
+```cpp
+static f32 getStarvationMinHealth(Difficulty difficulty);
+```
+
+返回饥饿伤害不能降至以下的最小生命值：
+- Peaceful: 20.0（最大生命值，不受饥饿伤害）
+- Easy: 10.0（5 颗心）
+- Normal: 1.0（半颗心）
+- Hard: 0.0（可饿死）
+
+#### 火焰机制
+
+```cpp
+static f32 getFireDurationMultiplier(Difficulty difficulty);
+static i32 getFireSpreadBonus(Difficulty difficulty);
+```
+
+- `getFireDurationMultiplier()`: 火焰燃烧持续时间倍率
+- `getFireSpreadBonus()`: 火焰蔓延概率加成（difficulty * 7）
+
+#### 特殊机制
+
+```cpp
+static bool canZombieReinforce(Difficulty difficulty);
+static f32 getVillagerInfectionChance(Difficulty difficulty);
+static i32 getRaidWaves(Difficulty difficulty);
+static bool allowsMobSpawning(Difficulty difficulty);
+static f32 getRegionalDifficultyBase(Difficulty difficulty);
+```
+
+- `canZombieReinforce()`: 只有困难模式僵尸才能召唤增援
+- `getVillagerInfectionChance()`: 村民被僵尸杀死时的感染概率（Easy/Peaceful: 0%, Normal: 50%, Hard: 100%）
+- `getRaidWaves()`: 袭击波次数（Peaceful: 0, Easy: 3, Normal: 5, Hard: 7）
+- `allowsMobSpawning()`: 和平模式不允许怪物生成
+- `getRegionalDifficultyBase()`: 区域难度基值
 
 ---
 
