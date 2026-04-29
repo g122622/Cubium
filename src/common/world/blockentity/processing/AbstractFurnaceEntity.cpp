@@ -13,21 +13,69 @@ namespace {
     /**
      * @brief 获取指定物品的燃烧时间。
      *
-     * 注意事项：
-     * 1. 当前仅覆盖常用燃料，后续可继续补齐完整规则。
-     * 2. 内部逻辑不做冗余防御，调用方需保证物品系统已初始化。
+     * 参考: MC 1.16.5 AbstractFurnaceTileEntity 燃烧时间表
+     * 燃烧时间单位：tick
+     *
+     * 注意：部分物品（煤炭块、岩浆桶等）尚未在 Items 中注册，
+     * 待相关物品添加后需补充。
      */
     [[nodiscard]] i32 getBurnTimeByItem(const Item* item) {
         if (item == nullptr) {
             return 0;
         }
 
-        if (item == Items::COAL || item == Items::CHARCOAL) {
-            return 1600;
-        }
+        // ========== 燃料（高燃烧值）==========
+        // 烈焰棒: 2400 tick (120 秒)
         if (item == Items::BLAZE_ROD) {
             return 2400;
         }
+
+        // ========== 煤炭类 ==========
+        // 煤炭/木炭: 1600 tick (80 秒)
+        if (item == Items::COAL || item == Items::CHARCOAL) {
+            return 1600;
+        }
+        // TODO: 煤炭块 (COAL_BLOCK) - 16000 tick (800 秒) - 待物品注册
+
+        // ========== 木头类 (300 tick = 15 秒) ==========
+        // 原木
+        if (item == Items::OAK_LOG || item == Items::SPRUCE_LOG ||
+            item == Items::BIRCH_LOG || item == Items::JUNGLE_LOG ||
+            item == Items::ACACIA_LOG || item == Items::DARK_OAK_LOG) {
+            return 300;
+        }
+        // 木板
+        if (item == Items::OAK_PLANKS || item == Items::SPRUCE_PLANKS ||
+            item == Items::BIRCH_PLANKS || item == Items::JUNGLE_PLANKS ||
+            item == Items::ACACIA_PLANKS || item == Items::DARK_OAK_PLANKS) {
+            return 300;
+        }
+        // TODO: 木质楼梯、木质门、栅栏、书架、音符盒、箱子等 - 300 tick
+
+        // ========== 木制工具 (200 tick = 10 秒) ==========
+        if (item == Items::WOODEN_PICKAXE || item == Items::WOODEN_AXE ||
+            item == Items::WOODEN_SHOVEL || item == Items::WOODEN_HOE ||
+            item == Items::WOODEN_SWORD) {
+            return 200;
+        }
+
+        // ========== 木棍、树苗、碗 (100 tick = 5 秒) ==========
+        if (item == Items::STICK) {
+            return 100;
+        }
+        // TODO: 树苗 (SAPLING) - 100 tick - 待物品注册
+        // TODO: 碗 (BOWL) - 100 tick - 待物品注册
+
+        // ========== 其他木制品 ==========
+        // TODO: 木船 (BOAT) - 1200 tick (60 秒) - 待物品注册
+        // TODO: 羊毛 (WOOL) - 100 tick - 待物品注册
+        // TODO: 地毯 (CARPET) - 67 tick - 待物品注册
+        // TODO: 竹子 (BAMBOO) - 50 tick - 待物品注册
+        // TODO: 脚手架 (SCAFFOLDING) - 400 tick (20 秒) - 待物品注册
+        // TODO: 干海带块 (DRIED_KELP_BLOCK) - 4001 tick - 待物品注册
+
+        // ========== 特殊燃料 ==========
+        // TODO: 岩浆桶 (LAVA_BUCKET) - 20000 tick (1000 秒) - 待物品注册
 
         return 0;
     }
