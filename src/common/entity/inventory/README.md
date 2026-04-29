@@ -178,10 +178,15 @@ inventory/
 - 槽位管理：`addSlot()`, `getSlot()`, `getSlotCount()`
 - 玩家槽位快捷添加：`addPlayerInventorySlots()`, `addPlayerHotbarSlots()`, `addPlayerArmorSlots()`, `addPlayerOffhandSlot()`
 - 点击处理：`clicked()`, `quickMoveStack()`
+- 拖拽分发状态机（MC 1.16.5 对齐）：
+  - `DragConstants` 命名空间定义事件和模式常量
+  - 三种拖拽模式：均匀分发(左键)、逐个分发(右键)、全部分发(中键-仅创造模式)
+  - `handleQuickCraft()` 实现完整状态机
 - 物品移动：`moveItemToRange()`
 - 持有物品管理：`getCarriedItem()`, `setCarriedItem()`
 - 事件通知：`addListener()`, `removeListener()`, `broadcastChanges()`, `slotsChanged()`
 - 生命周期：`stillValid()`, `removed()`
+- 事务ID：`incrementTransactionId()`, `getTransactionId()`, `setTransactionId()` 用于网络防重放
 
 **依赖项**:
 - `core/Types.hpp`
