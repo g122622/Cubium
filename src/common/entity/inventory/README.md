@@ -425,12 +425,11 @@ container.broadcastChanges();  // 广播到客户端
 
 ### 7. 护甲槽位限制
 
-`ArmorSlot` 目前只实现了基本功能，完整的护甲类型检查需要 `ArmorItem` 类支持：
+`ArmorSlot` 通过 `mayPlace()` 方法检查护甲类型，头盔/胸甲/护腿/靴子只能放入对应槽位。
 
-```cpp
-// ArmorSlot::mayPlace 目前需要完善
-// TODO: 检查物品是否是对应类型的护甲
-```
+### 8. 物品丢弃
+
+`AbstractContainerMenu` 中的 `handleThrow()` 和点击屏幕外部丢弃物品的逻辑需要通过回调或接口注入世界交互能力。当前实现仅更新背包状态，不生成物品实体。
 
 ### 8. 坐标转换
 

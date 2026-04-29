@@ -741,10 +741,9 @@ ItemStack PlayerContainer::doQuickMove(i32 slotIndex, ItemStack cursorItem) {
             setChanged();
         }
     }
-    // 从主背包移动到护甲槽
+    // 从主背包移动到护甲槽（护甲类型检查由 ArmorSlot::mayPlace 处理）
     else if (slotIndex >= InventorySlots::MAIN_START && slotIndex <= InventorySlots::MAIN_END) {
-        // 检查是否是护甲
-        // TODO: 检查护甲类型
+        // 护甲槽通过 ArmorSlot::mayPlace 限制物品类型
     }
     // 从快捷栏移动到主背包
     else if (slotIndex >= InventorySlots::HOTBAR_START && slotIndex <= InventorySlots::HOTBAR_END) {
