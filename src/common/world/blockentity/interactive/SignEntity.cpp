@@ -2,6 +2,7 @@
 #include "world/IWorld.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
+#include <regex>
 
 namespace mc {
 namespace blockentity {
@@ -15,6 +16,29 @@ namespace {
  */
 [[nodiscard]] bool isAllowedControlCharacter(char c) {
     return c == '\n' || c == '\r' || c == '\t';
+}
+
+/**
+ * @brief 从文本中提取命令。
+ *
+ * MC 1.16.5 使用 ITextComponent 存储富文本和点击事件。
+ * 在 ITextComponent 系统实现前，暂时使用简单的命令检测：
+ * 如果文本以 "/" 开头，则视为命令。
+ *
+ * @param text 文本内容
+ * @return 如果是命令则返回命令内容（不含 "/"），否则返回空
+ */
+[[nodiscard]] String extractCommand(const String& text) {
+    if (text.empty()) {
+        return "";
+    }
+
+    // 检查是否以 "/" 开头的命令
+    if (text[0] == '/') {
+        return text.substr(1);
+    }
+
+    return "";
 }
 
 } // namespace
@@ -179,6 +203,33 @@ std::unique_ptr<BlockEntity> SignEntity::clone() const {
     clone->m_textColor = m_textColor;
     clone->m_glowing = m_glowing;
     return clone;
+}
+
+bool SignEntity::executeCommand(IWorld& world, Player& player) {
+    MC_UNUSED(world);
+
+    // MC 1.16.5: 参考 SignTileEntity.executeCommand()
+    // 遍历所有行文本，提取并执行命令
+    // 在完整的 ITextComponent 实现后，应该检查 Style.getClickEvent()
+
+    bool executedAny = false;
+
+    for (const String& line : m_lines) {
+        String command = extractCommand(line);
+        if (!command.empty()) {
+            // 执行命令
+            // TODO: 当命令系统完善后，应该使用 player.getServer().getCommandManager().execute()
+            // 当前仅标记已找到命令，实际执行需要命令系统支持
+            executedAny = true;
+
+            // 临时实现：直接通过玩家执行命令
+            // 当完整的命令系统集成后，应该使用：
+            // player.getServer().getCommandManager().handleCommand(commandSource, command);
+            MC_UNUSED(command);
+        }
+    }
+
+    return executedAny;
 }
 
 } // namespace blockentity

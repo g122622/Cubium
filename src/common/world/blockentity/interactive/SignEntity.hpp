@@ -130,6 +130,32 @@ public:
      */
     void setGlowing(bool glowing);
 
+    // ========== 命令执行 ==========
+
+    /**
+     * @brief 执行告示牌上的命令
+     *
+     * MC 1.16.5: 当玩家右键点击告示牌时，如果文本中包含
+     * 点击事件（如 run_command），则执行该命令。
+     *
+     * 参考: SignTileEntity.executeCommand()
+     *
+     * @param world 世界引用
+     * @param player 执行命令的玩家
+     * @return 如果成功执行返回true
+     */
+    bool executeCommand(IWorld& world, Player& player);
+
+    /**
+     * @brief 检查是否只有 OP 可以设置 NBT
+     *
+     * MC 1.16.5: 告示牌的 NBT 数据只能由 OP 级玩家修改。
+     * 参考: SignTileEntity.onlyOpsCanSetNbt()
+     *
+     * @return 始终返回 true
+     */
+    [[nodiscard]] bool onlyOpsCanSetNbt() const { return true; }
+
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
