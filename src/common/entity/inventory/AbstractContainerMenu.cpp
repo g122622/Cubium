@@ -128,7 +128,7 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
         // 点击屏幕外部 - 丢弃鼠标物品
         if (clickType == ClickType::Throw) {
             ItemStack toDrop = m_carried.split(button == 1 ? m_carried.getCount() : 1);
-            // TODO: 在世界中生成物品实体
+            // TODO: 生成物品实体 - 见 README "物品丢弃（Future Work）"
             return m_carried;
         }
         return m_carried;
@@ -325,7 +325,7 @@ ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const It
         ItemStack dropped = slot.remove(toDrop);
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
-        // TODO: 在世界中生成物品实体
+        // TODO: 生成物品实体 - 见 README "物品丢弃（Future Work）"
         (void)dropped;
     }
 

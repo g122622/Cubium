@@ -427,11 +427,30 @@ container.broadcastChanges();  // 广播到客户端
 
 `ArmorSlot` 通过 `mayPlace()` 方法检查护甲类型，头盔/胸甲/护腿/靴子只能放入对应槽位。
 
-### 8. 物品丢弃
+### 8. 物品丢弃（Future Work）
 
-`AbstractContainerMenu` 中的 `handleThrow()` 和点击屏幕外部丢弃物品的逻辑需要通过回调或接口注入世界交互能力。当前实现仅更新背包状态，不生成物品实体。
+`AbstractContainerMenu` 和 `Container` 中的 `handleThrow()` 方法当前仅更新背包状态，不生成物品实体。
 
-### 8. 坐标转换
+**待实现功能**：
+- `AbstractContainerMenu.cpp:131` - 点击屏幕外部丢弃鼠标物品
+- `AbstractContainerMenu.cpp:328` - Q键丢弃槽位物品
+- `Container.cpp:504,512,525` - 丢弃物品
+
+**设计方案**：
+```cpp
+// 添加丢弃回调接口到 AbstractContainerMenu
+using ItemDropCallback = std::function<void(const ItemStack& stack, const Player& player)>;
+void setItemDropCallback(ItemDropCallback callback);
+
+// 上层（ServerWorld/IntegratedServer）注入实现
+menu->setItemDropCallback([this, player](const ItemStack& stack, const Player& p) {
+    BlockDropHandler::spawnDrops(*entityManager, nullptr, player.blockPos(), {stack}, p.uuid());
+});
+```
+
+此功能依赖 World/EntityManager 集成，标记为后续迭代任务。
+
+### 9. 坐标转换
 
 `CraftingInventory` 使用行优先存储，坐标转换时注意：
 - `posToSlot(x, y)` = `y * width + x`

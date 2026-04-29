@@ -501,7 +501,7 @@ ItemStack Container::handleThrowClick(i32 slotIndex, i32 button, ItemStack curso
             if (m_onSlotChanged) {
                 m_onSlotChanged(slotIndex);
             }
-            // TODO: 生成物品实体
+            // TODO: 生成物品实体 - 见 inventory/README "物品丢弃（Future Work）"
         }
     }
     // 普通丢弃
@@ -509,7 +509,7 @@ ItemStack Container::handleThrowClick(i32 slotIndex, i32 button, ItemStack curso
         if (!cursorItem.isEmpty()) {
             // 丢弃一个
             cursorItem.shrink(1);
-            // TODO: 生成物品实体
+            // TODO: 生成物品实体 - 见 inventory/README "物品丢弃（Future Work）"
             if (cursorItem.isEmpty()) {
                 return ItemStack::EMPTY;
             }
@@ -522,7 +522,7 @@ ItemStack Container::handleThrowClick(i32 slotIndex, i32 button, ItemStack curso
             if (m_onSlotChanged) {
                 m_onSlotChanged(slotIndex);
             }
-            // TODO: 生成物品实体
+            // TODO: 生成物品实体 - 见 inventory/README "物品丢弃（Future Work）"
         }
     }
 
