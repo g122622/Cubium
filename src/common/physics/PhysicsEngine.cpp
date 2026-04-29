@@ -8,6 +8,7 @@ namespace mc {
 namespace {
 
 using math::EPSILON_COLLISION;
+using math::EPSILON_GROUND_PROBE;
 
 } // namespace
 
@@ -86,9 +87,9 @@ Vector3 PhysicsEngine::moveEntity(AxisAlignedBB& entityBox, const Vector3& movem
 
             if (steppedHorizontalSq > resolvedHorizontalSq + EPSILON_COLLISION) {
                 // 更新碰撞状态
-                m_collidedVertically = (std::abs(stepped.y - movement.y) > 1e-7f);
-                m_collidedHorizontally = (std::abs(stepped.x - movement.x) > 1e-7f ||
-                                          std::abs(stepped.z - movement.z) > 1e-7f);
+                m_collidedVertically = (std::abs(stepped.y - movement.y) > EPSILON_COLLISION);
+                m_collidedHorizontally = (std::abs(stepped.x - movement.x) > EPSILON_COLLISION ||
+                                          std::abs(stepped.z - movement.z) > EPSILON_COLLISION);
                 return stepped;
             }
         }
@@ -104,8 +105,7 @@ Vector3 PhysicsEngine::moveEntity(AxisAlignedBB& entityBox, const Vector3& movem
 bool PhysicsEngine::isOnGround(const AxisAlignedBB& entityBox) const {
     // 向下微移后检测碰撞。增大探测深度以提高浮点抖动容忍度，
     // 避免平地移动时偶发"离地一帧"导致累计下沉。
-    constexpr f32 GROUND_PROBE_EPSILON = 0.01f;
-    AxisAlignedBB testBox = entityBox.offsetted(0.0f, -GROUND_PROBE_EPSILON, 0.0f);
+    AxisAlignedBB testBox = entityBox.offsetted(0.0f, -math::EPSILON_GROUND_PROBE, 0.0f);
 
     // 计算搜索范围（只需要检测底部一排方块）
     i32 minX = static_cast<i32>(std::floor(testBox.minX));
@@ -224,6 +224,44 @@ inline f32 horizontalMagSq(const Vector3& v) {
     return v.x * v.x + v.z * v.z;
 }
 
+Vector3 PhysicsEngine::applyHorizontalCollision(AxisAlignedBB& entityBox,
+                                                 const Vector3& movement,
+                                                 const std::vector<AxisAlignedBB>& boxes) {
+    f32 dx = movement.x;
+    f32 dz = movement.z;
+
+    // X/Z按移动幅度排序（MC标准逻辑）
+    if (std::abs(dx) >= std::abs(dz)) {
+        if (dx != 0.0f) {
+            for (const auto& box : boxes) {
+                dx = entityBox.calculateXOffset(box, dx);
+            }
+            entityBox.offset(dx, 0.0f, 0.0f);
+        }
+        if (dz != 0.0f) {
+            for (const auto& box : boxes) {
+                dz = entityBox.calculateZOffset(box, dz);
+            }
+            entityBox.offset(0.0f, 0.0f, dz);
+        }
+    } else {
+        if (dz != 0.0f) {
+            for (const auto& box : boxes) {
+                dz = entityBox.calculateZOffset(box, dz);
+            }
+            entityBox.offset(0.0f, 0.0f, dz);
+        }
+        if (dx != 0.0f) {
+            for (const auto& box : boxes) {
+                dx = entityBox.calculateXOffset(box, dx);
+            }
+            entityBox.offset(dx, 0.0f, 0.0f);
+        }
+    }
+
+    return Vector3(dx, 0.0f, dz);
+}
+
 /**
  * @brief 尝试步进
  *
@@ -309,45 +347,15 @@ Vector3 PhysicsEngine::tryStepStrategyA(AxisAlignedBB& entityBox,
 
     // 收集抬起位置的碰撞箱
     AxisAlignedBB searchBox = raisedBox.expand(
-        std::abs(movement.x) + 0.001f,
-        0.001f,
-        std::abs(movement.z) + 0.001f
+        std::abs(movement.x) + EPSILON_COLLISION,
+        EPSILON_COLLISION,
+        std::abs(movement.z) + EPSILON_COLLISION
     );
     std::vector<AxisAlignedBB> boxes;
     collectCollisionBoxes(searchBox, boxes);
 
     // 在抬起状态下尝试水平移动
-    f32 dx = movement.x;
-    f32 dz = movement.z;
-
-    // X/Z按移动幅度排序
-    if (std::abs(dx) >= std::abs(dz)) {
-        if (dx != 0.0f) {
-            for (const auto& box : boxes) {
-                dx = raisedBox.calculateXOffset(box, dx);
-            }
-            raisedBox.offset(dx, 0.0f, 0.0f);
-        }
-        if (dz != 0.0f) {
-            for (const auto& box : boxes) {
-                dz = raisedBox.calculateZOffset(box, dz);
-            }
-            raisedBox.offset(0.0f, 0.0f, dz);
-        }
-    } else {
-        if (dz != 0.0f) {
-            for (const auto& box : boxes) {
-                dz = raisedBox.calculateZOffset(box, dz);
-            }
-            raisedBox.offset(0.0f, 0.0f, dz);
-        }
-        if (dx != 0.0f) {
-            for (const auto& box : boxes) {
-                dx = raisedBox.calculateXOffset(box, dx);
-            }
-            raisedBox.offset(dx, 0.0f, 0.0f);
-        }
-    }
+    applyHorizontalCollision(raisedBox, movement, boxes);
 
     entityBox = raisedBox;
     // 返回从原始位置的移动距离
@@ -377,7 +385,7 @@ Vector3 PhysicsEngine::tryStepStrategyB(AxisAlignedBB& entityBox,
     f32 upDist = stepHeight;
 
     // 收集原始位置的碰撞箱用于向上抬起检测
-    AxisAlignedBB upSearchBox = entityBox.expand(0.001f, stepHeight + 0.001f, 0.001f);
+    AxisAlignedBB upSearchBox = entityBox.expand(EPSILON_COLLISION, stepHeight + EPSILON_COLLISION, EPSILON_COLLISION);
     std::vector<AxisAlignedBB> upBoxes;
     collectCollisionBoxes(upSearchBox, upBoxes);
 
@@ -390,44 +398,14 @@ Vector3 PhysicsEngine::tryStepStrategyB(AxisAlignedBB& entityBox,
 
     // Step 2: 在抬起状态下水平移动
     AxisAlignedBB horizontalSearchBox = raisedBox.expand(
-        std::abs(movement.x) + 0.001f,
-        0.001f,
-        std::abs(movement.z) + 0.001f
+        std::abs(movement.x) + EPSILON_COLLISION,
+        EPSILON_COLLISION,
+        std::abs(movement.z) + EPSILON_COLLISION
     );
     std::vector<AxisAlignedBB> horizontalBoxes;
     collectCollisionBoxes(horizontalSearchBox, horizontalBoxes);
 
-    f32 dx = movement.x;
-    f32 dz = movement.z;
-
-    // X/Z按移动幅度排序
-    if (std::abs(dx) >= std::abs(dz)) {
-        if (dx != 0.0f) {
-            for (const auto& box : horizontalBoxes) {
-                dx = raisedBox.calculateXOffset(box, dx);
-            }
-            raisedBox.offset(dx, 0.0f, 0.0f);
-        }
-        if (dz != 0.0f) {
-            for (const auto& box : horizontalBoxes) {
-                dz = raisedBox.calculateZOffset(box, dz);
-            }
-            raisedBox.offset(0.0f, 0.0f, dz);
-        }
-    } else {
-        if (dz != 0.0f) {
-            for (const auto& box : horizontalBoxes) {
-                dz = raisedBox.calculateZOffset(box, dz);
-            }
-            raisedBox.offset(0.0f, 0.0f, dz);
-        }
-        if (dx != 0.0f) {
-            for (const auto& box : horizontalBoxes) {
-                dx = raisedBox.calculateXOffset(box, dx);
-            }
-            raisedBox.offset(dx, 0.0f, 0.0f);
-        }
-    }
+    applyHorizontalCollision(raisedBox, movement, horizontalBoxes);
 
     entityBox = raisedBox;
     // 返回从原始位置的移动距离
@@ -442,15 +420,17 @@ Vector3 PhysicsEngine::tryStepStrategyB(AxisAlignedBB& entityBox,
  * @brief 应用下落直到碰到地面
  */
 Vector3 PhysicsEngine::applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement) {
-    // 需要下落的距离：将实体下落直到碰到障碍或达到原始Y移动目标
-    f32 currentY = entityBox.minY;
-
     // 收集下落路径上的碰撞箱
-    AxisAlignedBB fallSearchBox = entityBox.expand(0.001f, std::abs(originalYMovement) + 1.0f, 0.001f);
+    // Y轴扩展：原始移动距离 + 1.0f 用于处理步进后的额外下落空间
+    AxisAlignedBB fallSearchBox = entityBox.expand(
+        EPSILON_COLLISION,
+        std::abs(originalYMovement) + 1.0f,
+        EPSILON_COLLISION
+    );
     std::vector<AxisAlignedBB> fallBoxes;
     collectCollisionBoxes(fallSearchBox, fallBoxes);
 
-    f32 downDist = originalYMovement;  // 使用原始Y移动（通常为负数）
+    f32 downDist = originalYMovement;
     for (const auto& box : fallBoxes) {
         downDist = entityBox.calculateYOffset(box, downDist);
     }

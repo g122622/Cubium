@@ -206,6 +206,20 @@ private:
     Vector3 applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement);
 
     /**
+     * @brief 应用水平移动碰撞解决
+     *
+     * 按移动幅度排序处理X/Z轴碰撞（MC标准逻辑）。
+     *
+     * @param entityBox 实体碰撞箱（会被修改）
+     * @param movement 期望移动向量（仅使用x和z分量）
+     * @param boxes 碰撞箱列表
+     * @return 实际水平移动向量
+     */
+    static Vector3 applyHorizontalCollision(AxisAlignedBB& entityBox,
+                                            const Vector3& movement,
+                                            const std::vector<AxisAlignedBB>& boxes);
+
+    /**
      * @brief 获取方块碰撞箱
      * @param x, y, z 方块坐标
      * @param boxes 输出的碰撞箱列表
