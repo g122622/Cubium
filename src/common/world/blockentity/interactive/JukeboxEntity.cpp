@@ -5,44 +5,48 @@
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 
+#include <unordered_map>
+
 namespace mc {
 namespace blockentity {
 
 namespace {
 
 /**
- * @brief 判断物品是否为唱片。
- * @param item 待检查物品。
- * @return true 表示是唱片。
- * @note 目前按 `music_disc_` 前缀识别，后续接入物品标签系统时可替换为标签判定。
- */
-[[nodiscard]] bool isMusicDisc(const Item* item) {
-    if (item == nullptr) {
-        return false;
-    }
-
-    const String& path = item->itemLocation().path();
-    return path.rfind("music_disc_", 0) == 0;
-}
-
-/**
- * @brief 将唱片映射到比较器信号强度。
+ * @brief 获取唱片对应的比较器信号强度。
+ *
+ * MC 1.16.5: 每种唱片有固定的比较器输出值（1-15）。
+ * 参考: net.minecraft.item.MusicDiscItem.comparatorValue
+ *
  * @param item 唱片物品。
- * @return 范围 [1, 15] 的信号强度。
+ * @return 范围 [1, 15] 的信号强度，如果不是有效唱片返回 0。
  */
-[[nodiscard]] i32 mapRecordToSignal(const Item* item) {
-    if (!isMusicDisc(item)) {
+[[nodiscard]] i32 getRecordComparatorSignal(const Item* item) {
+    if (item == nullptr) {
         return 0;
     }
 
-    const String& path = item->itemLocation().path();
-    u32 hash = 2166136261u;
-    for (char c : path) {
-        hash ^= static_cast<u8>(c);
-        hash *= 16777619u;
-    }
+    // MC 1.16.5 固定映射表
+    // 参考: net.minecraft.item.Items 中的 MusicDiscItem 构造
+    static const std::unordered_map<String, i32> s_discSignals = {
+        {"minecraft:music_disc_13", 1},
+        {"minecraft:music_disc_cat", 2},
+        {"minecraft:music_disc_blocks", 3},
+        {"minecraft:music_disc_chirp", 4},
+        {"minecraft:music_disc_far", 5},
+        {"minecraft:music_disc_mall", 6},
+        {"minecraft:music_disc_mellohi", 7},
+        {"minecraft:music_disc_stal", 8},
+        {"minecraft:music_disc_strad", 9},
+        {"minecraft:music_disc_ward", 10},
+        {"minecraft:music_disc_11", 11},
+        {"minecraft:music_disc_wait", 12},
+        {"minecraft:music_disc_pigstep", 13},
+    };
 
-    return static_cast<i32>(hash % 15u) + 1;
+    const String& location = item->itemLocation().toString();
+    const auto it = s_discSignals.find(location);
+    return it != s_discSignals.end() ? it->second : 0;
 }
 
 } // namespace
@@ -78,7 +82,7 @@ void JukeboxEntity::startPlaying(IWorld& world) {
     }
 
     const Item* item = record.getItem();
-    m_recordId = mapRecordToSignal(item);
+    m_recordId = getRecordComparatorSignal(item);
     m_isPlaying = m_recordId > 0;
     setChanged();
 }
@@ -105,7 +109,7 @@ i32 JukeboxEntity::getComparatorSignal() const {
     }
 
     const ItemStack record = getRecord();
-    return mapRecordToSignal(record.getItem());
+    return getRecordComparatorSignal(record.getItem());
 }
 
 void JukeboxEntity::tick(IWorld& world) {

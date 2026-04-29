@@ -72,6 +72,13 @@ public:
     [[nodiscard]] f32 getLidAngle() const { return m_lidAngle; }
 
     /**
+     * @brief 获取插值后的盖子角度（用于渲染）
+     * @param partialTick 部分tick时间 (0.0 - 1.0)
+     * @return 插值后的角度
+     */
+    [[nodiscard]] f32 getLidAngle(f32 partialTick) const;
+
+    /**
      * @brief 获取上一帧的盖子角度
      * @return 角度
      */
