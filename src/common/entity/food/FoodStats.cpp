@@ -1,5 +1,6 @@
 #include "FoodStats.hpp"
 #include "../entities/player/Player.hpp"
+#include "../combat/DifficultyHelper.hpp"
 #include "../../network/packet/PacketSerializer.hpp"
 #include "../../entity/effect/EffectType.hpp"
 #include <algorithm>
@@ -175,24 +176,11 @@ bool FoodStats::performSlowRegeneration(Player& player) {
 void FoodStats::performStarvationDamage(Player& player, Difficulty difficulty) {
     // 饥饿伤害，根据难度限制最小生命值
     f32 currentHealth = player.health();
-    f32 minHealth = 0.0f;
+    f32 minHealth = entity::combat::DifficultyHelper::getStarvationMinHealth(difficulty);
 
-    switch (difficulty) {
-        case Difficulty::Peaceful:
-            // 和平模式不应到达这里，但保险起见返回
-            return;
-        case Difficulty::Easy:
-            // 简单模式：生命值最低 10
-            minHealth = 10.0f;
-            break;
-        case Difficulty::Normal:
-            // 普通模式：生命值最低 1
-            minHealth = 1.0f;
-            break;
-        case Difficulty::Hard:
-            // 困难模式：可以饿死
-            minHealth = 0.0f;
-            break;
+    // 和平模式不应到达这里
+    if (minHealth >= player.maxHealth()) {
+        return;
     }
 
     // 只有当前生命值高于最小生命值时才造成伤害

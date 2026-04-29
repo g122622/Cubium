@@ -5,6 +5,7 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../combat/DifficultyHelper.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
@@ -109,7 +110,7 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount) {
     // MC 1.16.5: 增援召唤逻辑
     // 只在困难模式下有概率召唤增援
     IWorld* worldPtr = world();
-    if (worldPtr && worldPtr->difficulty() == Difficulty::Hard) {
+    if (worldPtr && entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
         // TODO: 使用属性获取召唤概率
         // f32 spawnChance = m_attributes.getValue(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
         // if (worldPtr->random().nextFloat() < spawnChance) {

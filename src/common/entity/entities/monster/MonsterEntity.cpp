@@ -6,6 +6,7 @@
 #include "../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../combat/DifficultyHelper.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
 
@@ -154,7 +155,7 @@ bool MonsterEntity::canMonsterSpawnInLight(
 {
     // MC 1.16.5 MonsterEntity.canMonsterSpawnInLight()
     // 检查难度（非和平模式）
-    if (world.difficulty() == Difficulty::Peaceful) {
+    if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
         return false;
     }
 
@@ -177,7 +178,7 @@ bool MonsterEntity::canMonsterSpawn(
 {
     // MC 1.16.5 MonsterEntity.canMonsterSpawn()
     // 检查难度（非和平模式）
-    if (world.difficulty() == Difficulty::Peaceful) {
+    if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
         return false;
     }
 

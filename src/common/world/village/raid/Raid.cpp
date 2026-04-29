@@ -3,6 +3,7 @@
 #include "../Village.hpp"
 #include "../../IWorld.hpp"
 #include "../../../entity/core/Entity.hpp"
+#include "../../../entity/combat/DifficultyHelper.hpp"
 #include "../../../entity/entities/monster/illager/EvokerEntity.hpp"
 #include "../../../entity/entities/monster/illager/IllagerEntities.hpp"
 #include "../../../entity/entities/monster/illager/RavagerEntity.hpp"
@@ -35,18 +36,7 @@ Raid::Raid(RaidId id, village::Village* village)
  * @return 基础波次数。
  */
 i32 Raid::maxWaves(Difficulty difficulty) const {
-    switch (difficulty) {
-        case Difficulty::Peaceful:
-            return 0;
-        case Difficulty::Easy:
-            return RaidConfig::MAX_WAVES_EASY;
-        case Difficulty::Normal:
-            return RaidConfig::MAX_WAVES_NORMAL;
-        case Difficulty::Hard:
-            return RaidConfig::MAX_WAVES_HARD;
-        default:
-            return RaidConfig::MAX_WAVES_NORMAL;
-    }
+    return entity::combat::DifficultyHelper::getRaidWaves(difficulty);
 }
 
 /**
@@ -120,7 +110,7 @@ void Raid::spawnRaiders(IWorld& world) {
     }
 
     m_difficulty = world.difficulty();
-    if (m_difficulty == Difficulty::Peaceful) {
+    if (!entity::combat::DifficultyHelper::allowsMobSpawning(m_difficulty)) {
         stop();
         return;
     }
@@ -192,7 +182,7 @@ void Raid::tick(IWorld& world) {
         return;
     }
 
-    if (world.difficulty() == Difficulty::Peaceful) {
+    if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
         stop();
         return;
     }
