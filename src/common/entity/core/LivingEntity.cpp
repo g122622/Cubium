@@ -8,7 +8,7 @@
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../combat/CombatRules.hpp"
-// #include "../../item/enchantment/EnchantmentHelper.hpp"  // TODO: 实现 getTotalArmorProtection 后启用
+#include "../../item/enchantment/EnchantmentHelper.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -224,12 +224,28 @@ f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage
     }
 
     // 2. 附魔保护减伤
-    // TODO: 实现 EnchantmentHelper::getTotalArmorProtection()
-    // 这需要遍历所有护甲槽位，计算保护附魔的 EPF 总和
-    // i32 protectionEPF = EnchantmentHelper::getTotalArmorProtection(m_equipment, source);
-    // if (protectionEPF > 0) {
-    //     damage = entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(protectionEPF));
-    // }
+    // MC 1.16.5: 遍历所有护甲槽位，计算保护附魔的 EPF 总和
+    // 伤害类型映射需要根据 DamageSource 确定
+    u32 damageTypeFlags = 0;
+    if (source.isFire()) damageTypeFlags |= 0x01;      // 火焰
+    if (source.isLava()) damageTypeFlags |= 0x01;       // 岩浆也属于火焰
+    if (source.type() == DamageType::Fall) damageTypeFlags |= 0x04;  // 摔落
+    if (source.type() == DamageType::Explosion ||
+        source.type() == DamageType::ExplosionPlayer) damageTypeFlags |= 0x08;  // 爆炸
+    if (source.isProjectile()) damageTypeFlags |= 0x10; // 弹射物
+    // 其他类型由全保护处理
+
+    std::array<const ItemStack*, 4> armorSlots = {
+        &getEquipment(EquipmentSlot::Head),    // 头盔
+        &getEquipment(EquipmentSlot::Chest),   // 胸甲
+        &getEquipment(EquipmentSlot::Legs),    // 护腿
+        &getEquipment(EquipmentSlot::Feet)     // 靴子
+    };
+
+    i32 protectionEPF = item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, damageTypeFlags);
+    if (protectionEPF > 0) {
+        damage = entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(protectionEPF));
+    }
 
     return damage;
 }
@@ -447,8 +463,23 @@ void LivingEntity::updateAnimation() {
 }
 
 void LivingEntity::tickHealth() {
-    // 自然回血（和平模式或生命恢复效果）
-    // TODO: 实现生命恢复效果检查
+    // 自然回血逻辑
+    // MC 1.16.5: 生命恢复效果每 50/(level+1) tick 治疗 1 点生命
+    // 和平模式下每秒恢复 1 点生命
+
+    // 检查生命恢复效果
+    const i32 regenLevel = getEffectLevel(entity::effect::EffectType::Regeneration);
+    if (regenLevel > 0 && m_health < maxHealth()) {
+        // 生命恢复 tick 计数器
+        m_regenTickCounter++;
+        const i32 regenInterval = 50 / (regenLevel + 1);
+        if (m_regenTickCounter >= regenInterval) {
+            m_regenTickCounter = 0;
+            heal(1.0f);
+        }
+    } else {
+        m_regenTickCounter = 0;
+    }
 
     // 更新属性缓存
     for (auto& [name, instance] : m_attributes.allInstances()) {
@@ -477,8 +508,20 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier) {
     if (distance > 3.0f) {
         f32 damage = (distance - 3.0f) * damageMultiplier;
 
-        // 考虑摔落保护效果
-        // TODO: 实现摔落保护附魔
+        // MC 1.16.5: 计算摔落保护附魔减伤
+        // 摔落保护 EPF = 羽毛落地等级 * 3
+        std::array<const ItemStack*, 4> armorSlots = {
+            &getEquipment(EquipmentSlot::Head),
+            &getEquipment(EquipmentSlot::Chest),
+            &getEquipment(EquipmentSlot::Legs),
+            &getEquipment(EquipmentSlot::Feet)
+        };
+        // 摔落伤害类型标志
+        constexpr u32 FALL_DAMAGE_TYPE = 0x04;  // DamageType::Fall
+        i32 fallProtectionEPF = item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, FALL_DAMAGE_TYPE);
+        if (fallProtectionEPF > 0) {
+            damage = entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(fallProtectionEPF));
+        }
 
         if (damage > 0.0f) {
             // 创建摔落伤害来源
@@ -497,13 +540,26 @@ void LivingEntity::jump() {
     // 参考 MC LivingEntity.jump()
     f32 jumpPower = m_jumpUpwardsMotion;
 
-    // TODO: 检查跳跃增强药水效果
+    // MC 1.16.5: 跳跃增强药水效果
+    // 每级增加 0.1 跳跃力
+    const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
+    if (jumpBoostLevel > 0) {
+        jumpPower += static_cast<f32>(jumpBoostLevel) * 0.1f;
+    }
 
     // 设置垂直速度
     m_velocity.y = jumpPower;
 
+    // MC 1.16.5: 冲刺跳跃
     // 如果正在冲刺，添加额外的向前动量
-    // TODO: 实现冲刺跳跃
+    if (hasFlag(EntityFlags::Sprinting)) {
+        // 获取朝向方向的水平分量
+        f32 yawRad = yaw() * math::DEG_TO_RAD;
+        f32 forwardX = -std::sin(yawRad) * 0.2f;
+        f32 forwardZ = std::cos(yawRad) * 0.2f;
+        m_velocity.x += forwardX;
+        m_velocity.z += forwardZ;
+    }
 
     m_onGround = false;
 }

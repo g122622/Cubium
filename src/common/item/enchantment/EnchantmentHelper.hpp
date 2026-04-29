@@ -134,6 +134,31 @@ public:
      */
     [[nodiscard]] static f32 getTotalDamageBonus(const ItemStack& stack, u32 entityType);
 
+    // ========== 护甲附魔保护计算 ==========
+
+    /**
+     * @brief 计算护甲的附魔保护因子总和 (EPF)
+     *
+     * MC 1.16.5: 遍历所有护甲槽位，计算针对特定伤害类型的保护附魔总和
+     * EPF 上限为 20，对应 80% 减伤
+     *
+     * @param armorSlots 护甲槽位数组（头盔、胸甲、护腿、靴子）
+     * @param damageType 伤害类型
+     * @return EPF 总和（已限制在 0-20 范围内）
+     */
+    [[nodiscard]] static i32 getTotalArmorProtection(
+        const std::array<const ItemStack*, 4>& armorSlots,
+        u32 damageType);
+
+    /**
+     * @brief 计算单个物品的附魔保护因子
+     *
+     * @param stack 物品堆
+     * @param damageType 伤害类型
+     * @return 保护因子值
+     */
+    [[nodiscard]] static i32 getProtectionFactor(const ItemStack& stack, u32 damageType);
+
 private:
     EnchantmentHelper() = delete;  // 禁止实例化
 };

@@ -1,5 +1,6 @@
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace item {
@@ -107,6 +108,40 @@ f32 EnchantmentHelper::getTotalDamageBonus(const ItemStack& stack, u32 entityTyp
     for (const auto& [enchantment, level] : enchantments) {
         if (enchantment) {
             total += enchantment->getDamageBonus(level, entityType);
+        }
+    }
+
+    return total;
+}
+
+// ========== 护甲附魔保护计算 ==========
+
+i32 EnchantmentHelper::getTotalArmorProtection(
+    const std::array<const ItemStack*, 4>& armorSlots,
+    u32 damageType) {
+
+    i32 totalEPF = 0;
+
+    for (const ItemStack* slot : armorSlots) {
+        if (slot && !slot->isEmpty()) {
+            totalEPF += getProtectionFactor(*slot, damageType);
+        }
+    }
+
+    // MC 1.16.5: EPF 上限为 20，对应 80% 减伤
+    return std::min(totalEPF, 20);
+}
+
+i32 EnchantmentHelper::getProtectionFactor(const ItemStack& stack, u32 damageType) {
+    if (stack.isEmpty()) {
+        return 0;
+    }
+
+    i32 total = 0;
+    auto enchantments = getEnchantments(stack);
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment) {
+            total += enchantment->getDamageProtection(level, damageType);
         }
     }
 

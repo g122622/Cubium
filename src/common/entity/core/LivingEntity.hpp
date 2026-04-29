@@ -763,6 +763,7 @@ protected:
 
     // 回血
     i32 m_healTime = 0;                  // 回血计时器
+    i32 m_regenTickCounter = 0;          // 生命恢复 tick 计数器
 
     // 渲染插值属性
     f32 m_limbSwing = 0.0f;              // 步态动画周期

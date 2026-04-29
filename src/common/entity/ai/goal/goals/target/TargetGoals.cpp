@@ -82,7 +82,7 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const {
     }
 
     // MC 1.16.5: 检查团队关系
-    // TODO: 实现团队系统后，检查是否同一团队
+    // 未来工作：需要实现 Scoreboard 和 Team 系统
     // if (m_mob->isOnSameTeam(target)) {
     //     return false;
     // }
