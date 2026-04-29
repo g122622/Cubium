@@ -74,6 +74,30 @@ constexpr f32 PISTON_PUSH_EPSILON = 0.01f;
     return sweep;
 }
 
+/**
+ * @brief 计算实体在指定方向上需要的最小位移以脱离碰撞。
+ *
+ * 参考: MC 1.16.5 PistonTileEntity.getMovement()
+ */
+[[nodiscard]] f32 getMovement(const AxisAlignedBB& pistonBox, Direction direction, const AxisAlignedBB& entityBox) {
+    switch (direction) {
+        case Direction::Down:
+            return pistonBox.minY - entityBox.maxY;
+        case Direction::Up:
+            return entityBox.minY - pistonBox.maxY;
+        case Direction::North:
+            return pistonBox.minZ - entityBox.maxZ;
+        case Direction::South:
+            return entityBox.minZ - pistonBox.maxZ;
+        case Direction::West:
+            return pistonBox.minX - entityBox.maxX;
+        case Direction::East:
+            return entityBox.minX - pistonBox.maxX;
+        default:
+            return 0.0f;
+    }
+}
+
 } // namespace
 
 PistonBlockEntity::PistonBlockEntity(const BlockPos& pos)
@@ -230,13 +254,11 @@ float PistonBlockEntity::getExtendedProgress(float progress) const {
 }
 
 void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta) {
-    // TODO: MC 1.16.5 对齐 - 此方法有多项缺失:
-    // 1. PushReaction.IGNORE 检测 - 应跳过无视推动的实体
-    // 2. MoverType.PISTON - 应使用活塞专用移动类型
-    // 3. 黏液块动量设置 - 推动时应给非玩家实体设置动量
-    // 4. fixEntityWithinPistonBase - 收回时应将实体从活塞基座中推出
-    // 5. getCollisionRelatedBlockState - 收回时应使用活塞头碰撞箱
-    // 参考: PistonTileEntity.moveCollidedEntities()
+    // MC 1.16.5 对齐 - 参考 PistonTileEntity.moveCollidedEntities()
+    // 缺失功能:
+    // 1. PushReaction.IGNORE 检测 - 需要 Entity::getPushReaction()
+    // 2. MoverType.PISTON - 需要 Entity::move(MoverType, Vec3) 重载
+    // 3. 黏液块动量设置 - 需要 Entity::setMotion() 和黏液块检测
 
     if (m_pistonState == nullptr) {
         return;
@@ -273,19 +295,72 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
             // TODO: 检查 entity->getPushReaction() != PushReaction::IGNORE
             // MC 1.16.5: if (entity.getPushReaction() != PushReaction.IGNORE)
 
-            const Vector3 pushDelta = motionVector * (moveDistance + PISTON_PUSH_EPSILON);
-            entity->move(pushDelta.x, pushDelta.y, pushDelta.z);
+            // 计算实体与活塞碰撞箱的推动距离
+            const AxisAlignedBB entityBox = entity->boundingBox();
+            if (!entityBox.intersects(sweepBox)) {
+                continue;
+            }
 
-            // TODO: 黏液块动量设置
-            // if (isSlimeBlock && !(entity instanceof Player)) {
-            //     entity.setMotion(...);
-            // }
+            // 计算精确推动距离
+            f32 pushDistance = 0.0f;
+            if (entityBox.intersects(pistonBox)) {
+                pushDistance = getMovement(pistonBox, motionDirection, entityBox);
+                pushDistance = std::min(pushDistance, moveDistance) + PISTON_PUSH_EPSILON;
+            } else {
+                pushDistance = moveDistance + PISTON_PUSH_EPSILON;
+            }
 
-            // TODO: 收回时修复实体位置
-            // if (!m_extending && m_shouldRenderHead) {
-            //     fixEntityWithinPistonBase(entity, motionDirection, moveDistance);
-            // }
+            if (pushDistance > 0.0f) {
+                const Vector3 pushDelta = motionVector * pushDistance;
+                entity->move(pushDelta.x, pushDelta.y, pushDelta.z);
+
+                // 收回时修复实体位置，防止卡入活塞基座
+                if (!m_extending && m_shouldRenderHead) {
+                    fixEntityWithinPistonBase(*entity, motionDirection, moveDistance);
+                }
+            }
         }
+    }
+}
+
+void PistonBlockEntity::fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance) {
+    // MC 1.16.5: fixEntityWithinPistonBase
+    // 当活塞收回时，检查实体是否卡在活塞基座内
+    // 如果是，将实体推出到基座之外
+
+    // 活塞基座碰撞箱（方块本身）
+    const AxisAlignedBB pistonBaseBox(
+        static_cast<f32>(m_pos.x),
+        static_cast<f32>(m_pos.y),
+        static_cast<f32>(m_pos.z),
+        static_cast<f32>(m_pos.x + 1),
+        static_cast<f32>(m_pos.y + 1),
+        static_cast<f32>(m_pos.z + 1));
+
+    const AxisAlignedBB entityBox = entity.boundingBox();
+
+    // 检查实体是否与活塞基座相交
+    if (!entityBox.intersects(pistonBaseBox)) {
+        return;
+    }
+
+    // 计算推动方向（与活塞收回方向相反）
+    const Direction pushDirection = Directions::opposite(direction);
+
+    // 计算推动距离
+    const f32 pushDistance = getMovement(pistonBaseBox, pushDirection, entityBox) + PISTON_PUSH_EPSILON;
+
+    // 如果推动距离很小，说明实体已经在正确位置
+    if (pushDistance <= PISTON_PUSH_EPSILON) {
+        return;
+    }
+
+    // 限制推动距离不超过总移动距离
+    const f32 actualPush = std::min(pushDistance, moveDistance + PISTON_PUSH_EPSILON);
+
+    if (actualPush > 0.0f) {
+        const Vector3 pushVector = toDirectionVector(pushDirection) * actualPush;
+        entity.move(pushVector.x, pushVector.y, pushVector.z);
     }
 }
 

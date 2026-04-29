@@ -106,6 +106,18 @@ private:
     void moveCollidedEntities(IWorld& world, float progressDelta);
 
     /**
+     * @brief 收回时修复卡入活塞基座的实体。
+     *
+     * MC 1.16.5: 当活塞收回时，如果实体被卡在活塞基座位置，
+     * 需要将实体推出到活塞基座之外。
+     *
+     * @param entity 实体指针
+     * @param direction 活塞运动方向（收回方向）
+     * @param moveDistance 移动距离
+     */
+    void fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance);
+
+    /**
      * @brief 按当前方块位置与进度偏移 AABB。
      * @param aabb 方块局部 AABB
      * @return 偏移后的世界坐标 AABB
