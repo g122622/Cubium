@@ -330,13 +330,176 @@ ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const It
 }
 
 ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32 button) {
-    // 拖拽分发 - 状态机实现
+    // MC 1.16.5 拖拽分发状态机
     // button: 0=开始拖拽, 1=添加槽位, 2=结束拖拽
+    // m_dragMode: 0=均匀分发(左键), 1=逐个分发(右键), 2=全部分发(中键)
+
+    int prevDragEvent = m_dragEvent;
+    m_dragEvent = getDragEvent(button);
+
+    // 检查状态是否有效
+    if ((prevDragEvent != 1 || m_dragEvent != 2) && prevDragEvent != m_dragEvent) {
+        resetDrag();
+    } else if (m_carried.isEmpty()) {
+        resetDrag();
+    } else if (m_dragEvent == 0) {
+        // 开始拖拽 - 确定拖拽模式
+        m_dragMode = extractDragMode(button);
+        if (isValidDragMode(m_dragMode)) {
+            m_dragEvent = 1;
+            m_dragSlots.clear();
+        } else {
+            resetDrag();
+        }
+    } else if (m_dragEvent == 1) {
+        // 添加槽位到拖拽列表
+        ItemStack carried = m_carried;
+        if (canDragIntoSlot(slot, carried) && slot.mayPlace(carried)) {
+            if (m_dragMode == 2 || carried.getCount() > static_cast<i32>(m_dragSlots.size())) {
+                m_dragSlots.push_back(slotIndex);
+            }
+        }
+    } else if (m_dragEvent == 2) {
+        // 结束拖拽 - 分发物品
+        if (!m_dragSlots.empty()) {
+            ItemStack toDistribute = m_carried.copy();
+            int totalToDistribute = m_carried.getCount();
+
+            // 首先计算每个槽位可以放入多少
+            std::vector<std::pair<i32, i32>> slotAmounts; // slotIndex, amount
+            for (i32 dragSlotIndex : m_dragSlots) {
+                Slot* dragSlot = getSlot(dragSlotIndex);
+                if (dragSlot == nullptr) continue;
+
+                ItemStack existing = dragSlot->getItem();
+                int maxStackSize = dragSlot->getMaxStackSize(toDistribute);
+                int space = existing.isEmpty() ? maxStackSize : maxStackSize - existing.getCount();
+
+                if (space > 0 && (existing.isEmpty() || existing.canMergeWith(toDistribute))) {
+                    slotAmounts.push_back({dragSlotIndex, space});
+                }
+            }
+
+            // 根据拖拽模式分发
+            if (m_dragMode == 0) {
+                // 均匀分发
+                int slotsRemaining = static_cast<int>(slotAmounts.size());
+                for (auto& [idx, space] : slotAmounts) {
+                    if (totalToDistribute <= 0) break;
+
+                    int perSlot = totalToDistribute / slotsRemaining;
+                    if (perSlot == 0) perSlot = 1;
+                    perSlot = std::min(perSlot, space);
+                    perSlot = std::min(perSlot, totalToDistribute);
+
+                    Slot* dragSlot = getSlot(idx);
+                    if (dragSlot != nullptr) {
+                        ItemStack existing = dragSlot->getItem();
+                        if (existing.isEmpty()) {
+                            dragSlot->set(toDistribute.split(perSlot));
+                        } else {
+                            existing.grow(perSlot);
+                            dragSlot->set(existing);
+                            toDistribute.shrink(perSlot);
+                        }
+                        dragSlot->setChanged();
+                        notifySlotChanged(idx, dragSlot->getItem());
+                    }
+                    totalToDistribute -= perSlot;
+                    slotsRemaining--;
+                }
+            } else if (m_dragMode == 1) {
+                // 逐个分发 (右键拖拽)
+                for (auto& [idx, space] : slotAmounts) {
+                    if (totalToDistribute <= 0) break;
+
+                    int amount = std::min(1, space);
+                    amount = std::min(amount, totalToDistribute);
+
+                    Slot* dragSlot = getSlot(idx);
+                    if (dragSlot != nullptr) {
+                        ItemStack existing = dragSlot->getItem();
+                        if (existing.isEmpty()) {
+                            ItemStack splitItem = toDistribute.split(amount);
+                            dragSlot->set(splitItem);
+                        } else {
+                            existing.grow(amount);
+                            dragSlot->set(existing);
+                            toDistribute.shrink(amount);
+                        }
+                        dragSlot->setChanged();
+                        notifySlotChanged(idx, dragSlot->getItem());
+                    }
+                    totalToDistribute -= amount;
+                }
+            } else if (m_dragMode == 2) {
+                // 全部分发 (中键拖拽) - 尝试填满每个槽位
+                for (auto& [idx, space] : slotAmounts) {
+                    if (totalToDistribute <= 0) break;
+
+                    int amount = std::min(space, totalToDistribute);
+
+                    Slot* dragSlot = getSlot(idx);
+                    if (dragSlot != nullptr) {
+                        ItemStack existing = dragSlot->getItem();
+                        if (existing.isEmpty()) {
+                            dragSlot->set(toDistribute.split(amount));
+                        } else {
+                            existing.grow(amount);
+                            dragSlot->set(existing);
+                            toDistribute.shrink(amount);
+                        }
+                        dragSlot->setChanged();
+                        notifySlotChanged(idx, dragSlot->getItem());
+                    }
+                    totalToDistribute -= amount;
+                }
+            }
+
+            // 更新鼠标物品
+            m_carried = toDistribute.isEmpty() ? ItemStack() : toDistribute;
+        }
+        resetDrag();
+    } else {
+        resetDrag();
+    }
+
     (void)slot;
-    (void)slotIndex;
-    (void)button;
-    // TODO: 实现完整的拖拽分发状态机
     return m_carried;
+}
+
+void AbstractContainerMenu::resetDrag() {
+    m_dragEvent = 0;
+    m_dragMode = 0;
+    m_dragSlots.clear();
+}
+
+i32 AbstractContainerMenu::getDragEvent(i32 button) {
+    // 从 button 中提取拖拽事件
+    // MC 1.16.5: button 包含 dragMode (高位) 和 dragEvent (低位)
+    return button & 0x3;
+}
+
+i32 AbstractContainerMenu::extractDragMode(i32 button) {
+    // 从 button 中提取拖拽模式
+    return (button >> 2) & 0x3;
+}
+
+bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const {
+    if (m_playerInventory == nullptr) return false;
+    // 模式 2 (全部分发) 只在创造模式下有效
+    // MC 1.16.5: 检查玩家是否为创造模式
+    // TODO: 添加创造模式检查
+    (void)dragMode;
+    return true;
+}
+
+bool AbstractContainerMenu::canDragIntoSlot(Slot& slot, const ItemStack& stack) const {
+    // 检查是否可以拖拽物品到该槽位
+    if (slot.isEmpty()) {
+        return slot.mayPlace(stack);
+    }
+    return slot.mayPlace(stack) && slot.getItem().canMergeWith(stack);
 }
 
 ItemStack AbstractContainerMenu::handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack) {

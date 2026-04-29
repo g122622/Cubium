@@ -266,6 +266,37 @@ private:
     ItemStack handleQuickCraft(Slot& slot, i32 slotIndex, i32 button);
 
     /**
+     * @brief 重置拖拽状态
+     */
+    void resetDrag();
+
+    /**
+     * @brief 从 button 参数中提取拖拽事件状态
+     */
+    static i32 getDragEvent(i32 button);
+
+    /**
+     * @brief 从 button 参数中提取拖拽模式
+     */
+    static i32 extractDragMode(i32 button);
+
+    /**
+     * @brief 计算拖拽时每个槽位的物品数量
+     */
+    static void computeDragStackSize(const std::vector<i32>& dragSlots, i32 dragMode,
+                                       ItemStack& stack, i32 slotCount);
+
+    /**
+     * @brief 检查拖拽模式是否有效
+     */
+    [[nodiscard]] bool isValidDragMode(i32 dragMode) const;
+
+    /**
+     * @brief 检查是否可以拖拽到指定槽位
+     */
+    [[nodiscard]] bool canDragIntoSlot(Slot& slot, const ItemStack& stack) const;
+
+    /**
      * @brief 处理双击拾取全部
      */
     ItemStack handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
@@ -284,6 +315,11 @@ protected:
     i32 m_playerInvEnd = -1;     // 玩家背包结束索引
     i32 m_hotbarStart = -1;      // 快捷栏起始索引
     i32 m_hotbarEnd = -1;        // 快捷栏结束索引
+
+    // 拖拽状态
+    i32 m_dragEvent = 0;         // 拖拽事件状态 (0=无, 1=添加槽位, 2=结束)
+    i32 m_dragMode = 0;          // 拖拽模式 (0=均匀分发, 1=逐个分发, 2=全部分发)
+    std::vector<i32> m_dragSlots; // 拖拽目标槽位列表
 
 private:
     i16 m_transactionId = 0;  // 事务ID计数器，用于防重放
