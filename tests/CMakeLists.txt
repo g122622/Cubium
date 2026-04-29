@@ -82,6 +82,7 @@ add_executable(mc_tests
     entity/PatrollerSupportTypesTest.cpp
     entity/PlayerSupportTypesTest.cpp
     entity/PlayerPoseCollisionTest.cpp
+    common/entity/PlayerSwimTest.cpp
     entity/ProjectileHelperTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp

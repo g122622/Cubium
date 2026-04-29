@@ -6,6 +6,7 @@
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../inventory/CreativeInventory.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../../world/IWorld.hpp"
@@ -1067,9 +1068,10 @@ const entity::effect::EffectInstance* Player::getEffect(entity::effect::EffectTy
 // ============================================================================
 
 bool Player::isActualSwimming() const {
-    // 游泳条件：在水中、不在地面上、且不在飞行模式
-    // 参考 MC 1.16.5 LivingEntity.isActualySwimming()
-    return isInWater() && !m_onGround && !m_abilities.flying;
+    // 游泳条件（MC 1.16.5: LivingEntity.isActualySwimming()）
+    // 需要: 眼睛在水中 && 身体在水中 && 不在飞行模式
+    // MC: return this.eyesInWater && this.isInWater() && !this.abilities.isFlying;
+    return areEyesInWater() && isInWater() && !m_abilities.flying;
 }
 
 void Player::updateSwimming() {
@@ -1079,6 +1081,7 @@ void Player::updateSwimming() {
     bool isSwimmingNow = isActualSwimming();
 
     // 平滑过渡游泳动画
+    // MC 1.16.5: swimAnimation 增加/减少 0.09f
     if (isSwimmingNow) {
         m_swimAnimation = std::min(1.0f, m_swimAnimation + 0.09f);
     } else {
@@ -1166,7 +1169,7 @@ void Player::travelInWater(f32 strafing, f32 vertical, f32 forward) {
     // 1. 水中重力减弱（浮力）
     // 2. 水中阻力
     // 3. 深度守卫附魔增加速度
-    // 4. 海豚的恩惠增加速度
+    // 4. 海豚的恩惠减少阻力
     // 5. 水中移动
 
     // 检查是否在水中
@@ -1182,20 +1185,37 @@ void Player::travelInWater(f32 strafing, f32 vertical, f32 forward) {
         swimSpeed *= physics::SWIM_SPEED_SPRINT_MULTIPLIER;
     }
 
-    // TODO: 深度守卫附魔加成
-    // i32 depthStriderLevel = EnchantmentHelper::getDepthStriderModifier(this);
-    // if (depthStriderLevel > 0) {
-    //     swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
-    //     swimSpeed = std::min(swimSpeed, 0.1f);  // 上限
-    // }
+    // 深度守卫附魔加成
+    // MC 1.16.5: float f7 = (float)EnchantmentHelper.getDepthStriderModifier(this);
+    // TODO: 实现附魔系统后获取深度守卫等级
+    i32 depthStriderLevel = 0;  // EnchantmentHelper::getDepthStriderModifier(this);
+    if (depthStriderLevel > 0) {
+        // 深度守卫效果：
+        // 1. 增加游泳速度
+        swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
+        // 2. 速度上限
+        swimSpeed = std::min(swimSpeed, 0.1f);
+    }
 
-    // TODO: 海豚的恩惠药水效果
-    // if (hasEffect(EffectType::DolphinsGrace)) {
-    //     swimSpeed *= physics::DOLPHINS_GRACE_SPEED_BONUS;
-    // }
+    // 海豚的恩惠药水效果
+    // MC 1.16.5: if (this.isPotionActive(Effects.DOLPHINS_GRACE))
+    bool hasDolphinsGrace = hasEffect(entity::effect::EffectType::DolphinsGrace);
 
     // 水中阻力
     f32 waterDrag = m_isSprinting ? physics::WATER_DRAG_SPRINT : physics::WATER_DRAG;
+
+    // 深度守卫对阻力的影响
+    // MC: f5 += (0.54600006F - f5) * f7 / 3.0F
+    if (depthStriderLevel > 0) {
+        waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) *
+                     static_cast<f32>(depthStriderLevel) / 3.0f;
+    }
+
+    // 海豚的恩惠大幅减少水中阻力
+    // MC: if (this.isPotionActive(Effects.DOLPHINS_GRACE)) { f5 = 0.96F; }
+    if (hasDolphinsGrace) {
+        waterDrag = physics::DOLPHINS_GRACE_WATER_DRAG;
+    }
 
     // 根据朝向计算移动方向
     if (strafing != 0.0f || forward != 0.0f) {
@@ -1222,15 +1242,12 @@ void Player::travelInWater(f32 strafing, f32 vertical, f32 forward) {
     // 垂直移动（跳跃向上，潜行向下）
     if (m_isJumping) {
         // 向上游泳
+        // MC: this.setMotion(this.getMotion().add(0.0D, 0.04D, 0.0D));
         m_velocity.y += physics::SWIM_UP_SPEED;
     } else if (m_isSneaking) {
         // 向下潜
         m_velocity.y -= physics::SWIM_DOWN_SPEED;
     }
-
-    // 应用水中重力（减弱的重力，模拟浮力）
-    // MC: float f5 = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
-    // 然后在移动后应用浮力逻辑
 
     // 移动（使用碰撞检测）
     if (m_physicsEngine) {
@@ -1245,16 +1262,25 @@ void Player::travelInWater(f32 strafing, f32 vertical, f32 forward) {
     }
 
     // 应用水中阻力
+    // MC: this.setMotion(this.getMotion().mul((double)f5, (double)0.8F, (double)f5));
+    // 垂直方向阻力固定为 0.8
     m_velocity.x *= waterDrag;
-    m_velocity.y *= waterDrag;
+    m_velocity.y *= 0.8f;  // 水中垂直阻力固定为 0.8
     m_velocity.z *= waterDrag;
 
     // 应用水中的"浮力"效果
-    // MC 使用 buoyancy 逻辑，简化为减弱的重力
-    // 如果Y速度向下，减慢下落
-    if (m_velocity.y < 0.0f && !m_isSneaking) {
-        // 轻微上浮效果
-        m_velocity.y += physics::WATER_GRAVITY * 0.5f;
+    // MC 1.16.5: func_233626_a_() - 浮力计算
+    // 重力减少到 1/16 (0.08 / 16 = 0.005)
+    if (!m_abilities.flying && !m_noGravity) {
+        f32 gravity = physics::GRAVITY;
+        f32 buoyancy = gravity / 16.0f;  // MC 标准：重力 / 16
+
+        // MC 有特殊的下落状态检测
+        // 这里简化为直接应用浮力
+        if (m_velocity.y < 0.0f) {
+            // 下落时应用浮力
+            m_velocity.y += buoyancy;
+        }
     }
 
     // 重置过小的速度
@@ -1270,17 +1296,35 @@ void Player::swimUp() {
 
 void Player::updateAirSupply() {
     // 参考 MC 1.16.5 LivingEntity.baseTick() 空气处理
-    // 和 WaterMobEntity::updateAirSupply()
 
     bool inWater = isInWater();
     bool inLava = isInLava();
 
+    // 检查是否能水下呼吸
+    // MC 1.16.5: EffectUtils.canBreatheUnderwater()
+    // - 水下呼吸效果 (WaterBreathing)
+    // - 潮涌能量效果 (ConduitPower)
+    bool canBreatheUnderwater = hasEffect(entity::effect::EffectType::WaterBreathing) ||
+                                  hasEffect(entity::effect::EffectType::ConduitPower);
+
+    // 创造模式或旁观者模式下不消耗空气
+    bool invulnerableToDrowning = m_abilities.invulnerable || canBreatheUnderwater;
+
+    // 检测入水/出水状态变化（需要在空气处理之前）
+    bool justEnteredWater = inWater && !m_wasInWater;
+    bool justExitedWater = !inWater && m_wasInWater;
+
     if (inWater || inLava) {
-        // 在水或岩浆中，消耗空气
-        if (!m_abilities.invulnerable) {
+        // 在水或岩浆中
+        if (!invulnerableToDrowning) {
+            // 空气消耗
+            // MC 1.16.5: decreaseAirSupply() 会考虑水下呼吸附魔
+            // 有水下呼吸附魔时，有概率不消耗空气
+            // TODO: 实现水下呼吸附魔（Respiration enchantment）
             m_airSupply--;
 
-            // 空气耗尽时溺水
+            // 空气耗尽到 -20 时触发溺水
+            // MC 1.16.5: getAir() == -20 时重置为 0 并造成伤害
             if (m_airSupply <= -20) {
                 m_airSupply = 0;
 
@@ -1288,30 +1332,38 @@ void Player::updateAirSupply() {
                 m_drownDamageTimer++;
                 if (m_drownDamageTimer >= physics::DROWN_DAMAGE_INTERVAL) {
                     m_drownDamageTimer = 0;
-                    // TODO: 造成溺水伤害
-                    // damage(DamageSource::DROWN, physics::DROWN_DAMAGE_AMOUNT);
+                    // 造成溺水伤害
+                    // MC 1.16.5: attackEntityFrom(DamageSource.DROWN, 2.0F)
                     damage(physics::DROWN_DAMAGE_AMOUNT);
                 }
 
                 // TODO: 生成气泡粒子
+                // MC 1.16.5: for (int i = 0; i < 8; ++i) {
+                //     world.addParticle(ParticleTypes.BUBBLE, ...);
+                // }
             }
+        }
+
+        // 入水溅水声
+        if (justEnteredWater) {
+            // MC 1.16.5: this.world.playSound(null, this.getPosX(), this.getPosY(), this.getPosZ(),
+            //              SoundEvents.ENTITY_PLAYER_SPLASH, this.getSoundCategory(), 1.0F, 1.0F);
+            playSound(SoundEvents::ENTITY_PLAYER_SPLASH, 1.0f, 1.0f);
+            // TODO: 触发入水粒子效果（水花飞溅）
         }
     } else {
         // 不在水中，恢复空气
-        m_airSupply = physics::DEFAULT_MAX_AIR;
+        // MC 1.16.5: determineNextAir() 每tick恢复4点
+        m_airSupply = std::min(m_airSupply + 4, physics::DEFAULT_MAX_AIR);
         m_drownDamageTimer = 0;
+
+        // 出水声音（可选，MC 中没有专门的出水声）
+        if (justExitedWater) {
+            // MC 中出水没有特定声音，但可以添加轻微的声音效果
+        }
     }
 
-    // 检测入水/出水状态变化
-    if (inWater && !m_wasInWater) {
-        // 入水事件
-        // TODO: 触发入水音效
-        // TODO: 触发入水粒子效果
-    } else if (!inWater && m_wasInWater) {
-        // 出水事件
-        // TODO: 触发出水音效
-    }
-
+    // 更新上一帧状态
     m_wasInWater = inWater;
 }
 

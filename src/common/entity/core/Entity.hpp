@@ -604,9 +604,42 @@ public:
     [[nodiscard]] virtual bool isInWater() const { return m_inWater; }
 
     /**
+     * @brief 设置水中状态（测试用）
+     *
+     * 正常情况下应该通过 updateEnvironmentState() 自动更新。
+     * 此方法主要用于测试目的。
+     */
+    void setInWater(bool inWater) { m_inWater = inWater; }
+
+    /**
      * @brief 检查实体是否在岩浆中
      */
     [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
+
+    /**
+     * @brief 检查眼睛是否在水下
+     *
+     * 参考 MC 1.16.5 Entity.areEyesInFluid(FluidTags.WATER)
+     * 用于判断是否可以游泳、是否消耗氧气等
+     *
+     * @return 如果眼睛位置在水方块中返回 true
+     */
+    [[nodiscard]] bool areEyesInWater() const { return m_eyesInWater; }
+
+    /**
+     * @brief 检查眼睛是否在岩浆中
+     */
+    [[nodiscard]] bool areEyesInLava() const { return m_eyesInLava; }
+
+    /**
+     * @brief 检查是否可以游泳
+     *
+     * MC 1.16.5: canSwim() = eyesInWater && inWater
+     * 用于判断游泳姿态切换
+     *
+     * @return 如果可以游泳返回 true
+     */
+    [[nodiscard]] bool canSwim() const { return m_eyesInWater && m_inWater; }
 
     /**
      * @brief 检查实体是否在梯子或藤蔓上
@@ -623,9 +656,21 @@ public:
     /**
      * @brief 获取实体浸入水的高度
      * MC 1.16.5: func_233571_b_(FluidTags.WATER)
-     * @return 流体高度（方块单位），如果不在水中返回0
+     * @return 流体高度（0.0-1.0），如果不在水中返回0
      */
     [[nodiscard]] virtual f32 getFluidHeight() const { return m_fluidHeight; }
+
+    /**
+     * @brief 获取水浸入高度
+     * @return 水浸入高度（0.0-1.0）
+     */
+    [[nodiscard]] f32 waterHeight() const { return m_waterHeight; }
+
+    /**
+     * @brief 获取岩浆浸入高度
+     * @return 岩浆浸入高度（0.0-1.0）
+     */
+    [[nodiscard]] f32 lavaHeight() const { return m_lavaHeight; }
 
     /**
      * @brief 设置流体高度
@@ -951,8 +996,12 @@ protected:
     // 环境状态
     bool m_inWater = false;
     bool m_inLava = false;
-    f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位）
-    i32 m_fire = 0;             // 着火时间（tick）
+    bool m_eyesInWater = false;    // 眼睛是否在水下
+    bool m_eyesInLava = false;     // 眼睛是否在岩浆中
+    f32 m_fluidHeight = 0.0f;      // 流体高度（方块单位，已废弃）
+    f32 m_waterHeight = 0.0f;      // 水浸入高度（0.0-1.0）
+    f32 m_lavaHeight = 0.0f;       // 岩浆浸入高度（0.0-1.0）
+    i32 m_fire = 0;                // 着火时间（tick）
 
     // 空气值
     i32 m_air = 300;            // 默认最大空气值

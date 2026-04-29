@@ -511,6 +511,11 @@ public:
     [[nodiscard]] f32 swimSoundVolume() const { return m_swimSoundVolume; }
 
     /**
+     * @brief 获取上一tick是否在水中（用于检测入水/出水）
+     */
+    [[nodiscard]] bool wasInWater() const { return m_wasInWater; }
+
+    /**
      * @brief 获取脚步声位置
      */
     [[nodiscard]] BlockPos stepSoundPos() const { return m_stepSoundPos; }

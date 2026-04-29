@@ -1,5 +1,7 @@
 #include "WaterMobEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../../physics/PhysicsConstants.hpp"
 
 namespace mc {
 
@@ -11,14 +13,15 @@ WaterMobEntity::WaterMobEntity(LegacyEntityType type, EntityId id)
 }
 
 bool WaterMobEntity::isInWater() const {
-    // TODO: 检查是否在水中
-    // return isInWaterState();
-    return false;
+    // 水生生物使用基类的 isInWater() 实现
+    // 基类会检查 m_inWater 标志，该标志在 updateEnvironmentState() 中更新
+    return Entity::isInWater();
 }
 
 bool WaterMobEntity::isInWaterOrBubble() const {
-    // TODO: 检查是否在水中或气泡柱中
-    // return isInWater() || isInBubbleColumn();
+    // 检查是否在水中或气泡柱中
+    // 气泡柱目前未实现，暂时只检查水中状态
+    // TODO: 添加气泡柱检测 (Blocks::BUBBLE_COLUMN)
     return isInWater();
 }
 
@@ -38,19 +41,21 @@ void WaterMobEntity::registerAttributes() {
 }
 
 void WaterMobEntity::updateAirSupply() {
-    bool wasInWater = isInWater();
+    bool inWater = isInWater();
 
-    if (!wasInWater) {
-        // 不在水中，消耗空气
+    if (!inWater) {
+        // 不在水中，消耗空气（水生生物在水外会窒息）
         m_airSupply--;
         if (m_airSupply <= -20) {
             m_airSupply = 0;
             // 溺水伤害
             m_drownDamageTimer++;
-            if (m_drownDamageTimer >= DROWN_DAMAGE_INTERVAL) {
+            if (m_drownDamageTimer >= physics::DROWN_DAMAGE_INTERVAL) {
                 m_drownDamageTimer = 0;
-                // TODO: 造成伤害
-                // damage(DamageSource::DROWN, DROWN_DAMAGE_AMOUNT);
+                // 造成溺水伤害
+                // 参考 MC 1.16.5 LivingEntity.baseTick()
+                auto damageSource = DamageSources::drown();
+                hurt(damageSource, DROWN_DAMAGE_AMOUNT);
             }
         }
     } else {
