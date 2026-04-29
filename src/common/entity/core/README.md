@@ -27,6 +27,24 @@
 | `DataParameter.hpp` | 数据参数定义 |
 | `MoverType.hpp` | 移动类型枚举 |
 
+## 物理系统
+
+### 移动与碰撞
+- `Entity::moveWithCollision()` - 带碰撞检测的移动，自动处理步进
+- `Entity::doBlockCollisions()` - 方块碰撞回调，在移动后触发 `onLanded` 和 `onEntityWalk`
+- `Entity::isSteppingCarefully()` - 检测是否小心行走（潜行时返回true）
+- `Entity::canTriggerWalking()` - 检测是否能触发行走事件
+
+### 击退系统
+- `LivingEntity::applyKnockback(strength, ratioX, ratioZ)` - 应用击退效果
+- `LivingEntity::applyKnockbackFrom(attacker, strength)` - 从攻击者方向计算击退
+- 击退抗性属性 `generic.knockback_resistance` 自动应用
+
+### 姿态系统
+- `Entity::setPose()` / `Entity::getPose()` - 姿态状态管理
+- `Entity::refreshDimensions()` - 刷新尺寸和碰撞箱
+- `Player::updatePose()` - 自动姿态判断（睡眠>游泳>潜行>站立）
+
 ## 尺寸与碰撞箱
 
 - `EntitySize` 现在同时保存宽度、高度和眼睛高度，并提供碰撞箱构造帮助。
@@ -84,6 +102,11 @@ if (auto* living = dynamic_cast<LivingEntity*>(entity)) {
 if (auto* mob = dynamic_cast<MobEntity*>(entity)) {
     mob->goalSelector().addGoal(1, std::make_unique<SwimGoal>(mob));
 }
+
+// 应用击退
+if (auto* living = dynamic_cast<LivingEntity*>(target)) {
+    living->applyKnockbackFrom(attacker, 1.0f);
+}
 ```
 
 ## 依赖关系
@@ -92,9 +115,12 @@ if (auto* mob = dynamic_cast<MobEntity*>(entity)) {
 - `entity/attribute/` - 属性系统
 - `entity/damage/` - 伤害系统
 - `world/IWorld.hpp` - 世界级声音和位置查询入口
+- `world/block/Block.hpp` - 方块交互回调
+- `physics/PhysicsEngine.hpp` - 物理引擎
 - `entity/ai/` - AI系统
 
 ## 测试用例
 
 - [tests/entity/LivingEntityTests.cpp](../../../../tests/entity/LivingEntityTests.cpp) 验证受伤、死亡和环境声发声链路。
 - [tests/common/entity/PlayerMovementTest.cpp](../../../../tests/common/entity/PlayerMovementTest.cpp) 验证玩家受伤和死亡时的声音事件。
+- [tests/common/test_entity_physics.cpp](../../../../tests/common/test_entity_physics.cpp) 验证重力、击退、滑度等物理常量。

@@ -14,6 +14,7 @@ add_executable(mc_tests
     # common/test_blockid.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
     # common/test_noise.cpp     # 宸茬Щ闄?- Noise 绫诲凡鍒犻櫎
     common/test_entity.cpp
+    common/test_entity_physics.cpp
     common/test_chunksync.cpp
     common/test_localconnection.cpp
     common/test_chunkloadticket.cpp

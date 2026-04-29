@@ -19,17 +19,22 @@ physics/
 
 ### PhysicsConstants.hpp
 
-**职责**：定义 Minecraft 兼容的物理常量。
+**职责**：定义 Minecraft 1.16.5 兼容的物理常量。
 
 **内容**：
-- **重力和阻力**：`GRAVITY`（0.02 blocks/tick²）、`DRAG_AIR`、`DRAG_GROUND`、`DRAG_WATER`、`DRAG_LAVA`
-- **运动参数**：`JUMP_VELOCITY`（0.42）、`STEP_HEIGHT`（0.6）、`MOTION_THRESHOLD`（0.003）
-- **滑度系数**：`SLIPPERINESS_DEFAULT`、`SLIPPERINESS_ICE`、`SLIPPERINESS_SLIME`
+- **重力和阻力**：`GRAVITY`（0.08 blocks/tick²，MC 1.16.5 标准）、`DRAG_AIR`（0.98）、`DRAG_GROUND`（0.546，滑度*0.91）、`DRAG_WATER`、`DRAG_LAVA`
+- **运动参数**：`JUMP_VELOCITY`（0.42，MC 1.16.5 标准）、`STEP_HEIGHT`（0.6）、`MOTION_THRESHOLD`（0.003）
+- **滑度系数**：`SLIPPERINESS_DEFAULT`（0.6）、`SLIPPERINESS_ICE`（0.98）、`SLIPPERINESS_SLIME`（0.5）
 - **物品物理**：`ITEM_GRAVITY`、`ITEM_DRAG`
 - **粒子物理**：`RAIN_GRAVITY`、`SNOW_GRAVITY`
 - **实体限制**：`MAX_MOVEMENT_SPEED`、`MAX_FALL_SPEED`
 - **游泳潜水**：`SWIM_JUMP_VELOCITY`、`WATER_GRAVITY`
 - **爆炸**：`EXPLOSION_RADIUS_SCALE`
+
+**重要对齐说明**：
+- 重力值 `GRAVITY = 0.08` 已与 MC 1.16.5 对齐（原错误值 0.01）
+- 地面阻力计算：`slipperiness * 0.91`（默认滑度 0.6 → 0.546）
+- 动态滑度：通过 `Block::getSlipperiness()` 获取，冰块 0.98，蜂蜜块 0.5
 
 **使用方法**：
 ```cpp

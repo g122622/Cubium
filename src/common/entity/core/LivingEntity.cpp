@@ -4,6 +4,9 @@
 #include "../../util/math/random/Random.hpp"
 #include "../../physics/PhysicsConstants.hpp"
 #include "../../physics/PhysicsEngine.hpp"
+#include "../../world/IWorld.hpp"
+#include "../../world/block/Block.hpp"
+#include "../../world/block/BlockPos.hpp"
 #include <cmath>
 
 namespace mc {
@@ -382,14 +385,29 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
     // 获取移动速度属性
     f32 moveSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
 
+    // MC 1.16.5: 获取脚下方块的滑度
+    // 参考 LivingEntity.java:2148-2152
+    f32 slipperiness = 0.6f;  // 默认滑度
+    if (m_onGround && m_world != nullptr) {
+        // 获取脚下方块位置
+        BlockPos blockPos(
+            static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),  // 脚下位置
+            static_cast<i32>(std::floor(m_position.z))
+        );
+        const BlockState* blockState = m_world->getBlockState(blockPos);
+        if (blockState != nullptr) {
+            slipperiness = blockState->getBlock().getSlipperiness(*blockState, m_world, &blockPos, this);
+        }
+    }
+
     // 根据是否在地面选择不同的移动因子
     f32 moveFactor;
     if (m_onGround) {
         // 地面移动：使用滑度计算
         // MC 公式: speed * (0.21600002F / (slipperiness^3))
-        // 默认滑度 0.6 -> 0.21600002 / 0.216 = 1.0
-        // 简化：直接使用 moveSpeed
-        moveFactor = moveSpeed * 0.21600002f / (0.6f * 0.6f * 0.6f);
+        // 参考 LivingEntity.java:2151 和 func_233633_a_
+        moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
     } else {
         // 空中移动：使用跳跃移动因子
         moveFactor = m_jumpMovementFactor;
@@ -451,9 +469,12 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
     }
 
     // 更新地面摩擦
+    // MC 1.16.5: 地面摩擦 = slipperiness * 0.91F
+    // 参考 LivingEntity.java:2151, 2167
     if (m_onGround) {
-        m_velocity.x *= DRAG_GROUND;
-        m_velocity.z *= DRAG_GROUND;
+        f32 groundFriction = slipperiness * 0.91f;
+        m_velocity.x *= groundFriction;
+        m_velocity.z *= groundFriction;
     }
 }
 
