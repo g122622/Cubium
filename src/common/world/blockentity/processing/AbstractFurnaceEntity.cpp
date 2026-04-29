@@ -306,6 +306,14 @@ void AbstractFurnaceEntity::smeltWithRecipe(const crafting::SmeltingRecipe* reci
         m_inventory.setOutputItem(output);
     }
 
+    // MC 1.16.5: 湿海绵干燥逻辑
+    // 当输入是湿海绵且燃料槽有空桶时，将空桶变为水桶
+    // TODO: 待 Items::BUCKET, Items::WATER_BUCKET 注册后实现
+    // 参考: AbstractFurnaceTileEntity.smelt() 第 311-313 行:
+    // if (itemstack.getItem() == Blocks.WET_SPONGE.asItem() && !this.items.get(1).isEmpty() && this.items.get(1).getItem() == Items.BUCKET) {
+    //     this.items.set(1, new ItemStack(Items.WATER_BUCKET));
+    // }
+
     m_storedExperience += recipe->getExperience();
 
     setChanged();
@@ -317,9 +325,13 @@ bool AbstractFurnaceEntity::burnFuel() {
         return false;
     }
 
-    fuel.shrink(1);
+    // MC 1.16.5: 容器物品消耗逻辑
+    // 如果燃料是岩浆桶，消耗后返回空桶
+    // 如果燃料是湿海绵且燃料槽有桶，产出水桶
+    // TODO: 待 Items::LAVA_BUCKET, Items::BUCKET, Items::WATER_BUCKET 注册后实现
+    // 参考: AbstractFurnaceTileEntity.smelt() 第 311-313 行
 
-    // 目前容器物品（如岩浆桶->空桶）尚未接入桶物品注册，先保持与现有物品系统一致。
+    fuel.shrink(1);
     m_inventory.setFuelItem(fuel);
     return true;
 }

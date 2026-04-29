@@ -61,12 +61,13 @@ public:
     /**
      * @brief 向库存添加物品
      *
-     * 尝试将物品添加到库存中的空槽位或与现有堆叠合并。
+     * MC 1.16.5 实现：查找第一个空槽位，将整个物品放入该槽位。
+     * 不尝试与现有堆叠合并。
      *
      * @param stack 要添加的物品堆
-     * @return 剩余未添加的物品堆（如果全部添加成功则为空）
+     * @return 物品被放入的槽位索引，如果没有空槽位返回 -1
      */
-    ItemStack addItemStack(ItemStack stack);
+    i32 addItemStack(const ItemStack& stack);
 
     /**
      * @brief 设置战利品表

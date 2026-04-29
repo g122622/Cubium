@@ -41,12 +41,17 @@ interactive/
 
 ### DispenserBlockEntity.hpp/cpp
 
-**职责**：发射器/投掷器方块实体。
+**职责**：发射器/投掷器方块实体基类。
 
 **主要功能**：
 - 9格物品存储
 - 红石信号触发发射
 - 物品行为分发
+- 战利品表支持
+
+**MC 1.16.5 对齐**：
+- addItemStack 返回 int（槽位索引或 -1），而非剩余物品堆
+- getDispenseSlot 使用储水池采样算法确保等概率选择
 
 ### PistonBlockEntity.hpp/cpp
 

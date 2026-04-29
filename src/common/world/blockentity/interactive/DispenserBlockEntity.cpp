@@ -136,16 +136,22 @@ i32 DispenserBlockEntity::getDispenseSlot() {
     return selectedSlot;
 }
 
-ItemStack DispenserBlockEntity::addItemStack(ItemStack stack) {
+i32 DispenserBlockEntity::addItemStack(const ItemStack& stack) {
+    // MC 1.16.5: 查找第一个空槽位，将整个物品放入该槽位
+    // 不尝试与现有堆叠合并
     if (stack.isEmpty()) {
-        return ItemStack::EMPTY;
+        return -1;
     }
 
-    ItemStack remaining = m_inventory.addItem(stack);
-    if (remaining.getCount() != stack.getCount()) {
-        setChanged();
+    for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
+        if (m_inventory.getItem(i).isEmpty()) {
+            m_inventory.setItem(i, stack.copy());
+            setChanged();
+            return i;
+        }
     }
-    return remaining;
+
+    return -1;
 }
 
 void DispenserBlockEntity::setLootTable(const String& lootTable, u64 seed) {
