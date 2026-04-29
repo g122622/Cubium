@@ -127,8 +127,13 @@ std::vector<BlockPos> DepthAveragePlacement::getPositions(
         return {basePos};
     }
 
-    // 在基准深度附近放置
-    i32 y = depthConfig->baseline + random.nextInt(depthConfig->spread * 2) - depthConfig->spread;
+    (void)region;
+
+    // 参考 MC DepthAveragePlacement.java 第18行
+    // 使用三角形分布：nextInt(spread) + nextInt(spread) - spread + baseline
+    // 这产生一个以baseline为中心的三角形分布
+    const i32 j = depthConfig->spread;
+    const i32 y = random.nextInt(j) + random.nextInt(j) - j + depthConfig->baseline;
 
     std::vector<BlockPos> positions;
     positions.emplace_back(basePos.x, y, basePos.z);

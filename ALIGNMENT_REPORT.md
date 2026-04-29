@@ -56,6 +56,12 @@
 | 珊瑚分支长度错误 | CoralFeature.cpp | 修正为2-6（原为2-4） |
 | IceSpikeFeature方块检查错误 | IceSpikeFeature.cpp | 应检查SNOW_BLOCK（暂时使用SNOW） |
 
+### 已修复的放置器问题
+
+| 问题 | 文件 | 修复内容 |
+|------|------|---------|
+| DepthAveragePlacement分布错误 | Placements.cpp | 使用三角形分布nextInt(j)+nextInt(j)-j+i |
+
 ---
 
 ## 一、地表构建器问题
