@@ -81,6 +81,7 @@ enum class PacketType : u16 {
     HotbarSet = 307,            // 快捷栏设置 (S->C)
     PlayerAbilities = 308,      // 玩家能力同步 (S->C)
     CreativeInventoryAction = 309, // 创造模式背包动作 (C->S)
+    ServerDifficulty = 310,     // 难度同步 (S->C)
 
     // 声音相关包 (S->C)
     PlaySound = 400,            // 播放声音

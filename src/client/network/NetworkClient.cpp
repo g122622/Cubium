@@ -4,6 +4,7 @@
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
+#include "common/network/packet/ServerDifficultyPacket.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/skin/core/GameProfile.hpp"
@@ -626,6 +627,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
 
         case network::PacketType::PlayerAbilities: {
             handlePlayerAbilities(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::ServerDifficulty: {
+            handleServerDifficulty(bodyDeser);
             break;
         }
 
@@ -1270,6 +1276,25 @@ void NetworkClient::handlePlayerAbilities(network::PacketDeserializer& deser) {
             packet.flySpeed(),
             packet.walkSpeed()
         );
+    }
+}
+
+void NetworkClient::handleServerDifficulty(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::ServerDifficultyPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize ServerDifficulty packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::info("[NetworkClient::handleServerDifficulty] Difficulty: {}, locked: {}",
+                  static_cast<i32>(packet.difficulty()), packet.locked());
+
+    if (m_callbacks.onDifficultyChange) {
+        m_callbacks.onDifficultyChange(packet.difficulty(), packet.locked());
     }
 }
 

@@ -18,3 +18,4 @@
 #include "EntityMetadataSerializer.hpp"
 #include "GameStateChangePacket.hpp"
 #include "ParticlePacket.hpp"
+#include "ServerDifficultyPacket.hpp"

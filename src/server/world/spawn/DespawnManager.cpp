@@ -4,6 +4,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <spdlog/spdlog.h>
@@ -64,7 +65,15 @@ bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& wo
         return false;
     }
 
-    // 只有 Monster 分类才进行消失检查
+    // 和平模式下，Monster 分类的实体应该立即消失
+    // 参考 MC 1.16.5 MobEntity.checkDespawn()
+    // 注意：MonsterEntity::isDespawnPeaceful() 默认返回 true
+    if (type->classification() == entity::EntityClassification::Monster
+        && !entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
+        return true;
+    }
+
+    // 只有 Monster 分类才进行距离消失检查
     // 动物、环境生物等不会自然消失
     if (type->classification() != entity::EntityClassification::Monster) {
         return false;

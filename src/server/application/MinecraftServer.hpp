@@ -277,6 +277,17 @@ protected:
     void setupWorldCallbacks();
 
     /**
+     * @brief 广播难度变更给所有玩家
+     */
+    void broadcastDifficultyChange();
+
+    /**
+     * @brief 序列化难度同步包
+     * @return 封装后的完整数据包，失败时返回空vector
+     */
+    [[nodiscard]] std::vector<u8> serializeDifficultyPacket();
+
+    /**
      * @brief 关闭所有管理器
      */
     void shutdownManagers();
@@ -310,6 +321,11 @@ protected:
      * @brief 发送初始天气状态给指定玩家
      */
     void sendInitialWeatherStateToPlayer(PlayerId playerId);
+
+    /**
+     * @brief 发送初始难度状态给指定玩家
+     */
+    void sendInitialDifficultyToPlayer(PlayerId playerId);
 
     /**
      * @brief 发送心跳给所有玩家

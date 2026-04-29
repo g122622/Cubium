@@ -100,6 +100,9 @@ struct NetworkClientCallbacks {
     // 游戏模式事件
     std::function<void(GameMode mode)> onGameModeChange;
 
+    // 难度事件
+    std::function<void(Difficulty difficulty, bool locked)> onDifficultyChange;
+
     // 玩家能力事件
     std::function<void(bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed)> onPlayerAbilities;
 
@@ -242,6 +245,9 @@ private:
 
     // 玩家能力包处理
     void handlePlayerAbilities(network::PacketDeserializer& deser);
+
+    // 难度同步包处理
+    void handleServerDifficulty(network::PacketDeserializer& deser);
 
     // 光照更新包处理
     void handleLightUpdate(network::PacketDeserializer& deser);

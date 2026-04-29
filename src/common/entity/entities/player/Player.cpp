@@ -334,8 +334,8 @@ void Player::tick() {
     if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
         // TODO: 从世界获取游戏规则 naturalRegeneration
         bool naturalRegeneration = true;  // 默认启用自然恢复
-        // TODO: 从世界获取难度
-        Difficulty difficulty = Difficulty::Normal;  // 默认普通难度
+        // 从世界获取难度，如果没有世界则默认为 Normal
+        Difficulty difficulty = m_world ? m_world->difficulty() : Difficulty::Normal;
         m_foodStats.tick(*this, difficulty, naturalRegeneration);
     }
 

@@ -6,6 +6,7 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -217,6 +218,11 @@ void NaturalSpawner::spawnInChunk(mc::server::ServerWorld& world, i32 chunkX, i3
 
 void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool passive) {
     // 参考 MC 1.16.5 WorldEntitySpawner.func_234979_a_
+
+    // 和平模式下不生成敌对生物
+    if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
+        hostile = false;
+    }
 
     // 获取当前时间
     u64 worldTime = world.currentTick();

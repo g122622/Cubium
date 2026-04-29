@@ -36,6 +36,7 @@
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/network/packet/ServerDifficultyPacket.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -51,7 +52,37 @@ MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
 }
 void MinecraftServer::setDifficulty(Difficulty difficulty)
 {
+    if (m_difficulty == difficulty) {
+        return;  // 难度未变化，无需同步
+    }
     m_difficulty = difficulty;
+
+    // 广播难度变更给所有玩家
+    broadcastDifficultyChange();
+}
+
+void MinecraftServer::broadcastDifficultyChange()
+{
+    auto fullPacket = serializeDifficultyPacket();
+    if (fullPacket.empty()) {
+        return;
+    }
+
+    broadcastPacket(fullPacket.data(), fullPacket.size());
+    spdlog::info("Difficulty changed to {}", static_cast<i32>(m_difficulty));
+}
+
+std::vector<u8> MinecraftServer::serializeDifficultyPacket()
+{
+    network::ServerDifficultyPacket packet(m_difficulty, false);
+    auto serializeResult = packet.serialize();
+    if (serializeResult.failed()) {
+        spdlog::error("Failed to serialize ServerDifficultyPacket");
+        return {};
+    }
+
+    return core::ConnectionManager::encapsulatePacket(
+        network::PacketType::ServerDifficulty, serializeResult.value());
 }
 
 void MinecraftServer::setDefaultGameMode(GameMode mode)
@@ -723,6 +754,17 @@ void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
     }
 }
 
+void MinecraftServer::sendInitialDifficultyToPlayer(PlayerId playerId)
+{
+    auto fullPacket = serializeDifficultyPacket();
+    if (fullPacket.empty()) {
+        spdlog::error("Failed to serialize ServerDifficultyPacket for player {}", playerId);
+        return;
+    }
+
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
 void MinecraftServer::sendKeepAliveToAll()
 {
     u64 timestamp = util::TimeUtils::getCurrentTimeMs();
@@ -1143,6 +1185,9 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
     // 发送初始天气状态
     sendInitialWeatherStateToPlayer(playerId);
+
+    // 发送初始难度状态
+    sendInitialDifficultyToPlayer(playerId);
 
     updateEntityTrackingForPlayer(playerId, x, y, z);
 }

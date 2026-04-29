@@ -42,6 +42,7 @@ add_library(mc_common STATIC
     network/packet/EntityMetadataSerializer.cpp
     network/packet/GameStateChangePacket.cpp
     network/packet/PlayerAbilitiesPacket.cpp
+    network/packet/ServerDifficultyPacket.cpp
     network/packet/BlockBreakAnimPacket.cpp
     network/packet/DimensionPackets.cpp
     network/packet/ExperiencePackets.cpp
@@ -205,6 +206,7 @@ add_library(mc_common STATIC
     entity/loot/LootConditions.cpp
     entity/combat/AttackContext.cpp
     entity/combat/PlayerAttackHelper.cpp
+    entity/combat/DifficultyHelper.cpp
     entity/damage/CombatEntry.cpp
     entity/damage/CombatTracker.cpp
     entity/ai/EntitySenses.cpp
