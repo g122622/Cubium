@@ -3,6 +3,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../world/entity/EntityManager.hpp"
+#include "../../../world/IWorld.hpp"
 #include <cmath>
 #include <chrono>
 #include <atomic>
@@ -193,49 +194,67 @@ bool ItemEntity::canMergeWith(const ItemEntity& other) const {
 // ============================================================================
 
 void ItemEntity::updatePhysics() {
-    // TODO: 检测是否在水中或熔岩中
-    // 目前使用普通物理
-    applyNormalPhysics();
+    // MC 1.16.5 ItemEntity.tick() 物理更新逻辑
+    // 参考 ItemEntity.java 行 99-144
 
-    // 应用速度
-    if (!m_onGround || std::abs(m_velocity.x) > 0.01f ||
-        std::abs(m_velocity.z) > 0.01f || m_velocity.y > 0.01f) {
-        // 使用简单物理
-        f32 dx = m_velocity.x;
-        f32 dy = m_velocity.y;
-        f32 dz = m_velocity.z;
+    // 1. 检测环境
+    bool inWater = false;
+    bool inLava = false;
+    if (m_world) {
+        const i32 blockX = static_cast<i32>(std::floor(m_position.x));
+        const i32 blockY = static_cast<i32>(std::floor(m_position.y));
+        const i32 blockZ = static_cast<i32>(std::floor(m_position.z));
+        inWater = m_world->isWaterAt(blockX, blockY, blockZ);
+        inLava = m_world->isLavaAt(blockX, blockY, blockZ);
+    }
+
+    // 2. 应用重力和阻力（仅一次）
+    if (inWater) {
+        applyWaterPhysics();
+    } else if (inLava) {
+        applyLavaPhysics();
+    } else {
+        applyNormalPhysics();
+    }
+
+    // 3. 合并检测（MC 1.16.5: ItemEntity.java 行 144-155）
+    // TODO: 实现物品合并逻辑
+
+    // 4. 执行移动
+    if (std::abs(m_velocity.x) > 0.001f ||
+        std::abs(m_velocity.y) > 0.001f ||
+        std::abs(m_velocity.z) > 0.001f ||
+        !m_onGround) {
 
         // 带碰撞移动
-        if (m_physicsEngine) {
-            Vector3 actual = moveWithCollision(dx, dy, dz);
-            dx = actual.x;
-            dy = actual.y;
-            dz = actual.z;
-        } else {
-            move(dx, dy, dz);
-        }
+        if (m_physicsEngine || m_world) {
+            Vector3 actual = moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
 
-        // 碰撞后减速
-        if (m_collidedHorizontally) {
-            m_velocity.x *= -0.5f;
-            m_velocity.z *= -0.5f;
-        }
-
-        if (m_collidedVertically) {
-            if (m_velocity.y < 0.0f) {
-                // 落地
-                m_velocity.y = 0.0f;
-                m_onGround = true;
-                m_fallDistance = 0.0f;
-            } else {
-                // 撞到天花板
-                m_velocity.y = -m_velocity.y * 0.5f;
+            // MC 1.16.5: ItemEntity.java 行 127-137
+            // 落地反弹逻辑
+            if (m_collidedVertically) {
+                if (m_velocity.y < 0.0f) {
+                    // 落地：反弹并减速
+                    m_velocity.y = -m_velocity.y * 0.5f;
+                    m_onGround = true;
+                    m_fallDistance = 0.0f;
+                } else {
+                    // 撞到天花板
+                    m_velocity.y = 0.0f;
+                }
             }
+
+            // 水平碰撞反弹
+            if (m_collidedHorizontally) {
+                m_velocity.x *= -0.5f;
+                m_velocity.z *= -0.5f;
+            }
+        } else {
+            move(m_velocity.x, m_velocity.y, m_velocity.z);
         }
     }
 
-    // 应用阻力和重力
-    applyPhysics(1.0f / 20.0f);
+    // 注意：不再调用 Entity::applyPhysics()，因为重力/阻力已在上面应用
 }
 
 void ItemEntity::applyNormalPhysics() {
@@ -254,20 +273,29 @@ void ItemEntity::applyNormalPhysics() {
 }
 
 void ItemEntity::applyWaterPhysics() {
-    // 在水中：缓慢下沉
-    m_velocity.y -= SINK_SPEED;
-    m_velocity.x *= 0.95f;
-    m_velocity.z *= 0.95f;
+    // MC 1.16.5 ItemEntity.java 行 171-176
+    // 水中物理：轻微浮力 + 阻力
+    // 浮力：当速度小于 0.06 时，向上推 0.0005
+    if (m_velocity.y < 0.06f) {
+        m_velocity.y += 0.0005f;
+    }
+    // 水中阻力：0.99
+    m_velocity.x *= 0.99f;
+    m_velocity.y *= 0.99f;
+    m_velocity.z *= 0.99f;
 }
 
 void ItemEntity::applyLavaPhysics() {
-    // 在熔岩中：漂浮并着火
-    m_velocity.y += BUOYANCY;
+    // MC 1.16.5 ItemEntity.java 行 177-182
+    // 岩浆中物理：浮力 + 阻力 + 着火
+    // 浮力：向上推 0.0005
+    m_velocity.y += 0.0005f;
+    // 岩浆阻力：0.95
     m_velocity.x *= 0.95f;
+    m_velocity.y *= 0.95f;
     m_velocity.z *= 0.95f;
 
-    // TODO: 设置着火
-    // addFlag(EntityFlags::OnFire);
+    // TODO: 设置着火 (setFire)
 }
 
 // ============================================================================

@@ -99,7 +99,7 @@ void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch) {
 }
 
 void MobEntity::tick() {
-    // 更新父类
+    // 更新父类（LivingEntity::tick() 已经调用 aiStep()）
     LivingEntity::tick();
 
     // MC 1.16.5: 空闲时间在 tick 开头递增
@@ -151,8 +151,7 @@ void MobEntity::tick() {
         m_jumpController->tick();
     }
 
-    // 执行AI移动物理更新
-    aiStep();
+    // 注意：aiStep() 已在 LivingEntity::tick() 中调用，这里不需要再次调用
 }
 
 void MobEntity::updateMovementGoalFlags() {

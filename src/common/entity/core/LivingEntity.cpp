@@ -254,6 +254,10 @@ void LivingEntity::tick() {
     // 更新步态动画
     updateAnimation();
 
+    // MC 1.16.5: 执行 AI 步进（物理更新）
+    // 参考 LivingEntity.livingTick() -> aiStep()
+    aiStep();
+
     // 更新生命值
     tickHealth();
 
@@ -352,10 +356,12 @@ void LivingEntity::jump() {
 }
 
 void LivingEntity::aiStep() {
+    // MC 1.16.5: LivingEntity.livingTick() / aiStep()
+    // 参考 LivingEntity.java 行 2017-2245
+
     // 处理跳跃
-    // 参考 MC LivingEntity.livingTick() 中的跳跃处理
     if (m_isJumping) {
-        // 简化实现：在地面时执行跳跃
+        // 在地面时执行跳跃
         if (m_onGround && m_jumpTicks == 0) {
             jump();
             m_jumpTicks = 10;  // 跳跃冷却
@@ -369,30 +375,33 @@ void LivingEntity::aiStep() {
         m_jumpTicks--;
     }
 
-    // 应用移动阻力
-    // 参考 MC LivingEntity.livingTick() / aiStep()
-    m_moveStrafing *= DRAG_AIR;
-    m_moveForward *= DRAG_AIR;
-
-    // 执行travel（物理移动）
+    // 执行 travel（物理移动）
+    // 注意：MC 1.16.5 中 aiStep() 不对输入值应用阻力
+    // 阻力是在 travel() 中应用到速度上的
     travel(m_moveStrafing, 0.0f, m_moveForward);
 }
 
 void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
-    // 参考 MC 1.16.5 LivingEntity.travel()
-    // 核心物理移动逻辑
+    // MC 1.16.5: LivingEntity.travel()
+    // 参考 LivingEntity.java 行 2056-2245
+    // 正确的物理顺序：
+    // 1. 计算移动因子
+    // 2. moveRelative(): 速度 += 输入 * 移动因子
+    // 3. 应用重力
+    // 4. 执行移动（碰撞检测）
+    // 5. 应用摩擦/阻力（基于滑度）
+    // 6. 重置过小速度
 
     // 获取移动速度属性
     f32 moveSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
 
-    // MC 1.16.5: 获取脚下方块的滑度
+    // 获取脚下方块的滑度
     // 参考 LivingEntity.java:2148-2152
     f32 slipperiness = 0.6f;  // 默认滑度
     if (m_onGround && m_world != nullptr) {
-        // 获取脚下方块位置
         BlockPos blockPos(
             static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),  // 脚下位置
+            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
             static_cast<i32>(std::floor(m_position.z))
         );
         const BlockState* blockState = m_world->getBlockState(blockPos);
@@ -406,20 +415,18 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
     if (m_onGround) {
         // 地面移动：使用滑度计算
         // MC 公式: speed * (0.21600002F / (slipperiness^3))
-        // 参考 LivingEntity.java:2151 和 func_233633_a_
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
     } else {
         // 空中移动：使用跳跃移动因子
         moveFactor = m_jumpMovementFactor;
     }
 
-    // 计算移动向量（根据实体朝向）
+    // 1. 计算移动向量并添加到速度
     // 参考 MC Entity.moveRelative()
     if (strafing != 0.0f || forward != 0.0f) {
-        // 计算归一化后的移动向量
         f32 length = std::sqrt(strafing * strafing + forward * forward);
         if (length < 1.0E-7f) {
-            return;
+            length = 1.0E-7f;
         }
 
         // 归一化并应用速度
@@ -427,55 +434,49 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
         f32 normalizedForward = forward / length * moveFactor;
 
         // 根据偏航角计算实际移动方向
-        // MC坐标系: yaw=0 看向 +Z, yaw=90 看向 -X (左手坐标系)
         f32 yawRad = m_yaw * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
-        // MC的moveRelative公式:
-        // moveX = strafe * cosYaw - forward * sinYaw
-        // moveZ = forward * cosYaw + strafe * sinYaw
+        // MC 的 moveRelative 公式
         f32 moveX = normalizedStrafe * cosYaw - normalizedForward * sinYaw;
         f32 moveZ = normalizedForward * cosYaw + normalizedStrafe * sinYaw;
 
-        // 添加到速度
+        // 添加到速度（累加，不是替换）
         m_velocity.x += moveX;
         m_velocity.z += moveZ;
     }
 
-    // 应用重力
-    if (!m_onGround && !hasNoGravity()) {
+    // 2. 应用重力（除非无重力）
+    // MC 1.16.5: 重力始终应用，碰撞会处理停止
+    if (!hasNoGravity()) {
         m_velocity.y -= GRAVITY;
     }
 
-    // 应用空气阻力
-    m_velocity.x *= DRAG_AIR;
-    m_velocity.y *= DRAG_AIR;
-    m_velocity.z *= DRAG_AIR;
-
-    // 如果在地面，停止Y方向速度
-    if (m_onGround && m_velocity.y < 0.0f) {
-        m_velocity.y = 0.0f;
-    }
-
-    // 重置过小的速度
-    if (std::abs(m_velocity.x) < MOTION_THRESHOLD) m_velocity.x = 0.0f;
-    if (std::abs(m_velocity.y) < MOTION_THRESHOLD) m_velocity.y = 0.0f;
-    if (std::abs(m_velocity.z) < MOTION_THRESHOLD) m_velocity.z = 0.0f;
-
-    // 执行碰撞移动
+    // 3. 执行碰撞移动
+    // 注意：moveWithCollision() 内部会根据碰撞结果重置速度
     if (m_velocity.x != 0.0f || m_velocity.y != 0.0f || m_velocity.z != 0.0f) {
         moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
     }
 
-    // 更新地面摩擦
-    // MC 1.16.5: 地面摩擦 = slipperiness * 0.91F
-    // 参考 LivingEntity.java:2151, 2167
+    // 4. 应用摩擦/阻力（在移动后）
+    // MC 1.16.5: LivingEntity.java 行 2151, 2167
     if (m_onGround) {
+        // 地面摩擦 = slipperiness * 0.91
         f32 groundFriction = slipperiness * 0.91f;
         m_velocity.x *= groundFriction;
         m_velocity.z *= groundFriction;
+    } else {
+        // 空气阻力
+        m_velocity.x *= DRAG_AIR;
+        m_velocity.y *= DRAG_AIR;
+        m_velocity.z *= DRAG_AIR;
     }
+
+    // 5. 重置过小的速度
+    if (std::abs(m_velocity.x) < MOTION_THRESHOLD) m_velocity.x = 0.0f;
+    if (std::abs(m_velocity.y) < MOTION_THRESHOLD) m_velocity.y = 0.0f;
+    if (std::abs(m_velocity.z) < MOTION_THRESHOLD) m_velocity.z = 0.0f;
 }
 
 // ============================================================================

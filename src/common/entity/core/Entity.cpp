@@ -497,25 +497,24 @@ void Entity::doBlockCollisions(const Vector3& actualMovement, const Vector3& des
     }
 }
 
-void Entity::applyPhysics(f32 deltaTime) {
-    // 应用重力
-    if (!m_onGround) {
-        // 重力加速度（MC使用固定值，与deltaTime无关）
-        // 但这里我们使用deltaTime来平滑
+void Entity::applyPhysics(f32 /*deltaTime*/) {
+    // MC 1.16.5: Entity 物理更新
+    // 注意：重力应该始终应用（除非 noGravity），碰撞检测会处理停止
+    // 参考 Entity.move() 中的物理处理
+
+    // 重力始终应用（除非 noGravity 标志为 true）
+    // MC 1.16.5: if (!this.hasNoGravity()) { this.setMotion(...) }
+    if (!m_noGravity) {
         m_velocity.y -= physics::GRAVITY;
     }
 
     // 应用空气阻力
+    // MC 1.16.5: 空气阻力在移动后应用
     m_velocity.x *= physics::DRAG_AIR;
     m_velocity.y *= physics::DRAG_AIR;
     m_velocity.z *= physics::DRAG_AIR;
 
-    // 如果在地面，停止Y方向速度
-    if (m_onGround && m_velocity.y < 0.0f) {
-        m_velocity.y = 0.0f;
-    }
-
-    (void)deltaTime; // MC物理是基于tick的，不使用deltaTime
+    // 注意：MC 物理是基于 tick 的，deltaTime 参数被忽略
 }
 
 // ============================================================================

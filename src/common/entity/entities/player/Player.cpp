@@ -748,10 +748,10 @@ void Player::updatePhysics() {
 
     if (!(isInWater() || isInLava()) || m_abilities.flying) {
         // 2. 应用重力（飞行时不应用重力）
-        if (!m_abilities.flying) {
-            if (!m_onGround) {
-                m_velocity.y -= physics::GRAVITY;
-            }
+        // MC 1.16.5: 重力始终应用，碰撞检测会处理停止
+        // 参考 Entity.move() 和 LivingEntity.travel()
+        if (!m_abilities.flying && !hasNoGravity()) {
+            m_velocity.y -= physics::GRAVITY;
         }
 
         // 3. 应用阻力
