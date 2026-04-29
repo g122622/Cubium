@@ -11,6 +11,21 @@
 
 namespace mc {
 
+// 拖拽相关常量 (MC 1.16.5)
+namespace DragConstants {
+    constexpr i32 EVENT_MASK = 0x3;          // button 低2位是拖拽事件
+    constexpr i32 MODE_SHIFT = 2;            // button 高位是拖拽模式的位移
+    constexpr i32 MODE_MASK = 0x3;           // 拖拽模式掩码
+
+    constexpr i32 EVENT_START = 0;           // 开始拖拽
+    constexpr i32 EVENT_ADD_SLOT = 1;        // 添加槽位
+    constexpr i32 EVENT_END = 2;             // 结束拖拽
+
+    constexpr i32 MODE_EVEN = 0;             // 均匀分发 (左键)
+    constexpr i32 MODE_SINGLE = 1;           // 逐个分发 (右键)
+    constexpr i32 MODE_FILL = 2;             // 全部分发 (中键，仅创造模式)
+}
+
 class Player;
 class PlayerInventory;
 class IInventory;
@@ -281,12 +296,6 @@ private:
     static i32 extractDragMode(i32 button);
 
     /**
-     * @brief 计算拖拽时每个槽位的物品数量
-     */
-    static void computeDragStackSize(const std::vector<i32>& dragSlots, i32 dragMode,
-                                       ItemStack& stack, i32 slotCount);
-
-    /**
      * @brief 检查拖拽模式是否有效
      */
     [[nodiscard]] bool isValidDragMode(i32 dragMode) const;
@@ -300,6 +309,15 @@ private:
      * @brief 处理双击拾取全部
      */
     ItemStack handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
+
+    /**
+     * @brief 分发物品到单个拖拽槽位
+     * @param toDistribute 要分发的物品（会被修改）
+     * @param slotIdx 目标槽位索引
+     * @param amount 要分发的数量
+     * @return 实际分发的数量
+     */
+    i32 distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount);
 
 protected:
     ContainerId m_id;

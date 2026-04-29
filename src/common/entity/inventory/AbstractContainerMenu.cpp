@@ -334,49 +334,47 @@ ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const It
 
 ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32 button) {
     // MC 1.16.5 拖拽分发状态机
-    // button: 0=开始拖拽, 1=添加槽位, 2=结束拖拽
     // m_dragMode: 0=均匀分发(左键), 1=逐个分发(右键), 2=全部分发(中键)
 
-    int prevDragEvent = m_dragEvent;
+    i32 prevDragEvent = m_dragEvent;
     m_dragEvent = getDragEvent(button);
 
     // 检查状态是否有效
-    if ((prevDragEvent != 1 || m_dragEvent != 2) && prevDragEvent != m_dragEvent) {
+    if ((prevDragEvent != DragConstants::EVENT_ADD_SLOT || m_dragEvent != DragConstants::EVENT_END) && prevDragEvent != m_dragEvent) {
         resetDrag();
     } else if (m_carried.isEmpty()) {
         resetDrag();
-    } else if (m_dragEvent == 0) {
+    } else if (m_dragEvent == DragConstants::EVENT_START) {
         // 开始拖拽 - 确定拖拽模式
         m_dragMode = extractDragMode(button);
         if (isValidDragMode(m_dragMode)) {
-            m_dragEvent = 1;
+            m_dragEvent = DragConstants::EVENT_ADD_SLOT;
             m_dragSlots.clear();
         } else {
             resetDrag();
         }
-    } else if (m_dragEvent == 1) {
+    } else if (m_dragEvent == DragConstants::EVENT_ADD_SLOT) {
         // 添加槽位到拖拽列表
         ItemStack carried = m_carried;
         if (canDragIntoSlot(slot, carried) && slot.mayPlace(carried)) {
-            if (m_dragMode == 2 || carried.getCount() > static_cast<i32>(m_dragSlots.size())) {
+            if (m_dragMode == DragConstants::MODE_FILL || carried.getCount() > static_cast<i32>(m_dragSlots.size())) {
                 m_dragSlots.push_back(slotIndex);
             }
         }
-    } else if (m_dragEvent == 2) {
+    } else if (m_dragEvent == DragConstants::EVENT_END) {
         // 结束拖拽 - 分发物品
         if (!m_dragSlots.empty()) {
             ItemStack toDistribute = m_carried.copy();
-            int totalToDistribute = m_carried.getCount();
 
-            // 首先计算每个槽位可以放入多少
-            std::vector<std::pair<i32, i32>> slotAmounts; // slotIndex, amount
+            // 计算每个槽位可以放入多少
+            std::vector<std::pair<i32, i32>> slotAmounts; // slotIndex, space
             for (i32 dragSlotIndex : m_dragSlots) {
                 Slot* dragSlot = getSlot(dragSlotIndex);
                 if (dragSlot == nullptr) continue;
 
                 ItemStack existing = dragSlot->getItem();
-                int maxStackSize = dragSlot->getMaxStackSize(toDistribute);
-                int space = existing.isEmpty() ? maxStackSize : maxStackSize - existing.getCount();
+                i32 maxStackSize = dragSlot->getMaxStackSize(toDistribute);
+                i32 space = existing.isEmpty() ? maxStackSize : maxStackSize - existing.getCount();
 
                 if (space > 0 && (existing.isEmpty() || existing.canMergeWith(toDistribute))) {
                     slotAmounts.push_back({dragSlotIndex, space});
@@ -384,78 +382,29 @@ ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32
             }
 
             // 根据拖拽模式分发
-            if (m_dragMode == 0) {
+            if (m_dragMode == DragConstants::MODE_EVEN) {
                 // 均匀分发
-                int slotsRemaining = static_cast<int>(slotAmounts.size());
+                i32 slotsRemaining = static_cast<i32>(slotAmounts.size());
                 for (auto& [idx, space] : slotAmounts) {
-                    if (totalToDistribute <= 0) break;
+                    if (toDistribute.isEmpty()) break;
 
-                    int perSlot = totalToDistribute / slotsRemaining;
+                    i32 perSlot = toDistribute.getCount() / slotsRemaining;
                     if (perSlot == 0) perSlot = 1;
                     perSlot = std::min(perSlot, space);
-                    perSlot = std::min(perSlot, totalToDistribute);
-
-                    Slot* dragSlot = getSlot(idx);
-                    if (dragSlot != nullptr) {
-                        ItemStack existing = dragSlot->getItem();
-                        if (existing.isEmpty()) {
-                            dragSlot->set(toDistribute.split(perSlot));
-                        } else {
-                            existing.grow(perSlot);
-                            dragSlot->set(existing);
-                            toDistribute.shrink(perSlot);
-                        }
-                        dragSlot->setChanged();
-                        notifySlotChanged(idx, dragSlot->getItem());
-                    }
-                    totalToDistribute -= perSlot;
+                    distributeToDragSlot(toDistribute, idx, perSlot);
                     slotsRemaining--;
                 }
-            } else if (m_dragMode == 1) {
+            } else if (m_dragMode == DragConstants::MODE_SINGLE) {
                 // 逐个分发 (右键拖拽)
                 for (auto& [idx, space] : slotAmounts) {
-                    if (totalToDistribute <= 0) break;
-
-                    int amount = std::min(1, space);
-                    amount = std::min(amount, totalToDistribute);
-
-                    Slot* dragSlot = getSlot(idx);
-                    if (dragSlot != nullptr) {
-                        ItemStack existing = dragSlot->getItem();
-                        if (existing.isEmpty()) {
-                            ItemStack splitItem = toDistribute.split(amount);
-                            dragSlot->set(splitItem);
-                        } else {
-                            existing.grow(amount);
-                            dragSlot->set(existing);
-                            toDistribute.shrink(amount);
-                        }
-                        dragSlot->setChanged();
-                        notifySlotChanged(idx, dragSlot->getItem());
-                    }
-                    totalToDistribute -= amount;
+                    if (toDistribute.isEmpty()) break;
+                    distributeToDragSlot(toDistribute, idx, 1);
                 }
-            } else if (m_dragMode == 2) {
+            } else if (m_dragMode == DragConstants::MODE_FILL) {
                 // 全部分发 (中键拖拽) - 尝试填满每个槽位
                 for (auto& [idx, space] : slotAmounts) {
-                    if (totalToDistribute <= 0) break;
-
-                    int amount = std::min(space, totalToDistribute);
-
-                    Slot* dragSlot = getSlot(idx);
-                    if (dragSlot != nullptr) {
-                        ItemStack existing = dragSlot->getItem();
-                        if (existing.isEmpty()) {
-                            dragSlot->set(toDistribute.split(amount));
-                        } else {
-                            existing.grow(amount);
-                            dragSlot->set(existing);
-                            toDistribute.shrink(amount);
-                        }
-                        dragSlot->setChanged();
-                        notifySlotChanged(idx, dragSlot->getItem());
-                    }
-                    totalToDistribute -= amount;
+                    if (toDistribute.isEmpty()) break;
+                    distributeToDragSlot(toDistribute, idx, space);
                 }
             }
 
@@ -478,14 +427,11 @@ void AbstractContainerMenu::resetDrag() {
 }
 
 i32 AbstractContainerMenu::getDragEvent(i32 button) {
-    // 从 button 中提取拖拽事件
-    // MC 1.16.5: button 包含 dragMode (高位) 和 dragEvent (低位)
-    return button & 0x3;
+    return button & DragConstants::EVENT_MASK;
 }
 
 i32 AbstractContainerMenu::extractDragMode(i32 button) {
-    // 从 button 中提取拖拽模式
-    return (button >> 2) & 0x3;
+    return (button >> DragConstants::MODE_SHIFT) & DragConstants::MODE_MASK;
 }
 
 bool AbstractContainerMenu::isValidDragMode(i32 dragMode) const {
@@ -508,6 +454,31 @@ bool AbstractContainerMenu::canDragIntoSlot(Slot& slot, const ItemStack& stack) 
         return slot.mayPlace(stack);
     }
     return slot.mayPlace(stack) && slot.getItem().canMergeWith(stack);
+}
+
+i32 AbstractContainerMenu::distributeToDragSlot(ItemStack& toDistribute, i32 slotIdx, i32 amount) {
+    Slot* dragSlot = getSlot(slotIdx);
+    if (dragSlot == nullptr) {
+        return 0;
+    }
+
+    amount = std::min(amount, toDistribute.getCount());
+    if (amount <= 0) {
+        return 0;
+    }
+
+    ItemStack existing = dragSlot->getItem();
+    if (existing.isEmpty()) {
+        dragSlot->set(toDistribute.split(amount));
+    } else {
+        existing.grow(amount);
+        dragSlot->set(existing);
+        toDistribute.shrink(amount);
+    }
+    dragSlot->setChanged();
+    notifySlotChanged(slotIdx, dragSlot->getItem());
+
+    return amount;
 }
 
 ItemStack AbstractContainerMenu::handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack) {
