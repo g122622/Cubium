@@ -372,6 +372,16 @@ std::vector<i32> AbstractFurnaceEntity::getSlotsForFace(Direction side) const {
     }
 }
 
+bool AbstractFurnaceEntity::isSlotAccessibleForDirection(i32 slot, Direction direction) const {
+    const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
+    for (i32 accessibleSlot : accessibleSlots) {
+        if (accessibleSlot == slot) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
     // 首先检查槽位是否接受该物品
     if (!canPlaceItem(slot, stack)) {
@@ -379,15 +389,7 @@ bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Dire
     }
 
     // 检查方向是否允许访问该槽位
-    const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
-    bool slotAccessible = false;
-    for (i32 accessibleSlot : accessibleSlots) {
-        if (accessibleSlot == slot) {
-            slotAccessible = true;
-            break;
-        }
-    }
-    if (!slotAccessible) {
+    if (!isSlotAccessibleForDirection(slot, direction)) {
         return false;
     }
 
@@ -411,15 +413,7 @@ bool AbstractFurnaceEntity::canExtractItem(i32 slot, const ItemStack& stack, Dir
     MC_UNUSED(stack);
 
     // 检查方向是否允许访问该槽位
-    const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
-    bool slotAccessible = false;
-    for (i32 accessibleSlot : accessibleSlots) {
-        if (accessibleSlot == slot) {
-            slotAccessible = true;
-            break;
-        }
-    }
-    if (!slotAccessible) {
+    if (!isSlotAccessibleForDirection(slot, direction)) {
         return false;
     }
 

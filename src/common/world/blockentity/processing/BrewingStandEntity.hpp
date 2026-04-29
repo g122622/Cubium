@@ -109,6 +109,14 @@ public:
      */
     [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
 
+    /**
+     * @brief 检查槽位是否可以从指定方向访问
+     * @param slot 槽位索引
+     * @param direction 方向
+     * @return 如果槽位可访问返回 true
+     */
+    [[nodiscard]] bool isSlotAccessibleForDirection(i32 slot, Direction direction) const;
+
     // ========== 酿造逻辑 ==========
 
     /**

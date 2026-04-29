@@ -240,8 +240,23 @@ std::vector<i32> BrewingStandEntity::getSlotsForFace(Direction side) const {
     }
 }
 
+bool BrewingStandEntity::isSlotAccessibleForDirection(i32 slot, Direction direction) const {
+    const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
+    for (i32 accessibleSlot : accessibleSlots) {
+        if (accessibleSlot == slot) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool BrewingStandEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
     MC_UNUSED(direction);
+
+    // 检查方向是否允许访问该槽位
+    if (!isSlotAccessibleForDirection(slot, direction)) {
+        return false;
+    }
 
     // MC 1.16.5: return this.isItemValidForSlot(index, itemStackIn);
     return canPlaceItem(slot, stack);
@@ -249,6 +264,11 @@ bool BrewingStandEntity::canInsertItem(i32 slot, const ItemStack& stack, Directi
 
 bool BrewingStandEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const {
     MC_UNUSED(direction);
+
+    // 检查方向是否允许访问该槽位
+    if (!isSlotAccessibleForDirection(slot, direction)) {
+        return false;
+    }
 
     // MC 1.16.5: 材料槽（槽位 3）只能提取玻璃瓶
     if (slot == INGREDIENT_SLOT) {
