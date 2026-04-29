@@ -325,6 +325,9 @@ add_library(mc_common STATIC
     item/crafting/SmithingRecipe.cpp
     item/crafting/RecipeNetworkSerializer.cpp
     item/crafting/special/RepairItemRecipe.cpp
+    item/crafting/special/ArmorDyeRecipe.cpp
+    item/crafting/special/BookCloningRecipe.cpp
+    item/crafting/special/MapCloningRecipe.cpp
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp

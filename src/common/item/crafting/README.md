@@ -438,11 +438,11 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
 6. **营火烹饪配方** (`CampfireCookingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
 7. **切石机配方** (`StonecuttingRecipe`) - ✅ 完成
 8. **锻造台配方** (`SmithingRecipe`) - ✅ 完成
-9. **特殊配方** (`SpecialRecipe`) - ✅ 部分完成
+9. **特殊配方** (`SpecialRecipe`) - ✅ 完成
    - `RepairItemRecipe` - 物品修复配方 ✅
-   - `ArmorDyeRecipe` - 盔甲染色配方（待实现）
-   - `BookCloningRecipe` - 书复制配方（待实现）
-   - `MapCloningRecipe` - 地图复制配方（待实现）
+   - `ArmorDyeRecipe` - 盔甲染色配方 ✅
+   - `BookCloningRecipe` - 书复制配方 ✅
+   - `MapCloningRecipe` - 地图复制配方 ✅
 
 已实现功能：
 
