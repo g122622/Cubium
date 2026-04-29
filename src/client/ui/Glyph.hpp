@@ -5,6 +5,12 @@
 
 namespace mc::client {
 
+#ifdef __APPLE__
+using GuiVertexScalar = f32;
+#else
+using GuiVertexScalar = f64;
+#endif
+
 /**
  * @brief 字形数据结构
  *
@@ -80,8 +86,8 @@ struct EmptyGlyph : public Glyph {
  * 片段着色器根据槽位ID选择对应的采样器进行纹理采样。
  */
 struct GuiVertex {
-    f64 x, y;       ///< 屏幕坐标 (像素)
-    f64 u, v;       ///< 纹理坐标
+    GuiVertexScalar x, y;   ///< 屏幕坐标 (像素)
+    GuiVertexScalar u, v;   ///< 纹理坐标
     u32 color;      ///< ARGB颜色
     u8 atlasSlot;   ///< 图集槽位ID (0-15)
     u8 padding[3];  ///< 对齐填充
@@ -98,7 +104,13 @@ struct GuiVertex {
      * @param slot 图集槽位ID (默认0)
      */
     GuiVertex(f64 px, f64 py, f64 pu, f64 pv, u32 col, u8 slot = 0)
-        : x(px), y(py), u(pu), v(pv), color(col), atlasSlot(slot), padding{0, 0, 0} {}
+        : x(static_cast<GuiVertexScalar>(px))
+        , y(static_cast<GuiVertexScalar>(py))
+        , u(static_cast<GuiVertexScalar>(pu))
+        , v(static_cast<GuiVertexScalar>(pv))
+        , color(col)
+        , atlasSlot(slot)
+        , padding{0, 0, 0} {}
 
     /**
      * @brief 计算顶点结构大小

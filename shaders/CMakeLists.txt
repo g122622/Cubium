@@ -28,6 +28,11 @@ else()
     return()
 endif()
 
+set(SHADER_PLATFORM_DEFINES "")
+if(APPLE)
+    list(APPEND SHADER_PLATFORM_DEFINES "-D__APPLE__")
+endif()
+
 message(STATUS "Shader compiler: ${SHADER_COMPILER}")
 
 # 着色器源文件列表
@@ -74,7 +79,7 @@ foreach(SHADER ${SHADER_SOURCES})
 
     add_custom_command(
         OUTPUT ${OUTPUT_FILE}
-        COMMAND ${SHADER_COMPILER} ${SHADER_COMPILE_FLAG} ${INPUT_FILE} ${SHADER_OUTPUT_FLAG} ${OUTPUT_FILE}
+        COMMAND ${SHADER_COMPILER} ${SHADER_COMPILE_FLAG} ${SHADER_PLATFORM_DEFINES} ${INPUT_FILE} ${SHADER_OUTPUT_FLAG} ${OUTPUT_FILE}
         DEPENDS ${INPUT_FILE}
         COMMENT "Compiling shader: ${SHADER}"
         VERBATIM

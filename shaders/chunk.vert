@@ -3,9 +3,15 @@
 // 区块顶点着色器
 
 // 顶点输入 - 与Vertex结构匹配
+#ifdef __APPLE__
+layout(location = 0) in vec3 inPosition;
+layout(location = 2) in vec3 inNormal;
+layout(location = 4) in vec2 inTexCoord;
+#else
 layout(location = 0) in dvec3 inPosition;
 layout(location = 2) in dvec3 inNormal;
 layout(location = 4) in dvec2 inTexCoord;
+#endif
 layout(location = 5) in vec4 inColor;
 layout(location = 6) in uint inLight;
 

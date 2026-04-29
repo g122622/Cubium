@@ -20,7 +20,7 @@ static std::vector<u8> loadShaderFile(const std::filesystem::path& path) {
     size_t fileSize = static_cast<size_t>(file.tellg());
     std::vector<u8> code(fileSize);
     file.seekg(0);
-    file.read(reinterpret_cast<char*>(code.data()), fileSize);
+    file.read(reinterpret_cast<char*>(code.data()), static_cast<std::streamsize>(fileSize));
     file.close();
     
     spdlog::info("Loaded GUI shader: {} ({} bytes)", path.string(), fileSize);
@@ -247,15 +247,19 @@ void GuiRenderer::render(VkCommandBuffer commandBuffer) {
     // 绑定管线
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
     // 设置推送常量（屏幕尺寸）
+#ifdef __APPLE__
+    struct PushConstants {
+        f32 screenWidth;
+        f32 screenHeight;
+        f32 padding[2];
+    } pc{static_cast<f32>(m_screenWidth), static_cast<f32>(m_screenHeight), {0.0f, 0.0f}};
+#else
     struct PushConstants {
         f64 screenWidth;
         f64 screenHeight;
         f64 padding[2];
-    } pc;
-    pc.screenWidth = m_screenWidth;
-    pc.screenHeight = m_screenHeight;
-    pc.padding[0] = 0.0f;
-    pc.padding[1] = 0.0f;
+    } pc{m_screenWidth, m_screenHeight, {0.0, 0.0}};
+#endif
 
     vkCmdPushConstants(commandBuffer, m_pipelineLayout,
                        VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pc), &pc);
@@ -319,7 +323,7 @@ u32 GuiRenderer::getFontHeight() const {
 }
 
 void GuiRenderer::setFontScale(f64 scale) {
-    m_fontRenderer.setScale(scale);
+    m_fontRenderer.setScale(static_cast<f32>(scale));
 }
 
 f64 GuiRenderer::getFontScale() const {
@@ -434,7 +438,11 @@ Result<void> GuiRenderer::createPipelineLayout() {
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
+#ifdef __APPLE__
+    pushConstantRange.size = sizeof(f32) * 4; // screenWidth, screenHeight, padding
+#else
     pushConstantRange.size = sizeof(f64) * 4; // screenWidth, screenHeight, padding
+#endif
 
     // 管线布局创建信息
     VkPipelineLayoutCreateInfo layoutInfo = {};
@@ -513,14 +521,22 @@ Result<void> GuiRenderer::createPipeline(VkRenderPass renderPass, VkSampleCountF
     VkVertexInputAttributeDescription positionAttr = {};
     positionAttr.binding = 0;
     positionAttr.location = 0;
+#ifdef __APPLE__
+    positionAttr.format = VK_FORMAT_R32G32_SFLOAT;
+#else
     positionAttr.format = VK_FORMAT_R64G64_SFLOAT;
+#endif
     positionAttr.offset = offsetof(GuiVertex, x);
 
     // 纹理坐标属性
     VkVertexInputAttributeDescription texCoordAttr = {};
     texCoordAttr.binding = 0;
     texCoordAttr.location = 1;
+#ifdef __APPLE__
+    texCoordAttr.format = VK_FORMAT_R32G32_SFLOAT;
+#else
     texCoordAttr.format = VK_FORMAT_R64G64_SFLOAT;
+#endif
     texCoordAttr.offset = offsetof(GuiVertex, u);
 
     // 颜色属性

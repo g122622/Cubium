@@ -6,14 +6,20 @@
 
 namespace mc {
 
+#ifdef __APPLE__
+using VertexScalar = f32;
+#else
+using VertexScalar = f64;
+#endif
+
 // ============================================================================
 // 顶点格式
 // ============================================================================
 
 struct Vertex {
-    f64 x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
-    f64 nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
-    f64 u = 0.0f, v = 0.0f;                  // 纹理坐标
+    VertexScalar x = 0.0f, y = 0.0f, z = 0.0f;       // 位置
+    VertexScalar nx = 0.0f, ny = 0.0f, nz = 0.0f;    // 法线
+    VertexScalar u = 0.0f, v = 0.0f;                 // 纹理坐标
     u32 color = 0xFFFFFFFF;                  // 顶点颜色 (RGBA)
     u8 light = 255;                          // 光照 (R8_UNORM 编码，0-255)
 
