@@ -438,10 +438,25 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
 6. **营火烹饪配方** (`CampfireCookingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
 7. **切石机配方** (`StonecuttingRecipe`) - ✅ 完成
 8. **锻造台配方** (`SmithingRecipe`) - ✅ 完成
+9. **特殊配方** (`SpecialRecipe`) - ✅ 部分完成
+   - `RepairItemRecipe` - 物品修复配方 ✅
+   - `ArmorDyeRecipe` - 盔甲染色配方（待实现）
+   - `BookCloningRecipe` - 书复制配方（待实现）
+   - `MapCloningRecipe` - 地图复制配方（待实现）
+
+已实现功能：
+
+1. **剩余物品系统** - ✅ 完成
+   - `IRecipe::getRemainingItems()` 接口
+   - `RecipeUtils::getDefaultRemainingItems()` 工具函数
+   - `ItemStack::getContainerItem()` 和 `hasContainerItem()` 方法
+
+2. **网络同步** - ✅ 完成
+   - `Ingredient::serialize()` 和 `Ingredient::deserialize()` 网络序列化
+   - `RecipeNetworkSerializer` 类提供配方序列化/反序列化
+   - 支持有序合成、无序合成、熔炼、切石机、锻造台配方
 
 待实现功能：
 
-1. **特殊配方** (`SpecialRecipe`) - 动态配方（染色、书复制、地图扩展等）
+1. **更多特殊配方** - 盔甲染色、书复制、地图复制等
 2. **配方书系统** - 配方解锁和配方书 UI
-3. **剩余物品系统** - `getRemainingItems()` 方法（水桶→空桶）
-4. **网络同步** - 配方数据包序列化/反序列化

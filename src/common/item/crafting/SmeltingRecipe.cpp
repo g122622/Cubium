@@ -35,5 +35,9 @@ const std::vector<Ingredient>& SmeltingRecipe::getIngredients() const {
     return m_ingredients;
 }
 
+std::vector<ItemStack> SmeltingRecipe::getRemainingItems(const blockentity::FurnaceInventory& inventory) const {
+    return RecipeUtils::getDefaultRemainingItems(inventory);
+}
+
 } // namespace crafting
 } // namespace mc

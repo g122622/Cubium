@@ -38,5 +38,9 @@ const std::vector<Ingredient>& StonecuttingRecipe::getIngredients() const {
     return m_ingredients;
 }
 
+std::vector<ItemStack> StonecuttingRecipe::getRemainingItems(const IInventory& inventory) const {
+    return RecipeUtils::getDefaultRemainingItems(inventory);
+}
+
 } // namespace crafting
 } // namespace mc

@@ -118,6 +118,13 @@ public:
      */
     [[nodiscard]] bool canFitIn(i32 width, i32 height) const override;
 
+    /**
+     * @brief 获取合成后剩余的物品堆
+     * @param inventory 合成网格
+     * @return 每个槽位的剩余物品堆列表
+     */
+    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override;
+
 private:
     /**
      * @brief 检查指定位置的匹配

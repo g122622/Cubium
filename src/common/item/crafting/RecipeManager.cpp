@@ -166,6 +166,16 @@ const CraftingRecipe* RecipeManager::findMatchingRecipe(
         }
     }
 
+    // 最后检查特殊配方（动态配方，如物品修复、染色等）
+    auto specialIt = m_recipesByType.find(RecipeType::Special);
+    if (specialIt != m_recipesByType.end()) {
+        for (const CraftingRecipe* recipe : specialIt->second) {
+            if (recipe->matches(inventory)) {
+                return recipe;
+            }
+        }
+    }
+
     return nullptr;
 }
 

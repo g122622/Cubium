@@ -332,6 +332,23 @@ public:
         return canMergeWith(other);
     }
 
+    // ========== 容器物品 ==========
+
+    /**
+     * @brief 获取容器物品堆
+     * @return 容器物品堆，如果没有则返回空堆
+     *
+     * 参考: net.minecraft.item.ItemStack.getContainerItem()
+     * 例如：牛奶桶用完后返回空桶
+     */
+    [[nodiscard]] ItemStack getContainerItem() const;
+
+    /**
+     * @brief 是否有容器物品
+     * @return 如果物品有容器物品返回true
+     */
+    [[nodiscard]] bool hasContainerItem() const;
+
     // ========== 序列化 ==========
 
     /**

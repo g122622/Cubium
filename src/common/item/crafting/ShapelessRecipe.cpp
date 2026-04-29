@@ -83,5 +83,9 @@ bool ShapelessRecipe::canFitIn(i32 width, i32 height) const {
     return static_cast<i32>(m_ingredients.size()) <= width * height;
 }
 
+std::vector<ItemStack> ShapelessRecipe::getRemainingItems(const CraftingInventory& inventory) const {
+    return RecipeUtils::getDefaultRemainingItems(inventory);
+}
+
 } // namespace crafting
 } // namespace mc

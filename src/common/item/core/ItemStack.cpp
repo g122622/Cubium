@@ -477,6 +477,33 @@ bool ItemStack::operator==(const ItemStack& other) const {
            m_enchantments.getAll() == other.m_enchantments.getAll();
 }
 
+// ============================================================================
+// 容器物品
+// ============================================================================
+
+ItemStack ItemStack::getContainerItem() const {
+    if (isEmpty()) {
+        return EMPTY;
+    }
+
+    const Item* container = m_item->containerItem();
+    if (container == nullptr) {
+        return EMPTY;
+    }
+
+    // 创建容器物品堆（数量为1）
+    // 注意：耐久度等属性需要复制（如使用过的桶装牛奶返回空桶）
+    ItemStack result(container, 1);
+    return result;
+}
+
+bool ItemStack::hasContainerItem() const {
+    if (isEmpty()) {
+        return false;
+    }
+    return m_item->hasContainerItem();
+}
+
 bool ItemStack::hasTag() const {
     return m_customData.is_object() && !m_customData.empty();
 }

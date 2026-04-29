@@ -44,6 +44,10 @@ bool ShapedRecipe::canFitIn(i32 width, i32 height) const {
     return width >= m_width && height >= m_height;
 }
 
+std::vector<ItemStack> ShapedRecipe::getRemainingItems(const CraftingInventory& inventory) const {
+    return RecipeUtils::getDefaultRemainingItems(inventory);
+}
+
 bool ShapedRecipe::checkMatch(const CraftingInventory& inventory,
                                i32 offsetX,
                                i32 offsetY,

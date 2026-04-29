@@ -7,6 +7,14 @@
 #include <functional>
 #include <optional>
 
+// Forward declaration
+namespace mc {
+namespace network {
+class PacketSerializer;
+class PacketDeserializer;
+}
+}
+
 namespace mc {
 namespace crafting {
 
@@ -199,6 +207,25 @@ public:
      * 注意：空标签也视为没有匹配物品。
      */
     [[nodiscard]] bool hasNoMatchingItems() const;
+
+    // ========== 网络序列化 ==========
+
+    /**
+     * @brief 序列化原料到网络包
+     * @param ser 序列化器
+     *
+     * 格式：
+     * - VarInt: 匹配物品数量
+     * - 对于每个匹配物品：ItemStack 序列化
+     */
+    void serialize(network::PacketSerializer& ser) const;
+
+    /**
+     * @brief 从网络包反序列化原料
+     * @param deser 反序列化器
+     * @return 原料，或错误
+     */
+    [[nodiscard]] static Result<Ingredient> deserialize(network::PacketDeserializer& deser);
 
 private:
     std::vector<ItemStack> m_matchingStacks;

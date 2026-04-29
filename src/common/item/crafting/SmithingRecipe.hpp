@@ -66,6 +66,13 @@ public:
         return width * height >= 2;
     }
 
+    /**
+     * @brief 获取合成后剩余的物品堆
+     * @param inventory 容器
+     * @return 每个槽位的剩余物品堆列表
+     */
+    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const IInventory& inventory) const override;
+
     // ========== 锻造台特有方法 ==========
 
     /**

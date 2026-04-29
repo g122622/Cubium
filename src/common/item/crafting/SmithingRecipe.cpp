@@ -43,5 +43,9 @@ const std::vector<Ingredient>& SmithingRecipe::getIngredients() const {
     return m_ingredients;
 }
 
+std::vector<ItemStack> SmithingRecipe::getRemainingItems(const IInventory& inventory) const {
+    return RecipeUtils::getDefaultRemainingItems(inventory);
+}
+
 } // namespace crafting
 } // namespace mc

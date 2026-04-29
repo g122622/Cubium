@@ -168,7 +168,67 @@ public:
         (void)height;
         return true;
     }
+
+    /**
+     * @brief 获取合成后剩余的物品堆
+     * @param inventory 合成容器
+     * @return 每个槽位的剩余物品堆列表
+     *
+     * 用于处理合成后的剩余物品，如：
+     * - 水桶 -> 空桶（牛奶桶、水桶等）
+     * - 玻璃瓶 -> 玻璃瓶（药水合成）
+     * - 碗 -> 碗（蘑菇汤）
+     *
+     * 参考: net.minecraft.item.crafting.IRecipe.getRemainingItems()
+     */
+    [[nodiscard]] virtual std::vector<ItemStack> getRemainingItems(const C& inventory) const = 0;
+
+    /**
+     * @brief 检查配方是否为动态配方（每次合成结果可能不同）
+     * @return 如果是动态配方返回true
+     *
+     * 动态配方的结果物品在 assemble() 时动态生成，
+     * 如染色配方、修复配方等。
+     * 动态配方在配方书中显示为"特殊"配方。
+     */
+    [[nodiscard]] virtual bool isDynamic() const {
+        return false;
+    }
 };
+
+/**
+ * @brief 配方工具函数命名空间
+ */
+namespace RecipeUtils {
+
+/**
+ * @brief 获取容器中每个槽位的默认剩余物品
+ * @tparam C 容器类型
+ * @param inventory 容器
+ * @return 每个槽位的剩余物品堆列表
+ *
+ * 默认实现检查每个槽位的物品是否有容器物品（hasContainerItem()），
+ * 如果有则返回容器物品，否则返回空堆。
+ *
+ * 使用示例：
+ * @code
+ * std::vector<ItemStack> remaining = RecipeUtils::getDefaultRemainingItems(inventory);
+ * @endcode
+ */
+template<typename C>
+std::vector<ItemStack> getDefaultRemainingItems(const C& inventory) {
+    std::vector<ItemStack> remaining(inventory.getContainerSize());
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        ItemStack stack = inventory.getItem(i);
+        if (stack.hasContainerItem()) {
+            remaining[i] = stack.getContainerItem();
+        }
+        // 否则 remaining[i] 保持为空堆
+    }
+    return remaining;
+}
+
+} // namespace RecipeUtils
 
 /**
  * @brief 配方序列化接口

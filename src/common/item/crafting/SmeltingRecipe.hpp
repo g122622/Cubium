@@ -61,6 +61,13 @@ public:
         return true;
     }
 
+    /**
+     * @brief 获取合成后剩余的物品堆
+     * @param inventory 熔炉容器
+     * @return 每个槽位的剩余物品堆列表
+     */
+    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const blockentity::FurnaceInventory& inventory) const override;
+
     // ========== 熔炼特有方法 ==========
 
     /**
