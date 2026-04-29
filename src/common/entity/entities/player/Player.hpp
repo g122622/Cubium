@@ -454,17 +454,6 @@ public:
     [[nodiscard]] f32 prevSwimAnimation() const { return m_prevSwimAnimation; }
 
     /**
-     * @brief 处理水中移动
-     *
-     * 参考MC LivingEntity.travel() 水中分支
-     *
-     * @param strafing 横向移动量
-     * @param vertical 垂直移动量
-     * @param forward 前进移动量
-     */
-    void travelInWater(f32 strafing, f32 vertical, f32 forward);
-
-    /**
      * @brief 处理水中跳跃（向上游泳）
      */
     void swimUp();

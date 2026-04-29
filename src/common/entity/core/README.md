@@ -35,6 +35,13 @@
 - `Entity::isSteppingCarefully()` - 检测是否小心行走（潜行时返回true）
 - `Entity::canTriggerWalking()` - 检测是否能触发行走事件
 
+### 流体检测（MC 1.16.5 对齐）
+- `Entity::isInWater()` / `Entity::isInLava()` - 是否在流体中
+- `Entity::areEyesInWater()` / `Entity::areEyesInLava()` - 眼睛是否在流体中
+- `Entity::canSwim()` - 是否可以游泳（眼睛在水中且在水中）
+- `Entity::waterHeight()` / `Entity::lavaHeight()` - 流体浸入高度（0.0-1.0）
+- `Entity::updateEnvironmentState()` - 更新流体状态，遍历碰撞箱内的方块
+
 ### 击退系统
 - `LivingEntity::applyKnockback(strength, ratioX, ratioZ)` - 应用击退效果
 - `LivingEntity::applyKnockbackFrom(attacker, strength)` - 从攻击者方向计算击退
@@ -123,4 +130,5 @@ if (auto* living = dynamic_cast<LivingEntity*>(target)) {
 
 - [tests/entity/LivingEntityTests.cpp](../../../../tests/entity/LivingEntityTests.cpp) 验证受伤、死亡和环境声发声链路。
 - [tests/common/entity/PlayerMovementTest.cpp](../../../../tests/common/entity/PlayerMovementTest.cpp) 验证玩家受伤和死亡时的声音事件。
+- [tests/common/entity/PlayerSwimTest.cpp](../../../../tests/common/entity/PlayerSwimTest.cpp) 验证游泳、溺水、空气供应、效果影响等。
 - [tests/common/test_entity_physics.cpp](../../../../tests/common/test_entity_physics.cpp) 验证重力、击退、滑度等物理常量。

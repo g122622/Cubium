@@ -510,11 +510,12 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
 
 void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking) {
     // 参考 MC 1.16.5 LivingEntity.travel() 水中分支
-    // 关键参数：
-    // - 基础游泳速度: 0.02F
-    // - 水中阻力: 0.8F (冲刺时 0.9F)
-    // - 水中向上速度: 0.04F
-    // - 水中重力: 减弱（浮力效果）
+    // 关键逻辑：
+    // 1. 水中重力减弱（浮力）
+    // 2. 水中阻力
+    // 3. 深度守卫附魔增加速度
+    // 4. 海豚的恩惠减少阻力
+    // 5. 水中移动
 
     // 基础水中游泳速度
     f32 swimSpeed = physics::SWIM_SPEED_BASE;
@@ -524,19 +525,37 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
         swimSpeed *= physics::SWIM_SPEED_SPRINT_MULTIPLIER;
     }
 
-    // TODO: 深度守卫附魔加成
-    // i32 depthStriderLevel = EnchantmentHelper::getDepthStriderModifier(this);
-    // if (depthStriderLevel > 0) {
-    //     swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
-    // }
+    // 深度守卫附魔加成
+    // MC 1.16.5: float f7 = (float)EnchantmentHelper.getDepthStriderModifier(this);
+    // TODO: 实现附魔系统后获取深度守卫等级
+    i32 depthStriderLevel = 0;  // EnchantmentHelper::getDepthStriderModifier(this);
+    if (depthStriderLevel > 0) {
+        // 深度守卫效果：
+        // 1. 增加游泳速度
+        swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
+        // 2. 速度上限
+        swimSpeed = std::min(swimSpeed, 0.1f);
+    }
 
-    // TODO: 海豚的恩惠药水效果加成
-    // if (hasEffect(EffectType::DolphinsGrace)) {
-    //     swimSpeed *= physics::DOLPHINS_GRACE_SPEED_BONUS;
-    // }
+    // 海豚的恩惠药水效果
+    // MC 1.16.5: if (this.isPotionActive(Effects.DOLPHINS_GRACE))
+    bool hasDolphinsGrace = hasEffect(entity::effect::EffectType::DolphinsGrace);
 
     // 水中阻力
     f32 waterDrag = m_isSprinting ? physics::WATER_DRAG_SPRINT : physics::WATER_DRAG;
+
+    // 深度守卫对阻力的影响
+    // MC: f5 += (0.54600006F - f5) * f7 / 3.0F
+    if (depthStriderLevel > 0) {
+        waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) *
+                     static_cast<f32>(depthStriderLevel) / 3.0f;
+    }
+
+    // 海豚的恩惠大幅减少水中阻力
+    // MC: if (this.isPotionActive(Effects.DOLPHINS_GRACE)) { f5 = 0.96F; }
+    if (hasDolphinsGrace) {
+        waterDrag = physics::DOLPHINS_GRACE_WATER_DRAG;
+    }
 
     // 根据朝向计算水平移动方向
     if (forward != 0.0f || strafe != 0.0f) {
@@ -563,6 +582,7 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     // 垂直移动（跳跃向上，潜行向下）
     if (jumping) {
         // 向上游泳
+        // MC: this.setMotion(this.getMotion().add(0.0D, 0.04D, 0.0D));
         m_velocity.y += physics::SWIM_UP_SPEED;
     } else if (sneaking) {
         // 向下潜
@@ -570,17 +590,30 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     }
 
     // 应用水中阻力
+    // MC: this.setMotion(this.getMotion().mul((double)f5, (double)0.8F, (double)f5));
+    // 垂直方向阻力固定为 0.8
     m_velocity.x *= waterDrag;
-    m_velocity.y *= waterDrag;
+    m_velocity.y *= 0.8f;  // 水中垂直阻力固定为 0.8
     m_velocity.z *= waterDrag;
 
-    // 水中重力（减弱，模拟浮力）
-    // MC中重力是 0.08，水中应用 1/16 的重力
-    if (!m_abilities.flying) {
-        // 轻微上浮效果（如果不主动下沉）
-        if (m_velocity.y < 0.0f && !sneaking) {
-            m_velocity.y += physics::WATER_GRAVITY;
+    // 应用水中的"浮力"效果
+    // MC 1.16.5: func_233626_a_() - 浮力计算
+    // 重力减少到 1/16 (0.08 / 16 = 0.005)
+    if (!m_abilities.flying && !m_noGravity) {
+        f32 gravity = physics::GRAVITY;
+        f32 buoyancy = gravity / 16.0f;  // MC 标准：重力 / 16
+
+        // 下落时应用浮力
+        if (m_velocity.y < 0.0f) {
+            m_velocity.y += buoyancy;
         }
+    }
+
+    // 碰撞到墙后尝试上跳（爬出水面的行为）
+    // MC: if (this.collidedHorizontally && this.isOffsetPositionInLiquid(...))
+    if (m_collidedHorizontally && !m_onGround && m_physicsEngine) {
+        // 尝试向上跳
+        m_velocity.y = physics::WATER_WALL_JUMP_VELOCITY;
     }
 
     // 重置过小的速度
@@ -1161,130 +1194,6 @@ void Player::updatePose() {
 
     // 设置姿态
     setPose(targetPose);
-}
-
-void Player::travelInWater(f32 strafing, f32 vertical, f32 forward) {
-    // 参考 MC 1.16.5 LivingEntity.travel() 水中分支
-    // 关键逻辑：
-    // 1. 水中重力减弱（浮力）
-    // 2. 水中阻力
-    // 3. 深度守卫附魔增加速度
-    // 4. 海豚的恩惠减少阻力
-    // 5. 水中移动
-
-    // 检查是否在水中
-    if (!isInWater()) {
-        return;
-    }
-
-    // 基础水中游泳速度
-    f32 swimSpeed = physics::SWIM_SPEED_BASE;
-
-    // 冲刺时增加速度
-    if (m_isSprinting) {
-        swimSpeed *= physics::SWIM_SPEED_SPRINT_MULTIPLIER;
-    }
-
-    // 深度守卫附魔加成
-    // MC 1.16.5: float f7 = (float)EnchantmentHelper.getDepthStriderModifier(this);
-    // TODO: 实现附魔系统后获取深度守卫等级
-    i32 depthStriderLevel = 0;  // EnchantmentHelper::getDepthStriderModifier(this);
-    if (depthStriderLevel > 0) {
-        // 深度守卫效果：
-        // 1. 增加游泳速度
-        swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
-        // 2. 速度上限
-        swimSpeed = std::min(swimSpeed, 0.1f);
-    }
-
-    // 海豚的恩惠药水效果
-    // MC 1.16.5: if (this.isPotionActive(Effects.DOLPHINS_GRACE))
-    bool hasDolphinsGrace = hasEffect(entity::effect::EffectType::DolphinsGrace);
-
-    // 水中阻力
-    f32 waterDrag = m_isSprinting ? physics::WATER_DRAG_SPRINT : physics::WATER_DRAG;
-
-    // 深度守卫对阻力的影响
-    // MC: f5 += (0.54600006F - f5) * f7 / 3.0F
-    if (depthStriderLevel > 0) {
-        waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) *
-                     static_cast<f32>(depthStriderLevel) / 3.0f;
-    }
-
-    // 海豚的恩惠大幅减少水中阻力
-    // MC: if (this.isPotionActive(Effects.DOLPHINS_GRACE)) { f5 = 0.96F; }
-    if (hasDolphinsGrace) {
-        waterDrag = physics::DOLPHINS_GRACE_WATER_DRAG;
-    }
-
-    // 根据朝向计算移动方向
-    if (strafing != 0.0f || forward != 0.0f) {
-        f32 yawRad = m_yaw * math::DEG_TO_RAD;
-        f32 sinYaw = std::sin(yawRad);
-        f32 cosYaw = std::cos(yawRad);
-
-        // MC的getAbsoluteMotion公式
-        f32 moveX = strafing * cosYaw - forward * sinYaw;
-        f32 moveZ = forward * cosYaw + strafing * sinYaw;
-
-        // 归一化
-        f32 length = std::sqrt(moveX * moveX + moveZ * moveZ);
-        if (length > 0.0f) {
-            moveX /= length;
-            moveZ /= length;
-        }
-
-        // 添加到速度
-        m_velocity.x += moveX * swimSpeed;
-        m_velocity.z += moveZ * swimSpeed;
-    }
-
-    // 垂直移动（跳跃向上，潜行向下）
-    if (m_isJumping) {
-        // 向上游泳
-        // MC: this.setMotion(this.getMotion().add(0.0D, 0.04D, 0.0D));
-        m_velocity.y += physics::SWIM_UP_SPEED;
-    } else if (m_isSneaking) {
-        // 向下潜
-        m_velocity.y -= physics::SWIM_DOWN_SPEED;
-    }
-
-    // 移动（使用碰撞检测）
-    if (m_physicsEngine) {
-        Vector3 actualMovement = moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
-
-        // 碰撞到墙后尝试上跳（爬出水面的行为）
-        // MC: if (this.collidedHorizontally && this.isOffsetPositionInLiquid(...))
-        if (m_collidedHorizontally && !m_onGround) {
-            // 尝试向上跳
-            m_velocity.y = physics::WATER_WALL_JUMP_VELOCITY;
-        }
-    }
-
-    // 应用水中阻力
-    // MC: this.setMotion(this.getMotion().mul((double)f5, (double)0.8F, (double)f5));
-    // 垂直方向阻力固定为 0.8
-    m_velocity.x *= waterDrag;
-    m_velocity.y *= 0.8f;  // 水中垂直阻力固定为 0.8
-    m_velocity.z *= waterDrag;
-
-    // 应用水中的"浮力"效果
-    // MC 1.16.5: func_233626_a_() - 浮力计算
-    // 重力减少到 1/16 (0.08 / 16 = 0.005)
-    if (!m_abilities.flying && !m_noGravity) {
-        f32 gravity = physics::GRAVITY;
-        f32 buoyancy = gravity / 16.0f;  // MC 标准：重力 / 16
-
-        // MC 有特殊的下落状态检测
-        // 这里简化为直接应用浮力
-        if (m_velocity.y < 0.0f) {
-            // 下落时应用浮力
-            m_velocity.y += buoyancy;
-        }
-    }
-
-    // 重置过小的速度
-    clampMotion();
 }
 
 void Player::swimUp() {

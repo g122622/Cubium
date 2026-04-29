@@ -132,6 +132,8 @@ if (player->shouldPlayStepSound()) {
 - `DamagePlaysHurtSound` / `LethalDamagePlaysDeathSound` 覆盖玩家声音事件回调
 - [tests/entity/PlayerPoseCollisionTest.cpp](../../../../../tests/entity/PlayerPoseCollisionTest.cpp)
 - `SetSneakingFalseKeepsCrouchWhenCeilingBlocksStanding` 覆盖低顶空间下的姿态回退
+- [tests/common/entity/PlayerSwimTest.cpp](../../../../../tests/common/entity/PlayerSwimTest.cpp)
+- 空气供应管理、溺水伤害、水下呼吸效果、游泳姿态尺寸、物理常量验证
 
 ## Mermaid 图表
 
