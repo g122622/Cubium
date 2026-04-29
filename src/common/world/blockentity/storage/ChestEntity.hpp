@@ -91,7 +91,7 @@ public:
      * @brief 获取打开计数
      * @return 当前打开的玩家数量
      */
-    [[nodiscard]] i32 getOpenCount() const { return m_openCount; }
+    using ContainerBlockEntity::getOpenCount;
 
     /**
      * @brief 玩家打开箱子
@@ -164,11 +164,10 @@ protected:
     void playSound(IWorld& world, bool open);
 
 private:
-    SimpleInventory m_inventory;   ///< 27格物品存储
-    f32 m_lidAngle = 0.0f;          ///< 当前盖子角度 (0-1)
-    f32 m_prevLidAngle = 0.0f;      ///< 上一帧盖子角度
-    i32 m_openCount = 0;            ///< 打开计数
-    i32 m_ticksSinceSync = 0;       ///< 同步计数器
+    SimpleInventory m_inventory;      ///< 27格物品存储
+    f32 m_lidAngle = 0.0f;            ///< 当前盖子角度 (0-1)
+    f32 m_prevLidAngle = 0.0f;        ///< 上一帧盖子角度
+    i32 m_ticksSinceSync = 0;         ///< 同步计数器
 };
 
 } // namespace blockentity

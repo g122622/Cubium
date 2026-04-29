@@ -2,7 +2,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../util/math/MathConstants.hpp"
+#include "../../../lighting/InternalLightUtils.hpp"
 #include <unordered_map>
 #include <cmath>
 
@@ -110,20 +110,31 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
         return 0;
     }
 
-    // 获取天空光照并减去天空减暗因子
+    // 获取天空光照
     // MC Java: int i = world.getLightFor(LightType.SKY, pos) - world.getSkylightSubtracted();
     u8 skyLight = world.getSkyLight(pos.up());
-    i32 skyDarkening = world.getSkylightSubtracted();
+
+    // 使用 InternalLightUtils 计算天空减暗因子
+    i64 dayTime = world.dayTime();
+    i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(
+        dayTime,
+        world.isRaining(),
+        world.isThundering()
+    );
+
     i32 i = static_cast<i32>(skyLight) - skyDarkening;
 
     // 获取天体角度进行余弦调整
     // MC Java: float f = world.getCelestialAngleRadians(1.0F);
     if (!inverted && i > 0) {
-        f32 celestialAngle = world.getCelestialAngleRadians(1.0f);
-        f32 f = celestialAngle;
+        f32 celestialAngle = InternalLightUtils::getCelestialAngle(dayTime);
+        // 转换为弧度（getCelestialAngle 返回 0.0-1.0）
+        constexpr f32 TWO_PI = 6.28318530718f;
+        f32 f = celestialAngle * TWO_PI;
 
         // MC Java: float f1 = f < (float)Math.PI ? 0.0F : ((float)Math.PI * 2F);
-        f32 f1 = f < math::PI ? 0.0f : math::TWO_PI;
+        constexpr f32 PI = 3.14159265359f;
+        f32 f1 = f < PI ? 0.0f : TWO_PI;
 
         // MC Java: f = f + (f1 - f) * 0.2F;
         f = f + (f1 - f) * 0.2f;

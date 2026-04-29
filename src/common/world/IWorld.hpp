@@ -468,32 +468,6 @@ public:
      */
     [[nodiscard]] virtual bool hasSkyLight() const { return dimension() == 0; }
 
-    /**
-     * @brief 获取天空减暗因子
-     *
-     * 基于时间和天气计算天空光照的减少量。
-     * - 正午时为0
-     * - 午夜时为11
-     * - 雷暴时会额外增加
-     *
-     * @return 天空减暗因子 (0-15)
-     */
-    [[nodiscard]] virtual i32 getSkylightSubtracted() const { return 0; }
-
-    /**
-     * @brief 获取天体角度（弧度）
-     *
-     * 用于计算太阳/月亮的位置。
-     * 正午时约为0，午夜时约为PI。
-     *
-     * @param partialTick 部分 tick (0.0 - 1.0)，用于插值
-     * @return 天体角度（弧度）
-     */
-    [[nodiscard]] virtual f32 getCelestialAngleRadians(f32 partialTick) const {
-        (void)partialTick;
-        return 0.0f;
-    }
-
     // ========== 难度 ==========
 
     /**

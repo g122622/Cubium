@@ -53,7 +53,7 @@ public:
      * @brief 获取打开计数
      * @return 当前打开的玩家数量
      */
-    [[nodiscard]] i32 getOpenCount() const { return m_openCount; }
+    using ContainerBlockEntity::getOpenCount;
 
     /**
      * @brief 玩家打开木桶
@@ -96,9 +96,8 @@ private:
      */
     void updateBlockState(IWorld& world, bool open);
 
-    SimpleInventory m_inventory;   ///< 27格物品存储
-    i32 m_openCount = 0;           ///< 打开计数
-    i32 m_ticksSinceSync = 0;      ///< 同步计数器
+    SimpleInventory m_inventory;      ///< 27格物品存储
+    i32 m_ticksSinceSync = 0;         ///< 同步计数器
 };
 
 } // namespace blockentity
