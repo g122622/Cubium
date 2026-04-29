@@ -434,15 +434,15 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
     // 参考MC: PlayerEntity.travel() line 1448 - 飞行时jumpMovementFactor = flySpeed * (sprinting ? 2 : 1)
     f32 speedFactor = m_abilities.walkSpeed;
     if (m_isSprinting) {
-        speedFactor *= 1.3f; // 冲刺速度倍率
+        speedFactor *= physics::SPRINT_SPEED_MULTIPLIER;
     }
     if (sneaking && !m_abilities.flying) {
-        speedFactor *= 0.3f; // 潜行速度倍率
+        speedFactor *= physics::SNEAK_SPEED_MULTIPLIER;
     }
     if (m_abilities.flying) {
         // 飞行时使用flySpeed作为速度因子
         // MC: this.jumpMovementFactor = this.abilities.getFlySpeed() * (float)(this.isSprinting() ? 2 : 1);
-        speedFactor = m_abilities.flySpeed * (m_isSprinting ? 2.0f : 1.0f);
+        speedFactor = m_abilities.flySpeed * (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
     }
 
     // 根据朝向计算移动方向（只有有输入时才处理）
@@ -694,9 +694,9 @@ void Player::jump() {
  * if (Math.abs(motion.z) < 0.003) motion.z = 0;
  */
 void Player::clampMotion() {
-    if (std::abs(m_velocity.x) < MOTION_THRESHOLD) m_velocity.x = 0.0f;
-    if (std::abs(m_velocity.y) < MOTION_THRESHOLD) m_velocity.y = 0.0f;
-    if (std::abs(m_velocity.z) < MOTION_THRESHOLD) m_velocity.z = 0.0f;
+    if (std::abs(m_velocity.x) < physics::MOTION_THRESHOLD) m_velocity.x = 0.0f;
+    if (std::abs(m_velocity.y) < physics::MOTION_THRESHOLD) m_velocity.y = 0.0f;
+    if (std::abs(m_velocity.z) < physics::MOTION_THRESHOLD) m_velocity.z = 0.0f;
 }
 
 /**
@@ -873,10 +873,10 @@ void Player::applyMovementSpeed(f32& speed, bool sneaking) const {
     } else {
         speed = m_abilities.walkSpeed;
         if (m_isSprinting) {
-            speed *= 1.3f;
+            speed *= physics::SPRINT_SPEED_MULTIPLIER;
         }
         if (sneaking) {
-            speed *= 0.3f;
+            speed *= physics::SNEAK_SPEED_MULTIPLIER;
         }
     }
 }

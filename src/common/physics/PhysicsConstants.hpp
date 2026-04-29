@@ -208,6 +208,12 @@ constexpr f32 FLY_HORIZONTAL_DRAG = 0.91f;
 /// 冲刺飞行速度倍率
 constexpr f32 SPRINT_FLY_MULTIPLIER = 2.0f;
 
+/// 冲刺速度倍率 (MC 1.16.5 LivingEntity: 0.3F)
+constexpr f32 SPRINT_SPEED_MULTIPLIER = 1.3f;
+
+/// 潜行速度倍率 (MC 1.16.5 PlayerEntity)
+constexpr f32 SNEAK_SPEED_MULTIPLIER = 0.3f;
+
 // ============================================================================
 // 空中移动 (MC 1.16.5 LivingEntity.java:158)
 // ============================================================================
@@ -323,6 +329,39 @@ constexpr f32 ITEM_WATER_BOUNCE_FACTOR = 0.5f;
 
 /// 爆炸基础伤害衰减距离
 constexpr f32 EXPLOSION_RADIUS_SCALE = 2.0f;
+
+// ============================================================================
+// 粒子重力
+// ============================================================================
+
+namespace particle {
+
+/// 红石粒子重力
+constexpr f32 REDSTONE_GRAVITY = 0.003f;
+
+/// 岩浆粒子重力
+constexpr f32 LAVA_GRAVITY = 0.025f;
+
+/// 营火粒子重力
+constexpr f32 CAMPFIRE_GRAVITY = 3.0e-6f;
+
+/// 水花粒子重力
+constexpr f32 SPLASH_GRAVITY = 0.04f;
+
+/// 挖掘粒子重力
+constexpr f32 DIGGING_GRAVITY = 0.03f;
+
+/// 村民粒子重力
+constexpr f32 VILLAGER_GRAVITY = 0.02f;
+
+/// 零重力（用于烟雾、传送门、心形等粒子）
+constexpr f32 ZERO_GRAVITY = 0.0f;
+
+/// 默认粒子重力（向后兼容）
+/// @deprecated 使用具体粒子类型的重力常量
+constexpr f32 DEFAULT_GRAVITY = 0.0f;
+
+} // namespace particle
 
 } // namespace physics
 } // namespace mc

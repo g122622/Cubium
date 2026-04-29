@@ -1,6 +1,7 @@
 #include "AutoJump.hpp"
 #include "../entities/player/Player.hpp"
 #include "../../physics/PhysicsEngine.hpp"
+#include "../../physics/PhysicsConstants.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include <cmath>
@@ -11,6 +12,7 @@ namespace entity {
 namespace movement {
 
 using namespace AutoJumpConstants;
+using namespace physics;
 
 void AutoJump::tick() {
     if (m_autoJumpTime > 0) {
@@ -70,7 +72,7 @@ AutoJumpResult AutoJump::check(
     // f 是移动速度，f12 是移动向量长度
     f32 moveSpeed = player.abilities().walkSpeed;
     if (player.isSprinting()) {
-        moveSpeed *= 1.3f;
+        moveSpeed *= SPRINT_SPEED_MULTIPLIER;
     }
     f32 detectionDistance = std::max(moveSpeed * DETECTION_DISTANCE_MULTIPLIER, 1.0f / movementLength);
 

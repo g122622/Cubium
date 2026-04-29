@@ -12,9 +12,6 @@ namespace mc {
 
 namespace game {
 
-// 重力加速度 (blocks/tick²)
-constexpr f32 GRAVITY = 0.08f;
-
 // 玩家尺寸
 constexpr f32 PLAYER_HEIGHT = 1.8f;
 constexpr f32 PLAYER_EYE_HEIGHT = 1.62f;

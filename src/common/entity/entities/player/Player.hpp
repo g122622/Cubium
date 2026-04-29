@@ -11,7 +11,7 @@
 #include "ChatVisibility.hpp"
 #include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "../../../physics/PhysicsConstants.hpp"
 #include "spdlog/spdlog.h"
 
 #include <array>
@@ -103,10 +103,10 @@ public:
     static constexpr f32 PLAYER_EYE_HEIGHT = 1.62f;
     static constexpr f32 PLAYER_CROUCH_HEIGHT = 1.5f;
     static constexpr f32 PLAYER_SWIM_HEIGHT = 0.6f;
-    static constexpr f32 PLAYER_STEP_HEIGHT = 0.6f;  // 步进高度
 
     // MC物理常量
-    static constexpr f32 MOTION_THRESHOLD = 0.003f;  // 速度阈值，低于此值归零
+    // 注意：PLAYER_STEP_HEIGHT 已移至 physics::STEP_HEIGHT (PhysicsConstants.hpp)
+    // 注意：MOTION_THRESHOLD 已移至 physics::MOTION_THRESHOLD (PhysicsConstants.hpp)
     static constexpr i32 JUMP_COOLDOWN = 10;          // 跳跃冷却(ticks)
     static constexpr f32 SNEAK_EDGE_DISTANCE = 0.05f; // 潜行边缘检测距离
 
@@ -441,7 +441,7 @@ public:
     [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] f32 eyeHeight() const override;
-    [[nodiscard]] f32 stepHeight() const override { return PLAYER_STEP_HEIGHT; }
+    [[nodiscard]] f32 stepHeight() const override { return physics::STEP_HEIGHT; }
 
     // ========== 水中物理和游泳 ==========
 
