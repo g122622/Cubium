@@ -64,7 +64,7 @@ Result<mc::ContainerId> ContainerManager::openContainer(
         createdMenu = m_menuFactory(containerId, type, pos, playerInventory);
     }
 
-    if (!createdMenu.menu && type == mc::ContainerType::CraftingTable) {
+    if (!createdMenu.menu && type == mc::ContainerType::Crafting) {
         if (playerInventory == nullptr) {
             return Error(ErrorCode::InvalidState, "Player inventory not initialized");
         }

@@ -118,36 +118,62 @@ namespace ContainerTypes {
 
 i32 getSlotCount(ContainerType type) {
     switch (type) {
-        case ContainerType::Player: return 46;      // 36背包 + 4护甲 + 5合成 + 1结果
-        case ContainerType::Chest: return 27;       // 普通箱子
-        case ContainerType::CraftingTable: return 10; // 9个格子 + 1个结果
-        case ContainerType::Furnace: return 3;
-        case ContainerType::Dispenser: return 9;
-        case ContainerType::Enchantment: return 2;
-        case ContainerType::Anvil: return 3;
-        case ContainerType::BrewingStand: return 5;
-        case ContainerType::Villager: return 3;
-        case ContainerType::Beacon: return 1;
-        case ContainerType::Hopper: return 5;
-        case ContainerType::ShulkerBox: return 27;
+        case ContainerType::Generic9x1: return 9;        // 1行箱子
+        case ContainerType::Generic9x2: return 18;       // 2行箱子
+        case ContainerType::Generic9x3: return 27;       // 3行箱子（普通大箱子）
+        case ContainerType::Generic9x4: return 36;       // 4行箱子
+        case ContainerType::Generic9x5: return 45;       // 5行箱子
+        case ContainerType::Generic9x6: return 54;       // 6行箱子（最大箱子）
+        case ContainerType::Generic3x3: return 9;        // 发射器/投掷器
+        case ContainerType::Anvil: return 3;             // 铁砧（2输入+1输出）
+        case ContainerType::Beacon: return 1;            // 信标
+        case ContainerType::BlastFurnace: return 3;      // 高炉（输入+燃料+输出）
+        case ContainerType::BrewingStand: return 5;      // 酿造台（1燃料+3药水+1材料）
+        case ContainerType::Crafting: return 10;         // 工作台（9格网格+1输出）
+        case ContainerType::Enchantment: return 2;       // 附魔台（1输入+1青金石）
+        case ContainerType::Furnace: return 3;           // 熔炉（输入+燃料+输出）
+        case ContainerType::Grindstone: return 2;        // 砂轮（输入+输出）
+        case ContainerType::Hopper: return 5;            // 漏斗
+        case ContainerType::Lectern: return 1;           // 讲台
+        case ContainerType::Loom: return 4;              // 织布机（3输入+1输出）
+        case ContainerType::Merchant: return 3;          // 村民交易（2输入+1输出）
+        case ContainerType::ShulkerBox: return 27;       // 潜影盒（与3行箱子相同）
+        case ContainerType::Smithing: return 3;          // 锻造台（2输入+1输出）
+        case ContainerType::Smoker: return 3;            // 烟熏炉（输入+燃料+输出）
+        case ContainerType::Cartography: return 3;       // 制图台（2输入+1输出）
+        case ContainerType::Stonecutter: return 2;       // 切石机（1输入+1输出）
+        case ContainerType::Player: return 46;           // 玩家背包（36背包+4护甲+5合成+1结果）
         default: return 0;
     }
 }
 
 const char* getDefaultTitle(ContainerType type) {
     switch (type) {
-        case ContainerType::Player: return "Inventory";
-        case ContainerType::Chest: return "Chest";
-        case ContainerType::CraftingTable: return "Crafting";
-        case ContainerType::Furnace: return "Furnace";
-        case ContainerType::Dispenser: return "Dispenser";
-        case ContainerType::Enchantment: return "Enchanting";
+        case ContainerType::Generic9x1: return "Chest";
+        case ContainerType::Generic9x2: return "Chest";
+        case ContainerType::Generic9x3: return "Chest";
+        case ContainerType::Generic9x4: return "Chest";
+        case ContainerType::Generic9x5: return "Chest";
+        case ContainerType::Generic9x6: return "Chest";
+        case ContainerType::Generic3x3: return "Dispenser";
         case ContainerType::Anvil: return "Anvil";
-        case ContainerType::BrewingStand: return "Brewing Stand";
-        case ContainerType::Villager: return "Villager";
         case ContainerType::Beacon: return "Beacon";
+        case ContainerType::BlastFurnace: return "Blast Furnace";
+        case ContainerType::BrewingStand: return "Brewing Stand";
+        case ContainerType::Crafting: return "Crafting";
+        case ContainerType::Enchantment: return "Enchanting";
+        case ContainerType::Furnace: return "Furnace";
+        case ContainerType::Grindstone: return "Grindstone";
         case ContainerType::Hopper: return "Hopper";
+        case ContainerType::Lectern: return "Lectern";
+        case ContainerType::Loom: return "Loom";
+        case ContainerType::Merchant: return "Villager";
         case ContainerType::ShulkerBox: return "Shulker Box";
+        case ContainerType::Smithing: return "Smithing Table";
+        case ContainerType::Smoker: return "Smoker";
+        case ContainerType::Cartography: return "Cartography Table";
+        case ContainerType::Stonecutter: return "Stonecutter";
+        case ContainerType::Player: return "Inventory";
         default: return "Container";
     }
 }
@@ -158,24 +184,21 @@ u8 toNetworkType(ContainerType type) {
 
 ClickType toClickType(ClickAction action, i32 button) {
     switch (action) {
-        case ClickAction::Pick:
-            return (button == 0) ? ClickType::Pick : ClickType::PickSome;
-        case ClickAction::PickAll:
-            return ClickType::PickAll;
-        case ClickAction::Throw:
-            return (button == 0) ? ClickType::Throw : ClickType::ThrowAll;
-        case ClickAction::ThrowAll:
-            return ClickType::ThrowAll;
         case ClickAction::Pickup:
-            return ClickType::Pickup;
+            // PICKUP: button 0 = 左键拾取/放置, button 1 = 右键拾取一半/放置一个
+            return (button == 0) ? ClickType::Pick : ClickType::PickSome;
         case ClickAction::QuickMove:
             return ClickType::QuickMove;
-        case ClickAction::Clone:
-            return ClickType::Clone;
-        case ClickAction::Spread:
-            return ClickType::QuickCraft;
         case ClickAction::Swap:
             return ClickType::Swap;
+        case ClickAction::Clone:
+            return ClickType::Clone;
+        case ClickAction::Throw:
+            return (button == 0) ? ClickType::Throw : ClickType::ThrowAll;
+        case ClickAction::QuickCraft:
+            return ClickType::QuickCraft;
+        case ClickAction::PickupAll:
+            return ClickType::PickAll;
         default:
             return ClickType::Pick;
     }
@@ -188,17 +211,16 @@ ClickAction toClickAction(ClickType clickType) {
         case ClickType::PlaceSome:
         case ClickType::PlaceAll:
         case ClickType::PickSome:
-            return ClickAction::Pick;
+            return ClickAction::Pickup;
         case ClickType::PickAll:
-            return ClickAction::PickAll;
+            return ClickAction::PickupAll;
         case ClickType::Throw:
-            return ClickAction::Throw;
         case ClickType::ThrowAll:
-            return ClickAction::ThrowAll;
+            return ClickAction::Throw;
         case ClickType::QuickMove:
             return ClickAction::QuickMove;
         case ClickType::QuickCraft:
-            return ClickAction::Spread;
+            return ClickAction::QuickCraft;
         case ClickType::Clone:
             return ClickAction::Clone;
         case ClickType::Pickup:
@@ -206,7 +228,7 @@ ClickAction toClickAction(ClickType clickType) {
         case ClickType::Swap:
             return ClickAction::Swap;
         default:
-            return ClickAction::Pick;
+            return ClickAction::Pickup;
     }
 }
 

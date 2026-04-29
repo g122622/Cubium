@@ -120,40 +120,260 @@ void AbstractContainerMenu::notifySlotChanged(i32 slotIndex, const ItemStack& st
 }
 
 ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, Player& player) {
-    (void)button;
-    (void)clickType;
     (void)player;
+
+    // 特殊槽位索引：-999 表示点击了屏幕外部
+    if (slotIndex == -999) {
+        // 点击屏幕外部 - 丢弃鼠标物品
+        if (clickType == ClickType::Throw) {
+            ItemStack toDrop = m_carried.split(button == 1 ? m_carried.getCount() : 1);
+            // TODO: 在世界中生成物品实体
+            return m_carried;
+        }
+        return m_carried;
+    }
 
     Slot* slot = getSlot(slotIndex);
     if (slot == nullptr) {
-        return ItemStack();
+        return m_carried;
     }
 
-    // 简化版实现：左键拾取/放置
     ItemStack slotStack = slot->getItem();
-    if (m_carried.isEmpty()) {
-        // 拾取物品
-        if (!slotStack.isEmpty()) {
-            m_carried = slotStack;
-            slot->set(ItemStack());
-        }
-    } else {
-        // 放置物品
-        if (slotStack.isEmpty()) {
-            slot->set(m_carried);
-            m_carried = ItemStack();
-        } else if (slotStack.isSameItem(m_carried)) {
+
+    switch (clickType) {
+        case ClickType::Pick:
+        case ClickType::PickSome:
+            // 左键/右键拾取或放置
+            return handleClickPick(*slot, slotIndex, slotStack, button);
+
+        case ClickType::QuickMove:
+            // Shift+点击快速移动
+            return handleQuickMove(*slot, slotIndex, slotStack);
+
+        case ClickType::Swap:
+            // 数字键交换 (button = 0-8 对应快捷栏1-9, button = 40 对应副手)
+            return handleSwap(*slot, slotIndex, slotStack, button);
+
+        case ClickType::Clone:
+            // 创造模式中键复制
+            return handleClone(*slot, slotIndex, slotStack, player);
+
+        case ClickType::Throw:
+            // Q键丢弃
+            return handleThrow(*slot, slotIndex, slotStack, button);
+
+        case ClickType::QuickCraft:
+            // 拖拽分发
+            return handleQuickCraft(*slot, slotIndex, button);
+
+        case ClickType::PickAll:
+            // 双击拾取全部
+            return handlePickupAll(*slot, slotIndex, slotStack);
+
+        default:
+            return m_carried;
+    }
+}
+
+ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button) {
+    // 左键
+    if (button == 0) {
+        if (m_carried.isEmpty()) {
+            // 拾取整个槽位
+            if (!slotStack.isEmpty() && slot.mayPickup(*m_playerInventory->getPlayer())) {
+                m_carried = slot.remove(slotStack.getCount());
+                slot.setChanged();
+                notifySlotChanged(slotIndex, slot.getItem());
+            }
+        } else if (slotStack.isEmpty()) {
+            // 放置物品到空槽位
+            if (slot.mayPlace(m_carried)) {
+                i32 toPlace = std::min(m_carried.getCount(), slot.getMaxStackSize(m_carried));
+                slot.set(m_carried.split(toPlace));
+                slot.setChanged();
+                notifySlotChanged(slotIndex, slot.getItem());
+            }
+        } else if (m_carried.canMergeWith(slotStack)) {
             // 合并物品
-            i32 space = slotStack.getMaxStackSize() - slotStack.getCount();
-            i32 carriedCount = m_carried.getCount();
-            i32 toAdd = (space < carriedCount) ? space : carriedCount;
-            slotStack.grow(toAdd);
-            slot->set(slotStack);
-            m_carried.shrink(toAdd);
+            i32 space = slot.getMaxStackSize(m_carried) - slotStack.getCount();
+            if (space > 0 && slot.mayPlace(m_carried)) {
+                i32 toAdd = std::min(space, m_carried.getCount());
+                ItemStack newStack = slotStack.copy();
+                newStack.grow(toAdd);
+                slot.set(newStack);
+                m_carried.shrink(toAdd);
+                slot.setChanged();
+                notifySlotChanged(slotIndex, slot.getItem());
+            }
+        } else if (slot.mayPlace(m_carried) && m_carried.getCount() <= slot.getMaxStackSize(m_carried)) {
+            // 交换物品
+            slot.set(m_carried);
+            m_carried = slotStack;
+            slot.setChanged();
+            notifySlotChanged(slotIndex, slot.getItem());
+        }
+    }
+    // 右键
+    else if (button == 1) {
+        if (m_carried.isEmpty()) {
+            // 拾取一半
+            if (!slotStack.isEmpty() && slot.mayPickup(*m_playerInventory->getPlayer())) {
+                i32 toTake = (slotStack.getCount() + 1) / 2;
+                m_carried = slot.remove(toTake);
+                slot.setChanged();
+                notifySlotChanged(slotIndex, slot.getItem());
+            }
+        } else if (slotStack.isEmpty()) {
+            // 放置一个物品
+            if (slot.mayPlace(m_carried)) {
+                ItemStack single = m_carried.split(1);
+                slot.set(single);
+                slot.setChanged();
+                notifySlotChanged(slotIndex, slot.getItem());
+            }
+        } else if (m_carried.canMergeWith(slotStack)) {
+            // 放置一个物品
+            i32 space = slot.getMaxStackSize(m_carried) - slotStack.getCount();
+            if (space > 0 && slot.mayPlace(m_carried)) {
+                ItemStack newStack = slotStack.copy();
+                newStack.grow(1);
+                slot.set(newStack);
+                m_carried.shrink(1);
+                slot.setChanged();
+                notifySlotChanged(slotIndex, slot.getItem());
+            }
+        } else if (slot.mayPlace(m_carried) && m_carried.getCount() == 1) {
+            // 交换（右键只允许单个物品交换）
+            slot.set(m_carried);
+            m_carried = slotStack;
+            slot.setChanged();
+            notifySlotChanged(slotIndex, slot.getItem());
         }
     }
 
-    broadcastChanges();
+    return m_carried;
+}
+
+ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack) {
+    if (slotStack.isEmpty()) {
+        return m_carried;
+    }
+
+    ItemStack result = quickMoveStack(slotIndex, *m_playerInventory->getPlayer());
+    if (!result.isEmpty()) {
+        slot.setChanged();
+        notifySlotChanged(slotIndex, slot.getItem());
+    }
+    return m_carried;
+}
+
+ItemStack AbstractContainerMenu::handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button) {
+    // button = 0-8 对应快捷栏槽位，button = 40 对应副手
+    PlayerInventory* inv = m_playerInventory;
+    if (!inv) {
+        return m_carried;
+    }
+
+    i32 swapSlot = -1;
+    if (button >= 0 && button <= 8) {
+        swapSlot = button;  // 快捷栏
+    } else if (button == 40) {
+        swapSlot = InventorySlots::OFFHAND;  // 副手
+    }
+
+    if (swapSlot < 0) {
+        return m_carried;
+    }
+
+    ItemStack swapStack = inv->getItem(swapSlot);
+
+    // 检查是否可以交换
+    if (slot.mayPlace(swapStack) && (swapStack.isEmpty() || slot.getMaxStackSize(swapStack) >= swapStack.getCount())) {
+        if (swapStack.isEmpty() || slot.mayPickup(*m_playerInventory->getPlayer())) {
+            // 执行交换
+            slot.set(swapStack);
+            inv->setItem(swapSlot, slotStack);
+            slot.setChanged();
+            notifySlotChanged(slotIndex, slotStack);
+        }
+    }
+
+    return m_carried;
+}
+
+ItemStack AbstractContainerMenu::handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player) {
+    // 创造模式中键复制 - 只在创造模式下可用
+    // TODO: 检查玩家是否为创造模式
+    (void)player;
+
+    if (!slotStack.isEmpty() && m_carried.isEmpty()) {
+        // 复制整组物品
+        m_carried = slotStack.copy();
+        m_carried.setCount(slotStack.getMaxStackSize());
+    }
+
+    return m_carried;
+}
+
+ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button) {
+    // Ctrl+点击丢弃全部 (button=1)，普通点击丢弃一个 (button=0)
+    if (!slotStack.isEmpty()) {
+        i32 toDrop = (button == 1) ? slotStack.getCount() : 1;
+        ItemStack dropped = slot.remove(toDrop);
+        slot.setChanged();
+        notifySlotChanged(slotIndex, slot.getItem());
+        // TODO: 在世界中生成物品实体
+        (void)dropped;
+    }
+
+    return m_carried;
+}
+
+ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32 button) {
+    // 拖拽分发 - 状态机实现
+    // button: 0=开始拖拽, 1=添加槽位, 2=结束拖拽
+    (void)slot;
+    (void)slotIndex;
+    (void)button;
+    // TODO: 实现完整的拖拽分发状态机
+    return m_carried;
+}
+
+ItemStack AbstractContainerMenu::handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack) {
+    // 双击拾取全部相同物品
+    if (m_carried.isEmpty() && !slotStack.isEmpty()) {
+        ItemStack toPickup = slotStack.copy();
+
+        // 遍历所有槽位，合并相同物品
+        for (i32 i = 0; i < getSlotCount(); ++i) {
+            if (i == slotIndex) continue;
+
+            Slot* otherSlot = getSlot(i);
+            if (!otherSlot || otherSlot->isEmpty()) continue;
+
+            ItemStack otherStack = otherSlot->getItem();
+            if (toPickup.canMergeWith(otherStack) && otherSlot->mayPickup(*m_playerInventory->getPlayer())) {
+                i32 space = toPickup.getMaxStackSize() - toPickup.getCount();
+                if (space > 0) {
+                    i32 toAdd = std::min(space, otherStack.getCount());
+                    toPickup.grow(toAdd);
+                    otherSlot->remove(toAdd);
+                    otherSlot->setChanged();
+                    notifySlotChanged(i, otherSlot->getItem());
+
+                    if (toPickup.getCount() >= toPickup.getMaxStackSize()) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        m_carried = toPickup;
+        slot.remove(slotStack.getCount());
+        slot.setChanged();
+        notifySlotChanged(slotIndex, slot.getItem());
+    }
+
     return m_carried;
 }
 

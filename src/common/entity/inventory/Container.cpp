@@ -421,12 +421,13 @@ ItemStack Container::handlePickClick(i32 slotIndex, i32 button, ItemStack cursor
             // 拾取一半
             if (!slotStack.isEmpty()) {
                 i32 toTake = (slotStack.getCount() + 1) / 2;
-                slot->set(slotStack.split(toTake));
+                ItemStack result = slotStack.split(toTake);
+                slot->set(slotStack);
                 setChanged();
                 if (m_onSlotChanged) {
                     m_onSlotChanged(slotIndex);
                 }
-                return ItemStack(slotStack.getItem(), toTake);
+                return result;
             }
         } else if (slotStack.isEmpty()) {
             // 放置一个物品

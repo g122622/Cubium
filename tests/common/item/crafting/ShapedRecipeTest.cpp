@@ -94,7 +94,8 @@ TEST_F(ShapedRecipeTest, Matches_EmptyRecipe_EmptyInventory_ReturnsTrue) {
     );
 
     CraftingInventory inventory(3, 3);
-    EXPECT_FALSE(recipe->matches(inventory)); // 1个空原料需要1个空槽位
+    // MC 原版行为: 空 Ingredient 匹配空 ItemStack，所以空配方匹配空网格
+    EXPECT_TRUE(recipe->matches(inventory));
 }
 
 TEST_F(ShapedRecipeTest, Matches_EmptyRecipe_NonEmptyInventory_ReturnsFalse) {

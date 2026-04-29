@@ -145,6 +145,27 @@ public:
      */
     [[nodiscard]] static Result<EnchantmentContainer> fromJson(const nlohmann::json& json);
 
+    // ========== 比较操作符 ==========
+
+    /**
+     * @brief 比较两个附魔容器是否相等
+     */
+    bool operator==(const EnchantmentContainer& other) const {
+        if (m_enchantments.size() != other.m_enchantments.size()) {
+            return false;
+        }
+        for (size_t i = 0; i < m_enchantments.size(); ++i) {
+            if (m_enchantments[i] != other.m_enchantments[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const EnchantmentContainer& other) const {
+        return !(*this == other);
+    }
+
 private:
     std::vector<EnchantmentInstance> m_enchantments;
 };

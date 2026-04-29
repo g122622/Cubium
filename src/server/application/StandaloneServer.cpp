@@ -209,13 +209,15 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         }
 
         switch (type) {
-            case mc::ContainerType::CraftingTable: {
+            case mc::ContainerType::Crafting: {
                 auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory, nullptr);
                 menu->updateResult();
                 result.menu = std::move(menu);
                 return result;
             }
-            case mc::ContainerType::Chest: {
+            case mc::ContainerType::Generic9x3:
+            case mc::ContainerType::Generic9x6:
+            case mc::ContainerType::ShulkerBox: {
                 BlockEntity* blockEntity = m_world->getBlockEntity(pos);
                 if (blockEntity == nullptr) {
                     return result;
@@ -241,7 +243,9 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 result.menu = blockentity::ChestContainer::createSingle(containerId, playerInventory, chest->getInventory());
                 return result;
             }
-            case mc::ContainerType::Furnace: {
+            case mc::ContainerType::Furnace:
+            case mc::ContainerType::BlastFurnace:
+            case mc::ContainerType::Smoker: {
                 BlockEntity* blockEntity = m_world->getBlockEntity(pos);
                 if (blockEntity == nullptr) {
                     return result;
@@ -291,7 +295,9 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                                                  ContainerId containerId,
                                                  mc::ContainerType type,
                                                  const BlockPos& pos) {
-        if (m_world && type == mc::ContainerType::Chest) {
+        if (m_world && (type == mc::ContainerType::Generic9x3 ||
+                        type == mc::ContainerType::Generic9x6 ||
+                        type == mc::ContainerType::ShulkerBox)) {
             BlockEntity* blockEntity = m_world->getBlockEntity(pos);
             if (blockEntity != nullptr &&
                 (blockEntity->getType() == BlockEntityType::Chest ||
@@ -713,7 +719,7 @@ void StandaloneServer::handleBlockPlacementPacket(PlayerId playerId, const u8* d
             return false;
         }
 
-        auto openResult = containerManager().openContainer(playerId, mc::ContainerType::CraftingTable, pos);
+        auto openResult = containerManager().openContainer(playerId, mc::ContainerType::Crafting, pos);
         return openResult.success();
     };
 

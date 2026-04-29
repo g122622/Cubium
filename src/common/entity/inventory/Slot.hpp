@@ -124,6 +124,12 @@ public:
     [[nodiscard]] virtual bool mayPlace(const ItemStack& stack) const;
 
     /**
+     * @brief 检查玩家是否可以从此槽位拾取物品
+     * @param player 玩家
+     */
+    [[nodiscard]] virtual bool mayPickup(Player& player) const;
+
+    /**
      * @brief 检查槽位是否有效（如护甲槽只接受护甲）
      */
     [[nodiscard]] virtual bool isValid() const { return true; }
@@ -138,6 +144,11 @@ public:
      * @param stack 要放入的物品
      */
     [[nodiscard]] virtual i32 getMaxStackSize(const ItemStack& stack) const;
+
+    /**
+     * @brief 通知槽位内容变化
+     */
+    void setChanged();
 
     // ========== 激活状态 ==========
 

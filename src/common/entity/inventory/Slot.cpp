@@ -43,6 +43,18 @@ bool Slot::mayPlace(const ItemStack& stack) const {
     return m_inventory->canPlaceItem(m_slotIndex, stack);
 }
 
+bool Slot::mayPickup(Player& player) const {
+    (void)player;
+    // 默认允许拾取，子类可重写此方法
+    return true;
+}
+
+void Slot::setChanged() {
+    if (m_inventory != nullptr) {
+        m_inventory->setChanged();
+    }
+}
+
 i32 Slot::getMaxStackSize() const {
     if (m_inventory == nullptr) {
         return 64;

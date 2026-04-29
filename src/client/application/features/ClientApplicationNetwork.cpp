@@ -82,11 +82,11 @@ bool applyContainerSlot(AbstractContainerScreen<Menu>* screen, ContainerId conta
     return true;
 }
 
-std::function<void(ContainerId, i32, i32, ClickAction, const ItemStack&)> makeContainerClickSender(NetworkClient* networkClient)
+std::function<void(ContainerId, i32, i32, i16, ClickAction, const ItemStack&)> makeContainerClickSender(NetworkClient* networkClient)
 {
-    return [networkClient](ContainerId containerId, i32 slotIndex, i32 button, ClickAction action, const ItemStack& cursorItem) {
+    return [networkClient](ContainerId containerId, i32 slotIndex, i32 button, i16 transactionId, ClickAction action, const ItemStack& cursorItem) {
         if (networkClient) {
-            networkClient->sendContainerClick(ContainerClickPacket(containerId, slotIndex, button, action, cursorItem));
+            networkClient->sendContainerClick(ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
         }
     };
 }
@@ -333,14 +333,20 @@ void ClientApplication::setupNetworkCallbacks()
                     makeContainerCloseSender(m_networkClient.get()));
                 break;
 
-            case ContainerType::CraftingTable:
+            case ContainerType::Crafting:
                 screen = std::make_unique<CraftingScreen>(
                     std::make_unique<mc::CraftingMenu>(packet.containerId(), &m_player->inventory(), nullptr),
                     makeContainerClickSender(m_networkClient.get()),
                     makeContainerCloseSender(m_networkClient.get()));
                 break;
 
-            case ContainerType::Chest: {
+            case ContainerType::Generic9x1:
+            case ContainerType::Generic9x2:
+            case ContainerType::Generic9x3:
+            case ContainerType::Generic9x4:
+            case ContainerType::Generic9x5:
+            case ContainerType::Generic9x6:
+            case ContainerType::ShulkerBox: {
                 const i32 rows = std::max(1, packet.slotCount() / mc::blockentity::ChestContainer::SLOTS_PER_ROW);
                 screen = std::make_unique<ChestScreen>(
                     packet.containerId(),
@@ -352,6 +358,8 @@ void ClientApplication::setupNetworkCallbacks()
             }
 
             case ContainerType::Furnace:
+            case ContainerType::BlastFurnace:
+            case ContainerType::Smoker:
                 screen = std::make_unique<FurnaceScreen>(
                     packet.containerId(),
                     &m_player->inventory(),

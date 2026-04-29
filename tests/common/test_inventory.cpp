@@ -219,13 +219,14 @@ TEST_F(PlayerInventoryTest, AddItemMerging) {
     i32 remaining = m_inventory->add(stack);
 
     // 槽位 0 从 50 变成 64（堆叠上限），剩余 6 个会放到下一个空槽位
-    // add() 方法会继续尝试添加到空槽位
+    // MC 1.16.5 行为: 空槽位优先级是 选中槽 → 副手 → 快捷栏 → 主背包
+    // 所以剩余的 6 个会放到副手槽 (slot 40)，而不是 slot 1
     EXPECT_EQ(remaining, 20);  // 全部添加成功
     EXPECT_EQ(m_inventory->getItem(0).getCount(), 64);  // 达到堆叠上限
     EXPECT_TRUE(stack.isEmpty());  // 全部添加成功，stack 变空
 
-    // 剩余的 6 个应该放在下一个槽位
-    EXPECT_EQ(m_inventory->getItem(1).getCount(), 6);
+    // 剩余的 6 个应该放在副手槽 (slot 40)
+    EXPECT_EQ(m_inventory->getItem(40).getCount(), 6);
 }
 
 TEST_F(PlayerInventoryTest, AddMultipleItems) {

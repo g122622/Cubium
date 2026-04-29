@@ -798,13 +798,14 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
     std::unique_ptr<AbstractContainerMenu> menu;
 
     switch (type) {
-        case ContainerType::CraftingTable: {
+        case ContainerType::Crafting: {
             auto craftingMenu = std::make_unique<CraftingMenu>(containerId, &m_clientInventory, nullptr);
             craftingMenu->updateResult();
             menu = std::move(craftingMenu);
             break;
         }
-        case ContainerType::Chest: {
+        case ContainerType::Generic9x3:
+        case ContainerType::Generic9x6: {
             if (m_world == nullptr) {
                 return false;
             }
@@ -834,7 +835,9 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
             }
             break;
         }
-        case ContainerType::Furnace: {
+        case ContainerType::Furnace:
+        case ContainerType::BlastFurnace:
+        case ContainerType::Smoker: {
             if (m_world == nullptr) {
                 return false;
             }
@@ -883,7 +886,9 @@ void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
         return;
     }
 
-    if (m_world && m_openContainerType == ContainerType::Chest) {
+    if (m_world && (m_openContainerType == ContainerType::Generic9x3 ||
+                    m_openContainerType == ContainerType::Generic9x6 ||
+                    m_openContainerType == ContainerType::ShulkerBox)) {
         BlockEntity* blockEntity = m_world->getBlockEntity(m_openContainerPos);
         if (blockEntity != nullptr &&
             (blockEntity->getType() == BlockEntityType::Chest ||
@@ -906,7 +911,7 @@ void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
 
 void IntegratedServer::openCraftingTableMenu()
 {
-    (void)openContainerMenu(ContainerType::CraftingTable, BlockPos());
+    (void)openContainerMenu(ContainerType::Crafting, BlockPos());
 }
 
 void IntegratedServer::setupChunkSendCallback()

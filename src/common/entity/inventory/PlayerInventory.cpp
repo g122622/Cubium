@@ -164,14 +164,24 @@ ItemStack PlayerInventory::getSelectedStack() const {
 }
 
 i32 PlayerInventory::getBestHotbarSlot() const {
+    // MC 1.16.5: 从当前选中槽位开始循环查找
     // 首先寻找空槽位
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
-        if (m_items[i].isEmpty()) {
-            return i;
+        i32 slot = (m_selectedSlot + i) % HOTBAR_SIZE;
+        if (m_items[slot].isEmpty()) {
+            return slot;
         }
     }
 
-    // 没有空槽位，返回当前选中的槽位
+    // 如果没有空槽，找非附魔物品槽位
+    for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
+        i32 slot = (m_selectedSlot + i) % HOTBAR_SIZE;
+        if (!m_items[slot].isEmpty() && !m_items[slot].hasEnchantments()) {
+            return slot;
+        }
+    }
+
+    // 都没有则返回当前选中槽位
     return m_selectedSlot;
 }
 
@@ -186,9 +196,37 @@ i32 PlayerInventory::add(ItemStack& stack) {
 
     i32 originalCount = stack.getCount();
 
-    // 首先尝试合并到现有堆叠
-    // 优先检查快捷栏
+    // MC 1.16.5行为: 损坏的物品直接放入第一个空槽位
+    // 普通物品: 优先尝试合并到现有堆叠
+    // 顺序: 当前选中槽位 → 副手槽 → 快捷栏 → 主背包
+
+    // 1. 首先尝试合并到当前选中槽位
+    if (canMergeStacks(m_items[m_selectedSlot], stack)) {
+        i32 maxStack = std::min(m_items[m_selectedSlot].getMaxStackSize(), getMaxStackSize());
+        i32 space = maxStack - m_items[m_selectedSlot].getCount();
+        i32 toAdd = std::min(space, stack.getCount());
+        m_items[m_selectedSlot].grow(toAdd);
+        stack.shrink(toAdd);
+        if (stack.isEmpty()) {
+            return originalCount;
+        }
+    }
+
+    // 2. 尝试合并到副手槽
+    if (canMergeStacks(m_items[InventorySlots::OFFHAND], stack)) {
+        i32 maxStack = std::min(m_items[InventorySlots::OFFHAND].getMaxStackSize(), getMaxStackSize());
+        i32 space = maxStack - m_items[InventorySlots::OFFHAND].getCount();
+        i32 toAdd = std::min(space, stack.getCount());
+        m_items[InventorySlots::OFFHAND].grow(toAdd);
+        stack.shrink(toAdd);
+        if (stack.isEmpty()) {
+            return originalCount;
+        }
+    }
+
+    // 3. 尝试合并到快捷栏（排除当前选中槽位）
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
+        if (i == m_selectedSlot) continue;
         if (canMergeStacks(m_items[i], stack)) {
             i32 maxStack = std::min(m_items[i].getMaxStackSize(), getMaxStackSize());
             i32 space = maxStack - m_items[i].getCount();
@@ -201,7 +239,7 @@ i32 PlayerInventory::add(ItemStack& stack) {
         }
     }
 
-    // 检查主背包
+    // 4. 尝试合并到主背包
     for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
         if (canMergeStacks(m_items[i], stack)) {
             i32 maxStack = std::min(m_items[i].getMaxStackSize(), getMaxStackSize());
@@ -215,17 +253,30 @@ i32 PlayerInventory::add(ItemStack& stack) {
         }
     }
 
-    // 寻找空槽位
-    // 优先检查快捷栏
+    // 5. 寻找空槽位（同样按优先顺序）
     i32 emptySlot = -1;
-    for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
-        if (m_items[i].isEmpty()) {
-            emptySlot = i;
-            break;
+
+    // 当前选中槽位
+    if (m_items[m_selectedSlot].isEmpty()) {
+        emptySlot = m_selectedSlot;
+    }
+
+    // 副手槽
+    if (emptySlot == -1 && m_items[InventorySlots::OFFHAND].isEmpty()) {
+        emptySlot = InventorySlots::OFFHAND;
+    }
+
+    // 快捷栏（排除当前选中槽位）
+    if (emptySlot == -1) {
+        for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
+            if (i != m_selectedSlot && m_items[i].isEmpty()) {
+                emptySlot = i;
+                break;
+            }
         }
     }
 
-    // 然后检查主背包
+    // 主背包
     if (emptySlot == -1) {
         for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
             if (m_items[i].isEmpty()) {
@@ -431,6 +482,11 @@ bool PlayerInventory::canMergeStacks(const ItemStack& stack1, const ItemStack& s
         return false;
     }
 
+    // MC 1.16.5: 必须是可堆叠的物品
+    if (!stack1.isStackable()) {
+        return false;
+    }
+
     // 检查是否可以合并
     if (!stacksEqualExact(stack1, stack2)) {
         return false;
@@ -449,9 +505,41 @@ bool PlayerInventory::stacksEqualExact(const ItemStack& stack1, const ItemStack&
         return false;
     }
 
-    // 检查物品类型和耐久度
-    return stack1.isSameItem(stack2) && stack1.getDamage() == stack2.getDamage();
-    // TODO: 还需要检查NBT标签
+    // MC 1.16.5: 检查物品类型相同
+    if (!stack1.isSameItem(stack2)) {
+        return false;
+    }
+
+    // 检查耐久度
+    if (stack1.getDamage() != stack2.getDamage()) {
+        return false;
+    }
+
+    // 检查自定义名称
+    if (stack1.getCustomName() != stack2.getCustomName()) {
+        return false;
+    }
+
+    // 检查附魔 - 使用EnchantmentContainer的比较
+    const auto& ench1 = stack1.getEnchantments();
+    const auto& ench2 = stack2.getEnchantments();
+    if (ench1 != ench2) {
+        return false;
+    }
+
+    // 检查自定义NBT数据
+    if (stack1.hasTag() != stack2.hasTag()) {
+        return false;
+    }
+    if (stack1.hasTag() && stack2.hasTag()) {
+        const auto* tag1 = stack1.getTag();
+        const auto* tag2 = stack2.getTag();
+        if (tag1 && tag2 && *tag1 != *tag2) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace mc

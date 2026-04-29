@@ -29,11 +29,11 @@ void ClientApplication::openInventoryScreen()
         return;
     }
 
-    auto clickSender = [this](ContainerId containerId, i32 slotIndex, i32 button, ClickAction action,
+    auto clickSender = [this](ContainerId containerId, i32 slotIndex, i32 button, i16 transactionId, ClickAction action,
                               const ItemStack& cursorItem) {
         if (m_networkClient) {
             m_networkClient->sendContainerClick(
-                ContainerClickPacket(containerId, slotIndex, button, action, cursorItem));
+                ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
         }
     };
 

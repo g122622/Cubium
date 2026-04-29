@@ -50,7 +50,7 @@ namespace mc::client {
 template<typename Menu>
 class AbstractContainerScreen : public IScreen {
 public:
-    using ContainerClickSender = std::function<void(ContainerId, i32, i32, ClickAction, const mc::ItemStack&)>;
+    using ContainerClickSender = std::function<void(ContainerId, i32, i32, i16, ClickAction, const mc::ItemStack&)>;
     using ContainerCloseSender = std::function<void(ContainerId)>;
 
     /**
@@ -541,8 +541,9 @@ protected:
         }
 
         if (m_clickSender) {
-            const ClickAction action = ClickAction::Pick;
-            m_clickSender(m_menu->getId(), slotIndex, button, action, m_menu->getCarriedItem());
+            const ClickAction action = ClickAction::Pickup;
+            const i16 transactionId = m_menu->incrementTransactionId();
+            m_clickSender(m_menu->getId(), slotIndex, button, transactionId, action, m_menu->getCarriedItem());
             (void)slot;
             return true;
         }

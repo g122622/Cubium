@@ -396,12 +396,13 @@ TEST_F(ContainerPacketTest, ContainerSlotPacket) {
 
 TEST_F(ContainerPacketTest, ContainerClickPacket) {
     ItemStack cursor(*m_iron, 64);
-    ContainerClickPacket packet(3, 10, 0, ClickAction::Pick, cursor);
+    ContainerClickPacket packet(3, 10, 0, 1, ClickAction::Pickup, cursor);
 
     EXPECT_EQ(packet.containerId(), 3);
     EXPECT_EQ(packet.slotIndex(), 10);
     EXPECT_EQ(packet.button(), 0);
-    EXPECT_EQ(packet.action(), ClickAction::Pick);
+    EXPECT_EQ(packet.transactionId(), 1);
+    EXPECT_EQ(packet.action(), ClickAction::Pickup);
     EXPECT_EQ(packet.cursorItem().getItem(), m_iron);
 
     // 序列化
@@ -418,36 +419,37 @@ TEST_F(ContainerPacketTest, ContainerClickPacket) {
     EXPECT_EQ(decoded.containerId(), 3);
     EXPECT_EQ(decoded.slotIndex(), 10);
     EXPECT_EQ(decoded.button(), 0);
-    EXPECT_EQ(decoded.action(), ClickAction::Pick);
+    EXPECT_EQ(decoded.transactionId(), 1);
+    EXPECT_EQ(decoded.action(), ClickAction::Pickup);
     EXPECT_EQ(decoded.cursorItem().getItem(), m_iron);
     EXPECT_EQ(decoded.cursorItem().getCount(), 64);
 }
 
 TEST_F(ContainerPacketTest, ClickTypeMapping) {
-    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pick, 0), ClickType::Pick);
-    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pick, 1), ClickType::PickSome);
-    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::PickAll, 0), ClickType::PickAll);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pickup, 0), ClickType::Pick);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pickup, 1), ClickType::PickSome);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::PickupAll, 0), ClickType::PickAll);
     EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Throw, 0), ClickType::Throw);
     EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Throw, 1), ClickType::ThrowAll);
-    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::ThrowAll, 0), ClickType::ThrowAll);
-    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Pickup, 0), ClickType::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pick), ClickAction::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pickup), ClickAction::Pickup);
     EXPECT_EQ(ContainerTypes::toClickType(ClickAction::QuickMove, 0), ClickType::QuickMove);
     EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Clone, 0), ClickType::Clone);
-    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Spread, 0), ClickType::QuickCraft);
+    EXPECT_EQ(ContainerTypes::toClickType(ClickAction::QuickCraft, 0), ClickType::QuickCraft);
     EXPECT_EQ(ContainerTypes::toClickType(ClickAction::Swap, 4), ClickType::Swap);
 }
 
 TEST_F(ContainerPacketTest, ClickActionMapping) {
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pick), ClickAction::Pick);
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PickSome), ClickAction::Pick);
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PickAll), ClickAction::PickAll);
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Place), ClickAction::Pick);
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PlaceSome), ClickAction::Pick);
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PlaceAll), ClickAction::Pick);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pick), ClickAction::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PickSome), ClickAction::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PickAll), ClickAction::PickupAll);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Place), ClickAction::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PlaceSome), ClickAction::Pickup);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::PlaceAll), ClickAction::Pickup);
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Throw), ClickAction::Throw);
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::ThrowAll), ClickAction::ThrowAll);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::ThrowAll), ClickAction::Throw);
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::QuickMove), ClickAction::QuickMove);
-    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::QuickCraft), ClickAction::Spread);
+    EXPECT_EQ(ContainerTypes::toClickAction(ClickType::QuickCraft), ClickAction::QuickCraft);
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Clone), ClickAction::Clone);
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pickup), ClickAction::Pickup);
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Swap), ClickAction::Swap);
@@ -463,7 +465,7 @@ TEST_F(ContainerPacketTest, HandleContainerClickUsesOpenMenu) {
     CraftingMenu menu(7, &inventory, nullptr);
     player.setOpenContainerMenu(&menu);
 
-    ContainerClickPacket packet(7, 10, 0, ClickAction::Pick, ItemStack::EMPTY);
+    ContainerClickPacket packet(7, 10, 0, 1, ClickAction::Pickup, ItemStack::EMPTY);
     EXPECT_TRUE(ContainerPacketHandler::handleContainerClick(player, packet));
     EXPECT_TRUE(menu.getSlot(10)->isEmpty());
     EXPECT_FALSE(menu.getCarriedItem().isEmpty());
@@ -671,7 +673,7 @@ TEST_F(ContainerTest, SerializeDeserialize) {
     inventory.setItem(0, ItemStack(*m_diamond, 10));
     inventory.setItem(1, ItemStack(*m_iron, 5));
 
-    Container container(ContainerType::Chest, 3);
+    Container container(ContainerType::Generic9x3, 3);
     container.addInventorySlots(&inventory, 0, 9, 0, 0);
     container.setPlayerInventoryRange(0, 9);
     container.setContainerInventoryRange(9, 18);

@@ -158,6 +158,24 @@ public:
      */
     void removeListener(i32 listenerId);
 
+    /**
+     * @brief 获取当前事务ID并递增
+     * @return 当前事务ID
+     */
+    [[nodiscard]] i16 incrementTransactionId() { return m_transactionId++; }
+
+    /**
+     * @brief 获取当前事务ID（不递增）
+     * @return 当前事务ID
+     */
+    [[nodiscard]] i16 getTransactionId() const { return m_transactionId; }
+
+    /**
+     * @brief 设置事务ID（用于客户端同步）
+     * @param id 事务ID
+     */
+    void setTransactionId(i16 id) { m_transactionId = id; }
+
 protected:
     /**
      * @brief 构造函数
@@ -216,6 +234,43 @@ protected:
      */
     void notifySlotChanged(i32 slotIndex, const ItemStack& stack);
 
+private:
+    /**
+     * @brief 处理拾取/放置点击
+     */
+    ItemStack handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+
+    /**
+     * @brief 处理Shift+点击快速移动
+     */
+    ItemStack handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
+
+    /**
+     * @brief 处理数字键交换
+     */
+    ItemStack handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+
+    /**
+     * @brief 处理创造模式中键复制
+     */
+    ItemStack handleClone(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player);
+
+    /**
+     * @brief 处理丢弃
+     */
+    ItemStack handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+
+    /**
+     * @brief 处理拖拽分发
+     */
+    ItemStack handleQuickCraft(Slot& slot, i32 slotIndex, i32 button);
+
+    /**
+     * @brief 处理双击拾取全部
+     */
+    ItemStack handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
+
+protected:
     ContainerId m_id;
     PlayerInventory* m_playerInventory;
     std::vector<std::unique_ptr<Slot>> m_slots;
@@ -229,6 +284,9 @@ protected:
     i32 m_playerInvEnd = -1;     // 玩家背包结束索引
     i32 m_hotbarStart = -1;      // 快捷栏起始索引
     i32 m_hotbarEnd = -1;        // 快捷栏结束索引
+
+private:
+    i16 m_transactionId = 0;  // 事务ID计数器，用于防重放
 };
 
 } // namespace mc

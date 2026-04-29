@@ -109,6 +109,17 @@ public:
      */
     [[nodiscard]] i32 getMaxStackSize() const;
 
+    /**
+     * @brief 是否可堆叠
+     *
+     * MC 1.16.5: 物品可堆叠当且仅当最大堆叠数 > 1
+     * 注意：有耐久度的物品通常 maxStackSize=1，所以此方法会返回false
+     * @return 如果物品可以堆叠返回true
+     */
+    [[nodiscard]] bool isStackable() const {
+        return !isEmpty() && getMaxStackSize() > 1;
+    }
+
     // ========== 附魔 ==========
 
     /**

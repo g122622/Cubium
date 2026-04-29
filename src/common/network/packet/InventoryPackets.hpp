@@ -141,10 +141,10 @@ public:
     void setSlotIndex(i32 index) { m_slotIndex = index; }
     void setItem(ItemStack item) { m_item = std::move(item); }
 
-    // 序列化
+    // 序列化 (参考 MC 1.16.5 SPacketSetSlot)
     void serialize(network::PacketSerializer& ser) const {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
-        ser.writeVarInt(m_slotIndex);
+        ser.writeI16(static_cast<i16>(m_slotIndex));
         m_item.serialize(ser);
     }
 
@@ -156,9 +156,9 @@ public:
         if (idResult.failed()) return idResult.error();
         packet.m_containerId = idResult.value();
 
-        auto slotResult = deser.readVarInt();
+        auto slotResult = deser.readI16();
         if (slotResult.failed()) return slotResult.error();
-        packet.m_slotIndex = slotResult.value();
+        packet.m_slotIndex = static_cast<i32>(slotResult.value());
 
         auto itemResult = ItemStack::deserialize(deser);
         if (itemResult.failed()) return itemResult.error();
@@ -280,6 +280,7 @@ private:
  *
  * 客户端发送点击操作到服务端。
  * 参考: MC 1.16.5 CPacketClickWindow
+ * 协议格式: windowId(u8) + slot(i16) + button(u8) + transactionId(i16) + mode(u8) + item
  */
 class ContainerClickPacket {
 public:
@@ -290,14 +291,16 @@ public:
      * @param containerId 容器ID
      * @param slotIndex 槽位索引
      * @param button 按钮 (0=左键, 1=右键)
+     * @param transactionId 事务ID (用于防重放)
      * @param action 点击类型
      * @param cursorItem 点击后的鼠标物品
      */
     ContainerClickPacket(ContainerId containerId, i32 slotIndex, i32 button,
-                         ClickAction action, ItemStack cursorItem)
+                         i16 transactionId, ClickAction action, ItemStack cursorItem)
         : m_containerId(containerId)
         , m_slotIndex(slotIndex)
         , m_button(button)
+        , m_transactionId(transactionId)
         , m_action(action)
         , m_cursorItem(std::move(cursorItem))
     {}
@@ -306,6 +309,7 @@ public:
     [[nodiscard]] ContainerId containerId() const { return m_containerId; }
     [[nodiscard]] i32 slotIndex() const { return m_slotIndex; }
     [[nodiscard]] i32 button() const { return m_button; }
+    [[nodiscard]] i16 transactionId() const { return m_transactionId; }
     [[nodiscard]] ClickAction action() const { return m_action; }
     [[nodiscard]] const ItemStack& cursorItem() const { return m_cursorItem; }
 
@@ -313,14 +317,16 @@ public:
     void setContainerId(ContainerId id) { m_containerId = id; }
     void setSlotIndex(i32 index) { m_slotIndex = index; }
     void setButton(i32 button) { m_button = button; }
+    void setTransactionId(i16 id) { m_transactionId = id; }
     void setAction(ClickAction action) { m_action = action; }
     void setCursorItem(ItemStack item) { m_cursorItem = std::move(item); }
 
     // 序列化
     void serialize(network::PacketSerializer& ser) const {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
-        ser.writeVarInt(m_slotIndex);
+        ser.writeI16(static_cast<i16>(m_slotIndex));
         ser.writeU8(static_cast<u8>(m_button));
+        ser.writeI16(m_transactionId);
         ser.writeU8(static_cast<u8>(m_action));
         m_cursorItem.serialize(ser);
     }
@@ -333,13 +339,17 @@ public:
         if (idResult.failed()) return idResult.error();
         packet.m_containerId = idResult.value();
 
-        auto slotResult = deser.readVarInt();
+        auto slotResult = deser.readI16();
         if (slotResult.failed()) return slotResult.error();
-        packet.m_slotIndex = slotResult.value();
+        packet.m_slotIndex = static_cast<i32>(slotResult.value());
 
         auto buttonResult = deser.readU8();
         if (buttonResult.failed()) return buttonResult.error();
         packet.m_button = static_cast<i32>(buttonResult.value());
+
+        auto transResult = deser.readI16();
+        if (transResult.failed()) return transResult.error();
+        packet.m_transactionId = transResult.value();
 
         auto actionResult = deser.readU8();
         if (actionResult.failed()) return actionResult.error();
@@ -356,7 +366,8 @@ private:
     ContainerId m_containerId = 0;
     i32 m_slotIndex = 0;
     i32 m_button = 0;
-    ClickAction m_action = ClickAction::Pick;
+    i16 m_transactionId = 0;
+    ClickAction m_action = ClickAction::Pickup;
     ItemStack m_cursorItem;
 };
 

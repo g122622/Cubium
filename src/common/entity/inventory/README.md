@@ -46,8 +46,28 @@ inventory/
 
 **主要内容**:
 - `ContainerId` - 容器ID类型别名（i32）
-- `ContainerType` - 容器类型枚举（Player, Chest, CraftingTable, Furnace 等）
-- `ClickAction` - 点击操作类型枚举（网络协议用）
+- `ContainerType` - 容器类型枚举（对应 MC 1.16.5 Registry.MENU 注册顺序）：
+  - Generic9x1~Generic9x6 - 箱子（1-6行）
+  - Generic3x3 - 发射器/投掷器
+  - Anvil - 铁砧
+  - Beacon - 信标
+  - BlastFurnace - 高炉
+  - BrewingStand - 酿造台
+  - Crafting - 工作台
+  - Enchantment - 附魔台
+  - Furnace - 熔炉
+  - Grindstone - 砂轮
+  - Hopper - 漏斗
+  - Lectern - 讲台
+  - Loom - 织布机
+  - Merchant - 村民交易
+  - ShulkerBox - 潜影盒
+  - Smithing - 锻造台
+  - Smoker - 烟熏炉
+  - Cartography - 制图台
+  - Stonecutter - 切石机
+  - Player - 玩家背包（特殊值 255）
+- `ClickAction` - 点击操作类型枚举（网络协议用，对应 MC 1.16.5 协议）
 - `ContainerAction` - 容器动作类型枚举
 - `ClickType` - 点击类型枚举（Pick, Place, QuickMove, Drag 等）
 
