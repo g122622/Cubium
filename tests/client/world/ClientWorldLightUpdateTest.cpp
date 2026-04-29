@@ -1,3 +1,8 @@
+// 在macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
+// 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
+#pragma push_macro("BYTE_SIZE")
+#undef BYTE_SIZE
+
 #include <gtest/gtest.h>
 
 #include "client/world/ClientWorld.hpp"
@@ -5,6 +10,8 @@
 #include "common/util/NibbleArray.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+
+#pragma pop_macro("BYTE_SIZE")
 
 using namespace mc;
 using namespace mc::client;
