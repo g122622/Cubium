@@ -524,6 +524,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/PistonBlockEntity.cpp
     world/blockentity/interactive/SignEntity.cpp
     world/blockentity/interactive/BannerEntity.cpp
+    world/blockentity/interactive/BannerPattern.cpp
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp
     world/blockentity/storage/ChestEntity.cpp

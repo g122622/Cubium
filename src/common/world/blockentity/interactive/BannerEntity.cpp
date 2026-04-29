@@ -48,7 +48,7 @@ void BannerEntity::clearPatterns() {
     setChanged();
 }
 
-void BannerEntity::setBaseColor(i32 color) {
+void BannerEntity::setBaseColor(DyeColor color) {
     if (m_baseColor != color) {
         m_baseColor = color;
         setChanged();
@@ -57,12 +57,13 @@ void BannerEntity::setBaseColor(i32 color) {
 
 String BannerEntity::getTextureName() const {
     // 生成纹理名称，用于渲染
-    // 格式: banner_<base_color>_<pattern_hash>
-    String name = "banner_" + std::to_string(m_baseColor);
+    // 格式: banner_<base_color>[_<pattern_hash>_<color>]*
+    // 每个图案追加 "_<hash>_<color>"
+    String name = "banner_" + std::to_string(static_cast<i32>(m_baseColor));
 
     // 添加图案信息
     for (const auto& pattern : m_patterns) {
-        name += "_" + pattern.pattern + "_" + std::to_string(pattern.color);
+        name += "_" + BannerPatterns::getHashName(pattern.pattern) + "_" + std::to_string(static_cast<i32>(pattern.color));
     }
 
     return name;
@@ -80,7 +81,7 @@ bool BannerEntity::load(const nlohmann::json& data) {
 
     // 加载底色
     if (data.contains("base_color")) {
-        m_baseColor = data["base_color"].get<i32>();
+        m_baseColor = static_cast<DyeColor>(data["base_color"].get<i32>());
     }
 
     // 加载图案
@@ -91,10 +92,12 @@ bool BannerEntity::load(const nlohmann::json& data) {
             for (const auto& patternJson : patternsJson) {
                 BannerPattern pattern;
                 if (patternJson.contains("pattern")) {
-                    pattern.pattern = patternJson["pattern"].get<String>();
+                    // 从哈希名解析图案类型
+                    String hashName = patternJson["pattern"].get<String>();
+                    pattern.pattern = BannerPatterns::byHash(hashName);
                 }
                 if (patternJson.contains("color")) {
-                    pattern.color = patternJson["color"].get<i32>();
+                    pattern.color = static_cast<DyeColor>(patternJson["color"].get<i32>());
                 }
                 m_patterns.push_back(pattern);
             }
@@ -108,14 +111,14 @@ void BannerEntity::save(nlohmann::json& data) const {
     BlockEntity::save(data);
 
     // 保存底色
-    data["base_color"] = m_baseColor;
+    data["base_color"] = static_cast<i32>(m_baseColor);
 
     // 保存图案
     nlohmann::json patternsJson = nlohmann::json::array();
     for (const auto& pattern : m_patterns) {
         nlohmann::json patternJson;
-        patternJson["pattern"] = pattern.pattern;
-        patternJson["color"] = pattern.color;
+        patternJson["pattern"] = BannerPatterns::getHashName(pattern.pattern);
+        patternJson["color"] = static_cast<i32>(pattern.color);
         patternsJson.push_back(patternJson);
     }
     data["patterns"] = patternsJson;

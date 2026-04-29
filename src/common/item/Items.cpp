@@ -289,6 +289,19 @@ Item* Items::SPLASH_POTION = nullptr;
 Item* Items::LINGERING_POTION = nullptr;
 
 // ============================================================================
+// 桶类
+// ============================================================================
+Item* Items::BUCKET = nullptr;
+Item* Items::WATER_BUCKET = nullptr;
+Item* Items::LAVA_BUCKET = nullptr;
+
+// ============================================================================
+// 海绵
+// ============================================================================
+Item* Items::SPONGE = nullptr;
+Item* Items::WET_SPONGE = nullptr;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 
@@ -323,6 +336,8 @@ void Items::initialize() {
     registerAquaticMaterials();
     registerBrewingIngredients();
     registerPotions();
+    registerBuckets();   // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
+    registerSponges();   // 海绵物品
 
     s_initialized = true;
 }
@@ -1384,6 +1399,43 @@ void Items::registerPotions() {
         ResourceLocation("minecraft:lingering_potion"),
         ItemProperties().maxStackSize(1)
     );
+}
+
+void Items::registerBuckets() {
+    auto& registry = ItemRegistry::instance();
+
+    // 空桶 - 用于装水/岩浆/牛奶
+    // 参考: new BucketItem((Fluid)null, new Item.Properties().maxStackSize(16))
+    BUCKET = &registry.registerItem(
+        ResourceLocation("minecraft:bucket"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 水桶 - 装满水的桶
+    // 参考: new BucketItem(Fluids.WATER, new Item.Properties().maxStackSize(1).containerItem(BUCKET))
+    // 水桶使用后返回空桶，所以 containerItem 设为 BUCKET
+    WATER_BUCKET = &registry.registerItem(
+        ResourceLocation("minecraft:water_bucket"),
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 岩浆桶 - 装满岩浆的桶
+    // 参考: new BucketItem(Fluids.LAVA, new Item.Properties().maxStackSize(1).containerItem(BUCKET))
+    // 岩浆桶作为燃料使用后返回空桶
+    LAVA_BUCKET = &registry.registerItem(
+        ResourceLocation("minecraft:lava_bucket"),
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+}
+
+void Items::registerSponges() {
+    auto& registry = ItemRegistry::instance();
+
+    // 海绵（干燥）- 吸水后变成湿海绵
+    SPONGE = &registerBlockBackedItem(registry, VanillaBlocks::SPONGE, "sponge", ItemProperties().maxStackSize(64));
+
+    // 湿海绵 - 在熔炉中干燥后返回海绵
+    WET_SPONGE = &registerBlockBackedItem(registry, VanillaBlocks::WET_SPONGE, "wet_sponge", ItemProperties().maxStackSize(64));
 }
 
 } // namespace mc

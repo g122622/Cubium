@@ -1,6 +1,8 @@
 #pragma once
 
 #include "world/blockentity/BlockEntity.hpp"
+#include "world/blockentity/interactive/BannerPattern.hpp"
+#include "entity/entities/passive/basic/SheepEntity.hpp"
 #include <vector>
 #include <memory>
 
@@ -16,11 +18,11 @@ namespace blockentity {
  * 存储单个图案的信息：图案类型和颜色
  */
 struct BannerPattern {
-    String pattern;  ///< 图案类型标识符（如 "stripe_bottom"）
-    i32 color = 0;   ///< 图案颜色（染料颜色ID）
+    BannerPatternType pattern = BannerPatternType::Base;  ///< 图案类型
+    DyeColor color = DyeColor::White;                      ///< 图案颜色
 
     BannerPattern() = default;
-    BannerPattern(const String& pattern, i32 color) : pattern(pattern), color(color) {}
+    BannerPattern(BannerPatternType p, DyeColor c) : pattern(p), color(c) {}
 };
 
 /**
@@ -94,15 +96,15 @@ public:
 
     /**
      * @brief 获取底色
-     * @return 底色（染料颜色ID）
+     * @return 底色（染料颜色）
      */
-    [[nodiscard]] i32 getBaseColor() const { return m_baseColor; }
+    [[nodiscard]] DyeColor getBaseColor() const { return m_baseColor; }
 
     /**
      * @brief 设置底色
-     * @param color 底色（染料颜色ID）
+     * @param color 底色（染料颜色）
      */
-    void setBaseColor(i32 color);
+    void setBaseColor(DyeColor color);
 
     // ========== 辅助方法 ==========
 
@@ -131,7 +133,7 @@ public:
 
 private:
     std::vector<BannerPattern> m_patterns;  ///< 图案列表
-    i32 m_baseColor = 0;                     ///< 底色（默认白色）
+    DyeColor m_baseColor = DyeColor::White;  ///< 底色（默认白色）
 };
 
 } // namespace blockentity

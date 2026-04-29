@@ -118,6 +118,23 @@ private:
     void fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance);
 
     /**
+     * @brief 蜂蜜块拖拽实体逻辑。
+     *
+     * MC 1.16.5: 当活塞推动蜂蜜块时，站在蜂蜜块上的实体应该被拖拽。
+     * 参考: PistonTileEntity.func_227024_g_
+     *
+     * @param world 世界引用
+     * @param progressDelta 下一帧进度
+     */
+    void dragEntitiesOnHoneyBlock(IWorld& world, float progressDelta);
+
+    /**
+     * @brief 检查活塞移动的方块是否是蜂蜜块。
+     * @return 如果是蜂蜜块返回 true
+     */
+    [[nodiscard]] bool isHoneyBlock() const;
+
+    /**
      * @brief 按当前方块位置与进度偏移 AABB。
      * @param aabb 方块局部 AABB
      * @return 偏移后的世界坐标 AABB

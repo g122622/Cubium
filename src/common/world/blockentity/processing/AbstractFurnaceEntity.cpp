@@ -75,7 +75,11 @@ namespace {
         // TODO: 干海带块 (DRIED_KELP_BLOCK) - 4001 tick - 待物品注册
 
         // ========== 特殊燃料 ==========
-        // TODO: 岩浆桶 (LAVA_BUCKET) - 20000 tick (1000 秒) - 待物品注册
+        // 岩浆桶: 20000 tick (1000 秒) - 燃烧后返回空桶
+        // 参考: MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes() 第 97 行
+        if (item == Items::LAVA_BUCKET) {
+            return 20000;
+        }
 
         return 0;
     }
@@ -308,11 +312,13 @@ void AbstractFurnaceEntity::smeltWithRecipe(const crafting::SmeltingRecipe* reci
 
     // MC 1.16.5: 湿海绵干燥逻辑
     // 当输入是湿海绵且燃料槽有空桶时，将空桶变为水桶
-    // TODO: 待 Items::BUCKET, Items::WATER_BUCKET 注册后实现
-    // 参考: AbstractFurnaceTileEntity.smelt() 第 311-313 行:
-    // if (itemstack.getItem() == Blocks.WET_SPONGE.asItem() && !this.items.get(1).isEmpty() && this.items.get(1).getItem() == Items.BUCKET) {
-    //     this.items.set(1, new ItemStack(Items.WATER_BUCKET));
-    // }
+    // 参考: AbstractFurnaceTileEntity.smelt() 第 310-313 行
+    if (input.getItem() == Items::WET_SPONGE) {
+        ItemStack fuelItem = m_inventory.getFuelItem();
+        if (!fuelItem.isEmpty() && fuelItem.getItem() == Items::BUCKET) {
+            m_inventory.setFuelItem(ItemStack(Items::WATER_BUCKET, 1));
+        }
+    }
 
     m_storedExperience += recipe->getExperience();
 
@@ -326,13 +332,16 @@ bool AbstractFurnaceEntity::burnFuel() {
     }
 
     // MC 1.16.5: 容器物品消耗逻辑
-    // 如果燃料是岩浆桶，消耗后返回空桶
-    // 如果燃料是湿海绵且燃料槽有桶，产出水桶
-    // TODO: 待 Items::LAVA_BUCKET, Items::BUCKET, Items::WATER_BUCKET 注册后实现
-    // 参考: AbstractFurnaceTileEntity.smelt() 第 311-313 行
+    // 参考: AbstractFurnaceTileEntity.tick() 第 234-243 行
+    if (fuel.hasContainerItem()) {
+        // 有容器物品的情况（如岩浆桶），直接用容器物品替换燃料槽
+        m_inventory.setFuelItem(fuel.getContainerItem());
+    } else {
+        // 没有容器物品的情况，减少燃料数量
+        fuel.shrink(1);
+        m_inventory.setFuelItem(fuel);
+    }
 
-    fuel.shrink(1);
-    m_inventory.setFuelItem(fuel);
     return true;
 }
 
@@ -383,12 +392,10 @@ bool AbstractFurnaceEntity::isSlotAccessibleForDirection(i32 slot, Direction dir
 }
 
 bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const {
-    // 首先检查槽位是否接受该物品
-    if (!canPlaceItem(slot, stack)) {
-        return false;
-    }
+    // MC 1.16.5: 参考 AbstractFurnaceTileEntity.isItemValidForSlot() 第 437-445 行
+    // 和 canInsertItem() 第 347-349 行
 
-    // 检查方向是否允许访问该槽位
+    // 首先检查方向是否允许访问该槽位
     if (!isSlotAccessibleForDirection(slot, direction)) {
         return false;
     }
@@ -398,9 +405,19 @@ bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Dire
         case SLOT_INPUT:
             // 输入槽：接受任何物品（熔炼配方检查在 tick 中进行）
             return true;
-        case SLOT_FUEL:
-            // 燃料槽：只接受燃料
-            return isFuel(stack);
+        case SLOT_FUEL: {
+            // 燃料槽：接受燃料
+            if (isFuel(stack)) {
+                return true;
+            }
+            // 或者如果燃料槽当前不是空桶则接受空桶（用于装岩浆桶燃烧后的空桶）
+            // 参考: isFuel(stack) || stack.getItem() == Items.BUCKET && itemstack.getItem() != Items.BUCKET
+            if (stack.getItem() == Items::BUCKET) {
+                const ItemStack fuelItem = m_inventory.getFuelItem();
+                return fuelItem.isEmpty() || fuelItem.getItem() != Items::BUCKET;
+            }
+            return false;
+        }
         case SLOT_OUTPUT:
             // 输出槽：不允许插入（只能提取）
             return false;
@@ -410,27 +427,16 @@ bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Dire
 }
 
 bool AbstractFurnaceEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const {
-    MC_UNUSED(stack);
-
-    // 检查方向是否允许访问该槽位
-    if (!isSlotAccessibleForDirection(slot, direction)) {
-        return false;
+    // MC 1.16.5: 参考 AbstractFurnaceTileEntity.canExtractItem() 第 354-363 行
+    // 从下方提取燃料槽时，只允许提取空桶或水桶
+    // 这是为了防止漏斗从燃料槽中提取部分使用的燃料（如岩浆桶）
+    if (direction == Direction::Down && slot == SLOT_FUEL) {
+        const Item* item = stack.getItem();
+        // 只允许提取空桶和水桶（湿海绵干燥产生的水桶）
+        return item == Items::BUCKET || item == Items::WATER_BUCKET;
     }
 
-    // 根据槽位类型检查是否可以提取
-    switch (slot) {
-        case SLOT_INPUT:
-            // 输入槽：可以从任何方向提取
-            return true;
-        case SLOT_FUEL:
-            // 燃料槽：只能从下方提取
-            return direction == Direction::Down;
-        case SLOT_OUTPUT:
-            // 输出槽：只能从下方提取
-            return direction == Direction::Down;
-        default:
-            return false;
-    }
+    return true;
 }
 
 } // namespace blockentity

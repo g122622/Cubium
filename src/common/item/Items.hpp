@@ -319,6 +319,19 @@ public:
     static Item* SPLASH_POTION;          // 喷溅药水
     static Item* LINGERING_POTION;       // 滞留药水
 
+    // ========================================================================
+    // 桶类
+    // ========================================================================
+    static Item* BUCKET;                 // 空桶
+    static Item* WATER_BUCKET;           // 水桶
+    static Item* LAVA_BUCKET;            // 岩浆桶
+
+    // ========================================================================
+    // 海绵
+    // ========================================================================
+    static Item* SPONGE;                 // 海绵（干燥）
+    static Item* WET_SPONGE;             // 湿海绵
+
 private:
     static bool s_initialized;
 
@@ -333,6 +346,8 @@ private:
     static void registerAquaticMaterials();
     static void registerBrewingIngredients();
     static void registerPotions();
+    static void registerBuckets();
+    static void registerSponges();
 };
 
 } // namespace mc

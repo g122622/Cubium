@@ -6,6 +6,7 @@
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/MoverType.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../resource/ResourceLocation.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/Direction.hpp"
 
@@ -240,9 +241,10 @@ void PistonBlockEntity::tick(IWorld& world) {
     const float newProgress = m_progress + PROGRESS_PER_TICK;
     moveCollidedEntities(world, newProgress);
 
-    // TODO: MC 1.16.5 蜂蜜块拖拽逻辑 (func_227024_g_)
+    // MC 1.16.5: 蜂蜜块拖拽逻辑
     // 当活塞推动蜂蜜块时，站在蜂蜜块上的实体应该被拖拽
     // 参考: PistonTileEntity.func_227024_g_
+    dragEntitiesOnHoneyBlock(world, newProgress);
 
     m_progress = newProgress;
     if (m_progress >= COMPLETE_THRESHOLD) {
@@ -393,6 +395,95 @@ AxisAlignedBB PistonBlockEntity::moveByPositionAndProgress(const AxisAlignedBB& 
         static_cast<f32>(m_pos.y) + extendedProgress * static_cast<float>(Directions::yOffset(m_facing)),
         static_cast<f32>(m_pos.z) + extendedProgress * static_cast<float>(Directions::zOffset(m_facing))
     );
+}
+
+bool PistonBlockEntity::isHoneyBlock() const {
+    // MC 1.16.5: 检查活塞移动的方块是否是蜂蜜块
+    // 参考: PistonTileEntity.func_227025_y_()
+    if (m_pistonState == nullptr) {
+        return false;
+    }
+
+    // 检查方块是否是蜂蜜块
+    // 当 HONEY_BLOCK 注册后可以使用: m_pistonState->is(VanillaBlocks::HONEY_BLOCK)
+    const Block& block = m_pistonState->getBlock();
+    return block.blockLocation() == ResourceLocation("minecraft", "honey_block");
+}
+
+void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDelta) {
+    // MC 1.16.5: 参考 PistonTileEntity.func_227024_g_()
+    // 当活塞推动蜂蜜块时，站在蜂蜜块上方的实体应该被拖拽
+
+    if (!isHoneyBlock()) {
+        return;
+    }
+
+    const Direction motionDirection = getMotionDirection();
+
+    // 蜂蜜块拖拽只对水平移动有效
+    if (Directions::getAxis(motionDirection) != Axis::Y) {
+        // 计算移动距离
+        const f32 moveDistance = computeMoveDistance(m_progress, progressDelta);
+        if (moveDistance <= 0.0f) {
+            return;
+        }
+
+        // 获取蜂蜜块碰撞箱上方的区域
+        // MC 1.16.5: 碰撞箱 Y 轴最高点 + 1.5 格高度作为扫描区域
+        const CollisionShape& collisionShape = m_pistonState->getCollisionShape();
+        if (collisionShape.isEmpty()) {
+            return;
+        }
+
+        // 获取碰撞箱的最高 Y 值
+        const auto boxes = collisionShape.getWorldBoxes(0, 0, 0);
+        if (boxes.empty()) {
+            return;
+        }
+
+        f32 maxY = 0.0f;
+        for (const auto& box : boxes) {
+            maxY = std::max(maxY, box.maxY);
+        }
+
+        // 构建蜂蜜块上方实体的扫描区域
+        // MC 1.16.5: 从碰撞箱顶部向上 1.5 格
+        AxisAlignedBB honeyBox = moveByPositionAndProgress(AxisAlignedBB(
+            0.0f, maxY, 0.0f,
+            1.0f, maxY + 1.5000001f, 1.0f));
+
+        // 获取该区域内的实体
+        const std::vector<Entity*> entitiesAbove = world.getEntitiesInAABB(honeyBox, nullptr);
+
+        for (Entity* entity : entitiesAbove) {
+            if (entity == nullptr) {
+                continue;
+            }
+
+            // MC 1.16.5: 检查实体是否满足拖拽条件
+            // 1. 实体的 PushReaction 为 NORMAL
+            // 2. 实体站在地面上
+            // 3. 实体的 X/Z 坐标在蜂蜜块范围内
+            if (entity->getPushReaction() != PushReaction::Normal) {
+                continue;
+            }
+
+            if (!entity->onGround()) {
+                continue;
+            }
+
+            // 检查实体 X/Z 坐标是否在蜂蜜块范围内
+            const Vector3 entityPos = entity->position();
+            if (entityPos.x < honeyBox.minX || entityPos.x > honeyBox.maxX ||
+                entityPos.z < honeyBox.minZ || entityPos.z > honeyBox.maxZ) {
+                continue;
+            }
+
+            // 拖拽实体
+            const Vector3 dragVector = toDirectionVector(motionDirection) * moveDistance;
+            entity->move(entity::MoverType::Piston, dragVector);
+        }
+    }
 }
 
 } // namespace blockentity
