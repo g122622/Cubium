@@ -334,6 +334,7 @@ Block* VanillaBlocks::PACKED_ICE = nullptr;
 Block* VanillaBlocks::BLUE_ICE = nullptr;
 Block* VanillaBlocks::FROSTED_ICE = nullptr;
 Block* VanillaBlocks::SLIME_BLOCK = nullptr;
+Block* VanillaBlocks::HONEY_BLOCK = nullptr;
 Block* VanillaBlocks::CACTUS = nullptr;
 Block* VanillaBlocks::DEAD_BUSH = nullptr;
 Block* VanillaBlocks::LILY_PAD = nullptr;
@@ -2016,6 +2017,12 @@ void VanillaBlocks::registerNaturalBlocks() {
     SLIME_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:slime_block"),
         BlockProperties(Material::SLIME).hardness(0.0f));
+
+    // 蜂蜜块
+    // 参考: new HoneyBlock(Properties.create(Material.HONEY).slipperiness(0.5F).notSolid())
+    HONEY_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:honey_block"),
+        BlockProperties(Material::HONEY).hardness(0.0f).notSolid());
 
     // 仙人掌
     // 参考: new CactusBlock(Properties.create(Material.CACTUS).hardnessAndResistance(0.4F).noCollision())

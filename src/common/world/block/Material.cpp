@@ -201,6 +201,15 @@ namespace {
             .build();
     }
 
+    Material makeHoneyMaterial() {
+        // 蜂蜜块材质：固体但不完全阻挡移动，可粘住实体
+        return MaterialBuilder()
+            .solid()
+            .opaque()
+            .pushReaction(Material::PushReaction::Normal)
+            .build();
+    }
+
     Material makeTNTMaterial() {
         return MaterialBuilder()
             .solid()
@@ -423,6 +432,11 @@ const Material& Material::SNOW = []() -> const Material& {
 
 const Material& Material::SLIME = []() -> const Material& {
     static Material material = makeSlimeMaterial();
+    return material;
+}();
+
+const Material& Material::HONEY = []() -> const Material& {
+    static Material material = makeHoneyMaterial();
     return material;
 }();
 

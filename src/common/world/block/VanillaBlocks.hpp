@@ -468,6 +468,7 @@ public:
     static Block* BLUE_ICE;           // 蓝冰
     static Block* FROSTED_ICE;        // 霜冰
     static Block* SLIME_BLOCK;        // 粘液块
+    static Block* HONEY_BLOCK;        // 蜂蜜块
     static Block* CACTUS;             // 仙人掌
     static Block* DEAD_BUSH;          // 枯萎灌木
     static Block* LILY_PAD;           // 睡莲

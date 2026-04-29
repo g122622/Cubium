@@ -135,6 +135,9 @@ public:
     /** 粘液块材质 */
     static const Material& SLIME;
 
+    /** 蜂蜜块材质 */
+    static const Material& HONEY;
+
     /** TNT材质 */
     static const Material& TNT;
 

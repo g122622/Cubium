@@ -6,7 +6,6 @@
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/MoverType.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../resource/ResourceLocation.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/Direction.hpp"
 
@@ -403,11 +402,7 @@ bool PistonBlockEntity::isHoneyBlock() const {
     if (m_pistonState == nullptr) {
         return false;
     }
-
-    // 检查方块是否是蜂蜜块
-    // 当 HONEY_BLOCK 注册后可以使用: m_pistonState->is(VanillaBlocks::HONEY_BLOCK)
-    const Block& block = m_pistonState->getBlock();
-    return block.blockLocation() == ResourceLocation("minecraft", "honey_block");
+    return m_pistonState->is(VanillaBlocks::HONEY_BLOCK);
 }
 
 void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDelta) {
