@@ -1,126 +1,42 @@
-# .clang-format
-# 基于 LLVM 风格，符合项目代码规范
-
+# 基于 LLVM 风格进行微调
 BasedOnStyle: LLVM
-Language: Cpp
-Standard: c++17
 
-# 缩进
+# 缩进宽度：2 个空格（可根据习惯改为 4）
 IndentWidth: 4
-TabWidth: 4
-UseTab: Never
-IndentCaseLabels: true
-IndentPPDirectives: None
-NamespaceIndentation: None
+ContinuationIndentWidth: 4
 
-# 列宽
-ColumnLimit: 100
-
-# 大括号
+# 大括号换行规则：函数另起一行，控制语句不换行
 BreakBeforeBraces: Custom
 BraceWrapping:
-  AfterCaseLabel: true
+  AfterFunction: true      # 函数的大括号换行
+  AfterControlStatement: Never   # if/for/while 的大括号不换行
   AfterClass: true
-  AfterControlStatement: Always
-  AfterEnum: true
-  AfterFunction: true
-  AfterNamespace: true
   AfterStruct: true
-  AfterUnion: true
-  AfterExternBlock: true
-  BeforeCatch: true
-  BeforeElse: true
-  BeforeLambdaBody: false
-  BeforeWhile: true
-  IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
+  AfterEnum: true
+  AfterNamespace: false    # namespace 不换行
 
-# 指针和引用对齐
+# 指针和引用的对齐方式：星号/& 紧贴类型
 PointerAlignment: Left
 ReferenceAlignment: Left
-DerivePointerAlignment: false
 
-# 函数
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortBlocksOnASingleLine: Never
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
-AllowShortLambdasOnASingleLine: All
+# 最大列宽：120（或设为 0 禁用）
+ColumnLimit: 120
 
-# 访问说明符
-AccessModifierOffset: -4
+# 命名空间内部不缩进
+NamespaceIndentation: None
 
-# 构造函数初始化列表
-ConstructorInitializerIndentWidth: 4
-BreakConstructorInitializers: BeforeColon
+# 访问修饰符 (public/private) 不缩进
+AccessModifierOffset: -2
 
-# 包含文件
-IncludeBlocks: Preserve
-SortIncludes: true
-IncludeCategories:
-  # 对应头文件
-  - Regex: '".*\.hpp"'
-    Priority: 1
-  # 项目头文件
-  - Regex: '".*"'
-    Priority: 2
-  # 标准库
-  - Regex: '<[a-z_]+>'
-    Priority: 3
-  # 第三方库
-  - Regex: '<.*>'
-    Priority: 4
+# 允许短函数、短语句保持在一行
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
 
-# 空格
-SpaceAfterCStyleCast: false
-SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: true
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCpp11BracedList: false
-SpaceBeforeCtorInitializerColon: true
-SpaceBeforeInheritanceColon: true
-SpaceBeforeParens: ControlStatements
-SpaceBeforeRangeBasedForLoopColon: true
-SpaceInEmptyBlock: false
-SpaceInEmptyParentheses: false
-SpacesBeforeTrailingComments: 1
-SpacesInAngles: Never
-SpacesInCStyleCastParentheses: false
-SpacesInConditionalStatement: false
-SpacesInContainerLiterals: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-
-# 对齐
+# 参数过多时换行对齐方式
 AlignAfterOpenBracket: Align
-AlignArrayOfStructures: None
-AlignConsecutiveAssignments: false
-AlignConsecutiveBitFields: false
-AlignConsecutiveDeclarations: false
-AlignConsecutiveMacros: false
-AlignEscapedNewlines: Left
-AlignOperands: Align
-AlignTrailingComments: true
+BinPackArguments: false
+BinPackParameters: false
 
-# 换行
-AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: Yes
-BreakBeforeBinaryOperators: None
-BreakBeforeConceptDeclarations: true
-BreakBeforeTernaryOperators: true
-BreakStringLiterals: true
-
-# 其他
-BinPackArguments: true
-BinPackParameters: true
-CompactNamespaces: false
-Cpp11BracedListStyle: true
+# 末尾换行符
 FixNamespaceComments: true
-MaxEmptyLinesToKeep: 1
-ReflowComments: true
-SeparateDefinitionBlocks: Leave
-ShortNamespaceLines: 1

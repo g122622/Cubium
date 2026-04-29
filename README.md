@@ -61,9 +61,30 @@
 
 - C++17
 - CMake
+- clang-format
+- clang-tidy
 - Vulkan
 - GLFW
 - vcpkg 依赖：`glm`、`spdlog`、`nlohmann-json`、`asio`、`GTest`、`stb` 等
+
+### 代码格式与静态分析
+
+仓库根目录已经提供了 `.clang-format` 和 `.clang-tidy` 配置，项目构建时也会自动导出 `compile_commands.json`，因此 `clang-tidy` 可以直接读取完整编译上下文。
+
+常用命令如下：
+
+```bash
+# 格式化单个文件或一组文件
+clang-format -i src/common/util/Direction.hpp
+
+# 先检查、再决定是否写回
+clang-format --dry-run --Werror src/common/util/Direction.hpp
+
+# 对单个翻译单元运行静态分析
+clang-tidy src/common/util/Direction.hpp -p build
+```
+
+如果需要批量检查，建议先确保已经生成 `build/compile_commands.json`，再用编辑器集成、脚本或 `run-clang-tidy` 之类的工具批量扫描。
 
 ### 使用方法
 
@@ -79,6 +100,7 @@
 - 音频资源现在共享 `ResourcePackList`，不要把它当成只读单线程容器。
 - 启动期如果额外触发资源包变更，可能导致资源重载，初始化顺序要固定。
 - 构建目录可能需要迁移到更大磁盘，避免 `obj/pdb` 写满。
+- `clang-tidy` 依赖 `compile_commands.json`，如果你换了构建目录，要先重新配置一次。
 
 ### 测试用例
 
@@ -143,11 +165,14 @@ cmake --build build --config RelWithDebInfo
 ```
 
 # 运行服务端
+
 ./build/bin/RelWithDebInfo/minecraft-server.exe --help
 
 # 运行客户端
+
 ./build/bin/RelWithDebInfo/minecraft-client.exe
-```
+
+````
 
 增加新的着色器之后要在shaders\CMakeLists.txt中新增文件
 
@@ -166,7 +191,7 @@ glslc shaders/block.vert -o build/shaders/block.vert.spv
 glslc shaders/block.frag -o build/shaders/block.frag.spv
 glslc shaders/debug.vert -o build/shaders/debug.vert.spv
 glslc shaders/debug.frag -o build/shaders/debug.frag.spv
-```
+````
 
 ### 方法2: 使用 CMake 自动编译
 
@@ -181,6 +206,7 @@ cmake --build build --config RelWithDebInfo
 ## 依赖
 
 通过 vcpkg 管理：
+
 - **glm** - 数学库
 - **spdlog** - 日志
 - **nlohmann-json** - JSON 解析

@@ -1,0 +1,14 @@
+---
+Checks: >-
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-auto,
+  -bugprone-easily-swappable-parameters
+WarningsAsErrors: ''
+HeaderFilterRegex: '^(src|include|tests)/'
+AnalyzeTemporaryDtors: false
+FormatStyle: file
+...

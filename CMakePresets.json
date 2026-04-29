@@ -8,7 +8,8 @@
       "binaryDir": "${sourceDir}/build",
       "installDir": "${sourceDir}/dist",
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {

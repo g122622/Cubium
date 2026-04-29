@@ -1,38 +1,38 @@
 #include "ServerWorld.hpp"
 #include "ServerChunkManager.hpp"
-#include "weather/WeatherManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/fluid/Fluid.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/util/core/CoordConverter.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
-#include "common/world/chunk/IChunk.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/weather/WeatherUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
-#include "common/world/dimension/DimensionType.hpp"
-#include "common/util/NibbleArray.hpp"
-#include "common/util/Direction.hpp"
-#include "common/perfetto/TraceEvents.hpp"
-#include "common/util/core/CoordConverter.hpp"
+#include "common/world/weather/WeatherUtils.hpp"
+#include "server/core/TimeManager.hpp"
+#include "weather/WeatherManager.hpp"
 #include <algorithm>
 #include <array>
-#include <spdlog/spdlog.h>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::server {
 
-using mc::WorldLightManager;
-using mc::IChunk;
-using mc::StarLightLightingProvider;
-using mc::LightType;
-using mc::SectionPos;
 using mc::ChunkPos;
 using mc::ChunkSection;
+using mc::IChunk;
+using mc::LightType;
 using mc::NibbleArray;
+using mc::SectionPos;
+using mc::StarLightLightingProvider;
+using mc::WorldLightManager;
 using mc::util::core::CoordConverter;
 
 // ============================================================================
@@ -41,21 +41,14 @@ using mc::util::core::CoordConverter;
 
 ServerWorld::ServerWorld()
 {
-    auto generator = std::make_unique<NoiseChunkGenerator>(
-        m_config.seed,
-        DimensionSettings::overworld()
-    );
+    auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
     m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
     m_chunkManager->setViewDistance(m_config.viewDistance);
 }
 
-ServerWorld::ServerWorld(const ServerWorldConfig& config)
-    : m_config(config)
+ServerWorld::ServerWorld(const ServerWorldConfig& config) : m_config(config)
 {
-    auto generator = std::make_unique<NoiseChunkGenerator>(
-        m_config.seed,
-        DimensionSettings::overworld()
-    );
+    auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
     m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
     m_chunkManager->setViewDistance(m_config.viewDistance);
 }
@@ -74,10 +67,7 @@ Result<void> ServerWorld::initialize()
     }
 
     if (!m_chunkManager) {
-        auto generator = std::make_unique<NoiseChunkGenerator>(
-            m_config.seed,
-            DimensionSettings::overworld()
-        );
+        auto generator = std::make_unique<NoiseChunkGenerator>(m_config.seed, DimensionSettings::overworld());
         m_chunkManager = std::make_unique<ServerChunkManager>(*this, std::move(generator));
         m_chunkManager->setViewDistance(m_config.viewDistance);
     }
@@ -146,11 +136,8 @@ void ServerWorld::setConfig(const ServerWorldConfig& config)
     }
 }
 
-void ServerWorld::playSound(const ResourceLocation& soundEventId,
-                            sound::SoundCategory category,
-                            const Vector3& position,
-                            f32 volume,
-                            f32 pitch)
+void ServerWorld::playSound(
+    const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
 {
     if (m_onPlaySound) {
         m_onPlaySound(soundEventId, category, position, volume, pitch);
@@ -242,15 +229,17 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 // ============================================================================
 bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 {
-    MC_TRACE_EVENT(
-        "server.world", "ServerWorld::setBlock",
-        "x", x,
-        "y", y,
-        "z", z,
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
-                flow(ctx);
-        }
-    );
+    MC_TRACE_EVENT("server.world",
+                   "ServerWorld::setBlock",
+                   "x",
+                   x,
+                   "y",
+                   y,
+                   "z",
+                   z,
+                   [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](::perfetto::EventContext ctx) {
+                       flow(ctx);
+                   });
 
     const BlockPos changedPos(x, y, z);
 
@@ -268,11 +257,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     ChunkData* chunk = nullptr;
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::ChunkLookup",
-            "chunkX", chunkX,
-            "chunkZ", chunkZ
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::ChunkLookup", "chunkX", chunkX, "chunkZ", chunkZ);
 
         chunk = getChunkSync(chunkX, chunkZ);
         if (!chunk) {
@@ -307,12 +292,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     const BlockState* newState = nullptr;
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::CanonicalizeState",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::CanonicalizeState", "x", x, "y", y, "z", z);
 
         oldState = canonicalizeState(chunk->getBlock(localX, y, localZ));
         newState = canonicalizeState(state);
@@ -322,12 +302,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::StateComparison",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::StateComparison", "x", x, "y", y, "z", z);
 
         if (oldState == newState) {
             return false;
@@ -343,14 +318,18 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     i32 newLightLevel = newState ? newState->lightLevel() : 0;
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::WriteChunk",
-            "x", x,
-            "y", y,
-            "z", z,
-            "oldBlockId", oldState ? oldState->blockId() : 0,
-            "newBlockId", newState ? newState->blockId() : 0
-        );
+        MC_TRACE_EVENT("server.world",
+                       "ServerWorld::setBlock::WriteChunk",
+                       "x",
+                       x,
+                       "y",
+                       y,
+                       "z",
+                       z,
+                       "oldBlockId",
+                       oldState ? oldState->blockId() : 0,
+                       "newBlockId",
+                       newState ? newState->blockId() : 0);
 
         const BlockState* storedState = newIsAir ? nullptr : newState;
         chunk->setBlock(localX, y, localZ, storedState);
@@ -359,12 +338,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::OldBlockCallbacks",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::OldBlockCallbacks", "x", x, "y", y, "z", z);
 
         // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
         if (m_villageManager && !oldIsAir) {
@@ -383,12 +357,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::NewBlockCallbacks",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::NewBlockCallbacks", "x", x, "y", y, "z", z);
 
         if (m_onBlockChanged) {
             m_onBlockChanged(changedPos, currentState ? currentState->stateId() : 0u);
@@ -411,56 +380,50 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         sourceBlock = &const_cast<Block&>(sourceState->getBlock());
     }
 
-    struct NeighborDelta {
+    struct NeighborDelta
+    {
         i32 dx;
         i32 dy;
         i32 dz;
         Direction direction;
     };
 
-    constexpr std::array<NeighborDelta, 6> NEIGHBOR_DELTAS = {{
-        {-1, 0, 0, Direction::West},
-        {1, 0, 0, Direction::East},
-        {0, -1, 0, Direction::Down},
-        {0, 1, 0, Direction::Up},
-        {0, 0, -1, Direction::North},
-        {0, 0, 1, Direction::South}
-    }};
+    constexpr std::array<NeighborDelta, 6> NEIGHBOR_DELTAS = {{{-1, 0, 0, Direction::West},
+                                                               {1, 0, 0, Direction::East},
+                                                               {0, -1, 0, Direction::Down},
+                                                               {0, 1, 0, Direction::Up},
+                                                               {0, 0, -1, Direction::North},
+                                                               {0, 0, 1, Direction::South}}};
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::NeighborUpdates",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::NeighborUpdates", "x", x, "y", y, "z", z);
 
         for (const auto& neighbor : NEIGHBOR_DELTAS) {
             const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
-            const BlockState* neighborState = canonicalizeState(getBlockState(
-                neighborPos.x,
-                neighborPos.y,
-                neighborPos.z));
+            const BlockState* neighborState =
+                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
 
             const BlockState* updatedState = nullptr;
 
             {
-                MC_TRACE_EVENT(
-                    "server.world", "ServerWorld::setBlock::NeighborUpdatePostPlacement",
-                    "x", neighborPos.x,
-                    "y", neighborPos.y,
-                    "z", neighborPos.z
-                );
+                MC_TRACE_EVENT("server.world",
+                               "ServerWorld::setBlock::NeighborUpdatePostPlacement",
+                               "x",
+                               neighborPos.x,
+                               "y",
+                               neighborPos.y,
+                               "z",
+                               neighborPos.z);
 
                 if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
                     Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-                    BlockState updatedStateValue = neighborBlock.updatePostPlacement(
-                        *neighborState,
-                        Directions::opposite(neighbor.direction),
-                        *newState,
-                        *this,
-                        neighborPos,
-                        changedPos);
+                    BlockState updatedStateValue =
+                        neighborBlock.updatePostPlacement(*neighborState,
+                                                          Directions::opposite(neighbor.direction),
+                                                          *newState,
+                                                          *this,
+                                                          neighborPos,
+                                                          changedPos);
 
                     updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
                     if (updatedState == nullptr && updatedStateValue.isAir()) {
@@ -475,12 +438,14 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
             }
 
             {
-                MC_TRACE_EVENT(
-                    "server.world", "ServerWorld::setBlock::NeighborChanged",
-                    "x", neighborPos.x,
-                    "y", neighborPos.y,
-                    "z", neighborPos.z
-                );
+                MC_TRACE_EVENT("server.world",
+                               "ServerWorld::setBlock::NeighborChanged",
+                               "x",
+                               neighborPos.x,
+                               "y",
+                               neighborPos.y,
+                               "z",
+                               neighborPos.z);
 
                 if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
                     Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
@@ -491,14 +456,18 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::LightUpdates",
-            "x", x,
-            "y", y,
-            "z", z,
-            "oldLightLevel", oldLightLevel,
-            "newLightLevel", newLightLevel
-        );
+        MC_TRACE_EVENT("server.world",
+                       "ServerWorld::setBlock::LightUpdates",
+                       "x",
+                       x,
+                       "y",
+                       y,
+                       "z",
+                       z,
+                       "oldLightLevel",
+                       oldLightLevel,
+                       "newLightLevel",
+                       newLightLevel);
 
         if (m_lightManager) {
             m_lightManager->checkBlock(changedPos.x, changedPos.y, changedPos.z);
@@ -526,30 +495,17 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     };
 
     {
-        MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::FluidScheduling",
-            "x", x,
-            "y", y,
-            "z", z
-        );
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::FluidScheduling", "x", x, "y", y, "z", z);
 
         scheduleFluidAt(changedPos, newState);
 
-        constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {{
-            {{-1, 0, 0}},
-            {{1, 0, 0}},
-            {{0, -1, 0}},
-            {{0, 1, 0}},
-            {{0, 0, -1}},
-            {{0, 0, 1}}
-        }};
+        constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {
+            {{{-1, 0, 0}}, {{1, 0, 0}}, {{0, -1, 0}}, {{0, 1, 0}}, {{0, 0, -1}}, {{0, 0, 1}}}};
 
         for (const auto& offset : NEIGHBOR_OFFSETS) {
             const BlockPos neighborPos(x + offset[0], y + offset[1], z + offset[2]);
-            const BlockState* neighborState = canonicalizeState(getBlockState(
-                neighborPos.x,
-                neighborPos.y,
-                neighborPos.z));
+            const BlockState* neighborState =
+                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
             scheduleFluidAt(neighborPos, neighborState);
         }
     }
@@ -590,13 +546,13 @@ void ServerWorld::tick()
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
         m_chunkManager->tick();
     }
-    
+
     // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
     if (m_lightManager && m_lightManager->hasLightWork()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
         m_lightManager->tick(32768, true, true);
     }
-    
+
     // 获取当前 tick
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
     i64 gameTime = m_timeManager ? m_timeManager->dayTime() : 0;
@@ -776,8 +732,7 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
                         i32 wx = cx * 16 + x;
                         i32 wz = cz * 16 + z;
 
-                        if (wx + 1 < box.minX || wx > box.maxX ||
-                            wz + 1 < box.minZ || wz > box.maxZ) {
+                        if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
                             continue;
                         }
 
@@ -822,8 +777,7 @@ std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& 
                         i32 wx = cx * 16 + x;
                         i32 wz = cz * 16 + z;
 
-                        if (wx + 1 < box.minX || wx > box.maxX ||
-                            wz + 1 < box.minZ || wz > box.maxZ) {
+                        if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
                             continue;
                         }
 
@@ -854,8 +808,7 @@ bool ServerWorld::hasEntityCollision(const AxisAlignedBB& box, const Entity* exc
     return !entities.empty();
 }
 
-std::vector<AxisAlignedBB> ServerWorld::getEntityCollisions(
-    const AxisAlignedBB& box, const Entity* except) const
+std::vector<AxisAlignedBB> ServerWorld::getEntityCollisions(const AxisAlignedBB& box, const Entity* except) const
 {
     std::vector<AxisAlignedBB> collisions;
     auto entities = m_entityManager.getEntitiesInAABB(box, except);
@@ -996,14 +949,15 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 // Tick调度便捷方法
 // ============================================================================
 
-void ServerWorld::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay,
-                                     world::tick::TickPriority priority)
+void ServerWorld::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay, world::tick::TickPriority priority)
 {
     m_tickManager->scheduleBlockTick(pos, block, delay, priority);
 }
 
-void ServerWorld::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay,
-                                     world::tick::TickPriority priority)
+void ServerWorld::scheduleFluidTick(const BlockPos& pos,
+                                    fluid::Fluid& fluid,
+                                    i32 delay,
+                                    world::tick::TickPriority priority)
 {
     m_tickManager->scheduleFluidTick(pos, fluid, delay, priority);
 }
@@ -1039,9 +993,12 @@ const IWorld* ServerWorld::getWorld() const
 
 void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
 {
-    MC_TRACE_EVENT("server.lighting", "ServerWorld::markLightChanged",
-               "Type", (type == LightType::SKY) ? "Sky" : "Block",
-               "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
+    MC_TRACE_EVENT("server.lighting",
+                   "ServerWorld::markLightChanged",
+                   "Type",
+                   (type == LightType::SKY) ? "Sky" : "Block",
+                   "Section",
+                   fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 
     if (m_chunkManager) {
         ChunkData* chunk = m_chunkManager->getChunk(pos.x, pos.z);
@@ -1065,14 +1022,14 @@ bool ServerWorld::hasSkyLight() const
 DimensionType ServerWorld::getDimensionType() const
 {
     switch (m_config.dimension) {
-        case 0:
-            return DimensionType::overworld();
-        case 1:
-            return DimensionType::nether();
-        case 2:
-            return DimensionType::theEnd();
-        default:
-            return DimensionType::overworld();
+    case 0:
+        return DimensionType::overworld();
+    case 1:
+        return DimensionType::nether();
+    case 2:
+        return DimensionType::theEnd();
+    default:
+        return DimensionType::overworld();
     }
 }
 
@@ -1122,9 +1079,7 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
         return;
     }
 
-    NibbleArray& targetArray = (type == LightType::SKY)
-        ? section->skyLightNibble()
-        : section->blockLightNibble();
+    NibbleArray& targetArray = (type == LightType::SKY) ? section->skyLightNibble() : section->blockLightNibble();
     targetArray.data() = std::move(data);
 }
 
