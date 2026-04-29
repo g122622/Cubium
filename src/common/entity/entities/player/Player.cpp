@@ -2,6 +2,7 @@
 #include "GameModeUtils.hpp"
 #include "../../inventory/Slot.hpp"
 #include "../../experience/ExperienceManager.hpp"
+#include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../../physics/PhysicsEngine.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -70,10 +71,13 @@ constexpr f32 PLAYER_POSE_FIT_EPSILON = 1.0e-4f;
 // ============================================================================
 
 Player::Player(EntityId id, const String& username)
-    : Entity(LegacyEntityType::Player, id)
+    : LivingEntity(LegacyEntityType::Player, id)
     , m_username(username)
     , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
 {
+    // 注册玩家属性
+    registerAttributes();
+
     // 生成随机XP seed
     math::Random rng(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
     m_experienceManager->resetXpSeed(rng);
@@ -102,34 +106,25 @@ void Player::setGameMode(GameMode mode) {
 
     // 使用 GameModeUtils 更新能力
     m_abilities = entity::GameModeUtils::getAbilitiesForGameMode(mode);
+
+    // 同步移动速度到属性系统
+    // PlayerAbilities 是配置层，属性系统是计算层
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED,
+                               static_cast<f64>(m_abilities.walkSpeed));
 }
 
+// ============================================================================
+// 生命值管理（覆盖 LivingEntity 方法）
+// ============================================================================
+
 void Player::setHealth(f32 health) {
-    m_health = std::clamp(health, 0.0f, m_maxHealth);
+    // 直接调用父类方法
+    LivingEntity::setHealth(health);
 }
 
 void Player::heal(f32 amount) {
-    if (amount <= 0.0f || isDead()) return;
-    setHealth(m_health + amount);
-}
-
-void Player::damage(f32 amount) {
-    if (m_abilities.invulnerable || amount <= 0.0f) return;
-    setHealth(m_health - amount);
-
-    if (m_health <= 0.0f) {
-        // 玩家死亡
-        if (auto soundEvent = makeSoundEventId("death")) {
-            playSound(*soundEvent, 1.0f, 1.0f);
-        }
-        m_health = 0.0f;
-        m_deathTime = 0;
-    } else {
-        if (auto soundEvent = makeSoundEventId("hurt")) {
-            playSound(*soundEvent, 1.0f, 1.0f);
-        }
-        m_hurtTime = 10;
-    }
+    // 直接调用父类方法
+    LivingEntity::heal(amount);
 }
 
 // ============================================================================
@@ -310,20 +305,11 @@ bool Player::canFitPose(EntityPose pose) const {
 }
 
 void Player::tick() {
-    Entity::tick();
+    LivingEntity::tick();
 
     // 更新 XP 冷却
     if (m_xpCooldown > 0) {
         m_xpCooldown--;
-    }
-
-    // 更新受伤/死亡计时器
-    if (m_hurtTime > 0) {
-        m_hurtTime--;
-    }
-
-    if (isDead()) {
-        m_deathTime++;
     }
 
     // 睡眠计时器逻辑
@@ -905,15 +891,11 @@ void Player::setCreativeModeInventory() {
 }
 
 void Player::respawn() {
-    m_health = m_maxHealth;
+    setHealth(maxHealth());
     m_foodStats.setFoodLevel(20);
     m_foodStats.setSaturationLevel(5.0f);
     m_foodStats.setFoodTimer(0);
-    m_deathTime = 0;
-    m_hurtTime = 0;
     m_isSleeping = false;
-    m_jumpTicks = 0;
-    sleepTimer = 0;
     setPose(EntityPose::Standing);
 
     // 重置经验
@@ -1050,51 +1032,67 @@ ItemStack& Player::getHeldItem(Hand hand) {
 }
 
 // ============================================================================
-// 效果系统实现
-// Player 不继承 LivingEntity，所以使用简化的效果管理
+// 受伤/死亡（覆盖 LivingEntity 方法）
 // ============================================================================
 
-bool Player::addEffect(const entity::effect::EffectInstance& effect) {
-    // 查找是否已存在相同类型的效果
-    for (auto& existing : m_effects) {
-        if (existing.type() == effect.type()) {
-            // 已存在，尝试合并
-            return existing.merge(effect);
-        }
+bool Player::hurt(DamageSource& source, f32 amount) {
+    // 创造模式无敌检查
+    if (m_abilities.invulnerable && !source.canDamageCreative()) {
+        return false;
+    }
+    // 调用父类方法处理伤害
+    return LivingEntity::hurt(source, amount);
+}
+
+void Player::die(DamageSource& cause) {
+    // 调用父类方法处理死亡
+    LivingEntity::die(cause);
+
+    // 玩家特有：掉落经验
+    dropExperience();
+}
+
+// ============================================================================
+// 属性注册（覆盖 LivingEntity 方法）
+// ============================================================================
+
+void Player::registerAttributes() {
+    // 先调用父类方法注册基础属性
+    LivingEntity::registerAttributes();
+
+    // 设置玩家特有属性值
+    using namespace entity::attribute;
+    m_attributes.setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
+    m_attributes.setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);
+    m_attributes.setBaseValue(Attributes::ATTACK_SPEED, defaults::player::ATTACK_SPEED);
+}
+
+// ============================================================================
+// 移动物理（覆盖 LivingEntity 方法）
+// ============================================================================
+
+void Player::travel(f32 strafing, f32 vertical, f32 forward) {
+    // 飞行模式处理 - Player 特有
+    if (m_abilities.flying && !isRiding()) {
+        f32 prevJumpFactor = m_jumpMovementFactor;
+        m_jumpMovementFactor = m_abilities.flySpeed * (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
+        LivingEntity::travel(strafing, vertical, forward);
+        m_velocity.y *= physics::FLY_VERTICAL_DRAG;
+        m_jumpMovementFactor = prevJumpFactor;
+        m_fallDistance = 0.0f;
+    } else {
+        LivingEntity::travel(strafing, vertical, forward);
     }
 
-    // 新效果，添加到列表
-    m_effects.push_back(effect);
-    return true;
+    updateMoveDistance();
 }
 
-void Player::removeEffect(entity::effect::EffectType type) {
-    m_effects.erase(
-        std::remove_if(m_effects.begin(), m_effects.end(),
-            [type](const entity::effect::EffectInstance& e) { return e.type() == type; }),
-        m_effects.end());
-}
-
-void Player::removeAllEffects() {
-    m_effects.clear();
-}
-
-bool Player::hasEffect(entity::effect::EffectType type) const {
-    for (const auto& effect : m_effects) {
-        if (effect.type() == type) {
-            return true;
-        }
+void Player::aiStep() {
+    // 玩家不使用 AI 步进，由 handleMovementInput 和 updatePhysics 处理
+    // 仅更新跳跃冷却
+    if (m_jumpTicks > 0) {
+        m_jumpTicks--;
     }
-    return false;
-}
-
-const entity::effect::EffectInstance* Player::getEffect(entity::effect::EffectType type) const {
-    for (const auto& effect : m_effects) {
-        if (effect.type() == type) {
-            return &effect;
-        }
-    }
-    return nullptr;
 }
 
 // ============================================================================
@@ -1256,7 +1254,8 @@ void Player::updateAirSupply() {
                     m_drownDamageTimer = 0;
                     // 造成溺水伤害
                     // MC 1.16.5: attackEntityFrom(DamageSource.DROWN, 2.0F)
-                    damage(physics::DROWN_DAMAGE_AMOUNT);
+                    auto drownSource = DamageSources::drown();
+                    hurt(drownSource, physics::DROWN_DAMAGE_AMOUNT);
                 }
 
                 // 溺水时生成气泡粒子

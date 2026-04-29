@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../core/Entity.hpp"
+#include "../../core/LivingEntity.hpp"
 #include "../../movement/AutoJump.hpp"
 #include "../../inventory/PlayerInventory.hpp"
 #include "../../experience/ExperienceManager.hpp"
@@ -83,9 +83,9 @@ struct PlayerAbilities {
 /**
  * @brief 玩家实体类
  *
- * 继承自Entity，添加玩家特有的属性和能力：
+ * 继承自 LivingEntity，添加玩家特有的属性和能力：
  * - 玩家尺寸常量（宽度、高度、眼睛高度）
- * - 游戏模式、生命值、饥饿值
+ * - 游戏模式、饥饿值
  * - 经验系统
  * - 能力标志（飞行、无敌等）
  * - 物理移动支持（步进、跳跃）
@@ -95,7 +95,7 @@ struct PlayerAbilities {
  * - LivingEntity.travel() - 物理更新
  * - Entity.move() - 碰撞检测
  */
-class Player : public Entity {
+class Player : public LivingEntity {
 public:
     // 玩家尺寸常量
     static constexpr f32 PLAYER_WIDTH = 0.6f;
@@ -193,11 +193,8 @@ public:
     void setPosition(const Vector3& pos) { setPosition(pos.x, pos.y, pos.z); }
 
     // 生命值和饥饿
-    [[nodiscard]] f32 health() const { return m_health; }
-    [[nodiscard]] f32 maxHealth() const { return m_maxHealth; }
     void setHealth(f32 health);
     void heal(f32 amount);
-    void damage(f32 amount);
 
     [[nodiscard]] const FoodStats& foodStats() const { return m_foodStats; }
     FoodStats& foodStats() { return m_foodStats; }
@@ -298,7 +295,7 @@ public:
      *
      * 玩家死亡时掉落 min(level * 7, 100) 点经验。
      */
-    void dropExperience();
+    void dropExperience() override;
 
     // ========== XP 冷却 ==========
 
@@ -329,9 +326,6 @@ public:
     [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
     [[nodiscard]] bool isSleeping() const { return m_isSleeping; }
-    [[nodiscard]] bool isDead() const { return m_health <= 0.0f; }
-    [[nodiscard]] bool isJumping() const { return m_isJumping; }
-
     void setSprinting(bool sprinting);
     void setSneaking(bool sneaking);
     void setSwimming(bool swimming);
@@ -560,14 +554,18 @@ public:
     // ========== 受伤/死亡 ==========
 
     /**
-     * @brief 获取受伤时间（无敌帧）
+     * @brief 受伤处理
+     *
+     * 覆盖 LivingEntity::hurt()，添加创造模式无敌检查。
      */
-    [[nodiscard]] i32 hurtTime() const { return m_hurtTime; }
+    bool hurt(DamageSource& source, f32 amount) override;
 
     /**
-     * @brief 获取死亡时间
+     * @brief 死亡处理
+     *
+     * 覆盖 LivingEntity::die()，添加玩家特有死亡逻辑（掉落经验等）。
      */
-    [[nodiscard]] i32 deathTime() const { return m_deathTime; }
+    void die(DamageSource& cause) override;
 
     // ========== 视野晃动 ==========
 
@@ -704,8 +702,8 @@ public:
     /**
      * @brief 获取吸收伤害值（金苹果效果）
      */
-    [[nodiscard]] f32 absorptionAmount() const { return m_absorptionAmount; }
-    void setAbsorptionAmount(f32 amount) { m_absorptionAmount = amount; }
+    [[nodiscard]] f32 absorptionAmount() const { return m_absorption; }
+    void setAbsorptionAmount(f32 amount) { m_absorption = amount; }
 
     /**
      * @brief 获取护甲值
@@ -732,44 +730,28 @@ public:
 
     void respawn();
 
-    // ========== 效果系统 ==========
-    // Player 不继承 LivingEntity，但需要效果系统来支持不祥之兆等效果
+    // ========== 物理/移动 ==========
 
     /**
-     * @brief 添加效果
-     * @param effect 效果实例
-     * @return 是否成功添加
+     * @brief 移动物理处理
+     *
+     * 覆盖 LivingEntity::travel()，添加飞行和游泳处理。
      */
-    bool addEffect(const entity::effect::EffectInstance& effect);
+    void travel(f32 strafing, f32 vertical, f32 forward) override;
 
     /**
-     * @brief 移除效果
-     * @param type 效果类型
+     * @brief AI步进更新
+     *
+     * 覆盖 LivingEntity::aiStep()，替换为玩家输入处理。
      */
-    void removeEffect(entity::effect::EffectType type);
+    void aiStep() override;
 
     /**
-     * @brief 移除所有效果
+     * @brief 注册属性
+     *
+     * 覆盖 LivingEntity::registerAttributes()，注册玩家特有属性。
      */
-    void removeAllEffects();
-
-    /**
-     * @brief 检查是否有效果
-     * @param type 效果类型
-     */
-    [[nodiscard]] bool hasEffect(entity::effect::EffectType type) const;
-
-    /**
-     * @brief 获取效果实例
-     * @param type 效果类型
-     * @return 效果实例指针，如果不存在返回 nullptr
-     */
-    [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const;
-
-    /**
-     * @brief 获取所有效果
-     */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const { return m_effects; }
+    void registerAttributes() override;
 
     // ========== 序列化 ==========
 
@@ -813,10 +795,6 @@ private:
     ChatVisibility m_chatVisibility = ChatVisibility::Full;
     u8 m_playerModelParts = PLAYER_MODEL_PARTS_ALL_MASK;
 
-    f32 m_health = 20.0f;
-    f32 m_maxHealth = 20.0f;
-    f32 m_absorptionAmount = 0.0f;
-
     FoodStats m_foodStats;
     PlayerAbilities m_abilities;
     PlayerInventory m_inventory{this};  // 玩家背包
@@ -832,12 +810,8 @@ private:
     bool m_isSneaking = false;
     bool m_isSwimming = false;
     bool m_isSleeping = false;
-    bool m_isJumping = false;        // 当前帧是否在跳跃
 
-    i32 m_jumpTicks = 0;             // 跳跃冷却
     i32 sleepTimer = 0;
-    i32 m_hurtTime = 0;
-    i32 m_deathTime = 0;
 
     // 睡眠位置（当前睡眠的床位）
     std::optional<BlockPos> m_sleepingPosition;
@@ -848,9 +822,6 @@ private:
 
     // 自动跳跃系统
     entity::movement::AutoJump m_autoJump;
-
-    // 效果列表（Player 不继承 LivingEntity，独立管理效果）
-    std::vector<entity::effect::EffectInstance> m_effects;
 
     // 游泳动画
     f32 m_swimAnimation = 0.0f;

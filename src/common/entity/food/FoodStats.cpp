@@ -1,6 +1,7 @@
 #include "FoodStats.hpp"
 #include "../entities/player/Player.hpp"
 #include "../combat/DifficultyHelper.hpp"
+#include "../damage/DamageSource.hpp"
 #include "../../network/packet/PacketSerializer.hpp"
 #include "../../entity/effect/EffectType.hpp"
 #include <algorithm>
@@ -185,8 +186,9 @@ void FoodStats::performStarvationDamage(Player& player, Difficulty difficulty) {
 
     // 只有当前生命值高于最小生命值时才造成伤害
     if (currentHealth > minHealth) {
-        // TODO: 使用 DamageSources::starve() 当伤害源系统完善后
-        player.damage(1.0f);
+        // 使用饥饿伤害源
+        auto starveSource = DamageSources::starve();
+        player.hurt(starveSource, 1.0f);
     }
 }
 

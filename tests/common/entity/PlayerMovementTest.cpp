@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/player/GameModeUtils.hpp"
+#include "entity/damage/DamageSource.hpp"
 #include "common/world/IWorld.hpp"
 #include "physics/PhysicsEngine.hpp"
 #include "world/block/VanillaBlocks.hpp"
@@ -155,7 +156,8 @@ TEST_F(PlayerMovementTest, DamagePlaysHurtSound) {
     m_player->setGameMode(GameMode::Survival);
     m_player->setHealth(20.0f);
 
-    m_player->damage(5.0f);
+    auto genericSource = DamageSources::generic();
+    m_player->hurt(genericSource, 5.0f);
 
     ASSERT_TRUE(world.hasSoundRecord());
     EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.player.hurt");
@@ -169,7 +171,8 @@ TEST_F(PlayerMovementTest, LethalDamagePlaysDeathSound) {
     m_player->setGameMode(GameMode::Survival);
     m_player->setHealth(5.0f);
 
-    m_player->damage(10.0f);
+    auto genericSource = DamageSources::generic();
+    m_player->hurt(genericSource, 10.0f);
 
     ASSERT_TRUE(world.hasSoundRecord());
     EXPECT_EQ(world.lastSound().soundEventId.toString(), "minecraft:entity.player.death");
