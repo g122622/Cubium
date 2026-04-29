@@ -227,6 +227,10 @@ public:
  * 弹性方块，实体落在上面会弹跳。
  * 活塞推动时会粘住相邻方块。
  *
+ * 物理：
+ * - 弹跳系数：0.9（每次弹跳损失 10% 速度）
+ * - 滑度：0.8
+ *
  * 参考: net.minecraft.block.SlimeBlock
  */
 class SlimeBlock : public Block {
@@ -235,6 +239,13 @@ public:
     ~SlimeBlock() override = default;
 
     // ========== 实体交互 ==========
+
+    /**
+     * @brief 实体着地时调用
+     *
+     * 实现弹跳效果：如果实体向下落，Y速度取反并乘以 0.9。
+     */
+    void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
 
@@ -249,6 +260,11 @@ public:
  * 粘性方块，实体在上面移动会减速。
  * 活塞推动时会粘住相邻方块。
  *
+ * 物理：
+ * - 滑度：0.5
+ * - 跳跃因子：0.5
+ * - 速度因子：0.4（在内部移动时）
+ *
  * 参考: net.minecraft.block.HoneyBlock
  */
 class HoneyBlock : public Block {
@@ -257,6 +273,13 @@ public:
     ~HoneyBlock() override = default;
 
     // ========== 实体交互 ==========
+
+    /**
+     * @brief 实体着地时调用
+     *
+     * 消除摔落伤害，不弹跳。
+     */
+    void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
 
@@ -311,6 +334,51 @@ class WetSpongeBlock : public Block {
 public:
     explicit WetSpongeBlock(const BlockProperties& properties);
     ~WetSpongeBlock() override = default;
+};
+
+/**
+ * @brief 蜘蛛网方块
+ *
+ * 实体经过时会被减速的网状方块。
+ *
+ * 物理：
+ * - 移动速度减少 97.5%（乘以 0.025）
+ * - Y轴下落速度减少（乘以 0.025）
+ * - 不影响跳跃
+ *
+ * 参考: net.minecraft.block.WebBlock
+ */
+class WebBlock : public Block {
+public:
+    explicit WebBlock(const BlockProperties& properties);
+    ~WebBlock() override = default;
+
+    // ========== 实体交互 ==========
+
+    /**
+     * @brief 实体碰撞时调用
+     *
+     * 大幅减缓实体速度。
+     */
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+
+    // ========== 形状 ==========
+
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override {
+        // 蜘蛛网无碰撞
+        static CollisionShape emptyShape = CollisionShape::empty();
+        return emptyShape;
+    }
+
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
+        MC_UNUSED(state);
+        return false;
+    }
+
+private:
+    CollisionShape m_shape;
 };
 
 } // namespace blocks

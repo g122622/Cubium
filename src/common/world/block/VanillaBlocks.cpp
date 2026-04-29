@@ -27,6 +27,7 @@
 #include "blocks/decorative/CampfireBlock.hpp"
 #include "blocks/functional/BeaconBlock.hpp"
 #include "blocks/functional/BrewingStandBlock.hpp"
+#include "blocks/special/SpecialBlocks.hpp"
 #include "blocks/redstone/RedstoneWireBlock.hpp"
 #include "blocks/redstone/RedstoneTorchBlock.hpp"
 #include "blocks/redstone/RedstoneWallTorchBlock.hpp"
@@ -2042,7 +2043,7 @@ void VanillaBlocks::registerNaturalBlocks() {
 
     // 蜘蛛网
     // 参考: new WebBlock(Properties.create(Material.WEB).hardnessAndResistance(4.0F))
-    COBWEB = &registry.registerBlock<SimpleBlock>(
+    COBWEB = &registry.registerBlock<blocks::WebBlock>(
         ResourceLocation("minecraft:cobweb"),
         BlockProperties(Material::WEB).hardness(4.0f).noCollision());
 

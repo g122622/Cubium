@@ -70,12 +70,23 @@ public:
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
-    // ========== 其他 ==========
+    // ========== 攀爬 ==========
 
     /**
-     * @brief 是否可以攀爬
+     * @brief 检查方块是否可攀爬
+     *
+     * 脚手架始终可攀爬。
+     *
+     * @return 始终返回 true
      */
-    [[nodiscard]] bool isLadder(const BlockState& state) const {
+    [[nodiscard]] bool isLadder(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const Entity* entity = nullptr) const override {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(entity);
         MC_UNUSED(state);
         return true;
     }

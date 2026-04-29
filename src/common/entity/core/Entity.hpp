@@ -509,6 +509,12 @@ public:
     [[nodiscard]] bool collidedVertically() const { return m_collidedVertically; }
     [[nodiscard]] f32 fallDistance() const { return m_fallDistance; }
 
+    /**
+     * @brief 设置摔落距离
+     * @param distance 摔落距离
+     */
+    void setFallDistance(f32 distance) { m_fallDistance = distance; }
+
     // ========== 移除 ==========
 
     void remove() { m_removed = true; }
@@ -601,6 +607,18 @@ public:
      * @brief 检查实体是否在岩浆中
      */
     [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
+
+    /**
+     * @brief 检查实体是否在梯子或藤蔓上
+     *
+     * 检查实体所在位置的方块是否为可攀爬方块。
+     * 可攀爬方块包括：梯子、藤蔓、脚手架。
+     *
+     * 参考: MC 1.16.5 LivingEntity.isOnLadder()
+     *
+     * @return 如果实体在可攀爬方块上返回 true
+     */
+    [[nodiscard]] virtual bool isOnLadder() const;
 
     /**
      * @brief 获取实体浸入水的高度

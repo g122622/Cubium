@@ -387,10 +387,14 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
     // 正确的物理顺序：
     // 1. 计算移动因子
     // 2. moveRelative(): 速度 += 输入 * 移动因子
-    // 3. 应用重力
+    // 3. 应用重力（或攀爬）
     // 4. 执行移动（碰撞检测）
     // 5. 应用摩擦/阻力（基于滑度）
     // 6. 重置过小速度
+
+    // 检查是否在梯子上
+    // MC 1.16.5: LivingEntity.java 行 2218-2241
+    bool onLadder = isOnLadder();
 
     // 获取移动速度属性
     f32 moveSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2));
@@ -447,9 +451,46 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
         m_velocity.z += moveZ;
     }
 
-    // 2. 应用重力（除非无重力）
-    // MC 1.16.5: 重力始终应用，碰撞会处理停止
-    if (!hasNoGravity()) {
+    // 2. 应用重力或攀爬物理
+    // MC 1.16.5: LivingEntity.java 行 2218-2241 (梯子攀爬)
+    if (onLadder) {
+        // 在梯子上时的特殊物理
+        // MC 1.16.5: 水平速度限制为 0.15，重力被抵消
+
+        // 限制水平速度
+        f32 horizontalSpeed = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.z * m_velocity.z);
+        constexpr f32 LADDER_MAX_SPEED = 0.15f;  // MC 1.16.5: LivingEntity.java:2218-2221
+        if (horizontalSpeed > LADDER_MAX_SPEED) {
+            f32 scale = LADDER_MAX_SPEED / horizontalSpeed;
+            m_velocity.x *= scale;
+            m_velocity.z *= scale;
+        }
+
+        // 梯子上的垂直移动
+        // MC 1.16.5: LivingEntity.java:2222-2235
+        // 向上爬：Y速度正（输入控制）
+        // 向下滑：Y速度负（重力控制，但被限制）
+        // 静止：Y速度趋近于 0（缓慢滑落）
+
+        // 如果在移动（按住前进键），允许向上爬
+        // 否则应用轻微重力使其缓慢下滑
+        if (forward > 0.0f) {
+            // 向上攀爬
+            m_velocity.y = physics::LADDER_CLIMB_SPEED;
+        } else if (forward < 0.0f) {
+            // 向下滑落（比正常下落慢）
+            m_velocity.y = -physics::LADDER_SLIDE_SPEED;
+        } else {
+            // 不按键时，缓慢滑落
+            // MC 1.16.5: 如果在梯子上但不按键，Y速度限制为 -0.15
+            if (m_velocity.y < -physics::LADDER_SPEED_MAX) {
+                m_velocity.y = -physics::LADDER_SPEED_MAX;
+            }
+        }
+
+        // 不应用正常重力（梯子上重力已被处理）
+    } else if (!hasNoGravity()) {
+        // 正常重力
         m_velocity.y -= GRAVITY;
     }
 
@@ -466,11 +507,16 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
         f32 groundFriction = slipperiness * 0.91f;
         m_velocity.x *= groundFriction;
         m_velocity.z *= groundFriction;
-    } else {
-        // 空气阻力
+    } else if (!onLadder) {
+        // 空气阻力（不在梯子上）
         m_velocity.x *= DRAG_AIR;
         m_velocity.y *= DRAG_AIR;
         m_velocity.z *= DRAG_AIR;
+    } else {
+        // 梯子上的阻力
+        // MC 1.16.5: 梯子上水平阻力为 0.91，垂直阻力也为 0.91
+        m_velocity.x *= DRAG_GROUND;
+        m_velocity.z *= DRAG_GROUND;
     }
 
     // 5. 重置过小的速度

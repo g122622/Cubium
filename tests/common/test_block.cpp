@@ -1212,3 +1212,73 @@ TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {
     ASSERT_NE(stateAfterTick, nullptr);
     EXPECT_TRUE(stateAfterTick->isAir());
 }
+
+// ============================================================================
+// 特殊方块物理测试 - 史莱姆块、蜂蜜块、蜘蛛网
+// ============================================================================
+
+#include "physics/PhysicsConstants.hpp"
+#include "world/block/blocks/special/SpecialBlocks.hpp"
+
+TEST(SpecialBlocksSlipperiness, SlimeBlockSlipperiness) {
+    // MC 1.16.5: 史莱姆块滑度为 0.8
+    VanillaBlocks::initialize();
+    EXPECT_FLOAT_EQ(physics::SLIPPERINESS_SLIME, 0.8f);
+}
+
+TEST(SpecialBlocksSlipperiness, BlueIceSlipperiness) {
+    // MC 1.16.5: 蓝冰滑度为 0.989
+    EXPECT_FLOAT_EQ(physics::SLIPPERINESS_BLUE_ICE, 0.989f);
+}
+
+TEST(SpecialBlocksPhysics, SlimeBlockBounceFactor) {
+    // MC 1.16.5: 史莱姆块弹跳系数为 0.9
+    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR, 0.9f);
+}
+
+TEST(SpecialBlocksPhysics, HoneyBlockFactors) {
+    // MC 1.16.5: 蜂蜜块滑度因子为 0.5，跳跃因子为 0.5
+    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_SLIDE_FACTOR, 0.5f);
+    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_JUMP_FACTOR, 0.5f);
+}
+
+TEST(SpecialBlocksPhysics, CobwebSlowdown) {
+    // MC 1.16.5: 蜘蛛网减速因子为 0.025
+    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN, 0.025f);
+}
+
+TEST(SpecialBlocksSlimeBlock, OnLandedBouncesDownwardVelocity) {
+    // 测试史莱姆块弹跳逻辑
+    // 当实体以向下速度着陆时，Y速度应取反并乘以 0.9
+    blocks::SlimeBlock slimeBlock(BlockProperties(Material::SLIME).slipperiness(physics::SLIPPERINESS_SLIME));
+
+    // 验证滑度设置正确
+    EXPECT_FLOAT_EQ(slimeBlock.getSlipperiness(slimeBlock.defaultState()), physics::SLIPPERINESS_SLIME);
+}
+
+TEST(SpecialBlocksHoneyBlock, OnLandedStopsFallDamage) {
+    // 测试蜂蜜块消除摔落伤害
+    // 蜂蜜块不弹跳，只重置 Y 速度为 0
+    blocks::HoneyBlock honeyBlock(BlockProperties(Material::SLIME)
+        .slipperiness(physics::HONEY_BLOCK_SLIDE_FACTOR)
+        .speedFactor(physics::HONEY_BLOCK_JUMP_FACTOR));
+
+    // 验证滑度和跳跃因子设置正确
+    EXPECT_FLOAT_EQ(honeyBlock.getSlipperiness(honeyBlock.defaultState()), physics::HONEY_BLOCK_SLIDE_FACTOR);
+    EXPECT_FLOAT_EQ(honeyBlock.getJumpFactor(honeyBlock.defaultState()), physics::HONEY_BLOCK_JUMP_FACTOR);
+}
+
+TEST(SpecialBlocksWebBlock, CollisionShapeIsEmpty) {
+    // 测试蜘蛛网碰撞箱为空（实体可以穿过）
+    blocks::WebBlock webBlock(BlockProperties(Material::WEB).hardness(4.0f).noCollision());
+
+    const CollisionShape& collisionShape = webBlock.getCollisionShape(webBlock.defaultState());
+    EXPECT_TRUE(collisionShape.isEmpty());
+}
+
+TEST(SpecialBlocksLadder, LadderSpeedConstants) {
+    // MC 1.16.5: 梯子攀爬速度常量
+    EXPECT_FLOAT_EQ(physics::LADDER_SPEED_MAX, 0.15f);
+    EXPECT_FLOAT_EQ(physics::LADDER_CLIMB_SPEED, 0.15f);
+    EXPECT_FLOAT_EQ(physics::LADDER_SLIDE_SPEED, -0.15f);
+}

@@ -67,9 +67,10 @@ TEST(EntityPhysics, AirDrag) {
 }
 
 TEST(EntityPhysics, GroundDrag) {
-    // 验证地面阻力（滑度 * 0.91）
-    // 默认滑度 0.6，地面阻力应为 0.6 * 0.91 = 0.546
-    EXPECT_FLOAT_EQ(physics::DRAG_GROUND, 0.546f);
+    // 验证地面基础阻力系数
+    // MC 1.16.5: 地面基础阻力为 0.91，实际阻力 = 滑度 * 0.91
+    // 默认滑度 0.6 的方块实际阻力为 0.6 * 0.91 = 0.546
+    EXPECT_FLOAT_EQ(physics::DRAG_GROUND, 0.91f);
 }
 
 // ============================================================================
@@ -277,4 +278,57 @@ TEST(EntityAttributes, SwimSpeedAttribute) {
     ASSERT_NE(attr, nullptr);
     EXPECT_EQ(attr->registryName(), "generic.swim_speed");
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 1.0f);
+}
+
+// ============================================================================
+// 新增物理常量测试
+// ============================================================================
+
+TEST(PhysicsConstants, WaterPhysics) {
+    // MC 1.16.5: 水中重力 = 地面重力 / 16
+    EXPECT_FLOAT_EQ(physics::WATER_GRAVITY, 0.005f);
+    EXPECT_FLOAT_EQ(physics::WATER_DRAG, 0.8f);
+    EXPECT_FLOAT_EQ(physics::WATER_BUOYANCY, 0.005f);
+    EXPECT_FLOAT_EQ(physics::LAVA_DRAG, 0.5f);
+}
+
+TEST(PhysicsConstants, SlipperinessConstants) {
+    // MC 1.16.5 滑度值
+    EXPECT_FLOAT_EQ(physics::SLIPPERINESS_DEFAULT, 0.6f);
+    EXPECT_FLOAT_EQ(physics::SLIPPERINESS_SLIME, 0.8f);
+    EXPECT_FLOAT_EQ(physics::SLIPPERINESS_BLUE_ICE, 0.989f);
+    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_SLIDE_FACTOR, 0.5f);
+}
+
+TEST(PhysicsConstants, MovementConstants) {
+    // MC 1.16.5 移动常量
+    EXPECT_FLOAT_EQ(physics::FLY_SPEED, 0.05f);
+    EXPECT_FLOAT_EQ(physics::WALK_SPEED, 0.1f);
+    EXPECT_FLOAT_EQ(physics::JUMP_MOVEMENT_FACTOR, 0.02f);
+}
+
+TEST(PhysicsConstants, LadderConstants) {
+    // MC 1.16.5 梯子物理
+    EXPECT_FLOAT_EQ(physics::LADDER_SPEED_MAX, 0.15f);
+    EXPECT_FLOAT_EQ(physics::LADDER_CLIMB_SPEED, 0.15f);
+    EXPECT_FLOAT_EQ(physics::LADDER_SLIDE_SPEED, -0.15f);
+}
+
+TEST(PhysicsConstants, SpecialBlockConstants) {
+    // MC 1.16.5 特殊方块
+    EXPECT_FLOAT_EQ(physics::SLIME_BLOCK_BOUNCE_FACTOR, 0.9f);
+    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_JUMP_FACTOR, 0.5f);
+    EXPECT_FLOAT_EQ(physics::COBWEB_SLOWDOWN, 0.025f);
+}
+
+TEST(PhysicsConstants, ElytraAndSlowFalling) {
+    // MC 1.16.5 鞘翅和缓降
+    EXPECT_FLOAT_EQ(physics::SLOW_FALLING_GRAVITY, 0.01f);
+    EXPECT_FLOAT_EQ(physics::ELYTRA_DRAG_HORIZONTAL, 0.99f);
+    EXPECT_FLOAT_EQ(physics::ELYTRA_DRAG_VERTICAL, 0.98f);
+}
+
+TEST(PhysicsConstants, DolphinGrace) {
+    // MC 1.16.5 海豚的恩惠
+    EXPECT_FLOAT_EQ(physics::DOLPHINS_GRACE_WATER_DRAG, 0.96f);
 }

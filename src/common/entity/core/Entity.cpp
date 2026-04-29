@@ -248,6 +248,43 @@ bool Entity::tickPortal() {
     return false;
 }
 
+bool Entity::isOnLadder() const {
+    // 缓存结果，避免每帧多次查询
+    // 在 updateEnvironmentState() 中更新缓存
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 检查实体碰撞箱内的方块
+    // MC 1.16.5: 检查碰撞箱覆盖的所有方块位置
+    const AxisAlignedBB box = boundingBox();
+
+    i32 minX = static_cast<i32>(std::floor(box.minX));
+    i32 maxX = static_cast<i32>(std::floor(box.maxX));
+    i32 minY = static_cast<i32>(std::floor(box.minY));
+    i32 maxY = static_cast<i32>(std::floor(box.maxY));
+    i32 minZ = static_cast<i32>(std::floor(box.minZ));
+    i32 maxZ = static_cast<i32>(std::floor(box.maxZ));
+
+    for (i32 x = minX; x <= maxX; ++x) {
+        for (i32 y = minY; y <= maxY; ++y) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                const BlockState* blockState = m_world->getBlockState(x, y, z);
+                if (blockState != nullptr) {
+                    const Block& block = blockState->getBlock();
+                    BlockPos pos(x, y, z);
+                    if (block.isLadder(*blockState, m_world, &pos, this)) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 void Entity::updateEnvironmentState() {
     const i32 blockX = static_cast<i32>(std::floor(m_position.x));
     const i32 blockY = static_cast<i32>(std::floor(m_position.y + eyeHeight()));

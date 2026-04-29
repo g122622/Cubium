@@ -37,8 +37,8 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
     // 像素单位
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 栅栏柱子：中间6x16x6像素
-    CollisionShape pillar = CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 10.0f * P, 24.0f * P, 10.0f * P);
+    // 栅栏柱子：中间6x16x6像素（MC 1.16.5: Block.makeCuboidShape(6, 0, 6, 10, 16, 10)）
+    CollisionShape pillar = CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 10.0f * P, 16.0f * P, 10.0f * P);
 
     // 栅栏横杆：在7-9像素高度，厚2像素
     // 北面横杆

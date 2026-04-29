@@ -48,6 +48,9 @@ constexpr f32 SLIPPERINESS_ICE = 0.98f;
 /// 滑度冰滑度系数
 constexpr f32 SLIPPERINESS_SLIME = 0.8f;
 
+/// 蓝冰滑度系数 (MC 1.16.5 Blocks.java:701)
+constexpr f32 SLIPPERINESS_BLUE_ICE = 0.989f;
+
 /// 地面移动因子计算
 /// MC 公式: speed * (0.21600002F / (slipperiness^3))
 constexpr f32 getGroundMoveFactor(f32 speed, f32 slipperiness = SLIPPERINESS_DEFAULT) {
@@ -110,10 +113,16 @@ constexpr f32 MAX_FALL_SPEED = 3.0f;
 // ============================================================================
 
 /// 水中跳跃初速度（向上游泳）
+/// MC 源码 PlayerEntity.java:1438 动态计算，此处为参考值
 constexpr f32 SWIM_JUMP_VELOCITY = 0.1f;
 
-/// 水中重力（浮力抵消）
-constexpr f32 WATER_GRAVITY = 0.02f;
+/// 水中浮力（实际重力抵消值）
+/// MC 源码 LivingEntity.java:2206: gravity / 16.0 = 0.08 / 16 = 0.005
+constexpr f32 WATER_BUOYANCY = 0.005f;
+
+/// 水中重力（旧值，已废弃，请使用 WATER_BUOYANCY）
+/// @deprecated 使用 WATER_BUOYANCY 代替
+constexpr f32 WATER_GRAVITY = 0.005f;
 
 /// 水中基础游泳速度
 constexpr f32 SWIM_SPEED_BASE = 0.02f;
@@ -148,7 +157,11 @@ constexpr f32 DEPTH_STRIDER_SPEED_BONUS = 0.0333333f;
 /// 深度守卫最大等级
 constexpr i32 DEPTH_STRIDER_MAX_LEVEL = 3;
 
-/// 海豚的恩惠游泳速度加成
+/// 海豚的恩惠水中阻力系数
+/// MC 源码 LivingEntity.java:2067-2068: 阻力变为 0.96F
+constexpr f32 DOLPHINS_GRACE_WATER_DRAG = 0.96f;
+
+/// @deprecated 使用 DOLPHINS_GRACE_WATER_DRAG 代替
 constexpr f32 DOLPHINS_GRACE_SPEED_BONUS = 0.96f;
 
 /// 水中碰撞墙后上跳速度
@@ -166,6 +179,110 @@ constexpr i32 DROWN_DAMAGE_INTERVAL = 20;  // 每秒伤害一次
 
 /// 溺水伤害量
 constexpr f32 DROWN_DAMAGE_AMOUNT = 2.0f;
+
+// ============================================================================
+// 玩家飞行 (MC 1.16.5 PlayerAbilities.java)
+// ============================================================================
+
+/// 默认飞行速度
+constexpr f32 FLY_SPEED = 0.05f;
+
+/// 默认行走速度
+constexpr f32 WALK_SPEED = 0.1f;
+
+/// 飞行垂直阻力
+constexpr f32 FLY_VERTICAL_DRAG = 0.6f;
+
+/// 飞行水平阻力
+constexpr f32 FLY_HORIZONTAL_DRAG = 0.91f;
+
+/// 冲刺飞行速度倍率
+constexpr f32 SPRINT_FLY_MULTIPLIER = 2.0f;
+
+// ============================================================================
+// 空中移动 (MC 1.16.5 LivingEntity.java:158)
+// ============================================================================
+
+/// 空中移动因子（跳跃移动因子）
+constexpr f32 JUMP_MOVEMENT_FACTOR = 0.02f;
+
+/// 冲刺空中移动因子
+constexpr f32 SPRINT_JUMP_MOVEMENT_FACTOR = 0.026f;
+
+// ============================================================================
+// 梯子和藤蔓攀爬 (MC 1.16.5 LivingEntity.java:2218-2221)
+// ============================================================================
+
+/// 梯子上最大水平速度
+constexpr f32 LADDER_SPEED_MAX = 0.15f;
+
+/// 梯子上攀爬速度（向上）
+constexpr f32 LADDER_CLIMB_SPEED = 0.15f;
+
+/// 梯子上滑落速度（向下）
+constexpr f32 LADDER_SLIDE_SPEED = -0.15f;
+
+// ============================================================================
+// 缓降附魔 (MC 1.16.5 LivingEntity.java:122)
+// ============================================================================
+
+/// 缓降重力值
+/// MC 源码: 重力属性修饰符 -0.07，实际重力 = 0.08 - 0.07 = 0.01
+constexpr f32 SLOW_FALLING_GRAVITY = 0.01f;
+
+// ============================================================================
+// 鞘翅飞行 (MC 1.16.5 LivingEntity.java:2133)
+// ============================================================================
+
+/// 鞘翅水平阻力
+constexpr f32 ELYTRA_DRAG_HORIZONTAL = 0.99f;
+
+/// 鞘翅垂直阻力
+constexpr f32 ELYTRA_DRAG_VERTICAL = 0.98f;
+
+/// 鞘翅最小俯仰角速度因子
+constexpr f32 ELYTRA_MIN_SPEED = 0.4f;
+
+/// 鞘翅升力系数
+constexpr f32 ELYTRA_LIFT_COEFFICIENT = 0.75f;
+
+// ============================================================================
+// 物品水中物理 (MC 1.16.5 ItemEntity.java)
+// ============================================================================
+
+/// 物品水中浮力阈值
+constexpr f32 ITEM_WATER_BUOYANCY_THRESHOLD = 0.06f;
+
+/// 物品水中浮力
+constexpr f32 ITEM_WATER_BUOYANCY_FORCE = 0.0005f;  // 5.0E-4
+
+/// 物品岩浆阻力
+constexpr f32 ITEM_LAVA_DRAG = 0.95f;
+
+// ============================================================================
+// 特殊方块物理
+// ============================================================================
+
+/// 蜘蛛网减速系数 (MC WebBlock)
+constexpr f32 COBWEB_SLOWDOWN = 0.025f;
+
+/// 蜂蜜块滑动减速
+constexpr f32 HONEY_BLOCK_SLIDE_FACTOR = 0.5f;
+
+/// 蜂蜜块跳跃因子
+constexpr f32 HONEY_BLOCK_JUMP_FACTOR = 0.5f;
+
+/// 灵魂沙/灵魂土速度因子
+constexpr f32 SOUL_BLOCK_SPEED_FACTOR = 0.5f;
+
+/// 史莱姆块弹跳系数
+constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR = 0.9f;
+
+/// 甜浆果丛减速系数
+constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN = 0.35f;
+
+/// 粉雪行走速度因子
+constexpr f32 POWDER_SNOW_SPEED_FACTOR = 0.8f;
 
 // ============================================================================
 // 爆炸

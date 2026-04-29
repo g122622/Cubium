@@ -1205,6 +1205,36 @@ public:
     }
 
     /**
+     * @brief 检查方块是否可攀爬
+     *
+     * 返回此方块是否可以作为梯子供实体攀爬。
+     * 梯子、藤蔓、脚手架等方块应返回 true。
+     * 实体在攀爬方块上时：
+     * - 可以向上/向下移动
+     * - 最大水平速度为 0.15
+     * - 重力被抵消
+     *
+     * 参考: net.minecraft.block.Block.isLadder
+     *
+     * @param state 方块状态
+     * @param world 世界引用（可选）
+     * @param pos 方块位置（可选）
+     * @param entity 实体（可选，用于上下文相关判断）
+     * @return 如果实体可以攀爬此方块返回 true
+     */
+    [[nodiscard]] virtual bool isLadder(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const Entity* entity = nullptr) const {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(entity);
+        MC_UNUSED(state);
+        return false;
+    }
+
+    /**
      * @brief 是否响应随机刻
      *
      * 返回true时，该方块会被随机刻系统选中执行randomTick。

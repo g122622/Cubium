@@ -79,6 +79,25 @@ public:
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 检查方块是否可攀爬
+     *
+     * 梯子始终可攀爬。
+     *
+     * @return 始终返回 true
+     */
+    [[nodiscard]] bool isLadder(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const Entity* entity = nullptr) const override {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(entity);
+        MC_UNUSED(state);
+        return true;
+    }
+
 protected:
     /// 各方向的形状
     CollisionShape m_shapes[6];
