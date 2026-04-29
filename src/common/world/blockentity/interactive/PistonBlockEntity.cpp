@@ -201,6 +201,9 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world) {
 }
 
 void PistonBlockEntity::tick(IWorld& world) {
+    // MC 1.16.5: 记录游戏时间用于漏斗链优化
+    // m_lastTicked = world.getGameTime();  // TODO: 需要 IWorld::getGameTime()
+
     m_lastProgress = m_progress;
 
     if (m_lastProgress >= COMPLETE_THRESHOLD) {
@@ -211,7 +214,9 @@ void PistonBlockEntity::tick(IWorld& world) {
     const float newProgress = m_progress + PROGRESS_PER_TICK;
     moveCollidedEntities(world, newProgress);
 
-    // 当前项目尚未实现蜂蜜块的实体黏附规则，这里先保留普通推动路径。
+    // TODO: MC 1.16.5 蜂蜜块拖拽逻辑 (func_227024_g_)
+    // 当活塞推动蜂蜜块时，站在蜂蜜块上的实体应该被拖拽
+    // 参考: PistonTileEntity.func_227024_g_
 
     m_progress = newProgress;
     if (m_progress >= COMPLETE_THRESHOLD) {
@@ -225,6 +230,14 @@ float PistonBlockEntity::getExtendedProgress(float progress) const {
 }
 
 void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta) {
+    // TODO: MC 1.16.5 对齐 - 此方法有多项缺失:
+    // 1. PushReaction.IGNORE 检测 - 应跳过无视推动的实体
+    // 2. MoverType.PISTON - 应使用活塞专用移动类型
+    // 3. 黏液块动量设置 - 推动时应给非玩家实体设置动量
+    // 4. fixEntityWithinPistonBase - 收回时应将实体从活塞基座中推出
+    // 5. getCollisionRelatedBlockState - 收回时应使用活塞头碰撞箱
+    // 参考: PistonTileEntity.moveCollidedEntities()
+
     if (m_pistonState == nullptr) {
         return;
     }
@@ -257,8 +270,21 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
                 continue;
             }
 
+            // TODO: 检查 entity->getPushReaction() != PushReaction::IGNORE
+            // MC 1.16.5: if (entity.getPushReaction() != PushReaction.IGNORE)
+
             const Vector3 pushDelta = motionVector * (moveDistance + PISTON_PUSH_EPSILON);
             entity->move(pushDelta.x, pushDelta.y, pushDelta.z);
+
+            // TODO: 黏液块动量设置
+            // if (isSlimeBlock && !(entity instanceof Player)) {
+            //     entity.setMotion(...);
+            // }
+
+            // TODO: 收回时修复实体位置
+            // if (!m_extending && m_shouldRenderHead) {
+            //     fixEntityWithinPistonBase(entity, motionDirection, moveDistance);
+            // }
         }
     }
 }
