@@ -114,13 +114,6 @@ public:
     [[nodiscard]] const BlockState* getBlockState() const;
 
     /**
-     * @brief 标记方块实体已修改
-     *
-     * 触发区块保存。子类在修改数据后应调用此方法。
-     */
-    void setChanged() { m_changed = true; }
-
-    /**
      * @brief 检查是否已修改
      * @return 如果已修改返回true
      */
@@ -132,6 +125,36 @@ public:
      * 在保存后调用。
      */
     void clearChanged() { m_changed = false; }
+
+    /**
+     * @brief 检查方块实体是否已被移除
+     * @return 如果已被移除返回true
+     */
+    [[nodiscard]] bool isRemoved() const { return m_removed; }
+
+    /**
+     * @brief 标记方块实体为已移除
+     *
+     * 当方块实体从世界中移除时调用。
+     * 子类可重写此方法进行清理工作。
+     */
+    virtual void remove() { m_removed = true; }
+
+    /**
+     * @brief 验证方块实体是否有效
+     *
+     * 在方块实体添加到世界时调用。
+     * 子类可重写此方法进行额外验证。
+     */
+    virtual void validate() { m_removed = false; }
+
+    /**
+     * @brief 标记方块实体已修改并更新世界
+     *
+     * 触发区块保存和红石比较器更新。
+     * 子类在修改数据后应调用此方法。
+     */
+    void setChanged();
 
     /**
      * @brief 获取自定义名称
@@ -165,12 +188,14 @@ protected:
         : m_type(type)
         , m_pos(pos)
         , m_world(nullptr)
-        , m_changed(false) {}
+        , m_changed(false)
+        , m_removed(false) {}
 
     BlockEntityType m_type;
     BlockPos m_pos;
     IWorld* m_world;
     bool m_changed;
+    bool m_removed;
 };
 
 } // namespace mc

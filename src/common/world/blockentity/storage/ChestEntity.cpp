@@ -3,6 +3,7 @@
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include "util/property/Properties.hpp"
 #include <cmath>
@@ -128,31 +129,18 @@ std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(IWorld& wo
 
 // ========== 打开计数 ==========
 
-void ChestEntity::openContainer() {
-    // MC 1.16.5: 观察者模式的玩家不计入打开数
-    // 注：当前项目尚未实现观察者模式检查，待Player类添加isSpectator()后补充
-
-    // MC 1.16.5: 负数保护
-    if (m_openCount < 0) {
-        m_openCount = 0;
-    }
-
-    ++m_openCount;
+void ChestEntity::openContainer(Player* player) {
+    // 基类已处理观察者检查和负数保护
+    ContainerBlockEntity::openContainer(player);
 
     if (m_world != nullptr) {
         broadcastChestState(*m_world, true);
     }
 }
 
-void ChestEntity::closeContainer() {
-    // MC 1.16.5: 观察者模式的玩家不计入打开数
-    // 注：当前项目尚未实现观察者模式检查，待Player类添加isSpectator()后补充
-
-    // MC 1.16.5: openContainer会修复负数，但为了保持不变量，
-    // 我们在closeContainer中也添加保护
-    if (m_openCount > 0) {
-        --m_openCount;
-    }
+void ChestEntity::closeContainer(Player* player) {
+    // 基类已处理观察者检查
+    ContainerBlockEntity::closeContainer(player);
 
     if (m_world != nullptr) {
         broadcastChestState(*m_world, false);

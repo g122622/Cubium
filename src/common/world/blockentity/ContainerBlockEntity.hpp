@@ -2,9 +2,12 @@
 
 #include "world/blockentity/BlockEntity.hpp"
 #include "entity/inventory/IInventory.hpp"
+#include "util/assert/AssertMacros.hpp"
 #include <memory>
 
 namespace mc {
+
+class Player;
 
 /**
  * @brief 容器方块实体基类
@@ -36,19 +39,19 @@ public:
      * @brief 玩家打开容器
      *
      * 增加打开计数，用于音效和红石信号。
+     * MC 1.16.5: 观察者模式玩家不计入打开数。
+     * @param player 打开容器的玩家（可为nullptr）
      */
-    virtual void openContainer() { ++m_openCount; }
+    virtual void openContainer(Player* player);
 
     /**
      * @brief 玩家关闭容器
      *
      * 减少打开计数。
+     * MC 1.16.5: 观察者模式玩家不计入打开数。
+     * @param player 关闭容器的玩家（可为nullptr）
      */
-    virtual void closeContainer() {
-        if (m_openCount > 0) {
-            --m_openCount;
-        }
-    }
+    virtual void closeContainer(Player* player);
 
     /**
      * @brief 获取打开容器的玩家数量

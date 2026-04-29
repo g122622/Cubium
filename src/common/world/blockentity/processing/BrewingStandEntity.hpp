@@ -127,10 +127,11 @@ private:
      */
     void updateBlockState(IWorld& world);
 
-    SimpleInventory m_inventory;   ///< 物品存储
-    i32 m_brewTime = 0;            ///< 酿造时间 (0-400)
-    i32 m_fuel = 0;                ///< 燃料等级 (0-20)
-    bool m_lastBrewing = false;    ///< 上一帧是否在酿造
+    SimpleInventory m_inventory;       ///< 物品存储
+    i32 m_brewTime = 0;               ///< 酿造时间 (0-400)
+    i32 m_fuel = 0;                   ///< 燃料等级 (0-20)
+    bool m_lastBrewing = false;       ///< 上一帧是否在酿造
+    ItemStack m_ingredientCache;      ///< 材料缓存（用于检测材料变化）
 };
 
 } // namespace blockentity

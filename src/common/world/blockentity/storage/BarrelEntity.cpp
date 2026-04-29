@@ -1,6 +1,7 @@
 ﻿#include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
@@ -17,9 +18,9 @@ BarrelEntity::BarrelEntity(const BlockPos& pos)
 
 BarrelEntity::~BarrelEntity() = default;
 
-void BarrelEntity::openContainer() {
-    LockableBlockEntity::openContainer();
-    m_openCount++;
+void BarrelEntity::openContainer(Player* player) {
+    // 基类已处理观察者检查和负数保护
+    ContainerBlockEntity::openContainer(player);
 
     if (m_world != nullptr) {
         updateBlockState(*m_world, true);
@@ -28,16 +29,15 @@ void BarrelEntity::openContainer() {
     setChanged();
 }
 
-void BarrelEntity::closeContainer() {
-    if (m_openCount > 0) {
-        m_openCount--;
+void BarrelEntity::closeContainer(Player* player) {
+    // 基类已处理观察者检查
+    ContainerBlockEntity::closeContainer(player);
 
-        if (m_world != nullptr) {
-            updateBlockState(*m_world, m_openCount > 0);
-        }
-
-        setChanged();
+    if (m_world != nullptr) {
+        updateBlockState(*m_world, m_openCount > 0);
     }
+
+    setChanged();
 }
 
 i32 BarrelEntity::getComparatorSignal(IWorld& world) const {

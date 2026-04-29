@@ -89,11 +89,44 @@ void applyBeaconEffectToPlayer(Player& player,
 
 // ========== 静态数据初始化 ==========
 
+namespace {
+
+// 信标效果存储 - 用于初始化VALID_EFFECTS
+// 使用静态变量确保地址稳定
+static const BeaconEntity::EffectType s_level1Effects[] = {
+    BeaconEntity::EffectType::Speed,
+    BeaconEntity::EffectType::Haste
+};
+
+static const BeaconEntity::EffectType s_level2Effects[] = {
+    BeaconEntity::EffectType::Resistance,
+    BeaconEntity::EffectType::JumpBoost
+};
+
+static const BeaconEntity::EffectType s_level3Effects[] = {
+    BeaconEntity::EffectType::Strength
+};
+
+static const BeaconEntity::EffectType s_level4Effects[] = {
+    BeaconEntity::EffectType::Regeneration
+};
+
+} // namespace
+
+// 信标等级对应的有效效果
+// Level 1: Speed, Haste
+// Level 2: Resistance, JumpBoost
+// Level 3: Strength
+// Level 4: Regeneration (仅作为辅助效果)
 const std::array<std::vector<const BeaconEntity::EffectType*>, 4> BeaconEntity::VALID_EFFECTS = {
-    std::vector<const EffectType*>{},
-    std::vector<const EffectType*>{},
-    std::vector<const EffectType*>{},
-    std::vector<const EffectType*>{}
+    // Level 1: 速度、急迫
+    std::vector<const EffectType*>{&s_level1Effects[0], &s_level1Effects[1]},
+    // Level 2: 抗性提升、跳跃提升
+    std::vector<const EffectType*>{&s_level2Effects[0], &s_level2Effects[1]},
+    // Level 3: 力量
+    std::vector<const EffectType*>{&s_level3Effects[0]},
+    // Level 4: 生命恢复（仅辅助效果）
+    std::vector<const EffectType*>{&s_level4Effects[0]}
 };
 
 // ========== BeaconEntity 实现 ==========

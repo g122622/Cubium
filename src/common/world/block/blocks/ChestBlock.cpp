@@ -182,7 +182,7 @@ ActionResultType ChestBlock::onBlockActivated(
     // 打开箱子GUI
     // 单个箱子是27格 (3行)，使用 Generic9x3 类型
     if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
-        chest->openContainer();
+        chest->openContainer(&player);
         return ActionResultType::Consume;
     }
 

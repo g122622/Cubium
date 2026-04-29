@@ -218,12 +218,12 @@ bool HopperEntity::captureItem(IInventory* inventory, ItemEntity* itemEntity) {
 
     if (remaining.isEmpty()) {
         // 物品完全被捕获，移除实体
-        // itemEntity->remove();  // 需要调用实体的移除方法
+        itemEntity->remove();
         return true;
     } else {
         // 部分物品被捕获，更新实体物品数量
         itemEntity->setItemStack(remaining);
-        return false;
+        return true;  // 返回true表示有物品被捕获
     }
 }
 

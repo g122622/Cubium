@@ -215,7 +215,7 @@ TEST_F(BlockEntityTodoTestHelper, BarrelEntityTickResetsSyncCounterAndPersistsOp
     world.setBlock(1, 2, 3, makeBarrelOpenState());
 
     barrel.setWorld(&world);
-    barrel.openContainer();
+    barrel.openContainer(nullptr);
     ASSERT_EQ(barrel.getOpenCount(), 1);
 
     for (int i = 0; i < 12; ++i) {
@@ -339,8 +339,8 @@ TEST_F(BlockEntityTodoTestHelper, ChestEntityOpenCloseBroadcastsWhenWorldAttache
     blockentity::ChestEntity chest(BlockPos(0, 0, 0));
     chest.setWorld(&world);
 
-    chest.openContainer();
-    chest.closeContainer();
+    chest.openContainer(nullptr);
+    chest.closeContainer(nullptr);
 
     EXPECT_EQ(chest.getOpenCount(), 0);
     EXPECT_GE(world.setBlockStateCalls(), 2);
@@ -368,12 +368,12 @@ TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePat
     trapped.setWorld(&world);
     world.setBlockEntity(trapped.getPos(), &trapped);
 
-    trapped.openContainer();
-    trapped.openContainer();
+    trapped.openContainer(nullptr);
+    trapped.openContainer(nullptr);
     EXPECT_EQ(trapped.getOpenCount(), 2);
     EXPECT_EQ(trapped.getRedstoneSignal(world), 2);
 
-    trapped.closeContainer();
+    trapped.closeContainer(nullptr);
     EXPECT_EQ(trapped.getOpenCount(), 1);
     EXPECT_EQ(trapped.getRedstoneSignal(world), 1);
     EXPECT_GE(world.setBlockStateCalls(), 1);

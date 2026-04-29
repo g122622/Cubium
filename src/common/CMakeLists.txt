@@ -359,6 +359,7 @@ add_library(mc_common STATIC
     # World - Block Entity
     world/blockentity/BlockEntityType.cpp
     world/blockentity/BlockEntity.cpp
+    world/blockentity/ContainerBlockEntity.cpp
     world/blockentity/CraftingTableEntity.cpp
 
     # Screen

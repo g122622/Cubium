@@ -151,26 +151,26 @@ TEST_F(BlockEntityTest, Container_OpenCount_InitiallyZero) {
 
 TEST_F(BlockEntityTest, Container_OpenContainer_IncrementsCount) {
     TestContainerBlockEntity container(BlockEntityType::Chest, BlockPos(0, 0, 0));
-    container.openContainer();
+    container.openContainer(nullptr);
     EXPECT_EQ(container.getOpenCount(), 1);
 
-    container.openContainer();
+    container.openContainer(nullptr);
     EXPECT_EQ(container.getOpenCount(), 2);
 }
 
 TEST_F(BlockEntityTest, Container_CloseContainer_DecrementsCount) {
     TestContainerBlockEntity container(BlockEntityType::Chest, BlockPos(0, 0, 0));
-    container.openContainer();
-    container.openContainer();
+    container.openContainer(nullptr);
+    container.openContainer(nullptr);
     EXPECT_EQ(container.getOpenCount(), 2);
 
-    container.closeContainer();
+    container.closeContainer(nullptr);
     EXPECT_EQ(container.getOpenCount(), 1);
 }
 
 TEST_F(BlockEntityTest, Container_CloseContainer_NotBelowZero) {
     TestContainerBlockEntity container(BlockEntityType::Chest, BlockPos(0, 0, 0));
-    container.closeContainer(); // 没有打开时关闭
+    container.closeContainer(nullptr); // 没有打开时关闭
     EXPECT_EQ(container.getOpenCount(), 0);
 }
 

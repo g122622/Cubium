@@ -302,7 +302,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             if (blockEntity != nullptr &&
                 (blockEntity->getType() == BlockEntityType::Chest ||
                  blockEntity->getType() == BlockEntityType::TrappedChest)) {
-                static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer();
+                static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer(nullptr);
             }
         }
 

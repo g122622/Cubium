@@ -73,16 +73,15 @@ public:
 
     /**
      * @brief 玩家打开潜影盒
-     * @param player 玩家
-     * @return 如果成功打开返回true
+     * @param player 玩家（可为nullptr）
      */
-    bool openContainer(Player* player);
+    void openContainer(Player* player) override;
 
     /**
      * @brief 玩家关闭潜影盒
-     * @param player 玩家
+     * @param player 玩家（可为nullptr）
      */
-    void closeContainer(Player* player);
+    void closeContainer(Player* player) override;
 
     /**
      * @brief 检查玩家是否可以打开
@@ -119,11 +118,29 @@ private:
      */
     [[nodiscard]] bool checkCanOpen(IWorld& world) const;
 
+    /**
+     * @brief 推动碰撞的实体
+     *
+     * MC 1.16.5: 当潜影盒打开/关闭时，推动附近实体。
+     * 参考: ShulkerBoxTileEntity.moveCollidedEntities()
+     *
+     * @param world 世界引用
+     * @param facing 潜影盒朝向（缓存）
+     */
+    void moveCollidedEntities(IWorld& world, Direction facing);
+
+    /**
+     * @brief 缓存潜影盒朝向
+     * @param world 世界引用
+     */
+    void cacheFacing(IWorld& world);
+
     SimpleInventory m_inventory;       ///< 27格物品存储
     AnimationStatus m_animationStatus = AnimationStatus::Closed;  ///< 动画状态
     f32 m_progress = 0.0f;             ///< 打开进度 (0.0 - 1.0)
     f32 m_prevProgress = 0.0f;         ///< 上一帧打开进度
     i32 m_openCount = 0;               ///< 打开计数
+    Direction m_cachedFacing = Direction::None;  ///< 缓存的朝向（避免每帧查询）
 };
 
 } // namespace blockentity

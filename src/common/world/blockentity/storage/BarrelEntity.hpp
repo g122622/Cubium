@@ -57,13 +57,15 @@ public:
 
     /**
      * @brief 玩家打开木桶
+     * @param player 打开木桶的玩家（可为nullptr）
      */
-    void openContainer() override;
+    void openContainer(Player* player) override;
 
     /**
      * @brief 玩家关闭木桶
+     * @param player 关闭木桶的玩家（可为nullptr）
      */
-    void closeContainer() override;
+    void closeContainer(Player* player) override;
 
     /**
      * @brief 计算红石比较器信号

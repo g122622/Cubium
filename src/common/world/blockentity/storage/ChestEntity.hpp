@@ -9,6 +9,7 @@ namespace mc {
 
 class IWorld;
 class ChestBlock;
+class Player;
 
 namespace blockentity {
 
@@ -94,13 +95,15 @@ public:
 
     /**
      * @brief 玩家打开箱子
+     * @param player 打开箱子的玩家（可为nullptr）
      */
-    void openContainer() override;
+    void openContainer(Player* player) override;
 
     /**
      * @brief 玩家关闭箱子
+     * @param player 关闭箱子的玩家（可为nullptr）
      */
-    void closeContainer() override;
+    void closeContainer(Player* player) override;
 
     /**
      * @brief 计算红石比较器信号

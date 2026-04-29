@@ -2,6 +2,7 @@
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include "util/assert/AssertAll.hpp"
 
@@ -36,18 +37,18 @@ i32 TrappedChestEntity::getRedstoneSignal(IWorld& world) const {
     return std::min(playerCount, 15);
 }
 
-void TrappedChestEntity::openContainer() {
+void TrappedChestEntity::openContainer(Player* player) {
     // 先增加计数
-    ChestEntity::openContainer();
+    ChestEntity::openContainer(player);
 
     if (m_world != nullptr) {
         notifyNeighbors(*m_world);
     }
 }
 
-void TrappedChestEntity::closeContainer() {
+void TrappedChestEntity::closeContainer(Player* player) {
     // 先减少计数
-    ChestEntity::closeContainer();
+    ChestEntity::closeContainer(player);
 
     if (m_world != nullptr) {
         notifyNeighbors(*m_world);

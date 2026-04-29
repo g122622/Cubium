@@ -11,7 +11,8 @@ namespace {
 /// 末影箱开盖动画每 tick 变化量。
 constexpr f32 ENDER_CHEST_LID_SPEED = 0.1f;
 /// 末影箱状态同步计数间隔（tick）。
-constexpr i32 ENDER_CHEST_SYNC_INTERVAL = 10;
+/// MC Java: ticksSinceSync % 20 * 4 == 0 => 80 ticks
+constexpr i32 ENDER_CHEST_SYNC_INTERVAL = 80;
 
 } // namespace
 

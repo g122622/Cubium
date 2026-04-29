@@ -45,6 +45,18 @@ void BrewingStandEntity::tick(IWorld& world) {
         m_lastBrewing = brewing;
     }
 
+    // 获取当前材料
+    const ItemStack& ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
+
+    // MC Java: 检测材料变化，重置酿造时间
+    // 参考: BrewingStandTileEntity.java lines 113-116
+    // 如果材料变化，重置酿造时间
+    if (!ingredientStack.isSameItem(m_ingredientCache)) {
+        m_ingredientCache = ingredientStack.copy();
+        m_brewTime = 0;
+        setChanged();
+    }
+
     if (!canBrew()) {
         m_brewTime = 0;
         return;

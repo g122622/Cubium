@@ -67,27 +67,27 @@ TEST_F(ChestEntityTest, Create_OpenCountIsZero) {
 }
 
 TEST_F(ChestEntityTest, OpenContainer_IncrementsCount) {
-    chest_->openContainer();
+    chest_->openContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 1);
 
-    chest_->openContainer();
+    chest_->openContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 2);
 }
 
 TEST_F(ChestEntityTest, CloseContainer_DecrementsCount) {
-    chest_->openContainer();
-    chest_->openContainer();
+    chest_->openContainer(nullptr);
+    chest_->openContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 2);
 
-    chest_->closeContainer();
+    chest_->closeContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 1);
 }
 
 TEST_F(ChestEntityTest, CloseContainer_NotBelowZero) {
-    chest_->closeContainer();
+    chest_->closeContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 0);
 
-    chest_->closeContainer();
+    chest_->closeContainer(nullptr);
     EXPECT_EQ(chest_->getOpenCount(), 0);
 }
 
@@ -129,7 +129,7 @@ TEST_F(ChestEntityTest, SetChanged_MarksAsChanged) {
 TEST_F(ChestEntityTest, Tick_LidAnimationOpensWhenCountPositive) {
     // MC 1.16.5: 动画通过tick()更新，每tick增加LID_OPEN_SPEED(0.1f)
     // 打开箱子后，盖子角度应逐渐增加到1.0
-    chest_->openContainer();
+    chest_->openContainer(nullptr);
 
     // 使用空世界引用（tick只需要设置红石和音效，不改变动画逻辑）
     IWorld* world = nullptr;
@@ -221,18 +221,18 @@ TEST_F(TrappedChestEntityTest, Create_HasCorrectPosition) {
 }
 
 TEST_F(TrappedChestEntityTest, OpenContainer_IncrementsCount) {
-    trappedChest_->openContainer();
+    trappedChest_->openContainer(nullptr);
     EXPECT_EQ(trappedChest_->getOpenCount(), 1);
 }
 
 TEST_F(TrappedChestEntityTest, GetRedstoneSignal_ReturnsOpenCount) {
     EXPECT_EQ(trappedChest_->getOpenCount(), 0);
 
-    trappedChest_->openContainer();
+    trappedChest_->openContainer(nullptr);
     EXPECT_EQ(trappedChest_->getOpenCount(), 1);
 
-    trappedChest_->openContainer();
-    trappedChest_->openContainer();
+    trappedChest_->openContainer(nullptr);
+    trappedChest_->openContainer(nullptr);
     EXPECT_EQ(trappedChest_->getOpenCount(), 3);
 }
 

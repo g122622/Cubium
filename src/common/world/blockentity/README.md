@@ -11,6 +11,7 @@ blockentity/
 ├── BlockEntityType.hpp          # 方块实体类型枚举
 ├── BlockEntityType.cpp          # 类型转换函数
 ├── ContainerBlockEntity.hpp     # 容器方块实体基类
+├── ContainerBlockEntity.cpp     # 容器方块实体实现
 ├── CraftingTableEntity.hpp      # 工作台方块实体
 ├── CraftingTableEntity.cpp      # 工作台实现
 ├── BLOCK_ENTITY_PLAN.md         # 方块实体补全计划
@@ -88,13 +89,15 @@ blockentity/
 - `load()`/`save()` 可能在世界保存线程调用
 - 需要子类自行处理线程同步
 
-### ContainerBlockEntity.hpp
+### ContainerBlockEntity.hpp / ContainerBlockEntity.cpp
 
 **职责**：为拥有背包的方块实体提供通用功能，继承自 `BlockEntity`。
 
 **主要内容**：
 - 背包管理：`getInventory()`, `getContainerSize()`, `isEmpty()`, `clearContainer()`
 - 打开计数：`openContainer()`, `closeContainer()`, `getOpenCount()` - 用于音效和红石信号
+  - MC 1.16.5 对齐：观察者模式玩家不计入打开数
+  - 负数保护：防止计数数据损坏
 - 数据持久化：重写 `load()`/`save()`，增加物品和自定义名称的保存
 
 **子类**：箱子、漏斗、工作台、熔炉等所有有背包的方块实体

@@ -35,8 +35,8 @@ public:
 
     // ========== 重写打开/关闭方法 ==========
 
-    void openContainer() override;
-    void closeContainer() override;
+    void openContainer(Player* player) override;
+    void closeContainer(Player* player) override;
 
 protected:
     [[nodiscard]] String getDefaultName() const override { return "container.chestTrapped"; }

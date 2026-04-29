@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../entity/inventory/IInventory.hpp"
+#include "world/blockentity/ContainerBlockEntity.hpp"
 #include <memory>
 
 namespace mc {

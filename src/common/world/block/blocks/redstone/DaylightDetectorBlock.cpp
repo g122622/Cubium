@@ -2,7 +2,9 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../util/math/MathConstants.hpp"
 #include <unordered_map>
+#include <cmath>
 
 namespace mc {
 namespace blocks {
@@ -103,19 +105,39 @@ i32 DaylightDetectorBlock::getStrongPower(
 }
 
 i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted) {
-    // 获取天空光照级别
-    u8 skyLight = world.getSkyLight(pos.up());  // 检测上方一格
-
-    // 转换为信号强度
-    // 天空光照 0-15 直接对应信号强度
-    // 反转模式下，信号强度 = 15 - 天空光照
-    i32 power = static_cast<i32>(skyLight);
-
-    if (inverted) {
-        power = 15 - power;
+    // 检查维度是否有天空光照（主世界有，下界和末地没有）
+    if (!world.hasSkyLight()) {
+        return 0;
     }
 
-    return std::clamp(power, 0, 15);
+    // 获取天空光照并减去天空减暗因子
+    // MC Java: int i = world.getLightFor(LightType.SKY, pos) - world.getSkylightSubtracted();
+    u8 skyLight = world.getSkyLight(pos.up());
+    i32 skyDarkening = world.getSkylightSubtracted();
+    i32 i = static_cast<i32>(skyLight) - skyDarkening;
+
+    // 获取天体角度进行余弦调整
+    // MC Java: float f = world.getCelestialAngleRadians(1.0F);
+    if (!inverted && i > 0) {
+        f32 celestialAngle = world.getCelestialAngleRadians(1.0f);
+        f32 f = celestialAngle;
+
+        // MC Java: float f1 = f < (float)Math.PI ? 0.0F : ((float)Math.PI * 2F);
+        f32 f1 = f < math::PI ? 0.0f : math::TWO_PI;
+
+        // MC Java: f = f + (f1 - f) * 0.2F;
+        f = f + (f1 - f) * 0.2f;
+
+        // MC Java: i = Math.round((float)i * MathHelper.cos(f));
+        i = static_cast<i32>(std::round(static_cast<f32>(i) * std::cos(f)));
+    }
+
+    // 反转模式
+    if (inverted) {
+        i = 15 - i;
+    }
+
+    return std::clamp(i, 0, 15);
 }
 
 void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, const BlockState& state) {
