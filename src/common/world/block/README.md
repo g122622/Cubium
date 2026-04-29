@@ -545,6 +545,52 @@ BlockProperties(Material::LEAVES).opacity(0).propagatesSkylightDown(true);
 constexpr u8 Pickaxe = 1;  // 必须与 ToolType::Pickaxe 值相同
 ```
 
+### 10. SaplingBlock 和 TreeFeature 支撑方块一致性
+
+**问题**：树苗和树木生成特性必须就根支撑方块达成一致，否则会出现"可以放置但不能生长"的不匹配。
+
+**解决方案**：如果你扩展一侧，必须在同一更改中扩展另一侧。
+
+### 11. MushroomBlock 自然 tick 用途
+
+**问题**：`MushroomBlock` 自然 tick 用于低光传播，而不是巨型蘑菇构建。
+
+**解决方案**：将巨型蘑菇生成保留在特性层，这样方块保持可测试和本地化。
+
+### 12. IceBlock 融化与破坏路径分离
+
+**问题**：`IceBlock::randomTick()` 和 `onBlockRemoved()` 职责混淆会导致方块状态不一致。
+
+**解决方案**：
+- `IceBlock::randomTick()` 只负责融化
+- `onBlockRemoved()` 只负责破坏后的替换
+- 不要再让随机刻回调 `onBlockRemoved()`
+- 不要把同一坐标的写回放在旧方块回调之前
+
+### 13. CropBlock 骨粉增长随机数
+
+**问题**：`CropBlock` 的骨粉增长使用全局 `rand()` 会导致不确定性。
+
+**解决方案**：骨粉增长必须从世界种子和方块位置派生随机数，不能再回到全局 `rand()`。
+
+### 14. FarmlandBlock 降雨补湿条件
+
+**问题**：`FarmlandBlock` 的降雨补湿如果只检查 `isRaining()` 而不检查具体位置，测试世界会出现伪阳性。
+
+**解决方案**：`FarmlandBlock` 的降雨补湿要同时看 `isRaining()` 和 `canRainAt(pos.up())`。
+
+### 15. WeatherUtils 降水判定
+
+**问题**：天气降水判定只看温度会导致沙漠等无降水生物群系错误下雨。
+
+**解决方案**：`WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `BiomeClimate::Precipitation::None` 以及温度阈值一起判断；沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式标记为 `None`。
+
+### 16. PaneBlock 连接形状
+
+**问题**：`PaneBlock` 连接形状如果使用单个中心形状占位符或像素空间盒子坐标，会破坏碰撞和渲染测试。
+
+**解决方案**：`PaneBlock` 连接形状按 4 位掩码缓存并使用规范化坐标，不要回退到单个中心形状占位符。
+
 ## 涉及的测试用例
 
 测试文件：`tests/common/test_block.cpp`

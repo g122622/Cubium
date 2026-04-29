@@ -358,6 +358,24 @@ void World::tickFluids() {
 
 `getBlockState()` 依赖 `VanillaBlocks::WATER` 和 `VanillaBlocks::LAVA`，需要在方块注册后才能正确工作。
 
+### 9. 流体流动判定区分
+
+**问题**：流体流动判定必须区分"目标流体状态"和"用于阻挡判断的流体类型"，否则容器方块和特殊替换规则会偏离原版语义。
+
+**解决方案**：修改 `FlowingFluid::canFlow()` / `canFlowInto()` 时，不能把所有路径都硬塞成 `*this`。
+
+### 10. 液体方块随机 tick 透传
+
+**问题**：液体方块的随机 tick 必须透传给流体层，漏掉后会出现"方块看起来对了，但行为不触发"的假正确。
+
+**解决方案**：`LiquidBlock::ticksRandomly()` 和 `LiquidBlock::randomTick()` 是岩浆火焰扩散的入口，必须正确实现。
+
+### 11. 岩浆时序世界相关
+
+**问题**：岩浆时序硬编码会导致主世界和下界行为不一致。
+
+**解决方案**：岩浆时序是世界相关的。`ServerWorld::setBlock()` 和流体 tick 调度要继续使用 `fluid.getTickDelay(*this)`，不要把主世界/下界差异重新硬编码回固定常量。
+
 ## 涉及的测试用例
 
 测试文件：`tests/common/world/fluid/FluidTest.cpp`

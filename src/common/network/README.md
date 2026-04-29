@@ -687,6 +687,47 @@ connection->send(data, size);  // 安全但无效果
 // 中心在 (0, 0)，范围为 [-10, 10] x [-10, 10]
 ```
 
+### 8. KeepAlivePacket 反序列化
+
+**问题**：`KeepAlivePacket::deserialize()` 期望完整包（12 字节头 + 8 字节时间戳），服务端处理心跳响应时先剥掉头部会导致解析失败。
+
+**解决方案**：服务端处理心跳响应时不要先剥掉头部，否则单人模式下会把正常的 KeepAlive 回复误报成 `Packet too small for keep alive`。
+
+### 9. CommandTreePacket 封装
+
+**问题**：`CommandTreePacket` 只序列化包体，双重封装会使内部头看起来像空 JSON 字符串。
+
+**解决方案**：
+- 服务器代码必须用 `ConnectionManager::encapsulatePacket()` 恰好包装一次
+- 客户端代码必须在调用 `handleCommandTree()` 之前剥离外部网络头
+
+### 10. BlockUpdatePacket 直接发送
+
+**问题**：直接从服务器应用程序代码发送 `BlockUpdatePacket` 会绕过去重和批处理逻辑。
+
+**解决方案**：不要直接从服务器应用程序代码发送 `BlockUpdatePacket`。`ServerWorld::setOnBlockChanged()` 现在供给 `BlockUpdateSyncManager`；同坐标去重和 tick 结束刷新必须保持集中化。
+
+### 11. ContainerPacketHandler 活动菜单指针
+
+**问题**：`ContainerPacketHandler::handleContainerClick()` 依赖存储在集成服务器菜单玩家上的活动菜单指针。
+
+**解决方案**：
+- 打开时保持 `getMenuPlayer().setOpenContainerMenu(...)`
+- 关闭时 `clearOpenContainerMenu()`
+- 否则客户端点击会在到达菜单前被丢弃
+
+### 12. 玩家背包同步
+
+**问题**：使用错误的数据包同步玩家背包。
+
+**解决方案**：玩家背包同步必须使用 `PlayerInventoryPacket`。`ContainerContentPacket` 只保留给真正打开的容器菜单；玩家物品栏刷新、拾取同步和 `/clear` 这类操作都应走玩家背包包。
+
+### 13. 创造模式物品库写回
+
+**问题**：`CreativeScreen` 负责本地搜索、滚动和槽位编辑，复用普通容器点击包会导致协议不匹配。
+
+**解决方案**：创造模式物品库写回必须使用 `CreativeInventoryActionPacket`，不要复用普通容器点击包。
+
 ---
 
 ## 涉及的测试用例

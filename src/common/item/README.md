@@ -255,6 +255,52 @@ ActionResultType action = item.onItemUse(context);
 - 附魔ID和效果保持一致
 - 合成配方格式兼容
 
+## 容易踩的坑
+
+### 1. 物品堆栈大小限制
+
+不同物品有不同的堆栈大小限制（通常为 64，部分物品为 16 或 1）。创建 `ItemStack` 时需要检查 `maxStackSize`。
+
+### 2. 盔甲自动装备槽位冲突
+
+盔甲物品现在支持右键自动装备对应槽位；如果目标槽位已被占用，则保持原物品不变并返回透传结果。
+
+### 3. DyeableArmorItem 颜色标签管理
+
+**问题**：`DyeableArmorItem` 将颜色存储在 `ItemStack` 的结构化标签树中，清除颜色时未清除空的 `display` 标签会导致元数据相等性发散。
+
+**解决方案**：清除颜色时也必须清除空的 `display` 标签，否则盔甲堆将停止按预期合并。
+
+### 4. GlassBottleItem 水源检测
+
+**问题**：`GlassBottleItem` 在决定瓶子是否可以装满之前，沿玩家视线进行采样，液体方块不提供可用的碰撞形状，纯命中测试不足以检测水源。
+
+**解决方案**：需要正确检测水源方块，不能仅依赖碰撞形状。
+
+### 5. CreativeInventory 初始化顺序
+
+**问题**：`CreativeInventory` 相关测试和启动代码如果初始化顺序错误，创造物品库会出现空列表或缺失方块物品。
+
+**解决方案**：必须按 `VanillaBlocks::initialize()` -> `Items::initialize()` -> `BlockItemRegistry::instance().initializeVanillaBlockItems()` 的顺序初始化。
+
+### 6. CraftingMenu 菜单验证
+
+**问题**：`CraftingMenu::stillValid()` 需要正确检查玩家到工作台的距离。
+
+**解决方案**：保持工作台可访问性绑定到方块实体位置，使容器有效性匹配预期的交互范围。
+
+### 7. ChestContainer 和 FurnaceContainer 需要真正的 PlayerInventory
+
+**问题**：通过遗留的 `Container` 路由创建箱子/熔炉 GUI 会导致功能不完整。
+
+**解决方案**：`ChestContainer` 和 `FurnaceContainer` 现在需要真正的 `PlayerInventory` 并位于 `AbstractContainerMenu` 下，使用共享菜单工厂/打开容器钩子。
+
+### 8. InventoryManager 背包同步回调
+
+**问题**：服务器侧背包变更如果走 `inventoryManager()`，但没有设置回调，客户端不会收到更新。
+
+**解决方案**：`InventoryManager::setOnInventoryUpdate()` 在 `MinecraftServer::initializeInteractionManagers()` 里已经接好，服务器侧背包变更如果走 `inventoryManager()`，就要依赖这条回调刷新客户端，不要再手写一套新的同步分支。
+
 ## 测试文件
 
 相关测试文件位于 `tests/common/item/` 目录。

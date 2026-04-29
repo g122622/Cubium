@@ -560,6 +560,55 @@ m_window.destroy();
 
 **常见问题**：在渲染器销毁后再析构皮肤图集或 GUI 图集，会触发 Vulkan 资源销毁崩溃。
 
+### 9. 功能拆分结构
+
+**问题**：`ClientApplication` 已按功能域拆到 `src/client/application/features/`，主文件只保留编排与生命周期。
+
+**解决方案**：
+- `setupInputBindings()` / `setupCamera()` 等逻辑已迁移，不要再往主文件补回重复实现
+- `ClientApplicationBootstrap.cpp` 负责客户端初始化骨架，`initialize()` 只做调度
+- 核心注册表、窗口/输入、渲染、游戏系统和 UI 初始化都应继续下沉到 bootstrap/helper 方法里
+
+### 10. 命名空间使用
+
+**问题**：`ClientApplicationHelpers` 的公共辅助函数位于 `mc::client::application::features` 命名空间。
+
+**解决方案**：调用处必须显式限定或导入作用域，否则会出现"找不到标识符"的连锁编译错误。
+
+### 11. UI 组件命名空间
+
+**问题**：`TargetInfoWidget` 位于 `mc::client::ui::minecraft::targetinfo`，`DebugScreenWidget` 仍位于 `mc::client::ui::minecraft`。
+
+**解决方案**：不要把这两个命名空间混用到同一条类型解析路径里，`ClientApplication` 的目标信息刷新逻辑已经拆到 `features/`。
+
+### 12. handleEvents 职责
+
+**问题**：`ClientApplication::handleEvents()` 现在只做输入轮询和分流。
+
+**解决方案**：
+- 覆盖层输入放在 `handleUiOverlayInput()`
+- 游戏快捷键放在 `handleGameplayShortcutInput()`
+- 玩家视角/移动放在 `handleMouseAndMovementInput()`
+- 不要把新逻辑再塞回 `handleEvents()`
+
+### 13. 挖掘和放置输入分离
+
+**问题**：`ClientApplication::handleBlockMiningInput()` 和 `handleBlockPlacementInput()` 已分开。
+
+**解决方案**：挖掘的取消、开始、完成逻辑继续留在独立 helper 里，不要重新合并成一个大输入状态机。
+
+### 14. 网络回调状态维护
+
+**问题**：`ClientApplicationNetwork.cpp` 里的网络回调如果不完整维护状态，会导致客户端状态不一致。
+
+**解决方案**：网络回调必须同时维护世界、实体、容器和经验状态。本地玩家、远程玩家、普通实体、经验球和当前打开的容器屏幕都要分别同步，不能把回调留成只接收不落地的空壳。
+
+### 15. NaturalSpawner 密度管理器
+
+**问题**：`NaturalSpawner::createDensityManager()` 如果保存 `EntityManager::countEntitiesByClassification()` 结果的引用，会导致悬垂引用。
+
+**解决方案**：必须把 `EntityManager::countEntitiesByClassification()` 的结果按值持有。`EntityDensityManager` 不能再保存临时分类计数表的引用；`MobDensityTracker` 的密度衰减是 64 格线性衰减，零距离按完整成本计入，超出范围后不再贡献密度。
+
 ## 涉及的测试用例
 
 ClientApplication 模块目前没有直接的单元测试，但其依赖的子系统有完整测试：

@@ -817,6 +817,78 @@ void asyncTask() {
 - `LivingEntity` 统一处理受伤和死亡声音，`MobEntity` 统一处理环境声，`Player` 也沿用同一条链路。
 - `ServerWorld` 再把这些事件挂到服务器广播回调上，最后由 `MinecraftServer` 发给附近玩家。
 
+### 10. TemptGoal 物品过滤
+
+**问题**：`TemptGoal` 需要正确过滤真正的 `Player` 实体。
+
+**解决方案**：`TemptGoal` 现在通过主手/副手物品堆过滤真正的 `Player` 实体，不要仅通过 stub 移动来伪造这些目标。
+
+### 11. PanicGoal 和 WaterAvoidingRandomWalkingGoal
+
+**问题**：这些目标需要正确查询世界状态。
+
+**解决方案**：`PanicGoal` / `WaterAvoidingRandomWalkingGoal` 现在直接查询 `IWorld::isWaterAt(...)` / `isLavaAt(...)`；保持测试与世界查询接口一致。
+
+### 12. ChickenEntity 鸡蛋生成
+
+**问题**：鸡的 `tick()` 在计时器到期时生成鸡蛋物品实体，生成后未重置计时器会导致批量发射鸡蛋。
+
+**解决方案**：生成后立即重置计时器，否则鸡会批量发射鸡蛋。
+
+### 13. Entity::getTypeId() 类型注入
+
+**问题**：依赖 `LegacyEntityType` 单独决定网络实体类型，很多工厂构造仍传 `LegacyEntityType::Unknown`。
+
+**解决方案**：`Entity::getTypeId()` 现在优先使用在 `EntityType::create(...)` 期间注入的显式运行时 `typeId`。保证实体通过注册表创建时注入注册名，繁殖等旁路也要显式继承父类型。
+
+### 14. EntityMetadataPacket 同步
+
+**问题**：`EntityMetadataPacket` / `EntityMetadataSerializer` 需要同时供给服务器跟踪和客户端实体应用。
+
+**解决方案**：`EntityTracker` 负责 spawn 内联 metadata 和 dirty metadata packet，`ClientEntity::setMetadata()` 负责把原始数据写进本地数据管理器；新增字段时三处必须一起改。
+
+### 15. CactusBlock 碰撞伤害
+
+**问题**：仙人掌碰撞伤害应仅针对活体实体。
+
+**解决方案**：使用 `LivingEntity::hurt()` 和 `DamageSources::cactus()`；非活体碰撞应保持无操作。
+
+### 16. DyeableArmorItem 颜色清除
+
+**问题**：`DyeableArmorItem` 将颜色存储在 `ItemStack` 的结构化标签树中，清除颜色时未清除空的 `display` 标签会导致元数据相等性发散。
+
+**解决方案**：清除颜色时也必须清除空的 `display` 标签，否则盔甲堆将停止按预期合并。
+
+### 17. 玩家站起过渡
+
+**问题**：玩家从蹲伏/游泳/睡眠切换时，无条件切换到站立姿势可能导致低天花板下的碰撞问题。
+
+**解决方案**：玩家站起过渡现在在从蹲伏/游泳/睡眠切换之前检查目标姿势盒子是否适合。当需要原版风格的低天花板行为时，不要用原始站立姿势更改绕过 `setSneaking()` / `setSwimming()` / `setSleeping()`。
+
+### 18. Player::updateMoveDistance 状态管理
+
+**问题**：把 `prevPosition` 当成脚步声或视野晃动的采样基准会导致重复计数。
+
+**解决方案**：`Player::updateMoveDistance()` 现在使用专用的采样位置，`Player::setPosition()` 重置移动/晃动状态；不要再把 `prevPosition` 当成脚步声或视野晃动的采样基准，它是插值历史状态，多次物理更新会把同一段位移重复计数。
+
+### 19. Player::updatePhysics 轻量级测试
+
+**问题**：在没有物理引擎的轻量级测试世界中，`Player::updatePhysics()` 的行为需要正确处理。
+
+**解决方案**：`Player::updatePhysics()` 可以在没有物理引擎的轻量级测试世界中运行；在这种情况下，代码会回退到直接移动，所以测试应该验证状态刷新，而不是假设存在完整的碰撞求解器。
+
+### 20. m_player->isInWater() 客户端权威性
+
+**问题**：假设 `m_player->isInWater()` 在客户端是权威的会导致错误判断。
+
+**解决方案**：不要假设 `m_player->isInWater()` 在客户端是权威的；这个值只会在 `Entity::baseTick()` / `updateEnvironmentState()` 或本地物理刷新路径里更新，它对本地玩家可用，但仍不是服务端权威结果。
+
+### 21. ClientWorld::entityManager() 返回类型
+
+**问题**：`ClientWorld::entityManager()` 返回 `ClientEntityManager`，而不是共享的 `common::EntityManager`。
+
+**解决方案**：客户端本地 `Player` 不会在这条链路里跑 `Player::tick()`；客户端只会 tick 代理实体和本地物理。
+
 ## 涉及的测试用例
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/` 目录：

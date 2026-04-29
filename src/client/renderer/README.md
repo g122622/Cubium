@@ -1011,6 +1011,84 @@ auto fragmentPath = mc::client::resolveShaderPath("chunk.frag.spv");
 
 **解决方案**：监听窗口大小变化，调用 `engine->onResize()` 重建交换链。
 
+### 11. ChunkMesher 液面剔除
+
+**问题**：仅根据透明度来确定液体可见性，会在水生植被周围重新引入散乱的水面片。
+
+**解决方案**：`ChunkMesher` 中的液面剔除必须将空碰撞的水下植物（如海草和海带）视为隐藏面的邻居。
+
+### 12. MatrixStack 调用顺序
+
+**问题**：在第一人称渲染中，`MatrixStack` 调用顺序直觉可能会产生误导。
+
+**解决方案**：在第一人称渲染中，按原版顺序应用变换并依赖后乘语义；避免临时性的原地行/列编辑。
+
+### 13. 第一人称物品网格缓存
+
+**问题**：在双手之间共享一个第一人称物品网格缓存，会因为主手和副手在同一帧持有不同物品而抖动，并在每帧渲染时分配 GPU 内存。
+
+**解决方案**：不要在双手之间共享一个第一人称物品网格缓存，主手和副手需要独立的缓存。
+
+### 14. 第一人称网格回收
+
+**问题**：退役的第一人称网格只在 `destroy()` 中回收，会导致重复的物品更改使旧的 Vulkan 缓冲区在整个会话期间保持活动。
+
+**解决方案**：退役的第一人称网格必须在帧倒计时上回收，而不仅仅在 `destroy()` 中。
+
+### 15. EntityPipeline 网格更新
+
+**问题**：将动画网格更新切换回每帧销毁+创建，会导致 `vkAllocateMemory` 回到渲染热路径。
+
+**解决方案**：`EntityPipeline::updateMesh(...)` 必须保留 GPU 缓冲区并仅在需要时增长容量；保持可重用的暂存缓冲区和原地上传。
+
+### 16. MeshWorkerPool 职责边界
+
+**问题**：把优先级逻辑放回 `MeshWorkerPool` 会导致职责混乱。
+
+**解决方案**：优先级和取消策略属于 `MeshBuildScheduler`；`MeshWorkerPool` 应保持仅执行。
+
+### 17. ChunkMesher 预留策略
+
+**问题**：双层网格（实心 + 透明）使用相同的初始容量，会把峰值内存翻倍。
+
+**解决方案**：`ChunkMesher` 的 `generateSplitMesh()` 预留策略必须按 pass 区分，透明层的初始容量要明显小于实心层。
+
+### 18. MeshSchedulerViewState 更新时机
+
+**问题**：如果视图状态过期，视锥体优先级和相机后取消将滞后于相机移动。
+
+**解决方案**：每帧在调用 `ClientWorld::update(...)` 之前必须更新 `MeshSchedulerViewState`。
+
+### 19. MeshBuildScheduler 并发预算
+
+**问题**：把 `maxDispatchedTaskCount` 按视距线性放大到很大，完成队列里每个 chunk mesh 都可能是数 MB 级别，会导致内存压力。
+
+**解决方案**：`ClientApplication` 里给 `MeshBuildScheduler` 的并发预算要保持保守。
+
+### 20. 网格任务取消同步
+
+**问题**：在分发前取消的待处理网格任务不会产生工作器结果，区块可能会因陈旧的任务 ID 而卡住，永远不会重新提交。
+
+**解决方案**：保持 `activeMeshTaskId` 与调度器跟踪同步。
+
+### 21. ChunkMesher API 签名变更
+
+**问题**：更改 `ChunkMesher` 网格 API 时，需要同时更新运行时和测试。
+
+**解决方案**：`tests/client/renderer/test_renderer.cpp` 现在调用 5 参数的 `generateSplitMesh(..., neighbors, cancelSignal)` 签名，确保测试与实现同步。
+
+### 22. BlockModelCache 快速路径
+
+**问题**：在渲染热路径中通过 `toModelKey()` 路由 `BlockModelCache::getBlockAppearance(const BlockState*)` 会重建模型键，引入可避免的字符串解析。
+
+**解决方案**：`stateId` 缓存是预期的快速路径；不要在那里重建模型键。
+
+### 23. TridentEngine MSAA 采样数
+
+**问题**：`WindowConfig` 不再携带采样数，各处需要协调 MSAA 设置。
+
+**解决方案**：`TridentEngine` 现在拥有实际的 MSAA 采样计数选择。`TridentContext::maxUsableSampleCount()` 将请求限制到硬件限制，`RenderPassManager` 在需要时创建多重采样颜色/深度附件加上解析附件，每个主通道管线必须接收相同的 `VkSampleCountFlagBits`。
+
 ---
 
 ## 涉及的测试用例

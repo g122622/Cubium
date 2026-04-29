@@ -539,6 +539,18 @@ ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
     - 当前实现会保留回调入口，但会将结果标记为失败并返回空指针
     - 不要假设回调一定表示区块可用，必须检查 `success`
 
+9. **高度图内部存储**
+
+    - `Heightmap` 内部存储的是 `y + 1`，不是实际方块 Y
+    - 只有 `getTopBlockY()` 这一层才应该把它转换回块坐标
+    - 不要直接把原始高度图值当作方块位置
+
+10. **ChunkData 空隙图设置**
+
+    - `ChunkData::setSkyEmptinessMap(const bool* map)` / `setBlockEmptinessMap(const bool* map)` 需要拿到完整的区块段空隙图
+    - 不要把 `std::vector<bool>` 的结果直接丢成 `nullptr`
+    - 如果上游拿到的是按段更新结果，必须先拷贝成连续的 `bool[]` 再写回区块
+
 ### 相关测试用例
 
 | 测试文件 | 测试内容 |

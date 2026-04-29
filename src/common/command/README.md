@@ -406,6 +406,38 @@ i32 value = ctx.getArgument<i32>("value");  // 正确
 // f32 value = ctx.getArgument<f32>("value");  // 错误！会抛出 std::bad_any_cast
 ```
 
+### 7. 命令别名使用重定向
+
+**问题**：复制子子树创建别名会导致命令树、帮助输出和建议不同步。
+
+**解决方案**：命令别名应使用 `CommandNode::setRedirect(...)` 而不是复制子子树。`/teleport` 和 `/xp` 现在依赖重定向，因此命令树、帮助输出和建议都保持同步。
+
+### 8. Tab 补全入口点
+
+**问题**：在命令中硬编码 Tab 列表会导致补全不灵活。
+
+**解决方案**：`CommandDispatcher::getSuggestions()` 是规范的 Tab 补全入口点。通过 `CommandNode::setCustomSuggestions(...)` 附加动态补全数据，而不是在命令中硬编码 Tab 列表。
+
+### 9. 命令名称来源
+
+**问题**：重新引入单独的手动名称列表会导致别名不同步。
+
+**解决方案**：`CommandRegistry::getCommandNames()` 派生自调度器树。帮助输出自动跟踪别名和未来的命令注册，所以不要重新引入单独的手动名称列表。
+
+### 10. CommandTreePacket 同步
+
+**问题**：客户端补全必须在登录后从 `onCommandTree()` 重建，并在断开连接时再次清除，否则聊天建议会变得陈旧。
+
+**解决方案**：`CommandTreePacket` 是客户端的权威命令快照，必须正确处理重建和清除。
+
+### 11. CommandTreePacket 封装
+
+**问题**：`CommandTreePacket` 只序列化包体，双重封装会导致内部头看起来像空 JSON 字符串。
+
+**解决方案**：
+- 服务器代码必须用 `ConnectionManager::encapsulatePacket()` 恰好包装一次
+- 客户端代码必须在调用 `handleCommandTree()` 之前剥离外部网络头
+
 ## 测试用例
 
 测试文件：`tests/common/command/test_command_dispatcher.cpp`

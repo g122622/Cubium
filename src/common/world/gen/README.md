@@ -803,6 +803,36 @@ FeatureRegistry::initialize();         // 4. 初始化特征
 
 **解决**：在 `ChunkPrimer` 中设置方块时自动更新高度图。
 
+### 8. WorldGenRegion 不是 IBlockReader
+
+**问题**：`WorldGenRegion` 不是 `IBlockReader`，直接传递给 `Block::isValidPosition` 会导致编译错误或运行时断言。
+
+**解决**：在世界生成特性中，使用显式的本地放置检查（`isWater`、支撑方块检查），而不是依赖 `Block::isValidPosition` 接口。
+
+### 9. 区块访问窗口越界
+
+**问题**：`WorldGenRegion` 使用阶段特定的 `ChunkStatus::taskRange()` 窗口，如果请求的区块缺失，`getTopBlockY()` 会触发断言。
+
+**解决**：不要将窗口外的高度查询视为"高度 0"；应修复区域半径或调用点，确保在正确的生成阶段访问正确范围内的区块。
+
+### 10. 蓝冰放置测试
+
+**问题**：蓝冰放置测试如果没有冰块在采样起始位置周围，将始终失败。
+
+**解决**：测试必须在精确的采样邻域设置冰块，而不是以会改变海底检测的方式替换整个水层。
+
+### 11. 临时 BlockState 副本
+
+**问题**：将临时 `BlockState` 副本传递给世界写入 API 可能导致状态 ID 不一致。
+
+**解决**：优先使用 `state.with(...)` / `defaultState()` 返回的规范引用；`ServerWorld::setBlock` 现在通过 `stateId` 规范化作为安全网。
+
+### 12. 海洋特征注册顺序
+
+**问题**：`KelpFeatureIds` 和 `SeagrassFeatureIds` 按海洋温度分开，添加新海洋变体时可能导致不一致。
+
+**解决**：添加新海洋变体时，保持 `FeatureRegistry::initialize()` 顺序、`BiomeGenerationSettings` 映射和海洋断言同步。
+
 ---
 
 ## 涉及的测试用例

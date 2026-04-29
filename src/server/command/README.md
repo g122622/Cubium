@@ -724,6 +724,12 @@ MyCommand::registerTo(m_dispatcher);
    - 问题：`HelpCommand` 中的帮助信息是硬编码的
    - 解决：添加新命令时需同步更新 `s_commandHelp` 数组
 
+8. **玩家命令反馈依赖**
+
+**问题**：`ServerCommandSource::sendMessage()` 在只有 `playerId` 的情况下需要能够发送消息给在线连接。
+
+**解决方案**：玩家命令反馈不要默认依赖 `ServerPlayer*`。`ServerCommandSource::sendMessage()` 现在必须在只有 `playerId` 的情况下也能把消息发回在线连接，不能只写日志。
+
 ### 测试用例
 
 相关测试位于 `tests/common/command/test_command_dispatcher.cpp`：
