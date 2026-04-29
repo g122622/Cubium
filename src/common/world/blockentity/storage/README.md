@@ -57,6 +57,11 @@ storage/
 - 可以被锁定（需要正确名称的物品打开）
 - 打开时有动画效果
 
+**MC 1.16.5 对齐**：
+- 实体推动逻辑：打开/关闭时推动附近实体
+- FACING 属性缓存：避免每帧查询方块状态
+- 同步间隔：与原版一致
+
 ### BarrelEntity.hpp/cpp
 
 **职责**：木桶方块实体。
@@ -66,6 +71,10 @@ storage/
 - 可以在上方有方块时打开（与箱子不同）
 - 没有双箱合并功能
 - 可以面向任意六个方向放置
+
+**MC 1.16.5 对齐**：
+- 使用基类 ContainerBlockEntity 的 openContainer/closeContainer
+- 观察者模式玩家不计入打开计数
 
 ### DoubleSidedInventory.hpp/cpp
 

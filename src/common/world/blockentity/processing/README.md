@@ -72,6 +72,11 @@ processing/
 - 配方类型：BLASTING
 - 经验倍率：0.5
 - 仅能熔炼矿石和金属物品
+- **燃料消耗速度是普通熔炉的2倍**（同样燃料只能燃烧一半时间）
+
+**MC 1.16.5 对齐**：
+- `canSmelt()` 仅接受 BLASTING 类型配方
+- `getBurnTimeForFuel()` 返回基础燃烧时间的一半
 
 ### SmokerEntity.hpp/cpp
 
@@ -82,6 +87,11 @@ processing/
 - 配方类型：SMOKING
 - 经验倍率：0.5
 - 仅能烹饪食物
+- **燃料消耗速度是普通熔炉的2倍**（同样燃料只能燃烧一半时间）
+
+**MC 1.16.5 对齐**：
+- `canSmelt()` 仅接受 SMOKING 类型配方
+- `getBurnTimeForFuel()` 返回基础燃烧时间的一半
 
 ### FurnaceInventory.hpp/cpp
 
