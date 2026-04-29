@@ -109,7 +109,6 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 **游戏常量** (`src/common/core/Constants.hpp`)
 
 `mc::game` 命名空间：
-- `GRAVITY` - 重力加速度 (blocks/tick²)
 - `PLAYER_HEIGHT`, `PLAYER_EYE_HEIGHT`, `PLAYER_WIDTH`, `PLAYER_SNEAK_HEIGHT` - 玩家尺寸
 - `PLAYER_MAX_HEALTH`, `PLAYER_MAX_AIR` - 玩家生命值/氧气
 - `MAX_LIGHT_LEVEL`, `MIN_LIGHT_LEVEL` - 光照等级范围
