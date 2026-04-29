@@ -7,6 +7,7 @@
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
 #include "EntityDataManager.hpp"
+#include "MoverType.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include <string>
@@ -19,6 +20,18 @@ namespace mc {
 // 前向声明
 class PhysicsEngine;
 class IWorld;
+
+/**
+ * @brief 实体推动反应类型
+ *
+ * 定义实体被活塞等推动时的反应行为。
+ * 参考 MC 1.16.5 net.minecraft.block.material.PushReaction
+ */
+enum class PushReaction : u8 {
+    Normal,   // 正常推动
+    Destroy,  // 被推动时销毁
+    Ignore    // 忽略推动
+};
 
 // ============================================================================
 // 旧实体类型枚举（兼容）
@@ -450,11 +463,36 @@ public:
     void move(f32 dx, f32 dy, f32 dz);
 
     /**
+     * @brief 使用指定移动类型移动实体
+     *
+     * 用于区分不同来源的移动（活塞推动、玩家推动、自身移动等）。
+     * 参考 MC 1.16.5 Entity.move(MoverType, Vec3)
+     *
+     * @param type 移动类型
+     * @param delta 移动增量
+     */
+    void move(entity::MoverType type, const Vector3& delta);
+
+    /**
      * @brief 旋转实体
      * @param deltaYaw 偏航角增量（度）
      * @param deltaPitch 俯仰角增量（度）
      */
     void rotate(f32 deltaYaw, f32 deltaPitch);
+
+    // ========== 推动反应 ==========
+
+    /**
+     * @brief 获取实体的推动反应类型
+     *
+     * 参考 MC 1.16.5 Entity.getPushReaction()
+     * 子类可重写以返回不同的推动反应。
+     *
+     * @return 推动反应类型
+     */
+    [[nodiscard]] virtual PushReaction getPushReaction() const {
+        return PushReaction::Normal;
+    }
 
     // ========== 物理 ==========
 

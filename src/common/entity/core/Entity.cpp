@@ -424,6 +424,13 @@ void Entity::move(f32 dx, f32 dy, f32 dz) {
     reapplyPosition();
 }
 
+void Entity::move(entity::MoverType type, const Vector3& delta) {
+    MC_UNUSED(type);
+    // MC 1.16.5: 移动类型用于区分移动来源
+    // 目前简单委托给无碰撞版本，后续可添加碰撞检测
+    move(delta.x, delta.y, delta.z);
+}
+
 void Entity::rotate(f32 deltaYaw, f32 deltaPitch) {
     m_prevYaw = m_yaw;
     m_prevPitch = m_pitch;

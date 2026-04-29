@@ -2,7 +2,9 @@
 #include "../../IWorld.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../block/VanillaBlocks.hpp"
 #include "../../../entity/core/Entity.hpp"
+#include "../../../entity/core/MoverType.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/Direction.hpp"
@@ -255,11 +257,6 @@ float PistonBlockEntity::getExtendedProgress(float progress) const {
 
 void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta) {
     // MC 1.16.5 对齐 - 参考 PistonTileEntity.moveCollidedEntities()
-    // 缺失功能:
-    // 1. PushReaction.IGNORE 检测 - 需要 Entity::getPushReaction()
-    // 2. MoverType.PISTON - 需要 Entity::move(MoverType, Vec3) 重载
-    // 3. 黏液块动量设置 - 需要 Entity::setMotion() 和黏液块检测
-
     if (m_pistonState == nullptr) {
         return;
     }
@@ -282,6 +279,9 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
     const Direction motionDirection = getMotionDirection();
     const Vector3 motionVector = toDirectionVector(motionDirection);
 
+    // MC 1.16.5: 检查是否为黏液块
+    const bool isSlimeBlock = m_pistonState->is(VanillaBlocks::SLIME_BLOCK);
+
     for (const AxisAlignedBB& localBox : collisionBoxes) {
         const AxisAlignedBB pistonBox = moveByPositionAndProgress(localBox);
         const AxisAlignedBB sweepBox = buildSweepBox(pistonBox, motionDirection, moveDistance);
@@ -292,8 +292,29 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
                 continue;
             }
 
-            // TODO: 检查 entity->getPushReaction() != PushReaction::IGNORE
-            // MC 1.16.5: if (entity.getPushReaction() != PushReaction.IGNORE)
+            // MC 1.16.5: 检查 PushReaction
+            if (entity->getPushReaction() == PushReaction::Ignore) {
+                continue;
+            }
+
+            // MC 1.16.5: 黏液块特殊处理 - 设置实体速度
+            if (isSlimeBlock && m_extending) {
+                // 非玩家实体在黏液块推动时会被设置速度
+                // 玩家实体不在此处处理（由客户端处理）
+                Vector3 velocity = entity->velocity();
+                switch (Directions::getAxis(motionDirection)) {
+                    case Axis::X:
+                        velocity.x = static_cast<f32>(Directions::xOffset(motionDirection));
+                        break;
+                    case Axis::Y:
+                        velocity.y = static_cast<f32>(Directions::yOffset(motionDirection));
+                        break;
+                    case Axis::Z:
+                        velocity.z = static_cast<f32>(Directions::zOffset(motionDirection));
+                        break;
+                }
+                entity->setVelocity(velocity.x, velocity.y, velocity.z);
+            }
 
             // 计算实体与活塞碰撞箱的推动距离
             const AxisAlignedBB entityBox = entity->boundingBox();
@@ -312,7 +333,8 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
 
             if (pushDistance > 0.0f) {
                 const Vector3 pushDelta = motionVector * pushDistance;
-                entity->move(pushDelta.x, pushDelta.y, pushDelta.z);
+                // MC 1.16.5: 使用 MoverType::Piston
+                entity->move(entity::MoverType::Piston, pushDelta);
 
                 // 收回时修复实体位置，防止卡入活塞基座
                 if (!m_extending && m_shouldRenderHead) {
