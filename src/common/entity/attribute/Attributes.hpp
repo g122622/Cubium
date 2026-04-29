@@ -185,6 +185,29 @@ inline std::unique_ptr<Attribute> horseJumpStrength() {
     return std::make_unique<Attribute>("horse.jump_strength", 0.7, 0.0, 2.0);
 }
 
+/**
+ * @brief 实体重力
+ *
+ * 决定实体受到的重力加速度（blocks/tick²）。
+ * 默认值: 0.08 (MC 标准)
+ * 范围: 0.0 ~ 1.0
+ * 注意：缓降药水会修改此属性
+ */
+inline std::unique_ptr<Attribute> entityGravity() {
+    return std::make_unique<Attribute>("generic.gravity", 0.08, 0.0, 1.0);
+}
+
+/**
+ * @brief 游泳速度
+ *
+ * 决定实体在水中的游泳速度。
+ * 默认值: 1.0
+ * 范围: 0.0 ~ 1024.0
+ */
+inline std::unique_ptr<Attribute> swimSpeed() {
+    return std::make_unique<Attribute>("generic.swim_speed", 1.0, 0.0, 1024.0);
+}
+
 // ============================================================================
 // 属性名称常量
 // ============================================================================
@@ -204,6 +227,8 @@ constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max";
 constexpr const char* JUMP_BOOST = "generic.jump_boost";
 constexpr const char* JUMP_STRENGTH = "horse.jump_strength";
+constexpr const char* ENTITY_GRAVITY = "generic.gravity";
+constexpr const char* SWIM_SPEED = "generic.swim_speed";
 
 } // namespace Attributes
 

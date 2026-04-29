@@ -19,6 +19,15 @@ namespace mc {
 
 namespace {
 
+/// 获取玩家指定姿态的宽度
+/// MC 1.16.5: Sleeping 姿态宽度为 0.2，其他姿态为 0.6
+[[nodiscard]] f32 getPlayerPoseWidth(EntityPose pose) {
+    if (pose == EntityPose::Sleeping) {
+        return 0.2f;  // MC 1.16.5: EntitySize.fixed(0.2F, 0.2F)
+    }
+    return Player::PLAYER_WIDTH;
+}
+
 [[nodiscard]] f32 getPlayerPoseHeight(EntityPose pose) {
     switch (pose) {
         case EntityPose::Sleeping:
@@ -284,7 +293,8 @@ f32 Player::eyeHeight() const {
 }
 
 entity::EntitySize Player::getDimensions(EntityPose pose) const {
-    return entity::EntitySize(PLAYER_WIDTH, getPlayerPoseHeight(pose), getPlayerPoseEyeHeight(pose), false);
+    // MC 1.16.5: Sleeping 姿态使用固定宽度 0.2
+    return entity::EntitySize(getPlayerPoseWidth(pose), getPlayerPoseHeight(pose), getPlayerPoseEyeHeight(pose), false);
 }
 
 bool Player::canFitPose(EntityPose pose) const {
@@ -341,6 +351,9 @@ void Player::tick() {
 
     // 更新游泳状态和动画
     updateSwimming();
+
+    // 更新姿态（MC 1.16.5: PlayerEntity.tick() 中调用 updatePose()）
+    updatePose();
 
     // 更新空气供应和溺水
     updateAirSupply();
@@ -1074,6 +1087,77 @@ void Player::updateSwimming() {
 
     // 更新游泳状态
     setSwimming(isSwimmingNow);
+}
+
+void Player::updatePose() {
+    // MC 1.16.5: PlayerEntity.updatePose()
+    // 每帧自动判断正确姿态
+
+    // 检查是否有足够的游泳空间（用于姿态切换的后备检查）
+    // isPoseClear 在 MC 中检查指定姿态的碰撞箱是否与方块冲突
+    auto isPoseClear = [this](EntityPose pose) -> bool {
+        return canFitPose(pose);
+    };
+
+    // 如果姿态被禁止，不进行自动更新
+    // MC: if (this.forcedPose != null) { this.setPose(this.forcedPose); return; }
+    // 目前没有实现 forcedPose，直接进行姿态判断
+
+    // 只有在游泳空间足够时才允许姿态切换
+    if (!isPoseClear(EntityPose::Swimming)) {
+        return;
+    }
+
+    // 按优先级判断目标姿态
+    EntityPose targetPose = EntityPose::Standing;
+
+    // 检查是否是旁观者模式
+    bool isSpectatorMode = entity::GameModeUtils::isSpectator(m_gameMode);
+    // 检查是否正在骑乘
+    bool isRidingVehicle = isRiding();
+
+    // 1. 鞘翅飞行（优先级最高）
+    // TODO: 实现 isElytraFlying()
+    // if (isElytraFlying()) {
+    //     targetPose = EntityPose::FallFlying;
+    // }
+    // else
+
+    // 2. 睡眠
+    if (m_isSleeping) {
+        targetPose = EntityPose::Sleeping;
+    }
+    // 3. 游泳
+    else if (m_isSwimming) {
+        targetPose = EntityPose::Swimming;
+    }
+    // 4. 三叉戟激流攻击
+    // TODO: 实现 isSpinAttacking()
+    // else if (isSpinAttacking()) {
+    //     targetPose = EntityPose::SpinAttack;
+    // }
+    // 5. 潜行（非飞行模式）
+    else if (m_isSneaking && !m_abilities.flying) {
+        targetPose = EntityPose::Crouching;
+    }
+    // 6. 默认站立
+    else {
+        targetPose = EntityPose::Standing;
+    }
+
+    // 检查目标姿态是否可以容纳
+    // MC: if (!this.isSpectator() && !this.isPassenger() && !this.isPoseClear(pose)) { ... }
+    if (!isSpectatorMode && !isRidingVehicle && !isPoseClear(targetPose)) {
+        // 目标姿态无法容纳，尝试后备姿态
+        if (isPoseClear(EntityPose::Crouching)) {
+            targetPose = EntityPose::Crouching;
+        } else {
+            targetPose = EntityPose::Swimming;
+        }
+    }
+
+    // 设置姿态
+    setPose(targetPose);
 }
 
 void Player::travelInWater(f32 strafing, f32 vertical, f32 forward) {

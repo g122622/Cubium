@@ -501,4 +501,69 @@ void LivingEntity::setLastHurtTarget(LivingEntity* target) {
     m_lastHurtTargetTimestamp = ticksExisted();
 }
 
+// ============================================================================
+// 击退
+// ============================================================================
+
+void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ) {
+    // MC 1.16.5: LivingEntity.applyKnockback()
+    // 击退强度会被击退抗性降低
+    strength = static_cast<f32>(static_cast<f64>(strength) *
+        (1.0 - getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));
+
+    if (strength <= 0.0f) {
+        return;  // 击退被完全抗性抵消
+    }
+
+    // 归一化方向向量
+    f64 length = std::sqrt(ratioX * ratioX + ratioZ * ratioZ);
+    if (length < 1.0E-7) {
+        return;  // 零向量，不应用击退
+    }
+
+    ratioX /= length;
+    ratioZ /= length;
+
+    // 计算击退速度
+    // MC 1.16.5: this.setMotion(vec3d.x / 2.0D - vec3d1.x, ...
+    // 击退会减少当前水平速度的一半，然后加上击退向量
+    f64 knockbackX = ratioX * static_cast<f64>(strength);
+    f64 knockbackZ = ratioZ * static_cast<f64>(strength);
+
+    // Y轴速度
+    // MC 1.16.5: onGround ? Math.min(0.4D, vec3d.y / 2.0D + (double)strength) : vec3d.y
+    f64 newVelocityY;
+    if (m_onGround) {
+        // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
+        newVelocityY = std::min(0.4, static_cast<f64>(m_velocity.y) / 2.0 + static_cast<f64>(strength));
+    } else {
+        // 在空中时：保持当前Y速度
+        newVelocityY = static_cast<f64>(m_velocity.y);
+    }
+
+    // 设置新速度
+    // X轴：当前速度的一半减去击退向量
+    // Z轴：当前速度的一半减去击退向量
+    m_velocity.x = static_cast<f32>(static_cast<f64>(m_velocity.x) / 2.0 - knockbackX);
+    m_velocity.y = static_cast<f32>(newVelocityY);
+    m_velocity.z = static_cast<f32>(static_cast<f64>(m_velocity.z) / 2.0 - knockbackZ);
+
+    // 设置为空中状态（MC 1.16.5: isAirBorne = true）
+    m_onGround = false;
+}
+
+void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength) {
+    if (attacker == nullptr) {
+        return;
+    }
+
+    // MC 1.16.5: 从攻击者位置计算击退方向
+    // ratioX = attacker.x - this.x (然后取反)
+    // ratioZ = attacker.z - this.z (然后取反)
+    f64 ratioX = static_cast<f64>(attacker->position().x - m_position.x);
+    f64 ratioZ = static_cast<f64>(attacker->position().z - m_position.z);
+
+    applyKnockback(strength, -ratioX, -ratioZ);
+}
+
 } // namespace mc

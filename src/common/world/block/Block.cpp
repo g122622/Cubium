@@ -9,6 +9,7 @@
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/fluids/EmptyFluid.hpp"
 #include "../../entity/entities/player/Player.hpp"
+#include "../../entity/core/Entity.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/context/ItemUseContext.hpp"
 #include "../../item/context/BlockItemUseContext.hpp"
@@ -377,7 +378,10 @@ Block::Block(BlockProperties properties)
     , m_harvestTool(properties.m_harvestTool)
     , m_harvestLevel(properties.m_harvestLevel)
     , m_lootTableId(properties.m_lootTableId)
-    , m_soundType(properties.m_soundType) {
+    , m_soundType(properties.m_soundType)
+    , m_slipperiness(properties.m_slipperiness)
+    , m_speedFactor(properties.m_speedFactor)
+    , m_jumpFactor(properties.m_jumpFactor) {
     // 所有方块都必须至少拥有一个基础状态。
     // 这与 Java 版 StateContainer 行为一致，可避免遗漏 createBlockState()
     // 时在注册阶段出现空指针崩溃。
@@ -395,6 +399,28 @@ void Block::createBlockState(std::unique_ptr<StateContainer<Block, BlockState>> 
 
 void Block::setDefaultState(const BlockState& state) {
     m_defaultState = &state;
+}
+
+// ============================================================================
+// 实体交互
+// ============================================================================
+
+void Block::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const {
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 默认实现：Y速度归零
+    // MC 1.16.5: entityIn.setMotion(entityIn.getMotion().mul(1.0D, 0.0D, 1.0D));
+    entity.setVelocity(entity.velocity().x, 0.0f, entity.velocity().z);
+}
+
+void Block::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const {
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(entity);
+    // 默认实现：无操作
+    // 子类可以重写此方法实现特殊行为（如岩浆块造成伤害、岩浆方块产生气泡等）
 }
 
 const CollisionShape& Block::getShape(const BlockState& state) const {

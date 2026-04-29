@@ -10,7 +10,9 @@ namespace physics {
 // ============================================================================
 
 /// 标准 MC 重力加速度 (blocks/tick²)
-constexpr f32 GRAVITY = 0.01f;
+/// MC 1.16.5 Entity.move() 默认重力值: 0.08D
+/// 注意：实际重力应通过属性系统动态获取，此处为默认值
+constexpr f32 GRAVITY = 0.08f;
 
 /// 空气阻力系数 (每 tick)
 constexpr f32 DRAG_AIR = 0.98f;

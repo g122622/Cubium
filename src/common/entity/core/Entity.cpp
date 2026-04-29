@@ -390,6 +390,28 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz) {
     bool groundedByContact = physics->isOnGround(entityBox);
     m_onGround = groundedByCollision || groundedByContact;
 
+    // MC 1.16.5: 碰撞后速度重置
+    // 参考Entity.move() 行601-608
+    // 如果某轴发生碰撞（实际移动 != 期望移动），清零该轴速度
+    // 注意：使用 MC 的 MathHelper.epsilonEquals 比较，阈值约 1e-7
+    constexpr f32 EPSILON = 1.0e-7f;
+    if (std::abs(desiredMovement.x - actualMovement.x) > EPSILON) {
+        // X轴碰撞，清零X速度
+        m_velocity.x = 0.0f;
+    }
+    if (std::abs(desiredMovement.y - actualMovement.y) > EPSILON) {
+        // Y轴碰撞，清零Y速度
+        m_velocity.y = 0.0f;
+    }
+    if (std::abs(desiredMovement.z - actualMovement.z) > EPSILON) {
+        // Z轴碰撞，清零Z速度
+        m_velocity.z = 0.0f;
+    }
+
+    // MC 1.16.5: 方块碰撞回调
+    // 参考 Entity.move() 行 610-616
+    doBlockCollisions(actualMovement, desiredMovement);
+
     // 更新摔落距离并处理摔落伤害
     updateFallDistance();
 
@@ -435,6 +457,44 @@ void Entity::checkOnGround() {
     }
 
     m_onGround = false;
+}
+
+void Entity::doBlockCollisions(const Vector3& actualMovement, const Vector3& desiredMovement) {
+    // MC 1.16.5: Entity.move() 中的方块回调处理
+    // 参考: Entity.java 行 610-616
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取实体脚下所在的方块位置
+    // 使用碰撞箱底部的中心坐标
+    BlockPos blockPos(
+        static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),  // 稍微向下偏移
+        static_cast<i32>(std::floor(m_position.z))
+    );
+
+    // 获取方块状态
+    const BlockState* blockState = m_world->getBlockState(blockPos);
+    if (blockState == nullptr) {
+        return;
+    }
+
+    const Block& block = blockState->getBlock();
+
+    // 1. onLanded 回调 - 当垂直位置发生变化时
+    // MC: if (pos.y != vector3d.y) { block.onLanded(this.world, this); }
+    if (std::abs(desiredMovement.y - actualMovement.y) > 1.0e-7f) {
+        // Y轴发生了碰撞，说明着陆了
+        block.onLanded(*blockState, *m_world, blockPos, *this);
+    }
+
+    // 2. onEntityWalk 回调 - 当在地面行走时
+    // MC: if (this.onGround && !this.isSteppingCarefully()) { block.onEntityWalk(this.world, blockpos, this); }
+    if (m_onGround && !isSteppingCarefully()) {
+        block.onEntityWalk(*blockState, *m_world, blockPos, *this);
+    }
 }
 
 void Entity::applyPhysics(f32 deltaTime) {

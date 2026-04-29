@@ -294,6 +294,30 @@ public:
      */
     void setLastHurtTarget(LivingEntity* target);
 
+    // ========== 击退 ==========
+
+    /**
+     * @brief 应用击退效果
+     *
+     * 参考 MC 1.16.5 LivingEntity.applyKnockback()
+     * 击退强度会被击退抗性属性降低。
+     *
+     * @param strength 击退强度（默认为1.0）
+     * @param ratioX X方向比例（归一化后会乘以强度）
+     * @param ratioZ Z方向比例（归一化后会乘以强度）
+     */
+    void applyKnockback(f32 strength, f64 ratioX, f64 ratioZ);
+
+    /**
+     * @brief 应用击退效果（带来源实体）
+     *
+     * 从攻击者位置计算击退方向。
+     *
+     * @param attacker 攻击者实体
+     * @param strength 击退强度
+     */
+    void applyKnockbackFrom(LivingEntity* attacker, f32 strength);
+
     // ========== 渲染属性（用于客户端插值）==========
 
     /**
@@ -520,6 +544,22 @@ public:
      * @brief 获取死亡时间
      */
     [[nodiscard]] i32 deathTime() const { return m_deathTime; }
+
+    // ========== 方块交互 ==========
+
+    /**
+     * @brief 检查实体是否小心行走（潜行状态）
+     *
+     * 重写基类方法。LivingEntity 在潜行时返回 true。
+     * 小心行走的实体不会触发 onEntityWalk 回调。
+     *
+     * 参考: MC 1.16.5 Entity.isSteppingCarefully()
+     *
+     * @return 如果实体正在潜行返回true
+     */
+    [[nodiscard]] bool isSteppingCarefully() const override {
+        return isSneaking();
+    }
 
     // ========== 刻更新 ==========
 

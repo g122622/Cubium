@@ -297,7 +297,7 @@ public:
     // 状态
     [[nodiscard]] bool isOnGround() const { return m_onGround; }
     [[nodiscard]] bool isSprinting() const { return m_isSprinting; }
-    [[nodiscard]] bool isSneaking() const { return m_isSneaking; }
+    [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
     [[nodiscard]] bool isSleeping() const { return m_isSleeping; }
     [[nodiscard]] bool isDead() const { return m_health <= 0.0f; }
@@ -429,6 +429,22 @@ public:
      * 检测游泳条件并更新姿态
      */
     void updateSwimming();
+
+    /**
+     * @brief 自动更新姿态
+     *
+     * 参考 MC 1.16.5 PlayerEntity.updatePose()
+     * 每帧根据当前状态自动判断正确姿态：
+     * - 鞘翅飞行 -> FALL_FLYING
+     * - 睡眠 -> SLEEPING
+     * - 游泳 -> SWIMMING
+     * - 三叉戟激流攻击 -> SPIN_ATTACK
+     * - 潜行（非飞行） -> CROUCHING
+     * - 默认 -> STANDING
+     *
+     * 如果目标姿态无法容纳，会尝试 CROUCHING 或 SWIMMING 作为后备。
+     */
+    void updatePose();
 
     /**
      * @brief 获取游泳动画进度

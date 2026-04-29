@@ -832,6 +832,52 @@ public:
      */
     virtual void syncMetadataFromDataManager();
 
+    // ========== 方块交互 ==========
+
+    /**
+     * @brief 检查实体是否正在潜行
+     *
+     * 默认返回 false。Player 类重写此方法返回实际的潜行状态。
+     * 参考: MC 1.16.5 Entity.isSneaking()
+     *
+     * @return 如果实体正在潜行返回true
+     */
+    [[nodiscard]] virtual bool isSneaking() const { return false; }
+
+    /**
+     * @brief 检查实体是否小心行走（潜行状态）
+     *
+     * 小心行走的实体不会触发 onEntityWalk 回调。
+     * 参考: MC 1.16.5 Entity.isSteppingCarefully()
+     *
+     * @return 如果实体正在潜行返回true
+     */
+    [[nodiscard]] virtual bool isSteppingCarefully() const { return isSneaking(); }
+
+    /**
+     * @brief 检查实体是否可以触发行走事件
+     *
+     * 某些实体（如盔甲架、船等）不会触发行走相关事件。
+     * 参考: MC 1.16.5 Entity.canTriggerWalking()
+     *
+     * @return 默认返回true
+     */
+    [[nodiscard]] virtual bool canTriggerWalking() const { return true; }
+
+    /**
+     * @brief 执行方块碰撞回调
+     *
+     * 在实体移动后调用，处理与方块的交互：
+     * - onLanded: 垂直碰撞后着地
+     * - onEntityWalk: 在地面上行走
+     *
+     * 参考: MC 1.16.5 Entity.move() 中的方块回调处理
+     *
+     * @param actualMovement 实际移动向量
+     * @param desiredMovement 期望移动向量
+     */
+    void doBlockCollisions(const Vector3& actualMovement, const Vector3& desiredMovement);
+
     // toString，用于调试，所有实体统一
     [[nodiscard]] String toString() const;
 

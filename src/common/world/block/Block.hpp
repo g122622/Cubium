@@ -516,6 +516,54 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 设置滑度
+     *
+     * 设置方块的滑动系数，影响实体在方块上的移动阻力。
+     * - 0.6f: 默认值（普通方块如石头、泥土）
+     * - 0.98f: 冰、浮冰、蓝冰（更滑）
+     * - 0.5f: 蜂蜜块（粘性，减少移动）
+     *
+     * 参考: net.minecraft.block.Block.slipperiness
+     *
+     * @param value 滑度值 (0.0-1.0)
+     */
+    BlockProperties& slipperiness(f32 value) {
+        m_slipperiness = value;
+        return *this;
+    }
+
+    /**
+     * @brief 设置速度因子
+     *
+     * 设置方块的速度影响系数。
+     * - 1.0f: 默认值（正常速度）
+     * - 0.5f: 蜂蜜块（减速）
+     *
+     * 参考: net.minecraft.block.Block.speedFactor
+     *
+     * @param value 速度因子值
+     */
+    BlockProperties& speedFactor(f32 value) {
+        m_speedFactor = value;
+        return *this;
+    }
+
+    /**
+     * @brief 设置跳跃因子
+     *
+     * 设置方块的跳跃影响系数。
+     * - 1.0f: 默认值（正常跳跃）
+     *
+     * 参考: net.minecraft.block.Block.jumpFactor
+     *
+     * @param value 跳跃因子值
+     */
+    BlockProperties& jumpFactor(f32 value) {
+        m_jumpFactor = value;
+        return *this;
+    }
+
     // Getters
     [[nodiscard]] const Material& material() const { return *m_material; }
     [[nodiscard]] f32 hardness() const { return m_hardness; }
@@ -532,6 +580,9 @@ public:
     [[nodiscard]] i32 harvestLevel() const { return m_harvestLevel; }
     [[nodiscard]] const String& lootTableId() const { return m_lootTableId; }
     [[nodiscard]] const BlockSoundType* soundType() const { return m_soundType; }
+    [[nodiscard]] f32 slipperiness() const { return m_slipperiness; }
+    [[nodiscard]] f32 speedFactor() const { return m_speedFactor; }
+    [[nodiscard]] f32 jumpFactor() const { return m_jumpFactor; }
 
 private:
     friend class Block;
@@ -552,6 +603,9 @@ private:
     i32 m_harvestLevel = 0;
     String m_lootTableId;
     const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;  // 默认使用石头声音
+    f32 m_slipperiness = 0.6f;   // MC默认滑度
+    f32 m_speedFactor = 1.0f;    // MC默认速度因子
+    f32 m_jumpFactor = 1.0f;     // MC默认跳跃因子
 };
 
 /**
@@ -1042,6 +1096,115 @@ public:
     }
 
     /**
+     * @brief 实体着地时调用
+     *
+     * 当实体垂直移动后落到此方块上时调用。
+     * 此方法必须更新实体的Y轴速度，因为实体不会自动执行此操作。
+     * 默认实现将实体的Y速度归零。
+     *
+     * 参考: net.minecraft.block.Block.onLanded
+     *
+     * @param state 方块状态
+     * @param world 世界引用（可为IBlockReader）
+     * @param pos 方块位置
+     * @param entity 着地的实体
+     */
+    virtual void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const;
+
+    /**
+     * @brief 实体在方块上行走时调用
+     *
+     * 当实体在地面行走时每帧调用。用于特殊方块行为，如岩浆块造成伤害、
+     * 岩浆方块产生气泡、脚手架攀爬等。
+     * 默认实现为空。
+     *
+     * 参考: net.minecraft.block.Block.onEntityWalk
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param entity 行走的实体
+     */
+    virtual void onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const;
+
+    /**
+     * @brief 获取方块滑度
+     *
+     * 返回方块的滑动系数，影响实体在方块上的移动阻力。
+     * - 0.6f: 默认值（普通方块如石头、泥土）
+     * - 0.98f: 冰、浮冰、蓝冰（更滑）
+     * - 0.5f: 蜂蜜块（粘性，减少移动）
+     *
+     * 参考: net.minecraft.block.Block.getSlipperiness
+     *
+     * @param state 方块状态
+     * @param world 世界引用（可选）
+     * @param pos 方块位置（可选）
+     * @param entity 实体（可选，用于上下文相关滑度）
+     * @return 滑度值 (0.0-1.0)
+     */
+    [[nodiscard]] virtual f32 getSlipperiness(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const Entity* entity = nullptr) const {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(entity);
+        MC_UNUSED(state);
+        return m_slipperiness;
+    }
+
+    /**
+     * @brief 获取方块速度因子
+     *
+     * 返回方块的速度影响系数，影响实体在方块上的移动速度。
+     * - 1.0f: 默认值（正常速度）
+     * - 0.5f: 蜂蜜块（减速）
+     * - 1.5f: 灵魂沙（减速，特殊处理）
+     *
+     * 参考: net.minecraft.block.Block.getSpeedFactor
+     *
+     * @param state 方块状态
+     * @param world 世界引用（可选）
+     * @param pos 方块位置（可选）
+     * @return 速度因子值
+     */
+    [[nodiscard]] virtual f32 getSpeedFactor(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        return m_speedFactor;
+    }
+
+    /**
+     * @brief 获取方块跳跃因子
+     *
+     * 返回方块的跳跃影响系数。
+     * - 1.0f: 默认值（正常跳跃）
+     * - 蜂蜜块会减少跳跃高度
+     *
+     * 参考: net.minecraft.block.Block.getJumpFactor
+     *
+     * @param state 方块状态
+     * @param world 世界引用（可选）
+     * @param pos 方块位置（可选）
+     * @return 跳跃因子值
+     */
+    [[nodiscard]] virtual f32 getJumpFactor(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr) const {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        return m_jumpFactor;
+    }
+
+    /**
      * @brief 是否响应随机刻
      *
      * 返回true时，该方块会被随机刻系统选中执行randomTick。
@@ -1402,6 +1565,14 @@ protected:
 
     // 声音类型（默认为石头声音）
     const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;
+
+    // 物理属性
+    // MC 1.16.5: Block.slipperiness 默认值 0.6f
+    f32 m_slipperiness = 0.6f;
+    // MC 1.16.5: Block.speedFactor 默认值 1.0f
+    f32 m_speedFactor = 1.0f;
+    // MC 1.16.5: Block.jumpFactor 默认值 1.0f
+    f32 m_jumpFactor = 1.0f;
 
     // 由createBlockState设置
     std::unique_ptr<StateContainer<Block, BlockState>> m_stateContainer;
