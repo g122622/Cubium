@@ -240,7 +240,7 @@ bool HopperEntity::captureItem(IInventory* inventory, ItemEntity* itemEntity) {
     } else {
         // 部分物品被捕获，更新实体物品数量
         itemEntity->setItemStack(remaining);
-        return true;  // 返回true表示有物品被捕获
+        return false;  // MC 1.16.5: 部分捕获时返回 false
     }
 }
 
@@ -595,12 +595,23 @@ ItemStack HopperEntity::insertStack(
     }
 
     if (inserted) {
-        // 漏斗链优化：如果目标是漏斗且为空
-        // 减少冷却时间
-        if (wasEmpty && source != nullptr) {
+        // MC 1.16.5 漏斗链优化：如果目标是漏斗且为空
+        // 减少冷却时间，但需要检查游戏时间
+        if (wasEmpty && destination != nullptr) {
             HopperEntity* targetHopper = dynamic_cast<HopperEntity*>(destination);
             if (targetHopper != nullptr && !targetHopper->mayTransfer()) {
-                targetHopper->setTransferCooldown(TRANSFER_COOLDOWN_CHAIN);
+                i32 cooldownReduction = 0;
+                // 检查源是否也是漏斗
+                if (source != nullptr) {
+                    HopperEntity* sourceHopper = dynamic_cast<HopperEntity*>(source);
+                    if (sourceHopper != nullptr) {
+                        // 只有当目标漏斗的游戏时间 >= 源漏斗的游戏时间时才减少冷却
+                        if (targetHopper->m_tickedGameTime >= sourceHopper->m_tickedGameTime) {
+                            cooldownReduction = 1;
+                        }
+                    }
+                }
+                targetHopper->setTransferCooldown(TRANSFER_COOLDOWN - cooldownReduction);
             }
         }
 
