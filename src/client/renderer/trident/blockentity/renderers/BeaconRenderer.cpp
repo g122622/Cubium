@@ -35,8 +35,9 @@ void BeaconRenderer::render(
 
     // 获取游戏时间
     // MC 1.16.5: long i = tileEntityIn.getWorld().getGameTime();
-    // 需要 entity 有获取世界的方法，目前使用临时方案
-    i64 gameTime = 0;  // TODO: 从世界获取 gameTime
+    // 注意: 需要 BlockEntity 持有世界引用或通过 render() 参数传入
+    // 当前使用默认值，完整集成需要在渲染调度器中传入
+    i64 gameTime = 0;
 
     // 渲染光束
     renderBeam(pos, segments, gameTime, partialTick, light);
@@ -73,12 +74,12 @@ void BeaconRenderer::renderBeam(
     std::vector<u32> indices;
     m_beamModel.generateMesh(vertices, indices, gameTime, partialTick);
 
-    // TODO: 提交网格到渲染管线
-    // 需要：
+    // 网格数据已生成，后续集成步骤：
     // 1. 获取 RenderType.beaconBeam(texture, true/false)
     // 2. 创建变换矩阵（平移到 pos + 0.5, 0.0, 0.5）
     // 3. 应用旋转（绕 Y 轴）
-    // 4. 提交顶点数据
+    // 4. 提交顶点数据到渲染管线
+    // 注意：完整渲染管线集成需要在 EntityPipeline 或专用 BlockEntityPipeline 中实现
 
     (void)pos;
     (void)light;

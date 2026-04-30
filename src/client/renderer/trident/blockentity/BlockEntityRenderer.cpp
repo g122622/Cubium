@@ -41,12 +41,12 @@ bool BlockEntityRendererHelper::renderBlockWithOffset(
     MC_UNUSED(offsetZ);
     MC_UNUSED(light);
 
-    // TODO: 实现方块模型渲染
-    // 这需要：
+    // 方块模型渲染需要以下步骤：
     // 1. 创建变换矩阵（位置 + 偏移）
     // 2. 遍历模型元素
     // 3. 生成顶点数据
     // 4. 提交到渲染管线
+    // 注意：完整实现需要 EntityPipeline 或专用 BlockEntityPipeline 支持
 
     return true;
 }

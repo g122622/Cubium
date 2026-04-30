@@ -3,7 +3,6 @@
 #include "common/world/block/Block.hpp"
 #include "common/util/Direction.hpp"
 #include "client/resource/BlockModelCache.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::blockentity {
 
@@ -47,29 +46,28 @@ void PistonRenderer::render(
     // 3. 普通情况：渲染被移动的方块
 
     // 检查是否是活塞头方块
-    // MC 1.16.5: blockstate.isIn(Blocks.PISTON_HEAD) && tileEntityIn.getProgress(partialTicks) <= 4.0F
-    // 注意：progress 在 MC 中范围是 0.0-1.0，这里 4.0F 应该是 MC 代码的特殊处理
-    // 实际上 progress <= 4.0F 总是为 true（因为 progress 范围是 0-1）
-    // TODO: 检查 pistonState->getBlock() == Blocks::PISTON_HEAD
+    // MC 1.16.5: blockstate.isIn(Blocks.PISTON_HEAD)
+    // 注意：当前方块注册表不完整，无法判断是否为活塞头
+    // 完整实现需要检查 pistonState->getBlock() == Blocks::PISTON_HEAD
     const bool isPistonHead = false;
 
     if (isPistonHead) {
         // MC 1.16.5: 活塞头需要设置 SHORT 属性
-        // blockstate = blockstate.with(PistonHeadBlock.SHORT, tileEntityIn.getProgress(partialTicks) <= 0.5F);
+        // blockstate = blockstate.with(PistonHeadBlock.SHORT, progress <= 0.5F);
         const bool isShort = progress <= 0.5f;
-        (void)isShort;  // TODO: 应用 SHORT 属性到方块状态
+        (void)isShort;
 
         // 渲染活塞头
         renderMovingBlock(entity, offsetX, offsetY, offsetZ, light);
     } else if (entity.shouldRenderPistonHead() && !entity.isExtending()) {
         // MC 1.16.5: 收回时需要渲染活塞头
         // blockstate1 = Blocks.PISTON_HEAD.getDefaultState()
-        //     .with(PistonHeadBlock.TYPE, pistontype)
-        //     .with(PistonHeadBlock.FACING, blockstate.get(PistonBlock.FACING))
-        //     .with(PistonHeadBlock.SHORT, tileEntityIn.getProgress(partialTicks) >= 0.5F);
+        //     .with(PistonHeadBlock.TYPE, isSticky ? STICKY : DEFAULT)
+        //     .with(PistonHeadBlock.FACING, facing)
+        //     .with(PistonHeadBlock.SHORT, progress >= 0.5F);
 
         const bool isShort = progress >= 0.5f;
-        (void)isShort;  // TODO: 应用 SHORT 属性
+        (void)isShort;
 
         // 渲染活塞头
         renderPistonHead(entity, progress, light);
@@ -78,10 +76,10 @@ void PistonRenderer::render(
         // matrixStackIn.pop();
         // matrixStackIn.push();
         // blockstate = blockstate.with(PistonBlock.EXTENDED, true);
-        // this.func_228876_a_(blockpos1, blockstate, ...);
 
         const BlockPos pistonBasePos = basePos.offset(motionDir);
-        (void)pistonBasePos;  // TODO: 渲染活塞基座
+        (void)pistonBasePos;
+        // 完整实现需要渲染延伸状态的活塞基座
     } else {
         // MC 1.16.5: 普通情况，直接渲染被移动的方块
         renderMovingBlock(entity, offsetX, offsetY, offsetZ, light);
@@ -111,14 +109,10 @@ void PistonRenderer::renderPistonHead(
     const f32 headOffsetY = static_cast<f32>(Directions::yOffset(facing)) * extendedProgress;
     const f32 headOffsetZ = static_cast<f32>(Directions::zOffset(facing)) * extendedProgress;
 
-    // TODO: 获取活塞头方块状态
-    // BlockState headState = Blocks.PISTON_HEAD.getDefaultState()
-    //     .with(PistonHeadBlock.TYPE, isSticky ? STICKY : DEFAULT)
-    //     .with(PistonHeadBlock.FACING, facing)
-    //     .with(PistonHeadBlock.SHORT, progress >= 0.5F);
-
-    // 渲染活塞头方块
-    // 需要使用 BlockModelCache 获取模型并渲染
+    // 完整实现需要：
+    // 1. 获取活塞头方块状态（根据是否粘性选择 STICKY 或 DEFAULT）
+    // 2. 设置 FACING 和 SHORT 属性
+    // 3. 使用 BlockModelCache 获取模型并渲染
 
     (void)pos;
     (void)headOffsetX;
@@ -145,7 +139,7 @@ void PistonRenderer::renderMovingBlock(
     // 需要使用 BlockRendererDispatcher 渲染方块模型
     // 当前使用 helper 的占位实现
     if (!m_helper.renderBlockWithOffset(*pistonState, pos, offsetX, offsetY, offsetZ, light)) {
-        // 占位实现，暂时不打印日志
+        // 占位实现，暂不处理
         (void)pos;
     }
 }

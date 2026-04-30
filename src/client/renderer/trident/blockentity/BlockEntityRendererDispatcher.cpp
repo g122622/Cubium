@@ -52,8 +52,7 @@ void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32
     //
     // 这些方块实体可以在远距离看到，需要特殊处理
     //
-    // TODO: 实现全局方块实体列表
-    // 需要：
+    // 完整实现需要：
     // 1. 在世界加载时收集所有全局方块实体
     // 2. 按类型分派到对应渲染器
     // 3. 跳过距离检查（或在渲染器中处理）
@@ -99,10 +98,21 @@ void BlockEntityRendererDispatcher::initializeDefaults() {
         return std::make_unique<ChestRenderer>();
     });
 
-    // TODO: 注册其他渲染器
-    // registerRenderer(BlockEntityType::Piston, []() -> std::unique_ptr<BlockEntityRendererBase> {
-    //     return std::make_unique<PistonRenderer>();
-    // });
+    // 注册其他渲染器将在各自实现完成后添加
+    // - SignRenderer (告示牌)
+    // - BedRenderer (床)
+    // - BellRenderer (钟)
+    // - BannerRenderer (旗帜)
+    // - ShulkerBoxRenderer (潜影盒)
+    // - ConduitRenderer (潮涌核心)
+    // - LecternRenderer (讲台)
+    // - CampfireRenderer (营火)
+    // - EnchantmentTableRenderer (附魔台)
+    // - EndPortalRenderer (末地传送门)
+    // - EndGatewayRenderer (末地折跃门)
+    // - SkullRenderer (头颅)
+    // - StructureBlockRenderer (结构方块)
+    // - MobSpawnerRenderer (刷怪笼)
 }
 
 BlockEntityRendererBase* BlockEntityRendererDispatcher::getRenderer(BlockEntityType type) {

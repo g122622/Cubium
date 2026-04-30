@@ -15,13 +15,15 @@ ChestRenderer::ChestRenderer()
 bool ChestRenderer::isChristmas() {
     // MC 1.16.5: 12月24-26日使用圣诞节纹理
     const std::time_t now = std::time(nullptr);
-    const std::tm* localTime = std::localtime(&now);
-    if (localTime == nullptr) {
-        return false;
-    }
+    std::tm localTime{};
+#ifdef _WIN32
+    localtime_s(&localTime, &now);
+#else
+    localtime_r(&now, &localTime);
+#endif
 
-    const int month = localTime->tm_mon + 1;  // tm_mon 是 0-11
-    const int day = localTime->tm_mday;
+    const int month = localTime.tm_mon + 1;  // tm_mon 是 0-11
+    const int day = localTime.tm_mday;
 
     return month == 12 && day >= 24 && day <= 26;
 }
@@ -29,9 +31,10 @@ bool ChestRenderer::isChristmas() {
 mc::client::renderer::blockentity::model::ChestModel::ChestType ChestRenderer::determineChestType(
     const mc::blockentity::ChestEntity& entity) const
 {
-    // TODO: 从方块状态获取 ChestType
-    // 目前返回单箱
-    // 需要访问 entity.getBlockState() 并获取 TYPE 属性
+    // MC 1.16.5: 从方块状态获取 ChestType
+    // 需要 entity.getBlockState() 获取 TYPE 属性
+    // ChestType: SINGLE, LEFT, RIGHT
+    // 当前默认返回单箱，完整实现需要 BlockState 访问
     (void)entity;
     return mc::client::renderer::blockentity::model::ChestModel::ChestType::Single;
 }
@@ -57,22 +60,22 @@ void ChestRenderer::render(
     const auto chestType = determineChestType(entity);
     m_model.setChestType(chestType);
 
-    // TODO: 实现完整的渲染流程
-    // 1. 获取箱子方块状态
-    // 2. 确定朝向（FACING 属性）
-    // 3. 应用旋转变换
-    // 4. 根据是否圣诞节选择纹理
-    // 5. 获取双箱时的光照合并
-    // 6. 生成网格并提交到渲染管线
+    // 生成网格数据
+    std::vector<entity::model::ModelVertex> vertices;
+    std::vector<u32> indices;
+    m_model.generateMesh(vertices, indices);
 
-    // 当前占位实现 - 模型已准备好
-    // 需要集成：
-    // - BlockModelCache 获取模型
-    // - MatrixStack 应用变换
-    // - EntityPipeline 提交网格
-    // - 纹理图集获取材质
+    // 后续渲染管线集成步骤：
+    // 1. 获取箱子方块状态确定朝向（FACING 属性）
+    // 2. 应用旋转变换（绕 Y 轴）
+    // 3. 根据是否圣诞节选择纹理
+    // 4. 获取双箱时的光照合并
+    // 5. 提交顶点数据到渲染管线
+    // 注意：完整渲染管线集成需要在 EntityPipeline 或专用 BlockEntityPipeline 中实现
 
-    (void)light;  // 将用于光照计算
+    (void)light;
+    (void)vertices;
+    (void)indices;
 }
 
 } // namespace mc::client::renderer::trident::blockentity
