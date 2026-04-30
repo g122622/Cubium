@@ -97,7 +97,7 @@
 |--------|------|
 | CarvingMaskPlacement | 未使用雕刻掩码，完全随机 |
 | TopSolidPlacement | 应使用高度图而非手动遍历 |
-| 缺失CountExtraPlacement | 树木数量控制 |
+| 缺失CountExtraPlacement | 树木数量控制 | ✅ 已添加
 | 缺失HeightmapPlacement系列 | 高度图放置 |
 
 ### 树叶放置器

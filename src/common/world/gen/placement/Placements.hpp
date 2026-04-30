@@ -36,6 +36,20 @@ struct CountNoiseConfig : public IPlacementConfig {
 };
 
 /**
+ * @brief 地表额外数量放置配置
+ *
+ * 参考 MC AtSurfaceWithExtraConfig
+ */
+struct AtSurfaceWithExtraConfig : public IPlacementConfig {
+    i32 count;          ///< 基础数量
+    f32 extraChance;    ///< 额外数量的概率
+    i32 extraCount;     ///< 额外数量
+
+    AtSurfaceWithExtraConfig(i32 c, f32 chance, i32 extra)
+        : count(c), extraChance(chance), extraCount(extra) {}
+};
+
+/**
  * @brief 深度平均放置配置
  *
  * 在基准深度附近放置特征。
@@ -241,6 +255,23 @@ public:
         const BlockPos& basePos) const override;
 
     [[nodiscard]] const char* name() const override { return "spread"; }
+};
+
+/**
+ * @brief 额外数量放置器
+ *
+ * 基础数量 + 概率额外数量。
+ * 参考 MC CountExtraPlacement
+ */
+class CountExtraPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(
+        WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const override { return "count_extra"; }
 };
 
 } // namespace mc
