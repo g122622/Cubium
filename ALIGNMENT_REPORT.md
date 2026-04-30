@@ -62,6 +62,63 @@
 |------|------|---------|
 | DepthAveragePlacement分布错误 | Placements.cpp | 使用三角形分布nextInt(j)+nextInt(j)-j+i |
 
+### 已添加的方块
+
+| 方块 | 用途 |
+|------|------|
+| SNOW_BLOCK | 冰刺地形生成，IceSpikeFeature检查 |
+
+---
+
+## 待修复问题
+
+### 放置器系统
+
+| 放置器 | 问题 |
+|--------|------|
+| CountNoisePlacement | 需使用Biome.INFO_NOISE而非简单哈希 |
+| CarvingMaskPlacement | 未使用雕刻掩码，完全随机 |
+| TopSolidPlacement | 应使用高度图而非手动遍历 |
+| 缺失CountExtraPlacement | 树木数量控制 |
+| 缺失HeightmapPlacement系列 | 高度图放置 |
+
+### 树叶放置器
+
+| 放置器 | 问题 |
+|--------|------|
+| SpruceFoliagePlacer | 半径递增模式错误，应从顶部向下层叠 |
+| DarkOakFoliagePlacer | 应为多层不同半径，项目为简单球形 |
+| AcaciaFoliagePlacer | 层数和半径计算错误 |
+
+### 树干放置器
+
+| 放置器 | 问题 |
+|--------|------|
+| FancyTrunkPlacer | 弯曲轨迹计算不准确 |
+| DarkOakTrunkPlacer | 缺少角落额外枝干生成 |
+| MegaJungleTrunkPlacer | 缺少三角函数计算的分支 |
+
+### 缺失系统
+
+| 系统 | 描述 |
+|------|------|
+| TreeDecorator | 完全缺失（藤蔓、可可果、蜂巢等）|
+| FeatureSize | 缺失（TwoLayerFeature、ThreeLayerFeature）|
+| BlockStateProvider | 缺失 |
+
+### TODO 注释位置
+
+| 文件 | 行号 | 内容 |
+|------|------|------|
+| SurfaceBuilders.cpp | 217 | 需实现基于位置的温度计算 |
+| SurfaceBuilders.cpp | 478 | 需实现Biome.INFO_NOISE采样 |
+| SurfaceBuilders.cpp | 529 | 需初始化INFO_NOISE噪声生成器 |
+| SurfaceBuilders.cpp | 552 | 需实现完整的冰山生成逻辑 |
+| SurfaceBuilders.cpp | 600 | 需初始化噪声生成器m_noiseA和m_noiseB |
+| SurfaceBuilders.cpp | 695 | 需使用PerlinNoiseGenerator生成陶瓦色带 |
+| SurfaceBuilders.cpp | 840 | 需使用噪声生成器决定表层类型 |
+| SurfaceBuilders.cpp | 884 | 需初始化噪声生成器m_noise |
+
 ---
 
 ## 一、地表构建器问题
