@@ -118,11 +118,12 @@ void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
         return;
     }
 
-    // 检查方块光照
-    // 参考: net.minecraft.block.CocoaBlock#randomTick
-    // MC 中作物需要光照 >= 9 才能生长
-    u8 lightLevel = world.getBlockLight(pos);
-    if (lightLevel < 9) {
+    // 检查光照：MC 1.16.5 使用 getLightSubtracted(pos, 0) >= 9
+    // 这等于 max(blockLight, skyLight) >= 9
+    const BlockPos abovePos = pos.up();
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
+    if (std::max(blockLight, skyLight) < 9) {
         return;
     }
 

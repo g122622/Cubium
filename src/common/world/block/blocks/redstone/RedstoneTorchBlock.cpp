@@ -117,6 +117,16 @@ i32 RedstoneTorchBlock::getWeakPower(
     return world::redstone::RedstonePower::MAX_POWER;
 }
 
+i32 RedstoneTorchBlock::getStrongPower(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Direction side
+) const {
+    // MC Java: 只在向下方向输出强信号（充能下方方块）
+    return side == Direction::Down ? getWeakPower(state, world, pos, side) : 0;
+}
+
 const CollisionShape& RedstoneTorchBlock::getShape(const BlockState& state) const {
     MC_UNUSED(state);
     static const CollisionShape torchShape = CollisionShape::fromPixelBox(7.0f, 0.0f, 7.0f, 9.0f, 10.0f, 9.0f);

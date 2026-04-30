@@ -441,9 +441,114 @@ ActionResultType RedstoneWireBlock::onBlockActivated(
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // MC Java: 右键点击红石线不执行任何操作，让物品（如方块）处理交互
-    // 红石线的连接状态由邻居方块决定，不能手动切换
+    // MC 1.16.5: 右键点击可以在十字连接和点状连接之间切换
+    // 只有当玩家可以编辑时才允许切换
+    // 检查是否是十字连接或点状连接模式
+    bool isCross = isCrossConnection(state);
+    bool isDot = isDotConnection(state);
+
+    if (isCross || isDot) {
+        // 切换模式：十字 -> 点状，点状 -> 十字
+        BlockState newState = isCross ? createDotState(state) : createCrossState(state);
+        newState = calculateConnections(world, pos, newState);
+
+        if (newState != state) {
+            world.setBlockState(pos, &newState, 3);
+
+            // 通知对角邻居更新
+            notifyDiagonalNeighbors(world, pos, state, newState);
+            return ActionResultType::Success;
+        }
+    }
+
     return ActionResultType::Pass;
+}
+
+bool RedstoneWireBlock::isCrossConnection(const BlockState& state) const {
+    // MC 1.16.5: func_235555_m_ - 检查四个方向是否都有连接
+    return state.get(NORTH_PROP()) != RedstoneSide::None &&
+           state.get(SOUTH_PROP()) != RedstoneSide::None &&
+           state.get(EAST_PROP()) != RedstoneSide::None &&
+           state.get(WEST_PROP()) != RedstoneSide::None;
+}
+
+bool RedstoneWireBlock::isDotConnection(const BlockState& state) const {
+    // MC 1.16.5: func_235556_n_ - 检查四个方向是否都没有连接
+    return state.get(NORTH_PROP()) == RedstoneSide::None &&
+           state.get(SOUTH_PROP()) == RedstoneSide::None &&
+           state.get(EAST_PROP()) == RedstoneSide::None &&
+           state.get(WEST_PROP()) == RedstoneSide::None;
+}
+
+BlockState RedstoneWireBlock::createDotState(const BlockState& state) const {
+    // 创建点状连接状态（所有方向都无连接）
+    return state.with(NORTH_PROP(), RedstoneSide::None)
+                .with(SOUTH_PROP(), RedstoneSide::None)
+                .with(EAST_PROP(), RedstoneSide::None)
+                .with(WEST_PROP(), RedstoneSide::None);
+}
+
+BlockState RedstoneWireBlock::createCrossState(const BlockState& state) const {
+    // 创建十字连接状态（所有方向都有 Side 连接）
+    return state.with(NORTH_PROP(), RedstoneSide::Side)
+                .with(SOUTH_PROP(), RedstoneSide::Side)
+                .with(EAST_PROP(), RedstoneSide::Side)
+                .with(WEST_PROP(), RedstoneSide::Side);
+}
+
+void RedstoneWireBlock::notifyDiagonalNeighbors(IWorld& world, const BlockPos& pos,
+                                                  const BlockState& oldState,
+                                                  const BlockState& newState) {
+    // MC 1.16.5: updateDiagonalNeighbors
+    // 当连接状态改变时，通知对角方向的方块更新
+    for (Direction dir : Directions::horizontal()) {
+        RedstoneSide oldConnection = RedstoneSide::None;
+        RedstoneSide newConnection = RedstoneSide::None;
+
+        switch (dir) {
+            case Direction::North:
+                oldConnection = oldState.get(NORTH_PROP());
+                newConnection = newState.get(NORTH_PROP());
+                break;
+            case Direction::South:
+                oldConnection = oldState.get(SOUTH_PROP());
+                newConnection = newState.get(SOUTH_PROP());
+                break;
+            case Direction::East:
+                oldConnection = oldState.get(EAST_PROP());
+                newConnection = newState.get(EAST_PROP());
+                break;
+            case Direction::West:
+                oldConnection = oldState.get(WEST_PROP());
+                newConnection = newState.get(WEST_PROP());
+                break;
+            default:
+                break;
+        }
+
+        // 如果连接状态发生变化，通知对角邻居
+        bool oldIsConnected = (oldConnection != RedstoneSide::None);
+        bool newIsConnected = (newConnection != RedstoneSide::None);
+
+        if (oldIsConnected != newIsConnected) {
+            BlockPos neighborPos = pos.offset(dir);
+
+            // 通知对角方向的方块
+            BlockPos diagDownPos = neighborPos.down();
+            const BlockState* diagDownState = world.getBlockState(diagDownPos);
+            if (diagDownState && !diagDownState->isAir()) {
+                Block& diagBlock = const_cast<Block&>(diagDownState->getBlock());
+                diagBlock.neighborChanged(world, diagDownPos, *this, pos, false);
+            }
+
+            BlockPos diagUpPos = neighborPos.up();
+            const BlockState* diagUpState = world.getBlockState(diagUpPos);
+            if (diagUpState && !diagUpState->isAir()) {
+                Block& diagBlock = const_cast<Block&>(diagUpState->getBlock());
+                diagBlock.neighborChanged(world, diagUpPos, *this, pos, false);
+            }
+        }
+    }
 }
 
 } // namespace blocks

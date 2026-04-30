@@ -38,10 +38,21 @@ BlockState ObserverBlock::withPowered(BlockState state, bool powered) {
 }
 
 void ObserverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    // 侦测器放置时不立即触发
+    // MC 1.16.5: 放置时如果状态是激活的，需要先设置为非激活状态
+    // 这通常不应该发生，因为默认状态是非激活的
+    if (isPowered(state)) {
+        // 如果已经有tick调度，需要先取消
+        BlockState unpoweredState = withPowered(state, false);
+        world.setBlockState(pos, &unpoweredState, 18);
+        updateNeighborsInFront(world, pos, unpoweredState);
+    }
+}
+
+void ObserverBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // MC 1.16.5: 移除时如果正在输出且有tick调度，需要通知邻居
+    if (isPowered(state)) {
+        updateNeighborsInFront(world, pos, state.with(BlockStateProperties::POWERED(), false));
+    }
 }
 
 void ObserverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
@@ -98,28 +109,41 @@ void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) 
         // 脉冲结束，停止输出
         BlockState newState = withPowered(state, false);
         world.setBlockState(pos, &newState, 2);
-
-        // 通知输出端相邻方块更新
-        Direction facing = getFacing(state);
-        BlockPos outputPos = pos.offset(facing);
-        const BlockState* outputState = world.getBlockState(outputPos);
-        if (outputState && !outputState->isAir()) {
-            Block& outputBlock = const_cast<Block&>(outputState->getBlock());
-            outputBlock.neighborChanged(world, outputPos, *this, pos, false);
-        }
     } else {
         // 激活并调度熄灭
         BlockState newState = withPowered(state, true);
         world.setBlockState(pos, &newState, 2);
         world.scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
+    }
 
-        // 通知输出端相邻方块更新
-        Direction facing = getFacing(state);
-        BlockPos outputPos = pos.offset(facing);
-        const BlockState* outputState = world.getBlockState(outputPos);
-        if (outputState && !outputState->isAir()) {
-            Block& outputBlock = const_cast<Block&>(outputState->getBlock());
-            outputBlock.neighborChanged(world, outputPos, *this, pos, false);
+    // 无论激活还是熄灭，都需要通知前方的邻居更新
+    updateNeighborsInFront(world, pos, isPowered(state) ? state : withPowered(state, true));
+}
+
+void ObserverBlock::updateNeighborsInFront(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // MC Java: updateNeighborsInFront
+    // 通知观察面背面的方块（即侦测器指向的反方向）更新
+    Direction facing = getFacing(state);
+    Direction observeDir = Directions::opposite(facing);
+    BlockPos observePos = pos.offset(observeDir);
+
+    // 先通知观察面的方块
+    const BlockState* observeState = world.getBlockState(observePos);
+    if (observeState && !observeState->isAir()) {
+        Block& observeBlock = const_cast<Block&>(observeState->getBlock());
+        observeBlock.neighborChanged(world, observePos, *this, pos, false);
+    }
+
+    // 然后通知观察面周围的其他邻居（除了侦测器本身）
+    // MC Java: worldIn.notifyNeighborsOfStateExcept(blockpos, this, direction);
+    for (Direction dir : Directions::all()) {
+        if (dir == facing) continue;  // 跳过侦测器输出方向
+
+        BlockPos neighborPos = observePos.offset(dir);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState && !neighborState->isAir()) {
+            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            neighborBlock.neighborChanged(world, neighborPos, *this, observePos, false);
         }
     }
 }

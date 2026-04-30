@@ -203,6 +203,40 @@ private:
      */
     void notifyWireNeighbors(IWorld& world, const BlockPos& pos);
 
+    /**
+     * @brief 检查是否是十字连接（四个方向都有连接）
+     *
+     * MC Java: func_235555_m_
+     */
+    [[nodiscard]] bool isCrossConnection(const BlockState& state) const;
+
+    /**
+     * @brief 检查是否是点状连接（四个方向都没有连接）
+     *
+     * MC Java: func_235556_n_
+     */
+    [[nodiscard]] bool isDotConnection(const BlockState& state) const;
+
+    /**
+     * @brief 创建点状连接状态（所有方向都无连接）
+     */
+    [[nodiscard]] BlockState createDotState(const BlockState& state) const;
+
+    /**
+     * @brief 创建十字连接状态（所有方向都有 Side 连接）
+     */
+    [[nodiscard]] BlockState createCrossState(const BlockState& state) const;
+
+    /**
+     * @brief 通知对角方向的方块更新
+     *
+     * MC Java: updateDiagonalNeighbors
+     * 当连接状态改变时，通知对角方向的方块更新。
+     */
+    void notifyDiagonalNeighbors(IWorld& world, const BlockPos& pos,
+                                  const BlockState& oldState,
+                                  const BlockState& newState);
+
     /// 临时变量：防止递归调用时检测自己的信号输出
     mutable bool m_canProvidePower = true;
 };

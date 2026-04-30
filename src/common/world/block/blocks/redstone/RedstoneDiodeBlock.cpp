@@ -38,8 +38,13 @@ bool RedstoneDiodeBlock::isPowered(const BlockState& state) {
 }
 
 void RedstoneDiodeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    // 检查初始状态
-    updateState(world, pos, state);
+    // MC Java: 放置时通知邻居更新
+    notifyNeighbors(world, pos, state);
+}
+
+void RedstoneDiodeBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // MC Java: 移除时通知邻居更新
+    notifyNeighbors(world, pos, state);
 }
 
 void RedstoneDiodeBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
@@ -121,6 +126,16 @@ i32 RedstoneDiodeBlock::getWeakPower(
     }
 
     return 0;
+}
+
+i32 RedstoneDiodeBlock::getStrongPower(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Direction side
+) const {
+    // MC Java: 二极管输出强信号，可以充能方块
+    return getWeakPower(state, world, pos, side);
 }
 
 const CollisionShape& RedstoneDiodeBlock::getShape(const BlockState& state) const {
@@ -254,6 +269,33 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
     // 即：输出端的二极管朝向不能是自己的反方向
     Direction outputFacing = getFacing(*outputState);
     return outputFacing != Directions::opposite(facing);
+}
+
+void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // MC Java: notifyNeighbors
+    // 通知输入端周围的方块更新
+    Direction facing = getFacing(state);
+    Direction inputDir = Directions::opposite(facing);
+    BlockPos inputPos = pos.offset(inputDir);
+
+    // 先通知输入端的方块
+    const BlockState* inputState = world.getBlockState(inputPos);
+    if (inputState && !inputState->isAir()) {
+        Block& inputBlock = const_cast<Block&>(inputState->getBlock());
+        inputBlock.neighborChanged(world, inputPos, *this, pos, false);
+    }
+
+    // 然后通知输入端周围的其他邻居（除了二极管本身）
+    for (Direction dir : Directions::all()) {
+        if (dir == facing) continue;  // 跳过输出方向
+
+        BlockPos neighborPos = inputPos.offset(dir);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState && !neighborState->isAir()) {
+            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            neighborBlock.neighborChanged(world, neighborPos, *this, inputPos, false);
+        }
+    }
 }
 
 } // namespace blocks

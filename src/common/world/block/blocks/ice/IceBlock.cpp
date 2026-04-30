@@ -4,6 +4,9 @@
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../tick/base/TickPriority.hpp"
 
 namespace mc {
 namespace blocks {
@@ -151,29 +154,110 @@ BlueIceBlock::BlueIceBlock(BlockProperties properties)
 FrostedIceBlock::FrostedIceBlock(BlockProperties properties)
     : Block(std::move(properties))
 {
-    // 霜冰的摩擦力与普通冰相同
+    // 创建状态容器，添加 AGE 属性
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(AGE_PROP())
+        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+
+    // 设置默认状态
+    setDefaultState(defaultState().with(AGE_PROP(), 0));
 }
 
-void FrostedIceBlock::randomTick(
-    IWorld& world,
-    const BlockPos& pos,
-    BlockState& state,
-    math::IRandom& random
-) {
-    MC_UNUSED(state);
+void FrostedIceBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // MC 1.16.5: 放置时调度 tick
+    world.scheduleBlockTick(pos, *this, math::Random(world.seed() ^ pos.toId()).nextInt(20, 40), world::tick::TickPriority::Normal);
+}
 
-    // 霜冰在光源附近融化更快
+void FrostedIceBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
+                                       const BlockPos& neighborPos, bool isMoving) {
+    MC_UNUSED(neighborPos);
+    MC_UNUSED(isMoving);
+
+    // MC 1.16.5: 如果邻居是霜冰且应该融化，则融化
+    const BlockState* state = world.getBlockState(pos);
+    if (state && state->is(this)) {
+        IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+        if (shouldMelt(blockReader, pos, 2)) {
+            meltIce(world, pos);
+        }
+    }
+
+    Block::neighborChanged(world, pos, neighborBlock, neighborPos, isMoving);
+}
+
+void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+    math::Random random(world.seed() ^ pos.toId());
+
+    // MC 1.16.5: 检查是否应该融化
+    IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+    i32 age = getAge(state);
+
+    // 光照检查：光照 > 11 - age - opacity
     u8 blockLight = world.getBlockLight(pos);
     u8 skyLight = world.getSkyLight(pos);
     i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
+    // 霜冰的不透明度通常是 2-3
+    i32 opacity = state.getOpacity();
 
-    // 光照等级越高，融化概率越大
-    if (lightLevel >= MELT_LIGHT_LEVEL) {
-        // 更高的光照 = 更快的融化
-        i32 divisor = std::max(1, MELT_PROBABILITY_DIVISOR - (lightLevel - MELT_LIGHT_LEVEL) * 5);
-        if (random.nextInt(divisor) == 0) {
-            meltIce(world, pos);
+    bool shouldMeltNow = (random.nextInt(3) == 0 || shouldMelt(blockReader, pos, 4)) &&
+                          lightLevel > 11 - age - opacity;
+
+    if (shouldMeltNow && slightlyMelt(world, pos, state)) {
+        // 完全融化，通知相邻霜冰检查
+        for (Direction dir : Directions::all()) {
+            BlockPos neighborPos = pos.offset(dir);
+            const BlockState* neighborState = world.getBlockState(neighborPos);
+            if (neighborState && neighborState->is(this)) {
+                // 调度相邻霜冰的 tick
+                world.scheduleBlockTick(neighborPos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+            }
         }
+    } else {
+        // 继续调度下一次 tick
+        world.scheduleBlockTick(pos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+    }
+}
+
+void FrostedIceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
+    // MC 1.16.5: randomTick 也调用 tick
+    tick(world, pos, state);
+}
+
+bool FrostedIceBlock::shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const {
+    // MC 1.16.5: 检查周围霜冰邻居数量
+    // 如果霜冰邻居数量 >= neighborsRequired，则不应该融化
+    i32 frostNeighborCount = 0;
+
+    for (Direction dir : Directions::all()) {
+        BlockPos neighborPos = pos.offset(dir);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState && neighborState->is(this)) {
+            ++frostNeighborCount;
+            if (frostNeighborCount >= neighborsRequired) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool FrostedIceBlock::slightlyMelt(IWorld& world, const BlockPos& pos, BlockState& state) {
+    i32 age = getAge(state);
+
+    if (age < 3) {
+        // 增加 AGE
+        BlockState newState = state.with(AGE_PROP(), age + 1);
+        world.setBlockState(pos, &newState, 2);
+        return false;
+    } else {
+        // 完全融化成水
+        meltIce(world, pos);
+        return true;
     }
 }
 

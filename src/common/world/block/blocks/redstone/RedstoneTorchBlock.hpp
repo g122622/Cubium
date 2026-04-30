@@ -58,6 +58,25 @@ public:
         Direction side
     ) const override;
 
+    /**
+     * @brief 获取强信号强度
+     *
+     * MC Java: 红石火把只在向下方向输出强信号。
+     * 这使得红石火把可以充能其下方的方块。
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param side 方向
+     * @return i32 强信号强度
+     */
+    [[nodiscard]] i32 getStrongPower(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side
+    ) const override;
+
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     // ========== 红石火把特有方法 ==========

@@ -37,6 +37,8 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
     [[nodiscard]] BlockState updatePostPlacement(
         const BlockState& state, Direction facing,
         const BlockState& facingState, IWorld& world,
@@ -53,6 +55,24 @@ public:
     }
 
     [[nodiscard]] i32 getWeakPower(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side
+    ) const override;
+
+    /**
+     * @brief 获取强信号强度
+     *
+     * MC Java: 二极管输出的是强信号，可以充能方块。
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param side 方向
+     * @return i32 强信号强度
+     */
+    [[nodiscard]] i32 getStrongPower(
         const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
@@ -166,6 +186,18 @@ protected:
      * @param state 当前方块状态
      */
     void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 通知邻居方块更新
+     *
+     * MC Java: notifyNeighbors
+     * 当二极管放置或移除时，需要通知输入端周围的方块更新。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 检查是否朝向另一个二极管

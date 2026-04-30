@@ -38,6 +38,8 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
     void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
                         const BlockPos& neighborPos, bool isMoving) override;
 
@@ -99,6 +101,19 @@ public:
 
     /// 检测延迟（tick）- MC 1.16.5: 观察->输出需要1 tick延迟
     static constexpr i32 DETECT_DELAY = 1;
+
+private:
+    /**
+     * @brief 通知侦测器前方的邻居方块更新
+     *
+     * MC Java: updateNeighborsInFront
+     * 当侦测器状态改变时，需要通知前方（观察面背面的方块）更新。
+     *
+     * @param world 世界引用
+     * @param pos 侦测器位置
+     * @param state 侦测器状态
+     */
+    void updateNeighborsInFront(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks
