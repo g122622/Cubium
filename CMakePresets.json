@@ -25,6 +25,19 @@
       }
     },
     {
+      "name": "macos-base",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "arm64-osx"
+      }
+    },
+    {
       "name": "windows-debug",
       "displayName": "Windows Debug",
       "inherits": "windows-base",
@@ -40,6 +53,30 @@
       "name": "windows-release",
       "displayName": "Windows Release",
       "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MC_BUILD_CLIENT": "ON",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "OFF",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "macOS Debug",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "MC_BUILD_CLIENT": "ON",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS Release",
+      "inherits": "macos-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "MC_BUILD_CLIENT": "ON",
@@ -81,12 +118,29 @@
       "name": "windows-release",
       "configurePreset": "windows-release",
       "configuration": "Release"
+    },
+    {
+      "name": "macos-debug",
+      "configurePreset": "macos-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos-release",
+      "configurePreset": "macos-release",
+      "configuration": "Release"
     }
   ],
   "testPresets": [
     {
       "name": "windows-debug",
       "configurePreset": "windows-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "macos-debug",
+      "configurePreset": "macos-debug",
       "output": {
         "outputOnFailure": true
       }

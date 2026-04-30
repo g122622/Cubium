@@ -1,5 +1,17 @@
 cmake_minimum_required(VERSION 3.26)
 
+# vcpkg 集成（必须在 project() 之前）
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+elseif(EXISTS "D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+elseif(EXISTS "$ENV{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake" AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+endif()
+
 # 项目定义
 project(MinecraftReborn
     VERSION 0.1.0
@@ -19,14 +31,19 @@ option(MC_BUILD_TESTS "Build unit tests" ON)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing (default OFF)" OFF)
+option(MC_ENABLE_CCACHE "Enable ccache for faster rebuilds" ON)
 
-# vcpkg集成
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        CACHE STRING "Vcpkg toolchain file")
-elseif(EXISTS "D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        CACHE STRING "Vcpkg toolchain file")
+# ccache 配置（仅 Unix 平台：Linux/macOS）
+if(MC_ENABLE_CCACHE AND UNIX)
+    find_program(CCACHE_PROGRAM ccache)
+    if(CCACHE_PROGRAM)
+        message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+        set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+        set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    else()
+        message(STATUS "ccache not found, building without ccache")
+    endif()
 endif()
 
 if(DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -81,7 +98,7 @@ else()
     add_compile_options(-fno-trapping-math)
     # 链接器选项，移除所有未引用的函数和数据
     add_link_options(-Wl)
-    
+
 endif()
 
 if(WIN32)
@@ -133,5 +150,14 @@ message(STATUS "  Build Tests:    ${MC_BUILD_TESTS}")
 message(STATUS "  Sanitizers:     ${MC_ENABLE_SANITIZERS}")
 message(STATUS "  Vulkan Val:     ${MC_ENABLE_VULKAN_VALIDATION}")
 message(STATUS "  Tracing:        ${MC_ENABLE_TRACING}")
+if(MC_ENABLE_CCACHE AND UNIX AND CCACHE_PROGRAM)
+    message(STATUS "  ccache:         Enabled (${CCACHE_PROGRAM})")
+elseif(MC_ENABLE_CCACHE AND UNIX)
+    message(STATUS "  ccache:         Not found")
+elseif(MC_ENABLE_CCACHE)
+    message(STATUS "  ccache:         Skipped (Unix only)")
+else()
+    message(STATUS "  ccache:         Disabled")
+endif()
 message(STATUS "======================================")
 message(STATUS "")
