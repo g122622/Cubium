@@ -109,18 +109,59 @@ Entity* CombatTracker::getLastAttacker() const {
 }
 
 Entity* CombatTracker::getBestAttacker() const {
-    CombatEntry* bestEntry = const_cast<CombatTracker*>(this)->getBestCombatEntry();
-    if (!bestEntry || !bestEntry->source()) {
-        return nullptr;
+    // MC 1.16.5 CombatTracker.getBestAttacker()
+    // 找到造成最多伤害的生物和玩家
+    // 只有当玩家伤害 >= 生物总伤害的 1/3 时才返回玩家
+
+    LivingEntity* bestMob = nullptr;
+    LivingEntity* bestPlayer = nullptr;
+    f32 mobDamage = 0.0f;
+    f32 playerDamage = 0.0f;
+
+    for (const auto& entry : m_entries) {
+        if (!entry.source()) continue;
+
+        Entity* trueSource = entry.source()->getTrueSource();
+        if (!trueSource) continue;
+
+        LivingEntity* livingSource = dynamic_cast<LivingEntity*>(trueSource);
+        if (!livingSource) continue;
+
+        // 使用 getDamageAmount() 而不是 damage()
+        // 因为虚空伤害返回 Float.MAX_VALUE
+        f32 damage = entry.getDamageAmount();
+
+        if (entry.source()->isPlayerSource()) {
+            // 玩家来源
+            if (damage > playerDamage) {
+                playerDamage = damage;
+                bestPlayer = livingSource;
+            }
+        } else {
+            // 其他生物来源
+            if (damage > mobDamage) {
+                mobDamage = damage;
+                bestMob = livingSource;
+            }
+        }
     }
-    return bestEntry->source()->getEntity();
+
+    // MC 1.16.5: 只有当玩家伤害 >= 生物总伤害的 1/3 时才返回玩家
+    // return livingentity1 != null && f1 >= f / 3.0F ? livingentity1 : livingentity;
+    if (bestPlayer != nullptr && playerDamage >= mobDamage / 3.0f) {
+        return bestPlayer;
+    }
+
+    return bestMob;
 }
 
 LivingEntity* CombatTracker::getBestAttackerLiving() const {
+    // 直接调用 getBestAttacker() 并转换为 LivingEntity
     Entity* attacker = getBestAttacker();
     if (!attacker) {
         return nullptr;
     }
+    // getBestAttacker() 只返回 LivingEntity，所以这个转换应该成功
     return dynamic_cast<LivingEntity*>(attacker);
 }
 
@@ -272,39 +313,52 @@ void CombatTracker::updateBestEntry() {
 }
 
 CombatEntry* CombatTracker::getBestCombatEntry() {
+    // MC 1.16.5 CombatTracker.getBestCombatEntry()
+    // 找到最佳战斗条目，用于摔落组合死亡消息
+
     if (m_entries.empty()) {
         return nullptr;
     }
 
-    // MC 1.16.5: 优先选择玩家造成的伤害
-    CombatEntry* bestPlayerEntry = nullptr;
-    f32 maxPlayerDamage = 0.0f;
+    // 从后往前找摔落或虚空伤害
+    for (auto it = m_entries.rbegin(); it != m_entries.rend(); ++it) {
+        const DamageSource* source = it->source();
+        if (!source) continue;
 
-    CombatEntry* bestMobEntry = nullptr;
-    f32 maxMobDamage = 0.0f;
+        // 检查是否是摔落或虚空伤害
+        bool isFallOrVoid = source->isFall() || source->type() == DamageType::OutOfWorld;
 
-    for (auto& entry : m_entries) {
-        if (!entry.source()) continue;
+        if (isFallOrVoid) {
+            // 找到了摔落/虚空伤害，现在往前找攻击条目
+            f32 fallDamage = it->getDamageAmount();
 
-        if (entry.source()->isPlayerSource()) {
-            if (entry.damage() > maxPlayerDamage) {
-                maxPlayerDamage = entry.damage();
-                bestPlayerEntry = &entry;
+            // 如果摔落伤害 > 5.0，找之前的攻击条目
+            if (fallDamage > 5.0f) {
+                // 从当前条目往前找实体攻击
+                for (auto prevIt = std::next(it); prevIt != m_entries.rend(); ++prevIt) {
+                    const DamageSource* prevSource = prevIt->source();
+                    if (prevSource && prevSource->isEntitySource()) {
+                        return &(*prevIt);
+                    }
+                }
             }
-        } else if (entry.source()->isEntitySource()) {
-            if (entry.damage() > maxMobDamage) {
-                maxMobDamage = entry.damage();
-                bestMobEntry = &entry;
+
+            // 如果有 fallSuffix 且伤害 > 5.0F，返回这个条目
+            if (!it->fallSuffix().empty() && fallDamage > 5.0f) {
+                return &(*it);
             }
         }
     }
 
-    // 优先返回玩家
-    if (bestPlayerEntry) {
-        return bestPlayerEntry;
+    // 没有找到摔落/虚空伤害，返回最后的实体攻击条目
+    for (auto it = m_entries.rbegin(); it != m_entries.rend(); ++it) {
+        const DamageSource* source = it->source();
+        if (source && source->isEntitySource()) {
+            return &(*it);
+        }
     }
 
-    return bestMobEntry;
+    return nullptr;
 }
 
 } // namespace mc

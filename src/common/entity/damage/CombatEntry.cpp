@@ -4,6 +4,7 @@
  */
 
 #include "CombatEntry.hpp"
+#include "../core/LivingEntity.hpp"
 #include <cmath>
 #include <limits>
 
@@ -21,7 +22,13 @@ CombatEntry::CombatEntry(std::unique_ptr<DamageSource> source, f32 damage, i32 t
 }
 
 bool CombatEntry::isLivingSource() const {
-    return m_source && m_source->isEntitySource();
+    // MC 1.16.5: return this.damageSrc.getTrueSource() instanceof LivingEntity;
+    // 检查真正的伤害来源是否是 LivingEntity
+    if (!m_source) {
+        return false;
+    }
+    Entity* trueSource = m_source->getTrueSource();
+    return trueSource != nullptr && dynamic_cast<LivingEntity*>(trueSource) != nullptr;
 }
 
 bool CombatEntry::isPlayerSource() const {
@@ -29,11 +36,14 @@ bool CombatEntry::isPlayerSource() const {
 }
 
 f32 CombatEntry::getDamageAmount() const {
-    // 虚空伤害返回最大值
+    // MC 1.16.5 CombatEntry.getDamageAmount():
+    // return this.damageSrc == DamageSource.OUT_OF_WORLD ? Float.MAX_VALUE : this.fallDistance;
+    // 注意：这里返回的是 fallDistance，不是 damage！
+    // 这个值用于计算摔落伤害与攻击伤害的关系
     if (m_source && m_source->type() == DamageType::OutOfWorld) {
         return std::numeric_limits<f32>::max();
     }
-    return m_damage;
+    return m_fallDistance;
 }
 
 } // namespace mc

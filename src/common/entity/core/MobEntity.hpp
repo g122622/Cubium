@@ -268,6 +268,24 @@ public:
      */
     void setExperienceValue(i32 value) { m_experienceValue = value; }
 
+    // ========== 攻击 ==========
+
+    /**
+     * @brief 作为生物攻击实体
+     *
+     * MC 1.16.5 MobEntity.attackEntityAsMob()
+     * 执行近战攻击，包括：
+     * 1. 获取攻击伤害属性
+     * 2. 应用附魔伤害加成（锋利、亡灵杀手、节肢杀手）
+     * 3. 应用击退
+     * 4. 应用火焰附加
+     * 5. 设置最后攻击者
+     *
+     * @param target 目标实体（必须是 LivingEntity）
+     * @return 是否攻击成功
+     */
+    virtual bool attackEntityAsMob(LivingEntity& target);
+
     // ========== 掉落 ==========
 
     /**

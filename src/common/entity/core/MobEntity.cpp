@@ -6,7 +6,12 @@
 #include "../ai/pathfinding/PathNavigator.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
 #include "../attribute/Attributes.hpp"
+#include "../damage/DamageSource.hpp"
+#include "../../item/core/ItemStack.hpp"
+#include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../util/math/random/Random.hpp"
+#include "../../util/math/MathUtils.hpp"
 
 namespace mc {
 
@@ -193,6 +198,119 @@ void MobEntity::dropExperience() {
             m_world, x(), y(), z(), m_experienceValue, &rng
         );
     }
+}
+
+bool MobEntity::attackEntityAsMob(LivingEntity& target) {
+    // MC 1.16.5 MobEntity.attackEntityAsMob()
+
+    // 1. 获取攻击伤害属性
+    f32 attackDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
+
+    // 2. 获取击退强度属性
+    f32 knockbackStrength = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 0.0));
+
+    // 3. 如果目标有武器，应用附魔伤害加成和击退附魔
+    // 获取主手武器
+    const ItemStack& mainHand = getMainHandItem();
+
+    if (!mainHand.isEmpty()) {
+        // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
+        // 需要知道目标的生物类型（亡灵、节肢动物等）
+        // TODO: 实现 getCreatureAttribute()
+        // attackDamage += EnchantmentHelper.getModifierForCreature(mainHand, target.getCreatureAttribute());
+
+        // 锋利附魔（对所有生物有效）
+        i32 sharpnessLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+            mainHand, &item::enchant::AllEnchantments::SHARPNESS);
+        if (sharpnessLevel > 0) {
+            // MC 1.16.5: 锋利 I = 0.5 + level * 0.5
+            attackDamage += 0.5f + static_cast<f32>(sharpnessLevel) * 0.5f;
+        }
+
+        // 击退附魔
+        i32 knockbackLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+            mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
+        if (knockbackLevel > 0) {
+            knockbackStrength += static_cast<f32>(knockbackLevel) * 0.5f;
+        }
+    }
+
+    // 4. 火焰附加（在攻击前应用，MC 1.16.5 逻辑）
+    i32 fireAspectLevel = 0;
+    if (!mainHand.isEmpty()) {
+        fireAspectLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+            mainHand, &item::enchant::AllEnchantments::FIRE_ASPECT);
+    }
+
+    // 5. 创建伤害来源并应用伤害
+    EntityDamageSource damageSource = DamageSources::mobAttack(this);
+
+    // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
+    if (fireAspectLevel > 0) {
+        target.setFire(1);  // 1 秒 = 20 ticks
+    }
+
+    bool attacked = target.hurt(damageSource, attackDamage);
+
+    if (attacked) {
+        // 6. 应用击退
+        if (knockbackStrength > 0.0f) {
+            // 计算击退方向
+            f64 ratioX = static_cast<f64>(position().x - target.position().x);
+            f64 ratioZ = static_cast<f64>(position().z - target.position().z);
+
+            // 归一化方向向量
+            f64 length = std::sqrt(ratioX * ratioX + ratioZ * ratioZ);
+            if (length > 0.0) {
+                ratioX /= length;
+                ratioZ /= length;
+
+                // 击退受击退抗性影响
+                knockbackStrength = static_cast<f32>(static_cast<f64>(knockbackStrength) *
+                    (1.0 - target.getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));
+
+                if (knockbackStrength > 0.0f) {
+                    // MC 1.16.5 LivingEntity.applyKnockback()
+                    Vector3 velocity = target.velocity();
+
+                    f64 knockbackX = ratioX * static_cast<f64>(knockbackStrength);
+                    f64 knockbackZ = ratioZ * static_cast<f64>(knockbackStrength);
+
+                    f64 newVelocityY;
+                    if (target.onGround()) {
+                        newVelocityY = std::min(0.4, static_cast<f64>(velocity.y) / 2.0 + static_cast<f64>(knockbackStrength));
+                    } else {
+                        newVelocityY = static_cast<f64>(velocity.y);
+                    }
+
+                    target.setVelocity(
+                        static_cast<f32>(static_cast<f64>(velocity.x) / 2.0 - knockbackX),
+                        static_cast<f32>(newVelocityY),
+                        static_cast<f32>(static_cast<f64>(velocity.z) / 2.0 - knockbackZ)
+                    );
+                    target.setOnGround(false);
+                }
+            }
+        }
+
+        // 7. 应用火焰附加（攻击后应用完整燃烧时间）
+        if (fireAspectLevel > 0) {
+            // MC 1.16.5: 火焰附加持续时间 = level * 4 秒
+            target.setFire(fireAspectLevel * 4 * 20);  // 20 ticks per second
+        }
+
+        // 8. 设置最后攻击者
+        target.setLastHurtBy(this);
+
+        // 9. 播放攻击声音
+        playAttackSound(target);
+
+        // 10. 设置攻击者的速度（击退反作用）
+        // MC 1.16.5: this.setMotion(this.getMotion().mul(0.6D, 1.0D, 0.6D));
+        setVelocity(velocity().x * 0.6f, velocity().y, velocity().z * 0.6f);
+    }
+
+    return attacked;
 }
 
 } // namespace mc

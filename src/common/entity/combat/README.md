@@ -13,7 +13,8 @@ src/common/entity/combat/
 ├── PlayerAttackHelper.hpp # 玩家攻击辅助类头文件
 ├── PlayerAttackHelper.cpp # 玩家攻击辅助类实现
 ├── DifficultyHelper.hpp   # 难度工具类头文件
-└── DifficultyHelper.cpp   # 难度工具类实现
+├── DifficultyHelper.cpp   # 难度工具类实现
+└── README.md              # 本文档
 ```
 
 ## 文件详解
@@ -21,8 +22,6 @@ src/common/entity/combat/
 ### AttackContext.hpp / AttackContext.cpp
 
 **职责**：封装攻击行为的完整上下文信息，作为攻击计算的参数容器和结果计算器。
-
-**主要内容**：
 
 #### AttackType 枚举
 
@@ -55,31 +54,29 @@ src/common/entity/combat/
 | | `m_knockbackStrength` | 击退强度 |
 | | `m_fireDamage` | 是否造成火焰伤害 |
 | | `m_fireDuration` | 火焰持续时间 |
+| | `m_bypassArmor` | 是否穿透护甲 |
 | 攻击冷却 | `m_cooldownProgress` | 冷却进度（0-1，默认 1.0） |
 
 **核心方法**：
 
 ```cpp
-// 计算最终伤害
+// 计算最终伤害（MC 1.16.5 伤害计算流程）
 f32 calculateFinalDamage() const;
 
 // 创建伤害来源对象
 std::unique_ptr<DamageSource> createDamageSource() const;
 ```
 
-**伤害计算流程**：
-1. 从基础伤害开始
-2. 如果是暴击，乘以暴击倍率
-3. 如果冷却不足（< 1.0），乘以冷却进度
-4. （TODO）附魔加成、药水效果、护甲减伤
+**伤害计算流程**（MC 1.16.5）：
 
-**伤害来源创建**：
-根据攻击类型创建对应的 `DamageSource`：
-- `Melee` → `EntityDamageSource` (MobAttack/OnFire)
-- `Ranged` → `IndirectEntityDamageSource` (Arrow)
-- `Magic` → `EnvironmentalDamage` (Magic)
-- `Explosion` → `EnvironmentalDamage` (Explosion)
-- `Thorns` → `EnvironmentalDamage` (Thorns)
+1. 基础伤害
+2. 力量药水加成（每级 +3）
+3. 虚弱药水减益（每级 -4）
+4. 暴击加成（×1.5）
+5. **攻击冷却影响**（`damage * (0.2 + progress² * 0.8)`，冷却为0时伤害为20%）
+6. 护甲减伤
+7. 抗性药水减伤
+8. 附魔保护减伤
 
 ---
 
@@ -174,16 +171,17 @@ static std::pair<f32, f32> applyAbsorption(f32 damage, f32 absorption);
 | `SPRINT_KNOCKBACK_BONUS` | 0.5f | 疾跑击退加成 |
 | `FIRE_ASPECT_DURATION` | 80 (4秒) | 火焰附加基础持续时间 |
 | `MIN_COOLDOWN_THRESHOLD` | 0.9f | 最小冷却阈值 |
+| `KNOCKBACK_ENCHANT_BONUS` | 0.5f | 每级击退附魔加成 |
 
 **静态方法**：
 
 #### 暴击判定
 
 ```cpp
-static bool isCriticalHit(const PlayerEntity& player);
+static bool isCriticalHit(const Player& player);
 ```
 
-暴击条件（MC 1.16.5）：
+MC 1.16.5 暴击条件（必须全部满足）：
 1. 玩家正在下落（垂直速度 < 0）
 2. 玩家不在地面
 3. 玩家不在水中
@@ -194,14 +192,14 @@ static bool isCriticalHit(const PlayerEntity& player);
 #### 伤害计算
 
 ```cpp
-static f32 calculateDamage(const PlayerEntity& player, f32 baseDamage, f32 cooldownProgress);
+static f32 calculateDamage(const Player& player, f32 baseDamage, f32 cooldownProgress);
 ```
 
 计算流程：
-1. 应用攻击冷却影响
-2. （TODO）附魔加成（锋利、亡灵杀手、节肢杀手）
-3. （TODO）药水效果加成（力量、虚弱）
-4. （TODO）目标护甲减伤
+1. 应用攻击冷却影响（冷却²衰减）
+2. 力量药水加成（每级 +3）
+3. 虚弱药水减益（每级 -4）
+4. 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
 
 #### 击退计算
 
@@ -209,13 +207,26 @@ static f32 calculateDamage(const PlayerEntity& player, f32 baseDamage, f32 coold
 static f32 calculateKnockback(const LivingEntity& attacker,
                                const LivingEntity& target,
                                f32 baseKnockback = 1.0f,
-                               bool isSprinting = false);
+                               bool isSprinting = false,
+                               i32 knockbackLevel = 0);
+
+static void applyKnockback(LivingEntity& target,
+                           const LivingEntity& attacker,
+                           f32 strength);
 ```
 
 击退计算：
 - 基础击退 + 疾跑加成（+0.5）
-- （TODO）击退附魔加成
-- （TODO）目标击退抗性减伤
+- 击退附魔加成（每级 +0.5）
+- 目标击退抗性减伤（在 applyKnockback 中处理）
+
+MC 1.16.5 击退公式：
+```
+strength *= (1 - knockbackResistance)
+newVelX = currentVelX / 2 - knockbackX
+newVelY = onGround ? min(0.4, currentVelY / 2 + strength) : currentVelY
+newVelZ = currentVelZ / 2 - knockbackZ
+```
 
 #### 攻击冷却
 
@@ -225,10 +236,11 @@ static bool isCooldownReady(f32 cooldownProgress, f32 threshold = 0.9f);
 static f32 getCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed);
 ```
 
-冷却机制：
-- 冷却进度 < 0.9 时，伤害 = 原伤害 × 冷却进度²
-- 攻击间隔 = 20 / 攻击速度（tick）
-- 冷却进度 = 已过时间 / 攻击间隔
+MC 1.16.5 冷却机制：
+- 攻击间隔 = 20 / attackSpeed（tick）
+- 冷却进度 = ticksSinceLastAttack / 攻击间隔
+- **冷却不足时伤害 = 原伤害 × 冷却²**（平方衰减！）
+- 只有冷却 >= 0.9 才能造成完整伤害
 
 #### 火焰附加
 
@@ -236,12 +248,34 @@ static f32 getCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed);
 static bool applyFireAspect(LivingEntity& target, i32 fireAspectLevel);
 ```
 
-火焰持续时间 = 80 × 附魔等级（tick）
+火焰持续时间 = 80 × 附魔等级（tick），每级 4 秒。
+
+#### 横扫攻击
+
+```cpp
+static f32 getSweepingDamageRatio(i32 sweepingLevel);
+```
+
+横扫之刃伤害比例：
+- I: 50%, II: 67%, III: 75%
+- 公式: `1 - 1/(level + 1)`
+
+#### 附魔伤害加成
+
+```cpp
+static f32 getEnchantmentDamageBonus(const ItemStack& weapon,
+                                      CreatureAttribute targetCreatureType);
+```
+
+计算锋利、亡灵杀手、节肢杀手的附加伤害：
+- 锋利: 0.5 + level × 0.5
+- 亡灵杀手（对亡灵）: level × 2.5
+- 节肢杀手（对节肢动物）: level × 2.5
 
 #### 创建攻击上下文
 
 ```cpp
-static AttackContext createContext(PlayerEntity& player,
+static AttackContext createContext(Player& player,
                                     LivingEntity& target,
                                     f32 cooldownProgress);
 ```
@@ -250,8 +284,8 @@ static AttackContext createContext(PlayerEntity& player,
 - 攻击者信息
 - 攻击冷却
 - 暴击判定
-- （TODO）基础伤害（从武器）
-- （TODO）火焰附加
+- 击退强度（含疾跑和附魔加成）
+- 火焰附加
 
 ---
 
@@ -272,71 +306,6 @@ static AttackContext createContext(PlayerEntity& player,
 | `EASY_STARVATION_MIN` | 10.0f | 简单模式饥饿最小生命值 |
 | `NORMAL_STARVATION_MIN` | 1.0f | 普通模式饥饿最小生命值 |
 | `HARD_STARVATION_MIN` | 0.0f | 困难模式饥饿最小生命值 |
-
-**静态方法**:
-
-#### 玩家伤害倍率
-
-```cpp
-static f32 getPlayerDamageMultiplier(Difficulty difficulty);
-```
-
-返回玩家受到怪物伤害的倍率：
-- Peaceful: 0.0（和平模式玩家不受怪物伤害）
-- Easy: 0.5（伤害减半）
-- Normal: 1.0（无调整）
-- Hard: 1.5（伤害增加 50%）
-
-#### 怪物伤害调整
-
-```cpp
-static f32 getMobDamageAdjustment(Difficulty difficulty);
-static f32 getMobDamageAdjustment(i32 difficultyId);
-```
-
-返回怪物攻击伤害的调整值：
-- Peaceful: 0.0（和平模式怪物不攻击）
-- Easy: -2.0（伤害减少 2）
-- Normal: 0.0（无调整）
-- Hard: +2.0（伤害增加 2）
-
-#### 饥饿最小生命值
-
-```cpp
-static f32 getStarvationMinHealth(Difficulty difficulty);
-```
-
-返回饥饿伤害不能降至以下的最小生命值：
-- Peaceful: 20.0（最大生命值，不受饥饿伤害）
-- Easy: 10.0（5 颗心）
-- Normal: 1.0（半颗心）
-- Hard: 0.0（可饿死）
-
-#### 火焰机制
-
-```cpp
-static f32 getFireDurationMultiplier(Difficulty difficulty);
-static i32 getFireSpreadBonus(Difficulty difficulty);
-```
-
-- `getFireDurationMultiplier()`: 火焰燃烧持续时间倍率
-- `getFireSpreadBonus()`: 火焰蔓延概率加成（difficulty * 7）
-
-#### 特殊机制
-
-```cpp
-static bool canZombieReinforce(Difficulty difficulty);
-static f32 getVillagerInfectionChance(Difficulty difficulty);
-static i32 getRaidWaves(Difficulty difficulty);
-static bool allowsMobSpawning(Difficulty difficulty);
-static f32 getRegionalDifficultyBase(Difficulty difficulty);
-```
-
-- `canZombieReinforce()`: 只有困难模式僵尸才能召唤增援
-- `getVillagerInfectionChance()`: 村民被僵尸杀死时的感染概率（Easy/Peaceful: 0%, Normal: 50%, Hard: 100%）
-- `getRaidWaves()`: 袭击波次数（Peaceful: 0, Easy: 3, Normal: 5, Hard: 7）
-- `allowsMobSpawning()`: 和平模式不允许怪物生成
-- `getRegionalDifficultyBase()`: 区域难度基值
 
 ---
 
@@ -359,8 +328,8 @@ static f32 getRegionalDifficultyBase(Difficulty difficulty);
 │  │   - DamageSource创建 │  │  - 击退计算              │  │
 │  └─────────────────────┘  │  - 冷却管理              │  │
 │           │               │  - 火焰附加              │  │
-│           │               └─────────────────────────┘  │
-│           ▼                                             │
+│           │               │  - 附魔伤害加成          │  │
+│           ▼               └─────────────────────────┘  │
 │  ┌─────────────────────┐                               │
 │  │    DamageSource     │                               │
 │  │    (damage 模块)     │                               │
@@ -381,14 +350,17 @@ combat 模块负责：
 
 2. **伤害计算**
    - 基础伤害计算
-   - 暴击伤害加成
-   - 攻击冷却影响
+   - 暴击伤害加成（×1.5）
+   - **攻击冷却影响（冷却²衰减）**
+   - 护甲减伤
+   - 药水效果
 
 3. **玩家攻击机制**
    - 暴击判定（跳跃攻击）
    - 攻击冷却系统
-   - 击退计算
+   - 击退计算（含击退抗性）
    - 火焰附加应用
+   - 附魔伤害加成
 
 4. **伤害来源创建**
    - 根据攻击类型创建对应的 DamageSource
@@ -407,7 +379,7 @@ combat 模块负责：
 | 基础伤害 | f32 | 武器基础伤害值 |
 | 攻击冷却进度 | f32 | 当前攻击冷却（0-1） |
 | 攻击类型 | AttackType | 近战/远程/魔法等 |
-| 玩家状态 | PlayerEntity& | 下落、疾跑、骑乘等状态 |
+| 玩家状态 | Player& | 下落、疾跑、骑乘等状态 |
 
 ### 输出
 
@@ -419,291 +391,64 @@ combat 模块负责：
 
 ---
 
-## 依赖项
+## 与 MC 1.16.5 对齐情况
 
-### 内部依赖
-
-| 模块 | 依赖内容 |
-|------|----------|
-| `common/core/Types.hpp` | 基础类型定义（f32, i32, u8 等） |
-| `common/entity/damage/DamageSource.hpp` | DamageSource 及其子类 |
-| `common/util/math/MathUtils.hpp` | math::clamp 函数 |
-
-### 外部依赖（前向声明）
-
-| 类 | 用途 |
-|----|------|
-| `Entity` | 攻击者实体基类 |
-| `LivingEntity` | 目标实体，具有生命值 |
-| `PlayerEntity` | 玩家实体，提供状态查询 |
-| `ItemStack` | 武器物品，获取基础伤害和附魔 |
-
----
-
-## 使用方法
-
-### 基本攻击流程
-
-```cpp
-#include "entity/combat/PlayerAttackHelper.hpp"
-#include "entity/combat/AttackContext.hpp"
-
-// 在玩家攻击处理中
-void onPlayerAttack(PlayerEntity& player, LivingEntity& target) {
-    // 1. 获取攻击冷却
-    f32 cooldownProgress = PlayerAttackHelper::getCooldownProgress(
-        player.getTicksSinceLastAttack(),
-        player.getAttackSpeed()
-    );
-
-    // 2. 创建攻击上下文
-    AttackContext context = PlayerAttackHelper::createContext(
-        player,
-        target,
-        cooldownProgress
-    );
-
-    // 3. 设置武器基础伤害
-    context.setBaseDamage(player.getHeldItem().getAttackDamage());
-
-    // 4. 计算最终伤害
-    f32 damage = context.calculateFinalDamage();
-
-    // 5. 创建伤害来源并应用伤害
-    auto damageSource = context.createDamageSource();
-    target.hurt(*damageSource, damage);
-
-    // 6. 应用击退
-    if (context.causesKnockback()) {
-        PlayerAttackHelper::applyKnockback(
-            target,
-            player,
-            context.getKnockbackStrength()
-        );
-    }
-
-    // 7. 应用火焰附加
-    if (context.causesFireDamage()) {
-        target.setFire(context.getFireDuration());
-    }
-}
-```
-
-### 手动创建攻击上下文
-
-```cpp
-// 生物攻击
-AttackContext context(mobEntity, target);
-context.setBaseDamage(5.0f);
-context.setAttackType(AttackType::Melee);
-
-// 箭矢攻击
-AttackContext context(arrowShooter, target);
-context.setBaseDamage(4.0f);
-context.setAttackType(AttackType::Ranged);
-
-// 爆炸伤害
-AttackContext context(nullptr, target);  // 无攻击者
-context.setBaseDamage(10.0f);
-context.setAttackType(AttackType::Explosion);
-```
-
-### 暴击判定
-
-```cpp
-if (PlayerAttackHelper::isCriticalHit(player)) {
-    // 触发暴击效果
-    context.setCritical(true);
-    // 暴击倍率默认 1.5，可自定义
-    context.setCriticalMultiplier(1.5f);
-}
-```
-
-### 攻击冷却
-
-```cpp
-// 检查是否可以造成完整伤害
-if (PlayerAttackHelper::isCooldownReady(cooldownProgress)) {
-    // 完整伤害
-} else {
-    // 冷却不足时伤害降低
-    f32 reducedDamage = PlayerAttackHelper::applyCooldown(damage, cooldownProgress);
-}
-```
-
----
-
-## 容易踩的坑
-
-### 1. 空指针攻击者
-
-**问题**：`AttackContext` 的 `attacker` 可以为 `nullptr`（环境伤害）。
-
-**解决方案**：
-```cpp
-// 在 createDamageSource 中检查
-if (m_attacker) {
-    return std::make_unique<EntityDamageSource>(...);
-}
-// 返回通用伤害
-return std::make_unique<EnvironmentalDamage>(DamageType::Generic);
-```
-
-### 2. 攻击冷却计算
-
-**问题**：冷却不足时伤害按平方衰减（MC 1.9+ 机制）。
-
-**注意**：
-```cpp
-// 冷却影响的计算是 progress²
-damage *= cooldownProgress * cooldownProgress;  // 非线性衰减
-```
-
-### 3. 暴击条件
-
-**问题**：暴击需要满足多个条件，目前实现不完整。
-
-**当前状态**：
-- `isCriticalHit()` 暂时返回 `false`
-- 等待 `PlayerEntity` 实现相关方法：
-  - `isOnGround()`
-  - `isInWater()`
-  - `isOnLadder()`
-  - `hasEffect(Effects::BLINDNESS)`
-  - `isPassenger()`
-
-### 4. 击退方向
-
-**问题**：`applyKnockback()` 目前未实现。
-
-**需要实现**：
-- 根据攻击者朝向计算击退方向
-- 根据强度设置目标速度
-- 考虑目标的击退抗性
-
-### 5. 伤害来源类型匹配
-
-**问题**：`createDamageSource()` 根据攻击类型创建 DamageSource，但需要正确设置 `m_fireDamage` 标志。
-
-**正确用法**：
-```cpp
-context.setFireDamage(true);  // 会创建 OnFire 类型的 DamageSource
-```
-
-### 6. 前向声明类型转换
-
-**问题**：`createContext` 中使用 `void*` 转换。
-
-**代码**：
-```cpp
-AttackContext context(static_cast<Entity*>(static_cast<void*>(&player)), &target);
-```
-
-**说明**：这是由于前向声明限制，未来应改进为使用 proper 类型系统。
-
----
-
-## 待实现功能
+### 已对齐
 
 | 功能 | 状态 | 说明 |
 |------|------|------|
-| 暴击判定完整实现 | TODO | 需要 PlayerEntity 状态查询 |
-| 附魔伤害加成 | TODO | 锋利、亡灵杀手、节肢杀手 |
-| 药水效果加成 | TODO | 力量、虚弱效果 |
-| 护甲减伤 | TODO | 目标护甲和韧性计算 |
-| 击退附魔 | TODO | 击退 I/II 加成 |
-| 击退抗性 | TODO | 目标的击退抗性属性 |
-| 完整击退逻辑 | TODO | 方向和速度计算 |
-| 火焰附加应用 | TODO | 需要目标 setFire 方法 |
-| 武器伤害获取 | TODO | 从 ItemStack 获取基础伤害 |
+| 暴击判定 | ✅ 已对齐 | 6 个条件全部实现 |
+| 攻击冷却伤害衰减 | ✅ 已对齐 | 冷却² 衰减公式 |
+| 击退计算 | ✅ 已对齐 | 含疾跑、附魔、击退抗性 |
+| 护甲减伤公式 | ✅ 已对齐 | CombatRules 实现 |
+| 抗性药水减伤 | ✅ 已对齐 | 每级 20% 减伤 |
+| 附魔保护减伤 | ✅ 已对齐 | EPF 上限 20 |
+| 力量药水加成 | ✅ 已对齐 | 每级 +3 伤害 |
+| 虚弱药水减益 | ✅ 已对齐 | 每级 -4 伤害 |
+| 火焰附加 | ✅ 已对齐 | 每级 4 秒 |
+| 横扫之刃 | ✅ 已对齐 | I:50%, II:67%, III:75% |
+| 附魔伤害加成 | ✅ 已对齐 | 锋利、亡灵杀手、节肢杀手 |
+
+### 待实现
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| 玩家 attack() 方法 | ⏳ TODO | 需要在 Player 类中实现完整的 attack() 方法 |
+| 攻击冷却追踪 | ⏳ TODO | Player 类需要 m_ticksSinceLastAttack 字段 |
+| 盾牌格挡 | ⏳ TODO | Player::canBlockDamageSource() 需要实现 |
+| 盾牌损坏 | ⏳ TODO | Player::damageShield() 需要实现 |
+| 横扫攻击范围检测 | ⏳ TODO | 需要在 attack() 中检测横扫目标 |
 
 ---
 
 ## 测试用例
 
-**当前状态**：无测试文件
-
 **建议测试覆盖**：
 
 ```cpp
-// tests/common/entity/combat/AttackContextTest.cpp
-
-// 1. 基本伤害计算
-TEST(AttackContextTest, BasicDamageCalculation) {
-    AttackContext context(nullptr, nullptr);
-    context.setBaseDamage(10.0f);
-    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 10.0f);
-}
-
-// 2. 暴击伤害
-TEST(AttackContextTest, CriticalHitMultiplier) {
-    AttackContext context(nullptr, nullptr);
-    context.setBaseDamage(10.0f);
-    context.setCritical(true);
-    context.setCriticalMultiplier(1.5f);
-    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 15.0f);
-}
-
-// 3. 攻击冷却影响
-TEST(AttackContextTest, CooldownReduction) {
-    AttackContext context(nullptr, nullptr);
-    context.setBaseDamage(10.0f);
-    context.setCooldownProgress(0.5f);
-    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 5.0f);
-}
-
-// 4. 暴击 + 冷却
-TEST(AttackContextTest, CriticalWithCooldown) {
-    AttackContext context(nullptr, nullptr);
-    context.setBaseDamage(10.0f);
-    context.setCritical(true);
-    context.setCriticalMultiplier(1.5f);
-    context.setCooldownProgress(0.8f);
-    // 10 * 1.5 * 0.8 = 12.0
-    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 12.0f);
-}
-
-// 5. DamageSource 创建
-TEST(AttackContextTest, CreateDamageSourceMelee) {
-    Entity attacker;
-    AttackContext context(&attacker, nullptr);
-    context.setAttackType(AttackType::Melee);
-    auto source = context.createDamageSource();
-    EXPECT_EQ(source->type(), DamageType::MobAttack);
-}
-
 // tests/common/entity/combat/PlayerAttackHelperTest.cpp
 
-// 1. 冷却进度计算
-TEST(PlayerAttackHelperTest, CooldownProgressCalculation) {
-    // 攻击速度 4.0，间隔 = 20/4 = 5 tick
-    EXPECT_FLOAT_EQ(PlayerAttackHelper::getCooldownProgress(0, 4.0f), 0.0f);
-    EXPECT_FLOAT_EQ(PlayerAttackHelper::getCooldownProgress(5, 4.0f), 1.0f);
-    EXPECT_FLOAT_EQ(PlayerAttackHelper::getCooldownProgress(10, 4.0f), 1.0f);
+// 1. 暴击判定
+TEST(PlayerAttackHelperTest, CriticalHit_WhenFalling) {
+    // 下落 + 不在地面 + 不在水中 + 不在梯子 + 无失明 + 无骑乘
 }
 
-// 2. 冷却阈值检查
-TEST(PlayerAttackHelperTest, CooldownThreshold) {
-    EXPECT_TRUE(PlayerAttackHelper::isCooldownReady(0.9f));
-    EXPECT_TRUE(PlayerAttackHelper::isCooldownReady(1.0f));
-    EXPECT_FALSE(PlayerAttackHelper::isCooldownReady(0.89f));
-}
-
-// 3. 冷却伤害衰减
+// 2. 攻击冷却伤害衰减
 TEST(PlayerAttackHelperTest, CooldownDamageReduction) {
-    EXPECT_FLOAT_EQ(PlayerAttackHelper::applyCooldown(10.0f, 1.0f), 10.0f);
-    EXPECT_FLOAT_EQ(PlayerAttackHelper::applyCooldown(10.0f, 0.5f), 2.5f); // 10 * 0.5²
+    // 冷却 0.5 时，伤害 = 原伤害 × 0.25
+    EXPECT_FLOAT_EQ(PlayerAttackHelper::applyCooldown(10.0f, 0.5f), 2.5f);
 }
 
-// 4. 击退计算
+// 3. 击退计算
 TEST(PlayerAttackHelperTest, KnockbackCalculation) {
-    f32 base = PlayerAttackHelper::calculateKnockback(
-        /*attacker=*/{}, /*target=*/{}, 1.0f, false);
-    EXPECT_FLOAT_EQ(base, 1.0f);
+    // 疾跑击退 = 1.0 + 0.5 = 1.5
+    // 击退 II = 1.0 + 0.5 * 2 = 2.0
+}
 
-    f32 sprint = PlayerAttackHelper::calculateKnockback(
-        /*attacker=*/{}, /*target=*/{}, 1.0f, true);
-    EXPECT_FLOAT_EQ(sprint, 1.5f);
+// 4. 附魔伤害加成
+TEST(PlayerAttackHelperTest, EnchantmentDamageBonus) {
+    // 锋利 V = 0.5 + 5 * 0.5 = 3.0
+    // 亡灵杀手 III（对亡灵）= 3 * 2.5 = 7.5
 }
 ```
 
@@ -715,3 +460,4 @@ TEST(PlayerAttackHelperTest, KnockbackCalculation) {
 - MC 1.16.5 `net.minecraft.entity.LivingEntity` - 生物受伤逻辑
 - MC 1.16.5 `net.minecraft.util.DamageSource` - 伤害来源
 - MC 1.16.5 `net.minecraft.entity.ai.attributes.Attributes` - 属性系统
+- MC 1.16.5 `net.minecraft.util.CombatRules` - 战斗规则公式

@@ -8,7 +8,7 @@ namespace mc {
 // 前向声明
 class Entity;
 class LivingEntity;
-class PlayerEntity;
+class Player;
 class ItemStack;
 class DamageSource;
 
@@ -47,7 +47,7 @@ public:
     // ========== 攻击者信息 ==========
 
     [[nodiscard]] Entity* getAttacker() const { return m_attacker; }
-    [[nodiscard]] PlayerEntity* getAttackerAsPlayer() const { return m_attackerPlayer; }
+    [[nodiscard]] Player* getAttackerAsPlayer() const { return m_attackerPlayer; }
     [[nodiscard]] LivingEntity* getAttackerAsLiving() const { return m_attackerLiving; }
     [[nodiscard]] const ItemStack* getWeapon() const { return m_weapon; }
 
@@ -93,9 +93,14 @@ public:
     [[nodiscard]] f32 getCooldownProgress() const { return m_cooldownProgress; }
     void setCooldownProgress(f32 progress) { m_cooldownProgress = progress; }
 
+    // ========== 护甲穿透 ==========
+
+    [[nodiscard]] bool bypassesArmor() const { return m_bypassArmor; }
+    void setBypassArmor(bool bypass) { m_bypassArmor = bypass; }
+
 private:
     Entity* m_attacker = nullptr;
-    PlayerEntity* m_attackerPlayer = nullptr;
+    Player* m_attackerPlayer = nullptr;
     LivingEntity* m_attackerLiving = nullptr;
     LivingEntity* m_target = nullptr;
     const ItemStack* m_weapon = nullptr;
@@ -109,6 +114,7 @@ private:
     f32 m_knockbackStrength = 1.0f;
     bool m_fireDamage = false;
     i32 m_fireDuration = 0;
+    bool m_bypassArmor = false;
 
     f32 m_cooldownProgress = 1.0f;
 };

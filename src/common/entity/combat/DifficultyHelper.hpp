@@ -27,16 +27,20 @@ public:
     /**
      * @brief 获取玩家受伤的伤害倍率
      *
-     * MC 1.16.5 中玩家受到的伤害根据难度缩放：
+     * MC 1.16.5 PlayerEntity.attackEntityFrom():
      * - Peaceful: 不受怪物伤害（由其他逻辑处理）
-     * - Easy: 0.5x
+     * - Easy: min(damage/2 + 1, damage) - 伤害减半后加1，不超过原伤害
      * - Normal: 1.0x
      * - Hard: 1.5x
      *
+     * 注意：Easy 难度不是简单的 0.5 倍率！
+     * 例如：damage=10 -> min(5+1, 10) = 6，而不是 5
+     *
      * @param difficulty 难度
-     * @return 伤害倍率
+     * @param damage 原始伤害值（仅 Easy 难度需要）
+     * @return 调整后的伤害值
      */
-    [[nodiscard]] static f32 getPlayerDamageMultiplier(Difficulty difficulty);
+    [[nodiscard]] static f32 adjustPlayerDamage(Difficulty difficulty, f32 damage);
 
     /**
      * @brief 获取怪物攻击的伤害调整值
@@ -168,7 +172,6 @@ public:
 
 private:
     // 常量
-    static constexpr f32 EASY_PLAYER_DAMAGE_MULT = 0.5f;
     static constexpr f32 NORMAL_PLAYER_DAMAGE_MULT = 1.0f;
     static constexpr f32 HARD_PLAYER_DAMAGE_MULT = 1.5f;
 

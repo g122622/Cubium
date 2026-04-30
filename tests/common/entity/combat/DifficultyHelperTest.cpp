@@ -10,22 +10,29 @@ using namespace mc;
 // DifficultyHelper 测试
 // ============================================================================
 
-// ========== 玩家伤害倍率测试 ==========
+// ========== 玩家伤害调整测试 ==========
 
-TEST(DifficultyHelperTest, GetPlayerDamageMultiplier_Peaceful) {
-    EXPECT_FLOAT_EQ(DifficultyHelper::getPlayerDamageMultiplier(Difficulty::Peaceful), 0.0f);
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Peaceful) {
+    // 和平模式玩家不受怪物伤害
+    EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Peaceful, 10.0f), 0.0f);
 }
 
-TEST(DifficultyHelperTest, GetPlayerDamageMultiplier_Easy) {
-    EXPECT_FLOAT_EQ(DifficultyHelper::getPlayerDamageMultiplier(Difficulty::Easy), 0.5f);
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Easy) {
+    // MC 1.16.5: min(damage/2 + 1, damage)
+    // damage=10 -> min(5+1, 10) = 6
+    EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, 10.0f), 6.0f);
+    // damage=2 -> min(1+1, 2) = 2
+    EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, 2.0f), 2.0f);
+    // damage=1 -> min(0.5+1, 1) = 1
+    EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, 1.0f), 1.0f);
 }
 
-TEST(DifficultyHelperTest, GetPlayerDamageMultiplier_Normal) {
-    EXPECT_FLOAT_EQ(DifficultyHelper::getPlayerDamageMultiplier(Difficulty::Normal), 1.0f);
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Normal) {
+    EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Normal, 10.0f), 10.0f);
 }
 
-TEST(DifficultyHelperTest, GetPlayerDamageMultiplier_Hard) {
-    EXPECT_FLOAT_EQ(DifficultyHelper::getPlayerDamageMultiplier(Difficulty::Hard), 1.5f);
+TEST(DifficultyHelperTest, AdjustPlayerDamage_Hard) {
+    EXPECT_FLOAT_EQ(DifficultyHelper::adjustPlayerDamage(Difficulty::Hard, 10.0f), 15.0f);
 }
 
 // ========== 怪物伤害调整测试 ==========

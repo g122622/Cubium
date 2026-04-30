@@ -2,18 +2,23 @@
 
 namespace mc::entity::combat {
 
-f32 DifficultyHelper::getPlayerDamageMultiplier(Difficulty difficulty) {
+f32 DifficultyHelper::adjustPlayerDamage(Difficulty difficulty, f32 damage) {
     switch (difficulty) {
         case Difficulty::Peaceful:
             return 0.0f;  // 和平模式下玩家不受怪物伤害（由其他逻辑处理）
         case Difficulty::Easy:
-            return EASY_PLAYER_DAMAGE_MULT;  // 0.5x
+            // MC 1.16.5 PlayerEntity.java:858-859
+            // if (this.world.getDifficulty() == Difficulty.EASY) {
+            //     amount = Math.min(amount / 2.0F + 1.0F, amount);
+            // }
+            // 例如：damage=10 -> min(5+1, 10) = 6
+            return std::min(damage / 2.0f + 1.0f, damage);
         case Difficulty::Normal:
-            return NORMAL_PLAYER_DAMAGE_MULT;  // 1.0x
+            return damage;  // 1.0x
         case Difficulty::Hard:
-            return HARD_PLAYER_DAMAGE_MULT;  // 1.5x
+            return damage * HARD_PLAYER_DAMAGE_MULT;  // 1.5x
         default:
-            return NORMAL_PLAYER_DAMAGE_MULT;
+            return damage;
     }
 }
 

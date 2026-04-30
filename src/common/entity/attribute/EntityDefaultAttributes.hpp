@@ -104,9 +104,17 @@ namespace fox {
 } // namespace fox
 
 namespace bee {
+    /// MC 1.16.5 BeeEntity.registerAttributes()
+    /// .createMutableAttribute(Attributes.MAX_HEALTH, 10.0D)
+    /// .createMutableAttribute(Attributes.FLYING_SPEED, 0.6F)  // 注意是 0.6，不是 0.3
+    /// .createMutableAttribute(Attributes.MOVEMENT_SPEED, 0.3F)
+    /// .createMutableAttribute(Attributes.ATTACK_DAMAGE, 2.0D)
+    /// .createMutableAttribute(Attributes.FOLLOW_RANGE, 48.0D)
     constexpr f32 MOVEMENT_SPEED = 0.3f;
-    constexpr f32 FLYING_SPEED = 0.3f;
+    constexpr f32 FLYING_SPEED = 0.6f;   // MC 1.16.5: 0.6，不是 0.3
     constexpr f32 MAX_HEALTH = 10.0f;
+    constexpr f32 ATTACK_DAMAGE = 2.0f;
+    constexpr f32 FOLLOW_RANGE = 48.0f;
 } // namespace bee
 
 namespace panda {
