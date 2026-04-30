@@ -189,6 +189,25 @@ ActionResultType ChestBlock::onBlockActivated(
     return world.asServerWorld() == nullptr ? ActionResultType::Success : ActionResultType::Pass;
 }
 
+// ========== 移除处理 ==========
+
+void ChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // 参考 MC 1.16.5: ChestBlock.onReplaced
+    // 箱子被移除时需要掉落其内容物
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Chest) {
+        auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+        // TODO: 实现掉落物品到世界中
+        // InventoryHelper::dropInventoryItems(world, pos, chest);
+        // 暂时清空物品
+        chest->clearContainer();
+        MC_UNUSED(state);
+    }
+
+    // 调用基类处理
+    Block::onBlockRemoved(world, pos, state);
+}
+
 // ========== 红石 ==========
 
 i32 ChestBlock::getComparatorInputOverride(

@@ -313,17 +313,26 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
 }
 
 void DoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
+    // 参考 MC 1.16.5: DoorBlock.playSound
+    // 使用世界事件播放音效
+    // TODO: 实现 IWorld::playEvent 后启用
+    // i32 soundId = isOpening ? getOpenSound() : getCloseSound();
+    // world.playEvent(soundId, pos, 0);
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(isOpening);
 }
 
 i32 DoorBlock::getOpenSound() const {
-    return m_isIron ? 1011 : 1005;
+    // 参考 MC 1.16.5: DoorBlock.getOpenSound
+    // 铁门开门音效 1005，木门开门音效 1006
+    return m_isIron ? 1005 : 1006;
 }
 
 i32 DoorBlock::getCloseSound() const {
-    return m_isIron ? 1012 : 1006;
+    // 参考 MC 1.16.5: DoorBlock.getCloseSound
+    // 铁门关门音效 1011，木门关门音效 1012
+    return m_isIron ? 1011 : 1012;
 }
 
 size_t DoorBlock::getShapeIndex(Direction facing, bool open, bool hingeRight) {

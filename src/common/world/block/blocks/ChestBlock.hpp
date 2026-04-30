@@ -117,6 +117,16 @@ public:
     }
 
     /**
+     * @brief 检查是否有比较器输入覆盖
+     *
+     * 箱子可以通过比较器输出信号，因此需要返回 true。
+     */
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
      * @brief 获取红石比较器信号
      * @param state 方块状态
      * @param world 世界
@@ -128,6 +138,19 @@ public:
         IWorld& world,
         const BlockPos& pos
     ) const override;
+
+    // ========== 移除处理 ==========
+
+    /**
+     * @brief 方块被移除时的处理
+     *
+     * 箱子被移除时需要掉落其内容物。
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 静态工具方法 ==========
 
