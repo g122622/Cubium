@@ -26,6 +26,7 @@
 #include "../ui/TridentCanvas.hpp"
 #include "server/application/IntegratedServer.hpp"
 
+#include <glm/glm.hpp>
 #include <string>
 #include <memory>
 #include <atomic>
@@ -358,8 +359,7 @@ private:
     bool m_wasPlayerInLava = false;
 
     // 视野晃动状态
-    f32 m_bobAngle = 0.0f;           // 晃动角度累计
-    f32 m_bobPhase = 0.0f;           // 晃动相位
+    glm::mat4 buildViewBobbingTransform(f32 partialTick) const;
 
     // 随机数生成器（用于音调变化等）
     math::Random m_random;

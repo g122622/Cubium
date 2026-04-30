@@ -97,6 +97,8 @@ void Player::setPosition(f32 x, f32 y, f32 z) {
     m_prevMoveDistanceWalked = 0.0f;
     m_moveDistanceSwam = 0.0f;
     m_prevMoveDistanceSwam = 0.0f;
+    m_cameraYaw = 0.0f;
+    m_prevCameraYaw = 0.0f;
     m_distanceWalkedOnStep = 0.0f;
     m_nextStepDistance = 1.0f;
     m_shouldPlayStepSound = false;
@@ -1321,8 +1323,8 @@ void Player::updateMoveDistance() {
     m_shouldPlaySwimSound = false;
 
     // 根据 MC 的逻辑：
-    // distanceWalkedOnStepModified = 距离 * 0.6 用于脚步声触发
-    // 参考实体在地面且不在流体中时触发脚步声
+    // distanceWalkedModified = 水平位移 * 0.6，用于 bobView 相位
+    // distanceWalkedOnStepModified = 位移加权值，用于脚步声/游泳声触发
     f32 stepDistance;
 
     if (isInWater()) {
@@ -1334,7 +1336,7 @@ void Player::updateMoveDistance() {
         // MC: distanceWalkedOnStepModified += sqrt(motion.x^2 * 0.2 + motion.y^2 + motion.z^2 * 0.2) * 0.35
         stepDistance = std::sqrt(dx * dx * 0.2f + dy * dy + dz * dz * 0.2f) * 0.35f;
     } else {
-        m_moveDistanceWalked += distance;
+        m_moveDistanceWalked += distance * 0.6f;
         // 脚步声距离乘以 0.6
         stepDistance = distance * 0.6f;
     }
@@ -1362,6 +1364,7 @@ void Player::updateMoveDistance() {
     }
 
     m_moveDistanceSamplePosition = m_position;
+    updateCameraYaw();
 
     // 饥饿消耗（基于移动距离）
     // 只有生存模式和冒险模式才消耗饥饿
@@ -1380,6 +1383,21 @@ void Player::updateMoveDistance() {
         }
         // 潜行、普通行走、攀爬不消耗饥饿
     }
+}
+
+void Player::updateCameraYaw() {
+    m_prevCameraYaw = m_cameraYaw;
+
+    if (isRiding()) {
+        m_cameraYaw = 0.0f;
+        return;
+    }
+
+    f32 targetCameraYaw = 0.0f;
+    if (m_onGround && !isDead() && !isSwimming()) {
+        targetCameraYaw = std::min(0.1f, std::sqrt(m_velocity.x * m_velocity.x + m_velocity.z * m_velocity.z));
+    }
+    m_cameraYaw += (targetCameraYaw - m_cameraYaw) * 0.4f;
 }
 
 void Player::playStepSound() {

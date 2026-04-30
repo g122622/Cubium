@@ -393,19 +393,22 @@ TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
 
 TEST_F(PlayerMovementTest, UpdateMoveDistance_ResamplesCurrentPosition) {
     m_player->setOnGround(true);
+    m_player->setVelocity(Vector3(0.2f, 0.0f, 0.0f));
 
     m_player->move(2.0f, 0.0f, 0.0f);
     m_player->updateMoveDistance();
 
     EXPECT_TRUE(m_player->shouldPlayStepSound());
-    EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 2.0f);
+    EXPECT_NEAR(m_player->moveDistanceWalked(), 1.2f, 0.0001f);
     EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 0.0f);
+    EXPECT_GT(m_player->cameraYaw(), 0.0f);
+    EXPECT_FLOAT_EQ(m_player->prevCameraYaw(), 0.0f);
 
     m_player->updateMoveDistance();
 
     EXPECT_FALSE(m_player->shouldPlayStepSound());
-    EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 2.0f);
-    EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 2.0f);
+    EXPECT_NEAR(m_player->moveDistanceWalked(), 1.2f, 0.0001f);
+    EXPECT_NEAR(m_player->prevMoveDistanceWalked(), 1.2f, 0.0001f);
 
     m_player->setPosition(10.0f, 64.0f, 10.0f);
     m_player->updateMoveDistance();
@@ -413,6 +416,23 @@ TEST_F(PlayerMovementTest, UpdateMoveDistance_ResamplesCurrentPosition) {
     EXPECT_FALSE(m_player->shouldPlayStepSound());
     EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 0.0f);
     EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 0.0f);
+    EXPECT_FLOAT_EQ(m_player->cameraYaw(), 0.0f);
+    EXPECT_FLOAT_EQ(m_player->prevCameraYaw(), 0.0f);
+}
+
+TEST_F(PlayerMovementTest, UpdateMoveDistance_DecaysCameraYawWhenAirborne) {
+    m_player->setOnGround(true);
+    m_player->setVelocity(Vector3(0.2f, 0.0f, 0.0f));
+    m_player->move(2.0f, 0.0f, 0.0f);
+    m_player->updateMoveDistance();
+    const f32 walkingCameraYaw = m_player->cameraYaw();
+    ASSERT_GT(walkingCameraYaw, 0.0f);
+
+    m_player->setOnGround(false);
+    m_player->updateMoveDistance();
+
+    EXPECT_LT(m_player->cameraYaw(), walkingCameraYaw);
+    EXPECT_FLOAT_EQ(m_player->prevCameraYaw(), walkingCameraYaw);
 }
 
 // ============================================================================

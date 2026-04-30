@@ -616,6 +616,12 @@ m_window.destroy();
 
 **解决方案**：`ClientApplication` 只在固定 20TPS 中调用 `Player::updatePhysics()`，输入由 `Player::handleMovementInput()` 缓存；每帧相机用当前物理累加器相对固定物理 tick 间隔的比例作为 partial tick，在 `prevPosition()` 与 `position()` 之间插值到玩家眼睛位置。传送或纠错应通过 `Player::setPosition()` 同步重置采样，避免插值拖影。
 
+### 17. 视野晃动与真实相机位置
+
+**问题**：把视野晃动写进 `Camera::position()` 会污染视锥剔除、区块调度、云/天气和破坏覆盖层使用的真实相机位置。
+
+**解决方案**：客户端每帧相机只同步到玩家眼睛的真实世界位置；玩家移动视野晃动通过 `Camera::setViewTransform()` 附加到 view matrix，按原版 `GameRenderer.applyBobbing()` 公式在渲染矩阵中完成。
+
 ## 涉及的测试用例
 
 ClientApplication 模块目前没有直接的单元测试，但其依赖的子系统有完整测试：

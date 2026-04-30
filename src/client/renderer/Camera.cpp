@@ -123,6 +123,15 @@ void Camera::look(f64 mouseDeltaX, f64 mouseDeltaY) {
     rotate(pitchDelta, yawDelta);
 }
 
+void Camera::setViewTransform(const glm::mat4& transform) {
+    m_viewTransform = transform;
+    m_viewDirty = true;
+}
+
+void Camera::clearViewTransform() {
+    setViewTransform(glm::mat4(1.0f));
+}
+
 void Camera::setProjectionMode(ProjectionMode mode) {
     m_config.projectionMode = mode;
     m_projectionDirty = true;
@@ -191,7 +200,8 @@ void Camera::updateVectors() {
 
 void Camera::updateViewMatrix() {
     // 视图矩阵：将世界坐标转换到相机空间
-    m_viewMatrix = glm::mat4(glm::lookAt(m_position, m_position + m_forward, m_up));
+    m_baseViewMatrix = glm::mat4(glm::lookAt(m_position, m_position + m_forward, m_up));
+    m_viewMatrix = m_viewTransform * m_baseViewMatrix;
 }
 
 void Camera::updateProjectionMatrix() {

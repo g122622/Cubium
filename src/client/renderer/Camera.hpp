@@ -5,6 +5,7 @@
 #include "api/camera/ICamera.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace mc::client {
 
@@ -79,6 +80,16 @@ public:
     [[nodiscard]] const glm::mat4& projectionMatrix() const override { return m_projectionMatrix; }
     [[nodiscard]] const glm::mat4& viewProjectionMatrix() const override { return m_viewProjectionMatrix; }
 
+    /**
+     * @brief 设置渲染视图附加变换
+     */
+    void setViewTransform(const glm::mat4& transform);
+
+    /**
+     * @brief 清除渲染视图附加变换
+     */
+    void clearViewTransform();
+
     // 配置
     void setConfig(const CameraConfig& config) override;
     [[nodiscard]] const CameraConfig& config() const override { return m_config; }
@@ -114,6 +125,8 @@ private:
 
     // 矩阵
     glm::mat4 m_viewMatrix{1.0f};
+    glm::mat4 m_baseViewMatrix{1.0f};
+    glm::mat4 m_viewTransform{1.0f};
     glm::mat4 m_projectionMatrix{1.0f};
     glm::mat4 m_viewProjectionMatrix{1.0f};
 

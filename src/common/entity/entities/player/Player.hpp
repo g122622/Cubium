@@ -586,6 +586,16 @@ public:
     [[nodiscard]] f32 prevMoveDistanceWalked() const { return m_prevMoveDistanceWalked; }
 
     /**
+     * @brief 获取当前视野晃动强度
+     */
+    [[nodiscard]] f32 cameraYaw() const { return m_cameraYaw; }
+
+    /**
+     * @brief 获取上一 tick 的视野晃动强度
+     */
+    [[nodiscard]] f32 prevCameraYaw() const { return m_prevCameraYaw; }
+
+    /**
      * @brief 获取上一tick的游泳距离
      */
     [[nodiscard]] f32 prevMoveDistanceSwam() const { return m_prevMoveDistanceSwam; }
@@ -806,6 +816,11 @@ public:
 
 private:
     /**
+     * @brief 更新原版视野晃动强度
+     */
+    void updateCameraYaw();
+
+    /**
      * @brief 按当前缓存输入向速度添加玩家加速度
      *
      * 该方法只应由固定 20TPS 的物理更新调用，避免渲染帧率影响玩家速度。
@@ -900,10 +915,12 @@ private:
 
     // 视野晃动
     Vector3 m_moveDistanceSamplePosition{0.0f, 0.0f, 0.0f}; // 上次步距采样位置
-    f32 m_moveDistanceWalked = 0.0f;    // 行走距离累计（用于视野晃动）
-    f32 m_prevMoveDistanceWalked = 0.0f; // 上一帧行走距离
+    f32 m_moveDistanceWalked = 0.0f;    // distanceWalkedModified 等价累计
+    f32 m_prevMoveDistanceWalked = 0.0f; // 上一 tick distanceWalkedModified
     f32 m_moveDistanceSwam = 0.0f;      // 游泳距离累计
     f32 m_prevMoveDistanceSwam = 0.0f;  // 上一帧游泳距离
+    f32 m_cameraYaw = 0.0f;             // 原版 cameraYaw
+    f32 m_prevCameraYaw = 0.0f;         // 原版 prevCameraYaw
 
     // 脚步声触发
     f32 m_distanceWalkedOnStep = 0.0f;  // 用于触发脚步声的行走距离

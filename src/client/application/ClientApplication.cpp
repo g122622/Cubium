@@ -11,6 +11,8 @@
 #include "common/entity/inventory/Slot.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
@@ -46,6 +48,7 @@
 #include "common/sound/SoundCategory.hpp"
 #include "minecraft-reborn/version.h"
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -289,6 +292,25 @@ void ClientApplication::mainLoop()
     shutdown();
 }
 
+glm::mat4 ClientApplication::buildViewBobbingTransform(f32 partialTick) const
+{
+    if (!m_player || !m_settings.viewBobbing.get()) {
+        return glm::mat4(1.0f);
+    }
+
+    const f32 distanceDelta = m_player->moveDistanceWalked() - m_player->prevMoveDistanceWalked();
+    const f32 phase = -(m_player->moveDistanceWalked() + distanceDelta * partialTick);
+    const f32 cameraYaw = math::lerp(m_player->prevCameraYaw(), m_player->cameraYaw(), partialTick);
+    const f32 sinPhase = std::sin(phase * math::PI);
+    const f32 cosPhase = std::cos(phase * math::PI);
+
+    glm::mat4 transform(1.0f);
+    transform = glm::translate(transform, glm::vec3(sinPhase * cameraYaw * 0.5f, -std::abs(cosPhase * cameraYaw), 0.0f));
+    transform = glm::rotate(transform, sinPhase * cameraYaw * 3.0f * math::DEG_TO_RAD, glm::vec3(0.0f, 0.0f, 1.0f));
+    transform = glm::rotate(transform, std::abs(std::cos(phase * math::PI - 0.2f) * cameraYaw) * 5.0f * math::DEG_TO_RAD, glm::vec3(1.0f, 0.0f, 0.0f));
+    return transform;
+}
+
 void ClientApplication::update(f32 deltaTime)
 {
     // 更新网络客户端（处理服务端数据包）
@@ -325,56 +347,23 @@ void ClientApplication::update(f32 deltaTime)
             updatePlayerAudio();
         }
 
-        // 计算视野晃动
-        // 参考 MC 1.16.5 GameRenderer.getCameraPosition()
-        f32 bobX = 0.0f;
-        f32 bobY = 0.0f;
-
-        if (m_settings.viewBobbing.get()) {
-            // 获取移动距离变化
-            f32 distanceWalked = m_player->moveDistanceWalked();
-            f32 prevDistanceWalked = m_player->prevMoveDistanceWalked();
-            f32 distanceSwam = m_player->moveDistanceSwam();
-            f32 prevDistanceSwam = m_player->prevMoveDistanceSwam();
-
-            // 计算距离差
-            f32 walkedDelta = distanceWalked - prevDistanceWalked;
-            f32 swamDelta = distanceSwam - prevDistanceSwam;
-
-            // 累计晃动角度
-            m_bobAngle += walkedDelta * 0.5f;
-            m_bobPhase += swamDelta * 0.5f;
-
-            // 计算 X 晃动（左右摆动）
-            bobX = std::sin(m_bobAngle) * 0.1f;
-
-            // 计算 Y 晃动（上下摆动）
-            // MC 使用 cos 的绝对值来产生上下晃动
-            bobY = std::abs(std::cos(m_bobAngle)) * 0.1f;
-
-            // 游泳时的额外晃动
-            if (m_player->isSwimming()) {
-                // 游泳时有额外的左右晃动
-                bobX += std::sin(m_bobPhase * 2.0f) * 0.05f;
-                bobY += std::abs(std::cos(m_bobPhase)) * 0.05f;
-            }
-        }
-
         const f32 partialTick = std::clamp(m_playerPhysicsAccumulator / PLAYER_PHYSICS_INTERVAL, 0.0f, 1.0f);
         const Vector3 renderPosition = m_player->prevPosition().lerp(m_player->position(), partialTick);
 
         // 同步相机位置到玩家眼睛位置
         m_camera.setPosition(
-            renderPosition.x + bobX,
-            renderPosition.y + static_cast<f32>(m_player->eyeHeight()) - bobY,
+            renderPosition.x,
+            renderPosition.y + static_cast<f32>(m_player->eyeHeight()),
             renderPosition.z
         );
         m_camera.setYaw(m_player->yaw());
         m_camera.setPitch(m_player->pitch());
+        m_camera.setViewTransform(buildViewBobbingTransform(partialTick));
         m_camera.update(deltaTime);
 
     } else {
         // 后备：更新相机控制器（这会调用 Camera::update 更新矩阵）
+        m_camera.clearViewTransform();
         m_cameraController.update(deltaTime);
     }
 

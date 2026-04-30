@@ -45,7 +45,7 @@ src/common/entity/entities/player/
 
 - `Player` 继承自 `Entity`，复用通用的位置、旋转、碰撞和数据管理能力。
 - `Player` 在退出蹲伏、游泳和睡眠姿态时，会通过 `IWorld` 的碰撞查询判断当前空间是否允许切回站立。
-- `ClientApplication` 使用 `Player` 的移动距离累计值来驱动视野晃动，并读取步脚声/游泳声标志来播放本地音效。
+- `ClientApplication` 使用 `Player` 的 `distanceWalkedModified` 等价累计值和 `cameraYaw/prevCameraYaw` 来驱动原版 `GameRenderer.applyBobbing()` 风格的视图矩阵变换，并读取步脚声/游泳声标志来播放本地音效。
 - `NetworkClient` 和玩家序列化逻辑负责把服务器传来的传送、位置和状态同步到本地玩家。
 - 服务端玩家管理由 `server/world/player/ServerPlayerEntityManager` 负责。
 - 客户端本地玩家身份由 `client/world/player/LocalPlayerIdentity` 管理。
@@ -129,6 +129,8 @@ if (player->shouldPlayStepSound()) {
 - 视野晃动和脚步声共用同一套移动距离统计，统计语义错了会同时污染音效和镜头。
 - 从蹲下、游泳、睡眠切回站立时，不要直接强行改成 `Standing`；应保留 `Player::setSneaking()` / `Player::setSwimming()` / `Player::setSleeping()` 的碰撞检查结果，否则会在低顶方块下错误穿模。
 - 玩家受伤和死亡声音已经接入通用实体声音链路，不要再在服务器侧手写单独广播分支。
+- 视野晃动的行走相位使用原版 `distanceWalkedModified = 水平实际位移 * 0.6`，不要再把未缩放的行走距离直接传给渲染层。
+- `cameraYaw/prevCameraYaw` 是原版平滑晃动强度，只有站在地面、未死亡、未游泳时根据水平速度趋近，骑乘时应清零。
 
 ## 测试用例
 
