@@ -42,11 +42,11 @@ namespace {
 RedstoneComparatorBlock::RedstoneComparatorBlock(const BlockProperties& properties)
     : RedstoneDiodeBlock("redstone_comparator", properties) {
 
-    // 创建状态容器 - 包含基类的 FACING 和 POWERED，以及比较器特有的 MODE
+    // 创建状态容器 - MC 1.16.5 比较器只有三个属性：HORIZONTAL_FACING, MODE, POWERED
+    // 注意：比较器没有 LOCKED 属性（与中继器不同，比较器不会被侧面信号锁定）
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HORIZONTAL_FACING())
         .add(BlockStateProperties::POWERED())
-        .add(BlockStateProperties::LOCKED())
         .add(MODE_PROP())
         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
@@ -57,7 +57,6 @@ RedstoneComparatorBlock::RedstoneComparatorBlock(const BlockProperties& properti
     setDefaultState(defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
         .with(BlockStateProperties::POWERED(), false)
-        .with(BlockStateProperties::LOCKED(), false)
         .with(MODE_PROP(), ComparatorMode::Compare));
 }
 

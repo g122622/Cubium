@@ -42,11 +42,12 @@ namespace blocks {
  * - 减法模式：输出差值信号
  * - 容器检测：可以检测容器内容物
  * - 2 tick延迟
- * - 侧面锁定
+ * - 不受侧面信号锁定（与中继器不同）
  * - 前端信号保持（需要 BlockEntity 存储）
  *
  * ## 容易踩的坑
  * - 比较器需要 BlockEntity 存储输出信号强度
+ * - 比较器不会被侧面信号锁定（这与中继器不同）
  * - 减法模式计算复杂
  * - 方向性处理
  * - 输出信号在 tick 时存储到 BlockEntity，而不是实时计算
@@ -85,6 +86,22 @@ public:
 
     [[nodiscard]] i32 calculateOutputSignal(IWorld& world, const BlockPos& pos,
                                             const BlockState& state) const override;
+
+    /**
+     * @brief 检查是否被锁定
+     *
+     * 参考 MC 1.16.5: 比较器不会被侧面信号锁定（与中继器不同）。
+     * 红石二极管基类默认返回侧面信号检测，比较器需要重写为始终返回 false。
+     *
+     * @return false 比较器永远不被锁定
+     */
+    [[nodiscard]] bool isLocked(IWorld& world, const BlockPos& pos,
+                                const BlockState& state) const override {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        return false;
+    }
 
     // ========== 比较器特有方法 ==========
 

@@ -36,6 +36,8 @@ public:
 
     // ========== Block 接口实现 ==========
 
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
@@ -96,11 +98,11 @@ public:
      */
     [[nodiscard]] static BlockState withPowered(BlockState state, bool powered);
 
-    /// 脉冲持续时间（tick）
+    /// 脉冲持续时间（tick）- MC 1.16.5: 激活后持续 2 tick
     static constexpr i32 PULSE_DURATION = 2;
 
-    /// 检测延迟（tick）- MC 1.16.5: 观察->输出需要1 tick延迟
-    static constexpr i32 DETECT_DELAY = 1;
+    /// 检测延迟（tick）- MC 1.16.5: 观察->输出需要 2 tick 延迟
+    static constexpr i32 DETECT_DELAY = 2;
 
 private:
     /**

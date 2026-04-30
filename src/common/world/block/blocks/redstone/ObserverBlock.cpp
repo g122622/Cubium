@@ -2,6 +2,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -19,10 +20,18 @@ ObserverBlock::ObserverBlock(const BlockProperties& properties)
         });
     createBlockState(std::move(container));
 
-    // 设置默认状态
+    // 设置默认状态 - MC 1.16.5 默认朝向是 South
     setDefaultState(defaultState()
-        .with(BlockStateProperties::FACING(), Direction::North)
+        .with(BlockStateProperties::FACING(), Direction::South)
         .with(BlockStateProperties::POWERED(), false));
+}
+
+BlockState ObserverBlock::getStateForPlacement(BlockItemUseContext& context) {
+    // MC 1.16.5: 侦测器朝向玩家面向方向的反方向
+    // context.horizontalDirection() 是玩家面向的方向
+    // 侦测器的输出方向应该是玩家面向方向的反方向
+    Direction facing = Directions::opposite(context.horizontalDirection());
+    return defaultState().with(BlockStateProperties::FACING(), facing);
 }
 
 Direction ObserverBlock::getFacing(const BlockState& state) {
@@ -85,17 +94,18 @@ BlockState ObserverBlock::updatePostPlacement(
     const BlockPos& currentPos, const BlockPos& facingPos) {
 
     MC_UNUSED(facingState);
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
 
-    // 当侦测面放置/移除方块时触发
-    Direction observeDir = Directions::opposite(getFacing(state));
-    if (facing == observeDir) {
-        // MC 1.16.5: 如果当前未激活，调度1 tick延迟后激活
-        if (!isPowered(state)) {
-            world.scheduleBlockTick(currentPos, *this, DETECT_DELAY, world::tick::TickPriority::High);
-        }
+    // MC 1.16.5: 当 updatePostPlacement 被调用时，检查更新是否来自观察面
+    // 注意：MC 的 facing 参数是"邻居相对于当前方块的方向"
+    // 所以如果观察面被更新，facing 应该是观察方向（输出的反方向）
+    Direction outputDir = getFacing(state);
+    Direction observeDir = Directions::opposite(outputDir);
+
+    // 当观察面有方块变化时触发检测
+    if (facing == observeDir && !isPowered(state)) {
+        // MC 1.16.5: 调度 2 tick 延迟后激活
+        world.scheduleBlockTick(currentPos, *this, DETECT_DELAY, world::tick::TickPriority::High);
     }
 
     return state;
