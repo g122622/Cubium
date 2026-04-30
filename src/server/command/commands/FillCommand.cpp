@@ -4,6 +4,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -136,7 +137,7 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
         for (i32 z = minZ; z <= maxZ; ++z) {
             for (i32 x = minX; x <= maxX; ++x) {
                 // 检查是否在有效高度范围内
-                if (y < 0 || y > 255) {
+                if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
                     continue;
                 }
 

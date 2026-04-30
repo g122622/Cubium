@@ -75,10 +75,13 @@ constexpr u32 MAX_LOGIN_ATTEMPTS = 5;
 // ============================================================================
 
 namespace world {
+// 高度限制
+constexpr i32 MIN_BUILD_HEIGHT = 0;
+constexpr i32 MAX_BUILD_HEIGHT = 256;
 
 // 区块尺寸
 constexpr i32 CHUNK_WIDTH = 16;
-constexpr i32 CHUNK_HEIGHT = 256;
+constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
 constexpr i32 CHUNK_SECTION_HEIGHT = 16;
 constexpr i32 CHUNK_SECTIONS = CHUNK_HEIGHT / CHUNK_SECTION_HEIGHT;
 constexpr i32 CHUNK_VOLUME = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH;
@@ -88,9 +91,6 @@ constexpr i32 CHUNK_SHIFT = 4; // log2(16) = 4
 constexpr i32 SECTION_SHIFT = 4;
 constexpr i32 CHUNK_MASK = CHUNK_WIDTH - 1;
 
-// 高度限制
-constexpr i32 MIN_BUILD_HEIGHT = 0;
-constexpr i32 MAX_BUILD_HEIGHT = CHUNK_HEIGHT;
 // 海平面高度 (MC 1.16.5 DimensionSettings.java:114)
 constexpr i32 SEA_LEVEL = 63;
 

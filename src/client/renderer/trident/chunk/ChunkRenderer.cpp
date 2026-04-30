@@ -724,14 +724,14 @@ void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
         std::sort(transparentBuffers.begin(), transparentBuffers.end(),
             [&cameraPosition](const ChunkGpuBuffer* lhs, const ChunkGpuBuffer* rhs) {
                 const glm::dvec3 lhsCenter(
-                    static_cast<f64>(lhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
+                    static_cast<f64>(lhs->chunkId.x * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2),
                     64.0,
-                    static_cast<f64>(lhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
+                    static_cast<f64>(lhs->chunkId.z * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2)
                 );
                 const glm::dvec3 rhsCenter(
-                    static_cast<f64>(rhs->chunkId.x * ChunkData::WIDTH + ChunkData::WIDTH / 2),
+                    static_cast<f64>(rhs->chunkId.x * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2),
                     64.0,
-                    static_cast<f64>(rhs->chunkId.z * ChunkData::WIDTH + ChunkData::WIDTH / 2)
+                    static_cast<f64>(rhs->chunkId.z * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2)
                 );
 
                 const f64 lhsDist2 = glm::dot(lhsCenter - cameraPosition, lhsCenter - cameraPosition);

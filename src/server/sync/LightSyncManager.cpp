@@ -54,7 +54,7 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
     // 计算空区块段
     std::vector<bool> emptySections;
     const ChunkSection* const* sections = chunk->getSections();
-    constexpr i32 sectionCount = ChunkData::SECTIONS;
+    constexpr i32 sectionCount = world::CHUNK_SECTIONS;
     emptySections.resize(static_cast<size_t>(sectionCount), false);
 
     for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {

@@ -128,9 +128,6 @@ private:
 
 class ChunkData : public IChunk {
 public:
-    static constexpr i32 WIDTH = world::CHUNK_WIDTH;
-    static constexpr i32 HEIGHT = world::CHUNK_HEIGHT;
-    static constexpr i32 SECTIONS = world::CHUNK_SECTIONS;
 
     ChunkData();
     ChunkData(ChunkCoord x, ChunkCoord z);
@@ -219,7 +216,7 @@ public:
     // ========================================================================
 
     // 光照段数量（包含上下缓冲区）
-    static constexpr i32 LIGHT_SECTIONS = SECTIONS + 2;  // -1 到 16 段
+    static constexpr i32 LIGHT_SECTIONS = world::CHUNK_SECTIONS + 2;  // -1 到 16 段
 
     /**
      * @brief 获取天空光照空映射
@@ -294,13 +291,13 @@ private:
     ChunkCoord m_z = 0;
 
     // 区块段 (可以为空)
-    std::array<std::unique_ptr<ChunkSection>, SECTIONS> m_sections;
+    std::array<std::unique_ptr<ChunkSection>, world::CHUNK_SECTIONS> m_sections;
 
     // 区块段指针数组（用于 getSections() 接口，mutable 允许 const 方法更新）
-    mutable std::array<const ChunkSection*, SECTIONS> m_sectionPtrs{};
+    mutable std::array<const ChunkSection*, world::CHUNK_SECTIONS> m_sectionPtrs{};
 
     // 高度图 (最高方块Y坐标)
-    std::array<BlockCoord, WIDTH * WIDTH> m_heightMap;
+    std::array<BlockCoord, world::CHUNK_WIDTH * world::CHUNK_WIDTH> m_heightMap;
 
     // 高度图 (IChunk 接口)
     std::unordered_map<HeightmapType, Heightmap> m_heightmaps;

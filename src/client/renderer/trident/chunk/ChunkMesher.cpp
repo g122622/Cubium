@@ -102,7 +102,7 @@ private:
 
 [[nodiscard]] size_t estimateReservedFaceCount(const ChunkData& chunk, MeshPass pass) {
     size_t nonAirBlockCount = 0;
-    for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {
+    for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk.getSection(sectionY);
         if (section != nullptr && !section->isEmpty()) {
             nonAirBlockCount += section->getBlockCount();
@@ -281,7 +281,7 @@ struct FaceLayerRenderData {
     i32 z,
     const ChunkData* neighborChunks[6]
 ) {
-    constexpr i32 SIZE = ChunkData::WIDTH;
+    constexpr i32 SIZE = world::CHUNK_WIDTH;
 
     if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
         return nullptr;
@@ -438,8 +438,8 @@ void emitLiquidFace(
         chunk.z()
     );
 
-    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
-    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+    const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
+    const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
     const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
     const auto faceNormal = BlockGeometry::getFaceNormal(face);
     auto faceVertices = BlockGeometry::getFaceVertices(face);
@@ -562,7 +562,7 @@ void ChunkMesher::generateMesh(
                     estimatedFaces * BlockGeometry::INDICES_PER_FACE);
 
     // 遍历所有区块段
-    for (i32 sectionY = 0; sectionY < ChunkData::SECTIONS; ++sectionY) {
+    for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         if (cancelSignal && cancelSignal->load(std::memory_order_acquire)) {
             outMesh.clear();
             return;
@@ -1127,8 +1127,8 @@ void ChunkMesher::addFaceFromAppearance(
     );
 
     // 计算世界坐标用于生物群系颜色混合
-    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
-    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+    const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
+    const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
 
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
         const auto& layer = faceLayers[layerIndex];
@@ -1250,8 +1250,8 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     );
 
     // 计算世界坐标用于生物群系颜色混合
-    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
-    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+    const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
+    const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
 
     const float faceShade = getFaceShade(face);
     for (size_t layerIndex = 0; layerIndex < faceLayers.size(); ++layerIndex) {
@@ -1384,8 +1384,8 @@ void ChunkMesher::addCrossedPlantGeometry(
     }
 
     client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
-    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
-    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+    const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
+    const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
     const u8 packedLight = static_cast<u8>(((skyLight & 0x0F) << 4) | (blockLight & 0x0F));
 
     constexpr f64 INV_SQRT2 = 0.7071067811865476;
@@ -1494,8 +1494,8 @@ void ChunkMesher::addShapeGeometryFromAppearance(
         biomeNeighbors[3] = neighborChunks[3];
     }
     client::ChunkBiomeAccessor biomeAccessor(chunk, biomeNeighbors, chunk.x(), chunk.z());
-    const i32 worldX = chunk.x() * ChunkData::WIDTH + blockX;
-    const i32 worldZ = chunk.z() * ChunkData::WIDTH + blockZ;
+    const i32 worldX = chunk.x() * world::CHUNK_WIDTH + blockX;
+    const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + blockZ;
 
     for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
         const Face face = static_cast<Face>(faceIdx);
@@ -1683,7 +1683,7 @@ void ChunkMesher::simpleMeshSection(
         const i32 worldY = baseY + ny;
         const i32 worldZ = nz;
 
-        if (worldY < world::MIN_BUILD_HEIGHT || worldY >= world::CHUNK_HEIGHT) {
+        if (worldY < world::MIN_BUILD_HEIGHT || worldY >= world::MAX_BUILD_HEIGHT) {
             return nullptr;
         }
 
@@ -2013,7 +2013,7 @@ void ChunkMesher::greedyMeshSection(
         const i32 worldY = baseY + ny;
         const i32 worldZ = nz;
 
-        if (worldY < world::MIN_BUILD_HEIGHT || worldY >= world::CHUNK_HEIGHT) {
+        if (worldY < world::MIN_BUILD_HEIGHT || worldY >= world::MAX_BUILD_HEIGHT) {
             return nullptr;
         }
 
@@ -2114,8 +2114,8 @@ void ChunkMesher::greedyMeshSection(
         }
 
         // 计算世界坐标用于生物群系颜色混合
-        const i32 worldX = chunk.x() * ChunkData::WIDTH + x;
-        const i32 worldZ = chunk.z() * ChunkData::WIDTH + z;
+        const i32 worldX = chunk.x() * world::CHUNK_WIDTH + x;
+        const i32 worldZ = chunk.z() * world::CHUNK_WIDTH + z;
         const i32 worldY = baseY + y;
 
         std::vector<u32> shadedLayerColors;

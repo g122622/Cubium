@@ -75,7 +75,7 @@ bool TrunkPlacer::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) {
 void TrunkPlacer::placeDirtUnder(WorldGenRegion& world, const BlockPos& pos) {
     // 检查下方位置
     BlockPos belowPos = pos.down();
-    if (belowPos.y < 0) {
+    if (belowPos.y < world::MIN_BUILD_HEIGHT) {
         return;
     }
 

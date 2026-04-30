@@ -198,7 +198,7 @@ void NaturalSpawner::spawnInChunk(mc::server::ServerWorld& world, i32 chunkX, i3
             // 获取生成高度
             HeightmapType heightmapType = EntitySpawnPlacementRegistry::getHeightmapType(entry->entityTypeId);
             i32 y = getSpawnHeight(world, x, z, heightmapType);
-            if (y < 0) {
+            if (y < world::MIN_BUILD_HEIGHT) {
                 continue;
             }
 
@@ -412,7 +412,7 @@ void NaturalSpawner::spawnForClassificationInChunk(
 
         // 获取高度
         i32 y = getSpawnHeight(world, x, z, heightmapType);
-        if (y < 0) {
+        if (y < world::MIN_BUILD_HEIGHT) {
             continue;
         }
 

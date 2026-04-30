@@ -34,7 +34,7 @@ std::vector<u8> createSerializedChunkData()
 {
     ChunkData chunkData(0, 0);
     const u32 stoneStateId = VanillaBlocks::STONE->defaultState().stateId();
-    chunkData.fill(0, ChunkData::HEIGHT, stoneStateId);
+    chunkData.fill(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, stoneStateId);
     chunkData.setFullyGenerated(true);
     chunkData.setLoaded(true);
 

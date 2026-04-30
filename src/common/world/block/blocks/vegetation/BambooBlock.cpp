@@ -1,5 +1,6 @@
 #include "BambooBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../VanillaBlocks.hpp"
@@ -118,8 +119,8 @@ BlockState BambooBlock::updatePostPlacement(
 void BambooBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // 参考: net.minecraft.block.BambooBlock#randomTick
 
-    // 检查上方是否有空间
-    if (pos.y >= 255) {
+    // 检查上方是否有空间（最高生长到 MAX_BUILD_HEIGHT - 1）
+    if (pos.y >= world::MAX_BUILD_HEIGHT - 1) {
         return;
     }
 

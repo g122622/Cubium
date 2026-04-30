@@ -562,13 +562,13 @@ f32 MeshBuildScheduler::chunkDistanceInChunks(
     const ChunkId& chunkId
 )
 {
-    const f32 chunkCenterOffset = static_cast<f32>(ChunkData::WIDTH) * 0.5f;
-    const f32 centerX = static_cast<f32>(chunkId.x * ChunkData::WIDTH) + chunkCenterOffset;
-    const f32 centerZ = static_cast<f32>(chunkId.z * ChunkData::WIDTH) + chunkCenterOffset;
+    const f32 chunkCenterOffset = static_cast<f32>(world::CHUNK_WIDTH) * 0.5f;
+    const f32 centerX = static_cast<f32>(chunkId.x * world::CHUNK_WIDTH) + chunkCenterOffset;
+    const f32 centerZ = static_cast<f32>(chunkId.z * world::CHUNK_WIDTH) + chunkCenterOffset;
 
     const glm::vec2 toChunk(centerX - viewState.cameraPosition.x, centerZ - viewState.cameraPosition.z);
     const f32 distanceBlocks = glm::length(toChunk);
-    return distanceBlocks / static_cast<f32>(ChunkData::WIDTH);
+    return distanceBlocks / static_cast<f32>(world::CHUNK_WIDTH);
 }
 
 f32 MeshBuildScheduler::chunkForwardDot(
@@ -576,9 +576,9 @@ f32 MeshBuildScheduler::chunkForwardDot(
     const ChunkId& chunkId
 )
 {
-    const f32 chunkCenterOffset = static_cast<f32>(ChunkData::WIDTH) * 0.5f;
-    const f32 centerX = static_cast<f32>(chunkId.x * ChunkData::WIDTH) + chunkCenterOffset;
-    const f32 centerZ = static_cast<f32>(chunkId.z * ChunkData::WIDTH) + chunkCenterOffset;
+    const f32 chunkCenterOffset = static_cast<f32>(world::CHUNK_WIDTH) * 0.5f;
+    const f32 centerX = static_cast<f32>(chunkId.x * world::CHUNK_WIDTH) + chunkCenterOffset;
+    const f32 centerZ = static_cast<f32>(chunkId.z * world::CHUNK_WIDTH) + chunkCenterOffset;
 
     glm::vec2 cameraForward(viewState.cameraForward.x, viewState.cameraForward.z);
     const f32 cameraForwardLen = glm::length(cameraForward);

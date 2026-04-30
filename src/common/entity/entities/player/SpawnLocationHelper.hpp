@@ -137,7 +137,7 @@ private:
         i32 localZ,
         HeightmapType type)
     {
-        for (i32 y = ChunkData::HEIGHT - 1; y >= 0; --y) {
+        for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
             const BlockState* state = chunk.getBlock(localX, y, localZ);
             if (matchesHeightmap(type, state)) {
                 return y + 1;

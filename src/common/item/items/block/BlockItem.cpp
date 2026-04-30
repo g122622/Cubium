@@ -84,11 +84,8 @@ bool BlockItem::checkPositionValid(const BlockItemUseContext& context) const
 {
     const BlockPos& pos = context.placementPos();
 
-    // TODO: 检查世界边界
-    // Y 范围通常在 0-255 或 0-383（取决于世界类型）
-    // 这里使用简单的检查，实际应该从世界获取限制
-    // 正确做法是使用world::MIN_BUILD_HEIGHT和world::MAX_BUILD_HEIGHT
-    if (pos.y < 0 || pos.y >= world::MAX_BUILD_HEIGHT) {
+    // 检查世界边界
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 

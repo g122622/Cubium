@@ -150,11 +150,11 @@ TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing) {
     const bool* emptinessMap = chunk.getSkyEmptinessMap();
     ASSERT_NE(emptinessMap, nullptr);
 
-    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::world::CHUNK_SECTIONS; ++sectionIndex) {
         EXPECT_TRUE(emptinessMap[sectionIndex]);
     }
 
-    for (mc::i32 sectionIndex = mc::ChunkData::SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
         EXPECT_FALSE(emptinessMap[sectionIndex]);
     }
 }

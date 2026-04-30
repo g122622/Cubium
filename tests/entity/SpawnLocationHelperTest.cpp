@@ -59,7 +59,7 @@ public:
             return 0;
         }
 
-        for (i32 y = ChunkData::HEIGHT - 1; y >= 0; --y) {
+        for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
             const BlockState* state = chunk->getBlock(x & 15, y, z & 15);
             if (state != nullptr && !state->isAir()) {
                 return y;
@@ -73,7 +73,7 @@ public:
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= 0 && y < ChunkData::HEIGHT; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT; }
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }

@@ -33,13 +33,13 @@ namespace {
 
 f32 chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId& chunkId)
 {
-    const f32 chunkCenterOffset = static_cast<f32>(ChunkData::WIDTH) * 0.5f;
-    const f32 centerX = static_cast<f32>(chunkId.x * ChunkData::WIDTH) + chunkCenterOffset;
-    const f32 centerZ = static_cast<f32>(chunkId.z * ChunkData::WIDTH) + chunkCenterOffset;
+    const f32 chunkCenterOffset = static_cast<f32>(world::CHUNK_WIDTH) * 0.5f;
+    const f32 centerX = static_cast<f32>(chunkId.x * world::CHUNK_WIDTH) + chunkCenterOffset;
+    const f32 centerZ = static_cast<f32>(chunkId.z * world::CHUNK_WIDTH) + chunkCenterOffset;
 
     const glm::vec2 delta(centerX - viewState.cameraPosition.x, centerZ - viewState.cameraPosition.z);
     const f32 distanceBlocks = glm::length(delta);
-    return distanceBlocks / static_cast<f32>(ChunkData::WIDTH);
+    return distanceBlocks / static_cast<f32>(world::CHUNK_WIDTH);
 }
 
 } // namespace

@@ -128,7 +128,7 @@ public:
     }
 
     mc::i32 getSectionCount() const override {
-        return mc::ChunkData::SECTIONS;
+        return mc::world::CHUNK_SECTIONS;
     }
 
 private:
@@ -233,18 +233,18 @@ TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap) {
 
     mc::BlockStarLightEngine engine(&provider);
     const std::vector<mc::BlockPos> positions;
-    const std::vector<bool> changedSections(mc::ChunkData::SECTIONS, true);
+    const std::vector<bool> changedSections(mc::world::CHUNK_SECTIONS, true);
 
     engine.blocksChangedInChunk(&provider, 0, 0, positions, changedSections);
 
     const bool* emptinessMap = chunk.getBlockEmptinessMap();
     ASSERT_NE(emptinessMap, nullptr);
 
-    for (mc::i32 sectionIndex = 0; sectionIndex < mc::ChunkData::SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = 0; sectionIndex < mc::world::CHUNK_SECTIONS; ++sectionIndex) {
         EXPECT_TRUE(emptinessMap[sectionIndex]);
     }
 
-    for (mc::i32 sectionIndex = mc::ChunkData::SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
+    for (mc::i32 sectionIndex = mc::world::CHUNK_SECTIONS; sectionIndex < mc::ChunkData::LIGHT_SECTIONS; ++sectionIndex) {
         EXPECT_FALSE(emptinessMap[sectionIndex]);
     }
 }

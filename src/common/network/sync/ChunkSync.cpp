@@ -1,5 +1,6 @@
 #include "ChunkSync.hpp"
 #include "../../world/block/Block.hpp"
+#include "../../world/WorldConstants.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <algorithm>
@@ -33,7 +34,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk) 
     ser.writeBytes(biomeData);
 
     // 写入区块段数据
-    for (i32 i = 0; i < ChunkData::SECTIONS; ++i) {
+    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if ((sectionMask & (1 << i)) == 0) continue;
 
         const ChunkSection* section = chunk.getSection(i);
@@ -156,7 +157,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     }
 
     // 读取区块段
-    for (i32 i = 0; i < ChunkData::SECTIONS; ++i) {
+    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if ((sectionMask & (1 << i)) == 0) continue;
 
         auto sizeResult = deser.readU16();
@@ -271,7 +272,7 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(
 size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk) {
     size_t size = 4 + 4 + 2 + 256 + 1 + chunk.getBiomes().serialize().size(); // 坐标 + 位掩码 + 高度图 + 生物群系
 
-    for (i32 i = 0; i < ChunkData::SECTIONS; ++i) {
+    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if (chunk.hasSection(i)) {
             size += 2 + calculateSectionSize(*chunk.getSection(i));
         }
@@ -288,7 +289,7 @@ size_t ChunkSerializer::calculateSectionSize(const ChunkSection& section) {
 
 u16 ChunkSerializer::calculateSectionMask(const ChunkData& chunk) {
     u16 mask = 0;
-    for (i32 i = 0; i < ChunkData::SECTIONS; ++i) {
+    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if (chunk.hasSection(i) && !chunk.getSection(i)->isEmpty()) {
             mask |= (1 << i);
         }

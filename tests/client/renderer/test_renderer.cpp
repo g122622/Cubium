@@ -624,8 +624,8 @@ protected:
 
 TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQuads) {
     constexpr i32 y = 64;
-    for (i32 z = 0; z < ChunkData::WIDTH; ++z) {
-        for (i32 x = 0; x < ChunkData::WIDTH; ++x) {
+    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
             m_chunk->setBlock(x, y, z, &VanillaBlocks::STONE->defaultState());
         }
     }
