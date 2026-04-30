@@ -22,19 +22,24 @@ orb/
 | 最大经验值 | 2477 |
 | 存活时间 | 6000 ticks (5分钟) |
 | 追踪范围 | 8 格 |
-| 拾取延迟 | 10 ticks |
+| 拾取延迟 | 0 ticks (构造函数默认值，生成时通常设为10) |
 | 拾取距离 | 1 格 |
 
 ### 行为
 
 1. **物理运动**
    - 受重力影响（0.03 加速度）
-   - 地面摩擦（0.98）
-   - 在水中/岩浆中有浮力
+   - 水中浮力：上升速度上限 0.06，水平摩擦 0.99
+   - 岩浆中：随机运动 + 上升速度 0.2
+   - 地面摩擦：滑度 0.6 * 0.98，Y轴反弹系数 -0.9
+   - 空气摩擦：0.98
 
 2. **玩家追踪**
+   - 缓存机制：每 `20 + entityId % 100` ticks 搜索一次玩家
    - 在 8 格范围内检测最近玩家
+   - 使用 `EntityUtils::findClosestEntity<Player>()` 搜索
    - 吸引力公式：`(1 - dist/8)² * 0.1`
+   - Y轴偏移：使用 `eyeHeight / 2` 计算目标点
    - 1 格内触发拾取
 
 3. **合并**
@@ -91,22 +96,43 @@ classDiagram
         -m_xpValue: i32
         -m_age: i32
         -m_pickupDelay: i32
+        -m_health: i32
         -m_trackingPlayer: Player*
+        -m_tickCounter: i32
+        -m_lastSearchTick: i32
         +getXpValue() i32
         +getOrbSize() i32
         +onCollideWithPlayer()
         +tryMergeWith() bool
         +getXPSplit() i32$
+        -findNearestPlayer() Player*
+        -updateMovement()
+        -followNearestPlayer()
     }
 
     Entity <|-- ExperienceOrbEntity
     ExperienceOrbEntity --> Player : tracks
     ExperienceOrbEntity --> experience::ExperienceManager : gives xp to
+    ExperienceOrbEntity ..> EntityUtils : uses findClosestEntity
 ```
+
+## 与 MC 1.16.5 的对齐
+
+| 特性 | MC 1.16.5 | 实现 |
+|------|-----------|------|
+| 拾取延迟默认值 | 0（构造函数不设置） | ✅ `m_pickupDelay = 0` |
+| 玩家搜索缓存 | 每 `20 + entityId % 100` ticks | ✅ `m_tickCounter` / `m_lastSearchTick` |
+| 水中浮力 | `vel.y = min(vel.y + 0.0005, 0.06)` | ✅ |
+| 岩浆行为 | 随机运动 + 上升 0.2 | ✅ |
+| 地面反弹 | Y轴 `-0.9` | ✅ |
+| 吸引Y偏移 | `eyeHeight / 2` | ✅ |
+| 附魔消耗 | 直接消耗，不检查 | ✅ `ExperienceManager::onEnchant()` |
+| 负经验 | 触发降级 | ✅ `addExperience()` 支持 |
 
 ## 依赖项
 
 - `../../core/Entity.hpp` - 实体基类
+- `../../core/EntityUtils.hpp` - 实体工具函数（玩家搜索）
 - `../experience/ExperienceConstants.hpp` - 经验常量
 - `../experience/ExperienceUtils.hpp` - 经验工具函数
 - `../experience/ExperienceManager.hpp` - 经验管理器

@@ -34,8 +34,9 @@ experience/
 // 创建经验管理器
 ExperienceManager xpManager(player);
 
-// 添加经验
+// 添加经验（支持负值降级）
 xpManager.addExperience(100);
+xpManager.addExperience(-50);  // 降级处理
 
 // 消耗等级（附魔用）
 xpManager.consumeLevels(30);
@@ -45,9 +46,32 @@ i32 level = xpManager.getLevel();
 f32 progress = xpManager.getProgress();
 i32 total = xpManager.getTotalExperience();
 
-// 附魔处理
+// 附魔处理（MC 1.16.5：直接消耗等级，始终返回 true）
 xpManager.onEnchant(levels, random);
 ```
+
+#### 关键算法
+
+**多级升级算法**（MC 1.16.5 准确复刻）：
+- 升级时使用"乘旧容量、除新容量"算法保持经验进度
+- 避免因容量变化导致的经验丢失或溢出
+
+```cpp
+// 升级时
+f32 excessProgress = m_progress - 1.0f;
+i32 oldCapacity = getExperienceForNextLevel();
+m_level++;
+i32 newCapacity = getExperienceForNextLevel();
+m_progress = excessProgress * oldCapacity / newCapacity;
+```
+
+**负经验处理**：
+- 添加负经验会触发降级逻辑
+- 等级为 0 时进度归零
+
+**附魔消耗**：
+- `onEnchant()` 直接消耗等级，不检查是否足够
+- 等级变为负数时重置为 0
 
 ### ExperienceUtils
 
@@ -146,7 +170,10 @@ classDiagram
         +getProgress() f32
         +getTotalExperience() i32
         +getExperienceForNextLevel() i32
+        +onEnchant(levels: i32, rng: Random) bool
         +calculateBarCapacity(level: i32)$ i32
+        +getExperienceForLevel(level: i32)$ i32
+        +getLevelFromExperience(totalXp: i32)$ i32
     }
 
     class ExperienceUtils {
@@ -156,11 +183,14 @@ classDiagram
         +calculateOrbColor(xpValue: i32, time: f32)$ u32
         +randomOreExperience(rng: Random, oreType: i32)$ i32
         +calculateDeathDropXp(level: i32)$ i32
+        +durabilityToXp(durability: i32)$ i32
+        +xpToDurability(xp: i32)$ i32
     }
 
     class ExperienceConstants {
         <<namespace>>
         +MAX_ORB_AGE: i32
+        +DEFAULT_PICKUP_DELAY: i32
         +ORB_TRACKING_RANGE: f32
         +MAX_ORB_VALUE: i32
         +XP_SPLIT_VALUES: i32[]
