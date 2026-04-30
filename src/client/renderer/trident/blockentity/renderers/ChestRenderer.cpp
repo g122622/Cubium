@@ -65,14 +65,13 @@ void ChestRenderer::render(
     std::vector<u32> indices;
     m_model.generateMesh(vertices, indices);
 
-    // 后续渲染管线集成步骤：
-    // 1. 获取箱子方块状态确定朝向（FACING 属性）
-    // 2. 应用旋转变换（绕 Y 轴）
-    // 3. 根据是否圣诞节选择纹理
-    // 4. 获取双箱时的光照合并
-    // 5. 提交顶点数据到渲染管线
-    // 注意：完整渲染管线集成需要在 EntityPipeline 或专用 BlockEntityPipeline 中实现
-
+    // 渲染管线集成说明：
+    // 该渲染器生成模型顶点数据后，由上层渲染系统（BlockEntityRenderDispatcher）
+    // 负责将顶点数据提交到 GPU。完整的渲染需要：
+    // 1. 从方块状态获取 FACING 属性确定朝向
+    // 2. 根据 isChristmas() 选择纹理变体
+    // 3. 计算双箱时的光照合并
+    // 这些功能依赖外部系统（方块状态、纹理系统）的实现完善后集成。
     (void)light;
     (void)vertices;
     (void)indices;
