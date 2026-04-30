@@ -70,22 +70,14 @@
 | 问题 | 文件 | 修复内容 |
 |------|------|---------|
 | DepthAveragePlacement分布错误 | Placements.cpp | 使用三角形分布nextInt(j)+nextInt(j)-j+i |
+| CountNoisePlacement使用简单哈希 | Placements.cpp | 改用PerlinNoiseGenerator.noiseAt() |
 
-### 已添加的方块
-
-| 方块 | 用途 |
-|------|------|
-| SNOW_BLOCK | 冰刺地形生成，IceSpikeFeature检查 |
-
----
-
-## 待修复问题
+### 待修复问题
 
 ### 放置器系统
 
 | 放置器 | 问题 |
 |--------|------|
-| CountNoisePlacement | 需使用Biome.INFO_NOISE而非简单哈希 |
 | CarvingMaskPlacement | 未使用雕刻掩码，完全随机 |
 | TopSolidPlacement | 应使用高度图而非手动遍历 |
 | 缺失CountExtraPlacement | 树木数量控制 |

@@ -85,18 +85,22 @@ std::vector<BlockPos> CountNoisePlacement::getPositions(
         return {basePos};
     }
 
-    // 计算噪声值
-    i32 chunkX = basePos.x >> 4;
-    i32 chunkZ = basePos.z >> 4;
+    (void)region;
 
-    f32 noiseValue = getChunkNoise(
-        static_cast<i64>(random.nextInt()) & 0xFFFFFFFFLL,
-        chunkX, chunkZ,
-        1.0f
+    // 参考 MC CountNoisePlacement 第16-18行
+    // 使用 Biome.INFO_NOISE.noiseAt(x / 200.0, z / 200.0, false)
+    // 这里使用与 SwampSurfaceBuilder 相同的全局噪声生成器
+    static PerlinNoiseGenerator s_infoNoise(12345ULL, 0, 0);
+    const f64 noiseValue = static_cast<f64>(
+        s_infoNoise.noiseAt(
+            static_cast<f32>(basePos.x) / 200.0f,
+            static_cast<f32>(basePos.z) / 200.0f,
+            false
+        )
     );
 
     // 根据噪声阈值决定数量
-    i32 count = (noiseValue < static_cast<f32>(countConfig->noiseLevel))
+    const i32 count = (noiseValue < countConfig->noiseLevel)
         ? countConfig->belowCount
         : countConfig->aboveCount;
 
