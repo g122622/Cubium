@@ -27,7 +27,7 @@ void BlobFoliagePlacer::placeFoliageInternal(
     for (i32 y = startOffset; y >= startOffset - foliageHeight; --y) {
         // 计算当前层的半径
         // 半径随高度递减
-        i32 layerRadius = std::max(radius + foliagePos.radius - 1 - y / 2, 0);
+        i32 layerRadius = std::max(radius + foliagePos.radiusBonus - 1 - y / 2, 0);
 
         placeFoliageLayer(
             world, random, foliagePos.pos, layerRadius,

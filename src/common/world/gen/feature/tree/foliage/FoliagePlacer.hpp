@@ -115,7 +115,7 @@ protected:
         i32 dx, i32 dy, i32 dz,
         i32 radius,
         bool trunkTop
-    ) const = 0;
+    ) const;
 
     /**
      * @brief 内部放置树叶

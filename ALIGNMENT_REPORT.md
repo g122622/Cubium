@@ -74,6 +74,23 @@
 
 ### 待修复问题
 
+### 已修复的树干放置器 (2026-04-30)
+
+| 放置器 | 修复内容 |
+|--------|---------|
+| DarkOakTrunkPlacer | 完全重写，实现MC原版弯曲逻辑和角落枝干生成 |
+| FancyTrunkPlacer | 完全重写，实现MC原版分支算法（getBranchLength, checkAndPlaceBranch）|
+| MegaJungleTrunkPlacer | 完全重写，继承GiantTrunkPlacer并添加三角函数分支生成 |
+
+### 已修复的树叶放置器 (2026-04-30)
+
+| 放置器 | 修复内容 |
+|--------|---------|
+| SpruceFoliagePlacer | 修正placeFoliageLayer签名，半径递增逻辑对齐MC |
+| DarkOakFoliagePlacer | 修正placeFoliageLayer签名，多层半径逻辑对齐MC |
+| AcaciaFoliagePlacer | 修正placeFoliageLayer签名，三层伞形逻辑对齐MC |
+| FoliagePlacer基类 | 添加shouldSkip默认实现，修正纯虚函数问题 |
+
 ### 放置器系统
 
 | 放置器 | 问题 |
@@ -87,17 +104,17 @@
 
 | 放置器 | 问题 |
 |--------|------|
-| SpruceFoliagePlacer | 半径递增模式错误，应从顶部向下层叠 |
-| DarkOakFoliagePlacer | 应为多层不同半径，项目为简单球形 |
-| AcaciaFoliagePlacer | 层数和半径计算错误 |
+| SpruceFoliagePlacer | 半径递增模式错误，应从顶部向下层叠 | ✅ 已修复 |
+| DarkOakFoliagePlacer | 应为多层不同半径，项目为简单球形 | ✅ 已修复 |
+| AcaciaFoliagePlacer | 层数和半径计算错误 | ✅ 已修复 |
 
 ### 树干放置器
 
 | 放置器 | 问题 |
 |--------|------|
-| FancyTrunkPlacer | 弯曲轨迹计算不准确 |
-| DarkOakTrunkPlacer | 缺少角落额外枝干生成 |
-| MegaJungleTrunkPlacer | 缺少三角函数计算的分支 |
+| FancyTrunkPlacer | 弯曲轨迹计算不准确 | ✅ 已修复 |
+| DarkOakTrunkPlacer | 缺少角落额外枝干生成 | ✅ 已修复 |
+| MegaJungleTrunkPlacer | 缺少三角函数计算的分支 | ✅ 已修复 |
 
 ### 缺失系统
 

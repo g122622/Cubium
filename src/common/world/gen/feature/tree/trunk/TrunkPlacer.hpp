@@ -20,13 +20,12 @@ class BlockState;
  * 参考: net.minecraft.world.gen.foliageplacer.FoliagePlacer.Foliage
  */
 struct FoliagePosition {
-    BlockPos pos;       ///< 树叶中心位置
-    i32 radius;         ///< 树叶半径
-    i32 height;         ///< 树叶高度（用于BlobFoliagePlacer）
-    bool trunkTop;      ///< 是否在树干顶部（用于PineFoliagePlacer）
+    BlockPos pos;           ///< 树叶中心位置
+    i32 radiusBonus;        ///< 树叶半径加成（MC: field_236761_b_）
+    bool trunkTop;          ///< 是否在树干顶部（MC: field_236762_c_）
 
-    FoliagePosition(const BlockPos& p, i32 r, i32 h = 0, bool top = false)
-        : pos(p), radius(r), height(h), trunkTop(top) {}
+    FoliagePosition(const BlockPos& p, i32 radiusBonus = 0, bool top = false)
+        : pos(p), radiusBonus(radiusBonus), trunkTop(top) {}
 };
 
 /**

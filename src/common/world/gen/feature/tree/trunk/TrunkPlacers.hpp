@@ -55,6 +55,52 @@ public:
 
     [[nodiscard]] const char* name() const override { return "fancy"; }
     [[nodiscard]] std::unique_ptr<TrunkPlacer> clone() const override;
+
+private:
+    /**
+     * @brief 计算分支长度
+     * 参考 MC func_236890_b_
+     */
+    [[nodiscard]] f32 getBranchLength(i32 trunkHeight, i32 y) const;
+
+    /**
+     * @brief 检查并放置分支
+     * 参考 MC func_236887_a_
+     */
+    bool checkAndPlaceBranch(
+        WorldGenRegion& world,
+        math::Random& random,
+        const BlockPos& start,
+        const BlockPos& end,
+        bool place,
+        std::set<BlockPos>& trunkBlocks,
+        const BlockState* trunkBlock
+    );
+
+    /**
+     * @brief 放置直线
+     */
+    void placeLine(
+        WorldGenRegion& world,
+        math::Random& random,
+        const BlockPos& start,
+        const BlockPos& end,
+        bool place,
+        std::set<BlockPos>& trunkBlocks,
+        const BlockState* trunkBlock
+    );
+
+    /**
+     * @brief 获取步数
+     * 参考 MC func_236888_a_
+     */
+    [[nodiscard]] i32 getSteps(const BlockPos& delta) const;
+
+    /**
+     * @brief 判断是否保留树叶
+     * 参考 MC func_236885_a_
+     */
+    [[nodiscard]] bool shouldKeepFoliage(i32 trunkHeight, i32 relY) const;
 };
 
 /**

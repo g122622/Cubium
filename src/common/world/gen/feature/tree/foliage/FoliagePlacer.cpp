@@ -4,6 +4,8 @@
 #include "../../../../block/VanillaBlocks.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../../core/Constants.hpp"
+#include <cmath>
+#include <algorithm>
 
 namespace mc {
 
@@ -11,6 +13,24 @@ FoliagePlacer::FoliagePlacer(const FeatureSpread& radius, const FeatureSpread& o
     : m_radius(radius)
     , m_offset(offset)
 {
+}
+
+bool FoliagePlacer::shouldSkip(
+    math::Random& /*random*/,
+    i32 dx, i32 /*dy*/, i32 dz,
+    i32 radius,
+    bool trunkTop
+) const {
+    // 基类默认实现：跳过角落
+    // 参考 MC FoliagePlacer.func_230373_a_
+    if (trunkTop) {
+        i32 absDx = std::abs(dx);
+        i32 absDz = std::abs(dz);
+        absDx = std::min(absDx, std::abs(dx - 1));
+        absDz = std::min(absDz, std::abs(dz - 1));
+        return absDx == radius && absDz == radius;
+    }
+    return std::abs(dx) == radius && std::abs(dz) == radius;
 }
 
 void FoliagePlacer::placeFoliage(

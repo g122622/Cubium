@@ -29,7 +29,7 @@ std::vector<FoliagePosition> StraightTrunkPlacer::placeTrunk(
     // 返回树叶位置（在树干顶部）
     std::vector<FoliagePosition> foliagePositions;
     BlockPos topPos = startPos.up(height);
-    foliagePositions.emplace_back(topPos, 0, 0, false);
+    foliagePositions.emplace_back(topPos, 0, false);
 
     return foliagePositions;
 }

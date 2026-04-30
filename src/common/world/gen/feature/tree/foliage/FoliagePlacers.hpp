@@ -84,6 +84,16 @@ protected:
 
 private:
     i32 m_height;
+
+    void placeFoliageLayer(
+        WorldGenRegion& world,
+        math::Random& random,
+        const FoliagePosition& foliagePos,
+        i32 radius,
+        i32 yOffset,
+        std::set<BlockPos>& foliageBlocks,
+        const BlockState* foliageBlock,
+        bool trunkTop);
 };
 
 /**
@@ -119,6 +129,17 @@ protected:
         i32 radius,
         bool trunkTop
     ) const override;
+
+private:
+    void placeFoliageLayer(
+        WorldGenRegion& world,
+        math::Random& random,
+        const FoliagePosition& foliagePos,
+        i32 radius,
+        i32 yOffset,
+        std::set<BlockPos>& foliageBlocks,
+        const BlockState* foliageBlock,
+        bool trunkTop);
 };
 
 /**
@@ -157,6 +178,22 @@ protected:
 
 private:
     i32 m_height;
+
+    void placeFoliageLayer(
+        WorldGenRegion& world,
+        math::Random& random,
+        const FoliagePosition& foliagePos,
+        i32 radius,
+        i32 yOffset,
+        std::set<BlockPos>& foliageBlocks,
+        const BlockState* foliageBlock,
+        bool trunkTop);
+
+    bool shouldSkipBase(
+        math::Random& random,
+        i32 dx, i32 dy, i32 dz,
+        i32 radius,
+        bool trunkTop) const;
 };
 
 /**
