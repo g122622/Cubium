@@ -408,6 +408,10 @@ combat 模块负责：
 | 火焰附加 | ✅ 已对齐 | 每级 4 秒 |
 | 横扫之刃 | ✅ 已对齐 | I:50%, II:67%, III:75% |
 | 附魔伤害加成 | ✅ 已对齐 | 锋利、亡灵杀手、节肢杀手 |
+| DamageSource 字段 | ✅ 已对齐 | hungerDamage, isDifficultyScaled, isThornsDamage, isDamageAbsolute |
+| MobEntity.attackEntityAsMob() | ✅ 已对齐 | 附魔伤害、击退、火焰附加 |
+| ZombieEntity 燃烧传递 | ✅ 已对齐 | 区域难度影响点燃概率 |
+| Easy 难度伤害缩放 | ✅ 已对齐 | min(damage/2 + 1, damage) |
 
 ### 待实现
 

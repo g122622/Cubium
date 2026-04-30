@@ -6,6 +6,7 @@
 #include "../ai/pathfinding/PathNavigator.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
 #include "../attribute/Attributes.hpp"
+#include "../combat/PlayerAttackHelper.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
@@ -215,17 +216,9 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target) {
 
     if (!mainHand.isEmpty()) {
         // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
-        // 需要知道目标的生物类型（亡灵、节肢动物等）
-        // TODO: 实现 getCreatureAttribute()
-        // attackDamage += EnchantmentHelper.getModifierForCreature(mainHand, target.getCreatureAttribute());
-
-        // 锋利附魔（对所有生物有效）
-        i32 sharpnessLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-            mainHand, &item::enchant::AllEnchantments::SHARPNESS);
-        if (sharpnessLevel > 0) {
-            // MC 1.16.5: 锋利 I = 0.5 + level * 0.5
-            attackDamage += 0.5f + static_cast<f32>(sharpnessLevel) * 0.5f;
-        }
+        // 使用 PlayerAttackHelper::getEnchantmentDamageBonus 计算附魔伤害
+        attackDamage += entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(
+            mainHand, target.getCreatureAttribute());
 
         // 击退附魔
         i32 knockbackLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(

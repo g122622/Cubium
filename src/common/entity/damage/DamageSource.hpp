@@ -116,6 +116,7 @@ public:
 
     /**
      * @brief 是否可以绕过无敌
+     * MC 1.16.5: isDamageAbsolute() - 忽略药水效果和附魔
      */
     [[nodiscard]] virtual bool bypassesInvulnerability() const { return false; }
 
@@ -158,6 +159,31 @@ public:
      * @brief 是否来自玩家
      */
     [[nodiscard]] virtual bool isPlayerSource() const { return false; }
+
+    /**
+     * @brief 是否受难度缩放
+     * MC 1.16.5: isDifficultyScaled()
+     */
+    [[nodiscard]] virtual bool isDifficultyScaled() const { return false; }
+
+    /**
+     * @brief 是否是荆棘伤害
+     * MC 1.16.5: getIsThornsDamage()
+     */
+    [[nodiscard]] virtual bool isThornsDamage() const { return false; }
+
+    /**
+     * @brief 获取饥饿消耗值
+     * MC 1.16.5: getHungerDamage()
+     * 玩家受伤时会消耗饱食度，默认 0.1，护甲穿透伤害为 0.0
+     */
+    [[nodiscard]] virtual f32 hungerDamage() const { return 0.1f; }
+
+    /**
+     * @brief 是否忽略药水效果和附魔
+     * MC 1.16.5: isDamageAbsolute()
+     */
+    [[nodiscard]] virtual bool isDamageAbsolute() const { return false; }
 
     /**
      * @brief 是否是摔落伤害
@@ -207,7 +233,18 @@ class EnvironmentalDamage : public DamageSource {
 public:
     explicit EnvironmentalDamage(DamageType type)
         : m_type(type)
-    {}
+        , m_hungerDamage(0.1f)
+        , m_isDamageAbsolute(false)
+    {
+        // MC 1.16.5: bypassesArmor 的伤害类型饥饿消耗为 0
+        if (bypassesArmor()) {
+            m_hungerDamage = 0.0f;
+        }
+        // 虚空和饥饿伤害是绝对伤害（忽略药水/附魔）
+        if (type == DamageType::OutOfWorld || type == DamageType::Starve) {
+            m_isDamageAbsolute = true;
+        }
+    }
 
     [[nodiscard]] std::unique_ptr<DamageSource> clone() const override {
         return std::make_unique<EnvironmentalDamage>(m_type);
@@ -220,7 +257,13 @@ public:
                m_type == DamageType::Starve ||
                m_type == DamageType::Drown ||
                m_type == DamageType::Fall ||
-               m_type == DamageType::FlyIntoWall;
+               m_type == DamageType::FlyIntoWall ||
+               m_type == DamageType::InWall ||
+               m_type == DamageType::Cramming ||
+               m_type == DamageType::Generic ||
+               m_type == DamageType::Magic ||
+               m_type == DamageType::Wither ||
+               m_type == DamageType::DragonBreath;
     }
 
     [[nodiscard]] bool bypassesInvulnerability() const override {
@@ -242,6 +285,10 @@ public:
         return m_type == DamageType::Magic ||
                m_type == DamageType::Wither;
     }
+
+    [[nodiscard]] f32 hungerDamage() const override { return m_hungerDamage; }
+
+    [[nodiscard]] bool isDamageAbsolute() const override { return m_isDamageAbsolute; }
 
     [[nodiscard]] String deathMessageKey() const override {
         switch (m_type) {
@@ -273,6 +320,8 @@ public:
 
 private:
     DamageType m_type;
+    f32 m_hungerDamage;
+    bool m_isDamageAbsolute;
 };
 
 /**
@@ -285,16 +334,26 @@ public:
     EntityDamageSource(DamageType type, Entity* source)
         : m_type(type)
         , m_source(source)
+        , m_isThornsDamage(false)
+        , m_difficultyScaled(false)
+        , m_isMagic(false)
+        , m_isExplosion(false)
     {}
 
     [[nodiscard]] std::unique_ptr<DamageSource> clone() const override {
-        return std::make_unique<EntityDamageSource>(m_type, m_source);
+        auto result = std::make_unique<EntityDamageSource>(m_type, m_source);
+        result->m_isThornsDamage = m_isThornsDamage;
+        result->m_difficultyScaled = m_difficultyScaled;
+        result->m_isMagic = m_isMagic;
+        result->m_isExplosion = m_isExplosion;
+        return result;
     }
 
     [[nodiscard]] DamageType type() const override { return m_type; }
 
     [[nodiscard]] Entity* source() const override { return m_source; }
     [[nodiscard]] Entity* directSource() const override { return m_source; }
+    [[nodiscard]] Entity* getTrueSource() const override { return m_source; }
 
     [[nodiscard]] bool isFire() const override {
         return m_type == DamageType::Fireball;
@@ -307,15 +366,59 @@ public:
                m_type == DamageType::Fireball;
     }
 
-    [[nodiscard]] bool isExplosion() const override {
-        return m_type == DamageType::Explosion ||
-               m_type == DamageType::ExplosionPlayer;
-    }
+    [[nodiscard]] bool isExplosion() const override { return m_isExplosion; }
+
+    [[nodiscard]] bool isMagic() const override { return m_isMagic; }
 
     [[nodiscard]] bool isEntitySource() const override { return true; }
 
     [[nodiscard]] bool isPlayerSource() const override {
         return m_type == DamageType::PlayerAttack;
+    }
+
+    /**
+     * @brief 是否受难度缩放
+     * MC 1.16.5: 非玩家生物攻击受难度缩放
+     */
+    [[nodiscard]] bool isDifficultyScaled() const override {
+        // MC 1.16.5: 非玩家的 LivingEntity 攻击受难度缩放
+        return m_difficultyScaled;
+    }
+
+    [[nodiscard]] bool isThornsDamage() const override { return m_isThornsDamage; }
+
+    /**
+     * @brief 设置为荆棘伤害
+     * MC 1.16.5: setIsThornsDamage()
+     */
+    EntityDamageSource& setThornsDamage() {
+        m_isThornsDamage = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置受难度缩放
+     * MC 1.16.5: setDifficultyScaled()
+     */
+    EntityDamageSource& setDifficultyScaled() {
+        m_difficultyScaled = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置为魔法伤害
+     */
+    EntityDamageSource& setMagicDamage() {
+        m_isMagic = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置为爆炸伤害
+     */
+    EntityDamageSource& setExplosion() {
+        m_isExplosion = true;
+        return *this;
     }
 
     [[nodiscard]] String deathMessageKey() const override {
@@ -329,13 +432,19 @@ public:
             case DamageType::Thorns: return "death.attack.thorns";
             case DamageType::Explosion: return "death.attack.explosion";
             case DamageType::ExplosionPlayer: return "death.attack.explosion.player";
+            case DamageType::Sting: return "death.attack.sting";
+            case DamageType::LightningBolt: return "death.attack.lightningBolt";
             default: return "death.attack.generic";
         }
     }
 
-private:
+protected:
     DamageType m_type;
     Entity* m_source;
+    bool m_isThornsDamage;
+    bool m_difficultyScaled;
+    bool m_isMagic;
+    bool m_isExplosion;
 };
 
 /**
@@ -350,10 +459,21 @@ public:
         , m_source(source)
         , m_directSource(directSource)
         , m_isPlayer(isPlayer)
+        , m_isProjectile(false)
+        , m_isFire(false)
+        , m_isExplosion(false)
+        , m_isMagic(false)
+        , m_difficultyScaled(false)
     {}
 
     [[nodiscard]] std::unique_ptr<DamageSource> clone() const override {
-        return std::make_unique<IndirectEntityDamageSource>(m_type, m_source, m_directSource, m_isPlayer);
+        auto result = std::make_unique<IndirectEntityDamageSource>(m_type, m_source, m_directSource, m_isPlayer);
+        result->m_isProjectile = m_isProjectile;
+        result->m_isFire = m_isFire;
+        result->m_isExplosion = m_isExplosion;
+        result->m_isMagic = m_isMagic;
+        result->m_difficultyScaled = m_difficultyScaled;
+        return result;
     }
 
     [[nodiscard]] DamageType type() const override { return m_type; }
@@ -362,26 +482,78 @@ public:
     [[nodiscard]] Entity* directSource() const override { return m_directSource; }
     [[nodiscard]] Entity* getEntity() const override { return m_source; }
 
-    [[nodiscard]] bool isFire() const override {
-        return m_type == DamageType::Fireball;
-    }
+    /**
+     * @brief 获取真正的伤害来源
+     * MC 1.16.5: getTrueSource() 返回间接来源（射击者）
+     */
+    [[nodiscard]] Entity* getTrueSource() const override { return m_source; }
 
-    [[nodiscard]] bool isProjectile() const override {
-        return m_type == DamageType::Arrow ||
-               m_type == DamageType::Trident ||
-               m_type == DamageType::MobProjectile ||
-               m_type == DamageType::Fireball;
-    }
+    [[nodiscard]] bool isFire() const override { return m_isFire; }
 
-    [[nodiscard]] bool isExplosion() const override {
-        return m_type == DamageType::Explosion ||
-               m_type == DamageType::ExplosionPlayer;
-    }
+    [[nodiscard]] bool isProjectile() const override { return m_isProjectile; }
+
+    [[nodiscard]] bool isExplosion() const override { return m_isExplosion; }
+
+    [[nodiscard]] bool isMagic() const override { return m_isMagic; }
 
     [[nodiscard]] bool isEntitySource() const override { return true; }
 
     [[nodiscard]] bool isPlayerSource() const override {
         return m_isPlayer;
+    }
+
+    [[nodiscard]] bool bypassesArmor() const override { return m_bypassesArmor; }
+
+    [[nodiscard]] bool isDifficultyScaled() const override {
+        return m_difficultyScaled;
+    }
+
+    /**
+     * @brief 设置为投射物伤害
+     */
+    IndirectEntityDamageSource& setProjectile() {
+        m_isProjectile = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置为火焰伤害
+     */
+    IndirectEntityDamageSource& setFireDamage() {
+        m_isFire = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置为爆炸伤害
+     */
+    IndirectEntityDamageSource& setExplosion() {
+        m_isExplosion = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置为魔法伤害
+     */
+    IndirectEntityDamageSource& setMagicDamage() {
+        m_isMagic = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置绕过护甲
+     */
+    IndirectEntityDamageSource& setBypassesArmor() {
+        m_bypassesArmor = true;
+        return *this;
+    }
+
+    /**
+     * @brief 设置受难度缩放
+     */
+    IndirectEntityDamageSource& setDifficultyScaled() {
+        m_difficultyScaled = true;
+        return *this;
     }
 
     [[nodiscard]] String deathMessageKey() const override {
@@ -398,6 +570,12 @@ private:
     Entity* m_source;           // 伤害来源（如射箭的玩家）
     Entity* m_directSource;     // 直接来源（如箭矢实体）
     bool m_isPlayer;            // 是否来自玩家
+    bool m_isProjectile;
+    bool m_isFire;
+    bool m_isExplosion;
+    bool m_isMagic;
+    bool m_difficultyScaled;
+    bool m_bypassesArmor = false;
 };
 
 // ============================================================================
@@ -442,34 +620,60 @@ inline EnvironmentalDamage magic() { return EnvironmentalDamage(DamageType::Magi
 /** 创建凋零伤害 */
 inline EnvironmentalDamage wither() { return EnvironmentalDamage(DamageType::Wither); }
 
-/** 创建生物攻击伤害 */
+/**
+ * @brief 创建生物攻击伤害
+ * MC 1.16.5: 生物攻击受难度缩放
+ */
 inline EntityDamageSource mobAttack(Entity* mob) {
-    return EntityDamageSource(DamageType::MobAttack, mob);
+    return EntityDamageSource(DamageType::MobAttack, mob).setDifficultyScaled();
 }
 
-/** 创建玩家攻击伤害 */
+/**
+ * @brief 创建玩家攻击伤害
+ * MC 1.16.5: 玩家攻击不受难度缩放
+ */
 inline EntityDamageSource playerAttack(Entity* player) {
     return EntityDamageSource(DamageType::PlayerAttack, player);
 }
 
-/** 创建箭矢伤害 */
+/**
+ * @brief 创建箭矢伤害
+ * MC 1.16.5: 箭矢是投射物
+ */
 inline IndirectEntityDamageSource arrow(Entity* arrow, Entity* shooter, bool isPlayer = false) {
-    return IndirectEntityDamageSource(DamageType::Arrow, shooter, arrow, isPlayer);
+    return IndirectEntityDamageSource(DamageType::Arrow, shooter, arrow, isPlayer).setProjectile();
 }
 
-/** 创建三叉戟伤害 */
+/**
+ * @brief 创建三叉戟伤害
+ * MC 1.16.5: 三叉戟是投射物
+ */
 inline IndirectEntityDamageSource trident(Entity* trident, Entity* thrower, bool isPlayer = false) {
-    return IndirectEntityDamageSource(DamageType::Trident, thrower, trident, isPlayer);
+    return IndirectEntityDamageSource(DamageType::Trident, thrower, trident, isPlayer).setProjectile();
 }
 
-/** 创建荆棘伤害 */
+/**
+ * @brief 创建荆棘伤害
+ * MC 1.16.5: 荆棘伤害是魔法伤害
+ */
 inline EntityDamageSource thorns(Entity* owner) {
-    return EntityDamageSource(DamageType::Thorns, owner);
+    return EntityDamageSource(DamageType::Thorns, owner).setThornsDamage().setMagicDamage();
 }
 
-/** 创建爆炸伤害 */
-inline EntityDamageSource explosion(Entity* source) {
-    return EntityDamageSource(DamageType::Explosion, source);
+/**
+ * @brief 创建爆炸伤害（无来源）
+ * MC 1.16.5: 爆炸伤害受难度缩放
+ */
+inline EnvironmentalDamage explosion() {
+    return EnvironmentalDamage(DamageType::Explosion);
+}
+
+/**
+ * @brief 创建实体爆炸伤害
+ * MC 1.16.5: 玩家爆炸伤害使用 explosion.player
+ */
+inline EntityDamageSource explosionPlayer(Entity* player) {
+    return EntityDamageSource(DamageType::ExplosionPlayer, player).setDifficultyScaled().setExplosion();
 }
 
 /** 创建窒息伤害（在方块内） */
@@ -489,9 +693,12 @@ inline EntityDamageSource lightningBolt(Entity* lightning) {
 /** 创建甜浆果丛伤害 */
 inline EnvironmentalDamage sweetBerryBush() { return EnvironmentalDamage(DamageType::SweetBerryBush); }
 
-/** 创建蜜蜂蛰刺伤害 */
+/**
+ * @brief 创建蜜蜂蛰刺伤害
+ * MC 1.16.5: 蜜蜂蛰刺受难度缩放
+ */
 inline EntityDamageSource sting(Entity* bee) {
-    return EntityDamageSource(DamageType::Sting, bee);
+    return EntityDamageSource(DamageType::Sting, bee).setDifficultyScaled();
 }
 
 /** 创建铁砧伤害 */
@@ -506,19 +713,28 @@ inline EnvironmentalDamage dragonBreath() { return EnvironmentalDamage(DamageTyp
 /** 创建烟花伤害 */
 inline EnvironmentalDamage fireworks() { return EnvironmentalDamage(DamageType::Fireworks); }
 
-/** 创建玩家爆炸伤害 */
-inline EntityDamageSource explosionPlayer(Entity* player) {
-    return EntityDamageSource(DamageType::ExplosionPlayer, player);
-}
-
-/** 创建投射物伤害 */
+/**
+ * @brief 创建投射物伤害
+ * MC 1.16.5: 投射物受难度缩放
+ */
 inline IndirectEntityDamageSource mobProjectile(Entity* projectile, Entity* shooter) {
-    return IndirectEntityDamageSource(DamageType::MobProjectile, shooter, projectile);
+    return IndirectEntityDamageSource(DamageType::MobProjectile, shooter, projectile).setProjectile().setDifficultyScaled();
 }
 
-/** 创建火球伤害 */
+/**
+ * @brief 创建火球伤害
+ * MC 1.16.5: 火球是投射物和火焰伤害
+ */
 inline IndirectEntityDamageSource fireball(Entity* fireball, Entity* shooter, bool isPlayer = false) {
-    return IndirectEntityDamageSource(DamageType::Fireball, shooter, fireball, isPlayer);
+    return IndirectEntityDamageSource(DamageType::Fireball, shooter, fireball, isPlayer).setProjectile().setFireDamage();
+}
+
+/**
+ * @brief 创建间接魔法伤害
+ * MC 1.16.5: 间接魔法伤害绕过护甲
+ */
+inline IndirectEntityDamageSource indirectMagic(Entity* source, Entity* caster) {
+    return IndirectEntityDamageSource(DamageType::Magic, caster, source).setBypassesArmor().setMagicDamage();
 }
 
 } // namespace DamageSources

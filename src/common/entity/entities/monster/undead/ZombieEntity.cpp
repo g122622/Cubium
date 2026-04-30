@@ -121,6 +121,39 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount) {
     return true;
 }
 
+bool ZombieEntity::attackEntityAsMob(LivingEntity& target) {
+    // MC 1.16.5 ZombieEntity.attackEntityAsMob()
+    // 首先调用父类方法进行基础攻击
+    if (!MonsterEntity::attackEntityAsMob(target)) {
+        return false;
+    }
+
+    // 燃烧传递逻辑
+    // MC 1.16.5: 如果僵尸正在燃烧，且主手为空，且目标是生物
+    // 则有概率点燃目标
+    if (isOnFire() && getMainHandItem().isEmpty()) {
+        IWorld* worldPtr = world();
+        if (worldPtr) {
+            // 获取区域难度（简化实现，直接使用难度）
+            f32 regionalDifficulty = entity::combat::DifficultyHelper::getRegionalDifficultyBase(worldPtr->difficulty());
+
+            // MC 1.16.5: 燃烧概率 = regionalDifficulty * 0.3
+            // 区域难度 Easy=0.75, Normal=1.0, Hard=1.0
+            // 所以概率大约是 22.5%, 30%, 30%
+            math::Random rng = getRandom();
+            if (rng.nextFloat() < regionalDifficulty * 0.3f) {
+                // MC 1.16.5: 燃烧时间 = 2 * regionalDifficulty（秒）
+                // 区域难度 0.75 -> 1.5秒 = 30 ticks
+                // 区域难度 1.0 -> 2秒 = 40 ticks
+                i32 fireDuration = static_cast<i32>(2.0f * regionalDifficulty * 20.0f);  // 转换为 ticks
+                target.setFire(fireDuration);
+            }
+        }
+    }
+
+    return true;
+}
+
 void ZombieEntity::tick() {
     MonsterEntity::tick();
 

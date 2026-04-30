@@ -277,6 +277,20 @@ public:
      */
     void setPrimaryHand(HandSide hand) { m_primaryHand = hand; }
 
+    // ========== 生物属性 ==========
+
+    /**
+     * @brief 获取生物属性类型
+     *
+     * 用于附魔（如亡灵杀手、节肢杀手）对特定生物类型造成额外伤害。
+     * 默认返回 Undefined。
+     *
+     * 参考 MC 1.16.5 LivingEntity.getCreatureAttribute()
+     */
+    [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const {
+        return CreatureAttribute::Undefined;
+    }
+
     // ========== 受伤无敌帧 ==========
 
     /**
@@ -672,17 +686,7 @@ protected:
      */
     [[nodiscard]] virtual std::optional<ResourceLocation> getDeathSound() const;
 
-    /**
-     * @brief 获取生物属性类型
-     *
-     * 用于附魔（如亡灵杀手、节肢杀手）对特定生物类型造成额外伤害。
-     * 默认返回 Undefined。
-     *
-     * 参考 MC 1.16.5 LivingEntity.getCreatureAttribute()
-     */
-    [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const {
-        return CreatureAttribute::Undefined;
-    }
+protected:
 
     /**
      * @brief 计算护甲减伤后的伤害

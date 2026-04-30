@@ -163,6 +163,17 @@ public:
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
+    /**
+     * @brief 作为生物攻击实体
+     *
+     * 重写以实现燃烧传递逻辑。
+     * MC 1.16.5: 燃烧的僵尸攻击时，有概率点燃目标。
+     *
+     * @param target 目标生物
+     * @return 是否攻击成功
+     */
+    bool attackEntityAsMob(LivingEntity& target) override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
