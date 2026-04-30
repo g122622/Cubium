@@ -260,6 +260,7 @@ Block* VanillaBlocks::DARK_OAK_SAPLING = nullptr;
 
 // 其他方块
 Block* VanillaBlocks::SNOW = nullptr;
+Block* VanillaBlocks::SNOW_BLOCK = nullptr;
 Block* VanillaBlocks::ICE = nullptr;
 Block* VanillaBlocks::GLASS = nullptr;
 Block* VanillaBlocks::NETHERRACK = nullptr;

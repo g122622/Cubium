@@ -304,7 +304,8 @@ public:
     // ========================================================================
     // 其他方块
     // ========================================================================
-    static Block* SNOW;
+    static Block* SNOW;            // 雪层（可堆叠）
+    static Block* SNOW_BLOCK;      // 雪块（固体方块，用于冰刺等）
     static Block* ICE;
     static Block* GLASS;          // 玻璃（透明，不传播天空光）
     static Block* NETHERRACK;
