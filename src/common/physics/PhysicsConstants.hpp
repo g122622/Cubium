@@ -120,11 +120,8 @@ constexpr f32 SWIM_JUMP_VELOCITY = 0.1f;
 /// MC 源码 LivingEntity.java:2206: gravity / 16.0 = 0.08 / 16 = 0.005
 constexpr f32 WATER_BUOYANCY = 0.005f;
 
-/// 水中重力（旧值，已废弃，请使用 WATER_BUOYANCY）
-/// @deprecated 使用 WATER_BUOYANCY 代替
-constexpr f32 WATER_GRAVITY = 0.005f;
-
 /// 水中基础游泳速度
+/// MC 源码 LivingEntity.java:2052
 constexpr f32 SWIM_SPEED_BASE = 0.02f;
 
 /// 水中冲刺游泳速度倍率
@@ -134,6 +131,7 @@ constexpr f32 SWIM_SPEED_SPRINT_MULTIPLIER = 1.3f;
 constexpr f32 WATER_DRAG = 0.8f;
 
 /// 水中阻力（冲刺）
+/// MC 源码 LivingEntity.java:2051
 constexpr f32 WATER_DRAG_SPRINT = 0.9f;
 
 /// 岩浆阻力
@@ -170,9 +168,6 @@ constexpr i32 DEPTH_STRIDER_MAX_LEVEL = 3;
 /// MC 源码 LivingEntity.java:2067-2068: 阻力变为 0.96F
 constexpr f32 DOLPHINS_GRACE_WATER_DRAG = 0.96f;
 
-/// @deprecated 使用 DOLPHINS_GRACE_WATER_DRAG 代替
-constexpr f32 DOLPHINS_GRACE_SPEED_BONUS = 0.96f;
-
 /// 水中碰撞墙后上跳速度
 constexpr f32 WATER_WALL_JUMP_VELOCITY = 0.3f;
 
@@ -181,10 +176,12 @@ constexpr f32 WATER_WALL_JUMP_VELOCITY = 0.3f;
 // ============================================================================
 
 /// 默认最大空气值（tick）
-constexpr i32 DEFAULT_MAX_AIR = 300;  // 15秒 = 300 ticks
+/// MC 1.16.5 LivingEntity.java: 默认 300 ticks (15秒)
+constexpr i32 DEFAULT_MAX_AIR = 300;
 
 /// 溺水伤害间隔（tick）
-constexpr i32 DROWN_DAMAGE_INTERVAL = 20;  // 每秒伤害一次
+/// MC 1.16.5 LivingEntity.java: 每 20 ticks (1秒) 伤害一次
+constexpr i32 DROWN_DAMAGE_INTERVAL = 20;
 
 /// 溺水伤害量
 constexpr f32 DROWN_DAMAGE_AMOUNT = 2.0f;
@@ -284,9 +281,6 @@ constexpr f32 COBWEB_SLOWDOWN_XZ = 0.25f;
 /// 蜘蛛网垂直减速系数
 constexpr f32 COBWEB_SLOWDOWN_Y = 0.05f;
 
-/// @deprecated 使用 COBWEB_SLOWDOWN_XZ 代替
-constexpr f32 COBWEB_SLOWDOWN = 0.25f;
-
 /// 蜂蜜块滑动最大下落速度 (MC 1.16.5 HoneyBlock: -0.05D)
 constexpr f32 HONEY_BLOCK_MAX_SLIDE_VELOCITY = 0.05f;
 
@@ -295,9 +289,6 @@ constexpr f32 HONEY_BLOCK_SLIDE_THRESHOLD = 0.08f;
 
 /// 蜂蜜块跳跃因子 (MC: jumpFactor = 0.5F)
 constexpr f32 HONEY_BLOCK_JUMP_FACTOR = 0.5f;
-
-/// @deprecated 使用 HONEY_BLOCK_MAX_SLIDE_VELOCITY 和 HONEY_BLOCK_SLIDE_THRESHOLD
-constexpr f32 HONEY_BLOCK_SLIDE_FACTOR = 0.5f;
 
 /// 灵魂沙/灵魂土速度因子 (MC: speedFactor = 0.4F)
 constexpr f32 SOUL_BLOCK_SPEED_FACTOR = 0.4f;
@@ -308,17 +299,11 @@ constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR_LIVING = 1.0f;
 /// 史莱姆块弹跳系数 - 非生物实体 (MC 1.16.5: 其他实体使用 0.8)
 constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING = 0.8f;
 
-/// @deprecated 使用 SLIME_BLOCK_BOUNCE_FACTOR_LIVING 或 SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING
-constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR = 0.8f;
-
 /// 甜浆果丛水平减速系数 (MC 1.16.5 SweetBerryBushBlock: Vector3d(0.8F, 0.75D, 0.8F))
 constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN_XZ = 0.8f;
 
 /// 甜浆果丛垂直减速系数
 constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN_Y = 0.75f;
-
-/// @deprecated 使用 SWEET_BERRY_BUSH_SLOWDOWN_XZ 代替
-constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN = 0.8f;
 
 /// 物品水面弹跳速度乘数 (MC ItemEntity: 0.5F)
 constexpr f32 ITEM_WATER_BOUNCE_FACTOR = 0.5f;

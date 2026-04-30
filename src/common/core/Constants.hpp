@@ -12,11 +12,15 @@ namespace mc {
 
 namespace game {
 
-// 玩家尺寸
-constexpr f32 PLAYER_HEIGHT = 1.8f;
-constexpr f32 PLAYER_EYE_HEIGHT = 1.62f;
-constexpr f32 PLAYER_WIDTH = 0.6f;
-constexpr f32 PLAYER_SNEAK_HEIGHT = 1.5f;
+// 玩家尺寸 (MC 1.16.5 PlayerEntity.java:114-115)
+// 注意：Player.hpp 中有相同的常量定义，用于 Player 类内部使用
+// 此处常量供非 Player 类使用，Player 类应使用自己的静态常量
+constexpr f32 PLAYER_HEIGHT = 1.8f;           // 玩家站立高度
+constexpr f32 PLAYER_EYE_HEIGHT = 1.62f;      // 玩家眼睛高度
+constexpr f32 PLAYER_WIDTH = 0.6f;            // 玩家宽度
+constexpr f32 PLAYER_SNEAK_HEIGHT = 1.5f;     // 玩家潜行高度
+constexpr f32 PLAYER_SWIM_HEIGHT = 0.6f;      // 玩家游泳/鞘翅高度
+constexpr f32 PLAYER_SLEEP_HEIGHT = 0.2f;     // 玩家睡觉/死亡高度
 
 // 玩家生命值
 constexpr f32 PLAYER_MAX_HEALTH = 20.0f;
@@ -38,12 +42,13 @@ constexpr i32 DAY_LENGTH_SECONDS = 1200; // 20分钟
 
 namespace network {
 
-// 协议版本
-constexpr i32 PROTOCOL_VERSION = 765; // 1.20.4
+// 协议版本 (MC 1.16.5 = 754)
+// 注意：当前项目目标是 MC 1.16.5，协议版本应为 754
+constexpr i32 PROTOCOL_VERSION = 754; // MC 1.16.5
 
-// 端口
-constexpr u16 DEFAULT_PORT = 19132;
-constexpr u16 DEFAULT_RCON_PORT = 25575;
+// 端口 (Java版)
+constexpr u16 DEFAULT_PORT = 25565;       // Java版默认端口
+constexpr u16 DEFAULT_RCON_PORT = 25575;  // RCON 默认端口
 
 // 数据包限制
 constexpr Size MAX_PACKET_SIZE = 2097152;  // 2MB
@@ -86,7 +91,8 @@ constexpr i32 CHUNK_MASK = CHUNK_WIDTH - 1;
 // 高度限制
 constexpr i32 MIN_BUILD_HEIGHT = 0;
 constexpr i32 MAX_BUILD_HEIGHT = CHUNK_HEIGHT;
-constexpr i32 SEA_LEVEL = 62;
+// 海平面高度 (MC 1.16.5 DimensionSettings.java:114)
+constexpr i32 SEA_LEVEL = 63;
 
 // 区块加载
 constexpr i32 CHUNK_LOAD_RADIUS = 10;
@@ -133,9 +139,14 @@ enum class EntityStatus : u8 {
     Removed = 2
 };
 
-// 追踪距离
-constexpr i32 ENTITY_TRACKING_RANGE = 128;
-constexpr i32 PLAYER_TRACKING_RANGE = 128;
+// 追踪距离 (单位：区块)
+// 注意：MC 1.16.5 中追踪距离在 EntityType 中定义，每个实体类型不同
+// 这里保留一些常用的默认值供参考
+// 玩家追踪距离：32 区块 = 512 格
+// 普通生物追踪距离：8-10 区块 = 128-160 格
+// 物品追踪距离：6 区块 = 96 格
+constexpr i32 DEFAULT_ENTITY_TRACKING_RANGE_CHUNKS = 8;   // 默认实体追踪距离（区块）
+constexpr i32 PLAYER_TRACKING_RANGE_CHUNKS = 32;          // 玩家追踪距离（区块）
 
 } // namespace entity
 

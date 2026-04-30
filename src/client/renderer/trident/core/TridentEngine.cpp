@@ -667,9 +667,9 @@ Result<void> TridentEngine::render() {
                     ChunkPushConstants pushConstants{};
                     pushConstants.model = glm::mat4(1.0f);
                     pushConstants.chunkRelativeOffset = glm::vec4(
-                        static_cast<f32>(static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH) - chunkCameraPos.x),
+                        static_cast<f32>(static_cast<f64>(chunkId.x * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.x),
                         static_cast<f32>(-chunkCameraPos.y),
-                        static_cast<f32>(static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH) - chunkCameraPos.z),
+                        static_cast<f32>(static_cast<f64>(chunkId.z * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.z),
                         0.0f
                     );
 
@@ -743,9 +743,9 @@ Result<void> TridentEngine::render() {
                             ChunkPushConstants pushConstants{};
                             pushConstants.model = glm::mat4(1.0f);
                             pushConstants.chunkRelativeOffset = glm::vec4(
-                                static_cast<f32>(static_cast<f64>(chunkId.x * constants::CHUNK_WIDTH) - chunkCameraPos.x),
+                                static_cast<f32>(static_cast<f64>(chunkId.x * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.x),
                                 static_cast<f32>(-chunkCameraPos.y),
-                                static_cast<f32>(static_cast<f64>(chunkId.z * constants::CHUNK_WIDTH) - chunkCameraPos.z),
+                                static_cast<f32>(static_cast<f64>(chunkId.z * ::mc::world::CHUNK_WIDTH) - chunkCameraPos.z),
                                 0.0f
                             );
 

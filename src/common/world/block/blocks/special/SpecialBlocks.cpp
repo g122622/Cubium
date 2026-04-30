@@ -241,7 +241,7 @@ SlimeBlock::SlimeBlock(const BlockProperties& properties)
 void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const {
     // MC 1.16.5: SlimeBlock.onLanded
     // 如果实体向下落，反弹
-    // 反弹系数为 0.9（每次反弹损失 10% 速度）
+    // 反弹系数：LivingEntity 使用 1.0，其他实体使用 0.8
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -250,7 +250,8 @@ void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos
     if (velocity.y < 0.0f) {
         // 反弹：Y速度取反并乘以弹跳系数
         // MC 1.16.5: this.setMotion(vec3d.x, -vec3d.y * 0.9D, vec3d.z);
-        entity.setVelocity(velocity.x, -velocity.y * physics::SLIME_BLOCK_BOUNCE_FACTOR, velocity.z);
+        // 使用非生物实体的弹跳系数（保守值），LivingEntity 会单独处理
+        entity.setVelocity(velocity.x, -velocity.y * physics::SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING, velocity.z);
     } else {
         // 向上或静止时，Y速度归零
         entity.setVelocity(velocity.x, 0.0f, velocity.z);
@@ -276,8 +277,8 @@ Material::PushReaction SlimeBlock::getPushReaction(const BlockState& state) cons
 
 HoneyBlock::HoneyBlock(const BlockProperties& properties)
     : Block(properties) {
-    // 蜂蜜块滑度为 0.5
-    m_slipperiness = physics::HONEY_BLOCK_SLIDE_FACTOR;
+    // 蜂蜜块滑度为 0.98 (MC 1.16.5: Blocks.java:445)
+    m_slipperiness = 0.98f;
     // 蜂蜜块跳跃因子为 0.5
     m_jumpFactor = physics::HONEY_BLOCK_JUMP_FACTOR;
 
@@ -371,9 +372,9 @@ void WebBlock::onEntityCollision(const BlockState& state, IWorld& world, const B
 
     Vector3 velocity = entity.velocity();
     entity.setVelocity(
-        velocity.x * physics::COBWEB_SLOWDOWN,
-        velocity.y < 0.0f ? velocity.y * physics::COBWEB_SLOWDOWN : velocity.y,  // 只减速下落
-        velocity.z * physics::COBWEB_SLOWDOWN
+        velocity.x * physics::COBWEB_SLOWDOWN_XZ,
+        velocity.y < 0.0f ? velocity.y * physics::COBWEB_SLOWDOWN_Y : velocity.y,  // 只减速下落
+        velocity.z * physics::COBWEB_SLOWDOWN_XZ
     );
 }
 

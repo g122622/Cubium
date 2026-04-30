@@ -157,9 +157,14 @@ Game constants organized by namespace.
 **Game Constants:**
 ```cpp
 namespace game {
-    constexpr f32 GRAVITY = 0.08f;           // blocks/tick^2
-    constexpr f32 PLAYER_HEIGHT = 1.8f;
-    constexpr f32 PLAYER_EYE_HEIGHT = 1.62f;
+    constexpr f32 PLAYER_HEIGHT = 1.8f;       // 玩家站立高度
+    constexpr f32 PLAYER_EYE_HEIGHT = 1.62f;  // 玩家眼睛高度
+    constexpr f32 PLAYER_WIDTH = 0.6f;        // 玩家宽度
+    constexpr f32 PLAYER_SNEAK_HEIGHT = 1.5f; // 玩家潜行高度
+    constexpr f32 PLAYER_SWIM_HEIGHT = 0.6f;  // 玩家游泳/鞘翅高度
+    constexpr f32 PLAYER_SLEEP_HEIGHT = 0.2f; // 玩家睡觉/死亡高度
+    constexpr f32 PLAYER_MAX_HEALTH = 20.0f;
+    constexpr f32 PLAYER_MAX_AIR = 300.0f;
     constexpr i32 MAX_LIGHT_LEVEL = 15;
     constexpr i32 DAY_LENGTH_TICKS = 24000;
 }
@@ -168,8 +173,9 @@ namespace game {
 **Network Constants:**
 ```cpp
 namespace network {
-    constexpr i32 PROTOCOL_VERSION = 765;   // MC 1.20.4
-    constexpr u16 DEFAULT_PORT = 19132;
+    constexpr i32 PROTOCOL_VERSION = 754;   // MC 1.16.5
+    constexpr u16 DEFAULT_PORT = 25565;      // Java版默认端口
+    constexpr u16 DEFAULT_RCON_PORT = 25575;
     constexpr Size MAX_PACKET_SIZE = 2097152;  // 2MB
     constexpr u32 KEEP_ALIVE_INTERVAL_MS = 15000;
 }
@@ -181,7 +187,7 @@ namespace world {
     constexpr i32 CHUNK_WIDTH = 16;
     constexpr i32 CHUNK_HEIGHT = 256;
     constexpr i32 CHUNK_SECTION_HEIGHT = 16;
-    constexpr i32 SEA_LEVEL = 62;
+    constexpr i32 SEA_LEVEL = 63;  // MC 1.16.5 海平面高度
     constexpr i32 CHUNK_LOAD_RADIUS = 10;
 }
 ```
@@ -191,7 +197,8 @@ namespace world {
 namespace entity {
     constexpr Size MAX_ENTITIES = 65536;
     constexpr Size MAX_PLAYERS = 256;
-    constexpr i32 ENTITY_TRACKING_RANGE = 128;
+    constexpr i32 DEFAULT_ENTITY_TRACKING_RANGE_CHUNKS = 8;   // 默认实体追踪距离（区块）
+    constexpr i32 PLAYER_TRACKING_RANGE_CHUNKS = 32;          // 玩家追踪距离（区块）
 }
 ```
 

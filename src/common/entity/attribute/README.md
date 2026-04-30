@@ -323,6 +323,8 @@ instance.setBaseValue(-10.0);
 // 实际值是 0.0（被限制到最小值）
 ```
 
+**重要**：MC 1.16.5 中 `MAX_HEALTH` 的最小值为 `1.0`（生命值不能为 0），而非 `0.0`。
+
 ### 3. 修改器 ID 唯一性
 
 **问题**：修改器使用 ID 进行比较和查找，相同 ID 的修改器被视为相同。
@@ -449,6 +451,15 @@ target.copyFrom(source);  // 现在会复制值
 | `Attributes.MovementSpeed` | 移动速度属性定义 |
 | `Attributes.AttackDamage` | 攻击伤害属性定义 |
 | `Attributes.KnockbackResistance` | 击退抗性属性定义 |
+
+**注意**：MC 1.16.5 原版属性：
+- `MAX_HEALTH`: 最小值 1.0（生命值不能为 0）
+- `FOLLOW_RANGE`: 默认值 32.0
+- `ZOMBIE_SPAWN_REINFORCEMENTS`: 僵尸增援概率属性
+
+Forge 扩展属性（已标注）：
+- `forge.entity_gravity`: 实体重力
+- `forge.swim_speed`: 游泳速度
 
 **总测试数**：30 个测试用例
 

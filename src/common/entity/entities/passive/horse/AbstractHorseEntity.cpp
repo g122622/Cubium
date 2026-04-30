@@ -169,7 +169,7 @@ void AbstractHorseEntity::registerAttributes() {
 
     // 马类基础属性
     m_attributes.registerAttribute(*entity::attribute::Attributes::horseJumpStrength());
-    m_attributes.setBaseValue(entity::attribute::Attributes::JUMP_STRENGTH, m_jumpStrength);
+    m_attributes.setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, m_jumpStrength);
 
     // 设置生命值和速度
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);

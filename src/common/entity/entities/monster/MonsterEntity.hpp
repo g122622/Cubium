@@ -176,6 +176,13 @@ protected:
     void tick() override;
 
     /**
+     * @brief 注册默认属性
+     *
+     * MC 1.16.5: MonsterEntity 在 MobEntity 基础上注册 ATTACK_DAMAGE
+     */
+    void registerAttributes() override;
+
+    /**
      * @brief 注册 AI 目标
      *
      * 子类应重写此方法来注册敌对生物的基础行为：

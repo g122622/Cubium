@@ -1683,7 +1683,7 @@ void ChunkMesher::simpleMeshSection(
         const i32 worldY = baseY + ny;
         const i32 worldZ = nz;
 
-        if (worldY < 0 || worldY >= world::CHUNK_HEIGHT) {
+        if (worldY < world::MIN_BUILD_HEIGHT || worldY >= world::CHUNK_HEIGHT) {
             return nullptr;
         }
 
@@ -2013,7 +2013,7 @@ void ChunkMesher::greedyMeshSection(
         const i32 worldY = baseY + ny;
         const i32 worldZ = nz;
 
-        if (worldY < 0 || worldY >= world::CHUNK_HEIGHT) {
+        if (worldY < world::MIN_BUILD_HEIGHT || worldY >= world::CHUNK_HEIGHT) {
             return nullptr;
         }
 

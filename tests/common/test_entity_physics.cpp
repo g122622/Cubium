@@ -286,9 +286,8 @@ TEST(EntityAttributes, SwimSpeedAttribute) {
 
 TEST(PhysicsConstants, WaterPhysics) {
     // MC 1.16.5: 水中重力 = 地面重力 / 16
-    EXPECT_FLOAT_EQ(physics::WATER_GRAVITY, 0.005f);
-    EXPECT_FLOAT_EQ(physics::WATER_DRAG, 0.8f);
     EXPECT_FLOAT_EQ(physics::WATER_BUOYANCY, 0.005f);
+    EXPECT_FLOAT_EQ(physics::WATER_DRAG, 0.8f);
     EXPECT_FLOAT_EQ(physics::LAVA_DRAG, 0.5f);
 }
 
@@ -297,7 +296,8 @@ TEST(PhysicsConstants, SlipperinessConstants) {
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_DEFAULT, 0.6f);
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_SLIME, 0.8f);
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_BLUE_ICE, 0.989f);
-    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_SLIDE_FACTOR, 0.5f);
+    // 蜂蜜块跳跃因子（不是滑度，是跳跃因子）
+    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_JUMP_FACTOR, 0.5f);
 }
 
 TEST(PhysicsConstants, MovementConstants) {

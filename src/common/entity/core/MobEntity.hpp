@@ -134,6 +134,15 @@ public:
 
     void tick() override;
 
+    // ========== 属性注册 ==========
+
+    /**
+     * @brief 注册默认属性
+     *
+     * MC 1.16.5: MobEntity 在 LivingEntity 基础上设置 FOLLOW_RANGE = 16.0
+     */
+    void registerAttributes() override;
+
     // ========== AI 更新 ==========
 
     /**

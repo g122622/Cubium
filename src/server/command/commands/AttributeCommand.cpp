@@ -226,7 +226,7 @@ bool AttributeCommand::isKnownAttribute(const String& name) noexcept
         Attributes::MAX_ABSORPTION,
         Attributes::BREATH_MAX,
         Attributes::JUMP_BOOST,
-        Attributes::JUMP_STRENGTH,
+        Attributes::HORSE_JUMP_STRENGTH,
     };
 
     return knownAttrs.count(name) > 0;
@@ -251,7 +251,7 @@ f64 AttributeCommand::getAttributeDefaultValue(const String& name) noexcept
         {Attributes::MAX_ABSORPTION, 0.0},
         {Attributes::BREATH_MAX, 300.0},
         {Attributes::JUMP_BOOST, 0.42},
-        {Attributes::JUMP_STRENGTH, 0.7},
+        {Attributes::HORSE_JUMP_STRENGTH, 0.7},
     };
 
     auto it = defaultValues.find(name);
@@ -280,7 +280,7 @@ std::pair<f64, f64> AttributeCommand::getAttributeRange(const String& name) noex
         {Attributes::MAX_ABSORPTION, {0.0, 2048.0}},
         {Attributes::BREATH_MAX, {0.0, 6000.0}},
         {Attributes::JUMP_BOOST, {0.0, 8.0}},
-        {Attributes::JUMP_STRENGTH, {0.0, 2.0}},
+        {Attributes::HORSE_JUMP_STRENGTH, {0.0, 2.0}},
     };
 
     auto it = ranges.find(name);

@@ -5,6 +5,7 @@
 #include "../ai/controller/JumpController.hpp"
 #include "../ai/pathfinding/PathNavigator.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
+#include "../attribute/Attributes.hpp"
 #include "../../util/math/random/Random.hpp"
 
 namespace mc {
@@ -21,6 +22,17 @@ MobEntity::MobEntity(LegacyEntityType type, EntityId id)
 }
 
 MobEntity::~MobEntity() = default;
+
+void MobEntity::registerAttributes() {
+    // MC 1.16.5 MobEntity.func_233666_p_()
+    // 在 LivingEntity 基础上注册和设置属性
+    LivingEntity::registerAttributes();
+
+    // 注册并设置跟随范围
+    // MC 1.16.5: MobEntity 注册 FOLLOW_RANGE 并设置默认值为 16.0
+    m_attributes.registerAttribute(*entity::attribute::Attributes::followRange());
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+}
 
 entity::ai::controller::LookController* MobEntity::lookController() {
     return m_lookController.get();

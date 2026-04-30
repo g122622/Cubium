@@ -32,9 +32,10 @@ struct PlayerAbilities {
     bool canFly = false;            // 允许飞行
     bool creativeMode = false;      // 创造模式
     bool allowEdit = true;          // 允许编辑方块
-    // src\common\entity\entities\player\GameModeUtils.cpp 才是真正设置这些速度的来源
-    f32 flySpeed = 0;          // 飞行速度 
-    f32 walkSpeed = 0;           // 行走速度
+    // MC 1.16.5 PlayerAbilities.java:13-14 默认值
+    // 注意：这些值会在 GameModeUtils.cpp 中根据游戏模式设置正确的值
+    f32 flySpeed = 0.05f;           // 飞行速度 (MC 默认值)
+    f32 walkSpeed = 0.1f;           // 行走速度 (MC 默认值)
 
     void serialize(network::PacketSerializer& ser) const {
         u8 flags = 0;

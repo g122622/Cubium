@@ -283,15 +283,20 @@ void LivingEntity::die(DamageSource& /*cause*/) {
 // ============================================================================
 
 void LivingEntity::registerAttributes() {
+    // MC 1.16.5 LivingEntity.registerAttributes()
+    // 基础属性：所有生物实体都有
     m_attributes.registerAttribute(*entity::attribute::Attributes::maxHealth());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::followRange());
     m_attributes.registerAttribute(*entity::attribute::Attributes::knockbackResistance());
     m_attributes.registerAttribute(*entity::attribute::Attributes::movementSpeed());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
+
+    // 注意：以下属性不在 MC 1.16.5 LivingEntity 基类中注册：
+    // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
+    // - FLYING_SPEED: 由需要飞行的实体注册
+    // - ATTACK_DAMAGE: 由 MonsterEntity 注册
+    // - ATTACK_KNOCKBACK: 由需要攻击击退的实体注册
+    // - LUCK: 由需要的实体注册
 }
 
 f64 LivingEntity::getAttributeValue(const String& name, f64 defaultValue) const {
@@ -503,10 +508,15 @@ void LivingEntity::tickDeath() {
 // ============================================================================
 
 void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier) {
+    // MC 1.16.5: 跳跃增强药水减少摔落距离
+    // 每级跳跃增强减少 1 格有效摔落距离
+    const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
+    f32 effectiveDistance = distance - static_cast<f32>(jumpBoostLevel);
+
     // 计算摔落伤害
     // MC 规则：摔落 > 3 格才开始受伤，每格 1 点伤害
-    if (distance > 3.0f) {
-        f32 damage = (distance - 3.0f) * damageMultiplier;
+    if (effectiveDistance > 3.0f) {
+        f32 damage = (effectiveDistance - 3.0f) * damageMultiplier;
 
         // MC 1.16.5: 计算摔落保护附魔减伤
         // 摔落保护 EPF = 羽毛落地等级 * 3

@@ -22,6 +22,16 @@ MonsterEntity::MonsterEntity(LegacyEntityType type, EntityId id)
     registerGoals();
 }
 
+void MonsterEntity::registerAttributes() {
+    // MC 1.16.5 MonsterEntity.func_234295_eP_()
+    // 在 MobEntity 基础上注册 ATTACK_DAMAGE
+    // 注意：MobEntity 已经设置了 FOLLOW_RANGE = 16.0
+    CreatureEntity::registerAttributes();
+
+    // 注册攻击伤害属性（默认值为 0，子类设置具体值）
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+}
+
 std::optional<ResourceLocation> MonsterEntity::getHurtSound(DamageSource& /*source*/) const {
     // MC 1.16.5: entity.hostile.hurt
     return makeSoundEventId("hurt");

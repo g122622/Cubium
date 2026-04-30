@@ -1238,9 +1238,10 @@ TEST(SpecialBlocksPhysics, SlimeBlockBounceFactor) {
 }
 
 TEST(SpecialBlocksPhysics, HoneyBlockFactors) {
-    // MC 1.16.5: 蜂蜜块滑度因子为 0.5，跳跃因子为 0.5
-    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_SLIDE_FACTOR, 0.5f);
+    // MC 1.16.5: 蜂蜜块跳跃因子为 0.5
+    // 注意：蜂蜜块滑度为 0.98，在 SpecialBlocks.cpp 中直接设置
     EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_JUMP_FACTOR, 0.5f);
+    EXPECT_FLOAT_EQ(physics::HONEY_BLOCK_MAX_SLIDE_VELOCITY, 0.05f);
 }
 
 TEST(SpecialBlocksPhysics, CobwebSlowdown) {
@@ -1261,12 +1262,14 @@ TEST(SpecialBlocksSlimeBlock, OnLandedBouncesDownwardVelocity) {
 TEST(SpecialBlocksHoneyBlock, OnLandedStopsFallDamage) {
     // 测试蜂蜜块消除摔落伤害
     // 蜂蜜块不弹跳，只重置 Y 速度为 0
+    // 蜂蜜块滑度为 0.98，跳跃因子为 0.5
+    constexpr f32 HONEY_BLOCK_SLIPPERINESS = 0.98f;
     blocks::HoneyBlock honeyBlock(BlockProperties(Material::SLIME)
-        .slipperiness(physics::HONEY_BLOCK_SLIDE_FACTOR)
-        .speedFactor(physics::HONEY_BLOCK_JUMP_FACTOR));
+        .slipperiness(HONEY_BLOCK_SLIPPERINESS)
+        .jumpFactor(physics::HONEY_BLOCK_JUMP_FACTOR));
 
     // 验证滑度和跳跃因子设置正确
-    EXPECT_FLOAT_EQ(honeyBlock.getSlipperiness(honeyBlock.defaultState()), physics::HONEY_BLOCK_SLIDE_FACTOR);
+    EXPECT_FLOAT_EQ(honeyBlock.getSlipperiness(honeyBlock.defaultState()), HONEY_BLOCK_SLIPPERINESS);
     EXPECT_FLOAT_EQ(honeyBlock.getJumpFactor(honeyBlock.defaultState()), physics::HONEY_BLOCK_JUMP_FACTOR);
 }
 

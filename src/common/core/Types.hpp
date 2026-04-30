@@ -119,27 +119,11 @@ using PlayerId = u64;
 
 namespace constants {
 
-// 区块尺寸
-inline constexpr i32 CHUNK_WIDTH = 16;
-inline constexpr i32 CHUNK_HEIGHT = 256;
-inline constexpr i32 CHUNK_SECTION_HEIGHT = 16;
-inline constexpr i32 CHUNK_SECTIONS = CHUNK_HEIGHT / CHUNK_SECTION_HEIGHT;
-
-// 世界边界
-inline constexpr i32 MIN_BUILD_HEIGHT = 0;
-inline constexpr i32 MAX_BUILD_HEIGHT = CHUNK_HEIGHT;
+// 注意：区块尺寸常量已移至 mc::world 命名空间 (Constants.hpp)
+// 这里保留向后兼容的别名，新代码应使用 mc::world 中的定义
 
 // 方块状态
 inline constexpr u16 MAX_BLOCK_STATES = 16;
-
-// 实体限制
-inline constexpr Size MAX_ENTITIES_PER_CHUNK = 1024;
-inline constexpr Size MAX_PLAYERS = 256;
-
-// 网络
-inline constexpr u16 DEFAULT_PORT = 19132;
-inline constexpr Size MAX_PACKET_SIZE = 2 * 1024 * 1024; // 2MB
-inline constexpr Size PACKET_BUFFER_SIZE = 64 * 1024;    // 64KB
 
 // 游戏刻
 inline constexpr f32 TICK_RATE = 20.0f;          // 每秒20刻

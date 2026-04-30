@@ -23,10 +23,10 @@ namespace Attributes {
  *
  * 决定实体可以承受的伤害量。
  * 默认值: 20.0 (玩家)
- * 范围: 0.0 ~ 1024.0
+ * 范围: 1.0 ~ 1024.0 (MC 1.16.5 最小值为 1.0，不能为 0)
  */
 inline std::unique_ptr<Attribute> maxHealth() {
-    return std::make_unique<Attribute>("generic.max_health", 20.0, 0.0, 1024.0);
+    return std::make_unique<Attribute>("generic.max_health", 20.0, 1.0, 1024.0);
 }
 
 /**
@@ -186,32 +186,51 @@ inline std::unique_ptr<Attribute> horseJumpStrength() {
 }
 
 /**
- * @brief 实体重力
+ * @brief 僵尸增援概率
+ *
+ * 决定僵尸受伤时召唤增援的概率。
+ * 默认值: 0.0
+ * 范围: 0.0 ~ 1.0
+ */
+inline std::unique_ptr<Attribute> zombieSpawnReinforcements() {
+    return std::make_unique<Attribute>("zombie.spawn_reinforcements", 0.0, 0.0, 1.0);
+}
+
+// ============================================================================
+// Forge 扩展属性
+// 注意：以下属性不是 MC 1.16.5 原版属性，而是 Forge 模组加载器扩展的属性
+// ============================================================================
+
+/**
+ * @brief 实体重力 (Forge 扩展)
  *
  * 决定实体受到的重力加速度（blocks/tick²）。
+ * Forge 注册名: forge.entity_gravity
  * 默认值: 0.08 (MC 标准)
- * 范围: 0.0 ~ 1.0
+ * 范围: -8.0 ~ 8.0 (Forge 允许负重力)
  * 注意：缓降药水会修改此属性
  */
 inline std::unique_ptr<Attribute> entityGravity() {
-    return std::make_unique<Attribute>("generic.gravity", 0.08, 0.0, 1.0);
+    return std::make_unique<Attribute>("forge.entity_gravity", 0.08, -8.0, 8.0);
 }
 
 /**
- * @brief 游泳速度
+ * @brief 游泳速度 (Forge 扩展)
  *
  * 决定实体在水中的游泳速度。
+ * Forge 注册名: forge.swim_speed
  * 默认值: 1.0
  * 范围: 0.0 ~ 1024.0
  */
 inline std::unique_ptr<Attribute> swimSpeed() {
-    return std::make_unique<Attribute>("generic.swim_speed", 1.0, 0.0, 1024.0);
+    return std::make_unique<Attribute>("forge.swim_speed", 1.0, 0.0, 1024.0);
 }
 
 // ============================================================================
 // 属性名称常量
 // ============================================================================
 
+// MC 1.16.5 原版属性
 constexpr const char* MAX_HEALTH = "generic.max_health";
 constexpr const char* FOLLOW_RANGE = "generic.follow_range";
 constexpr const char* KNOCKBACK_RESISTANCE = "generic.knockback_resistance";
@@ -223,12 +242,15 @@ constexpr const char* ATTACK_SPEED = "generic.attack_speed";
 constexpr const char* ARMOR = "generic.armor";
 constexpr const char* ARMOR_TOUGHNESS = "generic.armor_toughness";
 constexpr const char* LUCK = "generic.luck";
+constexpr const char* ZOMBIE_SPAWN_REINFORCEMENTS = "zombie.spawn_reinforcements";
+constexpr const char* HORSE_JUMP_STRENGTH = "horse.jump_strength";
+
+// 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max";
 constexpr const char* JUMP_BOOST = "generic.jump_boost";
-constexpr const char* JUMP_STRENGTH = "horse.jump_strength";
-constexpr const char* ENTITY_GRAVITY = "generic.gravity";
-constexpr const char* SWIM_SPEED = "generic.swim_speed";
+constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity";  // Forge 扩展
+constexpr const char* SWIM_SPEED = "forge.swim_speed";          // Forge 扩展
 
 } // namespace Attributes
 
