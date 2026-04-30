@@ -230,7 +230,7 @@ private:
     i32 m_spawnedEntityCount = 0;
 };
 
-BlockItemUseContext makePlacementContext(const IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
+BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
     static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
     return BlockItemUseContext(
         world,

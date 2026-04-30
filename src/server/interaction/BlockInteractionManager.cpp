@@ -157,7 +157,8 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     BlockItemUseContext context(m_world, nullptr, heldItem, hitPos, pos, face, playerData->yaw);
 
     // 尝试放置
-    if (!blockItem->tryPlace(context)) {
+    ActionResultType result = blockItem->tryPlace(context);
+    if (result != ActionResultType::Success && result != ActionResultType::Consume) {
         return BlockPlacementResult{false, false, false, pos, 0, "Cannot place block here"};
     }
 

@@ -55,6 +55,7 @@ item/
 │   │   └── ToolType.hpp/cpp      # 工具类型
 │   └── block/                    # 方块物品
 │       ├── BlockItem.hpp/cpp     # 方块物品基类
+│       ├── WallOrFloorItem.hpp/cpp # 墙壁/地板物品（告示牌、旗帜等）
 │       ├── BlockItemRegistry.hpp/cpp
 │       └── ...
 ├── enchantment/                  # 附魔系统
@@ -91,6 +92,13 @@ item/
 | UseAction | core/UseAction.hpp | ✅ 完成 |
 | ActionResult | core/ActionResult.hpp | ✅ 完成 |
 
+**Item 基类新增方法 (MC 1.16.5 对齐)**:
+- `hitEntity()` - 攻击实体时调用，用于工具耐久消耗
+- `onBlockDestroyed()` - 破坏方块时调用，用于工具耐久消耗
+- `isSuitableFor()` - 检查物品是否适合作为方块工具
+- `fillItemGroup()` - 填充物品到创造模式物品组
+- `isInGroup()` - 检查物品是否在指定物品组中
+
 ### 食物系统 (80%)
 
 | 模块 | 文件 | 状态 |
@@ -99,15 +107,25 @@ item/
 | Foods | food/Foods.hpp | ✅ 完成 |
 | FoodItem | items/food/FoodItem.hpp | ✅ 完成 |
 
-### 盔甲系统 (90%)
+### 盔甲系统 (100%)
 
 | 模块 | 文件 | 状态 |
 |------|------|------|
 | ArmorMaterial | armor/ArmorMaterial.hpp | ✅ 完成 |
-| ArmorMaterials | armor/ArmorMaterial.cpp | ✅ 完成 (7种材质) |
+| ArmorMaterials | armor/ArmorMaterial.cpp | ✅ 完成 (7种材质: 皮革、锁链、铁、金、钻石、海龟、下界合金) |
 | ArmorItem | items/armor/ArmorItem.hpp | ✅ 完成 |
 | DyeableArmorItem | items/armor/DyeableArmorItem.hpp | ✅ 完成 |
 | ElytraItem | items/armor/ElytraItem.hpp | ✅ 完成 |
+
+**已注册盔甲物品**:
+- 皮革盔甲 (头盔、胸甲、护腿、靴子) - 可染色
+- 锁链盔甲 (头盔、胸甲、护腿、靴子)
+- 铁盔甲 (头盔、胸甲、护腿、靴子)
+- 金盔甲 (头盔、胸甲、护腿、靴子)
+- 钻石盔甲 (头盔、胸甲、护腿、靴子)
+- 海龟壳 (头盔)
+- 下界合金盔甲 (头盔、胸甲、护腿、靴子)
+- 鞘翅 (胸甲槽)
 
 盔甲物品现在支持右键自动装备对应槽位；如果目标槽位已被占用，则保持原物品不变并返回透传结果。可染色盔甲通过 `ItemStack` 的结构化标签保存 `display.color`，因此序列化、复制和比较都会保留染色数据。
 
@@ -116,7 +134,7 @@ item/
 | 模块 | 文件 | 状态 |
 |------|------|------|
 | IItemTier | tier/IItemTier.hpp | ✅ 完成 |
-| ItemTiers | tier/ItemTiers.cpp | ✅ 完成 (6种材质) |
+| ItemTiers | tier/ItemTiers.cpp | ✅ 完成 (6种材质: 木、石、铁、金、钻石、下界合金) |
 | ToolType | items/tool/ToolType.hpp | ✅ 完成 |
 | TieredItem | items/tool/TieredItem.hpp | ✅ 完成 |
 | ToolItem | items/tool/ToolItem.hpp | ✅ 完成 |
@@ -126,16 +144,29 @@ item/
 | HoeItem | items/tool/HoeItem.hpp | ✅ 完成 |
 | SwordItem | items/tool/SwordItem.hpp | ✅ 完成 |
 
+**已注册工具物品**:
+- 木工具 (镐、斧、锹、锄、剑)
+- 石工具 (镐、斧、锹、锄、剑)
+- 铁工具 (镐、斧、锹、锄、剑)
+- 金工具 (镐、斧、锹、锄、剑)
+- 钻石工具 (镐、斧、锹、锄、剑)
+- 下界合金工具 (镐、斧、锹、锄、剑)
+
 ### 附魔系统 (10%)
 
 | 模块 | 文件 | 状态 |
 |------|------|------|
-| Enchantment | enchantment/Enchantment.hpp | ✅ 完成 |
+| Enchantment | enchantment/Enchantment.hpp | ✅ 完成 (含完整 EnchantmentType 枚举) |
 | EnchantmentContainer | enchantment/EnchantmentContainer.hpp | ✅ 完成 |
 | EnchantmentHelper | enchantment/EnchantmentHelper.hpp | ✅ 完成 |
 | FortuneEnchantment | enchantments/FortuneEnchantment.hpp | ✅ 完成 |
 | SilkTouchEnchantment | enchantments/SilkTouchEnchantment.hpp | ✅ 完成 |
 | 其他附魔 (32个) | - | ⏳ 待实现 |
+
+**EnchantmentType 枚举 (MC 1.16.5 对齐)**:
+- Armor (全护甲), ArmorFeet (靴子), ArmorLegs (护腿), ArmorHead (头盔), ArmorChest (胸甲)
+- Weapon (剑), Digger (挖掘工具), FishingRod (钓鱼竿), Breakable (可破坏物品)
+- Bow (弓), Wearable (可穿戴), Crossbow (弩), Trident (三叉戟), Vanishable (可消失物品), All (所有物品)
 
 ### 合成系统 (50%)
 
@@ -300,6 +331,18 @@ ActionResultType action = item.onItemUse(context);
 **问题**：服务器侧背包变更如果走 `inventoryManager()`，但没有设置回调，客户端不会收到更新。
 
 **解决方案**：`InventoryManager::setOnInventoryUpdate()` 在 `MinecraftServer::initializeInteractionManagers()` 里已经接好，服务器侧背包变更如果走 `inventoryManager()`，就要依赖这条回调刷新客户端，不要再手写一套新的同步分支。
+
+### 9. BlockItem 放置上下文需要非 const IWorld
+
+**问题**：`BlockItemUseContext` 需要修改世界状态（放置方块、消耗物品等），因此需要非 const 的 `IWorld&` 引用。
+
+**解决方案**：`ItemUseContext` 和 `BlockItemUseContext` 使用非 const `IWorld&` 引用，支持 `setBlockState` 等修改操作。
+
+### 10. WallOrFloorItem 用于可挂墙物品
+
+**问题**：告示牌、旗帜、头颅等物品既可以放在地上也可以贴在墙上，需要特殊处理。
+
+**解决方案**：使用 `WallOrFloorItem` 类，根据玩家视线方向自动选择放置地板方块或墙壁方块。
 
 ## 测试文件
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/Item.hpp"
+#include "../../core/ActionResult.hpp"
 #include "../../context/BlockItemUseContext.hpp"
 #include "../../../world/block/Block.hpp"
 
@@ -32,6 +33,19 @@ public:
      */
     [[nodiscard]] const Block& block() const { return *m_block; }
 
+    // ========== Item 接口实现 ==========
+
+    /**
+     * @brief 在方块上使用物品
+     *
+     * 当玩家右键点击方块时调用。
+     * 参考 MC 1.16.5: BlockItem.onItemUse
+     *
+     * @param context 物品使用上下文
+     * @return 动作结果类型
+     */
+    ActionResultType onItemUse(ItemUseContext& context) override;
+
     // ========== 放置逻辑 ==========
 
     /**
@@ -40,9 +54,20 @@ public:
      * 检查放置条件，获取放置状态，并执行放置。
      *
      * @param context 放置上下文
-     * @return 是否放置成功
+     * @return 动作结果类型
      */
-    [[nodiscard]] bool tryPlace(BlockItemUseContext& context) const;
+    [[nodiscard]] ActionResultType tryPlace(BlockItemUseContext& context) const;
+
+    /**
+     * @brief 获取放置上下文
+     *
+     * 子类可重写以修改放置行为（如床、门等）。
+     * 默认返回原始上下文。
+     *
+     * @param context 原始放置上下文
+     * @return 修改后的放置上下文，如果无法放置返回 nullptr
+     */
+    [[nodiscard]] virtual BlockItemUseContext getBlockItemUseContext(BlockItemUseContext& context) const;
 
     /**
      * @brief 获取放置时的方块状态
@@ -66,6 +91,15 @@ public:
      */
     [[nodiscard]] bool canPlace(const BlockItemUseContext& context, const BlockState& state) const;
 
+    /**
+     * @brief 是否检查方块位置有效性
+     *
+     * 子类可重写以禁用位置检查（如末地传送门框架）。
+     *
+     * @return 默认返回 true
+     */
+    [[nodiscard]] virtual bool checkPosition() const { return true; }
+
 protected:
     /**
      * @brief 执行方块放置
@@ -80,6 +114,22 @@ protected:
     [[nodiscard]] virtual bool placeBlock(BlockItemUseContext& context, const BlockState* state) const;
 
     /**
+     * @brief 方块放置后的处理
+     *
+     * 处理方块实体 NBT 数据。
+     *
+     * @param pos 方块位置
+     * @param world 世界引用
+     * @param player 玩家指针（可为nullptr）
+     * @param stack 物品堆
+     * @param state 方块状态
+     * @return 是否成功设置了方块实体数据
+     */
+    [[nodiscard]] virtual bool onBlockPlaced(const BlockPos& pos, IWorld& world,
+                                              Player* player, const ItemStack& stack,
+                                              const BlockState& state) const;
+
+    /**
      * @brief 检查放置位置是否有效
      *
      * 检查放置位置是否在方块碰撞范围内。
@@ -88,6 +138,21 @@ protected:
      * @return 是否有效
      */
     [[nodiscard]] bool checkPositionValid(const BlockItemUseContext& context) const;
+
+    /**
+     * @brief 从物品 NBT 应用方块状态
+     *
+     * 处理物品堆中的 BlockStateTag，设置方块属性。
+     *
+     * @param pos 方块位置
+     * @param world 世界引用
+     * @param stack 物品堆
+     * @param state 原始方块状态
+     * @return 修改后的方块状态
+     */
+    [[nodiscard]] const BlockState* applyBlockStateFromNBT(const BlockPos& pos, IWorld& world,
+                                                            const ItemStack& stack,
+                                                            const BlockState& state) const;
 
 private:
     const Block* m_block;

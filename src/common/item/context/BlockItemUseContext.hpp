@@ -25,7 +25,7 @@ public:
      * @param face 击中的面
      * @param playerYaw 玩家yaw角度（用于计算水平朝向）
      */
-    BlockItemUseContext(const IWorld& world,
+    BlockItemUseContext(IWorld& world,
                         Player* player,
                         const ItemStack& stack,
                         const Vector3& hitPos,
@@ -108,7 +108,20 @@ public:
      * @brief 获取世界引用
      * @return 世界引用
      */
+    [[nodiscard]] IWorld& getWorld() { return m_world; }
     [[nodiscard]] const IWorld& getWorld() const { return m_world; }
+
+    /**
+     * @brief 获取物品堆（可修改）
+     * @return 物品堆引用
+     */
+    [[nodiscard]] ItemStack& getItemStack() { return ItemUseContext::getItemStackMut(); }
+
+    /**
+     * @brief 获取物品堆（只读）
+     * @return 物品堆引用
+     */
+    [[nodiscard]] const ItemStack& getItemStack() const { return ItemUseContext::getItemStack(); }
 
     /**
      * @brief 获取玩家视线方向的优先级列表

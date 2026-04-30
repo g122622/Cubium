@@ -4,14 +4,14 @@
 
 namespace mc {
 
-BlockItemUseContext::BlockItemUseContext(const IWorld& world,
+BlockItemUseContext::BlockItemUseContext(IWorld& world,
                                          Player* player,
                                          const ItemStack& stack,
                                          const Vector3& hitPos,
                                          const BlockPos& blockPos,
                                          Direction face,
                                          f32 playerYaw)
-    : ItemUseContext(world, player, stack, hitPos, blockPos, face)
+    : ItemUseContext(world, player, stack, hitPos, blockPos, face, Hand::MainHand, playerYaw)
     , m_replacingClickedBlock(false)
 {
     // 计算相邻位置（击中面的另一侧）

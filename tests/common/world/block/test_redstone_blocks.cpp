@@ -141,7 +141,7 @@ private:
     i32 m_setBlockCalls = 0;
 };
 
-BlockItemUseContext makePlacementContext(const IWorld& world, const BlockPos& pos, f32 playerYaw) {
+BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, f32 playerYaw) {
     static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
     return BlockItemUseContext(
         world,

@@ -238,4 +238,48 @@ void Item::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity) {
     (void)entity;
 }
 
+// ============================================================================
+// 工具相关
+// ============================================================================
+
+bool Item::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker) {
+    // 默认实现：不造成耐久消耗
+    // 工具类物品（剑、斧等）会重写此方法
+    (void)stack;
+    (void)target;
+    (void)attacker;
+    return false;
+}
+
+bool Item::onBlockDestroyed(ItemStack& stack, IWorld& world, const BlockState& state,
+                            const BlockPos& pos, LivingEntity& breaker) {
+    // 默认实现：不造成耐久消耗
+    // 工具类物品（镐、斧、铲、锄等）会重写此方法
+    (void)stack;
+    (void)world;
+    (void)state;
+    (void)pos;
+    (void)breaker;
+    return false;
+}
+
+bool Item::isSuitableFor(const BlockState& state) const {
+    // 默认实现：不适用于任何方块
+    // 工具类物品会重写此方法以匹配工具类型
+    (void)state;
+    return false;
+}
+
+void Item::fillItemGroup(const ItemGroup& group, std::vector<ItemStack>& items) const {
+    // 默认实现：如果物品属于该组，添加一个默认物品堆
+    if (isInGroup(group)) {
+        items.push_back(getDefaultInstance());
+    }
+}
+
+bool Item::isInGroup(const ItemGroup& group) const {
+    // 默认实现：检查物品的创造模式组是否匹配
+    return m_creativeTab == &group;
+}
+
 } // namespace mc

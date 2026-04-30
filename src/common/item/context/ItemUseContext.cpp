@@ -4,18 +4,22 @@
 
 namespace mc {
 
-ItemUseContext::ItemUseContext(const IWorld& world,
+ItemUseContext::ItemUseContext(IWorld& world,
                                Player* player,
                                const ItemStack& stack,
                                const Vector3& hitPos,
                                const BlockPos& blockPos,
-                               Direction face)
+                               Direction face,
+                               Hand hand,
+                               f32 playerYaw)
     : m_world(world)
     , m_player(player)
-    , m_stack(stack)
+    , m_stack(const_cast<ItemStack*>(&stack))
     , m_hitPos(hitPos)
     , m_blockPos(blockPos)
     , m_face(face)
+    , m_hand(hand)
+    , m_playerYaw(playerYaw)
 {
     // 计算击中点在方块内的相对坐标（0-1范围）
     m_hitX = hitPos.x - static_cast<f32>(blockPos.x);

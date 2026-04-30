@@ -111,7 +111,7 @@ private:
     u64 m_seed = 0;
 };
 
-BlockItemUseContext makePlacementContext(const IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
+BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
     static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
     return BlockItemUseContext(
         world,

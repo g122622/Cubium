@@ -522,6 +522,87 @@ public:
      */
     virtual void onDestroyed(ItemStack& stack, IWorld& world, Entity& entity);
 
+    // ========================================================================
+    // 工具相关 - 新增方法
+    // ========================================================================
+
+    /**
+     * @brief 攻击实体时调用
+     *
+     * 当持有此物品的玩家攻击实体时调用。
+     * 用于工具耐久度消耗（剑、斧等）。
+     * 参考: net.minecraft.item.Item#hitEntity
+     *
+     * @param stack 物品堆
+     * @param target 被攻击的实体
+     * @param attacker 攻击者
+     * @return 是否成功攻击
+     */
+    virtual bool hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker);
+
+    /**
+     * @brief 破坏方块时调用
+     *
+     * 当持有此物品的玩家破坏方块时调用。
+     * 用于工具耐久度消耗（镐、斧、铲、锄等）。
+     * 参考: net.minecraft.item.Item#onBlockDestroyed
+     *
+     * @param stack 物品堆
+     * @param world 世界引用
+     * @param state 被破坏的方块状态
+     * @param pos 方块位置
+     * @param breaker 破坏者（玩家）
+     * @return 是否成功破坏
+     */
+    virtual bool onBlockDestroyed(ItemStack& stack, IWorld& world, const BlockState& state,
+                                  const BlockPos& pos, LivingEntity& breaker);
+
+    /**
+     * @brief 物品是否适合作为方块工具
+     *
+     * 检查物品是否可以用于采集指定方块。
+     * 参考: net.minecraft.item.Item#isSuitableFor
+     *
+     * @param state 方块状态
+     * @return 是否适合
+     */
+    [[nodiscard]] virtual bool isSuitableFor(const BlockState& state) const;
+
+    /**
+     * @brief 获取物品的默认属性修饰符
+     *
+     * 返回物品对装备槽位的属性修饰符。
+     * 例如：武器返回攻击伤害和攻击速度修饰符。
+     * 参考: net.minecraft.item.Item#getDefaultAttributeModifiers
+     *
+     * @param slot 装备槽位
+     * @return 属性修饰符的多重映射
+     */
+    // [[nodiscard]] virtual Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(
+    //     EquipmentSlot slot) const;
+
+    /**
+     * @brief 填充物品到创造模式物品组
+     *
+     * 将物品添加到创造模式物品组列表中。
+     * 子类可重写以添加多个变体（如药水、附魔书）。
+     * 参考: net.minecraft.item.Item#fillItemGroup
+     *
+     * @param group 物品组
+     * @param items 物品列表
+     */
+    virtual void fillItemGroup(const ItemGroup& group, std::vector<ItemStack>& items) const;
+
+    /**
+     * @brief 检查物品是否在指定物品组中
+     *
+     * 参考: net.minecraft.item.Item#isInGroup
+     *
+     * @param group 物品组
+     * @return 是否在组中
+     */
+    [[nodiscard]] virtual bool isInGroup(const ItemGroup& group) const;
+
     /**
      * @brief 转换为字符串
      */
