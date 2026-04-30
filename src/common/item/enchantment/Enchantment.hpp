@@ -19,6 +19,7 @@ namespace enchant {
 enum class EnchantmentType : u8 {
     Armor,          ///< 护甲（头盔、胸甲、护腿、靴子）
     ArmorFeet,      ///< 靴子
+    ArmorLegs,      ///< 护腿
     ArmorHead,      ///< 头盔
     ArmorChest,     ///< 胸甲
     Weapon,         ///< 武器（剑）

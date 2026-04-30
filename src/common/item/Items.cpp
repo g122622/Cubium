@@ -1,6 +1,8 @@
 #include "Items.hpp"
 
 #include "items/block/BlockItem.hpp"
+#include "items/armor/ArmorItem.hpp"
+#include "items/armor/DyeableArmorItem.hpp"
 #include "items/potion/PotionItem.hpp"
 #include "items/potion/SplashPotionItem.hpp"
 #include "items/potion/LingeringPotionItem.hpp"
@@ -12,6 +14,7 @@
 #include "items/tool/SwordItem.hpp"
 #include "items/special/BoneMealItem.hpp"
 #include "food/Foods.hpp"
+#include "armor/ArmorMaterial.hpp"
 #include "../world/block/VanillaBlocks.hpp"
 
 namespace {
@@ -132,6 +135,13 @@ Item* Items::GOLDEN_SHOVEL = nullptr;
 Item* Items::GOLDEN_HOE = nullptr;
 Item* Items::GOLDEN_SWORD = nullptr;
 
+// 下界合金工具
+Item* Items::NETHERITE_PICKAXE = nullptr;
+Item* Items::NETHERITE_AXE = nullptr;
+Item* Items::NETHERITE_SHOVEL = nullptr;
+Item* Items::NETHERITE_HOE = nullptr;
+Item* Items::NETHERITE_SWORD = nullptr;
+
 // 钻石护甲
 Item* Items::DIAMOND_HELMET = nullptr;
 Item* Items::DIAMOND_CHESTPLATE = nullptr;
@@ -155,6 +165,21 @@ Item* Items::LEATHER_HELMET = nullptr;
 Item* Items::LEATHER_CHESTPLATE = nullptr;
 Item* Items::LEATHER_LEGGINGS = nullptr;
 Item* Items::LEATHER_BOOTS = nullptr;
+
+// 锁链护甲
+Item* Items::CHAINMAIL_HELMET = nullptr;
+Item* Items::CHAINMAIL_CHESTPLATE = nullptr;
+Item* Items::CHAINMAIL_LEGGINGS = nullptr;
+Item* Items::CHAINMAIL_BOOTS = nullptr;
+
+// 下界合金护甲
+Item* Items::NETHERITE_HELMET = nullptr;
+Item* Items::NETHERITE_CHESTPLATE = nullptr;
+Item* Items::NETHERITE_LEGGINGS = nullptr;
+Item* Items::NETHERITE_BOOTS = nullptr;
+
+// 特殊护甲
+Item* Items::ELYTRA = nullptr;
 
 // 食物
 Item* Items::APPLE = nullptr;
@@ -312,6 +337,9 @@ void Items::initialize() {
 
     // 初始化食物属性（必须在注册食物物品前）
     item::food::Foods::initialize();
+
+    // 初始化盔甲材质（必须在注册盔甲物品前）
+    item::armor::ArmorMaterials::initialize();
 
     auto& registry = ItemRegistry::instance();
 
@@ -675,93 +703,251 @@ void Items::registerTools() {
         -2.4f,  // attackSpeed
         ItemProperties()
     );
+
+    // ========================================================================
+    // 下界合金工具
+    // ========================================================================
+    NETHERITE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
+        ResourceLocation("minecraft:netherite_pickaxe"),
+        item::tier::ItemTiers::NETHERITE(),  // tier
+        1,      // attackDamage
+        -2.8f,  // attackSpeed
+        ItemProperties().rarity(ItemRarity::Rare)
+    );
+
+    NETHERITE_AXE = &registry.registerItem<item::tool::AxeItem>(
+        ResourceLocation("minecraft:netherite_axe"),
+        item::tier::ItemTiers::NETHERITE(),  // tier
+        5.0f,   // attackDamage
+        -3.0f,  // attackSpeed
+        ItemProperties().rarity(ItemRarity::Rare)
+    );
+
+    NETHERITE_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(
+        ResourceLocation("minecraft:netherite_shovel"),
+        item::tier::ItemTiers::NETHERITE(),  // tier
+        1.5f,   // attackDamage
+        -3.0f,  // attackSpeed
+        ItemProperties().rarity(ItemRarity::Rare)
+    );
+
+    NETHERITE_HOE = &registry.registerItem<item::tool::HoeItem>(
+        ResourceLocation("minecraft:netherite_hoe"),
+        item::tier::ItemTiers::NETHERITE(),  // tier
+        0,      // attackDamage
+        -2.0f,  // attackSpeed
+        ItemProperties().rarity(ItemRarity::Rare)
+    );
+
+    NETHERITE_SWORD = &registry.registerItem<item::tool::SwordItem>(
+        ResourceLocation("minecraft:netherite_sword"),
+        item::tier::ItemTiers::NETHERITE(),  // tier
+        3,      // attackDamage
+        -2.4f,  // attackSpeed
+        ItemProperties().rarity(ItemRarity::Rare)
+    );
 }
 
 void Items::registerArmor() {
     auto& registry = ItemRegistry::instance();
+    using namespace item::armor;
 
+    // ========================================================================
     // 钻石护甲
-    DIAMOND_HELMET = &registry.registerItem(
+    // ========================================================================
+    DIAMOND_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_helmet"),
-        ItemProperties().maxDamage(363)
+        ArmorMaterials::DIAMOND,
+        ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Head))
     );
 
-    DIAMOND_CHESTPLATE = &registry.registerItem(
+    DIAMOND_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_chestplate"),
-        ItemProperties().maxDamage(528)
+        ArmorMaterials::DIAMOND,
+        ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Chest))
     );
 
-    DIAMOND_LEGGINGS = &registry.registerItem(
+    DIAMOND_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_leggings"),
-        ItemProperties().maxDamage(495)
+        ArmorMaterials::DIAMOND,
+        ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Legs))
     );
 
-    DIAMOND_BOOTS = &registry.registerItem(
+    DIAMOND_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_boots"),
-        ItemProperties().maxDamage(396)
+        ArmorMaterials::DIAMOND,
+        ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Feet))
     );
 
+    // ========================================================================
     // 铁护甲
-    IRON_HELMET = &registry.registerItem(
+    // ========================================================================
+    IRON_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_helmet"),
-        ItemProperties().maxDamage(165)
+        ArmorMaterials::IRON,
+        ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Head))
     );
 
-    IRON_CHESTPLATE = &registry.registerItem(
+    IRON_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_chestplate"),
-        ItemProperties().maxDamage(240)
+        ArmorMaterials::IRON,
+        ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Chest))
     );
 
-    IRON_LEGGINGS = &registry.registerItem(
+    IRON_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_leggings"),
-        ItemProperties().maxDamage(225)
+        ArmorMaterials::IRON,
+        ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Legs))
     );
 
-    IRON_BOOTS = &registry.registerItem(
+    IRON_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_boots"),
-        ItemProperties().maxDamage(195)
+        ArmorMaterials::IRON,
+        ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Feet))
     );
 
+    // ========================================================================
     // 金护甲
-    GOLDEN_HELMET = &registry.registerItem(
+    // ========================================================================
+    GOLDEN_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_helmet"),
-        ItemProperties().maxDamage(77)
+        ArmorMaterials::GOLD,
+        ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Head))
     );
 
-    GOLDEN_CHESTPLATE = &registry.registerItem(
+    GOLDEN_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_chestplate"),
-        ItemProperties().maxDamage(112)
+        ArmorMaterials::GOLD,
+        ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Chest))
     );
 
-    GOLDEN_LEGGINGS = &registry.registerItem(
+    GOLDEN_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_leggings"),
-        ItemProperties().maxDamage(105)
+        ArmorMaterials::GOLD,
+        ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Legs))
     );
 
-    GOLDEN_BOOTS = &registry.registerItem(
+    GOLDEN_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_boots"),
-        ItemProperties().maxDamage(91)
+        ArmorMaterials::GOLD,
+        ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Feet))
     );
 
-    // 皮革护甲
-    LEATHER_HELMET = &registry.registerItem(
+    // ========================================================================
+    // 皮革护甲（可染色）
+    // ========================================================================
+    LEATHER_HELMET = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_helmet"),
-        ItemProperties().maxDamage(55)
+        ArmorMaterials::LEATHER,
+        ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Head))
     );
 
-    LEATHER_CHESTPLATE = &registry.registerItem(
+    LEATHER_CHESTPLATE = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_chestplate"),
-        ItemProperties().maxDamage(80)
+        ArmorMaterials::LEATHER,
+        ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Chest))
     );
 
-    LEATHER_LEGGINGS = &registry.registerItem(
+    LEATHER_LEGGINGS = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_leggings"),
-        ItemProperties().maxDamage(75)
+        ArmorMaterials::LEATHER,
+        ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Legs))
     );
 
-    LEATHER_BOOTS = &registry.registerItem(
+    LEATHER_BOOTS = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_boots"),
-        ItemProperties().maxDamage(65)
+        ArmorMaterials::LEATHER,
+        ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Feet))
+    );
+
+    // ========================================================================
+    // 锁链护甲
+    // ========================================================================
+    CHAINMAIL_HELMET = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:chainmail_helmet"),
+        ArmorMaterials::CHAIN,
+        ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Head))
+    );
+
+    CHAINMAIL_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:chainmail_chestplate"),
+        ArmorMaterials::CHAIN,
+        ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Chest))
+    );
+
+    CHAINMAIL_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:chainmail_leggings"),
+        ArmorMaterials::CHAIN,
+        ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Legs))
+    );
+
+    CHAINMAIL_BOOTS = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:chainmail_boots"),
+        ArmorMaterials::CHAIN,
+        ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Feet))
+    );
+
+    // ========================================================================
+    // 下界合金护甲
+    // ========================================================================
+    NETHERITE_HELMET = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:netherite_helmet"),
+        ArmorMaterials::NETHERITE,
+        ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Head))
+                            .rarity(ItemRarity::Rare)
+    );
+
+    NETHERITE_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:netherite_chestplate"),
+        ArmorMaterials::NETHERITE,
+        ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Chest))
+                            .rarity(ItemRarity::Rare)
+    );
+
+    NETHERITE_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:netherite_leggings"),
+        ArmorMaterials::NETHERITE,
+        ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Legs))
+                            .rarity(ItemRarity::Rare)
+    );
+
+    NETHERITE_BOOTS = &registry.registerItem<item::items::ArmorItem>(
+        ResourceLocation("minecraft:netherite_boots"),
+        ArmorMaterials::NETHERITE,
+        ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Feet))
+                            .rarity(ItemRarity::Rare)
+    );
+
+    // ========================================================================
+    // 鞘翅
+    // ========================================================================
+    ELYTRA = &registry.registerItem(
+        ResourceLocation("minecraft:elytra"),
+        ItemProperties().maxDamage(432).rarity(ItemRarity::Uncommon)
     );
 }
 
@@ -1232,25 +1418,8 @@ void Items::registerCrops() {
         ItemProperties().maxStackSize(64)
     );
 
-    MELON_SLICE = &registry.registerItem(
-        ResourceLocation("minecraft:melon_slice"),
-        ItemProperties().maxStackSize(64)
-    );
-
-    CARROT = &registry.registerItem(
-        ResourceLocation("minecraft:carrot"),
-        ItemProperties().maxStackSize(64)
-    );
-
-    POTATO = &registry.registerItem(
-        ResourceLocation("minecraft:potato"),
-        ItemProperties().maxStackSize(64)
-    );
-
-    BEETROOT = &registry.registerItem(
-        ResourceLocation("minecraft:beetroot"),
-        ItemProperties().maxStackSize(64)
-    );
+    // 注意：MELON_SLICE, CARROT, POTATO, BEETROOT 已在 registerFood() 中注册为食物
+    // 这里不再重复注册
 
     SUGAR_CANE = &registry.registerItem(
         ResourceLocation("minecraft:sugar_cane"),
@@ -1294,12 +1463,7 @@ void Items::registerAquaticMaterials() {
         ItemProperties().maxStackSize(64)
     );
 
-    // 干海带 - 食物，快速食用（32tick）
-    // 参考: new Item(new Item.Properties().group(ItemGroup.FOOD).food(Food.Builder().hunger(1).saturation(0.1F).fast().build()))
-    DRIED_KELP = &registry.registerItem(
-        ResourceLocation("minecraft:dried_kelp"),
-        ItemProperties().maxStackSize(64)
-    );
+    // 注意：DRIED_KELP 已在 registerFood() 中注册为食物
 }
 
 void Items::registerBrewingIngredients() {
@@ -1312,12 +1476,8 @@ void Items::registerBrewingIngredients() {
         ItemProperties().maxStackSize(64)
     );
 
-    // 金胡萝卜 - 夜视药水材料
-    // 参考: new Item(new Item.Properties().group(ItemGroup.FOOD).food(Food.Builder().hunger(6).saturation(8.1F).build()).rarity(Rarity.UNCOMMON))
-    GOLDEN_CARROT = &registry.registerItem(
-        ResourceLocation("minecraft:golden_carrot"),
-        ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon)
-    );
+    // 注意：GOLDEN_CARROT 已在 registerFood() 中注册为食物
+    // 注意：PUFFERFISH 已在 registerFood() 中注册为食物
 
     // 恶魂之泪 - 生命恢复药水材料
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
@@ -1347,18 +1507,13 @@ void Items::registerBrewingIngredients() {
         ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon)
     );
 
-    // 河豚 - 水下呼吸药水材料（也是食物，有毒性）
-    // 参考: new Item(new Item.Properties().group(ItemGroup.FOOD).food(Food.Builder().hunger(1).saturation(0.2F).effect(new EffectInstance(Effects.POISON, 60, 0), 1.0F).build()))
-    PUFFERFISH = &registry.registerItem(
-        ResourceLocation("minecraft:pufferfish"),
-        ItemProperties().maxStackSize(64)
-    );
-
     // 海龟壳 - 海龟大师药水材料（装备，但也可用于酿造）
     // 参考: new ArmorItem(ArmorMaterial.TURTLE, EquipmentSlotType.HEAD, new Item.Properties().group(ItemGroup.COMBAT))
-    TURTLE_HELMET = &registry.registerItem(
+    TURTLE_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:turtle_helmet"),
-        ItemProperties().maxStackSize(1).maxDamage(275)
+        item::armor::ArmorMaterials::TURTLE,
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::TURTLE.getDurability(item::armor::ArmorSlot::Head))
     );
 
     // 闪烁的西瓜片 - 瞬间治疗药水材料

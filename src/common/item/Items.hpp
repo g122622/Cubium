@@ -119,6 +119,15 @@ public:
     static Item* GOLDEN_SWORD;
 
     // ========================================================================
+    // 工具 - 下界合金
+    // ========================================================================
+    static Item* NETHERITE_PICKAXE;
+    static Item* NETHERITE_AXE;
+    static Item* NETHERITE_SHOVEL;
+    static Item* NETHERITE_HOE;
+    static Item* NETHERITE_SWORD;
+
+    // ========================================================================
     // 护甲 - 钻石
     // ========================================================================
     static Item* DIAMOND_HELMET;
@@ -149,6 +158,28 @@ public:
     static Item* LEATHER_CHESTPLATE;
     static Item* LEATHER_LEGGINGS;
     static Item* LEATHER_BOOTS;
+
+    // ========================================================================
+    // 护甲 - 锁链
+    // ========================================================================
+    static Item* CHAINMAIL_HELMET;
+    static Item* CHAINMAIL_CHESTPLATE;
+    static Item* CHAINMAIL_LEGGINGS;
+    static Item* CHAINMAIL_BOOTS;
+
+    // ========================================================================
+    // 护甲 - 下界合金
+    // ========================================================================
+    static Item* NETHERITE_HELMET;
+    static Item* NETHERITE_CHESTPLATE;
+    static Item* NETHERITE_LEGGINGS;
+    static Item* NETHERITE_BOOTS;
+
+    // ========================================================================
+    // 特殊护甲
+    // ========================================================================
+    static Item* TURTLE_HELMET;    // 海龟壳 - 在酿造材料部分已声明
+    static Item* ELYTRA;           // 鞘翅
 
     // ========================================================================
     // 食物
@@ -308,7 +339,7 @@ public:
     static Item* MAGMA_CREAM;            // 岩浆膏 - 防火药水
     static Item* DRAGON_BREATH;          // 龙息 - 滞留药水
     // PUFFERFISH 在食物部分声明
-    static Item* TURTLE_HELMET;          // 海龟壳 - 海龟大师药水
+    // TURTLE_HELMET 在特殊护甲部分声明
     static Item* GLISTERING_MELON_SLICE; // 闪烁的西瓜片 - 瞬间治疗药水
 
     // ========================================================================
