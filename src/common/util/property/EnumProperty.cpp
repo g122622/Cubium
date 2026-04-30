@@ -303,4 +303,252 @@ std::optional<BlockStateProperties::BambooLeaves> EnumProperty<BlockStatePropert
     return std::nullopt;
 }
 
+// ============================================================================
+// Half Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::Half>::Traits::toString(
+    const BlockStateProperties::Half& value) {
+    switch (value) {
+        case BlockStateProperties::Half::Top:
+            return "top";
+        case BlockStateProperties::Half::Bottom:
+            return "bottom";
+        default:
+            return "bottom";
+    }
+}
+
+std::optional<BlockStateProperties::Half> EnumProperty<BlockStateProperties::Half>::Traits::fromName(
+    StringView name) {
+    if (name == "top") {
+        return BlockStateProperties::Half::Top;
+    } else if (name == "bottom") {
+        return BlockStateProperties::Half::Bottom;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// RailShape Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::RailShape>::Traits::toString(
+    const BlockStateProperties::RailShape& value) {
+    switch (value) {
+        case BlockStateProperties::RailShape::NorthSouth:
+            return "north_south";
+        case BlockStateProperties::RailShape::EastWest:
+            return "east_west";
+        case BlockStateProperties::RailShape::AscendingEast:
+            return "ascending_east";
+        case BlockStateProperties::RailShape::AscendingWest:
+            return "ascending_west";
+        case BlockStateProperties::RailShape::AscendingNorth:
+            return "ascending_north";
+        case BlockStateProperties::RailShape::AscendingSouth:
+            return "ascending_south";
+        case BlockStateProperties::RailShape::SouthEast:
+            return "south_east";
+        case BlockStateProperties::RailShape::SouthWest:
+            return "south_west";
+        case BlockStateProperties::RailShape::NorthWest:
+            return "north_west";
+        case BlockStateProperties::RailShape::NorthEast:
+            return "north_east";
+        default:
+            return "north_south";
+    }
+}
+
+std::optional<BlockStateProperties::RailShape> EnumProperty<BlockStateProperties::RailShape>::Traits::fromName(
+    StringView name) {
+    if (name == "north_south") {
+        return BlockStateProperties::RailShape::NorthSouth;
+    } else if (name == "east_west") {
+        return BlockStateProperties::RailShape::EastWest;
+    } else if (name == "ascending_east") {
+        return BlockStateProperties::RailShape::AscendingEast;
+    } else if (name == "ascending_west") {
+        return BlockStateProperties::RailShape::AscendingWest;
+    } else if (name == "ascending_north") {
+        return BlockStateProperties::RailShape::AscendingNorth;
+    } else if (name == "ascending_south") {
+        return BlockStateProperties::RailShape::AscendingSouth;
+    } else if (name == "south_east") {
+        return BlockStateProperties::RailShape::SouthEast;
+    } else if (name == "south_west") {
+        return BlockStateProperties::RailShape::SouthWest;
+    } else if (name == "north_west") {
+        return BlockStateProperties::RailShape::NorthWest;
+    } else if (name == "north_east") {
+        return BlockStateProperties::RailShape::NorthEast;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// RedstoneSide Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::RedstoneSide>::Traits::toString(
+    const BlockStateProperties::RedstoneSide& value) {
+    switch (value) {
+        case BlockStateProperties::RedstoneSide::Up:
+            return "up";
+        case BlockStateProperties::RedstoneSide::Side:
+            return "side";
+        case BlockStateProperties::RedstoneSide::None:
+            return "none";
+        default:
+            return "none";
+    }
+}
+
+std::optional<BlockStateProperties::RedstoneSide> EnumProperty<BlockStateProperties::RedstoneSide>::Traits::fromName(
+    StringView name) {
+    if (name == "up") {
+        return BlockStateProperties::RedstoneSide::Up;
+    } else if (name == "side") {
+        return BlockStateProperties::RedstoneSide::Side;
+    } else if (name == "none") {
+        return BlockStateProperties::RedstoneSide::None;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// PistonType Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::PistonType>::Traits::toString(
+    const BlockStateProperties::PistonType& value) {
+    switch (value) {
+        case BlockStateProperties::PistonType::Default:
+            return "normal";
+        case BlockStateProperties::PistonType::Sticky:
+            return "sticky";
+        default:
+            return "normal";
+    }
+}
+
+std::optional<BlockStateProperties::PistonType> EnumProperty<BlockStateProperties::PistonType>::Traits::fromName(
+    StringView name) {
+    if (name == "normal") {
+        return BlockStateProperties::PistonType::Default;
+    } else if (name == "sticky") {
+        return BlockStateProperties::PistonType::Sticky;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// ComparatorMode Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::ComparatorMode>::Traits::toString(
+    const BlockStateProperties::ComparatorMode& value) {
+    switch (value) {
+        case BlockStateProperties::ComparatorMode::Compare:
+            return "compare";
+        case BlockStateProperties::ComparatorMode::Subtract:
+            return "subtract";
+        default:
+            return "compare";
+    }
+}
+
+std::optional<BlockStateProperties::ComparatorMode> EnumProperty<BlockStateProperties::ComparatorMode>::Traits::fromName(
+    StringView name) {
+    if (name == "compare") {
+        return BlockStateProperties::ComparatorMode::Compare;
+    } else if (name == "subtract") {
+        return BlockStateProperties::ComparatorMode::Subtract;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// NoteBlockInstrument Traits 实现
+// ============================================================================
+
+String EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::toString(
+    const BlockStateProperties::NoteBlockInstrument& value) {
+    switch (value) {
+        case BlockStateProperties::NoteBlockInstrument::Harp:
+            return "harp";
+        case BlockStateProperties::NoteBlockInstrument::Basedrum:
+            return "basedrum";
+        case BlockStateProperties::NoteBlockInstrument::Snare:
+            return "snare";
+        case BlockStateProperties::NoteBlockInstrument::Hat:
+            return "hat";
+        case BlockStateProperties::NoteBlockInstrument::Bass:
+            return "bass";
+        case BlockStateProperties::NoteBlockInstrument::Flute:
+            return "flute";
+        case BlockStateProperties::NoteBlockInstrument::Bell:
+            return "bell";
+        case BlockStateProperties::NoteBlockInstrument::Guitar:
+            return "guitar";
+        case BlockStateProperties::NoteBlockInstrument::Chime:
+            return "chime";
+        case BlockStateProperties::NoteBlockInstrument::Xylophone:
+            return "xylophone";
+        case BlockStateProperties::NoteBlockInstrument::IronXylophone:
+            return "iron_xylophone";
+        case BlockStateProperties::NoteBlockInstrument::CowBell:
+            return "cow_bell";
+        case BlockStateProperties::NoteBlockInstrument::Didgeridoo:
+            return "didgeridoo";
+        case BlockStateProperties::NoteBlockInstrument::Bit:
+            return "bit";
+        case BlockStateProperties::NoteBlockInstrument::Banjo:
+            return "banjo";
+        case BlockStateProperties::NoteBlockInstrument::Pling:
+            return "pling";
+        default:
+            return "harp";
+    }
+}
+
+std::optional<BlockStateProperties::NoteBlockInstrument> EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::fromName(
+    StringView name) {
+    if (name == "harp") {
+        return BlockStateProperties::NoteBlockInstrument::Harp;
+    } else if (name == "basedrum") {
+        return BlockStateProperties::NoteBlockInstrument::Basedrum;
+    } else if (name == "snare") {
+        return BlockStateProperties::NoteBlockInstrument::Snare;
+    } else if (name == "hat") {
+        return BlockStateProperties::NoteBlockInstrument::Hat;
+    } else if (name == "bass") {
+        return BlockStateProperties::NoteBlockInstrument::Bass;
+    } else if (name == "flute") {
+        return BlockStateProperties::NoteBlockInstrument::Flute;
+    } else if (name == "bell") {
+        return BlockStateProperties::NoteBlockInstrument::Bell;
+    } else if (name == "guitar") {
+        return BlockStateProperties::NoteBlockInstrument::Guitar;
+    } else if (name == "chime") {
+        return BlockStateProperties::NoteBlockInstrument::Chime;
+    } else if (name == "xylophone") {
+        return BlockStateProperties::NoteBlockInstrument::Xylophone;
+    } else if (name == "iron_xylophone") {
+        return BlockStateProperties::NoteBlockInstrument::IronXylophone;
+    } else if (name == "cow_bell") {
+        return BlockStateProperties::NoteBlockInstrument::CowBell;
+    } else if (name == "didgeridoo") {
+        return BlockStateProperties::NoteBlockInstrument::Didgeridoo;
+    } else if (name == "bit") {
+        return BlockStateProperties::NoteBlockInstrument::Bit;
+    } else if (name == "banjo") {
+        return BlockStateProperties::NoteBlockInstrument::Banjo;
+    } else if (name == "pling") {
+        return BlockStateProperties::NoteBlockInstrument::Pling;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc

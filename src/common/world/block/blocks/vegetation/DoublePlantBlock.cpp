@@ -17,7 +17,7 @@ DoublePlantBlock::DoublePlantBlock(const BlockProperties& properties)
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HALF())
+        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
         .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
@@ -25,7 +25,7 @@ DoublePlantBlock::DoublePlantBlock(const BlockProperties& properties)
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HALF(), DoubleBlockHalf::Lower));
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower));
 
     // 形状：下半部分是完整方块高度，上半部分也是完整高度
     // 但植物通常没有碰撞
@@ -37,15 +37,15 @@ DoublePlantBlock::DoublePlantBlock(const BlockProperties& properties)
 // ========== 状态属性 ==========
 
 const EnumProperty<BlockStateProperties::DoubleBlockHalf>& DoublePlantBlock::halfProperty() {
-    return BlockStateProperties::HALF();
+    return BlockStateProperties::DOUBLE_BLOCK_HALF();
 }
 
 DoubleBlockHalf DoublePlantBlock::getHalf(const BlockState& state) const {
-    return state.get(BlockStateProperties::HALF());
+    return state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 }
 
 BlockState DoublePlantBlock::withHalf(DoubleBlockHalf half) const {
-    return defaultState().with(BlockStateProperties::HALF(), half);
+    return defaultState().with(BlockStateProperties::DOUBLE_BLOCK_HALF(), half);
 }
 
 // ========== 放置逻辑 ==========
@@ -59,7 +59,7 @@ BlockState DoublePlantBlock::getStateForPlacement(BlockItemUseContext& context) 
     const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState == nullptr || aboveState->isAir()) {
-        return defaultState().with(BlockStateProperties::HALF(), DoubleBlockHalf::Lower);
+        return defaultState().with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower);
     }
 
     // 无法放置上半部分，返回默认状态（取消放置由外部处理）
@@ -138,7 +138,7 @@ bool DoublePlantBlock::placeAt(IWorld& world, const BlockPos& pos, const BlockSt
 
     // 放置上半部分
     BlockPos abovePos = pos.up();
-    BlockState upperState = state.with(BlockStateProperties::HALF(), DoubleBlockHalf::Upper);
+    BlockState upperState = state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Upper);
     return world.setBlockState(abovePos, &upperState, flags);
 }
 

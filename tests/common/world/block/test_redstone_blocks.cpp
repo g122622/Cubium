@@ -192,10 +192,10 @@ TEST_F(RedstoneBlockTest, DoorBlockNeighborChanged_UpdatesFromRedstonePower) {
     const BlockPos pos(10, 64, 10);
 
     auto state = door.defaultState()
-        .with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
         .with(BlockStateProperties::OPEN(), false)
         .with(BlockStateProperties::POWERED(), false);
-    auto upperState = state.with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    auto upperState = state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
 
     world.setBlockAt(pos, state);
     world.setBlockAt(pos.up(), upperState);
@@ -210,7 +210,7 @@ TEST_F(RedstoneBlockTest, DoorBlockNeighborChanged_UpdatesFromRedstonePower) {
 
     const BlockState* upperUpdated = world.getBlockState(pos.up());
     ASSERT_NE(upperUpdated, nullptr);
-    EXPECT_EQ(upperUpdated->get(BlockStateProperties::HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_EQ(upperUpdated->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
     EXPECT_TRUE(upperUpdated->get(BlockStateProperties::POWERED()));
     EXPECT_TRUE(upperUpdated->get(BlockStateProperties::OPEN()));
 }

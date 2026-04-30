@@ -312,7 +312,7 @@ TallSeagrassBlock::TallSeagrassBlock(const BlockProperties& properties)
 
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HALF())
+        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
         .add(BlockStateProperties::WATERLOGGED())
         .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
@@ -321,7 +321,7 @@ TallSeagrassBlock::TallSeagrassBlock(const BlockProperties& properties)
 
     // 设置默认状态
     setDefaultState(defaultState()
-        .with(BlockStateProperties::HALF(), DoubleBlockHalf::Lower)
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower)
         .with(BlockStateProperties::WATERLOGGED(), true));
 
     // 形状
@@ -330,7 +330,7 @@ TallSeagrassBlock::TallSeagrassBlock(const BlockProperties& properties)
 }
 
 BlockStateProperties::DoubleBlockHalf TallSeagrassBlock::getHalf(const BlockState& state) const {
-    return state.get(BlockStateProperties::HALF());
+    return state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 }
 
 BlockState TallSeagrassBlock::getStateForPlacement(BlockItemUseContext& context) {
@@ -342,7 +342,7 @@ BlockState TallSeagrassBlock::getStateForPlacement(BlockItemUseContext& context)
     const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState == nullptr || aboveState->isAir()) {
-        return defaultState().with(BlockStateProperties::HALF(), DoubleBlockHalf::Lower);
+        return defaultState().with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower);
     }
 
     return defaultState();
@@ -360,7 +360,7 @@ bool TallSeagrassBlock::isValidPosition(
         BlockPos belowPos(pos.x, pos.y - 1, pos.z);
         const BlockState* belowState = world.getBlockState(belowPos);
         return belowState != nullptr && belowState->is(this) &&
-               belowState->get(BlockStateProperties::HALF()) == DoubleBlockHalf::Lower;
+               belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == DoubleBlockHalf::Lower;
     } else {
         // 下半部分需要支撑
         BlockPos belowPos(pos.x, pos.y - 1, pos.z);
@@ -386,7 +386,7 @@ BlockState TallSeagrassBlock::updatePostPlacement(
     if (half == DoubleBlockHalf::Upper) {
         // 上半部分检查下方
         if (facing == Direction::Down) {
-            if (!facingState.is(this) || facingState.get(BlockStateProperties::HALF()) != DoubleBlockHalf::Lower) {
+            if (!facingState.is(this) || facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != DoubleBlockHalf::Lower) {
                 if (auto* airState = BlockRegistry::instance().airState()) {
                     return *airState;
                 }
@@ -395,7 +395,7 @@ BlockState TallSeagrassBlock::updatePostPlacement(
     } else {
         // 下半部分检查上方
         if (facing == Direction::Up) {
-            if (!facingState.is(this) || facingState.get(BlockStateProperties::HALF()) != DoubleBlockHalf::Upper) {
+            if (!facingState.is(this) || facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != DoubleBlockHalf::Upper) {
                 // 上方没有上半部分
             }
         }

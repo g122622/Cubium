@@ -18,7 +18,7 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HORIZONTAL_FACING())
         .add(BlockStateProperties::OPEN())
-        .add(BlockStateProperties::HALF())
+        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
         .add(BlockStateProperties::POWERED())
         .add(BlockStateProperties::WATERLOGGED())
         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
@@ -29,7 +29,7 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     setDefaultState(defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
         .with(BlockStateProperties::OPEN(), false)
-        .with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
         .with(BlockStateProperties::POWERED(), false)
         .with(BlockStateProperties::WATERLOGGED(), false));
 
@@ -92,7 +92,7 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
         .with(BlockStateProperties::OPEN(), powered)
-        .with(BlockStateProperties::HALF(), half)
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), half)
         .with(BlockStateProperties::POWERED(), powered)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
@@ -191,7 +191,7 @@ ActionResultType TrapDoorBlock::onBlockActivated(
 const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     bool open = state.get(BlockStateProperties::OPEN());
-    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 
     size_t index = getShapeIndex(facing, open, half);
     MC_ASSERT(index < 16);

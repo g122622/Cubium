@@ -505,7 +505,7 @@ public:
     /**
      * @brief 双方块半部分属性
      */
-    static const EnumProperty<DoubleBlockHalf>& HALF() {
+    static const EnumProperty<DoubleBlockHalf>& DOUBLE_BLOCK_HALF() {
         static auto prop = EnumProperty<DoubleBlockHalf>::create("half", {
             DoubleBlockHalf::Upper,
             DoubleBlockHalf::Lower
@@ -885,6 +885,292 @@ public:
         return *prop;
     }
 
+    // ========================================================================
+    // 楼梯/活板门半部分属性
+    // ========================================================================
+
+    /**
+     * @brief 半部分枚举（楼梯、活板门）
+     *
+     * MC 1.16.5: net.minecraft.state.properties.Half
+     * 注意：与 DoubleBlockHalf (Upper/Lower) 不同，Half 是 Top/Bottom
+     */
+    enum class Half : u8 {
+        Top = 0,     ///< 上半部分
+        Bottom = 1   ///< 下半部分
+    };
+
+    /**
+     * @brief 半部分属性
+     */
+    static const EnumProperty<Half>& HALF() {
+        static auto prop = EnumProperty<Half>::create("half", {
+            Half::Top,
+            Half::Bottom
+        });
+        return *prop;
+    }
+
+    // ========================================================================
+    // 铁轨形状属性
+    // ========================================================================
+
+    /**
+     * @brief 铁轨形状枚举
+     *
+     * MC 1.16.5: net.minecraft.state.properties.RailShape
+     */
+    enum class RailShape : u8 {
+        NorthSouth = 0,      ///< 南北直轨
+        EastWest = 1,        ///< 东西直轨
+        AscendingEast = 2,   ///< 向东上升
+        AscendingWest = 3,   ///< 向西上升
+        AscendingNorth = 4,  ///< 向北上升
+        AscendingSouth = 5,  ///< 向南上升
+        SouthEast = 6,       ///< 东南弯轨
+        SouthWest = 7,       ///< 西南弯轨
+        NorthWest = 8,       ///< 西北弯轨
+        NorthEast = 9        ///< 东北弯轨
+    };
+
+    /**
+     * @brief 铁轨形状属性（完整，包含弯轨）
+     */
+    static const EnumProperty<RailShape>& RAIL_SHAPE() {
+        static auto prop = EnumProperty<RailShape>::create("shape", {
+            RailShape::NorthSouth,
+            RailShape::EastWest,
+            RailShape::AscendingEast,
+            RailShape::AscendingWest,
+            RailShape::AscendingNorth,
+            RailShape::AscendingSouth,
+            RailShape::SouthEast,
+            RailShape::SouthWest,
+            RailShape::NorthWest,
+            RailShape::NorthEast
+        });
+        return *prop;
+    }
+
+    /**
+     * @brief 铁轨形状属性（仅直轨，用于动力铁轨等）
+     */
+    static const EnumProperty<RailShape>& RAIL_SHAPE_STRAIGHT() {
+        static auto prop = EnumProperty<RailShape>::create("shape", {
+            RailShape::NorthSouth,
+            RailShape::EastWest,
+            RailShape::AscendingEast,
+            RailShape::AscendingWest,
+            RailShape::AscendingNorth,
+            RailShape::AscendingSouth
+        });
+        return *prop;
+    }
+
+    // ========================================================================
+    // 红石线连接状态属性
+    // ========================================================================
+
+    /**
+     * @brief 红石线连接状态枚举
+     *
+     * MC 1.16.5: net.minecraft.state.properties.RedstoneSide
+     */
+    enum class RedstoneSide : u8 {
+        Up = 0,    ///< 向上连接
+        Side = 1,  ///< 侧面连接
+        None = 2   ///< 无连接
+    };
+
+    /**
+     * @brief 红石线北面连接状态
+     */
+    static const EnumProperty<RedstoneSide>& REDSTONE_NORTH() {
+        static auto prop = EnumProperty<RedstoneSide>::create("north", {
+            RedstoneSide::Up,
+            RedstoneSide::Side,
+            RedstoneSide::None
+        });
+        return *prop;
+    }
+
+    /**
+     * @brief 红石线东面连接状态
+     */
+    static const EnumProperty<RedstoneSide>& REDSTONE_EAST() {
+        static auto prop = EnumProperty<RedstoneSide>::create("east", {
+            RedstoneSide::Up,
+            RedstoneSide::Side,
+            RedstoneSide::None
+        });
+        return *prop;
+    }
+
+    /**
+     * @brief 红石线南面连接状态
+     */
+    static const EnumProperty<RedstoneSide>& REDSTONE_SOUTH() {
+        static auto prop = EnumProperty<RedstoneSide>::create("south", {
+            RedstoneSide::Up,
+            RedstoneSide::Side,
+            RedstoneSide::None
+        });
+        return *prop;
+    }
+
+    /**
+     * @brief 红石线西面连接状态
+     */
+    static const EnumProperty<RedstoneSide>& REDSTONE_WEST() {
+        static auto prop = EnumProperty<RedstoneSide>::create("west", {
+            RedstoneSide::Up,
+            RedstoneSide::Side,
+            RedstoneSide::None
+        });
+        return *prop;
+    }
+
+    // ========================================================================
+    // 活塞类型属性
+    // ========================================================================
+
+    /**
+     * @brief 活塞类型枚举
+     *
+     * MC 1.16.5: net.minecraft.state.properties.PistonType
+     */
+    enum class PistonType : u8 {
+        Default = 0,  ///< 普通活塞
+        Sticky = 1    ///< 粘性活塞
+    };
+
+    /**
+     * @brief 活塞类型属性（用于活塞头）
+     */
+    static const EnumProperty<PistonType>& PISTON_TYPE() {
+        static auto prop = EnumProperty<PistonType>::create("type", {
+            PistonType::Default,
+            PistonType::Sticky
+        });
+        return *prop;
+    }
+
+    // ========================================================================
+    // 比较器模式属性
+    // ========================================================================
+
+    /**
+     * @brief 比较器模式枚举
+     *
+     * MC 1.16.5: net.minecraft.state.properties.ComparatorMode
+     */
+    enum class ComparatorMode : u8 {
+        Compare = 0,   ///< 比较模式
+        Subtract = 1   ///< 减法模式
+    };
+
+    /**
+     * @brief 比较器模式属性
+     */
+    static const EnumProperty<ComparatorMode>& COMPARATOR_MODE() {
+        static auto prop = EnumProperty<ComparatorMode>::create("mode", {
+            ComparatorMode::Compare,
+            ComparatorMode::Subtract
+        });
+        return *prop;
+    }
+
+    // ========================================================================
+    // 音符盒乐器属性
+    // ========================================================================
+
+    /**
+     * @brief 音符盒乐器枚举
+     *
+     * MC 1.16.5: net.minecraft.state.properties.NoteBlockInstrument
+     */
+    enum class NoteBlockInstrument : u8 {
+        Harp = 0,
+        Basedrum = 1,
+        Snare = 2,
+        Hat = 3,
+        Bass = 4,
+        Flute = 5,
+        Bell = 6,
+        Guitar = 7,
+        Chime = 8,
+        Xylophone = 9,
+        IronXylophone = 10,
+        CowBell = 11,
+        Didgeridoo = 12,
+        Bit = 13,
+        Banjo = 14,
+        Pling = 15
+    };
+
+    /**
+     * @brief 音符盒乐器属性
+     */
+    static const EnumProperty<NoteBlockInstrument>& NOTE_BLOCK_INSTRUMENT() {
+        static auto prop = EnumProperty<NoteBlockInstrument>::create("instrument", {
+            NoteBlockInstrument::Harp,
+            NoteBlockInstrument::Basedrum,
+            NoteBlockInstrument::Snare,
+            NoteBlockInstrument::Hat,
+            NoteBlockInstrument::Bass,
+            NoteBlockInstrument::Flute,
+            NoteBlockInstrument::Bell,
+            NoteBlockInstrument::Guitar,
+            NoteBlockInstrument::Chime,
+            NoteBlockInstrument::Xylophone,
+            NoteBlockInstrument::IronXylophone,
+            NoteBlockInstrument::CowBell,
+            NoteBlockInstrument::Didgeridoo,
+            NoteBlockInstrument::Bit,
+            NoteBlockInstrument::Banjo,
+            NoteBlockInstrument::Pling
+        });
+        return *prop;
+    }
+
+    // ========================================================================
+    // 其他布尔属性
+    // ========================================================================
+
+    /**
+     * @brief 活塞是否为短状态（移动活塞方块使用）
+     */
+    static const BooleanProperty& SHORT() {
+        static auto prop = BooleanProperty::create("short");
+        return *prop;
+    }
+
+    // ========================================================================
+    // 蜂巢蜂蜜等级属性
+    // ========================================================================
+
+    /**
+     * @brief 蜂巢蜂蜜等级 (0-5)
+     */
+    static const IntegerProperty& HONEY_LEVEL_0_5() {
+        static auto prop = IntegerProperty::create("honey_level", 0, 5);
+        return *prop;
+    }
+
+    // ========================================================================
+    // 特殊距离属性 (0-7，与 DISTANCE_1_7 不同)
+    // ========================================================================
+
+    /**
+     * @brief 距离属性 (0-7)
+     *
+     * 某些方块（如霜冰）使用 0-7 范围的距离属性
+     */
+    static const IntegerProperty& DISTANCE_0_7() {
+        static auto prop = IntegerProperty::create("distance", 0, 7);
+        return *prop;
+    }
+
 private:
     // 禁止实例化
     BlockStateProperties() = delete;
@@ -958,4 +1244,40 @@ template<>
 struct mc::EnumProperty<mc::BlockStateProperties::BambooLeaves>::Traits {
     static mc::String toString(const mc::BlockStateProperties::BambooLeaves& value);
     static std::optional<mc::BlockStateProperties::BambooLeaves> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::Half>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::Half& value);
+    static std::optional<mc::BlockStateProperties::Half> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::RailShape>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::RailShape& value);
+    static std::optional<mc::BlockStateProperties::RailShape> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::RedstoneSide>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::RedstoneSide& value);
+    static std::optional<mc::BlockStateProperties::RedstoneSide> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::PistonType>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::PistonType& value);
+    static std::optional<mc::BlockStateProperties::PistonType> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::ComparatorMode>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::ComparatorMode& value);
+    static std::optional<mc::BlockStateProperties::ComparatorMode> fromName(mc::StringView name);
+};
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::NoteBlockInstrument>::Traits {
+    static mc::String toString(const mc::BlockStateProperties::NoteBlockInstrument& value);
+    static std::optional<mc::BlockStateProperties::NoteBlockInstrument> fromName(mc::StringView name);
 };

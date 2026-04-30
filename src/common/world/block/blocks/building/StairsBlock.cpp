@@ -19,7 +19,7 @@ StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& pro
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::HALF())
+        .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
         .add(BlockStateProperties::STAIRS_SHAPE())
         .add(BlockStateProperties::WATERLOGGED())
         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
@@ -30,7 +30,7 @@ StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& pro
     // 设置默认状态
     setDefaultState(defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
         .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight)
         .with(BlockStateProperties::WATERLOGGED(), false));
 
@@ -284,7 +284,7 @@ BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context) {
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-        .with(BlockStateProperties::HALF(), isTop ? BlockStateProperties::DoubleBlockHalf::Upper
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), isTop ? BlockStateProperties::DoubleBlockHalf::Upper
                                                    : BlockStateProperties::DoubleBlockHalf::Lower)
         .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
@@ -314,7 +314,7 @@ BlockState StairsBlock::updatePostPlacement(
 
 const CollisionShape& StairsBlock::getShape(const BlockState& state) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
     BlockStateProperties::StairsShape shape = state.get(BlockStateProperties::STAIRS_SHAPE());
 
     size_t index = getShapeIndex(facing, half, shape);
@@ -412,7 +412,7 @@ BlockStateProperties::StairsShape StairsBlock::calculateShape(
         return BlockStateProperties::StairsShape::Straight;
     }
 
-    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::HALF());
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 
     // 检查左边楼梯
     if (leftStairs.has_value()) {

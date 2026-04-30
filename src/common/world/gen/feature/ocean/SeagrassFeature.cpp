@@ -47,10 +47,10 @@ std::unique_ptr<ConfiguredSeagrassFeature> createSeagrassFeature(
     }
     if (VanillaBlocks::TALL_SEAGRASS != nullptr) {
         config->tallSeagrassLowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-            BlockStateProperties::HALF(),
+            BlockStateProperties::DOUBLE_BLOCK_HALF(),
             BlockStateProperties::DoubleBlockHalf::Lower);
         config->tallSeagrassUpperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-            BlockStateProperties::HALF(),
+            BlockStateProperties::DOUBLE_BLOCK_HALF(),
             BlockStateProperties::DoubleBlockHalf::Upper);
     }
 
