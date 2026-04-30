@@ -52,6 +52,15 @@ public:
     void strafe(f32 forward, f32 strafe);
 
     /**
+     * @brief 检查目标位置是否可行走
+     * MC 1.16.5 func_234024_b_
+     * @param x X坐标
+     * @param z Z坐标
+     * @return 是否可行走
+     */
+    [[nodiscard]] bool canWalkAt(f64 x, f64 z) const;
+
+    /**
      * @brief 是否正在更新（移动中）
      */
     [[nodiscard]] bool isUpdating() const { return m_action == MoveAction::MoveTo; }

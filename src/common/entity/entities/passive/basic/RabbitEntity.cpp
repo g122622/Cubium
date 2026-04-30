@@ -9,7 +9,7 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include <random>
@@ -102,21 +102,39 @@ void RabbitEntity::playAttackSound(LivingEntity& /*target*/) {
 }
 
 void RabbitEntity::registerGoals() {
-    // 调用父类方法注册基础动物 AI
-    // AnimalEntity 已经注册了：SwimGoal(0), PanicGoal(1), BreedGoal(2),
-    // FollowParentGoal(4), RandomWalkingGoal(5), LookAtGoal(6), LookRandomlyGoal(7)
-    AnimalEntity::registerGoals();
+    // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
+    AgeableEntity::registerGoals();
 
-    // 兔子特有目标
-    // 注意：兔子速度更快，所以用更高的速度参数替换 PanicGoal
-    // 但由于 GoalSelector 不支持替换，这里只添加额外的目标
+    // MC 1.16.5 RabbitEntity.registerGoals()
+    // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
+    // 兔子有特殊的 AI 行为（逃跑更快）
 
-    // 优先级 2: 逃离玩家（野生兔子）
-    // TODO: 需要 AvoidEntityGoal 支持
+    // 优先级 0: 游泳
+    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+
+    // 优先级 1: 恐慌逃跑（兔子逃跑速度更快）
+    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.2));
+
+    // 优先级 2: 逃离玩家（野生兔子） - TODO: 需要 AvoidEntityGoal
     // m_goalSelector.addGoal(2, new entity::ai::goal::AvoidEntityGoal(this, Player.class, 8.0f, 2.2, 2.2));
 
-    // 优先级 3: 食物诱惑（胡萝卜）
-    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isCarrotPredicate));
+    // 优先级 3: 繁殖
+    m_goalSelector.addGoal(3, new entity::ai::goal::BreedGoal(this, 1.0));
+
+    // 优先级 4: 食物诱惑（胡萝卜、金胡萝卜、蒲公英）
+    // TODO: 实现兔子的食物诱惑
+
+    // 优先级 5: 跟随父母
+    m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));
+
+    // 优先级 6: 随机漫步
+    m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+
+    // 优先级 7: 看向玩家
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 6.0f));
+
+    // 优先级 8: 随机看向
+    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
 void RabbitEntity::registerAttributes() {

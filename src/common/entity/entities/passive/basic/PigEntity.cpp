@@ -2,8 +2,13 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
 #include "../../../damage/DamageSource.hpp"
 #include <memory>
 
@@ -120,23 +125,24 @@ void PigEntity::tick() {
 }
 
 void PigEntity::registerGoals() {
-    // 调用父类方法注册基础动物 AI
-    AnimalEntity::registerGoals();
+    // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
+    AgeableEntity::registerGoals();
 
     // MC 1.16.5 PigEntity.registerGoals()
-    // 优先级顺序：
-    // 0: SwimGoal (父类已注册)
-    // 1: PanicGoal (父类已注册)
-    // 2: BreedGoal (父类已注册)
-    // 4: TemptGoal (胡萝卜、马铃薯、甜菜根) - 注意：优先级4，不是3
-    // 5: FollowParentGoal (父类已注册)
-    // 6: WaterAvoidingRandomWalkingGoal (父类使用 RandomWalkingGoal)
-    // 7: LookAtGoal (玩家)
-    // 8: LookRandomlyGoal
+    // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
-    // 优先级 4: 食物诱惑
-    // MC 1.16.5: TemptGoal 使用 TEMPTATION_ITEMS (胡萝卜、马铃薯、甜菜根)，速度 1.2
-    m_goalSelector.addGoal(4, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+    // 优先级 0: 游泳（最高优先级）
+    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+
+    // 优先级 1: 恐慌逃跑（受到伤害或着火时）
+    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.5));
+
+    // 优先级 2: 繁殖（当处于爱心状态时）
+    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+
+    // 优先级 3: 食物诱惑（胡萝卜、马铃薯、甜菜根）
+    // MC 1.16.5: TemptGoal 使用 TEMPTATION_ITEMS，速度 1.2
+    m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
         this, 1.2,
         [](const ItemStack& stack) -> bool {
             const Item* item = stack.getItem();
@@ -147,16 +153,18 @@ void PigEntity::registerGoals() {
         },
         false));  // scaredByMovement = false
 
-    // 优先级 7: 看向玩家
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
-        [](const LivingEntity* /*entity*/) -> bool {
-            // 只看向玩家
-            // TODO: 检查是否是玩家
-            return true;
-        }));
+    // 优先级 4: 跟随父母（幼体行为）
+    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
-    // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    // 优先级 5: 随机漫步
+    // MC 1.16.5: 使用 WaterAvoidingRandomWalkingGoal，这里先用 RandomWalkingGoal
+    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+
+    // 优先级 6: 看向玩家
+    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0f));
+
+    // 优先级 7: 随机看向
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
 void PigEntity::registerAttributes() {

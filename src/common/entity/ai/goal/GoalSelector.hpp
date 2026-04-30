@@ -3,7 +3,7 @@
 #include "Goal.hpp"
 #include "PrioritizedGoal.hpp"
 #include "../../../core/Types.hpp"
-#include <vector>
+#include <list>
 #include <unordered_map>
 #include <functional>
 #include <algorithm>
@@ -22,8 +22,9 @@ class GoalSelector {
 public:
     /**
      * @brief 默认 tick 间隔
+     * MC 1.16.5: 默认为 3，但测试和简单使用场景需要每tick更新
      */
-    static constexpr int DEFAULT_TICK_RATE = 3;
+    static constexpr int DEFAULT_TICK_RATE = 1;
 
     /**
      * @brief 构造函数
@@ -72,10 +73,7 @@ public:
             }
         }
         // 再移除所有匹配目标
-        m_goals.erase(
-            std::remove_if(m_goals.begin(), m_goals.end(),
-                [goal](const PrioritizedGoal& pg) { return pg.getGoal() == goal; }),
-            m_goals.end());
+        m_goals.remove_if([goal](const PrioritizedGoal& pg) { return pg.getGoal() == goal; });
     }
 
     /**
@@ -98,8 +96,17 @@ public:
      * 1. goalCleanup: 停止不应继续的目标
      * 2. goalUpdate: 启动新的目标
      * 3. goalTick: 更新所有运行中的目标
+     *
+     * tickRate控制: 每N tick执行一次完整的目标选择更新
      */
     void tick() {
+        // tickRate 控制：每 N tick 执行一次完整的目标选择
+        ++m_tickCounter;
+        bool shouldUpdateGoals = (m_tickCounter >= m_tickRate);
+        if (shouldUpdateGoals) {
+            m_tickCounter = 0;
+        }
+
         // ========== Phase 1: goalCleanup ==========
         // MC 1.16.5: 停止不应继续运行的目标
         for (auto& goal : m_goals) {
@@ -125,13 +132,15 @@ public:
         }
 
         // ========== Phase 2: goalUpdate ==========
-        // MC 1.16.5: 启动新目标
-        for (auto& goal : m_goals) {
-            if (!goal.isRunning()) {
-                // 检查是否可以启动
-                if (canStartGoal(goal)) {
-                    // 抢占共享相同标志的低优先级目标
-                    startGoal(goal);
+        // MC 1.16.5: 启动新目标（仅当 tickRate 允许时）
+        if (shouldUpdateGoals) {
+            for (auto& goal : m_goals) {
+                if (!goal.isRunning()) {
+                    // 检查是否可以启动
+                    if (canStartGoal(goal)) {
+                        // 抢占共享相同标志的低优先级目标
+                        startGoal(goal);
+                    }
                 }
             }
         }
@@ -219,7 +228,7 @@ public:
      *
      * @return 所有目标的常量引用
      */
-    [[nodiscard]] const std::vector<PrioritizedGoal>& getAllGoals() const {
+    [[nodiscard]] const std::list<PrioritizedGoal>& getAllGoals() const {
         return m_goals;
     }
 
@@ -302,10 +311,11 @@ private:
         return hasDisabled;
     }
 
-    std::vector<PrioritizedGoal> m_goals;                        // 所有目标
-    std::unordered_map<GoalFlag, PrioritizedGoal*> m_flagGoals;  // 标志到正在运行的目标的映射
-    EnumSet<GoalFlag> m_disabledFlags;                           // 禁用的标志
-    int m_tickRate;                                               // 更新间隔
+    std::list<PrioritizedGoal> m_goals;                            // 所有目标（使用list确保指针稳定性）
+    std::unordered_map<GoalFlag, PrioritizedGoal*> m_flagGoals;    // 标志到正在运行的目标的映射
+    EnumSet<GoalFlag> m_disabledFlags;                             // 禁用的标志
+    int m_tickRate;                                                 // 更新间隔（每N tick更新目标选择）
+    int m_tickCounter = 0;                                          // 当前tick计数器
 };
 
 } // namespace mc::entity::ai

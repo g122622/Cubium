@@ -2,7 +2,13 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
 #include <memory>
 
 namespace mc {
@@ -46,18 +52,41 @@ std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/) {
 }
 
 void CowEntity::registerGoals() {
-    // 调用父类方法注册基础动物 AI
-    AnimalEntity::registerGoals();
+    // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
+    AgeableEntity::registerGoals();
 
-    // 牛特有目标：食物诱惑（小麦）
-    // MC 1.16.5: 优先级3，速度1.0
+    // MC 1.16.5 CowEntity.registerGoals()
+    // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
+
+    // 优先级 0: 游泳（最高优先级）
+    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+
+    // 优先级 1: 恐慌逃跑
+    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.25));
+
+    // 优先级 2: 繁殖
+    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+
+    // 优先级 3: 食物诱惑（小麦）
     m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
         this, 1.0,
         [](const ItemStack& stack) -> bool {
             const Item* item = stack.getItem();
             return item != nullptr && item == Items::WHEAT;
         },
-        false));  // scaredByMovement
+        false));  // scaredByMovement = false
+
+    // 优先级 4: 跟随父母
+    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
+
+    // 优先级 5: 随机漫步
+    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+
+    // 优先级 6: 看向玩家
+    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 6.0f));
+
+    // 优先级 7: 随机看向
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
 void CowEntity::registerAttributes() {

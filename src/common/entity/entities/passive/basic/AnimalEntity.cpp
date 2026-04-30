@@ -91,31 +91,21 @@ void AnimalEntity::registerGoals() {
     // 调用父类方法
     AgeableEntity::registerGoals();
 
-    // 基础动物 AI 目标
-    // 优先级 0: 游泳（最高优先级）
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
-
-    // 优先级 1: 恐慌逃跑（受到伤害时）
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.25));
-
-    // 优先级 2: 繁殖（当处于爱心状态时）
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
-
-    // 优先级 3: 食物诱惑（当玩家手持食物时）
-    // 子类需要设置食物检测谓词
-    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, foodPredicate));
-
-    // 优先级 4: 跟随父母（幼体行为）
-    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
-
-    // 优先级 5: 随机漫步
-    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
-
-    // 优先级 6: 看向玩家
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 6.0f));
-
-    // 优先级 7: 随机看向
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
+    // MC 1.16.5: AnimalEntity 基类不注册任何 goal
+    // 每个具体的动物子类（如 PigEntity、CowEntity）需要自己注册完整的 AI 目标列表
+    //
+    // 典型的动物 AI 目标结构（优先级从高到低）：
+    // 0: SwimGoal - 游泳（最高优先级）
+    // 1: PanicGoal - 恐慌逃跑
+    // 2: BreedGoal - 繁殖
+    // 3: TemptGoal - 食物诱惑（子类定义食物）
+    // 4: FollowParentGoal - 跟随父母
+    // 5: WaterAvoidingRandomWalkingGoal - 避水随机漫步
+    // 6: LookAtGoal - 看向玩家
+    // 7: LookRandomlyGoal - 随机看向
+    //
+    // 注意：子类必须调用 AgeableEntity::registerGoals() 而不是 AnimalEntity::registerGoals()
+    // 以继承 AgeableEntity 的目标（如 FollowParentGoal 对幼体很重要）
 }
 
 void AnimalEntity::registerAttributes() {

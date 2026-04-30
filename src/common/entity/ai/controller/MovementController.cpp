@@ -12,6 +12,7 @@
 #include "../../../world/block/blocks/building/FenceBlock.hpp"
 #include "../../../world/block/blocks/building/WallBlock.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../pathfinding/PathNodeType.hpp"
 #include <cmath>
 
 // 使用命名空间简化代码
@@ -74,14 +75,19 @@ void MovementController::tick() {
         f32 moveZ = strafe * cosYaw + forward * sinYaw;
 
         // MC 1.16.5: 检查目标位置是否可行走 (func_234024_b_)
-        // 需要使用 NodeProcessor.getPathNodeType 检查目标位置
-        // 当前简化实现：直接设置移动
-        // 如果检查失败，MC会设置 forward=1.0, strafe=0.0
-        // TODO: 实现 canWalkAt() 方法检查目标位置可行走性
+        f64 targetX = m_mob->x() + moveX;
+        f64 targetZ = m_mob->z() + moveZ;
 
-        m_mob->setAIMoveSpeed(moveSpeed);
-        m_mob->setMoveForward(m_moveForward);
-        m_mob->setMoveStrafing(m_moveStrafe);
+        if (!canWalkAt(targetX, targetZ)) {
+            // MC 1.16.5: 如果检查失败，设置为向前移动
+            m_mob->setAIMoveSpeed(moveSpeed);
+            m_mob->setMoveForward(1.0f);
+            m_mob->setMoveStrafing(0.0f);
+        } else {
+            m_mob->setAIMoveSpeed(moveSpeed);
+            m_mob->setMoveForward(m_moveForward);
+            m_mob->setMoveStrafing(m_moveStrafe);
+        }
         m_action = MoveAction::Wait;
     }
     else if (m_action == MoveAction::MoveTo) {
@@ -203,6 +209,69 @@ void MovementController::tick() {
         m_mob->setMoveForward(0.0f);
         m_mob->setMoveStrafing(0.0f);
     }
+}
+
+bool MovementController::canWalkAt(f64 x, f64 z) const {
+    if (!m_mob || !m_mob->world()) {
+        return true;  // 无法检查时默认可行走
+    }
+
+    // MC 1.16.5 func_234024_b_:
+    // 检查目标位置的碰撞情况
+
+    i32 blockX = static_cast<i32>(std::floor(x));
+    i32 blockY = static_cast<i32>(std::floor(m_mob->y()));
+    i32 blockZ = static_cast<i32>(std::floor(z));
+
+    // 检查实体宽度范围内的所有位置
+    f32 halfWidth = m_mob->width() / 2.0f;
+    i32 minX = static_cast<i32>(std::floor(x - halfWidth));
+    i32 maxX = static_cast<i32>(std::floor(x + halfWidth));
+    i32 minZ = static_cast<i32>(std::floor(z - halfWidth));
+    i32 maxZ = static_cast<i32>(std::floor(z + halfWidth));
+
+    for (i32 bx = minX; bx <= maxX; ++bx) {
+        for (i32 bz = minZ; bz <= maxZ; ++bz) {
+            // 检查脚下是否有支撑
+            if (const BlockState* state = m_mob->world()->getBlockState(bx, blockY - 1, bz)) {
+                const CollisionShape& shape = state->getCollisionShape();
+                if (shape.isEmpty()) {
+                    // 下方没有碰撞，需要检查是否是悬崖
+                    // 简化实现：如果下方也是空的，认为不可行走
+                    if (const BlockState* belowState = m_mob->world()->getBlockState(bx, blockY - 2, bz)) {
+                        if (belowState->getCollisionShape().isEmpty()) {
+                            continue;  // 继续检查其他位置
+                        }
+                    }
+                }
+            }
+
+            // 检查当前位置是否有碰撞
+            if (const BlockState* state = m_mob->world()->getBlockState(bx, blockY, bz)) {
+                const CollisionShape& shape = state->getCollisionShape();
+                if (!shape.isEmpty()) {
+                    // 有碰撞，检查是否可以通过（门、栅栏门等）
+                    const Block& block = state->getBlock();
+                    bool isPassable = false;
+
+                    // 门可以通过
+                    if (dynamic_cast<const DoorBlock*>(&block) != nullptr) {
+                        isPassable = true;
+                    }
+                    // 栅栏门打开时可以通过
+                    else if (dynamic_cast<const FenceGateBlock*>(&block) != nullptr) {
+                        isPassable = FenceGateBlock::isOpen(*state);
+                    }
+
+                    if (!isPassable) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 } // namespace mc::entity::ai::controller

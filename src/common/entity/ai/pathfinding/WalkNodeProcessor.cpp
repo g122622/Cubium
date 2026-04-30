@@ -1,5 +1,6 @@
 #include "WalkNodeProcessor.hpp"
 #include "../../../core/Constants.hpp"
+#include "../../core/LivingEntity.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
@@ -54,7 +55,7 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z) {
         return PathNodeType::Blocked;
     }
 
-    // 检查实体高度范围内的所有方块
+    // MC 1.16.5: 检查实体高度范围内的所有方块
     i32 heightCount = static_cast<i32>(std::ceil(m_entityHeight));
     for (i32 dy = 1; dy <= heightCount; ++dy) {
         PathNodeType upperType = getNodeType(x, y + dy, z);
@@ -63,11 +64,41 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z) {
         }
     }
 
-    // 检查实体宽度范围内是否有障碍
-    if (m_entityWidth > 0.6f) {
-        // 对于宽度大于0.6的实体，检查额外位置
-        // 简化实现：只检查角落
-        // TODO: 更精确的碰撞检测
+    // MC 1.16.5: 对于宽度大于0.6的实体，检查额外位置
+    // 宽实体需要检查角落碰撞
+    if (m_entityWidth > 0.6f && m_entity != nullptr) {
+        // MC 1.16.5: 检查实体边界框覆盖的所有方块位置
+        // 计算实体边界框的最小/最大坐标
+        f64 entityX = m_entity->x();
+        f64 entityZ = m_entity->z();
+        f32 halfWidth = m_entityWidth / 2.0f;
+
+        // 获取边界框覆盖的方块范围
+        i32 minX = static_cast<i32>(std::floor(entityX - halfWidth));
+        i32 maxX = static_cast<i32>(std::floor(entityX + halfWidth));
+        i32 minZ = static_cast<i32>(std::floor(entityZ - halfWidth));
+        i32 maxZ = static_cast<i32>(std::floor(entityZ + halfWidth));
+
+        // 检查边界框内的所有方块
+        for (i32 bx = minX; bx <= maxX; ++bx) {
+            for (i32 bz = minZ; bz <= maxZ; ++bz) {
+                // 跳过中心位置（已经检查过）
+                if (bx == x && bz == z) continue;
+
+                PathNodeType boxType = getNodeType(bx, y, bz);
+                if (boxType == PathNodeType::Blocked) {
+                    return PathNodeType::Blocked;
+                }
+
+                // 检查高度
+                for (i32 dy = 1; dy <= heightCount; ++dy) {
+                    PathNodeType upperBoxType = getNodeType(bx, y + dy, bz);
+                    if (upperBoxType == PathNodeType::Blocked) {
+                        return PathNodeType::Blocked;
+                    }
+                }
+            }
+        }
     }
 
     return type;
@@ -218,9 +249,48 @@ bool WalkNodeProcessor::canStandOn(i32 x, i32 y, i32 z) const {
 bool WalkNodeProcessor::isSafe(i32 x, i32 y, i32 z) const {
     if (!m_region) return false;
 
-    // 检查是否在火焰、仙人掌等危险方块旁边
-    // 简化实现
-    return !m_region->isLava(x, y, z);
+    // MC 1.16.5: 检查位置本身和周围是否有危险
+    // 首先检查岩浆
+    if (m_region->isLava(x, y, z)) {
+        return false;
+    }
+
+    // 检查周围9格是否有危险方块
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dy = -1; dy <= 1; ++dy) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                if (dx == 0 && dy == 0 && dz == 0) continue;
+                if (isDangerous(x + dx, y + dy, z + dz)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const {
+    if (!m_region) return false;
+
+    // MC 1.16.5 func_237233_a_:
+    // 检查火焰、岩浆、岩浆块、营火等危险方块
+    // 目前简化实现，只检查岩浆
+    // TODO: 需要Region接口扩展以支持更详细的方块类型检查
+
+    // 岩浆
+    if (m_region->isLava(x, y, z)) {
+        return true;
+    }
+
+    // TODO: 添加更多危险方块检查
+    // - 火焰 (Blocks.FIRE)
+    // - 岩浆块 (Blocks.MAGMA_BLOCK)
+    // - 点燃的营火 (CampfireBlock.isLit)
+    // - 仙人掌 (Blocks.CACTUS)
+    // - 甜浆果丛 (Blocks.SWEET_BERRY_BUSH)
+
+    return false;
 }
 
 i32 WalkNodeProcessor::getGroundHeight(i32 x, i32 y, i32 z) const {

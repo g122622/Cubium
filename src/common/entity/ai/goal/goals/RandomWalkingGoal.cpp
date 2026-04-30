@@ -67,6 +67,9 @@ bool RandomWalkingGoal::shouldContinueExecuting() {
     // MC 1.16.5: 检查是否被骑乘
     if (m_creature->isBeingRidden()) return false;
 
+    // MC 1.16.5: 检查超时
+    if (m_timeoutCounter <= 0) return false;
+
     // MC 1.16.5: 继续执行直到路径完成
     // return !this.creature.getNavigator().noPath() && !this.creature.isBeingRidden();
     auto* nav = m_creature->navigator();
@@ -83,6 +86,8 @@ void RandomWalkingGoal::startExecuting() {
         if (auto* nav = m_creature->navigator()) {
             nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed);
         }
+        // MC 1.16.5: 初始化超时计数器
+        m_timeoutCounter = MAX_WALK_TIME;
     }
 }
 
@@ -96,7 +101,10 @@ void RandomWalkingGoal::resetTask() {
 }
 
 void RandomWalkingGoal::tick() {
-    // MC 1.16.5: RandomWalkingGoal 没有 tick 实现
+    // MC 1.16.5: 减少超时计数器
+    if (m_timeoutCounter > 0) {
+        --m_timeoutCounter;
+    }
 }
 
 bool RandomWalkingGoal::getRandomPosition(Vector3& outPos) {

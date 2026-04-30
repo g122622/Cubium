@@ -78,6 +78,7 @@ protected:
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
     i32 m_executionChance;
+    i32 m_timeoutCounter = 0;  // MC 1.16.5: 超时计数器，最大漫步时间
     bool m_forceUpdate = false;
     bool m_checkIdleTime;  // MC 1.16.5: 是否检查空闲时间
 };
