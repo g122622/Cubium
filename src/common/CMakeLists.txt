@@ -238,6 +238,7 @@ add_library(mc_common STATIC
     entity/ai/brain/schedule/Activity.cpp
     entity/ai/brain/schedule/Schedule.cpp
     entity/ai/pathfinding/PathPoint.cpp
+    entity/ai/pathfinding/Path.cpp
     entity/ai/pathfinding/WalkNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp
     entity/ai/pathfinding/PathNavigator.cpp
