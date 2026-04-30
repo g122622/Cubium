@@ -65,12 +65,11 @@ bool CropBlock::isValidPosition(
         return false;
     }
 
-    // 参考: net.minecraft.block.CropsBlock#isValidPosition
-    // 检查光照：使用 getLightSubtracted(pos, 0) >= 8 或 canSeeSky(pos)
-    // 当前简化实现检查上方位置的光照
-    const BlockPos abovePos = pos.up();
-    const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
-    const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
+    // 参考 MC 1.16.5: CropsBlock.isValidPosition
+    // 检查光照：getLightSubtracted(pos, 0) >= 8 或 canSeeSky(pos)
+    // 由于 IBlockReader 没有 getLightSubtracted 方法，使用传统方式
+    const i32 blockLight = static_cast<i32>(world.getBlockLight(pos));
+    const i32 skyLight = static_cast<i32>(world.getSkyLight(pos));
     // 光照 >= 8 或能看见天空
     return std::max(blockLight, skyLight) >= 8;
 }
@@ -78,17 +77,14 @@ bool CropBlock::isValidPosition(
 // ========== 生长逻辑 ==========
 
 void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    // 参考: net.minecraft.block.CropsBlock#randomTick
+    // 参考 MC 1.16.5: CropsBlock.randomTick
     // 如果已经成熟，不需要生长
     if (isMaxAge(state)) {
         return;
     }
 
-    // 光照检查
-    const BlockPos abovePos = pos.up();
-    const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
-    const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
-    if (std::max(blockLight, skyLight) < 9) {
+    // 参考 MC 1.16.5: 光照检查使用 getLightSubtracted(pos, 0)
+    if (world.getLightSubtracted(pos, 0) < 9) {
         return;
     }
 
@@ -100,7 +96,44 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     }
 }
 
-void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
+// ========== IGrowable 接口实现 ==========
+
+bool CropBlock::canGrow(
+    IBlockReader& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    bool isClient) const {
+
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(isClient);
+
+    // 只有未成熟时才能生长
+    return !isMaxAge(state);
+}
+
+bool CropBlock::canUseBonemeal(
+    IWorld& world,
+    math::IRandom& random,
+    const BlockPos& pos,
+    const BlockState& state) const {
+
+    MC_UNUSED(world);
+    MC_UNUSED(random);
+    MC_UNUSED(pos);
+
+    // 骨粉总是有效
+    return true;
+}
+
+void CropBlock::grow(
+    IWorld& world,
+    math::IRandom& random,
+    const BlockPos& pos,
+    const BlockState& state) {
+
+    MC_UNUSED(random);
+
     int newAge = getAge(state) + getBonemealAgeIncrease(world, pos);
     int maxAge = getMaxAge();
 
@@ -109,6 +142,11 @@ void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
     }
 
     world.setBlockState(pos, &withAge(newAge), 2);
+}
+
+void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    math::Random random(world.seed());
+    grow(world, random, pos, state);
 }
 
 int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const {

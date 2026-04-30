@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BushBlock.hpp"
+#include "../../IGrowable.hpp"
 #include <array>
 
 namespace mc {
@@ -20,7 +21,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.CropsBlock
  */
-class CropBlock : public BushBlock {
+class CropBlock : public BushBlock, public IGrowable {
 public:
     /**
      * @brief 构造函数
@@ -89,8 +90,37 @@ public:
         return true;
     }
 
+    // ========== IGrowable 接口实现 ==========
+
     /**
-     * @brief 生长（使用骨粉）
+     * @brief 检查是否可以生长（未成熟时可以）
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        bool isClient) const override;
+
+    /**
+     * @brief 骨粉是否有效（总是有效）
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长
+     */
+    void grow(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) override;
+
+    /**
+     * @brief 使用骨粉生长（便捷方法，自动创建随机数）
      */
     void grow(IWorld& world, const BlockPos& pos, const BlockState& state);
 
@@ -100,7 +130,7 @@ public:
         * 增长值由世界种子和方块位置派生的确定性随机数生成，
         * 不要使用全局 rand()，否则同一世界内的结果会不可复现。
      */
-        [[nodiscard]] virtual int getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] virtual int getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const;
 
     // ========== 形状 ==========
 
@@ -128,7 +158,10 @@ protected:
         const BlockPos& groundPos) const override;
 
     /**
-     * @brief 计算生长速度
+     * @brief 计算生长速度（静态方法，供 StemBlock 使用）
+     *
+     * 参考 MC 1.16.5: CropsBlock.getGrowthChance
+     * 考虑周围耕地湿润度和同类作物拥挤程度
      */
     [[nodiscard]] static float getGrowthChance(
         const Block& block,

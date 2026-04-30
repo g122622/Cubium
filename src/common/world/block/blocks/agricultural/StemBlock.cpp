@@ -90,20 +90,69 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
-    const BlockPos abovePos = pos.up();
-    const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
-    const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
-    if (std::max(blockLight, skyLight) < 9) {
+    // 参考 MC 1.16.5: StemBlock.randomTick
+    // 光照检查：使用 getLightSubtracted 在方块位置本身，不是上方
+    if (world.getLightSubtracted(pos, 0) < 9) {
         return;
     }
 
-    // 茎类作物成长速度与普通作物接近，使用基础随机概率。
-    if (random.nextInt(25) == 0) {
+    // 参考 MC 1.16.5: 简化生长概率计算
+    // 基础概率 1/25，加上湿润度加成
+    float growthChance = 1.0f / 25.0f;
+
+    // 检查下方耕地是否湿润
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState != nullptr && belowState->hasProperty(BlockStateProperties::MOISTURE_0_7())) {
+        int moisture = belowState->get(BlockStateProperties::MOISTURE_0_7());
+        if (moisture > 0) {
+            growthChance *= (1.0f + moisture / 8.0f);
+        }
+    }
+
+    if (random.nextFloat() < growthChance) {
         world.setBlockState(pos, &withAge(getAge(state) + 1), 2);
     }
 }
 
-void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
+// ========== IGrowable 接口实现 ==========
+
+bool StemBlock::canGrow(
+    IBlockReader& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    bool isClient) const {
+
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(isClient);
+
+    // 只有未成熟时才能生长
+    return !isMaxAge(state);
+}
+
+bool StemBlock::canUseBonemeal(
+    IWorld& world,
+    math::IRandom& random,
+    const BlockPos& pos,
+    const BlockState& state) const {
+
+    MC_UNUSED(world);
+    MC_UNUSED(random);
+    MC_UNUSED(pos);
+
+    // 骨粉总是有效
+    return true;
+}
+
+void StemBlock::grow(
+    IWorld& world,
+    math::IRandom& random,
+    const BlockPos& pos,
+    const BlockState& state) {
+
+    MC_UNUSED(random);
+
     const auto newAge = std::min(getAge(state) + static_cast<int>(getBonemealAgeIncrease(world, pos)), getMaxAge());
     const BlockState& newState = withAge(newAge);
     world.setBlockState(pos, &newState, 2);
@@ -111,9 +160,14 @@ void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
     // 如果达到最大年龄，尝试生成果实
     if (newAge == getMaxAge()) {
         const mc::u64 seed = world.seed() ^ static_cast<mc::u64>(std::hash<BlockPos>{}(pos));
-        math::Random random(seed);
-        tryGrowFruit(newState, world, pos, random);
+        math::Random localRandom(seed);
+        tryGrowFruit(newState, world, pos, localRandom);
     }
+}
+
+void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    math::Random random(world.seed());
+    grow(world, random, pos, state);
 }
 
 const CollisionShape& StemBlock::getShape(const BlockState& state) const {

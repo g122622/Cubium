@@ -295,6 +295,44 @@ public:
         return getSkyLight(pos.x, pos.y, pos.z);
     }
 
+    /**
+     * @brief 获取综合光照等级
+     *
+     * 计算方块位置的实际光照等级，考虑天空光照衰减。
+     * 这是 MC 1.16.5 中用于作物生长判断的标准方法。
+     *
+     * 参考: net.minecraft.world.World#getLightSubtracted
+     *
+     * @param pos 方块位置
+     * @param skyDarkening 天空光照衰减值（0-15，用于天气/时间影响）
+     * @return 综合光照等级 (0-15)
+     */
+    [[nodiscard]] virtual u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const {
+        // 默认实现：返回方块光照和（天空光照-衰减）的最大值
+        u8 blockLight = getBlockLight(pos);
+        u8 skyLight = getSkyLight(pos);
+        if (skyLight > skyDarkening) {
+            skyLight = skyLight - static_cast<u8>(skyDarkening);
+        } else {
+            skyLight = 0;
+        }
+        return std::max(blockLight, skyLight);
+    }
+
+    /**
+     * @brief 检查位置是否可以看到天空
+     *
+     * 参考: net.minecraft.world.IWorldReader#canSeeSky
+     *
+     * @param pos 方块位置
+     * @return 如果该位置可以看到天空返回 true
+     */
+    [[nodiscard]] virtual bool canSeeSky(const BlockPos& pos) const {
+        (void)pos;
+        // 默认实现返回 false，具体世界需要重写
+        return false;
+    }
+
     // ========== 碰撞检测 ==========
 
     /**

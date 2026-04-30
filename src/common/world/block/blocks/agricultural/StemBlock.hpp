@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BushBlock.hpp"
+#include "../../IGrowable.hpp"
 #include <array>
 #include <unordered_map>
 
@@ -28,7 +29,7 @@ class StemGrownBlock;
  *
  * 参考: net.minecraft.block.StemBlock
  */
-class StemBlock : public BushBlock {
+class StemBlock : public BushBlock, public IGrowable {
 public:
     /**
      * @brief 构造函数
@@ -79,8 +80,28 @@ public:
 
     [[nodiscard]] bool ticksRandomly() const override { return true; }
 
+    // ========== IGrowable 接口 ==========
+
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        bool isClient) const override;
+
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) const override;
+
+    void grow(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) override;
+
     /**
-     * @brief 生长（使用骨粉）
+     * @brief 生长（使用骨粉）- 保留向后兼容
      */
     void grow(IWorld& world, const BlockPos& pos, const BlockState& state);
 
