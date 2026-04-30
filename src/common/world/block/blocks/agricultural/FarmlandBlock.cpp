@@ -4,10 +4,13 @@
 #include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../PlantType.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../entity/core/Entity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -141,6 +144,41 @@ const CollisionShape& FarmlandBlock::getCollisionShape(const BlockState& state) 
     return fullShape;
 }
 
+// ========== 其他重写 ==========
+
+bool FarmlandBlock::allowsMovement(
+    const BlockState& state,
+    IBlockReader& world,
+    const BlockPos& pos) const {
+    // 参考 MC 1.16.5: FarmlandBlock.allowsMovement
+    // 耕地不允许路径寻找（实体不会穿越耕地）
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return false;
+}
+
+void FarmlandBlock::onFallenUpon(
+    IWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    Entity& entity,
+    f32 fallDistance) {
+
+    // 参考 MC 1.16.5: FarmlandBlock.onFallenUpon
+    // 如果实体从高处落下，耕地会变成泥土
+    // MC 使用 ForgeHooks.onFarmlandTrample 判断是否应该踩踏
+    // 踩踏条件：fallDistance > 1.0f 且实体不是飞行或创造模式
+
+    // 简化实现：如果落下距离 > 1.0，则踩踏耕地
+    if (!world.isRemote() && fallDistance > 1.0f) {
+        turnToDirt(world, pos, state);
+    }
+
+    // 调用父类方法处理实体着地
+    Block::onFallenUpon(world, pos, state, entity, fallDistance);
+}
+
 // ========== 工具方法 ==========
 
 void FarmlandBlock::turnToDirt(IWorld& world, const BlockPos& pos, const BlockState& state) {
@@ -151,14 +189,19 @@ void FarmlandBlock::turnToDirt(IWorld& world, const BlockPos& pos, const BlockSt
 }
 
 bool FarmlandBlock::hasWater(IWorld& world, const BlockPos& pos) {
-    // 检查 4 格范围内是否有水
+    // 参考 MC 1.16.5: FarmlandBlock.hasWater
+    // 检查 4 格范围内的水，高度范围 0-1
+    // 使用流体标签检测，而不是材质
     for (int dx = -4; dx <= 4; ++dx) {
         for (int dz = -4; dz <= 4; ++dz) {
             for (int dy = 0; dy <= 1; ++dy) {
                 BlockPos checkPos(pos.x + dx, pos.y + dy, pos.z + dz);
-                const BlockState* state = world.getBlockState(checkPos);
-                if (state != nullptr && state->getMaterial() == Material::WATER) {
-                    return true;
+                const fluid::FluidState* fluidState = world.getFluidState(checkPos);
+                if (fluidState != nullptr && !fluidState->isEmpty()) {
+                    // 使用流体标签检测水
+                    if (fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+                        return true;
+                    }
                 }
             }
         }
@@ -167,6 +210,7 @@ bool FarmlandBlock::hasWater(IWorld& world, const BlockPos& pos) {
 }
 
 bool FarmlandBlock::hasCrops(IWorld& world, const BlockPos& pos) {
+    // 参考 MC 1.16.5: FarmlandBlock.hasCrops
     // 检查上方是否有作物
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
@@ -176,16 +220,17 @@ bool FarmlandBlock::hasCrops(IWorld& world, const BlockPos& pos) {
     }
 
     const Block& aboveBlock = aboveState->getBlock();
-    if (dynamic_cast<const CropBlock*>(&aboveBlock) != nullptr) {
-        return true;
-    }
-    if (dynamic_cast<const StemBlock*>(&aboveBlock) != nullptr) {
-        return true;
-    }
-    if (dynamic_cast<const AttachedStemBlock*>(&aboveBlock) != nullptr) {
+
+    // 检查方块是否实现了 IPlantable 接口
+    const IPlantable* plantable = dynamic_cast<const IPlantable*>(&aboveBlock);
+    if (plantable != nullptr) {
+        // 耕地可以支撑 IPlantable 类型的植物
+        // 注：原始 MC 使用 canSustainPlant 方法，但这里简化处理
         return true;
     }
 
+    // 后备检查：使用 AGE_0_7 属性检测作物
+    // 这是为了兼容没有实现 IPlantable 的作物
     return aboveState->hasProperty(BlockStateProperties::AGE_0_7());
 }
 

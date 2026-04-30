@@ -45,6 +45,7 @@ class Player;
 class BlockEntity;
 class Entity;
 class IPlantable;  // 前向声明植物接口
+class ItemStack;   // 前向声明物品堆
 
 namespace math {
 class IRandom;
@@ -255,11 +256,11 @@ public:
      *
      * 用于渲染和光照计算。
      *
-     * @param world 世界读取器
+     * @param world 世界
      * @param pos 方块位置
      * @return 如果是不透明完整方块返回true
      */
-    [[nodiscard]] bool isOpaqueCube(IBlockReader& world, const BlockPos& pos) const;
+    [[nodiscard]] bool isOpaqueCube(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 获取方块资源位置
@@ -1545,6 +1546,255 @@ public:
      * @return 镜像后的状态
      */
     [[nodiscard]] virtual const BlockState& mirror(const BlockState& state, Mirror mirror) const;
+
+    // ========================================================================
+    // 静态辅助方法
+    // ========================================================================
+
+    /**
+     * @brief 检查方块面是否应该被渲染
+     *
+     * 判断相邻两个方块之间是否需要渲染遮挡面。
+     * 用于渲染面剔除优化。
+     *
+     * 参考: net.minecraft.block.Block#shouldSideBeRendered
+     *
+     * @param state 当前方块状态
+     * @param world 世界
+     * @param pos 当前方块位置
+     * @param face 要检查的面方向
+     * @return 如果该面应该被渲染返回 true
+     */
+    [[nodiscard]] static bool shouldSideBeRendered(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction face);
+
+    /**
+     * @brief 检查指定位置顶部是否有固体面
+     *
+     * 用于判断方块是否可以放置在某个位置（如门、栅栏等需要顶部支撑的方块）。
+     *
+     * 参考: net.minecraft.block.Block#hasSolidSideOnTop
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @return 如果顶部有固体面返回 true
+     */
+    [[nodiscard]] static bool hasSolidSideOnTop(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 检查指定位置是否有足够固体面
+     *
+     * 检查方块在指定方向是否有固体面。
+     *
+     * 参考: net.minecraft.block.Block#hasEnoughSolidSide
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param direction 检查方向
+     * @return 如果有足够固体面返回 true
+     */
+    [[nodiscard]] static bool hasEnoughSolidSide(
+        IWorld& world,
+        const BlockPos& pos,
+        Direction direction);
+
+    /**
+     * @brief 判断方块面是否填充方形区域
+     *
+     * 用于判断遮挡形状是否完全覆盖面，影响邻居方块的渲染。
+     *
+     * 参考: net.minecraft.block.Block#doesSideFillSquare
+     *
+     * @param shape 面的遮挡形状
+     * @param direction 面方向
+     * @return 如果形状填充整个面返回 true
+     */
+    [[nodiscard]] static bool doesSideFillSquare(const CollisionShape& shape, Direction direction);
+
+    // ========================================================================
+    // 攻击和交互
+    // ========================================================================
+
+    /**
+     * @brief 玩家左键攻击方块
+     *
+     * 当玩家左键点击（攻击）方块时调用。
+     * 默认实现为空，需要特殊行为的方块（如 TNT、创造模式等）应重写。
+     *
+     * 参考: net.minecraft.block.Block#onBlockClicked
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     */
+    virtual void attack(const BlockState& state, IWorld& world, const BlockPos& pos, Player& player) {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(player);
+    }
+
+    /**
+     * @brief 投掷物击中方块
+     *
+     * 当投掷物（箭、三叉戟等）击中方块时调用。
+     * 默认实现为空，需要特殊行为的方块应重写。
+     *
+     * 参考: net.minecraft.block.Block#onProjectileHit
+     *
+     * @param world 世界
+     * @param state 方块状态
+     * @param hitResult 击中结果
+     * @param projectile 投掷物实体
+     */
+    virtual void onProjectileHit(
+        IWorld& world,
+        const BlockState& state,
+        const BlockRaycastResult& hitResult,
+        Entity& projectile) {
+        MC_UNUSED(world);
+        MC_UNUSED(state);
+        MC_UNUSED(hitResult);
+        MC_UNUSED(projectile);
+    }
+
+    /**
+     * @brief 实体摔落在方块上
+     *
+     * 当实体从高处摔落到方块上时调用。
+     * 用于实现耕地被踩踏变回泥土、蜂蜜块缓冲等效果。
+     *
+     * 参考: net.minecraft.block.Block#onFallenUpon
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param entity 摔落的实体
+     * @param fallDistance 摔落距离
+     */
+    virtual void onFallenUpon(
+        IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        Entity& entity,
+        f32 fallDistance) {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        MC_UNUSED(entity);
+        MC_UNUSED(fallDistance);
+    }
+
+    /**
+     * @brief 雨水填充
+     *
+     * 在下雨时每 tick 调用，用于实现炼药锅收集雨水等功能。
+     * 默认实现为空。
+     *
+     * 参考: net.minecraft.block.Block#fillWithRain
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     */
+    virtual void fillWithRain(IWorld& world, const BlockPos& pos) {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+    }
+
+    /**
+     * @brief 玩家收割方块
+     *
+     * 当玩家成功破坏方块时调用，处理掉落物和统计数据。
+     * 默认实现调用掉落处理。
+     *
+     * 参考: net.minecraft.block.Block#harvestBlock
+     *
+     * @param world 世界
+     * @param player 玩家
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param blockEntity 方块实体（可能为空）
+     * @param stack 使用工具（可能为空）
+     */
+    virtual void harvestBlock(
+        IWorld& world,
+        Player& player,
+        const BlockPos& pos,
+        const BlockState& state,
+        BlockEntity* blockEntity,
+        const ItemStack* stack);
+
+    /**
+     * @brief 获取玩家相对硬度
+     *
+     * 计算玩家挖掘方块的速度倍率。
+     * 考虑工具效率、附魔效果、水下挖掘等因素。
+     *
+     * 参考: net.minecraft.block.Block#getPlayerRelativeBlockHardness
+     *
+     * @param player 玩家
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @return 相对硬度值（越大越容易挖掘）
+     */
+    [[nodiscard]] virtual f32 getPlayerRelativeBlockHardness(
+        Player& player,
+        IBlockReader& world,
+        const BlockPos& pos,
+        const BlockState& state) const;
+
+    /**
+     * @brief 获取渲染类型
+     *
+     * 返回方块的渲染类型：
+     * - MODEL: 正常模型渲染
+     * - INVISIBLE: 不可见（空气）
+     * - LIQUID: 液体渲染
+     * - ENTITYBLOCK_ANIMATED: 方块实体动画渲染
+     *
+     * 参考: net.minecraft.block.Block#getRenderType
+     *
+     * @param state 方块状态
+     * @return 渲染类型
+     */
+    enum class RenderType : u8 {
+        MODEL,                // 正常模型渲染
+        INVISIBLE,            // 不可见（空气、屏障等）
+        LIQUID,               // 液体渲染（水、岩浆）
+        ENTITYBLOCK_ANIMATED  // 方块实体动画（箱子、熔炉等）
+    };
+
+    [[nodiscard]] virtual RenderType getRenderType(const BlockState& state) const {
+        MC_UNUSED(state);
+        return RenderType::MODEL;
+    }
+
+    /**
+     * @brief 检查是否允许移动（路径查找）
+     *
+     * 用于实体路径查找系统判断是否可以穿过方块。
+     * 默认返回材质的 blocksMovement 取反。
+     *
+     * 参考: net.minecraft.block.Block#allowsMovement
+     *
+     * @param state 方块状态
+     * @param world 世界读取器
+     * @param pos 方块位置
+     * @return 如果允许移动返回 true
+     */
+    [[nodiscard]] virtual bool allowsMovement(
+        const BlockState& state,
+        IBlockReader& world,
+        const BlockPos& pos) const {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return !state.blocksMovement();
+    }
 
     /**
      * @brief 转换为字符串

@@ -123,8 +123,10 @@ bool BlockState::isSolidSide(IWorld& world, const BlockPos& pos, Direction side)
     return m_owner->isSolidSide(*this, world, pos, side);
 }
 
-bool BlockState::isOpaqueCube(IBlockReader& world, const BlockPos& pos) const {
+bool BlockState::isOpaqueCube(IWorld& world, const BlockPos& pos) const {
     // 如果方块是固体的且有不透明碰撞形状，则为不透明完整方块
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
     return m_isSolid && m_isOpaque && hasOpaqueCollisionShape();
 }
 
@@ -709,6 +711,132 @@ Material::PushReaction Block::getPushReaction(const BlockState& state) const {
     // 默认实现：正常推动
     (void)state;
     return Material::PushReaction::Normal;
+}
+
+// ============================================================================
+// 静态辅助方法
+// ============================================================================
+
+bool Block::shouldSideBeRendered(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Direction face) {
+
+    // 获取相邻方块的遮挡形状
+    BlockPos neighborPos = pos.offset(face);
+    const BlockState* neighborState = world.getBlockState(neighborPos);
+
+    if (neighborState == nullptr || neighborState->isAir()) {
+        // 相邻是空气，面应该渲染
+        return true;
+    }
+
+    // 如果相邻方块是不透明完整方块，则面不需要渲染
+    if (neighborState->isOpaqueCube(world, neighborPos)) {
+        return false;
+    }
+
+    // 如果相邻方块是透明或不完整方块，需要渲染
+    return true;
+}
+
+bool Block::hasSolidSideOnTop(IWorld& world, const BlockPos& pos) {
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return false;
+    }
+
+    // 参考 MC 1.16.5: Block.hasSolidSideOnTop
+    // 检查顶面是否为实体面
+    return state->isSolidSide(world, pos, Direction::Up);
+}
+
+bool Block::hasEnoughSolidSide(
+    IWorld& world,
+    const BlockPos& pos,
+    Direction direction) {
+
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || state->isAir()) {
+        return false;
+    }
+
+    // 参考 MC 1.16.5: Block.hasEnoughSolidSide
+    // 检查指定方向是否有足够大的固体面
+    return state->isSolidSide(world, pos, direction);
+}
+
+bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction) {
+    // 参考 MC 1.16.5: Block.doesSideFillSquare
+    // 如果形状是完整方块，则填充整个面
+    if (shape.isFullBlock()) {
+        return true;
+    }
+
+    // 检查形状在指定面上的投影是否填充整个面
+    // 对于非完整方块，需要检查投影面积
+    // 简化实现：非完整方块的面不填充方形
+    return false;
+}
+
+// ============================================================================
+// 攻击和交互
+// ============================================================================
+
+void Block::harvestBlock(
+    IWorld& world,
+    Player& player,
+    const BlockPos& pos,
+    const BlockState& state,
+    BlockEntity* blockEntity,
+    const ItemStack* stack) {
+
+    // 默认实现：播放破坏音效
+    // 掉落物由 BlockDropHandler 处理
+    MC_UNUSED(world);
+    MC_UNUSED(player);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(blockEntity);
+    MC_UNUSED(stack);
+
+    // TODO: 播放破坏音效
+    // world.playSound(player, pos, state.getSoundType().getBreakSound(), SoundCategory::BLOCKS, 1.0f, 1.0f);
+}
+
+f32 Block::getPlayerRelativeBlockHardness(
+    Player& player,
+    IBlockReader& world,
+    const BlockPos& pos,
+    const BlockState& state) const {
+
+    // 参考 MC 1.16.5: Block.getPlayerRelativeBlockHardness
+    // 基础挖掘速度 = 1 / (hardness * 30) 对于硬度 > 0
+    // 创造模式：瞬间破坏
+
+    MC_UNUSED(player);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    f32 hardness = state.hardness();
+    if (hardness <= 0.0f) {
+        // 硬度为0的方块（如空气、水）瞬间破坏
+        return 1.0f;
+    }
+
+    // TODO: 获取玩家的挖掘速度倍率
+    // f32 digSpeed = player.getDigSpeed(state, pos);
+    // bool canHarvest = !state.requiresTool() || player.canHarvestBlock(state);
+    //
+    // if (canHarvest) {
+    //     return digSpeed / hardness / 30.0f;
+    // } else {
+    //     return digSpeed / hardness / 30.0f / 100.0f;
+    // }
+
+    // 简化实现：返回基础挖掘速度
+    return 1.0f / (hardness * 30.0f);
 }
 
 } // namespace mc

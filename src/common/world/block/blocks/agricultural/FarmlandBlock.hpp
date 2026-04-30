@@ -69,6 +69,20 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    // ========== 移动和交互 ==========
+
+    [[nodiscard]] bool allowsMovement(
+        const BlockState& state,
+        IBlockReader& world,
+        const BlockPos& pos) const override;
+
+    void onFallenUpon(
+        IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        Entity& entity,
+        f32 fallDistance) override;
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override {
