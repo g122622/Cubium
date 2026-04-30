@@ -745,10 +745,17 @@ void VanillaBlocks::registerBaseBlocks() {
     );
 
     // 雪 - ID 18
-    // 雪：透明度1，不传播天空光（阻挡）
+    // 雪层：透明度1，不传播天空光（阻挡）
     SNOW = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:snow"),
         BlockProperties(Material::SNOW).hardness(0.2f).opacity(1)
+    );
+
+    // 雪块 - ID 80
+    // 雪块：固体方块，用于冰刺等地形生成
+    SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:snow_block"),
+        BlockProperties(Material::SNOW).hardness(0.2f)
     );
 
     // 冰 - ID 79
