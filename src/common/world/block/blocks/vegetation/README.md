@@ -7,6 +7,7 @@
 ```
 vegetation/
 ├── README.md                 # 本文档
+├── LeavesBlock.hpp/cpp       # 树叶方块（距离腐烂机制）
 ├── DoublePlantBlock.hpp/cpp  # 双格植物基类（向日葵、丁香等）
 ├── TallGrassBlock.hpp/cpp    # 高草/蕨类
 ├── FlowerBlock.hpp/cpp       # 花朵（单格/双格）
@@ -24,6 +25,7 @@ vegetation/
 
 ```
 Block
+├── LeavesBlock            # 树叶（距离腐烂机制）
 ├── BushBlock              # 植物基类（来自 agricultural 目录）
 │   ├── DoublePlantBlock   # 双格植物
 │   │   ├── LilacBlock     # 丁香
@@ -46,6 +48,13 @@ Block
 ```
 
 ## 方块状态属性
+
+### LeavesBlock（树叶）
+- `DISTANCE_1_7`: 距离最近原木的距离 (1-7)，7表示超过6格
+- `PERSISTENT`: 是否持久（玩家放置的树叶不会腐烂）
+- 玩家放置的树叶标记为 PERSISTENT=true，不会自然腐烂
+- 非持久树叶距离原木超过6格时会随机腐烂
+- 树叶检测六个方向邻居来计算最小距离
 
 ### DoublePlantBlock（双格植物）
 - `HALF`: DoubleBlockHalf (UPPER, LOWER) - 上半部分/下半部分
