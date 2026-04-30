@@ -93,13 +93,16 @@ TEST_F(ExperienceManagerTest, AddExperienceZero) {
 }
 
 TEST_F(ExperienceManagerTest, AddExperienceNegative) {
+    // 参考 MC 1.16.5：负经验会导致降级
     manager->setExperience(5, 0.5f, 100);
     manager->clearDirty();
 
-    manager->addExperience(-10);  // 应该被忽略
+    // 添加负经验（降级）
+    manager->addExperience(-10);
 
-    EXPECT_EQ(manager->getTotalExperience(), 100);  // 未改变
-    EXPECT_FALSE(manager->isDirty());  // 未改变
+    // 应该降低总经验
+    EXPECT_LT(manager->getTotalExperience(), 100);
+    EXPECT_TRUE(manager->isDirty());
 }
 
 // ========== 消耗经验测试 ==========
@@ -391,6 +394,8 @@ TEST_F(ExperienceManagerTest, OnEnchant) {
 }
 
 TEST_F(ExperienceManagerTest, OnEnchantInsufficient) {
+    // 参考 MC 1.16.5：onEnchant 直接消耗等级，不检查是否足够
+    // 如果等级变为负数，则重置为 0
     math::Random rng(12345);
 
     manager->setLevel(3);
@@ -398,8 +403,9 @@ TEST_F(ExperienceManagerTest, OnEnchantInsufficient) {
 
     bool result = manager->onEnchant(5, rng);
 
-    EXPECT_FALSE(result);
-    EXPECT_EQ(manager->getLevel(), 3);  // 未改变
+    // 原版行为：始终返回 true，等级变为 0（3 - 5 = -2 < 0，重置为 0）
+    EXPECT_TRUE(result);
+    EXPECT_EQ(manager->getLevel(), 0);
 }
 
 // ========== 边界条件测试 ==========

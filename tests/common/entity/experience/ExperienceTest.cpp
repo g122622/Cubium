@@ -22,7 +22,8 @@ protected:
 TEST_F(ExperienceConstantsTest, OrbConstants) {
     // 验证经验球常量
     EXPECT_EQ(xp_constants::MAX_ORB_AGE, 6000);  // 5分钟 = 6000 ticks
-    EXPECT_EQ(xp_constants::DEFAULT_PICKUP_DELAY, 10);
+    // 原版 MC 构造函数中不设置 pickupDelay，默认为 0
+    EXPECT_EQ(xp_constants::DEFAULT_PICKUP_DELAY, 0);
     EXPECT_FLOAT_EQ(xp_constants::ORB_TRACKING_RANGE, 8.0f);
     EXPECT_EQ(xp_constants::MAX_ORB_VALUE, 2477);
     EXPECT_FLOAT_EQ(xp_constants::ORB_GRAVITY, 0.03f);

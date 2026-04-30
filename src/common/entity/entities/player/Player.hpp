@@ -262,21 +262,21 @@ public:
      * @brief 添加经验等级
      * @param levels 要添加的等级数（可以为负数）
      */
-    void addExperienceLevels(i32 levels);
+    virtual void addExperienceLevels(i32 levels);
 
     /**
      * @brief 消耗经验值
      * @param amount 要消耗的经验值
      * @return 是否成功消耗
      */
-    [[nodiscard]] bool consumeExperience(i32 amount);
+    [[nodiscard]] virtual bool consumeExperience(i32 amount);
 
     /**
      * @brief 消耗经验等级（用于附魔）
      * @param levels 要消耗的等级数
      * @return 是否成功消耗
      */
-    [[nodiscard]] bool consumeExperienceLevels(i32 levels);
+    [[nodiscard]] virtual bool consumeExperienceLevels(i32 levels);
 
     /**
      * @brief 当前等级填满经验条需要的经验值
@@ -289,7 +289,7 @@ public:
      * @param progress 进度 (0.0-1.0)
      * @param totalExperience 总经验值
      */
-    void setExperience(i32 level, f32 progress, i32 totalExperience);
+    virtual void setExperience(i32 level, f32 progress, i32 totalExperience);
 
     /**
      * @brief 掉落经验（死亡时调用）

@@ -64,6 +64,34 @@ public:
     void setExperienceLevel(i32 level) override;
 
     /**
+     * @brief 添加经验等级并同步到客户端。
+     * @param levels 要添加的等级数（可以为负数）。
+     */
+    void addExperienceLevels(i32 levels) override;
+
+    /**
+     * @brief 消耗经验值并同步到客户端。
+     * @param amount 要消耗的经验值。
+     * @return 是否成功消耗。
+     */
+    [[nodiscard]] bool consumeExperience(i32 amount) override;
+
+    /**
+     * @brief 消耗经验等级并同步到客户端。
+     * @param levels 要消耗的等级数。
+     * @return 是否成功消耗。
+     */
+    [[nodiscard]] bool consumeExperienceLevels(i32 levels) override;
+
+    /**
+     * @brief 设置完整经验状态并同步到客户端。
+     * @param level 等级
+     * @param progress 进度 (0.0-1.0)
+     * @param totalExperience 总经验值
+     */
+    void setExperience(i32 level, f32 progress, i32 totalExperience) override;
+
+    /**
      * @brief 绑定网络连接。
      * @param connection 玩家连接（可为 nullptr）。
      */

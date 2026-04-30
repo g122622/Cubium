@@ -40,6 +40,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     xpNode->setRedirect(experienceNode);
 
     // /experience add <player> <amount> [points|levels]
+    // 注意：amount 参数允许负值（原版 MC 支持）
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player",
@@ -47,7 +48,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     );
     auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "amount",
-        IntegerArgumentType::integer(0)
+        IntegerArgumentType::integer()  // 移除最小值限制，允许负值
     );
     auto pointsNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("points");
     pointsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {

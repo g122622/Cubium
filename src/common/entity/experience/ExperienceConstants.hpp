@@ -30,9 +30,10 @@ constexpr i32 MAX_ORB_AGE = 6000;
  * @brief 经验球默认拾取延迟 (ticks)
  *
  * 经验球生成后需要等待的拾取延迟时间
- * 参考: ExperienceOrbEntity.delayBeforeCanPickup (默认值)
+ * 参考: ExperienceOrbEntity - 原版默认值为 0（构造函数不设置）
+ * 注: 生成经验球时通常设置为 10 ticks，但构造函数默认为 0
  */
-constexpr i32 DEFAULT_PICKUP_DELAY = 10;
+constexpr i32 DEFAULT_PICKUP_DELAY = 0;
 
 /**
  * @brief 经验球追踪玩家的范围 (方块)

@@ -73,6 +73,32 @@ void ServerPlayer::setExperienceLevel(i32 level) {
     syncExperience();
 }
 
+void ServerPlayer::addExperienceLevels(i32 levels) {
+    Player::addExperienceLevels(levels);
+    syncExperience();
+}
+
+bool ServerPlayer::consumeExperience(i32 amount) {
+    bool result = Player::consumeExperience(amount);
+    if (result) {
+        syncExperience();
+    }
+    return result;
+}
+
+bool ServerPlayer::consumeExperienceLevels(i32 levels) {
+    bool result = Player::consumeExperienceLevels(levels);
+    if (result) {
+        syncExperience();
+    }
+    return result;
+}
+
+void ServerPlayer::setExperience(i32 level, f32 progress, i32 totalExperience) {
+    Player::setExperience(level, progress, totalExperience);
+    syncExperience();
+}
+
 // ========== 睡眠系统实现 ==========
 
 entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos) {

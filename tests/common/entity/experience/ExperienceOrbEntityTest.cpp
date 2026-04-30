@@ -33,7 +33,8 @@ TEST_F(ExperienceOrbEntityTest, DefaultConstruction) {
     ExperienceOrbEntity defaultOrb;
     EXPECT_EQ(defaultOrb.getXpValue(), 1);
     EXPECT_EQ(defaultOrb.getAge(), 0);
-    EXPECT_EQ(defaultOrb.getPickupDelay(), ExperienceOrbEntity::DEFAULT_PICKUP_DELAY);
+    // 原版 MC：构造函数不设置 pickupDelay，默认为 0
+    EXPECT_EQ(defaultOrb.getPickupDelay(), 0);
     EXPECT_FALSE(defaultOrb.isRemoved());
 }
 
@@ -86,7 +87,12 @@ TEST_F(ExperienceOrbEntityTest, Age) {
 }
 
 TEST_F(ExperienceOrbEntityTest, PickupDelay) {
-    EXPECT_EQ(orb->getPickupDelay(), ExperienceOrbEntity::DEFAULT_PICKUP_DELAY);
+    // 原版 MC：构造函数不设置 pickupDelay，默认为 0
+    EXPECT_EQ(orb->getPickupDelay(), 0);
+    EXPECT_TRUE(orb->canBePickedUp());  // 默认可拾取
+
+    orb->setPickupDelay(10);  // 设置延迟
+    EXPECT_EQ(orb->getPickupDelay(), 10);
     EXPECT_FALSE(orb->canBePickedUp());
 
     orb->setPickupDelay(0);
