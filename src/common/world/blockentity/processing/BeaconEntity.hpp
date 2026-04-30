@@ -15,6 +15,48 @@ class Player;
 namespace blockentity {
 
 /**
+ * @brief 信标光束段数据
+ *
+ * 每段光束有自己的颜色和高度。
+ * 参考 MC 1.16.5 BeaconTileEntity.BeamSegment
+ */
+struct BeaconBeamSegment {
+    /// RGB 颜色值 (0.0-1.0)
+    std::array<f32, 3> colors{1.0f, 1.0f, 1.0f};
+
+    /// 段高度（方块数）
+    i32 height = 1;
+
+    BeaconBeamSegment() = default;
+
+    explicit BeaconBeamSegment(f32 r, f32 g, f32 b)
+        : colors{r, g, b}, height(1) {}
+
+    explicit BeaconBeamSegment(const std::array<f32, 3>& colorArray)
+        : colors(colorArray), height(1) {}
+
+    /**
+     * @brief 增加高度
+     */
+    void incrementHeight() { ++height; }
+
+    /**
+     * @brief 获取红色分量
+     */
+    [[nodiscard]] f32 red() const { return colors[0]; }
+
+    /**
+     * @brief 获取绿色分量
+     */
+    [[nodiscard]] f32 green() const { return colors[1]; }
+
+    /**
+     * @brief 获取蓝色分量
+     */
+    [[nodiscard]] f32 blue() const { return colors[2]; }
+};
+
+/**
  * @brief 信标方块实体
  *
  * 信标是一种提供状态效果的方块，特点：
@@ -119,6 +161,26 @@ public:
      */
     [[nodiscard]] i32 getEffectRange() const;
 
+    // ========== 光束渲染接口 ==========
+
+    /**
+     * @brief 获取光束段列表（客户端渲染用）
+     * @return 光束段列表的常量引用
+     */
+    [[nodiscard]] const std::vector<BeaconBeamSegment>& getBeamSegments() const { return m_beamSegments; }
+
+    /**
+     * @brief 检查光束是否激活
+     * @return 如果有光束段返回true
+     */
+    [[nodiscard]] bool hasBeam() const { return !m_beamSegments.empty(); }
+
+    /**
+     * @brief 获取最大渲染距离平方（客户端渲染用）
+     * @return 渲染距离平方（256 格 = 16 个区块）
+     */
+    [[nodiscard]] f64 getMaxRenderDistanceSquared() const { return 65536.0; }
+
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
@@ -157,12 +219,32 @@ private:
      */
     [[nodiscard]] static bool isValidPayment(u32 itemId);
 
+    /**
+     * @brief 更新光束段（客户端 tick 中调用）
+     * @param world 世界引用
+     *
+     * 遍历光束经过的方块，计算每段的颜色和高度。
+     * 参考 MC 1.16.5 BeaconTileEntity.tick() 中的光束计算逻辑。
+     */
+    void updateBeamSegments(IWorld& world);
+
+    /**
+     * @brief 获取光束颜色叠加后的颜色
+     * @param current 当前颜色
+     * @param newColor 新颜色
+     * @return 叠加后的颜色
+     */
+    [[nodiscard]] static std::array<f32, 3> blendColors(
+        const std::array<f32, 3>& current,
+        const std::array<f32, 3>& newColor);
+
     i32 m_level = 0;                            ///< 金字塔等级 (0-4)
     i32 m_tickCount = 0;                        ///< tick计数器
     std::optional<EffectType> m_primaryEffect;   ///< 主效果
     std::optional<EffectType> m_secondaryEffect; ///< 辅助效果
     ItemStack m_paymentItem;                    ///< 支付物品槽位
     bool m_lastBeamState = false;               ///< 上一帧光束状态
+    std::vector<BeaconBeamSegment> m_beamSegments; ///< 光束段列表（客户端渲染用）
 
     /// 等级对应的有效效果
     static const std::array<std::vector<const EffectType*>, 4> VALID_EFFECTS;

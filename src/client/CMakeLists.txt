@@ -87,6 +87,10 @@ add_executable(minecraft-client
     # 方块破坏效果
     renderer/trident/block/BreakProgressManager.cpp
     renderer/trident/block/BreakProgressRenderer.cpp
+    # 方块实体模型
+    renderer/trident/blockentity/model/BlockEntityModel.cpp
+    renderer/trident/blockentity/model/ChestModel.cpp
+    renderer/trident/blockentity/model/BeaconBeamModel.cpp
     # 方块实体渲染器
     renderer/trident/blockentity/BlockEntityRenderer.cpp
     renderer/trident/blockentity/BlockEntityRendererDispatcher.cpp

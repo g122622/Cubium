@@ -356,7 +356,106 @@ std::unique_ptr<BlockEntity> BeaconEntity::clone() const {
     cloned->m_secondaryEffect = m_secondaryEffect;
     cloned->m_paymentItem = m_paymentItem.copy();
     cloned->m_lastBeamState = m_lastBeamState;
+    cloned->m_beamSegments = m_beamSegments;
     return cloned;
+}
+
+std::array<f32, 3> BeaconEntity::blendColors(
+    const std::array<f32, 3>& current,
+    const std::array<f32, 3>& newColor)
+{
+    // MC 1.16.5: 颜色平均混合
+    return {
+        (current[0] + newColor[0]) / 2.0f,
+        (current[1] + newColor[1]) / 2.0f,
+        (current[2] + newColor[2]) / 2.0f
+    };
+}
+
+void BeaconEntity::updateBeamSegments(IWorld& world) {
+    m_beamSegments.clear();
+
+    if (m_level <= 0) {
+        return;
+    }
+
+    // 遍历光束经过的方块
+    // 参考 MC 1.16.5 BeaconTileEntity.tick() 中的光束段计算
+    BeaconBeamSegment* currentSegment = nullptr;
+
+    // 从信标上方开始遍历，直到世界顶部
+    const i32 worldHeight = world.getHeight(m_pos.x, m_pos.z);
+
+    for (i32 y = m_pos.y + 1; y <= worldHeight; ++y) {
+        const BlockPos checkPos(m_pos.x, y, m_pos.z);
+        const BlockState* state = world.getBlockState(checkPos);
+
+        if (state == nullptr || state->isAir()) {
+            // 空气，增加当前段高度
+            if (currentSegment != nullptr) {
+                currentSegment->incrementHeight();
+            }
+            continue;
+        }
+
+        // 检查方块是否提供颜色修改（如染色玻璃）
+        // TODO: 实现 IBeaconBeamColorProvider 接口和颜色获取
+        // 目前假设大多数方块不修改颜色
+        const Block* block = &state->getBlock();
+
+        // 检查方块是否阻挡光束（不透明方块且不是基岩）
+        const i32 opacity = state->getOpacity(); // 假设有这个方法
+        const bool blocksBeam = (opacity >= 15 && block != VanillaBlocks::BEDROCK);
+
+        if (blocksBeam) {
+            // 光束被阻挡，清除所有段
+            m_beamSegments.clear();
+            return;
+        }
+
+        // 检查方块是否提供颜色
+        // TODO: 从方块获取颜色（染色玻璃等）
+        // 目前使用白色默认
+        std::array<f32, 3> blockColor = {1.0f, 1.0f, 1.0f};
+
+        // 检查染色玻璃的颜色
+        // 参考 MC 1.16.5 IBeaconBeamColorProvider.getBeaconColorMultiplier()
+        // 需要在 Block 类中添加 getBeaconColorMultiplier 方法
+        // 目前简化处理，假设染色玻璃已经实现了颜色接口
+
+        // 如果没有颜色提供者，继续增加高度
+        if (blockColor[0] == 1.0f && blockColor[1] == 1.0f && blockColor[2] == 1.0f) {
+            if (currentSegment != nullptr) {
+                currentSegment->incrementHeight();
+            } else {
+                // 第一个段，创建白色段
+                m_beamSegments.emplace_back(1.0f, 1.0f, 1.0f);
+                currentSegment = &m_beamSegments.back();
+            }
+        } else {
+            // 方块提供了颜色
+            if (m_beamSegments.empty()) {
+                // 第一个段
+                m_beamSegments.emplace_back(blockColor);
+                currentSegment = &m_beamSegments.back();
+            } else if (currentSegment != nullptr) {
+                // 检查颜色是否相同
+                if (currentSegment->colors == blockColor) {
+                    currentSegment->incrementHeight();
+                } else {
+                    // 颜色不同，创建新段（颜色混合）
+                    std::array<f32, 3> blendedColor = blendColors(currentSegment->colors, blockColor);
+                    m_beamSegments.emplace_back(blendedColor);
+                    currentSegment = &m_beamSegments.back();
+                }
+            }
+        }
+    }
+
+    // 如果没有段，创建一个默认的白色段
+    if (m_beamSegments.empty()) {
+        m_beamSegments.emplace_back(1.0f, 1.0f, 1.0f);
+    }
 }
 
 } // namespace blockentity

@@ -2,11 +2,15 @@
 
 #include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/model/BeaconBeamModel.hpp"
+#include <memory>
+#include <vector>
 
 namespace mc {
 
 namespace blockentity {
 class BeaconEntity;
+struct BeaconBeamSegment;
 }
 
 namespace client::renderer::trident::blockentity {
@@ -22,6 +26,7 @@ namespace client::renderer::trident::blockentity {
  * - 光束使用 gameTime 驱动旋转
  * - 光束颜色由金字塔顶部的玻璃决定
  * - 激活时有垂直光束，未激活时无光束
+ * - 双层渲染：内层光束(radius=0.2) + 外层光晕(radius=0.25)
  */
 class BeaconRenderer : public BlockEntityRenderer<mc::blockentity::BeaconEntity> {
 public:
@@ -60,6 +65,7 @@ public:
     [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 65536.0; }
 
 private:
+    mc::client::renderer::blockentity::model::BeaconBeamModel m_beamModel;  ///< 光束模型
     BlockEntityRendererHelper m_helper;  ///< 渲染辅助工具
 
     /**
@@ -74,26 +80,17 @@ private:
      * @brief 渲染光束
      *
      * @param pos 方块位置
-     * @param level 金字塔等级
+     * @param segments 光束段列表
      * @param gameTime 游戏时间
      * @param partialTick 部分tick
      * @param light 组合光照
      */
     void renderBeam(
         const BlockPos& pos,
-        i32 level,
+        const std::vector<mc::blockentity::BeaconBeamSegment>& segments,
         i64 gameTime,
         f32 partialTick,
         u32 light);
-
-    /**
-     * @brief 计算光束旋转角度
-     *
-     * @param gameTime 游戏时间
-     * @param partialTick 部分tick
-     * @return 旋转角度（弧度）
-     */
-    [[nodiscard]] f32 calculateBeamRotation(i64 gameTime, f32 partialTick) const;
 };
 
 } // namespace mc::client::renderer::trident::blockentity

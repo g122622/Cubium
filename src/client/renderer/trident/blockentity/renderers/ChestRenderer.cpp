@@ -1,13 +1,39 @@
 #include "ChestRenderer.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/world/block/Block.hpp"
+#include <ctime>
 #include <cmath>
 
 namespace mc::client::renderer::trident::blockentity {
 
 ChestRenderer::ChestRenderer()
     : BlockEntityRenderer<mc::blockentity::ChestEntity>()
-    , m_helper() {
+    , m_model()
+{
+}
+
+bool ChestRenderer::isChristmas() {
+    // MC 1.16.5: 12月24-26日使用圣诞节纹理
+    const std::time_t now = std::time(nullptr);
+    const std::tm* localTime = std::localtime(&now);
+    if (localTime == nullptr) {
+        return false;
+    }
+
+    const int month = localTime->tm_mon + 1;  // tm_mon 是 0-11
+    const int day = localTime->tm_mday;
+
+    return month == 12 && day >= 24 && day <= 26;
+}
+
+mc::client::renderer::blockentity::model::ChestModel::ChestType ChestRenderer::determineChestType(
+    const mc::blockentity::ChestEntity& entity) const
+{
+    // TODO: 从方块状态获取 ChestType
+    // 目前返回单箱
+    // 需要访问 entity.getBlockState() 并获取 TYPE 属性
+    (void)entity;
+    return mc::client::renderer::blockentity::model::ChestModel::ChestType::Single;
 }
 
 void ChestRenderer::render(
@@ -15,63 +41,38 @@ void ChestRenderer::render(
     f32 partialTick,
     u32 light)
 {
-    const BlockPos& pos = entity.getPos();
-
     // 获取插值后的盖子角度
-    f32 lidAngle = getInterpolatedLidAngle(entity, partialTick);
+    const f32 lidAngle = entity.getInterpolatedLidAngle(partialTick);
 
-    // 应用非线性缓动
-    lidAngle = applyLidEasing(lidAngle);
+    // 如果盖子关闭且没有打开计数，跳过渲染
+    if (lidAngle <= 0.001f && entity.getOpenCount() == 0) {
+        // 仍然需要渲染箱体
+        m_model.setLidAngle(0.0f);
+    } else {
+        // 应用 MC 风格的缓动函数
+        m_model.setLidAngle(lidAngle);
+    }
 
-    // 渲染箱体
-    renderChestBody(pos, light);
+    // 设置箱子类型（单箱/双箱左/右）
+    const auto chestType = determineChestType(entity);
+    m_model.setChestType(chestType);
 
-    // 渲染盖子
-    renderChestLid(pos, lidAngle, light);
+    // TODO: 实现完整的渲染流程
+    // 1. 获取箱子方块状态
+    // 2. 确定朝向（FACING 属性）
+    // 3. 应用旋转变换
+    // 4. 根据是否圣诞节选择纹理
+    // 5. 获取双箱时的光照合并
+    // 6. 生成网格并提交到渲染管线
 
-    // 渲染锁扣
-    renderChestLatch(pos, lidAngle, light);
-}
+    // 当前占位实现 - 模型已准备好
+    // 需要集成：
+    // - BlockModelCache 获取模型
+    // - MatrixStack 应用变换
+    // - EntityPipeline 提交网格
+    // - 纹理图集获取材质
 
-f32 ChestRenderer::getInterpolatedLidAngle(
-    const mc::blockentity::ChestEntity& entity,
-    f32 partialTick) const
-{
-    // 使用 ChestEntity 提供的插值方法
-    return entity.getInterpolatedLidAngle(partialTick);
-}
-
-f32 ChestRenderer::applyLidEasing(f32 angle) const
-{
-    // MC风格的三次缓动
-    // angle = 1.0f - angle;
-    // angle = 1.0f - angle * angle * angle;
-    f32 eased = 1.0f - angle;
-    eased = 1.0f - eased * eased * eased;
-    return eased;
-}
-
-void ChestRenderer::renderChestBody(const BlockPos& pos, u32 light) {
-    // TODO: 实现箱体渲染
-    // 需要从BlockModelCache获取箱子模型
-    (void)pos;
-    (void)light;
-}
-
-void ChestRenderer::renderChestLid(const BlockPos& pos, f32 lidAngle, u32 light) {
-    // TODO: 实现盖子渲染
-    // 需要应用旋转变换（绕铰链轴旋转）
-    (void)pos;
-    (void)lidAngle;
-    (void)light;
-}
-
-void ChestRenderer::renderChestLatch(const BlockPos& pos, f32 lidAngle, u32 light) {
-    // TODO: 实现锁扣渲染
-    // 锁扣跟随盖子旋转
-    (void)pos;
-    (void)lidAngle;
-    (void)light;
+    (void)light;  // 将用于光照计算
 }
 
 } // namespace mc::client::renderer::trident::blockentity

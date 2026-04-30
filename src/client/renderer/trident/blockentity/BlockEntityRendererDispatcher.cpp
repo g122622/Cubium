@@ -4,7 +4,13 @@
 #include "common/world/IWorld.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/resource/BlockModelCache.hpp"
+#include "renderers/BeaconRenderer.hpp"
+#include "renderers/ChestRenderer.hpp"
 #include <spdlog/spdlog.h>
+
+// 完整的方块实体类型头文件（用于 dynamic_cast）
+#include "common/world/blockentity/processing/BeaconEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 
 namespace mc::client::renderer::trident::blockentity {
 
@@ -34,31 +40,69 @@ bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick,
         return false;
     }
 
-    // 类型擦除的渲染器无法直接调用模板方法
-    // 这里需要一种机制来分派到正确的类型
-    // TODO: 实现类型安全的渲染分派
-
-    return true;
+    // 调用类型擦除的渲染方法
+    return it->second->render(entity, partialTick, light);
 }
 
 void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32 partialTick) {
-    // 遍历所有全局方块实体
-    // TODO: 实现全局方块实体列表和渲染
-
+    // MC 1.16.5: 遍历所有全局方块实体并渲染
     // 全局方块实体包括：
-    // - 信标光束
-    // - 末地传送门
-    // 等可以在远距离看到的方块实体
+    // - 信标光束（isGlobalRenderer = true，渲染距离 256 格）
+    // - 末地传送门（渲染距离 256 格）
+    //
+    // 这些方块实体可以在远距离看到，需要特殊处理
+    //
+    // TODO: 实现全局方块实体列表
+    // 需要：
+    // 1. 在世界加载时收集所有全局方块实体
+    // 2. 按类型分派到对应渲染器
+    // 3. 跳过距离检查（或在渲染器中处理）
+
+    for (auto& [type, renderer] : m_renderers) {
+        if (renderer && renderer->isGlobalRenderer()) {
+            // 渲染全局方块实体
+            // 需要遍历世界中该类型的所有方块实体
+            (void)world;
+            (void)partialTick;
+        }
+    }
 }
 
 void BlockEntityRendererDispatcher::initializeDefaults() {
     spdlog::info("BlockEntityRendererDispatcher: Initializing default renderers");
 
-    // 默认渲染器将在具体渲染器实现后注册
-    // registerRenderer<PistonBlockEntity, PistonRenderer>();
-    // registerRenderer<ChestEntity, ChestRenderer>();
-    // registerRenderer<BeaconEntity, BeaconRenderer>();
-    // 等等...
+    // MC 1.16.5 TileEntityRendererDispatcher 构造函数中注册的渲染器：
+    // - SIGN -> SignTileEntityRenderer
+    // - MOB_SPAWNER -> MobSpawnerTileEntityRenderer
+    // - PISTON -> PistonTileEntityRenderer
+    // - CHEST, ENDER_CHEST, TRAPPED_CHEST -> ChestTileEntityRenderer
+    // - ENCHANTING_TABLE -> EnchantmentTableTileEntityRenderer
+    // - LECTERN -> LecternTileEntityRenderer
+    // - END_PORTAL -> EndPortalTileEntityRenderer
+    // - END_GATEWAY -> EndGatewayTileEntityRenderer
+    // - BEACON -> BeaconTileEntityRenderer
+    // - SKULL -> SkullTileEntityRenderer
+    // - BANNER -> BannerTileEntityRenderer
+    // - STRUCTURE_BLOCK -> StructureTileEntityRenderer
+    // - SHULKER_BOX -> ShulkerBoxTileEntityRenderer
+    // - BED -> BedTileEntityRenderer
+    // - CONDUIT -> ConduitTileEntityRenderer
+    // - BELL -> BellTileEntityRenderer
+    // - CAMPFIRE -> CampfireTileEntityRenderer
+
+    // 注册已实现的渲染器
+    registerRenderer(BlockEntityType::Beacon, []() -> std::unique_ptr<BlockEntityRendererBase> {
+        return std::make_unique<BeaconRenderer>();
+    });
+
+    registerRenderer(BlockEntityType::Chest, []() -> std::unique_ptr<BlockEntityRendererBase> {
+        return std::make_unique<ChestRenderer>();
+    });
+
+    // TODO: 注册其他渲染器
+    // registerRenderer(BlockEntityType::Piston, []() -> std::unique_ptr<BlockEntityRendererBase> {
+    //     return std::make_unique<PistonRenderer>();
+    // });
 }
 
 BlockEntityRendererBase* BlockEntityRendererDispatcher::getRenderer(BlockEntityType type) {

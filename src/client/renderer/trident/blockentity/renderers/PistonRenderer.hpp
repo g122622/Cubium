@@ -2,14 +2,11 @@
 
 #include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
+#include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 
 namespace mc {
 
 class MatrixStack;
-
-namespace blockentity {
-class PistonBlockEntity;
-}
 
 namespace client::renderer::trident::blockentity {
 
@@ -24,6 +21,7 @@ namespace client::renderer::trident::blockentity {
  * - 每tick进度增加0.5
  * - 使用partialTick进行帧间插值
  * - 需要渲染被移动的方块和活塞臂
+ * - 收回时需要额外渲染活塞头
  */
 class PistonRenderer : public BlockEntityRenderer<mc::blockentity::PistonBlockEntity> {
 public:
@@ -65,7 +63,9 @@ private:
     BlockEntityRendererHelper m_helper;  ///< 渲染辅助工具
 
     /**
-     * @brief 渲染活塞臂
+     * @brief 渲染活塞头
+     *
+     * 收回时渲染活塞头方块。
      *
      * @param entity 活塞方块实体
      * @param progress 插值后的进度

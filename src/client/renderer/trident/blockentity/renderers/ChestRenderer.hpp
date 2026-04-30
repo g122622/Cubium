@@ -2,6 +2,8 @@
 
 #include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/model/ChestModel.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -10,6 +12,9 @@ class ChestEntity;
 }
 
 namespace client::renderer::trident::blockentity {
+
+// 使用模型命名空间的别名
+namespace model = mc::client::renderer::blockentity::model;
 
 /**
  * @brief 箱子方块实体渲染器
@@ -20,7 +25,8 @@ namespace client::renderer::trident::blockentity {
  * 箱子动画特点：
  * - 盖子角度从0.0到1.0
  * - 使用非线性缓动：angle = 1.0 - (1.0 - angle)^3
- * - 需要考虑双箱情况（两个箱子合并）
+ * - 支持单箱和双箱（LEFT/RIGHT/SINGLE 类型）
+ * - 12月24-26日使用圣诞节纹理（彩蛋）
  */
 class ChestRenderer : public BlockEntityRenderer<mc::blockentity::ChestEntity> {
 public:
@@ -50,59 +56,26 @@ public:
     [[nodiscard]] bool isGlobalRenderer() const override { return false; }
 
     /**
-     * @brief 箱子最大渲染距离
+     * @brief 箱子最大渲染距离（8格）
      */
     [[nodiscard]] f64 getMaxRenderDistanceSquared() const override { return 64.0; }
 
+    /**
+     * @brief 检查是否是圣诞节（12月24-26日）
+     * @return 如果是圣诞节期间返回true
+     */
+    [[nodiscard]] static bool isChristmas();
+
 private:
-    BlockEntityRendererHelper m_helper;  ///< 渲染辅助工具
+    mc::client::renderer::blockentity::model::ChestModel m_model;  ///< 箱子模型
 
     /**
-     * @brief 计算插值后的盖子角度
-     *
+     * @brief 根据方块状态获取箱子类型
      * @param entity 箱子实体
-     * @param partialTick 部分tick
-     * @return 插值后的角度（0.0-1.0）
+     * @return 箱子类型
      */
-    [[nodiscard]] f32 getInterpolatedLidAngle(
-        const mc::blockentity::ChestEntity& entity,
-        f32 partialTick) const;
-
-    /**
-     * @brief 应用非线性缓动
-     *
-     * MC风格的三次缓动，使盖子动画更自然。
-     *
-     * @param angle 原始角度（0.0-1.0）
-     * @return 缓动后的角度
-     */
-    [[nodiscard]] f32 applyLidEasing(f32 angle) const;
-
-    /**
-     * @brief 渲染箱体
-     *
-     * @param pos 方块位置
-     * @param light 组合光照
-     */
-    void renderChestBody(const BlockPos& pos, u32 light);
-
-    /**
-     * @brief 渲染盖子
-     *
-     * @param pos 方块位置
-     * @param lidAngle 盖子角度（已缓动）
-     * @param light 组合光照
-     */
-    void renderChestLid(const BlockPos& pos, f32 lidAngle, u32 light);
-
-    /**
-     * @brief 渲染锁扣
-     *
-     * @param pos 方块位置
-     * @param lidAngle 盖子角度（已缓动）
-     * @param light 组合光照
-     */
-    void renderChestLatch(const BlockPos& pos, f32 lidAngle, u32 light);
+    [[nodiscard]] mc::client::renderer::blockentity::model::ChestModel::ChestType determineChestType(
+        const mc::blockentity::ChestEntity& entity) const;
 };
 
 } // namespace mc::client::renderer::trident::blockentity
