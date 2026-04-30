@@ -2,6 +2,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../player/Player.hpp"
 #include "../../core/EntityRegistry.hpp"
+#include "../../core/EntityUtils.hpp"
 #include "../../experience/ExperienceUtils.hpp"
 #include "../../experience/ExperienceManager.hpp"
 #include "../../inventory/PlayerInventory.hpp"
@@ -53,22 +54,16 @@ void ExperienceOrbEntity::initData() {
 void ExperienceOrbEntity::tick() {
     Entity::tick();
 
-    // 增加存活时间和颜色计数器
     m_age++;
-    m_xpColor++;
+    m_tickCounter++;
 
-    // 减少拾取延迟
     if (m_pickupDelay > 0) {
         m_pickupDelay--;
     }
 
-    // 更新物理运动
     updateMovement();
-
-    // 追踪最近的玩家（使用缓存机制，参考MC原版）
     followNearestPlayer();
 
-    // 检查是否过期（5分钟后消失）
     if (m_age >= MAX_AGE) {
         remove();
         return;
@@ -204,55 +199,38 @@ i32 ExperienceOrbEntity::getXPSplit(i32 totalXp) {
 // ============================================================================
 
 void ExperienceOrbEntity::updateMovement() {
-    // 参考 MC 1.16.5 ExperienceOrbEntity.tick()
     Vector3 vel = velocity();
 
-    // 水中浮力（参考 MC applyFloatMotion）
     if (isInWater()) {
         vel.x *= 0.99;
-        vel.y = std::min(vel.y + 0.0005f, 0.06f);  // 上升速度上限 0.06
+        vel.y = std::min(vel.y + 0.0005f, 0.06f);
         vel.z *= 0.99;
     } else if (isInLava()) {
-        // 岩浆中：随机运动并上升
         math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_age));
         vel.x = static_cast<f32>((rng.nextFloat() - rng.nextFloat()) * 0.2);
         vel.y = 0.2f;
         vel.z = static_cast<f32>((rng.nextFloat() - rng.nextFloat()) * 0.2);
-        // TODO: 播放燃烧音效 SoundEvents.ENTITY_GENERIC_BURN
     } else if (!hasNoGravity()) {
-        // 正常重力
         vel.y -= entity::experience::constants::ORB_GRAVITY;
     }
 
-    // 移动
     Vector3 actual = moveWithCollision(vel.x, vel.y, vel.z);
     setVelocity(actual);
 
-    // 地面摩擦（使用脚下方块的滑度）
     vel = velocity();
     if (onGround()) {
-        // 参考 MC: BlockPos pos = new BlockPos(posX, posY - 1.0, posZ);
-        // float f = world.getBlockState(pos).getSlipperiness() * 0.98f;
-        // 暂时使用默认滑度 0.6 * 0.98 = 0.588
-        // TODO: 获取脚下方块的实际滑度
+        // TODO: 获取脚下方块的实际滑度 (block.getSlipperiness())
         constexpr f32 DEFAULT_SLIPPERINESS = 0.6f;
         constexpr f32 GROUND_FRICTION = DEFAULT_SLIPPERINESS * 0.98f;
         vel.x *= GROUND_FRICTION;
         vel.z *= GROUND_FRICTION;
-
-        // Y轴反弹（参考 MC: this.setMotion(this.getMotion().mul(1.0D, -0.9D, 1.0D))
-        vel.y *= -0.9f;
+        vel.y *= -0.9f;  // Y轴反弹
     } else {
-        // 空气摩擦
         vel.x *= 0.98;
         vel.z *= 0.98;
-    }
-    // Y轴始终应用摩擦（在空中）
-    if (!onGround()) {
         vel.y *= 0.98;
     }
 
-    // 重置过小的速度为零
     constexpr f32 MOTION_THRESHOLD = 0.003f;
     if (std::abs(vel.x) < MOTION_THRESHOLD) vel.x = 0.0f;
     if (std::abs(vel.z) < MOTION_THRESHOLD) vel.z = 0.0f;
@@ -261,22 +239,17 @@ void ExperienceOrbEntity::updateMovement() {
 }
 
 void ExperienceOrbEntity::followNearestPlayer() {
-    // 参考 MC 1.16.5 ExperienceOrbEntity.tick()
-    // 使用缓存机制：每 20 + entityId % 100 ticks 才搜索一次玩家
     constexpr i32 SEARCH_INTERVAL_BASE = 20;
 
-    // 检查是否需要重新搜索玩家
-    if (m_xpTargetColor < m_xpColor - SEARCH_INTERVAL_BASE + (static_cast<i32>(id()) % 100)) {
-        // 如果当前没有追踪的玩家，或者追踪的玩家距离超过64格，重新搜索
+    if (m_lastSearchTick < m_tickCounter - SEARCH_INTERVAL_BASE + (static_cast<i32>(id()) % 100)) {
         if (m_trackingPlayer == nullptr ||
-            (m_trackingPlayer->isRemoved() || m_trackingPlayer->isSpectator() ||
-             distanceSqTo(*m_trackingPlayer) > 64.0f * 64.0f)) {
+            m_trackingPlayer->isRemoved() || m_trackingPlayer->isSpectator() ||
+            distanceSqTo(*m_trackingPlayer) > TRACKING_RANGE * TRACKING_RANGE) {
             m_trackingPlayer = findNearestPlayer();
         }
-        m_xpTargetColor = m_xpColor;
+        m_lastSearchTick = m_tickCounter;
     }
 
-    // 如果追踪的玩家是观察者模式，清除追踪
     if (m_trackingPlayer != nullptr && m_trackingPlayer->isSpectator()) {
         m_trackingPlayer = nullptr;
     }
@@ -285,33 +258,23 @@ void ExperienceOrbEntity::followNearestPlayer() {
         return;
     }
 
-    // 计算到玩家的方向向量（参考 MC：使用 eyeHeight / 2 作为 Y 偏移）
-    // Vector3d(player.x - this.x, player.y + eyeHeight/2 - this.y, player.z - this.z)
     f32 dx = static_cast<f32>(m_trackingPlayer->x() - x());
     f32 dy = static_cast<f32>(m_trackingPlayer->y() + m_trackingPlayer->eyeHeight() / 2.0f - y());
     f32 dz = static_cast<f32>(m_trackingPlayer->z() - z());
     f32 distSq = dx * dx + dy * dy + dz * dz;
 
-    // 在追踪范围内时被吸引（MC 使用 64.0 距离平方）
-    constexpr f32 TRACKING_RANGE_SQ = 64.0f * 64.0f;
+    constexpr f32 TRACKING_RANGE_SQ = TRACKING_RANGE * TRACKING_RANGE;
     if (distSq < TRACKING_RANGE_SQ && distSq > 0.001f) {
         f32 dist = std::sqrt(distSq);
-
-        // 吸引力计算：参考 MC
-        // double d2 = 1.0 - Math.sqrt(d1) / 8.0;
-        // this.setMotion(this.getMotion().add(vector3d.normalize().scale(d2 * d2 * 0.1D)));
-        f32 attraction = 1.0f - dist / TRACKING_RANGE;  // TRACKING_RANGE = 8.0f
+        f32 attraction = 1.0f - dist / TRACKING_RANGE;
         attraction = attraction * attraction * 0.1f;
 
-        // 归一化方向向量并应用吸引力
         Vector3 vel = velocity();
         vel.x += (dx / dist) * attraction;
         vel.y += (dy / dist) * attraction;
         vel.z += (dz / dist) * attraction;
-
         setVelocity(vel);
 
-        // 检查是否可以拾取
         constexpr f32 PICKUP_DISTANCE_SQ = PICKUP_DISTANCE * PICKUP_DISTANCE;
         if (distSq < PICKUP_DISTANCE_SQ && canBePickedUp()) {
             onCollideWithPlayer(*m_trackingPlayer);
@@ -320,37 +283,13 @@ void ExperienceOrbEntity::followNearestPlayer() {
 }
 
 Player* ExperienceOrbEntity::findNearestPlayer() const {
-    if (!m_world) {
-        return nullptr;
-    }
-
-    // 获取范围内的所有实体
-    std::vector<Entity*> entities = m_world->getEntitiesInRange(
-        Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
-        TRACKING_RANGE
+    return EntityUtils::findClosestEntity<Player>(
+        m_world,
+        position(),
+        TRACKING_RANGE,
+        nullptr,
+        [](Player* p) { return p->isAlive() && !p->isSpectator(); }
     );
-
-    // 查找最近的玩家
-    Player* nearestPlayer = nullptr;
-    f32 nearestDistSq = std::numeric_limits<f32>::max();
-
-    for (Entity* entity : entities) {
-        // 检查是否为玩家
-        if (entity && entity->getTypeId() == entity::EntityTypes::PLAYER) {
-            Player* player = static_cast<Player*>(entity);
-            f32 dx = static_cast<f32>(player->x() - x());
-            f32 dy = static_cast<f32>(player->y() - y());
-            f32 dz = static_cast<f32>(player->z() - z());
-            f32 distSq = dx * dx + dy * dy + dz * dz;
-
-            if (distSq < nearestDistSq) {
-                nearestDistSq = distSq;
-                nearestPlayer = player;
-            }
-        }
-    }
-
-    return nearestPlayer;
 }
 
 bool ExperienceOrbEntity::handleMending(Player& player) {

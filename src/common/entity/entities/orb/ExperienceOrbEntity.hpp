@@ -242,10 +242,9 @@ private:
     i32 m_health = 5;            // 生命值（可被攻击摧毁）
     Player* m_trackingPlayer = nullptr;  // 追踪的玩家
 
-    // MC原版缓存机制：使用 xpColor/xpTargetColor 缓存玩家搜索
-    // 每 20 + entityId % 100 ticks 才搜索一次玩家
-    i32 m_xpColor = 0;           // 当前颜色计数器（每tick递增）
-    i32 m_xpTargetColor = 0;     // 上次搜索玩家时的颜色计数器
+    // 玩家搜索缓存：每 20 + entityId % 100 ticks 搜索一次
+    i32 m_tickCounter = 0;       // 每tick递增的计数器
+    i32 m_lastSearchTick = 0;    // 上次搜索玩家时的 tick 值
 };
 
 } // namespace mc

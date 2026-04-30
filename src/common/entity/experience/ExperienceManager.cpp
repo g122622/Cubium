@@ -19,51 +19,40 @@ void ExperienceManager::addExperience(i32 amount) {
         return;
     }
 
-    // 处理负经验（降级）
     if (amount < 0) {
-        // 参考 MC 1.16.5 PlayerEntity.giveExperiencePoints()
-        // 负经验需要处理降级逻辑
-        m_progress += static_cast<f32>(amount) / static_cast<f32>(getExperienceForNextLevel());
+        i32 capacity = getExperienceForNextLevel();
+        m_progress += static_cast<f32>(amount) / static_cast<f32>(capacity);
 
-        // 处理降级
         while (m_progress < 0.0f) {
             if (m_level > 0) {
                 m_level--;
-                // 降级时：progress = 1.0 + (负进度 * 旧容量 / 新容量)
-                // 但因为我们已经减少了等级，所以需要用新容量
                 i32 newCapacity = getExperienceForNextLevel();
                 f32 deficit = m_progress * static_cast<f32>(newCapacity);
                 m_progress = 1.0f + deficit / static_cast<f32>(newCapacity);
                 handleLevelDown();
             } else {
-                // 等级已经为0，不能降级
                 m_progress = 0.0f;
                 m_totalExperience = 0;
                 break;
             }
         }
 
-        // 重新计算总经验
+        capacity = getExperienceForNextLevel();
         m_totalExperience = getExperienceForLevel(m_level) +
-                           static_cast<i32>(m_progress * static_cast<f32>(getExperienceForNextLevel()));
+                           static_cast<i32>(m_progress * static_cast<f32>(capacity));
     } else {
-        // 正经验
         m_totalExperience += amount;
 
-        // 参考 MC 1.16.5 PlayerEntity.giveExperiencePoints()
-        // 关键：升级时需要使用"乘旧容量、除新容量"算法
-        m_progress += static_cast<f32>(amount) / static_cast<f32>(getExperienceForNextLevel());
+        i32 capacity = getExperienceForNextLevel();
+        m_progress += static_cast<f32>(amount) / static_cast<f32>(capacity);
 
-        // 处理升级
         while (m_progress >= 1.0f) {
-            // 先将进度转回绝对经验值
             f32 excessProgress = m_progress - 1.0f;
             i32 oldCapacity = getExperienceForNextLevel();
 
             m_level++;
             handleLevelUp();
 
-            // 用新容量重新计算进度
             i32 newCapacity = getExperienceForNextLevel();
             m_progress = excessProgress * static_cast<f32>(oldCapacity) / static_cast<f32>(newCapacity);
         }
@@ -72,7 +61,6 @@ void ExperienceManager::addExperience(i32 amount) {
     validateState();
     markDirty();
 
-    // 触发回调
     if (m_experienceChangeCallback) {
         m_experienceChangeCallback(m_totalExperience);
     }
@@ -83,17 +71,12 @@ bool ExperienceManager::consumeExperience(i32 amount) {
         return true;
     }
 
-    // 计算当前总经验
-    i32 currentTotal = getExperienceForLevel(m_level) +
-                       static_cast<i32>(m_progress * static_cast<f32>(getExperienceForNextLevel()));
-
     if (m_totalExperience < amount) {
         return false;
     }
 
     m_totalExperience -= amount;
 
-    // 重新计算等级和进度
     i32 newLevel = getLevelFromExperience(m_totalExperience);
     i32 xpForNewLevel = getExperienceForLevel(newLevel);
     i32 xpInCurrentLevel = m_totalExperience - xpForNewLevel;
@@ -124,11 +107,8 @@ bool ExperienceManager::consumeLevels(i32 levels) {
     i32 oldLevel = m_level;
     m_level -= levels;
 
-    // 确保进度有效
-    i32 capacity = getExperienceForNextLevel();
+    i32 capacity = calculateBarCapacity(m_level);
     i32 xpInCurrentLevel = static_cast<i32>(m_progress * static_cast<f32>(capacity));
-
-    // 更新总经验
     m_totalExperience = getExperienceForLevel(m_level) + xpInCurrentLevel;
 
     validateState();
