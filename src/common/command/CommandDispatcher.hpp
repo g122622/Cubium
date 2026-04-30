@@ -369,6 +369,11 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 
         auto considerResult = [&](ParseResults<S>&& candidate) {
             if (candidate.isSuccess()) {
+                const auto* candidateContext = candidate.getContext();
+                const auto candidateNode = candidateContext ? candidateContext->getCurrentNode() : nullptr;
+                if (candidate.getRemaining().empty() && (!candidateNode || !candidateNode->hasCommand())) {
+                    return;
+                }
                 if (!hasBestSuccess ||
                     candidate.getRemaining().size() < bestSuccess.getRemaining().size()) {
                     bestSuccess = std::move(candidate);

@@ -404,6 +404,24 @@ TEST_F(CommandRegistryServerTest, TeleportCommandMovesSelectedPlayersToCoordinat
     EXPECT_FLOAT_EQ(updatedAlex->z, -5.0f);
 }
 
+TEST_F(CommandRegistryServerTest, TeleportCommandMovesSelfToCoordinatesWithSlashPrefix)
+{
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+
+    auto playerSource = makePlayerSource(1, "Steve");
+    const auto result = m_server.commandRegistry().execute("/tp 100 100 100", playerSource);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+
+    const auto* updatedSteve = m_server.playerManager().getPlayer(1);
+    ASSERT_NE(updatedSteve, nullptr);
+    EXPECT_FLOAT_EQ(updatedSteve->x, 100.0f);
+    EXPECT_FLOAT_EQ(updatedSteve->y, 100.0f);
+    EXPECT_FLOAT_EQ(updatedSteve->z, 100.0f);
+}
+
 TEST_F(CommandRegistryServerTest, TeleportCommandMovesSelfToNamedPlayer)
 {
     auto* steve = m_server.addTestPlayer(1, "Steve");
