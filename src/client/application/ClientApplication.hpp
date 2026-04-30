@@ -343,7 +343,9 @@ private:
     f32 m_lastSentYaw = 0.0f;
     f32 m_lastSentPitch = 0.0f;
     f32 m_positionSendAccumulator = 0.0f;
-    static constexpr f32 POSITION_SEND_INTERVAL = 1.0f / 20.0f;  // 20 TPS
+    f32 m_playerPhysicsAccumulator = 0.0f;
+    static constexpr f32 PLAYER_PHYSICS_INTERVAL = constants::TICK_DURATION;
+    static constexpr f32 POSITION_SEND_INTERVAL = constants::TICK_DURATION;  // 20 TPS
 
     // 渲染时间（服务端时间不可用时使用本地回退）
     i64 m_renderGameTime = 0;

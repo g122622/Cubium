@@ -7,6 +7,7 @@
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidRegistry.hpp"
 #include "common/core/Constants.hpp"
 #include <cmath>
 #include "common/resource/ResourceLocation.hpp"
@@ -23,8 +24,9 @@ namespace {
 class PlayerMovementTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // 初始化方块注册表
+        // 初始化方块和流体注册表
         VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
 
         // 创建玩家
         m_player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
@@ -56,7 +58,7 @@ public:
     [[nodiscard]] const SoundRecord& lastSound() const { return *m_lastSound; }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
-        if (m_supportEnabled && x == 0 && y == 0 && z == 0) {
+        if (m_supportEnabled && y == 0 && x >= -1 && x <= 1 && z >= -1 && z <= 1) {
             return &VanillaBlocks::STONE->defaultState();
         }
 
@@ -64,7 +66,7 @@ public:
     }
 
     bool setBlock(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return fluid::Fluid::getFluidState(0); }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
@@ -76,9 +78,9 @@ public:
             return false;
         }
 
-        return box.maxX > 0.0f && box.minX < 1.0f &&
+        return box.maxX > -1.0f && box.minX < 2.0f &&
                box.maxY > 0.0f && box.minY < 1.0f &&
-               box.maxZ > 0.0f && box.minZ < 1.0f;
+               box.maxZ > -1.0f && box.minZ < 2.0f;
     }
 
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override {
@@ -131,12 +133,12 @@ public:
 
 TEST_F(PlayerMovementTest, FlySpeedDefaultValue_IsCorrect) {
     // MC中flySpeed默认值是0.05F
-    EXPECT_FLOAT_EQ(m_player->abilities().flySpeed, 0.05f);
+    EXPECT_FLOAT_EQ(m_player->abilities().flySpeed, physics::FLY_SPEED);
 }
 
 TEST_F(PlayerMovementTest, WalkSpeedDefaultValue_IsCorrect) {
     // MC中walkSpeed默认值是0.1F
-    EXPECT_FLOAT_EQ(m_player->abilities().walkSpeed, 0.1f);
+    EXPECT_FLOAT_EQ(m_player->abilities().walkSpeed, physics::WALK_SPEED);
 }
 
 TEST_F(PlayerMovementTest, CreativeMode_HasFlyAbility) {
@@ -193,15 +195,14 @@ TEST_F(PlayerMovementTest, Flying_HorizontalMovement_AddsToVelocity) {
 
     // 向前移动 (yaw=0 时，forward=1 会影响 Z 方向)
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
+    m_player->updatePhysics();
 
-    // 飞行速度 = flySpeed * 1.0 = 0.05
-    // 速度应该被添加（不是替换）
-    // 由于yaw=0时forward影响Z方向，我们应该检查总速度不为零
+    // 飞行速度 = flySpeed * 1.0 = 0.05，随后应用水平阻力 0.91
     f32 speed = std::sqrt(
         m_player->velocity().x * m_player->velocity().x +
         m_player->velocity().z * m_player->velocity().z
     );
-    EXPECT_GT(speed, 0.0f);
+    EXPECT_NEAR(speed, physics::FLY_SPEED * physics::FLY_HORIZONTAL_DRAG, 0.001f);
 }
 
 TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed) {
@@ -210,9 +211,8 @@ TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed) {
 
     // 冲刺时速度应该是两倍
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
+    m_player->updatePhysics();
 
-    // 飞行速度 = flySpeed * 2.0 (冲刺) = 0.1
-    // 速度应该大于非冲刺情况
     f32 sprintSpeed = std::sqrt(
         m_player->velocity().x * m_player->velocity().x +
         m_player->velocity().z * m_player->velocity().z
@@ -224,6 +224,7 @@ TEST_F(PlayerMovementTest, Flying_Sprint_DoublesSpeed) {
 
     // 非冲刺
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
+    m_player->updatePhysics();
     f32 normalSpeed = std::sqrt(
         m_player->velocity().x * m_player->velocity().x +
         m_player->velocity().z * m_player->velocity().z
@@ -245,11 +246,10 @@ TEST_F(PlayerMovementTest, Flying_Jump_IncreasesVerticalVelocity) {
 
     // 按跳跃键上升
     m_player->handleMovementInput(0.0f, 0.0f, true, false);
+    m_player->updatePhysics();
 
-    // Y速度应该增加
-    // MC中：verticalSpeed = flySpeed * 3.0 = 0.05 * 3.0 = 0.15
-    // 注意：速度是添加的
-    EXPECT_NEAR(m_player->velocity().y, 0.15f, 0.001f);
+    // Y速度应该增加后应用飞行垂直阻力 0.6
+    EXPECT_NEAR(m_player->velocity().y, physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
 }
 
 TEST_F(PlayerMovementTest, Flying_Sneak_DecreasesVerticalVelocity) {
@@ -260,10 +260,10 @@ TEST_F(PlayerMovementTest, Flying_Sneak_DecreasesVerticalVelocity) {
 
     // 按潜行键下降
     m_player->handleMovementInput(0.0f, 0.0f, false, true);
+    m_player->updatePhysics();
 
-    // Y速度应该减少（下降）
-    // MC中：verticalSpeed = flySpeed * 3.0 = 0.05 * 3.0 = 0.15
-    EXPECT_NEAR(m_player->velocity().y, -0.15f, 0.001f);
+    // Y速度应该减少后应用飞行垂直阻力 0.6
+    EXPECT_NEAR(m_player->velocity().y, -physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
 }
 
 TEST_F(PlayerMovementTest, Flying_JumpAndSneak_CancelOut) {
@@ -271,6 +271,7 @@ TEST_F(PlayerMovementTest, Flying_JumpAndSneak_CancelOut) {
 
     // 同时按跳跃和潜行应该抵消
     m_player->handleMovementInput(0.0f, 0.0f, true, true);
+    m_player->updatePhysics();
 
     // Y速度应该保持接近零
     EXPECT_NEAR(m_player->velocity().y, 0.0f, 0.001f);
@@ -282,9 +283,10 @@ TEST_F(PlayerMovementTest, Flying_VerticalSpeed_SprintDoubles) {
 
     // 冲刺时上升速度应该是两倍
     m_player->handleMovementInput(0.0f, 0.0f, true, false);
+    m_player->updatePhysics();
 
-    // verticalSpeed = flySpeed * 3.0 * 2.0 (冲刺) = 0.3
-    EXPECT_NEAR(m_player->velocity().y, 0.3f, 0.001f);
+    // verticalSpeed = flySpeed * 3.0 * 2.0 (冲刺) = 0.3，再乘飞行垂直阻力 0.6
+    EXPECT_NEAR(m_player->velocity().y, physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::SPRINT_FLY_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
 }
 
 // ============================================================================
@@ -322,9 +324,10 @@ TEST_F(PlayerMovementTest, NotFlying_AirDrag_AppliedInUpdatePhysics) {
 
     m_player->updatePhysics();
 
-    // 非飞行时阻力是0.98 (DRAG_AIR)
-    EXPECT_NEAR(m_player->velocity().x, 0.98f, 0.001f);
-    EXPECT_NEAR(m_player->velocity().z, 0.98f, 0.001f);
+    // MC 空中水平阻力为 0.91，垂直阻力为 0.98
+    EXPECT_NEAR(m_player->velocity().x, physics::DRAG_GROUND, 0.001f);
+    EXPECT_NEAR(m_player->velocity().z, physics::DRAG_GROUND, 0.001f);
+    EXPECT_NEAR(m_player->velocity().y, (1.0f - physics::GRAVITY) * physics::DRAG_AIR, 0.001f);
 }
 
 // ============================================================================
@@ -332,28 +335,35 @@ TEST_F(PlayerMovementTest, NotFlying_AirDrag_AppliedInUpdatePhysics) {
 // ============================================================================
 
 TEST_F(PlayerMovementTest, Walking_HorizontalMovement_AddsToVelocity) {
+    GroundSupportWorld world;
+    m_player->setWorld(&world);
     m_player->abilities().flying = false;
+    m_player->setPosition(0.3f, 1.0f, 0.3f);
     m_player->setOnGround(true);
 
-    // 行走速度 = walkSpeed = 0.1
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
+    m_player->updatePhysics();
 
-    // 应该有水平速度
     f32 speed = std::sqrt(
         m_player->velocity().x * m_player->velocity().x +
         m_player->velocity().z * m_player->velocity().z
     );
 
-    // 速度应该接近 walkSpeed
-    EXPECT_NEAR(speed, 0.1f, 0.01f);
+    const f32 expectedInput = physics::getGroundMoveFactor(physics::WALK_SPEED, physics::SLIPPERINESS_DEFAULT);
+    const f32 expectedDrag = physics::SLIPPERINESS_DEFAULT * physics::DRAG_GROUND;
+    EXPECT_NEAR(speed, expectedInput * expectedDrag, 0.01f);
 }
 
 TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
+    GroundSupportWorld world;
+    m_player->setWorld(&world);
     m_player->abilities().flying = false;
+    m_player->setPosition(0.3f, 1.0f, 0.3f);
     m_player->setOnGround(true);
 
-    // 潜行速度 = walkSpeed * 0.3 = 0.03
+    // 潜行速度 = 地面输入速度 * 0.3
     m_player->handleMovementInput(1.0f, 0.0f, false, true);
+    m_player->updatePhysics();
 
     f32 sneakSpeed = std::sqrt(
         m_player->velocity().x * m_player->velocity().x +
@@ -362,16 +372,19 @@ TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed) {
 
     // 重置
     m_player->setVelocity(Vector3(0.0f, 0.0f, 0.0f));
+    m_player->setPosition(0.3f, 1.0f, 0.3f);
+    m_player->setOnGround(true);
 
     // 正常行走
     m_player->handleMovementInput(1.0f, 0.0f, false, false);
+    m_player->updatePhysics();
     f32 normalSpeed = std::sqrt(
         m_player->velocity().x * m_player->velocity().x +
         m_player->velocity().z * m_player->velocity().z
     );
 
     // 潜行速度应该是正常速度的约30%
-    EXPECT_NEAR(sneakSpeed, normalSpeed * 0.3f, 0.01f);
+    EXPECT_NEAR(sneakSpeed, normalSpeed * physics::SNEAK_SPEED_MULTIPLIER, 0.01f);
 }
 
 // ============================================================================
@@ -434,12 +447,12 @@ TEST_F(PlayerMovementTest, Jump_WhileFlying_UsesFlyUpInstead) {
     m_player->setOnGround(true);
 
     // 飞行时按跳跃键应该触发飞行上升，而不是普通跳跃
-    // handleMovementInput 中处理飞行上升
+    // handleMovementInput 缓存输入，updatePhysics 在固定 tick 中处理飞行上升
     m_player->handleMovementInput(0.0f, 0.0f, true, false);
+    m_player->updatePhysics();
 
-    // 飞行上升速度 = flySpeed * 3.0 = 0.15
-    // 而不是普通跳跃速度 0.42
-    EXPECT_NEAR(m_player->velocity().y, 0.15f, 0.001f);
+    // 飞行上升速度 = flySpeed * 3.0 * 飞行垂直阻力 0.6，而不是普通跳跃速度 0.42
+    EXPECT_NEAR(m_player->velocity().y, physics::FLY_SPEED * physics::FLY_VERTICAL_INPUT_MULTIPLIER * physics::FLY_VERTICAL_DRAG, 0.001f);
 }
 
 TEST_F(PlayerMovementTest, HandleMovementInput_WithPhysicsWorldOnly_DoesNotCrash) {
@@ -505,8 +518,8 @@ TEST_F(PlayerMovementTest, GameModeUtils_Creative_HasAllAbilities) {
     EXPECT_TRUE(abilities.canFly);
     EXPECT_TRUE(abilities.invulnerable);
     EXPECT_TRUE(abilities.allowEdit);
-    EXPECT_FLOAT_EQ(abilities.flySpeed, 0.05f);
-    EXPECT_FLOAT_EQ(abilities.walkSpeed, 0.1f);
+    EXPECT_FLOAT_EQ(abilities.flySpeed, physics::FLY_SPEED);
+    EXPECT_FLOAT_EQ(abilities.walkSpeed, physics::WALK_SPEED);
 }
 
 TEST_F(PlayerMovementTest, GameModeUtils_Survival_NoFlyNoInvulnerable) {

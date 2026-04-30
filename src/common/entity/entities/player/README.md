@@ -29,7 +29,8 @@ src/common/entity/entities/player/
 
 实现玩家的核心行为：
 
-- 处理移动输入并写入速度
+- 缓存移动输入，固定在 20TPS 物理 tick 中消费，避免渲染帧率改变行走速度
+- 执行原版风格地面移动公式：地面输入速度使用 `getGroundMoveFactor()`，移动后水平摩擦使用脚下方块 `slipperiness * 0.91`
 - 执行物理更新、碰撞和跳跃
 - 在蹲下、游泳和睡眠姿态切换时，先检查目标碰撞箱能否容纳当前空间
 - 统计移动距离并生成步脚声/游泳声触发信号
@@ -64,8 +65,8 @@ src/common/entity/entities/player/
 
 ### 输入
 
-- 键盘和鼠标输入，驱动 `handleMovementInput()`
-- 物理引擎的碰撞和重力结果，驱动 `updatePhysics()`
+- 键盘和鼠标输入，驱动 `handleMovementInput()` 缓存当前 tick 输入
+- 物理引擎的碰撞和重力结果，驱动 `updatePhysics()` 在固定 20TPS 中消费输入
 - 服务器同步的传送、位置和旋转数据
 - 游戏模式切换和能力更新
 - 背包、经验和状态变化
@@ -115,6 +116,10 @@ if (player->shouldPlayStepSound()) {
 ```
 
 外部改坐标时要通过 `Player::setPosition()`，它会同步重置步距采样和脚步声状态，避免把传送或出生位置当成走路距离。
+
+`handleMovementInput()` 只缓存当前输入，不再直接修改速度；客户端必须由 `ClientApplication` 按 20TPS 调用 `updatePhysics()` 消费输入。直接在测试或逻辑里调用 `handleMovementInput()` 后，需要执行一次 `updatePhysics()` 才会看到速度和位置变化。
+
+能力同步以 `Player::abilities()` 为运行时事实来源；`PlayerAbilitiesPacket::fromPlayer()` 不会再根据 GameMode 重新推导，避免覆盖飞行状态或自定义 walk/fly speed。
 
 ## 容易踩的坑
 

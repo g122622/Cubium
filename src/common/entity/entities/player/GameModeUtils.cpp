@@ -1,5 +1,6 @@
 #include "GameModeUtils.hpp"
 #include "Player.hpp"
+#include "../../../physics/PhysicsConstants.hpp"
 
 namespace mc {
 namespace entity {
@@ -20,10 +21,10 @@ struct ModeConfig {
 constexpr size_t MODE_COUNT = 4;  // Survival, Creative, Adventure, Spectator
 
 constexpr ModeConfig MODE_CONFIGS[] = {
-    {false, false, false, false, true,  0.05f, 0.1f},   // Survival (0)
-    {true,  true,  false, true,  true,  0.05f, 0.1f},    // Creative (1)
-    {false, false, false, false, false, 0.05f, 0.1f},    // Adventure (2)
-    {false, true,  true,  true,  false, 0.05f, 0.1f},    // Spectator (3)
+    {false, false, false, false, true,  physics::FLY_SPEED, physics::WALK_SPEED},   // Survival (0)
+    {true,  true,  false, true,  true,  physics::FLY_SPEED, physics::WALK_SPEED},    // Creative (1)
+    {false, false, false, false, false, physics::FLY_SPEED, physics::WALK_SPEED},    // Adventure (2)
+    {false, true,  true,  true,  false, physics::FLY_SPEED, physics::WALK_SPEED},    // Spectator (3)
 };
 } // namespace
 

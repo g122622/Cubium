@@ -156,7 +156,8 @@ sequenceDiagram
         App->>Network: poll()
         App->>World: update()
 
-        Note over App: 玩家物理更新
+        Note over App: 玩家物理按 20TPS 固定步进
+        Note over App: 相机使用 partial tick 插值到玩家眼睛位置
         Note over App: 位置同步到服务端
         Note over App: 射线检测
         Note over App: 准星目标信息解析
@@ -608,6 +609,12 @@ m_window.destroy();
 **问题**：`NaturalSpawner::createDensityManager()` 如果保存 `EntityManager::countEntitiesByClassification()` 结果的引用，会导致悬垂引用。
 
 **解决方案**：必须把 `EntityManager::countEntitiesByClassification()` 的结果按值持有。`EntityDensityManager` 不能再保存临时分类计数表的引用；`MobDensityTracker` 的密度衰减是 64 格线性衰减，零距离按完整成本计入，超出范围后不再贡献密度。
+
+### 16. 玩家物理与渲染插值
+
+**问题**：玩家物理如果随渲染帧率运行，行走速度会随 FPS 变化；如果只在 20TPS 更新位置，镜头又会出现 tick 级跳变。
+
+**解决方案**：`ClientApplication` 只在固定 20TPS 中调用 `Player::updatePhysics()`，输入由 `Player::handleMovementInput()` 缓存；每帧相机用当前物理累加器相对固定物理 tick 间隔的比例作为 partial tick，在 `prevPosition()` 与 `position()` 之间插值到玩家眼睛位置。传送或纠错应通过 `Player::setPosition()` 同步重置采样，避免插值拖影。
 
 ## 涉及的测试用例
 

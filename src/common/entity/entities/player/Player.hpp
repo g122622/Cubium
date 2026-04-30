@@ -806,6 +806,13 @@ public:
 
 private:
     /**
+     * @brief 按当前缓存输入向速度添加玩家加速度
+     *
+     * 该方法只应由固定 20TPS 的物理更新调用，避免渲染帧率影响玩家速度。
+     */
+    void applyCachedMovementInput(f32 groundSlipperiness);
+
+    /**
      * @brief 处理水中移动
      *
      * 参考MC LivingEntity.travel() 水中分支
@@ -821,6 +828,14 @@ private:
      * @brief 应用移动速度修正
      */
     void applyMovementSpeed(f32& speed, bool sneaking) const;
+
+    /**
+     * @brief 获取当前脚下方块的滑度
+     *
+     * 用于复刻 MC 1.16.5 的地面摩擦公式：脚下方块滑度乘以 0.91。
+     * @return 脚下方块滑度；没有世界或方块数据时返回默认滑度 0.6
+     */
+    [[nodiscard]] f32 groundSlipperiness() const;
 
     /**
      * @brief 重置过小的速度为零
@@ -856,6 +871,11 @@ private:
     bool m_isSneaking = false;
     bool m_isSwimming = false;
     bool m_isSleeping = false;
+
+    f32 m_inputForward = 0.0f;
+    f32 m_inputStrafe = 0.0f;
+    bool m_inputJumping = false;
+    bool m_inputSneaking = false;
 
     i32 sleepTimer = 0;
 

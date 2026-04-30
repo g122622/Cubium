@@ -202,6 +202,9 @@ constexpr f32 FLY_VERTICAL_DRAG = 0.6f;
 /// 飞行水平阻力
 constexpr f32 FLY_HORIZONTAL_DRAG = 0.91f;
 
+/// 飞行垂直输入倍率
+constexpr f32 FLY_VERTICAL_INPUT_MULTIPLIER = 3.0f;
+
 /// 冲刺飞行速度倍率
 constexpr f32 SPRINT_FLY_MULTIPLIER = 2.0f;
 

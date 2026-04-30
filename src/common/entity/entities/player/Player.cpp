@@ -13,6 +13,7 @@
 #include "../../inventory/CreativeInventory.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "spdlog/spdlog.h"
@@ -400,12 +401,25 @@ void Player::update() {
  * 飞行上升/下降: ClientPlayerEntity.java:788-801 - 使用 flySpeed * 3.0F
  */
 void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking) {
+    m_inputForward = forward;
+    m_inputStrafe = strafe;
+    m_inputJumping = jumping;
+    m_inputSneaking = sneaking;
+    m_isJumping = jumping;
+}
+
+void Player::applyCachedMovementInput(f32 groundSlipperiness) {
+    const f32 forward = m_inputForward;
+    const f32 strafe = m_inputStrafe;
+    const bool jumping = m_inputJumping;
+    const bool sneaking = m_inputSneaking;
+
     // 更新跳跃状态（用于动画等）
     m_isJumping = jumping;
-
-    // 先刷新环境状态，保证水中/岩浆中的输入分支基于当前世界状态。
-    updateEnvironmentState();
-    checkOnGround();
+    const bool wantsSneaking = sneaking && !m_abilities.flying;
+    if (wantsSneaking || m_isSneaking) {
+        setSneaking(wantsSneaking);
+    }
 
     // 水中移动使用特殊物理
     // 参考 MC LivingEntity.travel() 水中分支
@@ -424,60 +438,41 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
     // 参考MC: LivingEntity.getRelevantMoveFactor() - 在空中时使用jumpMovementFactor
     // 参考MC: PlayerEntity.travel() line 1448 - 飞行时jumpMovementFactor = flySpeed * (sprinting ? 2 : 1)
     f32 speedFactor = m_abilities.walkSpeed;
-    if (m_isSprinting) {
+    if (!m_abilities.flying) {
+        if (m_onGround) {
+            speedFactor = physics::getGroundMoveFactor(static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_abilities.walkSpeed)), groundSlipperiness);
+        } else {
+            speedFactor = m_isSprinting ? physics::SPRINT_JUMP_MOVEMENT_FACTOR : physics::JUMP_MOVEMENT_FACTOR;
+        }
+    }
+    if (m_isSprinting && m_onGround && !m_abilities.flying) {
         speedFactor *= physics::SPRINT_SPEED_MULTIPLIER;
     }
     if (sneaking && !m_abilities.flying) {
         speedFactor *= physics::SNEAK_SPEED_MULTIPLIER;
     }
     if (m_abilities.flying) {
-        // 飞行时使用flySpeed作为速度因子
-        // MC: this.jumpMovementFactor = this.abilities.getFlySpeed() * (float)(this.isSprinting() ? 2 : 1);
         speedFactor = m_abilities.flySpeed * (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
     }
 
-    // 根据朝向计算移动方向（只有有输入时才处理）
-    // MC: moveRelative() 调用 getAbsoluteMotion() 然后添加到速度
     if (forward != 0.0f || strafe != 0.0f) {
-        // MC坐标系: yaw单位是度，转换为弧度
-        // MC中: yaw=0 看向 -Z, yaw=90 看向 +X
         f32 yawRad = m_yaw * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
-        // MC的getAbsoluteMotion公式
-        // moveX = strafe * cosYaw - forward * sinYaw
-        // moveZ = forward * cosYaw + strafe * sinYaw
         f32 moveX = strafe * cosYaw - forward * sinYaw;
         f32 moveZ = forward * cosYaw + strafe * sinYaw;
 
-        // 归一化
         f32 length = std::sqrt(moveX * moveX + moveZ * moveZ);
         if (length > 0.0f) {
             moveX /= length;
             moveZ /= length;
         }
 
-        // 关键：MC中是**添加**到速度，而不是替换！
-        // 参考 MC Entity.moveRelative() line 1168:
-        //   this.setMotion(this.getMotion().add(vector3d));
         m_velocity.x += moveX * speedFactor;
         m_velocity.z += moveZ * speedFactor;
     }
-    // 注意：没有输入时不重置速度，让阻力系统自然减速
-    // 这样更符合MC的行为（速度会逐渐衰减而不是立即停止）
 
-    // 处理飞行上升/下降
-    // 参考 MC ClientPlayerEntity.livingTick() lines 788-801:
-    // if (this.abilities.isFlying && this.isCurrentViewEntity()) {
-    //     int j = 0;
-    //     if (this.movementInput.sneaking) --j;
-    //     if (this.movementInput.jump) ++j;
-    //     if (j != 0) {
-    //         this.setMotion(this.getMotion().add(0.0D, (double)((float)j * this.abilities.getFlySpeed() * 3.0F), 0.0D));
-    //     }
-    // }
-    // 关键：飞行上升/下降速度是 flySpeed * 3.0，而且是**添加**到Y速度
     if (m_abilities.flying) {
         i32 verticalInput = 0;
         if (jumping) {
@@ -487,14 +482,10 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
             verticalInput -= 1;
         }
         if (verticalInput != 0) {
-            // 飞行时上升/下降速度 = flySpeed * 3.0
-            // 如果冲刺则再乘以2
-            f32 verticalSpeed = m_abilities.flySpeed * 3.0f * (m_isSprinting ? 2.0f : 1.0f);
+            f32 verticalSpeed = m_abilities.flySpeed * physics::FLY_VERTICAL_INPUT_MULTIPLIER * (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
             m_velocity.y += static_cast<f32>(verticalInput) * verticalSpeed;
         }
-        // 注意：飞行时Y速度的衰减在updatePhysics中处理（0.6倍）
     } else {
-        // 非飞行模式下处理跳跃
         if (jumping && m_onGround && m_jumpTicks == 0) {
             jump();
         }
@@ -690,6 +681,23 @@ void Player::clampMotion() {
     if (std::abs(m_velocity.z) < physics::MOTION_THRESHOLD) m_velocity.z = 0.0f;
 }
 
+f32 Player::groundSlipperiness() const {
+    if (!m_onGround || m_world == nullptr) {
+        return physics::SLIPPERINESS_DEFAULT;
+    }
+
+    BlockPos blockPos(
+        static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
+        static_cast<i32>(std::floor(m_position.z))
+    );
+    const BlockState* blockState = m_world->getBlockState(blockPos);
+    if (blockState == nullptr) {
+        return physics::SLIPPERINESS_DEFAULT;
+    }
+    return blockState->getBlock().getSlipperiness(*blockState, m_world, &blockPos, this);
+}
+
 /**
  * @brief 潜行时检查是否可以移动到边缘
  *
@@ -762,6 +770,9 @@ void Player::updatePhysics() {
     updateEnvironmentState();
     checkOnGround();
 
+    const f32 tickGroundSlipperiness = groundSlipperiness();
+    applyCachedMovementInput(tickGroundSlipperiness);
+
     // 水中和岩浆中的物理在 handleWaterMovement/handleLavaMovement 中已处理
     // 这里只处理地面和空中的物理
     if ((isInWater() || isInLava()) && !m_abilities.flying) {
@@ -787,14 +798,14 @@ void Player::updatePhysics() {
             // 飞行模式：参考 MC PlayerEntity.travel() line 1451
             // this.setMotion(vector3d.x, d5 * 0.6D, vector3d.z);
             // 其中 d5 是旅行前的Y速度
-            m_velocity.x *= physics::DRAG_GROUND;  // 0.91 (水平阻力)
-            m_velocity.y *= 0.6f;                    // 飞行Y阻力 (MC: 0.6D)
-            m_velocity.z *= physics::DRAG_GROUND;  // 0.91 (水平阻力)
+            m_velocity.x *= physics::FLY_HORIZONTAL_DRAG;
+            m_velocity.y *= physics::FLY_VERTICAL_DRAG;
+            m_velocity.z *= physics::FLY_HORIZONTAL_DRAG;
         } else {
-            // 非飞行模式：应用空气阻力
-            m_velocity.x *= physics::DRAG_AIR;     // 0.98
-            m_velocity.y *= physics::DRAG_AIR;     // 0.98
-            m_velocity.z *= physics::DRAG_AIR;     // 0.98
+            const f32 horizontalDrag = m_onGround ? tickGroundSlipperiness * physics::DRAG_GROUND : physics::DRAG_GROUND;
+            m_velocity.x *= horizontalDrag;
+            m_velocity.y *= physics::DRAG_AIR;
+            m_velocity.z *= horizontalDrag;
         }
 
         // 4. 如果在地面，停止Y方向速度（防止下落速度累积）

@@ -51,6 +51,7 @@
 #include <vulkan/vulkan.h>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <thread>
 
@@ -307,13 +308,22 @@ void ClientApplication::update(f32 deltaTime)
 
     // 更新玩家物理
     if (m_player) {
-        // 应用物理（重力、碰撞检测）
-        m_player->updatePhysics();
+        m_playerPhysicsAccumulator += std::min(deltaTime, PLAYER_PHYSICS_INTERVAL * 5.0f);
+        bool physicsUpdated = false;
+        i32 physicsSteps = 0;
+        while (m_playerPhysicsAccumulator >= PLAYER_PHYSICS_INTERVAL && physicsSteps < 5) {
+            m_playerPhysicsAccumulator -= PLAYER_PHYSICS_INTERVAL;
+            m_player->updatePhysics();
+            physicsUpdated = true;
+            ++physicsSteps;
+        }
+        if (physicsSteps == 5) {
+            m_playerPhysicsAccumulator = 0.0f;
+        }
 
-        // 处理脚步声和游泳声
-        // updateMoveDistance 在 Player::updatePhysics 中调用
-        // 这里检查是否需要播放音频
-        updatePlayerAudio();
+        if (physicsUpdated) {
+            updatePlayerAudio();
+        }
 
         // 计算视野晃动
         // 参考 MC 1.16.5 GameRenderer.getCameraPosition()
@@ -350,11 +360,14 @@ void ClientApplication::update(f32 deltaTime)
             }
         }
 
+        const f32 partialTick = std::clamp(m_playerPhysicsAccumulator / PLAYER_PHYSICS_INTERVAL, 0.0f, 1.0f);
+        const Vector3 renderPosition = m_player->prevPosition().lerp(m_player->position(), partialTick);
+
         // 同步相机位置到玩家眼睛位置
         m_camera.setPosition(
-            static_cast<f32>(m_player->x()) + bobX,
-            static_cast<f32>(m_player->y() + m_player->eyeHeight()) - bobY,
-            static_cast<f32>(m_player->z())
+            renderPosition.x + bobX,
+            renderPosition.y + static_cast<f32>(m_player->eyeHeight()) - bobY,
+            renderPosition.z
         );
         m_camera.setYaw(m_player->yaw());
         m_camera.setPitch(m_player->pitch());
@@ -365,11 +378,11 @@ void ClientApplication::update(f32 deltaTime)
         m_cameraController.update(deltaTime);
     }
 
-    // 发送玩家位置到服务端（限制频率）
+    // 发送玩家位置到服务端（物理 tick 后最多 20 TPS）
     if (m_networkClient && m_networkClient->isLoggedIn() && m_player) {
         m_positionSendAccumulator += deltaTime;
         if (m_positionSendAccumulator >= POSITION_SEND_INTERVAL) {
-            m_positionSendAccumulator = 0.0f;
+            m_positionSendAccumulator = std::fmod(m_positionSendAccumulator, POSITION_SEND_INTERVAL);
             sendPlayerPosition();
         }
     }

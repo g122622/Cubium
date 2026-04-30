@@ -2,19 +2,15 @@
 #include "PacketSerializer.hpp"
 #include "../../entity/entities/player/Player.hpp"
 #include "../../entity/entities/player/GameModeUtils.hpp"
+#include "../../physics/PhysicsConstants.hpp"
 
 namespace mc::network {
-
-namespace {
-    constexpr f32 DEFAULT_FLY_SPEED = 0.05f;
-    constexpr f32 DEFAULT_WALK_SPEED = 0.1f;
-}
 
 PlayerAbilitiesPacket::PlayerAbilitiesPacket()
     : Packet(PacketType::PlayerAbilities)
     , m_flags(0)
-    , m_flySpeed(DEFAULT_FLY_SPEED)
-    , m_walkSpeed(DEFAULT_WALK_SPEED)
+    , m_flySpeed(physics::FLY_SPEED)
+    , m_walkSpeed(physics::WALK_SPEED)
 {
 }
 
@@ -31,9 +27,7 @@ PlayerAbilitiesPacket::PlayerAbilitiesPacket(const PlayerAbilities& abilities)
 }
 
 PlayerAbilitiesPacket PlayerAbilitiesPacket::fromPlayer(const Player& player) {
-    // 使用 GameModeUtils 计算能力
-    PlayerAbilities abilities = entity::GameModeUtils::getAbilitiesForGameMode(player.gameMode());
-    return PlayerAbilitiesPacket(abilities);
+    return PlayerAbilitiesPacket(player.abilities());
 }
 
 PlayerAbilitiesPacket PlayerAbilitiesPacket::fromGameMode(GameMode mode) {
