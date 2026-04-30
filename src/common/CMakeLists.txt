@@ -453,6 +453,7 @@ add_library(mc_common STATIC
     world/block/blocks/vegetation/LilyPadBlock.cpp
     world/block/blocks/vegetation/SweetBerryBushBlock.cpp
     world/block/blocks/vegetation/BambooBlock.cpp
+    world/block/blocks/vegetation/LeavesBlock.cpp
 
     # World - Block - Coral
     world/block/blocks/coral/CoralBlock.cpp

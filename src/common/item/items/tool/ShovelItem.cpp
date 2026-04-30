@@ -24,10 +24,13 @@ bool ShovelItem::canHarvestBlock(const BlockState& state) const {
         return m_tier.getHarvestLevel() >= state.getHarvestLevel();
     }
 
-    // 锹对雪类方块总是可以采集
-    // 注意：雪层可能需要特殊处理（多层雪）
-    const Material& mat = state.getMaterial();
-    if (mat == Material::SNOW) {
+    // MC 1.16.5: 锹对雪层(SNOW)和雪块(SNOW_BLOCK)总是可以采集
+    // 注意：需要检查具体方块而非仅材质，因为还有其他SNOW材质的方块可能需要特殊处理
+    const Block& block = state.owner();
+    if (VanillaBlocks::SNOW && &block == VanillaBlocks::SNOW) {
+        return true;
+    }
+    if (VanillaBlocks::SNOW_BLOCK && &block == VanillaBlocks::SNOW_BLOCK) {
         return true;
     }
 
@@ -64,13 +67,16 @@ std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::PODZOL) blocks.insert(VanillaBlocks::PODZOL);
     if (VanillaBlocks::GRASS_PATH) blocks.insert(VanillaBlocks::GRASS_PATH);
     if (VanillaBlocks::MYCELIUM) blocks.insert(VanillaBlocks::MYCELIUM);
+    if (VanillaBlocks::FARMLAND) blocks.insert(VanillaBlocks::FARMLAND);
 
     // 沙子类
     if (VanillaBlocks::SAND) blocks.insert(VanillaBlocks::SAND);
+    if (VanillaBlocks::RED_SAND) blocks.insert(VanillaBlocks::RED_SAND);
     if (VanillaBlocks::GRAVEL) blocks.insert(VanillaBlocks::GRAVEL);
 
     // 雪类
     if (VanillaBlocks::SNOW) blocks.insert(VanillaBlocks::SNOW);
+    if (VanillaBlocks::SNOW_BLOCK) blocks.insert(VanillaBlocks::SNOW_BLOCK);
 
     // 粘土
     if (VanillaBlocks::CLAY) blocks.insert(VanillaBlocks::CLAY);
@@ -78,6 +84,24 @@ std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks() {
     // 灵魂沙/土
     if (VanillaBlocks::SOUL_SAND) blocks.insert(VanillaBlocks::SOUL_SAND);
     if (VanillaBlocks::SOUL_SOIL) blocks.insert(VanillaBlocks::SOUL_SOIL);
+
+    // 混凝土粉末（16色）
+    if (VanillaBlocks::WHITE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::WHITE_CONCRETE_POWDER);
+    if (VanillaBlocks::ORANGE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::ORANGE_CONCRETE_POWDER);
+    if (VanillaBlocks::MAGENTA_CONCRETE_POWDER) blocks.insert(VanillaBlocks::MAGENTA_CONCRETE_POWDER);
+    if (VanillaBlocks::LIGHT_BLUE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::LIGHT_BLUE_CONCRETE_POWDER);
+    if (VanillaBlocks::YELLOW_CONCRETE_POWDER) blocks.insert(VanillaBlocks::YELLOW_CONCRETE_POWDER);
+    if (VanillaBlocks::LIME_CONCRETE_POWDER) blocks.insert(VanillaBlocks::LIME_CONCRETE_POWDER);
+    if (VanillaBlocks::PINK_CONCRETE_POWDER) blocks.insert(VanillaBlocks::PINK_CONCRETE_POWDER);
+    if (VanillaBlocks::GRAY_CONCRETE_POWDER) blocks.insert(VanillaBlocks::GRAY_CONCRETE_POWDER);
+    if (VanillaBlocks::LIGHT_GRAY_CONCRETE_POWDER) blocks.insert(VanillaBlocks::LIGHT_GRAY_CONCRETE_POWDER);
+    if (VanillaBlocks::CYAN_CONCRETE_POWDER) blocks.insert(VanillaBlocks::CYAN_CONCRETE_POWDER);
+    if (VanillaBlocks::PURPLE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::PURPLE_CONCRETE_POWDER);
+    if (VanillaBlocks::BLUE_CONCRETE_POWDER) blocks.insert(VanillaBlocks::BLUE_CONCRETE_POWDER);
+    if (VanillaBlocks::BROWN_CONCRETE_POWDER) blocks.insert(VanillaBlocks::BROWN_CONCRETE_POWDER);
+    if (VanillaBlocks::GREEN_CONCRETE_POWDER) blocks.insert(VanillaBlocks::GREEN_CONCRETE_POWDER);
+    if (VanillaBlocks::RED_CONCRETE_POWDER) blocks.insert(VanillaBlocks::RED_CONCRETE_POWDER);
+    if (VanillaBlocks::BLACK_CONCRETE_POWDER) blocks.insert(VanillaBlocks::BLACK_CONCRETE_POWDER);
 
     return blocks;
 }

@@ -33,7 +33,7 @@ f32 HoeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) co
 
 bool HoeItem::isEffectiveMaterial(const Material& material) const {
     // 锄对树叶材质有效
-    return material == Material::LEAVES || material == Material::MOSS;
+    return material == Material::LEAVES;
 }
 
 std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
@@ -56,6 +56,15 @@ std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
 
     // 地狱疣块
     if (VanillaBlocks::NETHER_WART_BLOCK) blocks.insert(VanillaBlocks::NETHER_WART_BLOCK);
+
+    // 干海带块
+    if (VanillaBlocks::DRIED_KELP_BLOCK) blocks.insert(VanillaBlocks::DRIED_KELP_BLOCK);
+
+    // 标靶方块
+    if (VanillaBlocks::TARGET) blocks.insert(VanillaBlocks::TARGET);
+
+    // 荧光块
+    if (VanillaBlocks::SHROOMLIGHT) blocks.insert(VanillaBlocks::SHROOMLIGHT);
 
     return blocks;
 }

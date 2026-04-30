@@ -77,6 +77,9 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::GRANITE) blocks.insert(VanillaBlocks::GRANITE);
     if (VanillaBlocks::DIORITE) blocks.insert(VanillaBlocks::DIORITE);
     if (VanillaBlocks::ANDESITE) blocks.insert(VanillaBlocks::ANDESITE);
+    if (VanillaBlocks::POLISHED_GRANITE) blocks.insert(VanillaBlocks::POLISHED_GRANITE);
+    if (VanillaBlocks::POLISHED_DIORITE) blocks.insert(VanillaBlocks::POLISHED_DIORITE);
+    if (VanillaBlocks::POLISHED_ANDESITE) blocks.insert(VanillaBlocks::POLISHED_ANDESITE);
 
     // 矿物方块
     if (VanillaBlocks::IRON_BLOCK) blocks.insert(VanillaBlocks::IRON_BLOCK);
@@ -84,6 +87,7 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::DIAMOND_BLOCK) blocks.insert(VanillaBlocks::DIAMOND_BLOCK);
     if (VanillaBlocks::EMERALD_BLOCK) blocks.insert(VanillaBlocks::EMERALD_BLOCK);
     if (VanillaBlocks::LAPIS_BLOCK) blocks.insert(VanillaBlocks::LAPIS_BLOCK);
+    if (VanillaBlocks::REDSTONE_BLOCK) blocks.insert(VanillaBlocks::REDSTONE_BLOCK);
 
     // 下界矿石
     if (VanillaBlocks::NETHER_QUARTZ_ORE) blocks.insert(VanillaBlocks::NETHER_QUARTZ_ORE);
@@ -93,18 +97,59 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks() {
     // 石砖系列
     if (VanillaBlocks::STONE_BRICKS) blocks.insert(VanillaBlocks::STONE_BRICKS);
     if (VanillaBlocks::MOSSY_STONE_BRICKS) blocks.insert(VanillaBlocks::MOSSY_STONE_BRICKS);
+    if (VanillaBlocks::CRACKED_STONE_BRICKS) blocks.insert(VanillaBlocks::CRACKED_STONE_BRICKS);
+    if (VanillaBlocks::CHISELED_STONE_BRICKS) blocks.insert(VanillaBlocks::CHISELED_STONE_BRICKS);
+
+    // 砂岩系列
+    if (VanillaBlocks::SANDSTONE) blocks.insert(VanillaBlocks::SANDSTONE);
+    if (VanillaBlocks::RED_SANDSTONE) blocks.insert(VanillaBlocks::RED_SANDSTONE);
+    if (VanillaBlocks::CHISELED_SANDSTONE) blocks.insert(VanillaBlocks::CHISELED_SANDSTONE);
+    if (VanillaBlocks::CUT_SANDSTONE) blocks.insert(VanillaBlocks::CUT_SANDSTONE);
 
     // 石英方块
     if (VanillaBlocks::QUARTZ_BLOCK) blocks.insert(VanillaBlocks::QUARTZ_BLOCK);
+    if (VanillaBlocks::CHISELED_QUARTZ_BLOCK) blocks.insert(VanillaBlocks::CHISELED_QUARTZ_BLOCK);
+    if (VanillaBlocks::QUARTZ_PILLAR) blocks.insert(VanillaBlocks::QUARTZ_PILLAR);
+
+    // 紫珀方块
+    if (VanillaBlocks::PURPUR_BLOCK) blocks.insert(VanillaBlocks::PURPUR_BLOCK);
+    if (VanillaBlocks::PURPUR_PILLAR) blocks.insert(VanillaBlocks::PURPUR_PILLAR);
+
+    // 海晶系列
+    if (VanillaBlocks::PRISMARINE) blocks.insert(VanillaBlocks::PRISMARINE);
+    if (VanillaBlocks::PRISMARINE_BRICKS) blocks.insert(VanillaBlocks::PRISMARINE_BRICKS);
+    if (VanillaBlocks::DARK_PRISMARINE) blocks.insert(VanillaBlocks::DARK_PRISMARINE);
+    if (VanillaBlocks::SEA_LANTERN) blocks.insert(VanillaBlocks::SEA_LANTERN);
+
+    // 黑石系列
+    if (VanillaBlocks::BLACKSTONE) blocks.insert(VanillaBlocks::BLACKSTONE);
+    if (VanillaBlocks::POLISHED_BLACKSTONE) blocks.insert(VanillaBlocks::POLISHED_BLACKSTONE);
+
+    // 末地石系列
+    if (VanillaBlocks::END_STONE) blocks.insert(VanillaBlocks::END_STONE);
+    if (VanillaBlocks::END_STONE_BRICKS) blocks.insert(VanillaBlocks::END_STONE_BRICKS);
 
     // 其他石头类
     if (VanillaBlocks::BRICKS) blocks.insert(VanillaBlocks::BRICKS);
     if (VanillaBlocks::OBSIDIAN) blocks.insert(VanillaBlocks::OBSIDIAN);
+    if (VanillaBlocks::CRYING_OBSIDIAN) blocks.insert(VanillaBlocks::CRYING_OBSIDIAN);
     if (VanillaBlocks::NETHERRACK) blocks.insert(VanillaBlocks::NETHERRACK);
-    if (VanillaBlocks::END_STONE) blocks.insert(VanillaBlocks::END_STONE);
-    if (VanillaBlocks::GLOWSTONE) blocks.insert(VanillaBlocks::GLOWSTONE);
     if (VanillaBlocks::BASALT) blocks.insert(VanillaBlocks::BASALT);
-    if (VanillaBlocks::BLACKSTONE) blocks.insert(VanillaBlocks::BLACKSTONE);
+    if (VanillaBlocks::POLISHED_BASALT) blocks.insert(VanillaBlocks::POLISHED_BASALT);
+    if (VanillaBlocks::GLOWSTONE) blocks.insert(VanillaBlocks::GLOWSTONE);
+    if (VanillaBlocks::MAGMA) blocks.insert(VanillaBlocks::MAGMA);
+
+    // 冰类
+    if (VanillaBlocks::ICE) blocks.insert(VanillaBlocks::ICE);
+    if (VanillaBlocks::PACKED_ICE) blocks.insert(VanillaBlocks::PACKED_ICE);
+    if (VanillaBlocks::BLUE_ICE) blocks.insert(VanillaBlocks::BLUE_ICE);
+
+    // 骨块
+    if (VanillaBlocks::BONE_BLOCK) blocks.insert(VanillaBlocks::BONE_BLOCK);
+
+    // 信标和潮涌核心
+    if (VanillaBlocks::BEACON) blocks.insert(VanillaBlocks::BEACON);
+    if (VanillaBlocks::CONDUIT) blocks.insert(VanillaBlocks::CONDUIT);
 
     return blocks;
 }

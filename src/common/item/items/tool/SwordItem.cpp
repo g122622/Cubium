@@ -24,12 +24,14 @@ f32 SwordItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) 
         return 15.0f;
     }
 
-    // 剑对植物有轻微效率
+    // 剑对植物、珊瑚、葫芦材质有轻微效率
     const Material& mat = state.getMaterial();
     if (mat == Material::PLANT ||
         mat == Material::REPLACEABLE_PLANT ||
         mat == Material::TALL_PLANTS ||
-        mat == Material::LEAVES) {
+        mat == Material::LEAVES ||
+        mat == Material::CORAL ||
+        mat == Material::GOURD) {
         return 1.5f;
     }
 

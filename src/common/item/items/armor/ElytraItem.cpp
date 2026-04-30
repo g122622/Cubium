@@ -46,7 +46,8 @@ void ElytraItem::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
 }
 
 bool ElytraItem::isUsable(const ItemStack& stack) {
-    return !stack.isEmpty() && stack.isDamageable() && stack.getDamage() < stack.getMaxDamage();
+    // MC 1.16.5: 差1点耐久时还能使用
+    return !stack.isEmpty() && stack.isDamageable() && stack.getDamage() < stack.getMaxDamage() - 1;
 }
 
 bool ElytraItem::isGliding(const LivingEntity& entity) {

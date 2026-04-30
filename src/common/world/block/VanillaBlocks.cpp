@@ -20,6 +20,7 @@
 #include "blocks/vegetation/SugarCaneBlock.hpp"
 #include "blocks/vegetation/TallGrassBlock.hpp"
 #include "blocks/vegetation/BambooBlock.hpp"
+#include "blocks/vegetation/LeavesBlock.hpp"
 #include "blocks/agricultural/FarmlandBlock.hpp"
 #include "blocks/mob/MobBlocks.hpp"
 #include "blocks/coral/CoralBlock.hpp"
@@ -903,14 +904,12 @@ void VanillaBlocks::registerLogBlocks() {
     );
 
     // 橡木树叶 - ID 17
-    OAK_LEAVES = &registry.registerBlock<SimpleBlock>(
+    OAK_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
         ResourceLocation("minecraft:oak_leaves"),
         BlockProperties(Material::LEAVES)
             .hardness(0.2f)
             .flammable()
             .notSolid()
-            .opacity(1)
-            .propagatesSkylightDown()
     );
 }
 
@@ -1348,31 +1347,31 @@ void VanillaBlocks::registerTreeVariants() {
     // 云杉原木和树叶
     SPRUCE_LOG = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:spruce_log"), logProps);
-    SPRUCE_LEAVES = &registry.registerBlock<SimpleBlock>(
+    SPRUCE_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
         ResourceLocation("minecraft:spruce_leaves"), leavesProps);
 
     // 白桦原木和树叶
     BIRCH_LOG = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:birch_log"), logProps);
-    BIRCH_LEAVES = &registry.registerBlock<SimpleBlock>(
+    BIRCH_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
         ResourceLocation("minecraft:birch_leaves"), leavesProps);
 
     // 丛林原木和树叶
     JUNGLE_LOG = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:jungle_log"), logProps);
-    JUNGLE_LEAVES = &registry.registerBlock<SimpleBlock>(
+    JUNGLE_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
         ResourceLocation("minecraft:jungle_leaves"), leavesProps);
 
     // 金合欢原木和树叶
     ACACIA_LOG = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:acacia_log"), logProps);
-    ACACIA_LEAVES = &registry.registerBlock<SimpleBlock>(
+    ACACIA_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
         ResourceLocation("minecraft:acacia_leaves"), leavesProps);
 
     // 深色橡木原木和树叶
     DARK_OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:dark_oak_log"), logProps);
-    DARK_OAK_LEAVES = &registry.registerBlock<SimpleBlock>(
+    DARK_OAK_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
         ResourceLocation("minecraft:dark_oak_leaves"), leavesProps);
 }
 

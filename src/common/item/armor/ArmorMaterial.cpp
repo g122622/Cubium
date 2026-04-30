@@ -61,10 +61,11 @@ i32 ChainArmorMaterial::getDurability(ArmorSlot slot) const {
 }
 
 i32 ChainArmorMaterial::getDefense(ArmorSlot slot) const {
+    // MC 1.16.5: Head=1, Chest=4, Legs=5, Feet=1
     switch (slot) {
-        case ArmorSlot::Head:  return 2;
-        case ArmorSlot::Chest: return 5;
-        case ArmorSlot::Legs:  return 4;
+        case ArmorSlot::Head:  return 1;
+        case ArmorSlot::Chest: return 4;
+        case ArmorSlot::Legs:  return 5;
         case ArmorSlot::Feet:  return 1;
         default: return 0;
     }
@@ -115,11 +116,12 @@ i32 GoldArmorMaterial::getDurability(ArmorSlot slot) const {
 }
 
 i32 GoldArmorMaterial::getDefense(ArmorSlot slot) const {
+    // MC 1.16.5: Head=2, Chest=5, Legs=3, Feet=2
     switch (slot) {
         case ArmorSlot::Head:  return 2;
         case ArmorSlot::Chest: return 5;
         case ArmorSlot::Legs:  return 3;
-        case ArmorSlot::Feet:  return 1;
+        case ArmorSlot::Feet:  return 2;
         default: return 0;
     }
 }
