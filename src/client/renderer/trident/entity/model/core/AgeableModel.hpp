@@ -45,6 +45,16 @@ public:
 
     void render(f64 scale = 1.0f / 16.0f) override;
 
+    /**
+     * @brief 按原版幼体头身分离矩阵生成模型网格
+     * @param vertices 顶点输出缓冲区
+     * @param indices 索引输出缓冲区
+     * @param scale 模型空间到渲染空间的缩放因子
+     */
+    void generateMesh(std::vector<ModelVertex>& vertices,
+                      std::vector<u32>& indices,
+                      f64 scale) const override;
+
     void setAngles(f64 limbSwing, f64 limbSwingAmount,
                    f64 ageInTicks, f64 netHeadYaw,
                    f64 headPitch, f64 scale) override;
@@ -55,7 +65,7 @@ public:
      * 参考 MC 1.16.5 EntityModel.setLivingAnimations
      * 用于在每帧设置模型状态（位置、状态变量）
      */
-    virtual void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick);
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
 
     // ========== 幼体状态 ==========
 

@@ -127,7 +127,7 @@ public:
         context.partialTicks = partialTicks;
         context.limbSwing = getLimbSwing(entity, partialTicks);
         context.limbSwingAmount = getLimbSwingAmount(entity, partialTicks);
-        context.ageInTicks = getAgeInTicks(entity);
+        context.ageInTicks = getAgeInTicks(entity) + partialTicks;
         context.netHeadYaw = getHeadYaw(entity, partialTicks);
         context.headPitch = getHeadPitch(entity, partialTicks);
         context.scale = getScale(entity) * (1.0 / 16.0);
@@ -273,7 +273,7 @@ void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks) {
     // 计算动画参数
     f64 limbSwing = getLimbSwing(living, partialTicks);
     f64 limbSwingAmount = getLimbSwingAmount(living, partialTicks);
-    f64 ageInTicks = getAgeInTicks(living);
+    f64 ageInTicks = getAgeInTicks(living) + partialTicks;
     f64 headYaw = getHeadYaw(living, partialTicks);
     f64 headPitch = getHeadPitch(living, partialTicks);
 
@@ -317,7 +317,7 @@ template<typename TEntity, typename TModel>
 void LivingRenderer<TEntity, TModel>::setModelAngles(TEntity& entity, f64 partialTicks) {
     f64 limbSwing = getLimbSwing(entity, partialTicks);
     f64 limbSwingAmount = getLimbSwingAmount(entity, partialTicks);
-    f64 ageInTicks = getAgeInTicks(entity);
+    f64 ageInTicks = getAgeInTicks(entity) + partialTicks;
     f64 headYaw = getHeadYaw(entity, partialTicks);
     f64 headPitch = getHeadPitch(entity, partialTicks);
     f64 scale = getScale(entity);

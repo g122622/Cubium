@@ -29,7 +29,7 @@ void EntityModel::copyAnglesTo(EntityModel& target) const {
     assert(m_parts.size() == target.m_parts.size());
 
     for (std::size_t index = 0; index < m_parts.size(); ++index) {
-        m_parts[index]->copyModelAngles(*target.m_parts[index]);
+        target.m_parts[index]->copyModelAngles(*m_parts[index]);
     }
 }
 
@@ -37,7 +37,7 @@ void EntityModel::copyAnglesFrom(const EntityModel& source) {
     assert(source.m_parts.size() == m_parts.size());
 
     for (std::size_t index = 0; index < source.m_parts.size(); ++index) {
-        source.m_parts[index]->copyModelAngles(*m_parts[index]);
+        m_parts[index]->copyModelAngles(*source.m_parts[index]);
     }
 }
 

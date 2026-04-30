@@ -471,15 +471,15 @@ HandSide BipedModel::getMainHand() const {
     return (m_mainHand == HandSide::Left) ? HandSide::Right : HandSide::Left;
 }
 
-f32 BipedModel::rotLerpRad(f32 angle, f32 maxAngle, f32 target) {
-    f32 f = std::fmod(target - maxAngle, static_cast<f32>(mc::math::PI_DOUBLE * 2.0));
-    if (f < -static_cast<f32>(mc::math::PI_DOUBLE)) {
-        f += static_cast<f32>(mc::math::PI_DOUBLE * 2.0);
+f32 BipedModel::rotLerpRad(f32 angle, f64 maxAngle, f64 target) {
+    f64 f = std::fmod(target - maxAngle, mc::math::PI_DOUBLE * 2.0);
+    if (f < -mc::math::PI_DOUBLE) {
+        f += mc::math::PI_DOUBLE * 2.0;
     }
-    if (f >= static_cast<f32>(mc::math::PI_DOUBLE)) {
-        f -= static_cast<f32>(mc::math::PI_DOUBLE * 2.0);
+    if (f >= mc::math::PI_DOUBLE) {
+        f -= mc::math::PI_DOUBLE * 2.0;
     }
-    return maxAngle + angle * f;
+    return static_cast<f32>(maxAngle + static_cast<f64>(angle) * f);
 }
 
 f32 BipedModel::getArmAngleSq(f32 limbSwing) {

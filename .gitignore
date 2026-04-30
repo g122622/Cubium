@@ -57,3 +57,7 @@ third_party/
 *.perfetto-trace
 
 .obsidian/
+
+.cache/
+
+.claude/worktrees/

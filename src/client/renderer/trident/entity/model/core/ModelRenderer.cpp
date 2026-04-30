@@ -1,6 +1,7 @@
 #include "ModelRenderer.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cstddef>
 
 namespace mc::client::renderer::entity::model {
 
@@ -11,9 +12,9 @@ namespace mc::client::renderer::entity::model {
 TexturedQuad::TexturedQuad(const std::array<Vector3f, 4>& positions,
                            f64 u1, f64 v1, f64 u2, f64 v2,
                            f64 texWidth, f64 texHeight,
-                           const Vector3f& normal,
+                           const Vector3f& faceNormal,
                            bool mirror)
-    : normal(normal)
+    : normal(faceNormal)
 {
     // 计算UV坐标（归一化到0-1范围）
     f32 u1n = static_cast<f32>(u1 / texWidth);
@@ -21,20 +22,18 @@ TexturedQuad::TexturedQuad(const std::array<Vector3f, 4>& positions,
     f32 u2n = static_cast<f32>(u2 / texWidth);
     f32 v2n = static_cast<f32>(v2 / texHeight);
 
-    // 设置顶点UV坐标
-    // 顶点顺序：右下 -> 左下 -> 左上 -> 右上（逆时针，符合OpenGL约定）
+    vertices[0] = ModelVertex(positions[0], Vector2f(u2n, v1n), normal);
+    vertices[1] = ModelVertex(positions[1], Vector2f(u1n, v1n), normal);
+    vertices[2] = ModelVertex(positions[2], Vector2f(u1n, v2n), normal);
+    vertices[3] = ModelVertex(positions[3], Vector2f(u2n, v2n), normal);
+
     if (mirror) {
-        // 镜像：交换顶点顺序
-        vertices[0] = ModelVertex(positions[0], Vector2f(u1n, v1n), normal);
-        vertices[1] = ModelVertex(positions[1], Vector2f(u2n, v1n), normal);
-        vertices[2] = ModelVertex(positions[2], Vector2f(u2n, v2n), normal);
-        vertices[3] = ModelVertex(positions[3], Vector2f(u1n, v2n), normal);
-    } else {
-        // 正常顺序
-        vertices[0] = ModelVertex(positions[0], Vector2f(u2n, v1n), normal);
-        vertices[1] = ModelVertex(positions[1], Vector2f(u1n, v1n), normal);
-        vertices[2] = ModelVertex(positions[2], Vector2f(u1n, v2n), normal);
-        vertices[3] = ModelVertex(positions[3], Vector2f(u2n, v2n), normal);
+        std::swap(vertices[0], vertices[3]);
+        std::swap(vertices[1], vertices[2]);
+        normal.x = -normal.x;
+        for (auto& vertex : vertices) {
+            vertex.normal = normal;
+        }
     }
 }
 
@@ -269,9 +268,12 @@ std::array<f64, 16> ModelRenderer::multiplyMatrices(const std::array<f64, 16>& a
     std::array<f64, 16> result;
     for (int row = 0; row < 4; ++row) {
         for (int col = 0; col < 4; ++col) {
-            result[row * 4 + col] = 0.0f;
+            const auto resultIndex = static_cast<std::size_t>(row * 4 + col);
+            result[resultIndex] = 0.0f;
             for (int k = 0; k < 4; ++k) {
-                result[row * 4 + col] += a[row * 4 + k] * b[k * 4 + col];
+                result[resultIndex] +=
+                    a[static_cast<std::size_t>(row * 4 + k)] *
+                    b[static_cast<std::size_t>(k * 4 + col)];
             }
         }
     }
@@ -334,24 +336,24 @@ ModelVertex ModelRenderer::transformVertex(const ModelVertex& vertex, const std:
     ModelVertex result;
 
     // 变换位置 (齐次坐标)
-    result.position.x = m[0] * vertex.position.x + m[1] * vertex.position.y + m[2] * vertex.position.z + m[3];
-    result.position.y = m[4] * vertex.position.x + m[5] * vertex.position.y + m[6] * vertex.position.z + m[7];
-    result.position.z = m[8] * vertex.position.x + m[9] * vertex.position.y + m[10] * vertex.position.z + m[11];
+    result.position.x = static_cast<f32>(m[0] * vertex.position.x + m[1] * vertex.position.y + m[2] * vertex.position.z + m[3]);
+    result.position.y = static_cast<f32>(m[4] * vertex.position.x + m[5] * vertex.position.y + m[6] * vertex.position.z + m[7]);
+    result.position.z = static_cast<f32>(m[8] * vertex.position.x + m[9] * vertex.position.y + m[10] * vertex.position.z + m[11]);
 
     // 变换法线 (只使用旋转部分，假设矩阵是正交的)
     // 对于包含缩放的矩阵，需要使用逆转置矩阵，但这里简化处理
-    result.normal.x = m[0] * vertex.normal.x + m[1] * vertex.normal.y + m[2] * vertex.normal.z;
-    result.normal.y = m[4] * vertex.normal.x + m[5] * vertex.normal.y + m[6] * vertex.normal.z;
-    result.normal.z = m[8] * vertex.normal.x + m[9] * vertex.normal.y + m[10] * vertex.normal.z;
+    result.normal.x = static_cast<f32>(m[0] * vertex.normal.x + m[1] * vertex.normal.y + m[2] * vertex.normal.z);
+    result.normal.y = static_cast<f32>(m[4] * vertex.normal.x + m[5] * vertex.normal.y + m[6] * vertex.normal.z);
+    result.normal.z = static_cast<f32>(m[8] * vertex.normal.x + m[9] * vertex.normal.y + m[10] * vertex.normal.z);
 
     // 归一化法线
     f64 len = std::sqrt(result.normal.x * result.normal.x +
                         result.normal.y * result.normal.y +
                         result.normal.z * result.normal.z);
     if (len > 0.0f) {
-        result.normal.x /= len;
-        result.normal.y /= len;
-        result.normal.z /= len;
+        result.normal.x = static_cast<f32>(static_cast<f64>(result.normal.x) / len);
+        result.normal.y = static_cast<f32>(static_cast<f64>(result.normal.y) / len);
+        result.normal.z = static_cast<f32>(static_cast<f64>(result.normal.z) / len);
     }
 
     // 纹理坐标不变
@@ -408,7 +410,11 @@ void ModelRenderer::generateMesh(std::vector<ModelVertex>& vertices,
 
             // 添加4个顶点
             for (const auto& vertex : quad.vertices) {
-                ModelVertex transformed = transformVertex(vertex, matrix);
+                ModelVertex scaledVertex = vertex;
+                scaledVertex.position.x = static_cast<f32>(static_cast<f64>(scaledVertex.position.x) * scale);
+                scaledVertex.position.y = static_cast<f32>(static_cast<f64>(scaledVertex.position.y) * scale);
+                scaledVertex.position.z = static_cast<f32>(static_cast<f64>(scaledVertex.position.z) * scale);
+                ModelVertex transformed = transformVertex(scaledVertex, matrix);
                 vertices.push_back(transformed);
             }
 

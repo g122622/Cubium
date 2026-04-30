@@ -25,7 +25,7 @@ using mc::SheepEntity;
 class PigRenderer : public core::LivingRenderer<LivingEntity, model::animal::PigModel> {
 public:
     PigRenderer() {
-        m_shadowSize = 0.5f;
+        m_shadowSize = 0.7f;
     }
     ~PigRenderer() override = default;
 

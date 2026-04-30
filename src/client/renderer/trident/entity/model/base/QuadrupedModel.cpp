@@ -119,8 +119,8 @@ void QuadrupedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     // 参考 MC 1.16.5 QuadrupedModel.setRotationAngles
 
     // 头部旋转 - Java: headPitch * ((float)Math.PI / 180F)
-    m_head->setRotateAngleX(math::toRadians(headPitch));
-    m_head->setRotateAngleY(math::toRadians(netHeadYaw));
+    m_head->setRotateAngleX(static_cast<f32>(math::toRadians(static_cast<f32>(headPitch))));
+    m_head->setRotateAngleY(static_cast<f32>(math::toRadians(static_cast<f32>(netHeadYaw))));
 
     // 身体默认姿态 - Java: ((float)Math.PI / 2F)
     m_body->setRotateAngleX(static_cast<f32>(math::PI / 2.0));
@@ -130,13 +130,13 @@ void QuadrupedModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     const f64 walkAmount = limbSwingAmount * 1.4;
 
     // Java: MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount
-    m_legBackRight->setRotateAngleX(std::cos(walkAngle) * walkAmount);
+    m_legBackRight->setRotateAngleX(static_cast<f32>(std::cos(walkAngle) * walkAmount));
     // Java: MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount
-    m_legBackLeft->setRotateAngleX(std::cos(walkAngle + math::PI) * walkAmount);
+    m_legBackLeft->setRotateAngleX(static_cast<f32>(std::cos(walkAngle + math::PI) * walkAmount));
     // Java: MathHelper.cos(limbSwing * 0.6662F + PI) * 1.4F * limbSwingAmount
-    m_legFrontRight->setRotateAngleX(std::cos(walkAngle + math::PI) * walkAmount);
+    m_legFrontRight->setRotateAngleX(static_cast<f32>(std::cos(walkAngle + math::PI) * walkAmount));
     // Java: MathHelper.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount
-    m_legFrontLeft->setRotateAngleX(std::cos(walkAngle) * walkAmount);
+    m_legFrontLeft->setRotateAngleX(static_cast<f32>(std::cos(walkAngle) * walkAmount));
 }
 
 } // namespace mc::client::renderer::entity::model

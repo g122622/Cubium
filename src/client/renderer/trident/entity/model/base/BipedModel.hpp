@@ -67,7 +67,7 @@ public:
      * 参考 MC 1.16.5 BipedModel.setLivingAnimations
      * 用于设置游泳动画等状态
      */
-    virtual void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick);
+    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 partialTick) override;
 
     /**
      * @brief 设置是否蹲伏
@@ -179,7 +179,7 @@ protected:
     /**
      * @brief 角度插值（弧度）
      */
-    static f32 rotLerpRad(f32 angle, f32 maxAngle, f32 target);
+    static f32 rotLerpRad(f32 angle, f64 maxAngle, f64 target);
 
     /**
      * @brief 获取手臂角度平方

@@ -209,8 +209,8 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
     if (isItemEntity) {
         // ItemEntity 特殊渲染：应用浮动和旋转动画
-        f64 bobOffset = calculateItemBobOffset(entity.ticksExisted(), partialTicks);
-        f64 rotation = calculateItemRotation(entity.ticksExisted(), partialTicks);
+        f64 bobOffset = calculateItemBobOffset(entity, partialTicks);
+        f64 rotation = calculateItemRotation(entity, partialTicks);
 
         // Y 翻转
         modelMatrix[5] = -1.0f;
@@ -281,8 +281,9 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         // MC 1.16.5: scale(-1, -1, 1) - X和Y都取反
         // 在旋转后应用翻转
         for (int i = 0; i < 4; ++i) {
-            modelMatrix[i * 4] *= -1.0;     // X列取反
-            modelMatrix[i * 4 + 1] *= -1.0; // Y列取反
+            const auto rowOffset = static_cast<std::size_t>(i * 4);
+            modelMatrix[rowOffset] *= -1.0;     // X列取反
+            modelMatrix[rowOffset + 1] *= -1.0; // Y列取反
         }
 
         // Y偏移 - 原版是向下偏移 1.501
@@ -357,17 +358,14 @@ bool EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     return true;
 }
 
-f64 EntityRendererManager::calculateItemBobOffset(u32 ticksExisted, f64 partialTick) const {
-    // 参考 MC 1.16.5 ItemEntityRenderer
-    // 浮动动画：sin(ticks * 0.1) * 0.1
-    f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
-    return std::sin(ticks * 0.1f) * 0.1f + 0.2f;  // 0.2 是基础高度偏移
+f64 EntityRendererManager::calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const {
+    return renderer::projectile::ItemEntityRenderer::calculateBobOffset(
+        entity.ticksExisted(), partialTick, entity.hoverStart());
 }
 
-f64 EntityRendererManager::calculateItemRotation(u32 ticksExisted, f64 partialTick) const {
-    // 参考 MC 1.16.5 ItemEntityRenderer
-    // 旋转速度：每 tick 旋转 2 度
-    return static_cast<f64>(ticksExisted) * 2.0f + partialTick * 2.0f;
+f64 EntityRendererManager::calculateItemRotation(const ClientEntity& entity, f64 partialTick) const {
+    return renderer::projectile::ItemEntityRenderer::calculateRotation(
+        entity.ticksExisted(), partialTick, entity.hoverStart());
 }
 
 f64 EntityRendererManager::calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const {
@@ -882,7 +880,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
         context.limbSwingAmount = 1.0;
     }
 
-    context.ageInTicks = static_cast<f64>(entity.ticksExisted());
+    context.ageInTicks = static_cast<f64>(entity.ticksExisted()) + context.partialTicks;
 
     // 计算头部偏航角（相对于身体）
     f64 bodyYaw = static_cast<f64>(entity.prevRenderYawOffset()) +
@@ -896,7 +894,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
 
     context.headPitch = static_cast<f64>(entity.prevPitch()) +
                       static_cast<f64>(entity.pitch() - entity.prevPitch()) * context.partialTicks;
-    context.scale = entity.isChild() ? 0.5 * (1.0 / 16.0) : (1.0 / 16.0);
+    context.scale = 1.0 / 16.0;
     context.isChild = entity.isChild();
     context.isSitting = entity.isSitting();
     context.isSneaking = entity.isSneaking();

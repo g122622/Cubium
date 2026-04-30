@@ -78,8 +78,8 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
         std::vector<model::ModelVertex> vertices;
         std::vector<u32> indices;
 
-        // 调用模型的 generateMesh 方法，这会使用当前设置的旋转角度
-        model.generateMesh(vertices, indices, state.scale);
+        // 实体管线在着色器 push constant 中统一应用 1/16 缩放，CPU 网格保持 MC 模型单位。
+        model.generateMesh(vertices, indices, 1.0);
 
         // 应用 UV 重映射（如果设置）
         if (m_uvRemapFunc) {

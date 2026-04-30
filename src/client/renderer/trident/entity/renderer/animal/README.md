@@ -16,13 +16,13 @@
 class PigRenderer : public LivingRenderer<LivingEntity, PigModel> {
 public:
     PigRenderer() {
-        m_shadowSize = 0.5f;
+        m_shadowSize = 0.7f;
     }
 };
 ```
 
 **特性**：
-- 阴影大小：0.5
+- 阴影大小：0.7
 - 可添加鞍层（用于骑乘）
 
 ### CowRenderer（牛渲染器）

@@ -1,4 +1,51 @@
 #include "AgeableModel.hpp"
+#include <array>
+#include <cstddef>
+
+namespace {
+
+std::array<mc::f64, 16> identityMatrix() {
+    return {
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    };
+}
+
+std::array<mc::f64, 16> multiplyMatrices(const std::array<mc::f64, 16>& a,
+                                         const std::array<mc::f64, 16>& b) {
+    std::array<mc::f64, 16> result{};
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            for (int k = 0; k < 4; ++k) {
+                result[static_cast<std::size_t>(row * 4 + col)] +=
+                    a[static_cast<std::size_t>(row * 4 + k)] * b[static_cast<std::size_t>(k * 4 + col)];
+            }
+        }
+    }
+    return result;
+}
+
+std::array<mc::f64, 16> translationMatrix(mc::f64 x, mc::f64 y, mc::f64 z) {
+    return {
+        1.0, 0.0, 0.0, x,
+        0.0, 1.0, 0.0, y,
+        0.0, 0.0, 1.0, z,
+        0.0, 0.0, 0.0, 1.0
+    };
+}
+
+std::array<mc::f64, 16> scaleMatrix(mc::f64 scale) {
+    return {
+        scale, 0.0,   0.0,   0.0,
+        0.0,   scale, 0.0,   0.0,
+        0.0,   0.0,   scale, 0.0,
+        0.0,   0.0,   0.0,   1.0
+    };
+}
+
+} // namespace
 
 namespace mc::client::renderer::entity::model {
 
@@ -114,6 +161,48 @@ void AgeableModel::render(f64 scale) {
             if (part) {
                 part->render(scale);
             }
+        }
+    }
+}
+
+void AgeableModel::generateMesh(std::vector<ModelVertex>& vertices,
+                                std::vector<u32>& indices,
+                                f64 scale) const {
+    if (!m_isChild) {
+        for (const auto& part : getHeadParts()) {
+            if (part) {
+                part->generateMesh(vertices, indices, scale);
+            }
+        }
+        for (const auto& part : getBodyParts()) {
+            if (part) {
+                part->generateMesh(vertices, indices, scale);
+            }
+        }
+        return;
+    }
+
+    auto headMatrix = identityMatrix();
+    if (m_isChildHeadScaled) {
+        headMatrix = multiplyMatrices(headMatrix, scaleMatrix(1.5 / static_cast<f64>(m_childHeadScale)));
+    }
+    headMatrix = multiplyMatrices(
+        headMatrix,
+        translationMatrix(0.0, static_cast<f64>(m_childHeadOffsetY) * scale, static_cast<f64>(m_childHeadOffsetZ) * scale)
+    );
+    for (const auto& part : getHeadParts()) {
+        if (part) {
+            part->generateMesh(vertices, indices, headMatrix, scale);
+        }
+    }
+
+    auto bodyMatrix = multiplyMatrices(
+        scaleMatrix(1.0 / static_cast<f64>(m_childBodyScale)),
+        translationMatrix(0.0, static_cast<f64>(m_childBodyOffsetY) * scale, 0.0)
+    );
+    for (const auto& part : getBodyParts()) {
+        if (part) {
+            part->generateMesh(vertices, indices, bodyMatrix, scale);
         }
     }
 }

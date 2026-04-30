@@ -13,7 +13,7 @@
 ## 渲染器类
 
 ### ItemEntityRenderer（物品实体渲染器）
-渲染掉落在世界中的物品实体。物品以 3D 方式浮动渲染，具有上下浮动和旋转动画。
+渲染掉落在世界中的物品实体。物品以 3D 方式浮动渲染，浮动高度按 `sin((age + partialTick) / 10 + hoverStart) * 0.1 + 0.1` 计算，并叠加原版 ground transform 的 0.25 高度；Y 轴旋转按 `((age + partialTick) / 20 + hoverStart)` 弧度计算。
 
 ### ExperienceOrbRenderer（经验球渲染器）
 渲染世界中的经验球实体，带绿色发光效果和浮动动画。

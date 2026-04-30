@@ -103,13 +103,13 @@ TEST(AnimalModelMesh, PigReasonableBoundsAndHorizontalBody) {
     const f32 height = b.maxY - b.minY;
     const f32 depth = b.maxZ - b.minZ;
 
-    EXPECT_GT(width, 8.0f);
-    EXPECT_GT(height, 8.0f);
-    EXPECT_GT(depth, 10.0f);
+    EXPECT_GT(width, 0.5f);
+    EXPECT_GT(height, 0.5f);
+    EXPECT_GT(depth, 0.7f);
 
-    EXPECT_LT(width, 12.5f);
-    EXPECT_LT(height, 14.0f);
-    EXPECT_LT(depth, 20.0f);
+    EXPECT_LT(width, 0.8f);
+    EXPECT_LT(height, 1.1f);
+    EXPECT_LT(depth, 1.6f);
 
     // 回归保护：未调用 setAngles 时会出现“竖直长方体”趋势（depth 过小）
     EXPECT_GT(depth, width * 0.8f);
@@ -124,13 +124,13 @@ TEST(AnimalModelMesh, CowReasonableBoundsAndHorizontalBody) {
     const f32 height = b.maxY - b.minY;
     const f32 depth = b.maxZ - b.minZ;
 
-    EXPECT_GT(width, 10.0f);
-    EXPECT_GT(height, 14.0f);
-    EXPECT_GT(depth, 14.0f);
+    EXPECT_GT(width, 0.65f);
+    EXPECT_GT(height, 0.9f);
+    EXPECT_GT(depth, 0.9f);
 
-    EXPECT_LT(width, 14.5f);
-    EXPECT_LT(height, 22.0f);
-    EXPECT_LT(depth, 22.0f);
+    EXPECT_LT(width, 0.95f);
+    EXPECT_LT(height, 1.65f);
+    EXPECT_LT(depth, 1.6f);
 
     EXPECT_GT(depth, width * 0.9f);
     EXPECT_LT(height, depth * 1.3f);
@@ -144,13 +144,13 @@ TEST(AnimalModelMesh, SheepReasonableBoundsAndHorizontalBody) {
     const f32 height = b.maxY - b.minY;
     const f32 depth = b.maxZ - b.minZ;
 
-    EXPECT_GT(width, 6.0f);
-    EXPECT_GT(height, 12.0f);
-    EXPECT_GT(depth, 12.0f);
+    EXPECT_GT(width, 0.35f);
+    EXPECT_GT(height, 0.75f);
+    EXPECT_GT(depth, 0.75f);
 
-    EXPECT_LT(width, 10.5f);
-    EXPECT_LT(height, 20.0f);
-    EXPECT_LT(depth, 20.0f);
+    EXPECT_LT(width, 0.7f);
+    EXPECT_LT(height, 1.45f);
+    EXPECT_LT(depth, 1.5f);
 
     EXPECT_GT(depth, width * 1.1f);
     EXPECT_LT(height, depth * 1.4f);
@@ -164,13 +164,65 @@ TEST(AnimalModelMesh, ChickenReasonableBounds) {
     const f32 height = b.maxY - b.minY;
     const f32 depth = b.maxZ - b.minZ;
 
-    EXPECT_GT(width, 4.0f);
-    EXPECT_GT(height, 8.0f);
-    EXPECT_GT(depth, 6.0f);
+    EXPECT_GT(width, 0.25f);
+    EXPECT_GT(height, 0.5f);
+    EXPECT_GT(depth, 0.35f);
 
-    EXPECT_LT(width, 8.5f);
-    EXPECT_LT(height, 14.0f);
-    EXPECT_LT(depth, 12.0f);
+    EXPECT_LT(width, 0.55f);
+    EXPECT_LT(height, 1.0f);
+    EXPECT_LE(depth, 0.75f);
+}
+
+TEST(AnimalModelMesh, ChickenIncludesHeadBillAndChinInGeneratedMesh) {
+    ChickenModel model;
+    std::vector<ModelVertex> vertices;
+    std::vector<u32> indices;
+
+    constexpr f32 kModelScale = 1.0f / 16.0f;
+    model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, kModelScale);
+    model.generateMesh(vertices, indices, kModelScale);
+
+    const bool hasHeadHeight = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
+        return vertex.position.y < 0.7f;
+    });
+    const bool hasBillOrChinForwardDepth = std::any_of(vertices.begin(), vertices.end(), [](const ModelVertex& vertex) {
+        return vertex.position.z < -0.45f;
+    });
+
+    EXPECT_TRUE(hasHeadHeight);
+    EXPECT_TRUE(hasBillOrChinForwardDepth);
+}
+
+TEST(AnimalModelMesh, RuntimeMeshUsesMinecraftModelUnits) {
+    PigModel model;
+    std::vector<ModelVertex> vertices;
+    std::vector<u32> indices;
+
+    model.setAngles(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    model.generateMesh(vertices, indices, 1.0f);
+
+    const Bounds b = computeBounds(vertices);
+    const f32 width = b.maxX - b.minX;
+    const f32 depth = b.maxZ - b.minZ;
+
+    EXPECT_GT(width, 8.0f);
+    EXPECT_GT(depth, 20.0f);
+    EXPECT_LT(width, 13.0f);
+    EXPECT_LT(depth, 26.0f);
+}
+
+TEST(ModelRendererMesh, MirrorReversesXNormalLikeTexturedQuad) {
+    mc::client::renderer::entity::model::ModelRenderer mirrored("mirrored");
+    mirrored.setMirror(true);
+    mirrored.setTextureOffset(0, 0).addBox(0.0f, 0.0f, 0.0f, 2.0f, 2.0f, 2.0f);
+
+    std::vector<ModelVertex> vertices;
+    std::vector<u32> indices;
+    mirrored.generateMesh(vertices, indices, 1.0f / 16.0f);
+
+    ASSERT_GE(vertices.size(), 4u);
+    EXPECT_LT(vertices[0].normal.x, 0.0f);
 }
 
 } // namespace mc::client::renderer
+

@@ -208,6 +208,9 @@ ChickenModel::ChickenModel()
     m_leftLeg->setRotationPoint(1.0f, 19.0f, 1.0f);
 
     // 添加到部件列表 - 注意：AgeableModel 会通过 getHeadParts/getBodyParts 处理
+    m_parts.push_back(m_head);
+    m_parts.push_back(m_beak);
+    m_parts.push_back(m_wattle);
     m_parts.push_back(m_body);
     m_parts.push_back(m_rightWing);
     m_parts.push_back(m_leftWing);
@@ -247,8 +250,8 @@ void ChickenModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
                               f64 ageInTicks, f64 netHeadYaw,
                               f64 headPitch, f64 scale) {
     // 头部旋转
-    m_head->setRotateAngleX(math::toRadians(headPitch));
-    m_head->setRotateAngleY(math::toRadians(netHeadYaw));
+    m_head->setRotateAngleX(static_cast<f32>(math::toRadians(static_cast<f32>(headPitch))));
+    m_head->setRotateAngleY(static_cast<f32>(math::toRadians(static_cast<f32>(netHeadYaw))));
 
     // 喙、肉垂、鸡冠跟随头部
     m_beak->setRotateAngleX(m_head->rotateAngleX());
@@ -268,12 +271,12 @@ void ChickenModel::setAngles(f64 limbSwing, f64 limbSwingAmount,
     const f64 walkAmount = limbSwingAmount * 1.4f;
 
     // 腿部动画
-    m_rightLeg->setRotateAngleX(std::cos(walkAngle) * walkAmount);
-    m_leftLeg->setRotateAngleX(std::cos(walkAngle + math::PI) * walkAmount);
+    m_rightLeg->setRotateAngleX(static_cast<f32>(std::cos(walkAngle) * walkAmount));
+    m_leftLeg->setRotateAngleX(static_cast<f32>(std::cos(walkAngle + math::PI) * walkAmount));
 
     // 翅膀动画（与原版一致，按年龄tick摆动）
-    m_rightWing->setRotateAngleZ(ageInTicks);
-    m_leftWing->setRotateAngleZ(-ageInTicks);
+    m_rightWing->setRotateAngleZ(static_cast<f32>(ageInTicks));
+    m_leftWing->setRotateAngleZ(static_cast<f32>(-ageInTicks));
 
     (void)scale;
 }

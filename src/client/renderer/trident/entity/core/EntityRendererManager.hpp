@@ -287,15 +287,15 @@ private:
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f64 calculateItemBobOffset(u32 ticksExisted, f64 partialTick) const;
+    [[nodiscard]] f64 calculateItemBobOffset(const ClientEntity& entity, f64 partialTick) const;
 
     /**
      * @brief 计算 ItemEntity 旋转角度
-     * @param ticksExisted 实体存活时间
+     * @param entity 客户端物品实体
      * @param partialTick 部分 tick
      * @return 旋转角度（度）
      */
-    [[nodiscard]] f64 calculateItemRotation(u32 ticksExisted, f64 partialTick) const;
+    [[nodiscard]] f64 calculateItemRotation(const ClientEntity& entity, f64 partialTick) const;
 
     /**
      * @brief 计算 ExperienceOrb 浮动偏移

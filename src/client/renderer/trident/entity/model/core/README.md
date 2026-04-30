@@ -31,6 +31,7 @@ public:
                           f64 ageInTicks, f64 netHeadYaw,
                           f64 headPitch, f64 scale);
     virtual void copyAnglesTo(EntityModel& target) const;
+    virtual void copyAnglesFrom(const EntityModel& source);
     
     // 纹理
     i32 textureWidth() const;
@@ -56,7 +57,7 @@ protected:
 - 添加立方体盒子
 - 设置旋转和位置
 - 管理子部件
-- 生成网格
+- 生成网格（盒子局部顶点按 `scale` 从 MC 1/16 模型单位转换，旋转点同样按 `scale` 平移）
 
 ```cpp
 class ModelRenderer {
@@ -89,6 +90,10 @@ public:
     void generateMesh(std::vector<ModelVertex>& vertices,
                      std::vector<u32>& indices,
                      f64 scale) const;
+    void generateMesh(std::vector<ModelVertex>& vertices,
+                     std::vector<u32>& indices,
+                     const std::array<f64, 16>& parentMatrix,
+                     f64 scale) const;
     
     // 可见性
     bool isVisible() const;
@@ -114,30 +119,18 @@ public:
 ```cpp
 class AgeableModel : public EntityModel {
 public:
-    AgeableModel();
-    
-    void render(f64 scale) override;
-    void setAngles(...) override;
-    
-    // 幼体状态
     void setChild(bool isChild);
     bool isChild() const;
-    
-    // 缩放
-    f64 getChildScale(f64 baseScale) const;
-    
-    // 缩放参数
-    void setChildHeadScale(f64 scale);   // 默认 2.0
-    void setChildBodyScale(f64 scale);   // 默认 0.5
-    void setChildHeadOffsetY(f64 offset); // 默认 4.0
+    void generateMesh(std::vector<ModelVertex>& vertices,
+                      std::vector<u32>& indices,
+                      f64 scale) const override;
     
 protected:
     bool m_isChild = false;
-    f64 m_childHeadScale = 2.0f;
-    f64 m_childBodyScale = 0.5f;
-    f64 m_childHeadOffsetY = 4.0f;
-    
-    virtual void setupChildModel();  // 子类重写以调整幼体模型
+    f32 m_childHeadScale = 2.0f;
+    f32 m_childBodyScale = 2.0f;
+    f32 m_childHeadOffsetY = 5.0f;
+    f32 m_childBodyOffsetY = 24.0f;
 };
 ```
 

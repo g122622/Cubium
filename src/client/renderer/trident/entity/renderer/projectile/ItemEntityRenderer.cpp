@@ -2,6 +2,7 @@
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -26,25 +27,14 @@ void ItemEntityRenderer::renderShadow(Entity& entity, f64 partialTicks) {
     core::EntityRenderer::renderShadow(entity, partialTicks);
 }
 
-f64 ItemEntityRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick, f32 hoverStart) const {
-    // MC 1.16.5 ItemRenderer.java:47:
-    // f1 = MathHelper.sin(((float)entityIn.getAge() + partialTicks) / 10.0F + entityIn.hoverStart) * 0.1F + 0.1F
-    //
-    // 关键点：
-    // 1. 使用 (age + partialTick) / 10.0 作为正弦参数
-    // 2. 加上 hoverStart（每个物品实体随机生成，使不同物品浮动相位不同）
-    // 3. 乘以 0.1 作为幅度
-    // 4. 加上 0.1 作为基础高度偏移
-
-    f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
-    f64 phase = ticks / 10.0 + static_cast<f64>(hoverStart);
-    return std::sin(phase) * BOB_AMPLITUDE + BOB_BASE;
+f64 ItemEntityRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick, f32 hoverStart) {
+    const f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
+    return std::sin(ticks / 10.0 + static_cast<f64>(hoverStart)) * BOB_AMPLITUDE + BOB_BASE + GROUND_TRANSFORM_Y_OFFSET;
 }
 
-f64 ItemEntityRenderer::calculateRotation(u32 ticksExisted, f64 partialTick) const {
-    // MC 1.16.5: 物品在 Y 轴旋转
-    // 旋转速度为每 tick 2 度
-    return static_cast<f64>(ticksExisted) * ROTATION_SPEED + partialTick * ROTATION_SPEED;
+f64 ItemEntityRenderer::calculateRotation(u32 ticksExisted, f64 partialTick, f32 hoverStart) {
+    return ((static_cast<f64>(ticksExisted) + partialTick) / 20.0 + static_cast<f64>(hoverStart))
+           * static_cast<f64>(math::RAD_TO_DEG);
 }
 
 i32 ItemEntityRenderer::getItemCountForRender(i32 count) {

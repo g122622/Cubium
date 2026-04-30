@@ -187,7 +187,7 @@ protected:
     /**
      * @brief 设置模型部件
      */
-    void setupParts();
+    void setupParts() override;
 
     /**
      * @brief 根据手臂姿态设置手臂角度
