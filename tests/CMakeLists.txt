@@ -191,6 +191,8 @@ add_executable(mc_tests
     lighting/BaseLightEngineQueueTest.cpp
     lighting/SkyLightRegressionTest.cpp
     # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
+    client/renderer/trident/blockentity/ChestModelTest.cpp
+    client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
     # NaturalSpawner 娴嬭瘯
     server/world/spawn/NaturalSpawnerTest.cpp
     # 鍏夌収鍚屾娴嬭瘯
@@ -578,6 +580,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
+        # 方块实体模型
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/BlockEntityModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/ChestModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/BeaconBeamModel.cpp
         # 绗竴浜虹О鎵嬮儴娓叉煋
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/MatrixStack.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp
