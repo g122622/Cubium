@@ -1,5 +1,6 @@
 #include "VineBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
@@ -294,7 +295,7 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
             // 目标位置是可附着的固体方块
             world.setBlockState(pos, &state.with(*prop, true), 2);
         }
-    } else if (direction == Direction::Up && pos.y < 255) {
+    } else if (direction == Direction::Up && pos.y < world::MAX_BUILD_HEIGHT - 1) {
         // 向上蔓延
         if (canAttachTo(static_cast<IBlockReader&>(world), pos, Direction::Up)) {
             world.setBlockState(pos, &state.with(BlockStateProperties::UP(), true), 2);

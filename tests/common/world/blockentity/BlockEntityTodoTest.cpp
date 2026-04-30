@@ -6,6 +6,7 @@
 #include "item/core/ItemRegistry.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
+#include "world/WorldConstants.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
@@ -143,7 +144,7 @@ private:
     std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
     std::vector<Entity*> m_entitiesInAabb;
     std::vector<Entity*> m_entitiesInRange;
-    i32 m_height = 256;
+    i32 m_height = world::MAX_BUILD_HEIGHT;
 };
 
 class BlockEntityTodoTestHelper : public ::testing::Test {

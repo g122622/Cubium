@@ -227,7 +227,7 @@ Vector3d ServerPlayer::determineRespawnPosition() const {
     }
 
     // 3. 默认位置
-    return Vector3d(0.0, 64.0, 0.0);
+    return Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
 }
 
 DimensionId ServerPlayer::determineRespawnDimension() const {

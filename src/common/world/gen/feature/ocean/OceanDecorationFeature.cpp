@@ -2,6 +2,7 @@
 
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../util/Direction.hpp"
@@ -67,7 +68,7 @@ i32 OceanDecorationFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
         return oceanFloorY;
     }
 
-    for (i32 y = 255; y >= 1; --y) {
+    for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
         const BlockState* state = world.getBlock(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;

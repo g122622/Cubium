@@ -1,6 +1,7 @@
 #include "GrassFeature.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
 #include "../../../block/VanillaBlocks.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
@@ -37,7 +38,7 @@ bool GrassFeature::place(
     // 如果需要投影到地面，从高度图获取Y坐标
     if (config.project) {
         // 向下寻找第一个非空气方块
-        for (i32 y = 255; y >= 1; --y) {
+        for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
             BlockPos checkPos(pos.x, y, pos.z);
             const BlockState* state = world.getBlock(checkPos);
             if (state && !state->isAir()) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "../../../world/WorldConstants.hpp"
 #include "PathNodeType.hpp"
 #include <cmath>
 
@@ -169,10 +170,12 @@ public:
 
     /**
      * @brief 创建一个哈希值用于缓存
-     * MC 1.16.5 hash: y & 255 | (x & 32767) << 8 | (z & 32767) << 24 | sign bits
+     * MC 1.16.5 hash: y & (MAX_BUILD_HEIGHT - 1) | (x & 32767) << 8 | (z & 32767) << 24 | sign bits
      */
     [[nodiscard]] u32 hash() const {
-        u32 hash = (m_y & 255);
+        // Y 坐标掩码：假设世界高度范围在 0 到 MAX_BUILD_HEIGHT-1
+        constexpr u32 Y_MASK = static_cast<u32>(world::MAX_BUILD_HEIGHT - 1);
+        u32 hash = static_cast<u32>(m_y) & Y_MASK;
         hash |= (m_x & 32767) << 8;
         hash |= (m_z & 32767) << 24;
         // 处理负数的符号位

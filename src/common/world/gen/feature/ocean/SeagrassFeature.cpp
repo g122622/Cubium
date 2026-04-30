@@ -1,6 +1,7 @@
 #include "SeagrassFeature.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
 #include "../../../block/VanillaBlocks.hpp"
+#include "../../../WorldConstants.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
@@ -18,7 +19,7 @@ namespace {
     }
 
     // 某些测试会绕过高度图更新，回退到显式扫描。
-    for (i32 y = 255; y >= 1; --y) {
+    for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
         const BlockState* state = world.getBlock(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;

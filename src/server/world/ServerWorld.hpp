@@ -457,7 +457,7 @@ private:
     core::TimeManager* m_timeManager = nullptr;  // 外部引用，不拥有
     bool m_initialized = false;
     bool m_allPlayersSleeping = false;  // 全员睡眠标志
-    Vector3d m_worldSpawnPoint{0.0, 64.0, 0.0};  // 世界出生点
+    Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0};  // 世界出生点
 
     OpenContainerCallback m_onOpenContainer;
 

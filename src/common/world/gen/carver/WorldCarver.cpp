@@ -218,7 +218,7 @@ bool WorldCarver<Config>::carveEllipsoid(
                 }
 
                 // 获取上方方块
-                const BlockState* aboveState = (y < 255) ? chunk.getBlock(lx, y + 1, lz) : nullptr;
+                const BlockState* aboveState = (y < world::MAX_BUILD_HEIGHT - 1) ? chunk.getBlock(lx, y + 1, lz) : nullptr;
 
                 // 检查是否可以雕刻
                 if (!canCarveBlock(state, aboveState)) {
@@ -245,7 +245,7 @@ bool WorldCarver<Config>::carveEllipsoid(
                     }
 
                     // 如果上方有草地，替换为泥土
-                    if (hasGrassAbove && y < 255) {
+                    if (hasGrassAbove && y < world::MAX_BUILD_HEIGHT - 1) {
                         const BlockState* dirt = VanillaBlocks::getState(VanillaBlocks::DIRT);
                         if (dirt) {
                             chunk.setBlock(lx, y + 1, lz, dirt);

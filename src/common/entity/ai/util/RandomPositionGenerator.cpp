@@ -5,6 +5,7 @@
 #include "../pathfinding/PathPoint.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/WorldConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include <cmath>
@@ -102,7 +103,7 @@ bool RandomPositionGenerator::getLandPos(
         // 寻找地面高度
         i32 groundY = getGroundHeight(world, x, static_cast<i32>(std::floor(creature->y() + dy)), z);
 
-        if (groundY >= 0) {
+        if (groundY >= world::MIN_BUILD_HEIGHT) {
             outPos = Vector3(
                 static_cast<f32>(x) + 0.5f,
                 static_cast<f32>(groundY),
@@ -199,7 +200,7 @@ i32 RandomPositionGenerator::getGroundHeight(IWorld* world, i32 x, i32 startY, i
     if (!world) return -1;
 
     // 从指定高度向下搜索
-    for (i32 y = startY; y > startY - MAX_GROUND_SEARCH && y >= 0; --y) {
+    for (i32 y = startY; y > startY - MAX_GROUND_SEARCH && y >= world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* block = world->getBlockState(x, y, z);
         if (block && !block->isAir() && !block->isLiquid()) {
             return y + 1;  // 返回地面上的Y坐标
@@ -316,7 +317,7 @@ bool RandomPositionGenerator::validateAndAdjustPosition(
 
     // 尝试找到地面
     i32 groundY = getGroundHeight(world, x, y, z);
-    if (groundY >= 0 && isPositionWalkable(creature, x, groundY, z)) {
+    if (groundY >= world::MIN_BUILD_HEIGHT && isPositionWalkable(creature, x, groundY, z)) {
         pos.y = static_cast<f32>(groundY);
         return true;
     }

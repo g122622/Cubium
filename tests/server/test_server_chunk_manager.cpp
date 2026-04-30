@@ -2,6 +2,7 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <thread>
 #include <chrono>
 
@@ -346,7 +347,7 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks) {
 
     // 检查区块是否有一些非空气方块
     bool hasNonAirBlocks = false;
-    for (int y = 0; y < 256 && !hasNonAirBlocks; ++y) {
+    for (int y = 0; y < world::CHUNK_HEIGHT && !hasNonAirBlocks; ++y) {
         for (int z = 0; z < 16 && !hasNonAirBlocks; ++z) {
             for (int x = 0; x < 16; ++x) {
                 const BlockState* state = chunk->getBlock(x, y, z);

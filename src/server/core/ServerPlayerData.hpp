@@ -53,7 +53,7 @@ struct ServerPlayerData {
 
     // 位置（内部使用 f32，网络边界使用 f64）
     f32 x = 0.0f;
-    f32 y = 64.0f;
+    f32 y = static_cast<f32>(world::SEA_LEVEL) + 1.0f;  // 默认出生高度：海平面+1
     f32 z = 0.0f;
     f32 yaw = 0.0f;
     f32 pitch = 0.0f;

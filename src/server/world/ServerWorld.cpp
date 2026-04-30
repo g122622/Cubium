@@ -200,8 +200,8 @@ void ServerWorld::initializeWorldSpawn()
     ChunkData* chunk = m_chunkManager->getChunkSync(spawnChunk.x, spawnChunk.z);
 
     if (chunk == nullptr) {
-        spdlog::warn("ServerWorld: Failed to load spawn chunk, using default spawn point (0, 64, 0)");
-        m_worldSpawnPoint = Vector3d(0.0, 64.0, 0.0);
+        spdlog::warn("ServerWorld: Failed to load spawn chunk, using default spawn point (0, {}, 0)", world::SEA_LEVEL + 1);
+        m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
         return;
     }
 
@@ -219,8 +219,8 @@ void ServerWorld::initializeWorldSpawn()
                      spawnPos->x, spawnPos->y + 1, spawnPos->z);
     } else {
         // 使用默认位置
-        m_worldSpawnPoint = Vector3d(0.0, 64.0, 0.0);
-        spdlog::warn("ServerWorld: No valid spawn found in spawn chunk, using default (0, 64, 0)");
+        m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
+        spdlog::warn("ServerWorld: No valid spawn found in spawn chunk, using default (0, {}, 0)", world::SEA_LEVEL + 1);
     }
 }
 

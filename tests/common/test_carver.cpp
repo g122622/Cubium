@@ -7,6 +7,7 @@
 #include "world/block/VanillaBlocks.hpp"
 #include "world/biome/BiomeProvider.hpp"
 #include "world/biome/layer/LayerUtil.hpp"
+#include "world/WorldConstants.hpp"
 #include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
 
@@ -343,7 +344,7 @@ TEST(ConfiguredCarverTest, ShouldCarve) {
 TEST(ConfiguredCarverTest, CanyonWithConfig) {
     VanillaBlocks::initialize();
 
-    auto carver = std::make_unique<CanyonCarver>(256);
+    auto carver = std::make_unique<CanyonCarver>(world::MAX_BUILD_HEIGHT);
     ProbabilityConfig config(0.1f);
 
     ConfiguredCarver<CanyonCarver, ProbabilityConfig> configured(

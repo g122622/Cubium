@@ -1,5 +1,6 @@
 #include "PositionTracker.hpp"
 #include "PlayerManager.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {
@@ -93,7 +94,7 @@ std::vector<PlayerId> PositionTracker::getChunkSubscribers(ChunkCoord x, ChunkCo
 
 Vector3f PositionTracker::getPosition(PlayerId playerId) const {
     auto* player = m_playerManager.getPlayer(playerId);
-    return player ? Vector3f(player->x, player->y, player->z) : Vector3f(0.0f, 64.0f, 0.0f);
+    return player ? Vector3f(player->x, player->y, player->z) : Vector3f(0.0f, static_cast<f32>(world::SEA_LEVEL) + 1.0f, 0.0f);
 }
 
 Vector2f PositionTracker::getRotation(PlayerId playerId) const {
