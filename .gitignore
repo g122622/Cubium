@@ -2,6 +2,7 @@
 build/
 dist/
 out/
+include/
 cmake-build-*/
 
 # IDE directories
