@@ -51,10 +51,10 @@ BlockState LeavesBlock::updatePostPlacement(
     i32 neighborDistance = getDistance(facingState) + 1;
 
     // 如果距离变化，调度更新
-    // TODO: 实现tick调度
-    // if (neighborDistance != 1 || state.get(BlockStateProperties::DISTANCE_1_7()) != neighborDistance) {
-    //     world.scheduleTick(currentPos, *this, 1);
-    // }
+    i32 currentDistance = state.get(BlockStateProperties::DISTANCE_1_7());
+    if (neighborDistance != 1 || currentDistance != neighborDistance) {
+        world.scheduleBlockTick(currentPos, *this, 1);
+    }
 
     return state;
 }
@@ -80,8 +80,9 @@ void LeavesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
 
     // 非持久且距离为7的树叶腐烂
     if (!state.get(BlockStateProperties::PERSISTENT()) && state.get(BlockStateProperties::DISTANCE_1_7()) == 7) {
-        // TODO: 掉落物品（苹果、木棍等）
-        // spawnDrops(state, world, pos);
+        // 移除树叶方块
+        // NOTE: 物品掉落需要在方块破坏系统中统一处理
+        // 未来可调用 spawnDrops(state, world, pos) 或类似方法
         world.setBlockState(pos, BlockRegistry::instance().airState(), 3);
     }
 }
