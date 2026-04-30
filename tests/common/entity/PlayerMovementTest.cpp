@@ -508,6 +508,44 @@ TEST_F(PlayerMovementTest, FallingAfterSupportRemovalRefreshesGroundState) {
     EXPECT_FALSE(m_player->isOnGround());
 }
 
+
+TEST_F(PlayerMovementTest, SetPosition_ResetsInterpolationHistory) {
+    m_player->setPosition(0.0f, 64.0f, 0.0f);
+    m_player->move(2.0f, 0.0f, 0.0f);
+    ASSERT_FLOAT_EQ(m_player->prevX(), 0.0f);
+    ASSERT_FLOAT_EQ(m_player->x(), 2.0f);
+
+    m_player->setPosition(10.0f, 70.0f, -5.0f);
+
+    EXPECT_FLOAT_EQ(m_player->prevX(), 10.0f);
+    EXPECT_FLOAT_EQ(m_player->prevY(), 70.0f);
+    EXPECT_FLOAT_EQ(m_player->prevZ(), -5.0f);
+    EXPECT_FLOAT_EQ(m_player->x(), 10.0f);
+    EXPECT_FLOAT_EQ(m_player->y(), 70.0f);
+    EXPECT_FLOAT_EQ(m_player->z(), -5.0f);
+}
+
+TEST_F(PlayerMovementTest, UpdatePhysics_SnapshotsPreviousTickPosition) {
+    m_player->abilities().flying = true;
+    m_player->setPosition(0.0f, 64.0f, 0.0f);
+    m_player->handleMovementInput(1.0f, 0.0f, false, false);
+
+    m_player->updatePhysics();
+    const Vector3 firstTickPosition = m_player->position();
+    ASSERT_GT(firstTickPosition.z, 0.0f);
+    EXPECT_FLOAT_EQ(m_player->prevX(), 0.0f);
+    EXPECT_FLOAT_EQ(m_player->prevY(), 64.0f);
+    EXPECT_FLOAT_EQ(m_player->prevZ(), 0.0f);
+
+    m_player->handleMovementInput(1.0f, 0.0f, false, false);
+    m_player->updatePhysics();
+
+    EXPECT_FLOAT_EQ(m_player->prevX(), firstTickPosition.x);
+    EXPECT_FLOAT_EQ(m_player->prevY(), firstTickPosition.y);
+    EXPECT_FLOAT_EQ(m_player->prevZ(), firstTickPosition.z);
+    EXPECT_GT(m_player->z(), firstTickPosition.z);
+}
+
 // ============================================================================
 // 阻力衰减测试
 // ============================================================================

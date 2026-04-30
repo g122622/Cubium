@@ -115,7 +115,9 @@ if (player->shouldPlayStepSound()) {
 }
 ```
 
-外部改坐标时要通过 `Player::setPosition()`，它会同步重置步距采样和脚步声状态，避免把传送或出生位置当成走路距离。
+外部改坐标时要通过 `Player::setPosition()`，它会同步重置步距采样、脚步声状态和渲染插值历史，避免把传送或出生位置当成走路距离，也避免相机在旧位置与新位置之间拖影。
+
+`Player::updatePhysics()` 会在每个固定物理 tick 开始冻结 `prevPosition()`，tick 内的碰撞移动不能再把 `prevPosition()` 当成步距统计来源。
 
 `handleMovementInput()` 只缓存当前输入，不再直接修改速度；客户端必须由 `ClientApplication` 按 20TPS 调用 `updatePhysics()` 消费输入。直接在测试或逻辑里调用 `handleMovementInput()` 后，需要执行一次 `updatePhysics()` 才会看到速度和位置变化。
 

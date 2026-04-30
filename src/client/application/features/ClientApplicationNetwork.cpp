@@ -276,10 +276,6 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onPlayerMove = [this](PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
         // 使用 LocalPlayerIdentity 判断是否是本地玩家
         if (m_localIdentity.isLocalPlayer(playerId)) {
-            if (m_player) {
-                m_player->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-                m_player->setRotation(yaw, pitch);
-            }
             return;
         }
 
@@ -532,10 +528,6 @@ void ClientApplication::setupNetworkCallbacks()
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
         const EntityId eid = static_cast<EntityId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
-            if (m_player) {
-                const Vector3 position = m_player->position();
-                m_player->setPosition(position.x + deltaX, position.y + deltaY, position.z + deltaZ);
-            }
             return;
         }
 
@@ -552,16 +544,6 @@ void ClientApplication::setupNetworkCallbacks()
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
         const EntityId eid = static_cast<EntityId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
-            if (m_player) {
-                // 本地玩家：交给预测器处理服务端确认
-                if (m_predictor) {
-                    m_predictor->receiveServerPosition(Vector3(x, y, z), yaw, pitch);
-                } else {
-                    // 如果预测器未初始化，直接设置位置
-                    m_player->setPosition(x, y, z);
-                    m_player->setRotation(yaw, pitch);
-                }
-            }
             return;
         }
 

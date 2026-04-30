@@ -90,6 +90,7 @@ Player::~Player() = default;
 
 void Player::setPosition(f32 x, f32 y, f32 z) {
     Entity::setPosition(x, y, z);
+    snapshotInterpolationState();
 
     // 外部改坐标时同步复位步距采样，避免沿用旧位移或旧脚步阈值
     m_moveDistanceSamplePosition = m_position;
@@ -756,6 +757,8 @@ Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const {
 }
 
 void Player::updatePhysics() {
+    snapshotInterpolationState();
+
     // 0. 更新跳跃冷却（客户端物理每帧都会调用）
     // 之前仅在tick()中减少，客户端未调用tick()会导致只能跳一次。
     if (m_jumpTicks > 0) {

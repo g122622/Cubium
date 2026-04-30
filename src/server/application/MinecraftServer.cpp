@@ -948,6 +948,20 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
             break;
     }
 
+    if (m_world) {
+        m_world->entityManager().forEachEntity([playerId, player](Entity* entity) {
+            auto* playerEntity = dynamic_cast<Player*>(entity);
+            if (playerEntity == nullptr || playerEntity->playerId() != playerId) {
+                return true;
+            }
+
+            playerEntity->setPosition(player->x, player->y, player->z);
+            playerEntity->setRotation(player->yaw, player->pitch);
+            playerEntity->setOnGround(player->onGround);
+            return false;
+        });
+    }
+
     m_positionTracker->updatePosition(playerId, player->x, player->y, player->z, player->yaw, player->pitch, player->onGround);
     updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 

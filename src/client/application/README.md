@@ -614,7 +614,7 @@ m_window.destroy();
 
 **问题**：玩家物理如果随渲染帧率运行，行走速度会随 FPS 变化；如果只在 20TPS 更新位置，镜头又会出现 tick 级跳变。
 
-**解决方案**：`ClientApplication` 只在固定 20TPS 中调用 `Player::updatePhysics()`，输入由 `Player::handleMovementInput()` 缓存；每帧相机用当前物理累加器相对固定物理 tick 间隔的比例作为 partial tick，在 `prevPosition()` 与 `position()` 之间插值到玩家眼睛位置。传送或纠错应通过 `Player::setPosition()` 同步重置采样，避免插值拖影。
+**解决方案**：`ClientApplication` 只在固定 20TPS 中调用 `Player::updatePhysics()`，输入由 `Player::handleMovementInput()` 缓存；每次物理 tick 开始由 `Player::updatePhysics()` 冻结 `prevPosition()`，每帧相机用当前物理累加器相对固定物理 tick 间隔的比例作为 partial tick，在 `prevPosition()` 与 `position()` 之间插值到玩家眼睛位置。传送或纠错应通过 `Player::setPosition()` 同步重置采样，普通 `onPlayerMove` / `onEntityMove` / `onEntityTeleport` 若命中本地玩家实体必须忽略，避免服务端回显把本地预测位置拉回。
 
 ### 17. 视野晃动与真实相机位置
 

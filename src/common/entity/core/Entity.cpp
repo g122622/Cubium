@@ -178,6 +178,12 @@ void Entity::setPosition(f32 x, f32 y, f32 z) {
     reapplyPosition();
 }
 
+void Entity::snapshotInterpolationState() {
+    m_prevPosition = m_position;
+    m_prevYaw = m_yaw;
+    m_prevPitch = m_pitch;
+}
+
 void Entity::setRotation(f32 yaw, f32 pitch) {
     m_prevYaw = m_yaw;
     m_prevPitch = m_pitch;

@@ -347,6 +347,12 @@ public:
 
     void setPosition(f32 x, f32 y, f32 z);
     void setPosition(const Vector3& pos) { setPosition(pos.x, pos.y, pos.z); }
+
+    /**
+     * @brief 将当前位置与旋转记录为下一次渲染插值的起点
+     */
+    void snapshotInterpolationState();
+
     void setRotation(f32 yaw, f32 pitch);
     void setVelocity(f32 x, f32 y, f32 z);
     void setVelocity(const Vector3& vel) { setVelocity(vel.x, vel.y, vel.z); }
