@@ -3,6 +3,8 @@
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../biome/Biome.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/MathConstants.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -15,7 +17,22 @@ namespace {
     return block != nullptr ? VanillaBlocks::getState(block) : nullptr;
 }
 
-} // namespace
+/**
+ * @brief 全局 INFO_NOISE 噪声生成器
+ *
+ * 参考 MC Biome.INFO_NOISE，用于沼泽等地表构建器。
+ * MC 中这是一个静态共享的 PerlinNoiseGenerator。
+ */
+class GlobalInfoNoise {
+public:
+    static PerlinNoiseGenerator& instance() {
+        // 使用固定种子初始化（MC Biome.INFO_NOISE 使用派生种子）
+        static PerlinNoiseGenerator s_noise(12345ULL, 0, 0);
+        return s_noise;
+    }
+};
+
+} // anonymous namespace
 
 // ============================================================================
 // SurfaceBuilderConfig 静态方法实现
@@ -214,7 +231,6 @@ void SurfaceBuilder::buildDefaultSurface(
                 // MC第44-52行：水下填充逻辑
                 if (y < seaLevel && (blockstate == nullptr || blockstate->isAir())) {
                     // 根据生物群系温度决定放冰还是水
-                    // TODO: MC使用biome.getTemperature(pos)，需要实现基于位置的温度计算
                     if (biome.temperature() < 0.15f) {
                         blockstate = VanillaBlocks::getState(VanillaBlocks::ICE);
                     } else {
@@ -473,60 +489,47 @@ void SwampSurfaceBuilder::buildSurface(
 {
     (void)worldSeed;
 
-    // 参考 MC SwampSurfaceBuilder
+    // 参考 MC SwampSurfaceBuilder 第15-34行
     // 使用Biome.INFO_NOISE在水面附近生成粘土
-    // TODO: 需要实现Biome.INFO_NOISE采样
-    // 暂时使用surfaceNoise参数作为近似
+    const i32 localX = x & 15;
+    const i32 localZ = z & 15;
 
-    const BlockState* topState = config.topBlock;
-    const BlockState* underState = config.underBlock;
-    const BlockState* clayState = VanillaBlocks::getState(VanillaBlocks::CLAY);
+    // 使用全局 INFO_NOISE 采样
+    // MC 第16行：Biome.INFO_NOISE.noiseAt((double)x * 0.25D, (double)z * 0.25D, false)
+    const f64 infoNoiseValue = static_cast<f64>(
+        GlobalInfoNoise::instance().noiseAt(
+            static_cast<f32>(x) * 0.25f,
+            static_cast<f32>(z) * 0.25f,
+            false
+        )
+    );
 
-    if (!topState || !underState || !defaultBlock) {
-        return;
-    }
-
-    // 计算地表深度
-    const i32 depth = static_cast<i32>(surfaceNoise / 3.0 + 3.0 + random.nextDouble() * 0.25);
-    i32 currentDepth = -1;
-
-    // 使用噪声决定粘土生成位置
-    // MC使用INFO_NOISE采样，这里暂时简化
-    const double clayNoise = surfaceNoise * 0.5;  // 简化的噪声
-
-    for (i32 y = startHeight; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(x, y, z);
-
-        if (!currentState || currentState->isAir()) {
-            currentDepth = -1;
-            continue;
-        }
-
-        if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
-            if (currentDepth == -1) {
-                // 水面附近可能放置粘土
-                if (y < seaLevel && clayNoise > 0.3) {
-                    if (clayState) {
-                        chunk.setBlock(x, y, z, clayState);
-                    } else {
-                        chunk.setBlock(x, y, z, topState);
-                    }
-                } else {
-                    chunk.setBlock(x, y, z, topState);
+    if (infoNoiseValue > 0.0) {
+        // 在水面附近查找空气方块下的方块
+        for (i32 y = startHeight; y >= 0; --y) {
+            const BlockState* state = chunk.getBlock(localX, y, localZ);
+            if (!state || !state->isAir()) {
+                // 找到非空气方块，检查是否在海平面(62)且不是水
+                if (y == 62 && state->blockId() != defaultFluid->blockId()) {
+                    // 替换为水
+                    chunk.setBlock(localX, y, localZ, defaultFluid);
                 }
-                currentDepth = depth;
-            } else if (currentDepth > 0) {
-                chunk.setBlock(x, y, z, underState);
-                --currentDepth;
+                break;
             }
         }
     }
+
+    // 委托给 DefaultSurfaceBuilder 完成常规地表生成
+    buildDefaultSurface(
+        random, chunk, biome, x, z, startHeight, surfaceNoise,
+        defaultBlock, defaultFluid, seaLevel,
+        config.topBlock, config.underBlock, config.underWaterBlock);
 }
 
 void SwampSurfaceBuilder::setSeed(u64 seed)
 {
     m_seed = seed;
-    // TODO: 初始化INFO_NOISE噪声生成器
+    // INFO_NOISE 是全局共享的，不需要每个实例初始化
 }
 
 // ============================================================================
@@ -548,43 +551,150 @@ void FrozenOceanSurfaceBuilder::buildSurface(
 {
     (void)worldSeed;
 
-    // 参考 MC FrozenOceanSurfaceBuilder
-    // TODO: 实现完整的冰山生成逻辑
-    // 目前使用简化的实现
+    // 参考 MC FrozenOceanSurfaceBuilder 第30-123行
+    const i32 localX = x & 15;
+    const i32 localZ = z & 15;
 
+    // 获取温度（参考第34行）
+    const f32 temperature = biome.temperature();
+
+    // 计算冰山参数
+    f64 icebergHeight = 0.0;
+    f64 icebergBase = 0.0;
+
+    // 使用噪声生成器计算冰山尺寸
+    // MC 第35行：min(abs(noise), field_205199_h.noiseAt(...) * 15.0)
+    if (m_icebergHeightNoise && m_icebergDensityNoise) {
+        const f64 noiseValue = std::abs(surfaceNoise);
+        const f64 heightNoise = static_cast<f64>(
+            m_icebergHeightNoise->noiseAt(
+                static_cast<f32>(x) * 0.1f,
+                static_cast<f32>(z) * 0.1f,
+                false
+            )
+        ) * 15.0;
+
+        const f64 d2 = std::min(noiseValue, heightNoise);
+
+        if (d2 > 1.8) {
+            // MC 第37-43行：计算冰山密度
+            const f64 densityNoise = std::abs(
+                static_cast<f64>(m_icebergDensityNoise->noiseAt(
+                    static_cast<f32>(x) * 0.09765625f,  // 1/1024 * 100
+                    static_cast<f32>(z) * 0.09765625f,
+                    false
+                ))
+            );
+
+            icebergHeight = d2 * d2 * 1.2;
+            f64 maxHeight = std::ceil(densityNoise * 40.0) + 14.0;
+
+            if (icebergHeight > maxHeight) {
+                icebergHeight = maxHeight;
+            }
+
+            // 温度影响冰山高度
+            if (temperature > 0.1f) {
+                icebergHeight -= 2.0;
+            }
+
+            if (icebergHeight > 2.0) {
+                icebergBase = static_cast<f64>(seaLevel) - icebergHeight - 7.0;
+                icebergHeight += static_cast<f64>(seaLevel);
+            } else {
+                icebergHeight = 0.0;
+            }
+        }
+    }
+
+    // 地表生成参数
     const BlockState* topState = config.topBlock;
     const BlockState* underState = config.underBlock;
-    const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
     const BlockState* packedIceState = VanillaBlocks::getState(VanillaBlocks::PACKED_ICE);
-
-    if (!topState || !underState || !defaultBlock) {
-        return;
-    }
+    const BlockState* snowBlockState = VanillaBlocks::getState(VanillaBlocks::SNOW_BLOCK);
+    const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
+    const BlockState* gravelState = VanillaBlocks::getState(VanillaBlocks::GRAVEL);
 
     const i32 depth = static_cast<i32>(surfaceNoise / 3.0 + 3.0 + random.nextDouble() * 0.25);
     i32 currentDepth = -1;
+    i32 packedIceCount = 0;
+    const i32 maxPackedIce = 2 + random.nextInt(4);
+    const i32 snowThreshold = seaLevel + 18 + random.nextInt(10);
 
-    for (i32 y = startHeight; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(x, y, z);
+    const i32 startY = std::max(startHeight, static_cast<i32>(icebergHeight) + 1);
 
-        if (!currentState || currentState->isAir()) {
-            currentDepth = -1;
-            continue;
+    for (i32 y = startY; y >= 0; --y) {
+        const BlockState* currentState = chunk.getBlock(localX, y, localZ);
+
+        // 冰山生成（MC 第72-76行）
+        if ((!currentState || currentState->isAir()) && y < static_cast<i32>(icebergHeight)) {
+            if (random.nextDouble() > 0.01) {
+                chunk.setBlock(localX, y, localZ, packedIceState);
+            }
+        } else if (currentState && currentState->isLiquid() &&
+                   y > static_cast<i32>(icebergBase) && y < seaLevel && icebergBase != 0.0) {
+            if (random.nextDouble() > 0.15) {
+                chunk.setBlock(localX, y, localZ, packedIceState);
+            }
         }
 
-        if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
+        // 常规地表处理
+        if (!currentState || currentState->isAir()) {
+            currentDepth = -1;
+            packedIceCount = 0;
+        } else if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
             if (currentDepth == -1) {
-                // 水面可能结冰
-                if (y <= seaLevel && iceState) {
-                    // 在水面上放置冰
-                    chunk.setBlock(x, y, z, packedIceState ? packedIceState : iceState);
-                } else {
-                    chunk.setBlock(x, y, z, topState);
+                // 到达地表
+                if (depth <= 0) {
+                    topState = nullptr;  // AIR
+                    underState = defaultBlock;
+                } else if (y >= seaLevel - 4 && y <= seaLevel + 1) {
+                    topState = config.topBlock;
+                    underState = config.underBlock;
                 }
+
+                // 水下填充
+                if (y < seaLevel && (topState == nullptr || topState->isAir())) {
+                    if (temperature < 0.15f) {
+                        topState = iceState;
+                    } else {
+                        topState = defaultFluid;
+                    }
+                }
+
                 currentDepth = depth;
+
+                if (y >= seaLevel - 1) {
+                    chunk.setBlock(localX, y, localZ, topState);
+                } else if (y < seaLevel - 7 - depth) {
+                    topState = nullptr;  // AIR
+                    underState = defaultBlock;
+                    chunk.setBlock(localX, y, localZ, gravelState);
+                } else {
+                    chunk.setBlock(localX, y, localZ, underState);
+                }
             } else if (currentDepth > 0) {
-                chunk.setBlock(x, y, z, underState);
                 --currentDepth;
+                chunk.setBlock(localX, y, localZ, underState);
+
+                // 砂岩替换
+                if (currentDepth == 0 && underState != nullptr && depth > 1) {
+                    const Block* block = &underState->owner();
+                    if (block == VanillaBlocks::SAND || block == VanillaBlocks::RED_SAND) {
+                        currentDepth = random.nextInt(4) + std::max(0, y - 63);
+                        if (block == VanillaBlocks::RED_SAND) {
+                            underState = VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE);
+                        } else {
+                            underState = VanillaBlocks::getState(VanillaBlocks::SANDSTONE);
+                        }
+                    }
+                }
+            }
+        } else if (packedIceState && currentState->blockId() == packedIceState->blockId()) {
+            // 浮冰转换为雪块（MC 第82-84行）
+            if (packedIceCount <= maxPackedIce && y > snowThreshold) {
+                chunk.setBlock(localX, y, localZ, snowBlockState);
+                ++packedIceCount;
             }
         }
     }
@@ -592,12 +702,22 @@ void FrozenOceanSurfaceBuilder::buildSurface(
 
 void FrozenOceanSurfaceBuilder::setSeed(u64 seed)
 {
-    if (m_cachedSeed == seed) {
+    if (m_cachedSeed == seed && m_icebergHeightNoise && m_icebergDensityNoise) {
         return;
     }
+
     m_cachedSeed = seed;
     m_seed = seed;
-    // TODO: 初始化噪声生成器 m_noiseA 和 m_noiseB
+
+    // 创建随机数生成器用于噪声初始化
+    // MC 使用 SharedSeedRandom，我们使用标准 Random
+    math::Random rng(seed);
+
+    // MC 第128-129行：创建两个 PerlinNoiseGenerator
+    // field_205199_h: rangeClosed(-3, 0) = 4 octaves
+    // field_205200_i: ImmutableList.of(0) = 1 octave
+    m_icebergHeightNoise = std::make_unique<PerlinNoiseGenerator>(rng, -3, 0);
+    m_icebergDensityNoise = std::make_unique<PerlinNoiseGenerator>(rng, 0, 0);
 }
 
 // ============================================================================
@@ -621,9 +741,13 @@ void BadlandsSurfaceBuilder::buildSurface(
     (void)defaultFluid;
     (void)worldSeed;
 
+    // 参考 MC BadlandsSurfaceBuilder 第35-111行
+    const i32 localX = x & 15;
+    const i32 localZ = z & 15;
+
+    const BlockState* whiteTerracottaState = getStateOrNull(VanillaBlocks::WHITE_TERRACOTTA);
+    const BlockState* orangeTerracottaState = getStateOrNull(VanillaBlocks::ORANGE_TERRACOTTA);
     const BlockState* terracottaState = getStateOrNull(VanillaBlocks::TERRACOTTA);
-    const BlockState* redSandState = VanillaBlocks::getState(VanillaBlocks::RED_SAND);
-    const BlockState* orangeTerracottaState = VanillaBlocks::getState(VanillaBlocks::ORANGE_TERRACOTTA);
     const BlockState* topState = config.topBlock;
 
     if (!topState || !defaultBlock) {
@@ -633,11 +757,17 @@ void BadlandsSurfaceBuilder::buildSurface(
     const i32 depth = static_cast<i32>(surfaceNoise / 3.0 + 3.0 + random.nextDouble() * 0.25);
     i32 currentDepth = -1;
     bool useOrangeLayer = false;
-    const i32 worldX = chunk.x() * 16 + x;
-    const i32 worldZ = chunk.z() * 16 + z;
+    i32 terracottaCount = 0;
+
+    // MC 第44行：cos(noise / 3.0 * PI) > 0 判断是否使用陶瓦色带
+    const bool useTerracottaBands = std::cos(surfaceNoise / 3.0 * math::PI) > 0.0;
 
     for (i32 y = startHeight; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(x, y, z);
+        if (terracottaCount >= 15) {
+            break;
+        }
+
+        const BlockState* currentState = chunk.getBlock(localX, y, localZ);
 
         if (!currentState || currentState->isAir()) {
             currentDepth = -1;
@@ -647,69 +777,211 @@ void BadlandsSurfaceBuilder::buildSurface(
 
         if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
             if (currentDepth == -1) {
+                useOrangeLayer = false;
+
+                if (depth <= 0) {
+                    topState = nullptr;  // AIR
+                } else if (y >= seaLevel - 4 && y <= seaLevel + 1) {
+                    topState = whiteTerracottaState ? whiteTerracottaState : config.underBlock;
+                }
+
                 currentDepth = depth + std::max(0, y - seaLevel);
 
                 if (y >= seaLevel - 1) {
-                    const BlockState* surfaceState = redSandState ? redSandState : topState;
-                    chunk.setBlock(x, y, z, surfaceState);
-                    useOrangeLayer = true;
-                } else {
-                    const BlockState* layerState = getTerracottaLayer(worldX, y, worldZ);
-                    if (!layerState) {
-                        layerState = terracottaState ? terracottaState : topState;
+                    if (y > seaLevel + 3 + depth) {
+                        // 高于地表，使用陶瓦层
+                        const BlockState* layerState = nullptr;
+                        if (y >= 64 && y <= 127) {
+                            if (useTerracottaBands) {
+                                layerState = terracottaState;
+                            } else {
+                                layerState = getTerracottaLayer(x, y, z);
+                            }
+                        } else {
+                            layerState = orangeTerracottaState;
+                        }
+                        if (layerState) {
+                            chunk.setBlock(localX, y, localZ, layerState);
+                        }
+                    } else {
+                        // 地表使用红沙
+                        const BlockState* redSandState = getStateOrNull(VanillaBlocks::RED_SAND);
+                        chunk.setBlock(localX, y, localZ, redSandState ? redSandState : topState);
+                        useOrangeLayer = true;
                     }
-                    chunk.setBlock(x, y, z, layerState);
-                    useOrangeLayer = false;
+                } else {
+                    // 水下方块
+                    const BlockState* underState = config.underBlock;
+                    chunk.setBlock(localX, y, localZ, underState);
+
+                    // 如果是陶瓦颜色，替换为橙色陶瓦（MC 第93-95行）
+                    if (underState && isTerracottaColor(underState)) {
+                        chunk.setBlock(localX, y, localZ, orangeTerracottaState);
+                    }
                 }
             } else if (currentDepth > 0) {
                 --currentDepth;
 
-                const BlockState* layerState = nullptr;
-                if (useOrangeLayer && orangeTerracottaState) {
-                    layerState = orangeTerracottaState;
+                if (useOrangeLayer) {
+                    if (orangeTerracottaState) {
+                        chunk.setBlock(localX, y, localZ, orangeTerracottaState);
+                    }
+                } else {
+                    const BlockState* layerState = getTerracottaLayer(x, y, z);
+                    if (layerState) {
+                        chunk.setBlock(localX, y, localZ, layerState);
+                    }
                 }
-                if (!layerState) {
-                    layerState = getTerracottaLayer(worldX, y, worldZ);
-                }
-                if (!layerState) {
-                    layerState = terracottaState ? terracottaState : topState;
-                }
-                chunk.setBlock(x, y, z, layerState);
             }
+
+            ++terracottaCount;
         }
     }
 }
 
-void BadlandsSurfaceBuilder::setSeed(u64 seed)
+bool BadlandsSurfaceBuilder::isTerracottaColor(const BlockState* state) const
 {
-    if (m_cachedSeed == seed) {
-        return;
-    }
-    m_cachedSeed = seed;
-    m_seed = seed;
-    initBands(seed);
+    if (!state) return false;
+    const Block* block = &state->owner();
+    return block == VanillaBlocks::WHITE_TERRACOTTA ||
+           block == VanillaBlocks::ORANGE_TERRACOTTA ||
+           block == VanillaBlocks::MAGENTA_TERRACOTTA ||
+           block == VanillaBlocks::LIGHT_BLUE_TERRACOTTA ||
+           block == VanillaBlocks::YELLOW_TERRACOTTA ||
+           block == VanillaBlocks::LIME_TERRACOTTA ||
+           block == VanillaBlocks::PINK_TERRACOTTA ||
+           block == VanillaBlocks::GRAY_TERRACOTTA ||
+           block == VanillaBlocks::LIGHT_GRAY_TERRACOTTA ||
+           block == VanillaBlocks::CYAN_TERRACOTTA ||
+           block == VanillaBlocks::PURPLE_TERRACOTTA ||
+           block == VanillaBlocks::BLUE_TERRACOTTA ||
+           block == VanillaBlocks::BROWN_TERRACOTTA ||
+           block == VanillaBlocks::GREEN_TERRACOTTA ||
+           block == VanillaBlocks::RED_TERRACOTTA ||
+           block == VanillaBlocks::BLACK_TERRACOTTA;
 }
 
-void BadlandsSurfaceBuilder::initBands(u64 seed)
+void BadlandsSurfaceBuilder::setSeed(u64 seed)
 {
-    // TODO: 使用PerlinNoiseGenerator生成陶瓦色带
-    // 参考 MC BadlandsSurfaceBuilder 第27-42行
-    (void)seed;
-    // 暂时初始化为默认色带
-    for (size_t i = 0; i < m_terracottaBands.size(); ++i) {
-        m_terracottaBands[i] = VanillaBlocks::getState(VanillaBlocks::TERRACOTTA);
+    if (m_cachedSeed == seed && m_bandOffsetNoise) {
+        return;
     }
+
+    m_cachedSeed = seed;
+    m_seed = seed;
+
+    // 创建随机数生成器
+    math::Random rng(seed);
+
+    // MC 第119-122行：创建噪声生成器
+    // field_215435_c: rangeClosed(-3, 0) = 4 octaves
+    // field_215437_d: ImmutableList.of(0) = 1 octave
+    m_surfaceNoiseA = std::make_unique<PerlinNoiseGenerator>(rng, -3, 0);
+    m_surfaceNoiseB = std::make_unique<PerlinNoiseGenerator>(rng, 0, 0);
+
+    // MC 第127-192行：初始化陶瓦色带
+    initBands(seed, rng);
+}
+
+void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
+{
+    // MC BadlandsSurfaceBuilder.func_215430_b (第127-192行)
+    // 初始化陶瓦色带数组
+
+    // 默认填充橙色陶瓦
+    const BlockState* orangeTerracotta = getStateOrNull(VanillaBlocks::ORANGE_TERRACOTTA);
+    const BlockState* yellowTerracotta = getStateOrNull(VanillaBlocks::YELLOW_TERRACOTTA);
+    const BlockState* brownTerracotta = getStateOrNull(VanillaBlocks::BROWN_TERRACOTTA);
+    const BlockState* redTerracotta = getStateOrNull(VanillaBlocks::RED_TERRACOTTA);
+    const BlockState* whiteTerracotta = getStateOrNull(VanillaBlocks::WHITE_TERRACOTTA);
+    const BlockState* lightGrayTerracotta = getStateOrNull(VanillaBlocks::LIGHT_GRAY_TERRACOTTA);
+    const BlockState* terracotta = getStateOrNull(VanillaBlocks::TERRACOTTA);
+
+    // 默认填充陶瓦
+    for (size_t i = 0; i < m_terracottaBands.size(); ++i) {
+        m_terracottaBands[i] = terracotta;
+    }
+
+    // MC 第131行：创建色带偏移噪声
+    m_bandOffsetNoise = std::make_unique<PerlinNoiseGenerator>(rng, 0, 0);
+
+    // MC 第133-138行：添加橙色条带
+    for (i32 i = 0; i < 64; i += rng.nextInt(5) + 1) {
+        if (i < 64) {
+            m_terracottaBands[i] = orangeTerracotta;
+        }
+    }
+
+    // MC 第140-149行：添加黄色条带
+    i32 yellowBands = rng.nextInt(4) + 2;
+    for (i32 i = 0; i < yellowBands; ++i) {
+        i32 bandLength = rng.nextInt(3) + 1;
+        i32 startPos = rng.nextInt(64);
+        for (i32 j = 0; startPos + j < 64 && j < bandLength; ++j) {
+            m_terracottaBands[startPos + j] = yellowTerracotta;
+        }
+    }
+
+    // MC 第151-160行：添加棕色条带
+    i32 brownBands = rng.nextInt(4) + 2;
+    for (i32 i = 0; i < brownBands; ++i) {
+        i32 bandLength = rng.nextInt(3) + 2;
+        i32 startPos = rng.nextInt(64);
+        for (i32 j = 0; startPos + j < 64 && j < bandLength; ++j) {
+            m_terracottaBands[startPos + j] = brownTerracotta;
+        }
+    }
+
+    // MC 第162-171行：添加红色条带
+    i32 redBands = rng.nextInt(4) + 2;
+    for (i32 i = 0; i < redBands; ++i) {
+        i32 bandLength = rng.nextInt(3) + 1;
+        i32 startPos = rng.nextInt(64);
+        for (i32 j = 0; startPos + j < 64 && j < bandLength; ++j) {
+            m_terracottaBands[startPos + j] = redTerracotta;
+        }
+    }
+
+    // MC 第173-191行：添加白色和浅灰色条带
+    i32 whiteBands = rng.nextInt(3) + 3;
+    i32 currentPos = 0;
+    for (i32 i = 0; i < whiteBands; ++i) {
+        currentPos += rng.nextInt(16) + 4;
+        if (currentPos < 64) {
+            m_terracottaBands[currentPos] = whiteTerracotta;
+
+            // 可能在上方添加浅灰色
+            if (currentPos > 1 && rng.nextBoolean()) {
+                m_terracottaBands[currentPos - 1] = lightGrayTerracotta;
+            }
+
+            // 可能在下方添加浅灰色
+            if (currentPos < 63 && rng.nextBoolean()) {
+                m_terracottaBands[currentPos + 1] = lightGrayTerracotta;
+            }
+        }
+    }
+
+    (void)seed;  // 已通过 rng 使用
 }
 
 const BlockState* BadlandsSurfaceBuilder::getTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ)
 {
-    // 使用噪声生成陶瓦层
-    // 参考 MC BadlandsSurfaceBuilder 第44-59行
-    const f64 bandNoise = std::sin(
-        static_cast<f64>(worldX) / 512.0 +
-        static_cast<f64>(worldZ) / 512.0
-    );
-    const i32 offset = static_cast<i32>(std::round(bandNoise * 2.0));
+    // MC BadlandsSurfaceBuilder.func_215431_a (第194-197行)
+    if (!m_bandOffsetNoise) {
+        return nullptr;
+    }
+
+    // 使用噪声计算 Y 轴偏移
+    const f64 noiseValue = static_cast<f64>(
+        m_bandOffsetNoise->noiseAt(
+            static_cast<f32>(worldX) / 512.0f,
+            static_cast<f32>(worldZ) / 512.0f,
+            false
+        )
+    ) * 2.0;
+
+    const i32 offset = static_cast<i32>(std::round(noiseValue));
     const i32 bandIndex = ((worldY + offset) % 64 + 64) % 64;
 
     if (bandIndex >= 0 && bandIndex < static_cast<i32>(m_terracottaBands.size())) {
@@ -824,8 +1096,10 @@ void NetherForestsSurfaceBuilder::buildSurface(
     (void)seaLevel;
     (void)worldSeed;
 
-    // 参考 MC NetherForestsSurfaceBuilder
-    // 使用噪声决定表层方块类型
+    // 参考 MC NetherForestsSurfaceBuilder 第23-73行
+    const i32 localX = x & 15;
+    const i32 localZ = z & 15;
+
     const BlockState* topState = config.topBlock;
     const BlockState* underState = config.underBlock;
     const BlockState* netherrackState = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
@@ -834,14 +1108,38 @@ void NetherForestsSurfaceBuilder::buildSurface(
         return;
     }
 
+    // MC 第27-28行：使用噪声决定表层类型
+    bool useUnderAsTop = false;
+    bool useUnderWater = false;
+
+    if (m_noise) {
+        const f64 noiseValue = static_cast<f64>(
+            m_noise->getValue(
+                static_cast<f32>(x) * 0.1f,
+                static_cast<f32>(seaLevel),
+                static_cast<f32>(z) * 0.1f,
+                0.0f, 0.0f, false
+            )
+        );
+        useUnderAsTop = noiseValue > 0.15 + static_cast<f64>(random.nextDouble()) * 0.35;
+
+        const f64 noiseValue2 = static_cast<f64>(
+            m_noise->getValue(
+                static_cast<f32>(x) * 0.1f,
+                109.0f,
+                static_cast<f32>(z) * 0.1f,
+                0.0f, 0.0f, false
+            )
+        );
+        useUnderWater = noiseValue2 > 0.25 + static_cast<f64>(random.nextDouble()) * 0.9;
+    }
+
     const i32 depth = static_cast<i32>(surfaceNoise / 3.0 + 3.0 + random.nextDouble() * 0.25);
     i32 currentDepth = -1;
 
-    // TODO: 使用噪声生成器决定表层类型
-    const bool useNylium = surfaceNoise > 0.0;
-
-    for (i32 y = startHeight; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(x, y, z);
+    // 下界高度从127开始向下
+    for (i32 y = 127; y >= 0; --y) {
+        const BlockState* currentState = chunk.getBlock(localX, y, localZ);
 
         if (!currentState || currentState->isAir()) {
             currentDepth = -1;
@@ -850,25 +1148,41 @@ void NetherForestsSurfaceBuilder::buildSurface(
 
         if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
             if (currentDepth == -1) {
-                // 使用菌光体或下界岩
-                if (useNylium) {
-                    chunk.setBlock(x, y, z, topState);
-                } else {
-                    if (netherrackState) {
-                        chunk.setBlock(x, y, z, netherrackState);
-                    } else {
-                        chunk.setBlock(x, y, z, topState);
-                    }
+                bool forceUnder = false;
+
+                if (depth <= 0) {
+                    forceUnder = true;
+                    underState = config.underBlock;
                 }
+
+                // 根据噪声选择表层
+                const BlockState* surfaceTop = topState;
+                if (useUnderAsTop) {
+                    surfaceTop = config.underBlock;
+                } else if (useUnderWater) {
+                    surfaceTop = config.underWaterBlock;
+                }
+
                 currentDepth = depth;
+
+                if (y >= seaLevel - 1) {
+                    if (forceUnder && y < seaLevel) {
+                        // 水下使用默认流体
+                        chunk.setBlock(localX, y, localZ, defaultFluid);
+                    } else {
+                        chunk.setBlock(localX, y, localZ, surfaceTop);
+                    }
+                } else {
+                    chunk.setBlock(localX, y, localZ, underState);
+                }
             } else if (currentDepth > 0) {
+                --currentDepth;
                 // 下层使用下界岩
                 if (netherrackState) {
-                    chunk.setBlock(x, y, z, netherrackState);
+                    chunk.setBlock(localX, y, localZ, netherrackState);
                 } else {
-                    chunk.setBlock(x, y, z, underState);
+                    chunk.setBlock(localX, y, localZ, underState);
                 }
-                --currentDepth;
             }
         }
     }
@@ -876,12 +1190,17 @@ void NetherForestsSurfaceBuilder::buildSurface(
 
 void NetherForestsSurfaceBuilder::setSeed(u64 seed)
 {
-    if (m_cachedSeed == seed) {
+    if (m_cachedSeed == seed && m_noise) {
         return;
     }
+
     m_cachedSeed = seed;
     m_seed = seed;
-    // TODO: 初始化噪声生成器 m_noise
+
+    // MC 第75-77行：创建 OctavesNoiseGenerator
+    // ImmutableList.of(0) = 1 octave
+    math::Random rng(seed);
+    m_noise = std::make_unique<OctavesNoiseGenerator>(rng, 0, 0);
 }
 
 // ============================================================================
@@ -1009,5 +1328,11 @@ void BasaltDeltasSurfaceBuilder::buildSurface(
         }
     }
 }
+
+// ============================================================================
+// NoopSurfaceBuilder 实现
+// ============================================================================
+
+// NoopSurfaceBuilder 的 buildSurface 在头文件中定义为空操作
 
 } // namespace mc

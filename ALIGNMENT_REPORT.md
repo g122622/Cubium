@@ -33,6 +33,15 @@
 | NoopSurfaceBuilder缺失 | 已添加 |
 | 已删除无效构建器 | DesertSurfaceBuilder, BeachSurfaceBuilder, BambooJungleSurfaceBuilder |
 
+### 已实现的噪声生成器初始化 (2026-04-30)
+
+| 构建器 | 噪声生成器 | 状态 |
+|--------|-----------|------|
+| SwampSurfaceBuilder | GlobalInfoNoise (PerlinNoiseGenerator) | 已实现，使用全局共享噪声 |
+| FrozenOceanSurfaceBuilder | m_icebergHeightNoise, m_icebergDensityNoise | 已实现，PerlinNoiseGenerator初始化 |
+| BadlandsSurfaceBuilder | m_bandOffsetNoise, m_surfaceNoiseA, m_surfaceNoiseB | 已实现，包含完整的陶瓦色带生成 |
+| NetherForestsSurfaceBuilder | m_noise (OctavesNoiseGenerator) | 已实现，用于决定表层类型 |
+
 ### 已添加的预设配置
 
 - PODZOL_DIRT_GRAVEL_CONFIG
@@ -106,48 +115,39 @@
 | FeatureSize | 缺失（TwoLayerFeature、ThreeLayerFeature）|
 | BlockStateProvider | 缺失 |
 
-### TODO 注释位置
-
-| 文件 | 行号 | 内容 |
-|------|------|------|
-| SurfaceBuilders.cpp | 217 | 需实现基于位置的温度计算 |
-| SurfaceBuilders.cpp | 478 | 需实现Biome.INFO_NOISE采样 |
-| SurfaceBuilders.cpp | 529 | 需初始化INFO_NOISE噪声生成器 |
-| SurfaceBuilders.cpp | 552 | 需实现完整的冰山生成逻辑 |
-| SurfaceBuilders.cpp | 600 | 需初始化噪声生成器m_noiseA和m_noiseB |
-| SurfaceBuilders.cpp | 695 | 需使用PerlinNoiseGenerator生成陶瓦色带 |
-| SurfaceBuilders.cpp | 840 | 需使用噪声生成器决定表层类型 |
-| SurfaceBuilders.cpp | 884 | 需初始化噪声生成器m_noise |
-
 ---
 
 ## 一、地表构建器问题
 
-### 1.1 架构问题
+### 1.1 架构问题（已修复）
 
-| 问题 | 严重程度 | 描述 |
+| 问题 | 严重程度 | 状态 |
 |------|---------|------|
-| 缺少setSeed方法 | 高 | MC地表构建器有setSeed方法用于初始化噪声生成器，项目完全缺失 |
-| noise参数类型错误 | 中 | 项目使用f32，MC使用f64 |
-| 缺少worldSeed参数 | 高 | buildSurface签名缺少worldSeed参数 |
-| 缺少委托机制 | 高 | 多个构建器应委托给DefaultSurfaceBuilder而非自己实现 |
+| 缺少setSeed方法 | 高 | ✅ 已添加到SurfaceBuilder基类 |
+| noise参数类型错误 | 中 | ✅ 已修正为f64 |
+| 缺少worldSeed参数 | 高 | ✅ 已添加 |
+| 缺少委托机制 | 高 | ✅ 已修复 |
 
-### 1.2 DefaultSurfaceBuilder缺失逻辑
+### 1.2 DefaultSurfaceBuilder缺失逻辑（已修复）
 
 MC原版DefaultSurfaceBuilder.java第36-70行包含关键逻辑：
 
-1. **深度<=0时的处理** (第36-39行)：`blockstate = Blocks.AIR.getDefaultState(); blockstate1 = defaultBlock;`
-2. **水下填充逻辑** (第44-52行)：Y < seaLevel且表层为空时，根据温度放置冰或水
-3. **深层水下底板** (第57-60行)：Y < seaLevel - 7 - depth时使用underWaterBlock
-4. **砂岩替换逻辑** (第67-70行)：次层是沙子且depth>1时随机替换为砂岩
+1. **深度<=0时的处理** (第36-39行)：`blockstate = Blocks.AIR.getDefaultState(); blockstate1 = defaultBlock;` ✅
+2. **水下填充逻辑** (第44-52行)：Y < seaLevel且表层为空时，根据温度放置冰或水 ✅
+3. **深层水下底板** (第57-60行)：Y < seaLevel - 7 - depth时使用underWaterBlock ✅
+4. **砂岩替换逻辑** (第67-70行)：次层是沙子且depth>1时随机替换为砂岩 ✅
 
-项目实现完全缺失以上逻辑。
+### 1.3 错误实现的构建器（已修复）
 
-### 1.3 错误实现的构建器
-
-| 构建器 | 问题 |
-|--------|------|
-| MountainSurfaceBuilder | 应委托给DefaultSurfaceBuilder，根据噪声选择配置 |
+| 构建器 | 问题 | 状态 |
+|--------|------|------|
+| MountainSurfaceBuilder | 应委托给DefaultSurfaceBuilder | ✅ 已修复 |
+| GiantTreeTaigaSurfaceBuilder | 应委托给DefaultSurfaceBuilder | ✅ 已修复 |
+| ShatteredSavannaSurfaceBuilder | 应委托给DefaultSurfaceBuilder | ✅ 已修复 |
+| SwampSurfaceBuilder | 应使用Biome.INFO_NOISE | ✅ 已实现GlobalInfoNoise |
+| FrozenOceanSurfaceBuilder | 缺失冰山生成逻辑 | ✅ 已实现完整冰山逻辑 |
+| BadlandsSurfaceBuilder | 陶瓦色带生成逻辑缺失 | ✅ 已实现完整色带生成 |
+| NetherForestsSurfaceBuilder | 缺失噪声生成器 | ✅ 已实现OctavesNoiseGenerator |
 | GiantTreeTaigaSurfaceBuilder | 应委托给DefaultSurfaceBuilder，根据噪声选择三种配置 |
 | ShatteredSavannaSurfaceBuilder | 应委托给DefaultSurfaceBuilder，使用噪声判断而非随机 |
 | SwampSurfaceBuilder | 应使用Biome.INFO_NOISE而非surfaceNoise参数 |

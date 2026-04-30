@@ -1,6 +1,10 @@
 #pragma once
 
 #include "SurfaceBuilder.hpp"
+#include "../noise/OctavesNoiseGenerator.hpp"
+#include "../../../util/math/random/IRandom.hpp"
+#include <array>
+#include <memory>
 
 namespace mc {
 
@@ -210,9 +214,10 @@ public:
     void setSeed(u64 seed) override;
 
 private:
-    // 噪声生成器（需要在setSeed时初始化）
-    void* m_noiseA = nullptr;  // PerlinNoiseGenerator
-    void* m_noiseB = nullptr;  // PerlinNoiseGenerator
+    /// 冰山高度噪声
+    std::unique_ptr<PerlinNoiseGenerator> m_icebergHeightNoise;
+    /// 冰山密度噪声
+    std::unique_ptr<PerlinNoiseGenerator> m_icebergDensityNoise;
     u64 m_cachedSeed = 0;
 };
 
@@ -244,13 +249,19 @@ public:
     void setSeed(u64 seed) override;
 
 private:
-    // 陶瓦色带数组（基于种子生成）
+    /// 陶瓦色带数组（基于种子生成）
     std::array<const BlockState*, 64> m_terracottaBands{};
-    void* m_bandNoise = nullptr;  // PerlinNoiseGenerator
+    /// 色带偏移噪声（用于Y轴偏移）
+    std::unique_ptr<PerlinNoiseGenerator> m_bandOffsetNoise;
+    /// 表层噪声A
+    std::unique_ptr<PerlinNoiseGenerator> m_surfaceNoiseA;
+    /// 表层噪声B
+    std::unique_ptr<PerlinNoiseGenerator> m_surfaceNoiseB;
     u64 m_cachedSeed = 0;
 
-    void initBands(u64 seed);
+    void initBands(u64 seed, math::IRandom& rng);
     const BlockState* getTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ);
+    [[nodiscard]] bool isTerracottaColor(const BlockState* state) const;
 };
 
 /**
@@ -358,7 +369,8 @@ public:
     void setSeed(u64 seed) override;
 
 private:
-    void* m_noise = nullptr;  // OctavesNoiseGenerator
+    /// 噪声生成器（用于决定表层类型）
+    std::unique_ptr<OctavesNoiseGenerator> m_noise;
     u64 m_cachedSeed = 0;
 };
 
