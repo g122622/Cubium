@@ -27,15 +27,15 @@ placement/
 
 #### 配置结构体
 
-| 配置类 | 说明 | 关键字段 |
-|--------|------|----------|
-| `IPlacementConfig` | 配置基类 | 无（纯虚接口） |
-| `EmptyPlacementConfig` | 空配置 | 无 |
-| `CountPlacementConfig` | 数量配置 | `count` - 每区块尝试次数 |
-| `HeightRangePlacementConfig` | 高度范围配置 | `bottomOffset`, `topOffset`, `maximum` |
-| `BiomePlacementConfig` | 生物群系过滤配置 | `allowedBiomes` - 允许的生物群系ID列表 |
-| `ChancePlacementConfig` | 概率配置 | `chance` - 成功概率 (0.0-1.0) |
-| `SurfacePlacementConfig` | 地表放置配置 | `maxWaterDepth`, `requireSunlight` |
+| 配置类                       | 说明             | 关键字段                               |
+| ---------------------------- | ---------------- | -------------------------------------- |
+| `IPlacementConfig`           | 配置基类         | 无（纯虚接口）                         |
+| `EmptyPlacementConfig`       | 空配置           | 无                                     |
+| `CountPlacementConfig`       | 数量配置         | `count` - 每区块尝试次数               |
+| `HeightRangePlacementConfig` | 高度范围配置     | `bottomOffset`, `topOffset`, `maximum` |
+| `BiomePlacementConfig`       | 生物群系过滤配置 | `allowedBiomes` - 允许的生物群系ID列表 |
+| `ChancePlacementConfig`      | 概率配置         | `chance` - 成功概率 (0.0-1.0)          |
+| `SurfacePlacementConfig`     | 地表放置配置     | `maxWaterDepth`, `requireSunlight`     |
 
 #### 放置器类
 
@@ -52,14 +52,14 @@ public:
 };
 ```
 
-| 放置器类 | 说明 | 行为 |
-|----------|------|------|
-| `CountPlacement` | 数量放置器 | 将基础位置复制 N 次 |
-| `HeightRangePlacement` | 高度范围放置器 | 在指定 Y 范围内随机选择高度 |
-| `SquarePlacement` | 方形分散放置器 | 在 XZ 平面内随机分散 (0-15) |
-| `BiomePlacement` | 生物群系过滤放置器 | 仅在指定生物群系中放置 |
-| `ChancePlacement` | 概率放置器 | 以指定概率决定是否放置 |
-| `SurfacePlacement` | 地表放置器 | 从顶部向下搜索第一个固体方块 |
+| 放置器类               | 说明               | 行为                         |
+| ---------------------- | ------------------ | ---------------------------- |
+| `CountPlacement`       | 数量放置器         | 将基础位置复制 N 次          |
+| `HeightRangePlacement` | 高度范围放置器     | 在指定 Y 范围内随机选择高度  |
+| `SquarePlacement`      | 方形分散放置器     | 在 XZ 平面内随机分散 (0-15)  |
+| `BiomePlacement`       | 生物群系过滤放置器 | 仅在指定生物群系中放置       |
+| `ChancePlacement`      | 概率放置器         | 以指定概率决定是否放置       |
+| `SurfacePlacement`     | 地表放置器         | 从顶部向下搜索第一个固体方块 |
 
 #### ConfiguredPlacement 类
 
@@ -90,28 +90,28 @@ public:
 
 #### 扩展配置结构体
 
-| 配置类 | 说明 | 关键字段 |
-|--------|------|----------|
-| `NoisePlacementConfig` | 噪声阈值配置 | `noiseLevel`, `noiseFactor`, `noiseOffset` |
-| `CountNoiseConfig` | 噪声数量配置 | `noiseLevel`, `belowCount`, `aboveCount` |
-| `DepthAverageConfig` | 深度平均配置 | `baseline`, `spread` |
-| `RandomOffsetConfig` | 随机偏移配置 | `xzSpread`, `ySpread` |
-| `WaterDepthThresholdConfig` | 水深阈值配置 | `maxWaterDepth` |
-| `SeaLevelConfig` | 海平面配置 | `offset` - 相对海平面的偏移 |
+| 配置类                      | 说明         | 关键字段                                   |
+| --------------------------- | ------------ | ------------------------------------------ |
+| `NoisePlacementConfig`      | 噪声阈值配置 | `noiseLevel`, `noiseFactor`, `noiseOffset` |
+| `CountNoiseConfig`          | 噪声数量配置 | `noiseLevel`, `belowCount`, `aboveCount`   |
+| `DepthAverageConfig`        | 深度平均配置 | `baseline`, `spread`                       |
+| `RandomOffsetConfig`        | 随机偏移配置 | `xzSpread`, `ySpread`                      |
+| `WaterDepthThresholdConfig` | 水深阈值配置 | `maxWaterDepth`                            |
+| `SeaLevelConfig`            | 海平面配置   | `offset` - 相对海平面的偏移                |
 
 #### 扩展放置器类
 
-| 放置器类 | 说明 | 行为 |
-|----------|------|------|
-| `NoisePlacement` | 噪声阈值放置器 | 根据噪声值决定是否放置 |
-| `CountNoisePlacement` | 噪声数量放置器 | 根据噪声值决定放置数量 |
-| `DepthAveragePlacement` | 深度平均放置器 | 在基准深度附近放置 |
-| `TopSolidPlacement` | 顶层固体放置器 | 在最高固体方块上放置 |
-| `CarvingMaskPlacement` | 雕刻掩码放置器 | 在雕刻位置放置 |
-| `RandomOffsetPlacement` | 随机偏移放置器 | 对位置进行随机偏移 |
-| `WaterDepthThresholdPlacement` | 水深阈值放置器 | 根据水深决定是否放置 |
-| `SeaLevelPlacement` | 海平面放置器 | 在海平面附近放置 |
-| `SpreadPlacement` | 扩散放置器 | 在原始位置周围扩散放置 |
+| 放置器类                       | 说明           | 行为                   |
+| ------------------------------ | -------------- | ---------------------- |
+| `NoisePlacement`               | 噪声阈值放置器 | 根据噪声值决定是否放置 |
+| `CountNoisePlacement`          | 噪声数量放置器 | 根据噪声值决定放置数量 |
+| `DepthAveragePlacement`        | 深度平均放置器 | 在基准深度附近放置     |
+| `TopSolidPlacement`            | 顶层固体放置器 | 在最高固体方块上放置   |
+| `CarvingMaskPlacement`         | 雕刻掩码放置器 | 在雕刻位置放置         |
+| `RandomOffsetPlacement`        | 随机偏移放置器 | 对位置进行随机偏移     |
+| `WaterDepthThresholdPlacement` | 水深阈值放置器 | 根据水深决定是否放置   |
+| `SeaLevelPlacement`            | 海平面放置器   | 在海平面附近放置       |
+| `SpreadPlacement`              | 扩散放置器     | 在原始位置周围扩散放置 |
 
 ---
 
@@ -137,23 +137,23 @@ public:
 
 #### 注册的放置器名称
 
-| 名称 | 类 |
-|------|-----|
-| `count` | `CountPlacement` |
-| `height_range` | `HeightRangePlacement` |
-| `square` | `SquarePlacement` |
-| `biome` | `BiomePlacement` |
-| `chance` | `ChancePlacement` |
-| `surface` | `SurfacePlacement` |
-| `noise` | `NoisePlacement` |
-| `count_noise` | `CountNoisePlacement` |
-| `depth_average` | `DepthAveragePlacement` |
-| `top_solid` | `TopSolidPlacement` |
-| `carving_mask` | `CarvingMaskPlacement` |
-| `random_offset` | `RandomOffsetPlacement` |
+| 名称                    | 类                             |
+| ----------------------- | ------------------------------ |
+| `count`                 | `CountPlacement`               |
+| `height_range`          | `HeightRangePlacement`         |
+| `square`                | `SquarePlacement`              |
+| `biome`                 | `BiomePlacement`               |
+| `chance`                | `ChancePlacement`              |
+| `surface`               | `SurfacePlacement`             |
+| `noise`                 | `NoisePlacement`               |
+| `count_noise`           | `CountNoisePlacement`          |
+| `depth_average`         | `DepthAveragePlacement`        |
+| `top_solid`             | `TopSolidPlacement`            |
+| `carving_mask`          | `CarvingMaskPlacement`         |
+| `random_offset`         | `RandomOffsetPlacement`        |
 | `water_depth_threshold` | `WaterDepthThresholdPlacement` |
-| `sea_level` | `SeaLevelPlacement` |
-| `spread` | `SpreadPlacement` |
+| `sea_level`             | `SeaLevelPlacement`            |
+| `spread`                | `SpreadPlacement`              |
 
 ---
 
@@ -349,17 +349,17 @@ diamondPlacement->setNext(
 
 ### 输入
 
-| 输入项 | 类型 | 来源 | 说明 |
-|--------|------|------|------|
-| 基础位置 | `BlockPos` | 区块生成器 | 通常是区块起始坐标 |
-| 世界生成区域 | `WorldGenRegion` | 区块生成器 | 提供方块和生物群系访问 |
-| 随机数 | `math::Random` | 区块生成器 | 确定性的随机源 |
-| 配置 | `IPlacementConfig` | 特征定义 | 放置参数 |
+| 输入项       | 类型               | 来源       | 说明                   |
+| ------------ | ------------------ | ---------- | ---------------------- |
+| 基础位置     | `BlockPos`         | 区块生成器 | 通常是区块起始坐标     |
+| 世界生成区域 | `WorldGenRegion`   | 区块生成器 | 提供方块和生物群系访问 |
+| 随机数       | `math::Random`     | 区块生成器 | 确定性的随机源         |
+| 配置         | `IPlacementConfig` | 特征定义   | 放置参数               |
 
 ### 输出
 
-| 输出项 | 类型 | 目标 | 说明 |
-|--------|------|------|------|
+| 输出项       | 类型                    | 目标       | 说明               |
+| ------------ | ----------------------- | ---------- | ------------------ |
 | 放置位置列表 | `std::vector<BlockPos>` | 特征生成器 | 有效放置位置的列表 |
 
 ---
@@ -414,9 +414,9 @@ graph LR
 
 ### 外部依赖
 
-| 库 | 用途 |
-|-----|------|
-| `glm` | 数学运算 |
+| 库       | 用途     |
+| -------- | -------- |
+| `glm`    | 数学运算 |
 | `spdlog` | 日志记录 |
 
 ---
@@ -603,7 +603,7 @@ for (i32 y = MAX_Y; y >= MIN_Y; --y) {
     if (state->is(VanillaBlocks::WATER)) {
         i32 waterDepth = 0;
         for (i32 wy = y; wy >= MIN_Y && waterDepth <= config.maxWaterDepth; --wy) {
-            // 注意：需要检查 wy >= MIN_Y
+            // TODO：需要检查 wy >= MIN_Y
         }
     }
 }
@@ -613,10 +613,10 @@ for (i32 y = MAX_Y; y >= MIN_Y; --y) {
 
 ## 涉及的测试用例
 
-| 测试文件 | 路径 | 测试内容 |
-|----------|------|----------|
-| `test_ore_feature.cpp` | `tests/common/` | 放置器与矿石特征集成测试 |
-| `EntitySpawnPlacementRegistryTest.cpp` | `tests/common/entity/` | 实体生成放置注册测试 |
+| 测试文件                               | 路径                   | 测试内容                 |
+| -------------------------------------- | ---------------------- | ------------------------ |
+| `test_ore_feature.cpp`                 | `tests/common/`        | 放置器与矿石特征集成测试 |
+| `EntitySpawnPlacementRegistryTest.cpp` | `tests/common/entity/` | 实体生成放置注册测试     |
 
 ### 测试示例
 
@@ -648,25 +648,25 @@ TEST_F(PlacementTest, HeightRangePlacementConfig) {
 
 ## 与 MC 1.16.5 的对应关系
 
-| 本项目类 | MC 1.16.5 类 | 说明 |
-|----------|--------------|------|
-| `Placement` | `Placement` | 放置器基类 |
-| `IPlacementConfig` | `IPlacementConfig` | 配置基类 |
-| `CountPlacement` | `CountPlacement` | 数量放置 |
-| `HeightRangePlacement` | `RangePlacement` | 高度范围 |
-| `SquarePlacement` | `SquarePlacement` | 方形分散 |
-| `BiomePlacement` | `BiomePlacement` | 生物群系过滤 |
-| `ChancePlacement` | `ChancePlacement` | 概率放置 |
-| `SurfacePlacement` | `SurfacePlacement` | 地表放置 |
-| `NoisePlacement` | `NoiseBasedPlacement` | 噪声放置 |
-| `CountNoisePlacement` | `CountNoisePlacement` | 噪声数量 |
-| `DepthAveragePlacement` | `DepthAveragePlacement` | 深度平均 |
-| `TopSolidPlacement` | `TopSolidPlacement` | 顶层固体 |
-| `CarvingMaskPlacement` | `CarvingMaskPlacement` | 雕刻掩码 |
-| `RandomOffsetPlacement` | `RandomOffsetPlacement` | 随机偏移 |
-| `WaterDepthThresholdPlacement` | `WaterDepthThresholdPlacement` | 水深阈值 |
-| `SeaLevelPlacement` | `SeaLevelPlacement` | 海平面 |
-| `SpreadPlacement` | `SpreadPlacement` | 扩散放置 |
+| 本项目类                       | MC 1.16.5 类                   | 说明         |
+| ------------------------------ | ------------------------------ | ------------ |
+| `Placement`                    | `Placement`                    | 放置器基类   |
+| `IPlacementConfig`             | `IPlacementConfig`             | 配置基类     |
+| `CountPlacement`               | `CountPlacement`               | 数量放置     |
+| `HeightRangePlacement`         | `RangePlacement`               | 高度范围     |
+| `SquarePlacement`              | `SquarePlacement`              | 方形分散     |
+| `BiomePlacement`               | `BiomePlacement`               | 生物群系过滤 |
+| `ChancePlacement`              | `ChancePlacement`              | 概率放置     |
+| `SurfacePlacement`             | `SurfacePlacement`             | 地表放置     |
+| `NoisePlacement`               | `NoiseBasedPlacement`          | 噪声放置     |
+| `CountNoisePlacement`          | `CountNoisePlacement`          | 噪声数量     |
+| `DepthAveragePlacement`        | `DepthAveragePlacement`        | 深度平均     |
+| `TopSolidPlacement`            | `TopSolidPlacement`            | 顶层固体     |
+| `CarvingMaskPlacement`         | `CarvingMaskPlacement`         | 雕刻掩码     |
+| `RandomOffsetPlacement`        | `RandomOffsetPlacement`        | 随机偏移     |
+| `WaterDepthThresholdPlacement` | `WaterDepthThresholdPlacement` | 水深阈值     |
+| `SeaLevelPlacement`            | `SeaLevelPlacement`            | 海平面       |
+| `SpreadPlacement`              | `SpreadPlacement`              | 扩散放置     |
 
 ---
 
@@ -679,6 +679,6 @@ TEST_F(PlacementTest, HeightRangePlacementConfig) {
 
 ## 版本历史
 
-| 版本 | 日期 | 变更 |
-|------|------|------|
+| 版本  | 日期    | 变更                     |
+| ----- | ------- | ------------------------ |
 | 1.0.0 | 2025-03 | 初始版本，实现15种放置器 |

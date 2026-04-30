@@ -284,7 +284,7 @@ public:
     /**
      * @brief 检查按键是否当前被按下
      *
-     * 注意：需要先调用 updateAll() 更新状态。
+     * TODO：需要先调用 updateAll() 更新状态。
      */
     [[nodiscard]] bool isPressed() const noexcept;
 

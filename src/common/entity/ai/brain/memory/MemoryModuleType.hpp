@@ -162,7 +162,7 @@ public:
     static const MemoryModuleType<u64>* ANGRY_AT;  // 原 UUID 类型，使用 u64 存储
 
     // ========== 猪灵/猪灵相关 (MC 1.16.5) ==========
-    // 注意：需要 HoglinEntity 和 AbstractPiglinEntity 类型
+    // TODO：需要 HoglinEntity 和 AbstractPiglinEntity 类型
     // 这里暂时使用 LivingEntity* 作为占位符，待实体类型完善后替换
     static const MemoryModuleType<LivingEntity*>* NEAREST_VISIBLE_HUNTABLE_HOGLIN;
     static const MemoryModuleType<LivingEntity*>* NEAREST_VISIBLE_BABY_HOGLIN;

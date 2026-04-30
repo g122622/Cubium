@@ -1758,7 +1758,7 @@ Result<void> TridentEngine::initializeEntityRenderer() {
         }
 
         // 初始化火焰效果渲染器
-        // 注意：需要资源包来加载火焰纹理，这里先初始化一个基本版本
+        // TODO：需要资源包来加载火焰纹理，这里先初始化一个基本版本
         // 完整的火焰纹理将在 initializeEntityTextureAtlas 中加载
         bool fireEffectInit = entity::effect::fire::FireEffect::initialize(
             device(),

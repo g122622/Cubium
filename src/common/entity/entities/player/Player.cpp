@@ -3,6 +3,8 @@
 #include "../../inventory/Slot.hpp"
 #include "../../experience/ExperienceManager.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
+#include "../../combat/PlayerAttackHelper.hpp"
+#include "../../damage/DamageSource.hpp"
 #include "../../../physics/PhysicsEngine.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -311,6 +313,9 @@ void Player::tick() {
     if (m_xpCooldown > 0) {
         m_xpCooldown--;
     }
+
+    // 更新攻击冷却
+    m_ticksSinceLastAttack++;
 
     // 睡眠计时器逻辑
     // 参考 MC 1.16.5 PlayerEntity.tick()
@@ -1381,6 +1386,159 @@ void Player::addExhaustion(f32 exhaustion) {
     // 只有生存模式和冒险模式才消耗饥饿
     if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
         m_foodStats.addExhaustion(exhaustion);
+    }
+}
+
+// ========== 攻击冷却系统 ==========
+
+f32 Player::getCooledAttackStrength(f32 adjustTicks) const {
+    // MC 1.16.5: getCooledAttackStrength()
+    // 冷却进度 = min(ticksSinceLastAttack + adjustTicks, cooldownPeriod) / cooldownPeriod
+    // 冷却周期 = 20 / attackSpeed (ticks)
+    f32 attackSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_SPEED, 4.0));
+    if (attackSpeed <= 0.0f) {
+        attackSpeed = 4.0f;  // 默认攻击速度
+    }
+
+    f32 cooldownPeriod = 20.0f / attackSpeed;  // 冷却周期（ticks）
+    f32 adjustedTicks = static_cast<f32>(m_ticksSinceLastAttack) + adjustTicks;
+    f32 progress = adjustedTicks / cooldownPeriod;
+
+    return std::min(progress, 1.0f);
+}
+
+void Player::resetCooldown() {
+    m_ticksSinceLastAttack = 0;
+}
+
+void Player::attack(Entity& target) {
+    // MC 1.16.5: PlayerEntity.attackTargetEntityWithCurrentItem()
+    // 完整的玩家攻击逻辑
+
+    // 1. 检查目标是否可被攻击（创造/观察模式不能攻击）
+    if (isSpectator()) {
+        return;
+    }
+
+    // 2. 只能攻击生物实体
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(&target);
+    if (!livingTarget) {
+        return;
+    }
+
+    // 3. 获取基础攻击伤害
+    f32 baseDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
+
+    // 4. 获取附魔伤害加成
+    f32 enchantDamage = 0.0f;
+    const ItemStack& mainHand = getMainHandItem();
+
+    if (!mainHand.isEmpty()) {
+        enchantDamage = entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(
+            mainHand, livingTarget->getCreatureAttribute());
+    }
+
+    // 5. 计算攻击冷却进度
+    // MC 1.16.5: 使用 adjustTicks = 0.5F 获取冷却强度
+    f32 cooldownProgress = getCooledAttackStrength(0.5f);
+
+    // 6. 应用冷却伤害衰减
+    // MC 1.16.5: damage = baseDamage * (0.2 + progress² * 0.8)
+    f32 damage = baseDamage * entity::combat::PlayerAttackHelper::applyCooldown(1.0f, cooldownProgress);
+    enchantDamage *= cooldownProgress;  // 附魔伤害也受冷却影响
+
+    // 7. 重置攻击冷却
+    resetCooldown();
+
+    // 如果伤害为 0，不执行攻击
+    if (damage <= 0.0f && enchantDamage <= 0.0f) {
+        return;
+    }
+
+    // 8. 判断是否是完全冷却攻击
+    bool isFullCooldown = cooldownProgress > 0.9f;
+
+    // 9. 计算击退
+    i32 knockbackLevel = 0;
+    if (!mainHand.isEmpty()) {
+        knockbackLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+            mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
+    }
+
+    // 疾跑额外击退
+    bool isSprintKnockback = false;
+    if (isSprinting() && isFullCooldown) {
+        knockbackLevel++;
+        isSprintKnockback = true;
+    }
+
+    // 10. 暴击判定
+    bool isCritical = entity::combat::PlayerAttackHelper::isCriticalHit(*this);
+
+    // 11. 火焰附加
+    i32 fireAspectLevel = 0;
+    if (!mainHand.isEmpty()) {
+        fireAspectLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+            mainHand, &item::enchant::AllEnchantments::FIRE_ASPECT);
+    }
+
+    // 攻击前点燃（用于燃烧传递）
+    bool wasBurning = false;
+    if (fireAspectLevel > 0 && !livingTarget->isOnFire()) {
+        wasBurning = true;
+        livingTarget->setFire(1);  // 1 秒 = 20 ticks
+    }
+
+    // 12. 应用暴击倍率
+    if (isCritical) {
+        damage *= 1.5f;  // MC 1.16.5: 暴击倍率 1.5
+    }
+
+    // 13. 合并伤害
+    f32 totalDamage = damage + enchantDamage;
+
+    // 14. 创建伤害来源并应用伤害
+    EntityDamageSource damageSource = DamageSources::playerAttack(this);
+    bool attacked = livingTarget->hurt(damageSource, totalDamage);
+
+    if (attacked) {
+        // 15. 应用击退
+        if (knockbackLevel > 0) {
+            entity::combat::PlayerAttackHelper::applyKnockback(
+                *livingTarget, *this, static_cast<f32>(knockbackLevel));
+
+            // 疾跑击退后停止疾跑
+            if (isSprintKnockback) {
+                setSprinting(false);
+            }
+        }
+
+        // 16. 横扫攻击（需要检查是否使用剑）
+        // TODO: 横扫攻击实现 - 需要检测剑类物品和对范围内敌人造成伤害
+
+        // 17. 应用火焰附加
+        if (fireAspectLevel > 0) {
+            // MC 1.16.5: 火焰附加持续时间 = level * 4 秒
+            livingTarget->setFire(fireAspectLevel * 4 * 20);  // 20 ticks per second
+        }
+
+        // 18. 设置最后攻击目标
+        setLastHurtTarget(livingTarget);
+
+        // 荆棘附魔反伤处理
+        // TODO: EnchantmentHelper.applyThornEnchantments(target, this);
+
+        // 19. 武器损耗
+        // TODO: mainHand.hitEntity(target, this);
+
+        // 20. 饱食度消耗
+        // MC 1.16.5: 攻击消耗 0.1 饱食度
+        addExhaustion(EXHAUSTION_ATTACK);
+    } else {
+        // 攻击失败（被格挡等）
+        if (wasBurning) {
+            livingTarget->setFire(0);  // 移除之前点燃的火焰
+        }
     }
 }
 

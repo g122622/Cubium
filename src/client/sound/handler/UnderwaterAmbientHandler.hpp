@@ -26,7 +26,7 @@ namespace mc::client::sound {
  * engine.addAmbientHandler(std::move(handler));
  * @endcode
  *
- * 注意：需要通过 setUnderwater() 方法更新玩家是否在水下。
+ * TODO：需要通过 setUnderwater() 方法更新玩家是否在水下。
  */
 class UnderwaterAmbientHandler : public IAmbientSoundHandler {
 public:

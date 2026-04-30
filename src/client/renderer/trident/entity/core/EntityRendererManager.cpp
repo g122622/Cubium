@@ -173,7 +173,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     if (!mesh || mesh->indexCount == 0) {
         // 恢复实体纹理图集
         if (isItemEntity && m_textureAtlas && m_textureAtlas->isBuilt()) {
-            // 注意：需要在下一帧渲染前恢复，或在此处恢复
+            // TODO：需要在下一帧渲染前恢复，或在此处恢复
         }
         return;
     }

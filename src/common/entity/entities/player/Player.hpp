@@ -727,6 +727,51 @@ public:
     [[nodiscard]] entity::movement::AutoJump& autoJump() { return m_autoJump; }
     [[nodiscard]] const entity::movement::AutoJump& autoJump() const { return m_autoJump; }
 
+    // ========== 攻击系统 ==========
+
+    /**
+     * @brief 获取攻击冷却进度
+     *
+     * MC 1.16.5: getCooledAttackStrength()
+     * 计算当前攻击冷却进度（0-1）。
+     * 冷却进度 = min(ticksSinceLastAttack + adjustTicks, cooldownPeriod) / cooldownPeriod
+     *
+     * @param adjustTicks 调整的 tick 数（用于部分冷却补偿）
+     * @return 冷却进度（0-1，1 表示完全冷却）
+     */
+    [[nodiscard]] f32 getCooledAttackStrength(f32 adjustTicks = 0.0f) const;
+
+    /**
+     * @brief 重置攻击冷却
+     *
+     * MC 1.16.5: resetCooldown()
+     * 在攻击后调用，重置攻击冷却计时器。
+     */
+    void resetCooldown();
+
+    /**
+     * @brief 获取上次攻击后的 tick 数
+     */
+    [[nodiscard]] i32 ticksSinceLastAttack() const { return m_ticksSinceLastAttack; }
+
+    /**
+     * @brief 攻击目标实体
+     *
+     * MC 1.16.5: attackTargetEntityWithCurrentItem()
+     * 玩家使用当前手持物品攻击目标实体。
+     *
+     * 包含完整的攻击逻辑：
+     * - 攻击冷却伤害衰减
+     * - 暴击判定
+     * - 击退计算
+     * - 横扫攻击
+     * - 火焰附加
+     * - 饱食度消耗
+     *
+     * @param target 目标实体
+     */
+    void attack(Entity& target);
+
     // ========== 重生 ==========
 
     void respawn();
@@ -849,6 +894,10 @@ private:
     bool m_shouldPlaySwimSound = false;    // 是否应该播放游泳声
     f32 m_swimSoundVolume = 0.0f;          // 游泳声音量
     BlockPos m_stepSoundPos;               // 脚步声位置
+
+    // 攻击冷却系统
+    i32 m_ticksSinceLastAttack = 0;        // 上次攻击后的 tick 数
+    f32 m_offHandAttackChance = 0.0f;      // 副手攻击概率（双持武器用）
 };
 
 } // namespace mc
