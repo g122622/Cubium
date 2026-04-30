@@ -37,6 +37,12 @@ const ResourceLocation ENTITY_PLAYER_BREATH("minecraft:entity.player.breath");
 const ResourceLocation ENTITY_PLAYER_LEVELUP("minecraft:entity.player.levelup");
 
 // ============================================================================
+// 物品声音
+// ============================================================================
+
+const ResourceLocation ENTITY_ITEM_PICKUP("minecraft:entity.item.pickup");
+
+// ============================================================================
 // 环境声音
 // ============================================================================
 

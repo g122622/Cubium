@@ -82,8 +82,14 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
         case network::BlockInteractionAction::StopDestroyBlock:
             // 完成破坏
             if (canBreakBlock(playerId, pos, state)) {
+                // 获取手持物品作为工具
+                ItemStack tool;
+                if (m_inventoryManager) {
+                    tool = m_inventoryManager->getHeldItem(playerId);
+                }
+
                 // 生成掉落物
-                generateBlockDrops(pos, *state, playerId, nullptr);
+                generateBlockDrops(pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
 
                 // 设置为空气
                 Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
@@ -298,8 +304,14 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
         return BlockBreakResult{false, 0, "Cannot break this block"};
     }
 
+    // 获取手持物品作为工具
+    ItemStack tool;
+    if (m_inventoryManager) {
+        tool = m_inventoryManager->getHeldItem(playerId);
+    }
+
     // 生成掉落物
-    generateBlockDrops(pos, oldState, playerId, nullptr);
+    generateBlockDrops(pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
 
     // 设置为空气
     Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));

@@ -4,9 +4,11 @@
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../world/entity/EntityManager.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../util/AxisAlignedBB.hpp"
 #include <cmath>
 #include <chrono>
 #include <atomic>
+#include <algorithm>
 
 namespace mc {
 
@@ -87,11 +89,11 @@ void ItemEntity::tick() {
     // 更新物理
     updatePhysics();
 
+    // 更新合并检测
+    updateMerge();
+
     // 更新存活时间
     m_ticksExisted++;
-
-    // TODO: 更新合并检测
-    // updateMerge();
 }
 
 // ============================================================================
@@ -137,6 +139,82 @@ void ItemEntity::setOwner(const String& ownerUuid, const String& throwerUuid) {
 // 物品合并
 // ============================================================================
 
+void ItemEntity::updateMerge() {
+    // MC 1.16.5 ItemEntity.java 行 144-155
+    // 检查是否允许合并
+    if (m_itemStack.isEmpty() || isRemoved()) {
+        return;
+    }
+
+    // 检查是否可以合并（堆叠未满、拾取延迟不是无限、年龄在允许范围内）
+    if (m_itemStack.getCount() >= m_itemStack.getMaxStackSize()) {
+        return;  // 已满堆，不需要合并
+    }
+
+    // 无限拾取延迟的物品不合并
+    if (m_pickupDelay == 32767) {
+        return;
+    }
+
+    // 无限寿命的物品不合并（age == -32768 或 -6000）
+    if (m_age == -32768 || m_age < -6000) {
+        return;
+    }
+
+    // 如果没有世界，无法查询其他实体
+    if (!m_world) {
+        return;
+    }
+
+    // MC 1.16.5: 合并检测间隔
+    // 移动时每 2 tick 检测，静止时每 40 tick 检测
+    bool hasMoved = m_position.distanceSquared(m_prevPosition) > 0.0001f;
+    i32 checkInterval = hasMoved ? 2 : 40;
+    if (m_ticksExisted % checkInterval != 0) {
+        return;
+    }
+
+    // 搜索附近可合并的物品实体
+    // MC 1.16.5: grow(0.5D, 0.0D, 0.5D)
+    AxisAlignedBB searchBox = m_boundingBox.expand(0.5f, 0.0f, 0.5f);
+    std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
+
+    for (Entity* entity : nearbyEntities) {
+        // 只处理物品实体
+        if (entity->legacyType() != LegacyEntityType::Item) {
+            continue;
+        }
+
+        ItemEntity* other = static_cast<ItemEntity*>(entity);
+
+        // 检查是否可以合并
+        if (!other->canMergeWith(*this)) {
+            continue;
+        }
+
+        // 检查所有者匹配
+        // MC 1.16.5: Objects.equals(this.getOwnerId(), other.getOwnerId())
+        if (m_ownerUuid != other->m_ownerUuid) {
+            continue;
+        }
+
+        // 执行合并
+        // MC 1.16.5: 数量较少的合并到数量较多的
+        if (other->m_itemStack.getCount() < m_itemStack.getCount()) {
+            // other 数量少，合并到当前实体（this）
+            tryMergeWith(*other);
+        } else {
+            // 当前实体数量少或不大于 other，合并到 other
+            other->tryMergeWith(*this);
+        }
+
+        // 如果当前实体已满堆或被移除，停止搜索
+        if (m_itemStack.getCount() >= m_itemStack.getMaxStackSize() || isRemoved()) {
+            break;
+        }
+    }
+}
+
 bool ItemEntity::tryMergeWith(ItemEntity& other) {
     if (!canMergeWith(other)) {
         return false;
@@ -149,6 +227,13 @@ bool ItemEntity::tryMergeWith(ItemEntity& other) {
     if (total <= maxStack) {
         // 全部合并到当前实体
         m_itemStack.setCount(total);
+
+        // 合并后更新属性（MC 1.16.5 行为）
+        // 取较大的拾取延迟
+        m_pickupDelay = std::max(m_pickupDelay, other.m_pickupDelay);
+        // 取较小的年龄
+        m_age = std::min(m_age, other.m_age);
+
         other.remove();
         return true;
     }
@@ -157,6 +242,11 @@ bool ItemEntity::tryMergeWith(ItemEntity& other) {
     i32 toTake = maxStack - m_itemStack.getCount();
     m_itemStack.grow(toTake);
     other.m_itemStack.shrink(toTake);
+
+    // 更新属性
+    m_pickupDelay = std::max(m_pickupDelay, other.m_pickupDelay);
+    m_age = std::min(m_age, other.m_age);
+
     return true;
 }
 
@@ -183,6 +273,19 @@ bool ItemEntity::canMergeWith(const ItemEntity& other) const {
 
     // 检查其他实体是否已达到堆叠上限
     if (other.m_itemStack.getCount() >= other.m_itemStack.getMaxStackSize()) {
+        return false;
+    }
+
+    // 检查其他实体是否可合并
+    if (other.isRemoved()) {
+        return false;
+    }
+
+    if (other.m_pickupDelay == 32767) {
+        return false;
+    }
+
+    if (other.m_age == -32768 || other.m_age < -6000) {
         return false;
     }
 
@@ -217,10 +320,7 @@ void ItemEntity::updatePhysics() {
         applyNormalPhysics();
     }
 
-    // 3. 合并检测（MC 1.16.5: ItemEntity.java 行 144-155）
-    // TODO: 实现物品合并逻辑
-
-    // 4. 执行移动
+    // 3. 执行移动
     if (std::abs(m_velocity.x) > 0.001f ||
         std::abs(m_velocity.y) > 0.001f ||
         std::abs(m_velocity.z) > 0.001f ||
@@ -295,7 +395,9 @@ void ItemEntity::applyLavaPhysics() {
     m_velocity.y *= 0.95f;
     m_velocity.z *= 0.95f;
 
-    // TODO: 设置着火 (setFire)
+    // 设置着火 - MC 1.16.5: 物品在岩浆中会被点燃
+    // 设置为着火 15 秒 = 300 ticks（与实体一致）
+    setFire(300);
 }
 
 // ============================================================================

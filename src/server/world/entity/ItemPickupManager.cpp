@@ -15,6 +15,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
 
@@ -28,13 +29,13 @@ void ItemPickupManager::tick(IServer& server) {
     // 处理物品合并
     processItemMerging(server);
 
-    // 遍历所有玩家实体检查拾取
-    server.playerManager().forEachPlayer([&server, this](ServerPlayerData& playerData) {
-        // TODO: 需要获取 Player 实体来检查拾取
-        // 暂时跳过，等 PlayerManager 完善
-        // checkPlayerPickup(server, player);
-        return true;  // 继续遍历
-    });
+    // 获取所有玩家实体并检查拾取
+    auto players = server.entityManager().getEntitiesByType(LegacyEntityType::Player);
+    for (Entity* entity : players) {
+        if (entity && entity->isAlive()) {
+            checkPlayerPickup(server, *entity);
+        }
+    }
 }
 
 // ============================================================================
@@ -110,6 +111,9 @@ bool ItemPickupManager::tryPickupItem(
     bool fullyPickedUp = itemEntity.onPlayerPickup(*playerEntity);
 
     if (fullyPickedUp || itemEntity.getItemStack().isEmpty()) {
+        // 播放拾取音效
+        player.playSound(SoundEvents::ENTITY_ITEM_PICKUP, 0.2f, 1.0f);
+
         // 完全拾取，发送背包更新和实体销毁包
         sendInventoryUpdate(server, *playerEntity);
         sendEntityDestroy(server, itemEntity.id(), player.id());
