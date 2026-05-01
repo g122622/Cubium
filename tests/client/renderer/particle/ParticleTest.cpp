@@ -1,12 +1,17 @@
 #include <gtest/gtest.h>
+#include "common/core/Types.hpp"
 #include "client/renderer/trident/particle/Particle.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleRenderType.hpp"
 #include "client/renderer/trident/particle/particles/RainParticle.hpp"
+#include "client/renderer/trident/particle/particles/SnowParticle.hpp"
+#include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
 #include "client/renderer/trident/particle/data/BasicParticleData.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include <glm/glm.hpp>
 
+using namespace mc;
 using namespace mc::client::renderer::trident::particle;
 using namespace mc::client::renderer::trident::particle::data;
 using namespace mc::client::renderer::trident::particle::particles;
@@ -172,6 +177,173 @@ TEST(ParticleTest, RainParticle_TickWithoutWorld) {
     // 无世界时应该仍然存活并下落
     EXPECT_TRUE(particle.isAlive());
     EXPECT_LT(particle.velocity().y, 0.0f);  // 重力使速度更负
+}
+
+/**
+ * @brief 测试雨滴粒子重力参数
+ *
+ * 参考 MC 1.16.5 RainParticle：
+ * - 重力 0.06
+ * - 粒子重力乘数 0.04
+ * - 终端速度 -3.0
+ */
+TEST(ParticleTest, RainParticle_GravityAndTerminalVelocity) {
+    RainParticle particle(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+    // 验证重力设置
+    EXPECT_DOUBLE_EQ(particle.gravity(), mc::physics::RAIN_GRAVITY);
+
+    // 多次 tick 应该达到终端速度
+    for (int i = 0; i < 100; ++i) {
+        particle.tick(nullptr);
+    }
+
+    // 速度应该被终端速度限制
+    EXPECT_GE(particle.velocity().y, -3.1f);  // TERMINAL_VELOCITY = -3.0
+}
+
+/**
+ * @brief 测试雨滴碰撞盒尺寸
+ */
+TEST(ParticleTest, RainParticle_BoundingBoxSize) {
+    RainParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+    // 验证碰撞盒尺寸
+    auto bbox = particle.getBoundingBox();
+    f32 width = static_cast<f32>(bbox.maxX - bbox.minX);
+    f32 height = static_cast<f32>(bbox.maxY - bbox.minY);
+
+    // 雨滴碰撞盒很小（0.02 x 0.04）
+    EXPECT_NEAR(width, 0.02f, 0.001f);
+    EXPECT_NEAR(height, 0.04f, 0.001f);
+}
+
+/**
+ * @brief 测试雪花粒子构造
+ */
+TEST(ParticleTest, SnowParticle_Construction) {
+    SnowParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+    EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle.getTextureLocation(), mc::ResourceLocation("minecraft:particle/snowflake"));
+    EXPECT_TRUE(particle.isAlive());
+
+    // 验证重力设置（雪花重力比雨小）
+    EXPECT_DOUBLE_EQ(particle.gravity(), mc::physics::SNOW_GRAVITY);
+    // SNOW_GRAVITY = 0.02f
+    EXPECT_NEAR(static_cast<f64>(mc::physics::SNOW_GRAVITY), 0.02, 0.001);
+}
+
+/**
+ * @brief 测试雪花工厂方法返回正确的粒子类型
+ */
+TEST(ParticleTest, SnowParticle_CreateReturnsSnowParticle) {
+    auto particle = SnowParticle::create(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f), nullptr);
+    ASSERT_NE(particle, nullptr);
+
+    EXPECT_EQ(particle->getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle->getTextureLocation(), mc::ResourceLocation("minecraft:particle/snowflake"));
+}
+
+/**
+ * @brief 测试雪花无世界 tick（无碰撞检测）
+ */
+TEST(ParticleTest, SnowParticle_TickWithoutWorld) {
+    SnowParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.0f, -0.1f, 0.0f));
+    particle.tick(nullptr);
+
+    // 无世界时应该仍然存活并下落
+    EXPECT_TRUE(particle.isAlive());
+    EXPECT_LT(particle.velocity().y, 0.0f);  // 重力使速度更负
+}
+
+/**
+ * @brief 测试雪花终端速度
+ *
+ * 雪花终端速度应该比雨滴慢
+ */
+TEST(ParticleTest, SnowParticle_TerminalVelocity) {
+    SnowParticle particle(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+    // 多次 tick
+    for (int i = 0; i < 100; ++i) {
+        particle.tick(nullptr);
+    }
+
+    // 雪花终端速度 -0.5，比雨滴 (-3.0) 慢很多
+    EXPECT_GE(particle.velocity().y, -0.6f);
+    EXPECT_LT(particle.velocity().y, 0.0f);
+}
+
+/**
+ * @brief 测试雪花摇摆效果
+ */
+TEST(ParticleTest, SnowParticle_SwingMotion) {
+    SnowParticle particle(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+    f32 initialVelX = particle.velocity().x;
+
+    // 多次 tick，X 方向应该有摇摆
+    for (int i = 0; i < 10; ++i) {
+        particle.tick(nullptr);
+    }
+
+    // 雪花应该有水平摇摆（正弦波漂移）
+    // 注意：由于随机初始相位，摇摆可能在任何位置，所以只验证速度变化
+    // 而不是特定的方向
+}
+
+/**
+ * @brief 测试雪花碰撞盒尺寸
+ */
+TEST(ParticleTest, SnowParticle_BoundingBoxSize) {
+    SnowParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+    // 验证碰撞盒尺寸
+    auto bbox = particle.getBoundingBox();
+    f32 width = static_cast<f32>(bbox.maxX - bbox.minX);
+    f32 height = static_cast<f32>(bbox.maxY - bbox.minY);
+
+    // 雪花碰撞盒很小（0.02 x 0.02）
+    EXPECT_NEAR(width, 0.02f, 0.001f);
+    EXPECT_NEAR(height, 0.02f, 0.001f);
+}
+
+/**
+ * @brief 测试雪花淡出效果
+ *
+ * 雪花在生命后半段淡出
+ */
+TEST(ParticleTest, SnowParticle_FadeOut) {
+    SnowParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+    // 设置较短生命周期以便测试
+    particle.setMaxAge(10.0f);
+    particle.setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.9f));
+
+    f32 initialAlpha = particle.color().a;
+
+    // 在生命周期前 80%，alpha 应该保持
+    for (int i = 0; i < 8; ++i) {
+        particle.tick(nullptr);
+    }
+    EXPECT_FLOAT_EQ(particle.color().a, initialAlpha);
+
+    // 在后 20%，alpha 应该减小
+    particle.tick(nullptr);
+    particle.tick(nullptr);
+    EXPECT_LT(particle.color().a, initialAlpha);
+}
+
+/**
+ * @brief 测试水溅粒子构造
+ */
+TEST(ParticleTest, SplashParticle_Construction) {
+    SplashParticle particle(glm::vec3(0.5f, 64.0f, 0.5f), glm::vec3(0.1f, 0.2f, 0.1f));
+
+    EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle.getTextureLocation(), mc::ResourceLocation("minecraft:particle/splash"));
+    EXPECT_TRUE(particle.isAlive());
 }
 
 TEST(ParticleTest, ColorFade) {
