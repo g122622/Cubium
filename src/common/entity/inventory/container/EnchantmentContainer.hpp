@@ -3,6 +3,7 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "world/block/BlockPos.hpp"
 #include <memory>
 #include <array>
 
@@ -10,6 +11,7 @@ namespace mc {
 
 class PlayerInventory;
 class EnchantingTableEntity;
+class IWorld;
 
 /**
  * @brief 附魔台容器
@@ -178,6 +180,13 @@ private:
      * @return 如果是有效书架返回true
      */
     [[nodiscard]] bool isValidBookshelf(const BlockPos& pos) const;
+
+    /**
+     * @brief 检查方块是否为空气
+     * @param pos 方块位置
+     * @return 如果是空气返回true
+     */
+    [[nodiscard]] bool isAirBlock(const BlockPos& pos) const;
 
 private:
     std::unique_ptr<IInventory> m_enchantmentInventory; ///< 附魔台背包

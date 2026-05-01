@@ -377,9 +377,9 @@ if (repairCost >= 40) {
 - `ChestContainerTest.cpp` - 箱子菜单测试，覆盖槽位布局和快速移动
 - `FurnaceContainerTest.cpp` - 熔炉菜单测试，覆盖槽位布局和快速移动
 - `HopperContainerTest.cpp` - 漏斗容器测试
-- `EnchantmentContainerTest.cpp` - 附魔台菜单测试（待创建）
-- `BrewingStandContainerTest.cpp` - 酿造台菜单测试（待创建）
-- `AnvilContainerTest.cpp` - 铁砧菜单测试（待创建）
+- `EnchantmentContainerTest.cpp` - 附魔台菜单测试，覆盖槽位布局、附魔选项API
+- `BrewingStandContainerTest.cpp` - 酿造台菜单测试，覆盖槽位布局、酿造状态API
+- `AnvilContainerTest.cpp` - 铁砧菜单测试，覆盖槽位布局、修复成本API
 
 ### 测试覆盖
 

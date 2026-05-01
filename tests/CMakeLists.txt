@@ -47,6 +47,9 @@ add_executable(mc_tests
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
+    common/entity/inventory/container/EnchantmentContainerTest.cpp
+    common/entity/inventory/container/BrewingStandContainerTest.cpp
+    common/entity/inventory/container/AnvilContainerTest.cpp
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     # 缁忛獙绯荤粺娴嬭瘯
     common/entity/experience/ExperienceTest.cpp
