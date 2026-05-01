@@ -46,16 +46,14 @@ public:
     void setItemStack(const ItemStack& stack);
 
     /**
-     * @brief 是否在返回中（激流附魔）
-     * @deprecated 使用 getNoClip() 判断
+     * @brief 是否在返回中（忠诚附魔）
      */
-    [[nodiscard]] bool isReturning() const { return getNoClip(); }
+    [[nodiscard]] bool isReturning() const { return m_returning; }
 
     /**
      * @brief 设置返回状态
-     * @deprecated 使用 setNoClip() 替代
      */
-    void setReturning(bool returning) { setNoClip(returning); }
+    void setReturning(bool returning) { m_returning = returning; }
 
     /**
      * @brief 是否已击中方块（插入方块）
@@ -88,11 +86,6 @@ public:
      */
     void setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity);
 
-    /**
-     * @brief 玩家拾取三叉戟
-     */
-    bool onPlayerPickup(Player& player) override;
-
 protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
@@ -101,7 +94,7 @@ protected:
      * @brief 三叉戟在方块中的tick处理
      * 参考 MC 1.16.5: 如果有忠诚附魔，不超时移除
      */
-    void tickInGround() override;
+    void tickInGroundTrident();
 
 private:
     /**
@@ -117,6 +110,7 @@ private:
 
     ItemStack m_tridentStack;       // 三叉戟物品
     bool m_hitBlock = false;        // 是否击中方块
+    bool m_returning = false;       // 是否在返回中
     BlockCoord m_hitBlockPos;       // 击中方块的坐标
     u8 m_loyaltyLevel = 0;          // 忠诚附魔等级
     i32 m_returningTicks = 0;       // 返回计时器

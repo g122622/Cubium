@@ -1016,6 +1016,22 @@ public:
     [[nodiscard]] virtual bool canTriggerWalking() const { return true; }
 
     /**
+     * @brief 检查实体是否无视碰撞
+     *
+     * 无视碰撞的实体可以穿过方块，不会触发碰撞检测。
+     * 参考: MC 1.16.5 Entity.noClip
+     *
+     * @return 如果实体无视碰撞返回true
+     */
+    [[nodiscard]] bool noClip() const { return m_noClip; }
+
+    /**
+     * @brief 设置实体是否无视碰撞
+     * @param noClip 是否无视碰撞
+     */
+    void setNoClip(bool noClip) { m_noClip = noClip; }
+
+    /**
      * @brief 执行方块碰撞回调
      *
      * 在实体移动后调用，处理与方块的交互：
@@ -1055,6 +1071,7 @@ protected:
 
     bool m_onGround = false;
     bool m_removed = false;
+    bool m_noClip = false;       // 是否无视碰撞（用于三叉戟返回等）
     EntityPose m_pose = EntityPose::Standing;
     EntityFlags m_flags = EntityFlags::None;
     entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);

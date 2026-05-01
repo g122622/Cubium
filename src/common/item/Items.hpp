@@ -357,6 +357,9 @@ public:
     static Item* ARROW;                  // 箭矢
     static Item* SPECTRAL_ARROW;         // 光灵箭
     static Item* TIPPED_ARROW;           // 药水箭
+    static Item* CROSSBOW;               // 弩
+    static Item* TRIDENT;                // 三叉戟
+    static Item* SHIELD;                 // 盾牌
 
     // ========================================================================
     // 桶类

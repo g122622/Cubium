@@ -266,7 +266,7 @@ void TridentEntity::setItemStack(const ItemStack& stack) {
 bool TridentEntity::onPlayerPickup(Player& player) {
     // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
     // 只有当三叉戟在地上或返回时才能被拾取
-    if (!m_inGround && !getNoClip()) {
+    if (!m_inGround && !noClip()) {
         return false;
     }
 
@@ -277,7 +277,7 @@ bool TridentEntity::onPlayerPickup(Player& player) {
     // 检查拾取权限
     bool canPickup = (pickupStatus() == PickupStatus::Allowed) ||
                      (pickupStatus() == PickupStatus::CreativeOnly && player.isCreative()) ||
-                     (getNoClip() && getShooter() != nullptr &&
+                     (noClip() && getShooter() != nullptr &&
                       getShooter()->uuid() == player.uuid());
 
     if (canPickup) {
@@ -291,7 +291,7 @@ bool TridentEntity::onPlayerPickup(Player& player) {
     return false;
 }
 
-void TridentEntity::tickInGround() {
+void TridentEntity::tickInGroundTrident() {
     // 三叉戟特殊的地面tick逻辑
     // 参考 MC 1.16.5 TridentEntity.func_225516_i_() 第205-209行
     // 如果不允许拾取或没有忠诚附魔，则使用普通超时逻辑

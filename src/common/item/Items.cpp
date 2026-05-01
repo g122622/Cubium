@@ -8,6 +8,9 @@
 #include "items/potion/LingeringPotionItem.hpp"
 #include "items/weapon/BowItem.hpp"
 #include "items/weapon/ArrowItem.hpp"
+#include "items/weapon/CrossbowItem.hpp"
+#include "items/weapon/TridentItem.hpp"
+#include "items/weapon/ShieldItem.hpp"
 #include "tier/ItemTiers.hpp"
 #include "items/tool/PickaxeItem.hpp"
 #include "items/tool/AxeItem.hpp"
@@ -322,6 +325,9 @@ Item* Items::BOW = nullptr;
 Item* Items::ARROW = nullptr;
 Item* Items::SPECTRAL_ARROW = nullptr;
 Item* Items::TIPPED_ARROW = nullptr;
+Item* Items::CROSSBOW = nullptr;
+Item* Items::TRIDENT = nullptr;
+Item* Items::SHIELD = nullptr;
 
 // ============================================================================
 // 桶类
@@ -1597,6 +1603,27 @@ void Items::registerWeapons() {
     //     ResourceLocation("minecraft:tipped_arrow"),
     //     ItemProperties().maxStackSize(64)
     // );
+
+    // 弩 - 可装填的远程武器
+    // 参考: new CrossbowItem(new Item.Properties().maxDamage(326))
+    CROSSBOW = &registry.registerItem<item::CrossbowItem>(
+        ResourceLocation("minecraft:crossbow"),
+        ItemProperties().maxDamage(326)
+    );
+
+    // 三叉戟 - 近战和远程结合的武器
+    // 参考: new TridentItem(new Item.Properties().maxDamage(250))
+    TRIDENT = &registry.registerItem<item::TridentItem>(
+        ResourceLocation("minecraft:trident"),
+        ItemProperties().maxDamage(250)
+    );
+
+    // 盾牌 - 格挡武器
+    // 参考: new ShieldItem(new Item.Properties().maxDamage(336))
+    SHIELD = &registry.registerItem<item::ShieldItem>(
+        ResourceLocation("minecraft:shield"),
+        ItemProperties().maxDamage(336)
+    );
 }
 
 void Items::registerBuckets() {
