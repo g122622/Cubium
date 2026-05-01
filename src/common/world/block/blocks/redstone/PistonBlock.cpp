@@ -144,9 +144,10 @@ bool PistonBlock::canPush(
     }
 
     // 不可推动的方块
-    // TODO: 添加 RESPAWN_ANCHOR 到 VanillaBlocks
+    // 参考 MC 1.16.5: PistonBlock.canPush - obsidian, crying_obsidian, respawn_anchor, etc.
     if (blockState.is(VanillaBlocks::OBSIDIAN) ||
-        blockState.is(VanillaBlocks::CRYING_OBSIDIAN)) {
+        blockState.is(VanillaBlocks::CRYING_OBSIDIAN) ||
+        blockState.is(VanillaBlocks::RESPAWN_ANCHOR)) {
         return false;
     }
 
