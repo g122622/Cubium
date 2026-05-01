@@ -16,6 +16,7 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
+#include "../../../item/items/tool/SwordItem.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -1475,9 +1476,12 @@ void Player::attack(Entity& target) {
     f32 cooldownProgress = getCooledAttackStrength(0.5f);
 
     // 6. 应用冷却伤害衰减
-    // MC 1.16.5: damage = baseDamage * (0.2 + progress² * 0.8)
-    f32 damage = baseDamage * entity::combat::PlayerAttackHelper::applyCooldown(1.0f, cooldownProgress);
-    enchantDamage *= cooldownProgress;  // 附魔伤害也受冷却影响
+    // MC 1.16.5: 基础伤害使用二次冷却系数，附魔伤害使用线性冷却系数
+    // 参考：PlayerEntity.attack() 中 f = f * (0.2 + f2*f2 * 0.8) 和 f1 = f1 * f2
+    f32 quadraticCooldown = 0.2f + cooldownProgress * cooldownProgress * 0.8f;
+    f32 linearCooldown = cooldownProgress;
+    f32 damage = baseDamage * quadraticCooldown;
+    enchantDamage *= linearCooldown;
 
     // 7. 重置攻击冷却
     resetCooldown();
@@ -1539,14 +1543,67 @@ void Player::attack(Entity& target) {
             entity::combat::PlayerAttackHelper::applyKnockback(
                 *livingTarget, *this, static_cast<f32>(knockbackLevel));
 
-            // 疾跑击退后停止疾跑
+            // 疾跑击退后停止疾跑并减少水平速度
+            // MC 1.16.5: this.setMotion(this.getMotion().mul(0.6D, 1.0D, 0.6D));
             if (isSprintKnockback) {
+                Vector3 vel = velocity();
+                setVelocity(vel.x * 0.6f, vel.y, vel.z * 0.6f);
                 setSprinting(false);
             }
         }
 
-        // 16. 横扫攻击（需要检查是否使用剑）
-        // TODO: 横扫攻击实现 - 需要检测剑类物品和对范围内敌人造成伤害
+        // 16. 横扫攻击（MC 1.16.5: 仅当使用剑、冷却>90%、非暴击、非疾跑、在地面、且几乎静止时触发）
+        // TODO: 添加 distanceWalkedModified 跟踪以检测玩家是否静止
+        // MC 1.16.5 条件: distanceWalkedModified - prevDistanceWalkedModified < getAIMoveSpeed()
+        bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround();
+        if (canSweep) {
+            // 检查主手是否持有剑
+            const item::tool::SwordItem* sword = dynamic_cast<const item::tool::SwordItem*>(mainHand.getItem());
+            if (sword != nullptr) {
+                f32 sweepRatio = item::enchant::EnchantmentHelper::getSweepingDamageRatio(mainHand);
+                if (sweepRatio > 0.0f) {
+                    // MC 1.16.5: sweepDamage = 1.0 + sweepRatio * baseDamage
+                    // 其中 baseDamage 是冷却调整后的伤害（不含附魔伤害）
+                    f32 sweepDamage = 1.0f + sweepRatio * damage;
+
+                    // 扫描目标周围 1x0.25x1 范围内的实体
+                    AxisAlignedBB sweepBox = livingTarget->boundingBox().expand(1.0f, 0.25f, 1.0f);
+                    std::vector<Entity*> nearbyEntities = world()->getEntitiesInAABB(sweepBox, this);
+
+                    for (Entity* entity : nearbyEntities) {
+                        // 排除自身、目标和队友
+                        if (entity == this || entity == livingTarget) {
+                            continue;
+                        }
+
+                        // 只对生物实体生效
+                        LivingEntity* nearbyLiving = dynamic_cast<LivingEntity*>(entity);
+                        if (!nearbyLiving) {
+                            continue;
+                        }
+
+                        // 检查距离（最大 3 格）
+                        if (distanceSqTo(*entity) > 9.0) {  // 3^2 = 9
+                            continue;
+                        }
+
+                        // TODO: 检查盔甲架标记 (ArmorStandEntity.hasMarker())
+                        // TODO: 检查队友关系 (isOnSameTeam())
+
+                        // 应用击退并造成伤害
+                        // MC 1.16.5: 击退方向基于玩家朝向
+                        f32 yawRad = math::toRadians(yaw());
+                        f64 knockbackX = static_cast<f64>(std::sin(yawRad));
+                        f64 knockbackZ = static_cast<f64>(-std::cos(yawRad));
+                        nearbyLiving->applyKnockback(0.4f, knockbackX, knockbackZ);
+
+                        // 造成横扫伤害
+                        EntityDamageSource sweepSource = DamageSources::playerAttack(this);
+                        nearbyLiving->hurt(sweepSource, sweepDamage);
+                    }
+                }
+            }
+        }
 
         // 17. 应用火焰附加
         if (fireAspectLevel > 0) {

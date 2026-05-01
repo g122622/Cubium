@@ -229,6 +229,10 @@ void HoglinEntity::registerGoals() {
 void HoglinEntity::registerAttributes() {
     MonsterEntity::registerAttributes();
 
+    // 注册攻击属性（MonsterEntity 不自动注册这些）
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
@@ -267,6 +271,10 @@ void ZoglinEntity::registerGoals() {
 
 void ZoglinEntity::registerAttributes() {
     MonsterEntity::registerAttributes();
+
+    // 注册攻击属性（MonsterEntity 不自动注册这些）
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);

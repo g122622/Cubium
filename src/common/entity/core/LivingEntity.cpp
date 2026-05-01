@@ -845,12 +845,16 @@ void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength) {
     }
 
     // MC 1.16.5: 从攻击者位置计算击退方向
-    // ratioX = attacker.x - this.x (然后取反)
-    // ratioZ = attacker.z - this.z (然后取反)
+    // 击退方向：从攻击者指向目标（目标被推开）
+    // ratioX = attacker.x - target.x（攻击者到目标的方向向量取反）
+    // 归一化后乘以 strength，最终速度 = current/2 - knockbackVec
+    // 所以如果攻击者在左边(0)，目标在右边(2)，ratioX = 0-2 = -2
+    // 归一化后 ratioX = -1，knockbackX = -1
+    // velocity.x = current/2 - (-1) = current/2 + 1，目标向右移动（正确）
     f64 ratioX = static_cast<f64>(attacker->position().x - m_position.x);
     f64 ratioZ = static_cast<f64>(attacker->position().z - m_position.z);
 
-    applyKnockback(strength, -ratioX, -ratioZ);
+    applyKnockback(strength, ratioX, ratioZ);
 }
 
 } // namespace mc

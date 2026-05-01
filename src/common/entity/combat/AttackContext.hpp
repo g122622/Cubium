@@ -60,6 +60,9 @@ public:
     [[nodiscard]] f32 getBaseDamage() const { return m_baseDamage; }
     void setBaseDamage(f32 damage) { m_baseDamage = damage; }
 
+    [[nodiscard]] f32 getEnchantDamageBonus() const { return m_enchantDamageBonus; }
+    void setEnchantDamageBonus(f32 bonus) { m_enchantDamageBonus = bonus; }
+
     [[nodiscard]] AttackType getAttackType() const { return m_attackType; }
     void setAttackType(AttackType type) { m_attackType = type; }
 
@@ -106,6 +109,7 @@ private:
     const ItemStack* m_weapon = nullptr;
 
     f32 m_baseDamage = 1.0f;
+    f32 m_enchantDamageBonus = 0.0f;  // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
     AttackType m_attackType = AttackType::Melee;
 
     bool m_critical = false;
