@@ -334,6 +334,44 @@ OreType BlockDropHandler::getOreType(const BlockState& state) {
 }
 
 i32 BlockDropHandler::spawnOreExperience(
+    server::ServerWorld& world,
+    const BlockPos& pos,
+    OreType oreType,
+    math::Random& rng)
+{
+    if (oreType == OreType::None) {
+        return 0;
+    }
+
+    i32 xp = entity::experience::utils::randomOreExperience(
+        rng, static_cast<i32>(oreType));
+
+    if (xp <= 0) {
+        return 0;
+    }
+
+    const f32 centerX = static_cast<f32>(pos.x) + 0.5f;
+    const f32 centerY = static_cast<f32>(pos.y) + 0.5f;
+    const f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
+
+    std::vector<i32> xpValues;
+    entity::experience::utils::splitExperience(xp, xpValues);
+
+    i32 spawnedCount = 0;
+    for (i32 xpValue : xpValues) {
+        auto orb = std::make_unique<ExperienceOrbEntity>(&world, centerX, centerY, centerZ, xpValue);
+        orb->setPickupDelay(10);
+
+        const EntityId entityId = world.spawnEntity(std::move(orb));
+        if (entityId != 0) {
+            ++spawnedCount;
+        }
+    }
+
+    return spawnedCount;
+}
+
+i32 BlockDropHandler::spawnOreExperience(
     EntityManager& entityManager,
     PhysicsEngine* physicsEngine,
     const BlockPos& pos,
@@ -389,6 +427,35 @@ i32 BlockDropHandler::spawnOreExperience(
     }
 
     return spawnedCount;
+}
+
+i32 BlockDropHandler::handleBlockBreakExperience(
+    server::ServerWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    const ItemStack* tool,
+    math::Random& rng)
+{
+    OreType oreType = getOreType(state);
+    if (oreType == OreType::None) {
+        return 0;
+    }
+
+    if (hasSilkTouch(tool)) {
+        return 0;
+    }
+
+    if (state.requiresTool()) {
+        if (!tool || tool->isEmpty()) {
+            return 0;
+        }
+
+        if (!tool->canHarvestBlock(state)) {
+            return 0;
+        }
+    }
+
+    return spawnOreExperience(world, pos, oreType, rng);
 }
 
 i32 BlockDropHandler::handleBlockBreakExperience(

@@ -476,7 +476,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    callbacks.onSpawnEntity = [this](u32 entityId, const String& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, const ItemStack* itemStack) {
+    callbacks.onSpawnEntity = [this](u32 entityId, const String& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 vx, f32 vy, f32 vz, const ItemStack* itemStack) {
         auto& entityManager = m_world.entityManager();
         ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
         if (!entity) {
@@ -489,10 +489,12 @@ void ClientApplication::setupNetworkCallbacks()
 
         entity->setPosition(x, y, z);
         entity->setRotation(yaw, pitch);
-        entity->setVelocity(0.0f, 0.0f, 0.0f);
+        entity->setVelocity(vx, vy, vz);
 
         if (typeId == mc::entity::EntityTypes::ITEM && itemStack) {
             entity->setItemStack(*itemStack);
+            mc::math::Random rng(static_cast<u64>(entityId) * 341873128712ULL + 132897987541ULL);
+            entity->setHoverStart(rng.nextFloat() * 6.28318530718f);
         }
     };
 

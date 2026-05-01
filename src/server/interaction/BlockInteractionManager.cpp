@@ -414,8 +414,7 @@ void BlockInteractionManager::generateBlockDrops(
 
     if (!drops.empty()) {
         BlockDropHandler::spawnDrops(
-            m_world.entityManager(),
-            m_world.physicsEngine(),
+            m_world,
             pos,
             drops,
             "");
@@ -429,8 +428,7 @@ void BlockInteractionManager::generateBlockDrops(
                      static_cast<u64>(std::hash<PlayerId>{}(playerId));
     math::Random rng(seed);
     BlockDropHandler::handleBlockBreakExperience(
-        m_world.entityManager(),
-        m_world.physicsEngine(),
+        m_world,
         pos,
         state,
         tool,

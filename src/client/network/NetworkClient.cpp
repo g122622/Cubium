@@ -620,6 +620,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::CollectItem: {
+            handleCollectItem(bodyDeser);
+            break;
+        }
+
         case network::PacketType::GameStateChange: {
             handleGameStateChange(bodyDeser);
             break;
@@ -1002,6 +1007,9 @@ void NetworkClient::handleSpawnEntity(network::PacketDeserializer& deser) {
             packet.entityTypeId(),
             packet.x(), packet.y(), packet.z(),
             packet.yaw(), packet.pitch(),
+            static_cast<f32>(packet.velocityX()) / 8000.0f,
+            static_cast<f32>(packet.velocityY()) / 8000.0f,
+            static_cast<f32>(packet.velocityZ()) / 8000.0f,
             packet.itemStack()
         );
     }
@@ -1191,6 +1199,22 @@ void NetworkClient::handleEntityStatus(network::PacketDeserializer& deser) {
             packet.entityId(),
             static_cast<u8>(packet.status())
         );
+    }
+}
+
+void NetworkClient::handleCollectItem(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::CollectItemPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize CollectItem packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onEntityDestroy) {
+        m_callbacks.onEntityDestroy({packet.collectedEntityId()});
     }
 }
 

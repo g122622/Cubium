@@ -160,62 +160,73 @@ std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId)
 }
 
 void EntityTracker::tick(IServer& server) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<std::pair<EntityId, std::vector<PlayerId>>> removedEntities;
+    std::vector<EntityId> entitiesToErase;
 
-    // 更新所有被追踪实体的位置
-    for (auto& [entityId, tracked] : m_trackedEntities) {
-        Entity* entity = server.entityManager().getEntity(entityId);
-        if (!entity || entity->isRemoved()) {
-            continue;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        for (auto& [entityId, tracked] : m_trackedEntities) {
+            Entity* entity = server.entityManager().getEntity(entityId);
+            if (!entity || entity->isRemoved()) {
+                std::vector<PlayerId> players(tracked.trackingPlayers.begin(), tracked.trackingPlayers.end());
+                removedEntities.emplace_back(entityId, std::move(players));
+                entitiesToErase.push_back(entityId);
+                continue;
+            }
+
+            tracked.updateCounter++;
+
+            Vector3 currentPos = entity->position();
+            f32 currentYaw = entity->yaw();
+            f32 currentPitch = entity->pitch();
+
+            bool positionChanged = (currentPos - tracked.lastPosition).lengthSquared() >
+                                  m_positionUpdateThreshold * m_positionUpdateThreshold;
+            bool rotationChanged = std::abs(currentYaw - tracked.lastYaw) > m_rotationUpdateThreshold ||
+                                  std::abs(currentPitch - tracked.lastPitch) > m_rotationUpdateThreshold;
+
+            if (tracked.needsFullUpdate || positionChanged || rotationChanged) {
+                if (!tracked.trackingPlayers.empty()) {
+                    spdlog::debug("EntityTracker: Entity {} moved from ({:.1f},{:.1f},{:.1f}) to ({:.1f},{:.1f},{:.1f}), sending to {} players",
+                                  entityId,
+                                  tracked.lastPosition.x, tracked.lastPosition.y, tracked.lastPosition.z,
+                                  currentPos.x, currentPos.y, currentPos.z,
+                                  tracked.trackingPlayers.size());
+                }
+
+                for (PlayerId playerId : tracked.trackingPlayers) {
+                    sendMovePacket(server, playerId, entity);
+                }
+
+                if (entity->dataManager().hasDirtyData() && !tracked.trackingPlayers.empty()) {
+                    std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
+                    if (metadata.size() > 1) {
+                        for (PlayerId playerId : tracked.trackingPlayers) {
+                            sendMetadataPacket(server, playerId, entity, metadata);
+                        }
+                        entity->dataManager().clearDirty();
+                    }
+                }
+
+                tracked.lastPosition = currentPos;
+                tracked.lastYaw = currentYaw;
+                tracked.lastPitch = currentPitch;
+                tracked.needsFullUpdate = false;
+            }
         }
 
-        tracked.updateCounter++;
-
-        // 检查是否需要发送位置更新
-        Vector3 currentPos = entity->position();
-        f32 currentYaw = entity->yaw();
-        f32 currentPitch = entity->pitch();
-
-        bool positionChanged = (currentPos - tracked.lastPosition).lengthSquared() >
-                              m_positionUpdateThreshold * m_positionUpdateThreshold;
-        bool rotationChanged = std::abs(currentYaw - tracked.lastYaw) > m_rotationUpdateThreshold ||
-                              std::abs(currentPitch - tracked.lastPitch) > m_rotationUpdateThreshold;
-
-        if (tracked.needsFullUpdate || positionChanged || rotationChanged) {
-            // 检查是否有玩家在追踪此实体
-            if (!tracked.trackingPlayers.empty()) {
-                spdlog::debug("EntityTracker: Entity {} moved from ({:.1f},{:.1f},{:.1f}) to ({:.1f},{:.1f},{:.1f}), sending to {} players",
-                              entityId,
-                              tracked.lastPosition.x, tracked.lastPosition.y, tracked.lastPosition.z,
-                              currentPos.x, currentPos.y, currentPos.z,
-                              tracked.trackingPlayers.size());
+        for (EntityId entityId : entitiesToErase) {
+            for (auto& [_, trackedSet] : m_playerTrackedEntities) {
+                trackedSet.erase(entityId);
             }
+            m_trackedEntities.erase(entityId);
+        }
+    }
 
-            // 发送更新包给所有追踪此实体的玩家
-            for (PlayerId playerId : tracked.trackingPlayers) {
-                if (tracked.needsFullUpdate) {
-                    // 发送完整传送包
-                    sendMovePacket(server, playerId, entity);
-                } else {
-                    // 发送相对移动包
-                    sendMovePacket(server, playerId, entity);
-                }
-            }
-
-            if (entity->dataManager().hasDirtyData() && !tracked.trackingPlayers.empty()) {
-                std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
-                if (metadata.size() > 1) {
-                    for (PlayerId playerId : tracked.trackingPlayers) {
-                        sendMetadataPacket(server, playerId, entity, metadata);
-                    }
-                    entity->dataManager().clearDirty();
-                }
-            }
-
-            tracked.lastPosition = currentPos;
-            tracked.lastYaw = currentYaw;
-            tracked.lastPitch = currentPitch;
-            tracked.needsFullUpdate = false;
+    for (const auto& [entityId, players] : removedEntities) {
+        for (PlayerId playerId : players) {
+            sendDestroyPacket(server, playerId, entityId);
         }
     }
 }

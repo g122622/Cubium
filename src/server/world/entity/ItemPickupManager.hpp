@@ -136,13 +136,21 @@ private:
     void sendInventoryUpdate(IServer& server, Player& player);
 
     /**
-     * @brief 发送实体销毁包
+     * @brief 发送掉落物剩余数量更新包
+     *
+     * @param server 服务器接口
+     * @param itemEntity 物品实体
+     */
+    void sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity);
+
+    /**
+     * @brief 发送物品拾取动画包
      *
      * @param server 服务器接口
      * @param entityId 实体ID
      * @param collectorId 拾取者实体ID
      */
-    void sendEntityDestroy(IServer& server, EntityId entityId, EntityId collectorId);
+    void sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount);
 };
 
 } // namespace server

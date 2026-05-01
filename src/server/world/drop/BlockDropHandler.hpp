@@ -175,6 +175,12 @@ public:
      * @return 生成的经验球数量
      */
     static i32 spawnOreExperience(
+        server::ServerWorld& world,
+        const BlockPos& pos,
+        OreType oreType,
+        math::Random& rng);
+
+    static i32 spawnOreExperience(
         EntityManager& entityManager,
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
@@ -195,6 +201,13 @@ public:
      * @param rng 随机数生成器
      * @return 生成的经验球数量
      */
+    static i32 handleBlockBreakExperience(
+        server::ServerWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const ItemStack* tool,
+        math::Random& rng);
+
     static i32 handleBlockBreakExperience(
         EntityManager& entityManager,
         PhysicsEngine* physicsEngine,

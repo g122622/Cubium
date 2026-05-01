@@ -101,31 +101,24 @@ void ItemEntity::tick() {
 // ============================================================================
 
 bool ItemEntity::onPlayerPickup(Player& player) {
-    // 检查是否可以拾取
     if (!canBePickedUp()) {
         return false;
     }
 
-    // 检查所有者限制（防止立即拾取自己丢弃的物品）
-    // 如果玩家 UUID 与所有者匹配，检查拾取延迟
-    // 参考 MC 1.16.5: 丢弃者需要等待 10 ticks 才能拾取自己的物品
-    if (!m_ownerUuid.empty() && player.uuid() == m_ownerUuid) {
-        if (m_age < DEFAULT_PICKUP_DELAY) {
+    if (!m_ownerUuid.empty() && player.uuid() != m_ownerUuid) {
+        const bool nearDespawn = m_lifetime != INFINITE_LIFETIME && (m_lifetime - m_age) <= 200;
+        if (!nearDespawn) {
             return false;
         }
     }
 
-    // 将物品添加到玩家背包
     PlayerInventory& inventory = player.inventory();
-    i32 remaining = inventory.add(m_itemStack);
+    inventory.add(m_itemStack);
 
-    if (remaining > 0) {
-        // 只拾取了部分
-        m_itemStack.setCount(remaining);
+    if (!m_itemStack.isEmpty()) {
         return false;
     }
 
-    // 完全拾取，标记为移除
     remove();
     return true;
 }

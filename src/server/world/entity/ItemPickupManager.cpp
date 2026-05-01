@@ -4,6 +4,7 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/entity/EntityTracker.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -17,6 +18,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace mc::server {
@@ -108,20 +111,24 @@ bool ItemPickupManager::tryPickupItem(
 
     // 使用 ItemEntity::onPlayerPickup 处理拾取逻辑
     // 这确保所有者 UUID 检查等逻辑在一处实现
+    const i32 pickupCount = stack.getCount();
+
     bool fullyPickedUp = itemEntity.onPlayerPickup(*playerEntity);
+    const i32 remainingCount = itemEntity.getItemStack().isEmpty() ? 0 : itemEntity.getItemStack().getCount();
+    const i32 pickedUpCount = pickupCount - remainingCount;
+    if (pickedUpCount <= 0) {
+        return false;
+    }
+
+    player.playSound(SoundEvents::ENTITY_ITEM_PICKUP, 0.2f, 1.0f);
+    sendInventoryUpdate(server, *playerEntity);
 
     if (fullyPickedUp || itemEntity.getItemStack().isEmpty()) {
-        // 播放拾取音效
-        player.playSound(SoundEvents::ENTITY_ITEM_PICKUP, 0.2f, 1.0f);
-
-        // 完全拾取，发送背包更新和实体销毁包
-        sendInventoryUpdate(server, *playerEntity);
-        sendEntityDestroy(server, itemEntity.id(), player.id());
+        sendCollectItem(server, itemEntity.id(), player.id(), pickedUpCount);
         return fullyPickedUp;
     }
 
-    // 部分拾取，发送背包更新
-    sendInventoryUpdate(server, *playerEntity);
+    sendItemEntityUpdate(server, itemEntity);
     return false;
 }
 
@@ -288,52 +295,87 @@ void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player) {
 }
 
 // ============================================================================
-// sendEntityDestroy
+// sendItemEntityUpdate
 // ============================================================================
 
-void ItemPickupManager::sendEntityDestroy(
+void ItemPickupManager::sendItemEntityUpdate(IServer& server, const ItemEntity& itemEntity) {
+    network::SpawnEntityPacket packet;
+    packet.setEntityId(static_cast<u32>(itemEntity.id()));
+
+    std::array<u8, 16> uuid = {};
+    uuid[0] = static_cast<u8>(itemEntity.id() & 0xFF);
+    uuid[1] = static_cast<u8>((itemEntity.id() >> 8) & 0xFF);
+    uuid[2] = static_cast<u8>((itemEntity.id() >> 16) & 0xFF);
+    uuid[3] = static_cast<u8>((itemEntity.id() >> 24) & 0xFF);
+    packet.setUuid(uuid);
+
+    packet.setEntityTypeId(itemEntity.getTypeId());
+    packet.setPosition(itemEntity.x(), itemEntity.y(), itemEntity.z());
+    packet.setRotation(itemEntity.yaw(), itemEntity.pitch());
+
+    const auto velocity = itemEntity.velocity();
+    packet.setVelocity(
+        static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f))
+    );
+    packet.setItemStack(itemEntity.getItemStack());
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        return;
+    }
+
+    network::PacketSerializer fullPacket;
+    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+    fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnEntity));
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeBytes(result.value());
+
+    server.playerManager().forEachPlayer([&](ServerPlayerData& playerData) {
+        if (!playerData.hasConnection()) {
+            return;
+        }
+
+        auto trackedEntities = server.entityTracker().getPlayerTrackedEntities(playerData.playerId);
+        if (std::find(trackedEntities.begin(), trackedEntities.end(), itemEntity.id()) == trackedEntities.end()) {
+            return;
+        }
+
+        playerData.send(fullPacket.buffer().data(), fullPacket.buffer().size());
+    });
+}
+
+// ============================================================================
+// sendCollectItem
+// ============================================================================
+
+void ItemPickupManager::sendCollectItem(
     IServer& server,
     EntityId entityId,
-    EntityId collectorId)
+    EntityId collectorId,
+    i32 pickupItemCount)
 {
-    // 首先发送 CollectItemPacket 触发拾取动画
-    // 这会让客户端播放物品飞向玩家的动画
     network::CollectItemPacket collectPacket;
     collectPacket.setCollectedEntityId(static_cast<u32>(entityId));
     collectPacket.setCollectorEntityId(static_cast<u32>(collectorId));
-    collectPacket.setPickupItemCount(1);  // 默认拾取数量
+    collectPacket.setPickupItemCount(pickupItemCount);
 
     auto collectResult = collectPacket.serialize();
-    if (collectResult.success()) {
-        network::PacketSerializer fullPacket;
-        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + collectResult.value().size()));
-        fullPacket.writeU16(static_cast<u16>(network::PacketType::CollectItem));
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeBytes(collectResult.value());
-
-        // 广播给所有玩家
-        server.connectionManager().broadcast(fullPacket.buffer().data(), fullPacket.buffer().size());
+    if (collectResult.failed()) {
+        return;
     }
 
-    // 然后发送实体销毁包
-    // SPacketDestroyEntities: VarInt count, Array[VarInt] entityIds
-    network::PacketSerializer ser;
-    ser.writeVarInt(static_cast<i32>(network::PacketType::EntityDestroy));
-    ser.writeVarInt(1);  // count = 1
-    ser.writeVarInt(static_cast<i32>(entityId));
-
-    // 创建完整数据包（包含长度前缀）
     network::PacketSerializer fullPacket;
-    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + ser.size()));
-    fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityDestroy));
+    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + collectResult.value().size()));
+    fullPacket.writeU16(static_cast<u16>(network::PacketType::CollectItem));
     fullPacket.writeU16(0);
     fullPacket.writeU16(0);
     fullPacket.writeU16(0);
-    fullPacket.writeBytes(ser.buffer());
+    fullPacket.writeBytes(collectResult.value());
 
-    // 广播给所有玩家
     server.connectionManager().broadcast(fullPacket.buffer().data(), fullPacket.buffer().size());
 }
 
