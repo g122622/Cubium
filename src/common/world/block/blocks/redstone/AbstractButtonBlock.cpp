@@ -2,6 +2,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include <unordered_map>
 
 namespace mc {

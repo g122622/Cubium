@@ -2,6 +2,7 @@
 #include "../BlockRegistry.hpp"
 #include "../Block.hpp"
 #include "../../IWorld.hpp"
+#include "../../tick/manager/TickManager.hpp"
 #include "../../blockentity/storage/ChestEntity.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/entities/passive/tamable/CatEntity.hpp"

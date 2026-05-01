@@ -2,6 +2,7 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {

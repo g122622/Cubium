@@ -1,6 +1,7 @@
 #include "FlowingFluid.hpp"
 #include "FluidRegistry.hpp"
 #include "../IWorld.hpp"
+#include "../tick/manager/TickManager.hpp"
 #include "../block/Block.hpp"
 #include "../block/ILiquidContainer.hpp"
 #include "../block/BlockPos.hpp"

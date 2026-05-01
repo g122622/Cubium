@@ -3,6 +3,7 @@
 #include "StemBlock.hpp"
 #include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidTags.hpp"
 #include "../../PlantType.hpp"

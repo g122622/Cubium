@@ -3,6 +3,7 @@
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include <unordered_map>
 

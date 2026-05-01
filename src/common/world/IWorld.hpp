@@ -25,6 +25,10 @@ class BlockEntity;
 class Player;
 enum class ContainerType : u8;
 
+namespace world::tick {
+class TickManager;
+}
+
 namespace world::explosion {
 class Explosion;  // 前向声明
 }
@@ -392,6 +396,15 @@ public:
      */
     [[nodiscard]] virtual PhysicsEngine* physicsEngine() = 0;
     [[nodiscard]] virtual const PhysicsEngine* physicsEngine() const = 0;
+
+    /**
+     * @brief 获取 Tick 管理器
+     *
+     * 服务端世界将返回有效的 `world::tick::TickManager` 实例，
+     * 客户端或不支持调度的实现应覆盖或实现为不支持。
+     */
+    [[nodiscard]] virtual world::tick::TickManager& tickManager() = 0;
+    [[nodiscard]] virtual const world::tick::TickManager& tickManager() const = 0;
 
     // ========== 实体管理 ==========
 

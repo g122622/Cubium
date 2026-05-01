@@ -571,7 +571,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         }
 
         fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
-        m_tickManager.scheduleFluidTick(pos, fluid, fluid.getTickDelay(*this), world::tick::TickPriority::Normal);
+        m_tickManager->scheduleFluidTick(pos, fluid, fluid.getTickDelay(*this), world::tick::TickPriority::Normal);
     };
 
     {

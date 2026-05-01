@@ -6,6 +6,7 @@
 #include "../../BlockRegistry.hpp"
 #include "../../VanillaBlocks.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 
 namespace mc {
 

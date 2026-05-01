@@ -1,5 +1,6 @@
 #include "IceBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/Fluid.hpp"

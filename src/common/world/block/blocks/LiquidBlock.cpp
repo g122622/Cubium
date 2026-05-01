@@ -4,6 +4,7 @@
 #include "../../../util/property/Properties.hpp"
 #include "../../../util/property/FluidProperties.hpp"
 #include "../../IWorld.hpp"
+#include "../../tick/manager/TickManager.hpp"
 #include "../BlockPos.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../fluid/FluidTags.hpp"

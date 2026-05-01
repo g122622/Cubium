@@ -1,5 +1,6 @@
 #include "TrapDoorBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../fluid/Fluid.hpp"

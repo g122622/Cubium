@@ -3,6 +3,8 @@
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/FluidTags.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"

@@ -1,5 +1,6 @@
 #include "DispenserBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
 #include "../../../../item/core/ItemStack.hpp"

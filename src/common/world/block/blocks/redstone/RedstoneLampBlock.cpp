@@ -1,6 +1,7 @@
 #include "RedstoneLampBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include <unordered_map>
 

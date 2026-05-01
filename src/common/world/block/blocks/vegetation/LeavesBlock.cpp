@@ -1,5 +1,6 @@
 #include "LeavesBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../../../util/property/StateContainer.hpp"

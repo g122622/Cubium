@@ -1,5 +1,6 @@
 #include "RedstoneSystem.hpp"
 #include "../IWorld.hpp"
+#include "../tick/manager/TickManager.hpp"
 #include "../block/Block.hpp"
 
 namespace mc {

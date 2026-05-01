@@ -1,6 +1,7 @@
 #include "../ClientApplication.hpp"
 
 #include "common/world/IWorld.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 
@@ -53,6 +54,14 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+
+    // tickManager 不适用于只读的客户端世界适配器
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support tickManager");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support tickManager");
+    }
 
 private:
     const ClientWorld& m_world;

@@ -1,6 +1,7 @@
 #include "FallingBlock.hpp"
 #include "../BlockRegistry.hpp"
 #include "../../IWorld.hpp"
+#include "../../tick/manager/TickManager.hpp"
 #include "../../../entity/entities/misc/MiscEntities.hpp"
 #include "../../../core/Constants.hpp"
 #include "../Material.hpp"

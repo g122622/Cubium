@@ -1,6 +1,7 @@
 #include "LecternBlock.hpp"
 
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../blockentity/interactive/LecternEntity.hpp"
 #include "../../../../item/core/Item.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
