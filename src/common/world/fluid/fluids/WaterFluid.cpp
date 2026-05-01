@@ -49,13 +49,14 @@ const BlockState* WaterFluid::getBlockState(const FluidState& state) const {
 
 void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
                                        const BlockState* state) {
-    // 水替换方块前：掉落方块物品
-    if (state == nullptr || state->isAir()) {
-        return;
-    }
-
-    // TODO: 掉落方块物品
-    // Block::dropBlockAsItem(world, pos, state, 0);
+    // 参考: net.minecraft.fluid.WaterFluid#beforeReplacingBlock
+    // MC 1.16.5: TileEntity tileentity = state.hasTileEntity() ? worldIn.getTileEntity(pos) : null;
+    //           Block.spawnDrops(state, worldIn, pos, tileentity);
+    //
+    // TODO: 实现方块掉落
+    // 当前 IWorld 接口无法访问 EntityManager 来生成物品实体
+    // 需要在 IWorld 或 ServerWorld 中提供 spawnItemEntity 方法
+    // 或者通过 IWorld::spawnDrops 等接口
     (void)world;
     (void)pos;
     (void)state;

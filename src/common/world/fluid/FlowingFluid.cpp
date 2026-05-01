@@ -216,17 +216,15 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
         const i32 tickDelay = getTickDelay(world, pos, state, correctState);
 
         if (correctState.isEmpty()) {
+            state = correctState;
             if (VanillaBlocks::AIR != nullptr) {
-                world.setBlock(pos, &VanillaBlocks::AIR->defaultState());
+                world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 3);
             }
-            return;
-        }
-
-        if (!(correctState == state)) {
+        } else if (!(correctState == state)) {
             state = correctState;
             const BlockState* newBlockState = correctState.getBlockState();
             if (newBlockState != nullptr) {
-                world.setBlock(pos, newBlockState);
+                world.setBlockState(pos, newBlockState, 2);
             }
             world.tickManager().scheduleFluidTick(pos, const_cast<Fluid&>(correctState.getFluid()), tickDelay);
         }

@@ -70,6 +70,9 @@ protected:
     /**
      * @brief 流入指定位置（重写以处理岩浆与水的交互）
      *
+     * MC 1.16.5 行为：只有向下流动时(direction == DOWN)才检查水交互
+     * 岩浆向下流入水时，把目标位置变成石头
+     *
      * @param world 世界
      * @param pos 目标位置
      * @param blockState 目标位置的方块状态
@@ -78,20 +81,6 @@ protected:
      */
     void flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
                   Direction dir, const FluidState& fluidState) override;
-
-    /**
-     * @brief 检查岩浆是否会变成石头或黑曜石
-     *
-     * 当岩浆遇到水时：
-     * - 岩浆源头 + 水 = 黑曜石
-     * - 流动岩浆 + 水 = 石头（圆石）
-     *
-     * @param world 世界
-     * @param pos 位置
-     * @param direction 接触方向
-     * @return 是否发生了转换
-     */
-    bool checkForMixing(IWorld& world, const BlockPos& pos, Direction direction);
 
 private:
     /**
