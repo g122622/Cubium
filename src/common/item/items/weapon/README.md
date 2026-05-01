@@ -12,8 +12,8 @@ weapon/
 ├── ThrowableItem.hpp/cpp # 投掷物品基类
 ├── ThrowableItems.hpp/cpp # 具体投掷物品(雪球/鸡蛋/末影珍珠等)
 ├── ArrowItem.hpp/cpp     # 箭矢物品
-├── ShieldItem.hpp/cpp    # 盾牌物品 (框架)
-├── FishingRodItem.hpp/cpp # 钓鱼竿
+├── ShieldItem.hpp/cpp    # 盾牌物品 (框架实现)
+├── FishingRodItem.hpp/cpp # 钓鱼竿 (框架实现)
 └── README.md             # 本文件
 ```
 
@@ -77,6 +77,10 @@ velocity = (f * f + f * 2.0) / 3.0
 - `fireProjectiles()` - 发射弹丸
 - `getChargedProjectiles()` - 获取已装填弹丸
 
+**NBT 结构：**
+- `Charged`: 布尔值，是否已装填
+- `ChargedProjectiles`: 数组，存储装填的弹丸
+
 ### TridentItem（三叉戟）- 基本实现
 
 **已实现功能：**
@@ -87,9 +91,34 @@ velocity = (f * f + f * 2.0) / 3.0
 - 附魔能力返回值
 
 **待完善功能：**
-- isInWater/isInRain检测
-- 激流音效
-- 方块硬度获取
+- isInRain 检测（需要天气系统）
+- 激流音效（需要音效系统）
+- 方块硬度获取（需要 Block 系统）
+
+### ShieldItem（盾牌）- 框架实现
+
+**已实现功能：**
+- 格挡状态（UseAction::Block）
+- 使用时间（72000 tick）
+- 盾牌检测方法 `isShield()`
+
+**待完善功能：**
+- 盾牌格挡伤害计算
+- 斧头破盾机制（100 tick 冷却）
+- 盾牌修复（木板）
+- 旗帜染色支持
+
+### FishingRodItem（钓鱼竿）- 框架实现
+
+**已实现功能：**
+- 基础物品结构
+- 使用动作（UseAction::Bow）
+
+**待完善功能：**
+- FishingBobberEntity 实体集成
+- 钓鱼附魔（海之眷顾、饵钓）支持
+- 钓鱼音效
+- 钓鱼 loot 表
 
 ### ThrowableItems（投掷物品）- 完整实现
 
@@ -129,6 +158,17 @@ TridentItem
 ├── EnchantmentHelper
 └── Player
 
+ShieldItem
+├── Item (基类)
+├── Player
+└── LivingEntity
+
+FishingRodItem
+├── Item (基类)
+├── Player (需要 fishingBobber 字段)
+├── FishingBobberEntity (框架实现)
+└── IWorld
+
 ThrowableItem
 ├── Item (基类)
 ├── ProjectileItemEntity (投掷物实体)
@@ -137,7 +177,11 @@ ThrowableItem
 
 ## 测试覆盖
 
-- `tests/common/item/weapon/ThrowableItemTest.cpp` - 投掷物品测试（17个测试用例）
+- `tests/common/item/weapon/WeaponItemTest.cpp` - 武器物品测试（19个测试用例）
+  - BowItem: 注册检查、使用时间、使用动作、箭矢速度计算、弹药检测
+  - CrossbowItem: 注册检查、装填时间、装填状态、弹药检测
+  - ArrowItem: 注册检查、耐久度
+  - TridentItem: 使用动作、使用时间、耐久度
 
 ## 参考
 
@@ -145,3 +189,4 @@ ThrowableItem
 - MC 1.16.5: `net.minecraft.item.CrossbowItem`
 - MC 1.16.5: `net.minecraft.item.TridentItem`
 - MC 1.16.5: `net.minecraft.item.ShieldItem`
+- MC 1.16.5: `net.minecraft.item.FishingRodItem`

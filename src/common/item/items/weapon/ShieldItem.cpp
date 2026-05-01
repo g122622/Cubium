@@ -17,19 +17,15 @@ ShieldItem::ShieldItem(const ItemProperties& properties)
 
 // ========== Item 接口重写 ==========
 
-i32 ShieldItem::getUseDuration(const ItemStack& stack) const {
-    (void)stack;
+i32 ShieldItem::getUseDuration(const ItemStack& /*stack*/) const {
     return MAX_USE_DURATION;
 }
 
-UseAction ShieldItem::getUseAction(const ItemStack& stack) const {
-    (void)stack;
+UseAction ShieldItem::getUseAction(const ItemStack& /*stack*/) const {
     return UseAction::Block;
 }
 
-ItemActionResult ShieldItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    (void)world;
-
+ItemActionResult ShieldItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
     ItemStack shieldStack = player.getHeldItem(hand);
 
     // 进入格挡状态

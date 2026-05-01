@@ -33,16 +33,25 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
     ItemStack rodStack = player.getHeldItem(hand);
 
     // 检查玩家是否已经有浮标
-    // 如果有，收杆；如果没有，抛杆
-    // TODO: 需要在 Player 中存储 FishingBobberEntity 引用
+    if (hasBobber(player)) {
+        // 收杆
+        entity::FishingBobberEntity* bobber = getBobber(player);
+        if (bobber != nullptr) {
+            i32 damage = bobber->reelIn();
+            rodStack.attemptDamageItem(damage);
+        }
+        // TODO: 清除玩家的浮标引用（需要在 Player 中添加 fishingBobber 字段）
+    } else {
+        // 抛杆
+        // TODO: 获取钓鱼附魔
+        // i32 luckBonus = EnchantmentHelper::getFishingLuckBonus(rodStack);
+        // i32 speedBonus = EnchantmentHelper::getFishingSpeedBonus(rodStack);
+        (void)world;
 
-    // TODO: 创建浮标实体 (FishingBobberEntity 未完全实现)
-    // auto bobber = std::make_unique<entity::FishingBobberEntity>(LegacyEntityType::Unknown, 0);
-    // ... 设置位置和速度 ...
-    // world.spawnEntity(std::move(bobber));
-
-    // 消耗耐久度
-    rodStack.attemptDamageItem(1);
+        // TODO: 创建浮标实体（需要 FishingBobberEntity 完整实现和 Player.fishingBobber 字段）
+        // auto bobber = std::make_unique<entity::FishingBobberEntity>(player, &world, luckBonus, speedBonus);
+        // world.spawnEntity(std::move(bobber));
+    }
 
     return ItemActionResult::success(rodStack);
 }
@@ -50,13 +59,13 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
 // ========== 钓鱼竿特有方法 ==========
 
 bool FishingRodItem::hasBobber(Player& player) {
-    // TODO: 检查玩家是否有浮标
+    // TODO: 需要在 Player 中添加 fishingBobber 字段
     (void)player;
     return false;
 }
 
 entity::FishingBobberEntity* FishingRodItem::getBobber(Player& player) {
-    // TODO: 返回玩家的浮标
+    // TODO: 需要在 Player 中添加 fishingBobber 字段
     (void)player;
     return nullptr;
 }
