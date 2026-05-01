@@ -29,13 +29,33 @@ struct WeatherUBO {
     alignas(4) f32 thunderStrength;
 };
 
-// 初始化随机偏移数组（参考 MC 1.16.5）
+// 初始化随机偏移数组（参考 MC 1.16.5 WorldRenderer 构造函数）
+// MC原版算法：计算从中心向外的归一化方向向量
+// rainSizeX[i << 5 | j] = -f1 / f2;  rainSizeZ[i << 5 | j] = f / f2;
+// 其中 f = j - 16, f1 = i - 16, f2 = sqrt(f*f + f1*f1)
 void initRainOffsets(f64* offsetX, f64* offsetZ, i32 size) {
-    mc::math::Random rng(42);  // 固定种子保证一致性
+    // MC原版使用32x32网格，size应该为32
+    MC_ASSERT_RELEASE(size == 32);
 
-    for (i32 i = 0; i < size * size; ++i) {
-        offsetX[i] = rng.nextFloat(-0.5f, 0.5f);
-        offsetZ[i] = rng.nextFloat(-0.5f, 0.5f);
+    for (i32 i = 0; i < 32; ++i) {
+        for (i32 j = 0; j < 32; ++j) {
+            // MC原版：f = j - 16, f1 = i - 16
+            f32 f = static_cast<f32>(j - 16);   // X方向分量
+            f32 f1 = static_cast<f32>(i - 16);  // Z方向分量
+            f32 f2 = std::sqrt(f * f + f1 * f1); // 向量长度
+
+            // 避免除以零（中心点）
+            if (f2 < 0.0001f) {
+                f2 = 1.0f;
+            }
+
+            // MC原版索引：i << 5 | j
+            i32 idx = (i << 5) | j;
+            // MC原版：rainSizeX = -f1 / f2, rainSizeZ = f / f2
+            // 这产生从中心向外的归一化方向向量
+            offsetX[idx] = -f1 / f2;
+            offsetZ[idx] = f / f2;
+        }
     }
 }
 
@@ -437,6 +457,7 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
 
     i32 camX = static_cast<i32>(std::floor(m_cameraPos.x));
     i32 camZ = static_cast<i32>(std::floor(m_cameraPos.z));
+    i32 camY = static_cast<i32>(std::floor(m_cameraPos.y));
 
     f64 f1 = static_cast<f64>(m_ticks) + m_partialTick;
 
@@ -449,8 +470,10 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
             i32 idx = ((z - camZ + 16) * RAIN_SIZE + (x - camX + 16)) % (RAIN_SIZE * RAIN_SIZE);
             if (idx < 0) idx += RAIN_SIZE * RAIN_SIZE;
 
-            f64 offsetX = m_rainOffsetX[idx];
-            f64 offsetZ = m_rainOffsetZ[idx];
+            // MC原版: double d0 = (double)this.rainSizeX[l1] * 0.5D;
+            // 偏移值需要乘以0.5进行缩放
+            f64 offsetX = m_rainOffsetX[idx] * 0.5;
+            f64 offsetZ = m_rainOffsetZ[idx] * 0.5;
 
             // 视锥剔除：使用球体测试检查位置是否可见
             if (m_frustum && m_frustum->isValid()) {
@@ -471,62 +494,99 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
             i32 groundY = 64;        // 默认地面高度
 
             if (world) {
-                // 查询生物群系温度
-                const mc::Biome* biome = world->getBiomeAtBlock(x, static_cast<i32>(m_cameraPos.y), z);
+                // 查询生物群系
+                const mc::Biome* biome = world->getBiomeAtBlock(x, camY, z);
                 if (biome) {
-                    temperature = biome->temperature();
                     // 检查生物群系是否允许降水
                     if (biome->climate().precipitation == mc::BiomeClimate::Precipitation::None) {
                         continue;  // 该生物群系不降水（如沙漠）
                     }
                 }
 
-                // 查询地形高度
+                // 查询地形高度（使用 MOTION_BLOCKING 高度图）
                 groundY = world->getHeight(x, z);
             }
 
+            // MC原版高度计算:
+            // int i2 = world.getHeight(Heightmap.Type.MOTION_BLOCKING, pos).getY();
+            // int j2 = j - l; (相机Y - 半径)
+            // int k2 = j + l; (相机Y + 半径)
+            // if (j2 < i2) j2 = i2; (下边界不低于地形)
+            // if (k2 < i2) k2 = i2; (上边界不低于地形)
+            // int l2 = i2; if (i2 < j) l2 = j; (光照采样高度 = max(地形高度, 相机Y))
+            i32 j2 = camY - radius;  // 下边界初始值
+            i32 k2 = camY + radius;  // 上边界初始值
+
+            if (j2 < groundY) j2 = groundY;  // 下边界不低于地形
+            if (k2 < groundY) k2 = groundY;  // 上边界不低于地形
+
+            // 如果上下边界相同，跳过（没有渲染空间）
+            if (j2 == k2) {
+                continue;
+            }
+
+            // l2 = 光照采样高度 = max(groundY, cameraY)，也用于温度采样
+            i32 l2 = groundY;
+            if (groundY < camY) l2 = camY;
+
+            // 使用位置相关温度（考虑海拔影响）
+            if (world) {
+                const mc::Biome* biome = world->getBiomeAtBlock(x, camY, z);
+                if (biome) {
+                    temperature = biome->getTemperature(l2);
+                }
+            }
+
             // 计算到相机的距离，用于淡出
+            // MC原版: float f4 = MathHelper.sqrt(d2*d2 + d4*d4) / (float)l;
+            // d2 = k1 - d0, d4 = j1 - d2 (相对于相机的距离)
             f64 dx = static_cast<f64>(x) + 0.5 - m_cameraPos.x;
             f64 dz = static_cast<f64>(z) + 0.5 - m_cameraPos.z;
             f64 dist = std::sqrt(dx * dx + dz * dz);
-            f64 fade = 1.0 - (dist / static_cast<f64>(radius));
-            fade = fade * fade * 0.5 + 0.5;  // 平滑淡出
-            f64 alpha = fade * m_rainStrength;
+            f64 f4 = dist / static_cast<f64>(radius);  // 归一化距离比 (0~1)
 
-            // 计算雨柱高度范围
-            // 参考 MC 1.16.5: 雨从玩家上方一定高度开始，到地面结束
-            f64 topY = std::min(m_cameraPos.y + RAIN_PILLAR_HEIGHT, CLOUD_HEIGHT);
-            f64 bottomY = static_cast<f64>(groundY) + 1.0;
+            // MC原版 alpha 计算:
+            // 雨: float f5 = ((1.0F - f4*f4) * 0.5F + 0.5F) * f;
+            // 雪: float f10 = ((1.0F - f9*f9) * 0.3F + 0.5F) * f;
+            f64 rainFade = (1.0 - f4 * f4) * 0.5 + 0.5;
+            f64 alpha = rainFade * m_rainStrength;
 
-            // 如果地面比相机高很多，跳过（玩家在地下）
-            if (groundY > m_cameraPos.y + 10) {
-                continue;
-            }
+            // MC原版位置种子计算（雨和雪共用）
+            i64 positionSeed = static_cast<i64>(x) * static_cast<i64>(x) * 3121 +
+                               static_cast<i64>(x) * 45238971 +
+                               static_cast<i64>(z) * static_cast<i64>(z) * 418711 +
+                               static_cast<i64>(z) * 13761;
 
             // 温度阈值判断：低于 SNOW_TEMPERATURE_THRESHOLD 为雪，高于等于为雨
             // 参考 MC 1.16.5 Biome.getPrecipitation()
             if (temperature >= SNOW_TEMPERATURE_THRESHOLD) {
                 // 雨
-                f64 texOffset = -((static_cast<i32>(m_ticks) & 31) + m_partialTick) / 32.0 * 3.0;
+                // MC原版 UV动画计算:
+                // int i3 = this.ticks + k1*k1*3121 + k1*45238971 + j1*j1*418711 + j1*13761 & 31;
+                // float f3 = -((float)i3 + partialTicks) / 32.0F * (3.0F + random.nextFloat());
+                mc::math::Random rng(static_cast<u64>(positionSeed));
+                i32 i3 = (static_cast<i32>(m_ticks) + static_cast<i32>(positionSeed & 0x7FFFFFFF)) & 31;
+                f32 texOffset = -((static_cast<f32>(i3) + static_cast<f32>(m_partialTick)) / 32.0f) *
+                                (3.0f + rng.nextFloat());
 
                 // 光照采样：参考 MC 1.16.5 WorldRenderer.renderRainSnow()
-                // MC 在 groundY 处采样光照：blockpos$mutable.setPos(k1, l2, j1)
-                // 其中 l2 = max(groundY, cameraY) 如果 groundY < cameraY，否则 l2 = groundY
+                // MC使用 l2 = max(groundY, cameraY) 作为采样高度
                 u16 lightU = 240;
                 u16 lightV = 240;
 
                 if (world) {
-                    // 光照采样位置：使用渲染高度的较低端
-                    i32 sampleY = std::min(static_cast<i32>(topY), static_cast<i32>(bottomY));
-                    u8 skyLight = world->getSkyLight(x, sampleY, z);
-                    u8 blockLight = world->getBlockLight(x, sampleY, z);
+                    u8 skyLight = world->getSkyLight(x, l2, z);
+                    u8 blockLight = world->getBlockLight(x, l2, z);
 
-                    // 参考 MC 1.16.5: 雨天时天空光照会降低
-                    // 实际光照 = getCombinedLight() 返回 (skyLight << 16 | blockLight)
-                    // 雨天会自动影响世界亮度，这里不需要手动调整
-                    lightU = static_cast<u16>(skyLight) << 4;
-                    lightV = static_cast<u16>(blockLight) << 4;
+                    // MC原版: lightmap U = blockLight, V = skyLight
+                    // 我们存储 0-15 范围的光照值，需要乘以 16 得到 0-240 范围
+                    lightU = static_cast<u16>(blockLight) << 4;  // U = blockLight
+                    lightV = static_cast<u16>(skyLight) << 4;    // V = skyLight
                 }
+
+                // 使用MC原版的高度计算 (j2 = 下边界, k2 = 上边界)
+                f64 topY = static_cast<f64>(k2);
+                f64 bottomY = static_cast<f64>(j2);
 
                 WeatherVertex v0, v1, v2, v3;
 
@@ -570,35 +630,51 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
                 m_rainVertices.push_back(v3);
             } else {
                 // 雪
-                f64 texOffsetX = static_cast<f64>(std::sin(f1 * 0.01) * 0.5);
-                f64 texOffsetY = -((static_cast<i32>(m_ticks) & 511) + m_partialTick) / 512.0;
+                // MC原版 UV动画计算:
+                // float f6 = -((float)(this.ticks & 511) + partialTicks) / 512.0F;
+                // float f7 = (float)(random.nextDouble() + (double)f1 * 0.01D * (double)((float)random.nextGaussian()));
+                // float f8 = (float)(random.nextDouble() + (double)(f1 * (float)random.nextGaussian()) * 0.001D);
+                f32 texOffsetY = -((static_cast<f32>(m_ticks & 511) + static_cast<f32>(m_partialTick)) / 512.0f);
+
+                // 重用已计算的位置种子
+                mc::math::Random rng(static_cast<u64>(positionSeed));
+                f32 texOffsetX = static_cast<f32>(rng.nextDouble() + static_cast<f64>(f1) * 0.01 * static_cast<f64>(rng.nextGaussian()));
+                f32 texOffsetYExtra = static_cast<f32>(rng.nextDouble() + static_cast<f64>(f1 * static_cast<f32>(rng.nextGaussian())) * 0.001);
+
+                // MC原版 alpha 计算:
+                // float f9 = MathHelper.sqrt(d3*d3 + d5*d5) / (float)l;
+                // float f10 = ((1.0F - f9*f9) * 0.3F + 0.5F) * f;
+                f64 snowFade = (1.0 - f4 * f4) * 0.3 + 0.5;
+                f64 snowAlpha = snowFade * m_rainStrength;
 
                 // 光照采样：参考 MC 1.16.5 WorldRenderer.renderRainSnow()
-                // 雪花需要更亮的光照效果：k4 = (i4 * 3 + 240) / 4, j4 = (l3 * 3 + 240) / 4
+                // 雪花需要更亮的光照效果
+                // MC原版: int k3 = getCombinedLight(world, blockpos$mutable);
+                // int l3 = k3 >> 16 & '￿';  (skyLight 0-240)
+                // int i4 = (k3 & '￿') * 3;  (blockLight * 3)
+                // int j4 = (l3 * 3 + 240) / 4;  (增强 skyLight)
+                // int k4 = (i4 * 3 + 240) / 4;  (blockLight * 3 * 3 + 240) / 4
                 u16 lightU = 240;
                 u16 lightV = 240;
 
                 if (world) {
-                    i32 sampleY = std::min(static_cast<i32>(topY), static_cast<i32>(bottomY));
-                    u8 skyLight = world->getSkyLight(x, sampleY, z);
-                    u8 blockLight = world->getBlockLight(x, sampleY, z);
+                    u8 skyLight = world->getSkyLight(x, l2, z);
+                    u8 blockLight = world->getBlockLight(x, l2, z);
 
-                    // 参考 MC 1.16.5: 雪花使用增强的光照
-                    // int l3 = k3 >> 16 & '￿';  (skyLight 部分)
-                    // int i4 = (k3 & '￿') * 3;  (blockLight 部分 * 3)
-                    // int j4 = (l3 * 3 + 240) / 4;  (增强 sky light)
-                    // int k4 = (i4 * 3 + 240) / 4;  (增强 block light)
-                    // 注意：MC 返回的是 combined light = (skyLight << 16) | blockLight
-                    // 我们这里 skyLight/blockLight 是 0-15 范围，需要乘以 16 得到 0-240 范围
-                    u16 rawSkyLight = static_cast<u16>(skyLight) << 4;   // 0-240
-                    u16 rawBlockLight = static_cast<u16>(blockLight) << 4;  // 0-240
+                    u16 rawSkyLight = static_cast<u16>(skyLight) << 4;     // 0-240
+                    u16 rawBlockLight = static_cast<u16>(blockLight) << 4; // 0-240
 
-                    // 增强：*3 + 240 后除以 4
-                    lightU = static_cast<u16>((rawBlockLight * 3 + 240) / 4);
+                    // MC原版公式:
+                    // j4 = (l3 * 3 + 240) / 4  用于 V (skyLight)
+                    // k4 = (i4 * 3 + 240) / 4  用于 U (blockLight * 9 + 240) / 4
+                    // 其中 i4 = blockLight * 3, 所以 k4 = (blockLight * 9 + 240) / 4
                     lightV = static_cast<u16>((rawSkyLight * 3 + 240) / 4);
+                    lightU = static_cast<u16>((rawBlockLight * 9 + 240) / 4);
                 }
 
-                f64 snowAlpha = alpha * 0.8;
+                // 使用MC原版的高度计算 (j2 = 下边界, k2 = 上边界)
+                f64 topY = static_cast<f64>(k2);
+                f64 bottomY = static_cast<f64>(j2);
 
                 WeatherVertex v0, v1, v2, v3;
 
@@ -606,7 +682,7 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
                 v0.y = static_cast<f32>(topY - m_cameraPos.y);
                 v0.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
                 v0.u = static_cast<f32>(0.0 + texOffsetX);
-                v0.v = static_cast<f32>(bottomY * 0.25 + texOffsetY);
+                v0.v = static_cast<f32>(bottomY * 0.25 + texOffsetY + texOffsetYExtra);
                 v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = static_cast<f32>(snowAlpha);
                 v0.lightU = lightU; v0.lightV = lightV;
 
@@ -614,7 +690,7 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
                 v1.y = static_cast<f32>(topY - m_cameraPos.y);
                 v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
                 v1.u = static_cast<f32>(1.0 + texOffsetX);
-                v1.v = static_cast<f32>(bottomY * 0.25 + texOffsetY);
+                v1.v = static_cast<f32>(bottomY * 0.25 + texOffsetY + texOffsetYExtra);
                 v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = static_cast<f32>(snowAlpha);
                 v1.lightU = lightU; v1.lightV = lightV;
 
@@ -622,7 +698,7 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
                 v2.y = static_cast<f32>(bottomY - m_cameraPos.y);
                 v2.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
                 v2.u = static_cast<f32>(1.0 + texOffsetX);
-                v2.v = static_cast<f32>(topY * 0.25 + texOffsetY);
+                v2.v = static_cast<f32>(topY * 0.25 + texOffsetY + texOffsetYExtra);
                 v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = static_cast<f32>(snowAlpha);
                 v2.lightU = lightU; v2.lightV = lightV;
 
@@ -630,7 +706,7 @@ void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
                 v3.y = static_cast<f32>(bottomY - m_cameraPos.y);
                 v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
                 v3.u = static_cast<f32>(0.0 + texOffsetX);
-                v3.v = static_cast<f32>(topY * 0.25 + texOffsetY);
+                v3.v = static_cast<f32>(topY * 0.25 + texOffsetY + texOffsetYExtra);
                 v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = static_cast<f32>(snowAlpha);
                 v3.lightU = lightU; v3.lightV = lightV;
 

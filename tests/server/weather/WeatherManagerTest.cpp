@@ -475,25 +475,36 @@ TEST_F(WeatherManagerTest, TrySpawnLightningOnlyDuringThunder) {
 // ============================================================================
 
 TEST_F(WeatherUtilsTest, GetPrecipitationTypeReturnsCorrectValue) {
+    // 参考 MC 1.16.5 Biome.doesSnowGenerate(): temperature >= 0.15F 时返回 false
+    // 所以温度 < 0.15 是雪，>= 0.15 是雨
     EXPECT_EQ(WeatherUtils::getPrecipitationType(0.0f), 2);  // 雪
-    EXPECT_EQ(WeatherUtils::getPrecipitationType(0.15f), 2); // 边界值 - 雪
+    EXPECT_EQ(WeatherUtils::getPrecipitationType(0.14f), 2); // 雪
+    EXPECT_EQ(WeatherUtils::getPrecipitationType(0.15f), 1); // 边界值 - 雨 (温度等于0.15时是雨)
     EXPECT_EQ(WeatherUtils::getPrecipitationType(0.16f), 1); // 雨
     EXPECT_EQ(WeatherUtils::getPrecipitationType(0.5f), 1);  // 雨
     EXPECT_EQ(WeatherUtils::getPrecipitationType(2.0f), 1);  // 雨
 }
 
 TEST_F(WeatherUtilsTest, CalculateSkyDarkenFactor) {
+    // 参考 MC 1.16.5 ClientWorld.getSunBrightness():
+    // 乘法组合: sunBrightness = base * (1 - rain * 5/16) * (1 - thunder * 5/16)
+    // 暗化因子 = 1 - sunBrightness = 1 - (1 - rain*5/16) * (1 - thunder*5/16)
+
     // 晴天
     EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(0.0f, 0.0f), 0.0f);
 
-    // 降雨
+    // 降雨 (rain=1, thunder=0): 1 - (1 - 5/16) * 1 = 1 - 11/16 = 5/16 = 0.3125
     EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(1.0f, 0.0f), 0.3125f);
 
-    // 雷暴
-    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(1.0f, 1.0f), 0.5f);
+    // 雷暴 (rain=1, thunder=1): 1 - (1 - 5/16) * (1 - 5/16) = 1 - (11/16)^2 = 1 - 121/256
+    // 注意: thunderStrength 会自动乘以 rainStrength，所以实际 thunder * rain = 1 * 1 = 1
+    // 但这里测试的是 WeatherUtils::calculateSkyDarkenFactor，它直接接收参数
+    // MC 中 getThunderStrength 返回 thunder * rain
+    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(1.0f, 1.0f), 1.0f - (11.0f/16.0f) * (11.0f/16.0f));
 
-    // 部分
-    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(0.5f, 0.5f), 0.25f);
+    // 部分降雨 (rain=0.5, thunder=0.5)
+    // 1 - (1 - 0.5*5/16) * (1 - 0.5*5/16) = 1 - (1 - 5/32) * (1 - 5/32) = 1 - (27/32)^2
+    EXPECT_FLOAT_EQ(WeatherUtils::calculateSkyDarkenFactor(0.5f, 0.5f), 1.0f - (27.0f/32.0f) * (27.0f/32.0f));
 }
 
 TEST_F(WeatherUtilsTest, CalculateCelestialVisibility) {

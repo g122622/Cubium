@@ -13,6 +13,7 @@ namespace mc {
 
 // 前向声明
 class BlockState;
+class BlockPos;
 
 /**
  * @brief 生物群系气候设置
@@ -97,6 +98,69 @@ public:
     [[nodiscard]] f32 humidity() const { return m_humidity; }
     [[nodiscard]] f32 continentalness() const { return m_continentalness; }
     [[nodiscard]] f32 erosion() const { return m_erosion; }
+
+    /**
+     * @brief 获取指定位置的温度
+     *
+     * 参考 MC 1.16.5 Biome.getTemperature(BlockPos):
+     * - 海拔 <= 64: 返回基础温度
+     * - 海拔 > 64: 温度随海拔降低
+     * - 温度降低公式: temperature - (noise + (y - 64)) * 0.05 / 30
+     *
+     * @param y Y坐标（高度）
+     * @return 位置相关温度
+     */
+    [[nodiscard]] f32 getTemperature(i32 y) const {
+        f32 temp = m_climate.temperature;
+
+        // 海拔 > 64 时降温
+        if (y > 64) {
+            // 使用确定性噪声计算温度变化
+            // 简化实现：温度随高度线性降低
+            // MC原版使用 TEMPERATURE_NOISE.noiseAt() 添加噪声变化
+            // 这里使用简化版本，效果接近
+            f32 heightFactor = static_cast<f32>(y - 64) * 0.05f / 30.0f;
+            temp = std::max(0.0f, temp - heightFactor);
+        }
+
+        return temp;
+    }
+
+    /**
+     * @brief 获取指定位置的温度（BlockPos版本）
+     *
+     * @param pos 方块位置
+     * @return 位置相关温度
+     */
+    [[nodiscard]] f32 getTemperature(const BlockPos& pos) const {
+        return getTemperature(pos.y);
+    }
+
+    /**
+     * @brief 判断是否应该降雪
+     *
+     * 参考 MC 1.16.5 Biome.doesSnowGenerate():
+     * return this.getTemperature(pos) < 0.15F;
+     *
+     * @param y Y坐标
+     * @return 是否应该降雪
+     */
+    [[nodiscard]] bool doesSnowGenerate(i32 y) const {
+        return getTemperature(y) < 0.15f;
+    }
+
+    /**
+     * @brief 判断水是否应该结冰
+     *
+     * 参考 MC 1.16.5 Biome.doesWaterFreeze():
+     * return this.getTemperature(pos) >= 0.15F ? false : ...
+     *
+     * @param y Y坐标
+     * @return 是否应该结冰
+     */
+    [[nodiscard]] bool doesWaterFreeze(i32 y) const {
+        return getTemperature(y) < 0.15f;
+    }
 
     // === 方块设置 ===
     [[nodiscard]] const BlockState* surfaceBlock() const { return m_surfaceBlock; }

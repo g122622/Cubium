@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc {
@@ -27,10 +28,15 @@ public:
      *
      * 由 GameStateChangePacket (RainStrengthChange) 调用
      *
+     * 参考 MC 1.16.5 World.setRainStrength():
+     * prevRainingStrength = strength;
+     * rainingStrength = strength;
+     * 同时设置 prev 和 current 为相同值
+     *
      * @param strength 目标降雨强度 (0.0 - 1.0)
      */
     void setRainStrength(f32 strength) {
-        m_prevRainStrength = m_rainStrength;
+        m_prevRainStrength = strength;
         m_rainStrength = strength;
     }
 
@@ -39,10 +45,15 @@ public:
      *
      * 由 GameStateChangePacket (ThunderStrengthChange) 调用
      *
+     * 参考 MC 1.16.5 World.setThunderStrength():
+     * prevThunderingStrength = strength;
+     * thunderingStrength = strength;
+     * 同时设置 prev 和 current 为相同值
+     *
      * @param strength 目标雷暴强度 (0.0 - 1.0)
      */
     void setThunderStrength(f32 strength) {
-        m_prevThunderStrength = m_thunderStrength;
+        m_prevThunderStrength = strength;
         m_thunderStrength = strength;
     }
 
@@ -94,9 +105,13 @@ public:
 
     /**
      * @brief 是否正在雷暴（强度检查）
+     *
+     * 参考 MC 1.16.5 World.isThundering():
+     * return (double)this.getThunderStrength(1.0F) > 0.9D;
+     * 使用 thunderStrength() 方法（已乘以 rainStrength）
      */
     [[nodiscard]] bool isThundering() const {
-        return m_thunderStrength > weather::WeatherConstants::THUNDER_THRESHOLD;
+        return thunderStrength(1.0f) > weather::WeatherConstants::THUNDER_THRESHOLD;
     }
 
     /**
@@ -106,17 +121,21 @@ public:
      * @return 插值后的强度值
      */
     [[nodiscard]] f32 rainStrength(f32 partialTick) const {
-        return lerp(m_prevRainStrength, m_rainStrength, partialTick);
+        return math::lerp(m_prevRainStrength, m_rainStrength, partialTick);
     }
 
     /**
      * @brief 获取插值后的雷暴强度
      *
+     * 参考 MC 1.16.5 World.getThunderStrength(float delta):
+     * return MathHelper.lerp(delta, prevThunderingStrength, thunderingStrength) * getRainStrength(delta);
+     * 雷暴强度始终乘以降雨强度
+     *
      * @param partialTick 部分 tick (0.0 - 1.0)
      * @return 插值后的强度值
      */
     [[nodiscard]] f32 thunderStrength(f32 partialTick) const {
-        return lerp(m_prevThunderStrength, m_thunderStrength, partialTick);
+        return math::lerp(m_prevThunderStrength, m_thunderStrength, partialTick) * rainStrength(partialTick);
     }
 
     /**
@@ -132,13 +151,21 @@ public:
     /**
      * @brief 计算天空颜色混合因子
      *
+     * 参考 MC 1.16.5 ClientWorld.getSunBrightness():
+     * f1 = (1 - rain * 5/16) * (1 - thunder * 5/16)
+     * 暗化因子 = 1 - f1
+     *
      * @param partialTick 部分 tick
-     * @return 暗化因子 (0.0=正常, 1.0=最暗)
+     * @return 暗化因子 (0.0=正常亮度, 约0.527=最大暗化)
      */
     [[nodiscard]] f32 skyDarkenFactor(f32 partialTick) const {
         f32 rain = rainStrength(partialTick);
         f32 thunder = thunderStrength(partialTick);
-        return rain * 0.3125f + thunder * 0.1875f;
+        // MC原版使用乘法组合: (1 - rain * 5/16) * (1 - thunder * 5/16)
+        // 返回暗化因子: 1.0 - result
+        f32 rainFactor = rain * (5.0f / 16.0f);
+        f32 thunderFactor = thunder * (5.0f / 16.0f);
+        return 1.0f - (1.0f - rainFactor) * (1.0f - thunderFactor);
     }
 
     /**
@@ -171,11 +198,6 @@ private:
     f32 m_prevRainStrength = 0.0f;
     f32 m_thunderStrength = 0.0f;
     f32 m_prevThunderStrength = 0.0f;
-
-    // todo 直接使用mathutils中的lerp函数
-    [[nodiscard]] static f32 lerp(f32 a, f32 b, f32 t) noexcept {
-        return a + t * (b - a);
-    }
 };
 
 } // namespace client
