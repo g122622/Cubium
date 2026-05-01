@@ -319,41 +319,32 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
     m_executedThisTick.clear();
 
     // 从TreeSet取出scheduledTick <= currentTick的条目
-    // MC 1.16.5 行为：只有成功移到处理队列时才增加计数
-    // 参考: net.minecraft.world.server.ServerTickList.tick()
     size_t count = 0;
     auto it = m_pendingTicksTree.begin();
     while (it != m_pendingTicksTree.end() && count < maxTicks) {
         const ScheduledTick<T>& tick = *it;
 
-        // 检查是否到达执行时间
         if (tick.scheduledTick > currentTick) {
             break;
         }
 
-        // 检查区块是否加载
         if (canTick(tick.position)) {
-            // 区块已加载，移到处理队列
             m_ticksThisTick.push(tick);
             it = m_pendingTicksTree.erase(it);
             m_pendingTicksSet.erase(tick);
-            ++count;  // 只有成功移到处理队列时才计数
+            ++count;
         } else {
-            // 区块未加载，保持原样，下次再试
             ++it;
-            // 不增加计数，继续检查下一个
         }
     }
 
     // 执行tick回调
-    // MC 1.16.5 行为：执行前再次检查区块加载状态，未加载则重新调度(delay=0)
-    // 参考: net.minecraft.world.server.ServerTickList.tick()
+    // MC 1.16.5: 执行前再次检查区块加载状态，未加载则重新调度(delay=0)
     while (!m_ticksThisTick.empty()) {
         ScheduledTick<T> tick = m_ticksThisTick.front();
         m_ticksThisTick.pop();
 
         if (tick.target != nullptr) {
-            // 再次检查区块是否仍然加载（可能在cleaning和ticking之间被卸载）
             if (canTick(tick.position)) {
                 m_executedThisTick.push_back(tick);
 
@@ -368,7 +359,6 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
                 m_tickFunction(m_world, tick.position, *tick.target);
                 ++m_totalProcessed;
             } else {
-                // 区块未加载，重新调度到下一tick执行(delay=0)
                 scheduleTick(tick.position, *tick.target, 0, tick.priority);
             }
         }

@@ -174,8 +174,7 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
         belowState->is(VanillaBlocks::SOUL_SOIL));
 
     // 检查所有方向（除了下方）
-    for (i32 i = 0; i < 6; ++i) {
-        Direction dir = static_cast<Direction>(i);
+    for (Direction dir : Directions::all()) {
         if (dir == Direction::Down) {
             continue;
         }

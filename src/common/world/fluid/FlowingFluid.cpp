@@ -216,22 +216,17 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state) {
         const i32 tickDelay = getTickDelay(world, pos, state, correctState);
 
         if (correctState.isEmpty()) {
-            // 流体消失，设置为空气
-            state = correctState;  // MC 先修改 state
+            state = correctState;
             if (VanillaBlocks::AIR != nullptr) {
                 world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 3);
             }
         } else if (!(correctState == state)) {
-            // 流体状态改变
             state = correctState;
             const BlockState* newBlockState = correctState.getBlockState();
             if (newBlockState != nullptr) {
                 world.setBlockState(pos, newBlockState, 2);
             }
             world.tickManager().scheduleFluidTick(pos, const_cast<Fluid&>(correctState.getFluid()), tickDelay);
-            // MC 1.16.5: 通知邻居方块更新
-            // worldIn.notifyNeighborsOfStateChange(pos, blockstate.getBlock());
-            // TODO: IWorld 接口需要添加 notifyNeighborsOfStateChange 方法
         }
     }
 
