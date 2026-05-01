@@ -32,18 +32,15 @@ BowItem::BowItem(const ItemProperties& properties)
 
 // ========== Item 接口重写 ==========
 
-i32 BowItem::getUseDuration(const ItemStack& stack) const {
-    (void)stack;
+i32 BowItem::getUseDuration(const ItemStack& /*stack*/) const {
     return MAX_USE_DURATION;
 }
 
-UseAction BowItem::getUseAction(const ItemStack& stack) const {
-    (void)stack;
+UseAction BowItem::getUseAction(const ItemStack& /*stack*/) const {
     return UseAction::Bow;
 }
 
-ItemActionResult BowItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    (void)world;
+ItemActionResult BowItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand) {
 
     ItemStack bowStack = player.getHeldItem(hand);
 
@@ -219,8 +216,7 @@ entity::AbstractArrowEntity* BowItem::customArrow(entity::AbstractArrowEntity* a
 
 // ========== 私有方法 ==========
 
-ItemStack BowItem::findAmmo(Player& player, const ItemStack& bowStack) const {
-    (void)bowStack;
+ItemStack BowItem::findAmmo(Player& player, const ItemStack& /*bowStack*/) const {
 
     // 检查副手
     ItemStack offhand = player.getHeldItem(Hand::OffHand);

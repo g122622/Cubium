@@ -146,30 +146,14 @@ private:
     static bool hasChargedProjectile(const ItemStack& stack, const Item* item);
 
     /**
-     * @brief 检查是否有足够的弹药
-     */
-    static bool hasAmmo(LivingEntity& entity, ItemStack& crossbow);
-
-    /**
      * @brief 发射弹丸
      */
     static void fireProjectiles(
         IWorld& world,
         LivingEntity& shooter,
-        Hand hand,
         ItemStack& crossbow,
         f32 velocity,
         f32 inaccuracy);
-
-    /**
-     * @brief 装填弹丸到弩中
-     */
-    static bool loadProjectile(
-        LivingEntity& entity,
-        ItemStack& crossbow,
-        ItemStack& ammo,
-        bool isFirst,
-        bool isCreative);
 
     /**
      * @brief 获取已装填的弹丸列表
@@ -195,10 +179,6 @@ private:
      * @brief 获取穿透等级
      */
     static i32 getPiercingLevel(const ItemStack& stack);
-
-    // 装填音效状态
-    mutable bool m_loadingStart = false;
-    mutable bool m_loadingMiddle = false;
 };
 
 } // namespace item

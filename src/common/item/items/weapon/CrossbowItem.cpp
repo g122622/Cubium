@@ -36,13 +36,11 @@ i32 CrossbowItem::getUseDuration(const ItemStack& stack) const {
     return getChargeTime(stack) + 3;
 }
 
-UseAction CrossbowItem::getUseAction(const ItemStack& stack) const {
-    (void)stack;
+UseAction CrossbowItem::getUseAction(const ItemStack& /*stack*/) const {
     return UseAction::Crossbow;
 }
 
 ItemActionResult CrossbowItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    (void)world;
 
     ItemStack crossbowStack = player.getHeldItem(hand);
 
@@ -53,7 +51,7 @@ ItemActionResult CrossbowItem::onItemRightClick(IWorld& world, Player& player, H
         if (hasChargedProjectile(crossbowStack, Items::FIREWORK_ROCKET)) {
             velocity = FIREWORK_VELOCITY;
         }
-        fireProjectiles(world, player, hand, crossbowStack, velocity, 1.0f);
+        fireProjectiles(world, player, crossbowStack, velocity, 1.0f);
         setCharged(crossbowStack, false);
         return ItemActionResult::success(crossbowStack);
     }
@@ -65,11 +63,7 @@ ItemActionResult CrossbowItem::onItemRightClick(IWorld& world, Player& player, H
     }
 
     // 开始装填
-    if (!isCharged(crossbowStack)) {
-        m_loadingStart = false;
-        m_loadingMiddle = false;
-        player.setActiveHand(hand);
-    }
+    player.setActiveHand(hand);
 
     return ItemActionResult::success(crossbowStack);
 }
@@ -98,9 +92,8 @@ void CrossbowItem::onPlayerStoppedUsing(
         // 装填弹丸
         if (loadProjectiles(*player, stack)) {
             setCharged(stack, true);
-            // 播放装填完成音效
-            // world.playSound(nullptr, player.x(), player.y(), player.z(), SoundEvents::ITEM_CROSSBOW_LOADING_END, SoundCategory::PLAYERS, 1.0f, 1.0f);
-            (void)world;
+            // TODO: 播放装填完成音效
+            // world.playSound(nullptr, player->x(), player->y(), player->z(), SoundEvents::ITEM_CROSSBOW_LOADING_END, SoundCategory::PLAYERS, 1.0f, 1.0f);
         }
     }
 }
@@ -248,7 +241,6 @@ bool CrossbowItem::loadProjectiles(Player& player, ItemStack& crossbow) {
 void CrossbowItem::fireProjectiles(
     IWorld& world,
     LivingEntity& shooter,
-    Hand hand,
     ItemStack& crossbow,
     f32 velocity,
     f32 inaccuracy)
@@ -337,8 +329,6 @@ void CrossbowItem::fireProjectiles(
 
     // 清除弹丸
     clearProjectiles(crossbow);
-
-    (void)hand;
 }
 
 std::vector<ItemStack> CrossbowItem::getChargedProjectiles(const ItemStack& stack) {
@@ -385,10 +375,23 @@ void CrossbowItem::clearProjectiles(ItemStack& stack) {
 }
 
 bool CrossbowItem::hasChargedProjectile(const ItemStack& stack, const Item* item) {
-    std::vector<ItemStack> projectiles = getChargedProjectiles(stack);
-    for (const ItemStack& projectile : projectiles) {
-        if (projectile.getItem() == item) {
-            return true;
+    // 直接遍历NBT，避免构建完整的vector
+    const nlohmann::json* tag = stack.getTag();
+    if (tag == nullptr) {
+        return false;
+    }
+
+    auto it = tag->find("ChargedProjectiles");
+    if (it == tag->end() || !it->is_array()) {
+        return false;
+    }
+
+    for (const auto& itemJson : *it) {
+        if (itemJson.is_object()) {
+            auto result = ItemStack::fromJson(itemJson);
+            if (result.success() && result.value().getItem() == item) {
+                return true;
+            }
         }
     }
     return false;
