@@ -151,6 +151,11 @@ public:
      */
     void translate(f32 dx, f32 dy);
 
+    /**
+     * @brief 应用变换矩阵
+     */
+    void concat(const paint::Matrix& matrix);
+
     // ==================== Paint 访问器 ====================
 
     /**

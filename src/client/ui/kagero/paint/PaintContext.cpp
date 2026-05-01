@@ -152,4 +152,8 @@ void PaintContext::translate(f32 dx, f32 dy) {
     m_canvas.translate(dx, dy);
 }
 
+void PaintContext::concat(const paint::Matrix& matrix) {
+    m_canvas.concat(matrix);
+}
+
 } // namespace mc::client::ui::kagero::widget

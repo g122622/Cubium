@@ -627,6 +627,7 @@ target_sources(mc_tests
         # Kagero UI Widget缁勪欢
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # 澹伴煶绯荤粺 - Common
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp

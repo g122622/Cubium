@@ -3,6 +3,7 @@
 #include "Widget.hpp"
 #include "TextWidget.hpp"
 #include "../paint/PaintContext.hpp"
+#include "../paint/Geometry.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/TextEvents.hpp"
@@ -120,6 +121,16 @@ public:
                 i32 textX = static_cast<i32>(x);
                 i32 textY = static_cast<i32>(line.y);
 
+                // 斜体：通过倾斜变换绘制
+                if (run.style.isItalic()) {
+                    // 保存当前状态
+                    ctx.save();
+                    // 斜体效果：X方向倾斜约12度，以文本基线为中心
+                    ctx.translate(static_cast<f32>(textX), static_cast<f32>(textY) + m_fontHeight * 0.5f);
+                    ctx.concat(paint::Matrix::makeSkew(-12.0f, 0.0f));
+                    ctx.translate(static_cast<f32>(-textX), static_cast<f32>(-textY) - m_fontHeight * 0.5f);
+                }
+
                 // 绘制阴影
                 if (m_shadow) {
                     ctx.drawText(run.text, textX + 1, textY + 1, m_shadowColor);
@@ -155,8 +166,10 @@ public:
                     );
                 }
 
-                // 斜体：通过倾斜变换绘制（需要变换支持，当前简化处理）
-                // TODO: 斜体需要 PaintContext 支持变换矩阵
+                // 斜体：恢复状态
+                if (run.style.isItalic()) {
+                    ctx.restore();
+                }
 
                 x += run.advanceWidth;
             }

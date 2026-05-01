@@ -53,6 +53,13 @@ struct Matrix {
     [[nodiscard]] static Matrix makeRotate(f32 degrees);
 
     /**
+     * @brief 创建倾斜矩阵（用于斜体效果）
+     * @param angleX X方向倾斜角度（度数）
+     * @param angleY Y方向倾斜角度（度数）
+     */
+    [[nodiscard]] static Matrix makeSkew(f32 angleX, f32 angleY);
+
+    /**
      * @brief 矩阵乘法
      * @param other 右乘矩阵
      * @return 结果矩阵
@@ -78,6 +85,13 @@ struct Matrix {
      * @param degrees 旋转角度（度数，顺时针为正）
      */
     void rotate(f32 degrees);
+
+    /**
+     * @brief 就地倾斜
+     * @param angleX X方向倾斜角度（度数）
+     * @param angleY Y方向倾斜角度（度数）
+     */
+    void skew(f32 angleX, f32 angleY);
 
     /**
      * @brief 变换点

@@ -37,6 +37,18 @@ Matrix Matrix::makeRotate(f32 degrees) {
     return result;
 }
 
+Matrix Matrix::makeSkew(f32 angleX, f32 angleY) {
+    Matrix result;
+    // skewX: 沿 X 轴倾斜，tan(angle) = kx
+    // skewY: 沿 Y 轴倾斜，tan(angle) = ky
+    // | 1    tan(angleX)  0 |
+    // | tan(angleY)  1    0 |
+    // | 0    0           1 |
+    result.m[1] = std::tan(radians(angleX));
+    result.m[3] = std::tan(radians(angleY));
+    return result;
+}
+
 Matrix Matrix::operator*(const Matrix& other) const {
     Matrix result;
     // 3x3 矩阵乘法
@@ -63,6 +75,10 @@ void Matrix::scale(f32 sx, f32 sy) {
 
 void Matrix::rotate(f32 degrees) {
     *this = *this * makeRotate(degrees);
+}
+
+void Matrix::skew(f32 angleX, f32 angleY) {
+    *this = *this * makeSkew(angleX, angleY);
 }
 
 void Matrix::transformPoint(f32& x, f32& y) const {
