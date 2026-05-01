@@ -31,8 +31,7 @@ public:
     }
 
     [[nodiscard]] EnchantmentType type() const override {
-        // 使用自定义类型（需要在 EnchantmentType 中添加 Trident）
-        return static_cast<EnchantmentType>(100);  // 临时方案
+        return EnchantmentType::Trident;
     }
 
     [[nodiscard]] i32 minLevel() const override {

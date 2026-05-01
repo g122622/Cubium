@@ -31,7 +31,7 @@ public:
     }
 
     [[nodiscard]] EnchantmentType type() const override {
-        return static_cast<EnchantmentType>(100);  // Trident
+        return EnchantmentType::Trident;
     }
 
     [[nodiscard]] i32 minLevel() const override {

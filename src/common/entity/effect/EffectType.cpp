@@ -29,6 +29,7 @@ const char* getEffectName(EffectType type) {
         case EffectType::HealthBoost: return "Health Boost";
         case EffectType::Absorption: return "Absorption";
         case EffectType::Saturation: return "Saturation";
+        case EffectType::Glowing: return "Glowing";
         case EffectType::Levitation: return "Levitation";
         case EffectType::Luck: return "Luck";
         case EffectType::BadLuck: return "Bad Luck";
@@ -94,6 +95,7 @@ u32 getEffectColor(EffectType type) {
         case EffectType::HealthBoost: return 0xF87D23;
         case EffectType::Absorption: return 0x2552A5;
         case EffectType::Saturation: return 0xF82423;
+        case EffectType::Glowing: return 0x94A061;  // MC 1.16.5: 9740385 (灰绿色)
         case EffectType::Levitation: return 0xCEFFFF;
         case EffectType::Luck: return 0x339900;
         case EffectType::BadLuck: return 0xC0A44D;

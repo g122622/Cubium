@@ -38,18 +38,15 @@ enum class EffectType : u8 {
     HealthBoost = 21,       // 生命提升
     Absorption = 22,        // 伤害吸收
     Saturation = 23,        // 饱和
-
-    // 不祥之兆相关
-    BadOmen = 31,           // 不祥之兆
-    HeroOfTheVillage = 32,  // 村庄英雄
-
-    // 其他
+    Glowing = 24,           // 发光（MC 1.16.5 ID=24）
     Levitation = 25,        // 漂浮
     Luck = 26,              // 幸运
     BadLuck = 27,           // 霉运
     SlowFalling = 28,       // 缓降
     ConduitPower = 29,      // 潮涌能量
     DolphinsGrace = 30,     // 海豚的恩惠
+    BadOmen = 31,           // 不祥之兆
+    HeroOfTheVillage = 32,  // 村庄英雄
 
     // 数量
     Count
