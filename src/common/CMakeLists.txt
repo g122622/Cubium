@@ -252,6 +252,8 @@ add_library(mc_common STATIC
     entity/inventory/container/ChestContainer.cpp
     entity/inventory/container/HopperContainer.cpp
     entity/inventory/container/FurnaceContainer.cpp
+    entity/inventory/container/BrewingStandContainer.cpp
+    entity/inventory/container/AnvilContainer.cpp
 
     # Item System - Core
     item/core/Item.cpp

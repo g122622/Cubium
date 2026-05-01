@@ -371,6 +371,20 @@ public:
     }
 
     /**
+     * @brief 清除自定义名称
+     */
+    void clearCustomName() {
+        m_customName = nullptr;
+    }
+
+    /**
+     * @brief 是否有显示名称（自定义名称或物品翻译名称）
+     */
+    [[nodiscard]] bool hasDisplayName() const {
+        return hasCustomName();
+    }
+
+    /**
      * @brief 获取显示名称
      *
      * 返回用于UI显示的名称。如果有自定义名称，返回自定义名称；
@@ -442,6 +456,24 @@ public:
         return canMergeWith(other);
     }
 
+    // ========== 修复成本（铁砧） ==========
+
+    /**
+     * @brief 获取修复成本
+     * @return 修复成本
+     *
+     * 参考: net.minecraft.item.ItemStack.getRepairCost()
+     */
+    [[nodiscard]] i32 getRepairCost() const { return m_repairCost; }
+
+    /**
+     * @brief 设置修复成本
+     * @param cost 修复成本
+     *
+     * 参考: net.minecraft.item.ItemStack.setRepairCost()
+     */
+    void setRepairCost(i32 cost) { m_repairCost = cost; }
+
     // ========== 容器物品 ==========
 
     /**
@@ -502,6 +534,7 @@ private:
     const Item* m_item = nullptr;
     i32 m_count = 0;
     i32 m_damage = 0;       // 已承受的伤害（耐久度）
+    i32 m_repairCost = 0;   // 修复成本（铁砧）
     std::unique_ptr<text::ITextComponent> m_customName;  // 自定义名称（铁砧重命名）
     std::vector<std::unique_ptr<text::ITextComponent>> m_lore;  // 物品描述（Lore）
     item::enchant::EnchantmentContainer m_enchantments;  // 附魔容器
