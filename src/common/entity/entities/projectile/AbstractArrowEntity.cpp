@@ -274,8 +274,11 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result) {
 
     // 保存命中的方块状态
     if (m_world && result.type == RayTraceResultType::Block) {
-        m_inBlockState = m_world->getBlockState(
+        const BlockState* state = m_world->getBlockState(
             result.blockPos.x, result.blockPos.y, result.blockPos.z);
+        if (state != nullptr) {
+            m_inBlockState = *state;
+        }
     }
 
     // 计算并设置箭矢位置（回退一点使其嵌入方块）
@@ -301,8 +304,8 @@ void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 b
 
     // 设置基础伤害
     math::Random rng = createRandomFromEntity(*this);
-    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 +
-               static_cast<f64>(m_world ? m_world->getDifficulty().getId() * 0.11 : 0.0));
+    f32 difficultyBonus = m_world ? static_cast<f32>(m_world->difficulty().getId()) * 0.11f : 0.0f;
+    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
     // 力量附魔增加伤害
     // i32 power = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:power");

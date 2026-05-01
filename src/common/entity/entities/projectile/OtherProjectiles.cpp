@@ -318,9 +318,10 @@ void FireworkRocketEntity::tick() {
     m_lifetime++;
 
     // 生成烟花粒子
-    if (!m_inGround) {
-        // TODO: 生成飞行粒子
-    }
+    // TODO: 检查是否在地面
+    // if (!m_inGround) {
+    //     // TODO: 生成飞行粒子
+    // }
 
     // 检查是否爆炸
     if (m_lifetime >= m_flightTime * 10) {

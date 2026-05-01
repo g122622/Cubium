@@ -1,8 +1,12 @@
 #include "TridentEntity.hpp"
 #include "../../core/LivingEntity.hpp"
+#include "../../entities/player/Player.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/MathUtils.hpp"
+#include "../../../world/IWorld.hpp"
+#include "ProjectileHelper.hpp"
 #include <cmath>
 
 namespace mc {
@@ -222,8 +226,11 @@ void TridentEntity::onBlockHit(const RayTraceResult& result) {
 
     // 保存方块状态
     if (m_world && result.type == RayTraceResultType::Block) {
-        m_inBlockState = m_world->getBlockState(
+        const BlockState* state = m_world->getBlockState(
             result.blockPos.x, result.blockPos.y, result.blockPos.z);
+        if (state != nullptr) {
+            m_inBlockState = *state;
+        }
     }
 
     // 清除暴击和穿透状态
@@ -244,8 +251,8 @@ f32 TridentEntity::getWaterDrag() const {
 void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity) {
     // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity()
     math::Random rng = createRandomFromEntity(*this);
-    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 +
-               static_cast<f64>(m_world ? m_world->getDifficulty().getId() * 0.11 : 0.0));
+    f32 difficultyBonus = m_world ? static_cast<f32>(m_world->difficulty().getId()) * 0.11f : 0.0f;
+    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
     // TODO: 从三叉戟物品获取附魔
     // int power = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.POWER, shooter);

@@ -91,17 +91,5 @@ void ThrowableEntity::tick() {
     Entity::tick();
 }
 
-std::unique_ptr<ThrowableEntity> ThrowableEntity::createFromThrower(
-    LegacyEntityType type, EntityId id, LivingEntity& thrower)
-{
-    auto throwable = std::make_unique<ThrowableEntity>(type, id);
-    // 设置位置为投掷者眼睛位置
-    throwable->setPosition(thrower.x(),
-                           thrower.y() + thrower.eyeHeight() - 0.1f,
-                           thrower.z());
-    throwable->setShooter(&thrower);
-    return throwable;
-}
-
 } // namespace entity
 } // namespace mc
