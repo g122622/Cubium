@@ -129,9 +129,10 @@ enum class WeatherType : u8 {
 | `calculateStarBrightness(rainStrength, dayTime)` | 计算星星亮度 |
 
 **计算公式**:
-- 天空暗化因子 = `rainStrength * 0.3125 + thunderStrength * 0.1875`
+- 天空暗化因子 = `1.0 - (1.0 - rainStrength * 5/16) * (1.0 - thunderStrength * 5/16)`（MC原版乘法组合）
 - 天体可见度 = `1.0 - rainStrength`
-- 降水类型: `temperature <= 0.15f` → 雪，否则 → 雨；`BiomeClimate::Precipitation::None` 需要单独判断
+- 降水类型: `temperature < 0.15f` → 雪，`>= 0.15f` → 雨；`BiomeClimate::Precipitation::None` 需要单独判断
+- 位置相关温度: 使用 `Biome::getTemperature(y)` 考虑海拔影响，高海拔地区更冷
 
 ---
 

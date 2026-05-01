@@ -16,7 +16,7 @@ weather/
 ### 核心功能
 
 1. **雨/雪层渲染**：使用纹理层而非单独粒子渲染大量雨雪
-2. **生物群系感知**：根据温度决定降水类型（雨/雪）
+2. **生物群系感知**：根据温度决定降水类型（雨/雪），支持海拔温度修正
 3. **地形感知**：根据地形高度调整渲染范围
 4. **光照采样**：从世界采样光照以正确照亮雨雪
 
@@ -67,9 +67,10 @@ weather/
 ### 内部依赖
 
 - `ClientWorld`：世界查询接口
-- `Biome`：生物群系温度和降水类型
+- `Biome`：生物群系温度和降水类型，支持位置相关温度计算
 - `VulkanUtils`：Vulkan 工具函数
 - `Random`：随机数生成
+- `mc::math::lerp`：线性插值函数
 
 ### 外部依赖
 
@@ -102,25 +103,32 @@ weatherRenderer.destroy();
 参考 MC 1.16.5 `WorldRenderer.renderRainSnow()`：
 
 1. 遍历玩家周围半径内的位置
-2. 查询每个位置的生物群系温度
+2. 查询每个位置的生物群系温度（支持海拔修正）
 3. 温度 >= 0.15 渲染雨，< 0.15 渲染雪
 4. 查询地形高度确定雨柱范围
-5. UV 动画：`(ticks & 31 + partialTick) / 32.0 * 3.0`
-6. 根据距离淡出
+5. UV 动画：`(ticks + positionSeed & 31 + partialTick) / 32.0 * (3.0 + random)`
+6. 根据距离淡出：`(1 - dist²/radius²) * 0.5 + 0.5`
 
 ### 雪层渲染
 
 与雨类似，但：
 
 1. UV 动画较慢：`(ticks & 511 + partialTick) / 512.0`
-2. 正弦漂移：`sin(ticks * 0.01) * 0.5`
-3. 光照增强：`(light * 3 + 240) / 4`
+2. 正弦漂移：`random + f1 * 0.01 * randomGaussian`
+3. 光照增强：`(light * 9 + 240) / 4`（blockLight）、`(light * 3 + 240) / 4`（skyLight）
+4. Alpha 使用不同公式：`(1 - dist²/radius²) * 0.3 + 0.5`
+
+### 温度计算
+
+`Biome::getTemperature(y)` 支持位置相关温度：
+- 海拔 <= 64：返回基础温度
+- 海拔 > 64：温度随海拔降低
 
 ## 容易踩的坑
 
 ### 1. 光照采样位置
 
-MC 在地面高度 `l2` 处采样光照，而非相机高度。错误的采样位置会导致雨雪看起来过暗或过亮。
+MC 在地面高度 `l2` 处采样光照，而非相机高度。`l2 = max(groundY, cameraY)`。
 
 ### 2. 温度阈值判断
 
@@ -137,16 +145,32 @@ if (biome->climate().precipitation == BiomeClimate::Precipitation::None) {
 
 ### 4. 随机偏移数组
 
-MC 使用固定的 32x32 随机偏移数组保证帧间一致性：
+MC 使用归一化的方向向量（从中心向外辐射），而非随机值：
 ```cpp
-f64 m_rainOffsetX[RAIN_SIZE * RAIN_SIZE];
-f64 m_rainOffsetZ[RAIN_SIZE * RAIN_SIZE];
+// MC原版：rainSizeX[i << 5 | j] = -f1 / f2; rainSizeZ[i << 5 | j] = f / f2;
+// 其中 f = j - 16, f1 = i - 16, f2 = sqrt(f*f + f1*f1)
 ```
+
+### 5. 高度计算
+
+MC 的 j2/k2/l2 计算：
+- j2 = camY - radius（下边界初始值）
+- k2 = camY + radius（上边界初始值）
+- 如果 j2 < groundY，则 j2 = groundY
+- 如果 k2 < groundY，则 k2 = groundY
+- l2 = max(groundY, camY)（光照采样高度）
 
 ## 测试用例
 
 相关测试位于 `tests/client/renderer/weather/`：
 - `WeatherRendererTest.cpp`：基本渲染测试
+
+## 相关文件
+
+- `src/common/world/weather/WeatherUtils.hpp`：天气工具函数
+- `src/common/world/weather/WeatherConstants.hpp`：天气常量
+- `src/client/world/ClientWeather.hpp`：客户端天气状态
+- `src/common/world/biome/Biome.hpp`：生物群系温度计算
 
 ## Mermaid 图表
 
@@ -163,15 +187,16 @@ flowchart TD
     E --> F{允许降水?}
     F -->|否| C
     F -->|是| G[查询地形高度]
-    G --> H{温度 >= 0.15?}
-    H -->|是| I[生成雨顶点]
-    H -->|否| J[生成雪顶点]
-    I --> C
+    G --> H[计算位置相关温度]
+    H --> I{温度 >= 0.15?}
+    I -->|是| J[生成雨顶点]
+    I -->|否| K[生成雪顶点]
     J --> C
-    C -->|遍历完成| K[更新顶点缓冲区]
-    K --> L[绑定管线]
-    L --> M[绘制]
-    M --> Z
+    K --> C
+    C -->|遍历完成| L[更新顶点缓冲区]
+    L --> M[绑定管线]
+    M --> N[绘制]
+    N --> Z
 ```
 
 ### 类结构
