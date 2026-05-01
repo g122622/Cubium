@@ -3,6 +3,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/weapon/ThrowableItems.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -62,6 +63,14 @@ public:
         return ++m_lastEntityId;
     }
 
+    void addParticle(client::renderer::trident::particle::ParticleTypeId,
+                     const Vector3&,
+                     const Vector3&,
+                     const Vector3& = Vector3(0, 0, 0),
+                     u32 = 1) override {
+        // 测试中忽略粒子效果
+    }
+
     [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
 
 private:
@@ -91,7 +100,6 @@ TEST_F(ThrowableItemTest, SnowballItem_Registered_HasCorrectProperties) {
     ASSERT_NE(Items::SNOWBALL, nullptr);
     EXPECT_EQ(Items::SNOWBALL->maxStackSize(), 16);
 
-    // 验证类型转换正确
     auto* snowball = dynamic_cast<const item::SnowballItem*>(Items::SNOWBALL);
     ASSERT_NE(snowball, nullptr);
     EXPECT_FLOAT_EQ(snowball->getThrowVelocity(), 1.5f);
@@ -116,6 +124,8 @@ TEST_F(ThrowableItemTest, SnowballItem_OnRightClick_SpawnsEntity) {
     EXPECT_TRUE(result.isSuccessOrConsume());
     // 在创造模式下不应该消耗物品
     EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 16);
+    // 应该生成了实体
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
 }
 
 // ============================================================================
@@ -147,6 +157,7 @@ TEST_F(ThrowableItemTest, EggItem_OnRightClick_SpawnsEntity) {
 
     EXPECT_TRUE(result.isSuccessOrConsume());
     EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 16);
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
 }
 
 // ============================================================================
@@ -178,6 +189,7 @@ TEST_F(ThrowableItemTest, EnderPearlItem_OnRightClick_SpawnsEntity) {
 
     EXPECT_TRUE(result.isSuccessOrConsume());
     EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 16);
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
 }
 
 // ============================================================================
@@ -209,6 +221,7 @@ TEST_F(ThrowableItemTest, ExperienceBottleItem_OnRightClick_SpawnsEntity) {
 
     EXPECT_TRUE(result.isSuccessOrConsume());
     EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 64);
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
 }
 
 // ============================================================================
@@ -231,6 +244,58 @@ TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem) {
     EXPECT_TRUE(result.isSuccessOrConsume());
     // 在生存模式下应该消耗一个物品
     EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 9);
+}
+
+// ============================================================================
+// 投掷物品实体创建测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, SnowballEntity_CanBeCreated) {
+    entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
+    EXPECT_TRUE(snowball.isAlive());
+}
+
+TEST_F(ThrowableItemTest, EggEntity_CanBeCreated) {
+    entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
+    EXPECT_TRUE(egg.isAlive());
+}
+
+TEST_F(ThrowableItemTest, EnderPearlEntity_CanBeCreated) {
+    entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
+    EXPECT_TRUE(pearl.isAlive());
+}
+
+TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated) {
+    entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
+    EXPECT_TRUE(bottle.isAlive());
+}
+
+// ============================================================================
+// 默认物品测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, SnowballEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
+    EXPECT_EQ(snowball.getDefaultItem(), Items::SNOWBALL);
+}
+
+TEST_F(ThrowableItemTest, EggEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
+    EXPECT_EQ(egg.getDefaultItem(), Items::EGG);
+}
+
+TEST_F(ThrowableItemTest, EnderPearlEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
+    EXPECT_EQ(pearl.getDefaultItem(), Items::ENDER_PEARL);
+}
+
+TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
+    EXPECT_EQ(bottle.getDefaultItem(), Items::EXPERIENCE_BOTTLE);
 }
 
 } // namespace

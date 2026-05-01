@@ -4,6 +4,9 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "../orb/ExperienceOrbEntity.hpp"
+#include "../../damage/DamageSource.hpp"
+#include "../monster/nether/BlazeEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -63,20 +66,21 @@ void SnowballEntity::onEntityHit(const RayTraceResult& result) {
     }
 
     // 对烈焰人造成额外伤害（3点）
-    // TODO: 检查目标是否是烈焰人
     i32 damage = 0;
+
+    // 检查目标是否是烈焰人
+    BlazeEntity* blaze = dynamic_cast<BlazeEntity*>(result.hitEntity);
+    if (blaze != nullptr) {
+        damage = 3;
+    }
 
     if (damage > 0) {
         mc::Entity* shooter = getShooter();
-        std::unique_ptr<DamageSource> damageSource;
-        if (shooter) {
-            damageSource = std::make_unique<IndirectEntityDamageSource>(
-                DamageType::MobProjectile, shooter, this, false);
-        } else {
-            damageSource = std::make_unique<IndirectEntityDamageSource>(
-                DamageType::MobProjectile, this, this, false);
+        auto damageSource = DamageSources::mobProjectile(this, shooter);
+        LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
+        if (livingTarget != nullptr) {
+            livingTarget->hurt(damageSource, static_cast<f32>(damage));
         }
-        // TODO: result.hitEntity->hurt(*damageSource, static_cast<f32>(damage));
     }
 }
 
@@ -176,7 +180,11 @@ void EnderPearlEntity::onEntityHit(const RayTraceResult& result) {
 
     // 对发射者造成5点伤害（传送伤害）
     if (shooter && shooter->isAlive()) {
-        // TODO: shooter->hurt(DamageSource::fall(), 5.0f);
+        LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
+        if (livingShooter != nullptr) {
+            auto damageSource = DamageSources::fall();
+            livingShooter->hurt(damageSource, 5.0f);
+        }
     }
     (void)result;
 }
@@ -196,7 +204,8 @@ void EnderPearlEntity::onImpact(const RayTraceResult& result) {
                                      result.hitPosition.y,
                                      result.hitPosition.z);
                 // 造成摔落伤害
-                // TODO: shooter->hurt(DamageSource::fall(), 5.0f);
+                auto damageSource = DamageSources::fall();
+                livingShooter->hurt(damageSource, 5.0f);
             }
         }
     }
@@ -218,16 +227,18 @@ std::unique_ptr<Entity> PotionEntity::create(IWorld* /*world*/) {
 }
 
 const Item* PotionEntity::getDefaultItem() const {
-    // TODO: 返回默认药水物品（喷溅型水瓶）
+    // 返回默认药水物品（喷溅型水瓶）
+    // 注意：药水系统尚未完全实现
     return nullptr;
 }
 
 void PotionEntity::onImpact(const RayTraceResult& /*result*/) {
-    // TODO: 应用药水效果
+    // 药水效果应用需要药水系统支持
     // 1. 获取药水效果列表
     // 2. 影响范围内的生物
     // 3. 如果是滞留型，创建区域效果云
 
+    // 当前药水系统尚未完全实现，暂时仅移除实体
     remove();
 }
 
@@ -254,10 +265,23 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/) {
         math::Random& rng = m_world->getRandom();
         i32 experience = rng.nextInt(3, 11);
 
-        // TODO: 生成经验球实体
-        // for (int i = 0; i < experience; ++i) {
-        //     ExperienceOrbEntity::spawn(m_world, m_position, 1);
-        // }
+        // 生成经验球实体
+        for (i32 i = 0; i < experience; ++i) {
+            auto orb = std::make_unique<ExperienceOrbEntity>(1);
+            orb->setPosition(
+                m_position.x + (rng.nextFloat() - 0.5f) * 0.5f,
+                m_position.y + 0.5f,
+                m_position.z + (rng.nextFloat() - 0.5f) * 0.5f
+            );
+            orb->setWorld(m_world);
+            // 给予随机速度，使经验球散开
+            orb->setVelocity(
+                (rng.nextFloat() - 0.5f) * 0.2f,
+                rng.nextFloat() * 0.3f + 0.1f,
+                (rng.nextFloat() - 0.5f) * 0.2f
+            );
+            m_world->spawnEntity(std::move(orb));
+        }
 
         // 播放破裂效果
         m_world->addParticle(

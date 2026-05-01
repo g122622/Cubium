@@ -242,3 +242,10 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
 - 已补 `ProjectileHelper.hpp/.cpp`，当前已接入朝向更新、移动搜索盒和最近实体命中检测。
 - `AbstractFireballEntity` 已改为继承 `DamagingProjectileEntity`。
 - `ProjectileEntity` 已接入方块/实体射线追踪、发射者过滤和基础碰撞边界语义。
+- `ProjectileItemEntity` 已完善实现（2026-05-02）：
+  - SnowballEntity：对烈焰人造成3点伤害，粒子效果完整
+  - EggEntity：12.5%概率孵化小鸡，粒子效果完整
+  - EnderPearlEntity：传送发射者并造成5点摔落伤害
+  - ExperienceBottleEntity：生成3-11个经验球实体，粒子效果完整
+  - PotionEntity：框架已就绪，待药水系统完善后实现效果应用
+- 投掷物品(ThrowableItem)已实现完整的createProjectile实体生成逻辑。
