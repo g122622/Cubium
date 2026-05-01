@@ -3,6 +3,8 @@
 #include "../../core/Types.hpp"
 #include "../../network/packet/PacketSerializer.hpp"
 #include "../../core/Result.hpp"
+#include "../../util/text/ITextComponent.hpp"
+#include "../../util/text/StringTextComponent.hpp"
 #include "../enchantment/EnchantmentContainer.hpp"
 #include <memory>
 #include <optional>
@@ -62,6 +64,26 @@ public:
      * @param count 数量（默认1）
      */
     explicit ItemStack(const Item* item, i32 count = 1);
+
+    /**
+     * @brief 拷贝构造函数（深拷贝）
+     */
+    ItemStack(const ItemStack& other);
+
+    /**
+     * @brief 拷贝赋值运算符（深拷贝）
+     */
+    ItemStack& operator=(const ItemStack& other);
+
+    /**
+     * @brief 移动构造函数
+     */
+    ItemStack(ItemStack&& other) noexcept = default;
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    ItemStack& operator=(ItemStack&& other) noexcept = default;
 
     // ========== 基本属性 ==========
 
@@ -299,26 +321,54 @@ public:
      * @brief 是否有自定义名称
      *
      * 如果物品堆有自定义名称（如通过铁砧重命名），返回true。
-     * 目前返回false，未来可支持NBT标签。
      *
      * @return 是否有自定义名称
      */
-    [[nodiscard]] bool hasCustomName() const { return !m_customName.empty(); }
+    [[nodiscard]] bool hasCustomName() const {
+        return m_customName && !m_customName->getUnformattedText().empty();
+    }
 
     /**
-     * @brief 获取自定义名称
+     * @brief 获取自定义名称组件
      *
-     * 返回自定义名称，如果没有则返回空字符串。
+     * 返回自定义名称组件，如果没有则返回 nullptr。
      *
-     * @return 自定义名称
+     * @return 自定义名称组件指针
      */
-    [[nodiscard]] String getCustomName() const { return m_customName; }
+    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const {
+        return m_customName.get();
+    }
 
     /**
-     * @brief 设置自定义名称
+     * @brief 获取自定义名称的纯文本
+     *
+     * 返回自定义名称的纯文本，如果没有则返回空字符串。
+     *
+     * @return 自定义名称纯文本
+     */
+    [[nodiscard]] String getCustomName() const {
+        return m_customName ? m_customName->getUnformattedText() : "";
+    }
+
+    /**
+     * @brief 设置自定义名称组件
+     * @param name 名称组件（所有权转移）
+     */
+    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name) {
+        m_customName = std::move(name);
+    }
+
+    /**
+     * @brief 设置自定义名称（纯文本，向后兼容）
      * @param name 新名称
      */
-    void setCustomName(const String& name) { m_customName = name; }
+    void setCustomName(const String& name) {
+        if (name.empty()) {
+            m_customName = nullptr;
+        } else {
+            m_customName = std::make_unique<text::StringTextComponent>(name);
+        }
+    }
 
     /**
      * @brief 获取显示名称
@@ -326,9 +376,58 @@ public:
      * 返回用于UI显示的名称。如果有自定义名称，返回自定义名称；
      * 否则返回物品的翻译键。
      *
-     * @return 显示名称
+     * @return 显示名称组件
      */
-    [[nodiscard]] String getDisplayName() const;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getDisplayName() const;
+
+    // ========== Lore（物品描述） ==========
+
+    /**
+     * @brief 是否有 Lore
+     * @return 如果有 Lore 返回 true
+     */
+    [[nodiscard]] bool hasLore() const {
+        return !m_lore.empty();
+    }
+
+    /**
+     * @brief 获取 Lore 列表
+     * @return Lore 文本组件列表的常量引用
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<text::ITextComponent>>& getLore() const {
+        return m_lore;
+    }
+
+    /**
+     * @brief 设置 Lore
+     * @param lore Lore 文本组件列表（所有权转移）
+     */
+    void setLore(std::vector<std::unique_ptr<text::ITextComponent>> lore) {
+        m_lore = std::move(lore);
+    }
+
+    /**
+     * @brief 添加一行 Lore
+     * @param line Lore 文本组件（所有权转移）
+     */
+    void addLoreLine(std::unique_ptr<text::ITextComponent> line) {
+        m_lore.push_back(std::move(line));
+    }
+
+    /**
+     * @brief 添加一行 Lore（纯文本）
+     * @param line Lore 纯文本
+     */
+    void addLoreLine(const String& line) {
+        m_lore.push_back(std::make_unique<text::StringTextComponent>(line));
+    }
+
+    /**
+     * @brief 清除 Lore
+     */
+    void clearLore() {
+        m_lore.clear();
+    }
 
     // ========== 堆叠兼容性检查 ==========
 
@@ -403,7 +502,8 @@ private:
     const Item* m_item = nullptr;
     i32 m_count = 0;
     i32 m_damage = 0;       // 已承受的伤害（耐久度）
-    String m_customName;    // 自定义名称（铁砧重命名）
+    std::unique_ptr<text::ITextComponent> m_customName;  // 自定义名称（铁砧重命名）
+    std::vector<std::unique_ptr<text::ITextComponent>> m_lore;  // 物品描述（Lore）
     item::enchant::EnchantmentContainer m_enchantments;  // 附魔容器
     String m_potionId;      // 药水ID（用于药水物品）
     nlohmann::json m_customData;  // 自定义数据（用于display等扩展标签）

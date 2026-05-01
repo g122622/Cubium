@@ -1,7 +1,9 @@
 #pragma once
 
 #include "world/blockentity/BlockEntity.hpp"
+#include "util/text/ITextComponent.hpp"
 #include <array>
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -14,11 +16,11 @@ namespace blockentity {
 /**
  * @brief 告示牌方块实体
  *
- * 告示牌用于显示文本，特点：
+ * 告示牌用于显示富文本，特点：
  * - 4行文本，每行最多15个字符
- * - 支持彩色文本（使用§代码）
+ * - 支持富文本（颜色、样式、点击事件等）
  * - 可编辑（右键点击）
- * - 木告示牌和苂石告示牌
+ * - 木告示牌和荧光告示牌
  *
  * 参考: net.minecraft.tileentity.SignTileEntity
  */
@@ -26,7 +28,7 @@ class SignEntity : public BlockEntity {
 public:
     /// 最大行数
     static constexpr i32 LINE_COUNT = 4;
-    /// 每行最大字符数
+    /// 每行最大字符数（纯文本）
     static constexpr i32 MAX_LINE_LENGTH = 15;
 
     // ========== 构造函数 ==========
@@ -45,31 +47,47 @@ public:
     // ========== 文本接口 ==========
 
     /**
-     * @brief 获取指定行的文本
+     * @brief 获取指定行的文本组件
      * @param line 行号 (0-3)
-     * @return 文本内容
+     * @return 文本组件指针，如果无效返回 nullptr
      */
-    [[nodiscard]] const String& getLine(i32 line) const;
+    [[nodiscard]] const text::ITextComponent* getLine(i32 line) const;
 
     /**
-     * @brief 设置指定行的文本
+     * @brief 设置指定行的文本组件
      * @param line 行号 (0-3)
-     * @param text 文本内容
-     * @return 如果设置成功返回true
+     * @param text 文本组件（所有权转移）
+     * @return 如果设置成功返回 true
      */
-    bool setLine(i32 line, const String& text);
+    bool setLine(i32 line, std::unique_ptr<text::ITextComponent> text);
 
     /**
-     * @brief 获取所有行文本
-     * @return 文本数组
+     * @brief 设置指定行的纯文本（向后兼容）
+     * @param line 行号 (0-3)
+     * @param text 纯文本内容
+     * @return 如果设置成功返回 true
      */
-    [[nodiscard]] const std::array<String, LINE_COUNT>& getLines() const { return m_lines; }
+    bool setLineFromLegacy(i32 line, const String& text);
+
+    /**
+     * @brief 获取指定行的纯文本内容
+     * @param line 行号 (0-3)
+     * @return 纯文本内容
+     */
+    [[nodiscard]] String getLineText(i32 line) const;
+
+    /**
+     * @brief 获取指定行的格式化文本（§ 代码格式）
+     * @param line 行号 (0-3)
+     * @return 格式化文本
+     */
+    [[nodiscard]] String getLineFormatted(i32 line) const;
 
     /**
      * @brief 设置所有行文本
-     * @param lines 文本数组
+     * @param lines 文本组件数组
      */
-    void setLines(const std::array<String, LINE_COUNT>& lines);
+    void setLines(std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> lines);
 
     /**
      * @brief 清空所有文本
@@ -80,7 +98,7 @@ public:
 
     /**
      * @brief 检查是否可编辑
-     * @return 如果可编辑返回true
+     * @return 如果可编辑返回 true
      */
     [[nodiscard]] bool isEditable() const { return m_editable; }
 
@@ -92,7 +110,7 @@ public:
 
     /**
      * @brief 获取编辑者
-     * @return 编辑者玩家指针，如果没有返回nullptr
+     * @return 编辑者玩家指针，如果没有返回 nullptr
      */
     [[nodiscard]] Player* getEditor() const { return m_editor; }
 
@@ -106,13 +124,13 @@ public:
 
     /**
      * @brief 获取文本颜色
-     * @return 文本颜色
+     * @return 文本颜色（DyeColor 值）
      */
     [[nodiscard]] i32 getTextColor() const { return m_textColor; }
 
     /**
      * @brief 设置文本颜色
-     * @param color 文本颜色
+     * @param color 文本颜色（DyeColor 值）
      */
     void setTextColor(i32 color);
 
@@ -120,7 +138,7 @@ public:
 
     /**
      * @brief 检查是否发光
-     * @return 如果发光返回true
+     * @return 如果发光返回 true
      */
     [[nodiscard]] bool isGlowing() const { return m_glowing; }
 
@@ -142,7 +160,7 @@ public:
      *
      * @param world 世界引用
      * @param player 执行命令的玩家
-     * @return 如果成功执行返回true
+     * @return 如果成功执行返回 true
      */
     bool executeCommand(IWorld& world, Player& player);
 
@@ -169,23 +187,24 @@ public:
 
 private:
     /**
-     * @brief 验证文本有效性
-     * @param text 待验证文本
-     * @return 如果有效返回true
+     * @brief 验证文本组件有效性
+     * @param text 文本组件
+     * @return 如果有效返回 true
      */
-    [[nodiscard]] static bool validateText(const String& text);
+    [[nodiscard]] static bool validateText(const text::ITextComponent& text);
 
     /**
-     * @brief 截断文本到最大长度
-     * @param text 输入文本
-     * @return 截断后的文本
+     * @brief 截断文本组件到最大长度
+     * @param text 文本组件
+     * @return 截断后的文本组件
      */
-    [[nodiscard]] static String truncateText(const String& text);
+    [[nodiscard]] static std::unique_ptr<text::ITextComponent> truncateText(
+        std::unique_ptr<text::ITextComponent> text);
 
-    std::array<String, LINE_COUNT> m_lines;  ///< 4行文本
+    std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> m_lines;  ///< 4行富文本
     bool m_editable = true;                   ///< 是否可编辑
     Player* m_editor = nullptr;               ///< 当前编辑者
-    i32 m_textColor = 0;                      ///< 文本颜色（黑色）
+    i32 m_textColor = 0;                      ///< 文本颜色（DyeColor 值）
     bool m_glowing = false;                   ///< 是否发光
 };
 

@@ -788,6 +788,11 @@ add_library(mc_common STATIC
     # NBT (Named Binary Tag) Library
     util/nbt/Nbt.cpp
 
+    # Text System (Rich Text)
+    util/text/TextStyle.cpp
+    util/text/ITextComponent.cpp
+    util/text/TextParser.cpp
+
     # NibbleArray (4-bit compact storage for lighting)
     util/NibbleArray.cpp
 

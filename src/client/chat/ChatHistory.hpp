@@ -1,26 +1,80 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include <string>
 #include <vector>
 #include <deque>
 #include <functional>
 #include <chrono>
+#include <memory>
 
 namespace mc::client::chat {
 
 /**
+ * @brief 聊天消息类型
+ */
+enum class ChatMessageType : u8 {
+    Chat,       ///< 玩家聊天
+    System,     ///< 系统消息
+    Actionbar,  ///< 动作栏消息
+    GameInfo    ///< 游戏信息
+};
+
+/**
  * @brief 聊天消息
+ *
+ * 支持富文本内容，包含时间戳和消息类型。
  */
 struct ChatMessage {
-    String text;                              ///< 消息文本
-    u32 color = 0xFFFFFFFF;                   ///< ARGB颜色
-    std::chrono::steady_clock::time_point timestamp;  ///< 时间戳
-    bool permanent = false;                   ///< 是否永久显示（不淡出）
+    std::unique_ptr<text::ITextComponent> content;  ///< 消息内容（富文本）
+    ChatMessageType type = ChatMessageType::Chat;   ///< 消息类型
+    std::chrono::steady_clock::time_point timestamp; ///< 时间戳
+    bool permanent = false;                          ///< 是否永久显示（不淡出）
 
     ChatMessage() = default;
-    ChatMessage(const String& t, u32 c = 0xFFFFFFFF, bool perm = false)
-        : text(t), color(c), timestamp(std::chrono::steady_clock::now()), permanent(perm) {}
+
+    /**
+     * @brief 从纯文本构造消息
+     * @param text 纯文本内容
+     * @param msgType 消息类型
+     * @param perm 是否永久显示
+     */
+    explicit ChatMessage(const String& text, ChatMessageType msgType = ChatMessageType::Chat, bool perm = false)
+        : content(std::make_unique<text::StringTextComponent>(text))
+        , type(msgType)
+        , timestamp(std::chrono::steady_clock::now())
+        , permanent(perm) {}
+
+    /**
+     * @brief 从文本组件构造消息
+     * @param textComponent 文本组件（所有权转移）
+     * @param msgType 消息类型
+     * @param perm 是否永久显示
+     */
+    explicit ChatMessage(std::unique_ptr<text::ITextComponent> textComponent,
+                         ChatMessageType msgType = ChatMessageType::Chat,
+                         bool perm = false)
+        : content(std::move(textComponent))
+        , type(msgType)
+        , timestamp(std::chrono::steady_clock::now())
+        , permanent(perm) {}
+
+    /**
+     * @brief 获取纯文本内容
+     * @return 纯文本字符串
+     */
+    [[nodiscard]] String getPlainText() const {
+        return content ? content->getUnformattedText() : "";
+    }
+
+    /**
+     * @brief 获取格式化文本（§ 代码格式）
+     * @return 格式化文本字符串
+     */
+    [[nodiscard]] String getFormattedText() const {
+        return content ? content->getFormattedText() : "";
+    }
 };
 
 /**
@@ -43,15 +97,28 @@ public:
     // ========== 消息管理 ==========
 
     /**
-     * @brief 添加聊天消息
+     * @brief 添加聊天消息（纯文本）
      * @param message 消息文本
-     * @param color 消息颜色（ARGB）
+     * @param type 消息类型
      * @param permanent 是否永久显示
      */
-    void addMessage(const String& message, u32 color = 0xFFFFFFFF, bool permanent = false);
+    void addMessage(const String& message,
+                    ChatMessageType type = ChatMessageType::Chat,
+                    bool permanent = false);
+
+    /**
+     * @brief 添加聊天消息（富文本）
+     * @param message 消息组件（所有权转移）
+     * @param type 消息类型
+     * @param permanent 是否永久显示
+     */
+    void addMessage(std::unique_ptr<text::ITextComponent> message,
+                    ChatMessageType type = ChatMessageType::Chat,
+                    bool permanent = false);
 
     /**
      * @brief 添加系统消息
+     * @param message 消息文本
      */
     void addSystemMessage(const String& message);
 

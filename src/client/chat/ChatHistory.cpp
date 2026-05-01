@@ -2,8 +2,19 @@
 
 namespace mc::client::chat {
 
-void ChatHistory::addMessage(const String& message, u32 color, bool permanent) {
-    m_messages.emplace_front(message, color, permanent);
+void ChatHistory::addMessage(const String& message, ChatMessageType type, bool permanent) {
+    m_messages.emplace_front(std::make_unique<text::StringTextComponent>(message), type, permanent);
+
+    // 限制消息数量
+    while (m_messages.size() > MAX_MESSAGES) {
+        m_messages.pop_back();
+    }
+}
+
+void ChatHistory::addMessage(std::unique_ptr<text::ITextComponent> message,
+                              ChatMessageType type,
+                              bool permanent) {
+    m_messages.emplace_front(std::move(message), type, permanent);
 
     // 限制消息数量
     while (m_messages.size() > MAX_MESSAGES) {
@@ -12,8 +23,12 @@ void ChatHistory::addMessage(const String& message, u32 color, bool permanent) {
 }
 
 void ChatHistory::addSystemMessage(const String& message) {
-    // 系统消息使用灰色
-    addMessage(message, 0xFFAAAAAA, false);
+    // 系统消息使用灰色样式
+    auto content = std::make_unique<text::StringTextComponent>(message);
+    text::Style style;
+    style.setColor(text::TextFormatting::Gray);
+    content->setStyle(style);
+    addMessage(std::move(content), ChatMessageType::System, false);
 }
 
 void ChatHistory::clear() {
@@ -29,13 +44,17 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
         if (count >= MAX_VISIBLE) break;
 
         if (msg.permanent) {
-            result.push_back(msg);
+            result.push_back(msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>(""),
+                            msg.type, msg.permanent);
+            result.back().timestamp = msg.timestamp;
             count++;
         } else if (includeFading) {
             // 计算消息年龄
             auto age = std::chrono::duration<float>(now - msg.timestamp).count();
             if (age < MESSAGE_FADE_TIME + 1.0f) {  // 额外1秒淡出时间
-                result.push_back(msg);
+                result.push_back(msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>(""),
+                                msg.type, msg.permanent);
+                result.back().timestamp = msg.timestamp;
                 count++;
             }
         }

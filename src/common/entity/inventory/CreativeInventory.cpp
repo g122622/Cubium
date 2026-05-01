@@ -27,7 +27,7 @@ namespace {
 
 [[nodiscard]] String buildSearchKey(const ItemStack& stack)
 {
-    String searchKey = toLowerAscii(stack.getDisplayName());
+    String searchKey = toLowerAscii(stack.getDisplayName()->getUnformattedText());
 
     if (const auto* item = stack.getItem(); item != nullptr) {
         searchKey.push_back(' ');

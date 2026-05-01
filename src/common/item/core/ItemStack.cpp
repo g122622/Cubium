@@ -3,6 +3,8 @@
 #include "ItemRegistry.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../world/block/Block.hpp"
+#include "../../util/text/StringTextComponent.hpp"
+#include "../../util/text/TextParser.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -35,6 +37,39 @@ ItemStack::ItemStack(const Item* item, i32 count)
         m_item = nullptr;
         m_count = 0;
     }
+}
+
+ItemStack::ItemStack(const ItemStack& other)
+    : m_item(other.m_item)
+    , m_count(other.m_count)
+    , m_damage(other.m_damage)
+    , m_customName(other.m_customName ? other.m_customName->deepCopy() : nullptr)
+    , m_potionId(other.m_potionId)
+    , m_customData(other.m_customData)
+    , m_enchantments(other.m_enchantments) {
+    // 深拷贝 Lore
+    for (const auto& line : other.m_lore) {
+        m_lore.push_back(line ? line->deepCopy() : nullptr);
+    }
+}
+
+ItemStack& ItemStack::operator=(const ItemStack& other) {
+    if (this != &other) {
+        m_item = other.m_item;
+        m_count = other.m_count;
+        m_damage = other.m_damage;
+        m_customName = other.m_customName ? other.m_customName->deepCopy() : nullptr;
+        m_potionId = other.m_potionId;
+        m_customData = other.m_customData;
+        m_enchantments = other.m_enchantments;
+
+        // 深拷贝 Lore
+        m_lore.clear();
+        for (const auto& line : other.m_lore) {
+            m_lore.push_back(line ? line->deepCopy() : nullptr);
+        }
+    }
+    return *this;
 }
 
 // ============================================================================
@@ -150,7 +185,32 @@ bool ItemStack::canMergeWith(const ItemStack& other) const {
         return false;
     }
 
-    if (m_customName != other.m_customName || m_potionId != other.m_potionId) {
+    // 比较自定义名称
+    bool customNameEqual = false;
+    if (m_customName && other.m_customName) {
+        customNameEqual = *m_customName == *other.m_customName;
+    } else if (!m_customName && !other.m_customName) {
+        customNameEqual = true;
+    }
+    if (!customNameEqual) {
+        return false;
+    }
+
+    // 比较 Lore
+    if (m_lore.size() != other.m_lore.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < m_lore.size(); ++i) {
+        if (m_lore[i] && other.m_lore[i]) {
+            if (*m_lore[i] != *other.m_lore[i]) {
+                return false;
+            }
+        } else if (m_lore[i] || other.m_lore[i]) {
+            return false;
+        }
+    }
+
+    if (m_potionId != other.m_potionId) {
         return false;
     }
 
@@ -185,7 +245,11 @@ ItemStack ItemStack::split(i32 amount) {
     i32 splitCount = std::min(amount, m_count);
     ItemStack result(*m_item, splitCount);
     result.m_damage = m_damage;
-    result.m_customName = m_customName;
+    result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
+    result.m_lore.clear();
+    for (const auto& line : m_lore) {
+        result.m_lore.push_back(line->deepCopy());
+    }
     result.m_potionId = m_potionId;
     result.m_customData = m_customData;
     result.m_enchantments = m_enchantments;
@@ -202,7 +266,11 @@ ItemStack ItemStack::copy() const {
     }
     ItemStack result(*m_item, m_count);
     result.m_damage = m_damage;
-    result.m_customName = m_customName;
+    result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
+    result.m_lore.clear();
+    for (const auto& line : m_lore) {
+        result.m_lore.push_back(line->deepCopy());
+    }
     result.m_potionId = m_potionId;
     result.m_customData = m_customData;
     // 复制附魔
@@ -232,12 +300,18 @@ bool ItemStack::canHarvestBlock(const BlockState& state) const {
 // 显示名称
 // ============================================================================
 
-String ItemStack::getDisplayName() const {
+std::unique_ptr<text::ITextComponent> ItemStack::getDisplayName() const {
     if (isEmpty()) {
-        return "";
+        return std::make_unique<text::StringTextComponent>("");
     }
-    // 目前返回物品名称，未来可支持自定义名称（NBT标签）
-    return m_item->getName();
+
+    // 如果有自定义名称，返回自定义名称
+    if (m_customName) {
+        return m_customName->deepCopy();
+    }
+
+    // 否则返回物品名称
+    return std::make_unique<text::StringTextComponent>(m_item->getName());
 }
 
 // ============================================================================
@@ -263,9 +337,19 @@ void ItemStack::serialize(network::PacketSerializer& ser) const {
     m_enchantments.serialize(ser);
 
     // 自定义名称
-    ser.writeBool(!m_customName.empty());
-    if (!m_customName.empty()) {
-        ser.writeString(m_customName);
+    bool hasCustomName = m_customName && !m_customName->getUnformattedText().empty();
+    ser.writeBool(hasCustomName);
+    if (hasCustomName) {
+        ser.writeString(m_customName->getFormattedText());  // 使用格式化文本保存
+    }
+
+    // Lore
+    ser.writeBool(!m_lore.empty());
+    if (!m_lore.empty()) {
+        ser.writeU32(static_cast<u32>(m_lore.size()));
+        for (const auto& line : m_lore) {
+            ser.writeString(line ? line->getFormattedText() : "");
+        }
     }
 
     // 药水ID
@@ -335,7 +419,26 @@ Result<ItemStack> ItemStack::deserialize(network::PacketDeserializer& deser) {
         if (customNameResult.failed()) {
             return customNameResult.error();
         }
-        stack.m_customName = customNameResult.value();
+        stack.m_customName = text::TextParser::parse(customNameResult.value());
+    }
+
+    auto hasLoreResult = deser.readBool();
+    if (hasLoreResult.failed()) {
+        return hasLoreResult.error();
+    }
+    if (hasLoreResult.value()) {
+        auto loreSizeResult = deser.readU32();
+        if (loreSizeResult.failed()) {
+            return loreSizeResult.error();
+        }
+        u32 loreSize = loreSizeResult.value();
+        for (u32 i = 0; i < loreSize; ++i) {
+            auto lineResult = deser.readString();
+            if (lineResult.failed()) {
+                return lineResult.error();
+            }
+            stack.m_lore.push_back(text::TextParser::parse(lineResult.value()));
+        }
     }
 
     auto hasPotionIdResult = deser.readBool();
@@ -392,8 +495,18 @@ nlohmann::json ItemStack::toJson() const {
         json["Enchantments"] = m_enchantments.toJson();
     }
 
-    if (!m_customName.empty()) {
-        json["CustomName"] = m_customName;
+    if (m_customName) {
+        json["CustomName"] = m_customName->toJson();
+    }
+
+    if (!m_lore.empty()) {
+        nlohmann::json loreJson = nlohmann::json::array();
+        for (const auto& line : m_lore) {
+            if (line) {
+                loreJson.push_back(line->toJson());
+            }
+        }
+        json["Lore"] = std::move(loreJson);
     }
 
     if (!m_potionId.empty()) {
@@ -441,8 +554,25 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
         }
     }
 
-    if (json.contains("CustomName") && json["CustomName"].is_string()) {
-        stack.m_customName = json["CustomName"].get<String>();
+    if (json.contains("CustomName")) {
+        const auto& customNameJson = json["CustomName"];
+        if (customNameJson.is_string()) {
+            // 旧格式：纯字符串
+            stack.m_customName = text::TextParser::parse(customNameJson.get<String>());
+        } else if (customNameJson.is_object()) {
+            // 新格式：JSON 文本组件
+            stack.m_customName = text::ITextComponent::fromJson(customNameJson);
+        }
+    }
+
+    if (json.contains("Lore") && json["Lore"].is_array()) {
+        for (const auto& lineJson : json["Lore"]) {
+            if (lineJson.is_string()) {
+                stack.m_lore.push_back(text::TextParser::parse(lineJson.get<String>()));
+            } else if (lineJson.is_object()) {
+                stack.m_lore.push_back(text::ITextComponent::fromJson(lineJson));
+            }
+        }
     }
 
     if (json.contains("Potion") && json["Potion"].is_string()) {
@@ -468,10 +598,35 @@ bool ItemStack::operator==(const ItemStack& other) const {
         return false;
     }
 
+    // 比较 m_customName
+    bool customNameEqual = false;
+    if (m_customName && other.m_customName) {
+        customNameEqual = *m_customName == *other.m_customName;
+    } else if (!m_customName && !other.m_customName) {
+        customNameEqual = true;
+    }
+
+    // 比较 m_lore
+    bool loreEqual = m_lore.size() == other.m_lore.size();
+    if (loreEqual) {
+        for (size_t i = 0; i < m_lore.size(); ++i) {
+            if (m_lore[i] && other.m_lore[i]) {
+                if (*m_lore[i] != *other.m_lore[i]) {
+                    loreEqual = false;
+                    break;
+                }
+            } else if (m_lore[i] || other.m_lore[i]) {
+                loreEqual = false;
+                break;
+            }
+        }
+    }
+
     return m_item == other.m_item &&
            m_count == other.m_count &&
            m_damage == other.m_damage &&
-           m_customName == other.m_customName &&
+           customNameEqual &&
+           loreEqual &&
            m_potionId == other.m_potionId &&
            m_customData == other.m_customData &&
            m_enchantments.getAll() == other.m_enchantments.getAll();

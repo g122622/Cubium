@@ -8,6 +8,7 @@
 #include "../../world/block/Block.hpp"
 #include "../../world/fluid/Fluid.hpp"
 #include "../../resource/ResourceLocation.hpp"
+#include "../../util/text/StringTextComponent.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -118,8 +119,27 @@ void Entity::setAir(i32 air) {
 }
 
 void Entity::setCustomName(const String& name) {
-    m_customName = name;
-    m_dataManager.set(CUSTOM_NAME_PARAM, m_customName);
+    if (name.empty()) {
+        m_customName = nullptr;
+        m_dataManager.set(CUSTOM_NAME_PARAM, String(""));
+    } else {
+        m_customName = std::make_unique<text::StringTextComponent>(name);
+        m_dataManager.set(CUSTOM_NAME_PARAM, name);
+    }
+}
+
+void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name) {
+    m_customName = std::move(name);
+    // 数据管理器仍然存储纯文本用于网络同步
+    m_dataManager.set(CUSTOM_NAME_PARAM, m_customName ? m_customName->getUnformattedText() : String(""));
+}
+
+std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const {
+    if (m_customName) {
+        return m_customName->deepCopy();
+    }
+    // 返回默认名称
+    return std::make_unique<text::StringTextComponent>("entity");
 }
 
 void Entity::setCustomNameVisible(bool visible) {
@@ -392,7 +412,15 @@ void Entity::updateEnvironmentState() {
 void Entity::syncMetadataFromDataManager() {
     m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(FLAGS_PARAM)));
     m_air = m_dataManager.get<i32>(AIR_PARAM);
-    m_customName = m_dataManager.get<String>(CUSTOM_NAME_PARAM);
+    // 从数据管理器同步名称（纯文本）
+    {
+        const String& nameText = m_dataManager.get<String>(CUSTOM_NAME_PARAM);
+        if (nameText.empty()) {
+            m_customName = nullptr;
+        } else {
+            m_customName = std::make_unique<text::StringTextComponent>(nameText);
+        }
+    }
     m_customNameVisible = m_dataManager.get<bool>(CUSTOM_NAME_VISIBLE_PARAM);
     m_silent = m_dataManager.get<bool>(SILENT_PARAM);
     m_noGravity = m_dataManager.get<bool>(NO_GRAVITY_PARAM);
@@ -744,7 +772,7 @@ String Entity::toString() const {
        << ", inLava=" << m_inLava
        << ", flags=" << static_cast<u32>(m_flags)
        << ", air=" << m_air
-       << ", customName=\"" << m_customName << "\""
+       << ", customName=\"" << (m_customName ? m_customName->getUnformattedText() : "") << "\""
        << ", customNameVisible=" << m_customNameVisible
        << ", silent=" << m_silent
        << ", noGravity=" << m_noGravity

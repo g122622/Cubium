@@ -170,7 +170,7 @@ String CombatTracker::getDeathMessage() const {
         return "entity died";
     }
 
-    String ownerName = m_owner->getDisplayName();
+    String ownerName = m_owner->getDisplayName()->getUnformattedText();
 
     // 检查是否有摔落伤害
     if (!m_entries.empty()) {
@@ -197,7 +197,7 @@ String CombatTracker::getDeathMessage() const {
         if (fallEntry && attackEntry && !fallEntry->fallSuffix().empty()) {
             Entity* attacker = attackEntry->source()->getEntity();
             if (attacker) {
-                return ownerName + " fell from a high place whilst trying to escape " + attacker->getDisplayName();
+                return ownerName + " fell from a high place whilst trying to escape " + attacker->getDisplayName()->getUnformattedText();
             }
         }
     }
@@ -218,7 +218,7 @@ String CombatTracker::getDeathMessage() const {
 
     if (attacker) {
         // 使用带攻击者的死亡消息
-        return ownerName + " was slain by " + attacker->getDisplayName();
+        return ownerName + " was slain by " + attacker->getDisplayName()->getUnformattedText();
     }
 
     // 环境伤害

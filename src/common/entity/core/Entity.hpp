@@ -10,6 +10,7 @@
 #include "MoverType.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundCategory.hpp"
+#include "../../util/text/ITextComponent.hpp"
 #include <string>
 #include <memory>
 #include <array>
@@ -778,21 +779,40 @@ public:
     // ========== 自定义名称 ==========
 
     /**
-     * @brief 获取自定义名称
+     * @brief 获取自定义名称组件
+     * @return 自定义名称组件指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const String& customName() const { return m_customName; }
+    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const {
+        return m_customName.get();
+    }
+
+    /**
+     * @brief 获取自定义名称的纯文本
+     * @return 自定义名称纯文本，如果没有返回空字符串
+     */
+    [[nodiscard]] const String& customName() const {
+        static const String empty = "";
+        return m_customName ? m_customName->getUnformattedText() : empty;
+    }
 
     /**
      * @brief 获取显示名称
      *
-     * 返回自定义名称，如果没有则返回默认名称"entity"
+     * 返回自定义名称组件，如果没有则返回默认名称。
+     *
+     * @return 显示名称组件
      */
-    [[nodiscard]] String getDisplayName() const {
-        return m_customName.empty() ? "entity" : m_customName;
-    }
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getDisplayName() const;
 
     /**
-     * @brief 设置自定义名称
+     * @brief 设置自定义名称组件
+     * @param name 名称组件（所有权转移）
+     */
+    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name);
+
+    /**
+     * @brief 设置自定义名称（纯文本，向后兼容）
+     * @param name 名称字符串
      */
     void setCustomName(const String& name);
 
@@ -1054,7 +1074,7 @@ protected:
     bool m_invulnerable = false;
 
     // 自定义名称
-    String m_customName;
+    std::unique_ptr<text::ITextComponent> m_customName;  ///< 自定义名称
     bool m_customNameVisible = false;
 
     // 静音
