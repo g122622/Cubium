@@ -1,7 +1,12 @@
 #include "FontRenderer.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include <algorithm>
 
 namespace mc::client {
+
+using text::StringTextComponent;
+using text::ITextComponent;
 
 FontRenderer::FontRenderer() = default;
 
@@ -112,6 +117,78 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
     m_currentY = y;
 
     return x - startX;
+}
+
+f32 FontRenderer::addText(const ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle) {
+    if (!m_inBatch || m_font == nullptr) {
+        return 0.0f;
+    }
+
+    return addTextComponent(component, x, y, baseStyle);
+}
+
+f32 FontRenderer::addTextComponent(const ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle) {
+    // 合并样式
+    TextStyle renderStyle = mergeStyles(component.getStyle(), baseStyle);
+
+    f32 startX = x;
+    const StringTextComponent* stringComp = dynamic_cast<const StringTextComponent*>(&component);
+
+    // 渲染当前组件的文本
+    if (stringComp != nullptr) {
+        const std::string& text = stringComp->getText();
+        x += addText(text, x, y, renderStyle);
+    } else {
+        // 对于其他组件类型（如 TranslationTextComponent），渲染未格式化文本
+        std::string unformattedText = component.getUnformattedText();
+        x += addText(unformattedText, x, y, renderStyle);
+    }
+
+    // 递归渲染子组件
+    const auto& siblings = component.getSiblings();
+    for (const auto& sibling : siblings) {
+        // 子组件继承父组件的样式作为基础
+        x += addTextComponent(*sibling, x, y, renderStyle) - startX;
+        startX = x;  // 更新起始位置
+    }
+
+    return x - startX + (startX - x);  // 返回总宽度
+}
+
+TextStyle FontRenderer::mergeStyles(const text::Style& style, const TextStyle& baseStyle) const {
+    TextStyle result = baseStyle;
+
+    // 颜色
+    if (style.getColor().has_value()) {
+        result.color = text::getFormattingColor(*style.getColor());
+    }
+
+    // 样式标志
+    if (style.isBold()) {
+        result.bold = true;
+    }
+    if (style.isItalic()) {
+        result.italic = true;
+    }
+    if (style.isUnderlined()) {
+        result.underline = true;
+    }
+    if (style.isStrikethrough()) {
+        result.strikethrough = true;
+    }
+
+    // 混淆效果暂不支持（需要动画）
+
+    return result;
+}
+
+f32 FontRenderer::getTextWidth(const ITextComponent& component) {
+    if (m_font == nullptr) {
+        return 0.0f;
+    }
+
+    // 使用未格式化文本计算宽度
+    return getTextWidth(component.getUnformattedText());
 }
 
 f32 FontRenderer::addTextWithShadow(const std::string& text, f32 x, f32 y, u32 color) {

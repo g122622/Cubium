@@ -3,6 +3,7 @@
 #include "Font.hpp"
 #include "Glyph.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
 #include <vector>
 #include <string>
 
@@ -17,6 +18,7 @@ namespace mc::client {
  * - 斜体
  * - 颜色
  * - UTF-8文本
+ * - ITextComponent富文本
  *
  * 参考Minecraft的FontRenderer实现。
  */
@@ -57,6 +59,16 @@ public:
      * @return 实际渲染宽度
      */
     f32 addText(const std::string& text, f32 x, f32 y, const TextStyle& style = {});
+
+    /**
+     * @brief 添加富文本组件到批次
+     * @param component 文本组件
+     * @param x 屏幕X坐标
+     * @param y 屏幕Y坐标
+     * @param baseStyle 基础样式（会与组件样式合并）
+     * @return 实际渲染宽度
+     */
+    f32 addText(const text::ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle = {});
 
     /**
      * @brief 添加带阴影的文本到批次
@@ -100,6 +112,13 @@ public:
     [[nodiscard]] f32 getTextWidth(const std::string& text);
 
     /**
+     * @brief 获取富文本组件宽度
+     * @param component 文本组件
+     * @return 宽度（像素）
+     */
+    [[nodiscard]] f32 getTextWidth(const text::ITextComponent& component);
+
+    /**
      * @brief 获取字体高度
      */
     [[nodiscard]] u32 getFontHeight() const;
@@ -139,6 +158,19 @@ private:
      * @return 解码的码点
      */
     [[nodiscard]] u32 decodeCodepoint(const std::string& text, size_t& pos) const;
+
+    /**
+     * @brief 将 TextFormatting::Style 转换为 TextStyle
+     * @param style 文本样式
+     * @param baseStyle 基础渲染样式
+     * @return 合并后的渲染样式
+     */
+    [[nodiscard]] TextStyle mergeStyles(const text::Style& style, const TextStyle& baseStyle) const;
+
+    /**
+     * @brief 递归渲染 ITextComponent
+     */
+    f32 addTextComponent(const text::ITextComponent& component, f32 x, f32 y, const TextStyle& baseStyle);
 
     Font* m_font = nullptr;
     std::vector<GuiVertex> m_vertices;   // 顶点缓冲
