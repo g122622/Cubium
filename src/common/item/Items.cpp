@@ -6,6 +6,8 @@
 #include "items/potion/PotionItem.hpp"
 #include "items/potion/SplashPotionItem.hpp"
 #include "items/potion/LingeringPotionItem.hpp"
+#include "items/weapon/BowItem.hpp"
+#include "items/weapon/ArrowItem.hpp"
 #include "tier/ItemTiers.hpp"
 #include "items/tool/PickaxeItem.hpp"
 #include "items/tool/AxeItem.hpp"
@@ -314,6 +316,14 @@ Item* Items::SPLASH_POTION = nullptr;
 Item* Items::LINGERING_POTION = nullptr;
 
 // ============================================================================
+// 武器和弹药
+// ============================================================================
+Item* Items::BOW = nullptr;
+Item* Items::ARROW = nullptr;
+Item* Items::SPECTRAL_ARROW = nullptr;
+Item* Items::TIPPED_ARROW = nullptr;
+
+// ============================================================================
 // 桶类
 // ============================================================================
 Item* Items::BUCKET = nullptr;
@@ -364,6 +374,7 @@ void Items::initialize() {
     registerAquaticMaterials();
     registerBrewingIngredients();
     registerPotions();
+    registerWeapons();    // 武器和弹药
     registerBuckets();   // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
     registerSponges();   // 海绵物品
 
@@ -1554,6 +1565,38 @@ void Items::registerPotions() {
         ResourceLocation("minecraft:lingering_potion"),
         ItemProperties().maxStackSize(1)
     );
+}
+
+void Items::registerWeapons() {
+    auto& registry = ItemRegistry::instance();
+
+    // 弓 - 远程武器
+    // 参考: new BowItem(new Item.Properties().maxDamage(384))
+    BOW = &registry.registerItem<item::BowItem>(
+        ResourceLocation("minecraft:bow"),
+        ItemProperties().maxDamage(384)
+    );
+
+    // 箭矢 - 弹药
+    // 参考: new ArrowItem(new Item.Properties().maxStackSize(64))
+    ARROW = &registry.registerItem<item::ArrowItem>(
+        ResourceLocation("minecraft:arrow"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 光灵箭 - 带发光效果（仅创造模式）
+    // 参考: new SpectralArrowItem(new Item.Properties().maxStackSize(64))
+    SPECTRAL_ARROW = &registry.registerItem<item::ArrowItem>(
+        ResourceLocation("minecraft:spectral_arrow"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 药水箭 - 带药水效果
+    // TODO: 需要 TippedArrowItem 类
+    // TIPPED_ARROW = &registry.registerItem<item::TippedArrowItem>(
+    //     ResourceLocation("minecraft:tipped_arrow"),
+    //     ItemProperties().maxStackSize(64)
+    // );
 }
 
 void Items::registerBuckets() {

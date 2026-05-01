@@ -210,7 +210,7 @@ protected:
      * @param end 终点
      * @return 命中的实体（如果有）
      */
-    RayTraceResult rayTraceEntities(const Vector3& start, const Vector3& end);
+    virtual RayTraceResult rayTraceEntities(const Vector3& start, const Vector3& end);
 
     /**
      * @brief 执行方块射线追踪

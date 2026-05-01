@@ -597,6 +597,57 @@ public:
      */
     [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const;
 
+    // ========== 物品使用 ==========
+
+    /**
+     * @brief 开始使用物品
+     *
+     * MC 1.16.5: setActiveHand()
+     * 设置正在使用的手和物品，开始物品使用倒计时。
+     *
+     * @param hand 使用的手
+     */
+    void setActiveHand(Hand hand);
+
+    /**
+     * @brief 停止使用物品
+     *
+     * MC 1.16.5: stopActiveHand()
+     * 重置使用状态，调用物品的 onPlayerStoppedUse。
+     */
+    void stopActiveHand();
+
+    /**
+     * @brief 获取正在使用的手
+     * @return 正在使用的手，如果没有则返回 Hand::MainHand
+     */
+    [[nodiscard]] Hand getActiveHand() const { return m_activeHand; }
+
+    /**
+     * @brief 获取正在使用的物品
+     * @return 正在使用的物品堆
+     */
+    [[nodiscard]] const ItemStack& getActiveItem() const { return m_activeItem; }
+
+    /**
+     * @brief 获取剩余使用时间
+     * @return 剩余使用时间（ticks）
+     */
+    [[nodiscard]] i32 getItemInUseCount() const { return m_activeItemUseCount; }
+
+    /**
+     * @brief 检查是否正在使用物品
+     * @return 是否正在使用物品
+     */
+    [[nodiscard]] bool isUsingItem() const { return m_activeItemUseCount > 0 && !m_activeItem.isEmpty(); }
+
+    /**
+     * @brief 更新物品使用
+     *
+     * 每tick调用，递减使用计时器。
+     */
+    void updateActiveItem();
+
     /**
      * @brief 获取效果等级
      * @param type 效果类型
@@ -817,6 +868,11 @@ protected:
 
     // 效果管理
     entity::effect::EffectManager m_effectManager;  // 效果管理器
+
+    // 物品使用状态
+    Hand m_activeHand = Hand::MainHand;  // 正在使用的手
+    ItemStack m_activeItem;              // 正在使用的物品堆
+    i32 m_activeItemUseCount = 0;        // 剩余使用时间（ticks）
 };
 
 } // namespace mc

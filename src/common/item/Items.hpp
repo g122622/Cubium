@@ -351,6 +351,14 @@ public:
     static Item* LINGERING_POTION;       // 滞留药水
 
     // ========================================================================
+    // 武器和弹药
+    // ========================================================================
+    static Item* BOW;                    // 弓
+    static Item* ARROW;                  // 箭矢
+    static Item* SPECTRAL_ARROW;         // 光灵箭
+    static Item* TIPPED_ARROW;           // 药水箭
+
+    // ========================================================================
     // 桶类
     // ========================================================================
     static Item* BUCKET;                 // 空桶
@@ -377,6 +385,7 @@ private:
     static void registerAquaticMaterials();
     static void registerBrewingIngredients();
     static void registerPotions();
+    static void registerWeapons();
     static void registerBuckets();
     static void registerSponges();
 };

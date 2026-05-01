@@ -1,5 +1,6 @@
 #include "LivingEntity.hpp"
 #include "../../core/Constants.hpp"
+#include "../../core/Types.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../physics/PhysicsConstants.hpp"
@@ -9,6 +10,7 @@
 #include "../../world/block/BlockPos.hpp"
 #include "../combat/CombatRules.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../item/core/Item.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -855,6 +857,68 @@ void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength) {
     f64 ratioZ = static_cast<f64>(attacker->position().z - m_position.z);
 
     applyKnockback(strength, ratioX, ratioZ);
+}
+
+// ============================================================================
+// 物品使用
+// ============================================================================
+
+void LivingEntity::setActiveHand(Hand hand) {
+    ItemStack heldItem = getEquipment(hand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand);
+
+    if (heldItem.isEmpty()) {
+        return;
+    }
+
+    i32 useDuration = heldItem.getItem()->getUseDuration(heldItem);
+    if (useDuration <= 0) {
+        return;
+    }
+
+    m_activeHand = hand;
+    m_activeItem = heldItem;
+    m_activeItemUseCount = useDuration;
+}
+
+void LivingEntity::stopActiveHand() {
+    if (!isUsingItem()) {
+        return;
+    }
+
+    // 调用物品的 onPlayerStoppedUsing
+    // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
+    const Item* item = m_activeItem.getItem();
+    if (!m_activeItem.isEmpty() && item != nullptr) {
+        ItemStack stackCopy = m_activeItem;
+        const_cast<Item*>(item)->onPlayerStoppedUsing(stackCopy, *m_world, *this, m_activeItemUseCount);
+    }
+
+    // 重置状态
+    m_activeItem = ItemStack();
+    m_activeItemUseCount = 0;
+}
+
+void LivingEntity::updateActiveItem() {
+    if (!isUsingItem()) {
+        return;
+    }
+
+    // 递减使用计时器
+    m_activeItemUseCount--;
+
+    // 检查是否完成使用
+    if (m_activeItemUseCount <= 0) {
+        // 使用完成
+        const Item* item = m_activeItem.getItem();
+        if (!m_activeItem.isEmpty() && item != nullptr) {
+            // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
+            ItemStack result = const_cast<Item*>(item)->onItemUseFinish(m_activeItem, *m_world, *this);
+            // 更新装备槽
+            setEquipment(m_activeHand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand, result);
+        }
+        m_activeItem = ItemStack();
+        m_activeItemUseCount = 0;
+    }
 }
 
 } // namespace mc

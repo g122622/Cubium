@@ -1,10 +1,13 @@
 #include "BowItem.hpp"
+#include "ArrowItem.hpp"
 #include "../../core/ItemStack.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../Items.hpp"
 #include "../../enchantment/EnchantmentHelper.hpp"
 #include "../../enchantment/enchantments/AllEnchantments.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../entity/damage/DamageSource.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include <cmath>
@@ -16,9 +19,7 @@ namespace item {
 namespace {
     constexpr i32 MAX_USE_DURATION = 72000;   // MC 1.16.5: 几乎无限制
     constexpr f32 MIN_VELOCITY = 0.1f;         // 最小发射速度
-    constexpr f32 MAX_VELOCITY = 3.0f;         // 最大箭矢速度
     constexpr i32 FULL_CHARGE_TICKS = 20;      // 满蓄力 tick 数
-    constexpr i32 FLAME_DURATION = 100;        // 火矢持续时间 (5 秒 = 100 tick)
 }
 
 // ========== 构造函数 ==========
@@ -40,15 +41,15 @@ UseAction BowItem::getUseAction(const ItemStack& stack) const {
     return UseAction::Bow;
 }
 
-ActionResult BowItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+ItemActionResult BowItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
     (void)world;
 
     ItemStack bowStack = player.getHeldItem(hand);
 
     // 检查是否有箭矢或无限附魔
     bool hasInfinity = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        bowStack, &item::enchant::AllEnchantments::INFINITY) > 0;
-    bool isCreative = player.isCreativeMode();
+        bowStack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
+    bool isCreative = player.isCreative();
 
     ItemStack ammoStack = findAmmo(player, bowStack);
     bool hasAmmo = !ammoStack.isEmpty();
@@ -56,13 +57,13 @@ ActionResult BowItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
     // 创造模式或有箭矢或无限附魔时才能使用
     if (isCreative || hasAmmo || hasInfinity) {
         player.setActiveHand(hand);
-        return ActionResult::success(bowStack);
+        return ItemActionResult::success(bowStack);
     }
 
-    return ActionResult::fail(bowStack);
+    return ItemActionResult::fail(bowStack);
 }
 
-void BowItem::onPlayerStoppedUse(
+void BowItem::onPlayerStoppedUsing(
     ItemStack& stack,
     IWorld& world,
     LivingEntity& entity,
@@ -87,97 +88,108 @@ void BowItem::onPlayerStoppedUse(
         return;
     }
 
+    // 检查是否有无限附魔
+    bool hasInfinity = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+        stack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
+    bool isCreative = player->isCreative();
+
     // 查找箭矢
     ItemStack ammoStack = findAmmo(*player, stack);
-    bool hasInfinity = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        stack, &item::enchant::AllEnchantments::INFINITY) > 0;
-    bool isCreative = player->isCreativeMode();
+    bool hasAmmo = !ammoStack.isEmpty();
 
-    // 无箭矢且无无限附魔时使用默认箭
-    if (ammoStack.isEmpty()) {
+    // 无箭矢时，无限附魔使用普通箭
+    if (!hasAmmo) {
         if (hasInfinity || isCreative) {
-            // 使用默认箭矢
-            ammoStack = ItemStack();  // TODO: Items::ARROW
+            // 使用普通箭
+            ammoStack = ItemStack(Items::ARROW, 1);
         } else {
-            return;  // 无箭矢
+            return;  // 无箭矢可用
         }
     }
 
-    // 检查箭矢是否无限（不被消耗）
-    bool isArrowInfinite = isInfiniteArrow(ammoStack, stack, *player);
+    // 检查箭矢是否无限（不消耗）
+    bool infiniteArrow = isInfiniteArrow(ammoStack, stack, *player);
 
     // 创建箭矢实体
-    // TODO: 需要实现 ArrowItem::createArrow
-    // AbstractArrowEntity* arrow = ...;
+    const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(ammoStack.getItem());
+    if (arrowItem != nullptr) {
+        entity::AbstractArrowEntity* arrow = arrowItem->createArrow(world, ammoStack, *player);
+        if (arrow != nullptr) {
+            // 设置箭矢属性
+            arrow = customArrow(arrow);
 
-    // 暂时使用占位符，等待 ArrowItem 实现
-    // arrow->shoot(player, player->pitch(), player->yaw(), 0.0f, velocity * MAX_VELOCITY, 1.0f);
+            // 设置发射参数
+            // MC 1.16.5: func_234612_a_ = shoot()
+            f32 actualVelocity = velocity * 3.0f;  // 最大速度 3.0
+            arrow->shootFrom(*player, player->pitch(), player->yaw(), 0.0f, actualVelocity, 1.0f);
 
-    // 设置暴击（满蓄力时）
-    if (velocity >= 1.0f) {
-        // arrow->setCritical(true);
+            // 满蓄力时暴击
+            if (velocity >= 1.0f) {
+                arrow->setCritical(true);
+            }
+
+            // 力量附魔
+            i32 powerLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+                stack, &item::enchant::AllEnchantments::POWER);
+            if (powerLevel > 0) {
+                // 每级增加 0.5 伤害 + 0.5 基础
+                f32 bonusDamage = static_cast<f32>(powerLevel) * 0.5f + 0.5f;
+                arrow->setDamage(arrow->damage() + bonusDamage);
+            }
+
+            // 冲击附魔
+            i32 punchLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+                stack, &item::enchant::AllEnchantments::PUNCH);
+            if (punchLevel > 0) {
+                arrow->setKnockbackStrength(punchLevel);
+            }
+
+            // 火矢附魔
+            if (item::enchant::EnchantmentHelper::getEnchantmentLevel(
+                stack, &item::enchant::AllEnchantments::FLAME) > 0) {
+                arrow->setFire(100);  // 5秒燃烧
+            }
+
+            // 消耗耐久度（非创造模式）
+            if (!isCreative) {
+                stack.attemptDamageItem(1);
+            }
+
+            // 设置拾取状态
+            if (infiniteArrow || isCreative) {
+                arrow->setPickupStatus(entity::PickupStatus::CreativeOnly);
+            } else {
+                arrow->setPickupStatus(entity::PickupStatus::Allowed);
+            }
+
+            // 生成箭矢实体
+            world.spawnEntity(std::unique_ptr<Entity>(arrow));
+
+            // 播放音效
+            // MC 1.16.5: ENTITY_ARROW_SHOOT 音效
+            // world.playSound(nullptr, player->x(), player->y(), player->z(),
+            //                 SoundEvents::ENTITY_ARROW_SHOOT, SoundCategory::PLAYERS,
+            //                 1.0f, 1.0f / (random.nextFloat() * 0.4f + 1.2f) + velocity * 0.5f);
+        }
     }
 
-    // 应用力量附魔
-    i32 powerLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        stack, &item::enchant::AllEnchantments::POWER);
-    if (powerLevel > 0) {
-        // MC 1.16.5: 每级 +0.5 伤害 + 0.5
-        // arrow->setDamage(arrow->damage() + static_cast<f32>(powerLevel) * 0.5f + 0.5f);
-    }
-
-    // 应用冲击附魔
-    i32 punchLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        stack, &item::enchant::AllEnchantments::PUNCH);
-    if (punchLevel > 0) {
-        // arrow->setKnockbackStrength(punchLevel);
-    }
-
-    // 应用火矢附魔
-    i32 flameLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        stack, &item::enchant::AllEnchantments::FLAME);
-    if (flameLevel > 0) {
-        // arrow->setFire(FLAME_DURATION);
-    }
-
-    // 消耗弓的耐久度
-    if (!isCreative) {
-        stack.damageItem(1, *player);
-    }
-
-    // 设置箭矢拾取状态
-    // if (isArrowInfinite || isCreative) {
-    //     arrow->setPickupStatus(PickupStatus::CreativeOnly);
-    // } else {
-    //     arrow->setPickupStatus(PickupStatus::Allowed);
-    // }
-
-    // 生成箭矢实体
-    // world.spawnEntity(arrow);
-
-    // 播放音效
-    // TODO: 播放弓箭发射音效，音调基于蓄力时间
-
-    // 消耗箭矢
-    if (!isArrowInfinite && !isCreative && !ammoStack.isEmpty()) {
+    // 消耗箭矢（非无限、非创造）
+    if (!infiniteArrow && !isCreative && !ammoStack.isEmpty()) {
         ammoStack.shrink(1);
+        // 如果箭矢堆为空，从背包删除
+        // player->inventory().deleteStack(ammoStack);
     }
-
-    // TODO: 添加统计信息
 }
 
 // ========== 弓特有方法 ==========
 
 std::function<bool(const ItemStack&)> BowItem::getAmmoPredicate() const {
-    // TODO: 实现 ItemTags::ARROWS 检查
     return [](const ItemStack& stack) -> bool {
         if (stack.isEmpty()) {
             return false;
         }
-        // 暂时检查是否为箭矢物品
-        // return stack.getItem()->isArrow();
-        (void)stack;
-        return false;
+        // 检查是否为箭矢物品
+        return dynamic_cast<const ArrowItem*>(stack.getItem()) != nullptr;
     };
 }
 
@@ -200,7 +212,7 @@ f32 BowItem::getArrowVelocity(i32 chargeTicks) {
     return math::clamp(f, 0.0f, 1.0f);
 }
 
-AbstractArrowEntity* BowItem::customArrow(AbstractArrowEntity* arrow) {
+entity::AbstractArrowEntity* BowItem::customArrow(entity::AbstractArrowEntity* arrow) {
     return arrow;
 }
 
@@ -215,13 +227,19 @@ ItemStack BowItem::findAmmo(Player& player, const ItemStack& bowStack) const {
         return offhand;
     }
 
-    // 检查主手
+    // 检查主手（弓可能在副手）
     ItemStack mainhand = player.getHeldItem(Hand::MainHand);
     if (getAmmoPredicate()(mainhand)) {
         return mainhand;
     }
 
     // TODO: 检查背包槽位
+    // for (i32 i = 0; i < player.inventory().size(); ++i) {
+    //     ItemStack slot = player.inventory().getStack(i);
+    //     if (getInventoryAmmoPredicate()(slot)) {
+    //         return slot;
+    //     }
+    // }
 
     return ItemStack();
 }
@@ -229,13 +247,14 @@ ItemStack BowItem::findAmmo(Player& player, const ItemStack& bowStack) const {
 bool BowItem::isInfiniteArrow(const ItemStack& arrowStack,
                                const ItemStack& bowStack,
                                Player& player) const {
-    if (player.isCreativeMode()) {
+    // 创造模式总是无限
+    if (player.isCreative()) {
         return true;
     }
 
     // 检查无限附魔
     i32 infinityLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-        bowStack, &item::enchant::AllEnchantments::INFINITY);
+        bowStack, &item::enchant::AllEnchantments::INFINITY_ARROW);
 
     if (infinityLevel <= 0) {
         return false;
@@ -243,12 +262,11 @@ bool BowItem::isInfiniteArrow(const ItemStack& arrowStack,
 
     // MC 1.16.5: 只有普通箭矢受益于无限附魔
     // 光灵箭和药水箭不受无限影响
-    // TODO: 实现 ArrowItem::isInfinite
-    // if (const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(arrowStack.getItem())) {
-    //     return arrowItem->isInfinite(arrowStack, bowStack, player);
-    // }
+    const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(arrowStack.getItem());
+    if (arrowItem != nullptr) {
+        return arrowItem->isInfinite(arrowStack, bowStack, player);
+    }
 
-    (void)arrowStack;
     return false;
 }
 

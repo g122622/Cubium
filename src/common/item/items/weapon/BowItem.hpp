@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../core/Item.hpp"
-#include "../core/UseAction.hpp"
-#include "../../../entity/core/Types.hpp"
+#include "../../core/Item.hpp"
+#include "../../core/UseAction.hpp"
+#include "../../core/ActionResult.hpp"
+#include "../../../core/Types.hpp"
 #include <functional>
 
 namespace mc {
@@ -11,7 +12,10 @@ namespace mc {
 class Player;
 class World;
 class ItemStack;
-class AbstractArrowEntity;
+
+namespace entity {
+    class AbstractArrowEntity;
+}
 
 namespace item {
 
@@ -63,7 +67,7 @@ public:
      *
      * 检查玩家是否有箭矢或无限附魔，开始蓄力。
      */
-    [[nodiscard]] ActionResult onItemRightClick(
+    [[nodiscard]] ItemActionResult onItemRightClick(
         IWorld& world,
         Player& player,
         Hand hand) override;
@@ -73,7 +77,7 @@ public:
      *
      * 发射箭矢。计算蓄力时间和速度。
      */
-    void onPlayerStoppedUse(
+    void onPlayerStoppedUsing(
         ItemStack& stack,
         IWorld& world,
         LivingEntity& entity,
@@ -115,7 +119,7 @@ public:
      * 子类可重写以修改箭矢属性。
      * 默认返回原箭矢。
      */
-    [[nodiscard]] virtual AbstractArrowEntity* customArrow(AbstractArrowEntity* arrow);
+    [[nodiscard]] virtual entity::AbstractArrowEntity* customArrow(entity::AbstractArrowEntity* arrow);
 
 private:
     /**

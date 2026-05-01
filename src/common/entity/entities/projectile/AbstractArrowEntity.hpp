@@ -2,7 +2,7 @@
 
 #include "ProjectileEntity.hpp"
 #include "../../damage/DamageSource.hpp"
-#include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/Block.hpp"
 #include <memory>
 #include <unordered_set>
 
