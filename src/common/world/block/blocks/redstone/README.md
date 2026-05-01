@@ -43,6 +43,8 @@ redstone/
 ├── DaylightDetectorBlock.cpp
 ├── PistonBlock.hpp              # 活塞
 ├── PistonBlock.cpp
+├── PistonStructureHelper.hpp    # 活塞推动结构计算器
+├── PistonStructureHelper.cpp
 ├── PistonHeadBlock.hpp          # 活塞头
 ├── PistonHeadBlock.cpp
 ├── MovingPistonBlock.hpp        # 移动中的活塞（动画代理）
