@@ -9,6 +9,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "common/core/Constants.hpp"
 
 #include <unordered_map>
@@ -56,6 +57,14 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("GlassBottleTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("GlassBottleTestWorld::tickManager not implemented");
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;

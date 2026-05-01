@@ -6,6 +6,7 @@
 #include "ChunkData.hpp"
 #include "../block/BlockRegistry.hpp"
 #include "../biome/Biome.hpp"
+#include "../fluid/Fluid.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -49,6 +50,29 @@ void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
         m_blockCount++;
     } else if (!oldIsAir && newIsAir) {
         m_blockCount--;
+    }
+
+    // 更新随机刻计数器 (MC 1.16.5)
+    // 参考: net.minecraft.world.chunk.ChunkSection.setBlockState
+    if (oldState && oldState->getBlock().ticksRandomly()) {
+        --m_blockTickRefCount;
+    }
+    if (newState && newState->getBlock().ticksRandomly()) {
+        ++m_blockTickRefCount;
+    }
+
+    // 更新流体计数器
+    if (oldState) {
+        const fluid::FluidState* oldFluid = oldState->getFluidState();
+        if (oldFluid && !oldFluid->isEmpty()) {
+            --m_fluidRefCount;
+        }
+    }
+    if (newState) {
+        const fluid::FluidState* newFluid = newState->getFluidState();
+        if (newFluid && !newFluid->isEmpty()) {
+            ++m_fluidRefCount;
+        }
     }
 
     m_blockStates[index] = stateId;

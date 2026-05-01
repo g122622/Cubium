@@ -18,6 +18,8 @@
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/chunk/IChunk.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -105,6 +107,9 @@ Result<void> ServerWorld::initialize()
     m_collisionCache = std::make_unique<physics::CollisionCache>();
     m_physicsEngine = std::make_unique<PhysicsEngine>(*this);
     m_tickManager = std::make_unique<world::tick::TickManager>(*this);
+
+    // 初始化随机数生成器（用于随机刻）
+    m_random.setSeed(m_config.seed);
 
     // 根据维度类型动态设置光照参数
     DimensionType dimensionType = getDimensionType();
@@ -656,6 +661,12 @@ void ServerWorld::tick()
         m_tickManager->tick(currentTick);
     }
 
+    // 调试世界不执行随机刻
+    if (!m_config.isDebugWorld) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::EnvironmentTick");
+        tickEnvironment(m_randomTickSpeed);
+    }
+
     // 调试世界不执行红石清理
     if (!m_config.isDebugWorld) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::RedstoneTick");
@@ -689,6 +700,86 @@ void ServerWorld::tick()
 
     // EntityManager 由 MinecraftServer 驱动
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动
+}
+
+// ============================================================================
+// 随机刻系统
+// ============================================================================
+
+void ServerWorld::tickEnvironment(i32 randomTickSpeed) {
+    if (randomTickSpeed <= 0 || !m_chunkManager) {
+        return;
+    }
+
+    MC_TRACE_EVENT("server.tick", "ServerWorld::tickEnvironment",
+                   "randomTickSpeed", randomTickSpeed);
+
+    // 遍历所有已加载区块
+    // 参考: MC 1.16.5 ServerWorld.tickEnvironment()
+    m_chunkManager->forEachLoadedChunk([this, randomTickSpeed](ChunkData& chunk) {
+        // 获取区块起始坐标（方块坐标）
+        i32 chunkX = chunk.x() * 16;
+        i32 chunkZ = chunk.z() * 16;
+
+        // 遍历区块中的每个段
+        for (i32 sectionIndex = 0; sectionIndex < world::CHUNK_SECTIONS; ++sectionIndex) {
+            const ChunkSection* section = chunk.getSection(sectionIndex);
+            if (!section || !section->needsRandomTickAny()) {
+                continue;
+            }
+
+            // 区块段的 Y 起始坐标
+            i32 sectionY = sectionIndex * 16 + world::MIN_BUILD_HEIGHT;
+
+            // 对每个 randomTickSpeed，选择一个随机位置执行 tick
+            for (i32 i = 0; i < randomTickSpeed; ++i) {
+                BlockPos pos = getBlockRandomPos(chunkX, sectionY, chunkZ);
+
+                // 获取方块状态
+                const BlockState* blockState = chunk.getBlock(
+                    pos.x - chunkX,
+                    pos.y,
+                    pos.z - chunkZ
+                );
+
+                if (blockState) {
+                    // 执行方块随机刻
+                    if (blockState->getBlock().ticksRandomly()) {
+                        Block& block = const_cast<Block&>(blockState->getBlock());
+                        block.randomTick(*this, pos, const_cast<BlockState&>(*blockState), m_random);
+                    }
+
+                    // 执行流体随机刻
+                    const fluid::FluidState* fluidState = blockState->getFluidState();
+                    if (fluidState && !fluidState->isEmpty() && fluidState->getFluid().ticksRandomly()) {
+                        fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
+                        fluid.randomTick(*this, pos, *fluidState, m_random);
+                    }
+                }
+            }
+        }
+
+        return true;  // 继续遍历
+    });
+}
+
+BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ) {
+    // MC 1.16.5 风格的随机位置生成
+    // 使用 LCG (Linear Congruential Generator) 确保分布均匀
+    // 参考: net.minecraft.world.World.getBlockRandomPos
+    m_updateLCG = m_updateLCG * 3 + 1013904223;
+    i32 i = static_cast<i32>(m_updateLCG >> 2);
+
+    // 计算 x, y, z 偏移
+    // x = chunkX + (i & 15)          -> 范围 [0, 15]
+    // y = sectionY + ((i >> 16) & 15) -> 范围 [0, 15]
+    // z = chunkZ + ((i >> 8) & 15)   -> 范围 [0, 15]
+
+    return BlockPos(
+        chunkX + (i & 15),
+        sectionY + ((i >> 16) & 15),
+        chunkZ + ((i >> 8) & 15)
+    );
 }
 
 size_t ServerWorld::chunkCount() const

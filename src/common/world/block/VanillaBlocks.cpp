@@ -13,6 +13,9 @@
 #include "blocks/building/FenceBlock.hpp"
 #include "blocks/building/TrapDoorBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
+#include "blocks/ice/SnowBlock.hpp"
+#include "blocks/dirt/SpreadableSnowyDirtBlock.hpp"
+#include "blocks/nether/NyliumBlock.hpp"
 #include "blocks/ocean/DriedKelpBlock.hpp"
 #include "blocks/ocean/SeaPickleBlock.hpp"
 #include "blocks/vegetation/CactusBlock.hpp"
@@ -658,7 +661,7 @@ void VanillaBlocks::registerBaseBlocks() {
 
     // 草方块 - ID 2
     // 参考: new GrassBlock(Properties.create(Material.ORGANIC).tickRandomly().hardnessAndResistance(0.6F))
-    GRASS_BLOCK = &registry.registerBlock<SimpleBlock>(
+    GRASS_BLOCK = &registry.registerBlock<blocks::GrassBlock>(
         ResourceLocation("minecraft:grass_block"),
         BlockProperties(Material::EARTH)
             .hardness(0.6f)
@@ -745,11 +748,15 @@ void VanillaBlocks::registerBaseBlocks() {
         BlockProperties(Material::SAND).hardness(0.6f)
     );
 
-    // 雪 - ID 18
-    // 雪层：透明度1，不传播天空光（阻挡）
-    SNOW = &registry.registerBlock<SimpleBlock>(
+    // 雪层 - ID 78
+    // SnowBlock: 雪层方块，有LAYERS属性(1-8层)，在光照>11时会融化
+    // 参考: MC 1.16.5 SnowBlock
+    SNOW = &registry.registerBlock<blocks::SnowBlock>(
         ResourceLocation("minecraft:snow"),
-        BlockProperties(Material::SNOW).hardness(0.2f).opacity(1)
+        BlockProperties(Material::SNOW)
+            .hardness(0.2f)
+            .notSolid()
+            .noCollision()
     );
 
     // 雪块 - ID 80
@@ -1917,10 +1924,14 @@ void VanillaBlocks::registerNetherExtensionBlocks() {
     auto& registry = BlockRegistry::instance();
 
     // 岩浆块 - 发光3级
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(0.5F).setLightLevel(3))
-    MAGMA = &registry.registerBlock<SimpleBlock>(
+    // 参考: new MagmaBlock(Properties.create(Material.ROCK).hardnessAndResistance(0.5F).setLightValue(3))
+    // 会站在上面造成伤害，在水中产生气泡柱
+    MAGMA = &registry.registerBlock<blocks::MagmaBlock>(
         ResourceLocation("minecraft:magma"),
-        BlockProperties(Material::ROCK).hardness(0.5f).lightLevel(3));
+        BlockProperties(Material::ROCK)
+            .hardness(0.5f)
+            .lightLevel(3)
+    );
 
     // 地狱疣块
     // 参考: new Block(Properties.create(Material.ORGANIC).hardnessAndResistance(1.0F))
@@ -1939,14 +1950,22 @@ void VanillaBlocks::registerNetherExtensionBlocks() {
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 绯红菌岩
-    CRIMSON_NYLIUM = &registry.registerBlock<SimpleBlock>(
+    // 参考: new NyliumBlock(Properties.create(Material.ROCK).hardnessAndResistance(0.4F))
+    CRIMSON_NYLIUM = &registry.registerBlock<blocks::NyliumBlock>(
         ResourceLocation("minecraft:crimson_nylium"),
-        BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f));
+        BlockProperties(Material::ROCK)
+            .hardness(0.4f)
+            .resistance(0.4f)
+    );
 
     // 诡异菌岩
-    WARPED_NYLIUM = &registry.registerBlock<SimpleBlock>(
+    // 参考: new NyliumBlock(Properties.create(Material.ROCK).hardnessAndResistance(0.4F))
+    WARPED_NYLIUM = &registry.registerBlock<blocks::NyliumBlock>(
         ResourceLocation("minecraft:warped_nylium"),
-        BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f));
+        BlockProperties(Material::ROCK)
+            .hardness(0.4f)
+            .resistance(0.4f)
+    );
 
     // 菌光体
     SHROOMLIGHT = &registry.registerBlock<SimpleBlock>(
@@ -1987,10 +2006,13 @@ void VanillaBlocks::registerNaturalBlocks() {
         BlockProperties(Material::EARTH).hardness(0.6f));
 
     // 菌丝
-    // 参考: new SnowyDirtBlock(Properties.create(Material.EARTH).hardnessAndResistance(0.6F))
-    MYCELIUM = &registry.registerBlock<SimpleBlock>(
+    // 参考: new MyceliumBlock(Properties.create(Material.EARTH).hardnessAndResistance(0.6F))
+    MYCELIUM = &registry.registerBlock<blocks::MyceliumBlock>(
         ResourceLocation("minecraft:mycelium"),
-        BlockProperties(Material::EARTH).hardness(0.6f));
+        BlockProperties(Material::EARTH)
+            .hardness(0.6f)
+            .soundType(BlockSoundTypes::GRASS)
+    );
 
     // 草径
     // 参考: new Block(Properties.create(Material.EARTH).hardnessAndResistance(0.65F))

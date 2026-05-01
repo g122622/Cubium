@@ -13,6 +13,7 @@
 #include "../src/common/world/IWorld.hpp"
 #include "../src/common/world/chunk/ChunkData.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
+#include "../src/common/world/tick/manager/TickManager.hpp"
 #include "../src/common/core/Constants.hpp"
 #include "../src/common/world/block/Block.hpp"
 
@@ -60,6 +61,14 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
+    }
 
 private:
     u64 m_currentTick = 0;

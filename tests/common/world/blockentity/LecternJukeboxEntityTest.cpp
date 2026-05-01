@@ -7,6 +7,7 @@
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/chunk/ChunkData.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 using namespace mc;
 using namespace mc::blockentity;
@@ -53,6 +54,14 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("DummyWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("DummyWorld::tickManager not implemented");
+    }
 };
 
 } // namespace

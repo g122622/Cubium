@@ -268,12 +268,12 @@ void ServerTickList<T>::scheduleTick(const BlockPos& pos, T& target, i32 delay,
     // 创建新的tick条目
     ScheduledTick<T> entry(pos, &target, scheduledTick, priority, nextTickEntryId());
 
-    // 先检查是否已存在
+    // MC 1.16.5 行为：已存在相同 的 tick 时，保留旧的，忽略新的
+    // 参考: net.minecraft.world.server.ServerTickList.addEntry()
     auto existingIt = m_pendingTicksSet.find(entry);
     if (existingIt != m_pendingTicksSet.end()) {
-        // 已存在，需要先移除旧的
-        m_pendingTicksTree.erase(*existingIt);
-        m_pendingTicksSet.erase(existingIt);
+        // 已存在相同 (position, target) 的 tick，保留旧的，忽略新的
+        return;
     }
 
     // 添加新的
@@ -319,6 +319,8 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
     m_executedThisTick.clear();
 
     // 从TreeSet取出scheduledTick <= currentTick的条目
+    // MC 1.16.5 行为：只有成功移到处理队列时才增加计数
+    // 参考: net.minecraft.world.server.ServerTickList.tick()
     size_t count = 0;
     auto it = m_pendingTicksTree.begin();
     while (it != m_pendingTicksTree.end() && count < maxTicks) {
@@ -335,12 +337,12 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
             m_ticksThisTick.push(tick);
             it = m_pendingTicksTree.erase(it);
             m_pendingTicksSet.erase(tick);
+            ++count;  // 只有成功移到处理队列时才计数
         } else {
-            // 区块未加载，重新调度(delay=0)
-            // 这里简化处理：保持原样，下次再试
+            // 区块未加载，保持原样，下次再试
             ++it;
+            // 不增加计数，继续检查下一个
         }
-        ++count;
     }
 
     // 执行tick回调
@@ -371,11 +373,12 @@ std::vector<ScheduledTick<T>> ServerTickList<T>::getPendingTicks(
 
     std::vector<ScheduledTick<T>> result;
 
-    // 区块边界
-    i32 minX = chunkX * 16;
-    i32 maxX = minX + 16;
-    i32 minZ = chunkZ * 16;
-    i32 maxZ = minZ + 16;
+    // MC 1.16.5 行为：边界外扩 2 格
+    // 参考: net.minecraft.world.server.ServerTickList.getPending(ChunkPos, boolean, boolean)
+    i32 minX = chunkX * 16 - 2;
+    i32 maxX = (chunkX + 1) * 16 + 2;
+    i32 minZ = chunkZ * 16 - 2;
+    i32 maxZ = (chunkZ + 1) * 16 + 2;
 
     // 从TreeSet中收集
     for (auto it = m_pendingTicksTree.begin(); it != m_pendingTicksTree.end(); ) {

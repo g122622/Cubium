@@ -69,6 +69,13 @@ public:
     [[nodiscard]] bool needsRecalculate() const { return m_needsRecalculate; }
     void setNeedsRecalculate(bool value) { m_needsRecalculate = value; }
 
+    // 随机刻计数器 (MC 1.16.5 用于性能优化)
+    [[nodiscard]] bool needsRandomTickAny() const { return m_blockTickRefCount > 0 || m_fluidRefCount > 0; }
+    [[nodiscard]] bool needsRandomTick() const { return m_blockTickRefCount > 0; }
+    [[nodiscard]] bool needsRandomTickFluid() const { return m_fluidRefCount > 0; }
+    [[nodiscard]] u16 blockTickRefCount() const { return m_blockTickRefCount; }
+    [[nodiscard]] u16 fluidRefCount() const { return m_fluidRefCount; }
+
     // 光照
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const;
     void setSkyLight(i32 x, i32 y, i32 z, u8 light);
@@ -120,6 +127,11 @@ private:
     NibbleArray m_blockLight;        // 方块光照 (4位/方块)
     u16 m_blockCount = 0;            // 非空气方块数量
     bool m_needsRecalculate = false;
+
+    // 随机刻计数器 (MC 1.16.5 用于性能优化)
+    // 参考: net.minecraft.world.chunk.ChunkSection.blockTickRefCount 和 fluidRefCount
+    u16 m_blockTickRefCount = 0;     // ticksRandomly 方块数量
+    u16 m_fluidRefCount = 0;         // 流体方块数量
 };
 
 // ============================================================================

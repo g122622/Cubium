@@ -319,6 +319,20 @@ public:
     [[nodiscard]] size_t loadedChunkCount() const;
 
     /**
+     * @brief 遍历所有已加载区块
+     *
+     * @param callback 对每个区块调用的回调函数，返回 false 时停止遍历
+     */
+    void forEachLoadedChunk(const std::function<bool(ChunkData&)>& callback);
+
+    /**
+     * @brief 遍历所有已加载区块（const 版本）
+     *
+     * @param callback 对每个区块调用的回调函数，返回 false 时停止遍历
+     */
+    void forEachLoadedChunk(const std::function<bool(const ChunkData&)>& callback) const;
+
+    /**
      * @brief 获取区块持有者数量
      */
     [[nodiscard]] size_t singleChunkLifecycleManagerCount() const;

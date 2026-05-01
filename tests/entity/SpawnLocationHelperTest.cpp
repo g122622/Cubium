@@ -7,6 +7,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 #include <unordered_map>
 
@@ -106,6 +107,14 @@ public:
                 }
             }
         }
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
     }
 
 private:

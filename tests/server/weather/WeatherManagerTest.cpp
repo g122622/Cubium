@@ -7,6 +7,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/chunk/ChunkData.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "common/util/math/random/Random.hpp"
 
 #include <memory>
@@ -76,6 +77,14 @@ public:
     void setUltraWarm(bool value)
     {
         m_ultraWarm = value;
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("WeatherUtilsTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("WeatherUtilsTestWorld::tickManager not implemented");
     }
 
 private:

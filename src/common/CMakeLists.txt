@@ -392,6 +392,9 @@ add_library(mc_common STATIC
     world/block/blocks/ChestBlock.cpp
     world/block/blocks/TrappedChestBlock.cpp
     world/block/blocks/HopperBlock.cpp
+
+    # World - Block - Dirt
+    world/block/blocks/dirt/SpreadableSnowyDirtBlock.cpp
     world/block/blocks/DoorBlock.cpp
     world/block/blocks/FenceGateBlock.cpp
 
@@ -460,6 +463,7 @@ add_library(mc_common STATIC
 
     # World - Block - Ice
     world/block/blocks/ice/IceBlock.cpp
+    world/block/blocks/ice/SnowBlock.cpp
 
     # World - Block - Ocean
     world/block/blocks/ocean/SeaPickleBlock.cpp
@@ -467,6 +471,7 @@ add_library(mc_common STATIC
 
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp
+    world/block/blocks/nether/NyliumBlock.cpp
 
     # World - Block - End
     world/block/blocks/end/EndPortalBlock.cpp

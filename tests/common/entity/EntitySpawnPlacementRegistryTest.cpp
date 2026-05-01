@@ -6,6 +6,7 @@
 #include "world/block/blocks/special/SpecialBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/IWorld.hpp"
+#include "world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 
 #include <memory>
@@ -139,6 +140,14 @@ public:
 
     [[nodiscard]] Difficulty difficulty() const override {
         return Difficulty::Easy;
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("SpawnPlacementTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("SpawnPlacementTestWorld::tickManager not implemented");
     }
 
 private:

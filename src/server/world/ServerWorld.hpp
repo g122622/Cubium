@@ -14,6 +14,7 @@
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
@@ -113,6 +114,33 @@ public:
     // ========== 更新循环 ==========
 
     void tick();
+
+private:
+    /**
+     * @brief 执行环境随机刻
+     *
+     * 对每个已加载区块，随机选择位置执行方块和流体的随机刻。
+     * 这是农作物生长、冰融化、火焰蔓延等机制的核心。
+     *
+     * 参考: MC 1.16.5 ServerWorld.tickEnvironment()
+     *
+     * @param randomTickSpeed 随机刻速度（默认为3，可在游戏规则中设置）
+     */
+    void tickEnvironment(i32 randomTickSpeed);
+
+    /**
+     * @brief 生成随机方块位置
+     *
+     * 使用 MC 风格的 LCG 生成随机位置，确保同一 tick 内位置分布均匀。
+     *
+     * @param chunkX 区块 X 坐标（方块坐标）
+     * @param sectionY 区块段 Y 坐标（方块坐标）
+     * @param chunkZ 区块 Z 坐标（方块坐标）
+     * @return 随机方块位置
+     */
+    [[nodiscard]] BlockPos getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ);
+
+public:
 
     // ========== 统计 ==========
 
@@ -464,6 +492,11 @@ private:
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
     ParticleBroadcastCallback m_onBroadcastParticle;
+
+    // 随机刻系统
+    math::Random m_random;            ///< 世界随机数生成器
+    i64 m_updateLCG = 0;              ///< 用于随机刻位置的 LCG 状态
+    i32 m_randomTickSpeed = 3;        ///< 随机刻速度（游戏规则可配置）
 };
 
 } // namespace server

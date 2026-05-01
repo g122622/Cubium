@@ -8,6 +8,7 @@
 #include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/chunk/ChunkData.hpp"
+#include "world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 
 #include <memory>
@@ -87,6 +88,14 @@ public:
     [[nodiscard]] i32 scheduleCalls() const { return m_scheduleCalls; }
     [[nodiscard]] i32 lastScheduledDelay() const { return m_lastScheduledDelay; }
     [[nodiscard]] world::tick::TickPriority lastScheduledPriority() const { return m_lastScheduledPriority; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("LecternTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("LecternTestWorld::tickManager not implemented");
+    }
 
 private:
     BlockState m_state;

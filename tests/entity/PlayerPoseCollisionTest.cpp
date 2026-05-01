@@ -4,6 +4,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "common/core/Constants.hpp"
 
 namespace mc {
@@ -49,6 +50,14 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("PlayerPoseCollisionWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("PlayerPoseCollisionWorld::tickManager not implemented");
+    }
 
 private:
     bool m_lowCeiling = false;

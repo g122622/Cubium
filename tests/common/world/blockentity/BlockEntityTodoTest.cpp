@@ -134,6 +134,14 @@ public:
     [[nodiscard]] i32 lastSetFlags() const { return m_lastSetFlags; }
     [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
 
+    // TickManager interface (stubbed)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("DummyWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("DummyWorld::tickManager not implemented");
+    }
+
 private:
     const BlockState* m_state = nullptr;
     const BlockState* m_lastSetBlockState = nullptr;

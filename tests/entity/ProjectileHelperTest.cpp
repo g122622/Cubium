@@ -4,6 +4,7 @@
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
 #include <utility>
@@ -88,6 +89,14 @@ public:
         T& reference = *entity;
         m_entities.push_back(std::move(entity));
         return reference;
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("ProjectileHelperTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("ProjectileHelperTestWorld::tickManager not implemented");
     }
 
 private:

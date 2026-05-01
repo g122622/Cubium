@@ -207,6 +207,14 @@ public:
         return m_spawnedEntityCount;
     }
 
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("BlockRulesTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("BlockRulesTestWorld::tickManager not implemented");
+    }
+
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z, u8 fallback) {
         const auto it = lights.find(BlockPos(x, y, z));

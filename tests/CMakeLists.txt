@@ -20,6 +20,7 @@ add_executable(mc_tests
     common/test_chunkloadticket.cpp
     # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
     common/test_property.cpp
+    common/TestWorldHelper.cpp
     common/test_block.cpp
     common/test_chunk_generation.cpp
     common/test_biome.cpp
@@ -677,6 +678,7 @@ target_include_directories(mc_tests
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/tests
 )
 
 target_compile_definitions(mc_tests

@@ -11,6 +11,7 @@
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
+#include "world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 
 #include <map>
@@ -90,6 +91,14 @@ public:
 
     void setBlockLightAt(const BlockPos& pos, u8 light) {
         m_blockLight[pos] = light;
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("VegetationTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("VegetationTestWorld::tickManager not implemented");
     }
 
 private:

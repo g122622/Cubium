@@ -3,6 +3,7 @@
 #include "entity/entities/player/GameModeUtils.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "physics/PhysicsEngine.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkData.hpp"
@@ -111,6 +112,14 @@ public:
                    f32 volume,
                    f32 pitch) override {
         m_lastSound = SoundRecord{soundEventId, category, position, volume, pitch};
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
 
 private:

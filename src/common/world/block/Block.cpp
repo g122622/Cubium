@@ -527,12 +527,12 @@ void Block::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
 }
 
 void Block::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    // 默认实现：空操作
-    // 需要随机tick行为的方块应重写此方法
-    (void)world;
-    (void)pos;
-    (void)state;
-    (void)random;
+    // MC 1.16.5 行为：默认调用 tick()
+    // 参考: net.minecraft.block.AbstractBlock.randomTick()
+    // 如果方块设置了 ticksRandomly = true 但没有重写 randomTick()，
+    // 则在随机刻时执行 tick() 方法
+    (void)random;  // 默认 tick() 不使用随机数
+    tick(world, pos, state);
 }
 
 void Block::neighborChanged(IWorld& world, const BlockPos& pos,

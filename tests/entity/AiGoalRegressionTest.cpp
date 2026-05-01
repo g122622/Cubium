@@ -10,6 +10,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "common/core/Constants.hpp"
 
 #include <algorithm>
@@ -107,6 +108,14 @@ public:
         }
 
         return contains(m_lavaBlocks, pos.x, pos.y, pos.z);
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("TestGoalWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("TestGoalWorld::tickManager not implemented");
     }
 
 private:

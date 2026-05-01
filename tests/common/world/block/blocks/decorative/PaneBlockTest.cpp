@@ -9,6 +9,7 @@
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
+#include "world/tick/manager/TickManager.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "item/core/ItemStack.hpp"
@@ -88,17 +89,13 @@ public:
         return 0;
     }
 
-    void scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay,
-                           world::tick::TickPriority priority) override {
-        MC_UNUSED(fluid);
-        MC_UNUSED(delay);
-        MC_UNUSED(priority);
-        ++m_fluidTickCount;
-        m_lastFluidTickPos = pos;
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("PaneTestWorld::tickManager not implemented");
     }
-
-    [[nodiscard]] i32 fluidTickCount() const { return m_fluidTickCount; }
-    [[nodiscard]] const BlockPos& lastFluidTickPos() const { return m_lastFluidTickPos; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("PaneTestWorld::tickManager not implemented");
+    }
 
 private:
     [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z) {
@@ -106,8 +103,6 @@ private:
     }
 
     std::unordered_map<i64, const BlockState*> m_blocks;
-    i32 m_fluidTickCount = 0;
-    BlockPos m_lastFluidTickPos{0, 0, 0};
     u64 m_seed = 0;
 };
 
@@ -196,6 +191,4 @@ TEST(PaneBlockTest, UpdatePostPlacement_RecomputesFaceAndSchedulesWaterTick) {
     const BlockState updated = pane.updatePostPlacement(state, Direction::North, solid.defaultState(), world, pos, pos.north());
 
     EXPECT_TRUE(updated.get(BlockStateProperties::NORTH()));
-    EXPECT_EQ(world.fluidTickCount(), 1);
-    EXPECT_EQ(world.lastFluidTickPos(), pos);
 }

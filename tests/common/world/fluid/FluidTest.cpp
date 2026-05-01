@@ -8,6 +8,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "common/core/Constants.hpp"
 
 #include <unordered_map>
@@ -69,6 +70,14 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("FlowingFluidTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("FlowingFluidTestWorld::tickManager not implemented");
+    }
 
 private:
     static i64 packPos(i32 x, i32 y, i32 z) {

@@ -4,7 +4,9 @@
 #include "world/IWorld.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
+#include "world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <map>
 #include <utility>
@@ -83,6 +85,14 @@ public:
         m_blockLight[pos] = light;
     }
 
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        return m_tickManager;
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        return m_tickManager;
+    }
+
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z) {
         const BlockPos pos(x, y, z);
@@ -97,6 +107,7 @@ private:
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
     bool m_isUltraWarm = false;
+    test::DummyTickManager m_tickManager;
 };
 
 class SequenceRandom final : public math::IRandom {

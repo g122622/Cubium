@@ -1149,4 +1149,24 @@ size_t ServerChunkManager::pendingTaskCount() const
     return m_workerPool.pendingTaskCount();
 }
 
+void ServerChunkManager::forEachLoadedChunk(const std::function<bool(ChunkData&)>& callback)
+{
+    std::lock_guard<std::mutex> lock(m_chunksMutex);
+    for (auto& [key, chunk] : m_chunks) {
+        if (chunk && !callback(*chunk)) {
+            break;
+        }
+    }
+}
+
+void ServerChunkManager::forEachLoadedChunk(const std::function<bool(const ChunkData&)>& callback) const
+{
+    std::lock_guard<std::mutex> lock(m_chunksMutex);
+    for (const auto& [key, chunk] : m_chunks) {
+        if (chunk && !callback(*chunk)) {
+            break;
+        }
+    }
+}
+
 } // namespace mc::server
