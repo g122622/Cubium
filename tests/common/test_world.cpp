@@ -80,6 +80,33 @@ TEST_F(ChunkTest, ChunkSection_BlockCount) {
     EXPECT_EQ(section.getBlockCount(), 1);
 }
 
+TEST_F(ChunkTest, ChunkSection_RandomTickCounters) {
+    ChunkSection section;
+
+    EXPECT_FALSE(section.needsRandomTickAny());
+    EXPECT_FALSE(section.needsRandomTick());
+
+    section.setBlock(0, 0, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    EXPECT_TRUE(section.needsRandomTickAny());
+    EXPECT_TRUE(section.needsRandomTick());
+    EXPECT_EQ(section.blockTickRefCount(), 1);
+
+    section.setBlock(0, 0, 0, &VanillaBlocks::DIRT->defaultState());
+    EXPECT_FALSE(section.needsRandomTickAny());
+    EXPECT_EQ(section.blockTickRefCount(), 0);
+}
+
+TEST_F(ChunkTest, ChunkSection_FastAccessRebuildsRandomTickCounters) {
+    ChunkSection section;
+    i32 index = ChunkSection::blockIndex(3, 5, 7);
+
+    section.setBlockStateIdFast(index, VanillaBlocks::GRASS_BLOCK->defaultState().stateId());
+
+    EXPECT_TRUE(section.needsRandomTickAny());
+    EXPECT_TRUE(section.needsRandomTick());
+    EXPECT_EQ(section.blockTickRefCount(), 1);
+}
+
 TEST_F(ChunkTest, ChunkSection_LightAccess) {
     ChunkSection section;
 

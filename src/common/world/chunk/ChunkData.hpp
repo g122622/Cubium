@@ -49,12 +49,7 @@ public:
         }
         return m_blockStates[static_cast<size_t>(index)];
     }
-    void setBlockStateIdFast(i32 index, u32 stateId) {
-        if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
-            return;
-        }
-        m_blockStates[static_cast<size_t>(index)] = stateId;
-    }
+    void setBlockStateIdFast(i32 index, u32 stateId);
 
     // 索引计算
     [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z) {
@@ -66,6 +61,7 @@ public:
     [[nodiscard]] bool hasOnlyAir() const { return m_blockCount == 0; } // 与 isEmpty 等价，但语义更明确
     [[nodiscard]] u16 getBlockCount() const { return m_blockCount; }
     void setBlockCount(u16 count) { m_blockCount = count; }
+    void rebuildTickCounters();
     [[nodiscard]] bool needsRecalculate() const { return m_needsRecalculate; }
     void setNeedsRecalculate(bool value) { m_needsRecalculate = value; }
 

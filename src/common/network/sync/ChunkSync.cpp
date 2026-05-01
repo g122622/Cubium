@@ -202,6 +202,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
 
         // 更新 blockCount
         section->setBlockCount(static_cast<u16>(sectionBlocks));
+        section->rebuildTickCounters();
 
         // 读取光照数据
         // 天空光照: 2048字节 (每方块4位)
@@ -265,6 +266,7 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(
     std::memcpy(blockLight.data().data(), data + offset, NibbleArray::BYTE_SIZE);
 
     section->setBlockCount(blockCount);
+    section->rebuildTickCounters();
 
     return section;
 }

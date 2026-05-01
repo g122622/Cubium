@@ -32,6 +32,48 @@ u32 ChunkSection::getBlockStateId(i32 x, i32 y, i32 z) const {
     return m_blockStates[blockIndex(x, y, z)];
 }
 
+void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId) {
+    if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
+        return;
+    }
+
+    const size_t actualIndex = static_cast<size_t>(index);
+    u32 oldStateId = m_blockStates[actualIndex];
+    const BlockState* oldState = Block::getBlockState(oldStateId);
+    const BlockState* newState = Block::getBlockState(stateId);
+
+    bool oldIsAir = oldState ? oldState->isAir() : true;
+    bool newIsAir = newState ? newState->isAir() : true;
+
+    if (oldIsAir && !newIsAir) {
+        ++m_blockCount;
+    } else if (!oldIsAir && newIsAir) {
+        --m_blockCount;
+    }
+
+    if (oldState && oldState->getBlock().ticksRandomly()) {
+        --m_blockTickRefCount;
+    }
+    if (newState && newState->getBlock().ticksRandomly()) {
+        ++m_blockTickRefCount;
+    }
+
+    if (oldState) {
+        const fluid::FluidState* oldFluid = oldState->getFluidState();
+        if (oldFluid && !oldFluid->isEmpty()) {
+            --m_fluidRefCount;
+        }
+    }
+    if (newState) {
+        const fluid::FluidState* newFluid = newState->getFluidState();
+        if (newFluid && !newFluid->isEmpty()) {
+            ++m_fluidRefCount;
+        }
+    }
+
+    m_blockStates[actualIndex] = stateId;
+}
+
 void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
@@ -86,6 +128,27 @@ const BlockState* ChunkSection::getBlock(i32 x, i32 y, i32 z) const {
 
     u32 stateId = getBlockStateId(x, y, z);
     return Block::getBlockState(stateId);
+}
+
+void ChunkSection::rebuildTickCounters() {
+    m_blockTickRefCount = 0;
+    m_fluidRefCount = 0;
+
+    for (u32 stateId : m_blockStates) {
+        const BlockState* state = Block::getBlockState(stateId);
+        if (state == nullptr) {
+            continue;
+        }
+
+        if (!state->isAir() && state->getBlock().ticksRandomly()) {
+            ++m_blockTickRefCount;
+        }
+
+        const fluid::FluidState* fluidState = state->getFluidState();
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            ++m_fluidRefCount;
+        }
+    }
 }
 
 void ChunkSection::setBlock(i32 x, i32 y, i32 z, const BlockState* state) {
@@ -192,6 +255,7 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
     std::vector<u8> blockLightData(data + offset, data + offset + NibbleArray::BYTE_SIZE);
     section->m_blockLight = NibbleArray(std::move(blockLightData));
 
+    section->rebuildTickCounters();
     return std::move(section);
 }
 
@@ -202,6 +266,7 @@ void ChunkSection::fill(u32 stateId) {
 
     const BlockState* state = Block::getBlockState(stateId);
     m_blockCount = (state && !state->isAir()) ? VOLUME : 0;
+    rebuildTickCounters();
     m_needsRecalculate = true;
 }
 

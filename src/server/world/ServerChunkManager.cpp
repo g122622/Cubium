@@ -1151,8 +1151,18 @@ size_t ServerChunkManager::pendingTaskCount() const
 
 void ServerChunkManager::forEachLoadedChunk(const std::function<bool(ChunkData&)>& callback)
 {
-    std::lock_guard<std::mutex> lock(m_chunksMutex);
-    for (auto& [key, chunk] : m_chunks) {
+    std::vector<std::shared_ptr<ChunkData>> chunks;
+    {
+        std::lock_guard<std::mutex> lock(m_chunksMutex);
+        chunks.reserve(m_chunks.size());
+        for (const auto& [key, chunk] : m_chunks) {
+            if (chunk) {
+                chunks.push_back(chunk);
+            }
+        }
+    }
+
+    for (auto& chunk : chunks) {
         if (chunk && !callback(*chunk)) {
             break;
         }
@@ -1161,8 +1171,18 @@ void ServerChunkManager::forEachLoadedChunk(const std::function<bool(ChunkData&)
 
 void ServerChunkManager::forEachLoadedChunk(const std::function<bool(const ChunkData&)>& callback) const
 {
-    std::lock_guard<std::mutex> lock(m_chunksMutex);
-    for (const auto& [key, chunk] : m_chunks) {
+    std::vector<std::shared_ptr<const ChunkData>> chunks;
+    {
+        std::lock_guard<std::mutex> lock(m_chunksMutex);
+        chunks.reserve(m_chunks.size());
+        for (const auto& [key, chunk] : m_chunks) {
+            if (chunk) {
+                chunks.push_back(chunk);
+            }
+        }
+    }
+
+    for (const auto& chunk : chunks) {
         if (chunk && !callback(*chunk)) {
             break;
         }
