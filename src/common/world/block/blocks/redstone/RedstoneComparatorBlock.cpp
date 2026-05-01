@@ -99,14 +99,16 @@ void RedstoneComparatorBlock::storeOutputSignal(IWorld& world, const BlockPos& p
 bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos,
                                             const BlockState& state) const {
     // MC Java 正确逻辑：
-    // 1. 获取主输入信号（背面）
+    // 1. 获取主输入信号（背面）- 使用 calculateInputStrength 检测容器信号
     // 2. 获取侧面输入信号
     // 3. 如果输入为0，不充能
     // 4. 如果输入 > 侧面信号，充能
     // 5. 如果输入 == 侧面信号且是比较模式，充能
     // 6. 否则不充能
 
-    i32 mainInput = getInputSignal(world, pos, state);
+    // 关键：使用 calculateInputStrength 而非 getInputSignal
+    // calculateInputStrength 会检测容器信号覆盖
+    i32 mainInput = calculateInputStrength(world, pos, state);
 
     // 输入为0时不激活
     if (mainInput == 0) {

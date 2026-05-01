@@ -4,8 +4,10 @@
 namespace mc {
 namespace blocks {
 
-// 木按钮按压持续时间（15 tick = 1.5秒）
-static constexpr i32 WOOD_BUTTON_PRESS_TIME = 15;
+// 木按钮按压持续时间（30 tick = 1.5秒）
+// MC 1.16.5: AbstractButtonBlock.java 第53-55行
+// func_235471_c_() 返回 this.wooden ? 30 : 20
+static constexpr i32 WOOD_BUTTON_PRESS_TIME = 30;
 
 WoodButtonBlock::WoodButtonBlock(const BlockProperties& properties)
     : AbstractButtonBlock(properties, WOOD_BUTTON_PRESS_TIME) {

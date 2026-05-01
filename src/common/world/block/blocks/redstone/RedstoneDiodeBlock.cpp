@@ -1,5 +1,4 @@
 #include "RedstoneDiodeBlock.hpp"
-#include "RedstoneWireBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
@@ -187,22 +186,22 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
             const Block& sideBlock = sideState->getBlock();
             Direction oppositeSide = Directions::opposite(side);
 
-            // MC Java: 使用 getAlternateInput 检查
-            // 对于中继器，只有其他二极管的信号才能锁定
-            // getAlternateInput 在 RepeaterBlock 中重写为 isDiode
+            // MC Java: 中继器只能被其他二极管的侧面输出锁定
+            // 关键：侧面二极管的输出端必须朝向当前中继器
+            // 参考 RepeaterBlock.getAlternateInput() 和 isDiode() 的实现
             i32 power = 0;
 
             // 检查是否是二极管（中继器或比较器）
             if (isDiode(*sideState)) {
-                // 对于二极管，获取其输出信号
-                power = sideBlock.getWeakPower(*sideState, world, sidePos, oppositeSide);
-            } else if (sideState->is(VanillaBlocks::REDSTONE_WIRE)) {
-                // 红石线的信号
-                power = RedstoneWireBlock::getPower(*sideState);
-            } else if (sideBlock.canProvidePower(*sideState)) {
-                // 其他红石信号源
-                power = sideBlock.getStrongPower(*sideState, world, sidePos, oppositeSide);
+                // 对于二极管，只有当其输出端朝向当前中继器时才计入锁定信号
+                // 即：侧面二极管的朝向必须与side相同（朝向我们）
+                Direction sideFacing = getFacing(*sideState);
+                if (sideFacing == oppositeSide && isPowered(*sideState)) {
+                    power = sideBlock.getWeakPower(*sideState, world, sidePos, oppositeSide);
+                }
             }
+            // 注意：红石线和其他信号源不能锁定中继器！
+            // MC源码中 RepeaterBlock.getAlternateInput 只检查 isDiode
 
             maxPower = std::max(maxPower, power);
         }

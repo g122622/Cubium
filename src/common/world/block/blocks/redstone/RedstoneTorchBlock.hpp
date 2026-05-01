@@ -44,6 +44,8 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
     // ========== 红石接口 ==========
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const override {

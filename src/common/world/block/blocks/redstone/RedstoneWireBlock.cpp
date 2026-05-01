@@ -206,6 +206,7 @@ i32 RedstoneWireBlock::getWeakPower(
     Direction side
 ) const {
     MC_UNUSED(world);
+    MC_UNUSED(pos);
 
     // 如果暂时禁用信号输出，返回0
     if (!m_canProvidePower) {
@@ -217,8 +218,22 @@ i32 RedstoneWireBlock::getWeakPower(
         return 0;
     }
 
-    // MC Java: 只有该方向有连接时才输出信号
-    // 获取该方向对应的连接属性
+    i32 power = getPower(state);
+    if (power == 0) {
+        return 0;
+    }
+
+    // MC Java: getWeakPower 的逻辑
+    // 对于向上方向（side == Direction.UP）：直接返回信号强度
+    // 对于水平方向：只有该方向有连接时才输出信号
+    // 参考 RedstoneWireBlock.java 第347-358行
+
+    if (side == Direction::Up) {
+        // 向上方向：MC Java 中向上总是输出信号
+        return power;
+    }
+
+    // 水平方向：需要检查连接
     RedstoneSide connection = RedstoneSide::None;
     switch (side) {
         case Direction::North:
@@ -233,9 +248,6 @@ i32 RedstoneWireBlock::getWeakPower(
         case Direction::West:
             connection = state.get(WEST_PROP());
             break;
-        case Direction::Up:
-            // 向上总是可以输出（如果有信号）
-            return getPower(state);
         default:
             return 0;
     }
@@ -245,7 +257,7 @@ i32 RedstoneWireBlock::getWeakPower(
         return 0;
     }
 
-    return getPower(state);
+    return power;
 }
 
 i32 RedstoneWireBlock::getStrongPower(
@@ -305,25 +317,46 @@ RedstoneSide RedstoneWireBlock::getConnection(IWorld& world,
         return RedstoneSide::None;
     }
 
-    // 检查相邻方块是否可以连接红石
-    if (canConnectTo(*neighborState)) {
+    // MC Java: canConnectTo 检查相邻方块是否可以连接红石
+    // 参数 side 是从红石线指向相邻方块的方向
+    if (canConnectTo(*neighborState, direction)) {
         return RedstoneSide::Side;
     }
 
-    // 检查向上连接
+    // MC Java: 检查向上连接
+    // 如果相邻方块是实体方块，检查其上方是否有红石线
     if (isNormalCube(*neighborState)) {
-        // 相邻是实体方块，检查其上方是否有红石线
         BlockPos upPos = neighborPos.up();
         const BlockState* upState = world.getBlockState(upPos);
         if (upState && upState->is(this)) {
             return RedstoneSide::Up;
         }
     } else {
-        // 相邻不是实体方块，检查其下方是否有红石线
-        BlockPos downPos = neighborPos.down();
-        const BlockState* downState = world.getBlockState(downPos);
-        if (downState && downState->is(this)) {
+        // MC Java: 相邻不是实体方块时，需要检查两种情况：
+        // 1. 相邻方块下方是否有红石线
+        // 2. 当前红石线位置下方是否有红石线（用于向上爬墙的情况）
+
+        // 检查相邻方块下方是否有红石线
+        BlockPos neighborDownPos = neighborPos.down();
+        const BlockState* neighborDownState = world.getBlockState(neighborDownPos);
+        if (neighborDownState && neighborDownState->is(this)) {
             return RedstoneSide::Side;
+        }
+
+        // MC Java: 还需要检查当前红石线下方的方块位置
+        // 当红石线在悬崖边时，可以向下连接到低一格的红石线
+        BlockPos downPos = pos.down();
+        const BlockState* downState = world.getBlockState(downPos);
+        if (downState && !downState->isAir()) {
+            // 检查下方方块是否是实体方块，以及其实体方块旁边是否有红石线
+            if (!isNormalCube(*downState)) {
+                // 当前红石线下方不是实体方块，检查该位置周围的红石线
+                BlockPos downNeighborPos = downPos.offset(direction);
+                const BlockState* downNeighborState = world.getBlockState(downNeighborPos);
+                if (downNeighborState && downNeighborState->is(this)) {
+                    return RedstoneSide::Side;
+                }
+            }
         }
     }
 

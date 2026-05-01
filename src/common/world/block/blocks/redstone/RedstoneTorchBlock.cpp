@@ -53,6 +53,21 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
     }
 }
 
+void RedstoneTorchBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // MC Java: 移除时清理烧毁记录
+    world::redstone::RedstoneSystem::instance().clearTorchRecord(pos);
+
+    // 通知相邻方块更新
+    for (Direction dir : Directions::all()) {
+        BlockPos neighborPos = pos.offset(dir);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState && !neighborState->isAir()) {
+            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
+        }
+    }
+}
+
 void RedstoneTorchBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
                                           const BlockPos& neighborPos, bool isMoving) {
     MC_UNUSED(neighborBlock);
