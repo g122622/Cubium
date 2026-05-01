@@ -267,6 +267,7 @@ public:
     static Item* LEATHER;
     static Item* SLIME_BALL;
     static Item* EGG;
+    static Item* SNOWBALL;              // 雪球
     static Item* COMPASS;
     static Item* CLOCK;
     static Item* FERMENTED_SPIDER_EYE;
@@ -278,6 +279,7 @@ public:
     static Item* FIRE_CHARGE;
     static Item* FIREWORK_STAR;
     static Item* FIREWORK_ROCKET;
+    static Item* EXPERIENCE_BOTTLE;     // 附魔之瓶
 
     // ========================================================================
     // 染料 (16色)
@@ -360,6 +362,7 @@ public:
     static Item* CROSSBOW;               // 弩
     static Item* TRIDENT;                // 三叉戟
     static Item* SHIELD;                 // 盾牌
+    static Item* FISHING_ROD;            // 钓鱼竿
 
     // ========================================================================
     // 桶类
@@ -389,6 +392,7 @@ private:
     static void registerBrewingIngredients();
     static void registerPotions();
     static void registerWeapons();
+    static void registerThrowables();
     static void registerBuckets();
     static void registerSponges();
 };

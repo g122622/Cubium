@@ -11,6 +11,9 @@
 #include "items/weapon/CrossbowItem.hpp"
 #include "items/weapon/TridentItem.hpp"
 #include "items/weapon/ShieldItem.hpp"
+#include "items/weapon/ThrowableItem.hpp"
+#include "items/weapon/ThrowableItems.hpp"
+#include "items/weapon/FishingRodItem.hpp"
 #include "tier/ItemTiers.hpp"
 #include "items/tool/PickaxeItem.hpp"
 #include "items/tool/AxeItem.hpp"
@@ -242,6 +245,7 @@ Item* Items::GUNPOWDER = nullptr;
 Item* Items::LEATHER = nullptr;
 Item* Items::SLIME_BALL = nullptr;
 Item* Items::EGG = nullptr;
+Item* Items::SNOWBALL = nullptr;
 Item* Items::COMPASS = nullptr;
 Item* Items::CLOCK = nullptr;
 // SPIDER_EYE 已在食物部分声明
@@ -254,6 +258,7 @@ Item* Items::NETHER_STAR = nullptr;
 Item* Items::FIRE_CHARGE = nullptr;
 Item* Items::FIREWORK_STAR = nullptr;
 Item* Items::FIREWORK_ROCKET = nullptr;
+Item* Items::EXPERIENCE_BOTTLE = nullptr;
 
 // 染料
 Item* Items::INK_SAC = nullptr;
@@ -328,6 +333,7 @@ Item* Items::TIPPED_ARROW = nullptr;
 Item* Items::CROSSBOW = nullptr;
 Item* Items::TRIDENT = nullptr;
 Item* Items::SHIELD = nullptr;
+Item* Items::FISHING_ROD = nullptr;
 
 // ============================================================================
 // 桶类
@@ -381,6 +387,7 @@ void Items::initialize() {
     registerBrewingIngredients();
     registerPotions();
     registerWeapons();    // 武器和弹药
+    registerThrowables(); // 投掷物品
     registerBuckets();   // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
     registerSponges();   // 海绵物品
 
@@ -1623,6 +1630,45 @@ void Items::registerWeapons() {
     SHIELD = &registry.registerItem<item::ShieldItem>(
         ResourceLocation("minecraft:shield"),
         ItemProperties().maxDamage(336)
+    );
+
+    // 钓鱼竿 - 钓鱼工具
+    // 参考: new FishingRodItem(new Item.Properties().maxDamage(64))
+    FISHING_ROD = &registry.registerItem<item::FishingRodItem>(
+        ResourceLocation("minecraft:fishing_rod"),
+        ItemProperties().maxDamage(64)
+    );
+}
+
+void Items::registerThrowables() {
+    auto& registry = ItemRegistry::instance();
+
+    // 雪球 - 投掷物品
+    // 参考: new SnowballItem(new Item.Properties().maxStackSize(16))
+    SNOWBALL = &registry.registerItem<item::SnowballItem>(
+        ResourceLocation("minecraft:snowball"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 鸡蛋 - 投掷物品，有概率孵化小鸡
+    // 参考: new EggItem(new Item.Properties().maxStackSize(16))
+    EGG = &registry.registerItem<item::EggItem>(
+        ResourceLocation("minecraft:egg"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 末影珍珠 - 投掷后传送
+    // 参考: new EnderPearlItem(new Item.Properties().maxStackSize(16))
+    ENDER_PEARL = &registry.registerItem<item::EnderPearlItem>(
+        ResourceLocation("minecraft:ender_pearl"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 附魔之瓶 - 投掷后释放经验
+    // 参考: new ExperienceBottleItem(new Item.Properties().maxStackSize(64))
+    EXPERIENCE_BOTTLE = &registry.registerItem<item::ExperienceBottleItem>(
+        ResourceLocation("minecraft:experience_bottle"),
+        ItemProperties().maxStackSize(64)
     );
 }
 

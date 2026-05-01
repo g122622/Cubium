@@ -185,16 +185,16 @@ add_library(mc_common STATIC
     # Entity - Villager
     entity/entities/villager/AbstractVillagerEntity.cpp
     entity/entities/villager/VillagerEntity.cpp
-    # Entity - Projectile (incomplete - needs more work)
+    # Entity - Projectile (some files incomplete - need more work)
     entity/entities/projectile/ProjectileHelper.cpp
     entity/entities/projectile/ProjectileEntity.cpp
     entity/entities/projectile/DamagingProjectileEntity.cpp
-    # entity/entities/projectile/ThrowableEntity.cpp
-    # entity/entities/projectile/AbstractArrowEntity.cpp
+    # entity/entities/projectile/ThrowableEntity.cpp  # TODO: protected constructor issue
+    # entity/entities/projectile/AbstractArrowEntity.cpp  # TODO: BlockState issues
     entity/entities/projectile/AbstractFireballEntity.cpp
-    # entity/entities/projectile/ProjectileItemEntity.cpp
-    # entity/entities/projectile/TridentEntity.cpp
-    # entity/entities/projectile/OtherProjectiles.cpp
+    # entity/entities/projectile/ProjectileItemEntity.cpp  # TODO: depends on ThrowableEntity
+    # entity/entities/projectile/TridentEntity.cpp  # TODO: IWorld incomplete
+    # entity/entities/projectile/OtherProjectiles.cpp  # TODO: m_inGround, IWorld issues
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Entity - Loot System
@@ -310,6 +310,9 @@ add_library(mc_common STATIC
     item/items/weapon/CrossbowItem.cpp
     item/items/weapon/TridentItem.cpp
     item/items/weapon/ShieldItem.cpp
+    item/items/weapon/ThrowableItem.cpp
+    item/items/weapon/ThrowableItems.cpp
+    item/items/weapon/FishingRodItem.cpp
 
     # Item - Potion System
     item/potion/Potion.cpp

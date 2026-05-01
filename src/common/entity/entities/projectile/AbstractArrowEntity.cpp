@@ -4,8 +4,7 @@
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../../world/block/BlockState.hpp"
-#include "../../../world/block/Blocks.hpp"
+#include "../../../world/block/Block.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
