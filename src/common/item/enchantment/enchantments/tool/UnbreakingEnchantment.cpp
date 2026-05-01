@@ -8,8 +8,9 @@ bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& ran
     if (level <= 0) {
         return true;
     }
-    // 有 (level + 1) / (level + 50) 的概率不消耗耐久
-    f32 chance = static_cast<f32>(level + 1) / static_cast<f32>(level + 50);
+    // MC 1.16.5: 有 level/(level+1) 的概率不消耗耐久
+    // I: 50%, II: 67%, III: 75%
+    f32 chance = static_cast<f32>(level) / static_cast<f32>(level + 1);
     return random.nextFloat() >= chance;
 }
 
@@ -17,8 +18,9 @@ bool UnbreakingEnchantment::shouldArmorConsumeDurability(i32 level, math::Random
     if (level <= 0) {
         return true;
     }
-    // 盔甲有 (level + 1) / (level + 100) 的概率不消耗耐久
-    f32 chance = static_cast<f32>(level + 1) / static_cast<f32>(level + 100);
+    // MC 1.16.5: 盔甲有 60% 概率忽略耐久保护
+    // 所以实际保护概率 = 0.4 * (level / (level + 1))
+    f32 chance = 0.4f * static_cast<f32>(level) / static_cast<f32>(level + 1);
     return random.nextFloat() >= chance;
 }
 

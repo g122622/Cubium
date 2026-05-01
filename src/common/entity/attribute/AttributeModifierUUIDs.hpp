@@ -18,20 +18,21 @@ namespace attribute {
 namespace uuids {
 
 // ============================================================================
-// 装备槽位 UUID (MC 1.16.5 标准)
+// 装备槽位 UUID (MC 1.16.5 标准 - ArmorItem.java:28)
+// 数组索引顺序: FEET(0), LEGS(1), CHEST(2), HEAD(3)
 // ============================================================================
 
-/// 头盔护甲修饰器 UUID
-constexpr const char* ARMOR_MODIFIER_UUID_HEAD = "845DB27C-C624-495F-8C9F-6020A9A58B6B";
+/// 靴子护甲修饰器 UUID (FEET - 索引0)
+constexpr const char* ARMOR_MODIFIER_UUID_FEET = "845DB27C-C624-495F-8C9F-6020A9A58B6B";
 
-/// 胸甲护甲修饰器 UUID
-constexpr const char* ARMOR_MODIFIER_UUID_CHEST = "9F3D476D-C118-4544-8365-64846904B48E";
-
-/// 护腿护甲修饰器 UUID
+/// 护腿护甲修饰器 UUID (LEGS - 索引1)
 constexpr const char* ARMOR_MODIFIER_UUID_LEGS = "D8499B04-0E66-4726-AB29-64469D734E0D";
 
-/// 靴子护甲修饰器 UUID
-constexpr const char* ARMOR_MODIFIER_UUID_FEET = "D8499B04-0E66-4726-AB29-64469D734E0D";
+/// 胸甲护甲修饰器 UUID (CHEST - 索引2)
+constexpr const char* ARMOR_MODIFIER_UUID_CHEST = "9F3D476D-C118-4544-8365-64846904B48E";
+
+/// 头盔护甲修饰器 UUID (HEAD - 索引3)
+constexpr const char* ARMOR_MODIFIER_UUID_HEAD = "2AD3F246-FEE1-4E67-B886-69FD380BB150";
 
 // ============================================================================
 // 武器 UUID (MC 1.16.5 标准)

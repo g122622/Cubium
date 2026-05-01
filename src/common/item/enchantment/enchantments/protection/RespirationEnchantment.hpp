@@ -47,11 +47,11 @@ public:
     }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 10 + (level - 1) * 10;
+        return 10 * level;  // MC 1.16.5: 10 * level
     }
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 40;
+        return getMinCost(level) + 30;  // MC 1.16.5: getMinEnchantability + 30
     }
 
     /**

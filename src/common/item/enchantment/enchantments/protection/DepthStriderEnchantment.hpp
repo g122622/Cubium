@@ -43,7 +43,7 @@ public:
     }
 
     [[nodiscard]] EnchantmentRarity rarity() const override {
-        return EnchantmentRarity::Rare;
+        return EnchantmentRarity::Rare;  // MC 1.16.5: RARE
     }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override {
@@ -51,7 +51,7 @@ public:
     }
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 40;
+        return getMinCost(level) + 15;  // MC 1.16.5: getMinEnchantability + 15
     }
 
     /**
