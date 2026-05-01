@@ -266,6 +266,9 @@ add_executable(mc_tests
     common/skin/test_game_profile.cpp
     common/skin/test_skin_packets.cpp
     common/skin/test_skin_manager.cpp
+    # 富文本系统测试
+    common/util/text/TextStyleTest.cpp
+    common/util/text/TextComponentTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢

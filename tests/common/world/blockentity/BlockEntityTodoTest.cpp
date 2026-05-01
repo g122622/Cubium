@@ -273,11 +273,11 @@ TEST(BlockEntityTodoTest, EnderChestOpenCloseAndTickAnimationBehavesCorrectly) {
 TEST(BlockEntityTodoTest, SignEntityRejectsControlCharactersAndTruncatesText) {
     blockentity::SignEntity sign(BlockPos(3, 4, 5));
 
-    EXPECT_FALSE(sign.setLine(0, String("bad") + static_cast<char>(1) + "text"));
+    EXPECT_FALSE(sign.setLineFromLegacy(0, String("bad") + static_cast<char>(1) + "text"));
 
     const String longText = "0123456789abcdef";
-    EXPECT_TRUE(sign.setLine(1, longText));
-    EXPECT_EQ(sign.getLine(1), "0123456789abcde");
+    EXPECT_TRUE(sign.setLineFromLegacy(1, longText));
+    EXPECT_EQ(sign.getLineText(1), "0123456789abcde");
 }
 
 TEST(BlockEntityTodoTest, SignEntityLoadRejectsInvalidControlCharacters) {

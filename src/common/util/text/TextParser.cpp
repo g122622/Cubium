@@ -37,6 +37,14 @@ std::unique_ptr<ITextComponent> TextParser::parse(StringView text) {
     // 刷新剩余文本
     state.flushText();
 
+    // 优化：如果根组件为空且只有一个子组件，返回子组件
+    const auto& siblings = state.root->getSiblings();
+    if (state.root->getText().empty() && siblings.size() == 1) {
+        // 将唯一子组件作为根返回
+        auto& child = const_cast<std::unique_ptr<ITextComponent>&>(siblings[0]);
+        return std::move(const_cast<std::vector<std::unique_ptr<ITextComponent>>&>(siblings)[0]);
+    }
+
     // 返回根组件
     return std::move(state.root);
 }

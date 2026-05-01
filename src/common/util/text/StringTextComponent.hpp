@@ -70,7 +70,9 @@ public:
     }
 
     [[nodiscard]] std::unique_ptr<ITextComponent> shallowCopy() const override {
-        return std::make_unique<StringTextComponent>(m_text);
+        auto copy = std::make_unique<StringTextComponent>(m_text);
+        copy->setStyle(m_style);
+        return copy;
     }
 
     [[nodiscard]] nlohmann::json toJson() const override {
