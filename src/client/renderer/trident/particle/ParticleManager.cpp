@@ -558,8 +558,13 @@ Result<void> ParticleManager::createVertexBuffer() {
         return result.error();
     }
 
-    void* data;
-    vkMapMemory(m_device, stagingBufferMemory, 0, indexBufferSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, stagingBufferMemory, 0, indexBufferSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+        return Error(ErrorCode::InitializationFailed, "Failed to map particle index staging buffer");
+    }
     std::memcpy(data, indices.data(), indexBufferSize);
     vkUnmapMemory(m_device, stagingBufferMemory);
 
@@ -604,8 +609,12 @@ Result<void> ParticleManager::createUniformBuffers() {
             return result.error();
         }
 
-        vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, bufferSize, 0,
-                    &m_uniformBuffersMapped[i]);
+        void* mapped = nullptr;
+        const VkResult mapResult = vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, bufferSize, 0, &mapped);
+        if (mapResult != VK_SUCCESS || mapped == nullptr) {
+            return Error(ErrorCode::InitializationFailed, "Failed to map particle uniform buffer memory");
+        }
+        m_uniformBuffersMapped[i] = mapped;
     }
 
     return {};
@@ -735,8 +744,13 @@ Result<void> ParticleManager::createTexture() {
         return result.error();
     }
 
-    void* data;
-    vkMapMemory(m_device, stagingBufferMemory, 0, imageSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, stagingBufferMemory, 0, imageSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+        return Error(ErrorCode::InitializationFailed, "Failed to map particle texture staging buffer");
+    }
     std::memcpy(data, textureData.data(), imageSize);
     vkUnmapMemory(m_device, stagingBufferMemory);
 
@@ -1098,7 +1112,9 @@ void ParticleManager::updateUniformBuffer(u32 frameIndex) {
     ubo.cameraPos = m_cameraPos;
     ubo.partialTick = static_cast<f32>(m_partialTick);
 
-    std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
+    if (m_uniformBuffersMapped[frameIndex] != nullptr) {
+        std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
+    }
 }
 
 void ParticleManager::updateVertexBuffer() {
@@ -1106,9 +1122,12 @@ void ParticleManager::updateVertexBuffer() {
         return;
     }
 
-    void* data;
+    void* data = nullptr;
     VkDeviceSize size = m_vertexData.size() * sizeof(ParticleVertex);
-    vkMapMemory(m_device, m_vertexBufferMemory, 0, size, 0, &data);
+    const VkResult mapResult = vkMapMemory(m_device, m_vertexBufferMemory, 0, size, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        return;
+    }
     std::memcpy(data, m_vertexData.data(), size);
     vkUnmapMemory(m_device, m_vertexBufferMemory);
 }

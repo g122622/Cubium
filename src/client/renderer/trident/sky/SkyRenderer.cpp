@@ -515,8 +515,11 @@ Result<void> SkyRenderer::createSkyDomeVBO() {
     }
 
     // 上传数据
-    void* data;
-    vkMapMemory(m_device, m_skyDomeVBOMemory, 0, vertexSize, 0, &data);
+    void* data = nullptr;
+    VkResult mapResult = vkMapMemory(m_device, m_skyDomeVBOMemory, 0, vertexSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        return Error(ErrorCode::InitializationFailed, "Failed to map sky dome vertex buffer memory");
+    }
     std::memcpy(data, vertices.data(), vertexSize);
     vkUnmapMemory(m_device, m_skyDomeVBOMemory);
 
@@ -531,7 +534,11 @@ Result<void> SkyRenderer::createSkyDomeVBO() {
     }
 
     // 上传数据
-    vkMapMemory(m_device, m_skyDomeIBOMemory, 0, indexSize, 0, &data);
+    data = nullptr;
+    mapResult = vkMapMemory(m_device, m_skyDomeIBOMemory, 0, indexSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        return Error(ErrorCode::InitializationFailed, "Failed to map sky dome index buffer memory");
+    }
     std::memcpy(data, indices.data(), indexSize);
     vkUnmapMemory(m_device, m_skyDomeIBOMemory);
 
@@ -575,8 +582,11 @@ Result<void> SkyRenderer::createStarVBO() {
     }
 
     // 上传数据
-    void* data;
-    vkMapMemory(m_device, m_starVBOMemory, 0, vertexSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, m_starVBOMemory, 0, vertexSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        return Error(ErrorCode::InitializationFailed, "Failed to map star vertex buffer memory");
+    }
     std::memcpy(data, vertices.data(), vertexSize);
     vkUnmapMemory(m_device, m_starVBOMemory);
 
@@ -615,8 +625,11 @@ Result<void> SkyRenderer::createSunMoonVBO() {
     }
 
     // 上传数据
-    void* data;
-    vkMapMemory(m_device, m_sunMoonVBOMemory, 0, vertexSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, m_sunMoonVBOMemory, 0, vertexSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        return Error(ErrorCode::InitializationFailed, "Failed to map sun/moon vertex buffer memory");
+    }
     std::memcpy(data, vertices.data(), vertexSize);
     vkUnmapMemory(m_device, m_sunMoonVBOMemory);
 
@@ -634,7 +647,12 @@ Result<void> SkyRenderer::createUniformBuffers() {
         }
 
         // 持久映射
-        vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, sizeof(SkyUBO), 0, &m_uniformBuffersMapped[i]);
+        void* mapped = nullptr;
+        const VkResult mapResult = vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, sizeof(SkyUBO), 0, &mapped);
+        if (mapResult != VK_SUCCESS || mapped == nullptr) {
+            return Error(ErrorCode::InitializationFailed, "Failed to map sky uniform buffer memory");
+        }
+        m_uniformBuffersMapped[i] = mapped;
     }
     return Result<void>::ok();
 }

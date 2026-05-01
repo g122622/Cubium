@@ -231,8 +231,13 @@ bool WorldTextRenderer::createFontTexture() {
 
     vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0);
 
-    void* data;
-    vkMapMemory(device, stagingMemory, 0, imageSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(device, stagingMemory, 0, imageSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingMemory, nullptr);
+        return false;
+    }
     std::memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(device, stagingMemory);
 

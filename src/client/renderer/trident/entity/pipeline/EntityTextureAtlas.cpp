@@ -659,8 +659,13 @@ Result<void> EntityTextureAtlas::uploadTextureData(const std::vector<u8>& data) 
     vkBindBufferMemory(m_device, stagingBuffer, stagingMemory, 0);
 
     // 复制数据
-    void* mappedData;
-    vkMapMemory(m_device, stagingMemory, 0, imageSize, 0, &mappedData);
+    void* mappedData = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, stagingMemory, 0, imageSize, 0, &mappedData);
+    if (mapResult != VK_SUCCESS || mappedData == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingMemory, nullptr);
+        return Error(ErrorCode::InitializationFailed, "Failed to map entity texture staging memory");
+    }
     std::memcpy(mappedData, data.data(), imageSize);
     vkUnmapMemory(m_device, stagingMemory);
 

@@ -692,8 +692,11 @@ Result<void> CloudRenderer::createCloudVBO() {
         }
 
         // 上传数据
-        void* data;
-        vkMapMemory(m_device, m_fastVBOMemory, 0, bufferSize, 0, &data);
+        void* data = nullptr;
+        const VkResult mapResult = vkMapMemory(m_device, m_fastVBOMemory, 0, bufferSize, 0, &data);
+        if (mapResult != VK_SUCCESS || data == nullptr) {
+            return Error(ErrorCode::InitializationFailed, "Failed to map cloud fast VBO memory");
+        }
         std::memcpy(data, vertices.data(), bufferSize);
         vkUnmapMemory(m_device, m_fastVBOMemory);
     }
@@ -860,8 +863,11 @@ Result<void> CloudRenderer::createCloudVBO() {
         }
 
         // 上传数据
-        void* data;
-        vkMapMemory(m_device, m_fancyVBOMemory, 0, bufferSize, 0, &data);
+        void* data = nullptr;
+        const VkResult mapResult = vkMapMemory(m_device, m_fancyVBOMemory, 0, bufferSize, 0, &data);
+        if (mapResult != VK_SUCCESS || data == nullptr) {
+            return Error(ErrorCode::InitializationFailed, "Failed to map cloud fancy VBO memory");
+        }
         std::memcpy(data, vertices.data(), bufferSize);
         vkUnmapMemory(m_device, m_fancyVBOMemory);
     }
@@ -1053,8 +1059,13 @@ Result<void> CloudRenderer::createTexture(const ResourceManager* resourceManager
     }
 
     // 上传数据
-    void* data;
-    vkMapMemory(m_device, stagingMemory, 0, imageSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, stagingMemory, 0, imageSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingMemory, nullptr);
+        return Error(ErrorCode::InitializationFailed, "Failed to map cloud texture staging memory");
+    }
     std::memcpy(data, textureData.data(), imageSize);
     vkUnmapMemory(m_device, stagingMemory);
 
@@ -1241,8 +1252,12 @@ Result<void> CloudRenderer::createUniformBuffers() {
             return result;
         }
 
-        vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, bufferSize, 0,
-                    &m_uniformBuffersMapped[i]);
+        void* mapped = nullptr;
+        const VkResult mapResult = vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, bufferSize, 0, &mapped);
+        if (mapResult != VK_SUCCESS || mapped == nullptr) {
+            return Error(ErrorCode::InitializationFailed, "Failed to map cloud uniform buffer memory");
+        }
+        m_uniformBuffersMapped[i] = mapped;
     }
 
     return Result<void>::ok();
@@ -1606,7 +1621,9 @@ void CloudRenderer::updateUniformBuffer(u32 frameIndex) {
     ubo.textureOffsetX = static_cast<f32>(texOffsetX);
     ubo.textureOffsetZ = static_cast<f32>(texOffsetZ);
 
-    std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
+    if (m_uniformBuffersMapped[frameIndex] != nullptr) {
+        std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
+    }
 }
 
 void CloudRenderer::updateCloudMesh(CloudMode mode) {

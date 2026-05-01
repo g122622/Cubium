@@ -735,8 +735,8 @@ Result<void> GuiRenderer::createBuffers() {
 
     // 初始清空暂存缓冲
     void* mapped = nullptr;
-    vkMapMemory(m_device, m_fontStagingMemory, 0, 256 * 256, 0, &mapped);
-    if (mapped != nullptr) {
+    VkResult mapResult = vkMapMemory(m_device, m_fontStagingMemory, 0, 256 * 256, 0, &mapped);
+    if (mapResult == VK_SUCCESS && mapped != nullptr) {
         std::memset(mapped, 0, 256 * 256);
         vkUnmapMemory(m_device, m_fontStagingMemory);
     }
@@ -931,11 +931,13 @@ void GuiRenderer::updateFontTexture(VkCommandBuffer commandBuffer) {
 
     // 上传到暂存缓冲
     void* mapped = nullptr;
-    vkMapMemory(m_device, m_fontStagingMemory, 0, size * size, 0, &mapped);
-    if (mapped != nullptr) {
-        std::memcpy(mapped, pixels, size * size);
-        vkUnmapMemory(m_device, m_fontStagingMemory);
+    VkResult mapResult = vkMapMemory(m_device, m_fontStagingMemory, 0, size * size, 0, &mapped);
+    if (mapResult != VK_SUCCESS || mapped == nullptr) {
+        spdlog::error("GuiRenderer: failed to map font staging memory: {}", static_cast<int>(mapResult));
+        return;
     }
+    std::memcpy(mapped, pixels, size * size);
+    vkUnmapMemory(m_device, m_fontStagingMemory);
 
     // 转换图像布局到 TRANSFER_DST
     VkImageMemoryBarrier barrier{};
@@ -1094,16 +1096,16 @@ void GuiRenderer::uploadBufferData(VkCommandBuffer commandBuffer) {
 
     // 直接映射顶点缓冲并复制数据
     void* vertexMapped = nullptr;
-    vkMapMemory(m_device, m_vertexBufferMemory, 0, vertexSize, 0, &vertexMapped);
-    if (vertexMapped != nullptr) {
+    VkResult mapResult = vkMapMemory(m_device, m_vertexBufferMemory, 0, vertexSize, 0, &vertexMapped);
+    if (mapResult == VK_SUCCESS && vertexMapped != nullptr) {
         std::memcpy(vertexMapped, m_vertices.data(), vertexSize);
         vkUnmapMemory(m_device, m_vertexBufferMemory);
     }
 
     // 直接映射索引缓冲并复制数据
     void* indexMapped = nullptr;
-    vkMapMemory(m_device, m_indexBufferMemory, 0, indexSize, 0, &indexMapped);
-    if (indexMapped != nullptr) {
+    mapResult = vkMapMemory(m_device, m_indexBufferMemory, 0, indexSize, 0, &indexMapped);
+    if (mapResult == VK_SUCCESS && indexMapped != nullptr) {
         std::memcpy(indexMapped, m_indices.data(), indexSize);
         vkUnmapMemory(m_device, m_indexBufferMemory);
     }

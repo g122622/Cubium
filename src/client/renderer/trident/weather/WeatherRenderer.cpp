@@ -310,8 +310,24 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     size_t totalVertices = m_rainVertices.size() + m_snowVertices.size();
     if (totalVertices > 0) {
         VkDeviceSize size = totalVertices * sizeof(WeatherVertex);
-        void* data;
-        vkMapMemory(m_device, m_vertexBufferMemory, 0, size, 0, &data);
+
+#ifdef __APPLE__
+        // macOS + MoltenVK 上不要重复映射同一段内存，直接使用初始化阶段建立的持久映射。
+        void* data = m_vertexBufferMapped;
+        if (data == nullptr) {
+            spdlog::error("WeatherRenderer: vertex buffer is not persistently mapped on Apple");
+            MC_TRACE_EVENT_END("rendering.weather");
+            return;
+        }
+#else
+        void* data = nullptr;
+        const VkResult mapResult = vkMapMemory(m_device, m_vertexBufferMemory, 0, size, 0, &data);
+        if (mapResult != VK_SUCCESS || data == nullptr) {
+            spdlog::error("WeatherRenderer: failed to map vertex buffer memory: {}", mapResult);
+            MC_TRACE_EVENT_END("rendering.weather");
+            return;
+        }
+#endif
 
         // 复制雨顶点
         if (!m_rainVertices.empty()) {
@@ -324,7 +340,9 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
                    m_snowVertices.data(), m_snowVertices.size() * sizeof(WeatherVertex));
         }
 
+#ifndef __APPLE__
         vkUnmapMemory(m_device, m_vertexBufferMemory);
+#endif
     }
 
     // 渲染雨
@@ -558,8 +576,15 @@ Result<void> WeatherRenderer::createVertexBuffer() {
     }
 
     // 持久映射
-    void* data;
-    vkMapMemory(m_device, m_vertexBufferMemory, 0, m_vertexBufferSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, m_vertexBufferMemory, 0, m_vertexBufferSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
+        m_vertexBuffer = VK_NULL_HANDLE;
+        vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
+        m_vertexBufferMemory = VK_NULL_HANDLE;
+        return Error(ErrorCode::InitializationFailed, "Failed to map weather vertex buffer memory");
+    }
     m_vertexBufferMapped = data;
 
     return {};
@@ -568,6 +593,7 @@ Result<void> WeatherRenderer::createVertexBuffer() {
 Result<void> WeatherRenderer::createUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(WeatherUBO);
 
+    u32 createdBuffers = 0;
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         auto result = ::mc::client::renderer::VulkanUtils::createBuffer(
             m_device, m_physicalDevice,
@@ -581,8 +607,35 @@ Result<void> WeatherRenderer::createUniformBuffers() {
             return result.error();
         }
 
-        vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, bufferSize, 0,
-                    &m_uniformBuffersMapped[i]);
+        void* mapped = nullptr;
+        const VkResult mapResult = vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, bufferSize, 0, &mapped);
+        if (mapResult != VK_SUCCESS || mapped == nullptr) {
+            for (u32 j = 0; j < createdBuffers; ++j) {
+                if (m_uniformBuffersMapped[j] != nullptr) {
+                    vkUnmapMemory(m_device, m_uniformBuffersMemory[j]);
+                    m_uniformBuffersMapped[j] = nullptr;
+                }
+
+                if (m_uniformBuffers[j] != VK_NULL_HANDLE) {
+                    vkDestroyBuffer(m_device, m_uniformBuffers[j], nullptr);
+                    m_uniformBuffers[j] = VK_NULL_HANDLE;
+                }
+
+                if (m_uniformBuffersMemory[j] != VK_NULL_HANDLE) {
+                    vkFreeMemory(m_device, m_uniformBuffersMemory[j], nullptr);
+                    m_uniformBuffersMemory[j] = VK_NULL_HANDLE;
+                }
+            }
+
+            vkDestroyBuffer(m_device, m_uniformBuffers[i], nullptr);
+            vkFreeMemory(m_device, m_uniformBuffersMemory[i], nullptr);
+            m_uniformBuffers[i] = VK_NULL_HANDLE;
+            m_uniformBuffersMemory[i] = VK_NULL_HANDLE;
+            return Error(ErrorCode::InitializationFailed, "Failed to map weather uniform buffer memory");
+        }
+
+        m_uniformBuffersMapped[i] = mapped;
+        ++createdBuffers;
     }
 
     return {};
@@ -1060,8 +1113,13 @@ Result<void> WeatherRenderer::createTextureFromData(const std::vector<u8>& data,
         return result.error();
     }
 
-    void* mappedData;
-    vkMapMemory(m_device, stagingBufferMemory, 0, imageSize, 0, &mappedData);
+    void* mappedData = nullptr;
+    const VkResult mapResult = vkMapMemory(m_device, stagingBufferMemory, 0, imageSize, 0, &mappedData);
+    if (mapResult != VK_SUCCESS || mappedData == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+        return Error(ErrorCode::InitializationFailed, "Failed to map weather texture staging buffer");
+    }
     std::memcpy(mappedData, data.data(), imageSize);
     vkUnmapMemory(m_device, stagingBufferMemory);
 

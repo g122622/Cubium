@@ -452,8 +452,13 @@ bool FireEffect::createFireTexture(const std::vector<u8>& pixels, u32 width, u32
 
     vkBindBufferMemory(s_device, stagingBuffer, stagingMemory, 0);
 
-    void* data;
-    vkMapMemory(s_device, stagingMemory, 0, imageSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(s_device, stagingMemory, 0, imageSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(s_device, stagingBuffer, nullptr);
+        vkFreeMemory(s_device, stagingMemory, nullptr);
+        return false;
+    }
     std::memcpy(data, pixels.data(), static_cast<size_t>(imageSize));
     vkUnmapMemory(s_device, stagingMemory);
 

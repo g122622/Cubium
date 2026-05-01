@@ -238,7 +238,7 @@ Result<void> UniformManager::createUniformBuffers() {
 
         // 映射内存
         result = vkMapMemory(device, m_cameraBufferMemory[i], 0, cameraBufferSize, 0, &m_cameraBufferMapped[i]);
-        if (result != VK_SUCCESS) {
+        if (result != VK_SUCCESS || m_cameraBufferMapped[i] == nullptr) {
             destroyUniformBuffers();
             return Error(ErrorCode::OperationFailed, "Failed to map camera uniform buffer: " + std::to_string(result));
         }
@@ -283,7 +283,7 @@ Result<void> UniformManager::createUniformBuffers() {
     vkBindBufferMemory(device, m_lightingBuffer, m_lightingBufferMemory, 0);
 
     result = vkMapMemory(device, m_lightingBufferMemory, 0, lightingBufferSize, 0, &m_lightingBufferMapped);
-    if (result != VK_SUCCESS) {
+    if (result != VK_SUCCESS || m_lightingBufferMapped == nullptr) {
         destroyUniformBuffers();
         return Error(ErrorCode::OperationFailed, "Failed to map lighting uniform buffer: " + std::to_string(result));
     }

@@ -666,8 +666,14 @@ bool BreakProgressRenderer::uploadTextureAtlas() {
     }
 
     // 复制数据到暂存缓冲区
-    void* data;
-    vkMapMemory(m_config.device, m_stagingBufferMemory, 0, imageSize, 0, &data);
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(m_config.device, m_stagingBufferMemory, 0, imageSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(m_config.device, m_stagingBuffer, nullptr);
+        vkFreeMemory(m_config.device, m_stagingBufferMemory, nullptr);
+        spdlog::error("BreakProgressRenderer: Failed to map staging buffer memory: {}", static_cast<int>(mapResult));
+        return false;
+    }
     std::memcpy(data, atlasData.data(), imageSize);
     vkUnmapMemory(m_config.device, m_stagingBufferMemory);
 
@@ -888,9 +894,13 @@ void BreakProgressRenderer::updateVertexBuffer(const std::vector<Vertex>& vertic
         return;
     }
 
-    void* data;
+    void* data = nullptr;
     VkDeviceSize size = std::min(vertices.size(), m_maxVertices) * sizeof(Vertex);
-    vkMapMemory(m_config.device, m_vertexBufferMemory, 0, size, 0, &data);
+    const VkResult mapResult = vkMapMemory(m_config.device, m_vertexBufferMemory, 0, size, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        spdlog::error("BreakProgressRenderer: Failed to map vertex buffer memory: {}", static_cast<int>(mapResult));
+        return;
+    }
     std::memcpy(data, vertices.data(), size);
     vkUnmapMemory(m_config.device, m_vertexBufferMemory);
 }
@@ -900,9 +910,13 @@ void BreakProgressRenderer::updateIndexBuffer(const std::vector<u32>& indices) {
         return;
     }
 
-    void* data;
+    void* data = nullptr;
     VkDeviceSize size = std::min(indices.size(), m_maxIndices) * sizeof(u32);
-    vkMapMemory(m_config.device, m_indexBufferMemory, 0, size, 0, &data);
+    const VkResult mapResult = vkMapMemory(m_config.device, m_indexBufferMemory, 0, size, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        spdlog::error("BreakProgressRenderer: Failed to map index buffer memory: {}", static_cast<int>(mapResult));
+        return;
+    }
     std::memcpy(data, indices.data(), size);
     vkUnmapMemory(m_config.device, m_indexBufferMemory);
 }
