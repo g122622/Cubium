@@ -268,15 +268,17 @@ Result<void> WeatherRenderer::onResize(VkExtent2D extent) {
     return {};
 }
 
+void WeatherRenderer::setFancyGraphics(bool isFancy) {
+    // 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
+    // int l = 5; if (Minecraft.isFancyGraphicsEnabled()) { l = 10; }
+    m_renderRadius = isFancy ? 10 : 5;
+}
+
 void WeatherRenderer::update(f64 rainStrength, f64 thunderStrength, i64 ticks, f64 partialTick) {
     m_rainStrength = rainStrength;
     m_thunderStrength = thunderStrength;
     m_ticks = ticks;
     m_partialTick = partialTick;
-
-    // 设置渲染范围（Fancy 模式更大）
-    // TODO: 根据图形设置调整
-    m_renderRadius = 10;
 }
 
 void WeatherRenderer::render(VkCommandBuffer cmd,

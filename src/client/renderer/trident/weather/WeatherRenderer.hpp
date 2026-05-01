@@ -101,6 +101,17 @@ public:
     // ========================================================================
 
     /**
+     * @brief 设置图形模式
+     *
+     * 参考 MC 1.16.5 WorldRenderer.renderRainSnow():
+     * - Fast 模式: 渲染半径 5
+     * - Fancy 模式: 渲染半径 10
+     *
+     * @param isFancy 是否为 Fancy 模式
+     */
+    void setFancyGraphics(bool isFancy);
+
+    /**
      * @brief 更新天气状态
      *
      * @param rainStrength 降雨强度 (0.0 - 1.0)

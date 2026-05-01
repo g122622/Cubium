@@ -36,6 +36,7 @@ weather/
 
 - `WeatherRenderer` 类
   - 初始化/销毁方法
+  - `setFancyGraphics()`：设置图形模式（Fast=5，Fancy=10）
   - `update()`：更新天气状态
   - `render()`：渲染天气效果（多个重载）
 

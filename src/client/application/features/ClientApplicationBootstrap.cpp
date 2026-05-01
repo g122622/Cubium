@@ -9,6 +9,7 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"
 #include "client/renderer/trident/gui/GuiTextureLoader.hpp"
+#include "client/renderer/trident/weather/WeatherRenderer.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/ui/Font.hpp"
@@ -263,6 +264,11 @@ Result<void> ClientApplication::initializeRenderer()
         auto weatherInitResult = m_renderer->initializeWeatherRenderer();
         if (weatherInitResult.failed()) {
             spdlog::warn("Failed to initialize weather renderer: {}", weatherInitResult.error().toString());
+        } else {
+            // 设置图形模式（Fancy/Fast）
+            // 参考 MC 1.16.5: Fast 模式渲染半径 5，Fancy 模式渲染半径 10
+            const bool isFancy = m_settings.graphics.get() == static_cast<u8>(GraphicsMode::Fancy);
+            m_renderer->weatherRenderer().setFancyGraphics(isFancy);
         }
 
         // 初始化破坏进度渲染器
