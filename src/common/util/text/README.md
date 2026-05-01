@@ -9,6 +9,7 @@ text/
 ├── TextStyle.hpp/cpp       # 文本样式和格式化类型
 ├── TextEvents.hpp          # 点击和悬停事件
 ├── ITextComponent.hpp/cpp  # 文本组件接口
+├── ITextComponentFwd.hpp   # 前向声明（用于避免循环依赖）
 ├── StringTextComponent.hpp # 纯文本组件
 ├── TranslationTextComponent.hpp # 翻译键组件
 └── TextParser.hpp/cpp      # § 代码解析器
