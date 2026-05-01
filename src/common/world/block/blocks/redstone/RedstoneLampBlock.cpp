@@ -40,7 +40,7 @@ void RedstoneLampBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
             BlockState newState = withLit(state, true);
             world.setBlockState(pos, &newState, 2);
         } else {
-            world.scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
+            world.tickManager().scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
         }
     }
 }
@@ -67,7 +67,7 @@ void RedstoneLampBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
             world.setBlockState(pos, &newState, 2);
         } else {
             // 失去信号，调度熄灭
-            world.scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
+            world.tickManager().scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
         }
     }
 }

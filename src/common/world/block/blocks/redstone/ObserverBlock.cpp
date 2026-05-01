@@ -83,7 +83,7 @@ void ObserverBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
     if (neighborPos == observePos) {
         // MC 1.16.5: 如果当前未激活，调度1 tick延迟后激活
         if (!isPowered(*state)) {
-            world.scheduleBlockTick(pos, *this, DETECT_DELAY, world::tick::TickPriority::High);
+            world.tickManager().scheduleBlockTick(pos, *this, DETECT_DELAY, world::tick::TickPriority::High);
         }
     }
 }
@@ -105,7 +105,7 @@ BlockState ObserverBlock::updatePostPlacement(
     // 当观察面有方块变化时触发检测
     if (facing == observeDir && !isPowered(state)) {
         // MC 1.16.5: 调度 2 tick 延迟后激活
-        world.scheduleBlockTick(currentPos, *this, DETECT_DELAY, world::tick::TickPriority::High);
+        world.tickManager().scheduleBlockTick(currentPos, *this, DETECT_DELAY, world::tick::TickPriority::High);
     }
 
     return state;
@@ -123,7 +123,7 @@ void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) 
         // 激活并调度熄灭
         BlockState newState = withPowered(state, true);
         world.setBlockState(pos, &newState, 2);
-        world.scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
+        world.tickManager().scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
     }
 
     // 无论激活还是熄灭，都需要通知前方的邻居更新

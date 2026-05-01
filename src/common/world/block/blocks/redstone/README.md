@@ -562,13 +562,13 @@ if (!redstone.isUpdating(pos)) {
 ```cpp
 if (isFacingTowardsRepeater(world, pos, state)) {
     // 极高优先级
-    world.scheduleBlockTick(pos, *this, delay, TickPriority::ExtremelyHigh);
+    world.tickManager().scheduleBlockTick(pos, *this, delay, TickPriority::ExtremelyHigh);
 } else if (isCurrentlyPowered) {
     // 很高优先级
-    world.scheduleBlockTick(pos, *this, delay, TickPriority::VeryHigh);
+    world.tickManager().scheduleBlockTick(pos, *this, delay, TickPriority::VeryHigh);
 } else {
     // 高优先级
-    world.scheduleBlockTick(pos, *this, delay, TickPriority::High);
+    world.tickManager().scheduleBlockTick(pos, *this, delay, TickPriority::High);
 }
 ```
 
@@ -631,7 +631,7 @@ void neighborChanged(IWorld& world, const BlockPos& pos, ...) {
 ```cpp
 // 侦测器脉冲持续 2 tick
 static constexpr i32 PULSE_DURATION = 2;
-world.scheduleBlockTick(pos, *this, PULSE_DURATION, TickPriority::High);
+world.tickManager().scheduleBlockTick(pos, *this, PULSE_DURATION, TickPriority::High);
 ```
 
 ### 7. 墙上红石火把方向计算

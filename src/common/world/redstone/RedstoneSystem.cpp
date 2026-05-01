@@ -87,12 +87,12 @@ void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
 
 void RedstoneSystem::scheduleUpdate(IWorld& world, const BlockPos& pos, Block& block,
                                     i32 delay, tick::TickPriority priority) {
-    world.scheduleBlockTick(pos, block, delay, priority);
+    world.tickManager().scheduleBlockTick(pos, block, delay, priority);
 }
 
 void RedstoneSystem::scheduleExtremelyHighPriorityUpdate(IWorld& world, const BlockPos& pos,
                                                           Block& block, i32 delay) {
-    world.scheduleBlockTick(pos, block, delay, tick::TickPriority::ExtremelyHigh);
+    world.tickManager().scheduleBlockTick(pos, block, delay, tick::TickPriority::ExtremelyHigh);
 }
 
 // ============================================================================

@@ -124,7 +124,7 @@ BlockState TrapDoorBlock::updatePostPlacement(
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         MC_ASSERT(waterFluid != nullptr);
-        world.scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
     }
 
     // 调用父类处理
@@ -160,7 +160,7 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     if (newState.get(BlockStateProperties::WATERLOGGED())) {
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         MC_ASSERT(waterFluid != nullptr);
-        world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+        world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
     }
 
     if (wasOpen != isPowered) {
@@ -238,7 +238,7 @@ void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState&
     if (newState.get(BlockStateProperties::WATERLOGGED())) {
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         MC_ASSERT(waterFluid != nullptr);
-        world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+        world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
     }
 
     playSound(world, pos, open);

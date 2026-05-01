@@ -290,11 +290,6 @@ public:
     [[nodiscard]] world::tick::TickManager& tickManager() { return *m_tickManager; }
     [[nodiscard]] const world::tick::TickManager& tickManager() const { return *m_tickManager; }
 
-    void scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay,
-                          world::tick::TickPriority priority = world::tick::TickPriority::Normal) override;
-    void scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay,
-                          world::tick::TickPriority priority = world::tick::TickPriority::Normal) override;
-
     // ========== StarLightLightingProvider 接口实现 ==========
 
     [[nodiscard]] IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) override;

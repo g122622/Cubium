@@ -15,10 +15,10 @@ namespace mc::world::tick {
  * 用法示例:
  * @code
  * // 调度高优先级tick（如活塞）
- * world.scheduleBlockTick(pos, block, delay, TickPriority::ExtremelyHigh);
+ * world.tickManager().scheduleBlockTick(pos, block, delay, TickPriority::ExtremelyHigh);
  *
  * // 调度普通优先级tick
- * world.scheduleFluidTick(pos, fluid, delay);  // 默认Normal
+ * world.tickManager().scheduleFluidTick(pos, fluid, delay);  // 默认Normal
  * @endcode
  */
 enum class TickPriority : i8 {

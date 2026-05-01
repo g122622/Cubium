@@ -53,7 +53,7 @@ BlockState LeavesBlock::updatePostPlacement(
     // 如果距离变化，调度更新
     i32 currentDistance = state.get(BlockStateProperties::DISTANCE_1_7());
     if (neighborDistance != 1 || currentDistance != neighborDistance) {
-        world.scheduleBlockTick(currentPos, *this, 1);
+        world.tickManager().scheduleBlockTick(currentPos, *this, 1);
     }
 
     return state;

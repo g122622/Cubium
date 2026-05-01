@@ -109,7 +109,7 @@ void TargetBlock::onHitByArrow(IWorld& world, const BlockPos& pos, const BlockSt
     world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
 
     // 调度信号结束
-    world.scheduleBlockTick(pos, *this, SIGNAL_DURATION, world::tick::TickPriority::High);
+    world.tickManager().scheduleBlockTick(pos, *this, SIGNAL_DURATION, world::tick::TickPriority::High);
 }
 
 } // namespace blocks

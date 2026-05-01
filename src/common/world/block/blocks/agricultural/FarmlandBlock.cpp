@@ -90,7 +90,7 @@ BlockState FarmlandBlock::updatePostPlacement(
         const BlockState* aboveState = world.getBlockState(abovePos);
         if (aboveState != nullptr && aboveState->hasOpaqueCollisionShape()) {
             // 安排下一 tick 转变为泥土
-            world.scheduleBlockTick(currentPos, *this, 1);
+            world.tickManager().scheduleBlockTick(currentPos, *this, 1);
         }
     }
 

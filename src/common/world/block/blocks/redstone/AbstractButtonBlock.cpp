@@ -252,7 +252,7 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
     notifyNeighbors(world, pos, facing);
 
     // 调度弹起
-    world.scheduleBlockTick(pos, *this, m_ticksToStayPressed, world::tick::TickPriority::High);
+    world.tickManager().scheduleBlockTick(pos, *this, m_ticksToStayPressed, world::tick::TickPriority::High);
 }
 
 bool AbstractButtonBlock::canAttachToFace(Direction facing) const {

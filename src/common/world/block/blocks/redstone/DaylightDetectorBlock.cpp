@@ -69,7 +69,7 @@ void DaylightDetectorBlock::neighborChanged(IWorld& world, const BlockPos& pos, 
     MC_UNUSED(isMoving);
 
     // 调度更新
-    world.scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
+    world.tickManager().scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
 }
 
 void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
@@ -77,7 +77,7 @@ void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
     updatePower(world, pos, state);
 
     // 继续调度下一次更新
-    world.scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
+    world.tickManager().scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
 }
 
 i32 DaylightDetectorBlock::getWeakPower(

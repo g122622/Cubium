@@ -112,7 +112,7 @@ BlockState WallBlock::updatePostPlacement(
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         MC_ASSERT(waterFluid != nullptr);
-        world.scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
     }
 
     return calculateState(world, currentPos, state);

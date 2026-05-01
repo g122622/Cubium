@@ -290,7 +290,7 @@ if (fluid.isIn(FluidTags::LAVA())) {
 
 ```cpp
 // 流体 tick 由世界系统调用
-void IWorld::scheduleFluidTick(const BlockPos& pos, Fluid& fluid, i32 delay);
+void IWorld.tickManager()::scheduleFluidTick(const BlockPos& pos, Fluid& fluid, i32 delay);
 
 // 在世界 tick 中执行
 void World::tickFluids() {

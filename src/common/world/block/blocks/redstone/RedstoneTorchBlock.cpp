@@ -48,7 +48,7 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
     bool shouldBeLit = !shouldBeOff(world, pos);
     if (isLit(state) != shouldBeLit) {
         // 需要更新状态（MC Java 使用 2 tick 延迟）
-        world.scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
+        world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 
@@ -74,7 +74,7 @@ void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
         // 记录翻转并检查烧毁
         if (world::redstone::RedstoneSystem::instance().checkAndRecordTorchFlip(pos, world.currentTick())) {
             // 烧毁！保持当前状态，调度下一次检查
-            world.scheduleBlockTick(pos, *this, world::redstone::RedstoneSystem::BURNOUT_COOLDOWN,
+            world.tickManager().scheduleBlockTick(pos, *this, world::redstone::RedstoneSystem::BURNOUT_COOLDOWN,
                                    world::tick::TickPriority::ExtremelyHigh);
             return;
         }
@@ -140,7 +140,7 @@ void RedstoneTorchBlock::updateState(IWorld& world, const BlockPos& pos, const B
 
     if (isCurrentlyLit != shouldBeLit) {
         // 调度更新（MC Java 使用 2 tick 延迟）
-        world.scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
+        world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 

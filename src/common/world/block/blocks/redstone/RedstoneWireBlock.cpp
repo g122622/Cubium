@@ -178,7 +178,7 @@ void RedstoneWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     MC_UNUSED(isMoving);
 
     // 调度更新
-    world.scheduleBlockTick(pos, *this, 0, world::tick::TickPriority::High);
+    world.tickManager().scheduleBlockTick(pos, *this, 0, world::tick::TickPriority::High);
 }
 
 void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {

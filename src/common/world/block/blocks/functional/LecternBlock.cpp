@@ -181,7 +181,7 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& st
 void LecternBlock::pulse(IWorld& world, const BlockPos& pos, BlockState& state) {
     state = state.with(BlockStateProperties::POWERED(), true);
     world.setBlockState(pos, &state, 3);
-    world.scheduleBlockTick(pos, const_cast<Block&>(state.getBlock()), 2, world::tick::TickPriority::High);
+    world.tickManager().scheduleBlockTick(pos, const_cast<Block&>(state.getBlock()), 2, world::tick::TickPriority::High);
 }
 
 } // namespace blocks

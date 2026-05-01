@@ -75,7 +75,7 @@ void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSt
     }
 
     fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
-    world.scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
+    world.tickManager().scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
 }
 
 void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
@@ -86,7 +86,7 @@ void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
         const fluid::FluidState* fluidState = currentState->getFluidState();
         if (fluidState != nullptr && !fluidState->isEmpty()) {
             fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
-            world.scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
+            world.tickManager().scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
         }
     }
 
@@ -129,7 +129,7 @@ BlockState LiquidBlock::updatePostPlacement(
         const fluid::FluidState* fluidState = getFluidState(state);
         if (fluidState != nullptr && !fluidState->isEmpty()) {
             fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
-            world.scheduleFluidTick(currentPos, fluidRef, fluidRef.getTickDelay(world));
+            world.tickManager().scheduleFluidTick(currentPos, fluidRef, fluidRef.getTickDelay(world));
         }
     }
 

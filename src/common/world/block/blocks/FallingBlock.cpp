@@ -14,7 +14,7 @@ FallingBlock::FallingBlock(const BlockProperties& properties)
 
 void FallingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
     MC_UNUSED(state);
-    world.scheduleBlockTick(pos, *this, getFallDelay(), world::tick::TickPriority::Normal);
+    world.tickManager().scheduleBlockTick(pos, *this, getFallDelay(), world::tick::TickPriority::Normal);
 }
 
 void FallingBlock::neighborChanged(IWorld& world, const BlockPos& pos,
@@ -23,7 +23,7 @@ void FallingBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
-    world.scheduleBlockTick(pos, *this, getFallDelay(), world::tick::TickPriority::Normal);
+    world.tickManager().scheduleBlockTick(pos, *this, getFallDelay(), world::tick::TickPriority::Normal);
 }
 
 BlockState FallingBlock::updatePostPlacement(
@@ -39,7 +39,7 @@ BlockState FallingBlock::updatePostPlacement(
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    world.scheduleBlockTick(currentPos, *this, getFallDelay(), world::tick::TickPriority::Normal);
+    world.tickManager().scheduleBlockTick(currentPos, *this, getFallDelay(), world::tick::TickPriority::Normal);
     return state;
 }
 

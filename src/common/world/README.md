@@ -189,9 +189,6 @@ public:
     // Entity queries
     virtual std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const = 0;
 
-    // Tick scheduling
-    virtual void scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay, TickPriority priority) = 0;
-
     // 维度上下文
     virtual bool isUltraWarm() const = 0;
 };
@@ -334,9 +331,6 @@ Scheduled ticks for blocks and fluids:
 
 ```cpp
 TickManager tickManager(world);
-
-// Schedule block tick
-tickManager.scheduleBlockTick(pos, block, 10, TickPriority::Normal);
 
 // Schedule fluid tick (water flow)
 tickManager.scheduleFluidTick(pos, water, 5);

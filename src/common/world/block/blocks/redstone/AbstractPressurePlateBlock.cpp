@@ -83,7 +83,7 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
         }
     } else if (newPower > 0) {
         // 仍然有压力，继续检测
-        world.scheduleBlockTick(pos, *this, getTickDelay(oldPower, newPower), world::tick::TickPriority::High);
+        world.tickManager().scheduleBlockTick(pos, *this, getTickDelay(oldPower, newPower), world::tick::TickPriority::High);
     }
 }
 
@@ -156,7 +156,7 @@ void AbstractPressurePlateBlock::updateState(IWorld& world, const BlockPos& pos,
 
     if (newPower != oldPower) {
         // 状态改变，调度tick
-        world.scheduleBlockTick(pos, *this, getTickDelay(oldPower, newPower), world::tick::TickPriority::High);
+        world.tickManager().scheduleBlockTick(pos, *this, getTickDelay(oldPower, newPower), world::tick::TickPriority::High);
     }
 }
 

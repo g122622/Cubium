@@ -168,7 +168,7 @@ FrostedIceBlock::FrostedIceBlock(BlockProperties properties)
 
 void FrostedIceBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
     // MC 1.16.5: 放置时调度 tick
-    world.scheduleBlockTick(pos, *this, math::Random(world.seed() ^ pos.toId()).nextInt(20, 40), world::tick::TickPriority::Normal);
+    world.tickManager().scheduleBlockTick(pos, *this, math::Random(world.seed() ^ pos.toId()).nextInt(20, 40), world::tick::TickPriority::Normal);
 }
 
 void FrostedIceBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
@@ -212,12 +212,12 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
             const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState && neighborState->is(this)) {
                 // 调度相邻霜冰的 tick
-                world.scheduleBlockTick(neighborPos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+                world.tickManager().scheduleBlockTick(neighborPos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
             }
         }
     } else {
         // 继续调度下一次 tick
-        world.scheduleBlockTick(pos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+        world.tickManager().scheduleBlockTick(pos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
     }
 }
 

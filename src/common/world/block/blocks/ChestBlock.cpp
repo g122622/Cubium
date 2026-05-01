@@ -29,7 +29,7 @@ namespace {
     void scheduleWaterTick(mc::IWorld& world, const mc::BlockPos& pos) {
         mc::fluid::Fluid* waterFluid = mc::fluid::FluidRegistry::instance().getFluid(mc::fluid::FluidRegistry::WATER_ID);
         MC_ASSERT(waterFluid != nullptr);
-        world.scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+        world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
     }
 }
 

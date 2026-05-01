@@ -65,7 +65,7 @@ void DispenserBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& 
     if (shouldTrigger != isCurrentlyTriggered) {
         if (shouldTrigger) {
             // 被激活，调度发射
-            world.scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
+            world.tickManager().scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
         }
         // 更新触发状态
         BlockState newState = withTriggered(*state, shouldTrigger);

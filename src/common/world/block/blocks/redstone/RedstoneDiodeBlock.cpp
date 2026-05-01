@@ -74,7 +74,7 @@ BlockState RedstoneDiodeBlock::updatePostPlacement(
 
         if (shouldPower != isCurrentlyPowered) {
             // 调度更新
-            world.scheduleBlockTick(currentPos, *this, getDelay(state), world::tick::TickPriority::High);
+            world.tickManager().scheduleBlockTick(currentPos, *this, getDelay(state), world::tick::TickPriority::High);
         }
     }
 
@@ -247,7 +247,7 @@ void RedstoneDiodeBlock::updateState(IWorld& world, const BlockPos& pos, const B
         }
 
         // 调度更新
-        world.scheduleBlockTick(pos, *this, getDelay(state), priority);
+        world.tickManager().scheduleBlockTick(pos, *this, getDelay(state), priority);
     }
 }
 

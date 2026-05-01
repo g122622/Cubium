@@ -571,7 +571,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         }
 
         fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
-        scheduleFluidTick(pos, fluid, fluid.getTickDelay(*this), world::tick::TickPriority::Normal);
+        m_tickManager.scheduleFluidTick(pos, fluid, fluid.getTickDelay(*this), world::tick::TickPriority::Normal);
     };
 
     {
@@ -1044,22 +1044,6 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
     }
 
     return spawnedCount;
-}
-
-// ============================================================================
-// Tick调度便捷方法
-// ============================================================================
-
-void ServerWorld::scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay,
-                                     world::tick::TickPriority priority)
-{
-    m_tickManager->scheduleBlockTick(pos, block, delay, priority);
-}
-
-void ServerWorld::scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay,
-                                     world::tick::TickPriority priority)
-{
-    m_tickManager->scheduleFluidTick(pos, fluid, delay, priority);
 }
 
 // ============================================================================

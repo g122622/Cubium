@@ -70,7 +70,7 @@ void RedstoneWallTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, co
     // 检查初始状态是否正确
     bool shouldBeLit = !shouldBeOff(world, pos, state);
     if (isLit(state) != shouldBeLit) {
-        world.scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
+        world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 
@@ -208,7 +208,7 @@ void RedstoneWallTorchBlock::updateState(IWorld& world, const BlockPos& pos, con
 
     if (isCurrentlyLit != shouldBeLit) {
         // 调度更新（MC Java 使用 2 tick 延迟）
-        world.scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
+        world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 
