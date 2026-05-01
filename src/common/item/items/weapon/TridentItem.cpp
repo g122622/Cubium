@@ -191,10 +191,11 @@ bool TridentItem::onBlockDestroyed(
 
 bool TridentItem::isWet(const Player& player) {
     // MC 1.16.5: isWet() = isInWater() || isInRain()
-    // TODO: 需要实现 isInWater() 和 isInRain()
-    // 暂时返回 false
-    (void)player;
-    return false;
+    // isInWater() 已在 Entity 基类实现
+    // isInRain() 需要检测玩家是否在雨中（需要天气系统和位置检测）
+    // 暂时只检测 isInWater()
+    return player.isInWater();
+    // TODO: 添加 isInRain() 检测，需要天气系统支持
 }
 
 i32 TridentItem::getRiptideLevel(const ItemStack& stack) {

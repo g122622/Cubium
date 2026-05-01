@@ -44,6 +44,7 @@ add_executable(mc_tests
     common/item/tool/ToolTests.cpp
     common/item/potion/GlassBottleItemTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
+    common/item/weapon/WeaponItemTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp

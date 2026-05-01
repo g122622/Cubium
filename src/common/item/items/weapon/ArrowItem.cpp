@@ -19,13 +19,12 @@ entity::AbstractArrowEntity* ArrowItem::createArrow(
     LivingEntity& shooter) const
 {
     (void)stack;  // 普通箭不使用物品堆信息
-    (void)world;
-    (void)shooter;
 
-    // TODO: 需要实现实体工厂方法
-    // 目前返回 nullptr，等待实体系统完善后实现
-    // auto arrow = ArrowEntity::createFromShooter(shooter, &world);
-    // return arrow.release();
+    // 使用ArrowEntity的工厂方法创建箭矢
+    auto arrow = entity::ArrowEntity::createFromShooter(shooter, &world);
+    if (arrow) {
+        return arrow.release();  // 释放所有权，返回裸指针
+    }
     return nullptr;
 }
 
