@@ -78,7 +78,7 @@ kagero/
 │
 ├── paint/                       # 绘制抽象层
 │   ├── Color.hpp                # 颜色定义和工具函数
-│   ├── Geometry.hpp/cpp         # 几何类型（Rect, RRect, Point, Size, Matrix）
+│   ├── Geometry.hpp/cpp         # 几何类型（Rect, RRect, Point, Size, Matrix）及变换（平移、缩放、旋转、倾斜）
 │   ├── PaintContext.hpp/cpp     # 绘图上下文（封装ICanvas）
 │   ├── TextureImage.hpp/cpp     # 纹理图像封装
 │   └── contracts/
@@ -165,7 +165,7 @@ classDiagram
 | `ButtonWidget` | `ButtonWidget.hpp` | 标准按钮，支持文本、图标、禁用状态 |
 | `ImageButtonWidget` | `ButtonWidget.hpp` | 图片按钮，使用纹理渲染 |
 | `TextWidget` | `TextWidget.hpp` | 文本显示，支持多行、对齐 |
-| `RichTextWidget` | `RichTextWidget.hpp` | 富文本显示，支持颜色、样式、点击/悬停事件 |
+| `RichTextWidget` | `RichTextWidget.hpp` | 富文本显示，支持颜色、样式（粗体、斜体、删除线、下划线）、点击/悬停事件 |
 | `TextFieldWidget` | `TextFieldWidget.hpp` | 文本输入，支持选择、复制粘贴 |
 | `CheckboxWidget` | `CheckboxWidget.hpp` | 复选框，支持选中状态 |
 | `SliderWidget` | `SliderWidget.hpp` | 滑动条，支持范围选择 |
@@ -521,6 +521,9 @@ classDiagram
         +translate(dx, dy)
         +scale(sx, sy)
         +rotate(degrees)
+        +concat(matrix)
+        +setMatrix(matrix)
+        +getTotalMatrix() Matrix
         +save() i32
         +restore()
     }
@@ -552,6 +555,10 @@ classDiagram
         +drawNinePatch(image, center, dst, tint)
         +drawRoundedRect(bounds, radius, color)
         +drawGradientRect(bounds, startColor, endColor, vertical)
+        +save() i32
+        +restore()
+        +translate(dx, dy)
+        +concat(matrix)
     }
 
     PaintContext --> ICanvas
