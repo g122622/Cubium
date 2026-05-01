@@ -128,37 +128,34 @@ void TridentItem::onPlayerStoppedUsing(
 
     // 正常投掷模式
     // 创建三叉戟实体
-    entity::TridentEntity* trident = nullptr; // TODO: 需要实现三叉戟实体工厂方法
-    // auto tridentEntity = entity::TridentEntity::createFromShooter(*player, &world);
-    // trident = tridentEntity.release();
+    auto tridentEntity = std::make_unique<entity::TridentEntity>(LegacyEntityType::Trident, EntityId(0));
+    tridentEntity->setWorld(&world);
+    tridentEntity->setPosition(player->x(), player->y() + player->eyeHeight() - 0.1f, player->z());
+    tridentEntity->setShooter(player);
 
-    if (trident != nullptr) {
-        // 设置发射参数
-        f32 velocity = THROW_VELOCITY + static_cast<f32>(riptideLevel) * 0.5f;
-        trident->shootFrom(*player, player->pitch(), player->yaw(), 0.0f, velocity, 1.0f);
+    // 设置发射参数
+    f32 velocity = THROW_VELOCITY + static_cast<f32>(riptideLevel) * 0.5f;
+    tridentEntity->shootFrom(*player, player->pitch(), player->yaw(), 0.0f, velocity, 1.0f);
 
-        // 设置三叉戟物品
-        trident->setItemStack(stack);
+    // 设置三叉戟物品
+    tridentEntity->setItemStack(stack);
 
-        // 设置忠诚附魔等级
-        i32 loyaltyLevel = enchant::EnchantmentHelper::getEnchantmentLevel(
-            stack, &enchant::AllEnchantments::LOYALTY);
-        trident->setLoyaltyLevel(static_cast<u8>(loyaltyLevel));
+    // 设置忠诚附魔等级
+    i32 loyaltyLevel = enchant::EnchantmentHelper::getEnchantmentLevel(
+        stack, &enchant::AllEnchantments::LOYALTY);
+    tridentEntity->setLoyaltyLevel(static_cast<u8>(loyaltyLevel));
 
-        // 创造模式下设置拾取状态
-        if (player->isCreative()) {
-            trident->setPickupStatus(entity::PickupStatus::CreativeOnly);
-        }
+    // 创造模式下设置拾取状态
+    if (player->isCreative()) {
+        tridentEntity->setPickupStatus(entity::PickupStatus::CreativeOnly);
+    }
 
-        // 生成实体
-        world.spawnEntity(std::unique_ptr<Entity>(trident));
+    // 生成实体
+    world.spawnEntity(std::move(tridentEntity));
 
-        // 非创造模式从背包移除三叉戟
-        if (!player->isCreative()) {
-            stack.shrink(1);
-        }
-
-        // TODO: 播放投掷音效
+    // 非创造模式从背包移除三叉戟
+    if (!player->isCreative()) {
+        stack.shrink(1);
     }
 }
 

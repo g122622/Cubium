@@ -180,8 +180,11 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     // 标记已造成伤害
     m_dealtDamage = true;
 
-    // TODO: 应用伤害
-    // bool hurt = target->hurt(*damageSource, damage);
+    // 应用伤害
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+    if (livingTarget != nullptr) {
+        livingTarget->hurt(*damageSource, damage);
+    }
 
     // 击退效果
     if (m_knockbackStrength > 0) {
@@ -288,9 +291,10 @@ bool TridentEntity::onPlayerPickup(Player& player) {
                       getShooter()->uuid() == player.uuid());
 
     if (canPickup) {
-        // TODO: 添加到玩家背包
-        // player.inventory().addItem(m_tridentStack);
-        // player.onItemPickup(this, 1);
+        // 添加到玩家背包
+        if (!m_tridentStack.isEmpty()) {
+            player.inventory().add(m_tridentStack);
+        }
         remove();
         return true;
     }
