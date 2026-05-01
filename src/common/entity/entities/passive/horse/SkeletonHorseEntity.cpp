@@ -26,8 +26,41 @@ bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const {
     return true;
 }
 
+void SkeletonHorseEntity::setTrap(bool trap) {
+    m_trap = trap;
+}
+
+void SkeletonHorseEntity::triggerTrap() {
+    // MC 1.16.5: 触发陷阱
+    // 1. 将陷阱马转换为普通骷髅马
+    // 2. 生成骷髅骑手
+    // TODO: 实现完整的陷阱触发逻辑
+    // - 生成骷髅实体
+    // - 给骷髅装备铁头盔
+    // - 让骷髅骑上马
+    // - 如果世界难度为 HARD，生成额外 2 只骷髅
+    m_trap = false;
+}
+
+void SkeletonHorseEntity::onStruckByLightning() {
+    // MC 1.16.5: 陷阱马被闪电击中时触发陷阱
+    if (m_trap) {
+        triggerTrap();
+    }
+}
+
 void SkeletonHorseEntity::tick() {
     AbstractHorseEntity::tick();
+
+    // MC 1.16.5: 陷阱马超时逻辑
+    // 如果陷阱马存在超过 18000 ticks (15分钟)，自动消失
+    if (m_trap) {
+        m_trapTime++;
+        if (m_trapTime >= TRAP_MAX_TIME) {
+            remove();
+            return;
+        }
+    }
 
     // 检查阳光燃烧
     if (shouldBurnInDaylight()) {

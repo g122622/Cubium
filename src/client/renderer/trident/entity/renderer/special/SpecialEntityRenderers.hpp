@@ -110,6 +110,9 @@ private:
 
 /**
  * @brief 闪电渲染器
+ *
+ * 参考 MC 1.16.5 LightningBoltRenderer
+ * 闪电使用程序化生成，渲染为多段四边形条带
  */
 class LightningBoltRenderer : public core::EntityRenderer {
 public:
@@ -117,6 +120,62 @@ public:
     ~LightningBoltRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override;
+
+    /**
+     * @brief 渲染层（GPU管线路径，ClientEntity 版本）
+     *
+     * 闪电使用 GPU 管线渲染，程序化生成顶点
+     */
+    void renderLayersPipelineClient(
+        ::mc::client::ClientEntity& entity,
+        VkCommandBuffer cmd,
+        const core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline) override;
+
+private:
+    /**
+     * @brief 渲染一个闪电四边形条带段
+     *
+     * 参考 MC 1.16.5 LightningBoltRenderer.func_229116_a_
+     *
+     * @param vertices 顶点输出数组
+     * @param indices 索引输出数组
+     * @param x1 当前X偏移
+     * @param z1 当前Z偏移
+     * @param segmentY 当前段Y坐标（段索引 * 16）
+     * @param prevX 前一段X偏移
+     * @param prevZ 前一段Z偏移
+     * @param r 红色分量
+     * @param g 绿色分量
+     * @param b 蓝色分量
+     * @param topWidth 顶部宽度
+     * @param bottomWidth 底部宽度
+     * @param flipX1 是否翻转X1
+     * @param flipZ1 是否翻转Z1
+     * @param flipX2 是否翻转X2
+     * @param flipZ2 是否翻转Z2
+     */
+    static void renderQuadSegment(
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices,
+        f32 x1, f32 z1, i32 segmentY,
+        f32 prevX, f32 prevZ,
+        f32 r, f32 g, f32 b,
+        f32 topWidth, f32 bottomWidth,
+        bool flipX1, bool flipZ1,
+        bool flipX2, bool flipZ2);
+
+    /**
+     * @brief 生成闪电网格
+     *
+     * @param boltVertex 随机种子
+     * @param vertices 顶点输出数组
+     * @param indices 索引输出数组
+     */
+    static void generateLightningMesh(
+        u64 boltVertex,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices);
 };
 
 /**

@@ -872,6 +872,23 @@ public:
      */
     void updateFallDistance();
 
+    // ========== 闪电击中 ==========
+
+    /**
+     * @brief 当实体被闪电击中时调用
+     *
+     * MC 1.16.5: Entity.func_241841_a(ServerWorld, LightningBoltEntity)
+     * 子类可以重写此方法来处理被闪电击中的特殊效果：
+     * - 哞菇：红色 -> 棕色
+     * - 苦力怕：变成高压苦力怕
+     * - 村民：变成女巫
+     * - 猪：变成僵尸猪灵
+     *
+     * 注意：闪电伤害由 LightningBoltEntity 单独处理，
+     * 此方法用于处理特殊变形效果。
+     */
+    virtual void onStruckByLightning() {}
+
     // ========== 乘客/骑乘系统 ==========
 
     /**

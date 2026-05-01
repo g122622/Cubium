@@ -1,7 +1,15 @@
 #include "WeatherManager.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/core/Constants.hpp"
 #include <algorithm>
 
 namespace mc::server {
@@ -210,20 +218,167 @@ std::pair<bool, BlockPos> WeatherManager::trySpawnLightning() {
         return {false, BlockPos(0, 0, 0)};
     }
 
-    // 概率检查
+    // 概率检查：每 tick 有 1/100000 概率尝试生成闪电
     if (m_random->nextInt(mc::weather::WeatherConstants::LIGHTNING_CHANCE_DENOMINATOR) != 0) {
         return {false, BlockPos(0, 0, 0)};
     }
 
-    // TODO: 实现完整闪电生成逻辑
-    // 1. 随机选择区块
-    // 2. 找到可以降雨的位置
-    // 3. 调整位置到实体附近
-    // 4. 检查是否生成骷髅马陷阱
+    // 需要有效的世界
+    if (m_world == nullptr) {
+        return {false, BlockPos(0, 0, 0)};
+    }
 
-    // 简化实现：返回一个标志表示需要生成闪电
-    // 实际位置由调用者决定
-    return {true, BlockPos(0, 0, 0)};
+    // MC 1.16.5 ServerWorld.tickEnvironment() 选择加载的区块进行闪电生成
+    // 由于 IWorld 接口限制，使用玩家位置附近的区块
+    // 获取一个足够大范围内的实体来找到玩家
+    auto entities = m_world->getEntitiesInRange(Vector3(0, 0, 0),
+                                                  static_cast<f32>(world::CHUNK_LOAD_RADIUS * 16));
+
+    // 过滤出玩家
+    std::vector<Entity*> playerEntities;
+    for (Entity* entity : entities) {
+        if (entity && entity->legacyType() == LegacyEntityType::Player && entity->isAlive()) {
+            playerEntities.push_back(entity);
+        }
+    }
+
+    // 如果没有玩家，无法生成闪电
+    if (playerEntities.empty()) {
+        return {false, BlockPos(0, 0, 0)};
+    }
+
+    // 选择一个随机玩家
+    Entity* randomPlayer = playerEntities[m_random->nextInt(static_cast<i32>(playerEntities.size()))];
+    Vector3 playerPos = randomPlayer->position();
+
+    // 区块坐标
+    ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerPos.x / 16.0));
+    ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerPos.z / 16.0));
+
+    // 获取该区块
+    const ChunkData* chunk = m_world->getChunk(playerChunkX, playerChunkZ);
+    if (chunk == nullptr) {
+        return {false, BlockPos(0, 0, 0)};
+    }
+
+    // 在区块内随机选择位置
+    i32 chunkStartX = playerChunkX * 16;
+    i32 chunkStartZ = playerChunkZ * 16;
+
+    // 获取区块内的随机位置
+    // MC 1.16.5: getBlockRandomPos(chunkX, 0, chunkZ, 15)
+    // 传入 0 作为 Y 起点，然后使用高度图获取正确的 Y
+    BlockPos randomPos = getBlockRandomPos(chunkStartX, 0, chunkStartZ);
+
+    // 获取该位置的最高可站立方块
+    i32 topY = chunk->getTopBlockY(HeightmapType::MotionBlocking,
+                                   randomPos.x - chunkStartX,
+                                   randomPos.z - chunkStartZ);
+
+    if (topY < world::MIN_BUILD_HEIGHT) {
+        return {false, BlockPos(0, 0, 0)};
+    }
+
+    BlockPos targetPos(randomPos.x, topY, randomPos.z);
+
+    // 调整位置到附近实体
+    BlockPos adjustedPos = findLightningTargetAround(targetPos);
+
+    // 检查该位置是否可以降雨（生物群系检查）
+    if (!m_world->canRainAt(adjustedPos)) {
+        return {false, BlockPos(0, 0, 0)};
+    }
+
+    // 检查位置是否可以看到天空
+    if (!mc::weather::WeatherUtils::canSeeSky(*m_world, adjustedPos)) {
+        return {false, BlockPos(0, 0, 0)};
+    }
+
+    // 成功生成闪电
+    return {true, adjustedPos};
+}
+
+BlockPos WeatherManager::findLightningTargetAround(const BlockPos& pos) const {
+    // 参考 MC 1.16.5 ServerWorld.adjustPosToNearbyEntity()
+    // 在位置周围搜索生物实体
+
+    if (m_world == nullptr) {
+        return pos;
+    }
+
+    // 获取高度
+    i32 height = m_world->getHeight(pos.x, pos.z);
+
+    // 创建搜索范围：从地面到世界高度限制
+    AxisAlignedBB searchBox(
+        static_cast<f32>(pos.x) - 3.0f,
+        static_cast<f32>(height),
+        static_cast<f32>(pos.z) - 3.0f,
+        static_cast<f32>(pos.x) + 3.0f,
+        static_cast<f32>(world::MAX_BUILD_HEIGHT),
+        static_cast<f32>(pos.z) + 3.0f
+    );
+
+    // 获取范围内的实体
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, nullptr);
+
+    // 过滤出活着的生物实体
+    std::vector<Entity*> livingEntities;
+    for (Entity* entity : entities) {
+        if (entity && entity->isAlive()) {
+            // 检查是否为生物实体（LivingEntity 或其子类）
+            // 这里使用 LegacyEntityType 来判断
+            LegacyEntityType type = entity->legacyType();
+            // 排除玩家和一些特殊实体
+            if (type != LegacyEntityType::Player &&
+                type != LegacyEntityType::Item &&
+                type != LegacyEntityType::ExperienceOrb &&
+                type != LegacyEntityType::Unknown) {
+                // 检查实体是否可以看到天空
+                BlockPos entityPos(static_cast<i32>(entity->x()),
+                                   static_cast<i32>(entity->y()),
+                                   static_cast<i32>(entity->z()));
+                if (mc::weather::WeatherUtils::canSeeSky(*m_world, entityPos)) {
+                    livingEntities.push_back(entity);
+                }
+            }
+        }
+    }
+
+    // 如果找到了实体，随机选择一个
+    if (!livingEntities.empty()) {
+        Entity* target = livingEntities[m_random->nextInt(static_cast<i32>(livingEntities.size()))];
+        return BlockPos(static_cast<i32>(target->x()),
+                        static_cast<i32>(target->y()),
+                        static_cast<i32>(target->z()));
+    }
+
+    // 如果没有找到实体，返回原始位置
+    // 如果高度无效，调整一下
+    if (pos.y < world::MIN_BUILD_HEIGHT + 2) {
+        return BlockPos(pos.x, world::MIN_BUILD_HEIGHT + 2, pos.z);
+    }
+
+    return pos;
+}
+
+BlockPos WeatherManager::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ) {
+    // 参考 MC 1.16.5 World.getBlockRandomPos()
+    // 使用 LCG (Linear Congruential Generator) 确保分布均匀
+    m_updateLCG = m_updateLCG * 3 + 1013904223;
+    i32 i = static_cast<i32>(m_updateLCG >> 2);
+
+    // MC 1.16.5: return new BlockPos(p_217383_1_ + (i & 15), p_217383_2_ + (i >> 16 & p_217383_4_), p_217383_3_ + (i >> 8 & 15));
+    // 第四个参数是 Y 轴掩码，闪电生成时传入 15
+    // x = chunkX + (i & 15)          -> 范围 [0, 15]
+    // y = sectionY + ((i >> 16) & 15) -> 范围 [0, 15]
+    // z = chunkZ + ((i >> 8) & 15)   -> 范围 [0, 15]
+
+    return BlockPos(
+        chunkX + (i & 15),
+        sectionY + ((i >> 16) & 15),
+        chunkZ + ((i >> 8) & 15)
+    );
 }
 
 void WeatherManager::serialize(std::vector<u8>& data) const {

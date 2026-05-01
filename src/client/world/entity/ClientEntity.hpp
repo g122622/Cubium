@@ -543,6 +543,20 @@ public:
      */
     void setXpValue(i32 value) { m_xpValue = value; }
 
+    // ========== 闪电支持（用于 LightningBolt 渲染） ==========
+
+    /**
+     * @brief 获取闪电形状随机种子
+     * 用于 LightningBoltRenderer 生成一致的闪电形状
+     */
+    [[nodiscard]] u64 boltVertex() const { return m_boltVertex; }
+
+    /**
+     * @brief 设置闪电形状随机种子
+     * @param boltVertex 随机种子
+     */
+    void setBoltVertex(u64 boltVertex) { m_boltVertex = boltVertex; }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -619,6 +633,9 @@ private:
 
     // ExperienceOrb 经验值数据
     i32 m_xpValue = 1;  // 默认值为1
+
+    // LightningBolt 闪电形状随机种子
+    u64 m_boltVertex = 0;
 
     // 追踪位置系统（用于披风摆动）
     // 参考 MC 1.16.5 PlayerEntity: chasingPosX/Y/Z 和 prevChasingPosX/Y/Z

@@ -66,6 +66,13 @@ private:
  *
  * 雷暴天气时生成的闪电。
  *
+ * MC 1.16.5 对齐字段和逻辑：
+ * - lightningState: 初始值为 2，每 tick 递减
+ * - boltVertex: 随机种子，用于渲染闪电形状
+ * - boltLivingTime: 随机 1-3，控制闪电视觉效果的"复活"次数
+ * - effectOnly: 是否只有效果（不造成伤害）
+ * - caster: 触发者（用于引雷附魔等）
+ *
  * 参考 MC 1.16.5 LightningBoltEntity
  */
 class LightningBoltEntity : public Entity {
@@ -81,39 +88,80 @@ public:
     [[nodiscard]] bool canBeCollidedWith() const { return false; }
 
     /**
-     * @brief 设置是否只对实体造成伤害（不影响方块）
+     * @brief 设置是否只有效果（不造成伤害、不点燃方块）
      */
     void setEffectOnly(bool effectOnly) { m_effectOnly = effectOnly; }
     [[nodiscard]] bool isEffectOnly() const { return m_effectOnly; }
 
     /**
-     * @brief 获取闪电存在时间
+     * @brief 设置触发者（用于引雷附魔等）
+     * @param casterId 触发者的玩家ID
      */
-    [[nodiscard]] i32 getTicksLived() const { return m_ticksLived; }
+    void setCaster(PlayerId casterId) { m_caster = casterId; }
+    [[nodiscard]] PlayerId caster() const { return m_caster; }
+
+    /**
+     * @brief 获取闪电状态值
+     * 用于渲染闪电的闪烁效果
+     */
+    [[nodiscard]] i32 lightningState() const { return m_lightningState; }
+
+    /**
+     * @brief 获取闪电视觉效果剩余次数
+     */
+    [[nodiscard]] i32 boltLivingTime() const { return m_boltLivingTime; }
+
+    /**
+     * @brief 获取闪电形状随机种子
+     * 用于渲染器生成一致的闪电形状
+     */
+    [[nodiscard]] u64 boltVertex() const { return m_boltVertex; }
+
+    /**
+     * @brief 获取声音类别
+     */
+    [[nodiscard]] sound::SoundCategory getSoundCategory() const override {
+        return sound::SoundCategory::Weather;
+    }
+
+private:
+    /**
+     * @brief 点燃周围方块
+     * @param extraIgnitions 额外点燃数量（基于难度）
+     *
+     * MC 1.16.5 igniteBlocks():
+     * - 检查游戏规则 doFireTick
+     * - 在当前位置放置火焰
+     * - 根据 difficulty 决定额外点燃数量
+     */
+    void igniteBlocks(i32 extraIgnitions);
 
     /**
      * @brief 伤害周围实体
+     *
+     * MC 1.16.5 伤害逻辑：
+     * - 获取 3x6x3 范围内的实体
+     * - 调用实体的 onStruckByLightning() 方法
      */
     void damageEntities();
 
     /**
-     * @brief 在周围生成火焰
+     * @brief 初始化闪电状态
      */
-    void spawnFire();
+    void initializeState();
 
-    /**
-     * @brief 触发闪电事件
-     */
-    void triggerLightningEffect();
+    // MC 1.16.5 字段
+    i32 m_lightningState = 2;      ///< 闪电状态，初始 2，递减控制音效和伤害
+    u64 m_boltVertex = 0;          ///< 随机种子，用于渲染闪电形状
+    i32 m_boltLivingTime = 1;      ///< 闪电视觉效果重复次数 (1-3)
+    bool m_effectOnly = false;     ///< 是否只有效果（不造成伤害）
+    PlayerId m_caster = 0;         ///< 触发者ID（用于引雷附魔）
+    bool m_initialized = false;    ///< 是否已初始化
 
-private:
-    bool m_effectOnly = false;
-    i32 m_ticksLived = 0;
-    i32 m_flashCount = 0;
-    bool m_hasStruck = false;
-    static constexpr i32 LIFETIME = 30;
-    static constexpr f32 DAMAGE_RADIUS = 3.0f;
-    static constexpr f32 DAMAGE_AMOUNT = 5.0f;
+    // 常量
+    static constexpr f32 DAMAGE_RADIUS_XZ = 3.0f;  ///< 伤害范围 X/Z 轴
+    static constexpr f32 DAMAGE_RADIUS_Y = 6.0f;   ///< 伤害范围 Y 轴（向上扩展）
+    static constexpr f32 DAMAGE_RADIUS_Y_OFFSET = 3.0f;  ///< 伤害范围 Y 轴偏移
 };
 
 /**

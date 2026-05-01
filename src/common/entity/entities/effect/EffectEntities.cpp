@@ -1,10 +1,14 @@
 #include "EffectEntities.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
 #include "../player/Player.hpp"
 #include "../../core/LivingEntity.hpp"
+#include "../../damage/DamageSource.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include <cmath>
-#include <algorithm>
+#include <chrono>
 
 namespace mc {
 namespace entity {
@@ -50,42 +54,217 @@ void EnderCrystalEntity::explode() {
 LightningBoltEntity::LightningBoltEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
+    // MC 1.16.5: ignoreFrustumCheck = true
+    // 闪电总是可见，即使不在视锥内
+}
+
+void LightningBoltEntity::initializeState() {
+    // MC 1.16.5 构造函数中的初始化：
+    // lightningState = 2
+    // boltVertex = rand.nextLong()
+    // boltLivingTime = rand.nextInt(3) + 1
+
+    m_lightningState = 2;
+
+    // 使用世界种子或随机数生成 boltVertex
+    if (m_world != nullptr) {
+        math::Random rng(static_cast<u64>(m_world->currentTick()) ^ m_world->seed());
+        m_boltVertex = rng.nextLong();
+        m_boltLivingTime = rng.nextInt(1, 3);  // 1-3
+    } else {
+        // 无世界时使用确定性种子（基于时间）
+        math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+        m_boltVertex = rng.nextLong();
+        m_boltLivingTime = rng.nextInt(1, 3);
+    }
+
+    m_initialized = true;
 }
 
 void LightningBoltEntity::tick() {
     Entity::tick();
 
-    m_ticksLived++;
-
-    // 等待一帧后再造成伤害
-    if (m_ticksLived == 1 && !m_effectOnly) {
-        damageEntities();
-        spawnFire();
+    // MC 1.16.5: 首次 tick 初始化状态
+    if (!m_initialized) {
+        initializeState();
     }
 
-    // 闪电视觉效果
-    if (m_ticksLived < 2) {
-        m_flashCount++;
+    // MC 1.16.5: lightningState == 2 时执行初始效果
+    // 播放音效、点燃方块、造成伤害
+    if (m_lightningState == 2) {
+        // MC 1.16.5: 难度检查 - NORMAL 和 HARD 点燃更多火焰
+        if (m_world != nullptr && !m_effectOnly && !m_world->isRemote()) {
+            Difficulty difficulty = m_world->difficulty();
+            if (difficulty == Difficulty::Normal || difficulty == Difficulty::Hard) {
+                igniteBlocks(4);
+            } else {
+                igniteBlocks(0);
+            }
+        }
+
+        // MC 1.16.5: 播放雷声音效
+        // 音量 10000（非常大的范围），音调 0.8-1.0
+        if (m_world != nullptr) {
+            // 使用 boltVertex 生成一致的随机音调
+            f32 thunderPitch = 0.8f + static_cast<f32>(m_boltVertex % 100) / 100.0f * 0.2f;
+            m_world->playSound(
+                SoundEvents::WEATHER_THUNDER,
+                sound::SoundCategory::Weather,
+                m_position,
+                10000.0f,  // MC 1.16.5: 10000 音量（可传很远）
+                thunderPitch
+            );
+
+            // MC 1.16.5: 播放雷击声音效（音量 2，音调 0.5-0.7）
+            f32 impactPitch = 0.5f + static_cast<f32>((m_boltVertex >> 8) % 100) / 100.0f * 0.2f;
+            m_world->playSound(
+                SoundEvents::WEATHER_THUNDER,
+                sound::SoundCategory::Weather,
+                m_position,
+                2.0f,
+                impactPitch
+            );
+        }
+
+        // MC 1.16.5: 服务端造成伤害（非 effectOnly，非客户端）
+        if (m_world != nullptr && !m_world->isRemote() && !m_effectOnly) {
+            damageEntities();
+        }
+
+        // MC 1.16.5: 客户端设置闪电闪烁效果
+        // world.setTimeLightningFlash(2) - 需要在 ClientWorld 中实现
+        // TODO: 实现客户端闪电闪烁效果
     }
 
-    // 闪电在30tick后消失
-    if (m_ticksLived >= LIFETIME) {
-        remove();
+    // MC 1.16.5: 递减 lightningState
+    --m_lightningState;
+
+    // MC 1.16.5: lightningState < 0 时检查是否"复活"
+    if (m_lightningState < 0) {
+        if (m_boltLivingTime == 0) {
+            // 所有视觉效果结束，移除实体
+            remove();
+        } else if (m_lightningState < -static_cast<i32>(m_boltVertex % 10)) {
+            // MC 1.16.5: 随机间隔后"复活"
+            // 闪电会多次闪烁，模拟真实闪电效果
+            --m_boltLivingTime;
+            m_lightningState = 1;
+
+            // 生成新的随机种子用于渲染
+            if (m_world != nullptr) {
+                math::Random rng(static_cast<u64>(m_world->currentTick()) ^ m_boltVertex);
+                m_boltVertex = rng.nextLong();
+            } else {
+                math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()) ^ m_boltVertex);
+                m_boltVertex = rng.nextLong();
+            }
+
+            // "复活"时再次尝试点燃（不额外点燃）
+            igniteBlocks(0);
+        }
+    }
+}
+
+void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
+    // MC 1.16.5 igniteBlocks():
+    // 检查游戏规则 doFireTick 和是否为客户端
+    if (m_effectOnly || m_world == nullptr || m_world->isRemote()) {
+        return;
+    }
+
+    // MC 1.16.5: 检查游戏规则 doFireTick
+    if (!m_world->doFireTick()) {
+        return;
+    }
+
+    // 获取当前位置
+    BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
+                      static_cast<i32>(std::floor(m_position.y)),
+                      static_cast<i32>(std::floor(m_position.z)));
+
+    // 获取火焰方块状态
+    const BlockState* fireState = nullptr;
+    if (VanillaBlocks::FIRE != nullptr) {
+        fireState = &VanillaBlocks::FIRE->defaultState();
+    }
+
+    if (fireState == nullptr) {
+        return;
+    }
+
+    // MC 1.16.5: 在当前位置放置火焰
+    const BlockState* currentState = m_world->getBlockState(blockPos);
+    // 检查是否为空气方块
+    if (currentState != nullptr && currentState->isAir()) {
+        // TODO: AbstractFireBlock.getFireForPlacement() - 检查火焰是否可以放置在当前位置
+        // 目前直接放置普通火焰
+        m_world->setBlock(blockPos, fireState);
+    }
+
+    // MC 1.16.5: 额外点燃周围方块
+    if (extraIgnitions > 0) {
+        math::Random rng(m_boltVertex);
+
+        for (i32 i = 0; i < extraIgnitions; ++i) {
+            // MC 1.16.5: pos.add(rand.nextInt(3) - 1, rand.nextInt(3) - 1, rand.nextInt(3) - 1)
+            i32 dx = rng.nextInt(3) - 1;
+            i32 dy = rng.nextInt(3) - 1;
+            i32 dz = rng.nextInt(3) - 1;
+
+            BlockPos firePos(blockPos.x + dx, blockPos.y + dy, blockPos.z + dz);
+
+            const BlockState* stateAtPos = m_world->getBlockState(firePos);
+            if (stateAtPos != nullptr && stateAtPos->isAir()) {
+                // TODO: AbstractFireBlock.getFireForPlacement() - 检查火焰是否可以放置
+                m_world->setBlock(firePos, fireState);
+            }
+        }
     }
 }
 
 void LightningBoltEntity::damageEntities() {
-    if (m_effectOnly) return;
-    // TODO: 伤害周围实体
-}
+    // MC 1.16.5: 获取 3x6x3 范围内的实体
+    // AxisAlignedBB(pos.x - 3, pos.y - 3, pos.z - 3, pos.x + 3, pos.y + 6 + 3, pos.z + 3)
+    if (m_world == nullptr || m_effectOnly) {
+        return;
+    }
 
-void LightningBoltEntity::spawnFire() {
-    if (m_effectOnly) return;
-    // TODO: 在闪电击中位置生成火焰
-}
+    // 构建碰撞箱
+    // MC 1.16.5: new AxisAlignedBB(posX - 3.0, posY - 3.0, posZ - 3.0, posX + 3.0, posY + 6.0 + 3.0, posZ + 3.0)
+    AxisAlignedBB box(
+        m_position.x - DAMAGE_RADIUS_XZ,
+        m_position.y - DAMAGE_RADIUS_Y_OFFSET,
+        m_position.z - DAMAGE_RADIUS_XZ,
+        m_position.x + DAMAGE_RADIUS_XZ,
+        m_position.y + DAMAGE_RADIUS_Y + DAMAGE_RADIUS_Y_OFFSET,
+        m_position.z + DAMAGE_RADIUS_XZ
+    );
 
-void LightningBoltEntity::triggerLightningEffect() {
-    // TODO: 触发闪电事件
+    // 获取范围内的实体
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr || !entity->isAlive()) {
+            continue;
+        }
+
+        // MC 1.16.5: 调用 entity.func_241841_a() (onStruckByLightning)
+        // 对于 LivingEntity，造成闪电伤害
+        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+        if (living != nullptr) {
+            // 创建闪电伤害来源
+            auto damageSource = DamageSources::lightningBolt(this);
+            // MC 1.16.5: 闪电伤害为 5.0
+            living->hurt(damageSource, 5.0f);
+        }
+
+        // MC 1.16.5: 调用实体的 onStruckByLightning() 方法
+        // 用于处理特殊效果（如哞菇变色、苦力怕充能等）
+        entity->onStruckByLightning();
+
+        // TODO: MC 1.16.5 触发进度 CriteriaTriggers.CHANNELED_LIGHTNING
+        // 如果有 caster（引雷附魔的玩家），触发进度
+    }
 }
 
 // ==================== AreaEffectCloudEntity ====================

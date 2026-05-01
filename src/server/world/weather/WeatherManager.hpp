@@ -4,7 +4,10 @@
 #include "common/core/Result.hpp"
 #include "common/world/weather/WeatherState.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include <memory>
 #include <functional>
 
@@ -225,6 +228,7 @@ public:
      * @brief 尝试生成闪电
      *
      * 雷暴时每tick调用，有概率生成闪电。
+     * 参考 MC 1.16.5 ServerWorld.tickEnvironment()
      *
      * @return 闪电生成位置，如果没有生成则返回无效位置
      */
@@ -238,8 +242,6 @@ public:
     void setLightningCallback(LightningSpawnCallback callback) {
         m_lightningCallback = std::move(callback);
     }
-
-    // ========== 天气变化通知 ==========
 
     /**
      * @brief 设置天气变化回调
@@ -274,6 +276,31 @@ public:
 
 private:
     /**
+     * @brief 在指定位置周围寻找闪电目标
+     *
+     * 参考 MC 1.16.5 ServerWorld.adjustPosToNearbyEntity()
+     * 查找附近的生物实体，如果找到则返回其位置，否则返回原始位置。
+     *
+     * @param pos 原始位置
+     * @return 调整后的位置
+     */
+    [[nodiscard]] BlockPos findLightningTargetAround(const BlockPos& pos) const;
+
+    /**
+     * @brief 获取随机方块位置
+     *
+     * 在区块内生成随机位置。
+     * 参考 MC 1.16.5 World.getBlockRandomPos()
+     *
+     * @param chunkX 区块 X 起点（方块坐标）
+     * @param sectionY 区块段 Y 起点（方块坐标）
+     * @param chunkZ 区块 Z 起点（方块坐标）
+     * @return 随机方块位置
+     */
+    [[nodiscard]] BlockPos getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ);
+
+    // ========== 内部方法 ==========
+    /**
      * @brief 更新天气强度渐变
      */
     void updateStrength();
@@ -303,6 +330,9 @@ private:
 
     // 天气变化检测状态
     bool m_lastRaining = false;  ///< 上一帧的降雨状态
+
+    // LCG 状态（用于随机位置生成）
+    i64 m_updateLCG = 0;  ///< 线性同余生成器状态
 };
 
 } // namespace mc::server

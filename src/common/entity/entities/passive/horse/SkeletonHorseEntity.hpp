@@ -93,6 +93,40 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.6f; }
 
+    // ========== 骷髅马陷阱 ==========
+
+    /**
+     * @brief 是否为陷阱马
+     *
+     * MC 1.16.5: 陷阱马在雷暴时生成，当玩家接近时会触发：
+     * - 生成一只骷髅骑手
+     * - 变成普通骷髅马
+     */
+    [[nodiscard]] bool isTrap() const { return m_trap; }
+
+    /**
+     * @brief 设置陷阱马状态
+     *
+     * MC 1.16.5: 设置为陷阱马时，需要添加 Trap 标签
+     */
+    void setTrap(bool trap);
+
+    /**
+     * @brief 触发陷阱
+     *
+     * 当玩家接近陷阱马时调用：
+     * - 生成骷髅骑手
+     * - 将陷阱马转换为普通骷髅马
+     */
+    void triggerTrap();
+
+    /**
+     * @brief 当被闪电击中时调用
+     *
+     * MC 1.16.5: 陷阱马被闪电击中时触发陷阱
+     */
+    void onStruckByLightning() override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -102,7 +136,9 @@ protected:
     void registerAttributes() override;
 
 private:
-    bool m_trapChecked = false;  // 是否已检查陷阱
+    bool m_trap = false;          // 是否为陷阱马
+    i32 m_trapTime = 0;           // 陷阱存活时间 (ticks)
+    static constexpr i32 TRAP_MAX_TIME = 18000;  // 陷阱最大存活时间 (15分钟)
 };
 
 } // namespace mc
