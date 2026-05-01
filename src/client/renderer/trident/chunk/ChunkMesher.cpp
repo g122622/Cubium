@@ -7,6 +7,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -685,6 +686,21 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
         return true;
     }
 
+    // 树叶渲染规则：
+    // - 树叶与树叶相邻（无论类型） → 剔除
+    // - 树叶与不透明方块相邻 → 剔除
+    // - 树叶与透明方块（非树叶）相邻 → 渲染
+    if (BlockTags::LEAVES().contains(*block)) {
+        const bool neighborIsLeaves = BlockTags::LEAVES().contains(*neighbor);
+        if (neighborIsLeaves) {
+            return false;  // 树叶与树叶相邻，剔除
+        }
+        if (!neighbor->isTransparent()) {
+            return false;  // 树叶与不透明方块相邻，剔除
+        }
+        return true;  // 树叶与透明方块（非树叶）相邻，渲染
+    }
+
     // 透明方块规则：同类型透明方块之间剔除内部面
     if (neighbor->isTransparent()) {
         if (block->isTransparent() && block->blockId() == neighbor->blockId()) {
@@ -694,7 +710,7 @@ bool ChunkMesher::shouldRenderFace(const BlockState* block, const BlockState* ne
     }
 
     // 透明方块贴着不透明方块时必须保留面。
-    // 否则会出现玻璃/水体与石头相接处“整面消失”的问题。
+    // 否则会出现玻璃/水体与石头相接处”整面消失”的问题。
     if (block->isTransparent()) {
         return true;
     }

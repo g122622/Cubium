@@ -265,26 +265,72 @@ void BlockTags::initialize() {
 
     // 创建 LEAVES 标签
     auto leaves = std::make_unique<BlockTag>(ResourceLocation("minecraft", "leaves"));
+    leaves->addAll({
+        ResourceLocation("minecraft", "oak_leaves"),
+        ResourceLocation("minecraft", "spruce_leaves"),
+        ResourceLocation("minecraft", "birch_leaves"),
+        ResourceLocation("minecraft", "jungle_leaves"),
+        ResourceLocation("minecraft", "acacia_leaves"),
+        ResourceLocation("minecraft", "dark_oak_leaves"),
+        ResourceLocation("minecraft", "azalea_leaves"),
+        ResourceLocation("minecraft", "flowering_azalea_leaves")
+    });
     tags[leaves->getId()] = std::move(leaves);
 
     // 创建 PLANKS 标签
     auto planks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "planks"));
+    planks->addAll({
+        ResourceLocation("minecraft", "oak_planks"),
+        ResourceLocation("minecraft", "spruce_planks"),
+        ResourceLocation("minecraft", "birch_planks"),
+        ResourceLocation("minecraft", "jungle_planks"),
+        ResourceLocation("minecraft", "acacia_planks"),
+        ResourceLocation("minecraft", "dark_oak_planks"),
+        ResourceLocation("minecraft", "crimson_planks"),
+        ResourceLocation("minecraft", "warped_planks")
+    });
     tags[planks->getId()] = std::move(planks);
 
     // 创建 DIRT 标签
     auto dirt = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dirt"));
+    dirt->addAll({
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "farmland")
+    });
     tags[dirt->getId()] = std::move(dirt);
 
     // 创建 SAND 标签
     auto sand = std::make_unique<BlockTag>(ResourceLocation("minecraft", "sand"));
+    sand->addAll({
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "red_sand"),
+        ResourceLocation("minecraft", "soul_sand")
+    });
     tags[sand->getId()] = std::move(sand);
 
-    // 创建 STONE 标签
+    // 创建 STONE 标签（MC 1.16.5 stone 标签仅包含 stone 方块）
     auto stone = std::make_unique<BlockTag>(ResourceLocation("minecraft", "stone"));
+    stone->addAll({
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "polished_granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "polished_diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "polished_andesite")
+    });
     tags[stone->getId()] = std::move(stone);
 
     // 创建 FIRE 标签
     auto fire = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fire"));
+    fire->addAll({
+        ResourceLocation("minecraft", "fire"),
+        ResourceLocation("minecraft", "soul_fire")
+    });
     tags[fire->getId()] = std::move(fire);
 
     // 创建 BAMBOO_PLANTABLE_ON 标签
