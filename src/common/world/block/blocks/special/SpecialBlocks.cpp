@@ -1,5 +1,6 @@
 #include "SpecialBlocks.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
@@ -273,6 +274,20 @@ Material::PushReaction SlimeBlock::getPushReaction(const BlockState& state) cons
     return Material::PushReaction::Normal;
 }
 
+bool SlimeBlock::isStickyBlock(const BlockState& state) const {
+    MC_UNUSED(state);
+    // MC 1.16.5: SlimeBlock.isStickyBlock returns true
+    return true;
+}
+
+bool SlimeBlock::canStickTo(const BlockState& state, const BlockState& other) const {
+    MC_UNUSED(state);
+    // MC 1.16.5: SlimeBlock.canStickTo
+    // 黏液块可以粘住黏液块和蜂蜜块
+    const Block& otherBlock = other.getBlock();
+    return otherBlock.isStickyBlock(other);
+}
+
 // ========== HoneyBlock ==========
 
 HoneyBlock::HoneyBlock(const BlockProperties& properties)
@@ -321,6 +336,22 @@ void HoneyBlock::onEntityCollision(const BlockState& state, IWorld& world, const
 Material::PushReaction HoneyBlock::getPushReaction(const BlockState& state) const {
     MC_UNUSED(state);
     return Material::PushReaction::Normal;
+}
+
+bool HoneyBlock::isStickyBlock(const BlockState& state) const {
+    MC_UNUSED(state);
+    // MC 1.16.5: HoneyBlock.isStickyBlock returns true
+    return true;
+}
+
+bool HoneyBlock::canStickTo(const BlockState& state, const BlockState& other) const {
+    MC_UNUSED(state);
+    // MC 1.16.5: HoneyBlock.canStickTo
+    // 蜂蜜块只能粘住蜂蜜块（不能粘住黏液块）
+    // 参考: AbstractBlock.AbstractBlockState.canStickTo
+    // 如果两个都是蜂蜜块，则可以粘连
+    // 检查 other 方块是否是蜂蜜块
+    return other.is(VanillaBlocks::HONEY_BLOCK);
 }
 
 const CollisionShape& HoneyBlock::getCollisionShape(const BlockState& state) const {

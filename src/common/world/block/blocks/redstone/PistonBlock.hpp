@@ -105,6 +105,27 @@ public:
     [[nodiscard]] bool shouldBeExtended(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
+     * @brief 检查方块是否可以被推动
+     *
+     * 静态方法，用于 PistonStructureHelper。
+     *
+     * @param blockState 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param facing 推动方向
+     * @param destroyBlocks 是否允许破坏方块
+     * @param direction 活塞朝向
+     * @return true 如果可以推动
+     */
+    [[nodiscard]] static bool canPush(
+        const BlockState& blockState,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction facing,
+        bool destroyBlocks,
+        Direction direction);
+
+    /**
      * @brief 尝试伸出活塞
      *
      * @param world 世界引用
@@ -132,23 +153,28 @@ private:
     static constexpr i32 EXTEND_DELAY = 2;
     static constexpr i32 RETRACT_DELAY = 2;
 
-    /// 最大推动距离
-    static constexpr i32 MAX_PUSH_DISTANCE = 12;
+    /// 最大推动方块数
+    static constexpr i32 MAX_PUSH_BLOCKS = 12;
 
     /**
-     * @brief 计算推动链
+     * @brief 检查是否需要移动并触发方块事件
+     *
+     * @param world 世界引用
+     * @param pos 活塞位置
+     * @param state 当前方块状态
+     */
+    void checkForMove(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 执行移动
      *
      * @param world 世界引用
      * @param pos 活塞位置
      * @param facing 推动方向
-     * @param blocks 输出：要推动的方块列表
-     * @return true 如果可以推动
+     * @param extending 是否伸出
+     * @return 如果移动成功返回 true
      */
-    [[nodiscard]] bool calculatePushChain(
-        IWorld& world,
-        const BlockPos& pos,
-        Direction facing,
-        std::vector<BlockPos>& blocks) const;
+    bool doMove(IWorld& world, const BlockPos& pos, Direction facing, bool extending);
 
     /**
      * @brief 检查方块是否可以被推动

@@ -341,6 +341,27 @@ public:
     [[nodiscard]] bool requiresTool() const;
 
     /**
+     * @brief 检查是否为粘性方块
+     *
+     * 委托到方块的 isStickyBlock 方法。
+     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#isStickyBlock
+     *
+     * @return 如果是粘性方块返回 true
+     */
+    [[nodiscard]] bool isStickyBlock() const;
+
+    /**
+     * @brief 检查两个方块是否可以粘连
+     *
+     * 委托到方块的 canStickTo 方法。
+     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#canStickTo
+     *
+     * @param other 目标方块状态
+     * @return 如果可以粘连返回 true
+     */
+    [[nodiscard]] bool canStickTo(const BlockState& other) const;
+
+    /**
      * @brief 转换为模型键（用于查找模型变体）
      * @return 格式: "axis=y,facing=north" 或 "" (无属性时)
      */
@@ -1518,6 +1539,41 @@ public:
      * @return 推动反应类型
      */
     [[nodiscard]] virtual Material::PushReaction getPushReaction(const BlockState& state) const;
+
+    // ========================================================================
+    // 黏液块/蜂蜜块粘连
+    // ========================================================================
+
+    /**
+     * @brief 检查方块是否为粘性方块
+     *
+     * 粘性方块（黏液块、蜂蜜块）可以粘住相邻方块一起被活塞推动。
+     * 参考: net.minecraft.block.Block#isStickyBlock
+     *
+     * @param state 方块状态
+     * @return 如果是粘性方块返回 true
+     */
+    [[nodiscard]] virtual bool isStickyBlock(const BlockState& state) const {
+        MC_UNUSED(state);
+        return false;
+    }
+
+    /**
+     * @brief 检查两个方块是否可以粘连
+     *
+     * 判断此方块是否可以粘住另一个方块。
+     * 黏液块可以粘住黏液块和蜂蜜块，蜂蜜块只能粘住蜂蜜块。
+     * 参考: net.minecraft.block.Block#canStickTo
+     *
+     * @param state 当前方块状态
+     * @param other 目标方块状态
+     * @return 如果可以粘连返回 true
+     */
+    [[nodiscard]] virtual bool canStickTo(const BlockState& state, const BlockState& other) const {
+        MC_UNUSED(state);
+        MC_UNUSED(other);
+        return false;
+    }
 
     // ========================================================================
     // 旋转和镜像

@@ -128,8 +128,10 @@ i32 TripWireHookBlock::getWeakPower(const BlockState& state, IWorld& world,
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // 只在朝向方向输出强信号
-    if (side == getFacing(state)) {
+    // MC Java: 只在绊线钩背面（朝向的反方向）输出信号
+    // getWeakPower 检查的是 side == facing.getOpposite()
+    Direction facing = getFacing(state);
+    if (side == Directions::opposite(facing)) {
         return isPowered(state) ? 15 : 0;
     }
     return 0;
@@ -140,8 +142,9 @@ i32 TripWireHookBlock::getStrongPower(const BlockState& state, IWorld& world,
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // 只在朝向方向输出强信号
-    if (side == getFacing(state)) {
+    // MC Java: 强信号同样只在背面输出
+    Direction facing = getFacing(state);
+    if (side == Directions::opposite(facing)) {
         return isPowered(state) ? 15 : 0;
     }
     return 0;
@@ -149,37 +152,75 @@ i32 TripWireHookBlock::getStrongPower(const BlockState& state, IWorld& world,
 
 bool TripWireHookBlock::calculateState(IWorld& world, const BlockPos& pos, Direction facing,
                                         const BlockState& currentState, bool shouldTriggerOnChange) {
-    MC_UNUSED(shouldTriggerOnChange);
-
     // 检测绊线链
     BlockPos otherHookPos;
     bool foundChain = checkForTripwire(world, pos, facing, otherHookPos);
 
     // 检查绊线是否被触发
     bool isTripwirePowered = false;
+    bool shouldBreak = false;
 
     if (foundChain) {
-        // 检查所有绊线的状态
+        // MC Java: 沿朝向检查所有绊线，直到另一端的钩
         Direction checkDir = facing;
         BlockPos checkPos = pos.offset(checkDir);
 
-        // TODO: 检查所有绊线
+        for (i32 i = 1; i <= 42; ++i) {
+            const BlockState* state = world.getBlockState(checkPos);
+            if (!state || state->isAir()) {
+                shouldBreak = true;
+                break;
+            }
 
-        MC_UNUSED(otherHookPos);
+            // 检查是否到达另一端的钩
+            if (state->is(this)) {
+                Direction hookFacing = getFacing(*state);
+                if (hookFacing == Directions::opposite(facing)) {
+                    // 到达另一端的钩，检查完成
+                    break;
+                }
+                // 钩朝向不对，链断开
+                shouldBreak = true;
+                break;
+            }
+
+            // 检查是否是绊线
+            // 使用 TripWireBlock 的静态检查方法
+            if (state->getBlock().canProvidePower(*state)) {
+                // 可能是绊线，检查是否被触发
+                // MC Java: 检查 POWERED 属性
+                if (state->hasProperty(BlockStateProperties::POWERED())) {
+                    if (state->get(BlockStateProperties::POWERED())) {
+                        isTripwirePowered = true;
+                    }
+                }
+            } else {
+                // 不是绊线，链断开
+                shouldBreak = true;
+                break;
+            }
+
+            checkPos = checkPos.offset(checkDir);
+        }
     }
 
     // 更新状态
     bool wasPowered = isPowered(currentState);
-    bool shouldPower = foundChain && isTripwirePowered;
+    bool wasConnected = isConnected(currentState);
 
-    if (shouldPower != wasPowered) {
+    // MC Java: 只有链完整时才可能触发
+    bool shouldPower = foundChain && isTripwirePowered && !shouldBreak;
+
+    if (shouldPower != wasPowered || foundChain != wasConnected) {
         BlockState newState = currentState;
         newState = withPowered(newState, shouldPower);
         newState = withConnected(newState, foundChain);
         world.setBlockState(pos, &newState, 3);
 
         // 通知相邻方块
-        world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
+        if (shouldTriggerOnChange && shouldPower != wasPowered) {
+            world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
+        }
         return true;
     }
 

@@ -204,6 +204,14 @@ bool BlockState::requiresTool() const {
     return m_owner->requiresTool();
 }
 
+bool BlockState::isStickyBlock() const {
+    return m_owner->isStickyBlock(*this);
+}
+
+bool BlockState::canStickTo(const BlockState& other) const {
+    return m_owner->canStickTo(*this, other);
+}
+
 // ============================================================================
 // BlockProperties
 // ============================================================================

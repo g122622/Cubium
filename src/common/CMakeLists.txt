@@ -504,6 +504,7 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/WeightedPressurePlateBlock.cpp
     world/block/blocks/redstone/DaylightDetectorBlock.cpp
     world/block/blocks/redstone/PistonBlock.cpp
+    world/block/blocks/redstone/PistonStructureHelper.cpp
     world/block/blocks/redstone/PistonHeadBlock.cpp
     world/block/blocks/redstone/MovingPistonBlock.cpp
     world/block/blocks/redstone/DispenserBlock.cpp

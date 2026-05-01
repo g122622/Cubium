@@ -149,7 +149,7 @@ public:
     /**
      * @brief 设置方块实体
      * @param pos 方块位置
-     * @param entity 方块实体指针（调用者保留所有权）
+     * @param entity 方块实体指针（获取所有权）
      */
     virtual void setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
         (void)pos;
