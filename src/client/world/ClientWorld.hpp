@@ -77,6 +77,27 @@ public:
     [[nodiscard]] i32 getMinBuildHeight() const override { return m_minBuildHeight; }
     [[nodiscard]] i32 getMaxBuildHeight() const override { return m_maxBuildHeight; }
 
+    /**
+     * @brief 获取指定位置的最高方块高度
+     *
+     * 参考 MC 1.16.5 IWorldReader#getHeight
+     *
+     * @param x 方块 X 坐标
+     * @param z 方块 Z 坐标
+     * @return 最高非空气方块的 Y 坐标，如果没有返回 MIN_BUILD_HEIGHT
+     */
+    [[nodiscard]] i32 getHeight(i32 x, i32 z) const;
+
+    /**
+     * @brief 检查指定位置是否可以看到天空
+     *
+     * 参考 MC 1.16.5 IWorldReader#canSeeSky
+     *
+     * @param pos 方块位置
+     * @return 如果该位置可以看到天空返回 true
+     */
+    [[nodiscard]] bool canSeeSky(const BlockPos& pos) const;
+
     void forEachChunk(std::function<void(const ChunkId&, ClientChunk&)> func);
     void forEachDirtyMesh(std::function<void(const ChunkId&, ClientChunk&)> func);
 
@@ -221,8 +242,8 @@ private:
 
     glm::vec3 m_cameraPosition{0.0f, 0.0f, 0.0f};
 
-    i32 m_minBuildHeight = world::MIN_BUILD_HEIGHT;
-    i32 m_maxBuildHeight = world::MAX_BUILD_HEIGHT;
+    i32 m_minBuildHeight = mc::world::MIN_BUILD_HEIGHT;
+    i32 m_maxBuildHeight = mc::world::MAX_BUILD_HEIGHT;
 
     u32 m_chunksLoaded = 0;
     u32 m_chunksUnloaded = 0;

@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace mc::client::world {
+namespace mc::client {
 class ClientWorld;
 }
 
@@ -16,13 +16,24 @@ namespace mc::client::renderer::trident::weather {
 // 天气渲染常量
 namespace WeatherRenderConstants {
 /// 最小渲染强度阈值（低于此值不渲染）
-constexpr f64 MIN_RENDER_STRENGTH = 0.001f;
+constexpr f64 MIN_RENDER_STRENGTH = 0.001;
 
 /// 雨顶点最大数量（每个渲染位置 6 个顶点）
-constexpr size_t MAX_RAIN_VERTICES = 21 * 21 * 6;  // radius = 10
+/// 参考 MC 1.16.5: 渲染半径 10 格，约 21x21 个位置
+constexpr size_t MAX_RAIN_VERTICES = 21 * 21 * 6;
 
 /// 天气纹理尺寸
 constexpr u32 TEXTURE_SIZE = 64;
+
+/// 温度阈值：低于此值为雪，高于此值为雨
+/// 参考 MC 1.16.5 Biome.getTemperature()
+constexpr f32 SNOW_TEMPERATURE_THRESHOLD = 0.15f;
+
+/// 云层高度（雨雪渲染顶部）
+constexpr f64 CLOUD_HEIGHT = 192.0;
+
+/// 雨柱高度
+constexpr f64 RAIN_PILLAR_HEIGHT = 20.0;
 }  // namespace WeatherRenderConstants
 
 /**
@@ -115,6 +126,26 @@ public:
                 u32 frameIndex);
 
     /**
+     * @brief 渲染天气效果（带世界信息）
+     *
+     * 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
+     * 根据生物群系温度决定降水类型，根据地形高度决定渲染范围。
+     *
+     * @param cmd 命令缓冲区
+     * @param projection 相机投影矩阵
+     * @param view 相机视图矩阵
+     * @param cameraPos 相机位置
+     * @param frameIndex 当前帧索引
+     * @param world 客户端世界（用于查询生物群系和高度）
+     */
+    void render(VkCommandBuffer cmd,
+                const glm::mat4& projection,
+                const glm::mat4& view,
+                const glm::vec3& cameraPos,
+                u32 frameIndex,
+                mc::client::ClientWorld& world);
+
+    /**
      * @brief 渲染天气效果（带视锥剔除）
      *
      * 使用视锥剔除优化天气渲染，只渲染视锥内的雨滴/雪花。
@@ -133,6 +164,25 @@ public:
                 u32 frameIndex,
                 const mc::math::frustum::Frustum& frustum);
 
+    /**
+     * @brief 渲染天气效果（带世界信息和视锥剔除）
+     *
+     * @param cmd 命令缓冲区
+     * @param projection 相机投影矩阵
+     * @param view 相机视图矩阵
+     * @param cameraPos 相机位置
+     * @param frameIndex 当前帧索引
+     * @param world 客户端世界
+     * @param frustum 视锥体
+     */
+    void render(VkCommandBuffer cmd,
+                const glm::mat4& projection,
+                const glm::mat4& view,
+                const glm::vec3& cameraPos,
+                u32 frameIndex,
+                mc::client::ClientWorld& world,
+                const mc::math::frustum::Frustum& frustum);
+
     // ========================================================================
     // 状态查询
     // ========================================================================
@@ -145,14 +195,28 @@ public:
     /**
      * @brief 是否正在下雨
      */
-    [[nodiscard]] bool isRaining() const { return m_rainStrength > 0.01f; }
+    [[nodiscard]] bool isRaining() const { return m_rainStrength > 0.01; }
 
     /**
      * @brief 是否正在雷暴
      */
-    [[nodiscard]] bool isThundering() const { return m_thunderStrength > 0.9f; }
+    [[nodiscard]] bool isThundering() const { return m_thunderStrength > 0.9; }
 
 private:
+    // ========================================================================
+    // 内部渲染方法
+    // ========================================================================
+
+    /**
+     * @brief 内部渲染方法（带世界指针）
+     */
+    void render(VkCommandBuffer cmd,
+                const glm::mat4& projection,
+                const glm::mat4& view,
+                const glm::vec3& cameraPos,
+                u32 frameIndex,
+                mc::client::ClientWorld* world);
+
     // ========================================================================
     // 顶点数据结构
     // ========================================================================
@@ -190,8 +254,10 @@ private:
      *
      * 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
      * 根据相机位置和生物群系生成雨/雪层。
+     *
+     * @param world 客户端世界（可为 nullptr，此时使用默认值）
      */
-    void generateWeatherGeometry();
+    void generateWeatherGeometry(mc::client::ClientWorld* world);
 
     /**
      * @brief 从数据创建纹理

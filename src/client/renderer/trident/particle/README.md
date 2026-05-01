@@ -183,8 +183,16 @@ auto particle = ParticleRegistry::instance().createParticle(
 
 ### 天气粒子（weather/）
 - **RainParticle**: 雨滴粒子
+  - 快速下落，终端速度 -3.0 blocks/tick
+  - 落地时生成 2 个 SplashParticle（50% 概率消失）
+  - 碰撞地面时应用地面摩擦 0.7
 - **SnowParticle**: 雪花粒子
+  - 缓慢飘落，终端速度 -0.5 blocks/tick
+  - 左右摇摆效果（正弦波漂移）
+  - 落地时立即消失
 - **SplashParticle**: 水溅粒子
+  - 由 RainParticle 落地时生成
+  - 小型向上喷射效果
 
 ### 生物粒子（mob/）
 - **HeartParticle**: 爱心粒子

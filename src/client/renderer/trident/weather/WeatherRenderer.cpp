@@ -3,12 +3,15 @@
 #include "../../util/ShaderPath.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "client/world/ClientWorld.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 #include <array>
 #include <fstream>
+#include <algorithm>
 
 namespace mc::client::renderer::trident::weather {
 
@@ -281,6 +284,49 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
                               const glm::mat4& view,
                               const glm::vec3& cameraPos,
                               u32 frameIndex) {
+    // 无 World 的简化渲染
+    mc::client::ClientWorld* nullWorld = nullptr;
+    render(cmd, projection, view, cameraPos, frameIndex, nullWorld);
+}
+
+void WeatherRenderer::render(VkCommandBuffer cmd,
+                              const glm::mat4& projection,
+                              const glm::mat4& view,
+                              const glm::vec3& cameraPos,
+                              u32 frameIndex,
+                              mc::client::ClientWorld& world) {
+    render(cmd, projection, view, cameraPos, frameIndex, &world);
+}
+
+void WeatherRenderer::render(VkCommandBuffer cmd,
+                              const glm::mat4& projection,
+                              const glm::mat4& view,
+                              const glm::vec3& cameraPos,
+                              u32 frameIndex,
+                              const mc::math::frustum::Frustum& frustum) {
+    m_frustum = &frustum;
+    render(cmd, projection, view, cameraPos, frameIndex, static_cast<mc::client::ClientWorld*>(nullptr));
+    m_frustum = nullptr;
+}
+
+void WeatherRenderer::render(VkCommandBuffer cmd,
+                              const glm::mat4& projection,
+                              const glm::mat4& view,
+                              const glm::vec3& cameraPos,
+                              u32 frameIndex,
+                              mc::client::ClientWorld& world,
+                              const mc::math::frustum::Frustum& frustum) {
+    m_frustum = &frustum;
+    render(cmd, projection, view, cameraPos, frameIndex, &world);
+    m_frustum = nullptr;
+}
+
+void WeatherRenderer::render(VkCommandBuffer cmd,
+                              const glm::mat4& projection,
+                              const glm::mat4& view,
+                              const glm::vec3& cameraPos,
+                              u32 frameIndex,
+                              mc::client::ClientWorld* world) {
     if (m_rainStrength <= WeatherRenderConstants::MIN_RENDER_STRENGTH) {
         return;  // 不下雨/雪，不渲染
     }
@@ -299,7 +345,7 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     updateUniformBuffer(frameIndex);
 
     // 生成天气几何
-    generateWeatherGeometry();
+    generateWeatherGeometry(world);
 
     if (m_rainVertexCount == 0 && m_snowVertexCount == 0) {
         MC_TRACE_EVENT_END("rendering.weather");
@@ -374,19 +420,7 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
     MC_TRACE_EVENT_END("rendering.weather");
 }
 
-void WeatherRenderer::render(VkCommandBuffer cmd,
-                              const glm::mat4& projection,
-                              const glm::mat4& view,
-                              const glm::vec3& cameraPos,
-                              u32 frameIndex,
-                              const mc::math::frustum::Frustum& frustum) {
-    // 存储视锥体用于几何生成时的剔除
-    m_frustum = &frustum;
-    render(cmd, projection, view, cameraPos, frameIndex);
-    m_frustum = nullptr;
-}
-
-void WeatherRenderer::generateWeatherGeometry() {
+void WeatherRenderer::generateWeatherGeometry(mc::client::ClientWorld* world) {
     m_rainVertices.clear();
     m_snowVertices.clear();
     m_rainVertexCount = 0;
@@ -418,83 +452,114 @@ void WeatherRenderer::generateWeatherGeometry() {
 
             // 视锥剔除：使用球体测试检查位置是否可见
             if (m_frustum && m_frustum->isValid()) {
-                // 创建天气效果的包围球
-                // 球心在 (x, cameraY, z)，半径覆盖渲染范围
                 glm::vec3 center(
                     static_cast<f32>(x) + 0.5f,
                     static_cast<f32>(m_cameraPos.y),
                     static_cast<f32>(z) + 0.5f
                 );
-                // 使用一个合理的球体半径（覆盖整个雨柱高度）
-                f32 sphereRadius = 25.0f;  // 雨柱高度约 20 格
+                f32 sphereRadius = 25.0f;
 
                 if (!m_frustum->isSphereVisible(center, sphereRadius)) {
-                    continue;  // 跳过视锥外的位置
+                    continue;
                 }
             }
 
-            // TODO: 检查生物群系温度决定雨/雪
-            // 暂时假设全是雨
-            f64 temperature = 0.5f;  // 假设温度
+            // 获取生物群系温度决定雨/雪
+            f32 temperature = 0.5f;  // 默认温度
+            i32 groundY = 64;        // 默认地面高度
+
+            if (world) {
+                // 查询生物群系温度
+                const mc::Biome* biome = world->getBiomeAtBlock(x, static_cast<i32>(m_cameraPos.y), z);
+                if (biome) {
+                    temperature = biome->temperature();
+                    // 检查生物群系是否允许降水
+                    if (biome->climate().precipitation == mc::BiomeClimate::Precipitation::None) {
+                        continue;  // 该生物群系不降水（如沙漠）
+                    }
+                }
+
+                // 查询地形高度
+                groundY = world->getHeight(x, z);
+            }
 
             // 计算到相机的距离，用于淡出
-            f64 dx = static_cast<f64>(x) + 0.5f - m_cameraPos.x;
-            f64 dz = static_cast<f64>(z) + 0.5f - m_cameraPos.z;
+            f64 dx = static_cast<f64>(x) + 0.5 - m_cameraPos.x;
+            f64 dz = static_cast<f64>(z) + 0.5 - m_cameraPos.z;
             f64 dist = std::sqrt(dx * dx + dz * dz);
-            f64 fade = 1.0f - (dist / static_cast<f64>(radius));
-            fade = fade * fade * 0.5f + 0.5f;  // 平滑淡出
+            f64 fade = 1.0 - (dist / static_cast<f64>(radius));
+            fade = fade * fade * 0.5 + 0.5;  // 平滑淡出
             f64 alpha = fade * m_rainStrength;
 
-            // TODO: 获取地形高度
-            f64 groundY = 64.0f;  // 假设地面高度
-            f64 topY = m_cameraPos.y + 20.0f;  // 雨层顶部
-            f64 bottomY = groundY + 5.0f;  // 雨层底部
+            // 计算雨柱高度范围
+            // 参考 MC 1.16.5: 雨从玩家上方一定高度开始，到地面结束
+            f64 topY = std::min(m_cameraPos.y + RAIN_PILLAR_HEIGHT, CLOUD_HEIGHT);
+            f64 bottomY = static_cast<f64>(groundY) + 1.0;
 
-            if (temperature >= 0.15f) {
+            // 如果地面比相机高很多，跳过（玩家在地下）
+            if (groundY > m_cameraPos.y + 10) {
+                continue;
+            }
+
+            // 温度阈值判断：低于 SNOW_TEMPERATURE_THRESHOLD 为雪，高于等于为雨
+            // 参考 MC 1.16.5 Biome.getPrecipitation()
+            if (temperature >= SNOW_TEMPERATURE_THRESHOLD) {
                 // 雨
-                // 参考 MC: 每个位置渲染 4 个顶点（一个 quad）
-                f64 texOffset = -((static_cast<i32>(m_ticks) & 31) + m_partialTick) / 32.0f * 3.0f;
+                f64 texOffset = -((static_cast<i32>(m_ticks) & 31) + m_partialTick) / 32.0 * 3.0;
 
-                // 光照（简化处理）
+                // 光照采样：参考 MC 1.16.5 WorldRenderer.renderRainSnow()
+                // MC 在 groundY 处采样光照：blockpos$mutable.setPos(k1, l2, j1)
+                // 其中 l2 = max(groundY, cameraY) 如果 groundY < cameraY，否则 l2 = groundY
                 u16 lightU = 240;
                 u16 lightV = 240;
 
-                // 四个顶点
+                if (world) {
+                    // 光照采样位置：使用渲染高度的较低端
+                    i32 sampleY = std::min(static_cast<i32>(topY), static_cast<i32>(bottomY));
+                    u8 skyLight = world->getSkyLight(x, sampleY, z);
+                    u8 blockLight = world->getBlockLight(x, sampleY, z);
+
+                    // 参考 MC 1.16.5: 雨天时天空光照会降低
+                    // 实际光照 = getCombinedLight() 返回 (skyLight << 16 | blockLight)
+                    // 雨天会自动影响世界亮度，这里不需要手动调整
+                    lightU = static_cast<u16>(skyLight) << 4;
+                    lightV = static_cast<u16>(blockLight) << 4;
+                }
+
                 WeatherVertex v0, v1, v2, v3;
 
-                v0.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v0.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5);
                 v0.y = static_cast<f32>(topY - m_cameraPos.y);
-                v0.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
+                v0.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
                 v0.u = 0.0f;
-                v0.v = static_cast<f32>(bottomY * 0.25f + texOffset);
+                v0.v = static_cast<f32>(bottomY * 0.25 + texOffset);
                 v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = static_cast<f32>(alpha);
                 v0.lightU = lightU; v0.lightV = lightV;
 
-                v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5);
                 v1.y = static_cast<f32>(topY - m_cameraPos.y);
-                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
+                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
                 v1.u = 1.0f;
-                v1.v = static_cast<f32>(bottomY * 0.25f + texOffset);
+                v1.v = static_cast<f32>(bottomY * 0.25 + texOffset);
                 v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = static_cast<f32>(alpha);
                 v1.lightU = lightU; v1.lightV = lightV;
 
-                v2.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v2.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5);
                 v2.y = static_cast<f32>(bottomY - m_cameraPos.y);
-                v2.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
+                v2.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
                 v2.u = 1.0f;
-                v2.v = static_cast<f32>(topY * 0.25f + texOffset);
+                v2.v = static_cast<f32>(topY * 0.25 + texOffset);
                 v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = static_cast<f32>(alpha);
                 v2.lightU = lightU; v2.lightV = lightV;
 
-                v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5);
                 v3.y = static_cast<f32>(bottomY - m_cameraPos.y);
-                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
+                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
                 v3.u = 0.0f;
-                v3.v = static_cast<f32>(topY * 0.25f + texOffset);
+                v3.v = static_cast<f32>(topY * 0.25 + texOffset);
                 v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = static_cast<f32>(alpha);
                 v3.lightU = lightU; v3.lightV = lightV;
 
-                // 添加两个三角形（6个顶点）
                 m_rainVertices.push_back(v0);
                 m_rainVertices.push_back(v1);
                 m_rainVertices.push_back(v2);
@@ -503,46 +568,67 @@ void WeatherRenderer::generateWeatherGeometry() {
                 m_rainVertices.push_back(v3);
             } else {
                 // 雪
-                // 参考 MC: 雪花有更复杂的动画
                 f64 texOffsetX = static_cast<f64>(std::sin(f1 * 0.01) * 0.5);
-                f64 texOffsetY = -((static_cast<i32>(m_ticks) & 511) + m_partialTick) / 512.0f;
+                f64 texOffsetY = -((static_cast<i32>(m_ticks) & 511) + m_partialTick) / 512.0;
 
+                // 光照采样：参考 MC 1.16.5 WorldRenderer.renderRainSnow()
+                // 雪花需要更亮的光照效果：k4 = (i4 * 3 + 240) / 4, j4 = (l3 * 3 + 240) / 4
                 u16 lightU = 240;
                 u16 lightV = 240;
 
-                f64 snowAlpha = alpha * 0.8f;
+                if (world) {
+                    i32 sampleY = std::min(static_cast<i32>(topY), static_cast<i32>(bottomY));
+                    u8 skyLight = world->getSkyLight(x, sampleY, z);
+                    u8 blockLight = world->getBlockLight(x, sampleY, z);
+
+                    // 参考 MC 1.16.5: 雪花使用增强的光照
+                    // int l3 = k3 >> 16 & '￿';  (skyLight 部分)
+                    // int i4 = (k3 & '￿') * 3;  (blockLight 部分 * 3)
+                    // int j4 = (l3 * 3 + 240) / 4;  (增强 sky light)
+                    // int k4 = (i4 * 3 + 240) / 4;  (增强 block light)
+                    // 注意：MC 返回的是 combined light = (skyLight << 16) | blockLight
+                    // 我们这里 skyLight/blockLight 是 0-15 范围，需要乘以 16 得到 0-240 范围
+                    u16 rawSkyLight = static_cast<u16>(skyLight) << 4;   // 0-240
+                    u16 rawBlockLight = static_cast<u16>(blockLight) << 4;  // 0-240
+
+                    // 增强：*3 + 240 后除以 4
+                    lightU = static_cast<u16>((rawBlockLight * 3 + 240) / 4);
+                    lightV = static_cast<u16>((rawSkyLight * 3 + 240) / 4);
+                }
+
+                f64 snowAlpha = alpha * 0.8;
 
                 WeatherVertex v0, v1, v2, v3;
 
-                v0.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v0.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5);
                 v0.y = static_cast<f32>(topY - m_cameraPos.y);
-                v0.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
-                v0.u = static_cast<f32>(0.0f + texOffsetX);
-                v0.v = static_cast<f32>(bottomY * 0.25f + texOffsetY);
+                v0.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
+                v0.u = static_cast<f32>(0.0 + texOffsetX);
+                v0.v = static_cast<f32>(bottomY * 0.25 + texOffsetY);
                 v0.r = 1.0f; v0.g = 1.0f; v0.b = 1.0f; v0.a = static_cast<f32>(snowAlpha);
                 v0.lightU = lightU; v0.lightV = lightV;
 
-                v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5);
                 v1.y = static_cast<f32>(topY - m_cameraPos.y);
-                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
-                v1.u = static_cast<f32>(1.0f + texOffsetX);
-                v1.v = static_cast<f32>(bottomY * 0.25f + texOffsetY);
+                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
+                v1.u = static_cast<f32>(1.0 + texOffsetX);
+                v1.v = static_cast<f32>(bottomY * 0.25 + texOffsetY);
                 v1.r = 1.0f; v1.g = 1.0f; v1.b = 1.0f; v1.a = static_cast<f32>(snowAlpha);
                 v1.lightU = lightU; v1.lightV = lightV;
 
-                v2.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5f);
+                v2.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5);
                 v2.y = static_cast<f32>(bottomY - m_cameraPos.y);
-                v2.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5f);
-                v2.u = static_cast<f32>(1.0f + texOffsetX);
-                v2.v = static_cast<f32>(topY * 0.25f + texOffsetY);
+                v2.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
+                v2.u = static_cast<f32>(1.0 + texOffsetX);
+                v2.v = static_cast<f32>(topY * 0.25 + texOffsetY);
                 v2.r = 1.0f; v2.g = 1.0f; v2.b = 1.0f; v2.a = static_cast<f32>(snowAlpha);
                 v2.lightU = lightU; v2.lightV = lightV;
 
-                v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5f);
+                v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5);
                 v3.y = static_cast<f32>(bottomY - m_cameraPos.y);
-                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5f);
-                v3.u = static_cast<f32>(0.0f + texOffsetX);
-                v3.v = static_cast<f32>(topY * 0.25f + texOffsetY);
+                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
+                v3.u = static_cast<f32>(0.0 + texOffsetX);
+                v3.v = static_cast<f32>(topY * 0.25 + texOffsetY);
                 v3.r = 1.0f; v3.g = 1.0f; v3.b = 1.0f; v3.a = static_cast<f32>(snowAlpha);
                 v3.lightU = lightU; v3.lightV = lightV;
 

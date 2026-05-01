@@ -276,6 +276,29 @@ const ChunkData* ClientWorld::getChunkAt(ChunkCoord x, ChunkCoord z) const
     return nullptr;
 }
 
+i32 ClientWorld::getHeight(i32 x, i32 z) const
+{
+    const ChunkCoord chunkX = toChunkCoord(x);
+    const ChunkCoord chunkZ = toChunkCoord(z);
+    const ChunkId id(chunkX, chunkZ);
+
+    const ClientChunk* chunk = getChunk(id);
+    if (!chunk || !chunk->data) {
+        return m_minBuildHeight;
+    }
+
+    const i32 localX = toLocalCoord(x);
+    const i32 localZ = toLocalCoord(z);
+
+    return chunk->data->getHighestBlock(localX, localZ);
+}
+
+bool ClientWorld::canSeeSky(const BlockPos& pos) const
+{
+    const i32 height = getHeight(pos.x, pos.z);
+    return pos.y >= height;
+}
+
 void ClientWorld::forEachChunk(std::function<void(const ChunkId&, ClientChunk&)> func)
 {
     for (auto& [id, chunk] : m_chunks) {

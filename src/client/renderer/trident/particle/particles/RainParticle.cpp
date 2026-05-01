@@ -1,4 +1,5 @@
 #include "RainParticle.hpp"
+#include "weather/SplashParticle.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -70,8 +71,8 @@ RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
     // 雨滴生命周期较短
     // 参考 MC: maxAge = (int)(8.0D / (Math.random() * 0.8D + 0.2D))
     mc::math::Random rng;
-    f64 lifeMultiplier = 0.2f + rng.nextFloat() * 0.8f;
-    setMaxAge(8.0f / lifeMultiplier);
+    f64 lifeMultiplier = 0.2 + rng.nextFloat() * 0.8;
+    setMaxAge(8.0 / lifeMultiplier);
 }
 
 std::unique_ptr<Particle> RainParticle::create(
@@ -101,7 +102,7 @@ void RainParticle::tick(mc::client::ClientWorld* world)
 
     // 限制下落速度（终端速度）
     if (m_velocity.y < TERMINAL_VELOCITY) {
-        m_velocity.y = TERMINAL_VELOCITY;
+        m_velocity.y = static_cast<f32>(TERMINAL_VELOCITY);
     }
 
     // 应用速度
@@ -136,13 +137,27 @@ void RainParticle::tick(mc::client::ClientWorld* world)
     }
 
     if (m_collisionContext.onGround) {
+        // 参考 MC 1.16.5: 雨滴落地时生成溅射粒子
+        if (m_emitCallback) {
+            // 生成溅射粒子
+            mc::math::Random rng;
+            for (int i = 0; i < 2; ++i) {
+                glm::vec3 splashVelocity(
+                    (rng.nextFloat() - 0.5f) * 0.1f,
+                    rng.nextFloat() * 0.1f + 0.02f,
+                    (rng.nextFloat() - 0.5f) * 0.1f
+                );
+                m_emitCallback(ParticleTypeId::Splash, m_position, splashVelocity);
+            }
+        }
+
         // 雨滴碰到地面有概率消失
         mc::math::Random rng;
         if (rng.nextFloat() < 0.5f) {
             setExpired();
         }
-        m_velocity.x *= physics::PARTICLE_GROUND_FRICTION;
-        m_velocity.z *= physics::PARTICLE_GROUND_FRICTION;
+        m_velocity.x *= static_cast<f32>(physics::PARTICLE_GROUND_FRICTION);
+        m_velocity.z *= static_cast<f32>(physics::PARTICLE_GROUND_FRICTION);
     }
 
     // 雨滴不淡出，直接保持颜色

@@ -3,9 +3,58 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/Block.hpp"
+#include "client/world/ClientWorld.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
+
+namespace {
+
+constexpr f32 SNOW_BBOX_WIDTH = 0.02f;
+constexpr f32 SNOW_BBOX_HEIGHT = 0.02f;
+constexpr f32 TERMINAL_VELOCITY = -0.5f;  // 雪花终端速度（比雨慢）
+
+/**
+ * @brief 检查雪花包围盒是否与地面方块相交
+ *
+ * 参考 MC 1.16.5 RainParticle.tick() 中的流体和方块碰撞检测
+ *
+ * @param world 客户端世界
+ * @param box 用于检测的粒子包围盒
+ * @return 如果命中可碰撞方块则返回 true
+ */
+[[nodiscard]] bool hasGroundCollision(mc::client::ClientWorld* world, const AxisAlignedBB& box)
+{
+    MC_ASSERT_RELEASE(world != nullptr);
+
+    const i32 minX = mc::math::floorTo<i32>(box.minX);
+    const i32 maxX = mc::math::floorTo<i32>(box.maxX);
+    const i32 minY = mc::math::floorTo<i32>(box.minY);
+    const i32 maxY = mc::math::floorTo<i32>(box.maxY);
+    const i32 minZ = mc::math::floorTo<i32>(box.minZ);
+    const i32 maxZ = mc::math::floorTo<i32>(box.maxZ);
+
+    for (i32 x = minX; x <= maxX; ++x) {
+        for (i32 y = minY; y <= maxY; ++y) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                const mc::BlockState* state = world->getBlockState(x, y, z);
+                if (state == nullptr || state->isAir()) {
+                    continue;
+                }
+
+                const mc::CollisionShape& shape = state->getCollisionShape();
+                if (!shape.isEmpty() && shape.intersects(box, x, y, z)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+} // namespace
 
 SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
@@ -22,12 +71,13 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
     // 雪花参数
     setGravity(physics::SNOW_GRAVITY);
     setSize(0.05f + rng.nextFloat() * 0.05f);  // 0.05 - 0.1
+    setBoundingBox(SNOW_BBOX_WIDTH, SNOW_BBOX_HEIGHT);
     setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.9f));  // 白色几乎不透明
     setFriction(0.95f);
-    setHasPhysics(false);  // 雪花暂时不进行碰撞检测
+    setHasPhysics(false);  // 雪花使用自定义碰撞检测
 
     // 雪花生命周期较长
-    // 参考 MC: maxAge = (int)(200.0F / (Math.random() * 0.2F + 0.8F))
+    // 参考 MC: 雪花生命周期约 200 ticks
     f64 lifeMultiplier = 0.8f + rng.nextFloat() * 0.2f;
     setMaxAge(200.0f / lifeMultiplier);
 }
@@ -52,13 +102,47 @@ void SnowParticle::tick(mc::client::ClientWorld* world) {
         return;
     }
 
-    // 应用重力
+    // 应用重力（MC 粒子重力系数 0.04）
     m_velocity.y -= static_cast<f32>(m_gravity * physics::PARTICLE_GRAVITY_MULTIPLIER);
 
-    // 雪花摇摆效果
+    // 限制下落速度（终端速度）
+    if (m_velocity.y < TERMINAL_VELOCITY) {
+        m_velocity.y = TERMINAL_VELOCITY;
+    }
+
+    // 雪花摇摆效果（正弦波水平漂移）
     m_swingPhase += SWING_FREQUENCY;
     f64 swing = std::sin(m_swingPhase) * m_swingAmplitude;
     m_velocity.x += static_cast<f32>(swing * 0.01);
+
+    // 重置碰撞状态
+    m_collisionContext.reset();
+
+    // 检查地面碰撞
+    if (world != nullptr) {
+        AxisAlignedBB bbox = getBoundingBox();
+
+        // 稍微向下探测，避免刚好贴着方块表面时漏检
+        constexpr f32 GROUND_PROBE_EPSILON = 0.01f;
+        AxisAlignedBB probeBox(
+            bbox.minX,
+            bbox.minY - GROUND_PROBE_EPSILON,
+            bbox.minZ,
+            bbox.maxX,
+            bbox.minY,
+            bbox.maxZ
+        );
+
+        if (hasGroundCollision(world, probeBox)) {
+            m_collisionContext.onGround = true;
+            m_collisionContext.collidedY = true;
+            m_velocity.y = 0.0f;
+
+            // 雪花落地后立即消失
+            setExpired();
+            return;
+        }
+    }
 
     // 应用速度
     m_position += m_velocity;
@@ -67,13 +151,11 @@ void SnowParticle::tick(mc::client::ClientWorld* world) {
     m_velocity.x *= static_cast<f32>(m_friction);
     m_velocity.z *= static_cast<f32>(m_friction);
 
-    // 根据年龄淡出
+    // 根据年龄淡出（雪花在生命后半段淡出）
     if (m_age > m_maxAge * 0.8f) {
         f64 fadeProgress = (m_age - m_maxAge * 0.8f) / (m_maxAge * 0.2f);
         m_color.a = static_cast<f32>(0.9f * (1.0f - fadeProgress));
     }
-
-    MC_UNUSED(world);
 }
 
 void SnowParticle::buildVertices(

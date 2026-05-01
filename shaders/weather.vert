@@ -29,8 +29,7 @@ void main() {
     fragColor = inColor;
     fragLightmap = inLightmap;
 
-    // 相对于相机的位置
-    vec3 worldPos = inPosition + ubo.cameraPos;
-
-    gl_Position = ubo.projection * ubo.view * vec4(worldPos, 1.0);
+    // C++ 代码中顶点位置已经是相对于相机的（视图空间位置）
+    // 所以只需要应用投影矩阵，不需要再乘以视图矩阵
+    gl_Position = ubo.projection * vec4(inPosition, 1.0);
 }
