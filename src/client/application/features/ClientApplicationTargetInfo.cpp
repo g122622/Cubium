@@ -4,6 +4,7 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/util/math/ray/Raycast.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc::client {
 
@@ -61,6 +62,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support tickManager");
+    }
+
+    // getRandom 不适用于只读的客户端世界适配器
+    [[nodiscard]] math::Random& getRandom() override {
+        MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }
 
 private:

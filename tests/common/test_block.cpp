@@ -215,6 +215,14 @@ public:
         throw std::runtime_error("BlockRulesTestWorld::tickManager not implemented");
     }
 
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("BlockRulesTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("BlockRulesTestWorld::getRandom not implemented");
+    }
+
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z, u8 fallback) {
         const auto it = lights.find(BlockPos(x, y, z));

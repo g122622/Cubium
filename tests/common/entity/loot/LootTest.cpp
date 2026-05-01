@@ -54,6 +54,14 @@ public:
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("LootTestWorld::tickManager not implemented");
     }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("LootTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("LootTestWorld::getRandom not implemented");
+    }
 };
 
 class LootTest : public ::testing::Test {

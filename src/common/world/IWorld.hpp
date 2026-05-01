@@ -6,6 +6,7 @@
 #include "../util/AxisAlignedBB.hpp"
 #include "../resource/ResourceLocation.hpp"
 #include "../sound/SoundCategory.hpp"
+#include "../util/math/random/Random.hpp"
 #include "tick/base/TickPriority.hpp"
 #include "explosion/ExplosionMode.hpp"
 #include <vector>
@@ -585,6 +586,29 @@ public:
         (void)pos;
         return false;
     }
+
+    /**
+     * @brief 检查碰撞箱是否无碰撞
+     *
+     * 检查指定碰撞箱是否与世界中的方块或实体发生碰撞。
+     *
+     * @param box 碰撞箱
+     * @return 如果无碰撞返回true
+     */
+    [[nodiscard]] virtual bool hasNoCollisions(const AxisAlignedBB& box) const {
+        (void)box;
+        return true;
+    }
+
+    /**
+     * @brief 获取随机数生成器
+     *
+     * 返回世界的随机数生成器，用于生成随机数。
+     *
+     * @return 随机数生成器引用
+     */
+    [[nodiscard]] virtual math::Random& getRandom() = 0;
+    [[nodiscard]] virtual const math::Random& getRandom() const = 0;
 
     // ========== 粒子生成 ==========
 

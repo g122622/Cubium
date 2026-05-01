@@ -9,6 +9,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
 
 #include <unordered_map>
@@ -77,6 +78,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("FlowingFluidTestWorld::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("FlowingFluidTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("FlowingFluidTestWorld::getRandom not implemented");
     }
 
 private:

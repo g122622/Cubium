@@ -251,7 +251,7 @@ f32 TridentEntity::getWaterDrag() const {
 void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity) {
     // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity()
     math::Random rng = createRandomFromEntity(*this);
-    f32 difficultyBonus = m_world ? static_cast<f32>(m_world->difficulty().getId()) * 0.11f : 0.0f;
+    f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
     // TODO: 从三叉戟物品获取附魔

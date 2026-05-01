@@ -189,12 +189,12 @@ add_library(mc_common STATIC
     entity/entities/projectile/ProjectileHelper.cpp
     entity/entities/projectile/ProjectileEntity.cpp
     entity/entities/projectile/DamagingProjectileEntity.cpp
-    # entity/entities/projectile/ThrowableEntity.cpp  # TODO: Fix IWorld API issues
-    # entity/entities/projectile/AbstractArrowEntity.cpp  # TODO: Fix BlockState, ProjectileHelper, IWorld API
+    entity/entities/projectile/ThrowableEntity.cpp
+    entity/entities/projectile/AbstractArrowEntity.cpp
     entity/entities/projectile/AbstractFireballEntity.cpp
-    # entity/entities/projectile/ProjectileItemEntity.cpp  # TODO: Depends on ThrowableEntity
-    # entity/entities/projectile/TridentEntity.cpp  # TODO: Fix BlockCoord, onPlayerPickup API
-    # entity/entities/projectile/OtherProjectiles.cpp  # TODO: Fix FireworkRocketEntity m_inGround
+    entity/entities/projectile/ProjectileItemEntity.cpp
+    entity/entities/projectile/TridentEntity.cpp
+    entity/entities/projectile/OtherProjectiles.cpp
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Entity - Loot System

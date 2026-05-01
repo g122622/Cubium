@@ -63,7 +63,7 @@ public:
     /**
      * @brief 击中方块的坐标
      */
-    [[nodiscard]] BlockCoord hitBlockPos() const { return m_hitBlockPos; }
+    [[nodiscard]] BlockPos hitBlockPos() const { return m_hitBlockPos; }
 
     /**
      * @brief 获取忠诚附魔等级
@@ -85,6 +85,11 @@ public:
      * @brief 根据发射者设置附魔效果
      */
     void setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity);
+
+    /**
+     * @brief 玩家拾取三叉戟
+     */
+    bool onPlayerPickup(Player& player) override;
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -111,7 +116,7 @@ private:
     ItemStack m_tridentStack;       // 三叉戟物品
     bool m_hitBlock = false;        // 是否击中方块
     bool m_returning = false;       // 是否在返回中
-    BlockCoord m_hitBlockPos;       // 击中方块的坐标
+    BlockPos m_hitBlockPos;         // 击中方块的坐标
     u8 m_loyaltyLevel = 0;          // 忠诚附魔等级
     i32 m_returningTicks = 0;       // 返回计时器
 };

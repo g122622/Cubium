@@ -93,6 +93,14 @@ public:
         return m_tickManager;
     }
 
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("IceTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("IceTestWorld::getRandom not implemented");
+    }
+
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z) {
         const BlockPos pos(x, y, z);

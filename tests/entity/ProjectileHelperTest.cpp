@@ -5,6 +5,7 @@
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <memory>
 #include <utility>
@@ -97,6 +98,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("ProjectileHelperTestWorld::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("ProjectileHelperTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("ProjectileHelperTestWorld::getRandom not implemented");
     }
 
 private:

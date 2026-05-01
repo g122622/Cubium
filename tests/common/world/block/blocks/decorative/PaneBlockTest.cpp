@@ -14,6 +14,7 @@
 #include "item/context/BlockItemUseContext.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/math/Vector3.hpp"
+#include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
 
 #include <unordered_map>
@@ -95,6 +96,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("PaneTestWorld::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("PaneTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("PaneTestWorld::getRandom not implemented");
     }
 
 private:

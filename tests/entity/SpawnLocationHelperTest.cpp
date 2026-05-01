@@ -8,6 +8,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <unordered_map>
 
@@ -115,6 +116,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("SpawnLocationTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("SpawnLocationTestWorld::getRandom not implemented");
     }
 
 private:

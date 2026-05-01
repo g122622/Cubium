@@ -122,6 +122,14 @@ public:
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
     }
 
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("GroundSupportWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("GroundSupportWorld::getRandom not implemented");
+    }
+
 private:
     bool m_supportEnabled = true;
     std::optional<SoundRecord> m_lastSound;
