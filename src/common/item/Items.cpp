@@ -1253,10 +1253,7 @@ void Items::registerMisc() {
         ItemProperties().maxStackSize(64)
     );
 
-    EGG = &registry.registerItem(
-        ResourceLocation("minecraft:egg"),
-        ItemProperties().maxStackSize(16)
-    );
+    // EGG 已在 registerThrowableItems() 中注册为 EggItem
 
     COMPASS = &registry.registerItem(
         ResourceLocation("minecraft:compass"),
@@ -1285,10 +1282,7 @@ void Items::registerMisc() {
         ItemProperties().maxStackSize(64)
     );
 
-    ENDER_PEARL = &registry.registerItem(
-        ResourceLocation("minecraft:ender_pearl"),
-        ItemProperties().maxStackSize(16)
-    );
+    // ENDER_PEARL 已在 registerThrowableItems() 中注册为 EnderPearlItem
 
     ENDER_EYE = &registry.registerItem(
         ResourceLocation("minecraft:ender_eye"),

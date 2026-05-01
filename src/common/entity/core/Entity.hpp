@@ -122,6 +122,26 @@ enum class LegacyEntityType : u32 {
     Boat = 110,
     Minecart = 111,
 
+    // 投掷物
+    Snowball = 120,
+    Egg = 121,
+    EnderPearl = 122,
+    ExperienceBottle = 123,
+    Potion = 124,
+    Arrow = 125,
+    SpectralArrow = 126,
+    Trident = 127,
+    Fireball = 128,
+    SmallFireball = 129,
+    DragonFireball = 130,
+    WitherSkull = 131,
+    LlamaSpit = 132,
+    ShulkerBullet = 133,
+    EvokerFangs = 134,
+    FishingBobber = 135,
+    EyeOfEnder = 136,
+    FireworkRocket = 137,
+
     // 其他
     Villager = 100,
     // 后续添加更多

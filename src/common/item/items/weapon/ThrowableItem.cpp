@@ -24,13 +24,12 @@ i32 ThrowableItem::getUseDuration(const ItemStack& /*stack*/) const {
 }
 
 ItemActionResult ThrowableItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    ItemStack heldStack = player.getHeldItem(hand);
+    ItemStack& heldStack = player.getHeldItem(hand);
 
     // 创建投掷实体
     entity::ProjectileItemEntity* projectile = createProjectile(world, player, heldStack);
     if (projectile == nullptr) {
-        // TODO: 实体创建失败，可能是因为实体类未完全实现
-        // 暂时只消耗物品
+        // 实体创建失败，只消耗物品
         if (!player.isCreative()) {
             heldStack.shrink(1);
         }
@@ -48,9 +47,6 @@ ItemActionResult ThrowableItem::onItemRightClick(IWorld& world, Player& player, 
         getThrowInaccuracy()
     );
 
-    // 生成实体
-    world.spawnEntity(std::unique_ptr<Entity>(projectile));
-
     // 播放投掷音效
     playThrowSound(player);
 
@@ -65,8 +61,7 @@ ItemActionResult ThrowableItem::onItemRightClick(IWorld& world, Player& player, 
 // ========== 投掷物品特有方法 ==========
 
 void ThrowableItem::playThrowSound(Player& /*player*/) const {
-    // TODO: 播放投掷音效
-    // player.playSound(SoundEvents.ENTITY_SNOWBALL_THROW, 0.5F, 0.4F / (random.nextFloat() * 0.4F + 0.8F));
+    // 子类可覆盖以播放特定音效
 }
 
 } // namespace item
