@@ -44,17 +44,23 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
         if (count >= MAX_VISIBLE) break;
 
         if (msg.permanent) {
-            result.push_back(msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>(""),
-                            msg.type, msg.permanent);
-            result.back().timestamp = msg.timestamp;
+            ChatMessage msgCopy;
+            msgCopy.content = msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>("");
+            msgCopy.type = msg.type;
+            msgCopy.timestamp = msg.timestamp;
+            msgCopy.permanent = msg.permanent;
+            result.push_back(std::move(msgCopy));
             count++;
         } else if (includeFading) {
             // 计算消息年龄
             auto age = std::chrono::duration<float>(now - msg.timestamp).count();
             if (age < MESSAGE_FADE_TIME + 1.0f) {  // 额外1秒淡出时间
-                result.push_back(msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>(""),
-                                msg.type, msg.permanent);
-                result.back().timestamp = msg.timestamp;
+                ChatMessage msgCopy;
+                msgCopy.content = msg.content ? msg.content->deepCopy() : std::make_unique<text::StringTextComponent>("");
+                msgCopy.type = msg.type;
+                msgCopy.timestamp = msg.timestamp;
+                msgCopy.permanent = msg.permanent;
+                result.push_back(std::move(msgCopy));
                 count++;
             }
         }

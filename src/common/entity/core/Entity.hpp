@@ -790,9 +790,16 @@ public:
      * @brief 获取自定义名称的纯文本
      * @return 自定义名称纯文本，如果没有返回空字符串
      */
-    [[nodiscard]] const String& customName() const {
-        static const String empty = "";
-        return m_customName ? m_customName->getUnformattedText() : empty;
+    [[nodiscard]] String customNameText() const {
+        return m_customName ? m_customName->getUnformattedText() : String();
+    }
+
+    /**
+     * @brief 检查是否有自定义名称
+     * @return 如果有自定义名称返回true
+     */
+    [[nodiscard]] bool hasCustomName() const {
+        return m_customName != nullptr;
     }
 
     /**

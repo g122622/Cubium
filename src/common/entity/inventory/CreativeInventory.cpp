@@ -69,7 +69,10 @@ std::vector<CreativeInventoryEntry> buildCreativePaletteEntries()
             return leftId < rightId;
         }
 
-        return left.stack.getDisplayName() < right.stack.getDisplayName();
+        auto leftName = left.stack.getDisplayName();
+        auto rightName = right.stack.getDisplayName();
+        return (leftName ? leftName->getUnformattedText() : String())
+             < (rightName ? rightName->getUnformattedText() : String());
     });
 
     return entries;

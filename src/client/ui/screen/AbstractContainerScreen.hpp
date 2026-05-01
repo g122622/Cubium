@@ -452,7 +452,8 @@ protected:
         }
 
         std::vector<String> lines;
-        lines.emplace_back(stack.getDisplayName());
+        auto displayName = stack.getDisplayName();
+        lines.emplace_back(displayName ? displayName->getUnformattedText() : "");
 
         if (stack.getCount() > 1) {
             lines.emplace_back("Count: " + std::to_string(stack.getCount()));

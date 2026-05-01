@@ -29,6 +29,7 @@ kagero/
 │   ├── ContainerWidget.hpp/cpp  # 通用容器组件
 │   ├── ButtonWidget.hpp         # 按钮组件（ButtonWidget, ImageButtonWidget）
 │   ├── TextWidget.hpp           # 文本显示组件
+│   ├── RichTextWidget.hpp       # 富文本组件，支持ITextComponent渲染
 │   ├── TextFieldWidget.hpp      # 文本输入框组件
 │   ├── CheckboxWidget.hpp       # 复选框组件
 │   ├── SliderWidget.hpp         # 滑动条组件
@@ -164,6 +165,7 @@ classDiagram
 | `ButtonWidget` | `ButtonWidget.hpp` | 标准按钮，支持文本、图标、禁用状态 |
 | `ImageButtonWidget` | `ButtonWidget.hpp` | 图片按钮，使用纹理渲染 |
 | `TextWidget` | `TextWidget.hpp` | 文本显示，支持多行、对齐 |
+| `RichTextWidget` | `RichTextWidget.hpp` | 富文本显示，支持颜色、样式、点击/悬停事件 |
 | `TextFieldWidget` | `TextFieldWidget.hpp` | 文本输入，支持选择、复制粘贴 |
 | `CheckboxWidget` | `CheckboxWidget.hpp` | 复选框，支持选中状态 |
 | `SliderWidget` | `SliderWidget.hpp` | 滑动条，支持范围选择 |

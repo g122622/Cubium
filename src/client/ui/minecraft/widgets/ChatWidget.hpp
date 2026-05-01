@@ -5,6 +5,7 @@
 #include "../../../chat/ChatHistory.hpp"
 #include "client/command/ClientCommandManager.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/text/ITextComponent.hpp"
 
 #include <functional>
 #include <chrono>
@@ -19,8 +20,10 @@ class Font;
 
 namespace mc::client::ui::minecraft::widgets {
 
-// 引入 ChatHistory 类型
-using ChatHistory = mc::client::chat::ChatHistory;
+// 引入类型
+using chat::ChatHistory;
+using chat::ChatMessageType;
+namespace text = mc::text;
 
 /**
  * @brief 聊天Widget
@@ -128,6 +131,12 @@ public:
      * @brief 添加聊天消息
      */
     void addMessage(const String& message, u32 color = 0xFFFFFFFF);
+
+    /**
+     * @brief 添加富文本消息
+     */
+    void addMessage(std::unique_ptr<text::ITextComponent> message,
+                    chat::ChatMessageType type = chat::ChatMessageType::Chat);
 
     /**
      * @brief 添加系统消息

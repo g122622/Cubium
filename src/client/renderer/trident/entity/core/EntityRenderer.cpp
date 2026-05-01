@@ -22,7 +22,7 @@ void EntityRenderer::renderShadow(Entity& entity, f64 partialTicks) {
 
 void EntityRenderer::renderNameTag(Entity& entity) {
     // 获取实体显示名称
-    const String& displayName = entity.customName();
+    const String displayName = entity.customNameText();
     if (displayName.empty()) {
         return;
     }

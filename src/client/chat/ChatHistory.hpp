@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include <string>
 #include <vector>
 #include <deque>

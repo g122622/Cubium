@@ -340,11 +340,21 @@ bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button) {
 }
 
 void ChatWidget::addMessage(const String& message, u32 color) {
-    m_history.addMessage(message, color);
+    // 将颜色转换为消息类型
+    ChatMessageType type = ChatMessageType::Chat;
+    // 特殊颜色处理
+    if (color == 0xFFFFFF00) {  // 黄色 -> 系统消息
+        type = ChatMessageType::System;
+    }
+    m_history.addMessage(message, type);
+}
+
+void ChatWidget::addMessage(std::unique_ptr<text::ITextComponent> message, ChatMessageType type) {
+    m_history.addMessage(std::move(message), type);
 }
 
 void ChatWidget::addSystemMessage(const String& message) {
-    m_history.addMessage(message, 0xFFFFFF00);  // 黄色系统消息
+    m_history.addSystemMessage(message);
 }
 
 void ChatWidget::setInput(const String& text) {
@@ -619,13 +629,11 @@ void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx) {
         }
 
         if (alpha > 0.01f) {
-            u32 color = it->color;
-            // 设置alpha
-            u8 a = static_cast<u8>(((color >> 24) & 0xFF) * alpha);
-            color = (color & 0x00FFFFFF) | (static_cast<u32>(a) << 24);
+            // 获取消息文本
+            String plainText = it->getPlainText();
 
             // 渲染消息背景
-            f32 textWidth = static_cast<f32>(m_gui->getTextWidth(it->text));
+            f32 textWidth = static_cast<f32>(m_gui->getTextWidth(plainText));
             ctx.drawFilledRect(
                 kagero::Rect(
                     static_cast<i32>(padding),
@@ -637,7 +645,10 @@ void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx) {
             );
 
             // 渲染消息文本
-            m_gui->drawText(it->text, padding + 2.0f, y - lineHeight, color, true);
+            u32 baseColor = 0xFFFFFFFF;  // 白色默认
+            u8 a = static_cast<u8>(255 * alpha);
+            u32 color = (baseColor & 0x00FFFFFF) | (static_cast<u32>(a) << 24);
+            m_gui->drawText(plainText, padding + 2.0f, y - lineHeight, color, true);
         }
 
         y -= lineHeight + 2.0f;

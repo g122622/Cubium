@@ -152,7 +152,7 @@ bool NameTagRenderer::shouldRenderNameTag(
     }
 
     // 检查实体是否有自定义名称或是否被命名
-    const String& customName = entity.customName();
+    const String customName = entity.customNameText();
     bool hasCustomName = !customName.empty();
     bool isCustomNameVisible = entity.isCustomNameVisible();
 
