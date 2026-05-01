@@ -6,6 +6,7 @@
 #include "../../enchantment/EnchantmentHelper.hpp"
 #include "../../enchantment/enchantments/AllEnchantments.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/inventory/PlayerInventory.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../world/IWorld.hpp"
@@ -233,13 +234,14 @@ ItemStack BowItem::findAmmo(Player& player, const ItemStack& bowStack) const {
         return mainhand;
     }
 
-    // TODO: 检查背包槽位
-    // for (i32 i = 0; i < player.inventory().size(); ++i) {
-    //     ItemStack slot = player.inventory().getStack(i);
-    //     if (getInventoryAmmoPredicate()(slot)) {
-    //         return slot;
-    //     }
-    // }
+    // 检查背包
+    PlayerInventory& inventory = player.inventory();
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        ItemStack slot = inventory.getItem(i);
+        if (getInventoryAmmoPredicate()(slot)) {
+            return slot;
+        }
+    }
 
     return ItemStack();
 }

@@ -8,6 +8,7 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "../../../entity/entities/projectile/OtherProjectiles.hpp"
 #include "../../../world/IWorld.hpp"
 #include <cmath>
 
@@ -47,23 +48,19 @@ ItemActionResult CrossbowItem::onItemRightClick(IWorld& world, Player& player, H
 
     // 如果已装填，则发射
     if (isCharged(crossbowStack)) {
-        // TODO: 实现烟花火箭检测
+        // 检测烟花火箭
         f32 velocity = ARROW_VELOCITY;
+        if (hasChargedProjectile(crossbowStack, Items::FIREWORK_ROCKET)) {
+            velocity = FIREWORK_VELOCITY;
+        }
         fireProjectiles(world, player, hand, crossbowStack, velocity, 1.0f);
         setCharged(crossbowStack, false);
         return ItemActionResult::success(crossbowStack);
     }
 
     // 检查是否有弹药
-    // TODO: 需要实现 Player::findAmmo 或使用 BowItem 的方法
-    // 暂时检查副手和主手
-    ItemStack offhand = player.getHeldItem(Hand::OffHand);
-    ItemStack mainhand = player.getHeldItem(Hand::MainHand);
-
-    auto ammoPredicate = getAmmoPredicate();
-    bool hasAmmo = ammoPredicate(offhand) || ammoPredicate(mainhand);
-
-    if (!hasAmmo && !player.isCreative()) {
+    ItemStack ammo = findAmmo(player);
+    if (ammo.isEmpty() && !player.isCreative()) {
         return ItemActionResult::fail(crossbowStack);
     }
 
@@ -98,13 +95,14 @@ void CrossbowItem::onPlayerStoppedUsing(
 
     // 检查是否完全装填
     if (chargeProgress >= 1.0f && !isCharged(stack)) {
-        // TODO: 检查弹药
-        // hasAmmo(entity, stack)
-        setCharged(stack, true);
-        // TODO: 播放装填完成音效
+        // 装填弹丸
+        if (loadProjectiles(*player, stack)) {
+            setCharged(stack, true);
+            // 播放装填完成音效
+            // world.playSound(nullptr, player.x(), player.y(), player.z(), SoundEvents::ITEM_CROSSBOW_LOADING_END, SoundCategory::PLAYERS, 1.0f, 1.0f);
+            (void)world;
+        }
     }
-
-    (void)world;
 }
 
 // ========== 弩特有方法 ==========
@@ -144,9 +142,8 @@ std::function<bool(const ItemStack&)> CrossbowItem::getAmmoPredicate() const {
         if (dynamic_cast<const ArrowItem*>(item) != nullptr) {
             return true;
         }
-        // TODO: 检查是否为烟花火箭
-        // return item == Items::FIREWORK_ROCKET;
-        return false;
+        // 检查烟花火箭
+        return item == Items::FIREWORK_ROCKET;
     };
 }
 
@@ -162,9 +159,89 @@ std::function<bool(const ItemStack&)> CrossbowItem::getInventoryAmmoPredicate() 
 
 // ========== 私有方法 ==========
 
-bool CrossbowItem::hasAmmo(LivingEntity& /*entity*/, ItemStack& /*crossbow*/) {
-    // TODO: 实现 findAmmo 和弹药检查
-    // 暂时返回 true（假设有弹药）
+bool CrossbowItem::isAmmo(const ItemStack& stack) {
+    if (stack.isEmpty()) {
+        return false;
+    }
+    // 接受箭矢和烟花火箭
+    const Item* item = stack.getItem();
+    if (dynamic_cast<const ArrowItem*>(item) != nullptr) {
+        return true;
+    }
+    // 检查烟花火箭
+    return item == Items::FIREWORK_ROCKET;
+}
+
+ItemStack CrossbowItem::findAmmo(Player& player) {
+    // 先检查副手
+    ItemStack offhand = player.getHeldItem(Hand::OffHand);
+    if (isAmmo(offhand)) {
+        return offhand;
+    }
+
+    // 再检查主手（弩本身在主手时跳过）
+    ItemStack mainhand = player.getHeldItem(Hand::MainHand);
+    if (isAmmo(mainhand)) {
+        return mainhand;
+    }
+
+    // 检查背包
+    PlayerInventory& inventory = player.inventory();
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        ItemStack slot = inventory.getItem(i);
+        if (isAmmo(slot)) {
+            return slot;
+        }
+    }
+
+    return ItemStack::EMPTY;
+}
+
+bool CrossbowItem::loadProjectiles(Player& player, ItemStack& crossbow) {
+    i32 multishotLevel = getMultishotLevel(crossbow);
+    i32 projectileCount = multishotLevel > 0 ? 3 : 1;
+    bool isCreative = player.isCreative();
+
+    ItemStack ammo = findAmmo(player);
+
+    for (i32 i = 0; i < projectileCount; ++i) {
+        ItemStack projectileToLoad;
+
+        if (!ammo.isEmpty()) {
+            if (isCreative) {
+                // 创造模式：复制弹药
+                projectileToLoad = ammo.copy();
+            } else {
+                // 生存模式：消耗弹药
+                if (i == 0) {
+                    projectileToLoad = ammo.split(1);
+                } else {
+                    // 多重射击：后续弹丸需要额外弹药
+                    if (ammo.getCount() > i) {
+                        projectileToLoad = ammo.split(1);
+                    } else {
+                        // 弹药不足，尝试找更多
+                        ItemStack moreAmmo = findAmmo(player);
+                        if (!moreAmmo.isEmpty()) {
+                            projectileToLoad = moreAmmo.split(1);
+                            ammo = moreAmmo;
+                        }
+                    }
+                }
+            }
+        } else if (isCreative) {
+            // 创造模式无弹药时使用默认箭矢
+            projectileToLoad = ItemStack(Items::ARROW, 1);
+        }
+
+        if (!projectileToLoad.isEmpty()) {
+            addChargedProjectile(crossbow, projectileToLoad);
+        } else {
+            // 弹药不足
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -205,41 +282,57 @@ void CrossbowItem::fireProjectiles(
             continue;
         }
 
-        // 创建箭矢实体
-        const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(projectile.getItem());
-        if (arrowItem != nullptr) {
-            entity::AbstractArrowEntity* arrow = arrowItem->createArrow(world, projectile, shooter);
-            if (arrow != nullptr) {
-                // 设置从弩射出
-                arrow->setShotFromCrossbow(true);
+        const Item* item = projectile.getItem();
 
-                // 设置穿透等级
-                if (piercingLevel > 0) {
-                    arrow->setPierceLevel(static_cast<u8>(piercingLevel));
+        // 检查是否是烟花火箭
+        if (item == Items::FIREWORK_ROCKET) {
+            // 创建烟花火箭实体
+            auto firework = std::make_unique<entity::FireworkRocketEntity>(
+                LegacyEntityType::FireworkRocket, EntityId(0));
+            firework->setWorld(&world);
+            firework->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.15f, shooter.z());
+            firework->setShooter(&shooter);
+            firework->shootFrom(shooter, shooter.pitch(), shooter.yaw(), projectileAngles[i], velocity, inaccuracy);
+
+            world.spawnEntity(std::move(firework));
+
+            // 消耗耐久度（烟花消耗3点）
+            crossbow.attemptDamageItem(3);
+        } else {
+            // 创建箭矢实体
+            const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(item);
+            if (arrowItem != nullptr) {
+                entity::AbstractArrowEntity* arrow = arrowItem->createArrow(world, projectile, shooter);
+                if (arrow != nullptr) {
+                    // 设置从弩射出
+                    arrow->setShotFromCrossbow(true);
+
+                    // 设置穿透等级
+                    if (piercingLevel > 0) {
+                        arrow->setPierceLevel(static_cast<u8>(piercingLevel));
+                    }
+
+                    // 玩家射出的箭必定暴击
+                    if (player != nullptr) {
+                        arrow->setCritical(true);
+                    }
+
+                    // 设置拾取状态
+                    if (isCreative || projectileAngles[i] != 0.0f) {
+                        arrow->setPickupStatus(entity::PickupStatus::CreativeOnly);
+                    }
+
+                    // 发射
+                    arrow->shootFrom(shooter, shooter.pitch(), shooter.yaw(), projectileAngles[i], velocity, inaccuracy);
+
+                    // 生成实体（createArrow返回裸指针，需要包装为unique_ptr）
+                    world.spawnEntity(std::unique_ptr<Entity>(arrow));
                 }
-
-                // 玩家射出的箭必定暴击
-                if (player != nullptr) {
-                    arrow->setCritical(true);
-                }
-
-                // 设置拾取状态
-                if (isCreative || projectileAngles[i] != 0.0f) {
-                    arrow->setPickupStatus(entity::PickupStatus::CreativeOnly);
-                }
-
-                // 发射
-                arrow->shootFrom(shooter, shooter.pitch(), shooter.yaw(), projectileAngles[i], velocity, inaccuracy);
-
-                // 生成实体
-                world.spawnEntity(std::unique_ptr<Entity>(arrow));
             }
+
+            // 消耗耐久度（箭矢消耗1点）
+            crossbow.attemptDamageItem(1);
         }
-
-        // 消耗耐久度
-        crossbow.attemptDamageItem(1);
-
-        // TODO: 播放射击音效
     }
 
     // 清除弹丸
@@ -260,7 +353,14 @@ std::vector<ItemStack> CrossbowItem::getChargedProjectiles(const ItemStack& stac
         return projectiles;
     }
 
-    // TODO: 从 NBT 反序列化 ItemStack
+    for (const auto& itemJson : *it) {
+        if (itemJson.is_object()) {
+            auto result = ItemStack::fromJson(itemJson);
+            if (result.success()) {
+                projectiles.push_back(result.value());
+            }
+        }
+    }
 
     return projectiles;
 }
@@ -272,8 +372,9 @@ void CrossbowItem::addChargedProjectile(ItemStack& crossbow, const ItemStack& pr
         tag["ChargedProjectiles"] = nlohmann::json::array();
     }
 
-    // TODO: 序列化 projectile 到 NBT
-    (void)projectile;
+    // 序列化弹丸到NBT
+    nlohmann::json projectileJson = projectile.toJson();
+    tag["ChargedProjectiles"].push_back(projectileJson);
 }
 
 void CrossbowItem::clearProjectiles(ItemStack& stack) {
@@ -281,6 +382,16 @@ void CrossbowItem::clearProjectiles(ItemStack& stack) {
     if (tag != nullptr && tag->contains("ChargedProjectiles")) {
         (*tag)["ChargedProjectiles"] = nlohmann::json::array();
     }
+}
+
+bool CrossbowItem::hasChargedProjectile(const ItemStack& stack, const Item* item) {
+    std::vector<ItemStack> projectiles = getChargedProjectiles(stack);
+    for (const ItemStack& projectile : projectiles) {
+        if (projectile.getItem() == item) {
+            return true;
+        }
+    }
+    return false;
 }
 
 i32 CrossbowItem::getMultishotLevel(const ItemStack& stack) {

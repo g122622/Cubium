@@ -7,7 +7,7 @@
 ```
 weapon/
 ├── BowItem.hpp/cpp       # 弓物品 (完整实现)
-├── CrossbowItem.hpp/cpp  # 弩物品 (部分实现)
+├── CrossbowItem.hpp/cpp  # 弩物品 (完整实现)
 ├── TridentItem.hpp/cpp   # 三叉戟物品 (基本实现)
 ├── ThrowableItem.hpp/cpp # 投掷物品基类
 ├── ThrowableItems.hpp/cpp # 具体投掷物品(雪球/鸡蛋/末影珍珠等)
@@ -49,20 +49,33 @@ velocity = (f * f + f * 2.0) / 3.0
 - `findAmmo()` - 查找箭矢（副手 → 主手 → 背包）
 - `isInfiniteArrow()` - 检查箭矢是否无限
 
-### CrossbowItem（弩）- 部分实现
+### CrossbowItem（弩）- 完整实现
 
-**已实现功能：**
-- 装填机制和状态管理
-- 装填时间计算（含快速装填附魔）
-- 箭矢发射基础逻辑
-- 穿透附魔支持
-- 多重射击角度计算
-- NBT弹丸存储
+弩是可以预先装填箭矢的远程武器。
 
-**待完善功能：**
-- 烟花火箭发射支持
-- 弹药查找优化
-- 音效播放
+**装填机制：**
+- 基础装填时间: 25 tick（1.25秒）
+- 快速装填附魔: 每级减少 5 tick
+- 装填过程中播放音效（20% 和 50%）
+
+**发射机制：**
+- 箭矢速度: 3.15（烟花 1.6）
+- 支持多重射击: 发射 3 支箭矢
+- 支持穿透: 箭矢可穿透实体
+- 支持烟花火箭: 作为弹药
+
+**附魔支持：**
+- 多重射击 (Multishot): 同时发射 3 支箭矢
+- 穿透 (Piercing): 箭矢可穿透实体
+- 快速装填 (Quick Charge): 减少装填时间
+
+**关键方法：**
+- `isCharged()` / `setCharged()` - 装填状态管理
+- `getChargeTime()` - 计算装填时间
+- `findAmmo()` - 查找弹药（箭矢/烟花）
+- `loadProjectiles()` - 装填弹丸
+- `fireProjectiles()` - 发射弹丸
+- `getChargedProjectiles()` - 获取已装填弹丸
 
 ### TridentItem（三叉戟）- 基本实现
 
@@ -95,8 +108,19 @@ BowItem
 ├── Item (基类)
 ├── ItemStack
 ├── Player
+├── PlayerInventory
 ├── AbstractArrowEntity (箭矢实体)
 ├── EnchantmentHelper (附魔辅助)
+└── IWorld
+
+CrossbowItem
+├── Item (基类)
+├── ItemStack
+├── Player
+├── PlayerInventory
+├── AbstractArrowEntity
+├── FireworkRocketEntity (烟花实体)
+├── EnchantmentHelper
 └── IWorld
 
 TridentItem

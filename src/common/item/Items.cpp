@@ -782,29 +782,29 @@ void Items::registerArmor() {
     DIAMOND_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_helmet"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Head))
     );
 
     DIAMOND_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_chestplate"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     DIAMOND_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_leggings"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     DIAMOND_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_boots"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -813,29 +813,29 @@ void Items::registerArmor() {
     IRON_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_helmet"),
         ArmorMaterials::IRON,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Head))
     );
 
     IRON_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_chestplate"),
         ArmorMaterials::IRON,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     IRON_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_leggings"),
         ArmorMaterials::IRON,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     IRON_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_boots"),
         ArmorMaterials::IRON,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -844,29 +844,29 @@ void Items::registerArmor() {
     GOLDEN_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_helmet"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Head))
     );
 
     GOLDEN_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_chestplate"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     GOLDEN_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_leggings"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     GOLDEN_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_boots"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -875,29 +875,29 @@ void Items::registerArmor() {
     LEATHER_HELMET = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_helmet"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Head))
     );
 
     LEATHER_CHESTPLATE = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_chestplate"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     LEATHER_LEGGINGS = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_leggings"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     LEATHER_BOOTS = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_boots"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -906,29 +906,29 @@ void Items::registerArmor() {
     CHAINMAIL_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_helmet"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Head))
     );
 
     CHAINMAIL_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_chestplate"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     CHAINMAIL_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_leggings"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     CHAINMAIL_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_boots"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -937,32 +937,32 @@ void Items::registerArmor() {
     NETHERITE_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_helmet"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Head))
                             .rarity(ItemRarity::Rare)
     );
 
     NETHERITE_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_chestplate"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Chest))
                             .rarity(ItemRarity::Rare)
     );
 
     NETHERITE_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_leggings"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Legs))
                             .rarity(ItemRarity::Rare)
     );
 
     NETHERITE_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_boots"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Feet))
                             .rarity(ItemRarity::Rare)
     );
 

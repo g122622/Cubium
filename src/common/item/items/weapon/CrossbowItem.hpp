@@ -4,6 +4,8 @@
 #include "../../core/UseAction.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../../core/Types.hpp"
+#include "../../core/ItemStack.hpp"
+#include "../../../entity/inventory/PlayerInventory.hpp"
 #include <functional>
 #include <vector>
 
@@ -12,7 +14,6 @@ namespace mc {
 // 前向声明
 class Player;
 class World;
-class ItemStack;
 class LivingEntity;
 
 namespace entity {
@@ -121,6 +122,29 @@ public:
     [[nodiscard]] std::function<bool(const ItemStack&)> getInventoryAmmoPredicate() const;
 
 private:
+    /**
+     * @brief 检查物品是否是弩的弹药
+     *
+     * 接受箭矢和烟花火箭。
+     */
+    [[nodiscard]] static bool isAmmo(const ItemStack& stack);
+
+    /**
+     * @brief 查找玩家身上的弹药
+     * @return 弹药物品堆，如果没有则返回空
+     */
+    static ItemStack findAmmo(Player& player);
+
+    /**
+     * @brief 检查是否有足够的弹药并装填
+     */
+    static bool loadProjectiles(Player& player, ItemStack& crossbow);
+
+    /**
+     * @brief 检查弩中是否装填了指定物品
+     */
+    static bool hasChargedProjectile(const ItemStack& stack, const Item* item);
+
     /**
      * @brief 检查是否有足够的弹药
      */
