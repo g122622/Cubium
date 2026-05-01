@@ -115,18 +115,48 @@ public:
                     ? text::getFormattingColor(*run.style.getColor())
                     : m_baseColor;
 
+                // 计算文本宽度（用于装饰线）
+                f32 runWidth = run.advanceWidth;
+                i32 textX = static_cast<i32>(x);
+                i32 textY = static_cast<i32>(line.y);
+
                 // 绘制阴影
                 if (m_shadow) {
-                    ctx.drawText(run.text, static_cast<i32>(x) + 1, static_cast<i32>(line.y) + 1, m_shadowColor);
+                    ctx.drawText(run.text, textX + 1, textY + 1, m_shadowColor);
+                    // 粗体阴影需要额外偏移绘制
+                    if (run.style.isBold()) {
+                        ctx.drawText(run.text, textX + 2, textY + 1, m_shadowColor);
+                    }
                 }
 
                 // 绘制主文本
-                ctx.drawText(run.text, static_cast<i32>(x), static_cast<i32>(line.y), color);
+                ctx.drawText(run.text, textX, textY, color);
 
-                // TODO: 绘制粗体（需要额外绘制偏移）
-                // TODO: 绘制斜体（需要变换）
-                // TODO: 绘制删除线（需要额外绘制线条）
-                // TODO: 绘制下划线（需要额外绘制线条）
+                // 粗体：额外绘制一次偏移文本
+                if (run.style.isBold()) {
+                    ctx.drawText(run.text, textX + 1, textY, color);
+                }
+
+                // 删除线：在文本中间绘制水平线
+                if (run.style.isStrikethrough()) {
+                    f32 strikethroughY = textY + m_fontHeight * 0.5f;
+                    ctx.drawFilledRect(
+                        Rect(textX, static_cast<i32>(strikethroughY), static_cast<i32>(runWidth), 1),
+                        color
+                    );
+                }
+
+                // 下划线：在文本底部绘制水平线
+                if (run.style.isUnderlined()) {
+                    f32 underlineY = textY + m_fontHeight - 1.0f;
+                    ctx.drawFilledRect(
+                        Rect(textX, static_cast<i32>(underlineY), static_cast<i32>(runWidth), 1),
+                        color
+                    );
+                }
+
+                // 斜体：通过倾斜变换绘制（需要变换支持，当前简化处理）
+                // TODO: 斜体需要 PaintContext 支持变换矩阵
 
                 x += run.advanceWidth;
             }
@@ -466,6 +496,13 @@ private:
 
     /**
      * @brief 处理点击事件
+     *
+     * 默认实现：如果设置了 m_onClick 回调则调用回调。
+     * 应用层应通过 setOnClick() 设置回调来处理具体事件：
+     * - OpenUrl: 调用平台 API 打开浏览器
+     * - RunCommand: 调用 CommandDispatcher 执行命令
+     * - SuggestCommand: 在聊天框填入命令
+     * - CopyToClipboard: 调用平台 API 复制文本
      */
     bool handleClickEvent(const text::ClickEvent& event) {
         // 调用回调
@@ -474,55 +511,23 @@ private:
             return true;
         }
 
-        // 默认处理
-        switch (event.getAction()) {
-            case text::ClickAction::OpenUrl:
-                // TODO: 打开 URL（需要平台支持）
-                break;
-
-            case text::ClickAction::RunCommand:
-                // TODO: 执行命令（需要命令系统集成）
-                break;
-
-            case text::ClickAction::SuggestCommand:
-                // TODO: 建议命令（需要聊天界面集成）
-                break;
-
-            case text::ClickAction::CopyToClipboard:
-                // TODO: 复制到剪贴板（需要平台支持）
-                break;
-
-            case text::ClickAction::OpenFile:
-                // 出于安全考虑，默认不处理
-                break;
-        }
-
+        // 无回调时不执行默认处理
         return false;
     }
 
     /**
      * @brief 处理悬停事件
+     *
+     * 默认实现：如果设置了 m_onHover 回调则调用回调。
+     * 应用层应通过 setOnHover() 设置回调来处理具体事件：
+     * - ShowText: 显示工具提示
+     * - ShowItem: 显示物品提示
+     * - ShowEntity: 显示实体提示
      */
     void handleHoverEvent(const text::HoverEvent& event, i32 x, i32 y) {
         // 调用回调
         if (m_onHover) {
             m_onHover(event, x, y);
-            return;
-        }
-
-        // 默认处理
-        switch (event.getAction()) {
-            case text::HoverAction::ShowText:
-                // TODO: 显示工具提示
-                break;
-
-            case text::HoverAction::ShowItem:
-                // TODO: 显示物品提示
-                break;
-
-            case text::HoverAction::ShowEntity:
-                // TODO: 显示实体提示
-                break;
         }
     }
 

@@ -391,7 +391,7 @@ void WeatherRenderer::render(VkCommandBuffer cmd,
         void* data = nullptr;
         const VkResult mapResult = vkMapMemory(m_device, m_vertexBufferMemory, 0, size, 0, &data);
         if (mapResult != VK_SUCCESS || data == nullptr) {
-            spdlog::error("WeatherRenderer: failed to map vertex buffer memory: {}", mapResult);
+            spdlog::error("WeatherRenderer: failed to map vertex buffer memory: {}", static_cast<i32>(mapResult));
             MC_TRACE_EVENT_END("rendering.weather");
             return;
         }

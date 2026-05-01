@@ -208,6 +208,18 @@ public:
     virtual void onMouseLeave() {}
 
     /**
+     * @brief 鼠标移动事件
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @return 如果事件被处理返回true
+     */
+    virtual bool onMouseMove(i32 mouseX, i32 mouseY) {
+        (void)mouseX;
+        (void)mouseY;
+        return false;
+    }
+
+    /**
      * @brief 获得焦点
      */
     virtual void onFocusGained() {}

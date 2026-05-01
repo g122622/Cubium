@@ -220,6 +220,7 @@ add_executable(mc_tests
     client/ui/kagero/widget/ButtonWidgetTest.cpp
     client/ui/kagero/widget/ButtonWidgetPaintTest.cpp
     client/ui/kagero/widget/TextWidgetTest.cpp
+    client/ui/kagero/widget/RichTextWidgetTest.cpp
     client/ui/kagero/widget/CheckboxWidgetTest.cpp
     client/ui/kagero/widget/SliderWidgetTest.cpp
     client/ui/kagero/widget/TextFieldWidgetTest.cpp
