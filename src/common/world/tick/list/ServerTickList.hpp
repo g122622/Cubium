@@ -346,23 +346,31 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
     }
 
     // 执行tick回调
+    // MC 1.16.5 行为：执行前再次检查区块加载状态，未加载则重新调度(delay=0)
+    // 参考: net.minecraft.world.server.ServerTickList.tick()
     while (!m_ticksThisTick.empty()) {
         ScheduledTick<T> tick = m_ticksThisTick.front();
         m_ticksThisTick.pop();
 
         if (tick.target != nullptr) {
-            m_executedThisTick.push_back(tick);
+            // 再次检查区块是否仍然加载（可能在cleaning和ticking之间被卸载）
+            if (canTick(tick.position)) {
+                m_executedThisTick.push_back(tick);
 
-            MC_TRACE_EVENT("server.tick", "ExecutingTick",
-                "position", tick.position.toString(),
-                "scheduledTick", tick.scheduledTick,
-                "priority", static_cast<i8>(tick.priority),
-                [flow = ::perfetto::Flow::ProcessScoped(tick.position.toId())](::perfetto::EventContext ctx) {
-                    flow(ctx);
-            });
+                MC_TRACE_EVENT("server.tick", "ExecutingTick",
+                    "position", tick.position.toString(),
+                    "scheduledTick", tick.scheduledTick,
+                    "priority", static_cast<i8>(tick.priority),
+                    [flow = ::perfetto::Flow::ProcessScoped(tick.position.toId())](::perfetto::EventContext ctx) {
+                        flow(ctx);
+                });
 
-            m_tickFunction(m_world, tick.position, *tick.target);
-            ++m_totalProcessed;
+                m_tickFunction(m_world, tick.position, *tick.target);
+                ++m_totalProcessed;
+            } else {
+                // 区块未加载，重新调度到下一tick执行(delay=0)
+                scheduleTick(tick.position, *tick.target, 0, tick.priority);
+            }
         }
     }
 }

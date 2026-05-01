@@ -86,16 +86,30 @@ bool LavaFluid::canDisplace(const FluidState& state, IWorld& world,
     return state.getActualHeight(world, pos) >= 0.44444445f && fluid.isIn(FluidTags::WATER());
 }
 
-namespace {
-
-[[nodiscard]] bool isWaterFluid(const Fluid& fluid) {
-    return fluid.isIn(FluidTags::WATER());
-}
-
-} // namespace
-
 void LavaFluid::randomTick(IWorld& world, const BlockPos& pos,
                             const FluidState& state, math::IRandom& random) {
+    // 参考: net.minecraft.fluid.LavaFluid#randomTick
+    // MC 1.16.5 源码逻辑:
+    // int i = random.nextInt(3);
+    // if (i > 0) {
+    //     // 向上搜索可燃位置
+    //     BlockPos blockpos = pos;
+    //     for(int j = 0; j < i; ++j) {
+    //         blockpos = blockpos.add(random.nextInt(3) - 1, 1, random.nextInt(3) - 1);
+    //         if (blockstate.isAir()) {
+    //             if (isSurroundingBlockFlammable(...)) { 点火; return; }
+    //         } else if (blockstate.getMaterial().blocksMovement()) {
+    //             return; // 阻挡移动，直接返回
+    //         }
+    //     }
+    // } else {
+    //     // i == 0: 水平搜索
+    //     for(int k = 0; k < 3; ++k) {
+    //         BlockPos blockpos1 = pos.add(random.nextInt(3) - 1, 0, random.nextInt(3) - 1);
+    //         if (上方是空气 && 下方方块可燃) { 在上方点火; }
+    //     }
+    // }
+
     if (!world.doFireTick()) {
         return;
     }
@@ -106,42 +120,63 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos,
         return;
     }
 
-    if (random.nextInt(3) != 0) {
-        return;
-    }
+    i32 i = random.nextInt(3);
 
-    BlockPos checkPos = pos;
-    const i32 steps = random.nextInt(3);
-    if (steps <= 0) {
-        return;
-    }
+    if (i > 0) {
+        // 向上搜索可燃位置
+        BlockPos checkPos = pos;
+        for (i32 j = 0; j < i; ++j) {
+            checkPos = BlockPos(
+                checkPos.x + random.nextInt(3) - 1,
+                checkPos.y + 1,
+                checkPos.z + random.nextInt(3) - 1);
 
-    for (i32 index = 0; index < steps; ++index) {
-        checkPos = BlockPos(
-            checkPos.x + random.nextInt(3) - 1,
-            checkPos.y + 1,
-            checkPos.z + random.nextInt(3) - 1);
-
-        if (!world.isWithinWorldBounds(checkPos)) {
-            return;
-        }
-
-        const BlockState* blockState = world.getBlockState(checkPos);
-        if (blockState == nullptr) {
-            return;
-        }
-
-        if (blockState->isAir()) {
-            if (isSurroundingBlockFlammable(world, checkPos)) {
-                world.setBlock(checkPos, &VanillaBlocks::FIRE->defaultState());
+            if (!world.isWithinWorldBounds(checkPos)) {
                 return;
             }
-        } else if (blockState->owner().material().blocksMovement()) {
-            BlockPos above = checkPos.up();
-            const BlockState* aboveState = world.getBlockState(above);
-            if (aboveState != nullptr && aboveState->isAir() && isBlockFlammable(world, checkPos)) {
-                world.setBlock(above, &VanillaBlocks::FIRE->defaultState());
+
+            const BlockState* blockState = world.getBlockState(checkPos);
+            if (blockState == nullptr) {
                 return;
+            }
+
+            if (blockState->isAir()) {
+                // 检查周围是否有可燃方块
+                if (isSurroundingBlockFlammable(world, checkPos)) {
+                    world.setBlock(checkPos, &VanillaBlocks::FIRE->defaultState());
+                    return;
+                }
+            } else if (blockState->owner().material().blocksMovement()) {
+                // 阻挡移动的方块，停止搜索
+                return;
+            }
+        }
+    } else {
+        // i == 0: 水平搜索，在可燃方块上方点火
+        for (i32 k = 0; k < 3; ++k) {
+            BlockPos checkPos = BlockPos(
+                pos.x + random.nextInt(3) - 1,
+                pos.y,
+                pos.z + random.nextInt(3) - 1);
+
+            if (!world.isWithinWorldBounds(checkPos)) {
+                continue;
+            }
+
+            const BlockState* blockState = world.getBlockState(checkPos);
+            if (blockState == nullptr) {
+                continue;
+            }
+
+            // 检查上方是否是空气，且当前方块是否可燃
+            BlockPos abovePos = checkPos.up();
+            if (!world.isWithinWorldBounds(abovePos)) {
+                continue;
+            }
+
+            const BlockState* aboveState = world.getBlockState(abovePos);
+            if (aboveState != nullptr && aboveState->isAir() && isBlockFlammable(world, checkPos)) {
+                world.setBlock(abovePos, &VanillaBlocks::FIRE->defaultState());
             }
         }
     }
@@ -176,41 +211,6 @@ void LavaFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
     triggerEffects(world, pos);
 }
 
-bool LavaFluid::checkForMixing(IWorld& world, const BlockPos& pos, Direction direction) {
-    // 检查岩浆是否遇到水
-    BlockPos neighborPos = pos.offset(Directions::toBlockFace(direction));
-    const FluidState* neighborFluid = world.getFluidState(neighborPos);
-
-    if (neighborFluid == nullptr || neighborFluid->isEmpty()) {
-        return false;
-    }
-
-    if (!isWaterFluid(neighborFluid->getFluid())) {
-        return false;
-    }
-
-    if (direction == Direction::Down) {
-        if (VanillaBlocks::STONE != nullptr) {
-            world.setBlock(pos, &VanillaBlocks::STONE->defaultState());
-        }
-        triggerEffects(world, pos);
-        return true;
-    }
-
-    if (VanillaBlocks::OBSIDIAN == nullptr || VanillaBlocks::COBBLESTONE == nullptr) {
-        return false;
-    }
-
-    const BlockState* replacement = isSource(defaultState())
-        ? &VanillaBlocks::OBSIDIAN->defaultState()
-        : &VanillaBlocks::COBBLESTONE->defaultState();
-
-    world.setBlock(pos, replacement);
-
-    triggerEffects(world, pos);
-    return true;
-}
-
 void LavaFluid::triggerEffects(IWorld& world, const BlockPos& pos) {
     // TODO: 触发烟雾和嘶嘶声音效果
     // world.playEvent(1501, pos, 0);
@@ -220,12 +220,25 @@ void LavaFluid::triggerEffects(IWorld& world, const BlockPos& pos) {
 
 void LavaFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,
                           Direction dir, const FluidState& fluidState) {
-    // 重写flowInto以处理岩浆与水的交互
-    if (checkForMixing(world, pos, dir)) {
-        return;
+    // 参考: net.minecraft.fluid.LavaFluid#flowInto
+    // MC 1.16.5 行为: 只有在向下流动时(direction == DOWN)才检查水交互
+    // 当岩浆向下流入水时，把目标位置变成石头
+    if (dir == Direction::Down) {
+        // 检查目标位置是否有水
+        const FluidState* targetFluid = world.getFluidState(pos);
+        if (targetFluid != nullptr && !targetFluid->isEmpty() &&
+            targetFluid->getFluid().isIn(FluidTags::WATER())) {
+            // 岩浆向下流入水 -> 生成石头
+            // MC 还检查目标方块是否是 FlowingFluidBlock，这里简化处理
+            if (VanillaBlocks::STONE != nullptr) {
+                world.setBlockState(pos, &VanillaBlocks::STONE->defaultState(), 3);
+            }
+            triggerEffects(world, pos);
+            return;
+        }
     }
 
-    // 调用父类方法
+    // 调用父类方法处理正常流动
     FlowingFluid::flowInto(world, pos, blockState, dir, fluidState);
 }
 
