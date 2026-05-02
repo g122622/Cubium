@@ -145,24 +145,52 @@ classDiagram
 
 **连接点匹配规则**:
 
+Jigsaw连接点匹配基于MC 1.16.5的`JigsawBlock.func_220171_a`方法实现。
+
 ```cpp
-// JigsawMatcher 提供的匹配规则
-// 1. 相同名称匹配
-canMatch("village/street", "village/street")  // true
+// JigsawMatcher 提供的匹配方法
 
-// 2. 对称连接点匹配
-canMatch("minecraft:top", "minecraft:bottom")    // true
-canMatch("minecraft:front", "minecraft:back")    // true
-canMatch("minecraft:left", "minecraft:right")    // true
+// 1. 名称匹配检查（仅检查名称）
+canMatchByName(sourceTarget, targetName)
 
-// 3. 空连接点终止
-canMatch("minecraft:empty", "anything")  // false
+// 2. 方向匹配检查（检查facing相反）
+canConnectOrientation(sourceOrientation, targetOrientation, sourceJointType)
 
-// 4. 旋转名称变换
-rotateName("minecraft:front", 90)   // "minecraft:right"
-rotateName("minecraft:front", 180)  // "minecraft:back"
-rotateName("minecraft:front", 270)  // "minecraft:left"
-rotateName("minecraft:top", 90)     // "minecraft:top" (不变)
+// 3. 完整匹配检查（名称+方向）
+canMatch(sourceTarget, targetName, sourceOrientation, targetOrientation, sourceJointType)
+```
+
+**连接类型说明**:
+
+| 类型 | 说明 |
+|------|------|
+| `Rollable` | 可旋转连接，只需facing相反 |
+| `Aligned` | 对齐连接，facing相反且rotation相同 |
+
+**连接条件**（参考MC 1.16.5）:
+
+1. 源连接点的`targetName`必须等于目标连接点的`sourceName`
+2. 两个Jigsaw方块的facing方向必须相反（面对面）
+3. 如果是`Aligned`类型，rotation方向也必须相同
+4. 如果是`Rollable`类型，只需facing相反即可
+
+**示例**:
+
+```cpp
+// Rollable连接示例（可旋转）
+// 源: facing=NORTH, rotation=EAST, targetName="minecraft:bottom"
+// 目标: facing=SOUTH, rotation=WEST, sourceName="minecraft:bottom"
+// 匹配结果: true（facing相反，rollable类型允许rotation不同）
+
+// Aligned连接示例（对齐）
+// 源: facing=EAST, rotation=UP, targetName="village/street", jointType=Aligned
+// 目标: facing=WEST, rotation=UP, sourceName="village/street"
+// 匹配结果: true（facing相反且rotation相同）
+
+// 不匹配示例
+// 源: facing=NORTH, targetName="minecraft:top"
+// 目标: facing=SOUTH, sourceName="minecraft:bottom"
+// 匹配结果: false（targetName不匹配sourceName）
 ```
 
 ### JigsawPattern.hpp / JigsawPattern.cpp
