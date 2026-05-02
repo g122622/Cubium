@@ -170,8 +170,8 @@ ResourceLocation VillageStructure::getStartPool(VillageType type) {
         case VillageType::Snowy:
             return ResourceLocation("minecraft", "village/snowy/town_centers");
         case VillageType::Zombie:
-            // 僵尸村庄使用普通村庄的模板，但生成僵尸村民
-            return ResourceLocation("minecraft", "village/plains/town_centers");
+            // 僵尸村庄使用独立的模板池（使用平原模板，但可扩展）
+            return ResourceLocation("minecraft", "village/zombie/town_centers");
         default:
             return ResourceLocation("minecraft", "village/plains/town_centers");
     }

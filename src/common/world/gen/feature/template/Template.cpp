@@ -1,6 +1,7 @@
 #include "Template.hpp"
 #include "RuleTest.hpp"
 #include "../../../../world/IWorldWriter.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockRegistry.hpp"
 #include "../../../../world/block/Block.hpp"
 #include "../../../../util/math/MathUtils.hpp"
@@ -237,6 +238,7 @@ PlacementSettings PlacementSettings::copy() const {
     result.m_centerOffset = m_centerOffset;
     result.m_blockUpdateFlags = m_blockUpdateFlags;
     result.m_processors = m_processors;
+    result.m_world = m_world;
     return result;
 }
 
@@ -509,13 +511,23 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
-    const PlacementSettings& /*settings*/)
+    const PlacementSettings& settings)
 {
-    // TODO: 需要访问世界高度图来获取地面高度
-    // 当前实现：保持原位置，偏移offset
-    // 完整实现需要IWorldReader访问高度图
+    // MC 1.16.5: GravityStructureProcessor 根据高度图调整 Y 坐标
+    // 如果有世界访问，则获取地面高度；否则使用简化实现
+    const IWorld* world = settings.getWorld();
+
     ProcessedBlockInfo result = ProcessedBlockInfo::fromBlockInfo(blockInfo);
-    result.pos = BlockPos(blockInfo.pos.x, blockInfo.pos.y + m_offset, blockInfo.pos.z);
+
+    if (world) {
+        // 完整实现：使用高度图获取地面高度
+        i32 surfaceY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z);
+        result.pos = BlockPos(blockInfo.pos.x, surfaceY + m_offset, blockInfo.pos.z);
+    } else {
+        // 简化实现：仅应用偏移量
+        result.pos = BlockPos(blockInfo.pos.x, blockInfo.pos.y + m_offset, blockInfo.pos.z);
+    }
+
     return result;
 }
 
@@ -737,7 +749,7 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
     const BlockPos& /*pos*/,
     const BlockInfo& rawBlockInfo,
     const BlockInfo& blockInfo,
-    const PlacementSettings& /*settings*/)
+    const PlacementSettings& settings)
 {
     // MC 1.16.5: RuleStructureProcessor.func_230386_a_
     // 遍历所有规则，找到第一个匹配的规则
@@ -748,9 +760,12 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
     // 获取输入方块状态
     const BlockState* inputState = BlockRegistry::instance().getBlockState(rawBlockInfo.blockStateId);
 
-    // 获取世界位置方块状态（需要通过 IWorldReader 访问，当前简化处理）
-    // TODO: 需要访问世界来获取位置方块状态
+    // 获取世界位置方块状态（通过 PlacementSettings 中的世界访问）
     const BlockState* locationState = nullptr;
+    const IWorld* world = settings.getWorld();
+    if (world) {
+        locationState = world->getBlockState(blockInfo.pos);
+    }
 
     for (const auto& rule : m_rules) {
         if (rule && rule->matches(

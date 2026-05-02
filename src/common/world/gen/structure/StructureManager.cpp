@@ -63,41 +63,208 @@ void StructureRegistry::initializeDefaultJigsawPatterns() {
 void StructureRegistry::registerVillagePatterns(mc::world::gen::jigsaw::JigsawPatternRegistry& registry) {
     using namespace mc::world::gen::jigsaw;
 
-    // 村庄起始模板池 - 平原
+    // =========================================================================
+    // 平原村庄 (Plains Village)
+    // =========================================================================
     auto plainsStart = std::make_unique<JigsawPattern>(
         mc::ResourceLocation("minecraft", "village/plains/town_centers"),
         mc::ResourceLocation("minecraft", "empty")
     );
-    // 添加一个简单的起始块
     plainsStart->addPiece(std::make_unique<SingleJigsawPiece>(
         "minecraft:village/plains/town_center_01",
         JigsawPlacementBehaviour::Rigid
     ), 1);
     registry.registerPattern(std::move(plainsStart));
 
-    // 村庄街道模板池
-    auto streets = std::make_unique<JigsawPattern>(
+    auto plainsStreets = std::make_unique<JigsawPattern>(
         mc::ResourceLocation("minecraft", "village/plains/streets"),
         mc::ResourceLocation("minecraft", "empty")
     );
-    streets->addPiece(std::make_unique<SingleJigsawPiece>(
+    plainsStreets->addPiece(std::make_unique<SingleJigsawPiece>(
         "minecraft:village/plains/street_01",
         JigsawPlacementBehaviour::Rigid
     ), 1);
-    registry.registerPattern(std::move(streets));
+    registry.registerPattern(std::move(plainsStreets));
 
-    // 村庄房屋模板池
-    auto houses = std::make_unique<JigsawPattern>(
+    auto plainsHouses = std::make_unique<JigsawPattern>(
         mc::ResourceLocation("minecraft", "village/plains/houses"),
         mc::ResourceLocation("minecraft", "empty")
     );
-    houses->addPiece(std::make_unique<SingleJigsawPiece>(
+    plainsHouses->addPiece(std::make_unique<SingleJigsawPiece>(
         "minecraft:village/plains/house_01",
         JigsawPlacementBehaviour::Rigid
     ), 1);
-    registry.registerPattern(std::move(houses));
+    registry.registerPattern(std::move(plainsHouses));
 
+    // =========================================================================
+    // 沙漠村庄 (Desert Village)
+    // =========================================================================
+    auto desertStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/desert/town_centers"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    desertStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/desert/town_center_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(desertStart));
+
+    auto desertStreets = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/desert/streets"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    desertStreets->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/desert/street_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(desertStreets));
+
+    auto desertHouses = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/desert/houses"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    desertHouses->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/desert/house_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(desertHouses));
+
+    // =========================================================================
+    // 热带草原村庄 (Savanna Village)
+    // =========================================================================
+    auto savannaStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/savanna/town_centers"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    savannaStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/savanna/town_center_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(savannaStart));
+
+    auto savannaStreets = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/savanna/streets"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    savannaStreets->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/savanna/street_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(savannaStreets));
+
+    auto savannaHouses = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/savanna/houses"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    savannaHouses->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/savanna/house_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(savannaHouses));
+
+    // =========================================================================
+    // 针叶林村庄 (Taiga Village)
+    // =========================================================================
+    auto taigaStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/taiga/town_centers"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    taigaStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/taiga/town_center_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(taigaStart));
+
+    auto taigaStreets = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/taiga/streets"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    taigaStreets->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/taiga/street_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(taigaStreets));
+
+    auto taigaHouses = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/taiga/houses"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    taigaHouses->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/taiga/house_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(taigaHouses));
+
+    // =========================================================================
+    // 雪地村庄 (Snowy Village)
+    // =========================================================================
+    auto snowyStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/snowy/town_centers"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    snowyStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/snowy/town_center_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(snowyStart));
+
+    auto snowyStreets = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/snowy/streets"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    snowyStreets->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/snowy/street_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(snowyStreets));
+
+    auto snowyHouses = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/snowy/houses"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    snowyHouses->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/snowy/house_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(snowyHouses));
+
+    // =========================================================================
+    // 僵尸村庄 (Zombie Village) - 使用平原村庄模板
+    // 僵尸村民生成在村庄结构放置后由实体系统处理
+    // =========================================================================
+    auto zombieStart = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/zombie/town_centers"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    zombieStart->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/plains/town_center_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(zombieStart));
+
+    auto zombieStreets = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/zombie/streets"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    zombieStreets->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/plains/street_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(zombieStreets));
+
+    auto zombieHouses = std::make_unique<JigsawPattern>(
+        mc::ResourceLocation("minecraft", "village/zombie/houses"),
+        mc::ResourceLocation("minecraft", "empty")
+    );
+    zombieHouses->addPiece(std::make_unique<SingleJigsawPiece>(
+        "minecraft:village/plains/house_01",
+        JigsawPlacementBehaviour::Rigid
+    ), 1);
+    registry.registerPattern(std::move(zombieHouses));
+
+    // =========================================================================
     // 空模板池（终止符）
+    // =========================================================================
     auto empty = std::make_unique<JigsawPattern>(
         mc::ResourceLocation("minecraft", "empty"),
         mc::ResourceLocation("minecraft", "empty")

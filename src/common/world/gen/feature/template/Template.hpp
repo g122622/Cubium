@@ -16,6 +16,7 @@ namespace mc {
 
 class BlockState;
 class IWorldWriter;
+class IWorld;
 
 namespace world {
 namespace gen {
@@ -112,6 +113,12 @@ public:
     [[nodiscard]] bool keepLiquids() const { return m_keepLiquids; }
     PlacementSettings& setKeepLiquids(bool keep);
 
+    /**
+     * @brief 获取世界读取器（用于 GravityStructureProcessor 等需要高度信息的处理器）
+     */
+    [[nodiscard]] const IWorld* getWorld() const { return m_world; }
+    PlacementSettings& setWorld(const IWorld* world) { m_world = world; return *this; }
+
     [[nodiscard]] PlacementSettings copy() const;
 
     [[nodiscard]] const StructureProcessorList* getProcessors() const { return m_processors; }
@@ -126,6 +133,7 @@ private:
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
     u32 m_blockUpdateFlags = 18;  // 默认标志：更新邻居和通知观察者
     const StructureProcessorList* m_processors = nullptr;
+    const IWorld* m_world = nullptr;  // 可选的世界读取器
 };
 
 /**
