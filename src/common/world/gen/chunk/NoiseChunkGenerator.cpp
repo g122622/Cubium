@@ -997,15 +997,39 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
         FeatureRegistry::instance().initialize();
     });
 
+    const ChunkCoord chunkX = chunk.x();
+    const ChunkCoord chunkZ = chunk.z();
+
+    // === 阶段 1: 放置结构片段 ===
+    // 结构起点在 STRUCTURE_STARTS 阶段已经计算并存储到 chunk 中
+    // 现在需要将结构片段放置到世界中
+    if (m_structureManager && chunk.hasStructureStarts()) {
+        MC_TRACE_EVENT("world.chunk_gen", "PlaceFeatures_Structures", "x", chunkX, "z", chunkZ);
+        for (const auto& [structureName, start] : chunk.structureStarts()) {
+            if (!start || !start->isValid()) {
+                continue;
+            }
+
+            const world::gen::structure::Structure* structure = world::gen::structure::StructureRegistry::get(structureName);
+            if (!structure) {
+                continue;
+            }
+
+            // 放置结构片段到当前区块
+            structure->placeInChunk(region, chunk, *start, chunkX, chunkZ);
+        }
+    }
+
+    // === 阶段 2: 放置生物群系特征 ===
     // 获取区块中心位置的主要生物群系
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
     const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
-    const BiomeGenerationSettings& settings = biome.generationSettings();
+    const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
     // 按装饰阶段顺序放置特征
     for (DecorationStage stage : DecorationStages::getAll()) {
         BiomeFeaturePlacer::placeFeaturesForStage(
-            region, chunk, *this, settings, stage, m_seed);
+            region, chunk, *this, biomeSettings, stage, m_seed);
     }
 
     chunk.setChunkStatus(ChunkStatuses::FEATURES);

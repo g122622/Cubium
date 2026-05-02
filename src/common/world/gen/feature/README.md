@@ -522,8 +522,8 @@ math::Random random(static_cast<u32>(chunkSeed));
 **问题**: NBT 模板文件路径格式必须正确。
 
 ```cpp
-// 正确路径格式
-// data/<namespace>/structures/<path>.nbt
+// 正确路径格式（参考 MC 1.16.5 TemplateManager）
+// assets/<namespace>/structures/<path>.nbt
 ResourceLocation location("minecraft:village/plains/houses");
 ```
 

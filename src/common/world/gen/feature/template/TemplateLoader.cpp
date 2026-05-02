@@ -205,15 +205,16 @@ std::unique_ptr<Template> TemplateLoader::loadFromResourcePack(
     const IResourcePack& pack,
     const ResourceLocation& location)
 {
-    // 构建资源路径: data/<namespace>/structures/<path>.nbt
-    std::string path = "data/" + location.namespace_() + "/structures/" + location.path() + ".nbt";
+    // 构建资源路径: assets/<namespace>/structures/<path>.nbt
+    // 参考 MC 1.16.5 TemplateManager.func_227458_a_
+    const std::string basePath = "assets/" + location.namespace_() + "/structures/" + location.path();
+    std::string path = basePath + ".nbt";
 
     // 尝试读取资源
     auto result = pack.readResource(path);
     if (!result.success() || result.value().empty()) {
         // 尝试不带 .nbt 后缀
-        path = "data/" + location.namespace_() + "/structures/" + location.path();
-        result = pack.readResource(path);
+        result = pack.readResource(basePath);
         if (!result.success() || result.value().empty()) {
             return nullptr;
         }
