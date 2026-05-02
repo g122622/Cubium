@@ -3,9 +3,11 @@
 #include "../../../core/Types.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../structure/StructureBoundingBox.hpp"
+#include "JigsawOrientation.hpp"
 #include <memory>
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace mc {
 namespace world {
@@ -18,6 +20,18 @@ namespace jigsaw {
 enum class JigsawPlacementBehaviour : u8 {
     TerrainMatching,  ///< 匹配地形高度
     Rigid             ///< 固定位置
+};
+
+/**
+ * @brief Jigsaw 连接类型
+ *
+ * 参考 MC 1.16.5 JigsawTileEntity.OrientationType
+ * - ROLLABLE: 可以旋转连接，只需要facing相反
+ * - ALIGNED: 对齐连接，facing相反且rotation必须相同
+ */
+enum class JigsawJointType : u8 {
+    Rollable,  ///< 可旋转连接
+    Aligned    ///< 对齐连接
 };
 
 /**
@@ -39,13 +53,17 @@ struct JigsawTarget {
 
 /**
  * @brief Jigsaw 连接点信息
+ *
+ * 参考 MC 1.16.5 Template.BlockInfo 中的 Jigsaw 方块数据
  */
 struct JigsawJoint {
     BlockPos sourcePos;                 ///< 源位置（在拼图块内）
-    String sourceName;                  ///< 源连接点名称
-    String targetPool;                  ///< 目标模板池名称
-    String targetName;                  ///< 目标连接点名称（可以是 "minecraft:empty" 表示终止）
+    String sourceName;                  ///< 源连接点名称（nbt中的"name"字段）
+    String targetPool;                  ///< 目标模板池名称（nbt中的"pool"字段）
+    String targetName;                  ///< 目标连接点名称（nbt中的"target"字段，可以是 "minecraft:empty" 表示终止）
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
+    JigsawJointType jointType = JigsawJointType::Rollable;  ///< 连接类型
+    JigsawOrientation orientation = JigsawOrientation::NorthUp;  ///< Jigsaw 方块朝向
     i32 sourceGroundY = 0;              ///< 源地面高度
 
     JigsawJoint() = default;
@@ -56,6 +74,8 @@ struct JigsawJoint {
 
 /**
  * @brief Jigsaw 拼图块基类
+ *
+ * 参考 MC 1.16.5: JigsawPiece
  */
 class JigsawPiece {
 public:
@@ -82,6 +102,21 @@ public:
      * @brief 获取拼图块大小
      */
     virtual BlockPos getSize() const { return BlockPos(1, 1, 1); }
+
+    /**
+     * @brief 从模板加载 Jigsaw 方块信息
+     *
+     * 参考 MC 1.16.5: JigsawPiece.getJigsawBlocks
+     * 加载模板并提取所有 Jigsaw 方块作为连接点
+     *
+     * @param templateName 模板名称（资源位置）
+     * @param joints 输出的连接点列表
+     * @param size 输出的模板大小
+     * @return 是否成功加载
+     */
+    virtual bool loadJointsFromTemplate(const String& templateName,
+                                         std::vector<JigsawJoint>& joints,
+                                         BlockPos& size);
 
 protected:
     explicit JigsawPiece(JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid)
@@ -161,59 +196,132 @@ private:
  * @brief 连接点匹配器
  *
  * 负责匹配两个 Jigsaw 连接点
+ * 参考 MC 1.16.5: JigsawBlock.func_220171_a
  */
 class JigsawMatcher {
 public:
     /**
-     * @brief 检查两个连接点是否可以匹配
+     * @brief 检查两个连接点是否可以匹配（仅检查名称）
      *
-     * @param sourceName 源连接点名称
-     * @param targetName 目标连接点名称
+     * @param sourceTarget 源连接点的目标名称（target字段）
+     * @param targetName 目标连接点的名称（name字段）
      * @return 是否可以连接
      */
-    static bool canMatch(const String& sourceName, const String& targetName) {
+    static bool canMatchByName(const String& sourceTarget, const String& targetName) {
         // 空连接点永远不匹配
-        if (sourceName.empty() || targetName.empty()) {
+        if (sourceTarget.empty() || targetName.empty()) {
             return false;
         }
 
         // minecraft:empty 表示终止点
-        if (sourceName == "minecraft:empty" || targetName == "minecraft:empty") {
+        if (sourceTarget == "minecraft:empty" || targetName == "minecraft:empty") {
             return false;
         }
 
-        // 相同名称的连接点可以匹配
-        if (sourceName == targetName) {
-            return true;
-        }
-
-        // 对称连接点匹配（如 bottom/top, left/right, front/back）
-        if (isOpposite(sourceName, targetName)) {
-            return true;
-        }
-
-        return false;
+        // 目标名称必须匹配（MC中是target.target == source.name）
+        return sourceTarget == targetName;
     }
 
     /**
-     * @brief 检查两个名称是否是对称的
+     * @brief 检查两个 Jigsaw 方向是否可以连接
+     *
+     * 参考 MC 1.16.5: JigsawBlock.func_220171_a
+     * 连接条件：
+     * 1. facing 方向必须相反（面对面）
+     * 2. 如果是 rollable 类型，则只需 facing 相反
+     * 3. 如果是 aligned 类型，rotation 方向也必须相同
+     *
+     * @param sourceOrientation 源 Jigsaw 方向
+     * @param targetOrientation 目标 Jigsaw 方向
+     * @param sourceJointType 源连接类型（rollable 或 aligned）
+     * @return 是否可以连接
      */
-    static bool isOpposite(const String& name1, const String& name2) {
-        // 标准 Minecraft 对称连接点
-        if ((name1 == "minecraft:bottom" && name2 == "minecraft:top") ||
-            (name1 == "minecraft:top" && name2 == "minecraft:bottom")) {
-            return true;
+    static bool canConnectOrientation(JigsawOrientation sourceOrientation,
+                                       JigsawOrientation targetOrientation,
+                                       JigsawJointType sourceJointType) {
+        Direction sourceFacing = JigsawOrientations::getFacing(sourceOrientation);
+        Direction targetFacing = JigsawOrientations::getFacing(targetOrientation);
+
+        // 条件1: facing 必须相反（面对面）
+        if (Directions::opposite(sourceFacing) != targetFacing) {
+            return false;
         }
-        if ((name1 == "minecraft:left" && name2 == "minecraft:right") ||
-            (name1 == "minecraft:right" && name2 == "minecraft:left")) {
-            return true;
-        }
-        if ((name1 == "minecraft:front" && name2 == "minecraft:back") ||
-            (name1 == "minecraft:back" && name2 == "minecraft:front")) {
+
+        // 如果是 rollable 类型，只需 facing 相反
+        if (sourceJointType == JigsawJointType::Rollable) {
             return true;
         }
 
-        return false;
+        // aligned 类型：rotation 方向也必须相同
+        Direction sourceRotation = JigsawOrientations::getRotation(sourceOrientation);
+        Direction targetRotation = JigsawOrientations::getRotation(targetOrientation);
+        return sourceRotation == targetRotation;
+    }
+
+    /**
+     * @brief 完整检查两个连接点是否可以匹配
+     *
+     * @param sourceTarget 源连接点的目标名称
+     * @param targetName 目标连接点的名称
+     * @param sourceOrientation 源 Jigsaw 方向
+     * @param targetOrientation 目标 Jigsaw 方向
+     * @param sourceJointType 源连接类型
+     * @return 是否可以连接
+     */
+    static bool canMatch(const String& sourceTarget,
+                         const String& targetName,
+                         JigsawOrientation sourceOrientation,
+                         JigsawOrientation targetOrientation,
+                         JigsawJointType sourceJointType) {
+        // 检查名称匹配
+        if (!canMatchByName(sourceTarget, targetName)) {
+            return false;
+        }
+
+        // 检查方向匹配
+        return canConnectOrientation(sourceOrientation, targetOrientation, sourceJointType);
+    }
+
+    /**
+     * @brief 从连接点方向确定默认连接类型
+     *
+     * 参考 MC 1.16.5: JigsawTileEntity.OrientationType.func_235673_a_
+     * - 如果 facing 是水平方向，默认为 ALIGNED
+     * - 如果 facing 是垂直方向，默认为 ROLLABLE
+     *
+     * @param orientation Jigsaw 方向
+     * @return 默认连接类型
+     */
+    static JigsawJointType getDefaultJointType(JigsawOrientation orientation) {
+        Direction facing = JigsawOrientations::getFacing(orientation);
+        // MC 1.16.5: direction.getAxis().isHorizontal() ? ALIGNED : ROLLABLE
+        if (facing == Direction::North || facing == Direction::South ||
+            facing == Direction::East || facing == Direction::West) {
+            return JigsawJointType::Aligned;
+        }
+        return JigsawJointType::Rollable;
+    }
+
+    /**
+     * @brief 从字符串获取连接类型
+     *
+     * @param jointStr 连接类型字符串 ("rollable" 或 "aligned")
+     * @return 连接类型，如果无效则返回 nullopt
+     */
+    static std::optional<JigsawJointType> jointTypeFromString(const String& jointStr) {
+        if (jointStr == "rollable") {
+            return JigsawJointType::Rollable;
+        } else if (jointStr == "aligned") {
+            return JigsawJointType::Aligned;
+        }
+        return std::nullopt;
+    }
+
+    /**
+     * @brief 连接类型转字符串
+     */
+    static String jointTypeToString(JigsawJointType type) {
+        return type == JigsawJointType::Rollable ? "rollable" : "aligned";
     }
 
     /**

@@ -19,6 +19,16 @@ class IResourcePack;
 
 namespace world {
 namespace gen {
+namespace feature {
+namespace template_ {
+class TemplateManager;
+}
+}
+}
+}
+
+namespace world {
+namespace gen {
 namespace jigsaw {
 
 // 使用 Direction.hpp 中定义的 Rotation 和 Mirror 枚举
@@ -44,18 +54,26 @@ struct PlacedPiece {
 
 /**
  * @brief 待处理的连接点
+ *
+ * 参考 MC 1.16.5 JigsawManager.Entry
  */
 struct PendingJoint {
     BlockPos position;              ///< 连接点在世界中的位置
-    String sourceName;              ///< 源连接点名称
+    String sourceName;              ///< 源连接点名称（Jigsaw方块的name字段）
     String targetPool;              ///< 目标模板池
-    String targetType;              ///< 目标连接点名称
+    String targetType;              ///< 目标连接点名称（Jigsaw方块的target字段）
     i32 depth = 0;                  ///< 当前深度
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
+    JigsawOrientation orientation = JigsawOrientation::NorthUp;  ///< Jigsaw 方块朝向
+    JigsawJointType jointType = JigsawJointType::Rollable;       ///< 连接类型
 
     PendingJoint() = default;
-    PendingJoint(const BlockPos& pos, const String& srcName, const String& pool, const String& tgtType, i32 d, JigsawPlacementBehaviour proj = JigsawPlacementBehaviour::Rigid)
-        : position(pos), sourceName(srcName), targetPool(pool), targetType(tgtType), depth(d), projection(proj) {}
+    PendingJoint(const BlockPos& pos, const String& srcName, const String& pool, const String& tgtType, i32 d,
+                 JigsawPlacementBehaviour proj = JigsawPlacementBehaviour::Rigid,
+                 JigsawOrientation orient = JigsawOrientation::NorthUp,
+                 JigsawJointType jt = JigsawJointType::Rollable)
+        : position(pos), sourceName(srcName), targetPool(pool), targetType(tgtType), depth(d),
+          projection(proj), orientation(orient), jointType(jt) {}
 };
 
 /**
@@ -71,6 +89,12 @@ public:
      * @param pack 资源包指针
      */
     static void setResourcePack(const IResourcePack* pack);
+
+    /**
+     * @brief 获取模板管理器
+     * @return 模板管理器引用
+     */
+    static feature::template_::TemplateManager& getTemplateManager() { return s_templateManager; }
 
     /**
      * @brief 组装结构
@@ -221,6 +245,8 @@ private:
         const BlockPos& pos,
         Rotation rotation,
         Mirror mirror);
+
+    static feature::template_::TemplateManager s_templateManager;
 };
 
 } // namespace jigsaw

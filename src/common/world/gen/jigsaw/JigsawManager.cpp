@@ -18,8 +18,8 @@ using feature::template_::Template;
 using feature::template_::PlacementSettings;
 using feature::template_::TemplateManager;
 
-// 静态模板管理器实例
-static TemplateManager s_templateManager;
+// 静态模板管理器实例定义
+feature::template_::TemplateManager JigsawManager::s_templateManager;
 
 void JigsawManager::setResourcePack(const IResourcePack* pack) {
     s_templateManager.setResourcePack(pack);
@@ -63,6 +63,9 @@ std::vector<PlacedPiece> JigsawManager::assemble(
 
     // 将起始块的连接点添加到待处理队列
     for (const auto& joint : startPiece->getJoints()) {
+        // 计算旋转后的朝向
+        JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(joint.orientation, rotation);
+
         PendingJoint pending;
         pending.position = transformPosition(joint.sourcePos, rotation, mirror, startPiece->getSize());
         pending.sourceName = joint.sourceName;
@@ -70,6 +73,8 @@ std::vector<PlacedPiece> JigsawManager::assemble(
         pending.targetType = joint.targetName;
         pending.depth = 0;
         pending.projection = joint.projection;
+        pending.orientation = rotatedOrientation;
+        pending.jointType = joint.jointType;
         pendingJoints.push(pending);
     }
 
@@ -226,10 +231,18 @@ std::vector<JigsawJoint> JigsawManager::getTransformedJoints(
     for (const auto& joint : piece.getJoints()) {
         JigsawJoint transformedJoint;
         transformedJoint.sourcePos = transformPosition(joint.sourcePos, rotation, mirror, size) + position;
-        transformedJoint.sourceName = JigsawMatcher::rotateName(joint.sourceName, rotationDeg);
+        transformedJoint.sourceName = joint.sourceName;
         transformedJoint.targetPool = joint.targetPool;
         transformedJoint.targetName = joint.targetName;
         transformedJoint.projection = joint.projection;
+        transformedJoint.jointType = joint.jointType;
+
+        // 变换 Jigsaw 朝向
+        transformedJoint.orientation = JigsawOrientations::rotate(joint.orientation, rotation);
+        if (mirror != Mirror::None) {
+            transformedJoint.orientation = JigsawOrientations::mirror(transformedJoint.orientation, mirror);
+        }
+
         transformedJoint.sourceGroundY = joint.sourceGroundY;
         transformed.push_back(transformedJoint);
     }
@@ -278,15 +291,19 @@ bool JigsawManager::tryPlacePiece(
 
         for (size_t i = 0; i < pieceJoints.size(); ++i) {
             const auto& pieceJoint = pieceJoints[i];
-            // 检查连接点是否可以匹配
-            if (JigsawMatcher::canMatch(pieceJoint.sourceName, joint.sourceName)) {
-                // 尝试所有旋转
-                for (i32 rotDeg = 0; rotDeg < 360; rotDeg += 90) {
-                    Rotation rotEnum = static_cast<Rotation>(rotDeg / 90);
-                    String rotatedName = JigsawMatcher::rotateName(pieceJoint.sourceName, rotDeg);
-                    if (JigsawMatcher::canMatch(rotatedName, joint.sourceName)) {
-                        matchingJoints.emplace_back(i, rotEnum);
-                    }
+            // 尝试所有旋转
+            for (i32 rotDeg = 0; rotDeg < 360; rotDeg += 90) {
+                Rotation rotEnum = static_cast<Rotation>(rotDeg / 90);
+
+                // 计算旋转后的朝向
+                JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(pieceJoint.orientation, rotEnum);
+
+                // 检查名称和方向是否匹配
+                // MC 1.16.5: JigsawBlock.func_220171_a
+                // 匹配条件: source.targetName == target.sourceName && 方向相反
+                if (JigsawMatcher::canMatch(pieceJoint.targetName, joint.sourceName,
+                                             rotatedOrientation, joint.orientation, pieceJoint.jointType)) {
+                    matchingJoints.emplace_back(i, rotEnum);
                 }
             }
         }
@@ -332,13 +349,18 @@ bool JigsawManager::tryPlacePiece(
                 continue;
             }
 
+            // 计算旋转后的朝向
+            JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(newJoint.orientation, rotation);
+
             PendingJoint newPending;
             newPending.position = transformPosition(newJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize()) + placementPos;
-            newPending.sourceName = JigsawMatcher::rotateName(newJoint.sourceName, rotationDeg);
+            newPending.sourceName = newJoint.sourceName;
             newPending.targetPool = newJoint.targetPool;
             newPending.targetType = newJoint.targetName;
             newPending.depth = joint.depth + 1;
             newPending.projection = newJoint.projection;
+            newPending.orientation = rotatedOrientation;
+            newPending.jointType = newJoint.jointType;
             pendingJoints.push(newPending);
         }
 
