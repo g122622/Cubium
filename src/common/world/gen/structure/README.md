@@ -96,6 +96,25 @@ classDiagram
 | `StructureSeparationSettings` | 结构间距设置（spacing, separation, salt） |
 | `StructurePiece` | 结构片段基类，定义单个可生成片段 |
 | `StructureStart` | 结构实例，包含一组结构片段 |
+| `Rotation` | 旋转枚举（定义在 Direction.hpp） |
+| `Mirror` | 镜像枚举（定义在 Direction.hpp） |
+
+**旋转和镜像工具**（定义在 `util/Direction.hpp`）:
+
+```cpp
+// 旋转工具函数（Rotations 命名空间）
+Rotation rot = Rotation::Clockwise90;
+i32 degrees = Rotations::toDegrees(rot);           // 90
+Rotation inv = Rotations::getInverse(rot);         // CounterClockwise90
+Rotation sum = Rotations::add(Rotation::Clockwise90, Rotation::Clockwise90);  // Clockwise180
+
+// 镜像工具函数（Mirrors 命名空间）
+Mirror mir = Mirror::LeftRight;
+Mirror mirInv = Mirrors::getInverse(mir);  // LeftRight（镜像自逆）
+
+// 方向旋转
+Direction rotated = Directions::rotateDirection(Direction::North, Rotation::Clockwise90);  // East
+```
 
 **关键方法**:
 

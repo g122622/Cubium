@@ -363,6 +363,18 @@ std::optional<Direction> d = Directions::fromName("north");
 
 // 向量转换
 Direction dir = Directions::fromVector(dx, dy, dz);
+
+// 旋转和镜像（用于结构生成）
+Rotation rot = Rotation::Clockwise90;
+Rotation inv = Rotations::getInverse(rot);  // CounterClockwise90
+Rotation sum = Rotations::add(Rotation::Clockwise90, Rotation::Clockwise90);  // Clockwise180
+i32 degrees = Rotations::toDegrees(rot);  // 90
+
+Mirror mir = Mirror::LeftRight;
+Mirror mirInv = Mirrors::getInverse(mir);  // LeftRight（镜像自逆）
+
+// 方向旋转
+Direction rotated = Directions::rotateDirection(Direction::North, Rotation::Clockwise90);  // East
 ```
 
 #### NibbleArray
