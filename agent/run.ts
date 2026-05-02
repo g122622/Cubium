@@ -207,7 +207,11 @@ async function main() {
     );
     for (let j = 0; j < tasklist.length; j++) {
       await runTask(tasklist[j], i, j);
-      await runTask("请你检查当前代码能否编译通过（cmake --build build --config RelWithDebInfo -j6），编译时间可能会非常长，等待时间必须10分钟以上，若编译失败则必须修复知道能通过", i, j);
+      await runTask(
+`请你检查当前代码能否编译通过（cmake --build build --config RelWithDebInfo），
+编译时间可能会非常长（若当前为macos系统，则该命令带上-j6后缀；若为Windows系统，则不带上任何表示构建并行度的后缀）
+等待时间必须10分钟以上，若编译失败则必须修复知道能通过`,
+      i, j);
       await runTask("请你检查当前是否有未提交的更改，若有则生成提交信息并提交", i, j);
     }
     console.log(`\n========== 第 ${i + 1} 次循环结束 ==========\n`);
