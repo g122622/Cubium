@@ -2,6 +2,7 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/random/McRandom.hpp"
 #include "../../biome/Biome.hpp"
 #include "StructureBoundingBox.hpp"
 #include <string>
@@ -21,6 +22,45 @@ namespace world::gen {
 }
 
 namespace world::gen::structure {
+
+/**
+ * @brief 方向枚举
+ *
+ * 用于结构片段的朝向。
+ * 参考 MC 1.16.5 Direction 枚举。
+ */
+enum class Direction : u8 {
+    Down = 0,
+    Up = 1,
+    North = 2,
+    South = 3,
+    West = 4,
+    East = 5,
+    None = 255
+};
+
+/**
+ * @brief 旋转枚举
+ *
+ * 参考 MC 1.16.5 Rotation 枚举。
+ */
+enum class Rotation : u8 {
+    None = 0,
+    Clockwise90 = 1,
+    Clockwise180 = 2,
+    CounterClockwise90 = 3
+};
+
+/**
+ * @brief 镜像枚举
+ *
+ * 参考 MC 1.16.5 Mirror 枚举。
+ */
+enum class Mirror : u8 {
+    None = 0,
+    LeftRight = 1,   // Z 轴镜像
+    FrontBack = 2    // X 轴镜像
+};
 
 /**
  * @brief 结构类型枚举

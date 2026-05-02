@@ -82,7 +82,10 @@ private:
     void generateFallbackEntrance(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     Config m_config;
-    static constexpr StructureSeparationSettings m_settings{32, 8, 1429134543};
+    // MC 1.16.5: 要塞使用特殊的位置计算算法，不使用标准 spacing/separation
+    // 但 Structure 基类需要这些参数，所以设置为 {1, 0, 0}
+    // 实际位置由 calculateStrongholdPos() 计算
+    static constexpr StructureSeparationSettings m_settings{1, 0, 0};
     static const String m_name;
     std::vector<BiomeId> m_validBiomes;
 };
