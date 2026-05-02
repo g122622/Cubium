@@ -449,6 +449,56 @@ namespace Directions {
                 return Rotation::None;
         }
     }
+
+    /**
+     * @brief 旋转整数旋转值
+     *
+     * 用于告示牌、旗帜等具有16个旋转值的方块。
+     *
+     * @param rotation 当前旋转值 (0-15)
+     * @param rot 旋转类型
+     * @param max 最大旋转值 (默认16)
+     * @return 旋转后的旋转值
+     */
+    inline i32 rotateRotation(i32 rotation, Rotation rot, i32 max = 16) {
+        switch (rot) {
+            case Rotation::Clockwise90:
+                return (rotation + 4) % max;
+            case Rotation::Clockwise180:
+                return (rotation + 8) % max;
+            case Rotation::CounterClockwise90:
+                return (rotation + max - 4) % max;
+            case Rotation::None:
+            default:
+                return rotation;
+        }
+    }
+
+    /**
+     * @brief 镜像整数旋转值
+     *
+     * 用于告示牌、旗帜等具有16个旋转值的方块。
+     *
+     * @param rotation 当前旋转值 (0-15)
+     * @param mirror 镜像类型
+     * @param max 最大旋转值 (默认16)
+     * @return 镜像后的旋转值
+     */
+    inline i32 mirrorRotation(i32 rotation, Mirror mirror, i32 max = 16) {
+        switch (mirror) {
+            case Mirror::LeftRight:
+                // 左右镜像：关于南北轴镜像
+                // 0->0, 1->15, 2->14, ..., 7->9, 8->8
+                return (max - rotation) % max;
+            case Mirror::FrontBack:
+                // 前后镜像：关于东西轴镜像
+                // 4->4, 5->3, 6->2, ..., 12->12, 13->11
+                return ((max / 2) - rotation + max) % max;
+            case Mirror::None:
+            default:
+                return rotation;
+        }
+    }
 }
 
 /**

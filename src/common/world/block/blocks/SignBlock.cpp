@@ -151,7 +151,9 @@ BlockState WallSignBlock::getStateForPlacement(BlockItemUseContext& context) {
                 .with(BlockStateProperties::FACING(), facing)
                 .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 
-            if (state.isValidPosition(const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world)), pos)) {
+            // 使用 IBlockReader 接口检查是否可放置
+            IBlockReader& blockReader = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world));
+            if (isValidPosition(state, blockReader, pos)) {
                 return state;
             }
         }
