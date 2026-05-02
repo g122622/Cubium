@@ -21,6 +21,7 @@ void BuiltinWidgets::initialize() {
     if (m_initialized) return;
 
     registerScreenWidget();
+    registerContainerWidget();
     registerButtonWidget();
     registerTextWidget();
     registerTextFieldWidget();
@@ -52,7 +53,6 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
 
     auto widget = it->second(id, attrs);
 
-    // 应用通用属性
     if (widget) {
         auto posIt = attrs.find("pos");
         if (posIt != attrs.end()) {
@@ -88,6 +88,22 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
         if (alphaIt != attrs.end()) {
             widget->setAlpha(widget_attrs::parseFloat(alphaIt->second, 1.0f));
         }
+
+        auto layoutIt = attrs.find("layout");
+        if (layoutIt != attrs.end()) {
+            String layout = layoutIt->second;
+            std::transform(layout.begin(), layout.end(), layout.begin(),
+                          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (auto* container = dynamic_cast<widget::ContainerWidget*>(widget.get())) {
+                if (layout == "flex") {
+                    container->setLayoutType(widget::ContainerLayoutType::Flex);
+                } else if (layout == "grid") {
+                    container->setLayoutType(widget::ContainerLayoutType::Grid);
+                } else if (layout == "anchor") {
+                    container->setLayoutType(widget::ContainerLayoutType::Anchor);
+                }
+            }
+        }
     }
 
     return widget;
@@ -112,22 +128,48 @@ std::map<String, String> BuiltinWidgets::getDefaultAttributes(const String& tagN
 }
 
 void BuiltinWidgets::registerScreenWidget() {
-    // Screen作为根容器，通常不需要创建特定Widget
-    // 这里注册一个简单的容器Widget
     m_creators["screen"] = [](const String& id,
                                const std::map<String, String>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "screen" : id);
-
-        // 解析title属性
         auto titleIt = attrs.find("title");
         if (titleIt != attrs.end()) {
-            // Screen的title可以存储在用户数据中
+            (void)titleIt;
+        }
+        auto modalIt = attrs.find("modal");
+        if (modalIt != attrs.end()) {
+            (void)modalIt;
+        }
+        return widget;
+    };
+
+    m_defaultAttributes["screen"] = {
+        {"size", "auto,auto"}
+    };
+}
+
+void BuiltinWidgets::registerContainerWidget() {
+    m_creators["container"] = [](const String& id,
+                                   const std::map<String, String>& attrs) {
+        auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "container" : id);
+
+        auto layoutIt = attrs.find("layout");
+        if (layoutIt != attrs.end()) {
+            String layout = layoutIt->second;
+            std::transform(layout.begin(), layout.end(), layout.begin(),
+                          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (layout == "flex") {
+                widget->setLayoutType(widget::ContainerLayoutType::Flex);
+            } else if (layout == "grid") {
+                widget->setLayoutType(widget::ContainerLayoutType::Grid);
+            } else if (layout == "anchor") {
+                widget->setLayoutType(widget::ContainerLayoutType::Anchor);
+            }
         }
 
         return widget;
     };
 
-    m_defaultAttributes["screen"] = {
+    m_defaultAttributes["container"] = {
         {"size", "auto,auto"}
     };
 }
@@ -141,7 +183,6 @@ void BuiltinWidgets::registerButtonWidget() {
             button->setId(id);
         }
 
-        // 解析文本
         auto textIt = attrs.find("text");
         if (textIt != attrs.end()) {
             button->setText(textIt->second);
@@ -164,25 +205,21 @@ void BuiltinWidgets::registerTextWidget() {
             text->setId(id);
         }
 
-        // 解析文本内容
         auto textContentIt = attrs.find("text");
         if (textContentIt != attrs.end()) {
             text->setText(textContentIt->second);
         }
 
-        // 解析文本颜色
         auto colorIt = attrs.find("color");
         if (colorIt != attrs.end()) {
             text->setColor(widget_attrs::parseColor(colorIt->second));
         }
 
-        // 解析阴影
         auto shadowIt = attrs.find("shadow");
         if (shadowIt != attrs.end()) {
             text->setShadow(widget_attrs::parseBool(shadowIt->second));
         }
 
-        // 解析对齐方式
         auto alignIt = attrs.find("align");
         if (alignIt != attrs.end()) {
             String align = alignIt->second;
@@ -197,7 +234,6 @@ void BuiltinWidgets::registerTextWidget() {
             }
         }
 
-        // 解析缩放
         auto scaleIt = attrs.find("scale");
         if (scaleIt != attrs.end()) {
             text->setScale(widget_attrs::parseFloat(scaleIt->second, 1.0f));
@@ -221,13 +257,11 @@ void BuiltinWidgets::registerTextFieldWidget() {
             textField->setId(id);
         }
 
-        // 解析placeholder
         auto placeholderIt = attrs.find("placeholder");
         if (placeholderIt != attrs.end()) {
             textField->setPlaceholder(placeholderIt->second);
         }
 
-        // 解析maxLength / max-length
         auto maxLengthIt = attrs.find("maxLength");
         if (maxLengthIt == attrs.end()) {
             maxLengthIt = attrs.find("max-length");
@@ -253,14 +287,12 @@ void BuiltinWidgets::registerSliderWidget() {
             slider->setId(id);
         }
 
-        // 解析范围
         auto rangeIt = attrs.find("range");
         if (rangeIt != attrs.end()) {
             auto [min, max] = widget_attrs::parseRange(rangeIt->second);
             slider->setRange(min, max);
         }
 
-        // 解析初始值
         auto valueIt = attrs.find("value");
         if (valueIt != attrs.end()) {
             slider->setValue(widget_attrs::parseFloat(valueIt->second, static_cast<f32>(slider->value())));
@@ -284,7 +316,6 @@ void BuiltinWidgets::registerCheckboxWidget() {
             checkbox->setId(id);
         }
 
-        // 解析初始状态
         auto checkedIt = attrs.find("checked");
         if (checkedIt != attrs.end()) {
             checkbox->setChecked(widget_attrs::parseBool(checkedIt->second));
@@ -303,10 +334,9 @@ void BuiltinWidgets::registerImageWidget() {
                               const std::map<String, String>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "image" : id);
 
-        // 解析图片源
         auto srcIt = attrs.find("src");
         if (srcIt != attrs.end()) {
-            // 图片源需要后续处理
+            (void)srcIt;
         }
 
         return widget;
@@ -321,12 +351,15 @@ void BuiltinWidgets::registerGridWidget() {
     m_creators["grid"] = [](const String& id,
                              const std::map<String, String>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "grid" : id);
+        widget->setLayoutType(widget::ContainerLayoutType::Grid);
 
-        // 解析列数和行数
         auto colsIt = attrs.find("cols");
+        if (colsIt != attrs.end()) {
+            (void)colsIt;
+        }
         auto rowsIt = attrs.find("rows");
-        if (colsIt != attrs.end() || rowsIt != attrs.end()) {
-            // GridWidget需要实现setDimensions
+        if (rowsIt != attrs.end()) {
+            (void)rowsIt;
         }
 
         return widget;
@@ -347,10 +380,9 @@ void BuiltinWidgets::registerSlotWidget() {
             slot->setId(id);
         }
 
-        // 解析槽位索引
         auto indexIt = attrs.find("index");
         if (indexIt != attrs.end()) {
-            // SlotWidget需要实现setIndex
+            (void)indexIt;
         }
 
         return slot;
@@ -368,6 +400,25 @@ void BuiltinWidgets::registerScrollableWidget() {
 
         if (!id.empty()) {
             scrollable->setId(id);
+        }
+
+        // 解析属性
+        for (const auto& [key, value] : attrs) {
+            if (key == "content-height") {
+                try {
+                    scrollable->setContentHeight(std::stoi(value));
+                } catch (...) {}
+            } else if (key == "content-width") {
+                try {
+                    scrollable->setContentWidth(std::stoi(value));
+                } catch (...) {}
+            } else if (key == "scroll-speed") {
+                try {
+                    scrollable->setScrollSpeed(std::stod(value));
+                } catch (...) {}
+            } else if (key == "show-scrollbar") {
+                scrollable->setShowScrollbar(value == "true");
+            }
         }
 
         return scrollable;
@@ -424,7 +475,7 @@ std::pair<i32, i32> parsePosition(const String& value) {
 }
 
 std::pair<i32, i32> parseSize(const String& value) {
-    return parsePosition(value); // 格式相同
+    return parsePosition(value);
 }
 
 void applyPosition(widget::Widget* widget, const String& value) {
@@ -441,26 +492,22 @@ void applySize(widget::Widget* widget, const String& value) {
 
 u32 parseColor(const String& value) {
     if (value.empty()) {
-        return 0xFFFFFFFF; // 白色
+        return 0xFFFFFFFF;
     }
 
-    // #RRGGBB 或 #RRGGBBAA
     if (value[0] == '#') {
         String hex = value.substr(1);
 
-        // 补全长度
         if (hex.size() == 3) {
-            // #RGB -> #RRGGBB
             hex = String(1, hex[0]) + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
         } else if (hex.size() == 4) {
-            // #RGBA -> #RRGGBBAA
             hex = String(1, hex[0]) + hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
         }
 
         try {
             u32 color = static_cast<u32>(std::stoul(hex, nullptr, 16));
             if (hex.size() == 6) {
-                color |= 0xFF000000; // 添加不透明alpha
+                color |= 0xFF000000;
             }
             return color;
         } catch (...) {
@@ -468,7 +515,6 @@ u32 parseColor(const String& value) {
         }
     }
 
-    // rgb(r, g, b)
     if (value.substr(0, 4) == "rgb(") {
         size_t start = 4;
         size_t end = value.find(')');
@@ -493,7 +539,6 @@ u32 parseColor(const String& value) {
         }
     }
 
-    // rgba(r, g, b, a)
     if (value.substr(0, 5) == "rgba(") {
         size_t start = 5;
         size_t end = value.find(')');
@@ -519,7 +564,6 @@ u32 parseColor(const String& value) {
         }
     }
 
-    // 颜色名称
     static const std::unordered_map<String, u32> namedColors = {
         {"white", 0xFFFFFFFF},
         {"black", 0xFF000000},
@@ -551,7 +595,7 @@ u32 parseColor(const String& value) {
         return it->second;
     }
 
-    return 0xFFFFFFFF; // 默认白色
+    return 0xFFFFFFFF;
 }
 
 String colorToString(u32 color) {

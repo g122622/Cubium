@@ -145,6 +145,21 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onDisconnected = [this](const String& reason) {
         spdlog::info("Disconnected from server: {}", reason);
 
+        // 如果正在离开世界，这是预期的断开，继续返回主菜单流程
+        if (m_stateMachine.isLeavingWorld()) {
+            spdlog::info("[Network] Disconnection during world leave - continuing to main menu");
+            return;
+        }
+
+        // 如果正在关闭，忽略断开事件
+        if (m_stateMachine.isShuttingDown()) {
+            spdlog::info("[Network] Disconnection during shutdown - ignoring");
+            return;
+        }
+
+        // 非预期的断开连接：清理并返回主菜单
+        spdlog::warn("[Network] Unexpected disconnection - returning to main menu");
+
         // 清除本地玩家身份
         m_localIdentity.clear();
 
@@ -159,11 +174,13 @@ void ClientApplication::setupNetworkCallbacks()
             m_commandManager->clear();
         }
         m_hasServerTimeSync = false;
-        if (m_integratedServer) {
-            m_integratedServer->stop();
-            m_integratedServer.reset();
-        }
-        stop();
+
+        // 销毁游戏会话
+        destroyGameSession();
+
+        // 强制返回主菜单状态
+        m_stateMachine.forceState(ClientAppState::MainMenu);
+        showMainMenu();
     };
 
     callbacks.onCommandTree = [this](const String& treeJson) {

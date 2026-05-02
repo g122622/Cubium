@@ -1,0 +1,144 @@
+#pragma once
+
+#include "../WorldConfig.hpp"
+#include "../../core/Types.hpp"
+#include <filesystem>
+#include <string>
+
+namespace mc::world::storage {
+
+/**
+ * @brief 创建世界请求
+ *
+ * 用户从创建世界界面提交的数据，用于创建新世界并初始化 level.dat。
+ * 所有字段均由调用方显式填充。
+ */
+struct CreateWorldRequest {
+    /// 世界显示名称
+    std::string displayName;
+
+    /// 用户请求的目录名（可为空，由系统生成）
+    std::string requestedLevelId;
+
+    /// 世界种子
+    u64 seed;
+
+    /// 世界类型
+    WorldType worldType;
+
+    /// 游戏模式
+    GameMode gameMode;
+
+    /// 难度
+    Difficulty difficulty;
+
+    /// 是否为极限模式
+    bool hardcore;
+
+    /// 是否允许作弊
+    bool allowCommands;
+
+    /// 视距
+    i32 viewDistance;
+
+    /**
+     * @brief 构造创建世界请求
+     *
+     * 所有字段必须显式提供。
+     */
+    CreateWorldRequest(
+        std::string displayName,
+        std::string requestedLevelId,
+        u64 seed,
+        WorldType worldType,
+        GameMode gameMode,
+        Difficulty difficulty,
+        bool hardcore,
+        bool allowCommands,
+        i32 viewDistance
+    );
+
+    // 禁止默认构造
+    CreateWorldRequest() = delete;
+};
+
+/**
+ * @brief 加载世界请求
+ *
+ * 从存档列表选择已有世界时提交的数据。
+ */
+struct LoadWorldRequest {
+    /// 世界目录名
+    std::string levelId;
+
+    /// 是否允许加载未来版本的世界
+    bool allowFutureVersion;
+
+    /// 是否在升级前创建备份
+    bool createBackupBeforeUpgrade;
+
+    /// 是否允许存储格式转换
+    bool allowStorageConversion;
+
+    /**
+     * @brief 构造加载世界请求
+     */
+    LoadWorldRequest(
+        std::string levelId,
+        bool allowFutureVersion,
+        bool createBackupBeforeUpgrade,
+        bool allowStorageConversion
+    );
+
+    // 禁止默认构造
+    LoadWorldRequest() = delete;
+};
+
+/**
+ * @brief 重命名世界请求
+ */
+struct RenameWorldRequest {
+    std::string levelId;
+    std::string newDisplayName;
+
+    RenameWorldRequest(std::string levelId, std::string newDisplayName);
+
+    RenameWorldRequest() = delete;
+};
+
+/**
+ * @brief 删除世界请求
+ */
+struct DeleteWorldRequest {
+    std::string levelId;
+
+    explicit DeleteWorldRequest(std::string levelId);
+
+    DeleteWorldRequest() = delete;
+};
+
+/**
+ * @brief 备份世界请求
+ */
+struct BackupWorldRequest {
+    std::string levelId;
+    std::string reason;
+
+    BackupWorldRequest(std::string levelId, std::string reason);
+
+    BackupWorldRequest() = delete;
+};
+
+/**
+ * @brief 备份世界结果
+ */
+struct BackupWorldResult {
+    std::filesystem::path zipPath;
+    u64 sizeBytes;
+
+    BackupWorldResult(std::filesystem::path zipPath, u64 sizeBytes);
+
+    BackupWorldResult() = delete;
+};
+
+} // namespace mc::world::storage

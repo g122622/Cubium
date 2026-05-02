@@ -8,6 +8,7 @@
 src/client/application/
 ├── ClientApplication.hpp          # 客户端应用主接口
 ├── ClientApplication.cpp          # 只保留生命周期编排、主循环和少量共享实现
+├── ClientAppStateMachine.hpp      # 客户端状态机（定义生命周期状态和转换）
 ├── features/                      # 从 ClientApplication 拆分出来的功能实现
 │   ├── ClientApplicationAudio.cpp
 │   ├── ClientApplicationBootstrap.cpp
@@ -16,6 +17,7 @@ src/client/application/
 │   ├── ClientApplicationInput.cpp
 │   ├── ClientApplicationNetwork.cpp
 │   ├── ClientApplicationResource.cpp
+│   ├── ClientApplicationSession.cpp
 │   ├── ClientApplicationSettings.cpp
 │   ├── ClientApplicationTargetInfo.cpp
 │   ├── ClientApplicationTargetInfoUi.cpp
@@ -27,6 +29,51 @@ src/client/application/
 ```
 
 ## 文件详解
+
+### ClientAppStateMachine.hpp
+
+客户端状态机，集中管理应用生命周期状态和转换。
+
+#### ClientAppState 枚举
+
+| 状态 | 说明 |
+|------|------|
+| `Initializing` | 初始化中（应用启动到外壳初始化完成） |
+| `MainMenu` | 主菜单（默认启动状态） |
+| `LoadingWorld` | 正在加载世界（显示加载界面） |
+| `InGame` | 游戏中 |
+| `Paused` | 暂停菜单（游戏中按 ESC 打开） |
+| `LeavingWorld` | 正在离开世界（保存中，显示保存界面） |
+| `ShuttingDown` | 正在关闭（应用退出） |
+
+#### WorldLaunchConfig 结构体
+
+世界启动配置，包含启动一个世界所需的所有参数：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `levelId` | `String` | 世界目录名 |
+| `displayName` | `String` | 显示名称 |
+| `seed` | `i64` | 世界种子 |
+| `worldType` | `WorldType` | 世界类型 |
+| `defaultGameMode` | `GameMode` | 默认游戏模式 |
+| `difficulty` | `Difficulty` | 难度 |
+| `allowCommands` | `bool` | 是否启用作弊 |
+| `hardcore` | `bool` | 是否为 hardcore 模式 |
+| `viewDistance` | `i32` | 视距 |
+| `isNewWorld` | `bool` | 是否为新创建的世界 |
+
+#### 状态转换图
+
+```
+Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
+                  ^                              |
+                  |                              v
+                  +-------- LeavingWorld <-------+
+                               |
+                               v
+                          ShuttingDown
+```
 
 ### ClientApplication.hpp
 
@@ -46,6 +93,8 @@ src/client/application/
 | `username` | `std::optional<String>` | 用户名覆盖 |
 | `settingsPath` | `std::optional<String>` | 自定义设置文件路径 |
 | `skipIntegratedServer` | `bool` | 是否跳过内置服务端 |
+| `quickPlayLevelId` | `std::optional<String>` | Quick-play：直接加载指定世界 |
+| `quickPlayNew` | `bool` | Quick-play：直接创建新世界 |
 
 #### ClientApplication 类
 
@@ -55,6 +104,7 @@ src/client/application/
 
 | 成员 | 类型 | 职责 |
 |------|------|------|
+| `m_stateMachine` | `ClientAppStateMachine` | 应用状态机 |
 | `m_settings` | `ClientSettings` | 客户端设置管理 |
 | `m_window` | `Window` | GLFW 窗口封装 |
 | `m_input` | `InputManager` | 输入管理器 |
@@ -71,6 +121,16 @@ src/client/application/
 | `m_knownPlayerNames` | `unordered_map` | 聊天补全候选缓存 |
 | `m_targetInfoLayerId` | `size_t` | 准星目标信息覆盖层 |
 
+**会话管理方法：**
+
+| 方法 | 说明 |
+|------|------|
+| `startIntegratedWorld(config)` | 启动集成世界（新建或加载） |
+| `destroyGameSession()` | 销毁游戏会话资源 |
+| `leaveWorldToMainMenu()` | 离开世界返回主菜单 |
+| `showMainMenu()` | 显示主菜单界面 |
+| `showPauseMenu()` | 显示暂停菜单界面 |
+
 ### ClientApplication.cpp
 
 客户端应用的主协调文件，保留生命周期编排、主循环和跨功能共享逻辑，具体功能实现已经拆分到 `features/` 目录。
@@ -84,15 +144,16 @@ src/client/application/
 ```mermaid
 graph TB
     subgraph 初始化流程
-        IA[initialize] --> IB[loadSettings]
-        IA --> IC[初始化音频系统]
-        IA --> ID[initializeResources]
-        IA --> IE[创建窗口]
-        IA --> IF[初始化渲染器]
-        IA --> IG[启动内置服务端]
-        IA --> IH[初始化网络客户端]
-        IA --> II[初始化世界]
-        IA --> IJ[初始化 UI 引擎]
+        IA[initialize] --> IS[initializeShell]
+        IS --> IB[loadSettings]
+        IS --> IC[初始化音频系统]
+        IS --> ID[initializeResources]
+        IS --> IE[创建窗口]
+        IS --> IF[初始化渲染器]
+        IS --> IG[初始化 UI 引擎]
+        IA --> QP{QuickPlay?}
+        QP -->|Yes| SIW[startIntegratedWorld]
+        QP -->|No| SMM[showMainMenu]
     end
 
     subgraph 主循环

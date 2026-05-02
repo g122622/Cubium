@@ -55,11 +55,14 @@ util/
 │   └── StateHolder.hpp        # 状态持有者
 ├── AxisAlignedBB.hpp          # 轴对齐包围盒
 ├── AxisAlignedBB.cpp
+├── CompressionUtils.hpp       # gzip 压缩/解压工具
+├── CompressionUtils.cpp
 ├── Direction.hpp              # 方向枚举
 ├── NibbleArray.hpp            # 4位数组
 ├── NibbleArray.cpp
 ├── PlatformInfo.hpp           # 平台信息
 ├── PlatformInfo.cpp
+├── StringUtils.hpp            # 字符串工具函数
 └── TimeUtils.hpp              # 时间工具
 ```
 
@@ -406,6 +409,48 @@ using namespace mc::util;
 
 u64 ms = TimeUtils::getCurrentTimeMs();
 u64 us = TimeUtils::getCurrentTimeUs();
+```
+
+#### StringUtils
+
+字符串工具函数：
+
+```cpp
+#include "util/StringUtils.hpp"
+
+using namespace mc::util;
+
+// ASCII 小写转换
+String lower = toLowerAscii("HELLO");  // "hello"
+
+// 数字检测
+if (isNumeric("12345")) { ... }        // true
+if (isNumeric("-123", true)) { ... }   // true（允许符号）
+if (isNumeric("12a45")) { ... }        // false
+```
+
+#### CompressionUtils
+
+gzip 压缩/解压工具：
+
+```cpp
+#include "util/CompressionUtils.hpp"
+
+using namespace mc::util;
+
+// 解压 gzip 数据
+std::vector<u8> compressed = /* ... 从文件读取 ... */;
+std::vector<u8> decompressed = decompressGzip(compressed);
+if (decompressed.empty()) {
+    // 解压失败
+}
+
+// 压缩数据为 gzip 格式
+std::vector<u8> data = /* ... 原始数据 ... */;
+std::vector<u8> compressed = compressGzip(data);
+if (compressed.empty()) {
+    // 压缩失败
+}
 ```
 
 ---

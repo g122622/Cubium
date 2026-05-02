@@ -749,4 +749,51 @@ void ClientApplication::initializeUi()
 
 }
 
+Result<void> ClientApplication::initializeShell(const ClientLaunchParams& params)
+{
+    MC_TRACE_EVENT("client.initialization", "InitializeShell");
+
+    // 初始化核心注册表
+    initializeCoreRegistries();
+
+    // 初始化音频系统
+    {
+        auto audioResult = initializeAudio();
+        if (audioResult.failed()) {
+            spdlog::error("Failed to initialize audio system: {}", audioResult.error().toString());
+            // 音频初始化失败不是致命错误
+        }
+    }
+
+    // 初始化资源系统
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeResources");
+        spdlog::info("Initializing resource system...");
+        auto resourceResult = initializeResources();
+        if (resourceResult.failed()) {
+            spdlog::error("Failed to initialize resource system: {}. Using default rendering.",
+                          resourceResult.error().toString());
+            // 资源初始化失败不是致命错误
+        }
+    }
+
+    // 初始化窗口和输入
+    auto windowResult = initializeWindowAndInput();
+    if (windowResult.failed()) {
+        return windowResult.error();
+    }
+
+    // 初始化渲染器
+    auto rendererResult = initializeRenderer();
+    if (rendererResult.failed()) {
+        return rendererResult.error();
+    }
+
+    // 初始化 UI
+    initializeUi();
+
+    spdlog::info("[Shell] Shell initialization complete");
+    return Result<void>::ok();
+}
+
 } // namespace mc::client

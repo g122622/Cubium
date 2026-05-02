@@ -5,9 +5,9 @@
 #include "../../item/items/block/BlockItem.hpp"
 #include "../../item/items/block/BlockItemRegistry.hpp"
 #include "../../resource/ResourceLocation.hpp"
+#include "../../util/StringUtils.hpp"
 
 #include <algorithm>
-#include <cctype>
 #include <string>
 #include <utility>
 
@@ -15,23 +15,13 @@ namespace mc {
 
 namespace {
 
-[[nodiscard]] String toLowerAscii(StringView text)
-{
-    String lowered;
-    lowered.reserve(text.size());
-    for (const char character : text) {
-        lowered.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(character))));
-    }
-    return lowered;
-}
-
 [[nodiscard]] String buildSearchKey(const ItemStack& stack)
 {
-    String searchKey = toLowerAscii(stack.getDisplayName()->getUnformattedText());
+    String searchKey = util::toLowerAscii(stack.getDisplayName()->getUnformattedText());
 
     if (const auto* item = stack.getItem(); item != nullptr) {
         searchKey.push_back(' ');
-        searchKey += toLowerAscii(item->itemLocation().toString());
+        searchKey += util::toLowerAscii(item->itemLocation().toString());
     }
 
     return searchKey;

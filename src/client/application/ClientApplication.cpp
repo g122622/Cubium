@@ -89,6 +89,12 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         return Error(ErrorCode::AlreadyExists, "Client already initialized");
     }
 
+    // 保存启动参数
+    m_launchParams = params;
+
+    // 设置状态机回调
+    setupStateMachineCallbacks();
+
     // 加载设置
     String settingsPath = params.settingsPath.value_or(
         ClientSettings::getSettingsPath("minecraft-reborn").string());
@@ -135,42 +141,45 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     spdlog::info("Version: {}.{}.{}", MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_PATCH);
     spdlog::info("Initializing client...");
 
-    // 新的分层初始化流程
-    initializeCoreRegistries();
+    // 初始化外壳（不包含游戏会话）
+    auto shellResult = initializeShell(params);
+    if (shellResult.failed()) {
+        return shellResult.error();
+    }
 
-    {
-        auto audioResult = initializeAudio();
-        if (audioResult.failed()) {
-            spdlog::error("Failed to initialize audio system: {}", audioResult.error().toString());
+    // 完成 Shell 初始化，进入主菜单
+    if (!m_stateMachine.finishInitializing()) {
+        return Error(ErrorCode::InvalidState, "Failed to transition to MainMenu state");
+    }
+
+    // Quick-play 模式：直接启动世界
+    if (params.quickPlayLevelId.has_value() || params.quickPlayNew) {
+        spdlog::info("[QuickPlay] Starting world directly...");
+
+        WorldLaunchConfig config;
+        if (params.quickPlayNew) {
+            config.levelId = "New World";
+            config.displayName = "New World";
+            config.seed = 12345; // 第一版使用固定种子，后续改为随机生成
+            config.isNewWorld = true;
+        } else {
+            config.levelId = *params.quickPlayLevelId;
+            config.displayName = *params.quickPlayLevelId;
+            // 第一版使用固定种子，后续从存档 level.dat 读取
+            config.seed = 12345;
         }
-    }
+        config.viewDistance = m_settings.renderDistance.get();
 
-    {
-        MC_TRACE_EVENT("client.initialization", "InitializeResources");
-        spdlog::info("Initializing resource system...");
-        auto resourceResult = initializeResources();
-        if (resourceResult.failed()) {
-            spdlog::error("Failed to initialize resource system: {}. Using default rendering.",
-                        resourceResult.error().toString());
+        auto worldResult = startIntegratedWorld(config);
+        if (worldResult.failed()) {
+            spdlog::error("[QuickPlay] Failed to start world: {}", worldResult.error().toString());
+            // 回退到主菜单
+            m_stateMachine.forceState(ClientAppState::MainMenu);
         }
+    } else {
+        // 正常模式：显示主菜单
+        showMainMenu();
     }
-
-    auto windowResult = initializeWindowAndInput();
-    if (windowResult.failed()) {
-        return windowResult.error();
-    }
-
-    auto rendererResult = initializeRenderer();
-    if (rendererResult.failed()) {
-        return rendererResult.error();
-    }
-
-    auto gameplayResult = initializeGameplaySystems(params);
-    if (gameplayResult.failed()) {
-        return gameplayResult.error();
-    }
-
-    initializeUi();
 
     m_initialized = true;
     return Result<void>::ok();
@@ -217,8 +226,10 @@ void ClientApplication::mainLoop()
     spdlog::info("Client is now running!");
     spdlog::info("Press ESC to exit");
 
-    // 初始捕获鼠标
-    toggleMouseCapture();
+    // 只在游戏中捕获鼠标（quick-play 模式）
+    if (m_stateMachine.isInGame()) {
+        toggleMouseCapture();
+    }
 
     m_lastFrameTime = glfwGetTime();
 
@@ -313,6 +324,16 @@ glm::mat4 ClientApplication::buildViewBobbingTransform(f32 partialTick) const
 
 void ClientApplication::update(f32 deltaTime)
 {
+    // 根据状态决定更新逻辑
+    if (!m_stateMachine.hasActiveGameSession()) {
+        // 无活跃游戏会话：只更新 UI 和音频
+        updateUiFrameState(deltaTime);
+        updateAudioPauseState();
+        return;
+    }
+
+    // 有活跃游戏会话：更新网络、玩家、世界等
+
     // 更新网络客户端（处理服务端数据包）
     if (m_networkClient) {
         m_networkClient->poll();
@@ -328,25 +349,31 @@ void ClientApplication::update(f32 deltaTime)
         m_renderer->firstPersonRenderer().tick();
     }
 
-    // 更新玩家物理
+    // 只在非暂停状态下更新游戏逻辑
+    if (m_stateMachine.needsGameTick()) {
+        // 更新玩家物理
+        if (m_player) {
+            m_playerPhysicsAccumulator += std::min(deltaTime, PLAYER_PHYSICS_INTERVAL * 5.0f);
+            bool physicsUpdated = false;
+            i32 physicsSteps = 0;
+            while (m_playerPhysicsAccumulator >= PLAYER_PHYSICS_INTERVAL && physicsSteps < 5) {
+                m_playerPhysicsAccumulator -= PLAYER_PHYSICS_INTERVAL;
+                m_player->updatePhysics();
+                physicsUpdated = true;
+                ++physicsSteps;
+            }
+            if (physicsSteps == 5) {
+                m_playerPhysicsAccumulator = 0.0f;
+            }
+
+            if (physicsUpdated) {
+                updatePlayerAudio();
+            }
+        }
+    }
+
+    // 更新相机（暂停时也更新，以便 UI 渲染）
     if (m_player) {
-        m_playerPhysicsAccumulator += std::min(deltaTime, PLAYER_PHYSICS_INTERVAL * 5.0f);
-        bool physicsUpdated = false;
-        i32 physicsSteps = 0;
-        while (m_playerPhysicsAccumulator >= PLAYER_PHYSICS_INTERVAL && physicsSteps < 5) {
-            m_playerPhysicsAccumulator -= PLAYER_PHYSICS_INTERVAL;
-            m_player->updatePhysics();
-            physicsUpdated = true;
-            ++physicsSteps;
-        }
-        if (physicsSteps == 5) {
-            m_playerPhysicsAccumulator = 0.0f;
-        }
-
-        if (physicsUpdated) {
-            updatePlayerAudio();
-        }
-
         const f32 partialTick = std::clamp(m_playerPhysicsAccumulator / PLAYER_PHYSICS_INTERVAL, 0.0f, 1.0f);
         const Vector3 renderPosition = m_player->prevPosition().lerp(m_player->position(), partialTick);
 
@@ -367,64 +394,65 @@ void ClientApplication::update(f32 deltaTime)
         m_cameraController.update(deltaTime);
     }
 
-    // 发送玩家位置到服务端（物理 tick 后最多 20 TPS）
-    if (m_networkClient && m_networkClient->isLoggedIn() && m_player) {
-        m_positionSendAccumulator += deltaTime;
-        if (m_positionSendAccumulator >= POSITION_SEND_INTERVAL) {
-            m_positionSendAccumulator = std::fmod(m_positionSendAccumulator, POSITION_SEND_INTERVAL);
-            sendPlayerPosition();
+    // 只在非暂停状态下发送位置和更新游戏
+    if (m_stateMachine.needsGameTick()) {
+        // 发送玩家位置到服务端（物理 tick 后最多 20 TPS）
+        if (m_networkClient && m_networkClient->isLoggedIn() && m_player) {
+            m_positionSendAccumulator += deltaTime;
+            if (m_positionSendAccumulator >= POSITION_SEND_INTERVAL) {
+                m_positionSendAccumulator = std::fmod(m_positionSendAccumulator, POSITION_SEND_INTERVAL);
+                sendPlayerPosition();
+            }
         }
+
+        handleBlockMiningInput(deltaTime);
+
+        // 处理方块放置输入
+        handleBlockPlacementInput(deltaTime);
+
+        MeshSchedulerViewState meshViewState;
+        meshViewState.cameraPosition = glm::vec3(m_camera.position());
+        meshViewState.cameraForward = glm::vec3(m_camera.forward());
+        meshViewState.viewProjectionMatrix = m_camera.viewProjectionMatrix();
+        meshViewState.renderDistanceChunks = m_settings.renderDistance.get();
+        meshViewState.minBuildHeight = m_world.getMinBuildHeight();
+        meshViewState.maxBuildHeight = m_world.getMaxBuildHeight();
+
+        m_world.update(meshViewState);
+
+        // 更新客户端实体（每tick调用）
+        m_world.entityManager().tick();
+
+        // 更新实体平滑插值（每帧调用）
+        m_world.entityManager().updateInterpolation(deltaTime);
+
+        // 更新实体动画状态（用于渲染插值）
+        constexpr f32 partialTick = 0.0f;  // TODO: 从主循环获取实际的部分tick
+        m_world.entityManager().updateAnimations(partialTick);
+
+        // 更新世界音频状态（入水/出水、环境音等）
+        updateWorldAudio();
+
+        m_world.processMeshBuildResults(16);
+
+        // 同步时间到渲染器（驱动天空、太阳、月亮、星空变化）
+        // 客户端每帧平滑推进时间，同时在收到服务端同步时纠正
+        updateTimeAndWeather(deltaTime);
     }
 
     // 更新每帧 UI 状态（ScreenStackWidget、KageroEngine 等）
     updateUiFrameState(deltaTime);
 
-    // 更新射线检测结果
+    // 更新射线检测结果（暂停时也更新，以便 UI 显示）
     updateRaycastResult();
 
     updateTargetInfoUi();
 
-    handleBlockMiningInput(deltaTime);
-
-    // 处理方块放置输入
-    handleBlockPlacementInput(deltaTime);
-
-    MeshSchedulerViewState meshViewState;
-    meshViewState.cameraPosition = glm::vec3(m_camera.position());
-    meshViewState.cameraForward = glm::vec3(m_camera.forward());
-    meshViewState.viewProjectionMatrix = m_camera.viewProjectionMatrix();
-    meshViewState.renderDistanceChunks = m_settings.renderDistance.get();
-    meshViewState.minBuildHeight = m_world.getMinBuildHeight();
-    meshViewState.maxBuildHeight = m_world.getMaxBuildHeight();
-
-    m_world.update(meshViewState);
-
-    // 更新客户端实体（每tick调用）
-    m_world.entityManager().tick();
-
-    // 音频暂停状态在 updateAudioPauseState() 中统一处理，避免重复投递命令。
-
-    // 更新实体平滑插值（每帧调用）
-    m_world.entityManager().updateInterpolation(deltaTime);
-
-    // 更新实体动画状态（用于渲染插值）
-    constexpr f32 partialTick = 0.0f;  // TODO: 从主循环获取实际的部分tick
-    m_world.entityManager().updateAnimations(partialTick);
-
-    // 更新世界音频状态（入水/出水、环境音等）
-    updateWorldAudio();
-
     // 更新声音系统暂停状态
     updateAudioPauseState();
 
-    m_world.processMeshBuildResults(16);
-
-    // 同步时间到渲染器（驱动天空、太阳、月亮、星空变化）
-    // 客户端每帧平滑推进时间，同时在收到服务端同步时纠正
-    updateTimeAndWeather(deltaTime);
-
     // 上传网格到 GPU（只处理已完成异步构建的网格）
-    if (m_renderer->isChunkRendererInitialized()) {
+    if (m_stateMachine.needsGameTick() && m_renderer->isChunkRendererInitialized()) {
         MC_TRACE_EVENT("rendering.frame", "UploadMeshes");
 
         auto& chunkRenderer = m_renderer->chunkRenderer();
@@ -496,6 +524,12 @@ void ClientApplication::shutdown()
 {
     spdlog::info("Shutting down client...");
 
+    // 开始关闭流程
+    if (!m_stateMachine.startShutdown()) {
+        // 强制进入关闭状态
+        m_stateMachine.forceState(ClientAppState::ShuttingDown);
+    }
+
     // 保存设置
     const auto savePath = m_settingsPath.empty()
         ? ClientSettings::getSettingsPath("minecraft-reborn")
@@ -508,13 +542,18 @@ void ClientApplication::shutdown()
     // 关闭声音系统
     shutdownAudio();
 
-    // 断开网络连接
+    // 销毁游戏会话（如果有）
+    if (m_stateMachine.hasActiveGameSession()) {
+        destroyGameSession();
+    }
+
+    // 断开网络连接（如果在主菜单但有残留连接）
     if (m_networkClient) {
         m_networkClient->disconnect("Client shutdown");
         m_networkClient.reset();
     }
 
-    // 停止内置服务端
+    // 停止内置服务端（如果有残留）
     if (m_integratedServer) {
         m_integratedServer->stop();
         m_integratedServer.reset();

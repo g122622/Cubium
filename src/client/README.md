@@ -684,6 +684,29 @@ cmake --build build --config RelWithDebInfo
 ./build/bin/Release/minecraft-client.exe --width 1920 --height 1080 --fullscreen
 ```
 
+### 命令行参数
+
+| 参数 | 说明 |
+|------|------|
+| `-h, --help` | 显示帮助信息 |
+| `-w, --width <px>` | 设置窗口宽度（默认 1280） |
+| `-H, --height <px>` | 设置窗口高度（默认 720） |
+| `-f, --fullscreen` | 全屏模式启动 |
+| `-s, --server <addr>` | 服务器地址 |
+| `-p, --port <port>` | 服务器端口（默认 19132） |
+| `-u, --username <name>` | 玩家用户名 |
+| `--settings <path>` | 自定义设置文件路径 |
+| `-v, --verbose` | 启用详细日志 |
+| `--skip-integrated` | 跳过内置服务器（连接外部服务器时使用） |
+| `--quick-play <id>` | 跳过主菜单，直接加载指定世界 |
+| `--quick-play-new` | 跳过主菜单，直接创建新世界 |
+
+```powershell
+# Quick-play 示例
+./minecraft-client --quick-play "My World"     # 直接加载名为 "My World" 的存档
+./minecraft-client --quick-play-new            # 创建新世界并进入
+```
+
 ### 连接服务器
 
 ```cpp

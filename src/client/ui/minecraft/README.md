@@ -7,15 +7,19 @@ Minecraft 游戏特定的 UI 组件和屏幕实现，基于 Kagero UI 框架构�
 ```
 minecraft/
 ├── MinecraftUIContext.hpp/cpp     # UI 上下文，状态绑定和资源管理
+├── UiConstants.hpp                # UI 常量定义（按钮尺寸、间距等）
 ├── resources/                     # UI 资源
 │   ├── MinecraftTypeface.hpp/cpp  # Minecraft 字体封装
 │   └── ResourceProvider.hpp/cpp   # GUI 资源提供者（纹理图集等）
 ├── screens/                       # 屏幕/界面
 │   ├── Screen.hpp/cpp             # 屏幕基类
+│   ├── TemplateScreen.hpp/cpp     # 模板驱动屏幕基类
 │   ├── ScreenManager.hpp/cpp      # 屏幕栈管理
 │   ├── MainMenuScreen.hpp/cpp     # 主菜单
-│   ├── OptionsScreen.hpp/cpp      # 设置界面
+│   ├── WorldSelectionScreen.hpp/cpp # 存档选择
+│   ├── CreateWorldScreen.hpp/cpp  # 创建世界
 │   ├── PauseScreen.hpp/cpp        # 暂停菜单
+│   ├── LoadingScreen.hpp/cpp      # 加载界面
 │   ├── InventoryScreen.hpp/cpp    # 物品栏界面
 │   ├── ContainerScreen.hpp/cpp    # 容器界面
 │   └── DebugScreenWidget.hpp/cpp  # F3 调试屏幕
@@ -192,9 +196,11 @@ manager.updateHover(mouseX, mouseY);             // 更新悬停状态
 
 | 屏幕 | 职责 |
 |------|------|
-| `MainMenuScreen` | 主菜单界面（单人游戏、多人游戏、设置） |
-| `OptionsScreen` | 游戏设置界面 |
-| `PauseScreen` | 暂停菜单（继续、设置、退出） |
+| `MainMenuScreen` | 主菜单界面（单人游戏、多人游戏、设置、退出） |
+| `WorldSelectionScreen` | 存档选择界面（世界列表、创建新世界、删除） |
+| `CreateWorldScreen` | 创建世界界面（名称、种子、游戏模式、世界类型） |
+| `PauseScreen` | 暂停菜单（继续、设置、保存并退出到标题） |
+| `LoadingScreen` | 加载界面（进度条、阶段文本） |
 | `InventoryScreen` | 玩家物品栏界面 |
 | `ContainerScreen` | 容器界面（箱子、熔炉等） |
 | `DebugScreenWidget` | F3 调试屏幕（FPS、坐标、生物群系等） |
@@ -604,9 +610,11 @@ void onMouseEvent(int x, int y) {
 |------|------|----------|
 | `Screen.hpp/cpp` | 屏幕基类 | 模态控制、生命周期回调、悬停状态管理 |
 | `ScreenManager.hpp/cpp` | 屏幕栈管理 | push/pop/clear、绘制顺序、事件传播 |
-| `MainMenuScreen.hpp/cpp` | 主菜单 | 深色背景，简单绘制 |
-| `OptionsScreen.hpp/cpp` | 设置界面 | 深色背景，简单绘制 |
-| `PauseScreen.hpp/cpp` | 暂停菜单 | 半透明背景覆盖 |
+| `MainMenuScreen.hpp/cpp` | 主菜单 | 深色背景、单人/多人/设置/退出按钮 |
+| `WorldSelectionScreen.hpp/cpp` | 存档选择 | 世界列表显示、滚动支持、空状态提示 |
+| `CreateWorldScreen.hpp/cpp` | 创建世界 | 名称/种子输入、游戏模式/世界类型选择 |
+| `PauseScreen.hpp/cpp` | 暂停菜单 | 半透明背景覆盖、继续/设置/退出按钮 |
+| `LoadingScreen.hpp/cpp` | 加载界面 | 深色背景、进度条、阶段文本 |
 | `InventoryScreen.hpp/cpp` | 物品栏 | 带边框的深色背景 |
 | `ContainerScreen.hpp/cpp` | 容器界面 | 容器风格的背景 |
 | `DebugScreenWidget.hpp/cpp` | F3 调试屏幕 | 左右面板、FPS 统计、坐标显示、系统信息 |

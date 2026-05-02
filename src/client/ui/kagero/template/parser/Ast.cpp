@@ -16,25 +16,20 @@ BindingInfo BindingInfo::parse(const String& value) {
         return info;
     }
 
-    // 检查是否是循环变量引用 ($varName.property 或 $varName)
     if (value.size() > 1 && value[0] == '$') {
         info.isLoopVariable = true;
 
-        // 找到变量名和属性
         size_t dotPos = value.find('.');
         if (dotPos != String::npos) {
-            // $slot.item 格式
             info.loopVarName = value.substr(1, dotPos - 1);
             info.property = value.substr(dotPos + 1);
-            info.path = value; // 保持原始路径
+            info.path = value;
         } else {
-            // $slot 格式
             info.loopVarName = value.substr(1);
             info.property = "";
             info.path = value;
         }
     } else {
-        // 普通路径绑定 (player.inventory.main)
         info.path = value;
         info.isLoopVariable = false;
     }
@@ -52,25 +47,20 @@ Attribute Attribute::createStatic(const String& name, const String& value,
     attr.location = loc;
     attr.type = AttributeType::Static;
 
-    // 尝试解析值类型
-    // 首先尝试布尔值
     if (value == "true") {
         attr.value = true;
     } else if (value == "false") {
         attr.value = false;
     } else {
-        // 尝试整数
         try {
             size_t pos;
             i32 intVal = std::stoi(value, &pos);
             if (pos == value.size()) {
                 attr.value = intVal;
             } else {
-                // 不是纯整数，当作字符串
                 attr.value = value;
             }
         } catch (...) {
-            // 尝试浮点数
             try {
                 size_t pos;
                 f32 floatVal = std::stof(value, &pos);
@@ -80,7 +70,6 @@ Attribute Attribute::createStatic(const String& name, const String& value,
                     attr.value = value;
                 }
             } catch (...) {
-                // 作为字符串
                 attr.value = value;
             }
         }
@@ -97,7 +86,7 @@ Attribute Attribute::createBinding(const String& name, const String& bindingPath
     attr.location = loc;
     attr.type = AttributeType::Binding;
     attr.binding = BindingInfo::parse(bindingPath);
-    attr.value = bindingPath; // 保持原始路径作为值
+    attr.value = bindingPath;
     return attr;
 }
 
@@ -114,7 +103,6 @@ Attribute Attribute::createEvent(const String& name, const String& callbackName,
 }
 
 String Attribute::baseName() const {
-    // 去除 bind: 和 on: 前缀
     static const String bindPrefix = "bind:";
     static const String onPrefix = "on:";
 
@@ -179,7 +167,6 @@ std::unique_ptr<Node> ElementNode::clone() const {
     node->condition = condition;
     node->range = range;
 
-    // 深拷贝子节点
     for (const auto& child : children) {
         node->children.push_back(child->clone());
     }
@@ -240,7 +227,6 @@ NodeType getNodeTypeFromTagName(const String& tagName) {
         {"style", NodeType::Style}
     };
 
-    // 转换为小写
     String lowerName = tagName;
     std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -253,64 +239,115 @@ bool isValidWidgetTag(const String& tagName) {
     static const std::set<String> validTags = {
         "screen", "widget", "button", "text", "textfield",
         "slider", "checkbox", "image", "grid", "slot",
-        "viewport3d", "scrollable", "list", "style"
+        "viewport3d", "scrollable", "list", "style",
+        "container"
     };
 
     String lowerName = tagName;
     std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    return validTags.count(lowerName) > 0;
+    return validTags.find(lowerName) != validTags.end();
 }
 
 bool isValidAttributeName(const String& name) {
-    if (name.empty()) return false;
+    if (name.empty()) {
+        return false;
+    }
 
-    // 属性名必须以字母或下划线开头
-    // 可以包含字母、数字、下划线、连字符、冒号
-    // 特殊前缀: bind:, on:
+    // 允许的属性前缀
+    static const std::vector<String> allowedPrefixes = {
+        "bind:",
+        "on:"
+    };
 
-    static const std::regex validPattern("^[a-zA-Z_][a-zA-Z0-9_\\-:]*$");
-    return std::regex_match(name, validPattern);
+    // 检查是否有前缀
+    for (const auto& prefix : allowedPrefixes) {
+        if (name.size() > prefix.size() &&
+            name.substr(0, prefix.size()) == prefix) {
+            // 前缀后面的部分必须是有效的标识符
+            String suffix = name.substr(prefix.size());
+            return isValidCallbackName(suffix);
+        }
+    }
+
+    // 静态属性名必须是有效的标识符（允许连字符和冒号）
+    for (size_t i = 0; i < name.size(); ++i) {
+        char c = name[i];
+        if (!std::isalnum(static_cast<unsigned char>(c)) &&
+            c != '_' && c != '-' && c != ':') {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool isValidBindingPath(const String& path) {
-    if (path.empty()) return false;
-
-    // 检查是否是循环变量 ($varName 或 $varName.property)
-    if (path.size() > 1 && path[0] == '$') {
-        // $varName 格式
-        String rest = path.substr(1);
-        if (rest.empty()) return false;
-
-        size_t dotPos = rest.find('.');
-        if (dotPos == String::npos) {
-            // 只有变量名
-            return std::regex_match(rest, std::regex("^[a-zA-Z_][a-zA-Z0-9_]*$"));
-        }
-
-        // $varName.property 格式
-        String varName = rest.substr(0, dotPos);
-        String property = rest.substr(dotPos + 1);
-
-        return std::regex_match(varName, std::regex("^[a-zA-Z_][a-zA-Z0-9_]*$")) &&
-               isValidBindingPath(property);
+    if (path.empty()) {
+        return false;
     }
 
-    // 普通路径: identifier.identifier...
-    // 支持数组索引: array[0], items[index]
-    static const std::regex pathPattern(
-        "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*|\\[[0-9]+\\]|\\[[a-zA-Z_][a-zA-Z0-9_]*\\])*$"
-    );
-    return std::regex_match(path, pathPattern);
+    // 绑定路径可以是：
+    // 1. 简单标识符：player, game
+    // 2. 点分隔路径：player.health, game.version
+    // 3. 循环变量：$item, $slot
+    // 4. 循环变量属性：$item.name, $slot.count
+
+    size_t start = 0;
+
+    // 检查循环变量前缀
+    if (path[0] == '$') {
+        start = 1;
+        if (start >= path.size()) {
+            return false; // 只有 "$" 是无效的
+        }
+    }
+
+    // 验证路径段
+    bool inSegment = false;
+    bool hasSegmentChar = false;
+
+    for (size_t i = start; i < path.size(); ++i) {
+        char c = path[i];
+
+        if (c == '.') {
+            if (!hasSegmentChar) {
+                return false; // 连续的点或点开头
+            }
+            inSegment = false;
+            hasSegmentChar = false;
+        } else if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
+            inSegment = true;
+            hasSegmentChar = true;
+        } else {
+            return false; // 无效字符
+        }
+    }
+
+    return hasSegmentChar; // 必须以有效段结尾
 }
 
 bool isValidCallbackName(const String& name) {
-    if (name.empty()) return false;
+    if (name.empty()) {
+        return false;
+    }
 
-    // 回调名称必须是有效的C++标识符
-    static const std::regex identifierPattern("^[a-zA-Z_][a-zA-Z0-9_]*$");
-    return std::regex_match(name, identifierPattern);
+    // 必须是有效的 C++ 标识符
+    // 首字符必须是字母或下划线
+    if (!std::isalpha(static_cast<unsigned char>(name[0])) && name[0] != '_') {
+        return false;
+    }
+
+    // 其余字符必须是字母、数字或下划线
+    for (size_t i = 1; i < name.size(); ++i) {
+        char c = name[i];
+        if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_') {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace mc::client::ui::kagero::tpl::ast

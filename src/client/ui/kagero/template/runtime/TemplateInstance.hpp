@@ -34,8 +34,11 @@ using EventBinder = std::function<void(widget::Widget* widget,
 /**
  * @brief 模板实例
  *
- * 运行时的模板实例，包含编译后的模板和运行时状态。
+ * 运行时的模板实例，拥有编译后的模板和运行时状态。
  * 负责将模板实例化为Widget树，并管理绑定和事件。
+ *
+ * 注意：TemplateInstance 拥有 CompiledTemplate 的所有权，
+ * 确保 Widget 树和绑定的生命周期安全。
  *
  * 使用示例：
  * @code
@@ -43,12 +46,15 @@ using EventBinder = std::function<void(widget::Widget* widget,
  * TemplateCompiler compiler;
  * auto compiled = compiler.compile(source);
  *
- * // 创建实例
+ * // 创建实例（转移所有权）
  * BindingContext ctx(store, bus);
- * TemplateInstance instance(compiled.get(), ctx);
+ * TemplateInstance instance(std::move(compiled), ctx);
  *
- * // 实例化Widget树
- * auto root = instance.instantiate();
+ * // 实例化Widget树（所有权保留在 TemplateInstance 中）
+ * instance.instantiate();
+ *
+ * // 获取根Widget
+ * widget::Widget* root = instance.rootWidget();
  *
  * // 更新绑定
  * instance.updateBindings();
@@ -57,10 +63,20 @@ using EventBinder = std::function<void(widget::Widget* widget,
 class TemplateInstance {
 public:
     /**
-     * @brief 构造函数
-     * @param compiled 编译后的模板
+     * @brief 构造函数（转移 CompiledTemplate 所有权）
+     * @param compiled 编译后的模板（转移所有权）
      * @param ctx 绑定上下文
      */
+    TemplateInstance(std::unique_ptr<compiler::CompiledTemplate> compiled,
+                     binder::BindingContext& ctx);
+
+    /**
+     * @brief 构造函数（兼容旧 API，不推荐）
+     * @param compiled 编译后的模板裸指针
+     * @param ctx 绑定上下文
+     * @deprecated 使用 unique_ptr 版本以确保生命周期安全
+     */
+    [[deprecated("Use unique_ptr version for safe lifetime management")]]
     TemplateInstance(const compiler::CompiledTemplate* compiled, binder::BindingContext& ctx);
 
     /**
@@ -135,9 +151,12 @@ public:
     /**
      * @brief 实例化Widget树
      *
-     * @return 根Widget，失败返回nullptr
+     * Widget 树所有权保留在 TemplateInstance 中。
+     * 使用 rootWidget() 获取根 Widget 指针。
+     *
+     * @return 是否成功
      */
-    [[nodiscard]] std::unique_ptr<widget::Widget> instantiate();
+    bool instantiate();
 
     /**
      * @brief 实例化到指定容器
@@ -154,6 +173,9 @@ public:
 
     /**
      * @brief 获取根Widget
+     *
+     * Widget 树所有权保留在 TemplateInstance 中。
+     * TemplateInstance 销毁时 Widget 树也会销毁。
      */
     [[nodiscard]] widget::Widget* rootWidget() { return m_rootWidget.get(); }
     [[nodiscard]] const widget::Widget* rootWidget() const { return m_rootWidget.get(); }
@@ -323,6 +345,10 @@ private:
     [[nodiscard]] bool evaluateCondition(const ast::ConditionInfo& condition) const;
 
 private:
+    // Owned compiled template
+    std::unique_ptr<compiler::CompiledTemplate> m_ownedCompiled;
+
+    // Raw pointer for fast access (points to m_ownedCompiled or external)
     const compiler::CompiledTemplate* m_compiled;
     binder::BindingContext* m_context;
 

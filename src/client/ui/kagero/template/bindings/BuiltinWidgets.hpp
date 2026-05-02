@@ -90,6 +90,7 @@ private:
     BuiltinWidgets& operator=(const BuiltinWidgets&) = delete;
 
     void registerScreenWidget();
+    void registerContainerWidget();
     void registerButtonWidget();
     void registerTextWidget();
     void registerTextFieldWidget();

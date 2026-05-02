@@ -107,6 +107,18 @@ String Value::toString() const {
             oss << "]";
             return oss.str();
         }
+        case ValueType::Object: {
+            std::ostringstream oss;
+            oss << "{";
+            bool first = true;
+            for (const auto& [key, value] : m_objectValue) {
+                if (!first) oss << ", ";
+                first = false;
+                oss << key << ": " << value.toString();
+            }
+            oss << "}";
+            return oss.str();
+        }
         default: return "";
     }
 }
@@ -135,19 +147,60 @@ Value Value::arrayGet(size_t index) const {
 }
 
 Value Value::getProperty(const String& name) const {
-    // 对于简单值类型，不支持属性访问
-    // 当前的设计是：属性访问通过 BindingContext 的路径解析来处理
-    // 例如 "player.health" 会直接在 BindingContext 中查找完整路径
-    // 只有数组类型可以通过 getElement 访问
-    (void)name;
+    // 对象类型支持属性访问
+    if (m_type == ValueType::Object) {
+        auto it = m_objectValue.find(name);
+        if (it != m_objectValue.end()) {
+            return it->second;
+        }
+        return Value();
+    }
+
+    // 数组类型支持特殊属性
+    if (m_type == ValueType::Array) {
+        if (name == "length" || name == "size") {
+            return Value(static_cast<i32>(m_arrayValue.size()));
+        }
+        // 支持数字索引作为属性
+        try {
+            size_t index = static_cast<size_t>(std::stoul(name));
+            if (index < m_arrayValue.size()) {
+                return m_arrayValue[index];
+            }
+        } catch (...) {
+            // 不是数字，忽略
+        }
+        return Value();
+    }
+
+    // 字符串类型支持特殊属性
+    if (m_type == ValueType::String) {
+        if (name == "length" || name == "size") {
+            return Value(static_cast<i32>(m_stringValue.size()));
+        }
+        if (name == "empty") {
+            return Value(m_stringValue.empty());
+        }
+        return Value();
+    }
+
     return Value();
 }
 
 void Value::setProperty(const String& name, const Value& value) {
-    // 对于简单值类型，不支持属性设置
-    // 这是一个占位实现，可以扩展为支持对象类型
-    (void)name;
-    (void)value;
+    // 确保是对象类型
+    if (m_type != ValueType::Object) {
+        m_type = ValueType::Object;
+        m_objectValue.clear();
+    }
+    m_objectValue[name] = value;
+}
+
+bool Value::hasProperty(const String& name) const {
+    if (m_type == ValueType::Object) {
+        return m_objectValue.find(name) != m_objectValue.end();
+    }
+    return false;
 }
 
 Value Value::getElement(size_t index) const {
@@ -174,6 +227,7 @@ bool Value::operator==(const Value& other) const {
         case ValueType::Float: return m_floatValue == other.m_floatValue;
         case ValueType::String: return m_stringValue == other.m_stringValue;
         case ValueType::Array: return m_arrayValue == other.m_arrayValue;
+        case ValueType::Object: return m_objectValue == other.m_objectValue;
         default: return false;
     }
 }

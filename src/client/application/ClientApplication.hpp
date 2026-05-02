@@ -8,6 +8,7 @@
 #include "common/resource/ResourcePackList.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "client/settings/ClientSettings.hpp"
+#include "client/application/ClientAppStateMachine.hpp"
 #include "../window/Window.hpp"
 #include "../input/InputManager.hpp"
 #include "../renderer/Camera.hpp"
@@ -42,8 +43,13 @@ namespace mc::client::sound {
 class AudioService;
 }
 
+namespace mc::client::ui::minecraft {
+class LoadingScreen;
+}
+
 namespace mc::client::ui::minecraft::widgets {
 class ChatWidget;
+class ScreenStackWidget;
 }
 
 namespace mc::client {
@@ -67,6 +73,10 @@ struct ClientLaunchParams {
     // 其他启动参数
     std::optional<String> settingsPath;  // 自定义设置文件路径
     bool skipIntegratedServer = false;  // 跳过内置服务器
+
+    // Quick-play 选项（跳过主菜单直接进入世界）
+    std::optional<String> quickPlayLevelId;  // 直接加载指定世界
+    bool quickPlayNew = false;               // 直接创建新世界
 };
 
 /**
@@ -145,8 +155,99 @@ public:
     [[nodiscard]] skin::ClientSkinManager& skinManager() noexcept { return *m_skinManager; }
     [[nodiscard]] const skin::ClientSkinManager& skinManager() const noexcept { return *m_skinManager; }
 
+    /**
+     * @brief 获取状态机
+     */
+    [[nodiscard]] ClientAppStateMachine& stateMachine() noexcept { return m_stateMachine; }
+    [[nodiscard]] const ClientAppStateMachine& stateMachine() const noexcept { return m_stateMachine; }
+
+    // ========== 游戏会话管理 ==========
+
+    /**
+     * @brief 启动集成世界
+     *
+     * 从主菜单启动一个世界（新建或加载）。
+     * 状态机必须处于 MainMenu 状态。
+     *
+     * @param config 世界启动配置
+     * @return 是否成功开始加载
+     */
+    [[nodiscard]] Result<void> startIntegratedWorld(const WorldLaunchConfig& config);
+
+    /**
+     * @brief 销毁游戏会话
+     *
+     * 释放游戏相关资源：网络客户端、内置服务端、世界、玩家等。
+     * 状态机必须处于 LeavingWorld 状态。
+     */
+    void destroyGameSession();
+
+    /**
+     * @brief 离开世界返回主菜单
+     *
+     * 从游戏中退出到主菜单。
+     * 会触发保存、断开连接、销毁会话等操作。
+     *
+     * @return 是否成功开始离开流程
+     */
+    bool leaveWorldToMainMenu();
+
+    /**
+     * @brief 显示主菜单
+     *
+     * 切换到主菜单界面。仅在主菜单状态下可用。
+     */
+    void showMainMenu();
+
+    /**
+     * @brief 显示暂停菜单
+     *
+     * 在游戏中显示暂停菜单。
+     * 状态机必须处于 InGame 状态。
+     */
+    void showPauseMenu();
+
+    /**
+     * @brief 显示存档选择界面
+     *
+     * 显示世界列表，允许玩家选择或创建世界。
+     */
+    void showWorldSelection();
+
+    /**
+     * @brief 显示创建世界界面
+     *
+     * 显示创建新世界的表单。
+     */
+    void showCreateWorld();
+
+    /**
+     * @brief 显示加载界面
+     *
+     * 显示世界加载进度界面。
+     */
+    void showLoadingScreen();
+
+    /**
+     * @brief 隐藏加载界面
+     *
+     * 隐藏加载进度界面。
+     */
+    void hideLoadingScreen();
+
+    /**
+     * @brief 更新加载进度
+     *
+     * @param stage 当前加载阶段描述
+     * @param progress 进度（0.0 - 1.0）
+     */
+    void updateLoadingProgress(const String& stage, f32 progress);
+
     // 友元声明，用于回调
     friend void onWindowResize(i32 width, i32 height, void* userData);
+
+    // 友元声明，用于屏幕操作辅助函数
+    friend ui::minecraft::widgets::ScreenStackWidget* getScreenStackWidget(ClientApplication* app);
 
 private:
     void mainLoop();
@@ -156,10 +257,22 @@ private:
     void shutdown();
     void releaseRendererDependentResources();
 
+    // ========== 状态机回调 ==========
+    void onStateChanged(ClientAppState from, ClientAppState to);
+    void setupStateMachineCallbacks();
+
     // 初始化辅助函数
     void initializeCoreRegistries();
     [[nodiscard]] Result<void> initializeWindowAndInput();
     [[nodiscard]] Result<void> initializeRenderer();
+
+    // 外壳初始化（不包含游戏会话）
+    [[nodiscard]] Result<void> initializeShell(const ClientLaunchParams& params);
+
+    // 游戏会话初始化（启动世界时调用）
+    [[nodiscard]] Result<void> initializeGameSession(const WorldLaunchConfig& config);
+
+    // 旧的游戏系统初始化（兼容 quick-play）
     [[nodiscard]] Result<void> initializeGameplaySystems(const ClientLaunchParams& params);
     void initializeUi();
     void setupInputBindings();
@@ -260,6 +373,12 @@ private:
     InputManager m_input;
     std::unique_ptr<renderer::trident::TridentEngine> m_renderer;
 
+    // 状态机
+    ClientAppStateMachine m_stateMachine;
+
+    // 启动参数（保存用于 quick-play）
+    ClientLaunchParams m_launchParams;
+
     // 资源系统
     ResourcePackList m_resourcePackList;
     std::unique_ptr<ResourceManager> m_resourceManager;
@@ -310,6 +429,9 @@ private:
     size_t m_chatLayerId = 0;
     size_t m_screenStackLayerId = 0;
     size_t m_debugScreenLayerId = 0;
+
+    // 当前加载屏幕（用于显示加载进度）
+    ui::minecraft::LoadingScreen* m_loadingScreen = nullptr;
 
     // 射线检测结果
     BlockRaycastResult m_raycastResult;

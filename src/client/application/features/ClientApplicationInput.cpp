@@ -37,18 +37,53 @@ void ClientApplication::setupInputBindings()
         auto* chatWidget = m_kageroEngine ?
             static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId)) : nullptr;
 
+        // 如果聊天框打开，关闭聊天框
         if (chatWidget && chatWidget->isOpen()) {
             return;
         }
 
+        // 如果有屏幕打开，关闭屏幕
         if (ScreenManager::instance().hasScreen()) {
             ScreenManager::instance().closeScreen();
             mc::client::application::features::captureMouseAfterScreens(m_input, m_mouseCaptured);
             return;
         }
 
-        spdlog::info("Exit key pressed");
-        stop();
+        // 根据当前状态决定行为
+        switch (m_stateMachine.state()) {
+            case ClientAppState::InGame:
+                // 游戏中：打开暂停菜单
+                showPauseMenu();
+                break;
+
+            case ClientAppState::Paused:
+                // 暂停菜单中：返回游戏
+                if (m_stateMachine.resume()) {
+                    // 恢复游戏后重新捕获鼠标
+                    if (!m_mouseCaptured) {
+                        toggleMouseCapture();
+                    }
+                }
+                break;
+
+            case ClientAppState::MainMenu:
+                // 主菜单：退出应用
+                spdlog::info("Exit key pressed in main menu");
+                stop();
+                break;
+
+            case ClientAppState::LoadingWorld:
+            case ClientAppState::LeavingWorld:
+                // 加载/离开中：忽略 ESC
+                break;
+
+            default:
+                // 其他状态：停止应用
+                spdlog::info("Exit key pressed in state: {}",
+                             ClientAppStateMachine::stateToString(m_stateMachine.state()));
+                stop();
+                break;
+        }
     });
 }
 

@@ -10,6 +10,7 @@ add_executable(minecraft-client
     application/ClientApplication.cpp
     application/features/ClientApplicationHelpers.cpp
     application/features/ClientApplicationBootstrap.cpp
+    application/features/ClientApplicationSession.cpp
     application/features/ClientApplicationAudio.cpp
     application/features/ClientApplicationTimeWeather.cpp
     application/features/ClientApplicationTargetInfo.cpp
@@ -271,6 +272,7 @@ add_executable(minecraft-client
     ui/kagero/paint/PaintContext.cpp
     ui/kagero/paint/TextureImage.cpp
     ui/kagero/widget/ContainerWidget.cpp
+    ui/kagero/widget/ListWidget.cpp
     # UI Kagero 引擎
     ui/kagero/KageroEngine.cpp
     # UI Kagero widgets
@@ -293,7 +295,11 @@ add_executable(minecraft-client
     ui/minecraft/widgets/ScreenStackWidget.cpp
     ui/minecraft/screens/Screen.cpp
     ui/minecraft/screens/ScreenManager.cpp
+    ui/minecraft/screens/TemplateScreen.cpp
     ui/minecraft/screens/MainMenuScreen.cpp
+    ui/minecraft/screens/WorldSelectionScreen.cpp
+    ui/minecraft/screens/CreateWorldScreen.cpp
+    ui/minecraft/screens/LoadingScreen.cpp
     ui/minecraft/screens/InventoryScreen.cpp
     ui/minecraft/screens/ContainerScreen.cpp
     ui/minecraft/screens/PauseScreen.cpp

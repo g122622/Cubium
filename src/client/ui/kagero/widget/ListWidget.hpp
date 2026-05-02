@@ -8,6 +8,11 @@
 #include <memory>
 #include <chrono>
 
+// 前向声明 Value 类型
+namespace mc::client::ui::kagero::tpl::binder {
+    class Value;
+}
+
 namespace mc::client::ui::kagero::widget {
 
 /**
@@ -479,6 +484,56 @@ public:
         return m_doubleClickTime;
     }
 
+    // ==================== 数据绑定 ====================
+
+    /**
+     * @brief 项目工厂类型
+     *
+     * 用于从 Value 数据创建列表项
+     */
+    using ItemFactory = std::function<std::unique_ptr<IListItem>(const ::mc::client::ui::kagero::tpl::binder::Value& data, size_t index)>;
+
+    /**
+     * @brief 从 Value 数组设置列表项
+     *
+     * 用于模板绑定 bind:items
+     * @param array 包含列表数据的 Value 数组
+     */
+    void setItemsFromValue(const ::mc::client::ui::kagero::tpl::binder::Value& array);
+
+    /**
+     * @brief 设置项目工厂
+     *
+     * 用于自定义从 Value 创建 IListItem 的方式
+     * @param factory 工厂函数
+     */
+    void setItemFactory(ItemFactory factory) {
+        m_itemFactory = std::move(factory);
+    }
+
+    /**
+     * @brief 获取项目工厂
+     */
+    [[nodiscard]] const ItemFactory& itemFactory() const {
+        return m_itemFactory;
+    }
+
+    /**
+     * @brief 设置数据变更回调
+     *
+     * 当列表数据更新时调用
+     */
+    void setOnItemsChanged(std::function<void()> callback) {
+        m_onItemsChanged = std::move(callback);
+    }
+
+    /**
+     * @brief 刷新列表项
+     *
+     * 使用当前数据源重新创建列表项
+     */
+    void refreshItems();
+
 protected:
     /**
      * @brief 更新内容高度
@@ -553,6 +608,10 @@ protected:
     OnSelectCallback m_onSelect;                      ///< 选择回调
     OnDoubleClickCallback m_onDoubleClick;            ///< 双击回调
     std::function<void(i32, i32)> m_onSelectionChanged; ///< 选择变化回调
+
+    // 数据绑定
+    ItemFactory m_itemFactory;                        ///< 项目工厂
+    std::function<void()> m_onItemsChanged;           ///< 数据变更回调
 };
 
 /**

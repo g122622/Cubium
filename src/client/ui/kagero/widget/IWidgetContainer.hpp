@@ -144,6 +144,14 @@ public:
     WidgetContainerMixin() = default;
     ~WidgetContainerMixin() override = default;
 
+    // 禁止拷贝（因为 m_children 包含 unique_ptr）
+    WidgetContainerMixin(const WidgetContainerMixin&) = delete;
+    WidgetContainerMixin& operator=(const WidgetContainerMixin&) = delete;
+
+    // 允许移动
+    WidgetContainerMixin(WidgetContainerMixin&&) = default;
+    WidgetContainerMixin& operator=(WidgetContainerMixin&&) = default;
+
     void addWidget(Widget::Ptr widget) override {
         if (widget) {
             widget->setParent(this);
@@ -320,6 +328,101 @@ public:
         }
     }
 
+    // ========== 公共焦点管理接口 ==========
+
+    /**
+     * @brief 设置焦点组件
+     * @param widget 要聚焦的组件（nullptr清除焦点）
+     */
+    void setFocusedWidget(Widget* widget) {
+        if (m_focusedWidget != widget) {
+            if (m_focusedWidget != nullptr) {
+                m_focusedWidget->setFocused(false);
+                m_focusedWidget->onFocusLost();
+            }
+            m_focusedWidget = widget;
+            if (widget != nullptr) {
+                widget->setFocused(true);
+                widget->onFocusGained();
+            }
+        }
+    }
+
+    /**
+     * @brief 获取当前焦点组件
+     */
+    [[nodiscard]] Widget* getFocusedWidget() { return m_focusedWidget; }
+    [[nodiscard]] const Widget* getFocusedWidget() const { return m_focusedWidget; }
+
+    /**
+     * @brief 清除焦点
+     */
+    void clearFocus() {
+        setFocusedWidget(nullptr);
+    }
+
+    /**
+     * @brief 将焦点移动到下一个可聚焦的子组件（Tab导航）
+     * @return 如果成功移动焦点返回true
+     */
+    bool focusNext() {
+        // 如果没有焦点，聚焦第一个可聚焦的组件
+        if (m_focusedWidget == nullptr) {
+            for (auto& child : m_children) {
+                if (child->isVisible() && child->isActive()) {
+                    setFocusedWidget(child.get());
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 找到当前焦点组件的索引，然后找下一个
+        for (size_t i = 0; i < m_children.size(); ++i) {
+            if (m_children[i].get() == m_focusedWidget) {
+                for (size_t j = i + 1; j < m_children.size(); ++j) {
+                    if (m_children[j]->isVisible() && m_children[j]->isActive()) {
+                        setFocusedWidget(m_children[j].get());
+                        return true;
+                    }
+                }
+                break;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @brief 将焦点移动到上一个可聚焦的子组件（Shift+Tab导航）
+     * @return 如果成功移动焦点返回true
+     */
+    bool focusPrevious() {
+        // 如果没有焦点，聚焦最后一个可聚焦的组件
+        if (m_focusedWidget == nullptr) {
+            for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+                if ((*it)->isVisible() && (*it)->isActive()) {
+                    setFocusedWidget(it->get());
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 找到当前焦点组件的索引，然后找上一个
+        for (size_t i = 0; i < m_children.size(); ++i) {
+            if (m_children[i].get() == m_focusedWidget) {
+                for (size_t j = i; j > 0; --j) {
+                    if (m_children[j - 1]->isVisible() && m_children[j - 1]->isActive()) {
+                        setFocusedWidget(m_children[j - 1].get());
+                        return true;
+                    }
+                }
+                break;
+            }
+        }
+        return false;
+    }
+
 protected:
     /**
      * @brief 绘制所有子组件
@@ -355,8 +458,12 @@ protected:
     bool handleClickInChildren(i32 mouseX, i32 mouseY, i32 button) {
         Widget* widget = getWidgetAt(mouseX, mouseY);
         if (widget != nullptr) {
+            // 点击时自动设置焦点
+            setFocusedWidget(widget);
             return widget->onClick(mouseX, mouseY, button);
         }
+        // 点击空白区域清除焦点
+        setFocusedWidget(nullptr);
         return false;
     }
 
@@ -375,7 +482,75 @@ protected:
         return false;
     }
 
+    /**
+     * @brief 处理子组件的拖动事件
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param deltaX X轴移动量
+     * @param deltaY Y轴移动量
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) {
+        // 拖动事件发送到悬停的组件
+        for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+            Widget* widget = it->get();
+            if (widget->isVisible() && widget->isActive() && widget->isHovered()) {
+                if (widget->onDrag(mouseX, mouseY, deltaX, deltaY)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @brief 处理子组件的滚轮事件
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param delta 滚动量
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleScrollInChildren(i32 mouseX, i32 mouseY, f64 delta) {
+        Widget* widget = getWidgetAt(mouseX, mouseY);
+        if (widget != nullptr) {
+            return widget->onScroll(mouseX, mouseY, delta);
+        }
+        return false;
+    }
+
+    /**
+     * @brief 处理子组件的键盘事件（发送到聚焦的组件）
+     * @param key 键码
+     * @param scanCode 扫描码
+     * @param action 动作（按下/释放/重复）
+     * @param mods 修饰键
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleKeyInChildren(i32 key, i32 scanCode, i32 action, i32 mods) {
+        if (m_focusedWidget != nullptr &&
+            m_focusedWidget->isVisible() && m_focusedWidget->isActive()) {
+            return m_focusedWidget->onKey(key, scanCode, action, mods);
+        }
+        return false;
+    }
+
+    /**
+     * @brief 处理子组件的字符输入事件（发送到聚焦的组件）
+     * @param codePoint Unicode码点
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleCharInChildren(u32 codePoint) {
+        if (m_focusedWidget != nullptr &&
+            m_focusedWidget->isVisible() && m_focusedWidget->isActive()) {
+            return m_focusedWidget->onChar(codePoint);
+        }
+        return false;
+    }
+
     std::vector<Widget::Ptr> m_children;
+
+private:
+    Widget* m_focusedWidget = nullptr;
 };
 
 } // namespace mc::client::ui::kagero::widget

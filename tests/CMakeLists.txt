@@ -225,6 +225,7 @@ add_executable(mc_tests
     client/ui/kagero/widget/SliderWidgetTest.cpp
     client/ui/kagero/widget/TextFieldWidgetTest.cpp
     client/ui/kagero/widget/ContainerWidgetTest.cpp
+    client/ui/kagero/widget/ContainerWidgetEventTest.cpp
     client/ui/kagero/widget/ScrollableWidgetTest.cpp
     client/ui/kagero/widget/ListWidgetTest.cpp
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
@@ -626,6 +627,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/integration/WidgetLayoutAdaptor.cpp
         # Kagero UI Widget缁勪欢
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp

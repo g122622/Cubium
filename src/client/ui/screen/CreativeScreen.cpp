@@ -2,29 +2,15 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "common/util/StringUtils.hpp"
 
 #include <GLFW/glfw3.h>
 #include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <string>
 #include <utility>
 
 namespace mc::client {
-
-namespace {
-
-[[nodiscard]] String toLowerAscii(StringView text)
-{
-    String lowered;
-    lowered.reserve(text.size());
-    for (const char character : text) {
-        lowered.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(character))));
-    }
-    return lowered;
-}
-
-} // namespace
 
 CreativeScreen::CreativeScreen(PlayerInventory& inventory, CreativeActionSender actionSender)
     : m_inventory(&inventory)
@@ -607,7 +593,7 @@ bool CreativeScreen::isMouseOver(i32 mouseX, i32 mouseY, i32 x, i32 y, i32 width
 
 String CreativeScreen::normalizeSearchText(StringView text) const
 {
-    return toLowerAscii(text);
+    return util::toLowerAscii(text);
 }
 
 bool CreativeScreen::matchesSearch(const CreativeInventoryEntry& entry) const

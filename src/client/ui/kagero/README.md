@@ -173,7 +173,52 @@ classDiagram
 | `ScrollableWidget` | `ScrollableWidget.hpp` | 可滚动容器，支持水平和垂直滚动 |
 | `SlotWidget` | `SlotWidget.hpp` | 物品槽（用于背包界面） |
 | `Viewport3DWidget` | `Viewport3DWidget.hpp` | 3D视口（用于物品预览） |
-| `ContainerWidget` | `ContainerWidget.hpp` | 通用容器组件 |
+| `ContainerWidget` | `ContainerWidget.hpp` | 通用容器组件，支持事件传播和布局管理 |
+
+**ContainerWidget 事件传播：**
+
+ContainerWidget 自动将事件传播到子组件：
+
+| 方法 | 说明 |
+|------|------|
+| `tick(dt)` | 更新所有可见且活跃的子组件 |
+| `onClick(x, y, button)` | 从顶层子组件开始命中测试，点击时自动设置焦点 |
+| `onRelease(x, y, button)` | 传播释放事件到子组件 |
+| `onDrag(x, y, dx, dy)` | 传播拖动事件到悬停的子组件 |
+| `onScroll(x, y, delta)` | 传播滚轮事件到命中子组件 |
+| `onKey(key, scanCode, action, mods)` | 发送键盘事件到焦点组件 |
+| `onChar(codePoint)` | 发送字符输入到焦点组件 |
+
+**焦点管理：**
+
+```cpp
+// 设置/获取焦点组件
+container->setFocusedWidget(widget);
+Widget* focused = container->getFocusedWidget();
+container->clearFocus();
+
+// Tab 导航
+container->focusNext();      // Tab 到下一个组件
+container->focusPrevious();  // Shift+Tab 到上一个组件
+```
+
+**ContainerWidget 布局系统：**
+
+```cpp
+// 设置布局类型
+container->setLayoutType(ContainerLayoutType::Flex);
+
+// 配置 Flex 布局
+layout::FlexConfig config;
+config.direction = layout::FlexDirection::Column;
+config.gap = 10;
+config.mainAlign = layout::FlexAlign::Center;
+container->setFlexConfig(config);
+
+// 触发布局
+container->requestLayout();  // 标记需要重新布局
+container->relayout();        // 立即执行布局
+```
 
 ### 2. 事件系统 (`event/`)
 

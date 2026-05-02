@@ -45,6 +45,8 @@ void printHelp()
               << "  --settings <path>   Use custom options.json path\n"
               << "  -v, --verbose       Enable verbose logging\n"
               << "  --skip-integrated   Skip integrated server (for external server)\n"
+              << "  --quick-play <id>   Skip main menu and load world with given level ID\n"
+              << "  --quick-play-new    Skip main menu and create a new world\n"
               << std::endl;
 }
 
@@ -92,6 +94,12 @@ int main(int argc, char* argv[])
         }
         if (arg == "--skip-integrated") {
             params.skipIntegratedServer = true;
+        }
+        if (arg == "--quick-play" && i + 1 < argc) {
+            params.quickPlayLevelId = argv[++i];
+        }
+        if (arg == "--quick-play-new") {
+            params.quickPlayNew = true;
         }
     }
 

@@ -702,6 +702,15 @@ add_library(mc_common STATIC
     # World - Weather
     world/weather/WeatherUtils.cpp
 
+    # World - Storage
+    world/storage/WorldStoragePaths.cpp
+    world/storage/WorldListEntry.cpp
+    world/storage/WorldRequests.cpp
+    world/storage/WorldNameSanitizer.cpp
+    world/storage/WorldSessionLock.cpp
+    world/storage/LevelDatCodec.cpp
+    world/storage/WorldListService.cpp
+
     # World - Tick System
     world/tick/manager/TickManager.cpp
     # (header-only templates: TickPriority.hpp, ScheduledTick.hpp, ITickList.hpp, EmptyTickList.hpp, ServerTickList.hpp)
@@ -805,6 +814,9 @@ add_library(mc_common STATIC
 
     # Platform utilities
     util/PlatformInfo.cpp
+
+    # Compression utilities
+    util/CompressionUtils.cpp
 
     # Assert library
     util/assert/Assert.cpp

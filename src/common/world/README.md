@@ -153,6 +153,14 @@ world/
 │       └── TickManager.hpp/cpp # Unified tick management
 ├── time/                       # Game time
 │   └── GameTime.hpp/cpp        # Day/night cycle
+├── storage/                    # World persistence
+│   ├── LevelDatCodec.hpp/cpp   # level.dat NBT codec
+│   ├── WorldListEntry.hpp/cpp  # World list entry model
+│   ├── WorldListService.hpp/cpp # World list service
+│   ├── WorldNameSanitizer.hpp/cpp # Directory name sanitization
+│   ├── WorldRequests.hpp/cpp   # World operation requests
+│   ├── WorldSessionLock.hpp/cpp # Session lock (RAII)
+│   └── WorldStoragePaths.hpp/cpp # Save directory paths
 └── weather/                    # Weather system
     ├── WeatherConstants.hpp    # Weather constants
     ├── WeatherState.hpp        # Weather state data
@@ -350,6 +358,40 @@ bool isRaining = weather.isRaining();      // strength > 0.2
 bool isThunder = weather.isThundering();   // strength > 0.9
 u8 skyLight = weather.skyLightLimit();     // 15/12/10 based on weather
 ```
+
+### Storage System
+
+World persistence layer for save/load functionality:
+
+```cpp
+#include "world/storage/WorldListService.hpp"
+
+// List worlds
+WorldStoragePaths paths(baseDir);
+WorldListService service(paths);
+auto worlds = service.listWorlds();
+
+for (const auto& entry : worlds.value()) {
+    std::cout << entry.displayName << " (" << entry.levelId << ")\n";
+    std::cout << "  Last played: " << entry.lastPlayedMs << "\n";
+    std::cout << "  Seed: " << entry.seed << "\n";
+}
+
+// Create new world
+CreateWorldRequest request;
+request.displayName = "New World";
+request.seed = 12345;
+auto levelId = service.createWorld(request);
+```
+
+**Key Components:**
+- **LevelDatCodec**: Reads/writes gzip-compressed NBT `level.dat` files
+- **WorldListService**: Enumerates, creates, deletes, backs up worlds
+- **WorldSessionLock**: RAII lock to prevent concurrent world access
+- **WorldNameSanitizer**: Handles directory naming conflicts (World, World (1), etc.)
+- **WorldStoragePaths**: Manages saves/ and backups/ directory paths
+
+See `storage/README.md` for detailed documentation.
 
 ## Module Relationships
 

@@ -24,7 +24,8 @@ std::unique_ptr<kagero::tpl::runtime::TemplateInstance> MinecraftUIContext::crea
         return nullptr;
     }
 
-    auto instance = std::make_unique<kagero::tpl::runtime::TemplateInstance>(compiled.get(), m_bindingContext);
+    auto instance = std::make_unique<kagero::tpl::runtime::TemplateInstance>(
+        std::move(compiled), m_bindingContext);
     instance->registerDefaultFactories();
     instance->registerDefaultAttributeSetters();
     instance->registerDefaultEventBinders();
@@ -52,8 +53,6 @@ void MinecraftUIContext::setupStateBindings() {
 
 void MinecraftUIContext::setupDefaultResources() {
     // 默认资源加载已移至 ResourceProvider
-    // m_resources.loadGuiTextureAtlas("textures/gui/widgets.png");
-    // m_resources.loadMinecraftTypeface("fonts/minecraft.ttf");
 }
 
 } // namespace mc::client::ui::minecraft

@@ -16,7 +16,8 @@ namespace mc::client::ui::kagero::tpl::binder {
 /**
  * @brief 动态值类型
  *
- * 用于在运行时存储和传递任意类型的值
+ * 用于在运行时存储和传递任意类型的值。
+ * 支持基本类型、数组类型和对象类型。
  */
 class Value {
 public:
@@ -45,6 +46,7 @@ public:
     [[nodiscard]] bool isFloat() const { return m_type == ValueType::Float; }
     [[nodiscard]] bool isString() const { return m_type == ValueType::String; }
     [[nodiscard]] bool isArray() const { return m_type == ValueType::Array; }
+    [[nodiscard]] bool isObject() const { return m_type == ValueType::Object; }
     [[nodiscard]] bool isNumber() const { return isInteger() || isFloat(); }
 
     // 值获取
@@ -64,6 +66,24 @@ public:
     static Value fromArray(const std::vector<Value>& values) { return Value(values); }
     static Value emptyArray() { return Value(std::vector<Value>{}); }
 
+    // 对象操作
+    [[nodiscard]] Value getProperty(const String& name) const;
+    void setProperty(const String& name, const Value& value);
+    [[nodiscard]] bool hasProperty(const String& name) const;
+    [[nodiscard]] const std::unordered_map<String, Value>& asObject() const { return m_objectValue; }
+    [[nodiscard]] std::unordered_map<String, Value>& asObject() { return m_objectValue; }
+
+    // 创建对象值
+    static Value fromObject(std::unordered_map<String, Value> properties) {
+        Value v;
+        v.m_type = ValueType::Object;
+        v.m_objectValue = std::move(properties);
+        return v;
+    }
+
+    // 获取数组元素
+    [[nodiscard]] Value getElement(size_t index) const;
+
     // 类型转换
     [[nodiscard]] i32 toInteger() const;
     [[nodiscard]] f32 toFloat() const;
@@ -73,16 +93,6 @@ public:
     bool operator==(const Value& other) const;
     bool operator!=(const Value& other) const { return !(*this == other); }
 
-    // 获取属性（用于路径解析）
-    // 对于简单类型返回空值，扩展时可以支持对象类型
-    [[nodiscard]] Value getProperty(const String& name) const;
-
-    // 设置属性（用于构建对象）
-    void setProperty(const String& name, const Value& value);
-
-    // 获取数组元素
-    [[nodiscard]] Value getElement(size_t index) const;
-
     // 类型枚举
     enum class ValueType : u8 {
         Null,
@@ -90,7 +100,8 @@ public:
         Integer,
         Float,
         String,
-        Array
+        Array,
+        Object
     };
 
     [[nodiscard]] ValueType type() const { return m_type; }
@@ -102,6 +113,7 @@ private:
     f32 m_floatValue = 0.0f;
     String m_stringValue;
     std::vector<Value> m_arrayValue;
+    std::unordered_map<String, Value> m_objectValue;
 };
 
 /**

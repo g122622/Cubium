@@ -1,13 +1,11 @@
 #include "TemplateLoader.hpp"
 #include "../../../../resource/IResourcePack.hpp"
+#include "../../../../util/CompressionUtils.hpp"
 #include "../../../block/Block.hpp"
 #include "../../../block/BlockRegistry.hpp"
 #include <sstream>
 #include <cstring>
 #include <unordered_map>
-
-// 对于 gzip 解压
-#include <zlib.h>
 
 namespace mc {
 namespace world {
@@ -16,36 +14,6 @@ namespace feature {
 namespace template_ {
 
 namespace {
-
-// gzip 解压辅助函数
-std::vector<u8> decompressGzip(const std::vector<u8>& compressed) {
-    std::vector<u8> decompressed;
-    constexpr size_t bufferSize = 8192;
-    std::vector<u8> buffer(bufferSize);
-
-    z_stream stream = {};
-    stream.next_in = const_cast<Bytef*>(compressed.data());
-    stream.avail_in = static_cast<uInt>(compressed.size());
-
-    // windowBits = 15 | 16 表示 gzip 格式
-    if (inflateInit2(&stream, 15 | 16) != Z_OK) {
-        return decompressed;
-    }
-
-    int result = Z_OK;
-    while (result == Z_OK) {
-        stream.next_out = buffer.data();
-        stream.avail_out = static_cast<uInt>(buffer.size());
-        result = inflate(&stream, Z_NO_FLUSH);
-        if (result == Z_OK || result == Z_STREAM_END) {
-            size_t have = buffer.size() - stream.avail_out;
-            decompressed.insert(decompressed.end(), buffer.begin(), buffer.begin() + have);
-        }
-    }
-
-    inflateEnd(&stream);
-    return decompressed;
-}
 
 const BlockState* applyPropertiesToState(
     const Block& block,
@@ -256,7 +224,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromResourcePack(
 
 std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vector<u8>& data) {
     // 解压 gzip 数据
-    std::vector<u8> decompressed = decompressGzip(data);
+    std::vector<u8> decompressed = util::decompressGzip(data);
     if (decompressed.empty()) {
         return nullptr;
     }

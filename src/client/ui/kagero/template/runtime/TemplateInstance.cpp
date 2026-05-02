@@ -5,6 +5,7 @@
 #include "../../widget/CheckboxWidget.hpp"
 #include "../../widget/SliderWidget.hpp"
 #include "../../widget/TextFieldWidget.hpp"
+#include "../../widget/ListWidget.hpp"
 #include "../../event/WidgetEvents.hpp"
 #include <algorithm>
 #include <chrono>
@@ -15,8 +16,18 @@ namespace mc::client::ui::kagero::tpl::runtime {
 
 // ========== TemplateInstance实现 ==========
 
+TemplateInstance::TemplateInstance(std::unique_ptr<compiler::CompiledTemplate> compiled,
+                                   binder::BindingContext& ctx)
+    : m_ownedCompiled(std::move(compiled))
+    , m_compiled(m_ownedCompiled.get())
+    , m_context(&ctx) {
+    registerDefaultFactories();
+    registerDefaultAttributeSetters();
+    registerDefaultEventBinders();
+}
+
 TemplateInstance::TemplateInstance(const compiler::CompiledTemplate* compiled,
-                                    binder::BindingContext& ctx)
+                                   binder::BindingContext& ctx)
     : m_compiled(compiled)
     , m_context(&ctx) {
     registerDefaultFactories();
@@ -34,7 +45,8 @@ TemplateInstance::~TemplateInstance() {
 }
 
 TemplateInstance::TemplateInstance(TemplateInstance&& other) noexcept
-    : m_compiled(other.m_compiled)
+    : m_ownedCompiled(std::move(other.m_ownedCompiled))
+    , m_compiled(other.m_ownedCompiled ? m_ownedCompiled.get() : other.m_compiled)
     , m_context(other.m_context)
     , m_rootWidget(std::move(other.m_rootWidget))
     , m_widgetById(std::move(other.m_widgetById))
@@ -57,7 +69,8 @@ TemplateInstance& TemplateInstance::operator=(TemplateInstance&& other) noexcept
             }
         }
 
-        m_compiled = other.m_compiled;
+        m_ownedCompiled = std::move(other.m_ownedCompiled);
+        m_compiled = other.m_ownedCompiled ? m_ownedCompiled.get() : other.m_compiled;
         m_context = other.m_context;
         m_rootWidget = std::move(other.m_rootWidget);
         m_widgetById = std::move(other.m_widgetById);
@@ -379,6 +392,17 @@ void TemplateInstance::registerDefaultAttributeSetters() {
         (void)attrName;
         widget->setId(value.toString());
     };
+
+    // bind:items属性（用于ListWidget数据绑定）
+    m_attributeSetters["items"] = [](widget::Widget* widget, const String& attrName,
+                                      const binder::Value& value) {
+        (void)attrName;
+        if (auto* list = dynamic_cast<widget::ListWidget*>(widget)) {
+            if (value.isArray()) {
+                list->setItemsFromValue(value);
+            }
+        }
+    };
 }
 
 void TemplateInstance::registerEventBinder(const String& eventName, EventBinder binder) {
@@ -555,9 +579,9 @@ void TemplateInstance::registerDefaultEventBinders() {
     };
 }
 
-std::unique_ptr<widget::Widget> TemplateInstance::instantiate() {
+bool TemplateInstance::instantiate() {
     if (!m_compiled || !m_compiled->isValid()) {
-        return nullptr;
+        return false;
     }
 
     // 清理旧实例
@@ -565,14 +589,26 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiate() {
     m_widgetById.clear();
     m_widgetByPath.clear();
 
+    // 清理旧订阅
+    for (u64 id : m_subscriptionIds) {
+        if (m_context) {
+            m_context->unsubscribe(id);
+        }
+    }
+    m_subscriptionIds.clear();
+
     // 实例化根节点
     const ast::DocumentNode* doc = m_compiled->astRoot();
-    if (!doc) return nullptr;
+    if (!doc) return false;
 
     const ast::ElementNode* rootElement = doc->rootElement();
-    if (!rootElement) return nullptr;
+    if (!rootElement) return false;
 
     m_rootWidget = instantiateElement(rootElement, nullptr);
+
+    if (!m_rootWidget) {
+        return false;
+    }
 
     // 设置状态变更订阅
     for (const auto& path : m_compiled->watchedPaths()) {
@@ -583,25 +619,28 @@ std::unique_ptr<widget::Widget> TemplateInstance::instantiate() {
         m_subscriptionIds.push_back(subId);
     }
 
-    return std::move(m_rootWidget);
+    return true;
 }
 
 bool TemplateInstance::instantiateInto(widget::IWidgetContainer* container) {
-    auto root = instantiate();
-    if (!root) return false;
+    if (!instantiate()) {
+        return false;
+    }
 
-    container->addWidget(std::move(root));
+    if (container == nullptr) {
+        return false;
+    }
+
+    container->addWidget(std::move(m_rootWidget));
     return true;
 }
 
 void TemplateInstance::updateBindings() {
-    if (!m_compiled || !m_rootWidget) return;
+    if (!m_compiled || !m_context) return;
 
     for (const auto& plan : m_compiled->bindingPlans()) {
-        // 查找Widget
         auto it = m_widgetByPath.find(plan.widgetPath);
         if (it == m_widgetByPath.end()) {
-            // 尝试通过ID查找
             it = m_widgetById.find(plan.widgetPath);
             if (it == m_widgetById.end()) continue;
         }
@@ -609,14 +648,12 @@ void TemplateInstance::updateBindings() {
         widget::Widget* widget = it->second;
         if (!widget) continue;
 
-        // 解析绑定值
         binder::Value value = m_context->resolveBinding(
             plan.statePath,
             plan.loopVarName,
             binder::Value()
         );
 
-        // 应用属性
         auto setterIt = m_attributeSetters.find(plan.attributeName);
         if (setterIt != m_attributeSetters.end()) {
             setterIt->second(widget, plan.attributeName, value);
@@ -625,7 +662,7 @@ void TemplateInstance::updateBindings() {
 }
 
 void TemplateInstance::updateBinding(const String& path) {
-    if (!m_compiled || !m_rootWidget) return;
+    if (!m_compiled || !m_context) return;
 
     for (const auto& plan : m_compiled->bindingPlans()) {
         if (plan.statePath != path) continue;
@@ -639,7 +676,11 @@ void TemplateInstance::updateBinding(const String& path) {
         widget::Widget* widget = it->second;
         if (!widget) continue;
 
-        binder::Value value = m_context->resolveBinding(plan.statePath);
+        binder::Value value = m_context->resolveBinding(
+            plan.statePath,
+            plan.loopVarName,
+            binder::Value()
+        );
 
         auto setterIt = m_attributeSetters.find(plan.attributeName);
         if (setterIt != m_attributeSetters.end()) {
