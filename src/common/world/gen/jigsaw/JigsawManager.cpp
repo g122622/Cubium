@@ -273,14 +273,50 @@ bool JigsawManager::tryPlacePiece(
     ResourceLocation poolLocation(joint.targetPool);
     const JigsawPattern* targetPool = patternRegistry.getPattern(poolLocation);
 
+    // MC 1.16.5: 如果目标池为空或不存在，尝试使用回退池
+    // 参考: JigsawManager.Assembler.tryFitPiece -> fallbackPool.getShuffledPieces()
     if (!targetPool || targetPool->isEmpty()) {
+        return false;
+    }
+
+    // 构建候选块列表
+    // MC 1.16.5: 如果深度未达到最大值，使用目标池的块；否则只使用回退池
+    std::vector<const JigsawPiece*> candidatePieces;
+
+    if (joint.depth < maxDepth) {
+        // 添加目标池中的块
+        size_t pieceCount = targetPool->getNumberOfPieces();
+        for (size_t i = 0; i < pieceCount; ++i) {
+            const JigsawPiece* piece = targetPool->getRandomPiece(rng);
+            if (piece && !piece->isEmpty()) {
+                candidatePieces.push_back(piece);
+            }
+        }
+    }
+
+    // 添加回退池中的块
+    const ResourceLocation& fallbackLoc = targetPool->getFallback();
+    if (!fallbackLoc.empty() && fallbackLoc.toString() != "minecraft:empty") {
+        const JigsawPattern* fallbackPool = patternRegistry.getPattern(fallbackLoc);
+        if (fallbackPool && !fallbackPool->isEmpty()) {
+            size_t fallbackCount = fallbackPool->getNumberOfPieces();
+            for (size_t i = 0; i < fallbackCount; ++i) {
+                const JigsawPiece* piece = fallbackPool->getRandomPiece(rng);
+                if (piece && !piece->isEmpty()) {
+                    candidatePieces.push_back(piece);
+                }
+            }
+        }
+    }
+
+    if (candidatePieces.empty()) {
         return false;
     }
 
     // 尝试多次找到一个合适的块
     constexpr i32 maxAttempts = 20;
     for (i32 attempt = 0; attempt < maxAttempts; ++attempt) {
-        const JigsawPiece* selectedPiece = targetPool->getRandomPiece(rng);
+        const JigsawPiece* selectedPiece = candidatePieces[rng.nextInt(static_cast<i32>(candidatePieces.size()))];
         if (!selectedPiece || selectedPiece->isEmpty()) {
             continue;
         }
@@ -396,13 +432,27 @@ bool JigsawManager::boxesIntersect(
     const std::vector<PlacedPiece>& placedPieces,
     const structure::StructureBoundingBox& newBox)
 {
+    // MC 1.16.5: 使用 0.25 收缩边界进行碰撞检测
+    // 参考: JigsawManager.Assembler.tryFitPiece -> VoxelShapes.combineAndSimplify(..., IBooleanFunction.ONLY_SECOND)
+    // 收缩边界避免相邻块被判定为重叠
+    f32 shrink = 0.25f;
+    f32 shrunkMinX = static_cast<f32>(newBox.minX()) + shrink;
+    f32 shrunkMinY = static_cast<f32>(newBox.minY()) + shrink;
+    f32 shrunkMinZ = static_cast<f32>(newBox.minZ()) + shrink;
+    f32 shrunkMaxX = static_cast<f32>(newBox.maxX()) - shrink;
+    f32 shrunkMaxY = static_cast<f32>(newBox.maxY()) - shrink;
+    f32 shrunkMaxZ = static_cast<f32>(newBox.maxZ()) - shrink;
+
     for (const auto& placed : placedPieces) {
         const auto& existing = placed.boundingBox;
 
-        // AABB 碰撞检测
-        if (newBox.maxX() >= existing.minX() && newBox.minX() <= existing.maxX() &&
-            newBox.maxY() >= existing.minY() && newBox.minY() <= existing.maxY() &&
-            newBox.maxZ() >= existing.minZ() && newBox.minZ() <= existing.maxZ()) {
+        // AABB 碰撞检测（使用收缩后的边界）
+        if (shrunkMaxX >= static_cast<f32>(existing.minX()) &&
+            shrunkMinX <= static_cast<f32>(existing.maxX()) &&
+            shrunkMaxY >= static_cast<f32>(existing.minY()) &&
+            shrunkMinY <= static_cast<f32>(existing.maxY()) &&
+            shrunkMaxZ >= static_cast<f32>(existing.minZ()) &&
+            shrunkMinZ <= static_cast<f32>(existing.maxZ())) {
             return true;
         }
     }

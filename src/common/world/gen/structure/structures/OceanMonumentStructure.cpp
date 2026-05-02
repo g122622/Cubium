@@ -34,9 +34,66 @@ bool OceanMonumentStructure::canGenerate(
     i32 chunkX,
     i32 chunkZ)
 {
-    // 检查生物群系是否合适
-    // 海洋纪念碑需要足够大的水域
+    // MC 1.16.5: OceanMonumentStructure.func_230363_a_
+    // 需要检查两个条件:
+    // 1. 中心 16x16 范围内所有生物群系必须支持海洋纪念碑
+    // 2. 29x29 范围内所有生物群系必须是海洋或河流类别
+
+    i32 centerX = chunkX * 16 + 8;
+    i32 centerZ = chunkZ * 16 + 8;
+
+    // 检查中心生物群系是否在深海
+    BiomeId centerBiome = generator.getBiome(centerX, 64, centerZ);
+    if (!isValidBiome(centerBiome)) {
+        return false;
+    }
+
+    // 检查 29x29 区块范围 (约 464x464 方块范围)
+    // MC 1.16.5 使用 29 区块半径检查所有生物群系都是海洋或河流
+    constexpr i32 checkRadius = 29;
+    constexpr i32 checkStep = 16;  // 每 16 格检查一次
+
+    for (i32 dx = -checkRadius; dx <= checkRadius; dx += checkStep) {
+        for (i32 dz = -checkRadius; dz <= checkRadius; dz += checkStep) {
+            i32 x = centerX + dx;
+            i32 z = centerZ + dz;
+            BiomeId biome = generator.getBiome(x, 64, z);
+
+            // 检查是否是海洋或河流类生物群系
+            // MC 1.16.5: Biome.Category.OCEAN 或 Biome.Category.RIVER
+            if (!isOceanOrRiverBiome(biome)) {
+                return false;
+            }
+        }
+    }
+
     return true;
+}
+
+bool OceanMonumentStructure::isOceanOrRiverBiome(BiomeId biomeId) const {
+    // MC 1.16.5: 检查生物群系是否属于海洋或河流类别
+    // 包括所有海洋变种和河流变种
+    using namespace mc::Biomes;
+
+    switch (biomeId) {
+        // 海洋类
+        case Ocean:
+        case WarmOcean:
+        case LukewarmOcean:
+        case ColdOcean:
+        case FrozenOcean:
+        case DeepOcean:
+        case DeepWarmOcean:
+        case DeepLukewarmOcean:
+        case DeepColdOcean:
+        case DeepFrozenOcean:
+        // 河流类
+        case River:
+        case FrozenRiver:
+            return true;
+        default:
+            return false;
+    }
 }
 
 std::unique_ptr<StructureStart> OceanMonumentStructure::generate(

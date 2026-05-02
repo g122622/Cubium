@@ -5,6 +5,7 @@
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../Structure.hpp"  // for Structure::createRandom
 
 namespace mc::world::gen::structure {
 
@@ -63,12 +64,17 @@ const std::vector<BiomeId> BuriedTreasureStructure::m_validBiomes = {
 
 bool BuriedTreasureStructure::canGenerate(
     IWorld& /*world*/,
-    IChunkGenerator& /*generator*/,
+    IChunkGenerator& generator,
     math::Random& rng,
-    i32 /*chunkX*/,
-    i32 /*chunkZ*/)
+    i32 chunkX,
+    i32 chunkZ)
 {
-    // 埋藏宝藏有很低的生成概率（参考 MC: 1/4 概率）
+    // MC 1.16.5: BuriedTreasureStructure.func_230363_a_
+    // 使用单独的 salt=10387320 计算种子，然后检查概率
+    // 注意：这里的 rng 已经由 findStructureStart 使用正确的种子初始化了
+
+    // MC 1.16.5: 埋藏宝藏的概率检查
+    // nextFloat() < 0.01 (1% 概率)
     return rng.nextFloat() < 0.01f;
 }
 

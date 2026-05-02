@@ -47,14 +47,12 @@ bool FortressStructure::canGenerate(
     i32 chunkX,
     i32 chunkZ)
 {
-    // 40% 概率生成 (参考 MC: nextInt(5) < 2)
-    if (rng.nextInt(5) >= 2) {
-        return false;
-    }
+    // MC 1.16.5: 下界要塞只检查概率，不检查生物群系
+    // 生物群系检查由维度的 BiomeGenerationSettings 决定
+    // 参考: FortressStructure.func_230363_a_ -> 只调用 rng.nextInt(5) < 2
 
-    // 检查生物群系是否合适
-    BiomeId biomeId = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
-    return isValidBiome(biomeId);
+    // 40% 概率生成 (参考 MC: nextInt(5) < 2)
+    return rng.nextInt(5) < 2;
 }
 
 std::unique_ptr<StructureStart> FortressStructure::generate(

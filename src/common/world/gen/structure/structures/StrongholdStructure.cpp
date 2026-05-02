@@ -192,18 +192,20 @@ void StrongholdStructure::generateFallbackEntrance(
 }
 
 std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 worldSeed) {
-    // 要塞分布算法（参考 MC 1.16.5）
+    // 要塞分布算法（参考 MC 1.16.5: StrongholdStructure.java）
     // 8 个环，每个环有不同数量的要塞
     // 环 0: 3 个要塞，距离 1408-2688
-    // 环 1: 6 个要塞，距离 4480-5760
-    // 环 2: 10 个要塞，距离 7552-8832
-    // 环 3: 15 个要塞，距离 10624-11904
-    // 环 4: 21 个要塞，距离 13696-14976
-    // 环 5: 28 个要塞，距离 16768-18048
-    // 环 6: 36 个要塞，距离 19840-21120
-    // 环 7: 9 个要塞，距离 22912-24192
+    // 环 1: 3 个要塞，距离 4480-5760
+    // 环 2: 3 个要塞，距离 7552-8832
+    // 环 3: 4 个要塞，距离 10624-11904
+    // 环 4: 6 个要塞，距离 13696-14976
+    // 环 5: 10 个要塞，距离 16768-18048
+    // 环 6: 15 个要塞，距离 19840-21120
+    // 环 7: 21 个要塞，距离 22912-24192
+    // 总计: 3+3+3+4+6+10+15+21 = 65 个要塞 (MC 1.16.5)
 
-    static const i32 ringCounts[] = {3, 6, 10, 15, 21, 28, 36, 9};
+    // MC 1.16.5: StrongholdStructure.java 第 47-48 行
+    static const i32 ringCounts[] = {3, 3, 3, 4, 6, 10, 15, 21};
     static const i32 ringDistances[] = {1408, 4480, 7552, 10624, 13696, 16768, 19840, 22912};
     static const i32 ringSpreads[] = {1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280};
 
@@ -241,7 +243,8 @@ std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 w
 }
 
 i32 StrongholdStructure::getRing(i32 index) {
-    static const i32 ringCounts[] = {3, 6, 10, 15, 21, 28, 36, 9};
+    // MC 1.16.5: 3+3+3+4+6+10+15+21 = 65 个要塞
+    static const i32 ringCounts[] = {3, 3, 3, 4, 6, 10, 15, 21};
     i32 cumulative = 0;
     for (i32 ring = 0; ring < 8; ++ring) {
         cumulative += ringCounts[ring];

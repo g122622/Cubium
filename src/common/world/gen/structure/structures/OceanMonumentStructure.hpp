@@ -58,6 +58,12 @@ private:
     void generateRoom(IWorldWriter& world, const BlockState* prismarine, const BlockState* seaLantern,
                       i32 baseX, i32 baseY, i32 baseZ, i32 width, i32 height, i32 depth) const;
 
+    /**
+     * @brief 检查生物群系是否属于海洋或河流类别
+     * MC 1.16.5: Biome.Category.OCEAN 或 Biome.Category.RIVER
+     */
+    [[nodiscard]] bool isOceanOrRiverBiome(BiomeId biomeId) const;
+
     static constexpr StructureSeparationSettings m_settings{32, 5, 10387313};
     static const String m_name;
     std::vector<BiomeId> m_validBiomes;
