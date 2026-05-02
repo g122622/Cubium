@@ -86,7 +86,7 @@ public:
         IBlockReader& world,
         const BlockPos& pos,
         const BlockState& state,
-        bool isClient) const override;
+        bool isClientSide) const override;
 
     [[nodiscard]] bool canUseBonemeal(
         IWorld& world,

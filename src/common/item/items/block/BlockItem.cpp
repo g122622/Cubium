@@ -102,7 +102,7 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
     }
 
     // 返回成功（客户端返回 Success，服务端返回 Consume）
-    // 参考 MC 1.16.5: ActionResultType.func_233537_a_(world.isRemote)
+    // 参考 MC 1.16.5: ActionResultType.func_233537_a_(world.isClientSide)
     return ActionResultType::Success;
 }
 

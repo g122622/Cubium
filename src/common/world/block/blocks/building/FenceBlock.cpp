@@ -97,7 +97,7 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context) {
     bool connectWest = westState && canConnect(*westState, westState->isSolid());
 
     // 检查是否含水
-    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
     return defaultState()
         .with(BlockStateProperties::NORTH(), connectNorth)

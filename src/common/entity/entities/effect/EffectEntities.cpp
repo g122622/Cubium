@@ -109,7 +109,7 @@ void LightningBoltEntity::tick() {
     // 播放音效、点燃方块、造成伤害
     if (m_lightningState == 2) {
         // MC 1.16.5: 难度检查 - NORMAL 和 HARD 点燃更多火焰
-        if (m_world != nullptr && !m_effectOnly && !m_world->isRemote()) {
+        if (m_world != nullptr && !m_effectOnly && !m_world->isClientSide()) {
             Difficulty difficulty = m_world->difficulty();
             if (difficulty == Difficulty::Normal || difficulty == Difficulty::Hard) {
                 igniteBlocks(4);
@@ -143,7 +143,7 @@ void LightningBoltEntity::tick() {
         }
 
         // MC 1.16.5: 服务端造成伤害（非 effectOnly，非客户端）
-        if (m_world != nullptr && !m_world->isRemote() && !m_effectOnly) {
+        if (m_world != nullptr && !m_world->isClientSide() && !m_effectOnly) {
             damageEntities();
         }
 
@@ -184,7 +184,7 @@ void LightningBoltEntity::tick() {
 void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
     // MC 1.16.5 igniteBlocks():
     // 检查游戏规则 doFireTick 和是否为客户端
-    if (m_effectOnly || m_world == nullptr || m_world->isRemote()) {
+    if (m_effectOnly || m_world == nullptr || m_world->isClientSide()) {
         return;
     }
 

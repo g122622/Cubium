@@ -31,14 +31,14 @@ public:
      * @param world 世界读取器
      * @param pos 方块位置
      * @param state 当前方块状态
-     * @param isClient 是否为客户端
+     * @param isClientSide 是否为客户端
      * @return 如果可以生长返回true
      */
     [[nodiscard]] virtual bool canGrow(
         IBlockReader& world,
         const BlockPos& pos,
         const BlockState& state,
-        bool isClient) const = 0;
+        bool isClientSide) const = 0;
 
     /**
      * @brief 检查是否可以使用骨粉

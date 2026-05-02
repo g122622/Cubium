@@ -50,8 +50,8 @@ ActionResultType EnchantingTableBlock::onBlockActivated(
     MC_UNUSED(hit);
 
     // 客户端直接返回成功
-    // TODO: 检查 world.isRemote()
-    // if (world.isRemote()) {
+    // TODO: 检查 world.isClientSide()
+    // if (world.isClientSide()) {
     //     return ActionResult::SUCCESS;
     // }
 

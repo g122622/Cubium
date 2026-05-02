@@ -28,7 +28,7 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
     BlockPos pos = context.blockPos();
     Direction face = context.face();
 
-    if (world.isRemote()) {
+    if (world.isClientSide()) {
         return ActionResultType::Success;
     }
 
@@ -68,7 +68,7 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
 }
 
 ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    if (world.isRemote()) {
+    if (world.isClientSide()) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 

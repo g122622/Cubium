@@ -157,12 +157,12 @@ bool BambooBlock::canGrow(
     IBlockReader& world,
     const BlockPos& pos,
     const BlockState& state,
-    bool isClient) const {
+    bool isClientSide) const {
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
-    MC_UNUSED(isClient);
+    MC_UNUSED(isClientSide);
 
     // 竹子总是可以生长（如果高度未达到限制）
     return true;
@@ -363,12 +363,12 @@ bool BambooSaplingBlock::canGrow(
     IBlockReader& world,
     const BlockPos& pos,
     const BlockState& state,
-    bool isClient) const {
+    bool isClientSide) const {
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
-    MC_UNUSED(isClient);
+    MC_UNUSED(isClientSide);
 
     return true;
 }

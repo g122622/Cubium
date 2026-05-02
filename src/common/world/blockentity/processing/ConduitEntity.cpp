@@ -80,14 +80,14 @@ void ConduitEntity::tick(IWorld& world) {
         setActive(shouldBeActive(world));
 
         // 服务端：激活时应用效果和攻击
-        if (!world.isRemote() && m_active) {
+        if (!world.isClientSide() && m_active) {
             addEffectsToPlayers(world);
             attackMobs(world);
         }
     }
 
     // 客户端：更新旋转和粒子
-    if (world.isRemote()) {
+    if (world.isClientSide()) {
         if (m_active) {
             ++m_activeRotation;
         }

@@ -270,17 +270,7 @@ BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context) {
     // 根据点击位置决定上半/下半
     bool isTop = context.getHitY() > 0.5f;
 
-    const BlockState* statePtr = context.getWorld().getBlockState(
-        context.placementPos().x,
-        context.placementPos().y,
-        context.placementPos().z
-    );
-
-    bool waterlogged = false;
-    if (statePtr != nullptr) {
-        const fluid::FluidState* fluid = statePtr->getFluidState();
-        waterlogged = fluid != nullptr && fluid->isSource();
-    }
+    bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos());
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)

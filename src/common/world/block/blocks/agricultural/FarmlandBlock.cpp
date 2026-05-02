@@ -173,7 +173,7 @@ void FarmlandBlock::onFallenUpon(
     // 踩踏条件：fallDistance > 1.0f 且实体不是飞行或创造模式
 
     // 简化实现：如果落下距离 > 1.0，则踩踏耕地
-    if (!world.isRemote() && fallDistance > 1.0f) {
+    if (!world.isClientSide() && fallDistance > 1.0f) {
         turnToDirt(world, pos, state);
     }
 

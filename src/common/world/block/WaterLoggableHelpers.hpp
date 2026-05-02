@@ -57,25 +57,44 @@ inline void scheduleWaterTick(IWorld& world, const BlockPos& pos) {
 }
 
 /**
- * @brief 检测放置位置是否应该含水
+ * @brief 检测放置位置是否应该含水（用于 getStateForPlacement）
+ *
+ * 根据 MC 1.16.5 原版行为，放置含水方块时只检测水源，不检测流动水。
+ * 这是因为 MC 源码中使用 fluidstate.getFluid() == Fluids.WATER，
+ * 而 Fluids.WATER 只匹配静止水源，不匹配 Fluids.FLOWING_WATER。
+ *
  * @param world 世界引用
  * @param pos 方块位置
- * @return 如果该位置有水返回 true
+ * @return 如果该位置有水源返回 true
  */
 [[nodiscard]] inline bool shouldWaterlogAt(const IWorld& world, const BlockPos& pos) {
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    return isWaterSourceFluidState(fluidState);
+}
+
+/**
+ * @brief 检测放置位置是否有任何水（包括流动水）
+ *
+ * 用于检测附近是否有水的场景，如珊瑚检测周围水源。
+ *
+ * @param world 世界引用
+ * @param pos 方块位置
+ * @return 如果该位置有任何水返回 true
+ */
+[[nodiscard]] inline bool hasAnyWaterAt(const IWorld& world, const BlockPos& pos) {
     const fluid::FluidState* fluidState = world.getFluidState(pos);
     return isWaterFluidState(fluidState);
 }
 
 /**
- * @brief 检测放置位置是否为水源（用于 getStateForPlacement）
+ * @brief 检测放置位置是否为水源
  * @param world 世界引用
  * @param pos 方块位置
  * @return 如果该位置有水源返回 true
+ * @deprecated 请使用 shouldWaterlogAt() 用于放置检测，hasAnyWaterAt() 用于检测附近水源
  */
 [[nodiscard]] inline bool hasWaterSourceAt(const IWorld& world, const BlockPos& pos) {
-    const fluid::FluidState* fluidState = world.getFluidState(pos);
-    return isWaterSourceFluidState(fluidState);
+    return shouldWaterlogAt(world, pos);
 }
 
 } // namespace waterloggable

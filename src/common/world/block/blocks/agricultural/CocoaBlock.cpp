@@ -139,11 +139,11 @@ bool CocoaBlock::canGrow(
     IBlockReader& world,
     const BlockPos& pos,
     const BlockState& state,
-    bool isClient) const {
+    bool isClientSide) const {
 
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(isClient);
+    MC_UNUSED(isClientSide);
 
     // 未成熟时可以生长
     return !isMaxAge(state);

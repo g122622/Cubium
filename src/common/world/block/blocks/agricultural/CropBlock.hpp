@@ -99,7 +99,7 @@ public:
         IBlockReader& world,
         const BlockPos& pos,
         const BlockState& state,
-        bool isClient) const override;
+        bool isClientSide) const override;
 
     /**
      * @brief 骨粉是否有效（总是有效）

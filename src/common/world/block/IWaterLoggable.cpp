@@ -42,6 +42,11 @@ bool IWaterLoggable::receiveFluid(
         return false;
     }
 
+    // 只在服务端执行修改
+    if (world.isClientSide()) {
+        return true;
+    }
+
     // 设置 WATERLOGGED=true
     BlockState newState = state->with(BlockStateProperties::WATERLOGGED(), true);
     world.setBlockState(pos, &newState, 3);
@@ -58,6 +63,11 @@ fluid::Fluid* IWaterLoggable::pickupFluid(
     const BlockState& state) {
     if (!isWaterlogged(state)) {
         return nullptr;
+    }
+
+    // 只在服务端执行修改
+    if (world.isClientSide()) {
+        return fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
     }
 
     // 设置 WATERLOGGED=false

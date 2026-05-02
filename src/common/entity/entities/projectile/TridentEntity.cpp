@@ -49,7 +49,7 @@ void TridentEntity::tick() {
 
         if (loyaltyLevel > 0 && !shouldReturnToThrower()) {
             // 忠诚附魔但无法返回（射手是观察者模式），掉落物品
-            if (!m_world->isRemote() && pickupStatus() == PickupStatus::Allowed) {
+            if (!m_world->isClientSide() && pickupStatus() == PickupStatus::Allowed) {
                 // entityDropItem(getArrowStack(), 0.1F);
             }
             remove();
@@ -208,7 +208,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
 
     // TODO: 引雷附魔
     // 参考 MC 1.16.5 第154-164行
-    if (m_world != nullptr && !m_world->isRemote() && livingTarget != nullptr) {
+    if (m_world != nullptr && !m_world->isClientSide() && livingTarget != nullptr) {
         // 检查是否有引雷附魔
         if (mc::item::enchant::EnchantmentHelper::hasChanneling(m_tridentStack)) {
             // 检查是否在雷暴天气

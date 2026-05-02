@@ -3,6 +3,7 @@
 #include <array>
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -20,7 +21,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.PaneBlock
  */
-class PaneBlock : public Block {
+class PaneBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -64,6 +65,15 @@ public:
      * @brief 获取流体状态
      */
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
 
     // ========== 属性访问 ==========
 

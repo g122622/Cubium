@@ -34,7 +34,7 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
     Player* player = context.getPlayer();
     ItemStack& stack = context.getItemStackMut();
 
-    if (world.isRemote()) {
+    if (world.isClientSide()) {
         return ActionResultType::Success;
     }
 
@@ -131,7 +131,7 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
 }
 
 ItemActionResult BucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    if (world.isRemote()) {
+    if (world.isClientSide()) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 

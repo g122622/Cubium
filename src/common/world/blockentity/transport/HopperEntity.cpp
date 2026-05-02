@@ -56,8 +56,8 @@ void HopperEntity::tick(IWorld& world) {
     }
 
     // 客户端不执行传输逻辑
-    // 注意：IWorld 没有 isRemote() 方法，这里假设服务端执行
-    // 实际使用时需要检查 world.isRemote()
+    // 注意：IWorld 没有 isClientSide() 方法，这里假设服务端执行
+    // 实际使用时需要检查 world.isClientSide()
 
     // 减少冷却
     if (m_transferCooldown > 0) {

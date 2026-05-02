@@ -41,11 +41,7 @@ BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context) {
     const BlockState* existingState = context.getWorld().getBlockState(pos);
 
     // 检查是否含水
-    bool waterlogged = false;
-    if (existingState != nullptr) {
-        const fluid::FluidState* fluid = existingState->getFluidState();
-        waterlogged = fluid != nullptr && fluid->isSource();
-    }
+    bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), pos);
 
     // 根据点击位置决定上半/下半
     // 点击上半部分 -> 上半台阶
@@ -261,17 +257,17 @@ bool SlabBlock::receiveFluid(
         return false;
     }
 
+    // 只在服务端执行修改
+    if (world.isClientSide()) {
+        return true;
+    }
+
     // 设置 WATERLOGGED=true
     BlockState newState = state->with(BlockStateProperties::WATERLOGGED(), true);
     world.setBlockState(pos, &newState, 3);
 
     // 调度流体 tick
-    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-        fluid::FluidRegistry::WATER_ID);
-    if (waterFluid != nullptr) {
-        world.tickManager().scheduleFluidTick(
-            pos, *waterFluid, waterFluid->getTickDelay(world));
-    }
+    waterloggable::scheduleWaterTick(world, pos);
 
     return true;
 }
