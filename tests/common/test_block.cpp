@@ -20,7 +20,9 @@
 #include "../src/common/util/math/random/Random.hpp"
 #include "../src/common/util/math/Vector3.hpp"
 #include "../src/common/util/property/Properties.hpp"
+#include "../src/common/world/tick/manager/TickManager.hpp"
 #include <atomic>
+#include <memory>
 #include <unordered_map>
 
 using namespace mc;
@@ -207,12 +209,27 @@ public:
         return m_spawnedEntityCount;
     }
 
-    // TickManager interface (stubbed for tests)
+    // TickManager interface
+    void ensureTickManager() {
+        if (!m_tickManagerPtr) {
+            m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
+        }
+    }
     [[nodiscard]] world::tick::TickManager& tickManager() override {
-        throw std::runtime_error("BlockRulesTestWorld::tickManager not implemented");
+        ensureTickManager();
+        return *m_tickManagerPtr;
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
-        throw std::runtime_error("BlockRulesTestWorld::tickManager not implemented");
+        const_cast<BlockRulesTestWorld*>(this)->ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    // Random interface
+    [[nodiscard]] math::Random& getRandom() override {
+        return m_random;
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        return m_random;
     }
 
 private:
@@ -231,6 +248,8 @@ private:
     std::unordered_map<i64, const BlockState*> m_blocks;
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
+    std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
+    math::Random m_random{12345};  // 固定种子的随机数生成器
     u64 m_seed = 0;
     bool m_isRaining = false;
     bool m_canRainAt = false;
@@ -1213,7 +1232,7 @@ TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {
     world.setBlock(sandPos.x, sandPos.y, sandPos.z, &VanillaBlocks::SAND->defaultState());
 
     BlockState sandState = VanillaBlocks::SAND->defaultState();
-    fallingSand->tick(world, sandPos, sandState);
+    fallingSand->tick(world, sandPos, sandState, world.getRandom());
 
     EXPECT_EQ(world.spawnedEntityCount(), 1);
     const BlockState* stateAfterTick = world.getBlockState(sandPos.x, sandPos.y, sandPos.z);

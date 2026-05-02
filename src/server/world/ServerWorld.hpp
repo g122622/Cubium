@@ -187,6 +187,11 @@ public:
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
 
+    // ========== 随机数生成器 ==========
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
     // ========== 类型转换 ==========
 
     [[nodiscard]] ServerWorld* asServerWorld() override { return this; }

@@ -2,9 +2,17 @@
 
 #include "Enchantment.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <vector>
+#include <array>
 
 namespace mc {
+
+// 前向声明
+class LivingEntity;
+class Entity;
+class Player;
+
 namespace item {
 namespace enchant {
 
@@ -114,6 +122,142 @@ public:
      */
     [[nodiscard]] static i32 getUnbreakingLevel(const ItemStack& stack);
 
+    /**
+     * @brief 获取击退等级
+     *
+     * @param stack 物品堆
+     * @return 击退等级（0-2）
+     */
+    [[nodiscard]] static i32 getKnockbackLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取火焰附加等级
+     *
+     * @param stack 物品堆
+     * @return 火焰附加等级（0-2）
+     */
+    [[nodiscard]] static i32 getFireAspectLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取抢夺等级
+     *
+     * @param stack 物品堆
+     * @return 抢夺等级（0-3）
+     */
+    [[nodiscard]] static i32 getLootingLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取效率等级
+     *
+     * @param stack 物品堆
+     * @return 效率等级（0-5）
+     */
+    [[nodiscard]] static i32 getEfficiencyLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取水下呼吸等级
+     *
+     * @param stack 物品堆
+     * @return 水下呼吸等级（0-3）
+     */
+    [[nodiscard]] static i32 getRespirationLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取深海探索者等级
+     *
+     * @param stack 物品堆
+     * @return 深海探索者等级（0-3）
+     */
+    [[nodiscard]] static i32 getDepthStriderLevel(const ItemStack& stack);
+
+    /**
+     * @brief 检查是否有水下速掘
+     *
+     * @param stack 物品堆
+     * @return 如果有水下速掘返回true
+     */
+    [[nodiscard]] static bool hasAquaAffinity(const ItemStack& stack);
+
+    /**
+     * @brief 检查是否有冰霜行者
+     *
+     * @param stack 物品堆
+     * @return 如果有冰霜行者返回true
+     */
+    [[nodiscard]] static bool hasFrostWalker(const ItemStack& stack);
+
+    /**
+     * @brief 检查是否有灵魂疾行
+     *
+     * @param stack 物品堆
+     * @return 如果有灵魂疾行返回true
+     */
+    [[nodiscard]] static bool hasSoulSpeed(const ItemStack& stack);
+
+    /**
+     * @brief 检查是否有绑定诅咒
+     *
+     * @param stack 物品堆
+     * @return 如果有绑定诅咒返回true
+     */
+    [[nodiscard]] static bool hasBindingCurse(const ItemStack& stack);
+
+    /**
+     * @brief 检查是否有消失诅咒
+     *
+     * @param stack 物品堆
+     * @return 如果有消失诅咒返回true
+     */
+    [[nodiscard]] static bool hasVanishingCurse(const ItemStack& stack);
+
+    /**
+     * @brief 获取忠诚等级
+     *
+     * @param stack 物品堆
+     * @return 忠诚等级（0-3）
+     */
+    [[nodiscard]] static i32 getLoyaltyLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取激流等级
+     *
+     * @param stack 物品堆
+     * @return 激流等级（0-3）
+     */
+    [[nodiscard]] static i32 getRiptideLevel(const ItemStack& stack);
+
+    /**
+     * @brief 检查是否有引雷
+     *
+     * @param stack 物品堆
+     * @return 如果有引雷返回true
+     */
+    [[nodiscard]] static bool hasChanneling(const ItemStack& stack);
+
+    /**
+     * @brief 获取横扫之刃伤害比例
+     *
+     * @param stack 物品堆
+     * @return 横扫伤害比例（0.0-1.0）
+     */
+    [[nodiscard]] static f32 getSweepingDamageRatio(const ItemStack& stack);
+
+    /**
+     * @brief 获取钓鱼运气加成
+     *
+     * @param stack 物品堆
+     * @return 海之眷顾等级（0-3）
+     */
+    [[nodiscard]] static i32 getFishingLuckBonus(const ItemStack& stack);
+
+    /**
+     * @brief 获取钓鱼速度加成
+     *
+     * @param stack 物品堆
+     * @return 饵钓等级（0-3）
+     */
+    [[nodiscard]] static i32 getFishingSpeedBonus(const ItemStack& stack);
+
     // ========== 附魔计算 ==========
 
     /**
@@ -158,6 +302,21 @@ public:
      * @return 保护因子值
      */
     [[nodiscard]] static i32 getProtectionFactor(const ItemStack& stack, u32 damageType);
+
+    // ========== 耐久计算 ==========
+
+    /**
+     * @brief 检查耐久附魔是否阻止耐久损耗
+     *
+     * MC 1.16.5: 每级有 level/(level+1) 概率避免损耗
+     * 护甲有 60% 概率不触发耐久效果
+     *
+     * @param level 耐久等级
+     * @param isArmor 是否为护甲
+     * @param random 随机数生成器
+     * @return 如果应该忽略损耗返回true
+     */
+    [[nodiscard]] static bool shouldIgnoreDurabilityLoss(i32 level, bool isArmor, class math::Random& random);
 
 private:
     EnchantmentHelper() = delete;  // 禁止实例化

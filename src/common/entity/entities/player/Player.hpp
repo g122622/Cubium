@@ -764,6 +764,26 @@ public:
      */
     [[nodiscard]] i32 ticksSinceLastAttack() const { return m_ticksSinceLastAttack; }
 
+    // ========== 钓鱼系统 ==========
+
+    /**
+     * @brief 获取钓鱼浮标实体ID
+     * @return 钓鱼浮标实体ID，0表示未投掷
+     */
+    [[nodiscard]] EntityId fishingBobber() const { return m_fishingBobber; }
+
+    /**
+     * @brief 设置钓鱼浮标实体ID
+     * @param bobberId 浮标实体ID，0表示清除
+     */
+    void setFishingBobber(EntityId bobberId) { m_fishingBobber = bobberId; }
+
+    /**
+     * @brief 检查是否正在钓鱼
+     * @return 如果有投掷的浮标返回 true
+     */
+    [[nodiscard]] bool isFishing() const { return m_fishingBobber != 0; }
+
     /**
      * @brief 攻击目标实体
      *
@@ -935,6 +955,9 @@ private:
     // 攻击冷却系统
     i32 m_ticksSinceLastAttack = 0;        // 上次攻击后的 tick 数
     f32 m_offHandAttackChance = 0.0f;      // 副手攻击概率（双持武器用）
+
+    // 钓鱼系统
+    EntityId m_fishingBobber = 0;          // 当前投掷的钓鱼浮标实体ID，0表示未投掷
 };
 
 } // namespace mc

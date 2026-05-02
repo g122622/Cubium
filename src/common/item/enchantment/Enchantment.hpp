@@ -7,6 +7,13 @@
 #include <string>
 
 namespace mc {
+
+// 前向声明
+class LivingEntity;
+class Entity;
+class ItemStack;
+class Player;
+
 namespace item {
 namespace enchant {
 
@@ -129,6 +136,31 @@ public:
     [[nodiscard]] virtual bool canApplyTo(u32 itemType) const;
 
     /**
+     * @brief 检查是否可以在附魔台获得
+     * @param stack 物品堆
+     * @return 如果可以在附魔台获得返回true（宝藏附魔返回false）
+     */
+    [[nodiscard]] virtual bool canApplyAtEnchantingTable(const ItemStack& stack) const;
+
+    /**
+     * @brief 检查是否可以出现在村民交易中
+     * @return 如果可以出现在村民交易返回true
+     */
+    [[nodiscard]] virtual bool canVillagerTrade() const { return !isTreasure(); }
+
+    /**
+     * @brief 检查是否可以生成在战利品箱中
+     * @return 如果可以生成在战利品箱返回true
+     */
+    [[nodiscard]] virtual bool canGenerateInLoot() const { return true; }
+
+    /**
+     * @brief 检查是否可以附在书上
+     * @return 如果可以附在书上返回true
+     */
+    [[nodiscard]] virtual bool isAllowedOnBooks() const { return true; }
+
+    /**
      * @brief 检查与另一个附魔的兼容性
      * @param other 另一个附魔
      * @return 如果兼容返回true（可以同时存在）
@@ -182,6 +214,32 @@ public:
      * @return 保护点数
      */
     [[nodiscard]] virtual i32 getDamageProtection(i32 level, u32 damageType) const;
+
+    // ========== 回调方法 ==========
+
+    /**
+     * @brief 当持有者攻击目标实体时调用
+     *
+     * 用于实现节肢杀手的缓慢效果、火焰附加的点燃效果等。
+     * 参考 MC 1.16.5 Enchantment.onEntityDamaged
+     *
+     * @param user 攻击者（持有附魔物品的实体）
+     * @param target 被攻击的目标实体
+     * @param level 附魔等级
+     */
+    virtual void onEntityDamaged(LivingEntity& user, Entity& target, i32 level) const;
+
+    /**
+     * @brief 当持有者受到伤害时调用
+     *
+     * 用于实现荆棘的反伤效果。
+     * 参考 MC 1.16.5 Enchantment.onUserHurt
+     *
+     * @param user 受伤者（持有附魔物品的实体）
+     * @param attacker 攻击者
+     * @param level 附魔等级
+     */
+    virtual void onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const;
 
     // ========== 稀有度权重 ==========
 

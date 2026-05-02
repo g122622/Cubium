@@ -85,7 +85,7 @@ void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSt
 void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
                                    Block& neighborBlock, const BlockPos& neighborPos,
                                    bool isMoving) {
-    // 参考: net.minecraft.block.FlowingFluidBlock#neighborChanged
+    // 参考: net.minecraft.block.LiquidBlock#neighborChanged
     // 只有当 reactWithNeighbors 返回 true 时才调度流体 tick
     const BlockState* currentState = world.getBlockState(pos);
     if (currentState != nullptr) {
@@ -104,17 +104,9 @@ void LiquidBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     (void)isMoving;
 }
 
-void LiquidBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
-    // 获取流体状态并调用流体的tick方法
-    // 按当前状态实际归属的流体类型执行tick。
-    const fluid::FluidState* fluidState = getFluidState(state);
-    if (fluidState != nullptr && !fluidState->isEmpty()) {
-        // 创建可变副本进行tick
-        fluid::FluidState mutableState = *fluidState;
-        fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
-        fluidRef.tick(world, pos, mutableState);
-    }
-}
+// 注意: LiquidBlock 不应该有 tick() 方法
+// MC 1.16.5 中 FlowingFluidBlock 没有 tick 方法
+// 流体 tick 由 TickManager 的 fluidTicks 列表直接调用 Fluid.tick()
 
 BlockState LiquidBlock::updatePostPlacement(
     const BlockState& state,

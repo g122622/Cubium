@@ -181,7 +181,7 @@ i32 DeepOceanLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32
                 case BiomeValues::LukewarmOcean:
                     return BiomeValues::DeepLukewarmOcean; // 45 -> 48
                 case BiomeValues::Ocean:
-                    return BiomeValues::DeepOcean;         // 0 -> 20
+                    return BiomeValues::DeepOcean;         // 0 -> 24
                 case BiomeValues::ColdOcean:
                     return BiomeValues::DeepColdOcean;     // 46 -> 49
                 case BiomeValues::FrozenOcean:

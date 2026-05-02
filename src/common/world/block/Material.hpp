@@ -19,9 +19,10 @@ public:
      * @brief 推动反应类型
      */
     enum class PushReaction {
-        Normal,   // 正常推动
-        Destroy,  // 被推动时销毁
-        Block     // 阻止推动
+        Normal,    // 正常推动
+        Destroy,   // 被推动时销毁
+        Block,     // 阻止推动
+        PushOnly   // 只能被推动，不能被拉回
     };
 
     /**

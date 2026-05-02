@@ -28,13 +28,16 @@ TickManager::TickManager(IWorld& world)
             return BlockRegistry::instance().getBlock(id);
         },
         // tick回调：执行方块tick
+        // 参考: MC 1.16.5 ServerWorld.tickBlock
+        // 必须检查当前位置的方块是否是调度时的目标方块
         [](IWorld& w, const BlockPos& pos, Block& block) {
-            // 获取方块状态并执行tick
             const BlockState* state = w.getBlockState(pos);
-            if (state != nullptr && !block.isAir(*state)) {
+            if (state != nullptr && &state->getBlock() == &block) {
+                // 当前位置的方块与调度时的目标方块匹配，执行tick
                 BlockState* mutableState = const_cast<BlockState*>(state);
-                block.tick(w, pos, *mutableState);
+                block.tick(w, pos, *mutableState, w.getRandom());
             }
+            // 如果方块不匹配，说明方块已改变，跳过此次tick
         }
     );
 
@@ -54,13 +57,18 @@ TickManager::TickManager(IWorld& world)
             return fluid::FluidRegistry::instance().getFluid(id);
         },
         // tick回调：执行流体tick
+        // 参考: MC 1.16.5 ServerWorld.tickFluid
+        // 必须检查当前位置的流体是否是调度时的目标流体
         [](IWorld& w, const BlockPos& pos, fluid::Fluid& fluid) {
-            // 获取流体状态并执行tick
             const fluid::FluidState* state = w.getFluidState(pos);
             if (state != nullptr && !state->isEmpty()) {
-                // 流体tick需要修改状态
-                fluid::FluidState mutableState = *state;
-                fluid.tick(w, pos, mutableState);
+                // 检查当前位置的流体是否是调度时的目标流体
+                if (&state->getFluid() == &fluid) {
+                    // 流体匹配，执行tick
+                    fluid::FluidState mutableState = *state;
+                    fluid.tick(w, pos, mutableState);
+                }
+                // 如果流体不匹配，说明流体已改变，跳过此次tick
             }
         }
     );

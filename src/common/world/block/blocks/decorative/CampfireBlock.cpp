@@ -42,7 +42,8 @@ BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context) {
         .with(BlockStateProperties::WATERLOGGED(), false);
 }
 
-void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 如果被水淹没，熄灭
     if (isWaterlogged(state)) {
         extinguish(world, pos, state);

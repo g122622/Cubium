@@ -2,9 +2,10 @@
 
 #include "ProjectileEntity.hpp"
 #include "../../damage/DamageSource.hpp"
-#include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/Block.hpp"
 #include <memory>
 #include <unordered_set>
+#include <optional>
 
 namespace mc {
 namespace entity {
@@ -134,7 +135,7 @@ public:
      * @param player 玩家
      * @return 是否成功拾取
      */
-    bool onPlayerPickup(Player& player);
+    virtual bool onPlayerPickup(Player& player);
 
     /**
      * @brief 获取箭矢物品堆（用于拾取）
@@ -218,7 +219,7 @@ protected:
     std::unordered_set<EntityId> m_piercedEntities;
 
     // 命中的方块状态
-    BlockState m_inBlockState;
+    std::optional<BlockState> m_inBlockState;
 };
 
 /**

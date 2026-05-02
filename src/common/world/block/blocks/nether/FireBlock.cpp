@@ -116,7 +116,8 @@ BlockState FireBlock::updatePostPlacement(
     }
 }
 
-void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 更新火焰状态
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     if (!isValidPosition(state, blockReader, pos)) {

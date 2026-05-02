@@ -181,6 +181,9 @@ i32 HillsLayer::apply(IAreaContext& ctx, const IArea& biomeArea, const IArea& ri
             case BiomeValues::Ocean:  // 0
                 result = BiomeValues::DeepOcean;  // 24
                 break;
+            case BiomeValues::WarmOcean:  // 44
+                result = BiomeValues::DeepWarmOcean;  // 47
+                break;
             case BiomeValues::LukewarmOcean:  // 45
                 result = BiomeValues::DeepLukewarmOcean;  // 48
                 break;

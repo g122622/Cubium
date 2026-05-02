@@ -23,7 +23,7 @@ void AbstractRaiderEntity::leaveRaid() {
 
 void AbstractRaiderEntity::startCelebrating() {
     m_celebrationTime = CELEBRATION_DURATION;
-    setState(IllagerState::Celebrating);
+    setState(RaiderState::Celebrating);
 }
 
 void AbstractRaiderEntity::tick() {
@@ -33,7 +33,7 @@ void AbstractRaiderEntity::tick() {
     if (m_celebrationTime > 0) {
         m_celebrationTime--;
         if (m_celebrationTime <= 0) {
-            setState(IllagerState::Neutral);
+            setState(RaiderState::Neutral);
         }
     }
 

@@ -95,6 +95,9 @@ void PotionBrewing::initialize() {
     // 尴尬的药水 + 发酵蛛眼 → 虚弱药水
     addMix(Potions::AWKWARD, Items::FERMENTED_SPIDER_EYE, Potions::WEAKNESS);
 
+    // 水瓶 + 发酵蛛眼 → 虚弱药水（MC 1.16.5 补充配方）
+    addMix(Potions::WATER, Items::FERMENTED_SPIDER_EYE, Potions::WEAKNESS);
+
     // 尴尬的药水 + 幻翼膜 → 缓降药水
     addMix(Potions::AWKWARD, Items::PHANTOM_MEMBRANE, Potions::SLOW_FALLING);
 
@@ -121,6 +124,12 @@ void PotionBrewing::initialize() {
 
     // 跳跃药水 + 荧石粉 → 跳跃药水 II
     addMix(Potions::LEAPING, Items::GLOWSTONE_DUST, Potions::STRONG_LEAPING);
+
+    // 跳跃药水 + 发酵蛛眼 → 缓慢药水（MC 1.16.5）
+    addMix(Potions::LEAPING, Items::FERMENTED_SPIDER_EYE, Potions::SLOWNESS);
+
+    // 长效跳跃药水 + 发酵蛛眼 → 长效缓慢药水（MC 1.16.5）
+    addMix(Potions::LONG_LEAPING, Items::FERMENTED_SPIDER_EYE, Potions::LONG_SLOWNESS);
 
     // ========== 防火药水升级 ==========
     // 防火药水 + 红石 → 长效防火药水
@@ -159,6 +168,15 @@ void PotionBrewing::initialize() {
 
     // 中毒药水 + 荧石粉 → 中毒药水 II
     addMix(Potions::POISON, Items::GLOWSTONE_DUST, Potions::STRONG_POISON);
+
+    // 中毒药水 + 发酵蛛眼 → 瞬间伤害药水（MC 1.16.5）
+    addMix(Potions::POISON, Items::FERMENTED_SPIDER_EYE, Potions::HARMING);
+
+    // 长效中毒药水 + 发酵蛛眼 → 瞬间伤害药水（MC 1.16.5）
+    addMix(Potions::LONG_POISON, Items::FERMENTED_SPIDER_EYE, Potions::HARMING);
+
+    // 强效中毒药水 + 发酵蛛眼 → 瞬间伤害药水 II（MC 1.16.5）
+    addMix(Potions::STRONG_POISON, Items::FERMENTED_SPIDER_EYE, Potions::STRONG_HARMING);
 
     // ========== 生命恢复药水升级 ==========
     // 生命恢复药水 + 红石 → 长效生命恢复药水

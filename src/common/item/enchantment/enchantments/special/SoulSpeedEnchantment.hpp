@@ -51,6 +51,14 @@ public:
         return true;  // 只能从猪灵交易获得
     }
 
+    [[nodiscard]] bool canVillagerTrade() const override {
+        return false;  // MC 1.16.5: 不能通过村民交易获得
+    }
+
+    [[nodiscard]] bool canGenerateInLoot() const override {
+        return false;  // MC 1.16.5: 不能在战利品表中生成
+    }
+
     [[nodiscard]] i32 getMinCost(i32 level) const override {
         return 10 + (level - 1) * 10;
     }

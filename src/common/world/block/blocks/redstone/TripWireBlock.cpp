@@ -91,7 +91,8 @@ void TripWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
     }
 }
 
-void TripWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void TripWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 更新绊线状态
     updateState(world, pos);
 }

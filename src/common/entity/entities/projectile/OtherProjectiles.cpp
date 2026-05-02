@@ -2,14 +2,26 @@
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/player/Player.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
 
 // ============================================================================
-// LlamaSpitEntity
+// FishingBobberEntity 常量
 // ============================================================================
+
+namespace {
+    // 钓鱼时间常量（MC 1.16.5）
+    constexpr i32 MIN_WAIT_TICKS = 100;    // 最小等待时间 (5秒)
+    constexpr i32 MAX_WAIT_TICKS = 600;    // 最大等待时间 (30秒)
+    constexpr i32 LURE_REDUCTION = 100;    // 饵钓每级减少的时间 (5秒)
+    constexpr i32 MIN_CATCHABLE_TICKS = 20;  // 最小捕获窗口 (1秒)
+    constexpr i32 MAX_CATCHABLE_TICKS = 40;  // 最大捕获窗口 (2秒)
+}
 
 LlamaSpitEntity::LlamaSpitEntity(LegacyEntityType type, EntityId id)
     : ThrowableEntity(type, id)
@@ -58,8 +70,56 @@ std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/) {
     return std::make_unique<FishingBobberEntity>(LegacyEntityType::Unknown, 0);
 }
 
+void FishingBobberEntity::setShooter(Entity* shooter) {
+    // 设置钓鱼者（仅支持玩家）
+    m_angler = dynamic_cast<Player*>(shooter);
+}
+
+void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy) {
+    // 设置发射者
+    setShooter(&shooter);
+
+    // 计算发射方向
+    // MC 1.16.5: ProjectileHelper.func_234618_a_
+    constexpr f32 DEG_TO_RAD = 0.017453292f;  // PI / 180
+
+    f32 radPitch = (pitch + pitchOffset) * DEG_TO_RAD;
+    f32 radYaw = -yaw * DEG_TO_RAD;
+
+    f32 x = -std::sin(radYaw) * std::cos(radPitch);
+    f32 y = -std::sin(radPitch);
+    f32 z = std::cos(radYaw) * std::cos(radPitch);
+
+    // 归一化并乘以速度
+    f32 length = std::sqrt(x * x + y * y + z * z);
+    if (length > 0.0f) {
+        x = x / length * velocity;
+        y = y / length * velocity;
+        z = z / length * velocity;
+    }
+
+    // 添加不准确性
+    if (inaccuracy > 0.0f) {
+        // 简化实现：添加随机偏移
+        // TODO: 使用真正的随机数生成器
+        f32 offsetX = (static_cast<f32>(rand()) / RAND_MAX - 0.5f) * inaccuracy * 0.1f;
+        f32 offsetY = (static_cast<f32>(rand()) / RAND_MAX - 0.5f) * inaccuracy * 0.1f;
+        f32 offsetZ = (static_cast<f32>(rand()) / RAND_MAX - 0.5f) * inaccuracy * 0.1f;
+        x += offsetX;
+        y += offsetY;
+        z += offsetZ;
+    }
+
+    // 设置速度
+    m_velocity.x = x;
+    m_velocity.y = y;
+    m_velocity.z = z;
+}
+
 void FishingBobberEntity::tick() {
     Entity::tick();
+
+    m_lifetime++;
 
     // 检查钓鱼者是否存在
     if (!m_angler || !m_angler->isAlive()) {
@@ -67,59 +127,188 @@ void FishingBobberEntity::tick() {
         return;
     }
 
+    // 检查玩家是否还持有钓鱼竿
+    // 如果玩家切换了物品或钓鱼浮标ID已被清除，则移除浮标
+    if (!m_angler->isFishing() || m_angler->fishingBobber() != id()) {
+        remove();
+        return;
+    }
+
+    // 更新水面状态
+    updateWaterState();
+
     switch (m_state) {
         case State::Flying:
-            // 浮标在飞行中
-            // 检测是否入水
-            // TODO: 检测水面
+            // 浮标在飞行中，检测是否入水
+            if (isInWater()) {
+                m_state = State::Bobbing;
+                // 设置初始等待时间
+                setWaitTime();
+                // 检测是否在开放水域
+                m_inOpenWater = checkOpenWater();
+            }
             break;
 
         case State::Bobbing:
-            // 浮标浮在水面
-            // 检查咬钩
-            checkBite();
+            // 浮标浮在水面，执行钓鱼逻辑
+            if (isInWater()) {
+                m_outOfWaterTime = std::max(0, m_outOfWaterTime - 1);
+                // 检查开放水域状态（进入水后延迟检查）
+                if (m_outOfWaterTime < 10) {
+                    m_inOpenWater = m_inOpenWater && checkOpenWater();
+                }
+                catchingFish();
+            } else {
+                m_outOfWaterTime = std::min(10, m_outOfWaterTime + 1);
+            }
             spawnFishingParticles();
             break;
 
         case State::Fishing:
-            // 咬钩中，等待玩家拉杆
-            m_fishAngle += 0.1f;
+            // 咬钩中，等待玩家收杆
+            if (m_ticksCatchable > 0) {
+                m_ticksCatchable--;
+                m_fishAngle += 0.15f;  // 鱼游动动画
+                // 如果超时未收杆，重置状态
+                if (m_ticksCatchable <= 0) {
+                    m_state = State::Bobbing;
+                    setWaitTime();
+                }
+            } else {
+                m_state = State::Bobbing;
+            }
             break;
 
         case State::Hooked:
-            // 钩住实体
+            // 钩住实体（TODO: 实现钩住实体逻辑）
             break;
     }
 }
 
-Player* FishingBobberEntity::getAngler() const {
-    return m_angler;
+void FishingBobberEntity::updateWaterState() {
+    // 通过检查碰撞箱判断是否在水中
+    // Entity::isInWater() 已在 tick() 中更新
 }
 
-void FishingBobberEntity::checkBite() {
-    // 随机检查是否咬钩
-    // TODO: 根据钓鱼环境计算咬钩概率
+bool FishingBobberEntity::isInWater() const {
+    return Entity::isInWater();
+}
+
+bool FishingBobberEntity::checkOpenWater() {
+    // MC 1.16.5: 检查浮标位置周围是否满足开放水域条件
+    // 需要检查 Y-1 到 Y+2 四层，每层 5x5 范围
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    BlockPos bobberPos(static_cast<i32>(std::floor(m_position.x)),
+                       static_cast<i32>(std::floor(m_position.y)),
+                       static_cast<i32>(std::floor(m_position.z)));
+
+    // 简化实现：检查浮标周围是否有足够的水
+    // 完整实现需要检查每层的水类型
+    i32 waterCount = 0;
+    for (i32 dy = -1; dy <= 2; ++dy) {
+        for (i32 dx = -2; dx <= 2; ++dx) {
+            for (i32 dz = -2; dz <= 2; ++dz) {
+                BlockPos checkPos(bobberPos.x + dx, bobberPos.y + dy, bobberPos.z + dz);
+                const BlockState* state = m_world->getBlockState(checkPos);
+                if (state != nullptr && state->isLiquid()) {
+                    waterCount++;
+                }
+            }
+        }
+    }
+
+    // 开放水域大约需要 75% 以上是水
+    return waterCount >= 60;  // 4层 * 25格 * 0.6 = 60
+}
+
+void FishingBobberEntity::catchingFish() {
+    // 阶段1：等待咬钩
+    if (m_ticksCaughtDelay > 0) {
+        m_ticksCaughtDelay--;
+
+        // 接近咬钩时产生水花
+        if (m_ticksCaughtDelay < 100 && m_ticksCaughtDelay % 10 == 0) {
+            // TODO: 生成水花粒子
+        }
+        return;
+    }
+
+    // 阶段2：鱼接近浮标
+    if (m_ticksCatchableDelay > 0) {
+        m_ticksCatchableDelay--;
+
+        // 产生气泡和钓鱼粒子
+        if (m_ticksCatchableDelay % 5 == 0) {
+            // TODO: 生成气泡粒子
+        }
+
+        // 鱼接近角度动画
+        m_fishAngle += 0.1f;
+
+        // 接近完成，进入可捕获状态
+        if (m_ticksCatchableDelay <= 0) {
+            m_ticksCatchable = math::Random().nextInt(MIN_CATCHABLE_TICKS, MAX_CATCHABLE_TICKS);
+            m_state = State::Fishing;
+            // TODO: 播放水溅音效
+        }
+        return;
+    }
+
+    // 阶段0：初始化等待
+    if (m_ticksCaughtDelay <= 0 && m_ticksCatchableDelay <= 0 && m_ticksCatchable <= 0) {
+        // 设置下一轮等待时间
+        setWaitTime();
+    }
 }
 
 void FishingBobberEntity::spawnFishingParticles() {
-    // TODO: 生成钓鱼粒子
+    // TODO: 生成钓鱼粒子效果
+    // 水面涟漪、浮标摇摆等
+}
+
+void FishingBobberEntity::setWaitTime() {
+    // MC 1.16.5: 设置咬钩等待时间
+    // 基础时间: 100-600 ticks
+    // 饵钓附魔: 每级减少 100 ticks
+    math::Random rng;
+    m_ticksCaughtDelay = rng.nextInt(MIN_WAIT_TICKS, MAX_WAIT_TICKS);
+    m_ticksCaughtDelay -= m_speedBonus * LURE_REDUCTION;
+    m_ticksCaughtDelay = std::max(20, m_ticksCaughtDelay);  // 最小 1 秒
+
+    // 鱼接近时间
+    m_ticksCatchableDelay = 0;
+    m_ticksCatchable = 0;
+}
+
+i32 FishingBobberEntity::spawnCatchItems() {
+    // TODO: 使用钓鱼掉落表生成物品
+    // 目前返回 1 表示钓到鱼（用于耐久消耗）
+    return 1;
 }
 
 i32 FishingBobberEntity::reelIn() {
     // 收杆
-    if (m_state == State::Fishing) {
+    i32 damage = 0;  // 钓鱼竿耐久消耗
+
+    if (m_state == State::Fishing && m_ticksCatchable > 0) {
         // 成功钓到鱼
+        damage = spawnCatchItems();
+        // TODO: 生成经验球 (1-6 经验)
+        // TODO: 生成钓鱼物品实体
         remove();
-        // TODO: 生成物品
-        return 1;  // 返回经验值
     } else if (m_state == State::Hooked) {
         // 钩住实体，拉过来
+        // TODO: 实现钩住实体的逻辑
         remove();
-        return 0;
+    } else {
+        // 未咬钩时收杆，无耐久消耗
+        remove();
     }
 
-    remove();
-    return 0;
+    return damage;
 }
 
 // ============================================================================
@@ -318,9 +507,10 @@ void FireworkRocketEntity::tick() {
     m_lifetime++;
 
     // 生成烟花粒子
-    if (!m_inGround) {
-        // TODO: 生成飞行粒子
-    }
+    // TODO: 检查是否在地面
+    // if (!m_inGround) {
+    //     // TODO: 生成飞行粒子
+    // }
 
     // 检查是否爆炸
     if (m_lifetime >= m_flightTime * 10) {

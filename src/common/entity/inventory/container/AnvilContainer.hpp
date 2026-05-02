@@ -1,0 +1,212 @@
+#pragma once
+
+#include "entity/inventory/AbstractContainerMenu.hpp"
+#include "entity/inventory/IInventory.hpp"
+#include "world/block/BlockPos.hpp"
+#include <memory>
+
+namespace mc {
+
+class PlayerInventory;
+class BlockEntity;
+class IWorld;
+
+/**
+ * @brief 铁砧容器
+ *
+ * 管理铁砧GUI的槽位布局和修复/重命名逻辑。
+ *
+ * 槽位布局：
+ * - 输入槽1：1格（左侧）
+ * - 输入槽2：1格（右侧）
+ * - 输出槽：1格（底部中央）
+ * - 玩家背包：27格主背包 + 9格快捷栏
+ *
+ * 功能：
+ * - 物品修复（使用材料或相同物品）
+ * - 附魔书合并
+ * - 物品重命名
+ * - 物品合并
+ *
+ * 参考: net.minecraft.inventory.container.RepairContainer
+ */
+class AnvilContainer : public AbstractContainerMenu {
+public:
+    /// 输入槽1索引
+    static constexpr i32 SLOT_INPUT_1 = 0;
+    /// 输入槽2索引
+    static constexpr i32 SLOT_INPUT_2 = 1;
+    /// 输出槽索引
+    static constexpr i32 SLOT_OUTPUT = 2;
+    /// 铁砧槽位总数
+    static constexpr i32 ANVIL_SLOTS = 3;
+
+    /// 输入槽位置
+    static constexpr i32 INPUT_SLOT_X[] = {27, 76};  // 左右两个输入槽
+    static constexpr i32 INPUT_SLOT_Y = 47;
+    /// 输出槽位置
+    static constexpr i32 OUTPUT_SLOT_X = 134;
+    static constexpr i32 OUTPUT_SLOT_Y = 47;
+    /// 玩家背包起始Y位置
+    static constexpr i32 PLAYER_INV_Y = 84;
+    /// 快捷栏Y位置
+    static constexpr i32 HOTBAR_Y = 142;
+
+    /// 最大修复成本
+    static constexpr i32 MAX_REPAIR_COST = 40;
+
+    // ========== 构造函数 ==========
+
+    /**
+     * @brief 构造铁砧容器
+     * @param id 容器ID
+     * @param playerInventory 玩家背包
+     * @param position 铁砧位置（用于损坏铁砧）
+     * @param world 世界指针
+     */
+    AnvilContainer(ContainerId id,
+                   PlayerInventory* playerInventory,
+                   const BlockPos& position,
+                   IWorld* world);
+
+    /**
+     * @brief 析构函数
+     */
+    ~AnvilContainer() override = default;
+
+    // ========== 修复成本 ==========
+
+    /**
+     * @brief 获取修复成本（经验等级）
+     * @return 修复成本，如果超过40返回-1表示太贵
+     */
+    [[nodiscard]] i32 getRepairCost() const { return m_repairCost; }
+
+    /**
+     * @brief 获取材料消耗数量
+     * @return 材料消耗数量
+     */
+    [[nodiscard]] i32 getMaterialCost() const { return m_materialCost; }
+
+    /**
+     * @brief 检查是否太贵（修复成本 >= 40）
+     * @return 如果太贵返回true
+     */
+    [[nodiscard]] bool isTooExpensive() const { return m_repairCost >= MAX_REPAIR_COST; }
+
+    // ========== 重命名 ==========
+
+    /**
+     * @brief 设置重命名名称
+     * @param name 新名称（空字符串表示清除）
+     */
+    void setItemName(const String& name);
+
+    /**
+     * @brief 获取重命名名称
+     * @return 重命名名称
+     */
+    [[nodiscard]] const String& getItemName() const { return m_itemName; }
+
+    /**
+     * @brief 检查是否只有重命名操作
+     * @return 如果只有重命名返回true
+     */
+    [[nodiscard]] bool isRenameOnly() const;
+
+    // ========== 槽位访问 ==========
+
+    /**
+     * @brief 获取输入槽1的物品
+     */
+    [[nodiscard]] ItemStack getInputSlot1() const;
+
+    /**
+     * @brief 获取输入槽2的物品
+     */
+    [[nodiscard]] ItemStack getInputSlot2() const;
+
+    /**
+     * @brief 获取输出槽的物品
+     */
+    [[nodiscard]] ItemStack getOutputSlot() const;
+
+    // ========== 容器接口 ==========
+
+    /**
+     * @brief 检查玩家是否仍可访问铁砧
+     */
+    [[nodiscard]] bool stillValid(const Player& player) const override;
+
+    /**
+     * @brief 容器内容变化时调用
+     */
+    void slotsChanged(IInventory* inventory) override;
+
+    /**
+     * @brief 关闭容器时调用
+     */
+    void removed(Player& player) override;
+
+protected:
+    ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
+
+private:
+    /**
+     * @brief 初始化槽位布局
+     */
+    void initSlots(PlayerInventory* playerInventory);
+
+    /**
+     * @brief 更新输出结果
+     */
+    void updateRepairOutput();
+
+    /**
+     * @brief 计算修复成本
+     * @return 修复成本
+     */
+    i32 calculateRepairCost();
+
+    /**
+     * @brief 尝试修复物品
+     * @return 是否可以修复
+     */
+    bool tryRepair();
+
+    /**
+     * @brief 尝试合并物品
+     * @return 是否可以合并
+     */
+    bool tryCombine();
+
+    /**
+     * @brief 尝试合并附魔书
+     * @return 是否可以合并
+     */
+    bool tryCombineEnchantedBooks();
+
+    /**
+     * @brief 尝试重命名
+     * @return 是否可以重命名
+     */
+    bool tryRename();
+
+    /**
+     * @brief 检查两个附魔是否兼容
+     * @param ench1 附魔ID1
+     * @param ench2 附魔ID2
+     * @return 如果兼容返回true
+     */
+    [[nodiscard]] bool areEnchantmentsCompatible(const String& ench1, const String& ench2) const;
+
+private:
+    std::unique_ptr<IInventory> m_anvilInventory;  ///< 铁砧背包
+    BlockPos m_position;                           ///< 铁砧位置
+    IWorld* m_world;                               ///< 世界指针
+    i32 m_repairCost = 0;                          ///< 修复成本
+    i32 m_materialCost = 0;                        ///< 材料消耗数量
+    String m_itemName;                             ///< 重命名名称
+};
+
+} // namespace mc

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Enchantment.hpp"
+#include "common/core/Types.hpp"  // CreatureAttribute
 
 namespace mc {
 namespace item {
@@ -30,7 +31,7 @@ public:
     }
 
     [[nodiscard]] EnchantmentType type() const override {
-        return static_cast<EnchantmentType>(100);  // Trident
+        return EnchantmentType::Trident;
     }
 
     [[nodiscard]] i32 minLevel() const override {
@@ -56,14 +57,14 @@ public:
     /**
      * @brief 获取对水生生物的伤害加成
      * @param level 附魔等级
-     * @param entityType 实体类型
+     * @param entityType 生物属性类型 (转换为 CreatureAttribute)
      * @return 额外伤害
+     *
+     * MC 1.16.5: 对水生生物 (CreatureAttribute::Water) 造成额外伤害
      */
     [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override {
-        // 水生生物类型常量
-        constexpr u32 EntityTypeAquatic = 10;  // 海洋生物：鱼、鱿鱼、海龟、海豚等
-
-        if (entityType == EntityTypeAquatic) {
+        const CreatureAttribute creatureType = static_cast<CreatureAttribute>(entityType);
+        if (creatureType == CreatureAttribute::Water) {
             return static_cast<f32>(level) * 2.5f;
         }
         return 0.0f;

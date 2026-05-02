@@ -20,6 +20,14 @@ EnderCrystalEntity::EnderCrystalEntity()
 {
 }
 
+f32 EnderCrystalEntity::width() const {
+    return 2.0f;  // MC 1.16.5: 末地水晶宽度
+}
+
+f32 EnderCrystalEntity::height() const {
+    return 2.0f;  // MC 1.16.5: 末地水晶高度
+}
+
 void EnderCrystalEntity::tick() {
     Entity::tick();
 
@@ -56,6 +64,14 @@ LightningBoltEntity::LightningBoltEntity()
 {
     // MC 1.16.5: ignoreFrustumCheck = true
     // 闪电总是可见，即使不在视锥内
+}
+
+f32 LightningBoltEntity::width() const {
+    return 0.0f;  // MC 1.16.5: 闪电没有碰撞箱
+}
+
+f32 LightningBoltEntity::height() const {
+    return 0.0f;  // MC 1.16.5: 闪电没有碰撞箱
 }
 
 void LightningBoltEntity::initializeState() {
@@ -274,6 +290,14 @@ AreaEffectCloudEntity::AreaEffectCloudEntity()
 {
 }
 
+f32 AreaEffectCloudEntity::width() const {
+    return m_radius * 2.0f;  // MC 1.16.5: 实际宽度是半径的两倍
+}
+
+f32 AreaEffectCloudEntity::height() const {
+    return 0.5f;  // MC 1.16.5: 药水云高度固定为 0.5
+}
+
 void AreaEffectCloudEntity::tick() {
     Entity::tick();
 
@@ -316,6 +340,14 @@ void AreaEffectCloudEntity::updateRadius() {
 ArmorStandEntity::ArmorStandEntity()
     : Entity(LegacyEntityType::Unknown, EntityId(0))
 {
+}
+
+f32 ArmorStandEntity::width() const {
+    return m_marker ? 0.0f : 0.5f;  // MC 1.16.5: 标记模式无碰撞箱，否则 0.5
+}
+
+f32 ArmorStandEntity::height() const {
+    return m_marker ? 0.0f : 1.975f;  // MC 1.16.5: 标记模式无碰撞箱，否则 1.975
 }
 
 void ArmorStandEntity::tick() {

@@ -1,0 +1,302 @@
+#include <gtest/gtest.h>
+
+#include "common/item/Items.hpp"
+#include "common/item/items/weapon/ThrowableItems.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/core/Constants.hpp"
+
+namespace mc {
+namespace {
+
+/**
+ * @brief 测试用世界存根
+ */
+class ThrowableTestWorld final : public IWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
+    bool setBlock(i32, i32, i32, const BlockState*) override { return false; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
+        return fluid::Fluid::getFluidState(0);
+    }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("ThrowableTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("ThrowableTestWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+        m_spawnedEntities.push_back(entity.get());
+        // 不实际存储实体，返回临时ID
+        return ++m_lastEntityId;
+    }
+
+    void addParticle(client::renderer::trident::particle::ParticleTypeId,
+                     const Vector3&,
+                     const Vector3&,
+                     const Vector3& = Vector3(0, 0, 0),
+                     u32 = 1) override {
+        // 测试中忽略粒子效果
+    }
+
+    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+
+private:
+    math::Random m_random{12345};
+    EntityId m_lastEntityId = 0;
+    std::vector<Entity*> m_spawnedEntities;
+};
+
+class ThrowableItemTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+    }
+
+    void TearDown() override {
+        // Items 清理由静态析构处理
+    }
+
+    ThrowableTestWorld m_world;
+};
+
+// ============================================================================
+// SnowballItem 测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, SnowballItem_Registered_HasCorrectProperties) {
+    ASSERT_NE(Items::SNOWBALL, nullptr);
+    EXPECT_EQ(Items::SNOWBALL->maxStackSize(), 16);
+
+    auto* snowball = dynamic_cast<const item::SnowballItem*>(Items::SNOWBALL);
+    ASSERT_NE(snowball, nullptr);
+    EXPECT_FLOAT_EQ(snowball->getThrowVelocity(), 1.5f);
+    EXPECT_FLOAT_EQ(snowball->getThrowInaccuracy(), 0.0f);
+    EXPECT_EQ(snowball->getUseDuration(ItemStack::EMPTY), 0);
+}
+
+TEST_F(ThrowableItemTest, SnowballItem_OnRightClick_SpawnsEntity) {
+    ASSERT_NE(Items::SNOWBALL, nullptr);
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setPosition(0.0f, 64.0f, 0.0f);
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Creative);
+
+    ItemStack stack(Items::SNOWBALL, 16);
+    player.getHeldItem(Hand::MainHand) = stack;
+
+    // 调用 onItemRightClick 应该生成实体
+    ItemActionResult result = Items::SNOWBALL->onItemRightClick(m_world, player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccessOrConsume());
+    // 在创造模式下不应该消耗物品
+    EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 16);
+    // 应该生成了实体
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
+}
+
+// ============================================================================
+// EggItem 测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, EggItem_Registered_HasCorrectProperties) {
+    ASSERT_NE(Items::EGG, nullptr);
+    EXPECT_EQ(Items::EGG->maxStackSize(), 16);
+
+    auto* egg = dynamic_cast<const item::EggItem*>(Items::EGG);
+    ASSERT_NE(egg, nullptr);
+    EXPECT_FLOAT_EQ(egg->getThrowVelocity(), 1.5f);
+    EXPECT_FLOAT_EQ(egg->getThrowInaccuracy(), 0.0f);
+}
+
+TEST_F(ThrowableItemTest, EggItem_OnRightClick_SpawnsEntity) {
+    ASSERT_NE(Items::EGG, nullptr);
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setPosition(0.0f, 64.0f, 0.0f);
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Creative);
+
+    ItemStack stack(Items::EGG, 16);
+    player.getHeldItem(Hand::MainHand) = stack;
+
+    ItemActionResult result = Items::EGG->onItemRightClick(m_world, player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccessOrConsume());
+    EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 16);
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
+}
+
+// ============================================================================
+// EnderPearlItem 测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, EnderPearlItem_Registered_HasCorrectProperties) {
+    ASSERT_NE(Items::ENDER_PEARL, nullptr);
+    EXPECT_EQ(Items::ENDER_PEARL->maxStackSize(), 16);
+
+    auto* pearl = dynamic_cast<const item::EnderPearlItem*>(Items::ENDER_PEARL);
+    ASSERT_NE(pearl, nullptr);
+    EXPECT_FLOAT_EQ(pearl->getThrowVelocity(), 1.5f);
+    EXPECT_FLOAT_EQ(pearl->getThrowInaccuracy(), 0.0f);
+}
+
+TEST_F(ThrowableItemTest, EnderPearlItem_OnRightClick_SpawnsEntity) {
+    ASSERT_NE(Items::ENDER_PEARL, nullptr);
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setPosition(0.0f, 64.0f, 0.0f);
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Creative);
+
+    ItemStack stack(Items::ENDER_PEARL, 16);
+    player.getHeldItem(Hand::MainHand) = stack;
+
+    ItemActionResult result = Items::ENDER_PEARL->onItemRightClick(m_world, player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccessOrConsume());
+    EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 16);
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
+}
+
+// ============================================================================
+// ExperienceBottleItem 测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, ExperienceBottleItem_Registered_HasCorrectProperties) {
+    ASSERT_NE(Items::EXPERIENCE_BOTTLE, nullptr);
+    EXPECT_EQ(Items::EXPERIENCE_BOTTLE->maxStackSize(), 64);
+
+    auto* expBottle = dynamic_cast<const item::ExperienceBottleItem*>(Items::EXPERIENCE_BOTTLE);
+    ASSERT_NE(expBottle, nullptr);
+    EXPECT_FLOAT_EQ(expBottle->getThrowVelocity(), 1.5f);
+    EXPECT_FLOAT_EQ(expBottle->getThrowInaccuracy(), 0.0f);
+}
+
+TEST_F(ThrowableItemTest, ExperienceBottleItem_OnRightClick_SpawnsEntity) {
+    ASSERT_NE(Items::EXPERIENCE_BOTTLE, nullptr);
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setPosition(0.0f, 64.0f, 0.0f);
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Creative);
+
+    ItemStack stack(Items::EXPERIENCE_BOTTLE, 64);
+    player.getHeldItem(Hand::MainHand) = stack;
+
+    ItemActionResult result = Items::EXPERIENCE_BOTTLE->onItemRightClick(m_world, player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccessOrConsume());
+    EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 64);
+    EXPECT_EQ(m_world.spawnedEntities().size(), 1u);
+}
+
+// ============================================================================
+// Survival Mode 消耗测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem) {
+    ASSERT_NE(Items::SNOWBALL, nullptr);
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setPosition(0.0f, 64.0f, 0.0f);
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Survival);  // 生存模式
+
+    ItemStack stack(Items::SNOWBALL, 10);
+    player.getHeldItem(Hand::MainHand) = stack;
+
+    ItemActionResult result = Items::SNOWBALL->onItemRightClick(m_world, player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccessOrConsume());
+    // 在生存模式下应该消耗一个物品
+    EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 9);
+}
+
+// ============================================================================
+// 投掷物品实体创建测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, SnowballEntity_CanBeCreated) {
+    entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
+    EXPECT_TRUE(snowball.isAlive());
+}
+
+TEST_F(ThrowableItemTest, EggEntity_CanBeCreated) {
+    entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
+    EXPECT_TRUE(egg.isAlive());
+}
+
+TEST_F(ThrowableItemTest, EnderPearlEntity_CanBeCreated) {
+    entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
+    EXPECT_TRUE(pearl.isAlive());
+}
+
+TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated) {
+    entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
+    EXPECT_TRUE(bottle.isAlive());
+}
+
+// ============================================================================
+// 默认物品测试
+// ============================================================================
+
+TEST_F(ThrowableItemTest, SnowballEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::SnowballEntity snowball(LegacyEntityType::Snowball, EntityId(1));
+    EXPECT_EQ(snowball.getDefaultItem(), Items::SNOWBALL);
+}
+
+TEST_F(ThrowableItemTest, EggEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::EggEntity egg(LegacyEntityType::Egg, EntityId(1));
+    EXPECT_EQ(egg.getDefaultItem(), Items::EGG);
+}
+
+TEST_F(ThrowableItemTest, EnderPearlEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::EnderPearlEntity pearl(LegacyEntityType::EnderPearl, EntityId(1));
+    EXPECT_EQ(pearl.getDefaultItem(), Items::ENDER_PEARL);
+}
+
+TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem) {
+    Items::initialize();
+    entity::ExperienceBottleEntity bottle(LegacyEntityType::ExperienceBottle, EntityId(1));
+    EXPECT_EQ(bottle.getDefaultItem(), Items::EXPERIENCE_BOTTLE);
+}
+
+} // namespace
+} // namespace mc

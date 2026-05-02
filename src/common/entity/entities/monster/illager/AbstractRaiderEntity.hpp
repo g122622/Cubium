@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "PatrollerEntity.hpp"
 #include "../../../../core/Types.hpp"
@@ -10,12 +10,26 @@ class Raid;
 }
 
 /**
- * @brief 袭击者抽象基类。
+ * @brief 袭击者抽象基类
  *
  * 为所有可参与村庄袭击的实体提供统一的 Raid 关联与庆祝状态管理。
+ *
+ * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity
+ *
+ * 参考 MC 1.16.5 AbstractRaiderEntity
  */
 class AbstractRaiderEntity : public PatrollerEntity {
 public:
+    /**
+     * @brief 袭击者状态
+     *
+     * MC 1.16.5: 袭击者可以处于庆祝状态
+     */
+    enum class RaiderState : u8 {
+        Neutral = 0,    // 中立
+        Celebrating = 1 // 庆祝
+    };
+
     /**
      * @brief 构造袭击者基类。
      *
@@ -29,6 +43,25 @@ public:
     AbstractRaiderEntity& operator=(const AbstractRaiderEntity&) = delete;
     AbstractRaiderEntity(AbstractRaiderEntity&&) = default;
     AbstractRaiderEntity& operator=(AbstractRaiderEntity&&) = default;
+
+    // ========== 状态系统 ==========
+
+    /**
+     * @brief 获取当前状态
+     */
+    [[nodiscard]] RaiderState getState() const { return m_state; }
+
+    /**
+     * @brief 设置状态
+     */
+    void setState(RaiderState state) { m_state = state; }
+
+    /**
+     * @brief 是否正在庆祝
+     */
+    [[nodiscard]] bool isCelebrating() const { return m_state == RaiderState::Celebrating; }
+
+    // ========== 袭击系统 ==========
 
     /**
      * @brief 判断是否拥有袭击队长加成。
@@ -115,6 +148,7 @@ public:
     void die(DamageSource& cause) override;
 
 protected:
+    RaiderState m_state = RaiderState::Neutral;
     bool m_hasLeaderBonus = false;
     bool m_canJoinRaid = true;
     i32 m_celebrationTime = 0;

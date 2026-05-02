@@ -151,9 +151,10 @@ void PiglinBruteEntity::registerGoals() {
 void PiglinBruteEntity::registerAttributes() {
     AbstractPiglinEntity::registerAttributes();
 
+    // MC 1.16.5 PiglinBruteEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 13.0); // 金斧伤害
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);  // MC 1.16.5: 基础伤害（金斧额外 +4）
 }
 
 // ZombifiedPiglinEntity
@@ -229,11 +230,16 @@ void HoglinEntity::registerGoals() {
 void HoglinEntity::registerAttributes() {
     MonsterEntity::registerAttributes();
 
+    // 注册攻击属性（MonsterEntity 不自动注册这些）
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+
+    // MC 1.16.5 HoglinEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0); // 成年伤害
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);  // MC 1.16.5: 成年疣猪兽基础伤害
 }
 
 // ZoglinEntity
@@ -268,11 +274,16 @@ void ZoglinEntity::registerGoals() {
 void ZoglinEntity::registerAttributes() {
     MonsterEntity::registerAttributes();
 
+    // 注册攻击属性（MonsterEntity 不自动注册这些）
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+
+    // MC 1.16.5 ZoglinEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);  // MC 1.16.5: 成年僵尸疣兽基础伤害
 }
 
 } // namespace mc

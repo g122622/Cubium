@@ -267,6 +267,7 @@ public:
     static Item* LEATHER;
     static Item* SLIME_BALL;
     static Item* EGG;
+    static Item* SNOWBALL;              // 雪球
     static Item* COMPASS;
     static Item* CLOCK;
     static Item* FERMENTED_SPIDER_EYE;
@@ -278,6 +279,7 @@ public:
     static Item* FIRE_CHARGE;
     static Item* FIREWORK_STAR;
     static Item* FIREWORK_ROCKET;
+    static Item* EXPERIENCE_BOTTLE;     // 附魔之瓶
 
     // ========================================================================
     // 染料 (16色)
@@ -351,11 +353,27 @@ public:
     static Item* LINGERING_POTION;       // 滞留药水
 
     // ========================================================================
+    // 武器和弹药
+    // ========================================================================
+    static Item* BOW;                    // 弓
+    static Item* ARROW;                  // 箭矢
+    static Item* SPECTRAL_ARROW;         // 光灵箭
+    static Item* TIPPED_ARROW;           // 药水箭
+    static Item* CROSSBOW;               // 弩
+    static Item* TRIDENT;                // 三叉戟
+    static Item* SHIELD;                 // 盾牌
+    static Item* FISHING_ROD;            // 钓鱼竿
+
+    // ========================================================================
     // 桶类
     // ========================================================================
     static Item* BUCKET;                 // 空桶
     static Item* WATER_BUCKET;           // 水桶
     static Item* LAVA_BUCKET;            // 岩浆桶
+    static Item* COD_BUCKET;             // 鳕鱼桶
+    static Item* SALMON_BUCKET;          // 鲑鱼桶
+    static Item* PUFFERFISH_BUCKET;      // 河豚桶
+    static Item* TROPICAL_FISH_BUCKET;   // 热带鱼桶
 
     // ========================================================================
     // 海绵
@@ -377,6 +395,8 @@ private:
     static void registerAquaticMaterials();
     static void registerBrewingIngredients();
     static void registerPotions();
+    static void registerWeapons();
+    static void registerThrowables();
     static void registerBuckets();
     static void registerSponges();
 };

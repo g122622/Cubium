@@ -31,6 +31,7 @@
 #include "blocks/decorative/CampfireBlock.hpp"
 #include "blocks/functional/BeaconBlock.hpp"
 #include "blocks/functional/BrewingStandBlock.hpp"
+#include "blocks/functional/RespawnAnchorBlock.hpp"
 #include "blocks/special/SpecialBlocks.hpp"
 #include "blocks/redstone/RedstoneWireBlock.hpp"
 #include "blocks/redstone/RedstoneTorchBlock.hpp"
@@ -325,6 +326,7 @@ Block* VanillaBlocks::POLISHED_BASALT = nullptr;
 Block* VanillaBlocks::BLACKSTONE = nullptr;
 Block* VanillaBlocks::POLISHED_BLACKSTONE = nullptr;
 Block* VanillaBlocks::CRYING_OBSIDIAN = nullptr;
+Block* VanillaBlocks::RESPAWN_ANCHOR = nullptr;
 Block* VanillaBlocks::MAGMA = nullptr;
 Block* VanillaBlocks::NETHER_WART_BLOCK = nullptr;
 Block* VanillaBlocks::FIRE = nullptr;
@@ -1266,6 +1268,13 @@ void VanillaBlocks::registerNetherBlocks() {
     CRYING_OBSIDIAN = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:crying_obsidian"),
         BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f).lightLevel(10)
+    );
+
+    // 重生锚 - 不可被活塞推动
+    // 参考: net.minecraft.block.RespawnAnchorBlock
+    RESPAWN_ANCHOR = &registry.registerBlock<blocks::RespawnAnchorBlock>(
+        ResourceLocation("minecraft:respawn_anchor"),
+        BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f)
     );
 
     // 火 - 普通火焰

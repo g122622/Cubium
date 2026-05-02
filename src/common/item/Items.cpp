@@ -6,6 +6,14 @@
 #include "items/potion/PotionItem.hpp"
 #include "items/potion/SplashPotionItem.hpp"
 #include "items/potion/LingeringPotionItem.hpp"
+#include "items/weapon/BowItem.hpp"
+#include "items/weapon/ArrowItem.hpp"
+#include "items/weapon/CrossbowItem.hpp"
+#include "items/weapon/TridentItem.hpp"
+#include "items/weapon/ShieldItem.hpp"
+#include "items/weapon/ThrowableItem.hpp"
+#include "items/weapon/ThrowableItems.hpp"
+#include "items/weapon/FishingRodItem.hpp"
 #include "tier/ItemTiers.hpp"
 #include "items/tool/PickaxeItem.hpp"
 #include "items/tool/AxeItem.hpp"
@@ -13,9 +21,11 @@
 #include "items/tool/HoeItem.hpp"
 #include "items/tool/SwordItem.hpp"
 #include "items/special/BoneMealItem.hpp"
+#include "items/special/FishBucketItem.hpp"
 #include "food/Foods.hpp"
 #include "armor/ArmorMaterial.hpp"
 #include "../world/block/VanillaBlocks.hpp"
+#include "../entity/core/EntityRegistry.hpp"
 
 namespace {
 
@@ -237,6 +247,7 @@ Item* Items::GUNPOWDER = nullptr;
 Item* Items::LEATHER = nullptr;
 Item* Items::SLIME_BALL = nullptr;
 Item* Items::EGG = nullptr;
+Item* Items::SNOWBALL = nullptr;
 Item* Items::COMPASS = nullptr;
 Item* Items::CLOCK = nullptr;
 // SPIDER_EYE 已在食物部分声明
@@ -249,6 +260,7 @@ Item* Items::NETHER_STAR = nullptr;
 Item* Items::FIRE_CHARGE = nullptr;
 Item* Items::FIREWORK_STAR = nullptr;
 Item* Items::FIREWORK_ROCKET = nullptr;
+Item* Items::EXPERIENCE_BOTTLE = nullptr;
 
 // 染料
 Item* Items::INK_SAC = nullptr;
@@ -314,11 +326,27 @@ Item* Items::SPLASH_POTION = nullptr;
 Item* Items::LINGERING_POTION = nullptr;
 
 // ============================================================================
+// 武器和弹药
+// ============================================================================
+Item* Items::BOW = nullptr;
+Item* Items::ARROW = nullptr;
+Item* Items::SPECTRAL_ARROW = nullptr;
+Item* Items::TIPPED_ARROW = nullptr;
+Item* Items::CROSSBOW = nullptr;
+Item* Items::TRIDENT = nullptr;
+Item* Items::SHIELD = nullptr;
+Item* Items::FISHING_ROD = nullptr;
+
+// ============================================================================
 // 桶类
 // ============================================================================
 Item* Items::BUCKET = nullptr;
 Item* Items::WATER_BUCKET = nullptr;
 Item* Items::LAVA_BUCKET = nullptr;
+Item* Items::COD_BUCKET = nullptr;
+Item* Items::SALMON_BUCKET = nullptr;
+Item* Items::PUFFERFISH_BUCKET = nullptr;
+Item* Items::TROPICAL_FISH_BUCKET = nullptr;
 
 // ============================================================================
 // 海绵
@@ -364,6 +392,8 @@ void Items::initialize() {
     registerAquaticMaterials();
     registerBrewingIngredients();
     registerPotions();
+    registerWeapons();    // 武器和弹药
+    registerThrowables(); // 投掷物品
     registerBuckets();   // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
     registerSponges();   // 海绵物品
 
@@ -758,29 +788,29 @@ void Items::registerArmor() {
     DIAMOND_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_helmet"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Head))
     );
 
     DIAMOND_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_chestplate"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     DIAMOND_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_leggings"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     DIAMOND_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:diamond_boots"),
         ArmorMaterials::DIAMOND,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::DIAMOND.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -789,29 +819,29 @@ void Items::registerArmor() {
     IRON_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_helmet"),
         ArmorMaterials::IRON,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Head))
     );
 
     IRON_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_chestplate"),
         ArmorMaterials::IRON,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     IRON_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_leggings"),
         ArmorMaterials::IRON,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     IRON_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:iron_boots"),
         ArmorMaterials::IRON,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -820,29 +850,29 @@ void Items::registerArmor() {
     GOLDEN_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_helmet"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Head))
     );
 
     GOLDEN_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_chestplate"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     GOLDEN_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_leggings"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     GOLDEN_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:golden_boots"),
         ArmorMaterials::GOLD,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::GOLD.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -851,29 +881,29 @@ void Items::registerArmor() {
     LEATHER_HELMET = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_helmet"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Head))
     );
 
     LEATHER_CHESTPLATE = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_chestplate"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     LEATHER_LEGGINGS = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_leggings"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     LEATHER_BOOTS = &registry.registerItem<item::items::DyeableArmorItem>(
         ResourceLocation("minecraft:leather_boots"),
         ArmorMaterials::LEATHER,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -882,29 +912,29 @@ void Items::registerArmor() {
     CHAINMAIL_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_helmet"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Head))
     );
 
     CHAINMAIL_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_chestplate"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Chest))
     );
 
     CHAINMAIL_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_leggings"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Legs))
     );
 
     CHAINMAIL_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:chainmail_boots"),
         ArmorMaterials::CHAIN,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::CHAIN.getDurability(item::armor::ArmorSlot::Feet))
     );
 
     // ========================================================================
@@ -913,32 +943,32 @@ void Items::registerArmor() {
     NETHERITE_HELMET = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_helmet"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Head,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Head))
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Head))
                             .rarity(ItemRarity::Rare)
     );
 
     NETHERITE_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_chestplate"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Chest))
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Chest))
                             .rarity(ItemRarity::Rare)
     );
 
     NETHERITE_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_leggings"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Legs,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Legs))
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Legs))
                             .rarity(ItemRarity::Rare)
     );
 
     NETHERITE_BOOTS = &registry.registerItem<item::items::ArmorItem>(
         ResourceLocation("minecraft:netherite_boots"),
         ArmorMaterials::NETHERITE,
-        ArmorSlot::Feet,
-        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(ArmorSlot::Feet))
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::NETHERITE.getDurability(item::armor::ArmorSlot::Feet))
                             .rarity(ItemRarity::Rare)
     );
 
@@ -1229,10 +1259,7 @@ void Items::registerMisc() {
         ItemProperties().maxStackSize(64)
     );
 
-    EGG = &registry.registerItem(
-        ResourceLocation("minecraft:egg"),
-        ItemProperties().maxStackSize(16)
-    );
+    // EGG 已在 registerThrowableItems() 中注册为 EggItem
 
     COMPASS = &registry.registerItem(
         ResourceLocation("minecraft:compass"),
@@ -1261,10 +1288,7 @@ void Items::registerMisc() {
         ItemProperties().maxStackSize(64)
     );
 
-    ENDER_PEARL = &registry.registerItem(
-        ResourceLocation("minecraft:ender_pearl"),
-        ItemProperties().maxStackSize(16)
-    );
+    // ENDER_PEARL 已在 registerThrowableItems() 中注册为 EnderPearlItem
 
     ENDER_EYE = &registry.registerItem(
         ResourceLocation("minecraft:ender_eye"),
@@ -1556,6 +1580,98 @@ void Items::registerPotions() {
     );
 }
 
+void Items::registerWeapons() {
+    auto& registry = ItemRegistry::instance();
+
+    // 弓 - 远程武器
+    // 参考: new BowItem(new Item.Properties().maxDamage(384))
+    BOW = &registry.registerItem<item::BowItem>(
+        ResourceLocation("minecraft:bow"),
+        ItemProperties().maxDamage(384)
+    );
+
+    // 箭矢 - 弹药
+    // 参考: new ArrowItem(new Item.Properties().maxStackSize(64))
+    ARROW = &registry.registerItem<item::ArrowItem>(
+        ResourceLocation("minecraft:arrow"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 光灵箭 - 带发光效果（仅创造模式）
+    // 参考: new SpectralArrowItem(new Item.Properties().maxStackSize(64))
+    SPECTRAL_ARROW = &registry.registerItem<item::ArrowItem>(
+        ResourceLocation("minecraft:spectral_arrow"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 药水箭 - 带药水效果
+    // TODO: 需要 TippedArrowItem 类
+    // TIPPED_ARROW = &registry.registerItem<item::TippedArrowItem>(
+    //     ResourceLocation("minecraft:tipped_arrow"),
+    //     ItemProperties().maxStackSize(64)
+    // );
+
+    // 弩 - 可装填的远程武器
+    // 参考: new CrossbowItem(new Item.Properties().maxDamage(326))
+    CROSSBOW = &registry.registerItem<item::CrossbowItem>(
+        ResourceLocation("minecraft:crossbow"),
+        ItemProperties().maxDamage(326)
+    );
+
+    // 三叉戟 - 近战和远程结合的武器
+    // 参考: new TridentItem(new Item.Properties().maxDamage(250))
+    TRIDENT = &registry.registerItem<item::TridentItem>(
+        ResourceLocation("minecraft:trident"),
+        ItemProperties().maxDamage(250)
+    );
+
+    // 盾牌 - 格挡武器
+    // 参考: new ShieldItem(new Item.Properties().maxDamage(336))
+    SHIELD = &registry.registerItem<item::ShieldItem>(
+        ResourceLocation("minecraft:shield"),
+        ItemProperties().maxDamage(336)
+    );
+
+    // 钓鱼竿 - 钓鱼工具
+    // 参考: new FishingRodItem(new Item.Properties().maxDamage(64))
+    FISHING_ROD = &registry.registerItem<item::FishingRodItem>(
+        ResourceLocation("minecraft:fishing_rod"),
+        ItemProperties().maxDamage(64)
+    );
+}
+
+void Items::registerThrowables() {
+    auto& registry = ItemRegistry::instance();
+
+    // 雪球 - 投掷物品
+    // 参考: new SnowballItem(new Item.Properties().maxStackSize(16))
+    SNOWBALL = &registry.registerItem<item::SnowballItem>(
+        ResourceLocation("minecraft:snowball"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 鸡蛋 - 投掷物品，有概率孵化小鸡
+    // 参考: new EggItem(new Item.Properties().maxStackSize(16))
+    EGG = &registry.registerItem<item::EggItem>(
+        ResourceLocation("minecraft:egg"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 末影珍珠 - 投掷后传送
+    // 参考: new EnderPearlItem(new Item.Properties().maxStackSize(16))
+    ENDER_PEARL = &registry.registerItem<item::EnderPearlItem>(
+        ResourceLocation("minecraft:ender_pearl"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 附魔之瓶 - 投掷后释放经验
+    // 参考: new ExperienceBottleItem(new Item.Properties().maxStackSize(64))
+    EXPERIENCE_BOTTLE = &registry.registerItem<item::ExperienceBottleItem>(
+        ResourceLocation("minecraft:experience_bottle"),
+        ItemProperties().maxStackSize(64)
+    );
+}
+
 void Items::registerBuckets() {
     auto& registry = ItemRegistry::instance();
 
@@ -1579,6 +1695,35 @@ void Items::registerBuckets() {
     // 岩浆桶作为燃料使用后返回空桶
     LAVA_BUCKET = &registry.registerItem(
         ResourceLocation("minecraft:lava_bucket"),
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 鱼桶 - MC 1.16.5
+    // 鳕鱼桶 - 可以装鳕鱼的水桶，使用后返回空桶
+    COD_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:cod_bucket"),
+        mc::entity::EntityTypes::COD,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 鲑鱼桶
+    SALMON_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:salmon_bucket"),
+        mc::entity::EntityTypes::SALMON,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 河豚桶
+    PUFFERFISH_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:pufferfish_bucket"),
+        mc::entity::EntityTypes::PUFFERFISH,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 热带鱼桶
+    TROPICAL_FISH_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:tropical_fish_bucket"),
+        mc::entity::EntityTypes::TROPICAL_FISH,
         ItemProperties().maxStackSize(1).containerItem(BUCKET)
     );
 }

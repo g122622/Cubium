@@ -14,8 +14,10 @@
 #include "item/context/BlockItemUseContext.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/math/Vector3.hpp"
+#include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
 
+#include <memory>
 #include <unordered_map>
 
 using namespace mc;
@@ -25,6 +27,15 @@ namespace {
 
 class PaneTestWorld final : public IWorld {
 public:
+    PaneTestWorld() = default;
+
+    // 延迟初始化 TickManager（首次调用时初始化）
+    void ensureTickManager() {
+        if (!m_tickManagerPtr) {
+            m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
+        }
+    }
+
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
         const auto it = m_blocks.find(packPos(x, y, z));
         if (it != m_blocks.end()) {
@@ -89,12 +100,22 @@ public:
         return 0;
     }
 
-    // TickManager interface (stubbed for tests)
+    // TickManager interface
     [[nodiscard]] world::tick::TickManager& tickManager() override {
-        throw std::runtime_error("PaneTestWorld::tickManager not implemented");
+        ensureTickManager();
+        return *m_tickManagerPtr;
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
-        throw std::runtime_error("PaneTestWorld::tickManager not implemented");
+        const_cast<PaneTestWorld*>(this)->ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    // Random interface
+    [[nodiscard]] math::Random& getRandom() override {
+        return m_random;
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        return m_random;
     }
 
 private:
@@ -104,6 +125,8 @@ private:
 
     std::unordered_map<i64, const BlockState*> m_blocks;
     u64 m_seed = 0;
+    std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
+    math::Random m_random{12345};  // 固定种子的随机数生成器
 };
 
 BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {
@@ -132,7 +155,14 @@ public:
 
 } // namespace
 
-TEST(PaneBlockTest, Placement_ConnectsToSolidPaneAndWallAndWaterlogs) {
+class PaneBlockTestFixture : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+    }
+};
+
+TEST_F(PaneBlockTestFixture, Placement_ConnectsToSolidPaneAndWallAndWaterlogs) {
     PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
     WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
     TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
@@ -159,7 +189,7 @@ TEST(PaneBlockTest, Placement_ConnectsToSolidPaneAndWallAndWaterlogs) {
     EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST(PaneBlockTest, Shape_CombinesCenterAndConnectedSides) {
+TEST_F(PaneBlockTestFixture, Shape_CombinesCenterAndConnectedSides) {
     PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
 
     const BlockState state = pane.defaultState()
@@ -174,7 +204,7 @@ TEST(PaneBlockTest, Shape_CombinesCenterAndConnectedSides) {
     EXPECT_EQ(shape.boxCount(), 4u);
 }
 
-TEST(PaneBlockTest, UpdatePostPlacement_RecomputesFaceAndSchedulesWaterTick) {
+TEST_F(PaneBlockTestFixture, UpdatePostPlacement_RecomputesFaceAndSchedulesWaterTick) {
     PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
     TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
 

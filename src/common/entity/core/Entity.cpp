@@ -409,6 +409,26 @@ void Entity::updateEnvironmentState() {
     m_fluidHeight = std::max(m_waterHeight, m_lavaHeight);
 }
 
+bool Entity::isInRain() const {
+    // MC 1.16.5: Entity.isInRain()
+    // 需要：世界存在 + 正在下雨 + 实体位置可以降雨
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 检查世界是否正在下雨
+    if (!m_world->isRaining()) {
+        return false;
+    }
+
+    // 检查实体位置是否可以降雨
+    // 使用实体脚部位置
+    BlockPos pos(static_cast<i32>(std::floor(m_position.x)),
+                 static_cast<i32>(std::floor(m_position.y)),
+                 static_cast<i32>(std::floor(m_position.z)));
+    return m_world->canRainAt(pos);
+}
+
 void Entity::syncMetadataFromDataManager() {
     m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(FLAGS_PARAM)));
     m_air = m_dataManager.get<i32>(AIR_PARAM);

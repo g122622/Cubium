@@ -49,11 +49,11 @@ void VexEntity::registerGoals() {
 void VexEntity::registerAttributes() {
     MonsterEntity::registerAttributes();
 
-    // 恼鬼属性
+    // MC 1.16.5 VexEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 9.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 20.0f);
+    // MOVEMENT_SPEED: 使用默认值（恼鬼飞行速度由移动控制器控制）
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f);  // MC 1.16.5: 铁剑伤害为 4.0
+    // FOLLOW_RANGE: 使用默认值
 }
 
 } // namespace mc

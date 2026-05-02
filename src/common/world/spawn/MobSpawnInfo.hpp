@@ -433,6 +433,36 @@ public:
     static MobSpawnInfo createOcean();
 
     /**
+     * @brief 创建暖水海洋生物群系的生成信息
+     * 热带鱼(25)、河豚(5)，无鳕鱼/鲑鱼
+     */
+    static MobSpawnInfo createWarmOcean();
+
+    /**
+     * @brief 创建温水海洋生物群系的生成信息
+     * 混合鱼群：鳕鱼、鲑鱼、热带鱼、河豚
+     */
+    static MobSpawnInfo createLukewarmOcean();
+
+    /**
+     * @brief 创建冷水海洋生物群系的生成信息
+     * 更多鲑鱼
+     */
+    static MobSpawnInfo createColdOcean();
+
+    /**
+     * @brief 创建冰冻海洋生物群系的生成信息
+     * 鲑鱼为主，北极熊和流浪者
+     */
+    static MobSpawnInfo createFrozenOcean();
+
+    /**
+     * @brief 创建深海生物群系的生成信息
+     * 更多鱿鱼
+     */
+    static MobSpawnInfo createDeepOcean();
+
+    /**
      * @brief 创建针叶林生物群系的生成信息
      */
     static MobSpawnInfo createTaiga();

@@ -453,6 +453,7 @@ public:
     static Block* BLACKSTONE;
     static Block* POLISHED_BLACKSTONE;
     static Block* CRYING_OBSIDIAN;
+    static Block* RESPAWN_ANCHOR;      // 重生锚
     static Block* MAGMA;              // 岩浆块 (发光)
     static Block* NETHER_WART_BLOCK;  // 地狱疣块
     static Block* FIRE;               // 火

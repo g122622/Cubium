@@ -38,15 +38,6 @@ protected:
      * @param id 实体ID
      */
     ThrowableEntity(LegacyEntityType type, EntityId id);
-
-    /**
-     * @brief 从投掷者位置创建
-     * @param type 实体类型
-     * @param id 实体ID
-     * @param thrower 投掷者
-     */
-    static std::unique_ptr<ThrowableEntity> createFromThrower(
-        LegacyEntityType type, EntityId id, LivingEntity& thrower);
 };
 
 } // namespace entity

@@ -44,8 +44,9 @@ BlockState FallingBlock::updatePostPlacement(
     return state;
 }
 
-void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     MC_UNUSED(state);
+    MC_UNUSED(random);
 
     if (pos.y <= world::MIN_BUILD_HEIGHT) {
         return;

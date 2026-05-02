@@ -77,9 +77,9 @@ public:
      * @return 不消耗耐久的概率 (0.0-1.0)
      */
     [[nodiscard]] static f32 getDurabilityProtectionChance(i32 level) {
-        // 公式: 1 - (level + 1) / (level + 50)
-        // I: ~4%, II: ~6%, III: ~7.5%
-        return 1.0f - (static_cast<f32>(level + 1) / static_cast<f32>(level + 50));
+        // MC 1.16.5: 公式为 level / (level + 1)
+        // I: 1/2 = 50%, II: 2/3 = 67%, III: 3/4 = 75%
+        return static_cast<f32>(level) / static_cast<f32>(level + 1);
     }
 
     /**
@@ -88,9 +88,10 @@ public:
      * @return 不消耗耐久的概率 (0.0-1.0)
      */
     [[nodiscard]] static f32 getArmorDurabilityProtectionChance(i32 level) {
-        // 公式: 1 - (level + 1) / (level + 100)
-        // I: ~1%, II: ~2%, III: ~3%
-        return 1.0f - (static_cast<f32>(level + 1) / static_cast<f32>(level + 100));
+        // MC 1.16.5: 盔甲有 60% 概率忽略耐久保护
+        // 所以实际保护概率 = 0.4 * (level / (level + 1))
+        // I: 0.4 * 50% = 20%, II: 0.4 * 67% = 27%, III: 0.4 * 75% = 30%
+        return 0.4f * static_cast<f32>(level) / static_cast<f32>(level + 1);
     }
 };
 

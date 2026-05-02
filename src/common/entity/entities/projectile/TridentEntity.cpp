@@ -1,8 +1,14 @@
 #include "TridentEntity.hpp"
 #include "../../core/LivingEntity.hpp"
+#include "../../entities/player/Player.hpp"
+#include "../../entities/effect/EffectEntities.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/MathUtils.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../world/block/BlockPos.hpp"
+#include "ProjectileHelper.hpp"
 #include <cmath>
 
 namespace mc {
@@ -155,10 +161,18 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     // 计算基础伤害
     f32 damage = 8.0f;
 
-    // TODO: 根据目标类型增加伤害（亡灵生物额外伤害）
-    // if (target instanceof LivingEntity) {
-    //     damage += EnchantmentHelper.getModifierForCreature(m_tridentStack, ((LivingEntity)target).getCreatureAttribute());
-    // }
+    // MC 1.16.5: 应用穿刺附魔伤害
+    // 穿刺附魔对水生生物造成额外伤害（每级 2.5 点）
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+    if (livingTarget != nullptr && !m_tridentStack.isEmpty()) {
+        // 获取目标的生物属性类型
+        CreatureAttribute creatureType = livingTarget->getCreatureAttribute();
+        // 使用附魔助手的 getTotalDamageBonus 方法计算额外伤害
+        damage += mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(
+            m_tridentStack,
+            static_cast<u32>(creatureType)
+        );
+    }
 
     // 获取射击者
     Entity* shooter = getShooter();
@@ -176,8 +190,10 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     // 标记已造成伤害
     m_dealtDamage = true;
 
-    // TODO: 应用伤害
-    // bool hurt = target->hurt(*damageSource, damage);
+    // 应用伤害
+    if (livingTarget != nullptr) {
+        livingTarget->hurt(*damageSource, damage);
+    }
 
     // 击退效果
     if (m_knockbackStrength > 0) {
@@ -190,18 +206,39 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
         }
     }
 
-    // TODO: 雷击附魔
+    // TODO: 引雷附魔
     // 参考 MC 1.16.5 第154-164行
-    // if (world instanceof ServerWorld && world.isThundering() && EnchantmentHelper.hasChanneling(m_tridentStack)) {
-    //     BlockPos blockpos = target.getPosition();
-    //     if (world.canSeeSky(blockpos)) {
-    //         LightningBoltEntity lightning = EntityType.LIGHTNING_BOLT.create(world);
-    //         lightning.moveForced(Vector3d.copyCenteredHorizontally(blockpos));
-    //         lightning.setCaster(shooter instanceof ServerPlayerEntity ? (ServerPlayerEntity)shooter : null);
-    //         world.addEntity(lightning);
-    //         playSound(SoundEvents.ITEM_TRIDENT_THUNDER, 5.0F, 1.0F);
-    //     }
-    // }
+    if (m_world != nullptr && !m_world->isRemote() && livingTarget != nullptr) {
+        // 检查是否有引雷附魔
+        if (mc::item::enchant::EnchantmentHelper::hasChanneling(m_tridentStack)) {
+            // 检查是否在雷暴天气
+            // MC 1.16.5: world.isThundering() && world.canSeeSky(pos)
+            // 需要检查天气系统和天空可见性
+            BlockPos targetPos(static_cast<i32>(target->x()),
+                              static_cast<i32>(target->y()),
+                              static_cast<i32>(target->z()));
+            bool isThundering = true; // TODO: 实现天气系统后替换为 m_world->isThundering()
+            bool canSeeSky = true;    // TODO: 实现天空可见性检查后替换为 m_world->canSeeSky(targetPos)
+
+            if (isThundering && canSeeSky) {
+                // 创建闪电实体
+                auto lightning = std::make_unique<entity::LightningBoltEntity>();
+                lightning->setPosition(target->x(), target->y(), target->z());
+
+                // 设置触发者
+                Player* playerShooter = dynamic_cast<Player*>(shooter);
+                if (playerShooter != nullptr) {
+                    lightning->setCaster(playerShooter->playerId());
+                }
+
+                // 生成闪电
+                m_world->spawnEntity(std::move(lightning));
+
+                // TODO: 播放引雷音效
+                // playSound(SoundEvents::ITEM_TRIDENT_THUNDER, 5.0F, 1.0F);
+            }
+        }
+    }
 
     // 速度反转为轻微反弹
     m_velocity = Vector3(
@@ -222,8 +259,11 @@ void TridentEntity::onBlockHit(const RayTraceResult& result) {
 
     // 保存方块状态
     if (m_world && result.type == RayTraceResultType::Block) {
-        m_inBlockState = m_world->getBlockState(
+        const BlockState* state = m_world->getBlockState(
             result.blockPos.x, result.blockPos.y, result.blockPos.z);
+        if (state != nullptr) {
+            m_inBlockState = *state;
+        }
     }
 
     // 清除暴击和穿透状态
@@ -244,8 +284,8 @@ f32 TridentEntity::getWaterDrag() const {
 void TridentEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity) {
     // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity()
     math::Random rng = createRandomFromEntity(*this);
-    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 +
-               static_cast<f64>(m_world ? m_world->getDifficulty().getId() * 0.11 : 0.0));
+    f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
+    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
     // TODO: 从三叉戟物品获取附魔
     // int power = EnchantmentHelper.getMaxEnchantmentLevel(Enchantments.POWER, shooter);
@@ -266,7 +306,7 @@ void TridentEntity::setItemStack(const ItemStack& stack) {
 bool TridentEntity::onPlayerPickup(Player& player) {
     // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
     // 只有当三叉戟在地上或返回时才能被拾取
-    if (!m_inGround && !getNoClip()) {
+    if (!m_inGround && !noClip()) {
         return false;
     }
 
@@ -277,13 +317,14 @@ bool TridentEntity::onPlayerPickup(Player& player) {
     // 检查拾取权限
     bool canPickup = (pickupStatus() == PickupStatus::Allowed) ||
                      (pickupStatus() == PickupStatus::CreativeOnly && player.isCreative()) ||
-                     (getNoClip() && getShooter() != nullptr &&
+                     (noClip() && getShooter() != nullptr &&
                       getShooter()->uuid() == player.uuid());
 
     if (canPickup) {
-        // TODO: 添加到玩家背包
-        // player.inventory().addItem(m_tridentStack);
-        // player.onItemPickup(this, 1);
+        // 添加到玩家背包
+        if (!m_tridentStack.isEmpty()) {
+            player.inventory().add(m_tridentStack);
+        }
         remove();
         return true;
     }
@@ -291,7 +332,7 @@ bool TridentEntity::onPlayerPickup(Player& player) {
     return false;
 }
 
-void TridentEntity::tickInGround() {
+void TridentEntity::tickInGroundTrident() {
     // 三叉戟特殊的地面tick逻辑
     // 参考 MC 1.16.5 TridentEntity.func_225516_i_() 第205-209行
     // 如果不允许拾取或没有忠诚附魔，则使用普通超时逻辑

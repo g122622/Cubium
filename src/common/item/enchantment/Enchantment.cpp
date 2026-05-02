@@ -21,12 +21,34 @@ bool Enchantment::canApplyTo(u32 itemType) const {
     return true;
 }
 
+bool Enchantment::canApplyAtEnchantingTable(const ItemStack& stack) const {
+    (void)stack;
+    // 默认实现：宝藏附魔不能在附魔台获得
+    return !isTreasure();
+}
+
 bool Enchantment::isCompatibleWith(const Enchantment& other) const {
     // 默认实现：同类型附魔互斥
     if (type() == other.type() && type() != EnchantmentType::All) {
         return false;
     }
     return true;
+}
+
+void Enchantment::onEntityDamaged(LivingEntity& user, Entity& target, i32 level) const {
+    // 默认实现：无操作
+    // 子类可以覆盖此方法实现特定效果（如节肢杀手的缓慢效果）
+    (void)user;
+    (void)target;
+    (void)level;
+}
+
+void Enchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const {
+    // 默认实现：无操作
+    // 子类可以覆盖此方法实现特定效果（如荆棘的反伤效果）
+    (void)user;
+    (void)attacker;
+    (void)level;
 }
 
 i32 Enchantment::getMinCost(i32 level) const {

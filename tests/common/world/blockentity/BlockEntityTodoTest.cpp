@@ -26,6 +26,7 @@
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/block/VanillaBlocks.hpp"
+#include "util/math/random/Random.hpp"
 
 #include <unordered_map>
 
@@ -140,6 +141,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
+    }
+
+    // Random interface (stubbed)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("DummyWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("DummyWorld::getRandom not implemented");
     }
 
 private:

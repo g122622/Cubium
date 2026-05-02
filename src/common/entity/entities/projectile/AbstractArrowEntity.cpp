@@ -4,10 +4,12 @@
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../../world/block/BlockState.hpp"
-#include "../../../world/block/Blocks.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../util/math/MathUtils.hpp"
+#include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
+#include <algorithm>
 
 namespace mc {
 namespace entity {
@@ -60,13 +62,13 @@ void AbstractArrowEntity::tick() {
                                     static_cast<BlockCoord>(std::floor(m_position.y)),
                                     static_cast<BlockCoord>(std::floor(m_position.z)));
     if (m_world) {
-        BlockState blockState = m_world->getBlockState(currentPos.x, currentPos.y, currentPos.z);
+        const BlockState* blockState = m_world->getBlockState(currentPos.x, currentPos.y, currentPos.z);
         // 检查是否在非空气方块的碰撞箱内
         // TODO: 需要实现 VoxelShape 检查
         // 当前简化处理：如果方块不透明且不在水中，认为在方块内
-        if (!blockState.isAir() && blockState.isSolid()) {
+        if (blockState != nullptr && !blockState->isAir() && blockState->isSolid()) {
             m_inGround = true;
-            m_inBlockState = blockState;
+            m_inBlockState = *blockState;
         }
     }
 
@@ -96,13 +98,14 @@ void AbstractArrowEntity::tick() {
 void AbstractArrowEntity::tickInGround() {
     // 检查方块是否仍然存在
     if (m_world) {
-        BlockState currentBlock = m_world->getBlockState(
+        const BlockState* currentBlock = m_world->getBlockState(
             static_cast<BlockCoord>(std::floor(m_position.x)),
             static_cast<BlockCoord>(std::floor(m_position.y)),
             static_cast<BlockCoord>(std::floor(m_position.z)));
 
         // 参考 MC 1.16.5: 检查方块变更导致箭矢脱落
-        if (currentBlock != m_inBlockState && checkInBlockEmpty()) {
+        if (currentBlock != nullptr && m_inBlockState.has_value() &&
+            *currentBlock != *m_inBlockState && checkInBlockEmpty()) {
             detachFromBlock();
             return;
         }
@@ -200,11 +203,11 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result) {
     f32 speed = std::sqrt(m_velocity.x * m_velocity.x +
                           m_velocity.y * m_velocity.y +
                           m_velocity.z * m_velocity.z);
-    i32 damage = static_cast<i32>(std::clamp(speed * m_damage, 0.0, 2147483647.0));
+    i32 damage = static_cast<i32>(std::clamp(static_cast<f64>(speed * m_damage), 0.0, 2147483647.0));
 
     // 暴击伤害加成 - MC 1.16.5: i += rand.nextInt(i / 2 + 2)
     if (m_critical) {
-        mc::math::Random rng = getRandom();
+        mc::math::Random rng = createRandomFromEntity(*this);
         i32 bonus = rng.nextInt(damage / 2 + 2);
         damage = static_cast<i32>(std::min(static_cast<i64>(damage) + bonus, 2147483647LL));
     }
@@ -275,8 +278,11 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result) {
 
     // 保存命中的方块状态
     if (m_world && result.type == RayTraceResultType::Block) {
-        m_inBlockState = m_world->getBlockState(
+        const BlockState* state = m_world->getBlockState(
             result.blockPos.x, result.blockPos.y, result.blockPos.z);
+        if (state != nullptr) {
+            m_inBlockState = *state;
+        }
     }
 
     // 计算并设置箭矢位置（回退一点使其嵌入方块）
@@ -302,8 +308,8 @@ void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 b
 
     // 设置基础伤害
     math::Random rng = createRandomFromEntity(*this);
-    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 +
-               static_cast<f64>(m_world ? m_world->getDifficulty().getId() * 0.11 : 0.0));
+    f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
+    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
     // 力量附魔增加伤害
     // i32 power = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:power");

@@ -4,7 +4,7 @@
 namespace mc {
 
 WitchEntity::WitchEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+    : AbstractRaiderEntity(type, id)
 {
     // 注册 AI 目标
     registerGoals();
@@ -31,7 +31,7 @@ void WitchEntity::tryDrinkHealingPotion() {
 }
 
 void WitchEntity::tick() {
-    MonsterEntity::tick();
+    AbstractRaiderEntity::tick();
 
     // 更新喝药水状态
     if (m_drinking && m_drinkTimer > 0) {
@@ -56,7 +56,7 @@ void WitchEntity::tick() {
 
 void WitchEntity::registerGoals() {
     // 调用父类方法
-    MonsterEntity::registerGoals();
+    AbstractRaiderEntity::registerGoals();
 
     // TODO: 女巫 AI 目标
     // - WitchAttackGoal: 药水攻击
@@ -65,7 +65,7 @@ void WitchEntity::registerGoals() {
 
 void WitchEntity::registerAttributes() {
     // 调用父类方法
-    MonsterEntity::registerAttributes();
+    AbstractRaiderEntity::registerAttributes();
 
     // 女巫的属性
     // 参考 MC 1.16.5 女巫属性

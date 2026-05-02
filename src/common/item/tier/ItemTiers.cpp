@@ -83,6 +83,8 @@ void ItemTiers::initialize() {
     );
 
     // 石制工具 - 使用圆石修复
+    // TODO: MC 1.16.5 使用 stone_tool_materials 标签 (COBBLESTONE + BLACKSTONE)
+    // 需要在方块物品注册完成后使用 ItemTag 系统
     static crafting::Ingredient stoneRepair = crafting::Ingredient::fromItems({
         Items::COBBLESTONE
     });

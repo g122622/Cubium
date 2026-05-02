@@ -60,7 +60,8 @@ BlockState LeavesBlock::updatePostPlacement(
     return state;
 }
 
-void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     const BlockState* newState = world.getBlockState(pos);
     if (newState != nullptr) {
         BlockState updated = updateDistance(*newState, world, pos);

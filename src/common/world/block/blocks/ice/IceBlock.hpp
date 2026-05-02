@@ -127,7 +127,7 @@ public:
     /**
      * @brief Tick 更新
      */
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 随机刻

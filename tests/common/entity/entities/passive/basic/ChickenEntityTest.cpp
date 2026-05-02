@@ -7,6 +7,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
 
 #include <memory>
@@ -73,6 +74,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("ChickenTestWorld::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("ChickenTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("ChickenTestWorld::getRandom not implemented");
     }
 
 private:

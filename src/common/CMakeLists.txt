@@ -185,16 +185,16 @@ add_library(mc_common STATIC
     # Entity - Villager
     entity/entities/villager/AbstractVillagerEntity.cpp
     entity/entities/villager/VillagerEntity.cpp
-    # Entity - Projectile (incomplete - needs more work)
+    # Entity - Projectile (entity files have deep API dependencies - need systematic refactoring)
     entity/entities/projectile/ProjectileHelper.cpp
     entity/entities/projectile/ProjectileEntity.cpp
     entity/entities/projectile/DamagingProjectileEntity.cpp
-    # entity/entities/projectile/ThrowableEntity.cpp
-    # entity/entities/projectile/AbstractArrowEntity.cpp
+    entity/entities/projectile/ThrowableEntity.cpp
+    entity/entities/projectile/AbstractArrowEntity.cpp
     entity/entities/projectile/AbstractFireballEntity.cpp
-    # entity/entities/projectile/ProjectileItemEntity.cpp
-    # entity/entities/projectile/TridentEntity.cpp
-    # entity/entities/projectile/OtherProjectiles.cpp
+    entity/entities/projectile/ProjectileItemEntity.cpp
+    entity/entities/projectile/TridentEntity.cpp
+    entity/entities/projectile/OtherProjectiles.cpp
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Entity - Loot System
@@ -223,11 +223,16 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/FollowParentGoal.cpp
     entity/ai/goal/goals/MeleeAttackGoal.cpp
     entity/ai/goal/goals/AvoidEntityGoal.cpp
+    entity/ai/goal/goals/RandomSwimmingGoal.cpp
+    entity/ai/goal/goals/FindWaterGoal.cpp
+    entity/ai/goal/goals/SwimUpGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/goal/goals/movement/MovementGoals.cpp
+    entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.cpp
     entity/ai/goal/goals/attack/RangedAttackGoals.cpp
     entity/ai/goal/goals/target/TargetGoals.cpp
     entity/ai/goal/goals/special/SpecialGoals.cpp
+    entity/ai/goal/goals/special/GuardianAttackGoal.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/VillagerGoals.cpp
@@ -252,6 +257,9 @@ add_library(mc_common STATIC
     entity/inventory/container/ChestContainer.cpp
     entity/inventory/container/HopperContainer.cpp
     entity/inventory/container/FurnaceContainer.cpp
+    entity/inventory/container/EnchantmentContainer.cpp
+    entity/inventory/container/BrewingStandContainer.cpp
+    entity/inventory/container/AnvilContainer.cpp
 
     # Item System - Core
     item/core/Item.cpp
@@ -301,6 +309,16 @@ add_library(mc_common STATIC
     item/items/tool/HoeItem.cpp
     item/items/tool/SwordItem.cpp
 
+    # Item - Weapons
+    item/items/weapon/BowItem.cpp
+    item/items/weapon/ArrowItem.cpp
+    item/items/weapon/CrossbowItem.cpp
+    item/items/weapon/TridentItem.cpp
+    item/items/weapon/ShieldItem.cpp
+    item/items/weapon/ThrowableItem.cpp
+    item/items/weapon/ThrowableItems.cpp
+    item/items/weapon/FishingRodItem.cpp
+
     # Item - Potion System
     item/potion/Potion.cpp
     item/potion/PotionRegistry.cpp
@@ -316,6 +334,7 @@ add_library(mc_common STATIC
 
     # Item - Special Items
     item/items/special/BoneMealItem.cpp
+    item/items/special/FishBucketItem.cpp
 
     # Item - Crafting
     item/crafting/Ingredient.cpp
@@ -501,6 +520,7 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/WeightedPressurePlateBlock.cpp
     world/block/blocks/redstone/DaylightDetectorBlock.cpp
     world/block/blocks/redstone/PistonBlock.cpp
+    world/block/blocks/redstone/PistonStructureHelper.cpp
     world/block/blocks/redstone/PistonHeadBlock.cpp
     world/block/blocks/redstone/MovingPistonBlock.cpp
     world/block/blocks/redstone/DispenserBlock.cpp
@@ -550,6 +570,7 @@ add_library(mc_common STATIC
     world/blockentity/processing/FurnaceInventory.cpp
     world/blockentity/processing/BrewingStandEntity.cpp
     world/blockentity/processing/BeaconEntity.cpp
+    world/blockentity/processing/ConduitEntity.cpp
     world/blockentity/redstone/ComparatorEntity.cpp
     world/blockentity/redstone/DaylightDetectorEntity.cpp
 

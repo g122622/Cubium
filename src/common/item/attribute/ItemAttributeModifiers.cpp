@@ -1,5 +1,6 @@
 #include "ItemAttributeModifiers.hpp"
 #include "../../entity/attribute/Attributes.hpp"
+#include "../../entity/attribute/AttributeModifierUUIDs.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -46,10 +47,10 @@ u64 ItemAttributeModifiers::generateModifierUUID(u32 itemId, const String& attri
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackDamage(f64 amount, i32 equipmentSlot) {
     // 创建攻击伤害修饰符（加法操作）
+    // 使用 MC 1.16.5 标准UUID (Item.java:45)
     auto attr = entity::attribute::Attributes::attackDamage();
-    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::ATTACK_DAMAGE);
     auto modifier = entity::attribute::AttributeModifier(
-        uuidToString(uuid),
+        entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID),
         "Attack damage modifier",
         amount,
         entity::attribute::Operation::Addition
@@ -59,10 +60,11 @@ ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackDamage(f64 a
 }
 
 ItemAttributeModifiersBuilder& ItemAttributeModifiersBuilder::attackSpeed(f64 amount, i32 equipmentSlot) {
+    // 创建攻击速度修饰符（加法操作）
+    // 使用 MC 1.16.5 标准UUID (Item.java:46)
     auto attr = entity::attribute::Attributes::attackSpeed();
-    u64 uuid = ItemAttributeModifiers::generateModifierUUID(0, entity::attribute::Attributes::ATTACK_SPEED);
     auto modifier = entity::attribute::AttributeModifier(
-        uuidToString(uuid),
+        entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_SPEED_MODIFIER_UUID),
         "Attack speed modifier",
         amount,
         entity::attribute::Operation::Addition

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../BlockTags.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -98,7 +99,16 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    // ========== 实体交互 (踩破蛋) ==========
+
+    void onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
+    void onFallenUpon(
+        IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        Entity& entity,
+        f32 fallDistance) override;
 
     [[nodiscard]] bool ticksRandomly() const override { return true; }
 
@@ -112,6 +122,55 @@ public:
     }
 
 private:
+    /**
+     * @brief 检查是否可以孵化 (光照条件)
+     * @param world 世界
+     * @param random 随机数生成器
+     * @return 是否可以孵化
+     */
+    [[nodiscard]] bool canGrow(IWorld& world, math::IRandom& random) const;
+
+    /**
+     * @brief 检查下方是否为沙子
+     * @param world 世界读取器
+     * @param pos 海龟蛋位置
+     * @return 是否在沙子上
+     */
+    [[nodiscard]] bool hasProperHabitat(IBlockReader& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 检查实体是否可以踩破蛋
+     * @param world 世界
+     * @param entity 实体
+     * @return 是否可以踩破
+     */
+    [[nodiscard]] bool canTrample(IWorld& world, Entity& entity) const;
+
+    /**
+     * @brief 尝试踩破蛋
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param entity 实体
+     * @param chance 触发概率 (1/chance)
+     */
+    void tryTrample(IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, i32 chance) const;
+
+    /**
+     * @brief 移除一个蛋
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void removeOneEgg(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+
+    /**
+     * @brief 检查实体是否为僵尸类型
+     * @param entity 实体
+     * @return 是否为僵尸类型
+     */
+    [[nodiscard]] bool isZombieType(Entity& entity) const;
+
     std::array<CollisionShape, 4> m_shapesByEggCount;
 };
 

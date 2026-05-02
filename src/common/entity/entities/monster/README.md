@@ -18,30 +18,41 @@ monster/
 ## 继承层次
 
 ```
-MobEntity
-└── CreatureEntity
-    └── MonsterEntity (敌对生物基类)
-        ├── AbstractSkeletonEntity (骷髅基类)
-        │   ├── SkeletonEntity
-        │   ├── StrayEntity
-        │   └── WitherSkeletonEntity
-        ├── ZombieEntity (僵尸)
-        │   ├── HuskEntity
-        │   ├── DrownedEntity
-        │   ├── ZombieVillagerEntity
-        │   └── ZombifiedPiglinEntity
-        ├── SpiderEntity (蜘蛛)
-        │   └── CaveSpiderEntity
-        ├── CreeperEntity (苦力怕)
-        ├── EndermanEntity (末影人)
-        ├── SlimeEntity (史莱姆)
-        │   └── MagmaCubeEntity
-        └── AbstractIllagerEntity (灾厄村民基类)
-            ├── VindicatorEntity
-            ├── EvokerEntity
-            ├── IllusionerEntity
-            └── PillagerEntity
+Entity
+└── LivingEntity
+    └── MobEntity
+        └── CreatureEntity
+            └── MonsterEntity (敌对生物基类)
+                ├── AbstractSkeletonEntity (骷髅基类)
+                │   ├── SkeletonEntity
+                │   ├── StrayEntity
+                │   └── WitherSkeletonEntity
+                ├── ZombieEntity (僵尸)
+                │   ├── HuskEntity
+                │   ├── DrownedEntity
+                │   └── ZombieVillagerEntity
+                ├── SpiderEntity (蜘蛛)
+                │   └── CaveSpiderEntity
+                ├── CreeperEntity (苦力怕)
+                ├── EndermanEntity (末影人)
+                ├── SlimeEntity (史莱姆)
+                │   └── MagmaCubeEntity
+                └── PatrollerEntity (巡逻者基类)
+                    └── AbstractRaiderEntity (袭击者基类)
+                        ├── AbstractIllagerEntity (灾厄村民基类)
+                        │   ├── SpellcastingIllagerEntity (施法灾厄村民基类)
+                        │   │   ├── EvokerEntity
+                        │   │   └── IllusionerEntity
+                        │   ├── VindicatorEntity
+                        │   └── PillagerEntity
+                        ├── WitchEntity
+                        └── RavagerEntity
 ```
+
+**注意**: 上述继承链已按照 MC 1.16.5 修复：
+- `MonsterEntity` -> `PatrollerEntity` -> `AbstractRaiderEntity` -> `AbstractIllagerEntity`
+- `VindicatorEntity` 和 `PillagerEntity` 现在继承自 `AbstractIllagerEntity`
+- `WitchEntity` 现在继承自 `AbstractRaiderEntity`
 
 ## 敌对行为
 
@@ -65,7 +76,6 @@ MobEntity
 | HuskEntity | 尸壳 | 沙漠僵尸、脱水效果 |
 | DrownedEntity | 溺尸 | 水下僵尸、使用三叉戟 |
 | ZombieVillagerEntity | 僵尸村民 | 可治愈 |
-| ZombifiedPiglinEntity | 僵尸猪灵 | 中立、群体仇恨 |
 | SkeletonEntity | 骷髅 | 远程攻击、阳光下燃烧 |
 | StrayEntity | 流浪者 | 雪地骷髅、迟缓之箭 |
 | WitherSkeletonEntity | 凋灵骷髅 | 凋灵效果攻击、高攻击力 |
@@ -112,7 +122,7 @@ MobEntity
 ### illager/ - 灾厄村民
 | 实体 | 说明 | 特殊行为 |
 |------|------|----------|
-| AbstractIllagerEntity | 灾厄村民基类 | - |
+| AbstractIllagerEntity | 灾厄村民基类 | 手臂姿势状态 |
 | VindicatorEntity | 卫道士 | 斧头近战攻击 |
 | EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 |
 | IllusionerEntity | 幻术师 | 分身、失明攻击 |
@@ -121,11 +131,35 @@ MobEntity
 | VexEntity | 恼鬼 | 穿墙飞行、小碰撞箱 |
 | WitchEntity | 女巫 | 药水攻击、治疗 |
 
+## 属性值对齐状态
+
+| 实体 | 属性 | MC 1.16.5 | 项目 | 状态 |
+|------|------|-----------|------|------|
+| VindicatorEntity | ATTACK_DAMAGE | 5.0 | 5.0 | 已修复 |
+| VindicatorEntity | FOLLOW_RANGE | 12.0 | 12.0 | 已修复 |
+| PillagerEntity | FOLLOW_RANGE | 32.0 | 32.0 | 已修复 |
+| VexEntity | ATTACK_DAMAGE | 4.0 | 4.0 | 已修复 |
+| EvokerEntity | MOVEMENT_SPEED | 0.5 | 0.5 | 已修复 |
+| HoglinEntity | ATTACK_DAMAGE | 6.0 | 6.0 | 已修复 |
+| ZoglinEntity | ATTACK_DAMAGE | 6.0 | 6.0 | 已修复 |
+| PiglinBruteEntity | ATTACK_DAMAGE | 7.0 | 7.0 | 已修复 |
+
 ## 实现状态
 
 所有目录下的实体均已实现基础框架。
 
-### 远程攻击
+### 已完成修复
+- 灾厄村民继承层次已按 MC 1.16.5 对齐
+- 属性值已按 MC 1.16.5 源码校准
+- `AbstractRaiderEntity` 添加了 `RaiderState` 状态系统
+- `AbstractIllagerEntity` 添加了 `ArmPose` 手臂姿势系统
+
+### 待完成工作
+- 各实体 AI 目标实现
+- 投掷物实体（火球、箭矢等）
+- DataParameter 网络同步
+
+## 远程攻击
 
 ```cpp
 // 远程攻击目标（骷髅）
@@ -159,10 +193,36 @@ public:
 
 - `MonsterEntity` 统一使用 `SoundCategory::Hostile`，保证敌对生物发声时进入正确的音量混音通道。
 - 这条分类会被 `Entity::playSound(...)` 自动携带到世界层，不需要各个怪物再手工传递。
-## 杩戞湡琛ュ叏缁洿
 
-- 宸叉柊澧?`undead/AbstractSkeletonEntity.hpp/.cpp`锛屾寮忚惤瀹?README 涓凡澹版槑浣嗕箣鍓嶇己澶辩殑楠烽珔绯讳腑闂村眰銆?
-- `SkeletonEntity`銆乀trayEntity`銆乄itherSkeletonEntity` 宸叉敼涓虹洿鎺ョ户鎵?`AbstractSkeletonEntity`锛岄泦涓壙杞借繙绋嬫敾鍑诲喎鍗淬€佹媺寮撶姸鎬佸拰鍏辩敤灞炴€ч€昏緫銆?
-## 最新补充
-- 已补 `AbstractSkeletonEntity` 支撑层，`SkeletonEntity` / `StrayEntity` / `WitherSkeletonEntity` 已统一继承。
-- 已补 `IFlinging` 接口层，`HoglinEntity` / `ZoglinEntity` 现已接入最小撞飞攻击语义。
+## 继承链修复记录
+
+### 2026-05-02 灾厄村民继承层次修复
+
+修复前的错误继承：
+```
+MonsterEntity -> AbstractIllagerEntity (错误!)
+MonsterEntity -> PatrollerEntity -> AbstractIllagerEntity (错误!)
+AbstractRaiderEntity -> PatrollerEntity (循环!)
+```
+
+修复后的正确继承（对齐 MC 1.16.5）：
+```
+MonsterEntity
+  └── PatrollerEntity
+        └── AbstractRaiderEntity
+              ├── AbstractIllagerEntity
+              │     ├── SpellcastingIllagerEntity
+              │     │     ├── EvokerEntity
+              │     │     └── IllusionerEntity
+              │     ├── VindicatorEntity
+              │     └── PillagerEntity
+              ├── WitchEntity
+              └── RavagerEntity
+```
+
+关键改动：
+- `PatrollerEntity` 现在直接继承 `MonsterEntity`
+- `AbstractRaiderEntity` 继承 `PatrollerEntity`
+- `AbstractIllagerEntity` 继承 `AbstractRaiderEntity`
+- `WitchEntity` 继承 `AbstractRaiderEntity`
+- `VindicatorEntity` 和 `PillagerEntity` 继承 `AbstractIllagerEntity`

@@ -413,15 +413,12 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean() {
 
 BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean() {
     // 深温水海洋：深海草 + 海带
+    // 注意：MC 1.16.5 中深海温水海洋没有珊瑚，珊瑚只在暖水海洋生成
     BiomeGenerationSettings settings;
 
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Tube);
-    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Brain);
-    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Bubble);
-    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Fire);
-    settings.addFeature(DecorationStage::VegetalDecoration, CoralFeatureIds::Horn);
+    // 无珊瑚特征 - 珊瑚只在暖水海洋生成
     settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Deep);
     settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Warm);

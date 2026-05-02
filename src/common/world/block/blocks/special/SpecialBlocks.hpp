@@ -205,7 +205,7 @@ public:
     explicit RepeatingCommandBlock(const BlockProperties& properties);
     ~RepeatingCommandBlock() override = default;
 
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 };
 
 /**
@@ -252,6 +252,12 @@ public:
     // ========== 推动反应 ==========
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override;
+
+    // ========== 黏液块粘连 ==========
+
+    [[nodiscard]] bool isStickyBlock(const BlockState& state) const override;
+
+    [[nodiscard]] bool canStickTo(const BlockState& state, const BlockState& other) const override;
 };
 
 /**
@@ -286,6 +292,12 @@ public:
     // ========== 推动反应 ==========
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override;
+
+    // ========== 蜂蜜块粘连 ==========
+
+    [[nodiscard]] bool isStickyBlock(const BlockState& state) const override;
+
+    [[nodiscard]] bool canStickTo(const BlockState& state, const BlockState& other) const override;
 
     // ========== 形状 ==========
 

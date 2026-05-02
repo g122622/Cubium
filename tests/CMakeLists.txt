@@ -43,10 +43,15 @@ add_executable(mc_tests
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/tool/ToolTests.cpp
     common/item/potion/GlassBottleItemTest.cpp
+    common/item/weapon/ThrowableItemTest.cpp
+    common/item/weapon/WeaponItemTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
+    common/entity/inventory/container/EnchantmentContainerTest.cpp
+    common/entity/inventory/container/BrewingStandContainerTest.cpp
+    common/entity/inventory/container/AnvilContainerTest.cpp
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     # 缁忛獙绯荤粺娴嬭瘯
     common/entity/experience/ExperienceTest.cpp
@@ -545,6 +550,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/BlastFurnaceEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/SmokerEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceInventory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/BeaconEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/ConduitEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/HopperEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/IHopper.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/CraftingTableEntity.cpp

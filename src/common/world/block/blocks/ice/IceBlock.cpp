@@ -189,9 +189,7 @@ void FrostedIceBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block&
     Block::neighborChanged(world, pos, neighborBlock, neighborPos, isMoving);
 }
 
-void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
-    math::Random random(world.seed() ^ pos.toId());
-
+void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // MC 1.16.5: 检查是否应该融化
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     i32 age = getAge(state);
@@ -223,9 +221,8 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
 }
 
 void FrostedIceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    MC_UNUSED(random);
     // MC 1.16.5: randomTick 也调用 tick
-    tick(world, pos, state);
+    tick(world, pos, state, random);
 }
 
 bool FrostedIceBlock::shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const {

@@ -52,7 +52,8 @@ public:
     }
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 25;
+        (void)level;
+        return 50;  // MC 1.16.5: 固定 50
     }
 
     /**

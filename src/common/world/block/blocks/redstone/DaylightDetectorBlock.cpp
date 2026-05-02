@@ -73,7 +73,8 @@ void DaylightDetectorBlock::neighborChanged(IWorld& world, const BlockPos& pos, 
     world.tickManager().scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
 }
 
-void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 更新信号强度
     updatePower(world, pos, state);
 
@@ -108,12 +109,12 @@ i32 DaylightDetectorBlock::getStrongPower(
 i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted) {
     // 检查维度是否有天空光照（主世界有，下界和末地没有）
     if (!world.hasSkyLight()) {
-        return 0;
+        return inverted ? 15 : 0;
     }
 
-    // 获取天空光照
     // MC Java: int i = world.getLightFor(LightType.SKY, pos) - world.getSkylightSubtracted();
-    u8 skyLight = world.getSkyLight(pos.up());
+    // 注意：获取的是探测器位置的天空光照，不是上方位置
+    u8 skyLight = world.getSkyLight(pos);
 
     // 使用 InternalLightUtils 计算天空减暗因子
     i64 dayTime = world.dayTime();
@@ -125,9 +126,15 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
 
     i32 i = static_cast<i32>(skyLight) - skyDarkening;
 
+    // MC Java: 反相模式在余弦调整之前反转
+    // 参考 DaylightDetectorBlock.updatePower() 第48-67行
+    if (inverted) {
+        i = 15 - std::max(0, i);
+    }
+
     // 获取天体角度进行余弦调整
     // MC Java: float f = world.getCelestialAngleRadians(1.0F);
-    if (!inverted && i > 0) {
+    if (i > 0) {
         f32 celestialAngle = InternalLightUtils::getCelestialAngle(dayTime);
         // 转换为弧度（getCelestialAngle 返回 0.0-1.0）
         constexpr f32 TWO_PI = 6.28318530718f;
@@ -142,11 +149,6 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
 
         // MC Java: i = Math.round((float)i * MathHelper.cos(f));
         i = static_cast<i32>(std::round(static_cast<f32>(i) * std::cos(f)));
-    }
-
-    // 反转模式
-    if (inverted) {
-        i = 15 - i;
     }
 
     return std::clamp(i, 0, 15);

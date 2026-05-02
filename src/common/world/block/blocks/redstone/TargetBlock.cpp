@@ -67,7 +67,8 @@ void TargetBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& nei
     MC_UNUSED(pos);
 }
 
-void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 信号持续时间结束，重置为0
     i32 currentPower = getPower(state);
     if (currentPower > 0) {

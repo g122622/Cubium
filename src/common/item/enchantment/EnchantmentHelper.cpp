@@ -1,5 +1,6 @@
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -80,6 +81,79 @@ i32 EnchantmentHelper::getUnbreakingLevel(const ItemStack& stack) {
     return getEnchantmentLevel(stack, "minecraft:unbreaking");
 }
 
+i32 EnchantmentHelper::getKnockbackLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:knockback");
+}
+
+i32 EnchantmentHelper::getFireAspectLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:fire_aspect");
+}
+
+i32 EnchantmentHelper::getLootingLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:looting");
+}
+
+i32 EnchantmentHelper::getEfficiencyLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:efficiency");
+}
+
+i32 EnchantmentHelper::getRespirationLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:respiration");
+}
+
+i32 EnchantmentHelper::getDepthStriderLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:depth_strider");
+}
+
+bool EnchantmentHelper::hasAquaAffinity(const ItemStack& stack) {
+    return hasEnchantment(stack, "minecraft:aqua_affinity");
+}
+
+bool EnchantmentHelper::hasFrostWalker(const ItemStack& stack) {
+    return hasEnchantment(stack, "minecraft:frost_walker");
+}
+
+bool EnchantmentHelper::hasSoulSpeed(const ItemStack& stack) {
+    return hasEnchantment(stack, "minecraft:soul_speed");
+}
+
+bool EnchantmentHelper::hasBindingCurse(const ItemStack& stack) {
+    return hasEnchantment(stack, "minecraft:binding_curse");
+}
+
+bool EnchantmentHelper::hasVanishingCurse(const ItemStack& stack) {
+    return hasEnchantment(stack, "minecraft:vanishing_curse");
+}
+
+i32 EnchantmentHelper::getLoyaltyLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:loyalty");
+}
+
+i32 EnchantmentHelper::getRiptideLevel(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:riptide");
+}
+
+bool EnchantmentHelper::hasChanneling(const ItemStack& stack) {
+    return hasEnchantment(stack, "minecraft:channeling");
+}
+
+f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack) {
+    i32 level = getEnchantmentLevel(stack, "minecraft:sweeping");
+    if (level <= 0) {
+        return 0.0f;
+    }
+    // MC 1.16.5: I=1.0-1.0/(1+level)=0.5, II=0.667, III=0.75
+    return 1.0f - 1.0f / static_cast<f32>(1 + level);
+}
+
+i32 EnchantmentHelper::getFishingLuckBonus(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:luck_of_the_sea");
+}
+
+i32 EnchantmentHelper::getFishingSpeedBonus(const ItemStack& stack) {
+    return getEnchantmentLevel(stack, "minecraft:lure");
+}
+
 // ========== 附魔计算 ==========
 
 i32 EnchantmentHelper::getTotalProtection(const ItemStack& stack, u32 damageType) {
@@ -146,6 +220,23 @@ i32 EnchantmentHelper::getProtectionFactor(const ItemStack& stack, u32 damageTyp
     }
 
     return total;
+}
+
+// ========== 耐久计算 ==========
+
+bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::Random& random) {
+    if (level <= 0) {
+        return false;
+    }
+
+    // MC 1.16.5: 护甲有 60% 概率不触发耐久效果
+    if (isArmor && random.nextFloat() < 0.6f) {
+        return false;
+    }
+
+    // level/(level+1) 概率忽略损耗
+    // I: 50%, II: 66.7%, III: 75%
+    return random.nextInt(level + 1) > 0;
 }
 
 } // namespace enchant

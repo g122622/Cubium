@@ -16,6 +16,7 @@
 #include "../src/common/world/tick/manager/TickManager.hpp"
 #include "../src/common/core/Constants.hpp"
 #include "../src/common/world/block/Block.hpp"
+#include "../src/common/util/math/random/Random.hpp"
 
 #include <array>
 
@@ -68,6 +69,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("ArmorTestWorld::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("ArmorTestWorld::getRandom not implemented");
     }
 
 private:

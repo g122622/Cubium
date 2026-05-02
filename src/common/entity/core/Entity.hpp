@@ -122,6 +122,26 @@ enum class LegacyEntityType : u32 {
     Boat = 110,
     Minecart = 111,
 
+    // 投掷物
+    Snowball = 120,
+    Egg = 121,
+    EnderPearl = 122,
+    ExperienceBottle = 123,
+    Potion = 124,
+    Arrow = 125,
+    SpectralArrow = 126,
+    Trident = 127,
+    Fireball = 128,
+    SmallFireball = 129,
+    DragonFireball = 130,
+    WitherSkull = 131,
+    LlamaSpit = 132,
+    ShulkerBullet = 133,
+    EvokerFangs = 134,
+    FishingBobber = 135,
+    EyeOfEnder = 136,
+    FireworkRocket = 137,
+
     // 其他
     Villager = 100,
     // 后续添加更多
@@ -662,6 +682,27 @@ public:
     [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
 
     /**
+     * @brief 检查实体是否在雨中
+     *
+     * 参考 MC 1.16.5 Entity.isInRain()
+     * 需要满足：世界正在下雨 + 实体位置可以看到天空 + 生物群系允许降水
+     *
+     * @return 如果实体在雨中返回 true
+     */
+    [[nodiscard]] bool isInRain() const;
+
+    /**
+     * @brief 检查实体是否湿润
+     *
+     * 参考 MC 1.16.5 Entity.isWet()
+     * MC: isWet() = isInWater() || isInRain()
+     * 用于三叉戟激流附魔、末影人躲避等逻辑
+     *
+     * @return 如果实体在水中或雨中返回 true
+     */
+    [[nodiscard]] bool isWet() const { return m_inWater || isInRain(); }
+
+    /**
      * @brief 检查眼睛是否在水下
      *
      * 参考 MC 1.16.5 Entity.areEyesInFluid(FluidTags.WATER)
@@ -1016,6 +1057,22 @@ public:
     [[nodiscard]] virtual bool canTriggerWalking() const { return true; }
 
     /**
+     * @brief 检查实体是否无视碰撞
+     *
+     * 无视碰撞的实体可以穿过方块，不会触发碰撞检测。
+     * 参考: MC 1.16.5 Entity.noClip
+     *
+     * @return 如果实体无视碰撞返回true
+     */
+    [[nodiscard]] bool noClip() const { return m_noClip; }
+
+    /**
+     * @brief 设置实体是否无视碰撞
+     * @param noClip 是否无视碰撞
+     */
+    void setNoClip(bool noClip) { m_noClip = noClip; }
+
+    /**
      * @brief 执行方块碰撞回调
      *
      * 在实体移动后调用，处理与方块的交互：
@@ -1055,6 +1112,7 @@ protected:
 
     bool m_onGround = false;
     bool m_removed = false;
+    bool m_noClip = false;       // 是否无视碰撞（用于三叉戟返回等）
     EntityPose m_pose = EntityPose::Standing;
     EntityFlags m_flags = EntityFlags::None;
     entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);

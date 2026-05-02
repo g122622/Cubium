@@ -112,7 +112,8 @@ BlockState ObserverBlock::updatePostPlacement(
     return state;
 }
 
-void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // MC 1.16.5 逻辑：
     // 1. 如果未激活 -> 激活并调度 2 tick 后熄灭
     // 2. 如果已激活 -> 熄灭

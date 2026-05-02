@@ -16,15 +16,21 @@ namespace mc::entity::combat {
 
 bool PlayerAttackHelper::isCriticalHit(const Player& player) {
     // MC 1.16.5 PlayerEntity.attack() 暴击条件：
-    // 1. 玩家正在下落（垂直速度 < 0）
+    // 1. 玩家正在下落（fallDistance > 0）
     // 2. 玩家不在地面
     // 3. 玩家不在水中
     // 4. 玩家不在梯子/藤蔓上
     // 5. 玩家没有失明效果
     // 6. 玩家没有骑乘
+    // 7. 玩家不在疾跑（暴击后疾跑会被取消）
 
-    // 条件 1 & 2: 正在下落且不在地面
-    if (player.velocity().y >= 0.0f || player.isOnGround()) {
+    // 条件 1: fallDistance > 0（MC使用fallDistance而非velocity.y）
+    if (player.fallDistance() <= 0.0f) {
+        return false;
+    }
+
+    // 条件 2: 不在地面
+    if (player.isOnGround()) {
         return false;
     }
 
@@ -45,6 +51,12 @@ bool PlayerAttackHelper::isCriticalHit(const Player& player) {
 
     // 条件 6: 没有骑乘
     if (player.isRiding()) {
+        return false;
+    }
+
+    // 条件 7: 不在疾跑（MC 1.16.5: 暴击时不能疾跑）
+    // 注意：疾跑击退和暴击是互斥的
+    if (player.isSprinting()) {
         return false;
     }
 
@@ -301,6 +313,10 @@ AttackContext PlayerAttackHelper::createContext(Player& player,
     // 检查武器附魔
     const ItemStack& mainHand = player.getHeldItem(Hand::MainHand);
     if (!mainHand.isEmpty()) {
+        // 计算附魔伤害加成（锋利、亡灵杀手、节肢杀手）
+        f32 enchantBonus = getEnchantmentDamageBonus(mainHand, target.getCreatureAttribute());
+        context.setEnchantDamageBonus(enchantBonus);
+
         // 火焰附加
         i32 fireAspectLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
             mainHand, &item::enchant::AllEnchantments::FIRE_ASPECT);

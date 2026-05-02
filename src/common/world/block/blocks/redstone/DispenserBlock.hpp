@@ -6,6 +6,10 @@
 #include "../../../../util/Direction.hpp"
 
 namespace mc {
+
+// 前向声明
+class IInventory;
+
 namespace blocks {
 
 /**
@@ -41,7 +45,7 @@ public:
     void neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
                         const BlockPos& neighborPos, bool isMoving) override;
 
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     [[nodiscard]] BlockState updatePostPlacement(
         const BlockState& state, Direction facing,
@@ -119,6 +123,32 @@ protected:
      * @param pos 方块位置
      */
     virtual void playDispenseSound(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 默认发射行为
+     *
+     * 处理将物品放入容器或生成物品实体。
+     *
+     * @param world 世界引用
+     * @param pos 发射器位置
+     * @param facing 发射方向
+     * @param targetPos 目标位置
+     * @param stack 要发射的物品堆
+     * @return 发射后剩余的物品堆
+     */
+    static ItemStack defaultDispense(IWorld& world, const BlockPos& pos, Direction facing,
+                                      const BlockPos& targetPos, ItemStack stack);
+
+    /**
+     * @brief 生成物品实体
+     *
+     * @param world 世界引用
+     * @param pos 发射器位置
+     * @param facing 发射方向
+     * @param stack 物品堆
+     */
+    static void spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing,
+                                 const ItemStack& stack);
 };
 
 } // namespace blocks

@@ -40,12 +40,42 @@ void RedstoneSystem::updateNeighborsInDirections(IWorld& world, const BlockPos& 
 }
 
 void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& block) {
+    // MC Java: 防止无限递归更新
+    // 如果当前位置正在更新，则跳过
+    if (m_context.isUpdating(pos)) {
+        return;
+    }
+
+    // 记录更新深度
+    if (!m_context.canPushDepth()) {
+        // 超过最大深度，停止更新
+        return;
+    }
+
+    m_context.beginUpdate(pos);
+    m_context.pushDepth();
+
     const auto& allDirs = Directions::all();
     updateNeighborsInDirections(world, pos, block, allDirs.data(), allDirs.size());
+
+    m_context.popDepth();
+    m_context.endUpdate(pos);
 }
 
 void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos,
                                            Block& block, Direction skipDirection) {
+    // MC Java: 防止无限递归更新
+    if (m_context.isUpdating(pos)) {
+        return;
+    }
+
+    if (!m_context.canPushDepth()) {
+        return;
+    }
+
+    m_context.beginUpdate(pos);
+    m_context.pushDepth();
+
     Direction directions[5];
     size_t count = 0;
     for (Direction dir : Directions::all()) {
@@ -54,9 +84,24 @@ void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos,
         }
     }
     updateNeighborsInDirections(world, pos, block, directions, count);
+
+    m_context.popDepth();
+    m_context.endUpdate(pos);
 }
 
 void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const BlockPos& pos, Block& block) {
+    // MC Java: 防止无限递归更新
+    if (m_context.isUpdating(pos)) {
+        return;
+    }
+
+    if (!m_context.canPushDepth()) {
+        return;
+    }
+
+    m_context.beginUpdate(pos);
+    m_context.pushDepth();
+
     const auto& horizDirs = Directions::horizontal();
     Direction directions[5];
     size_t count = 0;
@@ -65,6 +110,9 @@ void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const Block
     }
     directions[count++] = Direction::Down;
     updateNeighborsInDirections(world, pos, block, directions, count);
+
+    m_context.popDepth();
+    m_context.endUpdate(pos);
 }
 
 void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {

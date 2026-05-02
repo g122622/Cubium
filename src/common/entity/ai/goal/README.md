@@ -19,17 +19,22 @@ goal/
     ├── RandomWalkingGoal.hpp/cpp # 随机漫步目标
     ├── SwimGoal.hpp/cpp          # 游泳目标
     ├── TemptGoal.hpp/cpp         # 食物诱惑目标
+    ├── RandomSwimmingGoal.hpp/cpp # 随机游泳目标（水生生物）
+    ├── FindWaterGoal.hpp/cpp     # 寻找水源目标（水生生物）
+    ├── SwimUpGoal.hpp/cpp        # 向上游目标（水生生物）
     ├── AdditionalGoals.hpp/cpp   # 其他目标(占位符)
     ├── movement/                 # 移动类目标
     │   └── MovementGoals.hpp/cpp # WaterAvoidingRandomWalkingGoal, LeapAtTargetGoal
+    │   └── FollowSchoolLeaderGoal.hpp/cpp # 跟随群体领导者（群游鱼类）
     ├── attack/                   # 攻击类目标
     │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal
     ├── target/                   # 目标选择目标
     │   └── TargetGoals.hpp/cpp   # TargetGoal, NearestAttackableTargetGoal, HurtByTargetGoal等
     ├── interact/                 # 交互类目标
     │   └── TameableGoals.hpp/cpp # FollowOwnerGoal, SitGoal, BegGoal
-    └── special/                  # 特殊目标(占位符)
+    └── special/                  # 特殊目标
         └── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
+        └── GuardianAttackGoal.hpp/cpp # 守卫者激光攻击目标
 ```
 
 ## 整体职责

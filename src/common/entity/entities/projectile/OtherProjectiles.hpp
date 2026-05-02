@@ -53,7 +53,16 @@ public:
         Flying,     // 飞行中
         Hooked,     // 钩住实体
         Bobbing,    // 浮在水面
-        Fishing     // 钓鱼中
+        Fishing     // 钓鱼中（咬钩状态）
+    };
+
+    /**
+     * @brief 水类型（用于开放水域检测）
+     */
+    enum class WaterType : u8 {
+        AboveWater,  // 水上方块（空气或睡莲）
+        InsideWater, // 水内部（完整水源方块）
+        Invalid      // 无效
     };
 
     /**
@@ -78,7 +87,13 @@ public:
     /**
      * @brief 获取钓鱼者
      */
-    [[nodiscard]] Player* getAngler() const;
+    [[nodiscard]] Player* getAngler() const { return m_angler; }
+
+    /**
+     * @brief 设置发射者（钓鱼者）
+     * @param shooter 发射者实体
+     */
+    void setShooter(Entity* shooter);
 
     /**
      * @brief 获取当前状态
@@ -86,28 +101,86 @@ public:
     [[nodiscard]] State state() const { return m_state; }
 
     /**
+     * @brief 发射浮标
+     * @param shooter 发射者
+     * @param pitch 俯仰角（度）
+     * @param yaw 偏航角（度）
+     * @param pitchOffset 俯仰角偏移
+     * @param velocity 速度
+     * @param inaccuracy 不准确度
+     */
+    void shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy);
+
+    /**
      * @brief 收杆
-     * @return 钓到的物品（如果有）
+     * @return 钓到的物品数量（用于耐久消耗）
      */
     i32 reelIn();
 
+    /**
+     * @brief 设置钓鱼附魔加成
+     * @param luckBonus 海之眷顾附魔等级
+     * @param speedBonus 饵钓附魔等级
+     */
+    void setFishingBonus(i32 luckBonus, i32 speedBonus) {
+        m_luckBonus = luckBonus;
+        m_speedBonus = speedBonus;
+    }
+
+    /**
+     * @brief 是否在开放水域
+     */
+    [[nodiscard]] bool isInOpenWater() const { return m_inOpenWater; }
+
 private:
     /**
-     * @brief 检查咬钩
+     * @brief 检测水面并更新状态
      */
-    void checkBite();
+    void updateWaterState();
+
+    /**
+     * @brief 检测是否在水中
+     */
+    [[nodiscard]] bool isInWater() const;
+
+    /**
+     * @brief 检测开放水域
+     * @return 是否满足开放水域条件
+     */
+    [[nodiscard]] bool checkOpenWater();
+
+    /**
+     * @brief 钓鱼逻辑tick
+     */
+    void catchingFish();
 
     /**
      * @brief 生成钓鱼粒子
      */
     void spawnFishingParticles();
 
-    Player* m_angler = nullptr;      // 钓鱼者
-    State m_state = State::Flying;   // 当前状态
-    i32 m_hookCountdown = 0;         // 咬钩倒计时
-    i32 m_timeUntilBite = 0;         // 下次咬钩时间
-    f32 m_fishAngle = 0.0f;          // 鱼的角度（用于动画）
-    bool m_inOpenWater = true;       // 是否在开放水域
+    /**
+     * @brief 生成收杆物品
+     * @return 消耗的耐久度
+     */
+    i32 spawnCatchItems();
+
+    /**
+     * @brief 设置咬钩等待时间
+     */
+    void setWaitTime();
+
+    Player* m_angler = nullptr;           // 钓鱼者
+    State m_state = State::Flying;        // 当前状态
+    i32 m_ticksCaughtDelay = 0;           // 咬钩等待计时器
+    i32 m_ticksCatchableDelay = 0;        // 鱼接近计时器
+    i32 m_ticksCatchable = 0;             // 可捕获窗口期
+    f32 m_fishAngle = 0.0f;               // 鱼的角度（用于动画）
+    bool m_inOpenWater = false;           // 是否在开放水域
+    i32 m_luckBonus = 0;                  // 海之眷顾附魔等级
+    i32 m_speedBonus = 0;                 // 饵钓附魔等级
+    i32 m_outOfWaterTime = 0;             // 离开水的时间计数器
+    i32 m_lifetime = 0;                   // 存在时间
 };
 
 /**

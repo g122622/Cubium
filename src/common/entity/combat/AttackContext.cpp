@@ -17,38 +17,51 @@ AttackContext::AttackContext(Entity* attacker, LivingEntity* target)
 }
 
 f32 AttackContext::calculateFinalDamage() const {
-    f32 damage = m_baseDamage;
+    f32 baseDamage = m_baseDamage;
+    f32 enchantDamage = 0.0f;  // 附魔伤害单独计算
 
-    // ========== 1. 攻击者增益/减益 ==========
+    // ========== 1. 攻击者增益/减益（应用到基础伤害） ==========
     if (m_attackerLiving && m_attackType == AttackType::Melee) {
         // 力量药水加成（每级 +3 伤害）
         const i32 strengthLevel = m_attackerLiving->getEffectLevel(entity::effect::EffectType::Strength);
         if (strengthLevel > 0) {
-            damage += 3.0f * static_cast<f32>(strengthLevel);
+            baseDamage += 3.0f * static_cast<f32>(strengthLevel);
         }
 
         // 虚弱药水减益（每级 -4 伤害）
         const i32 weaknessLevel = m_attackerLiving->getEffectLevel(entity::effect::EffectType::Weakness);
         if (weaknessLevel > 0) {
-            damage -= 4.0f * static_cast<f32>(weaknessLevel);
-            damage = std::max(0.0f, damage);
+            baseDamage -= 4.0f * static_cast<f32>(weaknessLevel);
+            baseDamage = std::max(0.0f, baseDamage);
         }
     }
 
-    // ========== 2. 暴击加成 ==========
-    // MC 1.16.5: 暴击倍率在冷却影响之前应用
+    // ========== 2. 附魔伤害加成（从外部传入） ==========
+    // 附魔伤害（锋利、亡灵杀手、节肢杀手）需要单独计算
+    // 这应该在创建AttackContext时设置
+    enchantDamage = m_enchantDamageBonus;
+
+    // ========== 3. 攻击冷却影响（MC 1.16.5 关键逻辑） ==========
+    // 基础伤害 × 二次冷却系数（quadratic）
+    // 附魔伤害 × 线性冷却系数（linear）- 这是MC 1.16.5的关键差异！
+    // 参考：PlayerEntity.attack() 中 f = f * (0.2 + f2*f2 * 0.8) 和 f1 = f1 * f2
+    f32 quadraticCooldown = 0.2f + m_cooldownProgress * m_cooldownProgress * 0.8f;
+    f32 linearCooldown = m_cooldownProgress;
+    baseDamage *= quadraticCooldown;
+    enchantDamage *= linearCooldown;
+
+    // ========== 4. 暴击加成（只对基础伤害） ==========
+    // MC 1.16.5: 暴击倍率仅应用于基础伤害，不影响附魔伤害
+    // 参考：PlayerEntity.attack() 中 if (flag2) { f *= hitResult.getDamageModifier(); } 然后才是 f = f + f1
     if (m_critical) {
-        damage *= m_criticalMultiplier;
+        baseDamage *= m_criticalMultiplier;
     }
 
-    // ========== 3. 攻击冷却影响 ==========
-    // MC 1.16.5: 冷却不足时伤害 = 原伤害 × cooldownProgress²
-    // 注意：只有冷却 >= 0.9 才能造成完整伤害
-    if (m_cooldownProgress < 1.0f) {
-        damage *= m_cooldownProgress * m_cooldownProgress;
-    }
+    // ========== 5. 合并基础伤害和附魔伤害 ==========
+    // MC 1.16.5: f = f + f1（基础伤害 + 附魔伤害）
+    f32 damage = baseDamage + enchantDamage;
 
-    // ========== 4. 目标护甲减伤 ==========
+    // ========== 6. 目标护甲减伤 ==========
     if (m_target && !m_bypassArmor) {
         // 获取护甲值和护甲韧性
         f32 armor = static_cast<f32>(m_target->attributes().getValue(entity::attribute::Attributes::ARMOR));
@@ -73,11 +86,11 @@ f32 AttackContext::calculateFinalDamage() const {
         }
     }
 
-    // ========== 5. 附魔保护减伤 ==========
+    // ========== 7. 附魔保护减伤 ==========
     // TODO: 附魔保护减伤（保护、火焰保护、摔落保护等）
     // 需要在目标装备上计算 EPF (Enchantment Protection Factor)
 
-    // ========== 6. 吸收值处理（金苹果）==========
+    // ========== 8. 吸收值处理（金苹果）==========
     // 吸收值在 LivingEntity::actuallyHurt() 中处理，这里不重复
 
     return std::max(0.0f, damage);

@@ -61,7 +61,7 @@ public:
     /**
      * @brief 方块Tick - 更新距离
      */
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 是否需要随机Tick

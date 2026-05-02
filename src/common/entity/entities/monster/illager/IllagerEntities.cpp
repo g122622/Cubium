@@ -13,7 +13,7 @@ std::unique_ptr<Entity> PillagerEntity::create(IWorld* world) {
 }
 
 PillagerEntity::PillagerEntity(LegacyEntityType type, EntityId id)
-    : AbstractRaiderEntity(type, id)
+    : AbstractIllagerEntity(type, id)
 {
 }
 
@@ -36,16 +36,19 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
 }
 
 void PillagerEntity::registerGoals() {
-    AbstractRaiderEntity::registerGoals();
+    AbstractIllagerEntity::registerGoals();
     // TODO: 添加掠夺者特有AI（弩攻击等）
 }
 
 void PillagerEntity::registerAttributes() {
-    AbstractRaiderEntity::registerAttributes();
+    AbstractIllagerEntity::registerAttributes();
 
+    // MC 1.16.5 PillagerEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    // MC 1.16.5: FOLLOW_RANGE = 32.0
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 }
 
 // VindicatorEntity
@@ -54,21 +57,25 @@ std::unique_ptr<Entity> VindicatorEntity::create(IWorld* world) {
 }
 
 VindicatorEntity::VindicatorEntity(LegacyEntityType type, EntityId id)
-    : AbstractRaiderEntity(type, id)
+    : AbstractIllagerEntity(type, id)
 {
 }
 
 void VindicatorEntity::registerGoals() {
-    AbstractRaiderEntity::registerGoals();
+    AbstractIllagerEntity::registerGoals();
     // TODO: 添加卫道士特有AI（斧攻击等）
 }
 
 void VindicatorEntity::registerAttributes() {
-    AbstractRaiderEntity::registerAttributes();
+    AbstractIllagerEntity::registerAttributes();
 
+    // MC 1.16.5 VindicatorEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 9.0); // 铁斧伤害
+    // MC 1.16.5: 基础攻击伤害为 5.0（铁斧额外 +3，总计 8）
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    // MC 1.16.5: FOLLOW_RANGE = 12.0
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
 }
 
 } // namespace mc

@@ -30,7 +30,7 @@ public:
                          Block& neighborBlock, const BlockPos& neighborPos,
                          bool isMoving) override;
 
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
      * @brief 方块更新后处理

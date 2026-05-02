@@ -7,6 +7,7 @@
 #include "world/block/VanillaBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
 
 #include <unordered_map>
@@ -64,6 +65,14 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("TestBlockReader::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override {
+        throw std::runtime_error("TestBlockReader::getRandom not implemented");
+    }
+    [[nodiscard]] const math::Random& getRandom() const override {
+        throw std::runtime_error("TestBlockReader::getRandom not implemented");
     }
 
 private:

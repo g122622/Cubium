@@ -3,6 +3,9 @@
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../entity/inventory/IInventory.hpp"
+#include "../../../../entity/core/EntityRegistry.hpp"
+#include "../../../../entity/entities/item/ItemEntity.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -59,13 +62,6 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     ItemStack dispensedStack = stack.split(1);
     inventory->setItem(slot, stack.getCount() > 0 ? stack : ItemStack::EMPTY);
 
-    // 计算投掷位置（方块前方中心）
-    Vector3 dispensePos(
-        static_cast<f32>(targetPos.x) + 0.5f,
-        static_cast<f32>(targetPos.y) + 0.5f,
-        static_cast<f32>(targetPos.z) + 0.5f
-    );
-
     // 检查目标位置是否有容器
     BlockEntity* targetEntity = world.getBlockEntity(targetPos);
     if (targetEntity != nullptr) {
@@ -110,22 +106,29 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
         }
     }
 
-    // TODO: 需要世界支持 spawnEntity 来创建物品实体
-    // 投掷器的投掷速度比发射器慢
-    // f32 vx = 0.0f, vy = 0.0f, vz = 0.0f;
-    // switch (facing) {
-    //     case Direction::North: vz = -0.1f; break;  // 投掷器速度较慢
-    //     case Direction::South: vz = 0.1f; break;
-    //     case Direction::East:  vx = 0.1f; break;
-    //     case Direction::West:  vx = -0.1f; break;
-    //     case Direction::Up:    vy = 0.3f; break;
-    //     case Direction::Down:  vy = -0.1f; break;
-    //     default: break;
-    // }
-    // auto itemEntity = std::make_unique<ItemEntity>(
-    //     EntityId(0), dispensedStack, dispensePos.x, dispensePos.y, dispensePos.z, vx, vy, vz
-    // );
-    // world.spawnEntity(std::move(itemEntity));
+    // 没有容器或容器已满，投掷物品实体
+    // MC 1.16.5: 投掷器的投掷速度比发射器慢
+    constexpr f32 DROP_SPEED = 0.1f;
+
+    // 计算投掷位置
+    f32 x = static_cast<f32>(targetPos.x) + 0.5f;
+    f32 y = static_cast<f32>(targetPos.y) + 0.5f;
+    f32 z = static_cast<f32>(targetPos.z) + 0.5f;
+
+    // 计算投掷速度
+    f32 vx = static_cast<f32>(Directions::xOffset(facing)) * DROP_SPEED;
+    f32 vy = static_cast<f32>(Directions::yOffset(facing)) * DROP_SPEED;
+    f32 vz = static_cast<f32>(Directions::zOffset(facing)) * DROP_SPEED;
+
+    // 创建物品实体
+    auto itemEntity = std::make_unique<ItemEntity>(
+        EntityId(0), dispensedStack, x, y, z, vx, vy, vz);
+
+    // 设置拾取延迟
+    itemEntity->setPickupDelay(10);
+
+    // 生成实体
+    world.spawnEntity(std::move(itemEntity));
 
     dropper->setChanged();
     return true;

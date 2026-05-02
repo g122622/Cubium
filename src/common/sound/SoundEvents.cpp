@@ -43,6 +43,30 @@ const ResourceLocation ENTITY_PLAYER_LEVELUP("minecraft:entity.player.levelup");
 const ResourceLocation ENTITY_ITEM_PICKUP("minecraft:entity.item.pickup");
 
 // ============================================================================
+// 武器声音
+// ============================================================================
+
+const ResourceLocation ENTITY_ARROW_SHOOT("minecraft:entity.arrow.shoot");
+const ResourceLocation ITEM_BOW_PULL("minecraft:item.bow.pull");
+const ResourceLocation ITEM_CROSSBOW_LOADING_START("minecraft:item.crossbow.loading_start");
+const ResourceLocation ITEM_CROSSBOW_LOADING_MIDDLE("minecraft:item.crossbow.loading_middle");
+const ResourceLocation ITEM_CROSSBOW_LOADING_END("minecraft:item.crossbow.loading_end");
+const ResourceLocation ITEM_CROSSBOW_SHOOT("minecraft:item.crossbow.shoot");
+const ResourceLocation ITEM_CROSSBOW_ROCKET("minecraft:item.crossbow.rocket");
+const ResourceLocation ITEM_TRIDENT_THROW("minecraft:item.trident.throw");
+const ResourceLocation ITEM_TRIDENT_RIPTIDE_1("minecraft:item.trident.riptide_1");
+const ResourceLocation ITEM_TRIDENT_RIPTIDE_2("minecraft:item.trident.riptide_2");
+const ResourceLocation ITEM_TRIDENT_RIPTIDE_3("minecraft:item.trident.riptide_3");
+const ResourceLocation ITEM_TRIDENT_HIT("minecraft:item.trident.hit");
+const ResourceLocation ITEM_TRIDENT_HIT_GROUND("minecraft:item.trident.hit_ground");
+const ResourceLocation ITEM_SHIELD_BLOCK("minecraft:item.shield.block");
+const ResourceLocation ITEM_SHIELD_BREAK("minecraft:item.shield.break");
+const ResourceLocation ENTITY_FISHING_BOBBER_THROW("minecraft:entity.fishing_bobber.throw");
+const ResourceLocation ENTITY_FISHING_BOBBER_RETRIEVE("minecraft:entity.fishing_bobber.retrieve");
+const ResourceLocation ENTITY_FISHING_BOBBER_SPLASH("minecraft:entity.fishing_bobber.splash");
+const ResourceLocation ENTITY_FISHING_BOBBER_CAST("minecraft:entity.fishing_bobber.cast");
+
+// ============================================================================
 // 环境声音
 // ============================================================================
 

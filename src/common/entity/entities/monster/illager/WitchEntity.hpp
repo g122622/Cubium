@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
+#include "AbstractRaiderEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include <memory>
 
@@ -9,7 +9,7 @@ namespace mc {
 /**
  * @brief 女巫实体
  *
- * 使用药水的敌对生物。
+ * 使用药水的敌对生物，可参与掠夺事件。
  *
  * 特性：
  * - 药水攻击：向玩家投掷负面药水
@@ -17,9 +17,11 @@ namespace mc {
  * - 掉落：药水材料
  * - 生成：在沼泽小屋
  *
+ * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> WitchEntity
+ *
  * 参考 MC 1.16.5 WitchEntity
  */
-class WitchEntity : public MonsterEntity {
+class WitchEntity : public AbstractRaiderEntity {
 public:
     /**
      * @brief 构造函数

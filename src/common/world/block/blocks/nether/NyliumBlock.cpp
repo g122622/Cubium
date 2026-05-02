@@ -110,10 +110,11 @@ void MagmaBlock::neighborChanged(
     }
 }
 
-void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // 参考: MC 1.16.5 MagmaBlock.tick()
     // 在上方生成气泡柱
-    (void)state;  // 暂时未使用
+    MC_UNUSED(state);  // 暂时未使用
+    MC_UNUSED(random);
 
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
