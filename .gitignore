@@ -61,3 +61,6 @@ third_party/
 .cache/
 
 .claude/worktrees/
+
+# 所有目录下的node_modules目录
+**/node_modules/
