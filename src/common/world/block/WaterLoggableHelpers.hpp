@@ -1,13 +1,12 @@
 #pragma once
 
 #include "../fluid/Fluid.hpp"
-#include "../fluid/FluidState.hpp"
 #include "../fluid/FluidTags.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../tick/manager/TickManager.hpp"
-#include "IWorld.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../../util/assert/AssertAll.hpp"
+#include "../../util/property/Properties.hpp"
+#include "../../util/assert/AssertAll.hpp"
+#include "../IWorld.hpp"
 
 namespace mc {
 namespace waterloggable {
