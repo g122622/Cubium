@@ -4,6 +4,7 @@
 #include "../../../blockentity/core/BlockEntityRegistry.hpp"
 #include "../../../blockentity/processing/ConduitEntity.hpp"
 #include "../../VanillaBlocks.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -101,7 +102,9 @@ BlockState ConduitBlock::updatePostPlacement(
     MC_UNUSED(facingPos);
 
     // 如果含水，调度流体tick
-    // MC 1.16.5: if (state.get(WATERLOGGED)) { world.getPendingFluidTicks().scheduleTick(...); }
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        waterloggable::scheduleWaterTick(world, currentPos);
+    }
 
     // 触发方块实体更新
     // TODO: 获取方块实体并触发重新检测

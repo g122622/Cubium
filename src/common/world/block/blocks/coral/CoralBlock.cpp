@@ -1,43 +1,28 @@
 #include "CoralBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/FluidTags.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
 namespace {
 
-[[nodiscard]] bool isWaterFluidState(const mc::fluid::FluidState* fluidState) {
-    return fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER());
-}
-
-[[nodiscard]] bool isWaterSourceFluidState(const mc::fluid::FluidState* fluidState) {
-    return isWaterFluidState(fluidState) && fluidState->isSource();
-}
-
-void scheduleWaterTick(mc::IWorld& world, const mc::BlockPos& pos) {
-    mc::fluid::Fluid* waterFluid = mc::fluid::FluidRegistry::instance().getFluid(mc::fluid::FluidRegistry::WATER_ID);
-    MC_ASSERT(waterFluid != nullptr);
-    world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
-}
-
-[[nodiscard]] const mc::BlockState* getDeadBlockState(mc::u32 deadBlockId) {
-    mc::Block* deadBlock = mc::BlockRegistry::instance().getBlock(deadBlockId);
-    return deadBlock != nullptr ? &deadBlock->defaultState() : nullptr;
-}
-
 [[nodiscard]] bool hasNearbyWater(mc::IWorld& world, const mc::BlockPos& pos) {
     for (mc::Direction dir : {mc::Direction::North, mc::Direction::South, mc::Direction::East, mc::Direction::West, mc::Direction::Up, mc::Direction::Down}) {
         const mc::fluid::FluidState* fluidState = world.getFluidState(pos.offset(dir));
-        if (isWaterFluidState(fluidState)) {
+        if (mc::waterloggable::isWaterFluidState(fluidState)) {
             return true;
         }
     }
 
     return false;
+}
+
+[[nodiscard]] const mc::BlockState* getDeadBlockState(mc::u32 deadBlockId) {
+    mc::Block* deadBlock = mc::BlockRegistry::instance().getBlock(deadBlockId);
+    return deadBlock != nullptr ? &deadBlock->defaultState() : nullptr;
 }
 
 } // namespace
@@ -68,7 +53,7 @@ BlockState CoralBlock::getStateForPlacement(BlockItemUseContext& context) {
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = isWaterSourceFluidState(world.getFluidState(pos));
+    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
 
     return defaultState().with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
@@ -86,7 +71,7 @@ BlockState CoralBlock::updatePostPlacement(
     MC_UNUSED(facingPos);
 
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        scheduleWaterTick(world, currentPos);
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     if (!hasNearbyWater(world, currentPos)) {
@@ -115,14 +100,8 @@ const CollisionShape& CoralBlock::getShape(const BlockState& state) const {
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* CoralBlock::getFluidState(const BlockState& state) const {
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 // ========== CoralFanBlock ==========
@@ -152,7 +131,7 @@ BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context) {
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = isWaterSourceFluidState(world.getFluidState(pos));
+    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
@@ -187,7 +166,7 @@ BlockState CoralFanBlock::updatePostPlacement(
     }
 
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        scheduleWaterTick(world, currentPos);
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     if (!hasNearbyWater(world, currentPos)) {
@@ -233,14 +212,8 @@ bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direct
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* CoralFanBlock::getFluidState(const BlockState& state) const {
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 // ========== CoralWallFanBlock ==========
@@ -270,7 +243,7 @@ BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context)
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = isWaterSourceFluidState(world.getFluidState(pos));
+    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
 
     return defaultState()
         .with(BlockStateProperties::FACING(), facing)
@@ -311,7 +284,7 @@ BlockState CoralWallFanBlock::updatePostPlacement(
     }
 
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        scheduleWaterTick(world, currentPos);
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     if (!hasNearbyWater(world, currentPos)) {
@@ -378,14 +351,8 @@ bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Di
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* CoralWallFanBlock::getFluidState(const BlockState& state) const {
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 // ========== CoralBlockBlock ==========

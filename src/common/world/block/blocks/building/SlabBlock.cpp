@@ -4,10 +4,7 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/core/Item.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../../tick/manager/TickManager.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/Direction.hpp"
 
@@ -171,12 +168,7 @@ BlockState SlabBlock::updatePostPlacement(
     // 单层台阶含水时调度流体 tick
     if (state.get(BlockStateProperties::SLAB_TYPE()) != BlockStateProperties::SlabType::Double) {
         if (state.get(BlockStateProperties::WATERLOGGED())) {
-            fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-                fluid::FluidRegistry::WATER_ID);
-            if (waterFluid != nullptr) {
-                world.tickManager().scheduleFluidTick(
-                    currentPos, *waterFluid, waterFluid->getTickDelay(world));
-            }
+            waterloggable::scheduleWaterTick(world, currentPos);
         }
     }
 
@@ -217,14 +209,8 @@ const fluid::FluidState* SlabBlock::getFluidState(const BlockState& state) const
         return Block::getFluidState(state);
     }
 
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 bool SlabBlock::canContainFluid(

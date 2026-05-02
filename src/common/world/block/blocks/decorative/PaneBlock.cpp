@@ -1,27 +1,10 @@
 #include "PaneBlock.hpp"
 #include "../building/WallBlock.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/FluidTags.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
-
-namespace {
-
-[[nodiscard]] bool isWaterFluidState(const mc::fluid::FluidState* fluidState) {
-    return fluidState != nullptr && fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER());
-}
-
-void scheduleWaterTick(mc::IWorld& world, const mc::BlockPos& pos) {
-    mc::fluid::Fluid* waterFluid = mc::fluid::FluidRegistry::instance().getFluid(mc::fluid::FluidRegistry::WATER_ID);
-    MC_ASSERT(waterFluid != nullptr);
-    world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
-}
-
-} // namespace
 
 namespace mc {
 namespace blocks {
@@ -93,7 +76,6 @@ PaneBlock::PaneBlock(const BlockProperties& properties)
 BlockState PaneBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
     const IWorld& world = context.getWorld();
-    const fluid::FluidState* fluidState = world.getFluidState(pos);
 
     const BlockState* northState = world.getBlockState(pos.north());
     const BlockState* eastState = world.getBlockState(pos.east());
@@ -104,7 +86,7 @@ BlockState PaneBlock::getStateForPlacement(BlockItemUseContext& context) {
     bool east = eastState != nullptr && shouldConnectTo(const_cast<IWorld&>(world), pos.east(), *eastState, Direction::East);
     bool south = southState != nullptr && shouldConnectTo(const_cast<IWorld&>(world), pos.south(), *southState, Direction::South);
     bool west = westState != nullptr && shouldConnectTo(const_cast<IWorld&>(world), pos.west(), *westState, Direction::West);
-    bool waterlogged = isWaterFluidState(fluidState);
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
     return defaultState()
         .with(BlockStateProperties::NORTH(), north)
@@ -123,7 +105,7 @@ BlockState PaneBlock::updatePostPlacement(
     const BlockPos& facingPos)
 {
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        scheduleWaterTick(world, currentPos);
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     if (!Directions::isHorizontal(facing)) {
@@ -160,13 +142,8 @@ const CollisionShape& PaneBlock::getShape(const BlockState& state) const {
 }
 
 const fluid::FluidState* PaneBlock::getFluidState(const BlockState& state) const {
-    if (!state.get(BlockStateProperties::WATERLOGGED())) {
-        return Block::getFluidState(state);
-    }
-
-    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
-    MC_ASSERT(waterFluid != nullptr);
-    return &waterFluid->defaultState();
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 bool PaneBlock::connectsTo(const BlockState& state, Direction facing) {

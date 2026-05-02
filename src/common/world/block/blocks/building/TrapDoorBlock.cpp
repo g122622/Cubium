@@ -1,12 +1,8 @@
 #include "TrapDoorBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/FluidTags.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -87,8 +83,7 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context) {
             : BlockStateProperties::DoubleBlockHalf::Upper;
     }
 
-    const fluid::FluidState* fluidState = world.getFluidState(pos);
-    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
     bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos);
 
     return defaultState()
@@ -124,9 +119,7 @@ BlockState TrapDoorBlock::updatePostPlacement(
     // 参考: net.minecraft.block.TrapDoorBlock#updatePostPlacement
     // 处理含水状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
-        MC_ASSERT(waterFluid != nullptr);
-        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     // 调用父类处理
@@ -160,9 +153,7 @@ void TrapDoorBlock::neighborChanged(IWorld& world, const BlockPos& pos,
     world.setBlockState(pos, &newState, 2);
 
     if (newState.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
-        MC_ASSERT(waterFluid != nullptr);
-        world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+        waterloggable::scheduleWaterTick(world, pos);
     }
 
     if (wasOpen != isPowered) {
@@ -238,9 +229,7 @@ void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState&
     world.setBlockState(pos, &newState, 10);
 
     if (newState.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
-        MC_ASSERT(waterFluid != nullptr);
-        world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
+        waterloggable::scheduleWaterTick(world, pos);
     }
 
     playSound(world, pos, open);
@@ -279,14 +268,8 @@ size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStatePrope
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* TrapDoorBlock::getFluidState(const BlockState& state) const {
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 } // namespace blocks

@@ -2,7 +2,6 @@
 #include "../BlockRegistry.hpp"
 #include "../Block.hpp"
 #include "../../IWorld.hpp"
-#include "../../tick/manager/TickManager.hpp"
 #include "../WaterLoggableHelpers.hpp"
 #include "../../blockentity/storage/ChestEntity.hpp"
 #include "../../../entity/core/Entity.hpp"
@@ -11,9 +10,6 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../fluid/Fluid.hpp"
-#include "../../fluid/FluidRegistry.hpp"
-#include "../../fluid/FluidTags.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -27,12 +23,6 @@ namespace {
     constexpr f32 CHEST_HEIGHT = 14.0f;
     constexpr f32 CHEST_DEPTH = 14.0f;
     constexpr f32 CHEST_OFFSET = 1.0f;
-
-    void scheduleWaterTick(mc::IWorld& world, const mc::BlockPos& pos) {
-        mc::fluid::Fluid* waterFluid = mc::fluid::FluidRegistry::instance().getFluid(mc::fluid::FluidRegistry::WATER_ID);
-        MC_ASSERT(waterFluid != nullptr);
-        world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
-    }
 }
 
 // ========== 构造函数 ==========
@@ -88,8 +78,7 @@ BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context) {
     }
 
     // 检查水logged状态
-    const fluid::FluidState* fluidState = context.getWorld().getFluidState(context.placementPos());
-    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+    bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos());
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
@@ -107,7 +96,7 @@ BlockState ChestBlock::updatePostPlacement(
 ) {
     // 处理水logged状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        scheduleWaterTick(world, pos);
+        waterloggable::scheduleWaterTick(world, pos);
     }
 
     // 检查是否与相邻箱子连接/断开
@@ -330,14 +319,8 @@ bool ChestBlock::canCombineWithChestAt(
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* ChestBlock::getFluidState(const BlockState& state) const {
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 } // namespace blocks

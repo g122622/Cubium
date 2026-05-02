@@ -62,7 +62,7 @@ inline void scheduleWaterTick(IWorld& world, const BlockPos& pos) {
  * @param pos 方块位置
  * @return 如果该位置有水返回 true
  */
-[[nodiscard]] inline bool shouldWaterlogAt(IWorld& world, const BlockPos& pos) {
+[[nodiscard]] inline bool shouldWaterlogAt(const IWorld& world, const BlockPos& pos) {
     const fluid::FluidState* fluidState = world.getFluidState(pos);
     return isWaterFluidState(fluidState);
 }
@@ -73,7 +73,7 @@ inline void scheduleWaterTick(IWorld& world, const BlockPos& pos) {
  * @param pos 方块位置
  * @return 如果该位置有水源返回 true
  */
-[[nodiscard]] inline bool hasWaterSourceAt(IWorld& world, const BlockPos& pos) {
+[[nodiscard]] inline bool hasWaterSourceAt(const IWorld& world, const BlockPos& pos) {
     const fluid::FluidState* fluidState = world.getFluidState(pos);
     return isWaterSourceFluidState(fluidState);
 }

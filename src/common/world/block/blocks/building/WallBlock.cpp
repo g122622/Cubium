@@ -1,11 +1,7 @@
 #include "WallBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/FluidTags.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
@@ -94,8 +90,7 @@ BlockState WallBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
 
     BlockState state = calculateState(world, pos, defaultState());
-    const fluid::FluidState* fluidState = world.getFluidState(pos);
-    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
     return state.with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
@@ -112,9 +107,7 @@ BlockState WallBlock::updatePostPlacement(
     MC_UNUSED(facingPos);
 
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
-        MC_ASSERT(waterFluid != nullptr);
-        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     return calculateState(world, currentPos, state);
@@ -296,14 +289,8 @@ size_t WallBlock::getShapeIndex(
 }
 
 const fluid::FluidState* WallBlock::getFluidState(const BlockState& state) const {
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 } // namespace blocks

@@ -10,9 +10,12 @@ block/
 ├── BlockPos.hpp            # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp   # 方块注册表（单例）
 ├── HarvestTool.hpp         # 挖掘工具类型定义
+├── IBucketPickupHandler.hpp # 桶提取接口
 ├── ILiquidContainer.hpp    # 液体容器接口
+├── IWaterLoggable.hpp      # 含水方块接口
 ├── Material.hpp/cpp        # 材质系统
 ├── VanillaBlocks.hpp/cpp   # 原版方块静态引用
+├── WaterLoggableHelpers.hpp # 含水方块工具函数
 └── blocks/                 # 具体方块实现
     ├── AirBlock.hpp/cpp    # 空气方块
     ├── LiquidBlock.hpp/cpp # 液体方块
@@ -182,6 +185,79 @@ block/
 - `canContainFluid()`：检查是否可以容纳指定流体
 - `receiveFluid()`：接收流体
 - `containsFluid()`：检查是否包含流体
+
+### IWaterLoggable.hpp
+
+**职责**：定义含水方块接口，实现此接口的方块可以被水浸没（如栅栏、墙、楼梯、台阶等）。
+
+**继承关系**：`IWaterLoggable` 继承自 `ILiquidContainer` 和 `IBucketPickupHandler`
+
+**主要方法**：
+- `getFluidState()`：获取方块内的流体状态（当WATERLOGGED为true时返回水流体状态）
+- `isWaterlogged()`：检查方块是否含水
+- `canContainFluid()`：检查是否可以容纳指定流体（仅接受水）
+- `receiveFluid()`：接收流体（将WATERLOGGED设为true）
+- `containsFluid()`：检查是否包含指定流体
+
+**实现含水方块的步骤**：
+1. 继承 `IWaterLoggable` 接口
+2. 添加 `WATERLOGGED` 属性到状态容器
+3. 在 `getStateForPlacement()` 中检测水并设置WATERLOGGED
+4. 在 `updatePostPlacement()` 中调度流体tick
+5. 实现 `getFluidState()` 返回水流体状态
+
+### IBucketPickupHandler.hpp
+
+**职责**：定义桶提取接口，允许方块响应桶的提取操作。
+
+**主要方法**：
+- `pickupFluid()`：从方块中提取流体，返回提取的流体物品
+
+### WaterLoggableHelpers.hpp
+
+**职责**：提供含水方块的通用工具函数，消除重复代码。
+
+**工具函数**：
+```cpp
+namespace mc::waterloggable {
+
+// 检查流体状态是否为水
+[[nodiscard]] bool isWaterFluidState(const fluid::FluidState* fluidState);
+
+// 检查流体状态是否为水源
+[[nodiscard]] bool isWaterSourceFluidState(const fluid::FluidState* fluidState);
+
+// 调度水流体的 tick
+void scheduleWaterTick(IWorld& world, const BlockPos& pos);
+
+// 获取水流体状态（用于 getFluidState 实现）
+[[nodiscard]] const fluid::FluidState* getWaterFluidState(const BlockState& state);
+
+// 检测放置位置是否应该含水
+[[nodiscard]] bool shouldWaterlogAt(IWorld& world, const BlockPos& pos);
+
+// 检测放置位置是否为水源
+[[nodiscard]] bool hasWaterSourceAt(IWorld& world, const BlockPos& pos);
+
+} // namespace mc::waterloggable
+```
+
+**使用示例**：
+```cpp
+// 在 getStateForPlacement 中
+bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+
+// 在 updatePostPlacement 中
+if (state.get(BlockStateProperties::WATERLOGGED())) {
+    waterloggable::scheduleWaterTick(world, currentPos);
+}
+
+// 实现 getFluidState
+const fluid::FluidState* getFluidState(const BlockState& state) const {
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+```
 
 ### VanillaBlocks.hpp/cpp
 

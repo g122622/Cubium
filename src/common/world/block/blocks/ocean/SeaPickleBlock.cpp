@@ -56,9 +56,8 @@ BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context) {
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    // 检查是否在水中
-    const fluid::FluidState* fluidState = world.getFluidState(pos);
-    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+    // 检查是否在水中（海泡菜必须在水中）
+    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
 
     // 检查是否已有海泡菜（堆叠）
     const BlockState* existingState = world.getBlockState(pos);
@@ -108,9 +107,7 @@ BlockState SeaPickleBlock::updatePostPlacement(
 
     // 处理含水状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
-        MC_ASSERT(waterFluid != nullptr);
-        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     // 检查下方支撑
@@ -146,14 +143,8 @@ const CollisionShape& SeaPickleBlock::getShape(const BlockState& state) const {
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* SeaPickleBlock::getFluidState(const BlockState& state) const {
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
-            fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            return &waterFluid->defaultState();
-        }
-    }
-    return Block::getFluidState(state);
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 // ========== KelpBlock ==========
