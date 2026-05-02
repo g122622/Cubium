@@ -510,7 +510,8 @@ void BubbleColumnBlock::onEntityCollision(const BlockState& state, IWorld& world
     }
 }
 
-void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 更新上方气泡柱
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);

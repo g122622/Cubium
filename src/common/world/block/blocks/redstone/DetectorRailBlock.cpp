@@ -26,10 +26,11 @@ void DetectorRailBlock::fillStateContainer(StateContainer<Block, BlockState>& co
     MC_UNUSED(container);
 }
 
-void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
+    MC_UNUSED(random);
     // TODO: 检测矿车并更新状态
 }
 

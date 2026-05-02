@@ -81,7 +81,8 @@ BlockState RedstoneDiodeBlock::updatePostPlacement(
     return state;
 }
 
-void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 如果被锁定，不更新
     if (isLocked(world, pos, state)) {
         return;

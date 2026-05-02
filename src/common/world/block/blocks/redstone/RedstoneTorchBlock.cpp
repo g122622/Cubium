@@ -81,7 +81,8 @@ void RedstoneTorchBlock::neighborChanged(IWorld& world, const BlockPos& pos, Blo
     }
 }
 
-void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 检查当前应该的状态
     bool shouldBeLit = !shouldBeOff(world, pos);
     bool isCurrentlyLit = isLit(state);

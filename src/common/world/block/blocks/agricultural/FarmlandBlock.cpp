@@ -100,7 +100,8 @@ BlockState FarmlandBlock::updatePostPlacement(
 
 // ========== Tick ==========
 
-void FarmlandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void FarmlandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     if (aboveState != nullptr && aboveState->hasOpaqueCollisionShape()) {

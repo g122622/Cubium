@@ -50,7 +50,8 @@ BlockState ComposterBlock::getStateForPlacement(BlockItemUseContext& context) {
     return defaultState();
 }
 
-void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     int level = getLevel(state);
     if (level == 7) {
         // 等级7时，经过20 tick后变成等级8（可以收获骨粉）

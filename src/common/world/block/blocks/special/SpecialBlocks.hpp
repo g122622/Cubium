@@ -205,7 +205,7 @@ public:
     explicit RepeatingCommandBlock(const BlockProperties& properties);
     ~RepeatingCommandBlock() override = default;
 
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 };
 
 /**

@@ -182,7 +182,8 @@ void RedstoneWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     world.tickManager().scheduleBlockTick(pos, *this, 0, world::tick::TickPriority::High);
 }
 
-void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 计算新的信号强度
     i32 oldPower = getPower(state);
     i32 newPower = calculateInputPower(world, pos, state);

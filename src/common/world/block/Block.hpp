@@ -586,6 +586,21 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 设置是否响应随机刻
+     *
+     * 如果设置为 true，该方块会被随机刻系统选中执行 randomTick。
+     * 用于农作物生长、铜氧化、冰融化等需要随机更新的方块。
+     *
+     * 参考: net.minecraft.block.AbstractBlock.Properties.tickRandomly
+     *
+     * @return 属性构建器引用
+     */
+    BlockProperties& tickRandomly() {
+        m_ticksRandomly = true;
+        return *this;
+    }
+
     // Getters
     [[nodiscard]] const Material& material() const { return *m_material; }
     [[nodiscard]] f32 hardness() const { return m_hardness; }
@@ -605,6 +620,7 @@ public:
     [[nodiscard]] f32 slipperiness() const { return m_slipperiness; }
     [[nodiscard]] f32 speedFactor() const { return m_speedFactor; }
     [[nodiscard]] f32 jumpFactor() const { return m_jumpFactor; }
+    [[nodiscard]] bool ticksRandomly() const { return m_ticksRandomly; }
 
 private:
     friend class Block;
@@ -628,6 +644,7 @@ private:
     f32 m_slipperiness = 0.6f;   // MC默认滑度
     f32 m_speedFactor = 1.0f;    // MC默认速度因子
     f32 m_jumpFactor = 1.0f;     // MC默认跳跃因子
+    bool m_ticksRandomly = false;  // 是否响应随机刻
 };
 
 /**
@@ -987,11 +1004,14 @@ public:
      * 当方块的计划刻到期时调用。默认实现为空。
      * 需要tick行为的方块（如活塞、红石元件、农作物等）应重写此方法。
      *
+     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#tick
+     *
      * @param world 世界引用
      * @param pos 方块位置
      * @param state 方块状态
+     * @param random 随机数生成器
      */
-    virtual void tick(IWorld& world, const BlockPos& pos, BlockState& state);
+    virtual void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random);
 
     /**
      * @brief 执行随机刻
@@ -1260,11 +1280,13 @@ public:
      * @brief 是否响应随机刻
      *
      * 返回true时，该方块会被随机刻系统选中执行randomTick。
-     * 默认返回false。
+     * 默认返回BlockProperties中设置的值。
+     *
+     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#ticksRandomly
      *
      * @return 是否响应随机刻
      */
-    [[nodiscard]] virtual bool ticksRandomly() const { return false; }
+    [[nodiscard]] virtual bool ticksRandomly() const { return m_ticksRandomly; }
 
     // ========================================================================
     // 方块状态
@@ -1893,6 +1915,7 @@ protected:
     bool m_propagatesSkylightDown = false;
     bool m_requiresTool = false;
     bool m_isReplaceable = false;  // 是否可被替换
+    bool m_ticksRandomly = false;  // 是否响应随机刻
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
 

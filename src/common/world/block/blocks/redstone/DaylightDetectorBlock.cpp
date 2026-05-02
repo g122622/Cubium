@@ -73,7 +73,8 @@ void DaylightDetectorBlock::neighborChanged(IWorld& world, const BlockPos& pos, 
     world.tickManager().scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
 }
 
-void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 更新信号强度
     updatePower(world, pos, state);
 

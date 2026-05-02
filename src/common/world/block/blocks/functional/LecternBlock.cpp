@@ -91,7 +91,8 @@ const BlockState& LecternBlock::mirror(const BlockState& state, Mirror mirror) c
     return rotate(state, rotation);
 }
 
-void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     if (!state.get(BlockStateProperties::POWERED())) {
         return;
     }

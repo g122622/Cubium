@@ -220,7 +220,8 @@ RepeatingCommandBlock::RepeatingCommandBlock(const BlockProperties& properties)
     : CommandBlock(properties) {
 }
 
-void RepeatingCommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void RepeatingCommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 每个 tick 执行命令
     execute(world, pos, state);
 }

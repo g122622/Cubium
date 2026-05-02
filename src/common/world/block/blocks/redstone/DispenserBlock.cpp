@@ -94,7 +94,8 @@ BlockState DispenserBlock::updatePostPlacement(
     return state;
 }
 
-void DispenserBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void DispenserBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 尝试发射物品
     dispense(world, pos, state);
 }

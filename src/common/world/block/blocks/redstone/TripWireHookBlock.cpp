@@ -91,7 +91,8 @@ void TripWireHookBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     }
 }
 
-void TripWireHookBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void TripWireHookBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     Direction facing = getFacing(state);
     calculateState(world, pos, facing, state, false);
 }

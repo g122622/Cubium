@@ -122,7 +122,8 @@ BlockState AbstractButtonBlock::updatePostPlacement(
     return state;
 }
 
-void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     if (isPowered(state)) {
         // 按钮弹起
         BlockState newState = withPowered(state, false);

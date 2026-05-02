@@ -189,8 +189,8 @@ void FrostedIceBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block&
     Block::neighborChanged(world, pos, neighborBlock, neighborPos, isMoving);
 }
 
-void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
-    math::Random random(world.seed() ^ pos.toId());
+void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    math::Random rng(world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos)));
 
     // MC 1.16.5: 检查是否应该融化
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
@@ -203,7 +203,7 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
     // 霜冰的不透明度通常是 2-3
     i32 opacity = state.getOpacity();
 
-    bool shouldMeltNow = (random.nextInt(3) == 0 || shouldMelt(blockReader, pos, 4)) &&
+    bool shouldMeltNow = (rng.nextInt(3) == 0 || shouldMelt(blockReader, pos, 4)) &&
                           lightLevel > 11 - age - opacity;
 
     if (shouldMeltNow && slightlyMelt(world, pos, state)) {
@@ -213,19 +213,19 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
             const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState && neighborState->is(this)) {
                 // 调度相邻霜冰的 tick
-                world.tickManager().scheduleBlockTick(neighborPos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+                world.tickManager().scheduleBlockTick(neighborPos, *this, rng.nextInt(20, 40), world::tick::TickPriority::Normal);
             }
         }
     } else {
         // 继续调度下一次 tick
-        world.tickManager().scheduleBlockTick(pos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+        world.tickManager().scheduleBlockTick(pos, *this, rng.nextInt(20, 40), world::tick::TickPriority::Normal);
     }
+    MC_UNUSED(random);
 }
 
 void FrostedIceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    MC_UNUSED(random);
     // MC 1.16.5: randomTick 也调用 tick
-    tick(world, pos, state);
+    tick(world, pos, state, random);
 }
 
 bool FrostedIceBlock::shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const {

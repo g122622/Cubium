@@ -61,10 +61,11 @@ void PistonBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& nei
     }
 }
 
-void PistonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void PistonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
+    MC_UNUSED(random);
     // 活塞动画由 PistonBlockEntity 处理
 }
 

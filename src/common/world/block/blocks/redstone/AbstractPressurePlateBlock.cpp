@@ -61,7 +61,8 @@ void AbstractPressurePlateBlock::neighborChanged(IWorld& world, const BlockPos& 
     }
 }
 
-void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     i32 oldPower = getPower(state);
     i32 newPower = calculateSignalStrength(world, pos);
 

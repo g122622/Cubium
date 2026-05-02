@@ -73,7 +73,8 @@ void RedstoneLampBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     }
 }
 
-void RedstoneLampBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void RedstoneLampBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    MC_UNUSED(random);
     // 检查是否应该熄灭
     bool shouldLit = world::redstone::RedstonePower::isPowered(world, pos);
     if (!shouldLit && isLit(state)) {

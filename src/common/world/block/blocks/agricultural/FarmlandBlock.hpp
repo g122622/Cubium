@@ -57,7 +57,7 @@ public:
 
     // ========== Tick ==========
 
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 

@@ -107,19 +107,16 @@ public:
                          bool isMoving) override;
 
     /**
-     * @brief 执行方块tick
-     *
-     * 委托给流体的tick方法。
-     */
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state) override;
-
-    /**
      * @brief 是否需要随机tick
+     *
+     * 委托给关联的流体。岩浆需要随机tick以点燃周围可燃方块。
      */
     [[nodiscard]] bool ticksRandomly() const override;
 
     /**
      * @brief 随机tick
+     *
+     * 委托给流体的randomTick方法。岩浆会在随机tick时尝试点燃周围可燃方块。
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state,
                     math::IRandom& random) override;

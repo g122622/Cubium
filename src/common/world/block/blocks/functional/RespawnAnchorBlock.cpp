@@ -37,12 +37,13 @@ BlockState RespawnAnchorBlock::getStateForPlacement(BlockItemUseContext& context
     return defaultState();
 }
 
-void RespawnAnchorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state) {
+void RespawnAnchorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     // 重生锚的tick处理
     // 当前没有特殊的tick逻辑
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
+    MC_UNUSED(random);
 }
 
 void RespawnAnchorBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
