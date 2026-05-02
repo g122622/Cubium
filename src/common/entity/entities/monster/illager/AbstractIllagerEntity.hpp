@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../MonsterEntity.hpp"
+#include "AbstractRaiderEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include <memory>
 
@@ -9,24 +9,34 @@ namespace mc {
 /**
  * @brief 灾厄村民抽象基类
  *
- * 灾厄村民（Illager）的共同基类，包括掠夺者、唤魔者、幻术师等。
+ * 灾厄村民（Illager）的共同基类，包括掠夺者、唤魔者、幻术师、卫道士等。
+ *
+ * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> AbstractIllagerEntity
  *
  * 特性：
  * - 敌对玩家和村民
  * - 参与掠夺事件
  * - 有团队协作能力
+ * - 手臂姿势状态
  *
  * 参考 MC 1.16.5 AbstractIllagerEntity
  */
-class AbstractIllagerEntity : public MonsterEntity {
+class AbstractIllagerEntity : public AbstractRaiderEntity {
 public:
     /**
-     * @brief 灾厄村民状态
+     * @brief 灾厄村民手臂姿势
+     *
+     * MC 1.16.5: 用于客户端渲染
      */
-    enum class IllagerState : u8 {
-        Neutral = 0,    // 中立
-        Aggressive = 1, // 攻击
-        Celebrating = 2 // 庆祝
+    enum class ArmPose : u8 {
+        Crossed = 0,       // 交叉
+        Attacking = 1,     // 攻击
+        Spellcasting = 2,  // 施法
+        BowAndArrow = 3,   // 弓箭
+        CrossbowHold = 4,  // 弩持有
+        CrossbowCharge = 5,// 弩装填
+        Celebrating = 6,   // 庆祝
+        Neutral = 7        // 中立
     };
 
     /**
@@ -45,52 +55,20 @@ public:
     AbstractIllagerEntity(AbstractIllagerEntity&&) = default;
     AbstractIllagerEntity& operator=(AbstractIllagerEntity&&) = default;
 
-    // ========== 状态系统 ==========
+    // ========== 手臂姿势 ==========
 
     /**
-     * @brief 获取当前状态
+     * @brief 获取当前手臂姿势
      */
-    [[nodiscard]] IllagerState getState() const { return m_state; }
+    [[nodiscard]] ArmPose getArmPose() const { return m_armPose; }
 
     /**
-     * @brief 设置状态
+     * @brief 设置手臂姿势
      */
-    void setState(IllagerState state) { m_state = state; }
-
-    /**
-     * @brief 是否正在庆祝
-     */
-    [[nodiscard]] bool isCelebrating() const { return m_state == IllagerState::Celebrating; }
-
-    // ========== 掠夺系统 ==========
-
-    /**
-     * @brief 是否参与掠夺
-     */
-    [[nodiscard]] bool isRaidActive() const { return m_raidActive; }
-
-    /**
-     * @brief 设置掠夺状态
-     */
-    void setRaidActive(bool active) { m_raidActive = active; }
-
-    /**
-     * @brief 获取掠夺波次
-     */
-    [[nodiscard]] i32 getRaidWave() const { return m_raidWave; }
-
-    /**
-     * @brief 设置掠夺波次
-     */
-    void setRaidWave(i32 wave) { m_raidWave = wave; }
+    void setArmPose(ArmPose pose) { m_armPose = pose; }
 
 protected:
-    // 状态
-    IllagerState m_state = IllagerState::Neutral;
-
-    // 掠夺相关
-    bool m_raidActive = false;
-    i32 m_raidWave = 0;
+    ArmPose m_armPose = ArmPose::Crossed;
 };
 
 } // namespace mc

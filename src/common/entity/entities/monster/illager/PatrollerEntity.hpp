@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AbstractIllagerEntity.hpp"
+#include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include <optional>
@@ -11,13 +11,18 @@ namespace mc {
  * @brief 巡逻怪物公共基类
  *
  * 对齐 1.16.5 `PatrollerEntity` 的基础巡逻状态层。
- * 当前先提供：
+ *
+ * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> AbstractIllagerEntity
+ *
+ * 当前提供：
  * - 巡逻目标
  * - 巡逻队长标记
  * - 巡逻中状态
  * - 随机重置巡逻目标
+ *
+ * 参考 MC 1.16.5 PatrollerEntity
  */
-class PatrollerEntity : public AbstractIllagerEntity {
+class PatrollerEntity : public MonsterEntity {
 public:
     PatrollerEntity(LegacyEntityType type, EntityId id);
     ~PatrollerEntity() override = default;

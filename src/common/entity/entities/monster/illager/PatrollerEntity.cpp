@@ -5,7 +5,7 @@
 namespace mc {
 
 PatrollerEntity::PatrollerEntity(LegacyEntityType type, EntityId id)
-    : AbstractIllagerEntity(type, id)
+    : MonsterEntity(type, id)
 {
 }
 
@@ -36,7 +36,7 @@ void PatrollerEntity::resetPatrolTarget()
 
 void PatrollerEntity::registerGoals()
 {
-    AbstractIllagerEntity::registerGoals();
+    MonsterEntity::registerGoals();
 
     // TODO: 接入 1.16.5 PatrollerEntity.PatrolGoal 后，将巡逻移动目标注册到这里。
 }

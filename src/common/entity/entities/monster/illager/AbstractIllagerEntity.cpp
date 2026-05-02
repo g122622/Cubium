@@ -3,7 +3,7 @@
 namespace mc {
 
 AbstractIllagerEntity::AbstractIllagerEntity(LegacyEntityType type, EntityId id)
-    : MonsterEntity(type, id)
+    : AbstractRaiderEntity(type, id)
 {
 }
 

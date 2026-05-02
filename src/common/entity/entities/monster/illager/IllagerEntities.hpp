@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AbstractRaiderEntity.hpp"
+#include "AbstractIllagerEntity.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
 #include "../../../../core/Types.hpp"
 
@@ -22,9 +22,11 @@ namespace mc {
  * - 可以加入掠夺事件
  * - 可以成为掠夺队长
  *
+ * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> AbstractIllagerEntity -> PillagerEntity
+ *
  * 参考 MC 1.16.5 PillagerEntity
  */
-class PillagerEntity : public AbstractRaiderEntity, public entity::ICrossbowUser {
+class PillagerEntity : public AbstractIllagerEntity, public entity::ICrossbowUser {
 public:
     /**
      * @brief 工厂方法
@@ -92,10 +94,13 @@ private:
  * - 高攻击伤害
  * - 可以加入掠夺事件
  * - 攻击村民和玩家
+ * - "Johnny" 彩蛋：攻击所有生物
+ *
+ * 继承链: MonsterEntity -> PatrollerEntity -> AbstractRaiderEntity -> AbstractIllagerEntity -> VindicatorEntity
  *
  * 参考 MC 1.16.5 VindicatorEntity
  */
-class VindicatorEntity : public AbstractRaiderEntity {
+class VindicatorEntity : public AbstractIllagerEntity {
 public:
     /**
      * @brief 工厂方法
