@@ -316,7 +316,7 @@ public:
      * @param random 随机数生成器
      * @return 如果应该忽略损耗返回true
      */
-    [[nodiscard]] static bool shouldIgnoreDurabilityLoss(i32 level, bool isArmor, class math::Random& random);
+    [[nodiscard]] static bool shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::Random& random);
 
 private:
     EnchantmentHelper() = delete;  // 禁止实例化
