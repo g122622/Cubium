@@ -34,10 +34,8 @@ TickManager::TickManager(IWorld& world)
             const BlockState* state = w.getBlockState(pos);
             if (state != nullptr && &state->getBlock() == &block) {
                 // 当前位置的方块与调度时的目标方块匹配，执行tick
-                // 注意：tick方法签名需要添加Random参数，暂时使用默认随机数
-                math::Random random(w.seed() ^ static_cast<u64>(pos.toId()));
                 BlockState* mutableState = const_cast<BlockState*>(state);
-                block.tick(w, pos, *mutableState, random);
+                block.tick(w, pos, *mutableState, w.getRandom());
             }
             // 如果方块不匹配，说明方块已改变，跳过此次tick
         }
