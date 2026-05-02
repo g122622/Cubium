@@ -7,10 +7,21 @@
 #include "../../../entity/core/Entity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../enchantment/EnchantmentHelper.hpp"
+#include "../../enchantment/enchantments/AllEnchantments.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include <cmath>
 
 namespace mc {
 namespace item {
+
+// ========== 常量 ==========
+namespace {
+    constexpr i32 MAX_USE_DURATION = 72000;  // MC 1.16.5: 几乎无限制
+    constexpr f32 BOBBER_VELOCITY = 1.5f;     // 浮标发射速度
+    constexpr f32 BOBBER_INACCURACY = 1.0f;   // 浮标不准确度
+}
 
 // ========== 构造函数 ==========
 
@@ -22,7 +33,7 @@ FishingRodItem::FishingRodItem(const ItemProperties& properties)
 // ========== Item 接口重写 ==========
 
 i32 FishingRodItem::getUseDuration(const ItemStack& /*stack*/) const {
-    return 0;
+    return MAX_USE_DURATION;
 }
 
 UseAction FishingRodItem::getUseAction(const ItemStack& /*stack*/) const {
@@ -39,18 +50,39 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         if (bobber != nullptr) {
             i32 damage = bobber->reelIn();
             rodStack.attemptDamageItem(damage);
+            // 播放收杆音效
+            player.playSound(SoundEvents::ENTITY_FISHING_BOBBER_RETRIEVE, 0.5f, 0.4f / (math::Random().nextFloat() * 0.4f + 0.8f));
         }
-        // TODO: 清除玩家的浮标引用（需要在 Player 中添加 fishingBobber 字段）
+        // 清除玩家的浮标引用
+        player.setFishingBobber(0);
     } else {
         // 抛杆
-        // TODO: 获取钓鱼附魔
-        // i32 luckBonus = EnchantmentHelper::getFishingLuckBonus(rodStack);
-        // i32 speedBonus = EnchantmentHelper::getFishingSpeedBonus(rodStack);
-        (void)world;
+        // 获取钓鱼附魔
+        i32 luckBonus = enchant::EnchantmentHelper::getEnchantmentLevel(
+            rodStack, &enchant::AllEnchantments::LUCK_OF_THE_SEA);
+        i32 speedBonus = enchant::EnchantmentHelper::getEnchantmentLevel(
+            rodStack, &enchant::AllEnchantments::LURE);
 
-        // TODO: 创建浮标实体（需要 FishingBobberEntity 完整实现和 Player.fishingBobber 字段）
-        // auto bobber = std::make_unique<entity::FishingBobberEntity>(player, &world, luckBonus, speedBonus);
-        // world.spawnEntity(std::move(bobber));
+        // 创建浮标实体
+        auto bobber = std::make_unique<entity::FishingBobberEntity>(
+            LegacyEntityType::FishingBobber, EntityId(0));
+        bobber->setWorld(&world);
+        bobber->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
+        bobber->setShooter(&player);
+
+        // 设置钓鱼参数（通过NBT或实体方法）
+        bobber->setFishingBonus(luckBonus, speedBonus);
+
+        // 发射浮标
+        bobber->shootFrom(player, player.pitch(), player.yaw(), 0.0f, BOBBER_VELOCITY, BOBBER_INACCURACY);
+
+        // 生成实体并记录ID
+        EntityId bobberId = bobber->id();
+        world.spawnEntity(std::move(bobber));
+        player.setFishingBobber(bobberId);
+
+        // 播放抛杆音效
+        player.playSound(SoundEvents::ENTITY_FISHING_BOBBER_THROW, 0.5f, 0.4f / (math::Random().nextFloat() * 0.4f + 0.8f));
     }
 
     return ItemActionResult::success(rodStack);
@@ -59,15 +91,30 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
 // ========== 钓鱼竿特有方法 ==========
 
 bool FishingRodItem::hasBobber(Player& player) {
-    // TODO: 需要在 Player 中添加 fishingBobber 字段
-    (void)player;
-    return false;
+    return player.isFishing();
 }
 
 entity::FishingBobberEntity* FishingRodItem::getBobber(Player& player) {
-    // TODO: 需要在 Player 中添加 fishingBobber 字段
-    (void)player;
-    return nullptr;
+    EntityId bobberId = player.fishingBobber();
+    if (bobberId == 0) {
+        return nullptr;
+    }
+
+    // 从世界获取浮标实体
+    IWorld* world = player.world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+
+    Entity* entity = world->getEntity(bobberId);
+    if (entity == nullptr || !entity->isAlive()) {
+        // 浮标不存在或已死亡，清除引用
+        player.setFishingBobber(0);
+        return nullptr;
+    }
+
+    // 类型转换
+    return dynamic_cast<entity::FishingBobberEntity*>(entity);
 }
 
 } // namespace item

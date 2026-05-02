@@ -11,6 +11,8 @@
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include <cmath>
 
 namespace mc {
@@ -164,10 +166,10 @@ void BowItem::onPlayerStoppedUsing(
             world.spawnEntity(std::unique_ptr<Entity>(arrow));
 
             // 播放音效
-            // MC 1.16.5: ENTITY_ARROW_SHOOT 音效
-            // world.playSound(nullptr, player->x(), player->y(), player->z(),
-            //                 SoundEvents::ENTITY_ARROW_SHOOT, SoundCategory::PLAYERS,
-            //                 1.0f, 1.0f / (random.nextFloat() * 0.4f + 1.2f) + velocity * 0.5f);
+            // MC 1.16.5: ENTITY_ARROW_SHOOT 音效，音调基于蓄力
+            math::Random rng;
+            f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 1.2f) + velocity * 0.5f;
+            player->playSound(SoundEvents::ENTITY_ARROW_SHOOT, 1.0f, pitch);
         }
     }
 

@@ -10,6 +10,8 @@
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entity/entities/projectile/OtherProjectiles.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include <cmath>
 
 namespace mc {
@@ -92,8 +94,8 @@ void CrossbowItem::onPlayerStoppedUsing(
         // 装填弹丸
         if (loadProjectiles(*player, stack)) {
             setCharged(stack, true);
-            // TODO: 播放装填完成音效
-            // world.playSound(nullptr, player->x(), player->y(), player->z(), SoundEvents::ITEM_CROSSBOW_LOADING_END, SoundCategory::PLAYERS, 1.0f, 1.0f);
+            // 播放装填完成音效
+            player->playSound(SoundEvents::ITEM_CROSSBOW_LOADING_END, 1.0f, 1.0f);
         }
     }
 }
@@ -267,6 +269,22 @@ void CrossbowItem::fireProjectiles(
     }
 
     i32 piercingLevel = getPiercingLevel(crossbow);
+
+    // 播放发射音效
+    bool hasFirework = false;
+    for (const auto& proj : projectiles) {
+        if (proj.getItem() == Items::FIREWORK_ROCKET) {
+            hasFirework = true;
+            break;
+        }
+    }
+    if (player != nullptr) {
+        if (hasFirework) {
+            player->playSound(SoundEvents::ITEM_CROSSBOW_ROCKET, 1.0f, 1.0f);
+        } else {
+            player->playSound(SoundEvents::ITEM_CROSSBOW_SHOOT, 1.0f, 1.0f);
+        }
+    }
 
     for (size_t i = 0; i < projectiles.size() && i < projectileAngles.size(); ++i) {
         const ItemStack& projectile = projectiles[i];

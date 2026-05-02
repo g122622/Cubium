@@ -99,6 +99,67 @@ extern const ResourceLocation ENTITY_PLAYER_LEVELUP;
 extern const ResourceLocation ENTITY_ITEM_PICKUP;
 
 // ============================================================================
+// 武器声音
+// ============================================================================
+
+/// 弓箭发射声音
+extern const ResourceLocation ENTITY_ARROW_SHOOT;
+
+/// 弓蓄力声音
+extern const ResourceLocation ITEM_BOW_PULL;
+
+/// 弩装填开始声音
+extern const ResourceLocation ITEM_CROSSBOW_LOADING_START;
+
+/// 弩装填中间声音
+extern const ResourceLocation ITEM_CROSSBOW_LOADING_MIDDLE;
+
+/// 弩装填完成声音
+extern const ResourceLocation ITEM_CROSSBOW_LOADING_END;
+
+/// 弩发射声音（箭矢）
+extern const ResourceLocation ITEM_CROSSBOW_SHOOT;
+
+/// 弩发射声音（烟花）
+extern const ResourceLocation ITEM_CROSSBOW_ROCKET;
+
+/// 三叉戟投掷声音
+extern const ResourceLocation ITEM_TRIDENT_THROW;
+
+/// 三叉戟激流声音
+extern const ResourceLocation ITEM_TRIDENT_RIPTIDE_1;
+
+/// 三叉戟激流声音（等级2）
+extern const ResourceLocation ITEM_TRIDENT_RIPTIDE_2;
+
+/// 三叉戟激流声音（等级3）
+extern const ResourceLocation ITEM_TRIDENT_RIPTIDE_3;
+
+/// 三叉戟击中声音
+extern const ResourceLocation ITEM_TRIDENT_HIT;
+
+/// 三叉戟击中地面声音
+extern const ResourceLocation ITEM_TRIDENT_HIT_GROUND;
+
+/// 盾牌格挡声音
+extern const ResourceLocation ITEM_SHIELD_BLOCK;
+
+/// 盾牌破碎声音
+extern const ResourceLocation ITEM_SHIELD_BREAK;
+
+/// 钓鱼竿抛杆声音
+extern const ResourceLocation ENTITY_FISHING_BOBBER_THROW;
+
+/// 钓鱼竿收杆声音
+extern const ResourceLocation ENTITY_FISHING_BOBBER_RETRIEVE;
+
+/// 钓鱼竿咬钩声音
+extern const ResourceLocation ENTITY_FISHING_BOBBER_SPLASH;
+
+/// 钓鱼浮标入水声音
+extern const ResourceLocation ENTITY_FISHING_BOBBER_CAST;
+
+// ============================================================================
 // 食物声音（按类型）
 // ============================================================================
 

@@ -9,6 +9,8 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include <cmath>
 
 namespace mc {
@@ -120,7 +122,24 @@ void TridentItem::onPlayerStoppedUsing(
             player->addVelocity(0.0, 1.1999999, 0.0);
         }
 
-        // TODO: 播放激流音效
+        // 播放激流音效
+        // MC 1.16.5: 根据激流等级播放不同音效
+        math::Random rng;
+        if (player != nullptr) {
+            const ResourceLocation* soundEvent = nullptr;
+            switch (riptideLevel) {
+                case 1:
+                    soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_1;
+                    break;
+                case 2:
+                    soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_2;
+                    break;
+                default:
+                    soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_3;
+                    break;
+            }
+            player->playSound(*soundEvent, 1.0f, 1.0f);
+        }
 
         // 激流模式下不投掷三叉戟
         return;
@@ -153,6 +172,9 @@ void TridentItem::onPlayerStoppedUsing(
     // 生成实体
     world.spawnEntity(std::move(tridentEntity));
 
+    // 播放投掷音效
+    player->playSound(SoundEvents::ITEM_TRIDENT_THROW, 1.0f, 1.0f);
+
     // 非创造模式从背包移除三叉戟
     if (!player->isCreative()) {
         stack.shrink(1);
@@ -179,11 +201,10 @@ bool TridentItem::onBlockDestroyed(
     (void)breaker;
 
     // 如果方块硬度不为0，消耗耐久度
-    // TODO: 需要获取方块硬度
-    // if (state.getBlock()->getBlockHardness() != 0.0) {
-    //     stack.attemptDamageItem(2);
-    // }
-    (void)state;
+    // MC 1.16.5: 三叉戟作为工具破坏方块消耗2点耐久
+    if (state.hardness() > 0.0f) {
+        stack.attemptDamageItem(2);
+    }
     return true;
 }
 
@@ -191,11 +212,8 @@ bool TridentItem::onBlockDestroyed(
 
 bool TridentItem::isWet(const Player& player) {
     // MC 1.16.5: isWet() = isInWater() || isInRain()
-    // isInWater() 已在 Entity 基类实现
-    // isInRain() 需要检测玩家是否在雨中（需要天气系统和位置检测）
-    // 暂时只检测 isInWater()
-    return player.isInWater();
-    // TODO: 添加 isInRain() 检测，需要天气系统支持
+    // Entity 基类已实现 isWet() 方法
+    return player.isWet();
 }
 
 i32 TridentItem::getRiptideLevel(const ItemStack& stack) {

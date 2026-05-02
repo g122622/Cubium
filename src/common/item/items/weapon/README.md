@@ -8,12 +8,12 @@
 weapon/
 ├── BowItem.hpp/cpp       # 弓物品 (完整实现)
 ├── CrossbowItem.hpp/cpp  # 弩物品 (完整实现)
-├── TridentItem.hpp/cpp   # 三叉戟物品 (基本实现)
+├── TridentItem.hpp/cpp   # 三叉戟物品 (完整实现)
 ├── ThrowableItem.hpp/cpp # 投掷物品基类
 ├── ThrowableItems.hpp/cpp # 具体投掷物品(雪球/鸡蛋/末影珍珠等)
 ├── ArrowItem.hpp/cpp     # 箭矢物品
 ├── ShieldItem.hpp/cpp    # 盾牌物品 (框架实现)
-├── FishingRodItem.hpp/cpp # 钓鱼竿 (框架实现)
+├── FishingRodItem.hpp/cpp # 钓鱼竿 (完整实现)
 └── README.md             # 本文件
 ```
 
@@ -42,6 +42,8 @@ velocity = (f * f + f * 2.0) / 3.0
 | 火矢 Flame | 箭矢点燃目标 5 秒（100 tick） |
 | 无限 Infinity | 不消耗普通箭矢（光灵箭/药水箭除外） |
 
+**音效支持：** 完整实现 ENTITY_ARROW_SHOOT
+
 **关键方法：**
 - `getArrowVelocity(int chargeTicks)` - 计算箭矢速度因子
 - `onItemRightClick()` - 开始蓄力
@@ -56,7 +58,7 @@ velocity = (f * f + f * 2.0) / 3.0
 **装填机制：**
 - 基础装填时间: 25 tick（1.25秒）
 - 快速装填附魔: 每级减少 5 tick
-- 装填过程中播放音效（20% 和 50%）
+- 装填过程中播放音效（开始、中间、结束）
 
 **发射机制：**
 - 箭矢速度: 3.15（烟花 1.6）
@@ -68,6 +70,11 @@ velocity = (f * f + f * 2.0) / 3.0
 - 多重射击 (Multishot): 同时发射 3 支箭矢
 - 穿透 (Piercing): 箭矢可穿透实体
 - 快速装填 (Quick Charge): 减少装填时间
+
+**音效支持：**
+- ITEM_CROSSBOW_LOADING_END - 装填完成音效
+- ITEM_CROSSBOW_SHOOT - 箭矢发射音效
+- ITEM_CROSSBOW_ROCKET - 烟花发射音效
 
 **关键方法：**
 - `isCharged()` / `setCharged()` - 装填状态管理
@@ -81,7 +88,7 @@ velocity = (f * f + f * 2.0) / 3.0
 - `Charged`: 布尔值，是否已装填
 - `ChargedProjectiles`: 数组，存储装填的弹丸
 
-### TridentItem（三叉戟）- 基本实现
+### TridentItem（三叉戟）- 完整实现
 
 **已实现功能：**
 - 近战攻击（耐久消耗）
@@ -89,11 +96,17 @@ velocity = (f * f + f * 2.0) / 3.0
 - 激流冲刺计算
 - 忠诚附魔设置
 - 附魔能力返回值
+- 方块硬度检测（onBlockDestroyed）
+- isWet 检测（水中或雨中）
 
-**待完善功能：**
-- isInRain 检测（需要天气系统）
-- 激流音效（需要音效系统）
-- 方块硬度获取（需要 Block 系统）
+**音效支持：**
+- ITEM_TRIDENT_THROW - 投掷音效
+- ITEM_TRIDENT_RIPTIDE_1/2/3 - 激流音效（按等级）
+
+**关键方法：**
+- `onItemRightClick()` - 检查湿润状态，开始蓄力
+- `onPlayerStoppedUse()` - 投掷或激流冲刺
+- `isWet()` - 检测玩家是否湿润（水中或雨中）
 
 ### ShieldItem（盾牌）- 框架实现
 
@@ -108,17 +121,30 @@ velocity = (f * f + f * 2.0) / 3.0
 - 盾牌修复（木板）
 - 旗帜染色支持
 
-### FishingRodItem（钓鱼竿）- 框架实现
+### FishingRodItem（钓鱼竿）- 完整实现
 
 **已实现功能：**
-- 基础物品结构
-- 使用动作（UseAction::Bow）
+- 抛杆/收杆逻辑
+- FishingBobberEntity 钓鱼浮标实体
+- 钓鱼附魔支持（海之眷顾、饵钓）
+- 开放水域检测
+- 咬钩状态机
+- Player.fishingBobber 字段集成
 
-**待完善功能：**
-- FishingBobberEntity 实体集成
-- 钓鱼附魔（海之眷顾、饵钓）支持
-- 钓鱼音效
-- 钓鱼 loot 表
+**音效支持：**
+- ENTITY_FISHING_BOBBER_THROW - 抛杆音效
+- ENTITY_FISHING_BOBBER_RETRIEVE - 收杆音效
+
+**钓鱼机制：**
+- 等待时间: 100-600 tick（5-30秒）
+- 饵钓附魔: 每级减少 100 tick（5秒）
+- 咬钩窗口: 20-40 tick（1-2秒）
+- 开放水域: 增加宝藏概率
+
+**关键方法：**
+- `hasBobber()` - 检查是否有浮标
+- `getBobber()` - 获取浮标实体
+- `onItemRightClick()` - 抛杆/收杆
 
 ### ThrowableItems（投掷物品）- 完整实现
 
@@ -140,6 +166,7 @@ BowItem
 ├── PlayerInventory
 ├── AbstractArrowEntity (箭矢实体)
 ├── EnchantmentHelper (附魔辅助)
+├── SoundEvents (音效)
 └── IWorld
 
 CrossbowItem
@@ -150,12 +177,15 @@ CrossbowItem
 ├── AbstractArrowEntity
 ├── FireworkRocketEntity (烟花实体)
 ├── EnchantmentHelper
+├── SoundEvents (音效)
 └── IWorld
 
 TridentItem
 ├── Item (基类)
 ├── TridentEntity (三叉戟实体)
 ├── EnchantmentHelper
+├── Entity (isWet方法)
+├── SoundEvents (音效)
 └── Player
 
 ShieldItem
@@ -165,8 +195,10 @@ ShieldItem
 
 FishingRodItem
 ├── Item (基类)
-├── Player (需要 fishingBobber 字段)
-├── FishingBobberEntity (框架实现)
+├── Player (fishingBobber 字段)
+├── FishingBobberEntity (钓鱼浮标实体)
+├── EnchantmentHelper
+├── SoundEvents (音效)
 └── IWorld
 
 ThrowableItem
@@ -190,3 +222,4 @@ ThrowableItem
 - MC 1.16.5: `net.minecraft.item.TridentItem`
 - MC 1.16.5: `net.minecraft.item.ShieldItem`
 - MC 1.16.5: `net.minecraft.item.FishingRodItem`
+- MC 1.16.5: `net.minecraft.entity.projectile.FishingBobberEntity`
