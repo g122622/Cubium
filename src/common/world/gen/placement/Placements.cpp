@@ -23,7 +23,8 @@ namespace {
 f32 getChunkNoise(i64 seed, i32 chunkX, i32 chunkZ, f32 scale) {
     // 使用确定性哈希来模拟噪声
     // 完整实现应使用实际的噪声生成器
-    u64 hash = static_cast<u64>(chunkX) * 3418731287ULL ^ static_cast<u64>(chunkZ) * 132897987541ULL;
+    // MC 1.16.5 使用常量 341873128712
+    u64 hash = static_cast<u64>(chunkX) * 341873128712ULL ^ static_cast<u64>(chunkZ) * 132897987541ULL;
     hash ^= static_cast<u64>(seed);
 
     // 将哈希转换为 [-1, 1] 范围的浮点数

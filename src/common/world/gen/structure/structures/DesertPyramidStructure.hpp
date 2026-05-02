@@ -53,7 +53,8 @@ private:
     void initializeBiomes();
     void generatePyramid(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
-    static constexpr StructureSeparationSettings m_settings{32, 8, 14357620};
+    // MC 1.16.5: spacing=32, separation=8, salt=14357617
+    static constexpr StructureSeparationSettings m_settings{32, 8, 14357617};
     static const String m_name;
     std::vector<BiomeId> m_validBiomes;
 };

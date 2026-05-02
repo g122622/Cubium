@@ -727,7 +727,7 @@ mc::world::gen::structure::StructureRegistry::registerStructure(
 **解决方案**:
 ```cpp
 // 正确的种子计算方式（参考 MC 1.16.5）
-i64 combinedSeed = worldSeed ^ (static_cast<i64>(chunkX) * 3418731287LL) ^
+i64 combinedSeed = worldSeed ^ (static_cast<i64>(chunkX) * 341873128712LL) ^
                    (static_cast<i64>(chunkZ) * 132897987541LL) +
                    static_cast<i64>(settings.salt);
 math::Random rng(combinedSeed);

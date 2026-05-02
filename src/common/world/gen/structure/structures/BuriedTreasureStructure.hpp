@@ -64,7 +64,8 @@ public:
         i32 chunkZ) const override;
 
 private:
-    static constexpr StructureSeparationSettings m_settings{1, 0, 0};  // 每区块概率检查
+    // MC 1.16.5: spacing=4, separation=0, salt=0
+    static constexpr StructureSeparationSettings m_settings{4, 0, 0};
     static const String m_name;
     static const std::vector<BiomeId> m_validBiomes;
 };

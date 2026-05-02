@@ -267,10 +267,11 @@ void StructureManager::clearCache() {
 }
 
 math::Random StructureManager::createRandom(i32 chunkX, i32 chunkZ, i32 salt) const {
-    i64 combinedSeed = m_seed ^ (static_cast<i64>(chunkX) * 3418731287LL) ^
-                       (static_cast<i64>(chunkZ) * 132897987541LL) +
-                       static_cast<i64>(salt);
-    return math::Random(combinedSeed);
+    // MC 1.16.5 使用常量 341873128712
+    u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL +
+                       static_cast<u64>(chunkZ) * 132897987541ULL +
+                       static_cast<u64>(m_seed) + static_cast<u64>(salt);
+    return math::Random(static_cast<i64>(combinedSeed));
 }
 
 } // namespace mc::world::gen::structure

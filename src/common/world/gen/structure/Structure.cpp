@@ -3,6 +3,7 @@
 #include "../../IWorldWriter.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -47,8 +48,9 @@ void Structure::placeInChunk(
     StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
 
     // 创建随机数生成器
+    // 注意：MC 1.16.5 使用 setLargeFeatureSeed 算法
     math::Random rng = createRandom(
-        static_cast<i64>(chunkX) * 3418731287LL ^ static_cast<i64>(chunkZ) * 132897987541LL,
+        static_cast<i64>(chunkX) * 341873128712LL ^ static_cast<i64>(chunkZ) * 132897987541LL,
         chunkX, chunkZ, 0);
 
     // 遍历所有片段，放置在当前区块内的部分
@@ -71,16 +73,24 @@ bool Structure::findStructureStart(
         return false;
     }
 
-    // 计算网格坐标
-    i32 gridX = static_cast<i32>(std::floor(static_cast<f32>(chunkX) / static_cast<f32>(spacing)));
-    i32 gridZ = static_cast<i32>(std::floor(static_cast<f32>(chunkZ) / static_cast<f32>(spacing)));
+    // 计算网格坐标（使用整数 floorDiv 算法，与 MC 1.16.5 一致）
+    i32 gridX = math::floorDiv(chunkX, spacing);
+    i32 gridZ = math::floorDiv(chunkZ, spacing);
 
     // 创建随机数生成器
-    math::Random rng(seed + gridX * 3418731287LL + gridZ * 132897987541LL + settings.salt);
+    // 注意：MC 1.16.5 使用 setLargeFeatureSeedWithSalt，常量为 341873128712LL
+    u64 combinedSeed = static_cast<u64>(gridX) * 341873128712ULL +
+                       static_cast<u64>(gridZ) * 132897987541ULL +
+                       static_cast<u64>(seed) + static_cast<u64>(settings.salt);
+    math::Random rng(static_cast<i64>(combinedSeed));
 
     // 计算偏移
-    i32 offsetX = rng.nextInt(spacing - separation);
-    i32 offsetZ = rng.nextInt(spacing - separation);
+    // MC 1.16.5 区分 constrained 和非 constrained 结构
+    // constrained 结构使用单次随机，非 constrained 使用两次随机平均
+    // 大多数结构是 constrained 的（isConstrained() 返回 true）
+    i32 offsetRange = spacing - separation;
+    i32 offsetX = rng.nextInt(offsetRange);
+    i32 offsetZ = rng.nextInt(offsetRange);
 
     // 计算起始区块坐标
     outStartX = gridX * spacing + offsetX;
@@ -90,10 +100,11 @@ bool Structure::findStructureStart(
 }
 
 math::Random Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt) {
-    i64 combinedSeed = seed ^ (static_cast<i64>(chunkX) * 3418731287LL) ^
-                       (static_cast<i64>(chunkZ) * 132897987541LL) +
-                       static_cast<i64>(salt);
-    return math::Random(combinedSeed);
+    // MC 1.16.5 的 setLargeFeatureSeedWithSalt 算法
+    u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL +
+                       static_cast<u64>(chunkZ) * 132897987541ULL +
+                       static_cast<u64>(seed) + static_cast<u64>(salt);
+    return math::Random(static_cast<i64>(combinedSeed));
 }
 
 // StructurePiece 实现

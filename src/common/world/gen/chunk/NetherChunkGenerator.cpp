@@ -350,17 +350,9 @@ i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const {
         return m_lavaLevel + 1;
     }
 
-    const auto floorDiv = [](i32 value, i32 divisor) -> i32 {
-        i32 q = value / divisor;
-        i32 r = value % divisor;
-        if (r != 0 && ((r > 0) != (divisor > 0))) {
-            --q;
-        }
-        return q;
-    };
-
-    const i32 noiseX = floorDiv(x, horizontalNoiseGranularity);
-    const i32 noiseZ = floorDiv(z, horizontalNoiseGranularity);
+    // 向下取整除法（支持负坐标）
+    const i32 noiseX = math::floorDiv(x, horizontalNoiseGranularity);
+    const i32 noiseZ = math::floorDiv(z, horizontalNoiseGranularity);
     const i32 localX = x - noiseX * horizontalNoiseGranularity;
     const i32 localZ = z - noiseZ * horizontalNoiseGranularity;
 

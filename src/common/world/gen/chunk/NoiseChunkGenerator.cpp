@@ -1036,17 +1036,8 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     }
 
     // 向下取整除法（支持负坐标）
-    const auto floorDiv = [](i32 value, i32 divisor) -> i32 {
-        i32 q = value / divisor;
-        i32 r = value % divisor;
-        if (r != 0 && ((r > 0) != (divisor > 0))) {
-            --q;
-        }
-        return q;
-    };
-
-    const i32 noiseX = floorDiv(x, hGranularity);
-    const i32 noiseZ = floorDiv(z, hGranularity);
+    const i32 noiseX = math::floorDiv(x, hGranularity);
+    const i32 noiseZ = math::floorDiv(z, hGranularity);
     const i32 localX = x - noiseX * hGranularity;
     const i32 localZ = z - noiseZ * hGranularity;
 

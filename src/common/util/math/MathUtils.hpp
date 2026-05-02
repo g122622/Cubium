@@ -384,6 +384,41 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 }
 
 /**
+ * @brief 地板除运算 (MC MathHelper.floorDiv)
+ *
+ * 与 C++ 的 / 运算符不同，结果总是向负无穷方向取整。
+ * 例如: floorDiv(-1, 40) = -1 (而 -1 / 40 = 0 在 C++ 中向零取整)
+ *
+ * 参考 MC 1.16.5: MathHelper.floorDiv(int, int)
+ *
+ * @param value 被除数
+ * @param divisor 除数（必须非零）
+ * @return 地板除结果
+ */
+[[nodiscard]] inline constexpr i32 floorDiv(i32 value, i32 divisor) noexcept
+{
+    // MC 1.16.5: Math.floorDiv(int, int) 实现
+    // 向负无穷方向取整
+    i32 q = value / divisor;
+    i32 r = value % divisor;
+    return (r != 0 && ((r > 0) != (divisor > 0))) ? (q - 1) : q;
+}
+
+/**
+ * @brief 地板除运算 (64位版本)
+ *
+ * @param value 被除数
+ * @param divisor 除数（必须非零）
+ * @return 地板除结果
+ */
+[[nodiscard]] inline constexpr i64 floorDiv(i64 value, i64 divisor) noexcept
+{
+    i64 q = value / divisor;
+    i64 r = value % divisor;
+    return (r != 0 && ((r > 0) != (divisor > 0))) ? (q - 1) : q;
+}
+
+/**
  * @brief 地板模运算 (MC MathHelper.floorMod)
  *
  * 与 C++ 的 % 运算符不同，结果总是与除数同号。
