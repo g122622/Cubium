@@ -201,7 +201,7 @@ const stopHook: HookCallback = async (input, toolUseID, { signal }) => {
 };
 
 const tasklist = [
-  "/align 地形生成过程中的结构生成算法与模板解析等（提示：结构生成的nbt模板位于/Users/a0000/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，你需要充分探索这个目录）",
+  "/align 地形生成过程中的结构生成算法与模板解析等（提示：结构生成的nbt模板在mac环境位于/Users/a0000/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，在Windows环境位于D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，你需要充分探索这个目录）",
   "/align 含水方块",
   "/align 实体ai",
   "/align 音效丰富度",
