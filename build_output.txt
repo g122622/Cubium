@@ -1,0 +1,205 @@
+MSBuild version 17.11.9+a69bbaaf5 for .NET Framework
+
+  mc_perfetto.vcxproj -> Z:\mc_dev\branch1\minecraft-reborn\build\lib\RelWithDebInfo\mc_perfetto.lib
+  VanillaBlocks.cpp
+  SignBlock.cpp
+  Template.cpp
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42): error C2672: “begin”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1962,27):
+      可能是“_Ty *std::begin(_Ty (&)[_Size]) noexcept”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          “_Ty *std::begin(_Ty (&)[_Size]) noexcept”: 无法从“const mc::world::gen::feature::template_::StructureProcessorList”推导出“_Ty (&)[_Size]”的 模板 参数
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1944,30):
+      或    “unknown-type std::begin(const _Container &) noexcept(<expr>)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          未能使函数模板“unknown-type std::begin(const _Container &) noexcept(<expr>)”专用化
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+              用下列模板参数:
+                  Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+                  “_Container=mc::world::gen::feature::template_::StructureProcessorList”
+              D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1945,23):
+              "begin": 不是 "mc::world::gen::feature::template_::StructureProcessorList" 的成员
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.hpp(153,7):
+              参见“mc::world::gen::feature::template_::StructureProcessorList”的声明
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1938,30):
+      或    “unknown-type std::begin(_Container &) noexcept(<expr>)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          未能使函数模板“unknown-type std::begin(_Container &) noexcept(<expr>)”专用化
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+              用下列模板参数:
+                  Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+                  “_Container=const mc::world::gen::feature::template_::StructureProcessorList”
+              D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1939,23):
+              "begin": 不是 "mc::world::gen::feature::template_::StructureProcessorList" 的成员
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.hpp(153,7):
+              参见“mc::world::gen::feature::template_::StructureProcessorList”的声明
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\initializer_list(54,35):
+      或    “const _Elem *std::begin(std::initializer_list<_Elem>) noexcept”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          “const _Elem *std::begin(std::initializer_list<_Elem>) noexcept”: 无法从“const mc::world::gen::feature::template_::StructureProcessorList”推导出“std::initializer_list<_Elem>”的 模板 参数
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42): error C2672: “end”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1967,27):
+      可能是“_Ty *std::end(_Ty (&)[_Size]) noexcept”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          “_Ty *std::end(_Ty (&)[_Size]) noexcept”: 无法从“const mc::world::gen::feature::template_::StructureProcessorList”推导出“_Ty (&)[_Size]”的 模板 参数
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1956,30):
+      或    “unknown-type std::end(const _Container &) noexcept(<expr>)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          未能使函数模板“unknown-type std::end(const _Container &) noexcept(<expr>)”专用化
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+              用下列模板参数:
+                  Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+                  “_Container=mc::world::gen::feature::template_::StructureProcessorList”
+              D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1957,23):
+              "end": 不是 "mc::world::gen::feature::template_::StructureProcessorList" 的成员
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.hpp(153,7):
+              参见“mc::world::gen::feature::template_::StructureProcessorList”的声明
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1950,30):
+      或    “unknown-type std::end(_Container &) noexcept(<expr>)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          未能使函数模板“unknown-type std::end(_Container &) noexcept(<expr>)”专用化
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+              用下列模板参数:
+                  Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+                  “_Container=const mc::world::gen::feature::template_::StructureProcessorList”
+              D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\xutility(1951,23):
+              "end": 不是 "mc::world::gen::feature::template_::StructureProcessorList" 的成员
+              Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.hpp(153,7):
+              参见“mc::world::gen::feature::template_::StructureProcessorList”的声明
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\initializer_list(59,35):
+      或    “const _Elem *std::end(std::initializer_list<_Elem>) noexcept”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42):
+          “const _Elem *std::end(std::initializer_list<_Elem>) noexcept”: 无法从“const mc::world::gen::feature::template_::StructureProcessorList”推导出“std::initializer_list<_Elem>”的 模板 参数
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42): error C3536: “<begin>$L1”: 初始化之前无法使用 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,42): error C3536: “<end>$L1”: 初始化之前无法使用 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(340,53): error C2100: 无法取消引用类型为“int”的操作数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(349,26): error C3536: “result”: 初始化之前无法使用 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\gen\feature\template\Template.cpp(353,38): error C2100: 无法取消引用类型为“int”的操作数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\blocks\SignBlock.cpp(101,35): error C2039: "rotateRotation": 不是 "mc::Directions" 的成员 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\util\Direction.hpp(122,11):
+      参见“mc::Directions”的声明
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\blocks\SignBlock.cpp(101,35): error C3861: “rotateRotation”: 找不到标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\blocks\SignBlock.cpp(107,35): error C2039: "mirrorRotation": 不是 "mc::Directions" 的成员 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\util\Direction.hpp(122,11):
+      参见“mc::Directions”的声明
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\blocks\SignBlock.cpp(107,35): error C3861: “mirrorRotation”: 找不到标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\blocks\SignBlock.cpp(154,23): error C2039: "isValidPosition": 不是 "mc::BlockState" 的成员 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\Block.hpp(96,7):
+      参见“mc::BlockState”的声明
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1871,40): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1871,26): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1871,40):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1873,45): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1873,31): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1873,45):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1877,43): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1877,29): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1877,43):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1879,48): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1879,34): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1879,48):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1883,42): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1883,28): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1883,42):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1885,47): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1885,33): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1885,47):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1889,43): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1889,29): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1889,43):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1891,48): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1891,34): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1891,48):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1895,43): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1895,29): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1895,43):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1897,48): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1897,34): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1897,48):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1901,45): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1901,31): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1901,45):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1903,50): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1903,36): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1903,50):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1907,44): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1907,30): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1907,44):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1909,49): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1909,35): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1909,49):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1913,43): error C2065: “StandingSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1913,29): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1913,43):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1915,48): error C2065: “WallSignBlock”: 未声明的标识符 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1915,34): error C2672: “mc::BlockRegistry::registerBlock”: 未找到匹配的重载函数 [Z:\mc_dev\branch1\minecraft-reborn\build\src\common\mc_common.vcxproj]
+      Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\BlockRegistry.hpp(60,16):
+      可能是“BlockType &mc::BlockRegistry::registerBlock(const mc::ResourceLocation &,Args ...)”
+          Z:\mc_dev\branch1\minecraft-reborn\src\common\world\block\VanillaBlocks.cpp(1915,48):
+          “mc::BlockRegistry::registerBlock”:“BlockType”的 模板 参数无效，应为类型
+  

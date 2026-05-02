@@ -520,7 +520,7 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(
 }
 
 BlockIgnoreStructureProcessor::BlockIgnoreStructureProcessor(const std::vector<u32>& blocksToIgnore)
-    : m_blocksToIgnore(blocksToIgnore)
+    : m_blocksToIgnore(blocksToIgnore.begin(), blocksToIgnore.end())
 {
 }
 
@@ -531,11 +531,9 @@ std::optional<ProcessedBlockInfo> BlockIgnoreStructureProcessor::process(
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // 检查方块是否在忽略列表中
-    for (u32 ignoreId : m_blocksToIgnore) {
-        if (blockInfo.blockStateId == ignoreId) {
-            return std::nullopt;  // 跳过此方块
-        }
+    // 使用 unordered_set 进行 O(1) 查找
+    if (m_blocksToIgnore.count(blockInfo.blockStateId) > 0) {
+        return std::nullopt;  // 跳过此方块
     }
 
     // 保留方块
@@ -559,13 +557,7 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
 
     const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
     if (!state) {
-        ProcessedBlockInfo result;
-        result.pos = blockInfo.pos;
-        result.blockStateId = blockInfo.blockStateId;
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
     }
 
     // 检查是否是 Jigsaw 方块
@@ -573,13 +565,7 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
     ResourceLocation blockId = block.blockLocation();
     if (blockId.toString() != "minecraft:jigsaw") {
         // 不是 Jigsaw 方块，保持原样
-        ProcessedBlockInfo result;
-        result.pos = blockInfo.pos;
-        result.blockStateId = blockInfo.blockStateId;
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
     }
 
     // 是 Jigsaw 方块，读取 final_state

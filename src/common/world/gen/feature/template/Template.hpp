@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <unordered_set>
 
 namespace mc {
 
@@ -319,10 +320,10 @@ public:
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
 
-    [[nodiscard]] const std::vector<u32>& blocksToIgnore() const { return m_blocksToIgnore; }
+    [[nodiscard]] const std::unordered_set<u32>& blocksToIgnore() const { return m_blocksToIgnore; }
 
 private:
-    std::vector<u32> m_blocksToIgnore;
+    std::unordered_set<u32> m_blocksToIgnore;
 };
 
 /**

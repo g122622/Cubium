@@ -15,6 +15,22 @@ namespace feature {
 namespace template_ {
 
 /**
+ * @brief 规则测试类型枚举
+ *
+ * 用于序列化和类型识别
+ */
+enum class RuleTestType : u32 {
+    AlwaysTrue = 0,
+    BlockMatch = 1,
+    BlockStateMatch = 2,
+    RandomBlockMatch = 3,
+    RandomBlockStateMatch = 4,
+    // PosRuleTest 类型
+    AlwaysTruePos = 0,
+    LinearPos = 1
+};
+
+/**
  * @brief 方块规则测试基类
  *
  * 参考 MC 1.16.5 RuleTest
@@ -56,7 +72,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] u32 getTypeId() const override { return 0; }
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AlwaysTrue); }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
         return std::make_unique<AlwaysTrueRuleTest>();
     }
@@ -73,7 +89,7 @@ public:
 
     [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
 
-    [[nodiscard]] u32 getTypeId() const override { return 1; }
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::BlockMatch); }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
         return std::make_unique<BlockMatchRuleTest>(m_blockId);
     }
@@ -95,7 +111,7 @@ public:
 
     [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
 
-    [[nodiscard]] u32 getTypeId() const override { return 2; }
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::BlockStateMatch); }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
         return std::make_unique<BlockStateMatchRuleTest>(m_stateId);
     }
@@ -117,7 +133,7 @@ public:
 
     [[nodiscard]] bool test(const BlockState* state, math::Random& rng) const override;
 
-    [[nodiscard]] u32 getTypeId() const override { return 3; }
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::RandomBlockMatch); }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
         return std::make_unique<RandomBlockMatchRuleTest>(m_blockId, m_probability);
     }
@@ -141,7 +157,7 @@ public:
 
     [[nodiscard]] bool test(const BlockState* state, math::Random& rng) const override;
 
-    [[nodiscard]] u32 getTypeId() const override { return 4; }
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::RandomBlockStateMatch); }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
         return std::make_unique<RandomBlockStateMatchRuleTest>(m_stateId, m_probability);
     }
@@ -205,7 +221,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] u32 getTypeId() const override { return 0; }
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AlwaysTruePos); }
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override {
         return std::make_unique<AlwaysTruePosRuleTest>();
     }
@@ -227,7 +243,7 @@ public:
         const BlockPos& seedPos,
         math::Random& rng) const override;
 
-    [[nodiscard]] u32 getTypeId() const override { return 1; }
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::LinearPos); }
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override {
         return std::make_unique<LinearPosRuleTest>(m_minHeight, m_maxHeight, m_minProbability, m_maxProbability);
     }
@@ -237,34 +253,6 @@ private:
     i32 m_maxHeight;
     f32 m_minProbability;
     f32 m_maxProbability;
-};
-
-/**
- * @brief 方块引用（用于规则输出）
- *
- * 可以表示一个方块状态或从输入方块转换
- */
-struct RuleOutput {
-    enum class Type : u8 {
-        Fixed,      // 固定方块状态
-        Input,      // 使用输入方块状态
-        InputNbt    // 使用输入方块状态和NBT
-    };
-
-    Type type = Type::Fixed;
-    u32 stateId = 0;  // 当 type == Fixed 时使用
-
-    static RuleOutput fixed(u32 stateId) {
-        return { Type::Fixed, stateId };
-    }
-
-    static RuleOutput input() {
-        return { Type::Input, 0 };
-    }
-
-    static RuleOutput inputWithNbt() {
-        return { Type::InputNbt, 0 };
-    }
 };
 
 /**
