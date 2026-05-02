@@ -115,9 +115,12 @@ const stopHook: HookCallback = async (input, toolUseID, { signal }) => {
   // 根据评估结果决定是否阻止停止
   if (!evaluation.ok) {
     console.log(`\n🚫 阻止停止: ${evaluation.reason}`);
+    const reason = `停止请求被拒绝。原因: ${evaluation.reason}\n\n请继续完成相关工作，确保所有完工标准都已满足。`;
     return {
       decision: "block",
-      systemMessage: `停止请求被拒绝。原因: ${evaluation.reason}\n\n请继续完成相关工作，确保所有完工标准都已满足。`,
+      systemMessage: reason,
+      stopReason: reason,
+      reason: reason
     };
   }
 
