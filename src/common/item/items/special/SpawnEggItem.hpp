@@ -1,0 +1,75 @@
+#pragma once
+
+#include "../../core/Item.hpp"
+#include "../../core/Types.hpp"
+#include "../../entity/core/EntityType.hpp"
+#include <memory>
+
+namespace mc {
+namespace item {
+
+/**
+ * @brief 生成蛋物品
+ *
+ * 右键使用时生成对应实体。
+ * 参考 MC 1.16.5: net.minecraft.item.SpawnEggItem
+ */
+class SpawnEggItem : public Item {
+public:
+    /**
+     * @brief 构造函数
+     * @param entityType 要生成的实体类型
+     * @param primaryColor 主颜色 (RGBA格式的颜色值)
+     * @param secondaryColor 副颜色 (RGBA格式的颜色值)
+     * @param properties 物品属性
+     */
+    SpawnEggItem(
+        entity::EntityType entityType,
+        u32 primaryColor,
+        u32 secondaryColor,
+        const ItemProperties& properties);
+
+    ~SpawnEggItem() override = default;
+
+    /**
+     * @brief 获取要生成的实体类型
+     */
+    [[nodiscard]] entity::EntityType getEntityType() const { return m_entityType; }
+
+    /**
+     * @brief 获取主颜色
+     */
+    [[nodiscard]] u32 getPrimaryColor() const { return m_primaryColor; }
+
+    /**
+     * @brief 获取副颜色
+     */
+    [[nodiscard]] u32 getSecondaryColor() const { return m_secondaryColor; }
+
+    /**
+     * @brief 方块交互 - 在方块上生成实体
+     */
+    ActionResultType onItemUse(ItemUseContext& context) override;
+
+    /**
+     * @brief 右键使用 - 在玩家位置生成实体
+     */
+    ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
+
+    /**
+     * @brief 生成实体
+     * @param world 世界
+     * @param pos 位置
+     * @param spawnReason 生成原因
+     * @return 是否成功生成
+     */
+    bool spawnEntity(IWorld& world, const BlockPos& pos, entity::SpawnReason spawnReason) const;
+
+private:
+    entity::EntityType m_entityType;
+    u32 m_primaryColor;
+    u32 m_secondaryColor;
+};
+
+} // namespace item
+} // namespace mc
