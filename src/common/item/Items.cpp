@@ -21,9 +21,11 @@
 #include "items/tool/HoeItem.hpp"
 #include "items/tool/SwordItem.hpp"
 #include "items/special/BoneMealItem.hpp"
+#include "items/special/FishBucketItem.hpp"
 #include "food/Foods.hpp"
 #include "armor/ArmorMaterial.hpp"
 #include "../world/block/VanillaBlocks.hpp"
+#include "../entity/core/EntityRegistry.hpp"
 
 namespace {
 
@@ -341,6 +343,10 @@ Item* Items::FISHING_ROD = nullptr;
 Item* Items::BUCKET = nullptr;
 Item* Items::WATER_BUCKET = nullptr;
 Item* Items::LAVA_BUCKET = nullptr;
+Item* Items::COD_BUCKET = nullptr;
+Item* Items::SALMON_BUCKET = nullptr;
+Item* Items::PUFFERFISH_BUCKET = nullptr;
+Item* Items::TROPICAL_FISH_BUCKET = nullptr;
 
 // ============================================================================
 // 海绵
@@ -1689,6 +1695,35 @@ void Items::registerBuckets() {
     // 岩浆桶作为燃料使用后返回空桶
     LAVA_BUCKET = &registry.registerItem(
         ResourceLocation("minecraft:lava_bucket"),
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 鱼桶 - MC 1.16.5
+    // 鳕鱼桶 - 可以装鳕鱼的水桶，使用后返回空桶
+    COD_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:cod_bucket"),
+        mc::entity::EntityTypes::COD,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 鲑鱼桶
+    SALMON_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:salmon_bucket"),
+        mc::entity::EntityTypes::SALMON,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 河豚桶
+    PUFFERFISH_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:pufferfish_bucket"),
+        mc::entity::EntityTypes::PUFFERFISH,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 热带鱼桶
+    TROPICAL_FISH_BUCKET = &registry.registerItem<item::FishBucketItem>(
+        ResourceLocation("minecraft:tropical_fish_bucket"),
+        mc::entity::EntityTypes::TROPICAL_FISH,
         ItemProperties().maxStackSize(1).containerItem(BUCKET)
     );
 }

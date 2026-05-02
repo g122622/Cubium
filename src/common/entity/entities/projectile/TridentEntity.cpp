@@ -1,11 +1,13 @@
 #include "TridentEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../entities/effect/EffectEntities.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include "ProjectileHelper.hpp"
 #include <cmath>
 
@@ -159,10 +161,18 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     // 计算基础伤害
     f32 damage = 8.0f;
 
-    // TODO: 根据目标类型增加伤害（亡灵生物额外伤害）
-    // if (target instanceof LivingEntity) {
-    //     damage += EnchantmentHelper.getModifierForCreature(m_tridentStack, ((LivingEntity)target).getCreatureAttribute());
-    // }
+    // MC 1.16.5: 应用穿刺附魔伤害
+    // 穿刺附魔对水生生物造成额外伤害（每级 2.5 点）
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+    if (livingTarget != nullptr && !m_tridentStack.isEmpty()) {
+        // 获取目标的生物属性类型
+        CreatureAttribute creatureType = livingTarget->getCreatureAttribute();
+        // 使用附魔助手的 getTotalDamageBonus 方法计算额外伤害
+        damage += mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(
+            m_tridentStack,
+            static_cast<u32>(creatureType)
+        );
+    }
 
     // 获取射击者
     Entity* shooter = getShooter();
@@ -181,7 +191,6 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
     m_dealtDamage = true;
 
     // 应用伤害
-    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
     if (livingTarget != nullptr) {
         livingTarget->hurt(*damageSource, damage);
     }
@@ -197,18 +206,39 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
         }
     }
 
-    // TODO: 雷击附魔
+    // TODO: 引雷附魔
     // 参考 MC 1.16.5 第154-164行
-    // if (world instanceof ServerWorld && world.isThundering() && EnchantmentHelper.hasChanneling(m_tridentStack)) {
-    //     BlockPos blockpos = target.getPosition();
-    //     if (world.canSeeSky(blockpos)) {
-    //         LightningBoltEntity lightning = EntityType.LIGHTNING_BOLT.create(world);
-    //         lightning.moveForced(Vector3d.copyCenteredHorizontally(blockpos));
-    //         lightning.setCaster(shooter instanceof ServerPlayerEntity ? (ServerPlayerEntity)shooter : null);
-    //         world.addEntity(lightning);
-    //         playSound(SoundEvents.ITEM_TRIDENT_THUNDER, 5.0F, 1.0F);
-    //     }
-    // }
+    if (m_world != nullptr && !m_world->isRemote() && livingTarget != nullptr) {
+        // 检查是否有引雷附魔
+        if (mc::item::enchant::EnchantmentHelper::hasChanneling(m_tridentStack)) {
+            // 检查是否在雷暴天气
+            // MC 1.16.5: world.isThundering() && world.canSeeSky(pos)
+            // 需要检查天气系统和天空可见性
+            BlockPos targetPos(static_cast<i32>(target->x()),
+                              static_cast<i32>(target->y()),
+                              static_cast<i32>(target->z()));
+            bool isThundering = true; // TODO: 实现天气系统后替换为 m_world->isThundering()
+            bool canSeeSky = true;    // TODO: 实现天空可见性检查后替换为 m_world->canSeeSky(targetPos)
+
+            if (isThundering && canSeeSky) {
+                // 创建闪电实体
+                auto lightning = std::make_unique<entity::LightningBoltEntity>();
+                lightning->setPosition(target->x(), target->y(), target->z());
+
+                // 设置触发者
+                Player* playerShooter = dynamic_cast<Player*>(shooter);
+                if (playerShooter != nullptr) {
+                    lightning->setCaster(playerShooter->playerId());
+                }
+
+                // 生成闪电
+                m_world->spawnEntity(std::move(lightning));
+
+                // TODO: 播放引雷音效
+                // playSound(SoundEvents::ITEM_TRIDENT_THUNDER, 5.0F, 1.0F);
+            }
+        }
+    }
 
     // 速度反转为轻微反弹
     m_velocity = Vector3(

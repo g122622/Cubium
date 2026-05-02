@@ -223,11 +223,16 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/FollowParentGoal.cpp
     entity/ai/goal/goals/MeleeAttackGoal.cpp
     entity/ai/goal/goals/AvoidEntityGoal.cpp
+    entity/ai/goal/goals/RandomSwimmingGoal.cpp
+    entity/ai/goal/goals/FindWaterGoal.cpp
+    entity/ai/goal/goals/SwimUpGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/goal/goals/movement/MovementGoals.cpp
+    entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.cpp
     entity/ai/goal/goals/attack/RangedAttackGoals.cpp
     entity/ai/goal/goals/target/TargetGoals.cpp
     entity/ai/goal/goals/special/SpecialGoals.cpp
+    entity/ai/goal/goals/special/GuardianAttackGoal.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/VillagerGoals.cpp
@@ -329,6 +334,7 @@ add_library(mc_common STATIC
 
     # Item - Special Items
     item/items/special/BoneMealItem.cpp
+    item/items/special/FishBucketItem.cpp
 
     # Item - Crafting
     item/crafting/Ingredient.cpp

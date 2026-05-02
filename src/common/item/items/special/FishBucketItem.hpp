@@ -1,11 +1,14 @@
 #pragma once
 
 #include "../../core/Item.hpp"
-#include "../../core/Types.hpp"
-#include "../../../entity/core/EntityType.hpp"
+#include "../../../core/Types.hpp"
 #include <memory>
 
 namespace mc {
+namespace entity {
+    class EntityType;
+}
+
 namespace item {
 
 /**
@@ -18,19 +21,19 @@ class FishBucketItem : public Item {
 public:
     /**
      * @brief 构造函数
-     * @param fishType 鱼实体类型
+     * @param fishTypeName 鱼实体类型名称（如 "minecraft:cod"）
      * @param properties 物品属性
      */
     FishBucketItem(
-        entity::EntityType fishType,
+        const char* fishTypeName,
         const ItemProperties& properties);
 
     ~FishBucketItem() override = default;
 
     /**
-     * @brief 获取鱼类型
+     * @brief 获取鱼类型名称
      */
-    [[nodiscard]] entity::EntityType getFishType() const { return m_fishType; }
+    [[nodiscard]] const String& getFishTypeName() const { return m_fishTypeName; }
 
     /**
      * @brief 方块交互 - 放置水并生成鱼
@@ -51,7 +54,7 @@ private:
      */
     bool spawnFish(IWorld& world, const BlockPos& pos) const;
 
-    entity::EntityType m_fishType;
+    String m_fishTypeName;
 };
 
 } // namespace item

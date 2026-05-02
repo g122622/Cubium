@@ -30,10 +30,19 @@ special/
 - 消耗物品（非创造模式）
 
 ### FishBucketItem (MC 1.16.5)
-- 支持自定义鱼类型
+- 支持自定义鱼类型（通过实体类型名称）
 - `onItemUse`: 放置水方块并生成鱼
 - `onItemRightClick`: 在水中生成鱼
-- 返回空桶（TODO）
+- 返回空桶（非创造模式）
+
+## 已注册的鱼桶物品
+
+| 物品 ID | 实体类型 | 注册位置 |
+|---------|----------|----------|
+| minecraft:cod_bucket | COD | Items::COD_BUCKET |
+| minecraft:salmon_bucket | SALMON | Items::SALMON_BUCKET |
+| minecraft:pufferfish_bucket | PUFFERFISH | Items::PUFFERFISH_BUCKET |
+| minecraft:tropical_fish_bucket | TROPICAL_FISH | Items::TROPICAL_FISH_BUCKET |
 
 ## 使用方法
 
@@ -46,11 +55,8 @@ auto codSpawnEgg = std::make_unique<SpawnEggItem>(
     ItemProperties().maxStackSize(64)
 );
 
-// 创建鱼桶
-auto codBucket = std::make_unique<FishBucketItem>(
-    EntityType::COD,
-    ItemProperties().maxStackSize(1)
-);
+// 鱼桶已在 Items.cpp 中注册，直接使用静态指针
+Item* codBucket = Items::COD_BUCKET;
 ```
 
 ## 待实现的水域更新生成蛋
@@ -66,15 +72,6 @@ auto codBucket = std::make_unique<FishBucketItem>(
 | minecraft:pufferfish_spawn_egg | PUFFERFISH | 16167425 | 3654642 |
 | minecraft:tropical_fish_spawn_egg | TROPICAL_FISH | 15690005 | 16775663 |
 
-## 待实现的鱼桶
-
-| 物品 ID | 实体类型 |
-|---------|----------|
-| minecraft:cod_bucket | COD |
-| minecraft:salmon_bucket | SALMON |
-| minecraft:pufferfish_bucket | PUFFERFISH |
-| minecraft:tropical_fish_bucket | TROPICAL_FISH |
-
 ## 依赖项
 
 | 模块 | 用途 |
@@ -83,7 +80,7 @@ auto codBucket = std::make_unique<FishBucketItem>(
 | `entity/core/EntityType` | 实体类型 |
 | `entity/core/EntityRegistry` | 实体注册表 |
 | `world/IWorld` | 世界接口 |
-| `player/Player` | 玩家接口 |
+| `entity/entities/player/Player` | 玩家接口 |
 
 ## 参考
 

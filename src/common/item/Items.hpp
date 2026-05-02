@@ -370,6 +370,10 @@ public:
     static Item* BUCKET;                 // 空桶
     static Item* WATER_BUCKET;           // 水桶
     static Item* LAVA_BUCKET;            // 岩浆桶
+    static Item* COD_BUCKET;             // 鳕鱼桶
+    static Item* SALMON_BUCKET;          // 鲑鱼桶
+    static Item* PUFFERFISH_BUCKET;      // 河豚桶
+    static Item* TROPICAL_FISH_BUCKET;   // 热带鱼桶
 
     // ========================================================================
     // 海绵

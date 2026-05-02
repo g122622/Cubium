@@ -1,31 +1,31 @@
 #include "FishBucketItem.hpp"
 #include "../../../world/IWorld.hpp"
-#include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/Block.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntityType.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../player/Player.hpp"
-#include "../../../item/core/ItemStack.hpp"
+#include "../../context/BlockItemUseContext.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../core/ItemStack.hpp"
 
 namespace mc {
 namespace item {
 
 FishBucketItem::FishBucketItem(
-    entity::EntityType fishType,
+    const char* fishTypeName,
     const ItemProperties& properties)
     : Item(properties)
-    , m_fishType(fishType) {
+    , m_fishTypeName(fishTypeName) {
 }
 
 ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
     IWorld& world = context.getWorld();
-    BlockPos pos = context.placementPos();
-    Direction face = context.getFace();
+    BlockPos pos = context.blockPos();
+    Direction face = context.face();
 
-    if (world.isClientSide()) {
+    if (world.isRemote()) {
         return ActionResultType::Success;
     }
 
@@ -47,9 +47,10 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
     // 在水中生成鱼
     if (spawnFish(world, placePos)) {
         // 返回空桶 (非创造模式)
-        if (!context.getPlayer().isCreative()) {
+        Player* player = context.getPlayer();
+        if (player != nullptr && !player->isCreative()) {
             // TODO: 返回空桶
-            context.getItemStack().shrink(1);
+            context.getItemStackMut().shrink(1);
         }
         return ActionResultType::Success;
     }
@@ -58,16 +59,16 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
 }
 
 ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
-    if (world.isClientSide()) {
+    if (world.isRemote()) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 
     // 检查玩家是否在水中
     if (player.isInWater()) {
         BlockPos spawnPos(
-            static_cast<i32>(player.getX()),
-            static_cast<i32>(player.getY()),
-            static_cast<i32>(player.getZ())
+            static_cast<i32>(player.x()),
+            static_cast<i32>(player.y()),
+            static_cast<i32>(player.z())
         );
 
         if (spawnFish(world, spawnPos)) {
@@ -83,8 +84,14 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
 }
 
 bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const {
+    // 获取实体类型
+    const entity::EntityType* fishType = entity::EntityRegistry::instance().getType(m_fishTypeName);
+    if (fishType == nullptr) {
+        return false;
+    }
+
     // 创建鱼实体
-    auto fish = entity::EntityRegistry::instance().createEntity(m_fishType, world);
+    auto fish = fishType->create(&world);
     if (!fish) {
         return false;
     }
