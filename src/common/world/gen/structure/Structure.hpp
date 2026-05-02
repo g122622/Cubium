@@ -364,6 +364,17 @@ public:
     [[nodiscard]] virtual StructureSeparationSettings separationSettings() const = 0;
     [[nodiscard]] virtual const std::vector<BiomeId>& validBiomes() const = 0;
 
+    /**
+     * @brief 是否使用均匀间距分布
+     *
+     * 大多数结构返回 true（均匀分布）。
+     * 废弃矿井等结构返回 false，使用两次随机平均值作为偏移，
+     * 产生更集中的分布。
+     *
+     * 参考 MC 1.16.5 Structure.func_230365_b_()
+     */
+    [[nodiscard]] virtual bool useUniformSpacing() const { return true; }
+
     [[nodiscard]] StructureType structureType() const { return m_type; }
     [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;
 
@@ -417,7 +428,8 @@ public:
     [[nodiscard]] static bool findStructureStart(
         i64 seed, i32 chunkX, i32 chunkZ,
         const StructureSeparationSettings& settings,
-        i32& outStartX, i32& outStartZ);
+        i32& outStartX, i32& outStartZ,
+        bool useUniformSpacing = true);
 
 protected:
     explicit Structure(StructureType type) : m_type(type) {}

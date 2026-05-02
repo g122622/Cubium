@@ -44,12 +44,47 @@ public:
     [[nodiscard]] i32 ySpan() const { return m_maxY - m_minY + 1; }
     [[nodiscard]] i32 zSpan() const { return m_maxZ - m_minZ + 1; }
 
+    /**
+     * @brief 获取中心 X 坐标
+     */
+    [[nodiscard]] i32 centerX() const { return (m_minX + m_maxX) / 2; }
+
+    /**
+     * @brief 获取中心 Y 坐标
+     */
+    [[nodiscard]] i32 centerY() const { return (m_minY + m_maxY) / 2; }
+
+    /**
+     * @brief 获取中心 Z 坐标
+     */
+    [[nodiscard]] i32 centerZ() const { return (m_minZ + m_maxZ) / 2; }
+
     [[nodiscard]] bool isValid() const { return m_valid; }
 
     [[nodiscard]] bool contains(i32 x, i32 y, i32 z) const {
         return x >= m_minX && x <= m_maxX &&
                y >= m_minY && y <= m_maxY &&
                z >= m_minZ && z <= m_maxZ;
+    }
+
+    /**
+     * @brief 检查点是否在边界框内（BlockPos版本）
+     *
+     * 参考 MC 1.16.5 MutableBoundingBox.isVecInside
+     */
+    [[nodiscard]] bool isVecInside(i32 x, i32 y, i32 z) const {
+        return contains(x, y, z);
+    }
+
+    /**
+     * @brief 检查是否与另一个边界框相交
+     *
+     * 参考 MC 1.16.5 MutableBoundingBox.intersectsWith
+     */
+    [[nodiscard]] bool intersectsWith(const StructureBoundingBox& other) const {
+        return m_maxX >= other.m_minX && m_minX <= other.m_maxX &&
+               m_maxY >= other.m_minY && m_minY <= other.m_maxY &&
+               m_maxZ >= other.m_minZ && m_minZ <= other.m_maxZ;
     }
 
     [[nodiscard]] bool intersectsChunk(i32 chunkX, i32 chunkZ) const {
@@ -77,6 +112,53 @@ public:
         m_maxX = std::max(m_maxX, x);
         m_maxY = std::max(m_maxY, y);
         m_maxZ = std::max(m_maxZ, z);
+    }
+
+    /**
+     * @brief 扩展边界框以包含另一个边界框
+     *
+     * 参考 MC 1.16.5 MutableBoundingBox.expandTo
+     */
+    void expandTo(const StructureBoundingBox& other) {
+        if (!other.m_valid) {
+            return;
+        }
+
+        if (!m_valid) {
+            *this = other;
+            return;
+        }
+
+        m_minX = std::min(m_minX, other.m_minX);
+        m_minY = std::min(m_minY, other.m_minY);
+        m_minZ = std::min(m_minZ, other.m_minZ);
+        m_maxX = std::max(m_maxX, other.m_maxX);
+        m_maxY = std::max(m_maxY, other.m_maxY);
+        m_maxZ = std::max(m_maxZ, other.m_maxZ);
+    }
+
+    /**
+     * @brief 偏移边界框
+     *
+     * 参考 MC 1.16.5 MutableBoundingBox.offset
+     */
+    void offset(i32 dx, i32 dy, i32 dz) {
+        m_minX += dx;
+        m_minY += dy;
+        m_minZ += dz;
+        m_maxX += dx;
+        m_maxY += dy;
+        m_maxZ += dz;
+    }
+
+    /**
+     * @brief 创建偏移后的边界框副本
+     */
+    [[nodiscard]] StructureBoundingBox offseted(i32 dx, i32 dy, i32 dz) const {
+        return StructureBoundingBox(
+            m_minX + dx, m_minY + dy, m_minZ + dz,
+            m_maxX + dx, m_maxY + dy, m_maxZ + dz
+        );
     }
 
 private:

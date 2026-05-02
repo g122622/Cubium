@@ -63,6 +63,70 @@ BlockInfo& BlockInfo::operator=(BlockInfo&& other) noexcept {
 BlockInfo::~BlockInfo() = default;
 
 // ============================================================================
+// ProcessedBlockInfo
+// ============================================================================
+
+ProcessedBlockInfo::ProcessedBlockInfo(const ProcessedBlockInfo& other)
+    : pos(other.pos), blockStateId(other.blockStateId)
+{
+    if (other.nbt) {
+        nbt = std::make_unique<nbt::CompoundTag>(*other.nbt);
+    }
+}
+
+ProcessedBlockInfo::ProcessedBlockInfo(ProcessedBlockInfo&& other) noexcept
+    : pos(std::move(other.pos))
+    , blockStateId(other.blockStateId)
+    , nbt(std::move(other.nbt))
+{
+}
+
+ProcessedBlockInfo& ProcessedBlockInfo::operator=(const ProcessedBlockInfo& other) {
+    if (this != &other) {
+        pos = other.pos;
+        blockStateId = other.blockStateId;
+        if (other.nbt) {
+            nbt = std::make_unique<nbt::CompoundTag>(*other.nbt);
+        } else {
+            nbt.reset();
+        }
+    }
+    return *this;
+}
+
+ProcessedBlockInfo& ProcessedBlockInfo::operator=(ProcessedBlockInfo&& other) noexcept {
+    if (this != &other) {
+        pos = std::move(other.pos);
+        blockStateId = other.blockStateId;
+        nbt = std::move(other.nbt);
+    }
+    return *this;
+}
+
+ProcessedBlockInfo::~ProcessedBlockInfo() = default;
+
+// ============================================================================
+// StructureProcessor
+// ============================================================================
+
+std::optional<ProcessedBlockInfo> StructureProcessor::process(
+    const BlockPos& /*seedPos*/,
+    const BlockPos& /*pos*/,
+    const BlockInfo& /*rawBlockInfo*/,
+    const BlockInfo& blockInfo,
+    const PlacementSettings& /*settings*/)
+{
+    // 默认实现：不修改，直接返回处理后的方块信息
+    ProcessedBlockInfo result;
+    result.pos = blockInfo.pos;
+    result.blockStateId = blockInfo.blockStateId;
+    if (blockInfo.nbt) {
+        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+    }
+    return result;
+}
+
+// ============================================================================
 // TemplateEntityInfo
 // ============================================================================
 
@@ -117,6 +181,8 @@ PlacementSettings::PlacementSettings()
     : m_rotation(Rotation::None)
     , m_mirror(Mirror::None)
     , m_boundingBox(nullptr)
+    , m_centerOffset(0, 0, 0)
+    , m_blockUpdateFlags(18)
 {
 }
 
@@ -138,6 +204,33 @@ PlacementSettings& PlacementSettings::setIgnoreEntities(bool ignore) {
 PlacementSettings& PlacementSettings::setBoundingBox(const structure::StructureBoundingBox* bounds) {
     m_boundingBox = bounds;
     return *this;
+}
+
+PlacementSettings& PlacementSettings::setCenterOffset(const BlockPos& offset) {
+    m_centerOffset = offset;
+    return *this;
+}
+
+PlacementSettings& PlacementSettings::setBlockUpdateFlags(u32 flags) {
+    m_blockUpdateFlags = flags;
+    return *this;
+}
+
+PlacementSettings& PlacementSettings::setKeepLiquids(bool keep) {
+    m_keepLiquids = keep;
+    return *this;
+}
+
+PlacementSettings PlacementSettings::copy() const {
+    PlacementSettings result;
+    result.m_rotation = m_rotation;
+    result.m_mirror = m_mirror;
+    result.m_ignoreEntities = m_ignoreEntities;
+    result.m_keepLiquids = m_keepLiquids;
+    result.m_boundingBox = m_boundingBox;
+    result.m_centerOffset = m_centerOffset;
+    result.m_blockUpdateFlags = m_blockUpdateFlags;
+    return result;
 }
 
 // ============================================================================

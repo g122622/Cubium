@@ -41,7 +41,7 @@ private:
         math::Random& rng,
         const BlockPos& origin) const;
 
-    static constexpr StructureSeparationSettings m_settings{24, 4, 165745296};  // MC 1.16.5: 165745296
+    static constexpr StructureSeparationSettings m_settings{24, 4, 165745295};  // MC 1.16.5: 165745295
     static const String m_name;
     std::vector<BiomeId> m_validBiomes;
 };

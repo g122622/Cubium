@@ -263,6 +263,14 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     /**
+     * @brief 废弃矿井使用非均匀间距分布
+     *
+     * MC 1.16.5: MineshaftStructure.func_230365_b_() 返回 false
+     * 这使得偏移量使用两次随机值的平均值，产生更集中的分布
+     */
+    [[nodiscard]] bool useUniformSpacing() const override { return false; }
+
+    /**
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(

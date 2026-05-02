@@ -42,6 +42,8 @@ struct BlockInfo {
 
 /**
  * @brief 放置设置
+ *
+ * 参考 MC 1.16.5 PlacementSettings
  */
 class PlacementSettings {
 public:
@@ -59,19 +61,105 @@ public:
     [[nodiscard]] const structure::StructureBoundingBox* getBoundingBox() const { return m_boundingBox; }
     PlacementSettings& setBoundingBox(const structure::StructureBoundingBox* bounds);
 
+    /**
+     * @brief 获取中心偏移
+     *
+     * 参考 MC 1.16.5 PlacementSettings.func_215219_d
+     * 用于旋转变换的中心点
+     */
+    [[nodiscard]] const BlockPos& getCenterOffset() const { return m_centerOffset; }
+    PlacementSettings& setCenterOffset(const BlockPos& offset);
+
+    /**
+     * @brief 获取方块更新标志
+     *
+     * 参考 MC 1.16.5 PlacementSettings.func_215217_f
+     * @return 放置方块时的更新标志
+     */
+    [[nodiscard]] u32 getBlockUpdateFlags() const { return m_blockUpdateFlags; }
+    PlacementSettings& setBlockUpdateFlags(u32 flags);
+
+    /**
+     * @brief 检查是否保留液体
+     *
+     * 参考 MC 1.16.5 PlacementSettings.func_215218_i
+     */
+    [[nodiscard]] bool keepLiquids() const { return m_keepLiquids; }
+    PlacementSettings& setKeepLiquids(bool keep);
+
+    /**
+     * @brief 复制放置设置
+     *
+     * 参考 MC 1.16.5 PlacementSettings.func_215216_h
+     */
+    [[nodiscard]] PlacementSettings copy() const;
+
 private:
     Rotation m_rotation = Rotation::None;
     Mirror m_mirror = Mirror::None;
     bool m_ignoreEntities = false;
+    bool m_keepLiquids = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
+    BlockPos m_centerOffset = BlockPos(0, 0, 0);
+    u32 m_blockUpdateFlags = 18;  // 默认标志：更新邻居和通知观察者
+};
+
+/**
+ * @brief 处理后的方块信息
+ *
+ * 参考 MC 1.16.5 Template.BlockInfo
+ * 用于处理器链处理后返回的结果
+ */
+struct ProcessedBlockInfo {
+    BlockPos pos;
+    u32 blockStateId = 0;
+    std::unique_ptr<nbt::CompoundTag> nbt;
+
+    ProcessedBlockInfo() = default;
+    ProcessedBlockInfo(const BlockPos& p, u32 stateId) : pos(p), blockStateId(stateId) {}
+    ProcessedBlockInfo(const ProcessedBlockInfo& other);
+    ProcessedBlockInfo(ProcessedBlockInfo&& other) noexcept;
+    ProcessedBlockInfo& operator=(const ProcessedBlockInfo& other);
+    ProcessedBlockInfo& operator=(ProcessedBlockInfo&& other) noexcept;
+    ~ProcessedBlockInfo();
 };
 
 /**
  * @brief 结构处理器接口
+ *
+ * 参考 MC 1.16.5 StructureProcessor
+ * 处理器可以修改或过滤模板中的方块
  */
 class StructureProcessor {
 public:
     virtual ~StructureProcessor() = default;
+
+    /**
+     * @brief 处理方块信息
+     *
+     * 参考 MC 1.16.5 StructureProcessor.process
+     * @param world 世界读取器（可选）
+     * @param seedPos 种子位置
+     * @param pos 当前放置位置
+     * @param rawBlockInfo 原始方块信息（未变换）
+     * @param blockInfo 变换后的方块信息
+     * @param settings 放置设置
+     * @param template_ 模板（可选）
+     * @return 处理后的方块信息，或 nullopt 表示跳过此方块
+     */
+    [[nodiscard]] virtual std::optional<ProcessedBlockInfo> process(
+        const BlockPos& seedPos,
+        const BlockPos& pos,
+        const BlockInfo& rawBlockInfo,
+        const BlockInfo& blockInfo,
+        const PlacementSettings& settings);
+
+    /**
+     * @brief 获取处理器类型ID
+     *
+     * 参考 MC 1.16.5 IStructureProcessorType
+     */
+    [[nodiscard]] virtual u32 getProcessorType() const { return 0; }
 };
 
 /**

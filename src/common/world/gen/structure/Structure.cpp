@@ -328,7 +328,8 @@ void Structure::placeInChunk(
 bool Structure::findStructureStart(
     i64 seed, i32 chunkX, i32 chunkZ,
     const StructureSeparationSettings& settings,
-    i32& outStartX, i32& outStartZ)
+    i32& outStartX, i32& outStartZ,
+    bool useUniformSpacing)
 {
     i32 spacing = settings.spacing;
     i32 separation = settings.separation;
@@ -346,8 +347,19 @@ bool Structure::findStructureStart(
     math::Random rng(static_cast<i64>(combinedSeed));
 
     i32 offsetRange = spacing - separation;
-    i32 offsetX = rng.nextInt(offsetRange);
-    i32 offsetZ = rng.nextInt(offsetRange);
+
+    // MC 1.16.5: 大多数结构使用均匀分布
+    // 废弃矿井等使用非均匀分布: (nextInt(offsetRange) + nextInt(offsetRange)) / 2
+    // 参考 Structure.func_236386_a_ 和 Structure.func_230365_b_()
+    i32 offsetX, offsetZ;
+    if (useUniformSpacing) {
+        offsetX = rng.nextInt(offsetRange);
+        offsetZ = rng.nextInt(offsetRange);
+    } else {
+        // 非均匀分布：两次随机取平均，产生更集中的分布
+        offsetX = (rng.nextInt(offsetRange) + rng.nextInt(offsetRange)) / 2;
+        offsetZ = (rng.nextInt(offsetRange) + rng.nextInt(offsetRange)) / 2;
+    }
 
     outStartX = gridX * spacing + offsetX;
     outStartZ = gridZ * spacing + offsetZ;
