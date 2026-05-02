@@ -148,6 +148,7 @@ add_executable(mc_tests
     common/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
     common/world/gen/NetherSurfaceParityTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
+    common/world/gen/feature/template/test_template.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp
     # Perfetto 娴嬭瘯锛堥泦鎴愬埌涓绘祴璇曞浠讹級

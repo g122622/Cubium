@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/random/Random.hpp"
+#include "../../../../core/Types.hpp"
+#include "../../../block/BlockPos.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include <memory>
 
 namespace mc {
