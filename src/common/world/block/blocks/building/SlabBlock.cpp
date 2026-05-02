@@ -5,6 +5,9 @@
 #include "../../../../item/core/Item.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/Direction.hpp"
 
@@ -163,12 +166,20 @@ BlockState SlabBlock::updatePostPlacement(
 
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
 
-    // 双层台阶不需要特殊更新
-    // 单层台阶的支撑检查在 isValidPosition 中进行
+    // 单层台阶含水时调度流体 tick
+    if (state.get(BlockStateProperties::SLAB_TYPE()) != BlockStateProperties::SlabType::Double) {
+        if (state.get(BlockStateProperties::WATERLOGGED())) {
+            fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+                fluid::FluidRegistry::WATER_ID);
+            if (waterFluid != nullptr) {
+                world.tickManager().scheduleFluidTick(
+                    currentPos, *waterFluid, waterFluid->getTickDelay(world));
+            }
+        }
+    }
+
     return state;
 }
 
@@ -196,6 +207,87 @@ const CollisionShape& SlabBlock::getCollisionShape(const BlockState& state) cons
 
 bool SlabBlock::isDouble(const BlockState& state) {
     return state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double;
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* SlabBlock::getFluidState(const BlockState& state) const {
+    // 双层台阶不能含水
+    if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
+        return Block::getFluidState(state);
+    }
+
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
+}
+
+bool SlabBlock::canContainFluid(
+    IWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    const fluid::Fluid& fluid) const {
+
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 双层台阶不能含水
+    if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
+        return false;
+    }
+
+    // 只有水可以进入，且当前不含水
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        return false;
+    }
+
+    return fluid.isIn(fluid::FluidTags::WATER());
+}
+
+bool SlabBlock::receiveFluid(
+    IWorld& world,
+    const BlockPos& pos,
+    const BlockState* state,
+    const fluid::FluidState& fluidState) {
+
+    if (state == nullptr) {
+        return false;
+    }
+
+    // 双层台阶不能含水
+    if (state->get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
+        return false;
+    }
+
+    // 检查是否已含水
+    if (state->get(BlockStateProperties::WATERLOGGED())) {
+        return false;
+    }
+
+    // 检查流体是否为水
+    const fluid::Fluid& fluid = fluidState.getFluid();
+    if (!fluid.isIn(fluid::FluidTags::WATER())) {
+        return false;
+    }
+
+    // 设置 WATERLOGGED=true
+    BlockState newState = state->with(BlockStateProperties::WATERLOGGED(), true);
+    world.setBlockState(pos, &newState, 3);
+
+    // 调度流体 tick
+    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+        fluid::FluidRegistry::WATER_ID);
+    if (waterFluid != nullptr) {
+        world.tickManager().scheduleFluidTick(
+            pos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
+    return true;
 }
 
 } // namespace blocks
