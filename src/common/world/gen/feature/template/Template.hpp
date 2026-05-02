@@ -64,6 +64,21 @@ struct ProcessedBlockInfo {
     ProcessedBlockInfo& operator=(const ProcessedBlockInfo& other);
     ProcessedBlockInfo& operator=(ProcessedBlockInfo&& other) noexcept;
     ~ProcessedBlockInfo();
+
+    /**
+     * @brief 从 BlockInfo 创建 ProcessedBlockInfo
+     * @param info 源方块信息
+     * @return 处理后的方块信息
+     */
+    static ProcessedBlockInfo fromBlockInfo(const BlockInfo& info) {
+        ProcessedBlockInfo result;
+        result.pos = info.pos;
+        result.blockStateId = info.blockStateId;
+        if (info.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*info.nbt);
+        }
+        return result;
+    }
 };
 
 /**

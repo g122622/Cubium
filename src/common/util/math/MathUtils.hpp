@@ -491,4 +491,26 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     return current + factor * diff;
 }
 
+// ============================================================================
+// 区块/方块位置哈希
+// ============================================================================
+
+/**
+ * @brief 计算方块位置的确定性哈希值
+ *
+ * 参考 MC 1.16.5: 多处使用此哈希算法用于位置相关的随机数生成
+ * 例如: Structure.setSeedFromPos, IntegrityProcessor, RuleStructureProcessor
+ *
+ * @param x X坐标
+ * @param y Y坐标
+ * @param z Z坐标
+ * @return 64位哈希值
+ */
+[[nodiscard]] inline constexpr u64 hashBlockPos(i32 x, i32 y, i32 z) noexcept
+{
+    return static_cast<u64>(x) * 341873128712ULL ^
+           static_cast<u64>(y) * 132897987541ULL ^
+           static_cast<u64>(z) * 1024512789ULL;
+}
+
 } // namespace mc::math

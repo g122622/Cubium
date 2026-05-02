@@ -3,6 +3,7 @@
 #include "../../../../world/IWorldWriter.hpp"
 #include "../../../../world/block/BlockRegistry.hpp"
 #include "../../../../world/block/Block.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include <algorithm>
 #include <unordered_map>
 
@@ -119,13 +120,7 @@ std::optional<ProcessedBlockInfo> StructureProcessor::process(
     const PlacementSettings& /*settings*/)
 {
     // 默认实现：不修改，直接返回处理后的方块信息
-    ProcessedBlockInfo result;
-    result.pos = blockInfo.pos;
-    result.blockStateId = blockInfo.blockStateId;
-    if (blockInfo.nbt) {
-        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
-    return result;
+    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
 // ============================================================================
@@ -503,12 +498,8 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(
     // TODO: 需要访问世界高度图来获取地面高度
     // 当前实现：保持原位置，偏移offset
     // 完整实现需要IWorldReader访问高度图
-    ProcessedBlockInfo result;
+    ProcessedBlockInfo result = ProcessedBlockInfo::fromBlockInfo(blockInfo);
     result.pos = BlockPos(blockInfo.pos.x, blockInfo.pos.y + m_offset, blockInfo.pos.z);
-    result.blockStateId = blockInfo.blockStateId;
-    if (blockInfo.nbt) {
-        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
     return result;
 }
 
@@ -532,13 +523,7 @@ std::optional<ProcessedBlockInfo> BlockIgnoreStructureProcessor::process(
     }
 
     // 保留方块
-    ProcessedBlockInfo result;
-    result.pos = blockInfo.pos;
-    result.blockStateId = blockInfo.blockStateId;
-    if (blockInfo.nbt) {
-        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
-    return result;
+    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
 JigsawReplacementStructureProcessor::JigsawReplacementStructureProcessor()
@@ -721,9 +706,7 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(
 {
     // 根据完整度概率决定是否保留方块
     // 使用位置哈希作为随机源，确保同一位置的方块在相同种子下行为一致
-    u64 hash = static_cast<u64>(pos.x) * 341873128712ULL ^
-               static_cast<u64>(pos.y) * 132897987541ULL ^
-               static_cast<u64>(pos.z) * 1024512789ULL;
+    u64 hash = math::hashBlockPos(pos.x, pos.y, pos.z);
 
     // 将哈希映射到 [0.0, 1.0) 范围
     f32 chance = static_cast<f32>((hash & 0xFFFFFFFF) % 10000) / 10000.0f;
@@ -732,13 +715,7 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(
         return std::nullopt;  // 跳过此方块（模拟损坏）
     }
 
-    ProcessedBlockInfo result;
-    result.pos = blockInfo.pos;
-    result.blockStateId = blockInfo.blockStateId;
-    if (blockInfo.nbt) {
-        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
-    return result;
+    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
 // ============================================================================
@@ -760,9 +737,7 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
     // MC 1.16.5: RuleStructureProcessor.func_230386_a_
     // 遍历所有规则，找到第一个匹配的规则
     // 创建确定性随机数生成器（基于位置）
-    u64 hash = static_cast<u64>(blockInfo.pos.x) * 341873128712ULL ^
-               static_cast<u64>(blockInfo.pos.y) * 132897987541ULL ^
-               static_cast<u64>(blockInfo.pos.z) * 1024512789ULL;
+    u64 hash = math::hashBlockPos(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
     math::Random rng(static_cast<u64>(hash));
 
     // 获取输入方块状态
@@ -791,13 +766,7 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
     }
 
     // 没有规则匹配，保持原样
-    ProcessedBlockInfo result;
-    result.pos = blockInfo.pos;
-    result.blockStateId = blockInfo.blockStateId;
-    if (blockInfo.nbt) {
-        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
-    return result;
+    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
 void StructureProcessorList::addProcessor(std::unique_ptr<StructureProcessor> processor) {
@@ -813,22 +782,11 @@ std::optional<ProcessedBlockInfo> StructureProcessorList::process(
 {
     // 如果没有处理器，直接返回原始信息
     if (m_processors.empty()) {
-        ProcessedBlockInfo result;
-        result.pos = blockInfo.pos;
-        result.blockStateId = blockInfo.blockStateId;
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
     }
 
     // 按顺序处理
-    ProcessedBlockInfo current;
-    current.pos = blockInfo.pos;
-    current.blockStateId = blockInfo.blockStateId;
-    if (blockInfo.nbt) {
-        current.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
+    ProcessedBlockInfo current = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     for (const auto& processor : m_processors) {
         if (!processor) continue;

@@ -1,6 +1,7 @@
 #include "RuleTest.hpp"
 #include "../../../block/BlockRegistry.hpp"
 #include "../../../block/Block.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 
 namespace mc {
 namespace world {
@@ -115,7 +116,7 @@ bool LinearPosRuleTest::test(
     }
 
     f32 t = static_cast<f32>(worldPos.y - m_minHeight) / static_cast<f32>(m_maxHeight - m_minHeight);
-    t = std::clamp(t, 0.0f, 1.0f);
+    t = math::clamp(t, 0.0f, 1.0f);
     f32 probability = m_minProbability + t * (m_maxProbability - m_minProbability);
 
     return rng.nextFloat() < probability;
