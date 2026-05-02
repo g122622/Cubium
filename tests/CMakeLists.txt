@@ -549,6 +549,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/BlastFurnaceEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/SmokerEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceInventory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/BeaconEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/ConduitEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/HopperEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/IHopper.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/CraftingTableEntity.cpp

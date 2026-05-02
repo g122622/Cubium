@@ -1,6 +1,13 @@
 #include "DriedKelpBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../blockentity/BlockEntity.hpp"
+#include "../../../blockentity/core/BlockEntityRegistry.hpp"
+#include "../../../blockentity/processing/ConduitEntity.hpp"
 #include "../../VanillaBlocks.hpp"
+#include "../../../../util/property/Properties.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/Direction.hpp"
 
 namespace mc {
 namespace blocks {
@@ -19,10 +26,34 @@ DriedKelpBlock::DriedKelpBlock(BlockProperties properties)
 // ConduitBlock 实现
 // ============================================================================
 
+namespace {
+/// 潮涌核心的碰撞箱形状 (5x5x5 到 11x11x11)
+static const CollisionShape CONDUIT_SHAPE = CollisionShape::box(5.0f, 5.0f, 5.0f, 11.0f, 11.0f, 11.0f);
+}
+
 ConduitBlock::ConduitBlock(BlockProperties properties)
     : Block(std::move(properties))
 {
-    // 潮涌核心需要潮涌框架激活
+    // 创建状态容器
+    auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::WATERLOGGED())
+        .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+            return std::make_unique<BlockState>(block, std::move(values), id);
+        });
+    createBlockState(std::move(container));
+
+    // 设置默认状态
+    setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), true));
+}
+
+bool ConduitBlock::isWaterlogged(const BlockState& state) const {
+    return state.get(BlockStateProperties::WATERLOGGED());
+}
+
+BlockState ConduitBlock::getStateForPlacement(BlockItemUseContext& context) {
+    // 检查放置位置是否在水中
+    // MC 1.16.5: 默认含水
+    return defaultState().with(BlockStateProperties::WATERLOGGED(), true);
 }
 
 void ConduitBlock::onBlockAdded(
@@ -32,9 +63,16 @@ void ConduitBlock::onBlockAdded(
 {
     MC_UNUSED(state);
 
-    // 检测潮涌框架
-    i32 frameCount = detectFrame(world, pos);
-    updateActivation(world, pos, frameCount);
+    // 创建方块实体
+    auto& registry = blockentity::BlockEntityRegistry::instance();
+    auto blockEntity = registry.create(BlockEntityType::Conduit, pos);
+    if (blockEntity != nullptr) {
+        // 设置世界引用
+        blockEntity->setWorld(&world);
+        // 存储方块实体
+        // TODO: 实现世界方块实体存储
+        // world.setBlockEntity(pos, std::move(blockEntity));
+    }
 }
 
 void ConduitBlock::onBlockRemoved(
@@ -46,82 +84,36 @@ void ConduitBlock::onBlockRemoved(
     MC_UNUSED(pos);
     MC_UNUSED(state);
 
-    // TODO: 清除潮涌效果
-    // 需要方块实体系统来管理效果范围
+    // 移除方块实体
+    // TODO: 实现世界方块实体移除
+    // world.removeBlockEntity(pos);
 }
 
-i32 ConduitBlock::detectFrame(IWorld& world, const BlockPos& pos) const
+BlockState ConduitBlock::updatePostPlacement(
+    const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
 {
-    i32 frameCount = 0;
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
 
-    // 检测5x5x5范围内的海晶石框架
-    // 潮涌框架需要16个海晶石方块组成十字形结构
-    for (i32 dx = -2; dx <= 2; ++dx) {
-        for (i32 dy = -2; dy <= 2; ++dy) {
-            for (i32 dz = -2; dz <= 2; ++dz) {
-                // 跳过中心（潮涌核心位置）
-                if (dx == 0 && dy == 0 && dz == 0) {
-                    continue;
-                }
+    // 如果含水，调度流体tick
+    // MC 1.16.5: if (state.get(WATERLOGGED)) { world.getPendingFluidTicks().scheduleTick(...); }
 
-                // 只检查十字结构的位置
-                bool isCrossPosition = (dx == 0 && dy == 0) ||
-                                       (dx == 0 && dz == 0) ||
-                                       (dy == 0 && dz == 0);
+    // 触发方块实体更新
+    // TODO: 获取方块实体并触发重新检测
+    // auto* blockEntity = world.getBlockEntity(pos);
+    // if (blockEntity != nullptr) { ... }
 
-                if (!isCrossPosition) {
-                    continue;
-                }
-
-                BlockPos checkPos(pos.x + dx, pos.y + dy, pos.z + dz);
-                if (isFrameBlock(world, checkPos)) {
-                    ++frameCount;
-                }
-            }
-        }
-    }
-
-    return frameCount;
+    return state;
 }
 
-bool ConduitBlock::isFrameBlock(IWorld& world, const BlockPos& pos) const
-{
-    const BlockState* state = world.getBlockState(pos);
-    if (state == nullptr) {
-        return false;
-    }
-
-    // 检查是否为海晶石系列方块
-    // PRISMARINE, PRISMARINE_BRICKS, DARK_PRISMARINE, SEA_LANTERN
-    if (VanillaBlocks::PRISMARINE && state->blockId() == VanillaBlocks::PRISMARINE->blockId()) {
-        return true;
-    }
-    if (VanillaBlocks::PRISMARINE_BRICKS && state->blockId() == VanillaBlocks::PRISMARINE_BRICKS->blockId()) {
-        return true;
-    }
-    if (VanillaBlocks::DARK_PRISMARINE && state->blockId() == VanillaBlocks::DARK_PRISMARINE->blockId()) {
-        return true;
-    }
-    if (VanillaBlocks::SEA_LANTERN && state->blockId() == VanillaBlocks::SEA_LANTERN->blockId()) {
-        return true;
-    }
-
-    return false;
-}
-
-void ConduitBlock::updateActivation(IWorld& world, const BlockPos& pos, i32 frameCount) const
-{
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-
-    // 需要16个框架方块才能激活
-    if (frameCount >= 16) {
-        // TODO: 激活潮涌核心
-        // 需要方块实体系统来管理：
-        // 1. 效果范围（最小32格，每多4个框架增加16格）
-        // 2. 每秒给予玩家潮涌能量效果
-        // 3. 攻击敌对生物
-    }
+const CollisionShape& ConduitBlock::getShape(const BlockState& state) const {
+    MC_UNUSED(state);
+    return CONDUIT_SHAPE;
 }
 
 } // namespace blocks

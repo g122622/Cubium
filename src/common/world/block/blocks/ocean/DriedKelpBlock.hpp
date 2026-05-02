@@ -48,11 +48,17 @@ public:
  * 水下的信标类方块，需要潮涌框架激活。
  * 激活后提供潮涌能量效果（水下呼吸、挖掘加速）。
  *
+ * 状态属性：
+ * - WATERLOGGED: 是否含水
+ *
  * MC ID: minecraft:conduit
  *
  * 参考 MC 1.16.5 ConduitBlock
  *
- * 注意：完整实现需要方块实体系统
+ * 激活条件：
+ * - 中心周围3x3x3必须全部是水
+ * - 需要海晶石框架（16-42个方块）
+ * - 42个以上框架方块时可以攻击敌对生物
  */
 class ConduitBlock : public Block {
 public:
@@ -61,9 +67,29 @@ public:
      */
     explicit ConduitBlock(BlockProperties properties);
 
+    // ========== 状态属性 ==========
+
+    /**
+     * @brief 检查是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const;
+
+    /**
+     * @brief 创建方块实体
+     * 潮涌核心需要方块实体来管理效果
+     */
+    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+
+    // ========== 放置逻辑 ==========
+
+    /**
+     * @brief 获取放置状态
+     */
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
     /**
      * @brief 方块被添加时
-     * 检测周围是否有有效的潮涌框架
+     * 创建方块实体并检测周围框架
      */
     void onBlockAdded(
         IWorld& world,
@@ -72,12 +98,24 @@ public:
 
     /**
      * @brief 方块被移除时
-     * 清除潮涌效果
+     * 清除方块实体和效果
      */
     void onBlockRemoved(
         IWorld& world,
         const BlockPos& pos,
         const BlockState& state) override;
+
+    /**
+     * @brief 邻居更新
+     * 检测框架变化
+     */
+    [[nodiscard]] BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
     /**
      * @brief 是否透明
@@ -107,22 +145,10 @@ public:
         return 15;
     }
 
-private:
     /**
-     * @brief 检测潮涌框架
-     * @return 有效的框架数量
+     * @brief 获取形状
      */
-    i32 detectFrame(IWorld& world, const BlockPos& pos) const;
-
-    /**
-     * @brief 检查位置是否为海晶石或相关方块
-     */
-    bool isFrameBlock(IWorld& world, const BlockPos& pos) const;
-
-    /**
-     * @brief 更新激活状态
-     */
-    void updateActivation(IWorld& world, const BlockPos& pos, i32 frameCount) const;
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 };
 
 } // namespace blocks

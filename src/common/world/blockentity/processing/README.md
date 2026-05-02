@@ -1,6 +1,6 @@
 # 加工类方块实体模块
 
-提供熔炉、高炉、烟熏炉等加工类方块实体的实现。
+提供熔炉、高炉、烟熏炉、信标、潮涌核心等加工类方块实体的实现。
 
 ## 目录结构
 
@@ -11,6 +11,9 @@ processing/
 ├── BlastFurnaceEntity.hpp/cpp     # 高炉
 ├── SmokerEntity.hpp/cpp           # 烟熏炉
 ├── FurnaceInventory.hpp/cpp       # 熔炉背包
+├── BrewingStandEntity.hpp/cpp     # 酿造台
+├── BeaconEntity.hpp/cpp           # 信标
+├── ConduitEntity.hpp/cpp          # 潮涌核心
 └── README.md
 ```
 
@@ -116,6 +119,44 @@ static constexpr i32 SLOT_OUTPUT = 2;  // 输出槽
 - `getOutputItem()` / `setOutputItem()` - 输出槽操作
 - `consumeInput()` / `consumeFuel()` - 消耗物品
 - `addToOutput()` - 向输出槽添加物品
+
+### BeaconEntity.hpp/cpp
+
+**职责**：信标方块实体，提供金字塔效果。
+
+**特性**：
+- 金字塔等级检测（1-4层）
+- 主效果：速度、急迫、抗性提升、跳跃提升、力量
+- 辅助效果：生命恢复（4层金字塔）
+- 效果范围：等级 × 10 + 10 格
+- 支付物品：铁锭、金锭、钻石、绿宝石、下界合金锭
+- 光束渲染：支持染色玻璃颜色叠加
+
+**MC 1.16.5 对齐**：
+- 每 80 tick 检测金字塔结构
+- 每 80 tick 应用效果
+- 光束颜色混合算法
+
+### ConduitEntity.hpp/cpp
+
+**职责**：潮涌核心方块实体，水下信标。
+
+**特性**：
+- 水包围检测：中心周围 3x3x3 必须全部是水
+- 框架检测：海晶石、海晶石砖、暗海晶石、海晶灯
+- 激活条件：至少 16 个框架方块
+- 效果范围：(框架数 / 7) × 16 格
+- 攻击能力：42+ 框架方块时可攻击敌对生物
+
+**效果机制**：
+- 潮涌能量：持续 260 tick
+- 每 40 tick 检测结构和应用效果
+- 仅对在水中（isWet）的玩家生效
+
+**MC 1.16.5 对齐**：
+- 框架检测位置计算
+- 敌对生物攻击逻辑
+- 目标追踪和持久化
 
 ## 模块关系
 

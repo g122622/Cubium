@@ -9,6 +9,8 @@
 #include "world/blockentity/processing/FurnaceEntity.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "world/blockentity/processing/SmokerEntity.hpp"
+#include "world/blockentity/processing/BeaconEntity.hpp"
+#include "world/blockentity/processing/ConduitEntity.hpp"
 #include "world/blockentity/redstone/ComparatorEntity.hpp"
 #include "world/blockentity/redstone/DaylightDetectorEntity.hpp"
 #include "util/assert/AssertAll.hpp"
@@ -90,6 +92,16 @@ void BlockEntityRegistry::registerBuiltinTypes() {
     // 注册日光探测器方块实体
     registerType(BlockEntityType::DaylightDetector, [](const BlockPos& pos) {
         return std::make_unique<DaylightDetectorEntity>(pos);
+    });
+
+    // 注册信标方块实体
+    registerType(BlockEntityType::Beacon, [](const BlockPos& pos) {
+        return std::make_unique<BeaconEntity>(pos);
+    });
+
+    // 注册潮涌核心方块实体
+    registerType(BlockEntityType::Conduit, [](const BlockPos& pos) {
+        return std::make_unique<ConduitEntity>(pos);
     });
 }
 
