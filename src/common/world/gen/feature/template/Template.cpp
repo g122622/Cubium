@@ -271,17 +271,33 @@ structure::StructureBoundingBox Template::getBoundingBox(
     const PlacementSettings& settings,
     const BlockPos& pos) const
 {
-    if (m_blocks.empty() || (m_size.x == 0 && m_size.y == 0 && m_size.z == 0)) {
+    // 即使没有方块，也使用模板尺寸
+    if (m_size.x == 0 && m_size.y == 0 && m_size.z == 0) {
         return structure::StructureBoundingBox(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
     }
 
-    BlockPos transformedSize = transformBlockPos(m_size, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+    // 计算变换后的尺寸
+    // 对于尺寸，旋转90/270度会交换X和Z
+    i32 sizeX = m_size.x;
+    i32 sizeZ = m_size.z;
+
+    switch (settings.getRotation()) {
+        case Rotation::Clockwise90:
+        case Rotation::CounterClockwise90:
+            // 90度或270度旋转交换X和Z尺寸
+            std::swap(sizeX, sizeZ);
+            break;
+        default:
+            break;
+    }
+
+    // 注意：镜像不影响尺寸，只影响位置
 
     return structure::StructureBoundingBox(
         pos.x, pos.y, pos.z,
-        pos.x + transformedSize.x - 1,
-        pos.y + transformedSize.y - 1,
-        pos.z + transformedSize.z - 1
+        pos.x + sizeX - 1,
+        pos.y + m_size.y - 1,  // Y尺寸不变
+        pos.z + sizeZ - 1
     );
 }
 
@@ -711,7 +727,10 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(
     // 将哈希映射到 [0.0, 1.0) 范围
     f32 chance = static_cast<f32>((hash & 0xFFFFFFFF) % 10000) / 10000.0f;
 
-    if (chance > m_integrity) {
+    // MC 1.16.5: 如果随机值 >= 完整度，则跳过方块
+    // 完整度 1.0 = 保留所有方块
+    // 完整度 0.0 = 移除所有方块
+    if (chance >= m_integrity) {
         return std::nullopt;  // 跳过此方块（模拟损坏）
     }
 

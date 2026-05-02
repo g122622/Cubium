@@ -1868,51 +1868,51 @@ void VanillaBlocks::registerSignBlocks() {
 
     // 注册各木材类型的告示牌
     // 橡木
-    OAK_SIGN = &registry.registerBlock<StandingSignBlock>(
+    OAK_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:oak_sign"), signProps, blocks::WoodType::Oak);
-    OAK_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    OAK_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:oak_wall_sign"), signProps, blocks::WoodType::Oak);
 
     // 云杉木
-    SPRUCE_SIGN = &registry.registerBlock<StandingSignBlock>(
+    SPRUCE_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:spruce_sign"), signProps, blocks::WoodType::Spruce);
-    SPRUCE_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    SPRUCE_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:spruce_wall_sign"), signProps, blocks::WoodType::Spruce);
 
     // 白桦木
-    BIRCH_SIGN = &registry.registerBlock<StandingSignBlock>(
+    BIRCH_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:birch_sign"), signProps, blocks::WoodType::Birch);
-    BIRCH_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    BIRCH_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:birch_wall_sign"), signProps, blocks::WoodType::Birch);
 
     // 丛林木
-    JUNGLE_SIGN = &registry.registerBlock<StandingSignBlock>(
+    JUNGLE_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:jungle_sign"), signProps, blocks::WoodType::Jungle);
-    JUNGLE_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    JUNGLE_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:jungle_wall_sign"), signProps, blocks::WoodType::Jungle);
 
     // 金合欢木
-    ACACIA_SIGN = &registry.registerBlock<StandingSignBlock>(
+    ACACIA_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:acacia_sign"), signProps, blocks::WoodType::Acacia);
-    ACACIA_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    ACACIA_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:acacia_wall_sign"), signProps, blocks::WoodType::Acacia);
 
     // 深色橡木
-    DARK_OAK_SIGN = &registry.registerBlock<StandingSignBlock>(
+    DARK_OAK_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:dark_oak_sign"), signProps, blocks::WoodType::DarkOak);
-    DARK_OAK_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    DARK_OAK_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:dark_oak_wall_sign"), signProps, blocks::WoodType::DarkOak);
 
     // 绯红菌（下界木材）
-    CRIMSON_SIGN = &registry.registerBlock<StandingSignBlock>(
+    CRIMSON_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:crimson_sign"), signProps, blocks::WoodType::Crimson);
-    CRIMSON_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    CRIMSON_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:crimson_wall_sign"), signProps, blocks::WoodType::Crimson);
 
     // 诡异菌（下界木材）
-    WARPED_SIGN = &registry.registerBlock<StandingSignBlock>(
+    WARPED_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
         ResourceLocation("minecraft:warped_sign"), signProps, blocks::WoodType::Warped);
-    WARPED_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+    WARPED_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:warped_wall_sign"), signProps, blocks::WoodType::Warped);
 }
 

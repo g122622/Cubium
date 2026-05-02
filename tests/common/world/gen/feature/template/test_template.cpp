@@ -19,21 +19,15 @@ using namespace mc::world::gen::feature::template_;
 class TemplateTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // 确保方块注册表已初始化
-        auto& registry = BlockRegistry::instance();
-        if (!registry.isInitialized()) {
-            registry.initialize();
-        }
+        // 确保原版方块已注册
+        VanillaBlocks::initialize();
     }
 };
 
 class RuleTestTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        auto& registry = BlockRegistry::instance();
-        if (!registry.isInitialized()) {
-            registry.initialize();
-        }
+        VanillaBlocks::initialize();
     }
 };
 
