@@ -6,6 +6,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../structure/StructureBoundingBox.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "RuleTest.hpp"
 #include <vector>
 #include <memory>
 #include <optional>
@@ -355,6 +356,37 @@ public:
 
 private:
     f32 m_integrity;
+};
+
+/**
+ * @brief 规则结构处理器
+ *
+ * 参考 MC 1.16.5 RuleStructureProcessor
+ * 根据一组规则来替换方块，每条规则包含：
+ * - inputPredicate: 测试输入方块（模板中的方块）
+ * - locationPredicate: 测试位置方块（世界中已有的方块）
+ * - posPredicate: 测试位置条件
+ * - outputState: 匹配时的输出方块状态
+ */
+class RuleStructureProcessor : public StructureProcessor {
+public:
+    /**
+     * @brief 构造规则处理器
+     * @param rules 规则列表
+     */
+    explicit RuleStructureProcessor(std::vector<std::unique_ptr<RuleEntry>> rules);
+
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
+        const BlockPos& seedPos,
+        const BlockPos& pos,
+        const BlockInfo& rawBlockInfo,
+        const BlockInfo& blockInfo,
+        const PlacementSettings& settings) override;
+
+    [[nodiscard]] const std::vector<std::unique_ptr<RuleEntry>>& rules() const { return m_rules; }
+
+private:
+    std::vector<std::unique_ptr<RuleEntry>> m_rules;
 };
 
 /**

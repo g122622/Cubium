@@ -11,7 +11,9 @@ template/
 ├── TemplateLoader.hpp     # NBT模板加载器
 ├── TemplateLoader.cpp     # 模板加载实现
 ├── TemplateManager.hpp    # 模板管理器（缓存）
-└── TemplateManager.cpp    # 模板管理实现
+├── TemplateManager.cpp    # 模板管理实现
+├── RuleTest.hpp           # 规则测试类（用于RuleStructureProcessor）
+└── RuleTest.cpp           # 规则测试实现
 ```
 
 ## 核心类详解
@@ -94,6 +96,7 @@ public:
 | `BlockIgnoreStructureProcessor` | 忽略指定方块 |
 | `JigsawReplacementStructureProcessor` | 替换Jigsaw方块为final_state指定的方块 |
 | `IntegrityProcessor` | 根据完整度随机移除方块 |
+| `RuleStructureProcessor` | 根据规则替换方块 |
 
 ### Template - 结构模板
 
@@ -202,6 +205,27 @@ public:
 };
 ```
 
+### 使用 RuleStructureProcessor
+
+```cpp
+// 创建规则：将石头替换为圆石
+auto inputTest = std::make_unique<BlockMatchRuleTest>(stoneBlockId);
+auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
+auto posTest = std::make_unique<AlwaysTruePosRuleTest>();
+
+auto rule = std::make_unique<RuleEntry>(
+    std::move(inputTest),
+    std::move(locationTest),
+    std::move(posTest),
+    cobblestoneStateId
+);
+
+std::vector<std::unique_ptr<RuleEntry>> rules;
+rules.push_back(std::move(rule));
+
+RuleStructureProcessor processor(std::move(rules));
+```
+
 ## 文件格式
 
 模板文件存储为NBT格式，位于资源包的`structures/`目录下：
@@ -293,6 +317,27 @@ flowchart LR
 }
 ```
 
+## RuleStructureProcessor
+
+基于规则的方块替换处理器，支持复杂的条件匹配：
+
+### 规则测试类型
+
+| 测试类型 | 说明 |
+|---------|------|
+| `AlwaysTrueRuleTest` | 总是返回true |
+| `BlockMatchRuleTest` | 匹配特定方块ID |
+| `BlockStateMatchRuleTest` | 匹配特定方块状态ID |
+| `RandomBlockMatchRuleTest` | 随机匹配方块ID |
+| `RandomBlockStateMatchRuleTest` | 随机匹配状态ID |
+
+### 位置测试类型
+
+| 测试类型 | 说明 |
+|---------|------|
+| `AlwaysTruePosRuleTest` | 总是返回true |
+| `LinearPosRuleTest` | 根据Y坐标线性插值概率 |
+
 ## 容易踩的坑
 
 ### 1. 方块状态ID
@@ -355,5 +400,7 @@ settings.setBlockUpdateFlags(18);
 - PlacementSettings: `net.minecraft.world.gen.feature.template.PlacementSettings`
 - StructureProcessor: `net.minecraft.world.gen.feature.template.StructureProcessor`
 - JigsawReplacementStructureProcessor: `net.minecraft.world.gen.feature.template.JigsawReplacementStructureProcessor`
+- RuleStructureProcessor: `net.minecraft.world.gen.feature.template.RuleStructureProcessor`
+- RuleTest: `net.minecraft.world.gen.feature.template.RuleTest`
 
 *最后更新: 2026-05-03*

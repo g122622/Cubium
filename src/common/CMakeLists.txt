@@ -709,6 +709,7 @@ add_library(mc_common STATIC
     world/gen/feature/template/Template.cpp
     world/gen/feature/template/TemplateManager.cpp
     world/gen/feature/template/TemplateLoader.cpp
+    world/gen/feature/template/RuleTest.cpp
 
     # World - Generation - Placement
     world/gen/placement/Placement.cpp

@@ -1,4 +1,5 @@
 #include "Template.hpp"
+#include "RuleTest.hpp"
 #include "../../../../world/IWorldWriter.hpp"
 #include "../../../../world/block/BlockRegistry.hpp"
 #include "../../../../world/block/Block.hpp"
@@ -731,6 +732,65 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(
         return std::nullopt;  // 跳过此方块（模拟损坏）
     }
 
+    ProcessedBlockInfo result;
+    result.pos = blockInfo.pos;
+    result.blockStateId = blockInfo.blockStateId;
+    if (blockInfo.nbt) {
+        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+    }
+    return result;
+}
+
+// ============================================================================
+// RuleStructureProcessor
+// ============================================================================
+
+RuleStructureProcessor::RuleStructureProcessor(std::vector<std::unique_ptr<RuleEntry>> rules)
+    : m_rules(std::move(rules))
+{
+}
+
+std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
+    const BlockPos& seedPos,
+    const BlockPos& /*pos*/,
+    const BlockInfo& rawBlockInfo,
+    const BlockInfo& blockInfo,
+    const PlacementSettings& /*settings*/)
+{
+    // MC 1.16.5: RuleStructureProcessor.func_230386_a_
+    // 遍历所有规则，找到第一个匹配的规则
+    // 创建确定性随机数生成器（基于位置）
+    u64 hash = static_cast<u64>(blockInfo.pos.x) * 341873128712ULL ^
+               static_cast<u64>(blockInfo.pos.y) * 132897987541ULL ^
+               static_cast<u64>(blockInfo.pos.z) * 1024512789ULL;
+    math::Random rng(static_cast<u64>(hash));
+
+    // 获取输入方块状态
+    const BlockState* inputState = BlockRegistry::instance().getBlockState(rawBlockInfo.blockStateId);
+
+    // 获取世界位置方块状态（需要通过 IWorldReader 访问，当前简化处理）
+    // TODO: 需要访问世界来获取位置方块状态
+    const BlockState* locationState = nullptr;
+
+    for (const auto& rule : m_rules) {
+        if (rule && rule->matches(
+            inputState,
+            locationState,
+            rawBlockInfo.pos,
+            blockInfo.pos,
+            seedPos,
+            rng))
+        {
+            // 找到匹配的规则，返回输出方块状态
+            ProcessedBlockInfo result;
+            result.pos = blockInfo.pos;
+            result.blockStateId = rule->outputStateId();
+            // 不复制 NBT（规则输出不保留原 NBT）
+            return result;
+        }
+    }
+
+    // 没有规则匹配，保持原样
     ProcessedBlockInfo result;
     result.pos = blockInfo.pos;
     result.blockStateId = blockInfo.blockStateId;
