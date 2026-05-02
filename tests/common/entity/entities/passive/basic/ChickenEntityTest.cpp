@@ -56,6 +56,7 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] bool isClientSide() override { return false; }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
         if (auto* itemEntity = dynamic_cast<ItemEntity*>(entity.get())) {

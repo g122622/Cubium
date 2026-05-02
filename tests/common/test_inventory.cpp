@@ -59,6 +59,7 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }

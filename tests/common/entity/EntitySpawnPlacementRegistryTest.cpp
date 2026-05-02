@@ -143,6 +143,8 @@ public:
         return Difficulty::Easy;
     }
 
+    [[nodiscard]] bool isClientSide() override { return false; }
+
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override {
         throw std::runtime_error("SpawnPlacementTestWorld::tickManager not implemented");

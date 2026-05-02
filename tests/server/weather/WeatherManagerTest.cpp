@@ -56,6 +56,7 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] bool isClientSide() override { return false; }
 
     void setHeight(ChunkCoord chunkX, ChunkCoord chunkZ, i32 height)
     {

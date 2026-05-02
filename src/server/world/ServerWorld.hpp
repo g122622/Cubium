@@ -186,6 +186,7 @@ public:
     [[nodiscard]] u64 seed() const override { return m_config.seed; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] bool isClientSide() override { return false; }
 
     // ========== 随机数生成器 ==========
 
