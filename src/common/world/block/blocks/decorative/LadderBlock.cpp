@@ -1,6 +1,7 @@
 #include "LadderBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../tick/manager/TickManager.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/FluidTags.hpp"
