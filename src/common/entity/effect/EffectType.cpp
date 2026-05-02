@@ -99,9 +99,9 @@ u32 getEffectColor(EffectType type) {
         case EffectType::Levitation: return 0xCEFFFF;
         case EffectType::Luck: return 0x339900;
         case EffectType::BadLuck: return 0xC0A44D;
-        case EffectType::SlowFalling: return 0xFEFFF0;
+        case EffectType::SlowFalling: return 0xFFFBF1;  // MC 1.16.5: 16773073
         case EffectType::ConduitPower: return 0x1DC2D1;
-        case EffectType::DolphinsGrace: return 0x7294C4;
+        case EffectType::DolphinsGrace: return 0x8894C6;  // MC 1.16.5: 8954814
         case EffectType::BadOmen: return 0x0B0B0B;
         case EffectType::HeroOfTheVillage: return 0x44FF44;
         default: return 0xFFFFFF;

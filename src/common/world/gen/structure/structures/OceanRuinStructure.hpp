@@ -44,7 +44,7 @@ private:
 
     [[nodiscard]] bool isWarmBiome(BiomeId biomeId) const;
 
-    static constexpr StructureSeparationSettings m_settings{20, 8, 14357623};
+    static constexpr StructureSeparationSettings m_settings{20, 8, 14357621};  // MC 1.16.5: 14357621
     static const String m_name;
     std::vector<BiomeId> m_validBiomes;
 };

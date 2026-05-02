@@ -24,6 +24,18 @@ public:
 
     ~UnderwaterCaveCarver() override = default;
 
+    /**
+     * @brief 在区块中雕刻水下洞穴
+     * 重写以实现MC原版的填充逻辑
+     */
+    bool carve(ChunkPrimer& chunk,
+               const BiomeProvider& biomeProvider,
+               i32 seaLevel,
+               ChunkCoord chunkX,
+               ChunkCoord chunkZ,
+               CarvingMask& carvingMask,
+               const ProbabilityConfig& config) override;
+
 protected:
     /**
      * @brief 检查椭球位置是否有效
@@ -36,6 +48,30 @@ protected:
      * 水下洞穴包含更多可雕刻方块
      */
     [[nodiscard]] static bool isUnderwaterCarvable(const BlockState& state);
+
+    /**
+     * @brief 雕刻单个椭球区域（水下版本）
+     * 实现MC原版的Y==10特殊逻辑
+     */
+    bool carveEllipsoidUnderwater(
+        ChunkPrimer& chunk,
+        const BiomeProvider& biomeProvider,
+        i32 seaLevel,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        f32 centerX, f32 centerY, f32 centerZ,
+        f32 horizontalRadius, f32 verticalRadius,
+        CarvingMask& carvingMask,
+        i64 seed);
+
+    /**
+     * @brief 检查椭球是否在雕刻范围内（水下版本，不检查流体）
+     */
+    [[nodiscard]] static bool isInCarvingRangeUnderwater(
+        ChunkCoord chunkX, ChunkCoord chunkZ,
+        f32 x, f32 z,
+        i32 step, i32 maxSteps,
+        f32 radius);
 };
 
 /**

@@ -47,12 +47,16 @@ public:
         return EnchantmentRarity::Rare;
     }
 
+    // MC 1.16.5: getMinEnchantability = 10 + enchantmentLevel * 7
+    // 等级1: 17, 等级2: 24, 等级3: 31
     [[nodiscard]] i32 getMinCost(i32 level) const override {
-        return 17 + (level - 1) * 7;
+        return 10 + level * 7;
     }
 
+    // MC 1.16.5: getMaxEnchantability = 50 (固定值)
     [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        return getMinCost(level) + 50;
+        (void)level;
+        return 50;
     }
 
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override {

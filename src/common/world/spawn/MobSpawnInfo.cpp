@@ -103,9 +103,116 @@ MobSpawnInfo MobSpawnInfo::createOcean() {
 
     // 水生生物
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 4, 7));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 5, 3, 5));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 4, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 5, 1, 5));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createWarmOcean() {
+    // 参考 MC 1.16.5 WarmOceanBiome
+    // 暖水海洋：热带鱼和河豚为主，没有鳕鱼和鲑鱼
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+
+    // 怪物 - 海洋有溺尸
+    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
+
+    // 水生生物 - 暖水海洋特有配置
+    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:pufferfish", 5, 1, 3));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createLukewarmOcean() {
+    // 参考 MC 1.16.5 LukewarmOceanBiome
+    // 温水海洋：混合鱼群
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+
+    // 怪物
+    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
+
+    // 水生生物 - 温水海洋混合配置
+    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 5, 1, 5));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:tropical_fish", 10, 8, 8));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:pufferfish", 5, 1, 3));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createColdOcean() {
+    // 参考 MC 1.16.5 ColdOceanBiome
+    // 冷水海洋：更多鲑鱼
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+
+    // 怪物
+    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
+
+    // 水生生物 - 冷水海洋配置
+    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5));  // 更高权重
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createFrozenOcean() {
+    // 参考 MC 1.16.5 FrozenOceanBiome
+    // 冰冻海洋：鲑鱼为主，有北极熊和流浪者
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+
+    // 怪物 - 冰冻海洋有流浪者
+    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:stray", 80, 4, 4));  // 冰面上的流浪者
+
+    // 水生生物
+    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+
+    // 动物 - 冰面上的北极熊
+    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
+    info.addCreatureSpawn(SpawnEntry("minecraft:polar_bear", 1, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createDeepOcean() {
+    // 参考 MC 1.16.5 DeepOceanBiome
+    // 深海：更多鱿鱼
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+
+    // 怪物
+    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
+
+    // 水生生物 - 深海更多鱿鱼
+    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 5, 1, 5));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 8));  // 深海鱿鱼更多
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
 
     return info;

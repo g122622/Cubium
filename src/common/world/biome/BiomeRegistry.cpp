@@ -312,7 +312,7 @@ Biome createDeepOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDeepOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDeepOcean());
     return biome;
 }
 
@@ -764,7 +764,7 @@ Biome createFrozenOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createFrozenOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createFrozenOcean());
     // 冻洋水体颜色为深紫色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
@@ -839,7 +839,7 @@ Biome createDeepFrozenOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDeepFrozenOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createFrozenOcean());
     // 与冻洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::FROZEN_OCEAN_WATER_COLOR)
@@ -865,7 +865,7 @@ Biome createWarmOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings::createWarmOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarmOcean());
     // 暖水海洋水体颜色为青绿色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR)
@@ -887,7 +887,7 @@ Biome createLukewarmOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createLukewarmOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLukewarmOcean());
     // 温水海洋水体颜色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR)
@@ -909,7 +909,7 @@ Biome createColdOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createColdOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createColdOcean());
     // 冷水海洋水体颜色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::COLD_OCEAN_WATER_COLOR)
@@ -931,7 +931,7 @@ Biome createDeepWarmOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings::createDeepWarmOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarmOcean());
     // 与暖水海洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR)
@@ -953,7 +953,7 @@ Biome createDeepLukewarmOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDeepLukewarmOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLukewarmOcean());
     // 与温水海洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR)
@@ -975,7 +975,7 @@ Biome createDeepColdOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDeepColdOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createColdOcean());
     // 与冷水海洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
         .waterColor(BiomeEffects::COLD_OCEAN_WATER_COLOR)

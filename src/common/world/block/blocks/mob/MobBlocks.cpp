@@ -1,5 +1,6 @@
 #include "MobBlocks.hpp"
 #include "../../../IWorld.hpp"
+#include "../../BlockRegistry.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
@@ -95,11 +96,13 @@ TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
         .with(BlockStateProperties::EGGS_1_4(), 1)
         .with(BlockStateProperties::HATCH_0_2(), 0));
 
-    // 创建各蛋数量的形状
-    m_shapesByEggCount[0] = CollisionShape::box(0.375f, 0.0f, 0.375f, 0.625f, 0.5f, 0.625f);
-    m_shapesByEggCount[1] = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.5f, 0.75f);
-    m_shapesByEggCount[2] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.5f, 0.8125f);
-    m_shapesByEggCount[3] = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.5f, 0.875f);
+    // 创建各蛋数量的形状 (MC 1.16.5: box(3, 0, 3, 12, 7, 12) for 1 egg, box(1, 0, 1, 15, 7, 15) for 4)
+    // 1个蛋: 3/16=0.1875, 12/16=0.75, 7/16=0.4375
+    // MC实际形状: 1 egg: (3, 0, 3, 12, 7, 12), 2 eggs: (1, 0, 3, 15, 7, 12), etc
+    m_shapesByEggCount[0] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.75f, 0.4375f, 0.75f);   // 1 egg
+    m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.1875f, 0.9375f, 0.4375f, 0.75f); // 2 eggs
+    m_shapesByEggCount[2] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 3 eggs
+    m_shapesByEggCount[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 4 eggs
 }
 
 i32 TurtleEggBlock::getEggs(const BlockState& state) const {
@@ -119,9 +122,20 @@ BlockState TurtleEggBlock::withHatch(i32 hatch) const {
 }
 
 BlockState TurtleEggBlock::getStateForPlacement(BlockItemUseContext& context) {
-    // 随机放置1-4个蛋
-    i32 eggs = 1;  // TODO: 随机数
-    return defaultState().with(BlockStateProperties::EGGS_1_4(), eggs);
+    const IWorld& world = context.getWorld();
+    BlockPos pos = context.placementPos();
+
+    // MC 1.16.5: 如果放置在已有的海龟蛋上，增加蛋数量
+    const BlockState* existingState = world.getBlockState(pos);
+    if (existingState != nullptr && existingState->is(this)) {
+        i32 currentEggs = existingState->get(BlockStateProperties::EGGS_1_4());
+        if (currentEggs < 4) {
+            return existingState->with(BlockStateProperties::EGGS_1_4(), currentEggs + 1);
+        }
+        return *existingState;
+    }
+
+    return defaultState();
 }
 
 bool TurtleEggBlock::isValidPosition(
@@ -131,7 +145,7 @@ bool TurtleEggBlock::isValidPosition(
 
     MC_UNUSED(state);
 
-    // 海龟蛋需要放在沙子上
+    // MC 1.16.5: 海龟蛋只能放在沙子类方块上
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
@@ -139,35 +153,143 @@ bool TurtleEggBlock::isValidPosition(
         return false;
     }
 
-    // TODO: 检查是否为沙子
-    return belowState->isSolid();
+    // 检查是否为沙子类方块 (沙子、红沙、灵魂沙)
+    return BlockTags::SAND().contains(*belowState);
+}
+
+bool TurtleEggBlock::canGrow(IWorld& world, math::IRandom& random) const {
+    // MC 1.16.5: 在日光下有更高的孵化概率
+    // 白天 (skyLight >= 0.65) 或 1/500 随机概率
+    // TODO: 实现天空光照检查
+    // 暂时使用简化的随机概率
+    return random.nextFloat() < 0.002f || random.nextInt(500) == 0;
 }
 
 void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    // 孵化逻辑
+    // MC 1.16.5: 孵化逻辑
+    // 检查是否在沙子上
+    IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+    if (!hasProperHabitat(blockReader, pos)) {
+        return;
+    }
+
+    // 检查孵化条件
+    if (!canGrow(world, random)) {
+        return;
+    }
+
     i32 hatch = getHatch(state);
-    if (hatch < 2 && random.nextInt(100) < 10) {
+    if (hatch < 2) {
         // 孵化进度增加
-        world.setBlockState(pos, &withHatch(hatch + 1), 2);
-    } else if (hatch >= 2) {
+        // TODO: 播放 ENTITY_TURTLE_EGG_CRACK 声音
+        const BlockState& newState = state.with(BlockStateProperties::HATCH_0_2(), hatch + 1);
+        world.setBlockState(pos, &newState, 2);
+    } else {
         // 孵化完成，生成海龟
-        // TODO: 生成海龟
+        // TODO: 播放 ENTITY_TURTLE_EGG_HATCH 声音
         i32 eggs = getEggs(state);
-        if (eggs > 1) {
-            world.setBlockState(pos, &withEggs(eggs - 1).with(BlockStateProperties::HATCH_0_2(), 0), 2);
-        } else {
-            world.setBlockState(pos, nullptr, 2);
+
+        // 移除方块
+        const BlockState* airState = BlockRegistry::instance().airState();
+        if (airState != nullptr) {
+            world.setBlockState(pos, airState, 2);
+        }
+
+        // TODO: 为每个蛋生成一只小海龟
+        // for (i32 i = 0; i < eggs; ++i) {
+        //     spawnBabyTurtle(world, pos);
+        // }
+        MC_UNUSED(eggs);
+    }
+}
+
+void TurtleEggBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const {
+    // MC 1.16.5: 实体走过时尝试踩破蛋
+    tryTrample(world, pos, state, entity, 100);
+}
+
+void TurtleEggBlock::onFallenUpon(
+    IWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    Entity& entity,
+    f32 fallDistance) {
+
+    // MC 1.16.5: 实体摔落时尝试踩破蛋
+    // 僵尸类生物不会踩破蛋（它们会直接走过去）
+    MC_UNUSED(fallDistance);
+
+    // 检查是否为僵尸类（僵尸、尸壳、溺尸等）
+    // 僵尸类不会踩破蛋
+    if (isZombieType(entity)) {
+        return;
+    }
+
+    tryTrample(world, pos, state, entity, 3);
+}
+
+bool TurtleEggBlock::hasProperHabitat(IBlockReader& world, const BlockPos& pos) const {
+    // MC 1.16.5: 检查下方是否为沙子
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    return belowState != nullptr && BlockTags::SAND().contains(*belowState);
+}
+
+bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const {
+    // MC 1.16.5: 只有玩家或满足 mobGriefing 的生物才能踩破蛋
+    // 海龟和蝙蝠不能踩破蛋
+
+    // 检查是否为海龟
+    // TODO: 实现实体类型检查
+    // if (entity.getType() == EntityTypes::TURTLE) return false;
+    // if (entity.getType() == EntityTypes::BAT) return false;
+
+    // TODO: 检查 mobGriefing 游戏规则
+    // 暂时只允许玩家踩破
+    return true;
+}
+
+void TurtleEggBlock::tryTrample(IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, i32 chance) const {
+    // MC 1.16.5: 尝试踩破蛋
+    if (!canTrample(world, entity)) {
+        return;
+    }
+
+    // 随机检查
+    if (world.getRandom().nextInt(chance) != 0) {
+        return;
+    }
+
+    // 踩破一个蛋
+    removeOneEgg(world, pos, state);
+}
+
+void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const BlockState& state) const {
+    // MC 1.16.5: 移除一个蛋
+    // TODO: 播放 ENTITY_TURTLE_EGG_BREAK 声音
+
+    i32 eggs = getEggs(state);
+    if (eggs > 1) {
+        // 减少蛋数量，重置孵化进度
+        const BlockState& newState = state
+            .with(BlockStateProperties::EGGS_1_4(), eggs - 1)
+            .with(BlockStateProperties::HATCH_0_2(), 0);
+        world.setBlockState(pos, &newState, 2);
+    } else {
+        // 移除方块
+        const BlockState* airState = BlockRegistry::instance().airState();
+        if (airState != nullptr) {
+            world.setBlockState(pos, airState, 2);
         }
     }
 }
 
-void TurtleEggBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
-    // 踩破蛋的逻辑
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+bool TurtleEggBlock::isZombieType(Entity& entity) const {
+    // MC 1.16.5: 检查实体是否为僵尸类
+    // 包括: 僵尸、尸壳、溺尸、僵尸村民、僵尸马
+    // TODO: 实现实体类型检查
     MC_UNUSED(entity);
-    // TODO: 如果实体重量足够，踩破蛋
+    return false;
 }
 
 const CollisionShape& TurtleEggBlock::getShape(const BlockState& state) const {

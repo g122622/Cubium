@@ -510,6 +510,13 @@ void LivingEntity::tickDeath() {
 // ============================================================================
 
 void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier) {
+    // MC 1.16.5: 缓降效果免疫摔落伤害
+    // 参考 LivingEntity.java: func_225503_b_ (fall 方法)
+    if (hasEffect(entity::effect::EffectType::SlowFalling)) {
+        // 缓降效果下不受到摔落伤害
+        return;
+    }
+
     // MC 1.16.5: 跳跃增强药水减少摔落距离
     // 每级跳跃增强减少 1 格有效摔落距离
     const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
@@ -711,8 +718,20 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
 
         // 不应用正常重力（梯子上重力已被处理）
     } else if (!hasNoGravity()) {
-        // 正常重力
-        m_velocity.y -= GRAVITY;
+        // MC 1.16.5: 缓降效果处理
+        // 参考 LivingEntity.java 行 2040-2045
+        f32 gravity = GRAVITY;
+
+        if (hasEffect(entity::effect::EffectType::SlowFalling)) {
+            // 缓降效果下重力大幅降低
+            // MC 使用属性修饰器，值从 0.08 降到 0.01
+            gravity = physics::SLOW_FALLING_GRAVITY;
+            // 同时重置摔落距离
+            m_fallDistance = 0.0f;
+        }
+
+        // 应用重力
+        m_velocity.y -= gravity;
     }
 
     // 3. 执行碰撞移动
@@ -728,6 +747,41 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward) {
         f32 groundFriction = slipperiness * 0.91f;
         m_velocity.x *= groundFriction;
         m_velocity.z *= groundFriction;
+    } else if (isInWater()) {
+        // 水中阻力
+        // MC 1.16.5: LivingEntity.java 行 2067-2069
+        f32 waterDrag = physics::DRAG_WATER;
+
+        // 海豚的恩惠效果：大幅降低水中阻力
+        // MC 1.16.5: LivingEntity.java 行 2067-2068
+        if (hasEffect(entity::effect::EffectType::DolphinsGrace)) {
+            waterDrag = physics::DOLPHINS_GRACE_WATER_DRAG;
+        }
+
+        // 深度守卫附魔减少水中阻力影响
+        // MC 1.16.5: 修正后的水中阻力
+        // 参考 LivingEntity.java 行 2063-2065
+        const ItemStack& boots = getEquipment(EquipmentSlot::Feet);
+        if (!boots.isEmpty()) {
+            i32 depthStriderLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+                boots, "minecraft:depth_strider");
+            if (depthStriderLevel > 0) {
+                // 每级减少阻力差值的 1/3
+                // 阻力从 0.8 提升到 max 0.546
+                f32 dragReduction = static_cast<f32>(depthStriderLevel) * physics::DEPTH_STRIDER_SPEED_BONUS;
+                waterDrag = std::min(waterDrag + dragReduction * (1.0f - waterDrag), physics::DEPTH_STRIDER_MAX_DRAG);
+            }
+        }
+
+        m_velocity.x *= waterDrag;
+        m_velocity.y *= waterDrag * 0.8f;  // 垂直阻力略大
+        m_velocity.z *= waterDrag;
+    } else if (isInLava()) {
+        // 岩浆阻力
+        // MC 1.16.5: LivingEntity.java 行 2079-2081
+        m_velocity.x *= physics::DRAG_LAVA;
+        m_velocity.y *= physics::DRAG_LAVA * 0.8f;
+        m_velocity.z *= physics::DRAG_LAVA;
     } else if (!onLadder) {
         // 空气阻力（不在梯子上）
         m_velocity.x *= DRAG_AIR;
