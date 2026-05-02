@@ -105,12 +105,6 @@ const stopHook: HookCallback = async (input, toolUseID, { signal }) => {
     console.log(`📝 最后消息摘要: ${stopInput.last_assistant_message.slice(0, 200)}...`);
   }
 
-  // 如果 stop_hook_active 为 false，说明没有配置停止钩子评估，直接允许停止
-  if (!stopInput.stop_hook_active) {
-    console.log("✅ stop_hook_active 为 false，允许停止");
-    return {};
-  }
-
   // 启动评估代理
   const evaluation = await evaluateShouldStop(
     stopInput.transcript_path,
