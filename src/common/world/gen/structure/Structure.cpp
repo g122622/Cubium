@@ -127,10 +127,24 @@ void StructurePiece::setBlockState(IWorldWriter& world, const BlockState* state,
         return;
     }
 
-    // TODO: 应用镜像和旋转变换到方块状态
-    // 目前先直接设置，后续需要在 BlockState 中实现 mirror() 和 rotate() 方法
+    // 应用镜像和旋转变换到方块状态
+    if (state != nullptr) {
+        const BlockState* transformedState = state;
 
-    world.setBlock(worldX, worldY, worldZ, state, 2);
+        // 先应用镜像
+        if (m_mirror != Mirror::None) {
+            transformedState = &transformedState->getBlock().mirror(*transformedState, m_mirror);
+        }
+
+        // 再应用旋转
+        if (m_rotation != Rotation::None) {
+            transformedState = &transformedState->getBlock().rotate(*transformedState, m_rotation);
+        }
+
+        world.setBlock(worldX, worldY, worldZ, transformedState, 2);
+    } else {
+        world.setBlock(worldX, worldY, worldZ, state, 2);
+    }
 }
 
 const BlockState* StructurePiece::getBlockStateFromPos(IWorld& world,
