@@ -221,8 +221,8 @@ block/
 **未实现的含水方块**（待开发）：
 | 方块类 | 说明 |
 |--------|------|
-| ConduitBlock | 潮涌核心方块 |
-| SignBlock / WallSignBlock | 告示牌（站立/墙面） |
+| ConduitBlock | 潮涌核心方块（已存在于DriedKelpBlock.hpp，需要补充IWaterLoggable） |
+| SignBlock / WallSignBlock | 告示牌（站立/墙面），实现已创建待配置编译路径 |
 | ButtonBlock系列 | 石质/木质按钮（含水时触发） |
 | PressurePlateBlock系列 | 压力板（含水时触发） |
 | DaylightDetectorBlock | 阳光探测器 |

@@ -488,6 +488,7 @@ add_library(mc_common STATIC
     # World - Block - Ocean
     world/block/blocks/ocean/SeaPickleBlock.cpp
     world/block/blocks/ocean/DriedKelpBlock.cpp
+    world/block/blocks/SignBlock.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp

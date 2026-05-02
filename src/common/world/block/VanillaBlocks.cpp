@@ -34,6 +34,8 @@
 #include "blocks/coral/CoralBlock.hpp"
 #include "blocks/decorative/LanternBlock.hpp"
 #include "blocks/decorative/CampfireBlock.hpp"
+#include "blocks/ocean/DriedKelpBlock.hpp"
+#include "blocks/SignBlock.hpp"
 #include "blocks/functional/BeaconBlock.hpp"
 #include "blocks/functional/BrewingStandBlock.hpp"
 #include "blocks/functional/RespawnAnchorBlock.hpp"
@@ -404,6 +406,25 @@ Block* VanillaBlocks::BUBBLE_CORAL_WALL_FAN = nullptr;
 Block* VanillaBlocks::FIRE_CORAL_WALL_FAN = nullptr;
 Block* VanillaBlocks::HORN_CORAL_WALL_FAN = nullptr;
 Block* VanillaBlocks::CONDUIT = nullptr;
+
+// 告示牌
+Block* VanillaBlocks::OAK_SIGN = nullptr;
+Block* VanillaBlocks::OAK_WALL_SIGN = nullptr;
+Block* VanillaBlocks::SPRUCE_SIGN = nullptr;
+Block* VanillaBlocks::SPRUCE_WALL_SIGN = nullptr;
+Block* VanillaBlocks::BIRCH_SIGN = nullptr;
+Block* VanillaBlocks::BIRCH_WALL_SIGN = nullptr;
+Block* VanillaBlocks::JUNGLE_SIGN = nullptr;
+Block* VanillaBlocks::JUNGLE_WALL_SIGN = nullptr;
+Block* VanillaBlocks::ACACIA_SIGN = nullptr;
+Block* VanillaBlocks::ACACIA_WALL_SIGN = nullptr;
+Block* VanillaBlocks::DARK_OAK_SIGN = nullptr;
+Block* VanillaBlocks::DARK_OAK_WALL_SIGN = nullptr;
+Block* VanillaBlocks::CRIMSON_SIGN = nullptr;
+Block* VanillaBlocks::CRIMSON_WALL_SIGN = nullptr;
+Block* VanillaBlocks::WARPED_SIGN = nullptr;
+Block* VanillaBlocks::WARPED_WALL_SIGN = nullptr;
+
 Block* VanillaBlocks::CRIMSON_STEM = nullptr;
 Block* VanillaBlocks::WARPED_STEM = nullptr;
 Block* VanillaBlocks::CRIMSON_NYLIUM = nullptr;
@@ -610,6 +631,10 @@ void VanillaBlocks::initialize() {
         registerPrismarineBlocks();
     }
     {
+        MC_TRACE_EVENT("client.initialization", "registerSignBlocks");
+        registerSignBlocks();
+    }
+    {
         MC_TRACE_EVENT("client.initialization", "registerPurpurBlocks");
         registerPurpurBlocks();
     }
@@ -633,6 +658,11 @@ void VanillaBlocks::initialize() {
         MC_TRACE_EVENT("client.initialization", "registerStairsSlabsWalls");
         registerStairsSlabsWalls();
     }
+    // TODO: SignBlock需要正确配置include路径后注册
+    // {
+    //     MC_TRACE_EVENT("client.initialization", "registerSignBlocks");
+    //     registerSignBlocks();
+    // }
 
     // 初始化方块标签（必须在所有方块注册后）
     BlockTags::initialize();
@@ -1821,6 +1851,69 @@ void VanillaBlocks::registerPrismarineBlocks() {
     SEA_LANTERN = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:sea_lantern"),
         BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
+}
+
+// ============================================================================
+// 告示牌注册
+// ============================================================================
+void VanillaBlocks::registerSignBlocks() {
+    auto& registry = BlockRegistry::instance();
+
+    // 告示牌属性 - 不透明、可含水
+    // 参考: net.minecraft.block.AbstractSignBlock
+    BlockProperties signProps = BlockProperties(Material::WOOD)
+        .hardness(1.0f)
+        .noCollision()
+        .notSolid();
+
+    // 注册各木材类型的告示牌
+    // 橡木
+    OAK_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:oak_sign"), signProps, blocks::WoodType::Oak);
+    OAK_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:oak_wall_sign"), signProps, blocks::WoodType::Oak);
+
+    // 云杉木
+    SPRUCE_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:spruce_sign"), signProps, blocks::WoodType::Spruce);
+    SPRUCE_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:spruce_wall_sign"), signProps, blocks::WoodType::Spruce);
+
+    // 白桦木
+    BIRCH_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:birch_sign"), signProps, blocks::WoodType::Birch);
+    BIRCH_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:birch_wall_sign"), signProps, blocks::WoodType::Birch);
+
+    // 丛林木
+    JUNGLE_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:jungle_sign"), signProps, blocks::WoodType::Jungle);
+    JUNGLE_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:jungle_wall_sign"), signProps, blocks::WoodType::Jungle);
+
+    // 金合欢木
+    ACACIA_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:acacia_sign"), signProps, blocks::WoodType::Acacia);
+    ACACIA_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:acacia_wall_sign"), signProps, blocks::WoodType::Acacia);
+
+    // 深色橡木
+    DARK_OAK_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:dark_oak_sign"), signProps, blocks::WoodType::DarkOak);
+    DARK_OAK_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:dark_oak_wall_sign"), signProps, blocks::WoodType::DarkOak);
+
+    // 绯红菌（下界木材）
+    CRIMSON_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:crimson_sign"), signProps, blocks::WoodType::Crimson);
+    CRIMSON_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:crimson_wall_sign"), signProps, blocks::WoodType::Crimson);
+
+    // 诡异菌（下界木材）
+    WARPED_SIGN = &registry.registerBlock<StandingSignBlock>(
+        ResourceLocation("minecraft:warped_sign"), signProps, blocks::WoodType::Warped);
+    WARPED_WALL_SIGN = &registry.registerBlock<WallSignBlock>(
+        ResourceLocation("minecraft:warped_wall_sign"), signProps, blocks::WoodType::Warped);
 }
 
 // ============================================================================

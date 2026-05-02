@@ -5,6 +5,7 @@
 #include "blocks/AirBlock.hpp"
 #include "blocks/SimpleBlock.hpp"
 #include "blocks/RotatedPillarBlock.hpp"
+#include "blocks/SignBlock.hpp"
 
 namespace mc {
 
@@ -542,6 +543,26 @@ public:
     static Block* CONDUIT;            // 潮涌核心
 
     // ========================================================================
+    // 告示牌（含水）
+    // ========================================================================
+    static Block* OAK_SIGN;           // 橡木告示牌（站立）
+    static Block* OAK_WALL_SIGN;      // 橡木告示牌（墙面）
+    static Block* SPRUCE_SIGN;        // 云杉木告示牌（站立）
+    static Block* SPRUCE_WALL_SIGN;   // 云杉木告示牌（墙面）
+    static Block* BIRCH_SIGN;         // 白桦木告示牌（站立）
+    static Block* BIRCH_WALL_SIGN;    // 白桦木告示牌（墙面）
+    static Block* JUNGLE_SIGN;        // 丛林木告示牌（站立）
+    static Block* JUNGLE_WALL_SIGN;   // 丛林木告示牌（墙面）
+    static Block* ACACIA_SIGN;        // 金合欢木告示牌（站立）
+    static Block* ACACIA_WALL_SIGN;   // 金合欢木告示牌（墙面）
+    static Block* DARK_OAK_SIGN;      // 深色橡木告示牌（站立）
+    static Block* DARK_OAK_WALL_SIGN; // 深色橡木告示牌（墙面）
+    static Block* CRIMSON_SIGN;       // 绯红告示牌（站立）
+    static Block* CRIMSON_WALL_SIGN;  // 绯红告示牌（墙面）
+    static Block* WARPED_SIGN;        // 诡异告示牌（站立）
+    static Block* WARPED_WALL_SIGN;   // 诡异告示牌（墙面）
+
+    // ========================================================================
     // 下界扩展植物方块
     // ========================================================================
     static Block* CRIMSON_STEM;       // 绯红菌柄
@@ -592,6 +613,7 @@ private:
     static void registerStoneBricks();     // 石砖系列
     static void registerQuartzBlocks();    // 石英系列
     static void registerPrismarineBlocks(); // 海晶系列
+    static void registerSignBlocks();       // 告示牌
     static void registerPurpurBlocks();    // 紫珀系列
     static void registerEndBlocks();       // 末地方块
     static void registerBoneAndHayBlocks(); // 骨块和干草块
