@@ -53,7 +53,7 @@ BlockState CoralBlock::getStateForPlacement(BlockItemUseContext& context) {
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
     return defaultState().with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
@@ -131,7 +131,7 @@ BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context) {
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
@@ -243,7 +243,7 @@ BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context)
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
     return defaultState()
         .with(BlockStateProperties::FACING(), facing)

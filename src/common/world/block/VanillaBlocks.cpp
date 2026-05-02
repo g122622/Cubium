@@ -7,11 +7,16 @@
 #include "blocks/FallingBlock.hpp"
 #include "blocks/CauldronBlock.hpp"
 #include "blocks/EnchantingTableBlock.hpp"
+#include "blocks/ChestBlock.hpp"
 #include "blocks/building/StairsBlock.hpp"
 #include "blocks/building/SlabBlock.hpp"
 #include "blocks/building/WallBlock.hpp"
 #include "blocks/building/FenceBlock.hpp"
 #include "blocks/building/TrapDoorBlock.hpp"
+#include "blocks/decorative/PaneBlock.hpp"
+#include "blocks/decorative/LadderBlock.hpp"
+#include "blocks/decorative/ChainBlock.hpp"
+#include "blocks/decorative/ScaffoldingBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ice/SnowBlock.hpp"
 #include "blocks/dirt/SpreadableSnowyDirtBlock.hpp"
@@ -144,6 +149,14 @@ Block* VanillaBlocks::WET_SPONGE = nullptr;
 Block* VanillaBlocks::CRAFTING_TABLE = nullptr;
 Block* VanillaBlocks::CAULDRON = nullptr;
 Block* VanillaBlocks::ENCHANTING_TABLE = nullptr;
+Block* VanillaBlocks::CHEST = nullptr;
+
+// 含水方块
+Block* VanillaBlocks::LADDER = nullptr;
+Block* VanillaBlocks::CHAIN = nullptr;
+Block* VanillaBlocks::SCAFFOLDING = nullptr;
+Block* VanillaBlocks::GLASS_PANE = nullptr;
+Block* VanillaBlocks::IRON_BARS = nullptr;
 
 // 门和栅栏门
 Block* VanillaBlocks::OAK_DOOR = nullptr;
@@ -1125,6 +1138,48 @@ void VanillaBlocks::registerFunctionalBlocks() {
     ENCHANTING_TABLE = &registry.registerBlock<blocks::EnchantingTableBlock>(
         ResourceLocation("minecraft:enchanting_table"),
         BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid().lightLevel(7)
+    );
+
+    // 箱子 - 含水方块
+    // 参考: new ChestBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F).notSolid())
+    CHEST = &registry.registerBlock<blocks::ChestBlock>(
+        ResourceLocation("minecraft:chest"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable()
+    );
+
+    // 梯子 - 含水方块
+    // 参考: new LadderBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.4F).notSolid())
+    LADDER = &registry.registerBlock<blocks::LadderBlock>(
+        ResourceLocation("minecraft:ladder"),
+        BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable()
+    );
+
+    // 锁链 - 含水方块
+    // 参考: new ChainBlock(Properties.create(Material.IRON).hardnessAndResistance(5.0F).notSolid())
+    CHAIN = &registry.registerBlock<blocks::ChainBlock>(
+        ResourceLocation("minecraft:chain"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid()
+    );
+
+    // 脚手架 - 含水方块
+    // 参考: new ScaffoldingBlock(Properties.create(Material.DECORATION).hardnessAndResistance(0.0F).notSolid())
+    SCAFFOLDING = &registry.registerBlock<blocks::ScaffoldingBlock>(
+        ResourceLocation("minecraft:scaffolding"),
+        BlockProperties(Material::DECORATION).hardness(0.0f).notSolid()
+    );
+
+    // 玻璃板 - 含水方块
+    // 参考: new PaneBlock(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).notSolid())
+    GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:glass_pane"),
+        BlockProperties(Material::GLASS).hardness(0.3f).notSolid()
+    );
+
+    // 铁栏杆 - 含水方块
+    // 参考: new PaneBlock(Properties.create(Material.IRON).hardnessAndResistance(5.0F))
+    IRON_BARS = &registry.registerBlock<blocks::PaneBlock>(
+        ResourceLocation("minecraft:iron_bars"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f)
     );
 
     // 橡木门

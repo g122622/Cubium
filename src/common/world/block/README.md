@@ -182,9 +182,9 @@ block/
 **职责**：定义液体容器接口，实现此接口的方块可以容纳液体。
 
 **主要方法**：
-- `canContainFluid()`：检查是否可以容纳指定流体
-- `receiveFluid()`：接收流体
-- `containsFluid()`：检查是否包含流体
+- `canContainFluid(IWorld&, BlockPos, BlockState, Fluid&)`：检查是否可以容纳指定流体
+- `receiveFluid(IWorld&, BlockPos, BlockState, FluidState&)`：接收流体
+- `containsFluid(IWorld&, BlockPos, BlockState)`：检查是否包含流体
 
 ### IWaterLoggable.hpp
 
@@ -197,7 +197,36 @@ block/
 - `isWaterlogged()`：检查方块是否含水
 - `canContainFluid()`：检查是否可以容纳指定流体（仅接受水）
 - `receiveFluid()`：接收流体（将WATERLOGGED设为true）
+- `pickupFluid()`：从方块中提取流体（桶操作）
 - `containsFluid()`：检查是否包含指定流体
+
+**已实现的含水方块**（共14种）：
+| 方块类 | 文件路径 | 特殊逻辑 |
+|--------|----------|----------|
+| StairsBlock | building/StairsBlock | 标准实现 |
+| SlabBlock | building/SlabBlock | 双层台阶不能含水 |
+| WallBlock | building/WallBlock | 标准实现 |
+| FenceBlock | building/FenceBlock | 标准实现 |
+| TrapDoorBlock | building/TrapDoorBlock | toggle()处理含水 |
+| LanternBlock | decorative/LanternBlock | HANGING属性 |
+| ChainBlock | decorative/ChainBlock | AXIS属性 |
+| LadderBlock | decorative/LadderBlock | FACING属性 |
+| ScaffoldingBlock | decorative/ScaffoldingBlock | DISTANCE+BOTTOM属性 |
+| CampfireBlock | decorative/CampfireBlock | 含水时熄灭 |
+| SeaPickleBlock | ocean/SeaPickleBlock | PICKLES属性 |
+| ChestBlock | ChestBlock | TYPE属性（双箱连接）|
+| PaneBlock | decorative/PaneBlock | 玻璃板/铁栏杆 |
+| CoralBlock系列 | coral/CoralBlock | 离水变死珊瑚 |
+
+**未实现的含水方块**（待开发）：
+| 方块类 | 说明 |
+|--------|------|
+| ConduitBlock | 潮涌核心方块 |
+| SignBlock / WallSignBlock | 告示牌（站立/墙面） |
+| ButtonBlock系列 | 石质/木质按钮（含水时触发） |
+| PressurePlateBlock系列 | 压力板（含水时触发） |
+| DaylightDetectorBlock | 阳光探测器 |
+| RedstoneWireBlock | 红石线（含水会断开） |
 
 **实现含水方块的步骤**：
 1. 继承 `IWaterLoggable` 接口
@@ -221,8 +250,14 @@ block/
 ```cpp
 namespace mc::waterloggable {
 
+// 获取水流体实例（带缓存）
+[[nodiscard]] fluid::Fluid* getWaterFluid();
+
 // 检查流体状态是否为水
 [[nodiscard]] bool isWaterFluidState(const fluid::FluidState* fluidState);
+
+// 检查流体是否为水
+[[nodiscard]] bool isWaterFluid(const fluid::Fluid& fluid);
 
 // 检查流体状态是否为水源
 [[nodiscard]] bool isWaterSourceFluidState(const fluid::FluidState* fluidState);
@@ -233,11 +268,11 @@ void scheduleWaterTick(IWorld& world, const BlockPos& pos);
 // 获取水流体状态（用于 getFluidState 实现）
 [[nodiscard]] const fluid::FluidState* getWaterFluidState(const BlockState& state);
 
-// 检测放置位置是否应该含水
-[[nodiscard]] bool shouldWaterlogAt(IWorld& world, const BlockPos& pos);
+// 检测放置位置是否应该含水（用于 getStateForPlacement）
+[[nodiscard]] bool shouldWaterlogAt(const IWorld& world, const BlockPos& pos);
 
-// 检测放置位置是否为水源
-[[nodiscard]] bool hasWaterSourceAt(IWorld& world, const BlockPos& pos);
+// 检测放置位置是否有任何水（包括流动水）
+[[nodiscard]] bool hasAnyWaterAt(const IWorld& world, const BlockPos& pos);
 
 } // namespace mc::waterloggable
 ```

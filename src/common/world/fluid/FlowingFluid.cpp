@@ -412,7 +412,7 @@ void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState
         if (blockRef != nullptr) {
             if (auto* container = dynamic_cast<ILiquidContainer*>(blockRef)) {
                 if (container->canContainFluid(world, pos, *blockState, state.getFluid()) &&
-                    container->receiveFluid(world, pos, blockState, state)) {
+                    container->receiveFluid(world, pos, *blockState, state)) {
                     return;
                 }
             }
@@ -575,7 +575,7 @@ bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos,
 
     // 允许实现 ILiquidContainer 的方块按自身规则接收流体。
     if (auto* container = dynamic_cast<const ILiquidContainer*>(&blockRef)) {
-        return container->canContainFluid(world, pos, *block, fluid);
+        return !container->canContainFluid(world, pos, *block, fluid);
     }
 
     const String& path = blockRef.blockLocation().path();

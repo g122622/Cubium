@@ -57,7 +57,7 @@ BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
 
     // 检查是否在水中（海泡菜必须在水中）
-    bool waterlogged = waterloggable::hasWaterSourceAt(world, pos);
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
     // 检查是否已有海泡菜（堆叠）
     const BlockState* existingState = world.getBlockState(pos);

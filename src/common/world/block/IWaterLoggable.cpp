@@ -1,6 +1,5 @@
 #include "IWaterLoggable.hpp"
 #include "WaterLoggableHelpers.hpp"
-#include "../fluid/FluidRegistry.hpp"
 #include "../fluid/FluidTags.hpp"
 #include "../IWorld.hpp"
 #include "Block.hpp"
@@ -19,26 +18,22 @@ bool IWaterLoggable::canContainFluid(
     if (isWaterlogged(state)) {
         return false;
     }
-    return fluid.isIn(fluid::FluidTags::WATER());
+    return waterloggable::isWaterFluid(fluid);
 }
 
 bool IWaterLoggable::receiveFluid(
     IWorld& world,
     const BlockPos& pos,
-    const BlockState* state,
+    const BlockState& state,
     const fluid::FluidState& fluidState) {
-    if (state == nullptr) {
-        return false;
-    }
-
     // 检查是否已含水
-    if (isWaterlogged(*state)) {
+    if (isWaterlogged(state)) {
         return false;
     }
 
     // 检查流体是否为水
     const fluid::Fluid& fluid = fluidState.getFluid();
-    if (!fluid.isIn(fluid::FluidTags::WATER())) {
+    if (!waterloggable::isWaterFluid(fluid)) {
         return false;
     }
 
@@ -48,7 +43,7 @@ bool IWaterLoggable::receiveFluid(
     }
 
     // 设置 WATERLOGGED=true
-    BlockState newState = state->with(BlockStateProperties::WATERLOGGED(), true);
+    BlockState newState = state.with(BlockStateProperties::WATERLOGGED(), true);
     world.setBlockState(pos, &newState, 3);
 
     // 调度流体 tick
@@ -67,7 +62,7 @@ fluid::Fluid* IWaterLoggable::pickupFluid(
 
     // 只在服务端执行修改
     if (world.isClientSide()) {
-        return fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        return waterloggable::getWaterFluid();
     }
 
     // 设置 WATERLOGGED=false
@@ -75,7 +70,7 @@ fluid::Fluid* IWaterLoggable::pickupFluid(
     world.setBlockState(pos, &newState, 3);
 
     // 返回水流体
-    return fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    return waterloggable::getWaterFluid();
 }
 
 bool IWaterLoggable::containsFluid(

@@ -12,6 +12,19 @@ namespace mc {
 namespace waterloggable {
 
 /**
+ * @brief 获取水流体实例（带缓存）
+ * @return 水流体指针，如果未初始化返回 nullptr
+ */
+[[nodiscard]] inline fluid::Fluid* getWaterFluid() {
+    // 使用静态缓存避免重复的注册表查找
+    static fluid::Fluid* s_waterFluid = nullptr;
+    if (s_waterFluid == nullptr) {
+        s_waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    }
+    return s_waterFluid;
+}
+
+/**
  * @brief 检查流体状态是否为水
  * @param fluidState 流体状态指针
  * @return 如果是水返回 true
@@ -19,6 +32,15 @@ namespace waterloggable {
 [[nodiscard]] inline bool isWaterFluidState(const fluid::FluidState* fluidState) {
     return fluidState != nullptr && !fluidState->isEmpty() &&
            fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+}
+
+/**
+ * @brief 检查流体是否为水
+ * @param fluid 流体引用
+ * @return 如果是水返回 true
+ */
+[[nodiscard]] inline bool isWaterFluid(const fluid::Fluid& fluid) {
+    return fluid.isIn(fluid::FluidTags::WATER());
 }
 
 /**
@@ -36,7 +58,7 @@ namespace waterloggable {
  * @param pos 方块位置
  */
 inline void scheduleWaterTick(IWorld& world, const BlockPos& pos) {
-    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    fluid::Fluid* waterFluid = getWaterFluid();
     MC_ASSERT(waterFluid != nullptr);
     world.tickManager().scheduleFluidTick(pos, *waterFluid, waterFluid->getTickDelay(world));
 }
@@ -48,7 +70,7 @@ inline void scheduleWaterTick(IWorld& world, const BlockPos& pos) {
  */
 [[nodiscard]] inline const fluid::FluidState* getWaterFluidState(const BlockState& state) {
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        fluid::Fluid* waterFluid = getWaterFluid();
         if (waterFluid != nullptr) {
             return &waterFluid->defaultState();
         }
@@ -84,17 +106,6 @@ inline void scheduleWaterTick(IWorld& world, const BlockPos& pos) {
 [[nodiscard]] inline bool hasAnyWaterAt(const IWorld& world, const BlockPos& pos) {
     const fluid::FluidState* fluidState = world.getFluidState(pos);
     return isWaterFluidState(fluidState);
-}
-
-/**
- * @brief 检测放置位置是否为水源
- * @param world 世界引用
- * @param pos 方块位置
- * @return 如果该位置有水源返回 true
- * @deprecated 请使用 shouldWaterlogAt() 用于放置检测，hasAnyWaterAt() 用于检测附近水源
- */
-[[nodiscard]] inline bool hasWaterSourceAt(const IWorld& world, const BlockPos& pos) {
-    return shouldWaterlogAt(world, pos);
 }
 
 } // namespace waterloggable

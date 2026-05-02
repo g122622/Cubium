@@ -424,3 +424,94 @@ TEST_F(WaterLoggableHelpersTest, ScheduleWaterTick_SchedulesFluidTick) {
     // This should not throw and should schedule a fluid tick
     EXPECT_NO_THROW(waterloggable::scheduleWaterTick(world, pos));
 }
+
+// ========== GetWaterFluid Helper Tests ==========
+
+TEST_F(WaterLoggableHelpersTest, GetWaterFluid_ReturnsValidPointer) {
+    fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
+    ASSERT_NE(waterFluid, nullptr);
+    EXPECT_TRUE(waterFluid->isIn(fluid::FluidTags::WATER()));
+}
+
+TEST_F(WaterLoggableHelpersTest, GetWaterFluid_ReturnsSameInstanceOnMultipleCalls) {
+    fluid::Fluid* water1 = waterloggable::getWaterFluid();
+    fluid::Fluid* water2 = waterloggable::getWaterFluid();
+    EXPECT_EQ(water1, water2) << "getWaterFluid should return cached instance";
+}
+
+// ========== IsWaterFluid Helper Tests ==========
+
+TEST_F(WaterLoggableHelpersTest, IsWaterFluid_ReturnsTrueForWater) {
+    fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
+    ASSERT_NE(waterFluid, nullptr);
+    EXPECT_TRUE(waterloggable::isWaterFluid(*waterFluid));
+}
+
+TEST_F(WaterLoggableHelpersTest, IsWaterFluid_ReturnsFalseForLava) {
+    fluid::Fluid* lavaFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID);
+    ASSERT_NE(lavaFluid, nullptr);
+    EXPECT_FALSE(waterloggable::isWaterFluid(*lavaFluid));
+}
+
+// ========== HasAnyWaterAt Tests ==========
+
+TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsTrueForWaterSource) {
+    WaterlogTestWorld world;
+    BlockPos pos(3, 5, 7);
+
+    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    world.setFluidDirectly(pos, &waterFluid->defaultState());
+
+    EXPECT_TRUE(waterloggable::hasAnyWaterAt(world, pos));
+}
+
+TEST_F(WaterLoggableHelpersTest, HasAnyWaterAt_ReturnsFalseForAir) {
+    WaterlogTestWorld world;
+    BlockPos pos(1, 2, 3);
+
+    EXPECT_FALSE(waterloggable::hasAnyWaterAt(world, pos));
+}
+
+// ========== SlabBlock CanContainFluid Tests ==========
+
+TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsFalseForDoubleSlab) {
+    SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+    WaterlogTestWorld world;
+
+    fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
+    ASSERT_NE(waterFluid, nullptr);
+
+    // Double slab cannot contain fluid
+    BlockState doubleState = slab.defaultState()
+        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+        .with(BlockStateProperties::WATERLOGGED(), false);
+
+    EXPECT_FALSE(slab.canContainFluid(world, BlockPos(0, 0, 0), doubleState, *waterFluid));
+}
+
+TEST_F(SlabBlockWaterlogTest, CanContainFluid_ReturnsTrueForBottomSlab) {
+    SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+    WaterlogTestWorld world;
+
+    fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
+    ASSERT_NE(waterFluid, nullptr);
+
+    // Bottom slab can contain fluid
+    BlockState bottomState = slab.defaultState()
+        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Bottom)
+        .with(BlockStateProperties::WATERLOGGED(), false);
+
+    EXPECT_TRUE(slab.canContainFluid(world, BlockPos(0, 0, 0), bottomState, *waterFluid));
+}
+
+TEST_F(SlabBlockWaterlogTest, IsWaterlogged_ReturnsFalseForDoubleSlab) {
+    SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+
+    // Even with WATERLOGGED=true, double slab should report as not waterlogged
+    BlockState doubleState = slab.defaultState()
+        .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+        .with(BlockStateProperties::WATERLOGGED(), true);
+
+    EXPECT_FALSE(slab.isWaterlogged(doubleState));
+}

@@ -5,7 +5,6 @@
 namespace mc {
 
 // 前向声明
-class IBlockReader;
 class IWorld;
 class BlockPos;
 class BlockState;
@@ -22,6 +21,9 @@ class FluidState;
  *
  * 当流体流入实现了此接口的方块时，会先调用 canContainFluid 检查是否可以容纳，
  * 然后调用 receiveFluid 来实际接收流体。
+ *
+ * 注意：MC 1.16.5 中 canContainFluid 使用 IBlockReader，但本项目 IBlockReader
+ * 继承自 IWorld，为了简化接口统一使用 IWorld。
  */
 class ILiquidContainer {
 public:
@@ -30,7 +32,7 @@ public:
     /**
      * @brief 检查是否可以容纳指定流体
      *
-     * @param world 世界读取器
+     * @param world 世界
      * @param pos 方块位置
      * @param state 当前方块状态
      * @param fluid 要容纳的流体
@@ -47,18 +49,18 @@ public:
      *
      * @param world 世界
      * @param pos 方块位置
-     * @param state 当前方块状态（可能被修改）
+     * @param state 当前方块状态
      * @param fluidState 流入的流体状态
      * @return 是否成功接收
      */
     virtual bool receiveFluid(IWorld& world, const BlockPos& pos,
-                              const BlockState* state,
+                              const BlockState& state,
                               const fluid::FluidState& fluidState) = 0;
 
     /**
      * @brief 检查是否包含流体
      *
-     * @param world 世界读取器
+     * @param world 世界
      * @param pos 方块位置
      * @param state 当前方块状态
      * @return 是否包含流体

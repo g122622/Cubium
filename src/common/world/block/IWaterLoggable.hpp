@@ -59,7 +59,7 @@ public:
     bool receiveFluid(
         IWorld& world,
         const BlockPos& pos,
-        const BlockState* state,
+        const BlockState& state,
         const fluid::FluidState& fluidState) override;
 
     /**

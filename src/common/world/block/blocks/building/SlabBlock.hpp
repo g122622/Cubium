@@ -96,32 +96,50 @@ public:
 
     /**
      * @brief 检查方块是否含水
+     *
+     * 双层台阶永远不含水。
      */
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        // 双层台阶不能含水
+        if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
+            return false;
+        }
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
     /**
      * @brief 检查是否可以容纳流体
      *
-     * 双层台阶不能含水。
+     * 双层台阶不能含水，委托给基类实现。
      */
     [[nodiscard]] bool canContainFluid(
         IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
-        const fluid::Fluid& fluid) const override;
+        const fluid::Fluid& fluid) const override {
+        // 双层台阶不能含水
+        if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
+            return false;
+        }
+        return IWaterLoggable::canContainFluid(world, pos, state, fluid);
+    }
 
     /**
      * @brief 接收流体
      *
-     * 双层台阶不能接收流体。
+     * 双层台阶不能接收流体，委托给基类实现。
      */
     bool receiveFluid(
         IWorld& world,
         const BlockPos& pos,
-        const BlockState* state,
-        const fluid::FluidState& fluidState) override;
+        const BlockState& state,
+        const fluid::FluidState& fluidState) override {
+        // 双层台阶不能含水
+        if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
+            return false;
+        }
+        return IWaterLoggable::receiveFluid(world, pos, state, fluidState);
+    }
 
 private:
     /// 下半台阶形状

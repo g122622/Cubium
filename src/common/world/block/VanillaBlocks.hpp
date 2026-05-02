@@ -109,6 +109,16 @@ public:
     static Block* CRAFTING_TABLE;
     static Block* CAULDRON;
     static Block* ENCHANTING_TABLE;
+    static Block* CHEST;              // 箱子（含水）
+
+    // ========================================================================
+    // 含水方块
+    // ========================================================================
+    static Block* LADDER;             // 梯子（含水）
+    static Block* CHAIN;              // 锁链（含水）
+    static Block* SCAFFOLDING;        // 脚手架（含水）
+    static Block* GLASS_PANE;         // 玻璃板（含水）
+    static Block* IRON_BARS;          // 铁栏杆（含水）
 
     // ========================================================================
     // 门和栅栏门
