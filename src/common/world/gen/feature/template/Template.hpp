@@ -3,6 +3,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../../util/nbt/Nbt.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../structure/StructureBoundingBox.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <vector>
@@ -17,6 +18,10 @@ namespace world {
 namespace gen {
 namespace feature {
 namespace template_ {
+
+// 使用 Direction.hpp 中定义的 Rotation 和 Mirror 枚举
+using mc::Rotation;
+using mc::Mirror;
 
 /**
  * @brief 模板方块信息
@@ -42,11 +47,11 @@ class PlacementSettings {
 public:
     PlacementSettings();
 
-    [[nodiscard]] i32 getRotation() const { return m_rotation; }
-    PlacementSettings& setRotation(i32 rotation);
+    [[nodiscard]] Rotation getRotation() const { return m_rotation; }
+    PlacementSettings& setRotation(Rotation rotation);
 
-    [[nodiscard]] i32 getMirror() const { return m_mirror; }
-    PlacementSettings& setMirror(i32 mirror);
+    [[nodiscard]] Mirror getMirror() const { return m_mirror; }
+    PlacementSettings& setMirror(Mirror mirror);
 
     [[nodiscard]] bool ignoreEntities() const { return m_ignoreEntities; }
     PlacementSettings& setIgnoreEntities(bool ignore);
@@ -55,8 +60,8 @@ public:
     PlacementSettings& setBoundingBox(const structure::StructureBoundingBox* bounds);
 
 private:
-    i32 m_rotation = 0;
-    i32 m_mirror = 0;  // 0=none, 1=x, 2=z
+    Rotation m_rotation = Rotation::None;
+    Mirror m_mirror = Mirror::None;
     bool m_ignoreEntities = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
 };
@@ -144,13 +149,13 @@ public:
 
     [[nodiscard]] static BlockPos transformBlockPos(
         const BlockPos& pos,
-        i32 mirror,
-        i32 rotation,
+        Mirror mirror,
+        Rotation rotation,
         const BlockPos& center);
 
     [[nodiscard]] static BlockPos getTransformedPosition(
         const BlockPos& pos,
-        i32 rotation,
+        Rotation rotation,
         const BlockPos& size);
 
 private:

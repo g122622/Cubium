@@ -46,8 +46,8 @@ std::vector<PlacedPiece> JigsawManager::assemble(
     }
 
     // 放置起始块
-    i32 rotation = getRandomRotation(rng);
-    i32 mirror = 0;  // 起始块不使用镜像
+    Rotation rotation = getRandomRotation(rng);
+    Mirror mirror = Mirror::None;  // 起始块不使用镜像
     auto boundingBox = calculateBoundingBox(*startPiece, startPos, rotation);
 
     PlacedPiece startPlaced;
@@ -214,18 +214,19 @@ void JigsawManager::placeFallbackBlocks(
 std::vector<JigsawJoint> JigsawManager::getTransformedJoints(
     const JigsawPiece& piece,
     const BlockPos& position,
-    i32 rotation,
-    i32 mirror)
+    Rotation rotation,
+    Mirror mirror)
 {
     std::vector<JigsawJoint> transformed;
     transformed.reserve(piece.getJoints().size());
 
     BlockPos size = piece.getSize();
+    i32 rotationDeg = static_cast<i32>(rotation) * 90;
 
     for (const auto& joint : piece.getJoints()) {
         JigsawJoint transformedJoint;
         transformedJoint.sourcePos = transformPosition(joint.sourcePos, rotation, mirror, size) + position;
-        transformedJoint.sourceName = JigsawMatcher::rotateName(joint.sourceName, rotation);
+        transformedJoint.sourceName = JigsawMatcher::rotateName(joint.sourceName, rotationDeg);
         transformedJoint.targetPool = joint.targetPool;
         transformedJoint.targetName = joint.targetName;
         transformedJoint.projection = joint.projection;
@@ -273,17 +274,18 @@ bool JigsawManager::tryPlacePiece(
 
         // 尝试找到可以匹配的连接点
         const auto& pieceJoints = selectedPiece->getJoints();
-        std::vector<std::pair<size_t, i32>> matchingJoints;
+        std::vector<std::pair<size_t, Rotation>> matchingJoints;
 
         for (size_t i = 0; i < pieceJoints.size(); ++i) {
             const auto& pieceJoint = pieceJoints[i];
             // 检查连接点是否可以匹配
             if (JigsawMatcher::canMatch(pieceJoint.sourceName, joint.sourceName)) {
                 // 尝试所有旋转
-                for (i32 rot = 0; rot < 360; rot += 90) {
-                    String rotatedName = JigsawMatcher::rotateName(pieceJoint.sourceName, rot);
+                for (i32 rotDeg = 0; rotDeg < 360; rotDeg += 90) {
+                    Rotation rotEnum = static_cast<Rotation>(rotDeg / 90);
+                    String rotatedName = JigsawMatcher::rotateName(pieceJoint.sourceName, rotDeg);
                     if (JigsawMatcher::canMatch(rotatedName, joint.sourceName)) {
-                        matchingJoints.emplace_back(i, rot);
+                        matchingJoints.emplace_back(i, rotEnum);
                     }
                 }
             }
@@ -296,10 +298,11 @@ bool JigsawManager::tryPlacePiece(
         // 随机选择一个匹配
         auto [jointIndex, rotation] = matchingJoints[rng.nextInt(static_cast<i32>(matchingJoints.size()))];
         const auto& selectedJoint = pieceJoints[jointIndex];
+        i32 rotationDeg = static_cast<i32>(rotation) * 90;
 
         // 计算放置位置
         // 连接点的位置需要使两个块连接在一起
-        BlockPos jointOffset = transformPosition(selectedJoint.sourcePos, rotation, 0, selectedPiece->getSize());
+        BlockPos jointOffset = transformPosition(selectedJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize());
         BlockPos placementPos = joint.position - jointOffset;
 
         // 计算边界框
@@ -315,10 +318,10 @@ bool JigsawManager::tryPlacePiece(
         placed.piece = selectedPiece->clone();
         placed.position = placementPos;
         placed.rotation = rotation;
-        placed.mirror = 0;
+        placed.mirror = Mirror::None;
         placed.groundLevelDelta = selectedPiece->getGroundLevelDelta();
         placed.boundingBox = boundingBox;
-        placed.joints = getTransformedJoints(*selectedPiece, placementPos, rotation, 0);
+        placed.joints = getTransformedJoints(*selectedPiece, placementPos, rotation, Mirror::None);
 
         placedPieces.push_back(std::move(placed));
 
@@ -330,8 +333,8 @@ bool JigsawManager::tryPlacePiece(
             }
 
             PendingJoint newPending;
-            newPending.position = transformPosition(newJoint.sourcePos, rotation, 0, selectedPiece->getSize()) + placementPos;
-            newPending.sourceName = JigsawMatcher::rotateName(newJoint.sourceName, rotation);
+            newPending.position = transformPosition(newJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize()) + placementPos;
+            newPending.sourceName = JigsawMatcher::rotateName(newJoint.sourceName, rotationDeg);
             newPending.targetPool = newJoint.targetPool;
             newPending.targetType = newJoint.targetName;
             newPending.depth = joint.depth + 1;
@@ -348,12 +351,12 @@ bool JigsawManager::tryPlacePiece(
 structure::StructureBoundingBox JigsawManager::calculateBoundingBox(
     const JigsawPiece& piece,
     const BlockPos& pos,
-    i32 rotation)
+    Rotation rotation)
 {
     BlockPos size = piece.getSize();
 
     // 根据旋转调整尺寸
-    if (rotation == 90 || rotation == 270) {
+    if (rotation == Rotation::Clockwise90 || rotation == Rotation::CounterClockwise90) {
         size = BlockPos(size.z, size.y, size.x);
     }
 
@@ -384,31 +387,36 @@ bool JigsawManager::boxesIntersect(
     return false;
 }
 
-i32 JigsawManager::getRandomRotation(math::Random& rng) {
-    // 返回 0, 90, 180, 或 270 度
-    return rng.nextInt(4) * 90;
+Rotation JigsawManager::getRandomRotation(math::Random& rng) {
+    // 返回 Rotation 枚举值
+    return static_cast<Rotation>(rng.nextInt(4));
 }
 
-BlockPos JigsawManager::rotatePosition(const BlockPos& pos, i32 rotation) {
+BlockPos JigsawManager::rotatePosition(const BlockPos& pos, Rotation rotation) {
     switch (rotation) {
-        case 90:
+        case Rotation::Clockwise90:
             return BlockPos(-pos.z, pos.y, pos.x);
-        case 180:
+        case Rotation::Clockwise180:
             return BlockPos(-pos.x, pos.y, -pos.z);
-        case 270:
+        case Rotation::CounterClockwise90:
             return BlockPos(pos.z, pos.y, -pos.x);
         default:
             return pos;
     }
 }
 
-BlockPos JigsawManager::mirrorPosition(const BlockPos& pos, i32 mirror, const BlockPos& center) {
+BlockPos JigsawManager::mirrorPosition(const BlockPos& pos, Mirror mirror, const BlockPos& center) {
     BlockPos result = pos;
 
-    if (mirror == 1) {  // X 轴镜像
-        result = BlockPos(center.x * 2 - pos.x, pos.y, pos.z);
-    } else if (mirror == 2) {  // Z 轴镜像
-        result = BlockPos(pos.x, pos.y, center.z * 2 - pos.z);
+    switch (mirror) {
+        case Mirror::FrontBack:  // X 轴镜像
+            result = BlockPos(center.x * 2 - pos.x, pos.y, pos.z);
+            break;
+        case Mirror::LeftRight:  // Z 轴镜像
+            result = BlockPos(pos.x, pos.y, center.z * 2 - pos.z);
+            break;
+        default:
+            break;
     }
 
     return result;
@@ -416,28 +424,33 @@ BlockPos JigsawManager::mirrorPosition(const BlockPos& pos, i32 mirror, const Bl
 
 BlockPos JigsawManager::transformPosition(
     const BlockPos& pos,
-    i32 rotation,
-    i32 mirror,
+    Rotation rotation,
+    Mirror mirror,
     const BlockPos& templateSize)
 {
     BlockPos result = pos;
 
     // 先应用镜像（相对于模板中心）
-    if (mirror == 1) {  // X 轴镜像
-        result = BlockPos(templateSize.x - 1 - result.x, result.y, result.z);
-    } else if (mirror == 2) {  // Z 轴镜像
-        result = BlockPos(result.x, result.y, templateSize.z - 1 - result.z);
+    switch (mirror) {
+        case Mirror::FrontBack:  // X 轴镜像
+            result = BlockPos(templateSize.x - 1 - result.x, result.y, result.z);
+            break;
+        case Mirror::LeftRight:  // Z 轴镜像
+            result = BlockPos(result.x, result.y, templateSize.z - 1 - result.z);
+            break;
+        default:
+            break;
     }
 
     // 然后应用旋转
     switch (rotation) {
-        case 90:
+        case Rotation::Clockwise90:
             result = BlockPos(templateSize.z - 1 - result.z, result.y, result.x);
             break;
-        case 180:
+        case Rotation::Clockwise180:
             result = BlockPos(templateSize.x - 1 - result.x, result.y, templateSize.z - 1 - result.z);
             break;
-        case 270:
+        case Rotation::CounterClockwise90:
             result = BlockPos(result.z, result.y, templateSize.x - 1 - result.x);
             break;
         default:

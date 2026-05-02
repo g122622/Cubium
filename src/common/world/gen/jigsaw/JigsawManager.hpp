@@ -4,6 +4,7 @@
 #include "JigsawPattern.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/Direction.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../structure/StructureBoundingBox.hpp"
 #include "../feature/template/Template.hpp"
@@ -20,20 +21,24 @@ namespace world {
 namespace gen {
 namespace jigsaw {
 
+// 使用 Direction.hpp 中定义的 Rotation 和 Mirror 枚举
+using mc::Rotation;
+using mc::Mirror;
+
 /**
  * @brief 已放置的拼图块信息
  */
 struct PlacedPiece {
     std::unique_ptr<JigsawPiece> piece;
     BlockPos position;
-    i32 rotation = 0;
-    i32 mirror = 0;  // 0=none, 1=x, 2=z
+    Rotation rotation = Rotation::None;
+    Mirror mirror = Mirror::None;
     i32 groundLevelDelta = 0;
     structure::StructureBoundingBox boundingBox;
     std::vector<JigsawJoint> joints;  ///< 已变换的连接点
 
     PlacedPiece() = default;
-    PlacedPiece(std::unique_ptr<JigsawPiece> p, const BlockPos& pos, i32 rot, i32 mir, i32 delta, const structure::StructureBoundingBox& box)
+    PlacedPiece(std::unique_ptr<JigsawPiece> p, const BlockPos& pos, Rotation rot, Mirror mir, i32 delta, const structure::StructureBoundingBox& box)
         : piece(std::move(p)), position(pos), rotation(rot), mirror(mir), groundLevelDelta(delta), boundingBox(box) {}
 };
 
@@ -163,7 +168,7 @@ private:
     static structure::StructureBoundingBox calculateBoundingBox(
         const JigsawPiece& piece,
         const BlockPos& pos,
-        i32 rotation);
+        Rotation rotation);
 
     /**
      * @brief 检查边界框是否重叠
@@ -175,25 +180,25 @@ private:
     /**
      * @brief 获取随机旋转角度
      */
-    static i32 getRandomRotation(math::Random& rng);
+    static Rotation getRandomRotation(math::Random& rng);
 
     /**
      * @brief 应用旋转变换到位置
      */
-    static BlockPos rotatePosition(const BlockPos& pos, i32 rotation);
+    static BlockPos rotatePosition(const BlockPos& pos, Rotation rotation);
 
     /**
      * @brief 应用镜像变换到位置
      */
-    static BlockPos mirrorPosition(const BlockPos& pos, i32 mirror, const BlockPos& center);
+    static BlockPos mirrorPosition(const BlockPos& pos, Mirror mirror, const BlockPos& center);
 
     /**
      * @brief 变换连接点位置
      */
     static BlockPos transformPosition(
         const BlockPos& pos,
-        i32 rotation,
-        i32 mirror,
+        Rotation rotation,
+        Mirror mirror,
         const BlockPos& templateSize);
 
     /**
@@ -206,6 +211,16 @@ private:
         const PendingJoint& joint,
         i32 maxDepth,
         math::Random& rng);
+
+private:
+    /**
+     * @brief 获取变换后的连接点
+     */
+    static std::vector<JigsawJoint> getTransformedJoints(
+        const JigsawPiece& piece,
+        const BlockPos& pos,
+        Rotation rotation,
+        Mirror mirror);
 };
 
 } // namespace jigsaw

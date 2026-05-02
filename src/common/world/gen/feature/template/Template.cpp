@@ -1,6 +1,7 @@
 #include "Template.hpp"
 #include "../../../../world/IWorldWriter.hpp"
 #include "../../../../world/block/BlockRegistry.hpp"
+#include "../../../../world/block/Block.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -113,18 +114,18 @@ TemplateEntityInfo::~TemplateEntityInfo() = default;
 // ============================================================================
 
 PlacementSettings::PlacementSettings()
-    : m_rotation(0)
+    : m_rotation(Rotation::None)
+    , m_mirror(Mirror::None)
     , m_boundingBox(nullptr)
 {
 }
 
-PlacementSettings& PlacementSettings::setRotation(i32 rotation) {
-    m_rotation = rotation % 360;
-    if (m_rotation < 0) m_rotation += 360;
+PlacementSettings& PlacementSettings::setRotation(Rotation rotation) {
+    m_rotation = rotation;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setMirror(i32 mirror) {
+PlacementSettings& PlacementSettings::setMirror(Mirror mirror) {
     m_mirror = mirror;
     return *this;
 }
@@ -169,7 +170,7 @@ structure::StructureBoundingBox Template::getBoundingBox(
         return structure::StructureBoundingBox(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
     }
 
-    BlockPos transformedSize = transformBlockPos(m_size, 0, settings.getRotation(), BlockPos(0, 0, 0));
+    BlockPos transformedSize = transformBlockPos(m_size, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
 
     return structure::StructureBoundingBox(
         pos.x, pos.y, pos.z,
@@ -221,8 +222,21 @@ bool Template::place(
             continue;  // 跳过无效的方块状态
         }
 
+        // 应用镜像和旋转变换到方块状态
+        const BlockState* transformedState = state;
+
+        // 先应用镜像
+        if (settings.getMirror() != Mirror::None) {
+            transformedState = &transformedState->getBlock().mirror(*transformedState, settings.getMirror());
+        }
+
+        // 再应用旋转
+        if (settings.getRotation() != Rotation::None) {
+            transformedState = &transformedState->getBlock().rotate(*transformedState, settings.getRotation());
+        }
+
         // 放置方块
-        world.setBlock(worldPos.x, worldPos.y, worldPos.z, state, static_cast<i32>(flags));
+        world.setBlock(worldPos.x, worldPos.y, worldPos.z, transformedState, static_cast<i32>(flags));
 
         // 方块实体数据在区块反序列化阶段统一处理，此处仅负责方块状态放置
         (void)block.nbt;
@@ -240,8 +254,8 @@ bool Template::place(
 
 BlockPos Template::transformBlockPos(
     const BlockPos& pos,
-    i32 mirror,
-    i32 rotation,
+    Mirror mirror,
+    Rotation rotation,
     const BlockPos& center)
 {
     BlockPos result = pos;
@@ -250,21 +264,26 @@ BlockPos Template::transformBlockPos(
     result = BlockPos(result.x - center.x, result.y, result.z - center.z);
 
     // 应用镜像
-    if (mirror == 1) {  // X 轴镜像
-        result = BlockPos(-result.x, result.y, result.z);
-    } else if (mirror == 2) {  // Z 轴镜像
-        result = BlockPos(result.x, result.y, -result.z);
+    switch (mirror) {
+        case Mirror::LeftRight:  // Z 轴镜像（左右）
+            result = BlockPos(result.x, result.y, -result.z);
+            break;
+        case Mirror::FrontBack:  // X 轴镜像（前后）
+            result = BlockPos(-result.x, result.y, result.z);
+            break;
+        default:
+            break;
     }
 
     // 应用旋转
     switch (rotation) {
-        case 90:
+        case Rotation::Clockwise90:
             result = BlockPos(-result.z, result.y, result.x);
             break;
-        case 180:
+        case Rotation::Clockwise180:
             result = BlockPos(-result.x, result.y, -result.z);
             break;
-        case 270:
+        case Rotation::CounterClockwise90:
             result = BlockPos(result.z, result.y, -result.x);
             break;
         default:
@@ -279,7 +298,7 @@ BlockPos Template::transformBlockPos(
 
 BlockPos Template::getTransformedPosition(
     const BlockPos& pos,
-    i32 rotation,
+    Rotation rotation,
     const BlockPos& size)
 {
     // 计算旋转后的位置（相对于模板中心）
@@ -288,11 +307,11 @@ BlockPos Template::getTransformedPosition(
     i32 z = pos.z;
 
     switch (rotation) {
-        case 90:
+        case Rotation::Clockwise90:
             return BlockPos(size.z - 1 - z, pos.y, x);
-        case 180:
+        case Rotation::Clockwise180:
             return BlockPos(size.x - 1 - x, pos.y, size.z - 1 - z);
-        case 270:
+        case Rotation::CounterClockwise90:
             return BlockPos(z, pos.y, size.x - 1 - x);
         default:
             return pos;
