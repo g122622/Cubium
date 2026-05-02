@@ -1,0 +1,575 @@
+#pragma once
+
+#include "../Structure.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
+#include <vector>
+#include <memory>
+
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
+
+// 前向声明
+class StrongholdPiece;
+
+/**
+ * @brief 要塞片段权重
+ *
+ * 用于要塞片段的随机选择
+ * 参考 MC 1.16.5: StrongholdPieces.PieceWeight
+ */
+struct StrongholdPieceWeight {
+    i32 pieceType;        ///< 片段类型
+    i32 weight;           ///< 选择权重
+    i32 instancesSpawned; ///< 已生成数量
+    i32 instancesLimit;   ///< 最大数量 (0 = 无限制)
+
+    StrongholdPieceWeight(i32 type, i32 w, i32 limit)
+        : pieceType(type), weight(w), instancesSpawned(0), instancesLimit(limit) {}
+
+    [[nodiscard]] bool canSpawnMoreStructuresOfType(i32 depth) const {
+        return instancesLimit == 0 || instancesSpawned < instancesLimit;
+    }
+
+    [[nodiscard]] bool canSpawnMoreStructures() const {
+        return instancesLimit == 0 || instancesSpawned < instancesLimit;
+    }
+};
+
+// ============================================================================
+// 要塞片段基类
+// ============================================================================
+
+/**
+ * @brief 要塞片段基类
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Stronghold
+ */
+class StrongholdPiece : public StructurePiece {
+public:
+    /**
+     * @brief 门类型枚举
+     */
+    enum class Door : u8 {
+        Opening,   ///< 开口
+        WoodDoor,  ///< 木门
+        Grates,    ///< 铁栏杆
+        IronDoor   ///< 铁门
+    };
+
+    StrongholdPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
+
+    [[nodiscard]] Door entryDoor() const { return m_entryDoor; }
+    void setEntryDoor(Door door) { m_entryDoor = door; }
+
+    /**
+     * @brief 获取随机门类型
+     */
+    [[nodiscard]] static Door getRandomDoor(math::Random& rng);
+
+    /**
+     * @brief 生成门
+     */
+    void generateDoor(IWorldWriter& world, const StructureBoundingBox& bounds,
+                      math::Random& rng, Door door, i32 x, i32 y, i32 z);
+
+    /**
+     * @brief 检查是否可以继续向下生成
+     */
+    [[nodiscard]] static bool canStrongholdGoDeeper(const StructureBoundingBox& box);
+
+    /**
+     * @brief 获取下一个组件（正向）
+     */
+    [[nodiscard]] StructurePiece* getNextComponentNormal(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 offsetX, i32 offsetY);
+
+    /**
+     * @brief 获取下一个组件（X方向）
+     */
+    [[nodiscard]] StructurePiece* getNextComponentX(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 offsetX, i32 offsetY);
+
+    /**
+     * @brief 获取下一个组件（Z方向）
+     */
+    [[nodiscard]] StructurePiece* getNextComponentZ(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 offsetX, i32 offsetY);
+
+protected:
+    /**
+     * @brief 生成宝箱
+     */
+    void generateChest(IWorldWriter& world, const StructureBoundingBox& bounds,
+                       math::Random& rng, i32 x, i32 y, i32 z, const String& lootTable);
+
+    Door m_entryDoor = Door::Opening;
+};
+
+// ============================================================================
+// 要塞石砖选择器
+// ============================================================================
+
+/**
+ * @brief 要塞石砖选择器
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Stones
+ */
+class StrongholdStonesSelector : public StructurePiece::BlockSelector {
+public:
+    void selectBlocks(math::Random& rng, i32 x, i32 y, i32 z, bool isWall) override;
+};
+
+// ============================================================================
+// 要塞直走廊
+// ============================================================================
+
+/**
+ * @brief 要塞直走廊
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Straight
+ */
+class StrongholdStraight : public StrongholdPiece {
+public:
+    StrongholdStraight(i32 componentType, math::Random& rng,
+                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                       Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdStraight* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+private:
+    bool m_expandsLeft;
+    bool m_expandsRight;
+};
+
+// ============================================================================
+// 要塞监狱
+// ============================================================================
+
+/**
+ * @brief 要塞监狱
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Prison
+ */
+class StrongholdPrison : public StrongholdPiece {
+public:
+    StrongholdPrison(i32 componentType, math::Random& rng,
+                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                     Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdPrison* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+};
+
+// ============================================================================
+// 要塞左转
+// ============================================================================
+
+/**
+ * @brief 要塞左转
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.LeftTurn
+ */
+class StrongholdLeftTurn : public StrongholdPiece {
+public:
+    StrongholdLeftTurn(i32 componentType, math::Random& rng,
+                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                       Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdLeftTurn* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+};
+
+// ============================================================================
+// 要塞右转
+// ============================================================================
+
+/**
+ * @brief 要塞右转
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.RightTurn
+ */
+class StrongholdRightTurn : public StrongholdPiece {
+public:
+    StrongholdRightTurn(i32 componentType, math::Random& rng,
+                        i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                        Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdRightTurn* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+};
+
+// ============================================================================
+// 要塞房间交叉点
+// ============================================================================
+
+/**
+ * @brief 要塞房间交叉点
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.RoomCrossing
+ */
+class StrongholdRoomCrossing : public StrongholdPiece {
+public:
+    StrongholdRoomCrossing(i32 componentType, math::Random& rng,
+                           i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                           Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdRoomCrossing* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+private:
+    i32 m_roomType;  ///< 0=喷泉, 1=火把柱, 2=宝箱房间
+};
+
+// ============================================================================
+// 要塞直楼梯
+// ============================================================================
+
+/**
+ * @brief 要塞直楼梯
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.StairsStraight
+ */
+class StrongholdStairsStraight : public StrongholdPiece {
+public:
+    StrongholdStairsStraight(i32 componentType, math::Random& rng,
+                             i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                             Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdStairsStraight* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+};
+
+// ============================================================================
+// 要塞螺旋楼梯
+// ============================================================================
+
+/**
+ * @brief 要塞螺旋楼梯
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Stairs
+ */
+class StrongholdStairs : public StrongholdPiece {
+public:
+    StrongholdStairs(i32 componentType, math::Random& rng,
+                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                     Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdStairs* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+protected:
+    bool m_isSource = false;  ///< 是否是起始楼梯
+};
+
+// ============================================================================
+// 要塞起始楼梯
+// ============================================================================
+
+/**
+ * @brief 要塞起始楼梯
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Stairs2
+ */
+class StrongholdStartStairs : public StrongholdStairs {
+public:
+    explicit StrongholdStartStairs(math::Random& rng, i32 x, i32 z);
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] StrongholdPieceWeight* lastPlaced() const { return m_lastPlaced; }
+    void setLastPlaced(StrongholdPieceWeight* weight) { m_lastPlaced = weight; }
+
+    [[nodiscard]] StrongholdPiece* portalRoom() const { return m_portalRoom; }
+    void setPortalRoom(StrongholdPiece* room) { m_portalRoom = room; }
+
+    [[nodiscard]] const std::vector<StructurePiece*>& pendingChildren() const { return m_pendingChildren; }
+    void addPendingChild(StructurePiece* piece) { m_pendingChildren.push_back(piece); }
+
+private:
+    StrongholdPieceWeight* m_lastPlaced = nullptr;
+    StrongholdPiece* m_portalRoom = nullptr;
+    std::vector<StructurePiece*> m_pendingChildren;
+};
+
+// ============================================================================
+// 要塞交叉点
+// ============================================================================
+
+/**
+ * @brief 要塞交叉点
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Crossing
+ */
+class StrongholdCrossing : public StrongholdPiece {
+public:
+    StrongholdCrossing(i32 componentType, math::Random& rng,
+                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                       Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdCrossing* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+private:
+    bool m_leftLow;
+    bool m_leftHigh;
+    bool m_rightLow;
+    bool m_rightHigh;
+};
+
+// ============================================================================
+// 要塞宝箱走廊
+// ============================================================================
+
+/**
+ * @brief 要塞宝箱走廊
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.ChestCorridor
+ */
+class StrongholdChestCorridor : public StrongholdPiece {
+public:
+    StrongholdChestCorridor(i32 componentType, math::Random& rng,
+                            i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                            Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdChestCorridor* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+private:
+    bool m_hasChest = false;
+};
+
+// ============================================================================
+// 要塞图书馆
+// ============================================================================
+
+/**
+ * @brief 要塞图书馆
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Library
+ */
+class StrongholdLibrary : public StrongholdPiece {
+public:
+    StrongholdLibrary(i32 componentType, math::Random& rng,
+                      i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                      Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    [[nodiscard]] static StrongholdLibrary* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+private:
+    bool m_isLargeRoom;
+};
+
+// ============================================================================
+// 要塞传送门房间
+// ============================================================================
+
+/**
+ * @brief 要塞传送门房间
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.PortalRoom
+ */
+class StrongholdPortalRoom : public StrongholdPiece {
+public:
+    StrongholdPortalRoom(i32 componentType,
+                         i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                         Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    void buildComponent(StructurePiece* component,
+                       std::vector<std::unique_ptr<StructurePiece>>& pieces,
+                       math::Random& rng) override;
+
+    [[nodiscard]] static StrongholdPortalRoom* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+private:
+    bool m_hasSpawner = false;
+};
+
+// ============================================================================
+// 要塞填充走廊
+// ============================================================================
+
+/**
+ * @brief 要塞填充走廊
+ *
+ * 参考 MC 1.16.5: StrongholdPieces.Corridor
+ */
+class StrongholdCorridor : public StrongholdPiece {
+public:
+    StrongholdCorridor(i32 componentType, i32 steps,
+                       i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                       Direction direction);
+
+    void generate(IWorldWriter& world, math::Random& rng,
+                  i32 chunkX, i32 chunkZ,
+                  const StructureBoundingBox& chunkBounds) override;
+
+    [[nodiscard]] static StrongholdCorridor* createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+
+    [[nodiscard]] static StructureBoundingBox findPieceBox(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::Random& rng, i32 x, i32 y, i32 z, Direction direction);
+
+private:
+    i32 m_steps;  ///< 走廊长度（步数）
+};
+
+// ============================================================================
+// 片段类型常量
+// ============================================================================
+
+namespace StrongholdPieceTypes {
+    constexpr i32 STRAIGHT = 100;
+    constexpr i32 PRISON = 101;
+    constexpr i32 LEFT_TURN = 102;
+    constexpr i32 RIGHT_TURN = 103;
+    constexpr i32 ROOM_CROSSING = 104;
+    constexpr i32 STAIRS_STRAIGHT = 105;
+    constexpr i32 STAIRS = 106;
+    constexpr i32 START_STAIRS = 107;
+    constexpr i32 CROSSING = 108;
+    constexpr i32 CHEST_CORRIDOR = 109;
+    constexpr i32 LIBRARY = 110;
+    constexpr i32 PORTAL_ROOM = 111;
+    constexpr i32 CORRIDOR = 112;
+}
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
+
+/**
+ * @brief 初始化要塞片段权重列表
+ */
+void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weights);
+
+/**
+ * @brief 创建要塞片段
+ */
+[[nodiscard]] StrongholdPiece* createStrongholdPiece(
+    i32 pieceType,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x, i32 y, i32 z,
+    Direction direction,
+    i32 depth);
+
+/**
+ * @brief 从小门生成要塞片段
+ */
+[[nodiscard]] StrongholdPiece* generatePieceFromSmallDoor(
+    StrongholdStartStairs* start,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::Random& rng,
+    i32 x, i32 y, i32 z,
+    Direction direction,
+    i32 depth,
+    std::vector<StrongholdPieceWeight>& weights,
+    StrongholdPieceWeight*& lastPlaced);
+
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

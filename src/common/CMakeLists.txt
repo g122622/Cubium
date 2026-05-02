@@ -686,12 +686,14 @@ add_library(mc_common STATIC
 
     # World - Generation - Structure
     world/gen/structure/Structure.cpp
+    world/gen/structure/StructureBoundingBox.cpp
     world/gen/structure/StructureManager.cpp
     world/gen/structure/structures/RuinedPortalStructure.cpp
     world/gen/structure/structures/BuriedTreasureStructure.cpp
     world/gen/structure/structures/MineshaftStructure.cpp
     world/gen/structure/structures/VillageStructure.cpp
     world/gen/structure/structures/StrongholdStructure.cpp
+    world/gen/structure/structures/StrongholdPieces.cpp
     world/gen/structure/structures/DesertPyramidStructure.cpp
     world/gen/structure/structures/JungleTempleStructure.cpp
     world/gen/structure/structures/OceanMonumentStructure.cpp

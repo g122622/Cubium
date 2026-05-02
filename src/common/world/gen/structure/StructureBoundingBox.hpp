@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
+#include "../../../util/Direction.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -32,6 +33,26 @@ public:
             (chunkX << 4) + 15, 255, (chunkZ << 4) + 15
         );
     }
+
+    /**
+     * @brief 创建带方向偏移的边界框
+     *
+     * 参考 MC 1.16.5 MutableBoundingBox.getComponentToAddBoundingBox
+     * @param x 基准 X 坐标
+     * @param y 基准 Y 坐标
+     * @param z 基准 Z 坐标
+     * @param offsetX X 偏移（相对于方向）
+     * @param offsetY Y 偏移
+     * @param offsetZ Z 偏移（相对于方向）
+     * @param sizeX X 方向大小
+     * @param sizeY Y 方向大小
+     * @param sizeZ Z 方向大小
+     * @param direction 方向（Direction::North/South/East/West，或使用整数 0-3）
+     */
+    static StructureBoundingBox createBox(i32 x, i32 y, i32 z,
+                                          i32 offsetX, i32 offsetY, i32 offsetZ,
+                                          i32 sizeX, i32 sizeY, i32 sizeZ,
+                                          Direction direction);
 
     [[nodiscard]] i32 minX() const { return m_minX; }
     [[nodiscard]] i32 minY() const { return m_minY; }
@@ -85,6 +106,20 @@ public:
         return m_maxX >= other.m_minX && m_minX <= other.m_maxX &&
                m_maxY >= other.m_minY && m_minY <= other.m_maxY &&
                m_maxZ >= other.m_minZ && m_minZ <= other.m_maxZ;
+    }
+
+    /**
+     * @brief 检查是否与另一个边界框相交（别名）
+     */
+    [[nodiscard]] bool intersects(const StructureBoundingBox& other) const {
+        return intersectsWith(other);
+    }
+
+    /**
+     * @brief 检查点是否在边界框内（别名）
+     */
+    [[nodiscard]] bool isInside(i32 x, i32 y, i32 z) const {
+        return contains(x, y, z);
     }
 
     [[nodiscard]] bool intersectsChunk(i32 chunkX, i32 chunkZ) const {

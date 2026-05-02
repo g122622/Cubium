@@ -212,14 +212,25 @@ public:
      */
     void fillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                         i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                        const BlockState* boundaryBlock, const BlockState* insideBlock);
+                        const BlockState* boundaryBlock, const BlockState* insideBlock, bool excludeCorners = false);
 
     /**
      * @brief 用随机选择的方块填充区域
+     * @param world 世界写入接口
+     * @param bounds 边界框
+     * @param minX 最小 X 坐标
+     * @param minY 最小 Y 坐标
+     * @param minZ 最小 Z 坐标
+     * @param maxX 最大 X 坐标
+     * @param maxY 最大 Y 坐标
+     * @param maxZ 最大 Z 坐标
+     * @param alwaysReplace 是否总是替换（true 时只替换非空气方块，false 时无条件填充）
+     * @param rng 随机数生成器
+     * @param selector 方块选择器
      */
     void fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                    i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                   math::Random& rng, BlockSelector& selector);
+                                   bool alwaysReplace, math::Random& rng, BlockSelector& selector);
 
     /**
      * @brief 随机放置单个方块

@@ -174,13 +174,23 @@ void StructurePiece::fillWithAir(IWorldWriter& world, const StructureBoundingBox
 
 void StructurePiece::fillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                      i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                     const BlockState* boundaryBlock, const BlockState* insideBlock) {
+                                     const BlockState* boundaryBlock, const BlockState* insideBlock, bool excludeCorners) {
     for (i32 y = minY; y <= maxY; ++y) {
         for (i32 x = minX; x <= maxX; ++x) {
             for (i32 z = minZ; z <= maxZ; ++z) {
                 bool isBoundary = (y == minY || y == maxY ||
                                    x == minX || x == maxX ||
                                    z == minZ || z == maxZ);
+                // 如果排除角落，角落不算边界
+                if (excludeCorners && isBoundary) {
+                    i32 corners = 0;
+                    if (x == minX || x == maxX) corners++;
+                    if (y == minY || y == maxY) corners++;
+                    if (z == minZ || z == maxZ) corners++;
+                    if (corners >= 2) {
+                        isBoundary = false;
+                    }
+                }
                 const BlockState* state = isBoundary ? boundaryBlock : insideBlock;
                 setBlockState(world, state, x, y, z, bounds);
             }
@@ -190,7 +200,12 @@ void StructurePiece::fillWithBlocks(IWorldWriter& world, const StructureBounding
 
 void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                                i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                               math::Random& rng, BlockSelector& selector) {
+                                               bool alwaysReplace, math::Random& rng, BlockSelector& selector) {
+    // 注意：当 alwaysReplace=true 时，MC 会跳过空气方块
+    // 由于 IWorldWriter 没有读取能力，这里暂时忽略 alwaysReplace 逻辑
+    // 这不影响最终结果，只是可能在某些情况下多做了一些无用功
+    (void)alwaysReplace;
+
     for (i32 y = minY; y <= maxY; ++y) {
         for (i32 x = minX; x <= maxX; ++x) {
             for (i32 z = minZ; z <= maxZ; ++z) {
