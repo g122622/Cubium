@@ -28,6 +28,19 @@ struct BlockInfo {
 };
 ```
 
+### TemplateEntityInfo - 实体信息
+
+存储模板中的实体信息（MC 1.16.5 格式）：
+
+```cpp
+struct TemplateEntityInfo {
+    String typeId;             // 实体类型ID
+    f64 posx, posy, posz;      // 精确位置（Double列表）
+    BlockPos blockPos;         // 方块坐标（Int列表）
+    std::unique_ptr<nbt::CompoundTag> nbt;  // 实体NBT数据
+};
+```
+
 ### ProcessedBlockInfo - 处理后的方块信息
 
 处理器链处理后的结果：
@@ -79,7 +92,7 @@ public:
 |--------|------|
 | `GravityStructureProcessor` | 根据高度图调整Y坐标 |
 | `BlockIgnoreStructureProcessor` | 忽略指定方块 |
-| `JigsawReplacementStructureProcessor` | 替换Jigsaw方块为结构空位 |
+| `JigsawReplacementStructureProcessor` | 替换Jigsaw方块为final_state指定的方块 |
 | `IntegrityProcessor` | 根据完整度随机移除方块 |
 
 ### Template - 结构模板
@@ -220,16 +233,28 @@ assets/minecraft/structures/
         },
         ...
     ],
-    "entities": [...],
-    "palettes": [
+    "entities": [
         {
-            "Name": "minecraft:stone",
-            "Properties": {...}
+            "id": "minecraft:zombie",
+            "pos": [1.5, 2.0, 3.5],    // Double列表，精确位置
+            "blockPos": [1, 2, 3],      // Int列表，方块坐标
+            "nbt": {...}
         },
         ...
-    ]
+    ],
+    "palette": [...],       // 单调色板格式
+    // 或
+    "palettes": [[...], [...]]  // 多调色板格式（MC 1.16.5）
 }
 ```
+
+### 多调色板支持
+
+MC 1.16.5 支持两种调色板格式：
+- **单调色板**: `palette` 字段包含方块状态列表
+- **多调色板**: `palettes` 字段包含多个调色板列表的列表
+
+加载时默认使用第一个调色板，完整实现应根据结构配置选择不同调色板。
 
 ## 处理器链执行顺序
 
@@ -244,6 +269,28 @@ flowchart LR
     F -->|ProcessedBlockInfo| G[Processor N]
     G --> H[最终方块信息]
     H --> I[放置到世界]
+```
+
+## JigsawReplacementStructureProcessor
+
+当放置Jigsaw结构时，该处理器会：
+
+1. 检测方块是否为 `minecraft:jigsaw`
+2. 读取NBT中的 `final_state` 字段
+3. 解析方块状态字符串（如 `minecraft:stone[axis=y]`）
+4. 如果 `final_state` 是 `minecraft:structure_void`，跳过此方块
+5. 否则替换为解析后的方块状态
+
+```cpp
+// Jigsaw方块的NBT结构
+{
+    "id": "minecraft:jigsaw",
+    "name": "minecraft:bottom",
+    "target_pool": "minecraft:village/street",
+    "target_name": "minecraft:empty",
+    "final_state": "minecraft:cobblestone",  // 替换为的方块
+    "joint": "rollable"
+}
 ```
 
 ## 容易踩的坑
@@ -287,11 +334,26 @@ settings.setBoundingBox(&chunkBounds);
 settings.setBlockUpdateFlags(18);
 ```
 
+### 5. 实体位置精度
+
+**问题**: 实体位置只读取整数坐标。
+
+**解决方案**: 实体有两个位置字段：
+- `pos`: Double列表，精确位置（用于实体放置）
+- `blockPos`: Int列表，方块坐标（用于方块对齐）
+
+### 6. 调色板格式
+
+**问题**: 只支持单调色板格式。
+
+**解决方案**: 加载器同时支持 `palette` 和 `palettes` 字段，优先使用 `palettes[0]`。
+
 ## 参考资料
 
 - Minecraft 1.16.5 源码: `net.minecraft.world.gen.feature.template`
 - Template类: `net.minecraft.world.gen.feature.template.Template`
 - PlacementSettings: `net.minecraft.world.gen.feature.template.PlacementSettings`
 - StructureProcessor: `net.minecraft.world.gen.feature.template.StructureProcessor`
+- JigsawReplacementStructureProcessor: `net.minecraft.world.gen.feature.template.JigsawReplacementStructureProcessor`
 
 *最后更新: 2026-05-03*

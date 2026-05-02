@@ -296,7 +296,7 @@ bool JigsawManager::tryPlacePiece(
 
     // 添加回退池中的块
     const ResourceLocation& fallbackLoc = targetPool->getFallback();
-    if (!fallbackLoc.empty() && fallbackLoc.toString() != "minecraft:empty") {
+    if (!fallbackLoc.path().empty() && fallbackLoc.toString() != "minecraft:empty") {
         const JigsawPattern* fallbackPool = patternRegistry.getPattern(fallbackLoc);
         if (fallbackPool && !fallbackPool->isEmpty()) {
             size_t fallbackCount = fallbackPool->getNumberOfPieces();

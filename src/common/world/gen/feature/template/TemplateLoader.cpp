@@ -97,9 +97,38 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
     auto sizeZ = dynamic_cast<const nbt::IntTag&>(*sizeList[2]).value;
     templ->setSize(BlockPos(sizeX, sizeY, sizeZ));
 
-    // 读取方块调色板: palette: [...]
+    // 读取方块调色板
+    // MC 1.16.5: 支持两种格式
+    // 1. palette: 单一调色板列表
+    // 2. palettes: 多个调色板列表的列表（用于结构变体）
+    // 参考 Template.read -> readPalletesAndBlocks
     std::vector<u32> palette;
-    if (nbt.value.count("palette") != 0) {
+    bool hasPalette = false;
+
+    if (nbt.value.count("palettes") != 0) {
+        // 多调色板格式：palettes 是一个列表的列表
+        auto& palettesTag = *nbt.value.at("palettes");
+        if (palettesTag.id() == nbt::TagId::List) {
+            auto& palettesList = dynamic_cast<const nbt::ListTag&>(palettesTag);
+            if (palettesList.size() > 0) {
+                // MC 1.16.5 默认使用第一个 palette
+                // 完整实现应该根据结构配置选择不同的 palette
+                auto& firstPaletteTag = *palettesList[0];
+                if (firstPaletteTag.id() == nbt::TagId::List) {
+                    auto& firstPalette = dynamic_cast<const nbt::ListTag&>(firstPaletteTag);
+                    palette.reserve(firstPalette.size());
+                    for (size_t i = 0; i < firstPalette.size(); ++i) {
+                        auto& entry = dynamic_cast<const nbt::CompoundTag&>(*firstPalette[i]);
+                        palette.push_back(parseBlockStateId(entry));
+                    }
+                    hasPalette = true;
+                }
+            }
+        }
+    }
+
+    // 如果没有 palettes，尝试单 palette 格式
+    if (!hasPalette && nbt.value.count("palette") != 0) {
         auto& paletteTag = *nbt.value.at("palette");
         if (paletteTag.id() == nbt::TagId::List) {
             auto& paletteList = dynamic_cast<const nbt::ListTag&>(paletteTag);
@@ -108,6 +137,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 auto& entry = dynamic_cast<const nbt::CompoundTag&>(*paletteList[i]);
                 palette.push_back(parseBlockStateId(entry));
             }
+            hasPalette = true;
         }
     }
 
@@ -161,6 +191,10 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
     }
 
     // 读取实体: entities: [...]
+    // MC 1.16.5: Template.readEntities
+    // 实体有两个位置：
+    // - pos: Double 列表（精确位置）
+    // - blockPos: Int 列表（方块坐标）
     if (nbt.value.count("entities") != 0) {
         auto& entitiesTag = *nbt.value.at("entities");
         if (entitiesTag.id() == nbt::TagId::List) {
@@ -176,11 +210,27 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                         *entityEntry.value.at("id")).value;
                 }
 
-                // 读取位置
+                // 读取精确位置 pos: [double, double, double]
+                // MC 1.16.5: Template.readDoubles
                 if (entityEntry.value.count("pos") != 0) {
                     auto& posTag = *entityEntry.value.at("pos");
                     if (posTag.id() == nbt::TagId::List) {
-                        entityInfo.pos = readBlockPos(dynamic_cast<const nbt::ListTag&>(posTag));
+                        auto& posList = dynamic_cast<const nbt::ListTag&>(posTag);
+                        if (posList.size() >= 3) {
+                            // pos 是 Double 列表
+                            entityInfo.posx = dynamic_cast<const nbt::DoubleTag&>(*posList[0]).value;
+                            entityInfo.posy = dynamic_cast<const nbt::DoubleTag&>(*posList[1]).value;
+                            entityInfo.posz = dynamic_cast<const nbt::DoubleTag&>(*posList[2]).value;
+                        }
+                    }
+                }
+
+                // 读取方块坐标 blockPos: [int, int, int]
+                // MC 1.16.5: Template.readInts
+                if (entityEntry.value.count("blockPos") != 0) {
+                    auto& blockPosTag = *entityEntry.value.at("blockPos");
+                    if (blockPosTag.id() == nbt::TagId::List) {
+                        entityInfo.blockPos = readBlockPos(dynamic_cast<const nbt::ListTag&>(blockPosTag));
                     }
                 }
 

@@ -158,6 +158,12 @@ public:
     [[nodiscard]] size_t size() const { return m_processors.size(); }
     [[nodiscard]] bool empty() const { return m_processors.empty(); }
 
+    // 迭代器支持
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator begin() const { return m_processors.begin(); }
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator end() const { return m_processors.end(); }
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator begin() { return m_processors.begin(); }
+    [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::iterator end() { return m_processors.end(); }
+
     [[nodiscard]] std::optional<ProcessedBlockInfo> process(
         const BlockPos& seedPos,
         const BlockPos& pos,
@@ -186,10 +192,18 @@ struct TemplateJigsawBlockInfo {
 
 /**
  * @brief 实体信息
+ *
+ * 参考 MC 1.16.5 Template.EntityInfo
+ * 包含两个位置：
+ * - pos: 精确位置（Double 列表），用于实体精确放置
+ * - blockPos: 方块坐标（Int 列表），用于方块对齐
  */
 struct TemplateEntityInfo {
     String typeId;
-    BlockPos pos;
+    f64 posx = 0.0;  // 精确位置 X
+    f64 posy = 0.0;  // 精确位置 Y
+    f64 posz = 0.0;  // 精确位置 Z
+    BlockPos blockPos;  // 方块坐标
     std::unique_ptr<nbt::CompoundTag> nbt;
 
     TemplateEntityInfo();
@@ -299,6 +313,9 @@ private:
  * @brief Jigsaw 替换结构处理器
  *
  * 参考 MC 1.16.5 JigsawReplacementStructureProcessor
+ * 当遇到 Jigsaw 方块时，读取其 final_state NBT 字段，
+ * 解析并替换为对应的方块状态。
+ * 如果 final_state 是 structure_void，则跳过此方块。
  */
 class JigsawReplacementStructureProcessor : public StructureProcessor {
 public:
@@ -310,6 +327,14 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
+
+private:
+    /**
+     * @brief 解析方块状态字符串
+     * @param stateStr 方块状态字符串，如 "minecraft:stone[axis=y]"
+     * @return 方块状态 ID，失败返回 0（空气）
+     */
+    [[nodiscard]] static u32 parseBlockStateString(const String& stateStr);
 };
 
 /**

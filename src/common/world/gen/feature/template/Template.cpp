@@ -3,6 +3,7 @@
 #include "../../../../world/block/BlockRegistry.hpp"
 #include "../../../../world/block/Block.hpp"
 #include <algorithm>
+#include <unordered_map>
 
 namespace mc {
 namespace world {
@@ -130,12 +131,14 @@ std::optional<ProcessedBlockInfo> StructureProcessor::process(
 // TemplateEntityInfo
 // ============================================================================
 
-TemplateEntityInfo::TemplateEntityInfo() : pos()
+TemplateEntityInfo::TemplateEntityInfo() : posx(0.0), posy(0.0), posz(0.0), blockPos()
 {
 }
 
 TemplateEntityInfo::TemplateEntityInfo(const TemplateEntityInfo& other)
-    : typeId(other.typeId), pos(other.pos)
+    : typeId(other.typeId)
+    , posx(other.posx), posy(other.posy), posz(other.posz)
+    , blockPos(other.blockPos)
 {
     if (other.nbt) {
         nbt = std::make_unique<nbt::CompoundTag>(*other.nbt);
@@ -144,7 +147,8 @@ TemplateEntityInfo::TemplateEntityInfo(const TemplateEntityInfo& other)
 
 TemplateEntityInfo::TemplateEntityInfo(TemplateEntityInfo&& other) noexcept
     : typeId(std::move(other.typeId))
-    , pos(std::move(other.pos))
+    , posx(other.posx), posy(other.posy), posz(other.posz)
+    , blockPos(std::move(other.blockPos))
     , nbt(std::move(other.nbt))
 {
 }
@@ -152,7 +156,10 @@ TemplateEntityInfo::TemplateEntityInfo(TemplateEntityInfo&& other) noexcept
 TemplateEntityInfo& TemplateEntityInfo::operator=(const TemplateEntityInfo& other) {
     if (this != &other) {
         typeId = other.typeId;
-        pos = other.pos;
+        posx = other.posx;
+        posy = other.posy;
+        posz = other.posz;
+        blockPos = other.blockPos;
         if (other.nbt) {
             nbt = std::make_unique<nbt::CompoundTag>(*other.nbt);
         } else {
@@ -165,7 +172,10 @@ TemplateEntityInfo& TemplateEntityInfo::operator=(const TemplateEntityInfo& othe
 TemplateEntityInfo& TemplateEntityInfo::operator=(TemplateEntityInfo&& other) noexcept {
     if (this != &other) {
         typeId = std::move(other.typeId);
-        pos = std::move(other.pos);
+        posx = other.posx;
+        posy = other.posy;
+        posz = other.posz;
+        blockPos = std::move(other.blockPos);
         nbt = std::move(other.nbt);
     }
     return *this;
@@ -293,7 +303,10 @@ bool Template::place(
     // 获取边界框（可选检查）
     const auto* bounds = settings.getBoundingBox();
 
-    // 放置所有方块
+    // MC 1.16.5: 首先处理方块信息（应用处理器链）
+    std::vector<ProcessedBlockInfo> processedBlocks;
+    processedBlocks.reserve(m_blocks.size());
+
     for (const auto& block : m_blocks) {
         // 计算变换后的位置
         BlockPos transformedPos = transformBlockPos(
@@ -306,17 +319,68 @@ bool Template::place(
         // 加上目标位置偏移
         BlockPos worldPos = pos + transformedPos;
 
+        // 创建待处理的方块信息
+        BlockInfo blockInfo(worldPos, block.blockStateId);
+        if (block.nbt) {
+            blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        }
+
+        // 应用处理器链
+        ProcessedBlockInfo processedBlock;
+        processedBlock.pos = worldPos;
+        processedBlock.blockStateId = blockInfo.blockStateId;
+        if (blockInfo.nbt) {
+            processedBlock.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+
+        // 处理器链处理
+        const StructureProcessorList* processors = settings.getProcessors();
+        if (processors) {
+            bool shouldKeep = true;
+            for (const auto& processor : *processors) {
+                if (processor) {
+                    // 创建原始方块信息（未变换的）
+                    BlockInfo rawInfo(block.pos, block.blockStateId);
+                    if (block.nbt) {
+                        rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+                    }
+
+                    auto result = processor->process(pos, worldPos, rawInfo, blockInfo, settings);
+                    if (!result) {
+                        shouldKeep = false;
+                        break;  // 处理器返回空，跳过此方块
+                    }
+                    processedBlock = *result;
+                    // 更新 blockInfo 供下一个处理器使用
+                    blockInfo.pos = processedBlock.pos;
+                    blockInfo.blockStateId = processedBlock.blockStateId;
+                    if (processedBlock.nbt) {
+                        blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*processedBlock.nbt);
+                    }
+                }
+            }
+
+            if (!shouldKeep) {
+                continue;  // 跳过此方块
+            }
+        }
+
+        processedBlocks.push_back(std::move(processedBlock));
+    }
+
+    // 放置所有处理后的方块
+    for (const auto& processedBlock : processedBlocks) {
         // 检查边界框
         if (bounds) {
-            if (worldPos.x < bounds->minX() || worldPos.x > bounds->maxX() ||
-                worldPos.y < bounds->minY() || worldPos.y > bounds->maxY() ||
-                worldPos.z < bounds->minZ() || worldPos.z > bounds->maxZ()) {
+            if (processedBlock.pos.x < bounds->minX() || processedBlock.pos.x > bounds->maxX() ||
+                processedBlock.pos.y < bounds->minY() || processedBlock.pos.y > bounds->maxY() ||
+                processedBlock.pos.z < bounds->minZ() || processedBlock.pos.z > bounds->maxZ()) {
                 continue;  // 跳过边界外的方块
             }
         }
 
         // 获取方块状态
-        const BlockState* state = BlockRegistry::instance().getBlockState(block.blockStateId);
+        const BlockState* state = BlockRegistry::instance().getBlockState(processedBlock.blockStateId);
         if (!state) {
             continue;  // 跳过无效的方块状态
         }
@@ -335,10 +399,11 @@ bool Template::place(
         }
 
         // 放置方块
-        world.setBlock(worldPos.x, worldPos.y, worldPos.z, transformedState, static_cast<i32>(flags));
+        world.setBlock(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, static_cast<i32>(flags));
 
         // 方块实体数据在区块反序列化阶段统一处理，此处仅负责方块状态放置
-        (void)block.nbt;
+        // TODO: 处理方块实体 NBT 数据（更新位置坐标）
+        (void)processedBlock.nbt;
     }
 
     // 结构模板中的实体数据由上层实体系统统一创建
@@ -486,15 +551,159 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // TODO: 需要检查方块是否为Jigsaw方块，如果是则替换为结构空位
-    // 当前实现：保持原样
+    // MC 1.16.5: JigsawReplacementStructureProcessor
+    // 检查方块是否为 Jigsaw 方块
+    // 如果是，读取 NBT 中的 final_state 字段并解析为新的方块状态
+
+    const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
+    if (!state) {
+        ProcessedBlockInfo result;
+        result.pos = blockInfo.pos;
+        result.blockStateId = blockInfo.blockStateId;
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // 检查是否是 Jigsaw 方块
+    const Block& block = state->getBlock();
+    ResourceLocation blockId = block.blockLocation();
+    if (blockId.toString() != "minecraft:jigsaw") {
+        // 不是 Jigsaw 方块，保持原样
+        ProcessedBlockInfo result;
+        result.pos = blockInfo.pos;
+        result.blockStateId = blockInfo.blockStateId;
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // 是 Jigsaw 方块，读取 final_state
+    if (!blockInfo.nbt) {
+        // 没有 NBT，返回空气（跳过）
+        return std::nullopt;
+    }
+
+    auto it = blockInfo.nbt->value.find("final_state");
+    if (it == blockInfo.nbt->value.end() || !it->second) {
+        // 没有 final_state，返回空气（跳过）
+        return std::nullopt;
+    }
+
+    if (it->second->id() != nbt::TagId::String) {
+        return std::nullopt;
+    }
+
+    const String& finalStateStr = dynamic_cast<const nbt::StringTag&>(*it->second).value;
+
+    // 解析 final_state 字符串
+    // 格式: "minecraft:stone[properties]" 或 "minecraft:stone"
+    u32 newStateId = parseBlockStateString(finalStateStr);
+
+    // 检查是否是 structure_void
+    const BlockState* newState = BlockRegistry::instance().getBlockState(newStateId);
+    if (newState) {
+        ResourceLocation newBlockId = newState->getBlock().blockLocation();
+        if (newBlockId.toString() == "minecraft:structure_void") {
+            // structure_void 表示跳过此方块
+            return std::nullopt;
+        }
+    }
+
+    // 返回新的方块状态（无 NBT）
     ProcessedBlockInfo result;
     result.pos = blockInfo.pos;
-    result.blockStateId = blockInfo.blockStateId;
-    if (blockInfo.nbt) {
-        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
+    result.blockStateId = newStateId;
+    // Jigsaw 方块被替换后不保留 NBT
     return result;
+}
+
+u32 JigsawReplacementStructureProcessor::parseBlockStateString(const String& stateStr) {
+    // 解析方块状态字符串
+    // 格式: "minecraft:stone[axis=y,facing=north]" 或 "minecraft:stone"
+
+    size_t bracketPos = stateStr.find('[');
+    String blockName;
+    std::unordered_map<String, String> properties;
+
+    if (bracketPos == String::npos) {
+        // 没有属性
+        blockName = stateStr;
+    } else {
+        // 有属性
+        blockName = stateStr.substr(0, bracketPos);
+        String propsStr = stateStr.substr(bracketPos + 1);
+        if (!propsStr.empty() && propsStr.back() == ']') {
+            propsStr.pop_back();
+        }
+
+        // 解析属性
+        size_t start = 0;
+        size_t end = propsStr.find(',');
+        while (start < propsStr.size()) {
+            String prop = (end == String::npos) ? propsStr.substr(start) : propsStr.substr(start, end - start);
+            size_t eqPos = prop.find('=');
+            if (eqPos != String::npos) {
+                String key = prop.substr(0, eqPos);
+                String value = prop.substr(eqPos + 1);
+                properties[key] = value;
+            }
+            if (end == String::npos) break;
+            start = end + 1;
+            end = propsStr.find(',', start);
+        }
+    }
+
+    // 获取方块
+    auto& registry = BlockRegistry::instance();
+    Block* block = registry.getBlock(ResourceLocation(blockName));
+    if (!block) {
+        return 0; // 空气
+    }
+
+    // 获取默认状态
+    const BlockState* state = &block->defaultState();
+
+    // 应用属性
+    if (!properties.empty()) {
+        const auto& container = block->stateContainer();
+        std::unordered_map<const IProperty*, size_t> wanted;
+
+        for (const auto& [key, value] : properties) {
+            const IProperty* prop = container.getProperty(key);
+            if (!prop) continue;
+
+            auto parsedValue = prop->parseValue(value);
+            if (!parsedValue) continue;
+
+            wanted[prop] = *parsedValue;
+        }
+
+        // 查找匹配的状态
+        if (!wanted.empty()) {
+            for (const auto& candidate : container.validStates()) {
+                if (!candidate) continue;
+
+                bool matches = true;
+                for (const auto& [prop, index] : wanted) {
+                    const auto it = candidate->values().find(prop);
+                    if (it == candidate->values().end() || it->second != index) {
+                        matches = false;
+                        break;
+                    }
+                }
+
+                if (matches) {
+                    state = candidate.get();
+                    break;
+                }
+            }
+        }
+    }
+
+    return state ? state->stateId() : 0;
 }
 
 IntegrityProcessor::IntegrityProcessor(f32 integrity)
