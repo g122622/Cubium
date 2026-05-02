@@ -159,19 +159,16 @@ void StructurePiece::fillWithAir(IWorldWriter& world, const StructureBoundingBox
 }
 
 void StructurePiece::fillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
-                                     i32 xMin, i32 yMin, i32 zMin, i32 xMax, i32 yMax, i32 zMax,
-                                     const BlockState* boundaryBlock, const BlockState* insideBlock,
-                                     bool existingOnly) {
-    for (i32 y = yMin; y <= yMax; ++y) {
-        for (i32 x = xMin; x <= xMax; ++x) {
-            for (i32 z = zMin; z <= zMax; ++z) {
-                if (!existingOnly) {
-                    bool isBoundary = (y == yMin || y == yMax ||
-                                       x == xMin || x == xMax ||
-                                       z == zMin || z == zMax);
-                    const BlockState* state = isBoundary ? boundaryBlock : insideBlock;
-                    setBlockState(world, state, x, y, z, bounds);
-                }
+                                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                                     const BlockState* boundaryBlock, const BlockState* insideBlock) {
+    for (i32 y = minY; y <= maxY; ++y) {
+        for (i32 x = minX; x <= maxX; ++x) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                bool isBoundary = (y == minY || y == maxY ||
+                                   x == minX || x == maxX ||
+                                   z == minZ || z == maxZ);
+                const BlockState* state = isBoundary ? boundaryBlock : insideBlock;
+                setBlockState(world, state, x, y, z, bounds);
             }
         }
     }
@@ -179,7 +176,7 @@ void StructurePiece::fillWithBlocks(IWorldWriter& world, const StructureBounding
 
 void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                                i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                               bool alwaysReplace, math::Random& rng, BlockSelector& selector) {
+                                               math::Random& rng, BlockSelector& selector) {
     for (i32 y = minY; y <= maxY; ++y) {
         for (i32 x = minX; x <= maxX; ++x) {
             for (i32 z = minZ; z <= maxZ; ++z) {
@@ -203,19 +200,21 @@ void StructurePiece::randomlyPlaceBlock(IWorldWriter& world, const StructureBoun
 
 void StructurePiece::randomlyRareFillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                                  i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                                 const BlockState* state, bool excludeAir) {
+                                                 const BlockState* state) {
     f32 dx = static_cast<f32>(maxX - minX + 1);
     f32 dy = static_cast<f32>(maxY - minY + 1);
     f32 dz = static_cast<f32>(maxZ - minZ + 1);
-    f32 cx = static_cast<f32>(minX) + dx / 2.0f;
-    f32 cz = static_cast<f32>(minZ) + dz / 2.0f;
+    f32 cx = static_cast<f32>(minX) + dx * 0.5f;
+    f32 cz = static_cast<f32>(minZ) + dz * 0.5f;
+    f32 halfDx = dx * 0.5f;
+    f32 halfDz = dz * 0.5f;
 
     for (i32 y = minY; y <= maxY; ++y) {
         f32 fy = static_cast<f32>(y - minY) / dy;
         for (i32 x = minX; x <= maxX; ++x) {
-            f32 fx = (static_cast<f32>(x) - cx) / (dx * 0.5f);
+            f32 fx = (static_cast<f32>(x) - cx) / halfDx;
             for (i32 z = minZ; z <= maxZ; ++z) {
-                f32 fz = (static_cast<f32>(z) - cz) / (dz * 0.5f);
+                f32 fz = (static_cast<f32>(z) - cz) / halfDz;
 
                 f32 distSq = fx * fx + fy * fy + fz * fz;
                 if (distSq <= 1.05f) {
@@ -366,21 +365,10 @@ void StructureStart::addPiece(std::unique_ptr<StructurePiece> piece) {
 }
 
 void StructureStart::recalculateStructureSize() {
-    if (m_pieces.empty()) {
-        return;
-    }
-
-    bool first = true;
+    m_boundingBox = StructureBoundingBox();  // Reset to invalid state
     for (const auto& piece : m_pieces) {
-        if (first) {
-            m_boundingBox = StructureBoundingBox(
-                piece->minX(), piece->minY(), piece->minZ(),
-                piece->maxX(), piece->maxY(), piece->maxZ());
-            first = false;
-        } else {
-            m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
-            m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
-        }
+        m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
+        m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
     }
 }
 

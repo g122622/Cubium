@@ -211,16 +211,15 @@ public:
      * @brief 用方块填充区域（边界和内部可以不同）
      */
     void fillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
-                        i32 xMin, i32 yMin, i32 zMin, i32 xMax, i32 yMax, i32 zMax,
-                        const BlockState* boundaryBlock, const BlockState* insideBlock,
-                        bool existingOnly = false);
+                        i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                        const BlockState* boundaryBlock, const BlockState* insideBlock);
 
     /**
      * @brief 用随机选择的方块填充区域
      */
     void fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                    i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                   bool alwaysReplace, math::Random& rng, BlockSelector& selector);
+                                   math::Random& rng, BlockSelector& selector);
 
     /**
      * @brief 随机放置单个方块
@@ -234,7 +233,7 @@ public:
      */
     void randomlyRareFillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                      i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
-                                     const BlockState* state, bool excludeAir = true);
+                                     const BlockState* state);
 
     /**
      * @brief 向下替换空气和液体
