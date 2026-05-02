@@ -49,9 +49,9 @@ async function runTask(task: string, iteration: number, taskIndex: number) {
               typeof block.content === "string"
                 ? block.content.slice(0, 300)
                 : JSON.stringify(block.content).slice(0, 300);
-            console.log(
-              `📋 工具结果: ${resultSummary}${block.content?.length > 300 ? "…" : ""}`,
-            );
+            // console.log(
+            //   `📋 工具结果: ${resultSummary}${block.content?.length > 300 ? "…" : ""}`,
+            // );
           }
         }
       }
@@ -79,6 +79,8 @@ async function main() {
     );
     for (let j = 0; j < tasklist.length; j++) {
       await runTask(tasklist[j], i, j);
+      await runTask("请你检查当前代码能否编译通过（cmake --build build --config RelWithDebInfo -j6），若编译失败则必须修复知道能通过", i, j);
+      await runTask("请你检查当前是否有未提交的更改，若有则生成提交信息并提交", i, j);
     }
     console.log(`\n========== 第 ${i + 1} 次循环结束 ==========\n`);
   }
