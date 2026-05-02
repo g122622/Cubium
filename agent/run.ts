@@ -1,4 +1,85 @@
 import { query, HookCallback, StopHookInput } from "@anthropic-ai/claude-agent-sdk";
+import fs from 'fs/promises';
+
+(async () => {
+
+/**
+ * 清洗 JSONL 文件内容，转换为人类可读的对话文本。
+ * - 保留用户直接输入的消息（role: user, type: text）
+ * - 保留助手的直接回复（role: assistant, type: text）
+ * - 跳过所有工具调用（tool_use）和工具返回结果（tool_result）
+ * - 保留待办事项（type: attachment, todo_reminder）和最后提示（last-prompt）作为摘要
+ *
+ * @param filePath - JSONL 文件路径
+ * @returns 清洗后的纯文本字符串
+ */
+async function cleanJsonlFile(filePath: string): Promise<string> {
+    /**
+     * 从消息的 content 数组中提取所有 type === 'text' 的文本内容。
+     * 跳过 tool_use 和 tool_result。
+     */
+    function extractTextFromContent(content: any[]): string {
+        if (!Array.isArray(content)) return '';
+        const textParts: string[] = [];
+        for (const item of content) {
+            if (item.type === 'text' && typeof item.text === 'string') {
+                textParts.push(item.text);
+            }
+        }
+        return textParts.join(' ').trim();
+    }
+
+    const content = await fs.readFile(filePath, 'utf-8');
+    const lines = content.split(/\r?\n/).filter(line => line.trim().length > 0);
+
+    const outputParts: string[] = [];
+
+    for (const line of lines) {
+        let obj: any;
+        try {
+            obj = JSON.parse(line);
+        } catch {
+            continue; // 忽略无效 JSON 行
+        }
+
+        // 1. 用户消息（直接提问或指令）
+        if (obj.type === 'user' && obj.message?.role === 'user') {
+            const userText = extractTextFromContent(obj.message.content);
+            if (userText) {
+                outputParts.push(`<User> ${userText} </User>\n`);
+            }
+        }
+
+        // 2. 助手消息（直接回复）
+        else if (obj.type === 'assistant' && obj.message?.role === 'assistant') {
+            const assistantText = extractTextFromContent(obj.message.content);
+            if (assistantText) {
+                outputParts.push(`<Assistant> ${assistantText} </Assistant>\n`);
+            }
+        }
+
+        // 3. 待办事项附件
+        else if (obj.type === 'attachment' && obj.attachment?.type === 'todo_reminder') {
+            const todoItems = obj.attachment.content;
+            if (Array.isArray(todoItems) && todoItems.length > 0) {
+                outputParts.push(`<TodoList> 待办事项:\n`);
+                for (const item of todoItems) {
+                    const status = item.status === 'completed' ? '[x]' : '[ ]';
+                    outputParts.push(`${status} ${item.content}\n`);
+                }
+                outputParts.push(`</TodoList>\n`);
+            }
+        }
+
+        // 4. 最后提示（last-prompt）
+        else if (obj.type === 'last-prompt' && obj.lastPrompt) {
+            outputParts.push(`<LastPrompt> ${obj.lastPrompt} </LastPrompt>\n`);
+        }
+    }
+
+    return outputParts.join('').trim();
+}
+
 
 const STOP_HOOK_PROMPT = `You are evaluating whether Claude should stop working.
 
@@ -31,7 +112,7 @@ async function evaluateShouldStop(
 
 ## 当前会话上下文
 - 会话 ID: ${sessionId}
-- 会话记录路径: ${transcriptPath}
+- 会话记录: ${await cleanJsonlFile(transcriptPath)}
 ${lastAssistantMessage ? `- 最后助手消息摘要: ${lastAssistantMessage.slice(0, 1000)}` : ""}
 
 请根据会话记录文件和上述上下文进行评估。
@@ -226,3 +307,5 @@ async function main() {
 }
 
 main().catch(console.error);
+
+})();
