@@ -3,6 +3,9 @@
 #include "../../BlockRegistry.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
@@ -300,6 +303,16 @@ BlockState StairsBlock::updatePostPlacement(
 
     MC_UNUSED(facingPos);
 
+    // 调度流体 tick
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            world.tickManager().scheduleFluidTick(
+                currentPos, *waterFluid, waterFluid->getTickDelay(world));
+        }
+    }
+
     // 计算新的形状
     BlockStateProperties::StairsShape newShape = calculateShape(state, world, currentPos);
 
@@ -385,6 +398,19 @@ bool StairsBlock::isStairs(const BlockState& state) {
     // 检查方块是否继承自 StairsBlock
     // 简化实现：检查是否有 STAIRS_SHAPE 属性
     return state.hasProperty(BlockStateProperties::STAIRS_SHAPE());
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* StairsBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 // ========== 私有方法 ==========

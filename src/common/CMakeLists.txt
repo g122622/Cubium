@@ -397,6 +397,7 @@ add_library(mc_common STATIC
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
     world/block/VanillaBlocks.cpp
+    world/block/IWaterLoggable.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
     world/block/blocks/FallingBlock.cpp

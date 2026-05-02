@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Block.hpp"
+#include "../IBucketPickupHandler.hpp"
 #include "../../fluid/Fluid.hpp"
 #include "../../fluid/FlowingFluid.hpp"
 #include "../../IWorld.hpp"
@@ -15,6 +16,7 @@ namespace block {
  * @brief 液体方块
  *
  * 与流体关联的方块，用于在世界中表示流体。
+ * 实现 IBucketPickupHandler 接口以支持用空桶舀水/岩浆。
  *
  * 参考: net.minecraft.block.LiquidBlock
  *
@@ -23,7 +25,7 @@ namespace block {
  * - 方块level=1-7 -> 流体level=1-7
  * - 方块level=8-15 -> 流体level=8 + falling=true（下落）
  */
-class LiquidBlock : public Block {
+class LiquidBlock : public Block, public IBucketPickupHandler {
 public:
     /**
      * @brief 构造液体方块
@@ -226,11 +228,12 @@ public:
      */
     void triggerMixEffects(IWorld& world, const BlockPos& pos);
 
-    // ========== 桶装流体 ==========
+    // ========== IBucketPickupHandler 接口实现 ==========
 
     /**
      * @brief 用桶舀起流体
      *
+     * 实现 IBucketPickupHandler 接口。
      * 如果是源头方块，移除流体并返回对应的流体。
      *
      * @param world 世界
@@ -238,7 +241,10 @@ public:
      * @param state 方块状态
      * @return 如果成功舀起返回流体指针，否则返回 nullptr
      */
-    [[nodiscard]] fluid::Fluid* pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state);
+    [[nodiscard]] fluid::Fluid* pickupFluid(
+        IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state) override;
 
 private:
     fluid::FlowingFluid& m_fluid;

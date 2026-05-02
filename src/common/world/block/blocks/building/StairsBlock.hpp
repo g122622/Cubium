@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -18,6 +19,7 @@ namespace blocks {
  * @brief 楼梯方块
  *
  * 支持内角/外角自动检测和连接。
+ * 实现 IWaterLoggable 接口以支持含水功能。
  *
  * 状态属性：
  * - FACING: 楼梯朝向 (NORTH, SOUTH, EAST, WEST) - 楼梯上升的方向
@@ -27,7 +29,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.StairsBlock
  */
-class StairsBlock : public Block {
+class StairsBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -80,6 +82,28 @@ public:
      * @return 如果是楼梯返回true
      */
     [[nodiscard]] static bool isStairs(const BlockState& state);
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     *
+     * 如果方块含水，返回水的流体状态。
+     *
+     * @param state 方块状态
+     * @return 流体状态指针
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     *
+     * @param state 方块状态
+     * @return 是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
 
 private:
     /**
