@@ -221,7 +221,7 @@ sequenceDiagram
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| spacing | 34 | 村庄平均间距 |
+| spacing | 32 | 村庄平均间距 |
 | separation | 8 | 最小分离距离 |
 | salt | 10387312 | 随机种子盐 |
 | size | 6 | Jigsaw 递归深度 |

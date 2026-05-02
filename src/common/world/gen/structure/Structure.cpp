@@ -1,12 +1,271 @@
 #include "Structure.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "../../IWorldWriter.hpp"
+#include "../../IWorld.hpp"
+#include "../../block/Block.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
+
+// ========== StructurePiece::BlockSelector ==========
+
+// 默认实现在子类中提供
+
+// ========== StructurePiece ==========
+
+StructurePiece::StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
+    : m_type(type)
+    , m_minX(minX), m_minY(minY), m_minZ(minZ)
+    , m_maxX(maxX), m_maxY(maxY), m_maxZ(maxZ)
+{
+}
+
+StructureBoundingBox StructurePiece::getBoundingBox() const {
+    return StructureBoundingBox(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
+}
+
+bool StructurePiece::intersectsChunk(i32 chunkX, i32 chunkZ) const {
+    i32 chunkMinX = chunkX << 4;
+    i32 chunkMinZ = chunkZ << 4;
+    i32 chunkMaxX = chunkMinX + 15;
+    i32 chunkMaxZ = chunkMinZ + 15;
+
+    return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
+           m_maxZ >= chunkMinZ && m_minZ <= chunkMaxZ;
+}
+
+bool StructurePiece::intersects(const StructureBoundingBox& box) const {
+    return m_maxX >= box.minX() && m_minX <= box.maxX() &&
+           m_maxY >= box.minY() && m_minY <= box.maxY() &&
+           m_maxZ >= box.minZ() && m_minZ <= box.maxZ();
+}
+
+void StructurePiece::offset(i32 dx, i32 dy, i32 dz) {
+    m_minX += dx;
+    m_minY += dy;
+    m_minZ += dz;
+    m_maxX += dx;
+    m_maxY += dy;
+    m_maxZ += dz;
+}
+
+void StructurePiece::setCoordBaseMode(Direction dir) {
+    m_coordBaseMode = dir;
+    if (dir == Direction::None) {
+        m_rotation = Rotation::None;
+        m_mirror = Mirror::None;
+    } else {
+        switch (dir) {
+            case Direction::South:
+                m_mirror = Mirror::LeftRight;
+                m_rotation = Rotation::None;
+                break;
+            case Direction::West:
+                m_mirror = Mirror::LeftRight;
+                m_rotation = Rotation::Clockwise90;
+                break;
+            case Direction::East:
+                m_mirror = Mirror::None;
+                m_rotation = Rotation::Clockwise90;
+                break;
+            default: // North
+                m_mirror = Mirror::None;
+                m_rotation = Rotation::None;
+                break;
+        }
+    }
+}
+
+i32 StructurePiece::getXWithOffset(i32 x, i32 z) const {
+    if (m_coordBaseMode == Direction::None) {
+        return x;
+    }
+    switch (m_coordBaseMode) {
+        case Direction::North:
+        case Direction::South:
+            return m_minX + x;
+        case Direction::West:
+            return m_maxX - z;
+        case Direction::East:
+            return m_minX + z;
+        default:
+            return x;
+    }
+}
+
+i32 StructurePiece::getYWithOffset(i32 y) const {
+    return m_coordBaseMode == Direction::None ? y : y + m_minY;
+}
+
+i32 StructurePiece::getZWithOffset(i32 x, i32 z) const {
+    if (m_coordBaseMode == Direction::None) {
+        return z;
+    }
+    switch (m_coordBaseMode) {
+        case Direction::North:
+            return m_maxZ - z;
+        case Direction::South:
+            return m_minZ + z;
+        case Direction::West:
+        case Direction::East:
+            return m_minZ + x;
+        default:
+            return z;
+    }
+}
+
+void StructurePiece::setBlockState(IWorldWriter& world, const BlockState* state,
+                                    i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) {
+    i32 worldX = getXWithOffset(x, z);
+    i32 worldY = getYWithOffset(y);
+    i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return;
+    }
+
+    // TODO: 应用镜像和旋转变换到方块状态
+    // 目前先直接设置，后续需要在 BlockState 中实现 mirror() 和 rotate() 方法
+
+    world.setBlock(worldX, worldY, worldZ, state, 2);
+}
+
+const BlockState* StructurePiece::getBlockStateFromPos(IWorld& world,
+                                                        i32 x, i32 y, i32 z,
+                                                        const StructureBoundingBox& bounds) const {
+    i32 worldX = getXWithOffset(x, z);
+    i32 worldY = getYWithOffset(y);
+    i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return nullptr;
+    }
+
+    return world.getBlockState(worldX, worldY, worldZ);
+}
+
+void StructurePiece::fillWithAir(IWorldWriter& world, const StructureBoundingBox& bounds,
+                                  i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ) {
+    for (i32 y = minY; y <= maxY; ++y) {
+        for (i32 x = minX; x <= maxX; ++x) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                setBlockState(world, nullptr, x, y, z, bounds);
+            }
+        }
+    }
+}
+
+void StructurePiece::fillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
+                                     i32 xMin, i32 yMin, i32 zMin, i32 xMax, i32 yMax, i32 zMax,
+                                     const BlockState* boundaryBlock, const BlockState* insideBlock,
+                                     bool existingOnly) {
+    for (i32 y = yMin; y <= yMax; ++y) {
+        for (i32 x = xMin; x <= xMax; ++x) {
+            for (i32 z = zMin; z <= zMax; ++z) {
+                if (!existingOnly) {
+                    bool isBoundary = (y == yMin || y == yMax ||
+                                       x == xMin || x == xMax ||
+                                       z == zMin || z == zMax);
+                    const BlockState* state = isBoundary ? boundaryBlock : insideBlock;
+                    setBlockState(world, state, x, y, z, bounds);
+                }
+            }
+        }
+    }
+}
+
+void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
+                                               i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                                               bool alwaysReplace, math::Random& rng, BlockSelector& selector) {
+    for (i32 y = minY; y <= maxY; ++y) {
+        for (i32 x = minX; x <= maxX; ++x) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                bool isWall = (y == minY || y == maxY ||
+                               x == minX || x == maxX ||
+                               z == minZ || z == maxZ);
+                selector.selectBlocks(rng, x, y, z, isWall);
+                setBlockState(world, selector.getBlockState(), x, y, z, bounds);
+            }
+        }
+    }
+}
+
+void StructurePiece::randomlyPlaceBlock(IWorldWriter& world, const StructureBoundingBox& bounds,
+                                         math::Random& rng, f32 chance, i32 x, i32 y, i32 z,
+                                         const BlockState* state) {
+    if (rng.nextFloat() < chance) {
+        setBlockState(world, state, x, y, z, bounds);
+    }
+}
+
+void StructurePiece::randomlyRareFillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
+                                                 i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                                                 const BlockState* state, bool excludeAir) {
+    f32 dx = static_cast<f32>(maxX - minX + 1);
+    f32 dy = static_cast<f32>(maxY - minY + 1);
+    f32 dz = static_cast<f32>(maxZ - minZ + 1);
+    f32 cx = static_cast<f32>(minX) + dx / 2.0f;
+    f32 cz = static_cast<f32>(minZ) + dz / 2.0f;
+
+    for (i32 y = minY; y <= maxY; ++y) {
+        f32 fy = static_cast<f32>(y - minY) / dy;
+        for (i32 x = minX; x <= maxX; ++x) {
+            f32 fx = (static_cast<f32>(x) - cx) / (dx * 0.5f);
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                f32 fz = (static_cast<f32>(z) - cz) / (dz * 0.5f);
+
+                f32 distSq = fx * fx + fy * fy + fz * fz;
+                if (distSq <= 1.05f) {
+                    setBlockState(world, state, x, y, z, bounds);
+                }
+            }
+        }
+    }
+}
+
+void StructurePiece::replaceAirAndLiquidDownwards(IWorld& world, const BlockState* state,
+                                                   i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) {
+    i32 worldX = getXWithOffset(x, z);
+    i32 worldY = getYWithOffset(y);
+    i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return;
+    }
+
+    while (worldY > 1) {
+        const BlockState* current = world.getBlockState(worldX, worldY, worldZ);
+        if (current == nullptr || current->isAir() || current->getMaterial().isLiquid()) {
+            world.setBlockState(worldX, worldY, worldZ, state, 2);
+            --worldY;
+        } else {
+            break;
+        }
+    }
+}
+
+void StructurePiece::buildComponent(StructurePiece* /*component*/,
+                                    std::vector<std::unique_ptr<StructurePiece>>& /*pieces*/,
+                                    math::Random& /*rng*/) {
+    // 默认实现为空，子类可以覆盖
+}
+
+StructurePiece* StructurePiece::findIntersecting(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    const StructureBoundingBox& bounds)
+{
+    for (auto& piece : pieces) {
+        if (piece && piece->intersects(bounds)) {
+            return piece.get();
+        }
+    }
+    return nullptr;
+}
+
+// ========== Structure ==========
 
 bool Structure::isValidBiome(BiomeId biomeId) const {
     const auto& biomes = validBiomes();
@@ -20,8 +279,6 @@ bool Structure::canGenerate(
     i32 /*chunkX*/,
     i32 /*chunkZ*/)
 {
-    // 默认实现：总是可以生成
-    // 子类可以覆盖此方法以添加额外的检查
     return true;
 }
 
@@ -32,8 +289,6 @@ std::unique_ptr<StructureStart> Structure::generate(
     i32 chunkX,
     i32 chunkZ) const
 {
-    // 默认实现：创建一个空的结构起点
-    // 子类应该覆盖此方法以生成实际的结构片段
     return std::make_unique<StructureStart>(chunkX, chunkZ);
 }
 
@@ -44,16 +299,12 @@ void Structure::placeInChunk(
     i32 chunkX,
     i32 chunkZ) const
 {
-    // 计算区块边界框
     StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
 
-    // 创建随机数生成器
-    // 注意：MC 1.16.5 使用 setLargeFeatureSeed 算法
     math::Random rng = createRandom(
         static_cast<i64>(chunkX) * 341873128712LL ^ static_cast<i64>(chunkZ) * 132897987541LL,
         chunkX, chunkZ, 0);
 
-    // 遍历所有片段，放置在当前区块内的部分
     for (const auto& piece : start.pieces()) {
         if (piece->intersectsChunk(chunkX, chunkZ)) {
             piece->generate(world, rng, chunkX, chunkZ, chunkBounds);
@@ -73,26 +324,18 @@ bool Structure::findStructureStart(
         return false;
     }
 
-    // 计算网格坐标（使用整数 floorDiv 算法，与 MC 1.16.5 一致）
     i32 gridX = math::floorDiv(chunkX, spacing);
     i32 gridZ = math::floorDiv(chunkZ, spacing);
 
-    // 创建随机数生成器
-    // 注意：MC 1.16.5 使用 setLargeFeatureSeedWithSalt，常量为 341873128712LL
     u64 combinedSeed = static_cast<u64>(gridX) * 341873128712ULL +
                        static_cast<u64>(gridZ) * 132897987541ULL +
                        static_cast<u64>(seed) + static_cast<u64>(settings.salt);
     math::Random rng(static_cast<i64>(combinedSeed));
 
-    // 计算偏移
-    // MC 1.16.5 区分 constrained 和非 constrained 结构
-    // constrained 结构使用单次随机，非 constrained 使用两次随机平均
-    // 大多数结构是 constrained 的（isConstrained() 返回 true）
     i32 offsetRange = spacing - separation;
     i32 offsetX = rng.nextInt(offsetRange);
     i32 offsetZ = rng.nextInt(offsetRange);
 
-    // 计算起始区块坐标
     outStartX = gridX * spacing + offsetX;
     outStartZ = gridZ * spacing + offsetZ;
 
@@ -100,32 +343,14 @@ bool Structure::findStructureStart(
 }
 
 math::Random Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt) {
-    // MC 1.16.5 的 setLargeFeatureSeedWithSalt 算法
     u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL +
                        static_cast<u64>(chunkZ) * 132897987541ULL +
                        static_cast<u64>(seed) + static_cast<u64>(salt);
     return math::Random(static_cast<i64>(combinedSeed));
 }
 
-// StructurePiece 实现
-StructurePiece::StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
-    : m_type(type)
-    , m_minX(minX), m_minY(minY), m_minZ(minZ)
-    , m_maxX(maxX), m_maxY(maxY), m_maxZ(maxZ)
-{
-}
+// ========== StructureStart ==========
 
-bool StructurePiece::intersectsChunk(i32 chunkX, i32 chunkZ) const {
-    i32 chunkMinX = chunkX << 4;
-    i32 chunkMinZ = chunkZ << 4;
-    i32 chunkMaxX = chunkMinX + 15;
-    i32 chunkMaxZ = chunkMinZ + 15;
-
-    return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
-           m_maxZ >= chunkMinZ && m_minZ <= chunkMaxZ;
-}
-
-// StructureStart 实现
 StructureStart::StructureStart(i32 chunkX, i32 chunkZ)
     : m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
@@ -133,7 +358,43 @@ StructureStart::StructureStart(i32 chunkX, i32 chunkZ)
 }
 
 void StructureStart::addPiece(std::unique_ptr<StructurePiece> piece) {
-    m_pieces.push_back(std::move(piece));
+    if (piece) {
+        m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
+        m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        m_pieces.push_back(std::move(piece));
+    }
+}
+
+void StructureStart::recalculateStructureSize() {
+    if (m_pieces.empty()) {
+        return;
+    }
+
+    bool first = true;
+    for (const auto& piece : m_pieces) {
+        if (first) {
+            m_boundingBox = StructureBoundingBox(
+                piece->minX(), piece->minY(), piece->minZ(),
+                piece->maxX(), piece->maxY(), piece->maxZ());
+            first = false;
+        } else {
+            m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
+            m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        }
+    }
+}
+
+bool StructureStart::isRefCountBelowMax() const {
+    return m_references < getMaxRefCount();
+}
+
+void StructureStart::offset(i32 dx, i32 dy, i32 dz) {
+    for (auto& piece : m_pieces) {
+        piece->offset(dx, dy, dz);
+    }
+    m_boundingBox = StructureBoundingBox(
+        m_boundingBox.minX() + dx, m_boundingBox.minY() + dy, m_boundingBox.minZ() + dz,
+        m_boundingBox.maxX() + dx, m_boundingBox.maxY() + dy, m_boundingBox.maxZ() + dz);
 }
 
 } // namespace mc::world::gen::structure

@@ -328,7 +328,8 @@ void MineshaftCorridor::generate(IWorldWriter& world, math::Random& rng,
     }
 
     // 随机生成宝箱矿车
-    if (rng.nextInt(20) == 0) {
+    // MC 1.16.5: 概率为 1%（nextInt(100) == 0）
+    if (rng.nextInt(100) == 0) {
         i32 cx = minX() + rng.nextInt(maxX() - minX());
         i32 cz = minZ() + rng.nextInt(maxZ() - minZ());
         generateChestMinecart(world, cx, minY() + 1, cz, rng, chunkBounds);

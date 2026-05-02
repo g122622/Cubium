@@ -99,8 +99,9 @@ private:
     void initializeBiomes();
 
     VillageConfig m_config;
-    // MC 1.16.5: spacing=34, separation=8, salt=10387312
-    static constexpr StructureSeparationSettings m_settings{34, 8, 10387312};
+    // MC 1.16.5: spacing=32, separation=8, salt=10387312
+    // 注意：spacing=32（每32个区块检查一次），而不是34
+    static constexpr StructureSeparationSettings m_settings{32, 8, 10387312};
     static const String m_name;
     std::vector<BiomeId> m_validBiomes;
 };

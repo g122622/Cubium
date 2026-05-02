@@ -66,6 +66,57 @@ enum class AxisDirection : u8 {
 };
 
 /**
+ * @brief Rotation工具函数
+ */
+namespace Rotations {
+    /**
+     * @brief 将旋转枚举转换为角度
+     */
+    constexpr i32 toDegrees(Rotation rot) {
+        switch (rot) {
+            case Rotation::None: return 0;
+            case Rotation::Clockwise90: return 90;
+            case Rotation::Clockwise180: return 180;
+            case Rotation::CounterClockwise90: return 270;
+        }
+        return 0;
+    }
+
+    /**
+     * @brief 旋转角度相加
+     */
+    inline Rotation add(Rotation a, Rotation b) {
+        i32 sum = static_cast<i32>(a) + static_cast<i32>(b);
+        return static_cast<Rotation>(sum % 4);
+    }
+
+    /**
+     * @brief 获取旋转的逆
+     */
+    constexpr Rotation getInverse(Rotation rot) {
+        switch (rot) {
+            case Rotation::None: return Rotation::None;
+            case Rotation::Clockwise90: return Rotation::CounterClockwise90;
+            case Rotation::Clockwise180: return Rotation::Clockwise180;
+            case Rotation::CounterClockwise90: return Rotation::Clockwise90;
+        }
+        return Rotation::None;
+    }
+}
+
+/**
+ * @brief Mirror工具函数
+ */
+namespace Mirrors {
+    /**
+     * @brief 获取镜像的逆（镜像的逆是自身）
+     */
+    constexpr Mirror getInverse(Mirror mir) {
+        return mir; // 镜像是自逆的
+    }
+}
+
+/**
  * @brief Direction工具函数
  */
 namespace Directions {

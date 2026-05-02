@@ -2,12 +2,13 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../../util/math/random/McRandom.hpp"
+#include "../../../util/Direction.hpp"
 #include "../../biome/Biome.hpp"
 #include "StructureBoundingBox.hpp"
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace mc {
 
@@ -16,6 +17,8 @@ class IWorld;
 class IWorldWriter;
 class ChunkPrimer;
 class IChunkGenerator;
+class BlockState;
+class BlockPos;
 
 namespace world::gen {
     class StructureBoundingBox;
@@ -23,44 +26,7 @@ namespace world::gen {
 
 namespace world::gen::structure {
 
-/**
- * @brief 方向枚举
- *
- * 用于结构片段的朝向。
- * 参考 MC 1.16.5 Direction 枚举。
- */
-enum class Direction : u8 {
-    Down = 0,
-    Up = 1,
-    North = 2,
-    South = 3,
-    West = 4,
-    East = 5,
-    None = 255
-};
-
-/**
- * @brief 旋转枚举
- *
- * 参考 MC 1.16.5 Rotation 枚举。
- */
-enum class Rotation : u8 {
-    None = 0,
-    Clockwise90 = 1,
-    Clockwise180 = 2,
-    CounterClockwise90 = 3
-};
-
-/**
- * @brief 镜像枚举
- *
- * 参考 MC 1.16.5 Mirror 枚举。
- */
-enum class Mirror : u8 {
-    None = 0,
-    LeftRight = 1,   // Z 轴镜像
-    FrontBack = 2    // X 轴镜像
-};
+// Direction.hpp 中已定义 Direction, Axis, Rotation, Mirror, Directions 等
 
 /**
  * @brief 结构类型枚举
@@ -95,9 +61,38 @@ struct StructureSeparationSettings {
 
 /**
  * @brief 结构片段基类
+ *
+ * 参考 MC 1.16.5 StructurePiece。
+ * 提供结构片段的通用功能，包括坐标变换、方块放置等。
  */
 class StructurePiece {
 public:
+    /**
+     * @brief 方块选择器抽象基类
+     *
+     * 用于 fillWithRandomizedBlocks 方法中的随机方块选择。
+     */
+    class BlockSelector {
+    public:
+        BlockSelector() : m_blockState(nullptr) {}
+        virtual ~BlockSelector() = default;
+
+        /**
+         * @brief 选择方块
+         * @param rng 随机数生成器
+         * @param x X 坐标
+         * @param y Y 坐标
+         * @param z Z 坐标
+         * @param isWall 是否是墙壁（边界）
+         */
+        virtual void selectBlocks(math::Random& rng, i32 x, i32 y, i32 z, bool isWall) = 0;
+
+        [[nodiscard]] const BlockState* getBlockState() const { return m_blockState; }
+
+    protected:
+        const BlockState* m_blockState;
+    };
+
     StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
     virtual ~StructurePiece() = default;
 
@@ -109,7 +104,159 @@ public:
     [[nodiscard]] i32 maxY() const { return m_maxY; }
     [[nodiscard]] i32 maxZ() const { return m_maxZ; }
 
+    /**
+     * @brief 获取边界框
+     */
+    [[nodiscard]] StructureBoundingBox getBoundingBox() const;
+
+    /**
+     * @brief 检查是否与区块相交
+     */
     [[nodiscard]] bool intersectsChunk(i32 chunkX, i32 chunkZ) const;
+
+    /**
+     * @brief 检查是否与另一个边界框相交
+     */
+    [[nodiscard]] bool intersects(const StructureBoundingBox& box) const;
+
+    /**
+     * @brief 移动边界框
+     */
+    void offset(i32 dx, i32 dy, i32 dz);
+
+    /**
+     * @brief 获取基础方向
+     */
+    [[nodiscard]] Direction getCoordBaseMode() const { return m_coordBaseMode; }
+
+    /**
+     * @brief 设置基础方向（自动设置镜像和旋转）
+     */
+    void setCoordBaseMode(Direction dir);
+
+    /**
+     * @brief 获取镜像
+     */
+    [[nodiscard]] Mirror getMirror() const { return m_mirror; }
+
+    /**
+     * @brief 设置镜像
+     */
+    void setMirror(Mirror mirror) { m_mirror = mirror; }
+
+    /**
+     * @brief 获取旋转
+     */
+    [[nodiscard]] Rotation getRotation() const { return m_rotation; }
+
+    /**
+     * @brief 设置旋转
+     */
+    void setRotation(Rotation rotation) { m_rotation = rotation; }
+
+    // ========== 坐标变换方法 ==========
+
+    /**
+     * @brief 根据 X 坐标和相对 Z 坐标计算世界 X 坐标
+     *
+     * 参考 MC 1.16.5 StructurePiece.getXWithOffset
+     */
+    [[nodiscard]] i32 getXWithOffset(i32 x, i32 z) const;
+
+    /**
+     * @brief 根据 Y 坐标计算世界 Y 坐标
+     *
+     * 参考 MC 1.16.5 StructurePiece.getYWithOffset
+     */
+    [[nodiscard]] i32 getYWithOffset(i32 y) const;
+
+    /**
+     * @brief 根据 X 坐标和相对 Z 坐标计算世界 Z 坐标
+     *
+     * 参考 MC 1.16.5 StructurePiece.getZWithOffset
+     */
+    [[nodiscard]] i32 getZWithOffset(i32 x, i32 z) const;
+
+    // ========== 方块放置方法 ==========
+
+    /**
+     * @brief 在指定位置放置方块（应用镜像和旋转）
+     *
+     * 参考 MC 1.16.5 StructurePiece.setBlockState
+     */
+    void setBlockState(IWorldWriter& world, const BlockState* state,
+                       i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
+
+    /**
+     * @brief 从位置获取方块状态
+     * @param world 世界接口
+     * @param x 相对 X 坐标
+     * @param y 相对 Y 坐标
+     * @param z 相对 Z 坐标
+     * @param bounds 边界框
+     * @return 方块状态，如果超出边界或位置无效返回 nullptr
+     * @note 需要子类提供世界读取能力，默认实现返回 nullptr
+     */
+    [[nodiscard]] const BlockState* getBlockStateFromPos(IWorld& world,
+                                                          i32 x, i32 y, i32 z,
+                                                          const StructureBoundingBox& bounds) const;
+
+    /**
+     * @brief 用空气填充区域
+     */
+    void fillWithAir(IWorldWriter& world, const StructureBoundingBox& bounds,
+                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
+
+    /**
+     * @brief 用方块填充区域（边界和内部可以不同）
+     */
+    void fillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
+                        i32 xMin, i32 yMin, i32 zMin, i32 xMax, i32 yMax, i32 zMax,
+                        const BlockState* boundaryBlock, const BlockState* insideBlock,
+                        bool existingOnly = false);
+
+    /**
+     * @brief 用随机选择的方块填充区域
+     */
+    void fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
+                                   i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                                   bool alwaysReplace, math::Random& rng, BlockSelector& selector);
+
+    /**
+     * @brief 随机放置单个方块
+     */
+    void randomlyPlaceBlock(IWorldWriter& world, const StructureBoundingBox& bounds,
+                            math::Random& rng, f32 chance, i32 x, i32 y, i32 z,
+                            const BlockState* state);
+
+    /**
+     * @brief 球形填充（用于矿井房间等）
+     */
+    void randomlyRareFillWithBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
+                                     i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
+                                     const BlockState* state, bool excludeAir = true);
+
+    /**
+     * @brief 向下替换空气和液体
+     * @param world 世界接口
+     * @param state 要放置的方块状态
+     * @param x 相对 X 坐标
+     * @param y 起始 Y 坐标
+     * @param z 相对 Z 坐标
+     * @param bounds 边界框
+     * @note 需要子类提供世界读取能力
+     */
+    void replaceAirAndLiquidDownwards(IWorld& world, const BlockState* state,
+                                       i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
+
+    // ========== 结构构建方法 ==========
+
+    /**
+     * @brief 构建组件（由子类覆盖以添加连接组件）
+     *
+     * 参考 MC 1.16.5 StructurePiece.buildComponent
+     */
+    virtual void buildComponent(StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng);
 
     /**
      * @brief 在区块中生成片段
@@ -123,14 +270,29 @@ public:
                           i32 chunkX, i32 chunkZ,
                           const StructureBoundingBox& chunkBounds) = 0;
 
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 查找与边界框相交的片段
+     */
+    [[nodiscard]] static StructurePiece* findIntersecting(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        const StructureBoundingBox& bounds);
+
 protected:
     i32 m_type;
     i32 m_minX, m_minY, m_minZ;
     i32 m_maxX, m_maxY, m_maxZ;
+    Direction m_coordBaseMode = Direction::None;
+    Mirror m_mirror = Mirror::None;
+    Rotation m_rotation = Rotation::None;
 };
 
 /**
  * @brief 结构实例
+ *
+ * 参考 MC 1.16.5 StructureStart。
+ * 表示一个结构的起点，包含所有组成片段。
  */
 class StructureStart {
 public:
@@ -145,10 +307,49 @@ public:
     [[nodiscard]] i32 chunkX() const { return m_chunkX; }
     [[nodiscard]] i32 chunkZ() const { return m_chunkZ; }
 
+    /**
+     * @brief 获取边界框
+     */
+    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const { return m_boundingBox; }
+
+    /**
+     * @brief 重新计算结构大小
+     *
+     * 根据所有片段的边界框计算整体边界。
+     */
+    void recalculateStructureSize();
+
+    /**
+     * @brief 检查引用计数是否低于最大值
+     */
+    [[nodiscard]] bool isRefCountBelowMax() const;
+
+    /**
+     * @brief 增加引用计数
+     */
+    void incrementRefCount() { ++m_references; }
+
+    /**
+     * @brief 获取引用计数
+     */
+    [[nodiscard]] i32 getRefCount() const { return m_references; }
+
+    /**
+     * @brief 获取最大引用计数
+     */
+    [[nodiscard]] static constexpr i32 getMaxRefCount() { return 1; }
+
+    /**
+     * @brief 移动结构
+     */
+    void offset(i32 dx, i32 dy, i32 dz);
+
 private:
     std::vector<std::unique_ptr<StructurePiece>> m_pieces;
+    StructureBoundingBox m_boundingBox;
     i32 m_chunkX;
     i32 m_chunkZ;
+    i32 m_references = 0;  ///< 引用计数，用于追踪多少个区块引用此结构
 };
 
 /**
