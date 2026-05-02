@@ -138,6 +138,8 @@ const tasklist = [
   "/align 船系统",
   "/align 骑乘系统",
   "/align 天气系统",
+  "/align 库存系统",
+  "/align 容器系统",
   "/align 下界与主世界之间的传送",
 ];
 
