@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -14,11 +15,11 @@ namespace blocks {
  * 灯笼是一种光源方块：
  * - 可以放置在地上或悬挂在天花板上
  * - 光照等级15（普通灯笼）或10（灵魂灯笼）
- * - 水中不可放置
+ * - 实现 IWaterLoggable 接口支持含水功能
  *
  * 参考: net.minecraft.block.LanternBlock
  */
-class LanternBlock : public Block {
+class LanternBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -83,6 +84,20 @@ public:
         MC_UNUSED(world);
         MC_UNUSED(pos);
         return m_lightValue;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
     }
 
 protected:

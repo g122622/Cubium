@@ -1,5 +1,9 @@
 #include "SeaPickleBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
@@ -52,7 +56,8 @@ BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context) {
     BlockPos pos = context.placementPos();
 
     // 检查是否在水中
-    bool waterlogged = false;  // TODO: 检查流体状态
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
 
     // 检查是否已有海泡菜（堆叠）
     const BlockState* existingState = world.getBlockState(pos);
@@ -100,6 +105,13 @@ BlockState SeaPickleBlock::updatePostPlacement(
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
+    // 处理含水状态
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
     // 检查下方支撑
     if (facing == Direction::Down) {
         IBlockReader& blockReader = static_cast<IBlockReader&>(world);
@@ -128,6 +140,19 @@ u8 SeaPickleBlock::getLightLevel(const BlockState& state) const {
 const CollisionShape& SeaPickleBlock::getShape(const BlockState& state) const {
     i32 count = getPickles(state);
     return m_shapesByCount[std::clamp(count - 1, 0, 3)];
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* SeaPickleBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 // ========== KelpBlock ==========

@@ -3,6 +3,9 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../../world/fluid/Fluid.hpp"
+#include "../../../world/fluid/FluidRegistry.hpp"
+#include "../../../world/tick/manager/TickManager.hpp"
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntityType.hpp"
@@ -42,6 +45,12 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
     const BlockState* waterState = VanillaBlocks::getState(VanillaBlocks::WATER);
     if (waterState != nullptr) {
         world.setBlockState(placePos, waterState, 3);
+
+        // 调度流体 tick
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            world.tickManager().scheduleFluidTick(placePos, *waterFluid, waterFluid->getTickDelay(world));
+        }
     }
 
     // 在水中生成鱼

@@ -112,6 +112,19 @@ const CollisionShape& CoralBlock::getShape(const BlockState& state) const {
     return fullShape;
 }
 
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* CoralBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
+}
+
 // ========== CoralFanBlock ==========
 
 CoralFanBlock::CoralFanBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties)
@@ -215,6 +228,19 @@ bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direct
     }
 
     return adjState->isSolidSide(world, adjPos, direction);
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* CoralFanBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 // ========== CoralWallFanBlock ==========
@@ -347,6 +373,19 @@ bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Di
     }
 
     return adjState->isSolidSide(world, adjPos, direction);
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* CoralWallFanBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 // ========== CoralBlockBlock ==========

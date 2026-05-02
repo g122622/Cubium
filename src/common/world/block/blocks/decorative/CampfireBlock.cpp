@@ -1,5 +1,9 @@
 #include "CampfireBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
@@ -35,17 +39,49 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
 }
 
 BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context) {
-    // 默认点燃，非信号火，非水淹
+    const IWorld& world = context.getWorld();
+    BlockPos pos = context.placementPos();
+
+    // 检查是否含水
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+
+    // 如果在水中，默认不点燃
+    bool lit = !waterlogged;
+
+    // 默认点燃，非信号火
     return defaultState()
-        .with(BlockStateProperties::LIT(), true)
+        .with(BlockStateProperties::LIT(), lit)
         .with(BlockStateProperties::SIGNAL_FIRE(), false)
-        .with(BlockStateProperties::WATERLOGGED(), false);
+        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+}
+
+BlockState CampfireBlock::updatePostPlacement(
+    const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos) {
+
+    MC_UNUSED(facing);
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
+    // 处理含水状态
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
+    return state;
 }
 
 void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
     MC_UNUSED(random);
     // 如果被水淹没，熄灭
-    if (isWaterlogged(state)) {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
         extinguish(world, pos, state);
         return;
     }
@@ -79,7 +115,7 @@ u8 CampfireBlock::getLightLevel(
 }
 
 void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state) {
-    if (!isLit(state) && !isWaterlogged(state)) {
+    if (!isLit(state) && !state.get(BlockStateProperties::WATERLOGGED())) {
         BlockState newState = state.with(BlockStateProperties::LIT(), true);
         world.setBlockState(pos, &newState, 3);
         // TODO: 播放点燃音效和粒子效果
@@ -94,6 +130,19 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
         world.setBlockState(pos, &newState, 3);
         // TODO: 播放熄灭音效和烟雾粒子效果
     }
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 // ========== SoulCampfireBlock 实现 ==========

@@ -275,5 +275,18 @@ size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStatePrope
     return facingIdx * 4 + openIdx + halfIdx;
 }
 
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* TrapDoorBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
+}
+
 } // namespace blocks
 } // namespace mc

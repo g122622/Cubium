@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -13,13 +14,13 @@ namespace blocks {
  *
  * 梯子是一种可以攀爬的方块：
  * - 只能附在固体方块的侧面
- * - 水logged支持
+ * - 实现 IWaterLoggable 接口支持含水功能
  * - 可以攀爬
  * - 没有碰撞箱
  *
  * 参考: net.minecraft.block.LadderBlock
  */
-class LadderBlock : public Block {
+class LadderBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -96,6 +97,20 @@ public:
         MC_UNUSED(entity);
         MC_UNUSED(state);
         return true;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
     }
 
 protected:

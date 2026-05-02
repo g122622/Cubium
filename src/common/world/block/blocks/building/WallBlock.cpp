@@ -294,5 +294,16 @@ size_t WallBlock::getShapeIndex(
     return idx;
 }
 
+const fluid::FluidState* WallBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
+}
+
 } // namespace blocks
 } // namespace mc

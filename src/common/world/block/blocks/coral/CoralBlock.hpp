@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -28,13 +29,14 @@ enum class CoralColor : u8 {
  * @brief 珊瑚方块基类
  *
  * 水下的珊瑚方块，离开水会变成死珊瑚。
+ * 实现 IWaterLoggable 接口支持含水功能。
  *
  * 状态属性：
  * - WATERLOGGED: 是否含水
  *
  * 参考: net.minecraft.block.CoralBlock
  */
-class CoralBlock : public Block {
+class CoralBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -79,6 +81,20 @@ public:
         return false;
     }
 
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
+
 protected:
     /**
      * @brief 检查周围是否有水
@@ -95,6 +111,7 @@ protected:
  * @brief 珊瑚扇方块
  *
  * 墙上的珊瑚扇，可以放置在墙面上。
+ * 实现 IWaterLoggable 接口支持含水功能。
  *
  * 状态属性：
  * - WATERLOGGED: 是否含水
@@ -102,7 +119,7 @@ protected:
  *
  * 参考: net.minecraft.block.CoralFanBlock
  */
-class CoralFanBlock : public Block {
+class CoralFanBlock : public Block, public IWaterLoggable {
 public:
     CoralFanBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties);
     ~CoralFanBlock() override = default;
@@ -139,6 +156,20 @@ public:
         return false;
     }
 
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
+
 protected:
     /**
      * @brief 检查是否可以附着到指定方向
@@ -155,6 +186,7 @@ protected:
  * @brief 墙珊瑚扇方块
  *
  * 类似珊瑚扇，但专门用于墙面放置。
+ * 实现 IWaterLoggable 接口支持含水功能。
  *
  * 状态属性：
  * - WATERLOGGED: 是否含水
@@ -162,7 +194,7 @@ protected:
  *
  * 参考: net.minecraft.block.CoralWallFanBlock
  */
-class CoralWallFanBlock : public Block {
+class CoralWallFanBlock : public Block, public IWaterLoggable {
 public:
     CoralWallFanBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties);
     ~CoralWallFanBlock() override = default;
@@ -197,6 +229,20 @@ public:
     [[nodiscard]] bool isOpaque(const BlockState& state) const override {
         MC_UNUSED(state);
         return false;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
     }
 
 protected:

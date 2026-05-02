@@ -1,4 +1,9 @@
 #include "LadderBlock.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 
@@ -43,8 +48,16 @@ BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context) {
         facing = Direction::North;
     }
 
+    // 检查是否含水
+    const IWorld& world = context.getWorld();
+    BlockPos pos = context.placementPos();
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+
     // 梯子朝向是附着面的反方向
-    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing));
+    return defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing))
+        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 bool LadderBlock::isValidPosition(
@@ -67,11 +80,13 @@ BlockState LadderBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
-    MC_UNUSED(facingState);
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
-    MC_UNUSED(facingPos);
+    // 处理含水状态
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
     // TODO: 检查背面方块是否仍然存在
     return state;
 }
@@ -105,6 +120,19 @@ const CollisionShape& LadderBlock::getCollisionShape(const BlockState& state) co
     // 梯子没有碰撞箱
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* LadderBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 } // namespace blocks

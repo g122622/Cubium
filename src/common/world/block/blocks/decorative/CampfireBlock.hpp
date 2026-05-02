@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -21,6 +22,7 @@ namespace blocks {
  * - 烹饪：可以烹饪食物（最多4个）
  * - 烟雾：产生向上飘的烟雾粒子
  * - 伤害：站在上面会造成伤害
+ * - 实现 IWaterLoggable 接口支持含水功能
  *
  * 状态属性：
  * - LIT: 是否点燃
@@ -30,7 +32,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.CampfireBlock
  */
-class CampfireBlock : public Block {
+class CampfireBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -43,6 +45,19 @@ public:
     // ========== 状态属性 ==========
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    // ========== 更新 ==========
+
+    /**
+     * @brief 邻居更新
+     */
+    BlockState updatePostPlacement(
+        const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
     // ========== Tick ==========
 
@@ -88,13 +103,6 @@ public:
     }
 
     /**
-     * @brief 是否被水淹没
-     */
-    [[nodiscard]] static bool isWaterlogged(const BlockState& state) {
-        return state.get(BlockStateProperties::WATERLOGGED());
-    }
-
-    /**
      * @brief 是否为信号火
      */
     [[nodiscard]] static bool isSignalFire(const BlockState& state) {
@@ -110,6 +118,20 @@ public:
      * @brief 熄灭营火
      */
     static void extinguish(IWorld& world, const BlockPos& pos, BlockState& state);
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
 
 protected:
     /// 营火形状

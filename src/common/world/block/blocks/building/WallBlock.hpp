@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -18,6 +19,8 @@ namespace blocks {
  * @brief 墙方块
  *
  * 支持与相邻墙/栅栏连接，并自动调整高度。
+ * 实现 IWaterLoggable 接口支持含水功能。
+ *
  * 状态属性：
  * - UP: 是否有顶部突出
  * - NORTH/WEST/EAST/SOUTH: 各方向连接高度 (NONE, LOW, TALL)
@@ -25,7 +28,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.WallBlock
  */
-class WallBlock : public Block {
+class WallBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -62,6 +65,20 @@ public:
      * @return 如果是墙返回 true
      */
     [[nodiscard]] static bool isWall(const BlockState& state);
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
 
     // ========== 红石连接 ==========
 

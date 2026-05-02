@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -19,6 +20,7 @@ namespace blocks {
  * @brief 活板门方块
  *
  * 可被玩家或红石控制开关，可以放置在方块的顶部或底部。
+ * 实现 IWaterLoggable 接口支持含水功能。
  *
  * 状态属性：
  * - HORIZONTAL_FACING: 水平朝向 (NORTH, SOUTH, EAST, WEST)
@@ -29,7 +31,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.TrapDoorBlock
  */
-class TrapDoorBlock : public Block {
+class TrapDoorBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -122,6 +124,20 @@ public:
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override {
         MC_UNUSED(state);
         return Material::PushReaction::Destroy;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
     }
 
 private:

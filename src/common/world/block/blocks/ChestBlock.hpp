@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Block.hpp"
+#include "../IWaterLoggable.hpp"
 #include "../Material.hpp"
 #include "../BlockPos.hpp"
 #include "../../blockentity/BlockEntityType.hpp"
@@ -23,6 +24,8 @@ namespace blocks {
  * - TYPE: 箱子类型（SINGLE/LEFT/RIGHT）
  * - WATERLOGGED: 是否含水
  *
+ * 实现 IWaterLoggable 接口支持含水功能。
+ *
  * 参考: net.minecraft.block.ChestBlock
  *
  * 双箱机制：
@@ -31,7 +34,7 @@ namespace blocks {
  * - 右箱子(ChestType::RIGHT)向左连接
  * - 合并后形成54格双箱
  */
-class ChestBlock : public Block {
+class ChestBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -183,6 +186,20 @@ public:
      */
     [[nodiscard]] virtual BlockEntityType getBlockEntityType() const {
         return BlockEntityType::Chest;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
     }
 
 protected:

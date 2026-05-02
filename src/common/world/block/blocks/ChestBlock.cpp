@@ -86,8 +86,9 @@ BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context) {
         }
     }
 
-    // 检查水logged状态 - 暂时不支持，默认false
-    bool waterlogged = false;
+    // 检查水logged状态
+    const fluid::FluidState* fluidState = context.getWorld().getFluidState(context.placementPos());
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
@@ -323,6 +324,19 @@ bool ChestBlock::canCombineWithChestAt(
 
     return neighborFacing == expectedFacing &&
            neighborType == BlockStateProperties::ChestType::Single;
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* ChestBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 } // namespace blocks

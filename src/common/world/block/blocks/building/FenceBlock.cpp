@@ -1,7 +1,10 @@
 #include "FenceBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
@@ -93,12 +96,8 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context) {
     bool connectWest = westState && canConnect(*westState, westState->isSolid());
 
     // 检查是否含水
-    const BlockState* existingState = world.getBlockState(pos);
-    bool waterlogged = false;
-    if (existingState != nullptr) {
-        const fluid::FluidState* fluid = existingState->getFluidState();
-        waterlogged = fluid != nullptr && fluid->isSource();
-    }
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
 
     return defaultState()
         .with(BlockStateProperties::NORTH(), connectNorth)
@@ -116,9 +115,12 @@ BlockState FenceBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos) {
 
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
-    MC_UNUSED(facingPos);
+    // 处理含水状态
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+    }
 
     // 只处理水平方向的更新
     if (Directions::getAxis(facing) != Axis::Y) {
@@ -258,6 +260,19 @@ size_t FenceBlock::getShapeIndex(bool north, bool east, bool south, bool west) {
     if (south) index |= 4;
     if (west) index |= 8;
     return index;
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* FenceBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 } // namespace blocks

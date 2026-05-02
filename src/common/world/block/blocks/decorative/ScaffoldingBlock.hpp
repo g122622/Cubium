@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -16,11 +17,11 @@ namespace blocks {
  * - 可以攀爬
  * - 玩家可以在上面行走
  * - 距离底部过远会掉落
- * - 水logged支持
+ * - 实现 IWaterLoggable 接口支持含水功能
  *
  * 参考: net.minecraft.block.ScaffoldingBlock
  */
-class ScaffoldingBlock : public Block {
+class ScaffoldingBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -89,6 +90,20 @@ public:
         MC_UNUSED(entity);
         MC_UNUSED(state);
         return true;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
     }
 
 protected:

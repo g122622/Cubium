@@ -1,4 +1,9 @@
 #include "ScaffoldingBlock.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 
 namespace mc {
@@ -36,7 +41,10 @@ BlockState ScaffoldingBlock::getStateForPlacement(BlockItemUseContext& context) 
     // 计算距离支撑点的距离
     i32 distance = 7; // TODO: 计算实际距离
     bool bottom = !hasSupport(const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world)), pos);
-    bool waterlogged = false; // TODO: 检查流体状态
+
+    // 检查是否含水
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
 
     return defaultState()
         .with(BlockStateProperties::DISTANCE_1_7(), distance)
@@ -52,11 +60,13 @@ BlockState ScaffoldingBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
-    MC_UNUSED(facingState);
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
-    MC_UNUSED(facingPos);
+    // 处理含水状态
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
     // TODO: 更新距离和底部状态
     return state;
 }
@@ -93,6 +103,19 @@ bool ScaffoldingBlock::hasSupport(IBlockReader& world, const BlockPos& pos) cons
     MC_UNUSED(pos);
     // TODO: 检查下方是否有支撑
     return true;
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* ScaffoldingBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 } // namespace blocks

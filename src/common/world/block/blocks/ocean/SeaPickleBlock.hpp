@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
@@ -19,6 +20,7 @@ namespace blocks {
  *
  * 可放置在水下的发光方块，可以堆叠最多4个。
  * 放置在水中的海泡菜会发光。
+ * 实现 IWaterLoggable 接口支持含水功能。
  *
  * 状态属性：
  * - PICKLES_1_4: 海泡菜数量 (1-4)
@@ -26,7 +28,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.SeaPickleBlock
  */
-class SeaPickleBlock : public Block {
+class SeaPickleBlock : public Block, public IWaterLoggable {
 public:
     explicit SeaPickleBlock(const BlockProperties& properties);
     ~SeaPickleBlock() override = default;
@@ -64,6 +66,20 @@ public:
     [[nodiscard]] bool isOpaque(const BlockState& state) const override {
         MC_UNUSED(state);
         return false;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override {
+        return state.get(BlockStateProperties::WATERLOGGED());
     }
 
 private:

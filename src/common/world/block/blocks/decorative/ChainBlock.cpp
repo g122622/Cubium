@@ -1,4 +1,9 @@
 #include "ChainBlock.hpp"
+#include "../../../IWorld.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../../fluid/Fluid.hpp"
+#include "../../../fluid/FluidRegistry.hpp"
+#include "../../../fluid/FluidTags.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 
@@ -34,7 +39,15 @@ BlockState ChainBlock::getStateForPlacement(BlockItemUseContext& context) {
     Direction face = context.getClickedFace();
     Axis axis = Directions::getAxis(face);
 
-    return defaultState().with(BlockStateProperties::AXIS(), axis);
+    // 检查是否含水
+    const IWorld& world = context.getWorld();
+    BlockPos pos = context.placementPos();
+    const fluid::FluidState* fluidState = world.getFluidState(pos);
+    bool waterlogged = fluidState != nullptr && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+
+    return defaultState()
+        .with(BlockStateProperties::AXIS(), axis)
+        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 const BlockState& ChainBlock::rotate(const BlockState& state, Rotation rotation) const {
@@ -64,6 +77,41 @@ const CollisionShape& ChainBlock::getShape(const BlockState& state) const {
         default:
             return m_yShape;
     }
+}
+
+BlockState ChainBlock::updatePostPlacement(
+    const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos) {
+
+    MC_UNUSED(facing);
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
+    // 处理含水状态
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        MC_ASSERT(waterFluid != nullptr);
+        world.tickManager().scheduleFluidTick(currentPos, *waterFluid, waterFluid->getTickDelay(world));
+    }
+
+    return state;
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* ChainBlock::getFluidState(const BlockState& state) const {
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(
+            fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 } // namespace blocks
