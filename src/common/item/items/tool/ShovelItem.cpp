@@ -1,6 +1,7 @@
 #include "ShovelItem.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/core/ItemStack.hpp"
@@ -8,6 +9,7 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../sound/SoundCategory.hpp"
 #include "../../../util/Direction.hpp"
+#include "../../../util/property/Properties.hpp"
 
 namespace mc {
 namespace item {
@@ -27,17 +29,62 @@ ShovelItem::ShovelItem(const tier::IItemTier& tier,
 }
 
 ActionResultType ShovelItem::onItemUse(ItemUseContext& context) {
-    // MC 1.16.5: 锹创建土径逻辑
+    // MC 1.16.5: 锹功能 - 熄灭营火 + 创建土径
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
 
-    // 检查点击的面是否为底面（MC 1.16.5: 不能从下方创建土径）
-    if (context.getClickedFace() == Direction::Down) {
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
         return ActionResultType::Pass;
     }
 
-    const BlockState* state = world.getBlockState(pos);
-    if (state == nullptr) {
+    const Block& block = state->owner();
+
+    // MC 1.16.5: 熄灭营火功能（优先于土径创建）
+    // 锹可以熄灭点燃的营火和灵魂营火
+    if (VanillaBlocks::CAMPFIRE && &block == VanillaBlocks::CAMPFIRE) {
+        if (blocks::CampfireBlock::isLit(*state)) {
+            // 熄灭营火
+            BlockState newState = state->with(BlockStateProperties::LIT(), false);
+            world.setBlockState(pos, &newState, 11);
+
+            // 播放熄灭音效
+            if (context.getPlayer() != nullptr) {
+                context.getPlayer()->playSound(SoundEvents::BLOCK_CAMPFIRE_EXTINGUISH, 1.0f, 1.0f);
+            }
+
+            // 消耗耐久度
+            ItemStack& stack = context.getItemStackMut();
+            stack.attemptDamageItem(1);
+
+            return ActionResultType::Success;
+        }
+        return ActionResultType::Pass;
+    }
+
+    if (VanillaBlocks::SOUL_CAMPFIRE && &block == VanillaBlocks::SOUL_CAMPFIRE) {
+        if (blocks::CampfireBlock::isLit(*state)) {
+            // 熄灭灵魂营火
+            BlockState newState = state->with(BlockStateProperties::LIT(), false);
+            world.setBlockState(pos, &newState, 11);
+
+            // 播放熄灭音效
+            if (context.getPlayer() != nullptr) {
+                context.getPlayer()->playSound(SoundEvents::BLOCK_CAMPFIRE_EXTINGUISH, 1.0f, 1.0f);
+            }
+
+            // 消耗耐久度
+            ItemStack& stack = context.getItemStackMut();
+            stack.attemptDamageItem(1);
+
+            return ActionResultType::Success;
+        }
+        return ActionResultType::Pass;
+    }
+
+    // MC 1.16.5: 锹创建土径逻辑
+    // 检查点击的面是否为底面（MC 1.16.5: 不能从下方创建土径）
+    if (context.getClickedFace() == Direction::Down) {
         return ActionResultType::Pass;
     }
 

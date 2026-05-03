@@ -129,7 +129,7 @@ item/
 
 盔甲物品现在支持右键自动装备对应槽位；如果目标槽位已被占用，则保持原物品不变并返回透传结果。可染色盔甲通过 `ItemStack` 的结构化标签保存 `display.color`，因此序列化、复制和比较都会保留染色数据。
 
-### 工具系统 (85%)
+### 工具系统 (90%)
 
 | 模块 | 文件 | 状态 |
 |------|------|------|
@@ -138,11 +138,12 @@ item/
 | ToolType | items/tool/ToolType.hpp | ✅ 完成 |
 | TieredItem | items/tool/TieredItem.hpp | ✅ 完成 |
 | ToolItem | items/tool/ToolItem.hpp | ✅ 完成 |
-| PickaxeItem | items/tool/PickaxeItem.hpp | ✅ 完成 |
-| AxeItem | items/tool/AxeItem.hpp | ✅ 完成 |
-| ShovelItem | items/tool/ShovelItem.hpp | ✅ 完成 |
+| PickaxeItem | items/tool/PickaxeItem.hpp | ✅ 完成 (含MC 1.16.5有效方块) |
+| AxeItem | items/tool/AxeItem.hpp | ✅ 完成 (含原木去皮映射) |
+| ShovelItem | items/tool/ShovelItem.hpp | ✅ 完成 (含营火熄灭、土径创建) |
 | HoeItem | items/tool/HoeItem.hpp | ✅ 完成 |
 | SwordItem | items/tool/SwordItem.hpp | ✅ 完成 |
+| ShearsItem | items/tool/ShearsItem.hpp | ✅ 完成 (剪刀，可剪羊毛、高效破坏蜘蛛网/树叶/羊毛) |
 
 **已注册工具物品**:
 - 木工具 (镐、斧、锹、锄、剑)
@@ -214,14 +215,18 @@ item/
    - SpawnEggItem (生成蛋)
    - CompassItem (指南针)
    - ClockItem (时钟)
-   - FishingRodItem (钓鱼竿)
+   - FishingRodItem (钓鱼竿) ✅ 完成
    - EnchantedBookItem (附魔书)
+   - FlintAndSteelItem (打火石) ✅ 完成 (点燃营火、放置火焰)
+   - BoneMealItem (骨粉) ✅ 完成
+   - ShearsItem (剪刀) ✅ 完成 (见工具系统)
 
-6. **桶类物品** (items/bucket/)
-   - BucketItem (空桶)
-   - WaterBucketItem (水桶)
-   - LavaBucketItem (熔岩桶)
-   - MilkBucketItem (牛奶桶)
+6. **桶类物品** (items/special/)
+   - BucketItem (空桶) ✅ 完成
+   - WaterBucketItem (水桶) ✅ 完成
+   - LavaBucketItem (熔岩桶) ✅ 完成
+   - FishBucketItem (鱼桶) ✅ 完成 (鳕鱼、鲑鱼、河豚、热带鱼)
+   - MilkBucketItem (牛奶桶) ✅ 完成 (清除药水效果)
 
 7. **药水物品** (items/potion/)
    - PotionItem (药水)

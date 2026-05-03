@@ -151,6 +151,38 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::BEACON) blocks.insert(VanillaBlocks::BEACON);
     if (VanillaBlocks::CONDUIT) blocks.insert(VanillaBlocks::CONDUIT);
 
+    // MC 1.16.5: 铁轨（镐可以有效挖掘）
+    if (VanillaBlocks::RAIL) blocks.insert(VanillaBlocks::RAIL);
+    if (VanillaBlocks::POWERED_RAIL) blocks.insert(VanillaBlocks::POWERED_RAIL);
+    if (VanillaBlocks::DETECTOR_RAIL) blocks.insert(VanillaBlocks::DETECTOR_RAIL);
+    if (VanillaBlocks::ACTIVATOR_RAIL) blocks.insert(VanillaBlocks::ACTIVATOR_RAIL);
+
+    // MC 1.16.5: 铁制品
+    if (VanillaBlocks::IRON_DOOR) blocks.insert(VanillaBlocks::IRON_DOOR);
+    if (VanillaBlocks::IRON_TRAPDOOR) blocks.insert(VanillaBlocks::IRON_TRAPDOOR);
+    if (VanillaBlocks::IRON_BARS) blocks.insert(VanillaBlocks::IRON_BARS);
+
+    // MC 1.16.5: 光照方块（灯笼、锁链）
+    if (VanillaBlocks::LANTERN) blocks.insert(VanillaBlocks::LANTERN);
+    if (VanillaBlocks::SOUL_LANTERN) blocks.insert(VanillaBlocks::SOUL_LANTERN);
+    if (VanillaBlocks::CHAIN) blocks.insert(VanillaBlocks::CHAIN);
+
+    // MC 1.16.5: 按钮/压力板
+    if (VanillaBlocks::STONE_BUTTON) blocks.insert(VanillaBlocks::STONE_BUTTON);
+    if (VanillaBlocks::STONE_PRESSURE_PLATE) blocks.insert(VanillaBlocks::STONE_PRESSURE_PLATE);
+
+    // MC 1.16.5: 功能方块
+    if (VanillaBlocks::DISPENSER) blocks.insert(VanillaBlocks::DISPENSER);
+    if (VanillaBlocks::DROPPER) blocks.insert(VanillaBlocks::DROPPER);
+    if (VanillaBlocks::PISTON) blocks.insert(VanillaBlocks::PISTON);
+    if (VanillaBlocks::STICKY_PISTON) blocks.insert(VanillaBlocks::STICKY_PISTON);
+    if (VanillaBlocks::ENDER_CHEST) blocks.insert(VanillaBlocks::ENDER_CHEST);
+    if (VanillaBlocks::BREWING_STAND) blocks.insert(VanillaBlocks::BREWING_STAND);
+
+    // MC 1.16.5: 台阶（石制）
+    if (VanillaBlocks::STONE_SLAB) blocks.insert(VanillaBlocks::STONE_SLAB);
+    if (VanillaBlocks::COBBLESTONE_SLAB) blocks.insert(VanillaBlocks::COBBLESTONE_SLAB);
+
     return blocks;
 }
 

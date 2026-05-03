@@ -324,13 +324,19 @@ public:
     /**
      * @brief 物品是否为食物
      */
-    [[nodiscard]] virtual bool isFood() const { return false; }
+    [[nodiscard]] virtual bool isFood() const { return m_food != nullptr; }
 
     /**
      * @brief 获取使用时间（如食物食用时间）
+     *
+     * MC 1.16.5: 返回 32（正常）或 16（快速食用）
+     * 如果物品是食物，返回食物的使用时间；
+     * 否则返回 0。
+     *
+     * @param stack 物品堆
      * @return 使用时间（ticks），0表示不可使用
      */
-    [[nodiscard]] virtual i32 getUseDuration(const ItemStack& /*stack*/) const { return 0; }
+    [[nodiscard]] virtual i32 getUseDuration(const ItemStack& stack) const;
 
     // ========================================================================
     // 物品使用 - 新增虚方法

@@ -20,9 +20,12 @@
 #include "items/tool/ShovelItem.hpp"
 #include "items/tool/HoeItem.hpp"
 #include "items/tool/SwordItem.hpp"
+#include "items/tool/ShearsItem.hpp"
 #include "items/special/BoneMealItem.hpp"
 #include "items/special/BucketItem.hpp"
 #include "items/special/FishBucketItem.hpp"
+#include "items/special/FlintAndSteelItem.hpp"
+#include "items/special/MilkBucketItem.hpp"
 #include "food/Foods.hpp"
 #include "armor/ArmorMaterial.hpp"
 #include "../world/block/VanillaBlocks.hpp"
@@ -243,6 +246,7 @@ Item* Items::BONE_MEAL = nullptr;
 // 杂项
 Item* Items::FLINT = nullptr;
 Item* Items::FLINT_AND_STEEL = nullptr;
+Item* Items::SHEARS = nullptr;
 Item* Items::STRING = nullptr;
 Item* Items::FEATHER = nullptr;
 Item* Items::GUNPOWDER = nullptr;
@@ -349,6 +353,7 @@ Item* Items::COD_BUCKET = nullptr;
 Item* Items::SALMON_BUCKET = nullptr;
 Item* Items::PUFFERFISH_BUCKET = nullptr;
 Item* Items::TROPICAL_FISH_BUCKET = nullptr;
+Item* Items::MILK_BUCKET = nullptr;
 
 // ============================================================================
 // 海绵
@@ -1237,9 +1242,15 @@ void Items::registerMisc() {
         ItemProperties().maxStackSize(64)
     );
 
-    FLINT_AND_STEEL = &registry.registerItem(
+    FLINT_AND_STEEL = &registry.registerItem<item::tool::FlintAndSteelItem>(
         ResourceLocation("minecraft:flint_and_steel"),
         ItemProperties().maxDamage(64)
+    );
+
+    // 剪刀 - MC 1.16.5: 耐久度 238
+    SHEARS = &registry.registerItem<item::tool::ShearsItem>(
+        ResourceLocation("minecraft:shears"),
+        ItemProperties().maxDamage(238)
     );
 
     STRING = &registry.registerItem(
@@ -1735,6 +1746,13 @@ void Items::registerBuckets() {
     TROPICAL_FISH_BUCKET = &registry.registerItem<item::FishBucketItem>(
         ResourceLocation("minecraft:tropical_fish_bucket"),
         mc::entity::EntityTypes::TROPICAL_FISH,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+
+    // 牛奶桶 - 清除所有药水效果
+    // 参考: new MilkBucketItem(new Item.Properties().containerItem(BUCKET))
+    MILK_BUCKET = &registry.registerItem<item::special::MilkBucketItem>(
+        ResourceLocation("minecraft:milk_bucket"),
         ItemProperties().maxStackSize(1).containerItem(BUCKET)
     );
 }

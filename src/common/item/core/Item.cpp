@@ -127,6 +127,15 @@ String Item::getName() const {
     return getTranslationKey();
 }
 
+i32 Item::getUseDuration(const ItemStack& stack) const {
+    (void)stack;
+    // MC 1.16.5: 如果物品是食物，返回 32（正常）或 16（快速食用）
+    if (isFood() && m_food != nullptr) {
+        return m_food->isFastEat() ? 16 : 32;
+    }
+    return 0;
+}
+
 // ============================================================================
 // 物品使用 - 新增虚方法实现
 // ============================================================================
@@ -138,10 +147,21 @@ ActionResultType Item::onItemUse(ItemUseContext& context) {
 }
 
 ItemActionResult Item::onItemRightClick(IWorld& world, Player& player, Hand hand) {
+    // MC 1.16.5: 食物自动处理逻辑
+    // 参考: Item.onItemRightClick
+    if (isFood()) {
+        ItemStack heldStack = player.getHeldItem(hand);
+        // canEatWhenFull 参数从 Food.canAlwaysEat() 获取
+        bool canEatWhenFull = m_food->canAlwaysEat();
+        if (player.canEat(canEatWhenFull)) {
+            player.setActiveHand(hand);
+            return ItemActionResult::success(heldStack);
+        } else {
+            return ItemActionResult::fail(heldStack);
+        }
+    }
     // 默认实现：返回传递结果
     (void)world;
-    (void)player;
-    (void)hand;
     return ItemActionResult::pass(ItemStack());
 }
 

@@ -22,6 +22,7 @@ namespace mc {
 // Forward declarations
 class Item;
 class BlockState;
+class LivingEntity;
 
 /**
  * @brief 物品堆
@@ -134,13 +135,11 @@ public:
     /**
      * @brief 是否可堆叠
      *
-     * MC 1.16.5: 物品可堆叠当且仅当最大堆叠数 > 1
+     * MC 1.16.5: 物品可堆叠当且仅当最大堆叠数 > 1 且（不可损坏或未损坏）
      * 注意：有耐久度的物品通常 maxStackSize=1，所以此方法会返回false
      * @return 如果物品可以堆叠返回true
      */
-    [[nodiscard]] bool isStackable() const {
-        return !isEmpty() && getMaxStackSize() > 1;
-    }
+    [[nodiscard]] bool isStackable() const;
 
     // ========== 附魔 ==========
 
@@ -261,6 +260,19 @@ public:
      * @return 是否已损坏（达到最大耐久度）
      */
     bool attemptDamageItem(i32 amount);
+
+    /**
+     * @brief 尝试造成伤害（带实体参数）
+     *
+     * MC 1.16.5: 考虑耐久保护（Unbreaking）附魔的效果。
+     * 耐久附魔每级有 level/(level+1) 概率避免损耗。
+     * 对于盔甲，概率减半。
+     *
+     * @param amount 伤害值
+     * @param entity 持有该物品的实体（用于耐久保护计算）
+     * @return 是否已损坏（达到最大耐久度）
+     */
+    bool attemptDamageItem(i32 amount, LivingEntity* entity);
 
     // ========== 堆叠操作 ==========
 

@@ -309,6 +309,7 @@ add_library(mc_common STATIC
     item/items/tool/ShovelItem.cpp
     item/items/tool/HoeItem.cpp
     item/items/tool/SwordItem.cpp
+    item/items/tool/ShearsItem.cpp
 
     # Item - Weapons
     item/items/weapon/BowItem.cpp
@@ -337,6 +338,8 @@ add_library(mc_common STATIC
     item/items/special/BoneMealItem.cpp
     item/items/special/BucketItem.cpp
     item/items/special/FishBucketItem.cpp
+    item/items/special/FlintAndSteelItem.cpp
+    item/items/special/MilkBucketItem.cpp
 
     # Item - Crafting
     item/crafting/Ingredient.cpp

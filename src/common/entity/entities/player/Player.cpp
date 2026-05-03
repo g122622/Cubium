@@ -1484,6 +1484,20 @@ void Player::addExhaustion(f32 exhaustion) {
     }
 }
 
+bool Player::canEat(bool ignoreHunger) const {
+    // MC 1.16.5: PlayerEntity.canEat(boolean ignoreHunger)
+    // 创造模式或观察者模式不能进食
+    if (isCreative() || isSpectator()) {
+        return false;
+    }
+    // 如果忽略饥饿值检查，返回 true（如金苹果等特殊食物）
+    if (ignoreHunger) {
+        return true;
+    }
+    // 否则检查饥饿值是否小于 20
+    return m_foodStats.needsFood();
+}
+
 // ========== 攻击冷却系统 ==========
 
 f32 Player::getCooledAttackStrength(f32 adjustTicks) const {

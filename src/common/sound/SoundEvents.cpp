@@ -348,6 +348,7 @@ const ResourceLocation BLOCK_ANVIL_STEP("minecraft:block.anvil.step");
 const ResourceLocation BLOCK_ANVIL_USE("minecraft:block.anvil.use");
 
 const ResourceLocation BLOCK_CAMPFIRE_CRACKLE("minecraft:block.campfire.crackle");
+const ResourceLocation BLOCK_CAMPFIRE_EXTINGUISH("minecraft:block.campfire.extinguish");
 
 const ResourceLocation BLOCK_BEEHIVE_DRIP("minecraft:block.beehive.drip");
 const ResourceLocation BLOCK_BEEHIVE_DROP("minecraft:block.beehive.drop");

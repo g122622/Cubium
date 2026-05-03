@@ -386,6 +386,7 @@ extern const ResourceLocation BLOCK_ANVIL_USE;
 
 /// 营火
 extern const ResourceLocation BLOCK_CAMPFIRE_CRACKLE;
+extern const ResourceLocation BLOCK_CAMPFIRE_EXTINGUISH;
 
 /// 蜂箱
 extern const ResourceLocation BLOCK_BEEHIVE_DRIP;

@@ -200,6 +200,19 @@ public:
     [[nodiscard]] const FoodStats& foodStats() const { return m_foodStats; }
     FoodStats& foodStats() { return m_foodStats; }
 
+    /**
+     * @brief 检查玩家是否可以进食
+     *
+     * MC 1.16.5: PlayerEntity.canEat(boolean ignoreHunger)
+     * - 创造模式或观察者模式: 返回 false
+     * - ignoreHunger 为 true: 返回 true（如金苹果等特殊食物）
+     * - 否则: 返回 hunger < 20
+     *
+     * @param ignoreHunger 是否忽略饥饿值检查
+     * @return 是否可以进食
+     */
+    [[nodiscard]] bool canEat(bool ignoreHunger = false) const;
+
     // ========== 饥饿消耗 ==========
 
     /**

@@ -5,7 +5,10 @@
 #include "../../world/block/Block.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../../util/text/TextParser.hpp"
+#include "../enchantment/EnchantmentHelper.hpp"
+#include "../../util/math/random/Random.hpp"
 #include <algorithm>
+#include <chrono>
 
 namespace mc {
 
@@ -149,8 +152,43 @@ i32 ItemStack::getMaxDamage() const {
 }
 
 bool ItemStack::attemptDamageItem(i32 amount) {
+    return attemptDamageItem(amount, nullptr);
+}
+
+bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity) {
     if (!isDamageable()) {
         return false;
+    }
+
+    // MC 1.16.5: 耐久保护附魔处理
+    // 参考: ItemStack.attemptDamageItem(int amount, Random rand, @Nullable ServerPlayerEntity player)
+    i32 unbreakingLevel = item::enchant::EnchantmentHelper::getUnbreakingLevel(*this);
+
+    if (unbreakingLevel > 0) {
+        // 判断是否为盔甲
+        bool isArmor = false;
+        if (m_item != nullptr) {
+            // 检查物品是否为盔甲（通过是否有护甲槽位判断）
+            // 简化判断：检查物品是否有防御属性
+            isArmor = (m_item->getFood() == nullptr && m_item->maxDamage() > 0 &&
+                       m_item->maxStackSize() == 1);
+        }
+
+        // 使用静态随机数生成器（每个物品实例应该有自己的随机状态）
+        // 为了简化，我们使用时间种子
+        static thread_local math::Random s_random(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+        // 每点伤害都有机会被耐久保护抵消
+        for (i32 i = 0; i < amount; ++i) {
+            if (item::enchant::EnchantmentHelper::shouldIgnoreDurabilityLoss(unbreakingLevel, isArmor, s_random)) {
+                --amount;
+            }
+        }
+
+        // 如果所有伤害都被抵消，不造成伤害
+        if (amount <= 0) {
+            return false;
+        }
     }
 
     m_damage += amount;
@@ -169,6 +207,22 @@ bool ItemStack::attemptDamageItem(i32 amount) {
 // ============================================================================
 // 堆叠操作
 // ============================================================================
+
+bool ItemStack::isStackable() const {
+    if (isEmpty()) {
+        return false;
+    }
+    i32 maxStack = getMaxStackSize();
+    if (maxStack <= 1) {
+        return false;
+    }
+    // MC 1.16.5: 已损坏的可堆叠物品不能堆叠
+    // 参考: ItemStack.isStackable() - "return this.getMaxStackSize() > 1 && (!this.isDamageable() || !this.isDamaged());"
+    if (isDamageable() && isDamaged()) {
+        return false;
+    }
+    return true;
+}
 
 bool ItemStack::canMergeWith(const ItemStack& other) const {
     if (isEmpty() || other.isEmpty()) {

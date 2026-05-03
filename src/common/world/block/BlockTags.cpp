@@ -168,6 +168,14 @@ BlockTag& BlockTags::FIRE() {
     return *tag;
 }
 
+BlockTag& BlockTags::WOOL() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wool"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::BAMBOO_PLANTABLE_ON() {
     static BlockTag* tag = nullptr;
     if (tag == nullptr) {
@@ -332,6 +340,28 @@ void BlockTags::initialize() {
         ResourceLocation("minecraft", "soul_fire")
     });
     tags[fire->getId()] = std::move(fire);
+
+    // 创建 WOOL 标签
+    auto wool = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wool"));
+    wool->addAll({
+        ResourceLocation("minecraft", "white_wool"),
+        ResourceLocation("minecraft", "orange_wool"),
+        ResourceLocation("minecraft", "magenta_wool"),
+        ResourceLocation("minecraft", "light_blue_wool"),
+        ResourceLocation("minecraft", "yellow_wool"),
+        ResourceLocation("minecraft", "lime_wool"),
+        ResourceLocation("minecraft", "pink_wool"),
+        ResourceLocation("minecraft", "gray_wool"),
+        ResourceLocation("minecraft", "light_gray_wool"),
+        ResourceLocation("minecraft", "cyan_wool"),
+        ResourceLocation("minecraft", "purple_wool"),
+        ResourceLocation("minecraft", "blue_wool"),
+        ResourceLocation("minecraft", "brown_wool"),
+        ResourceLocation("minecraft", "green_wool"),
+        ResourceLocation("minecraft", "red_wool"),
+        ResourceLocation("minecraft", "black_wool")
+    });
+    tags[wool->getId()] = std::move(wool);
 
     // 创建 BAMBOO_PLANTABLE_ON 标签
     auto bambooPlantableOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bamboo_plantable_on"));

@@ -138,6 +138,9 @@ public:
     /// 火标签
     static BlockTag& FIRE();
 
+    /// 羊毛标签
+    static BlockTag& WOOL();
+
     /// 竹子可种植标签（草、泥土、沙子、沙砾、竹林土）
     static BlockTag& BAMBOO_PLANTABLE_ON();
 
