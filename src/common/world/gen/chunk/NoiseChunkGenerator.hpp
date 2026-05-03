@@ -85,6 +85,21 @@ public:
     [[nodiscard]] i32 noiseSizeY() const { return m_noiseSizeY; }
     [[nodiscard]] i32 noiseSizeZ() const { return m_noiseSizeZ; }
 
+    // === 结构地形平滑 ===
+
+    /**
+     * @brief 计算结构片段对地形密度的影响
+     *
+     * 参考 MC 1.16.5 func_222556_a（field_222561_h 查找表）
+     * 使用 24x24x24 高斯核计算平滑影响值。
+     *
+     * @param dx X 方向距离（方块坐标差）
+     * @param dy Y 方向距离（方块坐标差）
+     * @param dz Z 方向距离（方块坐标差）
+     * @return 地形密度偏移值
+     */
+    [[nodiscard]] static f64 calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz);
+
 private:
     /**
      * @brief fillNoiseColumn 的 5x5 生物群系滑窗缓存
@@ -183,19 +198,6 @@ private:
         std::vector<world::gen::jigsaw::JigsawJunction>& outJunctions) const;
 
     /**
-     * @brief 计算结构片段对地形密度的影响
-     *
-     * 参考 MC 1.16.5 func_222556_a（field_222561_h 查找表）
-     * 使用 24x24x24 高斯核计算平滑影响值。
-     *
-     * @param dx X 方向距离（方块坐标差）
-     * @param dy Y 方向距离（方块坐标差）
-     * @param dz Z 方向距离（方块坐标差）
-     * @return 地形密度偏移值
-     */
-    [[nodiscard]] static f64 calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz);
-
-    /**
      * @brief 初始化高斯查找表
      *
      * 参考 MC 1.16.5 field_222561_h
@@ -203,7 +205,7 @@ private:
      */
     static void initGaussianLUT();
 
-    // === 初始化方法 ===
+private:
 
     void initNoiseGenerators();
     void initBiomeWeights();

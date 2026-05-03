@@ -328,3 +328,49 @@ TEST(JigsawManagerTest, BoundingBoxOverlap) {
     mc::world::gen::structure::StructureBoundingBox adjacent(10, 0, 0, 20, 9, 9);
     EXPECT_FALSE(JigsawManager::boxesIntersect(placedPieces, adjacent));
 }
+
+/**
+ * @brief 测试 JigsawJunction 的地形平滑功能
+ *
+ * 验证 JigsawJunction 能够正确存储地形适配信息，
+ * 这些信息用于 NoiseChunkGenerator 中的地形平滑计算。
+ */
+TEST(JigsawJunctionTest, TerrainSmoothingData) {
+    // 创建一个 Junction，模拟村庄连接点的地形适配数据
+    // sourceX, sourceGroundY, sourceZ, deltaY, destProjection
+    JigsawJunction junction(100, 64, 200, -5, JigsawPlacementBehaviour::TerrainMatching);
+
+    // 验证数据存储正确
+    EXPECT_EQ(junction.getSourceX(), 100);
+    EXPECT_EQ(junction.getSourceGroundY(), 64);
+    EXPECT_EQ(junction.getSourceZ(), 200);
+    EXPECT_EQ(junction.getDeltaY(), -5);
+    EXPECT_EQ(junction.getDestProjection(), JigsawPlacementBehaviour::TerrainMatching);
+
+    // 验证不同 deltaY 表示不同的地形关系
+    JigsawJunction junctionUp(100, 64, 200, 10, JigsawPlacementBehaviour::Rigid);
+    JigsawJunction junctionDown(100, 64, 200, -10, JigsawPlacementBehaviour::Rigid);
+
+    EXPECT_GT(junctionUp.getDeltaY(), 0);   // 目标地面比源高
+    EXPECT_LT(junctionDown.getDeltaY(), 0); // 目标地面比源低
+}
+
+/**
+ * @brief 测试 JigsawJunction 在 PlacedPiece 中的存储
+ */
+TEST(PlacedPieceTest, JunctionStorage) {
+    PlacedPiece piece;
+    piece.position = BlockPos(100, 64, 200);
+
+    // 添加多个 Junction
+    piece.junctions.emplace_back(100, 64, 200, 0, JigsawPlacementBehaviour::Rigid);
+    piece.junctions.emplace_back(110, 64, 210, -3, JigsawPlacementBehaviour::TerrainMatching);
+    piece.junctions.emplace_back(90, 64, 190, 5, JigsawPlacementBehaviour::Rigid);
+
+    EXPECT_EQ(piece.junctions.size(), 3u);
+
+    // 验证 Junction 的参数
+    EXPECT_EQ(piece.junctions[0].getSourceX(), 100);
+    EXPECT_EQ(piece.junctions[1].getDeltaY(), -3);
+    EXPECT_EQ(piece.junctions[2].getDestProjection(), JigsawPlacementBehaviour::Rigid);
+}
