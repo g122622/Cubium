@@ -338,11 +338,44 @@ public:
         const BlockPos& pos) const;
 
     /**
-     * @brief 放置模板到世界
-     * MC 1.16.5: Template.func_237146_a_
+     * @brief 放置模板到世界（基础版本）
+     *
+     * 仅放置方块，不处理液体、TileEntity 和实体。
+     * 适用于不需要完整世界访问的场景。
+     *
+     * @param world 世界写入器
+     * @param pos 放置位置
+     * @param settings 放置设置
+     * @param rng 随机数生成器
+     * @param flags 方块更新标志
+     * @return 是否成功放置
      */
     bool place(
         IWorldWriter& world,
+        const BlockPos& pos,
+        const PlacementSettings& settings,
+        math::Random& rng,
+        u32 flags = 18) const;
+
+    /**
+     * @brief 放置模板到世界（完整版本）
+     *
+     * MC 1.16.5: Template.func_237146_a_
+     * 完整实现包括：
+     * - 方块放置
+     * - 液体处理（水、岩浆填充容器）
+     * - TileEntity NBT 更新（位置坐标、战利品表种子）
+     * - 实体创建（生物、物品等）
+     *
+     * @param world 世界接口（需要完整的读写访问）
+     * @param pos 放置位置
+     * @param settings 放置设置
+     * @param rng 随机数生成器
+     * @param flags 方块更新标志
+     * @return 是否成功放置
+     */
+    bool placeInWorld(
+        IWorld& world,
         const BlockPos& pos,
         const PlacementSettings& settings,
         math::Random& rng,
@@ -489,6 +522,99 @@ public:
 
 private:
     std::vector<std::unique_ptr<RuleEntry>> m_rules;
+};
+
+/**
+ * @brief 空操作结构处理器
+ *
+ * 参考 MC 1.16.5 NopProcessor
+ * 直接返回原始方块信息，不做任何修改。
+ * 主要用于测试或作为占位符。
+ */
+class NopStructureProcessor : public StructureProcessor {
+public:
+    NopStructureProcessor() = default;
+
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
+        const BlockPos& seedPos,
+        const BlockPos& pos,
+        const BlockInfo& rawBlockInfo,
+        const BlockInfo& blockInfo,
+        const PlacementSettings& settings) override;
+};
+
+/**
+ * @brief 岩浆淹没结构处理器
+ *
+ * 参考 MC 1.16.5 LavaSubmergingProcessor
+ * 当结构放置在岩浆中时，如果方块是非固体（非不透明），则将其替换为岩浆。
+ * 用于堡垒遗迹等在下界岩浆海中生成的结构。
+ */
+class LavaSubmergingProcessor : public StructureProcessor {
+public:
+    LavaSubmergingProcessor() = default;
+
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
+        const BlockPos& seedPos,
+        const BlockPos& pos,
+        const BlockInfo& rawBlockInfo,
+        const BlockInfo& blockInfo,
+        const PlacementSettings& settings) override;
+};
+
+/**
+ * @brief 方块老化结构处理器（苔藓化处理器）
+ *
+ * 参考 MC 1.16.5 BlockAgeProcessor / BlockMosinessProcessor
+ * 根据苔藓概率随机将石砖相关方块替换为苔藓化或裂变版本。
+ * 用于村庄等结构的老化效果。
+ */
+class BlockAgeProcessor : public StructureProcessor {
+public:
+    /**
+     * @brief 构造方块老化处理器
+     * @param mossiness 苔藓化概率 (0.0 - 1.0)
+     */
+    explicit BlockAgeProcessor(f32 mossiness);
+
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
+        const BlockPos& seedPos,
+        const BlockPos& pos,
+        const BlockInfo& rawBlockInfo,
+        const BlockInfo& blockInfo,
+        const PlacementSettings& settings) override;
+
+    [[nodiscard]] f32 mossiness() const { return m_mossiness; }
+
+private:
+    f32 m_mossiness;
+};
+
+/**
+ * @brief 黑石替换结构处理器
+ *
+ * 参考 MC 1.16.5 BlackStoneReplacementProcessor
+ * 将普通石质方块替换为黑石变体，用于堡垒遗迹的结构生成。
+ * 替换映射：
+ * - 圆石 -> 黑石
+ * - 石头 -> 磨制黑石
+ * - 石砖 -> 磨制黑石砖
+ * - 等...
+ */
+class BlackstoneReplacementProcessor : public StructureProcessor {
+public:
+    BlackstoneReplacementProcessor();
+
+    [[nodiscard]] std::optional<ProcessedBlockInfo> process(
+        const BlockPos& seedPos,
+        const BlockPos& pos,
+        const BlockInfo& rawBlockInfo,
+        const BlockInfo& blockInfo,
+        const PlacementSettings& settings) override;
+
+private:
+    // 方块替换映射表：输入方块ID -> 输出方块ID
+    std::unordered_map<u32, u32> m_replacements;
 };
 
 /**

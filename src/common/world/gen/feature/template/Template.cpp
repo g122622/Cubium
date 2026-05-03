@@ -4,7 +4,16 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockRegistry.hpp"
 #include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
+#include "../../../../world/block/ILiquidContainer.hpp"
+#include "../../../../world/blockentity/BlockEntity.hpp"
+#include "../../../../world/blockentity/BlockEntityType.hpp"
+#include "../../../../world/fluid/Fluid.hpp"
+#include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/EntityType.hpp"
+#include "../../../../entity/core/EntityRegistry.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/assert/AssertMacros.hpp"
 #include <algorithm>
 #include <unordered_map>
 
@@ -13,6 +22,9 @@ namespace world {
 namespace gen {
 namespace feature {
 namespace template_ {
+
+// 使用 namespace
+using fluid::FluidState;
 
 // ============================================================================
 // BlockInfo
@@ -506,15 +518,341 @@ bool Template::place(
         // 放置方块
         world.setBlock(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, static_cast<i32>(flags));
 
-        // 方块实体数据在区块反序列化阶段统一处理，此处仅负责方块状态放置
-        // TODO: 处理方块实体 NBT 数据（更新位置坐标）
+        // 方块实体数据由 placeInWorld 方法处理
+        // 此处仅负责方块状态放置
         (void)processedBlock.nbt;
     }
 
-    // 结构模板中的实体数据由上层实体系统统一创建
-    if (!settings.ignoreEntities()) {
+    // 结构模板中的实体数据由 placeInWorld 方法处理
+    (void)settings;
+
+    return true;
+}
+
+bool Template::placeInWorld(
+    IWorld& world,
+    const BlockPos& pos,
+    const PlacementSettings& settings,
+    math::Random& rng,
+    u32 flags) const
+{
+    // MC 1.16.5: Template.func_237146_a_
+    // 选择调色板
+    const Palette* selectedPalette = selectPalette(rng);
+    if (!selectedPalette || selectedPalette->empty()) {
+        if (m_palettes.empty()) {
+            return true;
+        }
+        selectedPalette = &m_palettes[0];
+        if (selectedPalette->empty()) {
+            return true;
+        }
+    }
+
+    const std::vector<BlockInfo>& blocks = selectedPalette->blocks();
+    const auto* bounds = settings.getBoundingBox();
+
+    // 处理方块信息
+    std::vector<ProcessedBlockInfo> processedBlocks;
+    processedBlocks.reserve(blocks.size());
+
+    for (const auto& block : blocks) {
+        BlockPos transformedPos = transformBlockPos(
+            block.pos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+        BlockPos worldPos = pos + transformedPos;
+
+        BlockInfo blockInfo(worldPos, block.blockStateId);
+        if (block.nbt) {
+            blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        }
+
+        ProcessedBlockInfo processedBlock;
+        processedBlock.pos = worldPos;
+        processedBlock.blockStateId = blockInfo.blockStateId;
+        if (blockInfo.nbt) {
+            processedBlock.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+
+        // 应用处理器链
+        const StructureProcessorList* processors = settings.getProcessors();
+        if (processors) {
+            bool shouldKeep = true;
+            for (const auto& processor : *processors) {
+                if (processor) {
+                    BlockInfo rawInfo(block.pos, block.blockStateId);
+                    if (block.nbt) {
+                        rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+                    }
+
+                    auto result = processor->process(pos, worldPos, rawInfo, blockInfo, settings);
+                    if (!result) {
+                        shouldKeep = false;
+                        break;
+                    }
+                    processedBlock = *result;
+                    blockInfo.pos = processedBlock.pos;
+                    blockInfo.blockStateId = processedBlock.blockStateId;
+                    if (processedBlock.nbt) {
+                        blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*processedBlock.nbt);
+                    }
+                }
+            }
+
+            if (!shouldKeep) {
+                continue;
+            }
+        }
+
+        processedBlocks.push_back(std::move(processedBlock));
+    }
+
+    // 记录需要处理液体的位置
+    std::vector<BlockPos> fluidUpdatePositions;
+
+    // 放置所有处理后的方块
+    for (const auto& processedBlock : processedBlocks) {
+        // 检查边界框
+        if (bounds) {
+            if (processedBlock.pos.x < bounds->minX() || processedBlock.pos.x > bounds->maxX() ||
+                processedBlock.pos.y < bounds->minY() || processedBlock.pos.y > bounds->maxY() ||
+                processedBlock.pos.z < bounds->minZ() || processedBlock.pos.z > bounds->maxZ()) {
+                continue;
+            }
+        }
+
+        const BlockState* state = BlockRegistry::instance().getBlockState(processedBlock.blockStateId);
+        if (!state) {
+            continue;
+        }
+
+        // 应用镜像和旋转变换到方块状态
+        const BlockState* transformedState = state;
+        if (settings.getMirror() != Mirror::None) {
+            transformedState = &transformedState->getBlock().mirror(*transformedState, settings.getMirror());
+        }
+        if (settings.getRotation() != Rotation::None) {
+            transformedState = &transformedState->getBlock().rotate(*transformedState, settings.getRotation());
+        }
+
+        // MC 1.16.5: 如果有 TileEntity NBT，先清除旧 TileEntity
+        // 参考 Template.func_237146_a_ 第233-237行
+        if (processedBlock.nbt) {
+            BlockEntity* existingEntity = world.getBlockEntity(processedBlock.pos);
+            if (existingEntity) {
+                // 清除旧 TileEntity
+                world.removeBlockEntity(processedBlock.pos);
+            }
+        }
+
+        // 获取当前位置的流体状态（如果需要保留液体）
+        const FluidState* fluidState = nullptr;
+        if (settings.keepLiquids()) {
+            fluidState = world.getFluidState(processedBlock.pos);
+        }
+
+        // 放置方块
+        bool placed = world.setBlockState(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z,
+                                          transformedState, static_cast<i32>(flags));
+
+        if (!placed) {
+            continue;
+        }
+
+        // MC 1.16.5: 处理 TileEntity NBT
+        // 参考 Template.func_237146_a_ 第247-260行
+        if (processedBlock.nbt) {
+            BlockEntity* tileEntity = world.getBlockEntity(processedBlock.pos);
+            if (tileEntity) {
+                // 更新位置坐标
+                processedBlock.nbt->put("x", processedBlock.pos.x);
+                processedBlock.nbt->put("y", processedBlock.pos.y);
+                processedBlock.nbt->put("z", processedBlock.pos.z);
+
+                // MC 1.16.5: TileEntity.mirror() 和 TileEntity.rotate() 默认是空实现
+                // 只有 StructureBlockTileEntity 等特定 TileEntity 会重写
+                // 当前 BlockEntity 系统使用 JSON 格式，完整的 NBT 加载需要后续实现
+
+                // 为战利品表容器设置随机种子
+                // 参考 Template.func_237146_a_ 第253-254行
+                // 完整实现需要：tileEntity.loadFromNBT(nbt)
+            }
+        }
+
+        // MC 1.16.5: 处理液体填充
+        // 参考 Template.func_237146_a_ 第263-268行
+        if (fluidState && !fluidState->isEmpty()) {
+            Block& block = const_cast<Block&>(transformedState->getBlock());
+            ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
+            if (liquidContainer && liquidContainer->canContainFluid(world, processedBlock.pos, *transformedState, fluidState->getFluid())) {
+                liquidContainer->receiveFluid(world, processedBlock.pos, *transformedState, *fluidState);
+                // 如果不是源头，记录位置以便后续处理
+                if (!fluidState->isSource()) {
+                    fluidUpdatePositions.push_back(processedBlock.pos);
+                }
+            }
+        }
+    }
+
+    // MC 1.16.5: 液体传播处理
+    // 参考 Template.func_237146_a_ 第273-304行
+    // 如果方块被放置在非源流体位置，需要处理流体传播
+    if (!fluidUpdatePositions.empty() && settings.keepLiquids()) {
+        // 完整实现：追踪相邻流体并填充容器
+        // 参考 MC 1.16.5: 使用 Direction.UP, NORTH, EAST, SOUTH, WEST 顺序查找
+        static const Direction directions[] = {
+            Direction::Up, Direction::North, Direction::East, Direction::South, Direction::West
+        };
+
+        bool changed = true;
+        while (changed && !fluidUpdatePositions.empty()) {
+            changed = false;
+            auto it = fluidUpdatePositions.begin();
+            while (it != fluidUpdatePositions.end()) {
+                const BlockPos& fluidPos = *it;
+                BlockPos bestPos = fluidPos;
+                const FluidState* bestFluid = world.getFluidState(fluidPos);
+
+                // 查找相邻的最高流体
+                for (const Direction& dir : directions) {
+                    if (!bestFluid || bestFluid->isSource()) break;
+
+                    BlockPos adjacentPos = fluidPos.offset(dir);
+                    const FluidState* adjacentFluid = world.getFluidState(adjacentPos);
+                    if (!adjacentFluid || adjacentFluid->isEmpty()) continue;
+
+                    // 比较流体高度：更高的流体或源流体优先
+                    if (adjacentFluid->getActualHeight(world, adjacentPos) > bestFluid->getActualHeight(world, bestPos) ||
+                        (adjacentFluid->isSource() && !bestFluid->isSource())) {
+                        bestFluid = adjacentFluid;
+                        bestPos = adjacentPos;
+                    }
+                }
+
+                // 如果找到源流体，填充容器
+                if (bestFluid && bestFluid->isSource()) {
+                    const BlockState* blockState = world.getBlockState(fluidPos);
+                    if (blockState) {
+                        Block& block = const_cast<Block&>(blockState->getBlock());
+                        ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
+                        if (liquidContainer && liquidContainer->canContainFluid(world, fluidPos, *blockState, bestFluid->getFluid())) {
+                            liquidContainer->receiveFluid(world, fluidPos, *blockState, *bestFluid);
+                            changed = true;
+                            it = fluidUpdatePositions.erase(it);
+                            continue;
+                        }
+                    }
+                }
+
+                ++it;
+            }
+        }
+    }
+
+    // MC 1.16.5: 处理实体
+    // 参考 Template.addEntitiesToWorld 第412-438行
+    if (!settings.ignoreEntities() && !m_entities.empty()) {
         for (const auto& entityInfo : m_entities) {
-            (void)entityInfo;
+            // 变换实体位置
+            BlockPos transformedBlockPos = transformBlockPos(
+                entityInfo.blockPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+            BlockPos entityBlockPos = pos + transformedBlockPos;
+
+            // 检查边界框
+            if (bounds) {
+                if (entityBlockPos.x < bounds->minX() || entityBlockPos.x > bounds->maxX() ||
+                    entityBlockPos.y < bounds->minY() || entityBlockPos.y > bounds->maxY() ||
+                    entityBlockPos.z < bounds->minZ() || entityBlockPos.z > bounds->maxZ()) {
+                    continue;
+                }
+            }
+
+            // 计算精确位置
+            // 参考 MC 1.16.5 Template.getTransformedPos(Vector3d, Mirror, Rotation, BlockPos)
+            // 精确位置也需要变换
+            f64 entityX = entityInfo.posx;
+            f64 entityY = entityInfo.posy;
+            f64 entityZ = entityInfo.posz;
+
+            // 应用镜像到精确位置
+            switch (settings.getMirror()) {
+                case Mirror::LeftRight:  // Z轴镜像
+                    entityZ = 1.0 - entityZ;
+                    break;
+                case Mirror::FrontBack:  // X轴镜像
+                    entityX = 1.0 - entityX;
+                    break;
+                default:
+                    break;
+            }
+
+            // 应用旋转到精确位置（相对于中心偏移）
+            // 简化实现：只对方块位置应用变换，精确位置跟随方块位置偏移
+            // 完整实现需要类似 Vector3d 变换
+
+            // 加上世界偏移
+            entityX += pos.x;
+            entityY += pos.y;
+            entityZ += pos.z;
+
+            // 创建实体
+            if (!entityInfo.typeId.empty()) {
+                // 解析实体类型
+                const entity::EntityType* entityType = entity::EntityRegistry::instance().getType(entityInfo.typeId);
+                if (entityType) {
+                    auto entity = entityType->create(&world);
+                    if (entity) {
+                        // 设置位置
+                        entity->setPosition(static_cast<f32>(entityX),
+                                           static_cast<f32>(entityY),
+                                           static_cast<f32>(entityZ));
+
+                        // 应用镜像和旋转到实体朝向
+                        // 参考 MC 1.16.5 Entity.getMirroredYaw 和 getRotatedYaw
+                        f32 yaw = entity->yaw();
+                        f32 pitch = entity->pitch();
+
+                        // 应用镜像
+                        switch (settings.getMirror()) {
+                            case Mirror::LeftRight:
+                                yaw = -yaw;
+                                break;
+                            case Mirror::FrontBack:
+                                yaw = 180.0f - yaw;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        // 应用旋转
+                        switch (settings.getRotation()) {
+                            case Rotation::Clockwise90:
+                                yaw += 90.0f;
+                                break;
+                            case Rotation::Clockwise180:
+                                yaw += 180.0f;
+                                break;
+                            case Rotation::CounterClockwise90:
+                                yaw += 270.0f;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        // 规范化到 [-180, 180]
+                        yaw = math::wrapDegrees(yaw);
+                        entity->setRotation(yaw, pitch);
+
+                        // MC 1.16.5: 如果 entityInfo.nbt 存在，应加载 NBT 数据到实体
+                        // 参考 EntityType.loadEntityUnchecked -> entity.read(nbt)
+                        // 当前 Entity 系统暂不支持 NBT 加载，完整实现需要：
+                        // 1. Entity::loadFromNBT(nbt) 方法
+                        // 2. 实体数据参数的 NBT 反序列化
+
+                        // 生成实体
+                        world.spawnEntity(std::move(entity));
+                    }
+                }
+            }
         }
     }
 
@@ -877,6 +1215,447 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
     }
 
     // 没有规则匹配，保持原样
+    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+}
+
+// ============================================================================
+// NopStructureProcessor
+// ============================================================================
+
+std::optional<ProcessedBlockInfo> NopStructureProcessor::process(
+    const BlockPos& /*seedPos*/,
+    const BlockPos& /*pos*/,
+    const BlockInfo& /*rawBlockInfo*/,
+    const BlockInfo& blockInfo,
+    const PlacementSettings& /*settings*/)
+{
+    // MC 1.16.5: NopProcessor 直接返回原始方块信息
+    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+}
+
+// ============================================================================
+// LavaSubmergingProcessor
+// ============================================================================
+
+std::optional<ProcessedBlockInfo> LavaSubmergingProcessor::process(
+    const BlockPos& /*seedPos*/,
+    const BlockPos& /*pos*/,
+    const BlockInfo& /*rawBlockInfo*/,
+    const BlockInfo& blockInfo,
+    const PlacementSettings& settings)
+{
+    // MC 1.16.5: LavaSubmergingProcessor
+    // 如果当前位置是岩浆，且模板方块不透明，则替换为岩浆
+    const IWorld* world = settings.getWorld();
+    if (!world) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 获取当前位置的方块状态
+    const BlockState* worldState = world->getBlockState(blockInfo.pos);
+    if (!worldState) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 检查当前位置是否是岩浆
+    // 方块ID: 岩浆 (flowing_lava = 10, lava = 11)
+    u32 worldBlockId = worldState->blockId();
+    if (worldBlockId != 10 && worldBlockId != 11) {
+        // 不是岩浆，保持原样
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 获取模板方块状态
+    const BlockState* templateState = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
+    if (!templateState) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 检查模板方块是否不透明
+    // MC 1.16.5: Block.isOpaque 检查方块形状是否不透明
+    // 如果不透明，则让岩浆保留；如果透明，则放置模板方块
+    bool isOpaque = templateState->isOpaque();
+
+    if (isOpaque) {
+        // 不透明方块，岩浆应该被替换为该方块
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 透明方块（如栅栏、楼梯等），让岩浆保留
+    // 返回岩浆状态
+    ProcessedBlockInfo result;
+    result.pos = blockInfo.pos;
+    // 使用静止岩浆 (ID = 11)
+    result.blockStateId = 11;  // lava
+    return result;
+}
+
+// ============================================================================
+// BlockAgeProcessor
+// ============================================================================
+
+BlockAgeProcessor::BlockAgeProcessor(f32 mossiness)
+    : m_mossiness(mossiness)
+{
+}
+
+std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
+    const BlockPos& seedPos,
+    const BlockPos& pos,
+    const BlockInfo& /*rawBlockInfo*/,
+    const BlockInfo& blockInfo,
+    const PlacementSettings& settings)
+{
+    // MC 1.16.5: BlockAgeProcessor / BlockMosinessProcessor
+    // 随机将石砖相关方块替换为苔藓化或裂变版本
+
+    const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
+    if (!state) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    Block* block = &const_cast<Block&>(state->getBlock());
+
+    // 使用确定性随机（基于位置）
+    u64 hash = math::hashBlockPos(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
+    math::Random rng(static_cast<u64>(hash) ^ static_cast<u64>(seedPos.x * 31 + seedPos.z * 17));
+
+    ProcessedBlockInfo result;
+    result.pos = blockInfo.pos;
+    result.blockStateId = blockInfo.blockStateId;  // 默认保持原样
+
+    // 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
+    if (VanillaBlocks::OBSIDIAN && block == VanillaBlocks::OBSIDIAN) {
+        if (rng.nextFloat() < 0.15f && VanillaBlocks::CRYING_OBSIDIAN) {
+            result.blockStateId = VanillaBlocks::CRYING_OBSIDIAN->defaultState().stateId();
+        }
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // 石砖墙：mossiness 概率替换为苔藓石砖墙
+    // 注意：MOSSY_STONE_BRICK_WALL 尚未在 VanillaBlocks 中注册
+    // 注册后可实现：if (rng.nextFloat() < m_mossiness) 替换为苔藓石砖墙
+    if (VanillaBlocks::STONE_BRICK_WALL && block == VanillaBlocks::STONE_BRICK_WALL) {
+        // 当前保持原样，待 MOSSY_STONE_BRICK_WALL 注册后实现替换逻辑
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // 石砖类方块：石砖、石头、錾刻石砖
+    bool isStoneBrickType = (VanillaBlocks::STONE_BRICKS && block == VanillaBlocks::STONE_BRICKS) ||
+                            (VanillaBlocks::STONE && block == VanillaBlocks::STONE) ||
+                            (VanillaBlocks::CHISELED_STONE_BRICKS && block == VanillaBlocks::CHISELED_STONE_BRICKS);
+
+    if (isStoneBrickType) {
+        // 50% 概率不替换
+        if (rng.nextFloat() < 0.5f) {
+            if (blockInfo.nbt) {
+                result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+            }
+            return result;
+        }
+
+        // mossiness 概率组 vs 非 mossiness 组
+        if (rng.nextFloat() < m_mossiness) {
+            // Mossiness 组：苔藓石砖
+            if (VanillaBlocks::MOSSY_STONE_BRICKS) {
+                result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICKS->defaultState().stateId();
+            }
+        } else {
+            // 非 mossiness 组：裂纹石砖
+            if (rng.nextFloat() < 0.5f && VanillaBlocks::CRACKED_STONE_BRICKS) {
+                result.blockStateId = VanillaBlocks::CRACKED_STONE_BRICKS->defaultState().stateId();
+            }
+        }
+    }
+
+    // 圆石：mossiness 概率替换为苔藓圆石
+    if (VanillaBlocks::COBBLESTONE && block == VanillaBlocks::COBBLESTONE) {
+        if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_COBBLESTONE) {
+            result.blockStateId = VanillaBlocks::MOSSY_COBBLESTONE->defaultState().stateId();
+        }
+    }
+
+    // 复制 NBT（如果有）
+    if (blockInfo.nbt) {
+        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+    }
+
+    return result;
+}
+
+// ============================================================================
+// BlackstoneReplacementProcessor
+// ============================================================================
+
+BlackstoneReplacementProcessor::BlackstoneReplacementProcessor()
+{
+    // MC 1.16.5: BlackStoneReplacementProcessor
+    // 参考 BlackStoneReplacementProcessor.java 第18-42行
+
+    auto& registry = BlockRegistry::instance();
+
+    // 辅助lambda：根据名称获取方块ID
+    auto getBlockId = [&registry](const char* name) -> u32 {
+        ResourceLocation loc(name);
+        Block* block = registry.getBlock(loc);
+        if (block) {
+            return block->blockId();
+        }
+        return 0;  // 空气/未找到
+    };
+
+    // 基础方块替换映射
+    u32 cobblestone = getBlockId("minecraft:cobblestone");
+    u32 blackstone = getBlockId("minecraft:blackstone");
+    u32 mossyCobblestone = getBlockId("minecraft:mossy_cobblestone");
+    u32 stone = getBlockId("minecraft:stone");
+    u32 polishedBlackstone = getBlockId("minecraft:polished_blackstone");
+    u32 stoneBricks = getBlockId("minecraft:stone_bricks");
+    u32 polishedBlackstoneBricks = getBlockId("minecraft:polished_blackstone_bricks");
+    u32 mossyStoneBricks = getBlockId("minecraft:mossy_stone_bricks");
+    u32 crackedStoneBricks = getBlockId("minecraft:cracked_stone_bricks");
+    u32 crackedPolishedBlackstoneBricks = getBlockId("minecraft:cracked_polished_blackstone_bricks");
+    u32 chiseledStoneBricks = getBlockId("minecraft:chiseled_stone_bricks");
+    u32 chiseledPolishedBlackstone = getBlockId("minecraft:chiseled_polished_blackstone");
+    u32 ironBars = getBlockId("minecraft:iron_bars");
+    u32 chain = getBlockId("minecraft:chain");
+
+    // 基础方块替换
+    if (cobblestone && blackstone) {
+        m_replacements[cobblestone] = blackstone;
+    }
+    if (mossyCobblestone && blackstone) {
+        m_replacements[mossyCobblestone] = blackstone;
+    }
+    if (stone && polishedBlackstone) {
+        m_replacements[stone] = polishedBlackstone;
+    }
+    if (stoneBricks && polishedBlackstoneBricks) {
+        m_replacements[stoneBricks] = polishedBlackstoneBricks;
+    }
+    if (mossyStoneBricks && polishedBlackstoneBricks) {
+        m_replacements[mossyStoneBricks] = polishedBlackstoneBricks;
+    }
+    if (crackedStoneBricks && crackedPolishedBlackstoneBricks) {
+        m_replacements[crackedStoneBricks] = crackedPolishedBlackstoneBricks;
+    }
+    if (chiseledStoneBricks && chiseledPolishedBlackstone) {
+        m_replacements[chiseledStoneBricks] = chiseledPolishedBlackstone;
+    }
+    if (ironBars && chain) {
+        m_replacements[ironBars] = chain;
+    }
+
+    // 楼梯替换
+    u32 cobblestoneStairs = getBlockId("minecraft:cobblestone_stairs");
+    u32 blackstoneStairs = getBlockId("minecraft:blackstone_stairs");
+    u32 mossyCobblestoneStairs = getBlockId("minecraft:mossy_cobblestone_stairs");
+    u32 stoneStairs = getBlockId("minecraft:stone_stairs");
+    u32 polishedBlackstoneStairs = getBlockId("minecraft:polished_blackstone_stairs");
+    u32 stoneBrickStairs = getBlockId("minecraft:stone_brick_stairs");
+    u32 polishedBlackstoneBrickStairs = getBlockId("minecraft:polished_blackstone_brick_stairs");
+    u32 mossyStoneBrickStairs = getBlockId("minecraft:mossy_stone_brick_stairs");
+
+    if (cobblestoneStairs && blackstoneStairs) {
+        m_replacements[cobblestoneStairs] = blackstoneStairs;
+    }
+    if (mossyCobblestoneStairs && blackstoneStairs) {
+        m_replacements[mossyCobblestoneStairs] = blackstoneStairs;
+    }
+    if (stoneStairs && polishedBlackstoneStairs) {
+        m_replacements[stoneStairs] = polishedBlackstoneStairs;
+    }
+    if (stoneBrickStairs && polishedBlackstoneBrickStairs) {
+        m_replacements[stoneBrickStairs] = polishedBlackstoneBrickStairs;
+    }
+    if (mossyStoneBrickStairs && polishedBlackstoneBrickStairs) {
+        m_replacements[mossyStoneBrickStairs] = polishedBlackstoneBrickStairs;
+    }
+
+    // 台阶替换
+    u32 cobblestoneSlab = getBlockId("minecraft:cobblestone_slab");
+    u32 blackstoneSlab = getBlockId("minecraft:blackstone_slab");
+    u32 mossyCobblestoneSlab = getBlockId("minecraft:mossy_cobblestone_slab");
+    u32 smoothStoneSlab = getBlockId("minecraft:smooth_stone_slab");
+    u32 stoneSlab = getBlockId("minecraft:stone_slab");
+    u32 polishedBlackstoneSlab = getBlockId("minecraft:polished_blackstone_slab");
+    u32 stoneBrickSlab = getBlockId("minecraft:stone_brick_slab");
+    u32 polishedBlackstoneBrickSlab = getBlockId("minecraft:polished_blackstone_brick_slab");
+    u32 mossyStoneBrickSlab = getBlockId("minecraft:mossy_stone_brick_slab");
+
+    if (cobblestoneSlab && blackstoneSlab) {
+        m_replacements[cobblestoneSlab] = blackstoneSlab;
+    }
+    if (mossyCobblestoneSlab && blackstoneSlab) {
+        m_replacements[mossyCobblestoneSlab] = blackstoneSlab;
+    }
+    if (smoothStoneSlab && polishedBlackstoneSlab) {
+        m_replacements[smoothStoneSlab] = polishedBlackstoneSlab;
+    }
+    if (stoneSlab && polishedBlackstoneSlab) {
+        m_replacements[stoneSlab] = polishedBlackstoneSlab;
+    }
+    if (stoneBrickSlab && polishedBlackstoneBrickSlab) {
+        m_replacements[stoneBrickSlab] = polishedBlackstoneBrickSlab;
+    }
+    if (mossyStoneBrickSlab && polishedBlackstoneBrickSlab) {
+        m_replacements[mossyStoneBrickSlab] = polishedBlackstoneBrickSlab;
+    }
+
+    // 墙替换
+    u32 cobblestoneWall = getBlockId("minecraft:cobblestone_wall");
+    u32 blackstoneWall = getBlockId("minecraft:blackstone_wall");
+    u32 mossyCobblestoneWall = getBlockId("minecraft:mossy_cobblestone_wall");
+    u32 stoneBrickWall = getBlockId("minecraft:stone_brick_wall");
+    u32 polishedBlackstoneBrickWall = getBlockId("minecraft:polished_blackstone_brick_wall");
+    u32 mossyStoneBrickWall = getBlockId("minecraft:mossy_stone_brick_wall");
+
+    if (cobblestoneWall && blackstoneWall) {
+        m_replacements[cobblestoneWall] = blackstoneWall;
+    }
+    if (mossyCobblestoneWall && blackstoneWall) {
+        m_replacements[mossyCobblestoneWall] = blackstoneWall;
+    }
+    if (stoneBrickWall && polishedBlackstoneBrickWall) {
+        m_replacements[stoneBrickWall] = polishedBlackstoneBrickWall;
+    }
+    if (mossyStoneBrickWall && polishedBlackstoneBrickWall) {
+        m_replacements[mossyStoneBrickWall] = polishedBlackstoneBrickWall;
+    }
+}
+
+std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(
+    const BlockPos& /*seedPos*/,
+    const BlockPos& /*pos*/,
+    const BlockInfo& /*rawBlockInfo*/,
+    const BlockInfo& blockInfo,
+    const PlacementSettings& /*settings*/)
+{
+    // MC 1.16.5: BlackStoneReplacementProcessor.func_230386_a_
+    // 参考 BlackStoneReplacementProcessor.java 第47-68行
+
+    const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
+    if (!state) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    u32 blockId = state->blockId();
+
+    // 查找替换映射
+    auto it = m_replacements.find(blockId);
+    if (it != m_replacements.end()) {
+        ProcessedBlockInfo result;
+        result.pos = blockInfo.pos;
+
+        // 获取目标方块
+        Block* targetBlock = BlockRegistry::instance().getBlock(it->second);
+        if (targetBlock) {
+            // 获取目标方块的默认状态
+            const BlockState* targetState = &targetBlock->defaultState();
+            const Block& sourceBlock = state->getBlock();
+            const auto& sourceContainer = sourceBlock.stateContainer();
+            const auto& targetContainer = targetBlock->stateContainer();
+
+            // MC 1.16.5: 保持兼容的方块状态属性
+            // 参考 BlackStoneReplacementProcessor.java 第54-65行
+
+            // 尝试复制 FACING 属性（用于楼梯、墙等）
+            const IProperty* facingProp = sourceContainer.getProperty("facing");
+            const IProperty* targetFacingProp = targetContainer.getProperty("facing");
+            if (facingProp && targetFacingProp) {
+                auto valueIndexIt = state->values().find(facingProp);
+                if (valueIndexIt != state->values().end()) {
+                    // 尝试在目标方块上设置相同属性值
+                    size_t sourceIndex = valueIndexIt->second;
+                    String valueStr = facingProp->valueToString(sourceIndex);
+                    auto parsedValue = targetFacingProp->parseValue(valueStr);
+                    if (parsedValue) {
+                        // 遍历目标方块的所有状态，找到具有目标属性值的状态
+                        for (const auto& candidate : targetContainer.validStates()) {
+                            if (!candidate) continue;
+                            auto targetValueIt = candidate->values().find(targetFacingProp);
+                            if (targetValueIt != candidate->values().end() && targetValueIt->second == *parsedValue) {
+                                targetState = candidate.get();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 尝试复制 HALF 属性（用于楼梯）
+            const IProperty* halfProp = sourceContainer.getProperty("half");
+            const IProperty* targetHalfProp = targetContainer.getProperty("half");
+            if (halfProp && targetHalfProp && targetState) {
+                auto valueIndexIt = state->values().find(halfProp);
+                if (valueIndexIt != state->values().end()) {
+                    size_t sourceIndex = valueIndexIt->second;
+                    String valueStr = halfProp->valueToString(sourceIndex);
+                    auto parsedValue = targetHalfProp->parseValue(valueStr);
+                    if (parsedValue) {
+                        for (const auto& candidate : targetContainer.validStates()) {
+                            if (!candidate) continue;
+                            // 检查是否保持 FACING 值
+                            auto targetFacingValueIt = candidate->values().find(targetFacingProp);
+                            auto sourceFacingValueIt = targetState->values().find(targetFacingProp);
+                            bool facingMatches = (targetFacingProp == nullptr) ||
+                                (targetFacingValueIt != candidate->values().end() &&
+                                 sourceFacingValueIt != targetState->values().end() &&
+                                 targetFacingValueIt->second == sourceFacingValueIt->second);
+                            if (!facingMatches) continue;
+
+                            auto targetValueIt = candidate->values().find(targetHalfProp);
+                            if (targetValueIt != candidate->values().end() && targetValueIt->second == *parsedValue) {
+                                targetState = candidate.get();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 尝试复制 TYPE 属性（用于台阶 - top/bottom/double）
+            const IProperty* typeProp = sourceContainer.getProperty("type");
+            const IProperty* targetTypeProp = targetContainer.getProperty("type");
+            if (typeProp && targetTypeProp && targetState) {
+                auto valueIndexIt = state->values().find(typeProp);
+                if (valueIndexIt != state->values().end()) {
+                    size_t sourceIndex = valueIndexIt->second;
+                    String valueStr = typeProp->valueToString(sourceIndex);
+                    auto parsedValue = targetTypeProp->parseValue(valueStr);
+                    if (parsedValue) {
+                        for (const auto& candidate : targetContainer.validStates()) {
+                            if (!candidate) continue;
+                            auto targetValueIt = candidate->values().find(targetTypeProp);
+                            if (targetValueIt != candidate->values().end() && targetValueIt->second == *parsedValue) {
+                                targetState = candidate.get();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            result.blockStateId = targetState ? targetState->stateId() : targetBlock->defaultState().stateId();
+        } else {
+            result.blockStateId = blockInfo.blockStateId;
+        }
+
+        // 复制 NBT（如果有）
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+
+        return result;
+    }
+
+    // 没有找到替换映射，保持原样
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 

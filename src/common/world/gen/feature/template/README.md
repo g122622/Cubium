@@ -97,6 +97,10 @@ public:
 | `JigsawReplacementStructureProcessor` | 替换Jigsaw方块为final_state指定的方块 |
 | `IntegrityProcessor` | 根据完整度随机移除方块 |
 | `RuleStructureProcessor` | 根据规则替换方块 |
+| `NopStructureProcessor` | 空操作处理器，直接返回原始方块 |
+| `LavaSubmergingProcessor` | 岩浆淹没处理器，用于下界堡垒生成 |
+| `BlockAgeProcessor` | 方块老化处理器，添加苔藓效果 |
+| `BlackstoneReplacementProcessor` | 黑石替换处理器，用于堡垒遗迹 |
 
 ### Template - 结构模板
 
@@ -368,6 +372,86 @@ flowchart LR
 | `AlwaysTruePosRuleTest` | 总是返回true |
 | `LinearPosRuleTest` | 根据Y坐标线性插值概率 |
 
+## 新增处理器详解
+
+### NopStructureProcessor
+
+空操作处理器，直接返回原始方块信息不做任何修改。
+
+```cpp
+// 用于测试或作为占位符
+auto nopProcessor = std::make_unique<NopStructureProcessor>();
+```
+
+### LavaSubmergingProcessor
+
+用于下界堡垒遗迹在岩浆海中生成。当结构放置在岩浆中时：
+- 如果方块是不透明的（完整方块），正常放置方块替换岩浆
+- 如果方块是透明的（如栅栏、楼梯），保留岩浆不放置方块
+
+```cpp
+// 用于堡垒遗迹
+auto lavaProcessor = std::make_unique<LavaSubmergingProcessor>();
+```
+
+**MC 1.16.5 参考**: `LavaSubmergingProcessor.java`
+
+### BlockAgeProcessor
+
+方块老化处理器，用于村庄等结构的老化效果。根据苔藓概率随机将石砖相关方块替换为苔藓化版本。
+
+```cpp
+// 30% 苔藓化概率
+auto ageProcessor = std::make_unique<BlockAgeProcessor>(0.3f);
+```
+
+**替换规则**:
+- 黑曜石 → 哭泣黑曜石（固定15%概率，不受mossiness影响）
+- 石砖/石头/錾刻石砖 → 苔藓石砖（mossiness概率）或裂纹石砖
+- 圆石 → 苔藓圆石（mossiness概率）
+- 石砖墙 → 苔藓石砖墙（mossiness概率，需要MOSSY_STONE_BRICK_WALL注册）
+
+**MC 1.16.5 参考**: `BlockAgeProcessor.java` / `BlockMosinessProcessor.java`
+
+### BlackstoneReplacementProcessor
+
+黑石替换处理器，用于堡垒遗迹结构生成。将普通石质方块替换为黑石变体，并保持方块状态属性（如楼梯方向、台阶类型等）。
+
+```cpp
+auto blackstoneProcessor = std::make_unique<BlackstoneReplacementProcessor>();
+```
+
+**替换映射**:
+| 原方块 | 替换为 |
+|--------|--------|
+| 圆石 | 黑石 |
+| 苔藓圆石 | 黑石 |
+| 石头 | 磨制黑石 |
+| 石砖 | 磨制黑石砖 |
+| 苔藓石砖 | 磨制黑石砖 |
+| 裂纹石砖 | 裂纹磨制黑石砖 |
+| 錾刻石砖 | 錾刻磨制黑石 |
+| 铁栏杆 | 锁链 |
+| 圆石楼梯 | 黑石楼梯 |
+| 苔藓圆石楼梯 | 黑石楼梯 |
+| 石楼梯 | 磨制黑石楼梯 |
+| 石砖楼梯 | 磨制黑石砖楼梯 |
+| 苔藓石砖楼梯 | 磨制黑石砖楼梯 |
+| 圆石台阶 | 黑石台阶 |
+| 苔藓圆石台阶 | 黑石台阶 |
+| 平滑石台阶 | 磨制黑石台阶 |
+| 石台阶 | 磨制黑石台阶 |
+| 石砖台阶 | 磨制黑石砖台阶 |
+| 苔藓石砖台阶 | 磨制黑石砖台阶 |
+| 石砖墙 | 磨制黑石砖墙 |
+| 苔藓石砖墙 | 磨制黑石砖墙 |
+| 圆石墙 | 黑石墙 |
+| 苔藓圆石墙 | 黑石墙 |
+
+**属性保持**: 楼梯的 `facing` 和 `half` 属性、台阶的 `type` 属性会被保持。
+
+**MC 1.16.5 参考**: `BlackStoneReplacementProcessor.java`
+
 ## 容易踩的坑
 
 ### 1. 方块状态ID
@@ -432,5 +516,8 @@ settings.setBlockUpdateFlags(18);
 - JigsawReplacementStructureProcessor: `net.minecraft.world.gen.feature.template.JigsawReplacementStructureProcessor`
 - RuleStructureProcessor: `net.minecraft.world.gen.feature.template.RuleStructureProcessor`
 - RuleTest: `net.minecraft.world.gen.feature.template.RuleTest`
+- LavaSubmergingProcessor: `net.minecraft.world.gen.feature.template.LavaSubmergingProcessor`
+- BlackStoneReplacementProcessor: `net.minecraft.world.gen.feature.template.BlackStoneReplacementProcessor`
+- BlockAgeProcessor (BlockMosinessProcessor): `net.minecraft.world.gen.feature.template.BlockAgeProcessor`
 
 *最后更新: 2026-05-03*
