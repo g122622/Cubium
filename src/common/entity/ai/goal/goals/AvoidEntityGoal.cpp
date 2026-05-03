@@ -47,7 +47,23 @@ bool AvoidEntityGoal::shouldExecute() {
 
     // MC 1.16.5: 使用 RandomPositionGenerator.findRandomTargetBlockAwayFrom
     // 寻找远离目标的位置
-    return findEscapePosition();
+    if (!findEscapePosition()) {
+        return false;
+    }
+
+    // MC 1.16.5: 检查路径是否存在
+    // Path path = this.navigation.getPathToPos(vector3d.x, vector3d.y, vector3d.z, 0);
+    // return this.path != null;
+    auto* nav = m_creature->navigator();
+    if (!nav) {
+        return false;
+    }
+
+    // 尝试找到到逃跑位置的路径
+    // MC 1.16.5: getPathToPos(vector3d.x, vector3d.y, vector3d.z, 0)
+    // 注意：这里我们使用 moveTo 来尝试计算路径，但不实际移动
+    // 如果路径计算成功则返回 true
+    return nav->moveTo(m_escapeX, m_escapeY, m_escapeZ, 0.0);
 }
 
 bool AvoidEntityGoal::shouldContinueExecuting() {
@@ -124,6 +140,14 @@ bool AvoidEntityGoal::findEscapePosition() {
             ESCAPE_VERTICAL_RANGE,     // 7
             avoidPos,
             escapePos)) {
+
+        // MC 1.16.5: 检查逃跑位置是否比当前位置更远离目标
+        // if (this.avoidTarget.getDistanceSq(vector3d.x, vector3d.y, vector3d.z) < this.avoidTarget.getDistanceSq(this.entity))
+        //     return false;
+        if (!isEscapePositionValid(escapePos)) {
+            return false;
+        }
+
         m_escapeX = escapePos.x;
         m_escapeY = escapePos.y;
         m_escapeZ = escapePos.z;
@@ -131,6 +155,19 @@ bool AvoidEntityGoal::findEscapePosition() {
     }
 
     return false;
+}
+
+bool AvoidEntityGoal::isEscapePositionValid(const Vector3& escapePos) const {
+    if (!m_avoidTarget || !m_creature) return false;
+
+    // MC 1.16.5: 检查逃跑位置到目标的距离是否大于当前位置到目标的距离
+    // if (this.avoidTarget.getDistanceSq(vector3d) < this.avoidTarget.getDistanceSq(this.entity))
+    //     return false;
+    f64 distToEscapePos = m_avoidTarget->distanceSqTo(escapePos.x, escapePos.y, escapePos.z);
+    f64 distToCurrentPos = m_avoidTarget->distanceSqTo(*m_creature);
+
+    // 逃跑位置必须比当前位置更远离目标
+    return distToEscapePos >= distToCurrentPos;
 }
 
 } // namespace mc::entity::ai::goal

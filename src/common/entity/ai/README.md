@@ -202,6 +202,7 @@ virtual void tick();                         // 每帧更新
 - 位置坐标 (x, y, z)
 - 代价信息: `costFromStart` (g), `heuristic` (h), `totalCost` (f)
 - `distanceToNext` - 到下一个路径点的距离（MC: 存储 h*1.5）
+- `walkedDistance` - 行走距离（MC: field_222861_j），用于限制搜索范围
 - `costMalus` - 节点类型代价惩罚
 - `nodeType` - 节点类型
 - `parent` - 父节点（用于重建路径）
@@ -211,7 +212,9 @@ virtual void tick();                         // 每帧更新
 - `distanceTo(other)` - 直线距离（MC: distanceTo）
 - `distanceManhattan(other)` - 曼哈顿距离（MC: func_224757_c）
 - `distanceToSq(other)` - 直线距离平方
+- `distanceToSq(x, y, z)` - 直线距离平方（避免创建临时对象）
 - `clone()` - 克隆节点（不复制寻路状态）
+- `cloneMove(x, y, z)` - 创建移动克隆（复制所有寻路状态）
 
 #### PathNodeType - 路径节点类型
 
@@ -291,7 +294,7 @@ virtual void tick();                         // 每帧更新
 
 #### PathNavigator - 路径导航器
 
-**职责**: 管理路径计算、沿路径移动实体、处理路径中断。
+**职责**: 管理路径计算、沿路径移动实体、处理路径中断和卡住检测。
 
 **核心方法**:
 - `moveTo(x, y, z, speed)` - 计算并开始路径
@@ -299,6 +302,11 @@ virtual void tick();                         // 每帧更新
 - `recomputePath()` - 重新计算路径
 - `hasPath()` / `noPath()` - 检查路径状态
 - `isDone()` - 检查是否完成
+- `isStuck()` - 检查是否卡住（MC 1.16.5: func_244428_t_）
+
+**卡住检测** (MC 1.16.5):
+- 每 100 tick 检查实体是否移动超过 1.5 格
+- 超时检测：同一节点停留时间超过预期 3 倍
 
 **工作流程**:
 1. 调用 `PathFinder` 计算路径

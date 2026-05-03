@@ -97,11 +97,11 @@ bool RandomPositionGenerator::getLandPos(
         f32 dz = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(xzRange);
         f32 dy = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(yRange);
 
-        i32 x = static_cast<i32>(std::floor(creature->x() + dx));
-        i32 z = static_cast<i32>(std::floor(creature->z() + dz));
+        i32 x = floorTo<i32>(creature->x() + dx);
+        i32 z = floorTo<i32>(creature->z() + dz);
 
         // 寻找地面高度
-        i32 groundY = getGroundHeight(world, x, static_cast<i32>(std::floor(creature->y() + dy)), z);
+        i32 groundY = getGroundHeight(world, x, floorTo<i32>(creature->y() + dy), z);
 
         if (groundY >= world::MIN_BUILD_HEIGHT) {
             outPos = Vector3(
@@ -135,9 +135,9 @@ bool RandomPositionGenerator::findRandomTargetAvoidWater(
         f32 dz = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(xzRange);
         f32 dy = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(yRange);
 
-        i32 x = static_cast<i32>(std::floor(creature->x() + dx));
-        i32 y = static_cast<i32>(std::floor(creature->y() + dy));
-        i32 z = static_cast<i32>(std::floor(creature->z() + dz));
+        i32 x = floorTo<i32>(creature->x() + dx);
+        i32 y = floorTo<i32>(creature->y() + dy);
+        i32 z = floorTo<i32>(creature->z() + dz);
 
         // 检查不是水
         if (!world->isWaterAt(x, y, z) && !world->isWaterAt(x, y + 1, z)) {
@@ -218,9 +218,9 @@ f32 RandomPositionGenerator::calculatePositionScore(CreatureEntity* creature, co
 
     f32 score = 0.0f;
 
-    i32 x = static_cast<i32>(std::floor(pos.x));
-    i32 y = static_cast<i32>(std::floor(pos.y));
-    i32 z = static_cast<i32>(std::floor(pos.z));
+    i32 x = floorTo<i32>(pos.x);
+    i32 y = floorTo<i32>(pos.y);
+    i32 z = floorTo<i32>(pos.z);
 
     // 基础评分
     score += 10.0f;
@@ -300,9 +300,9 @@ bool RandomPositionGenerator::validateAndAdjustPosition(
     IWorld* world = creature->world();
     if (!world) return false;
 
-    i32 x = static_cast<i32>(std::floor(pos.x));
-    i32 y = static_cast<i32>(std::floor(pos.y));
-    i32 z = static_cast<i32>(std::floor(pos.z));
+    i32 x = floorTo<i32>(pos.x);
+    i32 y = floorTo<i32>(pos.y);
+    i32 z = floorTo<i32>(pos.z);
 
     // 检查坐标是否在世界范围内
     if (!world->isWithinWorldBounds(x, y, z)) {

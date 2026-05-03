@@ -69,6 +69,14 @@ protected:
      */
     [[nodiscard]] bool findEscapePosition();
 
+    /**
+     * @brief 验证逃跑位置是否有效
+     * MC 1.16.5: 检查逃跑位置比当前位置更远离目标
+     * @param escapePos 逃跑位置
+     * @return 如果逃跑位置有效返回 true
+     */
+    [[nodiscard]] bool isEscapePositionValid(const Vector3& escapePos) const;
+
     CreatureEntity* m_creature;
     f32 m_avoidDistance;
     f64 m_farSpeed;

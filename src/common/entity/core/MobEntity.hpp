@@ -3,6 +3,7 @@
 #include "LivingEntity.hpp"
 #include "../ai/goal/GoalSelector.hpp"
 #include "../../util/math/random/Random.hpp"
+#include "../../world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -268,6 +269,85 @@ public:
      */
     void setExperienceValue(i32 value) { m_experienceValue = value; }
 
+    // ========== 家范围系统 (Home Position) ==========
+
+    /**
+     * @brief 检查当前位置是否在家范围内
+     *
+     * MC 1.16.5: isWithinHomeDistanceCurrentPosition()
+     * @return 如果当前位置在家范围内返回 true
+     */
+    [[nodiscard]] bool isWithinHomeDistanceCurrentPosition() const {
+        return isWithinHomeDistanceFromPosition(BlockPos(position()));
+    }
+
+    /**
+     * @brief 检查指定位置是否在家范围内
+     *
+     * MC 1.16.5: isWithinHomeDistanceFromPosition(BlockPos)
+     * 如果未设置家范围（maximumHomeDistance == -1.0F），总是返回 true
+     *
+     * @param pos 要检查的位置
+     * @return 如果位置在家范围内返回 true
+     */
+    [[nodiscard]] bool isWithinHomeDistanceFromPosition(const BlockPos& pos) const {
+        if (m_maximumHomeDistance < 0.0f) {
+            return true;  // 未设置家范围，任何位置都允许
+        }
+        // MC 1.16.5: this.homePosition.distanceSq(pos) < (double)(this.maximumHomeDistance * this.maximumHomeDistance)
+        f64 dx = static_cast<f64>(m_homePosition.x - pos.x);
+        f64 dy = static_cast<f64>(m_homePosition.y - pos.y);
+        f64 dz = static_cast<f64>(m_homePosition.z - pos.z);
+        f64 distSq = dx * dx + dy * dy + dz * dz;
+        f64 maxDistSq = static_cast<f64>(m_maximumHomeDistance) * static_cast<f64>(m_maximumHomeDistance);
+        return distSq < maxDistSq;
+    }
+
+    /**
+     * @brief 设置家位置和范围
+     *
+     * MC 1.16.5: setHomePosAndDistance(BlockPos, int)
+     * @param pos 家位置
+     * @param distance 家范围半径
+     */
+    void setHomePosAndDistance(const BlockPos& pos, i32 distance) {
+        m_homePosition = pos;
+        m_maximumHomeDistance = static_cast<f32>(distance);
+    }
+
+    /**
+     * @brief 获取家位置
+     *
+     * MC 1.16.5: getHomePosition()
+     * @return 家位置
+     */
+    [[nodiscard]] const BlockPos& homePosition() const { return m_homePosition; }
+
+    /**
+     * @brief 获取家范围最大距离
+     *
+     * MC 1.16.5: getMaximumHomeDistance()
+     * @return 家范围半径，-1 表示未设置
+     */
+    [[nodiscard]] f32 maximumHomeDistance() const { return m_maximumHomeDistance; }
+
+    /**
+     * @brief 检查是否有家范围限制
+     *
+     * MC 1.16.5: detachHome()
+     * @return 如果设置了家范围限制返回 true
+     */
+    [[nodiscard]] bool hasHome() const { return m_maximumHomeDistance >= 0.0f; }
+
+    /**
+     * @brief 清除家范围限制
+     *
+     * MC 1.16.5: 将最大距离设为 -1.0F
+     */
+    void clearHome() {
+        m_maximumHomeDistance = -1.0f;
+    }
+
     // ========== 攻击 ==========
 
     /**
@@ -327,6 +407,10 @@ protected:
 
     // 经验值（死亡时掉落）
     i32 m_experienceValue = 0;
+
+    // 家范围系统 (MC 1.16.5 MobEntity)
+    BlockPos m_homePosition;       // 家位置，默认为 (0, 0, 0)
+    f32 m_maximumHomeDistance = -1.0f;  // 家范围半径，-1 表示未设置
 };
 
 } // namespace mc

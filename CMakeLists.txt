@@ -70,6 +70,8 @@ find_package(Vulkan REQUIRED)
 # 全局编译选项
 if(MSVC)
     add_compile_options(/MP /utf-8)
+    # 强制串行化 PDB 写入，解决多编译器实例同时写入同一 PDB 文件的问题
+    add_compile_options(/FS)
     # 架构专用优化：启用 AVX2 指令集，加速向量运算
     add_compile_options(/arch:AVX2)
     # 启用快速浮点数

@@ -325,10 +325,12 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  * 参考 MC 1.16.5: float approachTargetAngle(float from, float to, float max)
  * 用于 LookController 在有导航路径时限制头部角度。
  *
+ * 注意：MC 原版不包装结果到 [0, 360)，结果可能为负值或大于 360。
+ *
  * @param sourceAngle 当前角度（度）
  * @param targetAngle 目标角度（度）
  * @param maximumChange 最大角度变化（度）
- * @return 调整后的角度
+ * @return 调整后的角度（不包装到 [0, 360)）
  */
 [[nodiscard]] inline f32 approachTargetAngle(f32 sourceAngle, f32 targetAngle, f32 maximumChange) noexcept
 {
@@ -338,14 +340,8 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     } else if (diff < -maximumChange) {
         diff = -maximumChange;
     }
-    // 包装到 [0, 360)
-    f32 result = targetAngle - diff;
-    if (result < 0.0f) {
-        result += 360.0f;
-    } else if (result >= 360.0f) {
-        result -= 360.0f;
-    }
-    return result;
+    // MC 1.16.5: 不包装结果，直接返回
+    return targetAngle - diff;
 }
 
 /**
