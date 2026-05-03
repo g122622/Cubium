@@ -300,6 +300,21 @@ server.stop();
 
 实体调用 `Entity::playSound(...)` 后，会先进入 `ServerWorld::playSound(...)`，再由 `MinecraftServer::broadcastSound(...)` 或其子类实现把数据包发给附近玩家。这个路径现在同时服务于 `LivingEntity` 的受伤/死亡声、`MobEntity` 的环境声，以及 `Player` 的受伤/死亡声。
 
+### 实体状态广播链路
+
+实体状态事件（如守卫者攻击动画）通过 `IWorld::broadcastEntityStatus()` 接口广播：
+
+```
+GuardianAttackGoal::startExecuting()
+  → world()->broadcastEntityStatus(entityId, status)
+  → ServerWorld::broadcastEntityStatus()
+  → m_onBroadcastEntityStatus callback
+  → MinecraftServer::broadcastEntityStatusInRange()
+  → 发送 EntityStatusPacket 给范围内玩家
+```
+
+客户端收到 `EntityStatusPacket` 后，根据状态码触发相应的动画或音效（如 `GuardianSoundStateful`）。
+
 ## 测试用例
 
 - [tests/server/ServerWorldTest.cpp](../../../tests/server/ServerWorldTest.cpp) 覆盖世界声音回调转发。

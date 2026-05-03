@@ -35,6 +35,8 @@ src/server/world/
 - 方块写入回调链（`onBlockAdded/onBlockRemoved`、`updatePostPlacement`、`neighborChanged`）
 - 方块变化回调（`setOnBlockChanged`，用于驱动方块更新同步）
 - 声音回调（`setOnPlaySound`，用于把实体声音转发到服务器广播层）
+- 粒子回调（`setOnBroadcastParticle`，用于粒子效果广播）
+- 实体状态回调（`setOnBroadcastEntityStatus`，用于实体动画/音效事件广播）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
 - 存档保存编排（通过 `SaveManager` 驱动自动保存与全量保存）

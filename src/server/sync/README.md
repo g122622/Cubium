@@ -85,6 +85,8 @@ src/server/sync/
 | `setOnEntitySpawn(callback)` | 设置实体生成回调 |
 | `setOnEntityRemove(callback)` | 设置实体移除回调 |
 | `setOnEntityMove(callback)` | 设置实体移动回调 |
+| `setOnEntityStatus(callback)` | 设置实体状态回调 |
+| `broadcastEntityStatus(entityId, status)` | 广播实体状态事件 |
 
 #### 位置变化检测
 

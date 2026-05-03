@@ -199,8 +199,10 @@ public:
 
     // 维度上下文
     virtual bool isUltraWarm() const = 0;
-};
-```
+
+    // 实体状态广播（默认空实现，ServerWorld 重写）
+    virtual void broadcastEntityStatus(EntityId entityId, u8 status);
+};```
 
 `IWorld` 现在还提供一组面向方块位置语义的 `BlockPos` 便捷重载，适合已经持有位置对象的调用点直接使用：
 
