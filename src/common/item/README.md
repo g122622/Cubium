@@ -187,14 +187,14 @@ item/
 1. **武器物品** (items/weapon/)
    - BowItem (弓)
    - CrossbowItem (弩)
-   - TridentItem (三叉戟)
-   - ShieldItem (盾牌)
+   - TridentItem (三叉戟) - 激流冲刺待完善
+   - ShieldItem (盾牌) - 格挡逻辑待完善
    - ArrowItem (箭矢)
 
 2. **投掷物品** (items/throw/)
    - SnowballItem (雪球)
    - EggItem (鸡蛋)
-   - EnderPearlItem (末影珍珠)
+   - EnderPearlItem (末影珍珠) - 冷却系统待实现
    - ExperienceBottleItem (附魔之瓶)
 
 3. **核心附魔** (enchantment/enchantments/)
@@ -205,23 +205,37 @@ item/
 
 ### 优先级中
 
-4. **特殊物品** (items/special/)
+4. **ItemStack属性修饰符系统** (attribute/)
+   - ItemStack与属性修饰符集成
+   - 动态属性修饰符（附魔影响）
+   - NBT序列化
+
+5. **特殊物品** (items/special/)
    - SpawnEggItem (生成蛋)
    - CompassItem (指南针)
    - ClockItem (时钟)
    - FishingRodItem (钓鱼竿)
    - EnchantedBookItem (附魔书)
 
-5. **桶类物品** (items/bucket/)
+6. **桶类物品** (items/bucket/)
    - BucketItem (空桶)
    - WaterBucketItem (水桶)
    - LavaBucketItem (熔岩桶)
    - MilkBucketItem (牛奶桶)
 
-6. **药水物品** (items/potion/)
+7. **药水物品** (items/potion/)
    - PotionItem (药水)
    - SplashPotionItem (溅射药水)
    - LingeringPotionItem (滞留药水)
+
+### 系统性待实现项
+
+| 功能 | 状态 | 依赖组件 |
+|------|------|----------|
+| ShieldItem 格挡逻辑 | 部分实现 | Player::canBlockDamageSource、盾牌冷却 |
+| TridentItem 激流冲刺 | 部分实现 | Player::startSpinAttack、SpinAttack状态管理 |
+| EnderPearlItem 冷却 | 未实现 | CooldownTracker系统 |
+| ItemStack属性修饰符 | 部分实现 | ItemStack集成、NBT序列化 |
 
 ## 使用示例
 
