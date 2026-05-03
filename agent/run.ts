@@ -201,9 +201,9 @@ ${STOP_HOOK_PROMPT}
   };
 
   const tasklist = [
-    "/align 地形生成过程中的结构生成算法、模板解析、jigsaw系统、结构完整度（重点）等（提示：结构生成的nbt模板在mac环境位于/Users/a0000/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，在Windows环境位于D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，你需要充分探索这个目录。另外，随机数必须使用项目封装好的，不要自建随机数生成器）",
-    "/align 含水方块",
-    "/align 实体ai",
+    //"/align 地形生成过程中的结构生成算法、模板解析、jigsaw系统、结构完整度（重点）等（提示：结构生成的nbt模板在mac环境位于/Users/a0000/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，在Windows环境位于D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，你需要充分探索这个目录。另外，随机数必须使用项目封装好的，不要自建随机数生成器）",
+    //"/align 含水方块",
+    //"/align 实体ai",
     "/align 音效丰富度",
     "/align 物品丰富度",
     "/align 矿车系统",
@@ -215,7 +215,7 @@ ${STOP_HOOK_PROMPT}
     "/align 下界与主世界之间的传送",
   ];
 
-  async function runTask(task: string, iteration: number, taskIndex: number) {
+  async function runTask(task: string, iteration: number, taskIndex: number, shouldEvaluate: boolean) {
     console.log(
       `\n🔁 [循环 ${iteration + 1} | 任务 ${taskIndex + 1}] 开始执行: ${task}\n`,
     );
@@ -228,7 +228,7 @@ ${STOP_HOOK_PROMPT}
           // 等价于 --dangerously-skip-permissions：绕过所有权限检查
           permissionMode: "bypassPermissions",
           hooks: {
-            Stop: [{ hooks: [stopHook] }],
+            Stop: shouldEvaluate ? [{ hooks: [stopHook] }] : [],
           },
         },
       })) {
@@ -285,13 +285,13 @@ ${STOP_HOOK_PROMPT}
       );
       for (let j = 0; j < tasklist.length; j++) {
         for (let k = 0; k < innerLoops; k++) {
-          await runTask(tasklist[j], i, j);
+          await runTask(tasklist[j], i, j, true);
           await runTask(
             `请你检查当前代码能否编译通过（cmake --build build --config RelWithDebInfo），
 编译时间可能会非常长（若当前为macos系统，则该命令带上-j6后缀；若为Windows系统，则不带上任何表示构建并行度的后缀）
 等待时间必须10分钟以上，若编译失败则必须修复知道能通过`,
-            i, j);
-          await runTask("请你检查当前是否有未提交的更改，若有则生成提交信息并提交", i, j);
+            i, j, false);
+          await runTask("请你检查当前是否有未提交的更改，若有则生成提交信息并提交", i, j, false);
         }
       }
       console.log(`\n========== 第 ${i + 1} 次循环结束 ==========\n`);
