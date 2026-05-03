@@ -147,8 +147,12 @@ bool onBlockDestroyed(ItemStack& stack, ...);    // 破坏方块（消耗1耐久
 - 树叶：各种树叶
 - 其他：书架、工作台等
 
-**特殊功能**（计划）：
-- 右键原木可去皮（log -> stripped_log）
+**特殊功能（MC 1.16.5 已实现）**：
+- **去皮功能**：右键原木可去皮（log -> stripped_log）
+  - 支持6种主世界原木/木头：橡木、云杉、白桦、丛林、金合欢、深色橡木
+  - 消耗1点耐久度
+  - 播放去皮音效（ITEM_AXE_STRIP）
+  - 使用方法：`onItemUse()` / `getStrippedBlock()`
 
 ### ShovelItem.hpp / ShovelItem.cpp
 
@@ -165,8 +169,12 @@ bool onBlockDestroyed(ItemStack& stack, ...);    // 破坏方块（消耗1耐久
 - 雪类：雪
 - 其他：粘土、灵魂沙、灵魂土
 
-**特殊功能**（计划）：
-- 右键草地可创建土径（grass_block -> grass_path）
+**特殊功能（MC 1.16.5 已实现）**：
+- **土径创建**：右键草方块可创建土径（grass_block -> grass_path）
+  - 条件：点击面不能是底面，上方必须是空气
+  - 消耗1点耐久度
+  - 播放音效（ITEM_SHOVEL_FLATTEN）
+  - 使用方法：`onItemUse()` / `getPathBlock()`
 
 ### HoeItem.hpp / HoeItem.cpp
 
@@ -181,8 +189,16 @@ bool onBlockDestroyed(ItemStack& stack, ...);    // 破坏方块（消耗1耐久
 - 各种树叶
 - 地狱疣块
 
-**特殊功能**（计划）：
-- 右键泥土/草地可创建耕地（dirt/grass_block -> farmland）
+**特殊功能（MC 1.16.5 已实现）**：
+- **耕地创建**：右键泥土/草地可创建耕地
+  - 草方块 -> 耕地
+  - 土径 -> 耕地
+  - 泥土 -> 耕地
+  - 砂土 -> 泥土（需要再锄一次变成耕地）
+  - 条件：点击面不能是底面，上方必须是空气
+  - 消耗1点耐久度
+  - 播放音效（ITEM_HOE_TILL）
+  - 使用方法：`onItemUse()` / `getTilledBlock()`
 
 ### SwordItem.hpp / SwordItem.cpp
 
