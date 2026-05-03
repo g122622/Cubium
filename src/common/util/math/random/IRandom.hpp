@@ -4,6 +4,8 @@
 #include <limits>
 #include <cmath>
 #include <memory>
+#include <vector>
+#include <utility>
 
 namespace mc::math {
 
@@ -165,6 +167,29 @@ public:
      * 用于快速前进随机数生成器状态。
      */
     virtual void skip(u64 count);
+
+    // === 洗牌方法 ===
+
+    /**
+     * @brief 使用 Fisher-Yates 算法打乱向量元素
+     * @tparam T 元素类型
+     * @param vec 要打乱的向量
+     *
+     * 参考 MC 1.16.5: Collections.shuffle()
+     * 使用 Fisher-Yates 洗牌算法，确保每个排列概率相等。
+     *
+     * @code
+     * std::vector<int> items = {1, 2, 3, 4, 5};
+     * rng.shuffle(items);  // 随机打乱
+     * @endcode
+     */
+    template<typename T>
+    void shuffle(std::vector<T>& vec) {
+        for (size_t i = vec.size(); i > 1; --i) {
+            size_t j = static_cast<size_t>(nextInt(static_cast<i32>(i)));
+            std::swap(vec[i - 1], vec[j]);
+        }
+    }
 
 protected:
     /// 是否有缓存的高斯值

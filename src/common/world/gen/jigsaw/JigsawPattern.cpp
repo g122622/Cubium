@@ -38,11 +38,8 @@ std::vector<const JigsawPiece*> JigsawPattern::getShuffledPieces(math::Random& r
         result.push_back(piece.get());
     }
 
-    // Fisher-Yates 洗牌算法
-    for (size_t i = result.size(); i > 1; --i) {
-        size_t j = static_cast<size_t>(rng.nextInt(static_cast<i32>(i)));
-        std::swap(result[i - 1], result[j]);
-    }
+    // 使用 IRandom::shuffle 进行 Fisher-Yates 洗牌
+    rng.shuffle(result);
 
     return result;
 }

@@ -105,11 +105,7 @@ public:
      */
     std::vector<JigsawJoint> getShuffledJoints(math::Random& rng) const {
         std::vector<JigsawJoint> shuffled = m_joints;
-        // Fisher-Yates 洗牌算法
-        for (size_t i = shuffled.size(); i > 1; --i) {
-            size_t j = static_cast<size_t>(rng.nextInt(static_cast<i32>(i)));
-            std::swap(shuffled[i - 1], shuffled[j]);
-        }
+        rng.shuffle(shuffled);
         return shuffled;
     }
 

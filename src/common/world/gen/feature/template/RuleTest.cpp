@@ -3,6 +3,7 @@
 #include "../../../block/Block.hpp"
 #include "../../../block/BlockTags.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace world {
@@ -124,9 +125,10 @@ LinearPosRuleTest::LinearPosRuleTest(
     , m_minProbability(minProbability)
     , m_maxProbability(maxProbability)
 {
-    // MC 1.16.5: 验证距离范围
-    // 参考: LinearPosTest 构造函数
-    // if (minDist >= maxDist) throw IllegalArgumentException
+    // MC 1.16.5: 当 minDistance == maxDistance 时，概率固定为 minProbability
+    // 仅当 minDistance > maxDistance 时才是无效参数
+    // 参考: LinearPosTest 构造函数 - if (minDist > maxDist) throw IllegalArgumentException
+    MC_ASSERT_RELEASE(minDistance <= maxDistance);
 }
 
 bool LinearPosRuleTest::test(
@@ -140,13 +142,11 @@ bool LinearPosRuleTest::test(
     i32 distance = worldPos.manhattanDistance(seedPos);
     f32 randomValue = rng.nextFloat();
 
-    // 使用 clampedLerp 进行线性插值
-    // return randomValue <= MathHelper.clampedLerp(minChance, maxChance,
-    //         MathHelper.clamp(distance, minDist, maxDist))
-    f32 clampedDistance = static_cast<f32>(math::clamp(distance, m_minDistance, m_maxDistance));
-    f32 t = (clampedDistance - static_cast<f32>(m_minDistance)) /
-            static_cast<f32>(m_maxDistance - m_minDistance);
-    f32 probability = m_minProbability + t * (m_maxProbability - m_minProbability);
+    // 使用 mappedLerp 进行线性插值
+    f32 probability = math::mappedLerp(m_minProbability, m_maxProbability,
+                                        static_cast<f32>(m_minDistance),
+                                        static_cast<f32>(m_maxDistance),
+                                        static_cast<f32>(distance));
 
     return randomValue <= probability;
 }
@@ -167,9 +167,10 @@ AxisAlignedLinearPosTest::AxisAlignedLinearPosTest(
     , m_maxDistance(maxDistance)
     , m_axis(axis)
 {
-    // MC 1.16.5: 验证距离范围
-    // 参考: AxisAlignedLinearPosTest 构造函数
-    // if (minDist >= maxDist) throw IllegalArgumentException
+    // MC 1.16.5: 当 minDistance == maxDistance 时，概率固定为 minProbability
+    // 仅当 minDistance > maxDistance 时才是无效参数
+    // 参考: AxisAlignedLinearPosTest 构造函数 - if (minDist > maxDist) throw IllegalArgumentException
+    MC_ASSERT_RELEASE(minDistance <= maxDistance);
 }
 
 bool AxisAlignedLinearPosTest::test(
@@ -180,12 +181,6 @@ bool AxisAlignedLinearPosTest::test(
 {
     // MC 1.16.5: AxisAlignedLinearPosTest.func_230385_a_
     // 计算指定轴方向上的距离
-    // Direction direction = Direction.getFacingFromAxis(AxisDirection.POSITIVE, axis);
-    // float dx = abs((worldPos.x - seedPos.x) * direction.getXOffset());
-    // float dy = abs((worldPos.y - seedPos.y) * direction.getYOffset());
-    // float dz = abs((worldPos.z - seedPos.z) * direction.getZOffset());
-    // int distance = (int)(dx + dy + dz);
-
     i32 distance = 0;
     switch (m_axis) {
         case Axis::X:
@@ -204,13 +199,11 @@ bool AxisAlignedLinearPosTest::test(
 
     f32 randomValue = rng.nextFloat();
 
-    // 使用 clampedLerp 进行线性插值
-    f32 clampedDistance = static_cast<f32>(math::clamp(distance, m_minDistance, m_maxDistance));
-    f32 t = static_cast<f32>(m_maxDistance - m_minDistance) > 0.0f
-            ? (clampedDistance - static_cast<f32>(m_minDistance)) /
-              static_cast<f32>(m_maxDistance - m_minDistance)
-            : 0.0f;
-    f32 probability = m_minProbability + t * (m_maxProbability - m_minProbability);
+    // 使用 mappedLerp 进行线性插值
+    f32 probability = math::mappedLerp(m_minProbability, m_maxProbability,
+                                        static_cast<f32>(m_minDistance),
+                                        static_cast<f32>(m_maxDistance),
+                                        static_cast<f32>(distance));
 
     return randomValue <= probability;
 }

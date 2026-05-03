@@ -27,6 +27,24 @@ namespace template_ {
 using fluid::FluidState;
 
 // ============================================================================
+// BlockAgeProcessor 常量
+// ============================================================================
+
+// MC 1.16.5: 黑曜石变哭泣黑曜石的概率（固定 15%，不受 mossiness 影响）
+// 参考: BlockAgeProcessor.java
+static constexpr f32 OBSIDIAN_TO_CRYING_PROBABILITY = 0.15f;
+
+// MC 1.16.5: 石砖类方块不替换的概率
+static constexpr f32 STONE_BRICK_NO_REPLACE_CHANCE = 0.5f;
+
+// MC 1.16.5: 石砖楼梯苔藓化概率（使用 0.5 而非 mossiness）
+// 参考: BlockMosinessProcessor.func_237067_a_
+static constexpr f32 STONE_BRICK_STAIRS_MOSS_CHANCE = 0.5f;
+
+// MC 1.16.5: 裂纹石砖生成概率
+static constexpr f32 CRACKED_STONE_BRICK_CHANCE = 0.5f;
+
+// ============================================================================
 // BlockInfo
 // ============================================================================
 
@@ -1403,7 +1421,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
 
     // MC 1.16.5: 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
     if (VanillaBlocks::OBSIDIAN && &block == VanillaBlocks::OBSIDIAN) {
-        if (rng.nextFloat() < 0.15f && VanillaBlocks::CRYING_OBSIDIAN) {
+        if (rng.nextFloat() < OBSIDIAN_TO_CRYING_PROBABILITY && VanillaBlocks::CRYING_OBSIDIAN) {
             result.blockStateId = VanillaBlocks::CRYING_OBSIDIAN->defaultState().stateId();
         }
         if (blockInfo.nbt) {
@@ -1419,7 +1437,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
 
     if (isStoneBrickType) {
         // 50% 概率不替换
-        if (rng.nextFloat() < 0.5f) {
+        if (rng.nextFloat() < STONE_BRICK_NO_REPLACE_CHANCE) {
             if (blockInfo.nbt) {
                 result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
             }
@@ -1434,7 +1452,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
             }
         } else {
             // 非 mossiness 组：裂纹石砖
-            if (rng.nextFloat() < 0.5f && VanillaBlocks::CRACKED_STONE_BRICKS) {
+            if (rng.nextFloat() < CRACKED_STONE_BRICK_CHANCE && VanillaBlocks::CRACKED_STONE_BRICKS) {
                 result.blockStateId = VanillaBlocks::CRACKED_STONE_BRICKS->defaultState().stateId();
             }
         }
@@ -1460,7 +1478,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
     // BlockMosinessProcessor.func_237067_a_
     // 注意：当前简化实现使用默认状态，不保留原方块的 facing/half 属性
     if (VanillaBlocks::STONE_BRICK_STAIRS && &block == VanillaBlocks::STONE_BRICK_STAIRS) {
-        if (rng.nextFloat() < 0.5f && VanillaBlocks::MOSSY_STONE_BRICK_STAIRS) {
+        if (rng.nextFloat() < STONE_BRICK_STAIRS_MOSS_CHANCE && VanillaBlocks::MOSSY_STONE_BRICK_STAIRS) {
             result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_STAIRS->defaultState().stateId();
         }
         if (blockInfo.nbt) {

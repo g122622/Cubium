@@ -59,6 +59,42 @@ template<typename T>
 }
 
 /**
+ * @brief 线性插值，但将插值因子限制在 [0, 1] 范围内
+ * @param a 起始值
+ * @param b 目标值
+ * @param t 插值因子（会被 clamp 到 [0, 1]）
+ * @return 插值结果
+ *
+ * 参考 MC 1.16.5: MathHelper.clampedLerp
+ */
+[[nodiscard]] inline f32 clampedLerp(f32 a, f32 b, f32 t) noexcept
+{
+    return lerp(a, b, clamp(t, 0.0f, 1.0f));
+}
+
+/**
+ * @brief 线性插值，将输入值从输入范围映射到输出范围
+ * @param outputMin 输出最小值
+ * @param outputMax 输出最大值
+ * @param inputMin 输入最小值
+ * @param inputMax 输入最大值
+ * @param inputValue 输入值
+ * @return 插值结果
+ *
+ * 参考 MC 1.16.5: LinearPosTest 使用的映射插值
+ */
+[[nodiscard]] inline f32 mappedLerp(f32 outputMin, f32 outputMax,
+                                     f32 inputMin, f32 inputMax,
+                                     f32 inputValue) noexcept
+{
+    if (inputMax <= inputMin) {
+        return outputMin;
+    }
+    f32 t = (inputValue - inputMin) / (inputMax - inputMin);
+    return lerp(outputMin, outputMax, clamp(t, 0.0f, 1.0f));
+}
+
+/**
  * @brief 平滑插值 (smoothstep)
  */
 [[nodiscard]] inline constexpr f32 smoothstep(f32 edge0, f32 edge1, f32 x) noexcept
