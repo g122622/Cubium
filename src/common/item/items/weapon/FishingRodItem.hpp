@@ -37,6 +37,11 @@ namespace item {
  * - 海之眷顾 (Luck of the Sea): 增加宝藏概率
  * - 饵钓 (Lure): 减少等待时间
  *
+ * MC 1.16.5 对齐:
+ * - 不重写 getUseDuration()（默认返回 0，即时使用）
+ * - 不重写 getUseAction()（默认返回 NONE，无使用动画）
+ * - 附魔能力为 1
+ *
  * 参考 MC 1.16.5 FishingRodItem
  */
 class FishingRodItem : public Item {
@@ -48,17 +53,10 @@ public:
     // ========== Item 接口重写 ==========
 
     /**
-     * @brief 获取最大使用时间
-     *
-     * MC 1.16.5: 返回 0（即时使用）
+     * @brief 获取附魔能力
+     * @return 附魔能力值（MC 1.16.5: 1）
      */
-    [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
-
-    /**
-     * @brief 获取使用动作类型
-     * @return UseAction::Bow (钓鱼竿也用弓的动作)
-     */
-    [[nodiscard]] UseAction getUseAction(const ItemStack& stack) const override;
+    [[nodiscard]] i32 getItemEnchantability() const override;
 
     /**
      * @brief 右键使用物品

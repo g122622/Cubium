@@ -16,13 +16,6 @@
 namespace mc {
 namespace item {
 
-// ========== 常量 ==========
-namespace {
-    constexpr i32 MAX_USE_DURATION = 72000;  // MC 1.16.5: 几乎无限制
-    constexpr f32 BOBBER_VELOCITY = 1.5f;     // 浮标发射速度
-    constexpr f32 BOBBER_INACCURACY = 1.0f;   // 浮标不准确度
-}
-
 // ========== 构造函数 ==========
 
 FishingRodItem::FishingRodItem(const ItemProperties& properties)
@@ -32,12 +25,13 @@ FishingRodItem::FishingRodItem(const ItemProperties& properties)
 
 // ========== Item 接口重写 ==========
 
-i32 FishingRodItem::getUseDuration(const ItemStack& /*stack*/) const {
-    return MAX_USE_DURATION;
-}
+// MC 1.16.5: 钓鱼竿没有重写 getUseDuration() 和 getUseAction()
+// 使用默认值：getUseDuration() 返回 0，getUseAction() 返回 NONE
+// 这意味着钓鱼竿是即时使用物品，没有使用动画
 
-UseAction FishingRodItem::getUseAction(const ItemStack& /*stack*/) const {
-    return UseAction::Bow;
+i32 FishingRodItem::getItemEnchantability() const {
+    // MC 1.16.5: 钓鱼竿附魔能力为 1
+    return 1;
 }
 
 ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player, Hand hand) {
@@ -74,7 +68,8 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         bobber->setFishingBonus(luckBonus, speedBonus);
 
         // 发射浮标
-        bobber->shootFrom(player, player.pitch(), player.yaw(), 0.0f, BOBBER_VELOCITY, BOBBER_INACCURACY);
+        // MC 1.16.5: 浮标速度约为 1.5，不准确度 0
+        bobber->shootFrom(player, player.pitch(), player.yaw(), 0.0f, 1.5f, 0.0f);
 
         // 生成实体并记录ID
         EntityId bobberId = bobber->id();
