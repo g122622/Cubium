@@ -5,6 +5,7 @@
 #include "../../../util/Direction.hpp"
 #include "../../biome/Biome.hpp"
 #include "StructureBoundingBox.hpp"
+#include "../jigsaw/JigsawJunction.hpp"
 #include <string>
 #include <vector>
 #include <memory>
@@ -279,6 +280,40 @@ public:
     virtual void generate(IWorldWriter& world, math::Random& rng,
                           i32 chunkX, i32 chunkZ,
                           const StructureBoundingBox& chunkBounds) = 0;
+
+    // ========== Jigsaw 结构支持 ==========
+
+    /**
+     * @brief 获取地面高度偏移
+     *
+     * 参考 MC 1.16.5 AbstractVillagePiece.getGroundLevelDelta
+     * 用于地形平滑计算。
+     *
+     * @return 地面高度偏移，默认返回 0
+     */
+    [[nodiscard]] virtual i32 getGroundLevelDelta() const { return 0; }
+
+    /**
+     * @brief 获取 Jigsaw 连接点列表
+     *
+     * 参考 MC 1.16.5 AbstractVillagePiece.getJunctions
+     * 用于地形平滑计算。
+     *
+     * @return JigsawJunction 列表的常量引用，默认返回空列表
+     */
+    [[nodiscard]] virtual const std::vector<jigsaw::JigsawJunction>& getJunctions() const {
+        static const std::vector<jigsaw::JigsawJunction> emptyJunctions;
+        return emptyJunctions;
+    }
+
+    /**
+     * @brief 检查是否是 Jigsaw 结构片段
+     *
+     * 参考 MC 1.16.5 中检查 structurepiece instanceof AbstractVillagePiece
+     *
+     * @return 是否是 Jigsaw 结构片段
+     */
+    [[nodiscard]] virtual bool isJigsawPiece() const { return false; }
 
     // ========== 静态工具方法 ==========
 

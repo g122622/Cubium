@@ -579,31 +579,26 @@ MC 1.16.5 中模板放置时，方块按特定顺序排列：
 - 更新 `JigsawBlock` 构造函数注册该属性
 - 更新 `JigsawPiece::loadJointsFromTemplate` 读取属性值
 
-### 5. JigsawJunction 地形适配缓存
+### 5. JigsawJunction 地形适配
 
 `JigsawJunction` 类用于记录拼图块连接时的地形高度信息，支持 NoiseChunkGenerator 中的地形平滑。
 
-**当前状态**:
-- `JigsawJunction.hpp` - 数据结构已完整实现
-- `PlacedPiece.junctions` - 已添加存储字段
-- `JigsawManager::tryPlacePiece()` - 已创建 JigsawJunction
+**已完成** ✅:
 
-**已集成**:
-```cpp
-// 在 JigsawManager::tryPlacePiece 中创建 JigsawJunction
-placed.junctions.emplace_back(
-    joint.position.x,    // sourceX
-    sourceGroundY,       // sourceGroundY
-    joint.position.z,    // sourceZ
-    deltaY,              // deltaY
-    joint.projection     // destProjection
-);
-```
+1. **数据结构** (`JigsawJunction.hpp`)
+   - `sourceX`, `sourceGroundY`, `sourceZ` - 源连接点坐标
+   - `deltaY` - 高度偏移量
+   - `destProjection` - 目标放置行为
 
-**待实现** (NoiseChunkGenerator 集成):
-- 收集区块 12 格范围内的 JigsawJunction
-- 实现 24x24x24 平滑查找表
-- 在噪声密度计算中应用 Junction 影响
+2. **Jigsaw 集成** (`JigsawManager.cpp`)
+   - `PlacedPiece.junctions` 存储字段
+   - 在 `tryPlacePiece()` 中创建 JigsawJunction
+
+3. **NoiseChunkGenerator 集成** (`NoiseChunkGenerator.cpp`)
+   - `collectStructureData()` - 收集区块 12 格范围内的 JigsawJunction
+   - `initGaussianLUT()` - 初始化 24x24x24 高斯查找表
+   - `calculateStructureDensityOffset()` - 计算地形密度偏移
+   - 在 `generateNoise()` 中应用结构片段和 Junction 的地形平滑
 
 **MC 1.16.5 参考**: 
 - `JigsawJunction.java` - 数据结构定义

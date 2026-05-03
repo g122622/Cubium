@@ -4,6 +4,7 @@
 #include "../structure/StructureManager.hpp"
 #include "../structure/Structure.hpp"
 #include "../placement/PlacementRegistry.hpp"
+#include "../jigsaw/JigsawPiece.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../biome/BiomeRegistry.hpp"
@@ -22,6 +23,13 @@
 #include <spdlog/spdlog.h>
 
 namespace mc {
+
+// ============================================================================
+// 静态成员定义
+// ============================================================================
+
+std::array<f32, 13824> NoiseChunkGenerator::s_gaussianLUT;
+bool NoiseChunkGenerator::s_gaussianLUTInitialized = false;
 
 // ============================================================================
 // 常量
@@ -152,6 +160,7 @@ NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings)
 {
     initNoiseGenerators();
     initBiomeWeights();
+    initGaussianLUT();
 
     // 使用完整的生物群系列表
     BiomeRegistry::instance().initialize();
@@ -173,6 +182,7 @@ NoiseChunkGenerator::NoiseChunkGenerator(u64 seed, DimensionSettings settings,
 {
     initNoiseGenerators();
     initBiomeWeights();
+    initGaussianLUT();
 
     // 确保生物群系注册表已初始化（默认构造路径会初始化，注入路径也需要）
     BiomeRegistry::instance().initialize();
@@ -243,6 +253,55 @@ void NoiseChunkGenerator::initBiomeWeights()
             m_biomeWeights[index] = static_cast<f32>(BIOME_WEIGHT_SCALE / std::sqrt(distance + 0.2));
         }
     }
+}
+
+void NoiseChunkGenerator::initGaussianLUT()
+{
+    if (s_gaussianLUTInitialized) {
+        return;
+    }
+
+    // 参考 MC 1.16.5: NoiseChunkGenerator.field_222561_h
+    // 24x24x24 高斯核，索引公式: x * 24 * 24 + y * 24 + z
+    // 索引偏移: +12（因为坐标范围是 -12 到 +11）
+    for (i32 x = 0; x < 24; ++x) {
+        for (i32 y = 0; y < 24; ++y) {
+            for (i32 z = 0; z < 24; ++z) {
+                const i32 index = x * 24 * 24 + y * 24 + z;
+                // MC 1.16.5: func_222554_b 计算高斯衰减
+                // 参数是距离中心的偏移（-12 到 +11）
+                s_gaussianLUT[index] = static_cast<f32>(calculateStructureDensityOffset(x - 12, y - 12, z - 12));
+            }
+        }
+    }
+
+    s_gaussianLUTInitialized = true;
+}
+
+f64 NoiseChunkGenerator::calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz)
+{
+    // 参考 MC 1.16.5: NoiseChunkGenerator.func_222554_b
+    // 高斯衰减函数，用于结构边界地形平滑
+    //
+    // 计算:
+    // 1. 水平距离平方: d0 = dx*dx + dz*dz
+    // 2. 垂直偏移: d1 = dy + 0.5
+    // 3. 垂直距离平方: d2 = d1*d1
+    // 4. 高斯衰减: d3 = exp(-(d2/16 + d0/16))
+    // 5. 垂直梯度: d4 = -d1 * fastInvSqrt(d2/2 + d0/2) / 2
+    // 6. 结果: d4 * d3
+
+    const f64 d0 = static_cast<f64>(dx * dx) + static_cast<f64>(dz * dz);
+    const f64 d1 = static_cast<f64>(dy) + 0.5;
+    const f64 d2 = d1 * d1;
+
+    // 高斯衰减
+    const f64 d3 = std::exp(-(d2 / 16.0 + d0 / 16.0));
+
+    // 快速逆平方根
+    const f64 d4 = -d1 * math::fastInverseSqrt(static_cast<f32>((d2 / 2.0 + d0 / 2.0))) / 2.0;
+
+    return d4 * d3;
 }
 
 void NoiseChunkGenerator::initCarvers()
@@ -349,7 +408,15 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
 
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
+    const i32 startX = chunkX << 4;
+    const i32 startZ = chunkZ << 4;
     BiomeWindowCache biomeWindowCache;
+
+    // === 收集结构数据用于地形平滑 ===
+    // 参考 MC 1.16.5: NoiseChunkGenerator.func_230352_b_
+    std::vector<const world::gen::structure::StructurePiece*> structurePieces;
+    std::vector<world::gen::jigsaw::JigsawJunction> junctions;
+    collectStructureData(chunk, structurePieces, junctions);
 
     // === 噪声缓存初始化 ===
     std::vector<std::vector<f32>> noiseCache[2];
@@ -364,9 +431,6 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
             fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ, biomeWindowCache);
         }
     }
-
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
 
     // === 噪声填充与方块放置 ===
     // 注意：地形密度计算已在 fillNoiseColumn() 中完成，包含 biome depth/scale 的影响
@@ -423,12 +487,44 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
 
                                 // Z 轴插值 - 最终密度值
                                 // 密度值已包含 biome depth/scale 影响（在 fillNoiseColumn 中计算）
-                                const f32 density = math::lerp(x0, x1, zLerp);
+                                f64 density = static_cast<f64>(math::lerp(x0, x1, zLerp));
                                 const i32 localBlockX = worldX & 15;
                                 const i32 localBlockZ = worldZ & 15;
 
+                                // === 结构地形平滑 ===
+                                // 参考 MC 1.16.5: NoiseChunkGenerator.func_230352_b_
+                                // 计算结构片段对密度的影响
+                                if (!structurePieces.empty() || !junctions.empty()) {
+                                    // 将密度归一化到 [-1, 1] 范围
+                                    density = std::clamp(density / 200.0, -1.0, 1.0);
+                                    // 应用二次变换
+                                    density = density / 2.0 - density * density * density / 24.0;
+
+                                    // 应用结构片段密度偏移（权重 0.8）
+                                    for (const auto* piece : structurePieces) {
+                                        if (!piece) continue;
+
+                                        const auto& box = piece->getBoundingBox();
+                                        // 计算到结构边界的距离
+                                        const i32 dx = std::max(0, std::max(box.minX() - worldX, worldX - box.maxX()));
+                                        const i32 dy = worldY - (box.minY() + piece->getGroundLevelDelta());
+                                        const i32 dz = std::max(0, std::max(box.minZ() - worldZ, worldZ - box.maxZ()));
+
+                                        // 使用高斯查找表计算偏移
+                                        density += static_cast<f64>(calculateStructureDensityOffset(dx, dy, dz)) * 0.8;
+                                    }
+
+                                    // 应用 JigsawJunction 密度偏移（权重 0.4）
+                                    for (const auto& junction : junctions) {
+                                        const i32 dx = worldX - junction.getSourceX();
+                                        const i32 dy = worldY - junction.getSourceGroundY();
+                                        const i32 dz = worldZ - junction.getSourceZ();
+                                        density += static_cast<f64>(calculateStructureDensityOffset(dx, dy, dz)) * 0.4;
+                                    }
+                                }
+
                                 // 确定方块
-                                const BlockState* blockState = getBlockForDensity(density, worldY);
+                                const BlockState* blockState = getBlockForDensity(static_cast<f32>(density), worldY);
 
                                 if (blockState) {
                                     chunk.setBlock(localBlockX, worldY, localBlockZ, blockState);
@@ -1161,6 +1257,63 @@ i32 NoiseChunkGenerator::spawnInitialMobs(WorldGenRegion& region, ChunkPrimer& c
                 m_seed);
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
+}
+
+// ============================================================================
+// JigsawJunction 地形平滑
+// ============================================================================
+
+void NoiseChunkGenerator::collectStructureData(
+    ChunkPrimer& chunk,
+    std::vector<const world::gen::structure::StructurePiece*>& outPieces,
+    std::vector<world::gen::jigsaw::JigsawJunction>& outJunctions) const
+{
+    MC_TRACE_EVENT("world.chunk_gen", "CollectStructureData", "x", chunk.x(), "z", chunk.z());
+
+    const ChunkCoord chunkX = chunk.x();
+    const ChunkCoord chunkZ = chunk.z();
+    const i32 startX = chunkX << 4;
+    const i32 startZ = chunkZ << 4;
+
+    // 参考 MC 1.16.5: NoiseChunkGenerator.func_230352_b_
+    // 收集 12 格范围内的结构片段和 JigsawJunction
+
+    // 遍历区块中的所有结构起点
+    for (const auto& [structureName, start] : chunk.structureStarts()) {
+        if (!start || !start->isValid()) {
+            continue;
+        }
+
+        // 遍历结构中的所有片段
+        for (const auto& piece : start->pieces()) {
+            if (!piece) {
+                continue;
+            }
+
+            // 检查片段是否在区块附近（12 格范围）
+            const auto& box = piece->getBoundingBox();
+            if (box.maxX() < startX - 12 || box.minX() > startX + 15 + 12 ||
+                box.maxZ() < startZ - 12 || box.minZ() > startZ + 15 + 12) {
+                continue;  // 超出范围
+            }
+
+            // 添加结构片段
+            outPieces.push_back(piece.get());
+
+            // 如果是 Jigsaw 结构片段，收集其 Junctions
+            if (piece->isJigsawPiece()) {
+                for (const auto& junction : piece->getJunctions()) {
+                    // 检查 Junction 是否在区块附近（12 格范围）
+                    const i32 jx = junction.getSourceX();
+                    const i32 jz = junction.getSourceZ();
+                    if (jx > startX - 12 && jx < startX + 15 + 12 &&
+                        jz > startZ - 12 && jz < startZ + 15 + 12) {
+                        outJunctions.push_back(junction);
+                    }
+                }
+            }
+        }
+    }
 }
 
 } // namespace mc

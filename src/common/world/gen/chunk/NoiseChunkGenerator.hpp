@@ -11,6 +11,7 @@
 #include "../feature/ConfiguredFeature.hpp"
 #include "../structure/StructureManager.hpp"
 #include "../surface/SurfaceBuilders.hpp"
+#include "../jigsaw/JigsawJunction.hpp"
 #include "../../biome/BiomeProvider.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
@@ -18,6 +19,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -163,6 +165,44 @@ private:
      */
     [[nodiscard]] const BlockState* getBlockForDensity(f32 density, i32 y) const;
 
+    // === JigsawJunction 地形平滑 ===
+
+    /**
+     * @brief 收集区块附近的结构片段和 JigsawJunction
+     *
+     * 参考 MC 1.16.5 NoiseChunkGenerator.func_230352_b_
+     * 收集 12 格范围内的所有 JigsawJunction 用于地形平滑。
+     *
+     * @param chunk 区块
+     * @param outPieces 输出：结构片段列表
+     * @param outJunctions 输出：JigsawJunction 列表
+     */
+    void collectStructureData(
+        ChunkPrimer& chunk,
+        std::vector<const world::gen::structure::StructurePiece*>& outPieces,
+        std::vector<world::gen::jigsaw::JigsawJunction>& outJunctions) const;
+
+    /**
+     * @brief 计算结构片段对地形密度的影响
+     *
+     * 参考 MC 1.16.5 func_222556_a（field_222561_h 查找表）
+     * 使用 24x24x24 高斯核计算平滑影响值。
+     *
+     * @param dx X 方向距离（方块坐标差）
+     * @param dy Y 方向距离（方块坐标差）
+     * @param dz Z 方向距离（方块坐标差）
+     * @return 地形密度偏移值
+     */
+    [[nodiscard]] static f64 calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz);
+
+    /**
+     * @brief 初始化高斯查找表
+     *
+     * 参考 MC 1.16.5 field_222561_h
+     * 预计算 24x24x24 高斯核用于地形平滑。
+     */
+    static void initGaussianLUT();
+
     // === 初始化方法 ===
 
     void initNoiseGenerators();
@@ -207,6 +247,13 @@ private:
         i32 startHeight,
         f32 surfaceNoise,
         BiomeId biome);
+
+private:
+    // === 24x24x24 高斯查找表（参考 MC field_222561_h）===
+    // 预计算的高斯核，用于结构边界地形平滑
+    // 索引公式: x * 24 * 24 + y * 24 + z (偏移 +12)
+    static std::array<f32, 13824> s_gaussianLUT;
+    static bool s_gaussianLUTInitialized;
 };
 
 } // namespace mc
