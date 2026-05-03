@@ -21,7 +21,8 @@ src/client/sound/
 ├── handler/                      # 环境音处理器
 │   ├── IAmbientSoundHandler.hpp
 │   ├── BiomeAmbientHandler.hpp/cpp
-│   └── UnderwaterAmbientHandler.hpp/cpp
+│   ├── UnderwaterAmbientHandler.hpp/cpp
+│   └── BubbleColumnAmbientHandler.hpp/cpp
 ├── instance/                     # 声音实例定义
 │   ├── ISoundInstance.hpp
 │   ├── SoundInstance.hpp/cpp
@@ -153,6 +154,17 @@ MC 1.16.5 群系环境音实现三种类型：
    - 光照计算：`skyLight/15 * 0.001` 或 `(blockLight-1) / tickDelay`
 3. **附加音效 (Additions Sound)** - 按概率随机播放
    - 下界群系典型概率：`0.0111` (~1.11%/tick)
+
+### 气泡柱环境音 (BubbleColumnAmbientHandler)
+
+当玩家进入气泡柱时播放相应音效：
+
+| 气泡柱类型 | 音效ID |
+|-----------|--------|
+| 向上气泡柱 (drag=false) | `block.bubble_column.upwards.inside` |
+| 向下气泡柱 (drag=true) | `block.bubble_column.whirlpool.inside` |
+
+**触发逻辑**：只在玩家刚进入气泡柱时播放一次音效，不会持续播放。
 
 ### 群系环境音数据结构
 

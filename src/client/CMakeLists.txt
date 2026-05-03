@@ -223,6 +223,7 @@ add_executable(minecraft-client
     sound/instance/SoundInstance.cpp
     sound/handler/BiomeAmbientHandler.cpp
     sound/handler/UnderwaterAmbientHandler.cpp
+    sound/handler/BubbleColumnAmbientHandler.cpp
     # 世界
     world/ClientWorld.cpp
     world/player/LocalPlayerIdentity.cpp

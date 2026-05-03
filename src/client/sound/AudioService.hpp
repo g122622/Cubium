@@ -21,6 +21,7 @@ class ClientSettings;
 namespace sound {
 
 class BiomeAmbientHandler;
+class BubbleColumnAmbientHandler;
 class MusicPlayer;
 class SoundEngine;
 class SoundHandler;
@@ -64,6 +65,7 @@ public:
     void reloadSoundDefinitions();
     void setBiomeId(u32 biomeId);
     void setUnderwater(bool underwater);
+    void setBubbleColumnState(bool inBubbleColumn, bool isDrag);
 
     /**
      * @brief 更新环境音效处理器的光照等级
@@ -117,6 +119,7 @@ private:
         ReloadSounds,
         SetBiomeId,
         SetUnderwater,
+        SetBubbleColumnState,
         UpdateMusicState,
         SetAmbientLightLevel,
         SetAmbientPlayerPosition,
@@ -138,6 +141,11 @@ private:
         u32 biomeId = 0;
         bool underwater = false;
         bool paused = false;
+        // 气泡柱状态
+        struct BubbleColumnState {
+            bool inBubbleColumn = false;
+            bool isDrag = false;
+        } bubbleColumn;
         // 音乐状态
         i32 dimension = 0;
         bool inCreative = false;
@@ -169,6 +177,7 @@ private:
     std::unique_ptr<MusicPlayer> m_musicPlayer;
     BiomeAmbientHandler* m_biomeAmbientHandler = nullptr;
     UnderwaterAmbientHandler* m_underwaterAmbientHandler = nullptr;
+    BubbleColumnAmbientHandler* m_bubbleColumnAmbientHandler = nullptr;
 
     // 音乐状态（跨线程共享）
     std::atomic<i32> m_savedDimension{0};

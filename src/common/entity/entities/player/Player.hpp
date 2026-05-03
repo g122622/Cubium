@@ -568,6 +568,45 @@ public:
      */
     void die(DamageSource& cause) override;
 
+    /**
+     * @brief 处理摔落伤害
+     *
+     * 覆盖 LivingEntity::handleFallDamage()，添加玩家特有摔落音效。
+     * 参考 MC 1.16.5: PlayerEntity.func_225503_b_()
+     */
+    void handleFallDamage(f32 distance, f32 damageMultiplier) override;
+
+protected:
+    /**
+     * @brief 获取受伤声音
+     *
+     * 覆盖 LivingEntity::getHurtSound()，返回玩家特殊受伤音效。
+     * 根据伤害类型返回不同音效：
+     * - 火焰伤害: ENTITY_PLAYER_HURT_ON_FIRE
+     * - 溺水伤害: ENTITY_PLAYER_HURT_DROWN
+     * - 甜浆果丛伤害: ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH
+     * - 其他: ENTITY_PLAYER_HURT
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     *
+     * 覆盖 LivingEntity::getDeathSound()，返回玩家死亡音效。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 获取摔落声音
+     *
+     * 参考 MC 1.16.5: PlayerEntity.getFallSound()
+     * @param fallHeight 摔落高度（格数）
+     * @return 摔落音效，高空摔落返回 ENTITY_PLAYER_BIG_FALL，否则 ENTITY_PLAYER_SMALL_FALL
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const;
+
+public:
+
     // ========== 视野晃动 ==========
 
     /**

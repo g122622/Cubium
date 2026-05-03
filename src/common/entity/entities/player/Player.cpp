@@ -1075,6 +1075,68 @@ void Player::die(DamageSource& cause) {
 }
 
 // ============================================================================
+// 摔落伤害
+// ============================================================================
+
+void Player::handleFallDamage(f32 distance, f32 damageMultiplier) {
+    // 调用父类处理摔落伤害计算
+    LivingEntity::handleFallDamage(distance, damageMultiplier);
+
+    // 玩家特有：播放摔落音效
+    // 参考 MC 1.16.5: PlayerEntity.func_225503_b_()
+    // 在 handleFallDamage 后 fallDistance 已被重置为 0，所以使用传入的 distance
+    i32 fallHeight = static_cast<i32>(distance);
+    auto fallSound = getFallSound(fallHeight);
+    if (fallSound.has_value()) {
+        playSound(*fallSound, 1.0f, 1.0f);
+    }
+
+    // 播放脚下方块的摔落音效
+    // 参考 MC 1.16.5: LivingEntity.playFallSound()
+    BlockPos landPos(
+        static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y - 0.2)),  // 脚底位置
+        static_cast<i32>(std::floor(m_position.z))
+    );
+    const BlockState* landState = m_world->getBlockState(landPos);
+    if (landState && !landState->isAir()) {
+        const BlockSoundType& soundType = landState->getSoundType();
+        playSound(soundType.getFallSound(), soundType.getVolume() * 0.5f, soundType.getPitch() * 0.75f);
+    }
+}
+
+// ============================================================================
+// 受伤/死亡声音
+// ============================================================================
+
+std::optional<ResourceLocation> Player::getHurtSound(DamageSource& source) const {
+    // 参考 MC 1.16.5: PlayerEntity.getHurtSound()
+    // 根据伤害类型返回不同音效
+    if (source.isFire()) {
+        return SoundEvents::ENTITY_PLAYER_HURT_ON_FIRE;
+    } else if (source.isDrown()) {
+        return SoundEvents::ENTITY_PLAYER_HURT_DROWN;
+    } else if (source.isSweetBerryBush()) {
+        return SoundEvents::ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH;
+    }
+    return SoundEvents::ENTITY_PLAYER_HURT;
+}
+
+std::optional<ResourceLocation> Player::getDeathSound() const {
+    // 参考 MC 1.16.5: PlayerEntity.getDeathSound()
+    return SoundEvents::ENTITY_PLAYER_DEATH;
+}
+
+std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const {
+    // 参考 MC 1.16.5: PlayerEntity.getFallSound()
+    // 高空摔落 (>4格) 使用 big_fall，否则使用 small_fall
+    if (fallHeight > 4) {
+        return SoundEvents::ENTITY_PLAYER_BIG_FALL;
+    }
+    return SoundEvents::ENTITY_PLAYER_SMALL_FALL;
+}
+
+// ============================================================================
 // 属性注册（覆盖 LivingEntity 方法）
 // ============================================================================
 

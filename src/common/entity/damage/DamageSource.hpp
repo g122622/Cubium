@@ -220,6 +220,13 @@ public:
         return type() == DamageType::Drown;
     }
 
+    /**
+     * @brief 是否是甜浆果丛伤害
+     */
+    [[nodiscard]] bool isSweetBerryBush() const {
+        return type() == DamageType::SweetBerryBush;
+    }
+
 protected:
     DamageSource() = default;
 };

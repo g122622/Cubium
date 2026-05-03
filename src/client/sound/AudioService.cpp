@@ -6,6 +6,7 @@
 #include "client/sound/MusicPlayer.hpp"
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
+#include "client/sound/handler/BubbleColumnAmbientHandler.hpp"
 
 #include "common/resource/ResourcePackList.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -261,6 +262,19 @@ void AudioService::setUnderwater(bool underwater)
     enqueue(std::move(command));
 }
 
+void AudioService::setBubbleColumnState(bool inBubbleColumn, bool isDrag)
+{
+    if (!m_loaded.load()) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::SetBubbleColumnState;
+    command.bubbleColumn.inBubbleColumn = inBubbleColumn;
+    command.bubbleColumn.isDrag = isDrag;
+    enqueue(std::move(command));
+}
+
 void AudioService::updateMusicState(i32 dimension, bool inCreative, bool inBossFight)
 {
     if (!m_loaded.load()) {
@@ -355,6 +369,10 @@ void AudioService::runWorker()
         auto underwaterAmbientHandler = std::make_unique<UnderwaterAmbientHandler>();
         m_underwaterAmbientHandler = underwaterAmbientHandler.get();
         m_soundEngine->addAmbientHandler(std::move(underwaterAmbientHandler));
+
+        auto bubbleColumnAmbientHandler = std::make_unique<BubbleColumnAmbientHandler>();
+        m_bubbleColumnAmbientHandler = bubbleColumnAmbientHandler.get();
+        m_soundEngine->addAmbientHandler(std::move(bubbleColumnAmbientHandler));
 
         // 创建音乐播放器
         m_musicPlayer = std::make_unique<MusicPlayer>(*m_soundEngine);
@@ -501,6 +519,15 @@ void AudioService::processCommand(Command& command)
             m_savedUnderwater.store(command.underwater);
             if (m_underwaterAmbientHandler) {
                 m_underwaterAmbientHandler->setUnderwater(command.underwater);
+            }
+            break;
+
+        case CommandType::SetBubbleColumnState:
+            if (m_bubbleColumnAmbientHandler) {
+                m_bubbleColumnAmbientHandler->setBubbleColumnState(
+                    command.bubbleColumn.inBubbleColumn,
+                    command.bubbleColumn.isDrag
+                );
             }
             break;
 
