@@ -200,7 +200,7 @@ block/
 - `pickupFluid()`：从方块中提取流体（桶操作）
 - `containsFluid()`：检查是否包含指定流体
 
-**已实现的含水方块**（共14种）：
+**已实现的含水方块**（共19种）：
 | 方块类 | 文件路径 | 特殊逻辑 |
 |--------|----------|----------|
 | StairsBlock | building/StairsBlock | 标准实现 |
@@ -213,20 +213,23 @@ block/
 | LadderBlock | decorative/LadderBlock | FACING属性 |
 | ScaffoldingBlock | decorative/ScaffoldingBlock | DISTANCE+BOTTOM属性 |
 | CampfireBlock | decorative/CampfireBlock | 含水时熄灭 |
+| SoulCampfireBlock | decorative/CampfireBlock | 继承CampfireBlock |
 | SeaPickleBlock | ocean/SeaPickleBlock | PICKLES属性 |
 | ChestBlock | ChestBlock | TYPE属性（双箱连接）|
+| TrappedChestBlock | TrappedChestBlock | 继承ChestBlock含水功能 |
 | PaneBlock | decorative/PaneBlock | 玻璃板/铁栏杆 |
 | CoralBlock系列 | coral/CoralBlock | 离水变死珊瑚 |
+| CoralFanBlock | coral/CoralBlock | 墙面珊瑚扇 |
+| CoralWallFanBlock | coral/CoralBlock | 墙面珊瑚扇 |
+| StandingSignBlock/WallSignBlock | SignBlock | 告示牌 |
 
-**未实现的含水方块**（待开发）：
+**未实现的含水方块**（MC 1.16.5 有但未实现）：
 | 方块类 | 说明 |
 |--------|------|
-| ConduitBlock | 潮涌核心方块（已存在于DriedKelpBlock.hpp，需要补充IWaterLoggable） |
-| SignBlock / WallSignBlock | 告示牌（站立/墙面），实现已创建待配置编译路径 |
-| ButtonBlock系列 | 石质/木质按钮（含水时触发） |
-| PressurePlateBlock系列 | 压力板（含水时触发） |
-| DaylightDetectorBlock | 阳光探测器 |
-| RedstoneWireBlock | 红石线（含水会断开） |
+| EnderChestBlock | 末影箱（需要创建完整实现） |
+| ConduitBlock | 潮涌核心方块（已存在于ocean/目录） |
+
+**注意**：FenceGateBlock、ButtonBlock、PressurePlateBlock、DaylightDetectorBlock、RailBlock 等方块在 MC 1.16.5 中**不实现** IWaterLoggable，因此不是含水方块。
 
 **实现含水方块的步骤**：
 1. 继承 `IWaterLoggable` 接口

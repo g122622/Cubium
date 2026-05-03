@@ -21,10 +21,12 @@
 #include "items/tool/HoeItem.hpp"
 #include "items/tool/SwordItem.hpp"
 #include "items/special/BoneMealItem.hpp"
+#include "items/special/BucketItem.hpp"
 #include "items/special/FishBucketItem.hpp"
 #include "food/Foods.hpp"
 #include "armor/ArmorMaterial.hpp"
 #include "../world/block/VanillaBlocks.hpp"
+#include "../world/fluid/FluidRegistry.hpp"
 #include "../entity/core/EntityRegistry.hpp"
 
 namespace {
@@ -1677,24 +1679,27 @@ void Items::registerBuckets() {
 
     // 空桶 - 用于装水/岩浆/牛奶
     // 参考: new BucketItem((Fluid)null, new Item.Properties().maxStackSize(16))
-    BUCKET = &registry.registerItem(
+    BUCKET = &registry.registerItem<BucketItem>(
         ResourceLocation("minecraft:bucket"),
+        nullptr,  // 空桶没有流体
         ItemProperties().maxStackSize(16)
     );
 
     // 水桶 - 装满水的桶
     // 参考: new BucketItem(Fluids.WATER, new Item.Properties().maxStackSize(1).containerItem(BUCKET))
     // 水桶使用后返回空桶，所以 containerItem 设为 BUCKET
-    WATER_BUCKET = &registry.registerItem(
+    WATER_BUCKET = &registry.registerItem<BucketItem>(
         ResourceLocation("minecraft:water_bucket"),
+        fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID),
         ItemProperties().maxStackSize(1).containerItem(BUCKET)
     );
 
     // 岩浆桶 - 装满岩浆的桶
     // 参考: new BucketItem(Fluids.LAVA, new Item.Properties().maxStackSize(1).containerItem(BUCKET))
     // 岩浆桶作为燃料使用后返回空桶
-    LAVA_BUCKET = &registry.registerItem(
+    LAVA_BUCKET = &registry.registerItem<BucketItem>(
         ResourceLocation("minecraft:lava_bucket"),
+        fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID),
         ItemProperties().maxStackSize(1).containerItem(BUCKET)
     );
 

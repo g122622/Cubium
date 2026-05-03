@@ -14,6 +14,8 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../core/ItemStack.hpp"
 #include "../../context/BlockItemUseContext.hpp"
+#include "../../ItemRegistry.hpp"
+#include "../../Items.hpp"
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../core/Constants.hpp"
@@ -230,16 +232,22 @@ bool BucketItem::canBlockContainFluid(
 }
 
 BucketItem* BucketItem::getFilledBucket(fluid::Fluid& fluid) {
-    // TODO: 通过物品注册表查找对应的桶
-    // 目前返回 nullptr，需要在 Items.hpp 中注册桶物品后实现
-    MC_UNUSED(fluid);
+    // 参考 MC 1.16.5: fluid.getFilledBucket()
+    // 使用 FluidTags 判断流体类型，返回对应的桶物品
+    if (fluid::FluidTags::WATER().contains(fluid)) {
+        MC_ASSERT_RELEASE(Items::WATER_BUCKET != nullptr);
+        return static_cast<BucketItem*>(Items::WATER_BUCKET);
+    }
+    if (fluid::FluidTags::LAVA().contains(fluid)) {
+        MC_ASSERT_RELEASE(Items::LAVA_BUCKET != nullptr);
+        return static_cast<BucketItem*>(Items::LAVA_BUCKET);
+    }
     return nullptr;
 }
 
 BucketItem* BucketItem::getEmptyBucket() {
-    // TODO: 通过物品注册表查找空桶
-    // 目前返回 nullptr，需要在 Items.hpp 中注册后实现
-    return nullptr;
+    MC_ASSERT_RELEASE(Items::BUCKET != nullptr);
+    return static_cast<BucketItem*>(Items::BUCKET);
 }
 
 } // namespace mc

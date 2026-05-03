@@ -425,9 +425,10 @@ void FlowingFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState
 
     // 设置流体方块
     // 必须使用传入状态自身的流体类型做方块映射，避免 source/fluid 实例错配。
+    // 使用 flags=3 来通知邻居和更新客户端（与 MC 1.16.5 一致）
     const BlockState* newBlockState = state.getBlockState();
     if (newBlockState != nullptr) {
-        world.setBlock(pos, newBlockState);
+        world.setBlockState(pos, newBlockState, 3);
     }
 }
 
