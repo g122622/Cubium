@@ -350,6 +350,7 @@ const ResourceLocation BLOCK_ANVIL_USE("minecraft:block.anvil.use");
 const ResourceLocation BLOCK_CAMPFIRE_CRACKLE("minecraft:block.campfire.crackle");
 
 const ResourceLocation BLOCK_BEEHIVE_DRIP("minecraft:block.beehive.drip");
+const ResourceLocation BLOCK_BEEHIVE_DROP("minecraft:block.beehive.drop");
 const ResourceLocation BLOCK_BEEHIVE_ENTER("minecraft:block.beehive.enter");
 const ResourceLocation BLOCK_BEEHIVE_EXIT("minecraft:block.beehive.exit");
 const ResourceLocation BLOCK_BEEHIVE_SHEAR("minecraft:block.beehive.shear");
@@ -1226,7 +1227,7 @@ const ResourceLocation ITEM_SHOVEL_FLATTEN("minecraft:item.shovel.flatten");
 // 其他
 const ResourceLocation ITEM_CHORUS_FRUIT_TELEPORT("minecraft:item.chorus_fruit.teleport");
 const ResourceLocation ITEM_FLINTANDSTEEL_USE("minecraft:item.flintandsteel.use");
-const ResourceLocation ITEM_FIRE_CHARGE_USE("minecraft:item.fire_charge.use");
+const ResourceLocation ITEM_FIRECHARGE_USE("minecraft:item.firecharge.use");
 const ResourceLocation ITEM_TOTEM_USE("minecraft:item.totem.use");
 const ResourceLocation ITEM_BOOK_PAGE_TURN("minecraft:item.book.page_turn");
 const ResourceLocation ITEM_BOOK_PUT("minecraft:item.book.put");

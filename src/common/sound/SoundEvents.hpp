@@ -1341,7 +1341,7 @@ extern const ResourceLocation ITEM_SHOVEL_FLATTEN;
 /// 其他
 extern const ResourceLocation ITEM_CHORUS_FRUIT_TELEPORT;
 extern const ResourceLocation ITEM_FLINTANDSTEEL_USE;
-extern const ResourceLocation ITEM_FIRE_CHARGE_USE;
+extern const ResourceLocation ITEM_FIRECHARGE_USE;
 extern const ResourceLocation ITEM_TOTEM_USE;
 extern const ResourceLocation ITEM_BOOK_PAGE_TURN;
 extern const ResourceLocation ITEM_BOOK_PUT;

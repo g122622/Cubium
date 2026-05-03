@@ -37,7 +37,7 @@ enum class SoundCategory : u8 {
 
 ### SoundEvents
 
-包含 500+ 音效事件常量，与 MC 1.16.5 的 `SoundEvents.java` 对应。
+包含 1000+ 音效事件常量，与 MC 1.16.5 的 `SoundEvents.java` 完全对齐。
 
 **音效命名规范**：
 - 方块音效：`BLOCK_<方块名>_<动作>`，如 `BLOCK_STONE_BREAK`, `BLOCK_WOOD_STEP`
