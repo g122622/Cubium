@@ -279,33 +279,28 @@ bool JigsawManager::tryPlacePiece(
         return false;
     }
 
-    // 构建候选块列表
-    // MC 1.16.5: 如果深度未达到最大值，使用目标池的块；否则只使用回退池
+    // MC 1.16.5: 构建候选块列表 - 使用打乱的列表而非多次随机选择
+    // 参考: JigsawManager.Assembler.func_236831_a_ 第141-145行
+    // List<JigsawPiece> list = Lists.newArrayList();
+    // if (p_236831_4_ != this.maxDepth) {
+    //     list.addAll(optional.get().getShuffledPieces(this.rand));
+    // }
+    // list.addAll(optional1.get().getShuffledPieces(this.rand));
     std::vector<const JigsawPiece*> candidatePieces;
 
     if (joint.depth < maxDepth) {
-        // 添加目标池中的块
-        size_t pieceCount = targetPool->getNumberOfPieces();
-        for (size_t i = 0; i < pieceCount; ++i) {
-            const JigsawPiece* piece = targetPool->getRandomPiece(rng);
-            if (piece && !piece->isEmpty()) {
-                candidatePieces.push_back(piece);
-            }
-        }
+        // 添加目标池中打乱后的块
+        std::vector<const JigsawPiece*> shuffled = targetPool->getShuffledPieces(rng);
+        candidatePieces.insert(candidatePieces.end(), shuffled.begin(), shuffled.end());
     }
 
-    // 添加回退池中的块
+    // 添加回退池中打乱后的块
     const ResourceLocation& fallbackLoc = targetPool->getFallback();
     if (!fallbackLoc.path().empty() && fallbackLoc.toString() != "minecraft:empty") {
         const JigsawPattern* fallbackPool = patternRegistry.getPattern(fallbackLoc);
         if (fallbackPool && !fallbackPool->isEmpty()) {
-            size_t fallbackCount = fallbackPool->getNumberOfPieces();
-            for (size_t i = 0; i < fallbackCount; ++i) {
-                const JigsawPiece* piece = fallbackPool->getRandomPiece(rng);
-                if (piece && !piece->isEmpty()) {
-                    candidatePieces.push_back(piece);
-                }
-            }
+            std::vector<const JigsawPiece*> fallbackShuffled = fallbackPool->getShuffledPieces(rng);
+            candidatePieces.insert(candidatePieces.end(), fallbackShuffled.begin(), fallbackShuffled.end());
         }
     }
 
@@ -313,17 +308,20 @@ bool JigsawManager::tryPlacePiece(
         return false;
     }
 
-    // 尝试多次找到一个合适的块
-    constexpr i32 maxAttempts = 20;
-    for (i32 attempt = 0; attempt < maxAttempts; ++attempt) {
-        const JigsawPiece* selectedPiece = candidatePieces[rng.nextInt(static_cast<i32>(candidatePieces.size()))];
+    // MC 1.16.5: 遍历候选块列表，尝试每个块直到找到合适的
+    // 参考: JigsawManager.Assembler.func_236831_a_ 第152-252行
+    // 预分配匹配连接点容器（最多有 pieceJoints.size() * 4 个匹配，因为有4种旋转）
+    std::vector<std::pair<size_t, Rotation>> matchingJoints;
+    matchingJoints.reserve(16);  // 预估容量避免循环内重复分配
+
+    for (const JigsawPiece* selectedPiece : candidatePieces) {
         if (!selectedPiece || selectedPiece->isEmpty()) {
             continue;
         }
 
         // 尝试找到可以匹配的连接点
         const auto& pieceJoints = selectedPiece->getJoints();
-        std::vector<std::pair<size_t, Rotation>> matchingJoints;
+        matchingJoints.clear();  // 清空复用已分配的内存
 
         for (size_t i = 0; i < pieceJoints.size(); ++i) {
             const auto& pieceJoint = pieceJoints[i];
@@ -351,7 +349,6 @@ bool JigsawManager::tryPlacePiece(
         // 随机选择一个匹配
         auto [jointIndex, rotation] = matchingJoints[rng.nextInt(static_cast<i32>(matchingJoints.size()))];
         const auto& selectedJoint = pieceJoints[jointIndex];
-        i32 rotationDeg = static_cast<i32>(rotation) * 90;
 
         // 计算放置位置
         // 连接点的位置需要使两个块连接在一起

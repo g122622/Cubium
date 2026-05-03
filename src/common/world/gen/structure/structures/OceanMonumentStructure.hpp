@@ -30,6 +30,14 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     /**
+     * @brief 海洋纪念碑使用非均匀间距分布
+     *
+     * MC 1.16.5: OceanMonumentStructure.func_230365_b_() 返回 false
+     * 使用两次随机平均值作为偏移，产生更集中的分布
+     */
+    [[nodiscard]] bool useUniformSpacing() const override { return false; }
+
+    /**
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(

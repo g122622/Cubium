@@ -1,4 +1,6 @@
 #include "JigsawPattern.hpp"
+#include <algorithm>
+#include <utility>
 
 namespace mc {
 namespace world {
@@ -25,6 +27,24 @@ const JigsawPiece* JigsawPattern::getRandomPiece(math::Random& rng) const {
     }
     i32 index = rng.nextInt(static_cast<i32>(m_pieces.size()));
     return m_pieces[index].get();
+}
+
+std::vector<const JigsawPiece*> JigsawPattern::getShuffledPieces(math::Random& rng) const {
+    std::vector<const JigsawPiece*> result;
+    result.reserve(m_pieces.size());
+
+    // 收集所有拼图块指针
+    for (const auto& piece : m_pieces) {
+        result.push_back(piece.get());
+    }
+
+    // Fisher-Yates 洗牌算法
+    for (size_t i = result.size(); i > 1; --i) {
+        size_t j = static_cast<size_t>(rng.nextInt(static_cast<i32>(i)));
+        std::swap(result[i - 1], result[j]);
+    }
+
+    return result;
 }
 
 JigsawPatternRegistry& JigsawPatternRegistry::instance() {
