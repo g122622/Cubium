@@ -284,6 +284,9 @@ add_executable(mc_tests
     # 富文本系统测试
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp
+    # 存储系统测试
+    common/world/storage/SectionCodecTest.cpp
+    common/world/storage/WorldStorageServiceTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢
@@ -414,6 +417,23 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkPrimer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/IChunk.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/SingleChunkLifecycleManager.cpp
+        # 存储系统
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/WorldStorageService.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/LevelDatCodec.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/WorldStoragePaths.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/WorldSessionLock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/list/WorldListEntry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/list/WorldListService.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/list/WorldNameSanitizer.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/request/WorldRequests.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/db/RocksDBDatabase.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/db/SectionCodec.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/section/SectionCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/section/SectionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/snapshot/BackupManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/DirtyTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/AutoSave.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/SaveManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/ImprovedNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/OctavesNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/IChunkGenerator.cpp

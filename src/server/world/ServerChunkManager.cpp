@@ -280,7 +280,17 @@ ChunkData* ServerChunkManager::getChunkSync(ChunkCoord x, ChunkCoord z)
         return data;
     }
 
-    // 同步生成到 FULL 状态，确保与异步路径结果一致
+    // 尝试从存储加载
+    if (m_world && m_world->isStorageOpen()) {
+        auto loadedChunk = loadChunkFromStorage(x, z);
+        if (loadedChunk) {
+            // 从存储成功加载，存入缓存
+            ChunkData* stored = storeGeneratedChunkToMem(x, z, std::move(loadedChunk));
+            return stored;
+        }
+    }
+
+    // 存储中没有，同步生成到 FULL 状态
     executeGenerationTask(*singleChunkLifecycleManager, ChunkStatuses::FULL);
 
     // 返回缓存中的结果
@@ -358,6 +368,68 @@ void ServerChunkManager::saveChunkSections(const ChunkData& chunk)
     // 注意：不在这里清除脏标记，因为chunk是const引用
 }
 
+std::unique_ptr<ChunkData> ServerChunkManager::loadChunkFromStorage(ChunkCoord x, ChunkCoord z)
+{
+    if (!m_world || !m_world->isStorageOpen()) {
+        return nullptr;
+    }
+
+    auto& storageService = m_world->storage();
+    auto dimension = m_world->dimension();
+
+    // 获取该维度的SectionManager
+    auto& sectionMgr = storageService.sectionManager(dimension);
+
+    // 创建区块数据
+    auto chunk = std::make_unique<ChunkData>(x, z);
+    bool hasAnySection = false;
+
+    // 加载每个Section
+    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
+        // 创建SectionKey
+        world::storage::SectionKey sectionKey(x, z, sectionY, dimension);
+
+        // 尝试加载Section
+        auto loadResult = sectionMgr.loadSection(sectionKey);
+        if (loadResult.failed() || !loadResult.value()) {
+            continue;
+        }
+
+        const auto* sectionData = loadResult.value();
+        if (!sectionData) {
+            continue;
+        }
+
+        // 获取或创建Section
+        ChunkSection* section = chunk->createSection(sectionY);
+        if (!section) {
+            continue;
+        }
+
+        // 将SectionData应用到ChunkSection
+        auto applyResult = world::storage::SectionCodec::toChunkSection(*sectionData, *section);
+        if (applyResult.failed()) {
+            spdlog::error("Failed to apply section data ({}, {}, {}): {}",
+                         x, sectionY, z, applyResult.error().message());
+            continue;
+        }
+
+        hasAnySection = true;
+    }
+
+    // 如果没有任何Section，返回nullptr表示区块不存在于存储中
+    if (!hasAnySection) {
+        return nullptr;
+    }
+
+    // 标记区块为已加载（不是新生成的）
+    chunk->setLoaded(true);
+    chunk->setFullyGenerated(true);
+    chunk->setDirty(false);
+
+    return chunk;
+}
+
 // ============================================================================
 // 区块访问（异步）
 // ============================================================================
@@ -383,7 +455,7 @@ std::future<ChunkData*> ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoo
     // 调度异步生成
     const ChunkStatus& target = targetStatus ? *targetStatus : ChunkStatuses::FULL;
 
-    requestChunkGeneration(x, z, target,
+    requestChunkGenerationAsync(x, z, target,
                            computeSchedulePriority(x, z, target, m_ticketManager.getChunkLevel(x, z)),
                            nullptr,
                            promise);
@@ -409,7 +481,7 @@ void ServerChunkManager::getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback
     // 调度异步生成
     const ChunkStatus& target = targetStatus ? *targetStatus : ChunkStatuses::FULL;
 
-    requestChunkGeneration(x, z, target,
+    requestChunkGenerationAsync(x, z, target,
                            computeSchedulePriority(x, z, target, m_ticketManager.getChunkLevel(x, z)),
                            std::move(callback),
                            nullptr);
@@ -538,7 +610,7 @@ void ServerChunkManager::scheduleGeneration(SingleChunkLifecycleManager& singleC
                                                  targetStatus,
                                                  ticketLevel);
 
-    requestChunkGeneration(singleChunkLifecycleManager.x(),
+    requestChunkGenerationAsync(singleChunkLifecycleManager.x(),
                            singleChunkLifecycleManager.z(),
                            targetStatus,
                            priority,
@@ -576,7 +648,7 @@ const ChunkStatus* ServerChunkManager::getNeighborPrerequisiteStatus(const Chunk
     return prerequisiteStatus ? prerequisiteStatus : prerequisiteStage;
 }
 
-void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
+void ServerChunkManager::requestChunkGenerationAsync(ChunkCoord x, ChunkCoord z,
                                                 const ChunkStatus& targetStatus,
                                                 i32 priority,
                                                 ChunkCallback callback,
@@ -585,6 +657,26 @@ void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
     MC_ASSERT_RELEASE_MSG(targetStatus.ordinal() >= 0, "Invalid target chunk status ordinal");
 
     const u64 key = posToKey(x, z);
+
+    // 先尝试从存储加载
+    if (m_world && m_world->isStorageOpen()) {
+        // 检查是否已有缓存（避免重复加载）
+        if (!getChunk(x, z)) {
+            auto loadedChunk = loadChunkFromStorage(x, z);
+            if (loadedChunk) {
+                // 从存储成功加载
+                ChunkData* stored = storeGeneratedChunkToMem(x, z, std::move(loadedChunk));
+                if (promise) {
+                    promise->set_value(stored);
+                }
+                if (callback) {
+                    callback(stored != nullptr, stored);
+                }
+                return;
+            }
+        }
+    }
+
     SingleChunkLifecycleManager* singleChunkLifecycleManager = getOrCreateSingleChunkLifecycleManager(x, z);
     if (!singleChunkLifecycleManager) {
         if (promise) {

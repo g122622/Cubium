@@ -362,7 +362,7 @@ private:
     /**
      * @brief 请求区块异步生成（同坐标请求自动合并）
      */
-    void requestChunkGeneration(ChunkCoord x, ChunkCoord z,
+    void requestChunkGenerationAsync(ChunkCoord x, ChunkCoord z,
                                 const ChunkStatus& targetStatus,
                                 i32 priority,
                                 ChunkCallback callback,
@@ -462,6 +462,17 @@ private:
      * @param chunk 区块数据
      */
     void saveChunkSections(const ChunkData& chunk);
+
+    /**
+     * @brief 从存储加载区块
+     *
+     * 尝试从存储系统加载区块的所有Section并重建区块数据。
+     *
+     * @param x 区块X坐标
+     * @param z 区块Z坐标
+     * @return 区块数据，如果不存在或失败返回nullptr
+     */
+    [[nodiscard]] std::unique_ptr<ChunkData> loadChunkFromStorage(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 区块坐标转键
