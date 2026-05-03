@@ -97,95 +97,130 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
     auto sizeZ = dynamic_cast<const nbt::IntTag&>(*sizeList[2]).value;
     templ->setSize(BlockPos(sizeX, sizeY, sizeZ));
 
-    // 读取方块调色板
-    // MC 1.16.5: 支持两种格式
+    // MC 1.16.5: Template.readPalletesAndBlocks
+    // 支持两种格式：
     // 1. palette: 单一调色板列表
     // 2. palettes: 多个调色板列表的列表（用于结构变体）
-    // 参考 Template.read -> readPalletesAndBlocks
-    std::vector<u32> palette;
-    bool hasPalette = false;
+    // blocks 引用调色板中的方块状态索引
+
+    // 读取所有调色板
+    std::vector<std::vector<u32>> palettes;
 
     if (nbt.value.count("palettes") != 0) {
         // 多调色板格式：palettes 是一个列表的列表
         auto& palettesTag = *nbt.value.at("palettes");
         if (palettesTag.id() == nbt::TagId::List) {
             auto& palettesList = dynamic_cast<const nbt::ListTag&>(palettesTag);
-            if (palettesList.size() > 0) {
-                // MC 1.16.5 默认使用第一个 palette
-                // 完整实现应该根据结构配置选择不同的 palette
-                auto& firstPaletteTag = *palettesList[0];
-                if (firstPaletteTag.id() == nbt::TagId::List) {
-                    auto& firstPalette = dynamic_cast<const nbt::ListTag&>(firstPaletteTag);
-                    palette.reserve(firstPalette.size());
-                    for (size_t i = 0; i < firstPalette.size(); ++i) {
-                        auto& entry = dynamic_cast<const nbt::CompoundTag&>(*firstPalette[i]);
-                        palette.push_back(parseBlockStateId(entry));
-                    }
-                    hasPalette = true;
+            palettes.resize(palettesList.size());
+
+            for (size_t paletteIdx = 0; paletteIdx < palettesList.size(); ++paletteIdx) {
+                auto& paletteTag = *palettesList[paletteIdx];
+                if (paletteTag.id() != nbt::TagId::List) {
+                    continue;
+                }
+
+                auto& paletteList = dynamic_cast<const nbt::ListTag&>(paletteTag);
+                auto& palette = palettes[paletteIdx];
+                palette.reserve(paletteList.size());
+
+                for (size_t i = 0; i < paletteList.size(); ++i) {
+                    auto& entry = dynamic_cast<const nbt::CompoundTag&>(*paletteList[i]);
+                    palette.push_back(parseBlockStateId(entry));
                 }
             }
         }
     }
 
     // 如果没有 palettes，尝试单 palette 格式
-    if (!hasPalette && nbt.value.count("palette") != 0) {
+    if (palettes.empty() && nbt.value.count("palette") != 0) {
         auto& paletteTag = *nbt.value.at("palette");
         if (paletteTag.id() == nbt::TagId::List) {
             auto& paletteList = dynamic_cast<const nbt::ListTag&>(paletteTag);
+            palettes.resize(1);
+            auto& palette = palettes[0];
             palette.reserve(paletteList.size());
+
             for (size_t i = 0; i < paletteList.size(); ++i) {
                 auto& entry = dynamic_cast<const nbt::CompoundTag&>(*paletteList[i]);
                 palette.push_back(parseBlockStateId(entry));
             }
-            hasPalette = true;
         }
     }
 
-    // 读取方块: blocks: [...]
-    if (nbt.value.count("blocks") != 0) {
+    // 读取方块并分配到各个调色板
+    // MC 1.16.5: blocks 数组中的 state 索引引用调色板中的方块状态
+    // 每个 Palette 包含完整的方块列表
+    if (nbt.value.count("blocks") != 0 && !palettes.empty()) {
         auto& blocksTag = *nbt.value.at("blocks");
         if (blocksTag.id() == nbt::TagId::List) {
             auto& blocksList = dynamic_cast<const nbt::ListTag&>(blocksTag);
+
+            // 首先读取所有方块信息（位置和 NBT）
+            struct RawBlockInfo {
+                BlockPos pos;
+                u32 stateIndex;
+                std::unique_ptr<nbt::CompoundTag> nbt;
+            };
+            std::vector<RawBlockInfo> rawBlocks;
+            rawBlocks.reserve(blocksList.size());
+
             for (size_t i = 0; i < blocksList.size(); ++i) {
                 auto& blockEntry = dynamic_cast<const nbt::CompoundTag&>(*blocksList[i]);
 
+                RawBlockInfo rawInfo;
+
                 // 读取位置: pos: [x, y, z]
-                BlockPos pos;
                 if (blockEntry.value.count("pos") != 0) {
                     auto& posTag = *blockEntry.value.at("pos");
                     if (posTag.id() == nbt::TagId::List) {
-                        pos = readBlockPos(dynamic_cast<const nbt::ListTag&>(posTag));
+                        rawInfo.pos = readBlockPos(dynamic_cast<const nbt::ListTag&>(posTag));
                     }
                 }
 
                 // 读取状态索引: state: int
-                u32 stateId = 0;
                 if (blockEntry.value.count("state") != 0) {
-                    stateId = static_cast<u32>(
+                    rawInfo.stateIndex = static_cast<u32>(
                         dynamic_cast<const nbt::IntTag&>(*blockEntry.value.at("state")).value);
-                    if (stateId < palette.size()) {
-                        stateId = palette[stateId];
-                    }
                 }
-
-                BlockInfo blockInfo(pos, stateId);
 
                 // 读取 NBT 数据: nbt: {...}
                 if (blockEntry.value.count("nbt") != 0) {
                     auto& nbtTag = *blockEntry.value.at("nbt");
                     if (nbtTag.id() == nbt::TagId::Compound) {
                         const nbt::CompoundTag* nbtPtr = dynamic_cast<const nbt::CompoundTag*>(&nbtTag);
-                        blockInfo.nbt = cloneNbt(nbtPtr);
+                        rawInfo.nbt = cloneNbt(nbtPtr);
 
                         // 检查是否是 Jigsaw 方块
-                        auto jigsawInfo = parseJigsawBlock(blockInfo.nbt.get(), pos);
+                        auto jigsawInfo = parseJigsawBlock(rawInfo.nbt.get(), rawInfo.pos);
                         if (!jigsawInfo.name.empty()) {
                             templ->addJigsawBlock(jigsawInfo);
                         }
                     }
                 }
 
-                templ->addBlock(blockInfo);
+                rawBlocks.push_back(std::move(rawInfo));
+            }
+
+            // 为每个调色板创建 Palette 对象
+            for (size_t paletteIdx = 0; paletteIdx < palettes.size(); ++paletteIdx) {
+                const auto& palette = palettes[paletteIdx];
+                std::vector<BlockInfo> blockInfos;
+                blockInfos.reserve(rawBlocks.size());
+
+                for (const auto& rawInfo : rawBlocks) {
+                    u32 stateId = 0;  // 默认空气
+                    if (rawInfo.stateIndex < palette.size()) {
+                        stateId = palette[rawInfo.stateIndex];
+                    }
+
+                    BlockInfo blockInfo(rawInfo.pos, stateId);
+                    if (rawInfo.nbt) {
+                        blockInfo.nbt = cloneNbt(rawInfo.nbt.get());
+                    }
+                    blockInfos.push_back(std::move(blockInfo));
+                }
+
+                templ->addPalette(Palette(std::move(blockInfos)));
             }
         }
     }

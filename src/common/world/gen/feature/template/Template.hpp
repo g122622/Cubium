@@ -15,6 +15,7 @@
 namespace mc {
 
 class BlockState;
+class Block;
 class IWorldWriter;
 class IWorld;
 
@@ -240,6 +241,50 @@ struct TemplateEntityInfo {
 };
 
 /**
+ * @brief 模板调色板
+ *
+ * 参考 MC 1.16.5 Template.Palette
+ * 存储一组方块信息，并提供按方块类型快速查找的缓存。
+ * 一个模板可以有多个调色板，用于结构变体。
+ */
+class Palette {
+public:
+    Palette() = default;
+    explicit Palette(std::vector<BlockInfo> blocks);
+
+    /**
+     * @brief 获取所有方块信息
+     */
+    [[nodiscard]] const std::vector<BlockInfo>& blocks() const { return m_blocks; }
+
+    /**
+     * @brief 获取指定方块类型的所有方块信息
+     * @param block 方块类型
+     * @return 匹配的方块信息列表
+     *
+     * MC 1.16.5: Palette.func_237158_a_
+     */
+    [[nodiscard]] const std::vector<const BlockInfo*>& getBlocksByType(const Block& block) const;
+
+    /**
+     * @brief 获取方块数量
+     */
+    [[nodiscard]] size_t size() const { return m_blocks.size(); }
+
+    /**
+     * @brief 是否为空
+     */
+    [[nodiscard]] bool empty() const { return m_blocks.empty(); }
+
+private:
+    std::vector<BlockInfo> m_blocks;
+    mutable std::unordered_map<const Block*, std::vector<const BlockInfo*>> m_blockTypeCache;
+    mutable bool m_cacheBuilt = false;
+
+    void buildCache() const;
+};
+
+/**
  * @brief 结构模板
  */
 class Template {
@@ -249,20 +294,53 @@ public:
 
     [[nodiscard]] const BlockPos& getSize() const { return m_size; }
     void setSize(const BlockPos& size) { m_size = size; }
-    void addBlock(const BlockInfo& blockInfo);
+
+    /**
+     * @brief 添加调色板
+     * MC 1.16.5: Template 支持多个调色板，用于结构变体
+     */
+    void addPalette(Palette palette);
+
+    /**
+     * @brief 获取调色板数量
+     */
+    [[nodiscard]] size_t getPaletteCount() const { return m_palettes.size(); }
+
+    /**
+     * @brief 获取指定索引的调色板
+     */
+    [[nodiscard]] const Palette* getPalette(size_t index) const;
+
+    /**
+     * @brief 选择一个调色板
+     * MC 1.16.5: PlacementSettings.func_237132_a_
+     * @param rng 随机数生成器
+     * @return 选中的调色板，如果没有调色板返回 nullptr
+     */
+    [[nodiscard]] const Palette* selectPalette(math::Random& rng) const;
+
+    /**
+     * @brief 获取第一个调色板的方块（兼容旧接口）
+     * @deprecated 使用 getPalette() 或 selectPalette() 代替
+     */
+    [[nodiscard]] const std::vector<BlockInfo>& getBlocks() const;
+
     void addJigsawBlock(const TemplateJigsawBlockInfo& jigsawInfo);
     void addEntity(const TemplateEntityInfo& entityInfo);
 
-    [[nodiscard]] const std::vector<BlockInfo>& getBlocks() const { return m_blocks; }
     [[nodiscard]] const std::vector<TemplateJigsawBlockInfo>& getJigsawBlocks() const { return m_jigsawBlocks; }
     [[nodiscard]] const std::vector<TemplateEntityInfo>& getEntities() const { return m_entities; }
-    [[nodiscard]] size_t getBlockCount() const { return m_blocks.size(); }
+    [[nodiscard]] size_t getBlockCount() const;
     [[nodiscard]] size_t getJigsawBlockCount() const { return m_jigsawBlocks.size(); }
 
     [[nodiscard]] structure::StructureBoundingBox getBoundingBox(
         const PlacementSettings& settings,
         const BlockPos& pos) const;
 
+    /**
+     * @brief 放置模板到世界
+     * MC 1.16.5: Template.func_237146_a_
+     */
     bool place(
         IWorldWriter& world,
         const BlockPos& pos,
@@ -283,7 +361,7 @@ public:
 
 private:
     BlockPos m_size;
-    std::vector<BlockInfo> m_blocks;
+    std::vector<Palette> m_palettes;  // MC 1.16.5: 多调色板支持
     std::vector<TemplateJigsawBlockInfo> m_jigsawBlocks;
     std::vector<TemplateEntityInfo> m_entities;
 };

@@ -284,16 +284,28 @@ public:
 
 ##### Template.hpp - 结构模板
 
-从 NBT 文件加载的结构模板，用于 Jigsaw 结构生成：
+从 NBT 文件加载的结构模板，用于 Jigsaw 结构生成。支持 MC 1.16.5 的多调色板（Palette）机制：
 
 ```cpp
 class Template {
 public:
+    // 多调色板支持（结构变体）
+    void addPalette(Palette palette);
+    const Palette* selectPalette(math::Random& rng) const;
+    size_t getPaletteCount() const;
+    
     bool place(IWorldWriter& world, const BlockPos& pos,
                const PlacementSettings& settings, Random& rng, u32 flags) const;
     
     static BlockPos transformBlockPos(const BlockPos& pos, i32 mirror, 
                                       i32 rotation, const BlockPos& center);
+};
+
+// 调色板：存储一组方块，支持按类型快速查找
+class Palette {
+public:
+    const std::vector<BlockInfo>& blocks() const;
+    const std::vector<const BlockInfo*>& getBlocksByType(const Block& block) const;
 };
 ```
 
@@ -341,9 +353,14 @@ struct JigsawJoint {
 class JigsawPattern {
 public:
     const JigsawPiece* getRandomPiece(Random& rng) const;
+    std::vector<const JigsawPiece*> getShuffledPieces(Random& rng) const;  // MC 1.16.5 核心
     void addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight = 1);
 };
 ```
+
+**选择方法**:
+- `getRandomPiece` - 随机选择一个拼图块
+- `getShuffledPieces` - 返回打乱后的完整列表，用于遍历尝试放置
 
 #### JigsawManager.hpp - 结构组装器
 

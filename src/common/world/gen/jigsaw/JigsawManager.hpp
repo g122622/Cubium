@@ -152,6 +152,77 @@ public:
      */
     static void clearCache();
 
+    /**
+     * @brief 计算拼图块的边界框
+     * @param piece 拼图块
+     * @param pos 放置位置
+     * @param rotation 旋转角度
+     * @return 边界框
+     */
+    static structure::StructureBoundingBox calculateBoundingBox(
+        const JigsawPiece& piece,
+        const BlockPos& pos,
+        Rotation rotation);
+
+    /**
+     * @brief 检查边界框是否与已放置的拼图块重叠
+     * @param placedPieces 已放置的拼图块列表
+     * @param newBox 新边界框
+     * @return 是否重叠
+     */
+    static bool boxesIntersect(
+        const std::vector<PlacedPiece>& placedPieces,
+        const structure::StructureBoundingBox& newBox);
+
+    /**
+     * @brief 获取随机旋转角度
+     * @param rng 随机数生成器
+     * @return 旋转角度
+     */
+    static Rotation getRandomRotation(math::Random& rng);
+
+    /**
+     * @brief 应用旋转变换到位置
+     * @param pos 原始位置
+     * @param rotation 旋转角度
+     * @return 旋转后的位置
+     */
+    static BlockPos rotatePosition(const BlockPos& pos, Rotation rotation);
+
+    /**
+     * @brief 应用镜像变换到位置
+     * @param pos 原始位置
+     * @param mirror 镜像模式
+     * @param center 中心点
+     * @return 镜像后的位置
+     */
+    static BlockPos mirrorPosition(const BlockPos& pos, Mirror mirror, const BlockPos& center);
+
+    /**
+     * @brief 变换连接点位置
+     * @param pos 原始位置
+     * @param rotation 旋转角度
+     * @param mirror 镜像模式
+     * @param templateSize 模板尺寸
+     * @return 变换后的位置
+     */
+    static BlockPos transformPosition(
+        const BlockPos& pos,
+        Rotation rotation,
+        Mirror mirror,
+        const BlockPos& templateSize);
+
+    /**
+     * @brief 尝试匹配和放置新拼图块
+     */
+    static bool tryPlacePiece(
+        JigsawPatternRegistry& patternRegistry,
+        std::vector<PlacedPiece>& placedPieces,
+        std::queue<PendingJoint>& pendingJoints,
+        const PendingJoint& joint,
+        i32 maxDepth,
+        math::Random& rng);
+
 private:
     /**
      * @brief 递归放置拼图块
@@ -179,56 +250,6 @@ private:
      * @brief 处理单个连接点
      */
     static bool processJoint(
-        JigsawPatternRegistry& patternRegistry,
-        std::vector<PlacedPiece>& placedPieces,
-        std::queue<PendingJoint>& pendingJoints,
-        const PendingJoint& joint,
-        i32 maxDepth,
-        math::Random& rng);
-
-    /**
-     * @brief 计算拼图块的边界框
-     */
-    static structure::StructureBoundingBox calculateBoundingBox(
-        const JigsawPiece& piece,
-        const BlockPos& pos,
-        Rotation rotation);
-
-    /**
-     * @brief 检查边界框是否重叠
-     */
-    static bool boxesIntersect(
-        const std::vector<PlacedPiece>& placedPieces,
-        const structure::StructureBoundingBox& newBox);
-
-    /**
-     * @brief 获取随机旋转角度
-     */
-    static Rotation getRandomRotation(math::Random& rng);
-
-    /**
-     * @brief 应用旋转变换到位置
-     */
-    static BlockPos rotatePosition(const BlockPos& pos, Rotation rotation);
-
-    /**
-     * @brief 应用镜像变换到位置
-     */
-    static BlockPos mirrorPosition(const BlockPos& pos, Mirror mirror, const BlockPos& center);
-
-    /**
-     * @brief 变换连接点位置
-     */
-    static BlockPos transformPosition(
-        const BlockPos& pos,
-        Rotation rotation,
-        Mirror mirror,
-        const BlockPos& templateSize);
-
-    /**
-     * @brief 尝试匹配和放置新拼图块
-     */
-    static bool tryPlacePiece(
         JigsawPatternRegistry& patternRegistry,
         std::vector<PlacedPiece>& placedPieces,
         std::queue<PendingJoint>& pendingJoints,

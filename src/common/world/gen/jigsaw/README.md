@@ -209,6 +209,7 @@ classDiagram
         +getName() const ResourceLocation&
         +getFallback() const ResourceLocation&
         +getRandomPiece(rng) const JigsawPiece*
+        +getShuffledPieces(rng) vector~const JigsawPiece*~
         +getNumberOfPieces() size_t
         +isEmpty() bool
         +addPiece(piece, weight) void
@@ -233,6 +234,31 @@ classDiagram
 // 权重 3 意味着添加 3 个副本
 pattern->addPiece(std::make_unique<SingleJigsawPiece>("house_small"), 3);   // 3/5 概率
 pattern->addPiece(std::make_unique<SingleJigsawPiece>("house_large"), 2);   // 2/5 概率
+```
+
+**选择方法**（MC 1.16.5）:
+
+`JigsawPattern` 提供两种选择拼图块的方法：
+
+1. **`getRandomPiece(rng)`** - 随机选择一个拼图块
+   - 每次调用独立随机选择
+   - 适用于简单场景
+
+2. **`getShuffledPieces(rng)`** - 返回打乱后的拼图块列表
+   - MC 1.16.5 核心算法使用此方法
+   - 使用 Fisher-Yates 洗牌算法
+   - 遍历时保证每个拼图块只被考虑一次
+   - 参考：`JigsawManager.Assembler.func_236831_a_`
+
+```cpp
+// MC 1.16.5 组装算法
+std::vector<const JigsawPiece*> candidates = targetPool->getShuffledPieces(rng);
+for (const JigsawPiece* piece : candidates) {
+    // 尝试放置此拼图块
+    if (tryPlace(piece)) {
+        break;  // 成功放置后停止遍历
+    }
+}
 ```
 
 **回退机制**:

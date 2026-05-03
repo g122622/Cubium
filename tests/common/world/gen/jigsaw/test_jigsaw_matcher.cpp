@@ -97,43 +97,43 @@ TEST_F(JigsawOrientationTest, CanConnectOrientation) {
     // Rollable: 只需facing相反
 
     // UP和DOWN相对（rollable）
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::UpEast, JigsawOrientation::DownNorth, JigsawJointType::Rollable));
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::UpNorth, JigsawOrientation::DownSouth, JigsawJointType::Rollable));
 
     // NORTH和SOUTH相对（rollable）
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::NorthUp, JigsawOrientation::SouthUp, JigsawJointType::Rollable));
 
     // EAST和WEST相对（rollable）
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::EastUp, JigsawOrientation::WestUp, JigsawJointType::Rollable));
 
     // 不相对的facing（应该失败）
-    EXPECT_FALSE(JigsawOrientations::canConnectOrientation(
+    EXPECT_FALSE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::UpEast, JigsawOrientation::NorthUp, JigsawJointType::Rollable));
-    EXPECT_FALSE(JigsawOrientations::canConnectOrientation(
+    EXPECT_FALSE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::DownEast, JigsawOrientation::WestUp, JigsawJointType::Rollable));
 
     // Aligned: facing相反且rotation相同
 
     // UP和DOWN相对，rotation相同
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::UpEast, JigsawOrientation::DownEast, JigsawJointType::Aligned));
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::UpNorth, JigsawOrientation::DownNorth, JigsawJointType::Aligned));
 
     // UP和DOWN相对，但rotation不同（应该失败）
-    EXPECT_FALSE(JigsawOrientations::canConnectOrientation(
+    EXPECT_FALSE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::UpEast, JigsawOrientation::DownNorth, JigsawJointType::Aligned));
-    EXPECT_FALSE(JigsawOrientations::canConnectOrientation(
+    EXPECT_FALSE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::UpNorth, JigsawOrientation::DownSouth, JigsawJointType::Aligned));
 
     // 水平facing的Aligned（rotation都是Up，所以总是匹配）
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::NorthUp, JigsawOrientation::SouthUp, JigsawJointType::Aligned));
-    EXPECT_TRUE(JigsawOrientations::canConnectOrientation(
+    EXPECT_TRUE(JigsawMatcher::canConnectOrientation(
         JigsawOrientation::EastUp, JigsawOrientation::WestUp, JigsawJointType::Aligned));
 }
 
@@ -251,19 +251,19 @@ TEST_F(JigsawMatcherTest, CanMatchByName) {
 
 TEST_F(JigsawMatcherTest, GetDefaultJointType) {
     // 水平facing默认为Aligned
-    EXPECT_EQ(JigsawOrientations::getDefaultJointType(JigsawOrientation::NorthUp),
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::NorthUp),
               JigsawJointType::Aligned);
-    EXPECT_EQ(JigsawOrientations::getDefaultJointType(JigsawOrientation::SouthUp),
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::SouthUp),
               JigsawJointType::Aligned);
-    EXPECT_EQ(JigsawOrientations::getDefaultJointType(JigsawOrientation::EastUp),
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::EastUp),
               JigsawJointType::Aligned);
-    EXPECT_EQ(JigsawOrientations::getDefaultJointType(JigsawOrientation::WestUp),
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::WestUp),
               JigsawJointType::Aligned);
 
     // 垂直facing默认为Rollable
-    EXPECT_EQ(JigsawOrientations::getDefaultJointType(JigsawOrientation::UpEast),
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::UpEast),
               JigsawJointType::Rollable);
-    EXPECT_EQ(JigsawOrientations::getDefaultJointType(JigsawOrientation::DownNorth),
+    EXPECT_EQ(JigsawMatcher::getDefaultJointType(JigsawOrientation::DownNorth),
               JigsawJointType::Rollable);
 }
 

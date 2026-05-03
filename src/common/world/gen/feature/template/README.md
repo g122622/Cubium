@@ -100,20 +100,50 @@ public:
 
 ### Template - 结构模板
 
-存储完整的结构模板数据：
+存储完整的结构模板数据，支持 MC 1.16.5 的多调色板（Palette）机制：
 
 ```cpp
 class Template {
     BlockPos m_size;                              // 模板尺寸
-    std::vector<BlockInfo> m_blocks;              // 方块列表
+    std::vector<Palette> m_palettes;              // 调色板列表（支持结构变体）
     std::vector<TemplateJigsawBlockInfo> m_jigsawBlocks;  // Jigsaw方块列表
     std::vector<TemplateEntityInfo> m_entities;   // 实体列表
 
+    // 多调色板支持
+    void addPalette(Palette palette);
+    const Palette* selectPalette(math::Random& rng) const;
+    size_t getPaletteCount() const;
+    
     bool place(IWorldWriter& world, const BlockPos& pos,
                const PlacementSettings& settings,
                math::Random& rng, u32 flags) const;
 };
 ```
+
+### Palette - 调色板
+
+MC 1.16.5 引入的多调色板机制，允许一个模板包含多个变体：
+
+```cpp
+class Palette {
+public:
+    explicit Palette(std::vector<BlockInfo> blocks);
+    
+    // 获取所有方块
+    const std::vector<BlockInfo>& blocks() const;
+    
+    // 按方块类型查找（带缓存）
+    const std::vector<const BlockInfo*>& getBlocksByType(const Block& block) const;
+    
+    size_t size() const;
+    bool empty() const;
+};
+```
+
+**调色板用途**：
+- 同一结构的不同变体（如村庄房屋的不同材质版本）
+- 结构生成时随机选择一个变体
+- 减少重复的结构文件
 
 ## 坐标变换
 

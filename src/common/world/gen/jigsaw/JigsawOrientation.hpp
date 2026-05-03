@@ -286,6 +286,10 @@ namespace JigsawOrientations {
     /**
      * @brief 对 JigsawOrientation 应用镜像
      *
+     * 参考 MC 1.16.5 Mirror.java:
+     * - LEFT_RIGHT = INVERT_Z = Z轴镜像 = North <-> South
+     * - FRONT_BACK = INVERT_X = X轴镜像 = East <-> West
+     *
      * @param orientation 原始方向
      * @param mirror 镜像类型
      * @return 镜像后的方向
@@ -304,18 +308,18 @@ namespace JigsawOrientations {
 
         switch (mirror) {
             case Mirror::LeftRight:
-                // X 轴镜像：East <-> West
-                if (facing == Direction::East) newFacing = Direction::West;
-                else if (facing == Direction::West) newFacing = Direction::East;
-                if (rot == Direction::East) newRot = Direction::West;
-                else if (rot == Direction::West) newRot = Direction::East;
-                break;
-            case Mirror::FrontBack:
                 // Z 轴镜像：North <-> South
                 if (facing == Direction::North) newFacing = Direction::South;
                 else if (facing == Direction::South) newFacing = Direction::North;
                 if (rot == Direction::North) newRot = Direction::South;
                 else if (rot == Direction::South) newRot = Direction::North;
+                break;
+            case Mirror::FrontBack:
+                // X 轴镜像：East <-> West
+                if (facing == Direction::East) newFacing = Direction::West;
+                else if (facing == Direction::West) newFacing = Direction::East;
+                if (rot == Direction::East) newRot = Direction::West;
+                else if (rot == Direction::West) newRot = Direction::East;
                 break;
             default:
                 break;

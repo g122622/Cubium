@@ -248,6 +248,51 @@ PlacementSettings& PlacementSettings::setProcessors(const StructureProcessorList
 }
 
 // ============================================================================
+// Palette
+// ============================================================================
+
+Palette::Palette(std::vector<BlockInfo> blocks)
+    : m_blocks(std::move(blocks))
+{
+}
+
+const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block) const {
+    // 检查缓存
+    auto it = m_blockTypeCache.find(&block);
+    if (it != m_blockTypeCache.end()) {
+        return it->second;
+    }
+
+    // 构建缓存
+    if (!m_cacheBuilt) {
+        buildCache();
+    }
+
+    it = m_blockTypeCache.find(&block);
+    if (it != m_blockTypeCache.end()) {
+        return it->second;
+    }
+
+    // 没有匹配的方块，返回空列表
+    static const std::vector<const BlockInfo*> empty;
+    return empty;
+}
+
+void Palette::buildCache() const {
+    // MC 1.16.5: Palette.func_237158_a_ 按方块类型缓存
+    auto& registry = BlockRegistry::instance();
+
+    for (const auto& blockInfo : m_blocks) {
+        const BlockState* state = registry.getBlockState(blockInfo.blockStateId);
+        if (state) {
+            const Block* block = &state->getBlock();
+            m_blockTypeCache[block].push_back(&blockInfo);
+        }
+    }
+    m_cacheBuilt = true;
+}
+
+// ============================================================================
 // Template
 // ============================================================================
 
@@ -257,8 +302,42 @@ Template::Template() : m_size(0, 0, 0)
 
 Template::~Template() = default;
 
-void Template::addBlock(const BlockInfo& blockInfo) {
-    m_blocks.push_back(blockInfo);
+void Template::addPalette(Palette palette) {
+    m_palettes.push_back(std::move(palette));
+}
+
+const Palette* Template::getPalette(size_t index) const {
+    if (index < m_palettes.size()) {
+        return &m_palettes[index];
+    }
+    return nullptr;
+}
+
+const Palette* Template::selectPalette(math::Random& rng) const {
+    if (m_palettes.empty()) {
+        return nullptr;
+    }
+    // MC 1.16.5: PlacementSettings.func_237132_a_
+    // 随机选择一个调色板
+    size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(m_palettes.size())));
+    return &m_palettes[index];
+}
+
+const std::vector<BlockInfo>& Template::getBlocks() const {
+    // 兼容旧接口：返回第一个调色板的方块
+    static const std::vector<BlockInfo> empty;
+    if (m_palettes.empty()) {
+        return empty;
+    }
+    return m_palettes[0].blocks();
+}
+
+size_t Template::getBlockCount() const {
+    size_t count = 0;
+    for (const auto& palette : m_palettes) {
+        count += palette.size();
+    }
+    return count;
 }
 
 void Template::addJigsawBlock(const TemplateJigsawBlockInfo& jigsawInfo) {
@@ -310,18 +389,30 @@ bool Template::place(
     math::Random& rng,
     u32 flags) const
 {
-    if (m_blocks.empty()) {
-        return true;  // 空模板，无需放置
+    // MC 1.16.5: Template.func_237146_a_
+    // 选择调色板
+    const Palette* selectedPalette = selectPalette(rng);
+    if (!selectedPalette || selectedPalette->empty()) {
+        // 没有调色板或调色板为空，检查旧格式的方块列表
+        if (m_palettes.empty()) {
+            return true;  // 空模板，无需放置
+        }
+        selectedPalette = &m_palettes[0];
+        if (selectedPalette->empty()) {
+            return true;
+        }
     }
+
+    const std::vector<BlockInfo>& blocks = selectedPalette->blocks();
 
     // 获取边界框（可选检查）
     const auto* bounds = settings.getBoundingBox();
 
     // MC 1.16.5: 首先处理方块信息（应用处理器链）
     std::vector<ProcessedBlockInfo> processedBlocks;
-    processedBlocks.reserve(m_blocks.size());
+    processedBlocks.reserve(blocks.size());
 
-    for (const auto& block : m_blocks) {
+    for (const auto& block : blocks) {
         // 计算变换后的位置
         BlockPos transformedPos = transformBlockPos(
             block.pos,

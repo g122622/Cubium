@@ -378,16 +378,20 @@ TEST_F(TemplateTest, Template_SetSize) {
 TEST_F(TemplateTest, Template_AddBlock) {
     Template templ;
 
-    templ.addBlock(BlockInfo(BlockPos(0, 0, 0), 1));
-    templ.addBlock(BlockInfo(BlockPos(1, 0, 0), 2));
-    templ.addBlock(BlockInfo(BlockPos(0, 1, 0), 3));
+    // 使用 Palette 添加方块
+    std::vector<BlockInfo> blocks;
+    blocks.push_back(BlockInfo(BlockPos(0, 0, 0), 1));
+    blocks.push_back(BlockInfo(BlockPos(1, 0, 0), 2));
+    blocks.push_back(BlockInfo(BlockPos(0, 1, 0), 3));
+    templ.addPalette(Palette(std::move(blocks)));
 
     EXPECT_EQ(templ.getBlockCount(), 3u);
+    EXPECT_EQ(templ.getPaletteCount(), 1u);
 
-    const auto& blocks = templ.getBlocks();
-    EXPECT_EQ(blocks[0].pos.x, 0);
-    EXPECT_EQ(blocks[1].blockStateId, 2u);
-    EXPECT_EQ(blocks[2].pos.y, 1);
+    const auto& paletteBlocks = templ.getBlocks();
+    EXPECT_EQ(paletteBlocks[0].pos.x, 0);
+    EXPECT_EQ(paletteBlocks[1].blockStateId, 2u);
+    EXPECT_EQ(paletteBlocks[2].pos.y, 1);
 }
 
 TEST_F(TemplateTest, Template_AddJigsawBlock) {
