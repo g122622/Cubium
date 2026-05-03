@@ -2,6 +2,9 @@
 #include "ServerWorld.hpp"
 #include "../sync/ChunkSendManager.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/storage/section/SectionManager.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
+#include "common/world/storage/db/SectionCodec.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
@@ -288,6 +291,25 @@ void ServerChunkManager::unloadChunk(ChunkCoord x, ChunkCoord z)
 {
     const u64 key = posToKey(x, z);
 
+    // 如果有存储系统，保存脏区块
+    if (m_world && m_world->isStorageOpen()) {
+        std::shared_ptr<ChunkData> chunkToSave;
+        {
+            std::lock_guard<std::mutex> lock(m_chunksMutex);
+            auto it = m_chunks.find(key);
+            if (it != m_chunks.end() && it->second && it->second->isDirty()) {
+                chunkToSave = it->second;
+            }
+        }
+
+        if (chunkToSave) {
+            // 保存区块的各个Section到存储
+            saveChunkSections(*chunkToSave);
+            // 清除脏标记
+            chunkToSave->setDirty(false);
+        }
+    }
+
     {
         std::lock_guard<std::mutex> lock(m_chunksMutex);
         m_chunks.erase(key);
@@ -297,6 +319,43 @@ void ServerChunkManager::unloadChunk(ChunkCoord x, ChunkCoord z)
         std::lock_guard<std::mutex> lock(m_singleChunkLifecycleManagersMutex);
         m_singleChunkLifecycleManagers.erase(key);
     }
+}
+
+void ServerChunkManager::saveChunkSections(const ChunkData& chunk)
+{
+    if (!m_world || !m_world->isStorageOpen()) {
+        return;
+    }
+
+    auto& storageService = m_world->storage();
+    auto dimension = m_world->dimension();
+
+    // 获取该维度的SectionManager
+    auto& sectionMgr = storageService.sectionManager(dimension);
+
+    // 保存每个Section
+    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk.getSection(sectionY);
+        if (!section) {
+            continue;
+        }
+
+        // 创建SectionKey
+        world::storage::SectionKey sectionKey(chunk.x(), chunk.z(), sectionY, dimension);
+
+        // 转换并保存Section
+        auto dataResult = world::storage::SectionCodec::fromChunkSection(*section, sectionKey);
+        if (dataResult.success()) {
+            auto saveResult = sectionMgr.saveSection(sectionKey, dataResult.value());
+            if (saveResult.failed()) {
+                spdlog::warn("Failed to save section ({}, {}, {}): {}",
+                             chunk.x(), sectionY, chunk.z(),
+                             saveResult.error().message());
+            }
+        }
+    }
+
+    // 注意：不在这里清除脏标记，因为chunk是const引用
 }
 
 // ============================================================================

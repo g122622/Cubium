@@ -455,6 +455,15 @@ private:
     ChunkData* finalizeChunkGeneration(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer);
 
     /**
+     * @brief 保存区块的Section到存储
+     *
+     * 将区块的所有Section转换为SectionData并保存到存储系统。
+     *
+     * @param chunk 区块数据
+     */
+    void saveChunkSections(const ChunkData& chunk);
+
+    /**
      * @brief 区块坐标转键
      */
     [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) {
