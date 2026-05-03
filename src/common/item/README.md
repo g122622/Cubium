@@ -207,6 +207,7 @@ item/
 ### 优先级中
 
 4. **ItemStack属性修饰符系统** (attribute/)
+   - ArmorItem属性修饰符注册（护甲值、韧性、击退抗性）
    - ItemStack与属性修饰符集成
    - 动态属性修饰符（附魔影响）
    - NBT序列化
@@ -216,7 +217,7 @@ item/
    - CompassItem (指南针)
    - ClockItem (时钟)
    - FishingRodItem (钓鱼竿) ✅ 完成
-   - EnchantedBookItem (附魔书)
+   - EnchantedBookItem (附魔书) ✅ 完成
    - FlintAndSteelItem (打火石) ✅ 完成 (点燃营火、放置火焰)
    - BoneMealItem (骨粉) ✅ 完成
    - ShearsItem (剪刀) ✅ 完成 (见工具系统)

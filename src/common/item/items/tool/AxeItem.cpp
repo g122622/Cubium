@@ -177,6 +177,12 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks() {
     // 下界木质方块
     if (VanillaBlocks::CRIMSON_STEM) blocks.insert(VanillaBlocks::CRIMSON_STEM);
     if (VanillaBlocks::WARPED_STEM) blocks.insert(VanillaBlocks::WARPED_STEM);
+    if (VanillaBlocks::STRIPPED_CRIMSON_STEM) blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_STEM);
+    if (VanillaBlocks::STRIPPED_WARPED_STEM) blocks.insert(VanillaBlocks::STRIPPED_WARPED_STEM);
+    if (VanillaBlocks::CRIMSON_HYPHAE) blocks.insert(VanillaBlocks::CRIMSON_HYPHAE);
+    if (VanillaBlocks::WARPED_HYPHAE) blocks.insert(VanillaBlocks::WARPED_HYPHAE);
+    if (VanillaBlocks::STRIPPED_CRIMSON_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_HYPHAE);
+    if (VanillaBlocks::STRIPPED_WARPED_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_WARPED_HYPHAE);
 
     return blocks;
 }
@@ -223,13 +229,17 @@ std::unordered_map<const Block*, const Block*>& AxeItem::getStrippingMap() {
         if (VanillaBlocks::DARK_OAK_WOOD && VanillaBlocks::STRIPPED_DARK_OAK_WOOD)
             m[VanillaBlocks::DARK_OAK_WOOD] = VanillaBlocks::STRIPPED_DARK_OAK_WOOD;
 
-        // 绯红菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
-        // if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM)
-        //     m[VanillaBlocks::CRIMSON_STEM] = VanillaBlocks::STRIPPED_CRIMSON_STEM;
+        // 绯红菌柄（MC 1.16.5）
+        if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM)
+            m[VanillaBlocks::CRIMSON_STEM] = VanillaBlocks::STRIPPED_CRIMSON_STEM;
+        if (VanillaBlocks::CRIMSON_HYPHAE && VanillaBlocks::STRIPPED_CRIMSON_HYPHAE)
+            m[VanillaBlocks::CRIMSON_HYPHAE] = VanillaBlocks::STRIPPED_CRIMSON_HYPHAE;
 
-        // 诡异菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
-        // if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM)
-        //     m[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
+        // 诡异菌柄（MC 1.16.5）
+        if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM)
+            m[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
+        if (VanillaBlocks::WARPED_HYPHAE && VanillaBlocks::STRIPPED_WARPED_HYPHAE)
+            m[VanillaBlocks::WARPED_HYPHAE] = VanillaBlocks::STRIPPED_WARPED_HYPHAE;
 
         return m;
     }();

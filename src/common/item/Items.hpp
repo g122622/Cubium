@@ -378,6 +378,14 @@ public:
     static Item* MILK_BUCKET;            // 牛奶桶
 
     // ========================================================================
+    // 书本类物品
+    // ========================================================================
+    static Item* BOOK;                   // 书
+    static Item* ENCHANTED_BOOK;         // 附魔书
+    static Item* WRITABLE_BOOK;          // 书与笔
+    static Item* WRITTEN_BOOK;           // 成书
+
+    // ========================================================================
     // 海绵
     // ========================================================================
     static Item* SPONGE;                 // 海绵（干燥）
@@ -400,6 +408,7 @@ private:
     static void registerWeapons();
     static void registerThrowables();
     static void registerBuckets();
+    static void registerBooks();
     static void registerSponges();
 };
 

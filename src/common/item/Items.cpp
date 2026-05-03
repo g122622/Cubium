@@ -26,6 +26,7 @@
 #include "items/special/FishBucketItem.hpp"
 #include "items/special/FlintAndSteelItem.hpp"
 #include "items/special/MilkBucketItem.hpp"
+#include "items/special/EnchantedBookItem.hpp"
 #include "food/Foods.hpp"
 #include "armor/ArmorMaterial.hpp"
 #include "../world/block/VanillaBlocks.hpp"
@@ -356,6 +357,14 @@ Item* Items::TROPICAL_FISH_BUCKET = nullptr;
 Item* Items::MILK_BUCKET = nullptr;
 
 // ============================================================================
+// 书本类物品
+// ============================================================================
+Item* Items::BOOK = nullptr;
+Item* Items::ENCHANTED_BOOK = nullptr;
+Item* Items::WRITABLE_BOOK = nullptr;
+Item* Items::WRITTEN_BOOK = nullptr;
+
+// ============================================================================
 // 海绵
 // ============================================================================
 Item* Items::SPONGE = nullptr;
@@ -402,6 +411,7 @@ void Items::initialize() {
     registerWeapons();    // 武器和弹药
     registerThrowables(); // 投掷物品
     registerBuckets();   // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
+    registerBooks();     // 书本类物品
     registerSponges();   // 海绵物品
 
     s_initialized = true;
@@ -1754,6 +1764,34 @@ void Items::registerBuckets() {
     MILK_BUCKET = &registry.registerItem<item::special::MilkBucketItem>(
         ResourceLocation("minecraft:milk_bucket"),
         ItemProperties().maxStackSize(1).containerItem(BUCKET)
+    );
+}
+
+void Items::registerBooks() {
+    auto& registry = ItemRegistry::instance();
+
+    // 书 - 可用于合成书架、附魔台
+    BOOK = &registry.registerItem(
+        ResourceLocation("minecraft:book"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    // 附魔书 - 存储附魔，可在铁砧中应用到物品
+    ENCHANTED_BOOK = &registry.registerItem<item::items::EnchantedBookItem>(
+        ResourceLocation("minecraft:enchanted_book"),
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 书与笔 - 可写入内容
+    WRITABLE_BOOK = &registry.registerItem(
+        ResourceLocation("minecraft:writable_book"),
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 成书 - 已完成的书
+    WRITTEN_BOOK = &registry.registerItem(
+        ResourceLocation("minecraft:written_book"),
+        ItemProperties().maxStackSize(16)
     );
 }
 

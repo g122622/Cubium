@@ -340,6 +340,7 @@ add_library(mc_common STATIC
     item/items/special/FishBucketItem.cpp
     item/items/special/FlintAndSteelItem.cpp
     item/items/special/MilkBucketItem.cpp
+    item/items/special/EnchantedBookItem.cpp
 
     # Item - Crafting
     item/crafting/Ingredient.cpp

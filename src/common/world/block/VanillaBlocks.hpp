@@ -572,15 +572,21 @@ public:
     // ========================================================================
     // 下界扩展植物方块
     // ========================================================================
-    static Block* CRIMSON_STEM;       // 绯红菌柄
-    static Block* WARPED_STEM;        // 诡异菌柄
-    static Block* CRIMSON_NYLIUM;     // 绯红菌岩
-    static Block* WARPED_NYLIUM;      // 诡异菌岩
-    static Block* SHROOMLIGHT;        // 菌光体
-    static Block* CRIMSON_FUNGUS;     // 绯红菌
-    static Block* WARPED_FUNGUS;      // 诡异菌
-    static Block* WEEPING_VINES;      // 垂泪藤
-    static Block* TWISTING_VINES;     // 扭曲藤
+    static Block* CRIMSON_STEM;            // 绯红菌柄
+    static Block* WARPED_STEM;             // 诡异菌柄
+    static Block* STRIPPED_CRIMSON_STEM;   // 去皮绯红菌柄
+    static Block* STRIPPED_WARPED_STEM;    // 去皮诡异菌柄
+    static Block* CRIMSON_HYPHAE;          // 绯红菌核
+    static Block* WARPED_HYPHAE;           // 诡异菌核
+    static Block* STRIPPED_CRIMSON_HYPHAE; // 去皮绯红菌核
+    static Block* STRIPPED_WARPED_HYPHAE;  // 去皮诡异菌核
+    static Block* CRIMSON_NYLIUM;          // 绯红菌岩
+    static Block* WARPED_NYLIUM;           // 诡异菌岩
+    static Block* SHROOMLIGHT;             // 菌光体
+    static Block* CRIMSON_FUNGUS;          // 绯红菌
+    static Block* WARPED_FUNGUS;           // 诡异菌
+    static Block* WEEPING_VINES;           // 垂泪藤
+    static Block* TWISTING_VINES;          // 扭曲藤
 
     // ========================================================================
     // 辅助函数

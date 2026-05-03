@@ -427,6 +427,12 @@ Block* VanillaBlocks::WARPED_WALL_SIGN = nullptr;
 
 Block* VanillaBlocks::CRIMSON_STEM = nullptr;
 Block* VanillaBlocks::WARPED_STEM = nullptr;
+Block* VanillaBlocks::STRIPPED_CRIMSON_STEM = nullptr;
+Block* VanillaBlocks::STRIPPED_WARPED_STEM = nullptr;
+Block* VanillaBlocks::CRIMSON_HYPHAE = nullptr;
+Block* VanillaBlocks::WARPED_HYPHAE = nullptr;
+Block* VanillaBlocks::STRIPPED_CRIMSON_HYPHAE = nullptr;
+Block* VanillaBlocks::STRIPPED_WARPED_HYPHAE = nullptr;
 Block* VanillaBlocks::CRIMSON_NYLIUM = nullptr;
 Block* VanillaBlocks::WARPED_NYLIUM = nullptr;
 Block* VanillaBlocks::SHROOMLIGHT = nullptr;
@@ -2136,6 +2142,42 @@ void VanillaBlocks::registerNetherExtensionBlocks() {
     // 诡异菌柄
     WARPED_STEM = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:warped_stem"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 去皮绯红菌柄
+    // 参考: createRotatableNetherBlock(MaterialColor.CRIMSON_STEM)
+    STRIPPED_CRIMSON_STEM = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_crimson_stem"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 去皮诡异菌柄
+    // 参考: createRotatableNetherBlock(MaterialColor.WARPED_STEM)
+    STRIPPED_WARPED_STEM = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_warped_stem"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 绯红菌核
+    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD, MaterialColor.CRIMSON_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
+    CRIMSON_HYPHAE = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:crimson_hyphae"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 诡异菌核
+    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD, MaterialColor.WARPED_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
+    WARPED_HYPHAE = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:warped_hyphae"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 去皮绯红菌核
+    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD, MaterialColor.CRIMSON_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
+    STRIPPED_CRIMSON_HYPHAE = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_crimson_hyphae"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
+
+    // 去皮诡异菌核
+    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD, MaterialColor.WARPED_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
+    STRIPPED_WARPED_HYPHAE = &registry.registerBlock<RotatedPillarBlock>(
+        ResourceLocation("minecraft:stripped_warped_hyphae"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 绯红菌岩
