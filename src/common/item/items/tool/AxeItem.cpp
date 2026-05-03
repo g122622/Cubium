@@ -1,9 +1,19 @@
 #include "AxeItem.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../item/context/ItemUseContext.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
+
+// 静态成员初始化
+std::unordered_map<const Block*, const Block*> AxeItem::s_strippingMap;
 
 AxeItem::AxeItem(const tier::IItemTier& tier,
                  f32 attackDamage,
@@ -15,6 +25,54 @@ AxeItem::AxeItem(const tier::IItemTier& tier,
                initializeEffectiveBlocks(),
                ToolType::Axe,
                properties) {
+    // 初始化去皮映射（仅第一次构造时）
+    if (s_strippingMap.empty()) {
+        s_strippingMap = initializeStrippingMap();
+    }
+}
+
+ActionResultType AxeItem::onItemUse(ItemUseContext& context) {
+    // MC 1.16.5: 斧头去皮逻辑
+    IWorld& world = context.world();
+    const BlockPos& pos = context.blockPos();
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // 检查是否可去皮
+    const Block* strippedBlock = getStrippedBlock(&state->owner());
+    if (strippedBlock == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // 获取新方块状态
+    const BlockState& newState = strippedBlock->getDefaultState();
+
+    // 播放去皮音效
+    if (context.getPlayer() != nullptr) {
+        context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
+    }
+
+    // 设置新方块状态（MC 1.16.5 flags: 11 = 同步到客户端+更新邻居）
+    world.setBlockState(pos, &newState, 11);
+
+    // 消耗耐久度
+    ItemStack& stack = context.getItemStackMut();
+    stack.attemptDamageItem(1);
+
+    return ActionResultType::Success;
+}
+
+const Block* AxeItem::getStrippedBlock(const Block* original) {
+    if (original == nullptr) {
+        return nullptr;
+    }
+    auto it = s_strippingMap.find(original);
+    if (it != s_strippingMap.end()) {
+        return it->second;
+    }
+    return nullptr;
 }
 
 f32 AxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
@@ -99,42 +157,84 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks() {
 
     // 木门
     if (VanillaBlocks::OAK_DOOR) blocks.insert(VanillaBlocks::OAK_DOOR);
-    // TODO: 其他木头门
 
     // 木栅栏门
     if (VanillaBlocks::OAK_FENCE_GATE) blocks.insert(VanillaBlocks::OAK_FENCE_GATE);
-    // TODO: 其他木头栅栏门
 
     // 木栅栏
     if (VanillaBlocks::OAK_FENCE) blocks.insert(VanillaBlocks::OAK_FENCE);
-    // TODO: 其他木头栅栏
 
     // 木楼梯
     if (VanillaBlocks::OAK_STAIRS) blocks.insert(VanillaBlocks::OAK_STAIRS);
-    // TODO: 其他木头楼梯
 
     // 木台阶
     if (VanillaBlocks::OAK_SLAB) blocks.insert(VanillaBlocks::OAK_SLAB);
-    // TODO: 其他木头台阶
 
     // 木按钮
     if (VanillaBlocks::OAK_BUTTON) blocks.insert(VanillaBlocks::OAK_BUTTON);
-    // TODO: 其他木头按钮
 
     // 木压力板
     if (VanillaBlocks::OAK_PRESSURE_PLATE) blocks.insert(VanillaBlocks::OAK_PRESSURE_PLATE);
-    // TODO: 其他木头压力板
 
     // 木活板门
     if (VanillaBlocks::OAK_TRAPDOOR) blocks.insert(VanillaBlocks::OAK_TRAPDOOR);
-    // TODO: 其他木头活板门
 
     // 下界木质方块
     if (VanillaBlocks::CRIMSON_STEM) blocks.insert(VanillaBlocks::CRIMSON_STEM);
     if (VanillaBlocks::WARPED_STEM) blocks.insert(VanillaBlocks::WARPED_STEM);
-    // TODO: 绯红/诡异菌核、去皮菌柄、绯红/诡异木板（尚未注册）
 
     return blocks;
+}
+
+std::unordered_map<const Block*, const Block*> AxeItem::initializeStrippingMap() {
+    std::unordered_map<const Block*, const Block*> map;
+
+    // MC 1.16.5: 原木去皮映射
+    // 橡木
+    if (VanillaBlocks::OAK_LOG && VanillaBlocks::STRIPPED_OAK_LOG)
+        map[VanillaBlocks::OAK_LOG] = VanillaBlocks::STRIPPED_OAK_LOG;
+    if (VanillaBlocks::OAK_WOOD && VanillaBlocks::STRIPPED_OAK_WOOD)
+        map[VanillaBlocks::OAK_WOOD] = VanillaBlocks::STRIPPED_OAK_WOOD;
+
+    // 云杉木
+    if (VanillaBlocks::SPRUCE_LOG && VanillaBlocks::STRIPPED_SPRUCE_LOG)
+        map[VanillaBlocks::SPRUCE_LOG] = VanillaBlocks::STRIPPED_SPRUCE_LOG;
+    if (VanillaBlocks::SPRUCE_WOOD && VanillaBlocks::STRIPPED_SPRUCE_WOOD)
+        map[VanillaBlocks::SPRUCE_WOOD] = VanillaBlocks::STRIPPED_SPRUCE_WOOD;
+
+    // 白桦木
+    if (VanillaBlocks::BIRCH_LOG && VanillaBlocks::STRIPPED_BIRCH_LOG)
+        map[VanillaBlocks::BIRCH_LOG] = VanillaBlocks::STRIPPED_BIRCH_LOG;
+    if (VanillaBlocks::BIRCH_WOOD && VanillaBlocks::STRIPPED_BIRCH_WOOD)
+        map[VanillaBlocks::BIRCH_WOOD] = VanillaBlocks::STRIPPED_BIRCH_WOOD;
+
+    // 丛林木
+    if (VanillaBlocks::JUNGLE_LOG && VanillaBlocks::STRIPPED_JUNGLE_LOG)
+        map[VanillaBlocks::JUNGLE_LOG] = VanillaBlocks::STRIPPED_JUNGLE_LOG;
+    if (VanillaBlocks::JUNGLE_WOOD && VanillaBlocks::STRIPPED_JUNGLE_WOOD)
+        map[VanillaBlocks::JUNGLE_WOOD] = VanillaBlocks::STRIPPED_JUNGLE_WOOD;
+
+    // 金合欢木
+    if (VanillaBlocks::ACACIA_LOG && VanillaBlocks::STRIPPED_ACACIA_LOG)
+        map[VanillaBlocks::ACACIA_LOG] = VanillaBlocks::STRIPPED_ACACIA_LOG;
+    if (VanillaBlocks::ACACIA_WOOD && VanillaBlocks::STRIPPED_ACACIA_WOOD)
+        map[VanillaBlocks::ACACIA_WOOD] = VanillaBlocks::STRIPPED_ACACIA_WOOD;
+
+    // 深色橡木
+    if (VanillaBlocks::DARK_OAK_LOG && VanillaBlocks::STRIPPED_DARK_OAK_LOG)
+        map[VanillaBlocks::DARK_OAK_LOG] = VanillaBlocks::STRIPPED_DARK_OAK_LOG;
+    if (VanillaBlocks::DARK_OAK_WOOD && VanillaBlocks::STRIPPED_DARK_OAK_WOOD)
+        map[VanillaBlocks::DARK_OAK_WOOD] = VanillaBlocks::STRIPPED_DARK_OAK_WOOD;
+
+    // 绯红菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
+    // if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM)
+    //     map[VanillaBlocks::CRIMSON_STEM] = VanillaBlocks::STRIPPED_CRIMSON_STEM;
+
+    // 诡异菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
+    // if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM)
+    //     map[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
+
+    return map;
 }
 
 } // namespace tool

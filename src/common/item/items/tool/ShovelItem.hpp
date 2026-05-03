@@ -41,6 +41,19 @@ public:
     ~ShovelItem() override = default;
 
     /**
+     * @brief 方块交互（土径创建）
+     *
+     * MC 1.16.5: 右键草地可创建土径
+     * - 播放音效
+     * - 消耗耐久
+     * - 转换方块
+     *
+     * @param context 使用上下文
+     * @return 动作结果类型
+     */
+    [[nodiscard]] ActionResultType onItemUse(ItemUseContext& context) override;
+
+    /**
      * @brief 检查是否能采集方块
      *
      * 锹对雪类方块有特殊处理。
@@ -62,6 +75,13 @@ public:
     [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
                                         const BlockState& state) const override;
 
+    /**
+     * @brief 获取土径转换后的方块
+     * @param original 原始方块
+     * @return 转换后的方块，如果不可转换则返回 nullptr
+     */
+    [[nodiscard]] static const Block* getPathBlock(const Block* original);
+
 protected:
     /**
      * @brief 检查材质是否有效
@@ -79,6 +99,15 @@ private:
      * @return 有效方块集合
      */
     static std::unordered_set<const Block*> initializeEffectiveBlocks();
+
+    /**
+     * @brief 初始化土径映射表
+     * @return 草方块 -> 土径 映射
+     */
+    static std::unordered_map<const Block*, const Block*> initializePathMap();
+
+    /// 草方块 -> 土径 的映射
+    static std::unordered_map<const Block*, const Block*> s_pathMap;
 };
 
 } // namespace tool

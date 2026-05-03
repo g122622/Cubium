@@ -1,10 +1,20 @@
 #include "ShovelItem.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/IWorld.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../item/context/ItemUseContext.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
+#include "../../../util/Direction.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
+
+// 静态成员初始化
+std::unordered_map<const Block*, const Block*> ShovelItem::s_pathMap;
 
 ShovelItem::ShovelItem(const tier::IItemTier& tier,
                        f32 attackDamage,
@@ -16,6 +26,67 @@ ShovelItem::ShovelItem(const tier::IItemTier& tier,
                initializeEffectiveBlocks(),
                ToolType::Shovel,
                properties) {
+    // 初始化土径映射（仅第一次构造时）
+    if (s_pathMap.empty()) {
+        s_pathMap = initializePathMap();
+    }
+}
+
+ActionResultType ShovelItem::onItemUse(ItemUseContext& context) {
+    // MC 1.16.5: 锹创建土径逻辑
+    IWorld& world = context.world();
+    const BlockPos& pos = context.blockPos();
+
+    // 检查点击的面是否为底面（MC 1.16.5: 不能从下方创建土径）
+    if (context.getClickedFace() == Direction::Down) {
+        return ActionResultType::Pass;
+    }
+
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // 检查是否可以转换为土径
+    const Block* pathBlock = getPathBlock(&state->owner());
+    if (pathBlock == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // MC 1.16.5: 上方必须是空气
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    if (aboveState != nullptr && !aboveState->isAir()) {
+        return ActionResultType::Pass;
+    }
+
+    // 获取新方块状态
+    const BlockState& newState = pathBlock->getDefaultState();
+
+    // 播放创建土径音效
+    if (context.getPlayer() != nullptr) {
+        context.getPlayer()->playSound(SoundEvents::ITEM_SHOVEL_FLATTEN, 1.0f, 1.0f);
+    }
+
+    // 设置新方块状态
+    world.setBlockState(pos, &newState, 11);
+
+    // 消耗耐久度
+    ItemStack& stack = context.getItemStackMut();
+    stack.attemptDamageItem(1);
+
+    return ActionResultType::Success;
+}
+
+const Block* ShovelItem::getPathBlock(const Block* original) {
+    if (original == nullptr) {
+        return nullptr;
+    }
+    auto it = s_pathMap.find(original);
+    if (it != s_pathMap.end()) {
+        return it->second;
+    }
+    return nullptr;
 }
 
 bool ShovelItem::canHarvestBlock(const BlockState& state) const {
@@ -25,7 +96,6 @@ bool ShovelItem::canHarvestBlock(const BlockState& state) const {
     }
 
     // MC 1.16.5: 锹对雪层(SNOW)和雪块(SNOW_BLOCK)总是可以采集
-    // 注意：需要检查具体方块而非仅材质，因为还有其他SNOW材质的方块可能需要特殊处理
     const Block& block = state.owner();
     if (VanillaBlocks::SNOW && &block == VanillaBlocks::SNOW) {
         return true;
@@ -104,6 +174,17 @@ std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::BLACK_CONCRETE_POWDER) blocks.insert(VanillaBlocks::BLACK_CONCRETE_POWDER);
 
     return blocks;
+}
+
+std::unordered_map<const Block*, const Block*> ShovelItem::initializePathMap() {
+    std::unordered_map<const Block*, const Block*> map;
+
+    // MC 1.16.5: 草方块 -> 土径
+    if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::GRASS_PATH) {
+        map[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::GRASS_PATH;
+    }
+
+    return map;
 }
 
 } // namespace tool

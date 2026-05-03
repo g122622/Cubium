@@ -41,6 +41,19 @@ public:
     ~HoeItem() override = default;
 
     /**
+     * @brief 方块交互（耕地创建）
+     *
+     * MC 1.16.5: 右键泥土/草地可创建耕地
+     * - 播放音效
+     * - 消耗耐久
+     * - 转换方块
+     *
+     * @param context 使用上下文
+     * @return 动作结果类型
+     */
+    [[nodiscard]] ActionResultType onItemUse(ItemUseContext& context) override;
+
+    /**
      * @brief 获取挖掘速度
      *
      * 对特定方块返回效率值。
@@ -51,6 +64,13 @@ public:
      */
     [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
                                         const BlockState& state) const override;
+
+    /**
+     * @brief 获取耕地转换后的方块
+     * @param original 原始方块
+     * @return 转换后的方块，如果不可转换则返回 nullptr
+     */
+    [[nodiscard]] static const Block* getTilledBlock(const Block* original);
 
 protected:
     /**
@@ -69,6 +89,15 @@ private:
      * @return 有效方块集合
      */
     static std::unordered_set<const Block*> initializeEffectiveBlocks();
+
+    /**
+     * @brief 初始化耕地映射表
+     * @return 泥土/草地 -> 耕地 映射
+     */
+    static std::unordered_map<const Block*, const Block*> initializeTillingMap();
+
+    /// 泥土/草地 -> 耕地 的映射
+    static std::unordered_map<const Block*, const Block*> s_tillingMap;
 };
 
 } // namespace tool

@@ -41,6 +41,19 @@ public:
     ~AxeItem() override = default;
 
     /**
+     * @brief 方块交互（去皮功能）
+     *
+     * MC 1.16.5: 右键原木/木头可去皮
+     * - 播放音效
+     * - 消耗耐久
+     * - 转换方块
+     *
+     * @param context 使用上下文
+     * @return 动作结果类型
+     */
+    [[nodiscard]] ActionResultType onItemUse(ItemUseContext& context) override;
+
+    /**
      * @brief 获取挖掘速度
      *
      * 对 WOOD, NETHER_WOOD, PLANT, GOURD, BAMBOO 材质返回效率值。
@@ -51,6 +64,13 @@ public:
      */
     [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack,
                                         const BlockState& state) const override;
+
+    /**
+     * @brief 获取去皮后的方块
+     * @param original 原始方块
+     * @return 去皮后的方块，如果不可去皮则返回 nullptr
+     */
+    [[nodiscard]] static const Block* getStrippedBlock(const Block* original);
 
 protected:
     /**
@@ -70,8 +90,14 @@ private:
      */
     static std::unordered_set<const Block*> initializeEffectiveBlocks();
 
-    // 原木 -> 去皮原木 的映射（未来实现去皮功能）
-    // static std::unordered_map<const Block*, const Block*> s_strippingMap;
+    /**
+     * @brief 初始化去皮映射表
+     * @return 原木 -> 去皮原木 映射
+     */
+    static std::unordered_map<const Block*, const Block*> initializeStrippingMap();
+
+    /// 原木 -> 去皮原木 的映射
+    static std::unordered_map<const Block*, const Block*> s_strippingMap;
 };
 
 } // namespace tool
