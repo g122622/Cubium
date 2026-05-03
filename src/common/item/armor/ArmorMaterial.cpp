@@ -61,12 +61,13 @@ i32 ChainArmorMaterial::getDurability(ArmorSlot slot) const {
 }
 
 i32 ChainArmorMaterial::getDefense(ArmorSlot slot) const {
-    // MC 1.16.5: Head=1, Chest=4, Legs=5, Feet=1
+    // MC 1.16.5: new int[]{1, 4, 5, 2} 按 FEET, LEGS, CHEST, HEAD 顺序
+    // 即 Feet=1, Legs=4, Chest=5, Head=2
     switch (slot) {
-        case ArmorSlot::Head:  return 1;
-        case ArmorSlot::Chest: return 4;
-        case ArmorSlot::Legs:  return 5;
-        case ArmorSlot::Feet:  return 1;
+        case ArmorSlot::Head:  return 2;  // 头盔
+        case ArmorSlot::Chest: return 5;  // 胸甲
+        case ArmorSlot::Legs:  return 4;  // 护腿
+        case ArmorSlot::Feet:  return 1;  // 靴子
         default: return 0;
     }
 }
@@ -116,12 +117,13 @@ i32 GoldArmorMaterial::getDurability(ArmorSlot slot) const {
 }
 
 i32 GoldArmorMaterial::getDefense(ArmorSlot slot) const {
-    // MC 1.16.5: Head=2, Chest=5, Legs=3, Feet=2
+    // MC 1.16.5: new int[]{1, 3, 5, 2} 按 FEET, LEGS, CHEST, HEAD 顺序
+    // 即 Feet=1, Legs=3, Chest=5, Head=2
     switch (slot) {
-        case ArmorSlot::Head:  return 2;
-        case ArmorSlot::Chest: return 5;
-        case ArmorSlot::Legs:  return 3;
-        case ArmorSlot::Feet:  return 2;
+        case ArmorSlot::Head:  return 2;  // 头盔
+        case ArmorSlot::Chest: return 5;  // 胸甲
+        case ArmorSlot::Legs:  return 3;  // 护腿
+        case ArmorSlot::Feet:  return 1;  // 靴子
         default: return 0;
     }
 }

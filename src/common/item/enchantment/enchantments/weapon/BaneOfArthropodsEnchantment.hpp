@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DamageEnchantment.hpp"
+#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {
@@ -39,17 +40,18 @@ public:
     /**
      * @brief 获取缓慢效果的持续时间（tick）
      *
-     * MC 1.16.5 公式: duration = 20 + random(0, 10*level - 1)
+     * MC 1.16.5 公式: duration = 20 + random.nextInt(10 * level)
      * - 基础时间: 20 tick (1秒)
      * - 额外随机: 0 到 (10*level - 1) tick
      *
      * @param level 附魔等级
+     * @param random 随机数生成器
      * @return 持续时间（tick）
      */
-    [[nodiscard]] static i32 getSlownessDuration(i32 level) {
-        // 20 + random(0, 10*level - 1)
+    [[nodiscard]] static i32 getSlownessDuration(i32 level, math::Random& random) {
+        // 20 + random.nextInt(10 * level)
         // Level I: 20-29 tick, Level V: 20-69 tick
-        return 20 + (rand() % (10 * level));
+        return 20 + random.nextInt(10 * level);
     }
 
     /**

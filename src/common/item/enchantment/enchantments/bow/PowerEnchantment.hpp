@@ -54,16 +54,30 @@ public:
     }
 
     /**
-     * @brief 获取伤害加成
+     * @brief 获取箭矢伤害加成
+     * @param level 附魔等级 (0 表示无附魔)
+     * @return 伤害加成值 (0.0 = 无加成)
+     *
+     * MC 1.16.5 公式: 0.25 * (level + 1)
+     * - I: 0.5 (箭矢伤害 +50%)
+     * - II: 0.75 (箭矢伤害 +75%)
+     * - III: 1.0 (箭矢伤害 +100%)
+     * - IV: 1.25 (箭矢伤害 +125%)
+     * - V: 1.5 (箭矢伤害 +150%)
+     */
+    [[nodiscard]] static f32 getArrowDamageBonus(i32 level) {
+        if (level <= 0) return 0.0f;
+        return 0.25f * static_cast<f32>(level + 1);
+    }
+
+    /**
+     * @brief 获取伤害乘数 (兼容旧API)
      * @param level 附魔等级
      * @return 伤害乘数
      */
     [[nodiscard]] static f32 getDamageMultiplier(i32 level) {
-        // I: +25%, II: +50%, III: +75%, IV: +100%, V: +150%
-        if (level == 5) {
-            return 2.5f;  // +150%
-        }
-        return 1.0f + static_cast<f32>(level) * 0.25f;
+        if (level <= 0) return 1.0f;
+        return 1.0f + getArrowDamageBonus(level);
     }
 };
 

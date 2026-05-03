@@ -523,6 +523,7 @@ void Items::registerTools() {
 
     // ========================================================================
     // 钻石工具
+    // MC 1.16.5: 锄基础伤害-3，速度0.0
     // ========================================================================
     DIAMOND_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:diamond_pickaxe"),
@@ -551,8 +552,8 @@ void Items::registerTools() {
     DIAMOND_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:diamond_hoe"),
         item::tier::ItemTiers::DIAMOND(),  // tier
-        0,      // attackDamage
-        -2.0f,  // attackSpeed
+        -3,     // attackDamage (MC 1.16.5: -3)
+        0.0f,   // attackSpeed (MC 1.16.5: 0.0)
         ItemProperties().rarity(ItemRarity::Common)
     );
 
@@ -566,6 +567,7 @@ void Items::registerTools() {
 
     // ========================================================================
     // 铁工具
+    // MC 1.16.5: 斧基础伤害6.0，攻击速度-3.1；锄基础伤害-2，速度-1.0
     // ========================================================================
     IRON_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:iron_pickaxe"),
@@ -578,8 +580,8 @@ void Items::registerTools() {
     IRON_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:iron_axe"),
         item::tier::ItemTiers::IRON(),  // tier
-        4.0f,   // attackDamage
-        -3.0f,  // attackSpeed
+        6.0f,   // attackDamage (MC 1.16.5: 6.0)
+        -3.1f,  // attackSpeed (MC 1.16.5: -3.1)
         ItemProperties()
     );
 
@@ -594,8 +596,8 @@ void Items::registerTools() {
     IRON_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:iron_hoe"),
         item::tier::ItemTiers::IRON(),  // tier
-        0,      // attackDamage
-        -2.0f,  // attackSpeed
+        -2,     // attackDamage (MC 1.16.5: -2)
+        -1.0f,  // attackSpeed (MC 1.16.5: -1.0)
         ItemProperties()
     );
 
@@ -609,6 +611,7 @@ void Items::registerTools() {
 
     // ========================================================================
     // 石工具
+    // MC 1.16.5: 斧基础伤害7.0，攻击速度-3.2；锄基础伤害-1，速度-2.0
     // ========================================================================
     STONE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:stone_pickaxe"),
@@ -621,8 +624,8 @@ void Items::registerTools() {
     STONE_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:stone_axe"),
         item::tier::ItemTiers::STONE(),  // tier
-        4.0f,   // attackDamage
-        -3.0f,  // attackSpeed
+        7.0f,   // attackDamage (MC 1.16.5: 7.0)
+        -3.2f,  // attackSpeed (MC 1.16.5: -3.2)
         ItemProperties()
     );
 
@@ -637,7 +640,7 @@ void Items::registerTools() {
     STONE_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:stone_hoe"),
         item::tier::ItemTiers::STONE(),  // tier
-        0,      // attackDamage
+        -1,     // attackDamage (MC 1.16.5: -1)
         -2.0f,  // attackSpeed
         ItemProperties()
     );
@@ -652,6 +655,7 @@ void Items::registerTools() {
 
     // ========================================================================
     // 木工具
+    // MC 1.16.5: 斧基础伤害6.0，攻击速度-3.2；锹基础伤害1.5；锄基础伤害0，速度-3.0
     // ========================================================================
     WOODEN_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:wooden_pickaxe"),
@@ -664,15 +668,15 @@ void Items::registerTools() {
     WOODEN_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:wooden_axe"),
         item::tier::ItemTiers::WOOD(),  // tier
-        3.0f,   // attackDamage
-        -3.0f,  // attackSpeed
+        6.0f,   // attackDamage (MC 1.16.5: 6.0)
+        -3.2f,  // attackSpeed (MC 1.16.5: -3.2)
         ItemProperties()
     );
 
     WOODEN_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(
         ResourceLocation("minecraft:wooden_shovel"),
         item::tier::ItemTiers::WOOD(),  // tier
-        1.0f,   // attackDamage
+        1.5f,   // attackDamage (MC 1.16.5: 1.5)
         -3.0f,  // attackSpeed
         ItemProperties()
     );
@@ -681,7 +685,7 @@ void Items::registerTools() {
         ResourceLocation("minecraft:wooden_hoe"),
         item::tier::ItemTiers::WOOD(),  // tier
         0,      // attackDamage
-        -2.0f,  // attackSpeed
+        -3.0f,  // attackSpeed (MC 1.16.5: -3.0)
         ItemProperties()
     );
 
@@ -695,6 +699,7 @@ void Items::registerTools() {
 
     // ========================================================================
     // 金工具
+    // MC 1.16.5: 斧基础伤害6.0；锹基础伤害1.5；锄基础伤害0，速度-3.0
     // ========================================================================
     GOLDEN_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:golden_pickaxe"),
@@ -707,7 +712,7 @@ void Items::registerTools() {
     GOLDEN_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:golden_axe"),
         item::tier::ItemTiers::GOLD(),  // tier
-        3.0f,   // attackDamage
+        6.0f,   // attackDamage (MC 1.16.5: 6.0)
         -3.0f,  // attackSpeed
         ItemProperties()
     );
@@ -715,7 +720,7 @@ void Items::registerTools() {
     GOLDEN_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(
         ResourceLocation("minecraft:golden_shovel"),
         item::tier::ItemTiers::GOLD(),  // tier
-        1.0f,   // attackDamage
+        1.5f,   // attackDamage (MC 1.16.5: 1.5)
         -3.0f,  // attackSpeed
         ItemProperties()
     );
@@ -724,7 +729,7 @@ void Items::registerTools() {
         ResourceLocation("minecraft:golden_hoe"),
         item::tier::ItemTiers::GOLD(),  // tier
         0,      // attackDamage
-        -2.0f,  // attackSpeed
+        -3.0f,  // attackSpeed (MC 1.16.5: -3.0)
         ItemProperties()
     );
 
@@ -738,6 +743,7 @@ void Items::registerTools() {
 
     // ========================================================================
     // 下界合金工具
+    // MC 1.16.5: 锄基础伤害-4，速度0.0
     // ========================================================================
     NETHERITE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:netherite_pickaxe"),
@@ -766,8 +772,8 @@ void Items::registerTools() {
     NETHERITE_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:netherite_hoe"),
         item::tier::ItemTiers::NETHERITE(),  // tier
-        0,      // attackDamage
-        -2.0f,  // attackSpeed
+        -4,     // attackDamage (MC 1.16.5: -4)
+        0.0f,   // attackSpeed (MC 1.16.5: 0.0)
         ItemProperties().rarity(ItemRarity::Rare)
     );
 

@@ -1,6 +1,8 @@
 #include "ItemTiers.hpp"
 #include "../crafting/Ingredient.hpp"
+#include "../core/ItemRegistry.hpp"
 #include "../Items.hpp"
+#include "../../resource/ResourceLocation.hpp"
 
 namespace mc {
 namespace item {
@@ -82,20 +84,36 @@ void ItemTiers::initialize() {
         woodRepair
     );
 
-    // 石制工具 - 使用圆石修复
-    // TODO: MC 1.16.5 使用 stone_tool_materials 标签 (COBBLESTONE + BLACKSTONE)
-    // 需要在方块物品注册完成后使用 ItemTag 系统
-    static crafting::Ingredient stoneRepair = crafting::Ingredient::fromItems({
-        Items::COBBLESTONE
-    });
-    s_stone = std::make_unique<ItemTierImpl>(
-        131,    // maxUses
-        4.0f,   // efficiency
-        1.0f,   // attackDamage
-        1,      // harvestLevel
-        5,      // enchantability
-        stoneRepair
-    );
+    // 石制工具 - 使用圆石或黑石修复
+    // MC 1.16.5 使用 stone_tool_materials 标签 (COBBLESTONE + BLACKSTONE)
+    // 黑石在 BlockItemRegistry 中注册，通过 ItemRegistry 查找
+    Item* blackstoneItem = ItemRegistry::instance().getItem(ResourceLocation("minecraft:blackstone"));
+    if (blackstoneItem) {
+        static crafting::Ingredient stoneRepair = crafting::Ingredient::fromItems({
+            Items::COBBLESTONE, blackstoneItem
+        });
+        s_stone = std::make_unique<ItemTierImpl>(
+            131,    // maxUses
+            4.0f,   // efficiency
+            1.0f,   // attackDamage
+            1,      // harvestLevel
+            5,      // enchantability
+            stoneRepair
+        );
+    } else {
+        // 回退：仅使用圆石
+        static crafting::Ingredient stoneRepair = crafting::Ingredient::fromItems({
+            Items::COBBLESTONE
+        });
+        s_stone = std::make_unique<ItemTierImpl>(
+            131,    // maxUses
+            4.0f,   // efficiency
+            1.0f,   // attackDamage
+            1,      // harvestLevel
+            5,      // enchantability
+            stoneRepair
+        );
+    }
 
     // 铁制工具 - 使用铁锭修复
     static crafting::Ingredient ironRepair = crafting::Ingredient::fromItems({
