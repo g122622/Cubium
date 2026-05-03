@@ -452,6 +452,32 @@ auto blackstoneProcessor = std::make_unique<BlackstoneReplacementProcessor>();
 
 **MC 1.16.5 参考**: `BlackStoneReplacementProcessor.java`
 
+## 实现限制
+
+以下功能需要其他子系统支持，当前为已知限制：
+
+### 1. BlockAgeProcessor 楼梯/台阶苔藓化
+
+当前 `BlockAgeProcessor` 对石砖楼梯、石砖台阶的苔藓化需要以下基础设施：
+- `VanillaBlocks::MOSSY_STONE_BRICK_STAIRS`（苔藓石砖楼梯）
+- `VanillaBlocks::MOSSY_STONE_BRICK_SLAB`（苔藓石砖台阶）
+- `VanillaBlocks::MOSSY_STONE_BRICK_WALL`（苔藓石砖墙）
+- `BlockTags::STAIRS`、`BlockTags::SLABS`、`BlockTags::WALLS` 标签
+
+### 2. 实体 NBT 加载
+
+`Template::placeInWorld` 中实体创建仅设置位置和朝向，不加载模板中的实体 NBT 数据（如 CustomName、Equipment 等）。
+完整实现需要：
+- `Entity::loadFromNBT(nbt::CompoundTag&)` 方法
+- 实体数据参数的 NBT 反序列化
+
+### 3. TileEntity NBT 加载
+
+方块实体 NBT 更新仅设置位置坐标（x、y、z），不加载模板中的 NBT 数据。
+完整实现需要：
+- `BlockEntity::loadFromNBT(nbt::CompoundTag&)` 方法（当前使用 JSON 格式）
+- 战利品表种子设置（`LockableLootTileEntity`）
+
 ## 容易踩的坑
 
 ### 1. 方块状态ID
