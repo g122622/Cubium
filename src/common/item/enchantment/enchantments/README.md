@@ -6,10 +6,27 @@
 
 ```
 enchantments/
-├── FortuneEnchantment.hpp   # 时运附魔头文件
-├── FortuneEnchantment.cpp   # 时运附魔实现
-├── SilkTouchEnchantment.hpp # 精准采集附魔头文件
-└── SilkTouchEnchantment.cpp # 精准采集附魔实现
+├── FortuneEnchantment.hpp      # 时运附魔
+├── FortuneEnchantment.cpp
+├── SilkTouchEnchantment.hpp    # 精准采集附魔
+├── SilkTouchEnchantment.cpp
+├── AllEnchantments.hpp         # 所有附魔注册
+├── AllEnchantments.cpp
+├── bow/                        # 弓附魔
+│   ├── PowerEnchantment.hpp    # 力量附魔
+│   ├── FlameEnchantment.hpp    # 火焰附魔
+│   ├── InfinityEnchantment.hpp # 无限附魔
+│   └── PunchEnchantment.hpp    # 冲击附魔
+├── crossbow/                   # 弩附魔
+├── fishing/                    # 钓鱼附魔
+├── protection/                 # 保护附魔
+├── special/                    # 特殊附魔
+├── tool/                       # 工具附魔
+├── trident/                    # 三叉戟附魔
+└── weapon/                     # 武器附魔
+    ├── SharpnessEnchantment.hpp    # 锋利附魔
+    ├── SmiteEnchantment.hpp        # 亡灵杀手附魔
+    └── BaneOfArthropodsEnchantment.hpp # 节肢杀手附魔
 ```
 
 ## 模块概述

@@ -95,7 +95,7 @@ src/common/item/tier/
 
 **修复材料详解**:
 - **WOOD**: 所有六种木板（橡木、云杉、白桦、丛林、金合欢、深色橡木）
-- **STONE**: 圆石
+- **STONE**: 圆石和黑石（MC 1.16.5 使用 `stone_tool_materials` 标签）
 - **IRON**: 铁锭
 - **DIAMOND**: 钻石
 - **GOLD**: 金锭
