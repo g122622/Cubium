@@ -348,15 +348,8 @@ protected:
         VanillaBlocks::initialize();
         Items::initialize();
 
-        // 创建工具实例以初始化静态映射
-        // AxeItem、ShovelItem、HoeItem 的静态映射在构造函数中初始化
-        // 通过访问 Items 中的工具实例来确保映射已初始化
-        auto* axe = Items::DIAMOND_AXE;
-        auto* shovel = Items::DIAMOND_SHOVEL;
-        auto* hoe = Items::DIAMOND_HOE;
-        (void)axe;
-        (void)shovel;
-        (void)hoe;
+        // 注意：使用"construct on first use"模式，静态映射表在第一次调用静态方法时自动初始化
+        // 无需在此创建工具实例
     }
 };
 

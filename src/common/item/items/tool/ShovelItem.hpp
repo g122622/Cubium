@@ -101,13 +101,13 @@ private:
     static std::unordered_set<const Block*> initializeEffectiveBlocks();
 
     /**
-     * @brief 初始化土径映射表
-     * @return 草方块 -> 土径 映射
+     * @brief 获取土径映射表（延迟初始化）
+     *
+     * 使用"construct on first use"模式，确保静态方法调用前映射表已初始化
+     *
+     * @return 草方块 -> 土径 映射的引用
      */
-    static std::unordered_map<const Block*, const Block*> initializePathMap();
-
-    /// 草方块 -> 土径 的映射
-    static std::unordered_map<const Block*, const Block*> s_pathMap;
+    static std::unordered_map<const Block*, const Block*>& getPathMap();
 };
 
 } // namespace tool

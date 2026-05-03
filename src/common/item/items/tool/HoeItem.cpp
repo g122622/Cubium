@@ -12,9 +12,6 @@ namespace mc {
 namespace item {
 namespace tool {
 
-// 静态成员初始化
-std::unordered_map<const Block*, const Block*> HoeItem::s_tillingMap;
-
 HoeItem::HoeItem(const tier::IItemTier& tier,
                  i32 attackDamage,
                  f32 attackSpeed,
@@ -25,10 +22,7 @@ HoeItem::HoeItem(const tier::IItemTier& tier,
                initializeEffectiveBlocks(),
                ToolType::Hoe,
                properties) {
-    // 初始化耕地映射（仅第一次构造时）
-    if (s_tillingMap.empty()) {
-        s_tillingMap = initializeTillingMap();
-    }
+    // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
 ActionResultType HoeItem::onItemUse(ItemUseContext& context) {
@@ -81,8 +75,9 @@ const Block* HoeItem::getTilledBlock(const Block* original) {
     if (original == nullptr) {
         return nullptr;
     }
-    auto it = s_tillingMap.find(original);
-    if (it != s_tillingMap.end()) {
+    auto& map = getTillingMap();
+    auto it = map.find(original);
+    if (it != map.end()) {
         return it->second;
     }
     return nullptr;
@@ -140,25 +135,29 @@ std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*> HoeItem::initializeTillingMap() {
-    std::unordered_map<const Block*, const Block*> map;
+std::unordered_map<const Block*, const Block*>& HoeItem::getTillingMap() {
+    // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
+    static std::unordered_map<const Block*, const Block*> map = []() {
+        std::unordered_map<const Block*, const Block*> m;
 
-    // MC 1.16.5: 泥土/草地 -> 耕地
-    if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::FARMLAND) {
-        map[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::FARMLAND;
-    }
-    if (VanillaBlocks::GRASS_PATH && VanillaBlocks::FARMLAND) {
-        map[VanillaBlocks::GRASS_PATH] = VanillaBlocks::FARMLAND;
-    }
-    if (VanillaBlocks::DIRT && VanillaBlocks::FARMLAND) {
-        map[VanillaBlocks::DIRT] = VanillaBlocks::FARMLAND;
-    }
-    // 注意：MC 1.16.5 中砂土(COARSE_DIRT)锄后变成泥土，不是耕地
-    // 需要再锄一次才能变成耕地
-    if (VanillaBlocks::COARSE_DIRT && VanillaBlocks::DIRT) {
-        map[VanillaBlocks::COARSE_DIRT] = VanillaBlocks::DIRT;
-    }
+        // MC 1.16.5: 泥土/草地 -> 耕地
+        if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::FARMLAND) {
+            m[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::FARMLAND;
+        }
+        if (VanillaBlocks::GRASS_PATH && VanillaBlocks::FARMLAND) {
+            m[VanillaBlocks::GRASS_PATH] = VanillaBlocks::FARMLAND;
+        }
+        if (VanillaBlocks::DIRT && VanillaBlocks::FARMLAND) {
+            m[VanillaBlocks::DIRT] = VanillaBlocks::FARMLAND;
+        }
+        // 注意：MC 1.16.5 中砂土(COARSE_DIRT)锄后变成泥土，不是耕地
+        // 需要再锄一次才能变成耕地
+        if (VanillaBlocks::COARSE_DIRT && VanillaBlocks::DIRT) {
+            m[VanillaBlocks::COARSE_DIRT] = VanillaBlocks::DIRT;
+        }
 
+        return m;
+    }();
     return map;
 }
 

@@ -12,9 +12,6 @@ namespace mc {
 namespace item {
 namespace tool {
 
-// 静态成员初始化
-std::unordered_map<const Block*, const Block*> AxeItem::s_strippingMap;
-
 AxeItem::AxeItem(const tier::IItemTier& tier,
                  f32 attackDamage,
                  f32 attackSpeed,
@@ -25,10 +22,7 @@ AxeItem::AxeItem(const tier::IItemTier& tier,
                initializeEffectiveBlocks(),
                ToolType::Axe,
                properties) {
-    // 初始化去皮映射（仅第一次构造时）
-    if (s_strippingMap.empty()) {
-        s_strippingMap = initializeStrippingMap();
-    }
+    // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
 ActionResultType AxeItem::onItemUse(ItemUseContext& context) {
@@ -68,8 +62,9 @@ const Block* AxeItem::getStrippedBlock(const Block* original) {
     if (original == nullptr) {
         return nullptr;
     }
-    auto it = s_strippingMap.find(original);
-    if (it != s_strippingMap.end()) {
+    auto& map = getStrippingMap();
+    auto it = map.find(original);
+    if (it != map.end()) {
         return it->second;
     }
     return nullptr;
@@ -186,54 +181,58 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks() {
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*> AxeItem::initializeStrippingMap() {
-    std::unordered_map<const Block*, const Block*> map;
+std::unordered_map<const Block*, const Block*>& AxeItem::getStrippingMap() {
+    // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
+    static std::unordered_map<const Block*, const Block*> map = []() {
+        std::unordered_map<const Block*, const Block*> m;
 
-    // MC 1.16.5: 原木去皮映射
-    // 橡木
-    if (VanillaBlocks::OAK_LOG && VanillaBlocks::STRIPPED_OAK_LOG)
-        map[VanillaBlocks::OAK_LOG] = VanillaBlocks::STRIPPED_OAK_LOG;
-    if (VanillaBlocks::OAK_WOOD && VanillaBlocks::STRIPPED_OAK_WOOD)
-        map[VanillaBlocks::OAK_WOOD] = VanillaBlocks::STRIPPED_OAK_WOOD;
+        // MC 1.16.5: 原木去皮映射
+        // 橡木
+        if (VanillaBlocks::OAK_LOG && VanillaBlocks::STRIPPED_OAK_LOG)
+            m[VanillaBlocks::OAK_LOG] = VanillaBlocks::STRIPPED_OAK_LOG;
+        if (VanillaBlocks::OAK_WOOD && VanillaBlocks::STRIPPED_OAK_WOOD)
+            m[VanillaBlocks::OAK_WOOD] = VanillaBlocks::STRIPPED_OAK_WOOD;
 
-    // 云杉木
-    if (VanillaBlocks::SPRUCE_LOG && VanillaBlocks::STRIPPED_SPRUCE_LOG)
-        map[VanillaBlocks::SPRUCE_LOG] = VanillaBlocks::STRIPPED_SPRUCE_LOG;
-    if (VanillaBlocks::SPRUCE_WOOD && VanillaBlocks::STRIPPED_SPRUCE_WOOD)
-        map[VanillaBlocks::SPRUCE_WOOD] = VanillaBlocks::STRIPPED_SPRUCE_WOOD;
+        // 云杉木
+        if (VanillaBlocks::SPRUCE_LOG && VanillaBlocks::STRIPPED_SPRUCE_LOG)
+            m[VanillaBlocks::SPRUCE_LOG] = VanillaBlocks::STRIPPED_SPRUCE_LOG;
+        if (VanillaBlocks::SPRUCE_WOOD && VanillaBlocks::STRIPPED_SPRUCE_WOOD)
+            m[VanillaBlocks::SPRUCE_WOOD] = VanillaBlocks::STRIPPED_SPRUCE_WOOD;
 
-    // 白桦木
-    if (VanillaBlocks::BIRCH_LOG && VanillaBlocks::STRIPPED_BIRCH_LOG)
-        map[VanillaBlocks::BIRCH_LOG] = VanillaBlocks::STRIPPED_BIRCH_LOG;
-    if (VanillaBlocks::BIRCH_WOOD && VanillaBlocks::STRIPPED_BIRCH_WOOD)
-        map[VanillaBlocks::BIRCH_WOOD] = VanillaBlocks::STRIPPED_BIRCH_WOOD;
+        // 白桦木
+        if (VanillaBlocks::BIRCH_LOG && VanillaBlocks::STRIPPED_BIRCH_LOG)
+            m[VanillaBlocks::BIRCH_LOG] = VanillaBlocks::STRIPPED_BIRCH_LOG;
+        if (VanillaBlocks::BIRCH_WOOD && VanillaBlocks::STRIPPED_BIRCH_WOOD)
+            m[VanillaBlocks::BIRCH_WOOD] = VanillaBlocks::STRIPPED_BIRCH_WOOD;
 
-    // 丛林木
-    if (VanillaBlocks::JUNGLE_LOG && VanillaBlocks::STRIPPED_JUNGLE_LOG)
-        map[VanillaBlocks::JUNGLE_LOG] = VanillaBlocks::STRIPPED_JUNGLE_LOG;
-    if (VanillaBlocks::JUNGLE_WOOD && VanillaBlocks::STRIPPED_JUNGLE_WOOD)
-        map[VanillaBlocks::JUNGLE_WOOD] = VanillaBlocks::STRIPPED_JUNGLE_WOOD;
+        // 丛林木
+        if (VanillaBlocks::JUNGLE_LOG && VanillaBlocks::STRIPPED_JUNGLE_LOG)
+            m[VanillaBlocks::JUNGLE_LOG] = VanillaBlocks::STRIPPED_JUNGLE_LOG;
+        if (VanillaBlocks::JUNGLE_WOOD && VanillaBlocks::STRIPPED_JUNGLE_WOOD)
+            m[VanillaBlocks::JUNGLE_WOOD] = VanillaBlocks::STRIPPED_JUNGLE_WOOD;
 
-    // 金合欢木
-    if (VanillaBlocks::ACACIA_LOG && VanillaBlocks::STRIPPED_ACACIA_LOG)
-        map[VanillaBlocks::ACACIA_LOG] = VanillaBlocks::STRIPPED_ACACIA_LOG;
-    if (VanillaBlocks::ACACIA_WOOD && VanillaBlocks::STRIPPED_ACACIA_WOOD)
-        map[VanillaBlocks::ACACIA_WOOD] = VanillaBlocks::STRIPPED_ACACIA_WOOD;
+        // 金合欢木
+        if (VanillaBlocks::ACACIA_LOG && VanillaBlocks::STRIPPED_ACACIA_LOG)
+            m[VanillaBlocks::ACACIA_LOG] = VanillaBlocks::STRIPPED_ACACIA_LOG;
+        if (VanillaBlocks::ACACIA_WOOD && VanillaBlocks::STRIPPED_ACACIA_WOOD)
+            m[VanillaBlocks::ACACIA_WOOD] = VanillaBlocks::STRIPPED_ACACIA_WOOD;
 
-    // 深色橡木
-    if (VanillaBlocks::DARK_OAK_LOG && VanillaBlocks::STRIPPED_DARK_OAK_LOG)
-        map[VanillaBlocks::DARK_OAK_LOG] = VanillaBlocks::STRIPPED_DARK_OAK_LOG;
-    if (VanillaBlocks::DARK_OAK_WOOD && VanillaBlocks::STRIPPED_DARK_OAK_WOOD)
-        map[VanillaBlocks::DARK_OAK_WOOD] = VanillaBlocks::STRIPPED_DARK_OAK_WOOD;
+        // 深色橡木
+        if (VanillaBlocks::DARK_OAK_LOG && VanillaBlocks::STRIPPED_DARK_OAK_LOG)
+            m[VanillaBlocks::DARK_OAK_LOG] = VanillaBlocks::STRIPPED_DARK_OAK_LOG;
+        if (VanillaBlocks::DARK_OAK_WOOD && VanillaBlocks::STRIPPED_DARK_OAK_WOOD)
+            m[VanillaBlocks::DARK_OAK_WOOD] = VanillaBlocks::STRIPPED_DARK_OAK_WOOD;
 
-    // 绯红菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
-    // if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM)
-    //     map[VanillaBlocks::CRIMSON_STEM] = VanillaBlocks::STRIPPED_CRIMSON_STEM;
+        // 绯红菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
+        // if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM)
+        //     m[VanillaBlocks::CRIMSON_STEM] = VanillaBlocks::STRIPPED_CRIMSON_STEM;
 
-    // 诡异菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
-    // if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM)
-    //     map[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
+        // 诡异菌柄 - 注意：去皮绯红/诡异菌柄尚未注册
+        // if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM)
+        //     m[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
 
+        return m;
+    }();
     return map;
 }
 

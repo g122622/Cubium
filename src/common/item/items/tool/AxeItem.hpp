@@ -91,13 +91,13 @@ private:
     static std::unordered_set<const Block*> initializeEffectiveBlocks();
 
     /**
-     * @brief 初始化去皮映射表
-     * @return 原木 -> 去皮原木 映射
+     * @brief 获取去皮映射表（延迟初始化）
+     *
+     * 使用"construct on first use"模式，确保静态方法调用前映射表已初始化
+     *
+     * @return 原木 -> 去皮原木 映射的引用
      */
-    static std::unordered_map<const Block*, const Block*> initializeStrippingMap();
-
-    /// 原木 -> 去皮原木 的映射
-    static std::unordered_map<const Block*, const Block*> s_strippingMap;
+    static std::unordered_map<const Block*, const Block*>& getStrippingMap();
 };
 
 } // namespace tool

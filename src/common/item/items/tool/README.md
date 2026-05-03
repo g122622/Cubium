@@ -391,6 +391,38 @@ f32 getDestroySpeed(...) const {
 }
 ```
 
+### 6. 静态映射表的初始化顺序
+
+**问题**：AxeItem、ShovelItem、HoeItem 的静态映射表（去皮、土径、耕地）在构造函数中初始化，但静态方法 `getStrippedBlock()`、`getPathBlock()`、`getTilledBlock()` 可能在任何工具实例创建前被调用（如测试代码），导致映射表为空。
+
+**解决方案**：使用"construct on first use"模式（函数局部静态变量）：
+
+```cpp
+// 旧方式（有初始化顺序问题）
+static std::unordered_map<const Block*, const Block*> s_strippingMap;
+// 在构造函数中: if (s_strippingMap.empty()) s_strippingMap = initializeStrippingMap();
+
+// 新方式（惰性初始化，首次调用时自动初始化）
+static std::unordered_map<const Block*, const Block*>& getStrippingMap() {
+    static std::unordered_map<const Block*, const Block*> map = []() {
+        std::unordered_map<const Block*, const Block*> m;
+        // 初始化映射...
+        return m;
+    }();
+    return map;
+}
+```
+
+这样静态方法可以安全调用：
+```cpp
+const Block* AxeItem::getStrippedBlock(const Block* original) {
+    if (original == nullptr) return nullptr;
+    auto& map = getStrippingMap();  // 自动初始化
+    auto it = map.find(original);
+    return (it != map.end()) ? it->second : nullptr;
+}
+```
+
 ## 测试用例
 
 测试文件位于 `tests/common/item/tool/ToolTests.cpp`，包含以下测试：

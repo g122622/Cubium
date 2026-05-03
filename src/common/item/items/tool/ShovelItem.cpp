@@ -13,9 +13,6 @@ namespace mc {
 namespace item {
 namespace tool {
 
-// 静态成员初始化
-std::unordered_map<const Block*, const Block*> ShovelItem::s_pathMap;
-
 ShovelItem::ShovelItem(const tier::IItemTier& tier,
                        f32 attackDamage,
                        f32 attackSpeed,
@@ -26,10 +23,7 @@ ShovelItem::ShovelItem(const tier::IItemTier& tier,
                initializeEffectiveBlocks(),
                ToolType::Shovel,
                properties) {
-    // 初始化土径映射（仅第一次构造时）
-    if (s_pathMap.empty()) {
-        s_pathMap = initializePathMap();
-    }
+    // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
 ActionResultType ShovelItem::onItemUse(ItemUseContext& context) {
@@ -82,8 +76,9 @@ const Block* ShovelItem::getPathBlock(const Block* original) {
     if (original == nullptr) {
         return nullptr;
     }
-    auto it = s_pathMap.find(original);
-    if (it != s_pathMap.end()) {
+    auto& map = getPathMap();
+    auto it = map.find(original);
+    if (it != map.end()) {
         return it->second;
     }
     return nullptr;
@@ -176,14 +171,18 @@ std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks() {
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*> ShovelItem::initializePathMap() {
-    std::unordered_map<const Block*, const Block*> map;
+std::unordered_map<const Block*, const Block*>& ShovelItem::getPathMap() {
+    // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
+    static std::unordered_map<const Block*, const Block*> map = []() {
+        std::unordered_map<const Block*, const Block*> m;
 
-    // MC 1.16.5: 草方块 -> 土径
-    if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::GRASS_PATH) {
-        map[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::GRASS_PATH;
-    }
+        // MC 1.16.5: 草方块 -> 土径
+        if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::GRASS_PATH) {
+            m[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::GRASS_PATH;
+        }
 
+        return m;
+    }();
     return map;
 }
 

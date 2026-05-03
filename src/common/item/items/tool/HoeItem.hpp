@@ -91,13 +91,13 @@ private:
     static std::unordered_set<const Block*> initializeEffectiveBlocks();
 
     /**
-     * @brief 初始化耕地映射表
-     * @return 泥土/草地 -> 耕地 映射
+     * @brief 获取耕地映射表（延迟初始化）
+     *
+     * 使用"construct on first use"模式，确保静态方法调用前映射表已初始化
+     *
+     * @return 泥土/草地 -> 耕地 映射的引用
      */
-    static std::unordered_map<const Block*, const Block*> initializeTillingMap();
-
-    /// 泥土/草地 -> 耕地 的映射
-    static std::unordered_map<const Block*, const Block*> s_tillingMap;
+    static std::unordered_map<const Block*, const Block*>& getTillingMap();
 };
 
 } // namespace tool
