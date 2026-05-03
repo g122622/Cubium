@@ -25,7 +25,14 @@ void UnderwaterLoopSound::tick() {
     if (m_canSwim) {
         ++m_ticksInWater;
     } else {
-        m_ticksInWater -= 2;  // 不在水中时更快淡出
+        m_ticksInWater -= 2;
+    }
+
+    // MC 1.16.5: 先检查是否应该停止，再 clamp
+    // 当计数器变为负数时停止声音
+    if (m_ticksInWater < 0) {
+        markDone();
+        return;
     }
 
     // 限制在 [0, FADE_TICKS] 范围内
@@ -36,11 +43,6 @@ void UnderwaterLoopSound::tick() {
     f32 volume = static_cast<f32>(m_ticksInWater) / static_cast<f32>(FADE_TICKS);
     volume = std::clamp(volume, 0.0f, 1.0f);
     setVolume(volume);
-
-    // 当计数器变为负数时停止声音
-    if (m_ticksInWater < 0) {
-        markDone();
-    }
 }
 
 } // namespace mc::client::sound

@@ -138,7 +138,14 @@ audioService.setUnderwater(inWater);
 
 ### 水下环境音 (UnderwaterAmbientHandler)
 
-MC 1.16.5 水下环境音实现三档概率系统：
+MC 1.16.5 水下环境音实现完整的入水/出水音效和三档概率附加音效：
+
+**入水/出水音效**：
+- 玩家进入水中时播放 `ambient.underwater.enter`
+- 玩家离开水中时播放 `ambient.underwater.exit`
+- 水下循环音效 `ambient.underwater.loop` 自动淡入淡出（40 ticks）
+
+**附加音效概率**：
 
 | 音效类型 | 音效ID | 概率/tick |
 |---------|--------|-----------|
@@ -152,7 +159,9 @@ MC 1.16.5 水下环境音实现三档概率系统：
 
 MC 1.16.5 群系环境音实现三种类型：
 
-1. **循环音效 (Loop Sound)** - 持续播放的背景音效（待实现，需要 TickableSound 支持）
+1. **循环音效 (Loop Sound)** - 持续播放的背景音效
+   - 群系切换时淡出旧音效、淡入新音效（40 ticks 过渡）
+   - 使用 `BiomeLoopSound` 实现
 2. **心境音效 (Mood Sound)** - 在黑暗环境中根据光照等级触发
    - 默认心境音效：`ambient.cave`
    - 心境计时器在黑暗中积累，光照中减少

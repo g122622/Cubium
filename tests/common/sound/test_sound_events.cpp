@@ -56,8 +56,8 @@ TEST_F(SoundEventsTest, BlockSoundEvents_ValidResourceLocations) {
     EXPECT_EQ(SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF.toString(), "minecraft:block.stone_pressure_plate.click_off");
 
     // 气泡柱音效
-    EXPECT_EQ(SoundEvents::BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE.toString(), "minecraft:block.bubble_column.upwards.inside");
-    EXPECT_EQ(SoundEvents::BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE.toString(), "minecraft:block.bubble_column.whirlpool.inside");
+    EXPECT_EQ(SoundEvents::BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE.toString(), "minecraft:block.bubble_column.upwards_inside");
+    EXPECT_EQ(SoundEvents::BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE.toString(), "minecraft:block.bubble_column.whirlpool_inside");
 }
 
 // ========== 实体音效测试 ==========

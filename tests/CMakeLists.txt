@@ -123,6 +123,7 @@ add_executable(mc_tests
     client/world/entity/ClientEntityTest.cpp
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
+    client/test_sound_handlers.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     client/renderer/test_renderer.cpp
     client/renderer/test_trident_api.cpp
@@ -676,6 +677,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundPool.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/UnderwaterLoopSound.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/AudioBuffer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/OpenALBackend.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp

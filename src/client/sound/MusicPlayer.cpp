@@ -110,24 +110,6 @@ void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
         return;
     }
 
-    // 检查当前音乐是否仍在播放
-    if (m_currentSoundId != 0) {
-        if (!m_engine.isPlaying(m_currentSoundId)) {
-            // 音乐已结束
-            m_currentSoundId = 0;
-            m_currentType = MusicType::None;
-        } else if (m_fadingOut) {
-            // 更新淡出
-            updateFade();
-            return;
-        }
-    }
-
-    // 如果暂停或正在播放，不开始新音乐
-    if (isPaused && m_currentSoundId != 0) {
-        return;
-    }
-
     // 根据 MC 1.16.5 MusicTicker.func_238178_U_() 选择音乐类型
     MusicType desiredType = MusicType::None;
 
@@ -156,18 +138,66 @@ void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
         }
     }
 
-    // 如果当前没有音乐且延迟已过，开始新音乐
+    // 获取目标选择器
+    const MusicSelector& desiredSelector = getSelector(desiredType);
+
+    // MC 1.16.5: 检查是否需要替换当前音乐
+    // 如果当前音乐正在播放，但新选择器要求替换且与当前不同
+    if (m_currentSoundId != 0) {
+        bool isPlaying = m_engine.isPlaying(m_currentSoundId);
+
+        if (isPlaying) {
+            // 检查是否需要因 replaceCurrent 而停止
+            // MC 1.16.5 line 25-28:
+            // if (!newSelector.sound.getName().equals(current.getSoundLocation()) && newSelector.replaceCurrent)
+            if (m_currentType != desiredType && desiredSelector.replaceCurrent) {
+                // 停止当前音乐，设置短延迟
+                m_engine.stop(m_currentSoundId);
+                m_currentSoundId = 0;
+                m_currentType = MusicType::None;
+                m_fadingOut = false;
+                // 设置随机延迟 (0 to minDelay/2)
+                m_delayCounter = static_cast<u32>(m_rng.nextInt(
+                    0, static_cast<i32>(desiredSelector.minDelayTicks / 2)));
+            }
+        } else {
+            // 音乐已播放完毕
+            // MC 1.16.5 line 30-33:
+            // currentMusic = null; timeUntilNextMusic = min(nextDelay, random(minDelay, maxDelay))
+            m_currentSoundId = 0;
+            m_currentType = MusicType::None;
+            m_fadingOut = false;
+            // 设置下次播放延迟
+            m_delayCounter = std::min(m_delayCounter,
+                selectDelay(desiredSelector));
+        }
+    }
+
+    // 如果正在淡出，更新淡出并跳过播放新音乐
+    if (m_fadingOut) {
+        updateFade();
+        return;
+    }
+
+    // 如果暂停，不开始新音乐
+    if (isPaused) {
+        return;
+    }
+
+    // MC 1.16.5 line 36: timeUntilNextMusic = min(timeUntilNextMusic, maxDelay)
+    m_delayCounter = std::min(m_delayCounter, desiredSelector.maxDelayTicks);
+
+    // MC 1.16.5 line 37-39: 如果没有当前音乐且延迟到了，播放新音乐
+    if (m_currentSoundId == 0 && m_delayCounter > 0) {
+        --m_delayCounter;
+    }
+
     if (m_currentSoundId == 0 && m_delayCounter == 0) {
-        // 获取选择器
+        // 获取选择器（可能随机选择）
         const MusicSelector& selector = getSelector(desiredType);
         if (!selector.soundEventId.toString().empty()) {
             startPlaying(selector);
         }
-    }
-
-    // 更新延迟计数器
-    if (m_delayCounter > 0) {
-        --m_delayCounter;
     }
 }
 
