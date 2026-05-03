@@ -317,6 +317,25 @@ audioService.setAmbientPlayerPosition(x, y, z);
 - 群系需要配置 `BiomeAmbientSounds` 才能播放环境音效，否则使用默认心境音效。
 - 菜单状态通过 `ScreenManager::instance().hasScreen()` 判断，需在 UI 更新后调用。
 
+## 待完成事项
+
+### MinecartSound 重构
+当前 `MinecartTickableSound` 和 `RidingMinecartTickableSound` 直接引用 `Entity` 对象，与音频线程分离架构不兼容。需要重构为：
+- 使用 `EntitySoundState` 状态快照
+- 在 `EntitySoundHandler` 中管理矿车声音
+- 通过 `AudioService::onEntitySpawn()` 启动声音
+
+### GuardianSound 攻击动画同步
+当前 `GuardianSoundStateful` 已实现，但需要：
+- 服务端发送实体状态 21 事件（攻击动画）
+- 客户端 `handleEntityStatus` 回调更新 `EntitySoundState.attackAnimScale`
+
+### MovingSoundPacket 跟踪实现
+当前 `MovingSoundPacket` 客户端处理是简化版本，声音只播放一次不跟随实体移动。完整实现需要：
+- 创建 `MovingTickableSound` 类跟踪实体位置
+- 在 `EntitySoundHandler` 中管理移动声音
+- 声音随实体位置实时更新
+
 ## 测试用例
 
 - `tests/common/resource/ResourcePackListSelfContainedTest.cpp`：验证资源包读取链路，间接覆盖音频资源加载依赖。
