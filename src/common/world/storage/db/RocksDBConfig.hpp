@@ -77,17 +77,16 @@ struct RocksDBConfig {
     // ========================================================================
 
     /// 每层压缩类型
-    /// L0/L1: 无压缩（快速写入）
-    /// L2/L3: Snappy（平衡压缩）
-    /// L4+: ZSTD（最大压缩）
+    /// 注意：Snappy 和 ZSTD 需要额外链接库
+    /// 默认使用无压缩以避免链接问题
     std::vector<rocksdb::CompressionType> compressionPerLevel = {
         rocksdb::kNoCompression,       // L0
         rocksdb::kNoCompression,       // L1
-        rocksdb::kSnappyCompression,   // L2
-        rocksdb::kSnappyCompression,   // L3
-        rocksdb::kZSTD,                // L4
-        rocksdb::kZSTD,                // L5
-        rocksdb::kZSTD                 // L6
+        rocksdb::kNoCompression,       // L2
+        rocksdb::kNoCompression,       // L3
+        rocksdb::kNoCompression,       // L4
+        rocksdb::kNoCompression,       // L5
+        rocksdb::kNoCompression        // L6
     };
 
     // ========================================================================

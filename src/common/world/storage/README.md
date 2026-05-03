@@ -372,7 +372,7 @@ sequenceDiagram
 - **块缓存**: 256MB（缓存热数据块）
 - **行缓存**: 64MB（缓存行数据）
 - **MemTable**: 64MB x 4（内存写入缓冲）
-- **压缩**: L0/L1 无压缩，L2/L3 Snappy，L4+ ZSTD
+- **压缩**: 当前禁用（需要链接 Snappy/ZSTD 库）
 - **Bloom 过滤器**: 10 bits/key（减少读取放大）
 
 ### Section 缓存
@@ -385,6 +385,38 @@ sequenceDiagram
 
 - 使用 ServerWorkerPool 进行后台 IO 操作
 - 支持优先级调度（区块加载优先于保存）
+
+## 与区块系统集成
+
+存储系统已与 `ServerChunkManager` 集成：
+
+```cpp
+// 区块加载时从存储读取
+ChunkData* ServerChunkManager::loadChunkFromStorage(ChunkCoord x, ChunkCoord z) {
+    auto& sectionMgr = m_world.storage().sectionManager(dimension);
+    auto chunk = std::make_unique<ChunkData>(x, z);
+    for (i8 sectionY = 0; sectionY < CHUNK_SECTIONS; ++sectionY) {
+        SectionKey key(x, z, sectionY, dimension);
+        auto result = sectionMgr.loadSection(key);
+        if (result.success() && result.value()) {
+            SectionCodec::toChunkSection(*result.value(), chunk->getOrCreateSection(sectionY));
+        }
+    }
+    return chunk;
+}
+
+// 区块卸载时保存到存储
+void ServerChunkManager::saveChunkSections(const ChunkData& chunk) {
+    auto& sectionMgr = m_world.storage().sectionManager(chunk.dimension());
+    for (i8 sectionY = 0; sectionY < CHUNK_SECTIONS; ++sectionY) {
+        SectionKey key(chunk.x(), chunk.z(), sectionY, chunk.dimension());
+        auto dataResult = SectionCodec::fromChunkSection(*section, key, biomes);
+        if (dataResult.success()) {
+            sectionMgr.saveSection(key, dataResult.value());
+        }
+    }
+}
+```
 
 ## 容易踩的坑
 

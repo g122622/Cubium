@@ -65,19 +65,24 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
     // 创建数据库选项
     rocksdb::DBOptions dbOptions = config.createDBOptions();
 
-    // 获取已有列族列表
-    std::vector<std::string> existingCFNames;
-    rocksdb::Status status = rocksdb::DB::ListColumnFamilies(
-        dbOptions,
-        path.string(),
-        &existingCFNames
-    );
+    // 检查数据库是否已存在（通过检查 CURRENT 文件）
+    std::filesystem::path currentFile = path / "CURRENT";
+    bool dbExists = std::filesystem::exists(currentFile);
 
     std::vector<rocksdb::ColumnFamilyDescriptor> cfDescriptors;
 
-    if (status.IsNotFound()) {
+    if (!dbExists) {
         // 数据库不存在，创建所有列族
         spdlog::info("Creating new database at {}", path.string());
+
+        // 确保目录存在
+        std::error_code ec;
+        if (!std::filesystem::exists(path)) {
+            if (!std::filesystem::create_directories(path, ec)) {
+                return Error(ErrorCode::FileOpenFailed,
+                             fmt::format("Failed to create database directory: {}", ec.message()));
+            }
+        }
 
         rocksdb::ColumnFamilyOptions cfOptions = db->createCFOptions();
 
@@ -85,13 +90,24 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
         for (const auto& cfName : cf::ALL_COLUMN_FAMILIES) {
             cfDescriptors.emplace_back(cfName, cfOptions);
         }
-    } else if (!status.ok()) {
-        return Error(ErrorCode::FileOpenFailed,
-                     fmt::format("Failed to list column families: {}", status.ToString()));
     } else {
         // 数据库已存在，打开所有列族
-        spdlog::info("Opening existing database at {} with {} column families",
-                path.string(), existingCFNames.size());
+        spdlog::info("Opening existing database at {}", path.string());
+
+        // 获取已有列族列表
+        std::vector<std::string> existingCFNames;
+        rocksdb::Status status = rocksdb::DB::ListColumnFamilies(
+            dbOptions,
+            path.string(),
+            &existingCFNames
+        );
+
+        if (!status.ok()) {
+            return Error(ErrorCode::FileOpenFailed,
+                         fmt::format("Failed to list column families: {}", status.ToString()));
+        }
+
+        spdlog::info("Found {} existing column families", existingCFNames.size());
 
         rocksdb::ColumnFamilyOptions cfOptions = db->createCFOptions();
 
@@ -112,7 +128,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
 
     // 打开数据库
     std::vector<rocksdb::ColumnFamilyHandle*> cfHandles;
-    status = rocksdb::DB::Open(
+    rocksdb::Status status = rocksdb::DB::Open(
         dbOptions,
         path.string(),
         cfDescriptors,

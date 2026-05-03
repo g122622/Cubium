@@ -413,14 +413,8 @@ Result<SectionData*> SectionManager::loadFromDatabase(const SectionKey& key) {
 
     if (!result.success()) {
         if (result.error().code() == ErrorCode::NotFound) {
-            // Section不存在，创建新的
-            auto newData = std::make_shared<SectionData>(key);
-            newData->initializeDefaults();
-
-            // 放入缓存
-            m_cache.put(key, newData, false);
-
-            return newData.get();
+            // Section不存在，返回nullptr
+            return nullptr;
         }
         return result.error();
     }
@@ -434,6 +428,9 @@ Result<SectionData*> SectionManager::loadFromDatabase(const SectionKey& key) {
     }
 
     auto data = std::make_shared<SectionData>(std::move(deserializeResult.value()));
+
+    // 从RocksDB键恢复key（key不存储在序列化数据中）
+    data->key = key;
 
     // 放入缓存
     m_cache.put(key, data, false);

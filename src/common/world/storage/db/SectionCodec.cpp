@@ -179,9 +179,13 @@ Result<std::vector<u8>> SectionData::serialize() const {
         output.insert(output.end(), compressed.begin(), compressed.end());
     }
 
-    // 生物群系数据
+    // 生物群系数据（每个BiomeId是u16，需要逐字节序列化）
     if (hasFlag(flags, SectionFlags::HasBiomes) && !biomes.empty()) {
-        output.insert(output.end(), biomes.begin(), biomes.end());
+        // 按大端序序列化每个 BiomeId (u16)
+        for (BiomeId biome : biomes) {
+            output.push_back(static_cast<u8>(biome >> 8));   // 高字节
+            output.push_back(static_cast<u8>(biome & 0xFF)); // 低字节
+        }
     }
 
     // 天空光照
@@ -263,14 +267,18 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
         result.blockStates.assign(VOLUME, 0);
     }
 
-    // 生物群系数据
+    // 生物群系数据（每个BiomeId是u16，需要逐字节反序列化）
     if (hasFlag(flags, SectionFlags::HasBiomes)) {
         if (offset + SectionCodec::BIOME_DATA_SIZE > size) {
             return Error(ErrorCode::InvalidData, "Section data truncated at biomes");
         }
         result.biomes.resize(SectionData::BIOME_COUNT);
-        std::memcpy(result.biomes.data(), data + offset, SectionCodec::BIOME_DATA_SIZE);
-        offset += SectionCodec::BIOME_DATA_SIZE;
+        // 按大端序读取每个 BiomeId (u16)
+        for (size_t i = 0; i < SectionData::BIOME_COUNT; ++i) {
+            u8 high = data[offset++];
+            u8 low = data[offset++];
+            result.biomes[i] = static_cast<BiomeId>((static_cast<u16>(high) << 8) | low);
+        }
     } else {
         // 默认平原生物群系
         result.biomes.assign(SectionData::BIOME_COUNT, 1);
@@ -361,15 +369,40 @@ Result<SectionData> SectionCodec::fromChunkSection(
         data.biomes.assign(SectionData::BIOME_COUNT, 1);
     }
 
-    // 复制光照数据
+    // 复制光照数据（仅当非默认值时）
+    // 天空光照：默认全15（日光），只有当存在非15值时才存储
+    // 方块光照：默认全0（无光），只有当存在非0值时才存储
     const auto& skyLight = section.skyLightNibble();
+    const auto& blockLight = section.blockLightNibble();
+
+    // 检查天空光照是否有非默认值（非15）
     if (!skyLight.isEmpty()) {
-        data.skyLight = std::vector<u8>(skyLight.rawData(), skyLight.rawData() + SectionCodec::LIGHT_DATA_SIZE);
+        bool hasNonDefaultSkyLight = false;
+        for (size_t i = 0; i < LIGHT_DATA_SIZE; ++i) {
+            // 每个 nibble 都是 15 才是默认值
+            u8 byte = skyLight.rawData()[i];
+            if (byte != 0xFF) { // 0xFF = 两个 nibble 都是 15
+                hasNonDefaultSkyLight = true;
+                break;
+            }
+        }
+        if (hasNonDefaultSkyLight) {
+            data.skyLight = std::vector<u8>(skyLight.rawData(), skyLight.rawData() + LIGHT_DATA_SIZE);
+        }
     }
 
-    const auto& blockLight = section.blockLightNibble();
+    // 检查方块光照是否有非默认值（非0）
     if (!blockLight.isEmpty()) {
-        data.blockLight = std::vector<u8>(blockLight.rawData(), blockLight.rawData() + SectionCodec::LIGHT_DATA_SIZE);
+        bool hasNonDefaultBlockLight = false;
+        for (size_t i = 0; i < LIGHT_DATA_SIZE; ++i) {
+            if (blockLight.rawData()[i] != 0) {
+                hasNonDefaultBlockLight = true;
+                break;
+            }
+        }
+        if (hasNonDefaultBlockLight) {
+            data.blockLight = std::vector<u8>(blockLight.rawData(), blockLight.rawData() + LIGHT_DATA_SIZE);
+        }
     }
 
     // 计算哈希

@@ -144,18 +144,31 @@ TEST_F(SectionCodecTest, SerializeDeserialize)
     ASSERT_TRUE(encodeResult.success());
 
     auto& data = encodeResult.value();
+
+    // key 应该被正确设置
+    EXPECT_EQ(data.key.chunkX, 100);
+    EXPECT_EQ(data.key.chunkZ, -200);
+    EXPECT_EQ(data.key.sectionY, 7);
+    EXPECT_EQ(data.key.dimension, 1);
+
     auto serializedResult = data.serialize();
     ASSERT_TRUE(serializedResult.success()) << "serialize failed: " << serializedResult.error().message();
     auto& serialized = serializedResult.value();
     ASSERT_FALSE(serialized.empty());
 
+    // 注意：key 作为 RocksDB 键单独存储，不包含在序列化数据中
     auto decodeResult = SectionData::deserialize(serialized.data(), serialized.size());
     ASSERT_TRUE(decodeResult.success()) << "deserialize failed: " << decodeResult.error().message();
 
     SectionData& decoded = decodeResult.value();
+
+    // 解码后的 key 需要单独设置（通常从 RocksDB 键恢复）
+    decoded.key = key;
+
     EXPECT_EQ(decoded.key.chunkX, 100);
     EXPECT_EQ(decoded.key.chunkZ, -200);
     EXPECT_EQ(decoded.key.sectionY, 7);
+    EXPECT_EQ(decoded.key.dimension, 1);
 
     // Verify block states
     EXPECT_EQ(decoded.getBlockStateId(5, 10, 15), 42u);
