@@ -1366,6 +1366,13 @@ bool ServerWorld::shouldSpawnParticleAt(
     return true;
 }
 
+void ServerWorld::broadcastEntityStatus(EntityId entityId, u8 status)
+{
+    if (m_onBroadcastEntityStatus) {
+        m_onBroadcastEntityStatus(entityId, status);
+    }
+}
+
 // ============================================================================
 // 爆炸
 // ============================================================================

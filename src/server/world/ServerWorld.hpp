@@ -290,7 +290,21 @@ public:
         m_onBroadcastParticle = std::move(callback);
     }
 
-    // ========== IWorld 粒子接口实现 ==========
+    // ========== 实体状态广播回调 ==========
+
+    /**
+     * @brief 实体状态广播回调类型
+     *
+     * 当服务端需要广播实体状态事件给玩家时调用。
+     * 参数：实体ID、状态码
+     */
+    using EntityStatusCallback = std::function<void(EntityId entityId, u8 status)>;
+
+    void setOnBroadcastEntityStatus(EntityStatusCallback callback) {
+        m_onBroadcastEntityStatus = std::move(callback);
+    }
+
+    // ========== IWorld 接口实现 ==========
 
     void addParticle(
         client::renderer::trident::particle::ParticleTypeId type,
@@ -307,6 +321,10 @@ public:
     [[nodiscard]] bool shouldSpawnParticleAt(
         const Vector3& pos,
         f32 maxDistance = 256.0f) const override;
+
+    // ========== 实体状态广播 (IWorld override) ==========
+
+    void broadcastEntityStatus(EntityId entityId, u8 status) override;
 
     // ========== 爆炸 ==========
 
@@ -536,6 +554,7 @@ private:
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
     ParticleBroadcastCallback m_onBroadcastParticle;
+    EntityStatusCallback m_onBroadcastEntityStatus;
 
     // 随机刻系统
     math::Random m_random;            ///< 世界随机数生成器

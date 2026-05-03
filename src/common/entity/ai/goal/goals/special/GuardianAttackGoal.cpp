@@ -7,6 +7,7 @@
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../damage/DamageSource.hpp"
 #include "../../../../../util/assert/AssertAll.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -65,6 +66,14 @@ void GuardianAttackGoal::startExecuting() {
     // 设置目标实体ID
     if (m_target != nullptr) {
         m_guardian->setTargetEntity(m_target->id());
+    }
+
+    // 广播实体状态事件 (状态21 = GuardianAttack)
+    // MC 1.16.5: 在开始充能时发送状态21触发客户端声音
+    if (m_guardian->world()) {
+        m_guardian->world()->broadcastEntityStatus(
+            m_guardian->id(),
+            static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
     }
 }
 

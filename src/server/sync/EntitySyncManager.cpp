@@ -177,4 +177,17 @@ void EntitySyncManager::setOnEntityMove(std::function<void(EntityId, const Vecto
     m_onEntityMove = std::move(callback);
 }
 
+void EntitySyncManager::setOnEntityStatus(std::function<void(EntityId, u8)> callback)
+{
+    m_onEntityStatus = std::move(callback);
+}
+
+void EntitySyncManager::broadcastEntityStatus(EntityId entityId, u8 status)
+{
+    if (m_onEntityStatus) {
+        m_onEntityStatus(entityId, status);
+    }
+    spdlog::trace("Broadcast entity status: {} status={}", entityId, static_cast<int>(status));
+}
+
 } // namespace mc::server::sync

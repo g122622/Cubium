@@ -546,6 +546,16 @@ protected:
         f32 range = 256.0f);
 
     /**
+     * @brief 广播实体状态事件给范围内玩家
+     *
+     * @param entityId 实体ID
+     * @param status 状态码
+     * @param pos 实体位置
+     * @param range 广播范围（格），默认 64 格
+     */
+    void broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range = 64.0f);
+
+    /**
      * @brief 发送粒子给指定玩家
      *
      * @param playerId 玩家ID

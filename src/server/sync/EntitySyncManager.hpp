@@ -67,6 +67,19 @@ public:
      */
     void setOnEntityMove(std::function<void(EntityId, const Vector3&, f32, f32)> callback);
 
+    /**
+     * @brief 设置实体状态回调
+     * @param callback 回调函数 (entityId, status)
+     */
+    void setOnEntityStatus(std::function<void(EntityId, u8)> callback);
+
+    /**
+     * @brief 广播实体状态
+     * @param entityId 实体ID
+     * @param status 状态码
+     */
+    void broadcastEntityStatus(EntityId entityId, u8 status);
+
 private:
     /**
      * @brief 检查实体是否需要同步
@@ -109,6 +122,7 @@ private:
     std::function<void(EntityId, const Entity&)> m_onEntitySpawn;
     std::function<void(EntityId)> m_onEntityRemove;
     std::function<void(EntityId, const Vector3&, f32, f32)> m_onEntityMove;
+    std::function<void(EntityId, u8)> m_onEntityStatus;
 };
 
 } // namespace sync

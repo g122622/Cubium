@@ -702,6 +702,22 @@ public:
     [[nodiscard]] virtual server::ServerWorld* asServerWorld() { return nullptr; }
     [[nodiscard]] virtual const server::ServerWorld* asServerWorld() const { return nullptr; }
 
+    // ========== 实体状态广播 ==========
+
+    /**
+     * @brief 广播实体状态事件
+     *
+     * 向所有追踪该实体的玩家发送实体状态事件。
+     * 用于触发客户端的动画、音效等效果。
+     *
+     * @param entityId 实体ID
+     * @param status 状态码（如 EntityStatusPacket::Status::GuardianAttack）
+     */
+    virtual void broadcastEntityStatus(EntityId entityId, u8 status) {
+        (void)entityId;
+        (void)status;
+    }
+
 protected:
     IWorld() = default;
 };

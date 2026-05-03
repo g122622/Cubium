@@ -22,12 +22,14 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
@@ -804,6 +806,13 @@ void MinecraftServer::setWorld(std::unique_ptr<ServerWorld> world)
             u32 count) {
             broadcastParticleInRange(type, pos, velocity, offset, count);
         });
+        m_world->setOnBroadcastEntityStatus([this](EntityId entityId, u8 status) {
+            // 获取实体位置
+            Entity* entity = m_world->getEntity(entityId);
+            if (entity) {
+                broadcastEntityStatusInRange(entityId, status, entity->position());
+            }
+        });
     }
 }
 
@@ -1509,6 +1518,33 @@ void MinecraftServer::sendParticleToPlayer(
     auto fullPacket = core::ConnectionManager::encapsulatePacket(
         network::PacketType::Particle, result.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range) {
+    network::EntityStatusPacket packet;
+    packet.setEntityId(static_cast<u32>(entityId));
+    packet.setStatus(static_cast<network::EntityStatusPacket::Status>(status));
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize EntityStatusPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::EntityStatus, result.value());
+
+    f32 rangeSq = range * range;
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
 }
 
 } // namespace mc::server

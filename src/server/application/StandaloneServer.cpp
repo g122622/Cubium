@@ -163,6 +163,12 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         u32 count) {
         broadcastParticleInRange(type, pos, velocity, offset, count);
     });
+    m_world->setOnBroadcastEntityStatus([this](EntityId entityId, u8 status) {
+        Entity* entity = m_world->getEntity(entityId);
+        if (entity) {
+            broadcastEntityStatusInRange(entityId, status, entity->position());
+        }
+    });
 
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
