@@ -201,14 +201,22 @@ void StructurePiece::fillWithBlocks(IWorldWriter& world, const StructureBounding
 void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world, const StructureBoundingBox& bounds,
                                                i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ,
                                                bool alwaysReplace, math::Random& rng, BlockSelector& selector) {
-    // 注意：当 alwaysReplace=true 时，MC 会跳过空气方块
-    // 由于 IWorldWriter 没有读取能力，这里暂时忽略 alwaysReplace 逻辑
-    // 这不影响最终结果，只是可能在某些情况下多做了一些无用功
-    (void)alwaysReplace;
+    // MC 1.16.5: 当 alwaysReplace=true 时，只替换非空气方块
+    // 当 alwaysReplace=false 时，无条件填充
+    // 参考: StructurePiece.fillWithRandomizedBlocks
+    IWorld* worldReader = alwaysReplace ? dynamic_cast<IWorld*>(&world) : nullptr;
 
     for (i32 y = minY; y <= maxY; ++y) {
         for (i32 x = minX; x <= maxX; ++x) {
             for (i32 z = minZ; z <= maxZ; ++z) {
+                if (worldReader) {
+                    const BlockState* currentState = getBlockStateFromPos(*worldReader, x, y, z, bounds);
+                    if (currentState && currentState->isAir()) {
+                        // 跳过空气方块
+                        continue;
+                    }
+                }
+
                 bool isWall = (y == minY || y == maxY ||
                                x == minX || x == maxX ||
                                z == minZ || z == maxZ);

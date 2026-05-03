@@ -27,8 +27,9 @@ EmptyJigsawPiece& EmptyJigsawPiece::instance() {
 }
 
 std::unique_ptr<JigsawPiece> EmptyJigsawPiece::clone() const {
-    // EmptyJigsawPiece is a singleton - return null to indicate empty
-    return nullptr;
+    // MC 1.16.5: EmptyJigsawPiece 返回自身的克隆（单例模式，但仍需返回有效指针）
+    // 参考: EmptyJigsawPiece.java - INSTANCE 单例，但在 JigsawPattern 中仍需有效指针
+    return std::make_unique<EmptyJigsawPiece>();
 }
 
 bool JigsawPiece::loadJointsFromTemplate(const String& templateName,
@@ -76,6 +77,11 @@ bool JigsawPiece::loadJointsFromTemplate(const String& templateName,
 
         joints.push_back(joint);
     }
+
+    // MC 1.16.5: 连接点不需要打乱顺序
+    // 参考: SingleJigsawPiece.getJigsawBlocks() 返回的是模板中的原始顺序
+    // 打乱是在 JigsawManager 中选择模板池中的块时进行的 (getShuffledPieces)
+    // 而不是在加载连接点时进行的
 
     return true;
 }

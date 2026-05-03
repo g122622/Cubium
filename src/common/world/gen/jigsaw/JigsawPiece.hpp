@@ -2,6 +2,7 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../structure/StructureBoundingBox.hpp"
 #include "JigsawOrientation.hpp"
 #include <memory>
@@ -93,6 +94,25 @@ public:
     void addJoint(const JigsawJoint& joint) { m_joints.push_back(joint); }
     void clearJoints() { m_joints.clear(); }
 
+    /**
+     * @brief 获取打乱后的连接点列表
+     *
+     * MC 1.16.5: getJigsawBlocks 返回打乱顺序的连接点
+     * 参考: SingleJigsawPiece.getJigsawBlocks() 第91-96行
+     *
+     * @param rng 随机数生成器
+     * @return 打乱后的连接点列表
+     */
+    std::vector<JigsawJoint> getShuffledJoints(math::Random& rng) const {
+        std::vector<JigsawJoint> shuffled = m_joints;
+        // Fisher-Yates 洗牌算法
+        for (size_t i = shuffled.size(); i > 1; --i) {
+            size_t j = static_cast<size_t>(rng.nextInt(static_cast<i32>(i)));
+            std::swap(shuffled[i - 1], shuffled[j]);
+        }
+        return shuffled;
+    }
+
     const String& getName() const { return m_name; }
     void setName(const String& name) { m_name = name; }
 
@@ -123,7 +143,7 @@ protected:
         : m_placementBehaviour(behaviour) {}
 
     JigsawPlacementBehaviour m_placementBehaviour = JigsawPlacementBehaviour::Rigid;
-    i32 m_groundLevelDelta = 0;
+    i32 m_groundLevelDelta = 1;  // MC 1.16.5 默认值为 1
     std::vector<JigsawJoint> m_joints;
     String m_name;
 };
@@ -140,8 +160,11 @@ public:
     bool isEmpty() const override { return true; }
     BlockPos getSize() const override { return BlockPos(0, 0, 0); }
 
-private:
+    // MC 1.16.5: EmptyJigsawPiece 是单例，但 clone() 需要返回有效指针
+    // 参考: EmptyJigsawPiece.java - INSTANCE 单例
     EmptyJigsawPiece() : JigsawPiece(JigsawPlacementBehaviour::Rigid) {}
+
+private:
     static String s_typeName;
 };
 

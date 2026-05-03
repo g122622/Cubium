@@ -496,6 +496,63 @@ bool Template::place(
         processedBlocks.push_back(std::move(processedBlock));
     }
 
+    // MC 1.16.5: Template.func_237151_a_
+    // 方块排序逻辑：按 Y, X, Z 坐标排序，并分为三类
+    // 1. 普通方块（无 NBT，有opaque碰撞箱）
+    // 2. 其他方块（透明或变量透明度）
+    // 3. 方块实体（有 NBT）
+    // 最终顺序：普通方块 -> 其他方块 -> 方块实体
+
+    // 分类方块
+    std::vector<ProcessedBlockInfo> normalBlocks;    // 有opaque碰撞箱的方块
+    std::vector<ProcessedBlockInfo> otherBlocks;      // 透明/变量透明度方块
+    std::vector<ProcessedBlockInfo> blockEntityBlocks; // 有NBT的方块
+
+    for (auto& block : processedBlocks) {
+        const BlockState* state = BlockRegistry::instance().getBlockState(block.blockStateId);
+        if (!state) {
+            otherBlocks.push_back(std::move(block));
+            continue;
+        }
+
+        if (block.nbt) {
+            // 有 NBT 的方块最后放置
+            blockEntityBlocks.push_back(std::move(block));
+        } else if (state->hasOpaqueCollisionShape()) {
+            // 有opaque碰撞箱的方块首先放置
+            // MC 1.16.5: 还需要检查 !isVariableOpacity()
+            // 当前项目中所有方块默认 variableOpacity = false
+            normalBlocks.push_back(std::move(block));
+        } else {
+            // 透明或变量透明度的方块放在中间
+            otherBlocks.push_back(std::move(block));
+        }
+    }
+
+    // 排序函数：按 Y, X, Z 坐标排序
+    auto blockComparator = [](const ProcessedBlockInfo& a, const ProcessedBlockInfo& b) {
+        if (a.pos.y != b.pos.y) return a.pos.y < b.pos.y;
+        if (a.pos.x != b.pos.x) return a.pos.x < b.pos.x;
+        return a.pos.z < b.pos.z;
+    };
+
+    std::sort(normalBlocks.begin(), normalBlocks.end(), blockComparator);
+    std::sort(otherBlocks.begin(), otherBlocks.end(), blockComparator);
+    std::sort(blockEntityBlocks.begin(), blockEntityBlocks.end(), blockComparator);
+
+    // 合并方块列表：普通 -> 其他 -> 方块实体
+    processedBlocks.clear();
+    processedBlocks.reserve(normalBlocks.size() + otherBlocks.size() + blockEntityBlocks.size());
+    for (auto& block : normalBlocks) {
+        processedBlocks.push_back(std::move(block));
+    }
+    for (auto& block : otherBlocks) {
+        processedBlocks.push_back(std::move(block));
+    }
+    for (auto& block : blockEntityBlocks) {
+        processedBlocks.push_back(std::move(block));
+    }
+
     // 放置所有处理后的方块
     for (const auto& processedBlock : processedBlocks) {
         // 检查边界框
@@ -1334,7 +1391,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
         return ProcessedBlockInfo::fromBlockInfo(blockInfo);
     }
 
-    Block* block = &const_cast<Block&>(state->getBlock());
+    const Block& block = state->getBlock();
 
     // 使用确定性随机（基于位置）
     u64 hash = math::hashBlockPos(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
@@ -1344,8 +1401,8 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
     result.pos = blockInfo.pos;
     result.blockStateId = blockInfo.blockStateId;  // 默认保持原样
 
-    // 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
-    if (VanillaBlocks::OBSIDIAN && block == VanillaBlocks::OBSIDIAN) {
+    // MC 1.16.5: 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
+    if (VanillaBlocks::OBSIDIAN && &block == VanillaBlocks::OBSIDIAN) {
         if (rng.nextFloat() < 0.15f && VanillaBlocks::CRYING_OBSIDIAN) {
             result.blockStateId = VanillaBlocks::CRYING_OBSIDIAN->defaultState().stateId();
         }
@@ -1355,21 +1412,10 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
         return result;
     }
 
-    // 石砖墙：mossiness 概率替换为苔藓石砖墙
-    // 注意：MOSSY_STONE_BRICK_WALL 尚未在 VanillaBlocks 中注册
-    // 注册后可实现：if (rng.nextFloat() < m_mossiness) 替换为苔藓石砖墙
-    if (VanillaBlocks::STONE_BRICK_WALL && block == VanillaBlocks::STONE_BRICK_WALL) {
-        // 当前保持原样，待 MOSSY_STONE_BRICK_WALL 注册后实现替换逻辑
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
-    }
-
-    // 石砖类方块：石砖、石头、錾刻石砖
-    bool isStoneBrickType = (VanillaBlocks::STONE_BRICKS && block == VanillaBlocks::STONE_BRICKS) ||
-                            (VanillaBlocks::STONE && block == VanillaBlocks::STONE) ||
-                            (VanillaBlocks::CHISELED_STONE_BRICKS && block == VanillaBlocks::CHISELED_STONE_BRICKS);
+    // MC 1.16.5: 石砖类方块处理（石砖、石头、錾刻石砖）
+    bool isStoneBrickType = (VanillaBlocks::STONE_BRICKS && &block == VanillaBlocks::STONE_BRICKS) ||
+                            (VanillaBlocks::STONE && &block == VanillaBlocks::STONE) ||
+                            (VanillaBlocks::CHISELED_STONE_BRICKS && &block == VanillaBlocks::CHISELED_STONE_BRICKS);
 
     if (isStoneBrickType) {
         // 50% 概率不替换
@@ -1392,13 +1438,59 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(
                 result.blockStateId = VanillaBlocks::CRACKED_STONE_BRICKS->defaultState().stateId();
             }
         }
+
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
     }
 
-    // 圆石：mossiness 概率替换为苔藓圆石
-    if (VanillaBlocks::COBBLESTONE && block == VanillaBlocks::COBBLESTONE) {
+    // MC 1.16.5: 圆石 -> 苔藓圆石
+    if (VanillaBlocks::COBBLESTONE && &block == VanillaBlocks::COBBLESTONE) {
         if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_COBBLESTONE) {
             result.blockStateId = VanillaBlocks::MOSSY_COBBLESTONE->defaultState().stateId();
         }
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // MC 1.16.5: 石砖楼梯 -> 苔藓石砖楼梯
+    // BlockMosinessProcessor.func_237067_a_
+    // 注意：当前简化实现使用默认状态，不保留原方块的 facing/half 属性
+    if (VanillaBlocks::STONE_BRICK_STAIRS && &block == VanillaBlocks::STONE_BRICK_STAIRS) {
+        if (rng.nextFloat() < 0.5f && VanillaBlocks::MOSSY_STONE_BRICK_STAIRS) {
+            result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_STAIRS->defaultState().stateId();
+        }
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // MC 1.16.5: 石砖台阶 -> 苔藓石砖台阶
+    // BlockMosinessProcessor.func_237070_b_
+    if (VanillaBlocks::STONE_BRICK_SLAB && &block == VanillaBlocks::STONE_BRICK_SLAB) {
+        if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_SLAB) {
+            result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_SLAB->defaultState().stateId();
+        }
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // MC 1.16.5: 石砖墙 -> 苔藓石砖墙
+    // BlockMosinessProcessor.func_237071_c_
+    if (VanillaBlocks::STONE_BRICK_WALL && &block == VanillaBlocks::STONE_BRICK_WALL) {
+        if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_WALL) {
+            result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_WALL->defaultState().stateId();
+        }
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
     }
 
     // 复制 NBT（如果有）

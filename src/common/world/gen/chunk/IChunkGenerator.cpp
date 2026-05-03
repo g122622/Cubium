@@ -2,11 +2,13 @@
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../biome/BiomeRegistry.hpp"
+#include "../../fluid/FluidRegistry.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <stdexcept>
 
 namespace mc {
 
@@ -25,7 +27,7 @@ WorldGenRegion::WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadi
     MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
 }
 
-IChunk* WorldGenRegion::getChunk(i32 relX, i32 relZ)
+IChunk* WorldGenRegion::getChunkAt(i32 relX, i32 relZ)
 {
     // 边界检查
     if (relX < -m_chunkRadius || relX > m_chunkRadius || relZ < -m_chunkRadius || relZ > m_chunkRadius) {
@@ -36,7 +38,7 @@ IChunk* WorldGenRegion::getChunk(i32 relX, i32 relZ)
     return m_chunks[index];
 }
 
-const IChunk* WorldGenRegion::getChunk(i32 relX, i32 relZ) const
+const IChunk* WorldGenRegion::getChunkAt(i32 relX, i32 relZ) const
 {
     if (relX < -m_chunkRadius || relX > m_chunkRadius || relZ < -m_chunkRadius || relZ > m_chunkRadius) {
         return nullptr;
@@ -59,7 +61,7 @@ const BlockState* WorldGenRegion::getBlock(i32 x, i32 y, i32 z) const
     const i32 relX = chunkX - m_mainX;
     const i32 relZ = chunkZ - m_mainZ;
 
-    const IChunk* chunk = getChunk(relX, relZ);
+    const IChunk* chunk = getChunkAt(relX, relZ);
     if (!chunk) {
         return BlockRegistry::instance().airState();
     }
@@ -82,7 +84,7 @@ bool WorldGenRegion::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     const i32 relX = chunkX - m_mainX;
     const i32 relZ = chunkZ - m_mainZ;
 
-    IChunk* chunk = getChunk(relX, relZ);
+    IChunk* chunk = getChunkAt(relX, relZ);
     if (!chunk) {
         return false;
     }
@@ -100,7 +102,7 @@ BiomeId WorldGenRegion::getBiome(i32 x, i32 y, i32 z) const
     const i32 relX = chunkX - m_mainX;
     const i32 relZ = chunkZ - m_mainZ;
 
-    const IChunk* chunk = getChunk(relX, relZ);
+    const IChunk* chunk = getChunkAt(relX, relZ);
     if (!chunk) {
         return Biomes::Plains;
     }
@@ -117,7 +119,7 @@ i32 WorldGenRegion::getTopBlockY(i32 x, i32 z, HeightmapType type) const
     const i32 relX = chunkX - m_mainX;
     const i32 relZ = chunkZ - m_mainZ;
 
-    const IChunk* chunk = getChunk(relX, relZ);
+    const IChunk* chunk = getChunkAt(relX, relZ);
     MC_ASSERT_RELEASE(chunk);
 
     const i32 localX = world::toLocalCoord(x);
@@ -148,6 +150,123 @@ void WorldGenRegion::worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& loca
 {
     localX = world::toLocalCoord(worldX);
     localZ = world::toLocalCoord(worldZ);
+}
+
+// ============================================================================
+// WorldGenRegion - IWorld 接口实现
+// ============================================================================
+
+const fluid::FluidState* WorldGenRegion::getFluidState(i32 x, i32 y, i32 z) const
+{
+    // 生成区域暂不支持流体查询，返回空流体状态
+    // TODO: 从区块获取流体状态
+    (void)x; (void)y; (void)z;
+    // 返回空流体的默认状态
+    static const fluid::FluidState emptyState = fluid::FluidRegistry::instance().getFluid(0)->defaultState();
+    return &emptyState;
+}
+
+const ChunkData* WorldGenRegion::getChunk(ChunkCoord x, ChunkCoord z) const
+{
+    const i32 relX = x - m_mainX;
+    const i32 relZ = z - m_mainZ;
+    const IChunk* chunk = getChunkAt(relX, relZ);
+    // IChunk* 不能直接转换为 ChunkData*，这里返回 nullptr
+    // TODO: 如果需要访问 ChunkData，需要更改接口设计
+    (void)chunk;
+    return nullptr;
+}
+
+bool WorldGenRegion::hasChunk(ChunkCoord x, ChunkCoord z) const
+{
+    const i32 relX = x - m_mainX;
+    const i32 relZ = z - m_mainZ;
+    return getChunkAt(relX, relZ) != nullptr;
+}
+
+i32 WorldGenRegion::getHeight(i32 x, i32 z) const
+{
+    return getTopBlockY(x, z, HeightmapType::WorldSurfaceWG);
+}
+
+u8 WorldGenRegion::getBlockLight(i32 x, i32 y, i32 z) const
+{
+    // 生成期间光照未计算，返回 0
+    (void)x; (void)y; (void)z;
+    return 0;
+}
+
+u8 WorldGenRegion::getSkyLight(i32 x, i32 y, i32 z) const
+{
+    // 生成期间光照未计算，返回 15（最大天空光照）
+    (void)x; (void)y; (void)z;
+    return 15;
+}
+
+bool WorldGenRegion::hasBlockCollision(const AxisAlignedBB& box) const
+{
+    // 生成期间不支持碰撞检测
+    (void)box;
+    return false;
+}
+
+std::vector<AxisAlignedBB> WorldGenRegion::getBlockCollisions(const AxisAlignedBB& box) const
+{
+    // 生成期间不支持碰撞检测
+    (void)box;
+    return {};
+}
+
+bool WorldGenRegion::isWithinWorldBounds(i32 x, i32 y, i32 z) const
+{
+    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT &&
+           x >= -30000000 && x < 30000000 &&
+           z >= -30000000 && z < 30000000;
+}
+
+bool WorldGenRegion::hasEntityCollision(const AxisAlignedBB& box, const Entity* except) const
+{
+    // 生成期间没有实体
+    (void)box; (void)except;
+    return false;
+}
+
+std::vector<AxisAlignedBB> WorldGenRegion::getEntityCollisions(const AxisAlignedBB& box, const Entity* except) const
+{
+    // 生成期间没有实体
+    (void)box; (void)except;
+    return {};
+}
+
+std::vector<Entity*> WorldGenRegion::getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const
+{
+    // 生成期间没有实体
+    (void)box; (void)except;
+    return {};
+}
+
+std::vector<Entity*> WorldGenRegion::getEntitiesInRange(const Vector3& pos, f32 range, const Entity* except) const
+{
+    // 生成期间没有实体
+    (void)pos; (void)range; (void)except;
+    return {};
+}
+
+DimensionId WorldGenRegion::dimension() const
+{
+    // 默认返回主世界
+    return 0;  // DimensionId::Overworld
+}
+
+world::tick::TickManager& WorldGenRegion::tickManager()
+{
+    // 生成区域不支持 tick 调度
+    throw std::logic_error("WorldGenRegion does not support tickManager");
+}
+
+const world::tick::TickManager& WorldGenRegion::tickManager() const
+{
+    throw std::logic_error("WorldGenRegion does not support tickManager");
 }
 
 // ============================================================================

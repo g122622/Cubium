@@ -440,6 +440,9 @@ Block* VanillaBlocks::STONE_BRICKS = nullptr;
 Block* VanillaBlocks::MOSSY_STONE_BRICKS = nullptr;
 Block* VanillaBlocks::CRACKED_STONE_BRICKS = nullptr;
 Block* VanillaBlocks::CHISELED_STONE_BRICKS = nullptr;
+// 石砖楼梯和台阶
+Block* VanillaBlocks::STONE_BRICK_STAIRS = nullptr;
+Block* VanillaBlocks::STONE_BRICK_SLAB = nullptr;
 // 苔藓石砖变种
 Block* VanillaBlocks::MOSSY_STONE_BRICK_STAIRS = nullptr;
 Block* VanillaBlocks::MOSSY_STONE_BRICK_SLAB = nullptr;
@@ -1810,6 +1813,16 @@ void VanillaBlocks::registerStoneBricks() {
         ResourceLocation("minecraft:cracked_stone_bricks"), stoneBrickProps);
     CHISELED_STONE_BRICKS = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:chiseled_stone_bricks"), stoneBrickProps);
+
+    // 石砖楼梯和台阶
+    STONE_BRICK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:stone_brick_stairs"),
+        STONE_BRICKS->defaultState(),
+        stoneBrickProps);
+
+    STONE_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:stone_brick_slab"),
+        stoneBrickProps);
 
     // 苔藓石砖楼梯、台阶、墙
     // 参考 MC 1.16.5: MossyStoneBricksBlock 使用相同属性

@@ -109,6 +109,19 @@ public:
         return {static_cast<f32>(x) + 0.5f, static_cast<f32>(y) + 0.5f, static_cast<f32>(z) + 0.5f};
     }
 
+    /**
+     * @brief 计算到另一个位置的曼哈顿距离
+     *
+     * 曼哈顿距离 = |x1-x2| + |y1-y2| + |z1-z2|
+     *
+     * @param other 另一个位置
+     * @return 曼哈顿距离
+     */
+    [[nodiscard]] i32 manhattanDistance(const BlockPos& other) const noexcept
+    {
+        return std::abs(x - other.x) + std::abs(y - other.y) + std::abs(z - other.z);
+    }
+
     // 获取相邻方块
     [[nodiscard]] BlockPos up(i32 offset = 1) const noexcept { return {x, y + offset, z}; }
     [[nodiscard]] BlockPos down(i32 offset = 1) const noexcept { return {x, y - offset, z}; }

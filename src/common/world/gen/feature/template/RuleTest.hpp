@@ -3,7 +3,11 @@
 #include "../../../../core/Types.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/nbt/Nbt.hpp"
+#include "../../../../util/Direction.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 
@@ -25,9 +29,11 @@ enum class RuleTestType : u32 {
     BlockStateMatch = 2,
     RandomBlockMatch = 3,
     RandomBlockStateMatch = 4,
+    TagMatch = 5,
     // PosRuleTest 类型
     AlwaysTruePos = 0,
-    LinearPos = 1
+    LinearPos = 1,
+    AxisAlignedLinearPos = 2
 };
 
 /**
@@ -171,6 +177,33 @@ private:
 };
 
 /**
+ * @brief 方块标签匹配规则测试
+ *
+ * 参考 MC 1.16.5 TagMatchRuleTest
+ * 检查方块是否属于指定标签
+ */
+class TagMatchRuleTest : public RuleTest {
+public:
+    /**
+     * @brief 构造标签匹配测试
+     * @param tagId 标签资源位置（如 "minecraft:logs"）
+     */
+    explicit TagMatchRuleTest(const ResourceLocation& tagId);
+
+    [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
+
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::TagMatch); }
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override {
+        return std::make_unique<TagMatchRuleTest>(m_tagId);
+    }
+
+    [[nodiscard]] const ResourceLocation& tagId() const { return m_tagId; }
+
+private:
+    ResourceLocation m_tagId;
+};
+
+/**
  * @brief 位置规则测试基类
  *
  * 参考 MC 1.16.5 PosRuleTest
@@ -228,14 +261,21 @@ public:
 };
 
 /**
- * @brief 线性高度位置规则测试
+ * @brief 线性距离位置规则测试
  *
- * 参考 MC 1.16.5 LinearPosRuleTest
- * 根据Y坐标相对于最小/最大高度的线性插值决定概率
+ * 参考 MC 1.16.5 LinearPosTest
+ * 根据 worldPos 到 seedPos 的曼哈顿距离线性插值概率
  */
 class LinearPosRuleTest : public PosRuleTest {
 public:
-    LinearPosRuleTest(i32 minHeight, i32 maxHeight, f32 minProbability, f32 maxProbability);
+    /**
+     * @brief 构造线性位置测试
+     * @param minDistance 最小距离
+     * @param maxDistance 最大距离
+     * @param minProbability 最小概率
+     * @param maxProbability 最大概率
+     */
+    LinearPosRuleTest(i32 minDistance, i32 maxDistance, f32 minProbability, f32 maxProbability);
 
     [[nodiscard]] bool test(
         const BlockPos& originalPos,
@@ -245,14 +285,51 @@ public:
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::LinearPos); }
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override {
-        return std::make_unique<LinearPosRuleTest>(m_minHeight, m_maxHeight, m_minProbability, m_maxProbability);
+        return std::make_unique<LinearPosRuleTest>(m_minDistance, m_maxDistance, m_minProbability, m_maxProbability);
     }
 
 private:
-    i32 m_minHeight;
-    i32 m_maxHeight;
+    i32 m_minDistance;
+    i32 m_maxDistance;
     f32 m_minProbability;
     f32 m_maxProbability;
+};
+
+/**
+ * @brief 轴对齐线性位置规则测试
+ *
+ * 参考 MC 1.16.5 AxisAlignedLinearPosTest
+ * 根据指定轴方向上的距离线性插值概率
+ */
+class AxisAlignedLinearPosTest : public PosRuleTest {
+public:
+    /**
+     * @brief 构造轴对齐线性位置测试
+     * @param minProbability 最小概率
+     * @param maxProbability 最大概率
+     * @param minDistance 最小距离
+     * @param maxDistance 最大距离
+     * @param axis 轴向（X, Y, 或 Z）
+     */
+    AxisAlignedLinearPosTest(f32 minProbability, f32 maxProbability, i32 minDistance, i32 maxDistance, Axis axis);
+
+    [[nodiscard]] bool test(
+        const BlockPos& originalPos,
+        const BlockPos& worldPos,
+        const BlockPos& seedPos,
+        math::Random& rng) const override;
+
+    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AxisAlignedLinearPos); }
+    [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override {
+        return std::make_unique<AxisAlignedLinearPosTest>(m_minProbability, m_maxProbability, m_minDistance, m_maxDistance, m_axis);
+    }
+
+private:
+    f32 m_minProbability;
+    f32 m_maxProbability;
+    i32 m_minDistance;
+    i32 m_maxDistance;
+    Axis m_axis;
 };
 
 /**
@@ -269,12 +346,14 @@ public:
      * @param locationPredicate 位置方块测试（测试世界中的方块）
      * @param posPredicate 位置测试（可选，默认 AlwaysTrue）
      * @param outputStateId 输出方块状态ID
+     * @param outputNbt 输出NBT数据（可选，用于方块实体）
      */
     RuleEntry(
         std::unique_ptr<RuleTest> inputPredicate,
         std::unique_ptr<RuleTest> locationPredicate,
         std::unique_ptr<PosRuleTest> posPredicate,
-        u32 outputStateId);
+        u32 outputStateId,
+        std::optional<nbt::tags::compound_tag> outputNbt = std::nullopt);
 
     RuleEntry(
         std::unique_ptr<RuleTest> inputPredicate,
@@ -302,12 +381,14 @@ public:
     [[nodiscard]] const RuleTest* inputPredicate() const { return m_inputPredicate.get(); }
     [[nodiscard]] const RuleTest* locationPredicate() const { return m_locationPredicate.get(); }
     [[nodiscard]] const PosRuleTest* posPredicate() const { return m_posPredicate.get(); }
+    [[nodiscard]] const std::optional<nbt::tags::compound_tag>& outputNbt() const { return m_outputNbt; }
 
 private:
     std::unique_ptr<RuleTest> m_inputPredicate;
     std::unique_ptr<RuleTest> m_locationPredicate;
     std::unique_ptr<PosRuleTest> m_posPredicate;
     u32 m_outputStateId;
+    std::optional<nbt::tags::compound_tag> m_outputNbt;
 };
 
 } // namespace template_

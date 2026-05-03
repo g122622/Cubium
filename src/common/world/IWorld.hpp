@@ -2,6 +2,7 @@
 
 #include "../core/Types.hpp"
 #include "block/BlockPos.hpp"
+#include "IWorldWriter.hpp"
 #include "../util/math/Vector3.hpp"
 #include "../util/AxisAlignedBB.hpp"
 #include "../resource/ResourceLocation.hpp"
@@ -53,11 +54,16 @@ enum class ParticleTypeId : u16;
  * 为实体提供世界访问的抽象接口。
  * ServerWorld 和 ClientWorld 将实现此接口。
  *
+ * 继承自 IWorldWriter，提供读写能力。
+ *
  * 参考 MC 1.16.5 IWorldReader / World
  */
-class IWorld {
+class IWorld : public IWorldWriter {
 public:
     virtual ~IWorld() = default;
+
+    // IWorldWriter 的 setBlock 方法已提供基础写入能力
+    // IWorld 额外提供读取能力
 
     // ========== 方块访问 ==========
 
@@ -77,23 +83,7 @@ public:
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
-    /**
-     * @brief 设置方块状态
-     * @param x, y, z 方块坐标
-     * @param state 方块状态
-     * @return 是否成功
-     */
-    virtual bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) = 0;
-
-    /**
-     * @brief 设置方块状态（使用 BlockPos）
-     * @param pos 方块位置
-     * @param state 方块状态
-     * @return 是否成功
-     */
-    virtual bool setBlock(const BlockPos& pos, const BlockState* state) {
-        return setBlock(pos.x, pos.y, pos.z, state);
-    }
+    // 注意：setBlock 方法已从 IWorldWriter 继承
 
     /**
      * @brief 设置方块状态（带标志）

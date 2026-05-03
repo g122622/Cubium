@@ -65,7 +65,10 @@ std::vector<PlacedPiece> JigsawManager::assemble(
     placedPieces.push_back(std::move(startPlaced));
 
     // 将起始块的连接点添加到待处理队列
-    for (const auto& joint : startPiece->getJoints()) {
+    // MC 1.16.5: 使用打乱后的连接点顺序
+    // 参考: SingleJigsawPiece.getJigsawBlocks() 第91-96行
+    std::vector<JigsawJoint> shuffledJoints = startPiece->getShuffledJoints(rng);
+    for (const auto& joint : shuffledJoints) {
         // 计算旋转后的朝向
         JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(joint.orientation, rotation);
 
@@ -397,9 +400,11 @@ bool JigsawManager::tryPlacePiece(
         placedPieces.push_back(std::move(placed));
 
         // 添加新的待处理连接点
-        for (const auto& newJoint : selectedPiece->getJoints()) {
-            // 跳过已经匹配的连接点
-            if (&newJoint == &selectedJoint) {
+        // MC 1.16.5: 使用打乱后的连接点顺序
+        std::vector<JigsawJoint> shuffledNewJoints = selectedPiece->getShuffledJoints(rng);
+        for (const auto& newJoint : shuffledNewJoints) {
+            // 跳过已经匹配的连接点（通过比较位置）
+            if (newJoint.sourcePos == selectedJoint.sourcePos) {
                 continue;
             }
 

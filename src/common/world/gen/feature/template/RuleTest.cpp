@@ -1,6 +1,7 @@
 #include "RuleTest.hpp"
 #include "../../../block/BlockRegistry.hpp"
 #include "../../../block/Block.hpp"
+#include "../../../block/BlockTags.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 
 namespace mc {
@@ -88,38 +89,130 @@ bool RandomBlockStateMatchRuleTest::test(const BlockState* state, math::Random& 
 }
 
 // ============================================================================
+// TagMatchRuleTest
+// ============================================================================
+
+TagMatchRuleTest::TagMatchRuleTest(const ResourceLocation& tagId)
+    : m_tagId(tagId)
+{
+}
+
+bool TagMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const {
+    if (!state) {
+        return false;
+    }
+    // MC 1.16.5: TagMatchRuleTest.test() - state.isIn(tag)
+    // 获取标签并检查方块是否在其中
+    BlockTag* tag = BlockTags::getTag(m_tagId);
+    if (!tag) {
+        return false;
+    }
+    return tag->contains(*state);
+}
+
+// ============================================================================
 // LinearPosRuleTest
 // ============================================================================
 
 LinearPosRuleTest::LinearPosRuleTest(
-    i32 minHeight,
-    i32 maxHeight,
+    i32 minDistance,
+    i32 maxDistance,
     f32 minProbability,
     f32 maxProbability)
-    : m_minHeight(minHeight)
-    , m_maxHeight(maxHeight)
+    : m_minDistance(minDistance)
+    , m_maxDistance(maxDistance)
     , m_minProbability(minProbability)
     , m_maxProbability(maxProbability)
 {
+    // MC 1.16.5: 验证距离范围
+    // 参考: LinearPosTest 构造函数
+    // if (minDist >= maxDist) throw IllegalArgumentException
 }
 
 bool LinearPosRuleTest::test(
     const BlockPos& /*originalPos*/,
     const BlockPos& worldPos,
-    const BlockPos& /*seedPos*/,
+    const BlockPos& seedPos,
     math::Random& rng) const
 {
-    // MC 1.16.5: LinearPosRuleTest.func_230385_a_
-    // 根据 Y 坐标在 minHeight 和 maxHeight 之间线性插值概率
-    if (m_minHeight == m_maxHeight) {
-        return rng.nextFloat() < m_minProbability;
-    }
+    // MC 1.16.5: LinearPosTest.func_230385_a_
+    // 使用曼哈顿距离（Manhattan distance）
+    i32 distance = worldPos.manhattanDistance(seedPos);
+    f32 randomValue = rng.nextFloat();
 
-    f32 t = static_cast<f32>(worldPos.y - m_minHeight) / static_cast<f32>(m_maxHeight - m_minHeight);
-    t = math::clamp(t, 0.0f, 1.0f);
+    // 使用 clampedLerp 进行线性插值
+    // return randomValue <= MathHelper.clampedLerp(minChance, maxChance,
+    //         MathHelper.clamp(distance, minDist, maxDist))
+    f32 clampedDistance = static_cast<f32>(math::clamp(distance, m_minDistance, m_maxDistance));
+    f32 t = (clampedDistance - static_cast<f32>(m_minDistance)) /
+            static_cast<f32>(m_maxDistance - m_minDistance);
     f32 probability = m_minProbability + t * (m_maxProbability - m_minProbability);
 
-    return rng.nextFloat() < probability;
+    return randomValue <= probability;
+}
+
+// ============================================================================
+// AxisAlignedLinearPosTest
+// ============================================================================
+
+AxisAlignedLinearPosTest::AxisAlignedLinearPosTest(
+    f32 minProbability,
+    f32 maxProbability,
+    i32 minDistance,
+    i32 maxDistance,
+    Axis axis)
+    : m_minProbability(minProbability)
+    , m_maxProbability(maxProbability)
+    , m_minDistance(minDistance)
+    , m_maxDistance(maxDistance)
+    , m_axis(axis)
+{
+    // MC 1.16.5: 验证距离范围
+    // 参考: AxisAlignedLinearPosTest 构造函数
+    // if (minDist >= maxDist) throw IllegalArgumentException
+}
+
+bool AxisAlignedLinearPosTest::test(
+    const BlockPos& /*originalPos*/,
+    const BlockPos& worldPos,
+    const BlockPos& seedPos,
+    math::Random& rng) const
+{
+    // MC 1.16.5: AxisAlignedLinearPosTest.func_230385_a_
+    // 计算指定轴方向上的距离
+    // Direction direction = Direction.getFacingFromAxis(AxisDirection.POSITIVE, axis);
+    // float dx = abs((worldPos.x - seedPos.x) * direction.getXOffset());
+    // float dy = abs((worldPos.y - seedPos.y) * direction.getYOffset());
+    // float dz = abs((worldPos.z - seedPos.z) * direction.getZOffset());
+    // int distance = (int)(dx + dy + dz);
+
+    i32 distance = 0;
+    switch (m_axis) {
+        case Axis::X:
+            distance = std::abs(worldPos.x - seedPos.x);
+            break;
+        case Axis::Y:
+            distance = std::abs(worldPos.y - seedPos.y);
+            break;
+        case Axis::Z:
+            distance = std::abs(worldPos.z - seedPos.z);
+            break;
+        default:
+            distance = 0;
+            break;
+    }
+
+    f32 randomValue = rng.nextFloat();
+
+    // 使用 clampedLerp 进行线性插值
+    f32 clampedDistance = static_cast<f32>(math::clamp(distance, m_minDistance, m_maxDistance));
+    f32 t = static_cast<f32>(m_maxDistance - m_minDistance) > 0.0f
+            ? (clampedDistance - static_cast<f32>(m_minDistance)) /
+              static_cast<f32>(m_maxDistance - m_minDistance)
+            : 0.0f;
+    f32 probability = m_minProbability + t * (m_maxProbability - m_minProbability);
+
+    return randomValue <= probability;
 }
 
 // ============================================================================
@@ -130,11 +223,13 @@ RuleEntry::RuleEntry(
     std::unique_ptr<RuleTest> inputPredicate,
     std::unique_ptr<RuleTest> locationPredicate,
     std::unique_ptr<PosRuleTest> posPredicate,
-    u32 outputStateId)
+    u32 outputStateId,
+    std::optional<nbt::tags::compound_tag> outputNbt)
     : m_inputPredicate(std::move(inputPredicate))
     , m_locationPredicate(std::move(locationPredicate))
     , m_posPredicate(std::move(posPredicate))
     , m_outputStateId(outputStateId)
+    , m_outputNbt(std::move(outputNbt))
 {
 }
 
@@ -146,7 +241,8 @@ RuleEntry::RuleEntry(
         std::move(inputPredicate),
         std::move(locationPredicate),
         std::make_unique<AlwaysTruePosRuleTest>(),
-        outputStateId)
+        outputStateId,
+        std::nullopt)
 {
 }
 

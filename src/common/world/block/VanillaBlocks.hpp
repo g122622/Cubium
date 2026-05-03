@@ -268,6 +268,9 @@ public:
     static Block* MOSSY_STONE_BRICKS;
     static Block* CRACKED_STONE_BRICKS;
     static Block* CHISELED_STONE_BRICKS;
+    // 石砖楼梯和台阶
+    static Block* STONE_BRICK_STAIRS;
+    static Block* STONE_BRICK_SLAB;
     // 苔藓石砖变种
     static Block* MOSSY_STONE_BRICK_STAIRS;
     static Block* MOSSY_STONE_BRICK_SLAB;

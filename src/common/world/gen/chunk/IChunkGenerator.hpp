@@ -4,7 +4,7 @@
 #include "../../chunk/ChunkStatus.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../biome/Biome.hpp"
-#include "../../IWorldWriter.hpp"
+#include "../../IWorld.hpp"
 #include "../../../core/Types.hpp"
 #include <cstddef>
 #include <memory>
@@ -155,9 +155,10 @@ public:
  *
  * @note 参考 MC 1.16.5 WorldGenRegion
  */
-class WorldGenRegion : public IWorldWriter {
+class WorldGenRegion : public IWorld {
 public:
-    using IWorldWriter::setBlock;
+    using IWorld::setBlock;
+    using IWorld::getBlockState;
 
     /**
      * @brief 构造世界生成区域
@@ -196,12 +197,12 @@ public:
     [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[centerIndex()]; }
 
     /**
-     * @brief 获取指定相对位置的区块
-        * @param relX 相对 X（范围由 chunkRadius 决定）
-        * @param relZ 相对 Z（范围由 chunkRadius 决定）
+     * @brief 获取指定相对位置的区块（生成区域特有方法）
+     * @param relX 相对 X（范围由 chunkRadius 决定）
+     * @param relZ 相对 Z（范围由 chunkRadius 决定）
      */
-    [[nodiscard]] IChunk* getChunk(i32 relX, i32 relZ);
-    [[nodiscard]] const IChunk* getChunk(i32 relX, i32 relZ) const;
+    [[nodiscard]] IChunk* getChunkAt(i32 relX, i32 relZ);
+    [[nodiscard]] const IChunk* getChunkAt(i32 relX, i32 relZ) const;
 
     /**
      * @brief 获取主区块坐标
@@ -214,43 +215,186 @@ public:
     [[nodiscard]] ChunkCoord minChunkZ() const { return m_mainZ - m_chunkRadius; }
     [[nodiscard]] ChunkCoord maxChunkZ() const { return m_mainZ + m_chunkRadius; }
 
-    // === 方块访问 ===
+    // === IWorld 接口实现 ===
 
     /**
-     * @brief 获取世界坐标处的方块
+     * @brief 获取方块状态（IWorld 接口）
+     */
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        return getBlock(x, y, z);
+    }
+
+    /**
+     * @brief 获取方块（便捷方法）
      */
     [[nodiscard]] const BlockState* getBlock(i32 x, i32 y, i32 z) const;
 
     /**
-     * @brief 获取世界坐标处的方块（BlockPos 版本）
+     * @brief 获取方块（BlockPos 版本）
      */
     [[nodiscard]] const BlockState* getBlock(const BlockPos& pos) const {
         return getBlock(pos.x, pos.y, pos.z);
     }
 
     /**
-     * @brief 设置世界坐标处的方块
+     * @brief 设置方块状态（IWorld 接口）
      */
     bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override;
 
     /**
-     * @brief 设置世界坐标处的方块（BlockPos 版本）
+     * @brief 设置方块状态（带标志）
      */
-    void setBlock(const BlockPos& pos, const BlockState* state) {
-        setBlock(pos.x, pos.y, pos.z, state);
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+        (void)flags;
+        return setBlock(x, y, z, state);
     }
+
+    /**
+     * @brief 获取流体状态
+     * @note 生成区域暂不支持流体查询，返回空流体
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override;
+
+    /**
+     * @brief 获取区块数据（IWorld 接口）
+     * @note 生成区域不存储 ChunkData，返回 nullptr
+     */
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override;
+
+    /**
+     * @brief 检查区块是否存在
+     */
+    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override;
+
+    /**
+     * @brief 获取最高方块 Y 坐标
+     */
+    [[nodiscard]] i32 getHeight(i32 x, i32 z) const override;
+
+    /**
+     * @brief 获取方块光照
+     */
+    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override;
+
+    /**
+     * @brief 获取天空光照
+     */
+    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override;
+
+    /**
+     * @brief 检查碰撞
+     */
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override;
+
+    /**
+     * @brief 获取碰撞箱
+     */
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override;
+
+    /**
+     * @brief 检查是否在世界边界内
+     */
+    [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override;
+
+    /**
+     * @brief 检查实体碰撞
+     */
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB& box, const Entity* except = nullptr) const override;
+
+    /**
+     * @brief 获取实体碰撞箱
+     */
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB& box, const Entity* except = nullptr) const override;
+
+    /**
+     * @brief 获取碰撞箱内的实体
+     */
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except = nullptr) const override;
+
+    /**
+     * @brief 获取范围内的实体
+     */
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
+
+    /**
+     * @brief 获取维度 ID
+     */
+    [[nodiscard]] DimensionId dimension() const override;
+
+    /**
+     * @brief 获取世界种子
+     */
+    [[nodiscard]] u64 seed() const override { return m_seed; }
+
+    /**
+     * @brief 获取当前 tick
+     */
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+
+    /**
+     * @brief 获取一天内的时间
+     */
+    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+
+    /**
+     * @brief 是否客户端
+     */
+    [[nodiscard]] bool isClientSide() override { return false; }
+
+    /**
+     * @brief 是否困难模式
+     */
+    [[nodiscard]] bool isHardcore() const override { return m_hardcore; }
+
+    /**
+     * @brief 获取难度
+     */
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+
+    /**
+     * @brief 获取物理引擎
+     */
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    /**
+     * @brief 获取 Tick 管理器
+     */
+    [[nodiscard]] world::tick::TickManager& tickManager() override;
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override;
+
+    /**
+     * @brief 获取随机数生成器
+     */
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    // === 生成区域特有方法 ===
 
     /**
      * @brief 获取世界坐标处的生物群系
      */
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const;
 
-    // === 高度查询 ===
-
     /**
-     * @brief 获取最高方块 Y 坐标
+     * @brief 获取最高方块 Y 坐标（指定高度图类型）
      */
     [[nodiscard]] i32 getTopBlockY(i32 x, i32 z, HeightmapType type) const;
+
+    /**
+     * @brief 设置种子（用于生成）
+     */
+    void setSeed(u64 seed) { m_seed = seed; }
+
+    /**
+     * @brief 设置当前 tick
+     */
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+    /**
+     * @brief 设置一天内的时间
+     */
+    void setDayTime(i64 dayTime) { m_dayTime = dayTime; }
 
 private:
     /**
@@ -281,6 +425,14 @@ private:
     i32 m_chunkRadius;
     i32 m_chunkDiameter;
     std::vector<IChunk*> m_chunks;  // 按行优先顺序存储的动态方阵
+
+    // IWorld 所需的状态
+    u64 m_seed = 0;
+    u64 m_currentTick = 0;
+    i64 m_dayTime = 0;
+    bool m_hardcore = false;
+    Difficulty m_difficulty = Difficulty::Normal;
+    math::Random m_random;
 
     // 将世界坐标转换为区块索引
     [[nodiscard]] i32 worldToChunkIndex(i32 x, i32 z) const;

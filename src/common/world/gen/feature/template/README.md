@@ -525,17 +525,35 @@ auto blackstoneProcessor = std::make_unique<BlackstoneReplacementProcessor>();
 
 **MC 1.16.5 参考**: `BlackStoneReplacementProcessor.java`
 
+## 方块排序
+
+MC 1.16.5 中模板放置时，方块按特定顺序排列：
+
+1. **普通方块**（有opaque碰撞箱的方块）- 首先放置
+2. **透明方块**（非opaque或变量透明度的方块）- 其次放置
+3. **方块实体**（有NBT数据的方块）- 最后放置
+
+每类方块内部按 `(Y, X, Z)` 坐标排序。
+
+```cpp
+// MC 1.16.5: Template.func_237151_a_
+// 方块排序在 Template::place() 中自动执行
+```
+
 ## 实现限制
 
 以下功能需要其他子系统支持，当前为已知限制：
 
-### 1. BlockAgeProcessor 楼梯/台阶苔藓化
+### 1. ✅ 已完成：BlockAgeProcessor 楼梯/台阶苔藓化
 
-当前 `BlockAgeProcessor` 对石砖楼梯、石砖台阶的苔藓化需要以下基础设施：
+当前 `BlockAgeProcessor` 已支持：
 - `VanillaBlocks::MOSSY_STONE_BRICK_STAIRS`（苔藓石砖楼梯）
 - `VanillaBlocks::MOSSY_STONE_BRICK_SLAB`（苔藓石砖台阶）
 - `VanillaBlocks::MOSSY_STONE_BRICK_WALL`（苔藓石砖墙）
-- `BlockTags::STAIRS`、`BlockTags::SLABS`、`BlockTags::WALLS` 标签
+- `VanillaBlocks::STONE_BRICK_STAIRS`（石砖楼梯）
+- `VanillaBlocks::STONE_BRICK_SLAB`（石砖台阶）
+
+注意：当前简化实现使用默认状态，不保留原方块的 facing/half 属性。
 
 ### 2. 实体 NBT 加载
 
