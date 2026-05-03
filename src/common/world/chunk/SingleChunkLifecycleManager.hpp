@@ -434,42 +434,4 @@ private:
     mutable std::mutex m_mutex;
 };
 
-// ============================================================================
-// 区块任务
-// ============================================================================
-
-/**
- * @brief 区块生成任务
- */
-struct ChunkTask {
-    enum class Type {
-        Generate,       // 生成区块
-        Load,           // 加载区块
-        Unload,         // 卸载区块
-        Save            // 保存区块
-    };
-
-    Type type = Type::Generate;
-    ChunkCoord x = 0;
-    ChunkCoord z = 0;
-    const ChunkStatus* targetStatus = nullptr;
-    i32 priority = 0;  // 越小优先级越高
-    u64 timestamp = 0; // 创建时间
-
-    ChunkTask() = default;
-
-    ChunkTask(Type t, ChunkCoord x_, ChunkCoord z_, const ChunkStatus* status = nullptr, i32 prio = 0)
-        : type(t), x(x_), z(z_), targetStatus(status), priority(prio), timestamp(0) {}
-
-    /**
-     * @brief 比较函数（用于优先队列）
-     */
-    bool operator<(const ChunkTask& other) const {
-        if (priority != other.priority) {
-            return priority > other.priority;  // 优先级小的在前
-        }
-        return timestamp > other.timestamp;  // 时间早的在前
-    }
-};
-
 } // namespace mc

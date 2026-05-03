@@ -48,15 +48,15 @@ cmake --build build --config RelWithDebInfo
 # 运行测试
 # 强烈建议只运行特定测试并设置brief，运行全部测试会更慢（测试用例有几千个），且很快就会耗尽上下文，导致你无法有效地分析测试结果。
 # 建议只在全部编码工作完成之后运行回归测试的时候才运行全部测试，且也要启用brief。
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter=ChunkWorkerPoolTest.* --gtest_brief=1
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter=ServerWorkerPoolTest.* --gtest_brief=1
 
 ```
 
 # 运行服务端
-./build/bin/RelWithDebInfo/minecraft-server.exe --help
+./build/bin/RelWithDebInfo/minecraft-server --help
 
 # 运行客户端
-./build/bin/RelWithDebInfo/minecraft-client.exe
+./build/bin/RelWithDebInfo/minecraft-client
 ```
 
 增加新的着色器之后要在shaders\CMakeLists.txt中新增文件

@@ -35,7 +35,7 @@ server/
 ├── world/                # 世界管理
 │   ├── ServerWorld.hpp/cpp     # 服务端世界
 │   ├── ServerChunkManager.hpp/cpp # 区块管理
-│   ├── ChunkWorkerPool.hpp/cpp # Worker 线程池
+│   ├── ChunkGenerateTask.hpp/cpp # 区块生成任务
 │   ├── drop/             # 掉落物处理
 │   │   └── BlockDropHandler.hpp/cpp
 │   ├── entity/           # 实体管理
@@ -135,7 +135,7 @@ server/
 |---|---|
 | `ServerWorld` | 服务端世界容器（区块、实体、光照、物理、天气） |
 | `ServerChunkManager` | 区块生命周期（加载、生成、卸载、取消），统一调度 |
-| `ChunkWorkerPool` | 异步区块生成线程池，支持协作取消 |
+| `ChunkGenerateTask` | 区块生成任务，提交到 ServerWorkerPool 执行 |
 | `EntityTracker` | 实体可见性管理，基于距离追踪 |
 | `ItemPickupManager` | 物品拾取检测和处理 |
 | `WeatherManager` | 天气周期、闪电生成、天气命令 |
@@ -222,7 +222,7 @@ TCP 网络通信实现。
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │                     world/                           │    │
-│  │  ServerWorld │ ServerChunkManager │ ChunkWorkerPool │    │
+│  │  ServerWorld │ ServerChunkManager │ ChunkGenerateTask │    │
 │  │  EntityTracker │ ItemPickupManager │ WeatherManager  │    │
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
@@ -266,8 +266,8 @@ TCP 网络通信实现。
 
 5. **区块生成**：
    ```
-   ServerChunkManager.getChunkAsync() → ChunkWorkerPool
-   → Worker 线程生成 → 回调主线程 → 存入缓存
+   ServerChunkManager.getChunkAsync() → ServerWorkerPool
+   → ChunkGenerateTask 执行 → 回调主线程 → 存入缓存
    ```
 
 ## 模块整体职责

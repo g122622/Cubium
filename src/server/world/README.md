@@ -8,7 +8,7 @@
 src/server/world/
 ├── ServerWorld.hpp/cpp          # 服务端世界核心类
 ├── ServerChunkManager.hpp/cpp   # 区块管理器
-├── ChunkWorkerPool.hpp/cpp      # 区块生成线程池
+├── ChunkGenerateTask.hpp/cpp    # 区块生成任务（提交到 ServerWorkerPool）
 ├── drop/
 │   ├── BlockDropHandler.hpp/cpp # 方块掉落处理器
 ├── entity/
@@ -101,29 +101,40 @@ EMPTY → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → HE
 
 ---
 
-### ChunkWorkerPool.hpp/cpp
+### ChunkGenerateTask.hpp/cpp
 
-**职责**：管理多个 Worker 线程，异步执行区块生成任务，不阻塞服务端主循环。
+**职责**：区块生成任务，继承 `ITask` 接口，提交到 `ServerWorkerPool` 执行。
 
 **主要功能**：
-- 优先级任务队列
-- 线程池生命周期管理
-- 协作取消令牌
-- 执行中取消检查
-- 任务完成回调通知
+- 封装区块坐标、目标生成阶段、生成器函数
+- 支持协作取消（通过 `atomic<bool>` 取消令牌）
+- 异常安全（捕获生成器异常并返回失败状态）
+- 返回生成的 `ChunkPrimer` 结果
 
 **使用方法**：
 ```cpp
-ChunkWorkerPool pool(4);  // 4 个 Worker 线程
-pool.start();
+// 创建生成任务
+auto task = std::make_unique<ChunkGenerateTask>(x, z, ChunkStatuses::FULL, generator);
 
-auto cancelToken = std::make_shared<std::atomic_bool>(false);
-pool.submitGenerate(x, z, &ChunkStatuses::FULL, cancelToken, [](bool success, ChunkPrimer* chunk, const std::atomic_bool& cancelSignal) {
-    // 任务完成回调
-});
+// 提交到 ServerWorkerPool
+pool.submit(std::move(task),
+    [](bool success, ITask* task) {
+        if (success) {
+            auto* genTask = static_cast<ChunkGenerateTask*>(task);
+            auto result = genTask->takeResult();
+            // 使用生成的区块...
+        }
+    },
+    TaskPriority::Normal);
 
-pool.shutdown();
+// 带取消令牌
+auto cancelToken = std::make_shared<std::atomic<bool>>(false);
+pool.submit(std::move(task), callback, TaskPriority::Normal, cancelToken);
+// 取消时设置
+cancelToken->store(true);
 ```
+
+**注意**：`ServerWorkerPool` 位于 `common/util/thread/`，是通用的任务池，不仅限于区块生成。
 
 ---
 
@@ -330,15 +341,15 @@ WeatherType weatherType() const;  // 当前天气类型
          │                   │
          ▼                   ▼
 ┌─────────────────┐ ┌─────────────────┐
-│ ChunkWorkerPool │ │ItemPickupManager│
-│  (生成线程池)   │ │  (物品拾取)      │
+│ChunkGenerateTask│ │ItemPickupManager│
+│  (生成任务)      │ │  (物品拾取)      │
+└────────┬────────┘ └─────────────────┘
+         │                   │
+         ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐
+│ ServerWorkerPool│ │BlockDropHandler │
+│  (通用线程池)   │ │  (方块掉落)      │
 └─────────────────┘ └─────────────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │BlockDropHandler │
-                    │  (方块掉落)      │
-                    └─────────────────┘
 
 ┌─────────────────┐
 │ NaturalSpawner  │◄───── ServerWorld.tick()
@@ -532,6 +543,8 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 | `tests/server/BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
 | `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
 | `tests/server/ServerWorldTest.cpp` | 服务端世界声音回调转发 |
+| `tests/server/test_chunk_worker_pool.cpp` | ChunkGenerateTask 与 ServerWorkerPool 集成测试 |
+| `tests/common/util/thread/ServerWorkerPoolTest.cpp` | ServerWorkerPool 单元测试 |
 
 ### 测试覆盖范围
 

@@ -347,11 +347,6 @@ tracker.processUpdates(1000);
 - `ChunkRequestControl` - 请求快照
   - 记录当前代际、优先级、目标阶段、取消令牌
 
-- `ChunkTask` - 区块生成任务
-  - 任务类型（Generate, Load, Unload, Save）
-  - 优先级
-  - 时间戳
-
 **使用示例**：
 
 ```cpp
@@ -396,7 +391,8 @@ holder.cancelActiveRequest();
 
 **与 Worker 的关系**：
 
-- `ChunkWorkerPool` 不再做单纯的“任务执行器”，而是接收带取消令牌的调度任务
+- `ServerWorkerPool` (位于 `common/util/thread/`) 是通用任务池，接收带取消令牌的调度任务
+- `ChunkGenerateTask` 是区块生成任务的实现，继承 `ITask` 接口
 - `ServerChunkManager` 统一决定是否入队、是否提升优先级、是否取消旧请求
 - 区块离开有效加载范围后，旧请求会被标记取消并在回调阶段失效
 
@@ -407,7 +403,7 @@ flowchart LR
     A[票据变化] --> B[ChunkLoadTicketManager]
     B --> C[ServerChunkManager]
     C --> D[SingleChunkLifecycleManager]
-    D --> E[ChunkWorkerPool]
+    D --> E[ServerWorkerPool]
     E --> F[ChunkPrimer]
     F --> G[ChunkData]
 
