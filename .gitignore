@@ -64,3 +64,5 @@ third_party/
 
 # 所有目录下的node_modules目录
 **/node_modules/
+
+build_output.txt
