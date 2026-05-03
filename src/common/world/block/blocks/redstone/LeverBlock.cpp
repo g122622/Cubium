@@ -1,6 +1,8 @@
 #include "LeverBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -170,13 +172,15 @@ i32 LeverBlock::getStrongPower(
 }
 
 void LeverBlock::playClickSound(IWorld& world, const BlockPos& pos, bool powered) {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(powered);
-    // TODO: 播放拉杆音效
-    // world.playSound(pos, powered ? SoundEvents::BLOCK_LEVER_CLICK_ON
-    //                              : SoundEvents::BLOCK_LEVER_CLICK_OFF,
-    //                 0.3f, 0.6f);
+    // 参考 MC 1.16.5: LeverBlock.playClickSound
+    // 注意：拉杆使用木质按钮音效
+    world.playSound(
+        powered ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.3f,
+        0.6f
+    );
 }
 
 void LeverBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state) {

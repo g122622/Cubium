@@ -1,7 +1,9 @@
 #include "BlockItem.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../world/block/Material.hpp"
+#include "../../../world/block/BlockSoundType.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 
@@ -91,10 +93,15 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
     }
 
     // 播放放置音效
-    // TODO: 播放音效
-    // const BlockSoundType& soundType = m_block->getSoundType();
-    // world.playSound(player, pos, soundType.getPlaceSound(), SoundCategory::Blocks,
-    //                 (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f);
+    // 参考 MC 1.16.5: world.playSound(player, pos, soundType.getSound(SoundType.PLACE), SoundCategory.BLOCKS, (volume + 1.0F) / 2.0F, pitch * 0.8F)
+    const BlockSoundType& soundType = m_block->getSoundType();
+    world.playSound(
+        soundType.getPlaceSound(),
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        (soundType.getVolume() + 1.0f) / 2.0f,
+        soundType.getPitch() * 0.8f
+    );
 
     // 非创造模式消耗物品
     if (player == nullptr || !player->isCreative()) {

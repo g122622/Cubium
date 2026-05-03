@@ -13,38 +13,40 @@ namespace mc::client::sound {
 namespace {
 
 // 主菜单音乐
+// MC 1.16.5: minDelay=20, maxDelay=600, replaceCurrent=true
 const MusicPlayer::MusicSelector MENU_MUSIC = {
     ResourceLocation("minecraft:music.menu"),
-    0,      // 立即播放
-    0,
+    20,     // minDelay: 20 ticks
+    600,    // maxDelay: 600 ticks
     true    // 替换当前
 };
 
-// 游戏音乐列表
+// 游戏音乐列表（仅主世界生存模式）
+// MC 1.16.5: 仅包含 music.game，创造模式和制作人员名单有独立选择器
 const std::vector<MusicPlayer::MusicSelector> GAME_MUSIC = {
-    { ResourceLocation("minecraft:music.game"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.creative"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.credits"), 12000, 24000, false }
-};
-
-// 创造模式音乐
-const std::vector<MusicPlayer::MusicSelector> CREATIVE_MUSIC = {
-    { ResourceLocation("minecraft:music.creative"), 12000, 24000, false },
     { ResourceLocation("minecraft:music.game"), 12000, 24000, false }
 };
 
-// 下界音乐
+// 创造模式音乐
+// MC 1.16.5: 仅包含 music.creative
+const std::vector<MusicPlayer::MusicSelector> CREATIVE_MUSIC = {
+    { ResourceLocation("minecraft:music.creative"), 12000, 24000, false }
+};
+
+// 下界音乐（按生物群系选择）
+// MC 1.16.5: 每个下界群系有专属音乐
 const std::vector<MusicPlayer::MusicSelector> NETHER_MUSIC = {
     { ResourceLocation("minecraft:music.nether.basalt_deltas"), 12000, 24000, false },
     { ResourceLocation("minecraft:music.nether.crimson_forest"), 12000, 24000, false },
     { ResourceLocation("minecraft:music.nether.nether_wastes"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.nether.soul_sand_valley"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.nether.warped_forest"), 12000, 24000, false }
+    { ResourceLocation("minecraft:music.nether.soul_sand_valley"), 12000, 24000, false }
+    // 注意：warped_forest 没有音乐（sounds.json 中为空数组）
 };
 
 // 末地音乐
+// MC 1.16.5: minDelay=6000, maxDelay=24000, replaceCurrent=true
 const std::vector<MusicPlayer::MusicSelector> END_MUSIC = {
-    { ResourceLocation("minecraft:music.end"), 12000, 24000, false }
+    { ResourceLocation("minecraft:music.end"), 6000, 24000, true }
 };
 
 // 水下音乐
@@ -224,35 +226,36 @@ const MusicPlayer::MusicSelector& MusicPlayer::getSelector(MusicType type) const
             if (m_gameMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_gameMusicSelectors[m_rng.nextInt(static_cast<i32>(m_gameMusicSelectors.size() - 1))];
+            // 注意：nextInt(n) 返回 [0, n)，所以直接使用 size() 而不是 size()-1
+            return m_gameMusicSelectors[m_rng.nextInt(static_cast<i32>(m_gameMusicSelectors.size()))];
         }
 
         case MusicType::Creative: {
             if (m_creativeMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_creativeMusicSelectors[m_rng.nextInt(static_cast<i32>(m_creativeMusicSelectors.size() - 1))];
+            return m_creativeMusicSelectors[m_rng.nextInt(static_cast<i32>(m_creativeMusicSelectors.size()))];
         }
 
         case MusicType::Nether: {
             if (m_netherMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_netherMusicSelectors[m_rng.nextInt(static_cast<i32>(m_netherMusicSelectors.size() - 1))];
+            return m_netherMusicSelectors[m_rng.nextInt(static_cast<i32>(m_netherMusicSelectors.size()))];
         }
 
         case MusicType::End: {
             if (m_endMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_endMusicSelectors[m_rng.nextInt(static_cast<i32>(m_endMusicSelectors.size() - 1))];
+            return m_endMusicSelectors[m_rng.nextInt(static_cast<i32>(m_endMusicSelectors.size()))];
         }
 
         case MusicType::Underwater: {
             if (m_underwaterMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_underwaterMusicSelectors[m_rng.nextInt(static_cast<i32>(m_underwaterMusicSelectors.size() - 1))];
+            return m_underwaterMusicSelectors[m_rng.nextInt(static_cast<i32>(m_underwaterMusicSelectors.size()))];
         }
 
         case MusicType::Credits:

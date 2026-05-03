@@ -15,9 +15,11 @@
 #include "../../item/context/BlockItemUseContext.hpp"
 #include "../blockentity/BlockEntity.hpp"
 #include "../../util/math/random/IRandom.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../../util/Direction.hpp"
 #include "../../entity/loot/LootTable.hpp"
 #include "../../entity/loot/LootConditions.hpp"
+#include "../../sound/SoundCategory.hpp"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -801,17 +803,21 @@ void Block::harvestBlock(
     BlockEntity* blockEntity,
     const ItemStack* stack) {
 
-    // 默认实现：播放破坏音效
+    // 参考 MC 1.16.5: Block.harvestBlock
+    // 播放破坏音效
+    const BlockSoundType& soundType = state.owner().getSoundType();
+    world.playSound(
+        soundType.getBreakSound(),
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        (soundType.getVolume() + 1.0f) / 2.0f,
+        soundType.getPitch() * 0.8f
+    );
+
     // 掉落物由 BlockDropHandler 处理
-    MC_UNUSED(world);
     MC_UNUSED(player);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
     MC_UNUSED(blockEntity);
     MC_UNUSED(stack);
-
-    // TODO: 播放破坏音效
-    // world.playSound(player, pos, state.getSoundType().getBreakSound(), SoundCategory::BLOCKS, 1.0f, 1.0f);
 }
 
 f32 Block::getPlayerRelativeBlockHardness(

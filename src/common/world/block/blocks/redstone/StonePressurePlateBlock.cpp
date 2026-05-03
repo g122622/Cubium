@@ -1,5 +1,7 @@
 #include "StonePressurePlateBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
 
@@ -52,13 +54,14 @@ i32 StonePressurePlateBlock::getTickDelay(i32 oldSignal, i32 newSignal) const {
 }
 
 void StonePressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(pressed);
-    // TODO: 播放石头压力板音效
-    // world.playSound(pos, pressed ? SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_ON
-    //                              : SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF,
-    //                 0.3f, 0.6f);
+    // 参考 MC 1.16.5: StonePressurePlateBlock.playClickSound
+    world.playSound(
+        pressed ? SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_ON : SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.3f,
+        0.6f
+    );
 }
 
 } // namespace blocks
