@@ -3,12 +3,14 @@
 #include "../../core/MobEntity.hpp"
 #include "../controller/MovementController.hpp"
 #include "../../../util/TimeUtils.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
 
 using namespace goal::constants;
 using namespace mc::util;
+using namespace mc::math;
 
 PathNavigator::PathNavigator(std::unique_ptr<PathFinder> finder)
     : m_pathFinder(std::move(finder))
@@ -42,12 +44,12 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed) {
     }
 
     // 计算路径
-    i32 startX = static_cast<i32>(std::floor(m_entity->x()));
-    i32 startY = static_cast<i32>(std::floor(m_entity->y()));
-    i32 startZ = static_cast<i32>(std::floor(m_entity->z()));
-    i32 targetXi = static_cast<i32>(std::floor(x));
-    i32 targetYi = static_cast<i32>(std::floor(y));
-    i32 targetZi = static_cast<i32>(std::floor(z));
+    i32 startX = floorTo<i32>(m_entity->x());
+    i32 startY = floorTo<i32>(m_entity->y());
+    i32 startZ = floorTo<i32>(m_entity->z());
+    i32 targetXi = floorTo<i32>(x);
+    i32 targetYi = floorTo<i32>(y);
+    i32 targetZi = floorTo<i32>(z);
 
     m_path = std::make_unique<Path>(m_pathFinder->findPath(
         startX, startY, startZ,
@@ -75,12 +77,12 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed) {
         return false;
     }
 
-    i32 startX = static_cast<i32>(std::floor(m_entity->x()));
-    i32 startY = static_cast<i32>(std::floor(m_entity->y()));
-    i32 startZ = static_cast<i32>(std::floor(m_entity->z()));
-    i32 targetXi = static_cast<i32>(std::floor(x));
-    i32 targetYi = static_cast<i32>(std::floor(y));
-    i32 targetZi = static_cast<i32>(std::floor(z));
+    i32 startX = floorTo<i32>(m_entity->x());
+    i32 startY = floorTo<i32>(m_entity->y());
+    i32 startZ = floorTo<i32>(m_entity->z());
+    i32 targetXi = floorTo<i32>(x);
+    i32 targetYi = floorTo<i32>(y);
+    i32 targetZi = floorTo<i32>(z);
 
     m_path = std::make_unique<Path>(m_pathFinder->findPathToRange(
         startX, startY, startZ,

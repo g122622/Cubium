@@ -1,9 +1,12 @@
 #include "WalkNodeProcessor.hpp"
 #include "../../../core/Constants.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include "../../core/LivingEntity.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
+
+using namespace mc::math;
 
 PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z) {
     if (!m_region) {
@@ -74,10 +77,10 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z) {
         f32 halfWidth = m_entityWidth / 2.0f;
 
         // 获取边界框覆盖的方块范围
-        i32 minX = static_cast<i32>(std::floor(entityX - halfWidth));
-        i32 maxX = static_cast<i32>(std::floor(entityX + halfWidth));
-        i32 minZ = static_cast<i32>(std::floor(entityZ - halfWidth));
-        i32 maxZ = static_cast<i32>(std::floor(entityZ + halfWidth));
+        i32 minX = floorTo<i32>(entityX - halfWidth);
+        i32 maxX = floorTo<i32>(entityX + halfWidth);
+        i32 minZ = floorTo<i32>(entityZ - halfWidth);
+        i32 maxZ = floorTo<i32>(entityZ + halfWidth);
 
         // 检查边界框内的所有方块
         for (i32 bx = minX; bx <= maxX; ++bx) {

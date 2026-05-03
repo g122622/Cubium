@@ -5,10 +5,13 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/MathConstants.hpp"
+#include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {
+
+using namespace mc::math;
 
 // ==================== WaterAvoidingRandomWalkingGoal ====================
 
@@ -122,9 +125,9 @@ bool WaterAvoidingRandomWalkingGoal::isInWaterOrLava(f64 x, f64 y, f64 z) const 
     }
 
     IWorld* world = m_creature->world();
-    const i32 blockX = static_cast<i32>(std::floor(x));
-    const i32 blockY = static_cast<i32>(std::floor(y));
-    const i32 blockZ = static_cast<i32>(std::floor(z));
+    const i32 blockX = floorTo<i32>(x);
+    const i32 blockY = floorTo<i32>(y);
+    const i32 blockZ = floorTo<i32>(z);
     const BlockPos pos(blockX, blockY, blockZ);
     return world->isWaterAt(pos) || world->isLavaAt(pos);
 }

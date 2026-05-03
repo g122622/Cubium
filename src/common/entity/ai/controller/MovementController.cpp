@@ -22,6 +22,7 @@ using mc::blocks::DoorBlock;
 using mc::blocks::FenceGateBlock;
 using mc::blocks::FenceBlock;
 using mc::blocks::WallBlock;
+using namespace mc::math;
 
 namespace mc::entity::ai::controller {
 
@@ -141,9 +142,9 @@ void MovementController::tick() {
         // 参考: MovementController.tick() 中的跳跃检测逻辑
         if (!shouldJump && m_mob->world()) {
             // MC 1.16.5: 使用实体当前位置
-            i32 blockX = static_cast<i32>(std::floor(m_mob->x()));
-            i32 blockY = static_cast<i32>(std::floor(m_mob->y()));
-            i32 blockZ = static_cast<i32>(std::floor(m_mob->z()));
+            i32 blockX = floorTo<i32>(m_mob->x());
+            i32 blockY = floorTo<i32>(m_mob->y());
+            i32 blockZ = floorTo<i32>(m_mob->z());
 
             if (const BlockState* state = m_mob->world()->getBlockState(blockX, blockY, blockZ)) {
                 const Block& block = state->getBlock();
@@ -221,9 +222,9 @@ bool MovementController::canWalkAt(f64 x, f64 z) const {
     if (navigator && navigator->getPathFinder()) {
         auto* nodeProcessor = navigator->getPathFinder()->getNodeProcessor();
         if (nodeProcessor) {
-            i32 blockX = static_cast<i32>(std::floor(x));
-            i32 blockY = static_cast<i32>(std::floor(m_mob->y()));
-            i32 blockZ = static_cast<i32>(std::floor(z));
+            i32 blockX = floorTo<i32>(x);
+            i32 blockY = floorTo<i32>(m_mob->y());
+            i32 blockZ = floorTo<i32>(z);
 
             auto nodeType = nodeProcessor->getNodeType(blockX, blockY, blockZ);
             return nodeType == pathfinding::PathNodeType::Walkable;
