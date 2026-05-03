@@ -241,7 +241,22 @@ item/
 | ShieldItem 格挡逻辑 | 部分实现 | Player::canBlockDamageSource、盾牌冷却 |
 | TridentItem 激流冲刺 | 部分实现 | Player::startSpinAttack、SpinAttack状态管理 |
 | EnderPearlItem 冷却 | 未实现 | CooldownTracker系统 |
-| ItemStack属性修饰符 | 部分实现 | ItemStack集成、NBT序列化 |
+| **ArmorItem属性修饰符注册** | **待实现** | **需要较大架构改动** |
+
+### ArmorItem属性修饰符注册说明
+
+MC 1.16.5中，盔甲物品需要在构造函数中注册属性修饰符：
+- `generic.armor` - 护甲值（每个盔甲部件的防御值）
+- `generic.armor_toughness` - 护甲韧性（钻石/下界合金为2.0）
+- `generic.knockback_resistance` - 击退抗性（下界合金为0.1）
+
+**实现要求**：
+1. 在`Item.hpp`中添加`getAttributeModifiers()`虚方法
+2. 在`ArmorItem`构造函数中创建属性修饰符映射
+3. 使用预定义UUID（MC 1.16.5使用固定UUID数组）
+4. 与`LivingEntity`的属性系统集成
+
+**参考**：`net.minecraft.item.ArmorItem`构造函数中的`ARMOR_MODIFIERS`数组 |
 
 ## 使用示例
 
