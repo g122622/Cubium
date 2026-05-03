@@ -35,9 +35,16 @@ TEST_F(IngredientTest, EmptyIngredient_IsEmpty) {
 TEST_F(IngredientTest, EmptyIngredient_DoesNotMatchAnyItem) {
     Ingredient ing;
 
-    // 空Ingredient不应该匹配任何物品
+    // 空 Ingredient 匹配空物品堆（MC 1.16.5 行为）
     ItemStack emptyStack;
-    EXPECT_FALSE(ing.test(emptyStack));
+    EXPECT_TRUE(ing.test(emptyStack));
+
+    // 空 Ingredient 不匹配非空物品堆
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    if (stone) {
+        ItemStack nonEmptyStack(*stone, 1);
+        EXPECT_FALSE(ing.test(nonEmptyStack));
+    }
 }
 
 // ========== 单物品Ingredient测试 ==========

@@ -332,7 +332,8 @@ TEST(Attributes, MaxHealth) {
 
     EXPECT_EQ(attr->registryName(), Attributes::MAX_HEALTH);
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 20.0);
-    EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
+    // MC 1.16.5: max_health 最小值为 1.0（不能为 0）
+    EXPECT_DOUBLE_EQ(attr->minValue(), 1.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 1024.0);
 }
 
