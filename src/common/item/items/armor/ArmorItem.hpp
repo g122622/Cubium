@@ -2,6 +2,7 @@
 
 #include "../../core/Item.hpp"
 #include "../../armor/ArmorMaterial.hpp"
+#include "../../attribute/ItemAttributeModifiers.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 
 namespace mc {
@@ -105,6 +106,20 @@ public:
     }
 
     /**
+     * @brief 获取属性修饰符
+     *
+     * 返回此盔甲物品在装备槽位上应用的属性修饰符。
+     * 包含护甲值、护甲韧性和击退抗性修饰符。
+     *
+     * 参考: net.minecraft.item.ArmorItem#getAttributeModifiers
+     *
+     * @return 属性修饰符管理器
+     */
+    [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const {
+        return m_attributeModifiers;
+    }
+
+    /**
      * @brief 检查是否为头盔
      */
     [[nodiscard]] bool isHelmet() const { return m_slot == armor::ArmorSlot::Head; }
@@ -150,6 +165,16 @@ public:
 protected:
     const armor::ArmorMaterial& m_material;
     armor::ArmorSlot m_slot;
+    ItemAttributeModifiers m_attributeModifiers;  ///< 属性修饰符
+
+private:
+    /**
+     * @brief 构建属性修饰符
+     *
+     * 在构造函数中调用，根据盔甲材质和槽位构建护甲值、韧性和击退抗性修饰符。
+     * 参考: net.minecraft.item.ArmorItem 构造函数
+     */
+    void buildAttributeModifiers();
 };
 
 } // namespace item::items

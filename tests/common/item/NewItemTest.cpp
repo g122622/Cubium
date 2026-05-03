@@ -6,6 +6,7 @@
 #include "item/items/special/FlintAndSteelItem.hpp"
 #include "item/items/special/MilkBucketItem.hpp"
 #include "item/items/special/EnchantedBookItem.hpp"
+#include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/VanillaBlocks.hpp"
 
@@ -314,4 +315,64 @@ TEST_F(EnchantedBookItemTest, BookRegistered) {
     Item* book = ItemRegistry::instance().getItem(ResourceLocation("minecraft:book"));
     ASSERT_NE(book, nullptr);
     EXPECT_EQ(book->maxStackSize(), 64);
+}
+
+// ============================================================================
+// Nether Wood Blocks 测试
+// ============================================================================
+
+class NetherWoodTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        VanillaBlocks::initialize();
+    }
+};
+
+TEST_F(NetherWoodTest, CrimsonStemRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:crimson_stem"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:crimson_stem"));
+}
+
+TEST_F(NetherWoodTest, WarpedStemRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_stem"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:warped_stem"));
+}
+
+TEST_F(NetherWoodTest, StrippedCrimsonStemRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_crimson_stem"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_crimson_stem"));
+}
+
+TEST_F(NetherWoodTest, StrippedWarpedStemRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_warped_stem"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_warped_stem"));
+}
+
+TEST_F(NetherWoodTest, CrimsonHyphaeRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:crimson_hyphae"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:crimson_hyphae"));
+}
+
+TEST_F(NetherWoodTest, WarpedHyphaeRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_hyphae"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:warped_hyphae"));
+}
+
+TEST_F(NetherWoodTest, StrippedCrimsonHyphaeRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_crimson_hyphae"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_crimson_hyphae"));
+}
+
+TEST_F(NetherWoodTest, StrippedWarpedHyphaeRegistered) {
+    Block* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stripped_warped_hyphae"));
+    ASSERT_NE(block, nullptr);
+    EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_warped_hyphae"));
 }

@@ -2,6 +2,7 @@
 
 #include "../../entity/attribute/AttributeModifier.hpp"
 #include "../../entity/attribute/Attribute.hpp"
+#include "../../entity/core/LivingEntity.hpp"
 #include <vector>
 #include <unordered_map>
 
@@ -9,7 +10,6 @@ namespace mc {
 
 // Forward declarations
 class ItemStack;
-class EquipmentSlot;
 
 namespace item {
 

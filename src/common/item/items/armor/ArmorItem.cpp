@@ -1,6 +1,9 @@
 #include "ArmorItem.hpp"
 #include "../../core/ItemStack.hpp"
 #include "../../core/ActionResult.hpp"
+#include "../../attribute/ItemAttributeModifiers.hpp"
+#include "../../../entity/attribute/Attributes.hpp"
+#include "../../../entity/attribute/AttributeModifierUUIDs.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../world/IWorld.hpp"
@@ -10,6 +13,46 @@ namespace mc {
 namespace item::items {
 
 namespace {
+
+/**
+ * @brief 获取盔甲槽位对应的装备槽位
+ *
+ * ArmorSlot (Head/Chest/Legs/Feet) 映射到 EquipmentSlot (Head/Chest/Legs/Feet)
+ */
+[[nodiscard]] i32 armorSlotToEquipmentSlot(armor::ArmorSlot slot) {
+    switch (slot) {
+        case armor::ArmorSlot::Feet:
+            return static_cast<i32>(EquipmentSlot::Feet);
+        case armor::ArmorSlot::Legs:
+            return static_cast<i32>(EquipmentSlot::Legs);
+        case armor::ArmorSlot::Chest:
+            return static_cast<i32>(EquipmentSlot::Chest);
+        case armor::ArmorSlot::Head:
+            return static_cast<i32>(EquipmentSlot::Head);
+        default:
+            return static_cast<i32>(EquipmentSlot::Head);
+    }
+}
+
+/**
+ * @brief 获取盔甲槽位对应的UUID
+ *
+ * 参考: net.minecraft.item.ArmorItem.ARMOR_MODIFIERS
+ */
+[[nodiscard]] const char* getArmorModifierUUID(armor::ArmorSlot slot) {
+    switch (slot) {
+        case armor::ArmorSlot::Feet:
+            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_FEET;
+        case armor::ArmorSlot::Legs:
+            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_LEGS;
+        case armor::ArmorSlot::Chest:
+            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_CHEST;
+        case armor::ArmorSlot::Head:
+            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_HEAD;
+        default:
+            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_HEAD;
+    }
+}
 
 [[nodiscard]] const ItemStack& getArmorEquipment(const LivingEntity& entity, armor::ArmorSlot slot) {
     switch (slot) {
@@ -33,6 +76,49 @@ ArmorItem::ArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot
     : Item(std::move(properties))
     , m_material(material)
     , m_slot(slot) {
+    // MC 1.16.5: 构造函数中构建属性修饰符
+    buildAttributeModifiers();
+}
+
+void ArmorItem::buildAttributeModifiers() {
+    // 参考: net.minecraft.item.ArmorItem 构造函数
+    // 在构造函数中创建属性修饰符的多重映射
+
+    i32 equipmentSlot = armorSlotToEquipmentSlot(m_slot);
+    String uuid = entity::attribute::uuids::fromString(getArmorModifierUUID(m_slot));
+
+    // 1. 护甲值修饰符 (generic.armor)
+    auto armorAttr = entity::attribute::Attributes::armor();
+    auto armorModifier = entity::attribute::AttributeModifier(
+        uuid,
+        "Armor modifier",
+        static_cast<f64>(getDefense()),
+        entity::attribute::Operation::Addition
+    );
+    m_attributeModifiers.add(armorAttr.get(), armorModifier, equipmentSlot);
+
+    // 2. 护甲韧性修饰符 (generic.armor_toughness)
+    auto toughnessAttr = entity::attribute::Attributes::armorToughness();
+    auto toughnessModifier = entity::attribute::AttributeModifier(
+        uuid,
+        "Armor toughness",
+        static_cast<f64>(getToughness()),
+        entity::attribute::Operation::Addition
+    );
+    m_attributeModifiers.add(toughnessAttr.get(), toughnessModifier, equipmentSlot);
+
+    // 3. 击退抗性修饰符 (generic.knockback_resistance) - 仅当下界合金有击退抗性时
+    f32 knockbackRes = getKnockbackResistance();
+    if (knockbackRes > 0.0f) {
+        auto knockbackAttr = entity::attribute::Attributes::knockbackResistance();
+        auto knockbackModifier = entity::attribute::AttributeModifier(
+            uuid,
+            "Armor knockback resistance",
+            static_cast<f64>(knockbackRes),
+            entity::attribute::Operation::Addition
+        );
+        m_attributeModifiers.add(knockbackAttr.get(), knockbackModifier, equipmentSlot);
+    }
 }
 
 f32 ArmorItem::getDestroySpeed(const ItemStack& /*stack*/, const BlockState& /*state*/) const {
