@@ -294,6 +294,7 @@ TEST(GoalSelectorTest, PriorityOrdering) {
 
 TEST(GoalSelectorTest, MutexFlags) {
     GoalSelector selector;
+    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
 
     auto goal1 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
     auto goal2 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
@@ -315,6 +316,7 @@ TEST(GoalSelectorTest, MutexFlags) {
 
 TEST(GoalSelectorTest, DisableFlags) {
     GoalSelector selector;
+    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
 
     auto goal = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
     goal->setShouldExecute(true);
@@ -341,6 +343,7 @@ TEST(GoalSelectorTest, DisableFlags) {
 
 TEST(GoalSelectorTest, TickRunningGoals) {
     GoalSelector selector;
+    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
 
     auto goal = new TestGoal();
     goal->setShouldExecute(true);
@@ -357,6 +360,7 @@ TEST(GoalSelectorTest, TickRunningGoals) {
 
 TEST(GoalSelectorTest, StopWhenShouldNotContinue) {
     GoalSelector selector;
+    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
 
     auto goal = new TestGoal();
     goal->setShouldExecute(true);
@@ -379,6 +383,7 @@ TEST(GoalSelectorTest, StopWhenShouldNotContinue) {
 
 TEST(GoalSelectorTest, RemoveAllGoals) {
     GoalSelector selector;
+    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
 
     auto goal1 = new TestGoal();
     auto goal2 = new TestGoal();
@@ -399,6 +404,7 @@ TEST(GoalSelectorTest, RemoveAllGoals) {
 
 TEST(GoalSelectorTest, ForEachRunningGoal) {
     GoalSelector selector;
+    selector.setTickRate(1);  // 设置 tickRate 为 1 以便测试
 
     auto goal1 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
     auto goal2 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Look});

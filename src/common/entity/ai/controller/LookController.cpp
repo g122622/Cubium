@@ -31,8 +31,16 @@ void LookController::setLookPosition(f64 x, f64 y, f64 z, f32 deltaYaw, f32 delt
 }
 
 void LookController::setLookPositionWithEntity(const Entity& entity, f32 deltaYaw, f32 deltaPitch) {
-    // MC 的 getEyePosition 实现：LivingEntity 使用 getPosYEye()，其他实体使用碰撞盒中心
-    f64 eyeY = entity.y() + entity.eyeHeight();
+    // MC 1.16.5: LivingEntity 使用 getPosYEye()，其他实体使用碰撞盒中心
+    f64 eyeY;
+    if (const auto* living = dynamic_cast<const LivingEntity*>(&entity)) {
+        // LivingEntity: 使用眼睛位置
+        eyeY = living->y() + living->eyeHeight();
+    } else {
+        // 非 LivingEntity: 使用碰撞盒中心
+        const auto& box = entity.boundingBox();
+        eyeY = (static_cast<f64>(box.minY) + static_cast<f64>(box.maxY)) / 2.0;
+    }
     setLookPosition(entity.x(), eyeY, entity.z(), deltaYaw, deltaPitch);
 }
 

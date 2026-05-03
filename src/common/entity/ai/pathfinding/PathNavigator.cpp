@@ -2,11 +2,13 @@
 #include "../../core/LivingEntity.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../controller/MovementController.hpp"
+#include "../../../util/TimeUtils.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
 
 using namespace goal::constants;
+using namespace mc::util;
 
 PathNavigator::PathNavigator(std::unique_ptr<PathFinder> finder)
     : m_pathFinder(std::move(finder))
@@ -32,6 +34,7 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed) {
 
     // MC 1.16.5: 重置卡住检测
     m_stuckTimer = 0;
+    m_isStuck = false;
     if (m_entity) {
         m_lastPosX = m_entity->x();
         m_lastPosY = m_entity->y();
@@ -51,6 +54,9 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed) {
         targetXi, targetYi, targetZi,
         m_maxDistance
     ));
+
+    // MC 1.16.5: 调用 trimPath
+    trimPath();
 
     return hasPath();
 }
@@ -82,6 +88,9 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed) {
         static_cast<i32>(range)
     ));
 
+    // MC 1.16.5: 调用 trimPath
+    trimPath();
+
     return hasPath();
 }
 
@@ -99,6 +108,9 @@ bool PathNavigator::recomputePath() {
 }
 
 void PathNavigator::tick() {
+    // MC 1.16.5: 增加 totalTicks
+    ++m_ticksSinceLastPath;
+
     if (!hasPath() || !m_entity) {
         return;
     }
@@ -108,39 +120,16 @@ void PathNavigator::tick() {
         --m_retryTimer;
     }
 
-    // MC 1.16.5: 卡住检测 - 检查是否移动
-    f64 dx = m_entity->x() - m_lastPosX;
-    f64 dy = m_entity->y() - m_lastPosY;
-    f64 dz = m_entity->z() - m_lastPosZ;
-    f64 distSq = dx * dx + dy * dy + dz * dz;
-
-    if (distSq < PATH_STUCK_DISTANCE_THRESHOLD) {
-        ++m_stuckTimer;
-        if (m_stuckTimer >= PATH_STUCK_THRESHOLD) {
-            // MC 1.16.5: 卡住超过阈值，清除路径
-            clearPath();
-            m_stuckTimer = 0;
-            return;
-        }
-    } else {
-        m_stuckTimer = 0;
-    }
-
-    // 更新上次位置
-    m_lastPosX = m_entity->x();
-    m_lastPosY = m_entity->y();
-    m_lastPosZ = m_entity->z();
-
-    // 沿路径移动
+    // MC 1.16.5: 沿路径移动
     followPath();
+
+    // MC 1.16.5: 卡住检测
+    checkForStuck();
 
     // 检查是否需要重新计算
     if (shouldRecomputePath()) {
         (void)recomputePath();
     }
-
-    // 增加计时器
-    ++m_ticksSinceLastPath;
 }
 
 void PathNavigator::followPath() {
@@ -180,6 +169,101 @@ void PathNavigator::followPath() {
     }
 }
 
+void PathNavigator::checkForStuck() {
+    if (!m_entity || !hasPath()) {
+        return;
+    }
+
+    // MC 1.16.5 checkForStuck: 检测卡住
+    // if (this.totalTicks - this.ticksAtLastPos > 100)
+    if (m_ticksSinceLastPath > 100) {
+        f64 dx = m_entity->x() - m_lastPosX;
+        f64 dy = m_entity->y() - m_lastPosY;
+        f64 dz = m_entity->z() - m_lastPosZ;
+        f64 distSq = dx * dx + dy * dy + dz * dz;
+
+        // MC 1.16.5: if (positionVec3.squareDistanceTo(this.lastPosCheck) < 2.25D)
+        if (distSq < 2.25) {
+            m_isStuck = true;
+            clearPath();
+            resetTimeout();
+            return;
+        } else {
+            m_isStuck = false;
+        }
+
+        // 更新上次位置
+        m_lastPosX = m_entity->x();
+        m_lastPosY = m_entity->y();
+        m_lastPosZ = m_entity->z();
+        m_ticksSinceLastPath = 0;
+    }
+
+    // MC 1.16.5: 超时检测
+    if (m_path && !m_path->isFinished()) {
+        const PathPoint* waypoint = getCurrentWaypoint();
+        if (waypoint) {
+            i32 nodeX = waypoint->x();
+            i32 nodeY = waypoint->y();
+            i32 nodeZ = waypoint->z();
+
+            if (nodeX == m_timeoutCachedNodeX &&
+                nodeY == m_timeoutCachedNodeY &&
+                nodeZ == m_timeoutCachedNodeZ) {
+                // 同一个节点，累加时间
+                i64 currentTime = TimeUtils::getCurrentTimeMs();
+                m_timeoutTimer += currentTime - m_lastTimeoutCheck;
+                m_lastTimeoutCheck = currentTime;
+            } else {
+                // 新节点，重置计时器
+                m_timeoutCachedNodeX = nodeX;
+                m_timeoutCachedNodeY = nodeY;
+                m_timeoutCachedNodeZ = nodeZ;
+
+                // 计算超时限制
+                f64 dx = m_entity->x() - (nodeX + 0.5);
+                f64 dz = m_entity->z() - (nodeZ + 0.5);
+                f64 dist = std::sqrt(dx * dx + dz * dz);
+
+                // MC 1.16.5: timeoutLimit = distance / speed * 1000
+                f32 moveSpeed = 0.0f;
+                if (auto* mob = dynamic_cast<MobEntity*>(m_entity)) {
+                    if (auto* moveCtrl = mob->moveController()) {
+                        moveSpeed = static_cast<f32>(moveCtrl->speed());
+                    }
+                }
+                m_timeoutLimit = moveSpeed > 0.0f ? dist / moveSpeed * 1000.0 : 0.0;
+                m_timeoutTimer = 0;
+                m_lastTimeoutCheck = TimeUtils::getCurrentTimeMs();
+            }
+
+            // MC 1.16.5: 如果超时超过限制的3倍，清除路径
+            if (m_timeoutLimit > 0.0 && static_cast<f64>(m_timeoutTimer) > m_timeoutLimit * 3.0) {
+                resetTimeout();
+                clearPath();
+            }
+        }
+    }
+}
+
+void PathNavigator::trimPath() {
+    // MC 1.16.5: trimPath 方法
+    // 处理锅（Cauldron）等特殊方块的路径
+    // 目前简化实现，锅等特殊方块处理需要在有世界访问时实现
+    // TODO: 当有世界访问时，检查路径点是否在锅上方并调整
+}
+
+void PathNavigator::resetTimeout() {
+    // MC 1.16.5: func_234113_e_
+    m_timeoutCachedNodeX = 0;
+    m_timeoutCachedNodeY = 0;
+    m_timeoutCachedNodeZ = 0;
+    m_timeoutTimer = 0;
+    m_lastTimeoutCheck = 0;
+    m_timeoutLimit = 0.0;
+    m_isStuck = false;
+}
+
 bool PathNavigator::shouldRecomputePath() const {
     if (!m_path || m_path->empty()) {
         return false;
@@ -208,14 +292,19 @@ bool PathNavigator::isAtCurrentWaypoint() const {
         return true;
     }
 
-    // 检查水平距离是否足够近
+    // MC 1.16.5: 检查水平和垂直距离
     f64 dx = waypoint->x() + 0.5 - m_entity->x();
     f64 dz = waypoint->z() + 0.5 - m_entity->z();
     f64 distSq = dx * dx + dz * dz;
 
-    // 到达阈值（约0.7格，允许一些误差）
-    constexpr f64 threshold = 0.5;
-    return distSq < threshold * threshold;
+    // MC 1.16.5: maxDistanceToWaypoint 根据实体宽度调整
+    f32 width = m_entity->width();
+    f32 maxDist = width > 0.75f ? width / 2.0f : 0.75f - width / 2.0f;
+
+    // MC 1.16.5: 检查水平距离和垂直距离
+    f64 dy = std::abs(m_entity->y() - waypoint->y());
+
+    return distSq < static_cast<f64>(maxDist * maxDist) && dy < 1.0;
 }
 
 void PathNavigator::advanceToNextWaypoint() {

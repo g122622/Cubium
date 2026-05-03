@@ -22,9 +22,9 @@ class GoalSelector {
 public:
     /**
      * @brief 默认 tick 间隔
-     * MC 1.16.5: 默认为 3，但测试和简单使用场景需要每tick更新
+     * MC 1.16.5: 默认为 3
      */
-    static constexpr int DEFAULT_TICK_RATE = 1;
+    static constexpr int DEFAULT_TICK_RATE = 3;
 
     /**
      * @brief 构造函数
@@ -39,22 +39,39 @@ public:
     /**
      * @brief 添加AI目标
      *
-     * MC 1.16.5: 目标按优先级插入，使用 LinkedHashSet 保持插入顺序
+     * MC 1.16.5: 目标按优先级插入，使用 LinkedHashSet 保持插入顺序且不允许重复
      * @param priority 优先级（数值越小优先级越高）
      * @param goal AI目标
      */
     void addGoal(int priority, std::unique_ptr<Goal> goal) {
+        // MC 1.16.5: LinkedHashSet 不允许重复，需要检测
+        if (goal == nullptr) return;
+        Goal* goalPtr = goal.get();
+        // 检查是否已存在相同的 Goal
+        for (const auto& pg : m_goals) {
+            if (pg.getGoal() == goalPtr) {
+                return; // 已存在，不添加
+            }
+        }
         m_goals.emplace_back(priority, std::move(goal));
     }
 
     /**
      * @brief 添加AI目标（原始指针版本）
      *
-     * MC 1.16.5: 目标按优先级插入
+     * MC 1.16.5: 目标按优先级插入，使用 LinkedHashSet 保持插入顺序且不允许重复
      * @param priority 优先级
      * @param goal AI目标（获取所有权）
      */
     void addGoal(int priority, Goal* goal) {
+        // MC 1.16.5: LinkedHashSet 不允许重复，需要检测
+        if (goal == nullptr) return;
+        // 检查是否已存在相同的 Goal
+        for (const auto& pg : m_goals) {
+            if (pg.getGoal() == goal) {
+                return; // 已存在，不添加
+            }
+        }
         m_goals.emplace_back(priority, goal);
     }
 

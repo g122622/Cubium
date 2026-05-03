@@ -13,6 +13,8 @@
 #include "../../../world/block/blocks/building/WallBlock.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
 #include "../pathfinding/PathNodeType.hpp"
+#include "../pathfinding/PathFinder.hpp"
+#include "../pathfinding/PathNavigator.hpp"
 #include <cmath>
 
 // 使用命名空间简化代码
@@ -166,19 +168,16 @@ void MovementController::tick() {
                         // 使用 RTTI 检查方块类型
                         bool isDoorOrFence = false;
 
-                        // 检查门
+                        // 检查门（MC: BlockTags.DOORS）
                         if (dynamic_cast<const DoorBlock*>(&block) != nullptr) {
                             isDoorOrFence = true;
                         }
-                        // 检查栅栏门
-                        else if (dynamic_cast<const FenceGateBlock*>(&block) != nullptr) {
-                            isDoorOrFence = true;
-                        }
-                        // 检查栅栏
+                        // 检查栅栏（MC: BlockTags.FENCES，不包括栅栏门）
+                        // 注意：FenceGateBlock 不在 FENCES 标签中，所以栅栏门会触发跳跃
                         else if (dynamic_cast<const FenceBlock*>(&block) != nullptr) {
                             isDoorOrFence = true;
                         }
-                        // MC 1.16.5: 不检查墙(WallBlock)，墙会触发跳跃
+                        // MC 1.16.5: 不检查墙(WallBlock)和栅栏门(FenceGateBlock)，它们会触发跳跃
 
                         if (!isDoorOrFence) {
                             shouldJump = true;
@@ -212,65 +211,26 @@ void MovementController::tick() {
 }
 
 bool MovementController::canWalkAt(f64 x, f64 z) const {
-    if (!m_mob || !m_mob->world()) {
+    if (!m_mob) {
         return true;  // 无法检查时默认可行走
     }
 
     // MC 1.16.5 func_234024_b_:
-    // 检查目标位置的碰撞情况
+    // 使用 NodeProcessor.getPathNodeType 检查目标位置是否可行走
+    auto* navigator = m_mob->navigator();
+    if (navigator && navigator->getPathFinder()) {
+        auto* nodeProcessor = navigator->getPathFinder()->getNodeProcessor();
+        if (nodeProcessor) {
+            i32 blockX = static_cast<i32>(std::floor(x));
+            i32 blockY = static_cast<i32>(std::floor(m_mob->y()));
+            i32 blockZ = static_cast<i32>(std::floor(z));
 
-    i32 blockX = static_cast<i32>(std::floor(x));
-    i32 blockY = static_cast<i32>(std::floor(m_mob->y()));
-    i32 blockZ = static_cast<i32>(std::floor(z));
-
-    // 检查实体宽度范围内的所有位置
-    f32 halfWidth = m_mob->width() / 2.0f;
-    i32 minX = static_cast<i32>(std::floor(x - halfWidth));
-    i32 maxX = static_cast<i32>(std::floor(x + halfWidth));
-    i32 minZ = static_cast<i32>(std::floor(z - halfWidth));
-    i32 maxZ = static_cast<i32>(std::floor(z + halfWidth));
-
-    for (i32 bx = minX; bx <= maxX; ++bx) {
-        for (i32 bz = minZ; bz <= maxZ; ++bz) {
-            // 检查脚下是否有支撑
-            if (const BlockState* state = m_mob->world()->getBlockState(bx, blockY - 1, bz)) {
-                const CollisionShape& shape = state->getCollisionShape();
-                if (shape.isEmpty()) {
-                    // 下方没有碰撞，需要检查是否是悬崖
-                    // 简化实现：如果下方也是空的，认为不可行走
-                    if (const BlockState* belowState = m_mob->world()->getBlockState(bx, blockY - 2, bz)) {
-                        if (belowState->getCollisionShape().isEmpty()) {
-                            continue;  // 继续检查其他位置
-                        }
-                    }
-                }
-            }
-
-            // 检查当前位置是否有碰撞
-            if (const BlockState* state = m_mob->world()->getBlockState(bx, blockY, bz)) {
-                const CollisionShape& shape = state->getCollisionShape();
-                if (!shape.isEmpty()) {
-                    // 有碰撞，检查是否可以通过（门、栅栏门等）
-                    const Block& block = state->getBlock();
-                    bool isPassable = false;
-
-                    // 门可以通过
-                    if (dynamic_cast<const DoorBlock*>(&block) != nullptr) {
-                        isPassable = true;
-                    }
-                    // 栅栏门打开时可以通过
-                    else if (dynamic_cast<const FenceGateBlock*>(&block) != nullptr) {
-                        isPassable = FenceGateBlock::isOpen(*state);
-                    }
-
-                    if (!isPassable) {
-                        return false;
-                    }
-                }
-            }
+            auto nodeType = nodeProcessor->getNodeType(blockX, blockY, blockZ);
+            return nodeType == pathfinding::PathNodeType::Walkable;
         }
     }
 
+    // MC 1.16.5: 如果没有 NodeProcessor，默认返回 true
     return true;
 }
 

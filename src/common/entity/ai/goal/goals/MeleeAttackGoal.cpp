@@ -3,6 +3,7 @@
 #include "../../../core/MobEntity.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/Entity.hpp"
+#include "../../../entities/player/Player.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../GoalConstants.hpp"
@@ -10,6 +11,7 @@
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -59,6 +61,29 @@ bool MeleeAttackGoal::shouldContinueExecuting() {
 
     // 检查目标是否存活
     if (!m_attackTarget->isAlive()) {
+        return false;
+    }
+
+    // MC 1.16.5: 如果使用长期记忆，检查目标是否在家范围内
+    // if (this.longMemory && !this.attacker.isWithinHomeDistanceFromPosition(livingentity.getPosition()))
+    //     return false;
+    if (m_useLongMemory) {
+        // 只有 MobEntity 才有家范围概念
+        MobEntity* mob = dynamic_cast<MobEntity*>(m_creature);
+        if (mob && !mob->isWithinHomeDistanceFromPosition(BlockPos(m_attackTarget->position()))) {
+            return false;
+        }
+    }
+
+    // MC 1.16.5: 玩家模式检查
+    // if (livingentity instanceof PlayerEntity) {
+    //     PlayerEntity player = (PlayerEntity)livingentity;
+    //     if (player.isSpectator() || player.isCreative()) {
+    //         return false;
+    //     }
+    // }
+    Player* player = dynamic_cast<Player*>(m_attackTarget);
+    if (player && (player->isSpectator() || player->isCreative())) {
         return false;
     }
 

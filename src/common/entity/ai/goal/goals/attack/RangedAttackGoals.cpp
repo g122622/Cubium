@@ -12,6 +12,8 @@
 #include "../../../../../item/core/Item.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../item/core/UseAction.hpp"
+#include "../../../../../item/items/weapon/BowItem.hpp"
+#include "../../../../../core/Types.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -127,8 +129,6 @@ void RangedAttackGoal::performAttack(LivingEntity* target, f32 charge) {
 
 RangedBowAttackGoal::RangedBowAttackGoal(MobEntity* mob, f64 speed, i32 attackIntervalMin, i32 attackIntervalMax)
     : RangedAttackGoal(mob, speed, attackIntervalMin, attackIntervalMax, 15.0f)
-    , m_isBowCharging(false)
-    , m_chargeTime(0)
     , m_strafingClockwise(false)
     , m_strafingBackwards(false)
     , m_strafingTime(-1)
@@ -149,40 +149,67 @@ bool RangedBowAttackGoal::shouldExecute() {
 
 void RangedBowAttackGoal::startExecuting() {
     RangedAttackGoal::startExecuting();
-    m_isBowCharging = false;
-    m_chargeTime = 0;
     m_strafingClockwise = false;
     m_strafingBackwards = false;
     m_strafingTime = -1;
+    // MC 1.16.5: 设置激怒状态
+    if (m_mob) {
+        m_mob->setAggroed(true);
+    }
 }
 
 void RangedBowAttackGoal::resetTask() {
     RangedAttackGoal::resetTask();
-    m_isBowCharging = false;
-    m_chargeTime = 0;
     m_strafingClockwise = false;
     m_strafingBackwards = false;
     m_strafingTime = -1;
+    // MC 1.16.5: 清除激怒状态并停止使用弓
+    if (m_mob) {
+        m_mob->setAggroed(false);
+        m_mob->stopActiveHand();
+    }
 }
 
 void RangedBowAttackGoal::tick() {
     if (!m_mob || !m_target) return;
 
-    // 计算到目标的距离
+    // 计算到目标的距离平方
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
-    f32 dist = std::sqrt(static_cast<f32>(distSq));
 
-    // 看向目标
+    // MC 1.16.5: 检查视线并更新 seeTime
+    // 原版逻辑：看得到++，看不到--，而不是简单重置
+    bool canSee = m_mob->canSee(*m_target);
+    bool wasSeeing = m_seenTime > 0;
+    if (canSee != wasSeeing) {
+        m_seenTime = 0;
+    }
+    if (canSee) {
+        ++m_seenTime;
+    } else {
+        --m_seenTime;
+    }
+
+    // MC 1.16.5: 看向目标
     if (auto* lookCtrl = m_mob->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
     }
 
-    // MC 1.16.5: 走位逻辑
-    // 走位时间计数器递增
-    m_strafingTime++;
+    // MC 1.16.5: 在攻击范围内且能看到目标足够久，停止移动并开始走位
+    if (!(distSq > static_cast<f64>(m_maxAttackDistanceSq)) && m_seenTime >= 20) {
+        // 在攻击范围内 - 停止寻路
+        m_mob->clearNavigation();
+        ++m_strafingTime;
+    } else {
+        // 不在攻击范围内 - 向目标移动
+        CreatureEntity* creature = dynamic_cast<CreatureEntity*>(m_mob);
+        if (creature) {
+            creature->tryMoveTo(m_target->x(), m_target->y(), m_target->z(), m_speed);
+        }
+        m_strafingTime = -1;
+    }
 
-    // MC 1.16.5: 每隔 STRAFE_THRESHOLD(20) tick 有概率改变走位方向
-    if (m_strafingTime >= STRAFE_THRESHOLD) {
+    // MC 1.16.5: 走位方向变化
+    if (m_strafingTime >= 20) {
         math::Random rng = m_mob->getRandom();
         // 30% 概率改变顺时针/逆时针
         if (rng.nextFloat() < 0.3f) {
@@ -195,47 +222,51 @@ void RangedBowAttackGoal::tick() {
         m_strafingTime = 0;
     }
 
-    // 检查是否在攻击范围内
-    if (dist <= m_attackRadius && dist >= m_attackRadius * 0.5f) {
-        // 在攻击范围内 - 走位模式
-        if (m_strafingTime > -1) {
-            // MC 1.16.5: 使用 MovementController 的 strafe 方法
-            f32 forward = m_strafingBackwards ? -0.5f : 0.5f;
-            f32 strafe = m_strafingClockwise ? 0.5f : -0.5f;
-
-            if (auto* moveCtrl = m_mob->moveController()) {
-                moveCtrl->strafe(forward, strafe);
-            }
+    // MC 1.16.5: 走位执行
+    if (m_strafingTime > -1) {
+        // 根据距离调整前进/后退
+        if (distSq > static_cast<f64>(m_maxAttackDistanceSq) * 0.75) {
+            m_strafingBackwards = false;
+        } else if (distSq < static_cast<f64>(m_maxAttackDistanceSq) * 0.25) {
+            m_strafingBackwards = true;
         }
 
-        // 蓄力和发射逻辑
-        if (m_isBowCharging) {
-            m_chargeTime++;
+        // 执行走位
+        f32 forward = m_strafingBackwards ? -0.5f : 0.5f;
+        f32 strafe = m_strafingClockwise ? 0.5f : -0.5f;
+        if (auto* moveCtrl = m_mob->moveController()) {
+            moveCtrl->strafe(forward, strafe);
+        }
+    }
 
-            if (m_chargeTime >= BOW_CHARGE_TIME) {
+    // MC 1.16.5: 弓蓄力和发射逻辑
+    // 检查实体是否正在使用物品（蓄力中）
+    if (m_mob->isUsingItem()) {
+        // 正在蓄力
+        if (!canSee && m_seenTime < -60) {
+            // 看不到目标太久了，取消蓄力
+            m_mob->stopActiveHand();
+        } else if (canSee) {
+            // 检查蓄力时间
+            // MC 1.16.5: getItemInUseMaxCount() = getUseDuration() - getItemInUseCount()
+            i32 useDuration = m_mob->getMainHandItem().getItem()->getUseDuration(m_mob->getMainHandItem());
+            i32 timeUsed = useDuration - m_mob->getItemInUseCount();
+            if (timeUsed >= 20) {
                 // 蓄力完成，发射
-                performAttack(m_target, 1.0f);
-                m_isBowCharging = false;
-                m_chargeTime = 0;
+                m_mob->stopActiveHand();
+                performAttack(m_target, item::BowItem::getArrowVelocity(timeUsed));
+                m_attackTime = m_attackIntervalMin;
             }
-        } else if (m_attackTime <= 0) {
-            // 开始蓄力
-            m_isBowCharging = true;
-            m_chargeTime = 0;
         }
-    } else {
-        // 不在攻击范围内，取消蓄力和走位，向目标移动
-        if (m_isBowCharging) {
-            m_isBowCharging = false;
-            m_chargeTime = 0;
-        }
-        m_strafingTime = -1;
-
-        // 尝试转换为CreatureEntity以使用tryMoveTo
-        CreatureEntity* creature = dynamic_cast<CreatureEntity*>(m_mob);
-        if (creature) {
-            creature->tryMoveTo(m_target->x(), m_target->y(), m_target->z(), m_speed);
-        }
+    } else if (--m_attackTime <= 0 && m_seenTime >= -60) {
+        // MC 1.16.5: 开始蓄力
+        // ProjectileHelper.getHandWith(entity, Items.BOW)
+        // 找到持有弓的手
+        Hand bowHand = (m_mob->getMainHandItem().getItem() != nullptr &&
+                        m_mob->getMainHandItem().getItem()->getUseAction(m_mob->getMainHandItem()) == UseAction::Bow)
+                           ? Hand::MainHand
+                           : Hand::OffHand;
+        m_mob->setActiveHand(bowHand);
     }
 }
 

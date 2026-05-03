@@ -156,15 +156,29 @@ public:
 
     /**
      * @brief 创建移动克隆（MC 1.16.5 cloneMove）
-     * 创建一个新位置的克隆，保留代价信息和父节点。
-     * MC 1.16.5: 复制所有寻路状态字段
+     * 创建一个新位置的克隆，保留所有寻路状态字段。
+     * MC 1.16.5: 复制所有寻路状态字段，包括：
+     * - index (heapIndex)
+     * - totalPathDistance (costFromStart)
+     * - distanceToNext
+     * - distanceToTarget (totalCost)
+     * - previous (parent)
+     * - visited
+     * - field_222861_j (walkedDistance)
+     * - costMalus
+     * - nodeType
      */
     [[nodiscard]] PathPoint cloneMove(i32 newX, i32 newY, i32 newZ) const {
         PathPoint copy(newX, newY, newZ);
-        copy.m_nodeType = m_nodeType;
+        copy.m_heapIndex = m_heapIndex;
+        copy.m_costFromStart = m_costFromStart;
+        copy.m_distanceToNext = m_distanceToNext;
+        copy.m_totalCost = m_totalCost;
+        copy.m_parent = m_parent;
+        copy.m_visited = m_visited;
+        copy.m_walkedDistance = m_walkedDistance;
         copy.m_costMalus = m_costMalus;
-        // MC 1.16.5: cloneMove 不复制 visited、parent、heapIndex
-        // 只复制节点类型和代价惩罚
+        copy.m_nodeType = m_nodeType;
         return copy;
     }
 

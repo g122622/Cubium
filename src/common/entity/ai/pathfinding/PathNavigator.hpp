@@ -180,6 +180,12 @@ public:
      */
     [[nodiscard]] f64 getSpeed() const { return m_speed; }
 
+    /**
+     * @brief 检查是否卡住
+     * MC 1.16.5: func_244428_t_
+     */
+    [[nodiscard]] bool isStuck() const { return m_isStuck; }
+
 protected:
     std::unique_ptr<PathFinder> m_pathFinder;
     std::unique_ptr<Path> m_path;
@@ -200,6 +206,15 @@ protected:
     f64 m_lastPosZ = 0.0;
     i32 m_stuckTimer = 0;
     // 使用 GoalConstants.hpp 中的常量: PATH_STUCK_THRESHOLD, PATH_STUCK_DISTANCE_THRESHOLD
+
+    // MC 1.16.5: 超时检测字段
+    i32 m_timeoutCachedNodeX = 0;     // timeoutCachedNode X
+    i32 m_timeoutCachedNodeY = 0;     // timeoutCachedNode Y
+    i32 m_timeoutCachedNodeZ = 0;     // timeoutCachedNode Z
+    i64 m_timeoutTimer = 0;           // timeoutTimer (毫秒)
+    i64 m_lastTimeoutCheck = 0;       // lastTimeoutCheck (毫秒)
+    f64 m_timeoutLimit = 0.0;         // timeoutLimit
+    bool m_isStuck = false;           // field_244431_t
 
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
@@ -236,6 +251,24 @@ protected:
      * @brief 获取当前目标路径点
      */
     [[nodiscard]] const PathPoint* getCurrentWaypoint() const;
+
+    /**
+     * @brief MC 1.16.5: 检查是否卡住并处理
+     * 对应 checkForStuck
+     */
+    void checkForStuck();
+
+    /**
+     * @brief MC 1.16.5: 修剪路径（处理锅等特殊情况）
+     * 对应 trimPath
+     */
+    void trimPath();
+
+    /**
+     * @brief MC 1.16.5: 重置超时计时器
+     * 对应 func_234113_e_
+     */
+    void resetTimeout();
 };
 
 } // namespace entity::ai::pathfinding
