@@ -1,6 +1,7 @@
 #include "NetworkClient.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/network/packet/SetPassengersPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
@@ -687,6 +688,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
 
         case network::PacketType::MovingSound: {
             handleMovingSound(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::SetPassengers: {
+            handleSetPassengers(bodyDeser);
             break;
         }
 
@@ -1587,6 +1593,25 @@ void NetworkClient::handleMovingSound(network::PacketDeserializer& deser) {
             packet.getVolume(),
             packet.getPitch()
         );
+    }
+}
+
+void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::SetPassengersPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize SetPassengers packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::debug("[NetworkClient] Received SetPassengers: vehicle={}, passengers={}",
+                  packet.entityId(), packet.passengerIds().size());
+
+    if (m_callbacks.onSetPassengers) {
+        m_callbacks.onSetPassengers(packet.entityId(), packet.passengerIds());
     }
 }
 

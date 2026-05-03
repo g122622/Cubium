@@ -24,6 +24,7 @@ network/
 │   ├── GameStateChangePacket.hpp/cpp     # 游戏状态包
 │   ├── PlayerAbilitiesPacket.hpp/cpp     # 玩家能力包
 │   └── BlockBreakAnimPacket.hpp/cpp      # 方块破坏动画包
+│   ├── SetPassengersPacket.hpp/cpp       # 乘客列表同步包
 └── sync/                        # 同步层
     ├── Sync.hpp                 # 统一头文件
     └── ChunkSync.hpp/cpp        # 区块同步管理
@@ -406,6 +407,34 @@ public:
     static BlockBreakAnimPacket createUpdate(EntityId breakerId, const BlockPos& pos, u8 stage);
     static BlockBreakAnimPacket createRemove(EntityId breakerId, const BlockPos& pos);
 };
+```
+
+#### SetPassengersPacket.hpp/cpp
+
+乘客列表同步包，用于同步实体的乘客关系（如玩家骑乘矿车）：
+
+```cpp
+class SetPassengersPacket : public Packet {
+public:
+    SetPassengersPacket();
+    explicit SetPassengersPacket(u32 entityId, const std::vector<u32>& passengerIds);
+
+    [[nodiscard]] u32 entityId() const;           // 载具实体ID
+    [[nodiscard]] const std::vector<u32>& passengerIds() const;  // 乘客实体ID列表
+
+    void setEntityId(u32 entityId);
+    void setPassengerIds(const std::vector<u32>& ids);
+    void addPassengerId(u32 id);
+};
+```
+
+**职责**:
+- 服务端向客户端同步实体的乘客列表
+- 当实体骑乘/离开载具时发送
+- 客户端接收后更新 `ClientEntity` 的 `vehicleId` 和骑乘状态
+- 触发音频系统的骑乘状态变化（如矿车音效）
+
+**MC 1.16.5 参考**: `SSetPassengersPacket`
 ```
 
 ---

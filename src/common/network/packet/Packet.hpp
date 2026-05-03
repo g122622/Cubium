@@ -53,22 +53,23 @@ enum class PacketType : u16 {
     LightUpdate = 221,          // 光照更新 (S->C)
     CollectItem = 222,          // 物品拾取动画 (S->C)
     BlockBreakAnim = 223,       // 方块破坏动画 (S->C)
+    SetPassengers = 224,        // 设置乘客列表 (S->C)
 
     // 维度相关包
-    ChangeDimension = 224,      // 维度切换 (S->C)
-    Respawn = 225,              // 重生 (S->C)
-    DimensionInfo = 226,        // 维度信息 (S->C)
-    ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
-    SpawnPosition = 228,        // 世界出生点 (S->C)
+    ChangeDimension = 225,      // 维度切换 (S->C)
+    Respawn = 226,              // 重生 (S->C)
+    DimensionInfo = 227,        // 维度信息 (S->C)
+    ConfirmDimensionChange = 228, // 确认维度切换 (C->S)
+    SpawnPosition = 229,        // 世界出生点 (S->C)
 
     // 命令系统
-    CommandTree = 229,          // 命令树同步 (S->C)
+    CommandTree = 230,          // 命令树同步 (S->C)
 
     // 玩家列表
-    PlayerListItem = 231,       // 玩家列表更新 (S->C)
+    PlayerListItem = 232,       // 玩家列表更新 (S->C)
 
     // 睡眠系统
-    Sleep = 230,                // 睡眠状态同步 (S->C)
+    Sleep = 231,                // 睡眠状态同步 (S->C)
 
     // 背包相关包 (双向)
     ContainerContent = 300,     // 容器内容同步 (S->C)

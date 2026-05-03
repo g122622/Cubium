@@ -912,6 +912,79 @@ void ClientApplication::setupNetworkCallbacks()
         // 显示名更新 - 暂时不需要特殊处理
     };
 
+    callbacks.onSetPassengers = [this](u32 entityId, const std::vector<u32>& passengerIds) {
+        // 处理乘客变化：更新实体的骑乘状态
+        // MC 1.16.5: 当乘客列表变化时，需要更新骑乘状态声音
+
+        const EntityId localPlayerEntityId = m_localIdentity.entityId();
+        const EntityId vehicleEntityId = static_cast<EntityId>(entityId);
+
+        // 获取载具实体和旧乘客列表
+        ClientEntity* vehicleEntity = m_world.entityManager().getEntity(vehicleEntityId);
+        std::vector<u32> oldPassengerIds;
+        if (vehicleEntity) {
+            oldPassengerIds = vehicleEntity->passengers();
+        }
+
+        // 清除不再是乘客的实体的 vehicleId
+        for (u32 oldPassengerId : oldPassengerIds) {
+            bool stillPassenger = false;
+            for (u32 newPassengerId : passengerIds) {
+                if (oldPassengerId == newPassengerId) {
+                    stillPassenger = true;
+                    break;
+                }
+            }
+            if (!stillPassenger) {
+                ClientEntity* oldPassenger = m_world.entityManager().getEntity(static_cast<EntityId>(oldPassengerId));
+                if (oldPassenger) {
+                    oldPassenger->setVehicleId(0);
+                }
+            }
+        }
+
+        // 更新载具的乘客列表
+        if (vehicleEntity) {
+            vehicleEntity->setPassengers(passengerIds);
+        }
+
+        // 检查本地玩家是否是乘客之一，并更新所有乘客的 vehicleId
+        bool localPlayerIsRiding = false;
+        for (u32 passengerId : passengerIds) {
+            if (passengerId == static_cast<u32>(localPlayerEntityId)) {
+                localPlayerIsRiding = true;
+            }
+            ClientEntity* passenger = m_world.entityManager().getEntity(static_cast<EntityId>(passengerId));
+            if (passenger) {
+                passenger->setVehicleId(vehicleEntityId);
+            }
+        }
+
+        // 更新本地玩家的音频状态
+        ClientEntity* localPlayer = m_world.entityManager().getEntity(localPlayerEntityId);
+        if (localPlayer) {
+            if (localPlayerIsRiding) {
+                // 本地玩家开始骑乘
+                if (m_audioService) {
+                    m_audioService->updateEntityRidingState(
+                        static_cast<u32>(localPlayerEntityId),
+                        true,
+                        entityId
+                    );
+                }
+            } else if (localPlayer->vehicleId() == vehicleEntityId) {
+                // 本地玩家从这个载具下来了（vehicleId 已在上面被清除）
+                if (m_audioService) {
+                    m_audioService->updateEntityRidingState(
+                        static_cast<u32>(localPlayerEntityId),
+                        false,
+                        0
+                    );
+                }
+            }
+        }
+    };
+
     m_networkClient->setCallbacks(callbacks);
 }
 

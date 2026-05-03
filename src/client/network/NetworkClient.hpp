@@ -91,6 +91,9 @@ struct NetworkClientCallbacks {
     std::function<void(u32 entityId, f32 headYaw)> onEntityHeadLook;
     std::function<void(u32 entityId, u8 status)> onEntityStatus;
 
+    // 乘客事件
+    std::function<void(u32 entityId, const std::vector<u32>& passengerIds)> onSetPassengers;
+
     // 天气事件
     std::function<void(f32 rainStrength)> onRainStrengthChange;
     std::function<void(f32 thunderStrength)> onThunderStrengthChange;
@@ -276,6 +279,9 @@ private:
 
     // 粒子包处理
     void handleParticle(network::PacketDeserializer& deser);
+
+    // 乘客包处理
+    void handleSetPassengers(network::PacketDeserializer& deser);
 
     // ASIO 网络
     asio::io_context m_ioContext;

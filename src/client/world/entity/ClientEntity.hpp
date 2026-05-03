@@ -375,6 +375,22 @@ public:
     void setRiding(bool riding) { m_riding = riding; }
 
     /**
+     * @brief 获取正在骑乘的载具ID
+     */
+    [[nodiscard]] EntityId vehicleId() const { return m_vehicleId; }
+    void setVehicleId(EntityId vehicleId) { m_vehicleId = vehicleId; }
+
+    /**
+     * @brief 获取乘客列表（如果此实体是载具）
+     */
+    [[nodiscard]] const std::vector<u32>& passengers() const { return m_passengers; }
+
+    /**
+     * @brief 设置乘客列表（由 SetPassengersPacket 更新）
+     */
+    void setPassengers(std::vector<u32> passengers) { m_passengers = std::move(passengers); }
+
+    /**
      * @brief 是否正在坐下（用于动物）
      */
     [[nodiscard]] bool isSitting() const { return m_sitting; }
@@ -620,6 +636,8 @@ private:
     bool m_sitting = false;
     bool m_onFire = false;
     bool m_invisible = false;
+    EntityId m_vehicleId = 0;  // 正在骑乘的载具ID
+    std::vector<u32> m_passengers;  // 乘客列表（如果此实体是载具）
 
     // 攻击动画
     f32 m_swingProgress = 0.0f;
