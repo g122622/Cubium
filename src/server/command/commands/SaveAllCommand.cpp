@@ -3,8 +3,11 @@
 #include "common/command/CommandContext.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/application/IServer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "common/world/storage/WorldStorageService.hpp"
 
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -40,27 +43,75 @@ void SaveAllCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
 i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
+    auto* server = source.server();
 
-    // TODO: 实现世界保存
-    // 需要：
-    // 1. ServerWorld::saveAll()
-    // 2. PlayerManager::saveAll()
-    // 3. 保存区块数据、实体数据、玩家数据
+    if (!server) {
+        source.sendMessage("Error: Server not available");
+        return 0;
+    }
 
-    source.sendMessage("Saving the game (this may take a moment)");
-    source.sendMessage("Saved the game");
+    source.sendMessage("Saving the game (this may take a moment)...");
+
+    // 保存世界
+    auto& world = server->world();
+    auto* serverWorld = world.asServerWorld();
+
+    size_t totalSections = 0;
+
+    if (serverWorld && serverWorld->isStorageOpen()) {
+        auto result = serverWorld->storage().flushAllDirty();
+        if (result.success()) {
+            totalSections += result.value();
+        } else {
+            source.sendMessage(fmt::format("Failed to save world: {}", result.error().message()));
+            spdlog::error("Failed to save world: {}", result.error().message());
+            return 0;
+        }
+    }
+
+    // TODO: 保存玩家数据
+
+    source.sendMessage(fmt::format("Saved the game ({} sections)", totalSections));
+    spdlog::info("Game saved by {} ({} sections)", source.name(), totalSections);
 
     return 1;
 }
 
 i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
+    auto* server = source.server();
 
-    // TODO: 实现强制刷新保存
-    // 强制刷新所有待处理的区块和实体数据到磁盘
+    if (!server) {
+        source.sendMessage("Error: Server not available");
+        return 0;
+    }
 
-    source.sendMessage("Saving the game (this may take a moment)");
-    source.sendMessage("Saved the game (flushed)");
+    source.sendMessage("Saving the game with flush (this may take a moment)...");
+
+    // 保存世界
+    auto& world = server->world();
+    auto* serverWorld = world.asServerWorld();
+
+    size_t totalSections = 0;
+
+    if (serverWorld && serverWorld->isStorageOpen()) {
+        // 保存所有脏数据
+        auto result = serverWorld->storage().flushAllDirty();
+        if (result.success()) {
+            totalSections += result.value();
+        } else {
+            source.sendMessage(fmt::format("Failed to save world: {}", result.error().message()));
+            return 0;
+        }
+
+        // 清除所有缓存（强制刷新到磁盘）
+        serverWorld->storage().clearAllCaches();
+    }
+
+    // TODO: 保存玩家数据
+
+    source.sendMessage(fmt::format("Saved the game (flushed, {} sections)", totalSections));
+    spdlog::info("Game saved with flush by {} ({} sections)", source.name(), totalSections);
 
     return 1;
 }
