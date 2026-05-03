@@ -936,8 +936,8 @@ u32 ChunkMesher::resolveTintColor(
         return packRgb(s_grassColorMap[static_cast<size_t>(colorIndex)]);
     }
 
-    // Java 在缺失色图时会返回品红；这里使用常见平原草色避免出现异常闪烁色
-    return packRgb(0x91BD59);
+    // Java 在缺失色图时会返回品红
+    return packRgb(0xff757f); // GrassColors.getDefault()
 }
 
 u32 ChunkMesher::resolveTintColorBlended(
