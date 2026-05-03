@@ -1084,12 +1084,16 @@ TEST(AgriculturalBehaviorTest, CropRequiresLightToStayValid) {
     const BlockPos cropPos(4, 65, 4);
 
     world.setBlock(cropPos.x, cropPos.y - 1, cropPos.z, &VanillaBlocks::FARMLAND->defaultState());
-    world.setSkyLightAt(cropPos.up(), 8);
-    world.setBlockLightAt(cropPos.up(), 8);
+    // 光照检查的是作物位置本身的光照
+    // MC 1.16.5: max(blockLight, skyLight) >= 8 或 canSeeSky
+    world.setSkyLightAt(cropPos, 7);
+    world.setBlockLightAt(cropPos, 7);
 
+    // 光照 7 < 8，作物不能生存
     EXPECT_FALSE(crop.isValidPosition(crop.defaultState(), world, cropPos));
 
-    world.setSkyLightAt(cropPos.up(), 9);
+    // 光照 8 >= 8，作物可以生存
+    world.setSkyLightAt(cropPos, 8);
     EXPECT_TRUE(crop.isValidPosition(crop.defaultState(), world, cropPos));
 }
 

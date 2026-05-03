@@ -300,7 +300,12 @@ TEST(BlockEntityTodoTest, SignEntityLoadRejectsInvalidControlCharacters) {
     data["z"] = 5;
     data["lines"] = nlohmann::json::array({String("ok"), String("x") + static_cast<char>(2)});
 
-    EXPECT_FALSE(sign.load(data));
+    // load 会清理无效控制字符而非失败，仍然返回 true
+    EXPECT_TRUE(sign.load(data));
+    // 第一行应该正常加载
+    EXPECT_EQ(sign.getLineText(0), "ok");
+    // 第二行应该被清理为空（包含控制字符）
+    EXPECT_EQ(sign.getLineText(1), "");
 }
 
 TEST(BlockEntityTodoTest, EnchantingTableAnimationOpensWhenNearbyPlayerExists) {

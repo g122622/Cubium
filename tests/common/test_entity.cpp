@@ -220,17 +220,21 @@ TEST(FoodStats, ExhaustionConsumption) {
     EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 5.0f);
 
     // 消耗 4.0 饱和度 -> 消耗 1 饱和度
+    // 注意：addExhaustion 只是累加，实际消耗在 tick() 中触发
     player.foodStats().addExhaustion(4.0f);
+    player.foodStats().tick(player, Difficulty::Normal, false); // 触发消耗
     EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 4.0f);
     EXPECT_EQ(player.foodStats().foodLevel(), 20); // 饥饿值不变
 
     // 消耗剩余饱和度
     player.foodStats().addExhaustion(16.0f); // 4次消耗
+    player.foodStats().tick(player, Difficulty::Normal, false); // 触发消耗
     EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 0.0f);
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
 
     // 饱和度为0后开始消耗饥饿值
     player.foodStats().addExhaustion(4.0f);
+    player.foodStats().tick(player, Difficulty::Normal, false); // 触发消耗
     EXPECT_EQ(player.foodStats().foodLevel(), 19);
 }
 
@@ -248,10 +252,11 @@ TEST(FoodStats, SaturationCalculation) {
     EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 2.4f);
 
     // 吃熟牛排：food=8, modifier=0.8
-    // saturation = 8 * 0.8 * 2.0 = 12.8，但上限为 foodLevel
+    // saturation = 2.4 + 8 * 0.8 * 2.0 = 2.4 + 12.8 = 15.2
+    // 饥饿值上限 20，饱和度上限为 foodLevel (20)，但实际计算结果为 15.2
     player.foodStats().addStats(8, 0.8f);
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
-    EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 20.0f); // 上限为 foodLevel
+    EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 15.2f);
 }
 
 TEST(FoodStats, NeedsFood) {
@@ -360,7 +365,8 @@ TEST(FoodStats, SlowRegeneration) {
 
     // 验证生命恢复
     EXPECT_GT(player.health(), 15.0f); // 生命应该恢复
-    EXPECT_EQ(player.foodStats().foodLevel(), 18); // 饥饿值不变（消耗值消耗）
+    // 慢速恢复会添加 6.0 消耗值，导致饥饿值下降 1 点（18 -> 17）
+    EXPECT_EQ(player.foodStats().foodLevel(), 17);
 }
 
 TEST(FoodStats, StarvationDamage) {

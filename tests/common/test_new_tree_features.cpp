@@ -254,9 +254,9 @@ TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerHeight) {
         FeatureSpread::spread(2, 1),
         FeatureSpread::fixed(0)
     );
-    // Acacia foliage is flat (height should be 1)
+    // MC 1.16.5: Acacia foliage is flat (getFoliageHeight returns 0)
     i32 height = placer.getFoliageHeight(*random, 6);
-    EXPECT_GE(height, 1);
+    EXPECT_EQ(height, 0);
 }
 
 TEST_F(NewFoliagePlacerTest, AcaciaFoliagePlacerClone) {

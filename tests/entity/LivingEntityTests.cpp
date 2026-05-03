@@ -413,6 +413,7 @@ TEST(DamageSourceTest, EntityDamage) {
 
 TEST(DamageSourceTest, IndirectEntityDamage) {
     IndirectEntityDamageSource arrow(DamageType::Arrow, nullptr, nullptr);
+    arrow.setProjectile();  // 需要手动设置投射物属性
 
     EXPECT_EQ(arrow.type(), DamageType::Arrow);
     EXPECT_TRUE(arrow.isProjectile());
@@ -435,8 +436,9 @@ TEST(DamageSourceTest, BypassesArmor) {
     EnvironmentalDamage fall(DamageType::Fall);
     EXPECT_TRUE(fall.bypassesArmor());
 
+    // MC 1.16.5: Generic 伤害确实绕过护甲（无对应盔甲保护附魔）
     EnvironmentalDamage generic(DamageType::Generic);
-    EXPECT_FALSE(generic.bypassesArmor());
+    EXPECT_TRUE(generic.bypassesArmor());
 
     EnvironmentalDamage outOfWorld(DamageType::OutOfWorld);
     EXPECT_TRUE(outOfWorld.bypassesArmor());

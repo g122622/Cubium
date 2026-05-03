@@ -75,8 +75,9 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
     bool shouldHeal = player.health() > 0.0f && player.health() < player.maxHealth();
     bool hasHungerEffect = player.hasEffect(entity::effect::EffectType::Hunger);
 
+    // 2. 生命恢复逻辑（使用独立的计时器）
     if (naturalRegeneration && shouldHeal && !hasHungerEffect) {
-        // 2. 快速生命恢复（饱和度恢复）
+        // 快速生命恢复（饱和度恢复）
         // 条件：foodLevel >= 20 且 saturation > 0
         if (m_foodLevel >= MAX_FOOD_LEVEL && m_saturationLevel > 0.0f) {
             m_foodTimer++;
@@ -86,7 +87,7 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
                 }
             }
         }
-        // 3. 慢速生命恢复（饥饿值恢复）
+        // 慢速生命恢复（饥饿值恢复）
         // 条件：foodLevel >= 18
         else if (m_foodLevel >= 18) {
             m_foodTimer++;
@@ -96,24 +97,25 @@ void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegenera
                 }
             }
         } else {
+            // 饥饿值低于 18 时重置恢复计时器
             m_foodTimer = 0;
         }
     } else {
+        // 不满足恢复条件时重置恢复计时器
         m_foodTimer = 0;
     }
 
-    // 4. 饥饿伤害
+    // 3. 饥饿伤害逻辑（使用独立的计时器）
     // 条件：foodLevel <= 0
     if (m_foodLevel <= 0) {
-        m_foodTimer++;
-        if (m_foodTimer >= STARVATION_INTERVAL) {
+        m_starveTimer++;
+        if (m_starveTimer >= STARVATION_INTERVAL) {
             performStarvationDamage(player, difficulty);
-            m_foodTimer = 0;
+            m_starveTimer = 0;
         }
-    } else if (m_foodTimer > 0 && m_foodLevel > 0) {
-        // 饥饿值恢复后重置计时器
-        // 注意：只在计时器因饥饿伤害而启动时重置
-        // 如果是因为恢复而启动，不应重置
+    } else {
+        // 饥饿值恢复后重置饥饿伤害计时器
+        m_starveTimer = 0;
     }
 }
 

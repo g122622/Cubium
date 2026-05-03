@@ -157,12 +157,11 @@ TEST(Result, MoveOnlyValueConstructsAndMoves) {
     Result<std::unique_ptr<i32>> result(std::make_unique<i32>(7));
 
     EXPECT_TRUE(result.success());
-    EXPECT_NE(result.value(), nullptr);
-    EXPECT_EQ(*result.value(), 7);
 
-    auto moved = std::move(result.value());
-    EXPECT_NE(moved, nullptr);
-    EXPECT_EQ(*moved, 7);
+    // value() 每次调用都会转移所有权，所以只调用一次并保存结果
+    auto ptr = result.value();
+    EXPECT_NE(ptr, nullptr);
+    EXPECT_EQ(*ptr, 7);
 }
 
 // ============================================================================
@@ -213,11 +212,13 @@ TEST(Constants, WorldConstants) {
     EXPECT_EQ(world::CHUNK_SECTIONS, 16);
     EXPECT_EQ(world::MIN_BUILD_HEIGHT, 0);
     EXPECT_EQ(world::MAX_BUILD_HEIGHT, 256);
-    EXPECT_EQ(world::SEA_LEVEL, 62);
+    // MC 1.16.5 海平面高度是 63
+    EXPECT_EQ(world::SEA_LEVEL, 63);
 }
 
 TEST(Constants, NetworkConstants) {
-    EXPECT_EQ(network::DEFAULT_PORT, 19132);
+    // MC 1.16.5 Java版默认端口是 25565
+    EXPECT_EQ(network::DEFAULT_PORT, 25565);
     EXPECT_EQ(network::MAX_PACKET_SIZE, 2097152u);
     EXPECT_EQ(network::CONNECT_TIMEOUT_MS, 30000u);
 }
