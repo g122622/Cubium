@@ -69,16 +69,6 @@ public:
         if (level <= 0) return 0.0f;
         return 0.25f * static_cast<f32>(level + 1);
     }
-
-    /**
-     * @brief 获取伤害乘数 (兼容旧API)
-     * @param level 附魔等级
-     * @return 伤害乘数
-     */
-    [[nodiscard]] static f32 getDamageMultiplier(i32 level) {
-        if (level <= 0) return 1.0f;
-        return 1.0f + getArrowDamageBonus(level);
-    }
 };
 
 } // namespace enchant

@@ -16,6 +16,12 @@
 namespace mc {
 namespace item {
 
+// MC 1.16.5 钓鱼竿常量
+namespace {
+    constexpr f32 BOBBER_VELOCITY = 1.5f;      // 浮标初速度
+    constexpr f32 BOBBER_INACCURACY = 0.0f;    // 浮标准确度（0 = 完美准确）
+}
+
 // ========== 构造函数 ==========
 
 FishingRodItem::FishingRodItem(const ItemProperties& properties)
@@ -69,7 +75,7 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
 
         // 发射浮标
         // MC 1.16.5: 浮标速度约为 1.5，不准确度 0
-        bobber->shootFrom(player, player.pitch(), player.yaw(), 0.0f, 1.5f, 0.0f);
+        bobber->shootFrom(player, player.pitch(), player.yaw(), 0.0f, BOBBER_VELOCITY, BOBBER_INACCURACY);
 
         // 生成实体并记录ID
         EntityId bobberId = bobber->id();
