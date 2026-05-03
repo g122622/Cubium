@@ -530,6 +530,11 @@ void ClientApplication::setupNetworkCallbacks()
         entity->setPosition(x, y, z);
         entity->setRotation(yaw, pitch);
         entity->setHeadRotation(headYaw);
+
+        // 通知音频系统实体生成
+        if (m_audioService) {
+            m_audioService->onEntitySpawn(entityId, typeId, x, y, z);
+        }
     };
 
     callbacks.onEntityDestroy = [this](const std::vector<u32>& entityIds) {
@@ -540,6 +545,11 @@ void ClientApplication::setupNetworkCallbacks()
                 continue;
             }
             entityManager.removeEntity(static_cast<EntityId>(entityId));
+
+            // 通知音频系统实体移除
+            if (m_audioService) {
+                m_audioService->onEntityRemove(entityId);
+            }
         }
     };
 
@@ -611,7 +621,18 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
+        // 检查旧的 FallFlying 状态（用于声音触发）
+        bool wasFallFlying = entity->isFallFlying();
+
         entity->setMetadata(metadata);
+
+        // 检查新的 FallFlying 状态
+        bool isFallFlying = entity->isFallFlying();
+
+        // 通知音频系统鞘翅飞行状态变化
+        if (m_audioService && wasFallFlying != isFallFlying) {
+            m_audioService->onPlayerElytraFlyingChanged(entityId, isFallFlying);
+        }
     };
 
     callbacks.onEntityAnimation = [this](u32 entityId, u8 animation) {

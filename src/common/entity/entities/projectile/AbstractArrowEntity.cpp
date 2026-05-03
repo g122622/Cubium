@@ -6,6 +6,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
@@ -264,7 +265,8 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result) {
     }
 
     // 播放命中音效
-    // playSound(SoundEvents.ENTITY_ARROW_HIT, 1.0F, 1.2F / (rand.nextFloat() * 0.2F + 0.9F));
+    math::Random rng = createRandomFromEntity(*this);
+    playSound(SoundEvents::ENTITY_ARROW_HIT, 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
 
     // 如果不是穿透箭，移除
     if (m_pierceLevel <= 0) {
@@ -299,8 +301,9 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result) {
     m_pierceLevel = 0;
     clearPiercedEntities();
 
-    // 播放命中音效
-    // playSound(SoundEvents.ENTITY_ARROW_HIT_GROUND, 1.0F, 1.2F / (rand.nextFloat() * 0.2F + 0.9F));
+    // 播放命中地面音效
+    math::Random rng = createRandomFromEntity(*this);
+    playSound(SoundEvents::ENTITY_ARROW_HIT_GROUND, 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
 }
 
 void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity) {

@@ -140,6 +140,18 @@ public:
     void playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTicks);
 
     /**
+     * @brief 在下一 tick 播放声音
+     *
+     * 用于 TickableSound 的声音切换（如蜜蜂从飞行声切换到愤怒声）。
+     * 声音会在下一个 tick 周期开始时播放。
+     *
+     * 参考: net.minecraft.client.audio.SoundEngine.playOnNextTick
+     *
+     * @param sound 声音实例
+     */
+    void playOnNextTick(std::unique_ptr<ISoundInstance> sound);
+
+    /**
      * @brief 停止指定声音
      *
      * @param id 声音实例ID
@@ -367,6 +379,9 @@ private:
 
     /// 延迟声音
     std::vector<std::pair<std::unique_ptr<ISoundInstance>, u32>> m_delayedSounds;
+
+    /// 下一tick播放的声音队列（用于TickableSound的声音切换）
+    std::vector<std::unique_ptr<ISoundInstance>> m_playOnNextTickQueue;
 
     /// 环境音效处理器
     std::vector<std::unique_ptr<IAmbientSoundHandler>> m_ambientHandlers;

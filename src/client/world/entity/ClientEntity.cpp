@@ -1,5 +1,6 @@
 #include "ClientEntity.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
+#include "common/entity/core/Entity.hpp"  // for EntityFlags
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -205,6 +206,20 @@ void ClientEntity::tick() {
     // 用于披风摆动强度计算
     m_prevCameraYaw = m_cameraYaw;
     // cameraYaw 基于移动距离，在 updateAnimation 中更新
+}
+
+bool ClientEntity::isFallFlying() const {
+    // 从元数据管理器读取 FLAGS_PARAM (id 0)
+    // 参考 MC 1.16.5 Entity.getFlag()
+    if (m_dataManager.hasParam(0)) {
+        const auto* value = m_dataManager.getRaw(0);
+        if (value != nullptr) {
+            // FLAGS_PARAM 类型是 i8
+            i8 flags = value->get<i8>();
+            return (flags & static_cast<i8>(EntityFlags::FallFlying)) != 0;
+        }
+    }
+    return false;
 }
 
 } // namespace mc::client

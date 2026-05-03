@@ -3,6 +3,7 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include <cmath>
 
 namespace mc {
@@ -117,7 +118,7 @@ void SlimeEntity::dealDamage(LivingEntity& target) {
 		// TODO: 造成伤害
 		// f32 damage = static_cast<f32>(getAttributeValue(Attributes::ATTACK_DAMAGE));
 		// target.hurt(DamageSource::mobAttack(this), damage);
-		// playSound("attack", 1.0f, ...);
+		playSound(SoundEvents::ENTITY_SLIME_ATTACK, 1.0f, 1.0f);
 
 		// TODO: 应用附魔效果
 		// applyEnchantments(this, target);

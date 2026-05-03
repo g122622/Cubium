@@ -1568,6 +1568,8 @@ void Player::attack(Entity& target) {
     if (isSprinting() && isFullCooldown) {
         knockbackLevel++;
         isSprintKnockback = true;
+        // MC 1.16.5: 播放击退攻击音效
+        playSound(SoundEvents::ENTITY_PLAYER_ATTACK_KNOCKBACK, 1.0f, 1.0f);
     }
 
     // 10. 暴击判定
@@ -1598,6 +1600,9 @@ void Player::attack(Entity& target) {
     // 14. 创建伤害来源并应用伤害
     EntityDamageSource damageSource = DamageSources::playerAttack(this);
     bool attacked = livingTarget->hurt(damageSource, totalDamage);
+
+    // 用于跟踪是否播放了特定攻击音效
+    bool playedAttackSound = false;
 
     if (attacked) {
         // 15. 应用击退
@@ -1663,6 +1668,9 @@ void Player::attack(Entity& target) {
                         EntityDamageSource sweepSource = DamageSources::playerAttack(this);
                         nearbyLiving->hurt(sweepSource, sweepDamage);
                     }
+
+                    // MC 1.16.5: 播放横扫攻击音效
+                    playSound(SoundEvents::ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.0f);
                 }
             }
         }
@@ -1676,6 +1684,26 @@ void Player::attack(Entity& target) {
         // 18. 设置最后攻击目标
         setLastHurtTarget(livingTarget);
 
+        // 播放攻击音效
+        // MC 1.16.5: 根据攻击类型播放不同音效
+        if (isCritical) {
+            // 暴击音效
+            playSound(SoundEvents::ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 1.0f);
+            playedAttackSound = true;
+        } else if (canSweep && !playedAttackSound) {
+            // 横扫音效已在上面播放
+            playedAttackSound = true;
+        }
+
+        // 如果没有播放特殊音效，根据冷却强度播放普通攻击音效
+        if (!playedAttackSound) {
+            if (isFullCooldown) {
+                playSound(SoundEvents::ENTITY_PLAYER_ATTACK_STRONG, 1.0f, 1.0f);
+            } else {
+                playSound(SoundEvents::ENTITY_PLAYER_ATTACK_WEAK, 1.0f, 1.0f);
+            }
+        }
+
         // 荆棘附魔反伤处理
         // TODO: EnchantmentHelper.applyThornEnchantments(target, this);
 
@@ -1687,6 +1715,9 @@ void Player::attack(Entity& target) {
         addExhaustion(EXHAUSTION_ATTACK);
     } else {
         // 攻击失败（被格挡等）
+        // MC 1.16.5: 播放无伤害攻击音效
+        playSound(SoundEvents::ENTITY_PLAYER_ATTACK_NODAMAGE, 1.0f, 1.0f);
+
         if (wasBurning) {
             livingTarget->setFire(0);  // 移除之前点燃的火焰
         }

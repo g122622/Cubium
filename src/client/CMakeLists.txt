@@ -221,9 +221,13 @@ add_executable(minecraft-client
     sound/backend/AudioBuffer.cpp
     sound/backend/OpenALBackend.cpp
     sound/instance/SoundInstance.cpp
+    sound/instance/BeeSound.cpp
+    sound/instance/GuardianSound.cpp
+    sound/instance/ElytraSound.cpp
     sound/handler/BiomeAmbientHandler.cpp
     sound/handler/UnderwaterAmbientHandler.cpp
     sound/handler/BubbleColumnAmbientHandler.cpp
+    sound/handler/EntitySoundHandler.cpp
     # 世界
     world/ClientWorld.cpp
     world/player/LocalPlayerIdentity.cpp

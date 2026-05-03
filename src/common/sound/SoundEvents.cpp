@@ -775,6 +775,7 @@ const ResourceLocation ENTITY_STRIDER_SADDLE("minecraft:entity.strider.saddle");
 // 箭矢
 const ResourceLocation ENTITY_ARROW_HIT("minecraft:entity.arrow.hit");
 const ResourceLocation ENTITY_ARROW_HIT_PLAYER("minecraft:entity.arrow.hit_player");
+const ResourceLocation ENTITY_ARROW_HIT_GROUND("minecraft:entity.arrow.hit_ground");
 const ResourceLocation ENTITY_ARROW_SHOOT("minecraft:entity.arrow.shoot");
 
 // 经验球
@@ -856,6 +857,9 @@ const ResourceLocation ITEM_ARMOR_EQUIP_LEATHER("minecraft:item.armor.equip_leat
 const ResourceLocation ITEM_ARMOR_EQUIP_NETHERITE("minecraft:item.armor.equip_netherite");
 const ResourceLocation ITEM_ARMOR_EQUIP_TURTLE("minecraft:item.armor.equip_turtle");
 
+// 鞘翅
+const ResourceLocation ITEM_ELYTRA_FLYING("minecraft:item.elytra.flying");
+
 // 桶
 const ResourceLocation ITEM_BUCKET_EMPTY("minecraft:item.bucket.empty");
 const ResourceLocation ITEM_BUCKET_EMPTY_FISH("minecraft:item.bucket.empty_fish");
@@ -909,6 +913,8 @@ const ResourceLocation ITEM_TRIDENT_RIPTIDE_2("minecraft:item.trident.riptide_2"
 const ResourceLocation ITEM_TRIDENT_RIPTIDE_3("minecraft:item.trident.riptide_3");
 const ResourceLocation ITEM_TRIDENT_HIT("minecraft:item.trident.hit");
 const ResourceLocation ITEM_TRIDENT_HIT_GROUND("minecraft:item.trident.hit_ground");
+const ResourceLocation ITEM_TRIDENT_RETURN("minecraft:item.trident.return");
+const ResourceLocation ITEM_TRIDENT_THUNDER("minecraft:item.trident.thunder");
 
 // 盾牌
 const ResourceLocation ITEM_SHIELD_BLOCK("minecraft:item.shield.block");

@@ -276,6 +276,7 @@ add_executable(mc_tests
     common/sound/test_sound_events.cpp
     client/sound/SoundTest.cpp
     client/sound/SoundRegistryTest.cpp
+    client/sound/TickableSoundTest.cpp
     # 皮肤系统测试
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
@@ -679,6 +680,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/OpenALBackend.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/UnderwaterAmbientHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BubbleColumnAmbientHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/EntitySoundHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/command/ClientCommandManager.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，暂时不纳入该测试目标
 )

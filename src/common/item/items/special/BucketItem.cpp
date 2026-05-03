@@ -17,6 +17,8 @@
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../core/Constants.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 
@@ -59,7 +61,12 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
             fluid::Fluid* pickedFluid = pickupHandler->pickupFluid(world, pos, *blockState);
             if (pickedFluid != nullptr) {
                 // 播放取水音效
-                // TODO: world.playSound(player, pos, SoundEvents.ITEM_BUCKET_FILL, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                Vector3 soundPos(static_cast<f32>(pos.x) + 0.5f,
+                                 static_cast<f32>(pos.y) + 0.5f,
+                                 static_cast<f32>(pos.z) + 0.5f);
+                world.playSound(SoundEvents::ITEM_BUCKET_FILL,
+                                sound::SoundCategory::Blocks,
+                                soundPos, 1.0f, 1.0f);
 
                 // 非创造模式下替换物品
                 if (player == nullptr || !player->isCreative()) {
@@ -95,7 +102,12 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
                 fluid::FluidState fluidState = m_containedFluid->defaultState();
                 if (liquidContainer->receiveFluid(world, targetPos, *targetState, fluidState)) {
                     // 播放倒水音效
-                    // TODO: world.playSound(player, targetPos, SoundEvents.ITEM_BUCKET_EMPTY, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                    Vector3 soundPos(static_cast<f32>(targetPos.x) + 0.5f,
+                                     static_cast<f32>(targetPos.y) + 0.5f,
+                                     static_cast<f32>(targetPos.z) + 0.5f);
+                    world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
+                                    sound::SoundCategory::Blocks,
+                                    soundPos, 1.0f, 1.0f);
 
                     // 非创造模式下替换为空桶
                     if (player == nullptr || !player->isCreative()) {

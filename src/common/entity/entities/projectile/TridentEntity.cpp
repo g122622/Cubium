@@ -8,6 +8,7 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "ProjectileHelper.hpp"
 #include <cmath>
 
@@ -136,7 +137,7 @@ void TridentEntity::tickReturning() {
 
     // 播放返回音效（首次）
     if (m_returningTicks == 0) {
-        // playSound(SoundEvents.ITEM_TRIDENT_RETURN, 10.0F, 1.0F);
+        playSound(SoundEvents::ITEM_TRIDENT_RETURN, 10.0f, 1.0f);
     }
     ++m_returningTicks;
 
@@ -234,8 +235,8 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
                 // 生成闪电
                 m_world->spawnEntity(std::move(lightning));
 
-                // TODO: 播放引雷音效
-                // playSound(SoundEvents::ITEM_TRIDENT_THUNDER, 5.0F, 1.0F);
+                // 播放引雷音效
+                playSound(SoundEvents::ITEM_TRIDENT_THUNDER, 5.0f, 1.0f);
             }
         }
     }
@@ -272,7 +273,7 @@ void TridentEntity::onBlockHit(const RayTraceResult& result) {
     clearPiercedEntities();
 
     // 三叉戟有特殊的命中地面音效
-    // playSound(SoundEvents.ITEM_TRIDENT_HIT_GROUND, 1.0F, 1.0F);
+    playSound(SoundEvents::ITEM_TRIDENT_HIT_GROUND, 1.0f, 1.0f);
 }
 
 f32 TridentEntity::getWaterDrag() const {

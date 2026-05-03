@@ -7,6 +7,7 @@
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/handler/BubbleColumnAmbientHandler.hpp"
+#include "client/sound/handler/EntitySoundHandler.hpp"
 
 #include "common/resource/ResourcePackList.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -75,6 +76,7 @@ void AudioService::shutdown()
     }
 
     m_loaded.store(false);
+    m_entitySoundHandler = nullptr;
     m_running.store(false);
     m_biomeAmbientHandler = nullptr;
     m_underwaterAmbientHandler = nullptr;
@@ -328,6 +330,60 @@ void AudioService::setInMenu(bool inMenu)
     enqueue(std::move(command));
 }
 
+void AudioService::onEntitySpawn(u32 entityId, const String& typeId, f32 x, f32 y, f32 z)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新实体状态快照
+    EntitySoundState state;
+    state.position = glm::vec3(x, y, z);
+    m_entitySoundHandler->updateEntityState(static_cast<EntityId>(entityId), state);
+
+    // 发送生成事件
+    Command command;
+    command.type = CommandType::EntitySpawn;
+    command.entityId = entityId;
+    command.entityTypeId = typeId;
+    enqueue(std::move(command));
+}
+
+void AudioService::onEntityRemove(u32 entityId)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 发送移除事件
+    Command command;
+    command.type = CommandType::EntityRemove;
+    command.entityId = entityId;
+    enqueue(std::move(command));
+
+    // 清理状态快照
+    m_entitySoundHandler->removeEntityState(static_cast<EntityId>(entityId));
+}
+
+void AudioService::onPlayerElytraFlyingChanged(u32 entityId, bool isFlying)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->isFallFlying = isFlying;
+    }
+
+    // 发送飞行状态变化事件
+    Command command;
+    command.type = CommandType::ElytraFlyingChanged;
+    command.entityId = entityId;
+    command.isFlying = isFlying;
+    enqueue(std::move(command));
+}
+
 void AudioService::enqueue(Command command)
 {
     {
@@ -373,6 +429,11 @@ void AudioService::runWorker()
         auto bubbleColumnAmbientHandler = std::make_unique<BubbleColumnAmbientHandler>();
         m_bubbleColumnAmbientHandler = bubbleColumnAmbientHandler.get();
         m_soundEngine->addAmbientHandler(std::move(bubbleColumnAmbientHandler));
+
+        // 创建实体声音处理器
+        auto entitySoundHandler = std::make_unique<EntitySoundHandler>();
+        m_entitySoundHandler = entitySoundHandler.get();
+        m_soundEngine->addAmbientHandler(std::move(entitySoundHandler));
 
         // 创建音乐播放器
         m_musicPlayer = std::make_unique<MusicPlayer>(*m_soundEngine);
@@ -551,6 +612,24 @@ void AudioService::processCommand(Command& command)
 
         case CommandType::SetInMenu:
             m_savedInMenu.store(command.inMenu);
+            break;
+
+        case CommandType::EntitySpawn:
+            if (m_entitySoundHandler && m_soundEngine) {
+                m_entitySoundHandler->onEntitySpawn(*m_soundEngine, static_cast<EntityId>(command.entityId), command.entityTypeId);
+            }
+            break;
+
+        case CommandType::EntityRemove:
+            if (m_entitySoundHandler) {
+                m_entitySoundHandler->onEntityRemove(static_cast<EntityId>(command.entityId));
+            }
+            break;
+
+        case CommandType::ElytraFlyingChanged:
+            if (m_entitySoundHandler && m_soundEngine) {
+                m_entitySoundHandler->onPlayerElytraFlyingChanged(*m_soundEngine, static_cast<EntityId>(command.entityId), command.isFlying);
+            }
             break;
     }
 }

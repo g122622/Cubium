@@ -6,6 +6,7 @@
 #include "../../util/math/random/Random.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../world/block/Block.hpp"
+#include "../../world/block/BlockPos.hpp"
 #include "../../world/fluid/Fluid.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/text/StringTextComponent.hpp"
@@ -190,6 +191,29 @@ void Entity::playSound(const ResourceLocation& soundEventId, f32 volume, f32 pit
     }
 
     m_world->playSound(soundEventId, getSoundCategory(), m_position, volume, pitch);
+}
+
+void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState) {
+    // MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
+    // 默认实现使用脚下方块的声音类型播放脚步声
+    // 子类可以重写以自定义声音（如蜜蜂不播放脚步声）
+
+    if (blockState == nullptr || m_world == nullptr) {
+        return;
+    }
+
+    // 获取方块的声音类型
+    // 注意：完整的实现需要检查上方是否有雪层
+    // 如果上方是雪层，则使用雪的声音类型
+    // 这里暂时简化实现
+
+    // TODO: 获取 BlockSoundType 并播放 step 声音
+    // 需要 BlockState::getSoundType() 方法返回 BlockSoundType
+    // 然后调用 getStepSound() 获取声音事件
+
+    // 暂时使用空实现，子类会提供具体实现
+    (void)pos;
+    (void)blockState;
 }
 
 void Entity::setPosition(f32 x, f32 y, f32 z) {

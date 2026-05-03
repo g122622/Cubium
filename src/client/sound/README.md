@@ -22,11 +22,14 @@ src/client/sound/
 │   ├── IAmbientSoundHandler.hpp
 │   ├── BiomeAmbientHandler.hpp/cpp
 │   ├── UnderwaterAmbientHandler.hpp/cpp
-│   └── BubbleColumnAmbientHandler.hpp/cpp
+│   ├── BubbleColumnAmbientHandler.hpp/cpp
+│   └── EntitySoundHandler.hpp/cpp  # 实体声音处理器
 ├── instance/                     # 声音实例定义
 │   ├── ISoundInstance.hpp
-│   ├── SoundInstance.hpp/cpp
-│   └── EntitySoundInstance.hpp/cpp
+│   ├── SoundInstance.hpp/cpp     # 包含 TickableSound 基类
+│   ├── BeeSound.hpp/cpp          # 蜜蜂飞行/愤怒声音
+│   ├── GuardianSound.hpp/cpp     # 守卫者攻击声音
+│   └── ElytraSound.hpp/cpp       # 鞘翅飞行声音
 └── resource/                     # 声音资源注册表
     ├── SoundDefinition.hpp/cpp
     └── SoundRegistry.hpp/cpp
@@ -165,6 +168,65 @@ MC 1.16.5 群系环境音实现三种类型：
 | 向下气泡柱 (drag=true) | `block.bubble_column.whirlpool.inside` |
 
 **触发逻辑**：只在玩家刚进入气泡柱时播放一次音效，不会持续播放。
+
+### 实体声音处理器 (EntitySoundHandler)
+
+管理实体特定的可Tick声音，当前支持：
+
+| 实体类型 | 音效事件 | 触发条件 |
+|---------|---------|---------|
+| 蜜蜂 | `entity.bee.loop` | 蜜蜂生成时 |
+| 蜜蜂(愤怒) | `entity.bee.loop_angry` | 蜜蜂愤怒状态 (待元数据同步) |
+| 守卫者 | `entity.guardian.attack` | 守卫者攻击目标时 (待元数据同步) |
+| 玩家(鞘翅) | `item.elytra.flying` | 玩家 FallFlying 状态变化 |
+
+**线程安全设计**：
+- 主线程通过 `AudioService::onEntitySpawn()` / `onEntityRemove()` / `onPlayerElytraFlyingChanged()` 投递命令
+- 音频线程通过 `EntitySoundHandler::tick()` 更新声音状态
+- 使用 `EntitySoundState` 结构存储实体状态快照，避免跨线程访问 ClientEntity
+
+## 可Tick的声音实例 (TickableSound)
+
+部分声音需要每帧更新状态（如音量、音调、位置等），通过继承 `TickableSound` 基类（定义在 `SoundInstance.hpp`）实现。
+
+### 已实现的 TickableSound
+
+| 类名 | 用途 | 音效事件 |
+|-----|------|---------|
+| `BeeFlightSound` | 蜜蜂飞行声音 | `entity.bee.loop` |
+| `BeeAngrySound` | 蜜蜂愤怒声音 | `entity.bee.loop_angry` |
+| `GuardianSound` | 守卫者攻击声音 | `entity.guardian.attack` |
+| `ElytraSound` | 鞘翅飞行声音 | `item.elytra.flying` |
+
+**注意**：由于音频线程和主线程分离，TickableSound 子类不直接引用 ClientEntity，而是通过 `EntitySoundState` 状态快照获取实体信息。
+
+### 蜜蜂声音 (BeeSound)
+
+蜜蜂声音根据移动速度动态调整音量和音调：
+
+- **音量**：基于水平速度计算，`volume = clamp(speed / 0.5, 0, 1.2)`
+- **音调**：幼年蜜蜂音调更高 (`minPitch=1.1, maxPitch=1.5`)，成年蜜蜂较低 (`minPitch=0.7, maxPitch=1.1`)
+- **切换机制**：通过 `shouldSwitchSound()` 检测愤怒状态变化，自动切换飞行/愤怒声音
+- **静默支持**：`canBeSilent() = true`，允许音量为0时播放
+
+### 守卫者声音 (GuardianSound)
+
+守卫者攻击声音根据攻击动画缩放调整音量：
+
+- **音量**：`1.0 × attackAnimScale²`
+- **音调**：`0.7 + 0.5 × attackAnimScale`
+- **触发**：当守卫者的攻击目标存在时持续播放
+- **停止**：当守卫者被移除时自动停止
+
+### 鞘翅声音 (ElytraSound)
+
+鞘翅飞行声音根据玩家滑翔速度调整：
+
+- **触发条件**：玩家 `FallFlying` 标志为 true
+- **音量**：`clamp(speedSquared / 4.0, 0, 1)`
+- **淡入效果**：前 20 tick 静音，20-40 tick 渐入
+- **音调**：当音量 > 0.8 时音调增加 `1.0 + (volume - 0.8)`
+- **停止**：玩家停止滑翔或实体被移除
 
 ### 群系环境音数据结构
 

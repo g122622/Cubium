@@ -890,6 +890,7 @@ extern const ResourceLocation ENTITY_STRIDER_SADDLE;
 /// 箭矢
 extern const ResourceLocation ENTITY_ARROW_HIT;
 extern const ResourceLocation ENTITY_ARROW_HIT_PLAYER;
+extern const ResourceLocation ENTITY_ARROW_HIT_GROUND;
 extern const ResourceLocation ENTITY_ARROW_SHOOT;
 
 /// 经验球
@@ -972,6 +973,9 @@ extern const ResourceLocation ITEM_ARMOR_EQUIP_LEATHER;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_NETHERITE;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_TURTLE;
 
+/// 鞘翅
+extern const ResourceLocation ITEM_ELYTRA_FLYING;
+
 /// 桶
 extern const ResourceLocation ITEM_BUCKET_EMPTY;
 extern const ResourceLocation ITEM_BUCKET_EMPTY_FISH;
@@ -1025,6 +1029,8 @@ extern const ResourceLocation ITEM_TRIDENT_RIPTIDE_2;
 extern const ResourceLocation ITEM_TRIDENT_RIPTIDE_3;
 extern const ResourceLocation ITEM_TRIDENT_HIT;
 extern const ResourceLocation ITEM_TRIDENT_HIT_GROUND;
+extern const ResourceLocation ITEM_TRIDENT_RETURN;
+extern const ResourceLocation ITEM_TRIDENT_THUNDER;
 
 /// 盾牌
 extern const ResourceLocation ITEM_SHIELD_BLOCK;
