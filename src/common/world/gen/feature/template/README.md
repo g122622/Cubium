@@ -478,6 +478,16 @@ auto blackstoneProcessor = std::make_unique<BlackstoneReplacementProcessor>();
 - `BlockEntity::loadFromNBT(nbt::CompoundTag&)` 方法（当前使用 JSON 格式）
 - 战利品表种子设置（`LockableLootTileEntity`）
 
+### 4. Jigsaw 方块 orientation 属性
+
+当前 `JigsawPiece` 从模板加载时，Jigsaw 方块的 orientation（方向）属性无法从方块状态读取。
+原因：`JigsawBlock` 尚未注册 `ORIENTATION` 属性到 `BlockStateProperties`。
+当前行为：所有 Jigsaw 方块使用默认方向 `NorthUp`。
+完整实现需要：
+- 在 `BlockStateProperties` 中添加 `ORIENTATION` 枚举属性
+- 更新 `JigsawBlock` 构造函数注册该属性
+- 更新 `JigsawPiece::loadJointsFromTemplate` 读取属性值
+
 ## 容易踩的坑
 
 ### 1. 方块状态ID

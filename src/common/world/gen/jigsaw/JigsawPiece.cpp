@@ -2,6 +2,7 @@
 #include "../feature/template/TemplateManager.hpp"
 #include "../feature/template/TemplateLoader.hpp"
 #include "../../../resource/IResourcePack.hpp"
+#include "../../block/BlockRegistry.hpp"
 
 namespace mc {
 namespace world {
@@ -57,9 +58,21 @@ bool JigsawPiece::loadJointsFromTemplate(const String& templateName,
         joint.jointType = static_cast<JigsawJointType>(jigsawInfo.jointType);
         joint.projection = getPlacementBehaviour();
 
-        // TODO: 从方块状态读取 orientation
-        // 目前默认为 NorthUp
+        // 从方块状态读取 orientation
+        // 方块状态ID已存储在 jigsawInfo.blockStateId 中
+        // 需要通过 BlockRegistry 获取 BlockState 并读取 ORIENTATION 属性
+        // 当前限制：JigsawBlock 未注册 ORIENTATION 属性，使用默认值
+        // 参考 MC 1.16.5: JigsawBlock.getOrientation(state)
         joint.orientation = JigsawOrientation::NorthUp;
+
+        // TODO: 当 JigsawBlock 注册 ORIENTATION 属性后，启用以下代码
+        // if (jigsawInfo.blockStateId != 0) {
+        //     const BlockState* state = BlockRegistry::instance().getBlockState(jigsawInfo.blockStateId);
+        //     if (state != nullptr) {
+        //         // 读取 orientation 属性
+        //         // joint.orientation = state->get(BlockStateProperties::ORIENTATION());
+        //     }
+        // }
 
         joints.push_back(joint);
     }

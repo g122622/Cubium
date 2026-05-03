@@ -72,11 +72,13 @@ private:
      * @brief 解析 Jigsaw 方块信息
      * @param nbt 方块实体 NBT
      * @param pos 方块位置
+     * @param blockStateId 方块状态 ID（用于读取 orientation 属性）
      * @return Jigsaw 信息，如果不是 Jigsaw 方块返回空
      */
     [[nodiscard]] static TemplateJigsawBlockInfo parseJigsawBlock(
         const nbt::CompoundTag* nbt,
-        const BlockPos& pos);
+        const BlockPos& pos,
+        u32 blockStateId);
 };
 
 } // namespace template_

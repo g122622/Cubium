@@ -189,12 +189,6 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     if (nbtTag.id() == nbt::TagId::Compound) {
                         const nbt::CompoundTag* nbtPtr = dynamic_cast<const nbt::CompoundTag*>(&nbtTag);
                         rawInfo.nbt = cloneNbt(nbtPtr);
-
-                        // 检查是否是 Jigsaw 方块
-                        auto jigsawInfo = parseJigsawBlock(rawInfo.nbt.get(), rawInfo.pos);
-                        if (!jigsawInfo.name.empty()) {
-                            templ->addJigsawBlock(jigsawInfo);
-                        }
                     }
                 }
 
@@ -202,6 +196,8 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
             }
 
             // 为每个调色板创建 Palette 对象
+            // 使用第一个调色板来确定 Jigsaw 方块的 orientation
+            const auto& firstPalette = palettes[0];
             for (size_t paletteIdx = 0; paletteIdx < palettes.size(); ++paletteIdx) {
                 const auto& palette = palettes[paletteIdx];
                 std::vector<BlockInfo> blockInfos;
@@ -218,6 +214,21 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                         blockInfo.nbt = cloneNbt(rawInfo.nbt.get());
                     }
                     blockInfos.push_back(std::move(blockInfo));
+
+                    // 仅在第一个调色板时处理 Jigsaw 方块
+                    if (paletteIdx == 0 && rawInfo.nbt) {
+                        // 获取第一个调色板中的方块状态ID
+                        u32 firstPaletteStateId = 0;
+                        if (rawInfo.stateIndex < firstPalette.size()) {
+                            firstPaletteStateId = firstPalette[rawInfo.stateIndex];
+                        }
+
+                        // 检查是否是 Jigsaw 方块
+                        auto jigsawInfo = parseJigsawBlock(rawInfo.nbt.get(), rawInfo.pos, firstPaletteStateId);
+                        if (!jigsawInfo.name.empty()) {
+                            templ->addJigsawBlock(jigsawInfo);
+                        }
+                    }
                 }
 
                 templ->addPalette(Palette(std::move(blockInfos)));
@@ -390,10 +401,12 @@ u32 TemplateLoader::parseBlockStateId(const nbt::CompoundTag& paletteEntry) {
 
 TemplateJigsawBlockInfo TemplateLoader::parseJigsawBlock(
     const nbt::CompoundTag* nbt,
-    const BlockPos& pos)
+    const BlockPos& pos,
+    u32 blockStateId)
 {
     TemplateJigsawBlockInfo info;
     info.pos = pos;
+    info.blockStateId = blockStateId;
 
     if (!nbt) {
         return info;

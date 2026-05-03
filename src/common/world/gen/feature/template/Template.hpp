@@ -210,10 +210,11 @@ struct TemplateJigsawBlockInfo {
     String targetPool;
     String targetName;
     i32 jointType = 0;  // 0=rollable, 1=aligned
+    u32 blockStateId = 0;  // 方块状态ID，用于读取 orientation 属性
 
     TemplateJigsawBlockInfo() = default;
-    TemplateJigsawBlockInfo(const BlockPos& p, const String& n, const String& pool, const String& tgt, i32 joint = 0)
-        : pos(p), name(n), targetPool(pool), targetName(tgt), jointType(joint) {}
+    TemplateJigsawBlockInfo(const BlockPos& p, const String& n, const String& pool, const String& tgt, i32 joint = 0, u32 stateId = 0)
+        : pos(p), name(n), targetPool(pool), targetName(tgt), jointType(joint), blockStateId(stateId) {}
 };
 
 /**

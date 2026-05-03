@@ -1030,6 +1030,44 @@ graph TB
     JM --> Rng
 ```
 
+## 实现状态
+
+### 已完成功能
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| JigsawPiece 类型系统 | ✅ 完成 | EmptyJigsawPiece、SingleJigsawPiece、ListJigsawPiece |
+| JigsawMatcher 连接匹配 | ✅ 完成 | 名称匹配、方向匹配、名称旋转 |
+| JigsawPattern 模板池 | ✅ 完成 | 权重系统、随机选择、洗牌算法 |
+| JigsawPatternRegistry | ✅ 完成 | 模板池注册和查询 |
+| JigsawManager.assemble | ✅ 完成 | BFS 组装算法、连接点处理 |
+| JigsawManager.assembleAndPlace | ✅ 完成 | 组装并放置到世界 |
+| 坐标变换（旋转/镜像） | ✅ 完成 | 0/90/180/270度旋转、X/Z镜像 |
+| 边界框计算与重叠检测 | ✅ 完成 | AABB 碰撞检测 |
+| JigsawJunction 数据结构 | ✅ 完成 | 地形适配信息存储 |
+| 回退方块放置 | ✅ 完成 | 连接失败时放置石砖 |
+
+### 已知限制
+
+| 限制 | 原因 | 解决方案 |
+|------|------|----------|
+| JigsawJunction 地形对齐 | 需要 Heightmap 系统 | 待 Heightmap 实现后集成 |
+| Jigsaw 方块状态读取 | 需要 BlockState 解析 | 当前从模板 NBT 读取 |
+| 实体 NBT 加载 | 需要 Entity::loadFromNBT | 待实体系统完善 |
+| 方块实体 NBT 加载 | 需要 BlockEntity::loadFromNBT | 待方块实体系统完善 |
+
+### 外部依赖
+
+| 依赖 | 模块 | 状态 |
+|------|------|------|
+| TemplateManager | template/ | ✅ 已实现 |
+| Template | template/ | ✅ 已实现 |
+| ResourceLocation | resource/ | ✅ 已实现 |
+| IResourcePack | resource/ | ✅ 已实现 |
+| Random | util/math/random/ | ✅ 已实现 |
+| StructureBoundingBox | world/gen/structure/ | ✅ 已实现 |
+| Heightmap | world/chunk/ | ⚠️ 部分实现 |
+
 ## 参考资料
 
 - Minecraft 1.16.5 源码：`net.minecraft.world.gen.feature.jigsaw` 包
@@ -1039,4 +1077,4 @@ graph TB
 
 ---
 
-*最后更新：2026-03-26*
+*最后更新：2026-05-03*
