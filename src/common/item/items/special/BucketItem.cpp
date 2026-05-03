@@ -1,20 +1,18 @@
 #include "BucketItem.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockState.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/block/IBucketPickupHandler.hpp"
 #include "../../../world/block/ILiquidContainer.hpp"
 #include "../../../world/block/IWaterLoggable.hpp"
 #include "../../../world/fluid/Fluid.hpp"
-#include "../../../world/fluid/FluidState.hpp"
 #include "../../../world/fluid/FluidRegistry.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../../world/block/blocks/LiquidBlock.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../core/ItemStack.hpp"
 #include "../../context/BlockItemUseContext.hpp"
-#include "../../ItemRegistry.hpp"
+#include "../../core/ItemRegistry.hpp"
 #include "../../Items.hpp"
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../util/Direction.hpp"
@@ -69,7 +67,8 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
                     if (filledBucket != nullptr) {
                         stack.shrink(1);
                         if (player != nullptr) {
-                            player->addItem(filledBucket->getDefaultInstance());
+                            ItemStack filledStack = filledBucket->getDefaultInstance();
+                            player->inventory().add(filledStack);
                         }
                     }
                 }
@@ -93,8 +92,8 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
             // 检查是否可以容纳该流体
             if (liquidContainer->canContainFluid(world, targetPos, *targetState, *m_containedFluid)) {
                 // 获取流体状态（静止状态）
-                const fluid::FluidState& fluidState = m_containedFluid->defaultState();
-                if (liquidContainer->receiveFluid(world, targetPos, targetState, fluidState)) {
+                fluid::FluidState fluidState = m_containedFluid->defaultState();
+                if (liquidContainer->receiveFluid(world, targetPos, *targetState, fluidState)) {
                     // 播放倒水音效
                     // TODO: world.playSound(player, targetPos, SoundEvents.ITEM_BUCKET_EMPTY, SoundCategory.BLOCKS, 1.0F, 1.0F);
 
@@ -104,7 +103,8 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
                         if (emptyBucket != nullptr) {
                             stack.shrink(1);
                             if (player != nullptr) {
-                                player->addItem(emptyBucket->getDefaultInstance());
+                                ItemStack emptyStack = emptyBucket->getDefaultInstance();
+                                player->inventory().add(emptyStack);
                             }
                         }
                     }
@@ -122,7 +122,8 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context) {
             if (emptyBucket != nullptr) {
                 stack.shrink(1);
                 if (player != nullptr) {
-                    player->addItem(emptyBucket->getDefaultInstance());
+                    ItemStack emptyStack = emptyBucket->getDefaultInstance();
+                    player->inventory().add(emptyStack);
                 }
             }
         }
@@ -169,7 +170,8 @@ bool BucketItem::tryPlaceContainedLiquid(
     Block* currentBlock = Block::getBlock(currentState->blockId());
     if (currentBlock == nullptr || currentBlock->isAir(*currentState)) {
         // 获取流体对应的方块状态
-        const BlockState* fluidBlockState = m_containedFluid->getBlockState();
+        fluid::FluidState fluidState = m_containedFluid->defaultState();
+        const BlockState* fluidBlockState = fluidState.getBlockState();
         if (fluidBlockState == nullptr) {
             // 对于水或岩浆，使用对应的液体方块
             if (m_containedFluid->isIn(fluid::FluidTags::WATER())) {
@@ -182,8 +184,9 @@ bool BucketItem::tryPlaceContainedLiquid(
         if (fluidBlockState != nullptr) {
             world.setBlockState(pos, fluidBlockState, 3);
 
-            // 调度流体 tick
-            m_containedFluid->tick(world, pos, m_containedFluid->defaultState());
+            // 调度流体 tick（需要非const引用）
+            fluid::FluidState mutableFluidState = m_containedFluid->defaultState();
+            m_containedFluid->tick(world, pos, mutableFluidState);
 
             return true;
         }
@@ -192,7 +195,8 @@ bool BucketItem::tryPlaceContainedLiquid(
     // 检查是否可以替换
     const Material& material = currentState->owner().material();
     if (material.isReplaceable() && !material.isLiquid()) {
-        const BlockState* fluidBlockState = m_containedFluid->getBlockState();
+        fluid::FluidState fluidState = m_containedFluid->defaultState();
+        const BlockState* fluidBlockState = fluidState.getBlockState();
         if (fluidBlockState == nullptr) {
             if (m_containedFluid->isIn(fluid::FluidTags::WATER())) {
                 fluidBlockState = VanillaBlocks::getState(VanillaBlocks::WATER);

@@ -334,6 +334,7 @@ add_library(mc_common STATIC
 
     # Item - Special Items
     item/items/special/BoneMealItem.cpp
+    item/items/special/BucketItem.cpp
     item/items/special/FishBucketItem.cpp
 
     # Item - Crafting

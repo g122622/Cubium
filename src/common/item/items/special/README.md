@@ -8,6 +8,7 @@
 special/
 ├── README.md           # 本文档
 ├── BoneMealItem.cpp/hpp # 骨粉
+├── BucketItem.cpp/hpp   # 桶（空桶、水桶、岩浆桶）
 ├── SpawnEggItem.cpp/hpp # 生成蛋
 ├── FishBucketItem.cpp/hpp # 鱼桶
 ```
@@ -17,10 +18,31 @@ special/
 | 类名 | 说明 | 实现进度 |
 |------|------|----------|
 | `BoneMealItem` | 骨粉（肥料） | 基础框架 |
+| `BucketItem` | 桶（空/水/岩浆） | 完成 |
 | `SpawnEggItem` | 生成蛋 | 实体生成完成 |
 | `FishBucketItem` | 鱼桶 | 放置水和鱼完成 |
 
 ## 核心机制
+
+### BucketItem (MC 1.16.5)
+
+桶物品，支持空桶、水桶、岩浆桶的功能：
+- **空桶**: 从水源方块或含水方块中取出流体
+- **装满的桶**: 放置流体方块或向含水方块注入流体
+
+主要方法：
+- `onItemUse`: 在方块上使用桶
+- `onItemRightClick`: 右键使用桶
+- `tryPlaceContainedLiquid`: 尝试放置流体
+- `getFilledBucket`: 根据流体类型获取对应的桶物品
+- `getEmptyBucket`: 获取空桶物品
+
+已注册物品：
+| 物品 ID | 说明 | 注册位置 |
+|---------|------|----------|
+| minecraft:bucket | 空桶 | Items::BUCKET |
+| minecraft:water_bucket | 水桶 | Items::WATER_BUCKET |
+| minecraft:lava_bucket | 岩浆桶 | Items::LAVA_BUCKET |
 
 ### SpawnEggItem (MC 1.16.5)
 - 支持自定义实体类型和颜色
