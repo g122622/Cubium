@@ -337,3 +337,223 @@ TEST_F(ToolHarvestTest, ToolEffectiveCheck) {
     // Shovel should not be effective
     EXPECT_FALSE(state.isToolEffective(TOOL_TYPE_SHOVEL, 3));
 }
+
+// ============================================================================
+// Tool Special Function Tests (MC 1.16.5)
+// ============================================================================
+
+class ToolSpecialFunctionTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+};
+
+// ========== AxeItem Stripping Tests ==========
+
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakLog) {
+    auto* oakLog = VanillaBlocks::OAK_LOG;
+    auto* strippedOakLog = VanillaBlocks::STRIPPED_OAK_LOG;
+
+    ASSERT_NE(oakLog, nullptr) << "OAK_LOG should be registered";
+    ASSERT_NE(strippedOakLog, nullptr) << "STRIPPED_OAK_LOG should be registered";
+
+    // Check that axe can strip oak log
+    const Block* result = AxeItem::getStrippedBlock(oakLog);
+    EXPECT_EQ(result, strippedOakLog) << "Axe should strip OAK_LOG to STRIPPED_OAK_LOG";
+}
+
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockOakWood) {
+    auto* oakWood = VanillaBlocks::OAK_WOOD;
+    auto* strippedOakWood = VanillaBlocks::STRIPPED_OAK_WOOD;
+
+    ASSERT_NE(oakWood, nullptr) << "OAK_WOOD should be registered";
+    ASSERT_NE(strippedOakWood, nullptr) << "STRIPPED_OAK_WOOD should be registered";
+
+    const Block* result = AxeItem::getStrippedBlock(oakWood);
+    EXPECT_EQ(result, strippedOakWood) << "Axe should strip OAK_WOOD to STRIPPED_OAK_WOOD";
+}
+
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockAllWoodTypes) {
+    // Test all 6 wood types
+    struct WoodPair {
+        const Block* log;
+        const Block* strippedLog;
+        const char* name;
+    };
+
+    WoodPair woodTypes[] = {
+        {VanillaBlocks::SPRUCE_LOG, VanillaBlocks::STRIPPED_SPRUCE_LOG, "SPRUCE"},
+        {VanillaBlocks::BIRCH_LOG, VanillaBlocks::STRIPPED_BIRCH_LOG, "BIRCH"},
+        {VanillaBlocks::JUNGLE_LOG, VanillaBlocks::STRIPPED_JUNGLE_LOG, "JUNGLE"},
+        {VanillaBlocks::ACACIA_LOG, VanillaBlocks::STRIPPED_ACACIA_LOG, "ACACIA"},
+        {VanillaBlocks::DARK_OAK_LOG, VanillaBlocks::STRIPPED_DARK_OAK_LOG, "DARK_OAK"},
+    };
+
+    for (const auto& pair : woodTypes) {
+        if (pair.log == nullptr || pair.strippedLog == nullptr) {
+            continue;  // Skip if not registered
+        }
+        const Block* result = AxeItem::getStrippedBlock(pair.log);
+        EXPECT_EQ(result, pair.strippedLog)
+            << "Axe should strip " << pair.name << "_LOG to STRIPPED_" << pair.name << "_LOG";
+    }
+}
+
+TEST_F(ToolSpecialFunctionTest, AxeCannotStripStone) {
+    auto* stone = VanillaBlocks::STONE;
+    ASSERT_NE(stone, nullptr);
+
+    const Block* result = AxeItem::getStrippedBlock(stone);
+    EXPECT_EQ(result, nullptr) << "Axe should not be able to strip stone";
+}
+
+TEST_F(ToolSpecialFunctionTest, AxeCannotStripDirt) {
+    auto* dirt = VanillaBlocks::DIRT;
+    ASSERT_NE(dirt, nullptr);
+
+    const Block* result = AxeItem::getStrippedBlock(dirt);
+    EXPECT_EQ(result, nullptr) << "Axe should not be able to strip dirt";
+}
+
+TEST_F(ToolSpecialFunctionTest, AxeGetStrippedBlockNullInput) {
+    const Block* result = AxeItem::getStrippedBlock(nullptr);
+    EXPECT_EQ(result, nullptr) << "getStrippedBlock should return nullptr for null input";
+}
+
+// ========== ShovelItem Path Creation Tests ==========
+
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockGrassBlock) {
+    auto* grassBlock = VanillaBlocks::GRASS_BLOCK;
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+
+    ASSERT_NE(grassBlock, nullptr) << "GRASS_BLOCK should be registered";
+    ASSERT_NE(grassPath, nullptr) << "GRASS_PATH should be registered";
+
+    const Block* result = ShovelItem::getPathBlock(grassBlock);
+    EXPECT_EQ(result, grassPath) << "Shovel should convert GRASS_BLOCK to GRASS_PATH";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelCannotPathDirt) {
+    auto* dirt = VanillaBlocks::DIRT;
+    ASSERT_NE(dirt, nullptr);
+
+    const Block* result = ShovelItem::getPathBlock(dirt);
+    EXPECT_EQ(result, nullptr) << "Shovel should not be able to create path from dirt";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelCannotPathStone) {
+    auto* stone = VanillaBlocks::STONE;
+    ASSERT_NE(stone, nullptr);
+
+    const Block* result = ShovelItem::getPathBlock(stone);
+    EXPECT_EQ(result, nullptr) << "Shovel should not be able to create path from stone";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelCannotPathGrassPath) {
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+    if (grassPath == nullptr) {
+        GTEST_SKIP() << "GRASS_PATH not registered yet";
+    }
+
+    const Block* result = ShovelItem::getPathBlock(grassPath);
+    EXPECT_EQ(result, nullptr) << "Shovel should not be able to convert GRASS_PATH to anything";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockNullInput) {
+    const Block* result = ShovelItem::getPathBlock(nullptr);
+    EXPECT_EQ(result, nullptr) << "getPathBlock should return nullptr for null input";
+}
+
+// ========== HoeItem Tilling Tests ==========
+
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassBlock) {
+    auto* grassBlock = VanillaBlocks::GRASS_BLOCK;
+    auto* farmland = VanillaBlocks::FARMLAND;
+
+    ASSERT_NE(grassBlock, nullptr) << "GRASS_BLOCK should be registered";
+    ASSERT_NE(farmland, nullptr) << "FARMLAND should be registered";
+
+    const Block* result = HoeItem::getTilledBlock(grassBlock);
+    EXPECT_EQ(result, farmland) << "Hoe should convert GRASS_BLOCK to FARMLAND";
+}
+
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockDirt) {
+    auto* dirt = VanillaBlocks::DIRT;
+    auto* farmland = VanillaBlocks::FARMLAND;
+
+    ASSERT_NE(dirt, nullptr) << "DIRT should be registered";
+    ASSERT_NE(farmland, nullptr) << "FARMLAND should be registered";
+
+    const Block* result = HoeItem::getTilledBlock(dirt);
+    EXPECT_EQ(result, farmland) << "Hoe should convert DIRT to FARMLAND";
+}
+
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockGrassPath) {
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+    auto* farmland = VanillaBlocks::FARMLAND;
+
+    if (grassPath == nullptr || farmland == nullptr) {
+        GTEST_SKIP() << "GRASS_PATH or FARMLAND not registered yet";
+    }
+
+    const Block* result = HoeItem::getTilledBlock(grassPath);
+    EXPECT_EQ(result, farmland) << "Hoe should convert GRASS_PATH to FARMLAND";
+}
+
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockCoarseDirtToDirt) {
+    auto* coarseDirt = VanillaBlocks::COARSE_DIRT;
+    auto* dirt = VanillaBlocks::DIRT;
+
+    if (coarseDirt == nullptr || dirt == nullptr) {
+        GTEST_SKIP() << "COARSE_DIRT or DIRT not registered yet";
+    }
+
+    // MC 1.16.5: Coarse dirt -> Dirt (not farmland!)
+    const Block* result = HoeItem::getTilledBlock(coarseDirt);
+    EXPECT_EQ(result, dirt) << "Hoe should convert COARSE_DIRT to DIRT (not FARMLAND)";
+}
+
+TEST_F(ToolSpecialFunctionTest, HoeCannotTillStone) {
+    auto* stone = VanillaBlocks::STONE;
+    ASSERT_NE(stone, nullptr);
+
+    const Block* result = HoeItem::getTilledBlock(stone);
+    EXPECT_EQ(result, nullptr) << "Hoe should not be able to till stone";
+}
+
+TEST_F(ToolSpecialFunctionTest, HoeCannotTillFarmland) {
+    auto* farmland = VanillaBlocks::FARMLAND;
+    if (farmland == nullptr) {
+        GTEST_SKIP() << "FARMLAND not registered yet";
+    }
+
+    const Block* result = HoeItem::getTilledBlock(farmland);
+    EXPECT_EQ(result, nullptr) << "Hoe should not be able to convert FARMLAND to anything";
+}
+
+TEST_F(ToolSpecialFunctionTest, HoeGetTilledBlockNullInput) {
+    const Block* result = HoeItem::getTilledBlock(nullptr);
+    EXPECT_EQ(result, nullptr) << "getTilledBlock should return nullptr for null input";
+}
+
+// ========== Tool Enchantability Tests ==========
+
+TEST_F(ToolItemTest, AxeEnchantability) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+    EXPECT_EQ(axe->getItemEnchantability(), 10);  // Diamond enchantability
+}
+
+TEST_F(ToolItemTest, ShovelEnchantability) {
+    auto* shovel = Items::DIAMOND_SHOVEL;
+    ASSERT_NE(shovel, nullptr);
+    EXPECT_EQ(shovel->getItemEnchantability(), 10);  // Diamond enchantability
+}
+
+TEST_F(ToolItemTest, HoeEnchantability) {
+    auto* hoe = Items::DIAMOND_HOE;
+    ASSERT_NE(hoe, nullptr);
+    EXPECT_EQ(hoe->getItemEnchantability(), 10);  // Diamond enchantability
+}
