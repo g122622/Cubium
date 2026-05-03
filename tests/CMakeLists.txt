@@ -273,6 +273,7 @@ add_executable(mc_tests
     client/renderer/firstperson/FirstPersonRendererTest.cpp
     # 澹伴煶绯荤粺娴嬭瘯
     common/sound/SoundCategoryTest.cpp
+    common/sound/test_sound_events.cpp
     client/sound/SoundTest.cpp
     client/sound/SoundRegistryTest.cpp
     # 皮肤系统测试
