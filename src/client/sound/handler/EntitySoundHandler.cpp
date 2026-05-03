@@ -1,6 +1,7 @@
 #include "EntitySoundHandler.hpp"
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/SoundPool.hpp"
+#include "client/sound/instance/MinecartSound.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <spdlog/spdlog.h>
 
@@ -141,6 +142,21 @@ private:
 
 /**
  * @brief 守卫者攻击声音（使用状态快照）
+ *
+ * 参考 MC 1.16.5 GuardianSound.tick():
+ * - 当守卫者未被移除且有攻击目标时播放
+ * - 音量根据攻击动画进度 (attackAnimScale) 变化
+ * - 当 targetEntityId 为 0 时停止
+ * - 音量 = f * f, 音调 = 0.7 + 0.5 * f
+ *
+ * MC 1.16.5 源码：
+ * - tick() 中检查 !removed && getAttackTarget() == null 则停止
+ * - getAttackTarget() 在客户端返回 getTargetedEntity()
+ * - hasTargetedEntity() 检查 TARGET_ENTITY 数据参数
+ * - clientSideAttackTime 在 livingTick() 中递增（当 hasTargetedEntity 时）
+ * - getAttackAnimationScale(0) = clientSideAttackTime / attackDuration (attackDuration=80)
+ *
+ * 注意：我们在这里自己管理 attackAnimScale，模拟 MC 客户端的 clientSideAttackTime
  */
 class GuardianSoundStateful : public TickableSound {
 public:
@@ -153,6 +169,7 @@ public:
     }
 
     void tick() override {
+        ++m_tickCount;
         if (m_handler) {
             const EntitySoundState* state = m_handler->getEntityState(m_entityId);
             if (state) {
@@ -169,18 +186,47 @@ public:
             return;
         }
 
+        // MC 1.16.5: 当无攻击目标时停止
+        if (state.targetEntityId == 0) {
+            markDone();
+            return;
+        }
+
         setPosition(state.position);
 
-        // 根据攻击动画计算音量和音调
-        // MC 1.16.5: volume = 0.0F + 1.0F * f * f, pitch = 0.7F + 0.5F * f
+        // 计算攻击动画进度
+        // MC 1.16.5: attackAnimScale = clientSideAttackTime / attackDuration (80 ticks)
+        // 当目标改变时，onGuardianTargetChanged 会重置 attackAnimScale 为 0
         f32 f = state.attackAnimScale;
-        setVolume(f * f);
-        setPitch(0.7f + 0.5f * f);
+        if (f <= 0.0f) {
+            // 目标刚切换，重置计数器
+            m_clientSideAttackTime = 0;
+        }
+
+        // 模拟 MC 客户端的 clientSideAttackTime 递增
+        // 参考 GuardianEntity.livingTick(): if (this.hasTargetedEntity()) { ++this.clientSideAttackTime; }
+        ++m_clientSideAttackTime;
+        if (m_clientSideAttackTime > ATTACK_DURATION) {
+            m_clientSideAttackTime = ATTACK_DURATION;
+        }
+
+        f = static_cast<f32>(m_clientSideAttackTime) / static_cast<f32>(ATTACK_DURATION);
+
+        // MC 1.16.5: volume = 0.0F + 1.0F * f * f, pitch = 0.7F + 0.5F * f
+        f32 volume = f * f;
+        f32 pitch = 0.7f + 0.5f * f;
+
+        setVolume(volume);
+        setPitch(pitch);
     }
 
 private:
     EntitySoundHandler* m_handler = nullptr;
     EntityId m_entityId;
+    i32 m_tickCount = 0;
+    i32 m_clientSideAttackTime = 0;  // 模拟 MC 客户端的攻击计时器
+
+    static constexpr i32 ATTACK_DURATION = 80;  // MC 1.16.5: GuardianEntity.getAttackDuration() = 80
 };
 
 /**
@@ -425,9 +471,95 @@ void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entit
             }
         }
     } else if (typeId == "minecraft:guardian" || typeId == "minecraft:elder_guardian") {
-        // TODO: 需要攻击目标状态
-        // auto sound = std::make_unique<GuardianSoundStateful>(state, this);
-        // engine.play(std::move(sound));
+        // 守卫者声音通过 onGuardianAttack 动态创建
+        // 这里不创建，因为声音只在攻击时播放
+    } else if (typeId.find("minecart") != String::npos) {
+        // 矿车实体 - 创建矿车行驶声音
+        auto sound = std::make_unique<MinecartSoundStateful>(state, this);
+        SoundInstanceId soundId = engine.play(std::move(sound));
+        if (soundId != 0) {
+            m_activeSounds[entityId] = soundId;
+        }
+
+        // 检查是否有玩家正在骑乘此矿车
+        // 遍历所有实体状态，查找骑乘此矿车的玩家
+        for (const auto& [playerId, playerState] : m_entityStates) {
+            if (playerState.isRiding && playerState.vehicleId == entityId) {
+                // 创建玩家骑乘矿车声音
+                auto ridingSound = std::make_unique<RidingMinecartSoundStateful>(
+                    playerState, state, this);
+                SoundInstanceId ridingSoundId = engine.play(std::move(ridingSound));
+                if (ridingSoundId != 0) {
+                    // 使用复合键存储骑乘声音
+                    m_activeSounds[static_cast<EntityId>(static_cast<u32>(playerId) | 0x80000000)] = ridingSoundId;
+                }
+            }
+        }
+    }
+}
+
+void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityId entityId) {
+    // 检查是否已有守卫者声音
+    auto soundIt = m_activeSounds.find(entityId);
+    if (soundIt != m_activeSounds.end()) {
+        // 已有声音，重置攻击动画
+        std::shared_lock lock(m_stateMutex);
+        auto stateIt = m_entityStates.find(entityId);
+        if (stateIt != m_entityStates.end()) {
+            // 允许修改，需要升级锁
+            lock.unlock();
+            std::unique_lock writeLock(m_stateMutex);
+            stateIt->second.attackAnimScale = 0.0f;
+        }
+        return;
+    }
+
+    // 获取实体状态
+    std::shared_lock lock(m_stateMutex);
+    auto stateIt = m_entityStates.find(entityId);
+    if (stateIt == m_entityStates.end() || stateIt->second.isRemoved) {
+        return;
+    }
+
+    // 检查实体类型
+    auto typeIt = m_entityTypes.find(entityId);
+    if (typeIt == m_entityTypes.end()) {
+        return;
+    }
+
+    const String& typeId = typeIt->second;
+    if (typeId != "minecraft:guardian" && typeId != "minecraft:elder_guardian") {
+        return;
+    }
+
+    // 创建守卫者攻击声音
+    EntitySoundState state = stateIt->second;
+    lock.unlock();
+
+    auto sound = std::make_unique<GuardianSoundStateful>(state, this);
+    SoundInstanceId soundId = engine.play(std::move(sound));
+    if (soundId != 0) {
+        m_activeSounds[entityId] = soundId;
+    }
+}
+
+void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId targetEntityId) {
+    // 如果目标变为 0，停止守卫者声音
+    if (targetEntityId == 0) {
+        auto soundIt = m_activeSounds.find(entityId);
+        if (soundIt != m_activeSounds.end()) {
+            // 声音会在 tick 中自动停止（attackAnimScale 会逐渐变为 0）
+            // 但我们可以立即移除活动声音记录
+            // 注意：不在这里停止声音，让 GuardianSoundStateful::tick() 处理
+        }
+    }
+
+    // 重置攻击动画（MC 1.16.5: notifyDataManagerChange 中 clientSideAttackTime = 0）
+    std::unique_lock lock(m_stateMutex);
+    auto stateIt = m_entityStates.find(entityId);
+    if (stateIt != m_entityStates.end()) {
+        stateIt->second.targetEntityId = targetEntityId;
+        stateIt->second.attackAnimScale = 0.0f;
     }
 }
 

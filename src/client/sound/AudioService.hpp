@@ -160,6 +160,26 @@ public:
      */
     void updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
 
+    /**
+     * @brief 处理守卫者攻击事件（实体状态21）
+     *
+     * 创建 GuardianSound 并开始攻击动画。
+     *
+     * @param entityId 守卫者实体ID
+     */
+    void onGuardianAttack(u32 entityId);
+
+    /**
+     * @brief 更新守卫者攻击目标
+     *
+     * 当 TARGET_ENTITY 元数据变化时调用。
+     * 如果 targetEntityId 为 0，停止攻击声音。
+     *
+     * @param entityId 守卫者实体ID
+     * @param targetEntityId 攻击目标实体ID（0表示无目标）
+     */
+    void updateGuardianTarget(u32 entityId, u32 targetEntityId);
+
 private:
     enum class CommandType : u8 {
         Play,
@@ -186,6 +206,8 @@ private:
         ElytraFlyingChanged,
         EntityAngerStateChanged,
         UpdateEntityPosition,
+        GuardianAttack,
+        GuardianTargetUpdate,
     };
 
     struct Command {
@@ -229,6 +251,8 @@ private:
         f32 vx = 0.0f;
         f32 vy = 0.0f;
         f32 vz = 0.0f;
+        // 守卫者目标
+        u32 targetEntityId = 0;
     };
 
     void enqueue(Command command);

@@ -658,8 +658,21 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityStatus = [this](u32 entityId, u8 status) {
-        MC_UNUSED(entityId);
-        MC_UNUSED(status);
+        // 处理实体状态事件
+        // 参考 MC 1.16.5 ClientPlayNetHandler.handleEntityStatus()
+        switch (status) {
+            case static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack): {
+                // 状态 21: 守卫者开始攻击
+                // MC 1.16.5: this.client.getSoundHandler().play(new GuardianSound((GuardianEntity)entity));
+                if (m_audioService) {
+                    m_audioService->onGuardianAttack(entityId);
+                }
+                break;
+            }
+            default:
+                // 其他状态暂未实现
+                break;
+        }
     };
 
     callbacks.onGameModeChange = [this](GameMode gameMode) {

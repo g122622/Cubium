@@ -409,6 +409,38 @@ void AudioService::updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 v
     }
 }
 
+void AudioService::onGuardianAttack(u32 entityId)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 发送守卫者攻击事件到音频线程
+    Command command;
+    command.type = CommandType::GuardianAttack;
+    command.entityId = entityId;
+    enqueue(std::move(command));
+}
+
+void AudioService::updateGuardianTarget(u32 entityId, u32 targetEntityId)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照中的目标
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->targetEntityId = static_cast<EntityId>(targetEntityId);
+    }
+
+    // 发送目标更新到音频线程
+    Command command;
+    command.type = CommandType::GuardianTargetUpdate;
+    command.entityId = entityId;
+    command.targetEntityId = targetEntityId;
+    enqueue(std::move(command));
+}
+
 void AudioService::enqueue(Command command)
 {
     {
@@ -663,6 +695,23 @@ void AudioService::processCommand(Command& command)
 
         case CommandType::UpdateEntityPosition:
             // 位置和速度已通过 getMutableEntityState 更新
+            break;
+
+        case CommandType::GuardianAttack:
+            // 守卫者攻击事件：创建 GuardianSound
+            if (m_entitySoundHandler && m_soundEngine) {
+                m_entitySoundHandler->onGuardianAttack(*m_soundEngine, static_cast<EntityId>(command.entityId));
+            }
+            break;
+
+        case CommandType::GuardianTargetUpdate:
+            // 守卫者目标更新：更新 attackAnimScale
+            if (m_entitySoundHandler) {
+                m_entitySoundHandler->onGuardianTargetChanged(
+                    static_cast<EntityId>(command.entityId),
+                    static_cast<EntityId>(command.targetEntityId)
+                );
+            }
             break;
     }
 }

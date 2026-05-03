@@ -1,16 +1,12 @@
 #pragma once
 
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/sound/handler/EntitySoundHandler.hpp"
 
-namespace mc {
-
-// 前向声明
-class Entity;
-
-namespace client::sound {
+namespace mc::client::sound {
 
 /**
- * @brief 矿车行驶音效
+ * @brief 矿车行驶音效（使用状态快照）
  *
  * 当矿车移动时播放行驶音效，音量根据矿车速度动态变化。
  *
@@ -22,14 +18,15 @@ namespace client::sound {
  * - 有 distance 字段用于平滑音量变化
  * - canBeSilent() 返回 true
  */
-class MinecartTickableSound : public TickableSound {
+class MinecartSoundStateful : public TickableSound {
 public:
     /**
      * @brief 构造函数
      *
-     * @param minecart 矿车实体引用
+     * @param state 实体状态快照
+     * @param handler EntitySoundHandler 指针，用于查询最新状态
      */
-    explicit MinecartTickableSound(Entity& minecart);
+    MinecartSoundStateful(const EntitySoundState& state, EntitySoundHandler* handler);
 
     /**
      * @brief 每帧更新
@@ -44,15 +41,13 @@ public:
     [[nodiscard]] bool canBeSilent() const override { return true; }
 
 private:
-    /// 矿车实体引用
-    Entity& m_minecart;
-
-    /// 音量平滑距离值
-    f32 m_distance = 0.0f;
+    EntitySoundHandler* m_handler = nullptr;
+    EntityId m_entityId;
+    f32 m_distance = 0.0f;  // 音量平滑距离值
 };
 
 /**
- * @brief 玩家骑乘矿车时的内部音效
+ * @brief 玩家骑乘矿车时的内部音效（使用状态快照）
  *
  * 当玩家骑乘矿车时播放内部音效，使用无衰减模式。
  *
@@ -64,15 +59,18 @@ private:
  * - 音量根据水平速度变化（0 ~ 0.75）
  * - canBeSilent() 返回 true
  */
-class RidingMinecartTickableSound : public TickableSound {
+class RidingMinecartSoundStateful : public TickableSound {
 public:
     /**
      * @brief 构造函数
      *
-     * @param player 玩家实体引用
-     * @param minecart 矿车实体引用
+     * @param playerState 玩家状态快照
+     * @param minecartState 矿车状态快照
+     * @param handler EntitySoundHandler 指针
      */
-    RidingMinecartTickableSound(Entity& player, Entity& minecart);
+    RidingMinecartSoundStateful(const EntitySoundState& playerState,
+                                 const EntitySoundState& minecartState,
+                                 EntitySoundHandler* handler);
 
     /**
      * @brief 每帧更新
@@ -87,12 +85,9 @@ public:
     [[nodiscard]] bool canBeSilent() const override { return true; }
 
 private:
-    /// 玩家实体引用
-    Entity& m_player;
-
-    /// 矿车实体引用
-    Entity& m_minecart;
+    EntitySoundHandler* m_handler = nullptr;
+    EntityId m_playerId;
+    EntityId m_minecartId;
 };
 
 } // namespace mc::client::sound
-} // namespace mc

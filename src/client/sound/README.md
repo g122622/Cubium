@@ -28,7 +28,6 @@ src/client/sound/
 │   ├── ISoundInstance.hpp
 │   ├── SoundInstance.hpp/cpp     # 包含 TickableSound 基类
 │   ├── BeeSound.hpp/cpp          # 蜜蜂飞行/愤怒声音
-│   ├── GuardianSound.hpp/cpp     # 守卫者攻击声音
 │   ├── ElytraSound.hpp/cpp       # 鞘翅飞行声音
 │   ├── UnderwaterLoopSound.hpp/cpp # 水下循环声音
 │   └── MinecartSound.hpp/cpp     # 矿车移动声音
@@ -214,13 +213,13 @@ MC 1.16.5 群系环境音实现三种类型：
 
 | 类名 | 用途 | 音效事件 |
 |-----|------|---------|
-| `BeeFlightSound` | 蜜蜂飞行声音 | `entity.bee.loop` |
-| `BeeAngrySound` | 蜜蜂愤怒声音 | `entity.bee.loop_angry` |
-| `GuardianSound` | 守卫者攻击声音 | `entity.guardian.attack` |
-| `ElytraSound` | 鞘翅飞行声音 | `item.elytra.flying` |
+| `BeeFlightSoundStateful` | 蜜蜂飞行声音 | `entity.bee.loop` |
+| `BeeAngrySoundStateful` | 蜜蜂愤怒声音 | `entity.bee.loop_angry` |
+| `GuardianSoundStateful` | 守卫者攻击声音 | `entity.guardian.attack` |
+| `ElytraSoundStateful` | 鞘翅飞行声音 | `item.elytra.flying` |
 | `UnderwaterLoopSound` | 水下循环声音 | `ambient.underwater.loop` |
-| `MinecartTickableSound` | 矿车移动声音 | `entity.minecart.riding` |
-| `RidingMinecartTickableSound` | 乘坐矿车声音 | `entity.minecart.inside` |
+| `MinecartSoundStateful` | 矿车移动声音 | `entity.minecart.riding` |
+| `RidingMinecartSoundStateful` | 乘坐矿车声音 | `entity.minecart.inside` |
 
 **注意**：由于音频线程和主线程分离，TickableSound 子类不直接引用 ClientEntity，而是通过 `EntitySoundState` 状态快照获取实体信息。
 
@@ -230,17 +229,25 @@ MC 1.16.5 群系环境音实现三种类型：
 
 - **音量**：基于水平速度计算，`volume = clamp(speed / 0.5, 0, 1.2)`
 - **音调**：幼年蜜蜂音调更高 (`minPitch=1.1, maxPitch=1.5`)，成年蜜蜂较低 (`minPitch=0.7, maxPitch=1.1`)
-- **切换机制**：通过 `shouldSwitchSound()` 检测愤怒状态变化，自动切换飞行/愤怒声音
+- **切换机制**：通过 `needsSwitchToAngry()`/`needsSwitchToFlight()` 检测愤怒状态变化，自动切换飞行/愤怒声音
 - **静默支持**：`canBeSilent() = true`，允许音量为0时播放
 
 ### 守卫者声音 (GuardianSound)
 
-守卫者攻击声音根据攻击动画缩放调整音量：
+守卫者攻击声音根据攻击动画进度调整音量：
 
-- **音量**：`1.0 × attackAnimScale²`
+- **触发**：服务端发送实体状态 21（`EntityStatus::GuardianAttack`），客户端创建 `GuardianSoundStateful`
+- **音量**：`attackAnimScale²`（攻击进度 0-1 的平方）
 - **音调**：`0.7 + 0.5 × attackAnimScale`
-- **触发**：当守卫者的攻击目标存在时持续播放
-- **停止**：当守卫者被移除时自动停止
+- **动画进度**：声音内部维护 `clientSideAttackTime`，每 tick 递增，上限 80
+- **停止条件**：`targetEntityId == 0` 或实体被移除
+- **无衰减**：`AttenuationType::None`，全局可听
+
+参考 MC 1.16.5：
+- `GuardianEntity.AttackGoal.tick()` 在 `tickCounter == 0` 时发送 `setEntityState(guardian, (byte)21)`
+- 客户端收到后创建 `GuardianSound`
+- `GuardianSound.tick()` 检查 `getAttackTarget() == null` 停止
+- 音量/音调基于 `getAttackAnimationScale(0)`
 
 ### 鞘翅声音 (ElytraSound)
 
@@ -319,22 +326,23 @@ audioService.setAmbientPlayerPosition(x, y, z);
 
 ## 待完成事项
 
-### MinecartSound 重构
-当前 `MinecartTickableSound` 和 `RidingMinecartTickableSound` 直接引用 `Entity` 对象，与音频线程分离架构不兼容。需要重构为：
-- 使用 `EntitySoundState` 状态快照
-- 在 `EntitySoundHandler` 中管理矿车声音
-- 通过 `AudioService::onEntitySpawn()` 启动声音
-
-### GuardianSound 攻击动画同步
-当前 `GuardianSoundStateful` 已实现，但需要：
-- 服务端发送实体状态 21 事件（攻击动画）
-- 客户端 `handleEntityStatus` 回调更新 `EntitySoundState.attackAnimScale`
-
 ### MovingSoundPacket 跟踪实现
 当前 `MovingSoundPacket` 客户端处理是简化版本，声音只播放一次不跟随实体移动。完整实现需要：
 - 创建 `MovingTickableSound` 类跟踪实体位置
 - 在 `EntitySoundHandler` 中管理移动声音
 - 声音随实体位置实时更新
+
+### 服务端 GuardianSound 同步
+当前客户端已实现 `GuardianSoundStateful`，但服务端需要：
+- 在 `GuardianEntity` 的 `AttackGoal` 中发送 `EntityStatusPacket::GuardianAttack` (状态 21)
+- 发送 TARGET_ENTITY 元数据更新以同步攻击目标
+
+### 更多实体声音
+部分实体声音尚未实现：
+- 海豚跳跃/游泳声音
+- 河豚膨胀/放气声音
+- 羊驼吐口水声音
+- 凋灵Boss声音
 
 ## 测试用例
 

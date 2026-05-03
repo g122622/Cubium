@@ -26,8 +26,15 @@ struct EntitySoundState {
     bool isChild = false;
     bool isFallFlying = false;
     bool isAngry = false;       // 用于蜜蜂
-    f32 attackAnimScale = 0.0f; // 用于守卫者
+    f32 attackAnimScale = 0.0f; // 用于守卫者攻击动画进度 (0.0-1.0)
     EntityId entityId{0};       // 实体ID，用于查找状态
+
+    // 守卫者攻击目标状态
+    EntityId targetEntityId{0}; // 守卫者的攻击目标ID（0表示无目标）
+
+    // 矿车相关状态
+    EntityId vehicleId{0};      // 玩家正在骑乘的载具ID（用于矿车声音）
+    bool isRiding = false;      // 是否正在骑乘
 };
 
 /**
@@ -96,6 +103,27 @@ public:
      * @param isFlying 是否正在鞘翅飞行
      */
     void onPlayerElytraFlyingChanged(SoundEngine& engine, EntityId playerId, bool isFlying);
+
+    /**
+     * @brief 处理守卫者攻击事件
+     *
+     * 当收到实体状态 21 时调用，创建 GuardianSound。
+     *
+     * @param engine 声音引擎
+     * @param entityId 守卫者实体ID
+     */
+    void onGuardianAttack(SoundEngine& engine, EntityId entityId);
+
+    /**
+     * @brief 处理守卫者攻击目标变化
+     *
+     * 当 TARGET_ENTITY 元数据变化时调用。
+     * 目标为 0 时停止攻击声音。
+     *
+     * @param entityId 守卫者实体ID
+     * @param targetEntityId 攻击目标实体ID（0表示无目标）
+     */
+    void onGuardianTargetChanged(EntityId entityId, EntityId targetEntityId);
 
     // ========================================================================
     // 音频线程调用 - tick 更新
