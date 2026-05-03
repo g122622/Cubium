@@ -137,6 +137,29 @@ public:
      */
     void onPlayerElytraFlyingChanged(u32 entityId, bool isFlying);
 
+    /**
+     * @brief 更新实体愤怒状态
+     *
+     * 用于蜜蜂等实体的声音切换。
+     *
+     * @param entityId 实体ID
+     * @param isAngry 是否愤怒
+     */
+    void onEntityAngerStateChanged(u32 entityId, bool isAngry);
+
+    /**
+     * @brief 更新实体位置和速度
+     *
+     * @param entityId 实体ID
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param vx X速度
+     * @param vy Y速度
+     * @param vz Z速度
+     */
+    void updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
+
 private:
     enum class CommandType : u8 {
         Play,
@@ -161,6 +184,8 @@ private:
         EntitySpawn,
         EntityRemove,
         ElytraFlyingChanged,
+        EntityAngerStateChanged,
+        UpdateEntityPosition,
     };
 
     struct Command {
@@ -199,6 +224,11 @@ private:
         u32 entityId = 0;
         String entityTypeId;
         bool isFlying = false;
+        bool isAngry = false;
+        // 实体速度
+        f32 vx = 0.0f;
+        f32 vy = 0.0f;
+        f32 vz = 0.0f;
     };
 
     void enqueue(Command command);

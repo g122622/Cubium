@@ -8,7 +8,7 @@
 src/common/sound/
 ├── SoundCategory.hpp/cpp    # 音效分类枚举
 ├── SoundEvent.hpp/cpp       # 音效事件定义
-├── SoundEvents.hpp/cpp      # 音效事件常量（500+ MC 1.16.5 音效）
+├── SoundEvents.hpp/cpp      # 音效事件常量（700+ MC 1.16.5 音效）
 ├── SoundTypes.hpp           # 音效类型定义
 └── network/
     └── SoundPackets.hpp/cpp # 音效网络数据包
@@ -81,6 +81,9 @@ player.playSound(SoundEvents::ENTITY_PLAYER_HURT, 1.0f, 1.0f);
 - 活塞音效：`BLOCK_PISTON_EXTEND/CONTRACT`
 - 传送门音效：`BLOCK_PORTAL_AMBIENT/TRAVEL/TRIGGER`
 - 信标音效：`BLOCK_BEACON_ACTIVATE/AMBIENT/DEACTIVATE`
+- 基础方块音效：`BLOCK_STONE_*`, `BLOCK_GRASS_*`, `BLOCK_GRAVEL_*`, `BLOCK_SAND_*`, `BLOCK_WOOD_*`, `BLOCK_METAL_*` 等（break/fall/hit/place/step）
+- 下界方块音效：`BLOCK_BASALT_*`, `BLOCK_NETHERRACK_*`, `BLOCK_SOUL_SAND_*`, `BLOCK_NYLIUM_*` 等
+- 气泡柱音效：`BLOCK_BUBBLE_COLUMN_*`
 
 ### 实体音效 (ENTITY_)
 
@@ -104,6 +107,58 @@ player.playSound(SoundEvents::ENTITY_PLAYER_HURT, 1.0f, 1.0f);
 - 下界群系音乐：`MUSIC_NETHER_BASALT_DELTAS` 等
 - 末地音乐：`MUSIC_END`, `MUSIC_DRAGON`
 - 水下音乐：`MUSIC_UNDER_WATER`
+
+## 网络数据包
+
+### PlaySoundPacket
+
+服务端向客户端发送的播放声音数据包：
+
+```cpp
+// 在指定位置播放声音
+PlaySoundPacket packet(
+    SoundEvents::BLOCK_STONE_BREAK,  // 声音事件ID
+    SoundCategory::Blocks,            // 类别
+    glm::vec3(100.0f, 64.0f, 200.0f), // 位置
+    1.0f,  // 音量
+    1.0f   // 音调
+);
+server.connectionManager().sendToPlayer(playerId, PacketType::PlaySound, packet.serialize());
+```
+
+### StopSoundPacket
+
+服务端向客户端发送的停止声音数据包：
+
+```cpp
+// 停止所有声音
+StopSoundPacket stopAll(std::nullopt, std::nullopt);
+
+// 停止特定类别的声音
+StopSoundPacket stopCategory(std::nullopt, SoundCategory::Music);
+
+// 停止特定声音事件
+StopSoundPacket stopSound(SoundEvents::MUSIC_GAME, std::nullopt);
+```
+
+### MovingSoundPacket
+
+服务端向客户端发送的移动声音数据包（跟随实体）：
+
+```cpp
+// 播放跟随实体的声音（如闪电、守卫者激光等）
+MovingSoundPacket packet(
+    SoundEvents::ENTITY_LIGHTNING_BOLT_THUNDER,
+    SoundCategory::Weather,
+    entityId,
+    1.0f,  // 音量
+    1.0f   // 音调
+);
+```
+
+### PlaySoundEffectPacket
+
+用于播放与实体或方块关联的声音效果，格式与 PlaySoundPacket 相同。
 
 ## 依赖项
 

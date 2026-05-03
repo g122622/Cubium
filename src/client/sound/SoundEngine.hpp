@@ -285,6 +285,22 @@ public:
      */
     [[nodiscard]] const IAudioBackend* getBackend() const noexcept { return m_backend.get(); }
 
+    /**
+     * @brief 获取声音实例
+     *
+     * @param id 声音实例ID
+     * @return 声音实例指针，不存在返回 nullptr
+     */
+    [[nodiscard]] ISoundInstance* getSoundInstance(SoundInstanceId id);
+
+    /**
+     * @brief 获取声音实例（const版本）
+     *
+     * @param id 声音实例ID
+     * @return 声音实例指针，不存在返回 nullptr
+     */
+    [[nodiscard]] const ISoundInstance* getSoundInstance(SoundInstanceId id) const;
+
 private:
     /**
      * @brief 活动声音通道

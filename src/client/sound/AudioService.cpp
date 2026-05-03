@@ -384,6 +384,31 @@ void AudioService::onPlayerElytraFlyingChanged(u32 entityId, bool isFlying)
     enqueue(std::move(command));
 }
 
+void AudioService::onEntityAngerStateChanged(u32 entityId, bool isAngry)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照中的愤怒状态
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->isAngry = isAngry;
+    }
+}
+
+void AudioService::updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照中的位置和速度
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->position = glm::vec3(x, y, z);
+        state->velocity = glm::vec3(vx, vy, vz);
+    }
+}
+
 void AudioService::enqueue(Command command)
 {
     {
@@ -630,6 +655,14 @@ void AudioService::processCommand(Command& command)
             if (m_entitySoundHandler && m_soundEngine) {
                 m_entitySoundHandler->onPlayerElytraFlyingChanged(*m_soundEngine, static_cast<EntityId>(command.entityId), command.isFlying);
             }
+            break;
+
+        case CommandType::EntityAngerStateChanged:
+            // 愤怒状态已通过 getMutableEntityState 更新
+            break;
+
+        case CommandType::UpdateEntityPosition:
+            // 位置和速度已通过 getMutableEntityState 更新
             break;
     }
 }

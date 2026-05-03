@@ -193,8 +193,10 @@ public:
 
     /**
      * @brief 标记为已完成
+     *
+     * 同时取消循环，与 MC 原版行为一致。
      */
-    void markDone() { m_done = true; }
+    void markDone() { m_done = true; m_looping = false; }
 
 protected:
     ResourceLocation m_soundEventId;

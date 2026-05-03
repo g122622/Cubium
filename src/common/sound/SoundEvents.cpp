@@ -41,6 +41,232 @@ const ResourceLocation AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE("minecraft:a
 // 方块音效 (BLOCK_)
 // ============================================================================
 
+// 基础方块音效
+const ResourceLocation BLOCK_STONE_BREAK("minecraft:block.stone.break");
+const ResourceLocation BLOCK_STONE_FALL("minecraft:block.stone.fall");
+const ResourceLocation BLOCK_STONE_HIT("minecraft:block.stone.hit");
+const ResourceLocation BLOCK_STONE_PLACE("minecraft:block.stone.place");
+const ResourceLocation BLOCK_STONE_STEP("minecraft:block.stone.step");
+
+const ResourceLocation BLOCK_GRASS_BREAK("minecraft:block.grass.break");
+const ResourceLocation BLOCK_GRASS_FALL("minecraft:block.grass.fall");
+const ResourceLocation BLOCK_GRASS_HIT("minecraft:block.grass.hit");
+const ResourceLocation BLOCK_GRASS_PLACE("minecraft:block.grass.place");
+const ResourceLocation BLOCK_GRASS_STEP("minecraft:block.grass.step");
+
+const ResourceLocation BLOCK_GRAVEL_BREAK("minecraft:block.gravel.break");
+const ResourceLocation BLOCK_GRAVEL_FALL("minecraft:block.gravel.fall");
+const ResourceLocation BLOCK_GRAVEL_HIT("minecraft:block.gravel.hit");
+const ResourceLocation BLOCK_GRAVEL_PLACE("minecraft:block.gravel.place");
+const ResourceLocation BLOCK_GRAVEL_STEP("minecraft:block.gravel.step");
+
+const ResourceLocation BLOCK_SAND_BREAK("minecraft:block.sand.break");
+const ResourceLocation BLOCK_SAND_FALL("minecraft:block.sand.fall");
+const ResourceLocation BLOCK_SAND_HIT("minecraft:block.sand.hit");
+const ResourceLocation BLOCK_SAND_PLACE("minecraft:block.sand.place");
+const ResourceLocation BLOCK_SAND_STEP("minecraft:block.sand.step");
+
+const ResourceLocation BLOCK_GLASS_BREAK("minecraft:block.glass.break");
+const ResourceLocation BLOCK_GLASS_FALL("minecraft:block.glass.fall");
+const ResourceLocation BLOCK_GLASS_HIT("minecraft:block.glass.hit");
+const ResourceLocation BLOCK_GLASS_PLACE("minecraft:block.glass.place");
+const ResourceLocation BLOCK_GLASS_STEP("minecraft:block.glass.step");
+
+const ResourceLocation BLOCK_WOOD_BREAK("minecraft:block.wood.break");
+const ResourceLocation BLOCK_WOOD_FALL("minecraft:block.wood.fall");
+const ResourceLocation BLOCK_WOOD_HIT("minecraft:block.wood.hit");
+const ResourceLocation BLOCK_WOOD_PLACE("minecraft:block.wood.place");
+const ResourceLocation BLOCK_WOOD_STEP("minecraft:block.wood.step");
+
+const ResourceLocation BLOCK_WOOL_BREAK("minecraft:block.wool.break");
+const ResourceLocation BLOCK_WOOL_FALL("minecraft:block.wool.fall");
+const ResourceLocation BLOCK_WOOL_HIT("minecraft:block.wool.hit");
+const ResourceLocation BLOCK_WOOL_PLACE("minecraft:block.wool.place");
+const ResourceLocation BLOCK_WOOL_STEP("minecraft:block.wool.step");
+
+const ResourceLocation BLOCK_METAL_BREAK("minecraft:block.metal.break");
+const ResourceLocation BLOCK_METAL_FALL("minecraft:block.metal.fall");
+const ResourceLocation BLOCK_METAL_HIT("minecraft:block.metal.hit");
+const ResourceLocation BLOCK_METAL_PLACE("minecraft:block.metal.place");
+const ResourceLocation BLOCK_METAL_STEP("minecraft:block.metal.step");
+
+const ResourceLocation BLOCK_SNOW_BREAK("minecraft:block.snow.break");
+const ResourceLocation BLOCK_SNOW_FALL("minecraft:block.snow.fall");
+const ResourceLocation BLOCK_SNOW_HIT("minecraft:block.snow.hit");
+const ResourceLocation BLOCK_SNOW_PLACE("minecraft:block.snow.place");
+const ResourceLocation BLOCK_SNOW_STEP("minecraft:block.snow.step");
+
+// 下界方块音效
+const ResourceLocation BLOCK_ANCIENT_DEBRIS_BREAK("minecraft:block.ancient_debris.break");
+const ResourceLocation BLOCK_ANCIENT_DEBRIS_FALL("minecraft:block.ancient_debris.fall");
+const ResourceLocation BLOCK_ANCIENT_DEBRIS_HIT("minecraft:block.ancient_debris.hit");
+const ResourceLocation BLOCK_ANCIENT_DEBRIS_PLACE("minecraft:block.ancient_debris.place");
+const ResourceLocation BLOCK_ANCIENT_DEBRIS_STEP("minecraft:block.ancient_debris.step");
+
+const ResourceLocation BLOCK_BASALT_BREAK("minecraft:block.basalt.break");
+const ResourceLocation BLOCK_BASALT_FALL("minecraft:block.basalt.fall");
+const ResourceLocation BLOCK_BASALT_HIT("minecraft:block.basalt.hit");
+const ResourceLocation BLOCK_BASALT_PLACE("minecraft:block.basalt.place");
+const ResourceLocation BLOCK_BASALT_STEP("minecraft:block.basalt.step");
+
+const ResourceLocation BLOCK_BONE_BLOCK_BREAK("minecraft:block.bone_block.break");
+const ResourceLocation BLOCK_BONE_BLOCK_FALL("minecraft:block.bone_block.fall");
+const ResourceLocation BLOCK_BONE_BLOCK_HIT("minecraft:block.bone_block.hit");
+const ResourceLocation BLOCK_BONE_BLOCK_PLACE("minecraft:block.bone_block.place");
+const ResourceLocation BLOCK_BONE_BLOCK_STEP("minecraft:block.bone_block.step");
+
+const ResourceLocation BLOCK_NETHER_BRICKS_BREAK("minecraft:block.nether_bricks.break");
+const ResourceLocation BLOCK_NETHER_BRICKS_FALL("minecraft:block.nether_bricks.fall");
+const ResourceLocation BLOCK_NETHER_BRICKS_HIT("minecraft:block.nether_bricks.hit");
+const ResourceLocation BLOCK_NETHER_BRICKS_PLACE("minecraft:block.nether_bricks.place");
+const ResourceLocation BLOCK_NETHER_BRICKS_STEP("minecraft:block.nether_bricks.step");
+
+const ResourceLocation BLOCK_NETHER_GOLD_ORE_BREAK("minecraft:block.nether_gold_ore.break");
+const ResourceLocation BLOCK_NETHER_GOLD_ORE_FALL("minecraft:block.nether_gold_ore.fall");
+const ResourceLocation BLOCK_NETHER_GOLD_ORE_HIT("minecraft:block.nether_gold_ore.hit");
+const ResourceLocation BLOCK_NETHER_GOLD_ORE_PLACE("minecraft:block.nether_gold_ore.place");
+const ResourceLocation BLOCK_NETHER_GOLD_ORE_STEP("minecraft:block.nether_gold_ore.step");
+
+const ResourceLocation BLOCK_NETHER_ORE_BREAK("minecraft:block.nether_ore.break");
+const ResourceLocation BLOCK_NETHER_ORE_FALL("minecraft:block.nether_ore.fall");
+const ResourceLocation BLOCK_NETHER_ORE_HIT("minecraft:block.nether_ore.hit");
+const ResourceLocation BLOCK_NETHER_ORE_PLACE("minecraft:block.nether_ore.place");
+const ResourceLocation BLOCK_NETHER_ORE_STEP("minecraft:block.nether_ore.step");
+
+const ResourceLocation BLOCK_NETHERITE_BLOCK_BREAK("minecraft:block.netherite_block.break");
+const ResourceLocation BLOCK_NETHERITE_BLOCK_FALL("minecraft:block.netherite_block.fall");
+const ResourceLocation BLOCK_NETHERITE_BLOCK_HIT("minecraft:block.netherite_block.hit");
+const ResourceLocation BLOCK_NETHERITE_BLOCK_PLACE("minecraft:block.netherite_block.place");
+const ResourceLocation BLOCK_NETHERITE_BLOCK_STEP("minecraft:block.netherite_block.step");
+
+const ResourceLocation BLOCK_NETHERRACK_BREAK("minecraft:block.netherrack.break");
+const ResourceLocation BLOCK_NETHERRACK_FALL("minecraft:block.netherrack.fall");
+const ResourceLocation BLOCK_NETHERRACK_HIT("minecraft:block.netherrack.hit");
+const ResourceLocation BLOCK_NETHERRACK_PLACE("minecraft:block.netherrack.place");
+const ResourceLocation BLOCK_NETHERRACK_STEP("minecraft:block.netherrack.step");
+
+const ResourceLocation BLOCK_NYLIUM_BREAK("minecraft:block.nylium.break");
+const ResourceLocation BLOCK_NYLIUM_FALL("minecraft:block.nylium.fall");
+const ResourceLocation BLOCK_NYLIUM_HIT("minecraft:block.nylium.hit");
+const ResourceLocation BLOCK_NYLIUM_PLACE("minecraft:block.nylium.place");
+const ResourceLocation BLOCK_NYLIUM_STEP("minecraft:block.nylium.step");
+
+const ResourceLocation BLOCK_SOUL_SAND_BREAK("minecraft:block.soul_sand.break");
+const ResourceLocation BLOCK_SOUL_SAND_FALL("minecraft:block.soul_sand.fall");
+const ResourceLocation BLOCK_SOUL_SAND_HIT("minecraft:block.soul_sand.hit");
+const ResourceLocation BLOCK_SOUL_SAND_PLACE("minecraft:block.soul_sand.place");
+const ResourceLocation BLOCK_SOUL_SAND_STEP("minecraft:block.soul_sand.step");
+
+const ResourceLocation BLOCK_SOUL_SOIL_BREAK("minecraft:block.soul_soil.break");
+const ResourceLocation BLOCK_SOUL_SOIL_FALL("minecraft:block.soul_soil.fall");
+const ResourceLocation BLOCK_SOUL_SOIL_HIT("minecraft:block.soul_soil.hit");
+const ResourceLocation BLOCK_SOUL_SOIL_PLACE("minecraft:block.soul_soil.place");
+const ResourceLocation BLOCK_SOUL_SOIL_STEP("minecraft:block.soul_soil.step");
+
+const ResourceLocation BLOCK_LODESTONE_BREAK("minecraft:block.lodestone.break");
+const ResourceLocation BLOCK_LODESTONE_FALL("minecraft:block.lodestone.fall");
+const ResourceLocation BLOCK_LODESTONE_HIT("minecraft:block.lodestone.hit");
+const ResourceLocation BLOCK_LODESTONE_PLACE("minecraft:block.lodestone.place");
+const ResourceLocation BLOCK_LODESTONE_STEP("minecraft:block.lodestone.step");
+
+const ResourceLocation BLOCK_GILDED_BLACKSTONE_BREAK("minecraft:block.gilded_blackstone.break");
+const ResourceLocation BLOCK_GILDED_BLACKSTONE_FALL("minecraft:block.gilded_blackstone.fall");
+const ResourceLocation BLOCK_GILDED_BLACKSTONE_HIT("minecraft:block.gilded_blackstone.hit");
+const ResourceLocation BLOCK_GILDED_BLACKSTONE_PLACE("minecraft:block.gilded_blackstone.place");
+const ResourceLocation BLOCK_GILDED_BLACKSTONE_STEP("minecraft:block.gilded_blackstone.step");
+
+const ResourceLocation BLOCK_SHROOMLIGHT_BREAK("minecraft:block.shroomlight.break");
+const ResourceLocation BLOCK_SHROOMLIGHT_FALL("minecraft:block.shroomlight.fall");
+const ResourceLocation BLOCK_SHROOMLIGHT_HIT("minecraft:block.shroomlight.hit");
+const ResourceLocation BLOCK_SHROOMLIGHT_PLACE("minecraft:block.shroomlight.place");
+const ResourceLocation BLOCK_SHROOMLIGHT_STEP("minecraft:block.shroomlight.step");
+
+const ResourceLocation BLOCK_WART_BLOCK_BREAK("minecraft:block.wart_block.break");
+const ResourceLocation BLOCK_WART_BLOCK_FALL("minecraft:block.wart_block.fall");
+const ResourceLocation BLOCK_WART_BLOCK_HIT("minecraft:block.wart_block.hit");
+const ResourceLocation BLOCK_WART_BLOCK_PLACE("minecraft:block.wart_block.place");
+const ResourceLocation BLOCK_WART_BLOCK_STEP("minecraft:block.wart_block.step");
+
+const ResourceLocation BLOCK_STEM_BREAK("minecraft:block.stem.break");
+const ResourceLocation BLOCK_STEM_FALL("minecraft:block.stem.fall");
+const ResourceLocation BLOCK_STEM_HIT("minecraft:block.stem.hit");
+const ResourceLocation BLOCK_STEM_PLACE("minecraft:block.stem.place");
+const ResourceLocation BLOCK_STEM_STEP("minecraft:block.stem.step");
+
+const ResourceLocation BLOCK_FUNGUS_BREAK("minecraft:block.fungus.break");
+const ResourceLocation BLOCK_FUNGUS_FALL("minecraft:block.fungus.fall");
+const ResourceLocation BLOCK_FUNGUS_HIT("minecraft:block.fungus.hit");
+const ResourceLocation BLOCK_FUNGUS_PLACE("minecraft:block.fungus.place");
+const ResourceLocation BLOCK_FUNGUS_STEP("minecraft:block.fungus.step");
+
+const ResourceLocation BLOCK_ROOTS_BREAK("minecraft:block.roots.break");
+const ResourceLocation BLOCK_ROOTS_FALL("minecraft:block.roots.fall");
+const ResourceLocation BLOCK_ROOTS_HIT("minecraft:block.roots.hit");
+const ResourceLocation BLOCK_ROOTS_PLACE("minecraft:block.roots.place");
+const ResourceLocation BLOCK_ROOTS_STEP("minecraft:block.roots.step");
+
+const ResourceLocation BLOCK_NETHER_SPROUTS_BREAK("minecraft:block.nether_sprouts.break");
+const ResourceLocation BLOCK_NETHER_SPROUTS_FALL("minecraft:block.nether_sprouts.fall");
+const ResourceLocation BLOCK_NETHER_SPROUTS_HIT("minecraft:block.nether_sprouts.hit");
+const ResourceLocation BLOCK_NETHER_SPROUTS_PLACE("minecraft:block.nether_sprouts.place");
+const ResourceLocation BLOCK_NETHER_SPROUTS_STEP("minecraft:block.nether_sprouts.step");
+
+const ResourceLocation BLOCK_WEEPING_VINES_BREAK("minecraft:block.weeping_vines.break");
+const ResourceLocation BLOCK_WEEPING_VINES_FALL("minecraft:block.weeping_vines.fall");
+const ResourceLocation BLOCK_WEEPING_VINES_HIT("minecraft:block.weeping_vines.hit");
+const ResourceLocation BLOCK_WEEPING_VINES_PLACE("minecraft:block.weeping_vines.place");
+const ResourceLocation BLOCK_WEEPING_VINES_STEP("minecraft:block.weeping_vines.step");
+
+// 其他方块音效
+const ResourceLocation BLOCK_BAMBOO_BREAK("minecraft:block.bamboo.break");
+const ResourceLocation BLOCK_BAMBOO_FALL("minecraft:block.bamboo.fall");
+const ResourceLocation BLOCK_BAMBOO_HIT("minecraft:block.bamboo.hit");
+const ResourceLocation BLOCK_BAMBOO_PLACE("minecraft:block.bamboo.place");
+const ResourceLocation BLOCK_BAMBOO_STEP("minecraft:block.bamboo.step");
+const ResourceLocation BLOCK_BAMBOO_SAPLING_BREAK("minecraft:block.bamboo_sapling.break");
+const ResourceLocation BLOCK_BAMBOO_SAPLING_HIT("minecraft:block.bamboo_sapling.hit");
+const ResourceLocation BLOCK_BAMBOO_SAPLING_PLACE("minecraft:block.bamboo_sapling.place");
+
+const ResourceLocation BLOCK_WET_GRASS_BREAK("minecraft:block.wet_grass.break");
+const ResourceLocation BLOCK_WET_GRASS_FALL("minecraft:block.wet_grass.fall");
+const ResourceLocation BLOCK_WET_GRASS_HIT("minecraft:block.wet_grass.hit");
+const ResourceLocation BLOCK_WET_GRASS_PLACE("minecraft:block.wet_grass.place");
+const ResourceLocation BLOCK_WET_GRASS_STEP("minecraft:block.wet_grass.step");
+
+const ResourceLocation BLOCK_VINE_STEP("minecraft:block.vine.step");
+
+const ResourceLocation BLOCK_CORAL_BLOCK_BREAK("minecraft:block.coral_block.break");
+const ResourceLocation BLOCK_CORAL_BLOCK_FALL("minecraft:block.coral_block.fall");
+const ResourceLocation BLOCK_CORAL_BLOCK_HIT("minecraft:block.coral_block.hit");
+const ResourceLocation BLOCK_CORAL_BLOCK_PLACE("minecraft:block.coral_block.place");
+const ResourceLocation BLOCK_CORAL_BLOCK_STEP("minecraft:block.coral_block.step");
+
+const ResourceLocation BLOCK_CROP_BREAK("minecraft:block.crop.break");
+const ResourceLocation BLOCK_NETHER_WART_BREAK("minecraft:block.nether_wart.break");
+const ResourceLocation BLOCK_SWEET_BERRY_BUSH_BREAK("minecraft:block.sweet_berry_bush.break");
+const ResourceLocation BLOCK_SWEET_BERRY_BUSH_PLACE("minecraft:block.sweet_berry_bush.place");
+const ResourceLocation BLOCK_LILY_PAD_PLACE("minecraft:block.lily_pad.place");
+
+const ResourceLocation BLOCK_WATER_AMBIENT("minecraft:block.water.ambient");
+
+const ResourceLocation BLOCK_BARREL_CLOSE("minecraft:block.barrel.close");
+const ResourceLocation BLOCK_BARREL_OPEN("minecraft:block.barrel.open");
+const ResourceLocation BLOCK_CHEST_LOCKED("minecraft:block.chest.locked");
+const ResourceLocation BLOCK_CHORUS_FLOWER_DEATH("minecraft:block.chorus_flower.death");
+const ResourceLocation BLOCK_CHORUS_FLOWER_GROW("minecraft:block.chorus_flower.grow");
+const ResourceLocation BLOCK_COMPOSTER_EMPTY("minecraft:block.composter.empty");
+const ResourceLocation BLOCK_COMPOSTER_FILL("minecraft:block.composter.fill");
+const ResourceLocation BLOCK_COMPOSTER_FILL_SUCCESS("minecraft:block.composter.fill_success");
+const ResourceLocation BLOCK_COMPOSTER_READY("minecraft:block.composter.ready");
+const ResourceLocation BLOCK_FURNACE_FIRE_CRACKLE("minecraft:block.furnace.fire_crackle");
+const ResourceLocation BLOCK_LEVER_CLICK("minecraft:block.lever.click");
+const ResourceLocation BLOCK_PUMPKIN_CARVE("minecraft:block.pumpkin.carve");
+const ResourceLocation BLOCK_TRIPWIRE_ATTACH("minecraft:block.tripwire.attach");
+const ResourceLocation BLOCK_TRIPWIRE_CLICK_OFF("minecraft:block.tripwire.click_off");
+const ResourceLocation BLOCK_TRIPWIRE_CLICK_ON("minecraft:block.tripwire.click_on");
+const ResourceLocation BLOCK_TRIPWIRE_DETACH("minecraft:block.tripwire.detach");
+
+/// 木门
 const ResourceLocation BLOCK_WOODEN_DOOR_OPEN("minecraft:block.wooden_door.open");
 const ResourceLocation BLOCK_WOODEN_DOOR_CLOSE("minecraft:block.wooden_door.close");
 const ResourceLocation BLOCK_IRON_DOOR_OPEN("minecraft:block.iron_door.open");
@@ -153,10 +379,10 @@ const ResourceLocation BLOCK_REDSTONE_STEP("minecraft:block.redstone.step");
 const ResourceLocation BLOCK_REDSTONE_FALL("minecraft:block.redstone.fall");
 
 const ResourceLocation BLOCK_BUBBLE_COLUMN_BUBBLE_POP("minecraft:block.bubble_column.bubble_pop");
-const ResourceLocation BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT("minecraft:block.bubble_column.upwards.ambient");
-const ResourceLocation BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE("minecraft:block.bubble_column.upwards.inside");
-const ResourceLocation BLOCK_BUBBLE_COLUMN_WHIRLPOOL_AMBIENT("minecraft:block.bubble_column.whirlpool.ambient");
-const ResourceLocation BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE("minecraft:block.bubble_column.whirlpool.inside");
+const ResourceLocation BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT("minecraft:block.bubble_column.upwards_ambient");
+const ResourceLocation BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE("minecraft:block.bubble_column.upwards_inside");
+const ResourceLocation BLOCK_BUBBLE_COLUMN_WHIRLPOOL_AMBIENT("minecraft:block.bubble_column.whirlpool_ambient");
+const ResourceLocation BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE("minecraft:block.bubble_column.whirlpool_inside");
 
 const ResourceLocation BLOCK_CONDUIT_ACTIVATE("minecraft:block.conduit.activate");
 const ResourceLocation BLOCK_CONDUIT_AMBIENT("minecraft:block.conduit.ambient");
@@ -362,6 +588,111 @@ const ResourceLocation ENTITY_POLAR_BEAR_DEATH("minecraft:entity.polar_bear.deat
 const ResourceLocation ENTITY_POLAR_BEAR_HURT("minecraft:entity.polar_bear.hurt");
 const ResourceLocation ENTITY_POLAR_BEAR_STEP("minecraft:entity.polar_bear.step");
 const ResourceLocation ENTITY_POLAR_BEAR_WARNING("minecraft:entity.polar_bear.warning");
+
+// 蝙蝠
+const ResourceLocation ENTITY_BAT_AMBIENT("minecraft:entity.bat.ambient");
+const ResourceLocation ENTITY_BAT_DEATH("minecraft:entity.bat.death");
+const ResourceLocation ENTITY_BAT_HURT("minecraft:entity.bat.hurt");
+const ResourceLocation ENTITY_BAT_LOOP("minecraft:entity.bat.loop");
+const ResourceLocation ENTITY_BAT_TAKEOFF("minecraft:entity.bat.takeoff");
+
+// 狐狸
+const ResourceLocation ENTITY_FOX_AGGRO("minecraft:entity.fox.aggro");
+const ResourceLocation ENTITY_FOX_AMBIENT("minecraft:entity.fox.ambient");
+const ResourceLocation ENTITY_FOX_BITE("minecraft:entity.fox.bite");
+const ResourceLocation ENTITY_FOX_DEATH("minecraft:entity.fox.death");
+const ResourceLocation ENTITY_FOX_EAT("minecraft:entity.fox.eat");
+const ResourceLocation ENTITY_FOX_HURT("minecraft:entity.fox.hurt");
+const ResourceLocation ENTITY_FOX_SCREECH("minecraft:entity.fox.screech");
+const ResourceLocation ENTITY_FOX_SLEEP("minecraft:entity.fox.sleep");
+const ResourceLocation ENTITY_FOX_SNIFF("minecraft:entity.fox.sniff");
+const ResourceLocation ENTITY_FOX_SPIT("minecraft:entity.fox.spit");
+const ResourceLocation ENTITY_FOX_TELEPORT("minecraft:entity.fox.teleport");
+
+// 熊猫
+const ResourceLocation ENTITY_PANDA_AGGRESSIVE_AMBIENT("minecraft:entity.panda.aggressive_ambient");
+const ResourceLocation ENTITY_PANDA_AMBIENT("minecraft:entity.panda.ambient");
+const ResourceLocation ENTITY_PANDA_BITE("minecraft:entity.panda.bite");
+const ResourceLocation ENTITY_PANDA_CANT_BREED("minecraft:entity.panda.cant_breed");
+const ResourceLocation ENTITY_PANDA_DEATH("minecraft:entity.panda.death");
+const ResourceLocation ENTITY_PANDA_EAT("minecraft:entity.panda.eat");
+const ResourceLocation ENTITY_PANDA_HURT("minecraft:entity.panda.hurt");
+const ResourceLocation ENTITY_PANDA_PRE_SNEEZE("minecraft:entity.panda.pre_sneeze");
+const ResourceLocation ENTITY_PANDA_SNEEZE("minecraft:entity.panda.sneeze");
+const ResourceLocation ENTITY_PANDA_STEP("minecraft:entity.panda.step");
+const ResourceLocation ENTITY_PANDA_WORRIED_AMBIENT("minecraft:entity.panda.worried_ambient");
+
+// 鹦鹉
+const ResourceLocation ENTITY_PARROT_AMBIENT("minecraft:entity.parrot.ambient");
+const ResourceLocation ENTITY_PARROT_DEATH("minecraft:entity.parrot.death");
+const ResourceLocation ENTITY_PARROT_EAT("minecraft:entity.parrot.eat");
+const ResourceLocation ENTITY_PARROT_FLY("minecraft:entity.parrot.fly");
+const ResourceLocation ENTITY_PARROT_HURT("minecraft:entity.parrot.hurt");
+const ResourceLocation ENTITY_PARROT_IMITATE_BLAZE("minecraft:entity.parrot.imitate.blaze");
+const ResourceLocation ENTITY_PARROT_IMITATE_CREEPER("minecraft:entity.parrot.imitate.creeper");
+const ResourceLocation ENTITY_PARROT_IMITATE_DROWNED("minecraft:entity.parrot.imitate.drowned");
+const ResourceLocation ENTITY_PARROT_IMITATE_ELDER_GUARDIAN("minecraft:entity.parrot.imitate.elder_guardian");
+const ResourceLocation ENTITY_PARROT_IMITATE_ENDER_DRAGON("minecraft:entity.parrot.imitate.ender_dragon");
+const ResourceLocation ENTITY_PARROT_IMITATE_ENDERMITE("minecraft:entity.parrot.imitate.endermite");
+const ResourceLocation ENTITY_PARROT_IMITATE_EVOKER("minecraft:entity.parrot.imitate.evoker");
+const ResourceLocation ENTITY_PARROT_IMITATE_GHAST("minecraft:entity.parrot.imitate.ghast");
+const ResourceLocation ENTITY_PARROT_IMITATE_GUARDIAN("minecraft:entity.parrot.imitate.guardian");
+const ResourceLocation ENTITY_PARROT_IMITATE_HOGLIN("minecraft:entity.parrot.imitate.hoglin");
+const ResourceLocation ENTITY_PARROT_IMITATE_HUSK("minecraft:entity.parrot.imitate.husk");
+const ResourceLocation ENTITY_PARROT_IMITATE_ILLUSIONER("minecraft:entity.parrot.imitate.illusioner");
+const ResourceLocation ENTITY_PARROT_IMITATE_MAGMA_CUBE("minecraft:entity.parrot.imitate.magma_cube");
+const ResourceLocation ENTITY_PARROT_IMITATE_PHANTOM("minecraft:entity.parrot.imitate.phantom");
+const ResourceLocation ENTITY_PARROT_IMITATE_PIGLIN("minecraft:entity.parrot.imitate.piglin");
+const ResourceLocation ENTITY_PARROT_IMITATE_PIGLIN_BRUTE("minecraft:entity.parrot.imitate.piglin_brute");
+const ResourceLocation ENTITY_PARROT_IMITATE_PILLAGER("minecraft:entity.parrot.imitate.pillager");
+const ResourceLocation ENTITY_PARROT_IMITATE_RAVAGER("minecraft:entity.parrot.imitate.ravager");
+const ResourceLocation ENTITY_PARROT_IMITATE_SHULKER("minecraft:entity.parrot.imitate.shulker");
+const ResourceLocation ENTITY_PARROT_IMITATE_SILVERFISH("minecraft:entity.parrot.imitate.silverfish");
+const ResourceLocation ENTITY_PARROT_IMITATE_SKELETON("minecraft:entity.parrot.imitate.skeleton");
+const ResourceLocation ENTITY_PARROT_IMITATE_SLIME("minecraft:entity.parrot.imitate.slime");
+const ResourceLocation ENTITY_PARROT_IMITATE_SPIDER("minecraft:entity.parrot.imitate.spider");
+const ResourceLocation ENTITY_PARROT_IMITATE_STRAY("minecraft:entity.parrot.imitate.stray");
+const ResourceLocation ENTITY_PARROT_IMITATE_VEX("minecraft:entity.parrot.imitate.vex");
+const ResourceLocation ENTITY_PARROT_IMITATE_VINDICATOR("minecraft:entity.parrot.imitate.vindicator");
+const ResourceLocation ENTITY_PARROT_IMITATE_WITCH("minecraft:entity.parrot.imitate.witch");
+const ResourceLocation ENTITY_PARROT_IMITATE_WITHER("minecraft:entity.parrot.imitate.wither");
+const ResourceLocation ENTITY_PARROT_IMITATE_WITHER_SKELETON("minecraft:entity.parrot.imitate.wither_skeleton");
+const ResourceLocation ENTITY_PARROT_IMITATE_ZOGLIN("minecraft:entity.parrot.imitate.zoglin");
+const ResourceLocation ENTITY_PARROT_IMITATE_ZOMBIE("minecraft:entity.parrot.imitate.zombie");
+const ResourceLocation ENTITY_PARROT_IMITATE_ZOMBIE_VILLAGER("minecraft:entity.parrot.imitate.zombie_villager");
+const ResourceLocation ENTITY_PARROT_STEP("minecraft:entity.parrot.step");
+
+// 骷髅马
+const ResourceLocation ENTITY_SKELETON_HORSE_AMBIENT("minecraft:entity.skeleton_horse.ambient");
+const ResourceLocation ENTITY_SKELETON_HORSE_AMBIENT_WATER("minecraft:entity.skeleton_horse.ambient_water");
+const ResourceLocation ENTITY_SKELETON_HORSE_DEATH("minecraft:entity.skeleton_horse.death");
+const ResourceLocation ENTITY_SKELETON_HORSE_GALLOP_WATER("minecraft:entity.skeleton_horse.gallop_water");
+const ResourceLocation ENTITY_SKELETON_HORSE_HURT("minecraft:entity.skeleton_horse.hurt");
+const ResourceLocation ENTITY_SKELETON_HORSE_JUMP_WATER("minecraft:entity.skeleton_horse.jump_water");
+const ResourceLocation ENTITY_SKELETON_HORSE_STEP_WATER("minecraft:entity.skeleton_horse.step_water");
+const ResourceLocation ENTITY_SKELETON_HORSE_SWIM("minecraft:entity.skeleton_horse.swim");
+
+// 僵尸马
+const ResourceLocation ENTITY_ZOMBIE_HORSE_AMBIENT("minecraft:entity.zombie_horse.ambient");
+const ResourceLocation ENTITY_ZOMBIE_HORSE_DEATH("minecraft:entity.zombie_horse.death");
+const ResourceLocation ENTITY_ZOMBIE_HORSE_HURT("minecraft:entity.zombie_horse.hurt");
+
+// 幻术师
+const ResourceLocation ENTITY_ILLUSIONER_AMBIENT("minecraft:entity.illusioner.ambient");
+const ResourceLocation ENTITY_ILLUSIONER_CAST_SPELL("minecraft:entity.illusioner.cast_spell");
+const ResourceLocation ENTITY_ILLUSIONER_DEATH("minecraft:entity.illusioner.death");
+const ResourceLocation ENTITY_ILLUSIONER_HURT("minecraft:entity.illusioner.hurt");
+const ResourceLocation ENTITY_ILLUSIONER_MIRROR_MOVE("minecraft:entity.illusioner.mirror_move");
+const ResourceLocation ENTITY_ILLUSIONER_PREPARE_BLINDNESS("minecraft:entity.illusioner.prepare_blindness");
+const ResourceLocation ENTITY_ILLUSIONER_PREPARE_MIRROR("minecraft:entity.illusioner.prepare_mirror");
+
+// 敌对生物通用
+const ResourceLocation ENTITY_HOSTILE_BIG_FALL("minecraft:entity.hostile.big_fall");
+const ResourceLocation ENTITY_HOSTILE_DEATH("minecraft:entity.hostile.death");
+const ResourceLocation ENTITY_HOSTILE_HURT("minecraft:entity.hostile.hurt");
+const ResourceLocation ENTITY_HOSTILE_SMALL_FALL("minecraft:entity.hostile.small_fall");
+const ResourceLocation ENTITY_HOSTILE_SPLASH("minecraft:entity.hostile.splash");
+const ResourceLocation ENTITY_HOSTILE_SWIM("minecraft:entity.hostile.swim");
 
 // 海豚
 const ResourceLocation ENTITY_DOLPHIN_AMBIENT("minecraft:entity.dolphin.ambient");
@@ -772,6 +1103,25 @@ const ResourceLocation ENTITY_STRIDER_SADDLE("minecraft:entity.strider.saddle");
 // 其他实体声音
 // ============================================================================
 
+// 末影之眼
+const ResourceLocation ENTITY_ENDER_EYE_DEATH("minecraft:entity.ender_eye.death");
+const ResourceLocation ENTITY_ENDER_EYE_LAUNCH("minecraft:entity.ender_eye.launch");
+
+// 唤魔者尖牙
+const ResourceLocation ENTITY_EVOKER_FANGS_ATTACK("minecraft:entity.evoker_fangs.attack");
+
+// 经验瓶
+const ResourceLocation ENTITY_EXPERIENCE_BOTTLE_THROW("minecraft:entity.experience_bottle.throw");
+
+// 鱼（游泳）
+const ResourceLocation ENTITY_FISH_SWIM("minecraft:entity.fish.swim");
+
+// 物品（破坏）
+const ResourceLocation ENTITY_ITEM_BREAK("minecraft:entity.item.break");
+
+// 滞留药水
+const ResourceLocation ENTITY_LINGERING_POTION_THROW("minecraft:entity.lingering_potion.throw");
+
 // 箭矢
 const ResourceLocation ENTITY_ARROW_HIT("minecraft:entity.arrow.hit");
 const ResourceLocation ENTITY_ARROW_HIT_PLAYER("minecraft:entity.arrow.hit_player");
@@ -874,6 +1224,7 @@ const ResourceLocation ITEM_HOE_TILL("minecraft:item.hoe.till");
 const ResourceLocation ITEM_SHOVEL_FLATTEN("minecraft:item.shovel.flatten");
 
 // 其他
+const ResourceLocation ITEM_CHORUS_FRUIT_TELEPORT("minecraft:item.chorus_fruit.teleport");
 const ResourceLocation ITEM_FLINTANDSTEEL_USE("minecraft:item.flintandsteel.use");
 const ResourceLocation ITEM_FIRE_CHARGE_USE("minecraft:item.fire_charge.use");
 const ResourceLocation ITEM_TOTEM_USE("minecraft:item.totem.use");

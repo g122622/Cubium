@@ -12,14 +12,13 @@ UnderwaterAmbientHandler::UnderwaterAmbientHandler()
 }
 
 void UnderwaterAmbientHandler::tick(SoundEngine& engine) {
-    // 只在水下播放（眼睛在水中）
-    // 参考: UnderwaterAmbientSoundHandler.tick() line 19: player.canSwim()
+    // 只在水下播放附加音效
+    // 参考: UnderwaterAmbientSoundHandler.tick() lines 19-33
+    // 概率检查每tick都进行，无冷却延迟
     if (!m_isUnderwater) {
         return;
     }
 
-    // 参考: UnderwaterAmbientSoundHandler.tick() lines 19-33
-    // 概率检查每tick都进行，无冷却延迟
     // 使用 float 随机数 [0.0, 1.0)
     f32 f = m_rng.nextFloat();
 
@@ -62,9 +61,6 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine) {
         );
         engine.play(std::move(sound));
     }
-    // 注意：loop 音效由 UnderWaterSound 类处理，它是一个 TickableSound
-    // 具有音量渐入效果（40 ticks = 2秒渐入）
-    // 当前简化实现：loop 音效由 enter/exit 音效触发时播放
 }
 
 } // namespace mc::client::sound

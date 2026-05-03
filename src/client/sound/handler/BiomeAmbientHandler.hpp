@@ -8,8 +8,12 @@
 #include "common/util/math/random/Random.hpp"
 
 #include <optional>
+#include <unordered_map>
 
 namespace mc::client::sound {
+
+// 前向声明
+class BiomeLoopSound;
 
 /**
  * @brief 生物群系环境音效处理器
@@ -34,7 +38,7 @@ namespace mc::client::sound {
 class BiomeAmbientHandler : public IAmbientSoundHandler {
 public:
     BiomeAmbientHandler();
-    ~BiomeAmbientHandler() override = default;
+    ~BiomeAmbientHandler() override;
 
     /**
      * @brief 每帧更新
@@ -44,6 +48,11 @@ public:
      * @param engine 声音引擎
      */
     void tick(SoundEngine& engine) override;
+
+    /**
+     * @brief 停止所有环境音效
+     */
+    void stopAll();
 
     /**
      * @brief 设置当前群系ID
@@ -85,6 +94,9 @@ private:
     /// 当前群系ID
     u32 m_currentBiomeId = 0;
 
+    /// 上一个群系ID（用于检测群系切换）
+    u32 m_previousBiomeId = static_cast<u32>(-1);
+
     /// 玩家位置
     f64 m_playerX = 0.0;
     f64 m_playerY = 0.0;
@@ -97,8 +109,17 @@ private:
     /// 心境音效计时器 (0.0 - 1.0)
     f32 m_moodTimer = 0.0f;
 
+    /// 当前心境音效配置
+    std::optional<world::biome::MoodSoundAmbience> m_currentMoodSound;
+
+    /// 当前附加音效配置
+    std::optional<world::biome::SoundAdditionsAmbience> m_currentAdditionsSound;
+
+    /// 活动的循环音效（按群系ID索引）
+    std::unordered_map<u32, SoundInstanceId> m_loopSounds;
+
     /// 随机数生成器
-    math::Random m_rng{0};
+    math::Random m_rng;
 };
 
 } // namespace mc::client::sound

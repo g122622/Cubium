@@ -274,4 +274,96 @@ private:
     f32 m_pitch = 1.0f;
 };
 
+/**
+ * @brief 移动声音数据包（服务端->客户端）
+ *
+ * 用于播放附加到实体上的移动声音。声音会跟随实体移动，
+ * 当实体被移除或声音停止时，声音自动结束。
+ *
+ * 参考: net.minecraft.network.play.server.SSpawnMovingSoundEffectPacket
+ *
+ * 使用示例:
+ * @code
+ * // 服务端发送 - 为实体播放移动声音
+ * MovingSoundPacket packet(
+ *     ResourceLocation("minecraft:entity.lightning_bolt.thunder"),
+ *     SoundCategory::Weather,
+ *     entityId,
+ *     1.0f,   // volume
+ *     1.0f    // pitch
+ * );
+ * broadcastPacket(packet);
+ *
+ * // 客户端接收后，创建 TickableSound 附加到实体上
+ * @endcode
+ */
+class MovingSoundPacket : public network::Packet {
+public:
+    /**
+     * @brief 默认构造函数（用于反序列化）
+     */
+    MovingSoundPacket();
+
+    /**
+     * @brief 构造移动声音包
+     *
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param entityId 实体ID（声音将跟随此实体）
+     * @param volume 音量倍率（0.0-1.0，可超过1.0）
+     * @param pitch 音调倍率（0.5-2.0）
+     */
+    MovingSoundPacket(const ResourceLocation& soundEventId,
+                      SoundCategory category,
+                      i32 entityId,
+                      f32 volume,
+                      f32 pitch);
+
+    // ========================================================================
+    // Packet 接口实现
+    // ========================================================================
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+    size_t expectedSize() const override;
+
+    // ========================================================================
+    // 属性访问
+    // ========================================================================
+
+    /**
+     * @brief 获取声音事件ID
+     */
+    [[nodiscard]] const ResourceLocation& getSoundEventId() const noexcept { return m_soundEventId; }
+
+    /**
+     * @brief 获取声音类别
+     */
+    [[nodiscard]] SoundCategory getCategory() const noexcept { return m_category; }
+
+    /**
+     * @brief 获取实体ID
+     *
+     * 声音将跟随此实体移动。
+     */
+    [[nodiscard]] i32 getEntityId() const noexcept { return m_entityId; }
+
+    /**
+     * @brief 获取音量倍率
+     */
+    [[nodiscard]] f32 getVolume() const noexcept { return m_volume; }
+
+    /**
+     * @brief 获取音调倍率
+     */
+    [[nodiscard]] f32 getPitch() const noexcept { return m_pitch; }
+
+private:
+    ResourceLocation m_soundEventId;
+    SoundCategory m_category = SoundCategory::Master;
+    i32 m_entityId = 0;
+    f32 m_volume = 1.0f;
+    f32 m_pitch = 1.0f;
+};
+
 } // namespace mc::sound

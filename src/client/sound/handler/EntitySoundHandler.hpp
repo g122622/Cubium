@@ -12,6 +12,7 @@
 namespace mc::client::sound {
 
 class SoundEngine;
+class EntitySoundHandler;
 
 /**
  * @brief 实体状态快照（用于音频线程）
@@ -26,6 +27,7 @@ struct EntitySoundState {
     bool isFallFlying = false;
     bool isAngry = false;       // 用于蜜蜂
     f32 attackAnimScale = 0.0f; // 用于守卫者
+    EntityId entityId{0};       // 实体ID，用于查找状态
 };
 
 /**

@@ -10,7 +10,7 @@ namespace mc::client::sound {
  * @brief 水下环境音效处理器
  *
  * 当玩家在水下时播放水下环境音效。
- * 包括主循环音效和三个稀有度级别的附加音效。
+ * 包括三个稀有度级别的附加音效。
  *
  * 参考: net.minecraft.client.audio.UnderwaterAmbientSoundHandler
  *
@@ -19,13 +19,14 @@ namespace mc::client::sound {
  * - 稀有音效: 0.09% 每tick
  * - 超稀有音效: 0.01% 每tick
  *
+ * 注意：水下循环音效（UnderWaterSound）由 EntitySoundHandler 管理，
+ * 因为它是一个 TickableSound，需要跟随玩家状态。
+ *
  * 使用示例:
  * @code
  * auto handler = std::make_unique<UnderwaterAmbientHandler>();
  * engine.addAmbientHandler(std::move(handler));
  * @endcode
- *
- * TODO：需要通过 setUnderwater() 方法更新玩家是否在水下。
  */
 class UnderwaterAmbientHandler : public IAmbientSoundHandler {
 public:

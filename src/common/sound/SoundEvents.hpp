@@ -61,6 +61,231 @@ extern const ResourceLocation AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE;
 // 方块音效 (BLOCK_)
 // ============================================================================
 
+/// 基础方块音效（break/fall/hit/place/step）
+extern const ResourceLocation BLOCK_STONE_BREAK;
+extern const ResourceLocation BLOCK_STONE_FALL;
+extern const ResourceLocation BLOCK_STONE_HIT;
+extern const ResourceLocation BLOCK_STONE_PLACE;
+extern const ResourceLocation BLOCK_STONE_STEP;
+
+extern const ResourceLocation BLOCK_GRASS_BREAK;
+extern const ResourceLocation BLOCK_GRASS_FALL;
+extern const ResourceLocation BLOCK_GRASS_HIT;
+extern const ResourceLocation BLOCK_GRASS_PLACE;
+extern const ResourceLocation BLOCK_GRASS_STEP;
+
+extern const ResourceLocation BLOCK_GRAVEL_BREAK;
+extern const ResourceLocation BLOCK_GRAVEL_FALL;
+extern const ResourceLocation BLOCK_GRAVEL_HIT;
+extern const ResourceLocation BLOCK_GRAVEL_PLACE;
+extern const ResourceLocation BLOCK_GRAVEL_STEP;
+
+extern const ResourceLocation BLOCK_SAND_BREAK;
+extern const ResourceLocation BLOCK_SAND_FALL;
+extern const ResourceLocation BLOCK_SAND_HIT;
+extern const ResourceLocation BLOCK_SAND_PLACE;
+extern const ResourceLocation BLOCK_SAND_STEP;
+
+extern const ResourceLocation BLOCK_GLASS_BREAK;
+extern const ResourceLocation BLOCK_GLASS_FALL;
+extern const ResourceLocation BLOCK_GLASS_HIT;
+extern const ResourceLocation BLOCK_GLASS_PLACE;
+extern const ResourceLocation BLOCK_GLASS_STEP;
+
+extern const ResourceLocation BLOCK_WOOD_BREAK;
+extern const ResourceLocation BLOCK_WOOD_FALL;
+extern const ResourceLocation BLOCK_WOOD_HIT;
+extern const ResourceLocation BLOCK_WOOD_PLACE;
+extern const ResourceLocation BLOCK_WOOD_STEP;
+
+extern const ResourceLocation BLOCK_WOOL_BREAK;
+extern const ResourceLocation BLOCK_WOOL_FALL;
+extern const ResourceLocation BLOCK_WOOL_HIT;
+extern const ResourceLocation BLOCK_WOOL_PLACE;
+extern const ResourceLocation BLOCK_WOOL_STEP;
+
+extern const ResourceLocation BLOCK_METAL_BREAK;
+extern const ResourceLocation BLOCK_METAL_FALL;
+extern const ResourceLocation BLOCK_METAL_HIT;
+extern const ResourceLocation BLOCK_METAL_PLACE;
+extern const ResourceLocation BLOCK_METAL_STEP;
+
+extern const ResourceLocation BLOCK_SNOW_BREAK;
+extern const ResourceLocation BLOCK_SNOW_FALL;
+extern const ResourceLocation BLOCK_SNOW_HIT;
+extern const ResourceLocation BLOCK_SNOW_PLACE;
+extern const ResourceLocation BLOCK_SNOW_STEP;
+
+/// 下界方块音效
+extern const ResourceLocation BLOCK_ANCIENT_DEBRIS_BREAK;
+extern const ResourceLocation BLOCK_ANCIENT_DEBRIS_FALL;
+extern const ResourceLocation BLOCK_ANCIENT_DEBRIS_HIT;
+extern const ResourceLocation BLOCK_ANCIENT_DEBRIS_PLACE;
+extern const ResourceLocation BLOCK_ANCIENT_DEBRIS_STEP;
+
+extern const ResourceLocation BLOCK_BASALT_BREAK;
+extern const ResourceLocation BLOCK_BASALT_FALL;
+extern const ResourceLocation BLOCK_BASALT_HIT;
+extern const ResourceLocation BLOCK_BASALT_PLACE;
+extern const ResourceLocation BLOCK_BASALT_STEP;
+
+extern const ResourceLocation BLOCK_BONE_BLOCK_BREAK;
+extern const ResourceLocation BLOCK_BONE_BLOCK_FALL;
+extern const ResourceLocation BLOCK_BONE_BLOCK_HIT;
+extern const ResourceLocation BLOCK_BONE_BLOCK_PLACE;
+extern const ResourceLocation BLOCK_BONE_BLOCK_STEP;
+
+extern const ResourceLocation BLOCK_NETHER_BRICKS_BREAK;
+extern const ResourceLocation BLOCK_NETHER_BRICKS_FALL;
+extern const ResourceLocation BLOCK_NETHER_BRICKS_HIT;
+extern const ResourceLocation BLOCK_NETHER_BRICKS_PLACE;
+extern const ResourceLocation BLOCK_NETHER_BRICKS_STEP;
+
+extern const ResourceLocation BLOCK_NETHER_GOLD_ORE_BREAK;
+extern const ResourceLocation BLOCK_NETHER_GOLD_ORE_FALL;
+extern const ResourceLocation BLOCK_NETHER_GOLD_ORE_HIT;
+extern const ResourceLocation BLOCK_NETHER_GOLD_ORE_PLACE;
+extern const ResourceLocation BLOCK_NETHER_GOLD_ORE_STEP;
+
+extern const ResourceLocation BLOCK_NETHER_ORE_BREAK;
+extern const ResourceLocation BLOCK_NETHER_ORE_FALL;
+extern const ResourceLocation BLOCK_NETHER_ORE_HIT;
+extern const ResourceLocation BLOCK_NETHER_ORE_PLACE;
+extern const ResourceLocation BLOCK_NETHER_ORE_STEP;
+
+extern const ResourceLocation BLOCK_NETHERITE_BLOCK_BREAK;
+extern const ResourceLocation BLOCK_NETHERITE_BLOCK_FALL;
+extern const ResourceLocation BLOCK_NETHERITE_BLOCK_HIT;
+extern const ResourceLocation BLOCK_NETHERITE_BLOCK_PLACE;
+extern const ResourceLocation BLOCK_NETHERITE_BLOCK_STEP;
+
+extern const ResourceLocation BLOCK_NETHERRACK_BREAK;
+extern const ResourceLocation BLOCK_NETHERRACK_FALL;
+extern const ResourceLocation BLOCK_NETHERRACK_HIT;
+extern const ResourceLocation BLOCK_NETHERRACK_PLACE;
+extern const ResourceLocation BLOCK_NETHERRACK_STEP;
+
+extern const ResourceLocation BLOCK_NYLIUM_BREAK;
+extern const ResourceLocation BLOCK_NYLIUM_FALL;
+extern const ResourceLocation BLOCK_NYLIUM_HIT;
+extern const ResourceLocation BLOCK_NYLIUM_PLACE;
+extern const ResourceLocation BLOCK_NYLIUM_STEP;
+
+extern const ResourceLocation BLOCK_SOUL_SAND_BREAK;
+extern const ResourceLocation BLOCK_SOUL_SAND_FALL;
+extern const ResourceLocation BLOCK_SOUL_SAND_HIT;
+extern const ResourceLocation BLOCK_SOUL_SAND_PLACE;
+extern const ResourceLocation BLOCK_SOUL_SAND_STEP;
+
+extern const ResourceLocation BLOCK_SOUL_SOIL_BREAK;
+extern const ResourceLocation BLOCK_SOUL_SOIL_FALL;
+extern const ResourceLocation BLOCK_SOUL_SOIL_HIT;
+extern const ResourceLocation BLOCK_SOUL_SOIL_PLACE;
+extern const ResourceLocation BLOCK_SOUL_SOIL_STEP;
+
+extern const ResourceLocation BLOCK_LODESTONE_BREAK;
+extern const ResourceLocation BLOCK_LODESTONE_FALL;
+extern const ResourceLocation BLOCK_LODESTONE_HIT;
+extern const ResourceLocation BLOCK_LODESTONE_PLACE;
+extern const ResourceLocation BLOCK_LODESTONE_STEP;
+
+extern const ResourceLocation BLOCK_GILDED_BLACKSTONE_BREAK;
+extern const ResourceLocation BLOCK_GILDED_BLACKSTONE_FALL;
+extern const ResourceLocation BLOCK_GILDED_BLACKSTONE_HIT;
+extern const ResourceLocation BLOCK_GILDED_BLACKSTONE_PLACE;
+extern const ResourceLocation BLOCK_GILDED_BLACKSTONE_STEP;
+
+extern const ResourceLocation BLOCK_SHROOMLIGHT_BREAK;
+extern const ResourceLocation BLOCK_SHROOMLIGHT_FALL;
+extern const ResourceLocation BLOCK_SHROOMLIGHT_HIT;
+extern const ResourceLocation BLOCK_SHROOMLIGHT_PLACE;
+extern const ResourceLocation BLOCK_SHROOMLIGHT_STEP;
+
+extern const ResourceLocation BLOCK_WART_BLOCK_BREAK;
+extern const ResourceLocation BLOCK_WART_BLOCK_FALL;
+extern const ResourceLocation BLOCK_WART_BLOCK_HIT;
+extern const ResourceLocation BLOCK_WART_BLOCK_PLACE;
+extern const ResourceLocation BLOCK_WART_BLOCK_STEP;
+
+extern const ResourceLocation BLOCK_STEM_BREAK;
+extern const ResourceLocation BLOCK_STEM_FALL;
+extern const ResourceLocation BLOCK_STEM_HIT;
+extern const ResourceLocation BLOCK_STEM_PLACE;
+extern const ResourceLocation BLOCK_STEM_STEP;
+
+extern const ResourceLocation BLOCK_FUNGUS_BREAK;
+extern const ResourceLocation BLOCK_FUNGUS_FALL;
+extern const ResourceLocation BLOCK_FUNGUS_HIT;
+extern const ResourceLocation BLOCK_FUNGUS_PLACE;
+extern const ResourceLocation BLOCK_FUNGUS_STEP;
+
+extern const ResourceLocation BLOCK_ROOTS_BREAK;
+extern const ResourceLocation BLOCK_ROOTS_FALL;
+extern const ResourceLocation BLOCK_ROOTS_HIT;
+extern const ResourceLocation BLOCK_ROOTS_PLACE;
+extern const ResourceLocation BLOCK_ROOTS_STEP;
+
+extern const ResourceLocation BLOCK_NETHER_SPROUTS_BREAK;
+extern const ResourceLocation BLOCK_NETHER_SPROUTS_FALL;
+extern const ResourceLocation BLOCK_NETHER_SPROUTS_HIT;
+extern const ResourceLocation BLOCK_NETHER_SPROUTS_PLACE;
+extern const ResourceLocation BLOCK_NETHER_SPROUTS_STEP;
+
+extern const ResourceLocation BLOCK_WEEPING_VINES_BREAK;
+extern const ResourceLocation BLOCK_WEEPING_VINES_FALL;
+extern const ResourceLocation BLOCK_WEEPING_VINES_HIT;
+extern const ResourceLocation BLOCK_WEEPING_VINES_PLACE;
+extern const ResourceLocation BLOCK_WEEPING_VINES_STEP;
+
+/// 其他方块音效
+extern const ResourceLocation BLOCK_BAMBOO_BREAK;
+extern const ResourceLocation BLOCK_BAMBOO_FALL;
+extern const ResourceLocation BLOCK_BAMBOO_HIT;
+extern const ResourceLocation BLOCK_BAMBOO_PLACE;
+extern const ResourceLocation BLOCK_BAMBOO_STEP;
+extern const ResourceLocation BLOCK_BAMBOO_SAPLING_BREAK;
+extern const ResourceLocation BLOCK_BAMBOO_SAPLING_HIT;
+extern const ResourceLocation BLOCK_BAMBOO_SAPLING_PLACE;
+
+extern const ResourceLocation BLOCK_WET_GRASS_BREAK;
+extern const ResourceLocation BLOCK_WET_GRASS_FALL;
+extern const ResourceLocation BLOCK_WET_GRASS_HIT;
+extern const ResourceLocation BLOCK_WET_GRASS_PLACE;
+extern const ResourceLocation BLOCK_WET_GRASS_STEP;
+
+extern const ResourceLocation BLOCK_VINE_STEP;
+
+extern const ResourceLocation BLOCK_CORAL_BLOCK_BREAK;
+extern const ResourceLocation BLOCK_CORAL_BLOCK_FALL;
+extern const ResourceLocation BLOCK_CORAL_BLOCK_HIT;
+extern const ResourceLocation BLOCK_CORAL_BLOCK_PLACE;
+extern const ResourceLocation BLOCK_CORAL_BLOCK_STEP;
+
+extern const ResourceLocation BLOCK_CROP_BREAK;
+extern const ResourceLocation BLOCK_NETHER_WART_BREAK;
+extern const ResourceLocation BLOCK_SWEET_BERRY_BUSH_BREAK;
+extern const ResourceLocation BLOCK_SWEET_BERRY_BUSH_PLACE;
+extern const ResourceLocation BLOCK_LILY_PAD_PLACE;
+
+extern const ResourceLocation BLOCK_WATER_AMBIENT;
+
+extern const ResourceLocation BLOCK_BARREL_CLOSE;
+extern const ResourceLocation BLOCK_BARREL_OPEN;
+extern const ResourceLocation BLOCK_CHEST_LOCKED;
+extern const ResourceLocation BLOCK_CHORUS_FLOWER_DEATH;
+extern const ResourceLocation BLOCK_CHORUS_FLOWER_GROW;
+extern const ResourceLocation BLOCK_COMPOSTER_EMPTY;
+extern const ResourceLocation BLOCK_COMPOSTER_FILL;
+extern const ResourceLocation BLOCK_COMPOSTER_FILL_SUCCESS;
+extern const ResourceLocation BLOCK_COMPOSTER_READY;
+extern const ResourceLocation BLOCK_FURNACE_FIRE_CRACKLE;
+extern const ResourceLocation BLOCK_LEVER_CLICK;
+extern const ResourceLocation BLOCK_PUMPKIN_CARVE;
+extern const ResourceLocation BLOCK_TRIPWIRE_ATTACH;
+extern const ResourceLocation BLOCK_TRIPWIRE_CLICK_OFF;
+extern const ResourceLocation BLOCK_TRIPWIRE_CLICK_ON;
+extern const ResourceLocation BLOCK_TRIPWIRE_DETACH;
+
 /// 木门
 extern const ResourceLocation BLOCK_WOODEN_DOOR_OPEN;
 extern const ResourceLocation BLOCK_WOODEN_DOOR_CLOSE;
@@ -478,6 +703,111 @@ extern const ResourceLocation ENTITY_POLAR_BEAR_HURT;
 extern const ResourceLocation ENTITY_POLAR_BEAR_STEP;
 extern const ResourceLocation ENTITY_POLAR_BEAR_WARNING;
 
+/// 蝙蝠
+extern const ResourceLocation ENTITY_BAT_AMBIENT;
+extern const ResourceLocation ENTITY_BAT_DEATH;
+extern const ResourceLocation ENTITY_BAT_HURT;
+extern const ResourceLocation ENTITY_BAT_LOOP;
+extern const ResourceLocation ENTITY_BAT_TAKEOFF;
+
+/// 狐狸
+extern const ResourceLocation ENTITY_FOX_AGGRO;
+extern const ResourceLocation ENTITY_FOX_AMBIENT;
+extern const ResourceLocation ENTITY_FOX_BITE;
+extern const ResourceLocation ENTITY_FOX_DEATH;
+extern const ResourceLocation ENTITY_FOX_EAT;
+extern const ResourceLocation ENTITY_FOX_HURT;
+extern const ResourceLocation ENTITY_FOX_SCREECH;
+extern const ResourceLocation ENTITY_FOX_SLEEP;
+extern const ResourceLocation ENTITY_FOX_SNIFF;
+extern const ResourceLocation ENTITY_FOX_SPIT;
+extern const ResourceLocation ENTITY_FOX_TELEPORT;
+
+/// 熊猫
+extern const ResourceLocation ENTITY_PANDA_AGGRESSIVE_AMBIENT;
+extern const ResourceLocation ENTITY_PANDA_AMBIENT;
+extern const ResourceLocation ENTITY_PANDA_BITE;
+extern const ResourceLocation ENTITY_PANDA_CANT_BREED;
+extern const ResourceLocation ENTITY_PANDA_DEATH;
+extern const ResourceLocation ENTITY_PANDA_EAT;
+extern const ResourceLocation ENTITY_PANDA_HURT;
+extern const ResourceLocation ENTITY_PANDA_PRE_SNEEZE;
+extern const ResourceLocation ENTITY_PANDA_SNEEZE;
+extern const ResourceLocation ENTITY_PANDA_STEP;
+extern const ResourceLocation ENTITY_PANDA_WORRIED_AMBIENT;
+
+/// 鹦鹉
+extern const ResourceLocation ENTITY_PARROT_AMBIENT;
+extern const ResourceLocation ENTITY_PARROT_DEATH;
+extern const ResourceLocation ENTITY_PARROT_EAT;
+extern const ResourceLocation ENTITY_PARROT_FLY;
+extern const ResourceLocation ENTITY_PARROT_HURT;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_BLAZE;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_CREEPER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_DROWNED;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_ELDER_GUARDIAN;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_ENDER_DRAGON;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_ENDERMITE;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_EVOKER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_GHAST;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_GUARDIAN;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_HOGLIN;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_HUSK;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_ILLUSIONER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_MAGMA_CUBE;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_PHANTOM;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_PIGLIN;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_PIGLIN_BRUTE;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_PILLAGER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_RAVAGER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_SHULKER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_SILVERFISH;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_SKELETON;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_SLIME;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_SPIDER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_STRAY;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_VEX;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_VINDICATOR;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_WITCH;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_WITHER;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_WITHER_SKELETON;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_ZOGLIN;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_ZOMBIE;
+extern const ResourceLocation ENTITY_PARROT_IMITATE_ZOMBIE_VILLAGER;
+extern const ResourceLocation ENTITY_PARROT_STEP;
+
+/// 骷髅马
+extern const ResourceLocation ENTITY_SKELETON_HORSE_AMBIENT;
+extern const ResourceLocation ENTITY_SKELETON_HORSE_AMBIENT_WATER;
+extern const ResourceLocation ENTITY_SKELETON_HORSE_DEATH;
+extern const ResourceLocation ENTITY_SKELETON_HORSE_GALLOP_WATER;
+extern const ResourceLocation ENTITY_SKELETON_HORSE_HURT;
+extern const ResourceLocation ENTITY_SKELETON_HORSE_JUMP_WATER;
+extern const ResourceLocation ENTITY_SKELETON_HORSE_STEP_WATER;
+extern const ResourceLocation ENTITY_SKELETON_HORSE_SWIM;
+
+/// 僵尸马
+extern const ResourceLocation ENTITY_ZOMBIE_HORSE_AMBIENT;
+extern const ResourceLocation ENTITY_ZOMBIE_HORSE_DEATH;
+extern const ResourceLocation ENTITY_ZOMBIE_HORSE_HURT;
+
+/// 幻术师
+extern const ResourceLocation ENTITY_ILLUSIONER_AMBIENT;
+extern const ResourceLocation ENTITY_ILLUSIONER_CAST_SPELL;
+extern const ResourceLocation ENTITY_ILLUSIONER_DEATH;
+extern const ResourceLocation ENTITY_ILLUSIONER_HURT;
+extern const ResourceLocation ENTITY_ILLUSIONER_MIRROR_MOVE;
+extern const ResourceLocation ENTITY_ILLUSIONER_PREPARE_BLINDNESS;
+extern const ResourceLocation ENTITY_ILLUSIONER_PREPARE_MIRROR;
+
+/// 敌对生物通用
+extern const ResourceLocation ENTITY_HOSTILE_BIG_FALL;
+extern const ResourceLocation ENTITY_HOSTILE_DEATH;
+extern const ResourceLocation ENTITY_HOSTILE_HURT;
+extern const ResourceLocation ENTITY_HOSTILE_SMALL_FALL;
+extern const ResourceLocation ENTITY_HOSTILE_SPLASH;
+extern const ResourceLocation ENTITY_HOSTILE_SWIM;
+
 /// 海豚
 extern const ResourceLocation ENTITY_DOLPHIN_AMBIENT;
 extern const ResourceLocation ENTITY_DOLPHIN_AMBIENT_WATER;
@@ -887,6 +1217,25 @@ extern const ResourceLocation ENTITY_STRIDER_SADDLE;
 // 其他实体声音
 // ============================================================================
 
+/// 末影之眼
+extern const ResourceLocation ENTITY_ENDER_EYE_DEATH;
+extern const ResourceLocation ENTITY_ENDER_EYE_LAUNCH;
+
+/// 唤魔者尖牙
+extern const ResourceLocation ENTITY_EVOKER_FANGS_ATTACK;
+
+/// 经验瓶
+extern const ResourceLocation ENTITY_EXPERIENCE_BOTTLE_THROW;
+
+/// 鱼（游泳）
+extern const ResourceLocation ENTITY_FISH_SWIM;
+
+/// 物品（破坏）
+extern const ResourceLocation ENTITY_ITEM_BREAK;
+
+/// 滞留药水
+extern const ResourceLocation ENTITY_LINGERING_POTION_THROW;
+
 /// 箭矢
 extern const ResourceLocation ENTITY_ARROW_HIT;
 extern const ResourceLocation ENTITY_ARROW_HIT_PLAYER;
@@ -990,6 +1339,7 @@ extern const ResourceLocation ITEM_HOE_TILL;
 extern const ResourceLocation ITEM_SHOVEL_FLATTEN;
 
 /// 其他
+extern const ResourceLocation ITEM_CHORUS_FRUIT_TELEPORT;
 extern const ResourceLocation ITEM_FLINTANDSTEEL_USE;
 extern const ResourceLocation ITEM_FIRE_CHARGE_USE;
 extern const ResourceLocation ITEM_TOTEM_USE;

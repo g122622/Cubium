@@ -534,6 +534,14 @@ void SoundEngine::addAmbientHandler(std::unique_ptr<IAmbientSoundHandler> handle
     m_ambientHandlers.push_back(std::move(handler));
 }
 
+ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) {
+    return m_pool.get(id);
+}
+
+const ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) const {
+    return m_pool.get(id);
+}
+
 f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const {
     f32 volume = sound.getVolume();
 

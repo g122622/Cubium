@@ -29,7 +29,9 @@ src/client/sound/
 │   ├── SoundInstance.hpp/cpp     # 包含 TickableSound 基类
 │   ├── BeeSound.hpp/cpp          # 蜜蜂飞行/愤怒声音
 │   ├── GuardianSound.hpp/cpp     # 守卫者攻击声音
-│   └── ElytraSound.hpp/cpp       # 鞘翅飞行声音
+│   ├── ElytraSound.hpp/cpp       # 鞘翅飞行声音
+│   ├── UnderwaterLoopSound.hpp/cpp # 水下循环声音
+│   └── MinecartSound.hpp/cpp     # 矿车移动声音
 └── resource/                     # 声音资源注册表
     ├── SoundDefinition.hpp/cpp
     └── SoundRegistry.hpp/cpp
@@ -176,14 +178,24 @@ MC 1.16.5 群系环境音实现三种类型：
 | 实体类型 | 音效事件 | 触发条件 |
 |---------|---------|---------|
 | 蜜蜂 | `entity.bee.loop` | 蜜蜂生成时 |
-| 蜜蜂(愤怒) | `entity.bee.loop_angry` | 蜜蜂愤怒状态 (待元数据同步) |
-| 守卫者 | `entity.guardian.attack` | 守卫者攻击目标时 (待元数据同步) |
+| 蜜蜂(愤怒) | `entity.bee.loop_angry` | 蜜蜂愤怒状态变化时自动切换 |
+| 守卫者 | `entity.guardian.attack` | 守卫者攻击目标时 (待攻击动画同步) |
 | 玩家(鞘翅) | `item.elytra.flying` | 玩家 FallFlying 状态变化 |
 
 **线程安全设计**：
-- 主线程通过 `AudioService::onEntitySpawn()` / `onEntityRemove()` / `onPlayerElytraFlyingChanged()` 投递命令
+- 主线程通过 `AudioService` 方法投递命令和更新状态：
+  - `onEntitySpawn()` - 实体生成时创建声音
+  - `onEntityRemove()` - 实体移除时停止声音
+  - `onPlayerElytraFlyingChanged()` - 鞘翅飞行状态变化
+  - `onEntityAngerStateChanged()` - 实体愤怒状态变化（蜜蜂）
+  - `updateEntityPosition()` - 更新实体位置和速度
 - 音频线程通过 `EntitySoundHandler::tick()` 更新声音状态
 - 使用 `EntitySoundState` 结构存储实体状态快照，避免跨线程访问 ClientEntity
+
+**蜜蜂声音切换机制**：
+- `BeeFlightSoundStateful` - 正常飞行声音，当检测到愤怒状态时自动切换
+- `BeeAngrySoundStateful` - 愤怒声音，当检测到不再愤怒时自动切换回飞行声音
+- 声音切换通过 `markDone()` 完成，`EntitySoundHandler::tick()` 会检测并重新创建正确类型的声音
 
 ## 可Tick的声音实例 (TickableSound)
 
@@ -197,6 +209,9 @@ MC 1.16.5 群系环境音实现三种类型：
 | `BeeAngrySound` | 蜜蜂愤怒声音 | `entity.bee.loop_angry` |
 | `GuardianSound` | 守卫者攻击声音 | `entity.guardian.attack` |
 | `ElytraSound` | 鞘翅飞行声音 | `item.elytra.flying` |
+| `UnderwaterLoopSound` | 水下循环声音 | `ambient.underwater.loop` |
+| `MinecartTickableSound` | 矿车移动声音 | `entity.minecart.riding` |
+| `RidingMinecartTickableSound` | 乘坐矿车声音 | `entity.minecart.inside` |
 
 **注意**：由于音频线程和主线程分离，TickableSound 子类不直接引用 ClientEntity，而是通过 `EntitySoundState` 状态快照获取实体信息。
 
@@ -227,6 +242,32 @@ MC 1.16.5 群系环境音实现三种类型：
 - **淡入效果**：前 20 tick 静音，20-40 tick 渐入
 - **音调**：当音量 > 0.8 时音调增加 `1.0 + (volume - 0.8)`
 - **停止**：玩家停止滑翔或实体被移除
+
+### 水下循环声音 (UnderwaterLoopSound)
+
+MC 1.16.5 水下循环声音实现40 tick淡入淡出：
+
+- **触发条件**：玩家眼睛进入水中
+- **淡入**：在水中每tick +1，最大40
+- **淡出**：离开水中每tick -2
+- **音量**：`ticks / 40.0`
+- **静默支持**：`canBeSilent() = true`，允许音量为0时播放
+- **游泳模式**：`setCanSwim(true)` 时使用游泳变体音效
+
+### 矿车声音 (MinecartSound)
+
+矿车声音有两种变体：
+
+1. **MinecartTickableSound** - 矿车本身的声音
+   - 音效事件：`entity.minecart.riding`
+   - 音量基于水平速度：`clamp(speed / 0.5, 0, 0.7)`，带平滑过渡
+   - 随矿车位置移动
+
+2. **RidingMinecartTickableSound** - 玩家乘坐矿车的声音
+   - 音效事件：`entity.minecart.inside`
+   - 无衰减（玩家内部声音）
+   - 音量基于水平速度：`clamp(speed, 0, 0.75)`
+   - 跟随玩家位置
 
 ### 群系环境音数据结构
 

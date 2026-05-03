@@ -333,4 +333,95 @@ Result<void> PlaySoundEffectPacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
+// ============================================================================
+// MovingSoundPacket
+// ============================================================================
+
+MovingSoundPacket::MovingSoundPacket()
+    : network::Packet(network::PacketType::MovingSound)
+{
+}
+
+MovingSoundPacket::MovingSoundPacket(const ResourceLocation& soundEventId,
+                                     SoundCategory category,
+                                     i32 entityId,
+                                     f32 volume,
+                                     f32 pitch)
+    : network::Packet(network::PacketType::MovingSound)
+    , m_soundEventId(soundEventId)
+    , m_category(category)
+    , m_entityId(entityId)
+    , m_volume(volume)
+    , m_pitch(pitch)
+{
+}
+
+size_t MovingSoundPacket::expectedSize() const {
+    // 声音事件ID字符串 + category(varint) + entityId(varint) + volume(f32) + pitch(f32)
+    return 64;
+}
+
+Result<std::vector<u8>> MovingSoundPacket::serialize() const {
+    network::PacketSerializer serializer;
+    serializer.reserve(expectedSize());
+
+    // 写入声音事件ID（字符串格式：namespace:path）
+    serializer.writeString(m_soundEventId.toString());
+
+    // 写入类别（VarInt）
+    serializer.writeVarInt(static_cast<i32>(m_category));
+
+    // 写入实体ID（VarInt）
+    serializer.writeVarInt(m_entityId);
+
+    // 写入音量和音调
+    serializer.writeF32(m_volume);
+    serializer.writeF32(m_pitch);
+
+    return serializer.buffer();
+}
+
+Result<void> MovingSoundPacket::deserialize(const u8* data, size_t size) {
+    network::PacketDeserializer deserializer(data, size);
+
+    // 读取声音事件ID
+    auto idResult = deserializer.readString();
+    if (!idResult.success()) {
+        return idResult.error();
+    }
+    m_soundEventId = ResourceLocation::parse(idResult.value());
+
+    // 读取类别
+    auto categoryResult = deserializer.readVarInt();
+    if (!categoryResult.success()) {
+        return categoryResult.error();
+    }
+    m_category = static_cast<SoundCategory>(categoryResult.value());
+    if (!isValidSoundCategory(m_category)) {
+        m_category = SoundCategory::Master;
+    }
+
+    // 读取实体ID
+    auto entityIdResult = deserializer.readVarInt();
+    if (!entityIdResult.success()) {
+        return entityIdResult.error();
+    }
+    m_entityId = entityIdResult.value();
+
+    // 读取音量和音调
+    auto volumeResult = deserializer.readF32();
+    if (!volumeResult.success()) {
+        return volumeResult.error();
+    }
+    m_volume = volumeResult.value();
+
+    auto pitchResult = deserializer.readF32();
+    if (!pitchResult.success()) {
+        return pitchResult.error();
+    }
+    m_pitch = pitchResult.value();
+
+    return {};
+}
+
 } // namespace mc::sound
