@@ -123,6 +123,11 @@ struct NetworkClientCallbacks {
                        f32 pitch)> onPlaySound;
     std::function<void(const std::optional<ResourceLocation>& soundEventId,
                        const std::optional<mc::sound::SoundCategory>& category)> onStopSound;
+    std::function<void(const ResourceLocation& soundEventId,
+                       mc::sound::SoundCategory category,
+                       i32 entityId,
+                       f32 volume,
+                       f32 pitch)> onMovingSound;
 
     // 实体元数据事件
     std::function<void(u32 entityId, const std::vector<u8>& metadata)> onEntityMetadata;
@@ -260,6 +265,7 @@ private:
     void handlePlaySound(network::PacketDeserializer& deser);
     void handleStopSound(network::PacketDeserializer& deser);
     void handlePlaySoundEffect(network::PacketDeserializer& deser);
+    void handleMovingSound(network::PacketDeserializer& deser);
 
     // 经验包处理
     void handleSetExperience(network::PacketDeserializer& deser);

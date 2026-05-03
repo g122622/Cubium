@@ -8,6 +8,8 @@
 #include "../../../combat/DifficultyHelper.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -46,6 +48,15 @@ std::optional<ResourceLocation> ZombieEntity::getDeathSound() const {
 std::optional<ResourceLocation> ZombieEntity::getStepSound() const {
     // MC 1.16.5: entity.zombie.step
     return makeSoundEventId("step");
+}
+
+void ZombieEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
+    // MC 1.16.5: ZombieEntity.playStepSound()
+    // 僵尸播放固定的脚步声，忽略脚下方块类型
+    auto sound = getStepSound();
+    if (sound) {
+        playSound(*sound, 0.15f, 1.0f);
+    }
 }
 
 void ZombieEntity::setBreakDoorsAbility(bool canBreak) {

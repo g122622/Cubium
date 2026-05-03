@@ -240,6 +240,101 @@ namespace BlockSoundTypes {
     // 空气（静音）
     extern const BlockSoundType AIR;
 
+    // ========== MC 1.16.5 缺失的声音类型 ==========
+
+    // 地面（泥土/砾石变体）
+    extern const BlockSoundType GROUND;
+
+    // 植物
+    extern const BlockSoundType PLANT;
+
+    // 梯子
+    extern const BlockSoundType LADDER;
+
+    // 铁砧（volume=0.3）
+    extern const BlockSoundType ANVIL;
+
+    // 黏液块
+    extern const BlockSoundType SLIME;
+
+    // 蜂蜜块
+    extern const BlockSoundType HONEY;
+
+    // 湿草
+    extern const BlockSoundType WET_GRASS;
+
+    // 珊瑚
+    extern const BlockSoundType CORAL;
+
+    // 竹子
+    extern const BlockSoundType BAMBOO;
+
+    // 竹笋
+    extern const BlockSoundType BAMBOO_SAPLING;
+
+    // 脚手架
+    extern const BlockSoundType SCAFFOLDING;
+
+    // 甜浆果丛
+    extern const BlockSoundType SWEET_BERRY_BUSH;
+
+    // 农作物
+    extern const BlockSoundType CROP;
+
+    // 菌柄（下界木质）
+    extern const BlockSoundType STEM;
+
+    // 藤蔓
+    extern const BlockSoundType VINE;
+
+    // 地狱疣
+    extern const BlockSoundType NETHER_WART;
+
+    // 灯笼
+    extern const BlockSoundType LANTERN;
+
+    // 菌核（下界木质内部）
+    extern const BlockSoundType HYPHAE;
+
+    // 菌岩
+    extern const BlockSoundType NYLIUM;
+
+    // 真菌
+    extern const BlockSoundType FUNGUS;
+
+    // 菌索
+    extern const BlockSoundType ROOT;
+
+    // 菌光体
+    extern const BlockSoundType SHROOMLIGHT;
+
+    // 下界藤蔓
+    extern const BlockSoundType NETHER_VINE;
+
+    // 下界藤蔓（低音调）
+    extern const BlockSoundType NETHER_VINE_LOWER_PITCH;
+
+    // 疣块
+    extern const BlockSoundType WART;
+
+    // 下界砖
+    extern const BlockSoundType NETHER_BRICK;
+
+    // 下界苗
+    extern const BlockSoundType NETHER_SPROUT;
+
+    // 下界矿石
+    extern const BlockSoundType NETHER_ORE;
+
+    // 磁石
+    extern const BlockSoundType LODESTONE;
+
+    // 锁链
+    extern const BlockSoundType CHAIN;
+
+    // 镶金黑石
+    extern const BlockSoundType GILDED_BLACKSTONE;
+
     /**
      * @brief 初始化预定义声音类型
      *

@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <functional>
 
 namespace mc {
 namespace client {
@@ -24,6 +25,13 @@ struct BlockBreakProgress {
     u64 creationTick = 0;
     u64 lastUpdateTick = 0;
 };
+
+/**
+ * @brief 击打音效回调类型
+ * @param pos 方块位置
+ * @param damageStage 破坏阶段 (0-9)
+ */
+using HitSoundCallback = std::function<void(const BlockPos& pos, u8 damageStage)>;
 
 /**
  * @brief 客户端挖掘进度管理器
@@ -71,6 +79,17 @@ public:
     void getVisibleProgress(const Vector3& cameraPos,
                             std::vector<std::pair<BlockPos, u8>>& outProgress) const;
 
+    /**
+     * @brief 设置击打音效回调
+     *
+     * 当破坏阶段变化时调用此回调播放击打音效。
+     *
+     * @param callback 回调函数
+     */
+    void setHitSoundCallback(HitSoundCallback callback) {
+        m_hitSoundCallback = std::move(callback);
+    }
+
 private:
     BreakProgressManager() = default;
     ~BreakProgressManager() = default;
@@ -91,6 +110,9 @@ private:
     std::unordered_map<EntityId, BlockBreakProgress> m_remoteProgressByEntity;
     std::unordered_map<BlockPos, std::vector<EntityId>> m_remoteProgressByPos;
     u64 m_currentTick = 0;
+
+    // 击打音效回调
+    HitSoundCallback m_hitSoundCallback;
 };
 
 } // namespace block

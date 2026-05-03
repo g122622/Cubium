@@ -123,6 +123,7 @@ add_executable(mc_tests
     client/world/entity/ClientEntityTest.cpp
     client/test_mesh_worker_pool.cpp
     client/test_mesh_build_scheduler.cpp
+    client/test_sound_handlers.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     client/renderer/test_renderer.cpp
     client/renderer/test_trident_api.cpp
@@ -273,8 +274,10 @@ add_executable(mc_tests
     client/renderer/firstperson/FirstPersonRendererTest.cpp
     # 澹伴煶绯荤粺娴嬭瘯
     common/sound/SoundCategoryTest.cpp
+    common/sound/test_sound_events.cpp
     client/sound/SoundTest.cpp
     client/sound/SoundRegistryTest.cpp
+    client/sound/TickableSoundTest.cpp
     # 皮肤系统测试
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
@@ -694,10 +697,13 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundPool.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/UnderwaterLoopSound.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/AudioBuffer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/OpenALBackend.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/UnderwaterAmbientHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BubbleColumnAmbientHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/EntitySoundHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/command/ClientCommandManager.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，暂时不纳入该测试目标
 )

@@ -21,11 +21,17 @@ src/client/sound/
 ├── handler/                      # 环境音处理器
 │   ├── IAmbientSoundHandler.hpp
 │   ├── BiomeAmbientHandler.hpp/cpp
-│   └── UnderwaterAmbientHandler.hpp/cpp
+│   ├── UnderwaterAmbientHandler.hpp/cpp
+│   ├── BubbleColumnAmbientHandler.hpp/cpp
+│   └── EntitySoundHandler.hpp/cpp  # 实体声音处理器
 ├── instance/                     # 声音实例定义
 │   ├── ISoundInstance.hpp
-│   ├── SoundInstance.hpp/cpp
-│   └── EntitySoundInstance.hpp/cpp
+│   ├── SoundInstance.hpp/cpp     # 包含 TickableSound 基类
+│   ├── BeeSound.hpp/cpp          # 蜜蜂飞行/愤怒声音
+│   ├── GuardianSound.hpp/cpp     # 守卫者攻击声音
+│   ├── ElytraSound.hpp/cpp       # 鞘翅飞行声音
+│   ├── UnderwaterLoopSound.hpp/cpp # 水下循环声音
+│   └── MinecartSound.hpp/cpp     # 矿车移动声音
 └── resource/                     # 声音资源注册表
     ├── SoundDefinition.hpp/cpp
     └── SoundRegistry.hpp/cpp
@@ -132,7 +138,14 @@ audioService.setUnderwater(inWater);
 
 ### 水下环境音 (UnderwaterAmbientHandler)
 
-MC 1.16.5 水下环境音实现三档概率系统：
+MC 1.16.5 水下环境音实现完整的入水/出水音效和三档概率附加音效：
+
+**入水/出水音效**：
+- 玩家进入水中时播放 `ambient.underwater.enter`
+- 玩家离开水中时播放 `ambient.underwater.exit`
+- 水下循环音效 `ambient.underwater.loop` 自动淡入淡出（40 ticks）
+
+**附加音效概率**：
 
 | 音效类型 | 音效ID | 概率/tick |
 |---------|--------|-----------|
@@ -146,13 +159,124 @@ MC 1.16.5 水下环境音实现三档概率系统：
 
 MC 1.16.5 群系环境音实现三种类型：
 
-1. **循环音效 (Loop Sound)** - 持续播放的背景音效（待实现，需要 TickableSound 支持）
+1. **循环音效 (Loop Sound)** - 持续播放的背景音效
+   - 群系切换时淡出旧音效、淡入新音效（40 ticks 过渡）
+   - 使用 `BiomeLoopSound` 实现
 2. **心境音效 (Mood Sound)** - 在黑暗环境中根据光照等级触发
    - 默认心境音效：`ambient.cave`
    - 心境计时器在黑暗中积累，光照中减少
    - 光照计算：`skyLight/15 * 0.001` 或 `(blockLight-1) / tickDelay`
 3. **附加音效 (Additions Sound)** - 按概率随机播放
    - 下界群系典型概率：`0.0111` (~1.11%/tick)
+
+### 气泡柱环境音 (BubbleColumnAmbientHandler)
+
+当玩家进入气泡柱时播放相应音效：
+
+| 气泡柱类型 | 音效ID |
+|-----------|--------|
+| 向上气泡柱 (drag=false) | `block.bubble_column.upwards.inside` |
+| 向下气泡柱 (drag=true) | `block.bubble_column.whirlpool.inside` |
+
+**触发逻辑**：只在玩家刚进入气泡柱时播放一次音效，不会持续播放。
+
+### 实体声音处理器 (EntitySoundHandler)
+
+管理实体特定的可Tick声音，当前支持：
+
+| 实体类型 | 音效事件 | 触发条件 |
+|---------|---------|---------|
+| 蜜蜂 | `entity.bee.loop` | 蜜蜂生成时 |
+| 蜜蜂(愤怒) | `entity.bee.loop_angry` | 蜜蜂愤怒状态变化时自动切换 |
+| 守卫者 | `entity.guardian.attack` | 守卫者攻击目标时 (待攻击动画同步) |
+| 玩家(鞘翅) | `item.elytra.flying` | 玩家 FallFlying 状态变化 |
+
+**线程安全设计**：
+- 主线程通过 `AudioService` 方法投递命令和更新状态：
+  - `onEntitySpawn()` - 实体生成时创建声音
+  - `onEntityRemove()` - 实体移除时停止声音
+  - `onPlayerElytraFlyingChanged()` - 鞘翅飞行状态变化
+  - `onEntityAngerStateChanged()` - 实体愤怒状态变化（蜜蜂）
+  - `updateEntityPosition()` - 更新实体位置和速度
+- 音频线程通过 `EntitySoundHandler::tick()` 更新声音状态
+- 使用 `EntitySoundState` 结构存储实体状态快照，避免跨线程访问 ClientEntity
+
+**蜜蜂声音切换机制**：
+- `BeeFlightSoundStateful` - 正常飞行声音，当检测到愤怒状态时自动切换
+- `BeeAngrySoundStateful` - 愤怒声音，当检测到不再愤怒时自动切换回飞行声音
+- 声音切换通过 `markDone()` 完成，`EntitySoundHandler::tick()` 会检测并重新创建正确类型的声音
+
+## 可Tick的声音实例 (TickableSound)
+
+部分声音需要每帧更新状态（如音量、音调、位置等），通过继承 `TickableSound` 基类（定义在 `SoundInstance.hpp`）实现。
+
+### 已实现的 TickableSound
+
+| 类名 | 用途 | 音效事件 |
+|-----|------|---------|
+| `BeeFlightSound` | 蜜蜂飞行声音 | `entity.bee.loop` |
+| `BeeAngrySound` | 蜜蜂愤怒声音 | `entity.bee.loop_angry` |
+| `GuardianSound` | 守卫者攻击声音 | `entity.guardian.attack` |
+| `ElytraSound` | 鞘翅飞行声音 | `item.elytra.flying` |
+| `UnderwaterLoopSound` | 水下循环声音 | `ambient.underwater.loop` |
+| `MinecartTickableSound` | 矿车移动声音 | `entity.minecart.riding` |
+| `RidingMinecartTickableSound` | 乘坐矿车声音 | `entity.minecart.inside` |
+
+**注意**：由于音频线程和主线程分离，TickableSound 子类不直接引用 ClientEntity，而是通过 `EntitySoundState` 状态快照获取实体信息。
+
+### 蜜蜂声音 (BeeSound)
+
+蜜蜂声音根据移动速度动态调整音量和音调：
+
+- **音量**：基于水平速度计算，`volume = clamp(speed / 0.5, 0, 1.2)`
+- **音调**：幼年蜜蜂音调更高 (`minPitch=1.1, maxPitch=1.5`)，成年蜜蜂较低 (`minPitch=0.7, maxPitch=1.1`)
+- **切换机制**：通过 `shouldSwitchSound()` 检测愤怒状态变化，自动切换飞行/愤怒声音
+- **静默支持**：`canBeSilent() = true`，允许音量为0时播放
+
+### 守卫者声音 (GuardianSound)
+
+守卫者攻击声音根据攻击动画缩放调整音量：
+
+- **音量**：`1.0 × attackAnimScale²`
+- **音调**：`0.7 + 0.5 × attackAnimScale`
+- **触发**：当守卫者的攻击目标存在时持续播放
+- **停止**：当守卫者被移除时自动停止
+
+### 鞘翅声音 (ElytraSound)
+
+鞘翅飞行声音根据玩家滑翔速度调整：
+
+- **触发条件**：玩家 `FallFlying` 标志为 true
+- **音量**：`clamp(speedSquared / 4.0, 0, 1)`
+- **淡入效果**：前 20 tick 静音，20-40 tick 渐入
+- **音调**：当音量 > 0.8 时音调增加 `1.0 + (volume - 0.8)`
+- **停止**：玩家停止滑翔或实体被移除
+
+### 水下循环声音 (UnderwaterLoopSound)
+
+MC 1.16.5 水下循环声音实现40 tick淡入淡出：
+
+- **触发条件**：玩家眼睛进入水中
+- **淡入**：在水中每tick +1，最大40
+- **淡出**：离开水中每tick -2
+- **音量**：`ticks / 40.0`
+- **静默支持**：`canBeSilent() = true`，允许音量为0时播放
+- **游泳模式**：`setCanSwim(true)` 时使用游泳变体音效
+
+### 矿车声音 (MinecartSound)
+
+矿车声音有两种变体：
+
+1. **MinecartTickableSound** - 矿车本身的声音
+   - 音效事件：`entity.minecart.riding`
+   - 音量基于水平速度：`clamp(speed / 0.5, 0, 0.7)`，带平滑过渡
+   - 随矿车位置移动
+
+2. **RidingMinecartTickableSound** - 玩家乘坐矿车的声音
+   - 音效事件：`entity.minecart.inside`
+   - 无衰减（玩家内部声音）
+   - 音量基于水平速度：`clamp(speed, 0, 0.75)`
+   - 跟随玩家位置
 
 ### 群系环境音数据结构
 
@@ -192,6 +316,25 @@ audioService.setAmbientPlayerPosition(x, y, z);
 - `AudioBufferCache` 和 `SoundPool` 只应在音频线程内使用。
 - 群系需要配置 `BiomeAmbientSounds` 才能播放环境音效，否则使用默认心境音效。
 - 菜单状态通过 `ScreenManager::instance().hasScreen()` 判断，需在 UI 更新后调用。
+
+## 待完成事项
+
+### MinecartSound 重构
+当前 `MinecartTickableSound` 和 `RidingMinecartTickableSound` 直接引用 `Entity` 对象，与音频线程分离架构不兼容。需要重构为：
+- 使用 `EntitySoundState` 状态快照
+- 在 `EntitySoundHandler` 中管理矿车声音
+- 通过 `AudioService::onEntitySpawn()` 启动声音
+
+### GuardianSound 攻击动画同步
+当前 `GuardianSoundStateful` 已实现，但需要：
+- 服务端发送实体状态 21 事件（攻击动画）
+- 客户端 `handleEntityStatus` 回调更新 `EntitySoundState.attackAnimScale`
+
+### MovingSoundPacket 跟踪实现
+当前 `MovingSoundPacket` 客户端处理是简化版本，声音只播放一次不跟随实体移动。完整实现需要：
+- 创建 `MovingTickableSound` 类跟踪实体位置
+- 在 `EntitySoundHandler` 中管理移动声音
+- 声音随实体位置实时更新
 
 ## 测试用例
 

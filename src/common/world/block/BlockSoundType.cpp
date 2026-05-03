@@ -377,6 +377,320 @@ const BlockSoundType AIR(
     0.0f, 1.0f  // 音量为0，静音
 );
 
+// ============================================================================
+// MC 1.16.5 缺失的声音类型
+// ============================================================================
+
+// 地面 - 泥土/砾石变体
+const BlockSoundType GROUND(
+    ResourceLocation("minecraft:block.gravel.break"),
+    ResourceLocation("minecraft:block.gravel.step"),
+    ResourceLocation("minecraft:block.gravel.place"),
+    ResourceLocation("minecraft:block.gravel.hit"),
+    ResourceLocation("minecraft:block.gravel.fall"),
+    1.0f, 1.0f
+);
+
+// 植物 - 植物声音
+const BlockSoundType PLANT(
+    ResourceLocation("minecraft:block.grass.break"),
+    ResourceLocation("minecraft:block.grass.step"),
+    ResourceLocation("minecraft:block.grass.place"),
+    ResourceLocation("minecraft:block.grass.hit"),
+    ResourceLocation("minecraft:block.grass.fall"),
+    1.0f, 1.0f
+);
+
+// 梯子 - 梯子攀爬声
+const BlockSoundType LADDER(
+    ResourceLocation("minecraft:block.ladder.break"),
+    ResourceLocation("minecraft:block.ladder.step"),
+    ResourceLocation("minecraft:block.ladder.place"),
+    ResourceLocation("minecraft:block.ladder.hit"),
+    ResourceLocation("minecraft:block.ladder.fall"),
+    1.0f, 1.0f
+);
+
+// 铁砧 - 金属碰撞声（音量较小）
+const BlockSoundType ANVIL(
+    ResourceLocation("minecraft:block.anvil.break"),
+    ResourceLocation("minecraft:block.anvil.step"),
+    ResourceLocation("minecraft:block.anvil.place"),
+    ResourceLocation("minecraft:block.anvil.hit"),
+    ResourceLocation("minecraft:block.anvil.fall"),
+    0.3f, 1.0f
+);
+
+// 黏液块 - 弹性声音
+const BlockSoundType SLIME(
+    ResourceLocation("minecraft:block.slime_block.break"),
+    ResourceLocation("minecraft:block.slime_block.step"),
+    ResourceLocation("minecraft:block.slime_block.place"),
+    ResourceLocation("minecraft:block.slime_block.hit"),
+    ResourceLocation("minecraft:block.slime_block.fall"),
+    1.0f, 1.0f
+);
+
+// 蜂蜜块 - 黏稠声音
+const BlockSoundType HONEY(
+    ResourceLocation("minecraft:block.honey_block.break"),
+    ResourceLocation("minecraft:block.honey_block.step"),
+    ResourceLocation("minecraft:block.honey_block.place"),
+    ResourceLocation("minecraft:block.honey_block.hit"),
+    ResourceLocation("minecraft:block.honey_block.fall"),
+    1.0f, 1.0f
+);
+
+// 湿草 - 潮湿草声
+const BlockSoundType WET_GRASS(
+    ResourceLocation("minecraft:block.wet_grass.break"),
+    ResourceLocation("minecraft:block.wet_grass.step"),
+    ResourceLocation("minecraft:block.wet_grass.place"),
+    ResourceLocation("minecraft:block.wet_grass.hit"),
+    ResourceLocation("minecraft:block.wet_grass.fall"),
+    1.0f, 1.0f
+);
+
+// 珊瑚 - 珊瑚声
+const BlockSoundType CORAL(
+    ResourceLocation("minecraft:block.coral_block.break"),
+    ResourceLocation("minecraft:block.coral_block.step"),
+    ResourceLocation("minecraft:block.coral_block.place"),
+    ResourceLocation("minecraft:block.coral_block.hit"),
+    ResourceLocation("minecraft:block.coral_block.fall"),
+    1.0f, 1.0f
+);
+
+// 竹子 - 竹子声音
+const BlockSoundType BAMBOO(
+    ResourceLocation("minecraft:block.bamboo.break"),
+    ResourceLocation("minecraft:block.bamboo.step"),
+    ResourceLocation("minecraft:block.bamboo.place"),
+    ResourceLocation("minecraft:block.bamboo.hit"),
+    ResourceLocation("minecraft:block.bamboo.fall"),
+    1.0f, 1.0f
+);
+
+// 竹笋 - 竹笋声音
+const BlockSoundType BAMBOO_SAPLING(
+    ResourceLocation("minecraft:block.bamboo_sapling.break"),
+    ResourceLocation("minecraft:block.bamboo_sapling.step"),
+    ResourceLocation("minecraft:block.bamboo_sapling.place"),
+    ResourceLocation("minecraft:block.bamboo_sapling.hit"),
+    ResourceLocation("minecraft:block.bamboo_sapling.fall"),
+    1.0f, 1.0f
+);
+
+// 脚手架 - 脚手架声音
+const BlockSoundType SCAFFOLDING(
+    ResourceLocation("minecraft:block.scaffolding.break"),
+    ResourceLocation("minecraft:block.scaffolding.step"),
+    ResourceLocation("minecraft:block.scaffolding.place"),
+    ResourceLocation("minecraft:block.scaffolding.hit"),
+    ResourceLocation("minecraft:block.scaffolding.fall"),
+    1.0f, 1.0f
+);
+
+// 甜浆果丛 - 甜浆果丛声音
+const BlockSoundType SWEET_BERRY_BUSH(
+    ResourceLocation("minecraft:block.sweet_berry_bush.break"),
+    ResourceLocation("minecraft:block.sweet_berry_bush.step"),
+    ResourceLocation("minecraft:block.sweet_berry_bush.place"),
+    ResourceLocation("minecraft:block.sweet_berry_bush.hit"),
+    ResourceLocation("minecraft:block.sweet_berry_bush.fall"),
+    1.0f, 1.0f
+);
+
+// 农作物 - 农作物声音
+const BlockSoundType CROP(
+    ResourceLocation("minecraft:block.crop.break"),
+    ResourceLocation("minecraft:block.crop.step"),
+    ResourceLocation("minecraft:block.crop.place"),
+    ResourceLocation("minecraft:block.crop.hit"),
+    ResourceLocation("minecraft:block.crop.fall"),
+    1.0f, 1.0f
+);
+
+// 菌柄 - 下界木质茎
+const BlockSoundType STEM(
+    ResourceLocation("minecraft:block.stem.break"),
+    ResourceLocation("minecraft:block.stem.step"),
+    ResourceLocation("minecraft:block.stem.place"),
+    ResourceLocation("minecraft:block.stem.hit"),
+    ResourceLocation("minecraft:block.stem.fall"),
+    1.0f, 1.0f
+);
+
+// 藤蔓 - 藤蔓声音
+const BlockSoundType VINE(
+    ResourceLocation("minecraft:block.vine.break"),
+    ResourceLocation("minecraft:block.vine.step"),
+    ResourceLocation("minecraft:block.vine.place"),
+    ResourceLocation("minecraft:block.vine.hit"),
+    ResourceLocation("minecraft:block.vine.fall"),
+    1.0f, 1.0f
+);
+
+// 地狱疣 - 地狱疣声音
+const BlockSoundType NETHER_WART(
+    ResourceLocation("minecraft:block.nether_wart.break"),
+    ResourceLocation("minecraft:block.nether_wart.step"),
+    ResourceLocation("minecraft:block.nether_wart.place"),
+    ResourceLocation("minecraft:block.nether_wart.hit"),
+    ResourceLocation("minecraft:block.nether_wart.fall"),
+    1.0f, 1.0f
+);
+
+// 灯笼 - 灯笼声音
+const BlockSoundType LANTERN(
+    ResourceLocation("minecraft:block.lantern.break"),
+    ResourceLocation("minecraft:block.lantern.step"),
+    ResourceLocation("minecraft:block.lantern.place"),
+    ResourceLocation("minecraft:block.lantern.hit"),
+    ResourceLocation("minecraft:block.lantern.fall"),
+    1.0f, 1.0f
+);
+
+// 菌核 - 下界木质菌核
+const BlockSoundType HYPHAE(
+    ResourceLocation("minecraft:block.hyphae.break"),
+    ResourceLocation("minecraft:block.hyphae.step"),
+    ResourceLocation("minecraft:block.hyphae.place"),
+    ResourceLocation("minecraft:block.hyphae.hit"),
+    ResourceLocation("minecraft:block.hyphae.fall"),
+    1.0f, 1.0f
+);
+
+// 菌岩 - 菌岩声音
+const BlockSoundType NYLIUM(
+    ResourceLocation("minecraft:block.nylium.break"),
+    ResourceLocation("minecraft:block.nylium.step"),
+    ResourceLocation("minecraft:block.nylium.place"),
+    ResourceLocation("minecraft:block.nylium.hit"),
+    ResourceLocation("minecraft:block.nylium.fall"),
+    1.0f, 1.0f
+);
+
+// 真菌 - 真菌声音
+const BlockSoundType FUNGUS(
+    ResourceLocation("minecraft:block.fungus.break"),
+    ResourceLocation("minecraft:block.fungus.step"),
+    ResourceLocation("minecraft:block.fungus.place"),
+    ResourceLocation("minecraft:block.fungus.hit"),
+    ResourceLocation("minecraft:block.fungus.fall"),
+    1.0f, 1.0f
+);
+
+// 菌索 - 菌索声音
+const BlockSoundType ROOT(
+    ResourceLocation("minecraft:block.root.break"),
+    ResourceLocation("minecraft:block.root.step"),
+    ResourceLocation("minecraft:block.root.place"),
+    ResourceLocation("minecraft:block.root.hit"),
+    ResourceLocation("minecraft:block.root.fall"),
+    1.0f, 1.0f
+);
+
+// 菌光体 - 菌光体声音
+const BlockSoundType SHROOMLIGHT(
+    ResourceLocation("minecraft:block.shroomlight.break"),
+    ResourceLocation("minecraft:block.shroomlight.step"),
+    ResourceLocation("minecraft:block.shroomlight.place"),
+    ResourceLocation("minecraft:block.shroomlight.hit"),
+    ResourceLocation("minecraft:block.shroomlight.fall"),
+    1.0f, 1.0f
+);
+
+// 下界藤蔓 - 下界藤蔓声音
+const BlockSoundType NETHER_VINE(
+    ResourceLocation("minecraft:block.nether_vine.break"),
+    ResourceLocation("minecraft:block.nether_vine.step"),
+    ResourceLocation("minecraft:block.nether_vine.place"),
+    ResourceLocation("minecraft:block.nether_vine.hit"),
+    ResourceLocation("minecraft:block.nether_vine.fall"),
+    1.0f, 1.0f
+);
+
+// 下界藤蔓（低音调）
+const BlockSoundType NETHER_VINE_LOWER_PITCH(
+    ResourceLocation("minecraft:block.nether_vine.break"),
+    ResourceLocation("minecraft:block.nether_vine.step"),
+    ResourceLocation("minecraft:block.nether_vine.place"),
+    ResourceLocation("minecraft:block.nether_vine.hit"),
+    ResourceLocation("minecraft:block.nether_vine.fall"),
+    1.0f, 0.9f  // 音调稍低
+);
+
+// 疣块 - 疣块声音
+const BlockSoundType WART(
+    ResourceLocation("minecraft:block.wart_block.break"),
+    ResourceLocation("minecraft:block.wart_block.step"),
+    ResourceLocation("minecraft:block.wart_block.place"),
+    ResourceLocation("minecraft:block.wart_block.hit"),
+    ResourceLocation("minecraft:block.wart_block.fall"),
+    1.0f, 1.0f
+);
+
+// 下界砖 - 下界砖声音
+const BlockSoundType NETHER_BRICK(
+    ResourceLocation("minecraft:block.nether_bricks.break"),
+    ResourceLocation("minecraft:block.nether_bricks.step"),
+    ResourceLocation("minecraft:block.nether_bricks.place"),
+    ResourceLocation("minecraft:block.nether_bricks.hit"),
+    ResourceLocation("minecraft:block.nether_bricks.fall"),
+    1.0f, 1.0f
+);
+
+// 下界苗 - 下界苗声音
+const BlockSoundType NETHER_SPROUT(
+    ResourceLocation("minecraft:block.nether_sprouts.break"),
+    ResourceLocation("minecraft:block.nether_sprouts.step"),
+    ResourceLocation("minecraft:block.nether_sprouts.place"),
+    ResourceLocation("minecraft:block.nether_sprouts.hit"),
+    ResourceLocation("minecraft:block.nether_sprouts.fall"),
+    1.0f, 1.0f
+);
+
+// 下界矿石 - 下界矿石声音
+const BlockSoundType NETHER_ORE(
+    ResourceLocation("minecraft:block.nether_ore.break"),
+    ResourceLocation("minecraft:block.nether_ore.step"),
+    ResourceLocation("minecraft:block.nether_ore.place"),
+    ResourceLocation("minecraft:block.nether_ore.hit"),
+    ResourceLocation("minecraft:block.nether_ore.fall"),
+    1.0f, 1.0f
+);
+
+// 磁石 - 磁石声音
+const BlockSoundType LODESTONE(
+    ResourceLocation("minecraft:block.lodestone.break"),
+    ResourceLocation("minecraft:block.lodestone.step"),
+    ResourceLocation("minecraft:block.lodestone.place"),
+    ResourceLocation("minecraft:block.lodestone.hit"),
+    ResourceLocation("minecraft:block.lodestone.fall"),
+    1.0f, 1.0f
+);
+
+// 锁链 - 锁链声音
+const BlockSoundType CHAIN(
+    ResourceLocation("minecraft:block.chain.break"),
+    ResourceLocation("minecraft:block.chain.step"),
+    ResourceLocation("minecraft:block.chain.place"),
+    ResourceLocation("minecraft:block.chain.hit"),
+    ResourceLocation("minecraft:block.chain.fall"),
+    1.0f, 1.0f
+);
+
+// 镶金黑石 - 镶金黑石声音
+const BlockSoundType GILDED_BLACKSTONE(
+    ResourceLocation("minecraft:block.gilded_blackstone.break"),
+    ResourceLocation("minecraft:block.gilded_blackstone.step"),
+    ResourceLocation("minecraft:block.gilded_blackstone.place"),
+    ResourceLocation("minecraft:block.gilded_blackstone.hit"),
+    ResourceLocation("minecraft:block.gilded_blackstone.fall"),
+    1.0f, 1.0f
+);
+
 void initialize() {
     // 静态初始化已在全局对象构造时完成
     // 此函数保留用于未来可能的动态加载

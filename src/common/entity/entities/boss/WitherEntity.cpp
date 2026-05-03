@@ -2,6 +2,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../ai/goal/goals/LookRandomlyGoal.hpp"
 #include <cmath>
@@ -126,8 +127,8 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target) {
     // skull->setBlue(isBlue);
     // world->spawnEntity(std::move(skull));
 
-    // TODO: 播放发射音效
-    // playSound(SoundEvents.ENTITY_WITHER_SHOOT, ...);
+    // 播放发射音效
+    playSound(SoundEvents::ENTITY_WITHER_SHOOT, 1.0f, 1.0f);
 }
 
 void WitherEntity::ignite() {

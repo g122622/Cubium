@@ -685,6 +685,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::MovingSound: {
+            handleMovingSound(bodyDeser);
+            break;
+        }
+
         default:
             spdlog::warn("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
@@ -1556,6 +1561,32 @@ void NetworkClient::handleParticle(network::PacketDeserializer& deser) {
             packet.velocityX(), packet.velocityY(), packet.velocityZ(),
             packet.offsetX(), packet.offsetY(), packet.offsetZ(),
             packet.count());
+    }
+}
+
+void NetworkClient::handleMovingSound(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    sound::MovingSoundPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize MovingSound packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::debug("[NetworkClient] Received MovingSound: {} for entity {} vol={} pitch={}",
+                  packet.getSoundEventId().toString(), packet.getEntityId(),
+                  packet.getVolume(), packet.getPitch());
+
+    if (m_callbacks.onMovingSound) {
+        m_callbacks.onMovingSound(
+            packet.getSoundEventId(),
+            packet.getCategory(),
+            packet.getEntityId(),
+            packet.getVolume(),
+            packet.getPitch()
+        );
     }
 }
 

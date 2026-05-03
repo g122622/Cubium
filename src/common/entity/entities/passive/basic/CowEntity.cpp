@@ -9,6 +9,9 @@
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
+#include "../../../damage/DamageSource.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -24,6 +27,35 @@ CowEntity::CowEntity(LegacyEntityType type, EntityId id)
 {
     // 注册 AI 目标
     registerGoals();
+}
+
+std::optional<ResourceLocation> CowEntity::getAmbientSound() const {
+    // MC 1.16.5: entity.cow.ambient
+    return makeSoundEventId("ambient");
+}
+
+std::optional<ResourceLocation> CowEntity::getHurtSound(DamageSource& /*source*/) const {
+    // MC 1.16.5: entity.cow.hurt
+    return makeSoundEventId("hurt");
+}
+
+std::optional<ResourceLocation> CowEntity::getDeathSound() const {
+    // MC 1.16.5: entity.cow.death
+    return makeSoundEventId("death");
+}
+
+std::optional<ResourceLocation> CowEntity::getStepSound() const {
+    // MC 1.16.5: entity.cow.step
+    return makeSoundEventId("step");
+}
+
+void CowEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
+    // MC 1.16.5: CowEntity.playStepSound()
+    // 牛播放固定的脚步声，忽略脚下方块类型
+    auto sound = getStepSound();
+    if (sound) {
+        playSound(*sound, 0.15f, 1.0f);
+    }
 }
 
 bool CowEntity::isBreedingItem(const ItemStack& itemStack) const {

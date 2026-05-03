@@ -392,6 +392,14 @@ public:
     [[nodiscard]] bool isInvisible() const { return m_invisible; }
     void setInvisible(bool invisible) { m_invisible = invisible; }
 
+    /**
+     * @brief 是否正在鞘翅飞行
+     *
+     * 从实体元数据中读取 FallFlying 标志位。
+     * 参考 MC 1.16.5 EntityFlags::FallFlying
+     */
+    [[nodiscard]] bool isFallFlying() const;
+
     // ========== 攻击动画 ==========
 
     /**

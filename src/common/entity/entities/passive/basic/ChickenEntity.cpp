@@ -12,6 +12,9 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 
 #include <memory>
 
@@ -38,6 +41,35 @@ void ChickenEntity::resetEggTimer() {
     math::Random rng(ticksExisted());
     // MC 1.16.5: 6000-12000 ticks = 5-10 分钟
     m_eggTimer = EGG_TIME_MIN + rng.nextInt(EGG_TIME_MAX - EGG_TIME_MIN);
+}
+
+std::optional<ResourceLocation> ChickenEntity::getAmbientSound() const {
+    // MC 1.16.5: entity.chicken.ambient
+    return makeSoundEventId("ambient");
+}
+
+std::optional<ResourceLocation> ChickenEntity::getHurtSound(DamageSource& /*source*/) const {
+    // MC 1.16.5: entity.chicken.hurt
+    return makeSoundEventId("hurt");
+}
+
+std::optional<ResourceLocation> ChickenEntity::getDeathSound() const {
+    // MC 1.16.5: entity.chicken.death
+    return makeSoundEventId("death");
+}
+
+std::optional<ResourceLocation> ChickenEntity::getStepSound() const {
+    // MC 1.16.5: entity.chicken.step
+    return makeSoundEventId("step");
+}
+
+void ChickenEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
+    // MC 1.16.5: ChickenEntity.playStepSound()
+    // 鸡播放固定的脚步声，忽略脚下方块类型
+    auto sound = getStepSound();
+    if (sound) {
+        playSound(*sound, 0.15f, 1.0f);
+    }
 }
 
 bool ChickenEntity::isBreedingItem(const ItemStack& itemStack) const {

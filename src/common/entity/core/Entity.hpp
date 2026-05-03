@@ -21,6 +21,8 @@ namespace mc {
 // 前向声明
 class PhysicsEngine;
 class IWorld;
+class BlockPos;
+class BlockState;
 
 /**
  * @brief 实体推动反应类型
@@ -1055,6 +1057,19 @@ public:
      * @return 默认返回true
      */
     [[nodiscard]] virtual bool canTriggerWalking() const { return true; }
+
+    /**
+     * @brief 播放脚步声
+     *
+     * 当实体在方块上行走时调用。子类可重写以自定义脚步声。
+     * MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
+     *
+     * 默认实现使用脚下方块的声音类型播放脚步声。
+     *
+     * @param pos 方块位置
+     * @param blockState 方块状态
+     */
+    virtual void playStepSound(const BlockPos& pos, const BlockState* blockState);
 
     /**
      * @brief 检查实体是否无视碰撞

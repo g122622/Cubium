@@ -75,6 +75,14 @@ public:
      */
     [[nodiscard]] std::optional<ResourceLocation> getStepSound() const;
 
+    // ========== 脚步声 ==========
+
+    /**
+     * @brief 播放脚步声
+     * MC 1.16.5: ZombieEntity.playStepSound() 使用固定的脚步声
+     */
+    void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
+
     // ========== 破门能力 ==========
 
     /**

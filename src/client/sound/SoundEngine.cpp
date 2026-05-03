@@ -281,6 +281,14 @@ void SoundEngine::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTi
     m_delayedSounds.emplace_back(std::move(sound), delayTicks);
 }
 
+void SoundEngine::playOnNextTick(std::unique_ptr<ISoundInstance> sound) {
+    if (!sound) {
+        return;
+    }
+
+    m_playOnNextTickQueue.push_back(std::move(sound));
+}
+
 void SoundEngine::stop(SoundInstanceId id) {
     if (!m_loaded) {
         return;
@@ -450,6 +458,15 @@ void SoundEngine::tick(bool isPaused) {
         return;
     }
 
+    // 处理 playOnNextTick 队列（用于 TickableSound 的声音切换）
+    // 参考: net.minecraft.client.audio.SoundEngine.tickNonPaused()
+    for (auto& sound : m_playOnNextTickQueue) {
+        if (sound && sound->canBeSilent()) {
+            play(std::move(sound));
+        }
+    }
+    m_playOnNextTickQueue.clear();
+
     // 更新延迟声音
     updateDelayedSounds();
 
@@ -462,15 +479,24 @@ void SoundEngine::tick(bool isPaused) {
         if (sound) {
             sound->tick();
 
-            // 更新位置
-            if (!sound->isGlobal() && channel.source) {
-                channel.source->setPosition(sound->getPosition());
-            }
-
             // 检查是否完成
             if (sound->isDone()) {
                 finishedSounds.push_back(id);
                 continue;
+            }
+
+            // 更新位置、音量、音调（参考 MC SoundEngine.tickNonPaused）
+            if (channel.source) {
+                // 动态更新音量和音调
+                f32 volume = calculateVolume(*sound);
+                f32 pitch = calculatePitch(*sound);
+                channel.source->setGain(volume);
+                channel.source->setPitch(pitch);
+
+                // 更新位置
+                if (!sound->isGlobal()) {
+                    channel.source->setPosition(sound->getPosition());
+                }
             }
         }
 
@@ -506,6 +532,14 @@ void SoundEngine::tick(bool isPaused) {
 
 void SoundEngine::addAmbientHandler(std::unique_ptr<IAmbientSoundHandler> handler) {
     m_ambientHandlers.push_back(std::move(handler));
+}
+
+ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) {
+    return m_pool.get(id);
+}
+
+const ISoundInstance* SoundEngine::getSoundInstance(SoundInstanceId id) const {
+    return m_pool.get(id);
 }
 
 f32 SoundEngine::calculateVolume(const ISoundInstance& sound) const {

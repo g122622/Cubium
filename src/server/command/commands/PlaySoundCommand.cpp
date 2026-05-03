@@ -8,10 +8,54 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "common/sound/network/SoundPackets.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
+
+namespace {
+    /**
+     * @brief 从命令参数解析声源类别
+     */
+    sound::SoundCategory parseSoundCategory(const std::string& name) {
+        if (name == "master") return sound::SoundCategory::Master;
+        if (name == "music") return sound::SoundCategory::Music;
+        if (name == "record") return sound::SoundCategory::Records;
+        if (name == "weather") return sound::SoundCategory::Weather;
+        if (name == "block" || name == "blocks") return sound::SoundCategory::Blocks;
+        if (name == "hostile") return sound::SoundCategory::Hostile;
+        if (name == "neutral") return sound::SoundCategory::Neutral;
+        if (name == "player" || name == "players") return sound::SoundCategory::Players;
+        if (name == "ambient") return sound::SoundCategory::Ambient;
+        if (name == "voice") return sound::SoundCategory::Voice;
+        return sound::SoundCategory::Master;
+    }
+
+    /**
+     * @brief 发送 PlaySoundPacket 给指定玩家
+     */
+    void sendPlaySoundPacket(
+        server::core::ConnectionManager& connMgr,
+        PlayerId playerId,
+        const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const glm::vec3& position,
+        f32 volume,
+        f32 pitch)
+    {
+        sound::PlaySoundPacket packet(soundId, category, position, volume, pitch);
+
+        auto result = packet.serialize();
+        if (result.failed()) {
+            spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
+            return;
+        }
+
+        connMgr.sendPacketToPlayer(playerId, network::PacketType::PlaySound, result.value());
+    }
+}
 
 void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     auto playsoundNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("playsound");
@@ -56,18 +100,49 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
             "player",
             EntityArgumentType::player()
         );
-        targetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            return playSoundDefault(ctx);
+        targetNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
+            return playSoundDefault(ctx, parseSoundCategory(sourceName));
         });
 
         auto posNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
             "pos",
             Vec3ArgumentType::vec3()
         );
-        posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            return playSoundAtPosition(ctx);
+        posNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
+            return playSoundAtPosition(ctx, parseSoundCategory(sourceName));
         });
 
+        // volume 节点
+        auto volumeNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+            "volume",
+            FloatArgumentType::floatArg(0.0f, 1000.0f)
+        );
+        volumeNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
+            return playSoundWithVolume(ctx, parseSoundCategory(sourceName));
+        });
+
+        // pitch 节点
+        auto pitchNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+            "pitch",
+            FloatArgumentType::floatArg(0.0f, 2.0f)
+        );
+        pitchNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
+            return playSoundWithPitch(ctx, parseSoundCategory(sourceName));
+        });
+
+        // minimumVolume 节点
+        auto minVolumeNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+            "minimumVolume",
+            FloatArgumentType::floatArg(0.0f, 1.0f)
+        );
+        minVolumeNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
+            return playSoundWithMinVolume(ctx, parseSoundCategory(sourceName));
+        });
+
+        // 构建参数链
+        pitchNode->addChild(minVolumeNode);
+        volumeNode->addChild(pitchNode);
+        posNode->addChild(volumeNode);
         targetNode->addChild(posNode);
         sourceNode->addChild(targetNode);
         soundNode->addChild(sourceNode);
@@ -77,7 +152,7 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     dispatcher.registerCommand(playsoundNode);
 }
 
-i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& context) {
+i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
@@ -91,6 +166,7 @@ i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& cont
 
     auto* server = source.server();
     auto& playerManager = server->playerManager();
+    auto& connMgr = server->connectionManager();
 
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
@@ -99,14 +175,16 @@ i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& cont
             continue;
         }
 
-        // TODO: 发送 PlaySoundPacket
+        // 在玩家位置播放声音
+        glm::vec3 pos(playerData->x, playerData->y, playerData->z);
+        sendPlaySoundPacket(connMgr, playerId, soundId, category, pos, 1.0f, 1.0f);
         successCount++;
     }
 
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& context) {
+i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
@@ -119,12 +197,75 @@ i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& c
         return 0;
     }
 
-    // TODO: 发送 PlaySoundPacket 到指定位置
+    auto* server = source.server();
+    auto& connMgr = server->connectionManager();
+    glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 
-    return static_cast<i32>(playerIds.size());
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        sendPlaySoundPacket(connMgr, playerId, soundId, category, soundPos, 1.0f, 1.0f);
+        successCount++;
+    }
+
+    return successCount;
 }
 
-i32 PlaySoundCommand::playSoundWithParams(CommandContext<ServerCommandSource>& context) {
+i32 PlaySoundCommand::playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
+    auto& source = context.getSource();
+
+    const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
+    const auto& selector = context.getArgument<EntitySelector>("player");
+    const Vector3d& pos = context.getArgument<Vector3d>("pos");
+    f32 volume = context.getArgument<f32>("volume");
+    auto playerIds = support::resolvePlayerIds(source, selector);
+
+    if (playerIds.empty()) {
+        source.sendError("No matching players were found");
+        return 0;
+    }
+
+    auto* server = source.server();
+    auto& connMgr = server->connectionManager();
+    glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
+
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        sendPlaySoundPacket(connMgr, playerId, soundId, category, soundPos, volume, 1.0f);
+        successCount++;
+    }
+
+    return successCount;
+}
+
+i32 PlaySoundCommand::playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
+    auto& source = context.getSource();
+
+    const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
+    const auto& selector = context.getArgument<EntitySelector>("player");
+    const Vector3d& pos = context.getArgument<Vector3d>("pos");
+    f32 volume = context.getArgument<f32>("volume");
+    f32 pitch = context.getArgument<f32>("pitch");
+    auto playerIds = support::resolvePlayerIds(source, selector);
+
+    if (playerIds.empty()) {
+        source.sendError("No matching players were found");
+        return 0;
+    }
+
+    auto* server = source.server();
+    auto& connMgr = server->connectionManager();
+    glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
+
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        sendPlaySoundPacket(connMgr, playerId, soundId, category, soundPos, volume, pitch);
+        successCount++;
+    }
+
+    return successCount;
+}
+
+i32 PlaySoundCommand::playSoundWithMinVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category) {
     auto& source = context.getSource();
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
@@ -140,9 +281,42 @@ i32 PlaySoundCommand::playSoundWithParams(CommandContext<ServerCommandSource>& c
         return 0;
     }
 
-    // TODO: 发送 PlaySoundPacket 到指定位置带参数
+    auto* server = source.server();
+    auto& playerManager = server->playerManager();
+    auto& connMgr = server->connectionManager();
+    glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 
-    return static_cast<i32>(playerIds.size());
+    // 计算声音可听距离（MC 原版公式：volume * 16）
+    f32 audibleRange = std::max(volume, 1.0f) * 16.0f;
+    f32 audibleRangeSq = audibleRange * audibleRange;
+
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        auto* playerData = playerManager.getPlayer(playerId);
+        if (!playerData) {
+            continue;
+        }
+
+        // 计算玩家到声音位置的距离
+        f32 dx = static_cast<f32>(playerData->x - pos.x);
+        f32 dy = static_cast<f32>(playerData->y - pos.y);
+        f32 dz = static_cast<f32>(playerData->z - pos.z);
+        f32 distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq <= audibleRangeSq) {
+            // 玩家在可听范围内，正常播放
+            sendPlaySoundPacket(connMgr, playerId, soundId, category, soundPos, volume, pitch);
+        } else if (minVolume > 0.0f) {
+            // 玩家超出可听范围，但使用最小音量
+            // 在玩家位置以最小音量播放
+            glm::vec3 playerPos(playerData->x, playerData->y, playerData->z);
+            sendPlaySoundPacket(connMgr, playerId, soundId, category, playerPos, minVolume, pitch);
+        }
+
+        successCount++;
+    }
+
+    return successCount;
 }
 
 } // namespace command

@@ -13,38 +13,40 @@ namespace mc::client::sound {
 namespace {
 
 // 主菜单音乐
+// MC 1.16.5: minDelay=20, maxDelay=600, replaceCurrent=true
 const MusicPlayer::MusicSelector MENU_MUSIC = {
     ResourceLocation("minecraft:music.menu"),
-    0,      // 立即播放
-    0,
+    20,     // minDelay: 20 ticks
+    600,    // maxDelay: 600 ticks
     true    // 替换当前
 };
 
-// 游戏音乐列表
+// 游戏音乐列表（仅主世界生存模式）
+// MC 1.16.5: 仅包含 music.game，创造模式和制作人员名单有独立选择器
 const std::vector<MusicPlayer::MusicSelector> GAME_MUSIC = {
-    { ResourceLocation("minecraft:music.game"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.creative"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.credits"), 12000, 24000, false }
-};
-
-// 创造模式音乐
-const std::vector<MusicPlayer::MusicSelector> CREATIVE_MUSIC = {
-    { ResourceLocation("minecraft:music.creative"), 12000, 24000, false },
     { ResourceLocation("minecraft:music.game"), 12000, 24000, false }
 };
 
-// 下界音乐
+// 创造模式音乐
+// MC 1.16.5: 仅包含 music.creative
+const std::vector<MusicPlayer::MusicSelector> CREATIVE_MUSIC = {
+    { ResourceLocation("minecraft:music.creative"), 12000, 24000, false }
+};
+
+// 下界音乐（按生物群系选择）
+// MC 1.16.5: 每个下界群系有专属音乐
 const std::vector<MusicPlayer::MusicSelector> NETHER_MUSIC = {
     { ResourceLocation("minecraft:music.nether.basalt_deltas"), 12000, 24000, false },
     { ResourceLocation("minecraft:music.nether.crimson_forest"), 12000, 24000, false },
     { ResourceLocation("minecraft:music.nether.nether_wastes"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.nether.soul_sand_valley"), 12000, 24000, false },
-    { ResourceLocation("minecraft:music.nether.warped_forest"), 12000, 24000, false }
+    { ResourceLocation("minecraft:music.nether.soul_sand_valley"), 12000, 24000, false }
+    // 注意：warped_forest 没有音乐（sounds.json 中为空数组）
 };
 
 // 末地音乐
+// MC 1.16.5: minDelay=6000, maxDelay=24000, replaceCurrent=true
 const std::vector<MusicPlayer::MusicSelector> END_MUSIC = {
-    { ResourceLocation("minecraft:music.end"), 12000, 24000, false }
+    { ResourceLocation("minecraft:music.end"), 6000, 24000, true }
 };
 
 // 水下音乐
@@ -108,24 +110,6 @@ void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
         return;
     }
 
-    // 检查当前音乐是否仍在播放
-    if (m_currentSoundId != 0) {
-        if (!m_engine.isPlaying(m_currentSoundId)) {
-            // 音乐已结束
-            m_currentSoundId = 0;
-            m_currentType = MusicType::None;
-        } else if (m_fadingOut) {
-            // 更新淡出
-            updateFade();
-            return;
-        }
-    }
-
-    // 如果暂停或正在播放，不开始新音乐
-    if (isPaused && m_currentSoundId != 0) {
-        return;
-    }
-
     // 根据 MC 1.16.5 MusicTicker.func_238178_U_() 选择音乐类型
     MusicType desiredType = MusicType::None;
 
@@ -154,18 +138,66 @@ void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
         }
     }
 
-    // 如果当前没有音乐且延迟已过，开始新音乐
+    // 获取目标选择器
+    const MusicSelector& desiredSelector = getSelector(desiredType);
+
+    // MC 1.16.5: 检查是否需要替换当前音乐
+    // 如果当前音乐正在播放，但新选择器要求替换且与当前不同
+    if (m_currentSoundId != 0) {
+        bool isPlaying = m_engine.isPlaying(m_currentSoundId);
+
+        if (isPlaying) {
+            // 检查是否需要因 replaceCurrent 而停止
+            // MC 1.16.5 line 25-28:
+            // if (!newSelector.sound.getName().equals(current.getSoundLocation()) && newSelector.replaceCurrent)
+            if (m_currentType != desiredType && desiredSelector.replaceCurrent) {
+                // 停止当前音乐，设置短延迟
+                m_engine.stop(m_currentSoundId);
+                m_currentSoundId = 0;
+                m_currentType = MusicType::None;
+                m_fadingOut = false;
+                // 设置随机延迟 (0 to minDelay/2)
+                m_delayCounter = static_cast<u32>(m_rng.nextInt(
+                    0, static_cast<i32>(desiredSelector.minDelayTicks / 2)));
+            }
+        } else {
+            // 音乐已播放完毕
+            // MC 1.16.5 line 30-33:
+            // currentMusic = null; timeUntilNextMusic = min(nextDelay, random(minDelay, maxDelay))
+            m_currentSoundId = 0;
+            m_currentType = MusicType::None;
+            m_fadingOut = false;
+            // 设置下次播放延迟
+            m_delayCounter = std::min(m_delayCounter,
+                selectDelay(desiredSelector));
+        }
+    }
+
+    // 如果正在淡出，更新淡出并跳过播放新音乐
+    if (m_fadingOut) {
+        updateFade();
+        return;
+    }
+
+    // 如果暂停，不开始新音乐
+    if (isPaused) {
+        return;
+    }
+
+    // MC 1.16.5 line 36: timeUntilNextMusic = min(timeUntilNextMusic, maxDelay)
+    m_delayCounter = std::min(m_delayCounter, desiredSelector.maxDelayTicks);
+
+    // MC 1.16.5 line 37-39: 如果没有当前音乐且延迟到了，播放新音乐
+    if (m_currentSoundId == 0 && m_delayCounter > 0) {
+        --m_delayCounter;
+    }
+
     if (m_currentSoundId == 0 && m_delayCounter == 0) {
-        // 获取选择器
+        // 获取选择器（可能随机选择）
         const MusicSelector& selector = getSelector(desiredType);
         if (!selector.soundEventId.toString().empty()) {
             startPlaying(selector);
         }
-    }
-
-    // 更新延迟计数器
-    if (m_delayCounter > 0) {
-        --m_delayCounter;
     }
 }
 
@@ -224,35 +256,36 @@ const MusicPlayer::MusicSelector& MusicPlayer::getSelector(MusicType type) const
             if (m_gameMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_gameMusicSelectors[m_rng.nextInt(static_cast<i32>(m_gameMusicSelectors.size() - 1))];
+            // 注意：nextInt(n) 返回 [0, n)，所以直接使用 size() 而不是 size()-1
+            return m_gameMusicSelectors[m_rng.nextInt(static_cast<i32>(m_gameMusicSelectors.size()))];
         }
 
         case MusicType::Creative: {
             if (m_creativeMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_creativeMusicSelectors[m_rng.nextInt(static_cast<i32>(m_creativeMusicSelectors.size() - 1))];
+            return m_creativeMusicSelectors[m_rng.nextInt(static_cast<i32>(m_creativeMusicSelectors.size()))];
         }
 
         case MusicType::Nether: {
             if (m_netherMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_netherMusicSelectors[m_rng.nextInt(static_cast<i32>(m_netherMusicSelectors.size() - 1))];
+            return m_netherMusicSelectors[m_rng.nextInt(static_cast<i32>(m_netherMusicSelectors.size()))];
         }
 
         case MusicType::End: {
             if (m_endMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_endMusicSelectors[m_rng.nextInt(static_cast<i32>(m_endMusicSelectors.size() - 1))];
+            return m_endMusicSelectors[m_rng.nextInt(static_cast<i32>(m_endMusicSelectors.size()))];
         }
 
         case MusicType::Underwater: {
             if (m_underwaterMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            return m_underwaterMusicSelectors[m_rng.nextInt(static_cast<i32>(m_underwaterMusicSelectors.size() - 1))];
+            return m_underwaterMusicSelectors[m_rng.nextInt(static_cast<i32>(m_underwaterMusicSelectors.size()))];
         }
 
         case MusicType::Credits:

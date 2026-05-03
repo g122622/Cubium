@@ -1075,6 +1075,68 @@ void Player::die(DamageSource& cause) {
 }
 
 // ============================================================================
+// 摔落伤害
+// ============================================================================
+
+void Player::handleFallDamage(f32 distance, f32 damageMultiplier) {
+    // 调用父类处理摔落伤害计算
+    LivingEntity::handleFallDamage(distance, damageMultiplier);
+
+    // 玩家特有：播放摔落音效
+    // 参考 MC 1.16.5: PlayerEntity.func_225503_b_()
+    // 在 handleFallDamage 后 fallDistance 已被重置为 0，所以使用传入的 distance
+    i32 fallHeight = static_cast<i32>(distance);
+    auto fallSound = getFallSound(fallHeight);
+    if (fallSound.has_value()) {
+        playSound(*fallSound, 1.0f, 1.0f);
+    }
+
+    // 播放脚下方块的摔落音效
+    // 参考 MC 1.16.5: LivingEntity.playFallSound()
+    BlockPos landPos(
+        static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y - 0.2)),  // 脚底位置
+        static_cast<i32>(std::floor(m_position.z))
+    );
+    const BlockState* landState = m_world->getBlockState(landPos);
+    if (landState && !landState->isAir()) {
+        const BlockSoundType& soundType = landState->getSoundType();
+        playSound(soundType.getFallSound(), soundType.getVolume() * 0.5f, soundType.getPitch() * 0.75f);
+    }
+}
+
+// ============================================================================
+// 受伤/死亡声音
+// ============================================================================
+
+std::optional<ResourceLocation> Player::getHurtSound(DamageSource& source) const {
+    // 参考 MC 1.16.5: PlayerEntity.getHurtSound()
+    // 根据伤害类型返回不同音效
+    if (source.isFire()) {
+        return SoundEvents::ENTITY_PLAYER_HURT_ON_FIRE;
+    } else if (source.isDrown()) {
+        return SoundEvents::ENTITY_PLAYER_HURT_DROWN;
+    } else if (source.isSweetBerryBush()) {
+        return SoundEvents::ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH;
+    }
+    return SoundEvents::ENTITY_PLAYER_HURT;
+}
+
+std::optional<ResourceLocation> Player::getDeathSound() const {
+    // 参考 MC 1.16.5: PlayerEntity.getDeathSound()
+    return SoundEvents::ENTITY_PLAYER_DEATH;
+}
+
+std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const {
+    // 参考 MC 1.16.5: PlayerEntity.getFallSound()
+    // 高空摔落 (>4格) 使用 big_fall，否则使用 small_fall
+    if (fallHeight > 4) {
+        return SoundEvents::ENTITY_PLAYER_BIG_FALL;
+    }
+    return SoundEvents::ENTITY_PLAYER_SMALL_FALL;
+}
+
+// ============================================================================
 // 属性注册（覆盖 LivingEntity 方法）
 // ============================================================================
 
@@ -1506,6 +1568,8 @@ void Player::attack(Entity& target) {
     if (isSprinting() && isFullCooldown) {
         knockbackLevel++;
         isSprintKnockback = true;
+        // MC 1.16.5: 播放击退攻击音效
+        playSound(SoundEvents::ENTITY_PLAYER_ATTACK_KNOCKBACK, 1.0f, 1.0f);
     }
 
     // 10. 暴击判定
@@ -1536,6 +1600,9 @@ void Player::attack(Entity& target) {
     // 14. 创建伤害来源并应用伤害
     EntityDamageSource damageSource = DamageSources::playerAttack(this);
     bool attacked = livingTarget->hurt(damageSource, totalDamage);
+
+    // 用于跟踪是否播放了特定攻击音效
+    bool playedAttackSound = false;
 
     if (attacked) {
         // 15. 应用击退
@@ -1601,6 +1668,9 @@ void Player::attack(Entity& target) {
                         EntityDamageSource sweepSource = DamageSources::playerAttack(this);
                         nearbyLiving->hurt(sweepSource, sweepDamage);
                     }
+
+                    // MC 1.16.5: 播放横扫攻击音效
+                    playSound(SoundEvents::ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.0f);
                 }
             }
         }
@@ -1614,6 +1684,26 @@ void Player::attack(Entity& target) {
         // 18. 设置最后攻击目标
         setLastHurtTarget(livingTarget);
 
+        // 播放攻击音效
+        // MC 1.16.5: 根据攻击类型播放不同音效
+        if (isCritical) {
+            // 暴击音效
+            playSound(SoundEvents::ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 1.0f);
+            playedAttackSound = true;
+        } else if (canSweep && !playedAttackSound) {
+            // 横扫音效已在上面播放
+            playedAttackSound = true;
+        }
+
+        // 如果没有播放特殊音效，根据冷却强度播放普通攻击音效
+        if (!playedAttackSound) {
+            if (isFullCooldown) {
+                playSound(SoundEvents::ENTITY_PLAYER_ATTACK_STRONG, 1.0f, 1.0f);
+            } else {
+                playSound(SoundEvents::ENTITY_PLAYER_ATTACK_WEAK, 1.0f, 1.0f);
+            }
+        }
+
         // 荆棘附魔反伤处理
         // TODO: EnchantmentHelper.applyThornEnchantments(target, this);
 
@@ -1625,6 +1715,9 @@ void Player::attack(Entity& target) {
         addExhaustion(EXHAUSTION_ATTACK);
     } else {
         // 攻击失败（被格挡等）
+        // MC 1.16.5: 播放无伤害攻击音效
+        playSound(SoundEvents::ENTITY_PLAYER_ATTACK_NODAMAGE, 1.0f, 1.0f);
+
         if (wasBurning) {
             livingTarget->setFire(0);  // 移除之前点燃的火焰
         }

@@ -52,11 +52,17 @@ u8 BreakProgressManager::updateLocalProgress(const BlockPos& pos, f64 progress) 
 
     u8 newStage = static_cast<u8>(std::min<f64>(9.0, progress * 10.0));
 
-    if (newStage != m_localDamageStage) {
-        m_localDamageStage = newStage;
+    // 阶段变化时播放击打音效
+    if (newStage != m_localDamageStage && newStage > 0) {
         spdlog::trace("BreakProgressManager: Damage stage updated to {}", newStage);
+
+        // 播放击打音效
+        if (m_hitSoundCallback) {
+            m_hitSoundCallback(m_localBreakPos, newStage);
+        }
     }
 
+    m_localDamageStage = newStage;
     return m_localDamageStage;
 }
 

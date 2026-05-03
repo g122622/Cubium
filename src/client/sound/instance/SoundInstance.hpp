@@ -193,8 +193,10 @@ public:
 
     /**
      * @brief 标记为已完成
+     *
+     * 同时取消循环，与 MC 原版行为一致。
      */
-    void markDone() { m_done = true; }
+    void markDone() { m_done = true; m_looping = false; }
 
 protected:
     ResourceLocation m_soundEventId;
@@ -253,7 +255,7 @@ public:
      *
      * 可更新的声音在标记完成后会自动停止。
      */
-    [[nodiscard]] bool isDone() const override { return m_done; }
+    [[nodiscard]] bool isDone() const override { return SoundInstance::m_done; }
 
     /**
      * @brief 每帧更新
@@ -261,9 +263,6 @@ public:
      * 子类必须实现此方法来更新声音属性。
      */
     void tick() override = 0;
-
-protected:
-    bool m_done = false;
 };
 
 /**

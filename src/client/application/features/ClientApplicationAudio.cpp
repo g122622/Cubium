@@ -4,6 +4,8 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/blocks/ocean/SeaPickleBlock.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
@@ -205,6 +207,25 @@ void ClientApplication::updateWorldAudio()
         const bool inBossFight = false;
 
         m_audioService->updateMusicState(dimension, inCreative, inBossFight);
+
+        // 更新气泡柱状态
+        // 检测玩家碰撞箱范围内是否有气泡柱
+        bool inBubbleColumn = false;
+        bool bubbleColumnDrag = false;
+        const auto* blockState = m_world.getBlockState(
+            static_cast<i32>(std::floor(m_player->x())),
+            static_cast<i32>(std::floor(m_player->y())),
+            static_cast<i32>(std::floor(m_player->z()))
+        );
+        if (blockState != nullptr && VanillaBlocks::BUBBLE_COLUMN != nullptr && blockState->is(VanillaBlocks::BUBBLE_COLUMN)) {
+            inBubbleColumn = true;
+            // 获取气泡柱的 drag 属性
+            const auto* bubbleColumn = dynamic_cast<const mc::blocks::BubbleColumnBlock*>(&blockState->owner());
+            if (bubbleColumn != nullptr) {
+                bubbleColumnDrag = bubbleColumn->isDrag(*blockState);
+            }
+        }
+        m_audioService->setBubbleColumnState(inBubbleColumn, bubbleColumnDrag);
     }
 
     m_wasPlayerInWater = inWater;

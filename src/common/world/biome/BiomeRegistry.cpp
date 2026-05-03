@@ -1709,6 +1709,12 @@ Biome createTheEnd()
         .waterFogColor(329011)
         .build());
 
+    // 环境音效：默认洞穴心境音效 (MC 1.16.5 func_244222_a)
+    // 参考: MoodSoundAmbience.field_235027_b_ = new MoodSoundAmbience(SoundEvents.AMBIENT_CAVE, 6000, 8, 2.0D)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     biome.setGenerationSettings(BiomeGenerationSettings::createTheEnd());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
@@ -1733,6 +1739,11 @@ Biome createSmallEndIslands()
         .waterColor(4159204)
         .waterFogColor(329011)
         .build());
+
+    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
 
     biome.setGenerationSettings(BiomeGenerationSettings::createSmallEndIslands());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
@@ -1759,6 +1770,11 @@ Biome createEndMidlands()
         .waterFogColor(329011)
         .build());
 
+    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     biome.setGenerationSettings(BiomeGenerationSettings::createEndMidlands());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
@@ -1784,6 +1800,11 @@ Biome createEndHighlands()
         .waterFogColor(329011)
         .build());
 
+    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
+
     biome.setGenerationSettings(BiomeGenerationSettings::createEndHighlands());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
@@ -1808,6 +1829,11 @@ Biome createEndBarrens()
         .waterColor(4159204)
         .waterFogColor(329011)
         .build());
+
+    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    biome.setAmbientSounds(sounds);
 
     biome.setGenerationSettings(BiomeGenerationSettings::createEndBarrens());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());

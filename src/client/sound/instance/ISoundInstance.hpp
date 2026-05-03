@@ -174,6 +174,15 @@ public:
      */
     [[nodiscard]] virtual bool isDone() const = 0;
 
+    /**
+     * @brief 是否可以静音播放
+     *
+     * 用于 TickableSound 的声音切换检查。
+     * 如果返回 true，声音可以在音量为 0 时播放。
+     * 参考: net.minecraft.client.audio.ISound.canBeSilent()
+     */
+    [[nodiscard]] virtual bool canBeSilent() const { return false; }
+
     // ========================================================================
     // 更新
     // ========================================================================

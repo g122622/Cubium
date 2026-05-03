@@ -479,6 +479,7 @@ private:
     // 玩家水中状态跟踪（用于音效触发）
     bool m_wasPlayerInWater = false;
     bool m_wasPlayerInLava = false;
+    bool m_wasInBubbleColumn = false;
 
     // 视野晃动状态
     glm::mat4 buildViewBobbingTransform(f32 partialTick) const;

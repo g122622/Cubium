@@ -6,6 +6,8 @@
 #include "client/sound/MusicPlayer.hpp"
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
+#include "client/sound/handler/BubbleColumnAmbientHandler.hpp"
+#include "client/sound/handler/EntitySoundHandler.hpp"
 
 #include "common/resource/ResourcePackList.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -74,6 +76,7 @@ void AudioService::shutdown()
     }
 
     m_loaded.store(false);
+    m_entitySoundHandler = nullptr;
     m_running.store(false);
     m_biomeAmbientHandler = nullptr;
     m_underwaterAmbientHandler = nullptr;
@@ -261,6 +264,19 @@ void AudioService::setUnderwater(bool underwater)
     enqueue(std::move(command));
 }
 
+void AudioService::setBubbleColumnState(bool inBubbleColumn, bool isDrag)
+{
+    if (!m_loaded.load()) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::SetBubbleColumnState;
+    command.bubbleColumn.inBubbleColumn = inBubbleColumn;
+    command.bubbleColumn.isDrag = isDrag;
+    enqueue(std::move(command));
+}
+
 void AudioService::updateMusicState(i32 dimension, bool inCreative, bool inBossFight)
 {
     if (!m_loaded.load()) {
@@ -314,6 +330,85 @@ void AudioService::setInMenu(bool inMenu)
     enqueue(std::move(command));
 }
 
+void AudioService::onEntitySpawn(u32 entityId, const String& typeId, f32 x, f32 y, f32 z)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新实体状态快照
+    EntitySoundState state;
+    state.position = glm::vec3(x, y, z);
+    m_entitySoundHandler->updateEntityState(static_cast<EntityId>(entityId), state);
+
+    // 发送生成事件
+    Command command;
+    command.type = CommandType::EntitySpawn;
+    command.entityId = entityId;
+    command.entityTypeId = typeId;
+    enqueue(std::move(command));
+}
+
+void AudioService::onEntityRemove(u32 entityId)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 发送移除事件
+    Command command;
+    command.type = CommandType::EntityRemove;
+    command.entityId = entityId;
+    enqueue(std::move(command));
+
+    // 清理状态快照
+    m_entitySoundHandler->removeEntityState(static_cast<EntityId>(entityId));
+}
+
+void AudioService::onPlayerElytraFlyingChanged(u32 entityId, bool isFlying)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->isFallFlying = isFlying;
+    }
+
+    // 发送飞行状态变化事件
+    Command command;
+    command.type = CommandType::ElytraFlyingChanged;
+    command.entityId = entityId;
+    command.isFlying = isFlying;
+    enqueue(std::move(command));
+}
+
+void AudioService::onEntityAngerStateChanged(u32 entityId, bool isAngry)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照中的愤怒状态
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->isAngry = isAngry;
+    }
+}
+
+void AudioService::updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照中的位置和速度
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->position = glm::vec3(x, y, z);
+        state->velocity = glm::vec3(vx, vy, vz);
+    }
+}
+
 void AudioService::enqueue(Command command)
 {
     {
@@ -355,6 +450,15 @@ void AudioService::runWorker()
         auto underwaterAmbientHandler = std::make_unique<UnderwaterAmbientHandler>();
         m_underwaterAmbientHandler = underwaterAmbientHandler.get();
         m_soundEngine->addAmbientHandler(std::move(underwaterAmbientHandler));
+
+        auto bubbleColumnAmbientHandler = std::make_unique<BubbleColumnAmbientHandler>();
+        m_bubbleColumnAmbientHandler = bubbleColumnAmbientHandler.get();
+        m_soundEngine->addAmbientHandler(std::move(bubbleColumnAmbientHandler));
+
+        // 创建实体声音处理器
+        auto entitySoundHandler = std::make_unique<EntitySoundHandler>();
+        m_entitySoundHandler = entitySoundHandler.get();
+        m_soundEngine->addAmbientHandler(std::move(entitySoundHandler));
 
         // 创建音乐播放器
         m_musicPlayer = std::make_unique<MusicPlayer>(*m_soundEngine);
@@ -504,6 +608,15 @@ void AudioService::processCommand(Command& command)
             }
             break;
 
+        case CommandType::SetBubbleColumnState:
+            if (m_bubbleColumnAmbientHandler) {
+                m_bubbleColumnAmbientHandler->setBubbleColumnState(
+                    command.bubbleColumn.inBubbleColumn,
+                    command.bubbleColumn.isDrag
+                );
+            }
+            break;
+
         case CommandType::UpdateMusicState:
             m_savedDimension.store(command.dimension);
             m_savedCreative.store(command.inCreative);
@@ -524,6 +637,32 @@ void AudioService::processCommand(Command& command)
 
         case CommandType::SetInMenu:
             m_savedInMenu.store(command.inMenu);
+            break;
+
+        case CommandType::EntitySpawn:
+            if (m_entitySoundHandler && m_soundEngine) {
+                m_entitySoundHandler->onEntitySpawn(*m_soundEngine, static_cast<EntityId>(command.entityId), command.entityTypeId);
+            }
+            break;
+
+        case CommandType::EntityRemove:
+            if (m_entitySoundHandler) {
+                m_entitySoundHandler->onEntityRemove(static_cast<EntityId>(command.entityId));
+            }
+            break;
+
+        case CommandType::ElytraFlyingChanged:
+            if (m_entitySoundHandler && m_soundEngine) {
+                m_entitySoundHandler->onPlayerElytraFlyingChanged(*m_soundEngine, static_cast<EntityId>(command.entityId), command.isFlying);
+            }
+            break;
+
+        case CommandType::EntityAngerStateChanged:
+            // 愤怒状态已通过 getMutableEntityState 更新
+            break;
+
+        case CommandType::UpdateEntityPosition:
+            // 位置和速度已通过 getMutableEntityState 更新
             break;
     }
 }

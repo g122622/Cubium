@@ -21,6 +21,8 @@ class ClientSettings;
 namespace sound {
 
 class BiomeAmbientHandler;
+class BubbleColumnAmbientHandler;
+class EntitySoundHandler;
 class MusicPlayer;
 class SoundEngine;
 class SoundHandler;
@@ -64,6 +66,7 @@ public:
     void reloadSoundDefinitions();
     void setBiomeId(u32 biomeId);
     void setUnderwater(bool underwater);
+    void setBubbleColumnState(bool inBubbleColumn, bool isDrag);
 
     /**
      * @brief 更新环境音效处理器的光照等级
@@ -102,6 +105,61 @@ public:
      */
     void setInMenu(bool inMenu);
 
+    // ========================================================================
+    // 实体声音处理
+    // ========================================================================
+
+    /**
+     * @brief 处理实体生成事件
+     *
+     * 在音频线程中创建实体特定的声音（如蜜蜂飞行声音）。
+     *
+     * @param entityId 实体ID
+     * @param typeId 实体类型ID（如 "minecraft:bee"）
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     */
+    void onEntitySpawn(u32 entityId, const String& typeId, f32 x, f32 y, f32 z);
+
+    /**
+     * @brief 处理实体移除事件
+     *
+     * @param entityId 实体ID
+     */
+    void onEntityRemove(u32 entityId);
+
+    /**
+     * @brief 处理玩家鞘翅飞行状态变化
+     *
+     * @param entityId 玩家实体ID
+     * @param isFlying 是否正在鞘翅飞行
+     */
+    void onPlayerElytraFlyingChanged(u32 entityId, bool isFlying);
+
+    /**
+     * @brief 更新实体愤怒状态
+     *
+     * 用于蜜蜂等实体的声音切换。
+     *
+     * @param entityId 实体ID
+     * @param isAngry 是否愤怒
+     */
+    void onEntityAngerStateChanged(u32 entityId, bool isAngry);
+
+    /**
+     * @brief 更新实体位置和速度
+     *
+     * @param entityId 实体ID
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param vx X速度
+     * @param vy Y速度
+     * @param vz Z速度
+     */
+    void updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
+
 private:
     enum class CommandType : u8 {
         Play,
@@ -117,10 +175,17 @@ private:
         ReloadSounds,
         SetBiomeId,
         SetUnderwater,
+        SetBubbleColumnState,
         UpdateMusicState,
         SetAmbientLightLevel,
         SetAmbientPlayerPosition,
         SetInMenu,
+        // 实体声音
+        EntitySpawn,
+        EntityRemove,
+        ElytraFlyingChanged,
+        EntityAngerStateChanged,
+        UpdateEntityPosition,
     };
 
     struct Command {
@@ -138,6 +203,11 @@ private:
         u32 biomeId = 0;
         bool underwater = false;
         bool paused = false;
+        // 气泡柱状态
+        struct BubbleColumnState {
+            bool inBubbleColumn = false;
+            bool isDrag = false;
+        } bubbleColumn;
         // 音乐状态
         i32 dimension = 0;
         bool inCreative = false;
@@ -150,6 +220,15 @@ private:
         f64 playerX = 0.0;
         f64 playerY = 0.0;
         f64 playerZ = 0.0;
+        // 实体声音
+        u32 entityId = 0;
+        String entityTypeId;
+        bool isFlying = false;
+        bool isAngry = false;
+        // 实体速度
+        f32 vx = 0.0f;
+        f32 vy = 0.0f;
+        f32 vz = 0.0f;
     };
 
     void enqueue(Command command);
@@ -169,6 +248,8 @@ private:
     std::unique_ptr<MusicPlayer> m_musicPlayer;
     BiomeAmbientHandler* m_biomeAmbientHandler = nullptr;
     UnderwaterAmbientHandler* m_underwaterAmbientHandler = nullptr;
+    BubbleColumnAmbientHandler* m_bubbleColumnAmbientHandler = nullptr;
+    EntitySoundHandler* m_entitySoundHandler = nullptr;
 
     // 音乐状态（跨线程共享）
     std::atomic<i32> m_savedDimension{0};
