@@ -572,12 +572,17 @@ TEST_F(ServerWorkerPoolTest, TaskTypeAndDescription) {
     pool.start();
 
     std::atomic<bool> completed{false};
-    ITask* taskPtr = nullptr;
+    TaskType capturedType = TaskType::Custom;
+    std::string capturedDescription;
 
     auto task = std::make_unique<SimpleTestTask>(42);
     pool.submit(std::move(task),
         [&](bool, ITask* t) {
-            taskPtr = t;
+            EXPECT_NE(t, nullptr);
+            if (t) {
+                capturedType = t->type();
+                capturedDescription = t->description();
+            }
             completed = true;
         });
 
@@ -586,9 +591,8 @@ TEST_F(ServerWorkerPoolTest, TaskTypeAndDescription) {
     }
 
     EXPECT_TRUE(completed);
-    ASSERT_NE(taskPtr, nullptr);
-    EXPECT_EQ(taskPtr->type(), TaskType::Custom);
-    EXPECT_EQ(taskPtr->description(), "SimpleTestTask(42)");
+    EXPECT_EQ(capturedType, TaskType::Custom);
+    EXPECT_EQ(capturedDescription, "SimpleTestTask(42)");
 
     pool.shutdown();
 }

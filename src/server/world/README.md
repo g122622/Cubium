@@ -37,6 +37,7 @@ src/server/world/
 - 声音回调（`setOnPlaySound`，用于把实体声音转发到服务器广播层）
 - 物理模拟与碰撞检测
 - Tick 调度（方块、流体）
+- 存档保存编排（通过 `SaveManager` 驱动自动保存与全量保存）
 - 天气状态管理
 
 `ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlock`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
@@ -63,6 +64,11 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
 - 玩家管理（由 `PlayerManager` 管理）
 - 网络通信（由 `ConnectionManager` 管理）
 - 时间管理（由 `TimeManager` 管理）
+
+**存储相关补充**：
+- `ServerWorld::saveAll()` 现在会走 `SaveManager::saveAll()`，用于 `/save-all` 和关服前全量落盘。
+- `ServerWorld::tick()` 会驱动 `SaveManager::tick()`，使自动保存可以按 tick 运行。
+- `/save-on` 和 `/save-off` 已接入 `SaveManager` 的启动/停止接口。
 
 ---
 

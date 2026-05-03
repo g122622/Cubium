@@ -361,11 +361,10 @@ Result<SectionData> SectionCodec::fromChunkSection(
     // 复制非空方块计数
     data.nonEmptyBlockCount = section.getBlockCount();
 
-    // 复制生物群系
+    // 复制生物群系：由调用方提供 4x4x4 采样数据，未提供时退回默认平原
     if (!biomes.empty() && biomes.size() == SectionData::BIOME_COUNT) {
         data.biomes = biomes;
     } else {
-        // 默认平原生物群系
         data.biomes.assign(SectionData::BIOME_COUNT, 1);
     }
 

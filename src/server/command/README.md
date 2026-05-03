@@ -219,6 +219,22 @@ public:
 
 **权限等级：** 0（所有玩家可用）
 
+#### SaveOnCommand / SaveOffCommand - /save-on 与 /save-off 命令
+
+切换服务器自动保存开关。
+
+**用法：**
+
+- `/save-on` - 启用自动保存
+- `/save-off` - 禁用自动保存
+
+**权限等级：** 4
+
+**实现状态：**
+
+- 已接入 `ServerWorld` 内部的 `SaveManager`
+- 命令层只负责调用保存协调器的 `startAutoSave()` / `stopAutoSave()`
+
 #### HelpCommand - /help 命令
 
 显示命令帮助。

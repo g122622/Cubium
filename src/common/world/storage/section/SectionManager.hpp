@@ -3,6 +3,7 @@
 #include "../db/RocksDBDatabase.hpp"
 #include "../db/SectionKey.hpp"
 #include "../db/SectionCodec.hpp"
+#include "../db/ConsistencyMode.hpp"
 #include "SectionCache.hpp"
 #include "../../../core/Result.hpp"
 #include "../../../core/Types.hpp"
@@ -49,6 +50,9 @@ public:
 
         /// 批量保存大小
         size_t batchSize = 50;
+
+        /// 一致性模式
+        ConsistencyMode consistencyMode = ConsistencyMode::Eventual;
 
         /// 默认配置
         static Config Default() { return Config{}; }

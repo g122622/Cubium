@@ -3,6 +3,7 @@
 #include "common/command/CommandContext.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/application/IServer.hpp"
+#include "server/world/ServerWorld.hpp"
 
 namespace mc {
 namespace command {
@@ -31,11 +32,16 @@ void SaveOffCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 i32 SaveOffCommand::disableAutoSave(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
 
-    // TODO: 实现自动保存控制
-    // 需要：
-    // 1. IServer::setAutoSaveEnabled(false)
-    // 2. 或 WorldSaveManager::disableAutoSave()
+    auto* server = source.server();
+    auto* serverWorld = server ? server->world().asServerWorld() : nullptr;
+    auto* saveManager = serverWorld ? serverWorld->saveManager() : nullptr;
 
+    if (!saveManager) {
+        source.sendMessage("Error: Save manager not available");
+        return 0;
+    }
+
+    saveManager->stopAutoSave();
     source.sendMessage("Automatic saving is now disabled");
     return 1;
 }

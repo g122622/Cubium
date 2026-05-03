@@ -12,6 +12,7 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/storage/WorldStorageService.hpp"
+#include "common/world/storage/save/SaveManager.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -105,6 +106,12 @@ public:
     [[nodiscard]] const world::storage::WorldStorageService& storage() const { return m_storage; }
 
     /**
+     * @brief 获取保存协调器
+     */
+    [[nodiscard]] world::storage::SaveManager* saveManager() { return m_saveManager.get(); }
+    [[nodiscard]] const world::storage::SaveManager* saveManager() const { return m_saveManager.get(); }
+
+    /**
      * @brief 检查存储服务是否已打开
      */
     [[nodiscard]] bool isStorageOpen() const { return m_storage.isOpen(); }
@@ -115,7 +122,7 @@ public:
      * 遍历所有维度的 SectionManager，刷新脏Section到磁盘。
      * 通常在服务器关闭时调用。
      */
-    Result<void> saveAll();
+    Result<size_t> saveAll();
 
     // 配置
     void setConfig(const ServerWorldConfig& config);
@@ -504,6 +511,7 @@ private:
 private:
     ServerWorldConfig m_config;
     world::storage::WorldStorageService m_storage;  ///< 存储服务（唯一对外接口）
+    std::unique_ptr<world::storage::SaveManager> m_saveManager;  ///< 保存协调器
     std::unique_ptr<ServerChunkManager> m_chunkManager;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;

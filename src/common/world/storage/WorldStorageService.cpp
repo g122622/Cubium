@@ -178,6 +178,32 @@ Result<size_t> WorldStorageService::flushAllDirty()
     return totalFlushed;
 }
 
+Result<size_t> WorldStorageService::saveAll()
+{
+    MC_TRACE_EVENT("storage", "WorldStorageService::saveAll");
+
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    size_t totalSaved = 0;
+
+    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
+    for (auto& [dim, manager] : m_sectionManagers) {
+        auto result = manager->saveAll();
+        if (!result.success()) {
+            return result.error();
+        }
+        totalSaved += result.value();
+    }
+
+    if (totalSaved > 0) {
+        spdlog::info("Saved {} cached sections", totalSaved);
+    }
+
+    return totalSaved;
+}
+
 // ============================================================================
 // 子服务访问
 // ============================================================================
@@ -234,6 +260,7 @@ SectionManager* WorldStorageService::createSectionManager(DimensionId dimension)
     SectionManager::Config config;
     config.cacheCapacity = m_config.sectionCacheCapacity;
     config.computeHash = m_config.computeHash;
+    config.consistencyMode = m_config.consistencyMode;
 
     auto manager = std::make_unique<SectionManager>(*m_db, dimension, config);
 

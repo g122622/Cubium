@@ -184,7 +184,7 @@ private:
     WorldStorageService& m_storage;
     AutoSaveConfig m_config;
     std::atomic<bool> m_running{false};
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
 
     // 统计
     u64 m_lastSaveTick = 0;

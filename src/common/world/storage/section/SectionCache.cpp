@@ -182,6 +182,22 @@ SectionCache::getDirtySections() const {
     return sections;
 }
 
+std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>>
+SectionCache::getAllSections() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> sections;
+    sections.reserve(m_lruList.size());
+
+    for (const auto& node : m_lruList) {
+        if (node.entry.data) {
+            sections.emplace_back(node.key, node.entry.data);
+        }
+    }
+
+    return sections;
+}
+
 // ============================================================================
 // 缓存管理
 // ============================================================================

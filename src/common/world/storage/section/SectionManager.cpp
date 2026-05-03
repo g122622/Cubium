@@ -63,7 +63,6 @@ std::future<Result<SectionData*>> SectionManager::loadSectionAsync(
                    "sectionY", static_cast<i32>(key.sectionY));
 
     // 使用std::async简化异步实现
-    // 生产环境应该使用ServerWorkerPool
     return std::async(std::launch::async, [this, key]() {
         return loadSection(key);
     });
@@ -154,6 +153,7 @@ Result<size_t> SectionManager::flushDirtySections() {
     // 批量保存
     rocksdb::WriteBatch batch;
     size_t savedCount = 0;
+    const bool syncWrites = m_config.consistencyMode != ConsistencyMode::Eventual;
 
     for (const auto& [key, data] : dirtySections) {
         if (!data) {
@@ -188,7 +188,7 @@ Result<size_t> SectionManager::flushDirtySections() {
 
     // 执行批量写入
     if (savedCount > 0) {
-        auto writeResult = m_db.writeBatch(batch, true); // sync=true
+        auto writeResult = m_db.writeBatch(batch, syncWrites);
         if (!writeResult.success()) {
             return writeResult.error();
         }
@@ -199,10 +199,14 @@ Result<size_t> SectionManager::flushDirtySections() {
         m_cache.markClean(key);
     }
 
-    // 清空脏集合
+    // 只清理已成功写入的键，避免序列化失败的数据被错误丢失。
     {
         std::lock_guard<std::mutex> lock(m_dirtyMutex);
-        m_dirtySet.clear();
+        for (const auto& [key, data] : dirtySections) {
+            if (data) {
+                m_dirtySet.erase(key);
+            }
+        }
     }
 
     spdlog::info("Flushed {} dirty sections", savedCount);
@@ -213,11 +217,11 @@ Result<size_t> SectionManager::flushDirtySections() {
 Result<size_t> SectionManager::saveAll() {
     MC_TRACE_EVENT("storage.section", "SectionManager::saveAll");
 
-    // 获取所有缓存中的Section
-    auto dirtySections = m_cache.getDirtySections();
+    // 获取所有缓存中的Section，确保 saveAll 真正保存全部内容。
+    auto allSections = m_cache.getAllSections();
     size_t savedCount = 0;
 
-    for (const auto& [key, data] : dirtySections) {
+    for (const auto& [key, data] : allSections) {
         if (!data) {
             continue;
         }
@@ -322,33 +326,21 @@ Result<size_t> SectionManager::deleteChunkSections(i32 chunkX, i32 chunkZ) {
                    "chunkX", chunkX,
                    "chunkZ", chunkZ);
 
-    // 构造范围删除的起止键
-    // SectionKey格式: dimension:2 + chunkX:4 + chunkZ:4 + sectionY:1 + padding:2
-    // 同一区块的所有Section，chunkX和chunkZ相同，sectionY从-4到19
-
-    SectionKey startKey(chunkX, chunkZ, -128, m_dimension); // 最小sectionY
-    SectionKey endKey(chunkX, chunkZ, 127, m_dimension);    // 最大sectionY
-
-    auto startBytes = startKey.toKey();
-    auto endBytes = endKey.toKey();
-
-    // 范围删除
-    auto result = m_db.deleteRange(m_cfName, startBytes, endBytes);
-    if (!result.success()) {
-        return result.error();
-    }
-
-    // 从缓存中移除该区块的所有Section
+    // 注意：sectionY 使用有符号字节直接序列化时，字节序排序并不适合做范围删除。
+    // 这里逐个删除，避免删除范围在 RocksDB 字典序下失效。
+    size_t removedCount = 0;
     for (i8 sectionY = -4; sectionY <= 19; ++sectionY) {
         SectionKey key(chunkX, chunkZ, sectionY, m_dimension);
-        m_cache.evict(key);
 
-        std::lock_guard<std::mutex> lock(m_dirtyMutex);
-        m_dirtySet.erase(key);
+        auto removeResult = deleteSection(key);
+        if (removeResult.success()) {
+            ++removedCount;
+        }
+
+        m_cache.evict(key);
     }
 
-    // 返回删除的数量（估算）
-    return 24; // -4到19共24个Section
+    return removedCount;
 }
 
 // ============================================================================
@@ -454,6 +446,8 @@ Result<void> SectionManager::saveToDatabase(
         const_cast<SectionData&>(data).computeHash();
     }
 
+    const bool syncWrites = sync || m_config.consistencyMode != ConsistencyMode::Eventual;
+
     // 序列化
     auto serializeResult = data.serialize();
     if (!serializeResult.success()) {
@@ -462,7 +456,7 @@ Result<void> SectionManager::saveToDatabase(
 
     // 写入数据库
     auto keyBytes = key.toKey();
-    return m_db.put(m_cfName, keyBytes, serializeResult.value(), sync);
+    return m_db.put(m_cfName, keyBytes, serializeResult.value(), syncWrites);
 }
 
 } // namespace mc::world::storage

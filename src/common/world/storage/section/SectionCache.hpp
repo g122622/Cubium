@@ -189,6 +189,14 @@ public:
     [[nodiscard]] std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>>
         getDirtySections() const;
 
+    /**
+     * @brief 获取所有缓存Section数据
+     *
+     * @return 所有缓存Section数据列表
+     */
+    [[nodiscard]] std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>>
+        getAllSections() const;
+
     // ========================================================================
     // 缓存管理
     // ========================================================================

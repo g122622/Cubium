@@ -343,6 +343,19 @@ void ServerChunkManager::saveChunkSections(const ChunkData& chunk)
     // 获取该维度的SectionManager
     auto& sectionMgr = storageService.sectionManager(dimension);
 
+    // 预先读取区块生物群系，避免保存时丢失 4x4x4 采样数据。
+    std::vector<BiomeId> biomes;
+    {
+        const auto biomeBytes = chunk.getBiomes().serialize();
+        biomes.reserve(biomeBytes.size() / 2);
+
+        for (size_t i = 0; i + 1 < biomeBytes.size(); i += 2) {
+            const u16 low = static_cast<u16>(biomeBytes[i]);
+            const u16 high = static_cast<u16>(biomeBytes[i + 1]);
+            biomes.push_back(static_cast<BiomeId>(low | (high << 8)));
+        }
+    }
+
     // 保存每个Section
     for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk.getSection(sectionY);
@@ -354,7 +367,7 @@ void ServerChunkManager::saveChunkSections(const ChunkData& chunk)
         world::storage::SectionKey sectionKey(chunk.x(), chunk.z(), sectionY, dimension);
 
         // 转换并保存Section
-        auto dataResult = world::storage::SectionCodec::fromChunkSection(*section, sectionKey);
+        auto dataResult = world::storage::SectionCodec::fromChunkSection(*section, sectionKey, biomes);
         if (dataResult.success()) {
             auto saveResult = sectionMgr.saveSection(sectionKey, dataResult.value());
             if (saveResult.failed()) {
@@ -383,6 +396,8 @@ std::unique_ptr<ChunkData> ServerChunkManager::loadChunkFromStorage(ChunkCoord x
     // 创建区块数据
     auto chunk = std::make_unique<ChunkData>(x, z);
     bool hasAnySection = false;
+    bool hasBiomes = false;
+    mc::BiomeContainer biomeContainer;
 
     // 加载每个Section
     for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
@@ -400,6 +415,18 @@ std::unique_ptr<ChunkData> ServerChunkManager::loadChunkFromStorage(ChunkCoord x
             continue;
         }
 
+        if (!hasBiomes && sectionData->biomes.size() == mc::BiomeContainer::BIOME_SIZE) {
+            for (i32 biomeY = 0; biomeY < mc::BiomeContainer::BIOME_HEIGHT; ++biomeY) {
+                for (i32 biomeZ = 0; biomeZ < mc::BiomeContainer::BIOME_DEPTH; ++biomeZ) {
+                    for (i32 biomeX = 0; biomeX < mc::BiomeContainer::BIOME_WIDTH; ++biomeX) {
+                        const size_t biomeIndex = static_cast<size_t>(biomeY * mc::BiomeContainer::BIOME_WIDTH * mc::BiomeContainer::BIOME_DEPTH + biomeZ * mc::BiomeContainer::BIOME_WIDTH + biomeX);
+                        biomeContainer.setBiome(biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
+                    }
+                }
+            }
+            hasBiomes = true;
+        }
+
         // 获取或创建Section
         ChunkSection* section = chunk->createSection(sectionY);
         if (!section) {
@@ -415,6 +442,10 @@ std::unique_ptr<ChunkData> ServerChunkManager::loadChunkFromStorage(ChunkCoord x
         }
 
         hasAnySection = true;
+    }
+
+    if (hasBiomes) {
+        chunk->setBiomes(std::move(biomeContainer));
     }
 
     // 如果没有任何Section，返回nullptr表示区块不存在于存储中

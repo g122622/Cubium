@@ -59,8 +59,16 @@ void AutoSave::setConfig(const AutoSaveConfig& config)
 
 void AutoSave::tick(u64 tickCount)
 {
-    if (!m_running) {
-        return;
+    AutoSaveConfig config;
+    u64 lastSaveTick = 0;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (!m_running) {
+            return;
+        }
+        config = m_config;
+        lastSaveTick = m_lastSaveTick;
     }
 
     if (!shouldSave(tickCount)) {
@@ -68,8 +76,9 @@ void AutoSave::tick(u64 tickCount)
     }
 
     // 执行保存
-    auto result = doSave(m_config.createSnapshotBeforeSave);
+    auto result = doSave(config.createSnapshotBeforeSave);
     if (result.success()) {
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_lastSaveTick = tickCount;
         ++m_totalSaveCount;
         m_totalSectionsSaved += result.value();
@@ -102,26 +111,35 @@ Result<size_t> AutoSave::saveNowWithSnapshot(const std::string& snapshotName)
 
 bool AutoSave::shouldSave(u64 tickCount) const
 {
+    AutoSaveConfig config;
+    u64 lastSaveTick = 0;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        config = m_config;
+        lastSaveTick = m_lastSaveTick;
+    }
+
     // 检查脏Section数量
     size_t dirtyCount = m_storage.getTotalDirtyCount();
 
     // 阈值触发
-    if (dirtyCount >= m_config.dirtyThreshold) {
+    if (dirtyCount >= config.dirtyThreshold) {
         spdlog::debug("AutoSave triggered by threshold: {} >= {}",
-                      dirtyCount, m_config.dirtyThreshold);
+                      dirtyCount, config.dirtyThreshold);
         return true;
     }
 
     // 定时触发（假设 20 ticks/秒）
     // 1秒 = 20 ticks, 所以 saveIntervalMs / 1000 * 20 = saveIntervalMs / 50 ticks
-    u64 ticksPerInterval = m_config.saveIntervalMs / 50;
+    u64 ticksPerInterval = config.saveIntervalMs / 50;
     if (ticksPerInterval == 0) {
         ticksPerInterval = 1;
     }
 
-    if (tickCount - m_lastSaveTick >= ticksPerInterval && dirtyCount > 0) {
+    if (tickCount - lastSaveTick >= ticksPerInterval && dirtyCount > 0) {
         spdlog::debug("AutoSave triggered by timer: {} ticks elapsed",
-                      tickCount - m_lastSaveTick);
+                      tickCount - lastSaveTick);
         return true;
     }
 
@@ -132,10 +150,16 @@ Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshot
 {
     MC_TRACE_EVENT("storage.save", "AutoSave::doSave");
 
+    AutoSaveConfig config;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        config = m_config;
+    }
+
     // 可选：创建快照
     if (createSnapshot) {
         std::string name = snapshotName.empty()
-            ? fmt::format("{}{}", m_config.snapshotPrefix,
+            ? fmt::format("{}{}", config.snapshotPrefix,
                           std::chrono::duration_cast<std::chrono::milliseconds>(
                               std::chrono::system_clock::now().time_since_epoch()
                           ).count())
@@ -162,7 +186,13 @@ Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshot
 
 void AutoSave::pruneOldSnapshots()
 {
-    auto result = m_storage.pruneOldBackups(m_config.maxAutoSnapshots);
+    AutoSaveConfig config;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        config = m_config;
+    }
+
+    auto result = m_storage.pruneOldBackups(config.maxAutoSnapshots);
     if (result.success() && result.value() > 0) {
         spdlog::debug("Pruned {} old snapshots", result.value());
     }

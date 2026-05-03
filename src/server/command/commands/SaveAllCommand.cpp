@@ -59,7 +59,7 @@ i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context) {
     size_t totalSections = 0;
 
     if (serverWorld && serverWorld->isStorageOpen()) {
-        auto result = serverWorld->storage().flushAllDirty();
+        auto result = serverWorld->saveAll();
         if (result.success()) {
             totalSections += result.value();
         } else {
@@ -95,17 +95,17 @@ i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context) {
     size_t totalSections = 0;
 
     if (serverWorld && serverWorld->isStorageOpen()) {
-        // 保存所有脏数据
-        auto result = serverWorld->storage().flushAllDirty();
-        if (result.success()) {
-            totalSections += result.value();
-        } else {
+        // 保存所有缓存数据
+        auto result = serverWorld->saveAll();
+        if (!result.success()) {
             source.sendMessage(fmt::format("Failed to save world: {}", result.error().message()));
             return 0;
         }
 
         // 清除所有缓存（强制刷新到磁盘）
         serverWorld->storage().clearAllCaches();
+
+        totalSections = result.value();
     }
 
     // TODO: 保存玩家数据

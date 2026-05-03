@@ -382,14 +382,21 @@ CreateWorldRequest request;
 request.displayName = "New World";
 request.seed = 12345;
 auto levelId = service.createWorld(request);
+
+// 服务器运行时保存
+// flushAllDirty()：增量刷新脏 Section
+// saveAll()：全量保存当前缓存的 Section
 ```
 
 **Key Components:**
+- **WorldStorageService**: World persistence facade, exposes `sectionManager()`, `flushAllDirty()`, `saveAll()`, backup APIs
 - **LevelDatCodec**: Reads/writes gzip-compressed NBT `level.dat` files
 - **WorldListService**: Enumerates, creates, deletes, backs up worlds
 - **WorldSessionLock**: RAII lock to prevent concurrent world access
 - **WorldNameSanitizer**: Handles directory naming conflicts (World, World (1), etc.)
 - **WorldStoragePaths**: Manages saves/ and backups/ directory paths
+- **SectionManager**: Per-dimension Section cache/load/save manager
+- **SaveManager / AutoSave**: Save orchestration and periodic dirty flush, already wired into `ServerWorld` and `/save-on` / `/save-off`
 
 See `storage/README.md` for detailed documentation.
 

@@ -319,6 +319,96 @@ TEST_F(WorldStorageServiceTest, ReopenPreservesData)
     }
 }
 
+TEST_F(WorldStorageServiceTest, SaveAllPersistsUntrackedCachedMutation)
+{
+    WorldStorageService storage;
+    WorldStorageConfig config;
+    config.consistencyMode = ConsistencyMode::Eventual;
+
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success());
+
+    auto& mgr = storage.sectionManager(0);
+
+    SectionKey key(30, 40, 6, 0);
+    SectionData data = createTestSectionData(30, 40, 6, 0, 123);
+
+    auto saveResult = mgr.saveSection(key, data);
+    ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+
+    auto loadResult = mgr.loadSection(key);
+    ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
+    ASSERT_NE(loadResult.value(), nullptr);
+
+    // 直接修改缓存中的对象，但不经过 SectionManager 的脏标记路径。
+    loadResult.value()->setBlockStateId(0, 0, 0, 777);
+
+    auto fullSaveResult = storage.saveAll();
+    ASSERT_TRUE(fullSaveResult.success()) << fullSaveResult.error().message();
+
+    storage.close();
+
+    {
+        WorldStorageService reopenedStorage;
+        auto reopenResult = reopenedStorage.open(testDir, config);
+        ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
+
+        auto& reopenedMgr = reopenedStorage.sectionManager(0);
+        auto reopenedLoadResult = reopenedMgr.loadSection(key);
+        ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
+        ASSERT_NE(reopenedLoadResult.value(), nullptr);
+
+        EXPECT_EQ(reopenedLoadResult.value()->getBlockStateId(0, 0, 0), 777u);
+
+        reopenedStorage.close();
+    }
+}
+
+TEST_F(WorldStorageServiceTest, FlushAllDirtyDoesNotPersistUntrackedCachedMutation)
+{
+    WorldStorageService storage;
+    WorldStorageConfig config;
+    config.consistencyMode = ConsistencyMode::Eventual;
+
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success());
+
+    auto& mgr = storage.sectionManager(0);
+
+    SectionKey key(50, 60, 7, 0);
+    SectionData data = createTestSectionData(50, 60, 7, 0, 456);
+
+    auto saveResult = mgr.saveSection(key, data);
+    ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+
+    auto loadResult = mgr.loadSection(key);
+    ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
+    ASSERT_NE(loadResult.value(), nullptr);
+
+    // 同样直接修改缓存对象，但这次只执行脏刷新。
+    loadResult.value()->setBlockStateId(0, 0, 0, 888);
+
+    auto flushResult = storage.flushAllDirty();
+    ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
+
+    storage.close();
+
+    {
+        WorldStorageService reopenedStorage;
+        auto reopenResult = reopenedStorage.open(testDir, config);
+        ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
+
+        auto& reopenedMgr = reopenedStorage.sectionManager(0);
+        auto reopenedLoadResult = reopenedMgr.loadSection(key);
+        ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
+        ASSERT_NE(reopenedLoadResult.value(), nullptr);
+
+        EXPECT_EQ(reopenedLoadResult.value()->getBlockStateId(0, 0, 0), 456u);
+
+        reopenedStorage.close();
+    }
+}
+
 TEST_F(WorldStorageServiceTest, InvalidSectionKey)
 {
     WorldStorageService storage;

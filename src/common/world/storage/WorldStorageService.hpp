@@ -130,6 +130,16 @@ public:
      */
     Result<size_t> flushAllDirty();
 
+    /**
+     * @brief 保存所有缓存数据
+     *
+     * 遍历所有维度的 SectionManager，将所有缓存的 Section 写入磁盘。
+     * 用于 /save-all 或强制全量保存场景。
+     *
+     * @return 成功保存的 Section 数量，或错误
+     */
+    Result<size_t> saveAll();
+
     // ========== 子服务访问 ==========
 
     /**

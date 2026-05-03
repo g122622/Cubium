@@ -27,6 +27,7 @@
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
+#include "common/world/storage/save/SaveManager.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/Direction.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -105,6 +106,11 @@ Result<void> ServerWorld::initialize()
     }
     spdlog::info("World storage opened at {}", worldPath.string());
 
+    m_saveManager = std::make_unique<world::storage::SaveManager>(m_storage);
+    world::storage::AutoSaveConfig saveConfig;
+    m_saveManager->initialize(saveConfig);
+    m_saveManager->startAutoSave();
+
     if (!m_chunkManager) {
         auto generator = std::make_unique<NoiseChunkGenerator>(
             m_config.seed,
@@ -119,6 +125,7 @@ Result<void> ServerWorld::initialize()
 
     auto result = m_chunkManager->initialize();
     if (result.failed()) {
+        m_saveManager.reset();
         m_storage.close();
         return result;
     }
@@ -158,6 +165,8 @@ void ServerWorld::shutdown()
         auto saveResult = saveAll();
         if (saveResult.failed()) {
             spdlog::error("Failed to save world: {}", saveResult.error().message());
+        } else {
+            spdlog::info("Saved {} cached sections during shutdown", saveResult.value());
         }
     }
 
@@ -177,6 +186,8 @@ void ServerWorld::shutdown()
     m_physicsEngine.reset();
     m_collisionCache.reset();
 
+    m_saveManager.reset();
+
     m_chunkManager.reset();
 
     // 关闭存储系统
@@ -185,7 +196,7 @@ void ServerWorld::shutdown()
     spdlog::info("Server world shut down");
 }
 
-Result<void> ServerWorld::saveAll()
+Result<size_t> ServerWorld::saveAll()
 {
     MC_TRACE_EVENT("server.world", "ServerWorld::saveAll");
 
@@ -193,14 +204,24 @@ Result<void> ServerWorld::saveAll()
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
 
-    // 刷新所有脏Section到磁盘
-    auto result = m_storage.flushAllDirty();
+    auto* saveManager = m_saveManager.get();
+    if (saveManager == nullptr) {
+        auto result = m_storage.saveAll();
+        if (result.failed()) {
+            return result.error();
+        }
+
+        spdlog::info("Saved {} cached sections", result.value());
+        return result.value();
+    }
+
+    auto result = saveManager->saveAll();
     if (result.failed()) {
         return result.error();
     }
 
-    spdlog::info("Saved {} dirty sections", result.value());
-    return Result<void>::ok();
+    spdlog::info("Saved {} cached sections", result.value());
+    return result.value();
 }
 
 void ServerWorld::setConfig(const ServerWorldConfig& config)
@@ -702,6 +723,10 @@ void ServerWorld::tick()
     // 获取当前 tick
     u64 currentTick = m_timeManager ? m_timeManager->currentTick() : 0;
     i64 gameTime = m_timeManager ? m_timeManager->dayTime() : 0;
+
+    if (m_saveManager) {
+        m_saveManager->tick(currentTick);
+    }
 
     // 调试世界不执行计划刻
     if (!m_config.isDebugWorld && m_tickManager) {

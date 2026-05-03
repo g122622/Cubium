@@ -8,6 +8,7 @@
 2. **RocksDB 存储层**：高性能 Section 级区块存储
 3. **会话锁和命名规范化**：防止多进程访问冲突
 4. **统一门面接口**：WorldStorageService 作为唯一对外接口
+5. **保存协调**：`flushAllDirty()` 用于增量落盘，`saveAll()` 用于全量落盘
 
 遵循 Minecraft Java 1.16.5 的 level.dat 格式规范，同时提供高性能的自有存储格式。
 
@@ -73,7 +74,13 @@ auto data = sectionMgr.loadSection(key);
 // 保存数据
 sectionMgr.saveSection(key, data);
 
-// 关闭时自动保存
+// 全量保存（/save-all 或服务器关闭时使用）
+auto fullSaveResult = m_storage.saveAll();
+if (!fullSaveResult.success()) {
+    // 处理错误
+}
+
+// 关闭时自动保存脏数据
 m_storage.close();  // 自动调用 flushAllDirty()
 ```
 
@@ -192,6 +199,9 @@ Result<void> saveSection(const SectionKey& key, const SectionData& data,
 // 批量保存脏 Section
 Result<size_t> flushDirtySections();
 
+// 保存所有缓存 Section
+Result<size_t> saveAll();
+
 // 脏标记管理
 bool markDirty(const SectionKey& key);
 std::vector<SectionKey> getDirtyKeys() const;
@@ -213,6 +223,9 @@ std::shared_ptr<SectionData> put(const SectionKey& key,
 // 脏标记
 bool markDirty(const SectionKey& key);
 std::vector<SectionKey> getDirtyKeys() const;
+
+// 枚举所有缓存
+std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> getAllSections() const;
 
 // 统计
 CacheStats getStats() const;
@@ -304,6 +317,13 @@ saves/
     └── import/                # 导入临时目录
 ```
 
+### 保存协调层
+
+- `WorldStorageService::flushAllDirty()`：仅刷新所有脏 Section，供自动保存和关闭流程使用。
+- `WorldStorageService::saveAll()`：保存所有已缓存 Section，供 `/save-all` 和全量落盘使用。
+- `SaveManager`：已实现保存编排，并由 `ServerWorld`、`/save-all` 与自动保存路径接入。
+- `AutoSave`：定时触发脏数据保存，并可选创建快照。
+
 ## 数据流向
 
 ### Section 加载流程
@@ -349,6 +369,23 @@ sequenceDiagram
     Manager-->>Game: success
 ```
 
+### 全量保存流程
+
+```mermaid
+sequenceDiagram
+    participant Game as 游戏逻辑
+    participant World as ServerWorld
+    participant Storage as WorldStorageService
+    participant Manager as SectionManager
+
+    Game->>World: saveAll()
+    World->>Storage: saveAll()
+    Storage->>Manager: saveAll()
+    Manager-->>Storage: 保存所有缓存 Section 数量
+    Storage-->>World: 汇总结果
+    World-->>Game: Result<size_t>
+```
+
 ## 依赖项
 
 - **内部依赖**
@@ -386,6 +423,12 @@ sequenceDiagram
 - 使用 ServerWorkerPool 进行后台 IO 操作
 - 支持优先级调度（区块加载优先于保存）
 
+### 保存行为说明
+
+- `flushDirtySections()` 只处理脏 Section，适合常规 tick 保存。
+- `saveAll()` 会遍历所有缓存的 Section，适合 `/save-all`、崩溃前落盘和关闭流程。
+- `ServerChunkManager` 在保存区块时会保留生物群系 4x4x4 采样；读取时会恢复到 `BiomeContainer`。
+
 ## 与区块系统集成
 
 存储系统已与 `ServerChunkManager` 集成：
@@ -402,6 +445,7 @@ ChunkData* ServerChunkManager::loadChunkFromStorage(ChunkCoord x, ChunkCoord z) 
             SectionCodec::toChunkSection(*result.value(), chunk->getOrCreateSection(sectionY));
         }
     }
+    // 读取到的生物群系会回填到 chunk 中，避免区块保存后丢失 biome 数据。
     return chunk;
 }
 
@@ -425,14 +469,23 @@ void ServerChunkManager::saveChunkSections(const ChunkData& chunk) {
 3. **光照数据**: NibbleArray，每方块 4 位
 4. **列族必须预先创建**: 打开数据库时会自动创建缺失的列族
 5. **RocksDB 快照**: 内存中的 sequence number，不持久化
+6. **全量保存与增量保存不同**: `flushAllDirty()` 不会写入干净缓存，`saveAll()` 才会完整落盘
+7. **保存开关命令仍未接入**: `/save-on` 和 `/save-off` 目前只是命令壳，尚未连接到服务器级自动保存开关
 
 ## 测试用例
 
-- `tests/common/world/storage/LevelDatCodecTest.cpp` - NBT 读写、gzip 解压
-- `tests/common/world/storage/WorldListServiceTest.cpp` - 世界枚举、创建、删除
-- `tests/common/world/storage/RocksDBDatabaseTest.cpp` - 数据库操作
-- `tests/common/world/storage/SectionManagerTest.cpp` - Section 加载/保存
-- `tests/common/world/storage/SectionCodecTest.cpp` - 序列化/反序列化
+- `tests/common/world/storage/WorldStorageServiceTest.cpp` - 存储门面、打开/关闭、全局刷新
+- `tests/common/world/storage/SectionCodecTest.cpp` - 序列化/反序列化、区块数据 round-trip
+- `tests/server/test_server_chunk_manager.cpp` - 区块与存储集成
+- `tests/server/ServerWorldTest.cpp` - 世界生命周期和保存流
+
+建议补充：
+
+- `saveAll()` 与 `flushAllDirty()` 的差异覆盖
+- 生物群系 4x4x4 采样 round-trip
+- 快照创建与清理
+- 一致性模式对写入路径的影响
+- `SaveManager` / `AutoSave` 的触发路径（已接入 `ServerWorld`）
 
 ## 架构图
 

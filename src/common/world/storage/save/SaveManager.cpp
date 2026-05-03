@@ -47,10 +47,10 @@ void SaveManager::shutdown()
         m_autoSave->stop();
     }
 
-    // 保存所有脏数据
-    auto result = saveNow();
+    // 保存所有缓存数据，确保关服前完整落盘。
+    auto result = saveAll();
     if (result.failed()) {
-        spdlog::error("Failed to save dirty data during shutdown: {}",
+        spdlog::error("Failed to save data during shutdown: {}",
                       result.error().message());
     }
 
