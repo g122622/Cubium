@@ -161,6 +161,17 @@ public:
     void updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
 
     /**
+     * @brief 更新实体骑乘状态
+     *
+     * 当玩家骑乘/离开矿车时调用，触发相应的声音。
+     *
+     * @param entityId 玩家实体ID
+     * @param isRiding 是否正在骑乘
+     * @param vehicleId 载具实体ID（矿车ID）
+     */
+    void updateEntityRidingState(u32 entityId, bool isRiding, u32 vehicleId);
+
+    /**
      * @brief 处理守卫者攻击事件（实体状态21）
      *
      * 创建 GuardianSound 并开始攻击动画。
@@ -208,6 +219,7 @@ private:
         UpdateEntityPosition,
         GuardianAttack,
         GuardianTargetUpdate,
+        RidingStateChanged,
     };
 
     struct Command {
@@ -253,6 +265,9 @@ private:
         f32 vz = 0.0f;
         // 守卫者目标
         u32 targetEntityId = 0;
+        // 骑乘状态
+        bool isRiding = false;
+        u32 vehicleId = 0;
     };
 
     void enqueue(Command command);

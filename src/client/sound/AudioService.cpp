@@ -441,6 +441,19 @@ void AudioService::updateGuardianTarget(u32 entityId, u32 targetEntityId)
     enqueue(std::move(command));
 }
 
+void AudioService::updateEntityRidingState(u32 entityId, bool isRiding, u32 vehicleId)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    // 更新状态快照中的骑乘状态
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+        state->isRiding = isRiding;
+        state->vehicleId = static_cast<EntityId>(vehicleId);
+    }
+}
+
 void AudioService::enqueue(Command command)
 {
     {
@@ -712,6 +725,11 @@ void AudioService::processCommand(Command& command)
                     static_cast<EntityId>(command.targetEntityId)
                 );
             }
+            break;
+
+        case CommandType::RidingStateChanged:
+            // 骑乘状态已通过 getMutableEntityState 更新
+            // EntitySoundHandler 会在 onEntitySpawn 时检查骑乘状态
             break;
     }
 }
