@@ -1,0 +1,198 @@
+#pragma once
+
+#include "../WorldStorageService.hpp"
+#include "DirtyTracker.hpp"
+#include <chrono>
+#include <functional>
+#include <atomic>
+#include <mutex>
+
+namespace mc::world::storage {
+
+/**
+ * @brief 自动保存配置
+ */
+struct AutoSaveConfig {
+    /// 自动保存间隔（毫秒），默认5分钟
+    u64 saveIntervalMs = 5 * 60 * 1000;
+
+    /// 每次保存的Section数量上限
+    size_t maxSectionsPerSave = 100;
+
+    /// 脏Section阈值（超过此数量立即保存）
+    size_t dirtyThreshold = 1000;
+
+    /// 是否在保存前创建快照
+    bool createSnapshotBeforeSave = false;
+
+    /// 快照名称前缀
+    std::string snapshotPrefix = "auto_";
+
+    /// 自动快照保留数量
+    size_t maxAutoSnapshots = 5;
+};
+
+/**
+ * @brief 自动保存管理器
+ *
+ * 定时检查脏Section数量并自动保存。
+ * 支持阈值触发和定时触发两种模式。
+ *
+ * 使用示例：
+ * @code
+ * AutoSave autoSave(storage);
+ * autoSave.setConfig(config);
+ * autoSave.start();
+ *
+ * // 在游戏tick中调用
+ * autoSave.tick(tickCount);
+ *
+ * // 停止
+ * autoSave.stop();
+ * @endcode
+ */
+class AutoSave {
+public:
+    /**
+     * @brief 保存回调类型
+     */
+    using SaveCallback = std::function<void(size_t savedCount)>;
+
+    /**
+     * @brief 构造函数
+     * @param storage 存储服务引用
+     */
+    explicit AutoSave(WorldStorageService& storage);
+
+    /**
+     * @brief 析构函数
+     */
+    ~AutoSave();
+
+    // 禁止拷贝
+    AutoSave(const AutoSave&) = delete;
+    AutoSave& operator=(const AutoSave&) = delete;
+
+    // 允许移动
+    AutoSave(AutoSave&&) noexcept = default;
+    AutoSave& operator=(AutoSave&&) noexcept = default;
+
+    // ========== 生命周期 ==========
+
+    /**
+     * @brief 启动自动保存
+     */
+    void start();
+
+    /**
+     * @brief 停止自动保存
+     */
+    void stop();
+
+    /**
+     * @brief 检查是否正在运行
+     */
+    [[nodiscard]] bool isRunning() const { return m_running; }
+
+    // ========== 配置 ==========
+
+    /**
+     * @brief 设置配置
+     */
+    void setConfig(const AutoSaveConfig& config);
+
+    /**
+     * @brief 获取配置
+     */
+    [[nodiscard]] const AutoSaveConfig& config() const { return m_config; }
+
+    // ========== 主循环 ==========
+
+    /**
+     * @brief 每tick调用
+     *
+     * 检查是否需要执行自动保存。
+     *
+     * @param tickCount 当前tick计数
+     */
+    void tick(u64 tickCount);
+
+    // ========== 手动操作 ==========
+
+    /**
+     * @brief 手动触发保存
+     *
+     * 忽略定时器，立即保存所有脏Section。
+     *
+     * @return 保存的Section数量
+     */
+    Result<size_t> saveNow();
+
+    /**
+     * @brief 手动触发保存（带快照）
+     *
+     * 先创建快照，再保存。
+     *
+     * @param snapshotName 快照名称
+     * @return 保存的Section数量
+     */
+    Result<size_t> saveNowWithSnapshot(const std::string& snapshotName);
+
+    // ========== 回调设置 ==========
+
+    /**
+     * @brief 设置保存完成回调
+     */
+    void setSaveCallback(SaveCallback callback) {
+        m_saveCallback = std::move(callback);
+    }
+
+    // ========== 统计 ==========
+
+    /**
+     * @brief 获取上次保存时间
+     */
+    [[nodiscard]] u64 lastSaveTick() const { return m_lastSaveTick; }
+
+    /**
+     * @brief 获取总保存次数
+     */
+    [[nodiscard]] u64 totalSaveCount() const { return m_totalSaveCount; }
+
+    /**
+     * @brief 获取总保存的Section数量
+     */
+    [[nodiscard]] u64 totalSectionsSaved() const { return m_totalSectionsSaved; }
+
+private:
+    /**
+     * @brief 检查是否应该保存
+     */
+    [[nodiscard]] bool shouldSave(u64 tickCount) const;
+
+    /**
+     * @brief 执行保存
+     */
+    Result<size_t> doSave(bool createSnapshot, const std::string& snapshotName = "");
+
+    /**
+     * @brief 清理旧快照
+     */
+    void pruneOldSnapshots();
+
+private:
+    WorldStorageService& m_storage;
+    AutoSaveConfig m_config;
+    std::atomic<bool> m_running{false};
+    std::mutex m_mutex;
+
+    // 统计
+    u64 m_lastSaveTick = 0;
+    u64 m_totalSaveCount = 0;
+    u64 m_totalSectionsSaved = 0;
+
+    // 回调
+    SaveCallback m_saveCallback;
+};
+
+} // namespace mc::world::storage

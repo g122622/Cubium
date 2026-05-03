@@ -11,6 +11,7 @@
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "common/world/storage/WorldStorageService.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -44,12 +45,13 @@ namespace server {
 // ============================================================================
 
 // TODO 这个结构体是多余的。比如isDebugWorld设为true之后根本无法启用调试区块生成器。
-// 要在这里才能配置世界生成器类型 D:\MiscProjects\minecraft-reborn\src\server\application\IntegratedServer.hpp 
+// 要在这里才能配置世界生成器类型 D:\MiscProjects\minecraft-reborn\src\server\application\IntegratedServer.hpp
 struct ServerWorldConfig {
     i32 viewDistance = 10;              // 视距
     DimensionId dimension = 0;          // 维度ID
     u64 seed = 114514;                   // 世界种子
     bool isDebugWorld = true;          // 是否为调试世界
+    std::string worldName = "world";    // 世界名称（用于存档目录）
 };
 
 // ============================================================================
@@ -87,6 +89,33 @@ public:
     // 初始化
     [[nodiscard]] Result<void> initialize();
     void shutdown();
+
+    // ========== 存储系统 ==========
+
+    /**
+     * @brief 获取存储服务
+     *
+     * 这是访问存档功能的唯一入口。
+     * 通过返回的 WorldStorageService 可以访问所有子服务：
+     * - sectionManager(dimension): Section级存储
+     * - worldListService(): 世界列表管理
+     * - backupManager(): 快照管理
+     */
+    [[nodiscard]] world::storage::WorldStorageService& storage() { return m_storage; }
+    [[nodiscard]] const world::storage::WorldStorageService& storage() const { return m_storage; }
+
+    /**
+     * @brief 检查存储服务是否已打开
+     */
+    [[nodiscard]] bool isStorageOpen() const { return m_storage.isOpen(); }
+
+    /**
+     * @brief 保存所有脏数据
+     *
+     * 遍历所有维度的 SectionManager，刷新脏Section到磁盘。
+     * 通常在服务器关闭时调用。
+     */
+    Result<void> saveAll();
 
     // 配置
     void setConfig(const ServerWorldConfig& config);
@@ -474,6 +503,7 @@ private:
 
 private:
     ServerWorldConfig m_config;
+    world::storage::WorldStorageService m_storage;  ///< 存储服务（唯一对外接口）
     std::unique_ptr<ServerChunkManager> m_chunkManager;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;

@@ -1,0 +1,171 @@
+#include "AutoSave.hpp"
+#include "perfetto/TraceEvents.hpp"
+#include <spdlog/spdlog.h>
+
+namespace mc::world::storage {
+
+// ============================================================================
+// 构造与析构
+// ============================================================================
+
+AutoSave::AutoSave(WorldStorageService& storage)
+    : m_storage(storage)
+{
+}
+
+AutoSave::~AutoSave()
+{
+    stop();
+}
+
+// ============================================================================
+// 生命周期
+// ============================================================================
+
+void AutoSave::start()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_running) {
+        return;
+    }
+    m_running = true;
+    spdlog::info("AutoSave started with interval {}ms, threshold {}",
+                 m_config.saveIntervalMs, m_config.dirtyThreshold);
+}
+
+void AutoSave::stop()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_running) {
+        return;
+    }
+    m_running = false;
+    spdlog::info("AutoSave stopped");
+}
+
+// ============================================================================
+// 配置
+// ============================================================================
+
+void AutoSave::setConfig(const AutoSaveConfig& config)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_config = config;
+}
+
+// ============================================================================
+// 主循环
+// ============================================================================
+
+void AutoSave::tick(u64 tickCount)
+{
+    if (!m_running) {
+        return;
+    }
+
+    if (!shouldSave(tickCount)) {
+        return;
+    }
+
+    // 执行保存
+    auto result = doSave(m_config.createSnapshotBeforeSave);
+    if (result.success()) {
+        m_lastSaveTick = tickCount;
+        ++m_totalSaveCount;
+        m_totalSectionsSaved += result.value();
+
+        if (m_saveCallback) {
+            m_saveCallback(result.value());
+        }
+    } else {
+        spdlog::error("AutoSave failed: {}", result.error().message());
+    }
+}
+
+// ============================================================================
+// 手动操作
+// ============================================================================
+
+Result<size_t> AutoSave::saveNow()
+{
+    return doSave(false);
+}
+
+Result<size_t> AutoSave::saveNowWithSnapshot(const std::string& snapshotName)
+{
+    return doSave(true, snapshotName);
+}
+
+// ============================================================================
+// 私有方法
+// ============================================================================
+
+bool AutoSave::shouldSave(u64 tickCount) const
+{
+    // 检查脏Section数量
+    size_t dirtyCount = m_storage.getTotalDirtyCount();
+
+    // 阈值触发
+    if (dirtyCount >= m_config.dirtyThreshold) {
+        spdlog::debug("AutoSave triggered by threshold: {} >= {}",
+                      dirtyCount, m_config.dirtyThreshold);
+        return true;
+    }
+
+    // 定时触发（假设 20 ticks/秒）
+    // 1秒 = 20 ticks, 所以 saveIntervalMs / 1000 * 20 = saveIntervalMs / 50 ticks
+    u64 ticksPerInterval = m_config.saveIntervalMs / 50;
+    if (ticksPerInterval == 0) {
+        ticksPerInterval = 1;
+    }
+
+    if (tickCount - m_lastSaveTick >= ticksPerInterval && dirtyCount > 0) {
+        spdlog::debug("AutoSave triggered by timer: {} ticks elapsed",
+                      tickCount - m_lastSaveTick);
+        return true;
+    }
+
+    return false;
+}
+
+Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshotName)
+{
+    MC_TRACE_EVENT("storage.save", "AutoSave::doSave");
+
+    // 可选：创建快照
+    if (createSnapshot) {
+        std::string name = snapshotName.empty()
+            ? fmt::format("{}{}", m_config.snapshotPrefix,
+                          std::chrono::duration_cast<std::chrono::milliseconds>(
+                              std::chrono::system_clock::now().time_since_epoch()
+                          ).count())
+            : snapshotName;
+
+        auto backupResult = m_storage.createBackup(name);
+        if (backupResult.failed()) {
+            spdlog::warn("Failed to create auto-save snapshot: {}",
+                         backupResult.error().message());
+        } else {
+            spdlog::info("Created auto-save snapshot: {}", name);
+            pruneOldSnapshots();
+        }
+    }
+
+    // 保存所有脏数据
+    auto result = m_storage.flushAllDirty();
+    if (result.failed()) {
+        return result.error();
+    }
+
+    return result;
+}
+
+void AutoSave::pruneOldSnapshots()
+{
+    auto result = m_storage.pruneOldBackups(m_config.maxAutoSnapshots);
+    if (result.success() && result.value() > 0) {
+        spdlog::debug("Pruned {} old snapshots", result.value());
+    }
+}
+
+} // namespace mc::world::storage

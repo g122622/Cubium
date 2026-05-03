@@ -1,7 +1,7 @@
 #include "LevelDatCodec.hpp"
-#include "WorldNameSanitizer.hpp"
-#include "../WorldConfig.hpp"
-#include "../../util/CompressionUtils.hpp"
+#include "../list/WorldNameSanitizer.hpp"
+#include "../../WorldConfig.hpp"
+#include "../../../util/CompressionUtils.hpp"
 #include <fstream>
 #include <sstream>
 #include <chrono>

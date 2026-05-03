@@ -730,13 +730,22 @@ add_library(mc_common STATIC
     world/weather/WeatherUtils.cpp
 
     # World - Storage
-    world/storage/WorldStoragePaths.cpp
-    world/storage/WorldListEntry.cpp
-    world/storage/WorldRequests.cpp
-    world/storage/WorldNameSanitizer.cpp
-    world/storage/WorldSessionLock.cpp
-    world/storage/LevelDatCodec.cpp
-    world/storage/WorldListService.cpp
+    world/storage/WorldStorageService.cpp
+    world/storage/core/WorldStoragePaths.cpp
+    world/storage/core/WorldSessionLock.cpp
+    world/storage/core/LevelDatCodec.cpp
+    world/storage/list/WorldListEntry.cpp
+    world/storage/list/WorldListService.cpp
+    world/storage/list/WorldNameSanitizer.cpp
+    world/storage/request/WorldRequests.cpp
+    world/storage/db/RocksDBDatabase.cpp
+    world/storage/db/SectionCodec.cpp
+    world/storage/section/SectionCache.cpp
+    world/storage/section/SectionManager.cpp
+    world/storage/snapshot/BackupManager.cpp
+    world/storage/save/DirtyTracker.cpp
+    world/storage/save/AutoSave.cpp
+    world/storage/save/SaveManager.cpp
 
     # World - Tick System
     world/tick/manager/TickManager.cpp
@@ -893,6 +902,8 @@ target_link_libraries(mc_common
     PRIVATE
         LibArchive::LibArchive
         ZLIB::ZLIB
+        RocksDB::rocksdb
+        zstd::libzstd
 )
 
 mc_set_compiler_warnings(mc_common)

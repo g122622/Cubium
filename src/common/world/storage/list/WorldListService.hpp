@@ -1,11 +1,11 @@
 #pragma once
 
-#include "LevelDatCodec.hpp"
 #include "WorldListEntry.hpp"
-#include "WorldRequests.hpp"
-#include "WorldSessionLock.hpp"
-#include "WorldStoragePaths.hpp"
-#include "../../core/Result.hpp"
+#include "../request/WorldRequests.hpp"
+#include "../core/LevelDatCodec.hpp"
+#include "../core/WorldSessionLock.hpp"
+#include "../core/WorldStoragePaths.hpp"
+#include "../../../core/Result.hpp"
 #include <functional>
 #include <memory>
 #include <string>

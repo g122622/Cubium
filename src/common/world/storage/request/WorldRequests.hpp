@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../WorldConfig.hpp"
-#include "../../core/Types.hpp"
+#include "../../WorldConfig.hpp"
+#include "../../../core/Types.hpp"
 #include <filesystem>
 #include <string>
 

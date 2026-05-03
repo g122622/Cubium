@@ -4,7 +4,7 @@
 #include "../../kagero/widget/TextFieldWidget.hpp"
 #include "../../kagero/widget/ButtonWidget.hpp"
 #include "../../kagero/widget/TextWidget.hpp"
-#include "common/world/storage/WorldRequests.hpp"
+#include "common/world/storage/request/WorldRequests.hpp"
 #include "common/world/WorldConfig.hpp"
 #include <functional>
 #include <memory>

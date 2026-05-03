@@ -1,9 +1,9 @@
 #pragma once
 
-#include "WorldListEntry.hpp"
-#include "WorldRequests.hpp"
-#include "../../core/Result.hpp"
-#include "../../util/nbt/Nbt.hpp"
+#include "../list/WorldListEntry.hpp"
+#include "../request/WorldRequests.hpp"
+#include "../../../core/Result.hpp"
+#include "../../../util/nbt/Nbt.hpp"
 #include <filesystem>
 #include <memory>
 #include <optional>

@@ -2,8 +2,8 @@
 
 #include "TemplateScreen.hpp"
 #include "../../kagero/widget/ListWidget.hpp"
-#include "common/world/storage/WorldListService.hpp"
-#include "common/world/storage/WorldRequests.hpp"
+#include "common/world/storage/list/WorldListService.hpp"
+#include "common/world/storage/request/WorldRequests.hpp"
 #include <functional>
 #include <memory>
 #include <vector>

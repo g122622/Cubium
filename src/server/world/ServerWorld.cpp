@@ -25,6 +25,8 @@
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
+#include "common/world/storage/core/WorldStoragePaths.hpp"
+#include "common/world/storage/db/ConsistencyMode.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/Direction.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -87,6 +89,22 @@ Result<void> ServerWorld::initialize()
         return Result<void>::ok();
     }
 
+    // 初始化存储系统
+    auto paths = world::storage::WorldStoragePaths::defaultPaths();
+    auto worldPath = paths.worldDir(m_config.worldName);
+
+    world::storage::WorldStorageConfig storageConfig;
+    storageConfig.consistencyMode = world::storage::ConsistencyMode::Eventual;
+    storageConfig.sectionCacheCapacity = 2048;
+    storageConfig.enableBackup = true;
+
+    auto storageResult = m_storage.open(worldPath, storageConfig);
+    if (storageResult.failed()) {
+        spdlog::error("Failed to open world storage: {}", storageResult.error().message());
+        return storageResult;
+    }
+    spdlog::info("World storage opened at {}", worldPath.string());
+
     if (!m_chunkManager) {
         auto generator = std::make_unique<NoiseChunkGenerator>(
             m_config.seed,
@@ -101,6 +119,7 @@ Result<void> ServerWorld::initialize()
 
     auto result = m_chunkManager->initialize();
     if (result.failed()) {
+        m_storage.close();
         return result;
     }
 
@@ -134,6 +153,14 @@ void ServerWorld::shutdown()
     spdlog::info("Shutting down server world...");
     m_initialized = false;
 
+    // 先保存所有脏数据
+    if (m_storage.isOpen()) {
+        auto saveResult = saveAll();
+        if (saveResult.failed()) {
+            spdlog::error("Failed to save world: {}", saveResult.error().message());
+        }
+    }
+
     // 先清理袭击管理器（可能引用村庄）
     m_raidManager.reset();
     // 再清理村庄管理器
@@ -152,7 +179,28 @@ void ServerWorld::shutdown()
 
     m_chunkManager.reset();
 
+    // 关闭存储系统
+    m_storage.close();
+
     spdlog::info("Server world shut down");
+}
+
+Result<void> ServerWorld::saveAll()
+{
+    MC_TRACE_EVENT("server.world", "ServerWorld::saveAll");
+
+    if (!m_storage.isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    // 刷新所有脏Section到磁盘
+    auto result = m_storage.flushAllDirty();
+    if (result.failed()) {
+        return result.error();
+    }
+
+    spdlog::info("Saved {} dirty sections", result.value());
+    return Result<void>::ok();
 }
 
 void ServerWorld::setConfig(const ServerWorldConfig& config)

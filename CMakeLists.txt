@@ -66,6 +66,8 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(RocksDB CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
 
 # 全局编译选项
 if(MSVC)
