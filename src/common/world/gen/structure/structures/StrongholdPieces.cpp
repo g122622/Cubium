@@ -1,7 +1,11 @@
 #include "StrongholdPieces.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../IWorldWriter.hpp"
+#include "../../../IWorld.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "../../../blockentity/BlockEntity.hpp"
+#include "../../../blockentity/storage/ChestEntity.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/Direction.hpp"
 #include <algorithm>
@@ -113,9 +117,21 @@ void StrongholdPiece::generateChest(IWorldWriter& world, const StructureBounding
     if (bounds.isInside(worldX, worldY, worldZ)) {
         const BlockState* chest = VanillaBlocks::getState(VanillaBlocks::CHEST);
         setBlockState(world, chest, x, y, z, bounds);
-        // TODO: 设置战利品表
-        (void)lootTable;
-        (void)rng;
+
+        // MC 1.16.5: 设置战利品表到箱子实体
+        // 参考: LockableLootTileEntity.setLootTable
+        IWorld* iworld = dynamic_cast<IWorld*>(&world);
+        if (iworld != nullptr && !lootTable.empty()) {
+            BlockPos chestPos(worldX, worldY, worldZ);
+            BlockEntity* blockEntity = iworld->getBlockEntity(chestPos);
+            if (blockEntity != nullptr) {
+                BlockEntityType entityType = blockEntity->getType();
+                if (entityType == BlockEntityType::Chest || entityType == BlockEntityType::TrappedChest) {
+                    auto* chestEntity = static_cast<blockentity::ChestEntity*>(blockEntity);
+                    chestEntity->setLootTable(ResourceLocation(lootTable), rng.nextLong());
+                }
+            }
+        }
     }
 }
 
