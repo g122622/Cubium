@@ -6,8 +6,6 @@
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/skin/ClientSkinManager.hpp"
-#include "common/skin/core/GameProfile.hpp"
-#include "common/skin/network/SkinPackets.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
@@ -16,6 +14,7 @@
 #include "client/ui/screen/CraftingScreen.hpp"
 #include "client/ui/screen/FurnaceScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
@@ -24,6 +23,8 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/skin/core/GameProfile.hpp"
+#include "common/skin/network/SkinPackets.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
 
@@ -768,6 +769,38 @@ void ClientApplication::setupNetworkCallbacks()
         if (category.has_value()) {
             m_audioService->stop(*category);
         }
+    };
+
+    callbacks.onMovingSound = [this](const ResourceLocation& soundEventId,
+                                      mc::sound::SoundCategory category,
+                                      i32 entityId,
+                                      f32 volume,
+                                      f32 pitch) {
+        if (!m_audioService) {
+            spdlog::warn("Received moving sound event '{}' but audio service is not initialized",
+                         soundEventId.toString());
+            return;
+        }
+
+        // 获取实体位置
+        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        if (!entity) {
+            spdlog::debug("Received moving sound for unknown entity {}", entityId);
+            return;
+        }
+
+        // 创建跟随实体的声音
+        // 注意：这是一个简化实现，完整的实现需要创建 TickableSound 跟随实体位置
+        auto sound = sound::SoundInstance::createLocated(
+            soundEventId,
+            category,
+            entity->x(),
+            entity->y(),
+            entity->z(),
+            volume,
+            pitch);
+
+        m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
     };
 
     callbacks.onSetExperience = [this](f32 progress, i32 totalXp, i32 level) {
