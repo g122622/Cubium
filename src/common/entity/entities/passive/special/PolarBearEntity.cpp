@@ -8,7 +8,7 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -30,10 +30,8 @@ void PolarBearEntity::setStanding(bool standing) {
     m_standing = standing;
     if (standing) {
         // 设置站立持续时间
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_int_distribution<i32> dist(STAND_DURATION_MIN, STAND_DURATION_MAX);
-        m_standTimer = dist(gen);
+        math::Random rng = getRandom();
+        m_standTimer = rng.nextInt(STAND_DURATION_MIN, STAND_DURATION_MAX);
     }
 }
 

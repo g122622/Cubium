@@ -1,8 +1,7 @@
 #include "TropicalFishEntity.hpp"
 
 #include "../../../attribute/Attributes.hpp"
-
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -34,15 +33,11 @@ u8 TropicalFishEntity::getPatternColor() const
 
 void TropicalFishEntity::randomizeVariant()
 {
-    static std::random_device randomDevice;
-    static std::mt19937 generator(randomDevice());
+    math::Random rng = getRandom();
 
-    std::uniform_int_distribution<int> shapeDistribution(0, 11);
-    std::uniform_int_distribution<int> colorDistribution(0, 15);
-
-    const u8 shape = static_cast<u8>(shapeDistribution(generator));
-    const u8 baseColor = static_cast<u8>(colorDistribution(generator));
-    const u8 patternColor = static_cast<u8>(colorDistribution(generator));
+    const u8 shape = static_cast<u8>(rng.nextInt(0, 11));
+    const u8 baseColor = static_cast<u8>(rng.nextInt(0, 15));
+    const u8 patternColor = static_cast<u8>(rng.nextInt(0, 15));
 
     m_variant = shape | (baseColor << 8) | (patternColor << 16);
 }

@@ -84,7 +84,7 @@ const MusicPlayer::MusicSelector EMPTY_SELECTOR = {
 
 MusicPlayer::MusicPlayer(SoundEngine& engine)
     : m_engine(engine)
-    , m_rng(std::random_device{}())
+    , m_rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()))
 {
     // 初始化音乐选择器列表
     m_gameMusicSelectors = GAME_MUSIC;
@@ -224,40 +224,35 @@ const MusicPlayer::MusicSelector& MusicPlayer::getSelector(MusicType type) const
             if (m_gameMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            std::uniform_int_distribution<size_t> dist(0, m_gameMusicSelectors.size() - 1);
-            return m_gameMusicSelectors[dist(m_rng)];
+            return m_gameMusicSelectors[m_rng.nextInt(static_cast<i32>(m_gameMusicSelectors.size() - 1))];
         }
 
         case MusicType::Creative: {
             if (m_creativeMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            std::uniform_int_distribution<size_t> dist(0, m_creativeMusicSelectors.size() - 1);
-            return m_creativeMusicSelectors[dist(m_rng)];
+            return m_creativeMusicSelectors[m_rng.nextInt(static_cast<i32>(m_creativeMusicSelectors.size() - 1))];
         }
 
         case MusicType::Nether: {
             if (m_netherMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            std::uniform_int_distribution<size_t> dist(0, m_netherMusicSelectors.size() - 1);
-            return m_netherMusicSelectors[dist(m_rng)];
+            return m_netherMusicSelectors[m_rng.nextInt(static_cast<i32>(m_netherMusicSelectors.size() - 1))];
         }
 
         case MusicType::End: {
             if (m_endMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            std::uniform_int_distribution<size_t> dist(0, m_endMusicSelectors.size() - 1);
-            return m_endMusicSelectors[dist(m_rng)];
+            return m_endMusicSelectors[m_rng.nextInt(static_cast<i32>(m_endMusicSelectors.size() - 1))];
         }
 
         case MusicType::Underwater: {
             if (m_underwaterMusicSelectors.empty()) {
                 return EMPTY_SELECTOR;
             }
-            std::uniform_int_distribution<size_t> dist(0, m_underwaterMusicSelectors.size() - 1);
-            return m_underwaterMusicSelectors[dist(m_rng)];
+            return m_underwaterMusicSelectors[m_rng.nextInt(static_cast<i32>(m_underwaterMusicSelectors.size() - 1))];
         }
 
         case MusicType::Credits:
@@ -276,8 +271,10 @@ u32 MusicPlayer::selectDelay(const MusicSelector& selector) {
         return selector.minDelayTicks;
     }
 
-    std::uniform_int_distribution<u32> dist(selector.minDelayTicks, selector.maxDelayTicks);
-    return dist(m_rng);
+    return static_cast<u32>(m_rng.nextInt(
+        static_cast<i32>(selector.minDelayTicks),
+        static_cast<i32>(selector.maxDelayTicks)
+    ));
 }
 
 void MusicPlayer::startPlaying(const MusicSelector& selector) {

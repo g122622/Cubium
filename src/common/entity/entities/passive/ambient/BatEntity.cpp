@@ -1,6 +1,6 @@
 #include "BatEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -41,10 +41,8 @@ void BatEntity::tick() {
 
         // 检查是否可以休息
         if (canRest()) {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            std::uniform_int_distribution<i32> dist(1, 100);
-            if (dist(gen) == 1) {
+            math::Random rng = getRandom();
+            if (rng.nextInt(1, 100) == 1) {
                 m_resting = true;
                 m_flying = false;
             }

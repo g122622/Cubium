@@ -1,8 +1,7 @@
 #include "ParrotEntity.hpp"
 
 #include "../../../attribute/Attributes.hpp"
-
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -21,10 +20,8 @@ std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/)
 
 void ParrotEntity::randomizeVariant()
 {
-    static std::random_device randomDevice;
-    static std::mt19937 generator(randomDevice());
-    std::uniform_int_distribution<int> distribution(0, 4);
-    m_variant = static_cast<ParrotVariant>(distribution(generator));
+    math::Random rng = getRandom();
+    m_variant = static_cast<ParrotVariant>(rng.nextInt(0, 4));
 }
 
 bool ParrotEntity::isTameItem(const ItemStack& itemStack) const
@@ -51,10 +48,8 @@ void ParrotEntity::tick()
     }
 
     if (!m_imitating && isTamed()) {
-        static std::random_device randomDevice;
-        static std::mt19937 generator(randomDevice());
-        std::uniform_int_distribution<i32> distribution(1, 100);
-        if (distribution(generator) == 1) {
+        math::Random rng = getRandom();
+        if (rng.nextInt(1, 100) == 1) {
             m_imitateTimer = 60;
         }
     }

@@ -3,8 +3,8 @@
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <spdlog/spdlog.h>
-#include <random>
 #include <cmath>
 #include <algorithm>
 
@@ -119,8 +119,7 @@ void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>&
     data.resize(pixelCount * 4, 0);
 
     // 使用确定性随机种子，基于阶段号
-    std::mt19937 rng(static_cast<u32>(stage * 12345 + 67890));
-    std::uniform_real_distribution<f32> dist(0.0f, 1.0f);
+    math::Random rng(static_cast<u32>(stage * 12345 + 67890));
 
     // 破坏强度随阶段增加
     // 阶段0：几乎无裂纹
@@ -132,7 +131,7 @@ void DestroyStageTextures::generateDefaultTexture(size_t stage, std::vector<u8>&
             size_t idx = (y * TEXTURE_SIZE + x) * 4;
 
             // 基础噪声
-            f32 noise = dist(rng);
+            f32 noise = rng.nextFloat();
 
             // 创建裂纹图案
             // 使用多个噪声层叠加

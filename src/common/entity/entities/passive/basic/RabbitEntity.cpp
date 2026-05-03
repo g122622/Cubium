@@ -12,7 +12,7 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -34,19 +34,16 @@ std::unique_ptr<Entity> RabbitEntity::create(IWorld* /*world*/) {
 }
 
 void RabbitEntity::setRandomRabbitType() {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    math::Random rng = getRandom();
 
     // 杀手兔有极小概率生成（1/1000）
-    std::uniform_int_distribution<int> killerDist(0, 999);
-    if (killerDist(gen) == 0) {
+    if (rng.nextInt(0, 999) == 0) {
         m_rabbitType = RabbitType::Killer;
         return;
     }
 
     // 正常皮肤随机
-    std::uniform_int_distribution<int> dist(0, 5);
-    m_rabbitType = static_cast<RabbitType>(dist(gen));
+    m_rabbitType = static_cast<RabbitType>(rng.nextInt(0, 5));
 }
 
 bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const {

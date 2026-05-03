@@ -1,6 +1,6 @@
 #include "DrownedEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -11,10 +11,8 @@ DrownedEntity::DrownedEntity(LegacyEntityType type, EntityId id)
     registerAttributes();
 
     // 随机决定是否手持三叉戟
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<i32> dist(1, 100);
-    m_hasTrident = dist(gen) <= 15; // 15% 概率
+    math::Random rng = getRandom();
+    m_hasTrident = rng.nextInt(1, 100) <= 15; // 15% 概率
 }
 
 std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/) {

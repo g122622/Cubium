@@ -15,7 +15,7 @@
 #include "../../../ai/goal/goals/interact/TameableGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/MobEntity.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -37,10 +37,8 @@ std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/) {
 }
 
 void CatEntity::setRandomCatType() {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(0, 10);
-    m_catType = static_cast<CatType>(dist(gen));
+    math::Random rng = getRandom();
+    m_catType = static_cast<CatType>(rng.nextInt(0, 10));
 }
 
 bool CatEntity::isTameItem(const ItemStack& itemStack) const {

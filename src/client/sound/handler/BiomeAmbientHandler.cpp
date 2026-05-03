@@ -3,11 +3,12 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include <cmath>
+#include <chrono>
 
 namespace mc::client::sound {
 
 BiomeAmbientHandler::BiomeAmbientHandler()
-    : m_rng(std::random_device{}())
+    : m_rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()))
 {
 }
 
@@ -22,8 +23,7 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
     std::optional<world::biome::SoundAdditionsAmbience> additionsOpt = ambientSounds.additionsSound();
     if (additionsOpt.has_value()) {
         const world::biome::SoundAdditionsAmbience& additions = additionsOpt.value();
-        std::uniform_real_distribution<f64> dist(0.0, 1.0);
-        if (dist(m_rng) < additions.tickChance()) {
+        if (m_rng.nextDouble() < additions.tickChance()) {
             SoundInstance sound = SoundInstance::createGlobal(
                 additions.soundEvent(),
                 SoundCategory::Ambient,
@@ -44,7 +44,6 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
         // 随机选择一个采样位置
         // 参考: block_search_extent 用于随机偏移范围
         i32 extent = mood.blockSearchExtent();
-        std::uniform_int_distribution<i32> offsetDist(-extent, extent);
 
         // 计算光照影响
         // 参考: lines 82-88
@@ -62,9 +61,9 @@ void BiomeAmbientHandler::tick(SoundEngine& engine) {
         // 计时器达到阈值时播放心境音效
         if (m_moodTimer >= 1.0f) {
             // 计算播放位置：在玩家附近随机位置，加上偏移
-            f64 dx = static_cast<f64>(offsetDist(m_rng));
-            f64 dy = static_cast<f64>(offsetDist(m_rng));
-            f64 dz = static_cast<f64>(offsetDist(m_rng));
+            f64 dx = static_cast<f64>(m_rng.nextInt(-extent, extent));
+            f64 dy = static_cast<f64>(m_rng.nextInt(-extent, extent));
+            f64 dz = static_cast<f64>(m_rng.nextInt(-extent, extent));
 
             // 计算距离并添加偏移
             f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);

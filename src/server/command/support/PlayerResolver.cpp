@@ -3,10 +3,11 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <random>
+#include <chrono>
 
 namespace mc::command::support {
 
@@ -162,9 +163,12 @@ void sortPlayerIds(
         }
         case EntitySelectorSort::Random: {
             // 随机排序
-            std::random_device rd;
-            std::mt19937 g(rd());
-            std::shuffle(playerIds.begin(), playerIds.end(), g);
+            math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+            // Fisher-Yates shuffle
+            for (size_t i = playerIds.size(); i > 1; --i) {
+                size_t j = static_cast<size_t>(rng.nextInt(static_cast<i32>(i)));
+                std::swap(playerIds[i - 1], playerIds[j]);
+            }
             break;
         }
         case EntitySelectorSort::Arbitrary:
@@ -311,10 +315,9 @@ std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const 
                 resolved = playerIds;
                 applyFilters(resolved, source, selector, refX, refY, refZ);
                 if (!resolved.empty()) {
-                    std::random_device rd;
-                    std::mt19937 g(rd());
-                    std::uniform_int_distribution<size_t> dist(0, resolved.size() - 1);
-                    PlayerId randomId = resolved[dist(g)];
+                    math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                    size_t idx = static_cast<size_t>(rng.nextInt(static_cast<i32>(resolved.size() - 1)));
+                    PlayerId randomId = resolved[idx];
                     resolved.clear();
                     resolved.push_back(randomId);
                 }

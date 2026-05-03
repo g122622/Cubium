@@ -10,8 +10,9 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <sstream>
-#include <random>
+#include <chrono>
 
 namespace mc {
 namespace command {
@@ -93,9 +94,7 @@ i32 SpreadPlayersCommand::spreadPlayers(CommandContext<ServerCommandSource>& con
     f32 maxZ = static_cast<f32>(center.z) + maxRange;
 
     // 随机分散玩家
-    std::mt19937 rng(static_cast<u32>(std::chrono::steady_clock::now().time_since_epoch().count()));
-    std::uniform_real_distribution<f32> distX(minX, maxX);
-    std::uniform_real_distribution<f32> distZ(minZ, maxZ);
+    math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
 
     i32 successCount = 0;
     auto server = source.server();
@@ -104,8 +103,8 @@ i32 SpreadPlayersCommand::spreadPlayers(CommandContext<ServerCommandSource>& con
         if (!player) continue;
 
         // 随机选择位置
-        f32 x = distX(rng);
-        f32 z = distZ(rng);
+        f32 x = rng.nextFloat(minX, maxX);
+        f32 z = rng.nextFloat(minZ, maxZ);
 
         // TODO: 实现高度查找
         i32 y = 64;  // 临时使用固定高度

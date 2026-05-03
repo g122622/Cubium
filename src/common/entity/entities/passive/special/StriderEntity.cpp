@@ -10,7 +10,7 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -49,10 +49,8 @@ f32 StriderEntity::getSteeringSpeed() const {
 bool StriderEntity::boost() {
     if (m_boostCooldown <= 0 && !m_boosting) {
         m_boosting = true;
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_int_distribution<i32> dist(BOOST_DURATION_MIN, BOOST_DURATION_MAX);
-        m_boostTime = dist(gen);
+        math::Random rng = getRandom();
+        m_boostTime = rng.nextInt(BOOST_DURATION_MIN, BOOST_DURATION_MAX);
         m_boostCooldown = m_boostTime + 40; // 冷却时间
         return true;
     }

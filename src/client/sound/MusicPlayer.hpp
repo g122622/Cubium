@@ -4,10 +4,10 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <memory>
 #include <vector>
-#include <random>
 
 namespace mc {
 
@@ -195,7 +195,7 @@ private:
     static constexpr u32 FADE_DURATION = 40;  // 2秒 @ 20 TPS
 
     /// 随机数生成器
-    mutable std::mt19937 m_rng;
+    mutable math::Random m_rng{0};
 
     // ========================================================================
     // 音乐选择器定义

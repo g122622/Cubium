@@ -5,8 +5,8 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
+#include "common/util/math/random/Random.hpp"
 
-#include <random>
 #include <optional>
 
 namespace mc::client::sound {
@@ -98,7 +98,7 @@ private:
     f32 m_moodTimer = 0.0f;
 
     /// 随机数生成器
-    std::mt19937 m_rng;
+    math::Random m_rng{0};
 };
 
 } // namespace mc::client::sound

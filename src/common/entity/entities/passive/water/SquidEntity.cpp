@@ -1,6 +1,6 @@
 #include "SquidEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -44,10 +44,8 @@ void SquidEntity::tick() {
 
         // 随机改变方向
         if (m_changeDirectionTimer >= 100) {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            std::uniform_real_distribution<f32> dist(0.0f, 360.0f);
-            m_targetSwimAngle = dist(gen);
+            math::Random rng = getRandom();
+            m_targetSwimAngle = rng.nextFloat(0.0f, 360.0f);
             m_changeDirectionTimer = 0;
         }
 

@@ -2,8 +2,7 @@
 
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "client/sound/SoundEngine.hpp"
-
-#include <random>
+#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::sound {
 
@@ -59,7 +58,7 @@ private:
     bool m_isUnderwater = false;
 
     /// 随机数生成器
-    std::mt19937 m_rng;
+    math::Random m_rng{0};
 };
 
 } // namespace mc::client::sound

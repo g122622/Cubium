@@ -2,12 +2,12 @@
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
-#include <random>
+#include <chrono>
 
 namespace mc::client::sound {
 
 UnderwaterAmbientHandler::UnderwaterAmbientHandler()
-    : m_rng(std::random_device{}())
+    : m_rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()))
 {
 }
 
@@ -21,8 +21,7 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine) {
     // 参考: UnderwaterAmbientSoundHandler.tick() lines 19-33
     // 概率检查每tick都进行，无冷却延迟
     // 使用 float 随机数 [0.0, 1.0)
-    std::uniform_real_distribution<f32> dist(0.0f, 1.0f);
-    f32 f = dist(m_rng);
+    f32 f = m_rng.nextFloat();
 
     // 概率阈值（累积概率）
     // 超稀有: f < 0.0001 (0.01%)

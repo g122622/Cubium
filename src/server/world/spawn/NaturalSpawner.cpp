@@ -828,7 +828,11 @@ std::vector<ChunkPos> NaturalSpawner::getSpawnableChunks(
 
     // 随机打乱并选择最多 maxChunks 个
     if (static_cast<i32>(allChunks.size()) > maxChunks) {
-        std::shuffle(allChunks.begin(), allChunks.end(), std::mt19937(static_cast<u32>(random.nextU64())));
+        // Fisher-Yates shuffle
+        for (size_t i = allChunks.size(); i > 1; --i) {
+            size_t j = static_cast<size_t>(random.nextInt(static_cast<i32>(i)));
+            std::swap(allChunks[i - 1], allChunks[j]);
+        }
         allChunks.resize(maxChunks);
     }
 

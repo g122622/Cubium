@@ -11,7 +11,7 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -33,14 +33,11 @@ std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/) {
 }
 
 void PandaEntity::randomizePersonality() {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    math::Random rng = getRandom();
 
     // 熊猫性格概率分布
     // 普通: 32%, 懒惰: 32%, 忧愁: 16%, 顽皮: 16%, 好斗: 1.6%, 虚弱: 0.08%, 棕色: 2.4%
-    std::uniform_int_distribution<int> dist(0, 1249);
-
-    int value = dist(gen);
+    int value = rng.nextInt(0, 1249);
 
     if (value == 0) {
         // 虚弱（极稀有）
@@ -73,7 +70,7 @@ void PandaEntity::randomizePersonality() {
     }
 
     // 隐藏基因随机
-    m_hiddenGene = static_cast<u8>(dist(gen) % 6);
+    m_hiddenGene = static_cast<u8>(rng.nextInt(0, 5));
 }
 
 bool PandaEntity::isBreedingItem(const ItemStack& itemStack) const {
