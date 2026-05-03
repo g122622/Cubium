@@ -579,6 +579,21 @@ MC 1.16.5 中模板放置时，方块按特定顺序排列：
 - 更新 `JigsawBlock` 构造函数注册该属性
 - 更新 `JigsawPiece::loadJointsFromTemplate` 读取属性值
 
+### 5. JigsawJunction 地形适配缓存
+
+`JigsawJunction` 类已定义，用于记录拼图块连接时的地形高度信息，但目前未实际使用。
+
+**当前状态**:
+- `GravityStructureProcessor` 已实现地形高度适配功能
+- `JigsawPlacementBehaviour::TerrainMatching` 已正确添加处理器
+- `ChunkGenerator::getHeight()` 方法已存在且可用
+
+**优化机会**:
+- `JigsawJunction` 可用于缓存高度计算结果，减少重复计算
+- 可在 `JigsawManager::assemble()` 中创建 JigsawJunction 并传递给后续阶段
+
+**MC 1.16.5 参考**: `JigsawJunction.java` 用于记录 `sourceGroundY` 和 `deltaY`
+
 ## 容易踩的坑
 
 ### 1. 方块状态ID
