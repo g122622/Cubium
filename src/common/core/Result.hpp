@@ -80,7 +80,26 @@ enum class ErrorCode : i32 {
     TextureLoadFailed = -704,
     TextureAtlasFull = -705,
     ModelNotFound = -706,
-    BlockStateNotFound = -707
+    BlockStateNotFound = -707,
+
+    // 存档错误 (1000-1099)
+    WorldNotFound = -1000,
+    WorldCorrupted = -1001,
+    WorldLocked = -1002,
+    WorldIncompatible = -1003,
+    ChunkNotFound = -1004,
+    ChunkCorrupted = -1005,
+    ChunkSaveFailed = -1006,
+    ChunkLoadFailed = -1007,
+    SnapshotNotFound = -1008,
+    SnapshotCorrupted = -1009,
+    SnapshotCreateFailed = -1010,
+    SnapshotRestoreFailed = -1011,
+    ImportFailed = -1012,
+    ExportFailed = -1013,
+    RocksDBError = -1014,
+    VersionTooNew = -1015,
+    ChecksumMismatch = -1016
 };
 
 /**

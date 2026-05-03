@@ -236,18 +236,26 @@ struct BackupWorldResult {
 
 会话锁 RAII 包装，防止多进程同时访问同一世界。
 
+**平台实现：**
+- Unix: `flock(LOCK_EX | LOCK_NB)`
+- Windows: `LockFileEx`
+
 ```cpp
 class WorldSessionLock {
 public:
-    // 获取锁（创建 session.lock 文件）
-    static WorldSessionLock acquire(const std::filesystem::path& worldDir);
+    // 获取锁（创建 session.lock 文件并获取文件锁）
+    static Result<WorldSessionLock> acquire(const std::filesystem::path& worldDir);
 
-    // 检查是否被锁定
+    // 检查是否被锁定（仅用于 UI 显示，实际操作前必须重新 acquire）
     static bool isLocked(const std::filesystem::path& worldDir);
 
     // 移动语义
     WorldSessionLock(WorldSessionLock&& other) noexcept;
     WorldSessionLock& operator=(WorldSessionLock&& other) noexcept;
+
+    // 禁止拷贝
+    WorldSessionLock(const WorldSessionLock&) = delete;
+    WorldSessionLock& operator=(const WorldSessionLock&) = delete;
 
     // 析构时释放锁
     ~WorldSessionLock();
@@ -257,17 +265,42 @@ public:
     void release();  // 手动释放
 
 private:
-    WorldSessionLock(std::filesystem::path worldDir, bool hasFileLock);
+    WorldSessionLock(std::filesystem::path worldDir);
+
+#ifdef _WIN32
+    void* m_fileHandle;  // HANDLE
+#else
+    int m_fd;  // file descriptor
+#endif
     std::filesystem::path m_worldDir;
-    bool m_hasFileLock = false;
-    bool m_valid = false;
+    std::filesystem::path m_lockPath;
+    bool m_valid;
 };
 ```
 
-**第一版实现：**
-- 通过 `session.lock` 文件存在与否判断锁定
-- 锁文件内容为 UTF-8 雪花符号 `☃`
-- 未来可扩展为平台文件锁
+**使用方法：**
+
+```cpp
+// 尝试获取锁
+auto lockResult = WorldSessionLock::acquire(worldDir);
+if (!lockResult.success()) {
+    // 世界已被锁定或获取失败
+    spdlog::error("Failed to acquire lock: {}", lockResult.error().message());
+    return;
+}
+
+// 锁获取成功，可以安全访问世界
+WorldSessionLock lock = std::move(lockResult.value());
+
+// ... 世界操作 ...
+
+// 析构时自动释放锁
+```
+
+**跨进程互斥保证：**
+- 文件锁由操作系统内核管理
+- 即使进程崩溃，锁也会自动释放
+- 支持跨平台（Windows/Unix）
 
 ### WorldStoragePaths.hpp/.cpp
 
@@ -276,25 +309,72 @@ private:
 ```cpp
 class WorldStoragePaths {
 public:
-    explicit WorldStoragePaths(std::filesystem::path baseDir);
+    // 构造函数
+    WorldStoragePaths(std::filesystem::path savesDir, std::filesystem::path backupsDir);
+    static WorldStoragePaths defaultPaths();
 
-    // 目录路径
-    std::filesystem::path savesDir() const;
-    std::filesystem::path backupsDir() const;
+    // 基础目录
+    const std::filesystem::path& savesDir() const noexcept;
+    const std::filesystem::path& backupsDir() const noexcept;
     std::filesystem::path worldDir(const std::string& levelId) const;
 
-    // 文件路径
+    // 传统文件路径
     std::filesystem::path levelDatPath(const std::string& levelId) const;
     std::filesystem::path levelDatOldPath(const std::string& levelId) const;
     std::filesystem::path sessionLockPath(const std::string& levelId) const;
+    std::filesystem::path iconPath(const std::string& levelId) const;
 
-    // 确保目录存在
-    Result<void> ensureSavesDirExists() const;
-    Result<void> ensureBackupsDirExists() const;
+    // RocksDB 数据库路径（自有格式）
+    std::filesystem::path dbPath(const std::string& levelId) const;
+    std::filesystem::path dbChunksPath(const std::string& levelId) const;
+    std::filesystem::path dbEntitiesPath(const std::string& levelId) const;
+    std::filesystem::path dbPoiPath(const std::string& levelId) const;
+    std::filesystem::path dbSnapshotsMetaPath(const std::string& levelId) const;
+
+    // 快照路径（版本控制）
+    std::filesystem::path snapshotsPath(const std::string& levelId) const;
+    std::filesystem::path snapshotPath(const std::string& levelId, const std::string& snapshotId) const;
+    std::filesystem::path snapshotManifestPath(const std::string& levelId, const std::string& snapshotId) const;
+    std::filesystem::path snapshotDeltaPath(const std::string& levelId, const std::string& snapshotId) const;
+
+    // 导入路径（格式转换）
+    std::filesystem::path importPath(const std::string& levelId) const;
+    std::filesystem::path importJavaPath(const std::string& levelId) const;
+    std::filesystem::path importBedrockPath(const std::string& levelId) const;
+
+    // 目录创建
+    bool ensureSavesDirExists() const;
+    bool ensureBackupsDirExists() const;
+    bool ensureWorldDirExists(const std::string& levelId) const;
+    bool ensureDbDirExists(const std::string& levelId) const;
 
 private:
-    std::filesystem::path m_baseDir;
+    std::filesystem::path m_savesDir;
+    std::filesystem::path m_backupsDir;
 };
+```
+
+**目录结构：**
+
+```
+saves/
+└── {levelId}/
+    ├── level.dat              # 世界元数据（NBT格式）
+    ├── level.dat_old          # 备份
+    ├── session.lock           # 会话锁
+    ├── icon.png               # 世界图标
+    ├── db/                    # RocksDB数据库目录
+    │   ├── chunks/            # 区块数据（Section粒度）
+    │   ├── entities/          # 实体数据
+    │   ├── poi/               # 兴趣点数据
+    │   └── snapshots/         # 快照元数据
+    ├── snapshots/             # 快照数据目录
+    │   └── {snapshot_id}/     # 具体快照
+    │       ├── manifest.json  # 快照清单
+    │       └── delta/         # 增量数据
+    └── import/                # 导入临时目录
+        ├── java/              # Java版存档导入
+        └── bedrock/           # 基岩版存档导入
 ```
 
 ## 模块关系

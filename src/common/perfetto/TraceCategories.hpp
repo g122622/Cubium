@@ -131,6 +131,8 @@ PERFETTO_DEFINE_CATEGORIES(
         .SetDescription("客户端光照处理"),
     perfetto::Category("client.resource")
         .SetDescription("客户端资源包"),
+    perfetto::Category("server.save")
+        .SetDescription("服务端保存操作"),
 
     // === 客户端细粒度分类 ===
     perfetto::Category("client.entity")
@@ -153,10 +155,22 @@ PERFETTO_DEFINE_CATEGORIES(
     // === 流体 ===
     perfetto::Category("fluid.tick")
         .SetDescription("流体更新处理"),
-    
-    // === memory ===
+
+    // === 内存 ===
     perfetto::Category("memory")
-        .SetDescription("内存使用统计")
+        .SetDescription("内存使用统计"),
+
+    // === 通用任务池 ===
+    perfetto::Category("worker_pool")
+        .SetDescription("通用任务池操作"),
+    perfetto::Category("worker_pool.chunk_gen")
+        .SetDescription("区块生成任务"),
+    perfetto::Category("worker_pool.chunk_io")
+        .SetDescription("区块IO任务"),
+    perfetto::Category("worker_pool.snapshot")
+        .SetDescription("快照任务"),
+    perfetto::Category("worker_pool.db")
+        .SetDescription("数据库操作")
 );
 
 #if defined(_MSC_VER)

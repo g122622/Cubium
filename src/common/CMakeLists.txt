@@ -845,6 +845,9 @@ add_library(mc_common STATIC
     # Compression utilities
     util/CompressionUtils.cpp
 
+    # Thread utilities
+    util/thread/ServerWorkerPool.cpp
+
     # Assert library
     util/assert/Assert.cpp
 

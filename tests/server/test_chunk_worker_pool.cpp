@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
-#include "server/world/ChunkWorkerPool.hpp"
+#include "server/world/ChunkGenerateTask.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"
 #include <atomic>
@@ -7,90 +8,147 @@
 
 using namespace mc;
 using namespace mc::server;
+using namespace mc::util;
 
 // ============================================================================
-// ChunkWorkerPool 测试固件
+// ChunkGenerateTask 测试固件
 // ============================================================================
 
-class ChunkWorkerPoolTest : public ::testing::Test {
+class ChunkGenerateTaskTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // ChunkStatus 是静态初始化的，无需手动初始化
     }
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 };
 
 // ============================================================================
-// 构造和生命周期测试
+// ChunkGenerateTask 测试
 // ============================================================================
 
-TEST_F(ChunkWorkerPoolTest, DefaultConstructor) {
-    ChunkWorkerPool pool;
-    EXPECT_FALSE(pool.isRunning());
-    EXPECT_GT(pool.threadCount(), 0);  // 自动检测线程数
+TEST_F(ChunkGenerateTaskTest, BasicConstruction) {
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            (void)cancelSignal;
+            chunk.setChunkStatus(targetStatus);
+        };
+
+    ChunkGenerateTask task(10, 20, ChunkStatuses::FULL, generator);
+
+    EXPECT_EQ(task.x(), 10);
+    EXPECT_EQ(task.z(), 20);
+    EXPECT_EQ(task.type(), TaskType::ChunkGenerate);
+    EXPECT_FALSE(task.description().empty());
 }
 
-TEST_F(ChunkWorkerPoolTest, StartStop) {
-    ChunkWorkerPool pool(2);
+TEST_F(ChunkGenerateTaskTest, ExecuteSuccess) {
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            (void)cancelSignal;
+            chunk.setChunkStatus(targetStatus);
+        };
 
-    EXPECT_FALSE(pool.isRunning());
+    auto task = std::make_unique<ChunkGenerateTask>(5, 7, ChunkStatuses::FULL, generator);
 
-    pool.start();
-    EXPECT_TRUE(pool.isRunning());
+    std::atomic<bool> cancelSignal{false};
+    bool result = task->execute(cancelSignal);
 
-    pool.shutdown();
-    EXPECT_FALSE(pool.isRunning());
+    EXPECT_TRUE(result);
+
+    // takeResult() 只能调用一次，移动后结果为空
+    auto resultChunk = task->takeResult();
+    ASSERT_NE(resultChunk, nullptr);
+    EXPECT_EQ(resultChunk->x(), 5);
+    EXPECT_EQ(resultChunk->z(), 7);
+
+    // 再次调用返回 nullptr
+    EXPECT_EQ(task->takeResult(), nullptr);
 }
 
-TEST_F(ChunkWorkerPoolTest, DoubleStart) {
-    ChunkWorkerPool pool(2);
+TEST_F(ChunkGenerateTaskTest, ExecuteCancelled) {
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            if (cancelSignal.load(std::memory_order_acquire)) {
+                return;
+            }
+            chunk.setChunkStatus(targetStatus);
+        };
 
-    pool.start();
-    EXPECT_TRUE(pool.isRunning());
+    auto task = std::make_unique<ChunkGenerateTask>(1, 2, ChunkStatuses::FULL, generator);
 
-    // 重复启动应该无效
-    pool.start();
-    EXPECT_TRUE(pool.isRunning());
+    std::atomic<bool> cancelSignal{true};
+    bool result = task->execute(cancelSignal);
 
-    pool.shutdown();
+    EXPECT_FALSE(result);
+    EXPECT_EQ(task->takeResult(), nullptr);
 }
 
-TEST_F(ChunkWorkerPoolTest, DoubleShutdown) {
-    ChunkWorkerPool pool(2);
+TEST_F(ChunkGenerateTaskTest, ExecuteException) {
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus&, const std::atomic<bool>&) -> void {
+            (void)chunk;
+            throw std::runtime_error("Test exception");
+        };
 
-    pool.start();
-    pool.shutdown();
-    EXPECT_FALSE(pool.isRunning());
+    auto task = std::make_unique<ChunkGenerateTask>(0, 0, ChunkStatuses::FULL, generator);
 
-    // 重复关闭应该安全
-    pool.shutdown();
-    EXPECT_FALSE(pool.isRunning());
+    std::atomic<bool> cancelSignal{false};
+    // execute 内部捕获异常并返回 false
+    bool result = task->execute(cancelSignal);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(task->takeResult(), nullptr);
+}
+
+TEST_F(ChunkGenerateTaskTest, OnCancel) {
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            (void)cancelSignal;
+            chunk.setChunkStatus(targetStatus);
+        };
+
+    auto task = std::make_unique<ChunkGenerateTask>(3, 4, ChunkStatuses::FULL, generator);
+
+    // onCancel 不应该抛出异常
+    EXPECT_NO_THROW(task->onCancel());
 }
 
 // ============================================================================
-// 任务提交测试
+// 与 ServerWorkerPool 集成测试
 // ============================================================================
 
-TEST_F(ChunkWorkerPoolTest, SubmitGenerateBasic) {
-    ChunkWorkerPool pool(2);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        (void)cancelSignal;
-        // 简单的生成器，标记为完成
-        chunk.setChunkStatus(ChunkStatuses::FULL);
-    });
+class ChunkGenerateTaskIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(ChunkGenerateTaskIntegrationTest, SubmitToPool) {
+    ServerWorkerPool pool(2, "ChunkGenTest");
     pool.start();
 
     std::atomic<bool> completed{false};
-    ChunkPrimer* resultChunk = nullptr;
+    std::atomic<bool> success{false};
+    ChunkGenerateTask* taskPtr = nullptr;
 
-    pool.submitGenerate(0, 0, ChunkStatuses::FULL,
-        [&](bool success, ChunkPrimer* chunk) {
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            (void)cancelSignal;
+            chunk.setChunkStatus(targetStatus);
+        };
+
+    auto task = std::make_unique<ChunkGenerateTask>(10, 20, ChunkStatuses::FULL, generator);
+    taskPtr = task.get();
+
+    pool.submit(std::move(task),
+        [&](bool s, ITask* t) {
             completed = true;
-            resultChunk = chunk;
+            success = s;
+            // 验证任务指针
+            EXPECT_EQ(t, taskPtr);
         },
-        0);
+        TaskPriority::Normal);
 
     // 等待完成
     for (int i = 0; i < 100 && !completed; ++i) {
@@ -98,32 +156,37 @@ TEST_F(ChunkWorkerPoolTest, SubmitGenerateBasic) {
     }
 
     EXPECT_TRUE(completed);
-    EXPECT_NE(resultChunk, nullptr);
-    if (resultChunk) {
-        EXPECT_EQ(resultChunk->x(), 0);
-        EXPECT_EQ(resultChunk->z(), 0);
-    }
+    EXPECT_TRUE(success);
+
+    // 获取结果
+    auto result = taskPtr->takeResult();
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->x(), 10);
+    EXPECT_EQ(result->z(), 20);
 
     pool.shutdown();
 }
 
-TEST_F(ChunkWorkerPoolTest, SubmitGenerateMultiple) {
-    ChunkWorkerPool pool(4);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        (void)cancelSignal;
-        chunk.setChunkStatus(ChunkStatuses::FULL);
-    });
+TEST_F(ChunkGenerateTaskIntegrationTest, MultipleChunkGenerations) {
+    ServerWorkerPool pool(4, "ChunkGenTest");
     pool.start();
 
     std::atomic<int> completedCount{0};
     const int numChunks = 10;
 
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            (void)cancelSignal;
+            chunk.setChunkStatus(targetStatus);
+        };
+
     for (int i = 0; i < numChunks; ++i) {
-        pool.submitGenerate(i, i, ChunkStatuses::FULL,
-            [&](bool success, ChunkPrimer* chunk) {
+        auto task = std::make_unique<ChunkGenerateTask>(i, i * 2, ChunkStatuses::FULL, generator);
+        pool.submit(std::move(task),
+            [&completedCount](bool, ITask*) {
                 completedCount++;
             },
-            0);
+            TaskPriority::Normal);
     }
 
     // 等待所有完成
@@ -132,214 +195,86 @@ TEST_F(ChunkWorkerPoolTest, SubmitGenerateMultiple) {
     }
 
     EXPECT_EQ(completedCount, numChunks);
-    EXPECT_EQ(pool.pendingTaskCount(), 0);
 
     pool.shutdown();
 }
 
-TEST_F(ChunkWorkerPoolTest, SubmitGeneratePriority) {
-    ChunkWorkerPool pool(1);  // 单线程确保顺序执行
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        (void)cancelSignal;
-        // 短暂延迟以便测试优先级
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        chunk.setChunkStatus(ChunkStatuses::FULL);
-    });
+TEST_F(ChunkGenerateTaskIntegrationTest, PriorityOrdering) {
+    ServerWorkerPool pool(1, "ChunkGenTest");  // 单线程确保顺序执行
     pool.start();
 
     std::vector<int> executionOrder;
     std::mutex orderMutex;
+    std::atomic<bool> firstStarted{false};
 
-    auto callback = [&](bool success, ChunkPrimer* chunk) {
-        std::lock_guard<std::mutex> lock(orderMutex);
-        executionOrder.push_back(chunk ? chunk->x() : -1);
-    };
+    ChunkGenerateTask::GeneratorFunc generator =
+        [&executionOrder, &orderMutex, &firstStarted](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            (void)cancelSignal;
+            firstStarted = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            {
+                std::lock_guard<std::mutex> lock(orderMutex);
+                executionOrder.push_back(chunk.x());
+            }
+            chunk.setChunkStatus(targetStatus);
+        };
 
-    // 提交三个任务，优先级 2, 0, 1（0 最高）
-    pool.submitGenerate(1, 0, ChunkStatuses::FULL, callback, 2);  // 低优先级
-    pool.submitGenerate(2, 0, ChunkStatuses::FULL, callback, 0);  // 高优先级
-    pool.submitGenerate(3, 0, ChunkStatuses::FULL, callback, 1);  // 中优先级
+    // 提交第一个任务（等待它开始）
+    pool.submit(std::make_unique<ChunkGenerateTask>(0, 0, ChunkStatuses::FULL, generator),
+        nullptr, TaskPriority::Normal);
 
-    // 等待完成
-    for (int i = 0; i < 100 && executionOrder.size() < 3; ++i) {
+    // 等待第一个任务开始
+    for (int i = 0; i < 100 && !firstStarted; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+
+    // 提交三个任务，优先级不同
+    pool.submit(std::make_unique<ChunkGenerateTask>(3, 0, ChunkStatuses::FULL, generator),
+        nullptr, TaskPriority::Low);
+    pool.submit(std::make_unique<ChunkGenerateTask>(1, 0, ChunkStatuses::FULL, generator),
+        nullptr, TaskPriority::High);
+    pool.submit(std::make_unique<ChunkGenerateTask>(2, 0, ChunkStatuses::FULL, generator),
+        nullptr, TaskPriority::Normal);
+
+    pool.waitForCompletion();
 
     // 高优先级任务应该先执行
-    EXPECT_EQ(executionOrder.size(), 3);
-    if (executionOrder.size() >= 3) {
-        EXPECT_EQ(executionOrder[0], 2);  // 优先级 0 最高
-    }
-
-    pool.shutdown();
+    ASSERT_GE(executionOrder.size(), 4);
+    EXPECT_EQ(executionOrder[1], 1);  // 高优先级第二个执行（第一个是初始任务）
 }
 
-TEST_F(ChunkWorkerPoolTest, SubmitGenerateWhenNotRunning) {
-    ChunkWorkerPool pool(2);
-    // 不启动
-
-    std::atomic<bool> completed{false};
-    pool.submitGenerate(0, 0, ChunkStatuses::FULL,
-        [&](bool success, ChunkPrimer* chunk) {
-            completed = true;
-            EXPECT_FALSE(success);  // 应该失败
-            EXPECT_EQ(chunk, nullptr);
-        });
-
-    // 回调应该立即执行并标记失败
-    EXPECT_TRUE(completed);
-}
-
-// ============================================================================
-// 异常处理测试
-// ============================================================================
-
-TEST_F(ChunkWorkerPoolTest, GeneratorException) {
-    ChunkWorkerPool pool(2);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        (void)cancelSignal;
-        throw std::runtime_error("Test exception");
-    });
+TEST_F(ChunkGenerateTaskIntegrationTest, CancelToken) {
+    ServerWorkerPool pool(1, "ChunkGenTest");
     pool.start();
 
     std::atomic<bool> completed{false};
     std::atomic<bool> success{true};
 
-    pool.submitGenerate(0, 0, ChunkStatuses::FULL,
-        [&](bool s, ChunkPrimer* chunk) {
-            completed = true;
-            success = s;
-        });
-
-    for (int i = 0; i < 100 && !completed; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    EXPECT_TRUE(completed);
-    EXPECT_FALSE(success);  // 应该失败
-
-    pool.shutdown();
-}
-
-// ============================================================================
-// 统计测试
-// ============================================================================
-
-TEST_F(ChunkWorkerPoolTest, PendingTaskCount) {
-    ChunkWorkerPool pool(1);  // 单线程
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        (void)cancelSignal;
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        chunk.setChunkStatus(ChunkStatuses::FULL);
-    });
-    pool.start();
-
-    // 提交多个任务
-    for (int i = 0; i < 5; ++i) {
-        pool.submitGenerate(i, 0, ChunkStatuses::FULL, nullptr, 0);
-    }
-
-    // 应该有待处理任务
-    EXPECT_GT(pool.pendingTaskCount(), 0);
-
-    pool.shutdown();
-    EXPECT_EQ(pool.pendingTaskCount(), 0);
-}
-
-// ============================================================================
-// 线程安全测试
-// ============================================================================
-
-TEST_F(ChunkWorkerPoolTest, ConcurrentSubmissions) {
-    ChunkWorkerPool pool(4);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        (void)cancelSignal;
-        chunk.setChunkStatus(ChunkStatuses::FULL);
-    });
-    pool.start();
-
-    std::atomic<int> completedCount{0};
-    std::vector<std::thread> threads;
-
-    // 多个线程同时提交任务
-    for (int t = 0; t < 4; ++t) {
-        threads.emplace_back([&pool, &completedCount, t]() {
-            for (int i = 0; i < 10; ++i) {
-                pool.submitGenerate(t * 10 + i, 0, ChunkStatuses::FULL,
-                    [&](bool success, ChunkPrimer* chunk) {
-                        completedCount++;
-                    });
+    ChunkGenerateTask::GeneratorFunc generator =
+        [](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            if (cancelSignal.load(std::memory_order_acquire)) {
+                return;
             }
-        });
-    }
+            chunk.setChunkStatus(targetStatus);
+        };
 
-    for (auto& thread : threads) {
-        thread.join();
-    }
+    auto cancelToken = std::make_shared<std::atomic<bool>>(true);
 
-    // 等待所有完成
-    for (int i = 0; i < 200 && completedCount < 40; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    EXPECT_EQ(completedCount, 40);
-    pool.shutdown();
-}
-
-TEST_F(ChunkWorkerPoolTest, CancelTokenSkipsExecution) {
-    ChunkWorkerPool pool(1);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        if (cancelSignal.load(std::memory_order_acquire)) {
-            return;
-        }
-        chunk.setChunkStatus(targetStatus);
-    });
-    pool.start();
-
-    auto token = std::make_shared<std::atomic<bool>>(true);
-    std::atomic<bool> completed{false};
-    std::atomic<bool> success{true};
-
-    pool.submitGenerate(0, 0, ChunkStatuses::FULL,
-        [&](bool s, ChunkPrimer* chunk) {
+    auto task = std::make_unique<ChunkGenerateTask>(5, 5, ChunkStatuses::FULL, generator);
+    pool.submit(std::move(task),
+        [&](bool s, ITask*) {
             completed = true;
             success = s;
-            EXPECT_EQ(chunk, nullptr);
         },
-        token,
-        0);
+        TaskPriority::Normal,
+        cancelToken);
 
     for (int i = 0; i < 100 && !completed; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     EXPECT_TRUE(completed);
-    EXPECT_FALSE(success);
-
-    pool.shutdown();
-}
-
-TEST_F(ChunkWorkerPoolTest, PruneCancelledTasksRemovesQueueEntries) {
-    ChunkWorkerPool pool(1);
-    pool.setGenerator([](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        if (cancelSignal.load(std::memory_order_acquire)) {
-            return;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
-        chunk.setChunkStatus(targetStatus);
-    });
-    pool.start();
-
-    auto tokenA = std::make_shared<std::atomic<bool>>(false);
-    auto tokenB = std::make_shared<std::atomic<bool>>(false);
-
-    pool.submitGenerate(1, 0, ChunkStatuses::FULL, nullptr, tokenA, 0);
-    pool.submitGenerate(2, 0, ChunkStatuses::FULL, nullptr, tokenB, 1);
-
-    tokenB->store(true, std::memory_order_release);
-    pool.pruneCancelledTasks();
-
-    EXPECT_LE(pool.pendingTaskCount(), 1u);
+    EXPECT_FALSE(success);  // 应该因取消而失败
 
     pool.shutdown();
 }

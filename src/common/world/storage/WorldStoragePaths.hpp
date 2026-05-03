@@ -10,6 +10,25 @@ namespace mc::world::storage {
  *
  * 提供 saves 和 backups 目录的路径解析。第一版使用工作目录下的 saves/，
  * 后续可迁移到平台用户数据目录。
+ *
+ * 目录结构：
+ * saves/
+ * └── {levelId}/
+ *     ├── level.dat              # 世界元数据（NBT格式）
+ *     ├── session.lock           # 会话锁
+ *     ├── icon.png               # 世界图标
+ *     ├── db/                    # RocksDB数据库目录
+ *     │   ├── chunks/            # 区块数据（Section粒度）
+ *     │   ├── entities/          # 实体数据
+ *     │   ├── poi/               # 兴趣点数据
+ *     │   └── snapshots/         # 快照元数据
+ *     ├── snapshots/             # 快照数据目录
+ *     │   └── {snapshot_id}/     # 具体快照
+ *     │       ├── manifest.json  # 快照清单
+ *     │       └── delta/         # 增量数据
+ *     └── import/                # 导入临时目录
+ *         ├── java/              # Java版存档导入
+ *         └── bedrock/           # 基岩版存档导入
  */
 class WorldStoragePaths {
 public:
@@ -31,6 +50,10 @@ public:
      */
     static WorldStoragePaths defaultPaths();
 
+    // ============================================================================
+    // 基础路径
+    // ============================================================================
+
     /**
      * @brief 获取存档根目录
      */
@@ -46,6 +69,10 @@ public:
      * @param levelId 世界目录名
      */
     [[nodiscard]] std::filesystem::path worldDir(const std::string& levelId) const;
+
+    // ============================================================================
+    // 传统文件路径
+    // ============================================================================
 
     /**
      * @brief 获取指定世界的 level.dat 路径
@@ -67,6 +94,106 @@ public:
      */
     [[nodiscard]] std::filesystem::path iconPath(const std::string& levelId) const;
 
+    // ============================================================================
+    // RocksDB 数据库路径（自有格式）
+    // ============================================================================
+
+    /**
+     * @brief 获取指定世界的数据库根目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path dbPath(const std::string& levelId) const;
+
+    /**
+     * @brief 获取指定世界的区块数据目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path dbChunksPath(const std::string& levelId) const;
+
+    /**
+     * @brief 获取指定世界的实体数据目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path dbEntitiesPath(const std::string& levelId) const;
+
+    /**
+     * @brief 获取指定世界的兴趣点数据目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path dbPoiPath(const std::string& levelId) const;
+
+    /**
+     * @brief 获取指定世界的快照元数据目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path dbSnapshotsMetaPath(const std::string& levelId) const;
+
+    // ============================================================================
+    // 快照路径（版本控制）
+    // ============================================================================
+
+    /**
+     * @brief 获取指定世界的快照目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path snapshotsPath(const std::string& levelId) const;
+
+    /**
+     * @brief 获取指定快照的目录
+     * @param levelId 世界目录名
+     * @param snapshotId 快照ID
+     */
+    [[nodiscard]] std::filesystem::path snapshotPath(
+        const std::string& levelId,
+        const std::string& snapshotId
+    ) const;
+
+    /**
+     * @brief 获取指定快照的清单文件路径
+     * @param levelId 世界目录名
+     * @param snapshotId 快照ID
+     */
+    [[nodiscard]] std::filesystem::path snapshotManifestPath(
+        const std::string& levelId,
+        const std::string& snapshotId
+    ) const;
+
+    /**
+     * @brief 获取指定快照的增量数据目录
+     * @param levelId 世界目录名
+     * @param snapshotId 快照ID
+     */
+    [[nodiscard]] std::filesystem::path snapshotDeltaPath(
+        const std::string& levelId,
+        const std::string& snapshotId
+    ) const;
+
+    // ============================================================================
+    // 导入路径（格式转换）
+    // ============================================================================
+
+    /**
+     * @brief 获取指定世界的导入临时目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path importPath(const std::string& levelId) const;
+
+    /**
+     * @brief 获取 Java 版导入目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path importJavaPath(const std::string& levelId) const;
+
+    /**
+     * @brief 获取基岩版导入目录
+     * @param levelId 世界目录名
+     */
+    [[nodiscard]] std::filesystem::path importBedrockPath(const std::string& levelId) const;
+
+    // ============================================================================
+    // 目录创建
+    // ============================================================================
+
     /**
      * @brief 确保存档根目录存在
      * @return 成功返回 true，失败返回 false
@@ -78,6 +205,20 @@ public:
      * @return 成功返回 true，失败返回 false
      */
     bool ensureBackupsDirExists() const;
+
+    /**
+     * @brief 确保世界目录结构存在
+     * @param levelId 世界目录名
+     * @return 成功返回 true，失败返回 false
+     */
+    bool ensureWorldDirExists(const std::string& levelId) const;
+
+    /**
+     * @brief 确保数据库目录结构存在
+     * @param levelId 世界目录名
+     * @return 成功返回 true，失败返回 false
+     */
+    bool ensureDbDirExists(const std::string& levelId) const;
 
 private:
     std::filesystem::path m_savesDir;

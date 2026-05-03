@@ -116,7 +116,7 @@ private:
 ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChunkGenerator> generator)
     : m_world(&world)
     , m_generator(std::move(generator))
-    , m_workerPool(-1)  // 自动检测线程数
+    , m_workerPool(-1, "ChunkGenWorker")  // 自动检测线程数
 {
     // 设置票据管理器回调
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -127,7 +127,7 @@ ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChun
 ServerChunkManager::ServerChunkManager(std::unique_ptr<IChunkGenerator> generator)
     : m_world(nullptr)
     , m_generator(std::move(generator))
-    , m_workerPool(-1)  // 自动检测线程数
+    , m_workerPool(-1, "ChunkGenWorker")  // 自动检测线程数
 {
     // 设置票据管理器回调
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -196,106 +196,6 @@ void ServerChunkManager::shutdown()
 
 void ServerChunkManager::startWorkers()
 {
-    // 设置生成器函数
-    m_workerPool.setGenerator([this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-        // 按阶段生成
-        const auto& allStatuses = ChunkStatus::getAll();
-        for (const auto& status : allStatuses) {
-            if (cancelSignal.load(std::memory_order_acquire)) {
-                return;
-            }
-
-            if (status.ordinal() > targetStatus.ordinal()) {
-                break;
-            }
-
-            if (!chunk.hasCompletedStatus(status)) {
-                const i32 regionRadius = std::max(0, status.taskRange());
-                std::vector<IChunk*> chunks;
-                std::vector<std::unique_ptr<IChunk>> neighborAdapters;
-                chunks.resize(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
-                neighborAdapters.resize(chunks.size());
-
-                getNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, chunks, neighborAdapters);
-                WorldGenRegion region(chunk.x(), chunk.z(), regionRadius, std::move(chunks));
-
-                // 执行生成
-                if (status == ChunkStatuses::STRUCTURE_STARTS) {
-                    m_generator->generateStructureStarts(region, chunk);
-                } else if (status == ChunkStatuses::STRUCTURE_REFERENCES) {
-                    m_generator->generateStructureReferences(region, chunk);
-                } else if (status == ChunkStatuses::BIOMES) {
-                    m_generator->generateBiomes(region, chunk);
-                } else if (status == ChunkStatuses::NOISE) {
-                    m_generator->generateNoise(region, chunk);
-                } else if (status == ChunkStatuses::SURFACE) {
-                    m_generator->buildSurface(region, chunk);
-                } else if (status == ChunkStatuses::CARVERS) {
-                    m_generator->applyCarvers(region, chunk, false);
-                } else if (status == ChunkStatuses::LIQUID_CARVERS) {
-                    m_generator->applyCarvers(region, chunk, true);
-                } else if (status == ChunkStatuses::FEATURES) {
-                    // 异步路径：暂时跳过邻居检查
-                    // TODO: 实现完整的两阶段生成系统
-                    // 第一阶段：所有区块生成到 LIQUID_CARVERS
-                    // 第二阶段：批量执行 FEATURES
-                    m_generator->placeFeatures(region, chunk);
-                } else if (status == ChunkStatuses::LIGHT) {
-                    // LIGHT 阶段：区块生成系统中的占位阶段
-                    // 真正的光照计算在区块加载后由 WorldLightManager::lightChunk() 完成
-                    // 参考 Moonrise: ChunkLightTask 在区块加载后异步执行光照
-                    MC_TRACE_EVENT("world.chunk_gen", "Lighting");
-                    // 不在此处执行光照计算，因为需要访问已加载的邻居区块
-                    // 光照将在 storeGeneratedChunkToMem 触发的回调中完成
-                } else if (status == ChunkStatuses::SPAWN) {
-                    // SPAWN 阶段：计算生物生成点
-                    // 参考 MC 1.16.5: SPAWN 阶段计算初始生成位置
-                    // TODO 目前简化实现
-                    MC_TRACE_EVENT("world.chunk_gen", "Spawn");
-                } else if (status == ChunkStatuses::HEIGHTMAPS) {
-                    MC_TRACE_EVENT("world.chunk_gen", "Heightmaps");
-                    chunk.updateAllHeightmaps();
-                }
-
-                chunk.setChunkStatus(status);
-            }
-        }
-
-        if (cancelSignal.load(std::memory_order_acquire)) {
-            return;
-        }
-
-        // 在高度图阶段完成后调用 spawnInitialMobs。
-        // 生成点计算依赖 MotionBlockingNoLeaves 等高度图，必须等 HEIGHTMAPS 执行完。
-        if (chunk.hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
-            if (cancelSignal.load(std::memory_order_acquire)) {
-                return;
-            }
-            MC_TRACE_EVENT("world.chunk_gen", "SpawnInitialMobs");
-            std::vector<SpawnedEntityData> entities;
-            std::vector<IChunk*> chunks;
-            std::vector<std::unique_ptr<IChunk>> neighborAdapters;
-            constexpr i32 spawnRegionRadius = 1;
-            chunks.resize(static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
-            neighborAdapters.resize(chunks.size());
-
-            getNeighborChunks(chunk.x(), chunk.z(), spawnRegionRadius, &chunk, chunks, neighborAdapters);
-            WorldGenRegion region(chunk.x(), chunk.z(), spawnRegionRadius, std::move(chunks));
-            m_generator->spawnInitialMobs(region, chunk, entities);
-
-            // 将生成的实体数据存储到 ChunkPrimer 中
-            for (auto& entityData : entities) {
-                // spdlog::info("Chunk ({}, {}): Spawned entity {} at ({}, {}, {}) with reason {}",
-                //              chunk.x(), chunk.z(),
-                //              entityData.entityTypeId, entityData.x, entityData.y, entityData.z,
-                //              entityData.spawnReason);
-                chunk.addSpawnedEntity(std::move(entityData));
-            }
-        }
-
-        // 注意：实体数据将在 finalizeChunkGeneration 中提取并添加到世界
-    });
-
     m_workerPool.start();
 }
 
@@ -689,21 +589,114 @@ void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
         return;
     }
 
-    m_workerPool.submitGenerate(x, z, targetStatus,
-        [this, key, x, z, generation = control.generation](bool success, ChunkPrimer* primer) {
+    // 创建生成任务
+    auto task = std::make_unique<ChunkGenerateTask>(x, z, targetStatus,
+        [this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            // 按阶段生成
+            const auto& allStatuses = ChunkStatus::getAll();
+            for (const auto& status : allStatuses) {
+                if (cancelSignal.load(std::memory_order_acquire)) {
+                    return;
+                }
+
+                if (status.ordinal() > targetStatus.ordinal()) {
+                    break;
+                }
+
+                if (!chunk.hasCompletedStatus(status)) {
+                    const i32 regionRadius = std::max(0, status.taskRange());
+                    std::vector<IChunk*> chunks;
+                    std::vector<std::unique_ptr<IChunk>> neighborAdapters;
+                    chunks.resize(static_cast<size_t>((regionRadius * 2 + 1) * (regionRadius * 2 + 1)), nullptr);
+                    neighborAdapters.resize(chunks.size());
+
+                    getNeighborChunks(chunk.x(), chunk.z(), regionRadius, &chunk, chunks, neighborAdapters);
+                    WorldGenRegion region(chunk.x(), chunk.z(), regionRadius, std::move(chunks));
+
+                    // 执行生成
+                    if (status == ChunkStatuses::STRUCTURE_STARTS) {
+                        m_generator->generateStructureStarts(region, chunk);
+                    } else if (status == ChunkStatuses::STRUCTURE_REFERENCES) {
+                        m_generator->generateStructureReferences(region, chunk);
+                    } else if (status == ChunkStatuses::BIOMES) {
+                        m_generator->generateBiomes(region, chunk);
+                    } else if (status == ChunkStatuses::NOISE) {
+                        m_generator->generateNoise(region, chunk);
+                    } else if (status == ChunkStatuses::SURFACE) {
+                        m_generator->buildSurface(region, chunk);
+                    } else if (status == ChunkStatuses::CARVERS) {
+                        m_generator->applyCarvers(region, chunk, false);
+                    } else if (status == ChunkStatuses::LIQUID_CARVERS) {
+                        m_generator->applyCarvers(region, chunk, true);
+                    } else if (status == ChunkStatuses::FEATURES) {
+                        m_generator->placeFeatures(region, chunk);
+                    } else if (status == ChunkStatuses::LIGHT) {
+                        MC_TRACE_EVENT("world.chunk_gen", "Lighting");
+                    } else if (status == ChunkStatuses::SPAWN) {
+                        MC_TRACE_EVENT("world.chunk_gen", "Spawn");
+                    } else if (status == ChunkStatuses::HEIGHTMAPS) {
+                        MC_TRACE_EVENT("world.chunk_gen", "Heightmaps");
+                        chunk.updateAllHeightmaps();
+                    }
+
+                    chunk.setChunkStatus(status);
+                }
+            }
+
+            if (cancelSignal.load(std::memory_order_acquire)) {
+                return;
+            }
+
+            // 在高度图阶段完成后调用 spawnInitialMobs
+            if (chunk.hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
+                if (cancelSignal.load(std::memory_order_acquire)) {
+                    return;
+                }
+                MC_TRACE_EVENT("world.chunk_gen", "SpawnInitialMobs");
+                std::vector<SpawnedEntityData> entities;
+                std::vector<IChunk*> chunks;
+                std::vector<std::unique_ptr<IChunk>> neighborAdapters;
+                constexpr i32 spawnRegionRadius = 1;
+                chunks.resize(static_cast<size_t>((spawnRegionRadius * 2 + 1) * (spawnRegionRadius * 2 + 1)), nullptr);
+                neighborAdapters.resize(chunks.size());
+
+                getNeighborChunks(chunk.x(), chunk.z(), spawnRegionRadius, &chunk, chunks, neighborAdapters);
+                WorldGenRegion region(chunk.x(), chunk.z(), spawnRegionRadius, std::move(chunks));
+                m_generator->spawnInitialMobs(region, chunk, entities);
+
+                for (auto& entityData : entities) {
+                    chunk.addSpawnedEntity(std::move(entityData));
+                }
+            }
+        });
+
+    // 提交任务到线程池
+    util::TaskPriority taskPriority = static_cast<util::TaskPriority>(priority);
+
+    m_workerPool.submit(std::move(task),
+        [this, key, x, z, generation = control.generation](bool success, util::ITask* task) {
             ChunkData* stored = nullptr;
+            ChunkPrimer* primer = nullptr;
+
+            // 从任务中获取结果
+            if (success && task) {
+                auto* genTask = static_cast<ChunkGenerateTask*>(task);
+                auto result = genTask->takeResult();
+                if (result) {
+                    primer = result.get();
+                    stored = finalizeChunkGeneration(x, z, *primer);
+                }
+            }
 
             SingleChunkLifecycleManager* singleChunkLifecycleManager = getSingleChunkLifecycleManager(x, z);
             if (singleChunkLifecycleManager && !singleChunkLifecycleManager->tryStartRequest(generation)) {
                 success = false;
+                stored = nullptr;
             }
 
             if (singleChunkLifecycleManager && !singleChunkLifecycleManager->isGenerationCurrent(generation)) {
                 success = false;
-            }
-
-            if (success && primer) {
-                stored = finalizeChunkGeneration(x, z, *primer);
+                stored = nullptr;
             }
 
             PendingGeneration pending;
@@ -744,8 +737,8 @@ void ServerChunkManager::requestChunkGeneration(ChunkCoord x, ChunkCoord z,
                 }
             }
         },
-        control.cancelToken,
-        priority);
+        taskPriority,
+        control.cancelToken);
 }
 
 void ServerChunkManager::cancelPendingGeneration(ChunkCoord x, ChunkCoord z)

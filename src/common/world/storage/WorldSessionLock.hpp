@@ -10,14 +10,14 @@ namespace mc::world::storage {
  * @brief 世界会话锁
  *
  * RAII 包装器，用于检测和获取世界目录的独占访问权。
+ * 使用平台特定的文件锁实现跨进程互斥：
+ * - Unix: flock(LOCK_EX | LOCK_NB)
+ * - Windows: LockFileEx
+ *
  * 参考原版 SessionLockManager 实现：
  * - 锁文件为 session.lock
  * - 创建时写入固定标识
- * - 平台支持时使用文件锁
  * - 析构时释放锁
- *
- * 注意：第一版只实现同进程可检测的 session.lock 文件语义，
- * 跨进程文件锁可分阶段增强。
  */
 class WorldSessionLock {
 public:
@@ -69,10 +69,17 @@ public:
     void release();
 
 private:
-    WorldSessionLock(std::filesystem::path worldDir, bool hasFileLock);
+    WorldSessionLock(std::filesystem::path worldDir);
+
+    // 平台特定的文件句柄
+#ifdef _WIN32
+    void* m_fileHandle;  // HANDLE
+#else
+    int m_fd;  // file descriptor
+#endif
 
     std::filesystem::path m_worldDir;
-    bool m_hasFileLock;
+    std::filesystem::path m_lockPath;
     bool m_valid;
 };
 

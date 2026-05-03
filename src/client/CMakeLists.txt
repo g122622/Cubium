@@ -326,7 +326,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkWorkerPool.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp

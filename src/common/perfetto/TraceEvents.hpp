@@ -377,3 +377,23 @@
 #define MC_TRACE_SERVER_SOUND_EVENT(name, ...)    ((void)0)
 #define MC_TRACE_CLIENT_SOUND_EVENT(name, ...)    ((void)0)
 #endif
+
+// ============================================================================
+// 通用任务池追踪宏
+// ============================================================================
+
+#if MC_ENABLE_TRACING
+#define MC_TRACE_WORKER_POOL_EVENT(name, ...)     MC_TRACE_EVENT("worker_pool", name, ##__VA_ARGS__)
+#define MC_TRACE_WORKER_POOL_COUNTER(name, value) MC_TRACE_COUNTER("worker_pool", name, value)
+#define MC_TRACE_CHUNK_GEN_TASK(name, ...)        MC_TRACE_EVENT("worker_pool.chunk_gen", name, ##__VA_ARGS__)
+#define MC_TRACE_CHUNK_IO_TASK(name, ...)         MC_TRACE_EVENT("worker_pool.chunk_io", name, ##__VA_ARGS__)
+#define MC_TRACE_SNAPSHOT_TASK(name, ...)         MC_TRACE_EVENT("worker_pool.snapshot", name, ##__VA_ARGS__)
+#define MC_TRACE_DB_TASK(name, ...)               MC_TRACE_EVENT("worker_pool.db", name, ##__VA_ARGS__)
+#else
+#define MC_TRACE_WORKER_POOL_EVENT(name, ...)     ((void)0)
+#define MC_TRACE_WORKER_POOL_COUNTER(name, value) ((void)0)
+#define MC_TRACE_CHUNK_GEN_TASK(name, ...)        ((void)0)
+#define MC_TRACE_CHUNK_IO_TASK(name, ...)         ((void)0)
+#define MC_TRACE_SNAPSHOT_TASK(name, ...)         ((void)0)
+#define MC_TRACE_DB_TASK(name, ...)               ((void)0)
+#endif

@@ -257,6 +257,8 @@ add_executable(mc_tests
     # 鐜╁绉诲姩娴嬭瘯
     common/entity/PlayerMovementTest.cpp
     # Assert搴撴祴璇?    common/util/assert/AssertTest.cpp
+    # ServerWorkerPool 测试
+    common/util/thread/ServerWorkerPoolTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    common/world/gen/DebugChunkGeneratorTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
     client/world/color/BiomeColorsTest.cpp
@@ -296,7 +298,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -900,7 +903,8 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp

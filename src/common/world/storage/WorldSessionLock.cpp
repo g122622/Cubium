@@ -2,52 +2,121 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/file.h>
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
 namespace mc::world::storage {
+
+WorldSessionLock::WorldSessionLock(std::filesystem::path worldDir)
+    : m_worldDir(std::move(worldDir))
+    , m_valid(false)
+{
+#ifdef _WIN32
+    m_fileHandle = INVALID_HANDLE_VALUE;
+#else
+    m_fd = -1;
+#endif
+}
 
 Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& worldDir)
 {
     std::error_code ec;
-    std::filesystem::path lockPath = worldDir / "session.lock";
 
     // 确保世界目录存在
     if (!std::filesystem::exists(worldDir, ec)) {
         std::filesystem::create_directories(worldDir, ec);
     }
 
-    // 检查锁文件是否存在
-    bool hasFileLock = false;
+    std::filesystem::path lockPath = worldDir / "session.lock";
 
-    // 第一版：仅通过文件存在与否判断锁定
-    // 后续版本可添加跨进程文件锁支持
-    if (std::filesystem::exists(lockPath, ec)) {
-        // 锁文件已存在，说明可能被锁定
-        // 尝试读取内容判断是否是当前进程的锁
-        std::ifstream lockFile(lockPath, std::ios::binary);
-        if (lockFile.is_open()) {
-            // 锁文件存在，我们认为世界已被锁定
-            // 注意：第一版不实现跨进程锁，这里总是返回失败
-            spdlog::warn("WorldSessionLock: {} is already locked", worldDir.string());
-            // 对于第一版，我们允许覆盖锁（用于开发调试）
-            // 后续应返回错误
+    WorldSessionLock lock(worldDir);
+    lock.m_lockPath = lockPath;
+
+#ifdef _WIN32
+    // Windows: 使用 LockFileEx 实现跨进程锁
+    HANDLE hFile = CreateFileW(
+        lockPath.wstring().c_str(),
+        GENERIC_READ | GENERIC_WRITE,
+        0,  // 不共享
+        nullptr,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        DWORD err = GetLastError();
+        if (err == ERROR_SHARING_VIOLATION) {
+            spdlog::warn("WorldSessionLock: {} is already locked by another process", worldDir.string());
+            return Error(ErrorCode::WorldLocked, "World is locked by another process");
         }
+        spdlog::error("WorldSessionLock: Failed to create lock file at {} (error: {})",
+                      lockPath.string(), err);
+        return Error(ErrorCode::PermissionDenied, "Failed to create session lock");
     }
 
-    // 创建/覆盖锁文件
-    {
-        std::ofstream lockFile(lockPath, std::ios::binary | std::ios::trunc);
-        if (lockFile.is_open()) {
-            // 写入固定标识（雪花符号，参考原版）
-            const char* snowman = "☃";
-            lockFile.write(snowman, 3);
-            lockFile.close();
-            hasFileLock = true;
-        } else {
-            spdlog::error("WorldSessionLock: Failed to create lock file at {}", lockPath.string());
-            return Error(ErrorCode::PermissionDenied, "Failed to create session lock");
+    // 尝试获取独占锁
+    OVERLAPPED overlapped = {};
+    overlapped.Offset = 0;
+    overlapped.OffsetHigh = 0;
+    overlapped.hEvent = nullptr;
+
+    if (!LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+                    0, MAXDWORD, MAXDWORD, &overlapped)) {
+        DWORD err = GetLastError();
+        CloseHandle(hFile);
+        if (err == ERROR_LOCK_VIOLATION) {
+            spdlog::warn("WorldSessionLock: {} is already locked by another process", worldDir.string());
+            return Error(ErrorCode::WorldLocked, "World is locked by another process");
         }
+        spdlog::error("WorldSessionLock: Failed to acquire lock (error: {})", err);
+        return Error(ErrorCode::PermissionDenied, "Failed to acquire file lock");
     }
 
-    return WorldSessionLock(worldDir, hasFileLock);
+    // 写入标识
+    const char* snowman = "☃";
+    DWORD bytesWritten = 0;
+    WriteFile(hFile, snowman, 3, &bytesWritten, nullptr);
+
+    lock.m_fileHandle = hFile;
+    lock.m_valid = true;
+
+#else
+    // Unix: 使用 flock 实现跨进程锁
+    int fd = open(lockPath.c_str(), O_RDWR | O_CREAT, 0644);
+    if (fd < 0) {
+        spdlog::error("WorldSessionLock: Failed to create lock file at {} (errno: {})",
+                      lockPath.string(), errno);
+        return Error(ErrorCode::PermissionDenied, "Failed to create session lock");
+    }
+
+    // 尝试获取独占锁（非阻塞）
+    if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
+        int err = errno;
+        close(fd);
+        if (err == EWOULDBLOCK || err == EAGAIN) {
+            spdlog::warn("WorldSessionLock: {} is already locked by another process", worldDir.string());
+            return Error(ErrorCode::WorldLocked, "World is locked by another process");
+        }
+        spdlog::error("WorldSessionLock: Failed to acquire lock (errno: {})", err);
+        return Error(ErrorCode::PermissionDenied, "Failed to acquire file lock");
+    }
+
+    // 写入标识
+    const char* snowman = "☃";
+    write(fd, snowman, 3);
+
+    lock.m_fd = fd;
+    lock.m_valid = true;
+#endif
+
+    spdlog::info("WorldSessionLock: Acquired lock for {}", worldDir.string());
+    return lock;
 }
 
 bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
@@ -59,18 +128,62 @@ bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
         return false;
     }
 
-    // 第一版仅检查文件存在
-    // 后续版本可使用平台文件锁检查
-    return true;
+#ifdef _WIN32
+    // Windows: 尝试打开文件并获取锁
+    HANDLE hFile = CreateFileW(
+        lockPath.wstring().c_str(),
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        return true;  // 无法打开，可能被锁定
+    }
+
+    OVERLAPPED overlapped = {};
+    overlapped.Offset = 0;
+    overlapped.OffsetHigh = 0;
+    overlapped.hEvent = nullptr;
+
+    BOOL locked = LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+                              0, MAXDWORD, MAXDWORD, &overlapped);
+    CloseHandle(hFile);
+
+    return !locked;  // 如果无法获取锁，则已锁定
+#else
+    // Unix: 尝试获取锁
+    int fd = open(lockPath.c_str(), O_RDWR);
+    if (fd < 0) {
+        return true;  // 无法打开，可能被锁定
+    }
+
+    bool locked = (flock(fd, LOCK_EX | LOCK_NB) < 0);
+    if (!locked) {
+        flock(fd, LOCK_UN);  // 释放刚获取的锁
+    }
+    close(fd);
+
+    return locked;
+#endif
 }
 
 WorldSessionLock::WorldSessionLock(WorldSessionLock&& other) noexcept
     : m_worldDir(std::move(other.m_worldDir))
-    , m_hasFileLock(other.m_hasFileLock)
+    , m_lockPath(std::move(other.m_lockPath))
     , m_valid(other.m_valid)
 {
+#ifdef _WIN32
+    m_fileHandle = other.m_fileHandle;
+    other.m_fileHandle = INVALID_HANDLE_VALUE;
+#else
+    m_fd = other.m_fd;
+    other.m_fd = -1;
+#endif
     other.m_valid = false;
-    other.m_hasFileLock = false;
 }
 
 WorldSessionLock& WorldSessionLock::operator=(WorldSessionLock&& other) noexcept
@@ -79,11 +192,18 @@ WorldSessionLock& WorldSessionLock::operator=(WorldSessionLock&& other) noexcept
         release();
 
         m_worldDir = std::move(other.m_worldDir);
-        m_hasFileLock = other.m_hasFileLock;
+        m_lockPath = std::move(other.m_lockPath);
         m_valid = other.m_valid;
 
+#ifdef _WIN32
+        m_fileHandle = other.m_fileHandle;
+        other.m_fileHandle = INVALID_HANDLE_VALUE;
+#else
+        m_fd = other.m_fd;
+        other.m_fd = -1;
+#endif
+
         other.m_valid = false;
-        other.m_hasFileLock = false;
     }
     return *this;
 }
@@ -109,27 +229,36 @@ void WorldSessionLock::release()
         return;
     }
 
-    if (m_hasFileLock) {
-        std::error_code ec;
-        std::filesystem::path lockPath = m_worldDir / "session.lock";
+#ifdef _WIN32
+    if (m_fileHandle != INVALID_HANDLE_VALUE) {
+        OVERLAPPED overlapped = {};
+        overlapped.Offset = 0;
+        overlapped.OffsetHigh = 0;
+        overlapped.hEvent = nullptr;
 
-        if (std::filesystem::exists(lockPath, ec)) {
-            std::filesystem::remove(lockPath, ec);
-            if (ec) {
-                spdlog::warn("WorldSessionLock: Failed to remove lock file: {}", ec.message());
-            }
+        UnlockFileEx(m_fileHandle, 0, MAXDWORD, MAXDWORD, &overlapped);
+        CloseHandle(m_fileHandle);
+        m_fileHandle = INVALID_HANDLE_VALUE;
+    }
+#else
+    if (m_fd >= 0) {
+        flock(m_fd, LOCK_UN);
+        close(m_fd);
+        m_fd = -1;
+    }
+#endif
+
+    // 删除锁文件
+    std::error_code ec;
+    if (std::filesystem::exists(m_lockPath, ec)) {
+        std::filesystem::remove(m_lockPath, ec);
+        if (ec) {
+            spdlog::warn("WorldSessionLock: Failed to remove lock file: {}", ec.message());
         }
-        m_hasFileLock = false;
     }
 
+    spdlog::info("WorldSessionLock: Released lock for {}", m_worldDir.string());
     m_valid = false;
-}
-
-WorldSessionLock::WorldSessionLock(std::filesystem::path worldDir, bool hasFileLock)
-    : m_worldDir(std::move(worldDir))
-    , m_hasFileLock(hasFileLock)
-    , m_valid(true)
-{
 }
 
 } // namespace mc::world::storage

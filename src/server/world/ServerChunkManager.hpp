@@ -5,7 +5,8 @@
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "ChunkWorkerPool.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
+#include "ChunkGenerateTask.hpp"
 #include <unordered_map>
 #include <memory>
 #include <future>
@@ -497,7 +498,7 @@ private:
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
 
     // Worker 线程池
-    ChunkWorkerPool m_workerPool;
+    util::ServerWorkerPool m_workerPool;
 
     // 统计
     u64 m_currentTick = 0;

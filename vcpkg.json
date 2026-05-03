@@ -13,7 +13,8 @@
     "stb",
     "zlib",
     "libarchive",
-    "openal-soft"
+    "openal-soft",
+    "rocksdb"
   ],
   "features": {
     "vulkan": {
