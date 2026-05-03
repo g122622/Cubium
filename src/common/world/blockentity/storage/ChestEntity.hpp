@@ -3,6 +3,8 @@
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/storage/DoubleSidedInventory.hpp"
+#include "resource/ResourceLocation.hpp"
+#include "util/math/random/Random.hpp"
 #include <memory>
 
 namespace mc {
@@ -21,8 +23,10 @@ namespace blockentity {
  * - 打开计数和盖子动画
  * - 红石比较器信号
  * - 锁定功能
+ * - 战利品表填充
  *
  * 参考: net.minecraft.tileentity.ChestTileEntity
+ * 参考: net.minecraft.tileentity.LockableLootTileEntity
  *
  * 盖子动画:
  * - m_lidAngle 从0.0到1.0表示打开程度
@@ -32,6 +36,10 @@ namespace blockentity {
  * - 当两个箱子相邻放置时自动合并
  * - 使用ChestType属性标识LEFT/RIGHT/SINGLE
  * - 打开时创建DoubleSidedInventory包装两个箱子
+ *
+ * 战利品表:
+ * - 结构生成时设置 lootTable 和 lootTableSeed
+ * - 玩家首次打开时填充物品
  */
 class ChestEntity : public LockableBlockEntity {
 public:
@@ -112,6 +120,49 @@ public:
      */
     [[nodiscard]] i32 getComparatorSignal(IWorld& world) const;
 
+    // ========== 战利品表接口 ==========
+
+    /**
+     * @brief 检查是否有战利品表
+     * @return 如果设置了战利品表返回true
+     */
+    [[nodiscard]] bool hasLootTable() const { return m_hasLootTable; }
+
+    /**
+     * @brief 获取战利品表资源位置
+     * @return 战利品表资源位置
+     */
+    [[nodiscard]] const ResourceLocation& getLootTable() const { return m_lootTable; }
+
+    /**
+     * @brief 获取战利品表种子
+     * @return 种子值
+     */
+    [[nodiscard]] i64 getLootTableSeed() const { return m_lootTableSeed; }
+
+    /**
+     * @brief 设置战利品表
+     *
+     * 参考 MC 1.16.5: LockableLootTileEntity.setLootTable
+     * 结构生成时调用此方法设置战利品表。
+     * 玩家首次打开时，物品将从战利品表生成。
+     *
+     * @param lootTable 战利品表资源位置
+     * @param seed 随机种子（通常使用结构生成的随机数）
+     */
+    void setLootTable(const ResourceLocation& lootTable, i64 seed);
+
+    /**
+     * @brief 填充战利品
+     *
+     * 如果设置了战利品表且尚未填充，则填充物品。
+     * 在玩家首次打开时调用。
+     *
+     * @param world 世界引用
+     * @param rng 随机数生成器
+     */
+    void fillWithLoot(IWorld& world, math::Random& rng);
+
     // ========== 动画支持 ==========
 
     /**
@@ -168,6 +219,11 @@ private:
     f32 m_lidAngle = 0.0f;            ///< 当前盖子角度 (0-1)
     f32 m_prevLidAngle = 0.0f;        ///< 上一帧盖子角度
     i32 m_ticksSinceSync = 0;         ///< 同步计数器
+
+    // 战利品表支持
+    bool m_hasLootTable = false;              ///< 是否设置了战利品表
+    ResourceLocation m_lootTable;             ///< 战利品表资源位置
+    i64 m_lootTableSeed = 0;                  ///< 战利品表种子
 };
 
 } // namespace blockentity

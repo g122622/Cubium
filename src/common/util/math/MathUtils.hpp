@@ -492,21 +492,63 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 // ============================================================================
 
 /**
- * @brief 计算方块位置的确定性哈希值
+ * @brief 计算方块位置的确定性哈希值（用于结构完整度等随机数种子）
  *
- * 参考 MC 1.16.5: 多处使用此哈希算法用于位置相关的随机数生成
- * 例如: Structure.setSeedFromPos, IntegrityProcessor, RuleStructureProcessor
+ * 参考 MC 1.16.5: MathHelper.getPositionRandom / getCoordinateRandom
+ * 用于位置相关的随机数生成，确保同一位置的方块在相同种子下行为一致
+ *
+ * 算法: i = (x * 3129871) XOR (z * 116129781) XOR y
+ *       i = i * i * 42317861 + i * 11
+ *       return i >> 16
  *
  * @param x X坐标
  * @param y Y坐标
  * @param z Z坐标
- * @return 64位哈希值
+ * @return 64位哈希值，可用作随机数种子
  */
-[[nodiscard]] inline constexpr u64 hashBlockPos(i32 x, i32 y, i32 z) noexcept
+[[nodiscard]] inline u64 hashBlockPos(i32 x, i32 y, i32 z) noexcept
 {
-    return static_cast<u64>(x) * 341873128712ULL ^
-           static_cast<u64>(y) * 132897987541ULL ^
-           static_cast<u64>(z) * 1024512789ULL;
+    // MC 1.16.5: MathHelper.getCoordinateRandom
+    // 注意：MC 使用 (x * 3129871) XOR (z * 116129781) XOR y
+    // 但这里的 XOR 操作顺序很重要
+    i64 i = static_cast<i64>(x * 3129871) ^
+            (static_cast<i64>(z) * 116129781LL) ^
+            static_cast<i64>(y);
+    i = i * i * 42317861LL + i * 11LL;
+    return static_cast<u64>(i >> 16);
+}
+
+/**
+ * @brief 计算方块位置的确定性随机种子（MC 1.16.5 兼容）
+ *
+ * 参考 MC 1.16.5: MathHelper.getPositionRandom
+ * 用于结构完整度、规则处理器等需要基于位置确定性随机的场景
+ *
+ * @param x X坐标
+ * @param y Y坐标
+ * @param z Z坐标
+ * @return 可用于 Random 构造函数的种子值
+ */
+[[nodiscard]] inline u64 getPositionRandom(i32 x, i32 y, i32 z) noexcept
+{
+    return hashBlockPos(x, y, z);
+}
+
+/**
+ * @brief 计算方块位置的确定性随机种子（仅 XZ 坐标）
+ *
+ * 参考 MC 1.16.5: 用于某些不需要 Y 坐标的场景
+ *
+ * @param x X坐标
+ * @param z Z坐标
+ * @return 可用于 Random 构造函数的种子值
+ */
+[[nodiscard]] inline u64 getPositionRandomXZ(i32 x, i32 z) noexcept
+{
+    i64 i = static_cast<i64>(x * 3129871) ^
+            (static_cast<i64>(z) * 116129781LL);
+    i = i * i * 42317861LL + i * 11LL;
+    return static_cast<u64>(i >> 16);
 }
 
 } // namespace mc::math

@@ -120,6 +120,24 @@ public:
     [[nodiscard]] const IWorld* getWorld() const { return m_world; }
     PlacementSettings& setWorld(const IWorld* world) { m_world = world; return *this; }
 
+    /**
+     * @brief 获取确定性随机数生成器
+     *
+     * 参考 MC 1.16.5: PlacementSettings.getRandom(BlockPos)
+     * 如果设置了预设随机数，则返回预设的；否则基于位置种子创建
+     *
+     * @param pos 位置种子
+     * @return 随机数生成器
+     */
+    [[nodiscard]] math::Random getRandom(const BlockPos& pos) const;
+
+    /**
+     * @brief 设置预设随机数生成器
+     *
+     * 当需要固定随机序列时使用
+     */
+    PlacementSettings& setRandom(math::Random* random) { m_random = random; return *this; }
+
     [[nodiscard]] PlacementSettings copy() const;
 
     [[nodiscard]] const StructureProcessorList* getProcessors() const { return m_processors; }
@@ -135,6 +153,7 @@ private:
     u32 m_blockUpdateFlags = 18;  // 默认标志：更新邻居和通知观察者
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;  // 可选的世界读取器
+    math::Random* m_random = nullptr;  // 可选的预设随机数生成器
 };
 
 /**

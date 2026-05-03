@@ -240,6 +240,16 @@ PlacementSettings& PlacementSettings::setKeepLiquids(bool keep) {
     return *this;
 }
 
+math::Random PlacementSettings::getRandom(const BlockPos& pos) const {
+    // MC 1.16.5: PlacementSettings.getRandom(BlockPos)
+    // 如果设置了预设随机数，则返回副本；否则基于位置种子创建
+    if (m_random) {
+        return *m_random;
+    }
+    // 使用位置种子创建确定性随机数
+    return math::Random(math::getPositionRandom(pos.x, pos.y, pos.z));
+}
+
 PlacementSettings PlacementSettings::copy() const {
     PlacementSettings result;
     result.m_rotation = m_rotation;
@@ -251,6 +261,7 @@ PlacementSettings PlacementSettings::copy() const {
     result.m_blockUpdateFlags = m_blockUpdateFlags;
     result.m_processors = m_processors;
     result.m_world = m_world;
+    result.m_random = m_random;
     return result;
 }
 
@@ -1142,26 +1153,35 @@ IntegrityProcessor::IntegrityProcessor(f32 integrity)
 
 std::optional<ProcessedBlockInfo> IntegrityProcessor::process(
     const BlockPos& /*seedPos*/,
-    const BlockPos& pos,
+    const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // 根据完整度概率决定是否保留方块
-    // 使用位置哈希作为随机源，确保同一位置的方块在相同种子下行为一致
-    u64 hash = math::hashBlockPos(pos.x, pos.y, pos.z);
+    // MC 1.16.5: IntegrityProcessor.func_230386_a_
+    // 使用位置种子创建确定性随机数生成器
+    // 关键：使用变换后的世界坐标 (blockInfo.pos)，而非模板内坐标
+    u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
+    math::Random rng(seed);
 
-    // 将哈希映射到 [0.0, 1.0) 范围
-    f32 chance = static_cast<f32>((hash & 0xFFFFFFFF) % 10000) / 10000.0f;
+    // MC 1.16.5 核心逻辑：
+    // if (this.integrity >= 1.0F) return blockInfo;  // 完整度 >= 1.0，保留所有方块
+    // if (random.nextFloat() <= this.integrity) return blockInfo;  // 随机判断
+    // return null;  // 移除方块
 
-    // MC 1.16.5: 如果随机值 >= 完整度，则跳过方块
-    // 完整度 1.0 = 保留所有方块
-    // 完整度 0.0 = 移除所有方块
-    if (chance >= m_integrity) {
-        return std::nullopt;  // 跳过此方块（模拟损坏）
+    // 完整度 >= 1.0：保留所有方块
+    if (m_integrity >= 1.0f) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
     }
 
-    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    // 随机判断是否保留方块
+    // nextFloat() 返回 [0.0, 1.0)，所以 <= integrity 的概率正好是 integrity
+    if (rng.nextFloat() <= m_integrity) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 移除方块
+    return std::nullopt;
 }
 
 // ============================================================================
@@ -1182,9 +1202,9 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(
 {
     // MC 1.16.5: RuleStructureProcessor.func_230386_a_
     // 遍历所有规则，找到第一个匹配的规则
-    // 创建确定性随机数生成器（基于位置）
-    u64 hash = math::hashBlockPos(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
-    math::Random rng(static_cast<u64>(hash));
+    // 使用位置种子创建确定性随机数生成器
+    u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
+    math::Random rng(seed);
 
     // 获取输入方块状态
     const BlockState* inputState = BlockRegistry::instance().getBlockState(rawBlockInfo.blockStateId);

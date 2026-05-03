@@ -17,6 +17,7 @@
 #include "EnumProperty.hpp"
 #include "DirectionProperty.hpp"
 #include "../Direction.hpp"
+#include "../../world/gen/jigsaw/JigsawOrientation.hpp"
 
 namespace mc {
 
@@ -1134,6 +1135,34 @@ public:
     }
 
     // ========================================================================
+    // Jigsaw 方向属性
+    // ========================================================================
+
+    /**
+     * @brief Jigsaw 方向属性
+     *
+     * MC 1.16.5: net.minecraft.state.properties.BlockStateProperties.ORIENTATION
+     * 用于 Jigsaw 方块，表示其 12 种方向组合。
+     */
+    static const EnumProperty<world::gen::jigsaw::JigsawOrientation>& ORIENTATION() {
+        static auto prop = EnumProperty<world::gen::jigsaw::JigsawOrientation>::create("orientation", {
+            world::gen::jigsaw::JigsawOrientation::DownEast,
+            world::gen::jigsaw::JigsawOrientation::DownNorth,
+            world::gen::jigsaw::JigsawOrientation::DownSouth,
+            world::gen::jigsaw::JigsawOrientation::DownWest,
+            world::gen::jigsaw::JigsawOrientation::UpEast,
+            world::gen::jigsaw::JigsawOrientation::UpNorth,
+            world::gen::jigsaw::JigsawOrientation::UpSouth,
+            world::gen::jigsaw::JigsawOrientation::UpWest,
+            world::gen::jigsaw::JigsawOrientation::WestUp,
+            world::gen::jigsaw::JigsawOrientation::EastUp,
+            world::gen::jigsaw::JigsawOrientation::NorthUp,
+            world::gen::jigsaw::JigsawOrientation::SouthUp
+        });
+        return *prop;
+    }
+
+    // ========================================================================
     // 其他布尔属性
     // ========================================================================
 
@@ -1280,4 +1309,18 @@ template<>
 struct mc::EnumProperty<mc::BlockStateProperties::NoteBlockInstrument>::Traits {
     static mc::String toString(const mc::BlockStateProperties::NoteBlockInstrument& value);
     static std::optional<mc::BlockStateProperties::NoteBlockInstrument> fromName(mc::StringView name);
+};
+
+// ============================================================================
+// JigsawOrientation 枚举特征特化
+// ============================================================================
+
+template<>
+struct mc::EnumProperty<mc::world::gen::jigsaw::JigsawOrientation>::Traits {
+    static mc::String toString(const mc::world::gen::jigsaw::JigsawOrientation& value) {
+        return mc::world::gen::jigsaw::JigsawOrientations::toString(value);
+    }
+    static std::optional<mc::world::gen::jigsaw::JigsawOrientation> fromName(mc::StringView name) {
+        return mc::world::gen::jigsaw::JigsawOrientations::fromName(name);
+    }
 };

@@ -3,6 +3,7 @@
 #include "../feature/template/TemplateManager.hpp"
 #include "../feature/template/TemplateLoader.hpp"
 #include "../../../world/IWorldWriter.hpp"
+#include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/BlockRegistry.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
@@ -17,6 +18,8 @@ namespace jigsaw {
 using feature::template_::Template;
 using feature::template_::PlacementSettings;
 using feature::template_::TemplateManager;
+using feature::template_::GravityStructureProcessor;
+using feature::template_::StructureProcessorList;
 
 // 静态模板管理器实例定义
 feature::template_::TemplateManager JigsawManager::s_templateManager;
@@ -143,6 +146,24 @@ void JigsawManager::placePieceRecursive(
                 PlacementSettings settings;
                 settings.setRotation(placed.rotation);
                 settings.setMirror(placed.mirror);
+
+                // MC 1.16.5: 对于 TerrainMatching 放置行为，自动添加 GravityStructureProcessor
+                // 参考: JigsawPattern.PlacementBehaviour.TERRAIN_MATCHING
+                // 添加 GravityStructureProcessor(Heightmap.Type.WORLD_SURFACE_WG, -1)
+                // WORLD_SURFACE_WG 对应高度图类型 0（世界表面高度图，用于世界生成）
+                StructureProcessorList processorList;
+                if (placed.piece->getPlacementBehaviour() == JigsawPlacementBehaviour::TerrainMatching) {
+                    // 添加重力处理器，使结构贴合地形
+                    // offset = -1 表示将结构底部放在地面以下一格，使其更牢固地嵌入地面
+                    processorList.addProcessor(std::make_unique<GravityStructureProcessor>(0, -1));
+                }
+                settings.setProcessors(&processorList);
+
+                // 如果 world 实现了 IWorld 接口，设置它以便 GravityStructureProcessor 可以查询高度
+                const IWorld* iworld = dynamic_cast<const IWorld*>(&world);
+                if (iworld) {
+                    settings.setWorld(iworld);
+                }
 
                 // 放置模板
                 templ->place(world, placed.position, settings, rng, 18);

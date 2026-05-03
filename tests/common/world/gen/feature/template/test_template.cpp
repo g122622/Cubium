@@ -560,6 +560,145 @@ TEST_F(TemplateTest, IntegrityProcessor_Deterministic) {
 }
 
 // ============================================================================
+// IntegrityProcessor MC 1.16.5 算法对齐测试
+// ============================================================================
+
+TEST_F(TemplateTest, IntegrityProcessor_PositionSeededRandom) {
+    // MC 1.16.5: IntegrityProcessor 使用位置种子随机
+    // 算法: seed = hashBlockPos(x, y, z); Random rng(seed); rng.nextFloat() <= integrity
+    // 这确保同一位置的结构完整度在不同生成中保持一致
+
+    IntegrityProcessor processor(0.5f);
+    PlacementSettings settings;
+
+    // 测试位置确定性：同一位置多次处理应该产生相同结果
+    BlockInfo block(BlockPos(100, 64, -200), 1);
+    auto result1 = processor.process(BlockPos(0, 0, 0), BlockPos(100, 64, -200), block, block, settings);
+    auto result2 = processor.process(BlockPos(0, 0, 0), BlockPos(100, 64, -200), block, block, settings);
+    auto result3 = processor.process(BlockPos(0, 0, 0), BlockPos(100, 64, -200), block, block, settings);
+
+    // 所得结果必须一致
+    EXPECT_EQ(result1.has_value(), result2.has_value());
+    EXPECT_EQ(result1.has_value(), result3.has_value());
+}
+
+TEST_F(TemplateTest, IntegrityProcessor_ProbabilityDistribution) {
+    // MC 1.16.5: 测试完整度概率分布
+    // 使用 0.5 完整度，在大量方块中约 50% 应被保留
+
+    IntegrityProcessor processor(0.5f);
+    PlacementSettings settings;
+
+    int totalBlocks = 1000;
+    int keptBlocks = 0;
+
+    // 使用不同位置测试
+    for (int i = 0; i < totalBlocks; ++i) {
+        BlockInfo block(BlockPos(i * 7, i % 64, i * 13), 1);
+        auto result = processor.process(BlockPos(0, 0, 0), block.pos, block, block, settings);
+        if (result.has_value()) {
+            ++keptBlocks;
+        }
+    }
+
+    // 验证保留率接近 50% (允许 ±10% 的误差)
+    f32 keepRate = static_cast<f32>(keptBlocks) / static_cast<f32>(totalBlocks);
+    EXPECT_GT(keepRate, 0.35f) << "Keep rate too low: " << keepRate;
+    EXPECT_LT(keepRate, 0.65f) << "Keep rate too high: " << keepRate;
+}
+
+TEST_F(TemplateTest, IntegrityProcessor_DifferentIntegrityValues) {
+    // MC 1.16.5: 测试不同完整度值
+    PlacementSettings settings;
+
+    // 测试 0.25 完整度
+    {
+        IntegrityProcessor processor(0.25f);
+        int kept = 0;
+        for (int i = 0; i < 200; ++i) {
+            BlockInfo block(BlockPos(i, i, i), 1);
+            if (processor.process(BlockPos(0, 0, 0), block.pos, block, block, settings)) {
+                ++kept;
+            }
+        }
+        f32 rate = static_cast<f32>(kept) / 200.0f;
+        EXPECT_GT(rate, 0.1f);
+        EXPECT_LT(rate, 0.4f);
+    }
+
+    // 测试 0.75 完整度
+    {
+        IntegrityProcessor processor(0.75f);
+        int kept = 0;
+        for (int i = 0; i < 200; ++i) {
+            BlockInfo block(BlockPos(i + 1000, i, i), 1);
+            if (processor.process(BlockPos(0, 0, 0), block.pos, block, block, settings)) {
+                ++kept;
+            }
+        }
+        f32 rate = static_cast<f32>(kept) / 200.0f;
+        EXPECT_GT(rate, 0.6f);
+        EXPECT_LT(rate, 0.9f);
+    }
+}
+
+TEST_F(TemplateTest, IntegrityProcessor_PositionSensitivity) {
+    // MC 1.16.5: 测试位置敏感性
+    // 不同位置应该产生不同的结果（至少在某些情况下）
+
+    IntegrityProcessor processor(0.5f);
+    PlacementSettings settings;
+
+    int sameResult = 0;
+    int differentResult = 0;
+
+    // 测试相邻位置
+    for (int i = 0; i < 100; ++i) {
+        BlockPos pos1(i * 2, 0, 0);
+        BlockPos pos2(i * 2 + 1, 0, 0);
+
+        BlockInfo block1(pos1, 1);
+        BlockInfo block2(pos2, 1);
+
+        auto result1 = processor.process(BlockPos(0, 0, 0), pos1, block1, block1, settings);
+        auto result2 = processor.process(BlockPos(0, 0, 0), pos2, block2, block2, settings);
+
+        if (result1.has_value() == result2.has_value()) {
+            ++sameResult;
+        } else {
+            ++differentResult;
+        }
+    }
+
+    // 至少应该有一些不同的结果
+    EXPECT_GT(differentResult, 0) << "Position sensitivity test failed: all positions gave same result";
+}
+
+TEST_F(TemplateTest, IntegrityProcessor_MultipleProcessorsChained) {
+    // MC 1.16.5: 测试处理器链中的 IntegrityProcessor
+    StructureProcessorList list;
+
+    // 先添加空气忽略处理器
+    list.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(std::vector<u32>{0}));
+
+    // 再添加完整度处理器
+    list.addProcessor(std::make_unique<IntegrityProcessor>(0.7f));
+
+    PlacementSettings settings;
+    settings.setProcessors(&list);
+
+    // 测试非空气方块
+    BlockInfo stoneInfo(BlockPos(10, 20, 30), 1);  // 假设石头 ID != 0
+    auto result = list.process(BlockPos(0, 0, 0), BlockPos(10, 20, 30), stoneInfo, stoneInfo, settings);
+
+    // 结果可能是保留或移除，取决于随机
+    // 但不应该因为空气忽略处理器而移除
+    // 验证结果一致
+    auto result2 = list.process(BlockPos(0, 0, 0), BlockPos(10, 20, 30), stoneInfo, stoneInfo, settings);
+    EXPECT_EQ(result.has_value(), result2.has_value());
+}
+
+// ============================================================================
 // StructureProcessorList 测试
 // ============================================================================
 

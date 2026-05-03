@@ -71,6 +71,18 @@ src/common/util/math/
   - `distanceHorizontalSq()` - 水平距离平方
   - `distanceSq()` - 3D距离平方
 
+- **位置随机种子**（MC 1.16.5 MathHelper.getCoordinateRandom）
+  - `hashBlockPos(x, y, z)` - 计算方块位置的确定性哈希值
+  - `getPositionRandom(x, y, z)` - 获取位置随机种子（用于结构完整度等）
+  - `getPositionRandomXZ(x, z)` - 仅使用 XZ 坐标的位置随机种子
+
+- **角度插值**
+  - `lerpAngleRadians()` - 角度插值（处理角度环绕）
+
+- **地板除/地板模**（MC 1.16.5 MathHelper.floorDiv/floorMod）
+  - `floorDiv()` - 地板除运算（向负无穷取整）
+  - `floorMod()` - 地板模运算（结果与除数同号）
+
 #### Vector2.hpp
 
 **职责**：2D向量类，用于平面位置、方向、UV坐标等。
@@ -376,6 +388,13 @@ u64 chunkId = chunkPosToId(chunkX, chunkZ);
 
 // 角度处理
 f32 wrapped = wrapDegrees(540.0f);  // 180.0f
+
+// 位置随机种子（用于结构生成、完整度计算等）
+u64 seed = mc::math::getPositionRandom(x, y, z);
+mc::math::Random rng(seed);
+if (rng.nextFloat() <= integrity) {
+    // 保留方块
+}
 ```
 
 #### 向量运算

@@ -5,6 +5,7 @@
 #include "world/block/blocks/ChestBlock.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
+#include "entity/loot/LootTable.hpp"
 #include "util/property/Properties.hpp"
 #include <cmath>
 
@@ -276,6 +277,15 @@ bool ChestEntity::load(const nlohmann::json& data) {
         }
     }
 
+    // 加载战利品表
+    if (data.contains("LootTable") && data["LootTable"].is_string()) {
+        m_lootTable = ResourceLocation(data["LootTable"].get<String>());
+        m_hasLootTable = true;
+    }
+    if (data.contains("LootTableSeed") && data["LootTableSeed"].is_number_integer()) {
+        m_lootTableSeed = data["LootTableSeed"].get<i64>();
+    }
+
     return true;
 }
 
@@ -294,6 +304,12 @@ void ChestEntity::save(nlohmann::json& data) const {
         itemsJson.push_back(std::move(itemJson));
     }
     data["Items"] = std::move(itemsJson);
+
+    // 保存战利品表
+    if (m_hasLootTable) {
+        data["LootTable"] = m_lootTable.toString();
+        data["LootTableSeed"] = m_lootTableSeed;
+    }
 }
 
 std::unique_ptr<BlockEntity> ChestEntity::clone() const {
@@ -339,6 +355,45 @@ void ChestEntity::playSound(IWorld& world, bool open) {
     // 当前 IWorld 尚未提供统一音效事件接口。
     // 先通过状态广播保持动画/红石一致，避免遗漏行为更新。
     broadcastChestState(world, open);
+}
+
+// ========== 战利品表 ==========
+
+void ChestEntity::setLootTable(const ResourceLocation& lootTable, i64 seed) {
+    m_hasLootTable = true;
+    m_lootTable = lootTable;
+    m_lootTableSeed = seed;
+    setChanged();
+}
+
+void ChestEntity::fillWithLoot(IWorld& world, math::Random& rng) {
+    // 如果没有战利品表或已经填充过，则不执行
+    if (!m_hasLootTable) {
+        return;
+    }
+
+    // 检查是否有物品（已填充过）
+    bool hasItems = false;
+    for (i32 i = 0; i < CHEST_SIZE; ++i) {
+        if (!m_inventory.getItem(i).isEmpty()) {
+            hasItems = true;
+            break;
+        }
+    }
+
+    if (hasItems) {
+        return;
+    }
+
+    // TODO: 当 LootTableManager 单例实现后，使用战利品表填充物品
+    // 当前仅清除战利品表标记，保留 NBT 数据供后续填充
+    // 完整实现需要：
+    // 1. LootTableManager::instance() 单例
+    // 2. 从数据包加载战利品表
+    // 3. 使用种子生成物品
+
+    MC_UNUSED(world);
+    MC_UNUSED(rng);
 }
 
 } // namespace blockentity

@@ -69,8 +69,22 @@ class PlacementSettings {
     BlockPos m_centerOffset;       // 中心偏移
     u32 m_blockUpdateFlags;        // 方块更新标志
     const StructureProcessorList* m_processors; // 处理器链
+    const IWorld* m_world;         // 可选的世界读取器
+    math::Random* m_random;        // 可选的预设随机数生成器
 };
 ```
+
+**随机数生成**：
+
+`getRandom(BlockPos)` 方法用于获取确定性随机数生成器：
+
+```cpp
+// 如果设置了预设随机数，返回副本
+// 否则基于位置种子创建新的 Random
+math::Random rng = settings.getRandom(pos);
+```
+
+此方法用于处理器链中需要确定性随机的场景（如 IntegrityProcessor、RuleStructureProcessor）。
 
 ### StructureProcessor - 结构处理器
 
@@ -148,6 +162,37 @@ public:
 - 同一结构的不同变体（如村庄房屋的不同材质版本）
 - 结构生成时随机选择一个变体
 - 减少重复的结构文件
+
+## 位置随机种子
+
+结构生成中的确定性随机使用 `MathUtils.hpp` 中的位置哈希函数：
+
+### hashBlockPos / getPositionRandom
+
+```cpp
+#include "util/math/MathUtils.hpp"
+
+// 计算方块位置的确定性哈希值
+u64 seed = math::hashBlockPos(x, y, z);
+
+// 等价于 hashBlockPos，用于结构完整度
+u64 seed = math::getPositionRandom(x, y, z);
+
+// 仅使用 XZ 坐标的版本
+u64 seed = math::getPositionRandomXZ(x, z);
+```
+
+**算法** (MC 1.16.5 `MathHelper.getCoordinateRandom`)：
+```
+i = (x * 3129871) XOR (z * 116129781) XOR y
+i = i * i * 42317861 + i * 11
+return i >> 16
+```
+
+**用途**：
+- IntegrityProcessor：完整度处理
+- RuleStructureProcessor：规则匹配随机
+- 结构变体选择
 
 ## 坐标变换
 
@@ -412,6 +457,34 @@ auto ageProcessor = std::make_unique<BlockAgeProcessor>(0.3f);
 - 石砖墙 → 苔藓石砖墙（mossiness概率，需要MOSSY_STONE_BRICK_WALL注册）
 
 **MC 1.16.5 参考**: `BlockAgeProcessor.java` / `BlockMosinessProcessor.java`
+
+### IntegrityProcessor
+
+结构完整度处理器，根据完整度概率性移除方块。核心算法使用基于位置的确定性随机：
+
+```cpp
+// 30% 完整度 - 70% 的方块会被移除
+auto integrityProcessor = std::make_unique<IntegrityProcessor>(0.3f);
+```
+
+**算法详解**:
+
+MC 1.16.5 的完整度计算使用位置种子随机：
+
+1. 计算位置种子：`seed = hashBlockPos(x, y, z)`
+2. 创建随机数生成器：`Random rng(seed)`
+3. 概率判断：`if (rng.nextFloat() <= integrity) 保留方块`
+
+位置哈希算法 (`MathHelper.getCoordinateRandom`)：
+```cpp
+i64 i = (x * 3129871) ^ (z * 116129781) ^ y;
+i = i * i * 42317861 + i * 11;
+return i >> 16;
+```
+
+**重要**: 必须使用 `Random::nextFloat()` 而非哈希值取模，以保证正确的概率分布。
+
+**MC 1.16.5 参考**: `IntegrityProcessor.java`, `MathHelper.getPositionRandom`
 
 ### BlackstoneReplacementProcessor
 
