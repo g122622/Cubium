@@ -137,6 +137,17 @@ public:
     }
 
     /**
+     * @brief 计算到指定坐标的直线距离平方
+     * 避免创建临时 PathPoint 对象
+     */
+    [[nodiscard]] f32 distanceToSq(i32 x, i32 y, i32 z) const {
+        f32 dx = static_cast<f32>(m_x - x);
+        f32 dy = static_cast<f32>(m_y - y);
+        f32 dz = static_cast<f32>(m_z - z);
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    /**
      * @brief 检查是否与另一个点位置相同
      */
     [[nodiscard]] bool equals(const PathPoint& other) const {

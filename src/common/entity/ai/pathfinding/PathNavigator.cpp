@@ -108,12 +108,12 @@ bool PathNavigator::recomputePath() {
 }
 
 void PathNavigator::tick() {
-    // MC 1.16.5: 增加 totalTicks
-    ++m_ticksSinceLastPath;
-
     if (!hasPath() || !m_entity) {
         return;
     }
+
+    // MC 1.16.5: 增加 totalTicks（只在有活动路径时增加）
+    ++m_ticksSinceLastPath;
 
     // 更新重试计时器
     if (m_retryTimer > 0) {
@@ -247,10 +247,9 @@ void PathNavigator::checkForStuck() {
 }
 
 void PathNavigator::trimPath() {
-    // MC 1.16.5: trimPath 方法
-    // 处理锅（Cauldron）等特殊方块的路径
-    // 目前简化实现，锅等特殊方块处理需要在有世界访问时实现
-    // TODO: 当有世界访问时，检查路径点是否在锅上方并调整
+    // MC 1.16.5: 处理锅（Cauldron）等特殊方块的路径
+    // 当实体在锅中时会调整路径点
+    // TODO: 实现锅检测，需要世界访问
 }
 
 void PathNavigator::resetTimeout() {
@@ -271,12 +270,11 @@ bool PathNavigator::shouldRecomputePath() const {
 
     // 检查目标位置是否变化太多
     if (m_path->getEnd()) {
+        // 使用 distanceToSq(x, y, z) 重载避免创建临时 PathPoint 对象
         f32 distSq = m_path->getEnd()->distanceToSq(
-            PathPoint(
-                static_cast<i32>(m_targetX),
-                static_cast<i32>(m_targetY),
-                static_cast<i32>(m_targetZ)
-            )
+            static_cast<i32>(m_targetX),
+            static_cast<i32>(m_targetY),
+            static_cast<i32>(m_targetZ)
         );
         if (distSq > 16.0f) { // 目标移动超过4格
             return true;

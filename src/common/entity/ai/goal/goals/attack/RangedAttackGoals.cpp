@@ -195,7 +195,7 @@ void RangedBowAttackGoal::tick() {
     }
 
     // MC 1.16.5: 在攻击范围内且能看到目标足够久，停止移动并开始走位
-    if (!(distSq > static_cast<f64>(m_maxAttackDistanceSq)) && m_seenTime >= 20) {
+    if (distSq <= static_cast<f64>(m_maxAttackDistanceSq) && m_seenTime >= 20) {
         // 在攻击范围内 - 停止寻路
         m_mob->clearNavigation();
         ++m_strafingTime;
@@ -249,7 +249,9 @@ void RangedBowAttackGoal::tick() {
         } else if (canSee) {
             // 检查蓄力时间
             // MC 1.16.5: getItemInUseMaxCount() = getUseDuration() - getItemInUseCount()
-            i32 useDuration = m_mob->getMainHandItem().getItem()->getUseDuration(m_mob->getMainHandItem());
+            const ItemStack& mainHand = m_mob->getMainHandItem();
+            const Item* item = mainHand.getItem();
+            i32 useDuration = item ? item->getUseDuration(mainHand) : 0;
             i32 timeUsed = useDuration - m_mob->getItemInUseCount();
             if (timeUsed >= 20) {
                 // 蓄力完成，发射
@@ -262,8 +264,9 @@ void RangedBowAttackGoal::tick() {
         // MC 1.16.5: 开始蓄力
         // ProjectileHelper.getHandWith(entity, Items.BOW)
         // 找到持有弓的手
-        Hand bowHand = (m_mob->getMainHandItem().getItem() != nullptr &&
-                        m_mob->getMainHandItem().getItem()->getUseAction(m_mob->getMainHandItem()) == UseAction::Bow)
+        const ItemStack& mainHand = m_mob->getMainHandItem();
+        const Item* item = mainHand.getItem();
+        Hand bowHand = (item != nullptr && item->getUseAction(mainHand) == UseAction::Bow)
                            ? Hand::MainHand
                            : Hand::OffHand;
         m_mob->setActiveHand(bowHand);

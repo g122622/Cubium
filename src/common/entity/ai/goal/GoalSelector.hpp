@@ -44,15 +44,8 @@ public:
      * @param goal AI目标
      */
     void addGoal(int priority, std::unique_ptr<Goal> goal) {
-        // MC 1.16.5: LinkedHashSet 不允许重复，需要检测
         if (goal == nullptr) return;
-        Goal* goalPtr = goal.get();
-        // 检查是否已存在相同的 Goal
-        for (const auto& pg : m_goals) {
-            if (pg.getGoal() == goalPtr) {
-                return; // 已存在，不添加
-            }
-        }
+        if (hasGoal(goal.get())) return;
         m_goals.emplace_back(priority, std::move(goal));
     }
 
@@ -64,14 +57,8 @@ public:
      * @param goal AI目标（获取所有权）
      */
     void addGoal(int priority, Goal* goal) {
-        // MC 1.16.5: LinkedHashSet 不允许重复，需要检测
         if (goal == nullptr) return;
-        // 检查是否已存在相同的 Goal
-        for (const auto& pg : m_goals) {
-            if (pg.getGoal() == goal) {
-                return; // 已存在，不添加
-            }
-        }
+        if (hasGoal(goal)) return;
         m_goals.emplace_back(priority, goal);
     }
 
@@ -326,6 +313,19 @@ private:
             }
         });
         return hasDisabled;
+    }
+
+    /**
+     * @brief 检查目标是否已存在
+     * MC 1.16.5: LinkedHashSet 不允许重复
+     */
+    [[nodiscard]] bool hasGoal(const Goal* goal) const {
+        for (const auto& pg : m_goals) {
+            if (pg.getGoal() == goal) {
+                return true;
+            }
+        }
+        return false;
     }
 
     std::list<PrioritizedGoal> m_goals;                            // 所有目标（使用list确保指针稳定性）
