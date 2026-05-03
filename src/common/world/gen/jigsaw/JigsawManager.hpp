@@ -2,6 +2,7 @@
 
 #include "JigsawPiece.hpp"
 #include "JigsawPattern.hpp"
+#include "JigsawJunction.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/Direction.hpp"
@@ -46,6 +47,7 @@ struct PlacedPiece {
     i32 groundLevelDelta = 0;
     structure::StructureBoundingBox boundingBox;
     std::vector<JigsawJoint> joints;  ///< 已变换的连接点
+    std::vector<JigsawJunction> junctions;  ///< JigsawJunction 列表（用于 NoiseChunkGenerator 地形适配）
 
     PlacedPiece() = default;
     PlacedPiece(std::unique_ptr<JigsawPiece> p, const BlockPos& pos, Rotation rot, Mirror mir, i32 delta, const structure::StructureBoundingBox& box)

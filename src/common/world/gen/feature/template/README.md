@@ -581,18 +581,34 @@ MC 1.16.5 中模板放置时，方块按特定顺序排列：
 
 ### 5. JigsawJunction 地形适配缓存
 
-`JigsawJunction` 类已定义，用于记录拼图块连接时的地形高度信息，但目前未实际使用。
+`JigsawJunction` 类用于记录拼图块连接时的地形高度信息，支持 NoiseChunkGenerator 中的地形平滑。
 
 **当前状态**:
-- `GravityStructureProcessor` 已实现地形高度适配功能
-- `JigsawPlacementBehaviour::TerrainMatching` 已正确添加处理器
-- `ChunkGenerator::getHeight()` 方法已存在且可用
+- `JigsawJunction.hpp` - 数据结构已完整实现
+- `PlacedPiece.junctions` - 已添加存储字段
+- `JigsawManager::tryPlacePiece()` - 已创建 JigsawJunction
 
-**优化机会**:
-- `JigsawJunction` 可用于缓存高度计算结果，减少重复计算
-- 可在 `JigsawManager::assemble()` 中创建 JigsawJunction 并传递给后续阶段
+**已集成**:
+```cpp
+// 在 JigsawManager::tryPlacePiece 中创建 JigsawJunction
+placed.junctions.emplace_back(
+    joint.position.x,    // sourceX
+    sourceGroundY,       // sourceGroundY
+    joint.position.z,    // sourceZ
+    deltaY,              // deltaY
+    joint.projection     // destProjection
+);
+```
 
-**MC 1.16.5 参考**: `JigsawJunction.java` 用于记录 `sourceGroundY` 和 `deltaY`
+**待实现** (NoiseChunkGenerator 集成):
+- 收集区块 12 格范围内的 JigsawJunction
+- 实现 24x24x24 平滑查找表
+- 在噪声密度计算中应用 Junction 影响
+
+**MC 1.16.5 参考**: 
+- `JigsawJunction.java` - 数据结构定义
+- `JigsawManager.Assembler` - Junction 创建逻辑
+- `NoiseChunkGenerator.func_230352_b_` - Junction 使用（地形平滑）
 
 ## 容易踩的坑
 

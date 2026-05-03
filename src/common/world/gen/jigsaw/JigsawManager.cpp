@@ -397,6 +397,28 @@ bool JigsawManager::tryPlacePiece(
         placed.boundingBox = boundingBox;
         placed.joints = getTransformedJoints(*selectedPiece, placementPos, rotation, Mirror::None);
 
+        // MC 1.16.5: 创建 JigsawJunction 用于 NoiseChunkGenerator 地形适配
+        // 参考: JigsawManager.Assembler 第 232-233 行
+        // JigsawJunction 记录连接点的高度信息，用于后续地形平滑
+        // 当前简化实现：记录连接点位置和高度偏移
+        // 完整实现需要在 NoiseChunkGenerator.buildSurface 中应用
+        i32 sourceGroundY = joint.position.y;
+        i32 destGroundY = placementPos.y;
+        i32 deltaY = sourceGroundY - destGroundY;
+
+        // 创建 Junction 记录地形适配信息
+        // sourceX/sourceZ: 连接点位置
+        // sourceGroundY: 源地面高度
+        // deltaY: 高度偏移量
+        // destProjection: 目标放置行为
+        placed.junctions.emplace_back(
+            joint.position.x,    // sourceX
+            sourceGroundY,       // sourceGroundY
+            joint.position.z,    // sourceZ
+            deltaY,              // deltaY
+            joint.projection     // destProjection
+        );
+
         placedPieces.push_back(std::move(placed));
 
         // 添加新的待处理连接点
