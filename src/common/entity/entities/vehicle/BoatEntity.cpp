@@ -4,6 +4,7 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
+#include "../../core/DataParameter.hpp"
 #include <cmath>
 
 namespace mc {
@@ -35,6 +36,14 @@ namespace {
     // 浮力计算常量
     constexpr f32 BUOYANCY_VELOCITY_MULT = 0.75f;  // 浮力速度乘数
     constexpr f32 WATER_CHECK_OFFSET = 0.001f;     // 水面检测偏移
+
+    // MC 1.16.5 BoatEntity 数据参数
+    DataParameter<i32> TIME_SINCE_HIT_PARAM{0};
+    DataParameter<i32> FORWARD_DIRECTION_PARAM{1};
+    DataParameter<f32> DAMAGE_TAKEN_PARAM{2};
+    DataParameter<i32> BOAT_TYPE_PARAM{3};
+    DataParameter<bool> LEFT_PADDLE_PARAM{4};
+    DataParameter<bool> RIGHT_PADDLE_PARAM{5};
 }
 
 BoatEntity::BoatEntity(Type type)
@@ -43,6 +52,19 @@ BoatEntity::BoatEntity(Type type)
 {
     // MC 1.16.5: preventEntitySpawning = true
     // 设置尺寸通过 width()/height()
+    registerData();
+}
+
+void BoatEntity::registerData() {
+    Entity::registerData();
+
+    // MC 1.16.5 BoatEntity.registerData()
+    m_dataManager.registerParam(TIME_SINCE_HIT_PARAM, 0);
+    m_dataManager.registerParam(FORWARD_DIRECTION_PARAM, 1);
+    m_dataManager.registerParam(DAMAGE_TAKEN_PARAM, 0.0f);
+    m_dataManager.registerParam(BOAT_TYPE_PARAM, static_cast<i32>(m_type));
+    m_dataManager.registerParam(LEFT_PADDLE_PARAM, false);
+    m_dataManager.registerParam(RIGHT_PADDLE_PARAM, false);
 }
 
 void BoatEntity::tick() {

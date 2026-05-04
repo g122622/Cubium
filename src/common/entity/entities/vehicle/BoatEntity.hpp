@@ -61,6 +61,15 @@ public:
 
     void tick() override;
 
+protected:
+    /**
+     * @brief 注册数据参数
+     * MC 1.16.5: registerData()
+     */
+    void registerData() override;
+
+public:
+
     [[nodiscard]] f32 width() const override { return 1.375f; }
     [[nodiscard]] f32 height() const override { return 0.5625f; }
     [[nodiscard]] f32 eyeHeight() const override { return height(); }
