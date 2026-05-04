@@ -162,7 +162,7 @@ Uniform缓冲区结构体对齐要求严格：\texttt{vec4}需要16字节对齐�
 \centering
 \caption{现代C++特性使用统计}
 \label{tab:cpp_features}
-\begin{tabular}{lc}
+\begin{tabularx}{\linewidth}{Xc}
 \toprule
 \textbf{特性} & \textbf{使用次数} \\
 \midrule
@@ -176,7 +176,7 @@ std::optional & 367+ \\
 智能指针 & 5832+ \\
 STL容器 & 4217+ \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 通过充分利用C++20特性和现代编译器优化，项目在保持代码可读性和类型安全的同时，实现了高性能游戏引擎所需的基础设施。编译期计算将运行时开销转移到编译时，智能指针确保内存安全，原子操作保证线程安全，模板元编程实现类型安全的泛型代码。

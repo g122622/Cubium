@@ -121,7 +121,7 @@ size_{desired} & \text{if mode = Unspecified}
 \centering
 \caption{UI系统对比}
 \label{tab:ui_comparison}
-\begin{tabular}{lcc}
+\begin{tabularx}{\linewidth}{Xcc}
 \toprule
 \textbf{特性} & \textbf{Java版} & \textbf{Kagero} \\
 \midrule
@@ -132,7 +132,7 @@ size_{desired} & \text{if mode = Unspecified}
 事件处理 & 回调注册 & EventBus \\
 性能优化 & 无 & 增量布局、批量更新 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 通过模板编译和状态绑定，UI代码量减少约60\%，状态同步错误减少约90\%。响应式设计使得UI自动适应游戏状态变化，开发者无需手动管理状态同步。布局引擎支持动态调整大小，适应不同分辨率和窗口大小。

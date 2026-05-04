@@ -125,7 +125,7 @@ T_{duration} = t_{exit} - t_{enter}
 \centering
 \caption{追踪覆盖范围}
 \label{tab:trace_coverage}
-\begin{tabular}{lcc}
+\begin{tabularx}{\linewidth}{Xcc}
 \toprule
 \textbf{子系统} & \textbf{追踪分类数} & \textbf{关键追踪点} \\
 \midrule
@@ -136,7 +136,7 @@ T_{duration} = t_{exit} - t_{enter}
 服务端 & 6+ & Tick、世界更新、光照 \\
 存储层 & 3+ & 读写、缓存命中 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 追踪数据输出为Perfetto二进制格式（\texttt{.perfetto-trace}文件），可通过\texttt{ui.perfetto.dev}进行分析：

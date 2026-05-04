@@ -45,7 +45,7 @@ X_{n+1} = (a \cdot X_n + c) \mod m
 \centering
 \caption{随机数生成器对比}
 \label{tab:random_comparison}
-\begin{tabular}{lcccc}
+\begin{tabularx}{\linewidth}{Xcccc}
 \toprule
 \textbf{算法} & \textbf{周期} & \textbf{状态} & \textbf{速度} & \textbf{质量} \\
 \midrule
@@ -53,7 +53,7 @@ Java LCG & $2^{48}$ & 8B & 1.0$\times$ & 一般 \\
 xoroshiro128++ & $2^{128}-1$ & 16B & 2-3$\times$ & 高 \\
 xoshiro256++ & $2^{256}-1$ & 32B & 2$\times$ & 极高 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 xoroshiro128++相比Java LCG：周期更长、速度更快、状态更小、质量更高。配合无偏差的范围生成和高斯分布缓存，满足游戏各系统的需求。

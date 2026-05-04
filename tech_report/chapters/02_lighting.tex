@@ -158,7 +158,7 @@ E_{queue} = \underbrace{x_{rel}}_{6位} \cdot 2^{0} + \underbrace{z_{rel}}_{6位
 \centering
 \caption{光照引擎对比}
 \label{tab:lighting_comparison}
-\begin{tabular}{lcc}
+\begin{tabularx}{\linewidth}{Xcc}
 \toprule
 \textbf{特性} & \textbf{原版Java} & \textbf{本项目} \\
 \midrule
@@ -168,7 +168,7 @@ Section状态 & 复杂状态机 & 四种简单状态 \\
 空区块段优化 & 无 & EmptinessMap \\
 面遮挡检测 & VoxelShape & VoxelShape（从CollisionShape转换） \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 队列操作从$O(n \log n)$降为$O(n)$，配合缓存预取和紧凑编码，区块光照计算时间减少约70\%。内存布局更加紧凑，光照数据与区块数据内联存储，缓存命中率显著提高。

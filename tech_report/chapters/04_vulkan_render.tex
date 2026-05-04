@@ -125,7 +125,7 @@ distance = \sqrt{(chunkX \cdot 16 - cameraX)^2 + (chunkZ \cdot 16 - cameraZ)^2}
 \centering
 \caption{渲染系统对比}
 \label{tab:render_comparison}
-\begin{tabular}{lcc}
+\begin{tabularx}{\linewidth}{Xcc}
 \toprule
 \textbf{特性} & \textbf{Java OpenGL} & \textbf{本项目Vulkan} \\
 \midrule
@@ -136,7 +136,7 @@ API模式 & 立即模式 & 命令缓冲区 \\
 上传方式 & 同步 & 异步Fence \\
 透明排序 & 每帧全排序 & 区块级后向前 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 通过多线程网格构建和异步GPU上传，渲染帧时间减少约50\%。纹理图集将多次纹理绑定减少为一次，Draw Call数量减少约80\%。显式的管线状态对象消除了隐式状态切换的开销。
