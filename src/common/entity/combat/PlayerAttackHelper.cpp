@@ -7,6 +7,7 @@
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
+#include "../../item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include <cmath>
 
@@ -109,7 +110,7 @@ f32 PlayerAttackHelper::calculateKnockback(const LivingEntity& attacker,
 
     // 击退附魔加成（每级 +0.5）
     if (knockbackLevel > 0) {
-        knockback += static_cast<f32>(knockbackLevel) * KNOCKBACK_ENCHANT_BONUS;
+        knockback += item::enchant::KnockbackEnchantment::getKnockbackBonus(knockbackLevel);
     }
 
     // 目标击退抗性减伤（在 applyKnockback 中处理）
@@ -340,7 +341,7 @@ AttackContext PlayerAttackHelper::createContext(Player& player,
             mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
         if (knockbackLevel > 0) {
             context.setKnockbackStrength(
-                context.getKnockbackStrength() + static_cast<f32>(knockbackLevel) * KNOCKBACK_ENCHANT_BONUS);
+                context.getKnockbackStrength() + item::enchant::KnockbackEnchantment::getKnockbackBonus(knockbackLevel));
         }
     }
 
