@@ -4,6 +4,7 @@
 #include "entity/loot/LootPool.hpp"
 #include "entity/loot/LootEntry.hpp"
 #include "entity/loot/LootConditions.hpp"
+#include "entity/loot/LootFunctions.hpp"
 #include "entity/loot/RandomRanges.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
@@ -204,4 +205,233 @@ TEST_F(LootTest, LootTableManager_DefaultTables) {
     EXPECT_TRUE(manager.hasTable("minecraft:entities/cow"));
     EXPECT_TRUE(manager.hasTable("minecraft:entities/sheep"));
     EXPECT_TRUE(manager.hasTable("minecraft:entities/chicken"));
+}
+
+// ============================================================================
+// New LootFunction Tests
+// ============================================================================
+
+TEST_F(LootTest, CopyNameFunction_Creation) {
+    CopyNameFunction func(CopyNameFunction::Source::KillerPlayer);
+    EXPECT_EQ("copy_name", func.getType());
+    EXPECT_EQ(CopyNameFunction::Source::KillerPlayer, func.getSource());
+}
+
+TEST_F(LootTest, CopyNameFunction_Clone) {
+    CopyNameFunction func(CopyNameFunction::Source::This);
+    func.addCondition(std::make_unique<RandomChanceCondition>(0.5f));
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_EQ("copy_name", cloned->getType());
+
+    auto* clonedFunc = dynamic_cast<CopyNameFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ(CopyNameFunction::Source::This, clonedFunc->getSource());
+}
+
+TEST_F(LootTest, CopyNameFunction_AllSources) {
+    // 测试所有来源类型
+    CopyNameFunction funcThis(CopyNameFunction::Source::This);
+    CopyNameFunction funcKiller(CopyNameFunction::Source::Killer);
+    CopyNameFunction funcPlayer(CopyNameFunction::Source::KillerPlayer);
+    CopyNameFunction funcBlock(CopyNameFunction::Source::BlockEntity);
+
+    EXPECT_EQ(CopyNameFunction::Source::This, funcThis.getSource());
+    EXPECT_EQ(CopyNameFunction::Source::Killer, funcKiller.getSource());
+    EXPECT_EQ(CopyNameFunction::Source::KillerPlayer, funcPlayer.getSource());
+    EXPECT_EQ(CopyNameFunction::Source::BlockEntity, funcBlock.getSource());
+}
+
+TEST_F(LootTest, CopyBlockStateFunction_Creation) {
+    CopyBlockStateFunction func("minecraft:chest");
+    EXPECT_EQ("copy_block_state", func.getType());
+    EXPECT_EQ("minecraft:chest", func.getBlockId());
+    EXPECT_TRUE(func.getProperties().empty());
+}
+
+TEST_F(LootTest, CopyBlockStateFunction_Properties) {
+    std::vector<String> props = {"facing", "waterlogged"};
+    CopyBlockStateFunction func("minecraft:chest", props);
+    EXPECT_EQ(2, func.getProperties().size());
+    EXPECT_EQ("facing", func.getProperties()[0]);
+    EXPECT_EQ("waterlogged", func.getProperties()[1]);
+}
+
+TEST_F(LootTest, CopyBlockStateFunction_Clone) {
+    std::vector<String> props = {"facing"};
+    CopyBlockStateFunction func("minecraft:furnace", props);
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedFunc = dynamic_cast<CopyBlockStateFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ("minecraft:furnace", clonedFunc->getBlockId());
+    EXPECT_EQ(1, clonedFunc->getProperties().size());
+}
+
+TEST_F(LootTest, CopyNbtFunction_Creation) {
+    CopyNbtFunction func(CopyNbtFunction::Source::This);
+    EXPECT_EQ("copy_nbt", func.getType());
+    EXPECT_EQ(CopyNbtFunction::Source::This, func.getSource());
+    EXPECT_TRUE(func.getOperations().empty());
+}
+
+TEST_F(LootTest, CopyNbtFunction_AddOperation) {
+    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+
+    EXPECT_EQ(1, func.getOperations().size());
+    EXPECT_EQ("CustomName", func.getOperations()[0].sourcePath);
+    EXPECT_EQ("display.Name", func.getOperations()[0].targetPath);
+    EXPECT_EQ(CopyNbtFunction::Operation::Replace, func.getOperations()[0].operation);
+}
+
+TEST_F(LootTest, CopyNbtFunction_Clone) {
+    CopyNbtFunction func(CopyNbtFunction::Source::Killer);
+    func.addOperation("path1", "path2", CopyNbtFunction::Operation::Append);
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedFunc = dynamic_cast<CopyNbtFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ(CopyNbtFunction::Source::Killer, clonedFunc->getSource());
+    EXPECT_EQ(1, clonedFunc->getOperations().size());
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_Creation) {
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    EXPECT_EQ("fill_player_head", func.getType());
+    EXPECT_EQ(CopyNameFunction::Source::KillerPlayer, func.getSource());
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_Clone) {
+    FillPlayerHeadFunction func(CopyNameFunction::Source::This);
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedFunc = dynamic_cast<FillPlayerHeadFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ(CopyNameFunction::Source::This, clonedFunc->getSource());
+}
+
+TEST_F(LootTest, SetAttributesFunction_Creation) {
+    SetAttributesFunction func;
+    EXPECT_EQ("set_attributes", func.getType());
+    EXPECT_TRUE(func.getModifiers().empty());
+}
+
+TEST_F(LootTest, SetAttributesFunction_AddModifier) {
+    SetAttributesFunction func;
+    SetAttributesFunction::AttributeModifier mod;
+    mod.name = "generic.attack_damage";
+    mod.attributeId = "minecraft:generic.attack_damage";
+    mod.value = 5.0f;
+    mod.operation = 0;
+    mod.slot = "mainhand";
+
+    func.addModifier(mod);
+    EXPECT_EQ(1, func.getModifiers().size());
+    EXPECT_EQ("generic.attack_damage", func.getModifiers()[0].name);
+}
+
+TEST_F(LootTest, SetContentsFunction_Creation) {
+    SetContentsFunction func;
+    EXPECT_EQ("set_contents", func.getType());
+}
+
+TEST_F(LootTest, SetLootTableFunction_Creation) {
+    SetLootTableFunction func("minecraft:chests/simple_dungeon", 12345);
+    EXPECT_EQ("set_loot_table", func.getType());
+    EXPECT_EQ("minecraft:chests/simple_dungeon", func.getLootTableId());
+    EXPECT_EQ(12345, func.getSeed());
+}
+
+TEST_F(LootTest, SetLootTableFunction_Clone) {
+    SetLootTableFunction func("minecraft:chests/spawn_bonus_chest");
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedFunc = dynamic_cast<SetLootTableFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ("minecraft:chests/spawn_bonus_chest", clonedFunc->getLootTableId());
+}
+
+TEST_F(LootTest, ExplorationMapFunction_Creation) {
+    ExplorationMapFunction func(ExplorationMapFunction::Destination::Mansion);
+    EXPECT_EQ("exploration_map", func.getType());
+    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func.getDestination());
+}
+
+TEST_F(LootTest, ExplorationMapFunction_AllDestinations) {
+    ExplorationMapFunction func1(ExplorationMapFunction::Destination::BuriedTreasure);
+    ExplorationMapFunction func2(ExplorationMapFunction::Destination::Mansion);
+    ExplorationMapFunction func3(ExplorationMapFunction::Destination::Monument);
+
+    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func1.getDestination());
+    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func2.getDestination());
+    EXPECT_EQ(ExplorationMapFunction::Destination::Monument, func3.getDestination());
+}
+
+TEST_F(LootTest, SetStewEffectFunction_Creation) {
+    SetStewEffectFunction func;
+    EXPECT_EQ("set_stew_effect", func.getType());
+    EXPECT_TRUE(func.getEffects().empty());
+}
+
+TEST_F(LootTest, SetStewEffectFunction_AddEffect) {
+    SetStewEffectFunction func;
+    func.addEffect("minecraft:regeneration", RandomValueRange(5.0f, 10.0f));
+
+    EXPECT_EQ(1, func.getEffects().size());
+    EXPECT_EQ("minecraft:regeneration", func.getEffects()[0].effectId);
+    EXPECT_FLOAT_EQ(5.0f, func.getEffects()[0].duration.getMin());
+    EXPECT_FLOAT_EQ(10.0f, func.getEffects()[0].duration.getMax());
+}
+
+// ============================================================================
+// LootFunctionBuilder Tests for New Functions
+// ============================================================================
+
+TEST_F(LootTest, LootFunctionBuilder_NewFunctions) {
+    // 测试所有新增的工厂方法
+    auto copyName = LootFunctionBuilder::copyName(CopyNameFunction::Source::KillerPlayer);
+    ASSERT_NE(copyName, nullptr);
+    EXPECT_EQ("copy_name", copyName->getType());
+
+    auto copyBlockState = LootFunctionBuilder::copyBlockState("minecraft:chest");
+    ASSERT_NE(copyBlockState, nullptr);
+    EXPECT_EQ("copy_block_state", copyBlockState->getType());
+
+    auto copyNbt = LootFunctionBuilder::copyNbt(CopyNbtFunction::Source::This);
+    ASSERT_NE(copyNbt, nullptr);
+    EXPECT_EQ("copy_nbt", copyNbt->getType());
+
+    auto fillHead = LootFunctionBuilder::fillPlayerHead();
+    ASSERT_NE(fillHead, nullptr);
+    EXPECT_EQ("fill_player_head", fillHead->getType());
+
+    auto setAttr = LootFunctionBuilder::setAttributes();
+    ASSERT_NE(setAttr, nullptr);
+    EXPECT_EQ("set_attributes", setAttr->getType());
+
+    auto setContents = LootFunctionBuilder::setContents();
+    ASSERT_NE(setContents, nullptr);
+    EXPECT_EQ("set_contents", setContents->getType());
+
+    auto setLootTable = LootFunctionBuilder::setLootTable("minecraft:chests/test");
+    ASSERT_NE(setLootTable, nullptr);
+    EXPECT_EQ("set_loot_table", setLootTable->getType());
+
+    auto exploreMap = LootFunctionBuilder::explorationMap();
+    ASSERT_NE(exploreMap, nullptr);
+    EXPECT_EQ("exploration_map", exploreMap->getType());
+
+    auto setStew = LootFunctionBuilder::setStewEffect();
+    ASSERT_NE(setStew, nullptr);
+    EXPECT_EQ("set_stew_effect", setStew->getType());
 }
