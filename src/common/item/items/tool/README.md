@@ -96,11 +96,35 @@ bool isRepairable(const ItemStack& toRepair,   // 检查修复材料
 
 **关键方法**：
 ```cpp
-f32 getDestroySpeed(const ItemStack& stack,      // 计算挖掘速度
+f32 getDestroySpeed(const ItemStack& stack,      // 计算挖掘速度（含效率附魔加成）
                     const BlockState& state) const override;
 bool canHarvestBlock(const BlockState& state) const override;  // 判断采集能力
 bool hitEntity(ItemStack& stack, ...);           // 攻击实体（消耗2耐久）
 bool onBlockDestroyed(ItemStack& stack, ...);    // 破坏方块（消耗1耐久）
+```
+
+**效率附魔集成**（MC 1.16.5）：
+```cpp
+f32 ToolItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
+    // 1. 检查材质有效性
+    f32 speed = 1.0f;
+    if (isEffectiveMaterial(state.getMaterial())) {
+        speed = m_efficiency;
+    } else if (isEffectiveBlock(state.owner())) {
+        speed = m_efficiency;
+    }
+
+    // 2. 应用效率附魔加成（只在工具有效时）
+    if (speed > 1.0f) {
+        i32 efficiencyLevel = EnchantmentHelper::getEfficiencyLevel(stack);
+        if (efficiencyLevel > 0) {
+            speed += EfficiencyEnchantment::getMiningSpeedBonus(efficiencyLevel);
+            // 公式: level^2 + 1, 即 I=2, II=5, III=10, IV=17, V=26
+        }
+    }
+
+    return speed;
+}
 ```
 
 **设计模式**：
