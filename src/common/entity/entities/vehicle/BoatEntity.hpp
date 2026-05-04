@@ -202,9 +202,9 @@ protected:
     [[nodiscard]] f32 getBoatGlide();
 
     /**
-     * @brief 更新乘客位置
+     * @brief 更新所有乘客位置
      */
-    void updatePassengerPosition();
+    void updateAllPassengerPositions();
 
     /**
      * @brief 将船的朝向应用到乘客

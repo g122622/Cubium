@@ -161,6 +161,12 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 骑乘移动处理
+     * MC 1.16.5: travel(Vector3d)
+     */
+    void travel(f32 strafing, f32 vertical, f32 forward) override;
+
 protected:
     void registerAttributes() override;
 
@@ -212,6 +218,7 @@ protected:
     f32 m_jumpPower = 0.0f;
     f32 m_jumpStrength = 0.0f;  // 基础跳跃强度
     bool m_isJumping = false;
+    bool m_allowStandSliding = false;  // MC 1.16.5: 允许站立滑动
     i32 m_jumpCooldown = 0;
 
     // 加速状态

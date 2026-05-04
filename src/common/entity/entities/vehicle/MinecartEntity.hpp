@@ -72,6 +72,15 @@ public:
 
     void tick() override;
 
+protected:
+    /**
+     * @brief 注册数据参数
+     * MC 1.16.5: registerData()
+     */
+    void registerData() override;
+
+public:
+
     /**
      * @brief 矿车宽度
      * MC 1.16.5: 0.98F
@@ -331,6 +340,11 @@ private:
     i32 m_damage = 0;
     i32 m_rollingAmplitude = 0;
     i32 m_rollingDirection = 1;
+
+    // 显示方块 (MC 1.16.5 数据参数)
+    i32 m_displayTile = 0;       // 方块状态ID
+    i32 m_displayTileOffset = 6; // 显示偏移
+    bool m_showBlock = false;    // 是否显示方块
 
     // 推动力（熔炉矿车用）
     f32 m_pushX = 0.0f;

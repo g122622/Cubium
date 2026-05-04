@@ -25,6 +25,20 @@ namespace entity {
 using namespace mc::math;
 
 // ============================================================================
+// 数据参数
+// ============================================================================
+
+namespace {
+    // MC 1.16.5 AbstractMinecartEntity 数据参数
+    entity::DataParameter<i32> ROLLING_AMPLITUDE_PARAM{0};
+    entity::DataParameter<i32> ROLLING_DIRECTION_PARAM{1};
+    entity::DataParameter<f32> DAMAGE_PARAM{2};
+    entity::DataParameter<i32> DISPLAY_TILE_PARAM{3};
+    entity::DataParameter<i32> DISPLAY_TILE_OFFSET_PARAM{4};
+    entity::DataParameter<bool> SHOW_BLOCK_PARAM{5};
+}
+
+// ============================================================================
 // AbstractMinecartEntity
 // ============================================================================
 
@@ -33,12 +47,26 @@ AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityId id)
     , m_type(type)
 {
     // MC 1.16.5: 矿车默认属性
+    registerData();
 }
 
 AbstractMinecartEntity::AbstractMinecartEntity(Type type)
     : Entity(LegacyEntityType::Minecart, EntityId(0))
     , m_type(type)
 {
+    registerData();
+}
+
+void AbstractMinecartEntity::registerData() {
+    // MC 1.16.5 AbstractMinecartEntity.registerData()
+    Entity::registerData();
+
+    m_dataManager.registerParam(ROLLING_AMPLITUDE_PARAM, 0);
+    m_dataManager.registerParam(ROLLING_DIRECTION_PARAM, 1);
+    m_dataManager.registerParam(DAMAGE_PARAM, 0.0f);
+    m_dataManager.registerParam(DISPLAY_TILE_PARAM, 0);  // 空气方块状态ID
+    m_dataManager.registerParam(DISPLAY_TILE_OFFSET_PARAM, 6);
+    m_dataManager.registerParam(SHOW_BLOCK_PARAM, false);
 }
 
 void AbstractMinecartEntity::tick() {

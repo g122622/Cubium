@@ -1,8 +1,12 @@
 #include "AbstractHorseEntity.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/math/MathConstants.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc {
@@ -162,6 +166,86 @@ void AbstractHorseEntity::tick() {
 
     // 更新骑乘状态
     updateRiding();
+}
+
+void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward) {
+    // MC 1.16.5 AbstractHorseEntity.travel()
+    if (!isAlive()) {
+        return;
+    }
+
+    // 检查是否被骑乘且可以控制
+    // 注意：使用IRideable::canBeSteered()来检查鞍状态
+    if (isBeingRidden() && entity::IRideable::canBeSteered() && m_saddled) {
+        // 获取控制乘客（玩家）
+        const auto& passengerIds = getPassengers();
+        Entity* controllingPassenger = nullptr;
+        if (!passengerIds.empty() && world() != nullptr) {
+            controllingPassenger = world()->getEntity(passengerIds[0]);
+        }
+
+        if (controllingPassenger != nullptr) {
+            // 同步朝向
+            setRotation(controllingPassenger->yaw(), controllingPassenger->pitch() * 0.5f);
+
+            // MC 1.16.5: 侧向移动减半
+            f32 sideInput = strafing * 0.5f;
+            f32 forwardInput = forward;
+
+            // 后退时速度降低
+            if (forwardInput <= 0.0f) {
+                forwardInput *= 0.25f;
+            }
+
+            // 在地面且没有跳跃力且正在扬蹄时不能移动
+            if (onGround() && m_jumpPower == 0.0f && m_isJumping && !m_allowStandSliding) {
+                sideInput = 0.0f;
+                forwardInput = 0.0f;
+            }
+
+            // 处理跳跃
+            if (m_jumpPower > 0.0f && !m_isJumping && onGround()) {
+                // 计算跳跃力度
+                f64 jumpForce = static_cast<f64>(getJumpStrength() * m_jumpPower);
+                // TODO: 跳跃药水效果加成
+
+                // 设置跳跃速度
+                setVelocity(velocityX(), static_cast<f32>(jumpForce), velocityZ());
+                m_isJumping = true;
+                m_jumpPower = 0.0f;
+
+                // 前进时额外推力
+                if (forwardInput > 0.0f) {
+                    f32 yawRad = math::toRadians(yaw());
+                    f32 pushX = -0.4f * std::sin(yawRad) * m_jumpPower;
+                    f32 pushZ = 0.4f * std::cos(yawRad) * m_jumpPower;
+                    addVelocity(pushX, 0.0f, pushZ);
+                }
+            }
+
+            // 设置AI移动速度
+            // m_jumpMovementFactor = getAIMoveSpeed() * 0.1f;
+
+            // 执行移动
+            if (canPassengerSteer()) {
+                // setAIMoveSpeed(static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED)));
+                AnimalEntity::travel(sideInput, vertical, forwardInput);
+            } else {
+                // 无法控制时停止移动
+                setVelocity(Vector3(0.0f, 0.0f, 0.0f));
+            }
+
+            // 着地时重置跳跃状态
+            if (onGround()) {
+                m_jumpPower = 0.0f;
+                m_isJumping = false;
+            }
+        }
+    } else {
+        // 未被骑乘时使用普通移动
+        // m_jumpMovementFactor = 0.02f;
+        AnimalEntity::travel(strafing, vertical, forward);
+    }
 }
 
 void AbstractHorseEntity::registerAttributes() {

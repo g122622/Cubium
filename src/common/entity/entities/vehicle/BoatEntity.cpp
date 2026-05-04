@@ -88,7 +88,7 @@ void BoatEntity::tick() {
     controlBoat();
 
     // 更新乘客位置
-    updatePassengerPosition();
+    updateAllPassengerPositions();
 
     // 更新失控状态
     if (m_status == BoatStatus::UnderWater || m_status == BoatStatus::UnderFlowingWater) {
@@ -412,7 +412,13 @@ f32 BoatEntity::getBoatGlide() {
     return LAND_FRICTION;
 }
 
-void BoatEntity::updatePassengerPosition() {
+void BoatEntity::updatePassengerPosition(Entity& passenger) {
+    // MC 1.16.5: BoatEntity.updatePassenger() - 更新单个乘客位置
+    // 委托给内部辅助方法
+    updateAllPassengerPositions();
+}
+
+void BoatEntity::updateAllPassengerPositions() {
     // MC 1.16.5: 更新乘客位置
     if (m_passengers.empty() || m_world == nullptr) {
         return;

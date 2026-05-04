@@ -79,6 +79,7 @@ add_executable(mc_tests
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntitySensesTest.cpp
+    entity/RidingSystemTests.cpp
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
     entity/LivingEntityTests.cpp
