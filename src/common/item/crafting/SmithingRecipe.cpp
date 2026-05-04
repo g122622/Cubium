@@ -33,10 +33,47 @@ bool SmithingRecipe::matches(const IInventory& inventory) const {
 }
 
 ItemStack SmithingRecipe::assemble(const IInventory& inventory) const {
-    (void)inventory;
-    // MC 原版：锻造结果复制基础物品的 NBT 数据
-    // 这里简化实现，只返回结果物品
-    return m_result.copy();
+    // MC 1.16.5: 锻造结果复制基础物品的 NBT 数据（附魔、耐久、自定义名称等）
+    // 参考: net.minecraft.item.crafting.SmithingRecipe.getCraftingResult()
+    ItemStack resultStack = m_result.copy();
+
+    // 获取基础物品（槽位0）
+    if (inventory.getContainerSize() > SLOT_BASE) {
+        const ItemStack& baseStack = inventory.getItem(SLOT_BASE);
+
+        // 复制基础物品的NBT数据
+        const nlohmann::json* baseTag = baseStack.getTag();
+        if (baseTag != nullptr && !baseTag->is_null()) {
+            // 使用 getOrCreateTag() 设置标签，然后复制数据
+            nlohmann::json& resultTag = resultStack.getOrCreateTag();
+            resultTag = *baseTag;  // JSON拷贝赋值会执行深拷贝
+        }
+
+        // 复制附魔数据（如果NBT中没有附魔数据，这里作为备份）
+        if (baseStack.hasEnchantments() && !resultStack.hasEnchantments()) {
+            resultStack.getEnchantmentsMutable() = baseStack.getEnchantments();
+        }
+
+        // 复制耐久度
+        if (baseStack.isDamageable() && baseStack.getDamage() > 0) {
+            resultStack.setDamage(baseStack.getDamage());
+        }
+
+        // 复制修复成本
+        if (baseStack.getRepairCost() > 0) {
+            resultStack.setRepairCost(baseStack.getRepairCost());
+        }
+
+        // 复制自定义名称
+        if (baseStack.hasCustomName()) {
+            const text::ITextComponent* customName = baseStack.getCustomNameComponent();
+            if (customName != nullptr) {
+                resultStack.setCustomNameComponent(customName->deepCopy());
+            }
+        }
+    }
+
+    return resultStack;
 }
 
 const std::vector<Ingredient>& SmithingRecipe::getIngredients() const {

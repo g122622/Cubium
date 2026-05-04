@@ -62,13 +62,43 @@ bool ShearsItem::onBlockDestroyed(ItemStack& stack,
     (void)pos;
     (void)entity;
 
-    // MC 1.16.5: 如果方块硬度 > 0 且不是火，消耗耐久
-    // 注意：火方块不消耗耐久
+    // MC 1.16.5: 以下方块不消耗耐久（参考 ShearsItem.java:26）
+    // 树叶、蛛网、草、蕨、枯萎灌木、藤蔓、绊线、羊毛
+    if (BlockTags::LEAVES().contains(state)) {
+        return true;  // 树叶不消耗耐久
+    }
+    if (BlockTags::WOOL().contains(state)) {
+        return true;  // 羊毛不消耗耐久
+    }
+
+    // 检查特定方块
+    const Block& block = state.owner();
+    if (VanillaBlocks::COBWEB && &block == VanillaBlocks::COBWEB) {
+        return true;  // 蛛网不消耗耐久
+    }
+    if (VanillaBlocks::SHORT_GRASS && &block == VanillaBlocks::SHORT_GRASS) {
+        return true;  // 草不消耗耐久
+    }
+    if (VanillaBlocks::FERN && &block == VanillaBlocks::FERN) {
+        return true;  // 蕨不消耗耐久
+    }
+    if (VanillaBlocks::DEAD_BUSH && &block == VanillaBlocks::DEAD_BUSH) {
+        return true;  // 枯萎灌木不消耗耐久
+    }
+    if (VanillaBlocks::VINE && &block == VanillaBlocks::VINE) {
+        return true;  // 藤蔓不消耗耐久
+    }
+    if (VanillaBlocks::TRIPWIRE && &block == VanillaBlocks::TRIPWIRE) {
+        return true;  // 绊线不消耗耐久
+    }
+
+    // MC 1.16.5: 火方块不消耗耐久（参考 ShearsItem.java:20）
+    if (BlockTags::FIRE().contains(state)) {
+        return true;
+    }
+
+    // 其他硬度>0的方块消耗耐久
     if (state.hardness() > 0.0f) {
-        // 检查是否是火方块（使用 BlockTags）
-        if (BlockTags::FIRE().contains(state)) {
-            return true;  // 火不消耗耐久
-        }
         stack.attemptDamageItem(1);
     }
     return true;

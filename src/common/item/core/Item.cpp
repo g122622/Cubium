@@ -229,10 +229,9 @@ bool Item::hasEffect(const ItemStack& stack) const {
 // ============================================================================
 
 bool Item::isIn(const item::tag::ItemTag& tag) const {
-    // 默认实现：检查物品是否在标签中
-    // 需要ItemTag系统支持
-    (void)tag;
-    return false;
+    // MC 1.16.5: 检查物品是否在标签中
+    // 参考: net.minecraft.item.Item#isIn(Tag)
+    return tag.contains(this);
 }
 
 // ============================================================================

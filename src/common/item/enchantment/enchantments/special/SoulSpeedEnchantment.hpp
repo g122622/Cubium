@@ -79,12 +79,18 @@ public:
 
     /**
      * @brief 获取耐久消耗概率
-     * @param level 附魔等级
-     * @return 每tick消耗耐久的概率
+     * @param level 附魔等级（未使用，概率固定）
+     * @return 每tick消耗耐久的概率（固定4%）
+     *
+     * MC 1.16.5: 耐久消耗概率是固定的4%，与附魔等级无关
+     * 参考: net.minecraft.entity.LivingEntity.func_233642_cO_()
+     * if (this.getRNG().nextFloat() < 0.04F) {
+     *     itemstack.damageItem(1, this, ...);
+     * }
      */
     [[nodiscard]] static f32 getDurabilityConsumeChance(i32 level) {
-        // 每级 4% 概率消耗耐久
-        return 0.04f / static_cast<f32>(level);
+        (void)level;  // MC 1.16.5: 概率固定为4%，与等级无关
+        return 0.04f;  // 固定4%概率
     }
 };
 

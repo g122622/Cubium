@@ -38,8 +38,8 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
         // 尝试16次传送
         for (i32 i = 0; i < 16; ++i) {
             // 计算目标位置
-            // 水平方向: 以实体为中心，±8格范围
-            // 垂直方向: 以实体为中心，±8格范围
+            // MC 1.16.5: 水平方向: 以实体为中心，±8格范围
+            // 垂直方向: 以实体为中心，±8格范围，但限制在0-255之间
             f64 d3 = d0 + (rng.nextDouble() - 0.5) * 16.0;
             f64 d4 = math::clamp(d1 + static_cast<f64>(rng.nextInt(16) - 8), 0.0, 255.0);
             f64 d5 = d2 + (rng.nextDouble() - 0.5) * 16.0;
@@ -49,17 +49,21 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
                 entity.stopRiding();
             }
 
-            // 尝试传送到目标位置
-            // TODO: 实现 attemptTeleport 方法来检查目标位置是否安全
-            // 目前使用简化的传送实现
-            // entity.attemptTeleport(d3, d4, d5, true);
+            // MC 1.16.5: 使用 entity.attemptTeleport(d3, d4, d5, true) 检查目标位置是否安全
+            // 项目当前缺少 attemptTeleport 方法，使用简化的传送逻辑
+            // TODO: 当实现 attemptTeleport 后，替换为:
+            // if (entity.attemptTeleport(d3, d4, d5, true)) {
+            //     teleported = true;
+            //     break;
+            // }
 
             // 简化实现：直接设置位置
-            // 注意：这不会检查碰撞和安全性
+            // 注意：这不会检查碰撞和安全性，需要后续改进
             entity.setPosition(static_cast<f32>(d3), static_cast<f32>(d4), static_cast<f32>(d5));
             teleported = true;
 
             // 播放传送音效
+            // MC 1.16.5: 狐狸使用 ENTITY_FOX_TELEPORT，其他使用 ITEM_CHORUS_FRUIT_TELEPORT
             entity.playSound(SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT, 1.0f, 1.0f);
             world.playSound(SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT,
                            sound::SoundCategory::Players,
@@ -68,10 +72,18 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
             break;
         }
 
-        // 设置冷却时间（仅玩家）
-        // TODO: 实现冷却追踪器 CooldownTracker
+        // MC 1.16.5: 设置冷却时间（仅玩家）
+        // 参考: net.minecraft.entity.player.PlayerEntity.getCooldownTracker()
+        // TODO: 实现物品冷却追踪器 (CooldownTracker)
+        // 当前的实现需要:
+        // 1. Player 类添加 CooldownTracker 成员
+        // 2. CooldownTracker::setCooldown(Item*, int) 方法
+        // 3. CooldownTracker::tick() 在 Player::tick() 中调用
+        // 4. 物品渲染时检查冷却状态（冷却中的物品显示冷却进度）
+        //
+        // 临时方案：使用 ItemCooldown 组件或简单的 map<ItemId, int>
         // if (auto* player = dynamic_cast<Player*>(&entity)) {
-        //     player->getCooldownTracker().setCooldown(this, 20);
+        //     player->getCooldownTracker().setCooldown(this, 20); // 20 ticks = 1秒
         // }
     }
 

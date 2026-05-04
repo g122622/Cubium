@@ -66,7 +66,13 @@ public:
     /**
      * @brief 破坏方块时调用
      *
-     * 如果方块硬度 > 0 且不是火，消耗 1 点耐久度。
+     * MC 1.16.5: 以下方块不消耗耐久：
+     * - 树叶 (BlockTags::LEAVES)
+     * - 羊毛 (BlockTags::WOOL)
+     * - 蛛网、草、蕨、枯萎灌木、藤蔓、绊线
+     * - 火方块 (BlockTags::FIRE)
+     *
+     * 其他硬度>0的方块消耗1点耐久。
      *
      * @param stack 物品堆
      * @param world 世界引用
