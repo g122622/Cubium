@@ -23,6 +23,9 @@ namespace mc {
 AbstractHorseEntity::AbstractHorseEntity(LegacyEntityType type, EntityId id)
     : AnimalEntity(type, id)
 {
+    // 注册 AI 目标
+    registerGoals();
+
     // 初始化随机属性
     initRandomAttributes();
 }
