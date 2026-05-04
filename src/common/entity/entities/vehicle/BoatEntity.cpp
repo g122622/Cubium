@@ -5,6 +5,8 @@
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../core/DataParameter.hpp"
+#include "../../damage/DamageSource.hpp"
+#include "../../entities/player/Player.hpp"
 #include <cmath>
 
 namespace mc {
@@ -143,12 +145,6 @@ void BoatEntity::handleInput(bool left, bool right, bool forward, bool backward)
     m_rightInputDown = right;
     m_forwardInputDown = forward;
     m_backwardInputDown = backward;
-}
-
-void BoatEntity::dropItem() {
-    // MC 1.16.5: 掉落对应类型的船物品
-    // TODO: 根据类型掉落物品
-    // ItemEntity* item = spawnItem(Items::getBoat(m_type));
 }
 
 void BoatEntity::updateMotion() {
@@ -552,6 +548,93 @@ f32 BoatEntity::getWaterLevelAbove() {
 f64 BoatEntity::getMountedYOffset() const {
     // MC 1.16.5: BoatEntity.getMountedYOffset() -> -0.1D
     return -0.1;
+}
+
+bool BoatEntity::hurt(DamageSource& source, f32 amount) {
+    // MC 1.16.5: BoatEntity.attackEntityFrom()
+
+    // 1. 检查是否对伤害类型免疫
+    if (isInvulnerable()) {
+        return false;
+    }
+
+    // 2. 只在服务端处理
+    // if (this.world.isRemote || this.removed) return true;
+    if (isRemoved()) {
+        return true;
+    }
+
+    // 3. 设置受击动画
+    // this.setForwardDirection(-this.getForwardDirection());
+    m_forwardDirection = -m_forwardDirection;
+
+    // 4. 设置受击时间
+    // this.setTimeSinceHit(10);
+    m_timeSinceHit = 10;
+
+    // 5. 累积伤害
+    // this.setDamageTaken(this.getDamageTaken() + amount * 10.0F);
+    m_damageTaken += amount * 10.0f;
+
+    // 6. 检查是否应该摧毁船
+    // boolean flag = source.getTrueSource() instanceof PlayerEntity && ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
+    bool isCreative = false;
+    Player* attacker = dynamic_cast<Player*>(source.source());
+    if (attacker != nullptr) {
+        // TODO: 检查玩家是否为创造模式
+        // isCreative = attacker->isCreative();
+        MC_UNUSED(attacker);
+    }
+
+    // 7. 超过伤害阈值或创造模式时摧毁船
+    // if (flag || this.getDamageTaken() > 40.0F)
+    if (isCreative || m_damageTaken > DAMAGE_THRESHOLD) {
+        // 移除所有乘客
+        removePassengers();
+
+        // 掉落船物品
+        // if (!flag && this.world.getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS))
+        //     this.entityDropItem(this.getItemBoat());
+        if (!isCreative) {
+            dropItem();
+        }
+
+        // 移除船
+        remove();
+    }
+
+    return true;
+}
+
+void BoatEntity::updateFallState(f64 y, bool onGround) {
+    // MC 1.16.5: BoatEntity.updateFallState()
+    // 船没有摔落伤害，但需要更新 lastYd 用于水面检测
+    MC_UNUSED(onGround);
+
+    // this.doBlockCollisions();
+    // TODO: 当 doBlockCollisions() 实现后调用
+
+    // 如果在水中，重置摔落距离
+    if (isInWater()) {
+        setFallDistance(0.0f);
+    }
+
+    m_lastYd = y;
+}
+
+void BoatEntity::dropItem() {
+    // MC 1.16.5: entityDropItem(this.getItemBoat())
+    // 根据船类型掉落对应物品
+    // TODO: 当物品系统完善后实现
+    // const Item* boatItem = getBoatItem();
+    // if (boatItem != nullptr && m_world != nullptr) {
+    //     spawnItem(boatItem, 1);
+    // }
+}
+
+void BoatEntity::dropItemWithDamage() {
+    // 掉落船物品（带伤害倍率）
+    dropItem();
 }
 
 } // namespace entity

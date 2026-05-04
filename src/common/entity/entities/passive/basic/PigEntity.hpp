@@ -99,6 +99,13 @@ public:
      */
     void travelTowards(const Vector3& travelVec) override;
 
+    /**
+     * @brief 处理移动
+     * MC 1.16.5: PigEntity.travel()
+     * 重写以使用 IRideable::ride()
+     */
+    void travel(const Vector3& travelVec) override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;

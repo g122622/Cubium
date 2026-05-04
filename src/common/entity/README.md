@@ -286,7 +286,7 @@ src/common/entity/
 - **位置与运动**：位置、速度、旋转、碰撞箱
 - **物理系统**：重力、碰撞检测、地面检测
 - **环境检测**：水中、岩浆中、着火状态
-- **乘客/骑乘系统**：多乘客支持
+- **乘客/骑乘系统**：多乘客支持、下车机制
 - **数据同步**：EntityDataManager 数据参数
 - **传送门系统**：传送门计时、传送冷却、维度切换
 
@@ -306,6 +306,54 @@ entity->setPortalPos(blockPos);      // 记录传送门方块位置
 int timer = entity->getPortalTime(); // 获取传送计时
 entity->triggerPortalCooldown();     // 触发传送冷却
 ```
+
+#### 骑乘系统 (Riding System)
+
+Entity 提供完整的骑乘系统实现，支持多乘客和嵌套骑乘：
+
+**核心方法**：
+- `startRiding(Entity& vehicle)` - 开始骑乘车辆
+- `stopRiding()` - 停止骑乘（调用 dismount）
+- `dismount()` - 内部下车方法
+- `addPassenger(Entity& passenger)` - 添加乘客
+- `removePassenger(Entity& passenger)` - 移除乘客
+- `removePassengers()` - 移除所有乘客
+
+**骑乘检查**：
+- `isRiding()` - 是否正在骑乘
+- `hasPassengers()` - 是否有乘客
+- `getVehicle()` - 获取骑乘的车辆 ID
+- `getPassengers()` - 获取乘客列表
+- `canBeRidden(const Entity& vehicle)` - 是否可以被骑乘
+- `getLowestRidingEntity()` - 获取最底层骑乘实体（支持嵌套）
+
+**乘客位置**：
+- `updatePassengerPosition(Entity& passenger)` - 更新乘客位置
+- `applyOrientationToEntity(Entity& passenger)` - 应用朝向到乘客
+
+```cpp
+// 玩家骑乘马
+player.startRiding(horse);
+
+// 检查骑乘状态
+if (player.isRiding()) {
+    EntityId vehicleId = player.getVehicle();
+    Entity* vehicle = world.getEntity(vehicleId);
+}
+
+// 下车
+player.stopRiding();
+
+// 车辆移除所有乘客
+boat.removePassengers();
+```
+
+**网络同步**：
+- `SetPassengersPacket` - 同步乘客列表
+- `MoveVehiclePacket` - 客户端发送载具位置
+- `VehicleMovePacket` - 服务端校正载具位置
+- `PlayerInputPacket` - 客户端发送骑乘输入（移动、跳跃）
+- `EntityActionPacket` - 实体动作（马跳跃蓄力、下马）
 
 #### EntityType (实体类型)
 

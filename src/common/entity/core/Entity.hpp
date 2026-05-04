@@ -1065,6 +1065,77 @@ public:
     void stopRiding();
 
     /**
+     * @brief 下马（核心下车逻辑）
+     *
+     * MC 1.16.5: dismount()
+     * 内部方法，被 stopRiding() 调用
+     */
+    void dismount();
+
+    /**
+     * @brief 移除所有乘客
+     *
+     * MC 1.16.5: removePassengers()
+     * 从后向前遍历乘客列表并调用每个乘客的 stopRiding()
+     */
+    void removePassengers();
+
+    /**
+     * @brief 检查是否可以被指定实体骑乘
+     * @param vehicle 载具实体
+     * @return 如果可以骑乘返回true
+     *
+     * MC 1.16.5: canBeRidden(Entity)
+     * 默认检查：不在潜行状态 + 骑乘冷却为0
+     */
+    [[nodiscard]] virtual bool canBeRidden(const Entity& vehicle) const;
+
+    /**
+     * @brief 检查是否可以在水中骑乘
+     * @return 如果可以在水中骑乘返回true
+     *
+     * MC 1.16.5: canBeRiddenInWater()
+     * 默认返回true，LivingEntity重写返回false
+     */
+    [[nodiscard]] virtual bool canBeRiddenInWater() const { return true; }
+
+    /**
+     * @brief 检查是否与指定实体骑乘同一载具
+     * @param other 其他实体
+     * @return 如果骑乘同一载具返回true
+     *
+     * MC 1.16.5: isRidingSameEntity(Entity)
+     */
+    [[nodiscard]] bool isRidingSameEntity(const Entity& other) const;
+
+    /**
+     * @brief 获取最底层的骑乘实体
+     * @return 最底层载具的指针，如果没有骑乘返回nullptr
+     *
+     * MC 1.16.5: getLowestRidingEntity()
+     * 沿着骑乘链向下遍历直到找到最底层的载具
+     */
+    [[nodiscard]] Entity* getLowestRidingEntity();
+    [[nodiscard]] const Entity* getLowestRidingEntity() const;
+
+    /**
+     * @brief 递归检查是否骑乘或被骑乘指定实体
+     * @param other 目标实体
+     * @return 如果存在骑乘关系返回true
+     *
+     * MC 1.16.5: isRidingOrBeingRiddenBy(Entity)
+     */
+    [[nodiscard]] bool isRidingOrBeingRiddenBy(const Entity& other) const;
+
+    /**
+     * @brief 分离所有乘客和载具
+     *
+     * MC 1.16.5: detach()
+     * 同时移除所有乘客并下车
+     */
+    void detach();
+
+    /**
      * @brief 获取第一个乘客
      * @return 第一个乘客的实体ID，如果没有则返回 INVALID_ENTITY_ID
      */

@@ -110,6 +110,19 @@ void PigEntity::travelTowards(const Vector3& travelVec) {
     AnimalEntity::travel(travelVec);
 }
 
+void PigEntity::travel(const Vector3& travelVec) {
+    // MC 1.16.5: PigEntity.travel()
+    // this.setAIMoveSpeed((float)this.getAttributeValue(Attributes.MOVEMENT_SPEED));
+    // this.ride(this, this.field_234214_bx_, travelVec);
+
+    // 设置 AI 移动速度
+    f32 moveSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
+    // setAIMoveSpeed(moveSpeed);  // TODO: 当 MobEntity 实现 setAIMoveSpeed 后添加
+
+    // 调用 IRideable::ride() 处理骑乘移动
+    ride(*this, m_boostHelper, travelVec);
+}
+
 void PigEntity::tick() {
     // 调用父类的tick
     AnimalEntity::tick();

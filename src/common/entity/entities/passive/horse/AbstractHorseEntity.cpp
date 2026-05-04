@@ -1,8 +1,10 @@
 #include "AbstractHorseEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../core/Entity.hpp"
+#include "../../../core/DataParameter.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/PanicGoal.hpp"
@@ -20,6 +22,10 @@
 
 namespace mc {
 
+// MC 1.16.5 数据参数定义 - 必须在命名空间级别定义静态成员
+entity::DataParameter<i8> AbstractHorseEntity::STATUS_PARAM{0};
+entity::DataParameter<i64> AbstractHorseEntity::OWNER_UUID_PARAM{1};
+
 AbstractHorseEntity::AbstractHorseEntity(LegacyEntityType type, EntityId id)
     : AnimalEntity(type, id)
 {
@@ -28,12 +34,37 @@ AbstractHorseEntity::AbstractHorseEntity(LegacyEntityType type, EntityId id)
 
     // 初始化随机属性
     initRandomAttributes();
+
+    // MC 1.16.5: 初始化马背包（鞍槽 + 马铠槽）
+    initHorseChest();
+}
+
+void AbstractHorseEntity::registerData() {
+    AnimalEntity::registerData();
+
+    // MC 1.16.5 AbstractHorseEntity.registerData()
+    m_dataManager.registerParam(STATUS_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(OWNER_UUID_PARAM, static_cast<i64>(0));  // 0 = 无主人
+}
+
+// ========== 状态标志辅助方法 ==========
+
+bool AbstractHorseEntity::getHorseWatchableBoolean(i8 flag) const {
+    return (m_dataManager.get(STATUS_PARAM) & flag) != 0;
+}
+
+void AbstractHorseEntity::setHorseWatchableBoolean(i8 flag, bool value) {
+    i8 status = m_dataManager.get(STATUS_PARAM);
+    if (value) {
+        m_dataManager.set(STATUS_PARAM, static_cast<i8>(status | flag));
+    } else {
+        m_dataManager.set(STATUS_PARAM, static_cast<i8>(status & ~flag));
+    }
 }
 
 void AbstractHorseEntity::setSaddle(bool saddle) {
     m_saddled = saddle;
-    // 标记实体数据需要同步
-    // TODO: dataManager.set(FLAG_SADDLE, saddle);
+    setHorseWatchableBoolean(STATUS_FLAG_SADDLE, saddle);
 }
 
 void AbstractHorseEntity::onPlayerStartRiding(Player* player) {
@@ -133,7 +164,59 @@ bool AbstractHorseEntity::canBeRiddenBy(Player* player) const {
 
 void AbstractHorseEntity::setTame(bool tame) {
     m_tame = tame;
-    // TODO: 数据同步
+    setHorseWatchableBoolean(STATUS_FLAG_TAME, tame);
+}
+
+// ========== 库存初始化 ==========
+
+void AbstractHorseEntity::initHorseChest() {
+    // MC 1.16.5: 创建马背包（鞍槽 + 马铠槽）
+    m_inventory = std::make_unique<blockentity::SimpleInventory>(getInventorySize());
+}
+
+// ========== IEquipable 接口实现 ==========
+
+ItemStack AbstractHorseEntity::getEquipment(i32 slot) const {
+    if (!m_inventory || slot < 0 || slot >= getInventorySize()) {
+        return ItemStack::EMPTY;
+    }
+    return m_inventory->getItem(slot);
+}
+
+void AbstractHorseEntity::setEquipment(i32 slot, const ItemStack& item) {
+    if (!m_inventory || slot < 0 || slot >= getInventorySize()) {
+        return;
+    }
+    m_inventory->setItem(slot, item);
+
+    // 更新鞍/马铠状态
+    if (slot == 0) {
+        // 鞍槽
+        setSaddle(!item.isEmpty());
+    } else if (slot == 1) {
+        // 马铠槽
+        setArmor(!item.isEmpty());
+    }
+}
+
+bool AbstractHorseEntity::canEquip(const ItemStack& item, i32 slot) const {
+    if (item.isEmpty()) {
+        return true;
+    }
+
+    // 槽位0: 鞍
+    // 槽位1: 马铠（子类可扩展）
+    // TODO: 检查物品类型
+    MC_UNUSED(item);
+    MC_UNUSED(slot);
+    return true;
+}
+
+// ========== IRideable travelTowards ==========
+
+void AbstractHorseEntity::travelTowards(const Vector3& travelVec) {
+    // MC 1.16.5: travelTowards -> super.travel
+    AnimalEntity::travel(travelVec);
 }
 
 bool AbstractHorseEntity::increaseTemper(i32 amount) {

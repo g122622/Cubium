@@ -23,6 +23,9 @@ enum class PacketType : u16 {
     ChatMessage = 103,
     BlockInteraction = 104,
     PlayerTryUseItemOnBlock = 105,  // 方块放置
+    PlayerInput = 106,              // 玩家输入 (骑乘/移动) - MC 1.16.5 CInputPacket
+    MoveVehicle = 107,              // 载具移动 - MC 1.16.5 CMoveVehiclePacket
+    EntityAction = 108,             // 实体动作 (跳跃、潜行等) - MC 1.16.5 CEntityActionPacket
 
     // 服务端 -> 客户端 (登录阶段)
     LoginResponse = 200,
@@ -60,6 +63,7 @@ enum class PacketType : u16 {
     DimensionInfo = 226,        // 维度信息 (S->C)
     ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
     SpawnPosition = 228,        // 世界出生点 (S->C)
+    VehicleMove = 229,          // 载具移动同步 (S->C) - MC 1.16.5 SMoveVehiclePacket
 
     // 命令系统
     CommandTree = 230,          // 命令树同步 (S->C)

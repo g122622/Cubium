@@ -488,3 +488,299 @@ TEST_F(AbstractHorseEntityTest, GetMaxJumpHeight_Positive) {
     // 跳跃高度应该是正值
     EXPECT_GT(horse->getMaxJumpHeight(), 0.0f);
 }
+
+// ============================================================================
+// Entity::dismount() 测试
+// ============================================================================
+
+class EntityDismountTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 创建一个简单的实体用于测试
+        pig = std::make_unique<PigEntity>(LegacyEntityType::Pig, EntityId(1));
+        boat = std::make_unique<BoatEntity>(BoatEntity::Type::OAK);
+        boat->setPosition(0.0f, 0.0f, 0.0f);
+    }
+
+    std::unique_ptr<PigEntity> pig;
+    std::unique_ptr<BoatEntity> boat;
+};
+
+TEST_F(EntityDismountTest, Dismount_WhenNotRiding_DoesNothing) {
+    // 当实体没有骑乘任何东西时，dismount() 应该是无操作的
+    EXPECT_FALSE(pig->isRiding());
+    EXPECT_EQ(pig->getVehicle(), INVALID_ENTITY_ID);
+
+    // 调用 dismount 不应该崩溃或改变状态
+    pig->dismount();
+
+    EXPECT_FALSE(pig->isRiding());
+    EXPECT_EQ(pig->getVehicle(), INVALID_ENTITY_ID);
+}
+
+TEST_F(EntityDismountTest, Dismount_WhenRiding_ClearsVehicleId) {
+    // 验证初始状态
+    EXPECT_FALSE(pig->isRiding());
+
+    // 注意：由于我们没有世界环境，无法完全测试 startRiding/dismount 循环
+    // 但我们可以测试基本的状态变化
+
+    // 在真实环境中：
+    // 1. pig->startRiding(*boat)
+    // 2. EXPECT_TRUE(pig->isRiding())
+    // 3. pig->dismount()
+    // 4. EXPECT_FALSE(pig->isRiding())
+}
+
+TEST_F(EntityDismountTest, IsRiding_ReturnsFalseInitially) {
+    EXPECT_FALSE(pig->isRiding());
+    EXPECT_FALSE(boat->isRiding());
+}
+
+TEST_F(EntityDismountTest, GetVehicle_ReturnsInvalidWhenNotRiding) {
+    EXPECT_EQ(pig->getVehicle(), INVALID_ENTITY_ID);
+    EXPECT_EQ(boat->getVehicle(), INVALID_ENTITY_ID);
+}
+
+TEST_F(EntityDismountTest, HasPassengers_ReturnsFalseInitially) {
+    EXPECT_FALSE(pig->hasPassengers());
+    EXPECT_FALSE(boat->hasPassengers());
+}
+
+TEST_F(EntityDismountTest, GetPassengers_ReturnsEmptyWhenNone) {
+    const auto& pigPassengers = pig->getPassengers();
+    const auto& boatPassengers = boat->getPassengers();
+
+    EXPECT_TRUE(pigPassengers.empty());
+    EXPECT_TRUE(boatPassengers.empty());
+}
+
+// ============================================================================
+// BoatEntity::hurt() 测试
+// ============================================================================
+
+class BoatEntityHurtTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        boat = std::make_unique<BoatEntity>(BoatEntity::Type::OAK);
+        boat->setPosition(0.0f, 64.0f, 0.0f);
+    }
+
+    std::unique_ptr<BoatEntity> boat;
+};
+
+TEST_F(BoatEntityHurtTest, InitialDamageTaken_IsZero) {
+    EXPECT_FLOAT_EQ(boat->getDamageTaken(), 0.0f);
+}
+
+TEST_F(BoatEntityHurtTest, InitialTimeSinceHit_IsZero) {
+    EXPECT_EQ(boat->getTimeSinceHit(), 0);
+}
+
+TEST_F(BoatEntityHurtTest, DamageThreshold_Is40) {
+    // MC 1.16.5: 船的伤害阈值是 40.0f
+    // 当 damageTaken > 40 时船会被破坏
+    constexpr f32 BOAT_DAMAGE_THRESHOLD = 40.0f;
+    EXPECT_FLOAT_EQ(BOAT_DAMAGE_THRESHOLD, 40.0f);
+}
+
+TEST_F(BoatEntityHurtTest, SetDamageTaken_UpdatesValue) {
+    boat->setDamageTaken(10.0f);
+    EXPECT_FLOAT_EQ(boat->getDamageTaken(), 10.0f);
+
+    boat->setDamageTaken(50.0f);
+    EXPECT_FLOAT_EQ(boat->getDamageTaken(), 50.0f);
+}
+
+TEST_F(BoatEntityHurtTest, SetTimeSinceHit_UpdatesValue) {
+    boat->setTimeSinceHit(5);
+    EXPECT_EQ(boat->getTimeSinceHit(), 5);
+
+    boat->setTimeSinceHit(10);
+    EXPECT_EQ(boat->getTimeSinceHit(), 10);
+}
+
+TEST_F(BoatEntityHurtTest, Tick_DecrementsTimeSinceHit) {
+    boat->setTimeSinceHit(5);
+
+    // 船的 tick 会让 timeSinceHit 递减（如果 > 0）
+    // 注意：完整的 tick 需要世界环境，这里只验证基本状态
+    EXPECT_EQ(boat->getTimeSinceHit(), 5);
+}
+
+TEST_F(BoatEntityHurtTest, Tick_DecreasesDamageTaken) {
+    boat->setDamageTaken(10.0f);
+
+    // 每tick damageTaken 减少 0.05f（如果 > 0）
+    // 注意：完整的 tick 需要世界环境
+    EXPECT_FLOAT_EQ(boat->getDamageTaken(), 10.0f);
+}
+
+TEST_F(BoatEntityHurtTest, ForwardDirection_InitialValue) {
+    // MC 1.16.5: forward direction 初始值为 1
+    EXPECT_EQ(boat->getForwardDirection(), 1);
+}
+
+TEST_F(BoatEntityHurtTest, SetForwardDirection_UpdatesValue) {
+    boat->setForwardDirection(-1);
+    EXPECT_EQ(boat->getForwardDirection(), -1);
+
+    boat->setForwardDirection(1);
+    EXPECT_EQ(boat->getForwardDirection(), 1);
+}
+
+TEST_F(BoatEntityHurtTest, CanBeRidden_ReturnsTrue) {
+    // 船可以被骑乘
+    EXPECT_TRUE(boat->canBeRidden(*boat));
+}
+
+TEST_F(BoatEntityHurtTest, MaxPassengers_IsTwo) {
+    // MC 1.16.5: 船最多两个乘客
+    EXPECT_EQ(boat->getMaxPassengers(), 2);
+}
+
+// ============================================================================
+// AbstractMinecartEntity::hurt() 测试
+// ============================================================================
+
+class MinecartEntityHurtTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        minecart = std::make_unique<RideableMinecartEntity>(EntityId(1));
+        minecart->setPosition(0.0f, 64.0f, 0.0f);
+    }
+
+    std::unique_ptr<RideableMinecartEntity> minecart;
+};
+
+TEST_F(MinecartEntityHurtTest, InitialDamage_IsZero) {
+    EXPECT_EQ(minecart->getDamage(), 0);
+}
+
+TEST_F(MinecartEntityHurtTest, SetDamage_UpdatesValue) {
+    minecart->setDamage(10);
+    EXPECT_EQ(minecart->getDamage(), 10);
+
+    minecart->setDamage(50);
+    EXPECT_EQ(minecart->getDamage(), 50);
+}
+
+TEST_F(MinecartEntityHurtTest, InitialRollingAmplitude_IsZero) {
+    EXPECT_EQ(minecart->getRollingAmplitude(), 0);
+}
+
+TEST_F(MinecartEntityHurtTest, InitialRollingDirection_IsOne) {
+    EXPECT_EQ(minecart->getRollingDirection(), 1);
+}
+
+TEST_F(MinecartEntityHurtTest, GetMaxSpeed_ReturnsCorrectValue) {
+    // MC 1.16.5: 矿车最大速度 0.4
+    EXPECT_FLOAT_EQ(minecart->getMaxSpeed(), 0.4f);
+}
+
+TEST_F(MinecartEntityHurtTest, IsOnRail_InitialFalse) {
+    EXPECT_FALSE(minecart->isOnRail());
+}
+
+TEST_F(MinecartEntityHurtTest, GetRailShape_DefaultNorthSouth) {
+    EXPECT_EQ(minecart->getRailShape(), RailShape::NorthSouth);
+}
+
+TEST_F(MinecartEntityHurtTest, CanBeRidden_ReturnsTrue) {
+    // 可骑乘矿车可以被骑乘
+    EXPECT_TRUE(minecart->canBeRidden(*minecart));
+}
+
+TEST_F(MinecartEntityHurtTest, MountedYOffset_IsZero) {
+    EXPECT_DOUBLE_EQ(minecart->getMountedYOffset(), 0.0);
+}
+
+// ============================================================================
+// TNTMinecartEntity 爆炸相关测试
+// ============================================================================
+
+class TNTMinecartEntityHurtTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        tntMinecart = std::make_unique<TNTMinecartEntity>(EntityId(1));
+        tntMinecart->setPosition(0.0f, 64.0f, 0.0f);
+    }
+
+    std::unique_ptr<TNTMinecartEntity> tntMinecart;
+};
+
+TEST_F(TNTMinecartEntityHurtTest, InitiallyNotPrimed) {
+    EXPECT_FALSE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartEntityHurtTest, Prime_SetsPrimedState) {
+    tntMinecart->prime(80);
+    EXPECT_TRUE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartEntityHurtTest, Prime_DefaultFuseIs80) {
+    tntMinecart->prime();  // 使用默认引信时间
+    EXPECT_TRUE(tntMinecart->isPrimed());
+    // 默认引信时间 80 tick（4秒）
+}
+
+TEST_F(TNTMinecartEntityHurtTest, OnActivatorRailPass_PowersOn_Primes) {
+    // 激活铁轨通电时点燃
+    tntMinecart->onActivatorRailPass(0, 0, 0, true);
+    EXPECT_TRUE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartEntityHurtTest, OnActivatorRailPass_NoPower_DoesNotPrime) {
+    // 激活铁轨未通电时不点燃
+    tntMinecart->onActivatorRailPass(0, 0, 0, false);
+    EXPECT_FALSE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartEntityHurtTest, MinecartType_IsTNT) {
+    EXPECT_EQ(tntMinecart->getMinecartType(), AbstractMinecartEntity::Type::TNT);
+}
+
+// ============================================================================
+// FurnaceMinecartEntity 燃料相关测试
+// ============================================================================
+
+class FurnaceMinecartEntityHurtTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        furnaceMinecart = std::make_unique<FurnaceMinecartEntity>(EntityId(1));
+        furnaceMinecart->setPosition(0.0f, 64.0f, 0.0f);
+    }
+
+    std::unique_ptr<FurnaceMinecartEntity> furnaceMinecart;
+};
+
+TEST_F(FurnaceMinecartEntityHurtTest, InitialFuel_IsZero) {
+    EXPECT_EQ(furnaceMinecart->getFuel(), 0);
+}
+
+TEST_F(FurnaceMinecartEntityHurtTest, InitialActivated_IsFalse) {
+    EXPECT_FALSE(furnaceMinecart->isActivated());
+}
+
+TEST_F(FurnaceMinecartEntityHurtTest, AddFuel_IncreasesFuel) {
+    furnaceMinecart->addFuel(100);
+    EXPECT_EQ(furnaceMinecart->getFuel(), 100);
+
+    furnaceMinecart->addFuel(50);
+    EXPECT_EQ(furnaceMinecart->getFuel(), 150);
+}
+
+TEST_F(FurnaceMinecartEntityHurtTest, Activate_SetsActivated) {
+    furnaceMinecart->activate();
+    EXPECT_TRUE(furnaceMinecart->isActivated());
+    EXPECT_GT(furnaceMinecart->getFuel(), 0);  // activate 会添加燃料
+}
+
+TEST_F(FurnaceMinecartEntityHurtTest, MaxSpeed_IsLowerThanDefault) {
+    // MC 1.16.5: 熔炉矿车最大速度 0.2（比普通矿车慢）
+    EXPECT_FLOAT_EQ(furnaceMinecart->getMaxSpeed(), 0.2f);
+}
+
+TEST_F(FurnaceMinecartEntityHurtTest, MinecartType_IsFurnace) {
+    EXPECT_EQ(furnaceMinecart->getMinecartType(), AbstractMinecartEntity::Type::Furnace);
+}

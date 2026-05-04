@@ -29,6 +29,56 @@ vehicle/
 - **AbstractMinecartEntity**: `Entity`
 - **HopperMinecartEntity**: `AbstractMinecartEntity`, `IHopper`
 
+## 骑乘系统
+
+### IRideable 接口
+
+所有可骑乘实体实现 `IRideable` 接口（定义在 `entity/interfaces/IRideable.hpp`）：
+
+```cpp
+class IRideable {
+public:
+    virtual bool hasSaddle() const = 0;
+    virtual void setSaddle(bool saddle) = 0;
+    virtual void onPlayerStartRiding(Player* player) = 0;
+    virtual void onPlayerStopRiding(Player* player) = 0;
+    virtual f32 getSteeringSpeed() const = 0;
+    virtual bool boost() = 0;
+    virtual i32 getBoostTime() const = 0;
+    virtual void setBoostTime(i32 time) = 0;
+    virtual bool canBeSteered() const = 0;
+    virtual void travelTowards(const Vector3& travelVec) = 0;
+    
+    // 静态辅助方法
+    static void ride(IRideable& rideable, BoostHelper& helper, const Vector3& travelVec);
+};
+```
+
+### BoostHelper 辅助类
+
+`BoostHelper`（定义在 `entity/core/BoostHelper.hpp`）管理可骑乘实体的加速状态：
+
+| 方法 | 说明 |
+|------|------|
+| `setSaddled(bool)` | 设置鞍状态 |
+| `getSaddled()` | 获取鞍状态 |
+| `boost(Random&)` | 触发加速，返回是否成功 |
+| `tick()` | 每tick更新加速状态 |
+| `isBoosting()` | 是否正在加速 |
+| `getBoostProgress()` | 获取加速进度 (0.0-1.0) |
+
+### 网络同步
+
+骑乘相关的网络包（定义在 `network/packet/EntityPackets.hpp`）：
+
+| 包名 | 方向 | 说明 |
+|------|------|------|
+| PlayerInputPacket | C→S | 玩家输入（移动、跳跃、潜行） |
+| MoveVehiclePacket | C→S | 载具位置同步 |
+| VehicleMovePacket | S→C | 服务端校正载具位置 |
+| EntityActionPacket | C→S | 实体动作（潜行、疾跑、马跳跃） |
+| SetPassengersPacket | S→C | 乘客列表同步 |
+
 ## 船的特性
 
 - 水上行驶
@@ -36,6 +86,7 @@ vehicle/
 - 受水流影响
 - 碰撞推动实体
 - 6种木材变体
+- 伤害系统（碰撞、摔落、岩浆）
 
 ## 矿车的特性
 
@@ -97,7 +148,7 @@ vehicle/
 
 | 组件 | 状态 |
 |------|------|
-| BoatEntity | ⚠️ 框架完成 |
+| BoatEntity | ✅ 完成 |
 | AbstractMinecartEntity | ✅ 完成 |
 | RideableMinecartEntity | ✅ 完成 |
 | ChestMinecartEntity | ✅ 完成 |
@@ -108,6 +159,8 @@ vehicle/
 | 铁轨逻辑 | ✅ 完成 |
 | 库存系统 | ✅ 完成 |
 | 爆炸系统对接 | ✅ 完成 |
+| 骑乘网络包 | ✅ 完成 |
+| BoostHelper | ✅ 完成 |
 
 ## 测试覆盖
 
@@ -118,3 +171,9 @@ vehicle/
 - FurnaceMinecartEntity 燃料系统测试
 - TNTMinecartEntity 引信系统测试
 - MinecartItem 构造测试
+
+骑乘相关网络包测试位于 `tests/network/EntityPacketsTest.cpp`：
+- PlayerInputPacket 序列化/反序列化测试
+- MoveVehiclePacket 序列化/反序列化测试
+- VehicleMovePacket 序列化/反序列化测试
+- EntityActionPacket 序列化/反序列化测试

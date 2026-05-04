@@ -369,3 +369,182 @@ TEST(EntityPacketsErrorTest, EntityTeleportPacketTooSmall) {
     auto result = packet.deserialize(smallData, sizeof(smallData));
     EXPECT_FALSE(result.success());
 }
+
+// ==================== PlayerInputPacket Tests ====================
+
+TEST(PlayerInputPacketTest, SerializeDeserialize) {
+    PlayerInputPacket packet;
+    packet.setStrafeSpeed(0.5f);
+    packet.setForwardSpeed(1.0f);
+    packet.setJumping(true);
+    packet.setSneaking(false);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    PlayerInputPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_FLOAT_EQ(packet2.strafeSpeed(), 0.5f);
+    EXPECT_FLOAT_EQ(packet2.forwardSpeed(), 1.0f);
+    EXPECT_TRUE(packet2.isJumping());
+    EXPECT_FALSE(packet2.isSneaking());
+}
+
+TEST(PlayerInputPacketTest, AllFlagsCombinations) {
+    PlayerInputPacket packet;
+    packet.setStrafeSpeed(-0.75f);
+    packet.setForwardSpeed(-0.25f);
+
+    // Test all combinations of jumping and sneaking
+    for (int jumping = 0; jumping <= 1; jumping++) {
+        for (int sneaking = 0; sneaking <= 1; sneaking++) {
+            packet.setJumping(jumping == 1);
+            packet.setSneaking(sneaking == 1);
+
+            auto result = packet.serialize();
+            ASSERT_TRUE(result.success());
+
+            PlayerInputPacket packet2;
+            auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+            EXPECT_TRUE(result2.success());
+            EXPECT_EQ(packet2.isJumping(), jumping == 1);
+            EXPECT_EQ(packet2.isSneaking(), sneaking == 1);
+        }
+    }
+}
+
+TEST(PlayerInputPacketTest, PacketType) {
+    PlayerInputPacket packet;
+    EXPECT_EQ(packet.type(), PacketType::PlayerInput);
+}
+
+// ==================== MoveVehiclePacket Tests ====================
+
+TEST(MoveVehiclePacketTest, SerializeDeserialize) {
+    MoveVehiclePacket packet;
+    packet.setPosition(100.5, 64.0, -200.25);
+    packet.setRotation(45.0f, 30.0f);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    MoveVehiclePacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_DOUBLE_EQ(packet2.x(), 100.5);
+    EXPECT_DOUBLE_EQ(packet2.y(), 64.0);
+    EXPECT_DOUBLE_EQ(packet2.z(), -200.25);
+    EXPECT_FLOAT_EQ(packet2.yaw(), 45.0f);
+    EXPECT_FLOAT_EQ(packet2.pitch(), 30.0f);
+}
+
+TEST(MoveVehiclePacketTest, PacketType) {
+    MoveVehiclePacket packet;
+    EXPECT_EQ(packet.type(), PacketType::MoveVehicle);
+}
+
+// ==================== VehicleMovePacket Tests ====================
+
+TEST(VehicleMovePacketTest, SerializeDeserialize) {
+    VehicleMovePacket packet;
+    packet.setPosition(123.45, 67.89, -456.78);
+    packet.setRotation(180.0f, -45.0f);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    VehicleMovePacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_DOUBLE_EQ(packet2.x(), 123.45);
+    EXPECT_DOUBLE_EQ(packet2.y(), 67.89);
+    EXPECT_DOUBLE_EQ(packet2.z(), -456.78);
+    EXPECT_FLOAT_EQ(packet2.yaw(), 180.0f);
+    EXPECT_FLOAT_EQ(packet2.pitch(), -45.0f);
+}
+
+TEST(VehicleMovePacketTest, PacketType) {
+    VehicleMovePacket packet;
+    EXPECT_EQ(packet.type(), PacketType::VehicleMove);
+}
+
+// ==================== EntityActionPacket Tests ====================
+
+TEST(EntityActionPacketTest, SerializeDeserialize) {
+    EntityActionPacket packet;
+    packet.setEntityId(12345);
+    packet.setAction(mc::network::EntityActionType::StartRidingJump);
+    packet.setAuxData(50);  // Jump power 50%
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    EntityActionPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_EQ(packet2.entityId(), 12345u);
+    EXPECT_EQ(packet2.action(), mc::network::EntityActionType::StartRidingJump);
+    EXPECT_EQ(packet2.auxData(), 50);
+}
+
+TEST(EntityActionPacketTest, AllActionTypes) {
+    EntityActionPacket packet;
+    packet.setEntityId(1);
+
+    // Test PressShiftKey
+    packet.setAction(mc::network::EntityActionType::PressShiftKey);
+    packet.setAuxData(0);
+    auto result1 = packet.serialize();
+    ASSERT_TRUE(result1.success());
+    EntityActionPacket packet1;
+    EXPECT_TRUE(packet1.deserialize(result1.value().data(), result1.value().size()).success());
+    EXPECT_EQ(packet1.action(), mc::network::EntityActionType::PressShiftKey);
+
+    // Test StartRidingJump
+    packet.setAction(mc::network::EntityActionType::StartRidingJump);
+    packet.setAuxData(50);
+    auto result2 = packet.serialize();
+    ASSERT_TRUE(result2.success());
+    EntityActionPacket packet2;
+    EXPECT_TRUE(packet2.deserialize(result2.value().data(), result2.value().size()).success());
+    EXPECT_EQ(packet2.action(), mc::network::EntityActionType::StartRidingJump);
+    EXPECT_EQ(packet2.auxData(), 50);
+
+    // Test StopRidingJump
+    packet.setAction(mc::network::EntityActionType::StopRidingJump);
+    auto result3 = packet.serialize();
+    ASSERT_TRUE(result3.success());
+    EntityActionPacket packet3;
+    EXPECT_TRUE(packet3.deserialize(result3.value().data(), result3.value().size()).success());
+    EXPECT_EQ(packet3.action(), mc::network::EntityActionType::StopRidingJump);
+
+    // Test StartFallFlying
+    packet.setAction(mc::network::EntityActionType::StartFallFlying);
+    auto result4 = packet.serialize();
+    ASSERT_TRUE(result4.success());
+    EntityActionPacket packet4;
+    EXPECT_TRUE(packet4.deserialize(result4.value().data(), result4.value().size()).success());
+    EXPECT_EQ(packet4.action(), mc::network::EntityActionType::StartFallFlying);
+}
+
+TEST(EntityActionPacketTest, PacketType) {
+    EntityActionPacket packet;
+    EXPECT_EQ(packet.type(), PacketType::EntityAction);
+}
+
+TEST(EntityActionPacketTest, InvalidActionType) {
+    // Create serialized data with invalid action type
+    mc::network::PacketSerializer ser;
+    ser.writeVarInt(12345);  // entity id
+    ser.writeVarInt(999);    // invalid action type
+    ser.writeVarInt(0);      // aux data
+
+    EntityActionPacket packet;
+    auto result = packet.deserialize(ser.buffer().data(), ser.buffer().size());
+    EXPECT_FALSE(result.success());  // Should fail for invalid action type
+}

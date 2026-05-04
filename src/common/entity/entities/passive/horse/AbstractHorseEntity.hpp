@@ -3,13 +3,18 @@
 #include "../basic/AnimalEntity.hpp"
 #include "../../../interfaces/IRideable.hpp"
 #include "../../../interfaces/IJumpingMount.hpp"
+#include "../../../interfaces/IEquipable.hpp"
+#include "../../../core/DataParameter.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../world/blockentity/core/SimpleInventory.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 
 // Forward declarations
 class Player;
+class ItemStack;
 
 /**
  * @brief 马类实体基类
@@ -21,7 +26,8 @@ class Player;
  */
 class AbstractHorseEntity : public AnimalEntity,
                             public entity::IRideable,
-                            public entity::IJumpingMount {
+                            public entity::IJumpingMount,
+                            public entity::IEquipable {
 public:
     /**
      * @brief 构造函数
@@ -157,6 +163,36 @@ public:
      */
     void setJumpStrength(f32 strength) { m_jumpStrength = strength; }
 
+    // ========== IEquipable 接口实现 ==========
+
+    /**
+     * @brief 获取装备槽数量
+     */
+    [[nodiscard]] i32 getEquipmentSlotCount() const override { return getInventorySize(); }
+
+    /**
+     * @brief 获取指定槽位的装备
+     */
+    [[nodiscard]] ItemStack getEquipment(i32 slot) const override;
+
+    /**
+     * @brief 设置指定槽位的装备
+     */
+    void setEquipment(i32 slot, const ItemStack& item) override;
+
+    /**
+     * @brief 检查是否可以装备指定物品
+     */
+    [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
+
+    // ========== IRideable travelTowards ==========
+
+    /**
+     * @brief 执行骑乘移动逻辑
+     * MC 1.16.5: travelTowards()
+     */
+    void travelTowards(const Vector3& travelVec) override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -170,6 +206,21 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+    void registerData() override;
+
+    // ========== 状态标志辅助方法 ==========
+
+    /**
+     * @brief 获取状态标志
+     * MC 1.16.5: getHorseWatchableBoolean()
+     */
+    [[nodiscard]] bool getHorseWatchableBoolean(i8 flag) const;
+
+    /**
+     * @brief 设置状态标志
+     * MC 1.16.5: setHorseWatchableBoolean()
+     */
+    void setHorseWatchableBoolean(i8 flag, bool value);
 
     // ========== 尺寸 ==========
     // 子类应该重写这些方法以提供正确的尺寸
@@ -204,6 +255,12 @@ protected:
      */
     void initRandomAttributes();
 
+    /**
+     * @brief 初始化马背包
+     * MC 1.16.5: initHorseChest()
+     */
+    void initHorseChest();
+
 protected:
     // 骑乘状态
     Player* m_rider = nullptr;
@@ -231,7 +288,34 @@ protected:
     f32 m_jumpHeight = 0.0f;
     f32 m_horseHealth = 0.0f;  // 改名避免与基类冲突
 
+    // 库存（鞍槽 + 马铠槽）
+    std::unique_ptr<blockentity::SimpleInventory> m_inventory;
+
+    // 动画状态
+    i32 m_eatingCounter = 0;
+    i32 m_openMouthCounter = 0;
+    i32 m_jumpRearingCounter = 0;
+    i32 m_tailCounter = 0;
+    i32 m_sprintCounter = 0;
+    f32 m_headLean = 0.0f;
+    f32 m_prevHeadLean = 0.0f;
+    f32 m_rearingAmount = 0.0f;
+    f32 m_prevRearingAmount = 0.0f;
+    f32 m_mouthOpenness = 0.0f;
+    f32 m_prevMouthOpenness = 0.0f;
+
 private:
+    // MC 1.16.5 数据参数
+    static entity::DataParameter<i8> STATUS_PARAM;  // 使用 i8 代替 u8（DataValue 支持的类型）
+    static entity::DataParameter<i64> OWNER_UUID_PARAM;  // 0 表示无主人
+
+    // 状态标志位
+    static constexpr i8 STATUS_FLAG_SADDLE = 0b00000001;
+    static constexpr i8 STATUS_FLAG_TAME = 0b00000010;
+    static constexpr i8 STATUS_FLAG_BRED = 0b00000100;
+    static constexpr i8 STATUS_FLAG_EATING = 0b00001000;
+    static constexpr i8 STATUS_FLAG_REARING = 0b00010000;
+    static constexpr i8 STATUS_FLAG_MOUTH_OPEN = 0b00100000;
 
     // 常量
     static constexpr f32 MIN_SPEED = 0.1127f;       // 最小速度

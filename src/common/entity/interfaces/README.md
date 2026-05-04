@@ -67,7 +67,7 @@ public:
 | `ICrossbowUser` | - | 接口已定义，待PiglinEntity/PillagerEntity实现 |
 | `IFlyingAnimal` | BeeEntity, ParrotEntity | 蜜蜂、鹦鹉已实现 |
 | `IJumpingMount` | AbstractHorseEntity | 马类跳跃系统已实现 |
-| `IEquipable` | - | 接口已定义，待实现 |
+| `IEquipable` | AbstractHorseEntity | 马类装备系统已实现（鞍槽+马铠槽） |
 
 ## 目录结构
 

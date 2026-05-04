@@ -9,6 +9,7 @@ namespace mc {
 class Player;
 class ItemEntity;
 class BlockState;
+class DamageSource;
 
 namespace entity {
 
@@ -61,6 +62,25 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 处理伤害
+     * MC 1.16.5: BoatEntity.attackEntityFrom()
+     * @note 船不继承LivingEntity，所以不重写hurt方法
+     */
+    bool hurt(DamageSource& source, f32 amount);
+
+    /**
+     * @brief 检查是否可以被碰撞
+     * MC 1.16.5: canBeCollidedWith()
+     */
+    [[nodiscard]] bool canBeCollidedWith() const { return isAlive(); }
+
+    /**
+     * @brief 检查是否可以被推动
+     * MC 1.16.5: canBePushed()
+     */
+    [[nodiscard]] bool canBePushed() const { return true; }
+
 protected:
     /**
      * @brief 注册数据参数
@@ -90,6 +110,26 @@ public:
      */
     void updatePassengerPosition(Entity& passenger) override;
 
+    // ========== 伤害和掉落 ==========
+
+    /**
+     * @brief 处理摔落伤害
+     * MC 1.16.5: updateFallState()
+     */
+    void updateFallState(f64 y, bool onGround);
+
+    /**
+     * @brief 掉落船物品
+     * MC 1.16.5: entityDropItem(this.getItemBoat())
+     */
+    void dropItem();
+
+    /**
+     * @brief 掉落船物品（带伤害倍率）
+     * MC 1.16.5: 当超过伤害阈值时调用
+     */
+    void dropItemWithDamage();
+
     // ========== 船类型 ==========
 
     /**
@@ -106,6 +146,52 @@ public:
      * @brief 获取船的状态
      */
     [[nodiscard]] BoatStatus getStatus() const { return m_status; }
+
+    // ========== 伤害状态 ==========
+
+    /**
+     * @brief 获取上次受击时间
+     * MC 1.16.5: getTimeSinceHit()
+     */
+    [[nodiscard]] i32 getTimeSinceHit() const { return m_timeSinceHit; }
+
+    /**
+     * @brief 设置上次受击时间
+     */
+    void setTimeSinceHit(i32 time) { m_timeSinceHit = time; }
+
+    /**
+     * @brief 获取前进方向
+     * MC 1.16.5: getForwardDirection()
+     */
+    [[nodiscard]] i32 getForwardDirection() const { return m_forwardDirection; }
+
+    /**
+     * @brief 设置前进方向
+     */
+    void setForwardDirection(i32 direction) { m_forwardDirection = direction; }
+
+    /**
+     * @brief 获取累积伤害
+     * MC 1.16.5: getDamageTaken()
+     */
+    [[nodiscard]] f32 getDamageTaken() const { return m_damageTaken; }
+
+    /**
+     * @brief 设置累积伤害
+     */
+    void setDamageTaken(f32 damage) { m_damageTaken = damage; }
+
+    /**
+     * @brief 获取摇晃tick数
+     * MC 1.16.5: getRockingTicks()
+     */
+    [[nodiscard]] i32 getRockingTicks() const { return m_rockingTicks; }
+
+    /**
+     * @brief 设置摇晃tick数
+     */
+    void setRockingTicks(i32 ticks) { m_rockingTicks = ticks; }
 
     // ========== 桨动画 ==========
 
@@ -152,13 +238,6 @@ public:
     [[nodiscard]] bool canFitPassenger() const {
         return static_cast<i32>(m_passengers.size()) < MAX_PASSENGERS && m_status != BoatStatus::UnderWater;
     }
-
-    // ========== 其他 ==========
-
-    /**
-     * @brief 掉落船物品
-     */
-    void dropItem();
 
     /**
      * @brief 获取上方水面高度

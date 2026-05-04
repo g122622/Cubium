@@ -3,10 +3,11 @@
 #include "common/core/Types.hpp"
 
 namespace mc {
-namespace entity {
 
 // Forward declarations
 class ItemStack;
+
+namespace entity {
 
 /**
  * @brief 可装备接口 - 用于可以被装备物品的实体
@@ -24,21 +25,21 @@ public:
      * @brief 获取装备槽数量
      * @return 装备槽数量
      */
-    virtual usize getEquipmentSlotCount() const = 0;
+    [[nodiscard]] virtual i32 getEquipmentSlotCount() const = 0;
 
     /**
      * @brief 获取指定槽位的装备
      * @param slot 槽位索引 (0-based)
-     * @return 装备物品，可能为空
+     * @return 装备物品（空堆表示无装备）
      */
-    virtual ItemStack* getEquipment(usize slot) = 0;
+    [[nodiscard]] virtual ItemStack getEquipment(i32 slot) const = 0;
 
     /**
      * @brief 设置指定槽位的装备
      * @param slot 槽位索引
      * @param item 物品
      */
-    virtual void setEquipment(usize slot, const ItemStack& item) = 0;
+    virtual void setEquipment(i32 slot, const ItemStack& item) = 0;
 
     /**
      * @brief 检查是否可以装备指定物品
@@ -46,7 +47,7 @@ public:
      * @param slot 目标槽位
      * @return 如果可以装备返回true
      */
-    virtual bool canEquip(const ItemStack& item, usize slot) const = 0;
+    [[nodiscard]] virtual bool canEquip(const ItemStack& item, i32 slot) const = 0;
 };
 
 } // namespace entity

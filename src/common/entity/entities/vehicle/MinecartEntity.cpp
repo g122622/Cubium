@@ -286,31 +286,63 @@ void AbstractMinecartEntity::moveDerailedMinecart() {
 }
 
 std::pair<Vector3, Vector3> AbstractMinecartEntity::getRailDirectionVectors(RailShape shape) const {
-    // MC 1.16.5: MATRIX 映射
-    // 返回铁轨的两个端点方向
+    // MC 1.16.5: MATRIX 映射 (AbstractMinecartEntity.java 行60-79)
+    // 方向向量定义（Vector3i整数向量）：
+    // WEST = (-1, 0, 0), EAST = (1, 0, 0)
+    // NORTH = (0, 0, -1), SOUTH = (0, 0, 1)
+    // WEST_DOWN = WEST.down() = (-1, -1, 0)
+    // EAST_DOWN = EAST.down() = (1, -1, 0)
+    // NORTH_DOWN = NORTH.down() = (0, -1, -1)
+    // SOUTH_DOWN = SOUTH.down() = (0, -1, 1)
+    // 注意：斜坡的Y值为-1（向下），表示矿车在该端点时会下降
+
     switch (shape) {
         case RailShape::NorthSouth:
-            return { Vector3(0, 0, -1), Vector3(0, 0, 1) };  // 南北
+            // NORTH_SOUTH: Pair.of(NORTH, SOUTH) = (0, 0, -1), (0, 0, 1)
+            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f) };
+
         case RailShape::EastWest:
-            return { Vector3(-1, 0, 0), Vector3(1, 0, 0) };  // 东西
+            // EAST_WEST: Pair.of(WEST, EAST) = (-1, 0, 0), (1, 0, 0)
+            return { Vector3(-1.0f, 0.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f) };
+
         case RailShape::AscendingEast:
-            return { Vector3(-1, 0, 0), Vector3(1, 1, 0) };  // 向东上坡
+            // ASCENDING_EAST: Pair.of(WEST_DOWN, EAST) = (-1, -1, 0), (1, 0, 0)
+            // 矿车从西向东上坡：西端点低（Y=-1），东端点高（Y=0）
+            return { Vector3(-1.0f, -1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f) };
+
         case RailShape::AscendingWest:
-            return { Vector3(-1, 1, 0), Vector3(1, 0, 0) };  // 向西上坡
+            // ASCENDING_WEST: Pair.of(WEST, EAST_DOWN) = (-1, 0, 0), (1, -1, 0)
+            // 矿车从东向西上坡：东端点低（Y=-1），西端点高（Y=0）
+            return { Vector3(-1.0f, 0.0f, 0.0f), Vector3(1.0f, -1.0f, 0.0f) };
+
         case RailShape::AscendingNorth:
-            return { Vector3(0, 0, -1), Vector3(0, 1, 1) };  // 向北上坡
+            // ASCENDING_NORTH: Pair.of(NORTH, SOUTH_DOWN) = (0, 0, -1), (0, -1, 1)
+            // 矿车从南向北上坡：南端点低（Y=-1），北端点高（Y=0）
+            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 1.0f) };
+
         case RailShape::AscendingSouth:
-            return { Vector3(0, 1, -1), Vector3(0, 0, 1) };  // 向南上坡
+            // ASCENDING_SOUTH: Pair.of(NORTH_DOWN, SOUTH) = (0, -1, -1), (0, 0, 1)
+            // 矿车从北向南上坡：北端点低（Y=-1），南端点高（Y=0）
+            return { Vector3(0.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f) };
+
         case RailShape::SouthEast:
-            return { Vector3(0, 0, 1), Vector3(1, 0, 0) };   // 东南弯道
+            // SOUTH_EAST: Pair.of(SOUTH, EAST) = (0, 0, 1), (1, 0, 0)
+            return { Vector3(0.0f, 0.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f) };
+
         case RailShape::SouthWest:
-            return { Vector3(-1, 0, 0), Vector3(0, 0, 1) };  // 西南弯道
+            // SOUTH_WEST: Pair.of(SOUTH, WEST) = (0, 0, 1), (-1, 0, 0)
+            return { Vector3(0.0f, 0.0f, 1.0f), Vector3(-1.0f, 0.0f, 0.0f) };
+
         case RailShape::NorthWest:
-            return { Vector3(-1, 0, 0), Vector3(0, 0, -1) }; // 西北弯道
+            // NORTH_WEST: Pair.of(NORTH, WEST) = (0, 0, -1), (-1, 0, 0)
+            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f) };
+
         case RailShape::NorthEast:
-            return { Vector3(0, 0, -1), Vector3(1, 0, 0) };  // 东北弯道
+            // NORTH_EAST: Pair.of(NORTH, EAST) = (0, 0, -1), (1, 0, 0)
+            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f) };
+
         default:
-            return { Vector3(0, 0, -1), Vector3(0, 0, 1) };
+            return { Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f) };
     }
 }
 
@@ -617,6 +649,71 @@ void AbstractMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
 
 void AbstractMinecartEntity::applyForce(f32 x, f32 z) {
     addVelocity(x, 0.0f, z);
+}
+
+bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount) {
+    // MC 1.16.5: AbstractMinecartEntity.attackEntityFrom()
+    // 矿车不继承 LivingEntity，所以这不是 override
+
+    // 1. 检查无敌状态
+    if (isInvulnerable()) {
+        return false;
+    }
+
+    // 2. 只在服务端处理
+    IWorld* worldPtr = world();
+    if (!worldPtr || worldPtr->isClientSide()) {
+        return true;
+    }
+
+    // 3. 已移除的实体不再处理伤害
+    if (isRemoved()) {
+        return true;
+    }
+
+    // 4. 设置摇晃动画
+    // this.setRollingDirection(-this.getRollingDirection());
+    m_rollingDirection = -m_rollingDirection;
+
+    // 5. 设置摇晃时间
+    // this.setRollingAmplitude(10);
+    m_rollingAmplitude = 10;
+
+    // 6. 标记速度已改变（用于同步）
+    // this.markVelocityChanged();
+    // TODO: 当网络同步实现后设置
+
+    // 7. 累积伤害
+    // this.setDamage(this.getDamage() + amount * 10.0F);
+    m_damage += static_cast<i32>(amount * 10.0f);
+
+    // 8. 检查攻击者是否为创造模式玩家
+    // boolean flag = source.getTrueSource() instanceof PlayerEntity && ((PlayerEntity)source.getTrueSource()).abilities.isCreativeMode;
+    bool isCreative = false;
+    Entity* attacker = source.source();
+    if (attacker != nullptr && attacker->legacyType() == LegacyEntityType::Player) {
+        Player* player = static_cast<Player*>(attacker);
+        // TODO: 当玩家创造模式检查实现后
+        // isCreative = player->isCreative();
+        MC_UNUSED(player);
+    }
+
+    // 9. 检查是否应该摧毁矿车
+    // if (flag || this.getDamage() > 40.0F)
+    if (isCreative || m_damage > static_cast<i32>(DAMAGE_THRESHOLD)) {
+        // 移除所有乘客
+        removePassengers();
+
+        if (isCreative && !hasCustomName()) {
+            // 创造模式玩家攻击且无自定义名称：直接移除，不掉落物品
+            remove();
+        } else {
+            // 掉落矿车物品
+            dropItem();
+        }
+    }
+
+    return true;
 }
 
 // ============================================================================

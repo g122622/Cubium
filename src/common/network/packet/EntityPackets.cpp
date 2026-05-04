@@ -464,4 +464,150 @@ Result<void> CollectItemPacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
+// ==================== PlayerInputPacket ====================
+
+Result<std::vector<u8>> PlayerInputPacket::serialize() const {
+    PacketSerializer serializer;
+    serializer.writeF32(m_strafeSpeed);
+    serializer.writeF32(m_forwardSpeed);
+
+    // 将跳跃和潜行打包到一个字节中
+    u8 flags = 0;
+    if (m_jumping) flags |= 0x01;
+    if (m_sneaking) flags |= 0x02;
+    serializer.writeU8(flags);
+
+    return serializer.buffer();
+}
+
+Result<void> PlayerInputPacket::deserialize(const u8* data, size_t size) {
+    PacketDeserializer deserializer(data, size);
+
+    auto strafeResult = deserializer.readF32();
+    if (!strafeResult.success()) return Error(strafeResult.error());
+    m_strafeSpeed = strafeResult.value();
+
+    auto forwardResult = deserializer.readF32();
+    if (!forwardResult.success()) return Error(forwardResult.error());
+    m_forwardSpeed = forwardResult.value();
+
+    auto flagsResult = deserializer.readU8();
+    if (!flagsResult.success()) return Error(flagsResult.error());
+    u8 flags = flagsResult.value();
+
+    m_jumping = (flags & 0x01) != 0;
+    m_sneaking = (flags & 0x02) != 0;
+
+    return {};
+}
+
+// ==================== MoveVehiclePacket ====================
+
+Result<std::vector<u8>> MoveVehiclePacket::serialize() const {
+    PacketSerializer serializer;
+    serializer.writeF64(m_x);
+    serializer.writeF64(m_y);
+    serializer.writeF64(m_z);
+    serializer.writeF32(m_yaw);
+    serializer.writeF32(m_pitch);
+    return serializer.buffer();
+}
+
+Result<void> MoveVehiclePacket::deserialize(const u8* data, size_t size) {
+    PacketDeserializer deserializer(data, size);
+
+    auto xResult = deserializer.readF64();
+    if (!xResult.success()) return Error(xResult.error());
+    m_x = xResult.value();
+
+    auto yResult = deserializer.readF64();
+    if (!yResult.success()) return Error(yResult.error());
+    m_y = yResult.value();
+
+    auto zResult = deserializer.readF64();
+    if (!zResult.success()) return Error(zResult.error());
+    m_z = zResult.value();
+
+    auto yawResult = deserializer.readF32();
+    if (!yawResult.success()) return Error(yawResult.error());
+    m_yaw = yawResult.value();
+
+    auto pitchResult = deserializer.readF32();
+    if (!pitchResult.success()) return Error(pitchResult.error());
+    m_pitch = pitchResult.value();
+
+    return {};
+}
+
+// ==================== VehicleMovePacket ====================
+
+Result<std::vector<u8>> VehicleMovePacket::serialize() const {
+    PacketSerializer serializer;
+    serializer.writeF64(m_x);
+    serializer.writeF64(m_y);
+    serializer.writeF64(m_z);
+    serializer.writeF32(m_yaw);
+    serializer.writeF32(m_pitch);
+    return serializer.buffer();
+}
+
+Result<void> VehicleMovePacket::deserialize(const u8* data, size_t size) {
+    PacketDeserializer deserializer(data, size);
+
+    auto xResult = deserializer.readF64();
+    if (!xResult.success()) return Error(xResult.error());
+    m_x = xResult.value();
+
+    auto yResult = deserializer.readF64();
+    if (!yResult.success()) return Error(yResult.error());
+    m_y = yResult.value();
+
+    auto zResult = deserializer.readF64();
+    if (!zResult.success()) return Error(zResult.error());
+    m_z = zResult.value();
+
+    auto yawResult = deserializer.readF32();
+    if (!yawResult.success()) return Error(yawResult.error());
+    m_yaw = yawResult.value();
+
+    auto pitchResult = deserializer.readF32();
+    if (!pitchResult.success()) return Error(pitchResult.error());
+    m_pitch = pitchResult.value();
+
+    return {};
+}
+
+// ==================== EntityActionPacket ====================
+
+Result<std::vector<u8>> EntityActionPacket::serialize() const {
+    PacketSerializer serializer;
+    serializer.writeVarInt(static_cast<i32>(m_entityId));
+    serializer.writeVarInt(static_cast<i32>(m_action));
+    serializer.writeVarInt(m_auxData);
+    return serializer.buffer();
+}
+
+Result<void> EntityActionPacket::deserialize(const u8* data, size_t size) {
+    PacketDeserializer deserializer(data, size);
+
+    auto idResult = deserializer.readVarInt();
+    if (!idResult.success()) return Error(idResult.error());
+    m_entityId = static_cast<u32>(idResult.value());
+
+    auto actionResult = deserializer.readVarInt();
+    if (!actionResult.success()) return Error(actionResult.error());
+    m_action = static_cast<EntityActionType>(actionResult.value());
+
+    auto auxResult = deserializer.readVarInt();
+    if (!auxResult.success()) return Error(auxResult.error());
+    m_auxData = auxResult.value();
+
+    // 验证动作类型
+    if (static_cast<i32>(m_action) < 0 || static_cast<i32>(m_action) > 8) {
+        return Error(ErrorCode::InvalidData, "Invalid entity action type");
+    }
+
+    return {};
+}
+
 } // namespace mc::network

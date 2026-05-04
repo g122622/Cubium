@@ -73,6 +73,25 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 处理伤害
+     * MC 1.16.5: AbstractMinecartEntity.attackEntityFrom()
+     * @note 矿车不继承LivingEntity，所以不重写hurt方法
+     */
+    bool hurt(DamageSource& source, f32 amount);
+
+    /**
+     * @brief 检查是否可以被碰撞
+     * MC 1.16.5: canBeCollidedWith()
+     */
+    [[nodiscard]] bool canBeCollidedWith() const { return isAlive(); }
+
+    /**
+     * @brief 检查是否可以被推动
+     * MC 1.16.5: canBePushed()
+     */
+    [[nodiscard]] bool canBePushed() const { return m_canBePushed; }
+
 protected:
     /**
      * @brief 注册数据参数
@@ -350,6 +369,9 @@ private:
     // 推动力（熔炉矿车用）
     f32 m_pushX = 0.0f;
     f32 m_pushZ = 0.0f;
+
+    // 可推动状态
+    bool m_canBePushed = true;
 
     // MC 1.16.5 常量
     static constexpr f32 DEFAULT_MAX_SPEED = 0.4f;           // 最大铁轨速度
