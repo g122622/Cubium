@@ -68,7 +68,7 @@ void RunAroundLikeCrazyGoal::tick() {
 
     // MC 1.16.5: 每tick有概率增加驯服进度或甩下玩家
     // 有 1/50 的概率执行驯服检查
-    math::Random rng(m_horse->ticksExisted());
+    math::Random rng = m_horse->getRandom();
 
     if (rng.nextInt(50) == 0) {
         // 获取骑乘者
