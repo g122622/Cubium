@@ -140,6 +140,12 @@ if (limit > 0 && stack.count > limit) stack.count = limit
 
 **构建器**: `LootFunctionBuilder` 提供流畅的静态工厂方法。
 
+**时运集成状态**：
+- `ApplyBonusFunction` 已实现三种时运公式（OreDrops、Uniform、Binomial）
+- 通过 `LootContext` 的 `FORTUNE_LEVEL` 参数获取时运等级
+- **限制**：当前 `LootEntry` 不支持添加 `LootFunction`，需要扩展架构
+- **临时方案**：时运效果通过 `BlockDropHandler::applyFortuneBonus()` 实现
+
 **参考**: `net.minecraft.loot.functions.*`
 
 ---

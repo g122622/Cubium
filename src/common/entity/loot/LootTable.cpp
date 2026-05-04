@@ -230,6 +230,8 @@ void LootTableManager::initializeDefaultTables() {
     // 钻石矿石掉落表
     // - 精准采集: 掉落钻石矿石
     // - 无精准采集: 掉落钻石（受时运影响）
+    // TODO: 需要集成 ApplyBonusFunction 到 LootEntry 以支持时运加成
+    // 时运效果目前通过 BlockDropHandler::applyFortuneBonus() 实现
     {
         auto table = std::make_unique<LootTable>();
 
@@ -291,7 +293,9 @@ void LootTableManager::initializeDefaultTables() {
 
     // 煤矿掉落表
     // - 精准采集: 掉落煤矿
-    // - 无精准采集: 掉落煤炭（受时运影响数量）
+    // - 无精准采集: 掉落煤炭（受时运影响）
+    // TODO: 需要集成 ApplyBonusFunction 到 LootEntry 以支持时运加成
+    // 时运效果目前通过 BlockDropHandler::applyFortuneBonus() 实现
     {
         auto table = std::make_unique<LootTable>();
 
