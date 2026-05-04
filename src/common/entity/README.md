@@ -287,6 +287,7 @@ src/common/entity/
 - **环境检测**：水中、岩浆中、着火状态
 - **乘客/骑乘系统**：多乘客支持
 - **数据同步**：EntityDataManager 数据参数
+- **传送门系统**：传送门计时、传送冷却、维度切换
 
 ```cpp
 // 创建实体
@@ -297,6 +298,12 @@ auto pig = pigType->create(world);
 entity->setPosition(100.0f, 64.0f, 200.0f);
 entity->setVelocity(1.0f, 0.0f, 0.0f);
 entity->tick();
+
+// 传送门状态
+entity->setInPortal(true);           // 标记在传送门中
+entity->setPortalPos(blockPos);      // 记录传送门方块位置
+int timer = entity->getPortalTime(); // 获取传送计时
+entity->triggerPortalCooldown();     // 触发传送冷却
 ```
 
 #### EntityType (实体类型)

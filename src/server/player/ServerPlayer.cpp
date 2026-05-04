@@ -364,8 +364,9 @@ bool ServerPlayer::changeDimension(DimensionId targetDim) {
         stopRiding();
     }
 
+    // 清除乘客（复制列表以避免迭代时修改）
     if (hasPassengers()) {
-        const auto& passengers = getPassengers();
+        auto passengers = getPassengers();  // 复制
         for (EntityId passengerId : passengers) {
             if (m_world != nullptr) {
                 if (Entity* passenger = m_world->getEntity(passengerId)) {

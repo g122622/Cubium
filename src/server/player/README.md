@@ -66,28 +66,36 @@ private:
 
 ### ServerPlayer.cpp
 
-服务端玩家实体类的实现文件。
+服务端玩家实体类的实现文件，包含以下功能：
 
-**当前实现状态：**
+#### 网络消息发送
+- `sendChatMessage()` - 发送聊天消息给玩家
+- `sendSystemMessage()` - 发送系统消息给玩家
+- `syncExperience()` - 同步经验值到客户端
 
-> **注意：** 当前实现为占位符，消息发送功能仅输出日志，尚未实现真正的网络发送。
+#### 经验系统
+- `addExperience()` - 添加经验并同步
+- `setExperienceLevel()` - 设置经验等级并同步
+- `consumeExperience()` - 消耗经验并同步
 
-```cpp
-ServerPlayer::ServerPlayer(EntityId id, const String& name)
-    : Player(id, name)
-{
-}
+#### 睡眠系统
+- `trySleep()` - 尝试在床上睡眠
+- `stopSleepInBed()` - 停止睡眠
+- `wakeUp()` - 唤醒玩家
+- `isPlayerFullyAsleep()` - 检查是否完全入睡
+- `determineRespawnPosition()` - 确定重生位置
+- `determineRespawnDimension()` - 确定重生维度
 
-void ServerPlayer::sendChatMessage(const String& message) {
-    // TODO: 实现发送聊天消息给玩家
-    spdlog::info("[Chat -> {}] {}", username(), message);
-}
+#### 维度传送系统
+- `onPortalTriggered()` - 传送门触发回调（重写自 Entity）
+- `changeDimension()` - 执行维度切换
 
-void ServerPlayer::sendSystemMessage(const String& message) {
-    // TODO: 实现发送系统消息给玩家
-    spdlog::info("[System -> {}] {}", username(), message);
-}
-```
+**维度切换逻辑**：
+1. 下骑乘/清除乘客
+2. 计算目标坐标（使用 Teleporter::transformPosition）
+3. 重置传送门状态和触发冷却
+4. 调用 ServerDimensionManager 执行传送
+5. 更新实体维度属性
 
 ---
 
@@ -283,19 +291,22 @@ if (world) {
 - `ServerPlayerData` 用于网络同步（位置更新、心跳、传送）
 - 当前服务端主要使用 `ServerPlayerData`，`ServerPlayer` 是预留的扩展
 
-### 2. 消息发送未实现
+### 2. 消息发送实现
 
-**问题：** `sendChatMessage()` 和 `sendSystemMessage()` 当前只是打印日志。
+**已实现**：`sendChatMessage()` 和 `sendSystemMessage()` 通过网络包发送。
 
-**建议：**
 ```cpp
-// TODO: 需要实现真正的网络发送
 void ServerPlayer::sendChatMessage(const String& message) {
-    // 应该通过连接发送 ChatBroadcastPacket
-    // auto packet = ChatBroadcastPacket(message);
-    // m_connection->send(packet.serialize());
+    network::ChatMessagePacket chatPacket(message, static_cast<PlayerId>(id()));
+    network::PacketSerializer payload;
+    chatPacket.serialize(payload);
+    const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
+        network::PacketType::ChatBroadcast, payload.buffer());
+    sendFullPacket(fullPacket);
 }
 ```
+
+**注意**：需要通过 `setConnection()` 设置网络连接才能发送消息。
 
 ### 3. 世界指针可能为空
 
@@ -312,20 +323,20 @@ if (ServerWorld* world = player->getWorld()) {
 player->getWorld()->getChunk(x, z);  // 可能崩溃
 ```
 
-### 4. 当前实现不完整
+### 4. 当前实现状态
 
-**问题：** `ServerPlayer` 类目前只是占位符，缺少很多服务端特有功能。
+**已实现功能**：
+- 网络消息发送（ChatMessagePacket）
+- 经验系统（添加、设置、消耗、同步）
+- 睡眠系统（尝试睡眠、唤醒、重生点）
+- 维度传送系统（下界/主世界传送门、坐标转换）
 
-**缺失功能：**
-- 网络连接管理
-- 物品拾取
-- 方块交互
-- 实体追踪
-- 传送确认
-- 背包同步
+**待完善功能**：
+- 实体追踪（追踪附近实体）
+- 背包同步（物品变更通知）
+- 统计数据（统计计数器）
 
 **建议：**
-- 在完善实现前，使用 `ServerPlayerData` 满足需求
 - 参考 MC Java 1.16.5 的 `ServerPlayerEntity` 类
 
 ---

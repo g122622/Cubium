@@ -293,11 +293,63 @@ if (settings.hasNaturalLight) {
 | `DimensionRenderSettingsTest.HasCloudsMethod` | 测试 `hasClouds()` 方法正确性 |
 | `DimensionRenderSettingsTest.FogTypeEnumValues` | 测试雾类型枚举值正确 |
 
+## 传送系统
+
+### 传送门触发时序
+
+实体通过传送门传送的时序遵循 MC 1.16.5 规则：
+
+| 实体类型 | 传送时间 | 说明 |
+|----------|----------|------|
+| 玩家 | 80 ticks (4秒) | `Player::getMaxInPortalTime()` 返回 80 |
+| 其他实体 | 1 tick | `Entity::getMaxInPortalTime()` 默认返回 1 |
+
+### 传送冷却
+
+传送后有 300 ticks (15秒) 的冷却时间，期间无法再次传送：
+- `Entity::getPortalCooldown()` 返回 300
+- 冷却期间 `canTeleport()` 返回 false
+
+### 坐标转换
+
+使用 `Teleporter` 类进行坐标转换：
+
+| 转换方向 | 缩放比例 |
+|----------|----------|
+| 主世界 → 下界 | 坐标 ÷ 8 |
+| 下界 → 主世界 | 坐标 × 8 |
+| 末地 → 主世界 | 固定出生点 (100, 49, 0) |
+
+```cpp
+// 使用 Teleporter 进行坐标转换
+Vector3d targetPos = Teleporter::transformPosition(
+    currentPos,
+    DimensionType::fromId(currentDim),
+    DimensionType::fromId(targetDim));
+
+// 获取末地出生点
+Vector3d endSpawn = Teleporter::getEndSpawnPosition(); // (100, 49, 0)
+```
+
+### 服务端维度切换
+
+`ServerPlayer::changeDimension()` 负责处理玩家的维度切换：
+
+```cpp
+bool ServerPlayer::changeDimension(DimensionId targetDim) {
+    // 1. 检查骑乘状态，下骑乘
+    // 2. 计算目标坐标
+    // 3. 重置传送门状态和触发冷却
+    // 4. 调用 ServerDimensionManager::transferPlayerToDimension()
+    // 5. 更新实体维度属性和位置
+}
+```
+
 ## 未来扩展
 
 当前维度系统已实现核心框架，后续计划：
 
-- 完善传送系统实现（传送门方块触发逻辑）
+- 完善传送门搜索算法（寻找或创建目标维度的传送门）
 - 生物群系提供者目录隔离（provider/overworld, provider/nether, provider/end）
 - 专用区块生成器（NetherChunkGenerator, EndChunkGenerator）
 - 服务端维度管理集成到 MinecraftServer
