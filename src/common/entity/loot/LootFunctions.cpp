@@ -1,6 +1,7 @@
 #include "LootFunctions.hpp"
 #include "LootConditions.hpp"
 #include "LootContext.hpp"
+#include "RandomRanges.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
@@ -474,33 +475,21 @@ ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) c
         return stack;
     }
 
-    // 从上下文获取爆炸半径（默认 1.0）
     // MC 1.16.5: 每个物品有 1/explosionRadius 的概率保留
     // 如果没有爆炸信息，默认使用半径 1.0（100% 保留）
     f32 explosionRadius = 1.0f;
-
-    // 尝试从上下文获取爆炸半径
     auto* radiusParam = context.get<f32>(LootParams::EXPLOSION_RADIUS);
-    if (radiusParam) {
+    if (radiusParam != nullptr && *radiusParam > 0.0f) {
         explosionRadius = *radiusParam;
     }
 
-    // 计算保留概率
-    f32 keepChance = 1.0f / explosionRadius;
+    // 使用二项分布计算保留数量
+    f32 keepChance = math::clamp(1.0f / explosionRadius, 0.0f, 1.0f);
+    BinomialRange binomial(stack.getCount(), keepChance);
+    i32 keptCount = binomial.generateInt(context.getRandom());
 
-    // 对每个物品单独判定
-    i32 originalCount = stack.getCount();
-    i32 keptCount = 0;
-
-    for (i32 i = 0; i < originalCount; ++i) {
-        if (context.getRandom().nextFloat() < keepChance) {
-            ++keptCount;
-        }
-    }
-
-    if (keptCount == 0) {
-        stack.setCount(0);
-        return ItemStack();  // 返回空堆
+    if (keptCount <= 0) {
+        return ItemStack();
     }
 
     stack.setCount(keptCount);
