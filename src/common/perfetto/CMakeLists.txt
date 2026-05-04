@@ -41,8 +41,8 @@ if(MC_ENABLE_TRACING)
         target_compile_options(perfetto_sdk PRIVATE "/permissive-")
     endif()
 
-    # 设置 C++17 标准
-    target_compile_features(perfetto_sdk PUBLIC cxx_std_17)
+    # 设置 C++20 标准
+    target_compile_features(perfetto_sdk PUBLIC cxx_std_20)
 
     # 创建别名库
     add_library(mc::perfetto_sdk ALIAS perfetto_sdk)
@@ -88,8 +88,8 @@ else()
     target_compile_definitions(mc_perfetto PUBLIC MC_ENABLE_TRACING=0)
 endif()
 
-# 设置 C++17 标准
-target_compile_features(mc_perfetto PUBLIC cxx_std_17)
+# 设置 C++20 标准
+target_compile_features(mc_perfetto PUBLIC cxx_std_20)
 
 # 应用编译警告设置
 mc_set_compiler_warnings(mc_perfetto)

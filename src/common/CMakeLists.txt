@@ -913,7 +913,7 @@ target_link_libraries(mc_common
 
 mc_set_compiler_warnings(mc_common)
 
-target_compile_features(mc_common PUBLIC cxx_std_17)
+target_compile_features(mc_common PUBLIC cxx_std_20)
 
 # 导出头文件
 target_include_directories(mc_common

@@ -131,7 +131,7 @@ endif()
 
 mc_set_compiler_warnings(minecraft-server)
 
-target_compile_features(minecraft-server PRIVATE cxx_std_17)
+target_compile_features(minecraft-server PRIVATE cxx_std_20)
 
 set_target_properties(minecraft-server PROPERTIES
     OUTPUT_NAME "minecraft-server"

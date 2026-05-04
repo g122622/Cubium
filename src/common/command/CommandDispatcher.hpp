@@ -201,7 +201,7 @@ public:
 
     // ========== 权限 ==========
 
-    LiteralArgumentBuilder& requires(RequirementPredicate<S> requirement) {
+    LiteralArgumentBuilder& withRequirement(RequirementPredicate<S> requirement) {
         m_requirement = std::move(requirement);
         return *this;
     }
@@ -278,7 +278,7 @@ public:
 
     // ========== 权限 ==========
 
-    RequiredArgumentBuilder& requires(RequirementPredicate<S> requirement) {
+    RequiredArgumentBuilder& withRequirement(RequirementPredicate<S> requirement) {
         m_requirement = std::move(requirement);
         return *this;
     }

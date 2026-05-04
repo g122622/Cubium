@@ -444,7 +444,7 @@ endif()
 
 mc_set_compiler_warnings(minecraft-client)
 
-target_compile_features(minecraft-client PRIVATE cxx_std_17)
+target_compile_features(minecraft-client PRIVATE cxx_std_20)
 
 target_compile_definitions(minecraft-client PRIVATE
     GLFW_INCLUDE_VULKAN
