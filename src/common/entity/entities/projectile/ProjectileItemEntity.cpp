@@ -1,12 +1,14 @@
 #include "ProjectileItemEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../item/potion/PotionUtils.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "../orb/ExperienceOrbEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../monster/nether/BlazeEntity.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include <cmath>
 
 namespace mc {
@@ -232,13 +234,93 @@ const Item* PotionEntity::getDefaultItem() const {
     return nullptr;
 }
 
-void PotionEntity::onImpact(const RayTraceResult& /*result*/) {
-    // 药水效果应用需要药水系统支持
-    // 1. 获取药水效果列表
-    // 2. 影响范围内的生物
-    // 3. 如果是滞留型，创建区域效果云
+void PotionEntity::onImpact(const RayTraceResult& result) {
+    // 获取药水效果
+    auto effects = potion::PotionUtils::getEffects(m_itemStack);
 
-    // 当前药水系统尚未完全实现，暂时仅移除实体
+    // MC 1.16.5: 喷溅药水影响范围为 4.0 格
+    // 滞留药水影响范围稍大，但初始效果范围相同
+    constexpr f32 SPLASH_RADIUS = 4.0f;
+
+    if (m_world) {
+        // 播放破裂音效
+        math::Random rng = createRandomFromEntity(*this);
+        playSound(SoundEvents::ENTITY_SPLASH_POTION_BREAK, 1.0f,
+                  0.5f + rng.nextFloat() * 0.3f);
+
+        // 生成粒子效果
+        // 药水颜色从效果列表获取
+        u32 color = potion::PotionUtils::getColor(effects);
+
+        // 生成喷溅粒子
+        m_world->addParticle(
+            client::renderer::trident::particle::ParticleTypeId::Splash,
+            m_position,
+            Vector3(0.0f, 0.0f, 0.0f),
+            Vector3(0.5f, 0.5f, 0.5f),
+            20);
+
+        // 应用效果到范围内的生物
+        if (!effects.empty()) {
+            // 获取范围内的所有实体
+            AxisAlignedBB searchBox(
+                m_position.x - SPLASH_RADIUS,
+                m_position.y - SPLASH_RADIUS,
+                m_position.z - SPLASH_RADIUS,
+                m_position.x + SPLASH_RADIUS,
+                m_position.y + SPLASH_RADIUS,
+                m_position.z + SPLASH_RADIUS
+            );
+
+            std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
+
+            for (Entity* entity : nearbyEntities) {
+                // 检查是否在范围内（球形范围）
+                f32 distanceSq = entity->position().distanceSquared(m_position);
+                if (distanceSq > SPLASH_RADIUS * SPLASH_RADIUS) {
+                    continue;
+                }
+
+                // 只对生物实体应用效果
+                LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+                if (living == nullptr) {
+                    continue;
+                }
+
+                // 计算效果强度（距离越近效果越强）
+                f32 distance = std::sqrt(distanceSq);
+                f32 intensity = 1.0f - (distance / SPLASH_RADIUS);
+
+                // 应用每个效果
+                for (const auto& effect : effects) {
+                    // 计算持续时间（距离越近持续时间越长）
+                    i32 duration = static_cast<i32>(effect.duration() * intensity);
+                    if (duration < 20) { // 最少 1 秒
+                        duration = 20;
+                    }
+
+                    // 创建新的效果实例
+                    entity::effect::EffectInstance scaledEffect(
+                        effect.type(),
+                        duration,
+                        effect.amplifier(),
+                        effect.isAmbient(),
+                        effect.isVisible(),
+                        effect.showIcon()
+                    );
+
+                    living->addEffect(scaledEffect);
+                }
+            }
+        }
+
+        // 如果是滞留型药水，创建区域效果云
+        if (m_lingering) {
+            // TODO: 创建 AreaEffectCloudEntity
+            // 需要实现 AreaEffectCloudEntity 实体类
+        }
+    }
+
     remove();
 }
 
