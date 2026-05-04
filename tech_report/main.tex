@@ -1,0 +1,136 @@
+\documentclass[10pt]{article}
+
+% 中文支持
+\usepackage{ctex}
+
+% 页面设置
+\usepackage[a4paper,margin=2cm]{geometry}
+
+% 数学
+\usepackage{amsmath,amssymb,amsfonts}
+
+% 代码高亮
+\usepackage{listings}
+\usepackage{xcolor}
+
+% 图形
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds}
+
+% 表格
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+
+% 引用
+\usepackage{hyperref}
+
+% 算法
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% 列表
+\usepackage{enumitem}
+\setlist{nosep}
+
+% 代码样式定义
+\lstdefinestyle{cppstyle}{
+    language=C++,
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{green!60!black}\itshape,
+    numberstyle=\tiny\color{gray},
+    numbers=left,
+    numbersep=5pt,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    tabsize=4,
+    captionpos=b,
+    morekeywords={u8,u16,u32,u64,i8,i16,i32,i64,f32,f64,String,StringView,Result,Error,Vector3,Vector4,glm,mc,math,world,server,client,render,perfetto,util}
+}
+
+\lstdefinestyle{javastyle}{
+    language=Java,
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{green!60!black}\itshape,
+    numbers=left,
+    numbersep=5pt,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    backgroundcolor=\color{gray!10}
+}
+
+\lstdefinestyle{glslstyle}{
+    language=C,
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{green!60!black}\itshape,
+    numbers=left,
+    numbersep=5pt,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    morekeywords={layout,in,out,uniform,sampler2D,vec2,vec3,vec4,mat4,dvec3,dvec2}
+}
+
+\lstset{style=cppstyle}
+
+% 标题信息
+\title{\textbf{Minecraft Reborn：现代C++游戏引擎的性能优化实践}}
+\author{
+    技术报告\\
+    \texttt{基于C++20与Vulkan的Minecraft克隆项目}
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent
+Minecraft Reborn是一个采用C++20编写的现代化Minecraft游戏引擎，使用Vulkan进行渲染，旨在复制Java版1.16.5的游戏体验。本文详细阐述了项目中八项核心性能优化技术：（1）CPU/IO分离的线程池设计，实现任务类型感知的优先级调度；（2）基于Starlight的光照引擎重构，采用紧凑编码和双队列传播算法；（3）基于RocksDB的区块存储系统，以Section粒度替代传统Anvil格式；（4）Trident Vulkan渲染管线，实现多线程网格构建和异步GPU上传；（5）Perfetto性能追踪系统的完整集成；（6）Kagero响应式UI引擎，采用模板编译和状态绑定；（7）xoroshiro128++高性能随机数生成器；（8）现代C++性能优化实践，包括编译器配置、内存管理和模板元编程。实验表明，相比Java版原版实现，这些优化在区块加载、光照计算、渲染吞吐量等关键指标上取得显著提升。
+
+\noindent\textbf{关键词}：游戏引擎；性能优化；Vulkan；RocksDB；线程池；光照引擎
+\end{abstract}
+
+\twocolumn
+
+\tableofcontents
+
+% 引入各章节
+\input{chapters/01_thread_pool}
+\input{chapters/02_lighting}
+\input{chapters/03_chunk_storage}
+\input{chapters/04_vulkan_render}
+\input{chapters/05_perfetto}
+\input{chapters/06_kagero}
+\input{chapters/07_random}
+\input{chapters/08_cpp_optimization}
+
+\section{总结}
+
+本文详细阐述了Minecraft Reborn项目中八项核心性能优化技术的实现细节。通过CPU/IO分离的线程池设计、Starlight风格的光照引擎、RocksDB存储系统、Trident Vulkan渲染管线、Perfetto性能追踪、Kagero UI引擎、xoroshiro128++随机数生成器和现代C++性能优化实践，项目在保持与Java版Minecraft 1.16.5功能兼容的同时，获得了显著的性能提升。
+
+这些优化技术的核心思想可以总结为：
+\begin{enumerate}
+    \item \textbf{任务分离}：不同类型的任务使用专门的线程池，避免资源竞争
+    \item \textbf{数据结构优化}：紧凑编码、缓存友好的内存布局
+    \item \textbf{异步处理}：非阻塞IO、GPU上传流水线化
+    \item \textbf{现代API}：充分利用Vulkan的显式控制和多线程能力
+    \item \textbf{可观测性}：全面的性能追踪支持问题定位和优化验证
+    \item \textbf{编译期计算}：利用C++20特性将开销转移到编译时
+\end{enumerate}
+
+未来工作将继续探索GPU驱动渲染、更细粒度的并行化以及跨平台优化。
+
+\end{document}
