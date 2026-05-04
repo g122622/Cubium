@@ -485,7 +485,7 @@ if (auto* ctrl = m_mob->lookController()) {
 - `net.minecraft.entity.ai.controller.JumpController`
 
 主要差异：
-1. 使用现代 C++17 语法和智能指针
+1. 使用现代 C++20 语法和智能指针
 2. 命名空间组织：`mc::entity::ai::controller`
 3. 简化了部分状态管理逻辑
 

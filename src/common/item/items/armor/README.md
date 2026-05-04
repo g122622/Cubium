@@ -43,7 +43,7 @@ armor/
 
 ## 依赖项
 
-内部依赖主要是 `item/core/`、`item/armor/ArmorMaterial.hpp`、`entity/core/LivingEntity.hpp`、`entity/inventory/PlayerInventory.hpp` 和 `world/`。外部依赖主要是 C++17 标准库与 `nlohmann::json`。
+内部依赖主要是 `item/core/`、`item/armor/ArmorMaterial.hpp`、`entity/core/LivingEntity.hpp`、`entity/inventory/PlayerInventory.hpp` 和 `world/`。外部依赖主要是 C++20 标准库与 `nlohmann::json`。
 
 ## 使用方法
 

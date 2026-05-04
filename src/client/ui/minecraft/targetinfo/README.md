@@ -95,7 +95,7 @@ flowchart TB
 
 ### 外部依赖
 
-- C++17 标准库：`<vector>`, `<functional>`, `<optional>`, `<cmath>`
+- C++20 标准库：`<vector>`, `<functional>`, `<optional>`, `<cmath>`
 
 ## 使用方法
 

@@ -259,7 +259,7 @@ inventory/
 - `network/packet/PacketSerializer.hpp` - 网络序列化
 
 ### 外部依赖
-- C++17 标准库（`<array>`, `<vector>`, `<functional>`, `<memory>`）
+- C++20 标准库（`<array>`, `<vector>`, `<functional>`, `<memory>`）
 
 ## 使用方法
 

@@ -37,7 +37,7 @@ items/
 
 ## 依赖项
 
-内部依赖主要是 `item/core/`、`item/armor/`、`item/tier/`、`entity/` 和 `world/`。外部依赖主要是 C++17 标准库，以及少量第三方库用于序列化和测试。
+内部依赖主要是 `item/core/`、`item/armor/`、`item/tier/`、`entity/` 和 `world/`。外部依赖主要是 C++20 标准库，以及少量第三方库用于序列化和测试。
 
 ## 使用方法
 

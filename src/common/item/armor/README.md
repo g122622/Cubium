@@ -47,7 +47,7 @@ armor/
 
 ## 依赖项
 
-内部依赖包括 `item/crafting/Ingredient.hpp`、`item/Items.hpp` 和 `sound/SoundEvent.hpp`。外部依赖主要是 C++17 标准库和项目的 `ResourceLocation`、`Item`、`Ingredient` 类型。
+内部依赖包括 `item/crafting/Ingredient.hpp`、`item/Items.hpp` 和 `sound/SoundEvent.hpp`。外部依赖主要是 C++20 标准库和项目的 `ResourceLocation`、`Item`、`Ingredient` 类型。
 
 ## 使用方法
 

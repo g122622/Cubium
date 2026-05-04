@@ -935,5 +935,5 @@ store.batchUpdate([](StateStore& s) {
 
 - **版本**: 1.0.0
 - **命名空间**: `mc::client::ui::kagero`
-- **C++ 标准**: C++17
+- **C++ 标准**: C++20
 - **许可证**: 与项目主许可证一致

@@ -1,6 +1,6 @@
 # Minecraft Reborn
 
-现代 Minecraft 克隆，使用 C++17 和 Vulkan 渲染，采用客户端-服务端架构。
+现代 Minecraft 克隆，使用 C++20 和 Vulkan 渲染，采用客户端-服务端架构。
 
 ## 项目总览
 

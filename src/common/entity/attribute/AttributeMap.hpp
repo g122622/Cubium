@@ -160,7 +160,7 @@ public:
      * @param other 源属性映射表
      */
     void copyFrom(const AttributeMap& other) {
-        // 使用 scoped_lock 避免死锁（C++17 死锁避免算法）
+        // 使用 scoped_lock 避免死锁（C++20 死锁避免算法）
         std::scoped_lock lock(m_mutex, other.m_mutex);
 
         for (const auto& [name, instance] : other.m_instances) {

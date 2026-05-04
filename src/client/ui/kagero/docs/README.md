@@ -176,7 +176,7 @@ auto root = instance.instantiate();
 
 - **版本**: 1.0.0
 - **命名空间**: `mc::client::ui::kagero`
-- **C++ 标准**: C++17
+- **C++ 标准**: C++20
 
 ## 参考资料
 

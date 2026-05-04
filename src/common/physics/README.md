@@ -279,7 +279,7 @@ physics/
 ### 外部依赖
 
 - `spdlog` - 日志输出
-- `shared_mutex` - 读写锁（C++17）
+- `shared_mutex` - 读写锁（C++20）
 
 ## 使用方法
 

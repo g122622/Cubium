@@ -78,7 +78,7 @@ src/client/ui/screen/
 
 ### 外部依赖
 - GLFW：键盘和鼠标常量
-- C++17 标准库：`<memory>`, `<vector>`, `<functional>`
+- C++20 标准库：`<memory>`, `<vector>`, `<functional>`
 
 ## 使用方法
 

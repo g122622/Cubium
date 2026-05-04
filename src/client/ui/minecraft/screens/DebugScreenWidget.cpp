@@ -248,7 +248,7 @@ void DebugScreenWidget::buildRightDebugText() {
 
     // 语言/编译器信息
     oss.str("");
-    oss << "C++17 " << (util::PlatformInfo::is64BitSystem() ? "64bit" : "32bit");
+    oss << "C++20 " << (util::PlatformInfo::is64BitSystem() ? "64bit" : "32bit");
     m_rightLines.push_back(oss.str());
 
     // 内存信息

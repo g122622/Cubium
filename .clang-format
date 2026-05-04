@@ -3,7 +3,7 @@
 
 BasedOnStyle: LLVM
 Language: Cpp
-Standard: c++17
+Standard: C++20
 
 # 缩进
 IndentWidth: 4

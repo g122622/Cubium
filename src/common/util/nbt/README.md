@@ -166,7 +166,7 @@ MIT License，原作者 Ktlo (2020)。
 ## 依赖项
 
 ### 外部依赖
-- C++17 标准库
+- C++20 标准库
 - `<iostream>` - 流操作
 - `<memory>` - 智能指针
 - `<vector>` / `<map>` - 容器
