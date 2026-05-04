@@ -103,6 +103,8 @@ MC 1.16.5 时运公式:
 | `FurnaceSmeltFunction` | `furnace_smelt` | 熔炼函数 |
 | `EnchantWithLevelsFunction` | `enchant_with_levels` | 按等级附魔 |
 | `EnchantRandomlyFunction` | `enchant_randomly` | 随机附魔 |
+| `ExplosionDecayFunction` | `explosion_decay` | 爆炸衰减函数 |
+| `SetNbtFunction` | `set_nbt` | 设置NBT标签函数 |
 
 **MC 1.16.5 时运矿石掉落算法** (`ApplyBonusFunction::calculateOreDrops`):
 ```
@@ -326,6 +328,8 @@ i32 value = fixed.generateInt(random);  // 总是返回 5
 │  │  - FurnaceSmeltFunction   (熔炼)                        ││
 │  │  - EnchantWithLevelsFunction (等级附魔)                 ││
 │  │  - EnchantRandomlyFunction (随机附魔)                   ││
+│  │  - ExplosionDecayFunction  (爆炸衰减)                   ││
+│  │  - SetNbtFunction         (设置NBT标签)                 ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                               │

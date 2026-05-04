@@ -466,6 +466,88 @@ std::unique_ptr<LootFunction> EnchantRandomlyFunction::clone() const {
 }
 
 // ============================================================================
+// ExplosionDecayFunction
+// ============================================================================
+
+ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // 从上下文获取爆炸半径（默认 1.0）
+    // MC 1.16.5: 每个物品有 1/explosionRadius 的概率保留
+    // 如果没有爆炸信息，默认使用半径 1.0（100% 保留）
+    f32 explosionRadius = 1.0f;
+
+    // 尝试从上下文获取爆炸半径
+    auto* radiusParam = context.get<f32>(LootParams::EXPLOSION_RADIUS);
+    if (radiusParam) {
+        explosionRadius = *radiusParam;
+    }
+
+    // 计算保留概率
+    f32 keepChance = 1.0f / explosionRadius;
+
+    // 对每个物品单独判定
+    i32 originalCount = stack.getCount();
+    i32 keptCount = 0;
+
+    for (i32 i = 0; i < originalCount; ++i) {
+        if (context.getRandom().nextFloat() < keepChance) {
+            ++keptCount;
+        }
+    }
+
+    if (keptCount == 0) {
+        stack.setCount(0);
+        return ItemStack();  // 返回空堆
+    }
+
+    stack.setCount(keptCount);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const {
+    auto func = std::make_unique<ExplosionDecayFunction>();
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetNbtFunction
+// ============================================================================
+
+SetNbtFunction::SetNbtFunction(const String& nbtString)
+    : m_nbtString(nbtString)
+{
+}
+
+ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const {
+    MC_UNUSED(context);
+
+    if (stack.isEmpty() || m_nbtString.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现 NBT 解析和应用
+    // 需要集成 NBT 系统
+    // 参考: net.minecraft.loot.functions.SetNbt
+    // stack.setTag(nbt);
+
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetNbtFunction::clone() const {
+    auto func = std::make_unique<SetNbtFunction>(m_nbtString);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
 // LootFunctionBuilder
 // ============================================================================
 
@@ -524,6 +606,14 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::enchantRandomly(
     bool treasure)
 {
     return std::make_unique<EnchantRandomlyFunction>(enchantments, treasure);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay() {
+    return std::make_unique<ExplosionDecayFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const String& nbtString) {
+    return std::make_unique<SetNbtFunction>(nbtString);
 }
 
 } // namespace loot

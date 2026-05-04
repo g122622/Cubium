@@ -413,6 +413,50 @@ private:
 };
 
 /**
+ * @brief 爆炸衰减函数
+ *
+ * 控制爆炸时物品的消失概率。
+ * 参考: net.minecraft.loot.functions.ExplosionDecay
+ *
+ * 用于 TNT 爆炸、苦力怕爆炸等场景的掉落物处理。
+ * 每个物品有 1/explosionRadius 的概率保留。
+ */
+class ExplosionDecayFunction : public LootFunction {
+public:
+    ExplosionDecayFunction() = default;
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "explosion_decay"; }
+};
+
+/**
+ * @brief 设置NBT标签函数
+ *
+ * 设置物品的自定义NBT数据。
+ * 参考: net.minecraft.loot.functions.SetNBT
+ *
+ * 用于设置物品的自定义数据，如药水效果、显示名称等。
+ */
+class SetNbtFunction : public LootFunction {
+public:
+    /**
+     * @brief 构造设置NBT函数
+     * @param nbtString NBT标签字符串（JSON格式）
+     */
+    explicit SetNbtFunction(const String& nbtString);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "set_nbt"; }
+
+    [[nodiscard]] const String& getNbtString() const { return m_nbtString; }
+
+private:
+    String m_nbtString;
+};
+
+/**
  * @brief 掉落函数构建器
  *
  * 提供流畅的函数构建接口。
@@ -484,6 +528,16 @@ public:
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> enchantRandomly(
         const std::vector<String>& enchantments = {}, bool treasure = false);
+
+    /**
+     * @brief 创建爆炸衰减函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> explosionDecay();
+
+    /**
+     * @brief 创建设置NBT函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> setNbt(const String& nbtString);
 };
 
 } // namespace loot

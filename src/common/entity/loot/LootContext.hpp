@@ -120,6 +120,9 @@ namespace LootParams {
     // 附魔等级参数
     extern const LootParameter<i32> FORTUNE_LEVEL;             // 时运附魔等级
     extern const LootParameter<i32> SILK_TOUCH_LEVEL;          // 精准采集附魔等级
+
+    // 爆炸相关参数
+    extern const LootParameter<f32> EXPLOSION_RADIUS;          // 爆炸半径
 }
 
 /**
