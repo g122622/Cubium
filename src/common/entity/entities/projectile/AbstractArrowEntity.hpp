@@ -2,10 +2,12 @@
 
 #include "ProjectileEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../effect/EffectInstance.hpp"
 #include "../../../world/block/Block.hpp"
 #include <memory>
 #include <unordered_set>
 #include <optional>
+#include <vector>
 
 namespace mc {
 namespace entity {
@@ -226,6 +228,7 @@ protected:
  * @brief 普通箭矢实体
  *
  * 弓和弩射出的标准箭矢。
+ * 也用于药水箭（Tipped Arrow），存储药水效果。
  *
  * 参考 MC 1.16.5 ArrowEntity
  */
@@ -276,9 +279,40 @@ public:
      */
     [[nodiscard]] bool isGlowing() const { return m_glowing; }
 
+    // ========== 药水效果 ==========
+
+    /**
+     * @brief 添加药水效果
+     * @param effect 效果实例
+     */
+    void addEffect(const entity::effect::EffectInstance& effect) {
+        m_effects.push_back(effect);
+    }
+
+    /**
+     * @brief 设置药水效果列表
+     * @param effects 效果列表
+     */
+    void setEffects(const std::vector<entity::effect::EffectInstance>& effects) {
+        m_effects = effects;
+    }
+
+    /**
+     * @brief 获取药水效果列表
+     */
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const {
+        return m_effects;
+    }
+
+    /**
+     * @brief 是否有药水效果
+     */
+    [[nodiscard]] bool hasEffects() const { return !m_effects.empty(); }
+
 private:
     u32 m_color = 0xFFFFFFFF;  // 箭矢颜色（药水箭）
     bool m_glowing = false;    // 是否发光（光灵箭）
+    std::vector<entity::effect::EffectInstance> m_effects;  // 药水效果列表
 };
 
 /**

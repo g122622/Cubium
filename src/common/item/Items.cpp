@@ -11,6 +11,7 @@
 #include "items/potion/LingeringPotionItem.hpp"
 #include "items/weapon/BowItem.hpp"
 #include "items/weapon/ArrowItem.hpp"
+#include "items/weapon/TippedArrowItem.hpp"
 #include "items/weapon/CrossbowItem.hpp"
 #include "items/weapon/TridentItem.hpp"
 #include "items/weapon/ShieldItem.hpp"
@@ -1659,11 +1660,11 @@ void Items::registerWeapons() {
     );
 
     // 药水箭 - 带药水效果
-    // TODO: 需要 TippedArrowItem 类
-    // TIPPED_ARROW = &registry.registerItem<item::TippedArrowItem>(
-    //     ResourceLocation("minecraft:tipped_arrow"),
-    //     ItemProperties().maxStackSize(64)
-    // );
+    // 参考: new TippedArrowItem(new Item.Properties().maxStackSize(64))
+    TIPPED_ARROW = &registry.registerItem<item::TippedArrowItem>(
+        ResourceLocation("minecraft:tipped_arrow"),
+        ItemProperties().maxStackSize(64)
+    );
 
     // 弩 - 可装填的远程武器
     // 参考: new CrossbowItem(new Item.Properties().maxDamage(326))
