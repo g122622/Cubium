@@ -168,7 +168,7 @@ TEST(SilkTouchEnchantmentTest, GetMinCost) {
     SilkTouchEnchantment silkTouch;
 
     EXPECT_EQ(silkTouch.getMinCost(1), 15);
-    EXPECT_EQ(silkTouch.getMaxCost(1), 65);
+    EXPECT_EQ(silkTouch.getMaxCost(1), 61);  // MC 1.16.5: 15 + 50 - 4 = 61
 }
 
 // ============================================================================

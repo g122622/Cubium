@@ -285,6 +285,16 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon,
     return bonus;
 }
 
+// ========== 附魔回调 ==========
+
+void PlayerAttackHelper::applyEnchantmentEffects(LivingEntity& attacker,
+                                                  Entity& target,
+                                                  const ItemStack& weapon) {
+    // 调用攻击者身上的附魔回调
+    // 这会触发节肢杀手等附魔的效果
+    attacker.onAttackEntity(target);
+}
+
 // ========== 创建攻击上下文 ==========
 
 AttackContext PlayerAttackHelper::createContext(Player& player,

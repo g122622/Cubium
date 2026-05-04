@@ -374,6 +374,7 @@ add_library(mc_common STATIC
     item/enchantment/enchantments/protection/DepthStriderEnchantment.cpp
     item/enchantment/enchantments/protection/FrostWalkerEnchantment.cpp
     item/enchantment/enchantments/weapon/DamageEnchantment.cpp
+    item/enchantment/enchantments/weapon/BaneOfArthropodsEnchantment.cpp
     item/enchantment/enchantments/tool/UnbreakingEnchantment.cpp
 
     # World - Entity

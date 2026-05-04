@@ -103,13 +103,19 @@ item/
 - `getIsRepairable(const ItemStack&, const ItemStack&)` - 检查修复材料兼容性
 - `getAttributeModifiers(i32)` - 获取装备槽位的属性修饰符
 
-### 食物系统 (80%)
+### 食物系统 (85%)
 
 | 模块 | 文件 | 状态 |
 |------|------|------|
 | Food | food/Food.hpp | ✅ 完成 |
 | Foods | food/Foods.hpp | ✅ 完成 |
 | FoodItem | items/food/FoodItem.hpp | ✅ 完成 |
+| HoneyBottleItem | items/food/HoneyBottleItem.hpp | ✅ 完成 |
+| ChorusFruitItem | items/food/ChorusFruitItem.hpp | ✅ 完成 |
+
+**特殊食物物品**:
+- **蜂蜜瓶 (HoneyBottleItem)**: 清除中毒效果，使用时间40 ticks，返回玻璃瓶
+- **紫颂果 (ChorusFruitItem)**: 食用后随机传送，播放传送音效
 
 ### 盔甲系统 (100%)
 
@@ -166,16 +172,26 @@ item/
 - `SwordItem::getAttributeModifiers()` 返回武器特定的属性修饰符
 - `TieredItem::getIsRepairable()` 检查修复材料（木板、圆石、铁锭、金锭、钻石、下界合金锭）
 
-### 附魔系统 (10%)
+### 附魔系统 (15%)
 
 | 模块 | 文件 | 状态 |
 |------|------|------|
 | Enchantment | enchantment/Enchantment.hpp | ✅ 完成 (含完整 EnchantmentType 枚举) |
 | EnchantmentContainer | enchantment/EnchantmentContainer.hpp | ✅ 完成 |
-| EnchantmentHelper | enchantment/EnchantmentHelper.hpp | ✅ 完成 |
+| EnchantmentHelper | enchantment/EnchantmentHelper.hpp | ✅ 完成 (含附魔回调分发) |
 | FortuneEnchantment | enchantments/FortuneEnchantment.hpp | ✅ 完成 |
 | SilkTouchEnchantment | enchantments/SilkTouchEnchantment.hpp | ✅ 完成 |
-| 其他附魔 (32个) | - | ⏳ 待实现 |
+| BaneOfArthropodsEnchantment | enchantments/weapon/BaneOfArthropodsEnchantment.cpp | ✅ 完成 (含缓慢效果回调) |
+| ThornsEnchantment | enchantments/protection/ThornsEnchantment.cpp | ✅ 完成 (含反伤回调) |
+| 其他附魔 (32个) | - | ✅ 完成基础实现 |
+
+**附魔回调系统 (MC 1.16.5 对齐)**:
+- `onEntityDamaged()` - 攻击目标时调用（节肢杀手施加缓慢）
+- `onUserHurt()` - 受伤时调用（荆棘反伤）
+- `EnchantmentHelper::applyArthropodEnchantmentDamage()` - 分发攻击回调
+- `EnchantmentHelper::applyThornsEnchantments()` - 分发荆棘回调
+- `LivingEntity::onAttackEntity()` - 攻击时触发附魔回调
+- `LivingEntity::actuallyHurt()` - 受伤时触发荆棘回调
 
 **EnchantmentType 枚举 (MC 1.16.5 对齐)**:
 - Armor (全护甲), ArmorFeet (靴子), ArmorLegs (护腿), ArmorHead (头盔), ArmorChest (胸甲)

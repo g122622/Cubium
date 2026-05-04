@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DamageEnchantment.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {
@@ -61,6 +61,18 @@ public:
     [[nodiscard]] static constexpr i32 getSlownessAmplifier() {
         return 3;  // Slowness IV
     }
+
+    /**
+     * @brief 当攻击目标实体时调用
+     *
+     * 对节肢生物施加缓慢 IV 效果。
+     * 参考 MC 1.16.5 DamageEnchantment.onEntityDamaged()
+     *
+     * @param user 攻击者
+     * @param target 目标实体
+     * @param level 附魔等级
+     */
+    void onEntityDamaged(LivingEntity& user, Entity& target, i32 level) const override;
 };
 
 } // namespace enchant

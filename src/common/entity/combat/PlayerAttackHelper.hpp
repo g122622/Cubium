@@ -204,6 +204,22 @@ public:
     [[nodiscard]] static f32 getEnchantmentDamageBonus(const ItemStack& weapon,
                                                         CreatureAttribute targetCreatureType);
 
+    // ========== 附魔回调 ==========
+
+    /**
+     * @brief 攻击后调用附魔回调
+     *
+     * 在攻击成功后调用，触发武器附魔的效果（如节肢杀手的缓慢效果）。
+     * 参考 MC 1.16.5 EnchantmentHelper.applyArthropodEnchantmentDamage()
+     *
+     * @param attacker 攻击者
+     * @param target 目标实体
+     * @param weapon 攻击武器
+     */
+    static void applyEnchantmentEffects(LivingEntity& attacker,
+                                         Entity& target,
+                                         const ItemStack& weapon);
+
     // ========== 创建攻击上下文 ==========
 
     /**

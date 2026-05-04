@@ -1,0 +1,50 @@
+#include "BaneOfArthropodsEnchantment.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+
+namespace mc {
+namespace item {
+namespace enchant {
+
+void BaneOfArthropodsEnchantment::onEntityDamaged(LivingEntity& user, Entity& target, i32 level) const {
+    // MC 1.16.5: DamageEnchantment.onEntityDamaged()
+    // 只有节肢杀手（damageType == 2）会应用缓慢效果
+    if (level <= 0) {
+        return;
+    }
+
+    // 检查目标是否为生物实体
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(&target);
+    if (livingTarget == nullptr) {
+        return;
+    }
+
+    // 检查目标是否为节肢生物
+    // 参考 MC 1.16.5: CreatureAttribute.ARTHROPOD
+    if (livingTarget->getCreatureAttribute() != CreatureAttribute::Arthropod) {
+        return;
+    }
+
+    // 计算缓慢效果持续时间
+    // MC 1.16.5: 20 + random.nextInt(10 * level)
+    // Level I: 20-29 tick, Level V: 20-69 tick
+    math::Random rng(static_cast<u64>(user.id()) ^
+                    static_cast<u64>(user.ticksExisted()));
+    i32 duration = getSlownessDuration(level, rng);
+
+    // 添加缓慢 IV 效果（amplifier = 3 = Slowness IV）
+    livingTarget->addEffect(entity::effect::EffectInstance(
+        entity::effect::EffectType::Slowness,
+        duration,
+        getSlownessAmplifier(),  // amplifier = 3 = Slowness IV
+        false,  // 不作为环境效果
+        true,   // 显示粒子
+        true    // 显示图标
+    ));
+}
+
+} // namespace enchant
+} // namespace item
+} // namespace mc

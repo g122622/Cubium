@@ -1,4 +1,8 @@
 #include "ThornsEnchantment.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {
@@ -21,6 +25,35 @@ i32 ThornsEnchantment::getThornsDamage(i32 level, math::Random& random) {
         return level - 10;
     }
     return 1 + random.nextInt(4);
+}
+
+void ThornsEnchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const {
+    // MC 1.16.5: ThornsEnchantment.onUserHurt()
+    if (level <= 0 || &user == &attacker) {
+        return;
+    }
+
+    // 使用用户实体的随机数生成器
+    math::Random rng(static_cast<u64>(user.id()) ^
+                    static_cast<u64>(user.ticksExisted()));
+
+    // 检查是否触发荆棘效果
+    if (!shouldTrigger(level, rng)) {
+        return;
+    }
+
+    // 对攻击者造成荆棘伤害（仅对生物实体有效）
+    LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(&attacker);
+    if (livingAttacker != nullptr) {
+        // 创建荆棘伤害来源
+        // MC 1.16.5: DamageSource.causeThornsDamage(user)
+        auto damageSource = DamageSources::thorns(&user);
+        i32 thornsDamage = getThornsDamage(level, rng);
+        livingAttacker->hurt(damageSource, static_cast<f32>(thornsDamage));
+    }
+
+    // 注意：MC 1.16.5 中荆棘会消耗装备耐久度
+    // 这部分逻辑需要在调用方处理，因为需要访问装备槽位
 }
 
 } // namespace enchant

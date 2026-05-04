@@ -82,6 +82,18 @@ public:
         // 每级 15%
         return static_cast<f32>(level) * 0.15f;
     }
+
+    /**
+     * @brief 当持有者受到伤害时调用
+     *
+     * 对攻击者造成反伤。
+     * 参考 MC 1.16.5 ThornsEnchantment.onUserHurt()
+     *
+     * @param user 受伤者（持有荆棘附魔装备的实体）
+     * @param attacker 攻击者
+     * @param level 附魔等级
+     */
+    void onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const override;
 };
 
 } // namespace enchant

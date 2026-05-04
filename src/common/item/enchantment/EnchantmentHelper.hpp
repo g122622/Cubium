@@ -318,6 +318,35 @@ public:
      */
     [[nodiscard]] static bool shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::Random& random);
 
+    // ========== 附魔回调分发 ==========
+
+    /**
+     * @brief 当攻击目标时调用附魔的 onEntityDamaged 回调
+     *
+     * 遍历主手物品的所有附魔，调用 onEntityDamaged 方法。
+     * 参考 MC 1.16.5 EnchantmentHelper.applyArthropodEnchantmentDamage()
+     *
+     * @param user 攻击者
+     * @param target 目标实体
+     * @param weapon 武器物品堆
+     */
+    static void applyArthropodEnchantmentDamage(LivingEntity& user, Entity& target, const ItemStack& weapon);
+
+    /**
+     * @brief 当受伤时调用荆棘附魔的 onUserHurt 回调
+     *
+     * 遍历所有护甲槽位的荆棘附魔，调用 onUserHurt 方法。
+     * 参考 MC 1.16.5 EnchantmentHelper.applyThornsEnchantments()
+     *
+     * @param user 受伤者
+     * @param attacker 攻击者
+     * @param armorSlots 护甲槽位数组（头盔、胸甲、护腿、靴子）
+     */
+    static void applyThornsEnchantments(
+        LivingEntity& user,
+        Entity& attacker,
+        const std::array<const ItemStack*, 4>& armorSlots);
+
 private:
     EnchantmentHelper() = delete;  // 禁止实例化
 };

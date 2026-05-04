@@ -166,14 +166,29 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount) {
         }
     }
 
-    // 9. 更新战斗状态
+    // 9. 触发荆棘附魔（对攻击者造成反伤）
+    // MC 1.16.5: 在受伤后触发荆棘效果
+    // 注意：荆棘伤害不触发无限循环，因为荆棘伤害的 isThornsDamage() 返回 true
+    if (!source.isThornsDamage() && trueSource != nullptr && trueSource != this) {
+        // 获取护甲槽位
+        std::array<const ItemStack*, 4> armorSlots = {
+            &getEquipment(EquipmentSlot::Head),    // 头盔
+            &getEquipment(EquipmentSlot::Chest),   // 胸甲
+            &getEquipment(EquipmentSlot::Legs),    // 护腿
+            &getEquipment(EquipmentSlot::Feet)     // 靴子
+        };
+        // 调用荆棘附魔回调
+        item::enchant::EnchantmentHelper::applyThornsEnchantments(*this, *trueSource, armorSlots);
+    }
+
+    // 10. 更新战斗状态
     if (!m_inCombat) {
         m_inCombat = true;
         m_lastDamageTimestamp = ticksExisted();
         sendEnterCombat();
     }
 
-    // 10. 死亡检查
+    // 11. 死亡检查
     if (m_health <= 0.0f) {
         playDeathSound();
         die(source);
@@ -826,6 +841,19 @@ const entity::effect::EffectInstance* LivingEntity::getEffect(entity::effect::Ef
 
 i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const {
     return m_effectManager.getEffectLevel(type);
+}
+
+// ============================================================================
+// 攻击附魔回调
+// ============================================================================
+
+void LivingEntity::onAttackEntity(Entity& target) {
+    // MC 1.16.5: EnchantmentHelper.applyArthropodEnchantmentDamage()
+    // 获取主手武器上的附魔，触发 onEntityDamaged 回调
+    const ItemStack& mainHand = getMainHandItem();
+    if (!mainHand.isEmpty()) {
+        item::enchant::EnchantmentHelper::applyArthropodEnchantmentDamage(*this, target, mainHand);
+    }
 }
 
 // ============================================================================

@@ -1,5 +1,7 @@
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <algorithm>
 
@@ -237,6 +239,53 @@ bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math
     // level/(level+1) 概率忽略损耗
     // I: 50%, II: 66.7%, III: 75%
     return random.nextInt(level + 1) > 0;
+}
+
+// ========== 附魔回调分发 ==========
+
+void EnchantmentHelper::applyArthropodEnchantmentDamage(
+    LivingEntity& user,
+    Entity& target,
+    const ItemStack& weapon) {
+
+    if (weapon.isEmpty()) {
+        return;
+    }
+
+    // 获取武器上的所有附魔
+    auto enchantments = getEnchantments(weapon);
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment && level > 0) {
+            // 调用附魔的 onEntityDamaged 回调
+            enchantment->onEntityDamaged(user, target, level);
+        }
+    }
+}
+
+void EnchantmentHelper::applyThornsEnchantments(
+    LivingEntity& user,
+    Entity& attacker,
+    const std::array<const ItemStack*, 4>& armorSlots) {
+
+    // 遍历所有护甲槽位
+    for (const ItemStack* slot : armorSlots) {
+        if (slot == nullptr || slot->isEmpty()) {
+            continue;
+        }
+
+        // 检查是否有荆棘附魔
+        i32 thornsLevel = getEnchantmentLevel(*slot, "minecraft:thorns");
+        if (thornsLevel <= 0) {
+            continue;
+        }
+
+        // 获取荆棘附魔实例
+        const Enchantment* thornsEnchant = EnchantmentRegistry::get("minecraft:thorns");
+        if (thornsEnchant) {
+            // 调用荆棘附魔的 onUserHurt 回调
+            thornsEnchant->onUserHurt(user, attacker, thornsLevel);
+        }
+    }
 }
 
 } // namespace enchant

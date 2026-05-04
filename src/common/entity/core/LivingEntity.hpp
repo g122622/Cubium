@@ -655,6 +655,18 @@ public:
      */
     [[nodiscard]] i32 getEffectLevel(entity::effect::EffectType type) const;
 
+    // ========== 攻击附魔回调 ==========
+
+    /**
+     * @brief 攻击目标时调用附魔回调
+     *
+     * 在攻击成功后调用，触发武器附魔的效果（如节肢杀家的缓慢效果）。
+     * 参考 MC 1.16.5 EnchantmentHelper.applyArthropodEnchantmentDamage()
+     *
+     * @param target 被攻击的目标实体
+     */
+    void onAttackEntity(Entity& target);
+
     // ========== 死亡 ==========
 
     /**

@@ -46,6 +46,8 @@ add_executable(mc_tests
     common/item/weapon/ThrowableItemTest.cpp
     common/item/weapon/WeaponItemTest.cpp
     common/item/NewItemTest.cpp
+    common/item/enchantment/EnchantmentTest.cpp
+    common/item/enchantment/EnchantmentCallbackTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp

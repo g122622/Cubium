@@ -93,11 +93,21 @@ enchantment/
 |------|-----|---------|--------|------|
 | 锋利 | minecraft:sharpness | V | 普通 | 增加对所有生物伤害 |
 | 亡灵杀手 | minecraft:smite | V | 稀有 | 增加对亡灵伤害 |
-| 节肢杀手 | minecraft:bane_of_arthropods | V | 稀有 | 增加对节肢伤害 |
+| 节肢杀手 | minecraft:bane_of_arthropods | V | 稀有 | 增加对节肢伤害，并施加缓慢 IV |
 | 击退 | minecraft:knockback | II | 稀有 | 增加击退距离 |
 | 火焰附加 | minecraft:fire_aspect | II | 罕见 | 目标燃烧 |
 | 抢夺 | minecraft:looting | III | 罕见 | 增加掉落物 |
 | 横扫之刃 | minecraft:sweeping | III | 罕见 | 增加横扫伤害 |
+
+**节肢杀手效果详情**：
+- 对节肢生物（蜘蛛、洞穴蜘蛛、蠹虫、末影螨、蜜蜂）造成额外 2.5×等级 伤害
+- 被击中的节肢生物获得缓慢 IV 效果，持续 20+(0~10×等级) tick
+- 实现位置：`BaneOfArthropodsEnchantment::onEntityDamaged()`
+
+**荆棘效果详情**：
+- 每级 15% 概率触发反伤
+- 反伤：等级≤10 时 1-4 点，等级>10 时 (等级-10) 点
+- 实现位置：`ThornsEnchantment::onUserHurt()`
 
 ### 工具类附魔（4种）
 
@@ -182,6 +192,35 @@ enum class EnchantmentRarity : u8 {
     Rare,       // 罕见（权重2）
     VeryRare    // 极罕见（权重1）
 };
+```
+
+## 附魔回调系统
+
+附魔系统提供了回调方法，在特定事件时触发：
+
+### onEntityDamaged - 攻击目标时
+
+当持有附魔物品的实体攻击目标时调用。用于实现：
+- **节肢杀手**：对节肢生物施加缓慢 IV 效果
+
+```cpp
+// 在 LivingEntity::onAttackEntity() 中调用
+const ItemStack& mainHand = getMainHandItem();
+if (!mainHand.isEmpty()) {
+    EnchantmentHelper::applyArthropodEnchantmentDamage(*this, target, mainHand);
+}
+```
+
+### onUserHurt - 受伤时
+
+当持有附魔物品的实体受伤时调用。用于实现：
+- **荆棘**：对攻击者造成反伤
+
+```cpp
+// 在 LivingEntity::actuallyHurt() 中调用
+if (!source.isThornsDamage() && trueSource != nullptr) {
+    EnchantmentHelper::applyThornsEnchantments(*this, *trueSource, armorSlots);
+}
 ```
 
 ## 使用方法
