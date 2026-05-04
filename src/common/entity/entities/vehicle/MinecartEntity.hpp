@@ -4,6 +4,7 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
+#include "../../../world/blockentity/transport/IHopper.hpp"
 #include <string>
 #include <array>
 #include <memory>
@@ -430,6 +431,11 @@ private:
 /**
  * @brief 熔炉矿车
  * MC 1.16.5 FurnaceMinecartEntity
+ *
+ * 熔炉矿车可以：
+ * - 燃烧燃料获得动力
+ * - 自动向行驶方向推进
+ * - 被玩家推动改变方向
  */
 class FurnaceMinecartEntity : public AbstractMinecartEntity {
 public:
@@ -448,6 +454,7 @@ public:
 
     /**
      * @brief 添加燃料
+     * @param ticks 燃烧时间（tick）
      */
     void addFuel(i32 ticks) { m_fuel += ticks; }
 
@@ -457,15 +464,27 @@ public:
     [[nodiscard]] i32 getFuel() const { return m_fuel; }
 
     /**
+     * @brief 设置推动方向
+     * @param x X方向推力
+     * @param z Z方向推力
+     */
+    void setPushDirection(f32 x, f32 z) { m_pushX = x; m_pushZ = z; }
+
+    /**
      * @brief 熔炉矿车摩擦力计算
      * MC 1.16.5: applyDrag()
      */
     void applyDrag() override;
 
     /**
-     * @brief 激活熔炉矿车
+     * @brief 激活熔炉矿车（玩家右键交互时调用）
      */
     void activate() override;
+
+    /**
+     * @brief 激活铁轨通过时改变方向
+     */
+    void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
 
 private:
     i32 m_fuel = 0;
@@ -476,9 +495,18 @@ private:
 /**
  * @brief TNT矿车
  * MC 1.16.5 TNTMinecartEntity
+ *
+ * TNT矿车可以：
+ * - 被激活铁轨点燃
+ * - 被爆炸点燃
+ * - 被火焰/熔岩点燃
+ * - 碰撞时根据速度造成不同威力的爆炸
  */
 class TNTMinecartEntity : public AbstractMinecartEntity {
 public:
+    /// 默认引信时间（80 tick = 4秒）
+    static constexpr i32 DEFAULT_FUSE = 80;
+
     TNTMinecartEntity(EntityId id)
         : AbstractMinecartEntity(Type::TNT, id) {}
 
@@ -486,8 +514,9 @@ public:
 
     /**
      * @brief 点燃TNT
+     * @param fuseTicks 引信时间（tick），默认80
      */
-    void prime() { m_fuse = 80; }
+    void prime(i32 fuseTicks = DEFAULT_FUSE) { m_fuse = fuseTicks; }
 
     /**
      * @brief 是否已点燃
@@ -503,34 +532,87 @@ public:
 private:
     /**
      * @brief 爆炸
+     * @param speedFactor 速度因子，影响爆炸威力
      */
-    void explode();
+    void explode(f32 speedFactor = 1.0f);
 
-    i32 m_fuse = -1;
+    i32 m_fuse = -1;  ///< -1 表示未点燃
 };
 
 /**
  * @brief 漏斗矿车
  * MC 1.16.5 HopperMinecartEntity (ContainerMinecartEntity)
+ *
+ * 漏斗矿车可以：
+ * - 从上方吸取物品实体
+ * - 向下方容器传输物品
+ * - 被红石信号禁用
  */
-class HopperMinecartEntity : public AbstractMinecartEntity {
+class HopperMinecartEntity : public AbstractMinecartEntity, public blockentity::IHopper {
 public:
-    HopperMinecartEntity(EntityId id)
-        : AbstractMinecartEntity(Type::Hopper, id) {}
+    static constexpr i32 INVENTORY_SIZE = 5;  ///< 漏斗矿车有5格库存
+    static constexpr i32 TRANSFER_COOLDOWN = 4;  ///< 传输冷却（tick）
+
+    HopperMinecartEntity(EntityId id);
+    ~HopperMinecartEntity() override = default;
 
     void tick() override;
 
-    /**
-     * @brief 是否可以从上方吸取物品
-     */
-    [[nodiscard]] bool canSuckItems() const { return m_suckCooldown <= 0; }
+    // ========== IHopper 接口实现 ==========
 
-    // TODO: 实现漏斗逻辑
-    // void collectItems();
-    // void transferItems();
+    [[nodiscard]] IWorld* getWorld() override { return Entity::world(); }
+    [[nodiscard]] const IWorld* getWorld() const override { return Entity::world(); }
+    [[nodiscard]] double getXPos() const override { return x(); }
+    [[nodiscard]] double getYPos() const override { return y(); }
+    [[nodiscard]] double getZPos() const override { return z(); }
+    [[nodiscard]] BlockPos getHopperPos() const override {
+        return BlockPos(static_cast<BlockCoord>(std::floor(x())),
+                        static_cast<BlockCoord>(std::floor(y())),
+                        static_cast<BlockCoord>(std::floor(z())));
+    }
+    [[nodiscard]] Direction getOutputDirection() const override { return Direction::Down; }
+
+    // ========== IInventory 代理方法 ==========
+
+    [[nodiscard]] i32 getContainerSize() const;
+    [[nodiscard]] bool isInventoryEmpty() const;
+    [[nodiscard]] ItemStack getInventoryItem(i32 slot) const;
+    void setInventoryItem(i32 slot, const ItemStack& stack);
+    ItemStack removeInventoryItem(i32 slot, i32 count);
+    void clearInventory();
+    [[nodiscard]] IInventory* getInventory();
+
+    // ========== 漏斗功能 ==========
+
+    /**
+     * @brief 是否可以吸取物品
+     */
+    [[nodiscard]] bool canSuckItems() const { return m_suckCooldown <= 0 && !m_disabled; }
+
+    /**
+     * @brief 是否被红石禁用
+     */
+    [[nodiscard]] bool isDisabled() const { return m_disabled; }
+
+    /**
+     * @brief 设置禁用状态（红石控制）
+     */
+    void setDisabled(bool disabled) { m_disabled = disabled; }
 
 private:
+    /**
+     * @brief 从上方吸取物品
+     */
+    void suckItems();
+
+    /**
+     * @brief 向下方容器传输物品
+     */
+    void transferItemsOut();
+
+    std::unique_ptr<blockentity::SimpleInventory> m_inventory;
     i32 m_suckCooldown = 0;
+    bool m_disabled = false;  ///< 红石禁用状态
 };
 
 /**
@@ -564,6 +646,11 @@ public:
      */
     [[nodiscard]] i32 getSuccessCount() const { return m_successCount; }
 
+    /**
+     * @brief 激活铁轨通过时执行命令
+     */
+    void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
+
 private:
     /**
      * @brief 执行命令
@@ -573,6 +660,7 @@ private:
     std::string m_command;
     std::string m_lastOutput;
     i32 m_successCount = 0;
+    bool mPowered = false;  ///< 当前是否被激活
 };
 
 } // namespace entity

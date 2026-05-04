@@ -4,12 +4,16 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
+#include "../../../world/blockentity/transport/HopperEntity.hpp"
+#include "../../../world/explosion/Explosion.hpp"
+#include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../../world/redstone/RedstonePower.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../player/Player.hpp"
 #include "../item/ItemEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../inventory/IInventory.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include <cmath>
 
@@ -746,8 +750,26 @@ void FurnaceMinecartEntity::applyDrag() {
 }
 
 void FurnaceMinecartEntity::activate() {
-    // MC 1.16.5: 添加燃料
+    // MC 1.16.5: 添加燃料（玩家交互时）
     addFuel(3600); // 3分钟 = 180秒 * 20 ticks/秒
+}
+
+void FurnaceMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+    // MC 1.16.5: 激活铁轨可以改变熔炉矿车的推动方向
+    MC_UNUSED(x);
+    MC_UNUSED(y);
+    MC_UNUSED(z);
+
+    if (powered) {
+        // 根据当前移动方向更新推动方向
+        f32 vx = velocityX();
+        f32 vz = velocityZ();
+        f32 speed = std::sqrt(vx * vx + vz * vz);
+        if (speed > 0.01f) {
+            m_pushX = vx / speed;
+            m_pushZ = vz / speed;
+        }
+    }
 }
 
 // ============================================================================
@@ -765,12 +787,16 @@ void TNTMinecartEntity::tick() {
         if (m_fuse % 5 == 0) {
             IWorld* worldPtr = Entity::world();
             if (worldPtr) {
+                // TODO: 添加烟雾粒子效果
                 // worldPtr->addParticle(ParticleTypeId::SMOKE, Vector3(x(), y() + 0.5, z()), Vector3(0, 0.05, 0));
             }
         }
 
         if (m_fuse <= 0) {
-            explode();
+            // 根据速度计算爆炸威力
+            f32 speed = std::sqrt(velocityX() * velocityX() + velocityZ() * velocityZ());
+            f32 speedFactor = std::min(speed / 0.5f, 2.0f);  // 最大2倍
+            explode(speedFactor);
         }
     }
 }
@@ -786,19 +812,26 @@ void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
     }
 }
 
-void TNTMinecartEntity::explode() {
-    // MC 1.16.5: 爆炸
-    // 注意：爆炸系统尚未完全实现
-    // 这里调用 remove() 移除实体
-
+void TNTMinecartEntity::explode(f32 speedFactor) {
+    // MC 1.16.5: TNT矿车爆炸
     IWorld* worldPtr = Entity::world();
-    if (worldPtr) {
-        // TODO: 调用爆炸系统
-        // worldPtr->createExplosion(this, x(), y(), z(), 4.0f, ExplosionMode::Break);
-
-        // 生成爆炸粒子
-        // worldPtr->addParticle(ParticleTypeId::EXPLOSION_EMITTER, Vector3(x(), y(), z()), Vector3(0, 0, 0));
+    if (!worldPtr || worldPtr->isClientSide()) {
+        remove();
+        return;
     }
+
+    // 爆炸威力：基础4.0，速度加成最大到5.0
+    f32 radius = 4.0f * speedFactor;
+    radius = std::min(radius, 5.0f);  // MC 1.16.5 最大半径限制
+
+    // 创建爆炸
+    worldPtr->createExplosion(
+        Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
+        radius,
+        world::explosion::ExplosionMode::Break,
+        false,  // 不产生火焰
+        this
+    );
 
     remove();
 }
@@ -807,16 +840,162 @@ void TNTMinecartEntity::explode() {
 // HopperMinecartEntity
 // ============================================================================
 
+HopperMinecartEntity::HopperMinecartEntity(EntityId id)
+    : AbstractMinecartEntity(Type::Hopper, id)
+    , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
+{
+}
+
 void HopperMinecartEntity::tick() {
     AbstractMinecartEntity::tick();
 
-    // MC 1.16.5: 吸取物品冷却
+    // MC 1.16.5: 冷却计时
     if (m_suckCooldown > 0) {
         m_suckCooldown--;
     }
 
-    // TODO: 检测附近物品并吸取
-    // TODO: 向下方的容器传输物品
+    IWorld* worldPtr = Entity::world();
+    if (!worldPtr || worldPtr->isClientSide()) {
+        return;
+    }
+
+    // 检查是否被红石禁用（探测铁轨或充能铁轨）
+    // 简化处理：如果停在探测铁轨上，暂停吸取
+    if (m_disabled) {
+        return;
+    }
+
+    // 尝试吸取物品
+    if (canSuckItems()) {
+        suckItems();
+    }
+
+    // 尝试向下传输物品
+    transferItemsOut();
+}
+
+void HopperMinecartEntity::suckItems() {
+    IWorld* worldPtr = Entity::world();
+    if (!worldPtr || !m_inventory) {
+        return;
+    }
+
+    // 获取收集区域
+    AxisAlignedBB collectionArea = blockentity::IHopper::getCollectionArea(*this);
+
+    // 获取区域内的物品实体
+    std::vector<Entity*> entities = worldPtr->getEntitiesInAABB(collectionArea, nullptr);
+
+    for (Entity* entity : entities) {
+        if (!entity || entity->isRemoved()) {
+            continue;
+        }
+
+        // 检查是否为物品实体
+        ItemEntity* itemEntity = dynamic_cast<ItemEntity*>(entity);
+        if (!itemEntity || !itemEntity->canBePickedUp()) {
+            continue;
+        }
+
+        // 尝试将物品放入漏斗库存
+        ItemStack stack = itemEntity->getItemStack().copy();
+        ItemStack remaining = m_inventory->addItem(stack);
+
+        if (remaining.isEmpty()) {
+            // 完全吸收
+            itemEntity->remove();
+            m_suckCooldown = TRANSFER_COOLDOWN;
+            return;  // 每tick只处理一个物品
+        } else if (remaining.getCount() < stack.getCount()) {
+            // 部分吸收
+            itemEntity->setItemStack(remaining);
+            m_suckCooldown = TRANSFER_COOLDOWN;
+            return;
+        }
+    }
+}
+
+void HopperMinecartEntity::transferItemsOut() {
+    IWorld* worldPtr = Entity::world();
+    if (!worldPtr || !m_inventory) {
+        return;
+    }
+
+    // 获取下方容器
+    BlockPos belowPos = getHopperPos().offset(Direction::Down);
+    IInventory* targetInventory = blockentity::HopperEntity::getInventoryAtPosition(worldPtr, belowPos);
+
+    if (!targetInventory) {
+        return;
+    }
+
+    // 检查目标库存是否已满
+    bool targetFull = true;
+    for (i32 i = 0; i < targetInventory->getContainerSize(); ++i) {
+        if (targetInventory->getItem(i).isEmpty()) {
+            targetFull = false;
+            break;
+        }
+    }
+    if (targetFull) {
+        return;
+    }
+
+    // 遍历漏斗库存，尝试输出物品
+    for (i32 slot = 0; slot < INVENTORY_SIZE; ++slot) {
+        ItemStack stack = m_inventory->getItem(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+
+        // 尝试将物品放入目标库存
+        ItemStack toTransfer = stack.split(1);
+        ItemStack remaining = blockentity::HopperEntity::putStackInInventoryAllSlots(
+            m_inventory.get(), targetInventory, toTransfer, Direction::Up);
+
+        if (remaining.isEmpty()) {
+            // 传输成功
+            m_inventory->setItem(slot, stack);
+            m_suckCooldown = TRANSFER_COOLDOWN;
+            return;
+        } else {
+            // 传输失败，恢复物品
+            stack.grow(1);
+            m_inventory->setItem(slot, stack);
+        }
+    }
+}
+
+i32 HopperMinecartEntity::getContainerSize() const {
+    return m_inventory ? m_inventory->getContainerSize() : 0;
+}
+
+bool HopperMinecartEntity::isInventoryEmpty() const {
+    return m_inventory ? m_inventory->isEmpty() : true;
+}
+
+ItemStack HopperMinecartEntity::getInventoryItem(i32 slot) const {
+    return m_inventory ? m_inventory->getItem(slot) : ItemStack();
+}
+
+void HopperMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack) {
+    if (m_inventory) {
+        m_inventory->setItem(slot, stack);
+    }
+}
+
+ItemStack HopperMinecartEntity::removeInventoryItem(i32 slot, i32 count) {
+    return m_inventory ? m_inventory->removeItem(slot, count) : ItemStack();
+}
+
+void HopperMinecartEntity::clearInventory() {
+    if (m_inventory) {
+        m_inventory->clear();
+    }
+}
+
+IInventory* HopperMinecartEntity::getInventory() {
+    return m_inventory.get();
 }
 
 // ============================================================================
@@ -826,14 +1005,47 @@ void HopperMinecartEntity::tick() {
 void CommandBlockMinecartEntity::tick() {
     AbstractMinecartEntity::tick();
 
-    // MC 1.16.5: 命令方块矿车在激活时执行命令
-    // 这需要命令系统的支持
+    // MC 1.16.5: 命令方块矿车不自动执行命令
+    // 命令只在通过激活铁轨时执行
+}
+
+void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
+    MC_UNUSED(x);
+    MC_UNUSED(y);
+    MC_UNUSED(z);
+
+    // MC 1.16.5: 激活铁轨触发命令执行
+    // 只在上升沿执行（从不激活变为激活）
+    if (powered && !mPowered) {
+        mPowered = true;
+        executeCommand();
+    } else if (!powered) {
+        mPowered = false;
+    }
 }
 
 void CommandBlockMinecartEntity::executeCommand() {
-    // TODO: 执行命令
-    // CommandSource source = CommandSource::fromEntity(this);
-    // m_successCount = world->getServer()->getCommandManager()->execute(m_command, source);
+    // MC 1.16.5: 执行命令
+    if (m_command.empty()) {
+        return;
+    }
+
+    IWorld* worldPtr = Entity::world();
+    if (!worldPtr) {
+        return;
+    }
+
+    // TODO: 当命令系统完全集成后执行命令
+    // 伪代码：
+    // auto* server = worldPtr->getServer();
+    // if (server) {
+    //     CommandSource source = CommandSource::fromEntity(*this);
+    //     m_successCount = server->getCommandManager().execute(m_command, source);
+    // }
+
+    // 当前实现：设置成功次数为0
+    m_successCount = 0;
+    m_lastOutput = "Command execution not yet implemented";
 }
 
 } // namespace entity
