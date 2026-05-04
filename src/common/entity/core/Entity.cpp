@@ -244,6 +244,12 @@ void Entity::tick() {
 
     // 基础 tick
     baseTick();
+
+    // 处理传送门逻辑
+    // 参考 MC 1.16.5 Entity.tick() 末尾的传送门处理
+    if (tickPortal()) {
+        onPortalTriggered();
+    }
 }
 
 void Entity::baseTick() {
@@ -253,13 +259,9 @@ void Entity::baseTick() {
     m_prevPitch = m_pitch;
 
     // 更新传送冷却
+    // 参考 MC 1.16.5 Entity.baseTick() 中的 timeUntilPortal 递减
     if (m_portalCooldown > 0) {
         m_portalCooldown--;
-    }
-
-    // 如果不在传送门中，重置传送门计时
-    if (!m_inPortal) {
-        m_portalTime = 0;
     }
 
     // 处理着火
@@ -292,9 +294,44 @@ void Entity::baseTick() {
 }
 
 bool Entity::tickPortal() {
-    // 基类默认不触发传送
-    // Player 会重写此方法，需要 80 tick (4秒)
-    // 其他实体需要约 1 tick
+    // 参考 MC 1.16.5 Entity.tickPortal()
+    // 基类实现：非玩家实体只需要 1 tick
+
+    // 如果不在传送门中，递减传送门计时
+    if (!m_inPortal) {
+        // MC: this.portalTime -= 4;
+        m_portalTime = std::max(0, m_portalTime - 4);
+        return false;
+    }
+
+    // 在传送门中，检查是否可以传送（冷却完成）
+    if (!canTeleport()) {
+        return false;
+    }
+
+    // 递增传送门计时
+    m_portalTime++;
+
+    // 检查是否达到传送阈值
+    const i32 maxPortalTime = getMaxInPortalTime();
+    if (m_portalTime >= maxPortalTime) {
+        m_portalTime = maxPortalTime;
+        return true;
+    }
+
+    return false;
+}
+
+bool Entity::onPortalTriggered() {
+    // 基类实现：默认不做任何事
+    // 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑
+    // MC 1.16.5 中，此方法会调用 changeDimension
+
+    // 重置传送门状态
+    m_inPortal = false;
+    m_portalTime = 0;
+    triggerPortalCooldown();
+
     return false;
 }
 

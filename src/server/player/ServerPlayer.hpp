@@ -12,6 +12,7 @@ namespace mc {
 
 namespace server {
 class ServerWorld;  // 前向声明，位于 mc::server 命名空间
+class IServer;       // 前向声明
 }
 
 /**
@@ -124,6 +125,18 @@ public:
      */
     [[nodiscard]] server::ServerWorld* getWorld() const { return m_world; }
 
+    /**
+     * @brief 设置服务器引用。
+     * @param server 服务器接口指针。
+     */
+    void setServer(server::IServer* server) { m_server = server; }
+
+    /**
+     * @brief 获取服务器引用。
+     * @return 服务器接口指针。
+     */
+    [[nodiscard]] server::IServer* getServer() const { return m_server; }
+
     // ========== 连接状态 ==========
 
     /**
@@ -202,6 +215,26 @@ public:
      */
     [[nodiscard]] DimensionId determineRespawnDimension() const;
 
+    // ========== 维度传送 ==========
+
+    /**
+     * @brief 当传送门触发时调用
+     *
+     * 实现 ServerPlayer 的维度切换逻辑。
+     * 参考 MC 1.16.5 ServerPlayerEntity.tickPortal()
+     *
+     * @return true 如果传送成功
+     */
+    bool onPortalTriggered() override;
+
+    /**
+     * @brief 传送到另一个维度
+     *
+     * @param targetDim 目标维度ID
+     * @return true 如果传送成功
+     */
+    [[nodiscard]] bool changeDimension(DimensionId targetDim);
+
 private:
     /**
      * @brief 发送睡眠包给客户端
@@ -225,6 +258,7 @@ private:
 private:
     network::ConnectionPtr m_connection;
     server::ServerWorld* m_world = nullptr;
+    server::IServer* m_server = nullptr;
     bool m_online = true;
 };
 

@@ -580,3 +580,196 @@ TEST(Player, SerializeDeserialize) {
     EXPECT_EQ(restored->gameMode(), GameMode::Creative);
     EXPECT_EQ(restored->experienceLevel(), 10);
 }
+
+// ============================================================================
+// Portal Timing Tests
+// ============================================================================
+
+TEST(Entity, PortalCooldown) {
+    Entity entity(LegacyEntityType::Player, 1);
+
+    // 初始状态：冷却为0，可以传送
+    EXPECT_EQ(entity.portalCooldown(), 0);
+    EXPECT_TRUE(entity.canTeleport());
+
+    // 触发传送冷却
+    entity.triggerPortalCooldown();
+    EXPECT_EQ(entity.portalCooldown(), 300);  // 默认冷却 300 tick (15秒)
+    EXPECT_FALSE(entity.canTeleport());
+
+    // 冷却递减
+    entity.setPortalCooldown(100);
+    EXPECT_EQ(entity.portalCooldown(), 100);
+
+    // 手动设置冷却
+    entity.setPortalCooldown(0);
+    EXPECT_TRUE(entity.canTeleport());
+}
+
+TEST(Entity, PortalTime) {
+    Entity entity(LegacyEntityType::Player, 1);
+
+    // 初始状态：传送门时间为0
+    EXPECT_EQ(entity.portalTime(), 0);
+    EXPECT_FALSE(entity.isInPortal());
+
+    // 设置传送门状态
+    entity.setInPortal(true);
+    EXPECT_TRUE(entity.isInPortal());
+
+    // 设置传送门时间
+    entity.setPortalTime(50);
+    EXPECT_EQ(entity.portalTime(), 50);
+
+    // 重置传送门时间
+    entity.resetPortalTime();
+    EXPECT_EQ(entity.portalTime(), 0);
+}
+
+TEST(Entity, GetMaxInPortalTime) {
+    Entity entity(LegacyEntityType::Pig, 1);
+    // 非玩家实体需要 1 tick
+    EXPECT_EQ(entity.getMaxInPortalTime(), 1);
+
+    Player player(1, "TestPlayer");
+    // 玩家需要 80 tick (4秒)
+    EXPECT_EQ(player.getMaxInPortalTime(), 80);
+}
+
+TEST(Entity, TickPortalNotInPortal) {
+    Entity entity(LegacyEntityType::Pig, 1);
+    entity.setPortalTime(10);
+
+    // 不在传送门中时，传送门时间递减
+    entity.setInPortal(false);
+    bool shouldTeleport = entity.tickPortal();
+
+    EXPECT_FALSE(shouldTeleport);
+    // 递减 4
+    EXPECT_EQ(entity.portalTime(), 6);
+}
+
+TEST(Entity, TickPortalNotInPortalZero) {
+    Entity entity(LegacyEntityType::Pig, 1);
+    entity.setPortalTime(2);
+
+    // 传送门时间不会低于0
+    entity.setInPortal(false);
+    entity.tickPortal();
+    EXPECT_EQ(entity.portalTime(), 0);
+
+    // 已经是0时保持0
+    entity.tickPortal();
+    EXPECT_EQ(entity.portalTime(), 0);
+}
+
+TEST(Entity, TickPortalInPortal) {
+    Entity entity(LegacyEntityType::Pig, 1);
+
+    // 非玩家实体在传送门中 1 tick 后传送
+    entity.setInPortal(true);
+    entity.triggerPortalCooldown();  // 设置冷却
+    entity.setPortalCooldown(0);     // 清除冷却以允许传送
+
+    bool shouldTeleport = entity.tickPortal();
+    EXPECT_TRUE(shouldTeleport);
+    EXPECT_EQ(entity.portalTime(), 1);
+}
+
+TEST(Entity, TickPortalInPortalWithCooldown) {
+    Entity entity(LegacyEntityType::Pig, 1);
+
+    // 有冷却时不能传送
+    entity.setInPortal(true);
+    entity.setPortalCooldown(100);  // 冷却中
+
+    bool shouldTeleport = entity.tickPortal();
+    EXPECT_FALSE(shouldTeleport);  // 冷却中，不增加时间
+    EXPECT_EQ(entity.portalTime(), 0);  // 时间不增加
+}
+
+TEST(Entity, TickPortalPlayer) {
+    Player player(1, "TestPlayer");
+
+    // 玩家需要 80 tick
+    player.setInPortal(true);
+    player.setPortalCooldown(0);
+
+    // 79 ticks 后不传送
+    for (int i = 0; i < 79; ++i) {
+        bool shouldTeleport = player.tickPortal();
+        EXPECT_FALSE(shouldTeleport);
+    }
+
+    // 第 80 tick 传送
+    bool shouldTeleport = player.tickPortal();
+    EXPECT_TRUE(shouldTeleport);
+    EXPECT_EQ(player.portalTime(), 80);
+}
+
+TEST(Entity, TickPortalPlayerInterrupted) {
+    Player player(1, "TestPlayer");
+
+    // 玩家在传送门中 40 tick
+    player.setInPortal(true);
+    player.setPortalCooldown(0);
+    for (int i = 0; i < 40; ++i) {
+        player.tickPortal();
+    }
+    EXPECT_EQ(player.portalTime(), 40);
+
+    // 离开传送门
+    player.setInPortal(false);
+
+    // 时间递减
+    player.tickPortal();
+    EXPECT_EQ(player.portalTime(), 36);  // 40 - 4 = 36
+
+    // 再次进入传送门，从 36 继续
+    player.setInPortal(true);
+    player.tickPortal();
+    EXPECT_EQ(player.portalTime(), 37);
+}
+
+TEST(Entity, PortalPos) {
+    Entity entity(LegacyEntityType::Player, 1);
+    BlockPos portalPos(100, 64, 200);
+
+    entity.setPortalPos(portalPos);
+    EXPECT_EQ(entity.portalPos().x, 100);
+    EXPECT_EQ(entity.portalPos().y, 64);
+    EXPECT_EQ(entity.portalPos().z, 200);
+}
+
+TEST(Entity, TickPortalCooldownDecrement) {
+    Entity entity(LegacyEntityType::Player, 1);
+
+    // 设置冷却
+    entity.triggerPortalCooldown();
+    EXPECT_EQ(entity.portalCooldown(), 300);
+
+    // 冷却在 baseTick 中递减
+    entity.baseTick();
+    EXPECT_EQ(entity.portalCooldown(), 299);
+
+    // 在 tick 中调用 baseTick
+    entity.tick();
+    EXPECT_EQ(entity.portalCooldown(), 298);
+}
+
+TEST(Entity, OnPortalTriggered) {
+    Entity entity(LegacyEntityType::Pig, 1);
+
+    // 设置传送门状态
+    entity.setInPortal(true);
+    entity.setPortalTime(10);
+
+    // 触发传送回调
+    bool result = entity.onPortalTriggered();
+
+    // 基类实现返回 false，但重置状态
+    EXPECT_FALSE(result);
+    EXPECT_FALSE(entity.isInPortal());
+    EXPECT_EQ(entity.portalTime(), 0);
+    EXPECT_EQ(entity.portalCooldown(), 300);  // 触发冷却
+}

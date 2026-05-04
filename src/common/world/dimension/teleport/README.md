@@ -201,3 +201,72 @@ Vector3d overworldPos = netherType.scaleToOverworld(Vector3d(100, 64, 25));
 3. **传送冷却**: 避免传送后立即再次传送
 4. **实体状态**: 传送后需要重置实体的某些状态（如骑乘、着火等）
 5. **区块加载**: 确保目标位置的区块已加载
+
+## 相关类和文件
+
+### Entity 传送门系统 (common/entity/core/Entity.hpp/cpp)
+
+实体基类提供传送门计时和传送核心逻辑：
+
+| 方法 | 描述 |
+|------|------|
+| `portalCooldown()` | 获取传送冷却时间（tick） |
+| `setPortalCooldown()` | 设置传送冷却时间 |
+| `canTeleport()` | 检查是否可以传送（冷却是否完成） |
+| `portalTime()` | 获取在传送门中的累计时间 |
+| `setPortalTime()` | 设置传送门累计时间 |
+| `resetPortalTime()` | 重置传送门计时为 0 |
+| `isInPortal()` | 检查是否在传送门中 |
+| `setInPortal(bool)` | 设置是否在传送门中 |
+| `getMaxInPortalTime()` | 获取传送所需最大时间（玩家 80 tick，其他实体 1 tick） |
+| `tickPortal()` | 每帧调用，更新传送门计时，返回 true 时触发传送 |
+| `onPortalTriggered()` | 传送触发回调，子类重写以实现维度切换 |
+| `triggerPortalCooldown()` | 触发传送冷却（300 tick） |
+| `portalPos()` | 获取传送门方块位置 |
+| `setPortalPos()` | 设置传送门方块位置 |
+
+### ServerPlayer 维度切换 (server/player/ServerPlayer.hpp/cpp)
+
+服务端玩家重写 `onPortalTriggered()` 实现维度切换：
+
+| 方法 | 描述 |
+|------|------|
+| `onPortalTriggered()` | 重写自 Entity，处理传送门触发 |
+| `changeDimension(targetDim)` | 执行维度切换 |
+
+**维度切换流程**：
+1. 检查骑乘状态并解除
+2. 计算目标位置（坐标缩放）
+3. 重置传送门状态和触发冷却
+4. 调用 `ServerDimensionManager::transferPlayerToDimension()`
+5. 更新实体位置和维度属性
+
+### ServerDimensionManager (server/dimension/ServerDimensionManager.hpp/cpp)
+
+服务端维度管理器提供维度切换：
+
+| 方法 | 描述 |
+|------|------|
+| `transferPlayerToDimension(playerId, targetDim, position)` | 将玩家传送到另一个维度 |
+| `playerJoinDimension(playerId, dimId)` | 玩家加入维度 |
+| `playerLeaveDimension(playerId)` | 玩家离开维度 |
+| `getPlayerDimension(playerId)` | 获取玩家当前维度 |
+| `sendDimensionChangePacket(playerId, newDim, pos)` | 发送维度切换数据包 |
+
+## 测试用例
+
+测试文件位置: `tests/common/test_entity.cpp`
+
+| 测试用例 | 说明 |
+|----------|------|
+| `Entity.PortalCooldown` | 传送冷却测试 |
+| `Entity.PortalTime` | 传送门时间测试 |
+| `Entity.GetMaxInPortalTime` | 玩家/非玩家传送时间差异测试 |
+| `Entity.TickPortalNotInPortal` | 离开传送门时时间递减测试 |
+| `Entity.TickPortalInPortal` | 进入传送门触发测试 |
+| `Entity.TickPortalInPortalWithCooldown` | 冷却阻止传送测试 |
+| `Entity.TickPortalPlayer` | 玩家需要 80 tick 测试 |
+| `Entity.TickPortalPlayerInterrupted` | 中断后时间递减测试 |
+| `Entity.PortalPos` | 传送门位置记录测试 |
+| `Entity.TickPortalCooldownDecrement` | 冷却递减测试 |
+| `Entity.OnPortalTriggered` | 触发回调测试 |

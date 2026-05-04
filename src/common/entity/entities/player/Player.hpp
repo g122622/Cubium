@@ -187,6 +187,18 @@ public:
 
     [[nodiscard]] sound::SoundCategory getSoundCategory() const override { return sound::SoundCategory::Players; }
 
+    // ========== 传送门 ==========
+
+    /**
+     * @brief 获取在传送门中停留所需的最大时间
+     *
+     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
+     * 参考 MC 1.16.5 PlayerEntity.getMaxInPortalTime()
+     *
+     * @return 80 tick
+     */
+    [[nodiscard]] i32 getMaxInPortalTime() const override { return 80; }
+
     /**
      * @brief 设置位置并重置步距采样
      */

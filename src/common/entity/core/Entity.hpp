@@ -11,6 +11,7 @@
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/text/ITextComponent.hpp"
+#include "../../world/block/BlockPos.hpp"
 #include <string>
 #include <memory>
 #include <array>
@@ -21,7 +22,6 @@ namespace mc {
 // 前向声明
 class PhysicsEngine;
 class IWorld;
-class BlockPos;
 class BlockState;
 
 /**
@@ -639,15 +639,67 @@ public:
     void setInPortal(bool inPortal) { m_inPortal = inPortal; }
 
     /**
+     * @brief 获取在传送门中停留所需的最大时间
+     *
+     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
+     * 其他实体只需要 1 tick。
+     *
+     * @return 传送所需的最大时间（tick）
+     */
+    [[nodiscard]] virtual i32 getMaxInPortalTime() const { return 1; }
+
+    /**
      * @brief 处理传送门 tick
      *
      * 每帧调用，更新传送冷却和传送门计时。
      * 玩家需要 80 tick (4秒) 在传送门中才能传送。
      * 其他实体需要约 1 tick。
      *
+     * 参考 MC 1.16.5 Entity.tickPortal()
+     *
      * @return true 如果应该触发传送
      */
     virtual bool tickPortal();
+
+    /**
+     * @brief 当传送门触发时调用
+     *
+     * 当实体在传送门中停留足够时间后触发。
+     * 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑。
+     *
+     * MC 1.16.5 中，此方法会调用 changeDimension。
+     *
+     * @return true 如果传送成功
+     */
+    virtual bool onPortalTriggered();
+
+    /**
+     * @brief 设置实体所在的传送门方块位置
+     *
+     * 当实体进入传送门方块时调用。
+     * 参考 MC 1.16.5 Entity.setPortal(BlockPos)
+     *
+     * @param pos 传送门方块位置
+     */
+    void setPortalPos(const BlockPos& pos) { m_portalPos = pos; }
+
+    /**
+     * @brief 获取实体所在的传送门方块位置
+     */
+    [[nodiscard]] const BlockPos& portalPos() const { return m_portalPos; }
+
+    /**
+     * @brief 触发传送冷却
+     *
+     * 传送后设置冷却时间，防止立即再次传送。
+     * 默认冷却时间为 300 tick (15秒)。
+     */
+    void triggerPortalCooldown() { m_portalCooldown = getPortalCooldown(); }
+
+    /**
+     * @brief 获取默认传送冷却时间
+     */
+    [[nodiscard]] virtual i32 getPortalCooldown() const { return 300; }
 
     // ========== 存活时间 ==========
 
@@ -1147,6 +1199,7 @@ protected:
     i32 m_portalCooldown = 0;    // 传送冷却（防止频繁传送，单位：tick）
     i32 m_portalTime = 0;        // 在传送门中的累计时间（单位：tick）
     bool m_inPortal = false;     // 是否在传送门中
+    BlockPos m_portalPos;        // 所在传送门方块的位置
 
     // 世界引用
     IWorld* m_world = nullptr;

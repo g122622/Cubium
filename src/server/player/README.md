@@ -49,8 +49,18 @@ private:
 | `sendSystemMessage(message)` | 发送系统消息给玩家 |
 | `setWorld(world)` | 设置所在世界 |
 | `getWorld()` | 获取所在世界 |
+| `setServer(server)` | 设置服务器引用 |
+| `getServer()` | 获取服务器引用 |
 | `isOnline()` | 检查玩家是否在线 |
 | `setOnline(online)` | 设置在线状态 |
+| `trySleep(bedPos)` | 尝试在指定位置睡眠 |
+| `stopSleepInBed(resetTimer, updateFlag)` | 停止睡眠 |
+| `wakeUp()` | 唤醒玩家（完全唤醒） |
+| `isPlayerFullyAsleep()` | 检查玩家是否完全入睡 |
+| `determineRespawnPosition()` | 确定重生位置 |
+| `determineRespawnDimension()` | 确定重生维度 |
+| `onPortalTriggered()` | 传送门触发回调（重写自 Entity） |
+| `changeDimension(targetDim)` | 传送到另一个维度 |
 
 ---
 

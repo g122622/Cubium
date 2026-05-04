@@ -287,17 +287,27 @@ void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world
     // 参考 MC 1.16.5 NetherPortalBlock.onEntityCollision
     // 实体进入传送门后开始传送计时
     // 玩家需要站立在传送门中约 4 秒（80 ticks）才能传送
-    // 其他实体约 1 秒（约 20 ticks）
+    // 其他实体约 1 tick
 
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // MC: if (!entity.isPassenger() && !entity.isBeingRidden() && entity.canTeleport()) {
+    // 检查实体是否是乘客或被骑乘
+    if (entity.isRiding() || entity.hasPassengers()) {
+        return;
+    }
+
+    // 检查传送冷却
+    if (!entity.canTeleport()) {
+        return;
+    }
 
     // 设置实体在传送门中
     entity.setInPortal(true);
+    // 记录传送门位置
+    entity.setPortalPos(pos);
 
     // 注意：传送逻辑由 Entity::tickPortal() 处理
-    // 玩家的 tickPortal() 在 Player.cpp 中实现
-    // 当 portalTime 达到 80 ticks 时，返回 true 触发传送
+    // 玩家的 getMaxInPortalTime() 返回 80 ticks
+    // 其他实体的 getMaxInPortalTime() 返回 1 tick
 }
 
 const CollisionShape& NetherPortalBlock::getShape(const BlockState& state) const {

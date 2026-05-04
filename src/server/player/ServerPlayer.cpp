@@ -5,12 +5,17 @@
 #include "common/entity/player/SleepManager.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/core/Constants.hpp"
 #include "../core/ConnectionManager.hpp"
 #include "../world/ServerWorld.hpp"
+#include "../dimension/ServerDimensionManager.hpp"
+#include "../application/IServer.hpp"
+#include "../application/MinecraftServer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -312,6 +317,96 @@ bool ServerPlayer::sendFullPacket(const std::vector<u8>& packet) const {
 
     m_connection->send(packet.data(), packet.size());
     return true;
+}
+
+// ========== 维度传送实现 ==========
+
+bool ServerPlayer::onPortalTriggered() {
+    // 参考 MC 1.16.5 ServerPlayerEntity.tickPortal()
+    // 当传送门触发时，确定目标维度并传送
+
+    // 获取当前维度
+    DimensionId currentDim = dimension();
+
+    // 确定目标维度
+    // 主世界 <-> 下界，末地 -> 主世界
+    DimensionId targetDim;
+    switch (currentDim) {
+        case NETHER:
+            targetDim = OVERWORLD;
+            break;
+        case OVERWORLD:
+            targetDim = NETHER;
+            break;
+        case THE_END:
+            targetDim = OVERWORLD;
+            break;
+        default:
+            // 未知维度，不传送
+            spdlog::warn("ServerPlayer: unknown dimension {}, cannot teleport", currentDim);
+            return false;
+    }
+
+    // 执行传送
+    return changeDimension(targetDim);
+}
+
+bool ServerPlayer::changeDimension(DimensionId targetDim) {
+    // 参考 MC 1.16.5 ServerPlayerEntity.changeDimension()
+
+    if (m_server == nullptr) {
+        spdlog::warn("ServerPlayer: cannot change dimension, no server reference");
+        return false;
+    }
+
+    if (isRiding()) {
+        stopRiding();
+    }
+
+    if (hasPassengers()) {
+        const auto& passengers = getPassengers();
+        for (EntityId passengerId : passengers) {
+            if (m_world != nullptr) {
+                if (Entity* passenger = m_world->getEntity(passengerId)) {
+                    passenger->stopRiding();
+                }
+            }
+        }
+    }
+
+    DimensionId currentDim = dimension();
+    Vector3d currentPos(position().x, position().y, position().z);
+    Vector3d targetPos = Teleporter::transformPosition(
+        currentPos,
+        DimensionType::fromId(currentDim),
+        DimensionType::fromId(targetDim));
+
+    if (targetDim == THE_END) {
+        targetPos = Teleporter::getEndSpawnPosition();
+    }
+
+    // 重置传送门状态
+    setInPortal(false);
+    resetPortalTime();
+    triggerPortalCooldown();
+
+    spdlog::info("ServerPlayer: {} teleporting from dimension {} to {} at ({:.1f}, {:.1f}, {:.1f})",
+                  username(), currentDim, targetDim, targetPos.x, targetPos.y, targetPos.z);
+
+    // 通过 ServerDimensionManager 执行实际的维度切换
+    PlayerId playerId = static_cast<PlayerId>(id());
+    bool success = m_server->dimensionManager().transferPlayerToDimension(
+        playerId, targetDim, targetPos);
+
+    if (success) {
+        // 更新实体的维度属性
+        setDimension(targetDim);
+        setPosition(static_cast<f32>(targetPos.x),
+                    static_cast<f32>(targetPos.y),
+                    static_cast<f32>(targetPos.z));
+    }
+
+    return success;
 }
 
 } // namespace mc
