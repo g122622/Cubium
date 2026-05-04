@@ -8,6 +8,7 @@
 src/common/entity/loot/
 ├── LootContext.hpp/cpp      # 掉落上下文，包含生成掉落物所需的所有信息
 ├── LootConditions.hpp/cpp   # 掉落条件，控制条目是否生效
+├── LootFunctions.hpp/cpp    # 掉落函数，修改生成的物品堆
 ├── LootEntry.hpp/cpp        # 掉落条目，定义单个掉落项
 ├── LootPool.hpp/cpp         # 掉落池，按权重随机选择条目
 ├── LootTable.hpp/cpp        # 掉落表，管理多个池
@@ -81,6 +82,54 @@ MC 1.16.5 时运公式:
 **构建器**: `LootConditionBuilder` 提供流畅的静态工厂方法。
 
 **参考**: `net.minecraft.loot.conditions.*`
+
+---
+
+### LootFunctions.hpp/cpp - 掉落函数
+
+**职责**: 定义修改生成物品堆的函数系统，在条件检查之后、物品返回之前执行。
+
+**函数类型**:
+
+| 函数 | 类型标识 | 描述 |
+|------|---------|------|
+| `SetCountFunction` | `set_count` | 设置物品数量 |
+| `ApplyBonusFunction` | `apply_bonus` | 时运加成（矿石掉落算法） |
+| `LootingEnchantBonusFunction` | `looting_enchant` | 掠夺附魔加成 |
+| `SetDamageFunction` | `set_damage` | 设置耐久度损坏 |
+| `SetNameFunction` | `set_name` | 设置自定义名称 |
+| `SetLoreFunction` | `set_lore` | 设置物品描述 |
+| `LimitCountFunction` | `limit_count` | 限制数量范围 |
+| `FurnaceSmeltFunction` | `furnace_smelt` | 熔炼函数 |
+| `EnchantWithLevelsFunction` | `enchant_with_levels` | 按等级附魔 |
+| `EnchantRandomlyFunction` | `enchant_randomly` | 随机附魔 |
+
+**MC 1.16.5 时运矿石掉落算法** (`ApplyBonusFunction::calculateOreDrops`):
+```
+时运等级 > 0 时:
+  i = random.nextInt(fortune + 2) - 1
+  if (i < 0) i = 0
+  return baseCount * (i + 1)
+
+时运等级 = 0 时:
+  return baseCount
+
+示例:
+  Fortune I: random.nextInt(3) - 1 → 结果范围 [0, 1, 2]
+  Fortune II: random.nextInt(4) - 1 → 结果范围 [0, 1, 2, 3]
+  Fortune III: random.nextInt(5) - 1 → 结果范围 [0, 1, 2, 3, 4]
+```
+
+**掠夺附魔加成** (`LootingEnchantBonusFunction`):
+```
+bonus = lootingLevel * count.generateFloat(random)
+stack.grow(round(bonus))
+if (limit > 0 && stack.count > limit) stack.count = limit
+```
+
+**构建器**: `LootFunctionBuilder` 提供流畅的静态工厂方法。
+
+**参考**: `net.minecraft.loot.functions.*`
 
 ---
 
@@ -212,6 +261,7 @@ i32 value = fixed.generateInt(random);  // 总是返回 5
 │  - 管理多个 LootPool                                         │
 │  - 执行循环引用检测                                           │
 │  - 提供构建器 LootTableBuilder                               │
+│  - 管理掉落函数列表                                           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               │ 包含
@@ -221,6 +271,7 @@ i32 value = fixed.generateInt(random);  // 总是返回 5
 │  - 定义掷骰次数（rolls + bonusRolls）                        │
 │  - 按权重选择条目                                             │
 │  - 提供构建器 LootPoolBuilder                                │
+│  - 管理掉落函数列表                                           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               │ 包含
@@ -240,7 +291,7 @@ i32 value = fixed.generateInt(random);  // 总是返回 5
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                               │
-                              │ 使用条件
+                              │ 使用条件和函数
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     LootCondition                            │
@@ -256,6 +307,25 @@ i32 value = fixed.generateInt(random);  // 总是返回 5
 │  │  - OrCondition            (或)                          ││
 │  │  - BlockStateCondition    (方块状态)                    ││
 │  │  - ToolTypeCondition      (工具类型)                    ││
+│  └─────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     LootFunction                             │
+│  - 修改生成的物品堆                                          │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │ 子类:                                                    ││
+│  │  - SetCountFunction       (设置数量)                    ││
+│  │  - ApplyBonusFunction     (时运加成)                    ││
+│  │  - LootingEnchantBonusFunction (掠夺加成)               ││
+│  │  - SetDamageFunction      (设置耐久度)                  ││
+│  │  - SetNameFunction        (设置名称)                    ││
+│  │  - SetLoreFunction        (设置描述)                    ││
+│  │  - LimitCountFunction     (限制数量)                    ││
+│  │  - FurnaceSmeltFunction   (熔炼)                        ││
+│  │  - EnchantWithLevelsFunction (等级附魔)                 ││
+│  │  - EnchantRandomlyFunction (随机附魔)                   ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -546,5 +616,6 @@ entry.generate(consumer, context);  // 条件在这里检查
 1. **JSON 解析** - 实现从数据包加载掉落表
 2. **更多条件** - 添加实体属性、生物群系、天气等条件
 3. **更多条目** - 标签条目、动态条目
-4. **函数系统** - 掉落物修饰函数（附魔、命名等）
+4. ~~**函数系统** - 掉落物修饰函数（附魔、命名等）~~ ✅ 已完成
 5. **缓存优化** - 掉落表缓存和预编译
+6. **更多函数** - 爆炸伤害函数、复制NBT函数、设置属性函数等

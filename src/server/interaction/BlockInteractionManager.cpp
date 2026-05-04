@@ -162,24 +162,28 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     // 创建放置上下文（player 为 nullptr，因为我们通过 InventoryManager 管理）
     BlockItemUseContext context(m_world, nullptr, heldItem, hitPos, pos, face, playerData->yaw);
 
-    // 尝试放置
-    ActionResultType result = blockItem->tryPlace(context);
-    if (result != ActionResultType::Success && result != ActionResultType::Consume) {
+    // 先检查是否可以放置（位置有效性检查）
+    if (!context.canPlace()) {
         return BlockPlacementResult{false, false, false, pos, 0, "Cannot place block here"};
     }
 
+    // 获取放置位置和状态（不实际放置）
     const BlockPos& placePos = context.placementPos();
     const BlockState* newState = blockItem->getStateForPlacement(context);
     if (!newState) {
         return BlockPlacementResult{false, false, false, pos, 0, "No placement state"};
     }
 
+    // 在放置之前检查玩家碰撞
     if (wouldCollideWithPlayer(playerId, placePos, *newState)) {
         return BlockPlacementResult{false, false, false, placePos, 0, "Cannot place block inside player"};
     }
 
-    // 设置方块
-    m_world.setBlock(placePos, newState);
+    // 执行放置
+    ActionResultType result = blockItem->tryPlace(context);
+    if (result != ActionResultType::Success && result != ActionResultType::Consume) {
+        return BlockPlacementResult{false, false, false, pos, 0, "Cannot place block here"};
+    }
 
     // 消耗物品（非创造模式）
     bool itemConsumed = false;
@@ -349,7 +353,7 @@ bool BlockInteractionManager::canInteract(PlayerId playerId, const BlockPos& pos
 
     // 计算距离（玩家眼睛位置到方块中心）
     const f64 eyeX = playerData->x;
-    const f64 eyeY = playerData->y + 1.62;  // Player::PLAYER_EYE_HEIGHT
+    const f64 eyeY = playerData->y + static_cast<f64>(game::PLAYER_EYE_HEIGHT);
     const f64 eyeZ = playerData->z;
     const f64 targetX = pos.x + 0.5;
     const f64 targetY = pos.y + 0.5;
@@ -361,7 +365,8 @@ bool BlockInteractionManager::canInteract(PlayerId playerId, const BlockPos& pos
     const f64 distanceSquared = dx * dx + dy * dy + dz * dz;
 
     // 最大交互距离 6 格
-    return distanceSquared <= 36.0;
+    constexpr f64 MAX_INTERACT_DISTANCE_SQ = 36.0; // 6 * 6
+    return distanceSquared <= MAX_INTERACT_DISTANCE_SQ;
 }
 
 bool BlockInteractionManager::canBreakBlock(

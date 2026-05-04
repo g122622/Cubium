@@ -205,6 +205,7 @@ add_library(mc_common STATIC
     entity/loot/LootPool.cpp
     entity/loot/LootTable.cpp
     entity/loot/LootConditions.cpp
+    entity/loot/LootFunctions.cpp
     entity/combat/AttackContext.cpp
     entity/combat/PlayerAttackHelper.cpp
     entity/combat/DifficultyHelper.cpp
