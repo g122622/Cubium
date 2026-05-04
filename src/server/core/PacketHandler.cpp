@@ -179,15 +179,13 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
         return PacketHandleResult::Ignore;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto result = network::PlayerInputPacket::deserialize(deser);
+    network::PlayerInputPacket packet;
+    auto result = packet.deserialize(data, size);
 
     if (result.failed()) {
         spdlog::error("PacketHandler: Failed to parse player input from player {}", playerId);
         return PacketHandleResult::Error;
     }
-
-    auto& packet = result.value();
 
     // MC 1.16.5: PlayerInputPacket 用于控制骑乘中的载具
     // strafeSpeed: 左右移动（正值=左，负值=右）
@@ -211,15 +209,13 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
         return PacketHandleResult::Ignore;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto result = network::MoveVehiclePacket::deserialize(deser);
+    network::MoveVehiclePacket packet;
+    auto result = packet.deserialize(data, size);
 
     if (result.failed()) {
         spdlog::error("PacketHandler: Failed to parse move vehicle from player {}", playerId);
         return PacketHandleResult::Error;
     }
-
-    auto& packet = result.value();
 
     // MC 1.16.5: MoveVehiclePacket 由客户端发送以同步载具位置
     // 服务端需要验证位置并将更新广播给其他玩家
@@ -238,15 +234,13 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
         return PacketHandleResult::Ignore;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto result = network::EntityActionPacket::deserialize(deser);
+    network::EntityActionPacket packet;
+    auto result = packet.deserialize(data, size);
 
     if (result.failed()) {
         spdlog::error("PacketHandler: Failed to parse entity action from player {}", playerId);
         return PacketHandleResult::Error;
     }
-
-    auto& packet = result.value();
 
     // MC 1.16.5: EntityActionPacket 用于实体动作
     // - PressShiftKey: 按下潜行键（下马）
