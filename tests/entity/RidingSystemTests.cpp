@@ -330,34 +330,6 @@ TEST_F(ChestMinecartEntityRidingTest, InitialInventoryEmptyTest) {
 }
 
 // ============================================================================
-// TNTMinecartEntity 测试
-// ============================================================================
-
-class TNTMinecartEntityTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        tntMinecart = std::make_unique<TNTMinecartEntity>(EntityId(1));
-    }
-
-    std::unique_ptr<TNTMinecartEntity> tntMinecart;
-};
-
-TEST_F(TNTMinecartEntityTest, NotPrimedInitially) {
-    EXPECT_FALSE(tntMinecart->isPrimed());
-}
-
-TEST_F(TNTMinecartEntityTest, PrimeSetsFuse) {
-    tntMinecart->prime(100);
-    EXPECT_TRUE(tntMinecart->isPrimed());
-}
-
-TEST_F(TNTMinecartEntityTest, PrimeDefaultFuse) {
-    tntMinecart->prime();
-    EXPECT_TRUE(tntMinecart->isPrimed());
-    // Default fuse is 80 ticks
-}
-
-// ============================================================================
 // RideableMinecartEntity 测试
 // ============================================================================
 
@@ -387,7 +359,7 @@ protected:
 // 实际集成测试应在模拟世界环境中进行
 
 // ============================================================================
-// TNTMinecartEntity 点燃逻辑测试
+// TNTMinecartEntity 测试（包含点燃逻辑）
 // ============================================================================
 
 class TNTMinecartIgnitionTest : public ::testing::Test {

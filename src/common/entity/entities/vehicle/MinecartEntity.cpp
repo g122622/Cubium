@@ -582,7 +582,7 @@ void AbstractMinecartEntity::dropItem() {
 
     // 创建物品实体
     // MC 1.16.5: entityDropItem(stack) - 在实体位置生成物品
-    thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+    math::Random& rng = worldPtr->getRandom();
     f32 vx = rng.nextFloat(-0.1f, 0.1f);
     f32 vy = 0.2f;  // 轻微向上
     f32 vz = rng.nextFloat(-0.1f, 0.1f);
@@ -682,11 +682,11 @@ void ChestMinecartEntity::dropItem() {
 
     // 掉落所有库存物品
     if (m_inventory) {
+        math::Random& rng = worldPtr->getRandom();
         for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
             ItemStack stack = m_inventory->getItem(i);
             if (!stack.isEmpty()) {
                 // 在矿车位置生成物品实体
-                thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
                 f32 vx = rng.nextFloat(-0.1f, 0.1f);
                 f32 vy = 0.2f;
                 f32 vz = rng.nextFloat(-0.1f, 0.1f);
@@ -874,7 +874,7 @@ bool TNTMinecartEntity::onProjectileHit(DamageSource& source, f32 amount) {
             // 随机引信时间 0-40 tick
             IWorld* worldPtr = Entity::world();
             if (worldPtr && !worldPtr->isClientSide()) {
-                thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                math::Random& rng = worldPtr->getRandom();
                 prime(rng.nextInt(20) + rng.nextInt(20));
             }
         }
@@ -909,7 +909,7 @@ void TNTMinecartEntity::explode(f32 speedFactor) {
     }
 
     // MC 1.16.5: 4.0 + random * 1.5 * speedFactor
-    thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+    math::Random& rng = worldPtr->getRandom();
     f32 radius = static_cast<f32>(4.0 + rng.nextDouble() * 1.5 * d0);
 
     // 创建爆炸
