@@ -6,6 +6,7 @@
 #include "entity/entities/vehicle/BoatEntity.hpp"
 #include "entity/entities/vehicle/MinecartEntity.hpp"
 #include "entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "entity/entities/passive/horse/HorseEntity.hpp"
 #include "entity/core/DataParameter.hpp"
 #include "util/math/random/Random.hpp"
 
@@ -384,3 +385,134 @@ protected:
 
 // 注意: PigEntity 测试需要完整的 World 环境，这里只测试基本接口
 // 实际集成测试应在模拟世界环境中进行
+
+// ============================================================================
+// TNTMinecartEntity 点燃逻辑测试
+// ============================================================================
+
+class TNTMinecartIgnitionTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        tntMinecart = std::make_unique<TNTMinecartEntity>(EntityId(1));
+    }
+
+    std::unique_ptr<TNTMinecartEntity> tntMinecart;
+};
+
+TEST_F(TNTMinecartIgnitionTest, InitiallyNotPrimed) {
+    EXPECT_FALSE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartIgnitionTest, PrimeSetsFuse) {
+    tntMinecart->prime(100);
+    EXPECT_TRUE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartIgnitionTest, PrimeDefaultFuse) {
+    tntMinecart->prime();
+    EXPECT_TRUE(tntMinecart->isPrimed());
+    // Default fuse is 80 ticks
+}
+
+TEST_F(TNTMinecartIgnitionTest, OnActivatorRailPass_PowersOn) {
+    // 激活铁轨通电时点燃
+    tntMinecart->onActivatorRailPass(0, 0, 0, true);
+    EXPECT_TRUE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartIgnitionTest, OnActivatorRailPass_NoPower_NoIgnition) {
+    // 激活铁轨未通电时不点燃
+    tntMinecart->onActivatorRailPass(0, 0, 0, false);
+    EXPECT_FALSE(tntMinecart->isPrimed());
+}
+
+TEST_F(TNTMinecartIgnitionTest, OnActivatorRailPass_AlreadyPrimed_NoDoublePrime) {
+    tntMinecart->prime(100);
+    EXPECT_TRUE(tntMinecart->isPrimed());
+
+    // 再次激活不会重置引信
+    tntMinecart->onActivatorRailPass(0, 0, 0, true);
+    EXPECT_TRUE(tntMinecart->isPrimed());
+}
+
+// ============================================================================
+// AbstractHorseEntity 测试
+// ============================================================================
+
+class AbstractHorseEntityTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 使用具体的 HorseEntity 来测试 AbstractHorseEntity 功能
+        horse = std::make_unique<HorseEntity>(LegacyEntityType::Unknown, 0);
+    }
+
+    std::unique_ptr<HorseEntity> horse;
+};
+
+TEST_F(AbstractHorseEntityTest, InitialTemperIsZero) {
+    EXPECT_EQ(horse->getTemper(), 0);
+}
+
+TEST_F(AbstractHorseEntityTest, IncreaseTemper_IncreasesValue) {
+    i32 initialTemper = horse->getTemper();
+    horse->increaseTemper(10);
+    EXPECT_GT(horse->getTemper(), initialTemper);
+    EXPECT_EQ(horse->getTemper(), initialTemper + 10);
+}
+
+TEST_F(AbstractHorseEntityTest, IncreaseTemper_ReturnsFalseBeforeTamed) {
+    // 增加少量驯服度不会达到驯服阈值
+    bool tamed = horse->increaseTemper(10);
+    EXPECT_FALSE(tamed);  // 未达到阈值
+    EXPECT_FALSE(horse->isTame());
+}
+
+TEST_F(AbstractHorseEntityTest, IncreaseTemper_ReturnsTrueWhenTamed) {
+    // 增加足够的驯服度
+    bool tamed = horse->increaseTemper(100);
+    EXPECT_TRUE(tamed);
+    EXPECT_TRUE(horse->isTame());
+}
+
+TEST_F(AbstractHorseEntityTest, SetTame_ChangesTameState) {
+    EXPECT_FALSE(horse->isTame());
+    horse->setTame(true);
+    EXPECT_TRUE(horse->isTame());
+}
+
+TEST_F(AbstractHorseEntityTest, SetSaddle_ChangesSaddleState) {
+    EXPECT_FALSE(horse->hasSaddle());
+    horse->setSaddle(true);
+    EXPECT_TRUE(horse->hasSaddle());
+}
+
+TEST_F(AbstractHorseEntityTest, JumpPower_StartsAtZero) {
+    EXPECT_EQ(horse->getJumpPower(), 0.0f);
+}
+
+TEST_F(AbstractHorseEntityTest, SetJumpPower_ClampsValue) {
+    horse->setJumpPower(0.5f);
+    EXPECT_EQ(horse->getJumpPower(), 0.5f);
+
+    horse->setJumpPower(1.5f);  // Should be clamped to 1.0
+    EXPECT_EQ(horse->getJumpPower(), 1.0f);
+
+    horse->setJumpPower(-0.5f);  // Should be clamped to 0.0
+    EXPECT_EQ(horse->getJumpPower(), 0.0f);
+}
+
+TEST_F(AbstractHorseEntityTest, CanJump_RequiresSaddle) {
+    EXPECT_FALSE(horse->canJump());  // 无鞍时不能跳跃
+    horse->setSaddle(true);
+    EXPECT_TRUE(horse->canJump());  // 有鞍时可以跳跃
+}
+
+TEST_F(AbstractHorseEntityTest, NotBeingRiddenInitially) {
+    EXPECT_FALSE(horse->isBeingRidden());
+    EXPECT_EQ(horse->getRider(), nullptr);
+}
+
+TEST_F(AbstractHorseEntityTest, GetMaxJumpHeight_Positive) {
+    // 跳跃高度应该是正值
+    EXPECT_GT(horse->getMaxJumpHeight(), 0.0f);
+}
