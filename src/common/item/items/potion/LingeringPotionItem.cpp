@@ -1,6 +1,8 @@
 #include "LingeringPotionItem.hpp"
-#include "../../potion/PotionUtils.hpp"
-#include "../../potion/Potions.hpp"
+#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../world/IWorld.hpp"
+#include <memory>
 
 namespace mc {
 namespace item {
@@ -8,27 +10,28 @@ namespace item {
 // ========== LingeringPotionItem 实现 ==========
 
 LingeringPotionItem::LingeringPotionItem(const ItemProperties& properties)
-    : Item(properties) {
+    : ThrowablePotionItem(properties)
+{
 }
 
-ItemActionResult LingeringPotionItem::onItemRightClick(IWorld& /*world*/, Player& /*player*/, Hand /*hand*/) {
-    // TODO: 投掷滞留药水并创建滞留区域
-    // 目前先简单处理，后续实现投掷物系统
+entity::ProjectileItemEntity* LingeringPotionItem::createProjectile(
+    IWorld& world,
+    Player& player,
+    const ItemStack& stack) const
+{
+    // 创建药水实体（滞留型）
+    auto entity = std::make_unique<entity::PotionEntity>(LegacyEntityType::Potion, 0);
+    entity->setWorld(&world);
+    entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
+    entity->setShooter(&player);
+    entity->setItemStack(stack);
+    // 滞留药水设置为滞留型
+    entity->setLingering(true);
 
-    return ItemActionResult(ActionResultType::Pass, ItemStack());
-}
-
-bool LingeringPotionItem::hasEffect(const ItemStack& stack) const {
-    const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
-    return potion != nullptr && potion->hasEffects();
-}
-
-String LingeringPotionItem::getTranslationKey(const ItemStack& stack) const {
-    const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
-    if (potion != nullptr && potion->hasEffects()) {
-        return String("item.minecraft.lingering_potion.effect.") + potion->baseName();
-    }
-    return String("item.minecraft.lingering_potion");
+    // 生成实体到世界，并返回原始指针
+    entity::ProjectileItemEntity* result = entity.get();
+    world.spawnEntity(std::move(entity));
+    return result;
 }
 
 } // namespace item

@@ -12,6 +12,7 @@ weapon/
 ├── ThrowableItem.hpp/cpp # 投掷物品基类
 ├── ThrowableItems.hpp/cpp # 具体投掷物品(雪球/鸡蛋/末影珍珠等)
 ├── ArrowItem.hpp/cpp     # 箭矢物品
+├── TippedArrowItem.hpp/cpp # 药水箭物品 (完整实现)
 ├── ShieldItem.hpp/cpp    # 盾牌物品 (框架实现)
 ├── FishingRodItem.hpp/cpp # 钓鱼竿 (完整实现)
 └── README.md             # 本文件
@@ -155,6 +156,30 @@ velocity = (f * f + f * 2.0) / 3.0
 | EnderPearlItem | 末影珍珠，传送并造成5点摔落伤害 |
 | ExperienceBottleItem | 经验瓶，生成3-11个经验球 |
 | PotionItem | 药水（待完善药水系统） |
+
+### ArrowItem（箭矢）- 完整实现
+
+普通箭矢物品，用于弓和弩的弹药。
+
+**关键方法：**
+- `createArrow()` - 创建箭矢实体
+- `isInfinite()` - 检查箭矢是否无限（受无限附魔影响）
+
+### TippedArrowItem（药水箭）- 完整实现
+
+带有药水效果的箭矢，命中生物时应用效果。
+
+**MC 1.16.5 特性：**
+- 药水箭不受益于无限附魔（仅创造模式无限）
+- 命中时应用药水效果到目标
+- 箭矢颜色由药水效果决定
+
+**关键方法：**
+- `createArrow()` - 创建带药水效果的ArrowEntity
+- `getPotion()` - 获取药水类型
+- `getEffects()` - 获取药水效果列表
+- `setPotion()` - 设置药水类型
+- `isInfinite()` - 总是返回false（非创造模式）
 
 ## 依赖关系
 

@@ -1,6 +1,7 @@
 #include "LootFunctions.hpp"
 #include "LootConditions.hpp"
 #include "LootContext.hpp"
+#include "RandomRanges.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
@@ -65,9 +66,10 @@ std::unique_ptr<LootFunction> SetCountFunction::clone() const {
 // ApplyBonusFunction
 // ============================================================================
 
-ApplyBonusFunction::ApplyBonusFunction(BonusType bonusType, i32 baseCount, f32 probability)
+ApplyBonusFunction::ApplyBonusFunction(BonusType bonusType, i32 bonusMultiplier, i32 extra, f32 probability)
     : m_bonusType(bonusType)
-    , m_baseCount(baseCount)
+    , m_bonusMultiplier(bonusMultiplier)
+    , m_extra(extra)
     , m_probability(probability)
 {
 }
@@ -94,16 +96,17 @@ ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
     }
 
     // 根据加成类型计算新数量
-    i32 newCount = stack.getCount();
+    i32 baseCount = stack.getCount();
+    i32 newCount = baseCount;
     switch (m_bonusType) {
         case BonusType::OreDrops:
-            newCount = calculateOreDrops(fortuneLevel, context.getRandom());
+            newCount = calculateOreDrops(baseCount, fortuneLevel, context.getRandom());
             break;
         case BonusType::Uniform:
-            newCount = calculateUniformBonus(newCount, fortuneLevel, context.getRandom());
+            newCount = calculateUniformBonus(baseCount, fortuneLevel, m_bonusMultiplier, context.getRandom());
             break;
         case BonusType::Binomial:
-            newCount = calculateBinomialBonus(newCount, fortuneLevel, m_probability, context.getRandom());
+            newCount = calculateBinomialBonus(baseCount, fortuneLevel, m_extra, m_probability, context.getRandom());
             break;
     }
 
@@ -112,15 +115,15 @@ ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
 }
 
 std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const {
-    auto func = std::make_unique<ApplyBonusFunction>(m_bonusType, m_baseCount, m_probability);
+    auto func = std::make_unique<ApplyBonusFunction>(m_bonusType, m_bonusMultiplier, m_extra, m_probability);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
     }
     return func;
 }
 
-i32 ApplyBonusFunction::calculateOreDrops(i32 fortuneLevel, math::Random& random) {
-    // MC 1.16.5 OreDropsFormula
+i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::Random& random) {
+    // MC 1.16.5 OreDropsFormula:
     // if (fortune > 0) {
     //     int i = random.nextInt(fortune + 2) - 1;
     //     if (i < 0) i = 0;
@@ -128,55 +131,50 @@ i32 ApplyBonusFunction::calculateOreDrops(i32 fortuneLevel, math::Random& random
     // } else {
     //     return baseCount;
     // }
-
     if (fortuneLevel <= 0) {
-        return 1; // 基础数量为1
+        return baseCount;
     }
 
     // random.nextInt(fortune + 2) - 1
-    // fortune=1: random.nextInt(3) - 1 -> 0, 1, 或 -1 (修正为 0)
-    // fortune=2: random.nextInt(4) - 1 -> 0, 1, 2, 或 -1 (修正为 0)
-    // fortune=3: random.nextInt(5) - 1 -> 0, 1, 2, 3, 或 -1 (修正为 0)
+    // fortune=1: random.nextInt(3) - 1 -> -1, 0, 1 (修正后 0, 0, 1) -> multiplier: 1, 1, 2
+    // fortune=2: random.nextInt(4) - 1 -> -1, 0, 1, 2 (修正后 0, 0, 1, 2) -> multiplier: 1, 1, 2, 3
+    // fortune=3: random.nextInt(5) - 1 -> -1, 0, 1, 2, 3 (修正后 0, 0, 1, 2, 3) -> multiplier: 1, 1, 2, 3, 4
     i32 i = random.nextInt(fortuneLevel + 2) - 1;
     if (i < 0) {
         i = 0;
     }
 
-    return 1 * (i + 1); // 基础数量为1
+    return baseCount * (i + 1);
 }
 
-i32 ApplyBonusFunction::calculateUniformBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) {
-    // MC 1.16.5 UniformBonusCountFormula
+i32 ApplyBonusFunction::calculateUniformBonus(i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random) {
+    // MC 1.16.5 UniformBonusCountFormula:
     // count + random.nextInt(bonusMultiplier * fortune + 1)
-    // 默认 bonusMultiplier = 1
-
     if (fortuneLevel <= 0) {
         return baseCount;
     }
 
-    i32 bonus = random.nextInt(fortuneLevel + 1);
+    i32 bonus = random.nextInt(bonusMultiplier * fortuneLevel + 1);
     return baseCount + bonus;
 }
 
-i32 ApplyBonusFunction::calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, f32 probability, math::Random& random) {
-    // MC 1.16.5 BinomialWithBonusCountFormula
+i32 ApplyBonusFunction::calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random) {
+    // MC 1.16.5 BinomialWithBonusCountFormula:
     // for (int i = 0; i < fortune + extra; ++i) {
     //     if (random.nextFloat() < probability) {
     //         ++count;
     //     }
     // }
-    // extra 默认为 1
-
-    i32 extra = 1; // 默认额外次数
     i32 trials = fortuneLevel + extra;
+    i32 result = baseCount;
 
     for (i32 i = 0; i < trials; ++i) {
         if (random.nextFloat() < probability) {
-            ++baseCount;
+            ++result;
         }
     }
 
-    return baseCount;
+    return result;
 }
 
 // ============================================================================
@@ -466,6 +464,355 @@ std::unique_ptr<LootFunction> EnchantRandomlyFunction::clone() const {
 }
 
 // ============================================================================
+// ExplosionDecayFunction
+// ============================================================================
+
+ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // MC 1.16.5: 每个物品有 1/explosionRadius 的概率保留
+    // 如果没有爆炸信息，默认使用半径 1.0（100% 保留）
+    f32 explosionRadius = 1.0f;
+    auto* radiusParam = context.get<f32>(LootParams::EXPLOSION_RADIUS);
+    if (radiusParam != nullptr && *radiusParam > 0.0f) {
+        explosionRadius = *radiusParam;
+    }
+
+    // 使用二项分布计算保留数量
+    f32 keepChance = math::clamp(1.0f / explosionRadius, 0.0f, 1.0f);
+    BinomialRange binomial(stack.getCount(), keepChance);
+    i32 keptCount = binomial.generateInt(context.getRandom());
+
+    if (keptCount <= 0) {
+        return ItemStack();
+    }
+
+    stack.setCount(keptCount);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const {
+    auto func = std::make_unique<ExplosionDecayFunction>();
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetNbtFunction
+// ============================================================================
+
+SetNbtFunction::SetNbtFunction(const String& nbtString)
+    : m_nbtString(nbtString)
+{
+}
+
+ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const {
+    MC_UNUSED(context);
+
+    if (stack.isEmpty() || m_nbtString.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现 NBT 解析和应用
+    // 需要集成 NBT 系统
+    // 参考: net.minecraft.loot.functions.SetNbt
+    // stack.setTag(nbt);
+
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetNbtFunction::clone() const {
+    auto func = std::make_unique<SetNbtFunction>(m_nbtString);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// CopyNameFunction
+// ============================================================================
+
+CopyNameFunction::CopyNameFunction(Source source)
+    : m_source(source)
+{
+}
+
+ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现名称复制
+    // 参考: net.minecraft.loot.functions.CopyName
+    // 需要从以下来源获取名称:
+    // - Source::This: 从 THIS_ENTITY 参数获取实体名称
+    // - Source::Killer: 从 KILLER_ENTITY 参数获取击杀者名称
+    // - Source::KillerPlayer: 从 KILLER_PLAYER 参数获取玩家名称
+    // - Source::BlockEntity: 从 BLOCK_STATE 参数获取方块实体名称
+    // 需要 Entity/Player 类实现 INameable 接口
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> CopyNameFunction::clone() const {
+    auto func = std::make_unique<CopyNameFunction>(m_source);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// CopyBlockStateFunction
+// ============================================================================
+
+CopyBlockStateFunction::CopyBlockStateFunction(const String& blockId,
+                                               const std::vector<String>& properties)
+    : m_blockId(blockId)
+    , m_properties(properties)
+{
+}
+
+ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) const {
+    MC_UNUSED(context);
+
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现方块状态复制
+    // 参考: net.minecraft.loot.functions.CopyBlockState
+    // 需要将 BlockState 的属性值复制到 ItemStack 的 NBT 中
+
+    return stack;
+}
+
+std::unique_ptr<LootFunction> CopyBlockStateFunction::clone() const {
+    auto func = std::make_unique<CopyBlockStateFunction>(m_blockId, m_properties);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// CopyNbtFunction
+// ============================================================================
+
+CopyNbtFunction::CopyNbtFunction(Source source)
+    : m_source(source)
+{
+}
+
+void CopyNbtFunction::addOperation(const String& sourcePath, const String& targetPath, Operation operation) {
+    m_operations.push_back({sourcePath, targetPath, operation});
+}
+
+ItemStack CopyNbtFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_operations.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现 NBT 复制
+    // 参考: net.minecraft.loot.functions.CopyNbt
+    // 需要 NBT 路径解析和操作实现
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> CopyNbtFunction::clone() const {
+    auto func = std::make_unique<CopyNbtFunction>(m_source);
+    func->m_operations = m_operations;
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// FillPlayerHeadFunction
+// ============================================================================
+
+FillPlayerHeadFunction::FillPlayerHeadFunction(CopyNameFunction::Source source)
+    : m_source(source)
+{
+}
+
+ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现玩家头颅填充
+    // 参考: net.minecraft.loot.functions.FillPlayerHead
+    // 需要获取玩家信息并设置到头颅物品的 NBT 中
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const {
+    auto func = std::make_unique<FillPlayerHeadFunction>(m_source);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetAttributesFunction
+// ============================================================================
+
+void SetAttributesFunction::addModifier(const AttributeModifier& modifier) {
+    m_modifiers.push_back(modifier);
+}
+
+ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_modifiers.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现属性设置
+    // 参考: net.minecraft.loot.functions.SetAttributes
+    // 需要属性系统支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetAttributesFunction::clone() const {
+    auto func = std::make_unique<SetAttributesFunction>();
+    func->m_modifiers = m_modifiers;
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetContentsFunction
+// ============================================================================
+
+ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现内容物设置
+    // 参考: net.minecraft.loot.functions.SetContents
+    // 需要容器物品系统支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetContentsFunction::clone() const {
+    auto func = std::make_unique<SetContentsFunction>();
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetLootTableFunction
+// ============================================================================
+
+SetLootTableFunction::SetLootTableFunction(const String& lootTableId, u64 seed)
+    : m_lootTableId(lootTableId)
+    , m_seed(seed)
+{
+}
+
+ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_lootTableId.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现掉落表设置
+    // 参考: net.minecraft.loot.functions.SetLootTable
+    // 需要将掉落表ID设置到物品的NBT中
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetLootTableFunction::clone() const {
+    auto func = std::make_unique<SetLootTableFunction>(m_lootTableId, m_seed);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// ExplorationMapFunction
+// ============================================================================
+
+ExplorationMapFunction::ExplorationMapFunction(Destination destination)
+    : m_destination(destination)
+{
+}
+
+ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现探险地图生成
+    // 参考: net.minecraft.loot.functions.ExplorationMap
+    // 需要地图系统和世界探索追踪支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const {
+    auto func = std::make_unique<ExplorationMapFunction>(m_destination);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetStewEffectFunction
+// ============================================================================
+
+void SetStewEffectFunction::addEffect(const String& effectId, const RandomValueRange& duration) {
+    m_effects.push_back({effectId, duration});
+}
+
+ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_effects.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现炖菜效果设置
+    // 参考: net.minecraft.loot.functions.SetStewEffect
+    // 需要药水效果系统支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetStewEffectFunction::clone() const {
+    auto func = std::make_unique<SetStewEffectFunction>();
+    func->m_effects = m_effects;
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
 // LootFunctionBuilder
 // ============================================================================
 
@@ -479,10 +826,11 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::setCount(i32 count, bool add)
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::applyBonus(
     ApplyBonusFunction::BonusType bonusType,
-    i32 baseCount,
+    i32 bonusMultiplier,
+    i32 extra,
     f32 probability)
 {
-    return std::make_unique<ApplyBonusFunction>(bonusType, baseCount, probability);
+    return std::make_unique<ApplyBonusFunction>(bonusType, bonusMultiplier, extra, probability);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::lootingEnchantBonus(
@@ -524,6 +872,50 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::enchantRandomly(
     bool treasure)
 {
     return std::make_unique<EnchantRandomlyFunction>(enchantments, treasure);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay() {
+    return std::make_unique<ExplosionDecayFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const String& nbtString) {
+    return std::make_unique<SetNbtFunction>(nbtString);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::Source source) {
+    return std::make_unique<CopyNameFunction>(source);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyBlockState(const String& blockId) {
+    return std::make_unique<CopyBlockStateFunction>(blockId);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyNbt(CopyNbtFunction::Source source) {
+    return std::make_unique<CopyNbtFunction>(source);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::fillPlayerHead() {
+    return std::make_unique<FillPlayerHeadFunction>(CopyNameFunction::Source::KillerPlayer);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setAttributes() {
+    return std::make_unique<SetAttributesFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setContents() {
+    return std::make_unique<SetContentsFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setLootTable(const String& lootTableId) {
+    return std::make_unique<SetLootTableFunction>(lootTableId);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::explorationMap() {
+    return std::make_unique<ExplorationMapFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setStewEffect() {
+    return std::make_unique<SetStewEffectFunction>();
 }
 
 } // namespace loot

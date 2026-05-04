@@ -317,6 +317,7 @@ add_library(mc_common STATIC
     # Item - Weapons
     item/items/weapon/BowItem.cpp
     item/items/weapon/ArrowItem.cpp
+    item/items/weapon/TippedArrowItem.cpp
     item/items/weapon/CrossbowItem.cpp
     item/items/weapon/TridentItem.cpp
     item/items/weapon/ShieldItem.cpp
@@ -333,6 +334,7 @@ add_library(mc_common STATIC
 
     # Item - Potion Items
     item/items/potion/PotionItem.cpp
+    item/items/potion/ThrowablePotionItem.cpp
     item/items/potion/SplashPotionItem.cpp
     item/items/potion/LingeringPotionItem.cpp
     item/items/potion/GlassBottleItem.cpp

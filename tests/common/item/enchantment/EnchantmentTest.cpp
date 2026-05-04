@@ -6,6 +6,7 @@
 #include "item/enchantment/EnchantmentContainer.hpp"
 #include "item/enchantment/enchantments/FortuneEnchantment.hpp"
 #include "item/enchantment/enchantments/SilkTouchEnchantment.hpp"
+#include "entity/loot/LootFunctions.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/Items.hpp"
 #include "util/math/random/Random.hpp"
@@ -95,9 +96,12 @@ TEST(FortuneEnchantmentTest, GetMinCost) {
 TEST(FortuneEnchantmentTest, GetMaxCost) {
     FortuneEnchantment fortune;
 
-    EXPECT_EQ(fortune.getMaxCost(1), 65);  // 15 + 50 = 65
-    EXPECT_EQ(fortune.getMaxCost(2), 74);  // 24 + 50 = 74
-    EXPECT_EQ(fortune.getMaxCost(3), 83);  // 33 + 50 = 83
+    // MC 1.16.5: super.getMinEnchantability(level) + 50
+    // 基类默认: 1 + (level - 1) * 10
+    // 所以: 1 + (level - 1) * 10 + 50 = 51 + (level - 1) * 10
+    EXPECT_EQ(fortune.getMaxCost(1), 51);  // 1 + 0 * 10 + 50 = 51
+    EXPECT_EQ(fortune.getMaxCost(2), 61);  // 1 + 1 * 10 + 50 = 61
+    EXPECT_EQ(fortune.getMaxCost(3), 71);  // 1 + 2 * 10 + 50 = 71
 }
 
 TEST(FortuneEnchantmentTest, IsIncompatibleWithSilkTouch) {
@@ -108,46 +112,73 @@ TEST(FortuneEnchantmentTest, IsIncompatibleWithSilkTouch) {
     EXPECT_FALSE(silkTouch.isCompatibleWith(fortune));
 }
 
-TEST(FortuneEnchantmentTest, ApplyBonus) {
+// ============================================================================
+// ApplyBonusFunction 测试（时运算法）
+// ============================================================================
+
+TEST(ApplyBonusFunctionTest, OreDrops) {
     math::Random random(12345);
 
-    // Fortune 0: 无加成
-    EXPECT_EQ(FortuneEnchantment::applyBonus(1, 0, random), 1);
+    // Fortune 0: 无加成，返回基础数量
+    EXPECT_EQ(loot::ApplyBonusFunction::calculateOreDrops(1, 0, random), 1);
+    EXPECT_EQ(loot::ApplyBonusFunction::calculateOreDrops(4, 0, random), 4);
 
     // Fortune I-III: 有概率加成
     // 注意：由于随机性，只能测试范围
     for (int level = 1; level <= 3; ++level) {
         math::Random testRandom(12345);
-        i32 result = FortuneEnchantment::applyBonus(1, level, testRandom);
+        i32 result = loot::ApplyBonusFunction::calculateOreDrops(1, level, testRandom);
         EXPECT_GE(result, 1);
         EXPECT_LE(result, 1 + level);
     }
+
+    // 测试基础数量乘法
+    for (int level = 1; level <= 3; ++level) {
+        math::Random testRandom(54321);
+        i32 result = loot::ApplyBonusFunction::calculateOreDrops(4, level, testRandom);
+        EXPECT_GE(result, 4);
+        EXPECT_LE(result, 4 * (1 + level));
+    }
 }
 
-TEST(FortuneEnchantmentTest, ApplyUniformBonus) {
+TEST(ApplyBonusFunctionTest, UniformBonus) {
     math::Random random(12345);
 
-    // Fortune I: 0-1
-    i32 result1 = FortuneEnchantment::applyUniformBonus(1, random);
-    EXPECT_GE(result1, 0);
-    EXPECT_LE(result1, 1);
+    // Fortune 0: 无加成，返回基础数量
+    EXPECT_EQ(loot::ApplyBonusFunction::calculateUniformBonus(1, 0, 1, random), 1);
 
-    // Fortune III: 0-3
-    i32 result3 = FortuneEnchantment::applyUniformBonus(3, random);
-    EXPECT_GE(result3, 0);
-    EXPECT_LE(result3, 3);
+    // Fortune I: bonusMultiplier=1, 范围 0-1
+    i32 result1 = loot::ApplyBonusFunction::calculateUniformBonus(1, 1, 1, random);
+    EXPECT_GE(result1, 1);
+    EXPECT_LE(result1, 2);
 
-    // Fortune 0: 0
-    EXPECT_EQ(FortuneEnchantment::applyUniformBonus(0, random), 0);
+    // Fortune III: bonusMultiplier=1, 范围 0-3
+    i32 result3 = loot::ApplyBonusFunction::calculateUniformBonus(1, 3, 1, random);
+    EXPECT_GE(result3, 1);
+    EXPECT_LE(result3, 4);
+
+    // Fortune I: bonusMultiplier=2, 范围 0-2
+    i32 result2 = loot::ApplyBonusFunction::calculateUniformBonus(1, 1, 2, random);
+    EXPECT_GE(result2, 1);
+    EXPECT_LE(result2, 3);
 }
 
-TEST(FortuneEnchantmentTest, ApplyOreDropBonus) {
+TEST(ApplyBonusFunctionTest, BinomialBonus) {
     math::Random random(12345);
 
-    // 基础掉落 4-5，Fortune III
-    i32 result = FortuneEnchantment::applyOreDropBonus(4, 5, 3, random);
-    EXPECT_GE(result, 4);  // 至少基础掉落
-    EXPECT_LE(result, 8);  // 最多基础 + 3
+    // Fortune 0: extra=1, 只有 1 次试验
+    i32 result0 = loot::ApplyBonusFunction::calculateBinomialBonus(1, 0, 1, 1.0f, random);
+    EXPECT_EQ(result0, 2);  // probability=1.0, 1 次试验必定成功
+
+    // Fortune I: extra=1, probability=1.0, 2 次试验都成功
+    i32 result1 = loot::ApplyBonusFunction::calculateBinomialBonus(1, 1, 1, 1.0f, random);
+    EXPECT_EQ(result1, 3);  // 1 + 2 = 3
+
+    // Fortune I: extra=1, probability=0.5, 不确定结果
+    math::Random testRandom(99999);
+    i32 resultHalf = loot::ApplyBonusFunction::calculateBinomialBonus(1, 1, 1, 0.5f, testRandom);
+    EXPECT_GE(resultHalf, 1);
+    EXPECT_LE(resultHalf, 3);
 }
 
 // ============================================================================

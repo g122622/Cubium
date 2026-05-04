@@ -14,9 +14,16 @@ namespace enchant {
  * 参考 MC 1.16.5 UnbreakingEnchantment
  *
  * 效果:
- * - 每级有 (level + 1) / (level + 50) 的概率不消耗耐久
- * - 对于盔甲，概率为 (level + 1) / (level + 100)
+ * - 每级有 level / (level + 1) 的概率不消耗耐久
+ *   I: 50%, II: 67%, III: 75%
+ * - 对于盔甲，有60%概率忽略耐久保护，实际保护概率为 0.4 * level / (level + 1)
+ *   I: 20%, II: 27%, III: 30%
  * - 最大 III 级
+ *
+ * 对应 MC 1.16.5 方法: negateDamage()
+ * - MC: negateDamage() 返回 true = 抵消伤害 = 不消耗耐久
+ * - 本类: shouldConsumeDurability() 返回 true = 消耗耐久
+ * - 两者语义相反，逻辑互补
  */
 class UnbreakingEnchantment : public Enchantment {
 public:

@@ -4,6 +4,8 @@
 #include "../../../entity/attribute/Attributes.hpp"
 #include "../../../entity/attribute/AttributeModifierUUIDs.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../enchantment/EnchantmentHelper.hpp"
+#include "../../enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -25,17 +27,24 @@ ToolItem::ToolItem(f32 attackDamage,
 
 f32 ToolItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const {
     // 1. 检查材质有效性
+    f32 speed = 1.0f;
     if (isEffectiveMaterial(state.getMaterial())) {
-        return m_efficiency;
+        speed = m_efficiency;
+    } else if (isEffectiveBlock(state.owner())) {
+        // 2. 检查特定方块有效性
+        speed = m_efficiency;
     }
 
-    // 2. 检查特定方块有效性
-    if (isEffectiveBlock(state.owner())) {
-        return m_efficiency;
+    // 3. 应用效率附魔加成（MC 1.16.5）
+    // 效率附魔只在工具对当前方块有效时才生效
+    if (speed > 1.0f) {
+        i32 efficiencyLevel = enchant::EnchantmentHelper::getEfficiencyLevel(stack);
+        if (efficiencyLevel > 0) {
+            speed += static_cast<f32>(enchant::EfficiencyEnchantment::getMiningSpeedBonus(efficiencyLevel));
+        }
     }
 
-    // 3. 基础速度
-    return 1.0f;
+    return speed;
 }
 
 bool ToolItem::canHarvestBlock(const BlockState& state) const {

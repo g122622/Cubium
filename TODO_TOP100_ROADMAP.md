@@ -57,8 +57,9 @@
 - ✅ 已完成 `src/common/item/items/armor/ElytraItem.cpp:18,32,54`：补鞘翅装备、耐久消耗和滑翔状态检查。
 - `src/common/item/items/block/BlockItem.cpp:72`：补世界边界检查，防止非法放置位置。
 - ✅ 已完成 `src/common/item/items/potion/GlassBottleItem.cpp:13`：补水源/炼药锅取水，右键成功时返回水瓶。
-- `src/common/item/items/potion/LingeringPotionItem.cpp:15`：补滞留区域生成，先接实体创建，再接效果范围。
-- `src/common/item/items/potion/SplashPotionItem.cpp:15,36`：补喷溅投掷与区域效果应用。
+- ✅ 已完成 `src/common/item/items/potion/LingeringPotionItem.cpp`：滞留药水投掷已实现，PotionEntity.onImpact() 已实现效果应用，AreaEffectCloud 实体待实现。
+- ✅ 已完成 `src/common/item/items/potion/SplashPotionItem.cpp`：喷溅药水投掷与区域效果应用已完整实现。
+- ✅ 已完成 `src/common/item/items/potion/ThrowablePotionItem.cpp`：提取喷溅/滞留药水共同代码到基类。
 - `src/common/item/potion/PotionUtils.cpp:47`：补自定义效果读取，属于典型 NBT 解析收尾。
 
 ## E. 生物 / AI / 实体
@@ -101,7 +102,7 @@
 
 ## F. 跨系统 / 核心小修
 
-- `src/common/entity/loot/LootTable.cpp:94,99`：补 JSON 解析与序列化，适合先把掉落表读写接通。
+- `src/common/entity/loot/LootTable.cpp:94,99`：**待实现** JSON 解析与序列化。当前 `fromJson()` 返回 `Unsupported` 错误。需要创建 `LootSerializers` 类实现完整的 JSON 解析逻辑（支持 MC 1.16.5 掉落表格式）。README 已标注为"未来计划"。
 - `src/common/entity/entities/passive/horse/AbstractHorseEntity.cpp:20`：补马鞍标志设置，逻辑很局部。
 - `src/client/sound/backend/AudioBuffer.cpp:63`、`src/client/sound/handler/BiomeAmbientHandler.cpp:51`、`src/client/sound/MusicPlayer.cpp:306`：这三处都在收尾客户端音频链路，建议一起处理。
 - `src/client/ui/kagero/template/parser/Parser.cpp:526` 与 `src/client/ui/kagero/template/parser/Ast.hpp` 中的 `bind:xxx / on:xxx / for:xxx` 示例：前者是真 TODO，后者是语法示例，不要混淆。

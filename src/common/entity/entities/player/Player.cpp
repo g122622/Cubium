@@ -1634,10 +1634,11 @@ void Player::attack(Entity& target) {
     }
 
     // 攻击前点燃（用于燃烧传递）
+    // MC 1.16.5: 如果目标未燃烧，先点燃 1 秒（用于燃烧效果传递判定）
     bool wasBurning = false;
     if (fireAspectLevel > 0 && !livingTarget->isOnFire()) {
         wasBurning = true;
-        livingTarget->setFire(1);  // 1 秒 = 20 ticks
+        livingTarget->setFire(20);  // 1 秒 = 20 ticks
     }
 
     // 12. 应用暴击倍率

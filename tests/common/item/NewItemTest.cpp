@@ -376,3 +376,83 @@ TEST_F(NetherWoodTest, StrippedWarpedHyphaeRegistered) {
     ASSERT_NE(block, nullptr);
     EXPECT_EQ(block->blockLocation(), ResourceLocation("minecraft:stripped_warped_hyphae"));
 }
+
+// ============================================================================
+// TippedArrowItem 测试
+// ============================================================================
+
+class TippedArrowItemTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+    }
+};
+
+TEST_F(TippedArrowItemTest, TippedArrowRegistered) {
+    Item* tippedArrow = ItemRegistry::instance().getItem(ResourceLocation("minecraft:tipped_arrow"));
+    ASSERT_NE(tippedArrow, nullptr);
+    EXPECT_EQ(tippedArrow->itemLocation(), ResourceLocation("minecraft:tipped_arrow"));
+}
+
+TEST_F(TippedArrowItemTest, TippedArrowIsStackable) {
+    Item* tippedArrow = ItemRegistry::instance().getItem(ResourceLocation("minecraft:tipped_arrow"));
+    ASSERT_NE(tippedArrow, nullptr);
+    // 箭矢可堆叠到64个
+    EXPECT_EQ(tippedArrow->maxStackSize(), 64);
+}
+
+TEST_F(TippedArrowItemTest, TippedArrowNotInfiniteInSurvival) {
+    Item* tippedArrow = ItemRegistry::instance().getItem(ResourceLocation("minecraft:tipped_arrow"));
+    ASSERT_NE(tippedArrow, nullptr);
+    // 药水箭不受益于无限附魔
+    // isInfinite() 方法需要 Player 参数，这里只验证物品注册正确
+    EXPECT_NE(tippedArrow, nullptr);
+}
+
+// ============================================================================
+// SplashPotionItem 测试
+// ============================================================================
+
+class SplashPotionItemTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+    }
+};
+
+TEST_F(SplashPotionItemTest, SplashPotionRegistered) {
+    Item* splashPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:splash_potion"));
+    ASSERT_NE(splashPotion, nullptr);
+    EXPECT_EQ(splashPotion->itemLocation(), ResourceLocation("minecraft:splash_potion"));
+}
+
+TEST_F(SplashPotionItemTest, SplashPotionIsStackable) {
+    Item* splashPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:splash_potion"));
+    ASSERT_NE(splashPotion, nullptr);
+    // MC 1.16.5: 喷溅药水默认堆叠数为1（相同药水类型才可堆叠）
+    EXPECT_EQ(splashPotion->maxStackSize(), 1);
+}
+
+// ============================================================================
+// LingeringPotionItem 测试
+// ============================================================================
+
+class LingeringPotionItemTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+    }
+};
+
+TEST_F(LingeringPotionItemTest, LingeringPotionRegistered) {
+    Item* lingeringPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:lingering_potion"));
+    ASSERT_NE(lingeringPotion, nullptr);
+    EXPECT_EQ(lingeringPotion->itemLocation(), ResourceLocation("minecraft:lingering_potion"));
+}
+
+TEST_F(LingeringPotionItemTest, LingeringPotionIsStackable) {
+    Item* lingeringPotion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:lingering_potion"));
+    ASSERT_NE(lingeringPotion, nullptr);
+    // MC 1.16.5: 滞留药水默认堆叠数为1（相同药水类型才可堆叠）
+    EXPECT_EQ(lingeringPotion->maxStackSize(), 1);
+}

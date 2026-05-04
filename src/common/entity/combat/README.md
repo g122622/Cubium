@@ -171,7 +171,8 @@ static std::pair<f32, f32> applyAbsorption(f32 damage, f32 absorption);
 | `SPRINT_KNOCKBACK_BONUS` | 0.5f | 疾跑击退加成 |
 | `FIRE_ASPECT_DURATION` | 80 (4秒) | 火焰附加基础持续时间 |
 | `MIN_COOLDOWN_THRESHOLD` | 0.9f | 最小冷却阈值 |
-| `KNOCKBACK_ENCHANT_BONUS` | 0.5f | 每级击退附魔加成 |
+
+**注意**：击退附魔加成使用 `KnockbackEnchantment::getKnockbackBonus()` 方法计算。
 
 **静态方法**：
 

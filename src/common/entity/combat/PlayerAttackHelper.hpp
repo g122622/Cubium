@@ -10,6 +10,10 @@ class Player;
 class LivingEntity;
 class Entity;
 
+namespace item::enchant {
+class KnockbackEnchantment;  // 前向声明
+}
+
 namespace entity::combat {
 
 /**
@@ -240,7 +244,6 @@ private:
     static constexpr f32 SPRINT_KNOCKBACK_BONUS = 0.5f;    // 疾跑击退加成
     static constexpr i32 FIRE_ASPECT_DURATION = 80;        // 火焰附加基础持续时间（4秒）
     static constexpr f32 MIN_COOLDOWN_THRESHOLD = 0.9f;    // 最小冷却阈值
-    static constexpr f32 KNOCKBACK_ENCHANT_BONUS = 0.5f;   // 每级击退附魔加成
 };
 
 } // namespace entity::combat

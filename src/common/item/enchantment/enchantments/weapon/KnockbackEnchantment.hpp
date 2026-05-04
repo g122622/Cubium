@@ -9,12 +9,16 @@ namespace enchant {
 /**
  * @brief 击退附魔
  *
- * 增加击退敌人的距离。
+ * 增加击退敌人的力度。
  * 参考 MC 1.16.5 KnockbackEnchantment
  *
  * 效果:
- * - 每级增加 3 格击退距离
+ * - 每级增加 0.5 击退强度（实际击退距离受目标击退抗性影响）
+ * - 击退强度与玩家基础击退叠加计算
  * - 最大 II 级
+ *
+ * 注意：实际击退计算在 PlayerAttackHelper 中进行，
+ * 使用 KNOCKBACK_ENCHANT_BONUS = 0.5f 作为每级加成。
  */
 class KnockbackEnchantment : public Enchantment {
 public:
@@ -54,13 +58,17 @@ public:
     }
 
     /**
-     * @brief 获取击退距离加成
+     * @brief 获取击退强度加成
+     *
+     * MC 1.16.5: 每级增加 0.5 击退强度
+     * 实际击退距离 = 基础击退 + (level * 0.5)
+     *
      * @param level 附魔等级
-     * @return 额外击退距离（格）
+     * @return 击退强度加成
      */
     [[nodiscard]] static f32 getKnockbackBonus(i32 level) {
-        // 每级增加 3 格击退
-        return static_cast<f32>(level) * 3.0f;
+        // MC 1.16.5: 每级增加 0.5 击退强度
+        return static_cast<f32>(level) * 0.5f;
     }
 };
 

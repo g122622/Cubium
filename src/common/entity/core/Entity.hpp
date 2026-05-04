@@ -850,8 +850,17 @@ public:
 
     /**
      * @brief 设置着火时间
+     *
+     * MC 1.16.5: 只增加燃烧时间，不会减少。
+     * 如果当前燃烧时间已经大于等于传入值，则不改变。
+     *
+     * @param ticks 燃烧时间（tick）
      */
-    void setFire(i32 ticks) { m_fire = ticks; }
+    void setFire(i32 ticks) {
+        if (m_fire < ticks) {
+            m_fire = ticks;
+        }
+    }
 
     // ========== 空气管理 ==========
 

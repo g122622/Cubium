@@ -103,6 +103,17 @@ MC 1.16.5 时运公式:
 | `FurnaceSmeltFunction` | `furnace_smelt` | 熔炼函数 |
 | `EnchantWithLevelsFunction` | `enchant_with_levels` | 按等级附魔 |
 | `EnchantRandomlyFunction` | `enchant_randomly` | 随机附魔 |
+| `ExplosionDecayFunction` | `explosion_decay` | 爆炸衰减函数 |
+| `SetNbtFunction` | `set_nbt` | 设置NBT标签函数 |
+| `CopyNameFunction` | `copy_name` | 复制名称函数 |
+| `CopyBlockStateFunction` | `copy_block_state` | 复制方块状态函数 |
+| `CopyNbtFunction` | `copy_nbt` | 复制NBT函数 |
+| `FillPlayerHeadFunction` | `fill_player_head` | 填充玩家头颅函数 |
+| `SetAttributesFunction` | `set_attributes` | 设置属性函数 |
+| `SetContentsFunction` | `set_contents` | 设置内容物函数 |
+| `SetLootTableFunction` | `set_loot_table` | 设置掉落表函数 |
+| `ExplorationMapFunction` | `exploration_map` | 探险地图函数 |
+| `SetStewEffectFunction` | `set_stew_effect` | 设置炖菜效果函数 |
 
 **MC 1.16.5 时运矿石掉落算法** (`ApplyBonusFunction::calculateOreDrops`):
 ```
@@ -326,6 +337,8 @@ i32 value = fixed.generateInt(random);  // 总是返回 5
 │  │  - FurnaceSmeltFunction   (熔炼)                        ││
 │  │  - EnchantWithLevelsFunction (等级附魔)                 ││
 │  │  - EnchantRandomlyFunction (随机附魔)                   ││
+│  │  - ExplosionDecayFunction  (爆炸衰减)                   ││
+│  │  - SetNbtFunction         (设置NBT标签)                 ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -589,6 +602,16 @@ entry.generate(consumer, context);  // 条件在这里检查
 | EntryCondition | 条件克隆、多条件 |
 | PoolCondition | 池条件测试 |
 | EdgeCases | 边界情况 |
+| CopyNameFunction | 创建、克隆、来源类型 |
+| CopyBlockStateFunction | 创建、属性、克隆 |
+| CopyNbtFunction | 创建、操作添加、克隆 |
+| FillPlayerHeadFunction | 创建、克隆 |
+| SetAttributesFunction | 创建、修饰符添加 |
+| SetContentsFunction | 创建 |
+| SetLootTableFunction | 创建、克隆 |
+| ExplorationMapFunction | 创建、目的地类型 |
+| SetStewEffectFunction | 创建、效果添加 |
+| LootFunctionBuilder | 所有新函数工厂方法 |
 
 ### 运行测试
 
@@ -616,6 +639,13 @@ entry.generate(consumer, context);  // 条件在这里检查
 1. **JSON 解析** - 实现从数据包加载掉落表
 2. **更多条件** - 添加实体属性、生物群系、天气等条件
 3. **更多条目** - 标签条目、动态条目
-4. ~~**函数系统** - 掉落物修饰函数（附魔、命名等）~~ ✅ 已完成
-5. **缓存优化** - 掉落表缓存和预编译
-6. **更多函数** - 爆炸伤害函数、复制NBT函数、设置属性函数等
+4. **缓存优化** - 掉落表缓存和预编译
+5. **桩实现完善** - 完善以下函数的实际实现（当前为桩）：
+   - CopyNameFunction（需要 Entity INameable 接口）
+   - CopyBlockStateFunction（需要 BlockState 属性复制机制）
+   - CopyNbtFunction（需要 NBT 路径解析）
+   - FillPlayerHeadFunction（需要玩家皮肤系统）
+   - SetAttributesFunction（需要属性系统）
+   - SetContentsFunction（需要容器物品支持）
+   - ExplorationMapFunction（需要地图数据系统）
+   - SetStewEffectFunction（需要药水效果系统）
