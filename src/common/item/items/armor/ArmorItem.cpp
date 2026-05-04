@@ -211,5 +211,12 @@ f32 ArmorItem::getTotalKnockbackResistance(const LivingEntity& entity) {
     return std::min(total, 1.0f);  // 上限为1.0
 }
 
+bool ArmorItem::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const {
+    // MC 1.16.5: 使用材质的修复材料检查
+    // 参考: net.minecraft.item.ArmorItem#getIsRepairable
+    (void)toRepair;  // 盔甲修复不依赖于待修复物品的状态
+    return m_material.getRepairMaterial().test(repair);
+}
+
 } // namespace item::items
 } // namespace mc

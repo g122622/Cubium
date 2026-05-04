@@ -49,17 +49,25 @@ public:
     }
 
     /**
-     * @brief 检查是否可以用指定材料修复
+     * @brief 检查物品堆是否可以用作修复材料
      *
      * 检查修复材料是否匹配层级的修复材料。
-     * 用于铁砧修复机制。
+     * 用于铁砧修复机制：
+     * - 木工具：木板
+     * - 石工具：圆石
+     * - 铁工具：铁锭
+     * - 金工具：金锭
+     * - 钻石工具：钻石
+     * - 下界合金工具：下界合金锭
+     *
+     * 参考: net.minecraft.item.TieredItem#getIsRepairable
      *
      * @param toRepair 待修复的物品堆
      * @param repair 修复材料物品堆
-     * @return 如果可以修复返回 true
+     * @return 是否可以修复
      */
-    [[nodiscard]] bool isRepairable(const ItemStack& toRepair,
-                                     const ItemStack& repair) const;
+    [[nodiscard]] bool getIsRepairable(const ItemStack& toRepair,
+                                        const ItemStack& repair) const override;
 
 protected:
     const tier::IItemTier& m_tier;

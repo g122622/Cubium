@@ -51,10 +51,25 @@ public:
     }
 
     /**
-     * @brief 是否可修复
-     * @return 盔甲材质有修复材料时可修复
+     * @brief 检查物品堆是否可以用作修复材料
+     *
+     * 盔甲可以使用对应材质的材料修复：
+     * - 皮革盔甲：皮革
+     * - 铁盔甲：铁锭
+     * - 金盔甲：金锭
+     * - 钻石盔甲：钻石
+     * - 下界合金盔甲：下界合金锭
+     * - 锁链盔甲：铁锭
+     * - 海龟壳：鳞甲
+     *
+     * 参考: net.minecraft.item.ArmorItem#getIsRepairable
+     *
+     * @param toRepair 待修复的物品堆
+     * @param repair 修复材料物品堆
+     * @return 是否可以修复
      */
-    [[nodiscard]] bool isRepairable() const { return true; }
+    [[nodiscard]] bool getIsRepairable(const ItemStack& toRepair,
+                                        const ItemStack& repair) const override;
 
     /**
      * @brief 获取挖掘速度

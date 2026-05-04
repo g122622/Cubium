@@ -5,6 +5,7 @@
 #include "../context/ItemUseContext.hpp"
 #include "../food/Food.hpp"
 #include "../tag/ItemTag.hpp"
+#include "../attribute/ItemAttributeModifiers.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../entity/core/Entity.hpp"
 #include "../../world/IWorld.hpp"
@@ -300,6 +301,54 @@ void Item::fillItemGroup(const ItemGroup& group, std::vector<ItemStack>& items) 
 bool Item::isInGroup(const ItemGroup& group) const {
     // 默认实现：检查物品的创造模式组是否匹配
     return m_creativeTab == &group;
+}
+
+// ============================================================================
+// 新增方法实现 (MC 1.16.5 对齐)
+// ============================================================================
+
+ItemRarity Item::getRarity(const ItemStack& stack) const {
+    // MC 1.16.5: 附魔物品稀有度提升
+    // 参考: net.minecraft.item.Item#getRarity(ItemStack)
+    if (stack.hasEnchantments()) {
+        switch (m_rarity) {
+            case ItemRarity::Common:
+            case ItemRarity::Uncommon:
+                return ItemRarity::Rare;
+            case ItemRarity::Rare:
+                return ItemRarity::Epic;
+            case ItemRarity::Epic:
+            default:
+                return m_rarity;
+        }
+    }
+    return m_rarity;
+}
+
+bool Item::isEnchantable(const ItemStack& stack) const {
+    // MC 1.16.5: 物品可附魔当且仅当堆叠数为1且可损坏
+    // 参考: net.minecraft.item.Item#isEnchantable(ItemStack)
+    (void)stack;
+    return m_maxStackSize == 1 && isDamageable();
+}
+
+bool Item::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const {
+    // 默认实现：检查修复材料是否是容器物品
+    // 子类（如ArmorItem、ToolItem）会重写此方法检查特定材料
+    // 参考: net.minecraft.item.Item#getIsRepairable(ItemStack, ItemStack)
+    (void)toRepair;
+    if (m_repairable && m_containerItem != nullptr) {
+        return repair.getItem() == m_containerItem;
+    }
+    return false;
+}
+
+item::ItemAttributeModifiers Item::getAttributeModifiers(i32 equipmentSlot) const {
+    // 默认实现：返回空的属性修饰符
+    // 子类（如SwordItem、ArmorItem）会重写此方法添加特定属性
+    // 参考: net.minecraft.item.Item#getAttributeModifiers(EquipmentSlot)
+    (void)equipmentSlot;
+    return item::ItemAttributeModifiers();
 }
 
 } // namespace mc

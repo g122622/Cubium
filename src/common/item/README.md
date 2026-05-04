@@ -98,6 +98,10 @@ item/
 - `isSuitableFor()` - 检查物品是否适合作为方块工具
 - `fillItemGroup()` - 填充物品到创造模式物品组
 - `isInGroup()` - 检查物品是否在指定物品组中
+- `getRarity(const ItemStack&)` - 获取物品堆稀有度（考虑附魔）
+- `isEnchantable(const ItemStack&)` - 检查物品是否可附魔
+- `getIsRepairable(const ItemStack&, const ItemStack&)` - 检查修复材料兼容性
+- `getAttributeModifiers(i32)` - 获取装备槽位的属性修饰符
 
 ### 食物系统 (80%)
 
@@ -129,6 +133,10 @@ item/
 
 盔甲物品现在支持右键自动装备对应槽位；如果目标槽位已被占用，则保持原物品不变并返回透传结果。可染色盔甲通过 `ItemStack` 的结构化标签保存 `display.color`，因此序列化、复制和比较都会保留染色数据。
 
+**盔甲属性修饰符 (MC 1.16.5 对齐)**:
+- `getAttributeModifiers()` 返回护甲值、韧性、击退抗性修饰符
+- `getIsRepairable()` 检查修复材料（皮革、铁锭、金锭、钻石、下界合金锭、鳞甲）
+
 ### 工具系统 (90%)
 
 | 模块 | 文件 | 状态 |
@@ -152,6 +160,11 @@ item/
 - 金工具 (镐、斧、锹、锄、剑)
 - 钻石工具 (镐、斧、锹、锄、剑)
 - 下界合金工具 (镐、斧、锹、锄、剑)
+
+**工具属性修饰符 (MC 1.16.5 对齐)**:
+- `ToolItem::getAttributeModifiers()` 返回攻击伤害和攻击速度修饰符
+- `SwordItem::getAttributeModifiers()` 返回武器特定的属性修饰符
+- `TieredItem::getIsRepairable()` 检查修复材料（木板、圆石、铁锭、金锭、钻石、下界合金锭）
 
 ### 附魔系统 (10%)
 

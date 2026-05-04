@@ -49,6 +49,11 @@ namespace item::tag {
     class ItemTag;
 }
 
+// Forward declaration for item attribute modifiers
+namespace item {
+    class ItemAttributeModifiers;
+}
+
 // ============================================================================
 // 物品稀有度
 // ============================================================================
@@ -257,6 +262,20 @@ public:
     [[nodiscard]] ItemRarity rarity() const { return m_rarity; }
 
     /**
+     * @brief 获取稀有度（带ItemStack参数）
+     *
+     * 考虑附魔状态对稀有度的影响：
+     * - 附魔物品至少为稀有（RARE）
+     * - 已附魔的稀有物品变为史诗（EPIC）
+     *
+     * 参考: net.minecraft.item.Item#getRarity(ItemStack)
+     *
+     * @param stack 物品堆
+     * @return 稀有度
+     */
+    [[nodiscard]] ItemRarity getRarity(const ItemStack& stack) const;
+
+    /**
      * @brief 是否可燃烧
      */
     [[nodiscard]] bool isBurnable() const { return m_burnable; }
@@ -265,6 +284,35 @@ public:
      * @brief 是否可修复
      */
     [[nodiscard]] bool isRepairable() const { return m_repairable; }
+
+    /**
+     * @brief 检查物品是否可附魔
+     *
+     * MC 1.16.5: 物品可附魔当且仅当：
+     * - 堆叠数为1
+     * - 物品可损坏（有耐久度）
+     *
+     * 参考: net.minecraft.item.Item#isEnchantable(ItemStack)
+     *
+     * @param stack 物品堆
+     * @return 是否可附魔
+     */
+    [[nodiscard]] virtual bool isEnchantable(const ItemStack& stack) const;
+
+    /**
+     * @brief 检查物品堆是否可以用作修复材料
+     *
+     * 子类（如ArmorItem、ToolItem）会重写此方法来检查材料类型。
+     * 例如：钻石工具只能用钻石修复。
+     *
+     * 参考: net.minecraft.item.Item#getIsRepairable(ItemStack, ItemStack)
+     *
+     * @param toRepair 待修复的物品堆
+     * @param repair 修复材料物品堆
+     * @return 是否可以修复
+     */
+    [[nodiscard]] virtual bool getIsRepairable(const ItemStack& toRepair,
+                                                const ItemStack& repair) const;
 
     // ========================================================================
     // 物品堆相关
@@ -582,10 +630,10 @@ public:
      * 参考: net.minecraft.item.Item#getDefaultAttributeModifiers
      *
      * @param slot 装备槽位
-     * @return 属性修饰符的多重映射
+     * @return 属性修饰符
      */
-    // [[nodiscard]] virtual Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(
-    //     EquipmentSlot slot) const;
+    [[nodiscard]] virtual item::ItemAttributeModifiers getAttributeModifiers(
+        i32 equipmentSlot) const;
 
     /**
      * @brief 填充物品到创造模式物品组

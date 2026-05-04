@@ -3,6 +3,7 @@
 #include "TieredItem.hpp"
 #include "ToolType.hpp"
 #include "../../../world/block/Material.hpp"
+#include "../../attribute/ItemAttributeModifiers.hpp"
 #include <unordered_set>
 
 namespace mc {
@@ -138,6 +139,19 @@ public:
     [[nodiscard]] const std::unordered_set<const Block*>& getEffectiveBlocks() const {
         return m_effectiveBlocks;
     }
+
+    /**
+     * @brief 获取属性修饰符
+     *
+     * 工具在主手时提供攻击伤害和攻击速度修饰符。
+     *
+     * 参考: net.minecraft.item.ToolItem#getAttributeModifiers
+     *
+     * @param equipmentSlot 装备槽位
+     * @return 属性修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(
+        i32 equipmentSlot) const override;
 
 protected:
     /**

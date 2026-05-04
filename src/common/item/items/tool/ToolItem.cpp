@@ -1,6 +1,9 @@
 #include "ToolItem.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../core/ItemStack.hpp"
+#include "../../../entity/attribute/Attributes.hpp"
+#include "../../../entity/attribute/AttributeModifierUUIDs.hpp"
+#include "../../../entity/core/LivingEntity.hpp"
 
 namespace mc {
 namespace item {
@@ -87,6 +90,40 @@ bool ToolItem::isEffectiveMaterial(const Material& material) const {
     (void)material;
     // 基类默认不检查材质，由子类重写
     return false;
+}
+
+item::ItemAttributeModifiers ToolItem::getAttributeModifiers(i32 equipmentSlot) const {
+    // MC 1.16.5: 工具在主手时提供攻击伤害和攻击速度修饰符
+    // 参考: net.minecraft.item.ToolItem#getAttributeModifiers
+    if (equipmentSlot == static_cast<i32>(EquipmentSlot::MainHand)) {
+        item::ItemAttributeModifiers modifiers;
+        String uuid = entity::attribute::uuids::fromString(
+            entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);
+
+        // 添加攻击伤害修饰符
+        auto attackDamageAttr = entity::attribute::Attributes::attackDamage();
+        auto attackDamageModifier = entity::attribute::AttributeModifier(
+            uuid,
+            "Tool modifier",
+            static_cast<f64>(m_attackDamage),
+            entity::attribute::Operation::Addition
+        );
+        modifiers.add(attackDamageAttr.get(), attackDamageModifier, equipmentSlot);
+
+        // 添加攻击速度修饰符
+        auto attackSpeedAttr = entity::attribute::Attributes::attackSpeed();
+        auto attackSpeedModifier = entity::attribute::AttributeModifier(
+            entity::attribute::uuids::fromString(
+                entity::attribute::uuids::ATTACK_SPEED_MODIFIER_UUID),
+            "Tool modifier",
+            static_cast<f64>(m_attackSpeed),
+            entity::attribute::Operation::Addition
+        );
+        modifiers.add(attackSpeedAttr.get(), attackSpeedModifier, equipmentSlot);
+
+        return modifiers;
+    }
+    return Item::getAttributeModifiers(equipmentSlot);
 }
 
 } // namespace tool

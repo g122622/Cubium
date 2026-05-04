@@ -2,6 +2,7 @@
 
 #include "TieredItem.hpp"
 #include "../../../world/block/Material.hpp"
+#include "../../attribute/ItemAttributeModifiers.hpp"
 
 namespace mc {
 
@@ -112,6 +113,19 @@ public:
      * @return 攻击速度修正值
      */
     [[nodiscard]] f32 getAttackSpeed() const { return m_attackSpeed; }
+
+    /**
+     * @brief 获取属性修饰符
+     *
+     * 剑在主手时提供攻击伤害和攻击速度修饰符。
+     *
+     * 参考: net.minecraft.item.SwordItem#getAttributeModifiers
+     *
+     * @param equipmentSlot 装备槽位
+     * @return 属性修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(
+        i32 equipmentSlot) const override;
 
 private:
     f32 m_attackDamage;
