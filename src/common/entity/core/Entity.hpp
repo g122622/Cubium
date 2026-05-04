@@ -701,6 +701,17 @@ public:
      */
     [[nodiscard]] virtual i32 getPortalCooldown() const { return 300; }
 
+    /**
+     * @brief 检查实体是否不是Boss
+     *
+     * 参考 MC 1.16.5 Entity.isNonBoss()
+     * Boss实体（末影龙、凋灵）不能使用传送门。
+     * 默认返回 true，Boss实体覆盖返回 false。
+     *
+     * @return 如果实体不是Boss返回 true
+     */
+    [[nodiscard]] virtual bool isNonBoss() const { return true; }
+
     // ========== 存活时间 ==========
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }

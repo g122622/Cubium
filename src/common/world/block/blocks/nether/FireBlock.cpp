@@ -308,9 +308,14 @@ void NetherPortalBlock::onEntityCollision(const BlockState& state, IWorld& world
     // 玩家需要站立在传送门中约 4 秒（80 ticks）才能传送
     // 其他实体约 1 tick
 
-    // MC: if (!entity.isPassenger() && !entity.isBeingRidden() && entity.canTeleport()) {
+    // MC: if (!entity.isPassenger() && !entity.isBeingRidden() && entity.isNonBoss()) {
     // 检查实体是否是乘客或被骑乘
     if (entity.isRiding() || entity.hasPassengers()) {
+        return;
+    }
+
+    // Boss 不能使用传送门（末影龙、凋灵等）
+    if (!entity.isNonBoss()) {
         return;
     }
 
