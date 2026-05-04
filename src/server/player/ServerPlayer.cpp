@@ -5,6 +5,7 @@
 #include "common/entity/player/SleepManager.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/util/property/Properties.hpp"
@@ -332,14 +333,14 @@ bool ServerPlayer::onPortalTriggered() {
     // 主世界 <-> 下界，末地 -> 主世界
     DimensionId targetDim;
     switch (currentDim) {
-        case NETHER:
-            targetDim = OVERWORLD;
+        case DimensionManager::NETHER:
+            targetDim = DimensionManager::OVERWORLD;
             break;
-        case OVERWORLD:
-            targetDim = NETHER;
+        case DimensionManager::OVERWORLD:
+            targetDim = DimensionManager::NETHER;
             break;
-        case THE_END:
-            targetDim = OVERWORLD;
+        case DimensionManager::THE_END:
+            targetDim = DimensionManager::OVERWORLD;
             break;
         default:
             // 未知维度，不传送
@@ -381,7 +382,7 @@ bool ServerPlayer::changeDimension(DimensionId targetDim) {
         DimensionType::fromId(currentDim),
         DimensionType::fromId(targetDim));
 
-    if (targetDim == THE_END) {
+    if (targetDim == DimensionManager::THE_END) {
         targetPos = Teleporter::getEndSpawnPosition();
     }
 
