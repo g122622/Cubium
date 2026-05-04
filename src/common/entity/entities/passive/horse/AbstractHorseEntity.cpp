@@ -4,6 +4,15 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
+#include "../../../ai/goal/goals/PanicGoal.hpp"
+#include "../../../ai/goal/goals/BreedGoal.hpp"
+#include "../../../ai/goal/goals/TemptGoal.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/MathUtils.hpp"
@@ -258,6 +267,15 @@ void AbstractHorseEntity::registerAttributes() {
     // 设置生命值和速度
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
+}
+
+void AbstractHorseEntity::registerGoals() {
+    AnimalEntity::registerGoals();
+
+    // MC 1.16.5 AbstractHorseEntity.registerGoals()
+    // 注意：RunAroundLikeCrazyGoal 的优先级和 PanicGoal 相同（都是1）
+    // 这样未驯服的马被骑乘时会优先执行疯狂奔跑
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::RunAroundLikeCrazyGoal>(this, 1.2));
 }
 
 void AbstractHorseEntity::updateRiding() {

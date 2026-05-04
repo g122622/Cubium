@@ -168,6 +168,7 @@ public:
     void travel(f32 strafing, f32 vertical, f32 forward) override;
 
 protected:
+    void registerGoals() override;
     void registerAttributes() override;
 
     // ========== 尺寸 ==========

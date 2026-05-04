@@ -5,6 +5,7 @@
 #include "../../../world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/blockentity/transport/IHopper.hpp"
+#include "../../damage/DamageSource.hpp"
 #include <string>
 #include <array>
 #include <memory>
@@ -514,6 +515,7 @@ private:
  * - 被激活铁轨点燃
  * - 被爆炸点燃
  * - 被火焰/熔岩点燃
+ * - 被燃烧的箭矢点燃
  * - 碰撞时根据速度造成不同威力的爆炸
  */
 class TNTMinecartEntity : public AbstractMinecartEntity {
@@ -543,12 +545,27 @@ public:
      */
     void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
 
+    /**
+     * @brief 处理投射物命中
+     * MC 1.16.5: 燃烧箭矢命中时点燃
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @return 是否处理了该伤害
+     */
+    bool onProjectileHit(DamageSource& source, f32 amount);
+
 private:
     /**
      * @brief 爆炸
      * @param speedFactor 速度因子，影响爆炸威力
      */
     void explode(f32 speedFactor = 1.0f);
+
+    /**
+     * @brief 检查火焰接触并点燃
+     * MC 1.16.5: 检查方块和流体
+     */
+    void checkFireIgnition();
 
     i32 m_fuse = -1;  ///< -1 表示未点燃
 };

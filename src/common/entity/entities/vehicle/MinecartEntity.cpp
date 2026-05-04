@@ -829,6 +829,17 @@ void TNTMinecartEntity::tick() {
             explode(speedFactor);
         }
     }
+
+    // MC 1.16.5: 检查火焰接触（在火焰/岩浆中自动点燃）
+    checkFireIgnition();
+
+    // MC 1.16.5: 水平碰撞检测（高速碰撞时爆炸）
+    if (m_collidedHorizontally) {
+        f32 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
+        if (speedSq >= 0.01f) {
+            explode(static_cast<f32>(std::sqrt(static_cast<f64>(speedSq))));
+        }
+    }
 }
 
 void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
@@ -842,6 +853,47 @@ void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) {
     }
 }
 
+bool TNTMinecartEntity::onProjectileHit(DamageSource& source, f32 amount) {
+    // MC 1.16.5: 燃烧箭矢命中时直接爆炸
+    Entity* directSource = source.directSource();
+    if (directSource != nullptr) {
+        // 检查是否为箭矢且在燃烧
+        // TODO: 当 ArrowEntity 实现后检查 isBurning()
+        // 暂时检查伤害类型是否为投射物
+        if (source.isProjectile() && source.isFire()) {
+            // 燃烧的投射物命中，立即爆炸
+            f32 speed = std::sqrt(velocityX() * velocityX() + velocityZ() * velocityZ());
+            explode(speed);
+            return true;
+        }
+    }
+
+    // MC 1.16.5: 火焰或爆炸伤害时点燃
+    if (source.isFire() || source.isExplosion()) {
+        if (m_fuse < 0) {
+            // 随机引信时间 0-40 tick
+            IWorld* worldPtr = Entity::world();
+            if (worldPtr && !worldPtr->isClientSide()) {
+                thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                prime(rng.nextInt(20) + rng.nextInt(20));
+            }
+        }
+        return true;
+    }
+
+    MC_UNUSED(amount);
+    return false;
+}
+
+void TNTMinecartEntity::checkFireIgnition() {
+    // MC 1.16.5: 在火焰或岩浆中自动点燃
+    if (m_fuse < 0) {
+        if (isOnFire() || isInLava()) {
+            prime();
+        }
+    }
+}
+
 void TNTMinecartEntity::explode(f32 speedFactor) {
     // MC 1.16.5: TNT矿车爆炸
     IWorld* worldPtr = Entity::world();
@@ -851,8 +903,14 @@ void TNTMinecartEntity::explode(f32 speedFactor) {
     }
 
     // 爆炸威力：基础4.0，速度加成最大到5.0
-    f32 radius = 4.0f * speedFactor;
-    radius = std::min(radius, 5.0f);  // MC 1.16.5 最大半径限制
+    f64 d0 = static_cast<f64>(speedFactor);
+    if (d0 > 5.0) {
+        d0 = 5.0;
+    }
+
+    // MC 1.16.5: 4.0 + random * 1.5 * speedFactor
+    thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+    f32 radius = static_cast<f32>(4.0 + rng.nextDouble() * 1.5 * d0);
 
     // 创建爆炸
     worldPtr->createExplosion(
