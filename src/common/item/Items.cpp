@@ -3,6 +3,7 @@
 #include "items/block/BlockItem.hpp"
 #include "items/armor/ArmorItem.hpp"
 #include "items/armor/DyeableArmorItem.hpp"
+#include "items/food/FoodItem.hpp"
 #include "items/potion/PotionItem.hpp"
 #include "items/potion/SplashPotionItem.hpp"
 #include "items/potion/LingeringPotionItem.hpp"
@@ -239,10 +240,11 @@ Item* Items::SUSPICIOUS_STEW = nullptr;
 Item* Items::SWEET_BERRIES = nullptr;
 Item* Items::TROPICAL_FISH = nullptr;
 
-// 木棍和骨头
+// 木棍、骨头和碗
 Item* Items::STICK = nullptr;
 Item* Items::BONE = nullptr;
 Item* Items::BONE_MEAL = nullptr;
+Item* Items::BOWL = nullptr;
 
 // 杂项
 Item* Items::FLINT = nullptr;
@@ -538,7 +540,8 @@ void Items::registerTools() {
 
     // ========================================================================
     // 钻石工具
-    // MC 1.16.5: 锄基础伤害-3，速度0.0
+    // MC 1.16.5: 斧基础伤害7.0 + tier(3.0) = 总伤害10.0
+    //            锄基础伤害0，攻击速度-3.0
     // ========================================================================
     DIAMOND_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:diamond_pickaxe"),
@@ -551,7 +554,7 @@ void Items::registerTools() {
     DIAMOND_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:diamond_axe"),
         item::tier::ItemTiers::DIAMOND(),  // tier
-        5.0f,   // attackDamage
+        7.0f,   // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+3.0=10.0)
         -3.0f,  // attackSpeed
         ItemProperties().rarity(ItemRarity::Common)
     );
@@ -567,8 +570,8 @@ void Items::registerTools() {
     DIAMOND_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:diamond_hoe"),
         item::tier::ItemTiers::DIAMOND(),  // tier
-        -3,     // attackDamage (MC 1.16.5: -3)
-        0.0f,   // attackSpeed (MC 1.16.5: 0.0)
+        0,      // attackDamage (MC 1.16.5: 0)
+        -3.0f,  // attackSpeed (MC 1.16.5: -3.0)
         ItemProperties().rarity(ItemRarity::Common)
     );
 
@@ -582,7 +585,8 @@ void Items::registerTools() {
 
     // ========================================================================
     // 铁工具
-    // MC 1.16.5: 斧基础伤害6.0，攻击速度-3.1；锄基础伤害-2，速度-1.0
+    // MC 1.16.5: 斧基础伤害7.0 + tier(2.0) = 总伤害9.0，攻击速度-3.1
+    //            锄基础伤害0，攻击速度-2.0
     // ========================================================================
     IRON_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:iron_pickaxe"),
@@ -595,7 +599,7 @@ void Items::registerTools() {
     IRON_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:iron_axe"),
         item::tier::ItemTiers::IRON(),  // tier
-        6.0f,   // attackDamage (MC 1.16.5: 6.0)
+        7.0f,   // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+2.0=9.0)
         -3.1f,  // attackSpeed (MC 1.16.5: -3.1)
         ItemProperties()
     );
@@ -611,8 +615,8 @@ void Items::registerTools() {
     IRON_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:iron_hoe"),
         item::tier::ItemTiers::IRON(),  // tier
-        -2,     // attackDamage (MC 1.16.5: -2)
-        -1.0f,  // attackSpeed (MC 1.16.5: -1.0)
+        0,      // attackDamage (MC 1.16.5: 0)
+        -2.0f,  // attackSpeed (MC 1.16.5: -2.0)
         ItemProperties()
     );
 
@@ -626,7 +630,8 @@ void Items::registerTools() {
 
     // ========================================================================
     // 石工具
-    // MC 1.16.5: 斧基础伤害7.0，攻击速度-3.2；锄基础伤害-1，速度-2.0
+    // MC 1.16.5: 斧基础伤害8.0 + tier(1.0) = 总伤害9.0，攻击速度-3.2
+    //            锄基础伤害0，攻击速度-1.0
     // ========================================================================
     STONE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:stone_pickaxe"),
@@ -639,7 +644,7 @@ void Items::registerTools() {
     STONE_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:stone_axe"),
         item::tier::ItemTiers::STONE(),  // tier
-        7.0f,   // attackDamage (MC 1.16.5: 7.0)
+        8.0f,   // attackDamage (MC 1.16.5: 8.0, 总伤害=8.0+1.0=9.0)
         -3.2f,  // attackSpeed (MC 1.16.5: -3.2)
         ItemProperties()
     );
@@ -655,8 +660,8 @@ void Items::registerTools() {
     STONE_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:stone_hoe"),
         item::tier::ItemTiers::STONE(),  // tier
-        -1,     // attackDamage (MC 1.16.5: -1)
-        -2.0f,  // attackSpeed
+        0,      // attackDamage (MC 1.16.5: 0)
+        -1.0f,  // attackSpeed (MC 1.16.5: -1.0)
         ItemProperties()
     );
 
@@ -670,7 +675,8 @@ void Items::registerTools() {
 
     // ========================================================================
     // 木工具
-    // MC 1.16.5: 斧基础伤害6.0，攻击速度-3.2；锹基础伤害1.5；锄基础伤害0，速度-3.0
+    // MC 1.16.5: 斧基础伤害7.0 + tier(0.0) = 总伤害7.0，攻击速度-3.2
+    //            锄基础伤害0，攻击速度0.0
     // ========================================================================
     WOODEN_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:wooden_pickaxe"),
@@ -683,7 +689,7 @@ void Items::registerTools() {
     WOODEN_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:wooden_axe"),
         item::tier::ItemTiers::WOOD(),  // tier
-        6.0f,   // attackDamage (MC 1.16.5: 6.0)
+        7.0f,   // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+0.0=7.0)
         -3.2f,  // attackSpeed (MC 1.16.5: -3.2)
         ItemProperties()
     );
@@ -699,8 +705,8 @@ void Items::registerTools() {
     WOODEN_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:wooden_hoe"),
         item::tier::ItemTiers::WOOD(),  // tier
-        0,      // attackDamage
-        -3.0f,  // attackSpeed (MC 1.16.5: -3.0)
+        0,      // attackDamage (MC 1.16.5: 0)
+        0.0f,   // attackSpeed (MC 1.16.5: 0.0)
         ItemProperties()
     );
 
@@ -714,7 +720,8 @@ void Items::registerTools() {
 
     // ========================================================================
     // 金工具
-    // MC 1.16.5: 斧基础伤害6.0；锹基础伤害1.5；锄基础伤害0，速度-3.0
+    // MC 1.16.5: 斧基础伤害7.0 + tier(0.0) = 总伤害7.0
+    //            锄基础伤害0，攻击速度0.0
     // ========================================================================
     GOLDEN_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:golden_pickaxe"),
@@ -727,7 +734,7 @@ void Items::registerTools() {
     GOLDEN_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:golden_axe"),
         item::tier::ItemTiers::GOLD(),  // tier
-        6.0f,   // attackDamage (MC 1.16.5: 6.0)
+        7.0f,   // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+0.0=7.0)
         -3.0f,  // attackSpeed
         ItemProperties()
     );
@@ -743,8 +750,8 @@ void Items::registerTools() {
     GOLDEN_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:golden_hoe"),
         item::tier::ItemTiers::GOLD(),  // tier
-        0,      // attackDamage
-        -3.0f,  // attackSpeed (MC 1.16.5: -3.0)
+        0,      // attackDamage (MC 1.16.5: 0)
+        0.0f,   // attackSpeed (MC 1.16.5: 0.0)
         ItemProperties()
     );
 
@@ -758,7 +765,8 @@ void Items::registerTools() {
 
     // ========================================================================
     // 下界合金工具
-    // MC 1.16.5: 锄基础伤害-4，速度0.0
+    // MC 1.16.5: 斧基础伤害6.0 + tier(4.0) = 总伤害10.0
+    //            锄基础伤害0，攻击速度-4.0
     // ========================================================================
     NETHERITE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(
         ResourceLocation("minecraft:netherite_pickaxe"),
@@ -771,7 +779,7 @@ void Items::registerTools() {
     NETHERITE_AXE = &registry.registerItem<item::tool::AxeItem>(
         ResourceLocation("minecraft:netherite_axe"),
         item::tier::ItemTiers::NETHERITE(),  // tier
-        5.0f,   // attackDamage
+        6.0f,   // attackDamage (MC 1.16.5: 6.0, 总伤害=6.0+4.0=10.0)
         -3.0f,  // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare)
     );
@@ -787,8 +795,8 @@ void Items::registerTools() {
     NETHERITE_HOE = &registry.registerItem<item::tool::HoeItem>(
         ResourceLocation("minecraft:netherite_hoe"),
         item::tier::ItemTiers::NETHERITE(),  // tier
-        -4,     // attackDamage (MC 1.16.5: -4)
-        0.0f,   // attackSpeed (MC 1.16.5: 0.0)
+        0,      // attackDamage (MC 1.16.5: 0)
+        -4.0f,  // attackSpeed (MC 1.16.5: -4.0)
         ItemProperties().rarity(ItemRarity::Rare)
     );
 
@@ -1112,9 +1120,10 @@ void Items::registerFood() {
         ItemProperties().maxStackSize(64).food(&Foods::BEETROOT)
     );
 
-    BEETROOT_SOUP = &registry.registerItem(
+    BEETROOT_SOUP = &registry.registerItem<item::items::FoodItem>(
         ResourceLocation("minecraft:beetroot_soup"),
-        ItemProperties().maxStackSize(1).food(&Foods::BEETROOT_SOUP)
+        &Foods::BEETROOT_SOUP,
+        ItemProperties().maxStackSize(1).containerItem(BOWL)
     );
 
     CARROT = &registry.registerItem(
@@ -1152,9 +1161,10 @@ void Items::registerFood() {
         ItemProperties().maxStackSize(64).food(&Foods::MELON_SLICE)
     );
 
-    MUSHROOM_STEW = &registry.registerItem(
+    MUSHROOM_STEW = &registry.registerItem<item::items::FoodItem>(
         ResourceLocation("minecraft:mushroom_stew"),
-        ItemProperties().maxStackSize(1).food(&Foods::MUSHROOM_STEW)
+        &Foods::MUSHROOM_STEW,
+        ItemProperties().maxStackSize(1).containerItem(BOWL)
     );
 
     POISONOUS_POTATO = &registry.registerItem(
@@ -1177,9 +1187,10 @@ void Items::registerFood() {
         ItemProperties().maxStackSize(64).food(&Foods::PUMPKIN_PIE)
     );
 
-    RABBIT_STEW = &registry.registerItem(
+    RABBIT_STEW = &registry.registerItem<item::items::FoodItem>(
         ResourceLocation("minecraft:rabbit_stew"),
-        ItemProperties().maxStackSize(1).food(&Foods::RABBIT_STEW)
+        &Foods::RABBIT_STEW,
+        ItemProperties().maxStackSize(1).containerItem(BOWL)
     );
 
     ROTTEN_FLESH = &registry.registerItem(
@@ -1192,9 +1203,10 @@ void Items::registerFood() {
         ItemProperties().maxStackSize(64).food(&Foods::SPIDER_EYE)
     );
 
-    SUSPICIOUS_STEW = &registry.registerItem(
+    SUSPICIOUS_STEW = &registry.registerItem<item::items::FoodItem>(
         ResourceLocation("minecraft:suspicious_stew"),
-        ItemProperties().maxStackSize(1).food(&Foods::SUSPICIOUS_STEW)
+        &Foods::SUSPICIOUS_STEW,
+        ItemProperties().maxStackSize(1).containerItem(BOWL)
     );
 
     SWEET_BERRIES = &registry.registerItem(
@@ -1244,6 +1256,11 @@ void Items::registerMisc() {
 
     BONE_MEAL = &registry.registerItem<item::items::BoneMealItem>(
         ResourceLocation("minecraft:bone_meal"),
+        ItemProperties().maxStackSize(64)
+    );
+
+    BOWL = &registry.registerItem(
+        ResourceLocation("minecraft:bowl"),
         ItemProperties().maxStackSize(64)
     );
 

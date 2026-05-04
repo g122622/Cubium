@@ -64,9 +64,9 @@ public:
     }
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override {
-        // 参考 MC 1.16.5: 65
-        (void)level;
-        return 65;
+        // 参考 MC 1.16.5: super.getMinEnchantability(level) + 50
+        // = 1 + level * 10 + 50 = 61 (等级1)
+        return 1 + level * 10 + 50;
     }
 };
 

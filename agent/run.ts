@@ -204,7 +204,7 @@ ${STOP_HOOK_PROMPT}
     //"/align 地形生成过程中的结构生成算法、模板解析、jigsaw系统、结构完整度（重点）等（提示：结构生成的nbt模板在mac环境位于/Users/a0000/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，在Windows环境位于D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，你需要充分探索这个目录。另外，随机数必须使用项目封装好的，不要自建随机数生成器）",
     //"/align 含水方块",
     //"/align 实体ai",
-    "/align 音效丰富度",
+    // "/align 音效丰富度",
     "/align 物品丰富度",
     "/align 矿车系统",
     "/align 船系统",
