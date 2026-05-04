@@ -259,9 +259,15 @@ item/
    - MilkBucketItem (牛奶桶) ✅ 完成 (清除药水效果)
 
 7. **药水物品** (items/potion/)
-   - PotionItem (药水)
-   - SplashPotionItem (溅射药水)
-   - LingeringPotionItem (滞留药水)
+   - PotionItem (药水) - 饮用型药水
+   - ThrowablePotionItem (可投掷药水基类) ✅ 新增
+   - SplashPotionItem (喷溅药水) ✅ 完成 - 继承ThrowablePotionItem
+   - LingeringPotionItem (滞留药水) ✅ 完成 - 继承ThrowablePotionItem
+   - GlassBottleItem (玻璃瓶)
+
+8. **药水箭** (items/weapon/)
+   - ArrowItem (普通箭矢)
+   - TippedArrowItem (药水箭) ✅ 完成 - 带药水效果的箭矢
 
 ### 系统性待实现项
 
