@@ -433,16 +433,16 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
 1. **有序合成** (`ShapedRecipe`) - ✅ 完成
 2. **无序合成** (`ShapelessRecipe`) - ✅ 完成
 3. **熔炉配方** (`SmeltingRecipe`) - ✅ 完成
-4. **高炉配方** (`BlastingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
-5. **烟熏炉配方** (`SmokingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
-6. **营火烹饪配方** (`CampfireCookingRecipe`) - ✅ 完成（继承 SmeltingRecipe）
+4. **高炉配方** (`BlastingRecipe`) - ✅ 完成（继承 SmeltingRecipe，100 tick）
+5. **烟熏炉配方** (`SmokingRecipe`) - ✅ 完成（继承 SmeltingRecipe，100 tick）
+6. **营火烹饪配方** (`CampfireCookingRecipe`) - ✅ 完成（继承 SmeltingRecipe，600 tick）
 7. **切石机配方** (`StonecuttingRecipe`) - ✅ 完成
-8. **锻造台配方** (`SmithingRecipe`) - ✅ 完成
+8. **锻造台配方** (`SmithingRecipe`) - ✅ 完成（支持 NBT 数据复制）
 9. **特殊配方** (`SpecialRecipe`) - ✅ 完成
    - `RepairItemRecipe` - 物品修复配方 ✅
-   - `ArmorDyeRecipe` - 盔甲染色配方 ✅
-   - `BookCloningRecipe` - 书复制配方 ✅
-   - `MapCloningRecipe` - 地图复制配方 ✅
+   - `ArmorDyeRecipe` - 盔甲染色配方 ✅（支持 16 种染料 + 墨囊 + 可可豆）
+   - `BookCloningRecipe` - 书复制配方 ✅（支持代数限制）
+   - `MapCloningRecipe` - 地图复制配方 ✅（待地图物品实现后完全可用）
 
 已实现功能：
 
@@ -458,5 +458,4 @@ RecipeManager::instance().registerRecipe(std::move(shapelessRecipe));
 
 待实现功能：
 
-1. **更多特殊配方** - 盔甲染色、书复制、地图复制等
-2. **配方书系统** - 配方解锁和配方书 UI
+1. **配方书系统** - 配方解锁和配方书 UI
